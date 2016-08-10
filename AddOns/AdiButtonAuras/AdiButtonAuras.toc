@@ -1,0 +1,59 @@
+# AdiButtonAuras - Display auras on action buttons.
+# Copyright 2013-2014 Adirelle (adirelle@gmail.com)
+# All rights reserved.
+#
+# This file is part of AdiButtonAuras.
+#
+# AdiButtonAuras is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# AdiButtonAuras is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with AdiButtonAuras.  If not, see <http://www.gnu.org/licenses/>.
+## X-Curse-Packaged-Version: 2.0-beta-6-9-g6ccf154
+## X-Curse-Project-Name: AdiButtonAuras
+## X-Curse-Project-ID: adibuttonauras
+## X-Curse-Repository-ID: wow/adibuttonauras/mainline
+
+## Interface: 70000
+
+## Title: AdiButtonAuras
+## Notes: Display auras on action buttons.
+## Author: Adirelle
+## Version: 2.0-beta-6-9-g6ccf154
+## X-Date: 2016-08-08T06:19:33Z
+## X-License: GPL v3
+## X-eMail: adirelle@gmail.com
+## SavedVariables: AdiButtonAurasDB
+
+## OptionalDeps: Ace3, LibArtifactData-1.0, LibSpellbook-1.0, LibDispellable-1.0, LibItemBuffs-1.0, LibPlayerSpells-1.0, DRData-1.0, LibDualSpec-1.0, LibButtonGlow-1.0, LibSharedMedia-3.0, SharedMedia_ButtonHighlight, AdiDebug, Dominos, LibActionButton-1.0, LibActionButton-1.0-ElvUI, Bartender4, Masque
+
+#@no-lib-strip@
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\BugGrabber\load.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
+libs\LibDispellable-1.0\LibDispellable-1.0.lua
+libs\LibPlayerSpells-1.0\lib.xml
+libs\LibSharedMedia-3.0\lib.xml
+libs\LibButtonGlow-1.0\LibButtonGlow-1.0.lua
+libs\LibArtifactData-1.0\LibArtifactData-1.0.lua
+libs\DRData-1.0\DRData-1.0.lua
+#@end-no-lib-strip@
+libs\LibSpellbook-1.0\LibSpellbook-1.0.lua
+libs\LibItemBuffs-1.0\LibItemBuffs-1.0.xml
+
+# Not in libs subfolder to shorten the path
+SMBH\lib.xml
+
+Localization.lua
+
+core\core.xml
+rules\rules.xml

@@ -1,0 +1,36 @@
+tag 7.0.1
+e645939b41274d1f7cbe0ac892360742a7570525
+subversion <svn@deadlybossmods.com>
+2016-07-30 20:14:15 +0200
+
+Tagging as 7.0.1
+
+
+--------------------
+
+subversion:
+	- increment version number to 7.0.1
+	- Omega via svn r15086: Add buff remaining too. Easier to test
+	- Omega via svn r15085: Add redundancy
+	- Omega via svn r15084: Update annihilate timers with more data from LFR Changed how fel ejection is done. since the variation in short durations is too great, ignore them, only show timers for the large gaps which have more consistent times Follow trancsriptors lead and Switch to using GetPlayerMapAreaID where appropriate Apply the ?\226?\128?\156do not log?\226?\128?\157 filter to old raids as well
+	- Omega via svn r15083: CN update
+	- Omega via svn r15082: Try this gorefiend fix. should now sort the out of range to bottom and avoid lua errors
+	- Omega via svn r15081: Report ?\226?\128?\156out of range?\226?\128?\157 on info frame instead of 0-GetTime() when unitdebuff/unitbuff fails
+	- Omega via svn r15080: Bump HF revision too
+	- Omega via svn r15079: Block all gorefiend syncs if not in combat with it (such as outside)
+	- Omega via svn r15078: enable profiles by default for hunters since they aren?\226?\128?\153t all 3 the same anymore (1 is melee 2 are ranged)
+	- Omega via svn r15077: Change how profiles are stored now that GetActiveSpecGroup is useless and always returns 1. This is going to mess up a lot of users settings but only fix to address fact a lot of users settings were broken/not saving because of GetActiveSpecGroup() being changed to return only 1. new method far more robust and will pose no issues going forward into legion but users may find themselves redoing a lot of settings.
+	- ebmor via svn r15076: deDE update + Nighthold localization files fixes
+	- Omega via svn r15075: Aluriel update
+	- Omega via svn r15074: Fix lua error
+	- Omega via svn r15073: Fixed one timer on Telarn changed icon marking on CoN now that it?\226?\128?\153s 30 second debuff. added icon marking to parasites since more room for it now with coN changes Added fire GTFO to Etraeus Disabled some timers for abilities that seem turned off in normal Some fixes to mythic only spell warnings
+	- Omega via svn r15072: wording change, since the fix required breaking this
+	- Omega via svn r15071: Change to PLAYER_SPECIALIZATION_CHANGED for talent swaps, ACTIVE_TALENT_GROUP_CHANGED seems to still fire but fires a bunch of times. PLAYER_SPECIALIZATION_CHANGED fires once Do a dirty fix to new bugs in blizzards timer frame to sort of fix countdown text (with side effect of stop watch appearing 1 after 0 instead of at 0 Sadly the bugs in timer frame are actually new to 7.x and in the timer frame. not DBM. All I can do is work around best I can :\
+	- Omega via svn r15070: Timer tweaks to frost phase aluriel. Add yell to mark of frost. Fix duplicate animate event. seems blizzard actually fixed combat log on something.
+	- Omega via svn r15069: Tweak tweak to aluriel frost jumps Fix chilled debuff
+	- Omega via svn r15068: legion CN update
+	- Omega via svn r15067: sync every combat log event gorefiend mod requires for timers, phase changes, etc. only thing not synced is debuffs on player (which shouldn?\226?\128?\153t need it because if it?\226?\128?\153s on you then it?\226?\128?\153s in your phase). This will resolve most missing timers/warnings issues when stuff happens in different phase from you now that this fight no longer shares combat info between stomach and non stomach
+	- Omega via svn r15066: another bump
+	- Omega via svn r15065: Fix icon in combat starts timers
+	- Omega via svn r15064: Bump BW version
+	- tandanu via svn r15063: increment alpha version

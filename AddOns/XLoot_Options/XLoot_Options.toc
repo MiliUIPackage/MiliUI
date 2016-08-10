@@ -1,0 +1,15 @@
+﻿## Interface: 70000
+## Title: XLoot Options
+## Notes: Configuration interface for XLoot
+## Version: 7.0-4
+## Author: Xuerian
+## X-Category: Inventory
+## X-Curse-Packaged-Version: 7.0-4
+## X-Curse-Project-Name: XLoot
+## X-Curse-Project-ID: xloot
+## X-Curse-Repository-ID: wow/xloot/mainline
+
+## Dependencies: XLoot
+## LoadOnDemand: 1
+
+load.xml

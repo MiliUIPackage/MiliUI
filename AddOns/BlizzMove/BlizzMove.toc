@@ -1,0 +1,17 @@
+## Interface: 60000
+## Title: Blizzmove
+## Notes: Move those blizzard windows
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Blizzmove]|r 框架解鎖
+## Notes-zhTW: 將大部分的預設框架解鎖，可以滑鼠拖曳移動，在標題使用CTRL+滾輪可改變大小。
+## Author: yess
+## Version: v1.3.2
+## X-Email: starfire@fantasymail.de
+## X-Curse-Packaged-Version: v1.3.2
+## X-Curse-Project-Name: BlizzMove
+## X-Curse-Project-ID: blizzmove
+## X-Curse-Repository-ID: wow/blizzmove/mainline
+
+## SavedVariables: BlizzMoveDB
+
+Blizzmove.lua
+

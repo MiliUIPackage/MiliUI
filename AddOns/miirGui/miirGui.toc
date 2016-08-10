@@ -1,0 +1,61 @@
+## Interface: 70000
+## Title: miir|cff44CCFFGui|r - Core
+## Version: 4.0.0
+## Notes: Blizzard Interface Fixes for usage with miirGui graphics
+## Author: Miiru-Lordaeron
+core.lua
+
+FrameXML/AlertFrames.lua
+FrameXML/CharacterFrame.lua
+FrameXML/ContainerFrame.lua
+FrameXML/DressUpFrames.lua
+FrameXML/FriendsFrame.lua
+FrameXML/GameMenuFrame.lua
+FrameXML/GuildRegistrarFrame.lua
+FrameXML/LFDQueueFrame.lua
+FrameXML/LootFrame.lua
+FrameXML/MailFrame.lua
+FrameXML/MerchantFrame.lua
+FrameXML/Minimap.lua
+FrameXML/ObjectiveTrackerFrame.lua
+FrameXML/Portraits.lua
+FrameXML/PVEFrame.lua
+FrameXML/QuestFrame.lua
+FrameXML/SpellBookFrame.lua
+FrameXML/TabardFrame.lua
+FrameXML/TargetingFrame.lua
+FrameXML/TimerFrame.lua
+FrameXML/TradeFrame.lua
+
+onDemand/AchievementUI.lua
+onDemand/ArchaeologyUI.lua
+onDemand/ArtifactUI.lua
+onDemand/AuctionUI.lua
+onDemand/BlackMarketUI.lua
+onDemand/ChallengesUI.lua
+onDemand/Collections.lua
+onDemand/EncounterJournalUI.lua
+onDemand/FlightMap.lua
+onDemand/Garrison_Buildings.lua
+onDemand/Garrison_Report.lua
+onDemand/Garrison_Missions.lua
+onDemand/Garrison_Shared_Functions.lua
+onDemand/Garrison_Shipyard.lua
+onDemand/GuildBankUI.lua
+onDemand/GuildControlUI.lua
+-- onDemand/GuildUI.lua
+onDemand/InspectUI.lua
+onDemand/ItemSocketingUI.lua
+onDemand/ItemUpgradeUI.lua
+onDemand/LookingForGuildUI.lua
+onDemand/MacroUI.lua
+onDemand/OrderHallUI.lua
+onDemand/PVPUI.lua
+onDemand/QuestChoice.lua
+onDemand/TalentUI.lua
+onDemand/TalkingHeadUI.lua
+onDemand/TradeSkillUI.lua
+onDemand/TrainerUI.lua
+onDemand/VoidStorageUI.lua
+
+onDemand/Custom.lua

@@ -1,0 +1,9 @@
+## Interface: 70000
+## Title: Lib: S2k Misc
+## Author: silencer2k@gmail.com
+## Version: 1.0
+## X-Part-Of: Libraries
+## X-Category: Library
+
+LibStub\LibStub.lua
+lib.xml

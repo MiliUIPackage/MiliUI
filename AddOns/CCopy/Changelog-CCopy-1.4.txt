@@ -1,0 +1,12 @@
+tag 1.4
+82bd6be0c175f0a4d0bd498c5ef16649d1809973
+Borlox <borlox@worldofwar.de>
+2010-10-14 13:42:00 +0200
+
+CCopy 1.4 for Patch 4.0.1
+
+
+--------------------
+
+Borlox:
+	- Patch 4.0.1 update

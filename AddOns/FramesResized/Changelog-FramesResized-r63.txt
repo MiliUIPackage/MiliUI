@@ -1,0 +1,16 @@
+------------------------------------------------------------------------
+r63 | elkano | 2016-07-24 14:18:50 +0000 (Sun, 24 Jul 2016) | 2 lines
+Changed paths:
+   M /trunk/FramesResized.lua
+   M /trunk/FramesResized.toc
+   M /trunk/FramesResizedOptions.lua
+
+- updated for WoW 7.0.3
+- TradeSkillUI resizing disabled for now (frame is larger anyways)
+------------------------------------------------------------------------
+r62 | elkano | 2015-11-30 21:50:57 +0000 (Mon, 30 Nov 2015) | 1 line
+Changed paths:
+   M /trunk/FramesResized.toc
+
+... also why do I keep setting a 60300 toc?
+------------------------------------------------------------------------

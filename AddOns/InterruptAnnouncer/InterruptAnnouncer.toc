@@ -1,0 +1,11 @@
+## Author: Shauren
+## Interface: 70000
+## Notes: Announces your successful interrupts to party/raid
+## Title: InterruptAnnouncer
+## Version: 1.0
+## X-Curse-Packaged-Version: Release-7.0-1
+## X-Curse-Project-Name: InterruptAnnouncer
+## X-Curse-Project-ID: interruptannouncer
+## X-Curse-Repository-ID: wow/interruptannouncer/mainline
+libs\ChatThrottleLib\ChatThrottleLib.xml
+InterruptAnnouncer.lua

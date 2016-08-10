@@ -1,0 +1,17 @@
+## Interface: 70000
+## Version: 16.07.23
+## Title: TipTacItemRef
+## Author: Aezay (Earthen Ring EU)
+## Notes: Improved ItemRefTooltip
+## Title-zhCN: TipTacItemRef (物品信息)
+## Notes-zhCN: 增强物品提示信息
+## Title-zhTW: TipTacItemRef (物品訊息)
+## Notes-zhTW: 增強物品提示訊息
+## OptionalDeps: TipTac
+Libs\AceLocale-3.0\AceLocale-3.0.lua
+Libs\LibStub\LibStub.lua
+Local_enUS.lua
+Local_zhCN.lua
+Local_zhTW.lua
+GetUpgradedItemLevel.lua
+core.lua

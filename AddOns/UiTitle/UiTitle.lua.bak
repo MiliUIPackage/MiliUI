@@ -1,0 +1,7 @@
+local f = CreateFrame("Frame")  --建立一個Frame用來監聽事件
+f:RegisterEvent("PLAYER_LOGIN") --註冊事件, 此例為玩家登入或reloadUI時會觸發
+f:SetScript("OnEvent",          --設定在事件觸發時執行的script
+    function()
+    		SendChatMessage("大家好 我是羅志祥", "GUILD" ,nil)     --公會頻廣播
+    end
+)

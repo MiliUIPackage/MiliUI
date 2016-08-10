@@ -1,0 +1,230 @@
+## Changes in Legion version ##
+
+## Miirgui Addon ##
+
+The miirgui addon file structure has been reviewed. All files have been rewritten to account for legion changes.
+
+The m_fontify function has been introduced to improve readability
+
+Miirgui_Icons has been removed. It has been integrated into the main addon.
+
+## AchievementFrame ##
+
+added:
+
+miirgui_ach_ship.tga
+UI-ACHIEVEMENT-SHIELDS.blp
+UI-ACHIEVEMENT-SHIELDS-NOPOINTS.blp
+UI-Achievement-Progressive-Shield.blp
+
+changed:
+
+UI-Achievement-Borders.blp
+UI-Achievement-Header.blp
+UI-Achievement-ComparisonHeader.blp
+UI-ACHIEVEMENT-PLUSMINUS.BLP
+UI-Achievement-Guild.blp
+
+removed:
+
+miirgui_shield.blp
+UI-Achievement-Parchment-Horizontal-Desaturated.blp
+UI-Achievement-Parchment-Horizontal.blp
+
+## AdventureMap ##
+
+added:
+
+AdventureMap.blp
+
+## Artifact ##
+
+added:
+
+ArtifactForge.blp
+ArtifactsHorizontal.blp
+ArtifactsVertical.blp
+## Buttons ##
+
+changed:
+
+UI-ScrollBar-Knob.blp
+UI-ScrollBar-ScrollDownButton-Disabled.blp
+UI-ScrollBar-ScrollDownButton-Down.blp
+UI-ScrollBar-ScrollDownButton-Up.blp
+UI-ScrollBar-ScrollUpButton-Disabled.blp
+UI-ScrollBar-ScrollUpButton-Down.blp
+UI-ScrollBar-ScrollUpButton-Up.blp
+
+added:
+
+UI-ScrollBar-ScrollDownButton-Highlight.blp
+UI-ScrollBar-ScrollUpButton-Highlight.blp
+
+## Challenges ##
+
+removed:
+
+challenges-main.blp
+challenges-besttime-bg.blp
+
+added:
+
+ChallengeMode.blp
+ChallengeModeHud.blp
+
+## Containerframe ##
+
+changed:
+
+quality.blp
+bags.blp
+
+## Common ##
+
+added:
+
+WhiteIconFrame.blp
+
+help-i.blp
+
+## Cooldown ##
+
+added:
+edge.blp
+
+## EncounterJournal ##
+
+added:
+
+LootTab.blp
+LootTabBackground.BLP
+
+## FriendsFrame ##
+
+added:
+
+InformationIcon.blp
+InformationIcon-Highlight.BLP
+
+## Garrison ##
+
+added:
+
+bility1.blp
+ClassHallMissionListIcons.blp
+ClassHallUI.blp
+complete.blp
+GarrisonLandingPage.blp
+OrderHallCommandBarHorizontal.blp
+OrderHallTalents.blp
+bility6.blp
+
+changed:
+
+GarrisonMissionUI2.blp
+mission.blp
+
+removed:
+GarrisonCacheToast.blp
+
+## Glues ##
+
+changed:
+
+UI-CHARACTERCREATE-CLASSES.blp
+
+## LFGFrame ##
+
+changed:
+
+GroupFinder.blp
+
+## LootFrame ##
+
+changed:
+
+LootToast.blp
+
+## MainMenuBar ##
+
+changed:
+
+UI-XP-Bar.blp
+
+## PaperDollInfoFrame ##
+
+added:
+
+PaperDollInfoPart1.blp
+UI-ReputationWatchBar.blp
+
+## PVPFrame ##
+
+added:
+
+PvPHonorSystem.blp
+PvPHonorSystemHorizontal.blp
+
+## QuestFrame ##
+
+added:
+
+TalkingHeads.blp
+AutoQuest.blp
+
+changed:
+
+ObjectiveTracker.blp
+BonusObjectives.blp
+QuestMapLogAtlas.blp
+
+## Reforging ##
+
+added:
+
+Valor-Flare.blp
+
+## Scenarios ##
+
+added:
+
+LegionInvasion.blp
+
+changed:
+
+ScenarioParts.blp
+
+## TalentFrame ##
+
+removed:
+
+glyph-bg.blp
+glyph-main.blp
+glyph-side-bg.blp
+glyph-side-bg.blp
+spec-blue-bg.blp
+spec-paper-bg.blp
+
+changed:
+
+TalentFrameAtlas.blp
+
+## TargetingFrame ##
+
+changed:
+
+UI-CLASSES-CIRCLES.blp
+
+## Transmogrify ##
+
+added:
+
+Transmogrify.blp
+
+## VoidStorage ##
+
+changed:
+
+VoidStorage.blp
+-------------

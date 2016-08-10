@@ -1,0 +1,16 @@
+## Interface: 70000
+## Title: Lib: Toast-1.0
+## Notes: Provides one or many informational windows with optional interactive widgets.
+## Author: Torhal
+## Version: 7.0.3.2
+## LoadOnDemand: 1
+## X-Date: 2016-07-19T06:59:13Z
+## X-Category: Libraries
+## X-License: All Rights Reserved
+## X-Curse-Packaged-Version: 7.0.3.2
+## X-Curse-Project-Name: LibToast-1.0
+## X-Curse-Project-ID: libtoast-1-0
+## X-Curse-Repository-ID: wow/libtoast-1-0/mainline
+
+LibStub\LibStub.lua
+lib.xml

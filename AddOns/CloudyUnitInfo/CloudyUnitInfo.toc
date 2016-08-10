@@ -1,0 +1,9 @@
+## Interface: 70000
+## Title: Cloudy Unit Info
+## Notes: Adds gear info and specialization of inspected player to unit tooltips.
+## Title-zhTW: |cFF0080FF[裝備等級]|rCloudy Unit Info
+## Notes-zhTW: 增加玩家已裝備的平均等級到工具提示中，並提示PVP與帳綁裝備件數。
+## Version: 1.8
+## Author: Cloudyfa
+
+CloudyUnitInfo.lua

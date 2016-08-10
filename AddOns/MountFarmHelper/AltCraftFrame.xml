@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+    <Button name="AltCraftMFHButtonTemplate" virtual="true">
+        <Size x="718" y="60" />
+        <Layers>
+            <Layer level="BACKGROUND">
+                <Texture name="$parentTopLeft" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="2" y="-1" />
+                    </Anchors>
+                    <TexCoords left="0" right="0.078125" top="0" bottom="0.3125" />
+                </Texture>
+                <Texture name="$parentTopRight" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="TOPRIGHT" x="-2" y="-1" />
+                    </Anchors>
+                    <TexCoords left="0.75" right="0.828125" top="0" bottom="0.3125" />
+                </Texture>
+                <Texture file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="LEFT" relativeTo="$parentTopLeft" relativePoint="RIGHT" />
+                        <Anchor point="RIGHT" relativeTo="$parentTopRight" relativePoint="LEFT" />
+                    </Anchors>
+                    <TexCoords left="0.078125" right="0.75" top="0" bottom="0.3125" />
+                </Texture>
+                <Texture name="$parentBottomLeft" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="BOTTOMLEFT" x="2" y="1" />
+                    </Anchors>
+                    <TexCoords left="0" right="0.078125" top="0.6875" bottom="1" />
+                </Texture>
+                <Texture name="$parentBottomRight" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="BOTTOMRIGHT" x="-2" y="1" />
+                    </Anchors>
+                    <TexCoords left="0.75" right="0.828125" top="0.6875" bottom="1" />
+                </Texture>
+                <Texture file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Size x="10" y="10" />
+                    <Anchors>
+                        <Anchor point="LEFT" relativeTo="$parentBottomLeft" relativePoint="RIGHT" />
+                        <Anchor point="RIGHT" relativeTo="$parentBottomRight" relativePoint="LEFT" />
+                    </Anchors>
+                    <TexCoords left="0.078125" right="0.75" top="0.6875" bottom="1" />
+                </Texture>
+                <Texture name="$parentLeft" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentTopLeft" relativePoint="BOTTOMLEFT" />
+                        <Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomLeft" relativePoint="TOPRIGHT" />
+                    </Anchors>
+                    <TexCoords left="0" right="0.078125" top="0.3125" bottom="0.6875" />
+                </Texture>
+                <Texture name="$parentRight" file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentTopRight" relativePoint="BOTTOMLEFT" />
+                        <Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomRight" relativePoint="TOPRIGHT" />
+                    </Anchors>
+                    <TexCoords left="0.75" right="0.828125" top="0.3125" bottom="0.6875" />
+                </Texture>
+                <Texture file="Interface\AuctionFrame\UI-AuctionItemNameFrame">
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentTopLeft" relativePoint="BOTTOMRIGHT" />
+                        <Anchor point="BOTTOMRIGHT" relativeTo="$parentBottomRight" relativePoint="TOPLEFT" />
+                    </Anchors>
+                    <TexCoords left="0.078125" right="0.75" top="0.3125" bottom="0.6875" />
+                </Texture>
+            </Layer>
+            <Layer level="ARTWORK">
+                <FontString name="$parentItem" inherits="GameFontNormal" justifyH="LEFT" wordwrap="false" parentKey="Item">
+                    <Size x="250" />
+                    <Anchors>
+                        <Anchor point="TOPLEFT" x="62" y="-10" />
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentZone" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="false" parentKey="Zone">
+                    <Size x="250" />
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentItem" relativePoint="BOTTOMLEFT" x="0" y="-5" />
+                    </Anchors>
+                </FontString>
+                <FontString name="$parentSource" inherits="GameFontNormalSmall" justifyH="LEFT" wordwrap="false" parentKey="Source">
+                    <Size x="250" />
+                    <Anchors>
+                        <Anchor point="TOPLEFT" relativeTo="$parentZone" relativePoint="BOTTOMLEFT" x="0" y="-3" />
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <Frame name="$parentIcon" parentKey="Icon">
+                <Size x="52" y="52" />
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="5" y="-4" />
+                </Anchors>
+                <Layers>
+                    <Layer level="ARTWORK">
+                        <Texture name="$parentTexture" parentKey="Texture" />
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnEnter><![CDATA[
+                        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+                        GameTooltip:SetItemByID(self:GetParent().data.itemId)
+                        GameTooltip:Show()
+                    ]]></OnEnter>
+                    <OnLeave><![CDATA[
+                        if GameTooltip:IsOwned(self) then
+                            GameTooltip:Hide()
+                        end
+                    ]]></OnLeave>
+                </Scripts>
+            </Frame>
+            <Frame name="$parentHighlight" parentKey="Highlight" visible="false">
+                <Anchors>
+                    <Anchor point="TOPLEFT" />
+                    <Anchor point="BOTTOMRIGHT" />
+                </Anchors>
+                <Layers level="BACKGROUND">
+                    <Layer>
+                        <Texture file="Interface\FriendsFrame\UI-FriendsFrame-HighlightBar" alphaMode="ADD" />
+                    </Layer>
+                </Layers>
+            </Frame>
+        </Frames>
+        <Scripts>
+            <OnClick><![CDATA[
+                self:GetParent():GetParent():GetParent():OnSelectItem(self)
+            ]]></OnClick>
+        </Scripts>
+    </Button>
+    <Frame name="AltCraftMFHTabFrame" hidden="true">
+        <Size x="768" y="447" />
+        <Anchors>
+            <Anchor point="TOPLEFT" />
+        </Anchors>
+        <Layers>
+            <Layer level="BACKGROUND">
+                <FontString inherits="GameFontNormal" parentKey="Title">
+                    <Anchors>
+                        <Anchor point="TOP">
+                            <Offset>
+                                <AbsDimension x="0" y="-18" />
+                            </Offset>
+                        </Anchor>
+                    </Anchors>
+                </FontString>
+            </Layer>
+        </Layers>
+        <Frames>
+            <ScrollFrame name="$parentListScroll" inherits="HybridScrollFrameTemplate" parentKey="ListScroll">
+                <Anchors>
+                    <Anchor point="TOPLEFT" x="21" y="-75" />
+                    <Anchor point="BOTTOMRIGHT" x="-27" y="40" />
+                </Anchors>
+                <Frames>
+                    <Slider name="$parentScrollBar" inherits="HybridScrollBarTemplate">
+                        <Anchors>
+                            <Anchor point="TOPLEFT" relativePoint="TOPRIGHT">
+                                <Offset>
+                                    <AbsDimension x="0" y="-12" />
+                                </Offset>
+                            </Anchor>
+                            <Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT">
+                                <Offset>
+                                    <AbsDimension x="0" y="12" />
+                                </Offset>
+                            </Anchor>
+                        </Anchors>
+                    </Slider>
+                </Frames>
+                <Scripts>
+                    <OnUpdate><![CDATA[
+                        self:OnUpdate()
+                    ]]></OnUpdate>
+                </Scripts>
+            </ScrollFrame>
+            <Button name="$parentDeleteButton" inherits="UIPanelButtonTemplate" parentKey="DeleteButton" text="DELETE">
+                <Size x="80" y="22" />
+                <Anchors>
+                    <Anchor point="TOPRIGHT" relativeTo="$parentListScroll" relativePoint="BOTTOMRIGHT">
+                        <Offset>
+                            <AbsDimension x="21" y="-3" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Layers>
+                    <Layer level="BORDER">
+                        <Texture file="Interface\FrameGeneral\UI-Frame">
+                            <Size x="13" y="25" />
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" relativePoint="TOPLEFT" x="5" y="1" />
+                            </Anchors>
+                            <TexCoords left="0.00781250" right="0.10937500" top="0.75781250" bottom="0.95312500" />
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnClick><![CDATA[
+                        self:GetParent():OnDeleteClick()
+                    ]]></OnClick>
+                </Scripts>
+            </Button>
+            <Button name="$parentRestoreButton" inherits="UIPanelButtonTemplate" parentKey="RestoreButton">
+                <Size x="120" y="22" />
+                <Anchors>
+                    <Anchor point="RIGHT" relativeTo="$parentDeleteButton" relativePoint="LEFT" />
+                </Anchors>
+                <Layers>
+                    <Layer level="BORDER">
+                        <Texture file="Interface\FrameGeneral\UI-Frame">
+                            <Size x="13" y="25" />
+                            <Anchors>
+                                <Anchor point="TOPRIGHT" relativePoint="TOPLEFT" x="5" y="1" />
+                            </Anchors>
+                            <TexCoords left="0.00781250" right="0.10937500" top="0.75781250" bottom="0.95312500" />
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Scripts>
+                    <OnClick><![CDATA[
+                        self:GetParent():OnRestoreClick()
+                    ]]></OnClick>
+                </Scripts>
+            </Button>
+        </Frames>
+        <Scripts>
+            <OnShow><![CDATA[
+                self:OnShow()
+            ]]></OnShow>
+        </Scripts>
+    </Frame>
+</Ui>

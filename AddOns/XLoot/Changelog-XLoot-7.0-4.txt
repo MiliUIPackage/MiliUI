@@ -1,0 +1,14 @@
+tag 7.0-4
+a352f0b6f4cd3dea3725e9e66acb9db29f74967a
+Xuerian <xuerian@gmail.com>
+2016-08-01 05:37:55 -0400
+
+Support alpha values for border colors
+
+
+--------------------
+
+Xuerian:
+	- skins: Support alpha value for SetBorderColor
+	- Frame: Add default alpha values to remaining colors, remove redundant hasAlpha from options
+	- options BetterOptions: Default hasAlpha = true on color types

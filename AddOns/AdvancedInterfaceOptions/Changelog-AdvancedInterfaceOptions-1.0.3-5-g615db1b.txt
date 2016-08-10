@@ -1,0 +1,9 @@
+Benjamin Staneck:
+	- spelling
+	- add loss of control cvars
+semlar:
+	- Temporary fix for Ok button
+	- Fix cvar browser not coloring value after setting it
+	- Update cvar browser when a cvar changes
+	CVar browser should reflect current values when SetCVar or /console
+	commands are called while it's open

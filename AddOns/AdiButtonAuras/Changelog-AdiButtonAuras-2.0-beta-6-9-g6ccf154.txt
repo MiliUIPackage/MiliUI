@@ -1,0 +1,13 @@
+Rainrider:
+	- rogue: exclude Night Terrors
+	Fixes https://github.com/AdiAddons/AdiButtonAuras/issues/221
+	- rules: add GetDebuff to the list of globals
+	- rules: add a rule to show Surrendered Soul on battle res spells
+	- core: get the version of the queried category only
+	- core: track all sources for auras with multiple sources
+	- core: providers are now the 5th value for ShowPower
+	Also update the docs.
+	- docs: update ShowStacks
+	- death knight: make use of ShowStacks for Razorice
+	- core: ShowStacks now works for player's debuffs too
+	The unit must be set to "enemy" for this.

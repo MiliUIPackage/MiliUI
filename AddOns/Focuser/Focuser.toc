@@ -1,0 +1,8 @@
+﻿## Interface: 60000
+## Title: Focuser
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFFF99FF[Focuser]|r Focus助手
+## Notes: Shift+滑鼠左鍵點擊可以Focus目標，Shift+點擊地板取消Focus目標。
+## Author: Slizen
+## Version: 0.51
+
+Focuser.lua

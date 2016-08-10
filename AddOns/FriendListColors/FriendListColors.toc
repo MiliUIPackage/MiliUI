@@ -1,0 +1,13 @@
+﻿## Interface: 70000
+## Title: FriendListColors
+## Notes: Customize how your friends appear in your friends list!
+## Title-zhTW: |cff0099FF[介面]|r 彩色好友名單
+## Notes-zhTW: FriendListColors |n你的人生是彩色的! 自訂要如何顯示你的好友名單。|n|cffffd200使用方法：|r按 O 開啟好友名單。從Esc>介面>插件>好友名單，進行設定。
+## Author: Vladinator
+## Version: 7.0.0.160625
+## SavedVariables: FriendListColorsDB
+## X-Curse-Packaged-Version: v7.0.0.160628
+## X-Curse-Project-Name: Friend List Colors
+## X-Curse-Project-ID: flc
+## X-Curse-Repository-ID: wow/flc/mainline
+core.lua

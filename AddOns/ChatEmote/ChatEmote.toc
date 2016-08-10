@@ -1,0 +1,9 @@
+﻿## Interface: 60000
+## Title: ChatEmote
+## Title-zhTW: |cFF77FF77[頻道]|r |cFF9999FF[ChatEmote]|r 聊天表情
+## Notes: ChatEmote
+## Notes-zhTW: 聊天表情，另外增加擲骰以及團隊開場倒數功能。
+## Version: 1.0
+## SavedVariables: ChatEmote
+
+ChatEmote.lua

@@ -1,0 +1,18 @@
+## Interface: 70000
+## X-Compatible-With: 70000
+## Title: Sell-O-Matic2 |cff7fff7fList|r
+## Notes: Sell-O-Matic2 module for selling items using lists.
+## Author: Silmano
+## Version: a064
+## OptionalDeps: Ace3, LibGratuity-3.0
+## LoadOnDemand: 1
+## Dependencies: SellOMatic2
+## DefaultState: disabled
+## X-Category: Tradeskill
+## X-Curse-Packaged-Version: a064
+## X-Curse-Project-Name: Sell-O-Matic2
+## X-Curse-Project-ID: sell-o-matic-2
+## X-Curse-Repository-ID: wow/sell-o-matic-2/mainline
+
+SOM_list.lua
+SOM_frames.lua

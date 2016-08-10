@@ -1,0 +1,47 @@
+﻿## Interface: 70000
+## LoadOnDemand: 1
+#@non-debug@
+## Title: Lib: Babble-ItemSet-3.0
+## Title-deDE: Lib: Babble-ItemSet-3.0
+## Title-esES: Lib: Babble-ItemSet-3.0
+## Title-esMX: Lib: Babble-ItemSet-3.0
+## Title-frFR: Lib: Babble-ItemSet-3.0
+## Title-itIT: Lib: Babble-ItemSet-3.0
+## Title-koKR: Lib: Babble-ItemSet-3.0
+## Title-ptBR: Lib: Babble-ItemSet-3.0
+## Title-ruRU: Lib: Babble-ItemSet-3.0
+## Title-zhCN: Lib: Babble-ItemSet-3.0
+## Title-zhTW: Lib: Babble-ItemSet-3.0
+## Notes: A library to help with localization of in-game item sets.
+## Notes-deDE: Eine Bibliothek, die dabei hilft, die Ausrüstungssets des Spiels zu übersetzen.
+## Notes-esES: A library to help with localization of in-game item sets.
+## Notes-esMX: A library to help with localization of in-game item sets.
+## Notes-frFR: A library to help with localization of in-game item sets.
+## Notes-itIT: A library to help with localization of in-game item sets.
+## Notes-koKR: A library to help with localization of in-game item sets.
+## Notes-ptBR: A library to help with localization of in-game item sets.
+## Notes-ruRU: A library to help with localization of in-game item sets.
+## Notes-zhCN: 一个帮助游戏内物品套装本地化的库。
+## Notes-zhTW: 為本地化服務的函式庫 [套裝名稱]
+#@end-non-debug@
+#@debug@
+# ## Title: Lib: Babble-ItemSet-3.0
+# ## Notes: A library to help with localization of in-game item sets.
+# ## Notes-zhTW: 為本地化服務的函式庫 [套裝名稱]
+# ## Notes-zhCN: 一个帮助游戏内物品套装本地化的库。
+# ## Notes-deDE: Eine Bibliothek, die dabei hilft, die Ausrüstungssets Spiels zu übersetzen.
+#@end-debug@
+## Author: Arith
+## X-eMail: arithmandarjp at yahoo.co.jp
+## X-Category: Library
+## X-License: MIT
+## X-Date: 2016-07-18T17:48:22Z
+## X-Website: http://www.wowace.com/addons/libbabble-itemset-3-0/
+## X-Curse-Packaged-Version: r86
+## X-Curse-Project-Name: LibBabble-ItemSet-3.0
+## X-Curse-Project-ID: libbabble-itemset-3-0
+## X-Curse-Repository-ID: wow/libbabble-itemset-3-0/mainline
+
+LibStub\LibStub.lua
+lib.xml
+

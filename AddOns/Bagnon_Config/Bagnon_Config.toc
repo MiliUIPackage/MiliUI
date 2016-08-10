@@ -1,0 +1,14 @@
+## Interface: 70000
+## Title: Bagnon Config
+## Notes: Load on demand configuration for Bagnon
+## Author: Tuller & Jaliborc (João Cardoso)
+## Dependencies: Bagnon
+## LoadOnDemand: 1
+## Version: 7.0.4
+
+..\Bagnon\libs\Poncho-1.0\Poncho-1.0.xml
+..\Bagnon\libs\Sushi-3.0\Sushi-3.0.xml
+
+localization\localization.xml
+group.lua
+panels.lua

@@ -1,0 +1,25 @@
+## Interface: 70000
+## Title: Mount Farm Helper
+## Title-zhTW: |cFF008040[農坐騎幫手]|rMount Farm Helper
+## Notes-zhTW: 幫助你農副本取得尚未取得的坐騎！
+## Author: silencer2k@gmail.com
+## SavedVariables: MountFarmHelperDB
+## Version: 2.0
+## X-Curse-Packaged-Version: 7.0.3-5-1-gf944c97
+## X-Curse-Project-Name: Mount Farm Helper (What Mount to Farm Next?)
+## X-Curse-Project-ID: mount-farm-helper
+## X-Curse-Repository-ID: wow/mount-farm-helper/mainline
+
+MountFarmHelper.xml
+
+locales\enUS.lua
+locales\zhCN.lua
+locales\zhTW.lua
+
+MountsDB.lua
+MountFarmHelper.lua
+
+Config.lua
+
+AltCraftFrame.xml
+AltCraftFrame.lua

@@ -1,0 +1,83 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/"   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"   xsi:schemaLocation="http://www.blizzard.com/wow/ui/"> 
+
+<Frame name="Eqx_core"> 
+	<Scripts> 
+		<OnLoad>		Eqx_OnLoad(self);					</OnLoad>
+		<OnUpdate>		Eqx_OnUpdate(self, elapsed);		</OnUpdate>
+		<OnEvent>		Eqx_EventHandler(self, event, ...);			</OnEvent>
+	</Scripts> 
+</Frame> 
+
+  <!-- Template for a single option "box" containing a checkbox --> 
+
+<Frame name="Eqx_SingleOptionTemplate" virtual="true">
+	<Size><AbsDimension y="40" /></Size>		
+	<Anchors>
+		<Anchor point="LEFT" ><Offset><AbsDimension x="20"/></Offset></Anchor>
+		<Anchor point="RIGHT"><Offset><AbsDimension x="-20"/></Offset></Anchor>
+	</Anchors>
+
+	<Scripts>
+		<OnEnter>	Eqx_ShowOptionTooltip(self);	</OnEnter>
+		<OnLeave>	GameTooltip:Hide();		</OnLeave>
+	</Scripts>
+
+	<Frames>
+		<CheckButton name="$parent_CB" inherits="UICheckButtonTemplate">
+			<Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="0" y="0"/></Offset></Anchor></Anchors>
+			<Layers>
+				<Layer level="BACKGROUND">
+					<FontString name="$parent_Text" inherits="GameFontHighlight">
+						<Anchors>
+							<Anchor point="LEFT" relativePoint="RIGHT" relativeTo="$parent">
+								<Offset><AbsDimension x="8" y="1"/></Offset>
+							</Anchor>
+						</Anchors>
+					</FontString>
+				</Layer>
+			</Layers>
+			<Scripts>
+				<OnEnter>	Eqx_ShowOptionTooltip(self:GetParent());	</OnEnter>
+				<OnLeave>	GameTooltip:Hide();		</OnLeave>
+				<OnClick>	Eqx_Option_OnClick (self);	</OnClick>
+			</Scripts>
+		</CheckButton>
+	</Frames>
+</Frame>
+	
+<!--
+<Frame name="Eqx_UIOptionsFrame" hidden="true">
+	<Scripts>
+		<OnLoad>
+			self.name		= "Equipsee"
+			self.okay		= Eqx_Save_Options;
+			self.refresh	= Eqx_Refresh_Options;
+			
+			InterfaceOptions_AddCategory(self);
+		</OnLoad>
+	</Scripts>
+
+	<Frames>
+		<Frame name="Eqx_Option_Always_Show" inherits="Eqx_SingleOptionTemplate">
+			<Anchors><Anchor point="TOP"><Offset><AbsDimension y="-80"/></Offset></Anchor></Anchors>
+			<Scripts>
+				<OnLoad> Eqx_Option_Always_Show_CB_Text:SetText ("Always show equipment set names in bags/bank");	</OnLoad>
+			</Scripts>
+		</Frame>
+	</Frames>
+</Frame>
+-->
+
+
+<Font name="Eqx_Ilevel_Font" inherits="SystemFont_Outline_Small">
+	<Color r="1.0" g="1.0" b="1.0"/>
+	<Shadow>
+		<Offset>
+			<AbsDimension x="1" y="-1"/>
+		</Offset>
+		<Color r="0" g="0" b="0"/>
+	</Shadow>
+</Font>
+
+
+</Ui>

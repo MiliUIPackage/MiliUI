@@ -1,0 +1,12 @@
+## Interface: 70000
+## LoadOnDemand: 1
+## Title: Lib: Spellbook-1.0
+## Version: @project-version@
+## X-Date: @project-date@
+## Notes: Track the spellbook to parry to IsPlayerSpell and IsSpellKnown discrepancies.
+## Author: Adirelle
+## OptionalDeps: LibArtifactData-1.0
+
+LibStub.lua
+CallbackHandler-1.0.lua
+LibSpellbook-1.0.lua

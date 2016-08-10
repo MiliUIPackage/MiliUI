@@ -1,0 +1,23 @@
+## Interface: 70000
+## Title: Advanced Interface Options
+## Author: Stanzilla, Semlar
+## Version: 1.0.3-5-g615db1b
+## Notes: Restores access to removed interface options in Legion
+## Title-zhTW: |cff0099FF[介面]|r 進階選項
+## Notes-zhTW: Advanced Interface Options |n讓你可以使用軍臨天下所移除的遊戲介面選項。|n|cffffd200使用方法：|r從Esc>介面>插件>進階，進行設定。
+## X-Category: Interface Enhancements
+## X-Website: http://www.curse.com/addons/wow/advancedinterfaceoptions
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: AdvancedInterfaceOptionsSaved
+## X-Curse-Packaged-Version: 1.0.3-5-g615db1b
+## X-Curse-Project-Name: AdvancedInterfaceOptions
+## X-Curse-Project-ID: advancedinterfaceoptions
+## X-Curse-Repository-ID: wow/advancedinterfaceoptions/mainline
+
+semlib\semlib.xml
+cvars.lua
+basicOptions.lua
+browser.lua
+
+tempfix.lua

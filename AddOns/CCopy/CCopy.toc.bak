@@ -1,0 +1,24 @@
+## Interface: 50300
+## Title: CCopy
+## Notes: Small addon to copy chat lines.
+## Notes-deDE: Ein kleines Addon um einzelne Zeilen aus dem Chat zu kopieren.
+## Title-zhTW: |cFF77FF77[頻道]|r |cFF9999FF[CCopy]|r 聊天複製
+## Notes-zhTW: 在每則聊天訊息前面顯示一個『-』號，可以輕鬆貼上聊天訊息。
+## Author: Borlox
+## X-Email: borlox@worldofwar.de
+## Version: 1.4 
+## X-Category: Chat/Communication
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: delayed
+## OptionalDeps: Ace3
+## X-Embeds: Ace3
+## X-Curse-Packaged-Version: 1.4
+## X-Curse-Project-Name: CCopy
+## X-Curse-Project-ID: ccopy
+## X-Curse-Repository-ID: wow/ccopy/mainline
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+Core.lua

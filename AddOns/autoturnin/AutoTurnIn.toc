@@ -1,0 +1,34 @@
+﻿## Interface: 70000
+## Title: AutoTurnIn
+## Version: 5.1.1
+## Author: Alexandr Shubert
+## Notes: Quest handling automation
+## Notes-ruRU: Автоматическая обработка заданий
+## Notes-enUS: Quest handling automation
+## Notes-frFR: Accepte et rend automatiquement les quêtes
+## Notes-deDE: Auto akzeptieren und komplett täglich oder alle Quests
+## Notes-itIT: Italian translators wanted!!!
+## OptionalDeps: Ace3
+## SavedVariablesPerCharacter: AutoTurnInCharacterDB
+## X-Date: 2016-07-21
+## X-Category: Quest
+## X-Embeds: Ace3
+## X-Curse-Packaged-Version: 7.0.3
+## X-Curse-Project-Name: AutoTurnIn
+## X-Curse-Project-ID: autoturnin
+## X-Curse-Repository-ID: wow/autoturnin/mainline
+
+embeds.xml
+loc\localization_RU.lua
+loc\localization_EN.lua
+loc\localization_DE.lua
+loc\localization_FR.lua
+loc\localization_IT.lua
+
+rewards_const.lua
+IgnoredNPC.lua
+AutoTurnIn.lua
+QuestLevel.lua
+
+ui\main_options.lua
+ui\reward_options.lua
