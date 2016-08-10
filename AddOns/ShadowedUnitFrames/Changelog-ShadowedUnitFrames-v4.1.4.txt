@@ -1,0 +1,12 @@
+tag v4.1.4
+20a036b29b3152b2e39c9df35c1f84855a6f791a
+Hendrik Leppkes <h.leppkes@gmail.com>
+2016-08-09 12:45:25 +0200
+
+Tag as v4.1.4
+
+
+--------------------
+
+Hendrik Leppkes:
+	- Remove obsolete banked holypower handling

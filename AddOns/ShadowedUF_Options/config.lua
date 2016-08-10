@@ -4233,7 +4233,13 @@ local function loadUnitOptions()
 								type = "select",
 								name = L["Color health by"],
 								desc = L["Primary means of coloring the health bar, color on aggro and color by reaction will override this if necessary."],
-								values = {["class"] = L["Class"], ["static"] = L["Static"], ["percent"] = L["Health percent"]},
+								values = function(info)
+											if info[2] == "pet" or info[2] == "partypet" or info[2] == "raidpet" or info[2] == "arenapet" then
+												return {["class"] = L["Class"], ["static"] = L["Static"], ["percent"] = L["Health percent"], ["playerclass"] = L["Player Class"]}
+											else
+												return {["class"] = L["Class"], ["static"] = L["Static"], ["percent"] = L["Health percent"]}
+											end
+										end,
 								arg = "healthBar.colorType",
 							},
 							reaction = {
