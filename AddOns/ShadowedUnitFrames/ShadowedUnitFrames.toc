@@ -12,11 +12,11 @@
 ## X-Curse-Repository-ID: wow/shadowed-unit-frames/mainline
 
 #@no-lib-strip@
-# libs\LibStub\LibStub.lua
-# libs\CallbackHandler-1.0\CallbackHandler-1.0\CallbackHandler-1.0.xml
-# libs\LibSharedMedia-3.0\lib.xml
-# libs\AceDB-3.0\AceDB-3.0.xml
-# libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\LibSharedMedia-3.0\lib.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
 #@end-no-lib-strip@
 
 localization\enUS.lua
