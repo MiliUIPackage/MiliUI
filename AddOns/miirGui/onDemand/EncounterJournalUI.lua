@@ -103,7 +103,7 @@ function frame:OnEvent(event, arg1)
 			InstanceIcontexture:SetTexture(buttonImage)
 			InstanceIcon:SetPoint("CENTER",self.info.instanceButton,1,0)
 			InstanceIcon:SetParent(self.info.instanceButton)	
-			for i=1,12 do	
+			for i=1,19 do	
 				if _G["EncounterJournalBossButton"..i] then
 				m_fontify(_G["EncounterJournalBossButton"..i.."Text"],"white")
 				end
@@ -179,19 +179,7 @@ function frame:OnEvent(event, arg1)
 			suggestion.reward.iconRingHighlight:SetAlpha(0)
 		end
 			
-		hooksecurefunc("EJSuggestFrame_UpdateRewards", miirgui_EJSuggestFrame_UpdateRewards)
-
-		local function miirgui_EJ_SetDifficulty()
-			local self = EncounterJournal.encounter;
-			m_fontify(self.instance.title,"white")
-			for i=1,12 do	
-				if _G["EncounterJournalBossButton"..i] then
-				m_fontify(_G["EncounterJournalBossButton"..i.."Text"],"white")
-				end
-			end
-		end
-			
-		hooksecurefunc("EJ_SetDifficulty",miirgui_EJ_SetDifficulty)
+		hooksecurefunc("EJSuggestFrame_UpdateRewards", miirgui_EJSuggestFrame_UpdateRewards)	
 		
 		local function miirgui_UpdateList()
 			local buttons = EncounterJournal.LootJournal.ItemSetsFrame.buttons;
@@ -204,7 +192,18 @@ function frame:OnEvent(event, arg1)
 		end
 			
 		hooksecurefunc(EncounterJournal.LootJournal.ItemSetsFrame,"UpdateList",miirgui_UpdateList)
-
+	
+		local function miirgui_EncounterJournal_ListInstances()
+			m_fontify(EncounterJournalInstanceSelectScrollFrameScrollChildInstanceButton1Name,"white")	
+			for i=1,20 do 
+				if _G["EncounterJournalInstanceSelectScrollFrameinstance"..i.."Name"] then
+					m_fontify(_G["EncounterJournalInstanceSelectScrollFrameinstance"..i.."Name"],"white")
+				end
+			end
+		end
+		
+		hooksecurefunc("EncounterJournal_ListInstances",miirgui_EncounterJournal_ListInstances)
+		
 	end
 end
 

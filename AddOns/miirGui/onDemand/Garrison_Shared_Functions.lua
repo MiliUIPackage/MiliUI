@@ -214,7 +214,6 @@
 				local numMechs = 0;
 				local sortedKeys = self:SortMechanics(enemy.mechanics);
 				for _, id in ipairs(sortedKeys) do
-					local mechanic = enemy.mechanics[id];
 					numMechs = numMechs + 1;
 					local Mechanic = Frame.Mechanics[numMechs];	
 					Mechanic.Border:Show()	

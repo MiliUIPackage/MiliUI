@@ -153,7 +153,9 @@ local function miirgui_InvasionAlertSystem()
 	ScenarioLegionInvasionAlertFrameBackground:SetTexCoord(0,1,1,0)
 	ScenarioLegionInvasionAlertFrameBackground:SetTexture("Interface\\Achievementframe\\miirgui_ach.tga")
 	m_fontify(ScenarioLegionInvasionAlertFrameCompleted,"color")
+	m_fontify(ScenarioLegionInvasionAlertFrame.ZoneName,"same")	
 end
+
 		
 hooksecurefunc(InvasionAlertSystem,"AddAlert",miirgui_InvasionAlertSystem)
 		

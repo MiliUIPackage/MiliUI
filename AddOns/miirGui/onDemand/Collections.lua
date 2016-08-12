@@ -179,7 +179,6 @@ function frame:OnEvent(event, arg1)
 		hooksecurefunc("PetJournal_UpdatePetLoadOut",miirgui_PetJournal_UpdatePetLoadOut)				-- this hook changes the quality border on the pet loadout panel
 
 		local function miirgui_PetJournal_UpdatePetCard(self)
-			local test = self.TypeInfo.typeIcon:GetTexture()
 			if string.find (self.TypeInfo.typeIcon:GetTexture(),"Humanoid") then
 				self.TypeInfo.typeIcon:SetTexture("Interface\\TargetingFrame\\PetBadge-Humanoid.blp")
 			elseif string.find (self.TypeInfo.typeIcon:GetTexture(),"Dragon") then
@@ -267,7 +266,7 @@ function frame:OnEvent(event, arg1)
 				m_fontify(button.name,"white")
 				button.slotFrameCollected:SetTexture("Interface\\Buttons\\UI-Quickslot")
 				button.slotFrameCollected:SetSize(74,74)
-				button.levelBackground:Hide();
+				button.levelBackground:SetAlpha(0)
 				m_fontify(button.level,"white")											
 			else
 				m_fontify(button.name,"grey")

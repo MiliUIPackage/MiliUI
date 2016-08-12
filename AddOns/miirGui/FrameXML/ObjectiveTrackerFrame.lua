@@ -111,4 +111,23 @@ end
 
 hooksecurefunc("ObjectiveTracker_Update",miirgui_ObjectiveTracker_Update)
 
+local function miirgui_Update()
+	for i = 1, GetNumAutoQuestPopUps() do
+		local questID = GetAutoQuestPopUp(i);
+		if AUTO_QUEST_POPUP_TRACKER_MODULE:GetExistingBlock(questID) then
+			local block = AUTO_QUEST_POPUP_TRACKER_MODULE:GetExistingBlock(questID);
+			local blockContents = block.ScrollChild;
+			m_fontify(blockContents.TopText,"green")
+			m_fontify(blockContents.QuestName,"color")
+			m_fontify(blockContents.BottomText,"grey")
+			if string.find (blockContents.Exclamation:GetTexture(),"AutoQuest") then
+			else
+				blockContents.Exclamation:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+			end
+		end
+	end	
+end
+
+hooksecurefunc(AUTO_QUEST_POPUP_TRACKER_MODULE,"Update",miirgui_Update)
+
 end)

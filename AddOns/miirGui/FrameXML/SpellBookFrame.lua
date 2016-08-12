@@ -69,11 +69,13 @@ local function miirgui_UpdateProfessionButton(self)
 	local spellIndex = self:GetID() + self:GetParent().spellOffset;
 	local isPassive = IsPassiveSpell(spellIndex, SpellBookFrame.bookType);
 		if ( isPassive ) then
-			self.highlightTexture:SetTexture("Interface\\Buttons\\UI-PassiveHighlight");
+			--self.highlightTexture:SetTexture("Interface\\Buttons\\UI-PassiveHighlight");
+			m_fontify(self.subSpellString,"white")
 			m_fontify(self.spellString,"color") 
 		else
-			self.highlightTexture:SetTexture("Interface\\Buttons\\ButtonHilight-Square");
+			--self.highlightTexture:SetTexture("Interface\\Buttons\\ButtonHilight-Square");
 			m_fontify(self.spellString,"color")
+			m_fontify(self.subSpellString,"white")
 		end
 end
 

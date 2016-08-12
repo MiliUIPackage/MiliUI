@@ -18,17 +18,31 @@ ScenarioBG:Hide()
 local RaidFinderFrameNoRaidsCoverBG=select(1,RaidFinderFrame.NoRaidsCover:GetRegions())
 RaidFinderFrameNoRaidsCoverBG:Hide()
 m_border(LFDQueueFrame,336,262,"CENTER",-1,-60,14,"MEDIUM")
-
 m_border(RaidFinderFrame,332,87,"TOP",-2,-24,14,"HIGH")
 m_border(RaidFinderQueueFrame,336,262,"CENTER",-1,-58,14,"HIGH")
 m_border(ScenarioQueueFrame,334,336,"CENTER",-2,-22,14,"MEDIUM")
 
+LFGDungeonReadyDialog:SetBackdrop({
+bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border_blue.blp",
+edgeSize = 14, 
+insets = { left = 2, right = 2, top = 2, bottom = 2 }
+})
+LFGDungeonReadyDialog:SetBackdropColor(0,0,0,0.8);
+
 local function miirgui_LFGDungeonReadyDialogReward_SetReward()
+	LFGDungeonReadyDialog:SetBackdrop({
+	bgFile = "Interface/Tooltips/UI-Tooltip-Background",
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border_blue.blp",
+	edgeSize = 14, 
+	insets = { left = 2, right = 2, top = 2, bottom = 2 }
+	})
+	LFGDungeonReadyDialog:SetBackdropColor(0,0,0,0.8);
 	for i=1,4 do
 		if not _G["m_border_LFGDungeonReadyDialogRewardsFrameReward"..i] and _G["LFGDungeonReadyDialogRewardsFrameReward"..i] then			
 			_G["LFGDungeonReadyDialogRewardsFrameReward"..i.."Border"]:Hide()
 			_G["LFGDungeonReadyDialogRewardsFrameReward"..i.."Texture"]:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-			m_border(_G["LFGDungeonReadyDialogRewardsFrameReward"..i],36,36,"CENTER",-3,3,12,"DIALOG")			
+			m_border(_G["LFGDungeonReadyDialogRewardsFrameReward"..i],36,36,"CENTER",-3,3,14,"DIALOG")			
 		end
 	end		
 end

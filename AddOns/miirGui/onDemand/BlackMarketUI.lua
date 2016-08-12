@@ -78,7 +78,7 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_BlackMarketUI" then
 	
 	hooksecurefunc("BlackMarketScrollFrame_Update",miirgui_BlackMarketScrollFrame_Update)
 	
-	hooksecurefunc("BlackMarketFrame_UpdateHotItem",function(self)
+	hooksecurefunc("BlackMarketFrame_UpdateHotItem",function()
 		m_fontify(BlackMarketFrame.HotDeal.Title,"color")
 		m_fontify(BlackMarketFrame.HotDeal.Name,"same")
 		m_fontify(BlackMarketFrame.HotDeal.Type,"same")
