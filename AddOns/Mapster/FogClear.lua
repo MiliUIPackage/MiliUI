@@ -1621,10 +1621,11 @@ errata.BlastedLands_terrain1 = errata.BlastedLands
 local db
 local defaults = {
 	profile = {
-		colorR = 1,
-		colorG = 1,
-		colorB = 1,
-		colorA = 1,
+		colorR = 0.3137254901960784,
+		colorG = 0.5176470588235294,
+		colorB = 0.9215686274509803,
+		colorA = 0.8900000005960465,
+		debug = false
 	},
 }
 

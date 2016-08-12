@@ -42,7 +42,7 @@ local function BuildSingleProfile()
 	-- -8
 
 	Bartender4.db.profile.blizzardVehicle = false
-	Bartender4.db.profile.outofrange = "hotkey"
+	Bartender4.db.profile.outofrange = "button"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
@@ -116,7 +116,7 @@ local function BuildDoubleProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = true
-	Bartender4.db.profile.outofrange = "hotkey"
+	Bartender4.db.profile.outofrange = "button"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
@@ -195,7 +195,7 @@ local function BuildBlizzardProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = true
-	Bartender4.db.profile.outofrange = "hotkey"
+	Bartender4.db.profile.outofrange = "button"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
