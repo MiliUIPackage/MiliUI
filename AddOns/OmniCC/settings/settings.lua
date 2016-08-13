@@ -56,7 +56,7 @@ function OmniCC:StartupGroup(group)
 		fontOutline = 'OUTLINE',
 		minDuration = 2,
 		minSize = 0.5,
-		effect = 'pulse',
+		effect = 'activate',
 		minEffectDuration = 30,
 		tenthsDuration = 0,
 		mmSSDuration = 0,
