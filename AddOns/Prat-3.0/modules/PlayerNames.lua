@@ -728,7 +728,7 @@ Prat:AddModuleToLoad(function()
       realidname = false,
       coloreverywhere = false,
       usecommoncolor = true,
-      altinvite = false,
+      altinvite = true,
       linkinvite = true,
       bracketscommoncolor = false,
       linkifycommon = true,
