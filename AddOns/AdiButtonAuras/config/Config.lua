@@ -1,6 +1,6 @@
 --[[
 AdiButtonAuras - Display auras on action buttons.
-Copyright 2013-2014 Adirelle (adirelle@gmail.com)
+Copyright 2013-2016 Adirelle (adirelle@gmail.com)
 All rights reserved.
 
 This file is part of AdiButtonAuras.
@@ -46,7 +46,7 @@ AdiButtonAuras:CreateConfig(function(addonName, addon)
 		name = addonName..' DEV',
 		--@end-debug@]===]
 		--@non-debug@
-		name = addonName..' 2.0-beta-6-9-g6ccf154',
+		name = addonName..' 2.0-beta-6-17-gc227772',
 		--@end-non-debug@
 		type = 'group',
 		childGroups = 'tab',

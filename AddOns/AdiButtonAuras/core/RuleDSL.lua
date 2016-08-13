@@ -1,6 +1,6 @@
 --[[
 AdiButtonAuras - Display auras on action buttons.
-Copyright 2013-2014 Adirelle (adirelle@gmail.com)
+Copyright 2013-2016 Adirelle (adirelle@gmail.com)
 All rights reserved.
 
 This file is part of AdiButtonAuras.
@@ -613,12 +613,11 @@ local RULES_ENV = addon.BuildSafeEnv(
 		"bit", "ceil", "floor", "format", "ipairs", "math", "min", "pairs", "print",
 		"select", "string", "table", "tinsert", "type",
 		-- WoW API
-		"GetComboPoints", "GetEclipseDirection", "GetNumGroupMembers", "GetRuneCooldown",
-		"GetShapeshiftFormID", "GetSpellBonusHealing", "GetSpellCharges", "GetSpellInfo",
-		"GetTime", "GetTotemInfo", "HasPetSpells", "IsPlayerSpell", "UnitCanAttack",
-		"UnitCastingInfo", "UnitChannelInfo", "UnitClass","UnitHealth", "UnitHealthMax",
-		"UnitIsDeadOrGhost", "UnitIsPlayer", "UnitName", "UnitPower", "UnitPowerMax",
-		"UnitStagger",
+		"GetNumGroupMembers", "GetPetTimeRemaining", "GetRuneCooldown", "GetShapeshiftFormID",
+		"GetSpellBonusHealing", "GetSpellCharges", "GetSpellInfo", "GetTime", "GetTotemInfo",
+		"HasPetSpells", "IsPlayerSpell", "UnitCanAttack", "UnitCastingInfo", "UnitChannelInfo",
+		"UnitClass","UnitHealth", "UnitHealthMax", "UnitIsDeadOrGhost", "UnitIsPlayer",
+		"UnitName", "UnitPower", "UnitPowerMax", "UnitStagger",
 	}
 )
 

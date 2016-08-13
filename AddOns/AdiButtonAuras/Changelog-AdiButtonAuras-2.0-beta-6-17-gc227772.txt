@@ -1,4 +1,15 @@
 Rainrider:
+	- mage: track Arcane Familiar by its totem rather than the aura
+	- monk: add a rule for the duration of summoned statues
+	- core: add GetPetTimeRemaining to the save environment
+	... aaaaaand to the list of globals :peep:
+	- monk: add a rule to track duration of the Invoke spells
+	- rules: and of course I missed one
+	My opinion about global lists is a very long :peep:
+	- :fireworks: Copyright 2016
+	- rules: refresh the list of globals
+	- core: clean up the save environment
+	Removed GetComboPoints and GetEclipseDirection
 	- rogue: exclude Night Terrors
 	Fixes https://github.com/AdiAddons/AdiButtonAuras/issues/221
 	- rules: add GetDebuff to the list of globals

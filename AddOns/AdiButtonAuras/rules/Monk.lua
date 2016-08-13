@@ -1,6 +1,6 @@
 --[[
 AdiButtonAuras - Display auras on action buttons.
-Copyright 2013-2014 Adirelle (adirelle@gmail.com)
+Copyright 2013-2016 Adirelle (adirelle@gmail.com)
 All rights reserved.
 
 This file is part of AdiButtonAuras.
@@ -26,19 +26,65 @@ if not addon.isClass("MONK") then return end
 AdiButtonAuras:RegisterRules(function()
 	Debug('Adding monk rules')
 
-	return ImportPlayerSpells { "MONK" }
+	return {
+		ImportPlayerSpells { "MONK" },
+
+		Configure {
+			"InvokePets",
+			L["Show the duration of @NAME."],
+			{
+				123904, -- Invoke Xuen, the White Tiger
+				132578, -- Invoke Niuzao, the Black Ox
+				198664, -- Invoke Chi-Ji, the Red Crane
+			},
+			"player",
+			"UNIT_PET",
+			function(_, model)
+				local remaining = GetPetTimeRemaining()
+				if remaining then
+					model.expiration = GetTime() + remaining / 1000
+					model.highlight = "good"
+				end
+			end,
+		},
+
+		Configure {
+			"Statues",
+			L["Show the duration of your summoned statue."],
+			{
+				115313, -- Summon Jade Serpent Statue
+				115315, -- Summon Black Ox Statue
+			},
+			"player",
+			"PLAYER_TOTEM_UPDATE",
+			function(_, model)
+				local found, _, start, duration = GetTotemInfo(1) -- monks have only one totem
+				if found then
+					model.highlight = "good"
+					model.expiration = start + duration
+				end
+			end,
+		},
+	}
 end)
 
+-- ABA
 -- GLOBALS: AddRuleFor BuffAliases BuildAuraHandler_FirstOf BuildAuraHandler_Longest
 -- GLOBALS: BuildAuraHandler_Single BuildDesc BuildKey Configure DebuffAliases Debug
 -- GLOBALS: DescribeAllSpells DescribeAllTokens DescribeFilter DescribeHighlight
--- GLOBALS: DescribeLPSSource GetComboPoints GetEclipseDirection GetNumGroupMembers
--- GLOBALS: GetShapeshiftFormID GetSpellBonusHealing GetSpellInfo GetTime
--- GLOBALS: GetTotemInfo HasPetSpells ImportPlayerSpells L LongestDebuffOf
--- GLOBALS: PLAYER_CLASS PassiveModifier PetBuffs SelfBuffAliases SelfBuffs
--- GLOBALS: SharedSimpleBuffs SharedSimpleDebuffs ShowPower SimpleBuffs
--- GLOBALS: SimpleDebuffs UnitCanAttack UnitCastingInfo UnitChannelInfo UnitClass
--- GLOBALS: UnitHealth UnitHealthMax UnitIsDeadOrGhost UnitIsPlayer UnitPower
--- GLOBALS: UnitPowerMax UnitStagger bit ceil floor format ipairs math min pairs
--- GLOBALS: print select string table tinsert GetPlayerBuff ShowStacks
--- GLOBALS: GetSpellCharges
+-- GLOBALS: DescribeLPSSource GetBuff GetDebuff GetLib GetPlayerBuff GetPlayerDebuff
+-- GLOBALS: ImportPlayerSpells IterateBuffs IterateDebuffs IteratePlayerBuffs
+-- GLOBALS: IteratePlayerDebuffs L LongestDebuffOf PassiveModifier PetBuffs PLAYER_CLASS
+-- GLOBALS: SelfBuffAliases SelfBuffs SharedSimpleBuffs SharedSimpleDebuffs ShowPower
+-- GLOBALS: ShowStacks SimpleBuffs SimpleDebuffs
+
+-- WoW API
+-- GLOBALS: GetNumGroupMembers GetPetTimeRemaining GetRuneCooldown GetShapeshiftFormID
+-- GLOBALS: GetSpellCharges GetSpellBonusHealing GetSpellInfo GetTime GetTotemInfo
+-- GLOBALS: HasPetSpells IsPlayerSpell UnitCanAttack UnitCastingInfo UnitChannelInfo
+-- GLOBALS: UnitClass UnitHealth UnitHealthMax UnitIsDeadOrGhost UnitIsPlayer UnitName
+-- GLOBALS: UnitPower UnitPowerMax UnitStagger
+
+-- Lua API
+-- GLOBALS: bit ceil floor format ipairs math min pairs print select string table
+-- GLOBALS: tinsert type
