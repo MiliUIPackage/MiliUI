@@ -3,10 +3,12 @@
 ## Author: Kitjan, lieandswell
 ## Version: 4.0.26
 ## Notes: Timer bars for buffs, debuffs, cooldowns, etc.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFCC99CC[NeedToKnow]|r 玩家Buff監控
+## Notes-zhTW: 以條狀監控buffs、debuffs、技能冷卻....等。『/ntk』
 ## X-Credits: Bilt, Fxfighter EU-Echsenkessel, metalchoir, sp00n, Vlakarados, wowui.cn
 ## X-Category: Buffs, Combat
 ## OptionalDeps: LibStub,LibSharedMedia-3.0
-## DefaultState: Enabled
+## DefaultState: disabled
 ## LoadOnDemand: 0
 ## SavedVariablesPerCharacter: NeedToKnow_Settings, NeedToKnow_CharSettings
 ## SavedVariables: NeedToKnow_Globals
