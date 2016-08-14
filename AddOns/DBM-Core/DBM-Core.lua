@@ -41,9 +41,9 @@
 --  Globals/Default Options  --
 -------------------------------
 DBM = {
-	Revision = tonumber(("$Revision: 15086 $"):sub(12, -3)),
-	DisplayVersion = "7.0.1", -- the string that is shown as version
-	ReleaseRevision = 15086 -- the revision of the latest stable version that is available
+	Revision = tonumber(("$Revision: 15117 $"):sub(12, -3)),
+	DisplayVersion = "7.0.2 BNS", -- the string that is shown as version
+	ReleaseRevision = 15117 -- the revision of the latest stable version that is available
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -352,7 +352,6 @@ DBM_OPTION_SPACER = newproxy(false)
 local bossModPrototype = {}
 local usedProfile = "Default"
 local dbmIsEnabled = true
-local blockEnable = false
 local lastCombatStarted = GetTime()
 local loadcIds = {}
 local inCombat = {}
@@ -468,7 +467,7 @@ local IsInRaid, IsInGroup, IsInInstance = IsInRaid, IsInGroup, IsInInstance
 local UnitAffectingCombat, InCombatLockdown, IsEncounterInProgress, UnitPlayerOrPetInRaid, UnitPlayerOrPetInParty = UnitAffectingCombat, InCombatLockdown, IsEncounterInProgress, UnitPlayerOrPetInRaid, UnitPlayerOrPetInParty
 local UnitGUID, UnitHealth, UnitHealthMax, UnitBuff = UnitGUID, UnitHealth, UnitHealthMax, UnitBuff
 local UnitExists, UnitIsDead, UnitIsFriend, UnitIsUnit, UnitIsAFK = UnitExists, UnitIsDead, UnitIsFriend, UnitIsUnit, UnitIsAFK
-local GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetActiveSpecGroup, GetSpellCooldown = GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetActiveSpecGroup, GetSpellCooldown
+local GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetSpellCooldown = GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetSpellCooldown
 local EJ_GetEncounterInfo, EJ_GetCreatureInfo, GetDungeonInfo = EJ_GetEncounterInfo, EJ_GetCreatureInfo, GetDungeonInfo
 local GetInstanceInfo = GetInstanceInfo
 local UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone = UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone
@@ -1141,22 +1140,20 @@ do
 			if GetAddOnEnableState(playerName, "VEM-Core") >= 1 then
 				self:Disable(true)
 				C_TimerAfter(10, function() self:AddMsg(DBM_CORE_VEM) end)
+				C_TimerAfter(20, function() self:AddMsg(DBM_CORE_VEM) end)
 				return
 			end
 			if GetAddOnEnableState(playerName, "DBM-Profiles") >= 1 then
 				self:Disable(true)
 				C_TimerAfter(10, function() self:AddMsg(DBM_CORE_3RDPROFILES) end)
+				C_TimerAfter(20, function() self:AddMsg(DBM_CORE_3RDPROFILES) end)
 				return
 			end
 			if GetAddOnEnableState(playerName, "DPMCore") >= 1 then
 				self:Disable(true)
 				C_TimerAfter(10, function() self:AddMsg(DBM_CORE_DPMCORE) end)
+				C_TimerAfter(20, function() self:AddMsg(DBM_CORE_DPMCORE) end)
 				return
-			end
-			--http://wow.curseforge.com/addons/deadly-pvp-mods/
-			--DBM is disabled and DBM is not forced disabled
-			if not dbmIsEnabled and not blockEnable then
-				C_TimerAfter(10, function() self:AddMsg(DBM_CORE_DISABLED_REMINDER) end)
 			end
 			self.Bars:LoadOptions("DBM")
 			self.Arrow:LoadPosition()
@@ -2457,7 +2454,7 @@ do
 			self:AddMsg(DBM_CORE_DPMCORE)
 			return
 		end
-		if blockEnable then
+		if not dbmIsEnabled then
 			DBM:AddMsg(DBM_CORE_UPDATEREMINDER_DISABLE)
 			return
 		end
@@ -2483,9 +2480,6 @@ do
 			tsort(callOnLoad, function(v1, v2) return v1[2] < v2[2] end)
 			for i, v in ipairs(callOnLoad) do v[1]() end
 			collectgarbage("collect")
-		end
-		if not dbmIsEnabled and not blockEnable then
-			self:AddMsg(DBM_CORE_DISABLED_REMINDER)
 		end
 		return DBM_GUI:ShowHide()
 	end
@@ -3357,7 +3351,7 @@ do
 			DBM_AllSavedOptions[usedProfile] = DBM_SavedOptions
 		end
 		self.Options = DBM_AllSavedOptions[usedProfile] or {}
-		dbmIsEnabled = self.Options.Enabled or true
+		dbmIsEnabled = true
 		self:AddDefaultOptions(self.Options, self.DefaultOptions)
 		DBM_AllSavedOptions[usedProfile] = self.Options
 
@@ -3538,17 +3532,6 @@ function DBM:UPDATE_BATTLEFIELD_STATUS()
 			self.Bars:CancelBar(queuedBattlefield[i])
 			queuedBattlefield[i] = nil
 		end
-	end
-end
-
-function DBM:CINEMATIC_START()
-	if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or self.Options.MovieFilter == "Never" then return end
-	SetMapToCurrentZone()
-	local currentFloor = GetCurrentMapDungeonLevel() or 0
-	if self.Options.MovieFilter == "Block" or self.Options.MovieFilter == "AfterFirst" and self.Options.MoviesSeen[LastInstanceMapID..currentFloor] then
-		CinematicFrame_CancelCinematic()
-	else
-		self.Options.MoviesSeen[LastInstanceMapID..currentFloor] = true
 	end
 end
 
@@ -4192,12 +4175,13 @@ do
 						local revDifference = mmin((raid[newerVersionPerson[1]].revision - DBM.Revision), (raid[newerVersionPerson[2]].revision - DBM.Revision), (raid[newerVersionPerson[3]].revision - DBM.Revision))
 						--The following code requires at least THREE people to send that higher revision (I just upped it from 2). That should be more than adaquate.
 						--Disable if out of date and it's a major patch.
-						if not testBuild and dbmToc < wowTOC then
+						--[[if not testBuild and dbmToc < wowTOC then
 							updateNotificationDisplayed = 3
 							DBM:AddMsg(DBM_CORE_UPDATEREMINDER_MAJORPATCH)
-							DBM:Disable(true)
+							DBM:Disable(true)--]]
 						--Disable if revision grossly out of date even if not major patch.
-						elseif revDifference > 180 then
+						if revDifference > 180 then
+						--elseif revDifference > 180 then
 							if updateNotificationDisplayed < 3 then
 								updateNotificationDisplayed = 3
 								DBM:AddMsg(DBM_CORE_UPDATEREMINDER_DISABLE)
@@ -5124,12 +5108,6 @@ do
 			end
 		end
 	end
-
-	local function endCombat(v, success, encounterID)
-		if not v.combatInfo then return end--Was terminated by UNIT_DIED or YELL (which means probably wrath zone and we already have end combat, so cancel this delayed wipe)
-		DBM:EndCombat(v, success == 0)
-		sendSync("EE", encounterID.."\t"..success.."\t"..v.id.."\t"..(v.revision or 0))
-	end
 	
 	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success)
 		self:Debug("ENCOUNTER_END event fired: "..encounterID.." "..name.." "..difficulty.." "..size.." "..success)
@@ -5143,22 +5121,14 @@ do
 			if v.multiEncounterPullDetection then
 				for _, eId in ipairs(v.multiEncounterPullDetection) do
 					if encounterID == eId then
-						if bossuIdFound or success == 1 then
-							self:EndCombat(v, success == 0)
-							sendSync("EE", encounterID.."\t"..success.."\t"..v.id.."\t"..(v.revision or 0))
-						else--hack wotlk instance EE bug. wotlk instances always wipe, so delay 3sec do actual wipe.
-							self:Schedule(3, endCombat, v, success, encounterID)
-						end
+						self:EndCombat(v, success == 0)
+						sendSync("EE", encounterID.."\t"..success.."\t"..v.id.."\t"..(v.revision or 0))
 						return
 					end
 				end
 			elseif encounterID == v.combatInfo.eId then
-				if bossuIdFound or success == 1 then
-					self:EndCombat(v, success == 0)
-					sendSync("EE", encounterID.."\t"..success.."\t"..v.id.."\t"..(v.revision or 0))
-				else--hack wotlk instance EE bug. wotlk instances always wipe, so delay 3sec do actual wipe.
-					self:Schedule(3, endCombat, v, success, encounterID)
-				end
+				self:EndCombat(v, success == 0)
+				sendSync("EE", encounterID.."\t"..success.."\t"..v.id.."\t"..(v.revision or 0))
 				return
 			end
 		end
@@ -5375,6 +5345,9 @@ do
 		if not mod.inCombat then
 			if event then
 				self:Debug("StartCombat called by : "..event..". LastInstanceMapID is "..LastInstanceMapID)
+				if event ~= "ENCOUNTER_START" then
+					self:Debug("This event is started by"..event..". Review ENCOUNTER_START event to ensure if this is still needed", 2)
+				end
 			else
 				self:Debug("StartCombat called by individual mod or unknown reason. LastInstanceMapID is "..LastInstanceMapID)
 			end
@@ -6364,7 +6337,7 @@ do
 		end
 		C_TimerAfter(20, function() if not self.Options.ForumsMessageShown then self.Options.ForumsMessageShown = self.ReleaseRevision self:AddMsg(DBM_FORUMS_MESSAGE) end end)
 		C_TimerAfter(30, function() if not self.Options.SettingsMessageShown then self.Options.SettingsMessageShown = true self:AddMsg(DBM_HOW_TO_USE_MOD) end end)
-		C_TimerAfter(40, function() if self.Options.NewsMessageShown < 5 then self.Options.NewsMessageShown = 5 self:AddMsg(DBM_CORE_WHATS_NEW) end end)
+		C_TimerAfter(40, function() if self.Options.NewsMessageShown < 6 then self.Options.NewsMessageShown = 6 self:AddMsg(DBM_CORE_WHATS_NEW) end end)
 		if type(RegisterAddonMessagePrefix) == "function" then
 			if not RegisterAddonMessagePrefix("D4") then -- main prefix for DBM4
 				self:AddMsg("Error: unable to register DBM addon message prefix (reached client side addon message filter limit), synchronization will be unavailable") -- TODO: confirm that this actually means that the syncs won't show up
@@ -6596,21 +6569,14 @@ end
 function DBM:Disable(forced)
 	unscheduleAll()
 	dbmIsEnabled = false
-	self.Options.Enabled = false
-	if forced then
-		blockEnable = true
-	end
 end
 
 function DBM:Enable()
-	if not blockEnable then
-		dbmIsEnabled = true
-		self.Options.Enabled = true
-	end
+	dbmIsEnabled = true
 end
 
 function DBM:IsEnabled()
-	return self.Options.Enabled
+	return dbmIsEnabled
 end
 
 -----------------------
@@ -6807,16 +6773,40 @@ end
 -------------------
 --  Movie Filter --
 -------------------
-MovieFrame:HookScript("OnEvent", function(self, event, id)
-	if event == "PLAY_MOVIE" and id then
-		if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or DBM.Options.MovieFilter == "Never" then return end
-		if DBM.Options.MovieFilter == "Block" or DBM.Options.MovieFilter == "AfterFirst" and DBM.Options.MoviesSeen[id] then
-			MovieFrame_OnMovieFinished(self)
+do
+	local neverFilter = {
+		[486] = true, -- Tomb of Sarg Intro
+		[487] = true, -- Alliance Broken Shore cut-scene
+		[488] = true, -- Horde Broken Shore cut-scene
+		[489] = true, -- Unknown, currently encrypted
+		[490] = true, -- Unknown, currently encrypted
+	}
+	MovieFrame:HookScript("OnEvent", function(self, event, id)
+		if event == "PLAY_MOVIE" and id and not neverFilter[id] then
+			DBM:Debug("PLAY_MOVIE fired for ID: "..id, 2)
+			if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or DBM.Options.MovieFilter == "Never" then return end
+			if DBM.Options.MovieFilter == "Block" or DBM.Options.MovieFilter == "AfterFirst" and DBM.Options.MoviesSeen[id] then
+				MovieFrame_OnMovieFinished(self)
+				DBM:AddMsg(DBM_CORE_MOVIE_SKIPPED)
+			else
+				DBM.Options.MoviesSeen[id] = true
+			end
+		end
+	end)
+
+	function DBM:CINEMATIC_START()
+		DBM:Debug("CINEMATIC_START fired", 2)
+		if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or self.Options.MovieFilter == "Never" then return end
+		SetMapToCurrentZone()
+		local currentFloor = GetCurrentMapDungeonLevel() or 0
+		if self.Options.MovieFilter == "Block" or self.Options.MovieFilter == "AfterFirst" and self.Options.MoviesSeen[LastInstanceMapID..currentFloor] then
+			CinematicFrame_CancelCinematic()
+			self:AddMsg(DBM_CORE_MOVIE_SKIPPED)
 		else
-			DBM.Options.MoviesSeen[id] = true
+			self.Options.MoviesSeen[LastInstanceMapID..currentFloor] = true
 		end
 	end
-end)
+end
 
 ----------------------------
 --  Boss Mod Constructor  --

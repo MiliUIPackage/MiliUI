@@ -1,0 +1,42 @@
+tag 7.0.2
+cb2c82f3dd3d28f2ff9e0f2f3b2d9a18c43d791c
+subversion <svn@deadlybossmods.com>
+2016-08-11 19:24:35 +0200
+
+Tagging as 7.0.2
+
+
+--------------------
+
+subversion:
+	- increment version number to 7.0.2
+	- ultrashining via svn r15117: zhTW update
+	- Omega via svn r15116: Minor Text Fixes
+	- Omega via svn r15115: temp disable this
+	- Omega via svn r15114: Add waves of dread Add carrion swarm Add legion infernals
+	- Omega via svn r15113: Fix lua error
+	- Omega via svn r15112: Adjust charred flesh some since you can count on most of group not having this mod, so you need countdown for when OHTERS are going to kill half the group.
+	- Omega via svn r15111: added wake of blood general announce added mark of blood on you personal warning and radar
+	- Omega via svn r15110: Actually name it
+	- Omega via svn r15109: Further warnings for demonic invasion, this time bolster up fire ability set warnings
+	- Omega via svn r15108: Fix another stupid
+	- Omega via svn r15107: Fix LOD for DI
+	- Omega via svn r15106: CN update
+	- Omega via svn r15105: Demon Invasions mod
+	- Omega via svn r15104: Add two encrypted movie Ids too for good measure
+	- Omega via svn r15103: Update new
+	- Omega via svn r15102: block broken shore cut scenes from ever being filtered.
+	- Omega via svn r15101: add chat message when DBM filters a cut scene Added some debug to cut scenes to find movie IDs since google sucks. move the two events together where they should be.
+	- Omega via svn r15100: Remove unused
+	- Omega via svn r15099: Tweak it to include all events that aren?\226?\128?\153t ES
+	- Omega via svn r15098: Add additional debug for boss engages started by localized messages. with working ES/EE in most bosses now, need to catch mods doing this and switch them over when possible.
+	- Omega via svn r15097: significant elisande updates Significant Krosus Updates
+	- Omega via svn r15096: Clean up old EE hacks that are no longer required since blizzard finally fixed these bugs in 7.0
+	- Omega via svn r15095: Display incompatible messages twice at login instead of just once
+	- Omega via svn r15094: Update remove curse warnings to now be off by default for mages
+	- Omega via svn r15093: Remove enable/disable checkbox. it only leads to more confusion. if you want to disable dbm you should do it via addon manager. doesn?\226?\128?\153t make much sense to enable a mod only to uncheck ?\226?\128?\156enabled?\226?\128?\157 in the mod and have it still not work. This should also clean up and improve the force disable function. Users should only be required to update mod after a force disable. not update mod then go into options and check ?\226?\128?\156enabled?\226?\128?\157 on top of it. Experience is supposed to be smooth not stupid.
+	- Omega via svn r15092: Update what?\226?\128?\153s new
+	- Omega via svn r15091: Update krosus and tichondrius normal timers Added mythic info frame request for tichondrius
+	- ultrashining via svn r15090: zhTW update
+	- Omega via svn r15089: Fixed bug that caused major patch disable to continue for minor version updates. 7.0.1 7.0.2 etc shouldn?\226?\128?\153t re-trigger the 7.0.0 major patch warning/disable.
+	- tandanu via svn r15088: increment alpha version

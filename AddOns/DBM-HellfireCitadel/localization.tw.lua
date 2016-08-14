@@ -59,13 +59,13 @@ L= DBM:GetModLocalization(1372)
 
 L:SetTimerLocalization({
 	SoDDPS2			= "下一次死亡之影(%s)",
-	SoDTank2			= "下一次死亡之影(%s)",
+	SoDTank2		= "下一次死亡之影(%s)",
 	SoDHealer2		= "下一次死亡之影(%s)"
 })
 
 L:SetOptionLocalization({
 	SoDDPS2				= "計時條：下一次針對DPS的$spell:179864",
-	SoDTank2				= "計時條：下一次針對坦克的$spell:179864",
+	SoDTank2			= "計時條：下一次針對坦克的$spell:179864",
 	SoDHealer2			= "計時條：下一次針對治療的$spell:179864",
 	ShowOnlyPlayer	= "只有在如果你也是$spell:179909的參與者時才顯示HudMap"
 })
@@ -93,7 +93,7 @@ L:SetOptionLocalization({
 	Iconed					= "星星,圈圈,鑽石,三角,月亮。適用於用於分散站位",
 	Numbered			= "1, 2, 3, 4, 5。適用於分區站位",
 	DirectionLine		= "左, 中偏左, 中間, 中偏右, 右。適用於直線站位",
-	FreeForAll				= "自由模式。不指定站位，只使用普通的大喊"
+	FreeForAll			= "自由模式。不指定站位，只使用普通的大喊"
 })
 
 L:SetMiscLocalization({
@@ -108,9 +108,9 @@ L= DBM:GetModLocalization(1447)
 
 L:SetOptionLocalization({
 	ChainsBehavior		= "設定魔化鎖鍊警告行為",
-	Cast						= "只給原始目標施放開始時警告。計時器在施放開始時同步。",
-	Applied				= "只會中招目標施放結束時警告。計時器在施放結束時同步。",
-	Both						= "原始目標施放開始時和中招目標施放結束時警告。"
+	Cast							= "只給原始目標施放開始時警告。計時器在施放開始時同步。",
+	Applied					= "只會中招目標施放結束時警告。計時器在施放結束時同步。",
+	Both							= "原始目標施放開始時和中招目標施放結束時警告。"
 })
 
 --------------------------
@@ -154,22 +154,22 @@ L:SetWarningLocalization({
 
 L:SetOptionLocalization({
 	specWarnBreakShackle		= "當中了$spell:184964時顯示特別警告。此警告會自動分配拉斷順序將承受傷害最小化。",
-	ExtendWroughtHud3		= "將HUD連線延長到中了$spell:185014的目標上。(可能會導致連線準確度下降)",
-	AlternateHudLine				= "在$spell:185014的目標之間的HUD連線使用不同的線條材質 ",
+	ExtendWroughtHud3			= "將HUD連線延長到中了$spell:185014的目標上。(可能會導致連線準確度下降)",
+	AlternateHudLine					= "在$spell:185014的目標之間的HUD連線使用不同的線條材質 ",
 	NamesWroughtHud			= "在HUD中顯示$spell:185014目標的玩家姓名",
-	FilterOtherPhase				= "過濾掉與你不同階段的警告",
-	MarkBehavior					= "設定燃燒軍團印記的喊叫方式（需要團長權限）",
-	Numbered						= "星星、圈圈、鑽石、三角。適用任何站位的打法。",--Default
-	LocSmallFront					= "近戰(左星、右圈)、遠程(左鑽、右三)。減益時間短的去近戰位",
-	LocSmallBack					= "近戰(左星、右圈)、遠程(左鑽、右三)。減益時間短的去遠程位",
-	NoAssignment					= "停用整個團隊所有站位大喊/訊息，還有HUD指示。",
+	FilterOtherPhase					= "過濾掉與你不同階段的警告",
+	MarkBehavior						= "設定燃燒軍團印記的喊叫方式（需要團長權限）",
+	Numbered							= "星星、圈圈、鑽石、三角。適用任何站位的打法。",--Default
+	LocSmallFront						= "近戰(左星、右圈)、遠程(左鑽、右三)。減益時間短的去近戰位",
+	LocSmallBack						= "近戰(左星、右圈)、遠程(左鑽、右三)。減益時間短的去遠程位",
+	NoAssignment						= "停用整個團隊所有站位大喊/訊息，還有HUD指示。",
 	overrideMarkOfLegion		= "不允許團隊隊長覆蓋軍團印記的行為(只推薦給進階玩家使用)"
 })
 
 L:SetMiscLocalization({
 	phase2point5		= "看看燃燒軍團的軍容有多壯盛，就知道你們無謂的抵抗有多愚蠢。",
 	First						= "第一個",
-	Second					= "第二個",
+	Second				= "第二個",
 	Third					= "第三個"
 })
 
