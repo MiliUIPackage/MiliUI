@@ -229,7 +229,7 @@ local function setVariable(unit, moduleKey, moduleSubKey, key, value)
 end
 
 local function specialRestricted(unit, moduleKey, moduleSubKey, key)
-	if( ShadowUF.fakeUnits[unit] and ( key == "colorAggro" or key == "aggro" or moduleKey == "incHeal" or moduleKey == "healAbsorb" or moduleKey == "incAbsorb" or moduleKey == "castBar" ) ) then
+	if( ShadowUF.fakeUnits[unit] and ( key == "colorAggro" or key == "aggro" or key == "colorDispel" or moduleKey == "incHeal" or moduleKey == "healAbsorb" or moduleKey == "incAbsorb" or moduleKey == "castBar" ) ) then
 		return true
 	elseif( moduleKey == "healthBar" and unit == "player" and key == "reaction" ) then
 		return true
@@ -313,7 +313,7 @@ local function hideRestrictedOption(info)
 	elseif( ( key == "incHeal" and not ShadowUF.modules.incHeal ) or ( key == "incAbsorb" and not ShadowUF.modules.incAbsorb ) or ( key == "healAbsorb" and not ShadowUF.modules.healAbsorb ) )  then
 		return true
 	-- Non-standard units do not support color by aggro or incoming heal
-	elseif( key == "colorAggro" or key == "incHeal" or key == "incAbsorb" or key == "aggro" ) then
+	elseif( key == "colorAggro" or key == "colorDispel" or key == "incHeal" or key == "incAbsorb" or key == "aggro" ) then
 		return string.match(unit, "%w+target" )
 	-- Fall back for indicators, no variable table so it shouldn't be shown
 	elseif( info[#(info) - 1] == "indicators" ) then
@@ -1192,14 +1192,6 @@ local function loadGeneralOptions()
 								type = "color",
 								name = L["Holy Power"],
 								arg = "powerColors.HOLYPOWER",
-								hidden = function(info) return select(2, UnitClass("player")) ~= "PALADIN" end,
-							},
-							BANKEDHOLYPOWER = {
-								order = 13,
-								type = "color",
-								name = L["Banked Holy Power"],
-								hasAlpha = true,
-								arg = "powerColors.BANKEDHOLYPOWER",
 								hidden = function(info) return select(2, UnitClass("player")) ~= "PALADIN" end,
 							},
 							SOULSHARDS = {
@@ -2166,7 +2158,14 @@ local function loadUnitOptions()
 						name = L["Show any other auras"],
 						desc = L["Whether to show auras that do not fall into the above categories."],
 						width = "full"
-					}
+					},
+					relevant = {
+						order = 6,
+						type = "toggle",
+						name = L["Smart Friendly/Hostile Filter"],
+						desc = L["Only apply the selected filters to buffs on friendly units and debuffs on hostile units, and otherwise show all auras."],
+						width = "full"
+					},
 				}
 			},
 			display = {
@@ -4227,9 +4226,18 @@ local function loadUnitOptions()
 								desc = L["Changes the health bar to the set hostile color (Red by default) when the unit takes aggro."],
 								arg = "healthBar.colorAggro",
 								hidden = hideRestrictedOption,
-							},							
-							healthColor = {
+							},
+							colorDispel = {
 								order = 5,
+								type = "toggle",
+								name = L["Color on curable debuff"],
+								desc = L["Changes the health bar to the color of any curable debuff."],
+								arg = "healthBar.colorDispel",
+								hidden = hideRestrictedOption,
+								width = "full",
+							},
+							healthColor = {
+								order = 6,
 								type = "select",
 								name = L["Color health by"],
 								desc = L["Primary means of coloring the health bar, color on aggro and color by reaction will override this if necessary."],
@@ -4243,7 +4251,7 @@ local function loadUnitOptions()
 								arg = "healthBar.colorType",
 							},
 							reaction = {
-								order = 6,
+								order = 7,
 								type = "select",
 								name = L["Color by reaction on"],
 								desc = L["When to color the health bar by the units reaction, overriding the color health by option."],
@@ -6634,7 +6642,8 @@ local function loadAuraIndicatorsOptions()
 					for groupID, name in pairs(groupMap) do
 						if( not groupList[name] ) then
 							unitTable.args[tostring(groupID)] = nil
-							options.args.auraIndicators.args.auras.args[tostring(groupID)] = nil
+							options.args.auraIndicators.args.units.args.global.args.groups.args[tostring(groupID)] = nil
+							options.args.auraIndicators.args.auras.args.groups.args[tostring(groupID)] = nil
 							groupMap[groupID] = nil
 						end
 					end

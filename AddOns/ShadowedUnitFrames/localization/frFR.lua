@@ -96,7 +96,6 @@ L["Background alpha"] = "Transp. de l'arrière-plan"
 L["Background/border"] = "Arrière-plan/bordure"
 L["Background color"] = "Couleur d'arrière-plan"
 L["Bag indicator for master looters."] = "Sac-indicateur des maîtres du butin."
-L["Banked Holy Power"] = "Puissance sacrée emmagasinée" -- Needs review
 L["Bar alpha"] = "Transparence des barres"
 L["Bar color to use to show how much healing someone is about to receive."] = "Couleur de barre à utiliser pour montrer combien de soins quelqu'un va recevoir." -- Needs review
 L["Bars"] = "Barres"

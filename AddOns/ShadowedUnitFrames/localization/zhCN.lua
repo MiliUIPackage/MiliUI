@@ -96,7 +96,6 @@ L["Background alpha"] = "背景透明度"
 L["Background/border"] = "背景/边框"
 L["Background color"] = "背景颜色"
 L["Bag indicator for master looters."] = "主拾取的背包指示器."
-L["Banked Holy Power"] = "储存的神圣能量" -- Needs review
 L["Bar alpha"] = "计量条透明度"
 L["Bar color to use to show how much healing someone is about to receive."] = "条颜色用于某个人受到的治疗量." -- Needs review
 L["Bars"] = "计量条"

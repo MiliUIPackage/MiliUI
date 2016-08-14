@@ -4,7 +4,6 @@ ShadowUF:RegisterModule(IncHeal, "incHeal", ShadowUF.L["Incoming heals"])
 
 function IncHeal:OnEnable(frame)
 	frame.incHeal = frame.incHeal or ShadowUF.Units:CreateBar(frame)
-	frame.incHeal.frameLevelMod = IncHeal.frameLevelMod
 
 	frame:RegisterUnitEvent("UNIT_MAXHEALTH", self, "UpdateFrame")
 	frame:RegisterUnitEvent("UNIT_HEALTH", self, "UpdateFrame")
@@ -28,8 +27,6 @@ function IncHeal:OnLayoutApplied(frame)
 	else
 		frame:UnregisterSingleEvent("UNIT_HEAL_ABSORB_AMOUNT_CHANGED", self, "UpdateFrame")
 	end
-
-	self.frameLevelMod = bar.frameLevelMod - (ShadowUF.db.profile.units[frame.unitType].healthBar.invert and 3 or 0)
 
 	-- Since we're hiding, reset state
 	bar.total = nil
@@ -63,7 +60,7 @@ function IncHeal:OnLayoutApplied(frame)
 		bar:SetPoint("BOTTOM" .. point, frame.healthBar)
 	else
 		bar.simple = nil
-		bar:SetFrameLevel(frame.topFrameLevel - self.frameLevelMod)
+		bar:SetFrameLevel(frame.topFrameLevel - self.frameLevelMod + 3)
 		bar:SetWidth(1)
 		bar:SetMinMaxValues(0, 1)
 		bar:SetValue(1)
@@ -103,18 +100,24 @@ function IncHeal:PositionBar(frame, incAmount)
 		return
 	end
 
+	local maxHealth = UnitHealthMax(frame.unit)
+	if( maxHealth <= 0 ) then
+		bar.total = nil
+		bar:Hide()
+		return
+	end
+
 	if( not bar.total ) then bar:Show() end
 	bar.total = incAmount
 
 	-- When the primary bar has an alpha of 100%, we can cheat and do incoming heals easily. Otherwise we need to do it a more complex way to keep it looking good
 	if( bar.simple ) then
 		bar.total = health + incAmount
-		bar:SetMinMaxValues(0, UnitHealthMax(frame.unit) * (ShadowUF.db.profile.units[frame.unitType][self.frameKey].cap or 1.30))
+		bar:SetMinMaxValues(0, maxHealth * (ShadowUF.db.profile.units[frame.unitType][self.frameKey].cap or 1.30))
 		bar:SetValue(bar.total)
 	else
-		local maxHealth = UnitHealthMax(frame.unit)
-		local healthSize = bar.healthSize * (maxHealth > 0 and health / maxHealth or 0)
-		local incSize = bar.healthSize * (maxHealth > 0 and incAmount / maxHealth or 0)
+		local healthSize = bar.healthSize * (health / maxHealth)
+		local incSize = bar.healthSize * (incAmount / maxHealth)
 
 		if( (healthSize + incSize) > bar.maxSize ) then
 			incSize = bar.maxSize - healthSize

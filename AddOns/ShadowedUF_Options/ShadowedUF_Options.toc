@@ -4,7 +4,7 @@
 ## Author: Shadowed
 ## LoadOnDemand: true
 ## Dependencies: ShadowedUnitFrames
-## X-Curse-Packaged-Version: v4.1.4
+## X-Curse-Packaged-Version: v4.1.6
 ## X-Curse-Project-Name: Shadowed Unit Frames
 ## X-Curse-Project-ID: shadowed-unit-frames
 ## X-Curse-Repository-ID: wow/shadowed-unit-frames/mainline
