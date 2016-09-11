@@ -1,0 +1,12 @@
+tag v4.1.8
+f1661d827192b2dda966ad6ff3a4aa52dde0123e
+Hendrik Leppkes <h.leppkes@gmail.com>
+2016-08-28 12:45:00 +0200
+
+Tag as v4.1.8
+
+
+--------------------
+
+Hendrik Leppkes:
+	- Fix migration with the new defaults

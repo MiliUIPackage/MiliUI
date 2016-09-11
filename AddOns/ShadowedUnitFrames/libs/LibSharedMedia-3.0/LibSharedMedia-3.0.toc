@@ -1,6 +1,6 @@
-## Interface: 60200
+## Interface: 70000
 ## LoadOnDemand: 1
-## X-Curse-Packaged-Version: 6.2.0
+## X-Curse-Packaged-Version: 7.0.3
 ## X-Curse-Project-Name: LibSharedMedia-3.0
 ## X-Curse-Project-ID: libsharedmedia-3-0
 ## X-Curse-Repository-ID: wow/libsharedmedia-3-0/mainline
