@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Warlords of Draenor]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Warlords of Draenor]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[德拉诺之王]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[德拉諾之霸]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 德拉諾之霸
 
 ## Notes: AtlasLoot loot tables from Warlords of Draenor
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Warlords of Draenor

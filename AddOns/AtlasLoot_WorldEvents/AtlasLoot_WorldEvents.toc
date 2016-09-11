@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[World Events]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Weltereignisse]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[世界事件]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[世界事件]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 世界事件
 
 ## Notes: AtlasLoot loot tables from world events
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Weltereignisse

@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Cataclysm]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Cataclysm]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[大地的裂变]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[浩劫與重生]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 浩劫與重生
 
 ## Notes: AtlasLoot loot tables from Cataclysm
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Cataclysm

@@ -1,5 +1,7 @@
 ## Interface: 70000
 ## Title: _NPCScan
+## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[NPCScan]|r 稀有怪警報
+## DefaultState: disabled
 ## Notes: Scans NPCs around you for rare ones.
 ## Notes-deDE: Scant NSCs in deiner Nähe nach seltenen.
 ## Notes-enCN: 搜索附近的 NPC 寻找稀有怪物。

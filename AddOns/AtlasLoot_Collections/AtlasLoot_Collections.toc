@@ -12,7 +12,7 @@
 ## Title: AtlasLoot |cFF0099FF[Collections]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Sammlungen]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[收集]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[收藏]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 收藏
 
 ## Notes: AtlasLoot collections loot tables (e.g. Mounts & Pets)
 ## Notes-deDE: AtlasLoot Sammlungs-Beuteverzeichnisse (z.B. Reit- und Haustiere)

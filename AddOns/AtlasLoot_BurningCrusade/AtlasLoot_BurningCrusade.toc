@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Burning Crusade]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Burning Crusade]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[燃烧的远征]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[燃燒的遠征]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 燃燒的遠征
 
 ## Notes: AtlasLoot loot tables from Burning Crusade
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Burning Crusade

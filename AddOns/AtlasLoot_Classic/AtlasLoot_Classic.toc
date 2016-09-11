@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Classic]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Classic]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[经典旧世]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[舊世界]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 經典舊世界
 
 ## Notes: AtlasLoot loot tables from Classic
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Classic

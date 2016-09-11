@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Factions]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Fraktionen]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[阵营]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[陣營]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 陣營
 
 ## Notes: AtlasLoot loot tables from factions
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Fraktionen

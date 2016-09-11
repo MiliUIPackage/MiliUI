@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[PvP]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[PvP]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[PvP]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[PvP]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot PvP
 
 ## Notes: AtlasLoot loot tables of PvP Items
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für PvP-Gegenstände

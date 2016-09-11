@@ -10,9 +10,11 @@
 
 ## Title: AtlasLoot |cFF0099FF[Legion]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Legion]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 軍團再臨
 
 ## Notes: AtlasLoot loot tables from Legion
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Legion
+## Notes-zhTW: AtlasLoot 軍團再臨資料片物品掉落資料庫
 
 ## X-eMail: manager@atlasloot.net
 ## X-Category: Map

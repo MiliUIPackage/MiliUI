@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Mists of Pandaria]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Mists of Pandaria]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[熊猫人之谜]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[潘達利亞之謎]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 潘達利亞之謎
 
 ## Notes: AtlasLoot loot tables from Mists of Pandaria
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Mists of Pandaria

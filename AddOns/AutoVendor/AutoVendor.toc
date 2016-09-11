@@ -2,6 +2,8 @@
 ## Title: AutoVendor
 ## Notes: Automatically sells useless stuff and repairs your gear
 ## SavedVariables: AutoVendorDB
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[AutoVendor]|r 商店自動化
+## Notes-zhTW: 與攤販說話時可自動出售垃圾物品以及修理裝備。
 ## Author: Olafski
 ## Version: 44
 ## X-Curse-Packaged-Version: v44

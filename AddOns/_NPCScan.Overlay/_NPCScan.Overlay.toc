@@ -1,5 +1,7 @@
 ## Interface: 70000
 ## Title: _NPCScan.Overlay
+## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[NPCScan]|r 稀有怪路徑模組
+## DefaultState: disabled
 ## Notes: Adds mob patrol paths to your map.
 ## Notes-deDE: Fügt deiner Karte die Laufpfade hinzu
 ## Notes-enCN: 在你的地图上新增怪物路径图。

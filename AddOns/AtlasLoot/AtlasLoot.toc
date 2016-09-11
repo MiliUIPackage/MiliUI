@@ -15,9 +15,9 @@
 ## Title-esES: AtlasLoot Enhanced
 ## Title-koKR: AtlasLoot Enhanced
 ## Title-zhCN: AtlasLoot Enhanced
-## Title-zhTW: AtlasLoot Enhanced |cFF0099FF[主程式]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 主程式
 ## RealTitle-zhCN: [地图]副本掉落物品查询
-## RealTitle-zhTW: [地圖]AtlasLoot 物品掉落[主程式]
+## RealTitle-zhTW: [地圖] AtlasLoot 主程式
 
 ## Notes: Shows the possible loot from the bosses
 ## Notes-deDE: Zeigt mögliche Beute von Bossen

@@ -3,6 +3,8 @@
 
 ## Author: Jaliborc (João Cardoso)
 ## Notes: Load on demand options and tutorials for Blitz.
+## Title-zhTW: |cFF00CCFF[任務]|r |cFFFF77FF[Blitz]|r 自動任務 - 設定模組
+## Notes-zhTW: 可自動接取與完成任務。
 ## X-License: GNU General Public License Version 3
 ## X-Category: Quest
 

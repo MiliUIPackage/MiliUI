@@ -11,7 +11,7 @@
 ## Title: AtlasLoot |cFF0099FF[Wrath of the Lich King]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Wrath of the Lich King]|r
 ## Title-zhCN: AtlasLoot |cFF0099FF[巫妖王之怒]|r
-## Title-zhTW: AtlasLoot |cFF0099FF[巫妖王之怒]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 巫妖王之怒
 
 ## Notes: AtlasLoot loot tables from Wrath of the Lich King
 ## Notes-deDE: AtlasLoot Beuteverzeichnisse für Wrath of the Lich King

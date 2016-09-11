@@ -4,6 +4,7 @@
 ## Version: 1.0
 ## Notes: Remembers what gear you are wearing in each specialization
 ## Title-zhTW: |cFF0080FF[自動換裝]|rAutoGearSwap
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[AutoGearSwap]|r 自動換裝
 ## Notes-zhTW: AutoGearSwap |n記住每個專精所穿的裝備，切換專精時自動換裝。|n|cffffd200使用方法：|r第一次切換專精時請手動切換裝備管理員中的套裝設定，插件會自動記憶。之後切換成該專精時便會自動換裝。
 ## eMail: tiptonshadowsong@googlemail.com
 ## URL: original-guild.net
