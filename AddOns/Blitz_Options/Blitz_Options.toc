@@ -1,0 +1,19 @@
+## Interface: 70000
+## Title: Blitz Options
+
+## Author: Jaliborc (João Cardoso)
+## Notes: Load on demand options and tutorials for Blitz.
+## X-License: GNU General Public License Version 3
+## X-Category: Quest
+
+## OptionalDeps: LibStub, Poncho-1.0, Sushi-3.0, CustomTutorials-2.1
+## Dependencies: Blitz
+## LoadOnDemand: 1
+
+Libs\LibStub\LibStub.lua
+Libs\Poncho-1.0\Poncho-1.0.xml
+Libs\Sushi-3.0\Sushi-3.0.xml
+Libs\CustomTutorials-2.1\CustomTutorials-2.1.lua
+
+Localization.lua
+Options.lua

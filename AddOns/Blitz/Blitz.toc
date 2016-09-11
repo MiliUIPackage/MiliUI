@@ -1,0 +1,16 @@
+## Interface: 70000
+## Title: Blitz
+
+## Author: Jaliborc (João Cardoso)
+## Notes: Automatically accepts and delivers quests.
+## X-License: GNU General Public License Version 3
+## X-Category: Quest
+## Version: 6.0
+
+## SavedVariables: Blitz_Manual, Blitz_Key, Blitz_Tutorials
+## SavedVariablesPerCharacter: Blitz_Quests, Blitz_Deliver, Blitz_Accept, Blitz_SelectReward
+
+## DefaultState: disabled
+
+Localization.lua
+Blitz.lua

@@ -1,6 +1,8 @@
-## Interface: 60100
+## Interface: 70000
 ## Title: InspectFix
 ## Author: oscarucb
+## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[InspectFix]|r 觀察視窗修正
+## Notes-zhTW: 修正Blizzard UI在觀察角色時引起的錯誤，並使觀察視窗在切換玩家時不會自動關閉。
 ## Description: Fixes some bugs that arise in the Blizzard UI while inspecting characters
 ## Version: 4.5.1
 ## X-Build: 62

@@ -1,0 +1,11 @@
+## Interface: 70000
+## Title: Blitz Progress
+## Notes: Displays a progress bar when delivering repeatable quests.
+## Dependencies: Blitz
+## LoadOnDemand: 1
+
+## Author: Jaliborc (João Cardoso)
+## X-License: GNU General Public License Version 3
+## X-Category: Quest
+
+Blitz_Progress.lua

@@ -1,5 +1,5 @@
 ﻿## Author: Allara
-## Interface: 60000
+## Interface: 70000
 ## Notes: Adds a /rl command to reload the UI
 ## Title: /rl
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[SlashRL]|r 介面重整指令
