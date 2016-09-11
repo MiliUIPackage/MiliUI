@@ -19,7 +19,7 @@
           <Anchors><Anchor point="TOP" x="-100" y="-18"/></Anchors>
         </FontString>
 
-        <FontString name="Atr_ActiveItems_Text" inherits="GameFontHighlightSmall" text="啟用物品" justifyH="CENTER">
+        <FontString name="Atr_ActiveItems_Text" inherits="GameFontHighlightSmall" text="Active Items" justifyH="CENTER">
           <Size x="300"/>
           <Anchors><Anchor point="TOP" x="-395" y="-57"/></Anchors>
         </FontString>
@@ -36,19 +36,19 @@
           </Font>
         </FontString>
 
-        <FontString name="Atr_Recommend_Text" inherits="GameFontNormal" text="建議的直購價">
+        <FontString name="Atr_Recommend_Text" inherits="GameFontNormal" text="Recommended buyout price">
           <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="77" y="-98"/></Offset></Anchor></Anchors>
         </FontString>
 
-        <FontString name="Atr_Recommend_Basis_Text" inherits="GameFontHighlightSmall" text="基於">
+        <FontString name="Atr_Recommend_Basis_Text" inherits="GameFontHighlightSmall" text="based on">
           <Anchors><Anchor point="LEFT" relativePoint="RIGHT" relativeTo="Atr_Recommend_Text"><Offset><AbsDimension x="20" y="-2"/></Offset></Anchor></Anchors>
         </FontString>
 
-        <FontString name="Atr_RecommendPerStack_Text" inherits="GameFontHighlightSmall" text="每個堆疊">
+        <FontString name="Atr_RecommendPerStack_Text" inherits="GameFontHighlightSmall" text="per stack">
           <Anchors><Anchor point="TOPLEFT" relativeTo="Atr_Recommend_Text"><Offset><AbsDimension x="152" y="-28"/></Offset></Anchor></Anchors>
         </FontString>
 
-        <FontString name="Atr_RecommendPerItem_Text" inherits="GameFontHighlightSmall" text="每個物品">
+        <FontString name="Atr_RecommendPerItem_Text" inherits="GameFontHighlightSmall" text="per item">
           <Anchors><Anchor point="TOPLEFT" relativeTo="Atr_Recommend_Text"><Offset><AbsDimension x="152" y="-51"/></Offset></Anchor></Anchors>
         </FontString>
       </Layer>
@@ -64,7 +64,7 @@
         </Scripts>
       </Frame>
 
-      <Button name="Atr_CheckActiveButton" inherits="Atr_SmallButtonTemplate" text="檢查削價">
+      <Button name="Atr_CheckActiveButton" inherits="Atr_SmallButtonTemplate" text="Check for Undercuts">
         <Size><AbsDimension x="165" y="20"/>  </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-195" y="-413"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -101,7 +101,7 @@
 
       </EditBox>
 
-      <Button name="Atr_Search_Button" text="搜尋" inherits="UIPanelButtonTemplate" >
+      <Button name="Atr_Search_Button" text="Search" inherits="UIPanelButtonTemplate" >
         <Size><AbsDimension x="78" y="22"/> </Size>
         <Anchors>
           <Anchor point="LEFT" relativeTo="Atr_Search_Box" relativePoint="RIGHT">
@@ -124,7 +124,7 @@
         </Anchors>
         <Layers>
           <Layer level="BACKGROUND">
-            <FontString inherits="GameFontNormalSmall" text="進階">
+            <FontString inherits="GameFontNormalSmall" text="Advanced">
               <Anchors>
                 <Anchor point="LEFT" relativePoint="RIGHT">
                   <Offset><AbsDimension x="2" y="1"/></Offset>
@@ -147,7 +147,7 @@
         </Anchors>
         <Layers>
           <Layer level="BACKGROUND">
-            <FontString inherits="GameFontNormalSmall" text="精確匹配">
+            <FontString inherits="GameFontNormalSmall" text="Exact Match">
               <Anchors>
                 <Anchor point="LEFT" relativePoint="RIGHT">
                   <Offset><AbsDimension x="2" y="1"/></Offset>
@@ -161,7 +161,7 @@
         </Scripts>
       </CheckButton>
 
-      <Button name="Auctionator1Button" inherits="Atr_SmallButtonTemplate" text="選項...">
+      <Button name="Auctionator1Button" inherits="Atr_SmallButtonTemplate" text="Options...">
         <Size><AbsDimension x="74" y="18"/> </Size>
         <Anchors><Anchor point="TOPRIGHT" relativePoint="TOPRIGHT"><Offset><AbsDimension x="-14" y="-38"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -178,7 +178,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_FullScanButton" inherits="Atr_SmallButtonTemplate" text="完整掃描...">
+      <Button name="Atr_FullScanButton" inherits="Atr_SmallButtonTemplate" text="Full Scan...">
         <Size><AbsDimension x="74" y="18"/> </Size>
         <Anchors>
           <Anchor point="TOPRIGHT" relativeTo="Auctionator1Button" relativePoint="BOTTOMRIGHT">
@@ -228,19 +228,19 @@
         <Layers>
           <Layer level="ARTWORK">
 
-            <FontString inherits="GameFontHighlightSmall" text="賣出">
+            <FontString inherits="GameFontHighlightSmall" text="Sell">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="93" y="18"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_StackPriceText" inherits="GameFontHighlightSmall" text="直購價">
+            <FontString name="Atr_StackPriceText" inherits="GameFontHighlightSmall" text="Buyout Price">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="10" y="-72"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_ItemPriceText" inherits="GameFontHighlightSmall" text="物品價格">
+            <FontString name="Atr_ItemPriceText" inherits="GameFontHighlightSmall" text="Item Price">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="10" y="-118"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_Batch_Stacksize_Text" inherits="GameFontNormal" text="堆疊" justifyH="CENTER">
+            <FontString name="Atr_Batch_Stacksize_Text" inherits="GameFontNormal" text="stacks of" justifyH="CENTER">
               <Size><AbsDimension x="82" y="22"/></Size>
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="55" y="-208"/></Offset></Anchor></Anchors>
             </FontString>
@@ -253,15 +253,15 @@
               <Anchors><Anchor point="TOPLEFT" relativeTo="Atr_Batch_Stacksize_Text"><Offset><AbsDimension x="79" y="-21"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_StartingPriceText" inherits="GameFontHighlightSmall" text="競拍價" hidden="true">
+            <FontString name="Atr_StartingPriceText" inherits="GameFontHighlightSmall" text="Starting Price" hidden="true">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="13" y="-260"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_StartingPriceDiscountText" inherits="GameFontHighlightSmall" text="競拍價">
+            <FontString name="Atr_StartingPriceDiscountText" inherits="GameFontHighlightSmall" text="Starting Price">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="10" y="-270"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_Duration_Text" inherits="GameFontHighlightSmall" text="時間">
+            <FontString name="Atr_Duration_Text" inherits="GameFontHighlightSmall" text="Duration">
               <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="10" y="-304"/></Offset></Anchor></Anchors>
             </FontString>
 
@@ -370,7 +370,7 @@
             </Scripts>
           </EditBox>
 
-          <Button name="Atr_CreateAuctionButton" inherits="UIPanelButtonTemplate"  text="建立拍賣" disabled="true">
+          <Button name="Atr_CreateAuctionButton" inherits="UIPanelButtonTemplate"  text="Create Auction" disabled="true">
             <Size><AbsDimension x="185" y="30"/>  </Size>
               <Anchors>
                 <Anchor point="TOPLEFT"><Offset><AbsDimension x="5" y="-153"/></Offset></Anchor>
@@ -416,7 +416,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_AddToSListButton" inherits="Atr_SmallButtonTemplate"  text="新增物品" disabled="true">
+      <Button name="Atr_AddToSListButton" inherits="Atr_SmallButtonTemplate"  text="Add Item" disabled="true">
         <Size><AbsDimension x="97" y="20"/> </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-195" y="-329"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -424,7 +424,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_RemFromSListButton" inherits="Atr_SmallButtonTemplate"  text="移除物品" disabled="true">
+      <Button name="Atr_RemFromSListButton" inherits="Atr_SmallButtonTemplate"  text="Remove Item" disabled="true">
         <Size><AbsDimension x="101" y="20"/>  </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-100" y="-329"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -432,7 +432,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_SrchSListButton" inherits="Atr_SmallButtonTemplate"  text="搜尋所有物品" disabled="true">
+      <Button name="Atr_SrchSListButton" inherits="Atr_SmallButtonTemplate"  text="Search for All Items" disabled="true">
         <Size><AbsDimension x="195" y="20"/>  </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-195" y="-349"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -440,7 +440,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_MngSListsButton" inherits="Atr_SmallButtonTemplate"  text="管理購物清單" disabled="true">
+      <Button name="Atr_MngSListsButton" inherits="Atr_SmallButtonTemplate"  text="Manage Shopping Lists" disabled="true">
         <Size><AbsDimension x="195" y="20"/>  </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-195" y="-369"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -448,7 +448,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_NewSListButton" inherits="Atr_SmallButtonTemplate"  text="新建購物清單">
+      <Button name="Atr_NewSListButton" inherits="Atr_SmallButtonTemplate"  text="New Shopping List">
         <Size><AbsDimension x="195" y="20"/>  </Size>
         <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="-195" y="-389"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -488,7 +488,7 @@
         </Frames>
       </Frame>
 
-      <Button name="AuctionatorCloseButton" inherits="UIPanelButtonTemplate" text="關閉">
+      <Button name="AuctionatorCloseButton" inherits="UIPanelButtonTemplate" text="CLOSE">
         <Size><AbsDimension x="80" y="22"/></Size>
         <Anchors><Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT"><Offset><AbsDimension x="-10" y="14"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -496,7 +496,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_CancelSelectionButton" inherits="Atr_SmallButtonTemplate"  text="取消拍賣">
+      <Button name="Atr_CancelSelectionButton" inherits="Atr_SmallButtonTemplate"  text="Cancel Auctions">
         <Size><AbsDimension x="113" y="22"/>  </Size>
         <Anchors><Anchor point="RIGHT" relativeTo="AuctionatorCloseButton" relativePoint="LEFT"><Offset><AbsDimension x="2" y="0"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -506,7 +506,7 @@
         </Scripts>
       </Button>
 
-      <Button name="Atr_Buy1_Button" text="購買" inherits="UIPanelButtonTemplate" >
+      <Button name="Atr_Buy1_Button" text="Buy" inherits="UIPanelButtonTemplate" >
         <Size><AbsDimension x="90" y="22"/> </Size>
         <Anchors><Anchor point="RIGHT" relativeTo="Atr_CancelSelectionButton" relativePoint="LEFT"><Offset><AbsDimension x="4" y="0"/></Offset></Anchor></Anchors>
         <Scripts>
@@ -554,41 +554,41 @@
               <TexCoords left="0.1953125" right="0.8046875" top="0" bottom="1"/>
             </Texture>
 
-            <FontString name="Atr_Col1_Heading" inherits="GameFontHighlightSmall" text="物品價格" hidden="true" justifyH="CENTER">
+            <FontString name="Atr_Col1_Heading" inherits="GameFontHighlightSmall" text="Item Price" hidden="true" justifyH="CENTER">
               <Size><AbsDimension x="100"/></Size>
               <Anchors><Anchor point="LEFT" relativePoint="LEFT" relativeTo="$parentMiddle"><Offset><AbsDimension x="40" y="1"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_Col3_Heading" inherits="GameFontHighlightSmall" text="當前拍賣" hidden="true">
+            <FontString name="Atr_Col3_Heading" inherits="GameFontHighlightSmall" text="Current Auctions" hidden="true">
               <Anchors><Anchor point="LEFT" relativePoint="LEFT" relativeTo="$parentMiddle"><Offset><AbsDimension x="175" y="1"/></Offset></Anchor></Anchors>
             </FontString>
 
-            <FontString name="Atr_Col4_Heading" inherits="GameFontHighlightSmall" text="總價格" hidden="true">
+            <FontString name="Atr_Col4_Heading" inherits="GameFontHighlightSmall" text="Total Price" hidden="true">
               <Anchors><Anchor point="LEFT" relativePoint="LEFT" relativeTo="$parentMiddle"><Offset><AbsDimension x="500" y="1"/></Offset></Anchor></Anchors>
             </FontString>
           </Layer>
         </Layers>
 
         <Frames>
-          <Button name="Atr_Back_Button" text="返回" inherits="Atr_SmallButtonTemplate"  hidden="true">
+          <Button name="Atr_Back_Button" text="Back" inherits="Atr_SmallButtonTemplate"  hidden="true">
             <Size><AbsDimension x="70" y="18"/></Size>
             <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="8" y="5"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_Onclick_Back()</OnClick></Scripts>
           </Button>
 
-          <Button name="Atr_SaveThisList_Button" text="儲存購物清單" inherits="Atr_SmallButtonTemplate"  hidden="true">
+          <Button name="Atr_SaveThisList_Button" text="Save this Shopping List" inherits="Atr_SmallButtonTemplate"  hidden="true">
             <Size><AbsDimension x="200" y="20"/></Size>
             <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="8" y="8"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_Onclick_SaveTempList()</OnClick></Scripts>
           </Button>
 
-          <Button name="Atr_Col1_Heading_Button" text="最低價" inherits="Atr_Col_Heading_Template"  hidden="true">
+          <Button name="Atr_Col1_Heading_Button" text="Lowest Price" inherits="Atr_Col_Heading_Template"  hidden="true">
             <Size><AbsDimension x="100" y="20"/></Size>
             <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="46" y="-21"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_Onclick_Col1()</OnClick></Scripts>
           </Button>
 
-          <Button name="Atr_Col3_Heading_Button" text="物品名稱" inherits="Atr_Col_Heading_Template"  hidden="true">
+          <Button name="Atr_Col3_Heading_Button" text="Item Name" inherits="Atr_Col_Heading_Template"  hidden="true">
             <Size><AbsDimension x="108" y="20"/></Size>
             <Anchors><Anchor point="TOPLEFT"><Offset><AbsDimension x="172" y="-21"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_Onclick_Col3()</OnClick></Scripts>
@@ -602,15 +602,15 @@
         <Anchors><Anchor point="BOTTOMRIGHT" relativeTo="Atr_HeadingsBar" relativePoint="TOPRIGHT"><Offset><AbsDimension x="0" y="-22"/></Offset></Anchor></Anchors>
 
         <Frames>
-          <Button name="$parentTab3" inherits="TabButtonTemplate" id="3" text="其他">
+          <Button name="$parentTab3" inherits="TabButtonTemplate" id="3" text="Other">
             <Anchors><Anchor point="BOTTOMRIGHT" ><Offset><AbsDimension x="-8" y="0"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_ListTabOnClick(3);</OnClick></Scripts>
           </Button>
-          <Button name="$parentTab2" inherits="TabButtonTemplate" id="2" text="歷史紀錄">
+          <Button name="$parentTab2" inherits="TabButtonTemplate" id="2" text="History">
             <Anchors><Anchor point="RIGHT" relativeTo="$parentTab3" relativePoint="LEFT"><Offset><AbsDimension x="-2" y="0"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_ListTabOnClick(2);</OnClick></Scripts>
           </Button>
-          <Button name="$parentTab1" inherits="TabButtonTemplate" id="1" text="當前">
+          <Button name="$parentTab1" inherits="TabButtonTemplate" id="1" text="Current">
             <Anchors><Anchor point="RIGHT" relativeTo="$parentTab2" relativePoint="LEFT"><Offset><AbsDimension x="-2" y="0"/></Offset></Anchor></Anchors>
             <Scripts><OnClick>Atr_ListTabOnClick(1);</OnClick></Scripts>
           </Button>

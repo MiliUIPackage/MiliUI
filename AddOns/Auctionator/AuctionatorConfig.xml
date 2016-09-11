@@ -178,7 +178,7 @@
         </Anchors>
         <Layers>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" name="$parent_Text" text="預設的拍賣持續時間">
+            <FontString inherits="GameFontHighlight" name="$parent_Text" text="Default Auction Duration">
               <Anchors>
                 <Anchor point="TOPLEFT">
                   <Offset x="0" y="0"/>
@@ -271,7 +271,7 @@
         </Anchors>
         <Layers>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" name="$parent_Text" text="預設的拍賣標籤頁">
+            <FontString inherits="GameFontHighlight" name="$parent_Text" text="Default Auctionator tab">
               <Anchors>
                 <Anchor point="TOPLEFT">
                   <Offset x="0" y="0"/>
@@ -310,14 +310,14 @@
 
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormal" text="當按下SHIFT顯示">
+        <FontString inherits="GameFontNormal" text="When SHIFT is down show">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset x="20" y="-181"/>
             </Anchor>
           </Anchors>
         </FontString>
-        <FontString inherits="GameFontNormal" text="顯示分解細節">
+        <FontString inherits="GameFontNormal" text="Show disenchanting details">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset x="20" y="-251"/>
@@ -436,7 +436,7 @@
     </Scripts>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormal" text="直購價">
+        <FontString inherits="GameFontNormal" text="Buyout Price">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset>
@@ -445,7 +445,7 @@
             </Anchor>
           </Anchors>
         </FontString>
-        <FontString inherits="GameFontNormal" text="削價為">
+        <FontString inherits="GameFontNormal" text="Undercut by">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset>
@@ -454,7 +454,7 @@
             </Anchor>
           </Anchors>
         </FontString>
-        <FontString inherits="GameFontNormal" text="競拍價折扣">
+        <FontString inherits="GameFontNormal" text="Starting Price Discount">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset>
@@ -463,7 +463,7 @@
             </Anchor>
           </Anchors>
         </FontString>
-        <FontString inherits="GameFontHighlight" text="百分比">
+        <FontString inherits="GameFontHighlight" text="percent">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset>
@@ -535,7 +535,7 @@
         </Anchors>
         <FontString bytes="64" inherits="ChatFontNormal"/>
       </EditBox>
-      <Button inherits="UIPanelButtonTemplate" name="$parent_Reset" text="重置回預設">
+      <Button inherits="UIPanelButtonTemplate" name="$parent_Reset" text="Reset to Default">
         <Size>
           <AbsDimension x="150" y="22"/>
         </Size>
@@ -607,7 +607,7 @@
           </EdgeSize>
         </Backdrop>
       </Frame>
-      <Button inherits="Atr_SmallButtonTemplate" name="$parent_Edit" parent="Atr_StackingOptionsFrame" text="編輯">
+      <Button inherits="Atr_SmallButtonTemplate" name="$parent_Edit" parent="Atr_StackingOptionsFrame" text="Edit">
         <Size>
           <AbsDimension x="80" y="18"/>
         </Size>
@@ -622,7 +622,7 @@
           <OnClick>Atr_StackingList_Edit_OnClick()</OnClick>
         </Scripts>
       </Button>
-      <Button inherits="Atr_SmallButtonTemplate" name="$parent_New" parent="Atr_StackingOptionsFrame" text="新建">
+      <Button inherits="Atr_SmallButtonTemplate" name="$parent_New" parent="Atr_StackingOptionsFrame" text="New">
         <Size>
           <AbsDimension x="80" y="18"/>
         </Size>
@@ -726,7 +726,7 @@
     </Backdrop>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormalSmall" justifyH="LEFT" name="Atr_Mem_itemName_text" text="物品名稱">
+        <FontString inherits="GameFontNormalSmall" justifyH="LEFT" name="Atr_Mem_itemName_text" text="Item Name">
           <Size>
             <AbsDimension x="200" y="20"/>
           </Size>
@@ -748,7 +748,7 @@
             </Anchor>
           </Anchors>
         </FontString>
-        <FontString inherits="GameFontNormal" justifyH="RIGHT" name="Atr_Mem_stacksOf_text" text="堆疊為">
+        <FontString inherits="GameFontNormal" justifyH="RIGHT" name="Atr_Mem_stacksOf_text" text="stacks of">
           <Size>
             <AbsDimension x="120" y="30"/>
           </Size>
@@ -819,7 +819,7 @@
           </OnClick>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_Mem_Cancel" text="取消">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_Mem_Cancel" text="CANCEL">
         <Size>
           <AbsDimension x="80" y="22"/>
         </Size>
@@ -872,7 +872,7 @@
         </Anchors>
         <Layers>
           <Layer level="BACKGROUND">
-            <FontString inherits="GameFontNormal" justifyH="LEFT" text="最小品質等級:"/>
+            <FontString inherits="GameFontNormal" justifyH="LEFT" text="Minimum quality level:"/>
           </Layer>
         </Layers>
         <Scripts>
@@ -909,7 +909,7 @@
         </Anchors>
         <Layers>
           <Layer level="BACKGROUND">
-            <FontString inherits="GameFontNormal" text="Auctionator記憶體使用:">
+            <FontString inherits="GameFontNormal" text="Auctionator memory usage:">
               <Anchors>
                 <Anchor point="TOPLEFT">
                   <Offset x="15" y="-20"/>
@@ -923,7 +923,7 @@
                 </Anchor>
               </Anchors>
             </FontString>
-            <FontString inherits="GameFontNormal" text="數據庫中的物品:">
+            <FontString inherits="GameFontNormal" text="Items in the database:">
               <Anchors>
                 <Anchor point="TOPLEFT">
                   <Offset x="15" y="-45"/>
@@ -951,7 +951,7 @@
         </Anchors>
         <Layers>
           <Layer level="BACKGROUND">
-            <FontString inherits="GameFontNormal" justifyH="LEFT" spacing="2" text="在開始時刪除多久以前的歷史價格:">
+            <FontString inherits="GameFontNormal" justifyH="LEFT" spacing="2" text="On start-up delete historical prices older than:">
               <Size>
                 <AbsDimension x="200"/>
               </Size>
@@ -961,7 +961,7 @@
                 </Anchor>
               </Anchors>
             </FontString>
-            <FontString inherits="GameFontNormal" justifyH="LEFT" text="天">
+            <FontString inherits="GameFontNormal" justifyH="LEFT" text="days">
               <Anchors>
                 <Anchor point="TOPLEFT">
                   <Offset x="268" y="-11"/>
@@ -993,7 +993,7 @@
       </OnLoad>
     </Scripts>
     <Frames>
-      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="清除掃描紀錄">
+      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="Clear Scanning History">
         <Size x="300" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1004,7 +1004,7 @@
           <OnClick function="Atr_OnClick_ClearHistory"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="清除上架紀錄">
+      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="Clear Posting History">
         <Size x="300" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1015,7 +1015,7 @@
           <OnClick function="Atr_OnClick_ClearPostHistory"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="清除堆疊偏好">
+      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="Clear Stacking Preferences">
         <Size x="300" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1026,7 +1026,7 @@
           <OnClick function="Atr_OnClick_ClearStackPrefs"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="清除購物清單">
+      <Button inherits="UIPanelButtonTemplate" parent="AuctionatorResetsFrame" text="Clear Shopping Lists">
         <Size x="300" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1062,7 +1062,7 @@
     </Backdrop>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormal" name="Atr_ClearConfirm_Text1" text="你確定嗎?">
+        <FontString inherits="GameFontNormal" name="Atr_ClearConfirm_Text1" text="Are you sure?">
           <Anchors>
             <Anchor point="TOPLEFT">
               <Offset x="20" y="-40"/>
@@ -1080,7 +1080,7 @@
       </Layer>
     </Layers>
     <Frames>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ClearConfirm_Cancel" text="取消">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ClearConfirm_Cancel" text="CANCEL">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="BOTTOMRIGHT">
@@ -1093,7 +1093,7 @@
           <OnClick function="Atr_OnClick_ClearConfirm_Hide"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" text="清除它">
+      <Button inherits="UIPanelButtonTemplate" text="Clear It">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="RIGHT" relativePoint="LEFT" relativeTo="Atr_ClearConfirm_Cancel">
@@ -1118,7 +1118,7 @@
     </Scripts>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontDarkGraySmall" text="點擊時藉由按下Control鍵可以選擇多重購物清單">
+        <FontString inherits="GameFontDarkGraySmall" text="Select multiple shopping lists by holding down the control key while clicking">
           <Size x="125"/>
           <Anchors>
             <Anchor point="BOTTOMRIGHT" x="-30" y="26"/>
@@ -1161,7 +1161,7 @@
           </EdgeSize>
         </Backdrop>
       </Frame>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_DeleteButton" text="刪除">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_DeleteButton" text="Delete">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1172,7 +1172,7 @@
           <OnClick function="Atr_OnClick_ShpList_Delete"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_EditButton" text="編輯">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_EditButton" text="Edit">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1183,7 +1183,7 @@
           <OnClick function="Atr_OnClick_ShpList_Edit"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_RenameButton" text="重命名">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_RenameButton" text="Rename">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1194,7 +1194,7 @@
           <OnClick function="Atr_OnClick_ShpList_Rename"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportButton" text="新建">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportButton" text="New">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1205,7 +1205,7 @@
           <OnClick function="Atr_OnClick_ShpList_New"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportButton" text="匯入">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportButton" text="Import">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1216,7 +1216,7 @@
           <OnClick function="Atr_OnClick_ShpList_Import"/>
         </Scripts>
       </Button>
-      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ExportButton" text="匯出">
+      <Button inherits="UIPanelButtonTemplate" name="Atr_ShpList_ExportButton" text="Export">
         <Size x="100" y="22"/>
         <Anchors>
           <Anchor point="TOPLEFT">
@@ -1290,7 +1290,7 @@
     </Backdrop>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormal" name="Atr_ShpList_Edit_Name" text="編輯">
+        <FontString inherits="GameFontNormal" name="Atr_ShpList_Edit_Name" text="Edit">
           <Anchors>
             <Anchor point="TOPLEFT" x="30" y="-30"/>
           </Anchors>
@@ -1358,7 +1358,7 @@
           </EditBox>
         </ScrollChild>
       </ScrollFrame>
-      <Button inherits="UIPanelButtonTemplate" text="取消">
+      <Button inherits="UIPanelButtonTemplate" text="CANCEL">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="BOTTOMRIGHT">
@@ -1369,7 +1369,7 @@
           <OnClick>self:GetParent():Hide()</OnClick>
         </Scripts>
       </Button>
-      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportSaveBut" text="匯入">
+      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_ImportSaveBut" text="Import">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="BOTTOMRIGHT">
@@ -1380,7 +1380,7 @@
           <OnClick>Atr_ShpList_Edit_ImportSave()</OnClick>
         </Scripts>
       </Button>
-      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_SaveBut" text="儲存">
+      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_SaveBut" text="SAVE">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="BOTTOMRIGHT">
@@ -1391,7 +1391,7 @@
           <OnClick>Atr_ShpList_Edit_Save()</OnClick>
         </Scripts>
       </Button>
-      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_SelectAllBut" text="選擇全部">
+      <Button hidden="true" inherits="UIPanelButtonTemplate" name="Atr_ShpList_SelectAllBut" text="Select All">
         <Size x="120" y="22"/>
         <Anchors>
           <Anchor point="BOTTOMRIGHT">
@@ -1422,7 +1422,7 @@
     </Backdrop>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontNormal" spacing="3" text="以下的購物清單已經存在:">
+        <FontString inherits="GameFontNormal" spacing="3" text="The following shopping list(s) already exist:">
           <Anchors>
             <Anchor point="TOPLEFT" x="30" y="-30"/>
             <Anchor point="RIGHT" x="-30"/>
@@ -1483,7 +1483,7 @@
     </Scripts>
     <Layers>
       <Layer level="BACKGROUND">
-        <FontString inherits="GameFontDisableSmall" justifyH="LEFT" justifyV="TOP" text="作者:  Borjamacare (US)">
+        <FontString inherits="GameFontDisableSmall" justifyH="LEFT" justifyV="TOP" text="Author:  Borjamacare (US)">
           <Anchors>
             <Anchor point="BOTTOMLEFT">
               <Offset>
