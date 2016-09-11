@@ -15,8 +15,8 @@
 			miirgui ={}
 				
 			if miirguiDB["blue"] == true then
-				miirgui.Color = {0.08,0.342,0.52,1}
-				miirgui.Highlight = {0.086, 0.459, 0.710,1}
+				miirgui.Color = {1,0.690,0.007,1}
+				miirgui.Highlight = {1, 0.819161, 0}
 			elseif miirguiDB["grey"] == true then
 				miirgui.Color = {0.301,0.301,0.301,1}
 				miirgui.Highlight = {0.695, 0.695, 0.695,1}
