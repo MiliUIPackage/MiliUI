@@ -16,7 +16,9 @@ local NO_ITEM_ID = 0
 -- save all mountinfos
 local MOUNT_INFO = {
 	["spells"] = { -- [spellID] = itemID
-		[182912] = 123890, --Felsteel Annihilator
+		[225765] = 141217,	--Leyfeather Hippogryph
+		[193007] = 141216,	--Grove Defiler
+		[182912] = 123890,	--Felsteel Annihilator
 		[186305] = 127140,	--Infernal Direwolf
 		[190977] = 128527,	--Deathtusk Felboar
 		--[190977] = 128526,	--Deathtusk Felboar

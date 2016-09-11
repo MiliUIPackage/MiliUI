@@ -1,9 +1,9 @@
 ﻿## Interface: 70000
 ## Author: Hegarol	
-## Version: v8.01.00
+## Version: v8.01.01
 ## Dependencies: AtlasLoot
 ## LoadOnDemand: 1
-## X-Curse-Packaged-Version: v8.01.00
+## X-Curse-Packaged-Version: v8.01.01
 ## X-Curse-Project-Name: AtlasLoot Enhanced
 ## X-Curse-Project-ID: atlasloot-enhanced
 ## X-Curse-Repository-ID: wow/atlasloot-enhanced/mainline

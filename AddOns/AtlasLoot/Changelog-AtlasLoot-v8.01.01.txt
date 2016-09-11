@@ -1,0 +1,35 @@
+------------------------------------------------------------------------
+r4437 | proteyer | 2016-08-29 20:30:34 +0000 (Mon, 29 Aug 2016) | 18 lines
+Changed paths:
+   A /tags/v8.01.01 (from /trunk:4436)
+
+Tagging as v8.01.01
+- Added AC "Legion Dungeon Hero"
+- Added AC "Glory of the Legion Hero"
+- Added AC "Glory of the Legion Raider"
+- Added Dungeon "Assault On Violet Hold"
+- Added Dungeon "Black Rook Hold"
+- Added Dungeon "Darkheart Thicket"
+- Added Dungeon "Eye Of Azshara"
+- Added Dungeon "Court Of Stars"
+- Added Dungeon "Halls Of Valor"
+- Added Dungeon "Maw Of Souls"
+- Added Dungeon "Neltharion's Lair"
+- Added Dungeon "The Arcway"
+- Added Dungeon "Vault Of The Wardens"
+- Added Raid "The Nighthold"
+- Added Raid "The Emerald Nightmare"
+- Added Raid "Broken Isles"
+- Fixed LFR Titanforged ItemLevel
+------------------------------------------------------------------------
+r4436 | proteyer | 2016-08-29 20:24:52 +0000 (Mon, 29 Aug 2016) | 1 line
+Changed paths:
+   M /trunk
+   M /trunk/.pkgmeta
+   M /trunk/AtlasLoot/AtlasLoot.lua
+   M /trunk/AtlasLoot/Core/ItemString.lua
+   M /trunk/AtlasLoot/Data/Mount.lua
+   M /trunk/AtlasLoot_Legion/data.lua
+
+- Branch legion mered in
+------------------------------------------------------------------------

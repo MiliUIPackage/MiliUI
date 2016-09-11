@@ -112,7 +112,131 @@ function AtlasLoot:AddInitFunc(func, module)
 end
 
 
+AtlasLoot.DEV = {}
+local EJ_DIFFICULTIES =  
+{
+	{ size = "5", prefix = PLAYER_DIFFICULTY1, difficultyID = 1 },
+	{ size = "5", prefix = PLAYER_DIFFICULTY2, difficultyID = 2 },
+	{ size = "5", prefix = PLAYER_DIFFICULTY6, difficultyID = 23 },
+	{ size = "5", prefix = PLAYER_DIFFICULTY_TIMEWALKER, difficultyID = 24 },
+	{ size = "25", prefix = PLAYER_DIFFICULTY3, difficultyID = 7 },
+	{ size = "10", prefix = PLAYER_DIFFICULTY1, difficultyID = 3 },
+	{ size = "10", prefix = PLAYER_DIFFICULTY2, difficultyID = 5 },
+	{ size = "25", prefix = PLAYER_DIFFICULTY1, difficultyID = 4 },
+	{ size = "25", prefix = PLAYER_DIFFICULTY2, difficultyID = 6 },
+	{ prefix = PLAYER_DIFFICULTY3, difficultyID = 17 },
+	{ prefix = PLAYER_DIFFICULTY1, difficultyID = 14 },
+	{ prefix = PLAYER_DIFFICULTY2, difficultyID = 15 },
+	{ prefix = PLAYER_DIFFICULTY6, difficultyID = 16 },
+}
 
+function AtlasLoot:DEV_ScanEJ(givenTierId)
+	self.db.DEV_ScanEJ = {}
+	local db = self.db.DEV_ScanEJ
+	if EncounterJournal then
+		EncounterJournal:UnregisterEvent("EJ_DIFFICULTY_UPDATE")
+	end
+	
+	for tier = 1,EJ_GetNumTiers() do		-- scan tiers Classic, bc, ...
+		if givenTierId and givenTierId ~= tier then
+			-- Do nothing
+		else
+			EJ_SelectTier(tier)
+			local tierName = EJ_GetTierInfo(tier)
+			db[tierName] = {
+				info = {
+					tierID = tier,
+				},
+				dungeons = {},
+				raids = {},
+			}
+			local loopKill = 0
+			local showRaid = false
+			local index = 1
+			local instanceID, name, description, bgImage, buttonImage, loreImage, dungeonAreaMapID, link
+			while true do
+				loopKill = loopKill + 1
+				if loopKill > 300 then print"ouch loop break" break end
+				instanceID, name, description, bgImage, buttonImage, loreImage, dungeonAreaMapID, link = EJ_GetInstanceByIndex(index, showRaid)
+				if not instanceID and showRaid then	
+					break
+				elseif not instanceID then
+					index = 1
+					showRaid = true
+				else
+					local curDb = showRaid and db[tierName].raids or db[tierName].dungeons
+					
+					curDb[name] = {
+						info = {
+							instanceID = instanceID,
+							name = name,
+							description = description,
+							bgImage = bgImage,
+							buttonImage = buttonImage,
+							loreImage = loreImage,
+							dungeonAreaMapID = dungeonAreaMapID,
+							link = link,
+						},
+						bosses = {},
+					}
+					curDb = curDb[name].bosses
+					
+					EJ_SelectInstance(instanceID)	-- select instance..
+					
+					local bossIndex = 1
+					local encounterName, encounterDescription, encounterID, rootSectionID, encounterLink = EJ_GetEncounterInfoByIndex(bossIndex)
+					local loopProtectEncount = 0
+					
+					while encounterID do
+						loopProtectEncount = loopProtectEncount +1
+						if loopProtectEncount > 500 then print("ouch encounterLoop break"..loopProtectEncount) break end
+						EJ_SelectEncounter(encounterID)
+						curDb[encounterName] = {
+							info = {
+								name = encounterName,
+								description = description,
+								encounterID = encounterID,
+								rootSectionID = rootSectionID,
+								link = link,
+							},
+							items = {},
+						}
+						for diffIndex = 1,#EJ_DIFFICULTIES do
+							local entry = EJ_DIFFICULTIES[diffIndex];
+							if EJ_IsValidInstanceDifficulty(entry.difficultyID) then
+								EJ_SetDifficulty(entry.difficultyID)
+								local diffName, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID = GetDifficultyInfo(entry.difficultyID)
+								curDb[encounterName].items[diffName] = {}
+								--print(diffName, groupType, isHeroic, isChallengeMode, displayHeroic, displayMythic, toggleDifficultyID)
+								local lootDb = curDb[encounterName].items[diffName] 
+								local itemName, _, itemID
+								for itemIndex = 1, EJ_GetNumLoot() do
+									itemID, _, itemName	= EJ_GetLootInfoByIndex(itemIndex)
+									if itemID then
+										lootDb[itemID] = itemName
+										print(itemName)
+									end
+								end
+							end
+						end
+						
+						bossIndex = bossIndex + 1
+						encounterName, encounterDescription, encounterID, rootSectionID, encounterLink = EJ_GetEncounterInfoByIndex(bossIndex)
+					end
+					
+					index = index +1
+				end
+				
+				
+			end
+
+		end
+	end
+	
+	if EncounterJournal then
+		EncounterJournal:RegisterEvent("EJ_DIFFICULTY_UPDATE")
+	end
+end
 --[[
 local db 
 local ORIGetItemInfo = GetItemInfo
