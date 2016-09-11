@@ -1,7 +1,8 @@
 ## Interface: 70000
 ## Title: Skada
 ## Notes: Modular damage meter.
-## Notes-zhTW: 模組化的傷害統計。
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFFF99FF[Skada]|r 戰鬥數據統計
+## Notes-zhTW: 模組化的戰鬥數據統計。『/skada config』
 ## Notes-zhCN: 模块化伤害统计。
 ## Author: Zarnivoop
 ## Version: 1.4-35

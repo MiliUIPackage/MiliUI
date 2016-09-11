@@ -405,8 +405,107 @@ OptionsFrame.thanksRight = ELib:Text(OptionsFrame,"Phanx, funkydude, Shurshik, K
 if L.TranslateBy ~= "" then
 	OptionsFrame.translateLeft = ELib:Text(OptionsFrame,L.SetTranslate,12):Size(150,25):Point("LEFT",OptionsFrame,15,0):Point("TOP",OptionsFrame.thanksRight,"BOTTOM",0,-8):Shadow():Top()
 	OptionsFrame.translateRight = ELib:Text(OptionsFrame,L.TranslateBy,12):Size(520,25):Point("LEFT",OptionsFrame.thanksRight,"LEFT",0,0):Point("TOP",OptionsFrame.translateLeft,0,0):Color():Shadow():Top()
-
 end
+
+local VersionCheckReqSended = {}
+local function UpdateVersionCheck()
+	OptionsFrame.VersionUpdateButton:Enable()
+	local list = OptionsFrame.VersionCheck.L
+	wipe(list)
+	
+	if IsInRaid() then
+		for i=1,GetNumGroupMembers() do
+			local name,_,_,_,_,class = GetRaidRosterInfo(i)
+			if name then
+				list[#list + 1] = {
+					"|c"..ExRT.F.classColor(class or "?")..name,
+					0,
+					name,
+				}
+			end
+		end
+	else
+		for _,unit in pairs({"party1","party2","party3","party4","player"}) do
+			local name,realm = UnitName(unit)
+			if name then
+				if realm and realm ~= "" then
+					name = name .. "-" .. realm
+				end
+				local _,class = UnitClass(unit)
+				
+				list[#list + 1] = {
+					"|c"..ExRT.F.classColor(class or "?")..name,
+					0,
+					name,
+				}
+			end
+		end
+	end
+	
+	for i=1,#list do
+		local name = list[i][3]
+		
+		local ver = ExRT.RaidVersions[name]
+		if not ver and not name:find("%-") then
+			for long_name,v in pairs(ExRT.RaidVersions) do
+				if long_name:find("^"..name) then
+					ver = v
+					break
+				end
+			end
+		end
+		if not ver then
+			if VersionCheckReqSended[name] then
+				ver = "|cffff8888no addon"
+			else
+				ver = "???"
+			end
+		elseif not tonumber(ver) then
+		
+		elseif tonumber(ver) >= ExRT.V then
+			ver = "|cff88ff88"..ver
+		else
+			ver = "|cffffff88"..ver
+		end
+		
+		list[i][2] = ver
+	end
+	
+	sort(list,function(a,b) return a[3]<b[3] end)
+	OptionsFrame.VersionCheck:Update()
+end
+
+OptionsFrame.VersionCheck = ELib:ScrollTableList(OptionsFrame,0,130):Point("TOPLEFT",15,-330):Size(350,281)
+OptionsFrame.VersionUpdateButton = ELib:Button(OptionsFrame,UPDATE):Point("TOPLEFT",OptionsFrame.VersionCheck,"TOPRIGHT",10,0):Size(100,20):OnClick(function()
+	ExRT.F.SendExMsg("needversion","")
+	C_Timer.After(2,UpdateVersionCheck)
+	if IsInRaid() then
+		for i=1,GetNumGroupMembers() do
+			local name = GetRaidRosterInfo(i)
+			if name then
+				VersionCheckReqSended[name]=true
+			end
+		end
+	else
+		for _,unit in pairs({"party1","party2","party3","party4","player"}) do
+			local name,realm = UnitName(unit)
+			if name then
+				if realm and realm ~= "" then
+					name = name .. "-" .. realm
+				end
+				VersionCheckReqSended[name]=true
+			end
+		end
+	end	
+	local list = OptionsFrame.VersionCheck.L
+	for i=1,#list do
+		list[i][2] = "..."
+	end
+	OptionsFrame.VersionCheck:Update()
+	OptionsFrame.VersionUpdateButton:Disable()
+end)
+
+OptionsFrame.VersionCheck:SetScript("OnShow",UpdateVersionCheck)
 
 local function CreateDataBrokerPlugin()
 	local dataObject = LibStub:GetLibrary('LibDataBroker-1.1'):NewDataObject(GlobalAddonName, {

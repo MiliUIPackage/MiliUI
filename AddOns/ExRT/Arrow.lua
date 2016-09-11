@@ -265,7 +265,7 @@ end
 --  OnUpdate Handler  --
 ------------------------
 
-local functionOnUpdateWorld,functionOnUpdateMap = nil
+local functionOnUpdateWorld,functionOnUpdateMap,functionOnUpdateStatic = nil
 do
 	local rotateState = 0
 	
@@ -364,6 +364,20 @@ do
 		end
 		updateArrow(angle - player, calculateDistance(x, y, targetX, targetY))
 	end
+	
+	
+	function functionOnUpdateStatic(self, elapsed)
+		if hideTime and GetTime() > hideTime then
+			frame:Hide()
+		end
+
+		local player = GetPlayerFacing() - pi
+		if player < 0 then
+			player = pi2 + player
+		end
+		
+		updateArrow(targetX - player)
+	end
 end
 
 
@@ -372,14 +386,26 @@ end
 ----------------------
 local function show(runAway, x, y, distance, time, world, hide)
 	local player
-	if not world then	--Update Map Only if local coords
+	frame:Hide()
+	if x == "_static" then
+		frame:SetScript("OnUpdate", functionOnUpdateStatic)
+	elseif not world then	--Update Map Only if local coords
 		SetMapToCurrentZone()--Set map to current zone before checking other stuff
 		module:UpdateMapSizes()--Force a mapsize update after SetMapToCurrentZone to ensure our information is current
 		frame:SetScript("OnUpdate", functionOnUpdateMap)
 	else
 		frame:SetScript("OnUpdate", functionOnUpdateWorld)
 	end
-	if type(x) == "string" then
+	if x == "_static" then
+		targetX = math.rad(y)
+		if distance then
+			hideTime = distance + GetTime()
+		else
+			hideTime = nil
+		end
+		frame:Show()
+		return
+	elseif type(x) == "string" then
 		player, hideDistance, hideTime = x, y, distance
 	end
 	frame:Show()
@@ -635,6 +661,11 @@ function module:addonMessage(sender, prefix, ...)
 			time = tonumber(time)
 			hide = (hide == "true" or hide == "1") and true or false
 			show(runAway, toPlayer, distance, time, nil, true, hide)
+		elseif sub_prefix == "s" then
+			local _, _, angle, time = ...
+			angle = tonumber(angle) or 0
+			time = tonumber(time)
+			show(false, "_static", angle, time)
 		end
 	end 
 end

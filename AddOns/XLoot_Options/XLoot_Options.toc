@@ -1,5 +1,6 @@
-﻿## Interface: 70000
+## Interface: 70000
 ## Title: XLoot Options
+## Title-zhTW: |cFF0099FF[介面]|r |cFFaa80ff[XLoot]|r 拾取增強 - Options
 ## Notes: Configuration interface for XLoot
 ## Version: 7.0-4
 ## Author: Xuerian

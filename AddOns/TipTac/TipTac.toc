@@ -5,8 +5,8 @@
 ## Notes: Highly Customizable Tooltip Enhancement Addon
 ## Title-zhCN: TipTac (提示信息增强)
 ## Notes-zhCN: 高度可定制的提示信息增强插件
-## Title-zhTW: TipTac (鼠標資訊提示增強)
-## Notes-zhTW: 高度可定制的提示訊息增強插件
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99FFFF[TipTac]|r 訊息提示增強
+## Notes-zhTW: 高度自定義的強化提示訊息工具。『/tip』
 ## SavedVariables: TipTac_Config
 Libs\AceLocale-3.0\AceLocale-3.0.lua
 Libs\LibStub\LibStub.lua

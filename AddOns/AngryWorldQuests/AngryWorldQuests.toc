@@ -1,6 +1,8 @@
 ## Interface: 70000
 ## Title: Angry World Quests
 ## Notes: Adds World Quests to the quest list
+## Title-zhTW: |cFF00CCFF[任務]|r |cFFFF77FF[Angry World Quests]|r 世界任務列表
+## Notes-zhTW: 在地圖任務欄位顯示世界任務。
 ## Author: Ermad
 ## SavedVariables: AngryWorldQuests_Config
 ## X-Curse-Packaged-Version: v0.10.0

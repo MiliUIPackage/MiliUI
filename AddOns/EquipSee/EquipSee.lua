@@ -404,7 +404,7 @@ function Eqx_OnUpdate (self, elapsed)
 		Eqx_UpdateContainerFrames();
 
 		if (PaperDollEquipmentManagerPane:IsShown()) then
-			Eqx_UpdateMasks ({ showItemLevel = false });
+			Eqx_UpdateMasks ({ showItemLevel = true });
 		end
 	end
 
@@ -414,7 +414,7 @@ end
 
 function Eqx_GearSetBut_OnClick ()
 
-	Eqx_UpdateMasks ({ showItemLevel = false });
+	Eqx_UpdateMasks ({ showItemLevel = true });
 
 end
 
@@ -436,6 +436,7 @@ function Eqx_UpdateMasks (options)
 		local equippedItemLink = GetInventoryItemLink("player",x);
 		if (equippedItemLink and not sinfo[x].isCosmetic) then
 			local _, _, _, iLevel = GetItemInfo(equippedItemLink);
+			
 			if (iLevel > high) then
 				if (high > low) then
 					hasMid = true;

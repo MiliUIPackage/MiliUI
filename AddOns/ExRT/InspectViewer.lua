@@ -253,6 +253,19 @@ do
 	--ELib:Frame(UIParent):SetScript('OnUpdate',function()local q=GetMouseFocus()if not q or not q.id then DInfo'nil' return end DInfo(q.id)end)
 end
 
+module.db.relicLocalizated = {
+	[0] = "|cff00ff00"..RELIC_SLOT_TYPE_FEL,
+	[1] = "|cffff5000"..RELIC_SLOT_TYPE_FIRE,
+	[2] = "|cffff262c"..RELIC_SLOT_TYPE_BLOOD,
+	[3] = "|cff438d1d"..RELIC_SLOT_TYPE_LIFE,
+	[4] = "|cffffee00"..RELIC_SLOT_TYPE_HOLY,
+	[5] = "|cff77ffcc"..RELIC_SLOT_TYPE_FROST,
+	[6] = "|cff400e51"..RELIC_SLOT_TYPE_SHADOW,
+	[7] = "|cff555555"..RELIC_SLOT_TYPE_IRON,
+	[8] = "|cffff65f5"..RELIC_SLOT_TYPE_ARCANE,
+	[9] = "|cff403cff"..RELIC_SLOT_TYPE_WIND,
+}
+
 module.db.perPage = 18
 module.db.page = 1
 
@@ -316,6 +329,7 @@ function module.options:Load()
 		module.options.chkInfo:SetChecked(false)
 		module.options.chkAchivs:SetChecked(false)
 		module.options.chkArtifact:SetChecked(false)
+		module.options.chkRelics:SetChecked(false)
 		
 		self:SetChecked(true)
 		
@@ -343,6 +357,12 @@ function module.options:Load()
 	self.chkArtifact = ELib:Radio(self,ARTIFACT_POWER):Point(385,-28+25):OnClick(reloadChks)
 	self.chkArtifact.id = 5
 	
+	do
+		local text = RELIC_TOOLTIP_TYPE:gsub(" %(.+$","")
+		self.chkRelics = ELib:Radio(self,text):Point(260,-28+25):OnClick(reloadChks)
+		self.chkRelics.id = 6
+	end
+	
 	local function ItemsTrackDropDownClick(self)
 		local f = self.checkButton:GetScript("OnClick")
 		self.checkButton:SetChecked(not self.checkButton:GetChecked())
@@ -355,6 +375,9 @@ function module.options:Load()
 	module.db.colorizeNoTopEnchGems = VExRT.InspectViewer.ColorizeNoTopEnchGems
 	module.db.colorizeLowIlvl685 = VExRT.InspectViewer.ColorizeLowIlvl685
 	module.db.colorizeNoValorUpgrade = VExRT.InspectViewer.ColorizeNoValorUpgrade
+	
+	local colorizeLowIlvl630 = ExRT.isLegionContent and 840 or 630
+	local colorizeLowIlvl685 = ExRT.isLegionContent and 865 or 685
 	
 	self.chkItemsTrackDropDown = ELib:DropDown(self,300,7):Point(50,0):Size(50)
 	self.chkItemsTrackDropDown:Hide()
@@ -369,17 +392,17 @@ function module.options:Load()
 			VExRT.InspectViewer.ColorizeNoGems = checked
 			module.options.ReloadPage()
 		end,func = ItemsTrackDropDownClick},
-		{text = format(L.InspectViewerColorizeLowIlvl,630),checkable = true,checkState = module.db.colorizeLowIlvl, checkFunc = function(self,checked) 
-			module.db.colorizeLowIlvl = checked
-			VExRT.InspectViewer.ColorizeLowIlvl = checked
-			module.options.ReloadPage()
-		end,func = ItemsTrackDropDownClick},
 		{text = L.InspectViewerColorizeNoTopEnch,checkable = true,checkState = module.db.colorizeNoTopEnchGems, checkFunc = function(self,checked) 
 			module.db.colorizeNoTopEnchGems = checked
 			VExRT.InspectViewer.ColorizeNoTopEnchGems = checked
 			module.options.ReloadPage()
 		end,func = ItemsTrackDropDownClick},
-		{text = format(L.InspectViewerColorizeLowIlvl,685),checkable = true,checkState = module.db.colorizeLowIlvl685, checkFunc = function(self,checked) 
+		{text = format(L.InspectViewerColorizeLowIlvl,colorizeLowIlvl630),checkable = true,checkState = module.db.colorizeLowIlvl, checkFunc = function(self,checked) 
+			module.db.colorizeLowIlvl = checked
+			VExRT.InspectViewer.ColorizeLowIlvl = checked
+			module.options.ReloadPage()
+		end,func = ItemsTrackDropDownClick},
+		{text = format(L.InspectViewerColorizeLowIlvl,colorizeLowIlvl685),checkable = true,checkState = module.db.colorizeLowIlvl685, checkFunc = function(self,checked) 
 			module.db.colorizeLowIlvl685 = checked
 			VExRT.InspectViewer.ColorizeLowIlvl685 = checked
 			module.options.ReloadPage()
@@ -423,7 +446,7 @@ function module.options:Load()
 			{TANK,HEALER,DAMAGER,MELEE,RANGED},
 		},
 		[4] = {
-			{"PALADIN_PRIEST_WARLOCK_DEMONHUNTER","ROGUE_DEATHKNIGHT_MAGE_DRUID","WARRIOR_HUNTER_SHAMAN_MONK"},
+			{"_PALADIN_PRIEST_WARLOCK_DEMONHUNTER","_ROGUE_DEATHKNIGHT_MAGE_DRUID_","_WARRIOR_HUNTER_SHAMAN_MONK"},
 		},
 	}
 	
@@ -489,7 +512,7 @@ function module.options:Load()
 	for i=1,#dropDownTable[4][1] do
 		local text = ""
 		for className,_ in pairs(module.db.classIDs) do
-			if dropDownTable[4][1][i]:find(className) then
+			if dropDownTable[4][1][i]:find("_"..className) then
 				text = text..(text ~= "" and ", " or "")..L.classLocalizate[ className ]
 			end
 		end
@@ -547,6 +570,15 @@ function module.options:Load()
 		end
 	end
 	
+	local function IsArtifactItemHasNot3rdGem(link)
+		if link then
+			local gem1,gem2,gem3 = link:match("item:%d+:[0-9%-]*:([0-9%-]*):([0-9%-]*):([0-9%-]*):")
+			if (gem1 == "" or gem2 == "" or gem3 == "") and not (gem1 == "" and gem2 == "" and gem3 == "") then
+				return true
+			end
+		end
+	end
+	
 	local function IsTopEnchAndGems(link)
 		if link then
 			local ench,gem = link:match("item:%d+:([0-9%-]*):([0-9%-]*):")
@@ -586,7 +618,28 @@ function module.options:Load()
 	end
 	
 	local RefreshArtifactCache = {}
-
+	
+	local function ReloadPage_CreateNowDB(db)
+		if IsInRaid() then
+			for i=1,GetNumGroupMembers() do
+				local name = GetRaidRosterInfo(i)
+				if name and not ExRT.F.table_find(db,name,1) then
+					db[#db + 1] = {name,nil,true}
+				end
+			end
+		else
+			for _,unit in pairs({"party1","party2","party3","party4","party5","player"}) do
+				local name,realm = UnitName(unit)
+				if realm and realm ~= "" and name then
+					name = name .. "-" .. realm
+				end
+				if name and not ExRT.F.table_find(db,name,1) then
+					db[#db + 1] = {name,nil,true}
+				end
+			end
+		end
+	end
+	
 	function module.options.ReloadPage()
 		local nowDB = {}
 		for name,data in pairs(module.db.inspectDB) do
@@ -597,6 +650,8 @@ function module.options:Load()
 				table.insert(nowDB,{name})
 			end
 		end
+		ReloadPage_CreateNowDB(nowDB)
+		
 		table.sort(nowDB,function(a,b) return a[1] < b[1] end)
 
 		local scrollNow = ExRT.F.Round(module.options.ScrollBar:GetValue())
@@ -608,7 +663,7 @@ function module.options:Load()
 			  (module.db.filterType == 1 and module.db.filter == data.class) or 
 			  (module.db.filterType == 2 and module.db.filter == module.db.armorType[ data.class or "?" ]) or 
 			  (module.db.filterType == 3 and module.db.roleBySpec[ data.spec or 0 ] and module.db.filter:find( module.db.roleBySpec[ data.spec or 0 ] )) or
-			  (module.db.filterType == 4 and module.db.filter:find( data.class ))
+			  (module.db.filterType == 4 and module.db.filter:find( "_"..(data.class or "unknown") ))
 			))) and isInRaid then
 				counter = counter + 1
 				
@@ -657,11 +712,11 @@ function module.options:Load()
 					end
 					line.perksData = nil
 					
+					line.relic1:SetText("")
+					line.relic2:SetText("")
+					line.relic3:SetText("")
+
 					if module.db.page == 1 then
-						for j=1,16 do
-							line.items[j]:Show()
-							line.items[j].border:Hide()
-						end
 						line.time:Hide()
 						line.otherInfo:Hide()
 						line.otherInfoTooltipFrame:Hide()
@@ -669,6 +724,9 @@ function module.options:Load()
 						local items = data.items
 						local items_ilvl = data.items_ilvl
 						if items then
+							for j=1,16 do
+								line.items[j].border:Hide()
+							end
 							for j=1,#module.db.itemsSlotTable do
 								local slotID = module.db.itemsSlotTable[j]
 								local item = items[slotID]
@@ -677,15 +735,20 @@ function module.options:Load()
 									itemID = itemID and tonumber(itemID) or 0
 									enchantID = enchantID and tonumber(enchantID) or 0
 									--local itemTexture = GetItemIcon(itemID)
-									local _,_,_,_,_,_,_,_,_,itemTexture = GetItemInfo(item)
+									local _,_,itemQuality,itemLevel,_,_,_,_,_,itemTexture = GetItemInfo(item)
+									if not itemTexture then
+										local _,_,_,_,t = GetItemInfoInstant(item)
+										itemTexture = t
+									end
 									line.items[j].texture:SetTexture(itemTexture)
 									line.items[j].link = item
 									if (enchantID == 0 and (slotID == 2 or slotID == 15 or slotID == 11 or slotID == 12 or (not ExRT.isLegionContent and (slotID == 16 or (module.db.specHasOffhand[spec or 0] and slotID == 17)))) and module.db.colorizeNoEnch) or
-										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < 630 and module.db.colorizeLowIlvl) or
+										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < colorizeLowIlvl630 and module.db.colorizeLowIlvl) or
 										(module.db.colorizeNoGems and ExRT.F.IsBonusOnItem(item,module.db.socketsBonusIDs) and IsItemHasNotGem(item)) or 
-										(module.db.colorizeNoTopEnchGems and not IsTopEnchAndGems(item)) or
+										(module.db.colorizeNoGems and (slotID == 16 or slotID == 17) and itemQuality == 6 and IsArtifactItemHasNot3rdGem(item)) or 
+										(module.db.colorizeNoTopEnchGems and not IsTopEnchAndGems(item) and not ((slotID == 16 or slotID == 17) and itemQuality == 6)) or
 										(module.db.colorizeNoValorUpgrade and not IsValorUpgraded(item)) or
-										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < 685 and module.db.colorizeLowIlvl685)
+										(items_ilvl[slotID] and items_ilvl[slotID] > 0 and items_ilvl[slotID] < colorizeLowIlvl685 and module.db.colorizeLowIlvl685)
 										then
 										line.items[j].border:Show()
 									end
@@ -893,6 +956,63 @@ function module.options:Load()
 								it = it + 1
 							end
 						end
+					elseif module.db.page == 6 then
+						line.time:Hide()
+						line.otherInfo:Hide()
+						line.otherInfoTooltipFrame:Hide()
+						
+						line.ilvl:SetText("")
+						
+						local db
+						for long_name,DB in pairs(module.db.artifactDB) do
+							if ExRT.F.delUnitNameServer(long_name) == name then
+								db = DB
+								break
+							end						
+						end
+						
+						if not db then
+							if not RefreshArtifactCache[ name ] then
+								line.refreshArtifact:Show()
+							else
+								local isAddonOn = false
+								for long_name,_ in pairs(parentModule.db.artifactNoResDB) do
+									if ExRT.F.delUnitNameServer(long_name) == ExRT.F.delUnitNameServer(name) then
+										isAddonOn = true
+										break
+									end						
+								end
+							
+								if isAddonOn then
+									line.otherInfo:SetText(L.BossWatcherDamageSwitchTabInfoNoInfo)
+								else
+									line.otherInfo:SetText(L.InspectViewerNoExRTAddon)
+								end
+								line.otherInfo:Show()
+								line.updateAP:Show()
+							end
+						else
+							line.updateAP:Show()
+							for j=1,3 do
+								local relicLink = db["relic"..j]
+								if relicLink then
+									local icon = line.items[j*5]
+									local _,_,_,ilvl,_,_,_,_,_,itemTexture = GetItemInfo(relicLink)
+									if not itemTexture then
+										local _,_,_,_,t = GetItemInfoInstant(relicLink)
+										itemTexture = t
+									end
+									icon.text:SetText(ilvl or "")
+									icon.texture:SetTexture(itemTexture or "")
+									icon.link = relicLink
+									icon:Show()
+								end
+								local relicType = db["relicType"..j]
+								if relicType then
+									line["relic"..j]:SetText(module.db.relicLocalizated[relicType] or "")
+								end
+							end
+						end
 					end
 					
 					local cR,cG,cB = ExRT.F.classColorNum(class)
@@ -920,7 +1040,7 @@ function module.options:Load()
 					line.back:SetGradientAlpha("HORIZONTAL", 0, 0, 0, 0.5, 0, 0, 0, 0)
 				end
 				
-				if not parentModule.db.inspectQuery[ name ] and module.db.page < 3 then
+				if (nowDB[i][3] or not parentModule.db.inspectQuery[ name ]) and module.db.page < 3 then
 					line.updateButton:Show()
 				else
 					line.updateButton:Hide()
@@ -935,6 +1055,9 @@ function module.options:Load()
 		for i=(counter+1),module.db.perPage do
 			module.options.lines[i]:Hide()
 		end
+		
+		module.options.ScrollBar:SetMinMaxValues(1,max(#nowDB-module.db.perPage+1,1),nil,true):UpdateButtons()
+		module.options.RaidIlvl()
 	end
 	self.ScrollBar:SetScript("OnValueChanged", module.options.ReloadPage)
 	
@@ -944,18 +1067,14 @@ function module.options:Load()
 	
 	function module.options.RaidIlvl()
 		local n = GetNumGroupMembers() or 0
-		if GetNumGroupMembers() == 0 then
-			NoIlvl()
-			return
-		end
 		local isRaid = IsInRaid()
 		local gMax = ExRT.F.GetRaidDiffMaxGroup()
 		local ilvl = 0
 		local countPeople = 0
 		if not isRaid then
-			for i=1,n do
+			for i=1,5 do
 				local unit = "party"..i
-				if i==n then unit = "player" end
+				if i==5 then unit = "player" end
 				local name,realm = UnitName(unit)
 				if name then
 					if realm and realm ~= "" then
@@ -968,6 +1087,10 @@ function module.options:Load()
 				end
 			end
 		else
+			if GetNumGroupMembers() == 0 then
+				NoIlvl()
+				return
+			end
 			for i=1,n do
 				local name,_,subgroup = GetRaidRosterInfo(i)
 				if name and subgroup <= gMax then
@@ -1128,6 +1251,10 @@ function module.options:Load()
 			item.border:Hide()
 			item:Hide()
 		end
+		
+		line.relic1 = ELib:Text(line,"",11):Color():Point("RIGHT",line.items[5],"LEFT",-2,0):Size(0,30):Outline()
+		line.relic2 = ELib:Text(line,"",11):Color():Point("RIGHT",line.items[10],"LEFT",-2,0):Size(0,30):Outline()
+		line.relic3 = ELib:Text(line,"",11):Color():Point("RIGHT",line.items[15],"LEFT",-2,0):Size(0,30):Outline()
 		
 		line.updateButton = ELib:Icon(line,[[Interface\AddOns\ExRT\media\DiesalGUIcons16x256x128]],18,true):Point(210+(24*16)+4,-8)
 		line.updateButton.texture:SetTexCoord(0.125,0.1875,0.5,0.625)
@@ -1909,9 +2036,9 @@ function ExRT.F:RaidItemLevel()
 	local ilvl = 0
 	local countPeople = 0
 	if not isRaid then
-		for i=1,n do
+		for i=1,5 do
 			local unit = "party"..i
-			if i==n then unit = "player" end
+			if i==5 then unit = "player" end
 			local name,realm = UnitName(unit)
 			if name and realm and realm ~= "" then
 				name = name.."-"..realm

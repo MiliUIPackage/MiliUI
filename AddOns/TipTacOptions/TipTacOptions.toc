@@ -4,9 +4,9 @@
 ## Author: Aezay (Earthen Ring EU)
 ## Notes: Option Dialog for TipTac
 ## Title-zhCN: TipTacOptions (选项设置)
-## Title-zhTW: TipTacOptions (選項設置)
 ## Notes-zhCN: TipTac 选项对话框
-## Notes-zhTW: TipTac 選項對話框
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99FFFF[TipTac]|r 訊息提示增強 - 設定模組
+## Notes-zhTW: 『/tip』
 ## Dependencies: TipTac
 ## LoadOnDemand: 1
 Libs\AzDropDown.lua

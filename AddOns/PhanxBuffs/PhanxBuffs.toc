@@ -7,7 +7,8 @@
 
 ## Title: PhanxBuffs
 ## Notes: Basic replacement for the player buff, debuff, and temporary enchant frames.
-## Notes-zhTW: 基本的玩家增益、減益、與武器暫時附魔框架的替代品。
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[PhanxBuffs]|r Buff 美化
+## Notes-zhTW: 基本的玩家增益、減益、與武器暫時附魔的顯示。
 
 ## Author: Phanx
 ## X-Email: addons@phanx.net

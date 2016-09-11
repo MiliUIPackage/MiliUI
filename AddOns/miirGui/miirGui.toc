@@ -2,6 +2,8 @@
 ## Title: miir|cff44CCFFGui|r - Core
 ## Version: 4.0.10
 ## Notes: Blizzard Interface Fixes for usage with miirGui graphics
+## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[miirGui]|r 介面風格美化
+## Notes-zhTW: 配合 Interface 資料夾底下的材質包，完整修改內建介面。
 ## Author: Miiru-Lordaeron
 ## SavedVariables: miirguiDB
 core.lua

@@ -1,4 +1,4 @@
-﻿## Interface: 70000
+## Interface: 70000
 ## Author: Hegarol	
 ## Version: v8.01.01
 ## Dependencies: AtlasLoot
@@ -10,9 +10,11 @@
 
 ## Title: AtlasLoot |cFF0099FF[Options]|r
 ## Title-deDE: AtlasLoot |cFF0099FF[Einstellungen]|r
+## Title-zhTW: |r|cFF0099FF[地圖]|r AtlasLoot 選單模組
 
 ## Notes: AtlasLoot options module
 ## Notes-deDE: AtlasLoot Modul für Einstellungen
+## Notes-zhTW: AtlasLoot 選單模組
 
 ## X-eMail: manager@atlasloot.net
 ## X-Category: Map

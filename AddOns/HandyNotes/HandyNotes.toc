@@ -1,7 +1,9 @@
-﻿## Interface: 70000
+## Interface: 70000
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
 ## Notes-frFR: Notes pratiques pour vos cartes.
+## Title-zhTW: |r|cFF0099FF[地圖]|r |cff7fff7f[HandyNotes]|r 地圖註記
+## Notes-zhTW: 可在地圖上註記資訊。
 ## Author: Xinhuan
 ## Version: v1.4.9
 ## DefaultState: enabled

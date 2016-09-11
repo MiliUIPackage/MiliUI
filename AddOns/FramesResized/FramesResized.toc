@@ -6,6 +6,8 @@
 
 ## Title: Elkano's FramesResized
 ## Notes: Resizes some default UI frames (GuildUI, LootFrame, RaidInfo, TradeSkillUI and TrainerUI) to show more lines
+## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Elkano's FramesResized]|r 框架調整
+## Notes-zhTW: 調整內建介面的框架尺寸(公會、拾取、團隊資訊、交易技能、訓練師介面)，使其可顯示更多的資訊。
 ## Author: Elkano
 ## Version: 2.7.0-63
 ## X-Website: http://www.wowace.com/projects/framesresized/

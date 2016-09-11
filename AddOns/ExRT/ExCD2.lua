@@ -25,7 +25,7 @@ module.db.spellDB = {
 {740,	"DRUID",	nil,			nil,			nil,			nil,{740,180,	8},	},	--Спокойствие
 {115310,"MONK",		nil,			nil,			nil,			{115310,180,	0},	},	--Восстановление сил
 {15286,	"PRIEST",	nil,			nil,			nil,			{15286,	180,	15},	},	--Объятия вампира
-{196718,"DEMONHUNTER",	{196718,180,	8},	nil,			nil,						},	--Мрак
+{196718,"DEMONHUNTER",	nil,			{196718,180,	8},	nil,						},	--Мрак
 {207399,"SHAMAN",	nil,			nil,			nil,			{207399,300,	30},	},	--Тотем защиты Предков
 
 {102342,"DRUID",	nil,			nil,			nil,			nil,{102342,90,	12},	},	--Железная кора
@@ -55,7 +55,7 @@ module.db.spellDB = {
 
 {46968,	"WARRIOR",	{46968,	40,	0},	nil,			nil,			nil,			},	--Ударная волна
 {119381,"MONK",		{119381,45,	5},	nil,			nil,			nil,			},	--Круговой удар ногой
-{179057,"DEMONHUNTER",	{179057,60,	5},	nil,			nil,						},	--Кольцо Хаоса
+{179057,"DEMONHUNTER",	nil,			{179057,60,	5},	nil,						},	--Кольцо Хаоса
 {192058,"SHAMAN",	{192058,45,	2},	nil,			nil,			nil,			},	--Тотем выброса тока
 
 {32375,	"PRIEST",	{32375,	15,	0},	nil,			nil,			nil,			},	--Массовое рассеивание
@@ -282,7 +282,7 @@ module.db.spell_isTalent = {
 	
 	[192063]=1,	[108281]=1,	[192077]=1,	[192058]=1,	[51485]=1,	[196932]=1,	[117014]=1,	[210714]=1,	[16166]=1,	[192249]=1,	[114050]=1,	[192222]=1,	
 	[201898]=1,	[201897]=1,	[215864]=1,	[196884]=1,	[192077]=1,	[192058]=1,	[51485]=1,	[196932]=1,	[197214]=1,	[114051]=1,	[188089]=1,	
-	[73685]=1,	[192063]=1,	[192077]=1,	[192058]=1,	[51485]=1,	[196932]=1,	[108281]=1,	[207299]=1,	[198838]=1,	[157153]=1,	[114052]=1,	[197995]=1,
+	[73685]=1,	[192063]=1,	[192077]=1,	[192058]=1,	[51485]=1,	[196932]=1,	[108281]=1,	[207399]=1,	[198838]=1,	[157153]=1,	[114052]=1,	[197995]=1,
 	
 	[205022]=1,	[205025]=1,	[212653]=1,	[55342]=1,	[116011]=1,	[157980]=1,	[205032]=1,	[108839]=1,	[113724]=1,	[153626]=1,	
 	[212653]=1,	[55342]=1,	[116011]=1,	[157981]=1,	[205029]=1,	[108839]=1,	[113724]=1,	[44457]=1,	[198929]=1,	[153561]=1,	
@@ -302,7 +302,7 @@ module.db.spell_isTalent = {
 	[102351]=1,	[108238]=1,	[102280]=1,	[102401]=1,	[5211]=1,	[102359]=1,	[132469]=1,	[33891]=1,	[197721]=1,	
 
 	[213241]=1,	[196555]=1,	[211881]=1,	[206491]=1,	[211048]=1,	[211053]=1,	
-	[213241]=1,	[211881]=1,	[212084]=1,	[207810]=1,	[227225]=1,	
+	[213241]=1,	[211881]=1,	[212084]=1,	[207810]=1,	[227225]=1,	[202138]=1,
 
 	--Other & items
 	[67826]=1,
@@ -651,9 +651,9 @@ module.db.spell_talentsList = {
 		[581] = {
 			207550,207548,209400,
 			207697,227174,207739,
-			213241,227322,227327,
+			213241,227322,211881,
 			218612,209795,217996,
-			207666,211881,209281,
+			207666,202138,209281,
 			212084,203753,218679,
 			209258,207810,227225,
 		},
@@ -701,6 +701,7 @@ module.db.spell_charge_fix = {		--Спелы с зарядами
 	[203720]=1,
 	[189110]=1,
 	[190784]=230332,
+	[215206]=1,
 }
 
 module.db.spell_durationByTalent_fix = {	--Изменение длительности талантом\глифом   вид: [спелл] = {spellid глифа\таланта, изменение времени (-10;10;*0.5;*1.5)}
@@ -721,10 +722,10 @@ module.db.spell_durationByTalent_fix = {	--Изменение длительно
 	[1160] = {188651,"*1.5"},
 	[31281] = {200311,2},
 	[498] = {200407,4},
-	[1022] = {206338,"*1.4"},
-	[1044] = {206338,"*1.4"},
-	[6940] = {206338,"*1.4"},
-	[204018] = {206338,"*1.4"},
+	[1022] = {206338,"*1.5"},
+	[1044] = {206338,"*1.5"},
+	[6940] = {206338,"*1.5"},
+	[204018] = {206338,"*1.5"},
 	[26573] = {209218,{1,2,3,4,5,6}},
 	[205273] = {179546,6},
 	[31884] = {186945,{2.5,5,7.5,10,12.5,15}},
@@ -750,7 +751,7 @@ module.db.spell_cdByTalent_fix = {		--Изменение кд талантом\�
 	[52174] = {202163,-15},
 	[642] = {114154,"*0.7",213313,"*0.5"},
 	[498] = {114154,"*0.7"},
-	[633] = {200326,{-54.5,-100,-138.5,-171.5,-200,-225},114154,"*0.7",206380,"*0.6"},
+	[633] = {200326,{-54.5,-100,-138.5,-171.5,-200,-225},114154,"*0.7",206380,"*0.4"},
 	[20473] = {53376,"*0.5"},
 	[190784] = {204139,"*0.5"},
 	[35395] = {203316,-1},
@@ -876,6 +877,9 @@ module.db.spell_aura_list = {		--Спелы, время действия кот�
 	[116849]=116849,
 	[122470]=122470,
 	[227225]=227225,
+	[214366]=214366,
+	[214423]=214423,
+	[215670]=215670,
 }
 module.db.spell_speed_list = {		--Спелы, которым менять время действия на основании спелхасты
 	[740]=true,
@@ -981,8 +985,11 @@ module.db.spell_resetOtherSpells = {	--Заклинания, которые от
 	[187827]={{202137,210867},{204596,210867},{207684,210867},{202138,210867}},
 }
 module.db.spell_sharingCD = {		--Заклинания, которые запускают кд на другие заклинания 	[spellID] = {[otherSpellID] = CD}
-
+	[90633] = {[90632]=120,[90631]=120},
+	[90632] = {[90633]=120,[90631]=120},
+	[90631] = {[90632]=120,[90633]=120},
 }
+
 module.db.spell_runningSameSpell = {}	--Схожие заклинания
 
 do
@@ -995,6 +1002,7 @@ do
 		{51514,211015,210873,211010,211004},				--Hex
 		{202767,202771,202768},						--New moon [Balance Druid artifact]
 		{115308,119582},						--Brewmaster brew
+		{90633,90628},{90632,90626},{90631,89479},			--Guild Battle Standard
 	}
 	for i=1,#sameSpellsData do
 		local list = sameSpellsData[i]
@@ -1040,20 +1048,20 @@ module.db.spell_reduceCdCast = {	--Заклинания, применение к
 	[196819]={{1856,186279},-5},
 	[195452]={{1856,186279},-5},	
 	
-	[49998]={{55233,205723},-9},
+	[49998]={{55233,205723},-7.5},
 	
 	[47541]={{63560,198943},-5},
 	
 	[195676]={1953,-15},
 	
-	[107428]={{116680,210804},-30,{137639,209256},-1.2},
+	[107428]={{116680,210804},-30,{137639,209256},-2.2},
 	
 	[23922]={{871,215057},-4},
-	[185358]={{193526,206889},-1},
-	[198670]={{193526,206889},-1},
-	[19434]={{193526,206889},-1},
-	[186387]={{193526,206889},-1},
-	[120679]={{34026,212278},-3},
+	[185358]={{193526,206889},-1.1},
+	[198670]={{193526,206889},-1.1},
+	[19434]={{193526,206889},-1.1},
+	[186387]={{193526,206889},-1.1},
+	[120679]={{34026,212278},-3.1},
 	[185311]={{79140,208895},-0.6},
 	[51723]={{79140,208895},-0.7},
 	[703]={{79140,208895},-0.9},
@@ -1070,11 +1078,11 @@ module.db.spell_reduceCdCast = {	--Заклинания, применение к
 	[16511]={{79140,208895},-0.6},
 	[152150]={{79140,208895},-0.5},
 	[17]={{33206,214576},-4},
-	[206930]={{55233,208706},-3},
+	[206930]={{55233,208706},-2},
 	[51505]={{198067,191512},-2},
-	[113656]={{137639,209256},-1.8},
-	[100784]={{137639,209256},-0.6},
-	[115151]={{115310,206902},-3},
+	[113656]={{137639,209256},-3.3},
+	[100784]={{137639,209256},-1.1},
+	[115151]={{115310,206902},-2.1},
 	[78674]={{102560,208199},-5,{194223,208199},-5},
 	[191034]={{102560,208199},-7.5,{194223,208199},-7.5},
 }
@@ -1120,7 +1128,7 @@ module.db.spell_startCDbyAuraApplied_fix = {}
 for _,spellID in pairs(module.db.spell_startCDbyAuraApplied) do module.db.spell_startCDbyAuraApplied_fix[spellID] = true end
 
 module.db.spell_reduceCdByAuraFade = {	--Заклинания, кд которых уменьшается при спадении ауры до окончания времени действия. !Важно обязательное время действия для таких заклинаний
-	[47788]={{47788,200209},-120},
+	[47788]={{47788,200209},-150},
 }
 module.db.spell_battleRes = {		--Заклинания-воскрешения [WOD]
 	[20484]=true,
@@ -1345,6 +1353,31 @@ module.db.itemsToSpells = {	-- Тринкеты вида [item ID] = spellID
 	[137061] = 215149,
 	[137071] = 210867,
 	[138949] = 210970,
+	
+	[64402] = 90633,
+	[64401] = 90632,
+	[64400] = 90631,
+	
+	[133642] = 215956,
+	[137541] = 215648,
+	[137539] = 214962,
+	[137538] = 215936,
+	[137537] = 215658,
+	[137486] = 214980,
+	[137462] = 215206,
+	[137440] = 214584,
+	[137433] = 215467,
+	[137369] = 214971,
+	[137344] = 214423,
+	[137338] = 214366,
+	[137329] = 215670,
+	[133647] = 214203,
+	[133646] = 214198,
+	[139322] = 221837,
+	[139333] = 221992,
+	[139327] = 221695,
+	[139326] = 222046,
+	[139320] = 221803,
 }
 module.db.itemsArtifacts = {	-- Artifacts & First trait
 	[127857] = 224968,
@@ -1420,6 +1453,10 @@ module.db.differentIcons = {	--Другие иконки заклинаниям
 	[187614]="Interface\\Icons\\inv_60legendary_ring1c",
 	[187613]="Interface\\Icons\\inv_60legendary_ring1b",
 	[187612]="Interface\\Icons\\inv_60legendary_ring1a",
+	
+	[90633] = "Interface\\Icons\\inv_guild_standard_horde_c",
+	[90632] = "Interface\\Icons\\inv_guild_standard_horde_b",
+	[90631] = "Interface\\Icons\\inv_guild_standard_horde_a",
 }
 
 module.db.artifactAllSpells = {
@@ -1510,6 +1547,7 @@ module.db.colsInit = {
 	fontGeneral = true,
 	textGeneral = true,
 	blacklistGeneral = true,
+	visibilityGeneral = true,
 	
 	iconGray = true,
 	textureAnimation = true,
@@ -2507,6 +2545,87 @@ for i=1,module.db.maxColumns do
 end
 
 do
+	local isInCombat = false
+	local isInEncounter = false
+	function module:updateCombatVisibility()
+		local _, zoneType = GetInstanceInfo()
+		local inRaid = IsInRaid()
+		for i=1,module.db.maxColumns do
+			local columnFrame = module.frame.colFrame[i]
+			
+			local state = columnFrame.optionIsEnabled
+		
+			if not columnFrame.methodsOnlyInCombat then
+			
+			elseif isInCombat and columnFrame.optionIsEnabled then
+				state = state and true
+			elseif not isInCombat then
+				state = false
+			end
+			
+			if zoneType == "arena" then
+				if not columnFrame.visibilityArena then
+					state = false
+				end
+			elseif zoneType == "party" then
+				if not columnFrame.visibility5ppl then
+					state = false
+				end			
+			elseif zoneType == "pvp" then
+				if not columnFrame.visibilityBG then
+					state = false
+				end				
+			elseif zoneType == "raid" then
+				if not columnFrame.visibilityRaid then
+					state = false
+				end				
+			elseif zoneType == "scenario" then
+				if not columnFrame.visibility3ppl then
+					state = false
+				end				
+			else
+				if not columnFrame.visibilityWorld then
+					state = false
+				end				
+			end
+			
+			if (columnFrame.visibilityPartyType == 2 and not inRaid) or (columnFrame.visibilityPartyType == 1 and inRaid) then
+				state = false
+			end
+			
+			columnFrame:SetShown(state)
+		end
+		if not VExRT.ExCD2.SplitOpt then
+			if VExRT.ExCD2.colSet[module.db.maxColumns+1].methodsOnlyInCombat then
+				if isInCombat then
+					module.frame:Show()
+				else
+					module.frame:Hide()
+				end
+			elseif module.frame.IsEnabled then
+				module.frame:Show()
+			end
+		end
+	end
+	function module:toggleCombatVisibility(currState,callType)
+		local isInstance, instanceType = IsInInstance()
+		if instanceType == "arena" or instanceType == "pvp" then
+			currState = true
+		elseif instanceType == "raid" or instanceType == "party" then
+			if callType == 1 then
+				isInEncounter = currState
+			elseif callType == 2 then
+				currState = currState or isInEncounter
+			end
+		elseif callType == 1 then
+			return	--ignore encounters not in raid/party
+		end
+		isInCombat = currState
+		module:updateCombatVisibility()
+	end
+end
+
+do
 	local lastSaving = GetTime() - 15
 	function SaveCDtoVar(overwrite)
 		local currTime = GetTime()
@@ -2808,6 +2927,7 @@ do
 			if difficulty == 14 or difficulty == 15 or difficulty == 16 or difficulty == 17 or difficulty == 7 then
 				_db.isResurectDisabled = true
 			end
+			module:toggleCombatVisibility(true,1)
 		elseif _db.isEncounter and not IsEncounterInProgress() then
 			_db.isEncounter = nil
 			_db.isResurectDisabled = nil
@@ -2816,6 +2936,7 @@ do
 				forceUpdateAllData = true
 				forceSortAllData = true
 			end
+			module:toggleCombatVisibility(false,1)
 		end
 		
 		
@@ -3639,10 +3760,14 @@ function module:Enable()
 	else
 		module:ReloadAllSplits()
 	end
+	
+	module.frame.IsEnabled = true
 
 	module:RegisterSlash()
 	module:RegisterTimer()
-	module:RegisterEvents('SCENARIO_UPDATE','GROUP_ROSTER_UPDATE','COMBAT_LOG_EVENT_UNFILTERED','UNIT_PET','PLAYER_LOGOUT','ZONE_CHANGED_NEW_AREA','CHALLENGE_MODE_RESET')
+	module:RegisterEvents('SCENARIO_UPDATE','GROUP_ROSTER_UPDATE','COMBAT_LOG_EVENT_UNFILTERED','UNIT_PET','PLAYER_LOGOUT','ZONE_CHANGED_NEW_AREA','CHALLENGE_MODE_RESET','PLAYER_REGEN_DISABLED','PLAYER_REGEN_ENABLED')
+
+	UpdateRoster()
 end
 
 function module:Disable()
@@ -3655,11 +3780,12 @@ function module:Disable()
 		end 
 	end
 	
+	module.frame.IsEnabled = false
+	
 	module:UnregisterSlash()
 	module:UnregisterTimer()
-	module:UnregisterEvents('SCENARIO_UPDATE','GROUP_ROSTER_UPDATE','COMBAT_LOG_EVENT_UNFILTERED','UNIT_PET','PLAYER_LOGOUT','ZONE_CHANGED_NEW_AREA','CHALLENGE_MODE_RESET')
+	module:UnregisterEvents('SCENARIO_UPDATE','GROUP_ROSTER_UPDATE','COMBAT_LOG_EVENT_UNFILTERED','UNIT_PET','PLAYER_LOGOUT','ZONE_CHANGED_NEW_AREA','CHALLENGE_MODE_RESET','PLAYER_REGEN_DISABLED','PLAYER_REGEN_ENABLED')
 end
-
 
 function module.main:ADDON_LOADED()
 	VExRT = _G.VExRT
@@ -3692,6 +3818,15 @@ function module.main:ADDON_LOADED()
 			end
 		end
 	end
+	if VExRT.Addon.Version < 3755 then
+		if VExRT.ExCD2.colSet then
+			for i=1,module.db.maxColumns+1 do
+				if VExRT.ExCD2.colSet[i] then
+					VExRT.ExCD2.colSet[i].visibilityGeneral = true
+				end
+			end
+		end
+	end	
 	
 	if VExRT.ExCD2.Left and VExRT.ExCD2.Top then
 		module.frame:ClearAllPoints()
@@ -3826,11 +3961,20 @@ function module.main:SCENARIO_UPDATE()
 end
 module.main.CHALLENGE_MODE_RESET = module.main.SCENARIO_UPDATE
 
+function module.main:PLAYER_REGEN_DISABLED()
+	module:toggleCombatVisibility(true,2)
+end
+function module.main:PLAYER_REGEN_ENABLED()
+	module:toggleCombatVisibility(false,2)
+end
+
+
 do
 	local scheduledUpdateRoster = nil
 	local function funcScheduledUpdate()
 		scheduledUpdateRoster = nil
 		UpdateRoster()
+		module:updateCombatVisibility()
 	end
 	function module.main:GROUP_ROSTER_UPDATE()
 		if not scheduledUpdateRoster then
@@ -3845,12 +3989,22 @@ do
 		scheduledUpdateRoster = nil
 		UpdateRoster()
 	end
+	
+	local scheduledVisibility = nil
+	local function funcScheduledVisibility()
+		scheduledVisibility = nil
+		module:updateCombatVisibility()
+	end
+	
 	function module.main:ZONE_CHANGED_NEW_AREA()
 		if select(2, IsInInstance()) == "arena" then
 			AfterCombatResetFunction(true)
 			UpdateAllData()
 			SortAllData()
 		end
+		if not scheduledUpdateRoster then
+			scheduledVisibility = ScheduleTimer(funcScheduledVisibility,2)
+		end		
 		if not scheduledUpdateRoster then
 			scheduledUpdateRoster = ScheduleTimer(funcScheduledUpdate,10)
 		end
@@ -3980,6 +4134,18 @@ do
 				end
 				UpdateAllData()
 				SortAllData()
+			end
+		elseif spellID == 206005 then	--Xavius: Dream Simulacrum
+			for i=1,#_C do
+				local unitSpellData = _C[i]		
+				if unitSpellData.fullName == destName then
+					unitSpellData.cd = 0
+					unitSpellData.duration = 0
+					
+					if unitSpellData.bar and unitSpellData.bar.data == unitSpellData then
+						unitSpellData.bar:UpdateStatus()
+					end
+				end
 			end
 		end
 		
@@ -4294,7 +4460,7 @@ do
 		elseif spellID == 31935 and session_gGUIDs[sourceName][207628] then
 			local line = CDList[sourceName][86659]
 			if line then
-				line.cd = line.cd - 4
+				line.cd = line.cd - 3
 				if line.cd < 0 then 
 					line.cd = 0 
 				end
@@ -4359,7 +4525,7 @@ do
 		elseif spellID == 198013 and critical and session_gGUIDs[sourceName][215149] then
 			local line = CDList[sourceName][198013]
 			if line then
-				line.cd = line.cd - 0.3
+				line.cd = line.cd - 0.1
 				if line.cd < 0 then 
 					line.cd = 0 
 				end
@@ -4372,7 +4538,7 @@ do
 		elseif spellID == 178740 and session_gGUIDs[sourceName][210970] then
 			local line = CDList[sourceName][204021]
 			if line then
-				line.cd = line.cd - 3
+				line.cd = line.cd - 2
 				if line.cd < 0 then 
 					line.cd = 0 
 				end
@@ -5773,6 +5939,7 @@ function module.options:Load()
 		module.options.optColSet.sliderAlphaNotInRange:SetValue(VExRT.ExCD2.colSet[i].methodsAlphaNotInRangeNum or module.db.colsDefaults.methodsAlphaNotInRangeNum)
 		module.options.optColSet.chkDisableActive:SetChecked(VExRT.ExCD2.colSet[i].methodsDisableActive)
 		module.options.optColSet.chkOneSpellPerCol:SetChecked(VExRT.ExCD2.colSet[i].methodsOneSpellPerCol)
+		module.options.optColSet.chkOnlyInCombat:SetChecked(VExRT.ExCD2.colSet[i].methodsOnlyInCombat)
 
 		module.options.optColSet.chkGeneralMethods:doAlphas()
 		
@@ -5781,6 +5948,19 @@ function module.options:Load()
 		module.options.optColSet.chkGeneralBlackList:SetChecked(VExRT.ExCD2.colSet[i].blacklistGeneral)		
 		
 		module.options.optColSet.chkGeneralBlackList:doAlphas()
+		
+		module.options.optColSet.chkVisibilityPartyTypeAlways:SetChecked(not VExRT.ExCD2.colSet[i].visibilityPartyType)
+		module.options.optColSet.chkVisibilityPartyTypeParty:SetChecked(VExRT.ExCD2.colSet[i].visibilityPartyType == 1)
+		module.options.optColSet.chkVisibilityPartyTypeRaid:SetChecked(VExRT.ExCD2.colSet[i].visibilityPartyType == 2)
+		module.options.optColSet.chkVisibilityZoneArena:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisableArena)
+		module.options.optColSet.chkVisibilityZoneBG:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisableBG)
+		module.options.optColSet.chkVisibilityZoneScenario:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisable3ppl)
+		module.options.optColSet.chkVisibilityZone5ppl:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisable5ppl)
+		module.options.optColSet.chkVisibilityZoneRaid:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisableRaid)
+		module.options.optColSet.chkVisibilityZoneOutdoor:SetChecked(not VExRT.ExCD2.colSet[i].visibilityDisableWorld)
+		module.options.optColSet.chkGeneralVisibility:SetChecked(VExRT.ExCD2.colSet[i].visibilityGeneral)
+
+		module.options.optColSet.chkGeneralVisibility:doAlphas()
 
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkEnable,not isGeneralTab)
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneral,not isGeneralTab)
@@ -5790,6 +5970,7 @@ function module.options:Load()
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneralFont,not isGeneralTab)
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneralText,not isGeneralTab)
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneralMethods,not isGeneralTab)
+		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneralVisibility,not isGeneralTab)
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkGeneralBlackList,not isGeneralTab)
 		
 		ExRT.lib.ShowOrHide(module.options.optColSet.chkSortByAvailability,isGeneralTab)
@@ -5829,7 +6010,7 @@ function module.options:Load()
 	self.tab.tabs[2].decorationLine.texture:SetGradientAlpha("VERTICAL",.24,.25,.30,1,.27,.28,.33,1)
 
 	 
-	self.optColSet.superTabFrame = ExRT.lib:ScrollTabsFrame(self.optColTabs,L.cd2OtherSetTabNameGeneral,L.cd2OtherSetTabNameIcons,L.cd2OtherSetTabNameColors,L.cd2OtherSetTabNameFont,L.cd2OtherSetTabNameText,L.cd2OtherSetTabNameOther,L.cd2OtherSetTabNameBlackList,L.cd2OtherSetTabNameTemplate):Size(660,450):Point("TOP",0,-10)	
+	self.optColSet.superTabFrame = ExRT.lib:ScrollTabsFrame(self.optColTabs,L.cd2OtherSetTabNameGeneral,L.cd2OtherSetTabNameIcons,L.cd2OtherSetTabNameColors,L.cd2OtherSetTabNameFont,L.cd2OtherSetTabNameText,L.cd2OtherSetTabNameOther,L.cd2OtherSetTabNameVisibility,L.cd2OtherSetTabNameBlackList,L.cd2OtherSetTabNameTemplate):Size(660,450):Point("TOP",0,-10)	
 	
 	self.optColSet.chkEnable = ELib:Check(self.optColSet.superTabFrame.tab[1],"|cff00ff00 >>>"..L.senable.."<<<"):Point(10,-10):OnClick(function(self) 
 		if self:GetChecked() then
@@ -6651,12 +6832,117 @@ function module.options:Load()
 		end
 		module:ReloadAllSplits()
 	end)
+
+	--> Visibility
+	
+	
+	self.optColSet.chkOnlyInCombat = ELib:Check(self.optColSet.superTabFrame.tab[7],L.TimerOnlyInCombat):Point(10,-30):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].methodsOnlyInCombat = true
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].methodsOnlyInCombat = nil
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.visibilityTextPartyType = ELib:Text(self.optColSet.superTabFrame.tab[7],L.cd2OtherVisibilityPartyType..":",10):Point(10,-60):Color()
+	
+	self.optColSet.chkVisibilityPartyTypeAlways = ELib:Radio(self.optColSet.superTabFrame.tab[7],ALWAYS):Point(10,-75):OnClick(function(self) 
+		module.options.optColSet.chkVisibilityPartyTypeAlways:SetChecked(true)
+		module.options.optColSet.chkVisibilityPartyTypeParty:SetChecked(false)
+		module.options.optColSet.chkVisibilityPartyTypeRaid:SetChecked(false)
+		VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityPartyType = nil
+		module:ReloadAllSplits()
+	end)
+	self.optColSet.chkVisibilityPartyTypeParty = ELib:Radio(self.optColSet.superTabFrame.tab[7],AGGRO_WARNING_IN_PARTY):Point(10,-95):OnClick(function(self) 
+		module.options.optColSet.chkVisibilityPartyTypeAlways:SetChecked(false)
+		module.options.optColSet.chkVisibilityPartyTypeParty:SetChecked(true)
+		module.options.optColSet.chkVisibilityPartyTypeRaid:SetChecked(false)
+		VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityPartyType = 1
+		module:ReloadAllSplits()
+	end)
+	self.optColSet.chkVisibilityPartyTypeRaid = ELib:Radio(self.optColSet.superTabFrame.tab[7],L.cd2OtherVisibilityPartyTypeRaid):Point(10,-115):OnClick(function(self) 
+		module.options.optColSet.chkVisibilityPartyTypeAlways:SetChecked(false)
+		module.options.optColSet.chkVisibilityPartyTypeParty:SetChecked(false)
+		module.options.optColSet.chkVisibilityPartyTypeRaid:SetChecked(true)
+		VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityPartyType = 2
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.visibilityTextZoneType = ELib:Text(self.optColSet.superTabFrame.tab[7],L.cd2OtherVisibilityZoneType..":",10):Point(10,-140):Color()
+	
+	self.optColSet.chkVisibilityZoneArena = ELib:Check(self.optColSet.superTabFrame.tab[7],ARENA):Point(10,-155):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableArena = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableArena = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkVisibilityZoneBG = ELib:Check(self.optColSet.superTabFrame.tab[7],BATTLEGROUND):Point(10,-180):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableBG = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableBG = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkVisibilityZoneScenario = ELib:Check(self.optColSet.superTabFrame.tab[7],TRACKER_HEADER_SCENARIO):Point(10,-205):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisable3ppl = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisable3ppl = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkVisibilityZone5ppl = ELib:Check(self.optColSet.superTabFrame.tab[7],CALENDAR_TYPE_DUNGEON):Point(10,-230):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisable5ppl = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisable5ppl = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkVisibilityZoneRaid = ELib:Check(self.optColSet.superTabFrame.tab[7],RAID):Point(10,-255):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableRaid = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableRaid = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkVisibilityZoneOutdoor = ELib:Check(self.optColSet.superTabFrame.tab[7],WORLD):Point(10,-280):OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableWorld = nil
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityDisableWorld = true
+		end
+		module:ReloadAllSplits()
+	end)
+	
+	self.optColSet.chkGeneralVisibility = ELib:Check(self.optColSet.superTabFrame.tab[7],L.cd2ColSetGeneral):Point("TOPRIGHT",-10,-10):Left():OnClick(function(self) 
+		if self:GetChecked() then
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityGeneral = true
+		else
+			VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityGeneral = nil
+		end
+		module:ReloadAllSplits()
+		self:doAlphas()
+	end)
+	function self.optColSet.chkGeneralVisibility:doAlphas()
+		ExRT.lib.SetAlphas(VExRT.ExCD2.colSet[module.options.optColTabs.selected].visibilityGeneral and module.options.optColTabs.selected ~= (module.db.maxColumns + 1) and 0.5 or 1,module.options.optColSet.chkOnlyInCombat,module.options.optColSet.visibilityTextPartyType,module.options.optColSet.chkVisibilityPartyTypeAlways,module.options.optColSet.chkVisibilityPartyTypeParty,module.options.optColSet.chkVisibilityPartyTypeRaid,module.options.optColSet.visibilityTextZoneType,module.options.optColSet.chkVisibilityZoneArena,module.options.optColSet.chkVisibilityZoneBG,module.options.optColSet.chkVisibilityZoneScenario,module.options.optColSet.chkVisibilityZone5ppl,module.options.optColSet.chkVisibilityZoneRaid,module.options.optColSet.chkVisibilityZoneOutdoor)
+	end
 	
 	--> Black List
 	
-	self.optColSet.blacklistText = ELib:Text(self.optColSet.superTabFrame.tab[7],L.cd2ColSetBlacklistTooltip,11):Size(430,200):Point(10,-30):Top():Color()
+	self.optColSet.blacklistText = ELib:Text(self.optColSet.superTabFrame.tab[8],L.cd2ColSetBlacklistTooltip,11):Size(430,200):Point(10,-30):Top():Color()
 	
-	self.optColSet.blacklistEditBox = ELib:MultiEdit(self.optColSet.superTabFrame.tab[7]):Size(430,140):Point("TOP",0,-85)
+	self.optColSet.blacklistEditBox = ELib:MultiEdit(self.optColSet.superTabFrame.tab[8]):Size(430,140):Point("TOP",0,-85)
 	do
 		local scheluded = nil
 		local function ScheludeFunc(self)
@@ -6674,9 +6960,9 @@ function module.options:Load()
 		end
 	end
 
-	self.optColSet.whitelistText = ELib:Text(self.optColSet.superTabFrame.tab[7],L.cd2ColSetWhitelistTooltip,11):Size(430,200):Point(10,-235):Top():Color()
+	self.optColSet.whitelistText = ELib:Text(self.optColSet.superTabFrame.tab[8],L.cd2ColSetWhitelistTooltip,11):Size(430,200):Point(10,-235):Top():Color()
 	
-	self.optColSet.whitelistEditBox = ELib:MultiEdit(self.optColSet.superTabFrame.tab[7]):Size(430,140):Point("TOP",0,-290)
+	self.optColSet.whitelistEditBox = ELib:MultiEdit(self.optColSet.superTabFrame.tab[8]):Size(430,140):Point("TOP",0,-290)
 	do
 		local scheluded = nil
 		local function ScheludeFunc(self)
@@ -6694,7 +6980,7 @@ function module.options:Load()
 		end
 	end
 		
-	self.optColSet.chkGeneralBlackList = ELib:Check(self.optColSet.superTabFrame.tab[7],L.cd2ColSetGeneral):Point("TOPRIGHT",-10,-10):Left():OnClick(function(self) 
+	self.optColSet.chkGeneralBlackList = ELib:Check(self.optColSet.superTabFrame.tab[8],L.cd2ColSetGeneral):Point("TOPRIGHT",-10,-10):Left():OnClick(function(self) 
 		if self:GetChecked() then
 			VExRT.ExCD2.colSet[module.options.optColTabs.selected].blacklistGeneral = true
 		else
@@ -7185,7 +7471,7 @@ function module.options:Load()
 	}
 	self.optColSet.templateSaveData = nil
 	
-	self.optColSet.templatesScrollFrame = ELib:ScrollFrame(self.optColSet.superTabFrame.tab[8]):Size(430,380):Point("TOP",0,-50):Height( ceil(#self.optColSet.templateData/2) * 125 + 10 )
+	self.optColSet.templatesScrollFrame = ELib:ScrollFrame(self.optColSet.superTabFrame.tab[9]):Size(430,380):Point("TOP",0,-50):Height( ceil(#self.optColSet.templateData/2) * 125 + 10 )
 	for i=1,#self.optColSet.templateData do if i==1 or not self.optColSet.templateData[i-1]._twoSized then
 		local templateFrame = CreateFrame("Button",nil,self.optColSet.templatesScrollFrame.C)
 		self.optColSet.templates[i] = templateFrame
@@ -7377,7 +7663,7 @@ function module.options:Load()
 		end end
 	end end
 	
-	self.optColSet.templateRestore = CreateFrame("Button",nil,self.optColSet.superTabFrame.tab[8])
+	self.optColSet.templateRestore = CreateFrame("Button",nil,self.optColSet.superTabFrame.tab[9])
 	self.optColSet.templateRestore:SetPoint("TOP",0,-10)
 	self.optColSet.templateRestore:SetSize(430,30)
 	self.optColSet.templateRestore:SetBackdrop({edgeFile = ExRT.F.defBorder, edgeSize = 8})
@@ -7737,6 +8023,15 @@ function module:ReloadAllSplits(argScaleFix)
 			columnFrame.methodsAlphaNotInRangeNum = columnFrame.methodsAlphaNotInRangeNum / 100
 		columnFrame.methodsDisableActive = (not VExRT_ColumnOptions[i].methodsGeneral and VExRT_ColumnOptions[i].methodsDisableActive) or (VExRT_ColumnOptions[i].methodsGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].methodsDisableActive)
 		columnFrame.methodsOneSpellPerCol = (not VExRT_ColumnOptions[i].methodsGeneral and VExRT_ColumnOptions[i].methodsOneSpellPerCol) or (VExRT_ColumnOptions[i].methodsGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].methodsOneSpellPerCol)
+		
+		columnFrame.methodsOnlyInCombat = (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].methodsOnlyInCombat) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].methodsOnlyInCombat)
+		columnFrame.visibilityPartyType = (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityPartyType) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityPartyType)
+		columnFrame.visibilityArena = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisableArena) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisableArena) )
+		columnFrame.visibilityBG = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisableBG) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisableBG) )
+		columnFrame.visibility3ppl = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisable3ppl) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisable3ppl) )
+		columnFrame.visibility5ppl = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisable5ppl) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisable5ppl) )
+		columnFrame.visibilityRaid = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisableRaid) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisableRaid) )
+		columnFrame.visibilityWorld = not ( (not VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[i].visibilityDisableWorld) or (VExRT_ColumnOptions[i].visibilityGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].visibilityDisableWorld) )
 
 		columnFrame.textTemplateLeft = (not VExRT_ColumnOptions[i].textGeneral and VExRT_ColumnOptions[i].textTemplateLeft) or (VExRT_ColumnOptions[i].textGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].textTemplateLeft) or module.db.colsDefaults.textTemplateLeft
 		columnFrame.textTemplateRight = (not VExRT_ColumnOptions[i].textGeneral and VExRT_ColumnOptions[i].textTemplateRight) or (VExRT_ColumnOptions[i].textGeneral and VExRT_ColumnOptions[module.db.maxColumns+1].textTemplateRight) or module.db.colsDefaults.textTemplateRight
@@ -7847,8 +8142,10 @@ function module:ReloadAllSplits(argScaleFix)
 		end
 		
 		if VExRT_ColumnOptions[i].enabled and VExRT.ExCD2.enabled then
+			columnFrame.optionIsEnabled = true
 			columnFrame:Show()
 		else
+			columnFrame.optionIsEnabled = nil
 			columnFrame:Hide()
 		end
 		if not VExRT.ExCD2.SplitOpt then
@@ -7875,6 +8172,8 @@ function module:ReloadAllSplits(argScaleFix)
 	else
 		module.frame:SetScale((VExRT_ColumnOptions[module.db.maxColumns+1].frameScale or module.db.colsDefaults.frameScale)/100) 
 	end
+	
+	module:updateCombatVisibility()
 	
  	SortAllData()
  	UpdateAllData()
@@ -8361,21 +8660,21 @@ module.db.allClassSpells = {
 	{179057,1,	{179057,60,	5},	nil,			nil,			},	--Кольцо Хаоса
 	{187827,3,	nil,			nil,			{187827,180,	15},	},	--Метаморфоза
 	{191427,3,	nil,			{191427,300,	30},	nil,			},	--Метаморфоза
-	{196718,1,	{196718,180,	8},	nil,			nil,			},	--Мрак
+	{196718,1,	nil,			{196718,180,	8},	nil,			},	--Мрак
 	{185245,5,	nil,			nil,			{185245,8,	0},	},	--Мучение
 	{204021,3,	nil,			nil,			{204021,60,	8},	},	--Огненное клеймо
 	{212084,3,	nil,			nil,			{212084,60,	0},	},	--Опустошение Скверны
 	{202137,3,	nil,			nil,			{202137,60,	8},	},	--Печать немоты
 	{204596,3,	nil,			nil,			{204596,30,	8},	},	--Печать огня
 	{207684,3,	nil,			nil,			{207684,60,	2},	},	--Печать страдания
-	{202138,3,	nil,			nil,			{202138,120,	2},	},	--Печать цепей
+	{202138,3,	nil,			nil,			{202138,60,	2},	},	--Печать цепей
 	{217832,3,	{217832,10,	0},	nil,			nil,			},	--Пленение
 	{183752,5,	{183752,15,	0},	nil,			nil,			},	--Поглощение магии
 	{188501,3,	{188501,30,	10},	nil,			nil,			},	--Призрачное зрение
 	{227225,4,	nil,			nil,			{227225,20,	8},	},	--Призрачный барьер
 	{198013,3,	nil,			{198013,45,	0},	nil,			},	--Пронзающий взгляд
 	{196555,4,	nil,			{196555,90,	5},	nil,			},	--Путь Пустоты
-	{207407,3,	nil,			nil,			{207407,60,	0},	},	--Разрубатель душ
+	{207407,3,	nil,			nil,			{207407,40,	0},	},	--Разрубатель душ
 	{195072,4,	nil,			{195072,10,	0},	nil,			},	--Рывок Скверны
 	{207810,2,	nil,			nil,			{207810,120,	15},	},	--Узы Пустоты
 	{218256,4,	nil,			nil,			{218256,20,	6},	},	--Усиление оберегов
@@ -8404,17 +8703,41 @@ module.db.allClassSpells = {
 },
 ["ITEMS"] = {
 	{67826,	3,	{67826,	3600,	0},	},	--Jeevs
-	{177592,3,	{177592,120,	0},	},	--Candle
-	{176873,3,	{176873,120,	20},	},	--Tank BRF
-	{176875,3,	{176875,120,	20},	},	--Shard of nothing
-	{177597,3,	{177597,120,	20},	},	--Coin
-	{177594,3,	{177594,120,	20},	},	--Couplend
-	{177189,3,	{177189,90,	15},	},	--Kyanos
-	{176460,3,	{176460,120,	20},	},	--Kyb
-	{183929,3,	{183929,90,	15},	},	--Intuition's Gift
-	{184270,3,	{184270,60,	20},	},	--Mirror of the Blademaster
+	--{177592,3,	{177592,120,	0},	},	--Candle
+	--{176873,3,	{176873,120,	20},	},	--Tank BRF
+	--{176875,3,	{176875,120,	20},	},	--Shard of nothing
+	--{177597,3,	{177597,120,	20},	},	--Coin
+	--{177594,3,	{177594,120,	20},	},	--Couplend
+	--{177189,3,	{177189,90,	15},	},	--Kyanos
+	--{176460,3,	{176460,120,	20},	},	--Kyb
+	--{183929,3,	{183929,90,	15},	},	--Intuition's Gift
+	--{184270,3,	{184270,60,	20},	},	--Mirror of the Blademaster
 	{201414,3,	{201414,60,	0},	},	--Purified Shard of the Third Moon
 	{201371,3,	{201371,60,	0},	},	--Judgment of the Naaru
+	{90633,	3,	{90633,	600,	0},	},	--Guild Battle Standard
+	{90632,	3,	{90632,	600,	0},	},	--Guild Battle Standard
+	{90631,	3,	{90631,	600,	0},	},	--Guild Battle Standard
+	{215956,3,	{215956,120,	30},	},	--Horn of Valor
+	{215648,3,	{215648,90,	20},	},	--Moonlit Prism
+	{214962,3,	{214962,120,	30},	},	--Faulty Countermeasure
+	{215936,3,	{215936,120,	20},	},	--Orb of Torment
+	{215658,3,	{215658,75,	15},	},	--Tirathon's Betrayal
+	{214980,3,	{214980,120,	6},	},	--Windscar Whetstone
+	{215206,3,	{215206,20,	0},	},	--Jewel of Insatiable Desire
+	{214584,3,	{214584,60,	10},	},	--Shivermaw's Jawbone
+	{215467,3,	{215467,60,	15},	},	--Obelisk of the Void
+	{214971,3,	{214971,60,	8},	},	--Giant Ornamental Pearl
+	{214423,3,	{214423,60,	15},	},	--Talisman of the Cragshaper
+	{214366,3,	{214366,120,	30},	},	--Shard of Rokmora
+	{215670,3,	{215670,120,	15},	},	--Figurehead of the Naglfar
+	{214203,3,	{214203,60,	0},	},	--Gift of Radiance
+	{214198,3,	{214198,90,	0},	},	--Mote of Sanctification
+	{221837,3,	{221837,120,	10},	},	--Cocoon of Enforced Solitude
+	{221992,3,	{221992,60,	0},	},	--Horn of Cenarius
+	{221695,3,	{221695,120,	25},	},	--Unbridled Fury
+	{222046,3,	{222046,120,	0},	},	--Wriggling Sinew
+	{221803,3,	{221803,60,	10},	},	--Ravaged Seed Pod
+	
 },
 }
 ]]
@@ -9132,6 +9455,20 @@ moduleInspect.db.artifactDB = {}
 moduleInspect.db.artifactNoResDB = {}
 
 local ArtifactCache = {}
+moduleInspect.db.selfArtifactCache = ArtifactCache
+
+moduleInspect.db.relicTypeToID = {
+	["Fel"] = 0,
+	["Fire"] = 1,
+	["Blood"] = 2,
+	["Life"] = 3,
+	["Holy"] = 4,
+	["Frost"] = 5,
+	["Shadow"] = 6,
+	["Iron"] = 7,
+	["Arcane"] = 8,
+	["Wind"] = 9,
+}
 
 local function ScanArtifactData()
 	wipe(ArtifactCache)
@@ -9170,6 +9507,18 @@ local function ScanArtifactData()
 	local itemID, _, _, _, _, aLevel = C_ArtifactUI.GetArtifactInfo()
 	ArtifactCache.AftifactLevel = aLevel
 	ArtifactCache.itemID = itemID
+	
+	for i=1,3 do
+		local _,_,_,relicLink = C_ArtifactUI.GetRelicInfo(i)
+		if relicLink then
+			relicLink = relicLink:match("(item:.-)|h")
+		end
+		ArtifactCache["relic"..i] = relicLink
+		
+		local relicType = C_ArtifactUI.GetRelicSlotType(i)
+		relicType = moduleInspect.db.relicTypeToID[ relicType or "?" ]
+		ArtifactCache["relicType"..i] = relicType
+	end
 end
 
 local function UpdateArtifactData()
@@ -9186,10 +9535,39 @@ local function UpdateArtifactData()
 	end
 end
 
+do
+	--Fix Blizzard Errors
+	local def = C_ArtifactUI.GetTotalPurchasedRanks
+	C_ArtifactUI.GetTotalPurchasedRanks = function(...)
+		local arg1,arg2,arg3 = def(...)
+		if not arg1 then
+			return 0
+		end
+		return arg1,arg2,arg3
+	end
+end
+
+local artifactUIfixTimer
+local function artifactUI_CheckMajorFrames(self)
+	if (not WorldMapFrame or not WorldMapFrame:IsVisible()) and (not PlayerTalentFrame or not PlayerTalentFrame:IsVisible()) and (not OrderHallMissionFrame or not OrderHallMissionFrame:IsVisible()) then
+		if artifactUIfixTimer then
+			artifactUIfixTimer:Cancel()
+		end
+		if self then
+			self:Cancel()
+		end
+		UpdateArtifactData()
+		return true
+	end
+end
+
 local artifactUIfix = CreateFrame'Frame'
 artifactUIfix:RegisterEvent('LOADING_SCREEN_DISABLED')
 artifactUIfix:SetScript("OnEvent",function(self)
-	C_Timer.NewTimer(10,UpdateArtifactData)
+	C_Timer.NewTimer(9,function()
+		artifactUIfixTimer = C_Timer.NewTicker(1,artifactUI_CheckMajorFrames)
+		moduleInspect:RegisterEvents('ARTIFACT_XP_UPDATE')
+	end)
 	self:UnregisterAllEvents()
 end)
 
@@ -9224,12 +9602,26 @@ local function Inspect_SendArtifactData()
 	res = res .. equippedItemID
 	
 	ExRT.F.SendExMsg("inspect", ExRT.F.CreateAddonMsg("art","R",res))
+	
+	local res = ""
+	for i=1,3 do
+		res = res .. (ArtifactCache["relicType"..i] or "-") .. "^" .. (ArtifactCache["relic"..i] or "-") .. (i < 3 and "^" or "")
+	end
+	
+	ExRT.F.SendExMsg("inspect", ExRT.F.CreateAddonMsg("art","AR",res))
 end
 
 function moduleInspect.main:ENCOUNTER_START()
 	C_Timer.NewTimer(3,function()
 		Inspect_SendArtifactData()
 	end)
+end
+
+function moduleInspect.main:ARTIFACT_XP_UPDATE()	
+	artifactUIfixTimer = nil
+	if not artifactUI_CheckMajorFrames() then
+		artifactUIfixTimer = C_Timer.NewTicker(1,artifactUI_CheckMajorFrames)
+	end
 end
 
 local function Inspect_ParseArtifactString(db,string)
@@ -9251,11 +9643,32 @@ local function Inspect_ParseArtifactString(db,string)
 		tr = o
 	end
 	
-	local itemID,rest = strsplit(":",tr,2)
+	local itemID,rest = strsplit(":",tr or "",2)
 	if itemID then
 		db.itemID = tonumber(itemID)
 	end
 	tr = rest
+	
+	return db
+end
+
+local function Inspect_ParseArtifactRelicString(db,string)
+	for i=1,3 do
+		if not string then
+			break
+		end
+		local relicType,relicLink,o = strsplit("^",string,3)
+		
+		relicType = tonumber(relicType or "?")
+		if not relicLink or not relicLink:find("item:") then
+			relicLink = nil
+		end
+		
+		db["relic"..i] = relicLink
+		db["relicType"..i] = relicType
+		
+		string = o
+	end
 	
 	return db
 end
@@ -9373,6 +9786,14 @@ function moduleInspect:addonMessage(sender, prefix, prefix2, ...)
 					name,
 					currTime,
 				}
+			elseif type == "AR" then
+				local db = moduleInspect.db.artifactDB[ sender ]
+				if not db then
+					return
+				end
+				
+				Inspect_ParseArtifactRelicString(db,name)
+			
 			elseif type == "NO" then
 				moduleInspect.db.artifactNoResDB[ sender ] = true
 			end

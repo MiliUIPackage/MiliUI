@@ -48,6 +48,7 @@ All functions:
 	:Middle()		-> SetJustifyV("MIDDLE")
 	:Bottom()		-> SetJustifyV("BOTTOM")
 	:FontSize(size)		-> SetFont(font,size)
+	:Tooltip(anchor,isBut)	-> [add tooltip if text is corped]
 -> ELib:Edit(parent,maxLetters,onlyNum,template)
 	:Text(str)		-> SetText(str)
 	:Tooltip(str)		-> [add tooltip]
@@ -57,6 +58,7 @@ All functions:
 -> ELib:Button(parent,text,template)
 	:Tooltip(str)		-> [add tooltip]
 -> ELib:Icon(parent,textureIcon,size,isButton)
+	:Icon(texture)		-> SetTexture
 -> ELib:Check(parent,text,state,template)
 	:Tooltip(str)		-> [add tooltip]
 	:Left([relativeX])	-> [move text to left side], relativeX default 2
@@ -147,7 +149,7 @@ CheckButton	ExRTRadioButtonModernTemplate
 local GlobalAddonName, ExRT = ...
 local isExRT = GlobalAddonName == "ExRT"
 
-local libVersion = 22
+local libVersion = 23
 
 if type(ELib)=='table' and type(ELib.V)=='number' and ELib.V > libVersion then return end
 
@@ -2418,6 +2420,27 @@ do
 		return self
 	end
 	
+	local function OnTooltipEnter(self)
+		local text = self.t
+		if not text:IsTruncated() and not text.alwaysTooltip then
+			return
+		end
+		ELib.Tooltip.Show(self,self.a,text:GetText())
+	end
+	local function OnTooltipLeave(self)
+		ELib.Tooltip.Hide()
+	end
+	local function Widget_Tooltip(self,anchor,isButton)
+		local f = CreateFrame(isButton and "Button" or "Frame",nil,self:GetParent())
+		f:SetAllPoints(self)
+		f.t = self
+		f.a = anchor
+		f:SetScript("OnEnter",OnTooltipEnter)
+		f:SetScript("OnLeave",OnTooltipLeave)
+		self.TooltipFrame = f
+		return self
+	end
+	
 	function ELib:Text(parent,text,size,template)
 		if template == 0 then 
 			template = nil 
@@ -2448,7 +2471,8 @@ do
 			'Bottom',Widget_Bottom,
 			'Shadow',Widget_Shadow,
 			'Outline',Widget_Outline,
-			'FontSize',Widget_FontSize
+			'FontSize',Widget_FontSize,
+			'Tooltip',Widget_Tooltip
 		)
 		
 		return self
@@ -2751,6 +2775,14 @@ do
 end
 
 do
+	local function Widget_Icon(self,texture,cG,cB,cA)
+		if cG then
+			self:SetColorTexture(texture,cG,cB,cA)
+		else
+			self:SetTexture(texture)
+		end
+		return self
+	end
 	function ELib:Icon(parent,textureIcon,size,isButton)
 		local self = CreateFrame(isButton and "Button" or "Frame",nil,parent)
 		self:SetSize(size,size)
@@ -2762,7 +2794,9 @@ do
 			self:RegisterForClicks("LeftButtonDown")
 		end
 		
-		Mod(self)
+		Mod(self,
+			'Icon',Widget_Icon
+		)
 		
 		return self
 	end

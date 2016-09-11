@@ -1,5 +1,6 @@
 ﻿## Interface: 70000
 ## Title: XLoot Group
+## Title-zhTW: |cFF0099FF[介面]|r |cFFaa80ff[XLoot]|r 拾取增強 - Group
 ## Notes: Customizable and skinnable loot roll, alert, and reroll frames
 ## Version: 7.0-4
 ## Author: Xuerian

@@ -1,5 +1,7 @@
 ## Interface: 70000
 ## Title: Prat |cff8080ff3.0|r |r[|cffeda55fLibraries|r]
+## Title-zhTW: |cFF77FF77[頻道]|r |cFF9999FF[Prat 3.0]|r 函式庫
+## Notes-zhTW: Prat 3.0 所使用的函式庫。
 ## Author: Sylvanaar
 ## X-License: GPLv3
 ## DefaultState: enabled

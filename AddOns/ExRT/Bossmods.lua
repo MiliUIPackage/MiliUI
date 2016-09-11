@@ -5043,8 +5043,7 @@ function ArchimondeInfernals:Load()
 			infernalMaxHP = (723811 + 76000 * (instanceGroupSize - 10)) / 2
 			infernalHellfireCD = 31
 		elseif difficultyID == 7 then
-			--LFR, 16:23 26.08.2015, too hard for idiots, nerfs inc?
-			infernalMaxHP = 1397855	 / 2	
+			infernalMaxHP = 1397855	 / 1.5	
 			infernalHellfireCD = 46
 		end
 	end

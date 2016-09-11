@@ -2,7 +2,7 @@
 ## Author: Kesava
 ## Title: Kui |cff9966ffNameplates:|r |cffffffffCore Config|r
 ## Notes: I just can't work out what this is
-## Title: Kui |cff9966ffNameplates:|r |cffffffff核心設置|r
+## Title-zhTW: |cFF0099FF[介面]|r |cFFCCBBCC[Kui |cff9966ffNameplates]|r 血條樣式 - |cffffffff核心設置|r
 ## Dependencies: Kui_Nameplates_Core
 ## SavedVariables: KuiNameplatesCoreSaved
 ## SavedVariablesPerCharacter: KuiNameplatesCoreCharacterSaved

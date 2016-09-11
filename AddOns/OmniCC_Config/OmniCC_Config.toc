@@ -2,6 +2,8 @@
 ## Title: OmniCC Config
 ## Notes: OmniCC's configuration menu
 ## Notes-koKR: OmniCC의 설정 메뉴
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[OmniCC]|r 設定選單
+## Notes-zhTW: OmniCC的設定選單
 ## Author: Tuller
 ## Dependencies: OmniCC
 ## LoadOnDemand: 1

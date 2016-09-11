@@ -2,6 +2,8 @@
 ## Title: MSBT [|cffffff80Options|r]
 ## Author: Mikord
 ## Notes: Load on demand options for Mik's Scrolling Battle Text
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFFF99FF[MSBT]|r MSBT設定介面
+## Notes-zhTW: MSBT的設定介面
 ## Dependencies: MikScrollingBattleText
 ## LoadOnDemand: 1
 ## X-Child-Of: MikScrollingBattleText

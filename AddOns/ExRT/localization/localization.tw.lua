@@ -4,7 +4,7 @@ if ExRT.locale ~= "zhTW" then
 	return
 end	
 
--- 01:14 26.05.2016
+-- 20:48 08.08.2016
 
 local L = ExRT.L	
 local PH = ExRT.L
@@ -35,7 +35,8 @@ L.Skada = "Skada 模組"
 L.Profiles = "設定檔"			
 L.LegendaryRing = "傳說戒指"			
 L.Attendance = "出勤陣容記錄"			
-L.WhoPulled = "開怪監測"			
+L.WhoPulled = "開怪監測"	
+L.WAChecker = "WeakAuras 檢查"		
 			
 L.messagebutsend = "傳送"			
 L.messagebutclear = "清空"			
@@ -179,7 +180,8 @@ L.TimerTimeToKillHelp = "預估 \"擊殺時間\" 會顯示於戰鬥計時器下�
 L.TimerOnlyInCombat = "只在戰鬥中顯示"			
 L.TimerSpecTimerDefault = "重置專精倒數計時"			
 L.TimerSpecTimerHeader = "各專精開怪倒數（秒）:"			
-L.TimerUseDptInstead = "使用專精動態倒數 (須使用 \"/rt pull\" 或標記助手倒數開怪)"			
+L.TimerUseDptInstead = "使用專精動態倒數 (須使用 \"/rt pull\" 或標記助手倒數開怪)"	
+L.TimerDisableRWmessage = "聊天框不顯示倒數"		
 			
 L.raidchecknofood = "缺少食物"			
 L.raidchecknoflask = "缺少藥劑"			
@@ -646,7 +648,7 @@ L.BossWatcherHealTooltipAbsorbed = "吸收"
 L.BossWatcherHealTooltipTotal = "總計"			
 L.BossWatcherHealTooltipFromCrit = "致命一擊治療"			
 L.BossWatcherHealTooltipFromMs = "雙擊治療"			
-L.BossWatcherHealTooltipCount = "次數 (不算雙擊)"			
+L.BossWatcherHealTooltipCount = "次數"			
 L.BossWatcherHealTooltipHitMax = "最大擊中治療"			
 L.BossWatcherHealTooltipHitMid = "平均擊中治療"			
 L.BossWatcherHealTooltipCritCount = "致命一擊次數"			
@@ -788,7 +790,8 @@ L.InspectViewerMoreInfoRoleHealer = "治療"
 L.InspectViewerColorizeNoTopEnch = "高亮使用非最高附魔或寶石的裝備"			
 L.InspectViewerForce = "強制觀察"			
 L.InspectViewerHideInRaid = "隱藏不在團隊裡的玩家"			
-L.InspectViewerColorizeNoValorUpgrade = "高亮未完成勇氣點數升級的裝備"			
+L.InspectViewerColorizeNoValorUpgrade = "高亮未完成勇氣點數升級的裝備"	
+L.InspectViewerNoExRTAddon = "該玩家尚未安裝ExRT"		
 			
 L.CoinsSpoilsOfPandariaWinTrigger = "System resetting. Don't turn the power off, or the whole thing will probably explode."			
 L.CoinsEmpty = "目前沒有資料"			
@@ -846,7 +849,7 @@ L.BattleResHideCD = "隱藏冷卻特效"
 L.SkadaDamageToCurrentTarget = "對當前目標的傷害"			
 			
 L.LegendaryRingEnable = "當有人使用|cffff7f00傳說|r戒指顯示名字訊息"			
-L.LegendaryRingFrodo = "佛羅多·巴金斯"			
+L.LegendaryRingFrodo = "拜託了，幫我撐15秒"			
 L.LegendaryRingType = "顯示戒指類型 (坦 / 補 / 輸出)"			
 			
 L.AttendanceFirstPerRaid = "只於團隊首次首領開怪記錄出勤"			
@@ -872,7 +875,13 @@ L.AttendanceHelpTop = "可於聊天框輸入指令保存出勤陣容 \"|cff00ff0
 L.AttendanceHelpNames = "第二及三列為全團隊出勤, 第四及五列為副本內隊伍出勤（傳奇為前4隊，其他難度前6隊）"			
 L.AttendanceSaveCurrent = "保存當前陣容"			
 			
-L.WhoPulledlastPull = "上次開怪玩家"			
+L.WhoPulledlastPull = "上次開怪玩家"	
+
+L.WACheckerWANotFound = "尚未安裝 WeakAuras"
+L.WACheckerMissingAura = "缺少該光環設定"
+L.WACheckerExistsAura = "光環設定已存在"
+L.WACheckerPlayerHaveNotWA = "該玩家尚未安裝 WeakAuras"
+L.WACheckerConfirmOverride = "光環名稱相同的設定將被覆蓋"		
 			
 L.ProfilesIntro = "你可以選擇一個活動的資料設定檔，這樣你的每個角色就可以擁有不同的設定值，可以給你的插件設定帶來極大的靈活性。"			
 L.ProfilesDefault = "預設"			

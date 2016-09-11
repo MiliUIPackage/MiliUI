@@ -229,7 +229,7 @@ module.db.reductionAuras = {
 
 	--Rouge
 	[1966] = {1,nil,function(_,auraVar) return (100+auraVar)/100 end},		--Feint
-	[45182] = 0.15,									--Cheating Death
+	--[45182] = 0.15,									--Cheating Death
 
 	--Priest
 	[45242] = 0.7,		--Focused Will
@@ -239,11 +239,13 @@ module.db.reductionAuras = {
 
 	--DK
 	[48792] = {0.8,nil,function(_,_,auraVar) return (100+auraVar)/100 end},		--Icebound Fortitude
-	[195181] = 0.8,		--Bone Shield
+	[195181] = 0.84,		--Bone Shield
 	[194679] = 0.75,	--Rune Tap
 
 	--Shaman
 	[108271] = 0.6,		--Astral Shift
+	[207527] = {0.97,nil,function(auraVar) return (100+auraVar)/100 end},		--Ghost in the Mist
+	[209950] = 0.9,		--Caress of the Tidemother
 
 	--Mage
 	[113862] = 0.4,		--Greater Invisibility
@@ -1277,6 +1279,43 @@ local function addAura(_,timestamp,sourceGUID,sourceName,sourceFlags,_,destGUID,
 			return
 		end
 		
+		
+		for i=1,destCount do
+			if destData[i].s == spellID then
+				local destSpell = destData[i]
+
+				destSpell.r = reduction
+				
+				local from,fromMagic,fromPhysical = 1,1,1
+				for j=1,i-1 do
+					if destData[j].f == ReductionAurasFunctions.magic then
+						fromMagic = fromMagic * destData[j].r
+					elseif destData[j].f == ReductionAurasFunctions.physical then
+						fromPhysical = fromPhysical * destData[j].r
+					else
+						from = from * destData[j].r
+					end
+				end
+				
+				for j=i,destCount do
+					local currReduction
+					if destData[j].f == ReductionAurasFunctions.magic then
+						currReduction = 1 / (1 - (fromMagic - fromMagic * destData[j].r))
+						fromMagic = fromMagic * destData[j].r
+					elseif destData[j].f == ReductionAurasFunctions.physical then
+						currReduction = 1 / (1 - (fromPhysical - fromPhysical * destData[j].r))
+						fromPhysical = fromPhysical * destData[j].r
+					else
+						currReduction = 1 / (1 - (from - from * destData[j].r))
+						from = from * destData[j].r
+					end
+					destData[j].c = currReduction
+				end
+
+				return
+			end
+		end
+		
 		local from = 1
 		if func == ReductionAurasFunctions.magic then
 			for i=1,destCount do
@@ -1425,6 +1464,86 @@ local function addCastStarted(_,timestamp,sourceGUID,sourceName,sourceFlags,_,de
 	end
 end
 
+local SLTReductionAuraSpellID = 98007
+local SLTReductionAuraName = GetSpellInfo(SLTReductionAuraSpellID)
+local SLTReductionAuraData = {}
+local SLTReductionSourceGUID = nil
+
+local SLTReductionFrame = CreateFrame("Frame")
+SLTReductionFrame:SetScript("OnEvent",function(_,_,unit)
+	local name,_,icon,count,dispelType,duration,expires,caster,isStealable,_,spellId = UnitAura(unit, SLTReductionAuraName, nil, "HELPFUL")
+	local guid = UnitGUID(unit)
+	if not guid then
+		return
+	elseif name and not SLTReductionAuraData[ guid ] then
+		local destData = var_reductionCurrent[ guid ]
+		if not destData then
+			destData = {}
+			var_reductionCurrent[ guid ] = destData
+		end
+		local destCount = #destData
+		local from = 1
+		for i=1,destCount do
+			from = from * destData[i].r
+		end
+		local currReduction = 1 / (1 - (from - from * 0.9))
+		destData[destCount + 1] = {
+			s = SLTReductionAuraSpellID,
+			r = 0.9,
+			c = (currReduction - 1),
+			g = SLTReductionSourceGUID,
+		}
+		
+		SLTReductionAuraData[ guid ] = true
+		
+		fightData_auras[ #fightData_auras + 1 ] = {GetTime() - module.db.timeFix[1] + module.db.timeFix[2],SLTReductionSourceGUID,UnitGUID(unit),true,true,SLTReductionAuraSpellID,"BUFF",1,1}		
+	elseif not name and SLTReductionAuraData[ guid ] then
+		local destData = var_reductionCurrent[ guid ]
+		if not destData then
+			return
+		end
+		for i=1,#destData do
+			if destData[i] and destData[i].s == SLTReductionAuraSpellID then
+				tremove(destData,i)
+			end
+		end
+		
+		local from,fromPhysical,fromMagic = 1,1,1
+		for i=1,#destData do
+			local spellData = destData[i]
+			local currReduction = nil
+			if spellData.f == ReductionAurasFunctions.magic then
+				currReduction = 1 / (1 - (fromMagic - fromMagic * spellData.r))
+				fromMagic = fromMagic * spellData.r
+			elseif spellData.f == ReductionAurasFunctions.physical then
+				currReduction = 1 / (1 - (fromPhysical - fromPhysical * spellData.r))
+				fromPhysical = fromPhysical * spellData.r
+			else
+				currReduction = 1 / (1 - (from - from * spellData.r))
+				fromPhysical = fromPhysical * spellData.r
+				fromMagic = fromMagic * spellData.r
+			end
+			from = from * spellData.r
+			spellData.c = currReduction - 1
+		end
+		
+		SLTReductionAuraData[ guid ] = nil
+		
+		fightData_auras[ #fightData_auras + 1 ] = {GetTime() - module.db.timeFix[1] + module.db.timeFix[2],SLTReductionSourceGUID,UnitGUID(unit),true,true,SLTReductionAuraSpellID,"BUFF",2,1}		
+	end
+end)
+
+local SLTReductionUnregTimer = nil
+local function SLTReductionUnreg()
+	SLTReductionUnregTimer = nil
+	SLTReductionFrame:UnregisterAllEvents()
+	wipe(SLTReductionAuraData)
+end
+local function SLTReductionReg(sourceGUID)
+	SLTReductionSourceGUID = sourceGUID
+	SLTReductionFrame:RegisterEvent("UNIT_AURA")
+end
+
 local function addCastEnded(_,timestamp,sourceGUID,sourceName,sourceFlags,_,destGUID,destName,destFlags,_,spellID)
 
 	--------------> Add cast
@@ -1455,6 +1574,12 @@ local function addCastEnded(_,timestamp,sourceGUID,sourceName,sourceFlags,_,dest
 	--------------> Other
 	if spellID == 62618 then	--PW:B caster fix
 		module.db.reductionPowerWordBarrierCaster = sourceGUID
+	elseif spellID == 98008 then	--SLT Totem
+		if SLTReductionUnregTimer then
+			SLTReductionUnregTimer:Cancel()
+		end
+		SLTReductionUnregTimer = C_Timer.NewTimer(8,SLTReductionUnreg)
+		SLTReductionReg(sourceGUID)
 	end
 end
 

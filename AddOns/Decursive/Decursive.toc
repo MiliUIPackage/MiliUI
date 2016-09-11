@@ -7,6 +7,8 @@
 ## X-Curse-Repository-ID: wow/decursive/mainline
 
 ## Title: Decursive |cffff00ff -Ace3-|r
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFCC99CC[Decursive]|r 一鍵驅魔 |cff7fff7f -Ace3-|r
+## DefaultState: disabled
 ## Notes: Afflictions display and cleaning for solo, group and raid with advanced filtering and priority system.
 ## Notes-frFR: Affichage et guérison des affections avec un système évolué de filtrage et de priorité.
 ## Notes-deDE: Anzeige und Reinigung von Gebrechen für Solo, Gruppe und Schlachtzug mit erweitertem Filter- und Prioritäten-System.
@@ -21,7 +23,6 @@
 
 
 ## SavedVariables: DecursiveDB
-## DefaultState: disabled
 
 ## Version: 2.7.4.7
 ## Author: John Wellesz

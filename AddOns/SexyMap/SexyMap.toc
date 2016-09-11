@@ -9,7 +9,8 @@
 ## Notes-frFR: Spice up your minimap with some sexy options.
 ## Notes-itIT: Vivacizza la Minimappa con alcune opzioni sexy.
 ## Notes-koKR: 미니맵에 다양한 기능을 부가합니다.
-## Notes-zhTW: 讓你有更香豔的一些性感小地圖設定。
+## Title-zhTW: |r|cFF0099FF[地圖]|r |cff7fff7f[SexyMap]|r 小地圖美化、增強
+## Notes-zhTW: 為你的小地圖增添一些樂趣。
 ## Notes-zhCN: 为你的小地图增趣添彩，并包含一些性感选项。
 ## Notes-ptBR: Dê uma apimentada no seu minimapa com algumas opções sexy.
 ## Author: Funkydude

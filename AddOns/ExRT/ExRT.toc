@@ -2,8 +2,10 @@
 ## Title: Exorsus Raid Tools
 ## Author: ykiigor
 ## Notes: Exorsus Raid Tools
+## Title-zhTW: |cFF00CCFF[團隊]|r |cFFFF77FF[ExRT]|r 團隊工具
+## Notes-zhTW: 團隊工具。
 ## SavedVariables: VExRT
-## Version: 3725
+## Version: 3765
 core.lua
 Functions.lua
 embeds.xml
@@ -36,6 +38,7 @@ Pets.lua
 Arrow.lua
 AutoLogging.lua
 LootLink.lua
+WAChecker.lua
 Bindings.lua
 Bindings.xml
 Blank.lua
