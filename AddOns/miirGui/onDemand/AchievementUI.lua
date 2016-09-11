@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
+local function skin_Blizzard_AchievementUI()
 	for i=1,12 do
 		_G["AchievementFrameSummaryCategoriesCategory"..i.."FillBar"]:Hide()
 		_G["AchievementFrameSummaryCategoriesCategory"..i.."Bar"]:SetVertexColor(unpack(miirgui.Color))
@@ -37,15 +34,15 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 	AchievementFrameComparisonContainerScrollBarBG:SetAlpha(0)
 	AchievementFrameScrollFrameScrollBarBG:Hide()
 	
-	local tint = select(3,AchievementFrameAchievements:GetRegions())
+	local _,_,tint = AchievementFrameAchievements:GetRegions()
 	tint:Hide()
-	local FuglyGreenBorder1 = select(3,AchievementFrameStats:GetChildren())
+	local _,_,FuglyGreenBorder1 = AchievementFrameStats:GetChildren()
 	FuglyGreenBorder1:SetBackdropBorderColor(1, 1, 1,0)	
-	local FuglyGreenBorder2 = select(2,AchievementFrameAchievements:GetChildren())
+	local _,FuglyGreenBorder2 = AchievementFrameAchievements:GetChildren()
 	FuglyGreenBorder2:SetBackdropBorderColor(1, 1, 1,0)	
-	local FuglyGreenBorder3 = select(5,AchievementFrameComparison:GetChildren())
+	local _,_,_,_,FuglyGreenBorder3 = AchievementFrameComparison:GetChildren()
 	FuglyGreenBorder3:SetBackdropBorderColor(1, 1, 1,0)	
-	local FuglyGreenBorder4 = select(1,AchievementFrameSummary:GetChildren())
+	local FuglyGreenBorder4 = AchievementFrameSummary:GetChildren()
 	FuglyGreenBorder4:SetBackdropBorderColor(1, 1, 1,0)		
 	
 	AchievementFrame:HookScript("OnShow",function()
@@ -64,7 +61,6 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 		AchievementFrameCategoriesBG:Hide()	
 		m_fontify(AchievementFrameHeaderTitle,"color")
 		AchievementFrameHeaderShield:Hide()
-		m_fontify(AchievementFrameHeaderPoints,"same")	
 	end)
 	
 	hooksecurefunc("AchievementFrameComparison_DisplayAchievement",function()
@@ -73,58 +69,49 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 		AchievementFrameComparisonHeader:SetPoint("TOPRIGHT",AchievementFrameComparison,42,66.5)
 		m_border(AchievementFrameComparisonHeader,118,40,"LEFT",25,-9,14,"HIGH")
 		m_fontify(AchievementFrameComparisonSummaryPlayerStatusBarTitle,"white")
-		for i=1,9 do	
-			_G["AchievementFrameComparisonContainerButton"..i.."PlayerBackground"]:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		for i=1,9 do
+			m_SetTexture(_G["AchievementFrameComparisonContainerButton"..i.."PlayerBackground"],"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 			m_border(_G["AchievementFrameComparisonContainerButton"..i.."Player"],0,0,"CENTER",0,0,14,"HIGH")	
 			_G["m_border_AchievementFrameComparisonContainerButton"..i.."Player"]:SetPoint("TOPLEFT",_G["AchievementFrameComparisonContainerButton"..i.."Player"],0,0)
 			_G["m_border_AchievementFrameComparisonContainerButton"..i.."Player"]:SetPoint("BOTTOMRIGHT",_G["AchievementFrameComparisonContainerButton"..i.."Player"],0,0)
 			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."PlayerDateCompleted"],"green")
 			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."PlayerShieldPoints"],"white")
-			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."PlayerLabel"],"same")
 			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."PlayerDescription"],"white")
-			_G["AchievementFrameComparisonContainerButton"..i.."FriendBackground"]:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+			m_SetTexture(_G["AchievementFrameComparisonContainerButton"..i.."FriendBackground"],"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 			m_border(_G["AchievementFrameComparisonContainerButton"..i.."Friend"],0,0,"CENTER",0,0,14,"HIGH")	
 			_G["m_border_AchievementFrameComparisonContainerButton"..i.."Friend"]:SetPoint("TOPLEFT",_G["AchievementFrameComparisonContainerButton"..i.."Friend"],0,0)
 			_G["m_border_AchievementFrameComparisonContainerButton"..i.."Friend"]:SetPoint("BOTTOMRIGHT",_G["AchievementFrameComparisonContainerButton"..i.."Friend"],0,0)
-			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."FriendStatus"],"same")
-			m_fontify(_G["AchievementFrameComparisonContainerButton"..i.."FriendShieldPoints"],"same")
 		end
 		
 
 	end)
 	
 	hooksecurefunc("AchievementButton_DisplayAchievement",function(button)
-		AchievementFrameAchievementsBackground:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble.blp")
+		m_SetTexture(AchievementFrameAchievementsBackground,"Interface\\FrameGeneral\\UI-Background-Marble.blp")
 		local r = button.label:GetTextColor()
 		if r > 0.9 then
 			m_fontify(button.label,"color")
-		else
-			m_fontify(button.label,"same")
 		end
 		m_fontify(button.hiddenDescription,"white")
 		m_fontify(button.description,"white")
 		local r=button.reward:GetTextColor()
 		if r >0.9 then
 			m_fontify(button.reward,"green")
-		else
-			m_fontify(button.reward,"same")
 		end
 		for i=1,3 do
-			if _G["AchievementFrameProgressBar"..i]then
-				m_fontify(_G["AchievementFrameProgressBar"..i.."Text"],"same")
-				local track = select(6,_G["AchievementFrameProgressBar"..i]:GetRegions())
+			if _G["AchievementFrameProgressBar"..i] then
+				local _,_,_,_,_,track = _G["AchievementFrameProgressBar"..i]:GetRegions()
 				track:SetVertexColor(unpack(miirgui.Color))
 			end
 		end
 		
 		for i = 1,7 do
 			_G["AchievementFrameAchievementsContainerButton"..i.."BottomLeftTsunami"]:Hide()
-			_G["AchievementFrameAchievementsContainerButton"..i.."BottomRightTsunami"]:Hide()	
-			_G["AchievementFrameAchievementsContainerButton"..i.."Background"]:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")	
+			_G["AchievementFrameAchievementsContainerButton"..i.."BottomRightTsunami"]:Hide()		
+			m_SetTexture(_G["AchievementFrameAchievementsContainerButton"..i.."Background"],"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 			_G["AchievementFrameAchievementsContainerButton"..i.."Highlight"]:ClearAllPoints()
 			_G["AchievementFrameAchievementsContainerButton"..i.."Highlight"]:SetPoint("TOPLEFT",_G["AchievementFrameAchievementsContainerButton"..i],-1,3)		
 			_G["AchievementFrameAchievementsContainerButton"..i.."Highlight"]:SetPoint("BOTTOMRIGHT",_G["AchievementFrameAchievementsContainerButton"..i],1,-3)
-			m_fontify(_G["AchievementFrameAchievementsContainerButton"..i.."ShieldPoints"],"same")
 			m_fontify(_G["AchievementFrameAchievementsContainerButton"..i.."ShieldDateCompleted"],"green")
 			m_border(_G["AchievementFrameAchievementsContainerButton"..i],2,2,"Center",0,0,14,"MEDIUM")
 			_G["m_border_AchievementFrameAchievementsContainerButton"..i]:SetPoint("TOPLEFT",_G["AchievementFrameAchievementsContainerButton"..i],0,0)
@@ -142,11 +129,11 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 				if r == 0 then
 					m_fontify(_G["AchievementFrameCriteria"..i.."Name"],"green")
 				else
-					m_fontify(_G["AchievementFrameCriteria"..i.."Name"],"same")
+					m_fontify(_G["AchievementFrameCriteria"..i.."Name"],"grey")
 				end
 			end	
 			if _G["AchievementFrameMeta"..i] then
-				local bg = select(5,_G["AchievementFrameMeta"..i]:GetRegions())
+				local _,_,_,_,bg = _G["AchievementFrameMeta"..i]:GetRegions()
 				bg:SetColorTexture(unpack(miirgui.Color))		
 				local r = _G["AchievementFrameMeta"..i.."Label"]:GetTextColor()
 				if r == 0 then
@@ -156,8 +143,6 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 				end
 			end				
 		end
-		m_fontify(AchievementFrameAchievementsObjectivesReputationCriteria,"same")
-
 	end)
 	
 	hooksecurefunc("AchievementFrameSummary_UpdateAchievements",function()
@@ -175,22 +160,32 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
 				local hideit= select(x,_G["AchievementFrameSummaryAchievement"..i]:GetRegions())
 				hideit:Hide()
 			end
-		
-			_G["AchievementFrameSummaryAchievement"..i.."Background"]:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
-			
+			m_SetTexture(_G["AchievementFrameSummaryAchievement"..i.."Background"],"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 			_G["AchievementFrameSummaryAchievement"..i.."Highlight"]:ClearAllPoints()
 			_G["AchievementFrameSummaryAchievement"..i.."Highlight"]:SetPoint("TOPLEFT",_G["AchievementFrameSummaryAchievement"..i],-1,2.5)		
 			_G["AchievementFrameSummaryAchievement"..i.."Highlight"]:SetPoint("BOTTOMRIGHT",_G["AchievementFrameSummaryAchievement"..i],1,-2.5)
-			
 			m_border(_G["AchievementFrameSummaryAchievement"..i],484,46,"Center",0,0,14,"MEDIUM")
 			m_fontify(_G["AchievementFrameSummaryAchievement"..i.."Label"],"color")		
 			m_fontify(_G["AchievementFrameSummaryAchievement"..i.."DateCompleted"],"green")
 			m_fontify(_G["AchievementFrameSummaryAchievement"..i.."Description"],"white")
 		end
-	end)
-
-	
-end
+	end)	
 end
 
-frame:SetScript("OnEvent", frame.OnEvent);
+
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()	
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_AchievementUI" then
+			skin_Blizzard_AchievementUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_AchievementUI") then
+		skin_Blizzard_AchievementUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

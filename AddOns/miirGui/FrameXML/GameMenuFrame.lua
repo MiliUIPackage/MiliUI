@@ -1,5 +1,5 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
 GameMenuFrameHeader:Hide()
@@ -7,7 +7,7 @@ InterfaceOptionsFrameHeader:Hide()
 InterfaceOptionsFrameHeaderText:Hide()
 VideoOptionsFrameHeader:Hide()
 VideoOptionsFrameHeaderText:Hide()
-local GameMenuText=select (11,GameMenuFrame:GetRegions())
+local _,_,_,_,_,_,_,_,_,_,GameMenuText = GameMenuFrame:GetRegions()
 GameMenuText:Hide()
 
 GameMenuFrame:SetWidth(190)

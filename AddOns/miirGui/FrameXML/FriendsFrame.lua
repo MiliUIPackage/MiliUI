@@ -1,5 +1,5 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 		
 m_icon(FriendsFrame, "friends", -8, 9, "MEDIUM") 
@@ -17,7 +17,7 @@ end)
 local frame = CreateFrame("FRAME");
 frame:RegisterEvent("RAID_ROSTER_UPDATE")
 frame:RegisterEvent("GROUP_ROSTER_UPDATE")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+frame:RegisterEvent("PLAYER_LOGIN")
 function frame:OnEvent()	
 	if IsInRaid() then
 		m_border_RaidFrame:ClearAllPoints()

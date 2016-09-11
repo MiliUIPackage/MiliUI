@@ -1,5 +1,5 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
 	CharacterStatsPane.ClassBackground:Hide()
@@ -18,7 +18,7 @@ f:SetScript("OnEvent", function()
 		local quality = GetInventoryItemQuality("player", self:GetID());
 		if quality then
 			self.IconBorder:Show()
-			self.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+			m_SetTexture(self.IconBorder,"Interface\\Containerframe\\quality.blp")
 			self.IconBorder:SetVertexColor(BAG_ITEM_QUALITY_COLORS[quality].r, BAG_ITEM_QUALITY_COLORS[quality].g, BAG_ITEM_QUALITY_COLORS[quality].b)
 		end
 		CharacterBag0Slot.IconBorder:SetAlpha(0)
@@ -44,10 +44,10 @@ f:SetScript("OnEvent", function()
 			EquipmentFlyout_DisplaySpecialButton(button, paperDollItemSlot);
 			return;
 		end
-		local quality = select(16,EquipmentManager_GetItemInfoByLocation(location))
+		local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,quality = EquipmentManager_GetItemInfoByLocation(location)
 		if quality  then
 				button.IconBorder:Show();
-				button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+				m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 		end
 	end
 			

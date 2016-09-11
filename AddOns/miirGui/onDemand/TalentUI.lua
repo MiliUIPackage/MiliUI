@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_TalentUI" then
+local function skin_Blizzard_TalentUI()
 		PlayerTalentFramePetSpecialization.bg:Hide()
 		PlayerTalentFrameSpecialization.bg:Hide()
 		
@@ -35,17 +32,17 @@ function frame:OnEvent(event, arg1)
 		end
 		hooksecurefunc("PlayerTalentFrame_UpdateSpecFrame",miirgui_PlayerTalentFrame_UpdateSpecFrame)
 		PlayerTalentFrameTab2:HookScript("OnClick",miirgui_PlayerTalentFrame_UpdateSpecFrame)
-		local PlayerTalentFrameHoritontal = select(13,PlayerTalentFrameSpecializationSpellScrollFrameScrollChild:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,_,_,PlayerTalentFrameHoritontal =PlayerTalentFrameSpecializationSpellScrollFrameScrollChild:GetRegions()
 		PlayerTalentFrameHoritontal:SetColorTexture(0.78,0.78,0.78,0)
-		local PlayerTalentFrameTintage = select(1,PlayerTalentFrameSpecializationSpellScrollFrameScrollChild:GetRegions())
+		local PlayerTalentFrameTintage = PlayerTalentFrameSpecializationSpellScrollFrameScrollChild:GetRegions()
 		PlayerTalentFrameTintage:SetColorTexture(0,0,0,0)		
-		local PlayerTalentFramePetHoritontal = select(13,PlayerTalentFramePetSpecializationSpellScrollFrameScrollChild:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,_,_,PlayerTalentFramePetHoritontal = PlayerTalentFramePetSpecializationSpellScrollFrameScrollChild:GetRegions()
 		PlayerTalentFramePetHoritontal:SetColorTexture(0.78,0.78,0.78,0)
-		local PlayerTalentFramePetTintage = select(1,PlayerTalentFramePetSpecializationSpellScrollFrameScrollChild:GetRegions())
+		local PlayerTalentFramePetTintage = PlayerTalentFramePetSpecializationSpellScrollFrameScrollChild:GetRegions()
 		PlayerTalentFramePetTintage:SetColorTexture(0,0,0,0)	
-		local PlayerSpecTab1Icon=select(2,PlayerSpecTab1:GetRegions())
+		local _,PlayerSpecTab1Icon = PlayerSpecTab1:GetRegions()
 		PlayerSpecTab1Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-		local PlayerSpecTab2Icon=select(2,PlayerSpecTab2:GetRegions())
+		local _,PlayerSpecTab2Icon = PlayerSpecTab2:GetRegions()
 		PlayerSpecTab2Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 		m_border(PlayerTalentFrameSpecializationSpellScrollFrame,414,414,"CENTER",0,-2,14,"MEDIUM")	
 		m_border(PlayerTalentFramePetSpecializationSpellScrollFrame,414,414,"CENTER",0,-2,14,"MEDIUM")	
@@ -61,7 +58,7 @@ function frame:OnEvent(event, arg1)
 		m_border(PlayerTalentFramePetSpecializationSpellScrollFrameScrollChildAbility1,58,58,"CENTER",0,0,14,"MEDIUM")
 		m_border(PlayerTalentFrameTalents,640,384,"CENTER",0,0,14,"Medium")	
 	
-		local PlayerTalentFramePVPTalentsTutorialBoxBg=select(1,PlayerTalentFramePVPTalents.TutorialBox:GetRegions())
+		local PlayerTalentFramePVPTalentsTutorialBoxBg =PlayerTalentFramePVPTalents.TutorialBox:GetRegions()
 		PlayerTalentFramePVPTalentsTutorialBoxBg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		PlayerTalentFramePVPTalentsTutorialBoxBg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(PlayerTalentFramePVPTalents.TutorialBox,226,108,"CENTER",0.5,0,14,"DIALOG")
@@ -87,6 +84,20 @@ function frame:OnEvent(event, arg1)
 		hooksecurefunc("PlayerTalentFrame_UpdateSpecFrame",miirgui_PlayerTalentFrame_UpdateSpecFrame)
 
 	end
-end
-
-		frame:SetScript("OnEvent", frame.OnEvent);
+	
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_TalentUI" then
+			skin_Blizzard_TalentUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_TalentUI") then
+		skin_Blizzard_TalentUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

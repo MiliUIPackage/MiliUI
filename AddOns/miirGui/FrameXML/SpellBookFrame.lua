@@ -1,5 +1,5 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
 SpellBookFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)	
@@ -12,15 +12,15 @@ PrimaryProfession2Icon:SetDesaturated(nil)
 PrimaryProfession2Icon:SetBlendMode("Blend")
 PrimaryProfession2Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 SpellBookFrameTutorialButton.Ring:Hide()
-local SpellBookSkillLineTab1Icon=select(4,SpellBookSkillLineTab1:GetRegions())
+local _,_,_,SpellBookSkillLineTab1Icon = SpellBookSkillLineTab1:GetRegions()
 SpellBookSkillLineTab1Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-local SpellBookSkillLineTab2Icon=select(4,SpellBookSkillLineTab2:GetRegions())
+local  _,_,_,SpellBookSkillLineTab2Icon = SpellBookSkillLineTab2:GetRegions()
 SpellBookSkillLineTab2Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-local SpellBookSkillLineTab3Icon=select(4,SpellBookSkillLineTab3:GetRegions())
+local  _,_,_,SpellBookSkillLineTab3Icon = SpellBookSkillLineTab3:GetRegions()
 SpellBookSkillLineTab3Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-local SpellBookSkillLineTab4Icon=select(4,SpellBookSkillLineTab4:GetRegions())
+local  _,_,_,SpellBookSkillLineTab4Icon = SpellBookSkillLineTab4:GetRegions()
 SpellBookSkillLineTab4Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-local SpellBookSkillLineTab5Icon=select(4,SpellBookSkillLineTab5:GetRegions())
+local  _,_,_,SpellBookSkillLineTab5Icon = SpellBookSkillLineTab5:GetRegions()
 SpellBookSkillLineTab5Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 
 HelpPlateTooltipBg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
@@ -33,21 +33,21 @@ m_fontify(HelpPlateTooltip.Text,"white")
 m_fontify(SpellBookPageText,"white")
 m_fontify(PrimaryProfession1Missing,"color")
 m_fontify(PrimaryProfession2Missing,"color")
-local PrimaryProfession1missingtext=select(4,PrimaryProfession1:GetRegions())
+local  _,_,_,PrimaryProfession1missingtext = PrimaryProfession1:GetRegions()
 m_fontify(PrimaryProfession1missingtext,"white")
 m_fontify(SecondaryProfession1Missing,"color")
 m_fontify(SecondaryProfession2Missing,"color")
 m_fontify(SecondaryProfession3Missing,"color")
 m_fontify(SecondaryProfession4Missing,"color")
-local SecondaryProfession1missingtext=select(4,SecondaryProfession1:GetRegions())
+local  _,_,_,SecondaryProfession1missingtext = SecondaryProfession1:GetRegions()
 m_fontify(SecondaryProfession1missingtext,"white")
-local SecondaryProfession2missingtext=select(4,SecondaryProfession2:GetRegions())
+local  _,_,_,SecondaryProfession2missingtext = SecondaryProfession2:GetRegions()
 m_fontify(SecondaryProfession2missingtext,"white")
-local SecondaryProfession3missingtext=select(4,SecondaryProfession3:GetRegions())
+local  _,_,_,SecondaryProfession3missingtext = SecondaryProfession3:GetRegions()
 m_fontify(SecondaryProfession3missingtext,"white")
-local SecondaryProfession4missingtext=select(4,SecondaryProfession4:GetRegions())
+local  _,_,_,SecondaryProfession4missingtext = SecondaryProfession4:GetRegions()
 m_fontify(SecondaryProfession4missingtext,"white")
-local PrimaryProfession2missingtext=select(4,PrimaryProfession2:GetRegions())
+local  _,_,_,PrimaryProfession2missingtext = PrimaryProfession2:GetRegions()
 m_fontify(PrimaryProfession2missingtext,"white")
 m_border(PrimaryProfession1,74,74,"Left",6,-2,14,"MEDIUM")
 m_border(PrimaryProfession2,74,74,"Left",6,-2,14,"MEDIUM")
@@ -56,7 +56,7 @@ local function miirgui_FormatProfession(frame,index)
 	if index then
 		frame.missingHeader:Hide();
 		frame.missingText:Hide();
-		local name = select(1,GetProfessionInfo(index))
+		local name = GetProfessionInfo(index)
 		frame.skillName = name;
 		m_fontify(frame.rank,"white")
 		m_fontify(frame.professionName,"color")
@@ -69,11 +69,9 @@ local function miirgui_UpdateProfessionButton(self)
 	local spellIndex = self:GetID() + self:GetParent().spellOffset;
 	local isPassive = IsPassiveSpell(spellIndex, SpellBookFrame.bookType);
 		if ( isPassive ) then
-			--self.highlightTexture:SetTexture("Interface\\Buttons\\UI-PassiveHighlight");
 			m_fontify(self.subSpellString,"white")
 			m_fontify(self.spellString,"color") 
 		else
-			--self.highlightTexture:SetTexture("Interface\\Buttons\\ButtonHilight-Square");
 			m_fontify(self.spellString,"color")
 			m_fontify(self.subSpellString,"white")
 		end
@@ -94,7 +92,7 @@ local function miirgui_SpellButton_UpdateButton(self)
 				m_fontify(self.RequiredLevelString,"white")
 			end
 	end
-	local offSpecID = select(6,GetSpellTabInfo(SpellBookFrame.selectedSkillLine))
+	local _,_,_,_,_,offSpecID = GetSpellTabInfo(SpellBookFrame.selectedSkillLine)
 	local isOffSpec = (offSpecID ~= 0) and (SpellBookFrame.bookType == BOOKTYPE_SPELL);
 	if (isOffSpec) then
 		m_fontify(self.RequiredLevelString,"white")

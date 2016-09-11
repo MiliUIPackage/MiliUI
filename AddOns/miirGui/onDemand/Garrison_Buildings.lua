@@ -1,13 +1,9 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then
-		
+local function skin_Blizzard_GarrisonUI()
 		-- Main Frame
-
-		local  GarrisonRecruitSelectFrameBackground=select(10,GarrisonRecruitSelectFrame:GetRegions()) 
-		GarrisonRecruitSelectFrameBackground:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
-		local MaterialFrameCurrencyBorder=select(1,GarrisonBuildingFrame.BuildingList.MaterialFrame:GetRegions())
+		m_fontify(GarrisonBuildingFrame.MapFrame.TownHall.TownHallName,"white")
+		local  _,_,_,_,_,_,_,_,_,GarrisonRecruitSelectFrameBackground = GarrisonRecruitSelectFrame:GetRegions()
+		m_SetTexture(GarrisonRecruitSelectFrameBackground,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		local MaterialFrameCurrencyBorder = GarrisonBuildingFrame.BuildingList.MaterialFrame:GetRegions()
 		MaterialFrameCurrencyBorder:Hide()
 		for i =11,14 do
 			local hideit=select(i,GarrisonBuildingFrame:GetRegions())
@@ -26,10 +22,9 @@ function frame:OnEvent(event, arg1)
 			hideit:Hide()
 		end
 		GarrisonBuildingFrameTutorialButton.Ring:Hide()
-		local GarrisonBuildingFrameBackground=select(10,GarrisonBuildingFrame:GetRegions()) 
-		GarrisonBuildingFrameBackground:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
-		local GarrisonBuildingFrameTopbar=select(11,GarrisonBuildingFrame:GetRegions())
-		GarrisonBuildingFrameTopbar:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		local _,_,_,_,_,_,_,_,_,GarrisonBuildingFrameBackground,GarrisonBuildingFrameTopbar = GarrisonBuildingFrame:GetRegions()
+		m_SetTexture(GarrisonBuildingFrameBackground,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		m_SetTexture(GarrisonBuildingFrameTopbar,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		m_border(GarrisonBuildingFrame.BuildingList.MaterialFrame,280,26,"CENTER",0,0,14,"MEDIUM")
 		m_border(GarrisonBuildingFrame.TownHallBox,640,164,"CENTER",0,0,14,"MEDIUM")
 		m_border(GarrisonBuildingFrame.InfoBox,640,164,"CENTER",0,0,14,"MEDIUM")
@@ -51,53 +46,47 @@ function frame:OnEvent(event, arg1)
 				currButton.Name:ClearAllPoints()
 				currButton.Name:SetPoint("LEFT",60,0)
 		
-				local bg=select(1,currButton:GetRegions() )
-				bg:SetTexture("Interface\\Garrison\\building.blp")
+				local bg,selected,_,_,_,hover = currButton:GetRegions()
+				m_SetTexture(bg,"Interface\\Garrison\\building.blp")
 				bg:SetSize(256,64)
 				bg:ClearAllPoints()
 				bg:SetPoint("LEFT",22,1)	
 				
-				local selected=select(2,currButton:GetRegions() )
-				selected:SetTexture("Interface\\Garrison\\selected.blp")
+				m_SetTexture(selected,"Interface\\Garrison\\selected.blp")
 				selected:SetSize(256,64)
 				selected:ClearAllPoints()
 				selected:SetPoint("LEFT",22,1)	
 				
-				local hover=select(6,currButton:GetRegions() )
-				hover:SetTexture("Interface\\Garrison\\selected.blp")
+				m_SetTexture(hover,"Interface\\Garrison\\selected.blp")
 				hover:SetSize(256,64)
 				hover:ClearAllPoints()
 				hover:SetPoint("LEFT",22,1)
-
+				
 				if (building.needsPlan) then
 					bg:SetDesaturated(true)
 					currButton.Plans:ClearAllPoints()
 					currButton.Plans:SetPoint("RIGHT",-20,0)
 				end
 			end
-				--currButton:Show();
 		end
 
 		hooksecurefunc("GarrisonBuildingList_SelectTab",miirgui_GarrisonBuildingList_SelectTab)
 		
 		--BuildingTabs
-		local hideit=select(2,GarrisonBuildingFrame.BuildingList.Tab1:GetRegions())
+		local _,hideit,hover = GarrisonBuildingFrame.BuildingList.Tab1:GetRegions()
 		hideit:SetAlpha(0)
-		local hover=select(3,GarrisonBuildingFrame.BuildingList.Tab1:GetRegions())
 		hover:ClearAllPoints()
 		hover:SetPoint("CENTER")
 		hover:SetSize(88,20)
 		
-		local hideit=select(2,GarrisonBuildingFrame.BuildingList.Tab2:GetRegions() )
+		local _,hideit,hover = GarrisonBuildingFrame.BuildingList.Tab2:GetRegions() 
 		hideit:SetAlpha(0)
-		local hover=select(3,GarrisonBuildingFrame.BuildingList.Tab2:GetRegions() )
 		hover:ClearAllPoints()
 		hover:SetPoint("CENTER")
 		hover:SetSize(88,20)
 
-		local hideit=select(2,GarrisonBuildingFrame.BuildingList.Tab3:GetRegions() )
+		local _,hideit,hover = GarrisonBuildingFrame.BuildingList.Tab3:GetRegions()
 		hideit:SetAlpha(0)
-		local hover=select(3,GarrisonBuildingFrame.BuildingList.Tab3:GetRegions() )
 		hover:ClearAllPoints()
 		hover:SetPoint("CENTER")
 		hover:SetSize(88,20)
@@ -128,26 +117,22 @@ function frame:OnEvent(event, arg1)
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.Portrait:SetPoint("CENTER",0,2)
 
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRing:Hide()
-		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality:SetTexture("Interface\\Garrison\\qual.blp")
+		m_SetTexture(GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality,"Interface\\Garrison\\qual.blp")
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality:SetHeight(64)
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality:SetWidth(64)
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality:ClearAllPoints()
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.PortraitRingQuality:SetPoint("CENTER",0,-4)
-				
 		GarrisonBuildingFrame.InfoBox.FollowerPortrait.LevelBorder:SetAlpha(0)
 		m_fontify(GarrisonBuildingFrame.InfoBox.FollowerPortrait.Level,"white")
-		m_fontify(GarrisonBuildingFrame.InfoBox.FollowerPortrait.FollowerName,"same")
 		m_fontify(GarrisonBuildingFrame.InfoBox.FollowerPortrait.FollowerStatus,"white")
 
 		--Info Box Add Follower
 
 		GarrisonBuildingFrame.InfoBox.AddFollowerButton.EmptyPortrait:Hide()
-		GarrisonBuildingFrame.InfoBox.AddFollowerButton.PortraitHighlight:SetTexture("Interface\\Containerframe\\quality.blp") 
+		m_SetTexture(GarrisonBuildingFrame.InfoBox.AddFollowerButton.PortraitHighlight,"Interface\\Containerframe\\quality.blp")
 		GarrisonBuildingFrame.InfoBox.AddFollowerButton.PortraitHighlight:ClearAllPoints()
 		GarrisonBuildingFrame.InfoBox.AddFollowerButton.PortraitHighlight:SetPoint("CENTER",0,4)
 		GarrisonBuildingFrame.InfoBox.AddFollowerButton.PortraitHighlight:SetSize(44,44)
-
-
 		m_fontify(GarrisonBuildingFrame.InfoBox.AddFollowerButton.AddFollowerText,"white")
 
 
@@ -166,7 +151,7 @@ function frame:OnEvent(event, arg1)
 		
 		--[[RECRUITERFRAME]]--
 
-		local GarrisonRecruiterFramePortrait=select(22,GarrisonRecruiterFrame:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,GarrisonRecruiterFramePortrait = GarrisonRecruiterFrame:GetRegions()
 		GarrisonRecruiterFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 		GarrisonRecruiterFramePortrait:SetPoint("TOPLEFT",-6,7)
 				
@@ -181,7 +166,7 @@ function frame:OnEvent(event, arg1)
 		--Hide parchement
 
 		GarrisonRecruitSelectFrameListScrollFrameScrollBarBG:Hide()
-		local bg=select(18,GarrisonRecruiterFrame:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,bg = GarrisonRecruiterFrame:GetRegions()
 		bg:Hide()
 		
 		GarrisonRecruitSelectFrame.Top:Hide()
@@ -205,7 +190,7 @@ function frame:OnEvent(event, arg1)
 				if(follower)then
 					frame:Show()
 					frame.PortraitFrame.PortraitRing:Hide()
-					frame.PortraitFrame.PortraitRingQuality:SetTexture("Interface\\Garrison\\qual.blp")
+					m_SetTexture(frame.PortraitFrame.PortraitRingQuality,"Interface\\Garrison\\qual.blp")
 					frame.PortraitFrame.PortraitRingQuality:SetSize(64,64)
 					frame.PortraitFrame.Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 					frame.PortraitFrame.LevelBorder:SetAlpha(0)
@@ -231,5 +216,20 @@ function frame:OnEvent(event, arg1)
 		end
 
 	end
-end			
-frame:SetScript("OnEvent", frame.OnEvent);
+
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then
+			skin_Blizzard_GarrisonUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_GarrisonUI") then
+		skin_Blizzard_GarrisonUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

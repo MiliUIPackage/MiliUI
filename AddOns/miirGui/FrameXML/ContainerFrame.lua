@@ -1,5 +1,5 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
 -- Bank
@@ -16,11 +16,11 @@ local function miirgui_BankFrameItemButton_Update(button)
 	if( button.isBag ) then
 		container = -4;
 	end
-	local quality = select(4,GetContainerItemInfo(container, buttonID))
+	local _,_,_,quality = GetContainerItemInfo(container, buttonID)
 	if (quality) then
 		local r, g, b, hex = GetItemQualityColor(quality)
 		button.IconBorder:Show();
-		button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+		m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 		button.IconBorder:SetVertexColor( r, g, b, hex);
 		button.Count:ClearAllPoints()
 		button.Count:SetPoint("CENTER", 0, -11)
@@ -50,10 +50,10 @@ local function miirgui_ContainerFrame_Update(frame)
 	local itemButton;
 	for i=1, frame.size, 1 do
 		itemButton = _G[name.."Item"..i];
-		local quality = select(4,GetContainerItemInfo(id, itemButton:GetID()))
+		local _,_,_,quality = GetContainerItemInfo(id, itemButton:GetID())
 		if quality then
 			local r, g, b, hex = GetItemQualityColor(quality)
-			itemButton.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+			m_SetTexture(itemButton.IconBorder,"Interface\\Containerframe\\quality.blp")
 			itemButton.IconBorder:SetVertexColor(r,g,b,hex);
 			itemButton.IconBorder:Show();
 			itemButton.Count:ClearAllPoints()

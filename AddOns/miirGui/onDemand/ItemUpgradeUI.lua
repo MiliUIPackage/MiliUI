@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_ItemUpgradeUI" then
+local function skin_Blizzard_ItemUpgradeUI()
 		ItemUpgradeFrameCornerTL:Hide()
 		ItemUpgradeFrameCornerTR:Hide()
 		ItemUpgradeFrameCornerBL:Hide()
@@ -14,28 +11,26 @@ function frame:OnEvent(event, arg1)
 			local hideit= select(i,ItemUpgradeFrame.ItemButton:GetRegions() )
 			hideit:Hide() 
 		end
-		local hideit= select(8,ItemUpgradeFrame.ItemButton:GetRegions() )
+		local _,_,_,_,_,_,_,hideit = ItemUpgradeFrame.ItemButton:GetRegions()
 		hideit:Hide() 
 		ItemUpgradeFramePortrait:SetTexCoord(0.13, 0.83, 0.13, 0.83)
 		ItemUpgradeFrame.ButtonFrame:GetRegions():Hide()
 		ItemUpgradeFrame.ButtonFrame.ButtonBorder:Hide()
 		ItemUpgradeFrame.ButtonFrame.ButtonBottomBorder:Hide()
-		local ItemUpgradeFrameHeaderTintage = select(23,ItemUpgradeFrame:GetRegions())
-		ItemUpgradeFrameHeaderTintage:SetColorTexture(0.128,0.117,0.128,1)
-		local ItemUpgradeFrameBackgroundTintage = select(25, ItemUpgradeFrame:GetRegions())
-		ItemUpgradeFrameBackgroundTintage:SetColorTexture(0.078,0.078,0.078,1) 
-		local ItemUpgradeFrameBackgroundTintage2 = select(27, ItemUpgradeFrame:GetRegions())
-		ItemUpgradeFrameBackgroundTintage2:SetColorTexture(0,0,0,0)
+		local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,ItemTintage,_,ItemTintage2,_,ItemTintage3 = ItemUpgradeFrame:GetRegions()
+		ItemTintage:SetColorTexture(0.128,0.117,0.128,1)
+		ItemTintage2:SetColorTexture(0.078,0.078,0.078,1) 
+		ItemTintage3:SetColorTexture(0,0,0,0)
 		m_border(ItemUpgradeFrame.ItemButton,60,60,"CENTER",0,0,14,"HIGH")
 		m_border(ItemUpgradeFrame.ItemButton,330,60,"CENTER",196,0,14,"HIGH")
 			
 		local function miirgui_ItemUpgradeFrame_Update()
-			local icon = select(1,GetItemUpgradeItemInfo())
+			local icon = GetItemUpgradeItemInfo()
 			if icon then
-				local showit= select(1,ItemUpgradeFrame.ItemButton:GetRegions() )
+				local showit = ItemUpgradeFrame.ItemButton:GetRegions()
 				showit:Show() 
 			else	
-				local hideit= select(1,ItemUpgradeFrame.ItemButton:GetRegions() )
+				local hideit = ItemUpgradeFrame.ItemButton:GetRegions()
 				hideit:Hide() 
 			end
 		end
@@ -43,6 +38,20 @@ function frame:OnEvent(event, arg1)
 		hooksecurefunc("ItemUpgradeFrame_Update", miirgui_ItemUpgradeFrame_Update)
 			
 	end
-end
-
-frame:SetScript("OnEvent", frame.OnEvent);
+	
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_ItemUpgradeUI" then
+			skin_Blizzard_ItemUpgradeUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_ItemUpgradeUI") then
+		skin_Blizzard_ItemUpgradeUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

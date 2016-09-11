@@ -1,9 +1,9 @@
 local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
 InboxFrameBg:Hide()
-local ItemTextFrameIcon = select(18,ItemTextFrame:GetRegions())
+local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,ItemTextFrameIcon = ItemTextFrame:GetRegions()
 ItemTextFrameIcon:SetPoint("TOPLEFT",-8,9)
 ItemTextFrameIcon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 ItemTextFrameIcon:SetSize(64,64)
@@ -13,7 +13,7 @@ OpenStationeryBackgroundRight:Hide()
 SendStationeryBackgroundLeft:Hide()
 SendStationeryBackgroundRight:Hide()
 SendMailMoneyInset:Hide()	
-local MailFrameIcon = select(18,MailFrame:GetRegions())
+local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,MailFrameIcon = MailFrame:GetRegions()
 MailFrameIcon:SetPoint("TOPLEFT",-8,9)
 MailFrameIcon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 MailFrameIcon:SetWidth(64)
@@ -54,7 +54,7 @@ local function miirgui_OpenMailFrame_UpdateButtonPositions()
 		local itemLink = GetInboxItemLink(InboxFrame.openMailID, i);
 		if itemLink then
 			attachmentButton.IconBorder:Show()
-			attachmentButton.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+			m_SetTexture(attachmentButton.IconBorder,"Interface\\Containerframe\\quality.blp")
 		end
 	end
 end
@@ -65,7 +65,7 @@ hooksecurefunc("OpenMailFrame_UpdateButtonPositions",miirgui_OpenMailFrame_Updat
 hooksecurefunc("SendMailFrame_Update",function()
 	for i=1,12 do 
 		local button=_G["SendMailAttachment"..i]
-		button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+		m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 	end		
 end)
 

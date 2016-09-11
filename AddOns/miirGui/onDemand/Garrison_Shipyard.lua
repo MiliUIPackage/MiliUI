@@ -1,12 +1,9 @@
-local frame = CreateFrame("FRAME");
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then
+local function skin_Blizzard_GarrisonUI()
 
 		--Hiding Textures at GarrisonShipyardFrame
-		GarrisonShipyardFrame.BackgroundTile:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
-		local topborder=select(11,GarrisonShipyardFrame.BorderFrame:GetRegions())
-		topborder:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")			
+		m_SetTexture(GarrisonShipyardFrame.BackgroundTile,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		local _,_,_,_,_,_,_,_,_,_,topborder = GarrisonShipyardFrame.BorderFrame:GetRegions()	
+		m_SetTexture(topborder,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		GarrisonShipyardFrameFollowersListScrollFrameScrollBarBG:Hide()						
 		GarrisonShipyardFrame.BorderFrame.GarrCorners.TopLeftGarrCorner:Hide()
 		GarrisonShipyardFrame.BorderFrame.GarrCorners.TopRightGarrCorner:Hide()
@@ -45,7 +42,7 @@ function frame:OnEvent(event, arg1)
 			local hideit=select(i,GarrisonShipyardFrameFollowers:GetRegions()) 
 			hideit:Hide()
 		end
-		local GarrisonShipyardFrameFollowersMaterialFrameCurrencyBorder=select(1,GarrisonShipyardFrameFollowers.MaterialFrame:GetRegions())
+		local GarrisonShipyardFrameFollowersMaterialFrameCurrencyBorder = GarrisonShipyardFrameFollowers.MaterialFrame:GetRegions()
 		GarrisonShipyardFrameFollowersMaterialFrameCurrencyBorder:Hide()
 		m_border(GarrisonShipyardFrameFollowers,310,570,"CENTER",0,-16,12,"MEDIUM")
 		m_border(GarrisonShipyardFrameFollowers.MaterialFrame,300,26,"CENTER",0,0,14,"MEDIUM")
@@ -61,13 +58,10 @@ function frame:OnEvent(event, arg1)
 			local hideit=select(i,GarrisonShipyardFrame.FollowerTab:GetRegions()) 
 			hideit:Hide()
 		end			
-		local xpleft=select(2,GarrisonShipyardFrame.FollowerTab.XPBar:GetRegions())
+		local _,xpleft,xpright,xpmiddle,_,xptext = GarrisonShipyardFrame.FollowerTab.XPBar:GetRegions()
 		xpleft:Hide()
-		local xpright=select(3,GarrisonShipyardFrame.FollowerTab.XPBar:GetRegions())
 		xpright:Hide()
-		local xpmiddle=select(4,GarrisonShipyardFrame.FollowerTab.XPBar:GetRegions())
 		xpmiddle:Hide()
-		local xptext=select(6,GarrisonShipyardFrame.FollowerTab.XPBar:GetRegions())
 		m_fontify(xptext,"white")
 		m_border(GarrisonShipyardFrame.FollowerTab.XPBar,524,16,"CENTER",0,0,12,"MEDIUM")
 			
@@ -88,16 +82,16 @@ function frame:OnEvent(event, arg1)
 					local follower = followers[followersList[index]];
 					button.Portrait:ClearAllPoints()				
 					button.Portrait:SetPoint("LEFT",button.BG,3,3)	
-					button.BG:SetTexture("Interface\\Garrison\\ship.blp")
+					m_SetTexture(button.BG,"Interface\\Garrison\\ship.blp")
 					button.BG:SetSize(256,76)
 					button:SetHighlightTexture("Interface\\Garrison\\shiphover.blp")
 					button.Selection:SetVertexColor(unpack(miirgui.Color))
-					button.Selection:SetTexture("Interface\\Garrison\\shiphover.blp")
+					m_SetTexture(button.Selection,"Interface\\Garrison\\shiphover.blp")
 					button.Selection:SetAlpha(0.2)
 					button.Quality:Hide()
 					if (follower.status) then
 						button.BusyFrame:Show();
-						button.BusyFrame.Texture:SetTexture("Interface\\Garrison\\shiphover.blp");
+						m_SetTexture(button.BusyFrame.Texture,"Interface\\Garrison\\shiphover.blp")
 						button.BusyFrame.Texture:SetAlpha(0.2)
 						button.BusyFrame.Texture:SetSize(256,76)
 						button.BusyFrame.Texture:ClearAllPoints()
@@ -124,9 +118,9 @@ function frame:OnEvent(event, arg1)
 			hideit:Hide()
 		end
 				
-		local bg=select(1,GarrisonShipyardFrame.MissionComplete:GetRegions())
+		local bg = GarrisonShipyardFrame.MissionComplete:GetRegions()
 		bg:Show()
-		bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		m_SetTexture(bg,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		
 		for i =1,10 do --rewards
 			local hideit=select(i,GarrisonShipyardFrame.MissionComplete.BonusRewards:GetRegions())
@@ -148,18 +142,15 @@ function frame:OnEvent(event, arg1)
 				
 		--Change the rewards-font
 
-		local rewards=select(11,GarrisonShipyardFrame.MissionComplete.BonusRewards:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,rewards = GarrisonShipyardFrame.MissionComplete.BonusRewards:GetRegions()
 		m_fontify(rewards,"white")	
 
 		--Landing Page Fleet Tab
 				
-		local xpleft=select(2,GarrisonLandingPage.ShipFollowerTab.XPBar:GetRegions())
+		local _xpleft,xpright,xpmiddle,_,xptext=select(2,GarrisonLandingPage.ShipFollowerTab.XPBar:GetRegions())
 		xpleft:Hide()
-		local xpright=select(3,GarrisonLandingPage.ShipFollowerTab.XPBar:GetRegions())
 		xpright:Hide()
-		local xpmiddle=select(4,GarrisonLandingPage.ShipFollowerTab.XPBar:GetRegions())
 		xpmiddle:Hide()
-		local xptext=select(6,GarrisonLandingPage.ShipFollowerTab.XPBar:GetRegions())
 		m_fontify(xptext,"white")
 		m_fontify(GarrisonLandingPage.ShipFollowerTab.NumFollowers,"white")
 		GarrisonLandingPage.ShipFollowerTab.Quality:Hide()
@@ -182,23 +173,23 @@ function frame:OnEvent(event, arg1)
 		local function miirgui_Ship_Expand(_,button)
 			local bility = #button.info.abilities
 				if bility == 1 then
-					button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility1.blp")
+					m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility1.blp")
 					button.AbilitiesBG:SetWidth(256)
 					button.AbilitiesBG:SetHeight(64)
 				elseif bility == 2 then
-					button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility2.blp")
+					m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility2.blp")
 					button.AbilitiesBG:SetWidth(256)
 					button.AbilitiesBG:SetHeight(64)
 				elseif bility == 3 then
-					button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility3.blp")
+					m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility3.blp")
 					button.AbilitiesBG:SetWidth(256)
 					button.AbilitiesBG:SetHeight(128)
 				elseif bility == 4 then
-					button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility4.blp")
+					m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility4.blp")
 					button.AbilitiesBG:SetWidth(256)
 					button.AbilitiesBG:SetHeight(128)
 				elseif bility == 5 then
-					button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility5.blp")
+					m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility5.blp")
 					button.AbilitiesBG:SetWidth(256)
 					button.AbilitiesBG:SetHeight(128)
 				end	
@@ -206,6 +197,20 @@ function frame:OnEvent(event, arg1)
 					
 		hooksecurefunc(GarrisonShipyardFrameFollowers,"ExpandButton",miirgui_Ship_Expand)
 	end	
-end
-		
-frame:SetScript("OnEvent", frame.OnEvent);
+
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then
+			skin_Blizzard_GarrisonUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_GarrisonUI") then
+		skin_Blizzard_GarrisonUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

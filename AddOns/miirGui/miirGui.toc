@@ -1,9 +1,12 @@
 ## Interface: 70000
 ## Title: miir|cff44CCFFGui|r - Core
-## Version: 4.0.0
+## Version: 4.0.10
 ## Notes: Blizzard Interface Fixes for usage with miirGui graphics
 ## Author: Miiru-Lordaeron
+## SavedVariables: miirguiDB
 core.lua
+functions.lua
+options.lua
 
 FrameXML/AlertFrames.lua
 FrameXML/CharacterFrame.lua

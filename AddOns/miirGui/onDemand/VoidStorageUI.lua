@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_VoidStorageUI" then
+local function skin_Blizzard_VoidStorageUI()
 		
 		VoidStorageHelpBoxBg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		VoidStorageHelpBoxBg:SetColorTexture(0.078,0.078,0.078,1)
@@ -16,29 +13,29 @@ function frame:OnEvent(event, arg1)
 			local button
 			if ( doDeposit ) then
 				for i = 1, 9 do
-					local quality=select(3,GetVoidTransferDepositInfo(i))
+					local _,_,quality = GetVoidTransferDepositInfo(i)
 					button = _G["VoidStorageDepositButton"..i]
 					if quality then
-						button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+						m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 						button.IconBorder:SetVertexColor(BAG_ITEM_QUALITY_COLORS[quality].r, BAG_ITEM_QUALITY_COLORS[quality].g, BAG_ITEM_QUALITY_COLORS[quality].b)
 					end
 				end
 			end
 			if ( doContents ) then
 				for i = 1,9 do
-					local quality=select(3,GetVoidTransferWithdrawalInfo(i))
+					local _,_,quality = GetVoidTransferWithdrawalInfo(i)
 					button = _G["VoidStorageWithdrawButton"..i]
 					if quality then
-						button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+						m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 						button.IconBorder:SetVertexColor(BAG_ITEM_QUALITY_COLORS[quality].r, BAG_ITEM_QUALITY_COLORS[quality].g, BAG_ITEM_QUALITY_COLORS[quality].b)
 					end
 				end
 
 				for i = 1, 80 do
-					local quality= select(6,GetVoidItemInfo(self.page, i))
+					local _,_,_,_,_,quality = GetVoidItemInfo(self.page, i)
 					button = _G["VoidStorageStorageButton"..i];
 					if quality then
-						button.IconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+						m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 						button.IconBorder:SetVertexColor(BAG_ITEM_QUALITY_COLORS[quality].r, BAG_ITEM_QUALITY_COLORS[quality].g, BAG_ITEM_QUALITY_COLORS[quality].b)
 					end
 				end
@@ -74,16 +71,30 @@ function frame:OnEvent(event, arg1)
 		VoidStorageStorageFrameLine3:SetWidth(1)
 		VoidStorageStorageFrameLine4:Hide()
 		VoidStorageStorageFrameLine4:SetWidth(1)
-		local VoidStoragePurchaseTintage = select (2,VoidStoragePurchaseFrame:GetRegions())
+		local _,VoidStoragePurchaseTintage = VoidStoragePurchaseFrame:GetRegions()
 		VoidStoragePurchaseTintage:Hide()
-		local VoidStorageFrameFix1 = select (2,VoidStorageFrame:GetRegions())
+		local _,VoidStorageFrameFix1 = VoidStorageFrame:GetRegions()
 		VoidStorageFrameFix1:SetColorTexture(1,1,1,0)
-		local Portrait1= select(4,VoidStorageFrame.Page1:GetRegions() )
+		local _,_,_,Portrait1= VoidStorageFrame.Page1:GetRegions()
 		Portrait1:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-		local Portrait2= select(4,VoidStorageFrame.Page2:GetRegions() )
+		local _,_,_,Portrait2= VoidStorageFrame.Page2:GetRegions()
 		Portrait2:SetTexCoord(0.85, 0.15, 0.15, 0.85)		
 		m_border(VoidStoragePurchaseFrame,496,184,"CENTER",0,0,14,"MEDIUM")
 	end
-end
-
-frame:SetScript("OnEvent", frame.OnEvent);
+	
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_VoidStorageUI" then
+			skin_Blizzard_VoidStorageUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_VoidStorageUI") then
+		skin_Blizzard_VoidStorageUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

@@ -2,6 +2,7 @@ local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
 
+
 local function miirgui_SetStringText(_,fontString)
 	local r, g, b = fontString:GetTextColor()
 	local red = floor(r * 255 ) 
@@ -101,10 +102,13 @@ hooksecurefunc("ScenarioTrackerProgressBar_SetValue",miirgui_ProgressBar_SetValu
 hooksecurefunc("BonusObjectiveTrackerProgressBar_SetValue",miirgui_ProgressBar_SetValue)
 
 local function miirgui_ObjectiveTracker_Update()
-	local tracker = ObjectiveTrackerFrame
-	for i = 1, #tracker.MODULES do
-		if ( tracker.MODULES[i].Header ) then
-			m_fontify(tracker.MODULES[i].Header.Text,"white")
+	local splash = GetCVar("splashScreenNormal")
+	if splash >= "7" then
+		local tracker = ObjectiveTrackerFrame
+		for i = 1, #tracker.MODULES do
+			if ( tracker.MODULES[i].Header ) then
+				m_fontify(tracker.MODULES[i].Header.Text,"white")
+			end
 		end
 	end
 end

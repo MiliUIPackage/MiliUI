@@ -55,10 +55,7 @@
 				end			
 				button.Follower.Class:Hide()
 				button.Follower.PortraitFrame.LevelBorder:Hide()
-				m_fontify(button.Follower.PortraitFrame.Level,"same")
-				m_fontify(button.Follower.ILevel,"same")
-				m_fontify(button.Follower.Status,"same")
-				button.Follower.Highlight:SetTexture("Interface\\Garrison\\followerhover.blp")
+				m_SetTexture(button.Follower.Highlight,"Interface\\Garrison\\followerhover.blp")
 				button.Follower.Highlight:SetVertexColor(unpack(miirgui.Color))
 				button.Follower.Highlight:SetAlpha(0.2)
 				button.Follower.Highlight:ClearAllPoints()
@@ -66,13 +63,13 @@
 				button.Follower.Highlight:SetSize(256,64)
 				
 				button.Follower.Selection:SetVertexColor(unpack(miirgui.Color))
-				button.Follower.Selection:SetTexture("Interface\\Garrison\\followerhover.blp")
+				m_SetTexture(button.Follower.Selection,"Interface\\Garrison\\followerhover.blp")
 				button.Follower.Selection:SetAlpha(0.2)
 				button.Follower.Selection:SetSize(256,64)
 				button.Follower.Selection:ClearAllPoints()
 				button.Follower.Selection:SetPoint("CENTER",button.Follower.PortraitFrame,130,0)
 				
-				button.Follower.BG:SetTexture("Interface\\Garrison\\follower.blp")
+				m_SetTexture(button.Follower.BG,"Interface\\Garrison\\follower.blp")
 				button.Follower.BG:ClearAllPoints()
 				button.Follower.BG:SetPoint("CENTER",button.Follower.PortraitFrame,130,0)
 				button.Follower.BG:SetSize(256,64)
@@ -81,11 +78,11 @@
 				button.Follower.PortraitFrame.PortraitRingCover:Hide();
 				button.Follower.PortraitFrame.Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 				button.Follower.PortraitFrame.PortraitRingQuality:Show();
-				button.Follower.PortraitFrame.PortraitRingQuality:SetTexture("Interface\\Garrison\\qual.blp")
+				m_SetTexture(button.Follower.PortraitFrame.PortraitRingQuality,"Interface\\Garrison\\qual.blp")
 				button.Follower.PortraitFrame.PortraitRingQuality:SetSize(64,64)
 				button.Follower.PortraitFrame.PortraitRingQuality:SetVertexColor(color.r, color.g, color.b);
 				
-				button.Follower.BusyFrame.Texture:SetTexture("Interface\\Garrison\\followerhover.blp")	
+				m_SetTexture(button.Follower.BusyFrame.Texture,"Interface\\Garrison\\followerhover.blp")
 				button.Follower.BusyFrame.Texture:ClearAllPoints()
 				button.Follower.BusyFrame.Texture:SetPoint("CENTER",button.Follower.PortraitFrame,130,0)
 				button.Follower.BusyFrame.Texture:SetSize(256,64)
@@ -110,23 +107,24 @@
 		self.MissionTab.MissionList.CompleteDialog.BorderFrame.Model:Hide()
 		self.MissionTab.MissionList.CompleteDialog.BorderFrame.Stage:Hide()
 		
-		local background=select(1,self.MissionTab.MissionList.CompleteDialog.BorderFrame:GetRegions())
+		local background = self.MissionTab.MissionList.CompleteDialog.BorderFrame:GetRegions()
 		background:ClearAllPoints()
 		background:SetSize(208,156)
 		background:SetPoint("CENTER",self.MissionTab.MissionList.CompleteDialog.BorderFrame.ViewButton,0,90)
-		background:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble.blp")
+		m_SetTexture(background,"Interface\\FrameGeneral\\UI-Background-Marble.blp")
 		
-		local chest = select(13,self.MissionTab.MissionList.CompleteDialog.BorderFrame:GetRegions())
+		local _,_,_,_,_,_,_,_,_,_,_,_,chest = self.MissionTab.MissionList.CompleteDialog.BorderFrame:GetRegions()
 		chest:ClearAllPoints()
 		chest:SetPoint("CENTER",self.MissionTab.MissionList.CompleteDialog.BorderFrame,0,90)
 		chest:SetSize(256,256)
-		chest:SetTexture("Interface\\Garrison\\complete.blp")
+		m_SetTexture(chest,"Interface\\Garrison\\complete.blp")
 		
 		for i=2,12 do
 			local hideit=select(i,self.MissionTab.MissionList.CompleteDialog.BorderFrame:GetRegions())
 			hideit:Hide()
 		end
 		self.MissionTab.MissionList.CompleteDialog.BorderFrame.ViewButton:ClearAllPoints()
+		self.MissionTab.MissionList.CompleteDialog.BorderFrame.ViewButton:SetWidth(216)
 		self.MissionTab.MissionList.CompleteDialog.BorderFrame.ViewButton:SetPoint("CENTER",0,0)
 		m_border(self.MissionTab.MissionList.CompleteDialog.BorderFrame.ViewButton,212,160,"CENTER",0,90.5,14,"MEDIUM")	
 		
@@ -141,8 +139,8 @@
 		else
 			for i=1, 3 do	
 				local follower = self.MissionComplete.Stage.FollowersFrame.Followers[i];		
-				local followerbg=select(1,follower:GetRegions())
-				followerbg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+				local followerbg = follower:GetRegions()
+				m_SetTexture(followerbg,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 				followerbg:ClearAllPoints()
 				followerbg:SetPoint("CENTER",24,4)
 				followerbg:SetSize(120,47)			
@@ -153,10 +151,10 @@
 				follower.XP:SetWidth(116)					
 				follower.XP.XPLeft:Hide()
 				follower.XP.XPRight:Hide()
-				follower.XP.XPMid=select(4,follower.XP:GetRegions())
+				_,_,_,follower.XP.XPMid = follower.XP:GetRegions()
 				follower.XP.XPMid:Hide()
 				follower.PortraitFrame.PortraitRing:Hide()
-				follower.PortraitFrame.PortraitRingQuality:SetTexture("Interface\\Garrison\\qual.blp")
+				m_SetTexture(follower.PortraitFrame.PortraitRingQuality,"Interface\\Garrison\\qual.blp")
 				follower.PortraitFrame.PortraitRingQuality:SetSize(64,64)
 				follower.PortraitFrame.Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 				follower.PortraitFrame.LevelBorder:Hide()
@@ -172,11 +170,8 @@
 		self.MissionComplete.ChanceFrame.Banner:Hide()
 		self.MissionComplete.ChanceFrame.ChanceBG:Hide()
 		self.MissionComplete.ChanceFrame.SuccessGlow:Hide()
-		m_fontify(self.MissionComplete.ChanceFrame.ChanceText,"same")	
-		m_fontify(self.MissionComplete.ChanceFrame.ResultText,"same")	
 		if self.MissionComplete.BonusRewards.BonusChanceLabel then
 			m_fontify(self.MissionComplete.BonusRewards.BonusChanceLabel,"white")
-			m_fontify(self.MissionComplete.BonusText.BonusText,"same")
 		end
 		
 	end
@@ -184,22 +179,22 @@
 	local function miirgui_Expand(self,button)
 			local bility = self:ExpandButtonAbilities(button, false);
 			if bility >= 30 and bility < 32 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility1.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility1.blp")
 				button.AbilitiesBG:SetSize(256,64)
 			elseif bility >= 54 and bility < 55 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility2.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility2.blp")
 				button.AbilitiesBG:SetSize(256,64)
 			elseif bility >= 77 and bility < 78 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility3.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility3.blp")
 				button.AbilitiesBG:SetSize(256,128)
 			elseif bility >= 100 and bility < 101 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility4.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility4.blp")
 				button.AbilitiesBG:SetSize(256,128)
 			elseif bility >= 102 and bility < 124 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility5.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility5.blp")
 				button.AbilitiesBG:SetSize(256,128)
 			elseif  bility >= 146 then
-				button.AbilitiesBG:SetTexture("Interface\\Garrison\\bility6.blp")
+				m_SetTexture(button.AbilitiesBG,"Interface\\Garrison\\bility6.blp")
 			button.AbilitiesBG:SetSize(256,256)
 			
 			end
@@ -207,7 +202,7 @@
 			button.UpArrow:SetPoint("TOPRIGHT",-10,-46)
 		end
 
-		local function miirgui_SetEnemies(self,missionPage, enemies)
+	local function miirgui_SetEnemies(self,missionPage, enemies)
 			for i=1, #enemies do
 				local Frame = missionPage.Enemies[i];
 				local enemy = enemies[i];
@@ -220,22 +215,27 @@
 					Mechanic.Border:ClearAllPoints()
 					Mechanic.Border:SetSize(52,52)
 					Mechanic.Border:SetPoint("CENTER",Mechanic,0.5,0)
-					Mechanic.Border:SetTexture("Interface\\Buttons\\CheckButtonGlow.blp")
+					m_SetTexture(Mechanic.Border,"Interface\\Buttons\\CheckButtonGlow.blp")
 					Mechanic.CheckBurst:Hide()
 					Mechanic.CheckGlow:Hide()
 					Mechanic.Check:ClearAllPoints()
 					Mechanic.Check:SetSize(30,30)
 					Mechanic.Check:SetPoint("CENTER",Mechanic,0.5,0)
-					Mechanic.Check:SetTexture("Interface\\Garrison\\newinvasion.blp")
+					m_SetTexture(Mechanic.Check,"Interface\\Garrison\\newinvasion.blp")
 					Mechanic.Check:SetVertexColor(0,1,0,1)
 				end
 			end
 		end	
 
-	local frame = CreateFrame("FRAME")
-	frame:RegisterEvent("ADDON_LOADED")
-	function frame:OnEvent(event, arg1)
-		if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then			
+		
+		
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_GarrisonUI" then
 			hooksecurefunc(GarrisonMissionFrameFollowers,"UpdateData",miirgui_UpdateData)	
 			hooksecurefunc(GarrisonLandingPage.FollowerList,"UpdateData",miirgui_UpdateData)		
 			hooksecurefunc(GarrisonRecruitSelectFrame.FollowerList,"UpdateData",miirgui_UpdateData)
@@ -244,10 +244,23 @@
 			hooksecurefunc(GarrisonMissionFrameFollowers,"ExpandButton",miirgui_Expand)
 			hooksecurefunc(GarrisonRecruitSelectFrame.FollowerList,"ExpandButton",miirgui_Expand)
 			hooksecurefunc(GarrisonMission,"SetEnemies",miirgui_SetEnemies)
-		end
-		if event == "ADDON_LOADED" and arg1 == "Blizzard_OrderHallUI" then
+		elseif event == "ADDON_LOADED" and arg1 == "Blizzard_OrderHallUI" then
 			hooksecurefunc(OrderHallMissionFrameFollowers,"UpdateData",miirgui_UpdateData)
 			hooksecurefunc(OrderHallMissionFrameFollowers,"ExpandButton",miirgui_Expand)
 		end
+	end)			
+	if IsAddOnLoaded("Blizzard_GarrisonUI") then
+		hooksecurefunc(GarrisonMissionFrameFollowers,"UpdateData",miirgui_UpdateData)	
+		hooksecurefunc(GarrisonLandingPage.FollowerList,"UpdateData",miirgui_UpdateData)		
+		hooksecurefunc(GarrisonRecruitSelectFrame.FollowerList,"UpdateData",miirgui_UpdateData)
+		hooksecurefunc(GarrisonBuildingFrameFollowers,"UpdateData",miirgui_UpdateData)
+		hooksecurefunc(GarrisonMission,"CheckCompleteMissions",miirgui_CheckCompleteMissions)
+		hooksecurefunc(GarrisonMissionFrameFollowers,"ExpandButton",miirgui_Expand)
+		hooksecurefunc(GarrisonRecruitSelectFrame.FollowerList,"ExpandButton",miirgui_Expand)
+		hooksecurefunc(GarrisonMission,"SetEnemies",miirgui_SetEnemies)
 	end	
-	frame:SetScript("OnEvent", frame.OnEvent);
+	if IsAddOnLoaded("Blizzard_OrderHallUI") then
+		hooksecurefunc(OrderHallMissionFrameFollowers,"UpdateData",miirgui_UpdateData)
+		hooksecurefunc(OrderHallMissionFrameFollowers,"ExpandButton",miirgui_Expand)
+	end	
+end)	

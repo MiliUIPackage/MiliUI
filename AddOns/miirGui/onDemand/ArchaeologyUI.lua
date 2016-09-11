@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
+local function skin_Blizzard_ArchaeologyUI()
 	local f= CreateFrame("Frame",nil)
 	f:SetFrameStrata("MEDIUM")
 	f:SetWidth(256) 
@@ -15,7 +12,7 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
 		m_fontify(ArcheologyDigsiteProgressBar.BarTitle,"white")
 		ArcheologyDigsiteProgressBar.BarBorderAndOverlay:Hide()
 		ArcheologyDigsiteProgressBar.Shadow:Hide()
-		ArcheologyDigsiteProgressBar.BarBackground:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock.blp")
+		m_SetTexture(ArcheologyDigsiteProgressBar.BarBackground,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		f:SetParent(ArcheologyDigsiteProgressBar)
 		f:SetPoint("CENTER",0,0)
 		f:Show()
@@ -30,12 +27,12 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
 	m_fontify(ArchaeologyFrameSummaryPageTitle,"color")
 	m_fontify(ArchaeologyFrameCompletedPageTitle,"color")
 	m_fontify(ArchaeologyFrameCompletedPageTitleMid,"color")
-	local nothingcompleted=select(1,ArchaeologyFrameCompletedPage:GetRegions())
+	local nothingcompleted =ArchaeologyFrameCompletedPage:GetRegions()
 	m_fontify(nothingcompleted,"white")
 
 	for i= 1, 12 do
 		local DiggingRace= _G["ArchaeologyFrameSummaryPageRace"..i]
-		local DiggingRaceProgress = select(1,DiggingRace:GetRegions())
+		local DiggingRaceProgress = DiggingRace:GetRegions()
 		m_fontify(DiggingRaceProgress,"white")
 	end
 	m_fontify(ArchaeologyFrameArtifactPageHistoryTitle,"color")
@@ -44,11 +41,9 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
 			
 	for i= 1,12 do
 		local ArtifactNumber = _G["ArchaeologyFrameCompletedPageArtifact"..i]
-		local ArtifactBg = select(2,ArtifactNumber:GetRegions())
+		local _,ArtifactBg,_,ArtifactName,ArtifactSubText = ArtifactNumber:GetRegions()
 		ArtifactBg:Hide()
-		local ArtifactName=select(4,ArtifactNumber:GetRegions())
 		m_fontify(ArtifactName,"white")
-		local ArtifactSubText=select(5,ArtifactNumber:GetRegions())
 		m_fontify(ArtifactSubText,"white")
 	end
 	m_fontify(ArchaeologyFrameCompletedPagePageText,"white")
@@ -64,6 +59,22 @@ if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
 	
 	hooksecurefunc("ArchaeologyFrame_CurrentArtifactUpdate",miirgui_ArchaeologyFrame_CurrentArtifactUpdate)		
 end
-end
 
-frame:SetScript("OnEvent", frame.OnEvent);
+
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()	
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_ArchaeologyUI" then
+			skin_Blizzard_ArchaeologyUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_ArchaeologyUI") then
+		skin_Blizzard_ArchaeologyUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)
+		

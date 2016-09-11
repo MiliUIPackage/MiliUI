@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_ItemSocketingUI" then
+local function skin_Blizzard_ItemSocketingUI()
 		for i=19,27 do
 			local hideit= select(i,ItemSocketingFrame:GetRegions() )
 			hideit:Hide()
@@ -24,6 +21,20 @@ function frame:OnEvent(event, arg1)
 		m_border(ItemSocketingFrameInset,332,364,"TOP",0,2,14,"MEDIUM")
 
 	end
-end
-
-frame:SetScript("OnEvent", frame.OnEvent);
+	
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_ItemSocketingUI" then
+			skin_Blizzard_ItemSocketingUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_ItemSocketingUI") then
+		skin_Blizzard_ItemSocketingUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

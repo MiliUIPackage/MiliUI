@@ -1,7 +1,5 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_Collections" then
+local function skin_Blizzard_Collections()
+
 		CollectionsJournalPortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 		MountJournalSummonRandomFavoriteButtonBorder:Hide()
 		MountJournalListScrollFrameScrollBarBG:Hide()
@@ -72,31 +70,31 @@ function frame:OnEvent(event, arg1)
 		HeirloomsJournal.iconsFrame.ShadowCornerBottom:Hide()
 		HeirloomsJournal.iconsFrame.watermark:Hide()
 		
-		local robebg=select(1,WardrobeCollectionFrame.ModelsFrame.HelpBox:GetRegions())
+		local robebg = WardrobeCollectionFrame.ModelsFrame.HelpBox:GetRegions()
 		robebg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		robebg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(WardrobeCollectionFrame.ModelsFrame.HelpBox,226,82,"CENTER",0,0,14,"DIALOG")		
 		m_fontify(WardrobeCollectionFrame.ModelsFrame.HelpBox.Text,"white")	
 		
-		local robebg=select(1,WardrobeTransmogFrame.OutfitHelpBox:GetRegions())
+		local robebg = WardrobeTransmogFrame.OutfitHelpBox:GetRegions()
 		robebg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		robebg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(WardrobeTransmogFrame.OutfitHelpBox,226,70,"CENTER",0,0,14,"DIALOG")		
 		m_fontify(WardrobeTransmogFrame.OutfitHelpBox.Text,"white")	
 		
-		local robebg=select(1,WardrobeTransmogFrame.SpecHelpBox:GetRegions())
+		local robebg = WardrobeTransmogFrame.SpecHelpBox:GetRegions()
 		robebg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		robebg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(WardrobeTransmogFrame.SpecHelpBox,226,82,"CENTER",0,0,14,"DIALOG")		
 		m_fontify(WardrobeTransmogFrame.SpecHelpBox.Text,"white")			
 
-		local robebg=select(1,CollectionsJournal.WardrobeTabHelpBox:GetRegions())
+		local robebg = CollectionsJournal.WardrobeTabHelpBox:GetRegions()
 		robebg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		robebg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(CollectionsJournal.WardrobeTabHelpBox,226,94,"CENTER",0.5,0,14,"DIALOG")		
 		m_fontify(CollectionsJournal.WardrobeTabHelpBox.Text,"white")	
 		
-		local toybg=select(1,ToyBox.favoriteHelpBox:GetRegions())
+		local toybg = ToyBox.favoriteHelpBox:GetRegions()
 		toybg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1, 1)
 		toybg:SetColorTexture(0.078,0.078,0.078,1)
 		m_border(ToyBox.favoriteHelpBox,226,70,"CENTER",0,0.5,14,"DIALOG")	
@@ -138,26 +136,46 @@ function frame:OnEvent(event, arg1)
 			_G["PetJournalPetCardSpell"..i.."Icon"]:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 		end
 		
-		local function miirgui_CollectionsSpellButton_UpdateCooldown(self)
-			local toyString = self.name
+		local function miirgui_ToySpellButton_UpdateButton(self)
 			local slotFrameCollected = self.slotFrameCollected;
-			local slotFrameUncollected = self.slotFrameUncollected;
-			if (PlayerHasToy(self.itemID)) then
-				m_fontify(toyString,"white")
-				slotFrameCollected:SetTexture("Interface\\Buttons\\UI-Quickslot")
-				slotFrameCollected:SetSize(74,74)
+			slotFrameCollected:Show()	
+
+			if not (PlayerHasToy(self.itemID)) then
+				slotFrameCollected:Show()
+				self:HookScript("OnClick",function()
+					self:UnregisterEvent("SPELLS_CHANGED");
+					self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
+					self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM");
+				end)
+				
 			else
-				m_fontify(toyString,"grey")
-				slotFrameUncollected:SetDesaturated(true)
-				slotFrameUncollected:SetTexture("Interface\\Buttons\\UI-Quickslot")
-				slotFrameUncollected:SetSize(74,74)
+				slotFrameCollected:Show()				
+				self:HookScript("OnClick",function()
+					self:RegisterEvent("SPELLS_CHANGED");
+					self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
+					self:RegisterEvent("UPDATE_SHAPESHIFT_FORM");
+				end)
 			end
+			
 		end
 		
-		hooksecurefunc("CollectionsSpellButton_UpdateCooldown",miirgui_CollectionsSpellButton_UpdateCooldown)				-- this hook changes the look of the Toys-Tab as well as its font color
+		hooksecurefunc("ToySpellButton_UpdateButton",miirgui_ToySpellButton_UpdateButton)				-- this hook changes the look of the Toys-Tab
+		
+		local function miirgui_CollectionsSpellButton_UpdateCooldown(self)	
+			self:UnregisterEvent("SPELLS_CHANGED");
+			self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
+			self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM");
+		
+			if not (PlayerHasToy(self.itemID)) then
+				m_fontify(self.name,"grey")
+			else
+				m_fontify(self.name,"white")
+			end	
+		end
+		
+	hooksecurefunc("CollectionsSpellButton_UpdateCooldown",miirgui_CollectionsSpellButton_UpdateCooldown)				-- cooldown numbers
 		
 		local function miirgui_PetJournal_UpdatePetLoadOut()
-		--thanks to fuba for the fix :)
 			for i=1,3 do
 				local loadoutPlate = PetJournal.Loadout["Pet"..i];
 				_G["PetJournalLoadoutPet"..i.."PetTypeIcon"]:ClearAllPoints()
@@ -165,10 +183,9 @@ function frame:OnEvent(event, arg1)
 				local petID = C_PetJournal.GetPetLoadOutInfo(i);
 				if petID then
 					m_fontify(loadoutPlate.level,"white")
-					local rarity = select(5,C_PetJournal.GetPetStats(petID))
-					loadoutPlate.qualityBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+					local _,_,_,_,rarity = C_PetJournal.GetPetStats(petID)
+					m_SetTexture(loadoutPlate.qualityBorder,"Interface\\Containerframe\\quality.blp")
 					loadoutPlate.qualityBorder:SetVertexColor(ITEM_QUALITY_COLORS[rarity-1].r, ITEM_QUALITY_COLORS[rarity-1].g, ITEM_QUALITY_COLORS[rarity-1].b);
-
 					if not loadoutPlate.qualityBorder:IsVisible() then 
 					loadoutPlate.qualityBorder:Show()
 					end
@@ -218,12 +235,11 @@ function frame:OnEvent(event, arg1)
 				pet = petButtons[i];
 				index = offset + i;
 				if index <= numPets then
-					local petID = select(1,C_PetJournal.GetPetInfoByIndex(index))
-					local isOwned = select(3,C_PetJournal.GetPetInfoByIndex(index))
+					local petID,_,isOwned = C_PetJournal.GetPetInfoByIndex(index)
 					if isOwned then
-						local rarity = select(5,C_PetJournal.GetPetStats(petID))
+						local _,_,_,_,rarity = C_PetJournal.GetPetStats(petID)
 						m_fontify(pet.dragButton.level,"white")
-						pet.iconBorder:SetTexture("Interface\\Containerframe\\quality.blp")
+						m_SetTexture(pet.iconBorder,"Interface\\Containerframe\\quality.blp")
 						pet.iconBorder:SetVertexColor(ITEM_QUALITY_COLORS[rarity-1].r, ITEM_QUALITY_COLORS[rarity-1].g, ITEM_QUALITY_COLORS[rarity-1].b);
 					end
 				end
@@ -249,7 +265,7 @@ function frame:OnEvent(event, arg1)
 				local displayIndex = i + offset;
 				if ( displayIndex <= numDisplayedMounts and showMounts ) then
 					local index = displayIndex;
-					local isFavorite = select(7,C_MountJournal.GetDisplayedMountInfo(index))
+					local _,_,_,_,_,_,isFavorite = C_MountJournal.GetDisplayedMountInfo(index)
 					if ( isFavorite ) then
 						button.favorite:ClearAllPoints()
 						button.favorite:SetPoint("RIGHT", -5, 0)
@@ -264,15 +280,12 @@ function frame:OnEvent(event, arg1)
 			m_fontify(button.special,"white")
 			if C_Heirloom.PlayerHasHeirloom(button.itemID) then
 				m_fontify(button.name,"white")
-				button.slotFrameCollected:SetTexture("Interface\\Buttons\\UI-Quickslot")
-				button.slotFrameCollected:SetSize(74,74)
-				button.levelBackground:SetAlpha(0)
-				m_fontify(button.level,"white")											
+				m_fontify(button.level,"white")				
 			else
 				m_fontify(button.name,"grey")
-				m_fontify(button.special,"grey")
-				button.slotFrameUncollected:SetTexture("Interface\\Buttons\\UI-Quickslot")
-				button.slotFrameUncollected:SetSize(74,74)
+				m_fontify(button.special,"grey")			
+				button.slotFrameUncollected:SetAlpha(0)
+				button.slotFrameCollected:Show()		
 			end
 		end
  
@@ -334,6 +347,20 @@ function frame:OnEvent(event, arg1)
 		hooksecurefunc("WardrobeCollectionFrame_SetContainer",miirgui_WardrobeCollectionFrame_SetContainer)
 
 	end
-end
 
-frame:SetScript("OnEvent", frame.OnEvent);
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()	
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_Collections" then
+			skin_Blizzard_Collections()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_Collections") then
+		skin_Blizzard_Collections()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

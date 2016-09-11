@@ -1,12 +1,12 @@
 local f = CreateFrame("Frame");
-f:RegisterEvent("PLAYER_ENTERING_WORLD");
+f:RegisterEvent("PLAYER_LOGIN");
 f:SetScript("OnEvent", function()
 	
 PlayerLevelText:SetPoint("CENTER", PlayerFrameTexture, "CENTER", -62, -15);
 
 local function miirgui_TargetFrame_CheckClassification(self, forceNormalTexture)
 	local classification = UnitClassification(self.unit);
-	self.threatIndicator:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Flash");
+	m_SetTexture(self.threatIndicator,"Interface\\TargetingFrame\\UI-TargetingFrame-Flash")
 	if ( forceNormalTexture ) then
 		self.haveElite = nil;
 		if ( classification == "minus" ) then
@@ -18,7 +18,7 @@ local function miirgui_TargetFrame_CheckClassification(self, forceNormalTexture)
 		end
 		if ( self.threatIndicator ) then
 			if ( classification == "minus" ) then
-				self.threatIndicator:SetTexture("Interface\\TargetingFrame\\UI-TargetingFrame-Minus-Flash");
+				m_SetTexture(self.threatIndicator,"Interface\\TargetingFrame\\UI-TargetingFrame-Minus-Flash")
 				self.threatIndicator:SetTexCoord(0, 1, 0, 1);
 				self.threatIndicator:SetWidth(256);
 				self.threatIndicator:SetHeight(128);

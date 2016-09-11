@@ -1,7 +1,4 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_EncounterJournal"  then
+local function skin_Blizzard_EncounterJournal()
 		
 		m_fontify(EncounterJournalInstanceSelectTierDropDownText,"white")
 		m_fontify(EncounterJournalEncounterFrameInfoDifficulty:GetFontString(),"white")
@@ -30,7 +27,7 @@ function frame:OnEvent(event, arg1)
 		m_border(EncounterJournalSuggestFrame.Suggestion2,280,130,"CENTER",25,14,12,"MEDIUM")
 		m_border(EncounterJournalSuggestFrame.Suggestion3,280,130,"CENTER",25,14,12,"MEDIUM")	
 		EncounterJournalInsetBg:Hide()	
-		local parchement = select(1,EncounterJournal.LootJournal:GetRegions())
+		local parchement = EncounterJournal.LootJournal:GetRegions()
 		parchement:Hide()		
 		for i = 1, 9 do
 			_G["EncounterJournalEncounterFrameInfoLootScrollFrameButton"..i.."Icon"]:SetSize(40,40)	
@@ -98,9 +95,9 @@ function frame:OnEvent(event, arg1)
 			
 		local function miirgui_EncounterJournal_DisplayInstance()
 			local self = EncounterJournal.encounter;
-			local buttonImage = select(6,EJ_GetInstanceInfo())
+			local _,_,_,_,_,buttonImage = EJ_GetInstanceInfo()
 			m_fontify(self.instance.title,"white")
-			InstanceIcontexture:SetTexture(buttonImage)
+			m_SetTexture(InstanceIcontexture,buttonImage)
 			InstanceIcon:SetPoint("CENTER",self.info.instanceButton,1,0)
 			InstanceIcon:SetParent(self.info.instanceButton)	
 			for i=1,19 do	
@@ -132,7 +129,6 @@ function frame:OnEvent(event, arg1)
 				local suggestion = self.Suggestion1;
 				local data = self.suggestions[1];
 				suggestion.reward.icon:SetSize(46,46)
-				--suggestion.reward.iconRingHighlight:SetAlpha(1)
 				m_fontify(suggestion.centerDisplay.title.text,"color")	
 				m_fontify(suggestion.centerDisplay.description.text,"white")
 				m_fontify(suggestion.reward.text,"white")
@@ -140,10 +136,10 @@ function frame:OnEvent(event, arg1)
 				suggestion.iconRing:Show()
 				if ( data.iconPath ) then
 					suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-					suggestion.iconRing:SetTexture(data.iconPath)			
+					m_SetTexture	(suggestion.iconRing,data.iconPath)				
 				else
 					suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-					suggestion.iconRing:SetTexture("INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
+					m_SetTexture(suggestion.iconRing,"INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
 				end
 			end
 			if ( #self.suggestions > 1 ) then			
@@ -161,10 +157,10 @@ function frame:OnEvent(event, arg1)
 					suggestion.iconRing:Show()
 					if ( data.iconPath ) then
 						suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-						suggestion.iconRing:SetTexture(data.iconPath)		
+						m_SetTexture(suggestion.iconRing,data.iconPath)						
 					else
 						suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-						suggestion.iconRing:SetTexture("INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
+						m_SetTexture(suggestion.iconRing,"INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
 					end
 				end
 			end
@@ -185,7 +181,6 @@ function frame:OnEvent(event, arg1)
 			local buttons = EncounterJournal.LootJournal.ItemSetsFrame.buttons;
 			for i = 1, #buttons do
 				local button = buttons[i];
-				m_fontify(button.SetName,"same")
 				m_fontify(button.ItemLevel,"white")
 			
 			end	
@@ -204,7 +199,21 @@ function frame:OnEvent(event, arg1)
 		
 		hooksecurefunc("EncounterJournal_ListInstances",miirgui_EncounterJournal_ListInstances)
 		
-	end
 end
 
-frame:SetScript("OnEvent", frame.OnEvent);
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()	
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_EncounterJournal" then
+			skin_Blizzard_EncounterJournal()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_EncounterJournal") then
+		skin_Blizzard_EncounterJournal()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)

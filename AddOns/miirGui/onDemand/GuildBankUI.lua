@@ -1,11 +1,8 @@
-local frame = CreateFrame("FRAME")
-frame:RegisterEvent("ADDON_LOADED")
-function frame:OnEvent(event, arg1)
-	if event == "ADDON_LOADED" and arg1 == "Blizzard_GuildBankUI" then
+local function skin_Blizzard_GuildBankUI()
 		GuildBankFrameBlackBG:ClearAllPoints()
 		GuildBankFrameBlackBG:SetPoint("BOTTOM",GuildBankFrame)
 		GuildBankFrameBlackBG:SetSize(744,20)
-		GuildBankFrameBlackBG:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble.blp")
+		m_SetTexture(GuildBankFrameBlackBG,"Interface\\FrameGeneral\\UI-Background-Marble.blp")
 		GuildBankEmblemFrame:Hide()
 		m_border(GuildBankFrame,720,316,"CENTER",1,0,14,"MEDIUM")
 		local function miirgui_GuildBankFrame_Update()
@@ -18,10 +15,10 @@ function frame:OnEvent(event, arg1)
 				end
 				column = ceil((i-0.5)/NUM_SLOTS_PER_GUILDBANK_GROUP);
 				button = _G["GuildBankColumn"..column.."Button"..index];
-				local quality = select(5,GetGuildBankItemInfo(tab, i))
+				local _,_,_,_,quality = GetGuildBankItemInfo(tab, i)
 				if quality then
 					local r, g, b, hex = GetItemQualityColor(quality)
-					button.IconBorder:SetTexture("Interface\\Lootframe\\quality.blp")
+					m_SetTexture(button.IconBorder,"Interface\\Lootframe\\quality.blp")
 					button.IconBorder:Show();
 					button.IconBorder:SetSize(44,44)
 					button.IconBorder:SetVertexColor(r, g, b, hex)
@@ -32,6 +29,20 @@ function frame:OnEvent(event, arg1)
 		end
 		hooksecurefunc("GuildBankFrame_Update", miirgui_GuildBankFrame_Update)
 	end
-end
 
-frame:SetScript("OnEvent", frame.OnEvent)
+local f= CreateFrame("FRAME")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
+f:SetScript("OnEvent", function()
+	local f2= CreateFrame("FRAME")
+	f2:RegisterEvent("ADDON_LOADED")
+	f2:SetScript("OnEvent", function(_,event, arg1)
+		if event == "ADDON_LOADED" and arg1 == "Blizzard_GuildBankUI" then
+			skin_Blizzard_GuildBankUI()
+			f2:UnregisterEvent("ADDON_LOADED")
+		end	
+	end)			
+	if IsAddOnLoaded("Blizzard_GuildBankUI") then
+		skin_Blizzard_GuildBankUI()
+		f2:UnregisterEvent("ADDON_LOADED")
+	end	
+end)
