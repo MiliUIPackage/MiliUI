@@ -43,7 +43,7 @@
 --
 
 
-local revision =("$Revision: 15093 $"):sub(12, -3)
+local revision =("$Revision: 15177 $"):sub(12, -3)
 local FrameTitle = "DBM_GUI_Option_"	-- all GUI frames get automatically a name FrameTitle..ID
 
 local PanelPrototype = {}
@@ -2475,7 +2475,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFontSize = self:GetValue()
 				DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 1)
+				DBM:ShowTestSpecialWarning()--Pass with no sound, disabling both flash and sound play. This is a font slider so it only needs font
 			end)
 		end
 
@@ -2491,7 +2491,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningDuration = self:GetValue()
 				DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 1)
+				DBM:ShowTestSpecialWarning()--Pass with no sound, disabling both flash and sound play. This is a duration slider so it only needs font
 			end)
 		end
 
@@ -2681,7 +2681,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashDura1 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 1)
+				DBM:ShowTestSpecialWarning(nil, 1, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2697,7 +2697,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashAlph1 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 1)
+				DBM:ShowTestSpecialWarning(nil, 1, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2720,7 +2720,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashDura2 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 2)
+				DBM:ShowTestSpecialWarning(nil, 2, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2736,7 +2736,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashAlph2 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 2)
+				DBM:ShowTestSpecialWarning(nil, 2, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2759,7 +2759,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashDura3 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 3)
+				DBM:ShowTestSpecialWarning(nil, 3, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2775,7 +2775,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashAlph3 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 3)
+				DBM:ShowTestSpecialWarning(nil, 3, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2798,7 +2798,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashDura4 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 4)
+				DBM:ShowTestSpecialWarning(nil, 4, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2814,7 +2814,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashAlph4 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 4)
+				DBM:ShowTestSpecialWarning(nil, 4, true)--Pass with flash but no sound
 			end)
 		end
 		
@@ -2837,7 +2837,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashDura5 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 5)
+				DBM:ShowTestSpecialWarning(nil, 5, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -2853,7 +2853,7 @@ local function CreateOptionsMenu()
 				if firstshow then firstshow = false return end
 				DBM.Options.SpecialWarningFlashAlph5 = self:GetValue()
 				--DBM:UpdateSpecialWarningOptions()
-				DBM:ShowTestSpecialWarning(nil, 5)
+				DBM:ShowTestSpecialWarning(nil, 5, true)--Pass with flash but no sound
 			end)
 		end
 
@@ -3428,15 +3428,50 @@ local function CreateOptionsMenu()
 		end)
 		blockMovieDropDown:SetPoint("TOPLEFT", filterYell, "TOPLEFT", 0, -40)
 
-		local pingFilterOptions = {
-			{	text	= L.Disable,					value 	= 0},
-			{	text	= L.HideApplicantAlertsFull,	value 	= 1},
-			{	text	= L.HideApplicantAlertsNotL,	value 	= 2},
+		local talkingHeadOptions = {
+			{	text	= L.SWFNever,	value 	= "Never"},
+			{	text	= L.RaidCombat,	value 	= "BossCombatOnly"},
+			{	text	= L.CombatOnly,	value 	= "CombatOnly"},
+			{	text	= L.Always,		value 	= "Always"},
 		}
-		local blockApplicantsDropDown = hideBlizzArea:CreateDropdown(L.HideApplicantAlerts, pingFilterOptions, "DBM", "HideApplicantAlerts", function(value)
-			DBM.Options.HideApplicantAlerts = value
+		local talkingHeadDropDown = hideBlizzArea:CreateDropdown(L.DisableTalkingHead, talkingHeadOptions, "DBM", "TalkingHeadFilter", function(value)
+			DBM.Options.TalkingHeadFilter = value
+			local disabled, loaded = DBM:TalkingHeadStatus()
+			if loaded then
+				if value == "Always" and not disabled then
+					TalkingHeadFrame:UnregisterAllEvents()
+					--TalkingHeadFrame_CloseImmediately()
+				else
+					if value == "Never" and disabled then
+						TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+						TalkingHeadFrame:RegisterEvent("TALKINGHEAD_CLOSE")
+						TalkingHeadFrame:RegisterEvent("SOUNDKIT_FINISHED")
+						TalkingHeadFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+					elseif value == "CombatOnly" then
+						if InCombatLockdown() and not disabled then
+							TalkingHeadFrame:UnregisterAllEvents()
+							--TalkingHeadFrame_CloseImmediately()
+						else
+							TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+							TalkingHeadFrame:RegisterEvent("TALKINGHEAD_CLOSE")
+							TalkingHeadFrame:RegisterEvent("SOUNDKIT_FINISHED")
+							TalkingHeadFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+						end
+					elseif value == "BossCombatOnly" then
+						if IsEncounterInProgress() and not disabled then
+							TalkingHeadFrame:UnregisterAllEvents()
+							--TalkingHeadFrame_CloseImmediately()
+						else
+							TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+							TalkingHeadFrame:RegisterEvent("TALKINGHEAD_CLOSE")
+							TalkingHeadFrame:RegisterEvent("SOUNDKIT_FINISHED")
+							TalkingHeadFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+						end
+					end
+				end
+			end
 		end)
-		blockApplicantsDropDown:SetPoint("TOPLEFT", blockMovieDropDown, "TOPLEFT", 0, -45)
+		talkingHeadDropDown:SetPoint("TOPLEFT", blockMovieDropDown, "TOPLEFT", 0, -45)
 
 		--hideBlizzArea:AutoSetDimension()
 		hideBlizzPanel:SetMyOwnHeight()

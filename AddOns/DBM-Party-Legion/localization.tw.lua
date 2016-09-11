@@ -322,7 +322,7 @@ L:SetGeneralLocalization({
 L:SetWarningLocalization({
 	WarningPortalSoon		= "準備開門",
 	WarningPortalNow		= "第%d個傳送門",
-	WarningBossNow		= "首領來了"
+	WarningBossNow			= "首領來了"
 })
 
 L:SetTimerLocalization({
@@ -332,7 +332,7 @@ L:SetTimerLocalization({
 L:SetOptionLocalization({
 	WarningPortalNow		= "為新的傳送門顯示警告",
 	WarningPortalSoon		= "為新的傳送門顯示準備警告",
-	WarningBossNow		= "為首領到來顯示警告",
+	WarningBossNow			= "為首領到來顯示警告",
 	TimerPortal					= "為擊殺首領後的傳送門顯示計時器"
 })
 

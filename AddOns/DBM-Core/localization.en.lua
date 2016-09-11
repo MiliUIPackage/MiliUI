@@ -16,7 +16,14 @@ DBM_CORE_BAD_LOAD					= "DBM has detected your mod for this instance failed to f
 DBM_CORE_LOAD_MOD_VER_MISMATCH		= "%s could not be loaded because your DBM-Core does not meet requirements. An updated version is required"
 
 DBM_CORE_WHATS_NEW					= "New in this version: Fixed a bug that caused 'Major Patch' force update/disable to trigger wrongfully for non major patch updates. DBM will no longer filter Broken Shore cut scenes regardless of user settings. Added Demonic Invasions mod. Minor Text Fixes"
---DBM_CORE_WHATS_NEW_LINK				= "New in this version: New timer options for inline icons and a new bar color option with custom user options.. To learn more about this feature you can read about it by |HDBM:forumsnews|h|cff3588ffclicking here|r"
+DBM_CORE_WHATS_NEW_LINK				= "In upcoming version of DBM, many features that relied on unit positions will be pruned. You can read more about why by |HDBM:forumsnews|h|cff3588ffclicking here|r"
+
+--Pre Patch 7.1 Notice
+DBM_CORE_NO_RANGE_SOON				= "Note: range radar will no longer be available within instances in patch 7.1"
+--Post Patch 7.1
+DBM_CORE_NO_RANGE					= "Range Checker/Radar can not be used in instances"
+DBM_CORE_NO_ARROW					= "Arrow can not be used in instances"
+DBM_CORE_NO_HUD						= "HUDMap can not be used in instances"
 
 DBM_CORE_DYNAMIC_DIFFICULTY_CLUMP	= "DBM has disabled dynamic range frame on this fight do to insufficient information about number of players needed to affect clump check for a group of your size."
 DBM_CORE_DYNAMIC_ADD_COUNT			= "DBM has disabled add count warnings on this fight do to insufficient information about number of adds that spawn for a group of your size."
@@ -138,8 +145,8 @@ DBM_CORE_WHISPER_SCENARIO_END_WIPE			= "%s did not complete %s"
 DBM_CORE_WHISPER_SCENARIO_END_WIPE_STATS	= "%s did not complete %s. They have %d total incompletes on this difficulty."
 
 DBM_CORE_VERSIONCHECK_HEADER		= "Boss Mod - Versions"
-DBM_CORE_VERSIONCHECK_ENTRY			= "%s: %s (r%d) %s"--One Boss mod
-DBM_CORE_VERSIONCHECK_ENTRY_TWO		= "%s: %s (r%d) & %s (r%d)"--Two Boss mods
+DBM_CORE_VERSIONCHECK_ENTRY			= "%s: %s (%s) %s"--One Boss mod
+DBM_CORE_VERSIONCHECK_ENTRY_TWO		= "%s: %s (%s) & %s (%s)"--Two Boss mods
 DBM_CORE_VERSIONCHECK_ENTRY_NO_DBM	= "%s: No boss mod installed"
 DBM_CORE_VERSIONCHECK_FOOTER		= "Found %d player(s) with DBM & %d player(s) with Bigwigs"
 DBM_CORE_VERSIONCHECK_OUTDATED		= "Following %d player(s) have outdated boss mod version: %s"
@@ -148,7 +155,6 @@ DBM_CORE_VOICE_PACK_OUTDATED		= "Your DBM voice pack may be missing sounds suppo
 DBM_CORE_VOICE_MISSING				= "You had a DBM voice pack selected that could not be found. Your selection has been reset to 'None'. If this is an error, make sure your voice pack is properly installed and enabled in addons."
 DBM_CORE_VOICE_COUNT_MISSING		= "Countdown voice %d is set to a voice/count pack that could not be found. It has be reset to default settings."
 DBM_BIG_WIGS						= "BigWigs"
-DBM_BIG_WIGS_ALPHA					= "BigWigs Alpha"
 
 DBM_CORE_UPDATEREMINDER_HEADER			= "Your version of Deadly Boss Mods is out-of-date.\n Version %s (r%d) is available for download through Curse, WoWI, or from here:"
 DBM_CORE_UPDATEREMINDER_HEADER_ALPHA	= "Your ALPHA version of Deadly Boss Mods is out-of-date.\n You are at least %d test versions behind. It is recommended that DBM users that choose ALPHA versions run the latest ALPHA. Otherwise, they should run latest RELEASE version. Out of date ALPHAs have a stricter version check because they are development versions of DBM."

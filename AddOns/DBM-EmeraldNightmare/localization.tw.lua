@@ -34,7 +34,7 @@ L= DBM:GetModLocalization(1744)
 L= DBM:GetModLocalization(1667)
 
 L:SetMiscLocalization({
-	SoakersText		=	"衝擊傷害分擔: %"
+	SoakersText		=	"傷害分擔: %"
 })
 
 ---------------------------

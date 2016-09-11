@@ -2,7 +2,7 @@
 -- yleaf(yaroot@gmail.com)
 -- sunlcy@NGA
 -- Mini Dragon(projecteurs@gmail.com)
--- Last update: Jul 21 2015, 10:10 UTC@15067
+-- Last update: Aug 30 2016, 03:25 UTC@15178
 
 if GetLocale() ~= "zhCN" then return end
 if not DBM_GUI_Translations then DBM_GUI_Translations = {} end
@@ -13,21 +13,13 @@ L.MainFrame 				= "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "翻译:"
 L.TranslationBy 			= "Mini_Dragon(Brilla@金色平原) 原翻译：Diablohu & yleaf & sunlcy"
-L.Website					= "拜访我们的论坛|cFF73C2FBwww.deadlybossmods.com|r.在Twitter上关注首席程序员 @MysticalOS"
+L.Website					= "拜访我们的论坛|cFF73C2FBwww.deadlybossmods.com|r. 在Twitter上关注 @deadlybossmods 或 @MysticalOS"
 L.WebsiteButton				= "论坛"
 
 L.OTabBosses				= "模块"
 L.OTabOptions				= "选项"
 
 L.TabCategory_Options 		= "综合设置"
-L.TabCategory_LEG	 		= "军团再临"
-L.TabCategory_WOD	 		= "德拉诺之王"
-L.TabCategory_MOP	 		= "熊猫人之谜"
-L.TabCategory_CATA	 		= "大地的裂变"
-L.TabCategory_WOTLK 		= "巫妖王之怒"
-L.TabCategory_BC 			= "燃烧的远征"
-L.TabCategory_CLASSIC 		= "经典旧世"
---L.TabCategory_PVP 			Same as English
 L.TabCategory_OTHER    		= "其它"
 
 L.BossModLoaded 			= "%s状态"
@@ -297,13 +289,13 @@ L.HideGarrisonUpdates		= "Boss战斗中隐藏要塞队列完成提示"
 L.HideGuildChallengeUpdates	= "Boss战斗中隐藏工会挑战成功信息"
 L.HideTooltips				= "Boss战斗中隐藏鼠标提示窗体 （tooltips）"
 L.DisableSFX				= "Boss战斗中关闭音效"
-L.HideApplicantAlerts		= "屏蔽预创建队伍邀请信息"
-L.HideApplicantAlertsFull	= "当团队已满时"
-L.HideApplicantAlertsNotL	= "当我不是团长时 （团长别选）"
 L.SpamBlockSayYell			= "隐藏聊天窗口中的使用聊天泡泡的警报信息"
 L.DisableCinematics			= "自动跳过游戏内过场动画"
 L.AfterFirst				= "仅第一次播放"
 L.Always					= "总是跳过"
+L.DisableTalkingHead		= "隐藏抬头对话窗"
+L.CombatOnly				= "在任何战斗中隐藏"
+L.RaidCombat				= "只在Boss战斗中隐藏"
 
 L.Panel_ExtraFeatures		= "其他功能"
 --

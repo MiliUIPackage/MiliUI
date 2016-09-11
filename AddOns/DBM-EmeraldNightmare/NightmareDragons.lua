@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1704, "DBM-EmeraldNightmare", nil, 768)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15045 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15190 $"):sub(12, -3))
 mod:SetCreatureID(102679)--Ysondre, 102683 (Emeriss), 102682 (Lethon), 102681 (Taerar)
 mod:SetEncounterID(1854)
 mod:SetZone()
@@ -113,7 +113,6 @@ local voiceBellowingRoar			= mod:NewVoice(204078)--fearsoon
 
 mod:AddRangeFrameOption(10, 203787)
 --mod:AddSetIconOption("SetIconOnMC", 163472, false)
---mod:AddHudMapOption("HudMapOnMC", 163472)
 
 local activeBossGUIDS = {}
 
@@ -168,9 +167,6 @@ function mod:OnCombatEnd()
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
---	if self.Options.HudMapOnMC then
---		DBMHudMap:Disable()
---	end
 end
 
 function mod:SPELL_CAST_START(args)
@@ -350,7 +346,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, _, spellGUID)
 			end
 		elseif cid == 102682 then--Lethon
 			timerSiphonSpiritCD:Stop()
-			if not self:IsFaceroll() then
+			if not self:IsEasy() then
 				timerShadowBurstCD:Start(19.5)
 			end
 			if DBM.BossHealth:IsShown() then
@@ -360,7 +356,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, _, spellGUID)
 			timerShadesOfTaerarCD:Stop()
 			countdownShadesOfTaerar:Cancel()
 			timerSeepingFogCD:Stop()
-			if not self:IsFaceroll() then
+			if not self:IsEasy() then
 				timerBellowingRoarCD:Start(44.5)
 			end
 			if DBM.BossHealth:IsShown() then

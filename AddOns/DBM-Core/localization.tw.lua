@@ -17,7 +17,14 @@ DBM_CORE_BAD_LOAD					= "DBM偵測到你的此副本的模組在戰鬥中讀取�
 DBM_CORE_LOAD_MOD_VER_MISMATCH		= "%s不能被讀取因為你的DBM核心未達需求，請更新版本。"
 
 DBM_CORE_WHATS_NEW					= "此版本新功能： 修正一個錯誤造成'重要修補程式'強制更新/停用並錯誤的觸發非修補程式的更新，DBM將不再跳過破碎海岸的過場動畫不論玩家怎麼設置，新增惡魔入侵模組，少量的文字修正。"
---DBM_CORE_WHATS_NEW_LINK				= "此版本新功能：DBM加入了新的計時條選項，包括內置圖標，著色和新的使用者自訂類型。關於此功能想知道的更多您可以|HDBM:forumsnews|h|cff3588ff點擊這裡|r拜訪我們的論壇。"
+DBM_CORE_WHATS_NEW_LINK				= "在接下來的DBM版本中，很多依賴於單位位置的功能，如箭頭，距離雷達和HUD會因為暴雪對API的取締而精簡。想知道的更多您可以|HDBM:forumsnews|h|cff3588ff點擊這裡|r拜訪我們的論壇。"
+
+--Pre Patch 7.1 Notice
+DBM_CORE_NO_RANGE_SOON				= "注意：雷達視窗在7.1版本以後不可用"
+--Post Patch 7.1
+DBM_CORE_NO_RANGE					= "距離雷達在副本中無法使用"
+DBM_CORE_NO_ARROW					= "箭頭無法在副本中無法使用"
+DBM_CORE_NO_HUD						= "HUDMap在副本中無法使用"
 
 DBM_CORE_DYNAMIC_DIFFICULTY_CLUMP	= "DBM已中禁用動態距離框架，你目前的團隊人數在這場戰鬥中的機制資訊不足。"
 DBM_CORE_DYNAMIC_ADD_COUNT			= "DBM已中禁用小怪計數警告，你目前的團隊人數在這場戰鬥中的機制資訊不足。"
@@ -139,8 +146,8 @@ DBM_CORE_WHISPER_SCENARIO_END_WIPE			= "%s未完成%s。"
 DBM_CORE_WHISPER_SCENARIO_END_WIPE_STATS	= "%s未完成%s。他們在這個難度總共未完成%d次。"
 
 DBM_CORE_VERSIONCHECK_HEADER		= "Boss Mods - 版本檢測"
-DBM_CORE_VERSIONCHECK_ENTRY			= "%s：%s (r%d) %s"
-DBM_CORE_VERSIONCHECK_ENTRY_TWO		= "%s：%s (r%d) & %s (r%d)"
+DBM_CORE_VERSIONCHECK_ENTRY			= "%s: %s (%s) %s"--One Boss mod
+DBM_CORE_VERSIONCHECK_ENTRY_TWO		= "%s: %s (%s) & %s (%s)"--Two Boss mods
 DBM_CORE_VERSIONCHECK_ENTRY_NO_DBM	= "%s：尚未安裝任何團隊首領模組"
 DBM_CORE_VERSIONCHECK_FOOTER		= "找到有%d玩家正在使用DBM且有%d玩家正在使用Bigwigs"
 DBM_CORE_VERSIONCHECK_OUTDATED		= "下列有%d玩家正在使用過期的首領模組:%s"
@@ -148,6 +155,7 @@ DBM_CORE_YOUR_VERSION_OUTDATED		= "你的 Deadly Boss Mod 已經過期。請到h
 DBM_CORE_VOICE_PACK_OUTDATED		= "你的DBM語音包可能缺少在這個版本的DBM需要的語音。部分警告音效已經被停用。請下載新版本的語音包或是聯絡語音包作者更新並加入缺少的語音。"
 DBM_CORE_VOICE_MISSING				= "DBM找不到你所選取的語音包。你的語音包選項已經被重置為'None'。請確定你的語音包已正確的安裝與啟用。"
 DBM_CORE_VOICE_COUNT_MISSING		= "所選取的語音/倒數語音包%d找不到倒數語音。設定已被重置回預設值。"
+DBM_BIG_WIGS						= "BigWigs"
 
 DBM_CORE_UPDATEREMINDER_HEADER			= "你的Deadly Boss Mod已經過期。\n你可以在Curse網站或是wowinterface網站以及此網址下載到新版本%s(r%d)："
 DBM_CORE_UPDATEREMINDER_HEADER_ALPHA	= "你的Deadly Boss Mods測試版已經過期。\n 你至少落後%d個測試版本。建議DBM使用者如果選擇使用測試版請用最新的版本，不然應該用最新的正式版本。過期的測試版本有更嚴密的版本檢查因為這是DBM的開發版本。"

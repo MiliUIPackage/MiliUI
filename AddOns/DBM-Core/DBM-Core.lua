@@ -41,9 +41,9 @@
 --  Globals/Default Options  --
 -------------------------------
 DBM = {
-	Revision = tonumber(("$Revision: 15117 $"):sub(12, -3)),
-	DisplayVersion = "7.0.2 BNS", -- the string that is shown as version
-	ReleaseRevision = 15117 -- the revision of the latest stable version that is available
+	Revision = tonumber(("$Revision: 15192 $"):sub(12, -3)),
+	DisplayVersion = "7.0.4 BNS", -- the string that is shown as version
+	ReleaseRevision = 15192 -- the revision of the latest stable version that is available
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -150,7 +150,6 @@ DBM.DefaultOptions = {
 	HideObjectivesFrame = true,
 	HideGarrisonToasts = true,
 	HideGuildChallengeUpdates = true,
-	HideApplicantAlerts = 0,
 	HideTooltips = false,
 	DisableSFX = false,
 	EnableModels = true,
@@ -275,10 +274,11 @@ DBM.DefaultOptions = {
 	CRT_Enabled = false,
 	ShowRespawn = true,
 	ShowQueuePop = true,
-	HelpMessageVersion = 2,
+	HelpMessageVersion = 3,
 	NewsMessageShown = 4,
 	MoviesSeen = {},
 	MovieFilter = "AfterFirst",
+	TalkingHeadFilter = "Never",
 	LastRevision = 0,
 	FilterSayAndYell = false,
 	DebugMode = false,
@@ -292,6 +292,7 @@ DBM.DefaultOptions = {
 	AITimer = true,
 	AutoCorrectTimer = false,
 	ShortTimerText = true,
+	EnablePatchRestrictions = false,
 	ChatFrame = "DEFAULT_CHAT_FRAME",
 }
 
@@ -421,8 +422,11 @@ local targetMonitor = nil
 local statusWhisperDisabled = false
 local wowTOC = select(4, GetBuildInfo())
 local dbmToc = 0
+local isTalkingHeadLoaded = false
+local talkingHeadUnregistered = false
 
-local fakeBWRevision = 13799
+local fakeBWVersion, fakeBWHash = 8, "f6fdc8d"
+local versionQueryString, versionResponseString = "Q:%d-%s", "V:%d-%s"
 
 local enableIcons = true -- set to false when a raid leader or a promoted player has a newer version of DBM
 local guiRequested = false
@@ -470,7 +474,7 @@ local UnitExists, UnitIsDead, UnitIsFriend, UnitIsUnit, UnitIsAFK = UnitExists, 
 local GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetSpellCooldown = GetSpellInfo, EJ_GetSectionInfo, GetSpellTexture, GetSpellCooldown
 local EJ_GetEncounterInfo, EJ_GetCreatureInfo, GetDungeonInfo = EJ_GetEncounterInfo, EJ_GetCreatureInfo, GetDungeonInfo
 local GetInstanceInfo = GetInstanceInfo
-local UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone = UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone
+local UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone, GetPlayerMapAreaID = UnitPosition, GetCurrentMapDungeonLevel, GetMapInfo, GetCurrentMapZone, SetMapToCurrentZone, GetPlayerMapAreaID
 local GetSpecialization, GetSpecializationInfo, GetSpecializationInfoByID = GetSpecialization, GetSpecializationInfo, GetSpecializationInfoByID
 local UnitDetailedThreatSituation = UnitDetailedThreatSituation
 local GetPartyAssignment, UnitGroupRolesAssigned, UnitIsGroupLeader, UnitIsGroupAssistant, UnitRealmRelationship = GetPartyAssignment, UnitGroupRolesAssigned, UnitIsGroupLeader, UnitIsGroupAssistant, UnitRealmRelationship
@@ -1117,6 +1121,13 @@ do
 				self.Options.tempBreak2 = nil
 			end
 		end
+		if TalkingHeadFrame and not talkingHeadUnregistered and (self.Options.TalkingHeadFilter == "Always" or self.Options.TalkingHeadFilter == "CombatOnly" and InCombatLockdown() or self.Options.TalkingHeadFilter == "BossCombatOnly" and IsEncounterInProgress()) then
+			TalkingHeadFrame:UnregisterAllEvents()
+			--TalkingHeadFrame_CloseImmediately()--Calling this crashes wow apparently
+			isTalkingHeadLoaded = true--it laoded before DBM, so this secondary check just checks if frame exists and sets loaded = true
+			talkingHeadUnregistered = true
+			self:Debug("TalkingHead has been unregistered", 2)
+		end
 	end
 
 	-- register a callback that will be executed once the addon is fully loaded (ADDON_LOADED fired, saved vars are available)
@@ -1270,7 +1281,6 @@ do
 				"LFG_PROPOSAL_FAILED",
 				"LFG_PROPOSAL_SUCCEEDED",
 				"READY_CHECK",
-				"LFG_LIST_APPLICANT_LIST_UPDATED",
 				"UPDATE_BATTLEFIELD_STATUS",
 				"CINEMATIC_START",
 				"PLAYER_LEVEL_UP",
@@ -1291,6 +1301,17 @@ do
 				healthCombatInitialized = true
 			end)
 			self:Schedule(10, runDelayedFunctions, self)
+		end
+		if modname == "Blizzard_TalkingHeadUI" and not isTalkingHeadLoaded then
+			isTalkingHeadLoaded = true
+			if not isLoaded then return end--DBM isn't loaded yet, options won't exist yet
+			self:Debug("Blizzard_TalkingHeadUI has been loaded", 2)
+			if self.Options.TalkingHeadFilter == "Always" or self.Options.TalkingHeadFilter == "CombatOnly" and InCombatLockdown() or self.Options.TalkingHeadFilter == "BossCombatOnly" and IsEncounterInProgress() then
+				TalkingHeadFrame:UnregisterAllEvents()
+				--TalkingHeadFrame_CloseImmediately()--Calling this crashes wow apparently
+				talkingHeadUnregistered = true
+				self:Debug("TalkingHead has been unregistered", 2)
+			end
 		end
 	end
 end
@@ -1710,7 +1731,8 @@ end
 ----------------------
 do
 	local function Pull(timer)
-		if (DBM:GetRaidRank(playerName) == 0 and IsInGroup()) or IsEncounterInProgress() then
+		local LFGTankException = IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
+		if (DBM:GetRaidRank(playerName) == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
 			return DBM:AddMsg(DBM_ERROR_NO_PERMISSION)
 		end
 		local targetName = (UnitExists("target") and UnitIsEnemy("player", "target")) and UnitName("target") or nil--Filter non enemies in case player isn't targetting bos but another player/pet
@@ -1721,7 +1743,7 @@ do
 		end
 	end
 	local function Break(timer)
-		if IsInGroup() and (DBM:GetRaidRank(playerName) == 0 or IsPartyLFG()) or IsEncounterInProgress() then--No break timers if not assistant or if it's dungeon/raid finder
+		if IsInGroup() and (DBM:GetRaidRank(playerName) == 0 or IsPartyLFG()) or IsEncounterInProgress() or select(2, IsInInstance()) == "pvp" then--No break timers if not assistant or if it's dungeon/raid finder/BG
 			DBM:AddMsg(DBM_ERROR_NO_PERMISSION)
 			return
 		end
@@ -1922,6 +1944,10 @@ do
 			DBM:AddMsg(DBM_CORE_LAG_CHECKING)
 			C_TimerAfter(5, function() DBM:ShowLag() end)
 		elseif cmd:sub(1, 3) == "hud" then
+			if DBM.Options.EnablePatchRestrictions and IsInInstance() then
+				DBM:AddMsg(DBM_CORE_NO_HUD)
+				return
+			end
 			local hudType, target, duration = string.split(" ", msg:sub(4):trim())
 			if hudType == "" then
 				for i, v in ipairs(DBM_CORE_HUD_USAGE) do
@@ -2012,6 +2038,10 @@ do
 				DBM:AddMsg(DBM_CORE_HUD_SUCCESS:format(strFromTime(hudDuration)))
 			end
 		elseif cmd:sub(1, 5) == "arrow" then
+			if DBM.Options.EnablePatchRestrictions and IsInInstance() then
+				DBM:AddMsg(DBM_CORE_NO_ARROW)
+				return
+			end
 			local x, y, z = string.split(" ", msg:sub(6):trim())
 			local xNum, yNum, zNum = tonumber(x or ""), tonumber(y or ""), tonumber(z or "")
 			local success
@@ -2065,6 +2095,10 @@ do
 			DBM.Options.DebugMode = DBM.Options.DebugMode == false and true or false
 			DBM:AddMsg("Debug Message is " .. (DBM.Options.DebugMode and "ON" or "OFF"))
 		elseif cmd:sub(1, 8) == "whereiam" or cmd:sub(1, 8) == "whereami" then
+			if DBM.Options.EnablePatchRestrictions and IsInInstance() then
+				DBM:AddMsg("Location debug not available do to instance restrictions")
+				return
+			end
 			local x, y, _, map = UnitPosition("player")
 			SetMapToCurrentZone()
 			local mapID = GetCurrentMapAreaID()
@@ -2075,6 +2109,9 @@ do
 			DBM:RequestTimers(1)
 			DBM:RequestTimers(2)
 			DBM:RequestTimers(3)
+		elseif cmd:sub(1, 12) == "restrictions" then
+			DBM.Options.EnablePatchRestrictions = DBM.Options.EnablePatchRestrictions == false and true or false
+			DBM:AddMsg("EnablePatchRestrictions is " .. (DBM.Options.EnablePatchRestrictions and "ON" or "OFF"))
 		else
 			DBM:LoadGUI()
 		end
@@ -2086,6 +2123,9 @@ do
 		if DBM.RangeCheck:IsShown() then
 			DBM.RangeCheck:Hide(true)
 		else
+			if IsInInstance() then
+				DBM:AddMsg(DBM_CORE_NO_RANGE_SOON)
+			end
 			if r and (r < 201) then
 				DBM.RangeCheck:Show(r, nil, true, nil, reverse)
 			else
@@ -2124,7 +2164,7 @@ do
 		elseif v1.revision and v2.revision then
 			return v1.revision > v2.revision
 		else
-			return (v1.bwarevision or v1.bwrevision or 0) > (v2.bwarevision or v2.bwrevision or 0)
+			return (v1.bwversion or 0) > (v2.bwversion or 0)
 		end
 	end
 
@@ -2141,17 +2181,17 @@ do
 			if playerColor then
 				name = ("|r|cff%.2x%.2x%.2x%s|r|cff%.2x%.2x%.2x"):format(playerColor.r * 255, playerColor.g * 255, playerColor.b * 255, name, 0.41 * 255, 0.8 * 255, 0.94 * 255)
 			end
-			if v.displayVersion and not (v.bwrevision or v.bwarevision) then--DBM, no BigWigs
+			if v.displayVersion and not v.bwversion then--DBM, no BigWigs
 				if self.Options.ShowAllVersions then
-					self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY:format(name, "DBM "..v.displayVersion, v.revision, v.VPVersion or ""), false)--Only display VP version if not running two mods
+					self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY:format(name, "DBM "..v.displayVersion, "r"..v.revision, v.VPVersion or ""), false)--Only display VP version if not running two mods
 				end
 				if notify and v.revision < self.ReleaseRevision then
 					SendChatMessage(chatPrefixShort..DBM_CORE_YOUR_VERSION_OUTDATED, "WHISPER", nil, v.name)
 				end
-			elseif self.Options.ShowAllVersions and (v.displayVersion and (v.bwrevision or v.bwarevision)) then--DBM & BigWigs
-				self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY_TWO:format(name, "DBM "..v.displayVersion, v.revision, v.bwarevision and DBM_BIG_WIGS_ALPHA or DBM_BIG_WIGS, v.bwarevision or v.bwrevision), false)
-			elseif self.Options.ShowAllVersions and (not v.displayVersion and (v.bwrevision or v.bwarevision)) then--BigWigs, No DBM
-				self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY:format(name, v.bwarevision and DBM_BIG_WIGS_ALPHA or DBM_BIG_WIGS, v.bwarevision or v.bwrevision, ""), false)
+			elseif self.Options.ShowAllVersions and v.displayVersion and v.bwversion then--DBM & BigWigs
+				self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY_TWO:format(name, "DBM "..v.displayVersion, "r"..v.revision, DBM_BIG_WIGS, versionResponseString:format(v.bwversion, v.bwhash)), false)
+			elseif self.Options.ShowAllVersions and not v.displayVersion and v.bwversion then--BigWigs, No DBM
+				self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY:format(name, DBM_BIG_WIGS, versionResponseString:format(v.bwversion, v.bwhash), ""), false)
 			else
 				if self.Options.ShowAllVersions then
 					self:AddMsg(DBM_CORE_VERSIONCHECK_ENTRY_NO_DBM:format(name), false)
@@ -2166,12 +2206,12 @@ do
 			if not sortMe[i].revision then
 				NoDBM = NoDBM + 1
 			end
-			if not (sortMe[i].bwarevision or sortMe[i].bwrevision) then
+			if not (sortMe[i].bwversion) then
 				NoBigwigs = NoBigwigs + 1
 			end
 			--Table sorting sorts dbm to top, bigwigs underneath. Highest version dbm always at top. so sortMe[1]
 			--This check compares all dbm version to highest RELEASE version in raid.
-			if sortMe[i].revision and (sortMe[i].revision < sortMe[1].version) or sortMe[i].bwrevision and (sortMe[i].bwrevision < fakeBWRevision) then
+			if sortMe[i].revision and (sortMe[i].revision < sortMe[1].version) or sortMe[i].bwversion and (sortMe[i].bwversion < fakeBWVersion) then
 				OldMod = OldMod + 1
 				local name = sortMe[i].name
 				local playerColor = RAID_CLASS_COLORS[DBM:GetRaidClass(name)]
@@ -2400,7 +2440,7 @@ do
 		elseif arg == "localizersneeded" then
 			DBM:ShowUpdateReminder(nil, nil, DBM_FORUMS_COPY_URL_DIALOG, "http://www.deadlybossmods.com/forum/viewtopic.php?f=3&t=5")
 		elseif arg1 == "forumsnews" then
-			DBM:ShowUpdateReminder(nil, nil, DBM_FORUMS_COPY_URL_DIALOG_NEWS, "http://www.deadlybossmods.com/forum/viewtopic.php?f=7&t=10")
+			DBM:ShowUpdateReminder(nil, nil, DBM_FORUMS_COPY_URL_DIALOG_NEWS, "http://www.deadlybossmods.com/forum/viewtopic.php?f=3&p=171#p171")
 		elseif arg1 == "forums" then
 			DBM:ShowUpdateReminder(nil, nil, DBM_FORUMS_COPY_URL_DIALOG)
 		elseif arg1 == "showRaidIdResults" then
@@ -2605,7 +2645,7 @@ do
 			if not inRaid then
 				inRaid = true
 				sendSync("H")
-				SendAddonMessage("BigWigs", "VQ:0", IsPartyLFG() and "INSTANCE_CHAT" or "RAID")--Basically "H" to bigwigs. Tell Bigwigs users we joined raid. Send revision of 0 so bigwigs ignores revision but still replies with their version information
+				SendAddonMessage("BigWigs", versionQueryString:format(0, fakeBWHash), IsPartyLFG() and "INSTANCE_CHAT" or "RAID")
 				self:Schedule(2, self.RoleCheck, false, self)
 				fireEvent("raidJoin", playerName)
 				if BigWigs and BigWigs.db.profile.raidicon and not self.Options.DontSetIcons then--Both DBM and bigwigs have raid icon marking turned on.
@@ -2662,7 +2702,7 @@ do
 				-- joined a new party
 				inRaid = true
 				sendSync("H")
-				SendAddonMessage("BigWigs", "VQ:0", IsPartyLFG() and "INSTANCE_CHAT" or "PARTY")
+				SendAddonMessage("BigWigs", versionQueryString:format(0, fakeBWHash), IsPartyLFG() and "INSTANCE_CHAT" or "RAID")
 				self:Schedule(2, self.RoleCheck, false, self)
 				fireEvent("partyJoin", playerName)
 			end
@@ -2750,17 +2790,17 @@ do
 	function DBM:GetNumRealPlayersInZone()
 		if not IsInGroup() then return 1 end
 		local total = 0
-		local currentMapId = select(4, UnitPosition("player"))
+		local currentMapId = GetPlayerMapAreaID("player") or 0
 		if IsInRaid() then
 			for i = 1, GetNumGroupMembers() do
-				if select(4, UnitPosition("raid"..i)) == currentMapId then
+				if (GetPlayerMapAreaID("raid"..i) or currentMapId) == currentMapId then
 					total = total + 1
 				end
 			end
 		else
 			total = 1--add player/self for "party" count
 			for i = 1, GetNumSubgroupMembers() do
-				if select(4, UnitPosition("party"..i)) == currentMapId then
+				if (GetPlayerMapAreaID("party"..i) or currentMapId) == currentMapId then
 					total = total + 1
 				end
 			end
@@ -2864,11 +2904,11 @@ function DBM:GetNumRealGroupMembers()
 	if not IsInInstance() then--Not accurate outside of instances (such as world bosses)
 		return IsInGroup() and GetNumGroupMembers() or 1--So just return regular group members.
 	end
-	local currentMapId = select(4, UnitPosition("player"))
+	local currentMapId = GetPlayerMapAreaID("player") or 0
 	local realGroupMembers = 0
 	if IsInGroup() then
 		for uId in self:GetGroupMembers() do
-			if select(4, UnitPosition(uId)) == currentMapId then
+			if (GetPlayerMapAreaID(uId) or currentMapId) == currentMapId then
 				realGroupMembers = realGroupMembers + 1
 			end
 		end
@@ -3416,20 +3456,6 @@ function DBM:READY_CHECK()
 	end
 end
 
-do
-	local function stopQueueButtonDelay()
-		QueueStatusMinimapButton.EyeHighlightAnim:Stop()
-	end
-	function DBM:LFG_LIST_APPLICANT_LIST_UPDATED(hasNewPending, hasNewPendingWithData)
-		if QueueStatusMinimapButton:IsShown() and (self.Options.HideApplicantAlerts == 2 and not UnitIsGroupLeader("player", LE_PARTY_CATEGORY_HOME)) or (self.Options.HideApplicantAlerts >= 1 and GetNumGroupMembers() == 40) then
-			QueueStatusMinimapButton.EyeHighlightAnim:Stop()
-			self:Unschedule(stopQueueButtonDelay)
-			self:Schedule(1, stopQueueButtonDelay, self)
-			QueueStatusMinimapButton.EyeHighlightAnim:Stop()--Force stop the animation loop
-		end
-	end
-end
-
 function DBM:PLAYER_SPECIALIZATION_CHANGED()
 	local lastSpecID = currentSpecID
 	self:SetCurrentSpecInfo()
@@ -3515,6 +3541,14 @@ function DBM:PLAYER_REGEN_ENABLED()
 	if guiRequested and not IsAddOnLoaded("DBM-GUI") then
 		guiRequested = false
 		self:LoadGUI()
+	end
+	if self.Options.TalkingHeadFilter == "CombatOnly" and talkingHeadUnregistered then
+		TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+		TalkingHeadFrame:RegisterEvent("TALKINGHEAD_CLOSE")
+		TalkingHeadFrame:RegisterEvent("SOUNDKIT_FINISHED")
+		TalkingHeadFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+		talkingHeadUnregistered = false
+		self:Debug("TalkingHead has been restored")
 	end
 end
 
@@ -3625,8 +3659,8 @@ do
 	function DBM:LOADING_SCREEN_DISABLED()
 		timerRequestInProgress = false
 		self:Debug("LOADING_SCREEN_DISABLED fired")
-		SecondaryLoadCheck(self)
 		self:Unschedule(SecondaryLoadCheck)
+		self:Schedule(1, SecondaryLoadCheck, self)
 		self:Schedule(5, SecondaryLoadCheck, self)
 	end
 
@@ -3860,7 +3894,7 @@ do
 		if LastInstanceType == "none" and (not UnitAffectingCombat("player") or #inCombat > 0) then--world boss
 			local senderuId = DBM:GetRaidUnitId(sender)
 			if not senderuId then return end--Should never happen, but just in case. If happens, MANY "C" syncs are sent. losing 1 no big deal.
-			local playerZone, senderZone = select(4, UnitPosition("player")), select(4, UnitPosition(senderuId))
+			local playerZone, senderZone = GetPlayerMapAreaID("player") or 0, GetPlayerMapAreaID(senderuId) or GetPlayerMapAreaID("player")
 			if playerZone ~= senderZone then return end--not same zone
 			local range = DBM.RangeCheck:GetDistance("player", senderuId)--Same zone, so check range
 			if not range or range > 120 then return end
@@ -3879,7 +3913,7 @@ do
 				if dbmRevision < 10481 then return end
 				if mod and delay and (not mod.zones or mod.zones[LastInstanceMapID]) and (not mod.minSyncRevision or modRevision >= mod.minSyncRevision) then
 					DBM:StartCombat(mod, delay + lag, "SYNC from - "..sender, true, startHp)
-					if mod.revision < modHFRevision then--mod.revision because we want to compare to OUR revision not senders
+					if (mod.revision < modHFRevision) and (mod.revision > 1000) then--mod.revision because we want to compare to OUR revision not senders
 						if DBM:AntiSpam(3, "HOTFIX") then
 							if DBM.HighestRelease < modHFRevision then--There is a newer RELEASE version of DBM out that has this mods fixes
 								showConstantReminder = 2
@@ -3940,7 +3974,8 @@ do
 	local dummyMod2 -- dummy mod for the break timer
 	syncHandlers["PT"] = function(sender, timer, lastMapID, target)
 		if DBM.Options.DontShowUserTimers then return end
-		if (DBM:GetRaidRank(sender) == 0 and IsInGroup()) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
+		local LFGTankException = IsPartyLFG() and UnitGroupRolesAssigned(sender) == "TANK"
+		if (DBM:GetRaidRank(sender) == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
 			return
 		end
 		if (lastMapID and tonumber(lastMapID) ~= LastInstanceMapID) or (not lastMapID and DBM.Options.DontShowPTNoID) then return end
@@ -4098,7 +4133,7 @@ do
 
 	local function SendVersion()
 		if DBM.Options.FakeBWVersion then
-			SendAddonMessage("BigWigs", ("VR:%d"):format(fakeBWRevision), IsInGroup(2) and "INSTANCE_CHAT" or "RAID")--Pretending to be bigwigs, don't send dbm version information
+			SendAddonMessage("BigWigs", versionResponseString:format(fakeBWVersion, fakeBWHash), IsInGroup(2) and "INSTANCE_CHAT" or "RAID")
 			return
 		end
 		--(Note, faker isn't to screw with bigwigs nor is theirs to screw with dbm, but rathor raid leaders who don't let people run WTF they want to run)
@@ -4120,15 +4155,10 @@ do
 		DBM:Schedule(3, SendVersion)--Send version if 3 seconds have past since last "Hi" sync
 	end
 
-	syncHandlers["VR"] = function(sender, bwrevision)--Sent by bigwigs releases
-		if bwrevision and raid[sender] then
-			raid[sender].bwrevision = tonumber(bwrevision)
-		end
-	end
-
-	syncHandlers["VRA"] = function(sender, bwarevision)--Sent by bigwigs Alphas
-		if bwarevision and raid[sender] then
-			raid[sender].bwarevision = tonumber(bwarevision)
+	syncHandlers["BV"] = function(sender, version, hash)--Parsed from bigwigs V7+
+		if version and raid[sender] then
+			raid[sender].bwversion = version
+			raid[sender].bwhash = hash or ""
 		end
 	end
 
@@ -4689,14 +4719,17 @@ do
 		elseif prefix == "BigWigs" and msg and (channel == "PARTY" or channel == "RAID" or channel == "INSTANCE_CHAT") then
 			local bwPrefix, bwMsg = msg:match("^(%u-):(.+)")
 			if bwPrefix then
-				if bwPrefix == "VR" or bwPrefix == "VRA" then--Version information prefixes
+				if bwPrefix == "V" then--Version information prefixes
+					local verString, hash = bwMsg:match("^(%d+)%-(.+)$")
+					local version = tonumber(verString) or 0
+					if version == 0 then return end--Just a query
 					sender = Ambiguate(sender, "none")
-					handleSync(channel, sender, bwPrefix, bwMsg)
-					bwMsg = tonumber(bwMsg) or 0
-					if bwPrefix == "VR" then--Only upgrade to latest release version found
-						if bwMsg > fakeBWRevision then fakeBWRevision = bwMsg end--Newer revision found, upgrade!
+					handleSync(channel, sender, "BV", version, hash)--Prefix changed, so it's not handled by DBMs "V" handler
+					if version > fakeBWVersion then--Newer revision found, upgrade!
+						fakeBWVersion = version
+						fakeBWHash = hash
 					end
-				elseif prefix == "VQ" then--Version request prefix
+				elseif prefix == "Q" then--Version request prefix
 					self:Unschedule(SendVersion)
 					self:Schedule(3, SendVersion)
 				end
@@ -5043,6 +5076,12 @@ do
 			end
 			self:PlaySoundFile(path)
 		end
+		if self.Options.TalkingHeadFilter == "CombatOnly" and not talkingHeadUnregistered and isTalkingHeadLoaded then
+			TalkingHeadFrame:UnregisterAllEvents()
+			--TalkingHeadFrame_CloseImmediately()--Calling this crashes wow apparently
+			talkingHeadUnregistered = true
+			self:Debug("TalkingHead has been unregistered", 2)
+		end
 	end
 
 	local function isBossEngaged(cId)
@@ -5342,16 +5381,6 @@ do
 	}
 
 	function DBM:StartCombat(mod, delay, event, synced, syncedStartHp)
-		if not mod.inCombat then
-			if event then
-				self:Debug("StartCombat called by : "..event..". LastInstanceMapID is "..LastInstanceMapID)
-				if event ~= "ENCOUNTER_START" then
-					self:Debug("This event is started by"..event..". Review ENCOUNTER_START event to ensure if this is still needed", 2)
-				end
-			else
-				self:Debug("StartCombat called by individual mod or unknown reason. LastInstanceMapID is "..LastInstanceMapID)
-			end
-		end
 		cSyncSender = {}
 		cSyncReceived = 0
 		if not checkEntry(inCombat, mod) then
@@ -5363,6 +5392,14 @@ do
 			--HACK: makes sure that we don't detect a false pull if the event fires again when the boss dies...
 			if mod.lastKillTime and GetTime() - mod.lastKillTime < (mod.reCombatTime or 120) and event ~= "LOADING_SCREEN_DISABLED" then return end
 			if mod.lastWipeTime and GetTime() - mod.lastWipeTime < (event == "ENCOUNTER_START" and 3 or mod.reCombatTime2 or 20) and event ~= "LOADING_SCREEN_DISABLED" then return end
+			if event then
+				self:Debug("StartCombat called by : "..event..". LastInstanceMapID is "..LastInstanceMapID)
+				if event ~= "ENCOUNTER_START" then
+					self:Debug("This event is started by"..event..". Review ENCOUNTER_START event to ensure if this is still needed", 2)
+				end
+			else
+				self:Debug("StartCombat called by individual mod or unknown reason. LastInstanceMapID is "..LastInstanceMapID)
+			end
 			--check completed. starting combat
 			tinsert(inCombat, mod)
 			if mod.inCombatOnlyEvents and not mod.inCombatOnlyEventsRegistered then
@@ -6145,7 +6182,7 @@ do
 		elseif v1.revision and v2.revision then
 			return v1.revision > v2.revision
 		else
-			return (v1.bwarevision or v1.bwrevision or 0) > (v2.bwarevision or v2.bwrevision or 0)
+			return (v1.bwversion or 0) > (v2.bwversion or 0)
 		end
 	end
 
@@ -6332,12 +6369,12 @@ do
 		if month == 4 and day == 1 then--April 1st
 			self:Schedule(180 + math.random(0, 600) , self.AprilFools, self)
 		end
-		if GetLocale() == "ptBR" or GetLocale() == "frFR" or GetLocale() == "esES" or GetLocale() == "esMX" or GetLocale() == "itIT" then
-			C_TimerAfter(10, function() if self.Options.HelpMessageVersion < 3 then self.Options.HelpMessageVersion = 3 self:AddMsg(DBM_CORE_NEED_LOCALS) end end)
+		if GetLocale() == "ptBR" or GetLocale() == "frFR" or GetLocale() == "itIT" then
+			C_TimerAfter(10, function() if self.Options.HelpMessageVersion < 4 then self.Options.HelpMessageVersion = 4 self:AddMsg(DBM_CORE_NEED_LOCALS) end end)
 		end
 		C_TimerAfter(20, function() if not self.Options.ForumsMessageShown then self.Options.ForumsMessageShown = self.ReleaseRevision self:AddMsg(DBM_FORUMS_MESSAGE) end end)
 		C_TimerAfter(30, function() if not self.Options.SettingsMessageShown then self.Options.SettingsMessageShown = true self:AddMsg(DBM_HOW_TO_USE_MOD) end end)
-		C_TimerAfter(40, function() if self.Options.NewsMessageShown < 6 then self.Options.NewsMessageShown = 6 self:AddMsg(DBM_CORE_WHATS_NEW) end end)
+		C_TimerAfter(40, function() if self.Options.NewsMessageShown < 7 then self.Options.NewsMessageShown = 7 self:AddMsg(DBM_CORE_WHATS_NEW_LINK) end end)
 		if type(RegisterAddonMessagePrefix) == "function" then
 			if not RegisterAddonMessagePrefix("D4") then -- main prefix for DBM4
 				self:AddMsg("Error: unable to register DBM addon message prefix (reached client side addon message filter limit), synchronization will be unavailable") -- TODO: confirm that this actually means that the syncs won't show up
@@ -6545,6 +6582,12 @@ do
 			if self.Options.HideGuildChallengeUpdates or custom then
 				AlertFrame:UnregisterEvent("GUILD_CHALLENGE_COMPLETED")
 			end
+			if self.Options.TalkingHeadFilter == "CombatOnly" and not talkingHeadUnregistered and isTalkingHeadLoaded then
+				TalkingHeadFrame:UnregisterAllEvents()
+				--TalkingHeadFrame_CloseImmediately()--Calling this crashes wow apparently
+				talkingHeadUnregistered = true
+				self:Debug("TalkingHead has been unregistered", 2)
+			end
 		elseif toggle == 0 and blizzEventsUnregistered then
 			blizzEventsUnregistered = false
 			if self.Options.HideBossEmoteFrame or custom then
@@ -6558,6 +6601,14 @@ do
 			end
 			if self.Options.HideGuildChallengeUpdates then
 				AlertFrame:RegisterEvent("GUILD_CHALLENGE_COMPLETED")
+			end
+			if self.Options.TalkingHeadFilter == "BossCombatOnly" and talkingHeadUnregistered then
+				TalkingHeadFrame:RegisterEvent("TALKINGHEAD_REQUESTED")
+				TalkingHeadFrame:RegisterEvent("TALKINGHEAD_CLOSE")
+				TalkingHeadFrame:RegisterEvent("SOUNDKIT_FINISHED")
+				TalkingHeadFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+				talkingHeadUnregistered = false
+				self:Debug("TalkingHead has been restored")
 			end
 		end
 	end
@@ -6723,6 +6774,10 @@ function DBM:GetTOC()
 	return wowTOC
 end
 
+function DBM:TalkingHeadStatus()
+	return talkingHeadUnregistered, isTalkingHeadLoaded
+end
+
 function DBM:FlashClientIcon()
 	if self:AntiSpam(5, "FLASH") then
 		FlashClientIcon()
@@ -6784,7 +6839,7 @@ do
 	MovieFrame:HookScript("OnEvent", function(self, event, id)
 		if event == "PLAY_MOVIE" and id and not neverFilter[id] then
 			DBM:Debug("PLAY_MOVIE fired for ID: "..id, 2)
-			if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or DBM.Options.MovieFilter == "Never" then return end
+			if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or C_Scenario.IsInScenario() or DBM.Options.MovieFilter == "Never" then return end
 			if DBM.Options.MovieFilter == "Block" or DBM.Options.MovieFilter == "AfterFirst" and DBM.Options.MoviesSeen[id] then
 				MovieFrame_OnMovieFinished(self)
 				DBM:AddMsg(DBM_CORE_MOVIE_SKIPPED)
@@ -6795,8 +6850,8 @@ do
 	end)
 
 	function DBM:CINEMATIC_START()
-		DBM:Debug("CINEMATIC_START fired", 2)
-		if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or self.Options.MovieFilter == "Never" then return end
+		self:Debug("CINEMATIC_START fired", 2)
+		if not IsInInstance() or C_Garrison:IsOnGarrisonMap() or C_Scenario.IsInScenario() or self.Options.MovieFilter == "Never" then return end
 		SetMapToCurrentZone()
 		local currentFloor = GetCurrentMapDungeonLevel() or 0
 		if self.Options.MovieFilter == "Block" or self.Options.MovieFilter == "AfterFirst" and self.Options.MoviesSeen[LastInstanceMapID..currentFloor] then
@@ -7014,9 +7069,17 @@ function bossModPrototype:IsLFR()
 	return false
 end
 
-function bossModPrototype:IsFaceroll()
+function bossModPrototype:IsEasy()
 	local diff = DBM:GetCurrentInstanceDifficulty()
 	if diff == "normal" or diff == "lfr" then
+		return true
+	end
+	return false
+end
+
+function bossModPrototype:IsHard()
+	local diff = DBM:GetCurrentInstanceDifficulty()
+	if diff == "mythic" or diff == "challenge5" then
 		return true
 	end
 	return false
@@ -7101,10 +7164,8 @@ function bossModPrototype:LatencyCheck()
 end
 
 function bossModPrototype:CheckBigWigs(name)
-	if raid[name] and raid[name].bwrevision then
-		return raid[name].bwrevision
-	elseif raid[name] and raid[name].bwarevision then
-		return raid[name].bwarevision
+	if raid[name] and raid[name].bwversion then
+		return raid[name].bwversion
 	else
 		return false
 	end
@@ -7314,7 +7375,7 @@ end
 function bossModPrototype:CheckNearby(range, targetname)
 	local uId = DBM:GetRaidUnitId(targetname)
 	if uId then
-		local inRange = DBM.RangeCheck:GetDistance("player", uId)
+		local inRange = DBM.RangeCheck:GetDistance(uId)
 		if inRange and inRange < range then
 			return true
 		end
@@ -7395,18 +7456,17 @@ do
 			end
 			if uId then--Now we have a valid uId
 				if UnitIsUnit(uId, "player") then return true end--If "player" is target, avoid doing any complicated stuff
-				local x, y = UnitPosition(uId)
-				if not x then--Failed to pull coords. This is likely a pet or a guardian or an NPC.
-					local inRange2, checkedRange = UnitInRange(uId)--Use an API that works on pets and some NPCS (npcs that get a party/raid/pet ID)
-					if inRange2 and checkedRange then
-					end
-					if checkedRange and not inRange2 then--checkedRange only returns true if api worked, so if we get false, true then we are not near npc
-						return false
+				local inRange = 0
+				if not UnitIsPlayer(uId) then
+					local inRange2, checkedRange = UnitInRange(uId)
+					if checkedRange then--checkedRange only returns true if api worked, so if we get false, true then we are not near npc
+						return inRange2 and true or false
 					else--Its probably a totem or just something we can't assess. Fall back to no filtering
 						return true
 					end
+				else
+					inRange = DBM.RangeCheck:GetDistance("player", uId)--We check how far we are from the tank who has that boss
 				end
-				local inRange = DBM.RangeCheck:GetDistance("player", x, y)--We check how far we are from the tank who has that boss
 				rangeCache[cidOrGuid] = inRange
 				rangeUpdated[cidOrGuid] = GetTime()
 				if inRange and (inRange > distance) then--You are not near the person tanking boss
@@ -8866,7 +8926,7 @@ do
 	end
 
 	local function showCountdown(timer)
-		TimerTracker_OnEvent(TimerTracker, "START_TIMER", 2, timer, timer)
+		TimerTracker_OnEvent(TimerTracker, "START_TIMER", 2, timer+1, timer+1)
 	end
 
 	local function stopCountdown()
@@ -9699,11 +9759,11 @@ do
 		local activeVP = self.Options.ChosenVoicePack
 		--Check if voice pack out of date
 		if activeVP ~= "None" and activeVP == value then
-			if self.VoiceVersions[value] < 5 then--Version will be bumped when new voice packs released that contain new voices.
+			if self.VoiceVersions[value] < 6 then--Version will be bumped when new voice packs released that contain new voices.
 				self:AddMsg(DBM_CORE_VOICE_PACK_OUTDATED)
 				SWFilterDisabed = self.VoiceVersions[value]--Set disable to version on current voice pack
 			else
-				SWFilterDisabed = 5
+				SWFilterDisabed = 6
 			end
 		end
 	end
@@ -9717,7 +9777,7 @@ do
 		frame:SetFrameStrata("HIGH")
 	end
 
-	function DBM:ShowTestSpecialWarning(text, number)
+	function DBM:ShowTestSpecialWarning(text, number, noSound)
 		if moving then
 			return
 		end
@@ -9725,8 +9785,10 @@ do
 		frame:SetFrameStrata("TOOLTIP")
 		self:Unschedule(testWarningEnd)
 		self:Schedule(self.Options.SpecialWarningDuration * 1.3, testWarningEnd)
-		self:PlaySpecialWarningSound(number)
-		if self.Options.ShowFlashFrame then
+		if number and not noSound then
+			self:PlaySpecialWarningSound(number)
+		end
+		if self.Options.ShowFlashFrame and number then
 			if number == 1 then
 				local repeatCount = self.Options.SpecialWarningFlashRepeat1 and self.Options.SpecialWarningFlashRepeatAmount or 0
 				self.Flash:Show(self.Options.SpecialWarningFlashCol1[1],self.Options.SpecialWarningFlashCol1[2], self.Options.SpecialWarningFlashCol1[3], self.Options.SpecialWarningFlashDura1, self.Options.SpecialWarningFlashAlph1, repeatCount)

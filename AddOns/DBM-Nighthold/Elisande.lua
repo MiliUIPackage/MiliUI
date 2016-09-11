@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1743, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15097 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15190 $"):sub(12, -3))
 mod:SetCreatureID(106643)
 mod:SetEncounterID(1872)
 mod:SetZone()
@@ -25,20 +25,12 @@ mod:RegisterEventsInCombat(
 --TODO, figure out interrupt order/count assistant for stuff
 --TODO, determine which interrupts are off by default, if any
 --TODO, 209615/ablation is probably a swap mechanic that stacks. Coded as such for now until proven otherwise
---TODO, Adjust beam lines/warnings as needed. Figure out if there is ANY way possible to map echo locations for HUD
+--TODO, Adjust beam lines/warnings as needed.
 --TODO, Balls special warning on or off by default and for who?
---TODO, figure out if Ablating Explotion is from where tank WAS when they got debuff, or where tank is when it falls off.
 --TODO, figure out how to do yell countdowns on Conflexive Burst. It'll probably require UNIT_AURA player scanning with constant checking of time remaining.
 --TODO, are tanks enough to keep Ablative Pulse Interrupted? Dps have enough stuff to interrupt so hopefully tanks can worry about boss on their own
 --TODO, auto assign conflexive burst. if always 3 targets have one stand out, 1 go to fast and one go to slow. this will perfectly stagger 3 explosions. assign by mark
 --TODO, maybe hide specWarnTimeElementals from tank if SLOW add, if blizzard leaves the fight the poorly designed way it is now (where it's untankable and melee stand around with thumbs up ass)
---[[
---Data collected so far for Beam Echos
-Echo 1: X: -3139.01, Y: 265.56 (Boss: -3118, 257) / X: -3164.99, Y: 267.16  (Boss: -3121.13, 266.74)
-Echo 2: X: -3129.94, Y: 265.51 (Boss: -3151, 270) / X: -3166.81, Y: 272.54 (Boss: -3120, 285)
-Echo 3: X: -3176.98, Y: 281.77 (Boss: -3148, 263)
-Echo 4: X: -3155.47, Y: 257.20 (Boss: -3135, 257)
---]]
 --(ability.id = 209595 or ability.id = 208807 or ability.id = 228877 or ability.id = 210022 or ability.id = 209168) and type = "begincast" or (ability.id = 209597 or ability.id = 210387 or ability.id = 214278 or ability.id = 214295 or ability.id = 208863) and type = "cast"
 --Base
 local warnTemporalisis				= mod:NewSpellAnnounce(209595, 3)
@@ -306,26 +298,28 @@ function mod:SPELL_CAST_SUCCESS(args)
 		local nextCount = self.vb.beamCastCount + 1
 		if self.vb.phase == 2 then
 			self.vb.totalbeamCasts = self.vb.totalbeamCasts + 1
-			currentTank, tankUnitID = self:GetCurrentTank()
-			if not currentTank then
-				DBM:Debug("Tank Detection Failure in HudMapOnDelphuricBeam", 2)
-				return
-			end
-			--Yes this could be in a table and be far prettier, but being ugly like this makes it recoverable by dbms timer recovery feature
-			if self.vb.beamCastCount == 1 then
-				self.vb.pos1X, self.vb.pos1Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 2 then
-				self.vb.pos2X, self.vb.pos2Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 3 then
-				self.vb.pos3X, self.vb.pos3Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 4 then
-				self.vb.pos4X, self.vb.pos4Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 5 then
-				self.vb.pos5X, self.vb.pos5Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 6 then
-				self.vb.pos6X, self.vb.pos6Y = UnitPosition(tankUnitID)
-			elseif self.vb.beamCastCount == 7 then
-				self.vb.pos7X, self.vb.pos7Y = UnitPosition(tankUnitID)
+			if not DBM.Options.EnablePatchRestrictions then
+				currentTank, tankUnitID = self:GetCurrentTank()
+				if not currentTank then
+					DBM:Debug("Tank Detection Failure in HudMapOnDelphuricBeam", 2)
+					return
+				end
+				--Yes this could be in a table and be far prettier, but being ugly like this makes it recoverable by dbms timer recovery feature
+				if self.vb.beamCastCount == 1 then
+					self.vb.pos1X, self.vb.pos1Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 2 then
+					self.vb.pos2X, self.vb.pos2Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 3 then
+					self.vb.pos3X, self.vb.pos3Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 4 then
+					self.vb.pos4X, self.vb.pos4Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 5 then
+					self.vb.pos5X, self.vb.pos5Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 6 then
+					self.vb.pos6X, self.vb.pos6Y = UnitPosition(tankUnitID)
+				elseif self.vb.beamCastCount == 7 then
+					self.vb.pos7X, self.vb.pos7Y = UnitPosition(tankUnitID)
+				end
 			end
 		else
 			if nextCount > self.vb.totalbeamCasts then return end
@@ -360,7 +354,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			yellDelphuricBeam:Yell()
 		end
 		--TODO, phase 3 lines need exact location of the echo ( map coords )
-		if self.Options.HudMapOnDelphuricBeam then
+		if self.Options.HudMapOnDelphuricBeam and not DBM.Options.EnablePatchRestrictions then
 			self:Unschedule(checkPlayerDot)
 			self:Schedule(0.3, checkPlayerDot, self, args.spellName)--Give player just a dot if they don't end up with debuff
 			--Always put dots up
@@ -501,7 +495,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, _, spellGUID)
 			timerEpochericOrbCD:Stop()
 			timerAblativePulseCD:Start(22)
 			timerPermaliativeTormentCD:Start(140)--really likely cast more often in not faceroll mode. need more data
-			if not self:IsFaceroll() then
+			if not self:IsEasy() then
 				--Wasn't used in LFR, assume normal is same way since that's generally how it is
 				--Timer itself may need updating but been so long since seen heroic or mythic of this fight.
 				timerConflexiveBurstCD:Start(31.6, 1)

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1751, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15084 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15156 $"):sub(12, -3))
 mod:SetCreatureID(104881)
 mod:SetEncounterID(1871)
 mod:SetZone()
@@ -110,7 +110,6 @@ local voiceAnimateArcane			= mod:NewVoice(213564)--mobsoon
 --Animate Specials
 
 mod:AddRangeFrameOption("8")
---mod:AddSetIconOption("SetIconOnMC", 163472, false)
 mod:AddHudMapOption("HudMapOnBrandCharge", 213166)
 
 mod.vb.annihilateCount = 0
@@ -157,7 +156,7 @@ function mod:OnCombatStart(delay)
 	countdownAnnihilate:Start(8-delay)
 	--Rest of timers are triggered by frost buff 0.1 seconds into pull
 	table.wipe(chargeTable)
-	local rangeShowAll = false
+	rangeShowAll = false
 	berserkTimer:Start(-delay)
 end
 
@@ -284,7 +283,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			voiceSearingBrand:Play("scatter")
 			countdownSearingBrand:Start()
 		end
-		if self.Options.HudMapOnBrandCharge then
+		if self.Options.HudMapOnBrandCharge and not DBM.Options.EnablePatchRestrictions then
 			self:Unschedule(hudDelay)
 			if not tContains(args.destName, args.destName) then
 				chargeTable[#chargeTable+1] = args.destName

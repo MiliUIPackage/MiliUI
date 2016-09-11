@@ -73,7 +73,7 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(1732)
 
 L:SetOptionLocalization({
-	ShowNeutralColor		= "為沒有星之記號的玩家顯示HUB的白圈，直到所有記號被清除。",
+	ShowNeutralColor			= "為沒有星之記號的玩家顯示HUB的白圈，直到所有記號被清除。",
 	FilterOtherSigns			= "過濾與你無關的星之記號點名。"
 })
 

@@ -6,14 +6,14 @@ L.MainFrame = "Deadly Boss Mods"
 
 L.TranslationByPrefix		= "Translated by "
 L.TranslationBy 			= nil -- your name here, localizers!
-L.Website					= "Visit our discussion and support forums at |cFF73C2FBwww.deadlybossmods.com|r. Follow main dev on twitter @MysticalOS"
+L.Website					= "Visit discussion/support forums at |cFF73C2FBwww.deadlybossmods.com|r. Follow on twitter @deadlybossmods or @MysticalOS"
 L.WebsiteButton				= "Forums"
 
 L.OTabBosses	= "Bosses"
 L.OTabOptions	= GAMEOPTIONS_MENU
 
 L.TabCategory_Options	 	= "General Options"
-L.TabCategory_LEG	 		= "Legion"
+L.TabCategory_LEG	 		= EXPANSION_NAME6
 L.TabCategory_WOD	 		= EXPANSION_NAME5
 L.TabCategory_MOP	 		= EXPANSION_NAME4
 L.TabCategory_CATA	 		= EXPANSION_NAME3
@@ -291,13 +291,13 @@ L.HideGarrisonUpdates		= "Hide garrison toasts during boss fights"
 L.HideGuildChallengeUpdates	= "Hide guild challenge toasts during boss fights"
 L.HideTooltips				= "Hide tooltips during boss fights"
 L.DisableSFX				= "Disable sound effects channel during boss fights"
-L.HideApplicantAlerts		= "Supress applicant alerts in premade groups"
-L.HideApplicantAlertsFull	= "If group is full"
-L.HideApplicantAlertsNotL	= "if not the group leader (applies group is full filter if you are the leader)"
 L.SpamBlockSayYell			= "Hide chat bubbles announces from the chat frame"
 L.DisableCinematics			= "Hide in-game cinematics"
 L.AfterFirst				= "After each movie has played once"
 L.Always					= ALWAYS
+L.DisableTalkingHead		= "Block Talking Head"
+L.CombatOnly				= "Disable in combat (any)"
+L.RaidCombat				= "Disable in combat (bosses only)"
 
 L.Panel_ExtraFeatures		= "Extra Features"
 --

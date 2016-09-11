@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1653, "DBM-Party-Legion", 1, 740)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 14986 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15188 $"):sub(12, -3))
 mod:SetCreatureID(98696)
 mod:SetEncounterID(1833)
 mod:SetZone()
@@ -19,6 +19,12 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
+--[[
+"<3.42 23:50:12> [ENCOUNTER_START] ENCOUNTER_START#1833#Ilysanna Ravencrest#23#5", -- [7]
+"<50.59 23:50:59> [UNIT_SPELLCAST_SUCCEEDED] Illysanna Ravencrest(??) boss1:Phase 2 Jump::3-3020-1501-31352-197622-00004A48A3:197622",
+"<119.67 23:52:08> [UNIT_SPELLCAST_SUCCEEDED] Illysanna Ravencrest(??) boss1:Periodic Energize::3-3020-1501-31352-197394-0000CA48E8:197394",
+"<213.28 23:53:41> [UNIT_SPELLCAST_SUCCEEDED] Illysanna Ravencrest(??) boss1:Phase 2 Jump::3-3020-1501-31352-197622-0003CA4945:197622",
+--]]
 --TODO, maybe GTFO for standing in fire left by dark rush and eye beams?
 --TODO, Interrupt warning for heroic/mythic/challenge mode arcane spell?
 local warnBrutalGlaive				= mod:NewTargetAnnounce(197546, 2)
@@ -64,7 +70,7 @@ end
 function mod:OnCombatStart(delay)
 	timerBrutalGlaiveCD:Start(5.5-delay)
 	timerVengefulShearCD:Start(8-delay)
-	timerDarkRushCD:Start(12.3-delay)
+	timerDarkRushCD:Start(12.1-delay)
 end
 
 function mod:OnCombatEnd()

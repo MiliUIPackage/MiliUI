@@ -1,0 +1,25 @@
+tag 7.0.4
+22a11bd4e23550936015390c4c3285b256dd434f
+subversion <svn@deadlybossmods.com>
+2016-09-08 00:39:52 +0200
+
+Tagging as 7.0.4
+
+
+--------------------
+
+subversion:
+	- increment version number to 7.0.4
+	- Omega via svn r15192: oops, TOC
+	- Omega via svn r15191: Add vault of wardens trash module
+	- Omega via svn r15190: Push several dungeon fixes and improvements. i?\226?\128?\153ll make a list later
+	- Omega via svn r15189: Allow tanks to send pull timers in LFG whether they are leader or not. This restriction is lifted only in LFG because it?\226?\128?\153s only place you can NOT change/spoof your roll. In other difficulties someone can just right click name and say they are a tank to still abuse it so for none LFG restriction still stands.
+	- Omega via svn r15188: Added interrupt warning dark mending on BRH trash Added interrupt warning to Parjesh for restoration Fixed toxic Wound timer on Serpentrix
+	- Omega via svn r15187: Add torrent to Helya
+	- Omega via svn r15186: Several dungeon fixes/updates to black Rook Hold, Halls of Valor, and Neltharions Lair
+	- Omega via svn r15185: Small voice tweak on hymdall Add Helya?\226?\128?\153s breath timers/warnings/countdown
+	- Omega via svn r15184: Fix odyn hud so it was on by default like meant to be, fix descriptino text for it as well Fix one timer on hyrja
+	- ebmor via svn r15183: deDE update
+	- Omega via svn r15182: Bump VP version CN update
+	- Omega via svn r15181: Just never skip anything if C_Scenario.IsInScenario() is true
+	- tandanu via svn r15180: increment alpha version

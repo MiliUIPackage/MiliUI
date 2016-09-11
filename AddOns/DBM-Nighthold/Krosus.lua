@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1713, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15097 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15140 $"):sub(12, -3))
 mod:SetCreatureID(101002)
 mod:SetEncounterID(1842)
 mod:SetZone()
@@ -55,7 +55,6 @@ local voiceFelBurst					= mod:NewVoice(206352, "HasInterrupt")--kickcast
 
 mod:AddRangeFrameOption(5, 206352)
 --mod:AddSetIconOption("SetIconOnMC", 163472, false)
---mod:AddHudMapOption("HudMapOnMC", 163472)
 mod:AddInfoFrameOption(215944, false)
 mod:AddArrowOption("ArrowOnBeam", 205368, true)
 

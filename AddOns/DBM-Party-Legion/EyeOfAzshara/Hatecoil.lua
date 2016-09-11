@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1490, "DBM-Party-Legion", 3, 716)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 14979 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15188 $"):sub(12, -3))
 mod:SetCreatureID(91789)
 mod:SetEncounterID(1811)
 mod:SetZone()
@@ -13,7 +13,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 193682 193597 193611"
 )
 
---TODO, maybe add a "get back in arena warning" if you take Crackling THunder damage
+--TODO, maybe add a "get back in boss area warning" if you take Crackling THunder damage
 --TODO, more curse notes perhaps? Add special warning for player maybe?
 --[[
 1. Healer--193712+18
