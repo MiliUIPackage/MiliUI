@@ -20,12 +20,11 @@ along with LibPlayerSpells-1.0.  If not, see <http://www.gnu.org/licenses/>.
 
 local lib = LibStub("LibPlayerSpells-1.0")
 if not lib then return end
-lib:__RegisterSpells("PRIEST", 70000, 4, {
-	[528] = "HARMFUL DISPEL", -- Dispel Magic
+lib:__RegisterSpells("PRIEST", 70000, 6, {
+	[528] = "HARMFUL DISPEL MAGIC", -- Dispel Magic
 	COOLDOWN = {
 		   2050, -- Holy Word: Serenity
 		   8092, -- Mind Blast
-		  32375, -- Mass Dispel
 		  34433, -- Shadowfiend
 		  34861, -- Holy Word: Sanctify
 		  47540, -- Penance
@@ -37,12 +36,12 @@ lib:__RegisterSpells("PRIEST", 70000, 4, {
 		 205351, -- Shadow Word: Void
 		 205385, -- Shadow Clash
 		 207946, -- Light's Wrath (Discipline artifact)
-		[123040] = "MANA_REGEN", -- Mindbender (Discipline)
+		[123040] = "POWER_REGEN", -- Mindbender (Discipline)
 		[200174] = "POWER_REGEN", -- Mindbender (Shadow)
 		DISPEL = {
-			[   527] = "HELPFUL", -- Purify
-			[ 32375] = "HARMFUL HELPFUL", -- Mass Dispel
-			[213634] = "HELPFUL", -- Purify Disease
+			[   527] = "HELPFUL DISEASE MAGIC", -- Purify
+			[ 32375] = "HARMFUL HELPFUL MAGIC", -- Mass Dispel
+			[213634] = "HELPFUL DISEASE", -- Purify Disease
 		},
 		AURA = {
 			HELPFUL = {
@@ -70,11 +69,13 @@ lib:__RegisterSpells("PRIEST", 70000, 4, {
 				205065, -- Void Torrent (Shadow artifact)
 				205369, -- Mind Bomb
 				214621, -- Schism
-				CROWD_CTL = {
-					  8122, -- Psychic Scream (disorient)
-					200196, -- Holy Word: Chastise (incapacitate)
-					200200, -- Holy Word: Chastise (with Censure) (stun)
-					226943, -- Mind Bomb (stun)
+				CROWD_CTRL = {
+					[  8122] = "DISORIENT", -- Psychic Scream (disorient)
+					[200196] = "INCAPACITATE", -- Holy Word: Chastise (incapacitate)
+					STUN = {
+						200200, -- Holy Word: Chastise (with Censure) (stun)
+						226943, -- Mind Bomb (stun)
+					},
 				},
 			},
 			PERSONAL = {
@@ -117,16 +118,14 @@ lib:__RegisterSpells("PRIEST", 70000, 4, {
 			[111759] = "UNIQUE_AURA", -- Levitate
 		},
 		HARMFUL = {
-			   589, -- Shadow Word: Pain
-			 15407, -- Mind Flay
-			 34914, -- Void Touch
-			 48045, -- Mind Sear
-			204213, -- Purge the Wicked
-			210979, -- Focus in the Light (Holy artifact) (slow)
-			217673, -- Mind Spike
-			CROWD_CTL = {
-				  9484, -- Shackle Undead (incapacitate)
-			},
+			    589, -- Shadow Word: Pain
+			  15407, -- Mind Flay
+			  34914, -- Void Touch
+			  48045, -- Mind Sear
+			 204213, -- Purge the Wicked
+			 210979, -- Focus in the Light (Holy artifact) (slow)
+			 217673, -- Mind Spike
+			[  9484] = "CROWD_CTRL INCAPACITATE", -- Shackle Undead (incapacitate)
 		},
 		PERSONAL = {
 			  2096, -- Mind Vision
@@ -139,9 +138,10 @@ lib:__RegisterSpells("PRIEST", 70000, 4, {
 			198069, -- Power of the Dark Side (Discipline artifact)
 			205372, -- Void Ray
 			210980, -- Focus in the Light (Holy artifact)
+			223166, -- Overloaded with Light (Discipline artifact hidden ability)
 		},
 		PET = {
-			[   605] = "CROWD_CTL INVERT_AURA", -- Mind Control (disorient)
+			[   605] = "CROWD_CTRL DISORIENT INVERT_AURA", -- Mind Control (disorient)
 		},
 	},
 }, { -- map aura to provider(s)
@@ -179,6 +179,7 @@ lib:__RegisterSpells("PRIEST", 70000, 4, {
 	[216135] = 197711, -- Vestments of Discipline (Discipline artifact)
 	[217673] = 73510, -- Mind Spike
 	[219521] = 204065, -- Shadow Covenant
+	[223166] = 207946, -- Overloaded with Light (Discipline artifact hidden ability) <- Light's Wrath (Discipline artifact)
 	[226943] = 205369, -- Mind Bomb (stun)
 }, { -- map aura(s) to modified spell(s)
 	[ 65081] = { -- Body and Soul

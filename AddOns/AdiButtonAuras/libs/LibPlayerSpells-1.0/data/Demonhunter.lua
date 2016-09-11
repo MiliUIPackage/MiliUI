@@ -20,7 +20,7 @@ along with LibPlayerSpells-1.0.  If not, see <http://www.gnu.org/licenses/>.
 
 local lib = LibStub("LibPlayerSpells-1.0")
 if not lib then return end
-lib:__RegisterSpells("DEMONHUNTER", 70000, 3, {
+lib:__RegisterSpells("DEMONHUNTER", 70000, 4, {
 	COOLDOWN = {
 		 185123, -- Throw Glaive (Havoc)
 		 189110, -- Infernal Strike
@@ -36,7 +36,6 @@ lib:__RegisterSpells("DEMONHUNTER", 70000, 3, {
 				},
 			},
 			HARMFUL = {
-				 185245, -- Torment (taunt)
 				 198813, -- Vengeful Retreat (slow)
 				 202443, -- Anguish (Havoc artifact)
 				 204598, -- Sigil of Flame
@@ -51,12 +50,15 @@ lib:__RegisterSpells("DEMONHUNTER", 70000, 3, {
 				 213405, -- Master of the Glaive
 				[204490] = "INTERRUPT", -- Sigil of Silence
 				[207744] = "SURVIVAL", -- Fiery Brand
-				CROWD_CTL = {
-					179057, -- Chaos Nova (stun)
-					200166, -- Metamorphosis (Havoc) (stun)
-					207685, -- Sigil of Misery (disorient)
-					211881, -- Fel Eruption (stun)
-					217832, -- Imprison
+				CROWD_CTRL = {
+					[185245] = "TAUNT", -- Torment (taunt)
+					[207685] = "DISORIENT", -- Sigil of Misery (disorient)
+					[217832] = "INCAPACITATE", -- Imprison (incapacitate)
+					STUN = {
+						179057, -- Chaos Nova (stun)
+						200166, -- Metamorphosis (Havoc) (stun)
+						211881, -- Fel Eruption (stun)
+					},
 				},
 			},
 			PERSONAL = {

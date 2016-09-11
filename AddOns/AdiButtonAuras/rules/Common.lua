@@ -187,31 +187,42 @@ AdiButtonAuras:RegisterRules(function()
 	--------------------------------------------------------------------------
 	-- Crowd-control spells
 	--------------------------------------------------------------------------
-	-- Use DRData
 
-	local DRData, DRVer = GetLib("DRData-1.0")
-	local source = format(" [DR-%d]", DRVer)
+	local LibPlayerSpells = GetLib('LibPlayerSpells-1.0')
+	local band, bor = bit.band, bit.bor
+	local classMask = LibPlayerSpells.constants[PLAYER_CLASS]
 
-	local categories = DRData:GetCategories()
+	local debuffs, ccSpells = {}, {}
 
-	for category, localizedName in pairs(categories) do
-		local debuffs = {}
-		local spells = {} -- associative array to avoid duplicates
-		for debuff, provider in DRData:IterateProviders(category) do
-			debuffs[#debuffs + 1] = debuff
-			if type(provider) == "table" then
-				for i = 1, #provider do
-					spells[provider[i]] = true
+	for aura, flags, _, target, ccMask in LibPlayerSpells:IterateSpells("CROWD_CTRL") do
+		debuffs[ccMask] = debuffs[ccMask] or {} -- associative array to avoid duplicates
+		debuffs[ccMask][aura] = true
+		if band(flags, classMask) > 0 then
+			ccSpells[ccMask] = ccSpells[ccMask] or {} -- associative array to avoid duplicates
+			local spells = ccSpells[ccMask]
+			if type(target) == "table" then
+				for i = 1, #target do
+					spells[target[i]] = true
 				end
 			else
-				spells[provider] = true
+				spells[target] = true
 			end
 		end
+	end
+	-- associative to simple array
+	for mask, spells in pairs(debuffs) do
+		local list = {}
+		for spell in pairs(spells) do
+			list[#list + 1] = spell
+		end
+		debuffs[mask] = list
+	end
 
-		local key = "CrowdControl:"..category
-		local desc = BuildDesc(L["a debuff"], "bad", "enemy", format(L["of type '%s'"], localizedName:lower()))..source
-		local handler = BuildAuraHandler_Longest("HARMFUL", "bad", "enemy", debuffs)
-
+	for mask, spells in pairs(ccSpells) do
+		local key = "CrowdControl:"..mask
+		local name = LibPlayerSpells:GetCrowdControlCategoryName(mask)
+		local desc = format(L["Show the \"bad\" border if the targeted enemy is %s."], name:lower())
+		local handler = BuildAuraHandler_Longest("HARMFUL", "bad", "enemy", debuffs[mask])
 		for spell in pairs(spells) do
 			rules[#rules + 1] = function()
 				AddRuleFor(key, desc, spell, "enemy", "UNIT_AURA", handler)
@@ -224,7 +235,6 @@ AdiButtonAuras:RegisterRules(function()
 	--------------------------------------------------------------------------
 	-- Use LibDispellable and LibPlayerSpells
 	local LibDispellable, LDVer = GetLib('LibDispellable-1.0')
-	local LibPlayerSpells = GetLib('LibPlayerSpells-1.0')
 
 	local HELPFUL = LibPlayerSpells.constants.HELPFUL
 	for spell, flags, _, _, _, category in LibPlayerSpells:IterateSpells("DISPEL", PLAYER_CLASS) do
@@ -307,24 +317,3 @@ AdiButtonAuras:RegisterRules(function()
 
 	return rules
 end)
-
--- ABA
--- GLOBALS: AddRuleFor BuffAliases BuildAuraHandler_FirstOf BuildAuraHandler_Longest
--- GLOBALS: BuildAuraHandler_Single BuildDesc BuildKey Configure DebuffAliases Debug
--- GLOBALS: DescribeAllSpells DescribeAllTokens DescribeFilter DescribeHighlight
--- GLOBALS: DescribeLPSSource GetBuff GetDebuff GetLib GetPlayerBuff GetPlayerDebuff
--- GLOBALS: ImportPlayerSpells IterateBuffs IterateDebuffs IteratePlayerBuffs
--- GLOBALS: IteratePlayerDebuffs L LongestDebuffOf PassiveModifier PetBuffs PLAYER_CLASS
--- GLOBALS: SelfBuffAliases SelfBuffs SharedSimpleBuffs SharedSimpleDebuffs ShowPower
--- GLOBALS: ShowStacks SimpleBuffs SimpleDebuffs
-
--- WoW API
--- GLOBALS: GetNumGroupMembers GetPetTimeRemaining GetRuneCooldown GetShapeshiftFormID
--- GLOBALS: GetSpellCharges GetSpellBonusHealing GetSpellInfo GetTime GetTotemInfo
--- GLOBALS: HasPetSpells IsPlayerSpell UnitCanAttack UnitCastingInfo UnitChannelInfo
--- GLOBALS: UnitClass UnitHealth UnitHealthMax UnitIsDeadOrGhost UnitIsPlayer UnitName
--- GLOBALS: UnitPower UnitPowerMax UnitStagger
-
--- Lua API
--- GLOBALS: bit ceil floor format ipairs math min pairs print select string table
--- GLOBALS: tinsert type

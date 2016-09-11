@@ -20,7 +20,7 @@ along with LibPlayerSpells-1.0.  If not, see <http://www.gnu.org/licenses/>.
 
 local lib = LibStub("LibPlayerSpells-1.0")
 if not lib then return end
-lib:__RegisterSpells("HUNTER", 70000, 5, {
+lib:__RegisterSpells("HUNTER", 70000, 8, {
 	COOLDOWN = {
 		   781, -- Disengage
 		  1543, -- Flare
@@ -51,7 +51,7 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 				212640, -- Mending Bandage (PvP)
 			},
 			HARMFUL = {
-				  2649, -- Growl (pet)
+				  2649, -- Growl (pet) (taunt)
 				  5116, -- Concussive Shot
 				 13812, -- Explosive Trap
 				 24394, -- Intimidation (stun)
@@ -71,6 +71,7 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 				162487, -- Steel Trap (bleed)
 				185855, -- Lacerate
 				190927, -- Harpoon
+				191244, -- Sticky Bomb (knockback)
 				191397, -- Bestial Cunning
 				191413, -- Bestial Ferocity
 				191241, -- Sticky Bomb
@@ -83,21 +84,27 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 				202933, -- Spider Sting (Silenced debuff) (PvP)
 				204081, -- On the Trail
 				206505, -- A Murder of Crows (SV)
-				CROWD_CTL = {
-					  3355, -- Freezing Trap (incapacitate)
-					 19386, -- Wyvern Sting (incapacitate)
-					162480, -- Steel Trap (root)
-					191244, -- Sticky Bomb (knockback)
-					201158, -- Super Sticky Tar (root)
-					209790, -- Freezing Arrow (incapacitate) (PvP)
-					212638, -- Tracker's Net (root) (PvP)
-					213691, -- Scatter Shot (disorient) (PvP)
-					224729, -- Bursting Shot (disorient)
+				CROWD_CTRL = {
+					DISORIENT = {
+						213691, -- Scatter Shot (disorient) (PvP)
+						224729, -- Bursting Shot (disorient)
+					},
+					INCAPACITATE = {
+						  3355, -- Freezing Trap (incapacitate)
+						 19386, -- Wyvern Sting (incapacitate)
+						209790, -- Freezing Arrow (incapacitate) (PvP)
+					},
+					ROOT = {
+						162480, -- Steel Trap (root)
+						201158, -- Super Sticky Tar (root)
+						212638, -- Tracker's Net (root) (PvP)
+					},
 				},
 			},
 			PERSONAL = {
-				   5384, -- Feign Death
+				[  5384] = "SURVIVAL", -- Feign Death
 				  35079, -- Misdirection
+				  61648, -- Aspect of the Chameleon
 				 118922, -- Posthaste
 				 120694, -- Dire Beast
 				 160007, -- Updraft (Rylak)
@@ -113,7 +120,6 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 				 202748, -- Survival Tactics (PvP)
 				 203155, -- Sniper Shot (PvP)
 				 203924, -- Healing Shell (MM artifact)
-				 209997, -- Play Dead
 				[ 19574] = "BURST", -- Bestial Wrath
 				[186265] = "SURVIVAL", -- Aspect of the Turtle
 				[186289] = "BURST", -- Aspect of the Eagle
@@ -124,27 +130,31 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 				    136, -- Mend Pet
 				  19577, -- Intimidation
 				  24450, -- Prowl (Cat)
-				  26064, -- Shell Shield (Turtle)
-				  53478, -- Last Stand (Tenacity)
 				  54680, -- Monstrous Bite (Devilsaur) (exotic)
 				  61684, -- Dash (Ferocity/Cunning)
 				  61685, -- Charge (Tenacity)
-				  63896, -- Bullheaded (Cunning)
 				  90328, -- Spirit Walk (Spirit Beast) (exotic)
-				  90339, -- Harden Carapace (Beetle)
 				  93433, -- Burrow Attack (Worm) (exotic)
 				 137798, -- Reflective Armor Plating (Direhorn)
-				 159733, -- Stone Scales (Basilisk)
-				 159926, -- Harden Shell (Crab)
 				 159954, -- Feast (Devilsaur) (exotic)
-				 160011, -- Agile Reflexes (Fox)
-				 160044, -- Primal Agility (Monkey)
-				 160063, -- Solid Shell (Shale Spider) (exotic)
 				 191414, -- Bestial Tenacity
 				 207094, -- Titan's Thunder (BM artifact)
 				 211138, -- Hunter's Advantage (BM artifact)
 				 217200, -- Dire Frenzy
 				[ 90361] = "HELPFUL", -- Spirit Mend (Spirit Beast) (exotic)
+				SURVIVAL = {
+					 26064, -- Shell Shield (Turtle)
+					 53478, -- Last Stand (Tenacity)
+					 63896, -- Bullheaded (Cunning)
+					 90339, -- Harden Carapace (Beetle)
+					159733, -- Stone Scales (Basilisk)
+					159926, -- Harden Shell (Crab)
+					160011, -- Agile Reflexes (Fox)
+					160044, -- Primal Agility (Monkey)
+					160048, -- Stone Armor (Quilen) (exotic)
+					160063, -- Solid Shell (Shale Spider) (exotic)
+					209997, -- Play Dead
+				},
 			},
 		},
 	},
@@ -160,7 +170,7 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 			 202797, -- Viper Sting (PvP)
 			 202900, -- Scorpid Sting (PvP)
 			 206755, -- Ranger's Net (slow)
-			[200108] = "CROWD_CTL", -- Ranger's Net (root)
+			[200108] = "CROWD_CTRL ROOT", -- Ranger's Net (root)
 		},
 		PERSONAL = {
 			  6197, -- Eagle Eye
@@ -182,12 +192,6 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 			118455, -- Beast Cleave
 			126311, -- Surface Trot (Water Strider) (exotic)
 			126364, -- Rest (Porcupine)
-		},
-	},
-	RAIDBUFF = {
-		BURST_HASTE = {
-			 90355, -- Ancient Hysteria (Core Hound)
-			160452, -- Netherwinds (Nether Ray)
 		},
 	},
 }, {
@@ -213,6 +217,7 @@ lib:__RegisterSpells("HUNTER", 70000, 5, {
 	[120694] = 120679, -- Dire Beast
 	[135299] = 187698, -- Tar Trap
 	[159954] = 159953, -- Feast (Devilsaur) (exotic)
+	[160048] = 160049, -- Stone Armor (Quilen) (exotic)
 	[162480] = 162488, -- Steel Trap (root)
 	[162487] = 162488, -- Steel Trap (bleed)
 	[185365] = { -- Hunter's Mark

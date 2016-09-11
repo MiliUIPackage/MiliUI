@@ -481,7 +481,7 @@ do
 		local categoryMask = LibPlayerSpells.constants[category]
 		local exceptions = AsSet({...}, "number", 3)
 		local builders = {}
-		for buff, flags, provider, modified in LibPlayerSpells:IterateSpells(category, "AURA", "RAIDBUFF") do
+		for buff, flags, provider, modified in LibPlayerSpells:IterateSpells(category, "AURA", "CROWD_CTRL DISPEL") do
 			local providers = provider ~= buff and FilterOut(AsList(provider, "number"), exceptions)
 			local spells = FilterOut(AsList(modified, "number"), exceptions)
 			if not exceptions[buff] and #spells > 0 and (not providers or #providers > 0) then
@@ -605,7 +605,7 @@ local RULES_ENV = addon.BuildSafeEnv(
 	baseEnv,
 	-- Allowed Libraries
 	{
-		"LibDispellable-1.0", "LibPlayerSpells-1.0", "DRData-1.0", "LibSpellbook-1.0", "LibItemBuffs-1.0"
+		"LibDispellable-1.0", "LibPlayerSpells-1.0", "LibSpellbook-1.0", "LibItemBuffs-1.0"
 	},
 	-- Allowed globals
 	{

@@ -23,7 +23,6 @@ local _, private = ...
 
 local _G = _G
 
--- GLOBALS: AdiButtonAuras
 AdiButtonAuras:CreateConfig(function(addonName, addon)
 
 	local GetItemInfo = _G.GetItemInfo
@@ -46,7 +45,7 @@ AdiButtonAuras:CreateConfig(function(addonName, addon)
 		name = addonName..' DEV',
 		--@end-debug@]===]
 		--@non-debug@
-		name = addonName..' 2.0-beta-6-17-gc227772',
+		name = addonName..' 2.0.1',
 		--@end-non-debug@
 		type = 'group',
 		childGroups = 'tab',

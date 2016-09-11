@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with AdiButtonAuras.  If not, see <http://www.gnu.org/licenses/>.
-## X-Curse-Packaged-Version: 2.0-beta-6-17-gc227772
+## X-Curse-Packaged-Version: 2.0.1
 ## X-Curse-Project-Name: AdiButtonAuras
 ## X-Curse-Project-ID: adibuttonauras
 ## X-Curse-Repository-ID: wow/adibuttonauras/mainline
@@ -26,8 +26,8 @@
 ## Title: AdiButtonAuras - Configuration
 ## Notes: Load-on-demand configuration GUI.
 ## Author: Adirelle
-## Version: 2.0-beta-6-17-gc227772
-## X-Date: 2016-08-13T00:14:50Z
+## Version: 2.0.1
+## X-Date: 2016-09-11T00:34:07Z
 ## X-License: GPL v3
 ## X-eMail: adirelle@gmail.com
 
