@@ -1,7 +1,7 @@
 local ADDON, Addon = ...
 local Config = Addon:NewModule('Config')
 
-local configVersion = 3
+local configVersion = 5
 local configDefaults = {
 	collapsed = false,
 	showAtTop = true,
@@ -9,9 +9,10 @@ local configDefaults = {
 	onlyCurrentZone = true,
 	showEverywhere = false,
 	selectedFilters = 0,
-	disabledFilters = 0,
+	disabledFilters = bit.bor(2^(8-1), 2^(9-1), 2^(10-1), 2^(11-1)),
 	filterEmissary = 0,
 	filterLoot = 0,
+	filterFaction = 0,
 	lootFilterUpgrades = false,
 	timeFilterDuration = 6,
 	hideUntrackedPOI = false,
@@ -359,6 +360,12 @@ end
 
 function Config:Startup()
 	if AngryWorldQuests_Config == nil then AngryWorldQuests_Config = {} end
+
+	AngryWorldQuests_Config.selectedFilters = nil
+	AngryWorldQuests_Config.filterEmissary = nil
+	AngryWorldQuests_Config.filterLoot = nil
+	AngryWorldQuests_Config.filterFaction = nil
+
 	if not AngryWorldQuests_Config['__version'] then
 		AngryWorldQuests_Config['__version'] = configVersion
 	end
@@ -371,7 +378,13 @@ function Config:Startup()
 		AngryWorldQuests_Config['showHoveredPOI'] = AngryWorldQuests_Config['showContinentPOI']
 		AngryWorldQuests_Config['showContinentPOI'] = nil
 	end
-	AngryWorldQuests_Config['__version'] = 3
+	if AngryWorldQuests_Config['__version'] <= 3 and AngryWorldQuests_Config['disabledFilters'] then
+		AngryWorldQuests_Config['disabledFilters'] = bit.bor(2^(8-1), AngryWorldQuests_Config['disabledFilters'])
+	end
+	if AngryWorldQuests_Config['__version'] <= 4 and AngryWorldQuests_Config['disabledFilters'] then
+		AngryWorldQuests_Config['disabledFilters'] = bit.bor(2^(9-1), 2^(10-1), 2^(11-1), AngryWorldQuests_Config['disabledFilters'])
+	end
+	AngryWorldQuests_Config['__version'] = configVersion
 
 	optionPanel = self:CreatePanel(ADDON)
 end
