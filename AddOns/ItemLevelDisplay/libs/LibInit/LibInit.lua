@@ -4,12 +4,12 @@
 -- @name LibInit
 -- @class module
 -- @author Alar of Daggerspine
--- @release 29
+-- @release 31
 --
 local __FILE__=tostring(debugstack(1,2,0):match("(.*):9:")) -- Always check line number in regexp and file
 
 local MAJOR_VERSION = "LibInit"
-local MINOR_VERSION = 30
+local MINOR_VERSION = 31
 local off=(_G.RED_FONT_COLOR_CODE or '|cffff0000') .. _G.VIDEO_OPTIONS_DISABLED ..  _G.FONT_COLOR_CODE_CLOSE or '|r'
 local on=(_G.GREEN_FONT_COLOR_CODE or '|cff00ff00') .. _G.VIDEO_OPTIONS_ENABLED ..  _G.FONT_COLOR_CODE_CLOSE or '|r'
 local nop=function()end
@@ -784,8 +784,8 @@ function lib:OnInitialize(...)
 	if self.db then
 		self.db:RegisterDefaults(self.DbDefaults)
 		if (not self.db.global.silent) then
-			-- self:Print(format("Version %s %s loaded",self:Colorize(options.version,'green'),self:Colorize(format("(Revision: %s)",options.revision),"silver")))
-			-- self:Print("You can disable this message with /" .. strlower(options.ID) .. " silent")
+			self:Print(format("Version %s %s loaded",self:Colorize(options.version,'green'),self:Colorize(format("(Revision: %s)",options.revision),"silver")))
+			self:Print("You can disable this message with /" .. strlower(options.ID) .. " silent")
 		end
 		self:SetEnabledState(self:GetBoolean("Active"))
 	else
@@ -827,7 +827,7 @@ function lib:OnInitialize(...)
 	BuildHelp(self)
 	if AceConfig and not options.nogui then
 		AceConfig:RegisterOptionsTable(main,self.OptionsTable,{main,strlower(options.ID)})
-		self.CfgDlg=AceConfigDialog:AddToBlizOptions(main,"裝備-物品等級" )
+		self.CfgDlg=AceConfigDialog:AddToBlizOptions(main,main )
 		if (not ignoreProfile and not options.noswitch) then
 			if (AceDBOptions) then
 				local profileOpts=AceDBOptions:GetOptionsTable(self.db)
@@ -850,13 +850,13 @@ function lib:OnInitialize(...)
 				local profile=main..PROFILE
 			end
 			AceConfig:RegisterOptionsTable(main .. PROFILE,self.ProfileOpts)
-			AceConfigDialog:AddToBlizOptions(main .. PROFILE,titles.PROFILE,"裝備-物品等級")
+			AceConfigDialog:AddToBlizOptions(main .. PROFILE,titles.PROFILE,main)
 		end
 	else
 		self.OptionsTable.args.gui=nil
 	end
 	if (self.help[RELNOTES]~='') then
-		self.CfgRel=AceConfigDialog:AddToBlizOptions(main..RELNOTES,"說明","裝備-物品等級")
+		self.CfgRel=AceConfigDialog:AddToBlizOptions(main..RELNOTES,titles.RELNOTES,main)
 	end
 	if AceDB then
 		self:UpdateVersion()
@@ -1607,7 +1607,7 @@ function lib:Onscreen_Orange(msg) C:OnScreen('Orange',msg,2) end
 function lib:Onscreen_Purple(msg) C:OnScreen('Purple',msg,8) end
 function lib:Onscreen_Yellow(msg) C:OnScreen('Yellow',msg,1) end
 function lib:Onscreen_Azure(msg) C:OnScreen('Azure',msg,1) end
-function lib:Onscreen_Red(msg) print("calling C") C:OnScreen('Red',msg,1) end
+function lib:Onscreen_Red(msg) C:OnScreen('Red',msg,1) end
 function lib:Onscreen_Green(msg) C:OnScreen('Green',msg,1) end
 function lib:OnScreen(color,...) C:OnScreen(color,strjoin(' ',tostringall(...))) end
 function lib:TimeToStr(time) -- Converts time data to a string format
@@ -1695,7 +1695,6 @@ end
 lib.mt={__metatable=true,__version=MINOR_VERSION}
 local mt=lib.mt
 function mt:__index(k)
-	print(self,self.__source)
 	if k=="n" then
 		return #mt.keys[self.__source]
 	end
@@ -1925,7 +1924,6 @@ do
 		end
 		function dd:OnChange() end
 		function dd:OnValueChanged(this,index,value)
-			print(this:GetName(),value,index)
 			value=value or index
 			UIDropDownMenu_SetSelectedID(dd,index)
 			return self:OnChange(value)

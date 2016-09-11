@@ -2,10 +2,8 @@
 ## Title: ItemLevelDisplay
 ## Notes: Displays item's levels in paperdoll
 ## Notes-itIT: Mostra il livello degli items nella schermata del personaggio
-## Title-zhTW: |cffB973FF[裝備]|r 角色資訊物品等級
-## Notes-zhTW: ItemLevelDisplay |n在角色資訊的裝備欄中顯示裝備等級。|n|cffffd200使用方法：|r從Esc>介面>插件>裝備-物品等級，進行設定。
 ## Author: Alar of Daggerspine
-## Version: 1.10.1 6.2.2
+## Version: 1.10.2 6.2.2
 ## X-Revision: 50d5380
 ## eMail: alar@aspide.it
 ## RequiredDeps:
@@ -21,7 +19,7 @@
 ## X-License: GPL v3
 ## X-eMail: alar@aspide.it
 ## X-Date: 2016-07-26T21:21:41Z
-## X-Curse-Packaged-Version: 1.10.1
+## X-Curse-Packaged-Version: 1.10.2
 ## X-Curse-Project-Name: ItemLevelDisplay
 ## X-Curse-Project-ID: itemleveldisplay
 ## X-Curse-Repository-ID: wow/itemleveldisplay/mainline

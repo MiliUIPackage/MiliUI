@@ -301,7 +301,7 @@ function addon:getGemColors(gem)
 			p=0
 		end
 		gems[gem]={r=r,b=b,y=y,p=p}
-		-- debug(testGem,r,b,y,p)
+		debug(testGem,r,b,y,p)
 	end
 	return gems[gem]
 end
@@ -438,9 +438,9 @@ function addon:loadGemLocalizedStrings()
 	Green_localized = select(7, GetItemInfo(Green_localized))
 	Purple_localized = select(7, GetItemInfo(Purple_localized))
 	Orange_localized = select(7, GetItemInfo(Orange_localized))
-	-- debug(Meta_localized,GetItemInfo(Meta_localized))
+	debug(Meta_localized,GetItemInfo(Meta_localized))
 	Meta_localized = select(7,GetItemInfo(Meta_localized))
-	-- debug(Meta_localized)
+	debug(Meta_localized)
 end
 function addon:EquipmentFlyout_CreateButton(...)
 	local button=self.hooks.EquipmentFlyout_CreateButton(...)
@@ -500,7 +500,7 @@ function addon:OnInitialized()
 	self:SetBoolean('SHOWBUCKLE',false)
 	self:AddToggle('SHOWUSELESSILEVEL',false,L['Show iLevel on shirt and tabard']).width='full'
 	self:AddLabel(L['Appearance'],L['Change colors and appearance'])
-	self:AddSelect('CORNER',"bc",
+	self:AddSelect('CORNER',"br",
 	{br=L['Bottom Right'],
 		tr=L['Top Right'],
 		tl=L['Top Left'],
@@ -517,10 +517,8 @@ function addon:OnInitialized()
 	L['Colorize level text by'],
 	L['Choose a color scheme']
 	).width="full"
-	self:AddSelect('GEMCORNER',"no",
-	{	-- 加入不顯示寶石插槽數目的選項
-		no=L['Don\'t disply'],
-		br=L['Bottom Right'],
+	self:AddSelect('GEMCORNER',"br",
+	{br=L['Bottom Right'],
 		tr=L['Top Right'],
 		tl=L['Top Left'],
 		bl=L['Bottom Left']
@@ -542,7 +540,7 @@ function addon:OnInitialized()
 		self.db.global.hascommon=true
 	end
 	if (not self.db.char.choosen) then
-		-- self:switchProfile(false)
+		self:switchProfile(false)
 	end
 	self:HookScript(CharacterFrame,"OnShow",function(...) self:slotsCheck(...) end)
 	self:HookScript(EquipmentFlyoutFrameButtons,"OnHide",function(...) wipe(flyoutDrawn) end)
@@ -592,24 +590,19 @@ function addon:placeGemLayer()
 	local v,h=corner2points(self:GetVar("GEMCORNER"))
 	local x,y=0,0
 	local notv
-	-- 不顯示寶石插槽數目，需要重新載入
-	if (self:GetVar("GEMCORNER") == "no") then
-		gframe:Hide()
-	else 
-		if (v=="TOP") then
-			y=-65
-		else
-			y=40
-		end
-		if (h=="LEFT") then
-			x=55
-		else
-			h="LEFT"
-			x=240
-		end
-		gframe:ClearAllPoints()
-		gframe:SetPoint(v..h,PaperDollFrame,v..h,x,y)
+	if (v=="TOP") then
+		y=-65
+	else
+		y=40
 	end
+	if (h=="LEFT") then
+		x=55
+	else
+		h="LEFT"
+		x=240
+	end
+	gframe:ClearAllPoints()
+	gframe:SetPoint(v..h,PaperDollFrame,v..h,x,y)
 end
 
 local wininfo
@@ -620,7 +613,7 @@ function addon:switchProfile(fromPanel)
 	wininfo:SetWidth(500)
 	wininfo:SetHeight(180)
 	wininfo:SetLayout('Flow')
-	wininfo:SetTitle(L['ItemLevelDisplay'])
+	wininfo:SetTitle('ItemLevelDisplay')
 	wininfo:SetUserData("currentprofile",self.db:GetCurrentProfile())
 	wininfo:SetUserData("newprofile",self.db:GetCurrentProfile())
 	wininfo:SetStatusText("")
@@ -640,10 +633,10 @@ function addon:switchProfile(fromPanel)
 	local g=gui:Create("Dropdown")
 	g:SetList({Default=L["Common profile for all characters"],character=L["Per character profile"]},{'Default','character'})
 	local profile=self.db:GetCurrentProfile()
-	if (profile=='character') then
-		g:SetValue('character')
-	else
+	if (profile=='Default') then
 		g:SetValue('Default')
+	else
+		g:SetValue('character')
 	end
 	g:SetFullWidth(true)
 	g:SetCallback('OnValueChanged',function(widget,method,key)
