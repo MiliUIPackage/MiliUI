@@ -160,6 +160,7 @@ if AceLocale then
 	["Functionality and style settings."] = "功能與樣式設定。",
 	["Kibs Item Level (continued)"] = "Kibs物品等級(接續版)",
 	["Missing enchant"] = "缺少附魔",
+	["Missing gem"] = "缺少寶石",
 	["Show on Character Sheet"] = "顯示在角色資訊",
 	["Show on Inspection Frame"] = "顯示在觀察視窗",
 	["Show upgrades, e.g. (4/4)"] = "顯示升級數，例如：(4/4)",
