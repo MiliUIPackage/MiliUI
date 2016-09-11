@@ -6,7 +6,7 @@
 -- Constants
 -------------------------------------------------------------------------------
 
-local VERSION = "7.0.35"
+local VERSION = "7.0.36"
 
 -------------------------------------------------------------------------------
 -- Variables
@@ -275,7 +275,7 @@ function FloTotemBar_ReadCmd(line)
 	if cmd == "scale" and tonumber(var) then
 		FloTotemBar_SetScale(var);
 	elseif cmd == "lock" or cmd == "unlock" or cmd == "auto" then
-		for i, v in ipairs({FloBarTRAP, FloBarCALL, FloBarEARTH, FloBarFIRE, FloBarWATER, FloBarAIR}) do
+		for i, v in ipairs({FloBarTRAP, FloBarEARTH}) do
 			FloTotemBar_SetPosition(nil, v, cmd);
 		end
 	elseif cmd == "borders" then
@@ -553,7 +553,7 @@ function FloTotemBar_SetScale(scale)
 	local setPoints = ACTIVE_OPTIONS.scale ~= scale;
 	ACTIVE_OPTIONS.scale = scale;
 
-	for i, v in ipairs({FloBarTRAP, FloBarCALL, FloBarEARTH, FloBarFIRE, FloBarWATER, FloBarAIR}) do
+	for i, v in ipairs({FloBarTRAP, FloBarEARTH}) do
 		local p, a, rp, ox, oy = v:GetPoint();
 		local os = v:GetScale();
 		v:SetScale(scale);

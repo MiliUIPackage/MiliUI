@@ -1,0 +1,13 @@
+tag 7.0.36
+589202b7146de2f8f7269808e47af0b4b921c1d1
+Floraline <floraline@ophiuchus.org>
+2016-08-23 00:55:09 +0200
+
+Tagging for release of 7.0.36
+
+
+--------------------
+
+Floraline:
+	- Fix problems with /ftb commands
+	- Bump version

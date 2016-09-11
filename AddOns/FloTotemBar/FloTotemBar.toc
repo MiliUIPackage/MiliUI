@@ -6,7 +6,7 @@
 ## Dependencies:
 ## SavedVariables: 
 ## SavedVariablesPerCharacter: FLOTOTEMBAR_OPTIONS
-## X-Curse-Packaged-Version: 7.0.35
+## X-Curse-Packaged-Version: 7.0.36
 ## X-Curse-Project-Name: FloTotemBar
 ## X-Curse-Project-ID: flo-totem-bar
 ## X-Curse-Repository-ID: wow/flo-totem-bar/mainline
