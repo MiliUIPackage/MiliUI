@@ -21,6 +21,7 @@
 
 
 ## SavedVariables: DecursiveDB
+## DefaultState: disabled
 
 ## Version: 2.7.4.7
 ## Author: John Wellesz
