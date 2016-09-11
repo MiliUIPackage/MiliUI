@@ -8,7 +8,7 @@
 					["blue"] = true,
 					["grey"] = false,
 					["green"] = false,
-					["savemode"] = false
+					["savemode"] = true
 				}
 			end
 			
