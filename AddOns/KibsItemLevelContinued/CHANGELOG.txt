@@ -1,0 +1,103 @@
+====== 7.0.3.8-beta =====
+
+* fixed off-hand item level for artifacts
+* added Legion enchants
+* updated list of slots with required enchants
+* raised max level to 110 (affects missing enchant/gem check)
+
+====== 7.0.3.7-beta =====
+
+* prevented creation of tooltip with broken/empty link
+* improved responsiveness
+* fixed missing dependency AceGUI-3.0 (closes ticket #4)
+* lots of refactoring
+
+====== 7.0.3.6 =====
+
+* first simultaneous release of Kibs Item Level and Continued
+* fixed typo
+
+====== 7.0.3.5 =====
+
+* added detection of conflicts with Kibs Item Level (not continued)
+
+====== 7.0.3.4 =====
+
+* fixed bug with displaying upgrades summary
+* updated translations
+
+====== 7.0.3.3 =====
+
+* added "Show upgrades summary" option
+
+====== 7.0.3.2 =====
+
+* fixed .toc file ("Out of date" message in the list of addons)
+* removed forgotten debug output
+
+====== 7.0.3.1 =====
+
+* fixed "Show on Character Sheet" and "Show on Inspection Frame" options
+* changed versioning scheme
+
+====== 0.7.9b =====
+
+* fixed average item level formula to match Blizzard's version
+
+====== 0.7.9a =====
+
+* moved "Avg. equipped..." text to avoid overlapping
+* changed average item level formula
+* changed the way two-handed weapons are detected
+
+====== 0.7.9 =====
+
+* updated for patch 7.0.3
+
+====== 0.7.8j =====
+
+* added all localizable strings to CurseForge
+* restored and improved item upgrade info
+* removed forgotten debug output
+
+====== 0.7.8i =====
+
+* fixed average item level calculation for fury warriors
+* smaller text option works again
+* switching text size does not require reload anymore
+
+====== 0.7.8g =====
+
+* removed "Enable addon" config option, it was duplicating standard Blizzard UI
+* added /kibc command, it shows configuration options
+* added debug output option
+
+====== 0.7.8d ======
+
+* fixed incorrect average ilvl for two-handers
+* fixed tooltip scaling issues
+
+====== 0.7.8c ======
+
+* massive rewrite
+* subtle visual re-design
+* linkable gems and enchants (open chat box and Shift-Click icon)
+* gem tooltips show gem itself
+* enchant tooltips show consumable item or receipt
+* average item level now includes fractional part and is visible in both character and inspector panes
+* better item level detection
+* missing gems and enchants are indicated for level 100 only
+
+====== 0.7.8a ======
+
+* experimental feature: enchant icons now show enchant spell in tooltip, Shift-Click puts link into chat/macro box
+
+====== 0.7.7 ======
+
+* timewalking items' ilvl is now properly scaled for levels 70-99
+
+====== 0.7.6 ======
+
+* added support for Timewalking items (660, 675)
+* added support for  heirlooms, levels 2 and 3 (463, 605)
+* updated TOC to 6.2.0
