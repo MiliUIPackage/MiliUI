@@ -1572,9 +1572,9 @@ local masterProfile = {
  healThreshold			= 0,
  powerThreshold			= 0,
  hideFullHoTOverheals	= true,
- shortenNumbers			= false,
- shortenNumberPrecision	= 0,
- groupNumbers			= false,
+ shortenNumbers			= true,
+ shortenNumberPrecision	= 2,
+ groupNumbers			= true,
 
 
  -- Cooldown settings.

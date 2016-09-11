@@ -1,5 +1,0 @@
-**a064:**
-
-* [614b297] Removed the silent option from AceLocale.
-
-----
