@@ -3,7 +3,7 @@
 ## Author: Stanzilla, Semlar
 ## Version: 1.0.3-5-g615db1b
 ## Notes: Restores access to removed interface options in Legion
-## Title-zhTW: |cff0099FF[介面]|r 進階選項
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Advanced Interface Options]|r 進階選項
 ## Notes-zhTW: Advanced Interface Options |n讓你可以使用軍臨天下所移除的遊戲介面選項。|n|cffffd200使用方法：|r從Esc>介面>插件>進階，進行設定。
 ## X-Category: Interface Enhancements
 ## X-Website: http://www.curse.com/addons/wow/advancedinterfaceoptions

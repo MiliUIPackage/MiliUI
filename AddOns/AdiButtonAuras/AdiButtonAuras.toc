@@ -25,6 +25,8 @@
 
 ## Title: AdiButtonAuras
 ## Notes: Display auras on action buttons.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFCC99CC[AdiButtonAuras]|r 按扭計時
+## Notes-zhTW: 在快捷按鈕中顯示技能計時。
 ## Author: Adirelle
 ## Version: 2.0.1
 ## X-Date: 2016-09-11T00:34:07Z

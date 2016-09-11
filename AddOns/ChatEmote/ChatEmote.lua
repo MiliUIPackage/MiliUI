@@ -391,7 +391,7 @@ ReportBtn:ClearAllPoints()
 ReportBtn:SetPoint("TOP",RollBtn,"BOTTOM",0,-2)
 ReportBtn:SetScript("OnEnter",function(self) GameTooltip:SetOwner(self,"ANCHOR_TOPLEFT")  GameTooltip:AddLine(ReportBtn_STRING_1) GameTooltip:AddLine(ReportBtn_STRING_2) GameTooltip:Show() Emote_IconPanel.isCounting=nil end)
 ReportBtn:SetScript("OnClick",function(self)
-SlashCmdList["DEADLYBOSSMODS"]("PULL 8")
+SlashCmdList["DEADLYBOSSMODS"]("PULL 6")
 if GameTooltip:GetOwner()==self then GameTooltip:Hide() end
 end)
 ReportBtn:SetScript("OnDragStart",function(self)

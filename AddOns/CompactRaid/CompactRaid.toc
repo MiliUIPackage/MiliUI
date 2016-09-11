@@ -1,5 +1,7 @@
 ## Interface: 70000
 ## Title: CompactRaid
+## Title-zhTW: |cFF00CCFF[團隊]|r |cFFFF77FF[CompactRaid]|r 精簡團隊框
+## Notes-zhTW: 團隊框架。
 ## Version: 4.20
 ## Author: Abin
 ## SavedVariables: CompactRaidDB
