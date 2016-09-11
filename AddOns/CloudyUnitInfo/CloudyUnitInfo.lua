@@ -6,8 +6,8 @@
 
 
 --- Variables ---
-local currentUNIT, currentGUID
-local GearDB, SpecDB = {}, {}
+local currentUNIT, currentGUID, scanTip
+local GearDB, SpecDB, ItemDB = {}, {}, {}
 
 local nextInspectRequest = 0
 lastInspectRequest = 0
@@ -17,7 +17,7 @@ local detailColor = '|cffffffff'
 
 local gearPrefix = STAT_AVERAGE_ITEM_LEVEL .. ': '
 local specPrefix = SPECIALIZATION .. ': '
-local _
+local lvlPattern = gsub(ITEM_LEVEL, '%%d', '(%%d+)')
 
 
 --- Create Frame ---
@@ -47,7 +47,6 @@ local function SetUnitInfo(gear, spec)
 
 	if gear then
 		gear = prefixColor .. gearPrefix .. detailColor .. gear
-
 		if gearLine then
 			gearLine:SetText(gear)
 		else
@@ -55,9 +54,8 @@ local function SetUnitInfo(gear, spec)
 		end
 	end
 
-	if spec then
+	if spec and UnitLevel(unit) > 10 then
 		spec = prefixColor .. specPrefix .. detailColor .. spec
-
 		if specLine then
 			specLine:SetText(spec)
 		else
@@ -69,31 +67,6 @@ local function SetUnitInfo(gear, spec)
 end
 
 
---- Upgraded Item Bonus ---
-local UGBonus = {
-	['001'] =  8, ['373'] =  4, ['374'] =  8, ['375'] =  4,
-	['376'] =  4, ['377'] =  4, ['379'] =  4, ['380'] =  4,
-	['446'] =  4, ['447'] =  8, ['452'] =  8, ['454'] =  4,
-	['455'] =  8, ['457'] =  8, ['459'] =  4, ['460'] =  8,
-	['461'] = 12, ['462'] = 16, ['466'] =  4, ['467'] =  8,
-	['469'] =  4, ['470'] =  8, ['471'] = 12, ['472'] = 16,
-	['492'] =  4, ['493'] =  8, ['494'] =  4, ['495'] =  8,
-	['496'] =  8, ['497'] = 12, ['498'] = 16, ['504'] = 12,
-	['505'] = 16, ['506'] = 20, ['507'] = 24, ['530'] =  5,
-	['531'] = 10,
-}
-
-
---- Timewarped Items ---
-local TWItems = {
-	-- Timewarped
-	['615'] = 660,
-	['692'] = 675,
-	-- Warforged
-	['656'] = 675,
-}
-
-
 --- BOA Items ---
 local BOAItems = {
 	['133585'] = 1, ['133595'] = 1, ['133596'] = 1,
@@ -103,6 +76,7 @@ local BOAItems = {
 
 --- BOA Item Level ---
 local function BOALevel(level, id)
+	if (level > 100) then level = 100 end
 	if (level > 97) then
 		if BOAItems[id] then
 			level = 715
@@ -119,11 +93,13 @@ local function BOALevel(level, id)
 		level = 187 - (80 - level) * 4
 	elseif (level > 57) then
 		level = 105 - (67 - level) * 2.8
-	else
+	elseif (level > 10) then
 		level = level + 5
+	else
+		level = 10
 	end
 
-	return level
+	return floor(level + 0.5)
 end
 
 
@@ -141,6 +117,30 @@ local function IsPVPItem(link)
 end
 
 
+--- Scan Item Level ---
+local function scanItemLevel(link)
+	if ItemDB[link] then return ItemDB[link] end
+
+	if not scanTip then
+		scanTip = CreateFrame('GameTooltip', 'CUnitScan', nil, 'GameTooltipTemplate')
+ 		scanTip:SetOwner(UIParent, 'ANCHOR_NONE')
+	end
+	scanTip:ClearLines()
+ 	scanTip:SetHyperlink(link)
+
+	for i = 2, scanTip:NumLines() do
+		local textLine = _G['CUnitScanTextLeft' .. i]
+		if textLine and textLine:GetText() then
+			local level = strmatch(textLine:GetText(), lvlPattern)
+			if level then
+				ItemDB[link] = tonumber(level)
+				return ItemDB[link]
+			end
+		end
+	end
+end
+
+
 --- Unit Gear Info ---
 local function UnitGear(unit)
 	if (not unit) or (UnitGUID(unit) ~= currentGUID) then return end
@@ -148,9 +148,9 @@ local function UnitGear(unit)
 	local ulvl = UnitLevel(unit)
 	local class = select(2, UnitClass(unit))
 
-	local ilvl, boa, pvp = 0, 0, 0
-	local total, count, delay = 0, 16, nil
-	local mainhand, offhand, twohand = 1, 1, 0
+	local boa, pvp = 0, 0
+	local flvl, fslot = 0, 0
+	local ilvl, total, delay = 0, 0, nil
 
 	for i = 1, 17 do
 		if (i ~= 4) then
@@ -170,54 +170,54 @@ local function UnitGear(unit)
 						if (quality == 7) then
 							boa = boa + 1
 							local id = strmatch(itemLink, 'item:(%d+)')
-							total = total + BOALevel(ulvl, id)
+							level = BOALevel(ulvl, id)
 						else
 							if IsPVPItem(itemLink) then
 								pvp = pvp + 1
 							end
 
-							local tid = strmatch(itemLink, '.+:512:22.+:(%d+):100')
-							if TWItems[tid] then
-								level = TWItems[tid]
-							elseif (level >= 458) then
-								local uid = strmatch(itemLink, '.+:(%d+)')
-								if UGBonus[uid] then
-									level = level + UGBonus[uid]
+							level = scanItemLevel(itemLink) or level
+						end
+
+						if (i == 16) then
+							if (class == 'WARRIOR') then
+								flvl = level
+								fslot = slot
+							end
+							if (slot == 'INVTYPE_2HWEAPON') or (slot == 'INVTYPE_RANGED') or ((slot == 'INVTYPE_RANGEDRIGHT') and (class == 'HUNTER')) then
+								level = level * 2
+							end
+						end
+
+						if (i == 17) and (class == 'WARRIOR') then
+							if (fslot ~= 'INVTYPE_2HWEAPON') and (slot == 'INVTYPE_2HWEAPON') then
+								if (level > flvl) then
+									level = level * 2 - flvl
+								end
+							elseif (fslot == 'INVTYPE_2HWEAPON') then
+								if (level > flvl) then
+									if (slot == 'INVTYPE_2HWEAPON') then
+										level = level * 2 - flvl * 2
+									else
+										level = level - flvl
+									end
+								else
+									level = 0
 								end
 							end
-
-							total = total + level
 						end
 
-						if (i >= 16) then
-							if (slot == 'INVTYPE_2HWEAPON') or (slot == 'INVTYPE_RANGED') or ((slot == 'INVTYPE_RANGEDRIGHT') and (class == 'HUNTER')) then
-								twohand = twohand + 1
-							end
-						end
+						total = total + level
 					end
-				end
-			else
-				if (i == 16) then
-					mainhand = 0
-				elseif (i == 17) then
-					offhand = 0
 				end
 			end
 		end
 	end
 
-	if (mainhand == 0) and (offhand == 0) or (twohand == 1) then
-		count = count - 1
-	end
-
 	if (not delay) then
-		if (unit == 'player') and (GetAverageItemLevel() > 0) then
-			_, ilvl = GetAverageItemLevel()
-		else
-			ilvl = total / count
-		end
-
+		ilvl = total / 16
 		if (ilvl > 0) then ilvl = string.format('%.1f', ilvl) end
+
 		if (boa > 0) then ilvl = ilvl .. '  |cffe6cc80' .. boa .. ' 帳綁' end
 		if (pvp > 0) then ilvl = ilvl .. '  |cffa335ee' .. pvp .. ' PVP' end
 	else
@@ -233,12 +233,11 @@ local function UnitSpec(unit)
 	if (not unit) or (UnitGUID(unit) ~= currentGUID) then return end
 
 	local specName
-
 	if (unit == 'player') then
 		local specIndex = GetSpecialization()
 
 		if specIndex then
-			_, specName = GetSpecializationInfo(specIndex)
+			specName = select(2, GetSpecializationInfo(specIndex))
 		else
 			specName = NONE
 		end
@@ -246,7 +245,7 @@ local function UnitSpec(unit)
 		local specID = GetInspectSpecialization(unit)
 
 		if specID and (specID > 0) then
-			_, specName = GetSpecializationInfoByID(specID)
+			specName = select(2, GetSpecializationInfoByID(specID))
 		elseif (specID == 0) then
 			specName = NONE
 		end
@@ -314,7 +313,7 @@ hooksecurefunc('PaperDollFrame_SetArmor', function(_, unit)
 	CharacterStatsPane.ItemLevelCategory:Show()
 	CharacterStatsPane.ItemLevelFrame:Show()
 	CharacterStatsPane.ItemLevelFrame.Value:SetText(ilvl)
-	CharacterStatsPane.AttributesCategory:SetPoint('TOP', CharacterStatsPane.ItemLevelFrame, 'BOTTOM', 0, -10)
+	CharacterStatsPane.AttributesCategory:SetPoint('TOP', CharacterStatsPane.ItemLevelFrame, 'BOTTOM', 0, -2)
 end)
 
 
@@ -357,9 +356,7 @@ end)
 
 GameTooltip:HookScript('OnTooltipSetUnit', function(self)
 	local _, unit = self:GetUnit()
-
 	if (not unit) or (not CanInspect(unit)) then return end
-	if (UnitLevel(unit) > 0) and (UnitLevel(unit) < 10) then return end
 
 	currentUNIT, currentGUID = unit, UnitGUID(unit)
 	ScanUnit(unit)
