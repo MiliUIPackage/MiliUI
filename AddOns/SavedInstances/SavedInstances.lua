@@ -14,7 +14,7 @@ local maxdiff = 23 -- max number of instance difficulties
 local maxcol = 4 -- max columns per player+instance
 
 addon.svnrev = {}
-addon.svnrev["SavedInstances.lua"] = tonumber(("$Revision: 515 $"):match("%d+"))
+addon.svnrev["SavedInstances.lua"] = tonumber(("$Revision: 518 $"):match("%d+"))
 
 -- local (optimal) references to provided functions
 local table, math, bit, string, pairs, ipairs, unpack, strsplit, time, type, wipe, tonumber, select, strsub = 
@@ -93,6 +93,7 @@ local currency = {
   994, -- Seal of Tempered Fate
   1129,-- Seal of Inevitable Fate
   1166,-- Timewarped Badge 
+  1226,-- Nethershards
 }
 addon.currency = currency
 
@@ -468,7 +469,7 @@ vars.defaultDB = {
 		R2Indicator = "BLANK",
 		R2Text = "KILLED/TOTAL",
 		R2Color = { 0.6, 0, 0 }, -- dark red
-		R2ClassColor = false,
+		R2ClassColor = true,
 		R3Indicator = "BLANK",
 		R3Text = "KILLED/TOTALH",
 		R3Color = { 1, 1, 0 }, -- yellow
@@ -476,7 +477,7 @@ vars.defaultDB = {
 		R4Indicator = "BLANK",
 		R4Text = "KILLED/TOTALH",
 		R4Color = { 1, 0, 0 }, -- red
-		R4ClassColor = false,
+		R4ClassColor = true,
 		R5Indicator = "BLANK",
 		R5Text = "KILLED/TOTAL",
 		R5Color = { 0, 0, 1 }, -- blue
@@ -542,6 +543,7 @@ vars.defaultDB = {
 		Currency1166= true,  -- Timewarped Badge
 		Currency1191= true,  -- Valor Points
 		Currency1220= true,  -- Order Resources
+		Currency1226= true,  -- Nethershards
 		CurrencyMax = false,
 		CurrencyEarned = true,
 	},
