@@ -28,6 +28,9 @@ local function skin_Blizzard_GuildBankUI()
 			end
 		end
 		hooksecurefunc("GuildBankFrame_Update", miirgui_GuildBankFrame_Update)
+		
+		m_cursorfix(GuildItemSearchBox)
+		
 	end
 
 local f= CreateFrame("FRAME")

@@ -1,10 +1,64 @@
 local addonsToSkin = {
+	["SimBuilder"] = function()
+	SimBuilderLaunchButton:ClearAllPoints()
+	SimBuilderLaunchButton:SetPoint("LEFT",CharacterFrameCloseButton,-40,0)
+	
+	SimItemCompareFrameTitleBG:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble")
+	SimItemCompareFrameDialogBG:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock")
+	SimItemCompareFrameTopRight:Hide()
+	SimItemCompareFrameTopLeft:Hide()
+	SimItemCompareFrameBottomRight:Hide()
+	SimItemCompareFrameBottomLeft:Hide()
+	SimItemCompareFrameLeft:Hide()
+	SimItemCompareFrameRight:Hide()
+	SimItemCompareFrameTop:Hide()
+	SimItemCompareFrameBottom:Hide()
+	SimItemCompareFrameTitleBG:ClearAllPoints()
+	SimItemCompareFrameTitleBG:SetPoint("TOP",SimItemCompareFrame,0,-7)
+	SimItemCompareFrameTitleBG:SetSize(586,16)
+	m_border(SimItemCompareFrame,590,394,"Center",0.5,-8,12,"HIGH")
+	m_border(SimItemCompareFrameClose,591,20,"RIGHT",-6,1,14,"HIGH")
+	
+	SimItemCopyFrameTitleBG:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble")
+	SimItemCopyFrameDialogBG:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock")
+	SimItemCopyFrameTopRight:Hide()
+	SimItemCopyFrameTopLeft:Hide()
+	SimItemCopyFrameBottomRight:Hide()
+	SimItemCopyFrameBottomLeft:Hide()
+	SimItemCopyFrameLeft:Hide()
+	SimItemCopyFrameRight:Hide()
+	SimItemCopyFrameTop:Hide()
+	SimItemCopyFrameBottom:Hide()
+	SimItemCopyFrameTitleBG:ClearAllPoints()
+	SimItemCopyFrameTitleBG:SetPoint("TOP",SimItemCopyFrame,0,-7)
+	SimItemCopyFrameTitleBG:SetSize(586,16)
+	m_border(SimItemCopyFrame,590,170,"Center",0.5,-8.5,12,"HIGH")
+	m_border(SimItemCopyFrameClose,591,20,"RIGHT",-6,1,14,"HIGH")
+	
+		end,
+	["BugSack"] = function()
+	
+	hooksecurefunc(BugSack,"OpenSack",function()	
+		local _,title= BugSackFrame:GetChildren()
+		m_border(title,460,20,"LEFT",-4,0,14,"TOOLTIP")
+		m_border(BugSackFrame,508,318,"Center",0,0,14,"BACKGROUND")
+
+		for i=1,10 do 
+		local bg = select(i,BugSackFrame:GetRegions())
+		bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Rock")
+		end
+	end)
+	
+		end,
 	["AckisRecipeList"] = function()
+	
 		hooksecurefunc(_G.AckisRecipeList,"Scan",function()
 			ARL_ProfessionButtonPortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 		end)
+		
 		end,
 	["BetterArchaeologyUI"] = function()
+	
 			ArchaeologyFrameSummaryPage:HookScript("OnShow",function()
 				for i=1,18 do
 					local race = _G["ArchaeologyFrameSummaryPageRace"..i]
@@ -14,8 +68,22 @@ local addonsToSkin = {
 				end
 
 			end)
+			
+			ArchaeologyFrameFuturePage:HookScript("OnShow",function()
+			
+			local futureartifacts = 	ArchaeologyFrameFuturePage:GetRegions()
+			m_fontify(futureartifacts,"color")
+			m_fontify(ArchaeologyFrameFuturePage.pageText,"white")
+				for i=1,12 do
+					m_fontify(_G["ArchaeologyFrameFuturePageArtifact"..i.."ArtifactName"],"white")
+					m_fontify(_G["ArchaeologyFrameFuturePageArtifact"..i.."ArtifactSubText"],"white")
+				end
+			
+			end)
+			
 		end,
 	["Classic Quest Log"] = function()
+	
 			m_icon(ClassicQuestLog, "quest", -8, 9, "MEDIUM")
 			ClassicQuestLogScrollFrame.BG:Hide()
 			ClassicQuestLogDetailScrollFrame.DetailBG:Hide()
@@ -46,9 +114,9 @@ local addonsToSkin = {
 			
 			ClassicQuestLog:HookScript("OnShow",miirgui_cql_show)
 			
-			
 		end,
 	["Clique"] = function()
+	
 			hooksecurefunc("ToggleSpellBook",function()
 				if (CliqueSpellTab) then
 					local _,_,_,_,_,CliqueIcon = CliqueSpellTab:GetRegions()
@@ -56,15 +124,19 @@ local addonsToSkin = {
 					CliqueConfigPortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 				end
 			end)
+			
 		end,
 	["Combuctor"] = function()
+	
 			CombuctorFrameinventoryPortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			for i=19,21 do
 				local hideit=select(i,CombuctorFrameinventory:GetRegions())
 				hideit:Hide()
 			end
+			
 		end,
 	["Inventorian"] = function()
+	
 			InventorianBagFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			InventorianBankFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			for i=19,21 do
@@ -73,9 +145,12 @@ local addonsToSkin = {
 				local hideitalso=select(i,InventorianBankFrame:GetRegions())
 				hideitalso:Hide()
 			end
+			
 		end,
 	["mOnArs_WardrobeHelper"] = function()
+	
 			mOnWD_MainFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+			
 		end,
 }
 

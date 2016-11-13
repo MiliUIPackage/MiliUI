@@ -48,6 +48,7 @@ local function skin_Blizzard_ArchaeologyUI()
 	end
 	m_fontify(ArchaeologyFrameCompletedPagePageText,"white")
 	ArchaeologyFrameRankBarBar:SetVertexColor(unpack(miirgui.Color))
+	ArchaeologyFrameRankBarBackground:Hide()
 	m_fontify(ArchaeologyFrameArtifactPageArtifactName,"color")
 	m_fontify(ArchaeologyFrameArtifactPageArtifactSubText,"white")
 	m_fontify(ArchaeologyFrameSummaryPagePageText,"white")

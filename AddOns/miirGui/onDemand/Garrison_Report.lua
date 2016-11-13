@@ -5,7 +5,6 @@ local function skin_Blizzard_GarrisonUI()
 				local shipment = self.shipmentsPool:Acquire()
 				local roundoverlay= shipment:GetRegions()
 				roundoverlay:Hide()
-				--m_SetTexture(shipment.Icon,texture)
 				shipment.Icon:SetDesaturated(false)
 				shipment.Icon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 				m_fontify(shipment.Name,"white")
@@ -113,7 +112,7 @@ local function skin_Blizzard_GarrisonUI()
 		m_SetTexture(bg,"Interface\\FrameGeneral\\UI-Background-Marble.blp")
 		bg:ClearAllPoints()
 		bg:SetPoint("LEFT")
-		bg:SetSize(830,500)	
+		bg:SetSize(830,520)	
 			
 		--Invasion Alert Icon
 				
@@ -236,11 +235,13 @@ local function skin_Blizzard_GarrisonUI()
 		m_fontify(GarrisonLandingPage.FollowerTab.XPLabel,"white")
 		m_fontify(GarrisonLandingPage.FollowerTab.XPText,"white")
 		m_fontify(GarrisonLandingPage.FollowerTab.XPBar.Label,"white",10)
-		m_border(GarrisonLandingPage,832,502,"Center",0,0,14,"MEDIUM")
-		
-		m_border(GarrisonLandingPageTab1,GarrisonLandingPageTab1:GetWidth()-12,GarrisonLandingPageTab1:GetHeight()-4,"Center",0.5,0,14,"MEDIUM")
-		m_border(GarrisonLandingPageTab2,GarrisonLandingPageTab2:GetWidth()-16,GarrisonLandingPageTab2:GetHeight()-4,"Center",0,0,14,"MEDIUM")
-		m_border(GarrisonLandingPageTab3,GarrisonLandingPageTab3:GetWidth()-20,GarrisonLandingPageTab3:GetHeight()-4,"Center",0.5,0,14,"MEDIUM")
+		m_border(GarrisonLandingPage,832,522,"Center",0,0,14,"MEDIUM")
+		GarrisonLandingPageTab1:SetFrameStrata("HIGH")
+		GarrisonLandingPageTab2:SetFrameStrata("HIGH")
+		GarrisonLandingPageTab3:SetFrameStrata("HIGH")
+		m_border(GarrisonLandingPageTab1,GarrisonLandingPageTab1:GetWidth()-12,GarrisonLandingPageTab1:GetHeight()-4,"Center",0.5,0,14,"HIGH")
+		m_border(GarrisonLandingPageTab2,GarrisonLandingPageTab2:GetWidth()-16,GarrisonLandingPageTab2:GetHeight()-4,"Center",0,0,14,"HIGH")
+		m_border(GarrisonLandingPageTab3,GarrisonLandingPageTab3:GetWidth()-20,GarrisonLandingPageTab3:GetHeight()-4,"Center",0.5,0,14,"HIGH")
 		
 		m_border(GarrisonLandingPage.FollowerTab.XPBar,374,16,"Center",0,0,12,"MEDIUM")
 		m_fontify(GarrisonLandingPage.FollowerTab.FollowerText,"color")
@@ -257,6 +258,7 @@ local function skin_Blizzard_GarrisonUI()
 		GarrisonCapacitiveDisplayFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 	
 		local function miirgui_GarrisonCapacitiveDisplayFrame(self)
+			GarrisonCapacitiveDisplayFrame.CapacitiveDisplay.ShipmentIconFrame.ShipmentName:SetJustifyH("LEFT")
 			local display = self.CapacitiveDisplay;
 			local reagents = display.Reagents;
 			if reagents[2] == nil then
@@ -283,7 +285,9 @@ local function skin_Blizzard_GarrisonUI()
 		end
 		
 		GarrisonCapacitiveDisplayFrame:HookScript("OnShow",miirgui_GarrisonCapacitiveDisplayFrame)		
-
+		
+		m_cursorfix(GarrisonLandingPageFollowerList.SearchBox)
+		
 	end
 
 local f= CreateFrame("FRAME")

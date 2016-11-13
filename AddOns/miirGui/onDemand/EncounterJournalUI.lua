@@ -24,8 +24,8 @@ local function skin_Blizzard_EncounterJournal()
 		m_border(EncounterJournalEncounterFrameInstanceFrame,340,266,"CENTER",3,34,12,"MEDIUM")
 		m_border(EncounterJournalInstanceSelect,794	,388,"CENTER",1,-22,12,"HIGH")
 		m_border(EncounterJournalSuggestFrame.Suggestion1,340,260,"CENTER",3,-28,12,"MEDIUM")
-		m_border(EncounterJournalSuggestFrame.Suggestion2,280,130,"CENTER",25,14,12,"MEDIUM")
-		m_border(EncounterJournalSuggestFrame.Suggestion3,280,130,"CENTER",25,14,12,"MEDIUM")	
+		m_border(EncounterJournalSuggestFrame.Suggestion2,280,130,"CENTER",25.5,14,12,"MEDIUM")
+		m_border(EncounterJournalSuggestFrame.Suggestion3,280,130,"CENTER",25.5,14,12,"MEDIUM")	
 		EncounterJournalInsetBg:Hide()	
 		local parchement = EncounterJournal.LootJournal:GetRegions()
 		parchement:Hide()		
@@ -136,7 +136,7 @@ local function skin_Blizzard_EncounterJournal()
 				suggestion.iconRing:Show()
 				if ( data.iconPath ) then
 					suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-					m_SetTexture	(suggestion.iconRing,data.iconPath)				
+					m_SetTexture(suggestion.iconRing,data.iconPath)				
 				else
 					suggestion.iconRing:SetSize(suggestion.icon:GetSize())
 					m_SetTexture(suggestion.iconRing,"INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
@@ -155,9 +155,12 @@ local function skin_Blizzard_EncounterJournal()
 					m_fontify(suggestion.centerDisplay.description.text,"white")
 					suggestion.icon:Hide();	
 					suggestion.iconRing:Show()
-					if ( data.iconPath ) then
+					if data.iconPath == 136349 then
 						suggestion.iconRing:SetSize(suggestion.icon:GetSize())
-						m_SetTexture(suggestion.iconRing,data.iconPath)						
+						m_SetTexture(suggestion.iconRing,"INTERFACE\\ICONS\\Achievement_quests_completed_07.blp")			
+					elseif data.iconPath then
+						suggestion.iconRing:SetSize(suggestion.icon:GetSize())
+						m_SetTexture(suggestion.iconRing,data.iconPath)			
 					else
 						suggestion.iconRing:SetSize(suggestion.icon:GetSize())
 						m_SetTexture(suggestion.iconRing,"INTERFACE\\ICONS\\INV_MISC_QUESTIONMARK.BLP")
@@ -169,9 +172,10 @@ local function skin_Blizzard_EncounterJournal()
 		hooksecurefunc("EJSuggestFrame_RefreshDisplay",miirgui_EJSuggestFrame_RefreshDisplay)	
 			
 		local function miirgui_EJSuggestFrame_UpdateRewards(suggestion)
-			suggestion.reward.iconRing:Hide()
-			suggestion.reward:SetSize(46,46)
-			suggestion.reward.icon:SetMask("Interface\\TALENTFRAME\\icon-shadow")
+			suggestion.reward.icon:SetMask("")
+			suggestion.reward.icon:SetAlpha(0)
+			suggestion.reward.iconRing:SetTexture(suggestion.reward.icon:GetTexture())
+			suggestion.reward.iconRing:SetSize(42,42)
 			suggestion.reward.iconRingHighlight:SetAlpha(0)
 		end
 			
@@ -199,6 +203,7 @@ local function skin_Blizzard_EncounterJournal()
 		
 		hooksecurefunc("EncounterJournal_ListInstances",miirgui_EncounterJournal_ListInstances)
 		
+		m_cursorfix(EncounterJournalSearchBox)
 end
 
 local f= CreateFrame("FRAME")

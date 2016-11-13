@@ -34,6 +34,8 @@ local function skin_Blizzard_GarrisonUI()
 		m_border(GarrisonMissionFrame.MissionComplete.Stage.FollowersFrame.Follower3,124,49,"CENTER",24,4,12,"HIGH")
 		m_border(GarrisonMissionFrame.MissionComplete.Stage.FollowersFrame.Follower1,124,49,"CENTER",24,4,12,"HIGH")
 		
+		m_cursorfix(GarrisonMissionFrameFollowers.SearchBox)
+		
 		local _,_,_,_,_,_,_,_,_,Background = GarrisonMissionFrame:GetRegions()
 		m_SetTexture(Background,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		GarrisonMissionFrameMissionsListScrollFrameScrollBarBG:Hide()
@@ -243,10 +245,10 @@ local function skin_Blizzard_GarrisonUI()
 		m_fontify(GarrisonMissionFrame.MissionComplete.Stage.MissionInfo.Location,"white")
 		local _,_,_,_,_,_,_,_,_,_,rewards = GarrisonMissionFrame.MissionComplete.BonusRewards:GetRegions()
 		m_fontify(rewards,"white")
+		
 	end
 	
 
-	
 local f= CreateFrame("FRAME")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function()
@@ -263,7 +265,6 @@ f:SetScript("OnEvent", function()
 		f2:UnregisterEvent("ADDON_LOADED")
 	end	
 end)
-	
 		
 -- Better Garrison Minimap Button
 
@@ -281,16 +282,3 @@ GarrisonLandingPageMinimapButton:SetScript("OnClick", function(_,button)
 end)
 
 GarrisonLandingPageMinimapButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-
-local function miirgui_GarrisonLandingPageMinimapButton()
-	GarrisonLandingPageMinimapButton:UnregisterEvent("SHIPMENT_UPDATE")
-	local _,_,_,_,_,_,bla = GarrisonLandingPageMinimapButton:GetRegions()	
-	m_SetTexture(bla,"Interface\\Garrison\\horde.blp")
-	local _,pulse = GarrisonLandingPageMinimapButton:GetRegions()
-	pulse:SetSize(36,36)
-	m_SetTexture(pulse,"Interface\\Garrison\\pulse.blp")
-	GarrisonLandingPageMinimapButton:SetSize(32,32)	
-	GarrisonLandingPageMinimapButton:SetPushedTexture("Interface\\Garrison\\horde.blp")
-end
-
-GarrisonLandingPageMinimapButton:HookScript("OnShow",miirgui_GarrisonLandingPageMinimapButton)

@@ -14,3 +14,17 @@ PartyMemberFrame3Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 PartyMemberFrame3PetFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 PartyMemberFrame4Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 PartyMemberFrame4PetFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+
+hooksecurefunc("PlayerFrame_ToVehicleArt",function(_, vehicleType)
+	if ( vehicleType == "Natural" ) then
+		PlayerFrameHealthBar:SetWidth(112);
+		PlayerFrameHealthBar:SetPoint("TOPLEFT",106,-41);
+		PlayerFrameManaBar:SetWidth(112);
+		PlayerFrameManaBar:SetPoint("TOPLEFT",106,-52);
+	else
+		PlayerFrameHealthBar:SetWidth(112);
+		PlayerFrameHealthBar:SetPoint("TOPLEFT",106,-41);
+		PlayerFrameManaBar:SetWidth(112);
+		PlayerFrameManaBar:SetPoint("TOPLEFT",106,-52);
+	end
+end)

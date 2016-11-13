@@ -194,6 +194,10 @@ local function skin_Blizzard_OrderHallUI()
 			missionPage.Followers[i].PortraitFrame.PortraitRingQuality:SetSize(64,64)
 			missionPage.Followers[i].PortraitFrame.PortraitRing:Hide()
 			m_fontify(missionPage.Followers[i].PortraitFrame.Level,"white")
+			missionPage.Followers[i].PortraitFrame.SpellTargetHighlight:ClearAllPoints()
+			missionPage.Followers[i].PortraitFrame.SpellTargetHighlight:SetSize(80.5,84)
+			missionPage.Followers[i].PortraitFrame.SpellTargetHighlight:SetPoint("CENTER",missionPage.Followers[i].PortraitFrame,-0.5,3)
+			m_SetTexture(missionPage.Followers[i].PortraitFrame.SpellTargetHighlight,"Interface\\Buttons\\ButtonHilight-Round.blp")
 		end
 	
 		--[[ OrderHall Followerlist Frame ]]--
@@ -245,7 +249,14 @@ local function skin_Blizzard_OrderHallUI()
 			local hideit=select(i,OrderHallMissionFrame.MissionTab.ZoneSupportMissionPage:GetRegions())
 			hideit:Hide()
 		end	
-	
+		if miirguiDB.cbar == true then
+			OrderHallCommandBar:Hide()
+			hooksecurefunc(OrderHallCommandBar,"RefreshCategories",function(self)
+				self:Hide()
+			end)
+		end
+		OrderHallMissionFrame.MissionTab.ZoneSupportMissionPage.CombatAllyLabel.TextBackground:SetDesaturated(1)
+		m_fontify(OrderHallMissionFrame.MissionTab.ZoneSupportMissionPage.CombatAllyLabel.Text,"color")
 		m_SetTexture(OrderHallMissionFrame.MissionTab.ZoneSupportMissionPage.ButtonFrame,"Interface\\FrameGeneral\\UI-Background-Rock.blp")
 		OrderHallMissionFrame.MissionTab.ZoneSupportMissionPage.ButtonFrame:SetSize(400,30)
 		m_SetTexture(OrderHallMissionFrameMissions.CombatAllyUI.Available.AddFollowerButton.EmptyPortrait,"Interface\\Garrison\\quality.tga")
@@ -319,6 +330,9 @@ local function skin_Blizzard_OrderHallUI()
 		m_fontify(OrderHallMissionFrame.MissionComplete.Stage.MissionInfo.Location,"white")
 		local _,_,_,_,_,_,_,_,_,_,rewards = OrderHallMissionFrame.MissionComplete.BonusRewards:GetRegions()
 		m_fontify(rewards,"white")
+	
+	
+		m_cursorfix(OrderHallMissionFrameFollowers.SearchBox)
 	
 	end
 	

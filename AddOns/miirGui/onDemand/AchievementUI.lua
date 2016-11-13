@@ -86,6 +86,7 @@ local function skin_Blizzard_AchievementUI()
 
 	end)
 	
+
 	hooksecurefunc("AchievementButton_DisplayAchievement",function(button)
 		m_SetTexture(AchievementFrameAchievementsBackground,"Interface\\FrameGeneral\\UI-Background-Marble.blp")
 		local r = button.label:GetTextColor()
@@ -144,7 +145,6 @@ local function skin_Blizzard_AchievementUI()
 			end				
 		end
 	end)
-	
 	hooksecurefunc("AchievementFrameSummary_UpdateAchievements",function()
 		m_fontify(AchievementFrameSummaryAchievementsHeaderTitle,"color")
 		m_fontify(AchievementFrameSummaryCategoriesHeaderTitle,"color")
@@ -170,6 +170,8 @@ local function skin_Blizzard_AchievementUI()
 			m_fontify(_G["AchievementFrameSummaryAchievement"..i.."Description"],"white")
 		end
 	end)	
+	
+	m_cursorfix(AchievementFrame.searchBox)
 end
 
 

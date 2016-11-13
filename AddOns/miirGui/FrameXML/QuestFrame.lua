@@ -1,6 +1,7 @@
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
+
 	QuestFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 	QuestFramePortrait:SetSize(66,66)
 	QuestFramePortrait:SetPoint("TOPLEFT",-9,10)
@@ -53,10 +54,8 @@ f:SetScript("OnEvent", function()
 	local function miirgui_GossipFrameUpdate()
 		GossipFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 		GossipFramePortrait:SetSize(66,66)
-		GossipFramePortrait:SetPoint("TOPLEFT",-9,10)
-		
+		GossipFramePortrait:SetPoint("TOPLEFT",-9,10)	
 		m_fontify(GossipGreetingText,"white")
-		
 		for i=1, 32 do
 			local button = _G["GossipTitleButton"..i]
 			if button:GetFontString() then
@@ -119,6 +118,8 @@ f:SetScript("OnEvent", function()
 		m_fontify(QuestInfoObjectivesText,"white")
 		m_fontify(QuestInfoGroupSize,"white")
 		m_fontify(QuestInfoRewardText,"white")
+		m_fontify(QuestInfoRewardsFrame.Header,"color")
+		m_fontify(QuestInfoRewardsFrame.ItemReceiveText,"white")
 	end	
 	
 	QuestFrame:HookScript("OnShow",miirgui_q_fonts)	
@@ -140,7 +141,7 @@ f:SetScript("OnEvent", function()
 		m_fontify(self.MoneyFrame.Name,"white")
 		m_fontify(self.ItemChooseText,"white")	
 	end)
-		
+	
 	QuestInfoRewardsFrame:HookScript("OnShow",function(self)
 		m_fontify(self.Header,"color")
 		m_fontify(self.PlayerTitleText,"white")
@@ -153,6 +154,14 @@ f:SetScript("OnEvent", function()
 		end
 		self.ArtifactXPFrame.Overlay:SetAlpha(0)
 		end)
+	
+	QuestFrame:HookScript("OnEvent",function(_,event)
+		if event == "QUEST_LOG_UPDATE" and QuestInfoRewardsFrame:IsVisible() and not WorldMapFrame:IsVisible() then
+			QuestInfoRewardsFrame.spellHeaderPool.textR, QuestInfoRewardsFrame.spellHeaderPool.textG, QuestInfoRewardsFrame.spellHeaderPool.textB = 1,1,1
+		elseif event == "QUEST_COMPLETE" and QuestInfoRewardsFrame:IsVisible() and not WorldMapFrame:IsVisible() then
+			QuestInfoRewardsFrame.spellHeaderPool.textR, QuestInfoRewardsFrame.spellHeaderPool.textG, QuestInfoRewardsFrame.spellHeaderPool.textB = 1,1,1
+		end
+	end)
 	
 	local function miirgui_QuestFrameProgressItems_Update()
 		m_fontify(QuestProgressTitleText,"color")
@@ -179,28 +188,6 @@ f:SetScript("OnEvent", function()
 	
 	QuestFrameGreetingPanel:HookScript("OnShow", miirgui_greetings_panel)	
 	hooksecurefunc("QuestFrameGreetingPanel_OnShow",miirgui_greetings_panel)
-
-	local function miirgui_QuestMapFrame()
-			for key in pairs(MapQuestInfoRewardsFrame["followerRewardPool"]) do
-			local followerFrame = MapQuestInfoRewardsFrame.followerRewardPool:Acquire();	
-			followerFrame.Class:SetAlpha(0)
-			followerFrame.BG:ClearAllPoints()
-			followerFrame.BG:SetSize(136,32)
-			followerFrame.BG:SetPoint("RIGHT",followerFrame,40.5,2)
-			m_SetTexture(followerFrame.BG,"Interface\\AuctionFrame\\UI-AuctionItemNameFrame.blp")
-			followerFrame.PortraitFrame.PortraitRing:SetAlpha(0)
-			followerFrame.PortraitFrame.LevelBorder:SetAlpha(0)
-			followerFrame.PortraitFrame.Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
-			m_SetTexture(followerFrame.PortraitFrame.PortraitRingQuality,"Interface\\Buttons\\UI-Quickslot.blp")
-			followerFrame.PortraitFrame.PortraitRingQuality:SetSize(84,84)
-			followerFrame.PortraitFrame.PortraitRingQuality:ClearAllPoints()
-			followerFrame.PortraitFrame.PortraitRingQuality:SetPoint("LEFT",followerFrame.PortraitFrame,-16,2)
-			m_fontify(followerFrame.Name,"white")
-			m_fontify(followerFrame.PortraitFrame.Level,"white")
-		end
-	end
-	
-	--QuestMapFrame:HookScript("OnShow",miirgui_QuestMapFrame)
 	
 	local function miirgui_QuestFrame()
 		local numchildren = QuestInfoRewardsFrame:GetNumChildren()
@@ -230,5 +217,30 @@ f:SetScript("OnEvent", function()
 	
 	QuestFrame:HookScript("OnShow",miirgui_QuestFrame)
 	QuestLogPopupDetailFrame:HookScript("OnShow",miirgui_QuestFrame)
-
+	
+	WorldMapFrame.UIElementsFrame.BountyBoard:HookScript("OnShow",function()
+if not InCombatLockdown() then
+	local numChildren = WorldMapFrame.UIElementsFrame.BountyBoard:GetNumChildren()
+	for i=1,numChildren do
+		local frame = select(i,WorldMapFrame.UIElementsFrame.BountyBoard:GetChildren())	
+		if frame:GetHeight() > 44 and frame:GetHeight() < 45 then			
+			local _,emptyicon = frame:GetRegions()
+			emptyicon:ClearAllPoints()
+			emptyicon:SetPoint("CENTER",frame,0,1.5)	
+			
+			local _,_,selected = frame:GetRegions()
+			selected:ClearAllPoints()
+			selected:SetPoint("CENTER",frame,0,0.5)
+			selected:SetSize(44,44)	
+			
+			local icon = frame:GetRegions()
+			icon:ClearAllPoints()
+			icon:SetPoint("CENTER",frame,0,1)
+			icon:SetMask("")
+		end			
+	end
+end
+end)
+	
+	
 end)

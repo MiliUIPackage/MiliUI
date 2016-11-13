@@ -1,5 +1,12 @@
 local function skin_Blizzard_Collections()
 
+		local _,_,_,toybar=ToyBox.progressBar:GetRegions()
+		toybar:SetVertexColor(unpack(miirgui.Color))
+		local _,_,_,loombar=HeirloomsJournal.progressBar:GetRegions()
+		loombar:SetVertexColor(unpack(miirgui.Color))
+		local _,_,_,_,_,wrbar=WardrobeCollectionFrame.progressBar:GetRegions()
+		wrbar:SetVertexColor(unpack(miirgui.Color))
+
 		CollectionsJournalPortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 		MountJournalSummonRandomFavoriteButtonBorder:Hide()
 		MountJournalListScrollFrameScrollBarBG:Hide()
@@ -137,35 +144,12 @@ local function skin_Blizzard_Collections()
 		end
 		
 		local function miirgui_ToySpellButton_UpdateButton(self)
-			local slotFrameCollected = self.slotFrameCollected;
-			slotFrameCollected:Show()	
-
-			if not (PlayerHasToy(self.itemID)) then
-				slotFrameCollected:Show()
-				self:HookScript("OnClick",function()
-					self:UnregisterEvent("SPELLS_CHANGED");
-					self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
-					self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM");
-				end)
-				
-			else
-				slotFrameCollected:Show()				
-				self:HookScript("OnClick",function()
-					self:RegisterEvent("SPELLS_CHANGED");
-					self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
-					self:RegisterEvent("UPDATE_SHAPESHIFT_FORM");
-				end)
-			end
-			
+			 self.slotFrameUncollected:SetTexCoord(0.25, 0.75, 0.25, 0.75)
 		end
 		
 		hooksecurefunc("ToySpellButton_UpdateButton",miirgui_ToySpellButton_UpdateButton)				-- this hook changes the look of the Toys-Tab
 		
 		local function miirgui_CollectionsSpellButton_UpdateCooldown(self)	
-			self:UnregisterEvent("SPELLS_CHANGED");
-			self:UnregisterEvent("SPELL_UPDATE_COOLDOWN");
-			self:UnregisterEvent("UPDATE_SHAPESHIFT_FORM");
-		
 			if not (PlayerHasToy(self.itemID)) then
 				m_fontify(self.name,"grey")
 			else
@@ -337,6 +321,11 @@ local function skin_Blizzard_Collections()
 		m_fontify(WardrobeCollectionFrame.NavigationFrame.PageText,"white")
 		m_border(WardrobeTransmogFrame,652,540,"CENTER",479,2.5,14,"HIGH")
 			
+		WardrobeCollectionFrame.NavigationFrame.PrevPageButton:ClearAllPoints()	
+		WardrobeCollectionFrame.NavigationFrame.PrevPageButton:SetPoint("RIGHT",WardrobeCollectionFrame.NavigationFrame.PageText,42.5,0)
+		WardrobeCollectionFrame.NavigationFrame.NextPageButton:ClearAllPoints()	
+		WardrobeCollectionFrame.NavigationFrame.NextPageButton:SetPoint("RIGHT",WardrobeCollectionFrame.NavigationFrame.PrevPageButton,35,0)
+		
 		local function miirgui_WardrobeCollectionFrame_SetContainer(parent)
 			local collectionFrame = WardrobeCollectionFrame
 			if ( parent == CollectionsJournal ) then
@@ -346,7 +335,13 @@ local function skin_Blizzard_Collections()
 		
 		hooksecurefunc("WardrobeCollectionFrame_SetContainer",miirgui_WardrobeCollectionFrame_SetContainer)
 
-	end
+		m_cursorfix(MountJournalSearchBox)
+		m_cursorfix(PetJournalSearchBox)
+		m_cursorfix(ToyBox.searchBox)
+		m_cursorfix(HeirloomsJournalSearchBox)
+		m_cursorfix(WardrobeCollectionFrameSearchBox)
+		
+end
 
 local f= CreateFrame("FRAME")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")

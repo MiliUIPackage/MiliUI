@@ -12,7 +12,10 @@ local function miirgui_LootAlertSystem(self)
 	if self.SpecIcon then
 		self.SpecIcon:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 	end
-
+	if self.PvPBackground then
+		self.PvPBackground:Hide()
+		self.Background:Show()
+	end
 	self.RollValue:ClearAllPoints()
 	self.RollValue:SetPoint("RIGHT",self.Label,10,0)
 	self.RollTypeIcon:ClearAllPoints()
@@ -52,12 +55,7 @@ hooksecurefunc("LootWonAlertFrame_SetUp",miirgui_LootAlertSystem)
 
 local function miirgui_MoneyWonAlertSystem(self)	
 	self.Background:ClearAllPoints()	
-	
-	if self:GetName() == "BonusRollMoneyWonFrame" then
-		self.Background:SetPoint("CENTER",self,0,0)
-	else
-		self.Background:SetPoint("CENTER",self,0,0.5)
-	end
+	self.Background:SetPoint("CENTER",self,0,0.5)
 	self.Background:SetSize(512,64)
 	self.Background:SetTexCoord(0,1,1,0)
 	m_SetTexture(self.Background,"Interface\\Achievementframe\\miirgui_ach.tga")
@@ -143,47 +141,43 @@ hooksecurefunc(CriteriaAlertSystem,"setUpFunction",miirgui_CriteriaAlertSystem)
 	
 -- GuildchallengeAlert Frame
 			
-local function miirgui_GuildChallengeAlertSystem()
-	GuildChallengeAlertFrameEmblemBackground:SetSize(48,48)
-	GuildChallengeAlertFrameEmblemBackground:ClearAllPoints()
-	GuildChallengeAlertFrameEmblemBackground:SetPoint("LEFT",-32,0)	
-	GuildChallengeAlertFrameEmblemIcon:SetSize(44,44)
-	GuildChallengeAlertFrameEmblemIcon:SetPoint("LEFT",-30,0)
-	local _,GuildChallengeAlertFrameBackground= GuildChallengeAlertFrame:GetRegions()
+local function miirgui_GuildChallengeAlertSystem(self)
+	self.EmblemBackground:SetSize(48,48)
+	self.EmblemBackground:ClearAllPoints()
+	self.EmblemBackground:SetPoint("LEFT",-32,0)	
+	self.EmblemIcon:SetSize(44,44)
+	self.EmblemIcon:SetPoint("LEFT",-30,0)
+	local _,GuildChallengeAlertFrameBackground= self:GetRegions()
 	GuildChallengeAlertFrameBackground:ClearAllPoints()
-	GuildChallengeAlertFrameBackground:SetParent(GuildChallengeAlertFrame)	
+	GuildChallengeAlertFrameBackground:SetParent(self)	
 	GuildChallengeAlertFrameBackground:SetPoint("CENTER",0,0.5)
 	GuildChallengeAlertFrameBackground:SetSize(512,64)
 	GuildChallengeAlertFrameBackground:SetTexCoord(0,1,1,0)
 	m_SetTexture(GuildChallengeAlertFrameBackground,"Interface\\Achievementframe\\miirgui_ach.tga")
-	GuildChallengeAlertFrameEmblemBorder:Hide()
-	local _,_,_,_,GuildChallengeAlertFrameName = GuildChallengeAlertFrame:GetRegions()	
+	self.EmblemBorder:Hide()
+	local _,_,_,_,GuildChallengeAlertFrameName = self:GetRegions()	
 	
 	m_fontify(GuildChallengeAlertFrameName,"color")
 	GuildChallengeAlertFrameName:ClearAllPoints()
-	GuildChallengeAlertFrameName:SetPoint("TOP",GuildChallengeAlertFrame,0,-17)
+	GuildChallengeAlertFrameName:SetPoint("TOP",self,0,-17)
 	GuildChallengeAlertFrameName:SetJustifyH("CENTER")
 	
-	m_fontify(GuildChallengeAlertFrameType,"white")
-	GuildChallengeAlertFrameType:ClearAllPoints()
-	GuildChallengeAlertFrameType:SetPoint("CENTER",GuildChallengeAlertFrameName,0,-20)
-	GuildChallengeAlertFrameType:SetJustifyH("CENTER")
+	m_fontify(self.Type,"white")
+	self.Type:ClearAllPoints()
+	self.Type:SetPoint("CENTER",GuildChallengeAlertFrameName,0,-20)
+	self.Type:SetJustifyH("CENTER")
 	
-	m_fontify(GuildChallengeAlertFrameCount,"color")	
+	m_fontify(self.Count,"color")	
 end
 		
 hooksecurefunc(GuildChallengeAlertSystem,"setUpFunction",miirgui_GuildChallengeAlertSystem)
 	
--- DungeonCompletionAlert Frame
-			
+-- DungeonCompletionAlert Frame	
+	
 local function miirgui_DungeonCompletionAlertSystem(self)
 	m_fontify(self.instanceName,"white")
-	local _,_,_,_,_,_,DungeonCompletionAlertFrameInstanceNamecomplete= DungeonCompletionAlertFrame:GetRegions()
+	local _,_,_,_,_,_,DungeonCompletionAlertFrameInstanceNamecomplete= self:GetRegions()
 	m_fontify(DungeonCompletionAlertFrameInstanceNamecomplete,"color")
-	local _,_,_,_,_,_,_,_,_,numRewards = 10,GetLFGCompletionReward()
-	for i =1, numRewards do
-		_G["DungeonCompletionAlertFrameReward"..i.."Texture"]:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-	end
 end
 		
 hooksecurefunc(DungeonCompletionAlertSystem,"setUpFunction",miirgui_DungeonCompletionAlertSystem)
@@ -280,12 +274,12 @@ local function miirgui_NewRecipeLearnedAlertSystem(self, recipeID)
 		self.Background:SetTexCoord(0,1,1,0)
 		m_SetTexture(self.Background,"Interface\\Achievementframe\\miirgui_ach.tga")
 
-		m_fontify(self.Name,"color")
+		m_fontify(self.Name,"white")
 		self.Name:ClearAllPoints()
 		self.Name:SetPoint("CENTER",self.Title,0,-20)
 		self.Name:SetJustifyH("CENTER")		
 			
-		m_fontify(self.Title,"white")
+		m_fontify(self.Title,"color")
 		self.Title:ClearAllPoints()
 		self.Title:SetPoint("TOP",0,-24)
 		self.Title:SetJustifyH("CENTER")	
@@ -354,7 +348,7 @@ hooksecurefunc(LootUpgradeAlertSystem,"setUpFunction",miirgui_LootUpgradeAlertSy
 --+ GarrisonFollowerAlert Frame
 		
 local function miirgui_GarrisonFollowerAlertSystem(self)
-	local _,_,_,_,GarrisonFollowerAlertFrameBackground = GarrisonFollowerAlertFrame:GetRegions()
+	local _,_,_,_,GarrisonFollowerAlertFrameBackground = self:GetRegions()
 	GarrisonFollowerAlertFrameBackground:SetPoint("Center",0,0)
 	GarrisonFollowerAlertFrameBackground:SetSize(512,64)
 	GarrisonFollowerAlertFrameBackground:SetTexCoord(0,1,1,0)
@@ -423,7 +417,7 @@ hooksecurefunc(GarrisonShipFollowerAlertSystem,"setUpFunction",miirgui_GarrisonS
 --+ Garrison Building Complete Frame
 
 local function miirgui_GarrisonBuildingAlertSystem(self)
-	local GarrisonBuildingAlertSystemBackground = GarrisonBuildingAlertFrame:GetRegions()
+	local GarrisonBuildingAlertSystemBackground = self:GetRegions()
 	GarrisonBuildingAlertSystemBackground:ClearAllPoints()
 	GarrisonBuildingAlertSystemBackground:SetParent(self)	
 	GarrisonBuildingAlertSystemBackground:SetPoint("Center",0,0)
@@ -541,8 +535,8 @@ local function miirgui_LegendaryItemAlertSystem(self)
 	LegendaryItemAlertFrameLegendaryItem:ClearAllPoints()
 	LegendaryItemAlertFrameLegendaryItem:SetPoint("TOP",self,0,-38)
 	LegendaryItemAlertFrameLegendaryItem:SetJustifyH("CENTER")
-	LegendaryItemAlertFrameShine:ClearAllPoints()
-	LegendaryItemAlertFrameGlow:ClearAllPoints()
+	self.shine:ClearAllPoints()
+	self.glow:ClearAllPoints()
 	self.ItemName:ClearAllPoints()
 	self.ItemName:SetPoint("CENTER",LegendaryItemAlertFrameLegendaryItem,0,-20)
 	self.ItemName:SetJustifyH("CENTER")
@@ -565,25 +559,24 @@ local function miirgui_LegendaryItemAlertSystem(self)
 	self.Particles2:Hide()
 	self.Particles3:Hide()
 	self.Ring1:Hide()
-	LegendaryItemAlertFrameGlow:Hide()
+	self.glow:Hide()
 end
 
 hooksecurefunc(LegendaryItemAlertSystem,"setUpFunction",miirgui_LegendaryItemAlertSystem)
 		
 --+ WorldQuestCompleteAlert Frame
-		
-local function miirgui_WorldQuestCompleteAlertSystem()		
-	local self = WorldQuestCompleteAlertFrame
-	local _,_,_,_,_,WorldQuestCompleteAlertFrameCompleted = WorldQuestCompleteAlertFrame:GetRegions()
-	m_fontify(WorldQuestCompleteAlertFrameCompleted,"white")	
+
+local function miirgui_WorldQuestCompleteAlertSystem(self)	
+	local _,_,_,_,_,WorldQuestCompleteAlertFrameCompleted = self:GetRegions()
+	m_fontify(WorldQuestCompleteAlertFrameCompleted,"color")	
 	WorldQuestCompleteAlertFrameCompleted:ClearAllPoints()
 	WorldQuestCompleteAlertFrameCompleted:SetPoint("TOP",self,0,-24)
 	WorldQuestCompleteAlertFrameCompleted:SetJustifyH("CENTER")
 	self.QuestName:ClearAllPoints()
 	self.QuestName:SetPoint("CENTER",WorldQuestCompleteAlertFrameCompleted,0,-20)
-	m_fontify(self.QuestName,"color")
+	m_fontify(self.QuestName,"white")
 	self.QuestName:SetJustifyH("CENTER")
-
+	
 	local _,hideit,hideit2,hideit3=self:GetRegions()
 	hideit:Hide()
 	hideit2:Hide()
@@ -601,25 +594,27 @@ local function miirgui_WorldQuestCompleteAlertSystem()
 	self.QuestTexture:SetPoint("LEFT",-11,1)
 	self.QuestTexture:SetSize(46,46)
 	self.QuestTexture:SetTexCoord(0.15, 0.85, 0.15, 0.85) ;
-	
-	if self.RewardFrames then
+end
+
+hooksecurefunc(WorldQuestCompleteAlertSystem,"setUpFunction",miirgui_WorldQuestCompleteAlertSystem)	
+
+hooksecurefunc("StandardRewardAlertFrame_AdjustRewardAnchors",function(frame)
+	if frame.RewardFrames then
 		local numReward = 0
-		for key in pairs(self.RewardFrames) do
-			self.RewardFrames[key].texture:SetTexCoord(0.15, 0.85, 0.15, 0.85) ;
+		for key in pairs(frame.RewardFrames) do
+			frame.RewardFrames[key].texture:SetTexCoord(0.15, 0.85, 0.15, 0.85) ;
 			numReward = numReward+1	
 			if numReward == 1 then
-				self.RewardFrames[1]:ClearAllPoints()
-				self.RewardFrames[1]:SetPoint("TOP", self,0,6);
+				frame.RewardFrames[1]:ClearAllPoints()
+				frame.RewardFrames[1]:SetPoint("TOP", frame,0,6);
 			elseif numReward >1 then
-				self.RewardFrames[1]:ClearAllPoints()
-				self.RewardFrames[1]:SetPoint("TOP", self,-8*numReward,6);
+				frame.RewardFrames[1]:ClearAllPoints()
+				frame.RewardFrames[1]:SetPoint("TOP", frame,-8*numReward,6);
 			end
 		end
-	end
-end
-		
-hooksecurefunc(WorldQuestCompleteAlertSystem,"AddAlert",miirgui_WorldQuestCompleteAlertSystem)
-	
+	end	
+end)
+
 --+ Garison Talent AlertFrame
 
 local function miirgui_GarrisonTalentAlertSystem(self)
@@ -661,6 +656,5 @@ CollectionsMicroButtonAlertBg:SetGradientAlpha("HORIZONTAL", 1, 1, 1, 1, 1, 1, 1
 CollectionsMicroButtonAlertBg:SetColorTexture(0.078,0.078,0.078,1)
 m_border(CollectionsMicroButtonAlert,226,76,"CENTER",0,0,14,"DIALOG")
 m_fontify(CollectionsMicroButtonAlert.Text,"white")
-
 
 end)

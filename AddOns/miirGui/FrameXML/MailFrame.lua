@@ -75,11 +75,11 @@ local frame = CreateFrame("FRAME")
 frame:RegisterEvent("ITEM_TEXT_READY")
 frame:RegisterEvent("ITEM_TEXT_READY")
 function frame:OnEvent(event)
-	if m_border_ItemTextFrame then
-	else
+	if not m_border_ItemTextFrame then
 		m_border(ItemTextFrame,330,364,"Center",0,-27,14,"MEDIUM")
 	end
-	if  event == "ITEM_TEXT_READY"  then
+
+	if event == "ITEM_TEXT_READY" then
 		ItemTextFramePageBg:Hide()
 		ItemTextMaterialTopLeft:Hide()
 		ItemTextMaterialTopRight:Hide()
@@ -87,9 +87,6 @@ function frame:OnEvent(event)
 		ItemTextMaterialBotRight:Hide()
 		ItemTextScrollFrameScrollBar.Background:Hide()
 		m_fontify(ItemTextPageText,"white")
-		
-	end
-	if event == "ITEM_TEXT_READY" then
 		local material = ItemTextGetMaterial(); 
 		if(material == "ParchmentLarge") then	
 			ItemTextPageText:SetTextColor("P", 1,1,1,1)
@@ -98,15 +95,27 @@ function frame:OnEvent(event)
 			ItemTextPageText:SetTextColor("H3",unpack(miirgui.Color))
 			m_border_ItemTextFrame:SetPoint("TOPLEFT","ItemTextFrame",2,-58)
 			m_border_ItemTextFrame:SetPoint("BOTTOMRIGHT","ItemTextFrame",-4,2)
+			
+			local _,spacer = ItemTextPageText:GetRegions()
+			if spacer:GetTexture() == 1368285 then
+				spacer:SetVertexColor(unpack(miirgui.Color))
+			end
+			
 		else 
 			ItemTextPageText:SetTextColor("P", 1,1,1,1)
 			ItemTextPageText:SetTextColor("H1",unpack(miirgui.Color))
 			ItemTextPageText:SetTextColor("H2",unpack(miirgui.Color))
 			ItemTextPageText:SetTextColor("H3",unpack(miirgui.Color))
 		end
-
 	end
 end
 frame:SetScript("OnEvent", frame.OnEvent);
+
+m_cursorfix(SendMailNameEditBox)
+m_cursorfix(SendMailSubjectEditBox)
+m_cursorfix(SendMailMoneyGold)
+m_cursorfix(SendMailMoneySilver)
+m_cursorfix(SendMailMoneyCopper)
+m_cursorfix(SendMailBodyEditBox)
 
 end)

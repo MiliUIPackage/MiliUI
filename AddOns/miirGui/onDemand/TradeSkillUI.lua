@@ -8,7 +8,24 @@ local function skin_Blizzard_TradeSkillUI()
 			m_border(TradeSkillFrame,340,TradeSkillFrame:GetHeight()-102,"TOPLEFT",326,-79,14,"HIGH")	
 			m_border(m_border_TradeSkillFrame,330,TradeSkillFrame:GetHeight()-82,"TOPLEFT",-325,0,14,"HIGH")
 		end)
-	end
+		TradeSkillFrame.RankFrame.Bar:SetVertexColor(unpack(miirgui.Color))
+		
+		m_cursorfix(TradeSkillFrame.SearchBox)
+		
+		hooksecurefunc(TradeSkillFrame.DetailsFrame,"RefreshDisplay",function(self)
+			local recipeInfo = self.selectedRecipeID and C_TradeSkillUI.GetRecipeInfo(self.selectedRecipeID);
+			if recipeInfo then
+				local sourceText
+				if recipeInfo.nextRecipeID then
+					sourceText = C_TradeSkillUI.GetRecipeSourceText(recipeInfo.nextRecipeID);
+					if sourceText then
+						self.Contents.SourceText:SetText(sourceText);
+					end
+				end	
+			end
+		end)
+	
+end
 	
 local f= CreateFrame("FRAME")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")

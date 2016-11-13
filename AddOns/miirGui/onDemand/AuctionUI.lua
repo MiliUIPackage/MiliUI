@@ -94,6 +94,15 @@ local function skin_Blizzard_AuctionUI()
 	m_fontify(WowTokenGameTimeTutorial.RightDisplay.Tutorial2,"white")
 	m_fontify(WowTokenGameTimeTutorial.RightDisplay.Tutorial3,"white")
 	
+	m_cursorfix(BrowseName)
+	m_cursorfix(BrowseMinLevel)
+	m_cursorfix(BrowseMaxLevel)
+	m_cursorfix(StartPriceGold)
+	m_cursorfix(StartPriceSilver)
+	m_cursorfix(StartPriceCopper)
+	m_cursorfix(BuyoutPriceGold)
+	m_cursorfix(BuyoutPriceSilver)
+	m_cursorfix(BuyoutPriceCopper)
 end	
 		
 local f= CreateFrame("FRAME")

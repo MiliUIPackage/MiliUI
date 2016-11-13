@@ -8,7 +8,7 @@ local function skin_Blizzard_MacroUI()
 		MacroFramePortraitmiirgui:SetPoint("TOPLEFT",-8,9)
 		MacroFramePortraitmiirgui:SetWidth(64)
 		MacroFramePortraitmiirgui:SetHeight(64)
-
+	
 	end
 	
 local f= CreateFrame("FRAME")

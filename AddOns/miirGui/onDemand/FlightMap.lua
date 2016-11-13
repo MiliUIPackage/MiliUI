@@ -1,7 +1,7 @@
 local function skin_Blizzard_FlightMap()
-		FlightMapFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
-		FlightMapFramePortrait:SetAlpha(1)
-		FlightMapFramePortrait:SetPoint("TOPLEFT",-7,7)
+	FlightMapFramePortrait:SetBlendMode("DISABLE")
+	FlightMapFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
+	FlightMapFramePortrait:SetPoint("TOPLEFT",-7,7)
 end			
 
 local f= CreateFrame("FRAME")

@@ -196,6 +196,8 @@ local function skin_Blizzard_GarrisonUI()
 			end
 					
 		hooksecurefunc(GarrisonShipyardFrameFollowers,"ExpandButton",miirgui_Ship_Expand)
+		
+		m_cursorfix(GarrisonShipyardFrameFollowers.SearchBox)
 	end	
 
 local f= CreateFrame("FRAME")

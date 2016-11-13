@@ -1,3 +1,5 @@
+	-- Icon function 
+	
 		function m_icon(arg1, arg2, arg3, arg4, arg5)
 			local f = CreateFrame("Frame",nil,arg1)
 			f:SetFrameStrata(arg5)
@@ -9,6 +11,8 @@
 			f:SetPoint("Topleft",arg3,arg4)
 			f:Show() 
 		end
+		
+		-- Border Function
 		
 		function m_border(arg1,arg2,arg3,arg4,arg5,arg6,arg7,arg8)
 			if arg1:GetName() == nil then
@@ -38,12 +42,28 @@
 		f:RegisterEvent("PLAYER_LOGIN")
 		f:SetScript("OnEvent", function()
 		
+		function m_cursorfix(arg1)
+			if not miirguiDB.savemode then
+				arg1:HookScript("OnCursorChanged",function(self) 
+					local kids = { self:GetRegions() }		
+					local point, relativeTo, relativePoint, xOfs, yOfs = kids[2]:GetPoint()
+					if xOfs == kids[1]:GetStringWidth() then
+						local offset = floor((kids[1]:GetStringHeight()/3.5)+0.5)
+						kids[2]:SetPoint(point, relativeTo, relativePoint, kids[1]:GetStringWidth()-offset, yOfs)
+					end
+					
+				end)
+			end
+		end
+		
+		-- Font Coloring Function
+		
 		function m_fontify(arg1,arg2,arg3)
 			-- arg 1 is the stringname, arg3 is the color, arg3 is optional for font-size
 			local fontName= arg1:GetFont()
 			
-			if  miirguiDB["savemode"] == false then
-				arg1:SetShadowColor(0,0,0,0)
+			if  miirguiDB.savemode == false then
+				arg1:SetShadowOffset(0,0)
 			else
 				arg1:SetShadowColor(0,0,0,1)
 				arg1:SetShadowOffset(1,-1)
@@ -63,10 +83,10 @@
 				arg1:SetTextColor(unpack(arg2))
 			end
 			
-			if arg3 and miirguiDB["savemode"] == false then
+			if arg3 and miirguiDB.savemode == false then
 				arg1:SetFont(fontName, arg3, "OUTLINE")
-				arg1:SetShadowColor(0,0,0,0)
-			elseif arg3 and miirguiDB["savemode"] == true then
+				arg1:SetShadowOffset(0,0)
+			elseif arg3 and miirguiDB.savemode == true then
 				arg1:SetFont(fontName, arg3)
 				arg1:SetShadowColor(0,0,0,1)
 				arg1:SetShadowOffset(1,-1)
@@ -75,7 +95,8 @@
 
 		end
 	
-		-- This function checks if the texture we are trying to set it already set so we do not set it again
+		-- This function checks if the texture we are trying to set it 
+		--		already set so we do not set it again
 		
 		function m_SetTexture(arg1,arg2)
 			if arg1:GetTexture() ~= arg2 then
@@ -83,7 +104,8 @@
 			end
 		end
 		
-		-- This function sets an outline to every font we can find, so we do not have to set it again.
+		-- This function sets an outline to every font we can find, 
+		--		so we do not have to set it again.
 
 		local function SetFont(obj, optSize)
 			local fontName, fontHeight = obj:GetFont()	
@@ -92,7 +114,7 @@
 			end
 			if  miirguiDB["savemode"] == false then
 				obj:SetFont(fontName,fontHeight,"OUTLINE")
-				obj:SetShadowColor(0,0,0,0)
+				--obj:SetShadowColor(0,0,0,0)
 				obj:SetShadowOffset(0,0)
 			elseif miirguiDB["savemode"] == true then
 				obj:SetFont(fontName,fontHeight)
@@ -101,17 +123,17 @@
 			end
 		end
 
-		-- Change fonts-size by adding it:
+		-- Change / add fonts-size by adding it:
 		
 			--e.g: SetFont(AchievementFont_Small,20) 
-			
-			--SetFont(ChatFontNormal) does not seem to have any impact
+
+			SetFont(ChatFontNormal)
+			SetFont(NumberFont_Shadow_Med)
 			SetFont(AchievementFont_Small)
 			SetFont(NumberFont_OutlineThick_Mono_Small)
 			SetFont(NumberFont_Outline_Huge)
 			SetFont(NumberFont_Outline_Large)
 			SetFont(NumberFont_Outline_Med)
-			SetFont(NumberFont_Shadow_Med)
 			SetFont(NumberFont_Shadow_Small)
 			SetFont(SystemFont_InverseShadow_Small)
 			SetFont(SystemFont_Large)
@@ -213,9 +235,24 @@
 			SetFont(GameFontNormalLarge2)
 			SetFont(Game30Font)
 			SetFont(Game24Font)
+			SetFont(Game20Font)
 			SetFont(Game18Font)
-			SetFont(Fancy16Font)
+			SetFont(Fancy24Font) -- e.g. Weekly best @ ChallengesFrame
+			SetFont(Fancy16Font)			
+			SetFont(Fancy48Font)
 			SetFont(Fancy22Font) -- e.g. TalkingHeadFrame TitleFont
+			SetFont(Fancy32Font)
 			SetFont(SystemFont_LargeNamePlate,11) -- The font of the nameplate seems to be dynamicly rendered, so we set a fixed size. Without a fixed size it will be huge.
-			SetFont(WhiteNormalNumberFont)
+			SetFont(SystemFont_NamePlate,11)
+			SetFont(SystemFont_LargeNamePlateFixed,11)
+			SetFont(SystemFont_NamePlateFixed,11)
+			SetFont(WhiteNormalNumberFont) -- font shown at tradeskill skillbars
+			SetFont(PVPInfoTextFont)
+			SetFont(ChatFrame1EditBox)				-- chateditbox input text
+			SetFont(ChatFrame1EditBoxHeader)	-- chateditbox say/whisper/guild text
+			SetFont(GameTooltipHeader)			-- dungeon journal suggestion font
+			for i=1, NUM_CHAT_WINDOWS do	
+					SetFont(_G["ChatFrame"..i])		--chat itself
+			end
+			m_cursorfix(ChatFrame1EditBox)
 		end)

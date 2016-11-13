@@ -40,6 +40,9 @@ local function skin_Blizzard_VoidStorageUI()
 					end
 				end
 			end
+			
+			m_cursorfix(VoidItemSearchBox)
+			
 		end
 
 		hooksecurefunc("VoidStorage_ItemsUpdate", miirgui_VoidStorage_ItemsUpdate)

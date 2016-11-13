@@ -1,7 +1,6 @@
 local f = CreateFrame("Frame")
 f:RegisterEvent("PLAYER_LOGIN")
 f:SetScript("OnEvent", function()
-
 	CharacterStatsPane.ClassBackground:Hide()
 	PaperDollEquipmentManagerPaneEquipSet.ButtonBackground:Hide()
 	m_fontify(CharacterStatsPane.ItemLevelCategory.Title,"color")
