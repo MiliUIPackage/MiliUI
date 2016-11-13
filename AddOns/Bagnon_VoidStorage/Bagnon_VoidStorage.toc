@@ -6,7 +6,7 @@
 ## Notes-zhTW: 功能強大的整合背包。
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1
-## Version: 7.0.4
+## Version: 7.1.1
 
 localization\localization.xml
 components\components.xml

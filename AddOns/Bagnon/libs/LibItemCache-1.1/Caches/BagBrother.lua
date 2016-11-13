@@ -1,5 +1,5 @@
 --[[
-Copyright 2011-2015 João Cardoso
+Copyright 2011-2016 João Cardoso
 LibItemCache is distributed under the terms of the GNU General Public License.
 You can redistribute it and/or modify it under the terms of the license as
 published by the Free Software Foundation.

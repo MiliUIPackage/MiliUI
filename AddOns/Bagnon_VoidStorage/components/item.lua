@@ -68,6 +68,8 @@ end
 --[[ Tooltip ]]--
 
 function ItemSlot:ShowTooltip()
+	self:AnchorTooltip()
+
 	if self.bag == 'vault' then
 		GameTooltip:SetVoidItem(1, self:GetID())
 	elseif self.bag == DEPOSIT then
@@ -75,6 +77,9 @@ function ItemSlot:ShowTooltip()
 	else
 		GameTooltip:SetVoidWithdrawalItem(self:GetID())
 	end
+
+	GameTooltip:Show()
+	CursorUpdate(self)
 
 	if IsModifiedClick('DRESSUP') then
 		ShowInspectCursor()
