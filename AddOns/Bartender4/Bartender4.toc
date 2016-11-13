@@ -1,5 +1,5 @@
 ## Interface: 70100
-## X-Curse-Packaged-Version: 4.7.2
+## X-Curse-Packaged-Version: 4.7.4
 ## X-Curse-Project-Name: Bartender4
 ## X-Curse-Project-ID: bartender4
 ## X-Curse-Repository-ID: wow/bartender4/mainline
@@ -9,7 +9,7 @@
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[Bartender4]|r 自訂快捷
 ## Notes-zhTW: 將原先系統預設的快捷鍵位置隨自己喜好排列擺設。  『/bt』
 
-## Version: 4.7.2
+## Version: 4.7.4
 
 ## Author: Nevcairiel
 ## X-Email: h.leppkes at gmail dot com
