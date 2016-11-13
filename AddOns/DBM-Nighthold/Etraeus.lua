@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1732, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15190 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15224 $"):sub(12, -3))
 mod:SetCreatureID(103758)
 mod:SetEncounterID(1863)
 mod:SetZone()
@@ -117,7 +117,6 @@ local voiceWorldDevouringForce		= mod:NewVoice(216909)--farfromline
 
 
 mod:AddRangeFrameOption("5/8")
---mod:AddSetIconOption("SetIconOnMC", 163472, false)
 mod:AddHudMapOption("HudMapOnConjunction", 205408)
 mod:AddBoolOption("ShowNeutralColor", false)
 mod:AddInfoFrameOption(205408)--really needs a "various" option

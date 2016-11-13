@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1653, "DBM-Party-Legion", 1, 740)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15188 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15197 $"):sub(12, -3))
 mod:SetCreatureID(98696)
 mod:SetEncounterID(1833)
 mod:SetZone()
@@ -104,7 +104,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			voiceDarkRush:Play("targetyou")
 		end
 		if self.Options.SetIconOnDarkRush then
-			self:SetAlphaIcon(0.5, args.destName, 1, 3)
+			self:SetAlphaIcon(0.5, args.destName, 3)
 		end
 	end
 end

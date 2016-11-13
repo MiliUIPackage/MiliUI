@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1489, "DBM-Party-Legion", 4, 721)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15186 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15270 $"):sub(12, -3))
 mod:SetCreatureID(95676)
 mod:SetEncounterID(1809)
 mod:SetZone()
@@ -16,7 +16,6 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
---TODO, add HUD option/arrows when I have map data collected for rune locations
 --http://legion.wowhead.com/icons/name:boss_odunrunes_
 --["198263-Radiant Tempest"] = "pull:8.0, 72.0, 40.0", huh?
 local warnSpear						= mod:NewSpellAnnounce(198072, 2)--Target not available so no target warning.
@@ -85,7 +84,7 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 197963 and args:IsPlayer() then--Purple K (NE)
-		specWarnRunicBrand:Show("NE")
+		specWarnRunicBrand:Show("|TInterface\\Icons\\Boss_OdunRunes_Purple.blp:12:12|tNE|TInterface\\Icons\\Boss_OdunRunes_Purple.blp:12:12|t")
 		voiceRunicBrand:Play("frontright")
 		if self.Options.HudMapForRunes then
 			local m1 = DBMHudMap:RegisterRangeMarkerOnPartyMember(spellId, "highlight", args.destName, 0.1, 12, 0, 1, 0, 0.5):Appear()--tiny dot for self, to create line PoO
@@ -93,7 +92,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			m2:EdgeTo(m1, nil, 12, 0, 1, 0, 1)--Now draw line between player and rune
 		end
 	elseif spellId == 197964 and args:IsPlayer() then--Orange N (SE)
-		specWarnRunicBrand:Show("SE")
+		specWarnRunicBrand:Show("|TInterface\\Icons\\Boss_OdunRunes_Orange.blp:12:12|tSE|TInterface\\Icons\\Boss_OdunRunes_Orange.blp:12:12|t")
 		voiceRunicBrand:Play("backright")
 		if self.Options.HudMapForRunes then
 			local m1 = DBMHudMap:RegisterRangeMarkerOnPartyMember(spellId, "highlight", args.destName, 0.1, 12, 0, 1, 0, 0.5):Appear()--tiny dot for self, to create line PoO
@@ -101,7 +100,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			m2:EdgeTo(m1, nil, 12, 0, 1, 0, 1)--Now draw line between player and rune
 		end
 	elseif spellId == 197965 and args:IsPlayer() then--Yellow H (SW)
-		specWarnRunicBrand:Show("SW")
+		specWarnRunicBrand:Show("|TInterface\\Icons\\Boss_OdunRunes_Yellow.blp:12:12|tSW|TInterface\\Icons\\Boss_OdunRunes_Yellow.blp:12:12|t")
 		voiceRunicBrand:Play("backleft")
 		if self.Options.HudMapForRunes then
 			local m1 = DBMHudMap:RegisterRangeMarkerOnPartyMember(spellId, "highlight", args.destName, 0.1, 12, 0, 1, 0, 0.5):Appear()--tiny dot for self, to create line PoO
@@ -109,7 +108,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			m2:EdgeTo(m1, nil, 12, 0, 1, 0, 1)--Now draw line between player and rune
 		end
 	elseif spellId == 197966 and args:IsPlayer() then--Blue fishies (NW)
-		specWarnRunicBrand:Show("NW")
+		specWarnRunicBrand:Show("|TInterface\\Icons\\Boss_OdunRunes_Blue.blp:12:12|tNW|TInterface\\Icons\\Boss_OdunRunes_Blue.blp:12:12|t")
 		voiceRunicBrand:Play("frontleft")
 		if self.Options.HudMapForRunes then
 			local m1 = DBMHudMap:RegisterRangeMarkerOnPartyMember(spellId, "highlight", args.destName, 0.1, 12, 0, 1, 0, 0.5):Appear()--tiny dot for self, to create line PoO
@@ -117,7 +116,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			m2:EdgeTo(m1, nil, 12, 0, 1, 0, 1)--Now draw line between player and rune
 		end
 	elseif spellId == 197967 and args:IsPlayer() then--Green box (N)
-		specWarnRunicBrand:Show("N")
+		specWarnRunicBrand:Show("|TInterface\\Icons\\Boss_OdunRunes_Green.blp:12:12|tN|TInterface\\Icons\\Boss_OdunRunes_Green.blp:12:12|t")
 		voiceRunicBrand:Play("frontcenter")--Does not exist yet
 		if self.Options.HudMapForRunes then
 			local m1 = DBMHudMap:RegisterRangeMarkerOnPartyMember(spellId, "highlight", args.destName, 0.1, 12, 0, 1, 0, 0.5):Appear()--tiny dot for self, to create line PoO

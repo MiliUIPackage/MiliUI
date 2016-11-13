@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1743, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15190 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15244 $"):sub(12, -3))
 mod:SetCreatureID(106643)
 mod:SetEncounterID(1872)
 mod:SetZone()
@@ -133,7 +133,7 @@ local SingularityTimers = {25, 60.0, 35.0}
 local OrbTimers = {70, 30}--76.9, 12.0, 80.0 (OLD)
 --Only exist in phase 3 so first timer of course isn't variable
 local BurstTimers = {27.6, 100}
-local TormentTimers = {140, 30}-- 45.0, 79.0 (OLD)
+local TormentTimers = {140}-- 45.0, 79.0 (OLD)
 local currentTank, tankUnitID = nil, nil--not recoverable on purpose
 mod.vb.firstElementals = false
 mod.vb.slowElementalCount = 0
@@ -298,7 +298,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		local nextCount = self.vb.beamCastCount + 1
 		if self.vb.phase == 2 then
 			self.vb.totalbeamCasts = self.vb.totalbeamCasts + 1
-			if not DBM.Options.EnablePatchRestrictions then
+			if not self:HasMapRestrictions() then
 				currentTank, tankUnitID = self:GetCurrentTank()
 				if not currentTank then
 					DBM:Debug("Tank Detection Failure in HudMapOnDelphuricBeam", 2)
@@ -354,7 +354,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			yellDelphuricBeam:Yell()
 		end
 		--TODO, phase 3 lines need exact location of the echo ( map coords )
-		if self.Options.HudMapOnDelphuricBeam and not DBM.Options.EnablePatchRestrictions then
+		if self.Options.HudMapOnDelphuricBeam and not self:HasMapRestrictions() then
 			self:Unschedule(checkPlayerDot)
 			self:Schedule(0.3, checkPlayerDot, self, args.spellName)--Give player just a dot if they don't end up with debuff
 			--Always put dots up

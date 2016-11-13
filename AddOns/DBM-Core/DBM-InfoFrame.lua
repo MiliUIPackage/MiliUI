@@ -97,6 +97,13 @@ do
 	local function toggleShowSelf()
 		DBM.Options.InfoFrameShowSelf = not DBM.Options.InfoFrameShowSelf
 	end
+	
+	local function setLines(self, line)
+		if line ~= 0 then
+			DBM.Options.InfoFrameLines = line
+			maxlines = line
+		end
+	end
 
 	function initializeDropdown(dropdownFrame, level, menu)
 		local info
@@ -117,6 +124,14 @@ do
 			end
 			info.func = toggleShowSelf
 			UIDropDownMenu_AddButton(info, 1)
+			
+			info = UIDropDownMenu_CreateInfo()
+			info.text = DBM_CORE_INFOFRAME_SETLINES
+			info.notCheckable = true
+			info.hasArrow = true
+			info.keepShownOnClick = true
+			info.menuList = "lines"
+			UIDropDownMenu_AddButton(info, 1)
 
 			info = UIDropDownMenu_CreateInfo()
 			info.text = HIDE
@@ -124,6 +139,57 @@ do
 			info.func = infoFrame.Hide
 			info.arg1 = infoFrame
 			UIDropDownMenu_AddButton(info, 1)
+		elseif level == 2 then
+			if menu == "lines" then
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINESDEFAULT
+				info.func = setLines
+				info.arg1 = 0
+				info.checked = (DBM.Options.InfoFrameLines == 0)
+				UIDropDownMenu_AddButton(info, 2)
+
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(3)
+				info.func = setLines
+				info.arg1 = 3
+				info.checked = (DBM.Options.InfoFrameLines == 3)
+				UIDropDownMenu_AddButton(info, 2)
+
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(5)
+				info.func = setLines
+				info.arg1 = 5
+				info.checked = (DBM.Options.InfoFrameLines == 5)
+				UIDropDownMenu_AddButton(info, 2)
+				
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(8)
+				info.func = setLines
+				info.arg1 = 8
+				info.checked = (DBM.Options.InfoFrameLines == 8)
+				UIDropDownMenu_AddButton(info, 2)
+				
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(10)
+				info.func = setLines
+				info.arg1 = 10
+				info.checked = (DBM.Options.InfoFrameLines == 10)
+				UIDropDownMenu_AddButton(info, 2)
+				
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(15)
+				info.func = setLines
+				info.arg1 = 15
+				info.checked = (DBM.Options.InfoFrameLines == 15)
+				UIDropDownMenu_AddButton(info, 2)
+				
+				info = UIDropDownMenu_CreateInfo()
+				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(20)
+				info.func = setLines
+				info.arg1 = 20
+				info.checked = (DBM.Options.InfoFrameLines == 20)
+				UIDropDownMenu_AddButton(info, 2)
+			end
 		end
 	end
 end
@@ -152,7 +218,7 @@ function createFrame()
 	frame:SetToplevel(true)
 	frame:SetMovable(1)
 	GameTooltip_OnLoad(frame)
-	frame:SetPadding(16)
+	frame:SetPadding(16, 0)
 	frame:RegisterForDrag("LeftButton")
 	frame:SetScript("OnDragStart", function(self)
 		if not DBM.Options.InfoFrameLocked then
@@ -268,10 +334,15 @@ local function updatePlayerPower()
 	twipe(lines)
 	local threshold = value[1]
 	local powerType = value[2]
+	local spellFilter = value[3]--Passed as spell name already
 	for uId in DBM:GetGroupMembers() do
-		local maxPower = UnitPowerMax(uId, powerType)
-		if maxPower ~= 0 and not UnitIsDeadOrGhost(uId) and UnitPower(uId, powerType) / UnitPowerMax(uId, powerType) * 100 >= threshold then
-			lines[UnitName(uId)] = UnitPower(uId, powerType)
+		if spellFilter and UnitDebuff(uId, spellFilter) then
+			--Do nothing
+		else
+			local maxPower = UnitPowerMax(uId, powerType)
+			if maxPower ~= 0 and not UnitIsDeadOrGhost(uId) and UnitPower(uId, powerType) / UnitPowerMax(uId, powerType) * 100 >= threshold then
+				lines[UnitName(uId)] = UnitPower(uId, powerType)
+			end
 		end
 	end
 	if DBM.Options.InfoFrameShowSelf and not lines[playerName] and UnitPower("player", powerType) > 0 then
@@ -552,7 +623,7 @@ function onUpdate(frame)
 		local icon = icons[leftText] and icons[leftText]..leftText
 		if friendlyEvents[currentEvent] then
 			local unitId = DBM:GetRaidUnitId(DBM:GetUnitFullName(leftText)) or "player"--Prevent nil logical error
-			local addedSelf
+			--local addedSelf
 			if unitId and select(4, UnitPosition(unitId)) == currentMapId then
 				local _, class = UnitClass(unitId)
 				if class then
@@ -560,7 +631,7 @@ function onUpdate(frame)
 				end
 				linesShown = linesShown + 1
 				if leftText == playerName then--It's player.
-					addedSelf = true
+					--addedSelf = true
 					if currentEvent == "health" or currentEvent == "playerpower" or currentEvent == "playerbuff" or currentEvent == "playergooddebuff" or currentEvent == "playerbaddebuff" or currentEvent == "playerdebuffremaining" or currentEvent == "playerbuffremaining" or currentEvent == "playerbaddebuffbyspellid" or currentEvent == "playertargets" or (currentEvent == "playeraggro" and value[1] == 3) then--Red
 						frame:AddDoubleLine(icon or leftText, rightText, 255, 0, 0, 255, 255, 255)-- (leftText, rightText, left.R, left.G, left.B, right.R, right.G, right.B)
 					else--Green
@@ -585,9 +656,9 @@ function onUpdate(frame)
 					end
 				end
 			end
-			if not addedSelf and DBM.Options.InfoFrameShowSelf and currentEvent == "playerpower" then-- Only Shows on playerpower event.
-				frame:AddDoubleLine(playerName, lines[playerName], color.r, color.g, color.b, 255, 255, 255)
-			end
+			--if not addedSelf and DBM.Options.InfoFrameShowSelf and currentEvent == "playerpower" then-- Only Shows on playerpower event.
+			--	frame:AddDoubleLine(playerName, lines[playerName], color.r, color.g, color.b, 255, 255, 255)
+			--end
 		else
 			local unitId = DBM:GetRaidUnitId(DBM:GetUnitFullName(leftText))
 			if unitId then
@@ -611,7 +682,11 @@ function infoFrame:Show(maxLines, event, ...)
 	currentMapId = select(4, UnitPosition("player"))
 	if DBM.Options.DontShowInfoFrame and (event or 0) ~= "test" then return end
 
-	maxlines = maxLines or 5
+	if DBM.Options.InfoFrameLines and DBM.Options.InfoFrameLines ~= 0 then
+		maxlines = DBM.Options.InfoFrameLines
+	else
+		maxlines = maxLines or 5
+	end
 	currentEvent = event
 	for i = 1, select("#", ...) do
 		value[i] = select(i, ...)

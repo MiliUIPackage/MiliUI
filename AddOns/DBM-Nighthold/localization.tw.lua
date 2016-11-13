@@ -40,8 +40,8 @@ L= DBM:GetModLocalization(1751)
 L= DBM:GetModLocalization(1762)
 
 L:SetMiscLocalization({
-	First					= "第一",
-	Second			= "第二",
+	First				= "第一",
+	Second				= "第二",
 	Third				= "第三"
 })
 
@@ -64,7 +64,7 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
-	RadarMessage				= "使用雷達找到無減益的隊友並用HUD去閃避減益。未來希望能加強此功能並提供更多選項。"
+	RadarMessage			= "使用雷達找到無減益的夥伴加上HUD去閃避減益。未來希望能加強此功能並提供更多選項。"
 })
 
 ------------------
@@ -73,14 +73,18 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(1732)
 
 L:SetOptionLocalization({
-	ShowNeutralColor			= "為沒有星之記號的玩家顯示HUB的白圈，直到所有記號被清除。",
-	FilterOtherSigns			= "過濾與你無關的星之記號點名。"
+	ShowNeutralColor		= "為沒有星之記號的玩家顯示HUB的白圈，直到所有記號被清除。",
+	FilterOtherSigns		= "過濾與你無關的星之記號點名。"
 })
 
 ------------------
 -- Grand Magistrix Elisande --
 ------------------
 L= DBM:GetModLocalization(1743)
+
+L:SetMiscLocalization({
+	noCLEU4EchoRings		= "Let the waves of time crash over you!"
+})
 
 ------------------
 -- Gul'dan --

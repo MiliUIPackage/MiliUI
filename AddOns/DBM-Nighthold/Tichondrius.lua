@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1762, "DBM-Nighthold", nil, 786)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 15190 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 15211 $"):sub(12, -3))
 mod:SetCreatureID(103685)
 mod:SetEncounterID(1862)
 mod:SetZone()
@@ -244,7 +244,7 @@ function mod:SPELL_CAST_START(args)
 			voiceSeekerSwarm:Play("farfromline")
 		end
 		--begin WIP experimental HUD stuff
-		if DBM.Options.EnablePatchRestrictions or not self.Options.HudMapOnSeeker then return end--Hud disabled, ignore rest of this code
+		if self:HasMapRestrictions() or not self.Options.HudMapOnSeeker then return end--Hud disabled, ignore rest of this code
 		DBMHudMap:RegisterRangeMarkerOnPartyMember(213238, "party", UnitName("player"), 0.7, 3, nil, nil, nil, 1, nil, false):Appear()--Create Player Dot
 		--Find boss tank if seeker lines enabled to determine approx boss location
 		--TODO, add drop down in options to let user select direction boss facing, then offset this dot
