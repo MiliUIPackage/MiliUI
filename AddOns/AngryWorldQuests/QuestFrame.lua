@@ -9,14 +9,16 @@ local MAPID_STORMHEIM = 1017
 local MAPID_VALSHARAH = 1018
 local MAPID_HIGHMOUNTAIN = 1024
 local MAPID_SURAMAR = 1033
-local MAPID_ALL = { MAPID_SURAMAR, MAPID_AZSUNA, MAPID_VALSHARAH, MAPID_HIGHMOUNTAIN, MAPID_STORMHEIM, MAPID_DALARAN }
-local MAPID_ORDER = { [MAPID_SURAMAR] = 1, [MAPID_AZSUNA] = 2, [MAPID_VALSHARAH] = 3, [MAPID_HIGHMOUNTAIN] = 4, [MAPID_STORMHEIM] = 5, [MAPID_DALARAN] = 6 }
+local MAPID_EYEOFAZSHARA = 1096
+local MAPID_BROKENSHORE = 1021
+local MAPID_ALL = { MAPID_SURAMAR, MAPID_AZSUNA, MAPID_VALSHARAH, MAPID_HIGHMOUNTAIN, MAPID_STORMHEIM, MAPID_DALARAN, MAPID_EYEOFAZSHARA, MAPID_BROKENSHORE }
+local MAPID_ORDER = { [MAPID_SURAMAR] = 1, [MAPID_AZSUNA] = 2, [MAPID_VALSHARAH] = 3, [MAPID_HIGHMOUNTAIN] = 4, [MAPID_STORMHEIM] = 5, [MAPID_DALARAN] = 6, [MAPID_EYEOFAZSHARA] = 7, [MAPID_BROKENSHORE] = 8 }
 
 local CURRENCYID_RESOURCES = 1220
 
-local FILTER_COUNT = 11
-local FILTER_ICONS = { "achievement_reputation_01", "inv_7xp_inscription_talenttome01", "inv_misc_lockboxghostiron", "inv_orderhall_orderresources", "inv_misc_coin_01", "inv_box_01", "ability_bossmagistrix_timewarp2", "achievement_reputation_06", "pvpcurrency-honor-horde", "inv_misc_note_01", "tracking_wildpet" }
-local FILTER_NAMES = { BOUNTY_BOARD_LOCKED_TITLE, ARTIFACT_POWER, BONUS_ROLL_REWARD_ITEM, "Order Resources", BONUS_ROLL_REWARD_MONEY, ITEMS, CLOSES_IN, FACTION, PVP, TRADE_SKILLS, SHOW_PET_BATTLES_ON_MAP_TEXT }
+local FILTER_COUNT = 14
+local FILTER_ICONS = { "achievement_reputation_01", "inv_7xp_inscription_talenttome01", "inv_misc_lockboxghostiron", "inv_orderhall_orderresources", "inv_misc_coin_01", "inv_box_01", "ability_bossmagistrix_timewarp2", "achievement_reputation_06", "pvpcurrency-honor-horde", "inv_misc_note_01", "tracking_wildpet", "", "inv_misc_map_01", "icon_treasuremap" }
+local FILTER_NAMES = { BOUNTY_BOARD_LOCKED_TITLE, ARTIFACT_POWER, BONUS_ROLL_REWARD_ITEM, "Order Resources", BONUS_ROLL_REWARD_MONEY, ITEMS, CLOSES_IN, FACTION, PVP, TRADE_SKILLS, SHOW_PET_BATTLES_ON_MAP_TEXT, RAID_FRAME_SORT_LABEL, TRACKING, ZONE }
 local FILTER_EMISSARY = 1
 local FILTER_ARTIFACT_POWER = 2
 local FILTER_LOOT = 3
@@ -28,18 +30,25 @@ local FILTER_FACTION = 8
 local FILTER_PVP = 9
 local FILTER_PROFESSION = 10
 local FILTER_PETBATTLE = 11
-local FILTER_ORDER = { FILTER_EMISSARY, FILTER_TIME, FILTER_FACTION, FILTER_ARTIFACT_POWER, FILTER_LOOT, FILTER_ORDER_RESOURCES, FILTER_GOLD, FILTER_ITEMS, FILTER_PVP, FILTER_PROFESSION, FILTER_PETBATTLE }
+local FILTER_SORT = 12
+local FILTER_TRACKED = 13
+local FILTER_ZONE = 14
+local FILTER_ORDER = { FILTER_EMISSARY, FILTER_TIME, FILTER_ZONE, FILTER_TRACKED, FILTER_FACTION, FILTER_ARTIFACT_POWER, FILTER_LOOT, FILTER_ORDER_RESOURCES, FILTER_GOLD, FILTER_ITEMS, FILTER_PVP, FILTER_PROFESSION, FILTER_PETBATTLE, FILTER_SORT }
 QF.FilterNames = FILTER_NAMES
 QF.FilterOrder = FILTER_ORDER
+local FILTER_TIME_VALUES = { 1, 3, 6, 12, 24 }
+QF.FilterTimeValues = FILTER_TIME_VALUES
 
 local SORT_NAME = 1
 local SORT_TIME = 2
 local SORT_ZONE = 3
 local SORT_FACTION = 4
-local SORT_ORDER = { SORT_NAME, SORT_TIME, SORT_ZONE, SORT_FACTION }
+local SORT_REWARDS = 5
+local SORT_ORDER = { SORT_NAME, SORT_TIME, SORT_ZONE, SORT_FACTION, SORT_REWARDS }
+local REWARDS_ORDER = { [FILTER_ARTIFACT_POWER] = 1, [FILTER_LOOT] = 2, [FILTER_ORDER_RESOURCES] = 3, [FILTER_GOLD] = 4, [FILTER_ITEMS] = 5 }
 QF.SortOrder = SORT_ORDER
 
-local FACTION_ORDER = { 1900, 1883, 1828, 1948, 1894, 1859 }
+local FACTION_ORDER = { 1900, 1883, 1828, 1948, 1894, 1859, 1090 }
 
 local FILTER_LOOT_ALL = 1
 local FILTER_LOOT_UPGRADES = 2
@@ -48,6 +57,8 @@ local AWQ_POI_COUNT = 0
 local myTaskPOI
 
 local TitleButton_RarityColorTable = { [LE_WORLD_QUEST_QUALITY_COMMON] = 110, [LE_WORLD_QUEST_QUALITY_RARE] = 113, [LE_WORLD_QUEST_QUALITY_EPIC] = 120 }
+
+local QuestMapFrame_IsQuestWorldQuest = QuestUtils_IsQuestWorldQuest or QuestMapFrame_IsQuestWorldQuest
 
 -- ===================
 --  Utility Functions
@@ -66,7 +77,7 @@ local function GetMapAreaIDs()
 	end
 	local conts = { GetMapContinents() }
 	local contID = conts[contIndex*2 - 1]
-	if #mapHeirarchy == 0 then contID = mapID end
+	if #mapHeirarchy == 0 or not contID then contID = mapID end
 	if Config.showEverywhere and not tContains(MAPID_ALL, mapID) then
 		return MAPID_BROKENISLES, MAPID_BROKENISLES
 	else
@@ -75,7 +86,8 @@ local function GetMapAreaIDs()
 end
 
 local function ArtifactPowerTruncate(power)
-	if power >= 10000 then
+	-- return AbbreviateNumbers(power):lower()
+	if power >= 20000 then
 		return floor(power / 1000) .. "k"
 	elseif power >= 1000 then
 		return (floor(power / 100) / 10) .. "k"
@@ -188,7 +200,7 @@ local function TitleButton_OnLeave(self)
 end
 
 local function TitleButton_OnClick(self, button)
-	if SpellCanTargetQuest() then
+	if false and SpellCanTargetQuest() then
 		if IsQuestIDValidSpellTarget(self.questID) then
 			UseWorldMapActionButtonSpellOnQuest(self.questID)
 			-- Assume success for responsiveness
@@ -227,7 +239,7 @@ end
 
 local function FilterButton_OnEnter(self)
 	local text = FILTER_NAMES[ self.index ]
-	if self.index == FILTER_EMISSARY and Config.filterEmissary then
+	if self.index == FILTER_EMISSARY and Config.filterEmissary and not IsQuestComplete(Config.filterEmissary) then
 		local title = GetQuestLogTitle(GetQuestLogIndexByID(Config.filterEmissary))
 		if title then text = text..": "..title end
 	end
@@ -240,8 +252,17 @@ local function FilterButton_OnEnter(self)
 		local title = GetFactionInfoByID(Config.filterFaction)
 		if title then text = text..": "..title end
 	end
+	if self.index == FILTER_SORT then
+		local title = Addon.Locale["config_sortMethod_"..Config.sortMethod]
+		if title then text = text..": "..title end
+	end
+	if self.index == FILTER_ZONE and Config.filterZone ~= 0 then
+		local title = GetMapNameByID(Config.filterZone)
+		if title then text = text..": "..title end
+	end
 	if self.index == FILTER_TIME then
-		text = string.format(BLACK_MARKET_HOT_ITEM_TIME_LEFT, string.format(FORMATED_HOURS, Config.timeFilterDuration))
+		local hours = Config.filterTime ~= 0 and Config.filterTime or Config.timeFilterDuration
+		text = string.format(BLACK_MARKET_HOT_ITEM_TIME_LEFT, string.format(FORMATED_HOURS, hours))
 	end
 	GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 	GameTooltip:SetText(text)
@@ -263,7 +284,15 @@ local function FilterMenu_OnClick(self, filterIndex)
 	if filterIndex == FILTER_FACTION then
 		Config:Set('filterFaction', self.value, true)
 	end
-	if IsShiftKeyDown() then
+	if filterIndex == FILTER_ZONE then
+		Config:Set('filterZone', self.value, true)
+	end
+	if filterIndex == FILTER_TIME then
+		Config:Set('filterTime', self.value, true)
+	end
+	if filterIndex == FILTER_SORT then
+		Config:Set('sortMethod', self.value)
+	elseif IsShiftKeyDown() then
 		Config:SetFilter(filterIndex, true)
 	else
 		Config:SetOnlyFilter(filterIndex)
@@ -284,11 +313,13 @@ local function FilterMenu_Initialize(self, level)
 		local currentMapID, continentMapID = GetMapAreaIDs()
 		local bounties = GetQuestBountyInfoForMapID(currentMapID)
 		for _, bounty in ipairs(bounties) do
-			info.text =  GetQuestLogTitle(GetQuestLogIndexByID(bounty.questID))
-			info.icon = bounty.icon
-			info.value = bounty.questID
-			info.checked = info.value == value
-			UIDropDownMenu_AddButton(info, level)
+			if not IsQuestComplete(bounty.questID) then
+				info.text =  GetQuestLogTitle(GetQuestLogIndexByID(bounty.questID))
+				info.icon = bounty.icon
+				info.value = bounty.questID
+				info.checked = info.value == value
+				UIDropDownMenu_AddButton(info, level)
+			end
 		end
 	elseif self.index == FILTER_LOOT then
 		local value = Config.filterLoot
@@ -303,12 +334,52 @@ local function FilterMenu_Initialize(self, level)
 		info.value = FILTER_LOOT_UPGRADES
 		info.checked = info.value == value
 		UIDropDownMenu_AddButton(info, level)
+	elseif self.index == FILTER_ZONE then
+		local value = Config.filterZone
+
+		info.text = Addon.Locale.CURRENT_ZONE
+		info.value = 0
+		info.checked = info.value == value
+		UIDropDownMenu_AddButton(info, level)
+
+		for _,mapID in ipairs(MAPID_ALL) do
+			info.text = GetMapNameByID(mapID)
+			info.value = mapID
+			info.checked = info.value == value
+			UIDropDownMenu_AddButton(info, level)
+		end
 	elseif self.index == FILTER_FACTION then
 		local value = Config.filterFaction
 
 		for _, factionID in ipairs(FACTION_ORDER) do
 			info.text =  GetFactionInfoByID(factionID)
 			info.value = factionID
+			info.checked = info.value == value
+			UIDropDownMenu_AddButton(info, level)
+		end
+	elseif self.index == FILTER_TIME then
+		local value = Config.filterTime ~= 0 and Config.filterTime or Config.timeFilterDuration
+
+		for _, hours in ipairs(FILTER_TIME_VALUES) do
+			info.text = string.format(FORMATED_HOURS, hours)
+			info.value = hours
+			info.checked = info.value == value
+			UIDropDownMenu_AddButton(info, level)
+		end
+	elseif self.index == FILTER_SORT then
+		local value = Config.sortMethod
+
+		info.text = FILTER_NAMES[ self.index ]
+		info.notCheckable = true
+		info.isTitle = true
+		UIDropDownMenu_AddButton(info, level)
+
+		info.notCheckable = false
+		info.isTitle = false
+		info.disabled = false
+		for _, sortIndex in ipairs(SORT_ORDER) do
+			info.text =  Addon.Locale["config_sortMethod_"..sortIndex]
+			info.value = sortIndex
 			info.checked = info.value == value
 			UIDropDownMenu_AddButton(info, level)
 		end
@@ -328,24 +399,29 @@ end
 local function FilterButton_OnClick(self, button)
 	HideDropDownMenu(1)
 	PlaySound("igMainMenuOptionCheckBoxOn")
-	if (button == 'RightButton' and (self.index == FILTER_EMISSARY or self.index == FILTER_LOOT or self.index == FILTER_FACTION)) or (self.index == FILTER_FACTION and not Config:GetFilter(FILTER_FACTION)) then
-		FilterButton_ShowMenu(self)
+	if (button == 'RightButton' and (self.index == FILTER_EMISSARY or self.index == FILTER_LOOT or self.index == FILTER_FACTION or self.index == FILTER_ZONE  or self.index == FILTER_TIME))
+			or (self.index == FILTER_SORT)
+			or (self.index == FILTER_FACTION and not Config:GetFilter(FILTER_FACTION) and Config.filterFaction == 0) then
+		if not (filterMenu and UIDROPDOWNMENU_OPEN_MENU == filterMenu and DropDownList1:IsShown() and filterMenu.index == self.index) then
+			FilterButton_ShowMenu(self)
+		end
 	else
 		if IsShiftKeyDown() then
 			if self.index == FILTER_EMISSARY then Config:Set('filterEmissary', 0, true) end
 			if self.index == FILTER_LOOT then Config:Set('filterLoot', 0, true) end
-			if self.index == FILTER_FACTION then Config:Set('filterFaction', 0, true) end
 			Config:ToggleFilter(self.index)
 		else
 			if Config:IsOnlyFilter(self.index) then
 				Config:Set('filterEmissary', 0, true)
 				Config:Set('filterLoot', 0, true)
-				Config:Set('filterFaction', 0, true)
+				Config:Set('filterZone', 0, true)
+				Config:Set('filterTime', 0, true)
 				Config:SetNoFilter()
 			else
 				if self.index ~= FILTER_EMISSARY then Config:Set('filterEmissary', 0, true) end
 				if self.index ~= FILTER_LOOT then Config:Set('filterLoot', 0, true) end
-				if self.index ~= FILTER_FACTION then Config:Set('filterFaction', 0, true) end
+				if self.index ~= FILTER_ZONE then Config:Set('filterZone', 0, true) end
+				if self.index ~= FILTER_TIME then Config:Set('filterTime', 0, true) end
 				Config:SetOnlyFilter(self.index)
 			end
 		end
@@ -364,21 +440,41 @@ local function GetHeaderButton(index)
 end
 
 local titleButtons = {}
-local function GetTitleButton(index)
-	if ( not titleButtons[index] ) then
+local function UpdateTitleButton(title)
+	local filename, fontHeight = title.TagText:GetFont()
+	if Config.extendedInfo then
+		title.TagTexture:SetSize(24, 24)
+		title.TagText:ClearAllPoints()
+		title.TagText:SetPoint("BOTTOMRIGHT", title.TagTexture , "BOTTOMRIGHT", 0, 2)
+		title.TagText:SetFont(filename, fontHeight, "OUTLINE")
+	else
+		title.TagTexture:SetSize(16, 16)
+		title.TagText:ClearAllPoints()
+		title.TagText:SetPoint("RIGHT", title.TagTexture , "LEFT", -3, 0)
+		title.TagText:SetFont(filename, fontHeight, "")
+	end
+end
+local function UpdateTitleButtons()
+	for _, title in pairs(titleButtons) do
+		UpdateTitleButton(title)
+	end
+end
+
+local function GetTitleButton(questID)
+	if ( not titleButtons[questID] ) then
 		local title = CreateFrame("BUTTON", nil, QuestMapFrame.QuestsFrame.Contents, "QuestLogTitleTemplate")
 		title:SetScript("OnEnter", TitleButton_OnEnter)
 		title:SetScript("OnLeave", TitleButton_OnLeave)
 		title:SetScript("OnClick", TitleButton_OnClick)
 
-		title.TagTexture:SetSize(16, 16)
+		title.TagTexture:SetSize(24, 24)
 		title.TagTexture:ClearAllPoints()
 		title.TagTexture:SetPoint("TOP", title.Text, "CENTER", 0, 8)
 		title.TagTexture:SetPoint("RIGHT", 0, 0)
+		title.TagTexture:Hide()
 
 		title.TagText = title:CreateFontString(nil, nil, "GameFontNormalLeft")
 		title.TagText:SetTextColor(1, 1, 1)
-		title.TagText:SetPoint("RIGHT", title.TagTexture , "LEFT", -3, 0)
 		title.TagText:Hide()
 
 		title.TaskIcon:ClearAllPoints()
@@ -389,9 +485,19 @@ local function GetTitleButton(index)
 
 		title.UpdateTooltip = TaskPOI_OnEnter
 
-		titleButtons[index] = title
+		UpdateTitleButton(title)
+
+		titleButtons[questID] = title
 	end
-	return titleButtons[index]
+	return titleButtons[questID]
+end
+local objectiveButtons = {}
+local function GetObjectiveButton(index)
+	if ( not objectiveButtons[index] ) then
+		local frame = CreateFrame("FRAME", "AWQOF"..index, QuestMapFrame.QuestsFrame.Contents, "QuestLogObjectiveTemplate")
+		objectiveButtons[index] = frame
+	end
+	return objectiveButtons[index]
 end
 
 local filterButtons = {}
@@ -399,24 +505,31 @@ local function GetFilterButton(index)
 	if ( not filterButtons[index] ) then
 		local button = CreateFrame("Button", nil, QuestMapFrame.QuestsFrame.Contents)
 		button.index = index
-		
+
 		button:SetScript("OnEnter", FilterButton_OnEnter)
 		button:SetScript("OnLeave", FilterButton_OnLeave)
 		button:RegisterForClicks("LeftButtonUp","RightButtonUp")
 		button:SetScript("OnClick", FilterButton_OnClick)
 
 		button:SetSize(24, 24)
-		button:SetNormalAtlas("worldquest-tracker-ring")
-		button:SetHighlightAtlas("worldquest-tracker-ring")
-		button:GetHighlightTexture():SetAlpha(0.4)
+			
+		if index == FILTER_SORT then
+			button:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+			button:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
+			button:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
+			button:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+		else
+			button:SetNormalAtlas("worldquest-tracker-ring")
+			button:SetHighlightAtlas("worldquest-tracker-ring")
+			button:GetHighlightTexture():SetAlpha(0.4)
 
-		local icon = button:CreateTexture(nil, "BACKGROUND", nil, -1)
-		icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
-		icon:SetSize(16, 16)
-		icon:SetPoint("CENTER", 0, 1)
-		icon:SetTexture("Interface\\Icons\\"..(FILTER_ICONS[index] or "inv_misc_questionmark"))
-		button.Icon = icon
-
+			local icon = button:CreateTexture(nil, "BACKGROUND", nil, -1)
+			icon:SetMask("Interface\\CharacterFrame\\TempPortraitAlphaMask")
+			icon:SetSize(16, 16)
+			icon:SetPoint("CENTER", 0, 1)
+			icon:SetTexture("Interface\\Icons\\"..(FILTER_ICONS[index] or "inv_misc_questionmark"))
+			button.Icon = icon
+		end
 		filterButtons[index] = button
 	end
 	return filterButtons[index]
@@ -429,7 +542,6 @@ local function TaskPOI_IsFiltered(self, bounties, hasFilters, selectedFilters)
 	end
 	if hasFilters == nil then
 		hasFilters = Config:HasFilters()
-		if Config.selectedFilters == FILTER_EMISSARY then hasFilters = false end
 	end
 	if selectedFilters == nil then
 		selectedFilters = Config:GetFilterTable(FILTER_COUNT)
@@ -461,13 +573,13 @@ local function TaskPOI_IsFiltered(self, bounties, hasFilters, selectedFilters)
 			local itemName, itemTexture, quantity, quality, isUsable, itemID = GetQuestLogRewardInfo(1, self.questID)
 			if itemName and itemTexture then
 				local artifactPower = Addon.Data:ItemArtifactPower(itemID)
-				local iLevel = Addon.Data:RewardItemLevel(self.questID)
+				local iLevel = Addon.Data:RewardItemLevel(itemID, self.questID)
 				if artifactPower then
 					isFiltered = not selectedFilters[FILTER_ARTIFACT_POWER]
 				else
 					if iLevel then
 						local upgradesOnly = Config.filterLoot == FILTER_LOOT_UPGRADES or (Config.filterLoot == 0 and Config.lootFilterUpgrades)
-						isFiltered = not selectedFilters[FILTER_LOOT] or (upgradesOnly and not Addon.Data:RewardIsUpgrade(self.questID))
+						isFiltered = not selectedFilters[FILTER_LOOT] or (upgradesOnly and not Addon.Data:RewardIsUpgrade(itemID, self.questID))
 					else
 						isFiltered = not selectedFilters[FILTER_ITEMS]
 					end
@@ -482,7 +594,8 @@ local function TaskPOI_IsFiltered(self, bounties, hasFilters, selectedFilters)
 		end
 
 		if selectedFilters[FILTER_TIME] then
-			if timeLeftMinutes and (timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) <= (Config.timeFilterDuration * 60) then
+			local hours = Config.filterTime ~= 0 and Config.filterTime or Config.timeFilterDuration
+			if timeLeftMinutes and (timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) <= (hours * 60) then
 				isFiltered = false
 			end
 		end
@@ -505,18 +618,37 @@ local function TaskPOI_IsFiltered(self, bounties, hasFilters, selectedFilters)
 			end
 		end
 
-	end
-
-	if selectedFilters[FILTER_EMISSARY] and not isFiltered then
-		local isBounty = false
-		local bountyFilter = Config.filterEmissary
-		if GetQuestLogIndexByID(bountyFilter) == 0 then bountyFilter = 0 end
-		for _, bounty in ipairs(bounties) do
-			if bounty and IsQuestCriteriaForBounty(self.questID, bounty.questID) and (bountyFilter == 0 or bountyFilter == bounty.questID) then
-				isBounty = true
+		if selectedFilters[FILTER_TRACKED] then
+			if IsWorldQuestHardWatched(self.questID) or GetSuperTrackedQuestID() == self.questID then
+				isFiltered = false
 			end
 		end
-		if not isBounty then isFiltered = true end
+
+		if selectedFilters[FILTER_ZONE] then
+			local currentMapID = GetMapAreaIDs()
+			local filterMapID = Config.filterZone
+
+			if filterMapID ~= 0 then
+				if (self.mapID and self.mapID == filterMapID) or (not self.mapID and currentMapID == filterMapID) then
+					isFiltered = false
+				end
+			else
+				if (self.mapID and self.mapID == currentMapID) or not self.mapID or currentMapID == MAPID_BROKENISLES then
+					isFiltered = false
+				end
+			end
+		end
+
+		if selectedFilters[FILTER_EMISSARY] then
+			local bountyFilter = Config.filterEmissary
+			if GetQuestLogIndexByID(bountyFilter) == 0 or IsQuestComplete(bountyFilter) then bountyFilter = 0 end
+			for _, bounty in ipairs(bounties) do
+				if bounty and not IsQuestComplete(bounty.questID) and IsQuestCriteriaForBounty(self.questID, bounty.questID) and (bountyFilter == 0 or bountyFilter == bounty.questID) then
+					isFiltered = false
+				end
+			end
+		end
+
 	end
 
 	return isFiltered
@@ -535,6 +667,15 @@ local function TaskPOI_Sorter(a, b)
 		if MAPID_ORDER[a.mapID] ~= MAPID_ORDER[b.mapID] then
 			return MAPID_ORDER[a.mapID] < MAPID_ORDER[b.mapID]
 		end
+	elseif Config.sortMethod == SORT_REWARDS then
+		local default_cat = FILTER_COUNT + 1
+		local acat = (a.rewardCategory and REWARDS_ORDER[a.rewardCategory]) or default_cat
+		local bcat = (b.rewardCategory and REWARDS_ORDER[b.rewardCategory]) or default_cat
+		if acat ~= bcat then
+			return acat < bcat
+		elseif acat ~= default_cat and (a.rewardValue or 0) ~= (b.rewardValue or 0) then
+			return (a.rewardValue or 0) > (b.rewardValue or 0)
+		end
 	end
 
 	return a.Text:GetText() < b.Text:GetText()
@@ -543,18 +684,19 @@ end
 local function QuestFrame_Update()
 	if not WorldMapFrame:IsShown() then return end
 
-	myTaskPOI:Hide()
 	local currentMapID, continentMapID = GetMapAreaIDs()
-	local bounties, displayLocation, lockedQuestID = GetQuestBountyInfoForMapID(currentMapID)
+	local bounties, displayLocation, lockedQuestID = GetQuestBountyInfoForMapID(continentMapID)
 	if not displayLocation or lockedQuestID then
 		for i = 1, #headerButtons do headerButtons[i]:Hide() end
-		for i = 1, #titleButtons do titleButtons[i]:Hide() end
+		for _, titleButton in pairs(titleButtons) do titleButton:Hide() end
 		for i = 1, #filterButtons do filterButtons[i]:Hide() end
+		for i = 1, #objectiveButtons do objectiveButtons[i]:Hide() end
+		myTaskPOI:Hide()
 		return
 	end
 
 	local hoveredQuest
-	for _, titleButton in ipairs(titleButtons) do
+	for _, titleButton in pairs(titleButtons) do
 		if titleButton:IsMouseOver() and titleButton:IsShown() then
 			hoveredQuest = titleButton.questID
 		end
@@ -572,11 +714,11 @@ local function QuestFrame_Update()
 		prevButton = storyButton
 	end
 	for i = 1, numEntries do
-		local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isBounty, isStory = GetQuestLogTitle(i)
+		local title, level, suggestedGroup, isHeader, isCollapsed, isComplete, frequency, questID, startEvent, displayQuestID, isOnMap, hasLocalPOI, isTask, isBounty, isStory, isHidden = GetQuestLogTitle(i)
 		if isHeader then
 			headerShown = false
 			headerCollapsed = isCollapsed
-		elseif ( not isTask and (not isBounty or IsQuestComplete(questID))) then
+		elseif ( not isTask and not isHidden and (not isBounty or IsQuestComplete(questID))) then
 			if ( not headerShown ) then
 				headerShown = true
 				headerIndex = headerIndex + 1
@@ -593,7 +735,7 @@ local function QuestFrame_Update()
 	QuestScrollFrame.Background:SetAtlas("QuestLogBackground", true) -- Always show quest background
 
 	local headerIndex = 0
-	local titleIndex = 0
+	local objectiveIndex = 0
 
 	headerIndex = headerIndex + 1
 	local button = GetHeaderButton(headerIndex)
@@ -616,13 +758,26 @@ local function QuestFrame_Update()
 	button:Show()
 	prevButton = button
 
+	local displayedQuestIDs = {}
+	local usedButtons = {}
+	local filtersOwnRow = false
+
 	if (not questsCollapsed) then
 		local hasFilters = Config:HasFilters()
-		if Config.selectedFilters == FILTER_EMISSARY then hasFilters = false end
 		local selectedFilters = Config:GetFilterTable(FILTER_COUNT)
 
-		local prevFilter
+		local enabledCount = 0
 		for i=#FILTER_ORDER, 1, -1 do
+			if not Config:GetFilterDisabled(FILTER_ORDER[i]) then enabledCount = enabledCount + 1 end
+		end
+		if enabledCount > 7 or (enabledCount > 5 and GetLocale() == "ruRU") then
+			filtersOwnRow = true
+		end
+
+		local prevFilter
+		for j=1, #FILTER_ORDER, 1 do
+			local i = j
+			if not filtersOwnRow then i = #FILTER_ORDER - i + 1 end
 			local filterButton = GetFilterButton(FILTER_ORDER[i])
 			if Config:GetFilterDisabled(FILTER_ORDER[i]) then
 				filterButton:Hide()
@@ -630,18 +785,33 @@ local function QuestFrame_Update()
 				filterButton:Show()
 
 				filterButton:ClearAllPoints()
-				if prevFilter then
-					filterButton:SetPoint("RIGHT", prevFilter, "LEFT", 5, 0)
-					filterButton:SetPoint("TOP", prevButton, "TOP", 0, 3)
+				if filtersOwnRow then
+					if prevFilter then
+						if FILTER_ORDER[i] == FILTER_SORT then
+							filterButton:SetPoint("LEFT", prevFilter, "RIGHT", -4, 1)
+						else
+							filterButton:SetPoint("LEFT", prevFilter, "RIGHT", -5, 0)
+						end
+					else
+						filterButton:SetPoint("LEFT", 27, 0)
+						filterButton:SetPoint("TOP", prevButton, "BOTTOM", 0, -1)
+					end
 				else
-					filterButton:SetPoint("RIGHT", 1, 0)
-					filterButton:SetPoint("TOP", prevButton, "TOP", 0, 3)
+					if prevFilter then
+						filterButton:SetPoint("RIGHT", prevFilter, "LEFT", 5, 0)
+						filterButton:SetPoint("TOP", prevButton, "TOP", 0, 3)
+					else
+						filterButton:SetPoint("RIGHT", 1, 0)
+						filterButton:SetPoint("TOP", prevButton, "TOP", 0, 3)
+					end
 				end
 
-				if selectedFilters[FILTER_ORDER[i]] then
-					filterButton:SetNormalAtlas("worldquest-tracker-ring-selected")
-				else
-					filterButton:SetNormalAtlas("worldquest-tracker-ring")
+				if FILTER_ORDER[i] ~= FILTER_SORT then
+					if selectedFilters[FILTER_ORDER[i]] then
+						filterButton:SetNormalAtlas("worldquest-tracker-ring-selected")
+					else
+						filterButton:SetNormalAtlas("worldquest-tracker-ring")
+					end
 				end
 				prevFilter = filterButton
 			end
@@ -652,7 +822,6 @@ local function QuestFrame_Update()
 			questMapIDs = MAPID_ALL
 		end
 
-		local usedButtons = {}
 
 		for _, mapID in ipairs(questMapIDs) do
 
@@ -675,8 +844,7 @@ local function QuestFrame_Update()
 							C_TaskQuest.RequestPreloadRewardData(questID)
 
 							local totalHeight = 8
-							titleIndex = titleIndex + 1
-							local button = GetTitleButton(titleIndex)
+							local button = GetTitleButton(questID)
 							button.worldQuest = true
 							button.questID = questID
 							button.mapID = mapID
@@ -686,125 +854,173 @@ local function QuestFrame_Update()
 							button.infoX = questInfo.x
 							button.infoY = questInfo.y
 
-							local color = GetQuestDifficultyColor( TitleButton_RarityColorTable[rarity] )
-							button.Text:SetTextColor( color.r, color.g, color.b )
-
-							button.Text:SetText(title)
-							totalHeight = totalHeight + button.Text:GetHeight()
-
-							if ( IsWorldQuestHardWatched(questID) or GetSuperTrackedQuestID() == questID ) then
-								button.Check:Show()
-								button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
-							else
-								button.Check:Hide()
-							end
-
-							local hasIcon = true
-							button.TaskIcon:Show()
-							button.TaskIcon:SetTexCoord(0, 1, 0, 1)
-							if questInfo.inProgress then
-								button.TaskIcon:SetAtlas("worldquest-questmarker-questionmark")
-								button.TaskIcon:SetSize(10, 15)
-							elseif worldQuestType == LE_QUEST_TAG_TYPE_PVP then
-								button.TaskIcon:SetAtlas("worldquest-icon-pvp-ffa", true)
-							elseif worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE then
-								button.TaskIcon:SetAtlas("worldquest-icon-petbattle", true)
-							elseif worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON then
-								button.TaskIcon:SetAtlas("worldquest-icon-dungeon", true)
-							elseif ( worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION and WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID] ) then
-								button.TaskIcon:SetAtlas(WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID], true)
-							elseif isElite then
-								local tagCoords = QUEST_TAG_TCOORDS[QUEST_TAG_HEROIC]
-								button.TaskIcon:SetSize(16, 16)
-								button.TaskIcon:SetTexture("Interface\\QuestFrame\\QuestTypeIcons")
-								button.TaskIcon:SetTexCoord( unpack(tagCoords) )
-							else
-								hasIcon = false
-								button.TaskIcon:Hide()
-							end
-
-							if ( timeLeftMinutes and timeLeftMinutes <= WORLD_QUESTS_TIME_LOW_MINUTES ) then
-								button.TimeIcon:Show()
-								if hasIcon then
-									button.TimeIcon:SetSize(14, 14)
-									button.TimeIcon:SetPoint("CENTER", button.TaskIcon, "BOTTOMLEFT", 0, 0)
-								else
-									button.TimeIcon:SetSize(16, 16)
-									button.TimeIcon:SetPoint("CENTER", button.Text, "LEFT", -15, 0)
-								end
-							else
-								button.TimeIcon:Hide()
-							end
-
-							local tagText, tagTexture, tagTexCoords, tagColor
-							tagColor = {r=1, g=1, b=1}
-
-							local money = GetQuestLogRewardMoney(questID)
-							if ( money > 0 ) then
-								local gold = floor(money / (COPPER_PER_GOLD))
-								tagTexture = "Interface\\MoneyFrame\\UI-MoneyIcons"
-								tagTexCoords = { 0, 0.25, 0, 1 }
-								tagText = BreakUpLargeNumbers(gold)
-							end	
-
-							local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
-							for i = 1, numQuestCurrencies do
-								local name, texture, numItems = GetQuestLogRewardCurrencyInfo(i, questID)
-								tagText = numItems
-								tagTexture = texture
-							end
-
-							local numQuestRewards = GetNumQuestLogRewards(questID);
-							if numQuestRewards > 0 then
-								local itemName, itemTexture, quantity, quality, isUsable, itemID = GetQuestLogRewardInfo(1, questID)
-								if itemName and itemTexture then
-									local artifactPower = Addon.Data:ItemArtifactPower(itemID)
-									local iLevel = Addon.Data:RewardItemLevel(questID)
-									if artifactPower then
-										tagTexture = "Interface\\Icons\\inv_7xp_inscription_talenttome01"
-										tagText = ArtifactPowerTruncate(artifactPower)
-										tagColor = BAG_ITEM_QUALITY_COLORS[LE_ITEM_QUALITY_ARTIFACT]
-									else
-										tagTexture = itemTexture
-										if iLevel then
-											tagText = iLevel
-											tagColor = BAG_ITEM_QUALITY_COLORS[quality]
-										else
-											tagText = quantity > 1 and quantity
-										end
-									end
-								end
-							end
-
-							if tagTexture and tagText then
-								button.TagText:Show()
-								button.TagText:SetText(tagText)
-								button.TagText:SetTextColor(tagColor.r, tagColor.g, tagColor.b )
-								button.TagTexture:Show()
-								button.TagTexture:SetTexture(tagTexture)
-							elseif tagTexture then
-								button.TagText:Hide()
-								button.TagText:SetText("")
-								button.TagTexture:Show()
-								button.TagTexture:SetTexture(tagTexture)
-							else
-								button.TagText:Hide()
-								button.TagTexture:Hide()
-							end
-							if tagTexCoords then
-								button.TagTexture:SetTexCoord( unpack(tagTexCoords) )
-							else
-								button.TagTexture:SetTexCoord( 0, 1, 0, 1 )
-							end
-
 							local isFiltered = TaskPOI_IsFiltered(button, bounties, hasFilters, selectedFilters)
 
 							if not isFiltered then
-								button:SetHeight(totalHeight)
+								local color = GetQuestDifficultyColor( TitleButton_RarityColorTable[rarity] )
+								button.Text:SetTextColor( color.r, color.g, color.b )
 
+								button.Text:SetText(title)
+								totalHeight = totalHeight + button.Text:GetHeight()
+
+								if ( IsWorldQuestHardWatched(questID) or GetSuperTrackedQuestID() == questID ) then
+									button.Check:Show()
+									button.Check:SetPoint("LEFT", button.Text, button.Text:GetWrappedWidth() + 2, 0)
+								else
+									button.Check:Hide()
+								end
+
+								local hasIcon = true
+								button.TaskIcon:Show()
+								button.TaskIcon:SetTexCoord(0, 1, 0, 1)
+								if questInfo.inProgress then
+									button.TaskIcon:SetAtlas("worldquest-questmarker-questionmark")
+									button.TaskIcon:SetSize(10, 15)
+								elseif worldQuestType == LE_QUEST_TAG_TYPE_PVP then
+									button.TaskIcon:SetAtlas("worldquest-icon-pvp-ffa", true)
+								elseif worldQuestType == LE_QUEST_TAG_TYPE_PET_BATTLE then
+									button.TaskIcon:SetAtlas("worldquest-icon-petbattle", true)
+								elseif worldQuestType == LE_QUEST_TAG_TYPE_DUNGEON then
+									button.TaskIcon:SetAtlas("worldquest-icon-dungeon", true)
+								elseif ( worldQuestType == LE_QUEST_TAG_TYPE_PROFESSION and WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID] ) then
+									button.TaskIcon:SetAtlas(WORLD_QUEST_ICONS_BY_PROFESSION[tradeskillLineID], true)
+								elseif isElite then
+									local tagCoords = QUEST_TAG_TCOORDS[QUEST_TAG_HEROIC]
+									button.TaskIcon:SetSize(16, 16)
+									button.TaskIcon:SetTexture("Interface\\QuestFrame\\QuestTypeIcons")
+									button.TaskIcon:SetTexCoord( unpack(tagCoords) )
+								else
+									hasIcon = false
+									button.TaskIcon:Hide()
+								end
+
+								if ( timeLeftMinutes and timeLeftMinutes <= WORLD_QUESTS_TIME_LOW_MINUTES ) then
+									button.TimeIcon:Show()
+									if hasIcon then
+										button.TimeIcon:SetSize(14, 14)
+										button.TimeIcon:SetPoint("CENTER", button.TaskIcon, "BOTTOMLEFT", 0, 0)
+									else
+										button.TimeIcon:SetSize(16, 16)
+										button.TimeIcon:SetPoint("CENTER", button.Text, "LEFT", -15, 0)
+									end
+								else
+									button.TimeIcon:Hide()
+								end
+
+								local tagText, tagTexture, tagTexCoords, tagColor
+								tagColor = {r=1, g=1, b=1}
+
+								local money = GetQuestLogRewardMoney(questID)
+								if ( money > 0 ) then
+									local gold = floor(money / (COPPER_PER_GOLD))
+									if Config.extendedInfo then
+										tagTexture = "Interface\\icons\\inv_misc_coin_01" 
+										tagTexCoords = nil
+									else
+										tagTexture = "Interface\\MoneyFrame\\UI-MoneyIcons"
+										tagTexCoords = { 0, 0.25, 0, 1 }
+									end
+									tagText = BreakUpLargeNumbers(gold)
+									button.rewardCategory = FILTER_GOLD
+									button.rewardValue = gold
+								end	
+
+								local numQuestCurrencies = GetNumQuestLogRewardCurrencies(questID)
+								if numQuestCurrencies > 0 then
+									local name, texture, numItems = GetQuestLogRewardCurrencyInfo(1, questID)
+									tagText = numItems
+									tagTexture = texture
+									tagTexCoords = nil
+									button.rewardCategory = FILTER_ORDER_RESOURCES
+									button.rewardValue = numItems
+								end
+
+								local numQuestRewards = GetNumQuestLogRewards(questID)
+								if numQuestRewards > 0 then
+									local itemName, itemTexture, quantity, quality, isUsable, itemID = GetQuestLogRewardInfo(1, questID)
+									if itemName and itemTexture then
+										local artifactPower = Addon.Data:ItemArtifactPower(itemID)
+										local iLevel = Addon.Data:RewardItemLevel(itemID, questID)
+										if artifactPower then
+											tagTexture = "Interface\\Icons\\inv_7xp_inscription_talenttome01"
+											tagTexCoords = nil
+											tagText = ArtifactPowerTruncate(artifactPower)
+											tagColor = BAG_ITEM_QUALITY_COLORS[LE_ITEM_QUALITY_ARTIFACT]
+											button.rewardCategory = FILTER_ARTIFACT_POWER
+											button.rewardValue = artifactPower
+										else
+											tagTexture = itemTexture
+											tagTexCoords = nil
+											if iLevel then
+												tagText = iLevel
+												tagColor = BAG_ITEM_QUALITY_COLORS[quality]
+												button.rewardCategory = FILTER_LOOT
+												button.rewardValue = iLevel
+											else
+												tagText = quantity > 1 and quantity
+												button.rewardCategory = FILTER_ITEMS
+												button.rewardValue = quantity
+											end
+										end
+									end
+								end
+
+								if tagTexture and tagText then
+									button.TagText:Show()
+									button.TagText:SetText(tagText)
+									button.TagText:SetTextColor(tagColor.r, tagColor.g, tagColor.b )
+									button.TagTexture:Show()
+									button.TagTexture:SetTexture(tagTexture)
+								elseif tagTexture then
+									button.TagText:Hide()
+									button.TagText:SetText("")
+									button.TagTexture:Show()
+									button.TagTexture:SetTexture(tagTexture)
+								end
+								if tagTexture then
+									if tagTexCoords then
+										button.TagTexture:SetTexCoord( unpack(tagTexCoords) )
+									else
+										button.TagTexture:SetTexCoord( 0, 1, 0, 1 )
+									end
+								end
+
+								if Config.extendedInfo then
+									local objColor = NORMAL_FONT_COLOR
+									local timeString
+									if ( timeLeftMinutes <= WORLD_QUESTS_TIME_CRITICAL_MINUTES ) then
+										-- Grace period, show the actual time left
+										objColor = RED_FONT_COLOR
+										timeString = SecondsToTime(timeLeftMinutes * 60)
+									elseif timeLeftMinutes <= 60 + WORLD_QUESTS_TIME_CRITICAL_MINUTES then
+										timeString = SecondsToTime((timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) * 60)
+									elseif timeLeftMinutes < 24 * 60 + WORLD_QUESTS_TIME_CRITICAL_MINUTES then
+										timeString = D_HOURS:format(math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 60)
+									else
+										timeString = D_DAYS:format(math.floor(timeLeftMinutes - WORLD_QUESTS_TIME_CRITICAL_MINUTES) / 1440)
+									end
+
+									local factionName = factionID and GetFactionInfoByID(factionID)
+
+									objectiveIndex = objectiveIndex + 1
+									local objButton = GetObjectiveButton(objectiveIndex)
+									objButton:Show()
+									if factionName then
+										objButton.Text:SetText( string.format("%s, %s", timeString, factionName) )
+									else
+										objButton.Text:SetText(timeString)
+									end
+									--objButton.Text:SetTextColor( color:GetRGBA() )
+									local objHeight = objButton.Text:GetStringHeight()
+									objButton:SetHeight(objHeight)
+									objButton:SetPoint("TOPLEFT", button.Text, "BOTTOMLEFT", 0, -3)
+									objHeight = objHeight + 3
+									totalHeight = totalHeight + objHeight
+								end
+
+								button:SetHeight(totalHeight)
+								displayedQuestIDs[questID] = true
 								table.insert(usedButtons, button)
-							else
-								titleIndex = titleIndex - 1
 							end
 
 						end
@@ -817,9 +1033,11 @@ local function QuestFrame_Update()
 
 		table.sort(usedButtons, TaskPOI_Sorter)
 
-		for _, button in ipairs(usedButtons) do
+		for i, button in ipairs(usedButtons) do
 			button:ClearAllPoints()
-			if ( prevButton ) then
+			if i == 1 and filtersOwnRow then
+				button:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, -19)
+			elseif prevButton then
 				button:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, 0)
 			else
 				button:SetPoint("TOPLEFT", 1, -6)
@@ -838,18 +1056,27 @@ local function QuestFrame_Update()
 
 	if Config.showAtTop and firstButton then
 		firstButton:ClearAllPoints()
-		if titleIndex > 0 then
+		if #usedButtons > 0 then
 			firstButton:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, -6)
 		else
-			firstButton:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, 0)
+			if filtersOwnRow then
+				firstButton:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, -25)
+			else
+				firstButton:SetPoint("TOPLEFT", prevButton, "BOTTOMLEFT", 0, 0)
+			end
 		end
 	end
 
 	for i = headerIndex + 1, #headerButtons do
 		headerButtons[i]:Hide()
 	end
-	for i = titleIndex + 1, #titleButtons do
-		titleButtons[i]:Hide()
+	for questID, titleButton in pairs(titleButtons) do
+		if not displayedQuestIDs[questID] then
+			titleButton:Hide()
+		end
+	end
+	for i = objectiveIndex + 1, #objectiveButtons do
+		objectiveButtons[i]:Hide()
 	end
 	
 end
@@ -869,7 +1096,7 @@ local function MapFrame_Update()
 	if mapAreaID == MAPID_BROKENISLES and Config.showContinentPOI then
 		local taskIconIndex  = 1
 		for _, mapID in ipairs(MAPID_ALL) do
-			local questsList = C_TaskQuest.GetQuestsForPlayerByMapID(mapID, continentMapID)
+			local questsList = C_TaskQuest.GetQuestsForPlayerByMapID(mapID, MAPID_BROKENISLES)
 			if (questsList and #questsList > 0) then
 				for i, info in ipairs(questsList) do
 					if ( HaveQuestData(info.questId) ) then
@@ -880,6 +1107,7 @@ local function MapFrame_Update()
 							if ( taskPOI ) then
 								WorldMapPOIFrame_AnchorPOI(taskPOI, info.x, info.y, WORLD_MAP_POI_FRAME_LEVEL_OFFSETS.WORLD_QUEST)
 								taskPOI.questID = info.questId
+								taskPOI.mapID = mapID
 								taskPOI.wasShown = true
 								taskPOI.numObjectives = info.numObjectives
 								taskPOI:Show()
@@ -928,7 +1156,6 @@ local function MapFrame_Update()
 	if Config.hideFilteredPOI then
 		local bounties = GetQuestBountyInfoForMapID(GetCurrentMapAreaID())
 		local hasFilters = Config:HasFilters()
-		if Config.selectedFilters == FILTER_EMISSARY then hasFilters = false end
 		local selectedFilters = Config:GetFilterTable(FILTER_COUNT)
 
 		for i = 1, NUM_WORLDMAP_TASK_POIS do
@@ -993,12 +1220,16 @@ function QF:Startup()
 	Config:RegisterCallback({'showAtTop', 'showEverywhere'}, function() QuestMapFrame_UpdateAll(); QuestFrame_Update() end)
 	Config:RegisterCallback({'hideUntrackedPOI', 'hideFilteredPOI', 'showContinentPOI'}, function() WorldMap_UpdateQuestBonusObjectives(); MapFrame_Update() end)
 	Config:RegisterCallback({'onlyCurrentZone', 'sortMethod'}, QuestFrame_Update)
-	Config:RegisterCallback({'selectedFilters', 'disabledFilters', 'filterEmissary', 'filterLoot', 'filterFaction', 'lootFilterUpgrades', 'timeFilterDuration'}, function() 
+	Config:RegisterCallback({'selectedFilters', 'disabledFilters', 'filterEmissary', 'filterLoot', 'filterFaction', 'filterZone', 'filterTime', 'lootFilterUpgrades', 'lootUpgradesLevel', 'timeFilterDuration'}, function() 
 		QuestFrame_Update()
 		if Config.hideFilteredPOI and WorldMapFrame:IsShown() then
 			WorldMap_UpdateQuestBonusObjectives()
 			MapFrame_Update()
 		end
+	end)
+	Config:RegisterCallback('extendedInfo', function()
+		UpdateTitleButtons()
+		QuestFrame_Update()
 	end)
 
 	hooksecurefunc("QuestLogQuests_Update", QuestFrame_Update)
