@@ -287,7 +287,7 @@ do
 		local Texture, Left, Top
 		--- Callback to ApplyZone to clip and paint all path triangles to the minimap.
 		-- @see Overlay.ApplyZone'
-	
+
 		function PaintPath(self, PathData, FoundX, FoundY, R, G, B)
 			if FoundX and (private.Options.ModulesExtra["Minimap"].DetectionRing) then
 				FoundX, FoundY = FoundX * Width - X, FoundY * Height - Y
@@ -636,6 +636,8 @@ do
 			UpdateNext = UpdateRate
 
 			local playerX, playerY = GetPlayerMapPosition("player")
+			playerX = playerX or 0
+			playerY = playerY or 0
 
 			-- If the coordinates are for wrong map
 			if not CurrentMapID or (playerX == 0 and playerY == 0) or playerX < 0 or playerX > 1 or playerY < 0 or playerY > 1 or CurrentMapID ~= GetCurrentMapAreaID() then

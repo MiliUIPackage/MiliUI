@@ -1,0 +1,12 @@
+tag 7.1.0.1
+b532ad53512df36401a66d15fc7327df75f06c96
+James D. Callahan III <jcallahan@curse.com>
+2016-10-26 23:59:12 -0500
+
+
+
+--------------------
+
+James D. Callahan III:
+	- Update ToC Interface to 70100.
+	- Ensure playerX and playerY are 0 instead of nil, since that is the return value for GetPlayerMapPosition() in restricted areas as of WoW 7.1
