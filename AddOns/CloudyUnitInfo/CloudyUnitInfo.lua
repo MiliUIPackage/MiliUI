@@ -9,47 +9,43 @@
 local currentUNIT, currentGUID
 local GearDB, SpecDB, ItemDB = {}, {}, {}
 
-local nextInspectRequest = 0
-lastInspectRequest = 0
-
 local prefixColor = '|cffffeeaa'
 local detailColor = '|cffffffff'
 local lvlPattern = gsub(ITEM_LEVEL, '%%d', '(%%d+)')
+local furySpec = GetSpecializationNameForSpecID(72)
 
 
 --- Create Frame ---
 local f = CreateFrame('Frame', 'CloudyUnitInfo')
 f:RegisterEvent('UNIT_INVENTORY_CHANGED')
-f:RegisterEvent('INSPECT_READY')
 
 
 --- Set Unit Info ---
 local function SetUnitInfo(gear, spec)
-	if (not gear) and (not spec) then return end
+	if (not gear) then return end
 
 	local _, unit = GameTooltip:GetUnit()
 	if (not unit) or (UnitGUID(unit) ~= currentGUID) then return end
-	if UnitLevel(unit) < 10 or (spec == UNKNOWN) then
+	if UnitLevel(unit) < 10 then
 		spec = STAT_AVERAGE_ITEM_LEVEL
+	elseif (not spec) then
+		spec = CONTINUED
 	end
 
 	local infoLine
 	for i = 2, GameTooltip:NumLines() do
 		local line = _G['GameTooltipTextLeft' .. i]
-		local text = line and line:GetText()
+		local text = line and line:GetText() or ''
 
-		if (text == CONTINUED) or strfind(text, spec .. ': ', 1, true) or strfind(text, SPECIALIZATION .. ': ', 1, true) then
+		if (text == CONTINUED) or strfind(text, spec .. ': ', 1, true) then
 			infoLine = line
+			break
 		end
 	end
 
 	local infoString = CONTINUED
-	if spec and (spec ~= CONTINUED) then
-		if gear then
-			infoString = prefixColor .. spec .. ': ' .. detailColor .. gear
-		else
-			infoString = prefixColor .. SPECIALIZATION .. ': ' .. detailColor .. spec
-		end
+	if (spec ~= CONTINUED) then
+		infoString = prefixColor .. spec .. ': ' .. detailColor .. gear
 	end
 
 	if infoLine then
@@ -57,24 +53,22 @@ local function SetUnitInfo(gear, spec)
 	else
 		GameTooltip:AddLine(infoString)
 	end
-
 	GameTooltip:Show()
 end
 
 
 --- BOA Items ---
 local BOAItems = {
-	['133585'] = 1, ['133595'] = 1, ['133596'] = 1,
-	['133597'] = 1, ['133598'] = 1,
+	[133585] = 1, [133595] = 1, [133596] = 1,
+	[133597] = 1, [133598] = 1,
 }
 
 
 --- BOA Item Level ---
 local function BOALevel(level, id)
-	if (level > 100) then level = 100 end
 	if (level > 97) then
 		if BOAItems[id] then
-			level = 715
+			level = 815 - (110 - level) * 10
 		else
 			level = 605 - (100 - level) * 5
 		end
@@ -113,15 +107,11 @@ end
 
 
 --- Scan Item Level ---
-local function scanItemLevel(link)
-	if ItemDB[link] then return ItemDB[link] end
+local function scanItemLevel(link, forced)
+	if (not forced) and ItemDB[link] then return ItemDB[link] end
 
-	local scanTip = _G['CUnitScan']
-	if not scanTip then
-		scanTip = CreateFrame('GameTooltip', 'CUnitScan', nil, 'GameTooltipTemplate')
- 		scanTip:SetOwner(UIParent, 'ANCHOR_NONE')
-	end
-	scanTip:ClearLines()
+	local scanTip = _G['CUnitScan'] or CreateFrame('GameTooltip', 'CUnitScan', nil, 'GameTooltipTemplate')
+	scanTip:SetOwner(UIParent, 'ANCHOR_NONE')
  	scanTip:SetHyperlink(link)
 
 	for i = 2, scanTip:NumLines() do
@@ -145,60 +135,77 @@ local function UnitGear(unit)
 	local class = select(2, UnitClass(unit))
 
 	local boa, pvp = 0, 0
-	local flvl, fslot = 0, 0
-	local ilvl, total, delay = 0, 0, nil
+	local wlvl, wslot = 0, 0
+	local ilvl, total, delay = nil, 0, nil
 
 	for i = 1, 17 do
 		if (i ~= 4) then
-			local itemTexture = GetInventoryItemTexture(unit, i)
+			local id = GetInventoryItemID(unit, i)
 
-			if itemTexture then
-				local itemLink = GetInventoryItemLink(unit, i)
+			if id then
+				local link = GetInventoryItemLink(unit, i)
 
-				if (not itemLink) then
+				if (not link) then
 					delay = true
 				else
-					local _, _, quality, level, _, _, _, _, slot = GetItemInfo(itemLink)
+					local _, _, quality, level, _, _, _, _, slot = GetItemInfo(link)
 
 					if (not quality) or (not level) then
 						delay = true
 					else
-						if (quality == 7) then
-							boa = boa + 1
-							local id = strmatch(itemLink, 'item:(%d+)')
+						if (quality == 6) and (i == 16 or i == 17) then
+							local relics = {select(4, strsplit(':', link))}
+							for i = 1, 3 do
+								local relicID = relics[i] ~= '' and relics[i]
+								local relicLink = select(2, GetItemGem(link, i))
+								if relicID and not relicLink then
+									delay = true
+									break
+								end
+							end
+							level = scanItemLevel(link, true) or level
+						elseif (quality == 7) then
 							level = BOALevel(ulvl, id)
+							boa = boa + 1
 						else
-							if IsPVPItem(itemLink) then
+							level = scanItemLevel(link) or level
+							if IsPVPItem(link) then
 								pvp = pvp + 1
 							end
-
-							level = scanItemLevel(itemLink) or level
 						end
 
 						if (i == 16) then
-							if (class == 'WARRIOR') then
-								flvl = level
-								fslot = slot
+							if (SpecDB[currentGUID] == furySpec) or (quality == 6) then
+								wlvl = level
+								wslot = slot
 							end
 							if (slot == 'INVTYPE_2HWEAPON') or (slot == 'INVTYPE_RANGED') or ((slot == 'INVTYPE_RANGEDRIGHT') and (class == 'HUNTER')) then
 								level = level * 2
 							end
 						end
 
-						if (i == 17) and (class == 'WARRIOR') then
-							if (fslot ~= 'INVTYPE_2HWEAPON') and (slot == 'INVTYPE_2HWEAPON') then
-								if (level > flvl) then
-									level = level * 2 - flvl
-								end
-							elseif (fslot == 'INVTYPE_2HWEAPON') then
-								if (level > flvl) then
-									if (slot == 'INVTYPE_2HWEAPON') then
-										level = level * 2 - flvl * 2
-									else
-										level = level - flvl
+						if (i == 17) then
+							if (SpecDB[currentGUID] == furySpec) then
+								if (wslot ~= 'INVTYPE_2HWEAPON') and (slot == 'INVTYPE_2HWEAPON') then
+									if (level > wlvl) then
+										level = level * 2 - wlvl
 									end
+								elseif (wslot == 'INVTYPE_2HWEAPON') then
+									if (level > wlvl) then
+										if (slot == 'INVTYPE_2HWEAPON') then
+											level = level * 2 - wlvl * 2
+										else
+											level = level - wlvl
+										end
+									else
+										level = 0
+									end
+								end
+							elseif (quality == 6) and wlvl then
+								if level > wlvl then
+									level = level * 2 - wlvl
 								else
-									level = 0
+									level = wlvl
 								end
 							end
 						end
@@ -211,15 +218,16 @@ local function UnitGear(unit)
 	end
 
 	if (not delay) then
-		ilvl = total / 16
+		if (unit == 'player') and (GetAverageItemLevel() > 0) then
+			ilvl = select(2, GetAverageItemLevel())
+		else
+			ilvl = total / 16
+		end
 		if (ilvl > 0) then ilvl = string.format('%.1f', ilvl) end
 
 		if (boa > 0) then ilvl = ilvl .. '  |cffe6cc80' .. boa .. ' BOA' end
 		if (pvp > 0) then ilvl = ilvl .. '  |cffa335ee' .. pvp .. ' PVP' end
-	else
-		ilvl = nil
 	end
-
 	return ilvl
 end
 
@@ -233,15 +241,11 @@ local function UnitSpec(unit)
 		local specIndex = GetSpecialization()
 		if specIndex then
 			specName = select(2, GetSpecializationInfo(specIndex))
-		else
-			specName = UNKNOWN
 		end
 	else
 		local specID = GetInspectSpecialization(unit)
 		if specID and (specID > 0) then
-			specName = select(2, GetSpecializationInfoByID(specID))
-		elseif (specID == 0) then
-			specName = UNKNOWN
+			specName = GetSpecializationNameForSpecID(specID)
 		end
 	end
 
@@ -254,18 +258,18 @@ local function ScanUnit(unit, forced)
 	local cachedGear, cachedSpec
 
 	if UnitIsUnit(unit, 'player') then
-		cachedGear = UnitGear('player')
 		cachedSpec = UnitSpec('player')
+		cachedGear = UnitGear('player')
 
-		SetUnitInfo(cachedGear or CONTINUED, cachedSpec or CONTINUED)
+		SetUnitInfo(cachedGear or CONTINUED, cachedSpec)
 	else
 		if (not unit) or (UnitGUID(unit) ~= currentGUID) then return end
 
-		cachedGear = GearDB[currentGUID]
 		cachedSpec = SpecDB[currentGUID]
+		cachedGear = GearDB[currentGUID]
 
 		if cachedGear or forced then
-			SetUnitInfo(cachedGear or CONTINUED, cachedSpec)
+			SetUnitInfo(cachedGear, cachedSpec)
 		end
 
 		if not (IsShiftKeyDown() or forced) then
@@ -277,13 +281,13 @@ local function ScanUnit(unit, forced)
 		if UnitIsDeadOrGhost('player') or UnitOnTaxi('player') then return end
 		if InspectFrame and InspectFrame:IsShown() then return end
 
-		SetUnitInfo(CONTINUED, cachedSpec or CONTINUED)
+		SetUnitInfo(CONTINUED, cachedSpec)
 
-		local timeSinceLastInspect = GetTime() - lastInspectRequest
-		if (timeSinceLastInspect >= 1.5) then
-			nextInspectRequest = 0
+		local lastRequest = GetTime() - (f.lastUpdate or 0)
+		if (lastRequest >= 1.5) then
+			f.nextUpdate = 0
 		else
-			nextInspectRequest = 1.5 - timeSinceLastInspect
+			f.nextUpdate = 1.5 - lastRequest
 		end
 		f:Show()
 	end
@@ -291,7 +295,8 @@ end
 
 
 --- Character Info Sheet ---
-hooksecurefunc('PaperDollFrame_SetArmor', function(_, unit)
+MIN_PLAYER_LEVEL_FOR_ITEM_LEVEL_DISPLAY = 1
+hooksecurefunc('PaperDollFrame_SetItemLevel', function(frame, unit)
 	if (unit ~= 'player') then return end
 
 	local total, equip = GetAverageItemLevel()
@@ -302,14 +307,7 @@ hooksecurefunc('PaperDollFrame_SetArmor', function(_, unit)
 	if (equip ~= total) then
 		ilvl = equip .. ' / ' .. total
 	end
-
-	if not CharacterStatsPane.ItemLevelFrame:IsShown() then
-		PaperDollFrame_SetItemLevel(CharacterStatsPane.ItemLevelFrame, unit)
-		CharacterStatsPane.ItemLevelCategory:Show()
-		CharacterStatsPane.ItemLevelFrame:Show()
-		CharacterStatsPane.AttributesCategory:SetPoint('TOP', CharacterStatsPane.ItemLevelFrame, 'BOTTOM', 0, -2)
-	end
-	CharacterStatsPane.ItemLevelFrame.Value:SetText(ilvl)
+	frame.Value:SetText(ilvl)
 end)
 
 
@@ -322,30 +320,33 @@ f:SetScript('OnEvent', function(self, event, ...)
 		end
 	elseif (event == 'INSPECT_READY') then
 		local guid = ...
-		if (guid ~= currentGUID) then return end
+		if (guid == currentGUID) then
+			local spec = UnitSpec(currentUNIT)
+			SpecDB[guid] = spec
 
-		local gear = UnitGear(currentUNIT)
-		GearDB[currentGUID] = gear
+			local gear = UnitGear(currentUNIT)
+			GearDB[guid] = gear
 
-		local spec = UnitSpec(currentUNIT)
-		SpecDB[currentGUID] = spec
-
-		if (not gear) or (not spec) then
-			ScanUnit(currentUNIT, true)
-		else
-			SetUnitInfo(gear, spec)
+			if (not gear) or (not spec) then
+				ScanUnit(currentUNIT, true)
+			else
+				SetUnitInfo(gear, spec)
+			end
 		end
+		self:UnregisterEvent('INSPECT_READY')
 	end
 end)
 
 f:SetScript('OnUpdate', function(self, elapsed)
-	nextInspectRequest = nextInspectRequest - elapsed
-	if (nextInspectRequest > 0) then return end
+	self.nextUpdate = (self.nextUpdate or 0) - elapsed
+	if (self.nextUpdate > 0) then return end
 
 	self:Hide()
+	ClearInspectPlayer()
 
 	if currentUNIT and (UnitGUID(currentUNIT) == currentGUID) then
-		lastInspectRequest = GetTime()
+		self.lastUpdate = GetTime()
+		self:RegisterEvent('INSPECT_READY')
 		NotifyInspect(currentUNIT)
 	end
 end)
