@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
     
-    This file was last updated on 2016-07-25T22:22:32Z
+    This file was last updated on 2016-09-21T07:06:01Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -129,6 +129,14 @@ function D:GetDefaultsSettings()
                 "alt-%s1",
                 "alt-%s2",
                 "alt-%s3",
+                "*%s4",
+                "ctrl-%s4",
+                "shift-%s4",
+                "alt-%s4",
+                "*%s5",
+                "ctrl-%s5",
+                "shift-%s5",
+                "alt-%s5",
                 "*%s3",       -- the last two entries are always target and focus
                 "ctrl-%s3",
             },
@@ -1593,6 +1601,9 @@ local function GetStaticOptions ()
                                         D.classprofile.UserSpells[v].EnhancedBy         = DC.SpellsToUse[v].EnhancedBy;
                                         D.classprofile.UserSpells[v].EnhancedByCheck    = DC.SpellsToUse[v].EnhancedByCheck;
                                         D.classprofile.UserSpells[v].Enhancements       = DC.SpellsToUse[v].Enhancements;
+                                        if DC.SpellsToUse[v].UnitFiltering then
+                                            D:tcopy(D.classprofile.UserSpells[v].UnitFiltering, DC.SpellsToUse[v].UnitFiltering) -- UnitFiltering is a table, protect the original
+                                        end
                                     end
 
                                 end
@@ -1708,7 +1719,7 @@ local function GetStaticOptions ()
                                     "\n\n|cFFDDDD00 %s|r:\n   %s"..
                                     "\n\n|cFFDDDD00 %s|r:\n   %s\n\n   %s"
                                 ):format(
-                                    "2.7.4.7", "John Wellesz", ("2016-07-26T11:52:32Z"):sub(1,10),
+                                    "2.7.5", "John Wellesz", ("2016-10-27T01:00:37Z"):sub(1,10),
                                     L["ABOUT_NOTES"],
                                     L["ABOUT_LICENSE"],         GetAddOnMetadata("Decursive", "X-License") or 'All Rights Reserved',
                                     L["ABOUT_SHAREDLIBS"],      GetAddOnMetadata("Decursive", "X-Embeds")  or 'GetAddOnMetadata() failure',
@@ -1918,7 +1929,7 @@ function D:SetCureOrder (ToChange)
     end
 
     local LostSpells = {}; -- an orphanage for the lost spells :'(
-    local FoundSpell = 0; -- we wouldn't need that if #table was always returning something meaningful...
+    local FoundSpell = 0;
 
     -- re-compute the position of each spell type
     for Type, Num in pairs (CureOrder) do
@@ -1933,7 +1944,7 @@ function D:SetCureOrder (ToChange)
     end
 
    -- take care of the lost spells here
-   -- Sort the lost spells so that they can be readded in the correct order
+   -- Sort the lost spells so that they can be read in the correct order
    LostSpells =  D:tSortUsingKeys(LostSpells);
 
    -- Place the lost spells after the found ones but with <0 values so they
@@ -2652,7 +2663,7 @@ do
             return tostring(spellID);
         end
 
-        local name = D.GetSpellOrItemInfo(spellID);
+        local name = D.GetSpellOrItemInfo(spellID) or "WTF!?!";
         local color = 'FFFFFFFF';
 
         if spell.Disabled then
@@ -2687,6 +2698,10 @@ do
                 t_insert(spellTableTypes, curetype)
             elseif not v then
                 D:tremovebyval(spellTableTypes, curetype);
+                -- also clear the unit filtering settings if it exists
+                if D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering then
+                    D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering[DC.LocalizableTypeNamesToTypes[info[#info]]] = nil;
+                end
             end
             if not D.classprofile.UserSpells[TN(info[#info-2])].Disabled and isSpellUSable(TN(info[#info-2])) then
                 D:ScheduleDelayedCall("Dcr_Delayed_Configure", D.Configure, 2, D);
@@ -2704,6 +2719,41 @@ do
             return false;
         end, 
         order = function() return order; end,
+    }
+
+    local typeUnitFilteringOption = {
+        type = 'select',
+        style = "dropdown",
+        name = function(info) return L[info[#info]] end,
+        desc = L["OPT_CUSTOM_SPELL_UNIT_FILTER_DESC"],
+        values = {[0] = L["OPT_CUSTOM_SPELL_UNIT_FILTER_NONE"], [1] = L["OPT_CUSTOM_SPELL_UNIT_FILTER_PLAYER"], [2] = L["OPT_CUSTOM_SPELL_UNIT_FILTER_NONPLAYER"]},
+        order = function() return order; end,
+
+        hidden = function (info)
+            -- hide the option when the type is not enabled for this spell
+            return not D:tcheckforval(D.classprofile.UserSpells[TN(info[#info-2])].Types,  DC.LocalizableTypeNamesToTypes[info[#info]])
+        end,
+
+        get = function(info)
+            if not D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering
+                or not D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering[DC.LocalizableTypeNamesToTypes[info[#info]]] then
+                return 0;
+            else
+                return D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering[DC.LocalizableTypeNamesToTypes[info[#info]]];
+            end
+        end,
+        set = function(info, v)
+            if not D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering then
+                D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering = {};
+            end
+
+            D.classprofile.UserSpells[TN(info[#info-2])].UnitFiltering[DC.LocalizableTypeNamesToTypes[info[#info]]] = v ~= 0 and v or nil;
+
+            if not D.classprofile.UserSpells[TN(info[#info-2])].Disabled and isSpellUSable(TN(info[#info-2])) then
+                D:ScheduleDelayedCall("Dcr_Delayed_Configure", D.Configure, 2, D);
+            end
+        end,
+
     }
 
     local SpellSubOptions = {
@@ -2746,6 +2796,14 @@ do
                 type = 'group',
                 name = L["OPT_CUSTOM_SPELL_CURE_TYPES"],
                 order = 105,
+                inline = true,
+                
+                args={},
+            },
+            UnitFiltering = {
+                type = 'group',
+                name = L["OPT_CUSTOM_SPELL_UNIT_FILTER"],
+                order = 107,
                 inline = true,
                 
                 args={},
@@ -2865,6 +2923,7 @@ do
 
     function D:CreateAddedSpellsOptionMenu (where)
 
+        -- create type slectors
         local TypesSelector = {};
 
         for localizableTypeName, curetype in pairs(DC.LocalizableTypeNamesToTypes) do
@@ -2874,6 +2933,16 @@ do
 
         SpellSubOptions.args.cureTypes.args = TypesSelector;
 
+        -- create unitFiltering by type
+        local UnitFilteringTypeSelector = {};
+        for localizableTypeName, curetype in pairs(DC.LocalizableTypeNamesToTypes) do
+            UnitFilteringTypeSelector[localizableTypeName] = typeUnitFilteringOption;
+            order = order + 1;
+        end
+
+        SpellSubOptions.args.UnitFiltering.args = UnitFilteringTypeSelector;
+
+        -- create each spell option table
         for spellID, spellTable in pairs(self.classprofile.UserSpells) do
             if not spellTable.Hidden then
                 where[tostring(spellID)] = SpellSubOptions;
@@ -3014,6 +3083,6 @@ function D:QuickAccess (CallingObject, button) -- {{{
 end -- }}}
 
 
-T._LoadedFiles["Dcr_opt.lua"] = "2.7.4.7";
+T._LoadedFiles["Dcr_opt.lua"] = "2.7.5";
 
 -- Closer

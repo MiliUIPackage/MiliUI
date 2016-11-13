@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT
     teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
@@ -21,7 +21,7 @@
     Decursive is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY.
 
-    This file was last updated on 2016-07-25T09:26:06Z
+    This file was last updated on 2016-09-12T00:18:29Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -166,6 +166,8 @@ L["HLP_LEFTCLICK"] = "Left-Click"
 L["HLP_LL_ONCLICK_TEXT"] = [=[The Live-List is not meant to be clicked. Please, read the documentation to learn how to use this add-on. Just search for 'Decursive' on WoWAce.com
 (To move this list move the Decursive bar, /dcrshow and left-alt-click to move)]=]
 L["HLP_MIDDLECLICK"] = "Middle-Click"
+L["HLP_MOUSE4"] = "Mouse Button 4"
+L["HLP_MOUSE5"] = "Mouse Button 5"
 L["HLP_NOTHINGTOCURE"] = "There is nothing to cure!"
 L["HLP_RIGHTCLICK"] = "Right-Click"
 L["HLP_USEXBUTTONTOCURE"] = "Use \"%s\" to cure this affliction!"
@@ -286,6 +288,11 @@ Your custom spells always have a higher priority and will override and replace t
 ]=]
 L["OPT_CUSTOMSPELLS_EFFECTIVE_ASSIGNMENTS"] = "Effective spells assignments:"
 L["OPT_CUSTOM_SPELL_UNAVAILABLE"] = "unavailable"
+L["OPT_CUSTOM_SPELL_UNIT_FILTER"] = "Unit Filtering"
+L["OPT_CUSTOM_SPELL_UNIT_FILTER_DESC"] = "Select units that can benefit from this spell"
+L["OPT_CUSTOM_SPELL_UNIT_FILTER_NONE"] = "All units"
+L["OPT_CUSTOM_SPELL_UNIT_FILTER_NONPLAYER"] = "Others only"
+L["OPT_CUSTOM_SPELL_UNIT_FILTER_PLAYER"] = "Player only"
 L["OPT_DEBCHECKEDBYDEF"] = [=[
 
 Checked by default]=]
@@ -478,8 +485,8 @@ Go to curse.com and search for 'Decursive' or use Curse's client to update all y
 
 This notice will be displayed again in 2 days.]=]
 L["TOOFAR"] = "Too far"
-L["TOO_MANY_ERRORS_ALERT"] = [=[There are too many Lua errors in your User Interface (%d). Your game experience is currently degraded. Disable or update the failing add-ons to turn off this message and regain a proper frame rate.
-You may want to turn on Lua error reporting ('Help' section of World of Warcraft's interface options) to identify the problematic add-ons.]=]
+L["TOO_MANY_ERRORS_ALERT"] = [=[There are too many Lua errors in your User Interface (%d errors). Your game experience may be degraded. Disable or update the failing add-ons to turn off this message.
+You may want to turn on Lua error reporting (/console scriptErrors 1).]=]
 L["UNITSTATUS"] = "Unit Status: "
 L["UNSTABLERELEASE"] = "Unstable release"
 
@@ -487,4 +494,4 @@ L["UNSTABLERELEASE"] = "Unstable release"
 
 
 
-T._LoadedFiles["enUS.lua"] = "2.7.4.7";
+T._LoadedFiles["enUS.lua"] = "2.7.5";

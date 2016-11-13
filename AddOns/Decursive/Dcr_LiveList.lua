@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
     
-    This file was last updated on 2014-10-13T09:20:46Z
+    This file was last updated on 2016-09-24T19:53:38Z
 
 --]]
 -------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ end -- }}}
 -- The Factory for LiveList objects
 function LiveList:Create() -- {{{
 
-    if self.Number + 1 > D.profile.Amount_Of_Afflicted then
+    if self.Number >= D.profile.Amount_Of_Afflicted then
         return false;
     end
 
@@ -118,17 +118,33 @@ function LiveList:Create() -- {{{
 
 end -- }}}
 
+function LiveList:PreCreate()
+    if D.Status.Combat or self.Number >= D.profile.Amount_Of_Afflicted then
+        return;
+    end
+
+    D:Debug("(LiveList) Precreating LL item");
+
+    self.ExistingPerID[self.Number + 1] = self:new(DcrLiveList, self.Number + 1);
+
+    self.Number = self.Number + 1;
+    D:Debug("done");
+
+    LiveList:PreCreate();
+
+end
+
 function LiveList:DisplayItem (ID, UnitID, Debuff) -- {{{
 
     --D:Debug("(LiveList) Displaying LVItem %d for UnitID %s", ID, UnitID);
     local LVItem = false;
 
-    if ID > self.Number + 1 then
-        return error(("LiveList:DisplayItem: bad argument #1 'ID (= %d)' must be < LiveList.Number + 1 (LiveList.Number = %d) UnitID was %s, Amount_Of_Afflicted 2disp: %d"):format(ID, self.Number, UnitID, D.profile.Amount_Of_Afflicted),2);
+    if ID > self.Number + 1 then -- sanity check
+        return error(("LiveList:DisplayItem: bad argument #1 'ID (= %d)' must be < LiveList.Number + 1 (LiveList.Number = %d) UnitID was %s, Amount_Of_Afflicted 2disp: %d"):format(ID, self.Number, UnitID, D.profile.Amount_Of_Afflicted), 2);
     end
 
     if not self.ExistingPerID[ID] then
-        LVItem=self:Create();
+        LVItem = self:Create();
     else
         LVItem = self.ExistingPerID[ID];
     end
@@ -145,8 +161,16 @@ function LiveList:DisplayItem (ID, UnitID, Debuff) -- {{{
     --D:Debug("XXXX => Updating ll item %d for %s", ID, UnitID);
 
     if not LVItem.IsShown then
-        --D:Debug("(LiveList) Showing LVItem %d", ID);
+        --[===[@debug@--
+        D:Debug("(LiveList) Showing LVItem %d", ID);
+        --@end-debug@]===]
+
         LVItem.Frame:Show();
+
+        --[===[@debug@--
+        D:Debug("(LiveList) done", ID);
+        --@end-debug@]===]
+
         self.NumberShown = self.NumberShown + 1;
         LVItem.IsShown = true;
     end
@@ -251,9 +275,6 @@ function LiveList.prototype:init(Container,ID) -- {{{
 
     -- a reference to this object
     self.Frame.Object = self;
-
-    self.Frame:Show();
-
 
 end -- }}}
 
@@ -376,6 +397,9 @@ function LiveList:Update_Display() -- {{{
     if not D.DcrFullyInitialized  then
         return;
     end
+
+    -- 
+    self:PreCreate();
 
     Index = 0;
 
@@ -549,13 +573,12 @@ end -- }}}
 
 -- this displays the tooltips of the live-list
 function LiveList:DebuffTemplate_OnEnter(frame) --{{{
-    if (D.profile.AfflictionTooltips and frame.Object.UnitID) then
+    if D.profile.AfflictionTooltips and frame.Object.UnitID then
         DcrDisplay_Tooltip:SetOwner(frame, "ANCHOR_CURSOR");
-        DcrDisplay_Tooltip:ClearLines();
-        DcrDisplay_Tooltip:SetUnitDebuff(frame.Object.UnitID,frame.Object.Debuff.index); -- OK
+        DcrDisplay_Tooltip:SetUnitDebuff(frame.Object.UnitID,frame.Object.Debuff.index); -- Reported to trigger a "script ran too long" error on 2016-09-13...
         DcrDisplay_Tooltip:Show();
     else
-        D:Debug(D.profile.AfflictionTooltips, frame.Object.UnitID );
+        D:Debug(D.profile.AfflictionTooltips, frame.Object.UnitID);
     end
 end --}}}
 
@@ -563,4 +586,4 @@ function LiveList:Onclick() -- {{{
     D:Println(L["HLP_LL_ONCLICK_TEXT"]);
 end -- }}}
 
-T._LoadedFiles["Dcr_LiveList.lua"] = "2.7.4.7";
+T._LoadedFiles["Dcr_LiveList.lua"] = "2.7.5";

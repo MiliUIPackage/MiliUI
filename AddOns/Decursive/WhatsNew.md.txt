@@ -1,7 +1,26 @@
-Decursive 2.7.4.7 (2016-07-25)
-==============================
+Decursive 2.7.5 (2016-10-27)
+============================
 
-Changes from Decursive 2.7.4.6 to Decursive 2.7.4.7 (2016-07-25)
+
+Changes from Decursive 2.7.4.7 to Decursive 2.7.5 (2016-10-27)
+--------------------------------------------------------------
+
+- Add support for roles (Healer, Tank and Damager in priority and skip lists).
+
+- Add support for mouse's 4th and 5th buttons in micro-unit frames. (They need
+  to be assigned directly in Decursive's option panel).
+
+- New unit filtering options for custom spells allowing to restrict a spell or
+  item to the player only or to other party members only.
+
+- Add support for CUSTOM_CLASS_COLORS.
+
+- Reliability improvements concerning very rare "script ran too long" Lua errors.
+
+- Code cleanup and improvements.
+
+
+Changes from Decursive 2.7.4.6 to Decursive 2.7.4.7 (2016-07-26)
 ----------------------------------------------------------------
 
 - Prevent crash on some Chinese clients where the constant

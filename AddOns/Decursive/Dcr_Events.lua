@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
     
-    This file was last updated on 2015-06-29T22:54:41Z
+    This file was last updated on 2016-09-12T23:23:09Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -84,6 +84,15 @@ local UnitGUID          = _G.UnitGUID;
 local GetTime           = _G.GetTime;
 local IsShiftKeyDown    = _G.IsShiftKeyDown;
 
+-- Blizzard event management
+function D.OnEvent(frame, event, ...)
+    if D[event] then
+        D[event](D, event, ...);
+    else
+        D:AddDebugText('unused event:', event);
+    end
+end
+
 -- GroupChanged(reason) {{{
 do
 
@@ -131,6 +140,9 @@ do
 
         self:Debug("Group changed", reason);
     end
+
+    D.PARTY_LEADER_CHANGED = D.GroupChanged;
+    D.GROUP_ROSTER_UPDATE = D.GroupChanged;
 end
  -- }}}
 
@@ -266,7 +278,7 @@ function D:ScheduledTasks() -- {{{
     end
 
     if status.Combat and not InCombatLockdown() then -- just in case...
-        self:LeaveCombat();
+        self:PLAYER_REGEN_ENABLED();
     end
 
     if (not InCombatLockdown() and status.DelayedFunctionCallsCount > 0) then
@@ -312,16 +324,16 @@ end --}}}
 
 -- the combat functions and events. // {{{
 -------------------------------------------------------------------------------
-function D:EnterCombat() -- called on PLAYER_REGEN_DISABLED {{{
+function D:PLAYER_REGEN_DISABLED() -- {{{
     -- this is not reliable for testing unitframe modifications authorization,
     -- this event fires after the player enters in combat, only InCombatLockdown() may be used for critical checks
     self.Status.Combat = true;
 end --}}}
 
---function D:LeaveCombat() --{{{
+--function D:PLAYER_REGEN_ENABLED() --{{{
 do
     local LastDebugReportNotification = 0;
-    function D:LeaveCombat()
+    function D:PLAYER_REGEN_ENABLED() -- LeaveCombat
         --D:Debug("Leaving combat");
         self.Status.Combat = false;
 
@@ -405,7 +417,7 @@ end
 function D:PLAYER_ALIVE()
     D:Debug("|cFFFF0000PLAYER_ALIVE|r");
     self:ScheduleDelayedCall("Dcr_ReConfigure", self.ReConfigure, 4, self);
-    self:UnregisterEvent("PLAYER_ALIVE");
+    self.eventFrame:UnregisterEvent("PLAYER_ALIVE");
     T.PLAYER_IS_ALIVE = GetTime();
 end
 
@@ -1160,6 +1172,6 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_Events.lua"] = "2.7.4.7";
+T._LoadedFiles["Dcr_Events.lua"] = "2.7.5";
 
 -- The Great Below

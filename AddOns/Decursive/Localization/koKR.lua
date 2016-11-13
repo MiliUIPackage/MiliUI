@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT
     teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
@@ -78,7 +78,7 @@ T._LoadedFiles["koKR.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "koKR");
 
 if not L then
-    T._LoadedFiles["koKR.lua"] = "2.7.4.7";
+    T._LoadedFiles["koKR.lua"] = "2.7.5";
     return;
 end;
 
@@ -440,10 +440,10 @@ L["TARGETUNIT"] = "대상"
 L["TIE_LIVELIST"] = "실시간 목록 표시를 DCR 창과 함께 표시"
 L["TOOFAR"] = "거리 벗어남"
 L["TOO_MANY_ERRORS_ALERT"] = [=[사용자 인터페이스(%d)에 많은 Lua 오류가 있습니다. 당신의 게임 성능을 현재 저하시킵니다. 오류 애드온의 사용을 중지하여 적절한 프레임 속도를 향상시키도록 업데이트 또는 비활성합니다.
-당신은 식별된 문제있는 애드온의 Lua 오류를 보고하기(와우 인터페이스 설정의 '도움말' 항목) 위해 설정할 수 있습니다.]=]
+당신은 식별된 문제있는 애드온의 Lua 오류를 보고하기(/console scriptErrors 1) 위해 설정할 수 있습니다.]=]
 L["UNITSTATUS"] = "상태: "
 L["UNSTABLERELEASE"] = "비안정화판 배포"
 
 
 
-T._LoadedFiles["koKR.lua"] = "2.7.4.7";
+T._LoadedFiles["koKR.lua"] = "2.7.5";

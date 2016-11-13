@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2016-07-26T11:23:37Z
+    This file was last updated on 2016-10-06T21:19:47Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -56,6 +56,7 @@ local _G                = _G;
 local pairs             = _G.pairs;
 local ipairs            = _G.ipairs;
 local type              = _G.type;
+local tostring          = _G.tostring;
 local unpack            = _G.unpack;
 local select            = _G.select;
 local str_sub           = _G.string.sub;
@@ -77,6 +78,7 @@ local IsSpellInRange    = _G.IsSpellInRange;
 local UnitInRange       = _G.UnitInRange;
 local debugprofilestop  = _G.debugprofilestop;
 local GetSpellInfo      = _G.GetSpellInfo;
+local GetItemInfo       = _G.GetItemInfo;
 
 -- replacement for the default function as it is bugged in WoW5 (it returns nil for some spells such as resto shamans' 'Purify Spirit')
 D.IsSpellInRange = function (spellName, unit)
@@ -98,9 +100,13 @@ D.IsSpellInRange = function (spellName, unit)
 end
 
 
-function D:ColorText (text, color) --{{{
+function D:ColorText (text, color)
     return "|c".. color .. text .. "|r";
-end --}}}
+end
+
+function D:ColorTextNA (text, color)
+    return "|cFF".. color .. text .. "|r";
+end
 
 function D:RemoveColor (text)
     return str_sub(text, 11, -3);
@@ -219,8 +225,6 @@ end
 
 
 function D:tremovebyval(tab, val) -- {{{
-    local k;
-    local v;
     for k,v in pairs(tab) do
         if(v==val) then
             t_remove(tab, k);
@@ -229,6 +233,19 @@ function D:tremovebyval(tab, val) -- {{{
     end
     return false;
 end -- }}}
+
+function D:tAsString(t) -- debugging function
+
+    if type(t) ~= 'table' then
+        return tostring(t)
+    end
+
+    local s = '{'
+    for k,v in pairs(t) do
+        s = s .. ('[%s] = [%s], '):format(tostring(k), tostring(v))
+    end
+    return s .. '}'
+end
 
 function D:tcheckforval(tab, val) -- {{{
     local k, v;
@@ -359,11 +376,7 @@ function D:ThisSetParentText(frame, text) --{{{
 end --}}}
 
 function D:DisplayTooltip(Message, RelativeTo, AnchorType, x, y) --{{{
-        if not AnchorType then
-            AnchorType = "ANCHOR_LEFT";
-        end
-        DcrDisplay_Tooltip:SetOwner(RelativeTo, AnchorType, x, y);
-        DcrDisplay_Tooltip:ClearLines();
+        DcrDisplay_Tooltip:SetOwner(RelativeTo, AnchorType or "ANCHOR_LEFT", x, y);
         DcrDisplay_Tooltip:SetText(Message);
         DcrDisplay_Tooltip:Show();
 end --}}}
@@ -397,8 +410,10 @@ do
 
     DC.ClassesColors = { };
 
-    function D:GetClassColor (EnglishClass)
-        if not DC.ClassesColors[EnglishClass] then
+    local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS;
+
+    function D:GetClassColor (EnglishClass, noCache)
+        if not DC.ClassesColors[EnglishClass] or noCache then
             if RAID_CLASS_COLORS and RAID_CLASS_COLORS[EnglishClass] then
                 DC.ClassesColors[EnglishClass] = { RAID_CLASS_COLORS[EnglishClass].r, RAID_CLASS_COLORS[EnglishClass].g, RAID_CLASS_COLORS[EnglishClass].b };
             else
@@ -411,8 +426,8 @@ do
 
     DC.HexClassColor = { };
 
-    function D:GetClassHexColor(EnglishClass)
-        if not DC.HexClassColor[EnglishClass] then
+    function D:GetClassHexColor(EnglishClass, noCache)
+        if not DC.HexClassColor[EnglishClass] or noCache then
             local r, g, b = self:GetClassColor(EnglishClass)
             DC.HexClassColor[EnglishClass] = str_format("%02x%02x%02x", r * 255, g * 255, b * 255);
             DC.HexClassColor[LC[EnglishClass]] = DC.HexClassColor[EnglishClass];
@@ -427,8 +442,8 @@ do
             local class, colors;
             for class in pairs(RAID_CLASS_COLORS) do
                 if LC[class] then -- Some badly coded add-ons are modifying RAID_CLASS_COLORS causing multiple problems...
-                    D:GetClassHexColor(class);
-                    D:GetClassColor(class);
+                    D:GetClassColor(class, true);
+                    D:GetClassHexColor(class, true);
                 else
                     D:AddDebugText("Strange class found in RAID_CLASS_COLORS:", class, 'maxClass:', CLASS_SORT_ORDER and #CLASS_SORT_ORDER or 'CLASS_SORT_ORDER unavailable...');
                     print("Decursive: |cFFFF0000Unexpected value found in _G.RAID_CLASS_COLORS table|r\nThis may cause many issues, Decursive will display this message until the culprit add-on is fixed or removed, the unexpected value is: '", class, "'");
@@ -438,7 +453,13 @@ do
             D:AddDebugText("global RAID_CLASS_COLORS does not exist...");
             T._FatalError("global RAID_CLASS_COLORS does not exist...");
         end
+
+        D:Debug('CreateClassColorTables called');
     end
+
+    if CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS.RegisterCallback then
+        CUSTOM_CLASS_COLORS:RegisterCallback(function() D:ScheduleDelayedCall('update_Class_Colors', D.CreateClassColorTables, .3, D) end);
+    end 
 
 end
 
@@ -507,7 +528,7 @@ function D.GetSpellOrItemInfo(spellID)
     if spellID > 0 then
         return GetSpellInfo(spellID);
     else
-        return GetItemInfo(spellID * -1);
+        return GetItemInfo(spellID * -1) or "Item: " .. spellID * -1;
     end
 end
 
@@ -538,6 +559,29 @@ end
 
 function D:NiceTime()
     return tonumber(("%.4f"):format(GetTime() - DC.StartTime));
+end
+
+
+do
+
+    -- /run LibStub("AceAddon-3.0"):GetAddon("Decursive"):RuncombatCrash()
+    local combatcrash;
+    function D:RuncombatCrash()
+        D:Debug("RCC: Last run:", combatcrash);
+        if not InCombatLockdown() then
+            D:Debug("RCC: Not in combat");
+            return;
+        end
+
+        local crashstart = debugprofilestop();
+
+        D:Debug("RCC: Hang started");
+
+        repeat
+            combatcrash = debugprofilestop() - crashstart;
+        until false
+    end
+
 end
 
 do
@@ -799,4 +843,4 @@ do
 end
 
 
-T._LoadedFiles["Dcr_utils.lua"] = "2.7.4.7";
+T._LoadedFiles["Dcr_utils.lua"] = "2.7.5";

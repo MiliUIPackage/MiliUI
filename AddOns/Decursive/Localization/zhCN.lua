@@ -1,7 +1,7 @@
 ﻿--[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT
     teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
@@ -74,7 +74,7 @@ T._LoadedFiles["zhCN.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "zhCN");
 
 if not L then
-    T._LoadedFiles["zhCN.lua"] = "2.7.4.7";
+    T._LoadedFiles["zhCN.lua"] = "2.7.5";
     return;
 end;
 
@@ -480,10 +480,10 @@ L["TOC_VERSION_EXPIRED"] = [=[Decursive 版本已过期。此版本的 Decursive
 此消息2天内会重复显示。]=]
 L["TOOFAR"] = "太远"
 L["TOO_MANY_ERRORS_ALERT"] = [=[你的用户界面（%d）有太多的 Lua 错误。当前游戏体验被弱化。禁用或者更新失效的插件关闭信息并重新获得适当的帧数频率。
-如果想打开 Lua 错误报告（魔兽世界”下“帮助插件选项）来找出可能出问题的插件。]=]
+如果想打开 Lua 错误报告（/console scriptErrors 1）来找出可能出问题的插件。]=]
 L["UNITSTATUS"] = "单位状态："
 L["UNSTABLERELEASE"] = "不稳定版本"
 
 
 
-T._LoadedFiles["zhCN.lua"] = "2.7.4.7";
+T._LoadedFiles["zhCN.lua"] = "2.7.5";

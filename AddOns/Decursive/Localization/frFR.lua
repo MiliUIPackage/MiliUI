@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -73,7 +73,7 @@ T._LoadedFiles["frFR.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "frFR");
 
 if not L then 
-    T._LoadedFiles["frFR.lua"] = "2.7.4.7";
+    T._LoadedFiles["frFR.lua"] = "2.7.5";
     return;
 end
 
@@ -164,6 +164,8 @@ L["HLP_LEFTCLICK"] = "Clic Gauche"
 L["HLP_LL_ONCLICK_TEXT"] = [=[Cette liste n'est pas cliquable. Merci de lire la documentation pour apprendre à utiliser cet add-on. Cherchez 'Decursive' sur WoWAce.com
 (Pour bouger cette liste, bougez la barre de Decursive, /dcrshow et alt-clic-gauche pour déplacer)]=]
 L["HLP_MIDDLECLICK"] = "Clic Milieu"
+L["HLP_MOUSE4"] = "Souris 4"
+L["HLP_MOUSE5"] = "Souris 5"
 L["HLP_NOTHINGTOCURE"] = "Il n'y a rien à guérir !"
 L["HLP_RIGHTCLICK"] = "Clic Droit"
 L["HLP_USEXBUTTONTOCURE"] = "Utilisez \"%s\" pour guérir cette affection !"
@@ -477,11 +479,11 @@ Allez sur curse.com et cherchez "Decursive" ou utilisez le client de Curse.com p
 
 Cette note sera affichée de nouveau dans deux jours.]=]
 L["TOOFAR"] = "Hors de portée"
-L["TOO_MANY_ERRORS_ALERT"] = [=[Il y a trop d'erreurs Lua dans votre interface utilisateur (%d). Votre expérience de jeu s'en retrouve dégradée. Désactivez ou mettez à jour les add-ons en erreur pour stopper ce message et retrouver une fluidité de jeu correcte.
-Vous devriez activer les rapports d'erreur Lua (section 'Aide' des options d'interface de World of Warcraft) afin d’identifier les add-ons problématiques.]=]
+L["TOO_MANY_ERRORS_ALERT"] = [=[Il y a trop d'erreurs Lua dans votre interface utilisateur (%d erreurs). Votre expérience de jeu peut être dégradée. Désactivez ou mettez à jour les add-ons en erreur pour stopper ce message.
+Vous devriez activer les rapports d'erreur Lua (/console scriptErrors 1).]=]
 L["UNITSTATUS"] = "Statut de l'unité : "
 L["UNSTABLERELEASE"] = "Version instable"
 
 
 
-T._LoadedFiles["frFR.lua"] = "2.7.4.7";
+T._LoadedFiles["frFR.lua"] = "2.7.5";

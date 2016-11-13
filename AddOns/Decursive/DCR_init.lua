@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2016-07-26T11:52:32Z
+    This file was last updated on 2016-09-12T23:23:09Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -66,7 +66,7 @@ local function RegisterDecursive_Once() -- {{{
     --@end-debug@]===]
 
     D.name = "Decursive";
-    D.version = "2.7.4.7";
+    D.version = "2.7.5";
     D.author = "John Wellesz";
 
     D.DcrFullyInitialized = false;
@@ -421,9 +421,9 @@ local function InitVariables_Once() -- {{{
     -- A table UnitID=>IsDebuffed (boolean)
     D.UnitDebuffed = {};
 
-    D.Revision = "f7919ae"; -- not used here but some other add-on may request it from outside
-    D.date = "2016-07-26T11:52:32Z";
-    D.version = "2.7.4.7";
+    D.Revision = "12fdd1c"; -- not used here but some other add-on may request it from outside
+    D.date = "2016-10-27T01:00:37Z";
+    D.version = "2.7.5";
 
     if D.date ~= "@project".."-date-iso@" then
         -- @project-timestamp@ doesn't work
@@ -492,7 +492,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
 
             if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
 
-                T._ShowNotice ("|cff00ff00Decursive version: 2.7.4.7|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
+                T._ShowNotice ("|cff00ff00Decursive version: 2.7.5|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
 
                 self.db.global.LastExpirationAlert = time();
             end
@@ -501,7 +501,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         self.db.global.TocExpiredDetection = false;
     end
 
-    if (("2.7.4.7"):lower()):find("beta") or ("2.7.4.7"):find("RC") or ("2.7.4.7"):find("Candidate") or alpha then
+    if (("2.7.5"):lower()):find("beta") or ("2.7.5"):find("RC") or ("2.7.5"):find("Candidate") or alpha then
 
         D.RunningADevVersion = true;
 
@@ -514,7 +514,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
                 DC.DevVersionExpired = true;
                 -- Display the expiration notice only once evry 48 hours
                 if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
-                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.4.7|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
+                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.5|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
 
                     self.db.global.LastExpirationAlert = time();
                 end
@@ -525,16 +525,16 @@ function D:VersionWarnings(forceDisplay) -- {{{
         end
 
         -- display a warning if this is a developpment version (avoid insults from people who don't know what they're doing)
-        if self.db.global.NonRelease ~= "2.7.4.7" then
-            self.db.global.NonRelease = "2.7.4.7";
-            T._ShowNotice ("|cff00ff00Decursive version: 2.7.4.7|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
+        if self.db.global.NonRelease ~= "2.7.5" then
+            self.db.global.NonRelease = "2.7.5";
+            T._ShowNotice ("|cff00ff00Decursive version: 2.7.5|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
         end
     end
 
     --[===[@debug@
     fromCheckOut = true;
     if time() - self.db.global.LastUnpackagedAlert > 24 * 3600  then
-        T._ShowNotice ("|cff00ff00Decursive version: 2.7.4.7|r\n\n" .. "|cFFFFAA66" ..
+        T._ShowNotice ("|cff00ff00Decursive version: 2.7.5|r\n\n" .. "|cFFFFAA66" ..
         [[
         |cFFFF0000You're using an unpackaged version of Decursive.|r
         Decursive is not meant to be used this way.
@@ -572,7 +572,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         if D.db.global.NewerVersionDetected > D.VersionTimeStamp and D.db.global.NewerVersionName ~= D.version then -- it's still newer than this one
             if time() - D.db.global.NewerVersionAlert > 3600 * 24 * 4 then -- it's been more than 4 days since the new version alert was shown
                 if not D.db.global.NewVersionsBugMeNot then -- the user did not disable new version alerts
-                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.4.7|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
+                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.5|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
                     D.db.global.NewerVersionAlert = time();
                 end
             end
@@ -637,6 +637,14 @@ function D:OnInitialize() -- Called on ADDON_LOADED by AceAddon -- {{{
 
     LibStub("AceComm-3.0"):RegisterComm("DecursiveVersion", D.OnCommReceived);
 
+    -- Handle events directly without relying on AceEvent to prevent undue
+    -- "script ran too long" errors caused by the queuing of event handler
+    -- calls into a per-event dispatcher for ALL add-ons registering an event...
+    -- (The more add-ons registering an event the more chances to get a random
+    -- "script ran too long" error)
+    D.eventFrame = CreateFrame("Frame");
+    D.eventFrame:Hide();
+
     T._CatchAllErrors = false;
 
 end -- // }}}
@@ -683,37 +691,37 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     -- these events are automatically stopped when the addon is disabled by Ace
 
     -- Spell changes events
-    self:RegisterEvent("LEARNED_SPELL_IN_TAB");
-    self:RegisterEvent("SPELLS_CHANGED");
-    self:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
-    self:RegisterEvent("BAG_UPDATE_DELAYED");
-    self:RegisterEvent("GET_ITEM_INFO_RECEIVED");
-    self:RegisterEvent("PLAYER_TALENT_UPDATE");
-    self:RegisterEvent("PLAYER_ALIVE"); -- talents SHOULD be available
-    self:RegisterEvent("PLAYER_ENTERING_WORLD");
+    D.eventFrame:RegisterEvent("LEARNED_SPELL_IN_TAB");
+    D.eventFrame:RegisterEvent("SPELLS_CHANGED");
+    D.eventFrame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED");
+    D.eventFrame:RegisterEvent("BAG_UPDATE_DELAYED");
+    D.eventFrame:RegisterEvent("GET_ITEM_INFO_RECEIVED");
+    D.eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE");
+    D.eventFrame:RegisterEvent("PLAYER_ALIVE"); -- talents SHOULD be available
+    D.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
 
     -- Combat detection events
-    self:RegisterEvent("PLAYER_REGEN_DISABLED","EnterCombat");
-    self:RegisterEvent("PLAYER_REGEN_ENABLED","LeaveCombat");
+    D.eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
+    D.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED");
 
     -- Raid/Group changes events
-    self:RegisterEvent("PARTY_LEADER_CHANGED", D.GroupChanged, D);
+    D.eventFrame:RegisterEvent("PARTY_LEADER_CHANGED");
 
-    self:RegisterEvent("GROUP_ROSTER_UPDATE", D.GroupChanged, D);
+    D.eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE");
 
-    self:RegisterEvent("PLAYER_FOCUS_CHANGED");
+    D.eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED");
 
     -- Player pet detection event (used to find pet spells)
-    self:RegisterEvent("UNIT_PET");
+    D.eventFrame:RegisterEvent("UNIT_PET");
 
-    self:RegisterEvent("UNIT_AURA");
+    D.eventFrame:RegisterEvent("UNIT_AURA");
 
-    self:RegisterEvent("PLAYER_TARGET_CHANGED");
+    D.eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED");
 
-    self:RegisterEvent("UPDATE_MOUSEOVER_UNIT");
+    D.eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT");
 
-    self:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
-    self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
+    D.eventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
+    D.eventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN");
 
     self:RegisterMessage("DECURSIVE_TALENTS_AVAILABLE");
 
@@ -730,6 +738,8 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     FirstEnable = false;
 
     D:StartTalentAvaibilityPolling();
+
+    D.eventFrame:SetScript("OnEvent", D.OnEvent);
 
     T._CatchAllErrors = false;
 
@@ -930,6 +940,7 @@ function D:OnDisable() -- When the addon is disabled by Ace -- {{{
     }; -- }}}
 
     LibStub("AceConfigRegistry-3.0"):NotifyChange(D.name);
+    D.eventFrame:SetScript("OnEvent", nil);
     StaticPopup_Show("Decursive_OnDisableWarning");
 end -- }}}
 
@@ -1162,6 +1173,7 @@ function D:Configure() --{{{
     local IsSpellKnown = _G.IsSpellKnown;
     local Types = {};
     local UnitFiltering = false;
+    local ActualUnitFiltering = false;
     local PermanentUnitFiltering = false;
     local IsEnhanced = false;
     local SpellName = "";
@@ -1186,7 +1198,12 @@ function D:Configure() --{{{
 
                 Types = spell.Types;
                 UnitFiltering = false;
+                ActualUnitFiltering = false;
                 IsEnhanced = false;
+
+                if spell.UnitFiltering then
+                    UnitFiltering = spell.UnitFiltering;
+                end
 
                 -- Could it be enhanced by something (a talent for example)?
                 if spell.EnhancedBy then
@@ -1214,10 +1231,6 @@ function D:Configure() --{{{
                     end
                 end
 
-                if spell.UnitFiltering then
-                    UnitFiltering = spell.UnitFiltering;
-                end
-
                 -- register it
                 self.Status.FoundSpells[SpellName] = {spell.Pet, spellID, IsEnhanced, spell.Better, spell.MacroText, nil};
                 for _, Type in ipairs (Types) do
@@ -1227,10 +1240,14 @@ function D:Configure() --{{{
                         CuringSpells[Type] = SpellName;
 
                         if UnitFiltering and UnitFiltering[Type] then
-                            --[===[@alpha@
-                            self:Debug("Enhancement for player only for type added",Type);
-                            --@end-alpha@]===]
+                            self:Debug("Spell with unit filtering added :", Type, UnitFiltering[Type]);
                             self.Status.UnitFilteringTypes[Type] = UnitFiltering[Type];
+
+                            if not ActualUnitFiltering then
+                                ActualUnitFiltering = {};
+                            end
+
+                            ActualUnitFiltering[Type] = UnitFiltering[Type];
                         else
                             self.Status.UnitFilteringTypes[Type] = false;
                         end
@@ -1240,11 +1257,11 @@ function D:Configure() --{{{
                     end
                 end
 
-                if UnitFiltering then
+                if ActualUnitFiltering then
                     local filteredTypeCount = 0;
                     local lastfilter = false;
                     -- check if the filters are identical for every type
-                    for _, filter in pairs(UnitFiltering) do
+                    for Type, filter in pairs(ActualUnitFiltering) do
 
                         if not lastfilter then
                             lastfilter = filter;
@@ -1489,7 +1506,7 @@ end -- }}}
 
 
 
-T._LoadedFiles["DCR_init.lua"] = "2.7.4.7";
+T._LoadedFiles["DCR_init.lua"] = "2.7.5";
 
 -------------------------------------------------------------------------------
 
@@ -1504,28 +1521,28 @@ Simple replacements
 @project-revision@
     Turns into the highest revision of the entire project in integer form. e.g. 1234
     Note: does not work for git
-f7919ae5d2b9fb7d32aeaf3a02844d38c5f58f6a
+a0917d7e8c431f491e00440fc9b2016abf4011da
     Turns into the hash of the file in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-f7919ae5d2b9fb7d32aeaf3a02844d38c5f58f6a
+12fdd1cd308263b45d9810424dcd63155fc4021f
     Turns into the hash of the entire project in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-f7919ae
+a0917d7
     Turns into the abbreviated hash of the file in hex form. e.g. 106c63 Note: does not work for svn
-f7919ae
+12fdd1c
     Turns into the abbreviated hash of the entire project in hex form. e.g. 106c63
     Note: does not work for svn
 Archarodim
     Turns into the last author of the file. e.g. ckknight
 Archarodim
     Turns into the last author of the entire project. e.g. ckknight
-2016-07-26T11:52:32Z
+2016-09-12T23:23:09Z
     Turns into the last changed date (by UTC) of the file in ISO 8601. e.g. 2008-05-01T12:34:56Z
-2016-07-26T11:52:32Z
+2016-10-27T01:00:37Z
     Turns into the last changed date (by UTC) of the entire project in ISO 8601. e.g. 2008-05-01T12:34:56Z
-20160726115232
+20160912232309
     Turns into the last changed date (by UTC) of the file in a readable integer fashion. e.g. 20080501123456
-20160726115232
+20161027010037
     Turns into the last changed date (by UTC) of the entire project in a readable integer fashion. e.g. 2008050123456
 @file-timestamp@
     Turns into the last changed date (by UTC) of the file in POSIX timestamp. e.g. 1209663296
@@ -1533,7 +1550,7 @@ Archarodim
 @project-timestamp@
     Turns into the last changed date (by UTC) of the entire project in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-2.7.4.7
+2.7.5
     Turns into an approximate version of the project. The tag name if on a tag, otherwise it's up to the repo.
     :SVN returns something like "r1234"
     :Git returns something like "v0.1-873fc1"

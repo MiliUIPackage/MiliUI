@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
     
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -850,6 +850,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.4.7";
+T._LoadedFiles["Decursive.lua"] = "2.7.5";
 
 -- Sin

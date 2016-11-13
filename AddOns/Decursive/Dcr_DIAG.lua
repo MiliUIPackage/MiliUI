@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.4.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.5) add-on for World of Warcraft UI
     Copyright (C) 2006-2014 John Wellesz (archarodim AT teaser.fr) ( http://www.2072productions.com/to/decursive.php )
 
     Starting from 2009-10-31 and until said otherwise by its author, Decursive
@@ -17,7 +17,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2016-07-25T22:23:28Z
+    This file was last updated on 2016-10-06T20:58:51Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -84,7 +84,7 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.4.7";
+local VERSION = "2.7.5";
 
 T._LoadedFiles = {};
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
@@ -226,19 +226,26 @@ do
     local DebugHeader = false;
     local HeaderFailOver = "|cFF11FF33Please email the content of this window to <archarodim+DcrReport@teaser.fr>|r\n|cFF009999(Use CTRL+A to select all and then CTRL+C to put the text in your clip-board)|r\n\n";
     local LoadedAddonNum = 0;
+    local TotalAddonMemoryUsage = 0;
 
     local function GetAddonListAsString ()
         local addonCount = GetNumAddOns();
         local loadedAddonList = {};
-        local name, security, _;
+        local version, memoryUsage, name, security, _;
+
+        TotalAddonMemoryUsage = 0;
+        UpdateAddOnMemoryUsage();
 
         for addonID=1, addonCount do
             name, _, _, _, _, security, _ = GetAddOnInfo(addonID)
 
             if security == 'INSECURE' and IsAddOnLoaded(addonID) then
-                local version = GetAddOnMetadata(addonID, "Version");
+                version = GetAddOnMetadata(addonID, "Version");
+                memoryUsage = GetAddOnMemoryUsage(addonID);
 
-                table.insert(loadedAddonList, ("%s (%s)[%d]"):format(name, version or 'N/A', addonID));
+                TotalAddonMemoryUsage = TotalAddonMemoryUsage + memoryUsage;
+
+                table.insert(loadedAddonList, ("%s (%s)[%d]{MU: %d}"):format(name, version or 'N/A', addonID, memoryUsage));
 
             end
         end
@@ -270,7 +277,9 @@ do
         _Debug(unpack(TIandBI));
 
 
-        DebugHeader = ("%s\n2.7.4.7  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d LA: %d TA: %d NDRTA: %d BUIE: %d TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        -- TODO: add add-on memory usage stats and prevent grabage creation in critical part to avoid triggering the grabage collector...
+
+        DebugHeader = ("%s\n2.7.5  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
         tostring(T._BDT_HotFix1_applyed), -- BDTHFAd: %s
@@ -278,6 +287,7 @@ do
         tostring(T._EmbeddedMode), -- Embeded: %s
         IsWindowsClient() and 1 or 0, -- W: %d
         LoadedAddonNum, -- LA: %d
+        TotalAddonMemoryUsage, -- TAMU: %d
         T._TaintingAccusations, -- TA: %d
         T._NDRTaintingAccusations, -- NDRTA: %d
         T._BlizzardUIErrors, -- BUIE: %d
@@ -300,8 +310,15 @@ do
         end
 
         -- get running add-ons list
-        local success, errorm, loadedAddonList;
-        success, errorm, loadedAddonList = pcall(GetAddonListAsString);
+        local ALASsuccess, ALASerrorm, loadedAddonList;
+        ALASsuccess, ALASerrorm, loadedAddonList = pcall(GetAddonListAsString);
+
+        
+        local ACsuccess, ACerrorm, actionsConfiguration;
+        ACsuccess, ACerrorm, actionsConfiguration = pcall(T._ExportActionsConfiguration);
+
+        local CSCsuccess, CSCerrorm, customSpellConfiguration;
+        CSCsuccess, CSCerrorm, customSpellConfiguration = pcall(T._ExportCustomSpellConfiguration);
 
         local headerSucess, headerGenErrorm;
         if not DebugHeader then
@@ -311,7 +328,11 @@ do
         end
 
 
-        T._DebugText = (headerSucess and DebugHeader or (HeaderFailOver .. 'Report header gen failed: ' .. (headerGenErrorm and headerGenErrorm or ""))) .. table.concat(T._DebugTextTable, "") .. "\n\nLoaded Addons:\n\n" .. (success and loadedAddonList or errorm) .. "\n-- --";
+        T._DebugText = (headerSucess and DebugHeader or (HeaderFailOver .. 'Report header gen failed: ' .. (headerGenErrorm and headerGenErrorm or "")))
+        .. table.concat(T._DebugTextTable, "")
+        .. "\n\n-- --\n" .. (ACsuccess and actionsConfiguration or ACerrorm) .. "\n-- --"
+        .. (CSCsuccess and customSpellConfiguration or CSCerrorm) .. "\n-- --"
+        .. "\n\nLoaded Addons:\n\n" .. (ALASsuccess and loadedAddonList or ALASerrorm) .. "\n-- --";
 
         if _G.DecursiveDebuggingFrameText then
             _G.DecursiveDebuggingFrameText:SetText(T._DebugText);
@@ -378,6 +399,7 @@ T._ErrorLimitStripped = false;
 T._HHTDErrors = 0;
 
 local InCombatLockdown  = _G.InCombatLockdown;
+local LastErrorMessage = "!NotSet!";
 function T._onError(event, errorObject)
     local errorm = errorObject.message;
     local mine = false;
@@ -442,12 +464,14 @@ function T._onError(event, errorObject)
                 mine = true;
             elseif errorm:find("ADDON_ACTION_") then
                 T._NDRTaintingAccusations = T._NDRTaintingAccusations + 1;
-            elseif errorm:find("FrameXML") then
+            elseif errorm:find("FrameXML") or errorm:find("SharedXML") then
                 T._BlizzardUIErrors = T._BlizzardUIErrors + 1;
             end
 
         end
     end
+
+    LastErrorMessage = errorm;
 
     if not mine and not T._BugSackLoaded and GetCVarBool("scriptErrors") then
         if not _G.DEBUGLOCALS_LEVEL then
@@ -464,7 +488,7 @@ function T._onError(event, errorObject)
                 return;
             end
         end
-        _G.DEBUGLOCALS_LEVEL = 12; -- XXX must be set to the right value to get the correct stack and locals. This is why we need to load Blizzard_DebugTools ourselves... That sucks...
+        _G.DEBUGLOCALS_LEVEL = 11 -- XXX must be set to the right value to get the correct stack and locals. This is why we need to load Blizzard_DebugTools ourselves... That sucks...
 
         -- forward the error to the default Blizzad error displayer
         if _G._ERRORMESSAGE then
@@ -503,7 +527,7 @@ function T._DecursiveErrorHandler(err, ...)
     end
 
     err = tostring(err);
-    errl = err:lower();
+    local errl = err:lower();
 
     --A check to see if the error is happening inside the Blizzard 'debug' tool himself...
     if errl:find("blizzard_debugtools") then
@@ -534,27 +558,27 @@ function T._DecursiveErrorHandler(err, ...)
 
 
         IsReporting = true;
-        AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(4), "\n|cff00aa00LOCALS:|r\n", debuglocals(4), ...);
+        AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(3), "\n|cff00aa00LOCALS:|r\n", debuglocals(3), ...);
         IsReporting = false;
 	T._CatchAllErrors = false; -- Errors are unacceptable so one is enough, no need to get all subsequent errors.
         mine = true;
         _Debug("Error recorded");
     else
 
-        if IsReporting then -- then it means there is a bug insiede AddDebugText...
+        if IsReporting then -- then it means there is a bug inside AddDebugText...
             IsReporting = false;
         else
             T._NonDecursiveErrors = T._NonDecursiveErrors + 1;
 
             if CheckHHTD_Error(err, errl) then
                 IsReporting = true;
-                AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(4), "\n|cff00aa00LOCALS:|r\n", debuglocals(4), ...);
+                AddDebugText(err, "\n|cff00aa00STACK:|r\n", debugstack(3), "\n|cff00aa00LOCALS:|r\n", debuglocals(3), ...);
                 IsReporting = false;
                 T._HHTDErrors = T._HHTDErrors + 1;
                 mine = true;
             elseif err:find("ADDON_ACTION_") then
                 T._NDRTaintingAccusations = T._NDRTaintingAccusations + 1;
-            elseif err:find("FrameXML") then
+            elseif err:find("FrameXML") or err:find("SharedXML") then
                 T._BlizzardUIErrors = T._BlizzardUIErrors + 1;
             end
 
@@ -565,7 +589,10 @@ function T._DecursiveErrorHandler(err, ...)
         end
     end
 
+    LastErrorMessage = err;
+
     if ProperErrorHandler and not mine then
+        _G.DEBUGLOCALS_LEVEL = 5; -- necessary for Blizzard error handler
         return ProperErrorHandler( err, ... ); -- returning this way prevents this function from appearing in the stack
     end
 end
@@ -580,6 +607,7 @@ function T._TooManyErrors()
         if not WarningDisplayed and T.Dcr and T.Dcr.L and not (#DebugTextTable > 0 or T._TaintingAccusations > 10) then -- if we can and should display the alert
             _Print(T.Dcr:ColorText((T.Dcr.L["TOO_MANY_ERRORS_ALERT"]):format(T._NonDecursiveErrors), "FFFF0000"));
             _Print(T.Dcr:ColorText(T.Dcr.L["DONT_SHOOT_THE_MESSENGER"], "FFFF9955"));
+            _Print('|cFF47C2A1Last UI error:|r', LastErrorMessage);
             WarningDisplayed = true;
         end
     else
@@ -694,14 +722,16 @@ do
 
         for spellID, spellData in pairs(D.classprofile.UserSpells) do
             if not spellData.IsDefault then
-                 customSpellConfText[#customSpellConfText + 1] = ("    %s (id: %d) - %s - %s - %s - B: %d - Ts: %s -  Macro: %s\n"):format(
-                 (GetSpellInfo(spellID)), spellID, --                                 3    4    5       6        7            8
+                 customSpellConfText[#customSpellConfText + 1] = ("    %s (id: %d) - %s - %s - %s - B: %d - Ts: %s - UF: %s - Macro: %s\n"):format(
+                 --                                                                  3    4    5       6        7        8           9
+                 tostring(spellData.IsItem and (GetItemInfo(spellID * -1)) or (GetSpellInfo(spellID))), spellID,
                  spellData.Disabled and "OFF" or "ON", -- 3
                  spellData.Pet and "PET" or "PLAYER", -- 4
                  spellData.IsItem and "ITEM" or "SPELL", -- 5
                  spellData.Better, -- 6
-                 table.concat(spellData.Types, ";"),
-                 spellData.MacroText and spellData.MacroText or "false" -- 8
+                 D:tAsString(spellData.Types), -- 7
+                 D:tAsString(spellData.UnitFiltering), -- 8
+                 spellData.MacroText and spellData.MacroText or "false" -- 9
                  );
             end
         end
@@ -768,8 +798,8 @@ do
             ["AceAddon-3.0"] = 12,
             ["AceComm-3.0"] = 9,
             ["AceConsole-3.0"] = 7,
-            ["AceDB-3.0"] = 25,
-            ["AceDBOptions-3.0"] = 14,
+            ["AceDB-3.0"] = 26,
+            ["AceDBOptions-3.0"] = 15,
             ["AceEvent-3.0"] = 3,
             ["AceHook-3.0"] = 8,
             ["AceLocale-3.0"] = 6,
@@ -778,12 +808,12 @@ do
             ["AceGUI-3.0"] = 34,
             ["AceConfig-3.0"] = 2,
             ["AceConfigCmd-3.0"] = 13,
-            ["AceConfigDialog-3.0"] = 59,
-            ["AceConfigRegistry-3.0"] = 15,
+            ["AceConfigDialog-3.0"] = 61,
+            ["AceConfigRegistry-3.0"] = 16,
 
             ["LibDataBroker-1.1"] = 4,
             ["LibDBIcon-1.0"] = 34,
-            ["LibQTip-1.0"] = 42,
+            ["LibQTip-1.0"] = 44,
             ["CallbackHandler-1.0"] = 6,
         };
 
@@ -931,9 +961,6 @@ do
                     PrintMessage("|cFF00FF00Event library functionning properly!|r");
                     PrintMessage("|cFF00FF00Everything seems to be OK.|r");
                     AddDebugText("Event library functionning properly, Everything seems to be OK");
-                    -- get a list of current actions assignments
-                    AddDebugText(pcall(T._ExportActionsConfiguration));
-                    AddDebugText(pcall(T._ExportCustomSpellConfiguration));
                     -- open the diagnostic window
                     T._ShowDebugReport(true);
                     return;
@@ -980,4 +1007,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.4.7";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.5";
