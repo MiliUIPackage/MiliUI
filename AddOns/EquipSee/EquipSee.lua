@@ -404,7 +404,7 @@ function Eqx_OnUpdate (self, elapsed)
 		Eqx_UpdateContainerFrames();
 
 		if (PaperDollEquipmentManagerPane:IsShown()) then
-			Eqx_UpdateMasks ({ showItemLevel = true });
+			Eqx_UpdateMasks ({ showItemLevel = false });
 		end
 	end
 
@@ -414,7 +414,7 @@ end
 
 function Eqx_GearSetBut_OnClick ()
 
-	Eqx_UpdateMasks ({ showItemLevel = true });
+	Eqx_UpdateMasks ({ showItemLevel = false });
 
 end
 
