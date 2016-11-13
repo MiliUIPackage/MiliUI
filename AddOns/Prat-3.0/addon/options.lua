@@ -188,14 +188,14 @@ L:AddLocale("ruRU",
 	formatting_name = "Форматирование чата",
 	load_desc = "Настройка поведения этого модуля.",
 	load_disabled = "Отключено",
-	load_disabledonrestart = "Отключен (перезагрузка)",
+	load_disabledonrestart = "Отключён (перезагрузка)",
 	load_enabled = "Включено",
-	load_enabledonrestart = "Включен (перезагрузка)",
+	load_enabledonrestart = "Включён (перезагрузка)",
 	load_no = "Не загружать",
-	modulecontrol_desc = "Настройка загрузки модулей Prat'а",
+	modulecontrol_desc = "Настройка загрузки модулей Prat",
 	modulecontrol_name = "Настройка модулей",
 	prat = "Prat",
-	reload_required = "Эта опция вступит в силу только после %s вашего интерфейса.",
+	reload_required = "Эта настройка вступит в силу только после %s вашего интерфейса.",
 }
 
 )

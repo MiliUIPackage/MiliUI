@@ -244,8 +244,8 @@ L:AddLocale("ruRU",
 	minchatheight_name = "Минимальная высоты",
 	minchatwidth_desc = "Устанавливает минимальную ширину для всех окон чата.",
 	minchatwidth_name = "Минимальная ширина",
-	rememberframepositions_desc = "Запомнить положение окна чата и восстановить при загрузке", -- Needs review
-	rememberframepositions_name = "Запомнить положение", -- Needs review
+	rememberframepositions_desc = "Запомнить положение окна чата и восстановить при загрузке",
+	rememberframepositions_name = "Запомнить положение",
 	removeclamp_desc = "Позволить окну чата прижиматься вплотную к краю экрана",
 	removeclamp_name = "Вплотную к краю экрана",
 }

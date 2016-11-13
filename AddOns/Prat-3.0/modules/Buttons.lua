@@ -503,9 +503,9 @@ end
 
 function module:UpdateMenuButtons()
     if self.db.profile.showBnet then
-        FriendsMicroButton:Show()
+		QuickJoinToastButton:Show()
     else
-        FriendsMicroButton:Hide()
+		QuickJoinToastButton:Hide()
     end
 
     if self.db.profile.showMenu then
@@ -656,7 +656,7 @@ function module:EnableBottomButton()
 		local button = _G[name .. "ButtonFrameBottomButton"]
 		
 		if button then
-    		if f:GetCurrentScroll() ~= 0 then
+    		if f:GetScrollOffset() ~= 0 then
     			button.override = true
     			button:Show()	
     		else
@@ -690,7 +690,7 @@ function module:ScrollUp(frame)
 end
 
 function module:ScrollDown(frame)
-	if frame:GetCurrentScroll() == 0 then
+	if frame:GetScrollOffset() == 0 then
 		local button = _G[frame:GetName() .. "ButtonFrameBottomButton"]
 		button:Hide()	
 	end
@@ -706,7 +706,7 @@ function module:Prat_PostAddMessage(info, message, frame, event, text, r, g, b, 
 	local button = _G[frame:GetName() .. "ButtonFrameBottomButton"]
 
 	if not button then return end
-	if frame:GetCurrentScroll() > 0 then
+	if frame:GetScrollOffset() > 0 then
 		button.override = true
 		button:Show()
 	else

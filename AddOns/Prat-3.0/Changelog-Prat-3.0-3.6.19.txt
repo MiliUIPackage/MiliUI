@@ -1,0 +1,8 @@
+2016-10-27  sylvanaar  <sylvanaar@mindspring.com>
+
+[7237609a3b87] [3.6.19]
+* services/chatsections.lua:
+
+Backed out changeset: 0d366e931f8a
+
+

@@ -322,7 +322,7 @@ Prat:AddModuleToLoad(function()
     if server == nil or serverKey == nil then return end
 
     if self.db.profile.autoabbreviate then
-      server = server:match("[\192-\255]?%a?[\128-\191]*[\192-\255]?%a?[\128-\191]*")
+      server = server:match("[\192-\255]?%a?[\128-\191]*[\192-\255]?%a?[\128-\191]*[\192-\255]?%a?[\128-\191]*")
     end
 
     return Server(serverKey, server)

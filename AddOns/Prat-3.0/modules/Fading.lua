@@ -90,7 +90,7 @@ Prat:AddModuleToLoad(function()
 	duration_name = "사라짐 대기 시간 설정 (초)",
 	module_desc = "대화글의 사라짐 옵션을 설정합니다.",
 	module_name = "사라짐",
-	textfade_desc = "각 대화창에 별로 대화글의 사라짐을 끄고 켭니다.",
+	textfade_desc = "각 대화창 별로 대화글 사라짐 기능을 켜고 끕니다.",
 	textfade_name = "사라짐 켜기",
 }
 

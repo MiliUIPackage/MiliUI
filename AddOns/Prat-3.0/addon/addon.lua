@@ -86,7 +86,7 @@ Version = "Prat |cff8080ff3.0|r (|cff8080ff" .. "DEBUG" .. "|r)"
 --@end-debug@]===]
 
 --@non-debug@
-Version = "Prat |cff8080ff3.0|r (|cff8080ff".."3.6.14".."|r)"
+Version = "Prat |cff8080ff3.0|r (|cff8080ff".."3.6.19".."|r)"
 --@end-non-debug@
 
 
@@ -676,7 +676,7 @@ function addon:ChatFrame_MessageEventHandler(this, event, ...)
         -- for more flexibility in the customfilters module, speficially
         -- it allows for replacements to occur in blocked messages
 
-        callbacks:Fire(POST_ADDMESSAGE, m, this, message.EVENT, m.OUTPUT, r, g, b, id)
+        callbacks:Fire(POST_ADDMESSAGE, m, this, message.EVENT, m.OUTPUT, r, g, b, id, false, m.ACCESSID, m.TYPEID)
       end
 
     end
@@ -691,7 +691,7 @@ function addon:ChatFrame_MessageEventHandler(this, event, ...)
   return CMEResult
 end
 
-
+ 
 addon.INFO = {
   r = 1.0,
   g = 1.0,

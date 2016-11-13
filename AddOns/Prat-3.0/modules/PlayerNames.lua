@@ -1356,7 +1356,7 @@ Prat:AddModuleToLoad(function()
               local _, toonName, client, realmName, _, faction, race, class, _, zoneName, level, gameText,
                 broadcastText, broadcastTime = BNGetGameAccountInfo(id)
 
-              if toonName and self.db.profile.realidname then
+              if toonName and toonName ~= "" and self.db.profile.realidname then
                 message.PLAYER = toonName
 
                 if level and self.db.profile.level then
@@ -1454,6 +1454,8 @@ Prat:AddModuleToLoad(function()
     if Name:len() == 0 then
       return
     end
+
+    Name = Ambiguate(Name, "all")
 
     local class, level, subgroup = self:GetData(Name)
 

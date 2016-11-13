@@ -153,7 +153,7 @@ Prat:AddModuleToLoad(function()
 	UrlCopy = "Копировать ссылку",
 	["URL formating options."] = "Настройки формата URL-адреса.",
 	["Use Popup"] = "Всплывающее окно",
-	["Use popup window to show URL."] = "Использовать всплывающее окно для отображение ссылки.",
+	["Use popup window to show URL."] = "Использовать всплывающее окно для показа ссылки.",
 }
 
   )

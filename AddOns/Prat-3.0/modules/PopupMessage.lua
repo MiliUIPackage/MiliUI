@@ -296,9 +296,9 @@ L:AddLocale("ruRU",
 	show_perframename = "Показать всплывание окна %d",
 	["Show Popups"] = "Показывать всплывания",
 	["Show Popups for all chat windows."] = "Показывать всплывающие окна для всего чата.",
-	["Show Popups for each window."] = "Отображать всплывния для всех окон чата.",
-	["Shows messages in a popup window."] = "Отображать сообщение в всплввающем окне.",
-	["Shows messages with your name in a popup."] = "Отображать сообщение с вашим именем в всплывающем окне.",
+	["Show Popups for each window."] = "Показывать всплывания для всех окон.",
+	["Shows messages in a popup window."] = "Показывать сообщение во всплывающем окне.",
+	["Shows messages with your name in a popup."] = "Показывать сообщение с вашим именем во всплывающем окне.",
 	["Toggle setting options separately for each chat window."] = "Вкл/Выкл настройки разделения для всех окон чата.",
 }
 
@@ -545,13 +545,13 @@ function module:Popup(source, text, r,g,b, ...)
 
 		local fade1 = Prat_PopupFrame.anim:CreateAnimation("Alpha")
 		fade1:SetDuration(1)
-		fade1:SetChange(module.db.profile.framealpha or 1)
+		fade1:SetToAlpha(module.db.profile.framealpha or 1)
 		fade1:SetEndDelay(4)
 		fade1:SetOrder(1)
 
 		local fade2 = Prat_PopupFrame.anim:CreateAnimation("Alpha")
 		fade2:SetDuration(5)
-		fade2:SetChange(-1)
+		fade2:SetToAlpha(0)
 		fade2:SetOrder(2)
 	end
 
