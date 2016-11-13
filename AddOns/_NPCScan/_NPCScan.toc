@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: _NPCScan
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[NPCScan]|r 稀有怪警報
 ## DefaultState: disabled

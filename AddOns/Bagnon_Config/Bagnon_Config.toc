@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Bagnon Config
 ## Notes: Load on demand configuration for Bagnon
 ## Title-zhTW: |cFF2DA267[背包]|r |cFF99FF66[Bagnon]|r 背包整合設定介面

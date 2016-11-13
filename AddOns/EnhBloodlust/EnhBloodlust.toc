@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Enhanced Bloodlust
 ## Notes: Music when you gain Bloodlust or Heroism!
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[Enhanced Bloodlust]|r 嗜血音效

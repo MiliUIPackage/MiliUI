@@ -21,7 +21,7 @@
 ## X-Curse-Project-ID: adibuttonauras
 ## X-Curse-Repository-ID: wow/adibuttonauras/mainline
 
-## Interface: 70000
+## Interface: 70100
 
 ## Title: AdiButtonAuras - Configuration
 ## Notes: Load-on-demand configuration GUI.

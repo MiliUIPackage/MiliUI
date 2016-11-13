@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Lib: S2k Misc
 ## Author: silencer2k@gmail.com
 ## Version: 1.0

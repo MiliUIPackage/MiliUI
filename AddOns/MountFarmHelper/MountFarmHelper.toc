@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Mount Farm Helper
 ## Title-zhTW: |cFF0099FF[介面]|r |cFFcc66ff[Mount Farm Helper]|r 農坐騎幫手
 ## Notes-zhTW: 幫助你農副本取得尚未取得的坐騎！

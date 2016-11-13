@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: miir|cff44CCFFGui|r - Core
 ## Version: 4.0.10
 ## Notes: Blizzard Interface Fixes for usage with miirGui graphics

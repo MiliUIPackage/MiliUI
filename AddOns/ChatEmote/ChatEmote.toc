@@ -1,4 +1,4 @@
-﻿## Interface: 70000
+﻿## Interface: 70100
 ## Title: ChatEmote
 ## Title-zhTW: |cFF77FF77[頻道]|r |cFF9999FF[ChatEmote]|r 聊天表情
 ## Notes: ChatEmote

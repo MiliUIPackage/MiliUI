@@ -1,4 +1,4 @@
-﻿## Interface: 70000
+﻿## Interface: 70100
 ## Title: Stop The Spam! |cff7fff7f -Ace2-|r
 ## Notes: Finally! No more AddOn loading spam.
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[Stop The Spam]|r 登入訊息過濾

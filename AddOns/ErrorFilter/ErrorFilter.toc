@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: ErrorFilter
 ## Notes: Filters the errors displayed in the UIErrorsFrame.
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[ErrorFilter]|r 錯誤訊息隱藏

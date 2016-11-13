@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: InspectFix
 ## Author: oscarucb
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r |cff0088FF[InspectFix]|r 觀察視窗修正

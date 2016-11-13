@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Angry World Quests
 ## Notes: Adds World Quests to the quest list
 ## Title-zhTW: |cFF00CCFF[任務]|r |cFFFF77FF[Angry World Quests]|r 世界任務列表

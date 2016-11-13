@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Masque: |cffff8000Caith|r
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Masque]|r 快捷樣式 - |cffff8000Caith|r
 ## Version: 7.0.0

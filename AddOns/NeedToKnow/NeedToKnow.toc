@@ -1,4 +1,4 @@
-## Interface: 070000
+## Interface: 70100
 ## Title: NeedToKnow
 ## Author: Kitjan, lieandswell
 ## Version: 4.0.26

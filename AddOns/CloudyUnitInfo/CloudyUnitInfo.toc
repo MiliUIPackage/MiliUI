@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Cloudy Unit Info
 ## Notes: Adds gear info and specialization of inspected player to unit tooltips.
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Cloudy Unit Info]|r 裝備等級

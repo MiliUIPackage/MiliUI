@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Lib: TextDump-1.0
 ## Notes: Provides one or many frames for dumping text into.
 ## Author: Torhal

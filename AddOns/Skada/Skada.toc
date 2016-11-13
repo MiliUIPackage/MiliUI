@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Skada
 ## Notes: Modular damage meter.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFFF99FF[Skada]|r 戰鬥數據統計

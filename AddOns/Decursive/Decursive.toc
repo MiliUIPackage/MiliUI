@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## X-Max-Interface: 70000
 ## X-Min-Interface: 70000
 ## X-Curse-Packaged-Version: 2.7.4.7

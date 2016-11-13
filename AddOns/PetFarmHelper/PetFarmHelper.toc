@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Pet Farm Helper
 ## Title-zhTW: |cFF0099FF[介面]|r |cFFcc66ff[Pet Farm Helper]|r 農寵物幫手
 ## Notes-zhTW: 幫助你取得尚未捕獲的寵物。

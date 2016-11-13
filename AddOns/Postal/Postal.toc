@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: Postal
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Postal]|r 信箱增強
 ## Version: v3.5.8

@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: ChatBar
 ## Title-zhTW: |cFF77FF77[頻道]|r |cFF9999FF[ChatBar]|r 頻道按鈕
 ## Title-deDE: Chat-Leiste

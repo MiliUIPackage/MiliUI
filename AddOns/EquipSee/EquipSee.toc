@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: EquipSee
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[EquipSee]|r 一鍵換裝名稱顯示 
 ## Notes: 使在背包中的裝備顯示裝備管理員自訂的套裝名稱。

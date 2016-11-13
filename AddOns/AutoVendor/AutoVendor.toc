@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Title: AutoVendor
 ## Notes: Automatically sells useless stuff and repairs your gear
 ## SavedVariables: AutoVendorDB

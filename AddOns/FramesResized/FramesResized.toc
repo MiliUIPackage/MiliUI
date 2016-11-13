@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## X-Curse-Packaged-Version: r63
 ## X-Curse-Project-Name: FramesResized
 ## X-Curse-Project-ID: framesresized

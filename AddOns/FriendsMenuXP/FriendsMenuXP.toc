@@ -1,4 +1,4 @@
-## Interface: 70000
+## Interface: 70100
 ## Author: Warbaby @ 网易有爱 w.163.com/163ui
 ## Title: FriendsMenuXP
 ## Title-zhCN: |cff880303[网易有爱]|r 玩家菜单增强

@@ -1,5 +1,5 @@
 ## Author: Shauren
-## Interface: 70000
+## Interface: 70100
 ## Notes: Announces your successful interrupts to party/raid
 ## Title: InterruptAnnouncer
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFCC99CC[InterruptAnnouncer]|r 斷法喊話

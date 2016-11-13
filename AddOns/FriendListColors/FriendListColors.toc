@@ -1,4 +1,4 @@
-﻿## Interface: 70000
+﻿## Interface: 70100
 ## Title: FriendListColors
 ## Notes: Customize how your friends appear in your friends list!
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[Bartender4]|r 好友名單著色
