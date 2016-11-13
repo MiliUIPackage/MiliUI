@@ -11,7 +11,6 @@
 ## Title-ptBR: Kibs Item Level (continued)
 ## Title-ruRU: Kibs Item Level (continued)
 ## Title-zhCN: Kibs物品等级(接续版)
-## Title-zhTW: Kibs物品等級(接續版)
 ## Title-zhTW: |cFF0099FF[介面]|r |cFF9966FF[Kibs Item Level]|r 角色裝備等級
 ## Notes: Enhances Character and Inspection panes by adding item level, icons for gems and enchants, and more!
 ## Notes-deDE: Verbessert das Charakter- und Betrachtungsfenster durch Hinzufügen von Gegenstandsstufe, Symbolen für Edelsteine ​​und Verzauberungen und vieles mehr!
