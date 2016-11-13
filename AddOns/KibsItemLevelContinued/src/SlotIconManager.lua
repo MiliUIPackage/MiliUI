@@ -95,7 +95,7 @@ function SlotIconManager:Init()
         self:Refresh()
     end)
 
-    self.adapter:OnContentChanged(function ()
+    self.adapter:OnContentChanged(function()
         self:Debug('OnContentChanged')
         self:Refresh()
     end)
@@ -113,7 +113,7 @@ function SlotIconManager:Refresh()
         self.lastRefreshTime = GetTime()
         self:_Refresh()
     else
-        self.refreshTimer = C_Timer.NewTimer(1, function ()
+        self.refreshTimer = C_Timer.NewTimer(1, function()
             self.lastRefreshTime = GetTime()
             self:_Refresh()
         end)
@@ -344,9 +344,13 @@ function SlotIconManager:_AddGems()
                 if not socketInfo:isEmpty() then
                     texture = socketInfo:getGem():getTextureName()
                     tooltip:AddHyperlink(socketInfo:getGem():getLink())
-                elseif self:IsSlotGemRequired(slotName) then
+                elseif self:IsSlotGemRequired(slotName, itemInfo) then
                     texture = socketInfo:getTextureName()
-                    tooltip:AddText(L["Missing gem"])
+                    if itemInfo:IsArtifact() then
+                        tooltip:AddText(L["Missing relic"])
+                    else
+                        tooltip:AddText(L["Missing gem"])
+                    end
                 end
 
                 if texture then
@@ -382,11 +386,16 @@ function SlotIconManager:RefreshItemInfoForAllSlots()
 
     for _, slotName in pairs(self:_GetSlotNames()) do
         local itemString = GetInventoryItemLink(self.adapter:GetUnit(), GetInventorySlotInfo(slotName))
-        self.itemInfos[slotName] = itemString and addonNamespace.ItemStringInfo:new(itemString) or nil
+        local specID = self.adapter:GetUnitSpecializationInfo()
+        self.itemInfos[slotName] = itemString and addonNamespace.ItemStringInfo:new(itemString, specID) or nil
     end
 
+    -- One-handed artifacts (i.e. ones with "imaginary" part which emerges into existance when artifcat is equipped)
+    -- need special treatment: either main or secondary hand has real item level, the other one is always 750:
     if self.itemInfos.MainHandSlot and self.itemInfos.SecondaryHandSlot and self.itemInfos.MainHandSlot:IsArtifact() then
-        self.itemInfos.SecondaryHandSlot.itemLevel = self.itemInfos.MainHandSlot:getItemLevel()
+        local tmp = max(self.itemInfos.MainHandSlot:getItemLevel(), self.itemInfos.SecondaryHandSlot:getItemLevel())
+        self.itemInfos.MainHandSlot.itemLevel = tmp
+        self.itemInfos.SecondaryHandSlot.itemLevel = tmp
     end
 end
 
@@ -452,6 +461,6 @@ function SlotIconManager:IsSlotEnchantRequired(slotName)
     return self.slotsWithRequiredEnchants[slotName] ~= nil and self:IsAtMaxLevel()
 end
 
-function SlotIconManager:IsSlotGemRequired(slotName)
-    return self:IsAtMaxLevel()
+function SlotIconManager:IsSlotGemRequired(slotName, itemInfo)
+    return itemInfo:IsArtifact() or self:IsAtMaxLevel()
 end

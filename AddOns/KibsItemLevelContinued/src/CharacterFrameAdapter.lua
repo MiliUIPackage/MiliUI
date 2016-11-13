@@ -21,6 +21,11 @@ function CharacterFrameAdapter:new()
         end
     end)
 
+    instance:RegisterEvent("PLAYER_EQUIPMENT_CHANGED", function(event, unit)
+        instance:Debug("PLAYER_EQUIPMENT_CHANGED", unit)
+        instance:SendMessage(instance.messages.contentChanged)
+    end)
+
     instance:RegisterEvent("SOCKET_INFO_CLOSE", function()
         instance:Debug("SOCKET_INFO_CLOSE")
         instance:SendMessage(instance.messages.contentChanged)
@@ -41,6 +46,12 @@ end
 
 function CharacterFrameAdapter:GetUnit()
     return "player"
+end
+
+function CharacterFrameAdapter:GetUnitSpecializationInfo()
+    local id = GetSpecializationInfo(GetSpecialization())
+    -- id, name, description, icon, background, role, class
+    return GetSpecializationInfoByID(id)
 end
 
 function CharacterFrameAdapter:Debug(...)

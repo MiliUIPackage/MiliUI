@@ -1,5 +1,5 @@
-## Interface: 70000
-## Version: 7.0.3.8-beta
+## Interface: 70100
+## Version: 7.1.0.3-beta1
 ## Author: Alex Kunin
 ## Title: Kibs Item Level (continued)
 ## Title-deDE: Kibs Item Level (continued)
@@ -26,7 +26,7 @@
 ## Notes-zhCN: 增强角色与观察面板加入物品等级丶珠宝图标丶附魔与更多！
 ## Notes-zhTW: 增強角色與觀察面板加入物品等級、珠寶圖標、附魔與更多！
 ## SavedVariables: KibsItemLevelContinuedDB
-## X-Curse-Packaged-Version: 7.0.3.8-beta
+## X-Curse-Packaged-Version: 7.1.0.3-beta1
 ## X-Curse-Project-Name: Kibs Item Level (continued)
 ## X-Curse-Project-ID: kibs-item-level-continued
 ## X-Curse-Repository-ID: wow/kibs-item-level-continued/mainline

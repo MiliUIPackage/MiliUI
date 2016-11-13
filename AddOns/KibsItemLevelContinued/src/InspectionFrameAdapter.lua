@@ -37,6 +37,11 @@ function InspectionFrameAdapter:GetUnit()
     return InspectFrame.unit
 end
 
+function InspectionFrameAdapter:GetUnitSpecializationInfo()
+    -- id, name, description, icon, background, role, class
+    return GetSpecializationInfoByID(GetInspectSpecialization(self:GetUnit()))
+end
+
 function InspectionFrameAdapter:Debug(...)
     addonNamespace.Debug('InspectionFrameAdapter:', ...)
 end

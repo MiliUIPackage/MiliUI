@@ -1,3 +1,24 @@
+====== 7.1.0.3-beta1 =====
+
+* fixed item level detection for items with numbers in title
+
+====== 7.1.0.1 =====
+
+* fixed artifact item level detection
+* updated TOC file for patch 7.1
+* fixed relic detection for shield artifacts
+
+====== 7.0.3.8-beta4 =====
+
+* re-equipping same item but with different item level is detected correctly now
+* fixed Beast Mastery item level formula
+* fixed non-relic gems detection
+
+====== 7.0.3.8-beta3 =====
+
+* added basic artifact relics support
+* fixed item level calculation for Protection Warrior and Paladin
+
 ====== 7.0.3.8-beta =====
 
 * fixed off-hand item level for artifacts
