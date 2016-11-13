@@ -45,7 +45,7 @@ AdiButtonAuras:CreateConfig(function(addonName, addon)
 		name = addonName..' DEV',
 		--@end-debug@]===]
 		--@non-debug@
-		name = addonName..' 2.0.1',
+		name = addonName..' 2.0.4',
 		--@end-non-debug@
 		type = 'group',
 		childGroups = 'tab',

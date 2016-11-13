@@ -1,4 +1,4 @@
-## Interface: 70100
+## Interface: 70000
 ## LoadOnDemand: 1
 ## Title: Lib: Dispellable-1.0
 ## Version: 2.0

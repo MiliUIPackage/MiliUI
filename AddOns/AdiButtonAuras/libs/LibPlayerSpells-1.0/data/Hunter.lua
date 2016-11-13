@@ -20,7 +20,7 @@ along with LibPlayerSpells-1.0.  If not, see <http://www.gnu.org/licenses/>.
 
 local lib = LibStub("LibPlayerSpells-1.0")
 if not lib then return end
-lib:__RegisterSpells("HUNTER", 70000, 8, {
+lib:__RegisterSpells("HUNTER", 70100, 1, {
 	COOLDOWN = {
 		   781, -- Disengage
 		  1543, -- Flare
@@ -47,22 +47,21 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 		AURA = {
 			HELPFUL = {
 				 53480, -- Roar of Sacrifice (Cunning)
+				 90361, -- Spirit Mend (Spirit Beast) (exotic)
 				204477, -- Windburst (MM artifact)
 				212640, -- Mending Bandage (PvP)
 			},
 			HARMFUL = {
-				  2649, -- Growl (pet) (taunt)
+				  2649, -- Growl (pet) (taunt) NOTE: no DR
 				  5116, -- Concussive Shot
 				 13812, -- Explosive Trap
-				 24394, -- Intimidation (stun)
 				 35346, -- Warp Time (Warp Stalker) (slow)
 				 50433, -- Ankle Crack (Crocolisk) (slow)
-				 53148, -- Charge (stun) (pet)
+				 53148, -- Charge (stun) (pet) NOTE: no DR
 				 54644, -- Frost Breath (Chimaera) (slow)
 				 95809, -- Insanity (Core Hound)
 				115804, -- Mortal Wounds (pet)
 				117405, -- Binding Shot
-				117526, -- Binding Shot (stun)
 				131894, -- A Murder of Crows (BM/MM)
 				135299, -- Tar Trap
 				160065, -- Tendon Rip (Silithid) (exotic) (slow)
@@ -98,6 +97,10 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 						162480, -- Steel Trap (root)
 						201158, -- Super Sticky Tar (root)
 						212638, -- Tracker's Net (root) (PvP)
+					},
+					STUN = {
+						 24394, -- Intimidation (stun)
+						117526, -- Binding Shot (stun)
 					},
 				},
 			},
@@ -141,7 +144,6 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 				 207094, -- Titan's Thunder (BM artifact)
 				 211138, -- Hunter's Advantage (BM artifact)
 				 217200, -- Dire Frenzy
-				[ 90361] = "HELPFUL", -- Spirit Mend (Spirit Beast) (exotic)
 				SURVIVAL = {
 					 26064, -- Shell Shield (Turtle)
 					 53478, -- Last Stand (Tenacity)
@@ -179,9 +181,6 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 			193534, -- Steady Focus
 			194594, -- Lock and Load
 			201081, -- Mok'Nathal Tactics
-			204321, -- Instincts of the Raptor
-			204324, -- Instincts of the Cheetah
-			204333, -- Instincts of the Mongoose
 			223138, -- Marking Targets
 			227272, -- Trick Shot
 		},
@@ -249,9 +248,6 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 	[203924] = 190503, -- Healing Shell (MM artifact)
 	[202933] = 202914, -- Spider Sting (Silenced debuff) (PvP)
 	[204081] = 203757, -- On the Trail <- Eagle's Bite (SV artifact)
-	[204321] = 204315, -- Instincts of the Raptor <- Animal Instincts
-	[204324] = 204315, -- Instincts of the Cheetah <- Animal Instincts
-	[204333] = 204315, -- Instincts of the Mongoose <- Animal Instincts
 	[204477] = 204147, -- Windburst (MM artifact)
 	[206755] = 200108, -- Ranger's Net (slow)
 	[207094] = 207068, -- Titan's Thunder (BM artifact)
@@ -292,6 +288,10 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 		185901, -- Marked Shot
 	},
 	[190515] = 781, -- Survival of the Fittest (MM artifact) -> Disengage
+	[190931] = {
+		190928, -- Mongoose Fury -> Mongoose Bite
+		203415, -- Mongoose Fury -> Fury of the Eagle
+	},
 	[191397] = { -- Bestial Cunning
 		 34026, -- Kill Command
 		202800, -- Flanking Strike
@@ -340,9 +340,6 @@ lib:__RegisterSpells("HUNTER", 70000, 8, {
 		  6603, -- Auto Attack
 		190925, -- Harpoon
 	},
-	[204321] = 202800, -- Instincts of the Raptor -> Flanking Strike
-	[204324] = 202800, -- Instincts of the Cheetah -> Flanking Strike
-	[204333] = 202800, -- Instincts of the Mongoose -> Flanking Strike
 	[209997] = 210000, -- Play Dead -> Wake Up
 	[211138] = 34477, -- Hunter's Advantage (BM artifact) -> Misdirection
 	[223138] = { -- Marking Targets

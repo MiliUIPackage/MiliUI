@@ -18,12 +18,23 @@ You should have received a copy of the GNU General Public License
 along with LibPlayerSpells-1.0.  If not, see <http://www.gnu.org/licenses/>.
 --]]
 
-local MAJOR, MINOR, lib = "LibPlayerSpells-1.0", 8
+local MAJOR, MINOR, lib = "LibPlayerSpells-1.0", 9
 if LibStub then
-	lib = LibStub:NewLibrary(MAJOR, MINOR)
+	local oldMinor
+	lib, oldMinor = LibStub:NewLibrary(MAJOR, MINOR)
 	if not lib then return end
+
+	if oldMinor and oldMinor < 8 then
+		-- The internal data changed at minor 8, wipe anything coming from the previous version
+		wipe(lib)
+	end
 else
 	lib = {}
+end
+
+local Debug = function() end
+if AdiDebug then
+	Debug = AdiDebug:Embed({}, MAJOR)
 end
 
 local _G = _G
@@ -327,7 +338,7 @@ local function FilterIterator(tester, spellId)
 	repeat
 		spellId, flags = next(spells, spellId)
 		if spellId and tester(flags) then
-			return spellId, flags, providers[spellId], modifiers[spellId], specials.CROWD_CTRL[spellId], sources[spellId] -- TODO: add specials.DISPEL[spellId]
+			return spellId, flags, providers[spellId], modifiers[spellId], specials.CROWD_CTRL[spellId], sources[spellId], specials.DISPEL[spellId]
 		end
 	until not spellId
 end
@@ -400,10 +411,11 @@ end
 -- @return (number|table) Spell(s) modified by the given spell.
 -- @return (number) Crowd control category, if the spell is a crowd control.
 -- @return (string) Spell source(s).
+-- @return (number) Dispel category, if the spell is a dispel.
 function lib:GetSpellInfo(spellId)
 	local flags = spellId and spells[spellId]
 	if flags then
-		return flags, providers[spellId], modifiers[spellId], specials.CROWD_CTRL[spellId], sources[spellId] -- TODO: add specials.DISPEL[spellId]
+		return flags, providers[spellId], modifiers[spellId], specials.CROWD_CTRL[spellId], sources[spellId], specials.DISPEL[spellId]
 	end
 end
 
@@ -584,17 +596,13 @@ function lib:__RegisterSpells(category, interface, minor, newSpells, newProvider
 		sources[spellId] = format("%s%s", sources[spellId] and sources[spellId].." " or "", category)
 	end
 
-	if next(errors) then
-		local msgs = {}
-		local clientInterface = select(4, GetBuildInfo())
-		if tonumber(interface) < clientInterface then
-			tinsert(msgs, format("Data are probably outdated: data version=%5d, client version=%5d", tonumber(interface), clientInterface))
-		end
-		for spellId, msg in pairs(errors) do
-			tinsert(msgs, format("Spell #%d: %s", spellId, msg))
-		end
-		geterrorhandler()(format("%s: %d errors in %s database:\n%s", MAJOR, #msgs, category, table.concat(msgs, "\n")))
+	local errorCount = 0
+	for spellId, msg in pairs(errors) do
+		Debug(category, format("spell #%d: %s", spellId, msg))
+		errorCount = errorCount + 1
 	end
+
+	return errorCount
 end
 
 return lib

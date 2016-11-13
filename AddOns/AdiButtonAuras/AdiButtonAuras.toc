@@ -16,7 +16,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with AdiButtonAuras.  If not, see <http://www.gnu.org/licenses/>.
-## X-Curse-Packaged-Version: 2.0.1
+## X-Curse-Packaged-Version: 2.0.4
 ## X-Curse-Project-Name: AdiButtonAuras
 ## X-Curse-Project-ID: adibuttonauras
 ## X-Curse-Repository-ID: wow/adibuttonauras/mainline
@@ -28,8 +28,8 @@
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFCC99CC[AdiButtonAuras]|r 按扭計時
 ## Notes-zhTW: 在快捷按鈕中顯示技能計時。
 ## Author: Adirelle
-## Version: 2.0.1
-## X-Date: 2016-09-11T00:34:07Z
+## Version: 2.0.4
+## X-Date: 2016-10-28T11:52:15Z
 ## X-License: GPL v3
 ## X-eMail: adirelle@gmail.com
 ## SavedVariables: AdiButtonAurasDB
