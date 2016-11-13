@@ -4,8 +4,7 @@
 ## Notes: Kesava's nameplate framework.|nRemember to enable Kui Nameplates Core (or a compatible layout), too!
 ## Title-zhTW: |cFF0099FF[介面]|r |cFFCCBBCC[Kui |cff9966ffNameplates]|r 血條樣式
 ## Notes-zhTW: 玩家、NPC 頭上的血條樣式美化。
-
-## X-Curse-Packaged-Version: 2-9
+## X-Curse-Packaged-Version: 2-14-2
 ## X-Curse-Project-Name: KuiNameplates
 ## X-Curse-Project-ID: kuinameplates
 ## X-Curse-Repository-ID: wow/kuinameplates/mainline

@@ -2,6 +2,9 @@
 local addon = KuiNameplates
 local ele = addon:NewElement('Threat',1)
 
+local UnitIsPlayer,UnitPlayerControlled=
+      UnitIsPlayer,UnitPlayerControlled
+
 -- TODO config
 local threat_colours = {
     { 1, 0, 0 },
@@ -9,7 +12,9 @@ local threat_colours = {
 }
 -- messages ####################################################################
 function ele:Show(f)
-    self:UNIT_THREAT_LIST_UPDATE(nil,f,f.unit)
+    if not UnitIsPlayer(f.unit) and not UnitPlayerControlled(f.unit) then
+        self:UNIT_THREAT_LIST_UPDATE(nil,f,f.unit)
+    end
 end
 -- events ######################################################################
 function ele:UNIT_THREAT_LIST_UPDATE(event,f,unit)
@@ -32,6 +37,7 @@ function ele:UNIT_THREAT_LIST_UPDATE(event,f,unit)
 
         if f.elements.ThreatGlow then
             f.ThreatGlow:Show()
+            f.ThreatGlow:SetAlpha(1)
             f.ThreatGlow:SetVertexColor(unpack(threat_colour))
         end
 
@@ -50,8 +56,4 @@ end
 function ele:OnEnable()
     self:RegisterMessage('Show')
     self:RegisterUnitEvent('UNIT_THREAT_LIST_UPDATE')
-end
-function ele:Initialise()
-    -- force enable threat on nameplates
-    SetCVar('threatWarning',3)
 end

@@ -7,7 +7,7 @@ version:SetAlpha(.7)
 version:SetPoint('TOPRIGHT',-12,-12)
 version:SetText(string.format(
     opt.titles.version,
-    'KuiNameplates','Kesava','2-9'
+    'KuiNameplates','Kesava','2-14-2'
 ))
 
 opt:Initialise()
@@ -16,6 +16,7 @@ local general     = opt:CreateConfigPage('general')
 local healthbars  = opt:CreateConfigPage('healthbars')
 local castbars    = opt:CreateConfigPage('castbars')
 local text        = opt:CreateConfigPage('text')
+local nameonly    = opt:CreateConfigPage('nameonly')
 local framesizes  = opt:CreateConfigPage('framesizes')
 local auras       = opt:CreateConfigPage('auras')
 local threat      = opt:CreateConfigPage('threat')
@@ -28,6 +29,7 @@ opt.pages[1]:ShowPage()
 -- general #####################################################################
 local combat_hostile = general:CreateDropDown('combat_hostile')
 local combat_friendly = general:CreateDropDown('combat_friendly')
+local ignore_uiscale = general:CreateCheckBox('ignore_uiscale')
 local glow_as_shadow = general:CreateCheckBox('glow_as_shadow')
 local state_icons = general:CreateCheckBox('state_icons')
 local target_glow = general:CreateCheckBox('target_glow')
@@ -42,7 +44,8 @@ combat_friendly.SelectTable = {'Do nothing','Hide','Show'}
 combat_hostile:SetPoint('TOPLEFT',10,-10)
 combat_friendly:SetPoint('LEFT',combat_hostile,'RIGHT',10,0)
 
-glow_as_shadow:SetPoint('TOPLEFT',10,-60)
+ignore_uiscale:SetPoint('TOPLEFT',10,-60)
+glow_as_shadow:SetPoint('TOPLEFT',ignore_uiscale,'BOTTOMLEFT')
 state_icons:SetPoint('LEFT',glow_as_shadow,'RIGHT',190,0)
 target_glow:SetPoint('TOPLEFT',glow_as_shadow,'BOTTOMLEFT')
 target_glow_colour:SetPoint('TOPLEFT',glow_as_shadow,'BOTTOMLEFT',220,0)
@@ -53,28 +56,6 @@ target_arrows_size:SetPoint('LEFT',frame_glow_size,'RIGHT',20,0)
 
 target_arrows_size.enabled = function(p) return p.target_arrows end
 
-local nameonly_sep = general:CreateSeperator('nameonly_sep')
-local nameonlyCheck = general:CreateCheckBox('nameonly')
-local nameonly_no_font_style = general:CreateCheckBox('nameonly_no_font_style')
-local nameonly_damaged_friends = general:CreateCheckBox('nameonly_damaged_friends')
-local nameonly_enemies = general:CreateCheckBox('nameonly_enemies')
-local nameonly_all_enemies = general:CreateCheckBox('nameonly_all_enemies')
-local nameonly_target = general:CreateCheckBox('nameonly_target')
-
-nameonly_no_font_style.enabled = function(p) return p.nameonly end
-nameonly_enemies.enabled = function(p) return p.nameonly and not p.nameonly_all_enemies end
-nameonly_damaged_friends.enabled = nameonly_no_font_style.enabled
-nameonly_all_enemies.enabled = nameonly_no_font_style.enabled
-nameonly_target.enabled = nameonly_no_font_style.enabled
-
-nameonly_sep:SetPoint('TOP',0,-215)
-nameonlyCheck:SetPoint('TOPLEFT',10,-230)
-nameonly_no_font_style:SetPoint('LEFT',nameonlyCheck,'RIGHT',190,0)
-nameonly_target:SetPoint('TOPLEFT',nameonlyCheck,'BOTTOMLEFT')
-nameonly_damaged_friends:SetPoint('LEFT',nameonly_target,'RIGHT',190,0)
-nameonly_all_enemies:SetPoint('TOPLEFT',nameonly_target,'BOTTOMLEFT')
-nameonly_enemies:SetPoint('LEFT',nameonly_all_enemies,'RIGHT',190,0)
-
 local fade_rules_sep = general:CreateSeperator('fade_rules_sep')
 local fade_alpha = general:CreateSlider('fade_alpha',0,1)
 local fade_speed = general:CreateSlider('fade_speed',0,1)
@@ -84,19 +65,27 @@ local fade_neutral_enemy = general:CreateCheckBox('fade_neutral_enemy')
 local fade_untracked = general:CreateCheckBox('fade_untracked')
 local fade_avoid_nameonly = general:CreateCheckBox('fade_avoid_nameonly')
 local fade_avoid_raidicon = general:CreateCheckBox('fade_avoid_raidicon')
+local fade_avoid_execute_friend = general:CreateCheckBox('fade_avoid_execute_friend')
+local fade_avoid_execute_hostile = general:CreateCheckBox('fade_avoid_execute_hostile')
+local fade_avoid_tracked = general:CreateCheckBox('fade_avoid_tracked')
 
 fade_alpha:SetValueStep(.05)
 fade_speed:SetValueStep(.05)
 
-fade_rules_sep:SetPoint('TOP',0,-330)
-fade_alpha:SetPoint('TOPLEFT',10,-355)
+fade_rules_sep:SetPoint('TOP',0,-235)
+fade_alpha:SetPoint('TOPLEFT',10,-260)
+
 fade_speed:SetPoint('LEFT',fade_alpha,'RIGHT',20,0)
-fade_all:SetPoint('TOPLEFT',15,-390)
+fade_all:SetPoint('TOPLEFT',15,-295)
 fade_friendly_npc:SetPoint('LEFT',fade_all,'RIGHT',190,0)
 fade_neutral_enemy:SetPoint('TOPLEFT',fade_all,'BOTTOMLEFT')
 fade_untracked:SetPoint('LEFT',fade_neutral_enemy,'RIGHT',190,0)
-fade_avoid_nameonly:SetPoint('TOPLEFT',fade_neutral_enemy,'BOTTOMLEFT')
+
+fade_avoid_nameonly:SetPoint('TOPLEFT',fade_neutral_enemy,'BOTTOMLEFT',0,-20)
 fade_avoid_raidicon:SetPoint('LEFT',fade_avoid_nameonly,'RIGHT',190,0)
+fade_avoid_execute_friend:SetPoint('TOPLEFT',fade_avoid_nameonly,'BOTTOMLEFT')
+fade_avoid_execute_hostile:SetPoint('LEFT',fade_avoid_execute_friend,'RIGHT',190,0)
+fade_avoid_tracked:SetPoint('TOPLEFT',fade_avoid_execute_friend,'BOTTOMLEFT')
 
 target_glow_colour.enabled = function(p) return p.target_glow end
 
@@ -161,6 +150,8 @@ local font_size_normal = text:CreateSlider('font_size_normal',1,20)
 local font_size_small = text:CreateSlider('font_size_small',1,20)
 local name_text = text:CreateCheckBox('name_text')
 local hidenamesCheck = text:CreateCheckBox('hide_names')
+local class_colour_friendly_names = text:CreateCheckBox('class_colour_friendly_names')
+local class_colour_enemy_names = text:CreateCheckBox('class_colour_enemy_names')
 local level_text = text:CreateCheckBox('level_text')
 local health_text = text:CreateCheckBox('health_text')
 local text_vertical_offset = text:CreateSlider('text_vertical_offset',-20,20)
@@ -190,7 +181,11 @@ bot_vertical_offset:SetPoint('LEFT',name_vertical_offset,'RIGHT',20,0)
 
 name_text:SetPoint('TOPLEFT',text_vertical_offset,'BOTTOMLEFT',0,-20)
 hidenamesCheck:SetPoint('LEFT',name_text,'RIGHT',190,0)
-level_text:SetPoint('TOPLEFT',name_text,'BOTTOMLEFT')
+
+class_colour_friendly_names:SetPoint('TOPLEFT',name_text,'BOTTOMLEFT')
+class_colour_enemy_names:SetPoint('LEFT',class_colour_friendly_names,'RIGHT',190,0)
+
+level_text:SetPoint('TOPLEFT',class_colour_friendly_names,'BOTTOMLEFT')
 health_text:SetPoint('TOPLEFT',level_text,'BOTTOMLEFT')
 
 hidenamesCheck.enabled = function(p) return p.name_text end
@@ -214,8 +209,8 @@ health_text_friend_dmg.SelectTable = health_text_SelectTable
 health_text_hostile_max.SelectTable = health_text_SelectTable
 health_text_hostile_dmg.SelectTable = health_text_SelectTable
 
-health_text_sep:SetPoint('TOP',0,-250)
-health_text_friend_max:SetPoint('TOPLEFT',10,-270)
+health_text_sep:SetPoint('TOP',0,-270)
+health_text_friend_max:SetPoint('TOPLEFT',10,-290)
 health_text_friend_dmg:SetPoint('LEFT',health_text_friend_max,'RIGHT',10,0)
 health_text_hostile_max:SetPoint('TOPLEFT',health_text_friend_max,'BOTTOMLEFT',0,0)
 health_text_hostile_dmg:SetPoint('LEFT',health_text_hostile_max,'RIGHT',10,0)
@@ -225,25 +220,62 @@ health_text_friend_dmg.enabled = health_text_friend_max.enabled
 health_text_hostile_max.enabled = health_text_friend_max.enabled
 health_text_hostile_dmg.enabled = health_text_friend_max.enabled
 
+-- nameonly ####################################################################
+local nameonlyCheck = nameonly:CreateCheckBox('nameonly')
+local nameonly_no_font_style = nameonly:CreateCheckBox('nameonly_no_font_style')
+local nameonly_damaged_friends = nameonly:CreateCheckBox('nameonly_damaged_friends')
+local nameonly_enemies = nameonly:CreateCheckBox('nameonly_enemies')
+local nameonly_all_enemies = nameonly:CreateCheckBox('nameonly_all_enemies')
+local nameonly_target = nameonly:CreateCheckBox('nameonly_target')
+local guild_text_npcs = nameonly:CreateCheckBox('guild_text_npcs')
+local guild_text_players = nameonly:CreateCheckBox('guild_text_players')
+local title_text_players = nameonly:CreateCheckBox('title_text_players')
+
+nameonly_no_font_style.enabled = function(p) return p.nameonly end
+nameonly_enemies.enabled = function(p) return p.nameonly and not p.nameonly_all_enemies end
+nameonly_damaged_friends.enabled = nameonly_no_font_style.enabled
+nameonly_all_enemies.enabled = nameonly_no_font_style.enabled
+nameonly_target.enabled = nameonly_no_font_style.enabled
+guild_text_npcs.enabled = nameonly_no_font_style.enabled
+guild_text_players.enabled = nameonly_no_font_style.enabled
+title_text_players.enabled = nameonly_no_font_style.enabled
+
+nameonlyCheck:SetPoint('TOPLEFT',10,-10)
+nameonly_no_font_style:SetPoint('LEFT',nameonlyCheck,'RIGHT',190,0)
+
+nameonly_target:SetPoint('TOPLEFT',nameonlyCheck,'BOTTOMLEFT',0,-20)
+nameonly_all_enemies:SetPoint('TOPLEFT',nameonly_target,'BOTTOMLEFT')
+nameonly_enemies:SetPoint('LEFT',nameonly_all_enemies,'RIGHT',190,0)
+nameonly_damaged_friends:SetPoint('TOPLEFT',nameonly_all_enemies,'BOTTOMLEFT')
+
+guild_text_npcs:SetPoint('TOPLEFT',nameonly_damaged_friends,'BOTTOMLEFT',0,-20)
+guild_text_players:SetPoint('TOPLEFT',guild_text_npcs,'BOTTOMLEFT')
+title_text_players:SetPoint('LEFT',guild_text_players,'RIGHT',190,0)
+
 -- frame sizes #################################################################
 local frame_width = framesizes:CreateSlider('frame_width',20,200)
 local frame_height = framesizes:CreateSlider('frame_height',3,40)
 local frame_width_minus = framesizes:CreateSlider('frame_width_minus',20,200)
 local frame_height_minus = framesizes:CreateSlider('frame_height_minus',3,40)
+local frame_width_personal = framesizes:CreateSlider('frame_width_personal',20,200)
+local frame_height_personal = framesizes:CreateSlider('frame_height_personal',3,40)
 local castbar_height = framesizes:CreateSlider('castbar_height',3,20)
 local powerbar_height = framesizes:CreateSlider('powerbar_height',1,20)
 
 frame_width:SetPoint('TOPLEFT',10,-30)
 frame_height:SetPoint('LEFT',frame_width,'RIGHT',20,0)
-frame_width_minus:SetPoint('TOPLEFT',frame_width,'BOTTOMLEFT',0,-30)
+frame_width_personal:SetPoint('TOPLEFT',frame_width,'BOTTOMLEFT',0,-30)
+frame_height_personal:SetPoint('LEFT',frame_width_personal,'RIGHT',20,0)
+frame_width_minus:SetPoint('TOPLEFT',frame_width_personal,'BOTTOMLEFT',0,-30)
 frame_height_minus:SetPoint('LEFT',frame_width_minus,'RIGHT',20,0)
-castbar_height:SetPoint('TOPLEFT',frame_width_minus,'BOTTOMLEFT',0,-30)
+castbar_height:SetPoint('TOPLEFT',frame_width_minus,'BOTTOMLEFT',0,-60)
 powerbar_height:SetPoint('LEFT',castbar_height,'RIGHT',20,0)
 
 -- auras #######################################################################
 local auras_enabled = auras:CreateCheckBox('auras_enabled')
 local auras_on_personal = auras:CreateCheckBox('auras_on_personal')
 local auras_sort = auras:CreateDropDown('auras_sort')
+local auras_vanilla_filter = auras:CreateCheckBox('auras_vanilla_filter')
 local auras_whitelist = auras:CreateCheckBox('auras_whitelist')
 local auras_pulsate = auras:CreateCheckBox('auras_pulsate')
 local auras_centre = auras:CreateCheckBox('auras_centre')
@@ -264,18 +296,19 @@ auras_icon_squareness:SetValueStep(.1)
 
 auras_enabled:SetPoint('TOPLEFT',10,-17)
 auras_on_personal:SetPoint('TOPLEFT',auras_enabled,'BOTTOMLEFT')
-auras_whitelist:SetPoint('TOPLEFT',auras_on_personal,'BOTTOMLEFT')
+auras_vanilla_filter:SetPoint('TOPLEFT',auras_on_personal,'BOTTOMLEFT')
+auras_whitelist:SetPoint('TOPLEFT',auras_vanilla_filter,'BOTTOMLEFT')
 auras_pulsate:SetPoint('TOPLEFT',auras_whitelist,'BOTTOMLEFT')
 auras_centre:SetPoint('TOPLEFT',auras_pulsate,'BOTTOMLEFT')
 auras_sort:SetPoint('LEFT',auras_enabled,'RIGHT',184,0)
 auras_time_threshold:SetPoint('LEFT',auras_whitelist,'RIGHT',184,5)
 
-auras_filtering_sep:SetPoint('TOP',0,-170)
-auras_minimum_length:SetPoint('TOPLEFT',10,-200)
+auras_filtering_sep:SetPoint('TOP',0,-190)
+auras_minimum_length:SetPoint('TOPLEFT',10,-220)
 auras_maximum_length:SetPoint('LEFT',auras_minimum_length,'RIGHT',20,0)
 
-auras_icons_sep:SetPoint('TOP',0,-250)
-auras_icon_normal_size:SetPoint('TOPLEFT',10,-280)
+auras_icons_sep:SetPoint('TOP',0,-270)
+auras_icon_normal_size:SetPoint('TOPLEFT',10,-300)
 auras_icon_minus_size:SetPoint('LEFT',auras_icon_normal_size,'RIGHT',20,0)
 auras_icon_squareness:SetPoint('TOPLEFT',auras_icon_normal_size,'BOTTOMLEFT',0,-30)
 
@@ -336,10 +369,50 @@ tankmode_other_colour:SetPoint('LEFT',tankmode_trans_colour,'RIGHT')
 local classpowers_enable = classpowers:CreateCheckBox('classpowers_enable')
 local classpowers_on_target = classpowers:CreateCheckBox('classpowers_on_target')
 local classpowers_size = classpowers:CreateSlider('classpowers_size',5,20)
+local classpowers_bar_width = classpowers:CreateSlider('classpowers_bar_width',10,100)
+local classpowers_bar_height = classpowers:CreateSlider('classpowers_bar_height',1,11)
+local classpowers_colour = classpowers:CreateColourPicker('classpowers_colour')
+local classpowers_colour_overflow = classpowers:CreateColourPicker('classpowers_colour_overflow')
+local classpowers_colour_inactive = classpowers:CreateColourPicker('classpowers_colour_inactive')
+
+classpowers_bar_width:SetValueStep(2)
+classpowers_bar_height:SetValueStep(2)
 
 classpowers_enable:SetPoint('TOPLEFT',10,-10)
 classpowers_on_target:SetPoint('LEFT',classpowers_enable,'RIGHT',190,0)
 classpowers_size:SetPoint('TOPLEFT',classpowers_enable,'BOTTOMLEFT',0,-20)
+classpowers_bar_width:SetPoint('TOPLEFT',classpowers_size,'BOTTOMLEFT',0,-30)
+classpowers_bar_height:SetPoint('LEFT',classpowers_bar_width,'RIGHT',20,0)
+
+classpowers_colour:SetPoint('TOPLEFT',15,-150)
+classpowers_colour_overflow:SetPoint('TOPLEFT',classpowers_colour,'BOTTOMLEFT')
+classpowers_colour_inactive:SetPoint('TOPLEFT',classpowers_colour_overflow,'BOTTOMLEFT')
+
+function classpowers_colour:Get()
+    local class = select(2,UnitClass('player'))
+    self.env = 'classpowers_colour_'..strlower(class)
+
+    if opt.profile[self.env] then
+        self.block:SetBackdropColor(unpack(opt.profile[self.env]))
+    else
+        self.block:SetBackdropColor(.5,.5,.5)
+        self:Disable()
+    end
+end
+function classpowers_colour:Set(col)
+    opt.config:SetConfig(self.env,col)
+    -- manually re-run OnShow since our env doesn't match the element name
+    self:Hide()
+    self:Show()
+end
+classpowers_colour:SetScript('OnEnter',function(self)
+    -- force tooltip to use classpowers_colour env
+    GameTooltip:SetOwner(self,'ANCHOR_TOPLEFT')
+    GameTooltip:SetWidth(200)
+    GameTooltip:AddLine(opt.titles['classpowers_colour'])
+    GameTooltip:AddLine(opt.tooltips['classpowers_colour'],1,1,1,true)
+    GameTooltip:Show()
+end)
 
 -- LSM dropdowns ###############################################################
 function bar_texture:initialize()
