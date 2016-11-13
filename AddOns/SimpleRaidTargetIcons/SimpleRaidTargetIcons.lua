@@ -713,8 +713,8 @@ function srti.Options()
 	srti.menu:SetBackdropBorderColor(0.4, 0.4, 0.4);
 	srti.menu:SetBackdropColor(0.15, 0.15, 0.15);
 
-	srti.menu.titleregion = srti.menu:CreateTitleRegion(srti.menu);
-	srti.menu.titleregion:SetAllPoints(srti.menu);
+--	srti.menu.titleregion = srti.menu:CreateTitleRegion(srti.menu);
+--	srti.menu.titleregion:SetAllPoints(srti.menu);
 
 	srti.menu.title = srti.menu:CreateFontString(nil,"ARTWORK","GameFontHighlight");
 	srti.menu.title:SetText(SRTI_HEADER);
