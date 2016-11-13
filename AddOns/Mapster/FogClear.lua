@@ -1625,7 +1625,6 @@ local defaults = {
 		colorG = 0.5176470588235294,
 		colorB = 0.9215686274509803,
 		colorA = 0.8900000005960465,
-		debug = false
 	},
 }
 
