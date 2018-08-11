@@ -4,12 +4,12 @@ local function miirgui_defaults()
 	local defaults = {
 		["color"] =
 			{
-				r=0.08,
-				g=0.342,
-				b=0.52,
-				hr=0.086,
-				hg=0.459,
-				hb=0.71,
+				r=1,
+				g=0.690,
+				b=0.007,
+				hr=1,
+				hg=0.819161,
+				hb=0,
 				enable=false,
 			},
 		["blue"] = true,
