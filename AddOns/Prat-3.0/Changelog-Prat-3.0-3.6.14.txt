@@ -1,8 +1,0 @@
-2016-07-20  sylvanaar  <sylvanaar@mindspring.com>
-
-[e5680766f4a8] [3.6.14]
-* Prat-3.0.toc:
-
-Merge with Legion
-
-
