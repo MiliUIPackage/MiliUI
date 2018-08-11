@@ -15,7 +15,7 @@ PartyMemberFrame3PetFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 PartyMemberFrame4Portrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 PartyMemberFrame4PetFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 
-hooksecurefunc("PlayerFrame_ToVehicleArt",function(_, vehicleType)
+local function miirgui_PlayerFrame_ToVehicleArt(_, vehicleType)
 	if ( vehicleType == "Natural" ) then
 		PlayerFrameHealthBar:SetWidth(112);
 		PlayerFrameHealthBar:SetPoint("TOPLEFT",106,-41);
@@ -27,4 +27,6 @@ hooksecurefunc("PlayerFrame_ToVehicleArt",function(_, vehicleType)
 		PlayerFrameManaBar:SetWidth(112);
 		PlayerFrameManaBar:SetPoint("TOPLEFT",106,-52);
 	end
-end)
+end
+
+hooksecurefunc("PlayerFrame_ToVehicleArt",miirgui_PlayerFrame_ToVehicleArt)

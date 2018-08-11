@@ -1,14 +1,5 @@
-local function skin_Blizzard_LookingForGuildUI()
-		
-	function test()
-		LookingForGuildFrameTabardBackground:SetSize(64,64)
-		LookingForGuildFrameTabardBackground:SetPoint("TOPLEFT",-8,10)
-	end
-		
-	local GUILD_MEMBERSHIP = CreateFrame("FRAME")
-	GUILD_MEMBERSHIP:RegisterEvent("LF_GUILD_MEMBERSHIP_LIST_UPDATED")
-	GUILD_MEMBERSHIP:SetScript("OnEvent", test)
-
+local function skin_Blizzard_AzeriteUI()
+	AzeriteEmpoweredItemUIPortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 end
 
 local catchaddon = CreateFrame("FRAME")
@@ -16,17 +7,17 @@ catchaddon:RegisterEvent("ADDON_LOADED")
 
 --function to catch loading addons
 local function skinnedOnLoad(_, _, addon)
-	if addon == "Blizzard_LookingForGuildUI" then
-		skin_Blizzard_LookingForGuildUI()
+	if addon == "Blizzard_AzeriteUI" then
+		skin_Blizzard_AzeriteUI()
 	end
 end
 
 --this function decides whether the addon is already loaded or if we need to look out for it!
 
 local function skinnedOnLogin()
-	if IsAddOnLoaded("Blizzard_LookingForGuildUI") then
+	if IsAddOnLoaded("Blizzard_AzeriteUI") then
 		-- Addon is already loaded, procceed to skin!
-		skin_Blizzard_LookingForGuildUI()
+		skin_Blizzard_AzeriteUI()
 	else
 		-- Addon is not loaded yet, procceed to look out for it!
 		catchaddon:SetScript("OnEvent", skinnedOnLoad)

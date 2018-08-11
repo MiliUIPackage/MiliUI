@@ -1,11 +1,20 @@
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()	
+local function skin_MiniMap()
 
 	if miirguiDB.skinminimap == true then
+	
+		MiniMapInstanceDifficultyText:ClearAllPoints()
+		MiniMapInstanceDifficultyText:SetPoint("TOPRIGHT",MiniMapInstanceDifficulty,-5,-3.5)
+		MiniMapInstanceDifficultyText:SetJustifyH("LEFT")
+		MiniMapInstanceDifficulty:ClearAllPoints()
+		MiniMapInstanceDifficulty:SetPoint("TOPLEFT",Minimap,-2,2)
+	
 		Minimap:SetMaskTexture("Interface\\AddOns\\miirGui\\gfx\\Mask-SQUARE")
 		local _,_,_,_,Date = GameTimeFrame:GetRegions()
 		m_fontify(Date,"white")
+		if miirguiDB["outline"] == false then
+			local fontName, fontHeight = Date:GetFont()
+			Date:SetFont(fontName, fontHeight, "OUTLINE")
+		end
 
 		Minimap:EnableMouseWheel(true)
 		MinimapZoomOut:Hide()
@@ -30,16 +39,29 @@ f:SetScript("OnEvent", function()
 				MinimapNorthTag:Hide();
 			end
 		end)
+
 	end
-	
-	hooksecurefunc("GarrisonLandingPageMinimapButton_UpdateIcon",function(self)
+
+	local function miirgui_GarrisonLandingPageMinimapButton_UpdateIcon(self)
 		local _,pulse = self:GetRegions()
 		pulse:SetSize(36,36)
 		m_SetTexture(pulse,"Interface\\Garrison\\pulse.blp")
-		self:SetSize(32,32)	
+		self:SetSize(32,32)
 		self:SetNormalTexture("Interface\\Garrison\\horde.blp")
-		self:SetPushedTexture("Interface\\Garrison\\horde.blp")		
+		self:SetPushedTexture("Interface\\Garrison\\horde.blp")
 		self:UnregisterEvent("SHIPMENT_UPDATE")
-	end)
+	end
+
+	hooksecurefunc("GarrisonLandingPageMinimapButton_UpdateIcon",miirgui_GarrisonLandingPageMinimapButton_UpdateIcon)
+
+	ActionBarUpButton:ClearAllPoints()
+	ActionBarUpButton:SetPoint("RIGHT",ActionButton12,25,9.5)
+
+	ActionBarDownButton:ClearAllPoints()
+	ActionBarDownButton:SetPoint("CENTER",ActionBarUpButton,"BOTTOMLEFT",9.5,-10.5)
 	
-end)
+end
+
+local m_catch = CreateFrame("Frame")
+m_catch:RegisterEvent("PLAYER_LOGIN")
+m_catch:SetScript("OnEvent", skin_MiniMap)

@@ -1,5 +1,5 @@
 local addonsToSkin = {
-	["SimBuilder"] = function()
+	["_SimBuilder"] = function()
 	SimBuilderLaunchButton:ClearAllPoints()
 	SimBuilderLaunchButton:SetPoint("LEFT",CharacterFrameCloseButton,-40,0)
 	
@@ -36,7 +36,7 @@ local addonsToSkin = {
 	m_border(SimItemCopyFrameClose,591,20,"RIGHT",-6,1,14,"HIGH")
 	
 		end,
-	["BugSack"] = function()
+	["_BugSack"] = function()
 	
 	hooksecurefunc(BugSack,"OpenSack",function()	
 		local _,title= BugSackFrame:GetChildren()
@@ -50,14 +50,14 @@ local addonsToSkin = {
 	end)
 	
 		end,
-	["AckisRecipeList"] = function()
+	["_AckisRecipeList"] = function()
 	
 		hooksecurefunc(_G.AckisRecipeList,"Scan",function()
 			ARL_ProfessionButtonPortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 		end)
 		
 		end,
-	["BetterArchaeologyUI"] = function()
+	["_BetterArchaeologyUI"] = function()
 	
 			ArchaeologyFrameSummaryPage:HookScript("OnShow",function()
 				for i=1,18 do
@@ -100,20 +100,23 @@ local addonsToSkin = {
 			end
 			end
 			
-			hooksecurefunc("QuestInfo_Display", miirgui_cql_obj)	
-				
+			hooksecurefunc("QuestInfo_Display", miirgui_cql_obj)
+
 			local function miirgui_cql_show()
-					m_fontify(QuestInfoTitleHeader,"color")
-					m_fontify(QuestInfoDescriptionHeader,"color")
-					m_fontify(QuestInfoObjectivesHeader,"color")
-					m_fontify(QuestInfoDescriptionText,"white")
-					m_fontify(QuestInfoObjectivesText,"white")
-					m_fontify(QuestInfoGroupSize,"white")
-					m_fontify(QuestInfoRewardText,"white")
+				m_fontify(QuestInfoTitleHeader,"color")
+				m_fontify(QuestInfoDescriptionHeader,"color")
+				m_fontify(QuestInfoObjectivesHeader,"color")
+				m_fontify(QuestInfoDescriptionText,"white")
+				m_fontify(QuestInfoObjectivesText,"white")
+				m_fontify(QuestInfoGroupSize,"white")
+				m_fontify(QuestInfoRewardText,"white")
+				m_fontify(QuestInfoRewardsFrame.Header,"color")
+				m_fontify(QuestInfoRewardsFrame.ItemReceiveText,"white")
+				m_fontify(QuestInfoRewardsFrame.ItemChooseText,"white")
 			end
-			
-			ClassicQuestLog:HookScript("OnShow",miirgui_cql_show)
-			
+
+			hooksecurefunc(ClassicQuestLog,"UpdateLog",miirgui_cql_show)
+
 		end,
 	["Clique"] = function()
 	
@@ -126,7 +129,7 @@ local addonsToSkin = {
 			end)
 			
 		end,
-	["Combuctor"] = function()
+	["_Combuctor"] = function()
 	
 			CombuctorFrameinventoryPortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			for i=19,21 do
@@ -135,7 +138,7 @@ local addonsToSkin = {
 			end
 			
 		end,
-	["Inventorian"] = function()
+	["_Inventorian"] = function()
 	
 			InventorianBagFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			InventorianBankFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
@@ -147,7 +150,7 @@ local addonsToSkin = {
 			end
 			
 		end,
-	["mOnArs_WardrobeHelper"] = function()
+	["_mOnArs_WardrobeHelper"] = function()
 	
 			mOnWD_MainFramePortrait:SetTexCoord(0.15, 0.85, 0.15, 0.85)
 			
@@ -156,12 +159,13 @@ local addonsToSkin = {
 
 local f = CreateFrame("Frame")
 f:RegisterEvent("ADDON_LOADED")
-f:RegisterEvent("PLAYER_LOGIN")
+f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:SetScript("OnEvent", function(_, event, addon)
+	if event == "PLAYER_ENTERING_WORLD" then
 		if event == "ADDON_LOADED" then	
 			if addonsToSkin[addon] then
 				addonsToSkin[addon]()
-				addonsToSkin[addon] = nil	
+				addonsToSkin[addon] = nil
 			end
 		else	
 			for addon, func in pairs(addonsToSkin) do
@@ -170,4 +174,5 @@ f:SetScript("OnEvent", function(_, event, addon)
 				end
 			end
 		end
+	end
 	end)

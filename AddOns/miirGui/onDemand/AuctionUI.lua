@@ -1,5 +1,14 @@
 local function skin_Blizzard_AuctionUI()
-		
+
+	AuctionProgressFrameCancelButton:ClearAllPoints()
+	AuctionProgressFrameCancelButton:SetPoint("RIGHT",AuctionProgressBar,24.5,0)
+	AuctionProgressBar.Border:ClearAllPoints()
+	AuctionProgressBar.Border:SetPoint("CENTER",AuctionProgressBar,0,2)
+	m_border(AuctionProgressBar,28,28,"LEFT",-30.5,2,14,"HIGH")
+	AuctionProgressBar.Icon:ClearAllPoints()
+	AuctionProgressBar.Icon:SetPoint("LEFT",AuctionProgressBar,-28,1)
+	AuctionProgressBar.Text:ClearAllPoints()
+	AuctionProgressBar.Text:SetPoint("CENTER",AuctionProgressBar,0,1)
 	local function miirgui_AuctionFrameAuctions_Update()
 		for i=1, NUM_AUCTIONS_TO_DISPLAY do
 			local buttonName = "AuctionsButton"..i;
@@ -38,7 +47,7 @@ local function skin_Blizzard_AuctionUI()
 			itemButton.IconBorder:Hide();
 		end
 		for i=1,9 do
-		
+
 		_G["BidButton"..i.."ItemIconTexture"]:SetTexCoord(0.95, 0.05, 0.05, 0.95)
 		_,_,_,_,_,_G["BidButton"..i.."Middle"] = _G["BidButton"..i]:GetRegions()
 		_G["BidButton"..i.."Middle"]:SetHeight(36)
@@ -70,8 +79,7 @@ local function skin_Blizzard_AuctionUI()
 			_G["BrowseButton"..i.."Right"]:SetHeight(36)
 			_G["BrowseButton"..i.."Right"]:ClearAllPoints()
 			_G["BrowseButton"..i.."Right"]:SetPoint("RIGHT",0,3.5)
-			
-			--_G["BrowseButton"..i.."Highlight"]:ClearAllPoints()
+
 			_G["BrowseButton"..i.."Highlight"]:SetPoint("TOPLEFT",_G["BrowseButton"..i.."Middle"],-10,-1)
 			_G["BrowseButton"..i.."Highlight"]:SetPoint("BOTTOMRIGHT",_G["BrowseButton"..i.."Middle"],8,1)
 			_G["BrowseButton"..i.."ItemCount"]:ClearAllPoints()
@@ -80,7 +88,7 @@ local function skin_Blizzard_AuctionUI()
 	end
 
 	hooksecurefunc("AuctionFrameBrowse_Update",miirgui_AuctionFrameBrowse_Update)
-						
+
 	for i=1,15 do
 		m_fontify(_G["AuctionFilterButton"..i.."NormalText"],"white")
 	end
@@ -93,7 +101,7 @@ local function skin_Blizzard_AuctionUI()
 	m_fontify(WowTokenGameTimeTutorial.RightDisplay.Tutorial1,"white")
 	m_fontify(WowTokenGameTimeTutorial.RightDisplay.Tutorial2,"white")
 	m_fontify(WowTokenGameTimeTutorial.RightDisplay.Tutorial3,"white")
-	
+
 	m_cursorfix(BrowseName)
 	m_cursorfix(BrowseMinLevel)
 	m_cursorfix(BrowseMaxLevel)
@@ -103,22 +111,30 @@ local function skin_Blizzard_AuctionUI()
 	m_cursorfix(BuyoutPriceGold)
 	m_cursorfix(BuyoutPriceSilver)
 	m_cursorfix(BuyoutPriceCopper)
-end	
-		
-local f= CreateFrame("FRAME")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:SetScript("OnEvent", function()
-	local f2= CreateFrame("FRAME")
-	f2:RegisterEvent("ADDON_LOADED")
-	f2:SetScript("OnEvent", function(_,event, arg1)
-		if event == "ADDON_LOADED" and arg1 == "Blizzard_AuctionUI" then
-			skin_Blizzard_AuctionUI()
-			f2:UnregisterEvent("ADDON_LOADED")
-		end	
-	end)			
-	if IsAddOnLoaded("Blizzard_AuctionUI") then
+end
+
+local catchaddon = CreateFrame("FRAME")
+catchaddon:RegisterEvent("ADDON_LOADED")
+
+--function to catch loading addons
+local function skinnedOnLoad(_, _, addon)
+	if addon == "Blizzard_AuctionUI" then
 		skin_Blizzard_AuctionUI()
-			f2:UnregisterEvent("ADDON_LOADED")
-	end	
-end)
-		
+	end
+end
+
+--this function decides whether the addon is already loaded or if we need to look out for it!
+
+local function skinnedOnLogin()
+	if IsAddOnLoaded("Blizzard_AuctionUI") then
+		-- Addon is already loaded, procceed to skin!
+		skin_Blizzard_AuctionUI()
+	else
+		-- Addon is not loaded yet, procceed to look out for it!
+		catchaddon:SetScript("OnEvent", skinnedOnLoad)
+	end
+end
+
+local HelloWorld = CreateFrame("FRAME")
+HelloWorld:RegisterEvent("PLAYER_ENTERING_WORLD")
+HelloWorld:SetScript("OnEvent", skinnedOnLogin)

@@ -1,6 +1,5 @@
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()
+local function skin_CharacterFrame()
+
 	CharacterStatsPane.ClassBackground:Hide()
 	PaperDollEquipmentManagerPaneEquipSet.ButtonBackground:Hide()
 	m_fontify(CharacterStatsPane.ItemLevelCategory.Title,"color")
@@ -13,12 +12,18 @@ f:SetScript("OnEvent", function()
 	m_border(ReputationFrame,330,364,"CENTER",-1,-27,14,"MEDIUM")
 	m_border(TokenFrame,330,364,"CENTER",-1,-27,14,"MEDIUM")
 
+	CharacterNeckSlot.RankFrame.Texture:Hide()
+	
 	local function miirgui_PaperDollItemSlotButton_Update(self)
 		local quality = GetInventoryItemQuality("player", self:GetID());
 		if quality then
 			self.IconBorder:Show()
 			m_SetTexture(self.IconBorder,"Interface\\Containerframe\\quality.blp")
-			self.IconBorder:SetVertexColor(BAG_ITEM_QUALITY_COLORS[quality].r, BAG_ITEM_QUALITY_COLORS[quality].g, BAG_ITEM_QUALITY_COLORS[quality].b)
+			
+			if self.AzeriteTexture and self.AzeriteTexture:IsShown() then 
+				self.AzeriteTexture:Hide()
+				self.IconBorder:SetVertexColor(0.90196,0.8,0.50196,1)
+			end
 		end
 		CharacterBag0Slot.IconBorder:SetAlpha(0)
 		CharacterBag1Slot.IconBorder:SetAlpha(0)
@@ -31,9 +36,9 @@ f:SetScript("OnEvent", function()
 	local function miirgui_CharacterFrame_UpdatePortrait()
 		CharacterFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
 	end
-			
+
 	hooksecurefunc("CharacterFrame_UpdatePortrait",miirgui_CharacterFrame_UpdatePortrait)
-			
+
 	local function miirgui_EquipmentFlyout_DisplayButton(button, paperDollItemSlot)
 		local location = button.location;
 		if ( not location ) then
@@ -49,8 +54,11 @@ f:SetScript("OnEvent", function()
 				m_SetTexture(button.IconBorder,"Interface\\Containerframe\\quality.blp")
 		end
 	end
-			
-	hooksecurefunc("EquipmentFlyout_DisplayButton",miirgui_EquipmentFlyout_DisplayButton)
-	
-end)
 
+	hooksecurefunc("EquipmentFlyout_DisplayButton",miirgui_EquipmentFlyout_DisplayButton)
+
+end
+
+local m_catch = CreateFrame("Frame")
+m_catch:RegisterEvent("PLAYER_LOGIN")
+m_catch:SetScript("OnEvent", skin_CharacterFrame)

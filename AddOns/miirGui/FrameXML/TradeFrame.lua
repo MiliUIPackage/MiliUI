@@ -1,6 +1,4 @@
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()
+local function skin_TradeFrame()
 
 	TradeFramePlayerPortrait:SetTexCoord(0.13, 0.83, 0.13, 0.83)
 	TradeFramePlayerPortrait:SetPoint("TOPLEFT",-8,10)
@@ -11,5 +9,9 @@ f:SetScript("OnEvent", function()
 	TradeFrameRecipientPortrait:SetHeight(62)
 	TradeRecipientBG:Hide()
 	TradeRecipientBotLeftCorner:SetPoint("BOTTOMLEFT", "TradeFrame", "BOTTOMRIGHT", -178, -5)
-		
-end)
+
+end
+
+local m_catch = CreateFrame("Frame")
+m_catch:RegisterEvent("PLAYER_LOGIN")
+m_catch:SetScript("OnEvent", skin_TradeFrame)

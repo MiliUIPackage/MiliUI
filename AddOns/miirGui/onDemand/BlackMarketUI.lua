@@ -1,5 +1,5 @@
 local function skin_Blizzard_BlackMarketUI()
-	
+
 	m_SetTexture(BlackMarketFrameTitleBg,"Interface\\FrameGeneral\\UI-Background-Rock")
 	BlackMarketScrollFrameScrollBarTrack:Hide()
 	m_border(BlackMarketFrame,612,412,"CENTER",-116,-21,14,"MEDIUM")
@@ -10,22 +10,22 @@ local function skin_Blizzard_BlackMarketUI()
 		local hideit= select(i,BlackMarketFrame:GetRegions() )
 		hideit:Hide()
 	end
-	
+
 	local _,_,_,_,_,_,_,_,hideit = BlackMarketFrame:GetChildren()
-	for i=1,8 do 
+	for i=1,8 do
 		local hideit2 = select(i,hideit:GetRegions() )
 		hideit2:Hide()
 	end
-		
+
 	local function miirgui_BlackMarketScrollFrame_Update()
-		local numItems = C_BlackMarket.GetNumItems();	
+		local numItems = C_BlackMarket.GetNumItems();
 		local scrollFrame = BlackMarketScrollFrame;
 		local offset = HybridScrollFrame_GetOffset(scrollFrame);
 		local buttons = scrollFrame.buttons;
 		local numButtons = #buttons;
 			for i = 1, numButtons do
 				local button = buttons[i];
-				local index = offset + i; 		
+				local index = offset + i;
 				if index and numItems and  ( index <= numItems ) then
 					local _,_,_,_,_,_,_,_,_,_,_,_,_,_,_,_,quality =C_BlackMarket.GetItemInfoByIndex(index)
 					if quality then
@@ -39,16 +39,16 @@ local function skin_Blizzard_BlackMarketUI()
 				local fixitleft,fixitright,fixitmiddle = _G["BlackMarketScrollFrameButton"..i]:GetRegions()
 				fixitleft:ClearAllPoints()
 				fixitleft:SetPoint("LEFT",38,3.5)
-				fixitleft:SetHeight(36)	
-				
+				fixitleft:SetHeight(36)
+
 				fixitright:SetHeight(37)
 				fixitright:ClearAllPoints()
 				fixitright:SetPoint("RIGHT",0,3.5)
-						
+
 				fixitmiddle:ClearAllPoints()
 				fixitmiddle:SetPoint("LEFT",40,3.5)
 				fixitmiddle:SetSize(520,37)
-						
+
 				local selection=_G["BlackMarketScrollFrameButton"..i]
 
 				local _,_,_,_,_,_,_,_,fixselection = selection:GetRegions()
@@ -63,29 +63,41 @@ local function skin_Blizzard_BlackMarketUI()
 
 				end
 	end
-	
+
 	hooksecurefunc("BlackMarketScrollFrame_Update",miirgui_BlackMarketScrollFrame_Update)
-	
-	hooksecurefunc("BlackMarketFrame_UpdateHotItem",function()
+
+	local function miirgui_BlackMarketFrame_UpdateHotItem()
 		m_fontify(BlackMarketFrame.HotDeal.Title,"color")
 		m_fontify(BlackMarketFrame.HotDeal.SellerTAG,"color")
 		m_fontify(HotItemCurrentBidMoneyFrame.CurrentBid,"color")
-	end)	
+	end
+
+	hooksecurefunc("BlackMarketFrame_UpdateHotItem",miirgui_BlackMarketFrame_UpdateHotItem)
+
 end
 
-local f= CreateFrame("FRAME")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:SetScript("OnEvent", function()		
-	local f2= CreateFrame("FRAME")
-	f2:RegisterEvent("ADDON_LOADED")
-	f2:SetScript("OnEvent", function(_,event, arg1)
-		if event == "ADDON_LOADED" and arg1 == "Blizzard_BlackMarketUI" then
-			skin_Blizzard_BlackMarketUI()
-			f2:UnregisterEvent("ADDON_LOADED")
-		end	
-	end)			
-	if IsAddOnLoaded("Blizzard_BlackMarketUI") then
+local catchaddon = CreateFrame("FRAME")
+catchaddon:RegisterEvent("ADDON_LOADED")
+
+--function to catch loading addons
+local function skinnedOnLoad(_, _, addon)
+	if addon == "Blizzard_BlackMarketUI" then
 		skin_Blizzard_BlackMarketUI()
-		f2:UnregisterEvent("ADDON_LOADED")
-	end	
-end)
+	end
+end
+
+--this function decides whether the addon is already loaded or if we need to look out for it!
+
+local function skinnedOnLogin()
+	if IsAddOnLoaded("Blizzard_BlackMarketUI") then
+		-- Addon is already loaded, procceed to skin!
+		skin_Blizzard_BlackMarketUI()
+	else
+		-- Addon is not loaded yet, procceed to look out for it!
+		catchaddon:SetScript("OnEvent", skinnedOnLoad)
+	end
+end
+
+local HelloWorld = CreateFrame("FRAME")
+HelloWorld:RegisterEvent("PLAYER_ENTERING_WORLD")
+HelloWorld:SetScript("OnEvent", skinnedOnLogin)

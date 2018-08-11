@@ -1,7 +1,9 @@
-local f = CreateFrame("Frame")
-f:RegisterEvent("PLAYER_LOGIN")
-f:SetScript("OnEvent", function()
+local function skin_DressUpFrame()
 
-DressUpFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
-		
-end)
+	DressUpFramePortrait:SetTexCoord(0.85, 0.15, 0.15, 0.85)
+
+end
+
+local m_catch = CreateFrame("Frame")
+m_catch:RegisterEvent("PLAYER_LOGIN")
+m_catch:SetScript("OnEvent", skin_DressUpFrame)

@@ -1,4 +1,4 @@
-Copyright © 2011-2015 Miiru ( http://www.wowinterface.com/forums/member.php?userid=144698 )
+Copyright © 2011-2018 Miiru ( http://www.wowinterface.com/forums/member.php?userid=144698 )
 
 The contents of this addon, excluding third-party resources, are
 copyrighted to its authors with all rights reserved.

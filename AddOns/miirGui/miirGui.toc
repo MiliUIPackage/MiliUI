@@ -1,9 +1,7 @@
-## Interface: 70100
+## Interface: 80000
 ## Title: miir|cff44CCFFGui|r - Core
-## Version: 4.0.49
+## Version: 8.0.1-0003
 ## Notes: Blizzard Interface Fixes for usage with miirGui graphics
-## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[miirGui]|r 介面風格美化
-## Notes-zhTW: 配合 Interface 資料夾底下的材質包，完整修改內建介面。
 ## Author: Miiru-Lordaeron
 ## SavedVariables: miirguiDB
 core.lua
@@ -23,7 +21,6 @@ FrameXML/LootRolls.lua
 FrameXML/MailFrame.lua
 FrameXML/MerchantFrame.lua
 FrameXML/Minimap.lua
-FrameXML/ObjectiveTrackerFrame.lua
 FrameXML/Portraits.lua
 FrameXML/PVEFrame.lua
 FrameXML/QuestFrame.lua
@@ -34,12 +31,18 @@ FrameXML/TimerFrame.lua
 FrameXML/TradeFrame.lua
 
 onDemand/AchievementUI.lua
+onDemand/AdventureMap.lua
 onDemand/ArchaeologyUI.lua
 onDemand/ArtifactUI.lua
 onDemand/AuctionUI.lua
+onDemand/AzeriteUI.lua
+onDemand/AzeriteRespecUI.lua
 onDemand/BlackMarketUI.lua
+onDemand/Calendar.lua
 onDemand/ChallengesUI.lua
 onDemand/Collections.lua
+onDemand/Communities.lua
+onDemand/Contribution.lua
 onDemand/DebugTools.lua
 onDemand/EncounterJournalUI.lua
 onDemand/FlightMap.lua
@@ -50,19 +53,22 @@ onDemand/Garrison_Shared_Functions.lua
 onDemand/Garrison_Shipyard.lua
 onDemand/GuildBankUI.lua
 onDemand/GuildControlUI.lua
---onDemand/GuildUI.lua
+onDemand/GuildUI.lua
 onDemand/InspectUI.lua
 onDemand/ItemSocketingUI.lua
 onDemand/ItemUpgradeUI.lua
 onDemand/LookingForGuildUI.lua
 onDemand/MacroUI.lua
+onDemand/ObjectiveTrackerFrame.lua
+onDemand/ObliterumUI.lua
 onDemand/OrderHallUI.lua
 onDemand/PVPUI.lua
 onDemand/QuestChoice.lua
+onDemand/ScrappingMachineUI.lua
 onDemand/TalentUI.lua
 onDemand/TalkingHeadUI.lua
 onDemand/TradeSkillUI.lua
 onDemand/TrainerUI.lua
+onDemand/WarboardUI.lua
 onDemand/VoidStorageUI.lua
-
 onDemand/Custom.lua

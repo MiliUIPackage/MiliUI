@@ -1,21 +1,32 @@
 local function skin_Blizzard_TalkingHeadUI()
+	hooksecurefunc("TalkingHeadFrame_PlayCurrent",function()
 		m_fontify(TalkingHeadFrame.NameFrame.Name,"color")
 		m_fontify(TalkingHeadFrame.TextFrame.Text,"white")
+	end)
 end
-	
-local f= CreateFrame("FRAME")
-f:RegisterEvent("PLAYER_ENTERING_WORLD")
-f:SetScript("OnEvent", function()
-	local f2= CreateFrame("FRAME")
-	f2:RegisterEvent("ADDON_LOADED")
-	f2:SetScript("OnEvent", function(_,event, arg1)
-		if event == "ADDON_LOADED" and arg1 == "Blizzard_TalkingHeadUI" then
-			skin_Blizzard_TalkingHeadUI()
-			f2:UnregisterEvent("ADDON_LOADED")
-		end	
-	end)			
-	if IsAddOnLoaded("Blizzard_TalkingHeadUI") then
+
+local catchaddon = CreateFrame("FRAME")
+catchaddon:RegisterEvent("ADDON_LOADED")
+
+--function to catch loading addons
+local function skinnedOnLoad(_, _, addon)
+	if addon == "Blizzard_TalkingHeadUI" then
 		skin_Blizzard_TalkingHeadUI()
-		f2:UnregisterEvent("ADDON_LOADED")
-	end	
-end)
+	end
+end
+
+--this function decides whether the addon is already loaded or if we need to look out for it!
+
+local function skinnedOnLogin()
+	if IsAddOnLoaded("Blizzard_TalkingHeadUI") then
+		-- Addon is already loaded, procceed to skin!
+		skin_Blizzard_TalkingHeadUI()
+	else
+		-- Addon is not loaded yet, procceed to look out for it!
+		catchaddon:SetScript("OnEvent", skinnedOnLoad)
+	end
+end
+
+local HelloWorld = CreateFrame("FRAME")
+HelloWorld:RegisterEvent("PLAYER_ENTERING_WORLD")
+HelloWorld:SetScript("OnEvent", skinnedOnLogin)
