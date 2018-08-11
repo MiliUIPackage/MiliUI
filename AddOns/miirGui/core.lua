@@ -14,7 +14,7 @@ local function miirgui_defaults()
 			},
 		["blue"] = true,
 		["grey"] = false,
-		["savemode"] = false,
+		["savemode"] = true,
 		["outline"] = true,
 		["alerpos"]=
 			{
