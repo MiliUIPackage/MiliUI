@@ -60,7 +60,7 @@ function Masque:OnInitialize()
 				["*"] = {
 					Inherit = true,
 					Disabled = false,
-					SkinID = "Blizzard",
+					SkinID = "Caith",
 					Gloss = 0,
 					Backdrop = false,
 					Colors = {},
