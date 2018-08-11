@@ -1,0 +1,19 @@
+## Interface: 80000
+## Title: ShinyBuffs
+## Author: Seerah
+## Notes: Skin and move your buffs/debuffs!
+## Title-zhTW: |cff0099FF[介面]|r 我的增益/減益效果
+## Notes-zhTW: ShinyBuffs |n美化畫面右上角自己的增益、減益效果圖示，可以調整位置、自訂圖示和文字大小。|n可以在戰鬥中用滑鼠右鍵點掉BUFF。|n|cffffd200使用方法：|r從Esc>介面>插件>增益效果，進行設定。
+## Version: 1.2
+## OptionalDeps: Ace3, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets
+## SavedVariables: ShinyBuffsDB
+## SavedVariablesPerCharacter: ShinyBuffsPCDB
+
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceConfig-3.0\AceConfig-3.0.xml
+Libs\LibSharedMedia-3.0\lib.xml
+Libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
+
+ShinyBuffs.lua

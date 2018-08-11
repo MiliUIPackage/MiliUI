@@ -1,0 +1,25 @@
+## Interface: 80000
+## Title: TinyTooltip
+## Notes: TinyTooltip
+## Title-zhTW: |cff0099FF[介面]|r 滑鼠提示增強
+## Notes-zhTW: TinyTooltip |n提供更多的選項讓你可以自訂滑鼠指向時所顯示的提示說明。|n|cffffd200使用方法：|r從Esc>介面>插件>滑鼠提示，進行設定。
+## Author: M
+## Version: 8.0.0
+## SavedVariables: BigTipDB
+
+libs\lib.xml
+Core.lua
+Config.lua
+General.lua
+Anchor.lua
+Unit.lua
+Target.lua
+Model.lua
+Item.lua
+Spell.lua
+Quest.lua
+LinkID.lua
+SkinFrames.lua
+
+locales\locales.xml
+Options.lua
