@@ -1,0 +1,96 @@
+tag 7dea6e18eacc337c8b38da584424c050bb4e092c 1.8.0
+Author:	Hendrik Leppkes <h.leppkes@gmail.com>
+Date:	Tue Jul 17 20:23:12 2018 +0200
+
+Tag as 1.8.0
+
+commit a5a504603475594ca8020542450228f073016d0c
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Tue Jul 10 01:09:40 2018 +0200
+
+    Stop disabling the min/max button in combat, the map is no longer protected
+
+commit 8d2a521d63aa9de989d30d729abe4afa1a9c2260
+Author: David Lynch <kemayo@gmail.com>
+Date:   Sat Jul 7 18:33:52 2018 -0500
+
+    Fix shuffled boss icons in dungeons/raids
+
+commit 2f6df86e32826358d6835f58ced832632c9eab55
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Wed Jul 4 11:39:28 2018 +0200
+
+    Switch to using the MapArtID to index the map designs
+
+commit 7594ff18922087fc93398faac457e3b66e86e84e
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Wed Jul 4 11:39:12 2018 +0200
+
+    Fix FogClear on empty maps
+
+commit 09bdcf8068ecd47b436557b55c7bb0e545249994
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sun Jul 1 12:52:09 2018 +0200
+
+    Update FogClear data, and sort it
+
+commit cd1a76880f93f7312d86b120a43f288cca715c55
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Wed Jun 13 17:36:49 2018 +0200
+
+    Fix map position offset after using the scale handle
+
+commit c3ad1ce187b69cb2fcca418952f7ec8745ac9aee
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Wed Jun 13 17:06:38 2018 +0200
+
+    Change parent of the coords frame so it stays put when zooming
+
+commit e0bb9dced821ce9547119ff32924e1dd90b2db89
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Wed Jun 13 13:08:18 2018 +0200
+
+    Set texture filtering mode to match the FrameXML code
+
+commit e2b01fc4bc5d0b14c17eab54bcbb071635fc4a9c
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 19:59:43 2018 +0200
+
+    Protect against errors from scale changes in combat
+
+commit f83f29f466a3f57261bc2da9944d8d9a78817cf2
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 19:39:48 2018 +0200
+
+    Fix map cursor position when scaled
+
+commit 60228a1656abab371e2f911ce6f20f0bb5554eac
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 18:56:01 2018 +0200
+
+    Add an additional upvalue
+
+commit 73fad105abe30c773c404c7e3fd810ccf3d70b11
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 18:50:37 2018 +0200
+
+    Re-implement FogClear for WoW 8.0
+
+commit c7040b7fc3d04031448b33233885a672cf30bde6
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 11:46:51 2018 +0200
+
+    Restore scale change mechanic
+
+commit e8aa3170442b9bda3c7e51102b3f43fa325909f5
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 00:21:56 2018 +0200
+
+    Update and re-enabled the coordinates module
+
+commit 720bcac224e5d98fe5f816d1986387a524b77b73
+Author: Hendrik Leppkes <h.leppkes@gmail.com>
+Date:   Sat Jun 9 00:14:53 2018 +0200
+
+    Initial draft for BfA, empty framework without any functionality
+
