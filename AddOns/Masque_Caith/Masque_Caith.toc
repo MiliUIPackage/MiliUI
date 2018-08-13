@@ -1,5 +1,6 @@
 ## Interface: 80000
 ## Title: Masque: |cffff8000Caith|r
+## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Masque]|r 快捷樣式 - |cffff8000Caith|r
 ## Version: 8.0.0
 ## Author: StormFX
 ## Dependencies: Masque
@@ -9,7 +10,7 @@
 ## Notes-esMX: Skin Caith para Masque.
 ## Notes-itIT: Skin Caith per Masque.
 ## Notes-ruRU: Скин Caith для Masque.
-## Notes-zhTW: Masque的Caith皮膚。
+## Notes-zhTW: Masque 的 Caith 樣式。
 ## X-Website: https://www.wowace.com/projects/masque-caith
 ## X-Category: Interface Enhancements
 ## X-Credits: Zeal, Caith

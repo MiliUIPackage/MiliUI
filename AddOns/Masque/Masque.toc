@@ -1,5 +1,6 @@
 ## Interface: 80000
 ## Title: Masque
+## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Masque]|r 快捷樣式
 ## Version: 8.0.1
 ## Author: StormFX, JJSheets
 ## Notes: A dynamic button-skinning engine.
