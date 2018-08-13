@@ -4,13 +4,13 @@ local addon = TinyTooltip
 addon.db = {
     version = 2.5,
     general = {
-        scale             = 1.3,                      --縮放
-        mask              = true,                   --頂部遮罩層
+        scale             = 1,                      --縮放
+        mask              = false,                   --頂部遮罩層
         bgfile            = "rock",                 --背景
-        background        = {0, 0, 0, 0.8},         --背景顔色和透明度
+        background        = {0.180392156862745, 0.180392156862745, 0.180392156862745, 1},         --背景顔色和透明度
         borderSize        = 1,                      --邊框大小（直角邊框才生效）
         borderCorner      = "angular",              --邊框類型 default|angular:直角邊框
-        borderColor       = {0.6, 0.6, 0.6, 0.8},   --邊框顔色和透明度
+        borderColor       = {0.180392156862745, 0.180392156862745, 0.180392156862745, 1},   --邊框顔色和透明度
         statusbarHeight   = 4,                      --HP高度
         statusbarPosition = "bottom",               --HP位置 default|bottom|top
         statusbarOffsetX  = 0,                      --HP X偏移 0:自動
@@ -20,7 +20,7 @@ addon.db = {
         statusbarText     = true,                  --HP文字
         statusbarColor    = "auto",                 --HP顔色 default|auto|smooth
         statusbarTexture  = "Interface\\AddOns\\TinyTooltip\\texture\\StatusBar", --HP材質
-        anchor            = { position = "static", returnInCombat = false, returnOnUnitFrame = false, hideInCombat = true, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 200, x = -20, }, --鼠標位置 default|cursor|static|cursorRight
+        anchor            = { position = "cursorRight", returnInCombat = false, returnOnUnitFrame = false, hideInCombat = false, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 200, x = -20, }, --鼠標位置 default|cursor|static|cursorRight
         alwaysShowIdInfo  = false,
 		showCaster        = false,
         skinMoreFrames    = true,
@@ -98,11 +98,11 @@ addon.db = {
     },
     item = {
         coloredItemBorder = true,  --邊框按品質染色
-        showItemIcon = false,      --物品圖標
+        showItemIcon = true,      --物品圖標
     },
     spell = {
-        borderColor = {0.6, 0.6, 0.6, 0.8},
-        background = {0, 0, 0, 0.8},
+        borderColor = {0.180392156862745, 0.180392156862745, 0.180392156862745, 1},
+        background = {0.180392156862745, 0.180392156862745, 0.180392156862745, 1},
         showIcon = true,
     },
     quest = {
