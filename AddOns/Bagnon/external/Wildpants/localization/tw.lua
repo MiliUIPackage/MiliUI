@@ -37,20 +37,28 @@ L.TipHideBag = '點擊隱藏背包。'
 L.TipHideBags = '<左鍵點擊>隱藏背包顯示。'
 L.TipHideSearch = '點擊隱藏搜尋介面。'
 L.TipManageBank = '管理銀行'
+L.TipResetPlayer = '<右鍵點擊>返回目前角色'
 L.PurchaseBag = '點擊購買銀行槽。'
 L.TipShowBag = '點擊顯示背包。'
 L.TipShowBags = '<左鍵點擊>顯示背包顯示。'
 L.TipShowMenu = '<右鍵點擊>設定視窗。'
 L.TipShowSearch = '點擊搜尋。'
 L.TipShowFrameConfig = '開啟設定視窗。'
-L.TipDoubleClickSearch = '<Alt-拖動>移動。\n<右鍵點擊>設定。\n<兩次點擊>搜尋。'
+L.TipDoubleClickSearch = '<滑鼠拖曳>移動。\n<右鍵點擊>設定。\n<兩次點擊>搜尋。'
 L.Total = '總共'
 
+--dialogs
+L.ConfirmTransfer = '存放這些物品會移除所有變形並且變得無法交易和退還。|n|n你想要繼續？'
+L.PurchaseDialog = '你想要解鎖虛空倉庫服務？|n|n|cffffd200花費:|r %s'
+L.CannotPurchaseDialog = '你沒有足夠的錢來解鎖虛空倉庫服務|n|n|cffff2020花費: %s|r'
+L.AskMafia = '詢問黑手黨'
+
 --itemcount tooltips
-L.TipCount1 = '已裝備: %d'
-L.TipCount2 = '背包: %d'
-L.TipCount3 = '銀行: %d'
-L.TipCount4 = '價值: %d'
+L.TipCountEquip = '已裝備: %d'
+L.TipCountBags = '背包: %d'
+L.TipCountBank = '銀行: %d'
+L.TipCountVault = '價值: %d'
+L.TipCountGuild = '公會銀行: %d'
 L.TipDelimiter = '|'
 
 --databroker plugin tooltips
