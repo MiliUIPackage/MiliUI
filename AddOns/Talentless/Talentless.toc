@@ -3,6 +3,8 @@
 ## Version: 80000.16-Release
 ## Title: Talentless
 ## Notes: Improvements the talent UI and auto-equipping sets per specialization
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Talentless]|r 天賦面板增強
+## Notes-zhTW: 天賦面板上方多出幾個按鈕，方便快速切換專精時自動換上裝備。
 ## SavedVariablesPerCharacter: TalentlessDB
 ## OptionalDeps: LibStub, LibDropDown
 

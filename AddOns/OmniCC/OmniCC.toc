@@ -2,6 +2,8 @@
 ## Title: OmniCC
 ## Notes: Cooldown count for everything
 ## Notes-koKR: 모든 것을 위한 쿨다운 카운트
+## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[OmniCC]|r 冷卻倒數 
+## Notes-zhTW: 顯示物品與法術的冷卻計時。
 ## Author: Tuller
 ## Version: 8.0.1
 ## SavedVariables: OmniCC4Config
