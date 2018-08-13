@@ -1,0 +1,394 @@
+Changes since tag 8.0.1
+
+commit a9d2dfc5638300cab0652185e8fd12e7f61ebb13
+Author: subversion <svn@deadlybossmods.com>
+Date:   Mon Aug 13 17:37:12 2018 +0200
+
+    ultrashining via svn r17693:
+    zhTW update
+
+commit 32c45383dfc6c4f6f71f88300701c6b4dbf95c77
+Author: subversion <svn@deadlybossmods.com>
+Date:   Mon Aug 13 04:23:55 2018 +0200
+
+    Omega via svn r17692:
+    Push final world boss
+
+commit 133b0aa2d3a94e6232f3a73b23930efb9b84688b
+Author: subversion <svn@deadlybossmods.com>
+Date:   Mon Aug 13 03:58:32 2018 +0200
+
+    Omega via svn r17691:
+    Add check for missing library to possible fix for users who update DBM without restarting wow, causing a missing library to totally break DBM.
+    Added 3 world boss addons
+
+commit 6d58f4e6635dc40d2aefb95722091bf6eb4dd25a
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 12 23:17:48 2018 +0200
+
+    Omega via svn r17690:
+    Use force arg when loading via broker
+
+commit adcb3ed10a4e958f43012f1964075f508a8aa5a0
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 12 04:36:32 2018 +0200
+
+    Omega via svn r17689:
+    And fix this, this frame is not % based
+
+commit ffc33a2a134c1963227a862e50db2cd29eb1322a
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 12 04:34:33 2018 +0200
+
+    Omega via svn r17688:
+    Fix lua error
+
+commit d52bd95ff56886941806e195ef7e573abd6c48d9
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sat Aug 11 08:10:33 2018 +0200
+
+    Omega via svn r17687:
+    Kr Update
+
+commit 19989dbce4974b7b9e0aeca0b9666a3676bb08e2
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sat Aug 11 06:06:40 2018 +0200
+
+    Omega via svn r17686:
+    improve warning clarity some
+
+commit f02d1579225b017c82f6e52b57b9f110909eff2a
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 10 23:10:42 2018 +0200
+
+    Omega via svn r17685:
+    Remove unused
+
+commit bf21efbfeb5f74c0a0f5f811657f27614b4d289c
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 10 23:08:36 2018 +0200
+
+    Omega via svn r17684:
+    Merge DBM-LDB
+
+commit 8fe61a1506fcc31119f8209c1d99b33368607791
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 10 21:17:23 2018 +0200
+
+    Omega via svn r17683:
+    Support minimap icon as a broker, with LibDBIcon support
+
+commit d3961f5001c176352cf9a86fd07f0f01663483d3
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 10 06:38:33 2018 +0200
+
+    Omega via svn r17682:
+    Update ghuun timers, especially since blizzard fixed bug with drive stunning him for double time.
+    Fixed Wave of corruption detection in P3 (diff spellID)
+
+commit b0c942a94c287d44e6ee8a3d4a3bbefdad440258
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 10 00:00:13 2018 +0200
+
+    Omega via svn r17681:
+    Fix custom timers not showing (because I forgot to uncomment CHAT_MSG_ADDON_LOGGED when 8.0 shipped)
+
+commit fabbf744bcb039586ab225c84714274c7f062455
+Author: subversion <svn@deadlybossmods.com>
+Date:   Thu Aug 9 23:41:14 2018 +0200
+
+    Omega via svn r17680:
+    Another info frame fix
+
+commit 878713344fe6737b3d60e820be5a8f214a657e35
+Author: subversion <svn@deadlybossmods.com>
+Date:   Thu Aug 9 23:10:54 2018 +0200
+
+    Omega via svn r17679:
+    Fix matrix target not clearing from table
+    Attempt to hide adds and only show ghuun and drive on energy tracker
+    More Taloc timer updates
+
+commit fc4bd02218dfd4c75deda61bf709bc4797ea1d05
+Author: subversion <svn@deadlybossmods.com>
+Date:   Thu Aug 9 22:42:21 2018 +0200
+
+    Omega via svn r17678:
+    Keep infoframe in P3
+
+commit 4a4aeaa00ad12527fdc7c490ba4070973b1db00e
+Author: subversion <svn@deadlybossmods.com>
+Date:   Thu Aug 9 22:36:00 2018 +0200
+
+    Omega via svn r17677:
+    Push first batch of taloc fixes. timer tweaks, fixed P2 debuff (diff spell ID), added yell for wave.
+
+commit d5e72c0b3c38d17504b4db2546f3f581260af0d2
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Aug 8 06:15:58 2018 +0200
+
+    Omega via svn r17676:
+    Fix bug that caused interrupt order to be buggy. broken for weeks and no one reported. I only found it cause i saw it on a stream :(
+
+commit 4a27452e36a793ec649b349933b30febd1c460a6
+Author: subversion <svn@deadlybossmods.com>
+Date:   Tue Aug 7 02:23:43 2018 +0200
+
+    Omega via svn r17675:
+    Slight media restructure
+
+commit 10a09850c980e563191def0447c9c5c44a4ea5a5
+Author: subversion <svn@deadlybossmods.com>
+Date:   Tue Aug 7 01:58:29 2018 +0200
+
+    Omega via svn r17674:
+    Add last two bosses of Sethraliss
+
+commit d469e063882eb963e757b1bacccd60ae4ef8fcb1
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 5 07:00:29 2018 +0200
+
+    Omega via svn r17673:
+    Fix voice pack bug on goroth
+
+commit bea7be4279f80a73e123a9d9c294f6e6ac7855bd
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 5 06:21:16 2018 +0200
+
+    Omega via svn r17672:
+    Add completed mod for doomshowl/Lionspride
+
+commit c0ffb980556ca8dbaecae98a9a476db26bedd9bb
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Aug 5 02:51:34 2018 +0200
+
+    Omega via svn r17671:
+    Fix missing mod load
+
+commit 436833104c4242a8fe4ccf70fb4a260c21b569c1
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sat Aug 4 08:11:51 2018 +0200
+
+    Omega via svn r17670:
+    Update mythrax, vectis and zul from todays testing data
+
+commit 4c28863d808e8d42b6020b01a0accc8ac12cfff2
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sat Aug 4 03:48:39 2018 +0200
+
+    Omega via svn r17669:
+    Update ?\226?\128?\156don?\226?\128?\153t die?\226?\128?\157 with the blakbird remastered version that removes armor noises and improves the stereo sound.
+
+commit cd425fafc4a72e60ec038c9c25992fd7ccbc4c47
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sat Aug 4 00:08:52 2018 +0200
+
+    Omega via svn r17668:
+    Add new media ?\226?\128?\156Don?\226?\128?\153t Die?\226?\128?\157 by user request
+
+commit feb6f811d864e30881f705cd230267e687f21aa3
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 23:49:37 2018 +0200
+
+    Omega via svn r17667:
+    Fix ruin fades SAYs since it?\226?\128?\153s 12 second debuff (up from 8)
+
+commit 06326058c0d1bd8a6350c2100e6973d51d247950
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 22:50:16 2018 +0200
+
+    Omega via svn r17666:
+    Fix voices on hounds for fire/shadow debuffs
+
+commit 85e88bd0ca4c9473d62f3f04cd3870a14e38e94c
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 22:40:16 2018 +0200
+
+    Omega via svn r17665:
+    Fix double gestate warning
+
+commit 3ff15f8e671187a95193e1fb7b805c6aef04c54b
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 21:56:51 2018 +0200
+
+    Omega via svn r17664:
+    Fix incoming adds bar
+
+commit df17c618d731ea9219ed4e4bbba64f8a02ea5af4
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 21:51:56 2018 +0200
+
+    Omega via svn r17663:
+    Shorten add timers so they are actually more readable
+
+commit 3d88e3286c06f4c2b3dc2c660ec997d3b3d77998
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 21:38:44 2018 +0200
+
+    Omega via svn r17662:
+    Make blood shard interrupt true by default since it uses the new interrupt warning filter tech
+
+commit 25825fd0fa82156198d6da67122252eb24848fa2
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 21:21:41 2018 +0200
+
+    Omega via svn r17661:
+    Migrate expansion agnostic mods to BFA list
+
+commit 69fa047248f807588eb329e4d766e5ea6abc7ecc
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 21:09:01 2018 +0200
+
+    Omega via svn r17660:
+    Update version check
+
+commit ecf1d858905f21b7cb13c5976ea690428cbadae9
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 03:46:39 2018 +0200
+
+    Omega via svn r17659:
+    Prep for new voice file
+
+commit e8824ac447671690dc8227fb0809d4f011dd52b6
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Aug 3 03:11:26 2018 +0200
+
+    Omega via svn r17658:
+    Preliminary Merektha mod (more work needed for sure)
+
+commit cf905b2c346d4a530cea9f10c08f78dfd98b28c8
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Aug 1 05:40:04 2018 +0200
+
+    Omega via svn r17657:
+    Correctly block starting of rings (in p2/p3) or orbs (in p3) timers for first cast, if you zerg elisande before she ever casts abilities
+
+commit df1339b798e6d9d94b2a0dc002552116a510d312
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Aug 1 02:34:39 2018 +0200
+
+    Omega via svn r17656:
+    Make sentence an unfiltered announce
+
+commit 06183a68fa590e19b60d9a57abc23588bea0de80
+Author: subversion <svn@deadlybossmods.com>
+Date:   Mon Jul 30 05:24:34 2018 +0200
+
+    Omega via svn r17655:
+    remove SCENARIO_CRITERIA_UPDATE, since it?\226?\128?\153s not effectively used anymore
+
+commit 53b46c1295d539715e6823c6c0fa932c3be26735
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Jul 29 03:35:42 2018 +0200
+
+    Omega via svn r17654:
+    Don?\226?\128?\153t check gold/xp. not reliable for over leveling
+
+commit 51c99fe0d9a7240d9c9967c05ebeed2409d67998
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Jul 29 02:51:01 2018 +0200
+
+    Omega via svn r17653:
+    Add SCENARIO_COMPLETED for scenario complete checks to see if it works for MOP complete detection
+
+commit 34941ff0a2e4a08fc79a6be7e92df7b42bf626b3
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 23:45:38 2018 +0200
+
+    Omega via svn r17652:
+    For most part, mod was fine, just a couple fixes
+
+commit d4bd6c44010d73cf0275df970fdfd7bdff84e9f8
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 23:35:34 2018 +0200
+
+    Omega via svn r17651:
+    Some timer updates for Zekvhoz
+    enabled some countdowns for zekvhoz
+    enabled surgical beam countdown for ALL beams on mother.
+
+commit f359178f985eb09a26129d37b4288a9d7d1620b3
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 22:48:43 2018 +0200
+
+    Omega via svn r17650:
+    Fix top down beam detection for heroic
+    fixed countdown for purifying flame
+
+commit a0fffb64b451da4acfef0cc542716f24fb90e5ba
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 22:24:45 2018 +0200
+
+    Omega via svn r17649:
+    Fix bug with spell name on purifying flame
+
+commit 112d2dc78795faeb1785351abf357f014e3c46ad
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 22:16:55 2018 +0200
+
+    Omega via svn r17648:
+    Don?\226?\128?\153t announce pull cleansing purges
+
+commit 50c2049a1fbd3ab1970b27993b2271d8ac28a32b
+Author: subversion <svn@deadlybossmods.com>
+Date:   Fri Jul 27 21:25:59 2018 +0200
+
+    Omega via svn r17647:
+    Fix bug where taunt warning showed if you were the target
+
+commit e498e243614035e036ae1e4c9aa74cd589b656e8
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 10:28:55 2018 +0200
+
+    Omega via svn r17646:
+    Improve media again, and add a reverb version
+
+commit 0c50d7af315431f6b82cb747dd562b9042b83855
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 09:44:11 2018 +0200
+
+    Omega via svn r17645:
+    voice file rename
+
+commit f6d0a78c5c6d8b60ab2b44c27c971b02e15a7afd
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 09:40:53 2018 +0200
+
+    Omega via svn r17644:
+    A better, more normalized sample
+
+commit a8ebb5aae164d2c4ccc04ad6368afbcdb4ccd546
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 09:36:19 2018 +0200
+
+    Omega via svn r17643:
+    Add reddit request
+
+commit 00894290329d7d10e6f08fde12df9ade7f9e7330
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 05:36:40 2018 +0200
+
+    Omega via svn r17642:
+    This should fix waypoint arrow. didn?\226?\128?\153tr ealize it was expecting decimal, easy fix then
+
+commit a300dd5cb895b5274d2f52e67a16c0d86238c6de
+Author: subversion <svn@deadlybossmods.com>
+Date:   Wed Jul 25 02:37:23 2018 +0200
+
+    Omega via svn r17641:
+    well code works, but it doesn?\226?\128?\153t actually return a valid arrow what so ever so apparently that function is screwed up
+
+commit e2a6f2cbf73f489668feafd79a625f901f8ca4ef
+Author: subversion <svn@deadlybossmods.com>
+Date:   Mon Jul 23 02:53:04 2018 +0200
+
+    Omega via svn r17640:
+    Adderis and Ass Pix drycode
+
+commit afcd7f107face275e1b414ed2be0b0c1847b5231
+Author: subversion <svn@deadlybossmods.com>
+Date:   Sun Jul 22 22:14:32 2018 +0200
+
+    tandanu via svn r17637:
+    increment alpha version
+
