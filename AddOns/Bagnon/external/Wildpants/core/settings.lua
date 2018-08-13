@@ -32,12 +32,12 @@ end
 
 local FrameDefaults = {
 	enabled = true,
-	money = true, broker = true,
+	money = true, broker = false,
 	bagToggle = true, sort = true, search = true, options = true,
 
 	strata = 'HIGH',
 	scale = 1, alpha = 1,
-	color = {0, 0, 0, 0.5},
+	color = {0.1254901960784314, 0.1254901960784314, 0.1254901960784314, 1},
 	x = 0, y = 0,
 
 	itemScale = Addon.ItemScale or 1,
@@ -104,7 +104,7 @@ function Addon:StartupSettings()
 		flashFind = true, tipCount = true, fading = true,
 
 		glowAlpha = 0.5,
-		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
+		glowQuality = true, glowNew = true, glowQuest = true, glowSets = false, glowUnusable = true,
 
 		emptySlots = true, colorSlots = true,
 		leatherColor = {1, .6, .45},
