@@ -59,10 +59,10 @@ local FrameDefaults = {
 local ProfileDefaults = {
 	inventory = SetDefaults({
 		reversedTabs = true,
-		borderColor = {1, 1, 1, 1},
+		borderColor = {0, 0, 0, 0.5},
 		point = 'BOTTOMRIGHT',
 		x = -50, y = 100,
-		columns = 8,
+		columns = 9,
 		width = 384,
 		height = 200,
 	}, FrameDefaults),
@@ -106,7 +106,7 @@ function Addon:StartupSettings()
 		glowAlpha = 0.5,
 		glowQuality = true, glowNew = true, glowQuest = true, glowSets = false, glowUnusable = true,
 
-		emptySlots = true, colorSlots = true,
+		emptySlots = false, colorSlots = true,
 		leatherColor = {1, .6, .45},
 		enchantColor = {0.64, 0.83, 1},
 		inscribeColor = {.64, 1, .82},
