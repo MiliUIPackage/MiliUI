@@ -122,7 +122,7 @@ local default_config = {
     absorb_striped = true,
     colour_absorb = {.3,.7,1,.5},
 
-    execute_enabled = true,
+    execute_enabled = false,
     execute_auto = true,
     execute_percent = 20,
     execute_colour = {1,1,1},
@@ -197,7 +197,7 @@ local default_config = {
     bossmod_y_offset = 30,
     bossmod_clickthrough = false,
 
-    cvar_enable = false,
+    cvar_enable = true,
     cvar_show_friendly_npcs = GetCVarDefault('nameplateShowFriendlyNPCs')=="1",
     cvar_name_only = GetCVarDefault('nameplateShowOnlyNames')=="1",
     cvar_personal_show_always = GetCVarDefault('nameplatePersonalShowAlways')=="1",
