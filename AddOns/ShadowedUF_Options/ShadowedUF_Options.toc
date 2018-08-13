@@ -1,6 +1,8 @@
 ## Interface: 80000
 ## Title: Shadowed UF (Options)
 ## Notes: Configuration for Shadowed Unit Frames.
+## Title-zhTW: |cFF0099FF[介面]|r |cFFCC99CC[Shadowed Unit Frames]|r 頭像增強-設定介面
+## Notes-zhTW:頭像介面增強的設定介面。
 ## Author: Shadowed
 ## LoadOnDemand: true
 ## Dependencies: ShadowedUnitFrames
