@@ -1,0 +1,15 @@
+## Interface: 80000
+## Author: p3lim
+## Version: 80000.16-Release
+## Title: Talentless
+## Notes: Improvements the talent UI and auto-equipping sets per specialization
+## SavedVariablesPerCharacter: TalentlessDB
+## OptionalDeps: LibStub, LibDropDown
+
+## X-Curse-Project-ID: 102216
+## X-WoWI-ID: 19184
+
+libs\LibStub\LibStub.lua
+libs\LibDropDown\embed.xml
+
+Talentless.lua
