@@ -2147,15 +2147,28 @@ end
 function Skada:FormatNumber(number)
 	if number then
 		if self.db.profile.numberformat == 1 then
-			if number > 1000000000 then
-				return ("%02.3fB"):format(number / 1000000000)
-			elseif number > 1000000 then
-				return ("%02.2fM"):format(number / 1000000)
-			elseif number > 9999 then
-				return ("%02.1fK"):format(number / 1000)
-			end
+			if ( GetLocale() == "zhCN" ) then
+            if number > 100000000 then
+               return ("%02.2f亿"):format(number / 100000000)
+            else
+               return ("%02.2f万"):format(number / 10000)
+            end
+         elseif ( GetLocale() == "zhTW" ) then
+            if number > 100000000 then
+               return ("%02.2f億"):format(number / 100000000)
+            else
+               return ("%02.2f萬"):format(number / 10000)
+            end
+         else
+            if number > 1000000 then
+               return ("%02.2fM"):format(number / 1000000)
+            else
+               return ("%02.1fK"):format(number / 1000)
+            end
+        end
+		else
+			return math.floor(number)
 		end
-		return math.floor(number)
 	end
 end
 
