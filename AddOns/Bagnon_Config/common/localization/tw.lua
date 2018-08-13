@@ -21,7 +21,7 @@ L.FrameSettings = '框架設定'
 L.FrameSettingsDesc = '設定ADDON框架。'
 L.Frame = '框架'
 L.Enabled = '啟用框架'
---L.CharacterSpecific = 'Character Specific Settings'
+L.CharacterSpecific = '根據角色個別設置'
 L.ExclusiveReagent = '分離材料銀行'
 
 L.BagFrame = '背包列表'
