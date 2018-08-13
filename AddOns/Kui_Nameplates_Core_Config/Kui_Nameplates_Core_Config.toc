@@ -2,6 +2,8 @@
 ## Author: Kesava
 ## Title: Kui |cff9966ffNameplates:|r |cffffffffCore Config|r
 ## Notes: Load-on-demand configuration interface for Kui Nameplates Core.
+## Title-zhTW: |cFF0099FF[介面]|r 血條樣式 (設置)
+## Notes-zhTW: |cFFCCBBCCKui |cff9966ffNameplates|r |n設置。
 ## Dependencies: Kui_Nameplates_Core
 ## LoadManagers: Kui_Nameplates_Core
 

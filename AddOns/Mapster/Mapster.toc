@@ -3,8 +3,8 @@
 ## Notes-zhCN: 简单实用的地图模块
 ## Notes-frFR: Simples modifications de la carte.
 ## Title: Mapster
-## Title-zhTW: |r|cFF0099FF[地圖]|r |cff7fff7f[Mapster]|r 地圖增強
-## Notes-zhTW: 簡單實用的地圖UI。『/mapster』
+## Title-zhTW: |r|cFF0099FF[地圖]|r 地圖增強
+## Notes-zhTW: Mapster |n簡單實用的地圖UI。
 ## Author: Nevcairiel
 ## SavedVariables: MapsterDB
 ## X-Category: Map

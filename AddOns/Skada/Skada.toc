@@ -1,8 +1,8 @@
 ## Interface: 80000
 ## Title: Skada
 ## Notes: Modular damage meter.
-## Title-zhTW: |cFF00FFFF[戰鬥]|r |cFFFF99FF[Skada]|r 戰鬥數據統計
-## Notes-zhTW: 模組化的戰鬥數據統計。『/skada config』
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥數據統計
+## Notes-zhTW: Skada |n模組化的戰鬥數據統計。
 ## Notes-koKR: 데미지 미터 모듈입니다.
 ## Notes-zhTW: 模組化的傷害統計。
 ## Notes-deDE: Ein Damage-Meter.

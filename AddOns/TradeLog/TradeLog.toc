@@ -3,6 +3,8 @@
 ## Title: TradeLog
 ## Notes: trade history log, recent trade list by Warbaby@163.com
 ## Notes-zhCN: 交易记录 by Warbaby (三月十二@聖光之願<冰封十字軍>)
+## Title-zhTW: |cffFF9999[交易]|r 交易紀錄
+## Notes-zhTW: TradeLog |n交易紀錄 by Warbaby (三月十二@聖光之願<冰封十字軍>)
 ## SavedVariablesPerCharacter: TradeLog_TradesHistory, TradeLog_Announce_Checked, TradeLog_AnnounceChannel
 
 Libs\LibDBIcon-1.0.xml

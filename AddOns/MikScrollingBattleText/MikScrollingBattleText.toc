@@ -3,6 +3,8 @@
 ## Title: Mik's Scrolling Battle Text
 ## Author: Mikord
 ## Notes: Scrolls battle information around the character model.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥訊息滾動
+## Notes-zhTW: MSBT |n在你的角色周圍顯示戰鬥相關的訊息。
 ## SavedVariables: MSBTProfiles_SavedVars, MSBT_SavedMedia
 ## SavedVariablesPerCharacter: MSBTProfiles_SavedVarsPerChar
 ## OptionalDeps: LibSharedMedia-3.0
