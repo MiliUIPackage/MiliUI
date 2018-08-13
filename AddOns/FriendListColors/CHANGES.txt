@@ -1,0 +1,10 @@
+tag 05d04d5b02e808126e12f49da6aaa615fffcd4e5 v8.0.0.180630
+Author:	Vlad <vladix@gmail.com>
+Date:	Tue Jul 17 11:15:54 2018 +0200
+
+commit f64385612a2e3fb96c279db10fdd6121696c4c1b
+Author: Vlad <vladix@gmail.com>
+Date:   Tue Jul 3 22:49:06 2018 +0200
+
+    Updated for BfA.
+
