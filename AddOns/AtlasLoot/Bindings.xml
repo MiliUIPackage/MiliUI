@@ -1,5 +1,0 @@
-<Bindings>
-	<Binding name="ATLASLOOT_TOGGLE" header="ATLASLOOT" category="ADDONS">
-		AtlasLoot.SlashCommands:Run("")
-	</Binding>
-</Bindings>
