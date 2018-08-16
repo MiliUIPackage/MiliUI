@@ -1,0 +1,21 @@
+## Interface: 80000
+## Title: GridManaBars
+## Notes: Adds manabars to the sides of Grid frames.
+## Notes-ruRU: Добовляет полоски маны в фрейм Gridа.
+## Notes-zhTW: [Grid] 在 Grid 框架旁邊顯示法力條。
+## Notes-zhCN: [Grid] 在 Grid 框体内设置法力条。
+## Author: Adelea@EU-Bronzebeard, Julith
+## Version: 1.12
+## Grid Author: Pastamancer & Maia
+## X-Website: http://wowace.com/wiki/Grid
+## Dependencies: Grid
+
+GMBLocale-enUS.lua
+GMBLocale-ruRU.lua
+GMBLocale-deDE.lua
+GMBLocale-koKR.lua
+GMBLocale-zhCN.lua
+GMBLocale-zhTW.lua
+GridManaBar.lua
+GridStatusMana.lua
+

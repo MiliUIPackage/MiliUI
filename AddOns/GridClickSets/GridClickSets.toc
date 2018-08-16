@@ -1,0 +1,18 @@
+## Interface: 80000
+## Title: GridClickSets
+
+## Author: Warbaby
+## OptionalDeps: Grid
+## SavedVariablesPerCharacter: GridClickSetsForTalents
+
+locale-enUS.lua
+locale-zhCN.lua
+locale-zhTW.lua
+locale-koKR.lua
+
+DefaultClickSets.lua
+UIDropDownTooltipFunc.lua
+GridClickSetsFrame.xml
+SetupGrid.lua
+SetupGrid2.lua
+SetupCompactUnitFrame.lua
