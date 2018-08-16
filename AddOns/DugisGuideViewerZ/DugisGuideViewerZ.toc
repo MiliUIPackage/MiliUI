@@ -1,0 +1,82 @@
+## Interface: 80000
+## Title: Dugi Questing Essential |cffffffff5.005|r
+## Notes: Questing Addon Copyright 2010-2018 UltimateWoWGuide.com
+## Title-zhTW: |cFF00CCFF[任務]|r Dugi任務高手
+## Notes-zhTW: Dugi Questing Essential |n提供類似衛星導航的箭頭，帶你做任務和升級!|n接到任務時會自動顯示地圖，方便預覽任務的位置。|n拿到比身上好的裝備時會自動建議更換裝備，這些功能都可以在設定選項中開啟或關閉。 |n|cffffd200使用方法：|r點任務追蹤清單中，任務標題左方的數字圓圈，開始導航這個任務。|n滑鼠右鍵點一下DG圓形小按鈕，或輸入 /任務，或 /dugi 開啟設定。|n|cffFF2D2D特別注意：|r這個插件的記憶體使用量較大。電腦較慢，或打副本/團隊不需要使用時請勿載入。|n版權所有(c) 2010-2016 UltimateWoWGuide.com
+## DefaultState: disabled
+## Version: 5.005
+## X-Website: http://www.ultimatewowguide.com/
+## X-Email: support@ultimatewowguide.com
+## X-Category: Quest
+## SavedVariablesPerCharacter: CurrentTitle, CurrentZone, DugisGuideUser, DugisGuideViewerDB, DugisArrowDb, DugisFlightmasterDataTable, DugisNPCFrameDB, DataExport, DugisCharacterCache
+## SavedVariables: MapOverlays, DugisFlightmasterLookupTable, TaxiDataCollection, DugisGuideViewerProfiles, CollectedWorldMapTrackingPoints_v2, FollowersCache, TutorialFrameDugisState, TutorialFrameDugisHidden
+## X-CompatibleLocales: enUS, enGB, deDE, frFR, esES, esMX, koKR, ruRU
+
+
+LuaUtils.lua
+Libs\LibStub\LibStub.lua
+Libs\HereBeDragons-1.0\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\HereBeDragons-1.0\HereBeDragons-Migrate.lua
+Libs\HereBeDragons-1.0\HereBeDragons-2.0.lua
+Libs\HereBeDragons-1.0\HereBeDragons-Pins-2.0.lua
+# Library Files
+#Libs\Astrolabe\Load.xml
+Libs\Load.xml
+
+# Localization
+Localization\Localization.enUS.lua
+Localization\Localization.zhCN.lua
+Localization\Localization.zhTW.lua
+Localization\LibBabble-SubZone-3.0\Lib.xml
+Localization\LibBabble-Class-3.0\Lib.xml
+Localization\LibBabble-Race-3.0\Lib.xml
+Localization\LibBabble-Faction-3.0\Lib.xml
+
+# Base
+DugisGuideViewer.lua
+Util.lua
+Debug.lua
+Modules.lua
+BossButtonWorkaround.lua
+
+# NPC Localization
+Localization\NPCs_enUS.lua
+Localization\NPCs_zhCN.lua
+
+# Implementation
+Widget.lua
+MapUtilsData.lua
+MapUtils.lua
+Localization\Translator.lua
+DugisGuideViewer.xml
+WatchFrame.lua
+ItemButton.lua
+NPCJournalFrame\GUIUtils.lua
+
+GPSArrow.xml
+
+arrow.lua
+Ants.lua
+Corpse.lua
+AutoQuestAccept.lua
+MapOverlays.lua
+AutoSell.lua
+AutoRepair.lua
+QuestPOI.lua
+MiniBlobs.lua
+libs\menu.lua
+LDB.lua
+MapPreview.lua
+WorldMapTracking.lua
+WorldMapTrackingPoints.lua
+ExplorationTrackingPoints.lua
+Taxi.lua
+TaxiDB.lua
+TaxiData.lua
+AutoQuestLoot.lua
+LFG.lua
+TomTomEmulation.lua
+GearAdvisorData.lua
+GearAdvisor.lua
+WorldMapTrackingCollection.lua
+NamePlate.lua
