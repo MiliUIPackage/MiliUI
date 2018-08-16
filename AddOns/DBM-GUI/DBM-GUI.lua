@@ -2671,6 +2671,7 @@ local function CreateOptionsMenu()
 			{	text	= "當心!",		value 	= "Sound\\Creature\\AlgalonTheObserver\\UR_Algalon_BHole01.ogg", 		sound=true },
 			{	text	= "準備行動",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg", 		sound=true },
 			{	text	= "殺殺殺",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\殺殺殺.ogg", 		sound=true },
+			{	text	= "警報聲",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\woop.mp3", 		sound=true },
 			{	text	= "毀滅",		value 	= "Sound\\Creature\\KilJaeden\\KILJAEDEN02.ogg", 		sound=true },
 			{	text	= "還沒準備好",		value 	= "Sound\\Creature\\Illidan\\BLACK_Illidan_04.ogg", 		sound=true },
 			{	text	= "還沒準備好2",		value 	= "Sound\\Creature\\Illidan_Stormrage\\VO_703_Illidan_Stormrage_03.ogg", 		sound=true },

@@ -26,8 +26,8 @@ L= DBM:GetModLocalization(2146)
 L= DBM:GetModLocalization(2169)
 
 L:SetMiscLocalization({ --以下為暫譯
-	CThunDisc 			= 	"檢索圓盤成功。正在讀取克蘇恩數據。",
-	YoggDisc 				= 	"檢索圓盤成功。正在讀取尤格-薩倫數據。",
+	CThunDisc 		= 	"檢索圓盤成功。正在讀取克蘇恩數據。",
+	YoggDisc 		= 	"檢索圓盤成功。正在讀取尤格-薩倫數據。",
 	CorruptedDisc 		= 	"檢索圓盤成功。正在讀取損壞數據。"
 })
 
@@ -53,7 +53,7 @@ L= DBM:GetModLocalization(2195)
 L:SetTimerLocalization({
 	timerCallofCrawgCD		= "下一次克洛格 (%s)",
 	timerCallofHexerCD 		= "下一次血咒師 (%s)",
-	timerCallofCrusherCD	= "下一次粉碎者 (%s)",
+	timerCallofCrusherCD		= "下一次粉碎者 (%s)",
 	timerAddIncoming		= DBM_INCOMING
 })
 
@@ -62,7 +62,7 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
-	Crusher			=	"粉碎者",
+	Crusher		=	"粉碎者",
 	Bloodhexer		=	"血咒師",
 	Crawg			=	"克洛格"
 })
