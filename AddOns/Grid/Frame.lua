@@ -248,8 +248,8 @@ end
 ------------------------------------------------------------------------
 
 GridFrame.defaultDB = {
-	frameWidth = 80,
-	frameHeight = 40,
+	frameWidth = 94,
+	frameHeight = 45,
 	borderSize = 1,
 	cornerSize = 6,
 	showTooltip = "OOC",
