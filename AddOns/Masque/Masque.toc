@@ -1,6 +1,6 @@
 ## Interface: 80000
 ## Title: Masque
-## Title-zhTW: |cFF0099FF[介面]|r |cFF9988FF[Masque]|r 快捷樣式
+## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式
 ## Version: 8.0.1
 ## Author: StormFX, JJSheets
 ## Notes: A dynamic button-skinning engine.
@@ -13,7 +13,7 @@
 ## Notes-ptBR: Um add-on de skin dinâmico de botões.
 ## Notes-ruRU: Аддон для добавления скинов к панелям команд.
 ## Notes-zhCN: 一个动态按钮皮肤插件。
-## Notes-zhTW: 動態套用按鈕佈景主題的插件。
+## Notes-zhTW: Masque|n動態套用按鈕佈景主題的插件。
 ## OptionalDeps: Ace3, LibDBIcon-1.0, LibDualSpec-1.0
 ## SavedVariables: MasqueDB
 ## X-Website: https://www.wowace.com/projects/masque

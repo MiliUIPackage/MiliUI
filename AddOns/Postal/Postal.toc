@@ -1,6 +1,6 @@
 ## Interface: 80000
 ## Title: Postal
-## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Postal]|r 信箱增強
+## Title-zhTW: |cFF0099FF[介面]|r 信箱增強
 ## Version: v3.6.0
 ## X-Build: 409
 ## X-ReleaseDate: 2018-07-20T8:41:50Z
@@ -12,7 +12,7 @@
 ## Notes-ruRU: Postal: Расширенная поддержка почтового ящика
 ## Notes-frFR: Postal: améliorations diverses de l'interface d'envoi/réception de courriers.
 ## Notes-esES: Postal: soporte mejorado para el buzon
-## Notes-zhTW: Postal: 強化信箱功能。
+## Notes-zhTW: Postal|n強化信箱功能。
 ## Notes-zhCN: Postal: 增强信箱功能
 ## Notes-ptBR: Postal: Apoio caixa reforçada
 ## OptionalDeps: Ace3, !BlizzBugsSuck, !ClassColors

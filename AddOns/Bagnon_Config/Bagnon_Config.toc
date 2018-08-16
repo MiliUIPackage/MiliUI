@@ -2,8 +2,8 @@
 ## Title: Bagnon Config
 ## Author: Tuller and Jaliborc (João Cardoso)
 ## Notes: An options menu for Bagnon
-## Title-zhTW: |cFF2DA267[背包]|r |cFF99FF66[Bagnon]|r 背包整合設定介面
-## Notes-zhTW: 提供 Bagnon 設定介面。
+## Title-zhTW: |cFF2DA267[背包]|r 背包整合設定介面
+## Notes-zhTW: Bagnon Config|n背包整合設定介面。
 ## Dependencies: Bagnon
 ## LoadOnDemand: 1
 ## Version: 8.0.2

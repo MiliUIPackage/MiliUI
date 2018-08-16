@@ -1,8 +1,8 @@
 ## Interface: 80000
 ## Title: Blizzmove
 ## Notes: Move those blizzard windows
-## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[Blizzmove]|r 框架解鎖
-## Notes-zhTW: 將大部分的預設框架解鎖，可以滑鼠拖曳移動，在標題使用CTRL+滾輪可改變大小。
+## Title-zhTW: |cFF0099FF[介面]|r 框架解鎖
+## Notes-zhTW: Blizzmove|n將大部分的預設框架解鎖，可以滑鼠拖曳移動，在標題使用CTRL+滾輪可改變大小。
 ## Author: yess
 ## X-WoWI-ID: 23875
 ## Version: v1.8

@@ -1,0 +1,54 @@
+tag dac1d55855d18c74b3efacfde6b2605b63f40b0c 8.0.37
+Author:	Floraline <floraline@ophiuchus.org>
+Date:	Mon Jul 16 18:57:14 2018 +0200
+
+Tagging for release of version 8.0.37
+
+commit 1b95ea17ed0cecced80e11182df9db1700e0c1d8
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Sun Jul 1 21:54:20 2018 +0200
+
+    BfA Totem changes
+
+commit 995de5973acf9d48474993b9fc3ec11d48afcbe2
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon Jun 25 23:49:28 2018 +0200
+
+    Updated trap spells
+
+commit a8afcf93f3bd72590ab044201d4dd6fa71716062
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon Jun 25 23:10:51 2018 +0200
+
+    Adapt to spellcast event changes
+
+commit 3d71fb376f4f20613989ab1fa15d942455922a13
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon May 7 12:04:31 2018 +0200
+
+    Change anchor point for auto positionning
+
+commit 04b2704615e05e6510670ce26db8c2f440b26914
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon May 7 11:09:39 2018 +0200
+
+    Add FloLib_UnitHasBuff function
+
+commit f7eab59e2e1398b41aaa4c0f64336e842de07ca0
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon May 7 10:53:13 2018 +0200
+
+    Remove subscription to removed events (GLYPH_*)
+
+commit 79a351acc97aa2d06798aa2a527970150197771d
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon May 7 10:40:47 2018 +0200
+
+    Rename Templates to avoid name collision
+
+commit c3c4bfb05a9e843df5ba8eae04c6fba56d9c9953
+Author: Floraline <floraline@ophiuchus.org>
+Date:   Mon May 7 10:33:13 2018 +0200
+
+    Update toc version to 8.0
+

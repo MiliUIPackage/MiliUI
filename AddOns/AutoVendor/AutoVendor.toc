@@ -1,8 +1,8 @@
 ## Interface: 80000
 ## Title: AutoVendor
 ## Notes: Automatically sells useless stuff and repairs your gear
-## Title-zhTW: |cFF0099FF[介面]|r |cFF99BBFF[AutoVendor]|r 商店自動化
-## Notes-zhTW: 與攤販說話時可自動出售垃圾物品以及修理裝備。
+## Title-zhTW: |cFF0099FF[介面]|r 商店自動化
+## Notes-zhTW: AutoVendor|n與攤販說話時可自動出售垃圾物品以及修理裝備。
 ## SavedVariables: AutoVendorDB
 ## Author: Olafski
 ## Version: 53
