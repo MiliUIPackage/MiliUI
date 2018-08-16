@@ -2,6 +2,7 @@
 ## Version: 8.0.1.0
 
 ## Title: Grid
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架
 ## Notes: A compact grid of party/raid unit frames.
 ## Notes-deDE: Ein kompakter Gitter von Gruppen- und Schlachtzugsfenstern.
 ## Notes-esES: Una cuadrícula compacta de marcos de unidades para tu grupo o banda.
@@ -10,7 +11,7 @@
 ## Notes-itIT: Una griglia compatta di riquadri delle unità nel tuo gruppo o incursione.
 ## Notes-ptBR: Uma grade compacta de quadros das unidades do grupo ou banda.
 ## Notes-zhCN: 紧凑方格队伍/团队框架。
-## Notes-zhTW: 緊湊方格隊伍/團隊框架。
+## Notes-zhTW: Grid|n團隊框架。
 
 ## Author: Phanx, Pastamancer, Maia
 ## X-Credits: Greltok, Jerry, jlam

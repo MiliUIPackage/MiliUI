@@ -2,6 +2,7 @@
 ## Version: 8.0.0.0
 
 ## Title: GridStatusHealTrace
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架-群體治療追蹤
 ## Notes: Shows in Grid who was healed by your multi-target heals.
 ## Notes-deDE: Zeigt auf Grid, wer durch deine Heilungzauber mehrerer Ziele geheilt wurde.
 ## Notes-esES: Muestra en Grid que fue sanada por tus hechizos de curación de múltiples objetivos.
@@ -12,7 +13,7 @@
 ## Notes-ruRU: Показывает в Grid, кто был вылечен Вашими АОЕ-заклинаниями.
 ## Notes-koKR: 당신의 다중 대상에 대한 치유를 표시합니다.
 ## Notes-zhCN: 在Grid里显示你的群体治疗法术的治疗目标。
-## Notes-zhTW: 在Grid中顯示群體治療法術的目標。
+## Notes-zhTW: Grid Status Heal Trace|n在 Grid 中顯示群體治療法術的目標。
 
 ## Author: Phanx
 ## X-Email: addons@phanx.net

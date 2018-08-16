@@ -1,6 +1,8 @@
 ## Interface: 80000
 ## Title: GridTooltip2
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架-減益法術提示
 ## Notes: Adds tooltip for debuffs.
+## Notes-zhTW: Grid Tooltip 2|n為減益狀態加入滑鼠游標提示。
 ## Author: tptbk(Doadin-Malorne-US)
 ## Version: 8.0.1.1
 ## Grid Author: Pastamancer & Maia
