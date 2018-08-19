@@ -1,0 +1,12 @@
+## Interface: 80000
+## Title: |cff0080ffStagger|r
+## Author: Siweia
+## Notes: Monk Tanking Tool
+## Title-zhTW: |c00FF00AA[|c0000FF96武僧|r|c00FF00AA]|r 釀酒技能監控
+## Notes-zhTW: Stagger|n坦僧專用的醉仙緩勁狀態監控，還有玄牛雕像、斗轉星移和金鐘絕釀的可用次數、持續和冷卻時間。|n|cffffd200使用方法：|r輸入指令『/stg』可解鎖移動。
+## DefaultState: disabled
+## Version: 6.0
+## SavedVariables: MoverDB
+
+Config.lua
+Core.lua
