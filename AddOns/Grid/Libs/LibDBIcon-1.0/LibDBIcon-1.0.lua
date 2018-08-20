@@ -6,7 +6,7 @@
 --
 
 local DBICON10 = "LibDBIcon-1.0"
-local DBICON10_MINOR = 42 -- Bump on changes
+local DBICON10_MINOR = 43 -- Bump on changes
 if not LibStub then error(DBICON10 .. " requires LibStub.") end
 local ldb = LibStub("LibDataBroker-1.1", true)
 if not ldb then error(DBICON10 .. " requires LibDataBroker-1.1.") end
@@ -118,8 +118,8 @@ do
 	}
 
 	local rad, cos, sin, sqrt, max, min = math.rad, math.cos, math.sin, math.sqrt, math.max, math.min
-	function updatePosition(button)
-		local angle = rad(button.db and button.db.minimapPos or button.minimapPos or 225)
+	function updatePosition(button, position)
+		local angle = rad(position or 225)
 		local x, y, q = cos(angle), sin(angle), 1
 		if x < 0 then q = q + 1 end
 		if y > 0 then q = q + 2 end
@@ -162,12 +162,15 @@ do
 		local px, py = GetCursorPosition()
 		local scale = Minimap:GetEffectiveScale()
 		px, py = px / scale, py / scale
+		local pos = 225
 		if self.db then
-			self.db.minimapPos = deg(atan2(py - my, px - mx)) % 360
+			pos = deg(atan2(py - my, px - mx)) % 360
+			self.db.minimapPos = pos
 		else
-			self.minimapPos = deg(atan2(py - my, px - mx)) % 360
+			pos = deg(atan2(py - my, px - mx)) % 360
+			self.minimapPos = pos
 		end
-		updatePosition(self)
+		updatePosition(self, pos)
 	end
 
 	function onDragStart(self)
@@ -263,7 +266,7 @@ local function createButton(name, object, db)
 	lib.objects[name] = button
 
 	if lib.loggedIn then
-		updatePosition(button)
+		updatePosition(button, db and db.minimapPos)
 		if not db or not db.hide then
 			button:Show()
 		else
@@ -288,7 +291,7 @@ if not lib.loggedIn then
 	local f = CreateFrame("Frame")
 	f:SetScript("OnEvent", function(f)
 		for _, button in next, lib.objects do
-			updatePosition(button)
+			updatePosition(button, button.db and button.db.minimapPos)
 			if not button.db or not button.db.hide then
 				button:Show()
 			else
@@ -346,8 +349,11 @@ end
 
 function lib:Show(name)
 	check(name)
-	lib.objects[name]:Show()
-	updatePosition(lib.objects[name])
+	local button = lib.objects[name]
+	if button then
+		button:Show()
+		updatePosition(button, button.db and button.db.minimapPos or button.minimapPos)
+	end
 end
 
 function lib:IsRegistered(name)
@@ -360,7 +366,7 @@ function lib:Refresh(name, db)
 	if db then
 		button.db = db
 	end
-	updatePosition(button)
+	updatePosition(button, button.db and button.db.minimapPos or button.minimapPos)
 	if not button.db or not button.db.hide then
 		button:Show()
 	else
@@ -428,9 +434,13 @@ function lib:SetButtonRadius(radius)
 	if type(radius) == "number" then
 		lib.radius = radius
 		for _, button in next, lib.objects do
-			updatePosition(button)
+			updatePosition(button, button.db and button.db.minimapPos or button.minimapPos)
 		end
 	end
+end
+
+function lib:SetButtonToPosition(button, position)
+	updatePosition(lib.objects[button] or button, position)
 end
 
 -- Upgrade!
