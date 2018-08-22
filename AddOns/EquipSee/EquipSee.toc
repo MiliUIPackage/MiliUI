@@ -1,0 +1,16 @@
+## Interface: 80000
+## Title: EquipSee
+## Version: 2.4.1
+## Author: Zirco, Eridius
+## OptionalDeps: Combuctor, Bagnon, Baggins, LibItemUpgradeInfo-1.0
+
+#@no-lib-strip@
+libs\LibItemUpgradeInfo-1.0\LibItemUpgradeInfo-1.0.xml
+#@end-no-lib-strip@
+
+zcUtils.lua
+
+EquipSee.lua
+EquipSeeTips.lua
+
+EquipSee.xml
