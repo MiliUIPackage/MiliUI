@@ -1,5 +1,7 @@
 ## Interface: 80000
 ## Title: EquipSee
+## Title-zhTW: |cFF2DA267[背包]|r 裝備管理員名稱顯示
+## Notes-zhTW: EquipSee|n在背包中的裝備顯示裝備管理員自訂的套裝名稱。
 ## Version: 2.4.1
 ## Author: Zirco, Eridius
 ## OptionalDeps: Combuctor, Bagnon, Baggins, LibItemUpgradeInfo-1.0
