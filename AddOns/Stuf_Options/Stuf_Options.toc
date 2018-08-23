@@ -1,0 +1,12 @@
+## Interface: 80000
+## Title: Stuf_Options
+## Author: TotalPackage
+## Notes: Configuration Menu for Stuf.
+
+## X-Category: UnitFrame
+## Dependencies: Stuf
+## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, Stuf_OptionsLocale
+## LoadOnDemand: 1
+
+embeds.xml
+options.lua

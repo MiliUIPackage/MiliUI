@@ -1,0 +1,22 @@
+## Interface: 80000
+## Title: Stuf Unit Frames
+## Author: TotalPackage
+## Notes: Main unitframes replacement. Assembly optional.
+## Version: 8.0.001
+
+## SavedVariables: StufDB
+## SavedVariablesPerCharacter: StufCharDB
+
+## X-Category: UnitFrame
+## OptionalDeps: LibSharedMedia-3.0, ButtonFacade, LibButtonFacade, StufLocale
+
+## LoadManagers: AddonLoader
+## X-LoadOn-Always: true
+
+embeds.xml
+cancelaura.xml
+core.lua
+bars.lua
+text.lua
+icons.lua
+aura.lua
