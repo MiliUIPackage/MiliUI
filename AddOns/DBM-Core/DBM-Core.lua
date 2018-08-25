@@ -41,9 +41,9 @@
 --  Globals/Default Options  --
 -------------------------------
 DBM = {
-	Revision = tonumber(("$Revision: 17699 $"):sub(12, -3)),
-	DisplayVersion = "8.0.3 BNS", -- the string that is shown as version
-	ReleaseRevision = 17699 -- the revision of the latest stable version that is available
+	Revision = tonumber(("$Revision: 17719 $"):sub(12, -3)),
+	DisplayVersion = "8.0.4", -- the string that is shown as version
+	ReleaseRevision = 17719 -- the revision of the latest stable version that is available
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -95,10 +95,10 @@ DBM.DefaultOptions = {
 	SpecialWarningSound4 = "Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg",
 	SpecialWarningSound5 = "Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg",
 	ModelSoundValue = "Short",
-	CountdownVoice = "VP:VV",
+	CountdownVoice = "Corsica",
 	CountdownVoice2 = "Kolt",
 	CountdownVoice3v2 = "Pewsey",
-	ChosenVoicePack = "VV",
+	ChosenVoicePack = "None",
 	VoiceOverSpecW2 = "DefaultOnly",
 	AlwaysPlayVoice = false,
 	EventSoundVictory2 = "None",
@@ -138,6 +138,7 @@ DBM.DefaultOptions = {
 	FilterInterrupt2 = "TandFandBossCooldown",
 	FilterInterruptNoteName = false,
 	FilterDispel = true,
+	FilterTrashWarnings = false,
 	--FilterSelfHud = true,
 	AutologBosses = false,
 	AdvancedAutologBosses = false,
@@ -269,52 +270,52 @@ DBM.Bars = DBT:New()
 DBM.Mods = {}
 DBM.ModLists = {}
 DBM.Counts = {
-	{text = "Moshne (男)",	value 	= "Mosh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Mosh\\", max = 5},
-	{text = "Corsica (女)",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 10},
-	{text = "Koltrane (男)",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
-	{text = "Pewsey (男)",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
-	{text = "Bear (男孩)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
-	{text = "Anshlun (ptBR 男)",value = "Anshlun", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Anshlun\\", max = 10},
-	{text = "Neryssa (ptBR 女)",value = "Neryssa", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Neryssa\\", max = 10},
+	{	text	= "Moshne (Male)",	value 	= "Mosh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Mosh\\", max = 5},
+	{	text	= "Corsica (Female)",value 	= "Corsica", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Corsica\\", max = 10},
+	{	text	= "Koltrane (Male)",value 	= "Kolt", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Kolt\\", max = 10},
+	{	text	= "Pewsey (Male)",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
+	{	text	= "Bear (Male Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
+	{	text	= "Anshlun (ptBR Male)",value = "Anshlun", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Anshlun\\", max = 10},
+	{	text	= "Neryssa (ptBR Female)",value = "Neryssa", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Neryssa\\", max = 10},
 }
 DBM.Victory = {
-	{text = "無",value  = "None"},
-	{text = "隨機",value  = "Random"},
+	{text = "None",value  = "None"},
+	{text = "Random",value  = "Random"},
 	{text = "Blakbyrd: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\bbvictory.ogg", length=4},
 	{text = "SMG: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\SmoothMcGroove_Fanfare.ogg", length=4},
 }
 DBM.Defeat = {
-	{text = "無",value  = "None"},
-	{text = "隨機",value  = "Random"},
-	{text = "Kologarn: 你失敗了",value = "Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg", length=4},
+	{text = "None",value  = "None"},
+	{text = "Random",value  = "Random"},
+	{text = "Kologarn: You Fail",value = "Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg", length=4},
 	{text = "Alizabal: Incompetent Raiders",value = "Sound\\Creature\\ALIZABAL\\VO_BH_ALIZABAL_RESET_01.ogg", length=4},
 	{text = "Hodir: Tragic",value = "Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg", length=4},
 	{text = "Thorim: Failures",value = "Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg", length=4},
 	{text = "Valithria: Failures",value = "Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg", length=4},
 }
 DBM.Music = {--Contains all music media, period
-	{text = "無",value  = "None"},
-	{text = "隨機",value  = "Random"},
-	{text = "安度因 Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
-	{text = "安度因 Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
+	{text = "None",value  = "None"},
+	{text = "Random",value  = "Random"},
+	{text = "Anduin Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
+	{text = "Anduin Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
 	{text = "Bronze Jam",value = "Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3", length=116},
-	{text = "無敵",value = "Sound\\Music\\Draenor\\MUS_Invincible.mp3", length=197},
-	{text = "夜歌",value = "Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3", length=160},
-	{text = "奧杜亞: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
+	{text = "Invincible",value = "Sound\\Music\\Draenor\\MUS_Invincible.mp3", length=197},
+	{text = "Nightsong",value = "Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3", length=160},
+	{text = "Ulduar: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
 }
 DBM.DungeonMusic = {--Filtered list of media assigned to dungeon/raid background music catagory
-	{text = "無",value  = "None"},
-	{text = "隨機",value  = "Random"},
-	{text = "安度因 Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
-	{text = "夜歌",value = "Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3", length=160},
-	{text = "奧杜亞: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
+	{text = "None",value  = "None"},
+	{text = "Random",value  = "Random"},
+	{text = "Anduin Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
+	{text = "Nightsong",value = "Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3", length=160},
+	{text = "Ulduar: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
 }
 DBM.BattleMusic = {--Filtered list of media assigned to boss/encounter background music catagory
-	{text = "無",value  = "None"},
-	{text = "隨機",value  = "Random"},
-	{text = "安度因 Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
+	{text = "None",value  = "None"},
+	{text = "Random",value  = "Random"},
+	{text = "Anduin Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
 	{text = "Bronze Jam",value = "Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3", length=116},
-	{text = "無敵",value = "Sound\\Music\\Draenor\\MUS_Invincible.mp3", length=197},
+	{text = "Invincible",value = "Sound\\Music\\Draenor\\MUS_Invincible.mp3", length=197},
 }
 
 ------------------------
@@ -7330,6 +7331,15 @@ function bossModPrototype:IsLFR()
 	return false
 end
 
+--Dungeons: normal, heroic. (Raids excluded)
+function bossModPrototype:IsEasyDungeon()
+	local diff = savedDifficulty or DBM:GetCurrentInstanceDifficulty()
+	if diff == "heroic5" or diff == "normal5" then
+		return true
+	end
+	return false
+end
+
 --Dungeons: normal, heroic. Raids: LFR, normal
 function bossModPrototype:IsEasy()
 	local diff = savedDifficulty or DBM:GetCurrentInstanceDifficulty()
@@ -7400,13 +7410,13 @@ end
 --checkCooldown should never be passed with skip or COUNT interrupt warnings. It should be passed with any other interrupt filter
 function bossModPrototype:CheckInterruptFilter(sourceGUID, skip, checkCooldown)
 	if DBM.Options.FilterInterrupt2 == "None" and not skip then return true end--use doesn't want to use interrupt filter, always return true
-	--Pummel, Mind Freeze, Counterspell, Kick, Skull Bash, Rebuke, Silence, Wind Shear
+	--Pummel, Mind Freeze, Counterspell, Kick, Skull Bash, Rebuke, Silence, Wind Shear, Disrupt, Solar Beam
 	local InterruptAvailable = true
 	local requireCooldown = checkCooldown
 	if (DBM.Options.FilterInterrupt2 == "onlyTandF") or self.isTrashMod and (DBM.Options.FilterInterrupt2 == "TandFandBossCooldown") then
 		requireCooldown = false
 	end
-	if requireCooldown and ((GetSpellCooldown(6552)) ~= 0 or (GetSpellCooldown(47528)) ~= 0 or (GetSpellCooldown(2139)) ~= 0 or (GetSpellCooldown(1766)) ~= 0 or (GetSpellCooldown(106839)) ~= 0 or (GetSpellCooldown(96231)) ~= 0 or (GetSpellCooldown(15487)) ~= 0 or (GetSpellCooldown(57994)) ~= 0) then
+	if requireCooldown and ((GetSpellCooldown(6552)) ~= 0 or (GetSpellCooldown(47528)) ~= 0 or (GetSpellCooldown(2139)) ~= 0 or (GetSpellCooldown(1766)) ~= 0 or (GetSpellCooldown(106839)) ~= 0 or (GetSpellCooldown(96231)) ~= 0 or (GetSpellCooldown(15487)) ~= 0 or (GetSpellCooldown(57994)) ~= 0 or (GetSpellCooldown(183752)) ~= 0 or (GetSpellCooldown(78675)) ~= 0) then
 		InterruptAvailable = false--checkCooldown check requested and player has no spell that can interrupt available
 	end
 	if InterruptAvailable and (UnitGUID("target") == sourceGUID or UnitGUID("focus") == sourceGUID) then
@@ -7417,7 +7427,7 @@ end
 
 function bossModPrototype:CheckDispelFilter()
 	if not DBM.Options.FilterDispel then return true end
-	--Druid: Nature's Cure (88423), Remove Corruption (2782), Monk: Detox (115450), Priest: Purify (527), Plaadin: Cleanse (4987), Shaman: Cleanse Spirit (51886), Purify Spirit (77130), Mage: Remove Curse (475)
+	--Druid: Nature's Cure (88423), Remove Corruption (2782), Monk: Detox (115450), Priest: Purify (527), Paladin: Cleanse (4987), Shaman: Cleanse Spirit (51886), Purify Spirit (77130), Mage: Remove Curse (475)
 	--start, duration, enable = GetSpellCooldown
 	--start & duration == 0 if spell not on cd
 	if (GetSpellCooldown(88423)) ~= 0 or (GetSpellCooldown(2782)) ~= 0 or (GetSpellCooldown(115450)) ~= 0 or (GetSpellCooldown(527)) ~= 0 or (GetSpellCooldown(4987)) ~= 0 or (GetSpellCooldown(51886)) ~= 0 or (GetSpellCooldown(77130)) ~= 0 or (GetSpellCooldown(475)) ~= 0 then
@@ -9593,6 +9603,7 @@ do
 
 	function specialWarningPrototype:Show(...)
 		if not DBM.Options.DontShowSpecialWarnings and not DBM.Options.DontShowSpecialWarningText and (not self.option or self.mod.Options[self.option]) and not moving and frame then
+			if self.mod:IsEasyDungeon() and self.mod.isTrashMod and DBM.Options.FilterTrashWarnings then return end
 			if self.announceType == "taunt" and DBM.Options.FilterTankSpec and not self.mod:IsTank() then return end--Don't tell non tanks to taunt, ever.
 			local argTable = {...}
 			-- add a default parameter for move away warnings
@@ -9711,6 +9722,7 @@ do
 	function specialWarningPrototype:CombinedShow(delay, ...)
 		if DBM.Options.DontShowSpecialWarnings or DBM.Options.DontShowSpecialWarningText then return end
 		if self.option and not self.mod.Options[self.option] then return end
+		if self.mod:IsEasyDungeon() and self.mod.isTrashMod and DBM.Options.FilterTrashWarnings then return end
 		local argTable = {...}
 		for i = 1, #argTable do
 			if type(argTable[i]) == "string" then
@@ -9748,6 +9760,7 @@ do
 		local always = DBM.Options.AlwaysPlayVoice
 		local voice = DBM.Options.ChosenVoicePack
 		if voice == "None" then return end
+		if self.mod:IsEasyDungeon() and self.mod.isTrashMod and DBM.Options.FilterTrashWarnings then return end
 		if not DBM.Options.DontShowSpecialWarnings and (not self.option or self.mod.Options[self.option]) or always then
 			--Filter tank specific voice alerts for non tanks if tank filter enabled
 			--But still allow AlwaysPlayVoice to play as well.

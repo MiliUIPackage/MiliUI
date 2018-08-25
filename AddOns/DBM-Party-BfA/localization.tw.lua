@@ -232,7 +232,7 @@ L= DBM:GetModLocalization(2116)
 L = DBM:GetModLocalization("UndermineTrash")
 
 L:SetGeneralLocalization({
-	name =	"晶喜鎮小怪"
+	name =	"晶喜鎮！小怪"
 })
 
 -----------------------
