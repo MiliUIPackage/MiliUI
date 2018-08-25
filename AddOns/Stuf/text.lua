@@ -80,10 +80,21 @@ do  -- custom text handlers ----------------------------------------------------
 			local tnum = t < 0 and t * -1 or t
 			if tnum < shortk then
 				return format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, t)
+			elseif tnum < 10000 then
+				-- return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t * 0.001, nK)
+				return format("|cff%02x%02x%02x%s|r", r * 255, g * 255, b * 255, t)
 			elseif tnum < 1000000 then
-				return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t * 0.001, nK)
+				t = t * 0.0001
+				local t1, t2 = math.modf(t)
+				if (t2 > 0) then 
+					return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t, "萬")
+				else 
+					return format("|cff%02x%02x%02x%d%s|r", r * 255, g * 255, b * 255, t, "萬")
+				end
+			elseif tnum < 100000000 then
+				return format("|cff%02x%02x%02x%d%s|r", r * 255, g * 255, b * 255, t * 0.0001, "萬")
 			else
-				return format("|cff%02x%02x%02x%.1f%s|r", r * 255, g * 255, b * 255, t * 0.000001, nM)
+				return format("|cff%02x%02x%02x%.2f%s|r", r * 255, g * 255, b * 255, t * 0.00000001, "億")
 			end
 		else
 			if type(t) ~= "number" then
@@ -92,10 +103,21 @@ do  -- custom text handlers ----------------------------------------------------
 			local tnum = t < 0 and t * -1 or t
 			if tnum < shortk then
 				return t
+			elseif tnum < 10000 then
+				-- return format("%.1f%s", t * 0.001, nK)
+				return t
 			elseif tnum < 1000000 then
-				return format("%.1f%s", t * 0.001, nK)
-			else
-				return format("%.1f%s", t * 0.000001, nM)
+				t = format("%.1f", t * 0.0001)
+				local t1, t2 = math.modf(t)
+				if (t2 > 0) then 
+					return t.."萬"
+				else 
+					return t1.."萬"
+				end
+			elseif tnum < 100000000 then
+				return format("%d萬", t * 0.0001)
+			else 
+				return format("%.2f億", t * 0.00000001)
 			end
 		end
 	end
