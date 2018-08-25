@@ -630,8 +630,13 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				x=25, y=-24, w=54, h=10, 
 				fontsize=10, justifyH="RIGHT", justifyV="CENTER", 
 			},
-			buffgroup={ x=0, y=-24, w=10, h=10, count=8, rows=1, cols=8, hide=true, },
-			debuffgroup={ x=0, y=-24, w=10, h=10, count=8, rows=1, cols=8, push="v", hide=true, },
+			buffgroup={
+                x=0, y=-32, w=20, h=20, count=12, rows=2, cols=6,
+            },
+			debuffgroup={ 
+                x=0, y=5, w=20, h=20, count=12, rows=2, cols=6,
+                growth = "LRBT"
+            },
 			statusicon={ hide=true, x=-6, y=-20, w=10, h=10, },
 			dispellicon={ hide=true, x=54, y=-1, w=22, h=22, },
 			pvpicon={ hide=true, x=-8, y=-5, w=16, h=16, },
