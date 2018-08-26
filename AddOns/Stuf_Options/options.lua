@@ -584,7 +584,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 border="None",
 			},
 			comboframe={ 
-				x=170, y=-29, w=29, h=18,
+				x=80, y=-28, w=29, h=18,
 				color={ r=0.7, g=0, b=0, a=1, },
 				glowcolor={ r=1, g=1, b=0, a=0.8, },
 			},
