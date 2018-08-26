@@ -430,7 +430,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			leadericon={ x=7, y=10, w=12, h=12, framelevel=10,},
             looticon={ x=18, y=10, w=12, h=12, framelevel=10, },
             lfgicon={hide=true},
-			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=10,},
+			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5,},
 			infoicon={ x=50, y=-37, w=12, h=12, hide = true, },
 			totembar={ x=20, y=13, w=32, h=12, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 			runebar={ x=8, y=-10, w=38, h=6, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
@@ -567,7 +567,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			statusicon={ x=-8, y=10, w=14, h=14, framelevel=10, },
 			leadericon={ x=7, y=10, w=12, h=12, framelevel=10, },
 			looticon={ x=18, y=10, w=12, h=12, framelevel=10, },
-			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=10, },
+			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5, },
 			infoicon={ x=50, y=-37, w=12, h=12, hide=true,},
 			castbar={ 
 				hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
