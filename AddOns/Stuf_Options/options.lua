@@ -221,58 +221,80 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
     
 	if justboss then
 		db.boss1={
-			frame={ x=arenax, y=arenay, w=78, h=24, },
-			portrait={ x=0, y=0, w=24, h=24, show3d=nil, },
-			hpbar={ x=24, y=-1, w=53, h=22, barcolormethod="hpgreen", bgcolormethod="hpgreendark", bgalpha=0.3, },
+			frame={ x=arenax, y=arenay, w=120, h=10, },
+			portrait={ x=0, y=0, w=24, h=24, show3d=nil, hide=true,},
+			hpbar={
+                x=0, y=0, w=120, h=10, barcolormethod="hpred", bgcolormethod="hpreddark", bgalpha=1,
+                bartexture = "TukTex",
+                border=  "Square Outline",
+                bordercolor = {r=0, g=0, b=0, a=1, },
+            },
 			mpbar={ hide=true, x=24, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", bgalpha=0.3, },
 			text1={ 
-				pattern="[reaction:name]", x=25, y=0, w=54, h=12, 
-				fontsize=12, justifyH="LEFT", justifyV="TOP", shadowx=-1, shadowy=-1,
+				pattern="[name]", x=0, y=8, w=120, h=12, 
+                fontsize=12, justifyH="LEFT", justifyV="TOP", shadowx=-1, shadowy=-1,
+                fontflags="OUTLINE", 
+                framelevel=5,
 			},
 			text2={ hide=true, pattern="", x=0, y=0, w=54, h=10, },
 			text3={ 
-				pattern="[perchp]%", x=25, y=-13, w=54, h=10, 
-				fontsize=10, justifyH="CENTER", justifyV="CENTER", 
+				pattern="[perchp]%", x=-12, y=0, w=120, h=10, 
+                fontsize=10, justifyH="RIGHT", justifyV="CENTER", 
+                fontflags="OUTLINE", 
+                framelevel=5,
 			},
 			text4={ hide=true, pattern="", x=0, y=0, w=54, h=10, },
 			buffgroup={
+                hide=true, 
 				x=0, y=-24, w=10, h=10, 
 				count=8, rows=1, cols=8, growth="RLBT",
 			},
 			debuffgroup={ 
+                hide=true, 
 				x=0, y=-24, w=10, h=10, 
 				count=8, rows=1, cols=8, growth="LRTB",
 			},
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 			castbar={ 
-				x=-1, y=1, w=80, h=26, alpha=1,
-				baralpha=0, bgcolor={ r=1, g=1, b=0, a=0.2, },
-				spellx=0, spelly=-12, spellw=80, spellh=12, 
-				spellfontsize=10, spelljustifyH="CENTER", spelljustifyV="CENTER", spellshadowx=-1, spellshadowy=-1,
-				spellfontcolor={ r=1, g=0.5, b=0.2, a=0.7, },
-				timex=0, timey=0, timew=80, timeh=26, 
-				timefontsize=8, timejustifyH="CENTER", timejustifyV="CENTER",
-				timefontcolor={ r=1, g=0.5, b=0.2, a=0, },
-				iconx=-16, icony=0, iconw=14, iconh=14, iconalpha=0,
-			},
-			raidtargeticon={ x=4, y=7, w=12, h=12, },
+				x=0, y=-10, w=120, h=10, alpha=1,
+				baralpha=0, bgcolor={ r=1, g=1, b=0, a=0.8, },
+				spellx=0, spelly=0, spellw=120, spellh=10, 
+				spellfontsize=10, spelljustifyH="CENTER", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
+				spellfontcolor={ r=1, g=0.5, b=0.2, a=1, },
+				timex=0, timey=0, timew=120, timeh=10, 
+				timefontsize=8, timejustifyH="RIGHT", timejustifyV="CENTER",
+				timefontcolor={ r=1, g=1, b=1, a=1, },
+                iconx=-10, icony=0, iconw=10, iconh=10, iconalpha=1,
+                spellfontflags="OUTLINE", 
+                timefontflags="OUTLINE",
+            },
+            
+			raidtargeticon={ x=110, y=10, w=20, h=20, },
 			threatbar={ hide=true, x=10, y=12, w=32, h=12, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 		}
 		for i = 2, MAX_BOSS_FRAMES, 1 do
 			db["boss"..i]={ frame={ x=arenax, y=arenay - (47 * (i - 1)), w=78, h=24, }, }
 		end
 		db.boss1target={
-			frame={ x=arenax + 79, y=arenay, w=78, h=24, },
-			portrait={ x=55, y=0, w=24, h=24, show3d=nil, },
-			hpbar={ x=1, y=-1, w=53, h=17, barcolormethod="hpgreen", bgcolormethod="hpgreendark", reverse=true, bgalpha=0.3, },
-			mpbar={ x=1, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", reverse=true, bgalpha=0.3, },
+			frame={ x=arenax + 130, y=arenay, w=80, h=10, },
+			portrait={ x=55, y=0, w=24, h=24, show3d=nil, hide=true, },
+			hpbar={
+                x=1, y=-1, w=80, h=10, barcolormethod="hpred", bgcolormethod="hpreddark", reverse=true, bgalpha=1, 
+                bartexture = "TukTex",
+                border=  "Square Outline",
+                bordercolor = {r=0, g=0, b=0, a=1, },
+            },
+			mpbar={ hide=true, x=1, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", reverse=true, bgalpha=0.3, },
 			text1={ 
-				pattern="[class:name]", 
-				x=1, y=0, w=54, h=12, 
-				fontsize=12, justifyH="RIGHT", justifyV="TOP", shadowx=-1, shadowy=-1,
+				pattern="[name]", 
+				x=0, y=8, w=80, h=10, 
+                fontsize=12, justifyH="CENTER", justifyV="TOP", shadowx=0, shadowy=0,
+                fontflags="OUTLINE", 
+                framelevel=5,
 			},
 			text2={ hide=true, pattern="", x=1, y=-11, w=108, h=10, },
 			text3={ 
+                hide=true, 
 				pattern="[perchp]%", 
 				x=1, y=-13, w=54, h=10, 
 				fontsize=10, justifyH="CENTER", justifyV="CENTER", 
@@ -287,10 +309,10 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				count=8, rows=1, cols=8, growth="LRTB", push="v",
 			},
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
-			raidtargeticon={ hide=true, x=4, y=7, w=12, h=12, },
+			raidtargeticon={ x=74, y=6, w=12, h=12, },
 		}
 		for i = 2, MAX_BOSS_FRAMES, 1 do
-			db["boss"..i.."target"]={ frame={ x=arenax + 79, y=arenay - (47 * (i - 1)), w=78, h=24, }, }
+			db["boss"..i.."target"]={ frame={ x=arenax + 130, y=arenay - (47 * (i - 1)), w=80, h=10, }, }
 		end
 		return
 	end
