@@ -736,6 +736,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 iconx=-20, icony=0, iconw=20, iconh=20,
                 spellfontflags="OUTLINE", 
                 timefontflags="OUTLINE",
+                framelevel=10,
 			},
 		},
 		focustarget={
