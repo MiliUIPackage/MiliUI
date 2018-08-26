@@ -2,7 +2,7 @@
 ## Title: Bagnon Void Storage
 ## Author: Jaliborc (João Cardoso)
 ## Notes: Single window display for your void storage
-## Title-zhTW: |cFF2DA267[背包]|r 背包整合-虛空銀行
+## Title-zhTW: |cFF2DA267[物品]|r 背包整合-虛空銀行
 ## Notes-zhTW: Bagnon Void Storage|n功能強大的整合背包。
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1

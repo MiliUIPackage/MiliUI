@@ -1,7 +1,7 @@
 ## Interface: 80000
 ## Title: World Quest Tracker
 ## Notes: Make more easy to see world quests
-## Title-zhTW: |cFF00CCFF[任務]|r 世界任務追蹤
+## Title-zhTW: |cFF2D7CA4[任務]|r 世界任務追蹤
 ## Notes-zhTW:  World Quest Tracker |n加強地圖上世界任務圖示的相關功能、提供世界任務追蹤清單，更容易找到和追蹤你要的世界任務。
 ## SavedVariables: WQTrackerDB
 ## SavedVariablesPerCharacter: WQTrackerDBChr
