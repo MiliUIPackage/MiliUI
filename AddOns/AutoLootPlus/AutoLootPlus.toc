@@ -1,0 +1,9 @@
+## Interface: 80000
+## Title: AutoLootPlus
+## Notes: Improves the speed of Blizzard's auto looting.
+## Title-zhTW: |cFF2DA267[物品]|r 加速自動拾取
+## Notes-zhTW: AutoLootPlus|n加速暴雪內建的自動拾取。
+## Version: 1.2.3
+## Author: mjbmitch
+
+AutoLootPlus.lua
