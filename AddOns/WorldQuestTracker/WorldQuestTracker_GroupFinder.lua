@@ -281,8 +281,23 @@ function WorldQuestTracker.OpenGroupFinderForQuest()
 		LFGListFrame.SearchPanel.SearchBox.Instructions2.alpha = 0.3
 		LFGListFrame.SearchPanel.SearchBox.Instructions2.align = ">"
 		
+		--ballon popup
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon = CreateFrame ("frame", "WorldQuestTrackerGroupFinderPopup", LFGListFrame.EntryCreation.Name, "MicroButtonAlertTemplate")
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:SetFrameLevel (2000)
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon.Text:SetSpacing (4)
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:SetPoint ("bottomleft", LFGListFrame.SearchPanel.SearchBox, "topleft", 0, 20)
+		
 		LFGListFrame.SearchPanel.SearchBox:HookScript ("OnHide", function()
 			LFGListFrame.SearchPanel.SearchBox.Instructions2.text = ""
+			LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:Hide()
+		end)
+		
+		LFGListFrame.SearchPanel.SearchBox:HookScript ("OnTextChanged", function()
+			local text = LFGListFrame.SearchPanel.SearchBox:GetText()
+			if (tonumber (text) == ff.CurrentWorldQuest) then
+				LFGListFrame.SearchPanel.SearchBox.Instructions2.text = ""
+				LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:Hide()
+			end
 		end)
 		
 		LFGListFrame.EntryCreation.Name:HookScript ("OnEnterPressed", function()
@@ -300,14 +315,16 @@ function WorldQuestTracker.OpenGroupFinderForQuest()
 					
 					LFGListFrame.EntryCreation.Name:HookScript ("OnHide", function()
 						LFGListFrame.EntryCreation.Name.Instructions2.text = ""
+						LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:Hide()
 					end)
 				end
 
 				if (WorldQuestTracker.OpenSearchTime and WorldQuestTracker.OpenSearchTime+30 > GetTime()) then
+					LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:SetPoint ("bottomleft", LFGListFrame.EntryCreation.Name, "topleft", 0, 20)
+					LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:Show()
 					LFGListFrame.EntryCreation.Name.Instructions2.text = L["Enter the QuestID: "] .. ff.CurrentWorldQuest
 					LFGListFrame.EntryCreation.Name.Instructions:SetText("")
 				end
-				
 			end)
 		end)
 		
@@ -324,6 +341,11 @@ function WorldQuestTracker.OpenGroupFinderForQuest()
 		
 		LFGListFrame.SearchPanel.SearchBox.Instructions2.text = L["Enter the QuestID: "] .. ff.CurrentWorldQuest
 		WorldQuestTracker.OpenSearchTime = GetTime()
+		
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon.label = L["Enter the QuestID: "] .. ff.CurrentWorldQuest
+		MicroButtonAlert_SetText (LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon, LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon.label)
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:Show()
+		LFGListFrame.SearchPanel.SearchBox.QuestIDBalloon:SetPoint ("bottomleft", LFGListFrame.SearchPanel.SearchBox, "topleft", 0, 20)
 	end
 end
 
@@ -340,7 +362,7 @@ ff.QuestIDText:SetPoint ("topleft", ff.QuestNameText, "bottomleft", 0, -ff.Butto
 ff.QuestID2Text:SetPoint ("left", ff.QuestIDText, "right", 2, 0)
 
 --> BUTTON open group finder window
-ff.OpenGroupFinderButton = WorldQuestTracker:CreateButton (ff, WorldQuestTracker.OpenGroupFinderForQuest, ff.ButtonWidth, ff.ButtonHeight, L["Open Group Finder"], -1, nil, nil, nil, nil, nil, WorldQuestTracker:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE"))
+ff.OpenGroupFinderButton = WorldQuestTracker:CreateButton (ff, WorldQuestTracker.OpenGroupFinderForQuest, ff.ButtonWidth, ff.ButtonHeight, L["Search for a Group in Group Finder"], -1, nil, nil, nil, nil, nil, WorldQuestTracker:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE"))
 ff.OpenGroupFinderButton:SetPoint ("topleft", ff.QuestIDText, "bottomleft", 0, -ff.ButtonVerticalPadding)
 ff.OpenGroupFinderButton:SetClickFunction (function() ff:HideFrame (true) end, false, false, "right")
 
@@ -403,7 +425,12 @@ function ff.StartAutoInvites()
 					else
 						ff.PlayersNearby [playerName] = nil
 					end
-					nextInviteWave = 0.498547
+					
+					if (numMembersInGroup >= 3) then
+						nextInviteWave = 3.498547
+					else
+						nextInviteWave = 1.498547
+					end
 				else
 					ff.PlayersNearby [playerName] = nil
 				end
@@ -472,7 +499,6 @@ ff.IgnoreQuestButton:SetPoint ("top", ff.LeaveButton, "bottom", 0, -ff.ButtonVer
 ff.IgnoreQuestButton:SetClickFunction (function() ff:HideFrame (true) end, false, false, "right")
 
 --> Auto search for player nearby
-
 
 WorldQuestTracker.CommFunctions ["WQTF"] = function (data)
 	--data 1 = prefix
@@ -570,29 +596,40 @@ function WorldQuestTracker.RegisterGroupFinderFrameOnLibWindow()
 	
 end
 
-ff:RegisterEvent ("QUEST_ACCEPTED")
 ff:RegisterEvent ("QUEST_TURNED_IN")
+ff:RegisterEvent ("QUEST_ACCEPTED")
+ff:RegisterEvent ("QUEST_REMOVED")
 ff:RegisterEvent ("GROUP_ROSTER_UPDATE")
 ff:RegisterEvent ("GROUP_INVITE_CONFIRMATION")
-ff:RegisterEvent ("QUEST_REMOVED")
+ff:RegisterEvent ("LFG_LIST_APPLICANT_LIST_UPDATED")
+ff:RegisterEvent ("ZONE_CHANGED_NEW_AREA")
 
 ChatFrame_AddMessageEventFilter ("CHAT_MSG_WHISPER", function (_, _, msg)
 	if (not WorldQuestTracker.db.profile.groupfinder.send_whispers) then
-		if (msg:find ("[World Quest Tracker]")) then
-			return true
+		if (msg:find (L["World Quest Tracker"])) then
+			if (msg:find (L["Invite for World Quest"])) then
+				return true
+			end
 		end
 	end
 end)
 
 function ff:PlayerEnteredWorldQuestZone (questID)
-
-
-
 	--> update the frame
 	local title, factionID, capped = C_TaskQuest.GetQuestInfoByQuestID (questID)
 	if (title) then
 		ff.IsInQuestZone = true
 		ff.CurrentWorldQuest = questID
+		
+		--> toggle buttons
+		ff.OpenGroupFinderButton:Enable()
+		ff.IgnoreQuestButton:Enable()
+		
+		if (not IsInGroup()) then
+			ff.LeaveButton:Disable()
+		else
+			ff.LeaveButton:Enable()
+		end
 		
 		ff:ShowFrame()
 		
@@ -621,15 +658,60 @@ function ff:PlayerLeftWorldQuestZone (questID, questCompleted)
 	ff.IsInQuestZone = nil
 	ff.IsInWQGroup = nil
 	
+	--stop auto invites if any
+	ff:SetScript ("OnUpdate", nil)
+	
 	if (questCompleted) then
 		--> cancel the timer for leaving the quest area if any
 		if (ff.QuestCancelledHidingTimer and not ff.QuestCancelledHidingTimer._cancelled) then
 			ff.QuestCancelledHidingTimer:Cancel()
 		end
-	
 		if (ff.QuestCompletedHidingTimer and not ff.QuestCompletedHidingTimer._cancelled) then
 			ff.QuestCompletedHidingTimer:Cancel()
 		end
+		
+		local isInInstance = IsInInstance()
+		
+		if (IsInGroup() and not isInInstance) then
+		
+			--> disable buttons
+			ff.InvitePlayersButton:Disable()
+			ff.OpenGroupFinderButton:Disable()
+			ff.IgnoreQuestButton:Disable()
+			--> enable button
+			ff.LeaveButton:Enable()
+			
+			--> show the frame if isn't shown
+			if (not ff:IsShown()) then
+				ff:ShowFrame()
+			end
+			
+		elseif (not IsInGroup() and not isInInstance) then
+			
+			--> check if is in the group finder
+			local active, activityID, ilvl, honorLevel, name, comment, voiceChat, duration, autoAccept, privateGroup, questID = C_LFGList.GetActiveEntryInfo()
+			
+			if (active) then
+				--> disable buttons
+				ff.InvitePlayersButton:Disable()
+				ff.OpenGroupFinderButton:Disable()
+				ff.IgnoreQuestButton:Disable()
+				--> enable button
+				ff.LeaveButton:Enable()
+				
+				--> show the frame if isn't shown
+				if (not ff:IsShown()) then
+					ff:ShowFrame()
+				end
+			else
+				--> hide the frame if is still shown
+				if (ff:IsShown()) then
+					ff:HideFrame()
+				end
+			end
+
+		end
+		
 		ff.QuestCompletedHidingTimer = C_Timer.NewTimer (20, function()
 			ff:HideFrame()
 		end)
@@ -708,6 +790,50 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 			end
 		end
 	
+	elseif (event == "LFG_LIST_APPLICANT_LIST_UPDATED") then
+
+		local active, activityID, ilvl, honorLevel, name, comment, voiceChat, duration, autoAccept, privateGroup, questID = C_LFGList.GetActiveEntryInfo()
+		
+		--> check if the player has a group listed in the LFG and if is the group leader
+		if (active and ff.CurrentWorldQuest and UnitIsGroupLeader ("player")) then
+			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (ff.CurrentWorldQuest)
+			
+			local isInQuest = false
+			
+			--> check if the player still have the quest from the popup
+			local numQuests = GetNumQuestLogEntries() 
+			for i = 1, numQuests do 
+				local questTitle, level, questTag, suggestedGroup, isHeader, isCollapsed, isComplete, isDaily, questID = GetQuestLogTitle (i)
+				if (questTitle == title) then
+					isInQuest = true
+				end
+			end
+			
+			if (isInQuest) then
+				if (GetNumGroupMembers() <= 4) then
+					local applicantInfo = C_LFGList.GetApplicants()
+					if (applicantInfo and #applicantInfo > 0) then
+						for i = 1, #applicantInfo do
+							local id, status, pendingStatus, numMembers, isNew, comment = C_LFGList.GetApplicantInfo (applicantInfo [i])
+							if (status == "applied") then
+								local name, class, localizedClass, level, itemLevel, honorLevel, tank, healer, damage, assignedRole, relationship = C_LFGList.GetApplicantMemberInfo (applicantInfo [i], 1)
+								if (name) then
+									InviteUnit (name)
+									WorldQuestTracker:Msg ("Auto Inviting " .. name .. " from the LFG apply.")
+								end
+							end
+						end
+					end
+				end
+			else
+				--> player doesn't have the quest from the popup window, the group should be deslisted or this is a group for another activity
+				--if (not ff:IsShown()) then
+					--> show the frame again so the player can click on the leave group
+				--	ff:ShowFrame()
+				--end
+			end
+		end
+	
 	elseif (event == "QUEST_ACCEPTED") then
 		--> get quest data
 		local isInArea, isOnMap, numObjectives = GetTaskInfo (questID)
@@ -737,6 +863,12 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 			end
 		end 
 	
+	elseif (event == "ZONE_CHANGED_NEW_AREA") then
+		local isInInstance = IsInInstance()
+		if (isInInstance) then
+			ff:HideFrame()
+		end
+	
 	elseif (event == "QUEST_REMOVED") then
 		questID = arg1
 		if (questID == ff.CurrentWorldQuest) then
@@ -754,7 +886,7 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 		local isWorldQuest = QuestMapFrame_IsQuestWorldQuest (questID)
 		if (isWorldQuest) then
 			ff.WorldQuestFinished (questID)
-			
+
 			--> check if the quest completed was the current world quest
 			if (questID == ff.CurrentWorldQuest) then
 				ff.CurrentWorldQuest = nil
@@ -875,7 +1007,7 @@ function ff.UpdateButtonAnchorOnBBlock (block, button)
 	end
 	
 	button:SetParent (block)
-	button:SetFrameStrata ("HIGH")
+	button:SetFrameStrata ("LOW")
 	button:Show()
 end
 

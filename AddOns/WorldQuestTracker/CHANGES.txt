@@ -1,7 +1,7 @@
-changeset:   299:416d41a9d67e
-tag:         v8.0.1.299
+changeset:   305:a608ca28bece
+tag:         v8.0.1.305
 user:        Tercio
-date:        Thu Aug 16 15:33:52 2018 -0300
-summary:     - Show blizzard pins if failed to retrive quest information.
+date:        Tue Aug 21 17:54:11 2018 -0300
+summary:     - Fixed tooltips in the Taxi frame.
 
 
