@@ -1,0 +1,24 @@
+If you wish to support my projects or just feeling like saying thanks, feel free to:
+
+* Invite my characters into raid
+** I used to raid Heroic (now Mythic) content and though I raid less because of dissolving of my last guild, I still regulary run with normal/heroic PUGs, keep note of tactics and shouldn't be much of liability. :) My Battle.net e-mail is: rowaasr13@gmail.com. At the moment my most geared are Shadow Priest and Frost/Blood DK. I can join Mythic runs on EU-Kazzak.
+
+* Contact me so I can send you RAF invitation if you want to set up a new WoW account
+** E-mail: rowaasr13@gmail.com. Yes, I like those mounts.
+
+* Send me something from Battle.net Shop or give me some rare mount/toy in-game
+** EU time card codes are always useful. I'm also interested in StarCraft II with all expansions, Diablo III RoS (not base) and pretty much any pet/mount I don't have yet from the store. Check my exisiting collection on any of my characters like http://eu.battle.net/wow/en/character/kazzak/neyalind/advanced
+
+* Send me something from my wishlist on Steam or just a random game:
+** http://steamcommunity.com/id/rowaasr13/wishlist/
+
+* Donate some money through PayPal
+** Either send your donation to rowaasr13@gmail.com or just click this link: https://www.paypal.com/cgi-bin/webscr?business=rowaasr13%40gmail.com&item_name=WoW+Addons+Development&cmd=_donations
+
+* Use Yandex.Money service (Russian #1 search engine, local competitor to Google) to send some money. They accept VISA and MasterCard without registration as well as their own electronic wallet.
+** Just click this link, default sum is set at 100 roubles: https://money.yandex.ru/embed/donate.xml?account=41001331906908&quickpay=donate&payment-type-choice=on&default-sum=100&targets=WoW+Addons+Development&button-text=05
+
+* Offer me some paid optimization project if you need something written in Lua (including WoW addons), Perl, JS, or C/C++ to work faster and use less memory.
+** Other languages may be acceptable too, but it really depends on complexity of the project.
+
+* Buy me a drink if you're around Moscow in Russia. Sometimes you can catch me in Lipetsk and Voronezh too.
