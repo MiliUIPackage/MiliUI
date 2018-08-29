@@ -43,7 +43,7 @@
 --
 
 
-local revision =("$Revision: 17708 $"):sub(12, -3)
+local revision =("$Revision: 17735 $"):sub(12, -3)
 local FrameTitle = "DBM_GUI_Option_"	-- all GUI frames get automatically a name FrameTitle..ID
 
 local PanelPrototype = {}
@@ -240,23 +240,23 @@ local function MixinSharedMedia3(mediatype, mediatable)
 		local LSM = LibStub("LibSharedMedia-3.0")
 		soundsRegistered = true
 		--Internal Game Media
-		LSM:Register("sound", "ç„¡é ­é¨å£«: ç‹‚ç¬‘", [[Sound\Creature\HeadlessHorseman\Horseman_Laugh_01.ogg]])
-		LSM:Register("sound", "å°¤æ ¼è–©å€«: ç‹‚ç¬‘", [[Sound\Creature\YoggSaron\UR_YoggSaron_Slay01.ogg]])
-		LSM:Register("sound", "æ†æ¨è€…: æˆ‘çœ‹åˆ°ä½ äº†", [[Sound\Creature\Loathstare\Loa_Naxx_Aggro02.ogg]])
-		LSM:Register("sound", "ç‘ªè˜­é»›å¥³å£«: é€ƒèµ°", [[Sound\Creature\LadyMalande\BLCKTMPLE_LadyMal_Aggro01.ogg]])
-		LSM:Register("sound", "ç±³æ­æµ©æ–¯: é»ç‡ƒä½ ", [[Sound\Creature\MillhouseManastorm\TEMPEST_Millhouse_Pyro01.ogg]])
-		LSM:Register("sound", "è™›ç©ºåŠ«å¥ªè€…: æ¨™è¨˜", [[Sound\Creature\VoidReaver\TEMPEST_VoidRvr_Aggro01.ogg]])
-		LSM:Register("sound", "å¡èŒ²æ´›åŠ : æ¨™è¨˜", [[Sound\Creature\KazRogal\CAV_Kaz_Mark02.ogg]])
-		LSM:Register("sound", "å…‹è˜‡æ©: ä½ å°‡æœƒæ­»äº¡ï¼", [[Sound\Creature\CThun\CThunYouWillDIe.ogg]])
+		LSM:Register("sound", "µLÀYÃM¤h: ¨g¯º", [[Sound\Creature\HeadlessHorseman\Horseman_Laugh_01.ogg]])
+		LSM:Register("sound", "¤×®æÂÄ­Û: ¨g¯º", [[Sound\Creature\YoggSaron\UR_YoggSaron_Slay01.ogg]])
+		LSM:Register("sound", "¼¨«ëªÌ: §Ú¬İ¨ì§A¤F", [[Sound\Creature\Loathstare\Loa_Naxx_Aggro02.ogg]])
+		LSM:Register("sound", "º¿ÄõÂL¤k¤h: °k¨«", [[Sound\Creature\LadyMalande\BLCKTMPLE_LadyMal_Aggro01.ogg]])
+		LSM:Register("sound", "¦Ì¼Ú¯E´µ: ÂI¿U§A", [[Sound\Creature\MillhouseManastorm\TEMPEST_Millhouse_Pyro01.ogg]])
+		LSM:Register("sound", "µêªÅ§T¹ÜªÌ: ¼Ğ°O", [[Sound\Creature\VoidReaver\TEMPEST_VoidRvr_Aggro01.ogg]])
+		LSM:Register("sound", "¥d¯÷¬¥¥[: ¼Ğ°O", [[Sound\Creature\KazRogal\CAV_Kaz_Mark02.ogg]])
+		LSM:Register("sound", "§JÄ¬®¦: §A±N·|¦º¤`¡I", [[Sound\Creature\CThun\CThunYouWillDIe.ogg]])
 		--Embedded Sound Clip media
-		LSM:Register("sound", "çå¨œ: ç•¶å¿ƒ", [[Interface\AddOns\DBM-Core\sounds\beware.ogg]])
-		LSM:Register("sound", "çå¨œ: ç•¶å¿ƒ (reverb)", [[Interface\AddOns\DBM-Core\sounds\beware_with_reverb.ogg]])
-		LSM:Register("sound", "ç´¢çˆ¾: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\incredible.ogg]])
-		LSM:Register("sound", "è–©é­¯æ³•çˆ¾: åˆ¥æ­»", [[Interface\AddOns\DBM-Core\sounds\dontdie.ogg]])
+		LSM:Register("sound", "¬Ã®R: ·í¤ß", [[Interface\AddOns\DBM-Core\sounds\beware.ogg]])
+		LSM:Register("sound", "¬Ã®R: ·í¤ß (reverb)", [[Interface\AddOns\DBM-Core\sounds\beware_with_reverb.ogg]])
+		LSM:Register("sound", "¯Áº¸: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\incredible.ogg]])
+		LSM:Register("sound", "ÂÄ¾|ªkº¸: §O¦º", [[Interface\AddOns\DBM-Core\sounds\dontdie.ogg]])
 		--Blakbyrd
-		LSM:Register("sound", "Blakbyrdè­¦å ±1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
-		LSM:Register("sound", "Blakbyrdè­¦å ±2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
-		LSM:Register("sound", "Blakbyrdè­¦å ±3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
+		LSM:Register("sound", "BlakbyrdÄµ³ø1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
+		LSM:Register("sound", "BlakbyrdÄµ³ø2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
+		LSM:Register("sound", "BlakbyrdÄµ³ø3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
 		--User Media
 		if DBM.Options.CustomSounds >= 1 then
 			LSM:Register("sound", "DBM: Custom 1", [[Interface\AddOns\DBM-CustomSounds\Custom1.ogg]])
@@ -403,14 +403,14 @@ do
 	local function replaceJournalLinks(id)
 		local check = DBM:EJ_GetSectionInfo(tonumber(id))
 		if not check then
-			DBM:Debug("å‰¯æœ¬ID ä¸å­˜åœ¨: "..id)
+			DBM:Debug("°Æ¥»ID ¤£¦s¦b: "..id)
 		end
 		local link = select(9, DBM:EJ_GetSectionInfo(tonumber(id))) or DBM_CORE_UNKNOWN
 		return link:gsub("|h%[(.*)%]|h", "|h%1|h")
 	end
 
 	local sounds = MixinSharedMedia3("sound", {
-		{ sound=true, text = "ç„¡", value = "None" },
+		{ sound=true, text = "µL", value = "None" },
 		{ sound=true, text = "SW 1", value = 1 },
 		{ sound=true, text = "SW 2", value = 2 },
 		{ sound=true, text = "SW 3", value = 3 },
@@ -419,14 +419,14 @@ do
 	
 	--TODO, this should be localized
 	local tcolors = {
-		{ text = "ä¸€èˆ¬", value = 0 },
+		{ text = "¤@¯ë", value = 0 },
 		{ text = "Add", value = 1 },
 		{ text = "AOE", value = 2 },
-		{ text = "ç›®æ¨™", value = 3 },
-		{ text = "æ‰“æ–·", value = 4 },
-		{ text = "è§’è‰²å°æ‡‰", value = 5 },
-		{ text = "éšæ®µè½‰æ›", value = 6 },
-		{ text = "é‡è¦(è‡ªè¨‚)", value = 7 },
+		{ text = "¥Ø¼Ğ", value = 3 },
+		{ text = "¥´Â_", value = 4 },
+		{ text = "¨¤¦â¹ïÀ³", value = 5 },
+		{ text = "¶¥¬qÂà´«", value = 6 },
+		{ text = "­«­n(¦Û­q)", value = 7 },
 	}
 
 	function PanelPrototype:CreateCheckButton(name, autoplace, textleft, dbmvar, dbtvar, mod, modvar, globalvar, isTimer)
@@ -2666,17 +2666,17 @@ local function CreateOptionsMenu()
 
 		local Sounds = MixinSharedMedia3("sound", {
 			{	text	= L.NoSound,			value	= "" },
-			{	text	= "PvPæ‹”æ——",		value 	= "Sound\\Spells\\PVPFlagTaken.ogg", 		sound=true },
-			{	text	= "æš´é›ª",		value 	= "Sound\\interface\\UI_RaidBossWhisperWarning.ogg", 		sound=true },
-			{	text	= "ç•¶å¿ƒ!",		value 	= "Sound\\Creature\\AlgalonTheObserver\\UR_Algalon_BHole01.ogg", 		sound=true },
-			{	text	= "æº–å‚™è¡Œå‹•",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg", 		sound=true },
-			{	text	= "æ®ºæ®ºæ®º",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\æ®ºæ®ºæ®º.ogg", 		sound=true },
-			{	text	= "è­¦å ±è²",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\woop.mp3", 		sound=true },
-			{	text	= "æ¯€æ»…",		value 	= "Sound\\Creature\\KilJaeden\\KILJAEDEN02.ogg", 		sound=true },
-			{	text	= "é‚„æ²’æº–å‚™å¥½",		value 	= "Sound\\Creature\\Illidan\\BLACK_Illidan_04.ogg", 		sound=true },
-			{	text	= "é‚„æ²’æº–å‚™å¥½2",		value 	= "Sound\\Creature\\Illidan_Stormrage\\VO_703_Illidan_Stormrage_03.ogg", 		sound=true },
-			{	text	= "å¿«é€ƒé˜¿å°å¥³å­©",	value 	= "Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg", 		sound=true },
-			{	text	= "å¤œç²¾éˆé˜è²",		value 	= "Sound\\Doodad\\BellTollNightElf.ogg", 	sound=true }
+			{	text	= "PvP©ŞºX",		value 	= "Sound\\Spells\\PVPFlagTaken.ogg", 		sound=true },
+			{	text	= "¼É³·",		value 	= "Sound\\interface\\UI_RaidBossWhisperWarning.ogg", 		sound=true },
+			{	text	= "·í¤ß!",		value 	= "Sound\\Creature\\AlgalonTheObserver\\UR_Algalon_BHole01.ogg", 		sound=true },
+			{	text	= "·Ç³Æ¦æ°Ê",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg", 		sound=true },
+			{	text	= "±ş±ş±ş",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\±ş±ş±ş.ogg", 		sound=true },
+			{	text	= "Äµ³øÁn",		value 	= "Interface\\AddOns\\DBM-Core\\sounds\\woop.mp3", 		sound=true },
+			{	text	= "·´·À",		value 	= "Sound\\Creature\\KilJaeden\\KILJAEDEN02.ogg", 		sound=true },
+			{	text	= "ÁÙ¨S·Ç³Æ¦n",		value 	= "Sound\\Creature\\Illidan\\BLACK_Illidan_04.ogg", 		sound=true },
+			{	text	= "ÁÙ¨S·Ç³Æ¦n2",		value 	= "Sound\\Creature\\Illidan_Stormrage\\VO_703_Illidan_Stormrage_03.ogg", 		sound=true },
+			{	text	= "§Ö°kªü¤p¤k«Ä",	value 	= "Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg", 		sound=true },
+			{	text	= "©]ºëÆFÄÁÁn",		value 	= "Sound\\Doodad\\BellTollNightElf.ogg", 	sound=true }
 		})
 
 		local SpecialWarnSoundDropDown = specArea:CreateDropdown(L.SpecialWarnSound, Sounds, "DBM", "SpecialWarningSound", function(value)
@@ -3013,7 +3013,7 @@ local function CreateOptionsMenu()
 	do
 		local Sounds = MixinSharedMedia3("sound", {
 			{	text	= L.NoSound,						value	= "" },
-			{	text	= "ç©†æ‹‰ä¸: è¡é˜¿ï¼",				value 	= "Sound\\Creature\\MuradinBronzebeard\\IC_Muradin_Saurfang02.ogg", 		sound=true },
+			{	text	= "¿p©Ô¤B: ½Äªü¡I",				value 	= "Sound\\Creature\\MuradinBronzebeard\\IC_Muradin_Saurfang02.ogg", 		sound=true },
 		})
 
 		local eventSoundsPanel	 	= DBM_GUI_Frame:CreateNewPanel(L.Panel_EventSounds, "option")
@@ -3112,9 +3112,10 @@ local function CreateOptionsMenu()
 		spamArea:CreateCheckButton(L.DontShowFarWarnings, true, nil, "DontShowFarWarnings")
 		spamArea:CreateCheckButton(L.StripServerName, true, nil, "StripServerName")
 
-		local spamSpecArea = spamPanel:CreateArea(L.Area_SpecFilter, nil, 120, true)
+		local spamSpecArea = spamPanel:CreateArea(L.Area_SpecFilter, nil, 140, true)
 		spamSpecArea:CreateCheckButton(L.FilterTankSpec, true, nil, "FilterTankSpec")
 		spamSpecArea:CreateCheckButton(L.FilterDispels, true, nil, "FilterDispel")
+		spamSpecArea:CreateCheckButton(L.FilterTrashWarnings, true, nil, "FilterTrashWarnings2")
 		local FilterInterruptNote = spamSpecArea:CreateCheckButton(L.FilterInterruptNoteName, true, nil, "FilterInterruptNoteName")
 		
 		local interruptOptions = {

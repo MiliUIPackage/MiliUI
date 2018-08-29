@@ -270,7 +270,7 @@ L.FilterInterrupts2			= "如果施法者不是你的目標/專注目標(總是)�
 L.FilterInterrupts3			= "如果施法者不是你的目標/專注目標(總是)或中斷在冷卻中(首領&小怪)"
 L.FilterInterruptNoteName	= "過濾可中斷技能的警告(與次數)，如果自訂註記警告沒有包含你的名字"
 L.FilterDispels				= "過濾可驅散技能如果你的驅散技正在冷卻中"
-L.FilterSelfHud				= "從HudMap過濾你自己(排除Hud的距離功能)"
+L.FilterTrashWarnings		= "在普通與英雄地城過濾所有的小怪警告"
 
 L.Area_PullTimer			= "開怪計時器過濾選項"
 L.DontShowPTNoID			= "阻擋與你不同區域ID送出的開怪倒數計時條"

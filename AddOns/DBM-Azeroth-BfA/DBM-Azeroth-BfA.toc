@@ -1,19 +1,17 @@
 ## Interface: 80000
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Azeroth (BfA)|r
-## Title-koKR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0아제로스 (격아)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0艾澤拉斯 (決戰艾澤拉斯)|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
-## SavedVariables: DBMAzerothBfa_AllSavedVars
-## SavedVariablesPerCharacter: DBMAzerothBfa_SavedStats
+## SavedVariables: DBMAzerothBfA_AllSavedVars
+## SavedVariablesPerCharacter: DBMAzerothBfA_SavedStats
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: RAID
 ## X-DBM-Mod-Category: BFA
 ## X-DBM-Mod-Has-Single-Format: 1
 ## X-DBM-Mod-Name: Azeroth (BfA)
-## X-DBM-Mod-Name-koKR: 아제로스 (격전의 아제로스)
 ## X-DBM-Mod-Name-zhTW: 艾澤拉斯 (決戰艾澤拉斯)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 410
@@ -22,7 +20,6 @@
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 7
 localization.en.lua
-localization.kr.lua
 localization.cn.lua
 localization.tw.lua
 Tzane.lua
