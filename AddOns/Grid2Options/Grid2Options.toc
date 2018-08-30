@@ -3,6 +3,8 @@
 ## Title-esES: Grid2 |cd0ff7d0aOpciones|r
 ## Notes: Configuration module for Grid2
 ## Notes-esES: Modulo de configuracion del Grid2
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架(設置)
+## Notes-zhTW: Grid2 Opcions|n精簡的團隊框架設定介面。
 ## LoadOnDemand: 1
 ## Dependencies: Grid2
 ## Version: r828

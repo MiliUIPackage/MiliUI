@@ -4,7 +4,8 @@
 ## Notes-esES: Marcos de unidades de raid compactos y ligeros.
 ## Notes-ruRU: Модульный, легкий, отображающий на экране область группы/рейда в виде сетки.
 ## Notes-zhCN: 小巧的轻量级模块化队伍框架
-## Notes-zhTW: 精簡的團隊框架功能
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架
+## Notes-zhTW: Grid2|n精簡的團隊框架功能
 ## Author: Pastamancer & Maia, Jerry, Toadkiller
 
 ## OptionalDeps: Ace3, Clique

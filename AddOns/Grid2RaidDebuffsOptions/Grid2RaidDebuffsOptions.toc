@@ -3,6 +3,8 @@
 ## Title-esES: Grid2 |cd2ff7d0aRaidDebuffs Opciones|r
 ## Notes: Load on demand Options for Grid2RaidDebuffs.
 ## Notes-esES: Opciones de configuracion para el modulo Grid2RaidDebuffs.
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架(副本減益狀態設置)
+## Notes-zhTW: Grid2 RaidDebuffs Options|n副本頭目(減益狀態)設定介面。
 ## Author: Michael
 
 ## Dependencies: Grid2, Grid2RaidDebuffs
