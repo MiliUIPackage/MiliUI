@@ -2,11 +2,9 @@
 TreeGroup Container
 Container that uses a tree control to switch between groups.
 -------------------------------------------------------------------------------]]
-local Type, Version = "TreeGroup", 41
+local Type, Version = "TreeGroup", 36
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
-
-local WoW80 = select(4, GetBuildInfo()) >= 80000
 
 -- Lua APIs
 local next, pairs, ipairs, assert, type = next, pairs, ipairs, assert, type
@@ -164,7 +162,7 @@ end
 local function FirstFrameUpdate(frame)
 	local self = frame.obj
 	frame:SetScript("OnUpdate", nil)
-	self:RefreshTree(nil, true)
+	self:RefreshTree()
 end
 
 local function BuildUniqueValue(...)
@@ -214,7 +212,7 @@ local function Button_OnEnter(frame)
 	if self.enabletooltips then
 		GameTooltip:SetOwner(frame, "ANCHOR_NONE")
 		GameTooltip:SetPoint("LEFT",frame,"RIGHT")
-		GameTooltip:SetText(frame.text:GetText() or "", 1, .82, 0, true)
+		GameTooltip:SetText(frame.text:GetText() or "", 1, .82, 0, 1)
 
 		GameTooltip:Show()
 	end
@@ -297,13 +295,10 @@ local methods = {
 	["OnAcquire"] = function(self)
 		self:SetTreeWidth(DEFAULT_TREE_WIDTH, DEFAULT_TREE_SIZABLE)
 		self:EnableButtonTooltips(true)
-		self.frame:SetScript("OnUpdate", FirstFrameUpdate)
 	end,
 
 	["OnRelease"] = function(self)
 		self.status = nil
-		self.tree = nil
-		self.frame:SetScript("OnUpdate", nil)
 		for k, v in pairs(self.localstatus) do
 			if k == "groups" then
 				for k2 in pairs(v) do
@@ -339,8 +334,6 @@ local methods = {
 
 		button.toggle.button = button
 		button.toggle:SetScript("OnClick",Expand_OnClick)
-
-		button.text:SetHeight(14) -- Prevents text wrapping
 
 		return button
 	end,
@@ -392,8 +385,8 @@ local methods = {
 		end
 	end,
 
-	["RefreshTree"] = function(self,scrollToSelection,fromOnUpdate)
-		local buttons = self.buttons
+	["RefreshTree"] = function(self,scrollToSelection)
+		local buttons = self.buttons 
 		local lines = self.lines
 
 		for i, v in ipairs(buttons) do
@@ -423,12 +416,6 @@ local methods = {
 
 		local maxlines = (floor(((self.treeframe:GetHeight()or 0) - 20 ) / 18))
 		if maxlines <= 0 then return end
-
-		-- workaround for lag spikes on WoW 8.0
-		if WoW80 and self.frame:GetParent() == UIParent and not fromOnUpdate then
-			self.frame:SetScript("OnUpdate", FirstFrameUpdate)
-			return
-		end
 
 		local first, last
 		
@@ -680,7 +667,7 @@ local function Constructor()
 
 	local scrollbg = scrollbar:CreateTexture(nil, "BACKGROUND")
 	scrollbg:SetAllPoints(scrollbar)
-	scrollbg:SetColorTexture(0,0,0,0.4)
+	scrollbg:SetTexture(0,0,0,0.4)
 
 	local border = CreateFrame("Frame",nil,frame)
 	border:SetPoint("TOPLEFT", treeframe, "TOPRIGHT")

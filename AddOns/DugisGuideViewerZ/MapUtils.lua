@@ -10,9 +10,9 @@ local GetCurrentMapDungeonLevel_export = GetCurrentMapDungeonLevel_export
 local DungeonUsesTerrainMap_export = DungeonUsesTerrainMap_export
 local _
 
-local HBD = LibStub("HereBeDragons-2.0", true)
-local pins = LibStub("HereBeDragons-Pins-2.0")
-local HBDMigrate = LibStub("HereBeDragons-Migrate")
+local HBD = LibStub("HereBeDragons-2.0-Dugis", true)
+local pins = LibStub("HereBeDragons-Pins-2.0-Dugis")
+local HBDMigrate = LibStub("HereBeDragons-Migrate-Dugis")
 
 HBD_PINS_EVERYWHERE = 10002
 
@@ -209,6 +209,10 @@ end
 
 function DGV:GetDisplayedMapNameOld()
 	local id = WorldMapFrame:GetMapID()
+	return select(3, HBDMigrate:GetLegacyMapInfo(id))
+end
+
+function DGV:GetMapNameOld(id)
 	return select(3, HBDMigrate:GetLegacyMapInfo(id))
 end
 

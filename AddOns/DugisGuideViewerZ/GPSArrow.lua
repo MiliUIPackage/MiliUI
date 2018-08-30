@@ -22,7 +22,7 @@ local DGV = DugisGuideViewer
 if not DGV then return end
 
 local GPS = DGV:RegisterModule("GPSArrowModule")
-local HBDMigrate = LibStub("HereBeDragons-Migrate")
+local HBDMigrate = LibStub("HereBeDragons-Migrate-Dugis")
 
 if GPS then
 	GPS.visualMapOverlays = {}
@@ -459,7 +459,35 @@ function GPS:Initialize()
 		GPS.UpdatePOISVisibility()
 	end
 	
+    local function AlreadyExplored(exploredTextureInfo, mapID_, index_)
+        local exploredMapTextures_org = C_MapExplorationInfo.GetExploredMapTextures_org(mapID_);
+    
+        local layerIndex = WorldMapFrame.ScrollContainer:GetCurrentLayerIndex();
+        local layers = C_Map.GetMapArtLayers(mapID_);
+        local layerInfo = layers[layerIndex];
+        local tileW = layerInfo.tileWidth;
+        local tileH = layerInfo.tileHeight;	
+        
+        if exploredMapTextures_org then
+            for i, info in ipairs(exploredMapTextures_org) do
+                local numTexturesX = ceil(info.textureWidth/tileW);
+                local numTexturesY = ceil(info.textureHeight/tileH);
+                    
+                for j = 1, numTexturesY do
+                    for k = 1, numTexturesX do
+                        local index = ((j - 1) * numTexturesX) + k
+                        if exploredTextureInfo.fileDataIDs[index_] == info.fileDataIDs[index] then
+                            return true
+                        end
+                    end
+                end
+            end
+        end
+    end
+    
 	local gpsOverlays = {}
+    
+    --Only for big maps
 	function GPS.RemoveFogForNewMaps()
 		--Hidding all textures
 		LuaUtils:foreach(gpsOverlays, function(texture)
@@ -499,8 +527,6 @@ function GPS:Initialize()
 				local numTexturesY = ceil(exploredTextureInfo.textureHeight/tileH);
 				local texturePixelWidth, textureFileWidth, texturePixelHeight, textureFileHeight;
 				for j = 1, numTexturesY do
-					local info, y, z = C_Map.GetMapArtLayerTextures(mapID, textureIndex)
-				
 					if ( j < numTexturesY ) then
 						texturePixelHeight = tileH;
 						textureFileHeight = tileH;
@@ -565,11 +591,20 @@ function GPS:Initialize()
 						
 						local x1, y1 = exploredTextureInfo.offsetX + (tileW * (k-1)), -(exploredTextureInfo.offsetY + (tileH * (j - 1)))	
 						texture:SetPoint("TOPLEFT", x1 *wRatio , y1 * hRatio);
-						texture:SetTexture(exploredTextureInfo.fileDataIDs[((j - 1) * numTexturesX) + k]);
+                        local index = ((j - 1) * numTexturesX) + k
+						texture:SetTexture(exploredTextureInfo.fileDataIDs[index]);
 						
 						textureIndex = textureIndex + 1
 						
 						texture:Show();
+                        
+                        if not AlreadyExplored(exploredTextureInfo, mapID, index) then
+                            texture:SetVertexColor(0.5, 0.5, 0.5)
+                            texture:SetDrawLayer("OVERLAY" , 1)
+                        else
+                            texture:SetVertexColor(1, 1, 1)
+                            texture:SetDrawLayer("OVERLAY" , 2)
+                        end
 					end
 				end
 			end

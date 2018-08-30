@@ -3,7 +3,7 @@ if select(4, GetBuildInfo()) < 80000 then
     return
 end
 
-local MAJOR, MINOR = "HereBeDragons-Migrate", 2
+local MAJOR, MINOR = "HereBeDragons-Migrate-Dugis", 2
 assert(LibStub, MAJOR .. " requires LibStub")
 
 local HBDMigrate, oldversion = LibStub:NewLibrary(MAJOR, MINOR)

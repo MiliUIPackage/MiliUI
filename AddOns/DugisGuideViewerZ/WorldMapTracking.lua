@@ -106,6 +106,7 @@ function WMT:Initialize()
 		["2550"]	= "Cooking",
 		["3273"]	= "First Aid",
 		["131474"]	= "Fishing",
+		["158762"]	= "Archaeology",
 	},
 	{__index=function(t,k) rawset(t, k, k); return k; end})
 
@@ -1136,21 +1137,29 @@ function WMT:Initialize()
 		if not pointData then return end
 		local DugisArrow = DGV.Modules.DugisArrow
 		local currentContinent = GetCurrentMapContinent_dugi()
-		local mapName,level = strsplit(":",mapName)
-		local nsMapName = UnspecifyMapName(mapName)
-		if nsMapName then
-			if not DugisGuideUser.CurrentMapVersions or DugisGuideUser.CurrentMapVersions[nsMapName]~=mapName then return end
-		end
-		
-		--Case made for "Dalaran70" mapName
-		if not nsMapName and not tonumber(mapName) then
-			mapName = mapName:gsub('[0-9]*', "") 
-		end
-		
-		map = DGV:GetMapIDFromName(nsMapName or mapName)
-		level = tonumber(level)
+        
+        local mapID = mapName
+        local level
+        
+        --Old convention (map name)
+        if not tonumber(mapID) then
+            local mapName,level = strsplit(":",mapName)
+            local nsMapName = UnspecifyMapName(mapName)
+            if nsMapName then
+                if not DugisGuideUser.CurrentMapVersions or DugisGuideUser.CurrentMapVersions[nsMapName]~=mapName then return end
+            end
+            
+            --Case made for "Dalaran70" mapName
+            if not nsMapName and not tonumber(mapName) then
+                mapName = mapName:gsub('[0-9]*', "") 
+            end
+            
+            mapID = DGV:GetMapIDFromName(nsMapName or mapName)
+            level = tonumber(level)
+        end
+        
 		if 
-			currentContinent~=DGV:GetCZByMapId(map) and 
+			currentContinent~=GetMapContinent_dugi(mapID) and 
 			mapName~=DGV:GetDisplayedMapNameOld() and
 			not allContinents
 		then
@@ -1167,7 +1176,7 @@ function WMT:Initialize()
 					return zonePointIterator()
 				end
 			end
-			local point = {map, level, strsplit(":", pointData[index])}
+			local point = {mapID, level, strsplit(":", pointData[index])}
 			point[3] = tonumber(point[3]) or point[3]
 			point[4] = tonumber(point[4]) or point[4]
 --DGV:DebugFormat("IterateZonePoints", "mapName", mapName, "ShouldShow", (DataProviders:ShouldShow(nil, point[3], point[4], unpack(point, 5))), "GetDistance", (GetDistance(point)))
@@ -1931,27 +1940,25 @@ function DugisGuideViewer:ExportPets(optimized)
     local zoneKey_Level2PetInfos = {}
 
     LuaUtils:foreach(speciesData, function(pets, zoneId)
-        LuaUtils:foreach(pets, function(pet, petId)
-            LuaUtils:foreach(pet, function(points, floor_)
-                for xText, yText in gmatch(points, '(%w%w)(%w%w)') do 
-                    local x, y = tonumber(xText, 36) / 10, tonumber(yText, 36) / 10
-                    
-                    local dugiKey = ""..zoneId..":"..floor_
-                    
-                    if not  zoneKey_Level2PetInfos[dugiKey] then
-                        zoneKey_Level2PetInfos[dugiKey] = {}
-                    end
-                    
-                    local petInfos =  zoneKey_Level2PetInfos[dugiKey]
-                   
-                    local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID 
-                    = C_PetJournal.GetPetInfoBySpeciesID(petId)
-                   
-                    petType = _G['BATTLE_PET_NAME_' .. petType]
-                   
-                    petInfos[#petInfos + 1] = {x = x, y = y, xText =xText, yText = yText,   petId = petId, category = "", petName = speciesName, petType = petType}
+        LuaUtils:foreach(pets, function(points, petId)
+            for xText, yText in gmatch(points, '(%w%w)(%w%w)') do 
+                local x, y = tonumber(xText, 36) / 10, tonumber(yText, 36) / 10
+                
+                local dugiKey = tostring(zoneId)
+                
+                if not  zoneKey_Level2PetInfos[dugiKey] then
+                    zoneKey_Level2PetInfos[dugiKey] = {}
                 end
-            end)
+                
+                local petInfos =  zoneKey_Level2PetInfos[dugiKey]
+               
+                local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID 
+                = C_PetJournal.GetPetInfoBySpeciesID(petId)
+               
+                petType = _G['BATTLE_PET_NAME_' .. petType]
+               
+                petInfos[#petInfos + 1] = {x = x, y = y, xText =xText, yText = yText,   petId = petId, category = "", petName = speciesName, petType = petType}
+            end
         end)
     end)
     
@@ -1961,10 +1968,17 @@ function DugisGuideViewer:ExportPets(optimized)
     
         local zoneIdLevel = LuaUtils:split(zoneId_Level, ":")
         local zoneId = zoneIdLevel[1]
-        local zoneName = DugisGuideViewer:GetMapNameFromID(zoneId)
+        local mapInfo = C_Map.GetMapInfo(zoneId) or {}
+        local zoneName_or_Id = DugisGuideViewer:GetMapNameOld(tonumber(zoneId)) or zoneId
+        local key = ""
         
+        if tonumber(zoneName_or_Id) then
+            key = zoneName_or_Id 
+        else
+            key = zoneName_or_Id..":0" 
+        end
     
-        local result = "\n--"..zoneName.."\nsafeTappend(\""..zoneId_Level.."\", {"
+        local result = "\n--"..(mapInfo.name or zoneId).."\nsafeTappend(\""..key.."\", {"
         
         local lastPetId = -1
         for i = 1, #petInfos do

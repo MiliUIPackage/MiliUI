@@ -73,9 +73,12 @@ function TaxiDB:Initialize()
 			end
 		elseif FlightMapFrame then
 			local activePool = FlightMapFrame.pinPools["FlightMap_FlightPointPinTemplate"]
-			for pin in activePool:EnumerateActive() do 
-				pin.Icon:SetVertexColor(1,1,1)
-			end
+            
+            if activePool then
+                for pin in activePool:EnumerateActive() do 
+                    pin.Icon:SetVertexColor(1,1,1)
+                end
+            end
 			
 			if not FlightMapFrame.hookedOnShow then
 				FlightMapFrame:HookScript("OnShow", function()

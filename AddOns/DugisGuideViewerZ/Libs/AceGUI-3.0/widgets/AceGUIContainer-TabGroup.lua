@@ -2,7 +2,7 @@
 TabGroup Container
 Container that uses tabs on top to switch between groups.
 -------------------------------------------------------------------------------]]
-local Type, Version = "TabGroup", 36
+local Type, Version = "TabGroup", 35
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -13,6 +13,7 @@ local pairs, ipairs, assert, type, wipe = pairs, ipairs, assert, type, wipe
 local PlaySound = PlaySound
 local CreateFrame, UIParent = CreateFrame, UIParent
 local _G = _G
+local _
 
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
 -- List them here for Mikk's FindGlobals script
@@ -63,7 +64,7 @@ Scripts
 -------------------------------------------------------------------------------]]
 local function Tab_OnClick(frame)
 	if not (frame.selected or frame.disabled) then
-		PlaySound(841) -- SOUNDKIT.IG_CHARACTER_INFO_TAB
+		LuaUtils:PlaySound("igCharacterInfoTab")
 		frame.obj:SelectTab(frame.value)
 	end
 end

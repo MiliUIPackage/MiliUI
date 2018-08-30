@@ -10,8 +10,8 @@ if DugisGuideViewer.carboniteloaded then
 	CarboniteVersion = GetAddOnMetadata("Carbonite", "Version"):match("^([%d.]+)");
 end
 
-local HBD = LibStub("HereBeDragons-2.0")
-local pins = LibStub("HereBeDragons-Pins-2.0")
+local HBD = LibStub("HereBeDragons-2.0-Dugis")
+local pins = LibStub("HereBeDragons-Pins-2.0-Dugis")
 
 local DugisArrow, L = DGV:RegisterModule("DugisArrow"), DugisLocals
 DugisArrowGlobal = DugisArrow 
@@ -2501,15 +2501,15 @@ function DugisArrow:Initialize()
 		hooksecurefunc(StaticPopupDialogs["TOMTOM_REMOVE_ALL_CONFIRM"], "OnAccept", hook_RemoveAllWaypoints)
 	end
 	
-	function DGV:UNIT_SPELLCAST_SUCCEEDED(event, unit, spellName, spellRank, lineIdCounter, spellId)
+	function DGV:UNIT_SPELLCAST_SUCCEEDED(event, unit, cast, spellID)
         if unit == "player" then
-            DugisGuideViewer:OnCastingSpell(spellId)
+            DugisGuideViewer:OnCastingSpell(spellID)
         end
     
 		if unit=="player" and DugisArrow.waypoints then
-			--DGV:DebugFormat("UNIT_SPELLCAST_SUCCEEDED", "spellName", spellName, "spellId", spellId)
+			--DGV:DebugFormat("UNIT_SPELLCAST_SUCCEEDED", "spellID", spellID)
 			for _, waypoint in pairs(DugisArrow.waypoints) do
-				if spellId and (waypoint.spellRequirement==spellId or waypoint.spellID==spellId) then
+				if spellID and (waypoint.spellRequirement==spellID or waypoint.spellID==spellID) then
 					DugisArrow:SetNextWaypoint(waypoint)
 					break
 				end

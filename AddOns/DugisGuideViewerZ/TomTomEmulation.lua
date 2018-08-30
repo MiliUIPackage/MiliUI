@@ -5,7 +5,7 @@ TomTomEmulation.essential = true
 
 TomTomEmulation.frame = CreateFrame("FRAME", "DugisGuideViewerZ_TomTomEventsFrame");
 TomTomEmulation.frame:RegisterEvent("VARIABLES_LOADED");
-local HBD = LibStub("HereBeDragons-2.0", true)
+local HBD = LibStub("HereBeDragons-2.0-Dugis", true)
 
 TomTomEmulation.nameToMapId = {}
 

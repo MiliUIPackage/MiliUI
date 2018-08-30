@@ -109,12 +109,14 @@ function GA:Initialize()
             return
         end
         
-        if not GA.isDuringEquippingChain then
-            GA.isDuringEquippingChain = true
-            GA.AutoEquipSmartSet()
-            GA.RefreshCheckIconOnSmartSet()          
-        else
-            GA.EquipmentChangedContinueEquipAction(slot)
+        if GA.AutoEquipSmartSet and  GA.EquipmentChangedContinueEquipAction then
+            if not GA.isDuringEquippingChain then
+                GA.isDuringEquippingChain = true
+                if GA.AutoEquipSmartSet then GA.AutoEquipSmartSet() end
+                if GA.RefreshCheckIconOnSmartSet then GA.RefreshCheckIconOnSmartSet() end
+            else
+                if GA.EquipmentChangedContinueEquipAction then GA.EquipmentChangedContinueEquipAction(slot) end
+            end
         end
 	end)
 

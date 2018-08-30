@@ -387,8 +387,8 @@ function LuaUtils:CreateThread(threadName, threadFunction, onEnd, resumeAmountPe
                         if coroutine.status(thread.thread) ~= "dead" and not UnitAffectingCombat("player") then
                             local result, message = coroutine.resume(thread.thread, unpack(thread.arguments))
                             local status = coroutine.status(thread.thread)
-                            if status=="dead"and result == false then
-                                assert(false, threadName_..":\n" .. message)
+                            if status=="dead" and result == false then
+                                assert(false, threadName_..":\n" .. message.."\Detailed stack:\n"..debugstack(thread.thread))
                             end
                         end
                     end

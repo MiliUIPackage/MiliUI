@@ -3,7 +3,7 @@ if not DGV then return end
 
 local WMTCollection, WMT, L = DGV:RegisterModule("WMTCollection"), DGV.Modules.WorldMapTracking, DugisLocals
 local BC = LibStub("LibBabble-Class-3.0")
-local HBDMigrate = LibStub("HereBeDragons-Migrate")
+local HBDMigrate = LibStub("HereBeDragons-Migrate-Dugis")
 local BCR = BC:GetReverseLookupTable()
 local harvestingDataMode = false
 WMTCollection.essential = true

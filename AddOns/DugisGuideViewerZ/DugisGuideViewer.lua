@@ -4574,7 +4574,7 @@ function DugisGuideViewer:ToogleAutoMount()
         print(L["|cff11ff11Auto Mount is ON|r"])
     else
         print(L["|cff11ff11Auto Mount is OFF|r"])
-    end    
+    end   
 end
 
 SLASH_DG1 = "/dugi"
@@ -4772,7 +4772,7 @@ end
 
 function DugisGuideViewer:TurnOn(forceOn)
 	if DugisGuideViewer:GuideOn() and not forceOn then return end
-	print(L["|cff11ff11" .. "Dugi Guides On"] )
+	print("|cff11ff11" .. "Dugi Guides On" )
 	if not DugisGuideViewer:IsModuleRegistered("Guides") then
 		DugisGuideViewer.chardb.EssentialsMode = 1
 	end

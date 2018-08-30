@@ -1,10 +1,10 @@
 ## Interface: 80000
-## Title: Dugi Questing Essential |cffffffff5.005|r
+## Title: Dugi Questing Essential |cffffffff5.007|r
 ## Notes: Questing Addon Copyright 2010-2018 UltimateWoWGuide.com
 ## Title-zhTW: |cFF2D7CA4[任務]|r Dugi任務高手
 ## Notes-zhTW: Dugi Questing Essential |n提供類似衛星導航的箭頭，帶你做任務和升級!|n接到任務時會自動顯示地圖，方便預覽任務的位置。|n拿到比身上好的裝備時會自動建議更換裝備，這些功能都可以在設定選項中開啟或關閉。 |n|cffffd200使用方法：|r點任務追蹤清單中，任務標題左方的數字圓圈，開始導航這個任務。|n滑鼠右鍵點一下DG圓形小按鈕，或輸入 /任務，或 /dugi 開啟設定。|n|cffFF2D2D特別注意：|r這個插件的記憶體使用量較大。電腦較慢，或打副本/團隊不需要使用時請勿載入。|n版權所有(c) 2010-2016 UltimateWoWGuide.com
 ## DefaultState: disabled
-## Version: 5.005
+## Version: 5.007
 ## X-Website: http://www.ultimatewowguide.com/
 ## X-Email: support@ultimatewowguide.com
 ## X-Category: Quest

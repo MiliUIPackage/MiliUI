@@ -3,7 +3,7 @@ if not DGV then return end
 
 local Ants = DGV:RegisterModule("Ants")
 
-local HBD = LibStub("HereBeDragons-2.0", true)
+local HBD = LibStub("HereBeDragons-2.0-Dugis", true)
 
 Ants.essential = true
 local _

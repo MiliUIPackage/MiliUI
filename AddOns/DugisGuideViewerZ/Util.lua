@@ -267,7 +267,7 @@ local function AutoroutinesOnUpdate()
 							Pool(autoroutines)
 							autoroutines = nil
 						end
-						assert(false, message)
+						assert(false, message.."\n\n"..debugstack(autoroutine.coroutine))
 					end
 					if onCompletion then
 						DGV.QueueInvocation(onCompletion)

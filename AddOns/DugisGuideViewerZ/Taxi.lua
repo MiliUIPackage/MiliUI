@@ -155,20 +155,21 @@ function Taxi:Initialize()
 		return GetAngle(xTrans, yTrans, x1, y1, xDest, yDest)
 	end
 	
-	local function GetSmallestAngle(m1, _, x1, y1, mData, _, pointData, m2, _, x2, y2)
+	local function GetSmallestAngle(player_m1, _, player_x1, player_y1, mData, _, pointData, m2, _, x2, y2)
 		local shortestX, shortestY, shortestDist, shortestData
 		if type(pointData)=="number" then
 			local selectedX,selectedY = DGV:UnpackXY(pointData)
-			return selectedX, selectedY, CoordsToAngle(m1, nil, x1, y1, mData, nil, selectedX, selectedY, m2, nil, x2, y2)
+			return selectedX, selectedY, CoordsToAngle(player_m1, nil, player_x1, player_y1, mData, nil, selectedX, selectedY, m2, nil, x2, y2)
 		end
 		local data = GetCreateTable(strsplit("|", pointData))
 		for i=1,#(data) do
 			local firstCoords = strmatch(data[i], "([^%-]*)%-?")
 			local selectedX,selectedY = DGV:UnpackXY(firstCoords)
-			local angle = CoordsToAngle(m1, nil, x1, y1, mData, nil, selectedX, selectedY, m2, nil, x2, y2)
-			if angle and (not shortestDist or angle < shortestDist) then
+            local dist = DGV:ComputeDistance(player_m1, _, player_x1, player_y1, m2, _, selectedX, selectedY)
+
+			if dist and (not shortestDist or dist < shortestDist) then
 				shortestX,shortestY,shortestData = selectedX,selectedY,data[i]
-				shortestDist = angle
+				shortestDist = dist
 			end
 		end
 		tPool(data)
@@ -305,7 +306,7 @@ function Taxi:Initialize()
     
 		if not contData or not x1 then return end
         
-        local key = ""..(m1 or 0)..(f1 or 0).. (x1 or 0)..(y1 or 0)..(mTrans or 0)..(fTrans or 0)..(m2 or 0)..(f2 or 0)..(x2 or 0)..(y2 or 0)
+        local key = ""..tostring(m1)..tostring(f1).. tostring(x1)..tostring(y1)..tostring(mTrans)..tostring(fTrans)..tostring(m2)..tostring(f2)..tostring(x2)..tostring(y2)
             
         BacktrackCharacterPath_buff[key] = (BacktrackCharacterPath_buff[key] or 0) + 1
       
@@ -960,15 +961,15 @@ function Taxi:Initialize()
 							end
 							
 							local directMatch = data.direct and
-									(strmatch(data.direct, format(":%d",endId)) or 
-									strmatch(data.direct, format("%d:",endId)) or
+									(strmatch(data.direct, format(":%s",endId)) or 
+									strmatch(data.direct, format("%s:",endId)) or
 									tonumber(data.direct)==endId)
 							local hopTable
 							if directMatch then
 								hopTable = GetCreateTable(endId)
 							else
 								for _, hops in ipairs(data) do
-									local hopMatch = strmatch(hops, format(":%d$",endId))
+									local hopMatch = strmatch(hops, format(":%s$",endId))
 if startId==96813 and endId==95688 then
 DGV:DebugFormat("FlightMasterRouteBuildSelector", "hopMatch", hopMatch)
 end
@@ -1272,12 +1273,19 @@ end
 		local maps = DugisWorldMapTrackingPoints[UnitFactionGroup("player")]
 		for mapKey, mapValue in pairs(maps) do --iterate inkeepers
 			local m,f = strsplit(":",mapKey)
+            local numericId = tonumber(mapKey)
+            
 			for index=1,#(mapValue) do
 				local tt,loc,id,sub = strsplit(":", mapValue[index])
 				if tonumber(tt)==7 then
 					if sub==BR[bindLocation] then
 						local x,y = DGV:UnpackXY(loc)
-						m, f = tonumber(DGV:GetMapIDFromName(m)), tonumber(f)
+                        if numericId then
+                            m, f = numericId, tonumber(f)
+                        else
+                            m, f = tonumber(DGV:GetMapIDFromName(m)), tonumber(f)
+                        end
+						
 						cachedBindLocation.m = m
 						cachedBindLocation.f = f
 						cachedBindLocation.x = x
@@ -2387,8 +2395,10 @@ end
 		[9] = 462,
         
 		[1165] = "1163:1164:1166:1167",
-		[862] = "1165:1177:1176",
-		[895] = 1161,
+		[862] = "1165:1173:1174:1177:1176",
+		[942] = "1179:1180:1183:1182",
+		[864] = "1009",
+		[895] = "1161:1171:1172",
 		[539] = 582,
 		[525] = 590,		
 	}

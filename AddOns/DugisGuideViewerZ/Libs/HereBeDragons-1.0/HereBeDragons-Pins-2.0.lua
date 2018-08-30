@@ -4,13 +4,13 @@ if select(4, GetBuildInfo()) < 80000 then
 	return
 end
 
-local MAJOR, MINOR = "HereBeDragons-Pins-2.0", 5
+local MAJOR, MINOR = "HereBeDragons-Pins-2.0-Dugis", 5
 assert(LibStub, MAJOR .. " requires LibStub")
 
 local pins, oldversion = LibStub:NewLibrary(MAJOR, MINOR)
 if not pins then return end
 
-local HBD = LibStub("HereBeDragons-2.0")
+local HBD = LibStub("HereBeDragons-2.0-Dugis")
 
 pins.updateFrame          = pins.updateFrame or CreateFrame("Frame")
 
