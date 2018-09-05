@@ -1,12 +1,14 @@
-## Interface: 080000
+## Interface: 80000
 ## Title: NeedToKnow
 ## Author: Kitjan, lieandswell
 ## Version: 4.0.28
 ## Notes: Timer bars for buffs, debuffs, cooldowns, etc.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 增益、減益監控
+## Notes-zhTW: NeedToKnow|n以時間條監控 buffs、debuffs、技能冷卻....等。|n|cffffd200使用方法：|r輸入 /ntk 進行設置。
 ## X-Credits: Bilt, Fxfighter EU-Echsenkessel, metalchoir, sp00n, Vlakarados, wowui.cn
 ## X-Category: Buffs, Combat
 ## OptionalDeps: LibStub,LibSharedMedia-3.0
-## DefaultState: Enabled
+## DefaultState: Disabled
 ## LoadOnDemand: 0
 ## SavedVariablesPerCharacter: NeedToKnow_Settings, NeedToKnow_CharSettings
 ## SavedVariables: NeedToKnow_Globals
