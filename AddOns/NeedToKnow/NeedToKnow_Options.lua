@@ -1140,7 +1140,7 @@ function NeedToKnowRMB.BarMenu_UpdateSettings(barSettings)
             arrow:Show();
         end
         -- LOCME
-        lbl = lbl .. NEEDTOKNOW["BARMENU_"..type].. " Settings";
+        lbl = lbl .. NEEDTOKNOW["BARMENU_"..type].. NEEDTOKNOW.SETTINGS;
         button:SetText(lbl);
     end
 

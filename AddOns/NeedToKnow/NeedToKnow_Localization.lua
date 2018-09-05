@@ -308,20 +308,22 @@ elseif ( GetLocale() == "zhCN" ) then
     NEEDTOKNOW.CMD_RESET = "重置";
 
 elseif ( GetLocale() == "zhTW" ) then
-	-- 米利 @ addons.miliui.com
+    -- 米利 @ addons.miliui.com
+    NEEDTOKNOW.SETTINGS = "設置";    
+
     NEEDTOKNOW.BAR_TOOLTIP1 = "NeedToKnow";
     NEEDTOKNOW.ALTERNATE_POWER = "替代能量";
     NEEDTOKNOW.COMBO_POINTS = "連擊點數";
-    NEEDTOKNOW.BAR_TOOLTIP2 = "右鍵點擊計時條配置. 更多的選項在暴雪介面選項菜單裏. 輸入 /needtoknow 來鎖定並啟用.";
+    NEEDTOKNOW.BAR_TOOLTIP2 = "右鍵點擊計時條配置。更多的選項在暴雪介面選項內。|n輸入 /ntk 來鎖定並啟用。";
 
 
     NEEDTOKNOW.RESIZE_TOOLTIP = "利用點擊和拖曳來修改計時條尺寸";
 
     NEEDTOKNOW.BARMENU_ENABLE = "啟用計時條";
-    NEEDTOKNOW.BARMENU_CHOOSENAME = "選擇需要計時的Buff/Debuff";
+    NEEDTOKNOW.BARMENU_CHOOSENAME = "選擇需要計時的增益效果/減益效果";
     NEEDTOKNOW.BARMENU_CHOOSESLOT = "選擇裝備欄位...";
     NEEDTOKNOW.BARMENU_CHOOSEPOWER = "選擇能量類型...";
-    NEEDTOKNOW.CHOOSENAME_DIALOG = "輸入在這個計時條內計時的Buff或Debuff的精確名字"
+    NEEDTOKNOW.CHOOSENAME_DIALOG = "輸入在這個計時條內計時的增益效果或減益效果的精確名字或是法術ID"
     NEEDTOKNOW.IMPORTEXPORT_DIALOG = "計時條目前的設置如下。要將這些設置複製到剪貼簿，請按 Ctrl + C。要貼上您複製的設置（例如從另一個計時條複製），請按 Ctrl + V。清除內容可將計時條重置為初始狀態。";
     NEEDTOKNOW.BARMENU_CHOOSEUNIT = "需要監視的單位";
     NEEDTOKNOW.BARMENU_PLAYER = "玩家";
@@ -330,7 +332,7 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.BARMENU_PET = "寵物";
     NEEDTOKNOW.BARMENU_VEHICLE = "載具";
     NEEDTOKNOW.BARMENU_TARGETTARGET = "目標的目標";
-    NEEDTOKNOW.BARMENU_BUFFORDEBUFF = "Buff還是Debuff?";
+    NEEDTOKNOW.BARMENU_BUFFORDEBUFF = "增益還是減益?";
     NEEDTOKNOW.BARMENU_LAST_RAID = "Last Raid Recipient";
     NEEDTOKNOW.BARMENU_SPELLID = "使用法術ID";
     NEEDTOKNOW.BARMENU_HELPFUL = "增益效果";
