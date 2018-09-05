@@ -1,0 +1,10 @@
+## Interface: 80000
+## Title: Encounter Journal Saved Instances
+## Notes: Adds instance status indicators to Encounter Journal.
+## Notes-frFR: Ajoute des indicateurs de verrouillage d'instance au journal des rencontres.
+## Title-zhTW: |cFF0099FF[介面]|r 冒險指南地城紀錄顯示
+## Notes-zhTW: Encounter Journal Saved Instances|n在冒險指南顯示地城進度紀錄。
+## Author: alex_chrome, Meivyn
+## Version: 1.1.9
+
+EncounterJournalSavedInstances.lua
