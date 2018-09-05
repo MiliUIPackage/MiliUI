@@ -57,7 +57,7 @@ L.AskMafia = '詢問黑手黨'
 L.TipCountEquip = '已裝備: %d'
 L.TipCountBags = '背包: %d'
 L.TipCountBank = '銀行: %d'
-L.TipCountVault = '價值: %d'
+L.TipCountVault = '虛空倉庫: %d'
 L.TipCountGuild = '公會銀行: %d'
 L.TipDelimiter = '|'
 
