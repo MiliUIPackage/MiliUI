@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Одноручное
 ## Title-koKR: MogIt: 한손
 ## Title-zhCN: MogIt: 单手
-## Title-zhTW: MogIt: 單手
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 單手
 ## Title-ptBR: MogIt: Uma Mão
 ## Title-itIT: MogIt: One-Hand
 

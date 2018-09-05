@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Латы
 ## Title-koKR: MogIt: 판금
 ## Title-zhCN: MogIt: 板甲
-## Title-zhTW: MogIt: 鎧甲
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 鎧甲
 ## Title-ptBR: MogIt: Placas
 ## Title-itIT: MogIt: Plate
 

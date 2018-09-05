@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Кольчуга
 ## Title-koKR: MogIt: 사슬
 ## Title-zhCN: MogIt: 锁甲
-## Title-zhTW: MogIt: 鎖甲
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 鎖甲
 ## Title-ptBR: MogIt: Malha
 ## Title-itIT: MogIt: Mail
 

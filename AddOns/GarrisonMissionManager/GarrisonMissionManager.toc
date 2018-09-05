@@ -5,7 +5,7 @@
 ## Notes: Assists you with selecting best team for Battle for Azeroth mission table, Legion's Class Hall and WoD's Garrison/Shipyard missions and other followers management tasks
 ## Author: Oleg "Rowaa[SR13]" Volkov
 
-## Title-zhTW: |cFF2D7CA4[任務]|r 追隨者任務管理
+## Title-zhTW: |cFF00AA99[任務]|r 追隨者任務管理
 ## Notes-zhTW: Garrison Mission Manager|n協助選派最佳的追隨者團隊進行任務。
 
 ## LoadOnDemand: 1

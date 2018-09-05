@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Артефакт
 ## Title-koKR: MogIt: 유물
 ## Title-zhCN: MogIt: 神器
-## Title-zhTW: MogIt: 神器
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 神器
 ## Title-ptBR: MogIt: Artefato
 ## Title-itIT: MogIt: Artefatto
 

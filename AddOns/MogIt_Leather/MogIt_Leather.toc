@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Кожа
 ## Title-koKR: MogIt: 가죽
 ## Title-zhCN: MogIt: 皮甲
-## Title-zhTW: MogIt: 皮革
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 皮甲
 ## Title-ptBR: MogIt: Couro
 ## Title-itIT: MogIt: Leather
 

@@ -14,7 +14,7 @@
 ## Title-ruRU: MogIt: Другое
 ## Title-koKR: MogIt: 기타
 ## Title-zhCN: MogIt: 其它
-## Title-zhTW: MogIt: 其他
+## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理: 其他
 ## Title-ptBR: MogIt: Outro
 ## Title-itIT: MogIt: Other
 
