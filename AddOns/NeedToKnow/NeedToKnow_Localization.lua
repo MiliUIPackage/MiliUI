@@ -308,13 +308,21 @@ elseif ( GetLocale() == "zhCN" ) then
     NEEDTOKNOW.CMD_RESET = "重置";
 
 elseif ( GetLocale() == "zhTW" ) then
-	-- by wowui.cn
+	-- 米利 @ addons.miliui.com
     NEEDTOKNOW.BAR_TOOLTIP1 = "NeedToKnow";
+    NEEDTOKNOW.ALTERNATE_POWER = "替代能量";
+    NEEDTOKNOW.COMBO_POINTS = "連擊點數";
     NEEDTOKNOW.BAR_TOOLTIP2 = "右鍵點擊計時條配置. 更多的選項在暴雪介面選項菜單裏. 輸入 /needtoknow 來鎖定並啟用.";
-    NEEDTOKNOW.RESIZE_TOOLTIP = "點擊和拖動來修改計時條尺寸";
+
+
+    NEEDTOKNOW.RESIZE_TOOLTIP = "利用點擊和拖曳來修改計時條尺寸";
+
     NEEDTOKNOW.BARMENU_ENABLE = "啟用計時條";
     NEEDTOKNOW.BARMENU_CHOOSENAME = "選擇需要計時的Buff/Debuff";
+    NEEDTOKNOW.BARMENU_CHOOSESLOT = "選擇裝備欄位...";
+    NEEDTOKNOW.BARMENU_CHOOSEPOWER = "選擇能量類型...";
     NEEDTOKNOW.CHOOSENAME_DIALOG = "輸入在這個計時條內計時的Buff或Debuff的精確名字"
+    NEEDTOKNOW.IMPORTEXPORT_DIALOG = "計時條目前的設置如下。要將這些設置複製到剪貼簿，請按 Ctrl + C。要貼上您複製的設置（例如從另一個計時條複製），請按 Ctrl + V。清除內容可將計時條重置為初始狀態。";
     NEEDTOKNOW.BARMENU_CHOOSEUNIT = "需要監視的單位";
     NEEDTOKNOW.BARMENU_PLAYER = "玩家";
     NEEDTOKNOW.BARMENU_TARGET = "目標";
@@ -323,27 +331,99 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.BARMENU_VEHICLE = "載具";
     NEEDTOKNOW.BARMENU_TARGETTARGET = "目標的目標";
     NEEDTOKNOW.BARMENU_BUFFORDEBUFF = "Buff還是Debuff?";
-    NEEDTOKNOW.BARMENU_BUFF = "Buff";
-    NEEDTOKNOW.BARMENU_DEBUFF = "Debuff";
-    NEEDTOKNOW.BARMENU_ONLYMINE = "僅顯示自身施放的";
+    NEEDTOKNOW.BARMENU_LAST_RAID = "Last Raid Recipient";
+    NEEDTOKNOW.BARMENU_SPELLID = "使用法術ID";
+    NEEDTOKNOW.BARMENU_HELPFUL = "增益效果";
+    NEEDTOKNOW.BARMENU_HARMFUL = "減益效果";
+    NEEDTOKNOW.BARMENU_ONLYMINE = "只顯示自己施放的";
     NEEDTOKNOW.BARMENU_BARCOLOR = "計時條顏色";
-    NEEDTOKNOW.BARMENU_CLEARSETTINGS = "清除設置";
-    NEEDTOKNOW.UIPANEL_SUBTEXT1 = "這些選項允許妳自定義Buff/Debuff計時條.";
-    NEEDTOKNOW.UIPANEL_SUBTEXT2 = "計時條鎖定後才能正常工作. 當解鎖時, 妳可以移動或修改計時條分組的大小, 右鍵點擊單獨的計時條可以進行更多的設置. 妳也可以輸入 '/needtoknow' 或 '/ntk' 來鎖定/解鎖.";
-    NEEDTOKNOW.UIPANEL_BARGROUP = "分組 ";
-    NEEDTOKNOW.UIPANEL_NUMBERBARS = "計時條數量";
-    NEEDTOKNOW.UIPANEL_FIXEDDURATION = "計時條最大持續時間";
-    NEEDTOKNOW.UIPANEL_BARTEXTURE = "計時條材質";
-    NEEDTOKNOW.UIPANEL_BARSPACING = "計時條空距";
-    NEEDTOKNOW.UIPANEL_BARPADDING = "計時條間距";
-    NEEDTOKNOW.UIPANEL_BACKGROUNDCOLOR = "背景顏色";
+    NEEDTOKNOW.BARMENU_CLEARSETTINGS = "清除設定";
+    NEEDTOKNOW.BARMENU_POWER_PRIMARY = "主要的";
+    NEEDTOKNOW.BARMENU_POWER_STAGGER = "Stagger";
+    NEEDTOKNOW.BARMENU_SHOW = "顯示";
+    NEEDTOKNOW.BARMENU_SHOW_ICON = "圖示";
+    NEEDTOKNOW.BARMENU_SHOW_TEXT = "光環名稱";
+    NEEDTOKNOW.BARMENU_SHOW_COUNT = "顯示層數";
+    NEEDTOKNOW.BARMENU_SHOW_TIME = "剩餘時間";
+    NEEDTOKNOW.BARMENU_SHOW_SPARK = "閃爍";
+    NEEDTOKNOW.BARMENU_SHOW_MYPIP = "以指標特別標註由我施放的";
+    NEEDTOKNOW.BARMENU_SHOW_TEXT_USER = "覆蓋光環名稱...";
+    NEEDTOKNOW.BARMENU_SHOW_TTN1 = "第一個技能提示的數字";
+    NEEDTOKNOW.BARMENU_SHOW_TTN2 = "第二個技能提示的數字";
+    NEEDTOKNOW.BARMENU_SHOW_TTN3 = "第三個技能提示的數字";
+
+
+    NEEDTOKNOW.UIPANEL_SUBTEXT1 = "這些選項允許你自訂 NeedToKnow 的時間條群組。";
+--    NEEDTOKNOW.UIPANEL_SUBTEXT2 = "Bars work when locked. When unlocked, you can move/size bar groups and right click individual bars for more settings. You can also type '/needtoknow' or '/ntk' to lock/unlock.";
+    NEEDTOKNOW.UIPANEL_BARGROUP = "群組 ";
+    NEEDTOKNOW.UIPANEL_NUMBERBARS = "時間條數量";
+    NEEDTOKNOW.UIPANEL_FIXEDDURATION = "Max bar duration";
     NEEDTOKNOW.UIPANEL_LOCK = "鎖定";
     NEEDTOKNOW.UIPANEL_UNLOCK = "解鎖";
-    NEEDTOKNOW.UIPANEL_TOOLTIP_ENABLEGROUP = "顯示並啟用這個分組的計時條";
-    NEEDTOKNOW.UIPANEL_TOOLTIP_FIXEDDURATION = "設置這個分組計時條的最大長度 (按秒數).  留空為每個計時條設置不同的數值.";
-    NEEDTOKNOW.UIPANEL_TOOLTIP_BARTEXTURE = "選擇計時條的材質圖像.";
+    NEEDTOKNOW.UIPANEL_TOOLTIP_ENABLEGROUP = "Show and enable this group of bars";
+    NEEDTOKNOW.UIPANEL_TOOLTIP_FIXEDDURATION = "Set the maximum length of bars for this group (in seconds).  Leave empty to set dynamically per bar.";
+    NEEDTOKNOW.UIPANEL_TOOLTIP_BARTEXTURE = "Choose the texture graphic for timer bars";
     NEEDTOKNOW.CMD_RESET = "重置";
 
+    NEEDTOKNOW.UIPANEL_CONFIGMODE = "設定模式";
+    NEEDTOKNOW.UIPANEL_CONFIGMODE_TOOLTIP = "解鎖時間條，並且讓他們進入可以被設置的狀態。";
+    NEEDTOKNOW.UIPANEL_PLAYMODE = "遊玩模式";
+    NEEDTOKNOW.UIPANEL_PLAYMODE_TOOLTIP = "鎖定並啟用時間條，讓時間條變成滑鼠不可點擊的模式。";
+
+    NEEDTOKNOW.UIPANEL_APPEARANCE_SUBTEXT1 = "These options allow you to customize NeedToKnow's timer bars.";
+    NEEDTOKNOW.UIPANEL_APPEARANCE = "外觀";
+    NEEDTOKNOW.UIPANEL_BACKGROUNDCOLOR = "背景顏色";
+    NEEDTOKNOW.UIPANEL_BARSPACING = "時間條外距";
+    NEEDTOKNOW.UIPANEL_BARPADDING = "時間條內距";
+    NEEDTOKNOW.UIPANEL_BARTEXTURE = "時間條材質";
+    NEEDTOKNOW.UIPANEL_BARFONT = "時間條字體";
+    NEEDTOKNOW.UIPANEL_FONT = "字體";
+    NEEDTOKNOW.UIPANEL_FONT_OUTLINE = "字體框線";
+
+
+    NEEDTOKNOW.UIPANEL_PROFILES_SUBTEXT1 = "These options allow you to manage profiles.  Each profile is a complete NeedToKnow configuration for one talent spec.\nBy default, profiles are per-character (and have character: in front of their name.) Per-character profiles are only available to this character.  Profiles can be switched between per-character and per-account so that the same profile can be used by multiple characters on the same account.";
+    NEEDTOKNOW.UIPANEL_CURRENTPRIMARY = "目前主要個人設置:";
+    NEEDTOKNOW.UIPANEL_CURRENTSECONDARY = "目前次要個人設置:";
+    NEEDTOKNOW.UIPANEL_PROFILE = "個人設置";
+    NEEDTOKNOW.UIPANEL_SWITCHPROFILE_TOOLTIP = "Switch to using the currently selected profile";
+    NEEDTOKNOW.UIPANEL_DELETEPROFILE_TOOLTIP = "Permanently delete the currently selected profile";
+    NEEDTOKNOW.UIPANEL_COPYPROFILE_TOOLTIP   = "Create a new profile based on the currently selected profile";
+    NEEDTOKNOW.UIPANEL_PRIVATEPROFILE_TOOLTIP  = "Make the selected profile accessible only to the current character";
+    NEEDTOKNOW.UIPANEL_PUBLICPROFILE_TOOLTIP  = "Make the selected profile accessible to all the characters on the same account";
+    NEEDTOKNOW.UIPANEL_RENAMEPROFILE_TOOLTIP  = "Change the name of this profile";
+    NEEDTOKNOW.UIPANEL_PROFILE_SWITCHTO = "切換至";
+    NEEDTOKNOW.UIPANEL_PROFILE_DELETE = "刪除";
+    NEEDTOKNOW.UIPANEL_PROFILE_DUPLICATE = "複製";
+    NEEDTOKNOW.UIPANEL_PROFILE_NAMELABEL = "新的個人設置名稱:";
+    NEEDTOKNOW.UIPANEL_PROFILE_RENAME = "重新命名";
+    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPUBLIC = "整個帳號的共同設置";
+    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPRIVATE = "角色個人設置";
+
+    NEEDTOKNOW.BARMENU_TOTEM = "圖騰";
+    NEEDTOKNOW.BARMENU_CASTCD = "法術冷卻時間";
+    NEEDTOKNOW.BARMENU_BUFFCD = "內部冷卻時間";
+    NEEDTOKNOW.BARMENU_USABLE = "有條件的法術";
+    NEEDTOKNOW.BARMENU_EQUIPSLOT = "裝備欄位";
+    NEEDTOKNOW.BARMENU_POWER = "能量 (測試)";
+    NEEDTOKNOW.CMD_HIDE = "隱藏";
+    NEEDTOKNOW.CMD_PROFILE = "profile";
+    NEEDTOKNOW.CMD_SHOW = "顯示";
+    NEEDTOKNOW.BARMENU_TIMEFORMAT = "時間格式"; 
+    NEEDTOKNOW.FMT_SINGLEUNIT = "Single unit (2 m)";
+    NEEDTOKNOW.FMT_TWOUNITS = "Minutes and seconds (01:10)";
+    NEEDTOKNOW.FMT_FLOAT = "Fractional Seconds (70.1)";
+    NEEDTOKNOW.BARMENU_VISUALCASTTIME = "Visual Cast Time";
+    NEEDTOKNOW.BARMENU_VCT_ENABLE = "Enable for this bar";
+    NEEDTOKNOW.BARMENU_VCT_COLOR = "Overlay color";
+    NEEDTOKNOW.BARMENU_VCT_SPELL = "Choose cast time by spell...";
+    NEEDTOKNOW.BARMENU_VCT_EXTRA = "Set additional time...";
+    NEEDTOKNOW.CHOOSE_VCT_SPELL_DIALOG = "Enter the name of a spell (in your spellbook) whose cast time will determine the base length of the visual cast time.  If left blank, the aura name will be used as the spell name.  To force this to be 0, type 0.";
+    NEEDTOKNOW.CHOOSE_VCT_EXTRA_DIALOG = "Enter an amount of seconds that will be added to the cast time of the spell.  Ex: 1.5";
+    NEEDTOKNOW.CHOOSE_BLINK_TITLE_DIALOG = "Enter the text to display on the bar when it is blinking.";
+    NEEDTOKNOW.BUFFCD_DURATION_DIALOG = "Enter the cooldown duration triggered by the buffs watched by this bar.";
+    NEEDTOKNOW.BUFFCD_RESET_DIALOG = "Enter the buff (or buffs) to watch for which reset the cooldown to 0.";
+    NEEDTOKNOW.USABLE_DURATION_DIALOG = "Enter the cooldown duration triggered by the abilities watched by this bar.";
+    
 end
 
 
