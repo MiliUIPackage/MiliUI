@@ -19,7 +19,7 @@ end
 function Atr_LoadOptionsSubPanel (f, name, title, subtitle)
 
   f.name    = name
-  f.parent  = "Auctionator";
+  f.parent  = ZT("Auctionator");
   f.cancel  = Atr_Options_Cancel;
 
   local frameName = f:GetName();
@@ -827,7 +827,7 @@ function Atr_OnClick_ClearConfirm_Yes()
     UpdateAddOnMemoryUsage()
     local after = Atr_GetAuctionatorMemString()
 
-    zc.msg_anm (text, "  Memory went from", before, "to", after);
+    zc.msg_anm (text, ZT("  Memory went from"), before, ZT("to"), after);
   end
 
   gAtr_ConfirmYesAction = nil
@@ -859,7 +859,7 @@ function Atr_OnClick_ClearHistory(self)
     AUCTIONATOR_PRICE_DATABASE = nil;
     Atr_InitScanDB();
 
-    return "Pricing history cleared."
+    return ZT("Pricing history cleared.")
     end
 
   Atr_ConfirmClear_Frame:Show()
@@ -879,7 +879,7 @@ function Atr_OnClick_ClearPostHistory(self)
 
     AUCTIONATOR_PRICING_HISTORY = {}
 
-    return "Posting history cleared."
+    return ZT("Posting history cleared.")
     end
 
   Atr_ConfirmClear_Frame:Show()
@@ -900,7 +900,7 @@ function Atr_OnClick_ClearStackPrefs(self)
 
     Atr_ClearItemStackingPrefs()
 
-    return "Stacking preferences cleared."
+    return ZT("Stacking preferences cleared.")
     end
 
   Atr_ConfirmClear_Frame:Show()
@@ -921,7 +921,7 @@ function Atr_OnClick_ClearShopLists(self)
     AUCTIONATOR_SHOPPING_LISTS = {}
     Atr_SList.create (ZT("Recent Searches"), true);
 
-    return "Shopping lists cleared."
+    return ZT("Shopping lists cleared.")
     end
 
   Atr_ConfirmClear_Frame:Show()
@@ -1153,7 +1153,7 @@ local gShplistIndexToRename
 -----------------------------------------
 
 StaticPopupDialogs["ATR_RENAME_SHOPPING_LIST"] = {
-  text = "New name for this list",
+  text = ZT("New name for this list"),
   button1 = OKAY,
   button2 = CANCEL,
   OnAccept = function(self)
@@ -1282,9 +1282,9 @@ function Atr_OnClick_ShpList_Import()
   Atr_ShpList_SelectAllBut:Hide()
   Atr_ShpList_ImportSaveBut:Show()
 
-  Atr_ShpList_Explanation:SetText("Paste text that was previously exported into the text area to the left.")
+  Atr_ShpList_Explanation:SetText(ZT("Paste text that was previously exported into the text area to the left."))
 
-  Atr_ShpList_Edit_Name:SetText("Import")
+  Atr_ShpList_Edit_Name:SetText(ZT("Import"))
 
   Atr_ShpList_Edit_Text:SetText("")
   Atr_ShpList_Edit_Text:SetSpacing(3)
@@ -1324,7 +1324,7 @@ function Atr_ShpList_Edit_ImportSave()
           if (existingListNames_Num < 4) then
             existingListNames_Text = existingListNames_Text..line.."\n"
           elseif (existingListNames_Num == 4) then
-            existingListNames_Text = existingListNames_Text.."and others..."
+            existingListNames_Text = existingListNames_Text..ZT("and others...")
           end
         end
       elseif (line ~= "") then
@@ -1368,7 +1368,7 @@ function Atr_SList_ImportCore (doOverwrite)
         if (slist) then
           if (doOverwrite) then
             slist:Clear()
-            zc.msg_anm ("Shopping list overwritten:", line)
+            zc.msg_anm (ZT("Shopping list overwritten:"), line)
           else
             local newname
             local x
@@ -1379,7 +1379,7 @@ function Atr_SList_ImportCore (doOverwrite)
               end
             end
             slist = Atr_SList.create (newname)
-            zc.msg_anm ("Shopping list created:", newname)
+            zc.msg_anm (ZT("Shopping list created:"), newname)
           end
         else
           slist = Atr_SList.create (line)
@@ -1483,9 +1483,9 @@ function Atr_OnClick_ShpList_Export(self)
   Atr_ShpList_SelectAllBut:Show()
   Atr_ShpList_ImportSaveBut:Hide()
 
-  Atr_ShpList_Explanation:SetText("Click Select All, type Ctrl-C to copy the text and then paste into any text document.")
+  Atr_ShpList_Explanation:SetText(ZT("Click Select All, type Ctrl-C to copy the text and then paste into any text document."))
 
-  Atr_ShpList_Edit_Name:SetText("Export")
+  Atr_ShpList_Edit_Name:SetText(ZT("Export"))
 
   Atr_ShpList_Edit_Text:SetSpacing(3)
   Atr_ShpList_Edit_Text:SetPoint ("TOPLEFT", 0, -20)

@@ -114,10 +114,10 @@ function Atr_FullScanFrameIdle()
     gDoSlowScan = IsControlKeyDown()
 
     if (gDoSlowScan) then
-      Atr_FullScanStartButton:SetText ("Slow scan")
+      Atr_FullScanStartButton:SetText (ZT("Slow scan"))
       Atr_FullScanStartButton:Enable();
     else
-      Atr_FullScanStartButton:SetText ("Start Scanning")
+      Atr_FullScanStartButton:SetText (ZT("Start Scanning"))
       if (gCanQueryAll) then
         Atr_FullScanStartButton:Enable();
       else
@@ -153,10 +153,10 @@ function Atr_FullScanFrameIdle()
     end
   end
 
-  if (gAtr_FullScanState == ATR_FS_STARTED)   then  statusText = "Waiting for auction data"   end
-  if (gAtr_FullScanState == ATR_FS_UPDATING_DB) then  statusText = "Updating database"      end
-  if (gAtr_FullScanState == ATR_FS_CLEANING_UP) then  statusText = "Scan complete"        end
-  if (gAtr_FullScanState == ATR_FS_ANALYZING )  then  statusText = "Analyzing data ["..gFullScanPosition.." out of "..gGetAllTotalAuctions.."]";        end
+  if (gAtr_FullScanState == ATR_FS_STARTED)   then  statusText = ZT("Waiting for auction data")   end
+  if (gAtr_FullScanState == ATR_FS_UPDATING_DB) then  statusText = ZT("Updating database")      end
+  if (gAtr_FullScanState == ATR_FS_CLEANING_UP) then  statusText = ZT("Scan complete")        end
+  if (gAtr_FullScanState == ATR_FS_ANALYZING )  then  statusText = ZT("Analyzing data [")..gFullScanPosition..ZT(" out of ")..gGetAllTotalAuctions.."]";        end
 
 
 
@@ -490,7 +490,7 @@ end
 function Atr_FullScanMoreDetails ()
 
   zc.msg (" ");
-  zc.msg_anm (ZT("Auctions scanned")..": |cffffffff", gScanDetails.numBatchAuctions, " |r("..gScanDetails.totalItems, "items) ", "time: ", Atr_FullScan_GetDurString());
+  zc.msg_anm (ZT("Auctions scanned")..": |cffffffff", gScanDetails.numBatchAuctions, " |r("..gScanDetails.totalItems, ZT("items) "), ZT("time: "), Atr_FullScan_GetDurString());
   zc.msg_anm ("|cffa335ee   "..ZT("Epic items")..": |r",    gScanDetails.numEachQual[5]..GetIgnoredString(5));
   zc.msg_anm ("|cff0070dd   "..ZT("Rare items")..": |r",    gScanDetails.numEachQual[4]..GetIgnoredString(4));
   zc.msg_anm ("|cff1eff00   "..ZT("Uncommon items")..": |r",  gScanDetails.numEachQual[3]..GetIgnoredString(3));
@@ -506,17 +506,17 @@ function Atr_FullScanMoreDetails ()
   zc.msg_anm (ZT("Items updated in database")..": |cffffffff", gScanDetails.gNumUpdated);
 
   if (gFSNumNullItemNames > 0) then
-    zc.msg_anm (string.format ("|cffff3333%d auctions returned empty results (out of %d)|r", gFSNumNullItemNames, gScanDetails.numBatchAuctions));
+    zc.msg_anm (string.format (ZT("|cffff3333%d auctions returned empty results (out of %d)|r"), gFSNumNullItemNames, gScanDetails.numBatchAuctions));
   end
 
   if (gFSNumNullItemLinks > 0) then
-    zc.msg_anm (string.format ("|cffff3333%d auctions returned null itemLinks (out of %d)|r", gFSNumNullItemLinks, gScanDetails.numBatchAuctions));
+    zc.msg_anm (string.format (ZT("|cffff3333%d auctions returned null itemLinks (out of %d)|r"), gFSNumNullItemLinks, gScanDetails.numBatchAuctions));
   end
 
   if (not gGetAllSuccess) then
     zc.msg (" ");
-    zc.msg_anm ("|cffff3333Warning:|r Blizzard server failed to return all items: ", gGetAllTotalAuctions, gGetAllNumBatchAuctions);
-    zc.msg_anm ("You might want to try slow scanning.");
+    zc.msg_anm (ZT("|cffff3333Warning:|r Blizzard server failed to return all items: "), gGetAllTotalAuctions, gGetAllNumBatchAuctions);
+    zc.msg_anm (ZT("You might want to try slow scanning."));
   end
 
   zc.msg (" ");

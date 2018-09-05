@@ -682,7 +682,7 @@ local function Atr_ModTradeSkillFrame()
     button:SetPoint("RIGHT", "TradeSkillFrame", "RIGHT", -35, 100);
 
     button:SetHeight (20)
-    button:SetText("AH")
+    button:SetText(ZT("AH"))
     button:SetNormalFontObject(_G["GameFontNormalSmall"])
     button:SetHighlightFontObject(_G["GameFontNormalSmall"])
     button:SetDisabledFontObject(_G["GameFontNormalSmall"])
@@ -1313,9 +1313,9 @@ function Atr_AuctionFrameTab_OnClick (self, index, down)
     if (index == Atr_FindTabIndex(BUY_TAB))   then gCurrentPane = gShopPane; end;
     if (index == Atr_FindTabIndex(MORE_TAB))  then gCurrentPane = gMorePane; end;
 
-    if (index == Atr_FindTabIndex(SELL_TAB))  then AuctionatorTitle:SetText ("Auctionator - "..ZT("Sell"));     end;
-    if (index == Atr_FindTabIndex(BUY_TAB))   then AuctionatorTitle:SetText ("Auctionator - "..ZT("Buy"));      end;
-    if (index == Atr_FindTabIndex(MORE_TAB))  then AuctionatorTitle:SetText ("Auctionator - "..ZT("More").."...");  end;
+    if (index == Atr_FindTabIndex(SELL_TAB))  then AuctionatorTitle:SetText (ZT("Auctionator - ")..ZT("Sell"));     end;
+    if (index == Atr_FindTabIndex(BUY_TAB))   then AuctionatorTitle:SetText (ZT("Auctionator - ")..ZT("Buy"));      end;
+    if (index == Atr_FindTabIndex(MORE_TAB))  then AuctionatorTitle:SetText (ZT("Auctionator - ")..ZT("More").."...");  end;
 
     Atr_ClearHlist();
     Atr_SellControls:Hide();
@@ -1683,7 +1683,7 @@ function Atr_LogMsg (itemlink, itemcount, price, numstacks)
   logmsg = logmsg.."   "..zc.priceToString(price);
 
   if (numstacks > 1 and itemcount > 1) then
-    logmsg = logmsg.."  per stack";
+    logmsg = logmsg..ZT("  per stack");
   end
 
 

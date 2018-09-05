@@ -606,7 +606,8 @@ end
 
 function Atr_MngSLists_OnClick ()
 
-  InterfaceOptionsFrame_OpenToCategory ("Shopping Lists");
+  InterfaceOptionsFrame_OpenToCategory (gAtr_ZT("Shopping Lists"));
+  InterfaceOptionsFrame_OpenToCategory (gAtr_ZT("Shopping Lists"));
 
   local slist
 
