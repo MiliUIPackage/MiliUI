@@ -1,0 +1,18 @@
+## Interface: 80000
+## Title: Memantine
+## Title-zhTW: |cFF0099FF[介面]|r 冒險指南拾取專精紀錄
+## Notes-zhTW: Memantine|n在冒險指南右側新增紀錄功能，幫助玩家紀錄BOOS要切換何種拾取專精，可依不同難度設定。
+## Author: Lej
+## Version: 1.0.1
+## SavedVariables: Memantine
+
+libs\LibStub\LibStub.lua
+libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
+libs\AceAddon-3.0\AceAddon-3.0.xml
+libs\AceConsole-3.0\AceConsole-3.0.xml
+libs\AceDB-3.0\AceDB-3.0.xml
+libs\AceEvent-3.0\AceEvent-3.0.xml
+libs\AceGUI-3.0\AceGUI-3.0.xml
+libs\AceHook-3.0\AceHook-3.0.xml
+
+MemantineCore.lua
