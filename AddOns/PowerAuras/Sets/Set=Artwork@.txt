@@ -1,0 +1,6 @@
+Set=Artwork@
+Aura[121]=Version:4.24.1; icon:Spell_frost_frozencore; x:565; customname:Angel.tga; isAlive:0; bufftype:18; alpha:0.95; stratalevel:4; anim1:4; secondaryblendmode:Disable; y:-463; customtex:true; size:0.88; texmode:2; strata:Medium@
+Aura[122]=Version:4.24.1; icon:Spell_frost_frozencore; x:-572; customname:Demon.tga; isAlive:0; bufftype:18; alpha:0.95; stratalevel:4; anim1:4; secondaryblendmode:Disable; y:-463; customtex:true; size:0.88; texmode:2; texturesublevel:-3; strata:Medium@
+Aura[123]=Version:4.24.1; b:0.2431; icon:Spell_frost_frozencore; r:0.7294; x:-589; customname:Name.tga; isAlive:0; bufftype:18; alpha:0.75; symetrie:2; stratalevel:2; anim1:4; secondaryblendmode:Disable; y:377; customtex:true; gradientstyle:Horizontal; g:0.2157; size:2; texturesublevel:-1; strata:Background@
+Aura[124]=Version:4.24.1; b:0.2078; icon:Spell_frost_frozencore; x:742; customname:Map1.tga; isAlive:0; bufftype:18; alpha:0.95; stratalevel:2; anim1:4; secondaryblendmode:Disable; y:385; customtex:true; gradientstyle:Horizontal; g:0.3294; size:1.98; strata:Background@
+Aura[125]=Version:4.24.1; b:0.1255; icon:Spell_frost_frozencore; r:0.5725; x:745; customname:Map2.tga; isAlive:0; bufftype:18; alpha:0.75; stratalevel:1; secondaryblendmode:Disable; y:445; customtex:true; g:0.1608; size:2.13; strata:Background@

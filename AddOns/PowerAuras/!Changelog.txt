@@ -1,0 +1,664 @@
+**Issues:**
+* Leftover slider/dropdown/model optimisations.
+* Fix the instance type related changes.
+* Timed auras redisplay fix at phasing events/rechecks.
+* Duel with party members, enemy target bug.
+* Change Old-Animation's update type to AnimationGroup.
+* "Stance/Seal/Form" multiple selection dropdown update.
+
+
+**4.30.0**
+* Updated for 8.0.1.
+* Fixed issues with Arcane Charges.
+
+**4.29.11**
+* Fixed GCD issues.
+
+**4.29.10**
+* Fixed an issue with sounds.
+
+**4.29.9**
+* Updated for 7.3.0.
+
+**4.29.8**
+* Updated dropdown handlers.
+
+**4.29.7**
+* Updated dropdown handlers.
+* Fixed an issue with models.
+
+**4.29.6**
+* Updated for 7.2.0.
+* Added Arcane Charges for power tracking.
+* Some localization updates.
+
+**4.29.5**
+* Fixed an issue with health related events.
+
+**4.29.4**
+* Added options for all specializations.
+* Removed an unused stat.
+* Removed an unused power type.
+* Fixed some other issues.
+
+**4.29.3**
+* Fixed an issue with invalid power types.
+* Fixed rune types for Death Knigths.
+* Fixed the Spin the aura after shown animation.
+
+**4.29.2**
+* Model fixes.
+* Combo Points should work again.
+* Added power types: Astral Power, Maelstrom, Insanity, Fury, Pain.
+* Removed a lot of unused power types.
+
+**4.29.1**
+* GCD fixes for every class and spec.
+* Timer and stacks transparent textures should work properly.
+* Removed some obsolete spells.
+* Options interface and version fix.
+
+**4.29.0**
+* Updated for 7.0.3.
+
+**4.28.8**
+* Fixed a major issue with models.
+
+**4.28.7**
+* Model updates. (6.2.2.20574)
+
+**4.28.6**
+* Fixed an issue with the tooltip scanner functions.
+* Enabled the tooltip checker function for the Weapon Enchant trigger.
+
+**4.28.5**
+* Fix for broken "Action Usable" triggers, with own textures.
+* Secondary model reset fix.
+* Added some upvalues.
+* Some other smaller fixes.
+
+**4.28.4**
+* Fix for broken "Action Usable" triggers.
+
+**4.28.3**
+* The options module should be load on demand properly.
+* Some other smaller fixes.
+
+**4.28.2**
+* Added a new trigger: Spell Learned (Experimental)
+* Fixed an issue when switching between models and custom models.
+* Combo point fix.
+
+**4.28.1**
+* Fixed an issue regarding with stacks with "Action Usable" triggers.
+* Added two new animation: Growing [Inverse], Shrinking [Inverse], which have reversed alpha change comparted to the normal animations.
+* Animations will not be limited at 30 FPS and will be a lot smoother when your FPS is over 30.
+* Some other smaller animation fixes.
+
+**4.28.0**
+* Updated for 6.2.0.
+
+**4.27.9**
+Models should auto update on load, when you log on with a newer version in the first time. (Optional run with "/pa update" command.)
+Model updates and clean ups.
+Fixed an issue with models, when the addon options module is disabled.
+Clicking on the Custom Model should properly hide the model's texture dropdown.
+Right clicking on the aura's frame should properly select that aura, just like as with the left clicks.
+Some other smaller fixes and clean ups.
+
+**4.27.8**
+* Hostile named unit tracking should work properly.
+* Some model fixes.
+
+**4.27.7**
+* Toc bump for the options module.
+
+**4.27.6**
+* Updated for 6.1.0.
+
+**4.27.5**
+* Increased max Chi slider to 6.
+* Model updates.
+* Some other smaller fixes.
+* Localization updates.
+
+**4.27.4**
+* Converted every sound back to "mp3".
+* Increased "Shadow Orb" max value to 5.
+* Animations with alpha changes should properly obey base opacity changes instantly.
+* Enabled new options for "Health" and "Mana" triggers.
+* Some instance type related fixes.
+
+**4.27.3**
+* Fixed the aura's preview icon.
+* Model updates.
+* Some other minor fixes.
+
+**4.27.2**
+* Warlock GCD fix.
+* Combo points should work without target.
+
+**4.27.1**
+* Converted sounds back to ogg vorbis. (Vorbis 2.0, 320kbps, 48kHz, CBR)
+* Vehicle tri-state checkbutton fix.
+* Fixed some issues with custom sounds.
+* Some other smaller fixes.
+
+**4.27.0**
+* Updated for 6.0.2.
+* Tri-state checkbutton fixes.
+* GDC updates.
+* Some other fixes.
+
+**4.26.3**
+* Fixed an issue with melee offhand damage calculations.
+* Some other smaller changes.
+
+**4.26.2**
+* Fixed an issue which sometimes allowed the esc key close the configuration frame, when it should not.
+* Added two new sound: "Health Low", "Mana Low".
+* Model updates.
+* Some other minor fixes.
+
+**4.26.1**
+* Fixed a leftover issue with custom textures.
+* Some other minor fixes.
+
+**4.26.0**
+* Fixed an issue which didn't let the addon properly load custom textures from subfolders.
+* Fixed an issue with stack handling with "Spell Cooldown" and "Action Usable" aura types.
+* Added 4 way scaling for options frames.
+* Some localization fixes.
+* Some other smaller fixes.
+
+**4.25.9**
+* Fixed an issue which caused inverted aura types starting sound not to be played more then once.
+
+**4.25.8**
+* Major global slider optimisations.
+* Opening the "Aura Browser" from the Interface/Addons panel won't cause the "Aura Browser" to be closed immediately, when you leave the Interface/Addons panel by any way. (Should have done that ages ago...)
+* Double tapping "esc" or "enter" leaves the unlocked aura's frame, while the mouse is over it. (Opens game menu/chat editbox.)
+* Fixed an issue which caused start sounds played multiple times on cross-realm phasing zone changes.
+* Fixed a naming and tooltip issue with the timer invert auras slider, when changing aura types.
+* Closing the "Effect Editor" with the (X) button, will properly going to close the opened "Color Picker" and "Font Selector" frame too.
+* Some changes with the random color handling.
+* A lot of other minor fixes.
+
+**4.25.7**
+* Fixed an issue with "Own Texure" aura type icons.
+* Fixed an issue with "Own Texure" aura type texture slider.
+* Model updates.
+* Some localization updates.
+* Some other minor fixes.
+
+**4.25.6**
+* Added a missing even for spell cooldowns, which will update it's icon on talent swaps immediately.
+* Fixed a lua error when switching between some specific aura triggers.
+* Added "/pa playertalents" to list the player's talents and it's spell ids.
+* Added "/pa pettalents" to list the player's pet's talents and it's spell ids.
+
+**4.25.5**
+* Spell updates.
+* "Buff Name" editbox now accepts up to 1024 charater long strings.
+* Added text wrap function to long tooltips.
+
+**4.25.4**
+* Auto disabling stacks for non-stacable spells for Action Usable and Spell Cooldown type auras.
+* Some other minor fixes.
+
+**4.25.3**
+* Fixed an issue which constantly caused timeouts for exporting auras with other players.
+* Some other fixes with exporting/importing auras.
+* Smaller performance upgradements.
+* Fixed some lua errors with debug mode enabled.
+* Some other minor fixes.
+
+**4.25.2**
+* Fixed an issue which broke "Spell Cooldown" type auras.
+
+**4.25.1**
+* Added support for stackable spells for "Action Usable" and "Spell Cooldown" triggers.
+* "Spell Cooldown" triggers now going to ignore global cooldown for stackable spells.
+* The "Custom Texture" and "Custom Model" editbox, is now going to accept and convert more type of file paths.
+* Fixed an issue with the "Test" button's proper functionality on other then the first character tab.
+* Succesfully moving an aura now will select the next aura in line if possible.
+* Fixed some issues with models.
+* Smaller change in slash command handling.
+* Some other smaller fixes.
+
+**4.25.0**
+* Fixed a major issue which broke display id type model's proper functionalities.
+
+**4.24.9**
+* Added easter eggs!
+* Stacks frame now wont crash, with minus values.
+* The main option and a effect editor are now rescaleable. (Left click to scale, right click to reset, middle click to lock the scale.)
+* Switching to other auras now properly going to close the equipments slots frame.
+* Creating a new auras now properly going to close the equipments slots and font selector frame.
+* Reseting frame positions now properly going to close the font selector.
+* Fixed an issue with the "Test" buttons opacity change.
+* Added sounds for multiple elements in the main options, clicking global and charater tabs, clicking on aura icons.
+* Equipment slot fixes.
+* Some localization updates.
+* Merged PowerOptionsEquipmentSlots.xml, into the main options.
+* Removed PowerOptionsEquipmentSlots.xml.
+* Some XML fixes.
+* Some other smaller fixes.
+
+**4.24.8**
+* Fixed a bug which caused timers not to show up when the aura itself was hidden at the start.
+* Fixed an issue which caused timers to broke, when you changed the auras invert checkbutton.
+* Fixed the broken "Animation Speed" slider.
+* Fixed the broken "Level" slider on the animation tab.
+* Fixed the broken "Sublevel" slider on the animation tab.
+* Fixed the broken "Secondary Blend Mode" dropdown.
+* Fixed the broken "Secondary Texture's Strata" dropdown.
+* Fixed an issue with secondary aura's random color.
+* Fixed an issue with "Position X" and "Postion Y" slider's for auras with secondary aura.
+* "Equipement Slots" now accept all type of the timers. (Inverted, Cooldown.)
+* "Purgealbe Spell" tooltip check options is gonna work properly.
+* "Stealable" tooltip check options is gonna work properly.
+* Removed a leftover text file from the model database.
+* Model's animation slider max value is 802 now.
+* Reverted timed auras redisplay fix from 4.24.5. (Need a better method to fix.)
+* Waterdrop animation fix.
+* Some global cleanup.
+* A lot of other minor fixes.
+
+**4.24.6**
+* Fixed an issues with "Action Usable" trigger.
+* Removed some models with missing textures.
+
+**4.24.5**
+* Recuded memory usage of handling some of the GUI elements by 95-99%.
+* Added ~5000 new models.
+* Fixed excessive cpu usage while opening the "Effect Editor".
+* Completely rewamped the model auras.
+* Added Model Category and Model Texture dropdown.
+* From now the addon is going to remember which model have you choosen, and properly going to load that model even when new models have been added or deleted from the model category's table.
+* Every creature type model camera position can be fully customized, when you unlock the aura and right click on the model itself.
+* Models can be recolored.
+* Support to properly display multi texture creature type models.
+* Moving models with the mouse will update the position x, position y, model x, model y, model z sliders in real time.
+* Moving textures with the mouse will update the position x, position y, sliders in real time.
+* Added an option to show emberbits for warlocks when you enable stacks for "Rage/Energy/Power"/"Burning Embers" power type auras.
+* "Buff"/"Debuff"/"Spell Cooldown" auras now properly going to recognize spell ids like: "[1234]", "Buff/1234/[12345]".
+* Lots of slider and dropdown optimisations.
+* The default "Stance/Seal/Form" is now Humanoid.
+* "Buff Type" and "Debuff Type" triggers now handled by spell ids, means it can detect multiple spells with the same name.
+* Updated every classes CC/Disarm/Root/Snare/Stun/Silence spells for 5.4.2.
+* "Spell Cooldown" are properly going to work with pet spells again.
+* "Pet Cooldown" type tooltip fix.
+* Added conversion tool for uppercase strata, texture strata and blend modes.
+* Fixed a dropdown taint which prevented to join battleground queues.
+* Fixed a bug which randomly redisplayed timed auras on zone/subzone changes.
+* Fixed a bug which broke "Invert Aura Timer" slider's functionality on the "Timer" tab.
+* Fixed a major import/export bug. (Alternate Export options is unnecessary from now.)
+* Fixed a minor import/export bug with "Resting".
+* Fixed an issues with "Character-" and "Global effects" list button's hitboxes.
+* Fixed a major bug which caused auras to stuck when you changed the buff's/debuff's name for the aura, while you still had the last buff/debuff.
+* Fixed a bug which didn't properly updated aura's random color, when you used the "Gradient Style" dropdown.
+* Fixed a bug which didn't detected buffs/debuffs when you entered the spell name as a spell id.
+* Fixed a bug which broke secondary animation for icons/round icons.
+* Fixed excessive cpu and memory usage when checked the "Own Texture" checkbutton.
+* Fixed a major bug which caused multiple "Health"/"Mana"/"Rage/Energy/Power" type auras threshold slider's value to override themselfs.
+* Fixed a bug which caused custom model's edixbox override some GUI elements on some aura types.
+* Fixed a random color issues with "Test All" button.
+* Fixed an issue with Timer/Stack color picker.
+* Fixed a glitch with "Stacks" "Animate of Refresh" animation.
+* Other smaller perfomance upgradements.
+* Removed "Donate" button.
+* Upvalue changes.
+* Loads of other minor fixes.
+
+**4.24.4**
+* Fixed a bug which caused part of the spell names not to be found in the actual spell.
+* Fixed a bug which caused auras to stuck in test mode sometimes.
+* Fixed a bug which caused high memory/cpu usage and a smaller lagspike when you right clicked on auras.
+* Some other minor fixes.
+
+**4.24.3**
+* Fixed a bug which caused linked auras to not to work properly.
+* Other minor fixes.
+
+**4.24.2**
+* Fixed a bug which caused "Spell Cooldowns" not to update properly
+* Added new support for GTFO global triggers. (Should work when GTFO gets updated.)
+* GTFO dropdown icon update fix.
+* Added "Donate" button.
+* Artwork set update.
+* Localizations update.
+* Some other minor fixes.
+
+**4.24.1**
+* Reduced the addon's dynamic memory usage by aprox 95% mostly for "Buff" aura types. Yes, i did it again.
+* The core code of the addon is now working with local environment namespaces. (Speed things a bit up.)
+* Dump function is back again. (Advanced users/developers only.)
+* Fixed some animation trasition glitches, like from fade out to static or flashing.
+* Added a missing event for rogue's energy and warrior's rage replenishment, which caused some "Rage/Energy/Power" auras working incorrectly.
+* Fixed a lua error for "Combo Points".
+* Fixed a lua error for the color picker.
+* Fixed some leaking globals.
+* Fixed a lot of tooltip issues.
+* Added "/pa update" slash command to update old auras to the current version.
+* Scanning learned/unlearned spells will be faster.
+* Some GUI changes in the "Animations" tab.
+* Added blend mode dropdown for secondary animations.
+* Added frame strata dropdown for secondary animations.
+* Added texture strata dropdown for secondary animations.
+* Added texture strata level slider for secondary animations.
+* Added texture strata sublevel slider for secondary animations.
+* Deleting an aura while the color picker frame is open now properly going to close the color picker frame.
+* The addon is now going to notify the user about the "Power Auras Options" beeing disabled, when the user is trying to acces any slash commands while "Power Auras Options" addon is disabled.
+* Using the "Power Type" dropdown in the "Rage/Energy/Power" activation now properly going to update the aura's icon in main options too.
+* Move/Copy/Delete effect now going to reset the group size to 1.
+* When you delete the last aura from the current page, the addon automatially selects the last aura again.
+* Fixed a bug when updating the addon from 4.23.x versions.
+* Fixed a bug with Preview coloring.
+* Demonic Fury's Threshold slider is back to 0-1000 values again.
+* Fixed a broken "Bounce" begin animation.
+* Selecting a begin animation is now properly going to play that animation.
+* Updated incorrect version for PowerAurasOptions.
+* Added 45 new predefined models.
+* Some version check updates.
+* Added seperate Flexible Instance checkbutton.
+* Fixed a bug with the Threshold siler's editbox at the Rage/Energy/Power activation.
+* "Cooldown only" option is now disable for "Spell Cooldowns".
+* Some group updates.
+* Some localization fixes/changes.
+* A lot of other smaller fixes, some performance upgrades.
+
+**4.24.0**
+* Updated for 5.4.
+* Workaround for 5.4 Blizzard slider bug. (Sliders are still laggy untill blizz fixes this shit.)
+* Reduced CPU usage by aprox 75%. Yes i'm that good.
+* Fixed an excessive CPU and memory usage when picking colors for models.
+* Split GUI options into another addon, to optionally save some CPU and memory usage.
+* Added groups.
+* Added increase and decrease value buttons for every slider.
+* Added .blp support for textures in the "Aura" folder.
+* Added .blp support for textures in the "TimerTextures" folder.
+* Fixed some font texture bugs for timers/stacks. (Need some more tuning later.)
+* Changed "Stance/Seal/Form" dropdown to handle multiple selections. (Dropdown need update still.)
+* Added "In Pet Battle" tri-state checker.
+* Merged Flexible raids with "10 Man Normal" instances.
+* "Mounted" option from now is ignored by default.
+* "In Vehice" option from now is ignored by default.
+* "Any Member" option from now is ignored by default.
+* "Wider Digits" option for stacks from now is disabled by default.
+* "Font Selector" frame fixes.
+* Power treshold slider fixes.
+* Fixed a bug with Inspectation.
+* Demonic Fury's slider tresholds in now in percentage.
+* Fixed a frame hide bug when you deleted an aura with "Font Selector" opened.
+* Fixed a bug when stacks's texture got stuck when inverted an aura with stacks enabled.
+* Fixed a bug where timers/stacks wouldn't shown as soon as you enabled them in test mode, only on the next update.
+* Fixed a bug where you couldn't set stacks texture relatively to the aura's left side.
+* Fixed old begin grow/shrink animations grow/shrink size on smaller auras.
+* Added "%crt" pattern for text auras to print the characters crit percenage.
+* Changing color of a model won't redisplay the model itself.
+* Changing the value of the "Gradient Style" dropdown, won't redisplay models.
+* Changing the value of the "Random Color" checkbutton, won't redisplay models.
+* Changing the value of the "Desaturate" checkbutton, won't redisplay models.
+* Fixed a bug which didn't updated disabled aura's preview color when used the "Test All" button.
+* Added glow effect for character and global pages when you recieve an aura, and you choosing a page to save.
+* Fixed the layer of the glow effect itself.
+* Fixed a GUI override bug with the "Unit Name" checkbutton.
+* Fixed a bug with the "Rotation" slider's editbox.
+* Fixed a bug with the "Animation Speed" slider's editbox.
+* Fixed a coloring bug with model's and custom model's icon.
+* Fixed a preview texture coloring bug with the "Test All" button.
+* Fixed a bug with aura icons. (Gradient colored "Test All" still needs a fix.)
+* Updated localizations.
+* Thousands of other GUI changes.
+* Code cleanup.
+* Other minor fixes.
+
+**4.23.29**
+* Fixed a bug with "Text Aura Size" slider.
+
+**4.23.28**
+* Fixed a bug with the "Animation Speed" slider.
+* Other slider tweaks.
+* Some other smaller fixes.
+
+**4.23.27**
+* Fixed a typo in CLEU.
+
+**4.23.26**
+* Added support for older WoW versions.
+* Fixed a bug which caused models to disappear when changed aura type.
+* Fixed a bug which caused models to not appear, when you changed aura types, before creating the model.
+* Fixed a bug which caused models to change position sometimes when you loaded the addon, or changed aura type.
+* Fixed a bug when addon draw multiple models for the same aura.
+* Fixed a bug which caused the "Model Z" slider to broke off from it's frame.
+* Fixed a bug which caused lag spikes, while you hold down your mouse button over an unlocked aura, and moved the frame with the left, right, down, up keys.
+* From now you can use mousewheel up/down on the slider's editboxes too, to increase and decrease the slider's value by the value step.
+* Changed "Invert Aura Timer", "Animation Duration" and "Timer Duration" slider's values step to 0.01.
+* The addon will no longer play custom sounds when you click on an arua.
+* Sounds will be played when you test or hide and aura, and sound is assigned for that aura.
+* Sounds wont be played when you click on the "Test All" or "Hide All" button to prevent spam.
+* Addon now going to recheck instance type when the leader changes difficulty of an instance.
+* Fixed a bug with Equipment Slots.
+* Druid Flight form fixes.
+* Fixed a bug which broke 5-Man instance check button's functionality.
+* Added Challange Mode instance check button.
+* Added Scenario instance check button.
+* Added Heroic Scenario instance check button.
+* Size slider now has unlimited maximum value.
+* From now "Auras Locked" value is false by default.
+* From now "Round Timers Up" value is false by default.
+* Fixed a bug with "Old Animations" check button.
+* Fixed a bug with the "Opacity" slider.
+
+**4.23.25**
+* Fixed incorrect version number in toc.
+* Fixed some dropdown menu taint issues.
+* Fixed a global.
+* Some other combatlog and event fixes.
+
+**4.23.24**
+* Fixed Model X, Y, Z slider bugs.
+* Custom Models now accept any units. (player, target, focus, party1*5, raid1*25, boss1*3)
+
+**4.23.23**
+* Updated for 5.3.
+* Reduced CPU usage by approx 10-15%.
+* Added an option to display 3D models from the game.
+* Added 163 predefinied models.
+* Added an option to display custom 3D models from the game.
+* Added X, Y, Z postiton sliders for models.
+* Added animation sequence slider for 3D models.
+* Added "Desaturate" check button, to decolorize textures.
+* Added an editbox for all sliders.
+* Fixed French localization.
+* Removed unused/untranslated localizations.
+* Fixed a coloring bug when using "Own Texutre".
+* Fixed a bug when closed "Equipement Slots".
+* Some class role inspectation fixes.
+* Fixed a glitch with "Aura138.tga".
+* Some database tweaks.
+* Sliders now won't redisplay the aura when they reach their minimum/maximum values.
+* You can enable "Own Texture" and "Round Icons" for: Stances/Pet Stances/Seals/Totems/AOE Debuffs.
+* Fixed a bug when you disabled not the currently active aura pages with shif+click, and incorrectly shown "OFF" text for auras which wasn't actually disabled.
+* Fixed a bug where icon alpha didn't decreased properly on other then "Page 1" tabs.
+* "Rename" editbox is now going to rename the current Page when it's focus is lost or esc is beeing pressed too.
+* Hopefully fixed a DK talent change bug, when presences are beeing switched.
+* Disabled the bugged "Text Auras" secondary animations.
+* Fixed a bug with flashing animation.
+* Fixed a bug which didnt allowed "Text Auras" random color working properly.
+* Fixed a bug with the secondary aura coloring.
+* Fixed a bug with the "Text Aura" editbox.
+* Fixed a bug with icon highlight beeing displayed when you open the options tab with 0 auras.
+* Fixed a bug with "Alternative Exports" check button.
+* Fixed a bug with "Timer Update Speed" Slider.
+* Fixed a major import/export aura bug.
+* Added info and logo to lua.
+
+**4.23.22**
+* Fixed a leaked global from 4.23.21.
+
+**4.23.21**
+* Fixed a bug which caused "Spell Cooldowns" not working properly.
+* Fixed a bug with "Action Useable" where it didn't updated aura properly, when you moved the spell into another action bar slot.
+
+**4.23.20**
+* Millions of smaller GUI bugfixes.
+* Addon memory improvements.
+* Recoded all images with RLE loseless compression.
+* Added "/pa" command to bring up the options too.
+* Added 122 new textures from WoW.
+* Added 5 new Custom textures.
+* Added 1 new font.
+* Added Frame's strata changer dropdown, to change the aura frame's z index.
+* Added Frame level changer slider, to change the current frame's strata's z index. (0 - 20)
+* Added Texture strata changer dropdown, to change the aura texture's z index.
+* Added Texture sublevel changer slider, to change the current texture strata's z index. (-8 - 7)
+* With this change you can create up to 12.000 different texture layers per aura.
+* Fixed a bugged font.
+* Fixed a major moving bug, when you move the auras with the mouse.
+* Fixed a bug which made auras disappear while on the timer/stacks tab.
+* Added "Round Icons" option to round icon edges.
+* Removed Glow check button.
+* Added blend mode dropdown.
+* Added option for gradient colors.
+* Performance upgradements.
+* Increased preview icon's size.
+* Fixed an export/import bug.
+* Switching to wow textures and back, now wont reset the texture sliders current value, unless it's necessary,
+* Aura preview icon's color now will change immediately while changing color at the color picker, also when random color is changed.
+* Aura preview icon's color now wont change on toggled off aruas, when the "Test all" button is being pushed.
+* Text aura and TempPortrait icons now wont get modified by the current aura's choosen color.
+* Added texture rotater slider.
+* When more auras is opened at the same time, the effect editors icon will show the current auras color correctly.
+* Fixed a bug where, aura icons didn't updated when loaded a custom texture.
+* Removed value increaser and decreaser buttons from the sliders.
+* Sliders now can be adjusted with mousewheel up/down.
+* The default aura size now 100%.
+* Default alpha for new auras is now 85%.
+* The default aura y coodriante now 0.
+* Fixed a bug with "Only show seconds below 100" checkbutton.
+* Fixed a bug with "Wider Digits" checkbutton.
+* Fixed a bug with "Timer Texture" dropdown menu.
+* Fixed a bug with "Stacks Texture" dropdown menu.
+* X, Y, XY symmetry changes now wont be shown in effect editor.
+* Alpha sliders now can be changed to 0% too.
+* Deformation slider min-max value now can be set between 0-2.
+* Fixed font button for text auras.
+* Fixed a bug when you manually set max texture count.
+* Fixed a bug with the button itself.
+* Override max textures min-max value now is 1-1000.
+* Added "Enable Full Rotation" checkbutton, which fixes some not fully rotatable textures, when disabled.
+* The texure cutter algorythm is now more precise for ingame icons, and custom textures.
+* Hide all button now properly decreases all icon's alpha immediately.
+* Slider inherit changes, removed unused stuff.
+* Test all button now wont hide the currently opened effect editor.
+* Clicking on the Edit button or right clicking on an aura now going to increase it's icons alpha properly.
+* When you hide an aura with the Test button, it's icon's alpha now gonna get decreased properly.
+* When you open the aura browser while an aura is currently showing, now it's gonna decrease it's icons alpha properly.
+* Fixed a bug when Texture slider value was 0 and show blank aura.
+* Fixed a but with Electric animation both on main, and secondary animations.
+* Fixed a bug with Shringing animation when it's applied on a secondary aura.
+* Fixed a bug with Growing animation when it's applied on a secondary aura.
+* Fixed a bug with Waterdrop animation when it's applied on a secondary aura.
+* While "Old Animation" checkbutton is enabled the "Spin the aura after shown" checkbutton is hidden.
+* Text auras now won't get crashed when switching "Text Aura" checkbutton.
+* Some text color fixes.
+* Some smaller slider fixes.
+* Tooltip and hover fixes.
+* Code cleanup.
+
+**4.23.19**
+* Fixed a bug which didn't let the addon to use all the installed Textures (254).
+* Fixed a bug with old end animations, where growing and shrinking got reversed.
+* Increased old "Grow and Fade" and "Shrink and Fade" end animation's grow and shrink size and the speed of the animation, to fit with the new animations.
+* When "Old Animation" checkbutton is enabled then the dropdown menus gonna hide thoose animations which the old animations can't handle.
+* Fixed a bug with the "Show hundrendth" checkbutton on the "Timer" tab.
+* Fixed some chatbox length bug on the "Activation" tab.
+* Fixed "Use own Texture" checkbutton's location.
+* Animation's dropdown menus are now wider.
+* Fixed the "Power Type" dropdown menu's location.
+
+**4.23.18**
+* Converted sounds to mp3.
+* Added new sounds. ("Bloodbath", "Vengeance", "Warpath").
+* Minor fixes.
+
+**4.23.17**
+* Fixed level issues with the Option frames.
+* Disabled aura icons alpha now can't be changed.
+* Added Monk's "Fist of Justice" spell as a stun.
+* Other smaller fixes.
+
+**4.23.16**
+* Updated and fixed localizations.
+* Other minor fixes.
+
+**4.23.15**
+* Core cleanup, round three.
+* Fixed a moving bug.
+* Replaced bugged background from the options frame.
+* Fixed some missing translations.
+* Renamed sounds.
+* Added new sounds.
+* Added new textures.
+* Renamed fonts.
+* Some other minor fixes.
+
+**4.23.14**
+* Added "Changelog.txt".
+* Code cleanup, round two.
+* Fixed "aggro.ogg" sound.
+* Fixed missing clicking sound on some buttons.
+* Menu layout tweaks.
+* Option table border fixes.
+* Added some missing button and string localizations.
+* Removed "Ranged Slot" from Equipment Slots.
+* Equipment Slot frame tweaks.
+
+**4.23.13**
+* Total code cleanup.
+* Merged localizations.
+* Fixed bugged "Send" and "Cancel" buttons on "Export" and "Export Set" dialog.
+
+**4.23.12**
+* Support for Patch 5.2.
+
+**4.23.11**
+* Support for Patch 5.1.
+
+**4.23.10**
+* Fixed Warlock Shards max power from 3 to 4.
+* Fixed incorrect version numbering.
+
+**4.3.9**
+* Fixed raid frame taint issues. (thanks to Resike)
+
+**4.3.8**
+* Non-Fire Mage GCDs are properly ignored in auras.
+
+**4.3.7**
+* Fixed Chi (Light Power) max power from 4 to 5.
+
+**4.3.6**
+* Fixed totem aura update lag.
+
+**4.3.5**
+* Warrior GCDs are properly ignored in auras, for reals this time.
+
+**4.3.4**
+* Master of Ghouls is now properly detected.
+* Paladin, Warrior, and Monk GCDs are properly ignored in auras.
+
+**4.3.3**
+* Fixed glyph taint issues. (thanks to Resike)
+* Fixed action usable so abilities that are charging up but still have active charges on them show up as usable.
+
+**4.3.2**
+* Added support for special power tracking for Shadow Orbs, Burning Embers, Demonic Fury, and Chi.
+
+**4.3.1**
+* Updated Paladin Holy Power from 3 to 5.
+
+**4.3**
+* Updated the code to be compatible with MoP 5.0.4.

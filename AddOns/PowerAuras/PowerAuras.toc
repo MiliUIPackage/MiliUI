@@ -1,0 +1,21 @@
+﻿## Interface: 80000
+## Title: Power Auras Classic
+## Version: 4.30.0
+## Author: Smacker 'lolcat', Dridzt 'classic', Garstiger 'continued', Sinsthar 'base', Meorawr, modified by Zensunim and Resike
+## Notes: Cool Effects around the player for ingame events.
+## Notes-frFR: Affiche des effets visuels autour du personnage.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r POWA
+## Notes-zhTW: Power Auras Classic |n強大的法術監控，可設定各種特效與音效來監控法術的觸發、持續時間、冷卻時間......等。|n|cffffd200使用方法：|r輸入指令『/powa』。
+## DefaultState: Disabled
+## SavedVariables: PowaGlobalSet, PowaGlobalListe, PowaGlobalMisc
+## SavedVariablesPerCharacter: PowaSet, PowaMisc, PowaTimer, PowaPlayerListe, PowaState
+
+PowerAurasBase.lua
+PowerAurasLocalizations.lua
+PowerAurasRole.lua
+PowerAurasAuraClasses.lua
+PowerAurasDecoratorClasses.lua
+PowerAurasAnimations.lua
+PowerAurasAnimationsOld.lua
+PowerAuras.lua
+PowerAurasEvents.lua
