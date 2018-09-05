@@ -546,7 +546,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 framelevel=11,
 			},
 			text6={ 
-				pattern="[gray_if_oor:超出距離 ][gray_if_tapped:TAPPED ][gray_if_offline:離線 ][gray_if_dead:死亡 ][gray_if_ghost:鬼魂 ]",
+				pattern="[gray_if_oor:超出距離 ][gray_if_tapped:無獎勵目標 ][gray_if_offline:離線 ][gray_if_dead:死亡 ][gray_if_ghost:鬼魂 ]",
 				x=0, y=3, w=200, h=50,
                 fontsize=14, justifyH="CENTER", justifyV="BOTTOM", shadowx=0, shadowy=0,
                 fontflags="OUTLINE",                 
