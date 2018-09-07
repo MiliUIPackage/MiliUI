@@ -4,6 +4,9 @@
 ## Title: |cFF148587Class|r Monitor
 ## Credits: Smelly, Hydra, Krevlorne, Ildyria, Puffina, StarsHu
 ## Notes: Class monitor compatible with Blizzard UI, Tukui and ElvUI
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 職業資源監控
+## Notes-zhTW:  Class Monitor |n職業資源監控，例如盜賊的連擊點數，武僧的真氣、聖騎士的聖能...。|n|cffffd200使用方法：|r輸入指令『/clm』。
+## DefaultState: Disabled
 ## OptionalDeps: Tukui, ElvUI, ClassMonitor_ConfigUI
 ## SavedVariables: ClassMonitorData
 ## SavedVariablesPerCharacter: ClassMonitorDataPerChar
