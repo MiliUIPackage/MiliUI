@@ -4,7 +4,6 @@
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥數據統計
 ## Notes-zhTW: Skada |n模組化的戰鬥數據統計。
 ## Notes-koKR: 데미지 미터 모듈입니다.
-## Notes-zhTW: 模組化的傷害統計。
 ## Notes-deDE: Ein Damage-Meter.
 ## Notes-frFR: Un damage meter.
 ## Notes-zhCN: 模块化伤害统计。
