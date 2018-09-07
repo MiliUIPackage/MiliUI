@@ -415,7 +415,7 @@ frame:SetScript("OnEvent", function(self, event, addon)
 		ClassMonitorDataPerChar.Global.version = tostring(version)
 		ClassMonitorDataPerChar.Global.configVersion = tostring(configVersion)
 		ClassMonitorDataPerChar.Global.debug = DefaultBoolean(ClassMonitorDataPerChar.Global.debug, false)
-		ClassMonitorDataPerChar.Global.width = ClassMonitorDataPerChar.Global.width or 262
+		ClassMonitorDataPerChar.Global.width = ClassMonitorDataPerChar.Global.width or 170
 		ClassMonitorDataPerChar.Global.height = ClassMonitorDataPerChar.Global.height or 16
 		ClassMonitorDataPerChar.Global.autogridanchor = DefaultBoolean(ClassMonitorDataPerChar.Global.autogridanchor, false) -- manual anchoring by default
 		ClassMonitorDataPerChar.Global.autogridanchorspacing = ClassMonitorDataPerChar.Global.autogridanchorspacing or 3
@@ -424,7 +424,7 @@ frame:SetScript("OnEvent", function(self, event, addon)
 		-- Merge config and saved variables
 		MergeConfig(settings, ClassMonitorDataPerChar.Plugins)
 		-- Check multisampling
-		CheckMultisampling()
+		-- CheckMultisampling()
 		-- Clean config
 		CleanConfig()
 		-- Create movers

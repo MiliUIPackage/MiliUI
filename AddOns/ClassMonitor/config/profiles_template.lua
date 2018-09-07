@@ -19,7 +19,7 @@ if UI.MyName == "Meuhhnon" then
 			text = true,
 			autohide = false,
 			anchor = { "TOPLEFT", "CM_WILDMUSHROOMS", "BOTTOMLEFT", 0, -3},
-			width = 262,
+			width = 170,
 			height = 10,
 			autohide = true,
 		})
@@ -31,7 +31,7 @@ if UI.MyName == "Meuhhnon" then
 			text = true,
 			autohide = false,
 			anchor = { "BOTTOMLEFT", "CM_COMBO", "TOPLEFT", 0, 3},
-			width = 262,
+			width = 170,
 			height = 10,
 			autohide = true
 		})
