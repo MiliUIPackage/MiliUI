@@ -1,0 +1,15 @@
+## Interface: 80000
+## Version: 1.4.3
+## Author: SinaC
+## Credits: Elv, Starinnia, Puffina, StarsHu
+## Title: |cFF148587Class|r Monitor Config
+## Notes: Config for ClassMonitor
+## RequiredDeps: ClassMonitor
+## OptionalDeps: Tukui, ElvUI
+## LoadOnDemand: 1
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+ClassMonitor_ConfigUI.xml

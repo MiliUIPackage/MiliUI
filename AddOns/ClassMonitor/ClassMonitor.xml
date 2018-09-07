@@ -1,0 +1,45 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="init.lua"/>
+
+	<Script file="locales\english.lua"/>
+	<Script file="locales\chinese.lua"/>
+
+	<Script file="ui\common.lua"/>
+	<Script file="ui\tukui.lua"/>
+	<Script file="ui\elvui.lua"/>
+	<Script file="ui\native.lua"/>
+
+<!--Every file included below this, must check if Engine.Enabled is true-->
+
+	<Script file="functions.lua"/>
+	<Script file="safecall.lua"/>
+
+	<Script file="config\config.lua"/>
+	<!--<Script file="config\profiles.lua"/>-->
+
+	<Script file="plugin.lua"/>
+
+	<Script file="plugins\aura.lua"/>
+	<Script file="plugins\aurabar.lua"/>
+	<Script file="plugins\CD.lua"/>
+	<Script file="plugins\dot.lua"/>
+	<Script file="plugins\energize.lua"/>
+	<Script file="plugins\health.lua"/>
+	<Script file="plugins\power.lua"/>
+	<Script file="plugins\recharge.lua"/>
+	<Script file="plugins\rechargebar.lua"/>
+	<Script file="plugins\resource.lua"/>
+	<Script file="plugins\runes.lua"/>
+	<Script file="plugins\stagger.lua"/>
+	<Script file="plugins\tankshield.lua"/>
+	<Script file="plugins\totems.lua"/>
+
+	<Script file="autoanchor.lua"/>
+	<Script file="core.lua"/>
+	<Script file="commands.lua"/>
+	<Script file="update.lua"/>
+
+	<Script file="public.lua"/>
+
+	<!--<Include file="test\test.xml"/>-->
+</Ui>
