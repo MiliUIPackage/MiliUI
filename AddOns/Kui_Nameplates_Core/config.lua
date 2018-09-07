@@ -127,11 +127,11 @@ local default_config = {
     execute_percent = 20,
     execute_colour = {1,1,1},
 
-    frame_width = 100,
+    frame_width = 110,
     frame_height = 8,
     frame_width_minus = 100,
     frame_height_minus = 7,
-    frame_width_personal = 100,
+    frame_width_personal = 110,
     frame_height_personal = 8,
     castbar_height = 6,
     powerbar_height = 3,
