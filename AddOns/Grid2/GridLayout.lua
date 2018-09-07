@@ -118,7 +118,7 @@ Grid2Layout.defaultDB = {
 					solo  = "Solo w/Pet",
 					party = "Party w/Pets",
 					arena = "By Group w/Pets",
-					raid  = "By Group w/Pets",
+					raid  = "By Group",
 		},
 		layoutScales = {},
 		layoutBySize = {},
