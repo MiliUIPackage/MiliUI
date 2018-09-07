@@ -5,7 +5,7 @@
 ## Notes: Options and configuration GUI for Power Auras Classic.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r POWA(設置)
 ## Notes-zhTW: Power Auras Classic Options |n強大的法術監控。|n|cffffd200使用方法：|r輸入指令『/powa』。
-## DefaultState: Enabled
+## DefaultState: disabled
 ## Dependencies: PowerAuras
 ## LoadOnDemand: 1
 
