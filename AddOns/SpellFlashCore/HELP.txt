@@ -1,0 +1,19 @@
+
+This addon contains the button flashing functionality for SpellFlash.
+
+This addon was created to separate the spell flashing functionality from SpellFlash
+so that it may be used as an entirely separate resource if desired.
+
+SpellFlashCore API:
+http://wow.curseforge.com/addons/spellflashcore/pages/api/
+
+
+If you have even five or ten dollars to spare it would mean an awful lot to me and my family.
+
+You may send donations of $12 or more with this link:
+https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&item_name=SpellFlashCore&hosted_button_id=4962619
+
+You may send donations of less than $12 with this micro payment link:
+https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&item_name=SpellFlashCore%20-%20Micro%20Payment&hosted_button_id=3HD6FEDT7EJXQ
+
+Donations are not required to use this addon, but they are very much appreciated.

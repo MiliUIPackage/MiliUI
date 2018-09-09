@@ -1,0 +1,487 @@
+
+
+== Version 2.1.6
+
+* Bumped toc version number.
+
+
+== Version 2.1.5
+
+* Fixed version number.
+
+
+== Version 2.1.4
+
+* Bumped toc version number.
+
+
+== Version 2.1.3
+
+* Bumped toc version number.
+
+
+== Version 2.1.1
+
+* Reduced code size of ElvUI compatibility.
+
+
+== Version 2.1
+
+* Fixed compatibility with ElvUI.
+
+
+== Version 2.0.7
+
+* Bumped the toc file interface number.
+
+
+== Version 2.0.6
+
+* Bumped the toc file interface number to 60100.
+
+
+== Version 2.0.5
+
+* Bumped the toc file interface number to 60000.
+
+
+== Version 2.0.4
+
+* Bumped the toc file interface number to 50400.
+
+
+== Version 2.0.3
+
+* Bumped the toc file interface number to 50300.
+
+
+== Version 2.0.2
+
+* Bumped the toc file interface number to 50200.
+
+
+== Version 2.0.1
+
+* Bumped the toc file interface number to 50100.
+
+
+== Version 2.0
+
+* Bumped toc version number.
+* Will now rescan the spell buttons instantly when a pet is called or dismissed instead of having a 1 second delay.
+** This is so that the spells do not stop flashing for one second every time a pet is called or dismissed.
+
+
+== Version 1.62
+
+* In Mists of Pandaria, will now be able to flash buttons from a Spell ID that does not give the name of the spell.
+
+
+== Version 1.61
+
+* Will now also scan the action bars every time a pet is changed.
+
+
+== Version 1.60.3
+
+* Added updates for Mists of Pandaria.
+
+
+== Version 1.59
+
+* The Flash and Flashable functions will now accept a table of spell IDs.
+
+
+== Version 1.58
+
+* Will now be able to flash flyout buttons.
+** The spell name used to flash the button may need to be different than the name of the flyout.
+** To find the correct name or spell ID that needs to be used to flash the flyout, use the "/sfc debug" slash command and then move the flyout button onto an action bar.
+
+
+== Version 1.57
+
+* Possible fix to problem when EnumerateFrames might be returning a variable that is not an actual frame.
+
+
+== Version 1.56
+
+* Updated to the 6.0 version of the BigLibTimer library.
+* Added the function: SpellFlashCore.RegisterBigLibTimer
+
+
+== Version 1.55
+
+* Updated to the 5.1 version of the BigLibTimer library.
+
+
+== Version 1.54
+
+* Updated to the 5.0 version of the BigLibTimer library.
+
+
+== Version 1.53
+
+* Updated to the 4.2 version of the BigLibTimer library.
+
+
+== Version 1.52
+
+* Updated to the 4.1 version of the BigLibTimer library.
+
+
+== Version 1.51
+
+* Updated to the 4.0 version of the BigLibTimer library.
+
+
+== Version 1.50
+
+* Will no longer use a cache when calling GetSpellInfo or GetItemInfo with a string argument.
+
+
+== Version 1.49.2
+
+* Blink code will no longer use an OnUpdate hook with the WorldFrame frame.
+
+
+== Version 1.49.1
+
+* Changed the way event triggers are handled.
+
+
+== Version 1.49
+
+* Updated code for the blink option.
+
+
+== Version 1.48
+
+* Updated code for the blink option.
+
+
+== Version 1.47
+
+* The SpellFlashCore.CopyTable function will now also duplicate any tables inside of copied tables.
+
+
+== Version 1.46
+
+* Repaired bug with spell and item name lookups introduced in the last release.
+
+
+== Version 1.45
+
+* Added functions:
+** SpellFlashCore.SpellName
+** SpellFlashCore.ItemName
+** SpellFlashCore.Replace
+** SpellFlashCore.CopyTable
+
+
+== Version 1.44.1
+
+* Small change to macro flashing.
+
+
+== Version 1.44
+
+* Fixed bug that would prevent SpellFlash from loading without LibActionButton.
+
+
+== Version 1.43
+
+* Fixed support for LibActionButton.
+
+
+== Version 1.42
+
+* Fixed support for LibActionButton.
+
+
+== Version 1.41
+
+* Added support for LibActionButton and all action bar addons that use it.
+
+
+== Version 1.40.4
+
+* Bumped TOC to 40300.
+
+
+== Version 1.40.3
+
+* Added support for Brazilian Portuguese translation.
+
+
+== Version 1.40.2
+
+* Will now cache the returns when calling GetSpellInfo and GetItemInfo for better performance.
+
+
+== Version 1.40.1
+
+* Repaired toc file.
+
+
+== Version 1.40
+
+* Added the ability to flash the Assist pet button.
+
+
+== Version 1.39.2
+
+* Bumped TOC to 40200.
+
+
+== Version 1.39.1
+
+* Bumped TOC to 40100.
+
+
+== Version 1.39
+
+* Added SpellFlashCore.ItemFlashable and SpellFlashCore.FlashItem functions.
+
+
+== Version 1.38.1
+
+* Build checking has been removed from the Localization.lua file and will now be ran at the start of each file independently.
+
+
+== Version 1.38
+
+* Updated the SpellFlashCore.FlashVehicle function to check if you are in a vehicle with the UnitInVehicle function instead of the UnitHasVehicleUI function.
+
+
+== Version 1.37
+
+* Added SpellFlashCore.FlashTotemCall and SpellFlashCore.FlashTotemRecall functions.
+
+
+== Version 1.36.1
+
+* Optimized the localization function for better memory usage.
+
+
+== Version 1.36
+
+* Updated compatibility for the OpenRDX addon.
+* Added SpellFlashCore.RegisterAllDebugEvents and SpellFlashCore.UnregisterAllDebugEvents functions.
+
+
+== Version 1.35
+
+* Fixed a possible error from popping up and cleaned up the code a little to improve performance.
+
+
+== Version 1.33
+
+* Added the ability to flash the Totem Bar.
+
+
+== Version 1.32.1
+
+* Small reformat of the SpellFlashCore.FlashPet function.
+
+
+== Version 1.32
+
+* Repaired form bar flashing for the latest version of the Dominos addon.
+
+
+== Version 1.31
+
+* Repaired pet bar flashing.
+
+
+== Version 1.30
+
+* Repaired compatibility with the latest version of Bartender.
+
+
+== Version 1.29
+
+* Added the SpellFlashCore.UnregisterDebugEvent function.
+* Debug settings will now persist after reloading the user interface.
+* Added slash commands:
+** /spellflashcore unregister event EVENT_NAME
+** /spellflashcore unregister all events
+** /spellflashcore reset all
+
+
+== Version 1.28
+
+* Fixed possible bug with Button Forge button frame detection.
+
+
+== Version 1.27
+
+* Added support for the Button Forge addon.
+
+
+== Version 1.26
+
+* Now taking into account the sub name of a spell for spell flashing.
+
+
+== Version 1.25
+
+* Updated to the 3.4 version of the BigLibTimer library.
+
+
+== Version 1.24
+
+* Repaired LibStub packaging.
+
+
+== Version 1.23
+
+* Updated to the 3.2 version of the BigLibTimer library.
+
+
+== Version 1.22
+
+* Updated to the 3.0 version of the BigLibTimer library.
+
+
+== Version 1.21
+
+* Fixed a bug that would prevent a macro from flashing for a spell that contains regex special characters.
+
+
+== Version 1.20
+
+* Added compatibility for the latest version of the Bartender addon.
+
+
+== Version 1.19.1
+
+* Bumped the toc file interface number to 40000.
+
+
+== Version 1.19
+
+* Updated to the 2.0 version of the BigLibTimer library.
+
+
+== Version 1.18
+
+* Replaced the LibBigTimer library with the BigLibTimer library.
+
+
+== Version 1.17
+
+* Edited all functions so that the SpellName may be substituted with the global spell ID number.
+
+
+== Version 1.16
+
+* --Updated to use the LibBigTimer library.
+
+
+== Version 1.15
+
+* Removed Timer functions from the API. The timers will now be handled by an internal library.
+
+
+== Version 1.14.1
+
+* Updated timer functions.
+* The timer functions will now allow repeating even without a function.
+
+
+== Version 1.14
+
+* The SpellFlashCore.SetTimer function will now run a function immediately if the timer is set to start after 0 or no seconds.
+
+
+== Version 1.13
+
+* Fixed possible bug that could cause a timer function to return an incorrect result.
+
+
+== Version 1.12
+
+* The timer functions will now return 0 instead of a negative if a timer is currently past its expiration.
+
+
+== Version 1.11
+
+* Removed the maximum timer update interval.
+* Timers with functions will not be checked again until the included function completes running.
+* --A repeating timer will no longer be able to be created without an included function to run at the end of the timer loop.--
+* Timers without functions included will be checked in a separate process and will not be delayed because of other timers with included functions.
+
+
+== Version 1.10
+
+* Increased the maximum timer update interval from 10 times a second to 20 times a second.
+
+
+== Version 1.9
+
+* Fixed the SpellFlashCore.FlashVehicle function to be able to work in Cataclysm.
+* Limited the flashing animation to a maximum update interval of 50 per second.
+
+
+== Version 1.8
+
+* Updated to work with Cataclysm.
+
+
+== Version 1.7
+
+* Removed full debug mode slash commands.
+
+
+== Version 1.6
+
+* Added debug event slash command: /spellflashcore event EVENT_NAME
+
+
+== Version 1.5
+
+* Removed the SpellFlashCore.Event table.
+
+
+== Version 1.4
+
+* Removed the SpellFlashCore.SlashHandler table.
+
+
+== Version 1.3
+
+* Added the ability to blink spells that are being flashed.
+* Moved the position of the NoMacros argument down one space to make room for the blink argument.
+
+
+== Version 1.2.2
+
+* Replaced the string.find function with the match function.
+
+
+== Version 1.2.1
+
+* Removed and replaced the SpellFlashCore.Flash table.
+
+
+== Version 1.2
+
+* Added API documentation.
+
+
+== Version 1.1
+
+* Now using the SpellFlashCore table for this addon instead of using the SpellFlashAddon table for everything.
+
+
+== Version 1.0.1
+
+* Made the saved ButtonFrames table local instead of global.
+
+
+== Version 1.0
+
+* First release.
+
