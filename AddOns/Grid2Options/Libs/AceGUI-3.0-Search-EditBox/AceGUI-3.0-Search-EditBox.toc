@@ -1,6 +1,0 @@
-## Interface: 50001
-## Title: AceGUI-3.0-Search-EditBox
-## Author: Michael
-## OptionalDeps: Ace3
-
-AceGUI-3.0-Search-EditBox.xml
