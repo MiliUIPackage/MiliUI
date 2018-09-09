@@ -7,7 +7,7 @@
 ## Notes-zhTW: Grid2 Options|n精簡的團隊框架設定介面。
 ## LoadOnDemand: 1
 ## Dependencies: Grid2
-## Version: r828
+## Version: r830
 
 # Ace Libraries
 Libs\AceGUI-3.0\AceGUI-3.0.xml

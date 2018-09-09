@@ -7,7 +7,7 @@
 
 ## Dependencies: Grid2
 
-## Version:r828
+## Version:r830
 ## X-Category: UnitFrame
 ## X-Website: http://wowace.com/projects/grid2/
 

@@ -1,4 +1,20 @@
 ------------------------------------------------------------------------
+r830 | michaelspain | 2018-09-07 17:21:12 +0000 (Fri, 07 Sep 2018) | 1 line
+Changed paths:
+   M /trunk/GridCore.lua
+   M /trunk/GridFrame.lua
+   M /trunk/Options/locales/enUS.lua
+   M /trunk/Options/locales/esES.lua
+   M /trunk/Options/modules/general/GridFrame.lua
+
+Added configuration options to Texture&Color mouseover Highlight.(ticket #580)
+------------------------------------------------------------------------
+r829 | michaelspain | 2018-08-24 01:14:46 +0000 (Fri, 24 Aug 2018) | 1 line
+Changed paths:
+   M /trunk/RaidDebuffsOptions/RaidDebuffsBfA.lua
+
+Raid Debuffs: Added a lot of 5man instances debuffs.
+------------------------------------------------------------------------
 r828 | michaelspain | 2018-08-15 18:36:29 +0000 (Wed, 15 Aug 2018) | 1 line
 Changed paths:
    M /trunk/Options/GridUtils.lua
