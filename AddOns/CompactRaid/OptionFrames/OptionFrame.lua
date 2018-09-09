@@ -463,8 +463,8 @@ local function InitOptionData(db, chardb)
 	LoadOption("keepgroupstogether")
 	LoadOption("raidFilter")
 
-	LoadOption("containerAlpha", 75, 0, 100)
-	LoadOption("containerBorderSize", 12, 0, 24)
+	LoadOption("containerAlpha", 0, 0, 100)
+	LoadOption("containerBorderSize", 2, 0, 24)
 
 	LoadOption("showBuffs")
 	LoadOption("showDebuffs")
@@ -507,8 +507,8 @@ function module:OnRestoreDefaults()
 	addon.db.nameYOffset = nil
 	addon.db.nameFontOutline = 1
 	addon.db.showToolboxes = 1
-	addon.db.containerAlpha = nil
-	addon.db.containerBorderSize = nil
+	addon.db.containerAlpha = 0
+	addon.db.containerBorderSize = 2
 	addon.db.showBuffs = 1
 	addon.db.showDebuffs = 1
 	addon.db.onlyDispellable = nil
