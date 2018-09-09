@@ -418,8 +418,8 @@ local function InitOptionData(db, chardb)
 
 	-- Initialize addon data
 	LoadOption("scale", 100, 20, 300)
-	LoadOption("width", 64, 24, 120)
-	LoadOption("height", 36, 24, 120)
+	LoadOption("width", 94, 24, 120)
+	LoadOption("height", 45, 24, 120)
 	LoadOption("spacing", 1, 0, 10)
 	LoadOption("outrangeAlpha", 40, 0, 100)
 	LoadOptionColor("unitBkColor", 0, 0, 0)
@@ -428,7 +428,7 @@ local function InitOptionData(db, chardb)
 	LoadOption("showRoleIcon")
 	LoadOption("showRaidIcon")
 	--LoadOption("showDirectionArrow")
-	LoadOption("tooltipPosition", 1, 0, 1)
+	LoadOption("tooltipPosition", 0, 0, 1)
 	LoadOption("showToolboxes")
 
 	LoadOption("showbarbkgnd")
@@ -439,16 +439,16 @@ local function InitOptionData(db, chardb)
 	LoadOption("showRaidPets", nil, nil, nil, 1)
 	LoadOption("showFriendlyNpc", nil, nil, nil, 1)
 
-	LoadOption("powerBarHeight", 1, 0, 10)
+	LoadOption("powerBarHeight", 5, 0, 10)
 
 	LoadOption("clickDownMode")
 	LoadOption("showtooltip", 1, 0, 2)
 
-	LoadOption("nameWidthLimit", 75, 0, 100)
+	LoadOption("nameWidthLimit", 100, 0, 100)
 	LoadOption("nameHeight", 12, 4, 20)
 	LoadOption("nameXOffset", 0, -20, 20)
 	LoadOption("nameYOffset", 0, -20, 20)
-	LoadOption("nameFontOutline")
+	LoadOption("nameFontOutline", 1, 0, 1)
 
 	LoadOption("forceNameColor")
 	LoadOptionColor("nameColor", 1, 1, 1)
@@ -468,7 +468,7 @@ local function InitOptionData(db, chardb)
 
 	LoadOption("showBuffs")
 	LoadOption("showDebuffs")
-	LoadOption("onlyDispellable")
+	LoadOption("onlyDispellable", nil, nil, 1)
 	LoadOption("showDispels")
 end
 
@@ -490,9 +490,9 @@ function module:OnRestoreDefaults()
 	addon.db.unitBkColor = nil
 	addon.db.scale = nil
 	addon.db.spacing = nil
-	addon.db.width = nil
-	addon.db.height = nil
-	addon.db.powerBarHeight = nil
+	addon.db.width = 94
+	addon.db.height = 45
+	addon.db.powerBarHeight = 5
 	addon.db.outrangeAlpha = nil
 	addon.db.forceHealthColor = nil
 	addon.db.healthColor = nil
@@ -501,17 +501,17 @@ function module:OnRestoreDefaults()
 	addon.db.powerColor = nil
 	addon.db.forceNameColor = nil
 	addon.db.nameColor = nil
-	addon.db.nameWidthLimit = 75
+	addon.db.nameWidthLimit = 100
 	addon.db.nameHeight = nil
 	addon.db.nameXOffset = nil
 	addon.db.nameYOffset = nil
-	addon.db.nameFontOutline = nil
+	addon.db.nameFontOutline = 1
 	addon.db.showToolboxes = 1
 	addon.db.containerAlpha = nil
 	addon.db.containerBorderSize = nil
 	addon.db.showBuffs = 1
 	addon.db.showDebuffs = 1
-	addon.db.onlyDispellable = 1
+	addon.db.onlyDispellable = nil
 	addon.db.showDispels = 1
 	addon.db.groupSwapNoNotify = nil
 
