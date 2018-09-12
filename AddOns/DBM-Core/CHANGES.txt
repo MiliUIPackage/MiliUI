@@ -1,9 +1,26 @@
-Changes since tag 8.0.6
+tag 0b1c652623f9bd0f8ec626674c51d6627f2dae8e 8.0.8
+Author:	subversion <svn@deadlybossmods.com>
+Date:	Tue Sep 11 20:49:25 2018 +0200
 
-commit 1dd6d80ae1cc554b98354ec35864d9523f39e99a
+Tagging as 8.0.8
+
+commit 0edf1bf8436b5cd8224307e13f41f228b8cd3c0c
 Author: subversion <svn@deadlybossmods.com>
-Date:   Mon Sep 3 11:38:09 2018 +0200
+Date:   Tue Sep 11 20:49:25 2018 +0200
 
-    tandanu via svn r17764:
+    increment version number to 8.0.8
+
+commit 7cdc1cc7a0677b74807f0933d264acfb49bfcaf3
+Author: subversion <svn@deadlybossmods.com>
+Date:   Tue Sep 11 20:44:26 2018 +0200
+
+    Omega via svn r17821:
+    Change Vectis icon method to match BW to resolve conflicts with raids running promoted members running both mods. As a minor result, icon usage code is no longer debuff count agnostic so it might need fixing in LFR if it?\226?\128?\153s less than 3 targets.
+
+commit 354e164cab48c551799ac79d60de95ad392a6431
+Author: subversion <svn@deadlybossmods.com>
+Date:   Tue Sep 11 20:13:32 2018 +0200
+
+    tandanu via svn r17820:
     increment alpha version
 

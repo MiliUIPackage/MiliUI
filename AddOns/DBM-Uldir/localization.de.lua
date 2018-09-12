@@ -1,4 +1,4 @@
-if GetLocale() ~= "zhTW" then return end
+if GetLocale() ~= "deDE" then return end
 local L
 
 ---------------------------
@@ -7,7 +7,7 @@ local L
 L= DBM:GetModLocalization(2168)
 
 L:SetMiscLocalization({
-	Aggro	 =	"Has Aggro"
+	Aggro	 =	"hat Aggro"
 })
 
 ---------------------------
@@ -26,9 +26,9 @@ L= DBM:GetModLocalization(2146)
 L= DBM:GetModLocalization(2169)
 
 L:SetMiscLocalization({
-	CThunDisc	 =	"Disc accessed. C'thun data loading.",
-	YoggDisc	 =	"Disc accessed. Yogg-Saron data loading.",
-	CorruptedDisc =	"Disc accessed. Corrupted data loading."
+	CThunDisc	 =	"Disc accessed. C'thun data loading.",--translate (trigger)
+	YoggDisc	 =	"Disc accessed. Yogg-Saron data loading.",--translate (trigger)
+	CorruptedDisc =	"Disc accessed. Corrupted data loading."--translate (trigger)
 })
 
 ---------------------------
@@ -37,7 +37,7 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2166)
 
 L:SetOptionLocalization({
-	ShowHighestFirst	 =	"Sort Lingering Infection Infoframe by highest debuff stack (instead of lowest)"
+	ShowHighestFirst	 =	"Sortiere Infofenster nach dem höchsten Stapel von \"Anhaltende Infektion\" (statt dem niedrigsten Stapel)"
 })
 
 ---------------
@@ -51,19 +51,19 @@ L= DBM:GetModLocalization(2194)
 L= DBM:GetModLocalization(2195)
 
 L:SetTimerLocalization({
-	timerCallofCrawgCD		= "Next Crawg (%s)",
-	timerCallofHexerCD 		= "Next Hexer (%s)",
-	timerCallofCrusherCD	= "Next Crusher (%s)",
+	timerCallofCrawgCD		= "Nächster Krogg (%s)",
+	timerCallofHexerCD 		= "Nächster Hexer (%s)",
+	timerCallofCrusherCD	= "Nächster Zermalmer (%s)"
 })
 
 L:SetOptionLocalization({
-	timerAddIncoming		= "Show timer for when incoming add is attackable"
+	timerAddIncoming		= "Zeit bis erscheinende Adds angreifbar sind anzeigen"
 })
 
 L:SetMiscLocalization({
-	Crusher			=	"Crusher",
+	Crusher			=	"Zermalmer",
 	Bloodhexer		=	"Hexer",
-	Crawg			=	"Crawg"
+	Crawg			=	"Krogg"
 })
 
 ------------------
@@ -77,5 +77,5 @@ L= DBM:GetModLocalization(2147)
 L = DBM:GetModLocalization("UldirTrash")
 
 L:SetGeneralLocalization({
-	name =	"奧迪爾小怪"
+	name =	"Trash von Uldir"
 })

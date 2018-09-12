@@ -1,4 +1,4 @@
-if GetLocale() ~= "zhTW" then return end
+if GetLocale() ~= "deDE" then return end
 local L
 
 -----------------------
@@ -30,7 +30,7 @@ L= DBM:GetModLocalization(2030)
 L = DBM:GetModLocalization("AtalDazarTrash")
 
 L:SetGeneralLocalization({
-	name =	"阿塔達薩小怪"
+	name =	"Trash von Atal'Dazar"
 })
 
 -----------------------
@@ -52,7 +52,7 @@ L= DBM:GetModLocalization(2093)
 L= DBM:GetModLocalization(2094)
 
 L:SetMiscLocalization({
-	openingRP = "Gather 'round and place yer bets! We got a new set of vict-- uh... competitors! Take it away, Gurthok and Wodin!"
+	openingRP = "Gather 'round and place yer bets! We got a new set of vict-- uh... competitors! Take it away, Gurgthok and Wodin!"--translate (trigger)
 })
 
 -----------------------
@@ -66,7 +66,7 @@ L= DBM:GetModLocalization(2095)
 L = DBM:GetModLocalization("FreeholdTrash")
 
 L:SetGeneralLocalization({
-	name =	"自由港小怪"
+	name =	"Trash des Freihafens"
 })
 
 -----------------------
@@ -98,7 +98,7 @@ L= DBM:GetModLocalization(2172)
 L = DBM:GetModLocalization("KingsRestTrash")
 
 L:SetGeneralLocalization({
-	name =	"諸王之眠小怪"
+	name =	"Trash der Königsruh"
 })
 
 -----------------------
@@ -120,7 +120,7 @@ L= DBM:GetModLocalization(2154)
 L= DBM:GetModLocalization(2155)
 
 L:SetMiscLocalization({
-	openingRP	= "It would seem you have guests, Lord Stormsong."
+	openingRP	= "It would seem you have guests, Lord Stormsong."--translate (trigger)
 })
 
 -----------------------
@@ -134,7 +134,7 @@ L= DBM:GetModLocalization(2156)
 L = DBM:GetModLocalization("SotSTrash")
 
 L:SetGeneralLocalization({
-	name =	"風暴聖壇小怪"
+	name =	"Trash des Schreins des Sturms"
 })
 
 -----------------------
@@ -168,7 +168,7 @@ L= DBM:GetModLocalization(2140)
 L = DBM:GetModLocalization("BoralusTrash")
 
 L:SetGeneralLocalization({
-	name =	"波拉勒斯圍城戰小怪"
+	name =	"Trash der Belagerung von Boralus"
 })
 
 -----------------------
@@ -200,11 +200,11 @@ L= DBM:GetModLocalization(2145)
 L = DBM:GetModLocalization("SethralissTrash")
 
 L:SetGeneralLocalization({
-	name =	"瑟沙利斯神廟小怪"
+	name =	"Trash des Tempels von Sethraliss"
 })
 
 -----------------------
--- <<<The Undermine>>> --
+-- <<<MOTHERLOAD>>> --
 -----------------------
 -----------------------
 -- Coin-operated Crowd Pummeler --
@@ -232,7 +232,7 @@ L= DBM:GetModLocalization(2116)
 L = DBM:GetModLocalization("UndermineTrash")
 
 L:SetGeneralLocalization({
-	name =	"晶喜鎮！小怪"
+	name =	"Trash des Riesenflözes"
 })
 
 -----------------------
@@ -264,7 +264,7 @@ L= DBM:GetModLocalization(2158)
 L = DBM:GetModLocalization("UnderrotTrash")
 
 L:SetGeneralLocalization({
-	name =	"幽腐深窟小怪"
+	name =	"Trash des Tiefenpfuhls"
 })
 
 -----------------------
@@ -296,7 +296,7 @@ L= DBM:GetModLocalization(2096)
 L = DBM:GetModLocalization("TolDagorTrash")
 
 L:SetGeneralLocalization({
-	name =	"托達戈爾小怪"
+	name =	"Trash von Tol Dagor"
 })
 
 -----------------------
@@ -333,5 +333,5 @@ L= DBM:GetModLocalization(2129)
 L = DBM:GetModLocalization("WaycrestTrash")
 
 L:SetGeneralLocalization({
-	name =	"威奎斯特莊園小怪"
+	name =	"Trash des Kronsteiganwesens"
 })
