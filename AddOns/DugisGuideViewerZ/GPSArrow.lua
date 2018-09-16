@@ -221,7 +221,7 @@ function GPS:Initialize()
 		
 		local unitX, unitY = DGV:GetPlayerPositionOnMap(mapId)
 		
-		local info = C_Map.GetMapInfo(mapId)
+		local info = DGV.GetMapInfo(mapId)
 		
 		if info then
 			local mapFileName = info.name
@@ -301,7 +301,7 @@ function GPS:Initialize()
 		local w, h = GPSArrowPOI:GetWidth(), -GPSArrowPOI:GetHeight()
 		
 		--Transform positions
-		LuaUtils:foreach(visualQuests, function(poiButton)
+		for _, poiButton in pairs(visualQuests) do
 			local x, y = DGV:TranslateWorldMapPosition(poiButton.mapID, _, poiButton.originalX, poiButton.originalY,  GPS.GetMapIdForGPSMap())
 			if x and y and w and h then
 				poiButton:ClearAllPoints()
@@ -311,7 +311,8 @@ function GPS:Initialize()
 					poiButton:Hide()
 				end
 			end
-		end)
+		end
+       
 	end
 
 	function GPS.AddPOIButton(poiButton, posX, posY, frameLevelOffset, questID)
@@ -1186,7 +1187,7 @@ function GPS:Initialize()
             return
         end
         
-		local mapInfo = C_Map.GetMapInfo(mapId)
+		local mapInfo = DGV.GetMapInfo(mapId)
 		
 		if not mapInfo then
 			return
@@ -1643,8 +1644,8 @@ function GPS:Initialize()
         end
         
 		GPSArrowMinimap.isDisplayed = false
-		local noTerrainMap = ((C_Map.GetMapInfo(uiMapID).mapType == Enum.UIMapType.Micro 
-        or C_Map.GetMapInfo(uiMapID).mapType  == Enum.UIMapType.Dungeon))
+		local noTerrainMap = ((DGV.GetMapInfo(uiMapID).mapType == Enum.UIMapType.Micro 
+        or DGV.GetMapInfo(uiMapID).mapType  == Enum.UIMapType.Dungeon))
         and not GPS.HasDungeonMapATerrain(uiMapID)
 		
 		local floorNum, dBRx, dBRy, dTLx, dTLy = DGV:GetCurrentMapDungeonLevel_dugiDetails(uiMapID)

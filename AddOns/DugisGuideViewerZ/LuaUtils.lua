@@ -350,36 +350,12 @@ end
 
 dugisThreads = {}
 
--- threadThrottle (if == 1 then one execution per second)
-function LuaUtils:CreateThread(threadName, threadFunction, onEnd, resumeAmountPerFrame, threadThrottle, arguments)
-
-    --Default values
-    threadThrottle = threadThrottle or 0.01
-    resumeAmountPerFrame = resumeAmountPerFrame or 40
-    arguments = arguments or {}
-
-	threadThrottle = 0.01
-	resumeAmountPerFrame = 1
-
-    if not DugiThreadFrame then
-    
-    CreateFrame("Frame", "DugiThreadFrame")
-    
-	DugiThreadFrame:SetScript("OnUpdate" , function(self, elapsed)
-	
-		if DugisGuideViewer and DugisGuideViewer.Modules and  DugisGuideViewer.Modules.DugisWatchFrame then
-			DugisGuideViewer.Modules.DugisWatchFrame:OnFrameUpdate()
-		end
-	
-		LuaUtils:CheckWindowActive()
-	
-		collectgarbage("step", 100)
-		
-        LuaUtils:foreach(dugisThreads, function(thread, threadName_)
-        
-		thread.threadCounter = thread.threadCounter + elapsed
-		if thread.threadCounter >= thread.threadThrottle then
-			thread.threadCounter = thread.threadCounter - thread.threadThrottle
+local function ProcessThreads(elapsed)
+   -- LuaUtils:foreach(dugisThreads, function(thread, threadName_)
+    for threadName_, thread in pairs (dugisThreads) do
+        thread.threadCounter = thread.threadCounter + elapsed
+        if thread.threadCounter >= thread.threadThrottle then
+            thread.threadCounter = thread.threadCounter - thread.threadThrottle
             
             if thread ~= nil then
                 if coroutine.status(thread.thread) ~= "dead" then
@@ -399,13 +375,36 @@ function LuaUtils:CreateThread(threadName, threadFunction, onEnd, resumeAmountPe
                     dugisThreads[threadName_] = nil
                 end
             end
-		end
-        
-        end)
-        
-        CalculateCurrentFacing()
-	end) 
+        end
     
+    end
+end
+
+-- threadThrottle (if == 1 then one execution per second)
+function LuaUtils:CreateThread(threadName, threadFunction, onEnd, resumeAmountPerFrame, threadThrottle, arguments)
+
+    --Default values
+    threadThrottle = threadThrottle or 0.01
+    resumeAmountPerFrame = resumeAmountPerFrame or 40
+    arguments = arguments or {}
+
+	threadThrottle = 0.01
+	resumeAmountPerFrame = 1
+    if not LuaUtils.DugiThreadFrame then
+        LuaUtils.DugiThreadFrame = CreateFrame("Frame")
+        LuaUtils.DugiThreadFrame:SetScript("OnUpdate" , function(self, elapsed)
+			if DugisGuideViewer and DugisGuideViewer.Modules and  DugisGuideViewer.Modules.DugisWatchFrame then
+				DugisGuideViewer.Modules.DugisWatchFrame:OnFrameUpdate()
+			end
+
+			LuaUtils:CheckWindowActive()
+
+			collectgarbage("step", 100)
+
+			ProcessThreads(elapsed)
+
+            CalculateCurrentFacing()
+        end) 
     end
 
     local threadName = "thread_"..threadName
@@ -973,14 +972,14 @@ LuaUtils.visualLines = {}
 --{"frame name 1" = {line1, line2...}, ...}
 local visualLinesCounters = {}
 
-function LuaUtils:StartChangingLinesPositions(frameNames)
-	LuaUtils:foreach(frameNames, function(frameName)
+function LuaUtils.StartChangingLinesPositions(frameNames)
+	for _, frameName in pairs(frameNames) do
 		visualLinesCounters[frameName] = 1
-	end)
+	end
 end
 
 function LuaUtils:StopChangingLinesPositions(frameNames)
-	 LuaUtils:foreach(frameNames, function(frameName)
+	for _, frameName in pairs(frameNames) do
 		local firstUnusedIndex = (visualLinesCounters[frameName] or 0)
 		
 		if LuaUtils.visualLines[frameName] then
@@ -989,7 +988,7 @@ function LuaUtils:StopChangingLinesPositions(frameNames)
 				lines_[i]:Hide()
 			end
 		end
-	end)
+	end
 end    
 
 --Before looping this function the StartChangingLinesPositions needs to be invoked.

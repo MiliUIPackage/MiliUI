@@ -177,6 +177,7 @@ function Ants:Initialize()
 		end
 end)
 
+    local list = {"WorldMapFrame", "Minimap", "GPSArrow"}
 	function Ants:UpdateAntTrail(elapsed)
 
 		local self = Ants
@@ -188,7 +189,7 @@ end)
             DGV.DugisArrow.minimap_overlay:Hide()
         end
         
-        LuaUtils:StartChangingLinesPositions({"WorldMapFrame", "Minimap", "GPSArrow"})
+        LuaUtils.StartChangingLinesPositions(list)
 
 		if DGV.DugisArrow.waypoints and not DugisGuideViewer.carboniteloaded then
 
@@ -393,7 +394,7 @@ end)
 			self.ant_cleared = true
 		end
         
-        LuaUtils:StopChangingLinesPositions({"WorldMapFrame", "Minimap", "GPSArrow"})
+        LuaUtils:StopChangingLinesPositions(list)
 		
 	end
 

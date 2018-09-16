@@ -3590,6 +3590,13 @@ function MapOverlays:Initialize()
 	defaults.global.overlayData.TwilightHighlands_terrain1 = defaults.global.overlayData.TwilightHighlands
 	defaults.global.overlayData.BlastedLands_terrain1 = defaults.global.overlayData.BlastedLands	
 
+    local function ShouldShowOriginalTexture(mapId)
+        if (mapId == 81 or mapId == 18 or mapId == 14)
+		and UnitLevel("player") >= 110 then
+            return true
+        end
+    end
+    
 	local function FindTilesFrame()
 		local allMapFrames = {WorldMapFrame.ScrollContainer.Child:GetChildren()}
 		for i = 1, #allMapFrames do
@@ -3605,6 +3612,11 @@ function MapOverlays:Initialize()
 	
 	C_MapExplorationInfo.GetExploredMapTextures = function(mapId)
 		local result = C_MapExplorationInfo.GetExploredMapTextures_org(mapId)
+ 
+        if ShouldShowOriginalTexture(mapId) then
+            return result
+        end
+        
         local isBlizzard = string.find(debugstack(), "MapExplorationDataProvider") ~= nil
     
         if isBlizzard then
@@ -3668,7 +3680,7 @@ function MapOverlays:Initialize()
 			return result
 		end
 		
-		local mapInfo = C_Map.GetMapInfo(mapId)
+		local mapInfo = DugisGuideViewer.GetMapInfo(mapId)
 		
 		if not mapInfo then
 			return
@@ -3765,6 +3777,10 @@ function MapOverlays:Initialize()
 		end
 	  end
 		
+        if ShouldShowOriginalTexture((forWMap and WorldMapFrame:GetMapID()) or DugisGuideViewer.Modules.GPSArrowModule.GetMapIdForGPSMap()) then
+            return
+        end        
+	 
 		if forWMap then
 		wipe(overlayTextures)
 		else
@@ -4108,9 +4124,9 @@ function MapOverlays:Initialize()
 			
 			if not WorldMapFrame:IsMaximized() then
 				MOD.CoordsFrame.Player:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOMLEFT", 4, -5)
-				MOD.CoordsFrame.Cursor:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOMLEFT", 150, -5)
+				MOD.CoordsFrame.Cursor:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOMLEFT", 140, -5)
 	     	else
-				MOD.CoordsFrame.Player:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOM", -150, -30)
+				MOD.CoordsFrame.Player:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOM", -120, -30)
 				MOD.CoordsFrame.Cursor:SetPoint("TOPLEFT", WorldMapFrame, "BOTTOM", 20, -30)
 			end
             

@@ -247,8 +247,9 @@ WF.OnFrameUpdate = function()
 	if not DGV:IncompatibleAddonLoaded() and not DGV:ObjectiveTrackerOriginal() then
 		ObjectiveFrameDugiBkg:SetWidth(width)
 		
-		if GetWorldQuestRealHeight() then
-			ObjectiveFrameDugiBkg:SetHeight(GetWorldQuestRealHeight() + 30)
+        local realH = GetWorldQuestRealHeight()
+		if realH then
+			ObjectiveFrameDugiBkg:SetHeight(realH + 30)
 		end
 	end
 	
@@ -436,12 +437,12 @@ function WF:Initialize()
         local bottomBlock = nil
         local top = 100000
          
-        LuaUtils:foreach(WORLD_QUEST_TRACKER_MODULE.usedBlocks, function(v, k) 
+        for k, v in pairs(WORLD_QUEST_TRACKER_MODULE.usedBlocks) do
             if (v:GetTop() and v:GetTop() < top)  or (v:GetBottom() and v:GetBottom() < top)then
                 bottomBlock = v
                 top = v:GetTop()
             end
-        end) 
+        end
          
         return bottomBlock
     end

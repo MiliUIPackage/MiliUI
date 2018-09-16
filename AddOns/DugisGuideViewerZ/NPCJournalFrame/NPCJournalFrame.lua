@@ -126,8 +126,8 @@ function NPCJournalFrame:Initialize()
 
 	function NPCJournalFrame:GetMountData()
 		if not DGV:IsModuleRegistered("MountDataModule") then return end
-		for i = 1, 1024 do
-			local spellId = select(11, UnitBuff("target", i))
+		for i = 1, 10 do
+			local spellId = select(10, UnitBuff("target", i))
 			if not spellId then break end
             if MountObjects then
                 local mountInfo = MountObjects[tonumber(spellId)]

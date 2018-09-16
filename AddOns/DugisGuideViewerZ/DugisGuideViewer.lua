@@ -183,28 +183,33 @@ DugisGuideViewer.defaultGoodArrowColor = {1, 0.5, 0}
 DugisGuideViewer.defaultExactArrowColor = {1, 1, 0}
 DugisGuideViewer.defaultQuestingAreaColor = {0, 1, 0}
 
+local grayDefault = {0.2, 0.2, 0.2}
+local redDefault = {0.8, 0, 0}
+local yellowDefault = {0.8, 0.8, 0}
+local greenDefault = {0.0, 0.7, 0}
+local greenDefault1 = {0, 0.8, 0}
 DugisGuideViewer.defaultWaySegmentColor = function()
 
 	--Backward compatibility
 	local oldSettings = DugisGuideViewer:UserSetting(104) --DGV_ANTCOLOR 
 	
 	if oldSettings ==[[Interface\COMMON\Indicator-Gray]] then
-		return {0.2, 0.2, 0.2}
+		return grayDefault
 	end
 	
 	if oldSettings ==[[Interface\COMMON\Indicator-Red]] then
-		return {0.8, 0, 0}
+		return redDefault
 	end	
 	
 	if oldSettings ==[[Interface\COMMON\Indicator-Yellow]] then
-		return {0.8, 0.8, 0}
+		return yellowDefault
 	end	
 	
 	if oldSettings ==[[Interface\COMMON\Indicator-Green]] then
-		return {0.0, 0.7, 0}
+		return greenDefault
 	end		
 	
-	return {0, 0.8, 0}
+	return greenDefault1
 end
 
 local function LocalizePrint(message)
@@ -864,7 +869,7 @@ function DugisGuideViewer:OnInitialize()
 	self:RegisterEvent("CHAT_MSG_LOOT")
 	self:RegisterEvent("ACHIEVEMENT_EARNED")
 	self:RegisterEvent("CRITERIA_UPDATE")
-	--self:RegisterEvent("TRADE_SKILL_UPDATE")
+	self:RegisterEvent("SKILL_LINES_CHANGED")
 	self:RegisterEvent("PLAYER_LEVEL_UP")
 	self:RegisterEvent("PLAYER_XP_UPDATE")
 	self:RegisterEvent("PLAYER_LOGOUT")
@@ -3033,7 +3038,7 @@ local function GetSettingsCategoryFrame(category, parent)
 		button:RegisterForClicks("LeftButtonUP")
 		button:SetScript("OnClick", function() 
             DugisGuideUser.excludedTrackingPoints = {}
-            WorldMapFrame_UpdateMap()
+            --WorldMapFrame_UpdateMap()
         end)
 	end
 	
@@ -4574,7 +4579,7 @@ function DugisGuideViewer:ToogleAutoMount()
         print(L["|cff11ff11Auto Mount is ON|r"])
     else
         print(L["|cff11ff11Auto Mount is OFF|r"])
-    end   
+    end    
 end
 
 SLASH_DG1 = "/dugi"
@@ -4586,7 +4591,7 @@ SlashCmdList["DG"] = function(msg)
 		print(L["|cff11ff11/dugi on - |rEnable Dugi Addon."])
 		print(L["|cff11ff11/dugi off - |rDisable Dugi Addon."])
 		print(L["|cff11ff11/dugi config - |rDisplay settings menu."])
-		print(L["|cff11ff11/dugi automount - |rToogle Auto Mount on/off."])
+		print(L["|cff11ff11/dugi automount - |rToggle Auto Mount on/off."])
 	elseif msg  == "on" then
 		DugisGuideViewer:TurnOn()
 		DugisGuideViewer:UpdateIconStatus()
@@ -5300,7 +5305,10 @@ function DugisGuideViewer:Dugi_QUEST_LOG_UPDATE()
     
 end
 
-function DugisGuideViewer:TRADE_SKILL_UPDATE()
+function DugisGuideViewer:SKILL_LINES_CHANGED()
+	if DugisGuideViewer.TriggerProfessionsUpdate then 
+		DugisGuideViewer:TriggerProfessionsUpdate()
+	end
 end
 
 function DugisGuideViewer:ACHIEVEMENT_EARNED()

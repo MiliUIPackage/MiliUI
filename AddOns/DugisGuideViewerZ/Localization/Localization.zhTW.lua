@@ -534,7 +534,7 @@ if ( GetLocale() == "zhTW" ) then
   ["Set Tracking Filters..."] = "設定追蹤過濾...",
   ["Set as waypoint"] = "設為目的地",
   ["Smart Gear Set"] = "智慧型套裝",
-  ["Show Auto Equip Prompt"] = "顯示智慧型套裝提醒和確認",
+  ["Show Auto Equip Prompt"] = "顯示智慧型套裝的提醒和確認",
   ["Shaman"] = "薩滿",
   ["Specialization"] = "專精",
 	["Scroll"] = "滾動",

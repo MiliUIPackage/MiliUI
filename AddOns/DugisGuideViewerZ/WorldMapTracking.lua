@@ -388,7 +388,9 @@ function WMT:Initialize()
 	
 			local achievementNum = tonumber(GetAchievementNumCriteria(achievementId))		
 			
-			if criteriaIndex and criteriaIndex <= achievementNum then
+			if criteriaIndex and GetAchievementCriteriaInfoByID(achievementId, criteriaIndex) then 
+				tt3 = format("\n|cff9d9d9d%s", GetAchievementCriteriaInfoByID(achievementId, criteriaIndex))
+			elseif criteriaIndex and criteriaIndex <= achievementNum then
 				tt3 = format("\n|cff9d9d9d%s", GetAchievementCriteriaInfo(achievementId, criteriaIndex))
 			end
 		end
@@ -427,7 +429,10 @@ function WMT:Initialize()
 			end 
 			criteriaIndex = tonumber(criteriaIndex)
 			local criteriaNum = tonumber(GetAchievementNumCriteria(achievementId))
-			if criteriaIndex and criteriaIndex <= criteriaNum and select(3, GetAchievementCriteriaInfo(achievementId, criteriaIndex)) then
+			
+			if criteriaIndex and select(3, GetAchievementCriteriaInfoByID(achievementId, criteriaIndex)) then 
+				return
+			elseif criteriaIndex and criteriaIndex <= criteriaNum and select(3, GetAchievementCriteriaInfo(achievementId, criteriaIndex)) then
 				return 
 			end
 		end
@@ -894,8 +899,12 @@ function WMT:Initialize()
             end)
         end
         
-		DugisWaypointTooltip:HookScript("OnShow", DugisWaypointTooltip_OnShow)
-		DugisWaypointTooltip:Show()
+        if not DugisWaypointTooltip.hooked then
+            DugisWaypointTooltip:HookScript("OnShow", DugisWaypointTooltip_OnShow)
+            DugisWaypointTooltip.hooked = true
+        end
+        
+        DugisWaypointTooltip:Show()
         
         DugisWaypointTooltip:SetClampedToScreen(true)
        
@@ -1968,7 +1977,7 @@ function DugisGuideViewer:ExportPets(optimized)
     
         local zoneIdLevel = LuaUtils:split(zoneId_Level, ":")
         local zoneId = zoneIdLevel[1]
-        local mapInfo = C_Map.GetMapInfo(zoneId) or {}
+        local mapInfo = DGV.GetMapInfo(zoneId) or {}
         local zoneName_or_Id = DugisGuideViewer:GetMapNameOld(tonumber(zoneId)) or zoneId
         local key = ""
         

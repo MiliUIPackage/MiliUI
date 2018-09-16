@@ -58,6 +58,8 @@ function AQA:Initialize()
 	local function QUEST_PROGRESS ()
 		DebugPrint("###QUEST_PROGRESS")
 		--if not self:canAutomate() then return end
+		if IsShiftKeyDown() then return end
+		
 		if not DugisGuideViewer:UserSetting(DGV_AUTOQUESTTURNIN) then return end
 		if IsQuestCompletable() then
 			CompleteQuest()
@@ -67,6 +69,8 @@ function AQA:Initialize()
 	local function QUEST_LOG_UPDATE ()
 		DebugPrint("###QUEST_LOG_UPDATE")
 		--if not self:canAutomate() then return end
+		if IsShiftKeyDown() then return end
+		
 		if not DugisGuideViewer:UserSetting(DGV_AUTOQUESTTURNIN) then return end
 		local start_entry = GetQuestLogSelection()
 		local num_entries = GetNumQuestLogEntries()
@@ -100,6 +104,7 @@ function AQA:Initialize()
 		if DGV.Modules.MapPreview:IsAnimating() then HideUIPanel(WorldMapFrame) end
 		--this stops multiple quest accept from working 
 		--if not self:canAutomate() then return end
+		if IsShiftKeyDown() then return end
 		
 		local button
 		local text
@@ -151,6 +156,7 @@ function AQA:Initialize()
 		DebugPrint("###QUEST_GREETING")
 		if DGV.Modules.MapPreview:IsAnimating() then HideUIPanel(WorldMapFrame) end
 		--if not self:canAutomate() then return end
+		if IsShiftKeyDown() then return end
 		
 		local button
 		local text

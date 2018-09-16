@@ -44,6 +44,20 @@ GetCurrentMapDungeonLevel_dugi = function()
 	return UiMapId2Floor(C_Map.GetBestMapForUnit("player"))
 end
 
+local DGV_GetMapInfo_cache = {}
+--Cached version of C_Map.GetMapInfo. Using C_Map.GetMapInfo a lot is causing intensive memory usage (oscilating)
+DGV.GetMapInfo = function(mapId)
+    local cached = DGV_GetMapInfo_cache[mapId]
+    if cached ~= nil then
+        return cached
+    end
+    
+    local result = C_Map.GetMapInfo(mapId)
+    DGV_GetMapInfo_cache[mapId] = result
+    return result
+end
+
+
 --oldContinentId - one of values returned by old GetCurrentMapContinent
 function OldContinent2UiMapID(oldContinentId)
 	local map = {
@@ -81,7 +95,7 @@ end
 --Returns old continent id
 GetMapContinent_dugi = function(currentMapId)
 	while currentMapId ~= nil do
-		local mapInfo = C_Map.GetMapInfo(currentMapId)
+		local mapInfo = DGV.GetMapInfo(currentMapId)
 		
 		if not mapInfo then
 			return
@@ -103,7 +117,7 @@ end
 
 --Check if currently displayed map id a continent
 IsCurrentMapContinent = function()
-	local info = C_Map.GetMapInfo(DGV:GetCurrentMapID())
+	local info = DGV.GetMapInfo(DGV:GetCurrentMapID())
 	return info.mapType == Enum.UIMapType.Continent
 end
 
@@ -218,7 +232,7 @@ end
 
 function DGV:GetMapNameFromID(UiMapID, oldAreaId)
 	if UiMapID then 
-		local info = C_Map.GetMapInfo(UiMapID)
+		local info = DGV.GetMapInfo(UiMapID)
 		return info and info.name -- get it from game. 
 	end
 end
@@ -244,25 +258,37 @@ function DGV:TranslateWorldMapPosition(UIMapID1, _, x, y, UIMapID2)
 	--return astrolabe:TranslateWorldMapPosition(map, floor, x, y, M, F)
 end
 
+local IsOnAzeroth_cache = {}
 function DGV:IsOnAzeroth(uIMapID)
+    local org_uIMapID = uIMapID
+
+    if IsOnAzeroth_cache[org_uIMapID] ~= nil then
+        return IsOnAzeroth_cache[org_uIMapID]
+    end
+
 	while uIMapID ~= nil do
-		local mapInfo = C_Map.GetMapInfo(uIMapID)
+		local mapInfo = DGV.GetMapInfo(uIMapID)
 		
 		if not mapInfo then
+            IsOnAzeroth_cache[org_uIMapID] = false
 			return false
 		end
         
 		if mapInfo.mapType == Enum.UIMapType.World then
+            IsOnAzeroth_cache[org_uIMapID] = true
 			return true
 		end       
         
         --Argus / Wandering Isle should be not considered as map on Azeroth 
 		if mapInfo.parentMapID == 905 or mapInfo.parentMapID == 947 then
+            IsOnAzeroth_cache[org_uIMapID] = false
 			return false
 		end            
 		
 		uIMapID = mapInfo.parentMapID
 	end
+    
+    if org_uIMapID then IsOnAzeroth_cache[org_uIMapID] = false end
 end
 
 --Translates x,y (0-1) coordinates from uIMapID1 zone to uIMapID2 zone

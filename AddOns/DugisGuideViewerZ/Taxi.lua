@@ -790,6 +790,9 @@ function Taxi:Initialize()
 		if not npc1 or not npc2 then return end	--quick fix for Stormheim taxi bug
 		local fullData = TaxiData:GetFullData()
 		local npcTbl1, npcTbl2 = fullData[continent][npc1], fullData[continent][npc2]
+        
+        if not npcTbl1 or not npcTbl2 then return end
+        
 		local npc1x,npc1y = DGV:UnpackXY(npcTbl1.coord)
 		local npc2x,npc2y = DGV:UnpackXY(npcTbl2.coord)
 		local dist, dx, dy= DGV:ComputeDistance(
@@ -2277,7 +2280,7 @@ end
     function Taxi:IsBuilderEnabled(builderKey)
         local result = false
 		
-		if not DGV:UserSetting(DGV_USETAXISYSTEM) then
+		if not DGV:UserSetting(DGV_USETAXISYSTEM) or IsInInstance() then
 			return result
 		end		
         

@@ -1624,5 +1624,83 @@ tappend(points["ArgusCore:0"], --1171
 	"A:64.8,55.2:12069:4", --Felfire Armory 
 	"A:70.1,58.7:12069:11") --Terminus 
 
+tappend(points["Vol'dun:0"], 
+	"A:44.93,58.73:12560:1",	--Atul'Aman 
+	"A:63.02,26.59:12560:2",	--Darkwood Shaol 
+	"A:31.12,83.79:12560:3",	--Port of Zem'lan 
+	"A:45.51,91.77:12560:4",	--Redrock Harbor 
+	"A:39.77,34.21:12560:5",	--Shatterstone Harbor 
+	"A:51.98,29.25:12560:6",	--Slithering Gulch 
+	"A:53.19,89.49:12560:7",	--Temple of Akunda 
+	"A:31.55,56.31:12560:8",	--Terrace of the Devoted 
+	"A:43.33,49.27:12560:9",	--The Bone Pit 
+	"A:58.06,41.40:12560:10",	--The Brine Basin 
+	"A:30.08,78.75:12560:11",	--The Cracked Coast 
+	"A:61.21,21.07:12560:12",	--Tortaka Refuge 
+	"A:43.25,60.53:12560:13")	--Whistlebloom Oasis 
+
+tappend(points["Tiragarde Sound:0"], 
+	"A:44.38,28.02:12556:1",	--Anglepoint Wharf  
+	"A:78.81,78.60:12556:4",	--Freehold 
+	"A:49.85,25.35:12556:5",	--Norwington Estate 
+	"A:31.99,21.87:12556:6",	--Krakenbane Cove 
+	"A:65.06,61.07:12556:7",	--Abandoned Junkheap 
+	"A:75.85,65.84:12556:8",	--Kennings Lodge 
+	"A:86.31,79.75:12556:9",	--The Wailing Tideway 
+	"A:57.72,61.50:12556:10",	--Vigil Hill 
+	"A:69.77,19.08:12556:3",	--Fernwood Ridge Alliance
+	"A:43.91,33.15:12556:2",	--Boralus Alliance	
+	"A:39.74,13.01:12556:11")	--Waning Glacier 
+
+tappend(points["Stormsong Valley:0"], 
+	"A:59.15,69.52:12558:1",	--Brennadam 
+	"A:44.02,72.40:12558:2",	--Briarback Kraul 
+	"A:63.46,64.78:12558:3",	--Mariner's Strand 
+	"A:49.21,34.27:12558:4",	--Warfang Hold 
+	"A:43.02,56.63:12558:5",	--Deadwash 
+	"A:34.29,47.31:12558:6",	--Fort Daelin 
+	"A:62.99,40.83:12558:7",	--Sagehold 
+	"A:61.75,36.33:12558:8",	--Shrine of the Storm 
+	"A:30.64,68.07:12558:9")	--Millstone Hamlet 
+
+tappend(points["Nazmir:0"], 
+	"A:37.72,73.63:12561:1",	--Primal Wetlands 
+	"A:50.41,58.22:12561:2",	--Heart of Darkness 
+	"A:43.59,79.74:12561:3",	--The Rivermarsh 
+	"A:39.57,34.48:12561:4",	--The Necropolis 
+	"A:30.94,50.22:12561:5",	--Zalamar 
+	"A:61.65,30.04:12561:6",	--Torga's Rest 
+	"A:64.49,41.32:12561:7",	--Nazwatha 
+	"A:62.79,62.39:12561:8",	--Zal'amak 	
+	"A:71.24,46.16:12561:9")	--The Frogmarsh 
+
+tappend(points["Drustvar:0"], 
+	"A:40.61,47.59:12557:1",	--Arom's Stand 
+	"A:62.59,42.94:12557:2",	--Barrowknoll Cemetery 
+	"A:63.23,27.14:12557:3",	--Carver's Harbor 
+	"A:30.65,28.50:12557:4",	--Corlain 
+	"A:23.58,63.59:12557:5",	--Crimson Forest 
+	"A:55.13,34.79:12557:6",	--Fallhaven 
+	"A:69.85,62.28:12557:7",	--Fletcher's Hollow 
+	"A:66.88,54.69:12557:8",	--Gol Koval 
+	"A:46.15,33.46:12557:9",	--Highroad Pass 
+	"A:20.48,13.80:12557:10",	--Western Watch 
+	"A:33.31,67.65:12557:11",	--Iceveil Glacier
+	"A:33.49,13.58:12557:12")	--Waycrest Manor
+
+tappend(points["Zuldazar:0"], 
+	"A:43.75,39.35:12559:1",	--Atal'Dazar 
+	"A:69.50,66.98:12559:2",	--Atal'Gral 
+	"A:60.39,22.03:12559:3",	--Blood Gate 
+	"A:60.63,47.73:12559:4",	--Dazar'alor
+	"A:71.08,64.56:12559:5",	--Dreadpearl Shallows 
+	"A:48.21,32.26:12559:6",	--Garden of the Loa 
+	"A:70.87,36.59:12559:7",	--Savagelands 
+	"A:61.11,27.01:12559:8",	--The Sliver 
+	"A:54.70,89.76:12559:9",	--Tusk Isle 
+	"A:76.29,52.66:12559:10",	--Talanji's Rebuke 
+	"A:43.94,72.07:12559:11",	--Xibala 
+	"A:79.46,16.25:12559:12")	--Zeb'ahari 
+	
 --Disable automatic addition of key/table combos
 --getmetatable(DugisWorldMapTrackingPoints).__index = nil

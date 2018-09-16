@@ -754,6 +754,8 @@ function DugisArrow:Initialize()
 		LuaUtils:foreach(DugisArrow.waypoints or {}, function(waypoint)
 			waypoint:UpdateSize()
 		end)
+    
+        UpdateCurrentBeaconMode()
 	end
 	
 	local function AddWaypoint(mapID, x, y, desc)
@@ -1753,7 +1755,7 @@ function DugisArrow:Initialize()
 	local function SetWaypointInfo(mapID, mapFloor, x, y, desc, guideIndex, isWTag, questId, forceCalculation)
 		InterruptRecalculation()
 
-        local disabledTaxiSystem = not DGV:UserSetting(DGV_USETAXISYSTEM) or isWTag
+        local disabledTaxiSystem = not DGV:UserSetting(DGV_USETAXISYSTEM) or isWTag or IsInInstance()
 		if disabledTaxiSystem or (DugisArrow:getNumWaypoints()>0 and not forceCalculation) then
 			local point = AddWaypoint(mapID, x, y, desc)
 			SetWaypointMembers(point, guideIndex, isWTag, questId)
@@ -2820,18 +2822,15 @@ function DugisArrow:Initialize()
 			end
 		end
         
-        --WorldMapFrame
-        --[[ todo: find replacement
 		if WorldMapFrame and WorldMapFrame:IsShown() then
-            local numPOIs = GetNumMapLandmarks();
-            for i=1, numPOIs do
-                local _, name, _, _, x, y = C_WorldMap.GetMapLandmarkInfo(i)
+            local tPOIs = C_TaxiMap.GetTaxiNodesForMap(WorldMapFrame:GetMapID())
             
-                x =  LuaUtils:Round(x, 7)
-                y =  LuaUtils:Round(y, 7)
+            for i, zPOI in ipairs(tPOIs) do
+                local x =  LuaUtils:Round(zPOI.position.x, 7)
+                local y =  LuaUtils:Round(zPOI.position.y, 7)
                 
-                --Antoran Wastes
-                if DGV:GetCurrentMapID() == 1171 then
+                local mapId =  DGV:GetCurrentMapID()
+                if mapId == 885 or mapId == 886 or mapId == 887 then
                     if x == 0.726423 and y == 0.7616945 then
                         TaxiData.currentBeaconMode = "lights-purchase"
                     end
@@ -2840,25 +2839,11 @@ function DugisArrow:Initialize()
                     end
                 end
             end               
-        end]]
+        end
 	end
 	
-	--[[  todo: find replacement
-	hooksecurefunc("WorldMapFrame_Update", function()
-            UpdateCurrentBeaconMode()
-            
-			if not DugisMapOverlayFrame then return end
-			
-			local info = C_Map.GetCurrentMapInfo()
-			
-			if info.mapType == Enum.UIMapType.Cosmic
-			then
-				DugisMapOverlayFrame:Hide()
-			else
-				DugisMapOverlayFrame:Show()
-			end
-		end)
-	]]
+
+	
 end
 
 function DugisArrow.RefreshRoute(delay)
