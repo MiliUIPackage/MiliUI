@@ -4,7 +4,7 @@
 ## Title-zhTW: |cFF77FF77[社交]|r 聊天增強
 ## Notes-zhTW: TinyChat |n一個超輕量級的聊天視窗功能增強插件。|n提供切換頻道按鈕、複製聊天內容、表情圖案、開怪倒數、擲骰子、顯示物品等級和圖示...還有更多功能。|n|cffffd200使用方法：|r右鍵點頻道按鈕最左側的小圖示，開啟設定。
 ## Author: M
-## Version: 8.0.2
+## Version: 8.0.3
 ## SavedVariables: TinyChatDB, TinyChatLevelDB
 
 ChatAtFriends.lua
