@@ -92,7 +92,7 @@ local default_config = {
 
     name_colour_white_in_bar_mode = false,
     class_colour_friendly_names = false,
-    class_colour_enemy_names = true,
+    class_colour_enemy_names = false,
     name_colour_brighten_class = .2,
     name_colour_player_friendly = {.6,.7,1},
     name_colour_player_hostile  = {1,.7,.7},
