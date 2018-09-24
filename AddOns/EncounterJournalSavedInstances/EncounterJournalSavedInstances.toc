@@ -5,6 +5,6 @@
 ## Title-zhTW: |cFF0099FF[介面]|r 冒險指南地城紀錄顯示
 ## Notes-zhTW: Encounter Journal Saved Instances|n在冒險指南顯示地城進度紀錄。
 ## Author: alex_chrome, Meivyn
-## Version: 1.2.1
+## Version: 1.2.2
 
 EncounterJournalSavedInstances.lua
