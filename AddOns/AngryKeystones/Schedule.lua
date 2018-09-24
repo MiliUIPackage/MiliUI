@@ -91,8 +91,16 @@ local function UpdateFrame()
 	Mod.AffixFrame:Show()
 	Mod.PartyFrame:Show()
 	Mod.KeystoneText:Show()
+
 	ChallengesFrame.WeeklyInfo.Child.WeeklyChest:ClearAllPoints()
 	ChallengesFrame.WeeklyInfo.Child.WeeklyChest:SetPoint("LEFT", 50, -30)
+	if ChallengesFrame.WeeklyInfo.Child.WeeklyChest:IsShown() then
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth(240)
+	else
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth(240)
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:ClearAllPoints()
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame.WeeklyInfo.Child.WeeklyChest, "TOP", -10, 35)
+	end
 
 	local currentKeystoneName = GetNameForKeystone(C_MythicPlus.GetOwnedKeystoneChallengeMapID(), C_MythicPlus.GetOwnedKeystoneLevel())
 	if currentKeystoneName then
@@ -107,7 +115,7 @@ local function UpdateFrame()
 			local entry = Mod.AffixFrame.Entries[i]
 			entry:Show()
 
-			local scheduleWeek = (currentWeek - 2 + i) % (#affixSchedule) + 1
+			local scheduleWeek = (currentWeek - 1 + i) % (#affixSchedule) + 1
 			local affixes = affixSchedule[scheduleWeek]
 			for j = 1, #affixes do
 				local affix = entry.Affixes[j]
@@ -174,7 +182,7 @@ function Mod:Blizzard_ChallengesUI()
 		text:SetWidth(120)
 		text:SetJustifyH("LEFT")
 		text:SetWordWrap(false)
-		text:SetText( Addon.Locale["scheduleWeek"..i] )
+		text:SetText( Addon.Locale["scheduleWeek"..i+1] )
 		text:SetPoint("LEFT")
 		entry.Text = text
 
@@ -262,12 +270,13 @@ function Mod:Blizzard_ChallengesUI()
 	end
 	frame2.Entries = entries2
 
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth(220)
-
 	local keystoneText = ChallengesFrame.WeeklyInfo.Child:CreateFontString(nil, "ARTWORK", "GameFontNormalMed2")
 	keystoneText:SetPoint("BOTTOM", ChallengesFrame.WeeklyInfo.Child.WeeklyChest, "BOTTOM", 0, -25)
 	keystoneText:SetWidth(220)
 	Mod.KeystoneText = keystoneText
+
+	ChallengesFrame.WeeklyInfo.Child.Affixes[1]:ClearAllPoints()
+	ChallengesFrame.WeeklyInfo.Child.Affixes[1]:SetPoint("CENTER", ChallengesFrame.WeeklyInfo.Child.Label, "CENTER", -64, -45)
 
 	hooksecurefunc("ChallengesFrame_Update", UpdateFrame)
 end
@@ -304,8 +313,15 @@ function Mod:CheckAffixes()
 	end
 end
 
+local bagUpdateTimerStarted = false
 function Mod:BAG_UPDATE()
-	self:CheckCurrentKeystone(true)
+	if not bagUpdateTimerStarted then
+		bagUpdateTimerStarted = true
+		C_Timer.After(1, function()
+			Mod:CheckCurrentKeystone(true)
+			bagUpdateTimerStarted = false
+		end)
+	end
 end
 
 function Mod:CHAT_MSG_LOOT(...)
