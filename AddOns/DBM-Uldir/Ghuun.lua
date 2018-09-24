@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2147, "DBM-Uldir", nil, 1031)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 17818 $"):sub(12, -3))
+mod:SetRevision(("$Revision: 17876 $"):sub(12, -3))
 mod:SetCreatureID(132998)
 mod:SetEncounterID(2122)
 mod:SetZone()
@@ -16,9 +16,9 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 267509 267427 267412 273406 273405 267409 267462 267579 263482 263503 263307 275160",
 	"SPELL_CAST_SUCCESS 263235 263482 263503 263373 270373 270428 276839 274582 272505 275756 263416",
-	"SPELL_AURA_APPLIED 268074 267813 277079 272506 274262 263372 270447 263235 270443 273405 267409 263284",
+	"SPELL_AURA_APPLIED 268074 267813 277079 272506 274262 263372 270447 263235 270443 273405 267409 263284 277007",
 	"SPELL_AURA_APPLIED_DOSE 270447",
-	"SPELL_AURA_REMOVED 268074 267813 277079 272506 274262 263235 263372",
+	"SPELL_AURA_REMOVED 268074 267813 277079 272506 274262 263235 263372 277007",
 	"SPELL_PERIODIC_DAMAGE 270287",
 	"SPELL_PERIODIC_MISSED 270287",
 --	"SPELL_DAMAGE 263326",
@@ -76,6 +76,7 @@ local yellBloodFeast					= mod:NewYell(263235, nil, nil, nil, "YELL")
 local yellBloodFeastFades				= mod:NewFadesYell(263235, nil, nil, nil, "YELL")
 local specWarnBloodFeastTarget			= mod:NewSpecialWarningTargetCount(263235, nil, nil, nil, 1, 8)
 local specWarnMindNumbingChatter		= mod:NewSpecialWarningCast(263307, "SpellCaster", nil, nil, 1, 2)
+local specWarnBurstingBoil				= mod:NewSpecialWarningYou(277007, nil, nil, nil, 1, 2)--Mythic
 ----Arena Floor P3
 local specWarnCollapse					= mod:NewSpecialWarningDodge(276839, nil, nil, nil, 2, 2)
 local specWarnMalignantGrowth			= mod:NewSpecialWarningDodge(274582, nil, nil, nil, 2, 2)
@@ -303,8 +304,9 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 275160 then
 		specWarnGazeofGhuun:Show()
 		specWarnGazeofGhuun:Play("turnaway")
-		timerGazeofGhuunCD:Start()--26.8
-		countdownGazeofGhuun:Start(26.8)
+		local timer = self:IsHard() and 26.8 or self:IsEasy() and 31.6--TODO, mythic and LFR, easy vs hard is assumed but only confirmed on heroic/normal
+		timerGazeofGhuunCD:Start(timer)
+		countdownGazeofGhuun:Start(timer)
 	end
 end
 
@@ -357,7 +359,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 				countdownBloodFeast:Start(15.75)
 			end
 		else--P3, No more blood feast, only waves
-			timerWaveofCorruptionCD:Start(20.5, self.vb.waveCast+1)
+			--Faster on easy because no growth
+			local timer = self:IsHard() and 25.6 or self:IsEasy() and 20.5--TODO, mythic and LFR, easy vs hard is assumed but only confirmed on heroic/normal
+			timerWaveofCorruptionCD:Start(timer, self.vb.waveCast+1)
 		end
 	elseif spellId == 276839 then
 		self.vb.phase = 3
@@ -374,17 +378,20 @@ function mod:SPELL_CAST_SUCCESS(args)
 		countdownExplosiveCorruption:Start(30)
 		timerMalignantGrowthCD:Start(33.7)--33.7-34.1
 		countdownMalignantGrowth:Start(33.7)
-		timerGazeofGhuunCD:Start(47.4)
-		countdownGazeofGhuun:Start(47.4)
-		timerWaveofCorruptionCD:Start(49.9, 1)
+		local timer1 = self:IsHard() and 47.4 or self:IsEasy() and 52.3--Gaze of G'huun
+		local timer2 = self:IsHard() and 49.9 or self:IsEasy() and 37.7--Wave of Corruption (sooner on easy because no growth)
+		timerGazeofGhuunCD:Start(timer1)
+		countdownGazeofGhuun:Start(timer1)
+		timerWaveofCorruptionCD:Start(timer2, 1)
 	elseif spellId == 272505 or spellId == 275756 then
 		self.vb.explosiveCount = self.vb.explosiveCount + 1
 		if self.vb.phase == 1 then
 			timerExplosiveCorruptionCD:Start(26, self.vb.explosiveCount+1)
 			countdownExplosiveCorruption:Start(26)
 		else
-			timerExplosiveCorruptionCD:Start(13.4, self.vb.explosiveCount+1)
-			countdownExplosiveCorruption:Start(13.4)
+			local timer = self:IsHard() and 13.4 or self:IsEasy() and 15.8--TODO, mythic and LFR, easy vs hard is assumed but only confirmed on heroic/normal
+			timerExplosiveCorruptionCD:Start(timer, self.vb.explosiveCount+1)
+			countdownExplosiveCorruption:Start(timer)
 		end
 		if args:IsPlayer() then--Success event can be up to 2.5 seconds faster than applied event, but only tanks will get success event
 			if self:AntiSpam(3, 8) then
@@ -420,9 +427,9 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnDarkPurpose:Show()
 			specWarnDarkPurpose:Play("justrun")
 			yellDarkPurpose:Yell()
-		end
-		if self.Options.NPAuraOnFixate then
-			DBM.Nameplate:Show(true, args.sourceGUID, spellId)
+			if self.Options.NPAuraOnFixate then
+				DBM.Nameplate:Show(true, args.sourceGUID, spellId)
+			end
 		end
 	elseif spellId == 275204 then
 		if self.Options.NPAuraOnUnstoppable then
@@ -513,6 +520,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 263284 then--Horror Spawn
 		timerMindNumbingChatterCD:Start(10, args.destGUID)
+	elseif spellId == 277007 then
+		if args:IsPlayer() then
+			specWarnBurstingBoil:Show()
+			specWarnBurstingBoil:Play("targetyou")
+		end
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED

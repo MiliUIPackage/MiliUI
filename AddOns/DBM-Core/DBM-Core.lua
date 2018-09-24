@@ -41,9 +41,9 @@
 --  Globals/Default Options  --
 -------------------------------
 DBM = {
-	Revision = tonumber(("$Revision: 17821 $"):sub(12, -3)),
-	DisplayVersion = "8.0.8", -- the string that is shown as version
-	ReleaseRevision = 17821 -- the revision of the latest stable version that is available
+	Revision = tonumber(("$Revision: 17892 $"):sub(12, -3)),
+	DisplayVersion = "8.0.10 BNS", -- the string that is shown as version
+	ReleaseRevision = 17892 -- the revision of the latest stable version that is available
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -95,10 +95,10 @@ DBM.DefaultOptions = {
 	SpecialWarningSound4 = "Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg",
 	SpecialWarningSound5 = "Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg",
 	ModelSoundValue = "Short",
-	CountdownVoice = "VP:VV",
+	CountdownVoice = "Corsica",
 	CountdownVoice2 = "Kolt",
 	CountdownVoice3v2 = "Pewsey",
-	ChosenVoicePack = "VV",
+	ChosenVoicePack = "None",
 	VoiceOverSpecW2 = "DefaultOnly",
 	AlwaysPlayVoice = false,
 	EventSoundVictory2 = "None",
@@ -251,6 +251,7 @@ DBM.DefaultOptions = {
 	HelpMessageVersion = 3,
 	MoviesSeen = {},
 	MovieFilter = "AfterFirst",
+	BonusFilter = "Never",
 	LastRevision = 0,
 	DebugMode = false,
 	DebugLevel = 1,
@@ -280,24 +281,29 @@ DBM.Counts = {
 	{	text	= "Neryssa (ptBR Female)",value = "Neryssa", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Neryssa\\", max = 10},
 }
 DBM.Victory = {
-	{text = "None",value  = "None"},
-	{text = "Random",value  = "Random"},
+	{text = "無",value  = "None"},
+	{text = "隨機",value  = "Random"},
 	{text = "Blakbyrd: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\bbvictory.ogg", length=4},
 	{text = "SMG: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\SmoothMcGroove_Fanfare.ogg", length=4},
 }
 DBM.Defeat = {
-	{text = "None",value  = "None"},
-	{text = "Random",value  = "Random"},
-	{text = "Kologarn: You Fail",value = "Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg", length=4},
+	{text = "無",value  = "None"},
+	{text = "隨機",value  = "Random"},
 	{text = "Alizabal: Incompetent Raiders",value = "Sound\\Creature\\ALIZABAL\\VO_BH_ALIZABAL_RESET_01.ogg", length=4},
-	{text = "Hodir: Tragic",value = "Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg", length=4},
-	{text = "Thorim: Failures",value = "Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg", length=4},
+	{text = "伯昂薩姆第: Over Your Head",value = "Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_35_m.ogg", length=4},
+	{text = "伯昂薩姆第: Pour Little Thing",value = "Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_37_m.ogg", length=4},
+	{text = "伯昂薩姆第: Impressive Death",value = "Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_38_m.ogg", length=4},
+	{text = "伯昂薩姆第: All That Armor",value = "Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_50_m.ogg", length=4},
+	{text = "Kologarn: You Fail",value = "Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg", length=4},
+	{text = "霍迪爾: Tragic",value = "Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg", length=4},
+	{text = "索林姆: Failures",value = "Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg", length=4},
 	{text = "Valithria: Failures",value = "Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg", length=4},
+	{text = "尤格-薩倫: Laugh",value = "Sound\\Creature\\YoggSaron\\UR_YoggSaron_Slay01.ogg", length=4},
 	--{text = "Scrollsage Nola: Cycle",value = "Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg", length=4},--When someone gives me the correct sound path (not media ID), this will be added
 }
 DBM.Music = {--Contains all music media, period
-	{text = "None",value  = "None"},
-	{text = "Random",value  = "Random"},
+	{text = "無",value  = "None"},
+	{text = "隨機",value  = "Random"},
 	{text = "Anduin Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
 	{text = "Anduin Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
 	{text = "Bronze Jam",value = "Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3", length=116},
@@ -306,15 +312,15 @@ DBM.Music = {--Contains all music media, period
 	{text = "Ulduar: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
 }
 DBM.DungeonMusic = {--Filtered list of media assigned to dungeon/raid background music catagory
-	{text = "None",value  = "None"},
-	{text = "Random",value  = "Random"},
+	{text = "無",value  = "None"},
+	{text = "隨機",value  = "Random"},
 	{text = "Anduin Part 1 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3", length=140},
 	{text = "Nightsong",value = "Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3", length=160},
 	{text = "Ulduar: Titan Orchestra",value = "Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3", length=102},
 }
 DBM.BattleMusic = {--Filtered list of media assigned to boss/encounter background music catagory
-	{text = "None",value  = "None"},
-	{text = "Random",value  = "Random"},
+	{text = "無",value  = "None"},
+	{text = "隨機",value  = "Random"},
 	{text = "Anduin Part 2 B",value = "sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3", length=111},
 	{text = "Bronze Jam",value = "Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3", length=116},
 	{text = "Invincible",value = "Sound\\Music\\Draenor\\MUS_Invincible.mp3", length=197},
@@ -1355,7 +1361,7 @@ do
 				"UPDATE_BATTLEFIELD_STATUS",
 				"PLAY_MOVIE",
 				"CINEMATIC_START",
-				--"PLAYER_LEVEL_UP",--PLAYER_LEVEL_CHANGED
+				"PLAYER_LEVEL_CHANGED",
 				"PLAYER_SPECIALIZATION_CHANGED",
 				"PARTY_INVITE_REQUEST",
 				"LOADING_SCREEN_DISABLED",
@@ -3296,7 +3302,7 @@ function DBM:SpecChanged(force)
 	end
 end
 
-function DBM:PLAYER_LEVEL_UP()
+function DBM:PLAYER_LEVEL_CHANGED()
 	playerLevel = UnitLevel("player")
 	if playerLevel < 15 and playerLevel > 9 then
 		self:PLAYER_SPECIALIZATION_CHANGED()
@@ -7168,6 +7174,59 @@ do
 	end
 end
 
+-------------------
+--  Bonus Filter --
+-------------------
+do
+	local bonusTimeStamp = 0
+	local bonusRollForce = false
+	local warFrontMaps = {
+		[14] = true, -- Arathi Highlands
+	}
+	local function hideBonusRoll(self)
+		bonusTimeStamp = GetTime()
+		BonusRollFrame:Hide()
+		self:AddMsg(DBM_CORE_BONUS_SKIPPED)
+	end
+	local function showBonusRoll(self)
+		if (GetTime() - bonusTimeStamp) < 180 then--3 min timer still active
+			BonusRollFrame:Show()
+			BonusRollFrame:Show()
+			bonusTimeStamp = 0--Reset to 0, because you can't call frame back more than once, once you pass it's over
+		else--Out of Time
+			self:AddMsg(DBM_CORE_BONUS_EXPIRED)
+		end
+	end
+	SLASH_DBMBONUS1 = "/dbmbonusroll"
+	SlashCmdList["DBMBONUS"] = function(msg)
+		bonusRollForce = true
+		showBonusRoll(DBM)
+	end
+	--TODO, see where timewalking ilvl fits into filters
+	--Couldn't get any of events to work so have to hook the show script directly
+	BonusRollFrame:HookScript("OnShow", function(self, event, ...)
+		if bonusRollForce then
+			bonusRollForce = false
+			return
+		end
+		DBM:Debug("BonusRollFrame OnShow fired", 2)
+		if DBM.Options.BonusFilter == "Never" then return end
+		local _, _, difficultyId, _, _, _, _, mapID = GetInstanceInfo()
+		local localMapID = C_Map.GetBestMapForUnit("player") or 0
+		local keystoneLevel = C_ChallengeMode.GetActiveKeystoneInfo() or 0
+		DBM:Unschedule(hideBonusRoll)
+		if DBM.Options.BonusFilter == "TrivialContent" and (difficultyId == 1 or difficultyId == 2) then--Basically anything below 340 ilvl (normal/heroic dungeons)
+			hideBonusRoll(DBM)
+		elseif DBM.Options.BonusFilter == "NormalRaider" and (difficultyId == 17 or difficultyId == 23 or (difficultyId == 8 and keystoneLevel < 5)) then--Basically, anything below 355 (normal/heroic/mythic dungeons lower than 5, LFR
+			hideBonusRoll(DBM)
+		elseif DBM.Options.BonusFilter == "HeroicRaider" and (difficultyId == 14 or difficultyId == 17 or difficultyId == 23 or (difficultyId == 8 and keystoneLevel < 10) or (difficultyId == 0 and not warFrontMaps[localMapID])) then--Basically, anything below 370 (normal/heroic/mythic dungeons lower than 10, LFR/Normal Raids
+			hideBonusRoll(DBM)
+		elseif DBM.Options.BonusFilter == "MythicRaider" and (difficultyId == 14 or difficultyId == 15 or difficultyId == 17 or difficultyId == 23 or difficultyId == 8 or difficultyId == 0) then--Basically, anything below 385 (ANY dungeon, LFR/Normal/Heroic Raids
+			hideBonusRoll(DBM)
+		end
+	end)
+end
+
 ----------------------------
 --  Boss Mod Constructor  --
 ----------------------------
@@ -9271,10 +9330,6 @@ do
 			print("NewCountdown: you must provide either spellId or optionName", 2)
 			return
 		end
-		if type(timer) == "string" and timer:match("OptionVersion") then
-			print("OptionVersion depricated for newCountdown :"..optionDefault)
-			return
-		end
 		local optionVersion
 		if type(optionName) == "number" then
 			optionVersion = optionName
@@ -10001,6 +10056,14 @@ do
 		return newSpecialWarning(self, "move", text, nil, optionDefault, ...)
 	end
 	
+	function bossModPrototype:NewSpecialWarningKeepMove(text, optionDefault, ...)
+		return newSpecialWarning(self, "keepmove", text, nil, optionDefault, ...)
+	end
+
+	function bossModPrototype:NewSpecialWarningStopMove(text, optionDefault, ...)
+		return newSpecialWarning(self, "stopmove", text, nil, optionDefault, ...)
+	end
+	
 	function bossModPrototype:NewSpecialWarningGTFO(text, optionDefault, ...)
 		return newSpecialWarning(self, "gtfo", text, nil, optionDefault, ...)
 	end
@@ -10015,6 +10078,10 @@ do
 	
 	function bossModPrototype:NewSpecialWarningMoveAway(text, optionDefault, ...)
 		return newSpecialWarning(self, "moveaway", text, nil, optionDefault, ...)
+	end
+	
+	function bossModPrototype:NewSpecialWarningMoveAwayCount(text, optionDefault, ...)
+		return newSpecialWarning(self, "moveawaycount", text, nil, optionDefault, ...)
 	end
 	
 	function bossModPrototype:NewSpecialWarningMoveTo(text, optionDefault, ...)

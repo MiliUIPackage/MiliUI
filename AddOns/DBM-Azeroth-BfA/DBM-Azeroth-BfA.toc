@@ -1,8 +1,6 @@
 ## Interface: 80000
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Azeroth (BfA)|r
-## Title-deDE:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Azeroth (BfA)|r
-## Title-koKR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0아제로스 (격아)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0艾澤拉斯 (決戰艾澤拉斯)|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
@@ -23,8 +21,6 @@
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 7
 localization.en.lua
-localization.de.lua
-localization.kr.lua
 localization.cn.lua
 localization.tw.lua
 Tzane.lua
