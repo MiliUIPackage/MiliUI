@@ -1,0 +1,109 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+<Frame name="FilteredNamePlate_Menu" hidden="true" parent="UIParent" toplevel="true" movable="true" frameStrata="HIGH" enableMouse="true" enableKeyboard="true">
+	<Size>
+		<AbsDimension x="80" y="500" />
+	</Size>
+	<Anchors>
+		<Anchor point="TOPLEFT" relativeTo="FilteredNamePlate_Frame" relativePoint="TOPLEFT">
+			<Offset>
+				<AbsDimension x="-75" y="0"/>
+			</Offset>
+		</Anchor>
+	</Anchors>
+	<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+		<BackgroundInsets>
+			<AbsInset left="5" right="0" top="6" bottom="5" />
+		</BackgroundInsets>
+		<TileSize>
+			<AbsValue val="16" />
+		</TileSize>
+		<EdgeSize>
+			<AbsValue val="16" />
+		</EdgeSize>
+	</Backdrop>
+	<Frames>
+		<Button name="$parent1" inherits="OptionsButtonTemplate">
+			<Size>
+				<AbsDimension x="60" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="$parent" relativePoint="TOPLEFT">
+				<Offset>
+					<AbsDimension x="10" y="-30" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					FilteredNamePlate:FNP_ChangeFrameVisibility("general")
+				</OnClick>
+			</Scripts>
+			<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+		</Button>
+		<Button name="$parent2" inherits="OptionsButtonTemplate">
+			<Size>
+				<AbsDimension x="60" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="$parent" relativePoint="TOPLEFT">
+				<Offset>
+					<AbsDimension x="10" y="-70" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					FilteredNamePlate:FNP_ChangeFrameVisibility("filter")
+				</OnClick>
+			</Scripts>
+			<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+		</Button>
+		<Button name="$parent3" inherits="OptionsButtonTemplate">
+			<Size>
+				<AbsDimension x="60" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="$parent" relativePoint="TOPLEFT">
+				<Offset>
+					<AbsDimension x="10" y="-110" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					FilteredNamePlate:FNP_ChangeFrameVisibility("percent")
+				</OnClick>
+			</Scripts>
+			<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+		</Button>
+		<Button name="$parent4" inherits="OptionsButtonTemplate" hidden="true">
+			<Size>
+				<AbsDimension x="60" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="$parent" relativePoint="TOPLEFT">
+				<Offset>
+					<AbsDimension x="10" y="-150" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					FilteredNamePlate:FNP_ChangeFrameVisibility("icon")
+				</OnClick>
+			</Scripts>
+			<HighlightTexture file="Interface\Buttons\ButtonHilight-Square" alphaMode="ADD"/>
+		</Button>
+	</Frames>
+	<Scripts>
+		<OnLoad>
+			FilteredNamePlate_OnLoad();
+			FilteredNamePlate_Menu1:LockHighlight()
+			FilteredNamePlate_Menu1:SetText(FNP_LOCALE_TEXT.FNP_MENU_GENERAL)
+			FilteredNamePlate_Menu2:SetText(FNP_LOCALE_TEXT.FNP_MENU_FILTER)
+			FilteredNamePlate_Menu3:SetText(FNP_LOCALE_TEXT.FNP_MENU_SIZE)
+			FilteredNamePlate_Menu4:SetText(FNP_LOCALE_TEXT.FNP_MENU_ICON)
+		</OnLoad>
+	</Scripts>
+</Frame>
+</Ui>

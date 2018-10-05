@@ -1,0 +1,624 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/..\FrameXML\UI.xsd">
+<Script file="FilteredNamePlateMenu.lua"/>
+<Script file="FilteredNamePlate.lua"/>
+<Script file="FilteredNamePlateHelp.lua"/>
+<Script file="FnpGsIcons.lua"/>
+<Frame name="FilteredNamePlate_Frame" hidden="true" parent="UIParent" toplevel="true" movable="true" frameStrata="HIGH" enableMouse="true" enableKeyboard="true">
+	<Size>
+		<AbsDimension x="280" y="500" />
+	</Size>
+	<Anchors>
+		<Anchor point="CENTER" />
+	</Anchors>
+	<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+		<BackgroundInsets>
+			<AbsInset left="0" right="6" top="6" bottom="5" />
+		</BackgroundInsets>
+		<TileSize>
+			<AbsValue val="24" />
+		</TileSize>
+		<EdgeSize>
+			<AbsValue val="24" />
+		</EdgeSize>
+	</Backdrop>
+	<Frames>
+		<CheckButton name="$parent_EnableCheckButton" inherits="OptionsCheckButtonTemplate">
+			<Size>
+				<AbsDimension x="40" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parent">
+				<Offset>
+					<AbsDimension x="40" y="-60" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+				_G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_ENABLE_TXT);
+				</OnLoad>
+				<OnClick>
+					FilteredNamePlate:FNP_EnableButtonChecked(self:GetChecked(), "MASTER_BTN")
+				</OnClick>
+			</Scripts>
+		</CheckButton>
+		<CheckButton name="$parent_EnableGsCheckButton" inherits="OptionsCheckButtonTemplate">
+			<Size>
+				<AbsDimension x="40" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parent">
+				<Offset>
+					<AbsDimension x="40" y="-100" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+				_G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_GS_ENABLE_TXT);
+				</OnLoad>
+				<OnClick>
+					FilteredNamePlate:FNP_EnableButtonChecked(self:GetChecked(), "GS_BTN")
+				</OnClick>
+			</Scripts>
+		</CheckButton>
+
+		<CheckButton name="$parent_EnableMagicCheckButton" inherits="OptionsCheckButtonTemplate" hidden="true">
+			<Size>
+				<AbsDimension x="40" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parent">
+				<Offset>
+					<AbsDimension x="40" y="-130" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+				_G[self:GetName().."Text"]:SetText("魔法监控");
+				</OnLoad>
+				<OnClick>
+					FilteredNamePlate:FNP_EnableButtonChecked(self:GetChecked(), "GS_BTN")
+				</OnClick>
+			</Scripts>
+		</CheckButton>
+		<CheckButton name="$parent_EnableKNCheckButton" inherits="OptionsCheckButtonTemplate"  hidden="true">
+			<Size>
+				<AbsDimension x="40" y="40" />
+			</Size>
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="$parent">
+				<Offset>
+					<AbsDimension x="40" y="-160" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+				_G[self:GetName().."Text"]:SetText("狂怒监控");
+				</OnLoad>
+				<OnClick>
+					FilteredNamePlate:FNP_EnableButtonChecked(self:GetChecked(), "GS_BTN")
+				</OnClick>
+			</Scripts>
+		</CheckButton>
+		<!-- UIType start -->
+		<Frame name="$parent_DropDownUIType" inherits="UIDropDownMenuTemplate" id="1">
+			<Anchors>
+				<Anchor point="CENTER" relativeTo="$parent_EnableCheckButton" relativePoint="TOPLEFT">
+					<Offset>
+						<AbsDimension x="60" y="-240"/>
+					</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+					 UIDropDownMenu_SetWidth(self, 130)
+					 UIDropDownMenu_SetText(self, "UI")
+				</OnLoad>
+				<OnShow>
+					FilteredNamePlate:AvailabilityDropDown_OnShow(self)
+				</OnShow>
+			</Scripts>
+		</Frame>
+	<!-- UIType end-->
+        <EditBox name="$parent_OnlyShowModeEditBox" letters="300" autoFocus="false" multiLine="true" hidden="true">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture>
+                            <Color r=".2" g=".2" b=".2" a="1"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Size>
+                    <AbsDimension x="150" y="80" />
+                </Size>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parent_EnableCheckButton" relativePoint="BOTTOMLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="-50" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Scripts>
+                    <OnEnterPressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWriten("o", self:GetText())
+						FilteredNamePlate.isSettingChanged = true
+					    FilteredNamePlate_Frame_takeEffectBtn:Show()
+                    </OnEnterPressed>
+                    <OnEscapePressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWritenEsc()
+                    </OnEscapePressed>
+                </Scripts>
+                <FontString inherits="ChatFontNormal" />
+        </EditBox>
+
+		<EditBox name="$parent_ConstBuffBox" letters="300" autoFocus="false" multiLine="true" hidden="true">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture>
+                            <Color r=".2" g=".2" b=".2" a="1"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Size>
+                    <AbsDimension x="150" y="80" />
+                </Size>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parent_EnableCheckButton" relativePoint="BOTTOMLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="-50" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Scripts>
+                    <OnEnterPressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWriten("cb", self:GetText())
+                    </OnEnterPressed>
+                    <OnEscapePressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWritenEsc()
+                    </OnEscapePressed>
+                </Scripts>
+                <FontString inherits="ChatFontNormal" />
+        </EditBox>
+
+		<EditBox name="$parent_FilteredModeEditBox" letters="300" autoFocus="false" multiLine="true" hidden="true">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture>
+                            <Color r=".2" g=".2" b=".2" a="1"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Size>
+                    <AbsDimension x="150" y="80" />
+                </Size>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parent_OnlyShowModeEditBox" relativePoint="BOTTOMLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="-80" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Scripts>
+                    <OnEnterPressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWriten("f", self:GetText())
+						FilteredNamePlate.isSettingChanged = true
+					    FilteredNamePlate_Frame_takeEffectBtn:Show()
+                    </OnEnterPressed>
+                    <OnEscapePressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWritenEsc()
+                    </OnEscapePressed>
+                </Scripts>
+                <FontString inherits="ChatFontNormal" />
+        </EditBox>
+
+		<EditBox name="$parent_DynamicBuffBox" letters="300" autoFocus="false" multiLine="true" hidden="true">
+                <Layers>
+                    <Layer level="BACKGROUND">
+                        <Texture>
+                            <Color r=".2" g=".2" b=".2" a="1"/>
+                        </Texture>
+                    </Layer>
+                </Layers>
+                <Size>
+                    <AbsDimension x="150" y="80" />
+                </Size>
+                <Anchors>
+                    <Anchor point="TOPLEFT" relativeTo="$parent_OnlyShowModeEditBox" relativePoint="BOTTOMLEFT">
+                        <Offset>
+                            <AbsDimension x="0" y="-80" />
+                        </Offset>
+                    </Anchor>
+                </Anchors>
+                <Scripts>
+                    <OnEnterPressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWriten("db", self:GetText())
+                    </OnEnterPressed>
+                    <OnEscapePressed>
+                        self:ClearFocus();
+						FilteredNamePlate:FNP_ModeEditBoxWritenEsc()
+                    </OnEscapePressed>
+                </Scripts>
+                <FontString inherits="ChatFontNormal" />
+        </EditBox>
+
+		<Button name="$parent_CloseIcon" inherits="OptionsButtonTemplate" text="X">
+			<Size>
+				<AbsDimension x="35" y="35" />
+			</Size>
+			<Anchors>
+				<Anchor point="RIGTH" relativeTo="$parent" relativePoint="TOPRIGHT">
+				<Offset>
+					<AbsDimension x="-40" y="-2" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnClick>
+					FilteredNamePlate:FNP_ChangeFrameVisibility()
+				</OnClick>
+			</Scripts>
+		</Button>
+		<Button name="$parent_ShareIcon" inherits="OptionsButtonTemplate" text="">
+			<Size>
+				<AbsDimension x="65" y="35" />
+			</Size>
+			<Anchors>
+				<Anchor point="RIGTH" relativeTo="$parent" relativePoint="BOTTOMRIGHT">
+				<Offset>
+					<AbsDimension x="-80" y="115" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+				<OnLoad>
+				_G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.COPY_WEB);
+				</OnLoad>
+				<OnClick>
+					FilteredNamePlate:CreateACopyFrame(FNP_LOCALE_TEXT.FNP_STRING_WEBSITE)
+				</OnClick>
+			</Scripts>
+		</Button>
+		<Slider name="$parent_SystemScale" inherits="OptionsSliderTemplate" hidden="true">
+			<Anchors>
+				<Anchor point="LEFT">
+				  <Offset>
+					 <AbsDimension x="40" y="150" />
+				  </Offset>
+			   </Anchor>
+            </Anchors>
+            <Scripts>
+			   <OnLoad>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_DEFAULT_SCALE_TXT);
+				  _G[self:GetName().."High"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_BIG.."150%");
+				  _G[self:GetName().."Low"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_SMALL.."50%");
+				  self:SetMinMaxValues(50, 150);
+				  self:SetValueStep(1);
+			   </OnLoad>
+			   <OnValueChanged>
+			   	  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_DEFAULT_SCALE_TXT.."("..string.format("%.0f", self:GetValue()).."%)");
+				  Fnp_SavedScaleList.normal = tonumber(string.format("%.2f", self:GetValue() / 100))
+				  if FilteredNamePlate_Frame:IsShown() then
+				  	  FilteredNamePlate.isSettingChanged = true
+				  	  FilteredNamePlate_Frame_takeEffectBtn:Show()
+				  end
+			   </OnValueChanged>
+			   <OnEnter>
+				  GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				  GameTooltip:SetText(FNP_LOCALE_TEXT.FNP_DEFAULT_SCALE_TOOLTIP);
+			   </OnEnter>
+			   <OnLeave>
+				  GameTooltip:Hide();
+			   </OnLeave>
+            </Scripts>
+        </Slider>
+		<Slider name="$parent_OnlyShowScale" inherits="OptionsSliderTemplate" hidden="true">
+		   <Anchors>
+			   <Anchor point="LEFT">
+				  <Offset>
+					 <AbsDimension x="40" y="60" />
+				  </Offset>
+			   </Anchor>
+		   </Anchors>
+		   <Scripts>
+			   <OnLoad>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_SCALE_TXT);
+				  _G[self:GetName().."High"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_BIG.."250%");
+				  _G[self:GetName().."Low"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_SMALL.."100%");
+				  self:SetMinMaxValues(100, 250);
+				  self:SetValueStep(1);
+			   </OnLoad>
+			   <OnValueChanged>
+			      _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_SCALE_TXT.."("..string.format("%.0f", self:GetValue()).."%)");
+				  Fnp_SavedScaleList.only = tonumber(string.format("%.2f", self:GetValue() / 100))
+				  if FilteredNamePlate_Frame:IsShown() then
+				      FilteredNamePlate.isSettingChanged = true
+				      FilteredNamePlate_Frame_takeEffectBtn:Show()
+				  end
+			   </OnValueChanged>
+			   <OnEnter>
+				  GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				  GameTooltip:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_SCALE_TOOLTIP);
+			   </OnEnter>
+			   <OnLeave>
+				  GameTooltip:Hide();
+			   </OnLeave>
+		   </Scripts>
+        </Slider>
+		<Slider name="$parent_OnlyOtherShowScale" inherits="OptionsSliderTemplate" hidden="true">
+		   <Anchors>
+			   <Anchor point="LEFT">
+				  <Offset>
+					 <AbsDimension x="40" y="-20" />
+				  </Offset>
+			   </Anchor>
+		   </Anchors>
+		   <Scripts>
+			   <OnLoad>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_OTHER_SCALE_TXT);
+				  _G[self:GetName().."High"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_BIG.."100%");
+				  _G[self:GetName().."Low"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_SMALL.."1%");
+				  self:SetMinMaxValues(1, 100);
+				  self:SetValueStep(1);
+			   </OnLoad>
+			   <OnValueChanged>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_OTHER_SCALE_TXT.."("..string.format("%.0f", self:GetValue()).."%)");
+				  <!-- FilteredNamePlate_AdvancedFrame_show_TextOnlyOther:SetText("OnyShow Exclude Scale".."("..string.format("%.0f", self:GetValue()).."%)");
+				  -->
+				  Fnp_SavedScaleList.small = tonumber(string.format("%.2f", self:GetValue() / 100))
+				  if FilteredNamePlate_Frame:IsShown() then
+				      FilteredNamePlate.isSettingChanged = true
+				      FilteredNamePlate_Frame_takeEffectBtn:Show()
+				  end
+			   </OnValueChanged>
+			   <OnEnter>
+				  GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				  GameTooltip:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_OTHER_SCALE_TOOLTIP);
+			   </OnEnter>
+			   <OnLeave>
+				  GameTooltip:Hide();
+			   </OnLeave>
+		   </Scripts>
+        </Slider>
+		<Slider name="$parent_Slider_GSSize" inherits="OptionsSliderTemplate" hidden="true">
+			<Anchors>
+				<Anchor point="LEFT">
+				  <Offset>
+					 <AbsDimension x="40" y="-100" />
+				  </Offset>
+			   </Anchor>
+            </Anchors>
+            <Scripts>
+			   <OnLoad>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_GS_SLIDE_TXT);
+				  _G[self:GetName().."High"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_BIG.."38");
+				  _G[self:GetName().."Low"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_SMALL.."24");
+				  self:SetMinMaxValues(24, 38);
+				  self:SetValueStep(1);
+			   </OnLoad>
+			   <OnValueChanged>
+			   		_G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_GS_SLIDE_TXT..string.format("%.0f", self:GetValue()));
+					Fnp_SavedScaleList.gsScaleSize = tonumber(string.format("%.0f", self:GetValue()))
+			   </OnValueChanged>
+            </Scripts>
+        </Slider>
+		<!-- Slider name="$parent_Slider_KL2" inherits="OptionsSliderTemplate">
+		   <Anchors>
+			   <Anchor point="LEFT">
+				  <Offset>
+					 <AbsDimension x="40" y="0" />
+				  </Offset>
+			   </Anchor>
+		   </Anchors>
+		   <Scripts>
+			   <OnLoad>
+				  _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_KILLLINE2);
+				  _G[self:GetName().."High"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_BIG.."40%");
+				  _G[self:GetName().."Low"]:SetText(FNP_LOCALE_TEXT.FNP_TXT_SMALL.."0%");
+				  self:SetMinMaxValues(0, 40);
+				  self:SetValueStep(1);
+			   </OnLoad>
+			   <OnValueChanged>
+			      _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_KILLLINE2..string.format("%.0f", self:GetValue()).."%");
+				  Fnp_SavedScaleList.killline2 = self:GetValue() / 100
+				  if FilteredNamePlate_Frame:IsShown() then
+				      FilteredNamePlate.isSettingChanged = true
+				      FilteredNamePlate_Frame_takeEffectBtn:Show()
+				  end
+			   </OnValueChanged>
+			   <OnEnter>
+				  GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+				  GameTooltip:SetText(FNP_LOCALE_TEXT.FNP_KILLLINE_TOOLTIP2);
+			   </OnEnter>
+			   <OnLeave>
+				  GameTooltip:Hide();
+			   </OnLeave>
+		   </Scripts>
+        </Slider -->
+		<Button name="FilteredNamePlate_Frame_takeEffectBtn" inherits="OptionsButtonTemplate" Hidden="true" text="">
+			<Size>
+				<AbsDimension x="45" y="35" />
+			</Size>
+			<Anchors>
+				<Anchor point="BOTTOMLEFT" relativeTo="$parent">
+				<Offset>
+					<AbsDimension x="10" y="80" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+                <OnLoad>
+                     _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_TAKEEFFECT_BTN);
+                </OnLoad>
+				<OnClick>
+					FilteredNamePlate:actionUnitStateAfterChanged()
+					FilteredNamePlate.isSettingChanged = false
+					self:Hide()
+				</OnClick>
+			</Scripts>
+		</Button>
+		<Button name="FilteredNamePlate_Frame_reloadUIBtn" inherits="OptionsButtonTemplate" Hidden="true" text="">
+			<Size>
+				<AbsDimension x="80" y="35" />
+			</Size>
+			<Anchors>
+				<Anchor point="TOPLEFT" relativeTo="FilteredNamePlate_Frame_takeEffectBtn">
+				<Offset>
+					<AbsDimension x="55" y="0" />
+				</Offset>
+				</Anchor>
+			</Anchors>
+			<Scripts>
+                <OnLoad>
+                     _G[self:GetName().."Text"]:SetText(FNP_LOCALE_TEXT.FNP_RELOAD_BTN);
+                </OnLoad>
+				<OnClick>
+					ReloadUI()
+				</OnClick>
+			</Scripts>
+		</Button>
+	</Frames>
+	<Layers>
+		<Layer>
+			<Texture name="$parent_Header" file="Interface\DialogFrame\UI-DialogBox-Header">
+				<Size>
+					<AbsDimension x="180" y="64" />
+				</Size>
+				<Anchors>
+					<Anchor point="TOP">
+						<Offset>
+							<AbsDimension x="0" y="12" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</Texture>
+			<FontString name="$parent_Header_Text" inherits="GameFontNormal" text="FNP v6.5.1">
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parent_Header">
+						<Offset>
+							<AbsDimension x="0" y="-14" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_OnlyShows_Text" inherits="GameFontNormal" text="" hidden="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent_OnlyShowModeEditBox" relativePoint="TOPLEFT">
+					<Offset>
+						<AbsDimension x="5" y="25" />
+					</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_Filters_Text" inherits="GameFontNormal" hidden="true" text="">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent_FilteredModeEditBox" relativePoint="TOPLEFT">
+					<Offset>
+						<AbsDimension x="5" y="25" />
+					</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+
+			<FontString name="$parent_ConstBuff_Text" inherits="GameFontNormal" text="" hidden="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent_OnlyShowModeEditBox" relativePoint="TOPLEFT">
+					<Offset>
+						<AbsDimension x="5" y="25" />
+					</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_DynamicBuff_Text" inherits="GameFontNormal" hidden="true" text="">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parent_FilteredModeEditBox" relativePoint="TOPLEFT">
+					<Offset>
+						<AbsDimension x="5" y="25" />
+					</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+
+			<FontString name="$parent_uitype" inherits="GameFontNormal" text="">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent_DropDownUIType">
+						<Offset>
+							<AbsDimension x="0" y="40" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_note" inherits="GameFontNormal" hidden="true" text="">
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent">
+						<Offset>
+							<AbsDimension x="20" y="63" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_AuthorText" inherits="GameFontNormalSmall" text="" multiLine="true">
+				<Size>
+					<AbsDimension x="240" y="50" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="10" y="10" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+			<FontString name="$parent_webText" inherits="GameFontNormalSmall" text="" multiLine="false">
+				<Size>
+					<AbsDimension x="0" y="50" />
+				</Size>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent" relativePoint="BOTTOMLEFT">
+						<Offset>
+							<AbsDimension x="10" y="40" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+			</FontString>
+		</Layer>
+	</Layers>
+	<Scripts>
+		<OnLoad>
+			self:RegisterForDrag("LeftButton");
+			FilteredNamePlate_Frame_webText:SetText(FNP_LOCALE_TEXT.FNP_STRING_WEBSITE);
+			FilteredNamePlate_Frame_AuthorText:SetText(FNP_LOCALE_TEXT.FNP_STRING_AUTHOR_VER);
+			FilteredNamePlate_Frame_AuthorText:SetFont (GameFontNormal:GetFont(), 12)
+			FilteredNamePlate_Frame_webText:SetFont(GameFontNormal:GetFont(), 12)
+			FilteredNamePlate_Frame_OnlyShows_Text:SetText(FNP_LOCALE_TEXT.FNP_ONLYSHOW_LIST_TXT);
+			FilteredNamePlate_Frame_Filters_Text:SetText(FNP_LOCALE_TEXT.FNP_FILTER_LIST_TXT);
+			FilteredNamePlate_Frame_ConstBuff_Text:SetText(FNP_LOCALE_TEXT.FNP_CONST_BUFF_TXT);
+			FilteredNamePlate_Frame_DynamicBuff_Text:SetText(FNP_LOCALE_TEXT.FNP_DYNAMIC_BUFF_TXT);
+			FilteredNamePlate_Frame_uitype:SetText(FNP_LOCALE_TEXT.FNP_STRING_UI_TYPE);
+			FilteredNamePlate_Frame_note:SetText(FNP_LOCALE_TEXT.FNP_STRING_NOTE);
+		</OnLoad>
+		<OnEvent>
+			FilteredNamePlate_OnEvent(self,event,...);
+		</OnEvent>
+		<OnMouseDown>
+			if button == "LeftButton" then
+				FilteredNamePlate_Frame:StartMoving();
+			end
+		</OnMouseDown>
+		<OnMouseUp>
+			if button == "LeftButton" then
+				FilteredNamePlate_Frame:StopMovingOrSizing();
+			end
+		</OnMouseUp>
+	</Scripts>
+</Frame>
+</Ui>

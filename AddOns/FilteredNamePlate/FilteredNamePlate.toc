@@ -1,0 +1,21 @@
+﻿## Interface: 80000
+## Title: FilteredNamePlate-FNP
+## Title-zhTW: |cFF00CCFF[團隊]|r 過濾姓名板
+## Title-zhCN: 过滤姓名板-FNP
+## Author: Allan 一区-克尔苏加德-部落 峰巅的击进
+## Version: 8.0.0.20181002
+## Notes: It aims to help player to fight against Fel Explosives in Mythic+ more easiler. And help to adjust your namePlates' size more easiler. Using `/fnp opt` to open setting view.
+## Notes-zhTW: Filtered Name Plate|n該軟體目標是為了幫助你更輕鬆的應對史詩+地下城中魔化炸彈，並且它能幫你更容易修改各類血條插件的大小。|n|cffffd200使用方法：|r輸入指令『/fnp opt』打開插件設置.
+## Notes-zhCN: 该插件目标是为了帮助你更轻松的应对大秘境中的邪能炸药、易爆球，并且它能帮你更容易地修改各类血条插件的大小./fnp opt 打开设置界面.
+## Notes-ruRU: Помогает вам управлять индикаторами здоровья, более проще, и помогает ТОЛЬКО-ПОКАЗЫВАТЬ или СПИСОК ФИЛЬТРА, то что вам надо `Взрывчатка Скверны` Мастер.
+## DefaultState: Enabled
+## LoadOnDemand: 0
+## SavedVariables: FnpEnableKeys, Fnp_FNameList, Fnp_ONameList, Fnp_OtherNPFlag, Fnp_SavedScaleList, Fnp_MyVersion
+localization-zhCN.lua
+localization-zhTW.lua
+localization-ruRU.lua
+localization-enUS.lua
+FNPSupportList.lua
+
+FilteredNamePlate.xml
+FilteredNamePlateMenu.xml
