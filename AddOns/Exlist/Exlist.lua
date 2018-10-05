@@ -1763,7 +1763,7 @@ local function OnEnter(self)
 
     })
     Exlist.AddData({
-      data = string.format("%i ilvl", charData.iLvl or 0),
+      data = string.format("%i 物品等級", charData.iLvl or 0),
       character = character,
       priority = -1000,
       moduleName = "_Header",
