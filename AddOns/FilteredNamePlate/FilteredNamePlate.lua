@@ -468,7 +468,7 @@ local function registerMyEvents(self, event, ...)
 	if (IsGeneralRegistered == nil or IsGeneralRegistered == false) then
 		---**{ first install, init values must be after received ENTER_WORLD
 		if Fnp_OtherNPFlag == nil then
-			Fnp_OtherNPFlag = 0
+			Fnp_OtherNPFlag = 3
 		end
 
 		if Fnp_ONameList == nil then
@@ -540,7 +540,8 @@ function FilteredNamePlate_OnEvent(self, event, ...)
 	elseif event == "PLAYER_ENTERING_WORLD" then
 		if FnpEnableKeys == nil then
 			FnpEnableKeys = {}
-			FnpEnableKeys["onlyShowEnable"] = false
+			FnpEnableKeys["onlyShowEnable"] = true
+			FnpEnableKeys["GsEnable"] = true
 		end
 		registerMyEvents(self, event, ...)
 	end
