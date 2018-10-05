@@ -58,18 +58,19 @@ end
 -------------------------------------------------------- Frame event handlers --
 function addon.Nameplate.OnUnitAdded(f,unit)
     f = f.parent
-    if not unit then
+    f.unit = unit
+
+    if not f.unit then
         addon:print('NO UNIT: '..f:GetName())
         return
-    else
-        f.state.personal = UnitIsUnit(unit,'player')
-        f.unit = unit
-        f.handler:OnShow()
     end
+
+    f.handler:OnShow()
 end
 ------------------------------------------------------- Frame script handlers --
 function addon.Nameplate.OnShow(f)
     f = f.parent
+
     addon:DispatchMessage('Show', f)
     f:Show()
 end

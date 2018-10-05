@@ -53,7 +53,7 @@ function addon:HookNameplate(frame)
     frame.kui.elements = {}
     frame.kui.parent = frame
 
-    -- XXX 80 buggy; child text frames disappear
+    -- TODO 80 buggy, child text frames disappear
     --frame.kui:SetPoint('CENTER',frame)
     -- semlar's non-laggy positioning
     local sizer = CreateFrame('Frame',name..'PositionHelper',frame.kui)

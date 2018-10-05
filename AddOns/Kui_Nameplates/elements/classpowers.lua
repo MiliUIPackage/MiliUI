@@ -672,7 +672,7 @@ function ele:RuneUpdate(event)
         local icon = cpf.icons[i]
         if not icon then return end
 
-        if charged then
+        if charged or energise then
             icon:SetVertexColor(unpack(colours.DEATHKNIGHT))
             icon:SetAlpha(1)
             icon:GraduateFill(1)

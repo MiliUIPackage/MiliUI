@@ -1,5 +1,4 @@
--- provides frame.state[...]: guild_text
---   guild_text = player guilds, NPC vendor/tooltip titles, pet owners
+-- provide guild text (including npc "guilds") to frame.state
 local addon = KuiNameplates
 local mod = addon:NewPlugin('GuildText')
 
