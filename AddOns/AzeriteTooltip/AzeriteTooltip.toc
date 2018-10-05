@@ -1,0 +1,8 @@
+## Interface: 80000
+## Title: AzeriteTooltip
+## Version: 1.71
+## Author: jokair9
+## Notes: Lightweight addon that shows azerite traits in the tooltip.
+## SavedVariables: AzeriteTooltipDB
+
+AzeriteTooltip.lua
