@@ -1,0 +1,19 @@
+## Interface: 80000
+## Title: WeakAuras Templates
+## Author: The WeakAuras team
+## Version: 2.8.1
+## Notes: Templates for WeakAuras
+## X-Category: Interface Enhancements
+## Globe-Main: WeakAuras
+## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras 模板
+## Notes-zhTW: WeakAuras Templates |nWeakAuras的模板
+## DefaultState: Disabled
+## LoadOnDemand: 1
+## Dependencies: WeakAuras, WeakAurasOptions
+
+locales.xml
+
+TriggerTemplates.lua
+TriggerTemplatesData.lua
+
+AceGUI-Widgets\AceGUIContainer-WeakAurasTemplateGroup.lua
