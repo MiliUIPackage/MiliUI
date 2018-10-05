@@ -1,7 +1,7 @@
 ## Interface: 80000
 ## Title: Memantine
 ## Title-zhTW: |cFF0099FF[介面]|r 冒險指南拾取專精紀錄
-## Notes-zhTW: Memantine|n在冒險指南右側新增紀錄功能，幫助玩家紀錄BOOS要切換何種拾取專精，可依不同難度設定。
+## Notes-zhTW: Memantine|n在冒險指南右側新增紀錄功能，幫助玩家紀錄BOSS要切換何種拾取專精，可依不同難度設定。
 ## Author: Lej
 ## Version: 1.0.1
 ## SavedVariables: Memantine
