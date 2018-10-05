@@ -302,7 +302,7 @@ end
 --[[ build the main options panel ]]--
 
 do
-	local f = optionsPanel_Create('OmniCC')
+	local f = optionsPanel_Create(L['OmniCC'])
 
 	OmniCCOptions.AddTab = function(self, id, name, panel)
 		tab_Create(f, id, name, panel)

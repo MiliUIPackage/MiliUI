@@ -27,8 +27,8 @@ L.EnableText = "啟用冷卻文字"
 L.Add = "新增"
 L.Remove = "移除"
 
-L.FinishEffect = "完成效果"
-L.MinEffectDuration = "完成效果的最少時間"
+L.FinishEffect = "完成特效"
+L.MinEffectDuration = "顯示完成特效的最短冷卻時間"
 
 L.MMSSDuration = "最少時間的文字以 MM:SS 格式來顯示"
 L.TenthsDuration = "以十分之一秒為單位顯示"
@@ -38,6 +38,8 @@ L.Color_soon = "即將到期"
 L.Color_seconds = "少於1分鐘"
 L.Color_minutes = "少於1小時"
 L.Color_hours = "1小時或以上"
+L.Color_charging = "恢復中"
+L.Color_controlled = "失去控制"
 
 L.UseAniUpdater = "優化效能"
 
@@ -71,9 +73,9 @@ L.ScaleTextTip =
 
 L.UseAniUpdaterTip =
 [[優化CPU效能，但是在某些環境可能造成崩潰。
-禁用此選項可以解決事件。]]
+停用此選項可以解決崩潰的問題。]]
 
-L.UseAniUpdaterSmallTip = "|cffff2020改變需要遊戲重載。|r"
+L.UseAniUpdaterSmallTip = "|cffff2020需要重新載入遊戲變更才會生效。|r"
 
 L.MinDurationTip =
 [[確定多長的冷卻時間才顯示文字
@@ -90,8 +92,8 @@ L.MinSizeTip =
 55  - 暴雪目標增益框架的大小]]
 
 L.MinEffectDurationTip =
-[[確定需要多長的冷卻時間來顯示一個完成的效果
-（例如，脈衝/閃亮）]]
+[[確定需要多長的冷卻時間才會顯示冷卻完成時的特效
+（例如，跳動/亮光）]]
 
 L.MMSSDurationTip =
 [[確定用於顯示冷卻時間的閾值以 MM:SS 格式來顯示]]
@@ -118,3 +120,10 @@ L.XOffsetTip =
 
 L.YOffsetTip =
 [[控制文字的垂直偏移]]
+
+L.OmniCC = "冷卻時間"
+
+L.SpiralOpacity = "轉圈動畫透明度"
+
+L.SpiralOpacityTip =
+[[設定倒數轉圈動畫的透明度，通常會在按鈕上面看到。]]
