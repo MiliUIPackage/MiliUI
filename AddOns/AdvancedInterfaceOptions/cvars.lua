@@ -563,7 +563,7 @@ addon.hiddenOptions = {
 	["calendarShowDarkmoon"] = { description = "暗月節日是否要出現在行事曆中" },
 	["calendarShowLockouts"] = { description = "團隊副本日程是否要出現在行事曆中" },
 	["calendarShowResets"] = { description = "團隊副本重置是否要出現在行事曆中" },
-	["calendarShowWeeklyHolidays"] = { description = "每周節日是否要出現在行事曆中" },
+	["calendarShowWeeklyHolidays"] = { description = "每週節日是否要出現在行事曆中" },
 	["cameraCustomViewSmoothing"] = {},
 	["cameraDistanceMax"] = {},
 	["cameraDistanceMaxFactor"] = {},
