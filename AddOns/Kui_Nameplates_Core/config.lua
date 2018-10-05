@@ -75,7 +75,7 @@ local default_config = {
     fade_friendly_npc_exclude_titled = false,
     fade_neutral_enemy = false,
     fade_untracked = false,
-    fade_avoid_nameonly = true,
+    fade_avoid_nameonly = false,
     fade_avoid_raidicon = true,
     fade_avoid_execute_friend = false,
     fade_avoid_execute_hostile = false,
@@ -142,7 +142,7 @@ local default_config = {
     frame_height_minus = 7,
     frame_width_personal = 110,
     frame_height_personal = 8,
-    castbar_height = 6,
+    castbar_height = 10,
     powerbar_height = 3,
     global_scale = 1,
 
