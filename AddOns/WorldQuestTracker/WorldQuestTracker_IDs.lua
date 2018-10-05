@@ -72,6 +72,7 @@ WorldQuestTracker.MapData.ZoneIDs = {
 		TIRAGARDE = 	895,
 		STORMSONG = 	942,
 		DRUSTVAR = 	896,
+		TOLDAGOR =	1169,
 	
 }
 
@@ -99,6 +100,7 @@ WorldQuestTracker.MapData.WorldQuestZones = {
 		[WorldQuestTracker.MapData.ZoneIDs.VOLDUN] = 		true,
 		[1165] = 		true, --dazar'alor
 		[1161] = 		true, --boralus
+		[WorldQuestTracker.MapData.ZoneIDs.TOLDAGOR] = 		true,
 		
 		--kul'tiras
 		[WorldQuestTracker.MapData.ZoneIDs.TIRAGARDE] = 	true,
@@ -121,6 +123,24 @@ WorldQuestTracker.MapData.QuestHubs = {
 --world map anchors
 WorldQuestTracker.mapTables = {
 	--BFA
+		--boralus
+		[1161] = {
+			widgets = {},
+			Anchor_X = 0.99,
+			Anchor_Y = 0.46,
+			GrowRight = false,
+			show_on_map = WorldQuestTracker.MapData.ZoneIDs.KULTIRAS,
+		},
+		
+		--dazar'alor
+--		[1165] = {
+--			widgets = {},
+--			Anchor_X = 0.58,
+--			Anchor_Y = 0.54,
+--			GrowRight = true,
+--			show_on_map = WorldQuestTracker.MapData.ZoneIDs.ZANDALAR,
+--		},
+	
 		--alliance
 		[WorldQuestTracker.MapData.ZoneIDs.TIRAGARDE] = {
 			widgets = {},
@@ -143,7 +163,14 @@ WorldQuestTracker.mapTables = {
 			GrowRight = true,
 			show_on_map = WorldQuestTracker.MapData.ZoneIDs.KULTIRAS,
 		},
-		
+		[WorldQuestTracker.MapData.ZoneIDs.TOLDAGOR] = {
+			widgets = {},
+			Anchor_X = 0.99,
+			Anchor_Y = 0.58,
+			GrowRight = false,
+			show_on_map = WorldQuestTracker.MapData.ZoneIDs.KULTIRAS,
+		},
+
 		--horde
 		[WorldQuestTracker.MapData.ZoneIDs.ZULDAZAAR] = {
 			widgets = {},

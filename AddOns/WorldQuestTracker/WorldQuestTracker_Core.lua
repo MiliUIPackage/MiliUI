@@ -9,7 +9,7 @@ end
 --framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
@@ -44,7 +44,7 @@ local GameCooltip = GameCooltip2
 
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
-	print (L["|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r"])
+	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
 
 --on hover over an icon on the world map (possivle deprecated on 8.0)
@@ -132,6 +132,13 @@ WorldQuestTracker.OnMapHasChanged = function (self)
 	
 	if (not WorldQuestTracker.MapData.WorldQuestZones [mapID] and not WorldQuestTracker.IsWorldQuestHub (mapID)) then
 		C_Timer.After (0.5, check_for_quests_on_unknown_map)
+	end
+	
+	if (not WorldQuestTracker.IsWorldQuestHub (mapID)) then
+		local map = WorldQuestTrackerDataProvider:GetMap()
+		for pin in map:EnumeratePinsByTemplate ("WorldQuestTrackerWorldMapPinTemplate") do
+			map:RemovePin (pin)
+		end
 	end
 	
 	--is the map a zone map with world quests?
@@ -356,7 +363,7 @@ WorldMapFrame:HookScript ("OnHide", function()
 	C_Timer.After (0.2, WorldQuestTracker.RefreshTrackerWidgets)
 end)
 
-hooksecurefunc ("ToggleWorldMap", function (self)
+WorldQuestTracker.OnToggleWorldMap = function (self)
 
 	if (not WorldMapFrame:IsShown()) then
 		--closed
@@ -367,6 +374,8 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 		WorldQuestTrackerAddon.CatchMapProvider (true)
 		WorldQuestTracker.InitializeWorldWidgets()
 	end
+	
+	WorldQuestTracker.IsLoaded = true
 	
 	WorldMapFrame.currentStandingZone = WorldQuestTracker.GetCurrentMapAreaID()
 	
@@ -785,7 +794,7 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 				if (option == "tracker_is_movable") then
 				
 					if (not LibWindow) then
-						print (L["|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r"])
+						print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 					end
 				
 					if (value) then
@@ -2847,7 +2856,22 @@ hooksecurefunc ("ToggleWorldMap", function (self)
 	else
 		WorldQuestTracker.NoAutoSwitchToWorldMap = nil
 	end
-end)
+end
 
+hooksecurefunc ("ToggleWorldMap", WorldQuestTracker.OnToggleWorldMap)
+
+WorldQuestTracker.CheckIfLoaded = function (self)
+	if (not WorldQuestTracker.IsLoaded) then
+		if (WorldMapFrame:IsShown()) then
+			WorldQuestTracker.OnToggleWorldMap()
+		end
+	end
+end
+
+WorldMapFrame:HookScript ("OnShow", function()
+	if (not WorldQuestTracker.IsLoaded) then
+		C_Timer.After (0.5, WorldQuestTracker.CheckIfLoaded)
+	end
+end)
 
 

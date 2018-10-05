@@ -9,7 +9,7 @@ end
 --framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 

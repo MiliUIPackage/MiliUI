@@ -135,6 +135,7 @@ L["S_UNKNOWNQUEST"] = "Unknown Quest"
 L["S_WORLDMAP_TOOGLEQUESTS"] = "Toggle Quests"
 L["S_WORLDQUESTS"] = "World Quests"
 
+
 L["Load Time:"] = "Load Time:"
 L["seconds."] = "seconds."
 L["Click on Summary to see statistics and a saved list of quests on other characters."] = "Click on Summary to see statistics and a saved list of quests on other characters."

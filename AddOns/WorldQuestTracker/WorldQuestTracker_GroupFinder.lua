@@ -9,7 +9,7 @@ end
 --framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
@@ -48,7 +48,7 @@ local GetDistance_Point = DF.GetDistance_Point
 
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
-	print (L["|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r"])
+	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
 
 --finder frame
@@ -791,11 +791,11 @@ ff:SetScript ("OnEvent", function (self, event, arg1, questID, arg3)
 		end
 	
 	elseif (event == "LFG_LIST_APPLICANT_LIST_UPDATED") then
-
+--		/dump select (5, C_LFGList.GetActiveEntryInfo()):find("k00000|")
 		local active, activityID, ilvl, honorLevel, name, comment, voiceChat, duration, autoAccept, privateGroup, questID = C_LFGList.GetActiveEntryInfo()
 		
 		--> check if the player has a group listed in the LFG and if is the group leader
-		if (active and ff.CurrentWorldQuest and UnitIsGroupLeader ("player")) then
+		if (active and ff.CurrentWorldQuest and UnitIsGroupLeader ("player") and name:find ("k00000|")) then
 			local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (ff.CurrentWorldQuest)
 			
 			local isInQuest = false

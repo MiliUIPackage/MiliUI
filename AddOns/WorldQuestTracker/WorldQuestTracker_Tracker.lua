@@ -9,7 +9,7 @@ end
 --framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
@@ -45,7 +45,7 @@ local GetDistance_Point = DF.GetDistance_Point
 
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
-	print (L["|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r"])
+	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
 
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -75,9 +75,6 @@ end
 
 
 function WorldQuestTracker.AddQuestTomTom (questID, mapID, noRemove)
-
-	print (questID, mapID)
-
 	local x, y = C_TaskQuest.GetQuestLocation (questID, mapID)
 	local title, factionID, tagID, tagName, worldQuestType, rarity, isElite, tradeskillLineIndex = WorldQuestTracker.GetQuest_Info (questID)
 	

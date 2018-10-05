@@ -100,7 +100,7 @@ do
 				tutorial = 0,
 				argus_min_itemlevel = 830, --deprecated
 				ignored_quests = {},
-				send_whispers = true,
+				send_whispers = false,
 				dont_open_in_group = true,
 			},
 
@@ -116,7 +116,7 @@ do
 				playsound_volume = 2,
 				playsound_warnings = 0,
 				use_master = true,
-				always_use_english = true,
+				always_use_english = false,
 				add_from_premade = false,
 				autosearch = true,
 				autosearch_cooldown = 600,
@@ -193,7 +193,7 @@ do
 	--details! framework
 	local DF = _G ["DetailsFramework"]
 	if (not DF) then
-		print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+		print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 		return
 	end
 	

@@ -38,15 +38,15 @@ end)
 --details! framework
 local DF = _G ["DetailsFramework"]
 if (not DF) then
-	print (L["|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r"])
+	print ("|cFFFFAA00World Quest Tracker: framework not found, if you just installed or updated the addon, please restart your client.|r")
 	return
 end
 
 local L = LibStub ("AceLocale-3.0"):GetLocale ("WorldQuestTrackerAddon", true)
 if (not L) then
-	print (L["|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r"])
-	print (L["|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r"])
-	print (L["|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r"])
+	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
+	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
+	print ("|cFFFFAA00World Quest Tracker|r: Reopen your client to finish updating the addon.|r")
 	return
 end
 
@@ -185,7 +185,7 @@ WorldQuestTracker.COMM_PREFIX = "WQTC"
 
 local LibWindow = LibStub ("LibWindow-1.1")
 if (not LibWindow) then
-	print (L["|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r"])
+	print ("|cFFFFAA00World Quest Tracker|r: libwindow not found, did you just updated the addon? try reopening the client.|r")
 end
 
 local ARROW_UPDATE_FREQUENCE = 0.016
