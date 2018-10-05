@@ -38,7 +38,7 @@ local default_config = {
     state_icons = true,
     target_glow = true,
     target_glow_colour = { .3, .7, 1, 1 },
-    target_arrows = false,
+    target_arrows = true,
     frame_glow_size = 8,
     target_arrows_size = 33,
     use_blizzard_personal = false,
@@ -47,7 +47,7 @@ local default_config = {
     clickthrough_friend = false,
     clickthrough_enemy = false,
 
-    nameonly = false,
+    nameonly = true,
     nameonly_no_font_style = false,
     nameonly_health_colour = true,
     nameonly_damaged_friends = true,
@@ -74,7 +74,7 @@ local default_config = {
     fade_avoid_tracked = false,
     fade_avoid_combat = false,
     fade_avoid_casting_friendly = false,
-    fade_avoid_casting_hostile = false,
+    fade_avoid_casting_hostile = true,
     fade_avoid_casting_interruptible = false,
     fade_avoid_casting_uninterruptible = true,
 
@@ -91,7 +91,7 @@ local default_config = {
     bot_vertical_offset = -3,
 
     name_colour_white_in_bar_mode = false,
-    class_colour_friendly_names = false,
+    class_colour_friendly_names = true,
     class_colour_enemy_names = false,
     name_colour_brighten_class = .2,
     name_colour_player_friendly = {.6,.7,1},
