@@ -49,21 +49,21 @@ Options:SetScript("OnShow", function()
     Title:SetPoint("TOPLEFT", Options, 16, -16)
 	Title:SetText("AzeriteTooltip")
 
-	local RemoveBlizzard = AzeriteTooltip:CreateCheckBox("RemoveBlizzard", Options, "Replace Blizzard Azerite Text", nil, Title, 0, -30, false)
+	local RemoveBlizzard = AzeriteTooltip:CreateCheckBox("RemoveBlizzard", Options, "移除內建艾澤萊晶岩文字敘述", nil, Title, 0, -30, false)
     RemoveBlizzard:SetScript("OnClick", function(self)
         local checked = not not self:GetChecked()
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
         AzeriteTooltipDB.RemoveBlizzard = checked
     end)
 
-    local OnlySpec = AzeriteTooltip:CreateCheckBox("OnlySpec", Options, "Show traits for your current specialization only", nil, RemoveBlizzard, 0, -5, false)
+    local OnlySpec = AzeriteTooltip:CreateCheckBox("OnlySpec", Options, "只顯示目前天賦可用的艾澤萊晶岩之力", nil, RemoveBlizzard, 0, -5, false)
     OnlySpec:SetScript("OnClick", function(self)
         local checked = not not self:GetChecked()
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
         AzeriteTooltipDB.OnlySpec = checked
     end)
 
-    local Compact = AzeriteTooltip:CreateCheckBox("Compact", Options, "Compact Mode (only icons)", nil, OnlySpec, 0, -5, false)
+    local Compact = AzeriteTooltip:CreateCheckBox("Compact", Options, "緊湊模式 (只有圖示)", nil, OnlySpec, 0, -5, false)
     Compact:SetScript("OnClick", function(self)
         local checked = not not self:GetChecked()
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
@@ -253,15 +253,15 @@ function AzeriteTooltip_BuildTooltip(self)
 
 				if tierLevel <= currentLevel then
 					if j > 1 then 
-						addText = addText.."\n \n|cFFffcc00Level "..tierLevel..azeriteTooltipText.."|r"
+						addText = addText.."\n \n|cFFffcc00等級 "..tierLevel..azeriteTooltipText.."|r"
 					else
-						addText = addText.."\n|cFFffcc00Level "..tierLevel..azeriteTooltipText.."|r"
+						addText = addText.."\n|cFFffcc00等級 "..tierLevel..azeriteTooltipText.."|r"
 					end
 				else
 					if j > 1 then 
-						addText = addText.."\n \n|cFF7a7a7aLevel "..tierLevel..azeriteTooltipText.."|r"
+						addText = addText.."\n \n|cFF7a7a7a等級 "..tierLevel..azeriteTooltipText.."|r"
 					else
-						addText = addText.."\n|cFF7a7a7aLevel "..tierLevel..azeriteTooltipText.."|r"
+						addText = addText.."\n|cFF7a7a7a等級 "..tierLevel..azeriteTooltipText.."|r"
 					end
 				end
 				
@@ -277,15 +277,15 @@ function AzeriteTooltip_BuildTooltip(self)
 
 				if tierLevel <= currentLevel then
 					if j > 1 then 
-						addText = addText.."\n \n|cFFffcc00 Level "..tierLevel.."|r\n"
+						addText = addText.."\n \n|cFFffcc00 等級 "..tierLevel.."|r\n"
 					else
-						addText = addText.."\n|cFFffcc00 Level "..tierLevel.."|r\n"
+						addText = addText.."\n|cFFffcc00 等級 "..tierLevel.."|r\n"
 					end
 				else
 					if j > 1 then 
-						addText = addText.."\n \n|cFF7a7a7a Level "..tierLevel.."|r\n"
+						addText = addText.."\n \n|cFF7a7a7a 等級 "..tierLevel.."|r\n"
 					else
-						addText = addText.."\n|cFF7a7a7a Level "..tierLevel.."|r\n"
+						addText = addText.."\n|cFF7a7a7a 等級 "..tierLevel.."|r\n"
 					end
 				end
 

@@ -3,6 +3,9 @@
 ## Version: 1.71
 ## Author: jokair9
 ## Notes: Lightweight addon that shows azerite traits in the tooltip.
+## Title-zhTW: |cff0099FF[介面]|r 艾澤萊特晶岩之力提示
+## Notes-zhTW: AzeriteTooltip |n在裝備提示直接顯示該裝備所有的艾澤萊特晶岩之力。
+
 ## SavedVariables: AzeriteTooltipDB
 
 AzeriteTooltip.lua
