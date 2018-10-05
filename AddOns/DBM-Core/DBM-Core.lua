@@ -41,9 +41,9 @@
 --  Globals/Default Options  --
 -------------------------------
 DBM = {
-	Revision = tonumber(("$Revision: 17892 $"):sub(12, -3)),
-	DisplayVersion = "8.0.10 BNS", -- the string that is shown as version
-	ReleaseRevision = 17892 -- the revision of the latest stable version that is available
+	Revision = tonumber(("$Revision: 17959 $"):sub(12, -3)),
+	DisplayVersion = "8.0.12 BNS", -- the string that is shown as version
+	ReleaseRevision = 17957 -- the revision of the latest stable version that is available
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -602,6 +602,7 @@ end
 --  Events  --
 --------------
 do
+	local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
 	local registeredEvents = {}
 	local registeredSpellIds = {}
 	local unfilteredCLEUEvents = {}
@@ -1188,18 +1189,15 @@ do
 				SetCVar("Sound_NumChannels", 64)
 			end--]]
 			self.AddOns = {}
-			self.Voices = { {text = "None",value  = "None"}, }--Create voice table, with default "None" value
+			self.Voices = { {text = "無",value  = "None"}, }--Create voice table, with default "None" value
 			self.VoiceVersions = {}
 			for i = 1, GetNumAddOns() do
 				local addonName = GetAddOnInfo(i)
 				local enabled = GetAddOnEnableState(playerName, i)
-				local minToc = tonumber(GetAddOnMetadata(i, "X-Min-Interface"))
 				if GetAddOnMetadata(i, "X-DBM-Mod") then
 					if enabled ~= 0 then
 						if checkEntry(bannedMods, addonName) then
 							AddMsg(self, "The mod " .. addonName .. " is deprecated and will not be available. Please remove the folder " .. addonName .. " from your Interface" .. (IsWindowsClient() and "\\" or "/") .. "AddOns folder to get rid of this message. Check for an updated version of " .. addonName .. " that is compatible with your game version.")
-						elseif not testBuild and minToc and minToc > wowTOC then
-							self:Debug(i.." not loaded because mod requires minimum toc of "..minToc)
 						else
 							local mapIdTable = {strsplit(",", GetAddOnMetadata(i, "X-DBM-Mod-MapID") or "")}
 							tinsert(self.AddOns, {
@@ -1220,6 +1218,7 @@ do
 								isExpedition	= tonumber(GetAddOnMetadata(i, "X-DBM-Mod-Expedition") or 0) == 1,
 								minRevision		= tonumber(GetAddOnMetadata(i, "X-DBM-Mod-MinCoreRevision") or 0),
 								minExpansion	= tonumber(GetAddOnMetadata(i, "X-DBM-Mod-MinExpansion") or 0),
+								minToc			= tonumber(GetAddOnMetadata(i, "X-Min-Interface") or 0),
 								modId			= addonName,
 							})
 							for i = #self.AddOns[#self.AddOns].mapId, 1, -1 do
@@ -3979,6 +3978,9 @@ function DBM:LoadMod(mod, force)
 	if mod.minExpansion > GetExpansionLevel() then
 		self:AddMsg(DBM_CORE_LOAD_MOD_EXP_MISMATCH:format(mod.name))
 		return
+	elseif not testBuild and mod.minToc > wowTOC then
+		self:AddMsg(DBM_CORE_LOAD_MOD_TOC_MISMATCH:format(mod.name, mod.minToc))
+		return
 	end
 	if not currentSpecID then
 		self:SetCurrentSpecInfo()
@@ -4442,7 +4444,7 @@ do
 				elseif not noRaid and #newerVersionPerson == 3 and updateNotificationDisplayed < 3 then--The following code requires at least THREE people to send that higher revision. That should be more than adaquate
 					--Disable if revision grossly out of date even if not major patch.
 					if raid[newerVersionPerson[1]] and raid[newerVersionPerson[2]] and raid[newerVersionPerson[3]] then
-						local revDifference = mmin((raid[newerVersionPerson[1]].revision - DBM.Revision), (raid[newerVersionPerson[2]].revision - DBM.Revision), (raid[newerVersionPerson[3]].revision - DBM.Revision))
+						local revDifference = mmin(((raid[newerVersionPerson[1]].revision or 0) - DBM.Revision), ((raid[newerVersionPerson[2]].revision or 0) - DBM.Revision), ((raid[newerVersionPerson[3]].revision or 0) - DBM.Revision))
 						if revDifference > 100 then
 							if updateNotificationDisplayed < 3 then
 								updateNotificationDisplayed = 3
@@ -4465,7 +4467,7 @@ do
 				DBM:Debug("Newer revision detected from "..sender.." : Rev - "..revision..", Ver - "..version..", Rev Diff - "..(revision - DBM.Revision))
 			end
 			if #newerRevisionPerson == 2 and raid[newerRevisionPerson[1]] and raid[newerRevisionPerson[2]] then
-				local revDifference = mmin((raid[newerRevisionPerson[1]].revision - DBM.Revision), (raid[newerRevisionPerson[2]].revision - DBM.Revision))
+				local revDifference = mmin(((raid[newerRevisionPerson[1]].revision or 0) - DBM.Revision), ((raid[newerRevisionPerson[2]].revision or 0) - DBM.Revision))
 				if testBuild and revDifference > 5 then
 					updateNotificationDisplayed = 3
 					AddMsg(DBM, DBM_CORE_UPDATEREMINDER_DISABLE)
@@ -6523,6 +6525,7 @@ function DBM:UNIT_DIED(args)
 	if self:IsCreatureGUID(GUID) then
 		self:OnMobKill(self:GetCIDFromGUID(GUID))
 	end
+	----GUIDIsPlayer
 	if self.Options.AFKHealthWarning and GUID == UnitGUID("player") and not IsEncounterInProgress() and UnitIsAFK("player") and self:AntiSpam(5, "AFK") then--You are afk and losing health, some griever is trying to kill you while you are afk/tabbed out.
 		self:FlashClientIcon()
 		self:PlaySoundFile("Sound\\Creature\\CThun\\CThunYouWillDIe.ogg")--So fire an alert sound to save yourself from this person's behavior.
@@ -7115,7 +7118,8 @@ function DBM:FindInstanceIDs()
 end
 
 --/run DBM:FindEncounterIDs(1028)--Azeroth (BfA)
---/run DBM:FindEncounterIDs(1031)--Uldir
+--/run DBM:FindEncounterIDs(1177)--Crucible of Storms
+--/run DBM:FindEncounterIDs(1176)--Zuldazar Raid
 --/run DBM:FindEncounterIDs(1001, 23)--Dungeon Template (mythic difficulty)
 function DBM:FindEncounterIDs(instanceID, diff)
 	if not instanceID then
@@ -8954,6 +8958,7 @@ do
 	
 	function announcePrototype:ScheduleVoice(t, ...)
 		if DBM.Options.ChosenVoicePack == "None" then return end
+		unschedule(self.Play, self.mod, self)--Allow ScheduleVoice to be used in same way as CombinedShow
 		return schedule(t, self.Play, self.mod, self, ...)
 	end
 
@@ -9975,7 +9980,7 @@ do
 			if announceType == "target" or announceType == "targetcount" or announceType == "close" or announceType == "reflect" then
 				catType = "announceother"
 			--Directly affects you
-			elseif announceType == "you" or announceType == "youcount" or announceType == "youpos" or announceType == "move" or announceType == "dodge" or announceType == "moveaway" or announceType == "run" or announceType == "stack" or announceType == "moveto" or announceType == "soakpos" then
+			elseif announceType == "you" or announceType == "youcount" or announceType == "youpos" or announceType == "move" or announceType == "dodge" or announceType == "dodgecount" or announceType == "moveaway" or announceType == "moveawaycount" or announceType == "keepmove" or announceType == "stopmove" or announceType == "run" or announceType == "stack" or announceType == "moveto" or announceType == "soakpos" then
 				catType = "announcepersonal"
 			--Things you have to do to fulfil your role
 			elseif announceType == "taunt" or announceType == "dispel" or announceType == "interrupt" or announceType == "interruptcount" or announceType == "switch" or announceType == "switchcount" then
@@ -10070,6 +10075,10 @@ do
 	
 	function bossModPrototype:NewSpecialWarningDodge(text, optionDefault, ...)
 		return newSpecialWarning(self, "dodge", text, nil, optionDefault, ...)
+	end
+	
+	function bossModPrototype:NewSpecialWarningDodgeCount(text, optionDefault, ...)
+		return newSpecialWarning(self, "dodgecount", text, nil, optionDefault, ...)
 	end
 	
 	function bossModPrototype:NewSpecialWarningDodgeLoc(text, optionDefault, ...)
@@ -10634,6 +10643,17 @@ do
 			return self:NewCastTimer(timer / 1000, spellId, ...)
 		end
 		return newTimer(self, "cast", timer, ...)
+	end
+	
+	function bossModPrototype:NewCastCountTimer(timer, ...)
+		if tonumber(timer) and timer > 1000 then -- hehe :) best hack in DBM. This makes the first argument optional, so we can omit it to use the cast time from the spell id ;)
+			local spellId = timer
+			timer = select(4, DBM:GetSpellInfo(spellId)) or 1000 -- GetSpellInfo takes YOUR spell haste into account...WTF?
+			local spellHaste = select(4, DBM:GetSpellInfo(53142)) / 10000 -- 53142 = Dalaran Portal, should have 10000 ms cast time
+			timer = timer / spellHaste -- calculate the real cast time of the spell...
+			return self:NewCastTimer(timer / 1000, spellId, ...)
+		end
+		return newTimer(self, "castcount", timer, ...)
 	end
 	
 	function bossModPrototype:NewCastSourceTimer(timer, ...)

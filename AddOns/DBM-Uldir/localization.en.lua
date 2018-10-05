@@ -19,6 +19,14 @@ L= DBM:GetModLocalization(2167)
 ---------------------------
 L= DBM:GetModLocalization(2146)
 
+L:SetWarningLocalization({
+	addsSoon		= "Chute has opened - Adds Soon"
+})
+
+L:SetOptionLocalization({
+	addsSoon		= "Show pre warning for when chutes open and start spawning adds"
+})
+
 ---------------------------
 -- Zek'vhozj --
 ---------------------------
@@ -29,7 +37,8 @@ L:SetTimerLocalization({
 })
 
 L:SetOptionLocalization({
-	timerOrbLands	 =	"Show timer for when Orb of Corruption Lands"
+	timerOrbLands	 =	"Show timer for when Orb of Corruption Lands",
+	EarlyTankSwap	 =	"Show tank swap warning immediately after Shatter, instead of waiting for 2nd Void Lash"
 })
 
 L:SetMiscLocalization({
