@@ -16,7 +16,7 @@ local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local mod = addon:NewPlugin('Fading')
 
-local abs,pairs,type,tinsert = math.abs,pairs,type,tinsert
+local abs,pairs,ipairs,type,tinsert = math.abs,pairs,ipairs,type,tinsert
 local UnitExists,UnitIsUnit = UnitExists,UnitIsUnit
 local kff,kffr = kui.frameFade, kui.frameFadeRemoveFrame
 
@@ -50,7 +50,7 @@ local function FrameFade(frame,to)
     })
 end
 local function GetDesiredAlpha(frame)
-    for i,f_t in pairs(fade_rules) do
+    for i,f_t in ipairs(fade_rules) do
         if f_t then
             local a = f_t[2](frame)
             if a then
@@ -101,37 +101,64 @@ function mod:ResetFadeRules()
     -- reset to default fade rules
     fade_rules = {
         -- don't fade the personal nameplate
-        { 10, function(f) return UnitIsUnit(f.unit,'player') and 1 end },
+        { 10, function(f) return f.state.personal and 1 end, 'avoid_personal' },
         -- don't fade the target nameplate
-        { 20, function(f) return f.handler:IsTarget() and 1 end },
+        { 20, function(f) return f.handler:IsTarget() and 1 end, 'avoid_target' },
         -- fade in all nameplates if there is no target
-        { 100, function() return not target_exists and 1 end },
+        { 100, function() return not target_exists and 1 end, 'no_target' },
     }
 
     -- let plugins re/add their own rules
     mod:RunCallback('FadeRulesReset')
 end
-function mod:AddFadeRule(func,priority)
-    if type(func) ~= 'function' or not tonumber(priority) then return end
+function mod:AddFadeRule(func,priority,uid)
+    if type(func) ~= 'function' or not tonumber(priority) then
+        error('AddFadeRule expects function(function),priority(number)')
+    end
 
+    uid = uid and tostring(uid)
+    if uid and self:GetFadeRuleIndex(uid) then
+        addon:print('fade rule already exists:',uid)
+        return
+    end
+
+    local insert_tbl = {priority,func,uid}
     local inserted
 
     for k,f_t in ipairs(fade_rules) do
         if priority < f_t[1] then
-            tinsert(fade_rules,k,{priority,func})
+            tinsert(fade_rules,k,insert_tbl)
             inserted = true
             break
         end
     end
 
     if not inserted then
-        tinsert(fade_rules,{priority,func})
+        tinsert(fade_rules,insert_tbl)
     end
 
     return inserted
 end
 function mod:RemoveFadeRule(index)
-    fade_rules[index] = nil
+    if tonumber(index) then
+        if fade_rules[index] then
+            fade_rules[index] = nil
+        end
+    elseif type(index) == 'string' then
+        -- remove by uid
+        local i = self:GetFadeRuleIndex(index)
+        if i then
+            self:RemoveFadeRule(i)
+        end
+    end
+end
+function mod:GetFadeRuleIndex(uid)
+    if type(uid) ~= 'string' then return end
+    for i,f_t in ipairs(fade_rules) do
+        if f_t[3] and f_t[3] == uid then
+            return i
+        end
+    end
 end
 -- messages ####################################################################
 function mod:TargetUpdate()
@@ -153,6 +180,8 @@ function mod:OnEnable()
     self:RegisterMessage('LostTarget','TargetUpdate')
     self:RegisterMessage('Show')
     self:RegisterMessage('Hide')
+
+    self:ResetFadeRules()
 end
 function mod:Initialise()
     self:RegisterCallback('FadeRulesReset')
@@ -160,6 +189,4 @@ function mod:Initialise()
     self.non_target_alpha = .5
     self.conditional_alpha = .3
     self.fade_speed = .5
-
-    self:ResetFadeRules()
 end

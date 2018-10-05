@@ -3,11 +3,10 @@ local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('HealthBar')
 
-local UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsUnit,UnitIsFriend,
-      UnitPlayerControlled =
-      UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsUnit,UnitIsFriend,
-      UnitPlayerControlled
-local unpack = unpack
+local UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsFriend,
+      UnitPlayerControlled,unpack =
+      UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsFriend,
+      UnitPlayerControlled,unpack
 
 -- prototype additions #########################################################
 function addon.Nameplate.UpdateHealthColour(f,show)
@@ -19,7 +18,7 @@ function addon.Nameplate.UpdateHealthColour(f,show)
     if UnitIsTapDenied(f.unit) then
         r,g,b = unpack(ele.colours.tapped)
     elseif UnitIsPlayer(f.unit) then
-        if UnitIsUnit('player',f.unit) then
+        if f.state.personal then
             -- personal nameplate
             if ele.colours.self then
                 r,g,b = unpack(ele.colours.self)
@@ -100,19 +99,18 @@ function ele:Show(f)
     f.handler:UpdateHealth(true)
     f.handler:UpdateHealthColour(true)
 end
--- events ######################################################################
-function ele:UNIT_FACTION(event,f)
+function ele:FactionUpdate(f)
     f.handler:UpdateHealthColour()
 end
+-- events ######################################################################
 function ele:UNIT_HEALTH(event,f)
     f.handler:UpdateHealth()
 end
 -- register ####################################################################
 function ele:OnEnable()
     self:RegisterMessage('Show')
-
+    self:RegisterMessage('FactionUpdate')
     self:RegisterUnitEvent('UNIT_HEALTH_FREQUENT','UNIT_HEALTH')
-    self:RegisterUnitEvent('UNIT_FACTION')
 end
 function ele:Initialise()
     self.colours = {

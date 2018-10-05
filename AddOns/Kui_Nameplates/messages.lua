@@ -8,9 +8,11 @@
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 
+local type,strsub,pairs,ipairs,unpack,tinsert,tremove=
+      type,strsub,pairs,ipairs,unpack,tinsert,tremove
+
 local k,listener,plugin,_
 local listeners = {}
-
 -------------------------------------------------------------- debug helpers --
 if addon.debug_messages then
     addon.MESSAGE_LISTENERS = listeners
@@ -47,7 +49,7 @@ local function PrintDebugForEvent(event,table,unit,...)
     if addon.DEBUG_IGNORE and addon.DEBUG_IGNORE['e:'..event] then return end
 
     local ac = VarArgsToString(...)
-    addon:print('p:'..(table.priority or '?')..' |cffffff88e:'..event..(unit and ' |cff8888ff['..unit..']' or '')..'|r > '..(table.name or 'nil')..(ac and ' |cffaaaaaa'..ac or ''))
+    addon:print('p:'..(table.priority or '?')..' |cffffff88e:'..event..(unit and '|cff8888ff:'..unit or '')..'|r > '..(table.name or 'nil')..(ac and ' |cffaaaaaa'..ac or ''))
 end
 local function PrintDebugForCallback(plugin,callback,...)
     local fn = plugin.name..':'..callback
@@ -65,14 +67,17 @@ do
     function TraceStart(uid)
         if not addon.profiling then return end
         UpdateAddOnCPUUsage()
-        ev_start = GetAddOnCPUUsage('Kui_Nameplates')
+        ev_start = ev_start or {}
+        ev_start[uid] = GetAddOnCPUUsage('Kui_Nameplates')
     end
     function TraceEnd(uid)
-        if not addon.profiling or not ev_start then return end
+        if not addon.profiling or not ev_start or not ev_start[uid] then 
+            return
+        end
         UpdateAddOnCPUUsage()
         local ev_end = GetAddOnCPUUsage('Kui_Nameplates')
-        local ev_delta = ev_end - ev_start
-        ev_start = nil
+        local ev_delta = ev_end - ev_start[uid]
+        ev_start[uid] = nil
 
         ev_sum = ev_sum or {}
         ev_count = ev_count or {}
@@ -80,10 +85,9 @@ do
         ev_count[uid] = 1 + (ev_count[uid] or 0)
         ev_sum[uid] = ev_delta + (ev_sum[uid] or 0)
     end
-    function addon:PrintTrace(sort_key,limit)
+    function addon:PrintTrace(sort_key)
         if not ev_count or not ev_sum then return end
         sort_key = (sort_key or 3)+1
-        limit = limit or 10
         local ev_sort = {}
         for uid,count in pairs(ev_count) do
             local sum = ev_sum[uid]
@@ -95,7 +99,6 @@ do
         end)
         local d = kui:DebugPopup()
         for i,v in ipairs(ev_sort) do
-            if limit and i > limit then break end
             d:AddText('|cffffff88'..v[1]..'|r #'..v[2]..' | sum:'..format('%.4f',v[3])..'ms | avg:'..format('%.4f',v[4])..'ms')
         end
         d:Show()
@@ -133,60 +136,40 @@ function addon:DispatchMessage(message, ...)
         --@end-debug@]===]
     end
 end
------------------------------------------------------------------ event frame --
+------------------------------------------------------------- event functions --
+local unit_event_frame = CreateFrame('Frame')
 local event_frame = CreateFrame('Frame')
 local event_index = {}
--- fire events to listeners
-local function event_frame_OnEvent(self,event,...)
-    if not event_index[event] then
-        self:UnregisterEvent(event)
-        return
-    end
 
+-- iterate plugins/elements which have registered the given event
+local function DispatchEventToListeners(event,unit,unit_frame,...)
     --[===[@debug@
     TraceStart('e:'..event)
     --@end-debug@]===]
+ 
+    for i,listener_tbl in ipairs(event_index[event]) do
+        local table,func = unpack(listener_tbl)
 
-    local unit,unit_frame,unit_not_found
-    for i,table_tbl in ipairs(event_index[event]) do
-        local table,func,unit_only = unpack(table_tbl)
-
-        if unit_only and not unit and not unit_not_found then
-            -- first unit_only listener; find nameplate
-            unit = ...
-            if unit and unit ~= 'target' and unit ~= 'mouseover' then
-                unit_frame = C_NamePlate.GetNamePlateForUnit(unit)
-                unit_frame = unit_frame and unit_frame.kui
-
-                if not unit_frame or not unit_frame.unit then
-                    unit_frame = nil
-                    unit_not_found = true
-                end
-            else
-                unit_not_found = true
-            end
+        -- resolve function...
+        if type(func) == 'string' and type(table[func]) == 'function' then
+            func = table[func]
+        elseif type(table[event]) == 'function' then
+            func = table[event]
         end
 
-        if not unit_only or unit_frame then
-            if type(func) == 'string' and type(table[func]) == 'function' then
-                func = table[func]
-            elseif type(table[event]) == 'function' then
-                func = table[event]
-            end
-
-            if type(func) == 'function' then
-                if unit_only then
-                    func(table, event, unit_frame, ...)
-                else
-                    func(table, event, ...)
-                end
-
-                if addon.debug_events then
-                    PrintDebugForEvent(event,table,unit,...)
-                end
+        -- call registered function
+        if type(func) == 'function' then
+            if unit_frame then
+                func(table,event,unit_frame,unit,...)
             else
-                addon:print('|cffff0000no listener for e:'..event..' in '..(table.name or 'nil'))
+                func(table,event,...)
             end
+
+            if addon.debug_events then
+                PrintDebugForEvent(event,table,unit,...)
+            end
+        else
+            addon:print('|cffff0000no listener for ue:'..event..' in '..(table.name or 'nil'))
         end
     end
 
@@ -194,9 +177,50 @@ local function event_frame_OnEvent(self,event,...)
     TraceEnd('e:'..event)
     --@end-debug@]===]
 end
+------------------------------------------------------------ unit event frame --
+-- a "unit event" by this definition relies on the event returning a unit,
+-- and a nameplate being available with that unit. We find the nameplate for
+-- the plugin/element and pass it in an argument to its function, or do not
+-- call the function if a nameplate cannot be found.
+local function unit_event_frame_OnEvent(self,event,unit,...)
+    if not event_index[event] then
+        self:UnregisterEvent(event)
+        return
+    end
 
+    -- find nameplate matching returned unit
+    if not unit then
+        addon:print('ue:'..event..':nil returned no unit')
+        return
+    end
+    if type(unit) ~= 'string' or strsub(unit,1,9) ~= 'nameplate' then
+        -- filter out non-nameplate units
+        return
+    end
+
+    local unit_frame = C_NamePlate.GetNamePlateForUnit(unit)
+    unit_frame = unit_frame and unit_frame.kui
+
+    if not unit_frame or not unit_frame.unit then
+        -- this happens when restricted nameplates are visible,
+        -- as events are still fired for those units
+        return
+    end
+
+    DispatchEventToListeners(event,unit,unit_frame,...)
+end
+unit_event_frame:SetScript('OnEvent',unit_event_frame_OnEvent)
+---------------------------------------------------------- simple event frame --
+local function event_frame_OnEvent(self,event,...)
+    if not event_index[event] then
+        self:UnregisterEvent(event)
+        return
+    end
+
+    DispatchEventToListeners(event,nil,nil,...)
+end
 event_frame:SetScript('OnEvent',event_frame_OnEvent)
---------------------------------------------------------------------------------
+------------------------------------------------------------------ registrars --
 local message = {}
 message.__index = message
 ----------------------------------------------------------- message registrar --
@@ -292,14 +316,13 @@ function message.RegisterEvent(table,event,func,unit_only)
         return
     end
 
-    -- TODO maybe allow overwrites possibly
+    -- XXX possibly allow overwrites
+    -- what happens if a plugin registers an event as both types?
+    -- does unregistering work correctly?
     if pluginHasEvent(table,event) then return end
 
-    if not event_index[event] then
-        event_index[event] = {}
-    end
-
-    local insert_tbl = { table, func, unit_only }
+    local insert_tbl = { table, func }
+    event_index[event] = event_index[event] or {}
 
     -- insert by priority
     if #event_index[event] > 0 then
@@ -325,7 +348,11 @@ function message.RegisterEvent(table,event,func,unit_only)
     end
     table.__EVENTS[event] = true
 
-    event_frame:RegisterEvent(event)
+    if unit_only then
+        unit_event_frame:RegisterEvent(event)
+    else
+        event_frame:RegisterEvent(event)
+    end
 end
 function message.RegisterUnitEvent(table,event,func)
     table:RegisterEvent(event,func,true)
@@ -350,7 +377,7 @@ function message.UnregisterAllEvents(table)
     table.__EVENTS = nil
 end
 ------------------------------------------------------------- callback helper --
-local function VerifyCallbackArguments(target,name,func)
+local function VerifyCallbackArguments(table,target,name,func)
     if type(func) ~= 'function' then
         addon:print((table.name or 'nil')..': invalid call to AddCallback: no function')
         return
@@ -379,7 +406,7 @@ function message.RegisterCallback(table,name,return_needed)
 end
 function message.AddCallback(table,target,name,func,priority)
     -- add a callback function
-    target = VerifyCallbackArguments(target,name,func)
+    target = VerifyCallbackArguments(table,target,name,func)
     if not target then return end
 
     if not priority then
@@ -419,7 +446,7 @@ function message.AddCallback(table,target,name,func,priority)
 end
 function message.RemoveCallback(table,target,name,func)
     -- remove callback function matching given arguments
-    target = VerifyCallbackArguments(target,name,func)
+    target = VerifyCallbackArguments(table,target,name,func)
     if not target then return end
     if not target:HasCallback(name) then return end
 
@@ -448,14 +475,27 @@ function message.RunCallback(table,name,...)
     if addon.debug_callbacks then
         PrintDebugForCallback(table,name,...)
     end
+    --[===[@debug@
+    TraceStart('c:'..name)
+    --@end-debug@]===]
 
     if table.__CALLBACKS[name] == 2 then
         -- inherit return from forced single callback
+        --[===[@debug@
+        if addon.profiling then
+            local r = {table.callbacks[name][1](...)}
+            TraceEnd('c:'..name)
+            return unpack(r)
+        end
+        --@end-debug@]===]
         return table.callbacks[name][1](...)
     else
         for i,cb in ipairs(table.callbacks[name]) do
             cb[1](...)
         end
+        --[===[@debug@
+        TraceEnd('c:'..name)
+        --@end-debug@]===]
         return true
     end
 end
@@ -474,7 +514,7 @@ local function plugin_Disable(table)
         table.enabled = nil
 
         if type(table.OnDisable) == 'function' then
-            table:OnDisable(frame)
+            table:OnDisable()
         end
 
         table:UnregisterAllMessages()
@@ -482,32 +522,34 @@ local function plugin_Disable(table)
     end
 end
 ------------------------------------------------------------ plugin registrar --
--- priority = Any number. Defines the load order. Default of 5.
---            Plugins with a higher priority are executed later (i.e. they
---            override the settings of any previous plugin)
--- max_minor = Maximum addon minor version this plugin supports.
---             Ignored if nil.
-function addon:NewPlugin(name,priority,max_minor)
+-- priority       = Any number. Defines the load order. Default of 5.
+--                  Plugins with a higher priority are executed later.
+-- max_minor      = Maximum NKP minor this plugin is known to support.
+--                  Ignored if nil.
+-- enable_on_load = Enable this plugin upon initialise.
+--                  True if nil.
+function addon:NewPlugin(name,priority,max_minor,enable_on_load)
     if not name then
         error('Plugin with no name ignored')
         return
     end
 
-    if max_minor and self.MINOR > max_minor then
+    if (name == 'BarAuras' and not max_minor) or -- XXX legacy
+       (max_minor and self.MINOR > max_minor)
+    then
         error('Out of date plugin `'..name..'` ignored')
         return
     end
 
-    -- TODO TEMP legacy BarAuras
-    if name == 'BarAuras' and not max_minor then
-        error('Out of date plugin `BarAuras` ignored. Update it from the GitHub repository linked in the Curse description.')
-        return
+    if enable_on_load == nil then
+        enable_on_load = true
     end
 
     local pluginTable = {
         name = name,
+        enable_on_load = enable_on_load,
         plugin = true,
-        priority = type(priority)=='number' and priority or 5
+        priority = tonumber(priority) or 5
     }
     pluginTable.Enable = plugin_Enable
     pluginTable.Disable = plugin_Disable
@@ -524,8 +566,8 @@ function addon:GetPlugin(name)
 end
 -------------------------------------------------- external element registrar --
 -- elements are just plugins with a lower default priority
-function addon:NewElement(name,priority)
-    local ele = self:NewPlugin(name,priority or 0)
+function addon:NewElement(name,priority,max_minor)
+    local ele = self:NewPlugin(name,tonumber(priority) or 0,max_minor,true)
     ele.plugin = nil
     ele.element = true
     return ele

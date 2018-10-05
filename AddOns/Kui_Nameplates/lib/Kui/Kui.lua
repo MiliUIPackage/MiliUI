@@ -1,4 +1,4 @@
-local MAJOR, MINOR = 'Kui-1.0', 30
+local MAJOR, MINOR = 'Kui-1.0', 33
 local kui = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not kui then
@@ -6,7 +6,7 @@ if not kui then
     return
 end
 
--- media #######################################################################
+-- media # XXX LEGACY #########################################################
 local media = "Interface\\AddOns\\Kui_Media\\"
 kui.m = {
     t = {
@@ -25,22 +25,21 @@ kui.m = {
         stripebar = media .. 't\\stippled-bar',
     },
     f = {
-        yanone   = media..'f\\yanone.ttf',
         francois = media..'f\\francois.ttf',
         roboto   = media..'f\\roboto.ttf',
     },
 }
 -- other locals ################################################################
 local TRILLION=1000000000000
-local BILLION=1000000000
-local MILLION=1000000
+local BILLION=100000000
+local MILLION=10000
 local THOUSAND=1000
 
 local ct = { -- classification table
     elite     = { '+',  'elite'      },
-    rare      = { 'r',  'rare'       },
-    rareelite = { 'r+', 'rare elite' },
-    worldboss = { 'b',  'boss'       }
+    rare      = { '稀',  'rare'       },
+    rareelite = { '稀+', 'rare elite' },
+    worldboss = { '首',  'boss'       }
 }
 -- functions ###################################################################
 kui.table_to_string = function(tbl,depth)
@@ -118,7 +117,6 @@ kui.GetUnitColour = function(unit, str)
             return kui.GetClassColour(unit, str)
         else
             r, g, b = UnitSelectionColor(unit)
-            ret = { r = r, g = g, b = b }
         end
     end
 
@@ -173,7 +171,7 @@ kui.CreateFontString = function(parent, args)
         ob = parent:CreateFontString(nil, 'OVERLAY')
     end
 
-    font    = args.font or 'Fonts\\FRIZQT__.TTF'
+    font    = args.font or 'Fonts\\bLEI00D.TTF'
     size    = args.size or 12
     outline = args.outline or nil
     mono    = args.mono or args.monochrome or nil
@@ -194,18 +192,16 @@ kui.CreateFontString = function(parent, args)
     return ob
 end
 -- generic helpers #############################################################
-kui.num = function(num)
+kui.num = function(num) -- TODO needs locale
     if not num then return end
-    if num < THOUSAND then
+    if num < MILLION then
         return floor(num)
     elseif num >= TRILLION then
-        return string.format('%.3ft', num/TRILLION)
+        return string.format('%.3f兆', num/TRILLION)
     elseif num >= BILLION then
-        return string.format('%.3fb', num/BILLION)
+        return string.format('%.2f億', num/BILLION)
     elseif num >= MILLION then
-        return string.format('%.2fm', num/MILLION)
-    elseif num >= THOUSAND then
-        return string.format('%.1fk', num/THOUSAND)
+        return string.format('%.1f萬', num/MILLION)
     end
 end
 kui.FormatTime = function(s)
@@ -322,14 +318,27 @@ local function CreateDebugPopup()
     end)
 
     local s = CreateFrame('ScrollFrame','KuiDebugEditBoxScrollFrame',UIParent,'UIPanelScrollFrameTemplate')
+    s:SetMovable(true)
     s:SetFrameStrata('DIALOG')
     s:SetSize(450,300)
+    s:SetHitRectInsets(-10,-30,-10,-10)
     s:SetPoint('CENTER')
     s:SetScrollChild(p)
     s:Hide()
 
-    s:SetScript('OnMouseDown',function(self)
-        self:GetScrollChild():SetFocus()
+    s:SetScript('OnMouseDown',function(self,button)
+        if button == 'RightButton' and not self.is_moving then
+            self:StartMoving()
+            self.is_moving = true
+        elseif button == 'LeftButton' then
+            self:GetScrollChild():SetFocus()
+        end
+    end)
+    s:SetScript('OnMouseUp',function(self,button)
+        if button == 'RightButton' and self.is_moving then
+            self:StopMovingOrSizing()
+            self.is_moving = nil
+        end
     end)
 
     local bg = CreateFrame('Frame',nil,UIParent)

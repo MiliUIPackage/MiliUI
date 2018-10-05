@@ -2,18 +2,25 @@
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('RaidIcon')
+local GetRaidTargetIndex,SetRaidTargetIconTexture =
+      GetRaidTargetIndex,SetRaidTargetIconTexture
 -- prototype additions #########################################################
 function addon.Nameplate.UpdateRaidIcon(f,show)
     f = f.parent
 
     if f.elements.RaidIcon and f.unit then
-        local i = GetRaidTargetIndex(f.unit)
-
-        if i then
-            SetRaidTargetIconTexture(f.RaidIcon,i)
-            f.RaidIcon:Show()
-        else
+        if f.state.personal then
+            -- don't show on the personal frame
             f.RaidIcon:Hide()
+        else
+            local i = GetRaidTargetIndex(f.unit)
+
+            if i then
+                SetRaidTargetIconTexture(f.RaidIcon,i)
+                f.RaidIcon:Show()
+            else
+                f.RaidIcon:Hide()
+            end
         end
     end
 

@@ -2,8 +2,6 @@
 ## Author: Kesava
 ## Title: Kui |cff9966ffNameplates
 ## Notes: Kesava's nameplate framework.|nRemember to enable Kui Nameplates Core (or another layout), too!
-## Title-zhTW: |cFF0099FF[介面]|r 血條樣式
-## Notes-zhTW: |cFFCCBBCCKui |cff9966ffNameplates|r |n玩家、NPC 頭上的血條樣式美化。
 
 lib\embeds.xml
 
@@ -30,7 +28,9 @@ plugins/animation.lua
 plugins/arenaid.lua
 plugins/bossmods.lua
 plugins/combattoggle.lua
+plugins/combat-update.lua
 plugins/execute.lua
 plugins/fading.lua
 plugins/guildtext.lua
+plugins/personal-anchor.lua
 plugins/tankmode.lua
