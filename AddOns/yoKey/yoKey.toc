@@ -1,0 +1,16 @@
+## Interface: 80000
+## Version: 0.0.1
+## Title: yoKey
+## Author: NoiseX
+## Title-zhTW: |cFF00CCFF[團隊]|r 傳奇計時與鑰石資訊
+## Notes-zhTW: yoKey|n顯示傳奇鑰石地城2/3箱獎勵時間與敵方部隊占比等資訊。
+
+LibStub\LibStub.lua
+LibObjectiveProgress-1.0\embed.xml
+
+Func.lua
+yoKey.lua
+
+Affixes.lua
+AuraMarker.lua
+
