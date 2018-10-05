@@ -1,0 +1,28 @@
+## Interface: 80000
+## Title: Exlist
+## Notes: Shows various information about your characters
+## Title-zhTW: |cffFF7F00[副本]|r 我的分身名冊
+## Notes-zhTW: Exlist |n快速查看自己所有分身的地城/團隊/世界王擊殺進度、傳奇鑰石/最佳成績、每日/每週/世界任務、金錢、兌換通貨數量、專業、裝備... 還有更多!|n|cffffd200使用方法：|r點小地圖按鈕觀看資訊，從Esc>介面>插件>分身，進行設定。
+## Author: Exality
+## SavedVariables: Exlist_DB, Exlist_Config
+## Version: 1.2.12
+
+#Libs
+Libs\LibStub\LibStub.lua
+Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
+Libs\LibQTip-1.0\LibQTip-1.0.lua
+Libs\AceGUI-3.0\AceGUI-3.0.xml
+Libs\AceConfigRegistry-3.0\AceConfigRegistry-3.0.xml
+Libs\AceConfigDialog-3.0\AceConfigDialog-3.0.xml
+Libs\AceGUI-3.0-SharedMediaWidgets\widget.xml
+Libs\LibSharedMedia-3.0\lib.xml
+Libs\AceTimer-3.0\AceTimer-3.0.xml
+Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
+Libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
+
+Init.lua
+locales.xml
+
+Exlist.lua
+Config.lua
+Modules\modules.xml
