@@ -3,7 +3,7 @@
 ## Version: 4.30.0
 ## Author: Smacker 'lolcat', Dridzt 'classic', Garstiger 'continued', Sinsthar 'base', Meorawr, modified by Zensunim and Resike
 ## Notes: Options and configuration GUI for Power Auras Classic.
-## Title-zhTW: |cFF00FFFF[戰鬥]|r POWA(設置)
+## Title-zhTW: |cFF00FFFF[戰鬥]|r POWA (設置)
 ## Notes-zhTW: Power Auras Classic Options |n強大的法術監控。|n|cffffd200使用方法：|r輸入指令『/powa』。
 ## DefaultState: disabled
 ## Dependencies: PowerAuras

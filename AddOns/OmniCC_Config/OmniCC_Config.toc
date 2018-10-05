@@ -2,7 +2,7 @@
 ## Title: OmniCC Config
 ## Notes: OmniCC's configuration menu
 ## Notes-koKR: OmniCC의 설정 메뉴
-## Title-zhTW: |cFF0099FF[介面]|r 冷卻倒數-設定選單
+## Title-zhTW: |cFF0099FF[介面]|r 冷卻倒數 (設置)
 ## Notes-zhTW: OmniCC Config|n冷卻倒數的設定選單
 ## Author: Tuller
 ## Dependencies: OmniCC

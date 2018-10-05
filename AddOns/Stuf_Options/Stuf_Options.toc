@@ -2,7 +2,7 @@
 ## Title: Stuf_Options
 ## Author: TotalPackage
 ## Notes: Configuration Menu for Stuf.
-## Title-zhTW: |cFF0099FF[介面]|r Stuf頭像-設定選項
+## Title-zhTW: |cFF0099FF[介面]|r Stuf頭像 (設置)
 ## Notes-zhTW: Stuf_Options |nStuf頭像框架的設定選項。|n|cffffd200使用方法：|r輸入 /頭像 或 /stuf ，或從 Esc>介面>插件>Stuf頭像，開啟設定。|n如果無法顯示設定內容，按Esc關閉設定視窗後再重新開啟，因載入較慢，請多試幾次。
 
 ## X-Category: UnitFrame

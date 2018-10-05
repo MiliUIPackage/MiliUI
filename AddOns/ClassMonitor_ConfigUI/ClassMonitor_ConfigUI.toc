@@ -4,7 +4,7 @@
 ## Credits: Elv, Starinnia, Puffina, StarsHu
 ## Title: |cFF148587Class|r Monitor Config
 ## Notes: Config for ClassMonitor
-## Title-zhTW: |cFF00FFFF[戰鬥]|r 職業資源監控(設置)
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 職業資源監控 (設置)
 ## Notes-zhTW: Class Monitor Config |n職業資源監控的設定介面。|n|cffffd200使用方法：|r輸入指令『/clm config』。
 ## DefaultState: Disabled
 ## RequiredDeps: ClassMonitor

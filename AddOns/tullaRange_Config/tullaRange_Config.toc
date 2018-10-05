@@ -1,7 +1,7 @@
 ## Interface: 80000
 ## Title: tullaRange Config
 ## Notes: GUI based configuration for tullaRange
-## Title-zhTW: |cFF0099FF[介面]|r 射程著色(設置)
+## Title-zhTW: |cFF0099FF[介面]|r 射程著色 (設置)
 ## Notes-zhTW: tullaRange|n射程著色設定介面
 ## Author: Tuller
 ## Dependencies: tullaRange
