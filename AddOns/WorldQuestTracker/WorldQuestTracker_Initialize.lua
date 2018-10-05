@@ -84,7 +84,7 @@ do
 			},
 			
 			groupfinder = {
-				enabled = true,
+				enabled = false,
 				invasion_points = false, --deprecated
 				tracker_buttons = false,
 				autoleave = false,
@@ -105,7 +105,7 @@ do
 			},
 
 			rarescan = {
-				show_icons = true,
+				show_icons = false,
 				alerts_anywhere = false,
 				join_channel = false,
 				search_group = true,
