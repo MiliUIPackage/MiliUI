@@ -17,17 +17,7 @@ if not core then
     return
 end
 
--- positioned and "shown" on the player's frame when/if it is shown
-local anchor = CreateFrame('Frame','KuiNameplatesPlayerAnchor')
-anchor:Hide()
-
-if addon.draw_frames then
-    anchor:SetBackdrop({ edgeFile = kui.m.t.solid, edgeSize = 1 })
-    anchor:SetBackdropBorderColor(0,0,1)
-end
-
 local plugin_fading
-local plugin_classpowers
 -- messages ####################################################################
 function core:Create(f)
     self:CreateBackground(f)
@@ -35,7 +25,6 @@ function core:Create(f)
     self:CreatePowerBar(f)
     self:CreateAbsorbBar(f)
     self:CreateFrameGlow(f)
-    self:CreateTargetGlow(f)
     self:CreateTargetArrows(f)
     self:CreateNameText(f)
     self:CreateLevelText(f)
@@ -51,7 +40,6 @@ function core:Create(f)
 end
 function core:Show(f)
     -- state helpers
-    f.state.player = UnitIsUnit(f.unit,'player')
     f.state.friend = UnitIsFriend('player',f.unit)
     f.state.class = select(2,UnitClass(f.unit))
 
@@ -80,8 +68,6 @@ function core:Show(f)
     f:UpdateRaidIcon()
     -- enable/disable castbar
     f:UpdateCastBar()
-    -- enable/disable auras
-    f:UpdateAuras()
     -- set guild text
     f:UpdateGuildText()
 
@@ -89,25 +75,8 @@ function core:Show(f)
         -- show/hide target arrows
         f:UpdateTargetArrows()
     end
-
-    if f.state.player then
-        anchor:SetParent(f)
-        anchor:SetAllPoints(f.bg)
-        anchor:Show()
-
-        if addon.ClassPowersFrame and plugin_classpowers.enabled then
-            -- force class powers position update
-            -- as our post function uses state.player
-            plugin_classpowers:TargetUpdate()
-        end
-    end
 end
 function core:Hide(f)
-    if f.state.player then
-        anchor:ClearAllPoints()
-        anchor:Hide()
-    end
-
     self:NameOnlyUpdate(f,true)
     f:HideCastBar(nil,true)
 end
@@ -171,6 +140,21 @@ function core:ExecuteUpdate(f)
     -- registered by configChanged, fade_avoid_execute_friend/hostile
     plugin_fading:UpdateFrame(f)
 end
+function core:OnEnter(f)
+    f:UpdateHighlight()
+end
+function core:OnLeave(f)
+    f:UpdateHighlight()
+end
+function core:Combat(f)
+    -- enable/disable nameonly if enabled on enemies
+    self:NameOnlyCombatUpdate(f)
+
+    -- update to show name of units which are in combat with the player
+    self:ShowNameUpdate(f)
+    f:UpdateFrameSize()
+    f:UpdateNameText()
+end
 -- events ######################################################################
 function core:QUEST_POI_UPDATE()
     -- update to show name of new quest NPCs
@@ -182,15 +166,6 @@ function core:QUEST_POI_UPDATE()
             frame:UpdateLevelText()
         end
     end
-end
-function core:UNIT_THREAT_LIST_UPDATE(event,f)
-    -- enable/disable nameonly if enabled on enemies
-    self:NameOnlyCombatUpdate(f)
-
-    -- update to show name of units which are in combat with the player
-    self:ShowNameUpdate(f)
-    f:UpdateFrameSize()
-    f:UpdateNameText()
 end
 function core:UNIT_NAME_UPDATE(event,f)
     -- update name text colour
@@ -263,13 +238,123 @@ do
         InterfaceOptions_AddCategory(opt)
     end
 end
+-- fade rules ##################################################################
+do
+    local avoid_cast_friend,avoid_cast_hostile,
+          avoid_cast_interrupt,avoid_cast_uninterrupt,
+          friendly_npc_exclude_titled
+
+    -- table for simple rules where profile_key = {
+    --   function,
+    --   priority,
+    --   post-add function or nil
+    -- }
+    local fade_rules = {}
+    fade_rules.fade_all = function()
+        plugin_fading:RemoveFadeRule('no_target')
+    end
+    fade_rules.fade_avoid_mouseover = { function(f)
+        return f.state.highlight and 1
+    end, 1 }
+    fade_rules.fade_avoid_raidicon = { function(f)
+        return f.RaidIcon and f.RaidIcon:IsShown() and 1
+    end, 1, function() core:RegisterMessage('RaidIconUpdate') end }
+    fade_rules.fade_avoid_execute_friend = { function(f)
+        return f.state.friend and
+               f.state.in_execute_range and 1
+    end, 21, function() core:RegisterMessage('ExecuteUpdate') end }
+    fade_rules.fade_avoid_execute_hostile = { function(f)
+        return not f.state.friend and
+               f.state.in_execute_range and 1
+    end, 21, function() core:RegisterMessage('ExecuteUpdate') end }
+    fade_rules.fade_avoid_tracked = { function(f)
+        return f.state.tracked and 1
+    end, 22 }
+    fade_rules.fade_avoid_combat = { function(f)
+        return UnitAffectingCombat(f.unit) and 1
+    end, 23 }
+    fade_rules.fade_neutral_enemy = { function(f)
+        return f.state.reaction == 4 and
+               UnitCanAttack('player',f.unit) and -1
+    end, 25 }
+    fade_rules.fade_friendly_npc = { function(f)
+        if  f.state.reaction >= 4 and
+            not UnitIsPlayer(f.unit) and
+            not UnitCanAttack('player',f.unit)
+        then
+            return (not friendly_npc_exclude_titled or
+                    not f.state.guild_text) and -1
+        end
+    end, 25 }
+    fade_rules.fade_untracked = { function(f)
+        return not f.state.tracked and -1
+    end, 25 }
+    fade_rules.fade_avoid_nameonly = { function(f)
+        return f.IN_NAMEONLY and 1
+    end, 30 }
+
+    -- casting fade rule helpers
+    local function FadeRule_Casting_Interruptible(f)
+        if f.cast_state.interruptible then
+            return avoid_cast_interrupt and 1 or nil
+        else
+            return avoid_cast_uninterrupt and 1 or nil
+        end
+    end
+    local function FadeRule_Casting_CanAttack(f)
+        if UnitCanAttack('player',f.unit) then
+            return avoid_cast_hostile and FadeRule_Casting_Interruptible(f) or nil
+        else
+            return avoid_cast_friend and FadeRule_Casting_Interruptible(f) or nil
+        end
+    end
+
+    function core:InitialiseFadeRules()
+        self:UnregisterMessage('RaidIconUpdate')
+        self:UnregisterMessage('ExecuteUpdate')
+
+        friendly_npc_exclude_titled = self.profile.fade_friendly_npc_exclude_titled
+
+        if self.profile.fade_avoid_casting_interruptible or
+           self.profile.fade_avoid_casting_uninterruptible
+        then
+            avoid_cast_friend = self.profile.fade_avoid_casting_friendly
+            avoid_cast_hostile = self.profile.fade_avoid_casting_hostile
+            avoid_cast_interrupt = self.profile.fade_avoid_casting_interruptible
+            avoid_cast_uninterrupt = self.profile.fade_avoid_casting_uninterruptible
+            plugin_fading:AddFadeRule(function(f)
+                if f.state.casting then
+                    return FadeRule_Casting_CanAttack(f)
+                end
+            end,24,'core_fade_avoid_casting')
+        end
+
+        for rule_name,rule_tbl in pairs(fade_rules) do
+            if self.profile[rule_name] then
+                if type(rule_tbl) == 'function' then
+                    -- simple function
+                    rule_tbl()
+                else
+                    -- complete rule
+                    plugin_fading:AddFadeRule(
+                        rule_tbl[1],
+                        rule_tbl[2],
+                        'core_'..rule_name)
+
+                    if rule_tbl[3] then
+                        -- run post-add
+                        rule_tbl[3]()
+                    end
+                end
+            end
+        end
+    end
+end
 -- register ####################################################################
 function core:Initialise()
-    self:InitialiseConfig()
+    plugin_fading = addon:GetPlugin('Fading')
 
-    -- we don't want the distance scaling to affect the clickbox
-    SetCVar('NameplateMinScale',1)
-    SetCVar('NameplateMaxScale',1)
+    self:InitialiseConfig()
 
     -- register messages
     self:RegisterMessage('Create')
@@ -284,26 +369,24 @@ function core:Initialise()
     self:RegisterMessage('GainedTarget')
     self:RegisterMessage('LostTarget')
     self:RegisterMessage('ClassificationChanged')
+    self:RegisterMessage('OnEnter')
+    self:RegisterMessage('OnLeave')
+    self:RegisterMessage('Combat')
 
     -- register events
     self:RegisterEvent('QUEST_POI_UPDATE')
-    self:RegisterUnitEvent('UNIT_THREAT_LIST_UPDATE')
     self:RegisterUnitEvent('UNIT_NAME_UPDATE')
 
     -- register callbacks
     self:AddCallback('Auras','PostCreateAuraButton',self.Auras_PostCreateAuraButton)
+    self:AddCallback('Auras','PostDisplayAuraButton',self.Auras_PostDisplayAuraButton)
+    self:AddCallback('Auras','PostUpdateAuraFrame',self.Auras_PostUpdateAuraFrame)
     self:AddCallback('Auras','DisplayAura',self.Auras_DisplayAura)
     self:AddCallback('ClassPowers','PostPositionFrame',self.ClassPowers_PostPositionFrame)
     self:AddCallback('ClassPowers','CreateBar',self.ClassPowers_CreateBar)
-
-    -- update layout's locals with configuration
-    self:SetLocals()
 
     -- set element configuration tables
     self:InitialiseElements()
 
     CreateLODHandler()
-
-    plugin_fading = addon:GetPlugin('Fading')
-    plugin_classpowers = addon:GetPlugin('ClassPowers')
 end

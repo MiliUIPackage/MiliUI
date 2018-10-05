@@ -1,7 +1,7 @@
 -- recolour health bars in execute range
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
-local mod = addon:NewPlugin('Execute',4)
+local mod = addon:NewPlugin('Execute',4,nil,false)
 
 local EquipScanQueue,class,execute_range
 
@@ -10,16 +10,25 @@ local specs = {
         [2] = 25 -- ferocious bite
     }
 }
-
 local talents = {
-    ['PRIEST'] = {
-        [22317] = 35
-    },
     ['DRUID'] = {
         [21714] = -1, -- sabertooth (overrides ferocious bite)
         [22155] = 25, -- feral affinity -> ferocious bite (balance)
         [22156] = 25, -- (guardian)
         [22367] = 25, -- (resto)
+    },
+    ['HUNTER'] = {
+        [22291] = 35 -- Beast Mastery Killer Instinct
+    },
+    ['PRIEST'] = {
+        [23125] = 35 -- Shadow Twist of Fate
+    },
+    ['ROGUE'] = {
+        [22339] = 30 -- Assassination Blindside
+    },
+    ['WARRIOR'] = {
+        [22380] = 35, -- Arms Massacre
+        [22393] = 35, -- Fury Massacre
     },
 }
 local pvp_talents = {
@@ -28,9 +37,7 @@ local pvp_talents = {
         [1942] = 25
     }
 }
-local items = {
-    [132454] = 30, -- koralon's burning touch
-}
+local items = {}
 
 -- local functions #############################################################
 local function IsTalentKnown(id,pvp)
@@ -55,7 +62,6 @@ local function GetExecuteRange()
         end
     end
 
-    -- TODO use arena areas to find what event enables pvp abilities
     if UnitIsPVP('player') and pvp_talents[class] then
         for id,v in pairs(pvp_talents[class]) do
             if IsTalentKnown(id,true) then
@@ -64,11 +70,13 @@ local function GetExecuteRange()
         end
     end
 
-    -- check equipped items
-    for slot_id=1,18 do
-        local item_id = GetInventoryItemID('player',slot_id)
-        if item_id and items[item_id] then
-            r = items[item_id]
+    if #items > 0 then
+        -- check equipped items
+        for slot_id=1,18 do
+            local item_id = GetInventoryItemID('player',slot_id)
+            if item_id and items[item_id] then
+                r = items[item_id]
+            end
         end
     end
 
@@ -84,6 +92,7 @@ local function EquipScanQueue_Update()
 end
 -- mod functions ###############################################################
 function mod:SetExecuteRange(to)
+    if not mod.enabled then return end
     if type(to) == 'number' then
         self:UnregisterEvent('PLAYER_SPECIALIZATION_CHANGED')
         self:UnregisterEvent('PLAYER_FLAGS_CHANGED')
