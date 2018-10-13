@@ -1,0 +1,25 @@
+## Interface: 80000
+## Title: Easy Scrap
+## Notes: Adds all eligible gear to the scrapper interface.
+## Title-zhTW: |cff0099FF[介面]|r 快易銷毀
+## Notes-zhTW:  Easy Scrap|n快速銷毀物品，可以自訂過濾選項並將物品加入忽略清單。
+## Author: Motig
+## Version: 13
+## SavedVariablesPerCharacter: EasyScrap_IgnoreList
+## SavedVariables: EasyScrap_SaveData
+
+EasyScrap.lua
+EasyScrap_WhatsNew.lua
+EasyScrap_Functions.lua
+
+Frames\EasyScrapXMLFrames.xml
+Frames\TooltipReader.lua
+Frames\EasyScrapMainFrame.lua
+Frames\EasyScrapItemFrame.lua
+Frames\EasyScrapEditFilterFrame.lua
+Frames\EasyScrapFilterFrame.lua
+
+EasyScrap_Filters.lua
+EasyScrap_ItemDisplay.lua
+EasyScrap_Main.lua
+Bindings.xml

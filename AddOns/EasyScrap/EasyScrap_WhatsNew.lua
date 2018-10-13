@@ -1,0 +1,7 @@
+EasyScrap.whatsNewText = {}
+
+EasyScrap.whatsNewText[5] = "|cFFFF0000- Ignore list has been RESET. Items are now ignored based only on name to make sure they're not forgotten anymore|r\n- Items are now sorted by quality and item level \n- The default filter will now filter out items used in wardrobe sets \n- Added queue all button to queue all items in eligible \n- Holding shift will now show comparison tooltip \n|cFF00FF00- If the scrapper gets stuck scrapping items it's not the addon at fault, the addon does not interfere with the actual scrapping process.|r"
+EasyScrap.whatsNewText[5] = "|cFFFF0000- Ignore list has been RESET. Items are now ignored based only on name to make sure they're not forgotten anymore|r\n- Items are now sorted by quality and item level \n- The default filter will now filter out items used in wardrobe sets \n- Added queue all button to queue all items in eligible \n- Holding shift will now show comparison tooltip \n|cFF00FF00- If the scrapper gets stuck scrapping items it's not the addon at fault, the addon does not interfere with the actual scrapping process.|r"
+EasyScrap.whatsNewText[10] = '|cFFFF0000- YOUR IGNORE LIST HAS BEEN RESET!!!|r\n\n- Ignore function should now do a slightly better job at ignoring items.\n\n- You can now create custom filters to have more control over what items are eligible.'
+EasyScrap.whatsNewText[11] = '|cFFFF0000- 您的忽略清單已被重設!!!|r\n\n- Ignore函數現在應該在忽略物品方面做得稍微好一點。\n\n- 新增在過濾選擇中將自訂過濾設置為預設過濾的選項。\n\n- 新增武器類型過濾。\n\n- 新增了實驗性塑形過濾。'
+EasyScrap.whatsNewText[13] = '- 新增重複過濾\n\n- 新增額外屬性過濾\n\n- 新增物品部位過濾'
