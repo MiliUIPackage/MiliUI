@@ -14,7 +14,8 @@ local function ShowId(tooltip, name, value, noBlankLine)
         local line = addon:FindLine(tooltip, name)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
-            tooltip:AddLine(format("%s: %s", addon.L[name] or name, value), 0, 1, 0.8)
+            tooltip:AddLine(format("%s: |cffffffff%s|r", addon.L[name] or name, value), 0, 1, 0.8)
+            --tooltip:AddDoubleLine(name .. " ID", format("|cffffffff%s|r", value))
             tooltip:Show()
         end
     end

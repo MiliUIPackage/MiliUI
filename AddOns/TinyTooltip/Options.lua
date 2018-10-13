@@ -722,7 +722,7 @@ function SlashCmdList.TinyTooltip(msg, editbox)
         InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
     else
         InterfaceOptionsFrame_OpenToCategory(frame)
-        InterfaceOptionsFrame_OpenToCategory(frameNPC)
+		InterfaceOptionsFrame_OpenToCategory(frameNPC)
         InterfaceOptionsFrame_OpenToCategory(frame)
     end
 end

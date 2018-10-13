@@ -39,6 +39,7 @@ addon.tooltips = {
     ItemRefShoppingTooltip2,
     WorldMapCompareTooltip1,
     WorldMapCompareTooltip2,
+    NamePlateTooltip,
 }
 
 -- 圖標集
@@ -187,7 +188,7 @@ end
 -- PVP圖標
 function addon:GetPVPIcon(unit)
 	-- 暫時修正
-    -- if (UnitIsPVPFreeForAll(unit) and UnitPrestige(unit) <= 0) then
+    -- if (UnitIsPVPFreeForAll(unit) and UnitPrestige(unit) and UnitPrestige(unit) <= 0) then
     if UnitIsPVPFreeForAll(unit) then
         return self.icons.pvp
     end
@@ -292,6 +293,7 @@ function addon:GetUnitInfo(unit)
     local pvpName = UnitPVPName(unit)
     local gender = UnitSex(unit)
     local level = UnitLevel(unit)
+    local effectiveLevel = UnitEffectiveLevel(unit)
     local raceName, race = UnitRace(unit)
     local className, class = UnitClass(unit)
     local factionGroup, factionName = UnitFactionGroup(unit)
@@ -331,7 +333,8 @@ function addon:GetUnitInfo(unit)
     t.moveSpeed    = self:GetUnitSpeed(unit)
     t.zone         = self:GetZone(unit)
     t.unit         = unit                     --unit
-    t.level        = level                    --1~113|-1
+    t.level        = level                    --1~123|-1
+    t.effectiveLevel = effectiveLevel or level
     t.race         = race                     --nil|NightElf|Troll...
     t.class        = class                    --DRUID|HUNTER...
     t.factionGroup = factionGroup             --Alliance|Horde|Neutral
@@ -430,7 +433,7 @@ addon.colorfunc.class = function(raw)
 end
 
 addon.colorfunc.level = function(raw)
-    local color = GetCreatureDifficultyColor(raw.level>0 and raw.level or 999)
+    local color = GetCreatureDifficultyColor(raw.effectiveLevel>0 and raw.effectiveLevel or 999)
     return color.r, color.g, color.b, addon:GetHexColor(color)
 end
 
