@@ -450,8 +450,8 @@ local function init()
     -- Uldir
     [GetLFGDungeonInfo(1887) or "Uldir"] = {
       [1731] = {name = L["Halls of Containment"], totalEncounters = 3, order = 1},
-      [1732] = {name = L["Crimson Descent"], totalEncounters = 3, order = 2},
-      [1733] = {name = L["Heart of Corruption"], totalEncounters = 3, order = 2},
+      [1732] = {name = L["Crimson Descent"],totalEncounters = 3, order = 2},
+      [1733] = {name = L["Heart of Corruption"], totalEncounters = 2, order = 3},
     },
 
   }

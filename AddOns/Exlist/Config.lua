@@ -7,7 +7,7 @@ local AceConfDia = LibStub("AceConfigDialog-3.0")
 
 local addonVersion = GetAddOnMetadata(name, "version")
 --[===[@debug@
-if addonVersion == "1.2.12" then
+if addonVersion == "1.2.13" then
   addonVersion = "Development"
 end
 --@end-debug@]===]

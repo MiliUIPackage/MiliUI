@@ -214,7 +214,6 @@ local function comma_value(amount)
   end
   return formatted
 end
-
 local function Linegenerator(tooltip,data,character)
   if not data or not data.money then return end
   local info = {

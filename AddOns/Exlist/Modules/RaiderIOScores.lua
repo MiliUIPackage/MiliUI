@@ -9,16 +9,16 @@ local WrapTextInColorCode = WrapTextInColorCode
 local UnitLevel = UnitLevel
 local DUNGEON_NAME = {
   -- BFA
+  (CM.GetMapUIInfo(247)), -- The MOTHERLODE!!
   (CM.GetMapUIInfo(244)), -- Atal'dazar
   (CM.GetMapUIInfo(245)), -- Freehold
   (CM.GetMapUIInfo(246)), -- Tol Dagor
-  (CM.GetMapUIInfo(247)), -- The MOTHERLODE!!
-  (CM.GetMapUIInfo(248)), -- Kings' Rest
-  (CM.GetMapUIInfo(249)), -- Waycrest Manor
-  (CM.GetMapUIInfo(250)), -- Temple of Sethraliss
-  (CM.GetMapUIInfo(251)), -- The Underrot
-  (CM.GetMapUIInfo(252)), -- Shrine of the Storm
   (CM.GetMapUIInfo(353)), -- Siege of Boralus
+  (CM.GetMapUIInfo(251)), -- The Underrot
+  (CM.GetMapUIInfo(248)), -- Waycrest Manor
+  (CM.GetMapUIInfo(252)), -- Shrine of the Storm
+  (CM.GetMapUIInfo(249)), -- Kings' Rest
+  (CM.GetMapUIInfo(250)), -- Temple of Sethraliss
 }
 
 
@@ -30,18 +30,19 @@ local function Updater(event,...)
     return
   end
 
-  local playerInfo = RaiderIO.GetScore('player')
-  if playerInfo then
-    local score = playerInfo.allScore
+  local playerInfo, hasData = RaiderIO.GetPlayerProfile(RaiderIO.ProfileOutput.MYTHICPLUS,'player')
+  if hasData then
+    local data = playerInfo.profile
+    local score = data.allScore
     local scoreColor = Exlist.ColorDecToHex(RaiderIO.GetScoreColor(score))
     local dungeonLvls = {}
-    local d = playerInfo.dungeons
+    local d = data.dungeons
     for i=1,#d do
       table.insert(dungeonLvls,{name=DUNGEON_NAME[i],lvl = d[i],})
     end
     table.sort(dungeonLvls,function(a,b) return a.lvl > b.lvl end)
     local t = {
-      playerName = playerInfo.name,
+      playerName = data.name,
       score = score,
       dungeons = dungeonLvls,
       scoreColor = scoreColor,

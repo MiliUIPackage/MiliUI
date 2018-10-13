@@ -1,3 +1,11 @@
+1.2.13
+----
+**6 October 2018 - 14:56**
+
+- Update Uldir LFR wing counts
+- Some more fixes for m+ not updating properly (WTB proper API)
+- Fix Raider.IO module
+
 1.2.12
 ----
 **22 September 2018 - 15:39**

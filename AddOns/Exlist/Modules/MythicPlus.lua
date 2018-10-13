@@ -7,6 +7,8 @@ local colors = Exlist.Colors
 local L = Exlist.L
 local WrapTextInColorCode, SecondsToTime = WrapTextInColorCode, SecondsToTime
 local table, ipairs = table, ipairs
+local initialized = 0
+local playersName
 local mapTimes = {
   --[mapId] = {+1Time,+2Time,+3Time} in seconds
   --BFA
@@ -37,9 +39,22 @@ local mapTimes = {
 }
 local mapIds = {}
 
+local function IsItPlayersRun(members)
+  for i=1, #members do
+    if members[i].name == playersName then
+      return true
+    end
+  end
+  return false
+end
+
 local function Updater(event)
   if not C_MythicPlus.IsMythicPlusActive() then return end -- if mythic+ season isn't active
   -- make sure code is run after data is received
+  if event == "MYTHIC_PLUS_INIT_DELAY" then
+    initialized = 1
+  end
+  if initialized < 1 then return end
   if not IsAddOnLoaded("Blizzard_ChallengesUI") then
     LoadAddOn("Blizzard_ChallengesUI")
     C_MythicPlus.RequestRewards()
@@ -51,14 +66,23 @@ local function Updater(event)
     C_MythicPlus.RequestMapInfo()
     return
   end
+  if initialized < 2 then
+    C_MythicPlus.RequestRewards()
+    C_MythicPlus.RequestMapInfo()
+    initialized = 2
+    return
+  end
   mapIds = C_ChallengeMode.GetMapTable()
   local bestLevel, bestMap, bestMapId, dungeons = 0, "", 0, {}
 
   for i = 1, #mapIds do
-    local mapTime, mapLevel = C_MythicPlus.GetWeeklyBestForMap(mapIds[i])
+    local mapTime, mapLevel,_,_,members = C_MythicPlus.GetWeeklyBestForMap(mapIds[i])
     -- add to completed dungeons
     local mapName = C_ChallengeMode.GetMapUIInfo(mapIds[i])
     if mapLevel then
+      -- wonderful api you got there
+      -- getting other character M+ info and shit
+      if not IsItPlayersRun(members) then return end
       table.insert(dungeons,{ mapId = mapIds[i], name = mapName, level = mapLevel, time = mapTime })
     end
     -- check if best map this week
@@ -188,15 +212,21 @@ local function ResetHandle(resetType)
   end
 end
 
+local function init()
+  playersName = UnitName("player")
+  C_Timer.After(5,function() Exlist.SendFakeEvent("MYTHIC_PLUS_INIT_DELAY") end)
+end
+
 local data = {
   name = L['Mythic+'],
   key = key,
   linegenerator = Linegenerator,
   priority = prio,
   updater = Updater,
-  event = {"CHALLENGE_MODE_MAPS_UPDATE","CHALLENGE_MODE_LEADERS_UPDATE","PLAYER_ENTERING_WORLD","LOOT_CLOSED","MYTHIC_PLUS_REFRESH_INFO"},
+  event = {"MYTHIC_PLUS_INIT_DELAY","CHALLENGE_MODE_MAPS_UPDATE","CHALLENGE_MODE_LEADERS_UPDATE","PLAYER_ENTERING_WORLD","LOOT_CLOSED","MYTHIC_PLUS_REFRESH_INFO"},
   description = L["Tracks highest completed mythic+ in a week and all highest level runs per dungeon"],
   weeklyReset = true,
+  init = init,
   specialResetHandle = ResetHandle,
   modernize = Modernize
 }
