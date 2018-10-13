@@ -1,0 +1,15 @@
+## Interface: 80000
+## Author: p3lim
+## Version: 6
+## Title: Lib: Wasabi
+## Notes: Library for implementing addon configs
+## OptionalDeps: LibStub
+
+## X-Curse-Project-ID: 101134
+## X-WoWI-ID: 24061
+
+LibStub\LibStub.lua
+
+embed.xml
+
+
