@@ -1,0 +1,43 @@
+## Interface: 80000
+## Title: Exorsus Raid Tools
+## Author: ykiigor
+## Notes: Exorsus Raid Tools
+## Title-zhTW: |cFF00CCFF[團隊]|r 團隊輔助工具
+## Notes-zhTW: Exorsus Raid Tools|n團隊的百寶工具類插件，包含團隊技能CD監視，團隊出席紀錄，標記與倒數功能，以及其他等等輔助功能。
+## SavedVariables: VExRT
+## Version: 3990
+## DefaultState: disabled
+core.lua
+Functions.lua
+embeds.xml
+ExLib.lua
+localization\localization.ru.lua
+localization\localization.en.lua
+localization\localization.cn.lua
+localization\localization.tw.lua
+localization\localization.lua
+BlizzFix.lua
+Options.lua
+ExCD2.lua
+BattleRes.lua
+BossWatcher.lua
+InspectViewer.lua
+Note.lua
+VisNote.lua
+RaidCheck.lua
+InviteTool.lua
+MarksBar.lua
+Marks.lua
+Timers.lua
+Coins.lua
+RaidAttendance.lua
+Encounter.lua
+WhoPulled.lua
+Pets.lua
+AutoLogging.lua
+LootLink.lua
+WAChecker.lua
+Bindings.lua
+Bindings.xml
+Blank.lua
+Profiles.lua
