@@ -55,11 +55,12 @@ L= DBM:GetModLocalization(2166)
 
 L:SetOptionLocalization({
 	ShowHighestFirst2	 =	"在訊息框架中從最高層數開始排序慢性感染(而非從最低)",
-	ShowOnlyParty		 =	"只顯示你隊伍中的慢性感染"
+	ShowOnlyParty		 =	"只顯示你隊伍中的慢性感染",
+	SetIconsRegardless	 =	"不管BigWigs玩家是否有權限都設置標記(進階)"
 })
 
 L:SetMiscLocalization({
-	BWIconMsg			 =	"DBM已經將單位交棒給有權限的BigWigs使用者標記以避免圖示混亂，確認他們已啟用標記功能或降級他們以啟用DBM標記"
+	BWIconMsg			 =	"DBM已經將單位交給有權限的BigWigs使用者標記以避免圖示混亂，確認他們已啟用標記功能或降級他們以啟用DBM標記，或啟用維克提斯選項中的覆蓋選項。"
 })
 
 ---------------
