@@ -478,7 +478,7 @@ local function registerMyEvents(self, event, ...)
 			if localename == "enUS" then
 				thisname = "Fel Explosive"
 			elseif localename == "zhTW" then
-				thisname = "魔化炸彈"
+				thisname = "炸藥"
 			elseif localname == "ruRU" then
 				thisname = "Взрывчатка Скверны"
 			end
