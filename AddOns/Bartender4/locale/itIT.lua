@@ -210,7 +210,7 @@ L["This bar will be hidden whenever you are not in combat."] = "Questa barra ver
 L["Three bars stacked"] = "Tre barre sovrapposte"
 L["Toggle actions on key press instead of release"] = "Esegui immediatamente l'azione schiacciando il tasto invence di aspettare il suo rilascio"
 L[ [=[Toggle Button Zoom
-For more style options you need to install ButtonFacade]=] ] = [=[Attiva il Pulsante dello Zoom
+For more style options you need to install Masque]=] ] = [=[Attiva il Pulsante dello Zoom
 Per maggiori scelte stilistiche devi installare ButtonFacade]=]
 L["Toggle the button grid."] = "Attiva la griglia dei pulsanti."
 L["Toggle the use of the modifier-based focus-cast functionality."] = "Abilita l'uso del modificatore basato sulle funzionalità del lancio sul focus."

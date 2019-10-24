@@ -8,6 +8,8 @@ local BT4ActionBars = Bartender4:NewModule("ActionBars", "AceEvent-3.0")
 
 local select, ipairs, pairs, tostring, tonumber, min, setmetatable = select, ipairs, pairs, tostring, tonumber, min, setmetatable
 
+local WoWClassic = select(4, GetBuildInfo()) < 20000
+
 -- GLOBALS: UnitClass, InCombatLockdown, GetBindingKey, ClearOverrideBindings, SetOverrideBindingClick
 
 local abdefaults = {
@@ -26,6 +28,7 @@ local abdefaults = {
 			stance = {
 				DRUID = { bear = 9, cat = 7, prowl = 8 },
 				ROGUE = { stealth = 7 },
+				WARRIOR = WoWClassic and { battle = 7, def = 8, berserker = 9 } or nil,
 			},
 		},
 		visibility = {
@@ -168,13 +171,15 @@ end
 
 -- Creates a new bar object based on the id and the specified config
 function BT4ActionBars:Create(id, config)
-	local id = tostring(id)
+	id = tostring(id)
 	local bar = setmetatable(Bartender4.StateBar:Create(id, config, (L["Bar %s"]):format(id)), ActionBar_MT)
 	bar.module = self
 
 	bar:SetScript("OnEvent", bar.OnEvent)
-	bar:RegisterEvent("PLAYER_TALENT_UPDATE")
-	bar:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+	if not WoWClassic then
+		bar:RegisterEvent("PLAYER_TALENT_UPDATE")
+		bar:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+	end
 	bar:RegisterEvent("LEARNED_SPELL_IN_TAB")
 	bar:RegisterEvent("PLAYER_REGEN_ENABLED")
 

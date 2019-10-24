@@ -8,9 +8,11 @@ _G.Bartender4 = Bartender4
 
 local L = LibStub("AceLocale-3.0"):GetLocale("Bartender4")
 
+local WoWClassic = select(4, GetBuildInfo()) < 20000
+
 local LDB = LibStub("LibDataBroker-1.1", true)
 local LDBIcon = LibStub("LibDBIcon-1.0", true)
-local LibDualSpec = LibStub("LibDualSpec-1.0", true)
+local LibDualSpec = (not WoWClassic) and LibStub("LibDualSpec-1.0", true)
 
 local _G = _G
 local type, pairs, hooksecurefunc = type, pairs, hooksecurefunc
@@ -62,7 +64,9 @@ function Bartender4:OnInitialize()
 	self:UpdateBlizzardVehicle()
 
 	-- fix the strata of the QueueStatusFrame, otherwise it overlaps our bars
-	QueueStatusFrame:SetParent(UIParent)
+	if QueueStatusFrame then -- classic doesn't have this
+		QueueStatusFrame:SetParent(UIParent)
+	end
 
 	if LDB then
 		createLDBLauncher()
@@ -120,6 +124,7 @@ function Bartender4:HideBlizzard()
 	UIPARENT_MANAGED_FRAME_POSITIONS["MainMenuBar"] = nil
 	UIPARENT_MANAGED_FRAME_POSITIONS["StanceBarFrame"] = nil
 	UIPARENT_MANAGED_FRAME_POSITIONS["PossessBarFrame"] = nil
+	UIPARENT_MANAGED_FRAME_POSITIONS["MultiCastActionBarFrame"] = nil
 	UIPARENT_MANAGED_FRAME_POSITIONS["PETACTIONBAR_YPOS"] = nil
 
 	--MainMenuBar:UnregisterAllEvents()
@@ -133,43 +138,17 @@ function Bartender4:HideBlizzard()
 	local animations = {MainMenuBar.slideOut:GetAnimations()}
 	animations[1]:SetOffset(0,0)
 
-	animations = {OverrideActionBar.slideOut:GetAnimations()}
-	animations[1]:SetOffset(0,0)
+	if OverrideActionBar then -- classic doesn't have this
+		animations = {OverrideActionBar.slideOut:GetAnimations()}
+		animations[1]:SetOffset(0,0)
+	end
 
 	MainMenuBarArtFrame:Hide()
 	MainMenuBarArtFrame:SetParent(UIHider)
 
-	if MicroButtonAndBagsBar then
+	if MicroButtonAndBagsBar then -- classic doesn't have this
 		MicroButtonAndBagsBar:Hide()
 		MicroButtonAndBagsBar:SetParent(UIHider)
-	end
-
-	if MainMenuExpBar then
-		--MainMenuExpBar:UnregisterAllEvents()
-		--MainMenuExpBar:Hide()
-		MainMenuExpBar:SetParent(UIHider)
-		MainMenuExpBar:SetDeferAnimationCallback(nil)
-	end
-
-	if MainMenuBarMaxLevelBar then
-		MainMenuBarMaxLevelBar:Hide()
-		MainMenuBarMaxLevelBar:SetParent(UIHider)
-	end
-
-	if ReputationWatchBar then
-		--ReputationWatchBar:UnregisterAllEvents()
-		--ReputationWatchBar:Hide()
-		ReputationWatchBar:SetParent(UIHider)
-	end
-
-	if ArtifactWatchBar then
-		ArtifactWatchBar:SetParent(UIHider)
-		ArtifactWatchBar.StatusBar:SetDeferAnimationCallback(nil)
-	end
-
-	if HonorWatchBar then
-		HonorWatchBar:SetParent(UIHider)
-		HonorWatchBar.StatusBar:SetDeferAnimationCallback(nil)
 	end
 
 	if StatusTrackingBarManager then
@@ -185,18 +164,48 @@ function Bartender4:HideBlizzard()
 	--BonusActionBarFrame:Hide()
 	--BonusActionBarFrame:SetParent(UIHider)
 
-	--PossessBarFrame:UnregisterAllEvents()
-	PossessBarFrame:Hide()
-	PossessBarFrame:SetParent(UIHider)
+	if PossessBarFrame then -- classic doesn't have this
+		--PossessBarFrame:UnregisterAllEvents()
+		PossessBarFrame:Hide()
+		PossessBarFrame:SetParent(UIHider)
+	end
+
+	if MultiCastActionBarFrame then
+		MultiCastActionBarFrame:UnregisterAllEvents()
+		MultiCastActionBarFrame:Hide()
+		MultiCastActionBarFrame:SetParent(UIHider)
+	end
 
 	PetActionBarFrame:UnregisterAllEvents()
 	PetActionBarFrame:Hide()
 	PetActionBarFrame:SetParent(UIHider)
 
-	if PlayerTalentFrame then
-		PlayerTalentFrame:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-	else
-		hooksecurefunc("TalentFrame_LoadUI", function() PlayerTalentFrame:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED") end)
+	if not WoWClassic then
+		if PlayerTalentFrame then
+			PlayerTalentFrame:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+		else
+			hooksecurefunc("TalentFrame_LoadUI", function() PlayerTalentFrame:UnregisterEvent("ACTIVE_TALENT_GROUP_CHANGED") end)
+		end
+	end
+
+	if MainMenuBarPerformanceBarFrame then
+		MainMenuBarPerformanceBarFrame:Hide()
+		MainMenuBarPerformanceBarFrame:SetParent(UIHider)
+	end
+
+	if MainMenuExpBar then
+		MainMenuExpBar:Hide()
+		MainMenuExpBar:SetParent(UIHider)
+	end
+
+	if ReputationWatchBar then
+		ReputationWatchBar:Hide()
+		ReputationWatchBar:SetParent(UIHider)
+	end
+
+	if MainMenuBarMaxLevelBar then
+		MainMenuBarMaxLevelBar:Hide()
+		MainMenuBarMaxLevelBar:SetParent(UIHider)
 	end
 
 	self:RegisterPetBattleDriver()
@@ -267,6 +276,7 @@ function Bartender4:RegisterPetBattleDriver()
 end
 
 function Bartender4:UpdateBlizzardVehicle()
+	if not OverrideActionBar then return end -- classic doesn't have this
 	if self.db.profile.blizzardVehicle then
 		--MainMenuBar:SetParent(UIParent)
 		OverrideActionBar:SetParent(UIParent)
@@ -359,8 +369,8 @@ function Bartender4:ShowUnlockDialog()
 		f:SetScript('OnHide', function() PlaySound(SOUNDKIT.GS_TITLE_OPTION_EXIT) end)
 
 		f:RegisterForDrag('LeftButton')
-		f:SetScript('OnDragStart', function(f) f:StartMoving() end)
-		f:SetScript('OnDragStop', function(f) f:StopMovingOrSizing() end)
+		f:SetScript('OnDragStart', function(frame) frame:StartMoving() end)
+		f:SetScript('OnDragStop', function(frame) frame:StopMovingOrSizing() end)
 
 		local header = f:CreateTexture(nil, "ARTWORK")
 		header:SetTexture("Interface\\DialogFrame\\UI-DialogBox-Header")
@@ -383,18 +393,18 @@ function Bartender4:ShowUnlockDialog()
 		local snapping = CreateFrame("CheckButton", "Bartender4Snapping", f, "OptionsCheckButtonTemplate")
 		_G[snapping:GetName() .. "Text"]:SetText(L["Bar Snapping"])
 
-		snapping:SetScript("OnShow", function(self)
-			self:SetChecked(getSnap())
+		snapping:SetScript("OnShow", function(frame)
+			frame:SetChecked(getSnap())
 		end)
 
-		snapping:SetScript("OnClick", function(self)
-			setSnap(snapping:GetChecked())
+		snapping:SetScript("OnClick", function(frame)
+			setSnap(frame:GetChecked())
 		end)
 
 		local lockBars = CreateFrame("CheckButton", "Bartender4DialogLock", f, "OptionsButtonTemplate")
 		_G[lockBars:GetName() .. "Text"]:SetText(L["Lock"])
 
-		lockBars:SetScript("OnClick", function(self)
+		lockBars:SetScript("OnClick", function()
 			Bartender4:Lock()
 			LibStub("AceConfigRegistry-3.0"):NotifyChange("Bartender4")
 		end)

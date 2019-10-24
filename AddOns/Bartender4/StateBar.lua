@@ -12,7 +12,7 @@ local table_insert, table_concat, fmt = table.insert, table.concat, string.forma
 -- GLOBALS: GetSpellInfo, InCombatLockdown, GetNumShapeshiftForms
 -- GLOBALS: MainMenuBarArtFrame, OverrideActionBar, RegisterStateDriver, UnregisterStateDriver
 
-local WoW80 = select(4, GetBuildInfo()) >= 80000
+local WoWClassic = select(4, GetBuildInfo()) < 20000
 
 local StateBar = setmetatable({}, {__index = ButtonBar})
 local StateBar_MT = {__index = StateBar}
@@ -44,12 +44,11 @@ function Bartender4.StateBar:Create(id, config, name)
 	local bar = setmetatable(Bartender4.ButtonBar:Create(id, config, name), StateBar_MT)
 
 	if playerclass == "DRUID" then
-		bar:RegisterEvent("PLAYER_TALENT_UPDATE")
-		bar:RegisterEvent("PLAYER_REGEN_ENABLED")
-		if not WoW80 then
-			bar:RegisterEvent("GLYPH_UPDATED")
+		if not WoWClassic then
+			bar:RegisterEvent("PLAYER_TALENT_UPDATE")
+			bar:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 		end
-		bar:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
+		bar:RegisterEvent("PLAYER_REGEN_ENABLED")
 		bar:SetScript("OnEvent", StateBar.OnEvent)
 	end
 	return bar
@@ -63,7 +62,7 @@ function StateBar:ApplyConfig(config)
 end
 
 function StateBar:OnEvent(event, ...)
-	if event == "PLAYER_TALENT_UPDATE" or event == "GLYPH_UPDATED" or event == "PLAYER_SPECIALIZATION_CHANGED" then
+	if event == "PLAYER_TALENT_UPDATE" or event == "PLAYER_SPECIALIZATION_CHANGED" then
 		if InCombatLockdown() then
 			self.updateStateOnCombatLeave = true
 		else
@@ -83,7 +82,36 @@ end
 local modifiers = { "ctrl", "alt", "shift" }
 
 -- specifiy the available stances for each class
-local DefaultStanceMap = setmetatable({}, { __index = function(t,k)
+local DefaultStanceMap
+
+if WoWClassic then
+DefaultStanceMap = setmetatable({}, { __index = function(t,k)
+	local newT = nil
+	if k == "DRUID" then
+		newT = {
+			{ id = "bear", name = GetSpellInfo(5487), index = 3 },
+			{ id = "cat", name = GetSpellInfo(768), index = 1 },
+				-- prowl is virtual, no real stance
+			{ id = "prowl", name = ("%s (%s)"):format((GetSpellInfo(768)), (GetSpellInfo(5215))), index = false},
+			{ id = "moonkin", name = GetSpellInfo(24858), index = 4 },
+		}
+	elseif k == "ROGUE" then
+		newT = {
+			{ id = "stealth", name = GetSpellInfo(1784), index = 1 },
+		}
+	elseif k ==  "WARRIOR" then
+		newT = {
+			{ id = "battle", name = GetSpellInfo(2457), index = 1 },
+			{ id = "def", name = GetSpellInfo(71), index = 2 },
+			{ id = "berserker", name = GetSpellInfo(2458), index = 3 },
+		}
+	end
+	rawset(t, k, newT)
+
+	return newT
+end})
+else
+DefaultStanceMap = setmetatable({}, { __index = function(t,k)
 	local newT = nil
 	if k == "DRUID" then
 		newT = {
@@ -102,6 +130,7 @@ local DefaultStanceMap = setmetatable({}, { __index = function(t,k)
 
 	return newT
 end})
+end
 Bartender4.StanceMap = DefaultStanceMap
 
 local stancemap

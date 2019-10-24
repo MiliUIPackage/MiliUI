@@ -9,12 +9,13 @@ local BagBarMod = Bartender4:NewModule("BagBar", "AceHook-3.0")
 
 -- fetch upvalues
 local ButtonBar = Bartender4.ButtonBar.prototype
-local LBF = LibStub("LibButtonFacade", true)
 local Masque = LibStub("Masque", true)
 
 local _G = _G
 local next, pairs, setmetatable = next, pairs, setmetatable
 local table_insert, table_remove = table.insert, table.remove
+
+local WoWClassic = select(4, GetBuildInfo()) < 20000
 
 -- GLOBALS: UIParent, MainMenuBarBackpackButton, CharacterBag0Slot, CharacterBag1Slot, CharacterBag2Slot, CharacterBag3Slot
 
@@ -66,8 +67,13 @@ local function clearSetPoint(btn, ...)
 	btn:SetPoint(...)
 end
 
+if WoWClassic then
+BagBar.button_width = 37
+BagBar.button_height = 37
+else
 BagBar.button_width = 30
 BagBar.button_height = 30
+end
 BagBarMod.button_count = 5
 function BagBar:FeedButtons()
 	local count = 1
@@ -79,10 +85,6 @@ function BagBar:FeedButtons()
 			btn:ClearSetPoint("CENTER")
 			if btn.MasqueButtonData then
 				local group = self.MasqueGroup
-				group:RemoveButton(btn)
-			end
-			if btn.LBFButtonData then
-				local group = self.LBFGroup
 				group:RemoveButton(btn)
 			end
 		end
@@ -114,15 +116,6 @@ function BagBar:FeedButtons()
 				}
 			end
 			group:AddButton(v, v.MasqueButtonData)
-		elseif LBF then
-			local group = self.LBFGroup
-			if not v.LBFButtonData then
-				v.LBFButtonData = {
-					Button = v,
-					Icon = _G[v:GetName() .. "IconTexture"],
-				}
-			end
-			group:AddButton(v, v.LBFButtonData)
 		end
 
 		v.ClearSetPoint = clearSetPoint

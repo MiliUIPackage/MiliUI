@@ -12,9 +12,36 @@ local ButtonBar = Bartender4.ButtonBar.prototype
 
 local pairs, setmetatable, table_insert = pairs, setmetatable, table.insert
 
+local WoWClassic = select(4, GetBuildInfo()) < 20000
+
 -- GLOBALS: CharacterMicroButton, SpellbookMicroButton, TalentMicroButton, AchievementMicroButton, QuestLogMicroButton, GuildMicroButton
 -- GLOBALS: LFDMicroButton, CollectionsMicroButton, EJMicroButton, MainMenuMicroButton
 -- GLOBALS: HasVehicleActionBar, UnitVehicleSkin, HasOverrideActionBar, GetOverrideBarSkin
+
+local BT_MICRO_BUTTONS = WoWClassic and {
+	"CharacterMicroButton",
+	"SpellbookMicroButton",
+	"TalentMicroButton",
+	"QuestLogMicroButton",
+	"SocialsMicroButton",
+	"WorldMapMicroButton",
+	"MainMenuMicroButton",
+	"HelpMicroButton",
+	}
+	or
+	{
+	"CharacterMicroButton",
+	"SpellbookMicroButton",
+	"TalentMicroButton",
+	"AchievementMicroButton",
+	"QuestLogMicroButton",
+	"GuildMicroButton",
+	"LFDMicroButton",
+	"CollectionsMicroButton",
+	"EJMicroButton",
+	"StoreMicroButton",
+	"MainMenuMicroButton",
+	}
 
 -- create prototype information
 local MicroMenuBar = setmetatable({}, {__index = ButtonBar})
@@ -38,21 +65,18 @@ end
 
 function MicroMenuMod:OnEnable()
 	if not self.bar then
-		self.bar = setmetatable(Bartender4.ButtonBar:Create("MicroMenu", self.db.profile, L["Micro Menu"]), {__index = MicroMenuBar})
+		self.bar = setmetatable(Bartender4.ButtonBar:Create("MicroMenu", self.db.profile, L["Micro Menu"], true), {__index = MicroMenuBar})
 		local buttons = {}
 
-		table_insert(buttons, CharacterMicroButton)
-		table_insert(buttons, SpellbookMicroButton)
-		table_insert(buttons, TalentMicroButton)
-		table_insert(buttons, AchievementMicroButton)
-		table_insert(buttons, QuestLogMicroButton)
-		table_insert(buttons, GuildMicroButton)
-		table_insert(buttons, LFDMicroButton)
-		table_insert(buttons, CollectionsMicroButton)
-		table_insert(buttons, EJMicroButton)
-		table_insert(buttons, StoreMicroButton)
-		table_insert(buttons, MainMenuMicroButton)
+		for i=1, #BT_MICRO_BUTTONS do
+			table_insert(buttons, _G[BT_MICRO_BUTTONS[i]])
+		end
 		self.bar.buttons = buttons
+
+		-- check if its owned by the UI on initial load
+		if self.bar.buttons[1]:GetParent() ~= MainMenuBarArtFrame then
+			self.ownedByUI = true
+		end
 
 		MicroMenuMod.button_count = #buttons
 
@@ -65,10 +89,11 @@ function MicroMenuMod:OnEnable()
 	end
 
 	self:SecureHook("UpdateMicroButtons", "MicroMenuBarShow")
-	self:SecureHookScript(OverrideActionBar, "OnShow", "BlizzardBarShow")
-	self:SecureHookScript(OverrideActionBar, "OnHide", "MicroMenuBarShow")
-	self:SecureHookScript(PetBattleFrame.BottomFrame.MicroButtonFrame, "OnShow", "BlizzardBarShow")
-	self:SecureHookScript(PetBattleFrame.BottomFrame.MicroButtonFrame, "OnHide", "MicroMenuBarShow")
+	self:SecureHook("UpdateMicroButtonsParent")
+	self:SecureHook("ActionBarController_UpdateAll")
+	if C_PetBattles then
+		self:RegisterEvent("PET_BATTLE_CLOSE")
+	end
 
 	self.bar:Enable()
 	self:ToggleOptions()
@@ -81,9 +106,38 @@ function MicroMenuMod:ApplyConfig()
 	self.bar:ApplyConfig(self.db.profile)
 end
 
+function MicroMenuMod:PET_BATTLE_CLOSE()
+	UpdateMicroButtonsParent(self.bar)
+	self:MicroMenuBarShow()
+end
+
+function MicroMenuMod:ActionBarController_UpdateAll()
+	if self.ownedByUI and CURRENT_ACTION_BAR_STATE == LE_ACTIONBAR_STATE_MAIN and not (C_PetBattles and C_PetBattles.IsInBattle()) then
+		UpdateMicroButtonsParent(self.bar)
+		self:MicroMenuBarShow()
+	end
+end
+
+function MicroMenuMod:UpdateMicroButtonsParent(parent)
+	-- our own parent, ignore
+	if parent == self.bar then
+		self.ownedByUI = false
+		return
+	end
+
+	-- any other parent then MainMenuBarArtFrame means its taken over by the Override bar or the PetBattleFrame
+	if parent and ((Bartender4.db.profile.blizzardVehicle and parent == OverrideActionBar) or parent == (PetBattleFrame and PetBattleFrame.BottomFrame.MicroButtonFrame)) then
+		self.ownedByUI = true
+		self:BlizzardBarShow()
+		return
+	end
+	self.ownedByUI = false
+	self:MicroMenuBarShow()
+end
+
 function MicroMenuMod:MicroMenuBarShow()
 	-- Only "fix" button anchors if another frame that uses the MicroButtonBar isn't active.
-	if not (OverrideActionBar:IsShown() or PetBattleFrame:IsShown()) then
+	if not self.ownedByUI then
 		UpdateMicroButtonsParent(self.bar)
 		self.bar:UpdateButtonLayout()
 	end
@@ -92,20 +146,20 @@ end
 function MicroMenuMod:BlizzardBarShow()
 	-- Only reset button positions not set in MoveMicroButtons()
 	for i,v in pairs(self.bar.buttons) do
-		if (((i-1)%6) > 0) then
+		if v ~= CharacterMicroButton and v ~= LFDMicroButton then
 			v:ClearSetPoint(unpack(self.bar.anchors[i]))
 		end
 	end
 end
 
 
-if not MicroButtonAndBagsBar then
-	MicroMenuBar.vpad_offset = -21
-	MicroMenuBar.button_width = 28
-	MicroMenuBar.button_height = 58
+if WoWClassic then
+MicroMenuBar.button_width = 29
+MicroMenuBar.button_height = 58
+MicroMenuBar.vpad_offset = -20
 else
-	MicroMenuBar.button_width = 28
-	MicroMenuBar.button_height = 36
+MicroMenuBar.button_width = 28
+MicroMenuBar.button_height = 36
 end
 function MicroMenuBar:ApplyConfig(config)
 	ButtonBar.ApplyConfig(self, config)
@@ -118,7 +172,7 @@ function MicroMenuBar:ApplyConfig(config)
 	self:UpdateButtonLayout()
 end
 
-if HelpMicroButton then
+if HelpMicroButton and StoreMicroButton then
 	function MicroMenuBar:UpdateButtonLayout()
 		ButtonBar.UpdateButtonLayout(self)
 		-- If the StoreButton is hidden we want to replace it with the Help button

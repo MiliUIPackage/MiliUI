@@ -1,18 +1,18 @@
 --[[
-Copyright (c) 2010-2017, Hendrik "nevcairiel" Leppkes <h.leppkes@gmail.com>
+Copyright (c) 2010-2019, Hendrik "nevcairiel" Leppkes <h.leppkes@gmail.com>
 
 All rights reserved.
 
-Redistribution and use in source and binary forms, with or without 
+Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:
 
-    * Redistributions of source code must retain the above copyright notice, 
+    * Redistributions of source code must retain the above copyright notice,
       this list of conditions and the following disclaimer.
-    * Redistributions in binary form must reproduce the above copyright notice, 
-      this list of conditions and the following disclaimer in the documentation 
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions and the following disclaimer in the documentation
       and/or other materials provided with the distribution.
-    * Neither the name of the developer nor the names of its contributors 
-      may be used to endorse or promote products derived from this software without 
+    * Neither the name of the developer nor the names of its contributors
+      may be used to endorse or promote products derived from this software without
       specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
@@ -29,16 +29,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ]]
 local MAJOR_VERSION = "LibActionButton-1.0"
-local MINOR_VERSION = 74
+local MINOR_VERSION = 75
 
 if not LibStub then error(MAJOR_VERSION .. " requires LibStub.") end
 local lib, oldversion = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
 
-local WoW80 = select(4, GetBuildInfo()) >= 80000
-
 -- Lua functions
-local _G = _G
 local type, error, tostring, tonumber, assert, select = type, error, tostring, tonumber, assert, select
 local setmetatable, wipe, unpack, pairs, next = setmetatable, wipe, unpack, pairs, next
 local str_match, format, tinsert, tremove = string.match, format, tinsert, tremove
@@ -58,6 +55,8 @@ local str_match, format, tinsert, tremove = string.match, format, tinsert, tremo
 -- GLOBALS: GetActionCharges, IsItemAction, GetSpellCharges
 -- GLOBALS: RANGE_INDICATOR, ATTACK_BUTTON_FLASH_TIME, TOOLTIP_UPDATE_TIME
 -- GLOBALS: ZoneAbilityFrame, HasZoneAbility, GetLastZoneAbilitySpellTexture
+
+local WoWClassic = select(4, GetBuildInfo()) < 20000
 
 local KeyBound = LibStub("LibKeyBound-1.0", true)
 local CBH = LibStub("CallbackHandler-1.0")
@@ -85,8 +84,8 @@ local Generic_MT = {__index = Generic}
 local Action = setmetatable({}, {__index = Generic})
 local Action_MT = {__index = Action}
 
-local PetAction = setmetatable({}, {__index = Generic})
-local PetAction_MT = {__index = PetAction}
+--local PetAction = setmetatable({}, {__index = Generic})
+--local PetAction_MT = {__index = PetAction}
 
 local Spell = setmetatable({}, {__index = Generic})
 local Spell_MT = {__index = Spell}
@@ -558,7 +557,7 @@ function Generic:PreClick()
 		return
 	end
 	-- check if there is actually something on the cursor
-	local kind, value, subtype = GetCursorInfo()
+	local kind, value, _subtype = GetCursorInfo()
 	if not (kind and value) then return end
 	self._old_type = self._state_type
 	if self._state_type and self._state_type ~= "empty" then
@@ -672,8 +671,10 @@ function InitializeEventHandler()
 	lib.eventFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 	lib.eventFrame:RegisterEvent("UPDATE_BINDINGS")
 	lib.eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
-	lib.eventFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
 	lib.eventFrame:RegisterEvent("PLAYER_MOUNT_DISPLAY_CHANGED")
+	if not WoWClassic then
+		lib.eventFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
+	end
 
 	lib.eventFrame:RegisterEvent("ACTIONBAR_UPDATE_STATE")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_UPDATE_USABLE")
@@ -681,23 +682,26 @@ function InitializeEventHandler()
 	lib.eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 	lib.eventFrame:RegisterEvent("TRADE_SKILL_SHOW")
 	lib.eventFrame:RegisterEvent("TRADE_SKILL_CLOSE")
-	lib.eventFrame:RegisterEvent("ARCHAEOLOGY_CLOSED")
+
 	lib.eventFrame:RegisterEvent("PLAYER_ENTER_COMBAT")
 	lib.eventFrame:RegisterEvent("PLAYER_LEAVE_COMBAT")
 	lib.eventFrame:RegisterEvent("START_AUTOREPEAT_SPELL")
 	lib.eventFrame:RegisterEvent("STOP_AUTOREPEAT_SPELL")
-	lib.eventFrame:RegisterEvent("UNIT_ENTERED_VEHICLE")
-	lib.eventFrame:RegisterEvent("UNIT_EXITED_VEHICLE")
-	lib.eventFrame:RegisterEvent("COMPANION_UPDATE")
 	lib.eventFrame:RegisterEvent("UNIT_INVENTORY_CHANGED")
 	lib.eventFrame:RegisterEvent("LEARNED_SPELL_IN_TAB")
 	lib.eventFrame:RegisterEvent("PET_STABLE_UPDATE")
 	lib.eventFrame:RegisterEvent("PET_STABLE_SHOW")
-	lib.eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW")
-	lib.eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE")
 	lib.eventFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
-	lib.eventFrame:RegisterEvent("UPDATE_SUMMONPETS_ACTION")
 	lib.eventFrame:RegisterEvent("SPELL_UPDATE_ICON")
+	if not WoWClassic then
+		lib.eventFrame:RegisterEvent("ARCHAEOLOGY_CLOSED")
+		lib.eventFrame:RegisterEvent("UNIT_ENTERED_VEHICLE")
+		lib.eventFrame:RegisterEvent("UNIT_EXITED_VEHICLE")
+		lib.eventFrame:RegisterEvent("COMPANION_UPDATE")
+		lib.eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_SHOW")
+		lib.eventFrame:RegisterEvent("SPELL_ACTIVATION_OVERLAY_GLOW_HIDE")
+		lib.eventFrame:RegisterEvent("UPDATE_SUMMONPETS_ACTION")
+	end
 
 	-- With those two, do we still need the ACTIONBAR equivalents of them?
 	lib.eventFrame:RegisterEvent("SPELL_UPDATE_COOLDOWN")
@@ -844,7 +848,7 @@ function OnEvent(frame, event, arg1, ...)
 	elseif event == "UPDATE_SUMMONPETS_ACTION" then
 		for button in next, ActiveButtons do
 			if button._state_type == "action" then
-				local actionType, id = GetActionInfo(button._state_action)
+				local actionType, _id = GetActionInfo(button._state_action)
 				if actionType == "summonpet" then
 					local texture = GetActionTexture(button._state_action)
 					if texture then
@@ -1014,13 +1018,13 @@ end
 --- button management
 
 function Generic:UpdateAction(force)
-	local type, action = self:GetAction()
-	if force or type ~= self._state_type or action ~= self._state_action then
+	local action_type, action = self:GetAction()
+	if force or action_type ~= self._state_type or action ~= self._state_action then
 		-- type changed, update the metatable
-		if force or self._state_type ~= type then
-			local meta = type_meta_map[type] or type_meta_map.empty
+		if force or self._state_type ~= action_type then
+			local meta = type_meta_map[action_type] or type_meta_map.empty
 			setmetatable(self, meta)
-			self._state_type = type
+			self._state_type = action_type
 		end
 		self._state_action = action
 		Update(self)
@@ -1189,7 +1193,7 @@ function UpdateCount(self)
 			self.Count:SetText(count)
 		end
 	else
-		local charges, maxCharges, chargeStart, chargeDuration = self:GetCharges()
+		local charges, maxCharges, _chargeStart, _chargeDuration = self:GetCharges()
 		if charges and maxCharges and maxCharges > 1 then
 			self.Count:SetText(charges)
 		else
@@ -1493,16 +1497,11 @@ Action.IsConsumableOrStackable = function(self) return IsConsumableAction(self._
 Action.IsUnitInRange           = function(self, unit) return IsActionInRange(self._state_action, unit) end
 Action.SetTooltip              = function(self) return GameTooltip:SetAction(self._state_action) end
 Action.GetSpellId              = function(self)
-	local actionType, id, subType = GetActionInfo(self._state_action)
+	local actionType, id, _subType = GetActionInfo(self._state_action)
 	if actionType == "spell" then
 		return id
 	elseif actionType == "macro" then
-		if WoW80 then
-			return (GetMacroSpell(id))
-		else
-			local _, _, spellId = GetMacroSpell(id)
-			return spellId
-		end
+		return (GetMacroSpell(id))
 	end
 end
 Action.GetLossOfControlCooldown = function(self) return GetActionLossOfControlCooldown(self._state_action) end
@@ -1584,6 +1583,11 @@ Custom.IsUnitInRange           = function(self, unit) return nil end
 Custom.SetTooltip              = function(self) return GameTooltip:SetText(self._state_action.tooltip) end
 Custom.GetSpellId              = function(self) return nil end
 Custom.RunCustom               = function(self, unit, button) return self._state_action.func(self, unit, button) end
+
+--- WoW Classic overrides
+if WoWClassic then
+	UpdateOverlayGlow = function() end
+end
 
 -----------------------------------------------------------
 --- Update old Buttons
