@@ -33,4 +33,94 @@
 	<Binding name="FLOTOTEMEARTHBUTTON10">
 		x = 1
 	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON1" header="FLOTOTEMFIRE">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON2">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON3">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON4">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON5">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON6">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON7">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON8">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON9">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMFIREBUTTON10">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON1" header="FLOTOTEMWATER">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON2">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON3">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON4">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON5">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON6">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON7">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON8">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON9">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMWATERBUTTON10">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON1" header="FLOTOTEMAIR">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON2">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON3">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON4">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON5">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON6">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON7">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON8">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON9">
+		x = 1
+	</Binding>
+	<Binding name="FLOTOTEMAIRBUTTON10">
+		x = 1
+	</Binding>
 </Bindings>

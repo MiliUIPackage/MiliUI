@@ -40,7 +40,7 @@
 			</OnUpdate>
 			<OnMouseUp>
 				if self.slot and IsAltKeyDown() then
-					DestroyTotem(self.slot);
+					--DestroyTotem(self.slot);
 				end
 			</OnMouseUp>
 		</Scripts>
@@ -50,6 +50,33 @@
 			<Anchor point="TOPLEFT" relativeTo="UIParent" relativePoint="TOPLEFT">
 				<Offset>
 					<AbsDimension x="0" y="120"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+	</Frame>
+	<Frame name="FloBarFIRE" inherits="FloTotemBarTemplate">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="FloBarEARTH" relativePoint="TOPRIGHT">
+				<Offset>
+					<AbsDimension x="10" y="0"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+	</Frame>
+	<Frame name="FloBarWATER" inherits="FloTotemBarTemplate">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="FloBarFIRE" relativePoint="TOPRIGHT">
+				<Offset>
+					<AbsDimension x="10" y="0"/>
+				</Offset>
+			</Anchor>
+		</Anchors>
+	</Frame>
+	<Frame name="FloBarAIR" inherits="FloTotemBarTemplate">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativeTo="FloBarWATER" relativePoint="TOPRIGHT">
+				<Offset>
+					<AbsDimension x="10" y="0"/>
 				</Offset>
 			</Anchor>
 		</Anchors>
