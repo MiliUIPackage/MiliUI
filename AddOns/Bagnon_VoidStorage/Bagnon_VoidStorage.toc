@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Bagnon Void Storage
 ## Author: Jaliborc (João Cardoso)
 ## Notes: Single window display for your void storage
@@ -6,7 +6,5 @@
 ## Notes-zhTW: Bagnon Void Storage|n功能強大的整合背包。
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1
-## Version: 8.0.2
 
-main.lua
-components\components.xml
+..\Bagnon\modules\vault.xml

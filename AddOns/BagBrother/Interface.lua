@@ -1,5 +1,5 @@
 --[[
-Copyright 2011-2018 João Cardoso
+Copyright 2011-2019 João Cardoso
 BagBrother is distributed under the terms of the GNU General Public License (Version 3).
 As a special exception, the copyright holders of this addon do not give permission to
 redistribute and/or modify it.
@@ -15,7 +15,7 @@ along with the addon. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 This file is part of BagBrother.
 --]]
 
-local Interface = LibStub:NewLibrary('BagBrotherInterface', 0)
+local Interface = LibStub:NewLibrary('BagBrotherInterface', 1)
 Interface.IsItemCache = true
 
 
@@ -86,7 +86,7 @@ end
 --[[ Bags ]]--
 
 function Interface:GetBag(realm, player, bag)
-  local slot = tonumber(bag) and bag > 0 and bag < 12 and ContainerIDToInventoryID(bag)
+  local slot = tonumber(bag) and bag > 0 and ContainerIDToInventoryID(bag)
   if slot then
     return Interface:GetItem(realm, player, 'equip', slot)
   end
@@ -101,8 +101,9 @@ function Interface:GetGuildTab(realm, guild, tab)
     name = tab.name,
     icon = tab.icon,
     viewable = tab.view,
-    canDeposit = tab.deposit,
-    numWithdrawals = tab.withdraw }
+    deposit = tab.deposit,
+    withdraw = tab.withdraw,
+    remaining = tab.remaining }
 end
 
 

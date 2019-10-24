@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Bagnon Config
 ## Author: Tuller and Jaliborc (João Cardoso)
 ## Notes: An options menu for Bagnon
@@ -6,7 +6,5 @@
 ## Notes-zhTW: Bagnon Config|n背包整合設定介面。
 ## Dependencies: Bagnon
 ## LoadOnDemand: 1
-## Version: 8.0.2
 
-main.lua
-common\Wildpants_Config.xml
+..\Bagnon\modules\config.xml
