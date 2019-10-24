@@ -276,7 +276,6 @@ function events.ADDON_LOADED(a1)
 				LoadAddOn("Stuf_Options")
 			end
 			if Stuf.OpenOptions then
-				InterfaceOptionsFrame:Show()
 				Stuf:OpenOptions(Stuf.panel)
 			else
 				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
@@ -998,8 +997,10 @@ do  -- general data updating
 		UpdatePower(unit, uf, nil, true, nil, true)
 	end
 	Stuf:AddEvent("UNIT_HEALTH", UpdateHealth)
+	Stuf:AddEvent("UNIT_HEALTH_FREQUENT", UpdateHealth)
 	Stuf:AddEvent("UNIT_MAXHEALTH", UpdateHealth)
 	Stuf:AddEvent("UNIT_POWER_UPDATE", UpdatePower)
+	Stuf:AddEvent("UNIT_POWER_FREQUENT", UpdatePower)
 	Stuf:AddEvent("UNIT_MAXPOWER", UpdatePower)
 	Stuf:AddEvent("UNIT_DISPLAYPOWER", UpdatePowerType)
 	

@@ -175,7 +175,7 @@ end
 local optionframe
 local function CreateOptionFrame()
 	if optionframe then return end
-	optionframe = AceConfigDialog:AddToBlizOptions("Stuf", "Stuf")
+    optionframe = AceConfigDialog:AddToBlizOptions("Stuf", L["Stuf"])
 	optionframe.fshow = CreateFrame("Frame", nil, optionframe)
 	optionframe.fshow:SetScript("OnShow", function(this)
 		local w = InterfaceOptionsFrame:GetWidth()

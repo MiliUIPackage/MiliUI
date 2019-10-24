@@ -11,10 +11,10 @@ StufLocalization = {
 ["%s is using version %s."] = "%s 目前正在使用的版本是 %s。",
 ["Humanoid"] = "人形生物",
 ["Stuf"] = "Stuf頭像",
-["Inspect"] = "觀察",
+["Inspect"] = "快速互動",
 [" <Left-click> to inspect.\n"] = " <左鍵> 觀察\n",
-[" <Middle-click> to note target.\n"] = " <中鍵> 設定註記\n",
-[" <Right-click> to dressup."] = " <右鍵> 試衣間",
+[" <Middle-click> to note target.\n"] = " <中鍵> 密語\n",
+[" <Right-click> to dressup."] = " <右鍵> 交易\n <按鍵4> 跟隨",
 
 }
 end

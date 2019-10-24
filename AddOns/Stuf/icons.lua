@@ -711,32 +711,45 @@ do  -- Inspect Button ----------------------------------------------------------
 			if f then f:Hide() end
 			return
 		end
+		-- 左鍵: 觀察\n右鍵: 交易\n中鍵: 密語\n按鍵4: 跟隨 (Codes borrowed from UnitFramesPlus)
 		if not f then
 			f = CreateFrame("Button", nil, uf)
-			f:SetScript("OnMouseUp", function(this, a1)
-				if not UnitIsVisible("target") then return end
-				if a1 == "LeftButton" then
-					InspectUnit("target")
-				elseif a1 == "MiddleButton" then
-					if SlashCmdList.NOTETARGET then SlashCmdList.NOTETARGET() end
-					if SlashCmdList.MOBNOTES_SHORTHAND then SlashCmdList.MOBNOTES_SHORTHAND() end
-				elseif a1 == "RightButton" then 
-					if not DressUpFrame:IsShown() then 
-						ShowUIPanel(DressUpFrame) 
+			f:SetScript("OnMouseUp", function(self, button)
+				if UnitIsPlayer("target") and (not UnitCanAttack("player", "target")) then
+					if button == "LeftButton" then
+						if CheckInteractDistance("target", 1) then
+							InspectUnit("target");
+						end
+					elseif button == "RightButton" then
+						if CheckInteractDistance("target", 2) then
+							InitiateTrade("target");
+						end
+					elseif button == "MiddleButton" then
+						local server = nil;
+						local name, server = UnitName("target");
+						local fullname = name;
+						if server and (not "target" or UnitIsSameServer("player", "target") ~= 1) then
+							fullname = name.."-"..server;
+						end
+						ChatFrame_SendTell(fullname);
+					elseif button == "Button4" then
+						if CheckInteractDistance("target",4) then
+							local server = nil;
+							local name, server = UnitName("target");
+							local fullname = name;
+							if server and (not "target" or UnitIsSameServer("player", "target") ~= 1) then
+								fullname = name.."-"..server;
+							end
+							FollowUnit(fullname, 1);
+						end
 					end
-					if IsAddOnLoaded("CloseUp") then
-						DressUpFrameCancelButton:Click()
-					else
-						DressUpModel:SetUnit("target")
-						SetPortraitTexture(DressUpFramePortrait, "target")
-					end
-				end 
+				end
 			end)
 			f:SetScript("OnEnter", function(this)
 				GameTooltip:SetOwner(this, "ANCHOR_BOTTOMRIGHT")
 				GameTooltip:SetText(L["Inspect"], 1, 1, 1)
 				GameTooltip:AddLine(L[" <Left-click> to inspect.\n"]..
-				            ((SlashCmdList.NOTETARGET or SlashCmdList.MOBNOTES_SHORTHAND) and L[" <Middle-click> to note target.\n"] or "")..
+				            L[" <Middle-click> to note target.\n"]..
 				            L[" <Right-click> to dressup."], 0, 1, 0)
 				GameTooltip:Show()
 			end)
@@ -753,5 +766,20 @@ do  -- Inspect Button ----------------------------------------------------------
 		f:SetAlpha(db.alpha or 1)
 		f:SetPoint("TOPLEFT", uf, "TOPLEFT", db.x, db.y)
 		f:SetFrameLevel(db.framelevel or 4)
+		
+		if UnitIsPlayer("target") and (not UnitCanAttack("player", "target")) then
+			uf.inspectbutton:Show()
+		else
+			uf.inspectbutton:Hide()
+		end
+		
+		Stuf:AddEvent("PLAYER_TARGET_CHANGED", function()
+			if not uf.inspectbutton then return end 
+			if UnitIsPlayer("target") and (not UnitCanAttack("player", "target")) then
+				uf.inspectbutton:Show()
+			else
+				uf.inspectbutton:Hide()
+			end
+		end)
 	end)
 end
