@@ -1,11 +1,10 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Clique
 ## Author: Cladhaire
-## Version: v80000-1.0.0
+## Version: v80200-1.2.0
 ## Notes: Simply powerful click-casting interface
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 滑鼠點擊施法
 ## Notes-zhTW: Clique |n設定滑鼠按鍵點擊團隊框架或頭像框架施放法術。
-
 ## SavedVariables: CliqueDB, CliqueDB3
 
 ## X-Localizations: enUS, enGB, ruRU, zhCN, zhTW
@@ -13,7 +12,6 @@
 
 AddonCore.lua
 Localization.enUS.lua
-Localization.ruRU.lua
 Localization.zhCN.lua
 Localization.zhTW.lua
 
