@@ -1,5 +1,5 @@
-## Interface: 80000
-## Version: v8.0.2
+## Interface: 80205
+## Version: v8.2.0
 ## Title: BugSack
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息收集袋
 ## Notes: Toss those bugs inna sack.
