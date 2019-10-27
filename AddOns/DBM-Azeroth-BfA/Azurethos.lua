@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod(2199, "DBM-Azeroth-BfA", nil, 1028)
+local mod	= DBM:NewMod(2199, "DBM-Azeroth-BfA", 1, 1028)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 17898 $"):sub(12, -3))
+mod:SetRevision("20190925025307")
 mod:SetCreatureID(136385)
 --mod:SetEncounterID(1880)
 mod:SetReCombatTime(20)
@@ -19,7 +19,6 @@ local warnGaleForce					= mod:NewTargetAnnounce(274829, 3)
 
 local specWarnAzurethosFury			= mod:NewSpecialWarningDodge(274839, nil, nil, nil, 2, 2)
 local specWarnGaleForce				= mod:NewSpecialWarningDodge(274829, nil, nil, nil, 2, 2)
-local yellGaleForce					= mod:NewYell(274829)
 local specWarnWingBuffet			= mod:NewSpecialWarningDodge(274832, nil, nil, nil, 1, 2)
 
 local timerAzurethosFuryCD			= mod:NewCDTimer(46.8, 274839, nil, nil, nil, 2)
@@ -34,9 +33,6 @@ local timerAzurethosFuryCD			= mod:NewCDTimer(46.8, 274839, nil, nil, nil, 2)
 function mod:GaleForce(targetname, uId)
 	if not targetname then return end
 	warnGaleForce:Show(targetname)
-	if targetname == UnitName("player") then
-		yellGaleForce:Yell()
-	end
 end
 
 function mod:OnCombatStart(delay, yellTriggered)
@@ -83,7 +79,7 @@ mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 124396 then
-		
+
 	end
 end
 

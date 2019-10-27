@@ -1,11 +1,10 @@
 local mod	= DBM:NewMod(2168, "DBM-Uldir", nil, 1031)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18026 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(137119)--Taloc
 mod:SetEncounterID(2144)
 mod:SetZone()
---mod:SetUsedIcons(1, 2, 3)
 --mod:SetHotfixNoticeRev(16950)
 --mod:SetMinSyncRevision(16950)
 mod.respawnTime = 29
@@ -16,7 +15,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 271296 271728 271895",
 	"SPELL_CAST_SUCCESS 271224 275205 278888",
 	"SPELL_AURA_APPLIED 271224 271965 275270 275189 275205 278888",
-	"SPELL_AURA_REMOVED 271225 271965 275189 275205 271224 278888",
+	"SPELL_AURA_REMOVED 271965 275189 275205 271224 278888",
 	"SPELL_PERIODIC_DAMAGE 270290",
 	"SPELL_PERIODIC_MISSED 270290"
 )
@@ -53,21 +52,14 @@ local specWarnGTFO						= mod:NewSpecialWarningGTFO(270290, nil, nil, nil, 1, 8)
 
 mod:AddTimerLine(BOSS)
 local timerPlasmaDischargeCD			= mod:NewCDCountTimer(30.4, 271225, nil, nil, nil, 3)--30.4-42
-local timerCudgelOfGoreCD				= mod:NewCDCountTimer(58.4, 271296, nil, nil, nil, 5, nil, DBM_CORE_TANK_ICON)--60.4-63
+local timerCudgelOfGoreCD				= mod:NewCDCountTimer(58.2, 271296, nil, nil, nil, 5, nil, DBM_CORE_TANK_ICON, nil, 1, 4)--60.4-63
 local timerSanguineStaticCD				= mod:NewCDTimer(53.6, 272582, nil, nil, nil, 3)--60.4-63
-local timerEnlargedHeartCD				= mod:NewCDCountTimer(60.4, 275205, nil, nil, nil, 3, nil, DBM_CORE_TANK_ICON)--60.4-63 (also timer for hardened, go out at same time, no need for two)
+local timerEnlargedHeartCD				= mod:NewCDCountTimer(60.4, 275205, nil, nil, nil, 3, nil, DBM_CORE_MYTHIC_ICON..DBM_CORE_TANK_ICON, nil, 2, 4)--60.4-63 (also timer for hardened, go out at same time, no need for two)
 mod:AddTimerLine(DBM:GetSpellInfo(271965))
 local timerPoweredDown					= mod:NewBuffActiveTimer(88.6, 271965, nil, nil, nil, 6)
 
 --local berserkTimer					= mod:NewBerserkTimer(600)
 
-local countdownCudgelofGore				= mod:NewCountdown(58, 271296)
-local countdownEnlargedHeart			= mod:NewCountdown("Alt60", 275205, true, 2)
---local countdownFelstormBarrage			= mod:NewCountdown("AltTwo32", 244000, nil, nil, 3)
-
-mod:AddSetIconOption("SetIconPlasmaDischarge", 271225, true)
---mod:AddRangeFrameOption("8/10")
---mod:AddBoolOption("ShowAllPlatforms", false)
 mod:AddInfoFrameOption(275270, true)
 
 local bloodStorm = DBM:GetSpellInfo(270290)
@@ -96,19 +88,14 @@ function mod:OnCombatStart(delay)
 	self.vb.phase = 1
 	timerPlasmaDischargeCD:Start(5.9-delay, 1)
 	timerSanguineStaticCD:Start(18-delay)
-	timerCudgelOfGoreCD:Start(35-delay, 1)
-	countdownCudgelofGore:Start(35)
+	timerCudgelOfGoreCD:Start(31.2-delay, 1)
 	if self:IsMythic() then
 		timerEnlargedHeartCD:Start(24-delay, 1)
-		countdownEnlargedHeart:Start(24-delay)
 	end
 	ignoreGTFO = false
 end
 
 function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end
@@ -121,7 +108,6 @@ function mod:SPELL_CAST_START(args)
 			self.vb.cudgelCount = self.vb.cudgelCount + 1
 		end
 		timerCudgelOfGoreCD:Start(nil, self.vb.cudgelCount+1)
-		countdownCudgelofGore:Start(58.4)
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnCudgelofGore:Show(bloodStorm)
 			specWarnCudgelofGore:Play("targetyou")--Better voice maybe, or custom voice
@@ -164,7 +150,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 	elseif spellId == 275205 then
 		self.vb.enlargedCount = self.vb.enlargedCount + 1
 		timerEnlargedHeartCD:Start(nil, self.vb.enlargedCount+1)
-		countdownEnlargedHeart:Start(60.4)
 	end
 end
 
@@ -179,16 +164,16 @@ function mod:SPELL_AURA_APPLIED(args)
 			yellPlasmaDischarge:Yell()
 		end
 	elseif spellId == 271965 then
-		ignoreGTFO = false
+		if self:IsTank() then
+			ignoreGTFO = true
+		end
 		warnPoweringDown:Show()
 		warnPoweringDown:Play("phasechange")
 		timerPoweredDown:Start()
 		timerPlasmaDischargeCD:Stop()
 		timerCudgelOfGoreCD:Stop()
-		countdownCudgelofGore:Cancel()
 		timerSanguineStaticCD:Stop()
 		timerEnlargedHeartCD:Stop()
-		countdownEnlargedHeart:Cancel()
 		if self.Options.InfoFrame then
 			DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(275270))
 			DBM.InfoFrame:Show(5, "playerbaddebuff", 275270)
@@ -205,11 +190,10 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnHardenedArteries:Show()
 			specWarnHardenedArteries:Play("runout")
 			yellHardenedArteries:Yell()
-			yellHardenedArteriesFades:Countdown(6)
+			yellHardenedArteriesFades:Countdown(spellId)
 			specWarnHardenedArteriesNear:Cancel()--Cancel CombinedShow if you get affected
 		elseif self:CheckNearby(8, args.destName) and not DBM:UnitDebuff("player", spellId) then
 			specWarnHardenedArteriesNear:CombinedShow(0.5, args.destName)
-			specWarnHardenedArteriesNear:CancelVoice()--Avoid spam
 			specWarnHardenedArteriesNear:ScheduleVoice(0.5, "runaway")
 		end
 	elseif spellId == 275205 then
@@ -217,7 +201,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnEnlargedHeart:Show()
 			specWarnEnlargedHeart:Play("runout")
 			yellEnlargedHeart:Yell()
-			yellEnlargedHeartFades:Countdown(6)
+			yellEnlargedHeartFades:Countdown(spellId)
 		else
 			if not DBM:UnitDebuff("player", 275189) then
 				specWarnEnlargedHeartOther:Show(args.destName)
@@ -228,13 +212,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	end
 end
---mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
- 
+
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
-	if spellId == 271225 then--Used later with icon feature
-
-	elseif spellId == 271965 then
+	if spellId == 271965 then
+		ignoreGTFO = false
 		self.vb.plasmaCast = 0
 		self.vb.cudgelCount = 0
 		self.vb.enlargedCount = 0
@@ -245,10 +227,8 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerPlasmaDischargeCD:Start(12.8, 1)--6
 		timerSanguineStaticCD:Start(27)--18
 		timerCudgelOfGoreCD:Start(37, 1)--35
-		countdownCudgelofGore:Start(37)--35
 		if self:IsMythic() then
 			timerEnlargedHeartCD:Start(30.7, 1)
-			countdownEnlargedHeart:Start(30.7)
 		end
 	elseif spellId == 275189 then
 		if args:IsPlayer() then
@@ -272,12 +252,3 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 	end
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
---[[
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 124396 then
-
-	end
-end
---]]

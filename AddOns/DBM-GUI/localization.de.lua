@@ -107,7 +107,6 @@ L.ShowGuildMessages 		= "Zeige Meldungen für Kampfbeginn/Siege/Niederlagen für
 L.ShowGuildMessagesPlus		= "Zeige auch Meldungen für Kampfbeginn/Siege/Niederlagen für Mythisch+ Gildengruppen (benötigt Schlachtzugeinstellung)"
 L.WhisperMessages			= "Flüstermeldungen"
 L.AutoRespond 				= "Aktiviere automatische Antwort während eines Bosskampfes"
-L.EnableStatus 				= "Antworte auf 'status'-Flüsteranfragen"
 L.WhisperStats 				= "Füge Sieg-/Niederlagestatistik den Flüsterantworten hinzu"
 L.DisableStatusWhisper 		= "Deaktiviere 'status'-Flüsteranfragen für die gesamte Gruppe (nur als Gruppenleiter; nur für normale/heroische/mythische Schlachtzüge und Mythisch+ Dungeons)"
 L.DisableGuildStatus 		= "Deaktiviere das Senden von Fortschrittsmeldungen an die Gilde für die gesamte Gruppe (nur als Gruppenleiter)"
@@ -198,7 +197,7 @@ L.SpecialWarnSound5			= "Sound für Spezialwarnungen mit Notizen die deinen Name
 
 -- Tab: Spoken Alerts Frame
 L.Panel_SpokenAlerts		= "Gesprochene Warnungen"
-L.Area_VoiceSelection		= "Stimmenauswahl für akustische Zählungen und gesprochene Warnungen (scrollbar per Mausrad)"
+L.Area_VoiceSelection		= "Stimmenauswahl für akustische Zählungen und gesprochene Warnungen"
 L.CountdownVoice			= "Primäre Stimme für Zählungen"
 L.CountdownVoice2			= "Sekundäre Stimme für Zählungen"
 L.CountdownVoice3			= "Tertiäre Stimme für Zählungen"
@@ -282,7 +281,7 @@ L.PT_Threshold				= "Zeige keinen opt. Countd. für Pausen-/Kampf-/Nutzer-Timer 
 L.Panel_HideBlizzard		= "Deaktivierung von Spielelementen"
 L.Area_HideBlizzard			= "Einstellungen zum Deaktivieren und Verbergen von Spielelementen"
 L.HideBossEmoteFrame		= "Verberge das Fenster \"RaidBossEmoteFrame\" während Bosskämpfen"
-L.HideWatchFrame			= "Verberge das Fenster für die Questverfolgung während Bosskämpfen, falls keine Erfolge verfolgt werden"
+L.HideWatchFrame			= "Verberge das Fenster für die Questverfolgung während Bosskämpfen, falls keine Erfolge verfolgt werden und falls nicht Schwierigkeitsgrad Mythisch+"
 L.HideGarrisonUpdates		= "Verberge Garnisonsmeldungen während Bosskämpfen"
 L.HideGuildChallengeUpdates	= "Verberge Gildenerfolgsmeldungen während Bosskämpfen"
 L.HideQuestTooltips			= "Verberge Questziele in Tooltips während Bosskämpfen"
@@ -293,6 +292,11 @@ L.AfterFirst				= "Nach jeweils einmaligem Abspielen"
 L.Always					= ALWAYS
 L.CombatOnly				= "im Kampf deaktivieren (alle)"
 L.RaidCombat				= "im Kampf deaktivieren (nur Bosse)"
+L.HideBonusHeader			= "Verstecke das Beutefenster für den Bonuswurf in ..."
+L.TrivialContent			= "NICHT-mythischen Dungeons (<340)"--Basically anything below 340
+L.NormalRaider				= "Dungeons unter Mythisch+5 und in Schlachtzügen auf Schwierigkeitsgrad LFR (<355)"--Basically, anything below 355
+L.HeroicRaider				= "Dungeons unter Mythisch+10, SZ unter Heroisch, Nicht-Kriegsfront Weltbosse (<370)"--Basically anything below 370
+L.MythicRaider				= "allem unterhalb Schlachtzügen auf Schwierigkeitsgrad Mythisch (<385)"--Basically anything below 385
 
 L.Panel_ExtraFeatures		= "Sonstige Funktionen"
 --

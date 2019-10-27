@@ -1,5 +1,10 @@
-if GetLocale() ~= "deDE" then return end
+﻿if GetLocale() ~= "deDE" then return end
 local L
+
+-----------------------
+-- Grand Empress Shek'zara --
+-----------------------
+L= DBM:GetModLocalization(2378)
 
 -----------------------
 -- T'zane --
@@ -37,3 +42,20 @@ L= DBM:GetModLocalization(2198)
 -- Dunegorger Kraulok --
 -----------------------
 L= DBM:GetModLocalization(2210)
+
+-----------------------
+-- Ivus (Two Faction Versions) --
+-----------------------
+L= DBM:GetModLocalization(2345)--Ivus the Decayed
+
+L= DBM:GetModLocalization(2329)--Ivus the Forest Lord
+
+-----------------------
+-- Ulmath, the Soulbinder --
+-----------------------
+L= DBM:GetModLocalization(2362)
+
+-----------------------
+-- Wekemara --
+-----------------------
+L= DBM:GetModLocalization(2363)

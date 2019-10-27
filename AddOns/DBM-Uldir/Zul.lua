@@ -1,12 +1,11 @@
 local mod	= DBM:NewMod(2195, "DBM-Uldir", nil, 1031)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18028 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(138967)
 mod:SetEncounterID(2145)
 mod:DisableESCombatDetection()--ES fires moment you throw out CC, so it can't be trusted for combatstart
 mod:SetZone()
---mod:SetBossHPInfoToHighest()
 mod:SetUsedIcons(1, 2, 8)
 mod:SetHotfixNoticeRev(17775)
 --mod:SetMinSyncRevision(16950)
@@ -26,7 +25,6 @@ mod:RegisterEventsInCombat(
 
 --TODO, check Locus of Corruption trigger for bugs after adding unneeded antispam to fix an impossible bug
 --TODO, minion of zul fixate detection?
---TODO, maybe switch warning for minions of zul, or detectable spawns, show on a custom infoframe number of adds up (each type)
 --[[
 (ability.id = 273889 or ability.id = 274098 or ability.id = 274119) and type = "begincast"
  or (ability.id = 274358 or ability.id = 274168 or ability.id = 273365 or ability.id = 271640 or ability.id = 273360) and type = "cast"
@@ -34,7 +32,6 @@ mod:RegisterEventsInCombat(
  or ability.id = 274271 and type = "applydebuff"
  or (ability.id = 273316 or ability.id = 273451) and type = "begincast"
 --]]
---local warnXorothPortal				= mod:NewSpellAnnounce(244318, 2, nil, nil, nil, nil, nil, 7)
 --Stage One: The Forces of Blood
 local warnPoolofDarkness				= mod:NewCountAnnounce(273361, 4)--Generic warning since you want to be aware of it but not emphesized unless you're an assigned soaker
 local warnActiveDecay					= mod:NewTargetNoFilterAnnounce(276434, 1)
@@ -60,7 +57,6 @@ local specWarnMinionofZul				= mod:NewSpecialWarningSwitch("ej18530", "MagicDisp
 ----Forces of Blood
 local specWarnCongealBlood				= mod:NewSpecialWarningSwitch(273451, "Dps", nil, nil, 3, 2)
 local specWarnBloodshard				= mod:NewSpecialWarningInterrupt(273350, false, nil, 4, 1, 2)--Spam cast, so opt in, not opt out
---local specWarnGTFO					= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 --Stage Two: Zul, Awakened
 local specWarnRupturingBlood			= mod:NewSpecialWarningStack(274358, nil, 3, nil, nil, 1, 6)
 local specWarnRupturingBloodTaunt		= mod:NewSpecialWarningTaunt(274358, nil, nil, nil, 1, 2)
@@ -71,7 +67,7 @@ local yellDeathwish						= mod:NewYell(274271)
 local specWarnDeathwishNear				= mod:NewSpecialWarningClose(274271, nil, nil, nil, 1, 2)
 
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(18527))
-local timerDarkRevolationCD				= mod:NewCDCountTimer(55, 273365, nil, nil, nil, 3)--55-63 (might get delayed by other casts)
+local timerDarkRevolationCD				= mod:NewCDCountTimer(55, 273365, nil, nil, nil, 3, nil, nil, nil, not mod:IsTank() and 1, 4)--55-63 (might get delayed by other casts)
 local timerPoolofDarknessCD				= mod:NewCDCountTimer(30.6, 273361, nil, nil, nil, 5, nil, DBM_CORE_DEADLY_ICON)
 local timerCallofCrawgCD				= mod:NewTimer(42.6, "timerCallofCrawgCD", 273889, nil, nil, 1, DBM_CORE_DAMAGE_ICON)--Spawn trigger
 local timerCallofHexerCD				= mod:NewTimer(62.1, "timerCallofHexerCD", 273889, nil, nil, 1, DBM_CORE_DAMAGE_ICON)--Spawn trigger
@@ -82,25 +78,18 @@ local timerBloodyCleaveCD				= mod:NewCDTimer(14.1, 273316, nil, "Tank", nil, 5,
 local timerCongealBloodCD				= mod:NewCDTimer(22.7, 273451, nil, "Dps", nil, 5, nil, DBM_CORE_DAMAGE_ICON)
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(18550))
 local timerRupturingBloodCD				= mod:NewCDTimer(6.1, 274358, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)
-local timerDeathwishCD					= mod:NewNextCountTimer(27.9, 274271, nil, nil, nil, 3, nil, DBM_CORE_DEADLY_ICON..DBM_CORE_MAGIC_ICON)
-
+local timerDeathwishCD					= mod:NewNextCountTimer(27.9, 274271, nil, nil, nil, 3, nil, DBM_CORE_DEADLY_ICON..DBM_CORE_MAGIC_ICON, nil, not mod:IsTank() and 1, 4)
 
 --local berserkTimer					= mod:NewBerserkTimer(600)
 
---local countdownCollapsingWorld			= mod:NewCountdown(50, 243983, true, 3, 3)
---local countdownRupturingBlood				= mod:NewCountdown("Alt12", 244016, false, 2, 3)
---local countdownFelstormBarrage			= mod:NewCountdown("AltTwo32", 244000, nil, nil, 3)
-
---mod:AddSetIconOption("SetIconGift", 255594, true)
---mod:AddRangeFrameOption("8/10")
 mod:AddInfoFrameOption(274195, true)
 mod:AddNamePlateOption("NPAuraOnPresence", 276093)
 mod:AddNamePlateOption("NPAuraOnThrumming", 273288)
 mod:AddNamePlateOption("NPAuraOnBoundbyShadow", 273432)
 mod:AddNamePlateOption("NPAuraOnEngorgedBurst2", 276299, false)
 mod:AddNamePlateOption("NPAuraOnDecayingFlesh", 276434)
-mod:AddSetIconOption("SetIconOnDecay", 276434, true, true)
-mod:AddSetIconOption("SetIconDarkRev", 273365, true)
+mod:AddSetIconOption("SetIconOnDecay", 276434, true, true, {8})
+mod:AddSetIconOption("SetIconDarkRev", 273365, true, false, {1, 2})
 mod:AddDropdownOption("TauntBehavior", {"TwoHardThreeEasy", "TwoAlways", "ThreeAlways"}, "TwoHardThreeEasy", "misc")
 
 mod.vb.phase = 1
@@ -241,9 +230,6 @@ end
 
 function mod:OnCombatEnd()
 	self:UnregisterShortTermEvents()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end
@@ -285,7 +271,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	elseif spellId == 273365 or spellId == 271640 then--Two versions of debuff, one that spawns an add and one that does not (so probably LFR/normal version vs heroic/mythic version)
 		self.vb.darkRevCount = self.vb.darkRevCount + 1
 		warnDarkRevCount:Show(self.vb.darkRevCount)
-		timerDarkRevolationCD:Start(nil, self.vb.darkRevCount+1)
+		timerDarkRevolationCD:Start(55, self.vb.darkRevCount+1)
 	elseif spellId == 273889 then--Bloodthirsty Crawg
 		self.vb.CrawgSpawnCount = self.vb.CrawgSpawnCount + 1
 		specWarnCallofCrawgSoon:Show(self.vb.CrawgSpawnCount)
@@ -390,10 +376,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 		if args:IsPlayer() then
 			yellRupturingBloodFades:Cancel()
-			yellRupturingBloodFades:Countdown(20)
+			yellRupturingBloodFades:Countdown(spellId)
 			specWarnRupturingBloodEdge:Cancel()
 			specWarnRupturingBloodEdge:Schedule(15, DBM_CORE_ROOM_EDGE)
-			specWarnRupturingBloodEdge:CancelVoice()
 			specWarnRupturingBloodEdge:ScheduleVoice(15, "runtoedge")
 		end
 	elseif spellId == 273365 or spellId == 271640 then--Two versions of debuff, one that spawns an add and one that does not (so probably LFR/normal version vs heroic/mythic version)
@@ -402,7 +387,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnDarkRevolation:Show(self:IconNumToTexture(icon))
 			specWarnDarkRevolation:Play("mm"..icon)
 			yellDarkRevolation:Yell(icon, icon, icon)
-			yellDarkRevolationFades:Countdown(10, nil, icon)
+			yellDarkRevolationFades:Countdown(spellId, nil, icon)
 		end
 		if self.Options.SetIconDarkRev then
 			self:SetIcon(args.destName, icon)
@@ -411,7 +396,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if self.vb.DarkRevIcon == 3 then
 			self.vb.DarkRevIcon = 1
 		end
-	elseif spellId == 273434 then
+	elseif spellId == 273434 and self:CheckDispelFilter() then
 		specWarnPitofDespair:CombinedShow(0.3, args.destName)
 		specWarnPitofDespair:CancelVoice()--Avoid spam
 		specWarnPitofDespair:ScheduleVoice(0.3, "helpdispel")
@@ -491,20 +476,10 @@ function mod:SPELL_AURA_REMOVED(args)
 	end
 end
 
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
-	if spellId == 228007 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show()
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]
-
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 139185 then--minion-of-zul
-	
+
 	elseif cid == 139051 then--nazmani-crusher
 		timerBloodyCleaveCD:Stop(args.destGUID)
 	elseif cid == 139057 then--nazmani-bloodhexer
@@ -548,7 +523,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 274315 then--Deathwish
 		self.vb.deathwishCount = self.vb.deathwishCount + 1
 		warnDeathwish:Show(self.vb.deathwishCount)
-		timerDeathwishCD:Start(nil, self.vb.deathwishCount+1)
+		timerDeathwishCD:Start(27.9, self.vb.deathwishCount+1)
 	elseif spellId == 273361 then--Pool of Darkness
 		self.vb.poolCount = self.vb.poolCount + 1
 		if self.Options.SpecWarn273361count then

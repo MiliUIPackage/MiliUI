@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod(2139, "DBM-Azeroth-BfA", nil, 1028)
+local mod	= DBM:NewMod(2139, "DBM-Azeroth-BfA", 2, 1028)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18026 $"):sub(12, -3))
+mod:SetRevision("20190925025307")
 mod:SetCreatureID(132701)
 --mod:SetEncounterID(1880)
 mod:SetReCombatTime(20)
@@ -23,15 +23,14 @@ local specWarnCrushingSlam			= mod:NewSpecialWarningDefensive(262004, nil, nil, 
 local specWarnCrushingSlamOther		= mod:NewSpecialWarningTaunt(262004, nil, nil, nil, 1, 2)
 local specWarnCoalescedEssence		= mod:NewSpecialWarningDodge(261600, nil, nil, nil, 2, 2)
 local specWarnConsumingSpirits		= mod:NewSpecialWarningMoveAway(261605, nil, nil, nil, 1, 2)
-local yellConsumingSpirits			= mod:NewYell(261605)
 local specWarnTerrorWall			= mod:NewSpecialWarningDodge(261552, nil, nil, nil, 3, 2)
 
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 
-local timerCrushingSlamCD			= mod:NewCDTimer(24.8, 262004, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)--24.8-31?
-local timerCoalescedEssenceCD		= mod:NewCDTimer(25.5, 261600, nil, nil, nil, 3)--25-28?
+local timerCrushingSlamCD			= mod:NewCDTimer(23.2, 262004, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)--24.8-31?
+local timerCoalescedEssenceCD		= mod:NewCDTimer(23.6, 261600, nil, nil, nil, 3)--25-28?
 local timerConsumingSpiritsCD		= mod:NewCDTimer(21.9, 261605, nil, nil, nil, 3)--21-35?
-local timerTerrorWallCD				= mod:NewCDTimer(24.9, 261552, nil, nil, nil, 3)--24-29?
+local timerTerrorWallCD				= mod:NewCDTimer(23.2, 261552, nil, nil, nil, 3)--24-29?
 
 mod:AddRangeFrameOption(8, 261605)
 --mod:AddReadyCheckOption(37460, false)
@@ -87,7 +86,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		if args:IsPlayer() then
 			specWarnConsumingSpirits:Show()
 			specWarnConsumingSpirits:Play("runout")
-			yellConsumingSpirits:Yell()
 			if self.Options.RangeFrame then
 				DBM.RangeCheck:Show(8)
 			end

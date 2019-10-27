@@ -19,7 +19,6 @@ DBM_COPY_URL_DIALOG					= "Kopiere URL"
 --Post Patch 7.1
 DBM_CORE_NO_RANGE					= "Das Abstandsradar kann in Instanzen nicht genutzt werden. Es wird stattdessen die alte textbasierte Abstandsanzeige verwendet."
 DBM_CORE_NO_ARROW					= "Der Pfeil kann in Instanzen nicht genutzt werden."
-DBM_CORE_ARROW_SUMMONED				= "Der Pfeil wurde aktiviert. Falls du das nicht manuell gemacht hast, dann hast du ein Addon eines Drittanbieters so konfiguriert, dass es den Pfeil für dich aktiviert."
 DBM_CORE_NO_HUD						= "Die HudMap kann in Instanzen nicht genutzt werden."
 
 DBM_CORE_DYNAMIC_DIFFICULTY_CLUMP	= "DBM hat das dynamische Abstandsfenster für diesen Kampf deaktiviert, da nicht genügend Informationen vorliegen, auf wieviel versammelte Spieler bei deiner Gruppengröße geprüft werden muss."
@@ -56,6 +55,8 @@ DBM_CORE_TRANSCRIPTOR_LOG_START		= "\"Transcriptor\"-Aufzeichnung gestartet."
 DBM_CORE_TRANSCRIPTOR_LOG_END		= "\"Transcriptor\"-Aufzeichnung beendet."
 
 DBM_CORE_MOVIE_SKIPPED				= "DBM hat versucht eine Videosequenz automatisch zu überspringen."
+DBM_CORE_BONUS_SKIPPED				= "DBM hat das Beutefenster für den Bonuswurf automatisch geschlossen. Tippe /dbmbonusroll binnen drei Minuten, um es bei Bedarf anzuzeigen."
+DBM_CORE_BONUS_EXPIRED				= "Du hast versucht mittels /dbmbonusroll ein Beutefenster für den Bonuswurf zu öffnen. Es ist derzeit aber leider kein Bonuswurf aktiv."
 
 DBM_CORE_AFK_WARNING				= "Du bist \"AFK\" und im Kampf (%d Prozent Gesundheit verbleibend), Alarmsound ausgelöst.  Entferne deine \"AFK\"-Markierung oder deaktiviere diese Alarmierung unter \"Sonstige Funktionen\", falls du nicht \"AFK\" bist."
 
@@ -156,7 +157,7 @@ DBM_CORE_VOICE_DISABLED				= "Du hast derzeit mindestens einen DBM Sprachpack in
 DBM_CORE_VOICE_COUNT_MISSING		= "Für die Countdown-Stimme %d ist ein Sprach-/Zählpack ausgewählt, der nicht gefunden werden konnte. Die Stimme wurde auf die Standardeinstellung zurückgesetzt: %s."
 --DBM_BIG_WIGS
 
-DBM_CORE_UPDATEREMINDER_HEADER			= "Deine Version von Deadly Boss Mods ist veraltet.\n Version %s (r%d) kann über Curse/Twitch, WoWI oder von deadlybossmods.com heruntergeladen werden."
+DBM_CORE_UPDATEREMINDER_HEADER			= "Deine Version von Deadly Boss Mods ist veraltet.\n Version %s (%s) kann über Curse/Twitch, WoWI oder von deadlybossmods.com heruntergeladen werden."
 DBM_CORE_UPDATEREMINDER_HEADER_ALPHA	= "Deine ALPHA-Version von Deadly Boss Mods ist veraltet.\nDu liegst mindestens %d Revisionen zurück. Es wird empfohlen bei einer Entscheidung für ALPHA-Versionen immer die neueste ALPHA-Version zu nutzen. Ansonsten sollte die neueste RELEASE-Version genutzt werden. ALPHA-Versionen haben eine strengere Versionsprüfung, da diese Entwicklungsversionen von DBM sind."
 DBM_CORE_UPDATEREMINDER_FOOTER			= "Drücke " .. (IsMacClient() and "Cmd-C" or "Strg+C")  ..  " um den Downloadlink in die Zwischenablage zu kopieren."
 DBM_CORE_UPDATEREMINDER_FOOTER_GENERIC	= "Drücke " .. (IsMacClient() and "Cmd-C" or "Strg+C")  ..  " um den Link in die Zwischenablage zu kopieren."
@@ -235,11 +236,9 @@ DBM_CORE_SLASHCMD_HELP2				= {
 DBM_CORE_TIMER_USAGE	= {
 	"DBM-Timer Kommandos:",
 	"/dbm timer <sec> <text>: Startet einen <sec> Sekunden langen Timer mit deinem <text>.",
-	"/dbm ctimer <sec> <text>: Startet einen Timer mit Countdown.",
 	"/dbm ltimer <sec> <text>: Startet einen Timer, der automatisch wiederholt wird, bis er abgebrochen wird.",
-	"/dbm cltimer <sec> <text>: Startet einen Timer mit Countdown, der automatisch wiederholt wird, bis er abgebrochen wird.",
-	"/dbm broadcast timer/ctimer/ltimer/cltimer <sec> <text>: schickt den Timer an den Schlachtzug (nur als Leiter/Assistent).",
-	"/dbm timer endloop: Stoppt alle ltimer- und cltimer-Schleifen.",
+	"/dbm broadcast timer/ltimer/cltimer <sec> <text>: schickt den Timer an den Schlachtzug (nur als Leiter/Assistent).",
+	"/dbm timer endloop: Stoppt alle ltimer-.",
 }
 
 DBM_ERROR_NO_PERMISSION				= "Du hast nicht die benötigte Berechtigung für diesen Befehl!"
@@ -250,6 +249,7 @@ DBM_COOLDOWN						= "%s CD"
 DBM_CORE_UNKNOWN					= "unbekannt"
 DBM_CORE_LEFT						= "Links"
 DBM_CORE_RIGHT						= "Rechts"
+DBM_CORE_BOTH						= "Beide"
 DBM_CORE_BACK						= "Hinten"
 DBM_CORE_SIDE						= "Seite"
 DBM_CORE_TOP						= "Oben"
@@ -304,6 +304,7 @@ DBM_CORE_AUTO_ANNOUNCE_TEXTS.fades		= "%s ist beendet"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.adds		= "%s verbleibend: %%d"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.cast		= "Wirkt %s: %.1f Sek"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.soon		= "%s bald"
+DBM_CORE_AUTO_ANNOUNCE_TEXTS.sooncount	= "%s (%%s) bald"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.prewarn		= "%s in %s"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.stage		= "Phase %s"
 DBM_CORE_AUTO_ANNOUNCE_TEXTS.prestage	= "Phase %s bald"
@@ -321,6 +322,7 @@ DBM_CORE_AUTO_ANNOUNCE_OPTIONS.fades		= "Zeige Warnung, wenn $spell:%s beendet i
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.adds		= "Verkünde die Anzahl der verbleibenden $spell:%s"
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.cast		= "Zeige Warnung, wenn $spell:%s gewirkt wird"
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.soon		= prewarnOption
+DBM_CORE_AUTO_ANNOUNCE_OPTIONS.sooncount	= prewarnOption
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.prewarn 	= prewarnOption
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.stage		= "Verkünde Phase %s"
 DBM_CORE_AUTO_ANNOUNCE_OPTIONS.stagechange	= "Verkünde Phasenwechsel"
@@ -332,6 +334,7 @@ DBM_CORE_AUTO_SPEC_WARN_TEXTS.spell				= "%s!"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.ends				= "%s beendet"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.fades				= "%s beendet"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.soon				= "%s bald"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.sooncount			= "%s (%%s) bald"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.prewarn			= "%s in %s"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.dispel			= "%s auf >%%s< - jetzt reinigen"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.interrupt			= "%s - unterbrich >%%s<!"
@@ -346,9 +349,12 @@ DBM_CORE_AUTO_SPEC_WARN_TEXTS.defensive			= "%s - Defensivfähigkeiten"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.taunt				= "%s auf >%%s< - jetzt spotten"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.close				= "%s auf >%%s< in deiner Nähe"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.move				= "%s - geh weg"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.keepmove			= "%s - lauf weiter"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.stopmove			= "%s - bleib stehen"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.dodge				= "%s - Angriff ausweichen"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.dodgeloc			= "%s von %%s - ausweichen"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.moveaway			= "%s - geh weg von anderen"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.moveawaycount		= "%s (%%s) - geh weg von anderen"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.moveto			= "%s - geh zu >%%s<"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.jump				= "%s - spring"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.run				= "%s - lauf weg"
@@ -360,14 +366,15 @@ DBM_CORE_AUTO_SPEC_WARN_TEXTS.stack				= "%%d Stapel von %s auf dir"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.switch			= "%s - Ziel wechseln"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.switchcount		= "%s - Ziel wechseln (%%s)"
 DBM_CORE_AUTO_SPEC_WARN_TEXTS.gtfo				= "%%s unter dir - lauf raus"
-DBM_CORE_AUTO_SPEC_WARN_TEXTS.Adds				= "Adds kommen - Ziel wechseln"
-DBM_CORE_AUTO_SPEC_WARN_TEXTS.Addscustom		= "Adds kommen - %%s"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.adds				= "Adds kommen - Ziel wechseln"
+DBM_CORE_AUTO_SPEC_WARN_TEXTS.addscustom		= "Adds kommen - %%s"
 
 -- Auto-generated Special Warning Localizations
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.spell 			= "Spezialwarnung für $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.ends 			= "Spezialwarnung, wenn $spell:%s beendet ist"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.fades 			= "Spezialwarnung, wenn $spell:%s beendet ist"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.soon 			= "Spezialvorwarnung für $spell:%s"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.sooncount		= "Spezialvorwarnung (mit Zählung) für $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.prewarn 		= "Spezialvorwarnung %s Sekunden vor $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.dispel 			= "Spezialwarnung zum Reinigen/Rauben von $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.interrupt		= "Spezialwarnung zum Unterbrechen von $spell:%s"
@@ -382,9 +389,12 @@ DBM_CORE_AUTO_SPEC_WARN_OPTIONS.defensive 		= "Spezialwarnung zur Nutzung von De
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.taunt 			= "Spezialwarnung zum Spotten, wenn der andere Tank von $spell:%s betroffen ist"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.close 			= "Spezialwarnung, wenn jemand in deiner Nähe von $spell:%s betroffen ist"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.move 			= "Spezialwarnung zum Herausgehen aus $spell:%s"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.keepmove 		= "Spezialwarnung zum Weiterlaufen bei $spell:%s"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.stopmove 		= "Spezialwarnung zum Stehen bleiben bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.dodge 			= "Spezialwarnung zum Ausweichen bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.dodgeloc		= "Spezialwarnung (mit Ort) zum Ausweichen bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.moveaway		= "Spezialwarnung zum Weggehen von anderen bei $spell:%s"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.moveawaycount	= "Spezialwarnung (mit Zählung) zum Weggehen von anderen bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.moveto			= "Spezialwarnung zum Hingehen zu jemand oder zu einem Ort bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.jump			= "Spezialwarnung zum Springen bei $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.run 			= "Spezialwarnung zum Weglaufen vor $spell:%s"
@@ -396,8 +406,8 @@ DBM_CORE_AUTO_SPEC_WARN_OPTIONS.stack 			= "Spezialwarnung bei >=%d Stapel von $
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.switch			= "Spezialwarnung für Zielwechsel auf $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.switchcount		= "Spezialwarnung (mit Zählung) für Zielwechsel auf $spell:%s"
 DBM_CORE_AUTO_SPEC_WARN_OPTIONS.gtfo 			= "Spezialwarnung zum Rauslaufen aus schlechten Dingen auf dem Boden"
-DBM_CORE_AUTO_SPEC_WARN_OPTIONS.Adds			= "Spezialwarnung für Zielwechsel auf ankommende Adds"
-DBM_CORE_AUTO_SPEC_WARN_OPTIONS.Addscustom		= "Spezialwarnung für ankommende Adds"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.adds			= "Spezialwarnung für Zielwechsel auf ankommende Adds"
+DBM_CORE_AUTO_SPEC_WARN_OPTIONS.addscustom		= "Spezialwarnung für ankommende Adds"
 
 -- Auto-generated Timer Localizations
 DBM_CORE_AUTO_TIMER_TEXTS.target		= "%s: %%s"
@@ -446,13 +456,6 @@ DBM_CORE_AUTO_ICONS_OPTION_TEXT2		= "Setze Zeichen auf $spell:%s"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT			= "Zeige DBM-Pfeil zum Hingehen zum von $spell:%s betroffenen Ziel"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT2		= "Zeige DBM-Pfeil zum Weggehen vom von $spell:%s betroffenen Ziel"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT3		= "Zeige DBM-Pfeil zum Hingehen zum richtigen Ort für $spell:%s"
-DBM_CORE_AUTO_VOICE_OPTION_TEXT			= "Spiele gesprochene Warnungen für $spell:%s"
-DBM_CORE_AUTO_VOICE2_OPTION_TEXT		= "Spiele gesprochene Warnungen für Phasenwechsel"
-DBM_CORE_AUTO_VOICE3_OPTION_TEXT		= "Spiele gesprochene Warnungen für ankommende Adds"
-DBM_CORE_AUTO_VOICE4_OPTION_TEXT		= "Spiele gesprochene Warnungen für schlechte Dinge auf dem Boden"
-DBM_CORE_AUTO_COUNTDOWN_OPTION_TEXT		= "Spiele akustischen Countdown bis $spell:%s gewirkt wird"
-DBM_CORE_AUTO_COUNTDOWN_OPTION_TEXT2	= "Spiele akustischen Countdown bis $spell:%s schwindet"
-DBM_CORE_AUTO_COUNTOUT_OPTION_TEXT		= "Zähle akustisch die Dauer von $spell:%s"
 
 DBM_CORE_AUTO_YELL_OPTION_TEXT.shortyell	= "Schreie, wenn du von $spell:%s betroffen bist"
 DBM_CORE_AUTO_YELL_OPTION_TEXT.yell			= "Schreie (mit Spielernamen), wenn du von $spell:%s betroffen bist"

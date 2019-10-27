@@ -1,4 +1,4 @@
---Last update by GlitterStorm @ Azralon on Feb,22th,2015
+﻿--Last update by GlitterStorm @ Azralon on Feb,22th,2015
 if GetLocale() ~= "ptBR" then return end
 
 local L
@@ -62,6 +62,10 @@ L:SetGeneralLocalization({
 	name = "Brigões: Rank 2"
 })
 
+L:SetOptionLocalization({
+	SetIconOnBlat	= "Marca (caveira) no verdadeiro Blat"
+})
+
 ------------
 -- Rank 3 --
 ------------
@@ -69,10 +73,6 @@ L= DBM:GetModLocalization("BrawlRank3")
 
 L:SetGeneralLocalization({
 	name = "Brigões: Rank 3"
-})
-
-L:SetOptionLocalization({
-	SetIconOnBlat	= "Marca (caveira) no verdadeiro Blat"
 })
 
 ------------

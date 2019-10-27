@@ -1,4 +1,4 @@
-if GetLocale() ~= "frFR" then return end
+﻿if GetLocale() ~= "frFR" then return end
 DBM_HOW_TO_USE_MOD					= "Bienvenue sur DBM. Tapez /dbm help pour une liste des commandes supportées. Pour accédez aux options, tapez /dbm dans la fenêtre de discussion pour commencer la configuration. Chargez des zones spécifiques manuellement pour configurer tous les paramètres spécifiques aux boss selon vos envies. DBM essaie de le faire pour vous en analysant votre spécialisation au premier lancement, mais nous savons que de toute façon certaines personnes souhaitant activer d'autres options."
 
 DBM_CORE_LOAD_MOD_ERROR				= "Erreur lors du chargement des modules %s: %s"
@@ -12,9 +12,9 @@ DBM_CORE_LOAD_MOD_VER_MISMATCH		= "%s n'a pas pu être chargé car votre DBM-Cor
 DBM_CORE_DYNAMIC_DIFFICULTY_CLUMP   = "DBM a désactivé la vérification du nombre de joueurs à portée sur ce combat pour cause de manque d'information sur le nombre de joueurs requis regroupés pour votre taille de raid."
 DBM_CORE_DYNAMIC_ADD_COUNT          = "DBM a désactivé les alertes de décompte d'adds en vie sur ce combat pour cause de manque d'information du nombre d'adds apparaissant pour votre taille de raid."
 DBM_CORE_DYNAMIC_MULTIPLE           = "DBM a désactivé plusieurs fonctionnalités sur ce combat pour cause de manque d'informations sur certains mécanismes pour votre taille de raid  ."
- 
+
 DBM_CORE_LOOT_SPEC_REMINDER         = "Votre spécialisation actuelle est %s. Votre choix de loot actuel est %s."
- 
+
 DBM_CORE_BIGWIGS_ICON_CONFLICT      = "DBM a détecté que vous avez activé vos icônes de raid sur DBM et Bigwigs simultanément. Désactivez les icônes de l'un d'entre-eux pour éviter tout conflit avec votre raid leader"
 
 DBM_CORE_MOD_AVAILABLE				= "%s est disponible pour ce contenu. Vous pouvez trouver sur |HDBM:forums|h|cff3588ffdeadlybossmods.com|r ou sur Curse. Ce message ne s'affichera qu'une fois."
@@ -135,7 +135,7 @@ DBM_CORE_VOICE_PACK_OUTDATED		= "Il semble que votre pack de voix DBM manquent d
 DBM_CORE_VOICE_MISSING				= "Vous aviez un pack de voix séléctionné qui ne pouvait pas être trouvé. Votre séléction a été réinitialisée à 'Aucun'. Si ceci est une erreur, assurez vous que votre pack est correctement installé et activé."
 DBM_CORE_VOICE_COUNT_MISSING		= "Le compte à rebours de la voix %d se trouve dans un pack qui ne pouvait pas être trouvé. Il a été reinitilisé à l'option par défaut."
 
-DBM_CORE_UPDATEREMINDER_HEADER			= "Votre version de Deadly Boss Mods est périmée.\nLa version %s (r%d) est disponible au téléchargement ici:"
+DBM_CORE_UPDATEREMINDER_HEADER			= "Votre version de Deadly Boss Mods est périmée.\nLa version %s (%s) est disponible au téléchargement ici:"
 DBM_CORE_UPDATEREMINDER_HEADER_ALPHA	= "Votre version Alpha de DBM-alpha est périmée.\n Vous avez au moins %d versions de test de retard. Il est recommandé au utilisateurs d'utiliser la dernière version alpha ou la dernière version stable. Les versions alpha périmées peuvent mener à des fonctionnalités absentes ou cassées."
 DBM_CORE_UPDATEREMINDER_FOOTER			= "Faites la combinaison " .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  " pour copier le lien de téléchargement dans votre presse-papier."
 DBM_CORE_UPDATEREMINDER_FOOTER_GENERIC  = "Faites la combinaison " .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  " pour copier le lien dans votre presse-papier."
@@ -204,11 +204,9 @@ DBM_CORE_TIMER_USAGE	= {
 	"Commandes DBM des timers:",
 	"-----------------",
 	"/dbm timer <sec> <text>: Commence un timer de <sec> secondes avec votre <text>.",
-	"/dbm ctimer <sec> <text>: Commence un timer qui contient aussi un texte de compte à rebours.",
 	"/dbm ltimer <sec> <text>: Commence un timer qui tourne en boucle jusqu'à annulation.",
-	"/dbm cltimer <sec> <text>: Commence un timer qui tourne en boucle jusqu'à annulation et contient un texte de compte à rebours.",
 	"('Broadcast' devant n'importe quel timer et partage avec le raid si leader ou assistant)",
-	"/dbm timer endloop: Annule les boucles de ltimer ou cltimer."
+	"/dbm timer endloop: Annule les boucles de ltimer."
 }
 
 DBM_ERROR_NO_PERMISSION				= "Vous n'avez pas la permission requise pour faire cela."
@@ -363,11 +361,6 @@ DBM_CORE_AUTO_ICONS_OPTION_TEXT2        = "Placer des icônes sur $spell:%s"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT         = "Afficher la flèche DBM en direction de la cible affectée par $spell:%s"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT2        = "Afficher la flèche DBM pour s'éloigner de la cible affectée par $spell:%s"
 DBM_CORE_AUTO_ARROW_OPTION_TEXT3		= "Show DBM Arrow to move toward specific location for $spell:%s"
-DBM_CORE_AUTO_VOICE_OPTION_TEXT			= "Play spoken alerts for $spell:%s"
-DBM_CORE_AUTO_VOICE2_OPTION_TEXT		= "Play spoken alerts for phase changes"
-DBM_CORE_AUTO_COUNTDOWN_OPTION_TEXT		= "Compte à rebours sonore pour $spell:%s"
-DBM_CORE_AUTO_COUNTDOWN_OPTION_TEXT2	= "Compte à rebours sonore pour lorsque $spell:%s se dissipe"
-DBM_CORE_AUTO_COUNTOUT_OPTION_TEXT		= "Compte à rebours sonore pour la durée de $spell:%s"
 
 DBM_CORE_AUTO_YELL_OPTION_TEXT.yell		= "Crie quand vous êtes affecté par $spell:%s"
 DBM_CORE_AUTO_YELL_OPTION_TEXT.count	= "Crie (avec compte) quand vous êtes affecté par $spell:%s"

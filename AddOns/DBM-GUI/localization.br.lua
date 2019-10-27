@@ -1,4 +1,4 @@
-if GetLocale() ~= "ptBR" then return end
+﻿if GetLocale() ~= "ptBR" then return end
 
 if not DBM_GUI_Translations then DBM_GUI_Translations = {} end
 
@@ -22,8 +22,8 @@ L.TabCategory_PVP 			= "PVP"
 L.TabCategory_OTHER    		= "Outros módulos"
 
 L.BossModLoaded 			= "%s estatísticas"
-L.BossModLoad_now 			= [[Esse módulo não está carregado. 
-Ele será carregado quando você entrar na instância. 
+L.BossModLoad_now 			= [[Esse módulo não está carregado.
+Ele será carregado quando você entrar na instância.
 Você também pode clicar no botão para carregar o módulo manualmente.]]
 
 L.PosX						= 'Posição X'
@@ -122,7 +122,6 @@ L.ShowDefeatMessage 		= "Exibir mensagens ao vencer chefes no quadro de chat"
 L.ShowGuildMessages 		= "Exibir mensagens de puxada/vitória/derrota no quadro de chat"
 L.WhisperMessages			= "Opções de mensagens de sussurro"
 L.AutoRespond 				= "Responder automaticamente a sussurros durante a luta"
-L.EnableStatus 				= "Responder a sussurros de 'status'"
 L.WhisperStats 				= "Incluir estatísticas de derrotas/vitórias nas respostas a sussurros"
 
 -- Tab: Barsetup

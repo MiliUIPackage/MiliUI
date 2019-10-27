@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod(2197, "DBM-Azeroth-BfA", nil, 1028)
+local mod	= DBM:NewMod(2197, "DBM-Azeroth-BfA", 1, 1028)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 17957 $"):sub(12, -3))
+mod:SetRevision("20190925025307")
 mod:SetCreatureID(140252)
 --mod:SetEncounterID(1880)
 mod:SetReCombatTime(20)
@@ -20,7 +20,7 @@ local specWarnGlacialBreath			= mod:NewSpecialWarningDodge(274891, nil, nil, nil
 local specWarnFreezingTempest		= mod:NewSpecialWarningMoveTo(274895, nil, nil, 2, 3, 2)
 
 local timerPermafrostSpikeCD		= mod:NewCDTimer(10.2, 274896, nil, nil, nil, 3)
-local timerGlacialBreathCD			= mod:NewCDTimer(45.1, 274891, nil, nil, nil, 3)
+local timerGlacialBreathCD			= mod:NewCDTimer(43.2, 274891, nil, nil, nil, 3)
 local timerFreezingTempestCD		= mod:NewCDTimer(65.5, 274895, nil, nil, nil, 2, nil, DBM_CORE_DEADLY_ICON)
 
 --mod:AddReadyCheckOption(37460, false)
@@ -32,12 +32,6 @@ function mod:OnCombatStart(delay, yellTriggered)
 		--timerGlacialBreathCD:Start(1-delay)
 		--timerFreezingTempestCD:Start(1-delay)
 	end
-end
-
-function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 end
 
 function mod:SPELL_CAST_START(args)

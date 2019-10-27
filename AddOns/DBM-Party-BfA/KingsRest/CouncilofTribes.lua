@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2170, "DBM-Party-BfA", 3, 1041)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18026 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(135475, 135470, 135472)
 mod:SetEncounterID(2140)
 mod:SetZone()
@@ -42,7 +42,7 @@ local specWarnEarthwall				= mod:NewSpecialWarningDispel(267256, "MagicDispeller
 
 --Kula the Butcher
 local timerWhirlingAxesCD			= mod:NewCDTimer(10.8, 266206, nil, nil, nil, 3)--Used inactive
-local timerSeveringAxeCD			= mod:NewCDTimer(13, 266231, nil, nil, nil, 3)--Actual timer needs doing
+local timerSeveringAxeCD			= mod:NewCDTimer(21.8, 266231, nil, nil, nil, 3)
 --Aka'ali the Conqueror
 local timerBarrelThroughCD			= mod:NewCDTimer(23.1, 266951, nil, nil, nil, 3)--Used inactive
 local timerDebilitatingBackhandCD	= mod:NewCDTimer(24.3, 266237, nil, nil, nil, 5, nil, DBM_CORE_TANK_ICON..DBM_CORE_DEADLY_ICON)
@@ -51,7 +51,7 @@ local timerPoisonNovaCD				= mod:NewCDTimer(133, 267273, nil, nil, nil, 4, nil, 
 local timerTotemsCD					= mod:NewCDTimer(13, 267060, nil, nil, nil, 1, nil, DBM_CORE_DAMAGE_ICON)--Actual timer needs doing
 
 --mod:AddRangeFrameOption(5, 194966)
-mod:AddSetIconOption("SetIconOnBarrel", 266951, true)
+mod:AddSetIconOption("SetIconOnBarrel", 266951, true, false, {1})
 
 mod.vb.phase = 1
 mod.vb.bossOne = 0
@@ -96,7 +96,7 @@ end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
-	if spellId == 267256 and not self.vb.earthTotemActive then
+	if spellId == 267256 and not self.vb.earthTotemActive and not args:IsDestTypePlayer() then
 		specWarnEarthwall:Show(args.destName)
 		specWarnEarthwall:Play("dispelboss")
 		self.vb.bossName = args.destName
@@ -159,7 +159,7 @@ end
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 266231 then
-		--timerSeveringAxeCD:Start()--Not enough data
+		timerSeveringAxeCD:Start(21.8)
 	end
 end
 
@@ -276,4 +276,4 @@ function mod:UNIT_TARGETABLE_CHANGED(uId)
 			timerTotemsCD:Start(19.2)
 		end
 	end
-end	
+end

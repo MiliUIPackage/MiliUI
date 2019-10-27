@@ -95,7 +95,7 @@ do
 	local function toggleShowSelf()
 		DBM.Options.InfoFrameShowSelf = not DBM.Options.InfoFrameShowSelf
 	end
-	
+
 	local function setLines(self, line)
 		DBM.Options.InfoFrameLines = line
 		if line ~= 0 then
@@ -124,7 +124,7 @@ do
 			end
 			info.func = toggleShowSelf
 			UIDropDownMenu_AddButton(info, 1)
-			
+
 			info = UIDropDownMenu_CreateInfo()
 			info.text = DBM_CORE_INFOFRAME_SETLINES
 			info.notCheckable = true
@@ -161,28 +161,28 @@ do
 				info.arg1 = 5
 				info.checked = (DBM.Options.InfoFrameLines == 5)
 				UIDropDownMenu_AddButton(info, 2)
-				
+
 				info = UIDropDownMenu_CreateInfo()
 				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(8)
 				info.func = setLines
 				info.arg1 = 8
 				info.checked = (DBM.Options.InfoFrameLines == 8)
 				UIDropDownMenu_AddButton(info, 2)
-				
+
 				info = UIDropDownMenu_CreateInfo()
 				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(10)
 				info.func = setLines
 				info.arg1 = 10
 				info.checked = (DBM.Options.InfoFrameLines == 10)
 				UIDropDownMenu_AddButton(info, 2)
-				
+
 				info = UIDropDownMenu_CreateInfo()
 				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(15)
 				info.func = setLines
 				info.arg1 = 15
 				info.checked = (DBM.Options.InfoFrameLines == 15)
 				UIDropDownMenu_AddButton(info, 2)
-				
+
 				info = UIDropDownMenu_CreateInfo()
 				info.text = DBM_CORE_INFOFRAME_LINES_TO:format(20)
 				info.func = setLines
@@ -199,7 +199,7 @@ end
 --  Create the frame  --
 ------------------------
 local frameBackdrop = {
-	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",--131071
 	tile = true,
 	tileSize = 16,
 	insets = { left = 2, right = 14, top = 2, bottom = 2 },
@@ -302,6 +302,7 @@ local function updateLinesCustomSort(sortFunc)
 	end
 end
 
+--8.2 TODO FIXME if broken.
 local function updateIcons()
 	twipe(icons)
 	for uId in DBM:GetGroupMembers() do
@@ -360,13 +361,32 @@ local function updateEnemyPower()
 	twipe(lines)
 	local threshold = value[1]
 	local powerType = value[2]
+	local specificUnit = value[3]
 	if powerType then--Only do power type defined
-		for i = 1, 5 do
-			local uId = "boss"..i
-			local currentPower, maxPower = UnitPower(uId, powerType), UnitPowerMax(uId, powerType)
+		if specificUnit then
+			local currentPower, maxPower = UnitPower(specificUnit, powerType), UnitPowerMax(specificUnit, powerType)
 			if maxPower and maxPower ~= 0 then--Prevent division by 0 in addition to filtering non existing units that may still return false on UnitExists()
 				if currentPower / maxPower * 100 >= threshold then
-					lines[UnitName(uId)] = currentPower
+					lines[UnitName(specificUnit)] = currentPower
+				end
+			end
+		else
+			if specificUnit then
+				local currentPower, maxPower = UnitPower(specificUnit), UnitPowerMax(specificUnit)
+				if maxPower and maxPower ~= 0 then--Prevent division by 0 in addition to filtering non existing units that may still return false on UnitExists()
+					if currentPower / maxPower * 100 >= threshold then
+						lines[UnitName(specificUnit)] = currentPower
+					end
+				end
+			else
+				for i = 1, 5 do
+					local uId = "boss"..i
+					local currentPower, maxPower = UnitPower(uId), UnitPowerMax(uId)
+					if maxPower and maxPower ~= 0 then--Prevent division by 0 in addition to filtering non existing units that may still return false on UnitExists()
+						if currentPower / maxPower * 100 >= threshold then
+							lines[UnitName(uId)] = currentPower
+						end
+					end
 				end
 			end
 		end
@@ -377,7 +397,7 @@ local function updateEnemyPower()
 			local currentPower, maxPower = UnitPower(uId), UnitPowerMax(uId)
 			if maxPower and maxPower ~= 0 then--Prevent division by 0 in addition to filtering non existing units that may still return false on UnitExists()
 				if currentPower / maxPower * 100 >= threshold then
-					lines[UnitName(uId)] = DBM_CORE_INFOFRAME_MAIN..currentPower
+					lines[UnitName(uId)] = currentPower
 				end
 			end
 			--Alternate Power
@@ -397,14 +417,14 @@ local function updateEnemyAbsorb()
 	twipe(lines)
 	local spellInput = value[1]
 	local totalAbsorb = value[2]
-	for i = 1, 5 do
-		local uId = "boss"..i
-		if UnitExists(uId) then
+	local specificUnit = value[3]
+	if specificUnit then
+		if UnitExists(specificUnit) then
 			local absorbAmount
 			if spellInput then--Get specific spell absorb
-				absorbAmount = select(16, DBM:UnitBuff(uId, spellInput)) or select(16, DBM:UnitDebuff(uId, spellInput))
+				absorbAmount = select(16, DBM:UnitBuff(specificUnit, spellInput)) or select(16, DBM:UnitDebuff(specificUnit, spellInput))
 			else--Get all of them
-				absorbAmount = UnitGetTotalAbsorbs(uId)
+				absorbAmount = UnitGetTotalAbsorbs(specificUnit)
 			end
 			if absorbAmount and absorbAmount > 0 then
 				local text
@@ -413,7 +433,28 @@ local function updateEnemyAbsorb()
 				else
 					text = absorbAmount
 				end
-				lines[UnitName(uId)] = mfloor(text).."%"
+				lines[UnitName(specificUnit)] = mfloor(text).."%"
+			end
+		end
+	else
+		for i = 1, 5 do
+			local uId = "boss"..i
+			if UnitExists(uId) then
+				local absorbAmount
+				if spellInput then--Get specific spell absorb
+					absorbAmount = select(16, DBM:UnitBuff(uId, spellInput)) or select(16, DBM:UnitDebuff(uId, spellInput))
+				else--Get all of them
+					absorbAmount = UnitGetTotalAbsorbs(uId)
+				end
+				if absorbAmount and absorbAmount > 0 then
+					local text
+					if totalAbsorb then
+						text = absorbAmount / totalAbsorb * 100
+					else
+						text = absorbAmount
+					end
+					lines[UnitName(uId)] = mfloor(text).."%"
+				end
 			end
 		end
 	end
@@ -625,7 +666,8 @@ local function updatePlayerAggro()
 	for uId in DBM:GetGroupMembers() do
 		if tankIgnored and (UnitGroupRolesAssigned(uId) == "TANK" or GetPartyAssignment("MAINTANK", uId, 1)) then
 		else
-			if UnitThreatSituation(uId) >= aggroType then
+			local currentThreat = UnitThreatSituation(uId) or 0
+			if currentThreat >= aggroType then
 				lines[UnitName(uId)] = ""
 			end
 		end
@@ -671,8 +713,10 @@ end
 local function updateByTable(table)
 	twipe(lines)
 	--Copy table into lines
-	for i, v in pairs(table) do
-		lines[i] = v
+	if table then
+		for i, v in pairs(table) do
+			lines[i] = v
+		end
 	end
 	--Pass to update lines for sort handling
 	updateLines()
@@ -756,12 +800,9 @@ function onUpdate(frame, table)
 			return
 		elseif leftText and type(leftText) ~= "string" then
 			tostring(leftText)
-			--error("DBM InfoFrame: leftText must be string, Notify DBM author. Infoframe force shutting down ", 2)
-			--frame:Hide()--Force close infoframe so it doesn't keep throwing 100s of errors onupdate. If leftText is broken the frame needs to be shut down
-			--return
 		end
 		local rightText = lines[leftText]
-		local extra, extraName = string.split("-", leftText)--Find just unit name, if extra info had to be added to make unique
+		local extra, extraName = string.split("*", leftText)--Find just unit name, if extra info had to be added to make unique
 		local icon = icons[extraName or leftText] and icons[extraName or leftText]..leftText
 		if friendlyEvents[currentEvent] then
 			local unitId = DBM:GetRaidUnitId(DBM:GetUnitFullName(extraName or leftText)) or "player"--Prevent nil logical error
@@ -769,10 +810,12 @@ function onUpdate(frame, table)
 				local _, class = UnitClass(unitId)
 				if class then
 					color = RAID_CLASS_COLORS[class]
+				else
+					color = NORMAL_FONT_COLOR
 				end
 				linesShown = linesShown + 1
 				if (extraName or leftText) == playerName then--It's player.
-					if currentEvent == "health" or currentEvent == "playerpower" or currentEvent == "playerabsorb" or currentEvent == "playerbuff" or currentEvent == "playergooddebuff" or currentEvent == "playerbaddebuff" or currentEvent == "playerdebuffremaining" or currentEvent == "playerdebuffstacks" or currentEvent == "playerbuffremaining" or currentEvent == "playertargets" or (currentEvent == "playeraggro" and value[1] == 3) then--Red
+					if currentEvent == "health" or currentEvent == "playerpower" or currentEvent == "playerabsorb" or currentEvent == "playerbuff" or currentEvent == "playergooddebuff" or currentEvent == "playerbaddebuff" or currentEvent == "playerdebuffremaining" or currentEvent == "playerdebuffstacks" or currentEvent == "playerbuffremaining" or currentEvent == "playertargets" or currentEvent == "playeraggro" then--Red
 						frame:AddDoubleLine(icon or leftText, rightText, 255, 0, 0, 255, 255, 255)-- (leftText, rightText, left.R, left.G, left.B, right.R, right.G, right.B)
 					else--Green
 						frame:AddDoubleLine(icon or leftText, rightText, 0, 255, 0, 255, 255, 255)
@@ -805,13 +848,21 @@ function onUpdate(frame, table)
 				local _, class = UnitClass(unitId)
 				if class then
 					color = RAID_CLASS_COLORS[class]
+				else
+					color = NORMAL_FONT_COLOR
 				end
+			else
+				color = NORMAL_FONT_COLOR
 			end
 			if unitId2 then--Check right text
 				local _, class = UnitClass(unitId2)
 				if class then
 					color2 = RAID_CLASS_COLORS[class]
+				else
+					color2 = NORMAL_FONT_COLOR
 				end
+			else
+				color2 = NORMAL_FONT_COLOR
 			end
 			linesShown = linesShown + 1
 			frame:AddDoubleLine(icon or leftText, rightText, color.r, color.g, color.b, color2.r, color2.g, color2.b)
@@ -833,6 +884,7 @@ function infoFrame:Show(maxLines, event, ...)
 	else
 		maxlines = maxLines or 5
 	end
+	table.wipe(value)
 	for i = 1, select("#", ...) do
 		value[i] = select(i, ...)
 	end
@@ -864,7 +916,7 @@ function infoFrame:Show(maxLines, event, ...)
 		sortMethod = 1
 	end
 	if events[currentEvent] then
-		events[currentEvent]()
+		events[currentEvent](value[1])
 	else
 		error("DBM-InfoFrame: Unsupported event", 2)
 		return
@@ -874,14 +926,13 @@ function infoFrame:Show(maxLines, event, ...)
 	end
 	frame:Show()
 	frame:SetOwner(UIParent, "ANCHOR_PRESERVE")
-	onUpdate(frame)
+	onUpdate(frame, value[1])
 	if not frame.ticker and not value[4] and event ~= "table" then
 		frame.ticker = C_Timer.NewTicker(0.5, function() onUpdate(frame) end)
-	elseif frame.ticker and event == "table" then--Redundancy, in event calling a new table based infoframe show without a hide event to unschedule ticker based infoframe
+	elseif frame.ticker and value[4] then--Redundancy, in event calling a non onupdate infoframe show without a hide event to unschedule ticker based infoframe
 		frame.ticker:Cancel()
 		frame.ticker = nil
 	end
-	local wowToc, testBuild, wowVersionString = DBM:GetTOC()
 end
 
 function infoFrame:RegisterCallback(cb)
@@ -901,7 +952,7 @@ end
 
 function infoFrame:UpdateTable(table)
 	frame = frame or createFrame()
-	if frame:IsShown() then
+	if frame:IsShown() and table then
 		onUpdate(frame, table)
 	end
 end

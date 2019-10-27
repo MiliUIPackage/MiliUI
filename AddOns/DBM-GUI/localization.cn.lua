@@ -1,9 +1,8 @@
--- Diablohu(diablohudream@gmail.com) 
+-- Diablohu(diablohudream@gmail.com)
 -- yleaf(yaroot@gmail.com)
 -- sunlcy@NGA
 -- Mini Dragon(projecteurs@gmail.com)
--- Last update: 2018/08/23
--- Last update: 2018/08/23
+-- Last update: 2019/08/09
 
 if GetLocale() ~= "zhCN" then return end
 if not DBM_GUI_Translations then DBM_GUI_Translations = {} end
@@ -112,9 +111,9 @@ L.CombatMessages			= "战斗信息设置"
 L.ShowEngageMessage 		= "在聊天窗口中显示开战信息"
 L.ShowDefeatMessage 		= "在聊天窗口中显示击杀信息"
 L.ShowGuildMessages 		= "在聊天窗口中显示工会开战，击杀，灭团信息"
+L.ShowGuildMessagesPlus		= "显示工会中的M+以上难度的开战，击杀，灭团信息(需要团队选项)"
 L.WhisperMessages			= "密语信息设置"
 L.AutoRespond 				= "在战斗中自动回复私聊"
-L.EnableStatus 				= "回复“status”私聊当前战斗信息"
 L.WhisperStats 				= "在回复的私聊中包含击杀或灭团次数统计信息"
 L.DisableStatusWhisper 		= "屏蔽全团成员的status私聊(需要团长权限)。只对普通/英雄/神话团队和挑战/神话五人小队有效。"
 L.DisableGuildStatus 		= "屏蔽通报团队进度信息到工会(需要团长权限)。"
@@ -168,6 +167,7 @@ L.ExpandUpwards				= "快消失的计时条在上"
 L.FillUpBars				= "填充计时条"
 L.ClickThrough				= "禁用鼠标点击事件（允许你点击计时条后面的目标）"
 L.Bar_Decimal				= "%d秒以内显示小数点"
+L.Bar_Alpha					= "计时条透明度: %0.1f"
 L.Bar_DBMOnly				= "以下设置只对 \"DBM\" 计时条有效 (两个判断的操作符是或，任一就变大)"
 L.Bar_EnlargeTime			= "在%d秒后计时条变大"
 L.Bar_EnlargePercent		= "在%0.1f%%后计时条变大"
@@ -177,6 +177,9 @@ L.BarSort					= "按剩余时间排序"
 L.BarColorByType			= "按类着色"
 L.BarInlineIcons			= "显示条内图标"
 L.ShortTimerText			= "使用更短的计时条文字 (当可行时)"
+L.KeepBar					= "保持计时条显示直到技能被释放"
+L.KeepBar2					= "(当被模组支持时)"
+L.FadeBar					= "隐藏超出技能范围的计时条"
 
 -- Tab: Spec Warn Frame
 L.Panel_SpecWarnFrame		= "特殊警报"
@@ -234,6 +237,7 @@ L.EventWipeSound			= "设置灭团音效"
 L.EventEngageSound			= "设置开战音效"
 L.EventDungeonMusic			= "设置在副本内播放的音乐"
 L.EventEngageMusic			= "设置战斗过程中的音乐"
+L.EventTurtleMusic			= "设置乌龟海滩场景播放的音乐"
 L.Area_EventSoundsExtras	= "事件音效选项"
 L.EventMusicCombined		= "允许在副本内播放在音乐选项中的全部音效(需要reload)"
 L.Area_EventSoundsFilters	= "事件音效过滤条件"
@@ -253,7 +257,8 @@ L.SpamBlockNoSetIcon		= "不在目标上设定标记"
 L.SpamBlockNoRangeFrame		= "不显示距离雷达框体"
 L.SpamBlockNoInfoFrame		= "不显示信息框体"
 L.SpamBlockNoHudMap			= "不显示HudMap"
-L.SpamBlockNoNameplate		= "不要显示姓名面板高亮"
+L.SpamBlockNoNameplate		= "不要显示姓名板高亮(完全取消)"
+L.SpamBlockNoNameplateLines	= "不要显示姓名版高亮(效果图标继续显示)"
 L.SpamBlockNoCountdowns		= "不要播放倒计时语音"
 L.SpamBlockNoYells			= "不要再战斗中大喊"
 L.SpamBlockNoNoteSync		= "不接受别人分享的自定义注记"
@@ -267,6 +272,7 @@ L.SpamBlockNoRangeRestore	= "当Boss模块隐藏距离窗体时不重置窗体�
 L.Area_SpamFilter			= "信息过滤设置"
 L.DontShowFarWarnings		= "不为过远的事件显示计时条/警报"
 L.StripServerName			= "警告和计时器中不显示服务器名"
+L.FilterVoidFormSay			= "当在虚无状态下，不播发位置或报数喊叫"
 
 L.Area_SpecFilter			= "角色过滤选项"
 L.FilterTankSpec			= "当非坦克专精时，过滤掉给予坦克的专用信息"
@@ -296,10 +302,16 @@ L.HideQuestTooltips			= "Boss战斗中隐藏鼠标提示窗体(tooltips)中的�
 L.HideTooltips				= "Boss战斗中完全隐藏鼠标提示窗体(tooltips)"
 L.DisableSFX				= "Boss战斗中关闭音效"
 L.DisableCinematics			= "自动跳过游戏内过场动画"
+L.OnlyFight					= "当每个动画被播放国一次后，只在战斗中放"
 L.AfterFirst				= "仅第一次播放"
 L.Always					= "总是跳过"
 L.CombatOnly				= "在任何战斗中隐藏"
 L.RaidCombat				= "只在Boss战斗中隐藏"
+L.HideBonusHeader			= "隐藏奖励拾取投掷"
+L.TrivialContent			= "低于5M掉落"--Basically anything below 340
+L.NormalRaider				= "低于5层大秘和随机团掉落"--Basically, anything below 355
+L.HeroicRaider				= "低于10层大秘，H副本"--Basically anything below 370
+L.MythicRaider				= "M副本"--Basically anything below 385
 
 L.Panel_ExtraFeatures		= "其他功能"
 --

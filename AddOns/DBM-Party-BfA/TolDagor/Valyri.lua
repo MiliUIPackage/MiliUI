@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2099, "DBM-Party-BfA", 9, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18026 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(127490)
 mod:SetEncounterID(2103)
 mod:SetZone()
@@ -48,7 +48,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnFuselighter:Show()
 			specWarnFuselighter:Play("targetyou")
 			yellFuselighter:Yell()
-		else
+		elseif self:CheckDispelFilter() then
 			specWarnFuselighterOther:Show(args.destName)
 			specWarnFuselighterOther:Play("helpdispel")
 		end
@@ -88,7 +88,7 @@ mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 124396 then
-		
+
 	end
 end
 

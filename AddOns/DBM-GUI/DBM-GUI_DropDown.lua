@@ -41,28 +41,24 @@ do
 	local BackDropTable = { bgFile = "" }
 	local L = DBM_GUI_Translations
 
-	local TabFrame1 = CreateFrame("Frame", "DBM_GUI_DropDown", UIParent)
+	local TabFrame1 = CreateFrame("Frame", "DBM_GUI_DropDown", UIParent, "DBM_GUI_DropDownMenu")
 	local ClickFrame = CreateFrame("Button", nil, UIParent)
 
 	TabFrame1:SetBackdrop({
-		bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",
-		edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",
+		bgFile="Interface\\DialogFrame\\UI-DialogBox-Background",--131071
+		edgeFile="Interface\\DialogFrame\\UI-DialogBox-Border",--131072
 		tile=1, tileSize=32, edgeSize=32,
 		insets={left=11, right=12, top=12, bottom=11}
 	});
 
 	TabFrame1:EnableMouseWheel(1)
-	TabFrame1:SetScript("OnMouseWheel", function(self, delta)
-		if delta > 0 then  -- scroll up
-			self.offset = self.offset - 1
-			if self.offset < 0 then
-				self.offset = 0
-			end
-		else		  -- scroll down
-			self.offset = self.offset + 1
-		end
+	function TabFrame1:OnMouseWheel(delta)
+		local scrollBar = _G[self:GetName() .. "ListScrollBar"]
+		scrollBar:SetValue(scrollBar:GetValue() - delta)
+		self.offset = scrollBar:GetValue()
 		self:Refresh()
-	end)
+	end
+	TabFrame1:SetScript("OnMouseWheel", TabFrame1.OnMouseWheel)
 
 	TabFrame1:Hide()
 	TabFrame1:SetParent( DBM_GUI_OptionsFrame )
@@ -98,7 +94,7 @@ do
 			end)
 		end
 	end
-	local default_button_width = TabFrame1.buttons[1]:GetWidth()
+	local default_button_width = TabFrame1.buttons[1]:GetWidth() + 16--Adding pixels for scrollbar
 	TabFrame1:SetWidth(default_button_width+22)
 	TabFrame1:SetHeight(MAX_BUTTONS*TabFrame1.buttons[1]:GetHeight()+24)
 
@@ -113,10 +109,10 @@ do
 		if self.offset > #values-MAX_BUTTONS then self.offset = #values-MAX_BUTTONS end
 		if self.offset < 0 then self.offset = 0 end
 		if #values > MAX_BUTTONS then
-			self:SetHeight(MAX_BUTTONS*TabFrame1.buttons[1]:GetHeight()+24)
+			self:SetHeight(MAX_BUTTONS*self.buttons[1]:GetHeight()+24)
 			self.text:Show()
 		elseif #values == MAX_BUTTONS then
-			self:SetHeight(MAX_BUTTONS*TabFrame1.buttons[1]:GetHeight()+24)
+			self:SetHeight(MAX_BUTTONS*self.buttons[1]:GetHeight()+24)
 			self.text:Hide()
 		elseif #values < MAX_BUTTONS then
 			self:SetHeight( #values * self.buttons[1]:GetHeight() + 24)
@@ -125,7 +121,7 @@ do
 		for i=1, MAX_BUTTONS, 1 do
 			if i + self.offset <= #values then
 				local ind = "   "
-				if values[i+self.offset].value == TabFrame1.dropdown.value then
+				if values[i+self.offset].value == self.dropdown.value then
 				  ind = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t"
 				end
 				_G[self.buttons[i]:GetName().."NormalText"]:SetFontObject(GameFontHighlightSmall)
@@ -143,7 +139,7 @@ do
 		local width = self.buttons[1]:GetWidth()
 		local bwidth = 0
 		for k, button in pairs(self.buttons) do
-			bwidth = button:GetTextWidth()
+			bwidth = button:GetTextWidth() + 16--Adding pixels for scrollbar
 			if bwidth > width then
 				TabFrame1:SetWidth(bwidth+32)
 				width = bwidth
@@ -160,10 +156,10 @@ do
 		if self.offset > #values-MAX_BUTTONS then self.offset = #values-MAX_BUTTONS end
 		if self.offset < 0 then self.offset = 0 end
 		if #values > MAX_BUTTONS then
-			self:SetHeight(MAX_BUTTONS*TabFrame1.fontbuttons[1]:GetHeight()+24)
+			self:SetHeight(MAX_BUTTONS*self.fontbuttons[1]:GetHeight()+24)
 			self.text:Show()
 		elseif #values == MAX_BUTTONS then
-			self:SetHeight(MAX_BUTTONS*TabFrame1.fontbuttons[1]:GetHeight()+24)
+			self:SetHeight(MAX_BUTTONS*self.fontbuttons[1]:GetHeight()+24)
 			self.text:Hide()
 		elseif #values < MAX_BUTTONS then
 			self:SetHeight( #values * self.fontbuttons[1]:GetHeight() + 24)
@@ -172,7 +168,7 @@ do
 		for i=1, MAX_BUTTONS, 1 do
 			if i + self.offset <= #values then
 				local ind = "   "
-				if values[i+self.offset].value == TabFrame1.dropdown.value then
+				if values[i+self.offset].value == self.dropdown.value then
 				  ind = "|TInterface\\Buttons\\UI-CheckBox-Check:0|t"
 				end
 				_G[self.fontbuttons[i]:GetName().."NormalText"]:SetFont(values[i+self.offset].font, values[i+self.offset].fontsize or 14)
@@ -186,9 +182,9 @@ do
 		local width = self.fontbuttons[1]:GetWidth()
 		local bwidth = 0
 		for k, button in pairs(self.fontbuttons) do
-			bwidth = button:GetTextWidth()
+			bwidth = button:GetTextWidth() + 16--Adding pixels for scrollbar
 			if bwidth > width then
-				TabFrame1:SetWidth(bwidth+32)
+				self:SetWidth(bwidth+32)
 				width = bwidth
 			end
 		end
@@ -214,13 +210,28 @@ do
 	end
 
 	function TabFrame1:Refresh()
+		if self.offset < 0 then
+			self.offset = 0
+		end
+		local valuesWOButtons = #self.dropdown.values - MAX_BUTTONS
+		if self.offset > valuesWOButtons then
+			self.offset = valuesWOButtons
+		end
 		if self.dropdown.values[1].font then
 			self:ShowFontMenu(self.dropdown.values)
 		else
 			self:ShowMenu(self.dropdown.values)
 		end
+		if #self.dropdown.values > MAX_BUTTONS then
+			_G[self:GetName().."List"]:Show()
+			_G[self:GetName().."ListScrollBar"]:SetMinMaxValues(0, valuesWOButtons)
+			_G[self:GetName().."ListScrollBar"]:SetValueStep(1)
+		else
+			_G[self:GetName().."ListScrollBar"]:SetValue(0)
+			_G[self:GetName().."List"]:Hide()
+		end
 	end
-	
+
 	ClickFrame:SetAllPoints(DBM_GUI_OptionsFrame)
 	ClickFrame:SetFrameStrata("TOOLTIP")
 	ClickFrame:RegisterForClicks("AnyDown")
@@ -230,9 +241,9 @@ do
 	end)
 
 	------------------------------------------------------------------------------------------
-	
+
 	local dropdownPrototype = CreateFrame("Frame")
-	
+
 	function dropdownPrototype:SetSelectedValue(selected)
 		if selected and self.values and type(self.values) == "table" then
 			for k,v in next, self.values do
@@ -244,7 +255,7 @@ do
 			end
 		end
 	end
-	
+
 	function DBM_GUI:CreateDropdown(title, values, vartype, var, callfunc, width, height, parent)
 		local FrameTitle = "DBM_GUI_DropDown"
 		-- Check Values
@@ -254,7 +265,7 @@ do
 				entry.value = entry.value or entry.text
 			end
 		end
-		
+
 		-- Create the Dropdown Frame
 		local dropdown = CreateFrame("Frame", FrameTitle..self:GetNewID(), parent or self.frame, "DBM_GUI_DropDownMenuTemplate")
 		dropdown.creator = self
@@ -283,11 +294,7 @@ do
 				TabFrame1:ClearAllPoints()
 				TabFrame1:SetPoint("TOPRIGHT", self, "BOTTOMRIGHT", 0, -3)
 				TabFrame1.dropdown = self:GetParent()
-				if values[1].font then
-					TabFrame1:ShowFontMenu(self:GetParent().values)
-				else
-					TabFrame1:ShowMenu(self:GetParent().values)
-				end
+				TabFrame1:Refresh()
 			end
 		end)
 
@@ -297,7 +304,7 @@ do
 			dropdown.titletext:SetFontObject('GameFontNormalSmall')
 			dropdown.titletext:SetText(title)
 		end
-		
+
 		local obj = setmetatable(dropdown, {__index = dropdownPrototype})
 
 		if vartype and vartype == "DBM" and DBM.Options[var] ~= nil then
@@ -306,6 +313,14 @@ do
 			dropdown:SetScript("OnShow", function() dropdown:SetSelectedValue(DBM.Bars:GetOption(var)) end)
 		elseif vartype then
 			dropdown:SetScript("OnShow", function() dropdown:SetSelectedValue(vartype.Options[var]) end)
+		else--For external modules like DBM-RaidLeadTools
+			for k,v in next, dropdown.values do
+				if v.value ~= nil and v.value == var or v.text == var then
+					_G[dropdown:GetName().."Text"]:SetText(v.text)
+					dropdown.value = v.value
+					dropdown.text = v.text
+				end
+			end
 		end
 
 		return obj

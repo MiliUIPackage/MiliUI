@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2127, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18039 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(131863)
 mod:SetEncounterID(2115)
 mod:SetZone()
@@ -47,7 +47,7 @@ end
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 264931 then
-		local bossHealth = self:GetBossHPByGUID(args.sourceGUID)
+		local bossHealth = self:GetBossHP(args.sourceGUID)
 		if bossHealth and bossHealth >= 10 then--Only warn to switch to add if boss above 10%, else ignore them
 			specWarnServant:Show()
 			specWarnServant:Play("killmob")
@@ -76,7 +76,7 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 194966 then
-	
+
 	end
 end
 --mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -94,7 +94,7 @@ mod.SPELL_MISSED = mod.SPELL_DAMAGE
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 124396 then
-		
+
 	end
 end
 

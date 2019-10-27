@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2145, "DBM-Party-BfA", 6, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision(("$Revision: 18026 $"):sub(12, -3))
+mod:SetRevision("20190903184058")
 mod:SetCreatureID(133392)
 mod:SetEncounterID(2127)
 mod:SetZone()
@@ -61,14 +61,14 @@ function mod:SPELL_AURA_APPLIED(args)
 		if self.Options.NPAuraOnSnakeCharm then
 			DBM.Nameplate:Show(true, args.destGUID, spellId, nil, 15)
 		end
-	elseif spellId == 269686 then
+	elseif spellId == 269686 and self:CheckDispelFilter() then
 		specWarnPlague:Show(args.destName)
 		specWarnPlague:Play("helpdispel")
 		timerPlague:Start(args.destName)
 	elseif spellId == 268024 and self:AntiSpam(3, 1) then
 		warnPulse:Show()
 		timerPulseCD:Start()
-	elseif spellId == 268008 and self:AntiSpam(3, 3) then
+	elseif spellId == 268008 and self:AntiSpam(3, 3) and self:CheckDispelFilter() then
 		specWarnSnakeCharm:Show(args.destName)
 		specWarnSnakeCharm:Play("helpdispel")
 	end
@@ -108,7 +108,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
-	if msg:find("spell:269688") then
+	if msg:find("spell:269688") and self:AntiSpam(5, 4) then
 		specWarnRainofToads:Show()
 		specWarnRainofToads:Play("mobsoon")
 		--timerRainofToadsCD:Start()
@@ -127,7 +127,7 @@ mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 124396 then
-		
+
 	end
 end
 

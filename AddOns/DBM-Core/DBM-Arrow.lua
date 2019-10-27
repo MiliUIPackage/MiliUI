@@ -42,6 +42,15 @@ frame:SetScript("OnDragStop", function(self)
 	DBM.Options.ArrowPosX = x
 	DBM.Options.ArrowPosY = y
 end)
+
+local textframe = CreateFrame("Frame", nil, frame)
+
+frame.distance = textframe:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+frame.title = textframe:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+frame.title:SetPoint("TOP", frame, "BOTTOM", 0, 0)
+frame.distance:SetPoint("TOP", frame.title, "BOTTOM", 0, 0)
+textframe:Hide()
+
 local arrow = frame:CreateTexture(nil, "OVERLAY")
 arrow:SetTexture("Interface\\AddOns\\DBM-Core\\textures\\arrows\\Arrow.blp")
 arrow:SetAllPoints(frame)
@@ -73,6 +82,7 @@ end
 local updateArrow
 do
 	local currentCell
+	local formatText = "%dy"
 	function updateArrow(direction, distance)
 		local cell = floor(direction / pi2 * 108 + 0.5) % 108
 		if cell ~= currentCell then
@@ -97,6 +107,8 @@ do
 				arrow:SetVertexColor(1, 1 - perc, 0)
 				if distance <= hideDistance then
 					frame:Hide()
+				else
+					frame.distance:SetText(formatText:format(distance))
 				end
 			end
 		else
@@ -136,6 +148,14 @@ do
 			if not targetX or mapId ~= targetMapId then
 				self:Hide() -- hide the arrow if the target doesn't exist. TODO: just hide the texture and add a timeout
 			end
+		--New bug in 8.2.5, unit position returns nil for position in areas there aren't restrictions
+		--this just has the arrow skip some onupdates during that
+		elseif (not x or not y) then
+			if IsInInstance() then--Somehow x and y returned on entering an instance, before restrictions kicked in?
+				frame:Hide()--Hide, if in an instance, disable arrow entirely
+			else
+				return--Not in instance, but x and y nil, just skip updates until x and y start returning
+			end
 		elseif targetType == "rotate" then
 			rotateState = rotateState + elapsed
 			targetX = x + cos(rotateState)
@@ -166,21 +186,27 @@ end
 ----------------------
 --  Public Methods  --
 ----------------------
-local recentlyHidden = false
-local function clearVariable()
-	recentlyHidden = false
-end
 
-local function show(runAway, x, y, distance, time, legacy, dwayed)
+--/run DBM.Arrow:ShowRunTo(50, 50, 1, nil, true, true, "Waypoint", custom local mapID)
+local function show(runAway, x, y, distance, time, legacy, dwayed, title, customAreaID)
 	if DBM:HasMapRestrictions() then return end
-	if not frame:IsShown() and not recentlyHidden and not dwayed then
-		DBM:AddMsg(DBM_CORE_ARROW_SUMMONED)
-	end
 	local player
 	if type(x) == "string" then
 		player, hideDistance, hideTime = x, y, hideDistance
 	end
 	frame:Show()
+	textframe:Show()
+	if title then
+		frame.title:Show()
+		frame.title:SetText(title)
+	else
+		frame.title:Hide()
+	end
+	if runAway then
+		frame.distance:Hide()
+	else
+		frame.distance:Show()
+	end
 	runAwayArrow = runAway
 	hideDistance = distance or runAway and 100 or 3
 	if time then
@@ -194,15 +220,12 @@ local function show(runAway, x, y, distance, time, legacy, dwayed)
 	else
 		targetType = "fixed"
 		if legacy and x >= 0 and x <= 100 and y >= 0 and y <= 100 then
-			local localMap = C_Map.GetBestMapForUnit("player")
+			local localMap = tonumber(customAreaID) or C_Map.GetBestMapForUnit("player")
 			local vector = CreateVector2D(x/100, y/100)
 			local _, temptable = C_Map.GetWorldPosFromMapPos(localMap, vector)
 			x, y = temptable.x, temptable.y
 		end
 		targetX, targetY = x, y
-	end
-	if dwayed then
-		DBM:AddMsg(DBM_ARROW_WAY_SUCCESS)
 	end
 end
 
@@ -227,6 +250,7 @@ function arrowFrame:ShowStatic(angle, time)
 		hideTime = nil
 	end
 	frame:Show()
+	textframe:Hide()--just in case they call static while a non static was already showing
 end
 
 function arrowFrame:IsShown()
@@ -234,10 +258,8 @@ function arrowFrame:IsShown()
 end
 
 function arrowFrame:Hide(autoHide)
-	recentlyHidden = true
+	textframe:Hide()
 	frame:Hide()
-	DBM:Unschedule(clearVariable)
-	DBM:Schedule(10, clearVariable)
 end
 
 local function endMove()
@@ -251,7 +273,7 @@ function arrowFrame:Move()
 	hideDistance = 0
 	frame:EnableMouse(true)
 	frame:Show()
-	DBM.Bars:CreateBar(25, DBM_ARROW_MOVABLE, "Interface\\Icons\\Spell_Holy_BorrowedTime")
+	DBM.Bars:CreateBar(25, DBM_ARROW_MOVABLE, 237538)
 	DBM:Unschedule(endMove)
 	DBM:Schedule(25, endMove)
 end
