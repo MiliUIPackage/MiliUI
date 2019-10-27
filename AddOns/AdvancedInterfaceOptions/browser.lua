@@ -2,8 +2,6 @@ local addonName, addon = ...
 local _G = _G
 local E = addon:Eve()
 
--- luacheck: globals ListFrame GameTooltip SLASH_AIO1 InterfaceOptionsFrame_OpenToCategory SLASH_CVAR1 AdvancedInterfaceOptionsSaved
-
 function addon:CVarExists(cvar)
 	return pcall(function() return GetCVarDefault(cvar) end)
 end
@@ -80,8 +78,8 @@ end
 local OptionsPanel = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 OptionsPanel:Hide()
 OptionsPanel:SetAllPoints()
-OptionsPanel.name = "CVar參數瀏覽"
-OptionsPanel.parent = addonName
+OptionsPanel.name = "CVar 遊戲參數"
+OptionsPanel.parent = "進階選項"
 
 local Title = OptionsPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title:SetJustifyV('TOP')
@@ -96,9 +94,9 @@ SubText:SetJustifyV('TOP')
 SubText:SetJustifyH('LEFT')
 SubText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
 SubText:SetPoint('RIGHT', -32, 0)
-SubText:SetText('這些選項可以變更遊戲中的各種 CVars參數。')
+SubText:SetText('這些選項可以調整遊戲中的各種 CVars 參數。')
 
-InterfaceOptions_AddCategory(OptionsPanel, addonName)
+InterfaceOptions_AddCategory(OptionsPanel, "進階選項")
 
 -- FilterBox should adjust the contents of the list frame based on the input text
 -- todo: Display grey "Search" text in the box if it's empty
@@ -294,7 +292,7 @@ function E:PLAYER_LOGIN()
 
 				local modifiedBy = AdvancedInterfaceOptionsSaved.ModifiedCVars[ self.value:lower() ]
 				if modifiedBy then
-					GameTooltip:AddDoubleLine("最後修改為:", modifiedBy, 1, 0, 0, 1, 0, 0)
+					GameTooltip:AddDoubleLine("最近修改:", modifiedBy, 1, 0, 0, 1, 0, 0)
 				end
 
 				GameTooltip:Show()
