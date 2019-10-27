@@ -912,7 +912,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
             },
 		},
 		party1={ 
-			frame={ x=16, y=-30, w=250, h=30, }, 
+			frame={ x=16, y=-30, w=250, h=30, hide=true, }, 
 			portrait={
                 x=0, y=0, w=36, h=36, show3d=true, 
                 bg="Flat Smooth", bgcolor={ r=0, g=0, b=0, a=0.4, }, 
@@ -1010,9 +1010,9 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			},
 			vehicleicon={ hide=true, },
 		},
-		party2={ frame={ x=16, y=-90, }, },
-		party3={ frame={ x=16, y=-150, }, },
-		party4={ frame={ x=16, y=-210, }, },
+		party2={ frame={ x=16, y=-90, hide=true }, },
+		party3={ frame={ x=16, y=-150, hide=true }, },
+		party4={ frame={ x=16, y=-210, hide=true }, },
 		pettarget={ 
 			frame={ hide=true, x=188, y=-88, w=120, h=30, },
 			portrait={ x=0, y=0, w=12, h=12, hide=true, },
@@ -1049,10 +1049,10 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			debuffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, push="v", },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 		},
-		party1target={ frame={ x=280, y=-30, }, },
-		party2target={ frame={ x=280, y=-90, }, },
-		party3target={ frame={ x=280, y=-150, }, },
-		party4target={ frame={ x=280, y=-210, }, },
+		party1target={ frame={ x=280, y=-30, hide=true, }, },
+		party2target={ frame={ x=280, y=-90, hide=true, }, },
+		party3target={ frame={ x=280, y=-150, hide=true, }, },
+		party4target={ frame={ x=280, y=-210, hide=true, }, },
 		partypet1={ 
 			frame={ hide=true, x=7, y=-185, w=36, h=12, },
 			portrait={ x=0, y=0, w=12, h=12, },
