@@ -179,7 +179,18 @@ local defaults = {
 			[38506] = "Don Carlos' Famous Hat",
 			[116913] = "Peon's Mining Pick",
 			[116916] = "Gorepetal's Gentle Grasp",
-			[113547] = "Bouquet of Dried Flowers"
+			[113547] = "Bouquet of Dried Flowers",
+			[168804] = "Powered Piscine Procurement Pole",
+			[86125] = "Kafa Press",
+			[19969] = "Nat Pagle's Extreme Anglin' Boots",
+			[88710] = "Nat's Hat",
+			[155459] = "Anglin' Art's Sandals",
+			[155484] = "Anglin' Art's Stompers",
+			[155476] = "Anglin' Art's Waders",
+			[155468] = "Anglin' Art's Treads",
+			[19970] = "Arcanite Fishing Pole",
+			[19979] = "Hook of the Master Angler",
+			[133755] = "Underlight Angler"
 		},
 		junk = {
 		},
@@ -250,19 +261,20 @@ function AV:Debug(val, editbox)
 	self:Print('Showing information about: ' .. val)
 
 	local link = GetItemInfo(val)
-	local _, _, itemQuality, itemLevel, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(link)
-
+	local _, _, itemQuality, _, _, _, _, _, itemEquipLoc, _, _, itemClassId, itemSubClassId = GetItemInfo(link)
+	local itemLevel = GetDetailedItemLevelInfo(link)
+	
 	if itemQuality then
 		self:Print('Item quality: "' .. itemQuality .. '"')
 	end
 	if itemLevel then
 		self:Print('Item level: ' .. itemLevel)
 	end
-	if itemType then
-		self:Print('Item type: "' .. itemType .. '"')
+	if itemClassId then
+		self:Print('Item Class ID: ' .. itemClassId)
 	end
-	if itemSubType then
-		self:Print('Item subtype: "' .. itemSubType .. '"')
+	if itemSubClassId then
+		self:Print('Item Subclass ID: ' .. itemSubClassId)
 	end
 	if itemEquipLoc then
 		self:Print('Item equip location: "' .. itemEquipLoc .. '"')
@@ -470,7 +482,8 @@ end
 
 function AV:ShouldSell(link)
 	local itemId = tonumber(strmatch(link, "item:(%d+)"))
-	local _, _, itemQuality, itemLevel, _, itemType, itemSubType, _, itemEquipLoc = GetItemInfo(link)
+	local itemName, _, itemQuality, _, _, _, _, _, itemEquipLoc, _, _, itemClassId, itemSubClassId = GetItemInfo(link)
+	local itemLevel = GetDetailedItemLevelInfo(link)
 	
 	-- Noboru's Cudgel
 	if itemId == 6196 then 
@@ -482,7 +495,8 @@ function AV:ShouldSell(link)
 		return false
 	end
 	
-	if itemQuality == 5 then
+	-- Don't sell legendary, artifact or heirloom items
+	if itemQuality and itemQuality > 4 then
 		return false
 	end
 	
@@ -513,7 +527,7 @@ function AV:ShouldSell(link)
 	
 	local _,class = UnitClass('player')
 
-	if itemType == L['Weapon'] or itemType == L['Armor'] then
+	if itemClassId == LE_ITEM_CLASS_WEAPON or itemClassId == LE_ITEM_CLASS_ARMOR then
 		-- sell items below a certain item level 
 		if itemsBOP[itemId] and not itemsUseEquip[itemId] and AV.db.profile.selllowlevelitems and itemLevel < AV.db.profile.sellbelowitemlevel then
 			return true
@@ -522,7 +536,7 @@ function AV:ShouldSell(link)
 		-- sell unusable soulbound items
 		if self.db.profile.soulbound then
 			-- sell unusable items
-			if itemsBOP[itemId] and AV:CannotUse(class, itemType, itemSubType) then
+			if itemsBOP[itemId] and AV:CannotUse(class, itemClassId, itemSubClassId) then
 				return true
 			end
 		end
@@ -532,8 +546,8 @@ function AV:ShouldSell(link)
 	if self.db.profile.nonoptimal then
 		local _,class = UnitClass('player')
 		
-		if itemType == L['Armor'] and itemEquipLoc ~= 'INVTYPE_CLOAK' and itemsBOP[itemId] then
-			if AV:NonOptimal(class, itemType, itemSubType) then
+		if itemClassId == LE_ITEM_CLASS_ARMOR and itemEquipLoc ~= 'INVTYPE_CLOAK' and itemsBOP[itemId] then
+			if AV:NonOptimal(class, itemClassId, itemSubClassId) then
 				return true
 			end
 		end
@@ -564,7 +578,7 @@ function AV:GetTooltipInfo(link)
 				soulbound = true
 			end
 			
-			if self:FindString(tooltipString, L['Use:']) or self:FindString(tooltipString, L['Equip:']) then
+			if self:FindString(tooltipString, USE_COLON) or self:FindString(tooltipString, L['Equip:']) then
 				useEquip = true
 			end
 		end
@@ -658,113 +672,113 @@ function AV:BAG_UPDATE()
 	updateBrokerDisplay = true
 end
 
-function AV:CannotUse(class, itemType, itemSubType)
-	for _,v in pairs(AV_UNUSABLE_ITEMS[class][itemType]) do
-		if itemSubType == v then
+function AV:CannotUse(class, itemClassId, itemSubClassId)
+	for _,v in pairs(AV_UNUSABLE_ITEMS[class][itemClassId]) do
+		if itemSubClassId == v then
 			return true
 		end
 	end
 	return false
 end
 
-function AV:NonOptimal(class, itemType, itemSubType)
-	for _,v in pairs(AV_NON_OPTIMAL_ITEMS[class][itemType]) do
-		if itemSubType == v then
+function AV:NonOptimal(class, itemClassId, itemSubClassId)
+	for _,v in pairs(AV_NON_OPTIMAL_ITEMS[class][itemClassId]) do
+		if itemSubClassId == v then
 			return true
 		end
 	end
 	return false
 end
 
--- Format: AV_UNUSABLE_ITEMS[class][itemType][itemSubType]
+-- Format: AV_UNUSABLE_ITEMS[class][itemClassId][itemSubClassId]
 AV_UNUSABLE_ITEMS = {
 	['DEATHKNIGHT'] = {
-		[L['Armor']] = { L['Shields'] },
-		[L['Weapon']] = { L['Bows'], L['Guns'], L['Staves'], L['Fist Weapons'], L['Daggers'], L['Thrown'], L['Crossbows'], L['Wands'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['DEMONHUNTER'] = {
-		[L['Armor']] = { L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['Bows'], L['Guns'], L['Staves'], L['Thrown'], L['Crossbows'], L['Wands'], L['Two-Handed Axes'], L['Two-Handed Swords'], L['Two-Handed Maces'], L['Polearms'], L['One-Handed Maces'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_MACE1H },
 	},
 	['DRUID'] = {
-		[L['Armor']] = { L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['One-Handed Axes'], L['Two-Handed Axes'], L['Bows'], L['Guns'], L['One-Handed Swords'], L['Two-Handed Swords'], L['Thrown'], L['Crossbows'], L['Wands'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['HUNTER'] = {
-		[L['Armor']] = { L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['One-Handed Maces'], L['Two-Handed Maces'], L['Wands'], L['Thrown'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['MAGE'] = {
-		[L['Armor']] = { L['Leather'], L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['One-Handed Axes'], L['Two-Handed Axes'], L['Bows'], L['Guns'], L['One-Handed Maces'], L['Two-Handed Maces'], L['Polearms'], L['Two-Handed Swords'], L['Fist Weapons'], L['Thrown'], L['Crossbows'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['MONK'] = {
-		[L['Armor']] = { L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['Bows'], L['Guns'], L['Daggers'], L['Thrown'], L['Crossbows'], L['Wands'], L['Two-Handed Axes'], L['Two-Handed Swords'], L['Two-Handed Maces'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['PALADIN'] = {
-		[L['Armor']] = { },
-		[L['Weapon']] = { L['Bows'], L['Guns'], L['Staves'], L['Fist Weapons'], L['Daggers'], L['Thrown'], L['Crossbows'], L['Wands'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['PRIEST'] = {
-		[L['Armor']] = { L['Leather'], L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['One-Handed Axes'], L['Two-Handed Axes'], L['Bows'], L['Guns'], L['Two-Handed Maces'], L['Polearms'], L['One-Handed Swords'], L['Two-Handed Swords'], L['Fist Weapons'], L['Thrown'], L['Crossbows'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['ROGUE'] = {
-		[L['Armor']] = { L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['Two-Handed Axes'], L['Two-Handed Maces'], L['Polearms'], L['Two-Handed Swords'], L['Staves'], L['Wands'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['SHAMAN'] = {
-		[L['Armor']] = { L['Plate'] },
-		[L['Weapon']] = { L['Bows'], L['Guns'], L['Polearms'], L['One-Handed Swords'], L['Two-Handed Swords'], L['Thrown'], L['Crossbows'], L['Wands'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_PLATE },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['WARLOCK'] = {
-		[L['Armor']] = { L['Leather'], L['Mail'], L['Plate'], L['Shields'] },
-		[L['Weapon']] = { L['One-Handed Axes'], L['Two-Handed Axes'], L['Bows'], L['Guns'], L['One-Handed Maces'], L['Two-Handed Maces'], L['Polearms'], L['Two-Handed Swords'], L['Fist Weapons'], L['Thrown'], L['Crossbows'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL, LE_ITEM_ARMOR_PLATE, LE_ITEM_ARMOR_SHIELD },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 	['WARRIOR'] = {
-		[L['Armor']] = { },
-		[L['Weapon']] = { L['Wands'], L['Bows'], L['Guns'], L['Crossbows'], L['Thrown'], L['Warglaives'] },
+		[LE_ITEM_CLASS_ARMOR] = { },
+		[LE_ITEM_CLASS_WEAPON] = { LE_ITEM_WEAPON_WAND, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_CROSSBOW, LE_ITEM_WEAPON_THROWN, LE_ITEM_WEAPON_WARGLAIVE },
 	},
 }
 
--- Format: AV_NON_OPTIMAL_ITEMS[class][itemType][itemSubType]
+-- Format: AV_NON_OPTIMAL_ITEMS[class][itemClassId][itemSubClassId]
 AV_NON_OPTIMAL_ITEMS = {
 	['DEATHKNIGHT'] = {
-		[L['Armor']] = { L['Cloth'], L['Leather'], L['Mail'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH, LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL },
 	},
 	['DEMONHUNTER'] = {
-		[L['Armor']] = { L['Cloth'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH },
 	},
 	['DRUID'] = {
-		[L['Armor']] = { L['Cloth'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH },
 	},
 	['HUNTER'] = {
-		[L['Armor']] = { L['Cloth'], L['Leather'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH, LE_ITEM_ARMOR_LEATHER },
 	},
 	['MAGE'] = {
-		[L['Armor']] = { },
+		[LE_ITEM_CLASS_ARMOR] = { },
 	},
 	['MONK'] = {
-		[L['Armor']] = { L['Cloth'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH },
 	},
 	['PALADIN'] = {
-		[L['Armor']] = { L['Cloth'], L['Leather'], L['Mail'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH, LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL },
 	},
 	['PRIEST'] = {
-		[L['Armor']] = { },
+		[LE_ITEM_CLASS_ARMOR] = { },
 	},
 	['ROGUE'] = {
-		[L['Armor']] = { L['Cloth'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH },
 	},
 	['SHAMAN'] = {
-		[L['Armor']] = { L['Cloth'], L['Leather'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH, LE_ITEM_ARMOR_LEATHER },
 	},
 	['WARLOCK'] = {
-		[L['Armor']] = { },
+		[LE_ITEM_CLASS_ARMOR] = { },
 	},
 	['WARRIOR'] = {
-		[L['Armor']] = { L['Cloth'], L['Leather'], L['Mail'] },
+		[LE_ITEM_CLASS_ARMOR] = { LE_ITEM_ARMOR_CLOTH, LE_ITEM_ARMOR_LEATHER, LE_ITEM_ARMOR_MAIL },
 	},
 }
 
