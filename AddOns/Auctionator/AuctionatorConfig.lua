@@ -87,7 +87,7 @@ function Atr_SetupOptionsFrame()
           .."<p><br />"
           .. ZT("Read the FAQ at") .. " |cFF4499FF https://github.com/Auctionator/Auctionator/wiki ." .. "</p>"
           .."<p><br/>"
-          .."MoP disenchanting data courtesy of the Norganna's AddOns (the Auctioneer folks)"
+          ..ZT("MoP disenchanting data courtesy of the Norganna's AddOns (the Auctioneer folks)")
           .."</p>"
           .."<p><br/>"
           .."|cffaaaaaa"..string.format (ZT("German translation courtesy of %s"),  "|rCkaotik").."<br/>"
@@ -96,6 +96,7 @@ function Atr_SetupOptionsFrame()
           .."|cffaaaaaa"..string.format (ZT("French translation courtesy of %s"),  "|rKiskewl and Klep").."<br/>"
           .."|cffaaaaaa"..string.format (ZT("Spanish translation courtesy of %s"),  "|rElfindor").."<br/>"
           .."|cffaaaaaa"..string.format (ZT("Chinese/Taiwan translation courtesy of %s"),  "|rScars").."<br/>"
+          .."|cffaaaaaa"..string.format (ZT("Italian translation courtesy of %s"),  "|rKemat1an").."<br/>"
           .."</p>"
           .."</body></html>"
           ;
@@ -653,6 +654,7 @@ function Atr_SONumStacks_OnShow(self)
   UIDropDownMenu_Initialize   (self, Atr_SONumStacks_Initialize);
   UIDropDownMenu_JustifyText    (self, "CENTER");
   UIDropDownMenu_SetWidth     (self, 150);
+  Atr_Mem_stacksOf_text:SetText (ZT("stacks of")); -- Fix Default dropdown selection translation
 end
 
 -----------------------------------------
@@ -827,7 +829,7 @@ function Atr_OnClick_ClearConfirm_Yes()
     UpdateAddOnMemoryUsage()
     local after = Atr_GetAuctionatorMemString()
 
-    zc.msg_anm (text, ZT("  Memory went from"), before, ZT("to"), after);
+    zc.msg_anm (text, ZT("Memory went from"), before, "   "..ZT("to"), after);
   end
 
   gAtr_ConfirmYesAction = nil
@@ -914,7 +916,7 @@ function Atr_OnClick_ClearShopLists(self)
   ShowInterfaceOptionsMask();
 
   Atr_ClearConfirm_Text1:SetText (ZT("Are you sure you want to clear your shopping lists?"))
-  Atr_ClearConfirm_Text2:SetText (ZT("If you put a lot of time into constructing detailed shopping lists, this will require you to buidl them all over again."))
+  Atr_ClearConfirm_Text2:SetText (ZT("If you put a lot of time into constructing detailed shopping lists, this will require you to build them all over again."))
 
   gAtr_ConfirmYesAction = function ()
 
@@ -1153,7 +1155,7 @@ local gShplistIndexToRename
 -----------------------------------------
 
 StaticPopupDialogs["ATR_RENAME_SHOPPING_LIST"] = {
-  text = ZT("New name for this list"),
+  text = AUCTIONATOR_SHPLIST_NEW_NAME_TEXT,
   button1 = OKAY,
   button2 = CANCEL,
   OnAccept = function(self)
@@ -1383,7 +1385,7 @@ function Atr_SList_ImportCore (doOverwrite)
           end
         else
           slist = Atr_SList.create (line)
-          zc.msg_anm ("Shopping list created:", line)
+          zc.msg_anm (ZT("Shopping list created:"), line)
         end
       else
         if (slist) then
