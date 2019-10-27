@@ -46,7 +46,7 @@ local function BuildSingleProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = false
-	Bartender4.db.profile.outofrange = "hotkey"
+	Bartender4.db.profile.outofrange = "button"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
