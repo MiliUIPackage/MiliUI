@@ -37,8 +37,9 @@
             True upon frame hiding or element being disabled.
 ]]
 local addon = KuiNameplates
+local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('CastBar')
-local _
+local _,LibCC,UnitCastingInfo,UnitChannelInfo
 
 -- castbar hide causes (first argument of CastBarHide)
 ele.HIDE_FRAME=0
@@ -128,7 +129,7 @@ function ele:CastStart(event,f,unit)
     if not name then return end
 
     f.state.casting            = true
-    f.cast_state.name          = text
+    f.cast_state.name          = text or name
     f.cast_state.icon          = texture
     f.cast_state.guid          = guid
     f.cast_state.interruptible = not notInterruptible
@@ -138,14 +139,24 @@ function ele:CastStart(event,f,unit)
 
     f.handler:CastBarShow()
 end
-function ele:CastStop(event,f,unit,guid)
+function ele:CastStop(event,f,_,guid)
     if not f.state.casting or guid ~= f.cast_state.guid then return end
     f.handler:CastBarHide(
-        (event == 'UNIT_SPELLCAST_INTERRUPTED' and ele.HIDE_INTERRUPT) or
+        ((event == 'UNIT_SPELLCAST_INTERRUPTED' or event == 'UNIT_SPELLCAST_FAILED') and ele.HIDE_INTERRUPT) or
         (event == 'UNIT_SPELLCAST_SUCCEEDED' and ele.HIDE_SUCCESS) or
         ele.HIDE_STOP)
 end
-function ele:CastUpdate(event,f,unit)
+function ele:CastInterruptible(_,f)
+    if not f.state.casting then return end
+    f.cast_state.interruptible = true
+    f.handler:CastBarShow()
+end
+function ele:CastNotInterruptible(_,f)
+    if not f.state.casting then return end
+    f.cast_state.interruptible = false
+    f.handler:CastBarShow()
+end
+function ele:CastUpdate(_,f,unit)
     local startTime,endTime
     if f.cast_state.channel then
         _,_,_,startTime,endTime = UnitChannelInfo(unit)
@@ -163,12 +174,13 @@ function ele:CastUpdate(event,f,unit)
 
     f.handler:CastBarShow()
 end
-function ele:UNIT_SPELLCAST_CHANNEL_STOP(event,f)
+function ele:UNIT_SPELLCAST_CHANNEL_STOP(_,f)
     if not f.state.casting or not f.cast_state.channel then return end
     f.handler:CastBarHide(ele.HIDE_STOP)
 end
 -- enable/disable per frame ####################################################
 function ele:EnableOnFrame(frame)
+    if not self.enabled then return end
     if frame:IsShown() then
         self:Show(frame)
     end
@@ -178,28 +190,85 @@ function ele:DisableOnFrame(frame)
         frame.handler:CastBarHide(ele.HIDE_FRAME,true)
     end
 end
+-- castbar lib callbacks #######################################################
+local function LibCC_Resolve(target,event,unit,...)
+    if not event or not unit then return end
+    local frame = addon:GetActiveNameplateForUnit(unit)
+    if frame then
+        ele[target](ele,event,frame,unit,...)
+    end
+end
+local function LibCC_CastStart(...)
+    LibCC_Resolve('CastStart',...)
+end
+local function LibCC_CastStop(...)
+    LibCC_Resolve('CastStop',...)
+end
+local function LibCC_CastUpdate(...)
+    LibCC_Resolve('CastUpdate',...)
+end
+local function LibCC_ChannelStop(...)
+    LibCC_Resolve('UNIT_SPELLCAST_CHANNEL_STOP',...)
+end
 -- register ####################################################################
+function ele:Initialise()
+    if kui.CLASSIC then
+        LibCC = LibStub('LibClassicCasterino',true)
+        if not LibCC then return end
+
+        UnitCastingInfo = function(unit)
+            return LibCC:UnitCastingInfo(unit)
+        end
+        UnitChannelInfo = function(unit)
+            return LibCC:UnitChannelInfo(unit)
+        end
+    else
+        UnitCastingInfo = _G['UnitCastingInfo']
+        UnitChannelInfo = _G['UnitChannelInfo']
+    end
+end
 function ele:OnDisable()
-    for i,f in addon:Frames() do
+    if LibCC then
+        LibCC.UnregisterAllCallbacks(self)
+    end
+    for _,f in addon:Frames() do
         self:DisableOnFrame(f)
     end
 end
 function ele:OnEnable()
+    if not kui.CLASSIC then
+        self:RegisterUnitEvent('UNIT_SPELLCAST_START','CastStart')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_STOP','CastStop')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_DELAYED','CastUpdate')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_INTERRUPTED','CastStop')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_SUCCEEDED','CastStop')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_FAILED','CastStop')
+
+        self:RegisterUnitEvent('UNIT_SPELLCAST_INTERRUPTIBLE','CastInterruptible')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_NOT_INTERRUPTIBLE','CastNotInterruptible')
+
+        self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_START','CastStart')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_STOP')
+        self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_UPDATE','CastUpdate')
+    elseif LibCC then
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_START',LibCC_CastStart)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_STOP',LibCC_CastStop)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_DELAYED',LibCC_CastUpdate)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_INTERRUPTED',LibCC_CastStop)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_FAILED',LibCC_CastStop)
+
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_CHANNEL_START',LibCC_CastStart)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_CHANNEL_STOP',LibCC_ChannelStop)
+        LibCC.RegisterCallback(self,'UNIT_SPELLCAST_CHANNEL_UPDATE',LibCC_CastUpdate)
+    else
+        return false
+    end
+
     self:RegisterMessage('Create')
     self:RegisterMessage('Show')
     self:RegisterMessage('Hide')
 
-    self:RegisterUnitEvent('UNIT_SPELLCAST_START','CastStart')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_STOP','CastStop')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_DELAYED','CastUpdate')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_INTERRUPTED','CastStop')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_SUCCEEDED','CastStop')
-
-    self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_START','CastStart')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_STOP')
-    self:RegisterUnitEvent('UNIT_SPELLCAST_CHANNEL_UPDATE','CastUpdate')
-
-    for i,f in addon:Frames() do
+    for _,f in addon:Frames() do
         -- run create on missed frames
         self:Create(f)
     end

@@ -20,6 +20,9 @@ local talents = {
     ['HUNTER'] = {
         [22291] = 35 -- Beast Mastery Killer Instinct
     },
+    ['MAGE'] = {
+        [22462] = 30, -- Fire Searing Touch
+    },
     ['PRIEST'] = {
         [23125] = 35 -- Shadow Twist of Fate
     },
@@ -47,10 +50,12 @@ local function GetExecuteRange()
     -- return execute range depending on class/spec/talents
     local r
 
-    if specs[class] then
-        local spec = GetSpecialization()
-        if spec and spec > 0 and specs[class][spec] then
-            r = specs[class][spec]
+    if type(GetSpecialization) == 'function' then
+        if specs[class] then
+            local spec = GetSpecialization()
+            if spec and spec > 0 and specs[class][spec] then
+                r = specs[class][spec]
+            end
         end
     end
 
@@ -98,11 +103,15 @@ function mod:SetExecuteRange(to)
         self:UnregisterEvent('PLAYER_FLAGS_CHANGED')
         self:UnregisterEvent('PLAYER_EQUIPMENT_CHANGED')
         execute_range = to
-    else
+    elseif not kui.CLASSIC then
+        -- force immediate auto-detect
         self:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED')
         self:RegisterEvent('PLAYER_FLAGS_CHANGED','PLAYER_SPECIALIZATION_CHANGED')
         self:RegisterEvent('PLAYER_EQUIPMENT_CHANGED')
         self:PLAYER_SPECIALIZATION_CHANGED()
+    else
+        -- default (only for classic)
+        execute_range = 20
     end
 end
 -- messages ####################################################################
@@ -145,7 +154,7 @@ function mod:HealthColourChange(f,caller)
     end
 end
 -- events ######################################################################
-function mod:UNIT_HEALTH(event,f)
+function mod:UNIT_HEALTH(_,f)
     self:HealthColourChange(f)
 end
 function mod:PLAYER_SPECIALIZATION_CHANGED()

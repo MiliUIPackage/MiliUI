@@ -1,7 +1,6 @@
+-- luacheck:globals DBM BigWigsLoader
 --[[
     Boss mod callback handlers
-    Please contact me on Curse or IRC (Kesava @ freenode, #wowace) if you want
-    me to add support for your messages.
 
     Expected order of calls:
 
@@ -52,23 +51,21 @@ local L_HOSTILE = 'hostile'
 
 local ICON_SIZE, ICON_X_OFFSET, ICON_Y_OFFSET = 30,0,0
 local CONTROL_VISIBILITY = true
-local DECIMAL_THRESHOLD = 1
 local CLICKTHROUGH = false
 
 local plugin_ct,active_boss_auras
 local hidden_auras,num_hidden_auras,enable_warned
 local prev_show_enemies,prev_show_friends
-local GetNamePlateForUnit
 local select = select
 
 -- callback registrars #########################################################
 local RegisterAddon,UnregisterAddon,registered
 do
-    local function Wrapper_DBM_ShowAura(msg,unitType,...)
+    local function Wrapper_DBM_ShowAura(_,unitType,...)
         unitType = (unitType == true or unitType == 'guid') and true or nil
         mod:BigWigs_ShowNameplateAura(unitType,...)
     end
-    local function Wrapper_DBM_HideAura(msg,unitType,...)
+    local function Wrapper_DBM_HideAura(_,unitType,...)
         unitType = (unitType == true or unitType == 'guid') and true or nil
         mod:BigWigs_HideNameplateAura(unitType,...)
     end
@@ -83,16 +80,16 @@ do
         ['BigWigs'] = function(r)
             if not BigWigsLoader then return end
             if r then
-                BigWigsLoader.RegisterMessage(mod,'BigWigs_ShowNameplateAura',function(msg,sender,...)
+                BigWigsLoader.RegisterMessage(mod,'BigWigs_ShowNameplateAura',function(_,_,...)
                     mod:BigWigs_ShowNameplateAura(select(5,...),...)
                 end)
-                BigWigsLoader.RegisterMessage(mod,'BigWigs_HideNameplateAura',function(msg,sender,...)
+                BigWigsLoader.RegisterMessage(mod,'BigWigs_HideNameplateAura',function(_,_,...)
                     mod:BigWigs_HideNameplateAura(select(3,...),...)
                 end)
-                BigWigsLoader.RegisterMessage(mod,'BigWigs_AddNameplateIcon',function(msg,sender,...)
+                BigWigsLoader.RegisterMessage(mod,'BigWigs_AddNameplateIcon',function(_,_,...)
                     mod:BigWigs_ShowNameplateAura(true,...)
                 end)
-                BigWigsLoader.RegisterMessage(mod,'BigWigs_RemoveNameplateIcon',function(msg,sender,...)
+                BigWigsLoader.RegisterMessage(mod,'BigWigs_RemoveNameplateIcon',function(_,_,...)
                     mod:BigWigs_HideNameplateAura(true,...)
                 end)
                 BigWigsLoader.RegisterMessage(mod,'BigWigs_DisableFriendlyNameplates')
@@ -155,18 +152,15 @@ end
 -- local functions #############################################################
 local function GetFrameByGUID(guid)
     -- TODO store guids => frames OnShow/Hide
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         if f:IsShown() and UnitGUID(f.unit) == guid then
             return f
         end
     end
 end
 local function GetFrameByName(name)
-    -- wrapper for GetNamePlateForUnit, return kui frame
-    local f = GetNamePlateForUnit(name)
-    if f then
-        return f.kui
-    end
+    -- syntactic wrapper for GetActiveNameplateForUnit
+    return addon:GetActiveNameplateForUnit(name)
 end
 local function AddToHiddenAuras(guid)
     -- maintain a list of auras which are currently off-screen for efficiency
@@ -264,7 +258,7 @@ local function ShowNameplateAuras(f, auras_tbl)
     if not f or not auras_tbl or not f.BossModAuraFrame then return end
     if #auras_tbl == 0 then return end
 
-    for i,icon_tbl in ipairs(auras_tbl) do
+    for _,icon_tbl in ipairs(auras_tbl) do
         ShowNameplateAura(f,icon_tbl)
     end
 end
@@ -284,7 +278,7 @@ local function HideNameplateAura(f,icon)
     end
 end
 local function HideAllAuras()
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         if f:IsShown() then
             HideNameplateAura(f)
         end
@@ -460,7 +454,7 @@ function mod:BigWigs_ShowNameplateAura(is_guid,name,icon,duration,desaturate)
     AddActiveAura(guid, {
         icon,
         desaturate,
-        duration and GetTime()+duration
+        duration and GetTime()+duration,
     })
 
     -- immediately show new aura if frame is currently visible
@@ -534,6 +528,7 @@ function mod:Create(f)
         point = {'BOTTOMLEFT','LEFT','RIGHT'}
     })
     f.BossModAuraFrame:Hide()
+
     self:UpdateFrame(f)
 end
 -- mod functions ###############################################################
@@ -544,9 +539,7 @@ function mod:UpdateFrame(f)
     local width = (ICON_SIZE * 3) + (1 * 2)
     f.BossModAuraFrame:SetSize(width,1)
     f.BossModAuraFrame:SetIconSize(ICON_SIZE)
-    f.BossModAuraFrame:SetPoint('BOTTOMLEFT', f, 'TOPLEFT',
-        floor((f:GetWidth() / 2) - (width / 2)) + ICON_X_OFFSET,
-        ICON_Y_OFFSET)
+    f.BossModAuraFrame:SetPoint('BOTTOM',f,'TOP',ICON_X_OFFSET,ICON_Y_OFFSET)
 end
 function mod:UpdateConfig()
     if not self.enabled then return end
@@ -559,7 +552,7 @@ function mod:UpdateConfig()
         CLICKTHROUGH = addon.layout.BossModIcon.clickthrough
     end
 
-    for i,f in addon:Frames() do
+    for _,f in addon:Frames() do
         -- update aura frame on existing frames
         self:UpdateFrame(f)
     end
@@ -567,14 +560,13 @@ end
 -- register ####################################################################
 function mod:OnEnable()
     if BigWigsLoader or DBM then
-        GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
         plugin_ct = addon:GetPlugin('CombatToggle')
 
         self:RegisterMessage('Show')
         self:RegisterMessage('Hide')
         self:RegisterMessage('Create')
 
-        for i,f in addon:Frames() do
+        for _,f in addon:Frames() do
             -- create on existing frames
             if not f.BossModAuraFrame then
                 self:Create(f)
@@ -582,7 +574,7 @@ function mod:OnEnable()
         end
 
         -- register addons' Enable callbacks
-        if DBM then
+        if DBM and DBM.RegisterCallback then
             DBM:RegisterCallback('BossMod_EnableFriendlyNameplates',function(...)
                 mod:BigWigs_EnableFriendlyNameplates(...)
             end)

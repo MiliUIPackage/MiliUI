@@ -71,40 +71,15 @@
 
 ]]
 local addon = KuiNameplates
+local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('ClassPowers')
-local _,class,power_type,power_type_tag,highlight_at,cpf,initialised
+local class,power_type,power_type_tag,highlight_at,cpf,initialised
 local power_mod,power_display_partial
 local on_target
 local orig_SetVertexColor
--- power types by class/spec
-local powers = {
-    DEATHKNIGHT = Enum.PowerType.Runes,
-    DRUID       = { [2] = Enum.PowerType.ComboPoints },
-    PALADIN     = { [3] = Enum.PowerType.HolyPower },
-    ROGUE       = Enum.PowerType.ComboPoints,
-    MAGE        = { [1] = Enum.PowerType.ArcaneCharges },
-    MONK        = { [1] = 'stagger', [3] = Enum.PowerType.Chi },
-    WARLOCK     = Enum.PowerType.SoulShards,
-    --PRIEST      = Enum.PowerType.Mana,
-}
--- tags returned by the UNIT_POWER and UNIT_MAXPOWER events
-local power_tags = {
-    [Enum.PowerType.Runes]          = 'RUNES',
-    [Enum.PowerType.ComboPoints]   = 'COMBO_POINTS',
-    [Enum.PowerType.HolyPower]     = 'HOLY_POWER',
-    [Enum.PowerType.ArcaneCharges] = 'ARCANE_CHARGES',
-    [Enum.PowerType.Chi]            = 'CHI',
-    [Enum.PowerType.SoulShards]    = 'SOUL_SHARDS',
-    --[Enum.PowerType.Mana]           = 'MANA',
-}
--- power types which render as a bar
-local bar_powers = {
-    ['stagger'] = true,
-    --[Enum.PowerType.Mana] = true
-}
+local powers,power_tags,bar_powers
 -- icon config
 local colours = {
-    --PRIEST      = { 0,0,1 },
     DEATHKNIGHT = { 1, .2, .3 },
     DRUID       = { 1, 1, .1 },
     PALADIN     = { 1, 1, .1 },
@@ -278,7 +253,7 @@ local function UpdateIcons()
         power_max = UnitPowerMax('player',power_type)
     end
 
-    if bar_powers[power_type] then
+    if bar_powers and bar_powers[power_type] then
         -- create/update power bar
         if cpf.icons then
             -- destroy existing icons
@@ -321,7 +296,7 @@ local function UpdateIcons()
 
             if ICON_SPRITE then
                 -- reset icons to filled
-                for i,icon in ipairs(cpf.icons) do
+                for _,icon in ipairs(cpf.icons) do
                     icon:GraduateFill(1)
                 end
             end
@@ -420,20 +395,18 @@ local function PositionFrame()
     end
 
     local frame
-
     if on_target then
         if UnitIsPlayer('target') or UnitCanAttack('player','target') then
-            frame = C_NamePlate.GetNamePlateForUnit('target')
-
-            if frame and frame.kui.state.reaction <= 4 then
-                frame = frame.kui
-            else
+            frame = addon:GetActiveNameplateForUnit('target')
+            if  not frame or
+                not frame.state.reaction or
+                frame.state.reaction > 4
+            then
                 frame = nil
             end
         end
     else
-        frame = C_NamePlate.GetNamePlateForUnit('player')
-        frame = frame and frame.kui or nil
+        frame = addon:GetActiveNameplateForUnit('player')
     end
 
     if not FRAME_POINT or not frame then
@@ -467,7 +440,7 @@ local function RuneDaemon_OnUpdate(self,elap)
         self.active = nil
         self.elap = 0
 
-        for k,icon in ipairs(cpf.icons) do
+        for _,icon in ipairs(cpf.icons) do
             if icon.startTime and icon.duration then
                 self.active = true
                 icon:GraduateFill((GetTime() - icon.startTime) / icon.duration)
@@ -487,7 +460,7 @@ function ele:UpdateConfig()
         return
     end
 
-    on_target         = addon.layout.ClassPowers.on_target
+    on_target         = kui.CLASSIC or addon.layout.ClassPowers.on_target
     ICON_SIZE         = addon.layout.ClassPowers.icon_size or 10
     ICON_SPACING      = addon.layout.ClassPowers.icon_spacing or 1
     ICON_TEXTURE      = addon.layout.ClassPowers.icon_texture
@@ -527,7 +500,7 @@ function ele:UpdateConfig()
 
         if cpf.icons then
             -- update icons
-            for k,i in ipairs(cpf.icons) do
+            for _,i in ipairs(cpf.icons) do
                 i:SetSize(ICON_SIZE,ICON_SIZE)
 
                 if ICON_SPRITE then
@@ -557,7 +530,7 @@ function ele:UpdateConfig()
     end
 end
 -- messages ####################################################################
-function ele:TargetUpdate(f)
+function ele:TargetUpdate()
     PositionFrame()
 end
 -- events ######################################################################
@@ -665,7 +638,7 @@ function ele:PowerInit()
         cpf:Hide()
     end
 end
-function ele:RuneUpdate(event)
+function ele:RuneUpdate()
     -- set/clear cooldown on rune icons
     for i=1,6 do
         local startTime, duration, charged = GetRuneCooldown(i)
@@ -724,7 +697,7 @@ function ele:StaggerUpdate()
         cpf.bar:Show()
     end
 end
-function ele:PowerEvent(event,unit,power_type_rcv)
+function ele:PowerEvent(event,_,power_type_rcv)
     -- validate power events + passthrough to PowerUpdate
     if power_type_rcv ~= power_type_tag then return end
 
@@ -738,7 +711,7 @@ function ele:UPDATE_SHAPESHIFT_FORM()
     self:PowerInit()
 end
 function ele:Paladin_WatchFiresOfJustice(_,unit)
-    -- TODO it would probably be more efficient to watch the combat log for this
+    -- TODO it would definitely be more efficient to watch the combat log for this
     if AuraUtil.FindAura(AuraUtil_IDPredicate,unit,nil,FIRES_OF_JUSTICE_SPELL_ID) then
         highlight_at = 2
     else
@@ -774,10 +747,12 @@ function ele:OnEnable()
 
     self:UpdateConfig()
 
-    -- This event is sometimes spammed upon entering/leaving instanced PVP.
-    -- It's always called at least once, and during this first call,
-    -- UnitPowerMax returns 0 for some reason. (#125)
-    self:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED','PowerInit')
+    if not kui.CLASSIC then
+        -- This event is sometimes spammed upon entering/leaving instanced PVP.
+        -- It's always called at least once, and during this first call,
+        -- UnitPowerMax returns 0 for some reason. (#125)
+        self:RegisterEvent('PLAYER_SPECIALIZATION_CHANGED','PowerInit')
+    end
 
     self:PowerInit()
 end
@@ -800,11 +775,12 @@ function ele:Initialised()
     end
 
     -- create icon frame container
+    -- (which also serves as an event frame for non-KNP unit events)
     cpf = CreateFrame('Frame')
     cpf:SetSize(2,2)
     cpf:SetPoint('CENTER')
     cpf:Hide()
-    cpf:SetScript('OnEvent',function(self,event,...)
+    cpf:SetScript('OnEvent',function(_,event,...)
         ele[event](ele,event,...)
     end)
 
@@ -826,4 +802,39 @@ function ele:Initialise()
     self:RegisterCallback('PostRuneUpdate')
     self:RegisterCallback('PostPowerUpdate')
     self:RegisterCallback('PostPositionFrame')
+
+    -- initialise powers
+    if kui.CLASSIC then
+        -- power types by class/spec
+        powers = {
+            DRUID = Enum.PowerType.ComboPoints,
+            ROGUE = Enum.PowerType.ComboPoints,
+        }
+        -- tags returned by the UNIT_POWER and UNIT_MAXPOWER events
+        power_tags = {
+            [Enum.PowerType.ComboPoints] = 'COMBO_POINTS',
+        }
+    else
+        powers = {
+            DEATHKNIGHT = Enum.PowerType.Runes,
+            DRUID       = { [2] = Enum.PowerType.ComboPoints },
+            PALADIN     = { [3] = Enum.PowerType.HolyPower },
+            ROGUE       = Enum.PowerType.ComboPoints,
+            MAGE        = { [1] = Enum.PowerType.ArcaneCharges },
+            MONK        = { [1] = 'stagger', [3] = Enum.PowerType.Chi },
+            WARLOCK     = Enum.PowerType.SoulShards,
+        }
+        power_tags = {
+            [Enum.PowerType.Runes]         = 'RUNES',
+            [Enum.PowerType.ComboPoints]   = 'COMBO_POINTS',
+            [Enum.PowerType.HolyPower]     = 'HOLY_POWER',
+            [Enum.PowerType.ArcaneCharges] = 'ARCANE_CHARGES',
+            [Enum.PowerType.Chi]           = 'CHI',
+            [Enum.PowerType.SoulShards]    = 'SOUL_SHARDS',
+        }
+        -- power types which render as a bar
+        bar_powers = {
+            ['stagger'] = true,
+        }
+    end
 end

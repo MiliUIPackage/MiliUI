@@ -1,3 +1,5 @@
+-- luacheck:globals SLASH_KUINAMEPLATES_LOD1 SLASH_KUINAMEPLATES_LOD2
+-- luacheck:globals KuiNameplatesCore
 --------------------------------------------------------------------------------
 -- Kui Nameplates
 -- By Kesava at curse.com
@@ -5,7 +7,6 @@
 --------------------------------------------------------------------------------
 -- handle messages, events, initialise
 --------------------------------------------------------------------------------
-local folder,ns=...
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 
@@ -42,6 +43,7 @@ function core:Show(f)
     -- state helpers
     f.state.friend = UnitIsFriend('player',f.unit)
     f.state.class = select(2,UnitClass(f.unit))
+    f.state.player = UnitIsPlayer(f.unit)
 
     -- go into nameonly mode if desired
     self:NameOnlyUpdate(f)
@@ -89,15 +91,19 @@ function core:HealthColourChange(f)
     f.state.friend = UnitIsFriend('player',f.unit)
 
     -- update nameonly upon faction changes
-    self:NameOnlyUpdate(f)
-    self:NameOnlyUpdateFunctions(f)
+    self:NameOnlyCombatUpdate(f)
 end
 function core:PowerTypeUpdate(f)
     f:UpdatePowerBar()
 end
 function core:GlowColourChange(f)
-    f:UpdateFrameGlow()
-    f:UpdateThreatBrackets()
+    -- update nameonly upon threat state changes
+    self:NameOnlyCombatUpdate(f)
+
+    -- update to show name of units which are in combat with the player
+    self:ShowNameUpdate(f)
+    f:UpdateFrameSize()
+    f:UpdateNameText()
 end
 function core:CastBarShow(f)
     f:ShowCastBar()
@@ -149,11 +155,6 @@ end
 function core:Combat(f)
     -- enable/disable nameonly if enabled on enemies
     self:NameOnlyCombatUpdate(f)
-
-    -- update to show name of units which are in combat with the player
-    self:ShowNameUpdate(f)
-    f:UpdateFrameSize()
-    f:UpdateNameText()
 end
 -- events ######################################################################
 function core:QUEST_POI_UPDATE()
@@ -167,7 +168,7 @@ function core:QUEST_POI_UPDATE()
         end
     end
 end
-function core:UNIT_NAME_UPDATE(event,f)
+function core:UNIT_NAME_UPDATE(_,f)
     -- update name text colour
     f:UpdateNameText()
 end
@@ -280,6 +281,7 @@ do
     fade_rules.fade_friendly_npc = { function(f)
         if  f.state.reaction >= 4 and
             not UnitIsPlayer(f.unit) and
+            -- (^ this can't use the layout's state helper)
             not UnitCanAttack('player',f.unit)
         then
             return (not friendly_npc_exclude_titled or
@@ -374,7 +376,10 @@ function core:Initialise()
     self:RegisterMessage('Combat')
 
     -- register events
-    self:RegisterEvent('QUEST_POI_UPDATE')
+    if not kui.CLASSIC then
+        self:RegisterEvent('QUEST_POI_UPDATE')
+    end
+
     self:RegisterUnitEvent('UNIT_NAME_UPDATE')
 
     -- register callbacks

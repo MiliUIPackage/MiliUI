@@ -3,9 +3,8 @@
 -- By Kesava at curse.com
 -- All rights reserved
 --------------------------------------------------------------------------------
--- element create/update functions
--- draw layers -----------------------------------------------------------------
---
+-- layout's element create/update functions
+-- draw layers reference -------------------------------------------------------
 -- HealthBar/CastBar ###########################################################
 -- ARTWORK
 -- powerbar spark = 7
@@ -35,14 +34,12 @@
 -- threat brackets = 0
 -- frame glow = -5
 -- target glow = -5
---
 --------------------------------------------------------------------------------
-local folder,ns=...
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local LSM = LibStub('LibSharedMedia-3.0')
 local KSL = LibStub('KuiSpellList-2.0')
-local core = KuiNameplatesCore
+local core = KuiNameplatesCore --luacheck:globals KuiNameplatesCore
 
 -- frame fading plugin - called by some update functions
 local plugin_fading
@@ -59,15 +56,20 @@ local UnitIsPlayer,UnitShouldDisplayName,
 local KUI_MEDIA = 'interface/addons/kui_media/'
 local MEDIA = 'interface/addons/kui_nameplates_core/media/'
 
+-- global enum tables (XXX used by auras only at the moment)
+local POINT_X_ASSOC = { 'LEFT', 'CENTER', 'RIGHT' }
+local POINT_Y_ASSOC = { 'TOP', 'CENTER', 'BOTTOM' }
+
 local FRAME_WIDTH,FRAME_HEIGHT,FRAME_WIDTH_MINUS,FRAME_HEIGHT_MINUS,
       FRAME_WIDTH_PERSONAL,FRAME_HEIGHT_PERSONAL,POWER_BAR_HEIGHT,
       FONT,FONT_STYLE,FONT_SHADOW,FONT_SIZE_NORMAL,
-      FONT_SIZE_SMALL,TEXT_VERTICAL_OFFSET,NAME_VERTICAL_OFFSET,
+      FONT_SIZE_SMALL,NAME_VERTICAL_OFFSET,
       BOT_VERTICAL_OFFSET,BAR_TEXTURE,BAR_ANIMATION,
       SHOW_HEALTH_TEXT,SHOW_NAME_TEXT,SHOW_ARENA_ID,GUILD_TEXT_NPCS,
       GUILD_TEXT_PLAYERS,TITLE_TEXT_PLAYERS,HEALTH_TEXT_FRIEND_MAX,
       HEALTH_TEXT_FRIEND_DMG,HEALTH_TEXT_HOSTILE_MAX,HEALTH_TEXT_HOSTILE_DMG,
-      HIDE_NAMES,GLOBAL_SCALE,FRAME_VERTICAL_OFFSET
+      HIDE_NAMES,GLOBAL_SCALE,FRAME_VERTICAL_OFFSET,
+      MOUSEOVER_HIGHLIGHT,HIGHLIGHT_OPACITY
 
 local FADE_UNTRACKED,FADE_AVOID_NAMEONLY,FADE_AVOID_MOUSEOVER,
       FADE_AVOID_TRACKED,FADE_AVOID_COMBAT,FADE_AVOID_CASTING
@@ -75,6 +77,7 @@ local TARGET_ARROWS,TARGET_ARROWS_SIZE,TARGET_ARROWS_INSET
 local TARGET_GLOW,TARGET_GLOW_COLOUR,FRAME_GLOW_THREAT,FRAME_GLOW_SIZE,
       GLOW_AS_SHADOW,MOUSEOVER_GLOW,MOUSEOVER_GLOW_COLOUR
 local THREAT_BRACKETS,THREAT_BRACKETS_SIZE
+local CASTBAR_DETACH
 
 -- helper functions ############################################################
 local CreateStatusBar
@@ -94,15 +97,15 @@ do
         end
     end
 
-    local function FilledBar_SetStatusBarColor(self,...)
-        self:orig_SetStatusBarColor(...)
+    local function FilledBar_SetStatusBarColor(self,r,g,b,a)
+        self:orig_SetStatusBarColor(r,g,b,a)
 
         if self.fill then
-            self.fill:SetVertexColor(...)
+            self.fill:SetVertexColor(r,g,b)
         end
 
         if self.spark then
-            self.spark:SetVertexColor(kui.Brighten(.3,...))
+            self.spark:SetVertexColor(kui.Brighten(.3,r,g,b,a))
         end
     end
     local function FilledBar_Show(self)
@@ -136,7 +139,7 @@ do
 
         if spark then
             local texture = bar:GetStatusBarTexture()
-            local spark = bar:CreateTexture(nil,'ARTWORK',nil,spark_level or 7)
+            spark = bar:CreateTexture(nil,'ARTWORK',nil,spark_level or 7)
             spark:SetTexture(KUI_MEDIA..'t/spark')
             spark:SetWidth(12)
 
@@ -163,7 +166,8 @@ local function UpdateFontObject(object)
     if not object then return end
     object:SetFont(
         FONT,
-        object.fontobject_small and FONT_SIZE_SMALL or FONT_SIZE_NORMAL,
+        object.fontobject_size or (object.fontobject_small and
+         FONT_SIZE_SMALL or FONT_SIZE_NORMAL),
         not object.fontobject_no_style and FONT_STYLE or nil
     )
 
@@ -190,6 +194,18 @@ end
 local function ScaleTextOffset(v)
     return floor(Scale(v)) - .5
 end
+local function ResolvePointPair(x,y)
+    -- convert x/y to single point
+    if x == 2 and y == 2 then
+        return 'CENTER'
+    elseif x == 2 then
+        return POINT_Y_ASSOC[y]
+    elseif y == 2 then
+        return POINT_X_ASSOC[x]
+    else
+        return POINT_Y_ASSOC[y]..POINT_X_ASSOC[x]
+    end
+end
 -- config functions ############################################################
 do
     local FONT_STYLE_ASSOC = {
@@ -207,6 +223,7 @@ do
         FONT = LSM:Fetch(LSM.MediaType.FONT,core.profile.font_face)
     end
     function core:SetLocals()
+        -- set config locals to reduce table lookup
         UpdateMediaLocals()
 
         GLOBAL_SCALE = self.profile.global_scale
@@ -219,6 +236,8 @@ do
         TARGET_GLOW_COLOUR = self.profile.target_glow_colour
         MOUSEOVER_GLOW = self.profile.mouseover_glow
         MOUSEOVER_GLOW_COLOUR = self.profile.mouseover_glow_colour
+        MOUSEOVER_HIGHLIGHT = self.profile.mouseover_highlight
+        HIGHLIGHT_OPACITY = self.profile.mouseover_highlight_opacity
         GLOW_AS_SHADOW = self.profile.glow_as_shadow
 
         THREAT_BRACKETS = self.profile.threat_brackets
@@ -236,9 +255,8 @@ do
         FRAME_GLOW_SIZE = Scale(self.profile.frame_glow_size)
         FRAME_GLOW_THREAT = self.profile.frame_glow_threat
 
-        TEXT_VERTICAL_OFFSET = self.profile.text_vertical_offset
-        NAME_VERTICAL_OFFSET = ScaleTextOffset(TEXT_VERTICAL_OFFSET+self.profile.name_vertical_offset)
-        BOT_VERTICAL_OFFSET = ScaleTextOffset(TEXT_VERTICAL_OFFSET+self.profile.bot_vertical_offset)
+        NAME_VERTICAL_OFFSET = ScaleTextOffset(self.profile.name_vertical_offset)
+        BOT_VERTICAL_OFFSET = ScaleTextOffset(self.profile.bot_vertical_offset)
 
         FONT_STYLE = FONT_STYLE_ASSOC[self.profile.font_style]
         FONT_SHADOW = self.profile.font_style == 3 or self.profile.font_style == 4
@@ -268,8 +286,10 @@ do
         GUILD_TEXT_NPCS = self.profile.guild_text_npcs
         GUILD_TEXT_PLAYERS = self.profile.guild_text_players
         TITLE_TEXT_PLAYERS = self.profile.title_text_players
+
+        CASTBAR_DETACH = self.profile.castbar_detach
     end
-    function core:LSMMediaRegistered(msg,mediatype,key)
+    function core:LSMMediaRegistered(_,mediatype,key)
         -- callback registered in config.lua:InitialiseConfig
         if mediatype == LSM.MediaType.STATUSBAR and key == self.profile.bar_texture or
            mediatype == LSM.MediaType.FONT and key == self.profile.font_face
@@ -280,14 +300,14 @@ do
 end
 function core:configChangedTargetArrows()
     if not TARGET_ARROWS then return end
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         if not f.TargetArrows then
             self:CreateTargetArrows(f)
         end
     end
 end
 function core:configChangedFrameSize()
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         if f.Auras and f.Auras.frames then
             -- force auras frame size + position update
             if f.Auras.frames.core_dynamic then
@@ -300,43 +320,33 @@ function core:configChangedFrameSize()
     end
 end
 function core:configChangedTextOffset()
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         f:UpdateNameTextPosition()
         f:UpdateSpellNamePosition()
 
         if f.Auras and f.Auras.frames then
             -- update aura text
             for _,frame in pairs(f.Auras.frames) do
-                if frame.__core then
-                    for _,button in ipairs(frame.buttons) do
-                        self.Auras_PostCreateAuraButton(frame,button)
-                    end
+                for _,button in ipairs(frame.buttons) do
+                    self.Auras_PostCreateAuraButton(frame,button)
                 end
             end
         end
     end
 end
-do
-    function core.AurasButton_SetFont(button)
-        UpdateFontObject(button.cd)
-        UpdateFontObject(button.count)
-    end
-    function core:configChangedFontOption()
-        -- update font objects
-        for i,f in addon:Frames() do
-            UpdateFontObject(f.NameText)
-            UpdateFontObject(f.GuildText)
-            UpdateFontObject(f.SpellName)
-            UpdateFontObject(f.HealthText)
-            UpdateFontObject(f.LevelText)
+function core:configChangedFontOption()
+    -- update font objects
+    for _,f in addon:Frames() do
+        UpdateFontObject(f.NameText)
+        UpdateFontObject(f.GuildText)
+        UpdateFontObject(f.SpellName)
+        UpdateFontObject(f.HealthText)
+        UpdateFontObject(f.LevelText)
 
-            if f.Auras and f.Auras.frames then
-                for _,frame in pairs(f.Auras.frames) do
-                    if frame.__core then
-                        for _,button in ipairs(frame.buttons) do
-                            self.AurasButton_SetFont(button)
-                        end
-                    end
+        if f.Auras and f.Auras.frames then
+            for _,frame in pairs(f.Auras.frames) do
+                for _,button in ipairs(frame.buttons) do
+                    self.AurasButton_SetFont(button)
                 end
             end
         end
@@ -353,7 +363,7 @@ do
         end
     end
     function core:configChangedBarTexture()
-        for i,f in addon:Frames() do
+        for _,f in addon:Frames() do
             UpdateStatusBar(f.CastBar)
             UpdateStatusBar(f.Highlight)
             UpdateStatusBar(f.HealthBar)
@@ -371,7 +381,7 @@ do
     end
 end
 function core:SetBarAnimation()
-    for i,f in addon:Frames() do
+    for _,f in addon:Frames() do
         f.handler:SetBarAnimation(f.HealthBar,BAR_ANIMATION)
         f.handler:SetBarAnimation(f.PowerBar,BAR_ANIMATION)
 
@@ -388,25 +398,18 @@ end
 local function UpdateFrameSize(f)
     -- set frame size and position
     if f.state.minus then
-        f:SetSize(FRAME_WIDTH_MINUS+10,FRAME_HEIGHT_MINUS+20)
-        f.bg:SetSize(FRAME_WIDTH_MINUS,FRAME_HEIGHT_MINUS)
+        f:SetSize(FRAME_WIDTH_MINUS,FRAME_HEIGHT_MINUS)
     elseif f.state.personal then
-        f:SetSize(FRAME_WIDTH_PERSONAL+10,FRAME_HEIGHT_PERSONAL+20)
-        f.bg:SetSize(FRAME_WIDTH_PERSONAL,FRAME_HEIGHT_PERSONAL)
+        f:SetSize(FRAME_WIDTH_PERSONAL,FRAME_HEIGHT_PERSONAL)
     else
-        f:SetSize(FRAME_WIDTH+10,FRAME_HEIGHT+20)
-        f.bg:SetSize(FRAME_WIDTH,FRAME_HEIGHT)
+        f:SetSize(FRAME_WIDTH,FRAME_HEIGHT)
     end
 
     if f.state.no_name and not f.state.personal then
-        f.bg:SetHeight(FRAME_HEIGHT_MINUS)
+        f:SetHeight(FRAME_HEIGHT_MINUS)
     end
 
-    -- calculate point to remain pixel-perfect
-    f.x = floor((f:GetWidth() / 2) - (f.bg:GetWidth() / 2))
-    f.y = floor((f:GetHeight() / 2) - (f.bg:GetHeight() / 2))
-
-    f.bg:SetPoint('BOTTOMLEFT',f.x,f.y + FRAME_VERTICAL_OFFSET)
+    f:SetPoint('CENTER',0,FRAME_VERTICAL_OFFSET)
 
     f:UpdateMainBars()
     f:SpellIconSetWidth()
@@ -416,6 +419,11 @@ function core:CreateBackground(f)
     local bg = f:CreateTexture(nil,'BACKGROUND',nil,1)
     bg:SetTexture(kui.m.t.solid)
     bg:SetVertexColor(0,0,0,.9)
+    bg:SetAllPoints(f)
+
+    -- in UpdateFrameSize,
+    -- we override the frame position + size to use it as the background
+    f:ClearAllPoints()
 
     f.bg = bg
     f.UpdateFrameSize = UpdateFrameSize
@@ -423,7 +431,19 @@ end
 -- highlight ###################################################################
 do
     local function UpdateHighlight(f)
-        -- run functions which depend on f.state.highlight
+        if MOUSEOVER_HIGHLIGHT then
+            if not f.Highlight then
+                core:CreateHighlight(f)
+            end
+
+            f.Highlight:SetVertexColor(1,1,1,HIGHLIGHT_OPACITY)
+            f.handler:EnableElement('Highlight')
+        elseif f.Highlight and f.elements.Highlight then
+            f.handler:DisableElement('Highlight')
+        end
+
+        -- functions which depend on f.state.glow from Highlight
+        -- (which is set regardless of the element being enabled)
         if MOUSEOVER_GLOW then
             f:UpdateFrameGlow()
         end
@@ -431,15 +451,16 @@ do
             plugin_fading:UpdateFrame(f)
         end
     end
-    function core:CreateHighlight(f) -- Always created
+    function core:CreateHighlight(f)
+        f.UpdateHighlight = UpdateHighlight
+
+        if not MOUSEOVER_HIGHLIGHT then return end
+
         local highlight = f.HealthBar:CreateTexture(nil,'ARTWORK',nil,2)
         highlight:SetTexture(BAR_TEXTURE)
         highlight:SetAllPoints(f.HealthBar)
-        highlight:SetVertexColor(1,1,1,.4)
         highlight:SetBlendMode('ADD')
         highlight:Hide()
-
-        f.UpdateHighlight = UpdateHighlight
 
         f.handler:RegisterElement('Highlight',highlight)
     end
@@ -509,12 +530,12 @@ do
     local ABSORB_ENABLE,ABSORB_STRIPED,ABSORB_COLOUR
 
     function core:configChangedAbsorb()
-        ABSORB_ENABLE = self.profile.absorb_enable
+        ABSORB_ENABLE = not kui.CLASSIC and self.profile.absorb_enable
         ABSORB_STRIPED = self.profile.absorb_striped
         ABSORB_COLOUR = self.profile.colour_absorb
 
         if ABSORB_ENABLE then
-            for k,f in addon:Frames() do
+            for _,f in addon:Frames() do
                 if not f.AbsorbBar then
                     self:CreateAbsorbBar(f)
                 else
@@ -714,7 +735,7 @@ do
             f.LevelText:ClearAllPoints()
 
             if f.state.no_name then
-                f.LevelText:SetPoint('LEFT',2,TEXT_VERTICAL_OFFSET)
+                f.LevelText:SetPoint('LEFT',2,0)
             else
                 f.LevelText:SetPoint('BOTTOMLEFT',2,BOT_VERTICAL_OFFSET)
             end
@@ -781,7 +802,7 @@ do
             f.HealthText:ClearAllPoints()
 
             if f.state.no_name then
-                f.HealthText:SetPoint('RIGHT',-2,TEXT_VERTICAL_OFFSET)
+                f.HealthText:SetPoint('RIGHT',-2,0)
             else
                 f.HealthText:SetPoint('BOTTOMRIGHT',-2,BOT_VERTICAL_OFFSET)
             end
@@ -825,29 +846,59 @@ do
 end
 -- frame glow ##################################################################
 do
+    local GLOW_POINTS = {
+        { 'BOTTOMRIGHT', 'TOPLEFT', 1, -1 },
+        { { 'BOTTOMLEFT', 'TOPLEFT', 1, -1 },
+          { 'BOTTOMRIGHT', 'TOPRIGHT', -1, -1 }
+        },
+        { 'BOTTOMLEFT', 'TOPRIGHT', -1, -1 },
+        { { 'TOPLEFT', 'TOPRIGHT', -1, -1 },
+          { 'BOTTOMLEFT', 'BOTTOMRIGHT', -1, 1 }
+        },
+        { 'TOPLEFT', 'BOTTOMRIGHT', -1, 1 },
+        { { 'TOPRIGHT', 'BOTTOMRIGHT', -1, 1 },
+          { 'TOPLEFT', 'BOTTOMLEFT', 1, 1 }
+        },
+        { 'TOPRIGHT', 'BOTTOMLEFT', 1, 1 },
+        { { 'BOTTOMRIGHT', 'BOTTOMLEFT', 1, 1 },
+          { 'TOPRIGHT', 'TOPLEFT', 1, -1 }
+        }
+    }
+    local GLOW_TEXTURE_COORDS = {
+        { 0, .5, 0, .5 }, -- top left
+        { .5, 1, 0, .5 }, -- top
+        { .5, 0, 0, .5 }, -- top right
+        { .5, 0, .5, 1 }, -- right
+        { .5, 0, .5, 0 }, -- bottom right
+        { .5, 1, .5, 0 }, -- bottom
+        { 0, .5, .5, 0 }, -- bottom left
+        { 0, .5, .5, 1 }, -- left
+    }
+
     -- frame glow prototype
     local glow_prototype = {}
     glow_prototype.__index = glow_prototype
     function glow_prototype:SetVertexColor(...)
         for _,side in ipairs(self.sides) do
-            side:SetVertexColor(...)
+            local r,g,b,a = ...
+            a = (a or 1) * .6
+            side:SetVertexColor(r,g,b,a)
         end
     end
-    function glow_prototype:Show(...)
+    function glow_prototype:Show()
         for _,side in ipairs(self.sides) do
-            side:Show(...)
+            side:Show()
         end
     end
-    function glow_prototype:Hide(...)
+    function glow_prototype:Hide()
         for _,side in ipairs(self.sides) do
-            side:Hide(...)
+            side:Hide()
         end
     end
-    function glow_prototype:SetSize(...)
-        local size = ...
+    function glow_prototype:SetSize(size)
         if not tonumber(size) then return end
-        for i,side in ipairs(self.sides) do
-            side:SetHeight(size)
+        for _,side in ipairs(self.sides) do
+            side:SetSize(size,size)
         end
     end
     function glow_prototype:SetAlpha(...)
@@ -856,9 +907,12 @@ do
         end
     end
 
+    -- update
     local function UpdateFrameGlow(f)
+        -- update colour of ThreatGlow or NameOnlyGlow
         if f.IN_NAMEONLY then
             f.ThreatGlow:Hide()
+            f.TargetGlow:Hide()
 
             if f.NameOnlyGlow then
                 if TARGET_GLOW and f.state.target then
@@ -885,18 +939,23 @@ do
             if TARGET_GLOW and f.state.target then
                 -- target glow colour
                 f.ThreatGlow:SetVertexColor(unpack(TARGET_GLOW_COLOUR))
+                f.TargetGlow:SetVertexColor(unpack(TARGET_GLOW_COLOUR))
+                f.TargetGlow:Show()
             elseif MOUSEOVER_GLOW and f.state.highlight then
                 -- mouseover glow
                 f.ThreatGlow:SetVertexColor(unpack(MOUSEOVER_GLOW_COLOUR))
+                f.TargetGlow:SetVertexColor(unpack(MOUSEOVER_GLOW_COLOUR))
+                f.TargetGlow:Show()
             else
+                f.TargetGlow:Hide()
+
                 if FRAME_GLOW_THREAT and f.state.glowing then
                     -- threat glow colour
                     f.ThreatGlow:SetVertexColor(unpack(f.state.glow_colour))
-                    f.ThreatGlow:SetAlpha(.6)
                 else
                     if GLOW_AS_SHADOW then
                         -- shadow
-                        f.ThreatGlow:SetVertexColor(0,0,0,.2)
+                        f.ThreatGlow:SetVertexColor(0,0,0,.3)
                     else
                         f.ThreatGlow:SetVertexColor(0,0,0,0)
                     end
@@ -907,35 +966,43 @@ do
     local function UpdateFrameGlowSize(f)
         if not f.ThreatGlow then return end
         f.ThreatGlow:SetSize(FRAME_GLOW_SIZE)
+        f.TargetGlow:SetHeight(FRAME_GLOW_SIZE)
     end
     function core:CreateFrameGlow(f)
         local glow = { sides = {} }
         setmetatable(glow,glow_prototype)
 
-        for i=1,2 do
+        for i=1,8 do
             local side = f:CreateTexture(nil,'BACKGROUND',nil,-5)
-            side:SetTexture(MEDIA..'target-glow')
+            side:SetTexture(KUI_MEDIA..'t/shadowBorder')
 
-            if i == 1 then
-                -- top
-                side:SetTexCoord(1,0,1,0)
-                side:SetPoint('BOTTOMLEFT',f.bg,'TOPLEFT',0,0)
-                side:SetPoint('BOTTOMRIGHT',f.bg,'TOPRIGHT')
+            side:SetTexCoord(unpack(GLOW_TEXTURE_COORDS[i]))
+
+            local point = GLOW_POINTS[i]
+
+            if type(point[1]) == 'table' then
+                -- flat side
+                side:SetPoint(point[1][1],f.bg,point[1][2],point[1][3],point[1][4])
+                side:SetPoint(point[2][1],f.bg,point[2][2],point[2][3],point[2][4])
             else
-                side:SetPoint('TOPLEFT',f.bg,'BOTTOMLEFT',0,0)
-                side:SetPoint('TOPRIGHT',f.bg,'BOTTOMRIGHT')
+                -- corner
+                side:SetPoint(point[1],f.bg,point[2],point[3],point[4])
             end
 
             tinsert(glow.sides,side)
         end
 
         glow:SetSize(FRAME_GLOW_SIZE)
-
         f.handler:RegisterElement('ThreatGlow',glow)
+
+        local target_glow = f:CreateTexture(nil,'BACKGROUND',nil,-5)
+        target_glow:SetTexture(MEDIA..'target-glow')
+        target_glow:SetPoint('TOPLEFT',f.bg,'BOTTOMLEFT')
+        target_glow:SetPoint('TOPRIGHT',f.bg,'BOTTOMRIGHT')
+        f.TargetGlow = target_glow
 
         f.UpdateFrameGlow = UpdateFrameGlow
         f.UpdateFrameGlowSize = UpdateFrameGlowSize
-
         f:UpdateFrameGlowSize()
     end
 end
@@ -954,11 +1021,12 @@ do
         self.r:SetVertexColor(...)
     end
     local function Arrows_UpdatePosition(self)
-        if self.parent.state.casting and
-           self.parent.SpellIcon and
-           self.parent.SpellIcon:IsVisible()
+        if not CASTBAR_DETACH and
+            self.parent.state.casting and
+            self.parent.SpellIcon and
+            self.parent.SpellIcon:IsVisible()
         then
-            -- move for cast bar spell icon
+            -- move for non-detached cast bar spell icon
             self.l:SetPoint('RIGHT',self.parent.bg,'LEFT',
                 TARGET_ARROWS_INSET-self.parent.SpellIcon.bg:GetWidth(),0)
         else
@@ -1023,8 +1091,11 @@ end
 do
     local CASTBAR_ENABLED,CASTBAR_HEIGHT,CASTBAR_COLOUR,CASTBAR_UNIN_COLOUR,
           CASTBAR_SHOW_ICON,CASTBAR_SHOW_NAME,CASTBAR_SHOW_SHIELD,
-          CASTBAR_NAME_VERTICAL_OFFSET,CASTBAR_ANIMATE,CASTBAR_SPACING,
-          CASTBAR_ANIMATE_CHANGE_COLOUR,SHIELD_H,SHIELD_W
+          CASTBAR_NAME_VERTICAL_OFFSET,CASTBAR_ANIMATE,
+          CASTBAR_ANIMATE_CHANGE_COLOUR,CASTBAR_SPACING,SHIELD_H,SHIELD_W,
+          CASTBAR_DETACH_HEIGHT,CASTBAR_DETACH_WIDTH,
+          CASTBAR_DETACH_OFFSET,CASTBAR_DETACH_COMBINE,CASTBAR_DETACH_NAMEONLY,
+          CASTBAR_RATIO,CASTBAR_ICON_SIDE
 
     local function AnimGroup_Stop(self)
         self.frame:HideCastBar(nil,true)
@@ -1032,11 +1103,34 @@ do
     end
     local function SpellIconSetWidth(f)
         -- set spell icon width (as it's based on height)
-        if not f.SpellIcon then return end
-        if f.SpellIcon.bg:IsShown() then
-            f.SpellIcon.bg:SetWidth(ceil(f.CastBar.bg:GetHeight() + f.bg:GetHeight() + CASTBAR_SPACING))
+        if CASTBAR_DETACH or not f.SpellIcon or not f.SpellIcon.bg then return end
+        f.SpellIcon.bg:SetWidth(ceil(f.CastBar.bg:GetHeight() + f.bg:GetHeight() + CASTBAR_SPACING))
+    end
+    local function CastBarSetColour(castbar,colour,glow_too)
+        -- set colour, assuming colour is a 3/4-length table,
+        -- and set alpha depending on detach-combine/spell icon settings
+        castbar:SetStatusBarColor(unpack(colour))
+
+        if glow_too then
+            -- glow inherits colour
+            castbar.top:SetVertexColor(unpack(colour))
+            castbar.bottom:SetVertexColor(unpack(colour))
+        elseif GLOW_AS_SHADOW then
+            castbar.top:SetVertexColor(0,0,0,.2)
+            castbar.bottom:SetVertexColor(0,0,0,.2)
+        else
+            castbar.top:SetVertexColor(0,0,0,0)
+            castbar.bottom:SetVertexColor(0,0,0,0)
+        end
+
+        if CASTBAR_DETACH_COMBINE and CASTBAR_SHOW_ICON then
+            -- reduce alpha when combined
+            castbar:GetStatusBarTexture():SetAlpha(.7)
+        else
+            castbar:GetStatusBarTexture():SetAlpha(1)
         end
     end
+
     local function ShowCastBar(f)
         if not f.elements.CastBar then
             -- ignore cast messsages if we've disabled the cast bar
@@ -1048,9 +1142,13 @@ do
         end
 
         if f.cast_state.interruptible then
-            f.CastBar:SetStatusBarColor(unpack(CASTBAR_COLOUR))
+            CastBarSetColour(f.CastBar,CASTBAR_COLOUR)
+
+            if f.elements.SpellShield then
+                f.SpellShield:Hide()
+            end
         else
-            f.CastBar:SetStatusBarColor(unpack(CASTBAR_UNIN_COLOUR))
+            CastBarSetColour(f.CastBar,CASTBAR_UNIN_COLOUR,true)
 
             if f.elements.SpellShield then
                 f.SpellShield:Show()
@@ -1062,8 +1160,7 @@ do
         f.CastBar.spark:Show()
 
         if CASTBAR_SHOW_ICON and f.SpellIcon then
-            f.SpellIcon.bg:Show()
-            f:SpellIconSetWidth()
+            f.SpellIcon:Show()
         end
 
         if CASTBAR_SHOW_NAME and f.SpellName then
@@ -1097,7 +1194,7 @@ do
                 f.SpellName:Hide()
             end
             if f.SpellIcon then
-                f.SpellIcon.bg:Hide()
+                f.SpellIcon:Hide()
             end
             if f.SpellShield then
                 f.SpellShield:Hide()
@@ -1114,13 +1211,14 @@ do
                     if f.SpellName then
                         f.SpellName:SetText(INTERRUPTED)
                     end
+
                     if CASTBAR_ANIMATE_CHANGE_COLOUR then
-                        f.CastBar:SetStatusBarColor(unpack(CASTBAR_UNIN_COLOUR))
+                        CastBarSetColour(f.CastBar,CASTBAR_UNIN_COLOUR)
                     end
                 else
                     -- successful
                     if CASTBAR_ANIMATE_CHANGE_COLOUR then
-                        f.CastBar:SetStatusBarColor(unpack(CASTBAR_COLOUR))
+                        CastBarSetColour(f.CastBar,CASTBAR_COLOUR)
                     end
                 end
 
@@ -1142,7 +1240,7 @@ do
     end
     local function UpdateCastBar(f)
         if not CASTBAR_ENABLED then return end
-        if f.IN_NAMEONLY then
+        if f.IN_NAMEONLY and (not CASTBAR_DETACH or not CASTBAR_DETACH_NAMEONLY) then
             f.handler:DisableElement('CastBar')
 
             if CASTBAR_ANIMATE and f.CastBar.AnimGroup:IsPlaying() then
@@ -1180,37 +1278,84 @@ do
     end
     local function UpdateSpellNamePosition(f)
         if not f.SpellName then return end
-        f.SpellName:SetPoint('TOP',f.CastBar,'BOTTOM',0,CASTBAR_NAME_VERTICAL_OFFSET+TEXT_VERTICAL_OFFSET)
+        f.SpellName:SetPoint('TOP',f.CastBar.bg,'BOTTOM',0,CASTBAR_NAME_VERTICAL_OFFSET)
     end
     local function UpdateCastbarSize(f)
-        -- called by CreateCastBar, SetCastBarConfig
-        f.CastBar.bg:SetHeight(CASTBAR_HEIGHT)
-        f.CastBar:SetHeight(CASTBAR_HEIGHT-2)
+        -- update castbar position and size to match config
+        f.CastBar.bg:ClearAllPoints()
+        f.CastBar:SetPoint('TOPLEFT',f.CastBar.bg,1,-1)
+        f.CastBar:SetPoint('BOTTOMRIGHT',f.CastBar.bg,-1,1)
 
-        f.CastBar.bg:SetPoint('TOPLEFT',f.bg,'BOTTOMLEFT',0,-CASTBAR_SPACING)
+        if CASTBAR_DETACH then
+            -- castbar detached from main frame
+            f.CastBar.bg:SetSize(CASTBAR_DETACH_WIDTH,CASTBAR_DETACH_HEIGHT)
+            f.CastBar.bg:SetPoint('TOP',f.bg,'BOTTOM',0,-CASTBAR_DETACH_OFFSET)
 
-        if CASTBAR_SHOW_ICON and f.SpellIcon then
-            f.SpellIcon.bg:SetPoint('TOPRIGHT',f.bg,'TOPLEFT',-CASTBAR_SPACING,0)
+            if CASTBAR_SHOW_ICON and f.SpellIcon then
+                if CASTBAR_DETACH_COMBINE then
+                    -- overlay spell icon on bar
+                    f.SpellIcon:SetAllPoints()
+                    f.SpellIcon:SetTexCoord(.1,.9,.1+CASTBAR_RATIO,.9-CASTBAR_RATIO)
+                    f.SpellIcon:SetAlpha(.6)
+                else
+                    -- spell icon next to bar
+                    f.SpellIcon:ClearAllPoints()
+                    f.SpellIcon:SetSize(CASTBAR_DETACH_HEIGHT-2,CASTBAR_DETACH_HEIGHT-2)
+                    f.SpellIcon:SetTexCoord(.1,.9,.1,.9)
+                    f.SpellIcon:SetAlpha(1)
+
+                    if CASTBAR_ICON_SIDE == 1 then
+                        f.SpellIcon:SetPoint('TOPLEFT',f.CastBar.bg,1,-1)
+                        f.CastBar:SetPoint('TOPLEFT',f.SpellIcon,'TOPRIGHT',1,0)
+                    else
+                        f.SpellIcon:SetPoint('TOPRIGHT',f.CastBar.bg,-1,-1)
+                        f.CastBar:SetPoint('BOTTOMRIGHT',f.SpellIcon,'BOTTOMLEFT',-1,0)
+                    end
+                end
+            end
+        else
+            -- move spell icon to left side of health bar,
+            -- attach castbar to bottom of health bar background
+            f.CastBar.bg:SetPoint('TOPLEFT',f.bg,'BOTTOMLEFT',0,-CASTBAR_SPACING)
+            f.CastBar.bg:SetPoint('TOPRIGHT',f.bg,'BOTTOMRIGHT')
+            f.CastBar.bg:SetHeight(CASTBAR_HEIGHT)
+
+            f.CastBar:SetPoint('TOPLEFT',f.CastBar.bg,1,-1)
+            f.CastBar:SetPoint('BOTTOMRIGHT',f.CastBar.bg,-1,1)
+
+            if CASTBAR_SHOW_ICON and f.SpellIcon then
+                f.SpellIcon:ClearAllPoints()
+                f.SpellIcon.bg:ClearAllPoints()
+
+                f.SpellIcon:SetPoint('TOPLEFT',f.SpellIcon.bg,1,-1)
+                f.SpellIcon:SetPoint('BOTTOMRIGHT',f.SpellIcon.bg,-1,1)
+                f.SpellIcon:SetTexCoord(.1,.9,.1,.9)
+                f.SpellIcon:SetAlpha(1)
+
+                if CASTBAR_ICON_SIDE == 1 then
+                    f.SpellIcon.bg:SetPoint('TOPRIGHT',f.bg,'TOPLEFT',-CASTBAR_SPACING,0)
+                    f.SpellIcon.bg:SetPoint('BOTTOMRIGHT',f.CastBar.bg,'BOTTOMLEFT')
+                else
+                    f.SpellIcon.bg:SetPoint('TOPLEFT',f.bg,'TOPRIGHT',CASTBAR_SPACING,0)
+                    f.SpellIcon.bg:SetPoint('BOTTOMLEFT',f.CastBar.bg,'BOTTOMRIGHT')
+                end
+
+                f:SpellIconSetWidth()
+            end
         end
     end
 
     local function CreateSpellIcon(f)
-        local bg = f.CastBar:CreateTexture(nil, 'BACKGROUND', nil, 1)
-        bg:SetTexture(kui.m.t.solid)
-        bg:SetVertexColor(0,0,0,.8)
-        bg:SetPoint('BOTTOMRIGHT',f.CastBar.bg,'BOTTOMLEFT')
-        -- TOPRIGHT set by UpdateCastbarSize
-        bg:Hide()
-
-        local icon = f.CastBar:CreateTexture(nil, 'ARTWORK', nil, 2)
-        icon:SetTexCoord(.1, .9, .1, .9)
-        icon:SetPoint('TOPLEFT', bg, 1, -1)
-        icon:SetPoint('BOTTOMRIGHT', bg, -1, 1)
-
-        icon.bg = bg
-
+        local icon = f.CastBar:CreateTexture(nil, 'BACKGROUND', nil, 2)
         f.handler:RegisterElement('SpellIcon', icon)
         return icon
+    end
+    local function CreateSpellIconBackground(f)
+        local bg = f.CastBar:CreateTexture(nil,'BACKGROUND',nil,1)
+        bg:SetTexture(kui.m.t.solid)
+        bg:SetVertexColor(0,0,0,.9)
+        f.SpellIcon.bg = bg
+        return bg
     end
     local function CreateSpellShield(f)
         -- cast shield
@@ -1267,6 +1412,28 @@ do
         grp:SetScript('OnFinished',AnimGroup_Stop)
         grp:SetScript('OnStop',AnimGroup_Stop)
     end
+    local function CreateOptionalElementsMaybe(f)
+        -- check if we need to create extra elements to support configuration
+        if CASTBAR_SHOW_NAME and not f.SpellName then
+            CreateSpellName(f)
+        end
+        if CASTBAR_SHOW_ICON and not f.SpellIcon then
+            CreateSpellIcon(f)
+        end
+        if CASTBAR_SHOW_ICON and not CASTBAR_DETACH and not f.SpellIcon.bg then
+            CreateSpellIconBackground(f)
+        end
+        if CASTBAR_SHOW_SHIELD and not f.SpellShield then
+            CreateSpellShield(f)
+        end
+        if CASTBAR_ANIMATE and not f.CastBar.AnimGroup then
+            CreateAnimGroup(f)
+        elseif not CASTBAR_ANIMATE and f.CastBar.AnimGroup then
+            -- make sure frames which might have been animating when the
+            -- option was changed are stopped;
+            f.CastBar.AnimGroup:Stop()
+        end
+    end
 
     function core:CreateCastBar(f)
         local castbar = CreateStatusBar(f,true,nil,true,1)
@@ -1274,38 +1441,40 @@ do
 
         local bg = castbar:CreateTexture(nil,'BACKGROUND',nil,1)
         bg:SetTexture(kui.m.t.solid)
-        bg:SetVertexColor(0,0,0,.8)
-        bg:SetPoint('TOPRIGHT', f.bg, 'BOTTOMRIGHT')
-        -- TOPLEFT set by UpdateCastbarSize
+        bg:SetVertexColor(0,0,0,.9)
         bg:Hide()
 
-        castbar:SetPoint('TOPLEFT', bg, 1, -1)
-        castbar:SetPoint('BOTTOMRIGHT', bg, -1, 1)
         castbar.bg = bg
+
+        -- XXX glow
+        local top = castbar:CreateTexture(nil,'BACKGROUND',nil,-5)
+        top:SetTexture(MEDIA..'target-glow')
+        top:SetTexCoord(1,0,1,0)
+        top:SetPoint('BOTTOMLEFT',bg,'TOPLEFT',0,0)
+        top:SetPoint('BOTTOMRIGHT',bg,'TOPRIGHT',0,0)
+        top:SetHeight(6)
+        top:SetVertexColor(0,0,0,.2)
+        castbar.top = top
+
+        local bottom = castbar:CreateTexture(nil,'BACKGROUND',nil,-5)
+        bottom:SetTexture(MEDIA..'target-glow')
+        bottom:SetPoint('TOPLEFT',bg,'BOTTOMLEFT',0,0)
+        bottom:SetPoint('TOPRIGHT',bg,'BOTTOMRIGHT',0,0)
+        bottom:SetHeight(6)
+        bottom:SetVertexColor(0,0,0,.2)
+        castbar.bottom = bottom
 
         -- register base elements
         f.handler:RegisterElement('CastBar', castbar)
 
-        -- create optional elements
-        if CASTBAR_SHOW_NAME then
-            CreateSpellName(f)
-        end
-        if CASTBAR_SHOW_ICON then
-            CreateSpellIcon(f)
-        end
-        if CASTBAR_SHOW_SHIELD then
-            CreateSpellShield(f)
-        end
-        if CASTBAR_ANIMATE then
-            CreateAnimGroup(f)
-        end
+        CreateOptionalElementsMaybe(f)
 
         f.ShowCastBar = ShowCastBar
         f.HideCastBar = HideCastBar
         f.UpdateCastBar = UpdateCastBar
-        f.SpellIconSetWidth = SpellIconSetWidth
         f.UpdateSpellNamePosition = UpdateSpellNamePosition
         f.UpdateCastbarSize = UpdateCastbarSize
+        f.SpellIconSetWidth = SpellIconSetWidth
 
         f:UpdateSpellNamePosition()
         f:UpdateCastbarSize()
@@ -1326,25 +1495,17 @@ do
         SHIELD_H = Scale(16)
         SHIELD_W = SHIELD_H * .84375
 
-        for k,f in addon:Frames() do
-            -- create elements which weren't required until config was changed
-            -- (TODO castbar itself is always created)
-            if CASTBAR_SHOW_ICON and not f.SpellIcon then
-                CreateSpellIcon(f)
-            end
-            if CASTBAR_SHOW_NAME and not f.SpellName then
-                CreateSpellName(f)
-            end
-            if CASTBAR_SHOW_SHIELD and not f.SpellShield then
-                CreateSpellShield(f)
-            end
-            if CASTBAR_ANIMATE and not f.CastBar.AnimGroup then
-                CreateAnimGroup(f)
-            elseif not CASTBAR_ANIMATE and f.CastBar.AnimGroup then
-                -- make sure frames which might have been animating when the
-                -- option was changed are stopped;
-                f.CastBar.AnimGroup:Stop()
-            end
+        CASTBAR_DETACH = self.profile.castbar_detach
+        CASTBAR_DETACH_HEIGHT = Scale(self.profile.castbar_detach_height)
+        CASTBAR_DETACH_WIDTH = Scale(self.profile.castbar_detach_width)
+        CASTBAR_DETACH_OFFSET = Scale(self.profile.castbar_detach_offset)
+        CASTBAR_DETACH_COMBINE = CASTBAR_DETACH and self.profile.castbar_detach_combine
+        CASTBAR_DETACH_NAMEONLY = self.profile.castbar_detach_nameonly
+        CASTBAR_RATIO = (1-(CASTBAR_DETACH_HEIGHT/CASTBAR_DETACH_WIDTH))/2
+        CASTBAR_ICON_SIDE = self.profile.castbar_icon_side
+
+        for _,f in addon:Frames() do
+            CreateOptionalElementsMaybe(f)
 
             if f.SpellShield then
                 if CASTBAR_SHOW_SHIELD then
@@ -1356,10 +1517,25 @@ do
             end
 
             if f.SpellIcon then
+                -- determine spell icon visibility...
                 if CASTBAR_SHOW_ICON then
                     f.SpellIcon:Show()
+
+                    -- determine icon background visibility...
+                    if f.SpellIcon.bg then
+                        if CASTBAR_DETACH then
+                            f.SpellIcon.bg:Hide()
+                        else
+                            f.SpellIcon.bg:Show()
+                        end
+                    end
                 else
+                    -- hide icon and background
                     f.SpellIcon:Hide()
+
+                    if f.SpellIcon.bg then
+                        f.SpellIcon.bg:Hide()
+                    end
                 end
             end
 
@@ -1378,7 +1554,7 @@ do
         SHOW_STATE_ICONS = self.profile.state_icons
         ICON_SIZE = Scale(20)
 
-        for k,f in addon:Frames() do
+        for _,f in addon:Frames() do
             f:UpdateStateIconSize()
         end
     end
@@ -1447,11 +1623,19 @@ end
 -- auras #######################################################################
 do
     local AURAS_NORMAL_SIZE,AURAS_MINUS_SIZE,AURAS_CENTRE,
-          AURAS_ON_PERSONAL,AURAS_ENABLED,AURAS_SHOW_ALL_SELF,
-          AURAS_HIDE_ALL_OTHER,AURAS_PURGE_SIZE,AURAS_SHOW_PURGE,AURAS_SIDE,
-          AURAS_OFFSET,AURAS_POINT_S,AURAS_POINT_R,PURGE_POINT_S,PURGE_POINT_R,
-          PURGE_OFFSET,AURAS_Y_SPACING,AURAS_TIMER_THRESHOLD,
-          AURAS_PURGE_OPPOSITE,AURAS_HIGHLIGHT_OTHER
+          AURAS_ON_PERSONAL,AURAS_ON_FRIENDS,AURAS_ON_ENEMIES,AURAS_ON_MINUS,
+          AURAS_ENABLED,AURAS_SHOW_ALL_SELF,AURAS_HIDE_ALL_OTHER,
+          AURAS_PURGE_SIZE,AURAS_SHOW_PURGE,AURAS_SIDE,AURAS_OFFSET,
+          AURAS_POINT_S,AURAS_POINT_R,PURGE_POINT_S,PURGE_POINT_R,
+          PURGE_OFFSET,AURAS_TIMER_THRESHOLD,
+          AURAS_PURGE_OPPOSITE,AURAS_HIGHLIGHT_OTHER,
+          AURAS_CD_SIZE,AURAS_COUNT_SIZE,AURAS_PER_ROW,
+          AURAS_PULSATE,AURAS_ICON_SQUARENESS,AURAS_SORT
+
+    local AURAS_CD_POINT_X,AURAS_CD_POINT_Y,
+          AURAS_CD_OFFSET_X,AURAS_CD_OFFSET_Y,
+          AURAS_COUNT_POINT_X,AURAS_COUNT_POINT_Y,
+          AURAS_COUNT_OFFSET_X,AURAS_COUNT_OFFSET_Y
 
     local function AuraFrame_UpdateFrameSize(self,to_size)
         -- frame width changes depending on icon size, needs to be correct if
@@ -1502,12 +1686,10 @@ do
     end
     local function AuraFrame_UpdateIconSize(self,minus)
         -- determine current icon size
-        local size = (self.purge and AURAS_PURGE_SIZE) or
+        local size = (self.id == 'core_purge' and AURAS_PURGE_SIZE) or
                      (minus and AURAS_MINUS_SIZE or AURAS_NORMAL_SIZE)
 
-        self.num_per_row = (minus or self.purge) and 4 or 5
-
-        if not self.purge and self.size == size then
+        if self.id ~= 'core_purge' and self.size == size then
             -- no size update necessary
             size = nil
         end
@@ -1518,44 +1700,55 @@ do
     local function AuraFrame_CoreDynamic_OnVisibilityChange(self)
         if self.parent.IGNORE_VISIBILITY_BUBBLE then return end
         if not AURAS_PURGE_OPPOSITE and self.sibling.__width then
-            -- update sibling point if it's attached and initalised
+            -- update sibling point if it's attached and initialised
             AuraFrame_UpdateFrameSize(self.sibling)
         end
     end
 
     local function UpdateAuras(f)
-        -- enable/disable on personal frame, update size
-        if not AURAS_ENABLED or (not AURAS_ON_PERSONAL and f.state.personal) then
-            f.Auras.frames.core_dynamic:Disable()
-        else
-            f.Auras.frames.core_dynamic:Enable(true)
-            AuraFrame_UpdateIconSize(f.Auras.frames.core_dynamic,f.state.minus)
+        -- enable/disable aura frames on frame update
+        if not f.Auras or not f.Auras.frames then return end
+        if f.Auras.frames.core_dynamic then
+            if not AURAS_ENABLED or
+               (not AURAS_ON_PERSONAL and f.state.personal) or
+               (not AURAS_ON_FRIENDS and f.state.friend and not f.state.personal) or
+               (not AURAS_ON_ENEMIES and not f.state.friend) or
+               (not AURAS_ON_MINUS and f.state.minus)
+            then
+                f.Auras.frames.core_dynamic:Disable()
+            else
+                f.Auras.frames.core_dynamic:Enable(true)
+                AuraFrame_UpdateIconSize(f.Auras.frames.core_dynamic,f.state.minus)
+            end
         end
-
-        -- only show purge on hostiles
-        if not AURAS_ENABLED or not AURAS_SHOW_PURGE or f.state.friend then
-            f.Auras.frames.core_purge:Disable()
-        else
-            f.Auras.frames.core_purge:Enable(true)
-            AuraFrame_UpdateIconSize(f.Auras.frames.core_purge)
+        if f.Auras.frames.core_purge then
+            if not AURAS_SHOW_PURGE or f.state.friend then
+                f.Auras.frames.core_purge:Disable()
+            else
+                -- only show purge on enemies
+                f.Auras.frames.core_purge:Enable(true)
+                AuraFrame_UpdateIconSize(f.Auras.frames.core_purge)
+            end
         end
     end
     function core:CreateAuras(f)
         -- for both frames:
         -- initial icon size set by AuraFrame_UpdateIconSize < UpdateAuras
         -- frame width & point set by AuraFrame_UpdateFrameSize < _UpdateIconSize
+        f.UpdateAuras = UpdateAuras
+
         local auras = f.handler:CreateAuraFrame({
             id = 'core_dynamic',
             max = 10,
             point = {'BOTTOMLEFT','LEFT','RIGHT'},
             x_spacing = 1,
             y_spacing = 1,
-            rows = 2,
 
-            pulsate = self.profile.auras_pulsate,
+            num_per_row = AURAS_PER_ROW,
+            pulsate = AURAS_PULSATE,
             timer_threshold = AURAS_TIMER_THRESHOLD,
-            squareness = self.profile.auras_icon_squareness,
-            sort = self.profile.auras_sort,
+            squareness = AURAS_ICON_SQUARENESS,
+            sort = AURAS_SORT,
             centred = AURAS_CENTRE,
         })
         auras.__core = true
@@ -1574,8 +1767,8 @@ do
 
             pulsate = false,
             timer_threshold = AURAS_TIMER_THRESHOLD,
-            squareness = self.profile.auras_icon_squareness,
-            sort = self.profile.auras_sort,
+            squareness = AURAS_ICON_SQUARENESS,
+            sort = AURAS_SORT,
             centred = AURAS_CENTRE,
         })
         purge.__core = true
@@ -1583,20 +1776,27 @@ do
 
         auras.sibling = purge
         purge.sibling = auras
-
-        f.UpdateAuras = UpdateAuras
     end
 
     -- callbacks
     function core.Auras_PostCreateAuraButton(frame,button)
         -- move text to obey our settings
-        button.cd:ClearAllPoints()
-        button.cd:SetPoint('TOPLEFT',-4,3+TEXT_VERTICAL_OFFSET)
         button.cd.fontobject_shadow = true
+        button.cd:ClearAllPoints()
+        button.cd:SetPoint(
+            ResolvePointPair(AURAS_CD_POINT_X,AURAS_CD_POINT_Y),
+            AURAS_CD_OFFSET_X, AURAS_CD_OFFSET_Y
+        )
+        button.cd:SetJustifyH(POINT_X_ASSOC[AURAS_CD_POINT_X])
 
-        button.count:ClearAllPoints()
-        button.count:SetPoint('BOTTOMRIGHT',5,-2+TEXT_VERTICAL_OFFSET)
         button.count.fontobject_shadow = true
+        button.count.fontobject_small = true
+        button.count:ClearAllPoints()
+        button.count:SetPoint(
+            ResolvePointPair(AURAS_COUNT_POINT_X,AURAS_COUNT_POINT_Y),
+            AURAS_COUNT_OFFSET_X, AURAS_COUNT_OFFSET_Y
+        )
+        button.count:SetJustifyH(POINT_X_ASSOC[AURAS_COUNT_POINT_X])
 
         if frame.__core and not button.hl then
             -- create owner highlight
@@ -1634,7 +1834,7 @@ do
             )
         end
     end
-    function core.Auras_DisplayAura(frame,spellid,name,duration,caster,own,can_purge,nps_own,nps_all)
+    function core.Auras_DisplayAura(frame,spellid,name,duration,_,own,_,nps_own,nps_all)
         if not frame.__core then return end
         if frame.purge then
             -- force hide if excluded by spell list
@@ -1679,24 +1879,47 @@ do
         -- process as normal
         return
     end
+    function core.AurasButton_SetFont(button)
+        button.cd.fontobject_size = AURAS_CD_SIZE > 0 and AURAS_CD_SIZE
+        UpdateFontObject(button.cd)
+
+        button.count.fontobject_size = AURAS_COUNT_SIZE > 0 and AURAS_COUNT_SIZE
+        UpdateFontObject(button.count)
+    end
 
     -- config changed
     function core:SetAurasConfig()
+        AURAS_ENABLED = self.profile.auras_enabled
+        AURAS_PULSATE = self.profile.auras_pulsate
+        AURAS_CENTRE = self.profile.auras_centre
+        AURAS_SORT = self.profile.auras_sort
+        AURAS_TIMER_THRESHOLD = self.profile.auras_time_threshold
         AURAS_NORMAL_SIZE = Scale(self.profile.auras_icon_normal_size)
         AURAS_MINUS_SIZE = Scale(self.profile.auras_icon_minus_size)
-        AURAS_PURGE_SIZE = Scale(self.profile.auras_purge_size)
-        AURAS_OFFSET = Scale(self.profile.auras_offset)
-
-        AURAS_ENABLED = self.profile.auras_enabled
+        AURAS_ICON_SQUARENESS = self.profile.auras_icon_squareness
         AURAS_ON_PERSONAL = self.profile.auras_on_personal
-        AURAS_SIDE = self.profile.auras_side
+        AURAS_ON_FRIENDS = self.profile.auras_on_friends
+        AURAS_ON_ENEMIES = self.profile.auras_on_enemies
+        AURAS_ON_MINUS = self.profile.auras_on_minus
         AURAS_SHOW_ALL_SELF = self.profile.auras_show_all_self
         AURAS_HIDE_ALL_OTHER = self.profile.auras_hide_all_other
         AURAS_SHOW_PURGE = self.profile.auras_show_purge
-        AURAS_TIMER_THRESHOLD = self.profile.auras_time_threshold
+        AURAS_PURGE_SIZE = Scale(self.profile.auras_purge_size)
         AURAS_PURGE_OPPOSITE = self.profile.auras_purge_opposite
-        AURAS_CENTRE = self.profile.auras_centre
+        AURAS_SIDE = self.profile.auras_side
+        AURAS_OFFSET = Scale(self.profile.auras_offset)
         AURAS_HIGHLIGHT_OTHER = self.profile.auras_highlight_other
+        AURAS_PER_ROW = self.profile.auras_per_row
+        AURAS_CD_SIZE = Scale(self.profile.auras_cd_size)
+        AURAS_COUNT_SIZE = Scale(self.profile.auras_count_size)
+        AURAS_CD_POINT_X = self.profile.auras_cd_point_x
+        AURAS_CD_POINT_Y = self.profile.auras_cd_point_y
+        AURAS_CD_OFFSET_X = ScaleTextOffset(self.profile.auras_cd_offset_x)
+        AURAS_CD_OFFSET_Y = ScaleTextOffset(self.profile.auras_cd_offset_y)
+        AURAS_COUNT_POINT_X = self.profile.auras_count_point_x
+        AURAS_COUNT_POINT_Y = self.profile.auras_count_point_y
+        AURAS_COUNT_OFFSET_X = ScaleTextOffset(self.profile.auras_count_offset_x)
+        AURAS_COUNT_OFFSET_Y = ScaleTextOffset(self.profile.auras_count_offset_y)
 
         if AURAS_TIMER_THRESHOLD < 0 then
             AURAS_TIMER_THRESHOLD = nil
@@ -1736,27 +1959,35 @@ do
         end
 
         -- update config values within aura frames;
-        for k,f in addon:Frames() do
+        for _,f in addon:Frames() do
             if f.Auras and f.Auras.frames then
                 local cd = f.Auras.frames.core_dynamic
                 local cp = f.Auras.frames.core_purge
                 if cd then
                     cd.point[1] = AURAS_POINT_S
-                    cd.pulsate = self.profile.auras_pulsate
+                    cd.pulsate = AURAS_PULSATE
+                    cd.num_per_row = AURAS_PER_ROW
                     cd.timer_threshold = AURAS_TIMER_THRESHOLD
-                    cd.squareness = self.profile.auras_icon_squareness
+                    cd.squareness = AURAS_ICON_SQUARENESS
                     cd.centred = AURAS_CENTRE
                     cd.__width = nil -- force size & position update
-                    cd:SetSort(self.profile.auras_sort)
+                    cd:SetSort(AURAS_SORT)
                 end
                 if cp and AURAS_SHOW_PURGE then
                     cp.point[1] = AURAS_PURGE_OPPOSITE and
                                   PURGE_POINT_S or AURAS_POINT_S
                     cp.timer_threshold = AURAS_TIMER_THRESHOLD
-                    cp.squareness = self.profile.auras_icon_squareness
+                    cp.squareness = AURAS_ICON_SQUARENESS
                     cp.centred = AURAS_CENTRE
                     cp.__width = nil
-                    cp:SetSort(self.profile.auras_sort)
+                    cp:SetSort(AURAS_SORT)
+                end
+
+                -- update all buttons
+                for _,auraframe in pairs(f.Auras.frames) do
+                    for _,button in ipairs(auraframe.buttons) do
+                        self.Auras_PostCreateAuraButton(auraframe,button)
+                    end
                 end
             end
         end
@@ -1825,29 +2056,29 @@ do
     local tb_prototype = {}
     tb_prototype.__index = tb_prototype
     function tb_prototype:SetVertexColor(...)
-        for k,v in ipairs(self.textures) do
+        for _,v in ipairs(self.textures) do
             v:SetVertexColor(...)
             v:SetAlpha(.8)
         end
     end
     function tb_prototype:Show(...)
-        for k,v in ipairs(self.textures) do
+        for _,v in ipairs(self.textures) do
             v:Show(...)
         end
     end
     function tb_prototype:Hide(...)
-        for k,v in ipairs(self.textures) do
+        for _,v in ipairs(self.textures) do
             v:Hide(...)
         end
     end
     function tb_prototype:SetSize(size)
-        for k,v in ipairs(self.textures) do
+        for _,v in ipairs(self.textures) do
             v:SetSize(size,size)
         end
     end
     -- update
     local function UpdateThreatBrackets(f)
-        if not core.profile.threat_brackets or f.IN_NAMEONLY then
+        if not THREAT_BRACKETS or f.IN_NAMEONLY then
             f.ThreatBrackets:Hide()
             return
         end
@@ -1923,9 +2154,10 @@ end
 do
     local NAMEONLY_ENABLED,NAMEONLY_NO_FONT_STYLE,NAMEONLY_HEALTH_COLOUR
     local NAMEONLY_TARGET,NAMEONLY_ALL_ENEMIES,NAMEONLY_ON_NEUTRAL,
-          NAMEONLY_ENEMIES,NAMEONLY_DAMAGED_ENEMIES,NAMEONLY_FRIENDS,
+          NAMEONLY_HOSTILE_NPCS,NAMEONLY_DAMAGED_ENEMIES,NAMEONLY_FRIENDLY_NPCS,
           NAMEONLY_DAMAGED_FRIENDS,NAMEONLY_COMBAT_HOSTILE,
-          NAMEONLY_COMBAT_FRIENDLY
+          NAMEONLY_COMBAT_FRIENDLY,NAMEONLY_HOSTILE_PLAYERS,
+          NAMEONLY_FRIENDLY_PLAYERS,NAMEONLY_COMBAT_HOSTILE_PLAYER
 
     function core:configChangedNameOnly()
         NAMEONLY_ENABLED = self.profile.nameonly
@@ -1935,16 +2167,19 @@ do
         NAMEONLY_TARGET = self.profile.nameonly_target
         NAMEONLY_ALL_ENEMIES = self.profile.nameonly_all_enemies
         NAMEONLY_ON_NEUTRAL = self.profile.nameonly_neutral
-        NAMEONLY_ENEMIES = self.profile.nameonly_enemies
+        NAMEONLY_HOSTILE_NPCS = self.profile.nameonly_enemies
+        NAMEONLY_HOSTILE_PLAYERS = self.profile.nameonly_hostile_players
         NAMEONLY_DAMAGED_ENEMIES = self.profile.nameonly_damaged_enemies
-        NAMEONLY_FRIENDS = self.profile.nameonly_friends
+        NAMEONLY_FRIENDLY_NPCS = self.profile.nameonly_friends
+        NAMEONLY_FRIENDLY_PLAYERS = self.profile.nameonly_friendly_players
         NAMEONLY_DAMAGED_FRIENDS = self.profile.nameonly_damaged_friends
         NAMEONLY_COMBAT_HOSTILE = self.profile.nameonly_combat_hostile
+        NAMEONLY_COMBAT_HOSTILE_PLAYER = self.profile.nameonly_combat_hostile_player
         NAMEONLY_COMBAT_FRIENDLY = self.profile.nameonly_combat_friends
 
         -- create target/threat glow
-        for k,f in addon:Frames() do
-            core:CreateNameOnlyGlow(f)
+        for _,f in addon:Frames() do
+            self:CreateNameOnlyGlow(f)
         end
     end
 
@@ -1981,8 +2216,10 @@ do
         f:UpdateGuildText()
 
         if f.TargetArrows then
-            -- show/hide arrows
             f:UpdateTargetArrows()
+        end
+        if f.ThreatBrackets then
+            f:UpdateThreatBrackets()
         end
 
         if f.NameOnlyGlow and addon.ClassPowersFrame and plugin_classpowers.enabled then
@@ -2082,44 +2319,69 @@ do
         if not NAMEONLY_TARGET and f.state.target then return end
 
         if not f.state.attackable and f.state.reaction >= 4 then
-            -- friendly
-            -- disable on friends affecting combat
+            -- friendly;
+            -- disable on friends in combat
             if not NAMEONLY_COMBAT_FRIENDLY and f.state.combat then
                 return
             end
-            -- disable on friends
-            if not NAMEONLY_FRIENDS then
-                return
+            if f.state.player then
+                -- disable on friendly players
+                if not NAMEONLY_FRIENDLY_PLAYERS then
+                    return
+                end
+            else
+                -- disable on friendly NPCs
+                if not NAMEONLY_FRIENDLY_NPCS then
+                    return
+                end
             end
             -- disable on damaged friends
             if not NAMEONLY_DAMAGED_FRIENDS and f.state.health_deficit > 0 then
                 return
             end
         else
-            -- hostile/neutral
-            -- disable on enemies affecting combat
-            if not NAMEONLY_COMBAT_HOSTILE and f.state.combat then
-                return
+            if f.state.reaction == 4 then
+                -- neutral;
+                -- disable on neutral
+                if not NAMEONLY_ON_NEUTRAL then
+                    return
+                end
+            else
+                -- hostile;
+                if f.state.player then
+                    -- disable on hostile players
+                    if not NAMEONLY_HOSTILE_PLAYERS then
+                        return
+                    end
+                else
+                    -- disable on hostile NPCS
+                    if not NAMEONLY_HOSTILE_NPCS then
+                        return
+                    end
+                end
+                -- disable on attackable units
+                if not NAMEONLY_ALL_ENEMIES and f.state.attackable then
+                    return
+                end
             end
+            -- neutral & hostile;
             -- disable on damaged enemies
             if not NAMEONLY_DAMAGED_ENEMIES and f.state.health_deficit > 0 then
                 return
             end
-            -- force enable on neutral
-            if NAMEONLY_ON_NEUTRAL and f.state.reaction == 4 then
-                return true
-            end
-            -- disable on attackable units
-            if not NAMEONLY_ALL_ENEMIES and f.state.attackable then
-                return
-            end
-            -- disable on hostile
-            if not NAMEONLY_ENEMIES then
-                return
-            end
-            -- disable on unattackable enemy players
-            if not NAMEONLY_ALL_ENEMIES and UnitIsPlayer(f.unit) then
-                return
+            if f.state.combat then
+                -- disable on enemies in combat
+                if not NAMEONLY_COMBAT_HOSTILE then
+                    return
+                end
+                -- disable on enemies the player has threat with
+                -- (and hostile players in any combat, since we can't check
+                -- if they're in combat with the player)
+                if not NAMEONLY_COMBAT_HOSTILE_PLAYER and
+                   (f.state.threat or f.state.player)
+                then
+                    return
+                end
             end
         end
         -- enable
@@ -2143,6 +2405,7 @@ function core:InitialiseElements()
     plugin_fading = addon:GetPlugin('Fading')
     plugin_classpowers = addon:GetPlugin('ClassPowers')
 
+    -- initialise classpowers...
     self.ClassPowers = {
         on_target = self.profile.classpowers_on_target,
         icon_size = Scale(self.profile.classpowers_size),
@@ -2171,6 +2434,7 @@ function core:InitialiseElements()
         plugin_pb.colours['MANA'] = { .30, .37, .74 }
     end
 
+    -- initialise boss mods...
     self.BossModIcon = {
         icon_size = Scale(self.profile.bossmod_icon_size),
         icon_x_offset = self.profile.bossmod_x_offset,

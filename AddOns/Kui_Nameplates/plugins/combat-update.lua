@@ -32,7 +32,7 @@ end
 local function UpdateFrame_OnUpdate(self,elap)
     elapsed = elapsed + elap
     if elapsed > INTERVAL then
-        for k,f in addon:Frames() do
+        for _,f in addon:Frames() do
             if f.unit then
                 Frame_Check(f)
             end
@@ -53,7 +53,10 @@ end
 function mod:OnEnable()
     self:RegisterMessage('Show')
     self:RegisterUnitEvent('UNIT_FACTION','Event')
-    self:RegisterUnitEvent('UNIT_THREAT_LIST_UPDATE','Event')
+
+    if not kui.CLASSIC then
+        self:RegisterUnitEvent('UNIT_THREAT_LIST_UPDATE','Event')
+    end
 
     local f = CreateFrame('Frame')
     f:SetScript('OnUpdate',UpdateFrame_OnUpdate)

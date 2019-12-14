@@ -17,13 +17,11 @@ local kui = LibStub('Kui-1.0')
 local mod = addon:NewPlugin('Fading')
 
 local abs,pairs,ipairs,type,tinsert = math.abs,pairs,ipairs,type,tinsert
-local UnitExists,UnitIsUnit = UnitExists,UnitIsUnit
 local kff,kffr = kui.frameFade, kui.frameFadeRemoveFrame
 
 local UpdateFrame = CreateFrame('Frame')
-local delayed_frames = {}
+local fade_rules,delayed_frames = {},{}
 local target_exists
-local fade_rules
 
 -- local functions #############################################################
 local function ResetFrameFade(frame)
@@ -50,7 +48,7 @@ local function FrameFade(frame,to)
     })
 end
 local function GetDesiredAlpha(frame)
-    for i,f_t in ipairs(fade_rules) do
+    for _,f_t in ipairs(fade_rules) do
         if f_t then
             local a = f_t[2](frame)
             if a then
@@ -86,12 +84,13 @@ end
 -- mod functions ###############################################################
 function mod:UpdateFrame(f)
     -- add frame to delayed update table
+    if not self.enabled then return end
     delayed_frames[f] = true
     UpdateFrame:SetScript('OnUpdate',OnUpdate)
 end
 function mod:UpdateAllFrames()
     -- update alpha of all visible frames
-    for k,f in addon:Frames() do
+    for _,f in addon:Frames() do
         if f:IsShown() then
             self:UpdateFrame(f)
         end
@@ -112,6 +111,7 @@ function mod:ResetFadeRules()
     mod:RunCallback('FadeRulesReset')
 end
 function mod:AddFadeRule(func,priority,uid)
+    if not self.enabled then return end
     if type(func) ~= 'function' or not tonumber(priority) then
         error('AddFadeRule expects function(function),priority(number)')
     end
@@ -182,6 +182,16 @@ function mod:OnEnable()
     self:RegisterMessage('Hide')
 
     self:ResetFadeRules()
+    self:UpdateAllFrames()
+end
+function mod:OnDisable()
+    wipe(delayed_frames)
+    wipe(fade_rules)
+    UpdateFrame:SetScript('OnUpdate',nil)
+
+    for _,f in addon:Frames() do
+        f:SetAlpha(1)
+    end
 end
 function mod:Initialise()
     self:RegisterCallback('FadeRulesReset')

@@ -1,6 +1,7 @@
-## Interface: 80000
+## Interface: 80205
+
 ## Author: Kesava
-## Title: Kui |cff9966ffNameplates:|r |cffffffffCore Config|r
+## Title: Kui |cff9966ff名條:|r |cffffffff核心選項設置|r
 ## Notes: Load-on-demand configuration interface for Kui Nameplates Core.
 ## Title-zhTW: |cFF0099FF[介面]|r 血條樣式 (設置)
 ## Notes-zhTW: |cFFCCBBCCKui |cff9966ffNameplates|r |n設置。
@@ -11,13 +12,8 @@ lib\embeds.xml
 
 main.lua
 
-locale\enGB.lua
 locale\zhCN.lua
 locale\zhTW.lua
-locale\koKR.lua
-locale\ruRU.lua
-#locale\frFR.lua
-locale\esMX.lua
 
 helpers.lua
 create.lua

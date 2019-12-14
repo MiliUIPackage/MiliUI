@@ -111,12 +111,15 @@
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('Auras',1)
+local AuraLib
+local UnitAura = _G['UnitAura']
 
 local strlower,tinsert,tsort,     pairs,ipairs =
       strlower,tinsert,table.sort,pairs,ipairs
 
 local FONT,FONT_SIZE_CD,FONT_SIZE_COUNT,FONT_FLAGS,
-      COLOUR_SHORT,COLOUR_MEDIUM,COLOUR_LONG,DECIMAL_THRESHOLD
+      COLOUR_SHORT,COLOUR_MEDIUM,COLOUR_LONG,DECIMAL_THRESHOLD,
+      TIME_THRESHOLD_SHORT,TIME_THRESHOLD_LONG
 
 -- DisplayAura callback return behaviour enums
 local CB_HIDE,CB_SHOW = 1,2
@@ -167,54 +170,55 @@ local sort_lookup = {
 local function button_OnUpdate(self,elapsed)
     self.cd_elap = (self.cd_elap or 0) - elapsed
     if self.cd_elap <= 0 then
+        self.cd_elap = 1
+
         local remaining = self.expiration - GetTime()
 
-        if self.parent.pulsate and remaining <= 5 then
+        if remaining <= 0 then
+            -- stop until the cooldown is updated
+            self:StartPulsate()
+            self.cd:SetText(0)
+            self:SetScript('OnUpdate',nil)
+            return
+        end
+
+        if remaining <= TIME_THRESHOLD_SHORT then
             self:StartPulsate()
         else
             self:StopPulsate()
         end
 
-        if remaining <= 0 then
-            -- timers can get below 0 due to latency
-            self.cd:SetText(0)
-            self:SetScript('OnUpdate',nil)
-            return
-        elseif self.parent.timer_threshold and
-               remaining > self.parent.timer_threshold
+        if not self.parent.timer_threshold or
+           remaining <= self.parent.timer_threshold
         then
-            -- don't show a timer above threshold
-            self.cd_elap = 1
+            -- define cd text
+            if remaining <= DECIMAL_THRESHOLD+1 then
+                -- faster updates in the last few seconds
+                self.cd_elap = .05
+            else
+                self.cd_elap = .5
+            end
+
+            if remaining <= TIME_THRESHOLD_SHORT then
+                self.cd:SetTextColor(unpack(COLOUR_SHORT))
+            elseif remaining <= TIME_THRESHOLD_LONG then
+                self.cd:SetTextColor(unpack(COLOUR_MEDIUM))
+            else
+                self.cd:SetTextColor(unpack(COLOUR_LONG))
+            end
+
+            if remaining <= DECIMAL_THRESHOLD then
+                self.cd:SetText(format('%.1f',remaining))
+            else
+                self.cd:SetText(format('%.f',remaining))
+            end
+        else
+            -- hide cd text
             self.cd:SetText('')
-            return
         end
-
-        if remaining <= DECIMAL_THRESHOLD+1 then
-            -- faster updates in the last few seconds
-            self.cd_elap = .05
-        else
-            self.cd_elap = .5
-        end
-
-        if remaining <= 5 then
-            self.cd:SetTextColor(unpack(COLOUR_SHORT))
-        elseif remaining <= 20 then
-            self.cd:SetTextColor(unpack(COLOUR_MEDIUM))
-        else
-            self.cd:SetTextColor(unpack(COLOUR_LONG))
-        end
-
-        if remaining <= DECIMAL_THRESHOLD then
-            -- decimal places in the last second
-            remaining = format("%.1f", remaining)
-        else
-            remaining = format("%.f", remaining)
-        end
-
-        self.cd:SetText(remaining)
     end
 end
-local function button_UpdateCooldown(self,duration,expiration)
+local function button_UpdateCooldown(self,_,expiration)
     if expiration and expiration > 0 then
         self.expiration = expiration
         self.cd_elap = 0
@@ -267,6 +271,7 @@ do
     end
 
     function button_StartPulsate(self)
+        if not self.parent.pulsate then return end
         if self.pulsating then return end
 
         self.pulsating = true
@@ -308,18 +313,18 @@ local function CreateAuraButton(parent)
         icon:SetPoint('TOPLEFT',bg,1,-1)
         icon:SetPoint('BOTTOMRIGHT',bg,-1,1)
 
-        local cd = button:CreateFontString(nil,'OVERLAY')
-        cd:SetFont(FONT, FONT_SIZE_CD, FONT_FLAGS)
-        cd:SetPoint('TOPLEFT',-2,2)
-
         local count = button:CreateFontString(nil,'OVERLAY')
         count:SetFont(FONT, FONT_SIZE_COUNT, FONT_FLAGS)
         count:SetPoint('BOTTOMRIGHT',4,-2)
         count:Hide()
 
+        local cd = button:CreateFontString(nil,'OVERLAY')
+        cd:SetFont(FONT, FONT_SIZE_CD, FONT_FLAGS)
+        cd:SetPoint('TOPLEFT',-2,2)
+
         button.icon   = icon
-        button.cd     = cd
         button.count  = count
+        button.cd     = cd
     end
 
     button.parent = parent
@@ -390,7 +395,7 @@ local function AuraFrame_GetAuras(self)
         if name and spellid and
            self:ShouldShowAura(spellid,name,duration,caster,can_purge,nps_own,nps_all,i)
         then
-            self:DisplayButton(spellid,name,icon,count,duration,expiration,caster,can_purge,i)
+            self:DisplayButton(spellid,icon,count,duration,expiration,caster,can_purge,i)
         end
     end
 end
@@ -417,6 +422,11 @@ local function AuraFrame_ShouldShowAura(self,spellid,name,duration,caster,can_pu
     if not name or not spellid then return end
     name = strlower(name)
 
+    if kui.CLASSIC then
+        -- show all own auras on classic
+        nps_own = true
+    end
+
     local own = (caster == 'player' or caster == 'pet' or caster == 'vehicle')
     local cbr = ele:RunCallback('DisplayAura',self,spellid,name,duration,
         caster,own,can_purge,nps_own,nps_all,index)
@@ -439,7 +449,7 @@ local function AuraFrame_ShouldShowAura(self,spellid,name,duration,caster,can_pu
         return nps_all or (nps_own and own)
     end
 end
-local function AuraFrame_DisplayButton(self,spellid,name,icon,count,duration,expiration,caster,can_purge,index)
+local function AuraFrame_DisplayButton(self,spellid,icon,count,duration,expiration,caster,can_purge,index)
     local button = self:GetButton(spellid)
 
     button:SetTexture(icon)
@@ -594,7 +604,7 @@ local function AuraFrame_SetIconSize(self,size)
     self.icon_ratio = (1 - (self.icon_height / size)) / 2
 
     -- update existing buttons
-    for k,button in ipairs(self.buttons) do
+    for _,button in ipairs(self.buttons) do
         button:SetWidth(size)
         button:SetHeight(self.icon_height)
         button.icon:SetTexCoord(.1,.9,.1+self.icon_ratio,.9-self.icon_ratio)
@@ -647,7 +657,7 @@ local function ExternalAuraFrame_AddAura(self,uid,icon,count,duration,expiration
         expiration = GetTime() + duration
     end
 
-    self:DisplayButton(uid,nil,icon,count,duration,expiration)
+    self:DisplayButton(uid,icon,count,duration,expiration)
     self:ArrangeButtons()
     self:UpdateVisibility()
 
@@ -688,7 +698,7 @@ local aura_meta = {
 local function CreateAuraFrame(parent)
     local auraframe = CreateFrame('Frame',nil,parent)
 
-    -- mixin prototype (can't actually setmeta on a frame)
+    -- mixin prototype
     for k,v in pairs(aura_meta) do
         auraframe[k] = v
     end
@@ -794,31 +804,45 @@ function ele:UpdateConfig()
     COLOUR_MEDIUM = addon.layout.Auras.colour_medium or {1,1,0,1}
     COLOUR_LONG = addon.layout.Auras.colour_long or {1,1,1,1}
     DECIMAL_THRESHOLD = addon.layout.Auras.decimal_threshold or 2
+
+    TIME_THRESHOLD_SHORT = addon.layout.Auras.time_threshold_short or 5
+    TIME_THRESHOLD_LONG = addon.layout.Auras.time_threshold_long or 20
 end
 -- messages ####################################################################
 function ele:Show(f)
+    if not self.enabled then return end
     self:FactionUpdate(f)
 end
 function ele:Hide(f)
-    if not f.Auras then return end
-    for i,frame in pairs(f.Auras.frames) do
+    if not self.enabled then return end
+    if not f.Auras or not f.Auras.frames then return end
+    for _,frame in pairs(f.Auras.frames) do
         frame:Hide()
     end
 end
 function ele:FactionUpdate(f)
     -- update each aura frame on this nameplate
-    if not f.Auras then return end
+    if not self.enabled then return end
+    if not f.Auras or not f.Auras.frames then return end
     for _,auras_frame in pairs(f.Auras.frames) do
         auras_frame:FactionUpdate()
         auras_frame:Update()
     end
 end
 -- events ######################################################################
-function ele:UNIT_AURA(event,f)
+function ele:UNIT_AURA(_,f)
     -- update each aura frame on this nameplate
-    if not f.Auras then return end
+    if not self.enabled then return end
+    if not f.Auras or not f.Auras.frames then return end
     for _,auras_frame in pairs(f.Auras.frames) do
         auras_frame:Update()
+    end
+end
+-- aura lib callback ###########################################################
+local function AuraLib_UNIT_BUFF(_,unit)
+    local f = addon:GetActiveNameplateForUnit(unit)
+    if f then
+        ele:UNIT_AURA(nil,f)
     end
 end
 -- register ####################################################################
@@ -827,9 +851,18 @@ function ele:OnEnable()
     self:RegisterMessage('Hide')
     self:RegisterMessage('FactionUpdate')
     self:RegisterUnitEvent('UNIT_AURA')
+
+    if AuraLib then
+        AuraLib.RegisterCallback(self,'UNIT_BUFF',AuraLib_UNIT_BUFF)
+    end
+end
+function ele:OnDisable()
+    if AuraLib then
+        AuraLib.UnregisterAllCallbacks(self)
+    end
 end
 function ele:Initialised()
-    if type(addon.layout.Auras) ~= 'table' then 
+    if type(addon.layout.Auras) ~= 'table' then
         self:Disable()
         return
     end
@@ -844,4 +877,14 @@ function ele:Initialise()
     self:RegisterCallback('PostCreateAuraFrame')
     self:RegisterCallback('PostUpdateAuraFrame')
     self:RegisterCallback('DisplayAura',true)
+
+    if kui.CLASSIC then
+        AuraLib = LibStub('LibClassicDurations',true)
+        if not AuraLib then return end
+
+        AuraLib:Register('KuiNameplates')
+        UnitAura = function(...)
+            return AuraLib:UnitAura(...)
+        end
+    end
 end

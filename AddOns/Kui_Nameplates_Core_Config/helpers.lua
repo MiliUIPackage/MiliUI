@@ -1,5 +1,4 @@
-local folder,ns = ...
-local opt = KuiNameplatesCoreConfig
+local opt = KuiNameplatesCoreConfig -- luacheck:globals KuiNameplatesCoreConfig
 local frame_name = 'KuiNameplatesCoreConfig'
 local pcdd = LibStub('SomeoneElsesConfig-Dropdown')
 local L = opt:GetLocale()
@@ -9,20 +8,30 @@ local S_CHECKBOX_OFF = 857
 local S_MENU_OPEN = 850
 local S_MENU_CLOSE = 851
 
--- generic scripts #############################################################
-local function EditBoxOnEscapePressed(self)
-    self:ClearFocus()
+local function GetLocaleString(common_key,name,fallback)
+    if common_key and L.common[common_key] then
+        return L.common[common_key]
+    end
+    if name then
+        if L.titles[name] then return L.titles[name] end
+        return name
+    end
+    return fallback
 end
+
+-- generic scripts #############################################################
 local function OnEnter(self)
     GameTooltip:SetOwner(self,'ANCHOR_TOPLEFT')
     GameTooltip:SetWidth(200)
-    GameTooltip:AddLine(
-        self.env and (L.titles[self.env] or self.env) or
-        self.label and self.label:GetText()
-    )
+
+    if self.common_name or self.env then
+        GameTooltip:AddLine(GetLocaleString(self.common_name,self.env,'Tooltip'))
+    elseif self.label then
+        GameTooltip:AddLine(self.label:GetText())
+    end
 
     if self.env and L.tooltips[self.env] then
-        GameTooltip:AddLine(L.tooltips[self.env], 1,1,1,true)
+        GameTooltip:AddLine(L.tooltips[self.env],1,1,1,true)
     end
 
     GameTooltip:Show()
@@ -50,6 +59,15 @@ local function GenericOnShow(self)
     end
 end
 -- element creation helpers ####################################################
+-- button ######################################################################
+local function CreateButton(parent)
+    local f = CreateFrame('Button',nil,parent,'UIPanelButtonTemplate')
+    if f.Text and f.Left and f.Right then
+        f.Text:SetPoint('LEFT',f.Left)
+        f.Text:SetPoint('RIGHT',f.Right)
+    end
+    return f
+end
 -- checkbox ####################################################################
 do
     local function Get(self)
@@ -78,10 +96,12 @@ do
         GenericOnShow(self)
     end
 
-    function opt.CreateCheckBox(parent, name, small)
+    function opt.CreateCheckBox(parent, name, small, common_name)
         local check = CreateFrame('CheckButton', frame_name..name..'Check', parent, 'OptionsBaseCheckButtonTemplate')
 
         check.env = name
+        check.common_name = common_name
+
         check:SetScript('OnClick',CheckBoxOnClick)
         check:SetScript('OnShow',CheckBoxOnShow)
 
@@ -97,7 +117,7 @@ do
         end
 
         check.label:SetJustifyH('LEFT')
-        check.label:SetText(L.titles[name] or name or 'Checkbox')
+        check.label:SetText(GetLocaleString(common_name,name,'Checkbox'))
         check.label:SetPoint('LEFT', check, 'RIGHT')
 
         check.Get = Get
@@ -158,17 +178,15 @@ do
         self.button:Disable()
     end
 
-    function opt.CreateDropDown(parent, name, width)
-        local dd = pcdd:New(
-            parent,
-            L.titles[name] or name or 'DropDown'
-        )
+    function opt.CreateDropDown(parent, name, common_name)
+        local dd = pcdd:New(parent,GetLocaleString(common_name,name,'Dropdown'))
         dd.labelText:SetFontObject('GameFontNormalSmall')
-        dd:SetWidth(width or 200)
+        dd:SetWidth(200)
         dd:SetHeight(40)
-        dd.env = name
-
         dd:HookScript('OnShow',DropDownOnShow)
+
+        dd.env = name
+        dd.common_name = common_name
 
         dd.OnEnter = OnEnter
         dd.OnLeave = OnLeave
@@ -225,14 +243,13 @@ do
         self:Set()
     end
     local function SliderOnMouseWheel(self,delta)
-        if not self:IsEnabled() then return end
-        if delta > 0 then
-            delta = self:GetValueStep()
+        if self:IsEnabled() and IsAltKeyDown() then
+            self:SetValue(self:GetValue()+(self:GetValueStep()*delta))
+            self:Set()
         else
-            delta = -self:GetValueStep()
+            -- "passthrough" scroll to scrollframe
+            opt.ScrollFrame:GetScript('OnMouseWheel')(opt.ScrollFrame,delta)
         end
-        self:SetValue(self:GetValue()+delta)
-        self:Set()
     end
     local function SliderSetMinMaxValues(self,min,max)
         self:orig_SetMinMaxValues(min,max)
@@ -242,12 +259,12 @@ do
     local function SliderOnDisable(self)
         self.display:Disable()
         self.display:SetFontObject('GameFontDisableSmall')
-        self.label:SetFontObject('GameFontDisable')
+        self.label:SetFontObject(self.small and 'GameFontDisableSmall' or 'GameFontDisable')
     end
     local function SliderOnEnable(self)
         self.display:Enable()
         self.display:SetFontObject('GameFontHighlightSmall')
-        self.label:SetFontObject('GameFontNormal')
+        self.label:SetFontObject(self.small and 'GameFontNormalSmall' or 'GameFontNormal')
     end
 
     local function EditBox_OnFocusGained(self)
@@ -277,7 +294,7 @@ do
         self:SetFocus()
     end
 
-    function opt.CreateSlider(parent, name, min, max)
+    function opt.CreateSlider(parent, name, min, max, small, common_name)
         local slider = CreateFrame('Slider',frame_name..name..'Slider',parent,'OptionsSliderTemplate')
         slider:SetWidth(190)
         slider:SetHeight(15)
@@ -286,8 +303,10 @@ do
         slider:SetObeyStepOnDrag(true)
         slider:EnableMouseWheel(true)
 
-        local label = slider:CreateFontString(slider:GetName()..'Label','ARTWORK','GameFontNormal')
-        label:SetText(L.titles[name] or name or 'Slider')
+        local label = slider:CreateFontString(
+            slider:GetName()..'Label','ARTWORK',
+            (small and 'GameFontNormalSmall' or 'GameFontNormal'))
+        label:SetText(GetLocaleString(common_name,name,'Slider'))
         label:SetPoint('BOTTOM',slider,'TOP')
 
         local display = CreateFrame('EditBox',nil,slider)
@@ -313,8 +332,10 @@ do
         slider.SetMinMaxValues = SliderSetMinMaxValues
 
         slider.env = name
+        slider.common_name = common_name
         slider.label = label
         slider.display = display
+        slider.small = small
 
         slider:HookScript('OnEnter',OnEnter)
         slider:HookScript('OnLeave',OnLeave)
@@ -358,12 +379,13 @@ do
         opt.Popup:ShowPage('colour_picker')
     end
 
-    function opt.CreateColourPicker(parent,name,small)
+    function opt.CreateColourPicker(parent,name,small,common_name)
         local container = CreateFrame('Button',frame_name..name..'ColourPicker',parent)
         container:SetWidth(150)
         container:SetHeight(27)
         container:EnableMouse(true)
         container.env = name
+        container.common_name = common_name
 
         local block = CreateFrame('Frame',nil,container)
         block:SetBackdrop({
@@ -387,7 +409,7 @@ do
         else
             label = container:CreateFontString(nil,'ARTWORK','GameFontHighlight')
         end
-        label:SetText(L.titles[name] or name or 'Colour picker')
+        label:SetText(GetLocaleString(common_name,name,'Colour picker'))
         label:SetPoint('LEFT',block,'RIGHT',5,0)
 
         container.block = block
@@ -410,7 +432,7 @@ do
     end
 end
 -- separator ###################################################################
-function opt.CreateSeparator(parent,name)
+function opt.CreateSeparator(parent,name,common_name)
     local line = parent:CreateTexture(nil,'ARTWORK')
     line:SetTexture('interface/buttons/white8x8')
     line:SetVertexColor(1,1,1,.3)
@@ -419,11 +441,12 @@ function opt.CreateSeparator(parent,name)
     local shadow = parent:CreateTexture(nil,'ARTWORK')
     shadow:SetTexture('interface/buttons/white8x8')
     shadow:SetVertexColor(0,0,0,.8)
-    shadow:SetSize(400,1)
-    shadow:SetPoint('BOTTOM',line,'TOP')
+    shadow:SetHeight(1)
+    shadow:SetPoint('BOTTOMLEFT',line,'TOPLEFT')
+    shadow:SetPoint('BOTTOMRIGHT',line,'TOPRIGHT')
 
     local label = parent:CreateFontString(nil,'ARTWORK','GameFontNormal')
-    label:SetText(L.titles[name] or name or 'Separator')
+    label:SetText(GetLocaleString(common_name,name,'Separator'))
     label:SetPoint('CENTER',line,0,10)
 
     line.label = label
@@ -432,26 +455,6 @@ function opt.CreateSeparator(parent,name)
 end
 -- page functions ##############################################################
 do
-    local function ShowPage(self)
-        if opt.active_page then
-            opt.active_page:HidePage()
-        end
-
-        self.tab.highlight:SetVertexColor(1,1,0)
-        self.tab:LockHighlight()
-
-        self.scroll:Show()
-        self:Show()
-
-        opt.active_page = self
-    end
-    local function HidePage(self)
-        self.tab.highlight:SetVertexColor(.196,.388,.8)
-        self.tab:UnlockHighlight()
-
-        self.scroll:Hide()
-        self:Hide()
-    end
     local function PageOnShow(self)
         if type(self.Initialise) == 'function' then
             self:Initialise()
@@ -469,9 +472,6 @@ do
         CreateSlider = opt.CreateSlider,
         CreateColourPicker = opt.CreateColourPicker,
         CreateSeparator = opt.CreateSeparator,
-
-        HidePage = HidePage,
-        ShowPage = ShowPage
     }
     local function BindPage(pg)
         for k,v in pairs(page_proto) do
@@ -487,24 +487,13 @@ do
         f:SetHeight(1)
         f:Hide()
         f.name = name
+        f.id = #self.pages + 1
         f.elements = {}
 
-        f.scroll = CreateFrame('ScrollFrame',frame_name..name..'PageScrollFrame',self,'UIPanelScrollFrameTemplate')
-        f.scroll:SetPoint('TOPLEFT',self.PageBG,4,-4)
-        f.scroll:SetPoint('BOTTOMRIGHT',self.PageBG,-26,4)
-        f.scroll:SetScrollChild(f)
-
-        if f.scroll.ScrollBar then
-            f.scroll.ScrollBar:SetBackdrop({bgFile='interface/buttons/white8x8'})
-            f.scroll.ScrollBar:SetBackdropColor(0,0,0,.2)
-        end
-
         BindPage(f)
-
         self:CreatePageTab(f)
-        f:HidePage()
+        self.pages[f.id] = f
 
-        tinsert(self.pages,f)
         return f
     end
     function opt:CreatePopupPage(name,w,h)
@@ -529,7 +518,7 @@ end
 do
     local function OnClick(self)
         PlaySound(S_CHECKBOX_ON)
-        self.child:ShowPage()
+        opt:ShowPage(self.child_id)
     end
     function opt:CreatePageTab(page)
         local tab = CreateFrame('Button',frame_name..page.name..'PageTab',self.TabList,'OptionsListButtonTemplate')
@@ -537,11 +526,10 @@ do
         tab:SetText(L.page_names[page.name] or page.name or 'Tab')
         tab:SetWidth(130)
 
-        tab.child = page
+        tab.child_id = page.id
         page.tab = tab
 
-        local pt = #self.pages > 0 and self.pages[#self.pages].tab
-
+        local pt = tab.child_id > 1 and self.pages[(tab.child_id - 1)].tab
         if pt then
             tab:SetPoint('TOPLEFT',pt,'BOTTOMLEFT',0,-1)
         else
@@ -592,12 +580,10 @@ do
         self:SetList(list)
         self:SetValue(opt.config.csv.profile)
     end
-    function CreateProfileDropDown()
-        local p_dd = pcdd:New(opt,L.titles['profile'])
+    function CreateProfileDropDown(parent)
+        local p_dd = pcdd:New(parent)
+        p_dd.list_width = 175
         p_dd.labelText:SetFontObject('GameFontNormalSmall')
-        p_dd:SetWidth(152)
-        p_dd:SetHeight(40)
-        p_dd:SetPoint('TOPLEFT',9,-15)
         p_dd:SetFrameStrata('TOOLTIP')
 
         p_dd.initialize = initialize
@@ -612,6 +598,8 @@ do
         p_dd:HookScript('OnShow',function(self)
             self:initialize()
         end)
+
+        return p_dd
     end
 end
 -- local popup functions #######################################################
@@ -805,7 +793,8 @@ do
         local pg = opt:CreatePopupPage('confirm_dialog')
 
         local label = pg:CreateFontString(nil,'ARTWORK','GameFontNormal')
-        label:SetPoint('CENTER',0,10)
+        label:SetPoint('BOTTOMLEFT',pg,'LEFT',40,10)
+        label:SetPoint('RIGHT',-40,0)
 
         pg.label = label
         pg.PostShow = ConfirmDialog_PostShow
@@ -834,7 +823,8 @@ do
         local pg = opt:CreatePopupPage('text_entry')
 
         local label = pg:CreateFontString(nil,'ARTWORK','GameFontNormal')
-        label:SetPoint('CENTER',0,20)
+        label:SetPoint('BOTTOMLEFT',pg,'LEFT',40,20)
+        label:SetPoint('RIGHT',-40,0)
 
         local text = CreateFrame('EditBox',nil,pg,'InputBoxTemplate')
         text:SetAutoFocus(false)
@@ -878,12 +868,12 @@ do
         popup:SetScript('OnShow',PopupOnShow)
         popup:SetScript('OnHide',PopupOnHide)
 
-        local okay = CreateFrame('Button',nil,popup,'UIPanelButtonTemplate')
+        local okay = CreateButton(popup)
         okay:SetText('OK')
         okay:SetSize(90,22)
         okay:SetPoint('BOTTOM',-45,20)
 
-        local cancel = CreateFrame('Button',nil,popup,'UIPanelButtonTemplate')
+        local cancel = CreateButton(popup)
         cancel:SetText('Cancel')
         cancel:SetSize(90,22)
         cancel:SetPoint('BOTTOM',45,20)
@@ -901,130 +891,333 @@ do
         CreatePopupPage_ConfirmDialog()
         CreatePopupPage_TextEntry()
 
-        opt:HookScript('OnHide',function(opt)
-            opt.Popup:Hide()
+        opt:HookScript('OnHide',function(self)
+            self.Popup:Hide()
         end)
     end
 end
--- init display ################################################################
+-- page helper #################################################################
+do
+    local function HidePage(page)
+        page.tab.highlight:SetVertexColor(.196,.388,.8)
+        page.tab:UnlockHighlight()
+        page:Hide()
+    end
+    function opt:ShowPage(page_id)
+        if self.active_page then
+            HidePage(self.active_page)
+            self.active_page = nil
+        end
+
+        local target = self.pages[page_id]
+        assert(target)
+        self.active_page = target
+
+        target.tab.highlight:SetVertexColor(1,1,0)
+        target.tab:LockHighlight()
+        target:Show()
+
+        self.ScrollFrame:SetScrollChild(target)
+        self.ScrollFrame.ScrollBar:SetValue(0)
+
+        self:CurrentPage_UpdateClipboardButton()
+    end
+end
+-- current page script helpers #################################################
+do
+    local clipboard,clipboard_page,clipboard_profile
+    local function callback(_,accept)
+        if accept then
+            opt:CurrentPage_Paste()
+        end
+    end
+
+    function opt:CurrentPage_Name()
+        -- return localised name of current page
+        if not self.active_page or not self.active_page.name then return end
+        return L.page_names[self.active_page.name] or self.active_page.name
+    end
+    function opt:CurrentPage_Copy()
+        -- copy settings from current page into clipboard
+        assert(self.active_page.name)
+
+        clipboard = {}
+        clipboard_page = self.active_page.name
+        clipboard_profile = self.config.csv.profile
+
+        for _,e_frame in pairs(self.active_page.elements) do
+            -- get envs from elements...
+            local env = e_frame.env
+            if env then
+                -- and their settings from the full profile
+                clipboard[env] = self.profile[env]
+            end
+        end
+    end
+    function opt:CurrentPage_Paste()
+        -- paste setttings from clipboard into current profile
+        if not self:CurrentPage_CanPaste() then return end
+
+        for env,value in pairs(clipboard) do
+            self.config.profile[env] = value
+        end
+        self.config:PostProfile()
+
+        clipboard,clipboard_page,clipboard_profile = nil,nil,nil
+        self:CurrentPage_UpdateClipboardButton()
+    end
+    function opt:CurrentPage_CanPaste()
+        -- true if the page settings in our clipboard match the current page
+        return (self.active_page and
+                clipboard and
+                clipboard_page and
+                clipboard_profile and
+                clipboard_page == self.active_page.name)
+    end
+    function opt:CurrentPage_Reset()
+        -- reset settings on current page
+        for _,e_frame in pairs(self.active_page.elements) do
+            local env = e_frame.env
+            if env then
+                self.config.profile[env] = nil
+            end
+        end
+        self.config:PostProfile()
+    end
+    function opt:CurrentPage_ClipboardButtonClick(button)
+        if button == 'RightButton' or not self:CurrentPage_CanPaste() then
+            self:CurrentPage_Copy()
+            self:CurrentPage_UpdateClipboardButton()
+        else
+            -- confirm paste
+            self.Popup:ShowPage(
+                'confirm_dialog',
+                format(L.titles['paste_page_label'],
+                    opt:CurrentPage_Name(),
+                    clipboard_profile,
+                    self.config.csv.profile),
+                callback
+            )
+        end
+    end
+    function opt:CurrentPage_UpdateClipboardButton()
+        -- update managed button text
+        if self:CurrentPage_CanPaste() then
+            self.ClipboardButton:SetText(L.common['paste'])
+        else
+            self.ClipboardButton:SetText(L.common['copy'])
+        end
+    end
+end
+-- init category display #######################################################
+local function CreateBackground(invisible)
+    local new = CreateFrame('Frame',nil,opt)
+    if not invisible then
+        new:SetBackdrop({
+            bgFile = 'interface/buttons/white8x8',
+            edgeFile = 'Interface/Tooltips/UI-Tooltip-border',
+            edgeSize = 14,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 }
+        })
+        new:SetBackdropColor(.1,.1,.1,.6)
+        new:SetBackdropBorderColor(.5,.5,.5)
+    end
+    return new
+end
+local function ProfileButtonOnShow(self)
+    if opt.config.csv.profile == 'default' then
+        self:Disable()
+    else
+        self:Enable()
+    end
+end
+local function page_reset_callback(_,accept)
+    if accept then opt:CurrentPage_Reset() end
+end
+local function page_reset_OnClick(self)
+    opt.Popup:ShowPage(
+        'confirm_dialog',
+        format(L.titles['reset_page_label'],opt:CurrentPage_Name()),
+        self.callback
+    )
+end
+local function page_copy_OnClick(self,button)
+    opt:CurrentPage_ClipboardButtonClick(button)
+end
+local function profile_copy_callback(page,accept)
+    if accept then
+        opt.config:CopyProfile(opt.config.csv.profile,page.editbox:GetText())
+    end
+end
+local function profile_copy_OnClick(self)
+    opt.Popup:ShowPage(
+        'text_entry',
+        L.titles['copy_profile_label'],
+        nil,
+        self.callback
+    )
+end
+local function profile_rename_callback(page,accept)
+    if accept then
+        opt.config:RenameProfile(opt.config.csv.profile,page.editbox:GetText())
+    end
+end
+local function profile_rename_OnClick(self)
+    opt.Popup:ShowPage(
+        'text_entry',
+        string.format(
+            L.titles['rename_profile_label'],
+            opt.config.csv.profile
+        ),
+        opt.config.csv.profile,
+        self.callback
+    )
+end
+local function profile_reset_callback(_,accept)
+    if accept then
+        opt.config:ResetProfile(opt.config.csv.profile)
+    end
+end
+local function profile_reset_OnClick(self)
+    opt.Popup:ShowPage(
+        'confirm_dialog',
+        string.format(L.titles.reset_profile_label,opt.config.csv.profile),
+        self.callback
+    )
+end
+local function profile_delete_callback(_,accept)
+    if accept then
+        opt.config:DeleteProfile(opt.config.csv.profile)
+    end
+end
+local function profile_delete_OnClick(self)
+    opt.Popup:ShowPage(
+        'confirm_dialog',
+        string.format(L.titles.delete_profile_label,opt.config.csv.profile),
+        self.callback
+    )
+end
 function opt:Initialise()
     CreatePopup()
-    CreateProfileDropDown()
 
-    -- create profile buttons
-    local function ProfileButtonOnShow(self)
-        if opt.config.csv.profile == 'default' then
-            self:Disable()
-        else
-            self:Enable()
-        end
-    end
+    -- backgrounds
+    local profile_buttons_bg = CreateBackground()
+    profile_buttons_bg:SetPoint('TOPLEFT',10,-10)
+    profile_buttons_bg:SetWidth(150)
+    profile_buttons_bg:SetHeight(100)
 
-    local p_delete = CreateFrame('Button',nil,opt,'UIPanelButtonTemplate')
-    p_delete:SetPoint('TOPRIGHT',-10,-26)
-    p_delete:SetText(L.titles['delete_profile_title'])
-    p_delete:SetSize(109,22)
-    p_delete.callback = function(page,accept)
-        if accept then
-            opt.config:DeleteProfile(opt.config.csv.profile)
-        end
-    end
-    p_delete:SetScript('OnShow',ProfileButtonOnShow)
-    p_delete:SetScript('OnClick',function(self)
-        opt.Popup:ShowPage(
-            'confirm_dialog',
-            string.format(L.titles.delete_profile_label,opt.config.csv.profile),
-            self.callback
-        )
-    end)
+    local page_buttons_bg = CreateBackground()
+    page_buttons_bg:SetPoint('BOTTOMLEFT',10,10)
+    page_buttons_bg:SetWidth(150)
+    page_buttons_bg:SetHeight(45)
 
-    local p_rename = CreateFrame('Button',nil,opt,'UIPanelButtonTemplate')
-    p_rename:SetPoint('RIGHT',p_delete,'LEFT',-5,0)
-    p_rename:SetText(L.titles['rename_profile_title'])
-    p_rename:SetSize(109,22)
-    p_rename.callback = function(page,accept)
-        if accept then
-            opt.config:RenameProfile(opt.config.csv.profile,page.editbox:GetText())
-        end
-    end
-    p_rename:SetScript('OnShow',ProfileButtonOnShow)
-    p_rename:SetScript('OnClick',function(self)
-        opt.Popup:ShowPage(
-            'text_entry',
-            string.format(
-                L.titles['rename_profile_label'],
-                opt.config.csv.profile
-            ),
-            opt.config.csv.profile,
-            self.callback
-        )
-    end)
-
-    local p_reset = CreateFrame('Button',nil,opt,'UIPanelButtonTemplate')
-    p_reset:SetPoint('RIGHT',p_rename,'LEFT',-5,0)
-    p_reset:SetText(L.titles['reset_profile_title'])
-    p_reset:SetSize(109,22)
-    p_reset.callback = function(page,accept)
-        if accept then
-            opt.config:ResetProfile(opt.config.csv.profile)
-        end
-    end
-    p_reset:SetScript('OnClick',function(self)
-        opt.Popup:ShowPage(
-            'confirm_dialog',
-            string.format(L.titles.reset_profile_label,opt.config.csv.profile),
-            self.callback
-        )
-    end)
-
-    local p_copy = CreateFrame('Button',nil,opt,'UIPanelButtonTemplate')
-    p_copy:SetPoint('RIGHT',p_reset,'LEFT',-5,0)
-    p_copy:SetText(L.titles['copy_profile_title'])
-    p_copy:SetSize(109,22)
-    p_copy.callback = function(page,accept)
-        if accept then
-            opt.config:CopyProfile(opt.config.csv.profile,page.editbox:GetText())
-        end
-    end
-    p_copy:SetScript('OnClick',function(self)
-        opt.Popup:ShowPage(
-            'text_entry',
-            L.titles['copy_profile_label'],
-            nil,
-            self.callback
-        )
-    end)
-
-    -- create backgrounds
-    local tl_bg = CreateFrame('Frame',nil,self)
-    tl_bg:SetBackdrop({
-        bgFile = 'Interface/ChatFrame/ChatFrameBackground',
-        edgeFile = 'Interface/Tooltips/UI-Tooltip-border',
-        edgeSize = 14,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    tl_bg:SetBackdropColor(.1,.1,.1,.3)
-    tl_bg:SetBackdropBorderColor(.5,.5,.5)
-    tl_bg:SetPoint('TOPLEFT',self,10,-55)
-    tl_bg:SetPoint('BOTTOMLEFT',self,10,10)
+    local tl_bg = CreateBackground()
+    tl_bg:SetPoint('TOPLEFT',profile_buttons_bg,'BOTTOMLEFT',0,-5)
+    tl_bg:SetPoint('BOTTOM',page_buttons_bg,'TOP',0,5)
     tl_bg:SetWidth(150)
 
-    local p_bg = CreateFrame('Frame',nil,self)
-    p_bg:SetBackdrop({
-        bgFile = 'Interface/ChatFrame/ChatFrameBackground',
-        edgeFile = 'Interface/Tooltips/UI-Tooltip-border',
-        edgeSize = 14,
-        insets = { left = 4, right = 4, top = 4, bottom = 4 }
-    })
-    p_bg:SetBackdropColor(.1,.1,.1,.3)
-    p_bg:SetBackdropBorderColor(.5,.5,.5)
-    p_bg:SetPoint('TOPLEFT',tl_bg,'TOPRIGHT',3,0)
-    p_bg:SetPoint('BOTTOMRIGHT',self,-10,10)
+    local p_bg = CreateBackground()
+    p_bg:SetPoint('TOP',0,-10)
+    p_bg:SetPoint('BOTTOMRIGHT',-10,10)
+    p_bg:SetPoint('LEFT',tl_bg,'RIGHT',3,0)
 
-    -- create tab container
+    -- tab container
     local tablist = CreateFrame('Frame',frame_name..'TabList',self)
     tablist:SetPoint('TOPLEFT',tl_bg,4,-4)
     tablist:SetPoint('BOTTOMRIGHT',tl_bg,-4,4)
+
+    do
+        -- page scroll frame
+        local scrollframe = CreateFrame('ScrollFrame',frame_name..'PageScrollFrame',p_bg,'UIPanelScrollFrameTemplate')
+        scrollframe:SetPoint('TOPLEFT',p_bg,4,-4)
+        scrollframe:SetPoint('BOTTOMRIGHT',p_bg,-26,4)
+
+        scrollframe.ScrollBar.scrollStep = 50
+        scrollframe.ScrollBar:SetBackdrop({bgFile='interface/buttons/white8x8'})
+        scrollframe.ScrollBar:SetBackdropColor(0,0,0,.2)
+
+        self.ScrollFrame = scrollframe
+    end
+    do
+        -- page action buttons
+        local page_actions_text = page_buttons_bg:CreateFontString(nil,'ARTWORK')
+        page_actions_text:SetFont(STANDARD_TEXT_FONT,12,'OUTLINE')
+        page_actions_text:SetTextColor(.7,.7,.7)
+        page_actions_text:SetText(L.common['page'])
+        page_actions_text:SetPoint('TOP',page_buttons_bg,0,5)
+
+        local page_copy = CreateButton(page_buttons_bg)
+        page_copy:RegisterForClicks('AnyUp')
+        page_copy:SetPoint('LEFT',page_buttons_bg,10,0)
+        page_copy:SetWidth(64)
+        page_copy:SetHeight(22)
+        page_copy:SetScript('OnClick',page_copy_OnClick)
+
+        local page_reset = CreateButton(page_buttons_bg)
+        page_reset:SetPoint('RIGHT',page_buttons_bg,-10,0)
+        page_reset:SetWidth(64)
+        page_reset:SetHeight(22)
+        page_reset:SetText(L.common['reset'])
+        page_reset.callback = page_reset_callback
+        page_reset:SetScript('OnClick',page_reset_OnClick)
+
+        self.ClipboardButton = page_copy
+        self:CurrentPage_UpdateClipboardButton()
+    end
+
+    -- profile buttons
+    local profile_actions_text = profile_buttons_bg:CreateFontString(nil,'ARTWORK')
+    profile_actions_text:SetFont(STANDARD_TEXT_FONT,12,'OUTLINE')
+    profile_actions_text:SetTextColor(.7,.7,.7)
+    profile_actions_text:SetText(L.common['profile'])
+    profile_actions_text:SetPoint('TOP',profile_buttons_bg,0,5)
+
+    local p_dd = CreateProfileDropDown(profile_buttons_bg)
+    p_dd:SetWidth(130)
+    p_dd:SetHeight(40)
+    p_dd:SetPoint('TOPLEFT',profile_buttons_bg,10,0)
+
+    local p_copy = CreateButton(profile_buttons_bg)
+    p_copy:SetPoint('TOP',p_dd,'BOTTOM',0,-2)
+    p_copy:SetPoint('LEFT',10,0)
+    p_copy:SetText(L.common['copy'])
+    p_copy:SetSize(64,22)
+    p_copy.callback = profile_copy_callback
+    p_copy:SetScript('OnClick',profile_copy_OnClick)
+
+    local p_reset = CreateButton(profile_buttons_bg)
+    p_reset:SetPoint('LEFT',p_copy,'RIGHT',3,0)
+    p_reset:SetText(L.common['reset'])
+    p_reset:SetSize(64,22)
+    p_reset.callback = profile_reset_callback
+    p_reset:SetScript('OnClick',profile_reset_OnClick)
+
+    local p_rename = CreateButton(profile_buttons_bg)
+    p_rename:SetPoint('TOPLEFT',p_copy,'BOTTOMLEFT',0,-3)
+    p_rename:SetText(L.common['rename'])
+    p_rename:SetSize(64,22)
+    p_rename.callback = profile_rename_callback
+    p_rename:SetScript('OnShow',ProfileButtonOnShow)
+    p_rename:SetScript('OnClick',profile_rename_OnClick)
+
+    local p_delete = CreateButton(profile_buttons_bg)
+    p_delete:SetPoint('LEFT',p_rename,'RIGHT',3,0)
+    p_delete:SetText(L.common['delete'])
+    p_delete:SetSize(64,22)
+    p_delete.callback = profile_delete_callback
+    p_delete:SetScript('OnShow',ProfileButtonOnShow)
+    p_delete:SetScript('OnClick',profile_delete_OnClick)
+
+    -- version string
+    local version = self:CreateFontString(nil,'ARTWORK')
+    version:SetFont(STANDARD_TEXT_FONT,10)
+    version:SetJustifyH('RIGHT')
+    version:SetTextColor(.7,.7,.7)
+    version:SetPoint('BOTTOMRIGHT',self,'TOPRIGHT',-10,4)
+    version:SetText(format(
+        L.titles.version,
+        'Kui Nameplates','Kesava','2.25'
+    ))
 
     self.TabList = tablist
     self.TabListBG = tl_bg

@@ -7,7 +7,6 @@
 -- Update registered elements and dispatch messages
 --------------------------------------------------------------------------------
 local addon = KuiNameplates
-local kui = LibStub('Kui-1.0')
 local wipe = wipe
 
 addon.Nameplate = {}
@@ -20,7 +19,8 @@ function addon.Nameplate.RegisterElement(frame, element_name, element_frame)
     frame.elements[element_name] = true
     frame[element_name] = element_frame
 
-    -- TODO as above, addon:GetElementProvider(name) or something
+    -- approximate provider;
+    -- can't find elements with different names to their parent plugin
     local provider = addon:GetPlugin(element_name)
     if provider and type(provider.PostRegister) == 'function' then
         provider:PostRegister(frame,element_name)
@@ -64,14 +64,15 @@ function addon.Nameplate.OnUnitAdded(f,unit)
     else
         f.state.personal = UnitIsUnit(unit,'player')
         f.unit = unit
+        f.guid = UnitGUID(unit)
         f.handler:OnShow()
     end
 end
 ------------------------------------------------------- Frame script handlers --
 function addon.Nameplate.OnShow(f)
     f = f.parent
-    addon:DispatchMessage('Show', f)
     f:Show()
+    addon:DispatchMessage('Show', f)
 end
 function addon.Nameplate.OnHide(f)
     f = f.parent
@@ -81,6 +82,7 @@ function addon.Nameplate.OnHide(f)
     addon:DispatchMessage('Hide', f)
 
     f.unit = nil
+    f.guid = nil
     wipe(f.state)
 end
 function addon.Nameplate.Create(f)

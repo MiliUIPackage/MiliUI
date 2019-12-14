@@ -2,18 +2,14 @@
 local addon = KuiNameplates
 local kui = LibStub('Kui-1.0')
 local ele = addon:NewElement('HealthBar')
-
-local UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsFriend,
-      UnitPlayerControlled,unpack =
-      UnitIsTapDenied,UnitReaction,UnitIsPlayer,UnitIsFriend,
-      UnitPlayerControlled,unpack
+local RMH
 
 -- prototype additions #########################################################
 function addon.Nameplate.UpdateHealthColour(f,show)
     f = f.parent
 
     local r,g,b
-    local react = UnitReaction(f.unit,'player')
+    local react = UnitReaction(f.unit,'player') or 4
 
     if UnitIsTapDenied(f.unit) then
         r,g,b = unpack(ele.colours.tapped)
@@ -77,8 +73,13 @@ end
 function addon.Nameplate.UpdateHealth(f,show)
     f = f.parent
 
-    f.state.health_cur = UnitHealth(f.unit)
-    f.state.health_max = UnitHealthMax(f.unit)
+    if RMH then
+        f.state.health_cur, f.state.health_max = RMH.GetUnitHealth(f.unit)
+    else
+        f.state.health_cur = UnitHealth(f.unit)
+        f.state.health_max = UnitHealthMax(f.unit)
+    end
+
     f.state.health_deficit = f.state.health_max - f.state.health_cur
     f.state.health_per =
         f.state.health_cur > 0 and f.state.health_max > 0 and
@@ -103,7 +104,7 @@ function ele:FactionUpdate(f)
     f.handler:UpdateHealthColour()
 end
 -- events ######################################################################
-function ele:UNIT_HEALTH(event,f)
+function ele:UNIT_HEALTH(_,f)
     f.handler:UpdateHealth()
 end
 -- register ####################################################################
@@ -113,6 +114,9 @@ function ele:OnEnable()
     self:RegisterUnitEvent('UNIT_HEALTH_FREQUENT','UNIT_HEALTH')
 end
 function ele:Initialise()
+    if kui.CLASSIC and RealMobHealth and RealMobHealth.GetUnitHealth then
+        RMH = RealMobHealth
+    end
     self.colours = {
         hated    = { .7, .2, .1 },
         neutral  = {  1, .8,  0 },
