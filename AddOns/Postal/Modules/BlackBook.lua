@@ -22,6 +22,23 @@ local Postal_BlackBook_Autocomplete_Flags = {
 	exclude = AUTOCOMPLETE_FLAG_BNET,
 }
 
+--職業顔色值
+local LOCAL_CLASS_INFO = {}
+do
+    local localClass, class
+    for class, localClass in pairs(LOCALIZED_CLASS_NAMES_MALE) do
+        LOCAL_CLASS_INFO[localClass] = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
+        LOCAL_CLASS_INFO[localClass].class = class
+    end
+end
+
+-- 版本檢查
+local playerClientProgram = 1
+local _, _, _, tocversion = GetBuildInfo()
+if (tocversion >= 11302 and tocversion < 20000) then
+	playerClientProgram = 2
+end
+
 function Postal_BlackBook:OnEnable()
 	if not Postal_BlackBookButton then
 		-- Create the Menu Button
@@ -294,12 +311,15 @@ function Postal_BlackBook:OnChar(editbox, ...)
 
 	-- Check RealID friends that are online
 	if not newname and db.AutoCompleteFriends then
-		local numBNetTotal, numBNetOnline = BNGetNumFriends()
+		local _, numBNetOnline = BNGetNumFriends()
 		for i = 1, numBNetOnline do
-			local presenceID, presenceName, battleTag, isBattleTagPresence, toonName, toonID, client, isOnline, lastOnline, isAFK, isDND, messageText, noteText, isRIDFriend, messageTime, canSoR = BNGetFriendInfo(i)
-			if (toonName and client == BNET_CLIENT_WOW and CanCooperateWithGameAccount(toonID)) then
-				if strfind(strupper(toonName), text, 1, 1) == 1 then
-					newname = toonName
+			-- 暫時修正
+			local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+			local characterName = accountInfo.gameAccountInfo.characterName
+			if (characterName and client == BNET_CLIENT_WOW and accountInfo.gameAccountInfo.wowProjectID == playerClientProgram 
+			and CanCooperateWithGameAccount(accountInfo)) then
+				if strfind(strupper(characterName), text, 1, 1) == 1 then
+					newname = characterName
 					break
 				end
 			end
@@ -357,28 +377,51 @@ end
 
 function Postal_BlackBook:SortAndCountNumFriends()
 	wipe(sorttable)
-	local numFriends = GetNumFriends()
+	-- 本服好友名單
+	local name
+	local numFriends = C_FriendList.GetNumFriends()
 	for i = 1, numFriends do
-		sorttable[i] = GetFriendInfo(i)
+		local info = C_FriendList.GetFriendInfoByIndex(i)
+		if info.level and info.className and info.className ~= UNKNOWN then
+			local clr = LOCAL_CLASS_INFO[info.className]
+			name = format("%s |cff%.2x%.2x%.2x(%d %s)|r", info.name, clr.r*255, clr.g*255, clr.b*255, info.level, info.className)
+		else
+			name = info.name
+		end
+		sorttable[i] = name
 	end
 
-	-- Battle.net friends
+	-- Battle.net friends 戰網好友名單
 	if BNGetNumFriends then -- For pre 3.3.5 backwards compat
-		local numBNetTotal, numBNetOnline = BNGetNumFriends()
+		local _, numBNetOnline = BNGetNumFriends()
 		for i= 1, numBNetOnline do
-			local presenceID, presenceName, battleTag, isBattleTagPresence, toonName, toonID, client, isOnline, lastOnline, isAFK, isDND, messageText, noteText, isRIDFriend, messageTime, canSoR = BNGetFriendInfo(i)
-			if (toonName and client == BNET_CLIENT_WOW and CanCooperateWithGameAccount(toonID)) then
+			-- 暫時修正
+			local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
+			local characterName = accountInfo.gameAccountInfo.characterName
+			if (characterName and accountInfo.gameAccountInfo.clientProgram == BNET_CLIENT_WOW and accountInfo.gameAccountInfo.wowProjectID == playerClientProgram
+			and CanCooperateWithGameAccount(accountInfo)) then
+				if accountInfo.gameAccountInfo.realmName then
+					characterName = characterName.."-"..accountInfo.gameAccountInfo.realmName
+				end
+
+				local l = accountInfo.gameAccountInfo.characterLevel
+				local c = accountInfo.gameAccountInfo.className
+				if l and c then
+					local clr = LOCAL_CLASS_INFO[c]
+					characterName = format("%s |cff82c5ff(%s)|r |cff%.2x%.2x%.2x(%d %s)|r", characterName, accountInfo.accountName, clr.r*255, clr.g*255, clr.b*255, l, c)
+				end
+				
 				-- Check if already on friends list
 				local alreadyOnList = false
 				for j = 1, numFriends do
-					if sorttable[j] == toonName then
+					if sorttable[j] == characterName then
 						alreadyOnList = true
 						break
 					end
 				end
 				if not alreadyOnList then
 					numFriends = numFriends + 1
-					sorttable[numFriends] = toonName
+					sorttable[numFriends] = characterName
 				end
 			end
 		end
@@ -583,7 +626,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			end
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "friend" then
-			-- Friends list
+			-- Friends list 好友名單
 			local numFriends = Postal_BlackBook:SortAndCountNumFriends()
 
 			-- 25 or less, don't need multi level menus
@@ -592,7 +635,13 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 					local name = sorttable[i]
 					info.text = name
 					info.func = Postal_BlackBook.SetSendMailName
-					info.arg1 = name
+					if strfind(name, " |cff82c5ff") then
+						info.arg1 = strmatch(name, "(.*) |cff82c5ff")
+					elseif strfind(name, " |cff") then
+						info.arg1 = strmatch(name, "(.*) |cff")
+					else
+						info.arg1 = name
+					end
 					UIDropDownMenu_AddButton(info, level)
 				end
 			elseif numFriends > 25 then
