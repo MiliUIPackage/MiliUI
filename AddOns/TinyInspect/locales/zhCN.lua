@@ -11,6 +11,7 @@ ns.L = {
     ShowInspectAngularBorder    = "观察面板直角边框",
     ShowInspectColoredLabel     = "观察面板高亮橙装武器标签",
     ShowCharacterItemSheet      = "显示玩家自己装备列表",
+    ShowInspectItemSheet        = "显示观察对象装备列表",
     ShowOwnFrameWhenInspecting  = "观察同时显示自己装备列表",
     ShowItemStats               = "显示装备属性统计",
     DisplayPercentageStats      = "装备属性换算成百分比数值",
@@ -34,8 +35,6 @@ ns.L = {
     PaperDoll                   = "人物面板",
     Chat                        = "聊天",
     Loot                        = "拾取",
-	Title						= "装备观察",
-	OptionName					= "装备观察",
 }
 
 BINDING_NAME_InspectRaidFrame = "显示团队观察面板"

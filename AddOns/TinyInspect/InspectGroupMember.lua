@@ -1,6 +1,6 @@
 
 -------------------------------------
--- 團隊装备等级 Author: M
+-- 小队或团队 装备等级 Author: M
 -------------------------------------
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
@@ -18,12 +18,12 @@ local function InspectDone()
     return true
 end
 
---人員信息 @trigger RAID_MEMBER_CHANGED
-local function GetMembers(num)
+--人員信息 @trigger GROUP_MEMBER_CHANGED
+local function GetMembers(num, unitprefix)
     local unit, guid
     local temp = {}
     for i = 1, num do
-        unit = "raid"..i
+        unit = unitprefix .. i
         guid = UnitGUID(unit)
         if (guid) then temp[guid] = unit end
     end
@@ -53,23 +53,23 @@ local function GetMembers(num)
             members[guid].realm = GetRealmName()
         end
     end
-    LibEvent:trigger("RAID_MEMBER_CHANGED", members)
+    LibEvent:trigger("GROUP_MEMBER_CHANGED", members)
 end
 
---觀察 @trigger RAID_INSPECT_STARTED
+--觀察 @trigger GROUP_MEMBER_INSPECT_STARTED
 local function SendInspect(unit)
     if (GetInspecting()) then return end
     if (unit and UnitIsVisible(unit) and CanInspect(unit)) then
         ClearInspectPlayer()
         NotifyInspect(unit)
-        LibEvent:trigger("RAID_INSPECT_STARTED", members[UnitGUID(unit)])
+        LibEvent:trigger("GROUP_MEMBER_INSPECT_STARTED", members[UnitGUID(unit)])
         return
     end
     for guid, v in pairs(members) do
-        if ((not v.done or v.ilevel <= 0) and UnitIsVisible(v.unit) and CanInspect(v.unit)) then
+        if ((not v.done or v.ilevel <= 0) and UnitIsConnected(v.unit) and CanInspect(v.unit)) then
             ClearInspectPlayer()
             NotifyInspect(v.unit)
-            LibEvent:trigger("RAID_INSPECT_STARTED", v)
+            LibEvent:trigger("GROUP_MEMBER_INSPECT_STARTED", v)
             return v
         end
     end
@@ -78,15 +78,15 @@ end
 local SendAddonMessage = C_ChatInfo and C_ChatInfo.SendAddonMessage or function() end
 
 --发送自己的信息
-local function SendPlayerInfo()
+local function SendPlayerInfo(channel)
     local ilvl = select(2, GetAverageItemLevel())
     local spec = select(2, GetSpecializationInfo(GetSpecialization()))
-    SendAddonMessage("TinyInspect", format("%s|%s|%s", "LV", ilvl, spec or ""), "RAID")
+    SendAddonMessage("TinyInspect", format("%s|%s|%s", "LV", ilvl, spec or ""), channel)
 end
 
---解析发送的信息
+--解析发送的信息 @trigger GROUP_MEMBER_INSPECT_READY
 LibEvent:attachEvent("CHAT_MSG_ADDON", function(self, prefix, text, channel, sender)
-    if (prefix == "TinyInspect" and channel == "RAID") then
+    if (prefix == "TinyInspect") then
         local flag, ilvl, spec = strsplit("|", text)
         if (flag ~= "LV") then return end
         local name, realm = strsplit("-", sender)
@@ -94,7 +94,7 @@ LibEvent:attachEvent("CHAT_MSG_ADDON", function(self, prefix, text, channel, sen
             if (v.name == name and v.realm == realm) then
                 v.ilevel = tonumber(ilvl) or -1
                 v.done = true
-                LibEvent:trigger("RAID_INSPECT_READY", v)
+                LibEvent:trigger("GROUP_MEMBER_INSPECT_READY", v)
             end
         end
     end
@@ -109,27 +109,40 @@ LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)
         member.spec = data.spec
         member.name = data.name
         member.done = true
-        LibEvent:trigger("RAID_INSPECT_READY", member)
+        LibEvent:trigger("GROUP_MEMBER_INSPECT_READY", member)
     end
 end)
 
---人員增加時觸發 @trigger RAID_INSPECT_TIMEOUT @trigger RAID_INSPECT_DONE
+--人員增加時觸發 @trigger GROUP_MEMBER_INSPECT_TIMEOUT @trigger GROUP_MEMBER_INSPECT_DONE
 LibEvent:attachEvent("GROUP_ROSTER_UPDATE", function(self)
-    if (TinyInspectDB and not TinyInspectDB.EnableRaidItemLevel) then return end
-    if (not IsInRaid()) then return TinyInspectRaidFrame:Hide() end
-    local numCurrent = GetNumGroupMembers()
-    if (numCurrent ~= numMembers) then GetMembers(numCurrent) end
+    --if (TinyInspectDB and not TinyInspectDB.EnableRaidItemLevel) then return end
+    if (not IsInGroup()) then return TinyInspectRaidFrame:Hide() end
+    local unitprefix = IsInRaid() and "raid" or "party"
+    local numCurrent = unitprefix == "party" and GetNumSubgroupMembers() or GetNumGroupMembers()
+    if (numCurrent ~= numMembers) then GetMembers(numCurrent, unitprefix) end
     if (numCurrent > numMembers) then
-        SendPlayerInfo()
+        members[UnitGUID("player")] = {
+            name   = UnitName("player"),
+            class  = select(2, UnitClass("player")),
+            ilevel = select(2, GetAverageItemLevel()),
+            done   = true,
+            unit   = "player",
+            spec   = select(2, GetSpecializationInfo(GetSpecialization())),
+        }
+        SendPlayerInfo(unitprefix)
         LibSchedule:AddTask({
-            identity  = "InspectRaid",
-            elasped   = 3,
-            expired   = GetTime() + 1800,
-            onTimeout = function(self) LibEvent:trigger("RAID_INSPECT_TIMEOUT", members) end,
+            override  = true,
+            identity  = "InspectGroupMember",
+            elasped   = 1,
+            begined   = GetTime() + 2,
+            expired   = GetTime() + (unitprefix == "party" and 30 or 900),
+            onTimeout = function(self)
+                LibEvent:trigger("GROUP_MEMBER_INSPECT_TIMEOUT", members)
+            end,
             onExecute = function(self)
-                if (not IsInRaid()) then return true end
+                if (not IsInGroup()) then return true end
                 if (InspectDone()) then
-                    LibEvent:trigger("RAID_INSPECT_DONE", members)
+                    LibEvent:trigger("GROUP_MEMBER_INSPECT_DONE", members)
                     return true
                 end
                 SendInspect()
@@ -142,6 +155,88 @@ end)
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
     LibEvent:event("GROUP_ROSTER_UPDATE")
+end)
+
+---------------
+-- 小队时
+----------------
+
+local label = "<" .. (ITEM_LEVEL_ABBR or "ItemLevel") .. ">"
+
+--角色類型
+local function GetRoleIcon(unit)
+    local role = UnitGroupRolesAssigned(unit)
+    if (role == "TANK") then
+        return "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:0:19:22:41|t"
+    elseif (role == "HEALER") then
+        return "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:1:20|t"
+    elseif (role == "DAMAGER") then
+        return "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t"
+    else
+        return ""
+    end
+end
+
+--打印裝等
+local function PrintItemLevel(members)
+    local num, pattern = 26, "  %s %.1f |c%s%s|r"
+    if (TinyInspectDB and TinyInspectDB.ShowPartySpecialization) then
+        num, pattern = 32, "  %s %.1f |c%s%s|r |cffcccccc%s|r"
+    end
+    DEFAULT_CHAT_FRAME:AddMessage(string.rep("-", num), 1, 0.64, 0)
+    for _, v in pairs(members) do
+        if (v.done or v.slevel or v.ilevel > 0) then
+            DEFAULT_CHAT_FRAME:AddMessage(format(pattern,
+                GetRoleIcon(v.unit),
+                v.slevel or v.ilevel,
+                select(4, GetClassColor(v.class)),
+                v.name,
+                v.spec and "("..v.spec..")" or ""
+            ), 1, 0.82, 0)
+        end
+    end
+    DEFAULT_CHAT_FRAME:AddMessage(string.rep("-", num), 1, 0.64, 0)
+end
+
+--多人安裝后防止重復發送
+local lastBroadcastTimer = 0
+local function filter(self, event, msg, name, ...)
+    if (string.find(msg, label)) then
+        local uname = UnitName("player") .. "-" .. GetRealmName()
+        if (name ~= uname) then
+            lastBroadcastTimer = GetTime()
+        end
+    end
+    return false, msg, name, ...
+end
+ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY", filter)
+ChatFrame_AddMessageEventFilter("CHAT_MSG_INSTANCE_CHAT", filter)
+
+--報告裝等
+local function SendItemLevel(members)
+    if (GetTime() - lastBroadcastTimer < 5) then return end
+    local channel = IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and "INSTANCE_CHAT" or "PARTY"
+    local num, pattern = 26, "%s %.1f %s"
+    if (TinyInspectDB and TinyInspectDB.ShowPartySpecialization) then
+        num, pattern = 30, "%s %.1f %s %s"
+    end
+    SendChatMessage(string.rep("-", num), channel)
+    for _, v in pairs(members) do
+        if (v.done or v.slevel or v.ilevel > 0) then
+            SendChatMessage(format(pattern, label, v.slevel or v.ilevel, v.name, v.spec and "("..v.spec..")" or ""), channel)
+        end
+    end
+    SendChatMessage(string.rep("-", num), channel)
+end
+
+--讀取完后執行
+LibEvent:attachTrigger("GROUP_MEMBER_INSPECT_DONE", function(self, members)
+    if (TinyInspectDB and TinyInspectDB.SendPartyItemLevelToSelf) then
+        PrintItemLevel(members)
+    end
+    if (TinyInspectDB and TinyInspectDB.SendPartyItemLevelToParty) then
+        SendItemLevel(members)
+    end
 end)
 
 
@@ -174,7 +269,7 @@ frame.label:SetHitRectInsets(0, 0, 0, 0)
 frame.label.text = frame.label:CreateFontString(nil, "BORDER", "GameFontNormal")
 frame.label.text:SetFont(UNIT_NAME_FONT, 13, "NORMAL")
 frame.label.text:SetPoint("TOP", 0, -5)
-frame.label.text:SetText(RAID..ITEM_LEVEL_ABBR)
+frame.label.text:SetText(ITEM_LEVEL_ABBR)
 frame.label:SetScript("OnDragStop", function(self) self:GetParent():StopMovingOrSizing() end)
 frame.label:SetScript("OnDragStart", function(self) self:GetParent():StartMoving() end)
 frame.label:SetScript("OnClick", function(self)
@@ -359,11 +454,11 @@ frame.panel.rescanButton:SetNormalTexture("Interface\\Buttons\\UI-RefreshButton"
 frame.panel.rescanButton:SetScript("OnClick", function(self)
     self:SetAlpha(0.3)
     LibSchedule:AddTask({
-        identity  = "InspectReccanRaid",
+        identity  = "InspectRescanGroupMember",
         elasped   = 4,
         onTimeout = function() self:SetAlpha(1) end,
         onStart = function()
-            if (not IsInRaid()) then
+            if (not IsInGroup()) then
                 return GetMembers(0)
             end
             for _, v in pairs(members) do
@@ -375,13 +470,13 @@ frame.panel.rescanButton:SetScript("OnClick", function(self)
 end)
 
 --團友變更或觀察到數據時更新顯示
-LibEvent:attachTrigger("RAID_MEMBER_CHANGED, RAID_INSPECT_READY", function(self)
+LibEvent:attachTrigger("GROUP_MEMBER_CHANGED, GROUP_MEMBER_INSPECT_READY, GROUP_MEMBER_INSPECT_DONE", function(self)
     MakeMembersList()
     SortAndShowMembersList()
 end)
 
 --高亮正在讀取的人員
-LibEvent:attachTrigger("RAID_INSPECT_STARTED", function(self, data)
+LibEvent:attachTrigger("GROUP_MEMBER_INSPECT_STARTED", function(self, data)
     if (not frame.panel:IsShown()) then return end
     local i = 1
     local button
