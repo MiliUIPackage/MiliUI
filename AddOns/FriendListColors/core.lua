@@ -114,6 +114,12 @@ do
 	for k, v in pairs(LOCALIZED_CLASS_NAMES_FEMALE) do
 		CLASS_COLORS[v] = ColorRgbToHex(colors[k])
 	end
+
+	if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+		CLASS_COLORS.Monk = "00FF96"
+		CLASS_COLORS.Paladin = "F58CBA"
+		CLASS_COLORS.Shaman = "0070DE"
+	end
 end
 
 local COLORS = {
@@ -123,10 +129,35 @@ local COLORS = {
 }
 
 local config = {
-	format = "[if=level][color=level][=level][/color] [/if][=accountName|name][if=characterName] ([color=class][=characterName][/color])[/if]",
-	-- format = "[if=level][color=level]L[=level][/color] [/if][color=class][=accountName|name][if=characterName] ([=characterName])[/if][/color]",
-	-- format = "[if=level][color=level]L[=level][/color] [/if][color=class][=accountName|characterName|name][/color]",
+	format = "[if=level][color=level]L[=level][/color] [/if][color=class][=characterName|name][/color][if=characterName] - [/if][=accountName]",
 }
+
+local function GetFriendInfo(friend)
+	local info
+	if type(friend) == "number" then
+		info = C_FriendList.GetFriendInfoByIndex(friend)
+	elseif type(friend) == "string" then
+		info = C_FriendList.GetFriendInfo(friend)
+	end
+	if not info then
+		return
+	end
+	local chatFlag = ""
+	if info.dnd then
+		chatFlag = CHAT_FLAG_DND
+	elseif info.afk then
+		chatFlag = CHAT_FLAG_AFK
+	end
+	return info.name,
+		info.level,
+		info.className,
+		info.area,
+		info.connected,
+		chatFlag,
+		info.notes,
+		info.referAFriend,
+		info.guid
+end
 
 local function EscapePattern(text)
 	if type(text) == "string" then
@@ -221,13 +252,21 @@ local function ParseColor(temp, field)
 		end
 	end
 
+	-- fallback class color logic
+	if not out then
+		out = ColorFromClass(field:upper())
+	end
+
 	-- fallback rgb/hex color logic
 	if not out then
 		local r, g, b = field:match("^%s*(%d+)%s*,%s*(%d+)%s*,%s*(%d+)%s*$")
+
 		if r then
 			out = ColorRgbToHex({r = r/255, g = g/255, b = b/255})
+
 		else
 			local hex = field:match("^%s*([0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f])%s*$")
+
 			if hex then
 				out = hex
 			end
@@ -357,13 +396,19 @@ function addon:InitAPI()
 		local buttonType, id = button.buttonType, button.id
 
 		if buttonType == FRIENDS_BUTTON_TYPE_BNET or buttonType == FRIENDS_BUTTON_TYPE_WOW then
+			if true then
+				--button.gameIcon:SetTexture("Interface\\Buttons\\ui-paidcharactercustomization-button")
+				--button.gameIcon:SetTexCoord(8/128, 55/128, 72/128, 119/128)
+			end
+
 			return SetText(self, ParseFormat(PackageFriend(buttonType, id), config.format))
 		end
 
 		return SetText(self, ...)
 	end
 
-	local friendButtons = FriendsFrameFriendsScrollFrame.buttons
+	local scrollFrame = FriendsListFrameScrollFrame or FriendsFrameFriendsScrollFrame -- retail and classic support
+	local friendButtons = scrollFrame.buttons
 
 	for i = 1, #friendButtons do
 		local button = friendButtons[i]
@@ -379,7 +424,8 @@ function addon:InitAPI()
 		if type == "WHISPER" then
 			local temp = {GetFriendInfo(name)}
 
-			if temp[1] then
+			-- 暫時修正
+			if temp and temp[1] then
 				local struct = STRUCT[FRIENDS_BUTTON_TYPE_WOW]
 
 				name = ParseNote(temp[struct["notes"]]) or temp[struct["name"]] or name -- use alias name, fallback to default name

@@ -1,10 +1,12 @@
-tag 05d04d5b02e808126e12f49da6aaa615fffcd4e5 v8.0.0.180630
+tag 5a73a28c318115799878ec3eb3b1183f4d24c47c v8.2.5.190926
 Author:	Vlad <vladix@gmail.com>
-Date:	Tue Jul 17 11:15:54 2018 +0200
+Date:	Thu Sep 26 08:31:10 2019 +0200
 
-commit f64385612a2e3fb96c279db10fdd6121696c4c1b
+v8.2.5.190926
+
+commit 6f6a021ac5c5a2ef2279973d1374a3a2ff22e336
 Author: Vlad <vladix@gmail.com>
-Date:   Tue Jul 3 22:49:06 2018 +0200
+Date:   Wed Sep 25 08:51:52 2019 +0200
 
-    Updated for BfA.
+    Patch 8.2.5 changed the friend list so this patch accommodates for that change and makes the addon functional again.
 
