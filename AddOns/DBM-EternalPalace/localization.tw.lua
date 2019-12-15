@@ -69,9 +69,14 @@ L:SetMiscLocalization({
 ---------------------------
 L= DBM:GetModLocalization(2361)
 
+L:SetTimerLocalization{
+	timerStageThreeBerserk		= "小怪狂暴"
+}
+
 L:SetOptionLocalization({
 	SortDesc 			= "$spell:298569的資訊框架用最高減益層數排序 (取代最低的)。",
-	ShowTimeNotStacks	= "$spell:298569的資訊框架顯示剩餘時間而非層數。"
+	ShowTimeNotStacks	= "$spell:298569的資訊框架顯示剩餘時間而非層數。",
+	timerStageThreeBerserk	= "顯示階段3小怪狂暴的計時器"
 })
 
 L:SetMiscLocalization({

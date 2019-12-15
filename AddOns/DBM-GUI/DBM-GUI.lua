@@ -43,7 +43,7 @@
 --
 
 
-local revision =(string.sub("20190927201201", 1, -5))
+local revision =(string.sub("20191116200254", 1, -5))
 local FrameTitle = "DBM_GUI_Option_"	-- all GUI frames get automatically a name FrameTitle..ID
 
 local PanelPrototype = {}
@@ -240,15 +240,15 @@ local function MixinSharedMedia3(mediatype, mediatable)
 		local LSM = LibStub("LibSharedMedia-3.0")
 		soundsRegistered = true
 		--Embedded Sound Clip media
-		LSM:Register("sound", "AirHorn (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
-		LSM:Register("sound", "Jaina: Beware", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
-		LSM:Register("sound", "Jaina: Beware (reverb)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
-		LSM:Register("sound", "Thrall: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
-		LSM:Register("sound", "Saurfang: Don't Die", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
+		LSM:Register("sound", "準備行動 (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
+		LSM:Register("sound", "珍娜: 當心", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
+		LSM:Register("sound", "珍娜: 當心 (迴響)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
+		LSM:Register("sound", "索爾: 難以置信!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
+		LSM:Register("sound", "薩魯法爾 別死", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
 		--Blakbyrd
-		LSM:Register("sound", "Blakbyrd Alert 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
-		LSM:Register("sound", "Blakbyrd Alert 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
-		LSM:Register("sound", "Blakbyrd Alert 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
+		LSM:Register("sound", "後院警報 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
+		LSM:Register("sound", "後院警報 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
+		LSM:Register("sound", "後院警報 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
 		--User Media
 		--IMPORTANT, as of 8.2+, if you register media that doesn't actually exist, it WILL throw Lua errors
 		--So use CustomSounds very carefully
@@ -417,22 +417,22 @@ do
 
 		--Inject DBMs custom media that's not available to LibSharedMedia because it uses SoundKit Id (which LSM doesn't support)
 		--{ sound=true, text = "AirHorn (DBM)", value = "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg" },
-		{ sound=true, text = "Algalon: Beware!", value = 15391 },
-		{ sound=true, text = "BB Wolf: Run Away", value = 9278 },
-		{ sound=true, text = "Blizzard Raid Emote", value = 37666 },
-		{ sound=true, text = "C'Thun: You Will Die!", value = 8585 },
-		{ sound=true, text = "Headless Horseman: Laugh", value = 12506 },
-		{ sound=true, text = "Illidan: Not Prepared", value = 68563 },
-		{ sound=true, text = "Illidan: Not Prepared2", value = 12506 },
-		{ sound=true, text = "Kaz'rogal: Marked", value = 11052 },
-		{ sound=true, text = "Kil'Jaeden: Destruction", value = 12506 },
-		{ sound=true, text = "Loatheb: I see you", value = 128466 },
-		{ sound=true, text = "Lady Malande: Flee", value = 11482 },
-		{ sound=true, text = "Milhouse: Light You Up", value = 49764 },
-		{ sound=true, text = "Night Elf Bell", value = 11742 },
-		{ sound=true, text = "PvP Flag", value = 8174 },
-		{ sound=true, text = "Void Reaver: Marked", value = 11213 },
-		{ sound=true, text = "Yogg Saron: Laugh", value = 15757 },
+		{ sound=true, text = "艾爾加隆: 當心!", value = 15391 },
+		{ sound=true, text = "大野狼: 快逃阿", value = 9278 },
+		{ sound=true, text = "暴雪團隊表情", value = 37666 },
+		{ sound=true, text = "克蘇恩: 你將會死亡！", value = 8585 },
+		{ sound=true, text = "無頭騎士: 狂笑", value = 12506 },
+		{ sound=true, text = "伊利丹: 還沒準備好", value = 68563 },
+		{ sound=true, text = "伊利丹: 還沒準備好2", value = 12506 },
+		{ sound=true, text = "卡茲洛加: 標記", value = 11052 },
+		{ sound=true, text = "基爾加丹: 毀滅", value = 12506 },
+		{ sound=true, text = "憎恨者: 我看到你了", value = 128466 },
+		{ sound=true, text = "瑪蘭黛女士: 逃走", value = 11482 },
+		{ sound=true, text = "米歐浩斯: 點燃你", value = 49764 },
+		{ sound=true, text = "夜精靈鐘聲", value = 11742 },
+		{ sound=true, text = "PvP拔旗", value = 8174 },
+		{ sound=true, text = "虛空劫奪者: 標記", value = 11213 },
+		{ sound=true, text = "尤格薩倫: 狂笑", value = 15757 },
 	})
 
 	local tcolors = {
@@ -2743,22 +2743,22 @@ local function CreateOptionsMenu()
 			{ text = L.NoSound, value = "" },
 			--Inject DBMs custom media that's not available to LibSharedMedia because it uses SoundKit Id (which LSM doesn't support)
 			--{ sound=true, text = "AirHorn (DBM)", value = "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg" },
-			{ sound=true, text = "Algalon: Beware!", value = 15391 },
-			{ sound=true, text = "BB Wolf: Run Away", value = 9278 },
-			{ sound=true, text = "Blizzard Raid Emote", value = 37666 },
-			{ sound=true, text = "C'Thun: You Will Die!", value = 8585 },
-			{ sound=true, text = "Headless Horseman: Laugh", value = 12506 },
-			{ sound=true, text = "Illidan: Not Prepared", value = 68563 },
-			{ sound=true, text = "Illidan: Not Prepared2", value = 12506 },
-			{ sound=true, text = "Kaz'rogal: Marked", value = 11052 },
-			{ sound=true, text = "Kil'Jaeden: Destruction", value = 12506 },
-			{ sound=true, text = "Loatheb: I see you", value = 128466 },
-			{ sound=true, text = "Lady Malande: Flee", value = 11482 },
-			{ sound=true, text = "Milhouse: Light You Up", value = 49764 },
-			{ sound=true, text = "Night Elf Bell", value = 11742 },
-			{ sound=true, text = "PvP Flag", value = 8174 },
-			{ sound=true, text = "Void Reaver: Marked", value = 11213 },
-			{ sound=true, text = "Yogg Saron: Laugh", value = 15757 },
+			{ sound=true, text = "艾爾加隆: 當心!", value = 15391 },
+			{ sound=true, text = "大野狼: 快逃阿", value = 9278 },
+			{ sound=true, text = "暴雪團隊表情", value = 37666 },
+			{ sound=true, text = "克蘇恩: 你將會死亡！", value = 8585 },
+			{ sound=true, text = "無頭騎士: 狂笑", value = 12506 },
+			{ sound=true, text = "伊利丹: 還沒準備好", value = 68563 },
+			{ sound=true, text = "伊利丹: 還沒準備好2", value = 12506 },
+			{ sound=true, text = "卡茲洛加: 標記", value = 11052 },
+			{ sound=true, text = "基爾加丹: 毀滅", value = 12506 },
+			{ sound=true, text = "憎恨者: 我看到你了", value = 128466 },
+			{ sound=true, text = "瑪蘭黛女士: 逃走", value = 11482 },
+			{ sound=true, text = "米歐浩斯: 點燃你", value = 49764 },
+			{ sound=true, text = "夜精靈鐘聲", value = 11742 },
+			{ sound=true, text = "PvP拔旗", value = 8174 },
+			{ sound=true, text = "虛空劫奪者: 標記", value = 11213 },
+			{ sound=true, text = "尤格薩倫: 狂笑", value = 15757 },
 		})
 
 		local SpecialWarnSoundDropDown = specArea:CreateDropdown(L.SpecialWarnSound, Sounds, "DBM", "SpecialWarningSound", function(value)
@@ -3095,7 +3095,7 @@ local function CreateOptionsMenu()
 	do
 		local Sounds = MixinSharedMedia3("sound", {
 			{	text	= L.NoSound,			value	= "None" },
-			{	text	= "Muradin: Charge",	value 	= 16971, 		sound=true },--"Sound\\Creature\\MuradinBronzebeard\\IC_Muradin_Saurfang02.ogg"
+			{	text	= "穆拉丁: 衝阿",	value 	= 16971, 		sound=true },--"Sound\\Creature\\MuradinBronzebeard\\IC_Muradin_Saurfang02.ogg"
 		})
 
 		local eventSoundsPanel	 	= DBM_GUI_Frame:CreateNewPanel(L.Panel_EventSounds, "option")
@@ -3157,22 +3157,6 @@ local function CreateOptionsMenu()
 			DBM:PlaySoundFile(DBM.Options.EventSoundEngage2)
 		end)
 		VictorySoundDropdown3:SetPoint("TOPLEFT", DungeonMusicDropDown, "TOPLEFT", 0, -45)
-
-		local TurtleDropDown = eventSoundsGeneralArea:CreateDropdown(L.EventTurtleMusic, DBM.Music, "DBM", "EventSoundTurle", function(value)
-			DBM.Options.EventSoundTurle = value
-			if value ~= "Random" then
-				if not DBM.Options.tempMusicSetting then
-					DBM.Options.tempMusicSetting = tonumber(GetCVar("Sound_EnableMusic"))
-					if DBM.Options.tempMusicSetting == 0 then
-						SetCVar("Sound_EnableMusic", 1)
-					else
-						DBM.Options.tempMusicSetting = nil--Don't actually need it
-					end
-				end
-				PlayMusic(value)
-			end
-		end)
-		TurtleDropDown:SetPoint("TOPLEFT", MusicDropDown, "TOPLEFT", 0, -45)
 
 		local eventSoundsExtrasArea	= eventSoundsPanel:CreateArea(L.Area_EventSoundsExtras, nil, 52, true)
 		local combineMusic			= eventSoundsExtrasArea:CreateCheckButton(L.EventMusicCombined, true, nil, "EventSoundMusicCombined")
@@ -3253,7 +3237,7 @@ local function CreateOptionsMenu()
 
 	do
 		local hideBlizzPanel = DBM_GUI_Frame:CreateNewPanel(L.Panel_HideBlizzard, "option")
-		local hideBlizzArea = hideBlizzPanel:CreateArea(L.Area_HideBlizzard, nil, 315, true)--295
+		local hideBlizzArea = hideBlizzPanel:CreateArea(L.Area_HideBlizzard, nil, 295, true)
 		hideBlizzArea:CreateCheckButton(L.HideBossEmoteFrame, true, nil, "HideBossEmoteFrame2")
 		hideBlizzArea:CreateCheckButton(L.HideWatchFrame, true, nil, "HideObjectivesFrame")
 		hideBlizzArea:CreateCheckButton(L.HideGarrisonUpdates, true, nil, "HideGarrisonToasts")
@@ -3272,18 +3256,6 @@ local function CreateOptionsMenu()
 			DBM.Options.MovieFilter2 = value
 		end)
 		blockMovieDropDown:SetPoint("TOPLEFT", DisableSFX, "TOPLEFT", 0, -40)
-
-		local bonusRollOptions = {
-			{	text	= L.Disable,		value 	= "Never"},
-			{	text	= L.TrivialContent,	value 	= "TrivialContent"},
-			{	text	= L.NormalRaider,	value 	= "NormalRaider"},
-			{	text	= L.HeroicRaider,	value 	= "HeroicRaider"},
-			{	text	= L.MythicRaider,	value 	= "MythicRaider"},
-		}
-		local blockBonusDropDown = hideBlizzArea:CreateDropdown(L.HideBonusHeader, bonusRollOptions, "DBM", "BonusFilter", function(value)
-			DBM.Options.BonusFilter = value
-		end)
-		blockBonusDropDown:SetPoint("TOPLEFT", blockMovieDropDown, "TOPLEFT", 0, -40)
 
 		--hideBlizzArea:AutoSetDimension()
 		hideBlizzPanel:SetMyOwnHeight()
@@ -3309,12 +3281,13 @@ local function CreateOptionsMenu()
 		local RespawnTimer		= generaltimeroptions:CreateCheckButton(L.ShowRespawn, true, nil, "ShowRespawn")
 		local QueueTimer		= generaltimeroptions:CreateCheckButton(L.ShowQueuePop, true, nil, "ShowQueuePop")
 
-		local bossLoggingArea		= extraFeaturesPanel:CreateArea(L.Area_AutoLogging, nil, 100, true)
+		local bossLoggingArea		= extraFeaturesPanel:CreateArea(L.Area_AutoLogging, nil, 120, true)
 		local AutologBosses			= bossLoggingArea:CreateCheckButton(L.AutologBosses, true, nil, "AutologBosses")
 		if Transcriptor then
 			local AdvancedAutologBosses	= bossLoggingArea:CreateCheckButton(L.AdvancedAutologBosses, true, nil, "AdvancedAutologBosses")
 		end
-		local LogOnlyRaidBosses		= bossLoggingArea:CreateCheckButton(L.LogOnlyRaidBosses, true, nil, "LogOnlyRaidBosses")
+		local RecordOnlyBosses		= bossLoggingArea:CreateCheckButton(L.RecordOnlyBosses, true, nil, "RecordOnlyBosses")
+		local LogOnlyNonTrivial		= bossLoggingArea:CreateCheckButton(L.LogOnlyNonTrivial, true, nil, "LogOnlyNonTrivial")
 
 		local thirdPartyArea
 		if BigBrother and type(BigBrother.ConsumableCheck) == "function" then
@@ -3434,9 +3407,9 @@ local function CreateOptionsMenu()
 
 	-- Set Revision // please don't translate this!
 	if DBM.NewerVersion then
-		DBM_GUI_OptionsFrameRevision:SetText("Deadly Boss Mods "..DBM.DisplayVersion.." ("..DBM:ShowRealDate(DBM.Revision).."). |cffff0000Version "..DBM.NewerVersion.." is available.|r")
+		DBM_GUI_OptionsFrameRevision:SetText("DBM "..DBM.DisplayVersion.." ("..DBM:ShowRealDate(DBM.Revision).."). |cffff0000版本 "..DBM.NewerVersion.." 可用。|r")
 	else
-		DBM_GUI_OptionsFrameRevision:SetText("Deadly Boss Mods "..DBM.DisplayVersion.." ("..DBM:ShowRealDate(DBM.Revision)..")")
+		DBM_GUI_OptionsFrameRevision:SetText("DBM "..DBM.DisplayVersion.." ("..DBM:ShowRealDate(DBM.Revision)..")")
 	end
 	if L.TranslationBy then
 		DBM_GUI_OptionsFrameTranslation:SetText(L.TranslationByPrefix .. L.TranslationBy)

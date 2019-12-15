@@ -1,13 +1,14 @@
 local mod	= DBM:NewMod(2369, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024000147")
+mod:SetRevision("20191124011030")
 mod:SetCreatureID(157620)
 mod:SetEncounterID(2334)
 mod:SetZone()
+mod:SetUsedIcons(1, 2, 3)
 mod:SetBossHPInfoToHighest()--Must set boss HP to highest, since boss health will get screwed up during images phase
 mod.noBossDeathKill = true--Killing an image in image phase fires unit Died for boss creature ID, so must filter this
-mod:SetHotfixNoticeRev(20190918000000)--2019, 9, 18
+mod:SetHotfixNoticeRev(20191109000000)--2019, 11, 09
 mod:SetMinSyncRevision(20190918000000)--2019, 9, 18
 --mod.respawnTime = 29
 
@@ -26,17 +27,17 @@ mod:RegisterEventsInCombat(
 )
 
 --TODO, if tanks each get a diff mind debuff, mark them, and they can be designated callers
---TODO, Shadow shocks spellIds and durations still a bit unclear from wowhead data. Add taunt warnings/etc when it becomes more clear
---TODO, there are likely mechanics missing from this encounter, that or the fight really is more simple than even most 5 man dungeon bosses
---TODO, update timers on Projection phases?
+--TODO, update timerImagesofAbsolutionCD after Projection phases
+--TODO, add warning to switch to add to prophet if it's yours
 local warnShadowShock						= mod:NewStackAnnounce(308059, 2, nil, "Tank")
 local warnImagesofAbsolution				= mod:NewCountAnnounce(313239, 3)--Spawn, not when killable
-local warnShredPsyche						= mod:NewTargetAnnounce(307937, 2)
+local warnShredPsyche						= mod:NewTargetNoFilterAnnounce(307937, 2)
 local warnPsychicOutburst					= mod:NewCastAnnounce(309687, 4)
 local warnProjections						= mod:NewSpellAnnounce(307725, 2)
+local warnProjectionsOver					= mod:NewEndAnnounce(307725, 2)
 
-local specWarnCloudedMind					= mod:NewSpecialWarningYouPos(307784, nil, nil, nil, 1, 2)--voice not yet decided
-local specWarnTwistedMind					= mod:NewSpecialWarningYouPos(307785, nil, nil, nil, 1, 2)--voice not yet decided
+local specWarnCloudedMind					= mod:NewSpecialWarningYou(307784, nil, nil, nil, 1, 2)--voice not yet decided
+local specWarnTwistedMind					= mod:NewSpecialWarningYou(307785, nil, nil, nil, 1, 2)--voice not yet decided
 local yellMark								= mod:NewPosYell(307784, DBM_CORE_AUTO_YELL_CUSTOM_POSITION, false)
 local specWarnImagesofAbsolutionSwitch		= mod:NewSpecialWarningSwitch(313239, "dps", nil, nil, 1, 2)--30 seconds after spawn, when killable
 local specWarnShadowShock					= mod:NewSpecialWarningStack(308059, nil, 7, nil, nil, 1, 6)
@@ -44,6 +45,7 @@ local specWarnShadowShockTaunt				= mod:NewSpecialWarningTaunt(308059, nil, nil,
 local specWarnShredPsyche					= mod:NewSpecialWarningMoveAway(307937, nil, nil, nil, 1, 2)
 local yellShredPsyche						= mod:NewPosYell(307937)
 local yellShredPsycheFades					= mod:NewIconFadesYell(307937)
+local specWarnShredPsycheSwitch				= mod:NewSpecialWarningSwitch(307937, "dps", nil, nil, 1, 2)
 --local specWarnGTFO						= mod:NewSpecialWarningGTFO(270290, nil, nil, nil, 1, 8)
 
 local timerImagesofAbsolutionCD				= mod:NewCDTimer(84.9, 313239, nil, nil, nil, 1, nil, DBM_CORE_HEROIC_ICON)
@@ -72,6 +74,7 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnCombatEnd()
+	self:UnregisterShortTermEvents()
 --	if self.Options.InfoFrame then
 --		DBM.InfoFrame:Hide()
 --	end
@@ -95,6 +98,11 @@ function mod:SPELL_CAST_START(args)
 		self.vb.shredIcon = 1
 	elseif spellId == 307725 then
 		warnProjections:Show()
+		timerShredPsycheCD:Stop()
+		timerImagesofAbsolutionCD:Stop()
+		self:RegisterShortTermEvents(
+			"UNIT_TARGETABLE_CHANGED"
+		)
 	end
 end
 
@@ -151,7 +159,20 @@ function mod:SPELL_AURA_APPLIED(args)
 			DBM.Nameplate:Show(true, args.destGUID, spellId, nil, 30)
 		end
 	elseif spellId == 308065 or spellId == 307950 then
-		local icon = self.vb.shredIcon
+		--Assign icon based on debuff player has, so it can be clearly seen which add they will be spawning on mythic
+		local icon
+		if self:IsMythic() then
+			local uId = DBM:GetRaidUnitId(args.destName)
+			if DBM:UnitDebuff(uId, 307784) then--Clouded Mind
+				icon = 2--Orange Circle for clouded mind
+			elseif DBM:UnitDebuff(uId, 307785) then--Twisted Mind
+				icon = 3--Purple Diamond for Twisted Mind
+			end
+		end
+		--Non mythic will assign just ordered icon, or if mythic icon debuff scan fails acts as fallback
+		if not icon then
+			icon = self.vb.shredIcon--Starting with 1 (star). if it's still 2 adds at once at 20+ players, it'll also use circle, if blizzard fixed that shit, it'll always be star
+		end
 		warnShredPsyche:CombinedShow(0.3, args.destName)
 		if args:IsPlayer() then
 			specWarnShredPsyche:Show()
@@ -181,6 +202,17 @@ function mod:SPELL_AURA_REMOVED(args)
 		if args:IsPlayer() then
 			yellShredPsycheFades:Cancel()
 		end
+	end
+end
+
+function mod:UNIT_TARGETABLE_CHANGED()
+	if UnitCanAttack("player", "boss1") then--Returning from Illusions
+		warnProjectionsOver:Show()
+		self:UnregisterShortTermEvents()
+		timerShredPsycheCD:Start(16)
+		--if self:IsHard() then
+		--	timerImagesofAbsolutionCD:Start(30.5-delay)
+		--end
 	end
 end
 

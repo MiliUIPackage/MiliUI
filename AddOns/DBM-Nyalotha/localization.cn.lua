@@ -1,3 +1,7 @@
+--Mini Dragon
+--2019/11/28
+
+if GetLocale() ~= "zhCN" then return end
 local L
 
 ---------------------------
@@ -36,7 +40,7 @@ L= DBM:GetModLocalization(2369)
 L= DBM:GetModLocalization(2377)
 
 L:SetMiscLocalization({
-	ObeliskSpawn	= "Obelisks of shadow, rise!"--Only as backup, in case the NPC target check stops working
+	ObeliskSpawn	= "暗影之碑，起来吧！"--Only as backup, in case the NPC target check stops working
 })
 
 ---------------------------
@@ -45,8 +49,8 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2372)
 
 L:SetMiscLocalization({
-	Together	= "Bosses Together",
-	Apart		= "Bosses Apart"
+	Together	= "Boss靠近",
+	Apart		= "Boss分开"
 })
 
 ---------------------------
@@ -80,12 +84,12 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2374)
 
 L:SetOptionLocalization({
-	SetIconOnlyOnce		= "Set icon only once, per lowest health ooze scan, then disable until at least one dies",
-	InterruptBehavior	= "Set Pumping Blood interrupt behavior (Will override everyone elses setting if you are raid leader)",
-	Two					= "2 person rotation ",--Default
-	Three				= "3 person rotation ",
-	Four				= "4 person rotation ",
-	Five				= "5 person rotation "
+	SetIconOnlyOnce		= "除非一个淤泥死亡，否则不刷新标记图标",
+	InterruptBehavior	= "设置脉动之血的打断方式（团长覆盖全团）",
+	Two					= "2人轮流",--Default
+	Three				= "3人轮流",
+	Four				= "4人轮流",
+	Five				= "5人轮流"
 })
 
 ---------------------------
@@ -99,9 +103,9 @@ L= DBM:GetModLocalization(2366)
 L= DBM:GetModLocalization(2375)
 
 L:SetMiscLocalization({
-	ExitMind		= "Exit Mind",
-	Away			= "Away",
-	Toward			= "Toward"
+	ExitMind		= "离开神思",
+	Away			  = "远离",
+	Toward			= "向前"
 })
 
 -------------
@@ -110,6 +114,5 @@ L:SetMiscLocalization({
 L = DBM:GetModLocalization("NyalothaTrash")
 
 L:SetGeneralLocalization({
-	name =	"Ny'alotha Trash"
+	name =	"尼奥罗萨小怪"
 })
-

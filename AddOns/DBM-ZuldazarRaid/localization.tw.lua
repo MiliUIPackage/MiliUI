@@ -63,7 +63,7 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2335)
 
 L:SetOptionLocalization({
-	AnnounceAlternatePhase	= "為你沒進場也顯示換階段警告(計時器會持續顯示無論此選項是否選取)"
+	AnnounceAlternatePhase	= "即使你不在對應位面也顯示階段轉換警告 (計時條不受影響)"
 })
 
 ---------------------------
@@ -87,13 +87,13 @@ L:SetOptionLocalization({
 	Three				= "3人輪流",--Default
 	Four				= "4人輪流",
 	Five				= "5人輪流",
-	SetWeather			= "當開戰時自動地把天氣效果降到最低戰鬥結束後還原設定",
+	SetWeather			= "當與首領開戰時自動將天氣密度轉為最低，並在戰鬥結束後恢復。",
 })
 
 L:SetMiscLocalization({
-	Port			=	"左舷側",
-	Starboard		=	"右舷側",
-	Freezing		=	"凍結在%s"
+	Port			=	"左側船艦",
+	Starboard		=	"右側船艦",
+	Freezing		=	"%s秒後凍結"
 })
 
 -------------

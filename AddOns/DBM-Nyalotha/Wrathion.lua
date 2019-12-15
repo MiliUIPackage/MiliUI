@@ -1,12 +1,12 @@
 local mod	= DBM:NewMod(2368, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024000147")
+mod:SetRevision("20191117000107")
 mod:SetCreatureID(156818)
 mod:SetEncounterID(2329)
 mod:SetZone()
 mod:SetUsedIcons(1, 2, 3)--Unknown number of burning targets, guessed for now
---mod:SetHotfixNoticeRev(20190716000000)--2019, 7, 16
+mod:SetHotfixNoticeRev(20191109000000)--2019, 11, 09
 --mod:SetMinSyncRevision(20190716000000)
 --mod.respawnTime = 29
 
@@ -54,10 +54,9 @@ local warnSpawnAdds							= mod:NewSpellAnnounce(312389, 2)
 --Stage One: The Black Emperor
 local timerSearingBreathCD					= mod:NewCDTimer(8.5, 313973, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)
 local timerIncinerationCD					= mod:NewCDCountTimer(30.1, 306111, nil, nil, nil, 3)
-local timerGaleBlastCD						= mod:NewNextTimer(91.2, 306289, nil, nil, nil, 2)
-local timerBurningCataclysmCD				= mod:NewNextTimer(91.2, 306735, nil, nil, nil, 3, nil, DBM_CORE_DEADLY_ICON, nil, 1, 5)
+local timerGaleBlastCD						= mod:NewNextTimer(90.9, 306289, nil, nil, nil, 2)
+local timerBurningCataclysmCD				= mod:NewNextTimer(90.9, 306735, nil, nil, nil, 3, nil, DBM_CORE_DEADLY_ICON, nil, 1, 5)
 local timerBurningCataclysm					= mod:NewCastTimer(8, 306735, nil, nil, nil, 2, nil, DBM_CORE_DEADLY_ICON)
-local timerCreepingMadnessCD				= mod:NewAITimer(30.1, 313253, nil, nil, nil, 3, nil, DBM_CORE_MYTHIC_ICON)
 --Stage Two: Smoke and Mirrors
 
 --local berserkTimer						= mod:NewBerserkTimer(600)
@@ -100,7 +99,7 @@ do
 				local name = burningMadnessTargets[i]
 				local uId = DBM:GetRaidUnitId(name)
 				if uId then
-					local _, _, count, _, _, burningExpireTime = DBM:UnitDebuff("player", 307013)
+					local _, _, count, _, _, burningExpireTime = DBM:UnitDebuff(uId, 307013)
 					if burningExpireTime then
 						local remaining = burningExpireTime-GetTime()
 						if count then--Cleanup this nil check if count actually returns
@@ -123,12 +122,9 @@ function mod:OnCombatStart(delay)
 	self.vb.phase = 1
 	table.wipe(burningMadnessTargets)
 	timerSearingBreathCD:Start(8.1-delay)
-	timerIncinerationCD:Start(33.2-delay)--SUCCESS
+	timerIncinerationCD:Start(32.6-delay, 1)--SUCCESS
 	timerGaleBlastCD:Start(55.7-delay)--START
 	timerBurningCataclysmCD:Start(70.3-delay)--START
-	if self:IsMythic() then
-		timerCreepingMadnessCD:Start(1-delay)--SUCCESS
-	end
 	if self.Options.NPAuraOnHardenedCore then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end
@@ -179,7 +175,6 @@ function mod:SPELL_CAST_START(args)
 		timerIncinerationCD:Stop()
 		timerGaleBlastCD:Stop()
 		timerBurningCataclysmCD:Stop()
-		timerCreepingMadnessCD:Stop()
 	end
 end
 
@@ -195,8 +190,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 		if self.Options.RangeFrame then
 			DBM.RangeCheck:Hide()
 		end
-	elseif spellId == 313253 then
-		timerCreepingMadnessCD:Start()
 	end
 end
 
@@ -281,12 +274,9 @@ function mod:SPELL_AURA_REMOVED(args)
 		warnPhase:Show(DBM_CORE_AUTO_ANNOUNCE_TEXTS.stage:format(1))
 		warnPhase:Play("phasechange")
 		timerSearingBreathCD:Start(8.6)
-		timerIncinerationCD:Start(34.4)--SUCCESS
+		timerIncinerationCD:Start(33.2, 1)--SUCCESS
 		timerGaleBlastCD:Start(55.6)
 		timerBurningCataclysmCD:Start(70.1)
-		if self:IsMythic() then
-			timerCreepingMadnessCD:Start(2)
-		end
 	end
 end
 

@@ -237,7 +237,6 @@ L.EventWipeSound			= "设置灭团音效"
 L.EventEngageSound			= "设置开战音效"
 L.EventDungeonMusic			= "设置在副本内播放的音乐"
 L.EventEngageMusic			= "设置战斗过程中的音乐"
-L.EventTurtleMusic			= "设置乌龟海滩场景播放的音乐"
 L.Area_EventSoundsExtras	= "事件音效选项"
 L.EventMusicCombined		= "允许在副本内播放在音乐选项中的全部音效(需要reload)"
 L.Area_EventSoundsFilters	= "事件音效过滤条件"
@@ -307,11 +306,6 @@ L.AfterFirst				= "仅第一次播放"
 L.Always					= "总是跳过"
 L.CombatOnly				= "在任何战斗中隐藏"
 L.RaidCombat				= "只在Boss战斗中隐藏"
-L.HideBonusHeader			= "隐藏奖励拾取投掷"
-L.TrivialContent			= "低于5M掉落"--Basically anything below 340
-L.NormalRaider				= "低于5层大秘和随机团掉落"--Basically, anything below 355
-L.HeroicRaider				= "低于10层大秘，H副本"--Basically anything below 370
-L.MythicRaider				= "M副本"--Basically anything below 385
 
 L.Panel_ExtraFeatures		= "其他功能"
 --
@@ -335,7 +329,7 @@ L.ShowQueuePop				= "显示随机小队/团队查找器确认计时条"
 L.Area_AutoLogging			= "自动日志记录选项"
 L.AutologBosses				= "自动采用官方格式记录日志。 (使用 /dbm pull 可提前记录并使得记录更准确，如提前偷药水或是召唤大军。)"
 L.AdvancedAutologBosses		= "自动采用 Transcriptor 记录日志"
-L.LogOnlyRaidBosses			= "只记录团队Boss，而不记录随机团队，5人本，场景战役。"
+L.LogOnlyNonTrivial			= "只记录团队Boss，而不记录随机团队，5人本，场景战役。"
 --
 L.Area_3rdParty				= "第三方插件选项"
 L.ShowBBOnCombatStart		= "战斗开始时使用Big Brother的buff检测"
