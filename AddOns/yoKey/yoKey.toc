@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Version: 0.0.1
 ## Title: yoKey
 ## Author: NoiseX

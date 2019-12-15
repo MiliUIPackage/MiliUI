@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 
 ## Title: Garrison Mission Manager
 ## Version: v58

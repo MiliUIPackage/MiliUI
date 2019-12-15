@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Exlist
 ## Notes: Shows various information about your characters
 ## Title-zhTW: |cFF00CCFF[團隊]|r 我的分身名冊

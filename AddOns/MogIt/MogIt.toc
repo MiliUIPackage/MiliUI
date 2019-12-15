@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: MogIt
 ## Title-zhTW: |cFF2D7CA4[收藏]|r 塑形助理
 ## Author: Aelobin (The Maelstrom EU) & Lombra (Defias Brotherhood EU)

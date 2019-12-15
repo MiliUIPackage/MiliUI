@@ -1,4 +1,4 @@
-﻿## Interface: 80000
+﻿## Interface: 80205
 ## Title: FilteredNamePlate-FNP
 ## Title-zhTW: |cFF00CCFF[團隊]|r 過濾姓名板
 ## Title-zhCN: 过滤姓名板-FNP

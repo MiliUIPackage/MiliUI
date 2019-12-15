@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Postal
 ## Title-zhTW: |cFF0099FF[介面]|r 信箱增強
 ## Version: v3.6.0

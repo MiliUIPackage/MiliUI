@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Power Auras Classic Options
 ## Version: 4.30.0
 ## Author: Smacker 'lolcat', Dridzt 'classic', Garstiger 'continued', Sinsthar 'base', Meorawr, modified by Zensunim and Resike

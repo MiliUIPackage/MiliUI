@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: MinimapButtonBag
 ## Title-zhTW: |cFF0099FF[介面]|r 地圖按鈕管理
 ## Author: karlsnyder

@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 80205
 ## Title: Easy Scrap
 ## Notes: Adds all eligible gear to the scrapper interface.
 ## Title-zhTW: |cff0099FF[介面]|r 快易銷毀
