@@ -223,7 +223,7 @@ local function Constructor()
 	msgframe:SetToplevel(true)
 
 	local msg = msgframe:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	msg:SetText("請按下要綁定的按鍵，或是按 ESC 清除綁定。要取消請再點一次按鈕。")
+	msg:SetText("Press a key to bind, ESC to clear the binding or click the button again to cancel.")
 	msgframe.msg = msg
 	msg:SetPoint("TOPLEFT", 5, -5)
 	msgframe:SetScript("OnUpdate", keybindingMsgFixWidth)
