@@ -19,8 +19,9 @@ local bfaDungeons = {
   1714, -- Tol Dagor
   1704, -- Freehold
   1706, -- Waycrest Manor
-  1701, -- Siege of Boralus
+  1700, -- Siege of Boralus -- 暫時修正
   1785, -- Kings' Rest
+  2006, -- 機械岡行動
 }
 local function Updater(event,...)
   local t = {
@@ -67,7 +68,10 @@ end
 
 local function init()
   for _,id in ipairs(bfaDungeons) do
-    dungeonNames[(GetLFGDungeonInfo(id))] = {locked = false, done = 0, max = 0}
+    local name = GetLFGDungeonInfo(id)
+    if name then
+      dungeonNames[(GetLFGDungeonInfo(id))] = {locked = false, done = 0, max = 0}
+    end
   end
 end
 

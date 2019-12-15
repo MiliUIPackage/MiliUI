@@ -93,7 +93,7 @@ local function Linegenerator(tooltip,data,character)
     priority = prio,
     moduleName = key,
     titleName = L["Azerite Power"],
-    data = format("|c%s%s:|r %i",colors.faded,L["Level"],data.powerLevel),
+    data = format("|c%s%s:|r %i\n%.1f%%",colors.faded,L["Level"],data.powerLevel,(data.xp/data.maxXp)*100),
     OnEnter = Exlist.CreateSideTooltip(),
     OnEnterData = {
       title = WrapTextInColorCode(L["Azerite Power"], colors.sideTooltipTitle),
@@ -128,9 +128,10 @@ local function Linegenerator(tooltip,data,character)
       weekly.data = WrapTextInColorCode(L["Turn In!"], colors.available)
       weekly.pulseAnim = true
     else
-      weekly.data = string.format("%s/%s",
+      weekly.data = string.format("%s/%s\n%.1f%%",
         Exlist.ShortenNumber(data.weekly.curr),
-        Exlist.ShortenNumber(data.weekly.max))
+        Exlist.ShortenNumber(data.weekly.max),
+        (data.weekly.curr/data.weekly.max) * 100)
     end
     Exlist.AddData(weekly)
   end

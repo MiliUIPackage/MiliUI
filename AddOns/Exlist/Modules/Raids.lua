@@ -145,6 +145,7 @@ local function Updater(event,...)
     end
   end
   -- lfr
+  local isHorde = UnitFactionGroup('player') == 'Horde'
   for raid, c in pairs(LFRencounters) do
     if raids[raid] and raids[raid].enabled then
       Exlist.Debug("Scanning ",raid)
@@ -154,32 +155,34 @@ local function Updater(event,...)
       t[raid].LFR = t[raid].LFR or {}
       t[raid].LFR = {bosses = {}}
       for id, lfr in spairs(c,function(t,a,b) return t[a].order < t[b].order end) do
-        total = not lfr.dontCount and total + lfr.totalEncounters or total
-        local saveId = lfr.saveId or id
-        if lfr.map then
-          for index,i in ipairs(lfr.map) do
-            local bossName, _, isKilled = GetLFGDungeonEncounterInfo(id, i)
-            killed = isKilled and killed + 1 or killed
-            t[raid].LFR.bosses[saveId] = t[raid].LFR.bosses[saveId] or {}
-            t[raid].LFR.bosses[saveId].order = lfr.order
-            t[raid].LFR.bosses[saveId][lfr.name] = t[raid].LFR.bosses[saveId][lfr.name] or {}
-            if (t[raid].LFR.bosses[saveId][lfr.name][index] and isKilled) or not t[raid].LFR.bosses[saveId][lfr.name][index] then
-              t[raid].LFR.bosses[saveId][lfr.name][index] =  {name = bossName, killed = isKilled}
+        if lfr.horde == nil or lfr.horde == isHorde then
+          total = not lfr.dontCount and total + lfr.totalEncounters or total
+          local saveId = lfr.saveId or id
+          if lfr.map then
+            for index,i in ipairs(lfr.map) do
+              local bossName, _, isKilled = GetLFGDungeonEncounterInfo(id, i)
+              killed = isKilled and killed + 1 or killed
+              t[raid].LFR.bosses[saveId] = t[raid].LFR.bosses[saveId] or {}
+              t[raid].LFR.bosses[saveId].order = lfr.order
+              t[raid].LFR.bosses[saveId][lfr.name] = t[raid].LFR.bosses[saveId][lfr.name] or {}
+              if (t[raid].LFR.bosses[saveId][lfr.name][index] and isKilled) or not t[raid].LFR.bosses[saveId][lfr.name][index] then
+                t[raid].LFR.bosses[saveId][lfr.name][index] =  {name = bossName, killed = isKilled}
+              end
             end
-          end
-        else
-          local index = 1
-          local offset = lfr.firstBoss or 1
-          for i = offset, (offset + lfr.totalEncounters - 1) do
-            local bossName, _, isKilled = GetLFGDungeonEncounterInfo(id, i)
-            killed = isKilled and killed + 1 or killed
-            t[raid].LFR.bosses[saveId] = t[raid].LFR.bosses[saveId] or {}
-            t[raid].LFR.bosses[saveId].order = lfr.order
-            t[raid].LFR.bosses[saveId][lfr.name] = t[raid].LFR.bosses[saveId][lfr.name] or {}
-            if (t[raid].LFR.bosses[saveId][lfr.name][index] and isKilled) or not t[raid].LFR.bosses[saveId][lfr.name][index] then
-              t[raid].LFR.bosses[saveId][lfr.name][index] =  {name = bossName, killed = isKilled}
+          else
+            local index = 1
+            local offset = lfr.firstBoss or 1
+            for i = offset, (offset + lfr.totalEncounters - 1) do
+              local bossName, _, isKilled = GetLFGDungeonEncounterInfo(id, i)
+              killed = isKilled and killed + 1 or killed
+              t[raid].LFR.bosses[saveId] = t[raid].LFR.bosses[saveId] or {}
+              t[raid].LFR.bosses[saveId].order = lfr.order
+              t[raid].LFR.bosses[saveId][lfr.name] = t[raid].LFR.bosses[saveId][lfr.name] or {}
+              if (t[raid].LFR.bosses[saveId][lfr.name][index] and isKilled) or not t[raid].LFR.bosses[saveId][lfr.name][index] then
+                t[raid].LFR.bosses[saveId][lfr.name][index] =  {name = bossName, killed = isKilled}
+              end
+              index = index + 1
             end
-            index = index + 1
           end
         end
       end
@@ -280,7 +283,10 @@ end
 local function init()
   defaultSettings = {
     -- BFA
-    [GetLFGDungeonInfo(1887) or "Uldir"] = {enabled = true,expansion = 8, order = 9},
+    [GetLFGDungeonInfo(2014) or "The Eternal Palace"] = {enabled = true, expansion = 8, order = 6},
+    [GetLFGDungeonInfo(1951) or "Crucible of Storms"] = {enabled = true, expansion = 8, order = 7},
+    [GetLFGDungeonInfo(1942) or "Battle of Dazar'alor"] = {enabled = true, expansion = 8, order = 8},
+    [GetLFGDungeonInfo(1887) or "Uldir"] = {enabled = true, expansion = 8, order = 9},
     -- LEGION
     [GetLFGDungeonInfo(1640) or "Antorus, the Burning Throne"] = {enabled = false, expansion = 7,order = 1},
     [GetLFGDungeonInfo(1527) or "Tomb of Sargeras"] = {enabled = false, expansion = 7,order = 2},
@@ -449,10 +455,28 @@ local function init()
     -- BFA
     -- Uldir
     [GetLFGDungeonInfo(1887) or "Uldir"] = {
-      [1731] = {name = L["Halls of Containment"], totalEncounters = 3, order = 1},
-      [1732] = {name = L["Crimson Descent"],totalEncounters = 3, order = 2},
-      [1733] = {name = L["Heart of Corruption"], totalEncounters = 2, order = 3},
+      [1731] = {name = "Halls of Containment", totalEncounters = 3, order = 1},
+      [1732] = {name = "Crimson Descent",totalEncounters = 3, order = 2},
+      [1733] = {name = "Heart of Corruption", totalEncounters = 2, order = 3},
     },
+    -- Battle of Dazar'alor
+    [GetLFGDungeonInfo(1942) or "Battle of Dezar'alor"] = {
+      [1945] = {name = "Siege of Dazar'alor", totalEncounters = 3, order = 1, horde = false},
+      [1946] = {name = "Empire's Fall", totalEncounters = 3, order = 2, horde = false},
+      [1947] = {name = "Might of the Alliance", totalEncounters = 3, order = 3, horde = false},
+      [1948] = {name = "Defense of Dazar'alor", totalEncounters = 3, order = 1, horde = true},
+      [1949] = {name = "Death's Bargain", totalEncounters = 3, order = 2, horde = true},
+      [1950] = {name = "Victory or Death", totalEncounters = 3, order = 3, horde = true},
+    },
+    -- Crucible of Storms
+    [GetLFGDungeonInfo(1951) or "Crucible of Storms"] = {
+      [1951] = {name = "Crucible of Storms", totalEncounters = 2, order = 1},
+    },
+    [GetLFGDungeonInfo(2014) or "The Eternal Palace"] = {
+      [2009] = { name = "The Grand Reception", totalEncounters = 3, order = 1},
+      [2010] = { name = "Depths of the Devoted", totalEncounters = 3, order = 2  },
+      [2011] = { name = "The Circle of Stars", totalEncounters = 2, order = 3 },
+    }
 
   }
 

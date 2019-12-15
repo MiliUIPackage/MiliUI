@@ -20,8 +20,12 @@ local colors = Exlist.Colors
 
 local zones = {
   -- BFA
-  -- EK (World bosses for now?)
+  1355, -- Nazjatar
+  1462, -- Mechagon
+  -- EK
   14, -- Arathi Highlands
+  -- Kalimdor
+  62, -- Darkshore
   -- Kultiras
   895, -- Tiragarde Sound
   896, -- Drustvar
@@ -212,7 +216,7 @@ function Exlist.ScanQuests()
   for index,zoneId in ipairs(zones) do
     local wqs = C_TaskQuest.GetQuestsForPlayerByMapID(zoneId)
     for _,info in pairs(wqs or {}) do
-      local timeLeft = C_TaskQuest.GetQuestTimeLeftMinutes(info.questId)
+      local timeLeft = C_TaskQuest.GetQuestTimeLeftMinutes(info.questId) or 0
       local rewards = GetQuestRewards(info.questId)
       local checkRules,ruleid,targetReward = CheckRewardRules(rewards)
       if (trackedQuests[info.questId] and trackedQuests[info.questId].enabled) or checkRules then

@@ -278,15 +278,15 @@ local Colors = { --default colors
   },
   ilvlColors = {
     -- BFA --
-    {ilvl = 270 , str ="ff26ff3f"},
-    {ilvl = 290 , str ="ff26ffba"},
-    {ilvl = 300 , str ="ff26e2ff"},
-    {ilvl = 320 , str ="ff26a0ff"},
-    {ilvl = 340 , str ="ff2663ff"},
-    {ilvl = 360 , str ="ff8e26ff"},
-    {ilvl = 380 , str ="ffe226ff"},
-    {ilvl = 400 , str ="ffff2696"},
-    {ilvl = 420 , str ="ffff2634"},
+    {ilvl = 320 , str ="ff26ff3f"},
+    {ilvl = 340 , str ="ff26ffba"},
+    {ilvl = 350 , str ="ff26e2ff"},
+    {ilvl = 360 , str ="ff26a0ff"},
+    {ilvl = 380 , str ="ff2663ff"},
+    {ilvl = 400 , str ="ff8e26ff"},
+    {ilvl = 410 , str ="ffe226ff"},
+    {ilvl = 420 , str ="ffff2696"},
+    {ilvl = 430 , str ="ffff2634"},
     {ilvl = 440 , str ="ffff7526"},
     {ilvl = 460 , str ="ffffc526"},
   },
@@ -425,7 +425,7 @@ if number < 10000 then
 		return string.format("%.1f萬", number/10000)
 	end
 
---[[
+--[[	
   local affixes = {
     "",
     "k",
@@ -500,6 +500,7 @@ local function TimeLeftColor(timeLeft, times, col)
   -- times (opt) = {red,orange} upper limit
   -- i.e {100,1000} = 0-100 Green 100-1000 Orange 1000-inf Green
   -- colors (opt) - colors to use
+  if not timeLeft then return end
   times = times or {3600, 18000} --default
   local colors = col or {Colors.time.long, Colors.time.medium, Colors.time.short} -- default
   for i = 1, #times do
@@ -1563,7 +1564,7 @@ local function ClearFunctions(tooltip)
   if tooltip.animations then
     for _,frame in ipairs(tooltip.animations) do
       frame:SetScript("OnUpdate",nil)
-      frame:SetAlpha(1)
+      frame.fontString:SetAlpha(1)
     end
   end
 end
@@ -1624,7 +1625,7 @@ local function PopulateTooltip(tooltip)
       local logoTexSize = settings.shortenInfo and "30:60" or "40:80"
       if settings.horizontalMode then
 		-- 名字旁的裝等文字換行
-        local headerText = settings.shortenInfo and header.data[1].data.."\n" .. header.data[2].data or header.data[1].data.."             " .. header.data[2].data
+        local headerText = settings.shortenInfo and header.data[1].data.."\n " .. header.data[2].data or header.data[1].data.."             " .. header.data[2].data
         tooltip:SetCell(1,1,"|T"..[[Interface/Addons/Exlist/Media/Icons/ExlistLogo2.tga]]..":".. logoTexSize .."|t","CENTER")
         tooltip:SetCell(rowHeadNum-1,headerCol,headerText,"CENTER",4)
         tooltip:SetCellScript(rowHeadNum-1,headerCol,"OnEnter",header.data[1].OnEnter,header.data[1].OnEnterData)
@@ -1763,7 +1764,7 @@ local function OnEnter(self)
 
     })
     Exlist.AddData({
-      data = string.format("%i 物品等級", charData.iLvl or 0),
+      data = string.format("%i ilvl", charData.iLvl or 0),
       character = character,
       priority = -1000,
       moduleName = "_Header",
@@ -1793,6 +1794,36 @@ local function OnEnter(self)
   end
   -- Add Data to tooltip
   PopulateTooltip(tooltip)
+  -- Tooltip visuals
+  tooltip:SmartAnchorTo(self)
+  --tooltip:SetAutoHideDelay(settings.delay, self)
+  tooltip.parent = self
+  tooltip.time = 0
+  tooltip.elapsed = 0
+  tooltip:SetScript("OnUpdate",function(self, elapsed)
+    self.time = self.time + elapsed
+    if self.time > 0.1 then
+      if self.globalTooltip and self.globalTooltip:IsMouseOver() or self:IsMouseOver() or self.parent:IsMouseOver() then
+        self.elapsed = 0
+      else
+        self.elapsed = self.elapsed + self.time
+        if self.elapsed > settings.delay then
+          self.parent:SetAlpha(settings.iconAlpha or 1)
+          releasedTooltip()
+          ClearFunctions(self)
+          QTip:Release(self)
+        end
+      end
+      self.time = 0
+    end
+  end)
+  tooltip:Show()
+  tooltip:SetBackdrop(DEFAULT_BACKDROP)
+  local c = settings.backdrop
+  tooltip:SetBackdropColor(c.color.r, c.color.g, c.color.b, c.color.a);
+  tooltip:SetBackdropBorderColor(c.borderColor.r, c.borderColor.g, c.borderColor.b, c.borderColor.a)
+  tooltip:UpdateScrolling(settings.tooltipHeight)
+
   -- global data
   if settings.showExtraInfoTooltip then
     local gData = db.global and db.global.global or nil
@@ -1856,39 +1887,15 @@ local function OnEnter(self)
         local c = settings.backdrop
         gTip:SetBackdropColor(c.color.r, c.color.g, c.color.b, c.color.a);
         gTip:SetBackdropBorderColor(c.borderColor.r, c.borderColor.g, c.borderColor.b, c.borderColor.a)
+
+        -- Prevent from going off screen
+        local toolHeight = tooltip:GetHeight()
+        local calcHeight = GetScreenHeight() - toolHeight
+        gTip:UpdateScrolling(calcHeight)
+
       end
     end
   end
-
-  -- Tooltip visuals
-  tooltip:SmartAnchorTo(self)
-  --tooltip:SetAutoHideDelay(settings.delay, self)
-  tooltip.parent = self
-  tooltip.time = 0
-  tooltip.elapsed = 0
-  tooltip:SetScript("OnUpdate",function(self, elapsed)
-    self.time = self.time + elapsed
-    if self.time > 0.1 then
-      if self.globalTooltip and self.globalTooltip:IsMouseOver() or self:IsMouseOver() or self.parent:IsMouseOver() then
-        self.elapsed = 0
-      else
-        self.elapsed = self.elapsed + self.time
-        if self.elapsed > settings.delay then
-          self.parent:SetAlpha(settings.iconAlpha or 1)
-          releasedTooltip()
-          ClearFunctions(self)
-          QTip:Release(self)
-        end
-      end
-      self.time = 0
-    end
-  end)
-  tooltip:Show()
-  tooltip:SetBackdrop(DEFAULT_BACKDROP)
-  local c = settings.backdrop
-  tooltip:SetBackdropColor(c.color.r, c.color.g, c.color.b, c.color.a);
-  tooltip:SetBackdropBorderColor(c.borderColor.r, c.borderColor.g, c.borderColor.b, c.borderColor.a)
-  tooltip:UpdateScrolling(settings.tooltipHeight)
 end
 
 butTool:SetScript("OnEnter", OnEnter)

@@ -92,7 +92,7 @@ local function Updater(event)
       local title, level, _, _, _, _, _, questID, _, _, _, _, _, isBounty = GetQuestLogTitle(i)
       if isBounty and level >= Exlist.CONSTANTS.MAX_CHARACTER_LEVEL then
         local text, _, completed, current, total = GetQuestObjectiveInfo(questID, 1, false)
-        local timeleft = C_TaskQuest.GetQuestTimeLeftMinutes(questID)
+        local timeleft = C_TaskQuest.GetQuestTimeLeftMinutes(questID) or 0
         local endTime = timeNow + timeleft * 60
         if endTime > timeNow then
           -- make sure if there's actually any time left.
