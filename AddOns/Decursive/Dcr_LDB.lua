@@ -1,14 +1,21 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.6.1) add-on for World of Warcraft UI
-    Copyright (C) 2006-2018 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.6.6) add-on for World of Warcraft UI
+    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
-    Starting from 2009-10-31 and until said otherwise by its author, Decursive
-    is no longer free software, all rights are reserved to its author (John Wellesz).
+    Decursive is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    The only official and allowed distribution means are www.2072productions.com, www.wowace.com and curse.com.
-    To distribute Decursive through other means a special authorization is required.
+    Decursive is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Decursive.  If not, see <https://www.gnu.org/licenses/>.
 
 
     Decursive is inspired from the original "Decursive v1.9.4" by Patrick Bohnet (Quu).
@@ -17,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2018-07-18T0:42:34Z
+    This file was last updated on 2019-11-18T13:42:00Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -65,10 +72,10 @@ local LDB = LibStub("LibDataBroker-1.1"):NewDataObject("Decursive", {
         OnClick = function(Frame, button)
             D:QuickAccess(Frame, button);
         end,
-        
+
         text = "Decursive",
         label = "Decursive",
-        
+
         icon = DC.IconOFF,
 });
 
@@ -87,10 +94,10 @@ local function ShowToolTip (frame)
     local HeadFont = D:CreateLQTHFonts();
 
     local tooltip = LibQTip:Acquire("DecursiveGenInfo", 2, "LEFT", "RIGHT");
-    frame.tooltip = tooltip 
+    frame.tooltip = tooltip
 
     tooltip:SetHeaderFont(HeadFont);
-    
+
     local x, y;
     -- 1
     x, y = tooltip:AddLine();
@@ -127,7 +134,7 @@ local function ShowToolTip (frame)
         tooltip:AddLine("Afflicted units count in range:", D.MicroUnitF.UnitsDebuffedInRange);
 
         tooltip:AddLine("Max Concurrent update events:", D.Status.MaxConcurentUpdateDebuff);
-        
+
         tooltip:AddLine("Live timers:", ("Dcr: |cf0d09000%d|r, Lib: |cf0d09000%d|r, Yields: |cf0f06000%d|r, Longest batch: |cf0e07000%dms|r, Largest batch: |cf0d07000%d|r, TotalRun: |cf0d07000%u|r"):format(D:GetTimersInfo()));
 
         tooltip:AddLine("Version annouces received:", T.VersionAnnounceReceived);
@@ -155,7 +162,7 @@ local function ShowToolTip (frame)
 
 end
 
-LDB.OnEnter = function(frame) 
+LDB.OnEnter = function(frame)
     ShowToolTip(frame);
 end
 
@@ -182,4 +189,4 @@ function D:HideMiniMapIcon()
     icon:Hide();
 end
 
-T._LoadedFiles["Dcr_LDB.lua"] = "2.7.6.1";
+T._LoadedFiles["Dcr_LDB.lua"] = "2.7.6.6";

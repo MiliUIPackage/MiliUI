@@ -1,14 +1,21 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.6.1) add-on for World of Warcraft UI
-    Copyright (C) 2006-2018 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.6.6) add-on for World of Warcraft UI
+    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
-    Starting from 2009-10-31 and until said otherwise by its author, Decursive
-    is no longer free software, all rights are reserved to its author (John Wellesz).
+    Decursive is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    The only official and allowed distribution means are www.2072productions.com, www.wowace.com and curse.com.
-    To distribute Decursive through other means a special authorization is required.
+    Decursive is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Decursive.  If not, see <https://www.gnu.org/licenses/>.
 
 
     Decursive is inspired from the original "Decursive v1.9.4" by Patrick Bohnet (Quu).
@@ -17,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2018-07-18T0:42:34Z
+    This file was last updated on 2019-11-18T13:42:00Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -210,7 +217,7 @@ function D:GetDefaultsSettings()
             -- Center text displayed on MUFs, defaults to time left
             CenterTextDisplay = '1_TLEFT',
 
-            -- this is wether or not to show the live-list  
+            -- this is wether or not to show the live-list
             HideLiveList = false,
 
             LiveListAlpha = 0.7,
@@ -225,7 +232,7 @@ function D:GetDefaultsSettings()
             -- This will turn on and off the sending of messages to the default chat frame
             Print_ChatFrame = true,
 
-            -- this will send the messages to a custom frame that is moveable       
+            -- this will send the messages to a custom frame that is moveable
             Print_CustomFrame = true,
 
             -- this will disable error messages
@@ -321,10 +328,10 @@ function D:GetDefaultsSettings()
             BuffDebuff = {
                 [DS["DREAMLESSSLEEP"]]          = true,
                 [DS["GDREAMLESSSLEEP"]]         = true,
-                [DS["MDREAMLESSSLEEP"]]         = true,
+                [(not DC.WOWC) and DS["MDREAMLESSSLEEP"] or "NONE"]         = (not DC.WOWC) and true or nil,
                 [DS["DCR_LOC_MINDVISION"]]      = true,
                 [DS["MUTATINGINJECTION"]]       = true,
-                [DS["Arcane Blast"]]            = true,
+                [(not DC.WOWC) and DS["Arcane Blast"] or "NONE"]            = (not DC.WOWC) and true or nil,
             },
 
             DebuffAlwaysSkipList = {
@@ -403,10 +410,10 @@ function D:GetDefaultsSettings()
                 }
             },
             -- }}}
-        
-        
-            
-        
+
+
+
+
         }
     } -- }}}
 end
@@ -552,7 +559,7 @@ local function GetStaticOptions ()
         -- {{{
         type = "group",
         name = D.name,
-       
+
         get = D.GetHandler,
         set = D.SetHandler,
         hidden = function () return not D:IsEnabled(); end,
@@ -596,7 +603,7 @@ local function GetStaticOptions ()
             },
             -- Atticus Ross rules!
             -- }}}
- 
+
             general = {
                 -- {{{
                 type = 'group',
@@ -658,7 +665,7 @@ local function GetStaticOptions ()
                         disabled = function() return D.profile.HideLiveList and not D.profile.ShowDebuffsFrame and D.profile.AutoHideMUFs == 1 or not D:IsEnabled(); end,
                         name = L["PLAY_SOUND"],
                         desc = L["OPT_PLAYSOUND_DESC"],
-                        
+
                         order = 10,
                     },
                     AfflictionTooltips = {
@@ -741,7 +748,7 @@ local function GetStaticOptions ()
                         hidden = function() return  #T._DebugTextTable < 1 end,
                         order = 1000
                     },
- 
+
                     GlorfindalMemorium = {
                         type = "execute",
                         name = D:ColorText(L["GLOR1"], "FF" .. D:GetClassHexColor( "WARRIOR" )),
@@ -991,7 +998,7 @@ local function GetStaticOptions ()
                         name = L["OPT_LLALPHA"],
                         desc = L["OPT_LLALPHA_DESC"],
                         get = function() return 1 - D.profile.LiveListAlpha end,
-                        set = function(info,v) 
+                        set = function(info,v)
                             if (v ~= D.profile.LiveListAlpha) then
                                 D.profile.LiveListAlpha = 1 - v;
                                 DecursiveMainBar:SetAlpha(D.profile.LiveListAlpha);
@@ -1197,7 +1204,7 @@ local function GetStaticOptions ()
                                 name = L["OPT_TESTLAYOUTUNUM"],
                                 desc = L["OPT_TESTLAYOUTUNUM_DESC"],
                                 get = function() return D.Status.TestLayoutUNum end,
-                                set = function(info,v) 
+                                set = function(info,v)
                                     D.Status.TestLayoutUNum = v;
                                     D:GroupChanged("Test Layout num changed");
                                 end,
@@ -1242,7 +1249,7 @@ local function GetStaticOptions ()
                                         name = L["OPT_BORDERTRANSP"],
                                         desc = L["OPT_BORDERTRANSP_DESC"],
                                         get = function() return 1 - D.profile.DebuffsFrameElemBorderAlpha end,
-                                        set = function(info,v) 
+                                        set = function(info,v)
                                             D.SetHandler(info,1 - v);
                                         end,
                                         disabled = function() return D.profile.DebuffsFrameElemTieTransparency end,
@@ -1257,7 +1264,7 @@ local function GetStaticOptions ()
                                         name = L["OPT_CENTERTRANSP"],
                                         desc = L["OPT_CENTERTRANSP_DESC"],
                                         get = function() return 1 - D.profile.DebuffsFrameElemAlpha end,
-                                        set = function(info,v) 
+                                        set = function(info,v)
                                             D.SetHandler(info,1 - v);
 
                                             if D.profile.DebuffsFrameElemTieTransparency then
@@ -1297,7 +1304,7 @@ local function GetStaticOptions ()
                                         type = 'range',
                                         name = L["OPT_XSPACING"],
                                         desc = L["OPT_XSPACING_DESC"],
-                                        set = function(info,v) 
+                                        set = function(info,v)
                                             D.SetHandler(info, v);
                                             if D.profile.DebuffsFrameTieSpacing then
                                                 D.profile.DebuffsFrameYSpacing = v;
@@ -1313,7 +1320,7 @@ local function GetStaticOptions ()
                                         type = 'range',
                                         name = L["OPT_YSPACING"],
                                         desc = L["OPT_YSPACING_DESC"],
-                                        set = function(info,v) 
+                                        set = function(info,v)
                                             D.SetHandler(info, v);
 
                                             D.MicroUnitF:ResetAllPositions ();
@@ -1633,7 +1640,7 @@ local function GetStaticOptions ()
                         set = function(info, v) CustomSpellMacroEditingAllowed = v; end,
                     },
 
-                    
+
 
                     CustomSpellsHolder = {
                         type = 'group',
@@ -1723,7 +1730,7 @@ local function GetStaticOptions ()
                                     "\n\n|cFFDDDD00 %s|r:\n   %s"..
                                     "\n\n|cFFDDDD00 %s|r:\n   %s\n\n   %s"
                                 ):format(
-                                    "2.7.6.1", "John Wellesz", ("2018-08-10T0:55:58Z"):sub(1,10),
+                                    "2.7.6.6", "John Wellesz", ("2019-11-18T15:00:06Z"):sub(1,10),
                                     L["ABOUT_NOTES"],
                                     L["ABOUT_LICENSE"],         GetAddOnMetadata("Decursive", "X-License") or 'All Rights Reserved',
                                     L["ABOUT_SHAREDLIBS"],      GetAddOnMetadata("Decursive", "X-Embeds")  or 'GetAddOnMetadata() failure',
@@ -1757,7 +1764,7 @@ local function GetStaticOptions ()
                         hidden = function () return not D.versions; end,
                         order = 30,
                     },
-                   
+
                 },
             }, -- }}}
         },
@@ -1805,13 +1812,13 @@ end
 function D:ExportOptions ()
     -- Export the option table to Blizz option UI and to Ace3 option UI
 
-    T._CatchAllErrors = "ExportOptions"; 
+    T._CatchAllErrors = "ExportOptions";
     LibStub("AceConfig-3.0"):RegisterOptionsTable(D.name,  GetOptions, 'dcr');
-    T._CatchAllErrors = false; 
+    T._CatchAllErrors = false;
 
-    
+
     -- Don't feed the interface option panel until Blizz fixes the taint issue...
-    --[=[ 
+    --[=[
     LibStub("AceConfigDialog-3.0"):AddToBlizOptions(D.name, D.name, nil, "general");
 
     local SubGroups_ToBlizzOptions = {
@@ -2129,7 +2136,7 @@ do -- All this block predates Ace3, it could be recoded in a much more effecicen
                 ["Class"]=Class,
                 ["get"] = function  (handler)
                     skipByClass = D.profile.skipByClass;
-                    return skipByClass[handler["Class"]][handler["Debuff"]]; 
+                    return skipByClass[handler["Class"]][handler["Debuff"]];
                 end,
                 ["set"] = function  (handler, info, v)
                     skipByClass = D.profile.skipByClass;
@@ -2177,7 +2184,7 @@ do -- All this block predates Ace3, it could be recoded in a much more effecicen
              handler = {
                 ["Debuff"]=DebuffName,
                 ["get"] = function  (handler, info, Classnum)
-                    return skipByClass[DC.ClassNumToUName[Classnum]][handler["Debuff"]]; 
+                    return skipByClass[DC.ClassNumToUName[Classnum]][handler["Debuff"]];
                 end,
                 ["set"] = function  (handler, info, Classnum, state)
                     skipByClass[DC.ClassNumToUName[Classnum]][string.trim(handler["Debuff"])] = state;
@@ -2456,7 +2463,7 @@ do
     local retrieveColorReason = function(info)
         local ColorReason = str_sub(info[#info], 2);
 
-        if tonumber(ColorReason) then 
+        if tonumber(ColorReason) then
             return tonumber(ColorReason);
         else
             return ColorReason;
@@ -2527,7 +2534,7 @@ do
 
 
             MUFsColors_args["c"..ColorReason] = ColorPicker;
-            
+
         end
     end
 end
@@ -2724,7 +2731,7 @@ do
             --end
 
             return false;
-        end, 
+        end,
         order = function() return order; end,
     }
 
@@ -2804,7 +2811,7 @@ do
                 name = L["OPT_CUSTOM_SPELL_CURE_TYPES"],
                 order = 105,
                 inline = true,
-                
+
                 args={},
             },
             UnitFiltering = {
@@ -2812,7 +2819,7 @@ do
                 name = L["OPT_CUSTOM_SPELL_UNIT_FILTER"],
                 order = 107,
                 inline = true,
-                
+
                 args={},
             },
             priority = {
@@ -2831,7 +2838,7 @@ do
                 step = 1,
                 order = 110,
             },
-            
+
             isPet = {
                 type = "toggle",
                 name = L["OPT_CUSTOM_SPELL_ISPET"],
@@ -2962,6 +2969,7 @@ end
 
 -- to test on 2.3 : /script D:PrintLiteral(GetBindingAction(D.db.global.MacroBind));
 -- to test on 2.3 : /script D:PrintLiteral(GetBindingKey(D.CONF.MACROCOMMAND));
+local SaveBindings = _G.SaveBindings or _G.AttemptToSaveBindings; -- was renamed for WOW Classic, it might happen too on retail...
 
 function D:SetMacroKey ( key )
 
@@ -3090,6 +3098,6 @@ function D:QuickAccess (CallingObject, button) -- {{{
 end -- }}}
 
 
-T._LoadedFiles["Dcr_opt.lua"] = "2.7.6.1";
+T._LoadedFiles["Dcr_opt.lua"] = "2.7.6.6";
 
 -- Closer

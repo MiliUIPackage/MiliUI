@@ -1,14 +1,21 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.6.1) add-on for World of Warcraft UI
-    Copyright (C) 2006-2018 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.6.6) add-on for World of Warcraft UI
+    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
-    Starting from 2009-10-31 and until said otherwise by its author, Decursive
-    is no longer free software, all rights are reserved to its author (John Wellesz).
+    Decursive is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    The only official and allowed distribution means are www.2072productions.com, www.wowace.com and curse.com.
-    To distribute Decursive through other means a special authorization is required.
+    Decursive is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Decursive.  If not, see <https://www.gnu.org/licenses/>.
 
 
     Decursive is inspired from the original "Decursive v1.9.4" by Patrick Bohnet (Quu).
@@ -17,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2018-07-22T10:20:47Z
+    This file was last updated on 2019-11-18T13:42:00Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -159,7 +166,7 @@ function D:ShowHidePriorityListUI() --{{{
 end --}}}
 
 function D:ShowHideSkipListUI() --{{{
-    
+
     if not D.DcrFullyInitialized then
         return;
     end
@@ -248,11 +255,7 @@ function D:PlaySound (UnitID, Caller) --{{{
         local Debuffs, IsCharmed = self:UnitCurableDebuffs(UnitID, true);
         if Debuffs[1] or IsCharmed then
 
-            -- good sounds: Sound\\Doodad\\BellTollTribal.wav
-            --          Sound\\interface\\AuctionWindowOpen.wav
-            --          Sound\\interface\\AlarmClockWarning3.wav
-            
-
+            -- since WoW 8.2, one has to use ids found at https://wow.tools/files/
             self:SafePlaySoundFile(self.profile.SoundFile);
 
             self.Status.SoundPlayed = true;
@@ -306,7 +309,7 @@ function D:SaveLLPos () -- {{{
         self.profile.MainBarX = DecursiveMainBar:GetEffectiveScale() * DecursiveMainBar:GetLeft();
         self.profile.MainBarY = DecursiveMainBar:GetEffectiveScale() * DecursiveMainBar:GetTop() - UIParent:GetHeight() * UIParent:GetEffectiveScale();
 
-        
+
         if self.profile.MainBarX < 0 then
             self.profile.MainBarX = 0;
         end
@@ -320,7 +323,7 @@ end -- }}}
 
 -- set the scaling of the LIVELIST container according to the user settings
 function D:SetLLScale (NewScale) -- {{{
-    
+
     -- save the current position without any scaling
     D:SaveLLPos ();
     -- Set the new scale
@@ -328,7 +331,7 @@ function D:SetLLScale (NewScale) -- {{{
     DcrLiveList:SetScale(NewScale);
     -- Place the frame adapting its position to the news cale
     D:PlaceLL ();
-    
+
 end -- }}}
 -- }}}
 
@@ -439,7 +442,7 @@ do
 
     local DcrC = T._C; -- for faster access
 
-    
+
 
 
     -- This is the core debuff scanning function of Decursive
@@ -487,7 +490,7 @@ do
                 end
             end
 
-        
+
             -- test for a type (Magic Curse Disease or Poison)
             if TypeName and TypeName ~= "" then
                 Type = DC.NameToTypes[TypeName];
@@ -631,11 +634,11 @@ do
             continue_ = true;
 
             -- test if we have to ignore this debuf  {{{ --
-           
+
             if UnitFilteringTest(Unit, self.Status.UnitFilteringTypes[Debuff.Type]) then
                 continue_ = false; -- == skip this debuff
             end
-           
+
             if self.profile.DebuffsToIgnore[Debuff.Name] then -- XXX not sure it has any actual use nowadays (2013-06-18)
                 -- these are the BAD ones... the ones that make the target immune... abort this unit
                 --D:Debug("UnitCurableDebuffs(): %s is ignored", Debuff.Name);
@@ -662,7 +665,7 @@ do
                         if not self.profile.DebuffAlwaysSkipList[Debuff.Name] then
                             self:AddDelayedFunctionCall("ReScan"..Unit, D.MicroUnitF.UpdateMUFUnit, D.MicroUnitF, Unit);
                         end
-                        
+
                         D:Debug("UnitCurableDebuffs(): %s is configured to be skipped", Debuff.Name);
                         continue_ = false;
                     end
@@ -671,7 +674,7 @@ do
 
             -- }}}
 
-            
+
             if continue_ then
                 --      self:Debug("Debuffs matters");
                 -- If we are still here it means that this Debuff is something not to be ignored...
@@ -842,7 +845,7 @@ do
         if type(BuffNamesToCheck) == "string" then
 
             return (UnitBuff(unit, BuffNamesToCheck)) and true or false;
-         
+
         else
             for buff in pairs(BuffNamesToCheck) do
 
@@ -871,6 +874,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.6.1";
+T._LoadedFiles["Decursive.lua"] = "2.7.6.6";
 
 -- Sin

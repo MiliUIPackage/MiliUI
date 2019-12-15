@@ -1,14 +1,21 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.6.1) add-on for World of Warcraft UI
-    Copyright (C) 2006-2018 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
+    Decursive (v 2.7.6.6) add-on for World of Warcraft UI
+    Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
-    Starting from 2009-10-31 and until said otherwise by its author, Decursive
-    is no longer free software, all rights are reserved to its author (John Wellesz).
+    Decursive is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
 
-    The only official and allowed distribution means are www.2072productions.com, www.wowace.com and curse.com.
-    To distribute Decursive through other means a special authorization is required.
+    Decursive is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Decursive.  If not, see <https://www.gnu.org/licenses/>.
 
 
     Decursive is inspired from the original "Decursive v1.9.4" by Patrick Bohnet (Quu).
@@ -188,7 +195,7 @@ function D.PrioSkipListEntryTemplate_OnClick(listFrame, entryBFrame, button) --{
                 list[nextUnit_ID]       = list[id];
                 list[id]                = nextUnit;
             elseif (button=="MiddleButton") then
-            
+
             end
             listFrame.UpdateYourself = true;
         end
@@ -214,7 +221,7 @@ function D:PrioSkipListEntry_Update(Entry) --{{{
                 classname = D.profile.SkipListClass[GUIDorNum];
                 name = D.profile.SkipGUIDtoNAME[GUIDorNum];
             end
-          
+
             if (GUIDorNum) then
                 if (type(GUIDorNum) == "number") then
                     if (GUIDorNum > 10) then
@@ -372,7 +379,7 @@ function D:ClearPriorityList() --{{{
     D.profile.PriorityList = {};
     D.profile.PriorityListClass = {};
     D.profile.PrioGUIDtoNAME = {};
-    
+
     D.Status.PrioChanged       = true;
     D:GroupChanged ("ClearPriorityList");
     DecursivePriorityListFrame.UpdateYourself = true;
@@ -406,7 +413,7 @@ function D:RemoveIDFromSkipList(id) --{{{
 
     D.profile.SkipListClass[ D.profile.SkipList[id] ] = nil; -- remove it from the table
     D.profile.SkipGUIDtoNAME[ D.profile.SkipList[id]] = nil;
-    
+
 
     table.remove( D.profile.SkipList, id );
 
@@ -421,7 +428,7 @@ function D:ClearSkipList() --{{{
     D.profile.SkipList = {};
     D.profile.SkipListClass = {};
     D.profile.SkipGUIDtoNAME = {};
-    
+
     D.Status.PrioChanged       = true;
     D.Groups_datas_are_invalid = true;
     D:GroupChanged ("ClearSkipList");
@@ -514,4 +521,4 @@ function D:PopulateButtonPress(frame) --{{{
 
 end --}}}
 
-T._LoadedFiles["Dcr_lists.lua"] = "2.7.6.1";
+T._LoadedFiles["Dcr_lists.lua"] = "2.7.6.6";
