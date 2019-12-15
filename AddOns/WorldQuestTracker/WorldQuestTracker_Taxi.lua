@@ -31,7 +31,6 @@ local GetQuestLogRewardMoney = GetQuestLogRewardMoney
 local GetQuestTagInfo = GetQuestTagInfo
 local GetNumQuestLogRewards = GetNumQuestLogRewards
 local GetQuestInfoByQuestID = C_TaskQuest.GetQuestInfoByQuestID
-local GetQuestTimeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes
 
 local MapRangeClamped = DF.MapRangeClamped
 local FindLookAtRotation = DF.FindLookAtRotation
@@ -122,6 +121,7 @@ end
 local TaxyPOIIndex, TaxyPOIContainer = 1, {}
 function WorldQuestTracker:GetOrCreateTaxyPOI (parent)
 	local button = WorldQuestTracker.CreateZoneWidget (TaxyPOIIndex, "WorldQuestTrackerTaxyPOI", parent)
+	button.IsTaxiQuestButton = true
 	tinsert (TaxyPOIContainer, button)
 	TaxyPOIIndex = TaxyPOIIndex + 1
 	return button
@@ -195,7 +195,8 @@ end
 
 function WorldQuestTracker:TAXIMAP_OPENED()
 	
-	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame) then
+	--testing FlightMapFrame ~= WorldMapFrame for some addons modifying the flymap
+	if (not WorldQuestTracker.FlyMapHook and FlightMapFrame and FlightMapFrame ~= WorldMapFrame) then
 
 		for dataProvider, isInstalled in pairs (FlightMapFrame.dataProviders) do
 			if (dataProvider.DoesWorldQuestInfoPassFilters) then
@@ -246,7 +247,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 		if (not WorldQuestTracker.db.profile.TutorialTaxyMap) then
 			local alert = CreateFrame ("frame", "WorldQuestTrackerTaxyTutorial", checkboxShowTrackedOnly.widget, "MicroButtonAlertTemplate")
 			alert:SetFrameLevel (302)
-			alert.label = L["Options are here, show all quests or only those being tracked"]
+			alert.label = "Options are here, show all quests or only those being tracked"
 			alert.Text:SetSpacing (4)
 			MicroButtonAlert_SetText (alert, alert.label)
 			alert:SetPoint ("bottom", checkboxShowTrackedOnly.widget, "top", 0, 30)
@@ -358,7 +359,7 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 						pin._WQT_Twin.AnchorFrame [member] = func
 					end
 				end
-
+				
 				pin._WQT_Twin:SetScript ("OnEnter", function (self)
 					TaskPOI_OnEnter (pin._WQT_Twin)
 					pin._WQT_Twin.Texture:SetBlendMode ("ADD")
@@ -368,19 +369,19 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 					TaskPOI_OnLeave (pin._WQT_Twin)
 					pin._WQT_Twin.Texture:SetBlendMode ("BLEND")
 				end)
-
+				
 				tinsert (WorldQuestTracker.TaxyZoneWidgets, pin._WQT_Twin)
 			end
 			
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
 			
 			pin._WQT_Twin.questID = pin.questID
-			pin._WQT_Twin.numObjectives = pin.numObjectives
+			pin._WQT_Twin.numObjectives = pin.numObjectives or 1
 			pin._WQT_Twin.mapID = mapID
 			
 			pin._WQT_Twin.AnchorFrame.mapID = mapID
 			pin._WQT_Twin.questID = pin.questID
-			pin._WQT_Twin.AnchorFrame.numObjectives = pin.numObjectives
+			pin._WQT_Twin.AnchorFrame.numObjectives = pin.numObjectives or 1
 			
 			local isShowingQuests = WorldQuestTracker.db.profile.taxy_showquests
 			local isShowingOnlyTracked = WorldQuestTracker.db.profile.taxy_trackedonly
@@ -430,12 +431,12 @@ function WorldQuestTracker:TAXIMAP_OPENED()
 				questIDChanged = true
 			end
 			pin._WQT_Twin.questID = pin.questID
-			pin._WQT_Twin.numObjectives = pin.numObjectives
+			pin._WQT_Twin.numObjectives = pin.numObjectives or 1
 			local mapID, zoneID = C_TaskQuest.GetQuestZoneID (pin.questID)
 			pin._WQT_Twin.mapID = mapID
 			
 			pin._WQT_Twin.AnchorFrame.questID = pin.questID
-			pin._WQT_Twin.AnchorFrame.numObjectives = pin.numObjectives
+			pin._WQT_Twin.AnchorFrame.numObjectives = pin.numObjectives or 1
 			
 			local nextZoomOutScale, nextZoomInScale = FlightMapFrame.ScrollContainer:GetCurrentZoomRange()
 			

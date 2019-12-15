@@ -32,8 +32,9 @@ local ButtonMetaFunctions = _G [DF.GlobalWidgetControlNames ["button"]]
 ------------------------------------------------------------------------------------------------------------
 --> metatables
 
-	ButtonMetaFunctions.__call = function (_table, value, ...)
-		return self.func (_table.param1, _table.param2, value, ...)
+	ButtonMetaFunctions.__call = function (self)
+		local frameWidget = self.widget
+		DF:CoreDispatch ((frameWidget:GetName() or "Button") .. ":__call()", self.func, frameWidget, "LeftButton", self.param1, self.param2)
 	end
 
 ------------------------------------------------------------------------------------------------------------
@@ -494,13 +495,16 @@ local ButtonMetaFunctions = _G [DF.GlobalWidgetControlNames ["button"]]
 	
 -- exec
 	function ButtonMetaFunctions:Exec()
-		return self.func (self.param1, self.param2)
+		local frameWidget = self.widget
+		DF:CoreDispatch ((frameWidget:GetName() or "Button") .. ":Exec()", self.func, frameWidget, "LeftButton", self.param1, self.param2)
 	end
 	function ButtonMetaFunctions:Click()
-		return self.func (self.param1, self.param2)
+		local frameWidget = self.widget
+		DF:CoreDispatch ((frameWidget:GetName() or "Button") .. ":Click()", self.func, frameWidget, "LeftButton", self.param1, self.param2)
 	end
 	function ButtonMetaFunctions:RightClick()
-		return self.funcright()
+		local frameWidget = self.widget
+		DF:CoreDispatch ((frameWidget:GetName() or "Button") .. ":RightClick()", self.funcright, frameWidget, "RightButton", self.param1, self.param2)
 	end
 
 --> custom textures
@@ -785,9 +789,9 @@ local ButtonMetaFunctions = _G [DF.GlobalWidgetControlNames ["button"]]
 		if (button.MyObject.options.OnGrab) then
 			if (_type (button.MyObject.options.OnGrab) == "string" and button.MyObject.options.OnGrab == "PassClick") then
 				if (buttontype == "LeftButton") then
-					button.MyObject.func (button.MyObject.param1, button.MyObject.param2)
+					DF:CoreDispatch ((button:GetName() or "Button") .. ":OnMouseDown()", button.MyObject.func, button, buttontype, button.MyObject.param1, button.MyObject.param2)
 				else
-					button.MyObject.funcright (button.MyObject.param1, button.MyObject.param2)
+					DF:CoreDispatch ((button:GetName() or "Button") .. ":OnMouseDown()", button.MyObject.funcright, button, buttontype, button.MyObject.param1, button.MyObject.param2)
 				end
 			end
 		end
@@ -872,26 +876,17 @@ local ButtonMetaFunctions = _G [DF.GlobalWidgetControlNames ["button"]]
 		local x, y = GetCursorPosition()
 		x = _math_floor (x)
 		y = _math_floor (y)
+		
+		button.mouse_down = button.mouse_down or 0 --avoid issues when the button was pressed while disabled and release when enabled
+		
 		if (
 			(x == button.x and y == button.y) or
 			(button.mouse_down+0.5 > GetTime() and button:IsMouseOver())
 		) then
 			if (buttontype == "LeftButton") then
-			
-				local success, errorText = pcall (button.MyObject.func, button, buttontype, button.MyObject.param1, button.MyObject.param2)
-				if (not success) then
-					error ("Details! Framework: button " .. button:GetName() ..  " error: " .. errorText)
-				end
-			
-				--button.MyObject.func (button, buttontype, button.MyObject.param1, button.MyObject.param2)
+				DF:CoreDispatch ((button:GetName() or "Button") .. ":OnMouseUp()", button.MyObject.func, button, buttontype, button.MyObject.param1, button.MyObject.param2)
 			else
-			
-				local success, errorText = pcall (button.MyObject.funcright, button, buttontype, button.MyObject.param1, button.MyObject.param2)
-				if (not success) then
-					error ("Details! Framework: button " .. button:GetName() ..  " error: " .. errorText)
-				end
-			
-				--button.MyObject.funcright (button, buttontype, button.MyObject.param1, button.MyObject.param2)
+				DF:CoreDispatch ((button:GetName() or "Button") .. ":OnMouseUp()", button.MyObject.funcright, button, buttontype, button.MyObject.param1, button.MyObject.param2)
 			end
 		end
 	end
@@ -899,6 +894,15 @@ local ButtonMetaFunctions = _G [DF.GlobalWidgetControlNames ["button"]]
 ------------------------------------------------------------------------------------------------------------
 
 function ButtonMetaFunctions:SetTemplate (template)
+	
+	if (type (template) == "string") then
+		template = DF:GetTemplate ("button", template)
+	end
+	
+	if (not template) then
+		DF:Error ("template not found")
+		return
+	end
 	
 	if (template.width) then
 		self:SetWidth (template.width)
@@ -1151,12 +1155,7 @@ local pickcolor_callback = function (self, r, g, b, a, button)
 	button.MyObject.color_texture:SetVertexColor (r, g, b, a)
 	
 	--> safecall
-	--button.MyObject:color_callback (r, g, b, a)
-	local success, errorText = pcall (button.MyObject.color_callback, button.MyObject, r, g, b, a)
-	if (not success) then
-		error ("Details! Framework: colorpick " .. (self:GetName() or "-NONAME-") ..  " error: " .. errorText)
-	end
-	
+	DF:CoreDispatch ((self:GetName() or "ColorPicker") .. ".pickcolor_callback()", button.MyObject.color_callback, button.MyObject, r, g, b, a)
 	button.MyObject:RunHooksForWidget ("OnColorChanged", button.MyObject, r, g, b, a)
 end
 
