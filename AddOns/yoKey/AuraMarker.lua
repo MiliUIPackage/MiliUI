@@ -1,3 +1,6 @@
+--local addonName, ns = ...
+local L, yo = unpack( select( 2, ...))
+
 -- [spellID] = true / false ( buff / debuff)
 local LOP = LibStub("LibObjectiveProgress-1.0", true);
 local isTeeming

@@ -1,7 +1,13 @@
-changeset:   39:89d13eb66fa4
-tag:         v1.3.4
+changeset:   53:7d402636637b
+tag:         v1.6.0
 user:        Caleb Atherton <atcaleb@twitch.tv>
-date:        Fri Sep 07 18:41:31 2018 -0400
-summary:     Updated Mythic+ data to account for The Motherlode and Waycrest Manor hotfixes. Also updated quest data again.
+date:        Mon Sep 30 21:04:28 2019 -0400
+summary:     Updated file heading text.
+
+
+changeset:   52:af03aac4167c
+user:        Caleb Atherton <atcaleb@twitch.tv>
+date:        Mon Sep 30 21:03:53 2019 -0400
+summary:     Updated Mythic+ data to account for Patch 8.2.5 changes. Additionally, updated quest data for Patch 8.2.5.
 
 

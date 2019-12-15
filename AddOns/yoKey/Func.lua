@@ -487,7 +487,8 @@ end
 ----------------------------------------------------------------------------------------
 --	Undress button 
 ----------------------------------------------------------------------------------------
---[[local strip = CreateFrame("Button", "DressUpFrameUndressButton", DressUpFrame, "UIPanelButtonTemplate")
+--[[
+local strip = CreateFrame("Button", "DressUpFrameUndressButton", DressUpFrame, "UIPanelButtonTemplate")
 strip:SetText( "Раздевашка")
 strip:SetHeight(22)
 strip:SetWidth(strip:GetTextWidth() + 40)
@@ -504,6 +505,7 @@ strip.model = DressUpModel
 
 function GameTooltipOnLeave()
 	GameTooltip:Hide() 
-end]]
+end
+--]]
 
 
