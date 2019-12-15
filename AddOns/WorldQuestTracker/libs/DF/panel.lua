@@ -5081,10 +5081,10 @@ DF.IconRowFunctions = {
 					local formattedTime = floor (startTime + duration - GetTime())
 					
 					if (formattedTime >= 3600) then
-						formattedTime = floor (formattedTime / 3600) .. "h"
+						formattedTime = floor (formattedTime / 3600) .. "小時"
 						
 					elseif (formattedTime >= 60) then
-						formattedTime = floor (formattedTime / 60) .. "m"
+						formattedTime = floor (formattedTime / 60) .. "分"
 						
 					else
 						formattedTime = floor (formattedTime)

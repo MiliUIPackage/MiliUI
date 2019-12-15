@@ -1463,7 +1463,7 @@ function WorldQuestTracker.SetupZoneSummaryButton (summaryWidget, zoneWidget)
 		summaryWidget:SetAlpha (1)
 	end
 
-	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "d" or timeLeft > 60 and floor (timeLeft/60) .. "h" or timeLeft .. "m")
+	summaryWidget.timeLeftText:SetText (timeLeft > 1440 and floor (timeLeft/1440) .. "天" or timeLeft > 60 and floor (timeLeft/60) .. "小時" or timeLeft .. "分")
 	summaryWidget.timeLeftText:SetJustifyH ("center")
 	summaryWidget.timeLeftText:Show()
 	
@@ -1706,7 +1706,7 @@ if (bountyBoard) then
 				local timeLeftMinutes = C_TaskQuest.GetQuestTimeLeftMinutes (questID)
 				if (timeLeftMinutes) then
 					local inHours = floor (timeLeftMinutes/60)
-					bountyButton.timeLeftText:SetText (inHours > 23 and floor (inHours / 24) .. "d" or inHours .. "h")
+					bountyButton.timeLeftText:SetText (inHours > 23 and floor (inHours / 24) .. "天" or inHours .. "小時")
 					if (inHours < 12) then
 						bountyButton.timeLeftText:SetTextColor (1, .2, .1)
 					elseif (inHours < 24) then
