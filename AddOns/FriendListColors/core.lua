@@ -129,7 +129,7 @@ local COLORS = {
 }
 
 local config = {
-	format = "[if=level][color=level]L[=level][/color] [/if][color=class][=characterName|name][/color][if=characterName] - [/if][=accountName]",
+	format = "[if=level][color=level][=level][/color] [/if][=accountName|name][if=characterName] ([color=class][=characterName][/color])[/if]",
 }
 
 local function GetFriendInfo(friend)
