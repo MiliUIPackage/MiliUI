@@ -10,6 +10,8 @@ local Mapster = LibStub("AceAddon-3.0"):GetAddon("Mapster")
 local MODNAME= "Scale"
 local Scale = Mapster:NewModule(MODNAME)
 
+local LibWindow = LibStub("LibWindow-1.1")
+
 local scaler, mousetracker
 local SOS = { --Scaler Original State
 	dist = 0,
@@ -28,12 +30,12 @@ end
 
 function Scale:OnEnable()
 	if not scaler then
-		scaler = CreateFrame("Frame", "MapsterScaler", WorldMapFrame.BorderFrame)
+		scaler = CreateFrame("Frame", "MapsterScaler", WorldMapFrame)
 		scaler:SetWidth(15)
 		scaler:SetHeight(15)
-		scaler:SetFrameStrata("HIGH")
-		scaler:SetFrameLevel(WorldMapFrame.BorderFrame:GetFrameLevel() + 15)
-		scaler.tex = WorldMapFrame.BorderFrame:CreateTexture("MapsterScalerTex", "OVERLAY")
+		scaler:SetFrameStrata(WorldMapFrame:GetFrameStrata())
+		scaler:SetFrameLevel(WorldMapFrame:GetFrameLevel() + 15)
+		scaler.tex = scaler:CreateTexture(nil, "OVERLAY")
 		scaler.tex:SetAllPoints(scaler)
 		scaler.tex:SetTexture([[Interface\Buttons\UI-AutoCastableOverlay]])
 		scaler.tex:SetTexCoord(0.619, 0.760, 0.612, 0.762)
@@ -41,8 +43,9 @@ function Scale:OnEnable()
 
 		scaler:SetPoint("BOTTOMRIGHT", WorldMapFrame, "BOTTOMRIGHT", 0, -2)
 
-		mousetracker = CreateFrame("Frame", nil, WorldMapFrame.BorderFrame)
-		mousetracker:SetFrameLevel(WorldMapFrame.BorderFrame:GetFrameLevel() + 20)
+		mousetracker = CreateFrame("Frame", nil, WorldMapFrame)
+		mousetracker:SetFrameStrata(WorldMapFrame:GetFrameStrata())
+		mousetracker:SetFrameLevel(WorldMapFrame:GetFrameLevel() + 20)
 		mousetracker:SetAllPoints(scaler)
 		mousetracker:EnableMouse(true)
 		mousetracker:SetScript("OnEnter", function()
@@ -51,20 +54,21 @@ function Scale:OnEnable()
 		mousetracker:SetScript("OnLeave", function()
 			scaler.tex:SetDesaturated(true)
 		end)
-		mousetracker:SetScript("OnMouseUp", function(self)
-			self:SetScript("OnUpdate", nil)
-			self:SetAllPoints(scaler)
+		mousetracker:SetScript("OnMouseUp", function(t)
+			LibWindow.SavePosition(WorldMapFrame)
+			t:SetScript("OnUpdate", nil)
+			t:SetAllPoints(scaler)
 			Mapster.db.profile.scale = WorldMapFrame:GetScale()
 			Mapster:SetScale(true)
 		end)
-		mousetracker:SetScript("OnMouseDown",function(self)
+		mousetracker:SetScript("OnMouseDown",function(t)
 			SOS.left, SOS.top = WorldMapFrame:GetLeft(), WorldMapFrame:GetTop()
 			SOS.scale = WorldMapFrame:GetScale()
 			SOS.x, SOS.y = SOS.left, SOS.top-(UIParent:GetHeight()/SOS.scale)
 			SOS.EFscale = WorldMapFrame:GetEffectiveScale()
 			SOS.dist = GetScaleDistance()
-			self:SetScript("OnUpdate", OnUpdate)
-			self:SetAllPoints(UIParent)
+			t:SetScript("OnUpdate", OnUpdate)
+			t:SetAllPoints(UIParent)
 		end)
 		tinsert(Mapster.elementsToHide, scaler)
 	end
@@ -84,8 +88,8 @@ function GetScaleDistance() -- distance from cursor to TopLeft :)
 	local scale = SOS.EFscale
 
 	local x, y = GetCursorPosition()
-	local x = x/scale - left
-	local y = top - y/scale
+	x = x/scale - left
+	y = top - y/scale
 
 	return sqrt(x*x+y*y)
 end
@@ -94,7 +98,7 @@ function OnUpdate(self)
 	local scale = GetScaleDistance()/SOS.dist*SOS.scale
 	if scale < .2 then -- clamp min and max scale
 		scale = .2
-	elseif scale > 1.5 then 
+	elseif scale > 1.5 then
 		scale = 1.5
 	end
 	WorldMapFrame:SetScale(scale)

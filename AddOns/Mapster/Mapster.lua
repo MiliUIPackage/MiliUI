@@ -5,7 +5,10 @@ All rights reserved.
 
 local Mapster = LibStub("AceAddon-3.0"):NewAddon("Mapster", "AceEvent-3.0", "AceHook-3.0")
 
+local LibWindow = LibStub("LibWindow-1.1")
 local L = LibStub("AceLocale-3.0"):GetLocale("Mapster")
+
+local WoWClassic = select(4, GetBuildInfo()) < 20000
 
 local defaults = {
 	profile = {
@@ -18,13 +21,17 @@ local defaults = {
 		poiScale = 0.9,
 		ejScale = 0.8,
 		alpha = 1,
+		fadealpha = 0.5,
 		disableMouse = false,
+		-- position defaults for LibWindow
+		x = 40,
+		y = 140,
+		point = "LEFT",
 	}
 }
 
-local format = string.format
-
-local wmfOnShow, dropdownScaleFix, WorldMapFrameGetAlpha
+local WorldMapFrameStartMoving, WorldMapFrameStopMoving
+local WorldMapUnitPin, WorldMapUnitPinSizes
 local db
 
 function Mapster:OnInitialize()
@@ -43,21 +50,85 @@ function Mapster:OnInitialize()
 	self:SetupOptions()
 end
 
-local realZone
 function Mapster:OnEnable()
-	self:SetupMapButton()
+	LibWindow.RegisterConfig(WorldMapFrame, db)
 
-	self:SecureHook(WorldMapFrame, "SynchronizeDisplayState", "WorldMapFrame_SynchronizeDisplayState")
+	-- remove from UI panel system
+	UIPanelWindows["WorldMapFrame"] = nil
+	WorldMapFrame:SetAttribute("UIPanelLayout-area", nil)
+	WorldMapFrame:SetAttribute("UIPanelLayout-enabled", false)
 
-	self:SecureHook("HelpPlate_Show")
-	self:SecureHook("HelpPlate_Hide")
-	self:SecureHook("HelpPlate_Button_AnimGroup_Show_OnFinished")
+	-- make the map movable
+	WorldMapFrame:SetMovable(true)
+	WorldMapFrame:RegisterForDrag("LeftButton")
+	WorldMapFrame:SetScript("OnDragStart", WorldMapFrameStartMoving)
+	WorldMapFrame:SetScript("OnDragStop", WorldMapFrameStopMoving)
+
+	-- map transition
+	if WorldMapFrame.SynchronizeDisplayState then
+		self:SecureHook(WorldMapFrame, "SynchronizeDisplayState", "WorldMapFrame_SynchronizeDisplayState")
+	end
+
+	-- hook Show events for fading
+	self:HookScript(WorldMapFrame, "OnShow", "WorldMapFrame_OnShow")
+
+	-- hooks for scale
+	if HelpPlate_Show then
+		self:SecureHook("HelpPlate_Show")
+		self:SecureHook("HelpPlate_Hide")
+		self:SecureHook("HelpPlate_Button_AnimGroup_Show_OnFinished")
+	end
 	self:RawHook(WorldMapFrame.ScrollContainer, "GetCursorPosition", "WorldMapFrame_ScrollContainer_GetCursorPosition", true)
+
+	-- hook into EJ icons
+	self:SecureHook(EncounterJournalPinMixin, "OnAcquired", "EncounterJournalPin_OnAcquired")
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("EncounterJournalPinTemplate") do
+		pin.OnAcquired = EncounterJournalPinMixin.OnAcquired
+	end
+
+	-- hook into Quest POI icons
+	self:SecureHook(BonusObjectivePinMixin, "OnAcquired", "BonusQuestPOI_OnAcquired")
+	self:SecureHook(QuestPinMixin, "OnAcquired", "QuestPOI_OnAcquired")
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("BonusObjectivePinTemplate") do
+		pin.OnAcquired = BonusObjectivePinMixin.OnAcquired
+	end
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("QuestPinTemplate") do
+		pin.OnAcquired = QuestPinMixin.OnAcquired
+	end
+
+	-- hook into unit provider
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("GroupMembersPinTemplate") do
+		WorldMapUnitPin = pin
+		WorldMapUnitPinSizes = pin.dataProvider:GetUnitPinSizesTable()
+		break
+	end
+
+	-- classic compat stuff
+	if WoWClassic then
+		self:RawHook(WorldMapFrame, "HandleUserActionToggleSelf", function(frame) if frame:IsShown() then frame:Hide() else frame:Show() end end, true)
+		WorldMapFrame:SetIgnoreParentScale(false)
+		WorldMapFrame.BlackoutFrame:Hide()
+		WorldMapFrame.IsMaximized = function() return false end
+
+		WorldMapFrame:SetFrameStrata("HIGH")
+		WorldMapFrame.BorderFrame:SetFrameStrata("LOW")
+	end
+
+	-- close the map on escape
+	table.insert(UISpecialFrames, "WorldMapFrame")
 
 	-- load settings
 	--self:SetAlpha()
-	--self:SetArrow()
+	self:SetFadeAlpha()
+	self:SetArrow()
+	self:SetEJScale()
+	self:SetPOIScale()
 	self:SetScale()
+	self:SetPosition()
+
+	if not db.hideMapButton then
+		self:SetupMapButton()
+	end
 end
 
 function Mapster:Refresh()
@@ -76,44 +147,73 @@ function Mapster:Refresh()
 
 	-- apply new settings
 	--self:SetAlpha()
-	--self:SetArrow()
+	self:SetFadeAlpha()
+	self:SetArrow()
+	self:SetEJScale()
+	self:SetPOIScale()
 	self:SetScale()
+	self:SetPosition()
 
-	if self.optionsButton then
-		if db.hideMapButton then
+	if db.hideMapButton then
+		if self.optionsButton then
 			self.optionsButton:Hide()
-		else
-			self.optionsButton:Show()
 		end
+	else
+		if not self.optionsButton then
+			self:SetupMapButton()
+		end
+		self.optionsButton:Show()
 	end
+end
+
+function WorldMapFrameStartMoving(frame)
+	if not WorldMapFrame:IsMaximized() then
+		WorldMapFrame:StartMoving()
+	end
+end
+
+function WorldMapFrameStopMoving(frame)
+	WorldMapFrame:StopMovingOrSizing()
+	if not WorldMapFrame:IsMaximized() then
+		LibWindow.SavePosition(WorldMapFrame)
+	end
+end
+
+function Mapster:SetPosition()
+	LibWindow.RestorePosition(WorldMapFrame)
+end
+
+function Mapster:SetFadeAlpha()
+	PlayerMovementFrameFader.RemoveFrame(WorldMapFrame)
+	PlayerMovementFrameFader.AddDeferredFrame(WorldMapFrame, db.fadealpha, 1.0, .5, function() return GetCVarBool("mapFade") and not WorldMapFrame:IsMouseOver() end)
+end
+
+function Mapster:WorldMapFrame_OnShow()
+	self:SetFadeAlpha()
 end
 
 function Mapster:SetScale(force)
 	if WorldMapFrame:IsMaximized() and WorldMapFrame:GetScale() ~= 1 then
 		WorldMapFrame:SetScale(1)
-		SetUIPanelAttribute(WorldMapFrame, "xoffset", 0)
-		SetUIPanelAttribute(WorldMapFrame, "yoffset", 0)
 	elseif not WorldMapFrame:IsMaximized() and (WorldMapFrame:GetScale() ~= db.scale or force) then
 		WorldMapFrame:SetScale(db.scale)
-
-		-- adjust x/y offset to compensate for scale changes
-		local xOff = UIParent:GetAttribute("LEFT_OFFSET")
-		local yOff = UIParent:GetAttribute("TOP_OFFSET")
-		xOff = xOff / db.scale - xOff
-		yOff = yOff / db.scale - yOff
-		SetUIPanelAttribute(WorldMapFrame, "xoffset", xOff)
-		SetUIPanelAttribute(WorldMapFrame, "yoffset", yOff)
 	end
 end
 
 function Mapster:WorldMapFrame_ScrollContainer_GetCursorPosition()
 	local x,y = self.hooks[WorldMapFrame.ScrollContainer].GetCursorPosition(WorldMapFrame.ScrollContainer)
 	local s = WorldMapFrame:GetScale()
+	if WoWClassic then
+		s = s * UIParent:GetEffectiveScale()
+	end
 	return x / s, y / s
 end
 
 function Mapster:WorldMapFrame_SynchronizeDisplayState()
 	self:SetScale()
+	if not WorldMapFrame:IsMaximized() then
+		self:SetPosition()
+	end
 end
 
 function Mapster:HelpPlate_Show(plate, frame)
@@ -135,6 +235,48 @@ function Mapster:HelpPlate_Button_AnimGroup_Show_OnFinished()
 		HelpPlate:SetScale(1.0)
 		HelpPlate.__Mapster = nil
 	end
+end
+
+function Mapster:EncounterJournalPin_OnAcquired(pin)
+	pin:SetSize(50 * db.ejScale, 49 * db.ejScale)
+	pin.Background:SetScale(db.ejScale)
+end
+
+function Mapster:SetEJScale()
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("EncounterJournalPinTemplate") do
+		self:EncounterJournalPin_OnAcquired(pin)
+	end
+end
+
+function Mapster:BonusQuestPOI_OnAcquired(pin)
+	pin:SetSize(30 * db.poiScale, 30 * db.poiScale)
+	pin.Texture:SetScale(db.poiScale)
+end
+
+function Mapster:QuestPOI_OnAcquired(pin)
+	pin:SetSize(50 * db.poiScale, 50 * db.poiScale)
+	pin.Texture:SetScale(db.poiScale)
+	pin.PushedTexture:SetScale(db.poiScale)
+	pin.Number:SetScale(db.poiScale)
+	pin.Highlight:SetScale(db.poiScale)
+end
+
+function Mapster:SetPOIScale()
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("BonusObjectivePinTemplate") do
+		self:BonusQuestPOI_OnAcquired(pin)
+	end
+	for pin in WorldMapFrame:EnumeratePinsByTemplate("QuestPinTemplate") do
+		self:QuestPOI_OnAcquired(pin)
+	end
+end
+
+function Mapster:SetArrow()
+	if not WorldMapUnitPin or not WorldMapUnitPinSizes then
+		return
+	end
+
+	WorldMapUnitPinSizes.player = 27 * db.arrowScale
+	WorldMapUnitPin:SynchronizePinSizes()
 end
 
 function Mapster:GetModuleEnabled(module)

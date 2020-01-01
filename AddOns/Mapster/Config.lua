@@ -6,6 +6,8 @@ All rights reserved.
 local Mapster = LibStub("AceAddon-3.0"):GetAddon("Mapster")
 local L = LibStub("AceLocale-3.0"):GetLocale("Mapster")
 
+local WoWClassic = select(4, GetBuildInfo()) < 20000
+
 local optGetter, optSetter
 do
 	function optGetter(info)
@@ -25,12 +27,12 @@ local function getOptions()
 	if not options then
 		options = {
 			type = "group",
-			name = "Mapster",
+			name = L["Mapster"],
 			args = {
 				general = {
 					order = 1,
 					type = "group",
-					name = "General Settings",
+					name = L["General Settings"],
 					get = optGetter,
 					set = optSetter,
 					args = {
@@ -66,8 +68,6 @@ local function getOptions()
 							type = "range",
 							name = L["Faded Alpha"],
 							desc = L["The transparency of the map while you are moving and the map is faded."],
-							get = function() return WORLD_MAP_MIN_ALPHA end,
-							set = function(_, v) SetCVar("mapAnimMinAlpha", v); WORLD_MAP_MIN_ALPHA = v end,
 							min = 0, max = 1, bigStep = 0.01,
 							isPercent = true,
 							disabled = function() return not GetCVarBool("mapFade") end,
@@ -138,12 +138,13 @@ local function getOptions()
 			options.args[k] = (type(v) == "function") and v() or v
 		end
 	end
-	
+
 	return options
 end
 
-local function optFunc() 
+local function optFunc()
 	-- open the profiles tab before, so the menu expands
+	InterfaceOptionsFrame:Show()
 	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Profiles)
 	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Mapster)
 	InterfaceOptionsFrame:Raise()
@@ -154,16 +155,16 @@ function Mapster:SetupOptions()
 
 	-- setup options table
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Mapster", getOptions)
-	self.optionsFrames.Mapster = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", nil, nil, "general")
+	self.optionsFrames.Mapster = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", L["Mapster"], nil, "general")
 
-	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "Profiles")
+	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), L["Profiles"])
 
 	LibStub("AceConsole-3.0"):RegisterChatCommand( "mapster", optFunc)
 end
 
 function Mapster:RegisterModuleOptions(name, optionTbl, displayName)
 	moduleOptions[name] = optionTbl
-	self.optionsFrames[name] = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", displayName, "Mapster", name)
+	self.optionsFrames[name] = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", displayName, L["Mapster"], name)
 end
 
 function Mapster:SetupMapButton()
@@ -171,9 +172,16 @@ function Mapster:SetupMapButton()
 	self.optionsButton = CreateFrame("Button", "MapsterOptionsButton", WorldMapFrame.BorderFrame, "UIPanelButtonTemplate")
 	self.optionsButton:SetWidth(95)
 	self.optionsButton:SetHeight(18)
-	self.optionsButton:SetText("Mapster")
+	self.optionsButton:SetText(L["Mapster "])
 	self.optionsButton:ClearAllPoints()
-	self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrameTitleBg, "TOPRIGHT", -21, 1)
+	if WoWClassic then
+		self.optionsButton:SetParent(WorldMapFrame)
+		self.optionsButton:SetPoint("LEFT", WorldMapZoomOutButton, "RIGHT", 5, 0)
+		self.optionsButton:SetWidth(110)
+		self.optionsButton:SetHeight(22)
+	else
+		self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrame.BorderFrame.TitleBg, "TOPRIGHT", -21, 1)
+	end
 
 	if self.db.profile.hideMapButton then
 		self.optionsButton:Hide()
