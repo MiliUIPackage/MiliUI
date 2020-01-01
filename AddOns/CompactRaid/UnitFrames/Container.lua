@@ -163,9 +163,9 @@ container:SetScript("OnUpdate", function(self, elapsed)
 		rows = 1
 	end
 
-	local spacing = addon.db.spacing
-	local unitWidth = addon.db.width
-	local unitHeight = addon.db.height
+	local spacing = 1 or addon.db.spacing
+	local unitWidth = 94 or addon.db.width
+	local unitHeight = 45 or addon.db.height
 
 	local width = cols * (unitWidth + spacing) - spacing
 	local height = rows * (unitHeight + spacing) - spacing
