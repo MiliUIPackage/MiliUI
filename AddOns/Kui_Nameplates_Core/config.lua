@@ -98,7 +98,7 @@ local default_config = {
     font_size_small = 11,
     name_text = true,
     level_text = false,
-    health_text = false,
+    health_text = true,
     text_vertical_offset = 0,
     name_vertical_offset = -2,
     bot_vertical_offset = -3,
@@ -115,8 +115,8 @@ local default_config = {
 
     health_text_friend_max = 1,
     health_text_friend_dmg = 5,
-    health_text_hostile_max = 1,
-    health_text_hostile_dmg = 4,
+    health_text_hostile_max = 3,
+    health_text_hostile_dmg = 6,
 
     colour_hated = {.7,.2,.1},
     colour_neutral = {1,.8,0},

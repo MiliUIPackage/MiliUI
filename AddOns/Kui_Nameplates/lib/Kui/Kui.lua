@@ -312,16 +312,16 @@ end
 -- generic helpers #############################################################
 kui.num = function(num) -- TODO needs locale
     if not num then return end
-    if num < THOUSAND then
+    if num < 10000 then
         return floor(num)
-    elseif num >= TRILLION then
-        return string.format('%.3ft', num/TRILLION)
-    elseif num >= BILLION then
-        return string.format('%.3fb', num/BILLION)
-    elseif num >= MILLION then
-        return string.format('%.2fm', num/MILLION)
-    elseif num >= THOUSAND then
-        return string.format('%.1fk', num/THOUSAND)
+    elseif num >= 100000000 then
+        return string.format('%.2f億', num/100000000)
+    elseif num >= 1000000 then
+        return string.format('%.0f萬', num/10000)
+    elseif num >= 10000 then
+        return string.format('%.1f萬', num/10000)
+    -- elseif num >= THOUSAND then
+    --     return string.format('%.1fk', num/THOUSAND)
     end
 end
 kui.FormatTime = function(s)
