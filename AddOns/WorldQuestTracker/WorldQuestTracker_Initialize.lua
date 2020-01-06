@@ -112,7 +112,7 @@ do
 				show_icons = false,
 				alerts_anywhere = false,
 				join_channel = false,
-				search_group = true,
+				search_group = false,
 				recently_spotted = {},
 				recently_killed = {},
 				name_cache = {},
