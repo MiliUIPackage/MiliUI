@@ -12,6 +12,7 @@ local UIDropDownMenuTemplate = "UIDropDownMenuTemplate"
 
 local addonName = ...
 local addon = TinyTooltip
+local CopyTable = CopyTable
 
 addon.L = addon.L or {}
 setmetatable(addon.L, { __index = function(self, k)
@@ -57,6 +58,9 @@ local function CallTrigger(keystring, value)
 end
 
 local function GetVariable(keystring, tbl)
+    if (keystring == "general.SavedVariablesPerCharacter") then
+        return BigTipDB.general.SavedVariablesPerCharacter
+    end
     local keys = {strsplit(".", keystring)}
     local value = tbl or addon.db
     for i, key in ipairs(keys) do
@@ -228,6 +232,17 @@ function widgets:dropdown(parent, config, labelText)
             UIDropDownMenu_AddButton(info)
         end
     end, config.displayMode)
+    frame.selectedFunc = function(self, value, text)
+        local parent = self:GetParent()
+        if (not parent or not parent.anchorbutton) then return end
+        if (value == "static" or value == "cursor") then
+            parent.anchorbutton:Show()
+            self.Label:Hide()
+        else
+            parent.anchorbutton:Hide()
+            self.Label:Show()
+        end
+    end
     UIDropDownMenu_SetSelectedValue(frame, GetVariable(config.keystring))
     frame.Label:SetText(labelText or L[config.keystring])
     return frame
@@ -267,6 +282,31 @@ do
     line:SetPoint("CENTER")
 end
 
+local function StaticFrameOnDragStop(self)
+    self:StopMovingOrSizing()
+    local p = GetVariable(self.cp) or "BOTTOMRIGHT"
+    local left, right, top, bottom = self:GetLeft(), self:GetRight(), self:GetTop(), self:GetBottom()
+    if (p == "BOTTOMRIGHT") then
+        SetVariable(self.kx, floor(right - GetScreenWidth())+4)
+        SetVariable(self.ky, floor(bottom)-3)
+    elseif (p == "BOTTOMLEFT") then
+        SetVariable(self.kx, floor(left)-2)
+        SetVariable(self.ky, floor(bottom)-3)
+    elseif (p == "TOPLEFT") then
+        SetVariable(self.kx, floor(left)-2)
+        SetVariable(self.ky, floor(top-GetScreenHeight()))
+    elseif (p == "TOPRIGHT") then
+        SetVariable(self.kx, floor(right - GetScreenWidth())+4)
+        SetVariable(self.ky, floor(top-GetScreenHeight()))
+    elseif (p == "TOP") then
+        SetVariable(self.kx, floor(left-GetScreenWidth()/2+100))
+        SetVariable(self.ky, floor(top-GetScreenHeight()))
+    elseif (p == "BOTTOM") then
+        SetVariable(self.kx, floor(left-GetScreenWidth()/2+100))
+        SetVariable(self.ky, floor(bottom)-3)
+    end
+end
+
 local function CreateAnchorButton(frame, anchorPoint)
     local button = CreateFrame("Button", nil, frame)
     button.cp = anchorPoint
@@ -281,6 +321,7 @@ local function CreateAnchorButton(frame, anchorPoint)
         end
         SetVariable(parent.cp, self.cp)
         self:GetNormalTexture():SetVertexColor(1, 0.2, 0.1)
+        StaticFrameOnDragStop(frame)
     end)
     frame[anchorPoint] = button
 end
@@ -308,30 +349,7 @@ saframe:SetMovable(true)
 saframe:SetSize(200, 80)
 saframe:RegisterForDrag("LeftButton")
 saframe:SetScript("OnDragStart", function(self) self:StartMoving() end)
-saframe:SetScript("OnDragStop", function(self)
-    self:StopMovingOrSizing()
-    local p = GetVariable(self.cp) or "BOTTOMRIGHT"
-    local left, right, top, bottom = self:GetLeft(), self:GetRight(), self:GetTop(), self:GetBottom()
-    if (p == "BOTTOMRIGHT") then
-        SetVariable(self.kx, floor(right - GetScreenWidth())+4)
-        SetVariable(self.ky, floor(bottom)-3)
-    elseif (p == "BOTTOMLEFT") then
-        SetVariable(self.kx, floor(left)-2)
-        SetVariable(self.ky, floor(bottom)-3)
-    elseif (p == "TOPLEFT") then
-        SetVariable(self.kx, floor(left)-2)
-        SetVariable(self.ky, floor(top-GetScreenHeight()))
-    elseif (p == "TOPRIGHT") then
-        SetVariable(self.kx, floor(right - GetScreenWidth())+4)
-        SetVariable(self.ky, floor(top-GetScreenHeight()))
-    elseif (p == "TOP") then
-        SetVariable(self.kx, floor(left-GetScreenWidth()/2))
-        SetVariable(self.ky, floor(top-GetScreenHeight()))
-    elseif (p == "BOTTOM") then
-        SetVariable(self.kx, floor(left-GetScreenWidth()/2))
-        SetVariable(self.ky, floor(bottom)-3)
-    end
-end)
+saframe:SetScript("OnDragStop", StaticFrameOnDragStop)
 CreateAnchorButton(saframe, "TOPLEFT")
 CreateAnchorButton(saframe, "BOTTOMLEFT")
 CreateAnchorButton(saframe, "TOPRIGHT")
@@ -445,16 +463,16 @@ end
 function widgets:anchor(parent, config)
     local frame = CreateFrame("Frame", nil, parent)
     frame:SetSize(400, 30)
+    frame.anchorbutton = self:anchorbutton(frame, config)
     frame.dropdown = self:dropdown(frame, {keystring=config.keystring..".position",dropdata=config.dropdata})
     frame.dropdown:SetPoint("LEFT", 0, 0)
-    frame.anchorbutton = self:anchorbutton(frame, config)
-    frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 5, 0)
-    frame.checkbox1 = self:checkbox(frame, {keystring=config.keystring..".hideInCombat"})
-    frame.checkbox1:SetPoint("LEFT", frame.anchorbutton, "RIGHT", 5, -1)
+    frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "LEFT", 1, 0)
+    frame.checkbox1 = self:checkbox(frame, {keystring=config.keystring..".hiddenInCombat"})
+    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 10, -1)
     frame.checkbox2 = self:checkbox(frame, {keystring=config.keystring..".returnInCombat"})
-    frame.checkbox2:SetPoint("LEFT", frame.checkbox1.Text, "RIGHT", 5, 0)
+    frame.checkbox2:SetPoint("LEFT", frame.checkbox1.Text, "RIGHT", 3, 0)
     frame.checkbox3 = self:checkbox(frame, {keystring=config.keystring..".returnOnUnitFrame"})
-    frame.checkbox3:SetPoint("LEFT", frame.checkbox2.Text, "RIGHT", 5, 0)
+    frame.checkbox3:SetPoint("LEFT", frame.checkbox2.Text, "RIGHT", 3, 0)
     return frame
 end
 
@@ -473,7 +491,7 @@ widgets.filterDropdata = {"none","ininstance","incombat","inraid","samerealm","s
 widgets.colorDropdata = {"default","class","level","reaction","itemQuality","selection","faction",}
 widgets.bgfileDropdata = {"gradual","dark","alpha","rock","marble",}
 widgets.borderDropdata = {"default","angular",}
-widgets.fontDropdata = {"default",}
+widgets.fontDropdata = {"default", "ChatFontNormal", "GameFontNormal", "QuestFont", "CombatLogFont",}
 widgets.barDropdata = {"Interface\\AddOns\\"..addonName.."\\texture\\StatusBar",}
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
@@ -504,8 +522,8 @@ local options = {
         { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
-		{ keystring = "general.showCaster",   		type = "checkbox" },
         { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },
+        { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
     },
     pc = {
         { keystring = "unit.player.showTarget",           type = "checkbox" },
@@ -513,8 +531,9 @@ local options = {
         { keystring = "unit.player.showModel",            type = "checkbox" },
         { keystring = "unit.player.grayForDead",          type = "checkbox" },
         { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
-        { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
+        { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
         { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursorRight","cursor","static"} },
+        { keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
         { keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
         { keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
         { keystring = "unit.player.elements.pvpIcon",     type = "element", filter = true, },
@@ -545,8 +564,9 @@ local options = {
         { keystring = "unit.npc.showTargetBy",          type = "checkbox" },
         { keystring = "unit.npc.grayForDead",           type = "checkbox" },
         { keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
-        { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
+        { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
         { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursorRight","cursor","static"} },
+        { keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
         { keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
         { keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
         { keystring = "unit.npc.elements.questIcon",    type = "element", filter = true, },
@@ -593,8 +613,8 @@ frame.anchor:SetPoint("TOPLEFT", 32, -16)
 frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
-frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
-frame.name = L["Tooltip"]
+frame.title:SetText(format("%s |cff33eeff%s|r", addonName, "General"))
+frame.name = addonName
 
 local framePC = CreateFrame("Frame", nil, UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
@@ -602,9 +622,9 @@ framePC.anchor:SetPoint("TOPLEFT", 32, -13)
 framePC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 framePC.title = framePC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 framePC.title:SetPoint("TOPLEFT", 18, -16)
-framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is Player"]))
-framePC.parent = L["Tooltip"]
-framePC.name = L["Player"]
+framePC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is Player"))
+framePC.parent = addonName
+framePC.name = " - Player"
 
 framePC.diy = CreateFrame("Button", nil, framePC)
 framePC.diy:SetSize(400, 67)
@@ -628,8 +648,8 @@ framePCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yra
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 framePCScrollFrame:SetScrollChild(framePC)
-framePCScrollFrame.parent = L["Tooltip"]
-framePCScrollFrame.name = L["Player"]
+framePCScrollFrame.parent = addonName
+framePCScrollFrame.name = " - Player"
 
 
 local frameNPC = CreateFrame("Frame", nil, UIParent)
@@ -638,9 +658,9 @@ frameNPC.anchor:SetPoint("TOPLEFT", 32, -16)
 frameNPC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameNPC.title = frameNPC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameNPC.title:SetPoint("TOPLEFT", 18, -16)
-frameNPC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is NPC"]))
-frameNPC.parent = L["Tooltip"]
-frameNPC.name = "NPC"
+frameNPC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is NPC"))
+frameNPC.parent = addonName
+frameNPC.name = " - NPC"
 
 local frameStatusbar = CreateFrame("Frame", nil, UIParent)
 frameStatusbar.anchor = CreateFrame("Frame", nil, frameStatusbar)
@@ -648,9 +668,9 @@ frameStatusbar.anchor:SetPoint("TOPLEFT", 32, -16)
 frameStatusbar.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameStatusbar.title = frameStatusbar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameStatusbar.title:SetPoint("TOPLEFT", 18, -16)
-frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["StatusBar"]))
-frameStatusbar.parent = L["Tooltip"]
-frameStatusbar.name = L["StatusBar"]
+frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", addonName, "StatusBar"))
+frameStatusbar.parent = addonName
+frameStatusbar.name = " - StatusBar"
 
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
@@ -658,9 +678,9 @@ frameSpell.anchor:SetPoint("TOPLEFT", 32, -16)
 frameSpell.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameSpell.title = frameSpell:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameSpell.title:SetPoint("TOPLEFT", 18, -16)
-frameSpell.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Spell"]))
-frameSpell.parent = L["Tooltip"]
-frameSpell.name = L["Spell"]
+frameSpell.title:SetText(format("%s |cff33eeff%s|r", addonName, "Spell"))
+frameSpell.parent = addonName
+frameSpell.name = " - Spell"
 
 local frameFont = CreateFrame("Frame", nil, UIParent)
 frameFont.anchor = CreateFrame("Frame", nil, frameFont)
@@ -668,9 +688,23 @@ frameFont.anchor:SetPoint("TOPLEFT", 32, -16)
 frameFont.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameFont.title = frameFont:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameFont.title:SetPoint("TOPLEFT", 18, -16)
-frameFont.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Font"]))
-frameFont.parent = L["Tooltip"]
-frameFont.name = L["Font"]
+frameFont.title:SetText(format("%s |cff33eeff%s|r", addonName, "Font"))
+frameFont.parent = addonName
+frameFont.name = " - Font"
+
+local frameVariables = CreateFrame("Frame", nil, UIParent)
+frameVariables.anchor = CreateFrame("Frame", nil, frameVariables)
+frameVariables.anchor:SetPoint("TOPLEFT", 32, -16)
+frameVariables.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameVariables.title = frameVariables:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+frameVariables.title:SetPoint("TOPLEFT", 18, -16)
+frameVariables.title:SetText(format("%s |cff33eeff%s|r", addonName, "Variables"))
+frameVariables.parent = addonName
+frameVariables.name = " - Variables"
+
+local function InitVariablesFrame()
+    
+end
 
 local function InitOptions(list, parent, height)
     local element, offsetX
@@ -690,10 +724,11 @@ end
 LibEvent:attachEvent("VARIABLES_LOADED", function()
     InitOptions(options.general, frame, 32)
     InitOptions(options.pc, framePC, 29)
-    InitOptions(options.npc, frameNPC, 28)
+    InitOptions(options.npc, frameNPC, 27)
     InitOptions(options.statusbar, frameStatusbar, 36)
     InitOptions(options.spell, frameSpell, 32)
     InitOptions(options.font, frameFont, 32)
+    InitVariablesFrame()
 end)
 
 InterfaceOptions_AddCategory(frame)
@@ -702,6 +737,7 @@ InterfaceOptions_AddCategory(frameNPC)
 InterfaceOptions_AddCategory(frameStatusbar)
 InterfaceOptions_AddCategory(frameSpell)
 InterfaceOptions_AddCategory(frameFont)
+InterfaceOptions_AddCategory(frameVariables)
 SLASH_TinyTooltip1 = "/tinytooltip"
 SLASH_TinyTooltip2 = "/tt"
 SLASH_TinyTooltip3 = "/tip"
@@ -721,8 +757,8 @@ function SlashCmdList.TinyTooltip(msg, editbox)
         InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
         InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
     else
-        InterfaceOptionsFrame_OpenToCategory(frame)
-		InterfaceOptionsFrame_OpenToCategory(frameNPC)
+        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
+        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
         InterfaceOptionsFrame_OpenToCategory(frame)
     end
 end
@@ -924,12 +960,23 @@ LibEvent:attachTrigger("tinytooltip:diy:player", function(self, unit, skipDisabl
     frame:Show()
 end)
 
-LibEvent:attachTrigger("tooltip:variable:changed", function()
+LibEvent:attachTrigger("tooltip:variables:loaded", function()
+    diytable = addon.db.unit.player.elements
+end)
+
+LibEvent:attachTrigger("tooltip:variable:changed", function(self, keystring, value)
     if (frame:IsShown()) then
         LibEvent:trigger("tinytooltip:diy:player", "player", true)
     end
-end)
-
-LibEvent:attachEvent("VARIABLES_LOADED", function()
-    diytable = addon.db.unit.player.elements
+    if (keystring == "general.SavedVariablesPerCharacter") then
+        BigTipDB.general.SavedVariablesPerCharacter = value
+        if (value) then
+            local db = CopyTable(addon.db)
+            addon.db = addon:MergeVariable(db, TinyTooltipCharacterDB)
+        else
+            addon.db = BigTipDB
+        end
+        LibEvent:trigger("tooltip:variables:loaded")
+        LibEvent:trigger("TINYTOOLTIP_GENERAL_INIT")
+    end
 end)

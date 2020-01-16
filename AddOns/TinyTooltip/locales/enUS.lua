@@ -22,13 +22,4 @@ addon.L = {
     ["dropdown.not samecrossrealm"]  = "|cffff3333not|r sameCrossrealm",
     ["TargetBy"]                    = "Targeted By",
     ["showTargetBy"]                = "Show Targeted By",
-	
-	["Tooltip"] = "Tooltip",
-	["TinyTooltip"] = "TinyTooltip",
-	["Player"] = "Player",
-	["Unit Is Player"] = "Unit Is Player",
-	["Unit Is NPC"] = "Unit Is NPC",
-	["StatusBar"] = "StatusBar",
-	["Spell"] = "Spell",
-	["Item"] = "Item",
 }
