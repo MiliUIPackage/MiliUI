@@ -80,7 +80,7 @@ local WQT_DEFAULTS = {
 			saveFilters = true;
 			emissaryOnly = false;
 			useLFGButtons = false;
-			autoEmisarry = true;
+			autoEmisarry = false;
 			questCounter = true;
 			bountyCounter = true;
 			
@@ -106,11 +106,12 @@ local WQT_DEFAULTS = {
 			rarityIcon = false;
 			timeIcon = false;
 			filterPoI = true;
-			scale = 1;
+			scale = 0.8;
 			disablePoI = false;
-			timeLabel = false;
-			continentPins = false;
+			timeLabel = true;
+			continentPins = true;
 			fadeOnPing = true;
+			reward = true;
 			ringType = _V["RING_TYPES"].time;
 			centerType = _V["PIN_CENTER_TYPES"].reward;
 		};
