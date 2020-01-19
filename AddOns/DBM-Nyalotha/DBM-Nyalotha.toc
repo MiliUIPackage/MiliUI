@@ -13,6 +13,7 @@
 ## X-DBM-Mod-Category: BFA
 ## X-DBM-Mod-Has-Mythic : 1
 ## X-DBM-Mod-Name: Ny'alotha
+## X-DBM-Mod-Name-zhTW: 奈奧羅薩
 ## X-DBM-Mod-Sort: 404
 ## X-DBM-Mod-MapID: 2217
 ## X-DBM-Mod-MinCoreRevision: 17286

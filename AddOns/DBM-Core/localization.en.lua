@@ -29,7 +29,7 @@ DBM_CORE_LOOT_SPEC_REMINDER			= "Your current spec is %s. Your current loot choi
 
 DBM_CORE_BIGWIGS_ICON_CONFLICT		= "DBM has detected that you have raid icons turned on in both BigWigs and DBM. Please disable icons in one of them to avoid conflicts"
 
-DBM_CORE_MOD_AVAILABLE				= "%s is available for this zone. You can find download on Curse/Twitch or WoWI or deadlybossmods.com"
+DBM_CORE_MOD_AVAILABLE				= "%s is available for this zone. You can find download on Curse/Twitch or WoWI"
 
 DBM_CORE_COMBAT_STARTED				= "%s engaged. Good luck and have fun! :)"
 DBM_CORE_COMBAT_STARTED_IN_PROGRESS	= "Engaged an in progress fight against %s. Good luck and have fun! :)"
@@ -179,6 +179,7 @@ DBM_CORE_3RDPROFILES					= "WARNING: DBM-Profiles not compatible with this versi
 DBM_CORE_VICTORYSOUND					= "WARNING: DBM-VictorySound not compatible with this version of DBM. It must be removed before DBM can proceed, to avoid conflict."
 DBM_CORE_DPMCORE						= "WARNING: Deadly PvP mods is discontinued and not compatible with this version of DBM. It must be removed before DBM can proceed, to avoid conflict."
 DBM_CORE_DBMLDB							= "WARNING: DBM-LDB is now built into DBM-Core. While it won't do any harm, it's recommended to remove 'DBM-LDB' from your addons folder"
+DBM_CORE_DBMLOOTREMINDER				= "WARNING: 3rd party mod DBM-LootReminder is installed. This addon is no longer compatible with retail wow client and will cause DBM to break and not be able to send pull timers. Uninstall of this addon recommended"
 DBM_CORE_UPDATE_REQUIRES_RELAUNCH		= "WARNING: This DBM update will not work correctly if you don't fully restart your game client. This update contains new files or .toc file changes that cannot be loaded via ReloadUI. You may encounter broken functionality or errors if you continue without a client restart."
 DBM_CORE_OUT_OF_DATE_NAG				= "Your version of Deadly Boss Mods is out-of-date. It is recommended you update for this fight so you are not missing an important alert or timer or a yell rest of raid is expecting to see from you."
 DBM_CORE_RETAIL_ONLY					= "WARNING: This version of DBM is only meant to be used with latest retail version World of Warcraft. Uninstall this version and install correct version of DBM for Classic WoW."
@@ -188,7 +189,7 @@ DBM_CORE_MOVABLE_BAR				= "Drag me!"
 --DBM_PIZZA_SYNC_INFO					= "|Hplayer:%1$s|h[%1$s]|h sent you a DBM timer: '%2$s'\n|HDBM:cancel:%2$s:nil|h|cff3588ff[Cancel this timer]|r|h  |HDBM:ignore:%2$s:%1$s|h|cff3588ff[Ignore timers from %1$s]|r|h"
 DBM_PIZZA_SYNC_INFO					= "|Hplayer:%1$s|h[%1$s]|h sent you a DBM timer"
 DBM_PIZZA_CONFIRM_IGNORE			= "Do you really want to ignore DBM timers from %s for this session?"
-DBM_PIZZA_ERROR_USAGE				= "Usage: /dbm [broadcast] timer <time> <text>. <time> must be greater than 1."
+DBM_PIZZA_ERROR_USAGE				= "Usage: /dbm [broadcast] timer <time> <text>. <time> must be 3 or greater."
 
 DBM_CORE_MINIMAP_TOOLTIP_HEADER		= "Deadly Boss Mods"
 DBM_CORE_MINIMAP_TOOLTIP_FOOTER		= "Hold shift and drag to move"

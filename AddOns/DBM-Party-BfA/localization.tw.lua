@@ -46,6 +46,21 @@ L= DBM:GetModLocalization(2102)
 -----------------------
 L= DBM:GetModLocalization(2093)
 
+L:SetWarningLocalization({
+	warnGoodBrew		= "正施放 %s: 3秒鐘",
+	specWarnBrewOnBoss	= "好酒 - 移動到 %s"
+})
+
+L:SetOptionLocalization({
+	warnGoodBrew		= "當開始施放好酒時顯示警告",
+	specWarnBrewOnBoss	= "當好酒位於首領下方時顯示特別警告"
+})
+
+L:SetMiscLocalization({
+	critBrew		= "致命酒",
+	hasteBrew		= "加速酒"
+})
+
 -----------------------
 -- Ring of Booty --
 -----------------------
