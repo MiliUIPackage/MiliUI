@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: TinyChat
 ## Notes: TinyChat
 ## Title-zhTW: |cFF77FF77[社交]|r 聊天增強

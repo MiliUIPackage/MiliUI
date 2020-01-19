@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## X-Min-Interface: 80205
 ## Title:|cffffd200Deadly Boss Mods|r |cff69ccf0Core|r
 ## Title-zhCN:|cffffd200Deadly Boss Mods|r |cff69ccf0核心|r

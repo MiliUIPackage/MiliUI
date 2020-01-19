@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: Auctionator
 ## Title-zhTW: |cFF77FFBB[交易]|r 拍賣助手
 ## Notes-zhTW: Auctionator |n拍賣場的實用助手。

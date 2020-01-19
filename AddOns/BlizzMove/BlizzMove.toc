@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: Blizzmove
 ## Notes: Move those blizzard windows
 ## Title-zhTW: |cFF0099FF[介面]|r 框架解鎖

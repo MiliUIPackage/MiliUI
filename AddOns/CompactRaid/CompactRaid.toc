@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: CompactRaid
 ## Title-zhTW: |cFF00CCFF[團隊]|r 團隊框架
 ## Notes-zhTW: CompactRaid|n精簡的團隊框架功能

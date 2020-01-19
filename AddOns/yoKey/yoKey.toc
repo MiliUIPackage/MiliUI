@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Version: 8.2.5.1
 ## Title: yoKey
 ## Title-zhTW: |cFF00CCFF[團隊]|r 傳奇計時與鑰石資訊

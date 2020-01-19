@@ -1,5 +1,5 @@
 ## Author: Shauren
-## Interface: 80205
+## Interface: 80300
 ## Notes: Announces your successful interrupts to party/raid
 ## Title: InterruptAnnouncer
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 斷法喊話

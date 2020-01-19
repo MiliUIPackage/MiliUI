@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: Lib: ItemUpgradeInfo-1.0
 ## Notes: Database of item upgrade IDs
 ## Author: eridius

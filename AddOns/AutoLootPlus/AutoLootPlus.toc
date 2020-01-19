@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: AutoLootPlus
 ## Notes: Improves the speed of Blizzard's auto looting
 ## Title-zhTW: |cFF2DA267[物品]|r 加速自動拾取

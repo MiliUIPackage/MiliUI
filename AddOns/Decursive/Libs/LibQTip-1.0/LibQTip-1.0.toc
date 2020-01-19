@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: Lib: QTip-1.0
 ## Notes: Library providing multi-column tooltips.
 ## Author: Torhal, Adirelle, Elkano, Tristanian

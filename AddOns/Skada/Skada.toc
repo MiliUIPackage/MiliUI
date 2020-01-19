@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: Skada
 ## Notes: Modular damage meter.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥數據統計

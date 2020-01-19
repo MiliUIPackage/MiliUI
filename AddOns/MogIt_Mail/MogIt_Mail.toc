@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Author: Aelobin (The Maelstrom EU) & Lombra (Defias Brotherhood EU)
 ## Version: 3.8.11
 ## SavedVariables: MogIt_MailDB

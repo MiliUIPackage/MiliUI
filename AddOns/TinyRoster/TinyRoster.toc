@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: TinyRoster
 ## Notes: TinyRoster
 ## Title-zhTW: |cFF0099FF[介面]|r 輸入框歷史紀錄

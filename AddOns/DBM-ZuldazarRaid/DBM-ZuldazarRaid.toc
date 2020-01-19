@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## X-Min-Interface: 80100
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Battle of Dazar'alor|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0达萨罗之战|r

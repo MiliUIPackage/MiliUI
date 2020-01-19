@@ -1,4 +1,4 @@
-﻿## Interface: 80205
+﻿## Interface: 80300
 ## Title: Power Auras Classic
 ## Version: 4.30.0
 ## Author: Smacker 'lolcat', Dridzt 'classic', Garstiger 'continued', Sinsthar 'base', Meorawr, modified by Zensunim and Resike

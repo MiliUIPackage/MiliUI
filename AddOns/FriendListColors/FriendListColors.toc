@@ -1,4 +1,4 @@
-## Interface: 80205
+## Interface: 80300
 ## Title: FriendListColors
 ## Notes: Customize how your friends appear in your friends list!
 ## Title-zhTW: |cFF77FF77[社交]|r 彩色好友名單
