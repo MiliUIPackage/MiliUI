@@ -7,6 +7,7 @@ ns.L = {
     ShowItemBorder              = "物品直角边框",
     EnableItemLevel             = "物品等级显示",
     ShowColoredItemLevelString  = "装等文字随物品品质",
+    ShowCorruptedMark           = "腐蚀装备星星标记",
     ShowItemSlotString          = "显示物品部位文字",
     ShowInspectAngularBorder    = "观察面板直角边框",
     ShowInspectColoredLabel     = "观察面板高亮橙装武器标签",
@@ -22,7 +23,7 @@ ns.L = {
     EnableRaidItemLevel         = "开启团队装等",
     EnableMouseItemLevel        = "开启鼠标装等",
     EnableMouseSpecialization   = "显示鼠标天赋",
-    EnableMouseWeaponLevel      = "显示武器等级",
+    EnableMouseWeaponLevel      = "显示项链等级",
     ShowPluginGreenState        = "显示绿字属性前缀 |cffcccc33(重载生效)|r",
     Bag                         = "背包",
     Bank                        = "银行",
@@ -35,6 +36,9 @@ ns.L = {
     PaperDoll                   = "人物面板",
     Chat                        = "聊天",
     Loot                        = "拾取",
+	Other						= "任务/冒险指南",
+	Title						= "装备观察",
+	OptionName					= "装备观察",
 }
 
 BINDING_NAME_InspectRaidFrame = "显示团队观察面板"
