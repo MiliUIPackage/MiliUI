@@ -13,15 +13,18 @@ local yo_OldKey, yo_OldKey2 = nil, nil
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
-	{2,405,410},
-	{3,405,415},
-	{4,410,420},
-	{5,415,420},
-	{6,415,425},
-	{7,420,430},
-	{8,425,430},
-	{9,425,435},
-	{10,430,440},
+	{"2    ",435,440},
+	{"3    ",435,445},
+	{"4    ",440,450},
+	{"5    ",445,450},
+	{"6    ",445,455},
+	{"7    ",450,460},
+	{"8-9  ",455,460},
+	{"10   ",455,465},
+	{"11   ",460,465},
+	{"12-13",460,470},
+	{"14   ",465,470},
+	{"15   ",465,475},
 }
 
 -- Overflowing：1。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地
@@ -392,51 +395,51 @@ local function Blizzard_ChallengesUI( self)
 	title:SetFont( font, fontsize + 3)
 	title:SetTextColor(1, 0.75, 0, 1)
 	title:SetText( L["Schedule"])
-	title:SetPoint("TOP", 0, -4)
+	title:SetPoint("TOP", 0, -2)
 
 	local line = frame:CreateTexture(nil, "ARTWORK")
 	line:SetSize( frame:GetWidth() - 10, 9)
 	line:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line:SetPoint("TOP", 0, -20)
+	line:SetPoint("TOP", 0, -15)
 
 	local Levels = frame:CreateFontString(nil, "ARTWORK") --, "GameFontNormalMed1")
 	Levels:SetFont( font, fontsize + 3)
 	Levels:SetTextColor( 0.5, 0.5, 0.5, 1)
 	--Levels:SetText( "2+      4+      7+      10+")
 	Levels:SetText( "2+    4+    7+")
-	Levels:SetPoint("TOPLEFT", 20, -26)
+	Levels:SetPoint("TOPLEFT", 20, -20)
 
 	local line2 = frame:CreateTexture(nil, "ARTWORK")
 	line2:SetSize( frame:GetWidth() - 10, 9)
 	line2:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line2:SetPoint("TOP", 0, -39)
+	line2:SetPoint("TOP", 0, -32)
 
 	local line3 = frame:CreateTexture(nil, "ARTWORK")
 	line3:SetSize( frame:GetWidth() - 10, 9)
 	line3:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line3:SetPoint("TOP", 0, -(iSize + 7) * rowCount - 50)
+	line3:SetPoint("TOP", 0, -(iSize + 7) * rowCount - 30)
 
 	local title2 = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title2:SetFont( font, fontsize + 3)
 	title2:SetTextColor(1, 0.75, 0, 1)
 	title2:SetText( L["Rewards"])
-	title2:SetPoint("TOP", line3, "BOTTOM", 0, 0)
+	title2:SetPoint("TOP", line3, "BOTTOM", 0, 3)
 
 	local line4 = frame:CreateTexture(nil, "ARTWORK")
 	line4:SetSize( frame:GetWidth() - 10, 9)
 	line4:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line4:SetPoint("TOP", title2, "BOTTOM", 0, 0)
+	line4:SetPoint("TOP", title2, "BOTTOM", 0, 3)
 
 	local outReward = L["|cffffc300Level  Reward   Week Azer|r\n"]
 	for i, v in ipairs( mythicRewards ) do
-		outReward = outReward .. format(L["|cffff0000%5d|r|cff00ffff%10d%10d/|cffff9900%d\n"], v[1], v[2], v[3], v[4])
+		outReward = outReward .. format(L["|cffff0000%5s|r|cff00ffff%10d%10d/|cffff9900%d\n"], v[1], v[2], v[3], v[4])
 	end
 
 	local rewards = frame:CreateFontString(nil, "ARTWORK") --, "GameFontNormalMed1")
 	rewards:SetFont( font, fontsize)
 	rewards:SetText( outReward)
 	rewards:SetJustifyH("LEFT")
-	rewards:SetPoint("TOP", line4, "BOTTOM", 0, 0)
+	rewards:SetPoint("TOP", line4, "BOTTOM", 0, 5)
 
 	local entries = {}
 	for i = 1, rowCount do
@@ -458,7 +461,7 @@ local function Blizzard_ChallengesUI( self)
 		entry.Affixes = affixes
 
 		if i == 1 then
-			entry:SetPoint("TOP", line2, "BOTTOM", 0, -5)
+			entry:SetPoint("TOP", line2, "BOTTOM", 0, 0)
 		else
 			entry:SetPoint("TOP", entries[i-1], "BOTTOM", 0, -5)
 		end
