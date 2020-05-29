@@ -148,6 +148,10 @@ NEEDTOKNOW.ITEM_NAMES =
     NEEDTOKNOW.BARMENU_VCT_COLOR = "Overlay color";
     NEEDTOKNOW.BARMENU_VCT_SPELL = "Choose cast time by spell...";
     NEEDTOKNOW.BARMENU_VCT_EXTRA = "Set additional time...";
+    NEEDTOKNOW.Bar_text_while_blinking = "Bar text while blinking...";
+    NEEDTOKNOW.Bar_color_when_blinking = "Bar color when blinking...";
+    NEEDTOKNOW.Blink_out_of_combat = "Blink out of combat";
+    NEEDTOKNOW.Blink_only_for_bosses = "Blink only for bosses";
     NEEDTOKNOW.CHOOSE_VCT_SPELL_DIALOG = "Enter the name of a spell (in your spellbook) whose cast time will determine the base length of the visual cast time.  If left blank, the aura name will be used as the spell name.  To force this to be 0, type 0.";
     NEEDTOKNOW.CHOOSE_VCT_EXTRA_DIALOG = "Enter an amount of seconds that will be added to the cast time of the spell.  Ex: 1.5";
     NEEDTOKNOW.CHOOSE_BLINK_TITLE_DIALOG = "Enter the text to display on the bar when it is blinking.";
@@ -320,7 +324,7 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.RESIZE_TOOLTIP = "利用點擊和拖曳來修改計時條尺寸";
 
     NEEDTOKNOW.BARMENU_ENABLE = "啟用計時條";
-    NEEDTOKNOW.BARMENU_CHOOSENAME = "選擇需要計時的增益效果/減益效果";
+    NEEDTOKNOW.BARMENU_CHOOSENAME = "輸入需要計時的增益效果/減益效果";
     NEEDTOKNOW.BARMENU_CHOOSESLOT = "選擇裝備欄位...";
     NEEDTOKNOW.BARMENU_CHOOSEPOWER = "選擇能量類型...";
     NEEDTOKNOW.CHOOSENAME_DIALOG = "輸入在這個計時條內計時的增益效果或減益效果的精確名字或是法術ID"
@@ -348,7 +352,7 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.BARMENU_SHOW_COUNT = "顯示層數";
     NEEDTOKNOW.BARMENU_SHOW_TIME = "剩餘時間";
     NEEDTOKNOW.BARMENU_SHOW_SPARK = "閃爍";
-    NEEDTOKNOW.BARMENU_SHOW_MYPIP = "以指標特別標註由我施放的";
+    NEEDTOKNOW.BARMENU_SHOW_MYPIP = "以星號特別標註由我施放的";
     NEEDTOKNOW.BARMENU_SHOW_TEXT_USER = "覆蓋光環名稱...";
     NEEDTOKNOW.BARMENU_SHOW_TTN1 = "第一個技能提示的數字";
     NEEDTOKNOW.BARMENU_SHOW_TTN2 = "第二個技能提示的數字";
@@ -364,7 +368,7 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.UIPANEL_UNLOCK = "解鎖";
     NEEDTOKNOW.UIPANEL_TOOLTIP_ENABLEGROUP = "Show and enable this group of bars";
     NEEDTOKNOW.UIPANEL_TOOLTIP_FIXEDDURATION = "Set the maximum length of bars for this group (in seconds).  Leave empty to set dynamically per bar.";
-    NEEDTOKNOW.UIPANEL_TOOLTIP_BARTEXTURE = "Choose the texture graphic for timer bars";
+    NEEDTOKNOW.UIPANEL_TOOLTIP_BARTEXTURE = "選擇時間條的背景材質";
     NEEDTOKNOW.CMD_RESET = "重置";
 
     NEEDTOKNOW.UIPANEL_CONFIGMODE = "設定模式";
@@ -372,7 +376,7 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.UIPANEL_PLAYMODE = "遊玩模式";
     NEEDTOKNOW.UIPANEL_PLAYMODE_TOOLTIP = "鎖定並啟用時間條，讓時間條變成滑鼠不可點擊的模式。";
 
-    NEEDTOKNOW.UIPANEL_APPEARANCE_SUBTEXT1 = "These options allow you to customize NeedToKnow's timer bars.";
+    NEEDTOKNOW.UIPANEL_APPEARANCE_SUBTEXT1 = "這些選項允許您自訂化 NeedToKnow 的時間條";
     NEEDTOKNOW.UIPANEL_APPEARANCE = "外觀";
     NEEDTOKNOW.UIPANEL_BACKGROUNDCOLOR = "背景顏色";
     NEEDTOKNOW.UIPANEL_BARSPACING = "時間條外距";
@@ -383,23 +387,23 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.UIPANEL_FONT_OUTLINE = "字體框線";
 
 
-    NEEDTOKNOW.UIPANEL_PROFILES_SUBTEXT1 = "These options allow you to manage profiles.  Each profile is a complete NeedToKnow configuration for one talent spec.\nBy default, profiles are per-character (and have character: in front of their name.) Per-character profiles are only available to this character.  Profiles can be switched between per-character and per-account so that the same profile can be used by multiple characters on the same account.";
-    NEEDTOKNOW.UIPANEL_CURRENTPRIMARY = "目前主要個人設置:";
-    NEEDTOKNOW.UIPANEL_CURRENTSECONDARY = "目前次要個人設置:";
-    NEEDTOKNOW.UIPANEL_PROFILE = "個人設置";
-    NEEDTOKNOW.UIPANEL_SWITCHPROFILE_TOOLTIP = "Switch to using the currently selected profile";
-    NEEDTOKNOW.UIPANEL_DELETEPROFILE_TOOLTIP = "Permanently delete the currently selected profile";
-    NEEDTOKNOW.UIPANEL_COPYPROFILE_TOOLTIP   = "Create a new profile based on the currently selected profile";
-    NEEDTOKNOW.UIPANEL_PRIVATEPROFILE_TOOLTIP  = "Make the selected profile accessible only to the current character";
-    NEEDTOKNOW.UIPANEL_PUBLICPROFILE_TOOLTIP  = "Make the selected profile accessible to all the characters on the same account";
-    NEEDTOKNOW.UIPANEL_RENAMEPROFILE_TOOLTIP  = "Change the name of this profile";
+    NEEDTOKNOW.UIPANEL_PROFILES_SUBTEXT1 = "這些選項允許您管理設定檔。NeedToKnow 設定檔對於每一種天賦都是一個獨立且完整的設定。\n預設情況下， 每個角色都有屬於自己專屬的設定檔，每個設定檔僅可用於此角色。設定檔可以在同帳號底下的所有角色間相互切換。";
+    NEEDTOKNOW.UIPANEL_CURRENTPRIMARY = "目前主要個人設定檔:";
+    NEEDTOKNOW.UIPANEL_CURRENTSECONDARY = "目前次要個人設定檔:";
+    NEEDTOKNOW.UIPANEL_PROFILE = "設定檔";
+    NEEDTOKNOW.UIPANEL_SWITCHPROFILE_TOOLTIP = "切換到目前所選擇的設定檔";
+    NEEDTOKNOW.UIPANEL_DELETEPROFILE_TOOLTIP = "永久刪除目前所選擇的設定檔";
+    NEEDTOKNOW.UIPANEL_COPYPROFILE_TOOLTIP   = "根據目前選擇的設定檔來創建一個新的設定檔";
+    NEEDTOKNOW.UIPANEL_PRIVATEPROFILE_TOOLTIP  = "使所選設定檔僅可用於目前角色";
+    NEEDTOKNOW.UIPANEL_PUBLICPROFILE_TOOLTIP  = "使同一帳號底下的所有角色都能使用這個設定檔";
+    NEEDTOKNOW.UIPANEL_RENAMEPROFILE_TOOLTIP  = "更改這個設定檔的名稱";
     NEEDTOKNOW.UIPANEL_PROFILE_SWITCHTO = "切換至";
     NEEDTOKNOW.UIPANEL_PROFILE_DELETE = "刪除";
     NEEDTOKNOW.UIPANEL_PROFILE_DUPLICATE = "複製";
-    NEEDTOKNOW.UIPANEL_PROFILE_NAMELABEL = "新的個人設置名稱:";
+    NEEDTOKNOW.UIPANEL_PROFILE_NAMELABEL = "新的設定檔名稱:";
     NEEDTOKNOW.UIPANEL_PROFILE_RENAME = "重新命名";
-    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPUBLIC = "整個帳號的共同設置";
-    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPRIVATE = "角色個人設置";
+    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPUBLIC = "設定為帳號共同";
+    NEEDTOKNOW.UIPANEL_PROFILE_MAKEPRIVATE = "設定為角色專屬";
 
     NEEDTOKNOW.BARMENU_TOTEM = "圖騰";
     NEEDTOKNOW.BARMENU_CASTCD = "法術冷卻時間";
@@ -408,23 +412,27 @@ elseif ( GetLocale() == "zhTW" ) then
     NEEDTOKNOW.BARMENU_EQUIPSLOT = "裝備欄位";
     NEEDTOKNOW.BARMENU_POWER = "能量 (測試)";
     NEEDTOKNOW.CMD_HIDE = "隱藏";
-    NEEDTOKNOW.CMD_PROFILE = "profile";
+    NEEDTOKNOW.CMD_PROFILE = "設定檔";
     NEEDTOKNOW.CMD_SHOW = "顯示";
     NEEDTOKNOW.BARMENU_TIMEFORMAT = "時間格式"; 
-    NEEDTOKNOW.FMT_SINGLEUNIT = "Single unit (2 m)";
-    NEEDTOKNOW.FMT_TWOUNITS = "Minutes and seconds (01:10)";
-    NEEDTOKNOW.FMT_FLOAT = "Fractional Seconds (70.1)";
-    NEEDTOKNOW.BARMENU_VISUALCASTTIME = "Visual Cast Time";
-    NEEDTOKNOW.BARMENU_VCT_ENABLE = "Enable for this bar";
-    NEEDTOKNOW.BARMENU_VCT_COLOR = "Overlay color";
-    NEEDTOKNOW.BARMENU_VCT_SPELL = "Choose cast time by spell...";
-    NEEDTOKNOW.BARMENU_VCT_EXTRA = "Set additional time...";
+    NEEDTOKNOW.FMT_SINGLEUNIT = "文字 (2分)";
+    NEEDTOKNOW.FMT_TWOUNITS = "分:秒 (01:10)";
+    NEEDTOKNOW.FMT_FLOAT = "秒(小數) (70.1)";
+    NEEDTOKNOW.BARMENU_VISUALCASTTIME = "施法時間視覺化";
+    NEEDTOKNOW.BARMENU_VCT_ENABLE = "啟用";
+    NEEDTOKNOW.BARMENU_VCT_COLOR = "疊加顏色";
+    NEEDTOKNOW.BARMENU_VCT_SPELL = "輸入施法時間";
+    NEEDTOKNOW.BARMENU_VCT_EXTRA = "設定額外時間";
     NEEDTOKNOW.CHOOSE_VCT_SPELL_DIALOG = "Enter the name of a spell (in your spellbook) whose cast time will determine the base length of the visual cast time.  If left blank, the aura name will be used as the spell name.  To force this to be 0, type 0.";
-    NEEDTOKNOW.CHOOSE_VCT_EXTRA_DIALOG = "Enter an amount of seconds that will be added to the cast time of the spell.  Ex: 1.5";
-    NEEDTOKNOW.CHOOSE_BLINK_TITLE_DIALOG = "Enter the text to display on the bar when it is blinking.";
-    NEEDTOKNOW.BUFFCD_DURATION_DIALOG = "Enter the cooldown duration triggered by the buffs watched by this bar.";
-    NEEDTOKNOW.BUFFCD_RESET_DIALOG = "Enter the buff (or buffs) to watch for which reset the cooldown to 0.";
-    NEEDTOKNOW.USABLE_DURATION_DIALOG = "Enter the cooldown duration triggered by the abilities watched by this bar.";
+    NEEDTOKNOW.CHOOSE_VCT_EXTRA_DIALOG = "輸入將增加該法術施放時間的秒數。例如: 1.5";
+    NEEDTOKNOW.Bar_text_while_blinking = "當閃爍時顯示的文字";
+    NEEDTOKNOW.Bar_color_when_blinking = "當閃爍時時間條的顏色";
+    NEEDTOKNOW.Blink_out_of_combat = "戰鬥外閃爍";
+    NEEDTOKNOW.Blink_only_for_bosses = "只有頭目戰閃爍";
+    NEEDTOKNOW.CHOOSE_BLINK_TITLE_DIALOG = "輸入文字使其在閃爍時顯示在時間條上。";
+    NEEDTOKNOW.BUFFCD_DURATION_DIALOG = "輸入此時間條所監控的增益法術觸發的冷卻時間。";
+    NEEDTOKNOW.BUFFCD_RESET_DIALOG = "輸入一個或多個增益法術，以監控其冷卻時間重置完成(冷卻時間為0)。";
+    NEEDTOKNOW.USABLE_DURATION_DIALOG = "輸入此欄所監視的技能觸發的冷卻時間。";
     
 end
 

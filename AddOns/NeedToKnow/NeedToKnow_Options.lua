@@ -850,10 +850,10 @@ NeedToKnowRMB.BarMenu_SubMenus = {
     },
     BlinkSettings = {
         { VariableName = "blink_enabled", MenuText = NEEDTOKNOW.BARMENU_VCT_ENABLE },
-        { VariableName = "blink_label", MenuText = "Bar text while blinking...", Type = "Dialog", DialogText="CHOOSE_BLINK_TITLE_DIALOG" }, 
-        { VariableName = "MissingBlink", MenuText = "Bar color when blinking...", Type = "Color" }, -- LOCME
-        { VariableName = "blink_ooc", MenuText = "Blink out of combat" }, -- LOCME
-        { VariableName = "blink_boss", MenuText = "Blink only for bosses" }, -- LOCME
+        { VariableName = "blink_label", MenuText = NEEDTOKNOW.Bar_text_while_blinking, Type = "Dialog", DialogText="CHOOSE_BLINK_TITLE_DIALOG" }, 
+        { VariableName = "MissingBlink", MenuText = NEEDTOKNOW.Bar_color_when_blinking, Type = "Color" }, -- LOCME
+        { VariableName = "blink_ooc", MenuText = NEEDTOKNOW.Blink_out_of_combat }, -- LOCME
+        { VariableName = "blink_boss", MenuText = NEEDTOKNOW.Blink_only_for_bosses }, -- LOCME
     },
 };
 
@@ -1140,7 +1140,7 @@ function NeedToKnowRMB.BarMenu_UpdateSettings(barSettings)
             arrow:Show();
         end
         -- LOCME
-        lbl = lbl .. NEEDTOKNOW["BARMENU_"..type].. NEEDTOKNOW.SETTINGS;
+        lbl = lbl .. NEEDTOKNOW["BARMENU_"..type]..NEEDTOKNOW.SETTINGS;
         button:SetText(lbl);
     end
 
@@ -1586,8 +1586,8 @@ function NeedToKnow.StartSizing(self, button)
     group.oldScale = group:GetScale();
     group.oldX = group:GetLeft();
     group.oldY = group:GetTop();
-    --    group:ClearAllPoints();
-    --    group:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", group.oldX, group.oldY);
+		group:ClearAllPoints();
+		group:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", group.oldX, group.oldY);
     self.oldCursorX, self.oldCursorY = GetCursorPosition(UIParent);
     self.oldWidth = _G[group:GetName().."Bar1"]:GetWidth();
     self:SetScript("OnUpdate", NeedToKnow.Sizing_OnUpdate);
@@ -1614,7 +1614,7 @@ function NeedToKnow.Sizing_OnUpdate(self)
     -- set new frame coords to keep same on-screen position
     local newX = group.oldX * group.oldScale / newScale;
     local newY = group.oldY * group.oldScale / newScale;
-    group:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", newX, newY);
+    group:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", newX, newY);  -- throws bug re anchors
 
     -- calculate & set new bar width
     local newWidth = max(50, ((cursorX - self.oldCursorX)/uiScale + self.oldWidth * group.oldScale)/newScale);

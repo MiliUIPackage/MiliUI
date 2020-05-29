@@ -1,7 +1,7 @@
 ## Interface: 80300
 ## Title: NeedToKnow
 ## Author: Kitjan, lieandswell
-## Version: 4.0.28
+## Version: 4.0.30
 ## Notes: Timer bars for buffs, debuffs, cooldowns, etc.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 增益、減益監控
 ## Notes-zhTW: NeedToKnow|n以時間條監控 buffs、debuffs、技能冷卻....等。|n|cffffd200使用方法：|r輸入 /ntk 進行設置。
