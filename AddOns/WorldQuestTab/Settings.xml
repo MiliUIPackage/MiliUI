@@ -75,8 +75,9 @@
 		<Frames>
 			<Button parentKey="Preview" inherits="WQT_QuestTemplate" enableMouse="false" hidden="false">
 				<Anchors>
-					<Anchor point="LEFT" x="1"/>
+					<Anchor point="LEFT" x="7"/>
 				</Anchors>
+				<!-- Disable all functionality. It's only a preview -->
 				<Scripts>
 					<OnClick />
 					<OnLoad />
@@ -113,6 +114,21 @@
 					</OnClick>
 				</Scripts>
 			</CheckButton>
+			<Frame parentKey="DisabledOverlay">
+				<HitRectInsets right="-75"/>
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.CheckBox"/>
+					<Anchor point="BOTTOMRIGHT" relativeKey="$parent.CheckBox"/>
+				</Anchors>
+				<Scripts>
+					<OnEnter>
+						self:GetParent():OnEnter(self);
+					</OnEnter>
+					<OnLeave>
+						self:GetParent():OnLeave();
+					</OnLeave>
+				</Scripts>
+			</Frame>
 		</Frames>
 		<Layers>
 			<Layer level="ARTWORK">

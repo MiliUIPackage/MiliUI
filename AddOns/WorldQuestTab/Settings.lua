@@ -19,11 +19,15 @@ function WQT_SettingsBaseMixin:OnLoad()
 end
 
 function WQT_SettingsBaseMixin:OnEnter(anchorFrame, anchorType)
-	if (self.label and self.tooltip) then
+	local tooltipText = not self:IsDisabled() and self.tooltip or self.disabledTooltip;
+	if (tooltipText) then
 		GameTooltip:SetOwner(anchorFrame or self, anchorType or "ANCHOR_RIGHT");
-		GameTooltip:SetText(self.label, 1, 1, 1, true);
-		GameTooltip:AddLine(self.tooltip, nil, nil, nil, true);
+		if (self.label) then
+			GameTooltip:SetText(self.label, 1, 1, 1, true);
+		end
+		GameTooltip:AddLine(tooltipText, nil, nil, nil, true);
 		GameTooltip:Show();
+		
 	end
 end
 
@@ -34,11 +38,22 @@ end
 function WQT_SettingsBaseMixin:Init(data)
 	self.label = data.label;
 	self.tooltip = data.tooltip;
+	self.disabledTooltip = data.disabledTooltip;
 	self.valueChangedFunc = data.valueChangedFunc;
 	self.isDisabled = data.isDisabled;
 	if (self.Label) then
-		self.Label:SetText(data.label);
+		local labelText = data.label;
+		if (data.isNew) then
+			labelText = labelText .. " |TInterface\\OPTIONSFRAME\\UI-OptionsFrame-NewFeatureIcon:12|t";
+		end
+		self.Label:SetText(labelText);
 	end
+	
+	if (self.DisabledOverlay) then
+		self.DisabledOverlay:SetFrameLevel(self:GetFrameLevel() + 2)
+	end
+	
+	self:UpdateState();
 end
 
 function WQT_SettingsBaseMixin:Reset()
@@ -60,7 +75,7 @@ end
 function WQT_SettingsBaseMixin:OnValueChanged(value, userInput)
 	if (userInput and self.valueChangedFunc) then
 		self.valueChangedFunc(value);
-		WQT_SettingsFrame:UpdateList();
+		self:GetParent():GetParent():GetParent():UpdateList();
 	end
 end
 
@@ -71,6 +86,10 @@ end
 function WQT_SettingsBaseMixin:SetDisabled(value)
 	if (self.Label and not self.staticLabelFont) then
 		self.Label:SetFontObject(value and "GameFontDisable" or "GameFontNormal");
+	end
+	
+	if (self.DisabledOverlay) then
+		self.DisabledOverlay:SetShown(value);
 	end
 end
 
@@ -152,8 +171,8 @@ function WQT_SettingsQuestListMixin:UpdateState()
 		timeWidth = timeWidth + zoneWidth;
 		zoneWidth = 0.1;
 	end
-	questFrame.Time:SetWidth(timeWidth)
-	questFrame.Extra:SetWidth(zoneWidth)
+	questFrame.Time:SetWidth(timeWidth);
+	questFrame.Extra:SetWidth(zoneWidth);
 	
 	-- Time display
 	-- 74160s == 20h 36m
@@ -164,6 +183,11 @@ function WQT_SettingsQuestListMixin:UpdateState()
 		timeString = D_HOURS:format(74160 / SECONDS_PER_HOUR);
 	end
 	questFrame.Time:SetText(timeString);
+	if (WQT.settings.list.colorTime) then
+		questFrame.Time:SetVertexColor(0, 0.75, 0);
+	else
+		questFrame.Time:SetVertexColor(_V["WQT_WHITE_FONT_COLOR"]:GetRGB());
+	end
 	
 	-- Reward colors
 	if ( WQT.settings.list.amountColors) then
@@ -256,6 +280,7 @@ function WQT_SettingsSliderMixin:OnValueChanged(value, userInput)
 		self:UpdateState();
 		return; 
 	end
+
 	value = Round(value*100)/100;
 	value = min(self.max, max(self.min, value));
 	if (userInput and value ~= self.current) then
@@ -323,7 +348,8 @@ function WQT_SettingsDropDownMixin:Init(data)
 		end);
 		if (data.getValueFunc) then
 			local id = data.getValueFunc();
-			local label = data.options[id].label;
+			local option = data.options[id]
+			local label = option and option.label or "Invalid value";
 			ADD:SetText(self.DropDown, label);
 		end
 	end
@@ -364,11 +390,8 @@ WQT_SettingsFrameMixin = {};
 function WQT_SettingsFrameMixin:OnLoad()
 	-- Because we can't destroy frames, keep a pool of each type to re-use
 	self.categoryPool = CreateFramePool("BUTTON", self.ScrollFrame.ScrollChild, "WQT_SettingCategoryTemplate");
-	self.checkBoxPool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, "WQT_SettingCheckboxTemplate", function(pool, frame) frame:Reset(); end);
-	self.subTitlePool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, "WQT_SettingSubTitleTemplate", function(pool, frame) frame:Reset(); end);
-	self.sliderPool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, "WQT_SettingSliderTemplate", function(pool, frame) frame:Reset(); end);
-	self.dropDownPool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, "WQT_SettingDropDownTemplate", function(pool, frame) frame:Reset(); end);
-	self.buttonPool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, "WQT_SettingButtonTemplate", function(pool, frame) frame:Reset(); end);
+	
+	self.templatePools = {};
 	
 	self.categoryless = {};
 	self.categories = {};
@@ -377,15 +400,18 @@ function WQT_SettingsFrameMixin:OnLoad()
 	self.bufferedSettings = {};
 end
 
-function WQT_SettingsFrameMixin:LoadWQTSettings()
+function WQT_SettingsFrameMixin:Init(categories, settings)
 	-- Initialize 'official' settings
-	self.WQTLoaded = true;
-	for k, data in ipairs(_V["SETTING_CATEGORIES"]) do
-		self:RegisterCategory(data);
+	self.isInitialized = true;
+	if (categories) then
+		for k, data in ipairs(categories) do
+			self:RegisterCategory(data);
+		end
 	end
-	self:SetCategoryExpanded("GENERAL", true);
-	
-	self:AddSettingList(_V["SETTING_LIST"]);
+
+	if (settings) then
+		self:AddSettingList(settings);
+	end
 
 	-- Add buffered settings from other add-ons
 	self:AddSettingList(self.bufferedSettings);
@@ -421,23 +447,16 @@ function WQT_SettingsFrameMixin:RegisterCategory(data)
 end
 
 function WQT_SettingsFrameMixin:CreateCategory(data)
+	if (type(data) ~= "table") then
+		local temp = {["id"] = data};
+		data = temp;
+	end
+
 	local category = self.categoryPool:Acquire();
 	category.Title:SetText(data.label or data.id)
 	category.id = data.id;
 	category.isExpanded = false;
 	category.settings = {};
-	
-	-- Include a specific preview frame if provided
-	if (data.previewFrame) then
-		local frame = _G[data.previewFrame];
-		if (frame) then
-			frame:SetParent(self.ScrollFrame.ScrollChild);
-			if (frame.UpdateState) then
-				frame:UpdateState();
-			end
-			tinsert(category.settings,frame);
-		end
-	end
 	
 	tinsert(self.categories, category);
 	self.categoriesLookup[data.id] = category;
@@ -460,29 +479,56 @@ function WQT_SettingsFrameMixin:UpdateList()
 	end
 end
 
+function WQT_SettingsFrameMixin:AcquireFrameOfTemplate(template)
+	if not (template) then return; end
+	local pool = self.templatePools[template];
+	if (not pool and DoesTemplateExist(template)) then
+		pool = CreateFramePool("FRAME", self.ScrollFrame.ScrollChild, template, function(pool, frame) frame:Reset(); end);
+		self.templatePools[template] = pool;
+	end
+	
+	if (pool) then
+		return pool:Acquire();
+	end
+end
+
+function WQT_SettingsFrameMixin:GetTemplateFromType(settingType)
+	if (settingType == _V["SETTING_TYPES"].checkBox) then
+		return "WQT_SettingCheckboxTemplate";
+	elseif (settingType == _V["SETTING_TYPES"].subTitle) then
+		return "WQT_SettingSubTitleTemplate";
+	elseif (settingType == _V["SETTING_TYPES"].slider) then
+		return "WQT_SettingSliderTemplate";
+	elseif (settingType == _V["SETTING_TYPES"].dropDown) then
+		return "WQT_SettingDropDownTemplate";
+	elseif (settingType == _V["SETTING_TYPES"].button) then
+		return "WQT_SettingButtonTemplate";
+	end
+end
+
 function WQT_SettingsFrameMixin:AddSetting(data, isFromList)
-	if (not self.WQTLoaded) then
+	if (not self.isInitialized) then
 		tinsert(self.bufferedSettings, data);
 		return;
 	end
 
-	local pool;
-	-- Get the frame pool depending on the type of setting
-	if (data.type == _V["SETTING_TYPES"].checkBox) then
-		pool = self.checkBoxPool;
-	elseif (data.type == _V["SETTING_TYPES"].subTitle) then
-		pool = self.subTitlePool;
-	elseif (data.type == _V["SETTING_TYPES"].slider) then
-		pool = self.sliderPool;
-	elseif (data.type == _V["SETTING_TYPES"].dropDown) then
-		pool = self.dropDownPool;
-	elseif (data.type == _V["SETTING_TYPES"].button) then
-		pool = self.buttonPool;
+	-- Support outdated usage of types
+	local template = data.template;
+	if (data.type) then
+		template = self:GetTemplateFromType(data.type);
+	end
+
+	-- Get a frame of supplied template, or specific frame from _G
+	local frame;
+	if (template) then
+		frame = self:AcquireFrameOfTemplate(template);
+	elseif (data.frameName) then
+		frame = _G[data.frameName];
+		frame:SetParent(self.ScrollFrame.ScrollChild);
 	end
 
 	-- Get a frame from the pool, initialize it, and link it to a category
-	if (pool) then
-		local frame = pool:Acquire();
+	if (frame) then
 		frame:Init(data);
 		local list = self.categoryless;
 		local category = self.categoriesLookup[data.categoryID];

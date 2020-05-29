@@ -6,119 +6,16 @@
 	<Include file="libs\AceAddon-3.0\AceAddon-3.0.xml"/>
 	<Include file="libs\AceDB-3.0\AceDB-3.0.xml"/>
 	<Include file="libs\AddonDropDown-1.0\AddonDropDown-1.0.xml"/>
-
+	
+	
 	<Script file="Locals.lua"/>
 	<Script file="Data.lua"/>
+	<Include file="Templates.xml"/>
 	<Script file="Dataprovider.lua"/>
 	<Script file="WorldQuestTab.lua"/>
 	<Include file="MapPinProvider.xml"/>
 	<Include file="External\External.xml"/>
-	
-	<FontFamily name="WQT_NumberFontOutline" virtual="true">
-		<Member alphabet="roman">
-			<Font font="Fonts\FRIZQT__.TTF" height="9" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="korean">
-			<Font font="Fonts\2002.TTF" height="10" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="12" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="12" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="russian">
-			<Font font="Fonts\FRIZQT___CYR.TTF" height="10" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-	</FontFamily>
-	
-	<FontFamily name="WQT_NumberFontOutlineBig" virtual="true">
-		<Member alphabet="roman">
-			<Font font="Fonts\FRIZQT__.TTF" height="25" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="korean">
-			<Font font="Fonts\2002.TTF" height="27" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="37" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="37" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-		<Member alphabet="russian">
-			<Font font="Fonts\FRIZQT___CYR.TTF" height="25" outline="NORMAL">
-				<Shadow>
-					<Offset>
-						<AbsDimension x="1" y="-1"/>
-					</Offset>
-					<Color r="0" g="0" b="0"/>
-				</Shadow>
-			</Font>
-		</Member>
-	</FontFamily>
+	<Include file="Debug.xml"/>
 	
 	<Button name="WQT_TabTemplate" virtual="true">
 		<Size x="33" y="35"/>
@@ -272,7 +169,7 @@
 			<Frame parentKey="Reward" hidden="true">
 				<Size x="28" y="28" />
 				<Anchors>
-					<Anchor point="RIGHT" x="-5" y="-1"/>
+					<Anchor point="RIGHT" x="-5" y="0"/>
 				</Anchors>
 				<Layers>
 					<Layer level="BACKGROUND">
@@ -388,9 +285,10 @@
 					<Color r="0.75" g="0.61" b="0"/>
 				</FontString>
 				<FontString parentKey="Extra" inherits="GameFontNormalSmall" maxLines="1" justifyH="LEFT">
-					<Size x="80" y="0"/>
+					<!--<Size x="80" y="0"/>-->
 					<Anchors>
 						<Anchor point="TOPLEFT" relativeKey="$parent.Time" relativePoint="TOPRIGHT" x="6"/>
+						<Anchor point="RIGHT" relativeKey="$parent.Reward" relativePoint="LEFT" x="-5"/>
 					</Anchors>
 					<Color r="0.7" g="0.7" b="0.7"/>
 				</FontString>
@@ -417,28 +315,7 @@
 		</Layers>
 	</Frame>
 	
-	<Frame name="WQT_ContainerTemplate" virtual="true">
-		<Size x="296.5" y="518"/>
-		<Backdrop edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-			<EdgeSize>
-				<AbsValue val="12"/>
-			</EdgeSize>
-			<TileSize>
-				<AbsValue val="16"/>
-			</TileSize>
-			<BackgroundInsets>
-				<AbsInset left="0" right="0" top="5" bottom="5"/>
-			</BackgroundInsets>
-		</Backdrop>
-		<Frames>
-			<Frame parentKey="Inset" inherits="ShadowOverlaySmallTemplate">
-				<Anchors>
-					<Anchor point="TOPLEFT" x="4" y="-4"/>
-					<Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
-				</Anchors>
-			</Frame>
-		</Frames>
-	</Frame>
+	
 	
 	<Frame name="WQT_PoISelectTemplate" hidden="true" flattenRenderLayers="true" virtual="true">
 		<Size x="40" y="40"/>
@@ -481,73 +358,6 @@
 			</OnHide>
 		</Scripts>
 	</Frame>
-	
-	<Button name="WQT_ContainerButtonTemplate" virtual="true" >
-		<Size x="36" y="36"/> 
-		<Layers>
-			<Layer level="BACKGROUND">
-				<Texture parentKey="Background" file="Interface/MINIMAP/UI-Minimap-Background" >
-					<Color r="1" g="1" b="1" a="1"/>
-				</Texture>
-			</Layer>
-			<Layer level="ARTWORK" textureSubLevel="-2">
-				<Texture parentKey="Border" atlas="Capacitance-General-PortraitRing">
-					<Anchors>
-						<Anchor point="TOPLEFT" x="-3" y="1"/>
-						<Anchor point="BOTTOMRIGHT" x="4" y="-7"/>
-					</Anchors>
-				</Texture>
-			</Layer>
-			<Layer level="ARTWORK" textureSubLevel="-1">
-				<Texture parentKey="Selected" file="Interface/ENCOUNTERJOURNAL/UI-EncounterJournalTextures" alphaMode="ADD" alpha="0">
-					<Anchors>
-						<Anchor point="TOPLEFT" x="0" y="-0"/>
-						<Anchor point="BOTTOMRIGHT" x="-0" y="0"/>
-					</Anchors>
-					<TexCoords left="0.828125" right="0.921875" top="0.337890625" bottom="0.3857421875"/>
-				</Texture>
-			</Layer>
-		</Layers>
-		<NormalTexture file="Interface/Worldmap/UI-World-Icon">
-			<Anchors>
-				<Anchor point="TOPLEFT" x="4" y="-4"/>
-				<Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
-			</Anchors>
-		</NormalTexture>
-		<PushedTexture file="Interface/Worldmap/UI-World-Icon">
-			<Anchors>
-				<Anchor point="TOPLEFT" x="5" y="-5"/>
-				<Anchor point="BOTTOMRIGHT" x="-3" y="3"/>
-			</Anchors>
-		</PushedTexture>
-		<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD" alpha=".5"/>
-		
-		<Scripts>
-			<OnClick>
-				self.isSelected = not self.isSelected;
-				
-				if (self.container) then
-					if (self.isSelected) then
-						self.container:Show();
-						self.Selected:SetAlpha(0.5);
-						WQT_WorldQuestFrame:SelectTab(WQT_TabWorld);
-					else
-						self.container:Hide();
-						self.Selected:SetAlpha(0);
-						WQT_WorldQuestFrame:SelectTab(WQT_TabNormal);
-					end
-				end
-			</OnClick>
-			<OnEnter>
-				GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-				GameTooltip:SetText(TRACKER_HEADER_WORLD_QUESTS, 1, 1, 1, true);
-				GameTooltip:Show();
-			</OnEnter>	
-			<OnLeave>
-				GameTooltip:Hide();
-			</OnLeave>
-		</Scripts>
-	</Button>
 	
 	<Frame name="WQT_OldTaxiMapContainer" inherits="WQT_ContainerTemplate" hidden="true" parent="TaxiFrame">
 		<Anchors>
@@ -642,8 +452,8 @@
 		<Scripts>
 			<OnLoad>
 				self:SetParent(WorldMapFrame.ScrollContainer);
-				self:SetPoint("BOTTOMLEFT", WorldMapFrame.ScrollContainer, 0, 2000);
-				self:OnLoad("TOPLEFT");
+				self:SetPoint("BOTTOMLEFT", WorldMapFrame.ScrollContainer, 0, 0);
+				self:OnLoad();
 			</OnLoad>
 			<OnShow>
 				WQT_QuestScrollFrame:DisplayQuestList(UpdateBackground);
@@ -676,10 +486,10 @@
 				self:RegisterForDrag("RightButton")
 				self.container = WQT_WorldMapContainer;
 				self:SetParent(WorldMapFrame.ScrollContainer);
-				self:SetPoint("TOPRIGHT", WorldMapFrame.ScrollContainer, -40, -5);
+				self:SetPoint("BOTTOMLEFT", WorldMapFrame.ScrollContainer, 0, 0);
 				
 				self:SetFrameLevel(WorldMapFrame.ScrollContainer:GetFrameLevel()+10);
-				self:OnLoad("TOPRIGHT", -40, -5);
+				self:OnLoad();
 			</OnLoad>
 			<OnClick inherit="prepend">
 				if (InCombatLockdown()) then return end
@@ -722,6 +532,48 @@
 			</Layer>
 		</Layers>
 		<Frames>
+			<Cooldown parentKey="ProgressBar" hideCountdownNumbers="true" reverse="true">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER"/>
+				</Anchors>
+				<SwipeTexture file="Interface\Addons\WorldQuestTab\Images\PoIRing">
+					<Color r="1" g="0.82" b="0" a="0.7"/>
+				</SwipeTexture>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="Background"  file="Interface\Addons\WorldQuestTab\Images\PoIRing" setAllPoints="true">
+							<Anchors>
+								<Anchor point="TOPLEFT"/>
+								<Anchor point="BOTTOMRIGHT"/>
+							</Anchors>
+							<Color r="0" g="0" b="0" a="0.6"/>
+						</Texture>
+					</Layer>
+					<Layer level="OVERLAY">
+							<!-- Edge highlight of the timer. Custom so it can be colored -->
+							<Texture parentKey="Pointer" alpha="1" file="Interface\Addons\WorldQuestTab\Images\PoIRingPointer">
+								<Color r="1" g="0.82" b="0" a="0.7"/>
+							</Texture>
+					</Layer>
+				</Layers>
+				<Animations>
+					<AnimationGroup parentKey="fadeInAnim" looping="NONE" setToFinalAlpha="true">
+						<Alpha parentKey="Alpha" fromAlpha="0" toAlpha="1" duration="0.2" startDelay="0.1"/>
+					</AnimationGroup>
+				</Animations>
+				
+				<Scripts>
+					<OnShow>
+						self.fadeInAnim:Play();
+					</OnShow>
+					<OnHide>
+						self.fadeInAnim:Stop();
+						self:SetAlpha(0);
+					</OnHide>
+				</Scripts>
+			</Cooldown>
+		
 			<Frame parentKey="FilterBar">
 				<Size x="259" y="0.1"/>
 				<Anchors>
@@ -784,7 +636,7 @@
 				<Size x="259" y="462"/>
 				<Anchors>
 					<Anchor point="TOP" relativeKey="$parent.FilterBar" relativePoint="BOTTOM" x="0" y="-2"/>
-					<Anchor point="BOTTOM" relativeTo="WQT_WorldQuestFrame" x="0" y="3"/>
+					<Anchor point="BOTTOM" relativeTo="WQT_WorldQuestFrame" x="0" y="0"/>
 				</Anchors>
 				<Frames>
 					<Slider name="$parentScrollBar" inherits="MinimalHybridScrollBarTemplate" parentKey="scrollBar">
@@ -827,7 +679,7 @@
 							<Layer level="ARTWORK" textureSubLevel="2">
 								<Texture parentKey="BottomDetail" atlas="QuestLog_BottomDetail" useAtlasSize="true">
 									<Anchors>
-										<Anchor point="BOTTOM" x="0" y="-4"/>
+										<Anchor point="BOTTOM" x="0" y="-2"/>
 									</Anchors>
 								</Texture>
 								<Texture parentKey="TopDetail" atlas="QuestLog_TopDetail" useAtlasSize="true">
@@ -1148,27 +1000,8 @@
 		</Frames>
 		<Scripts>
 			<OnLoad>
-				self:SetBackdropBorderColor(TOOLTIP_DEFAULT_COLOR.r, TOOLTIP_DEFAULT_COLOR.g, TOOLTIP_DEFAULT_COLOR.b);
-				self:SetBackdropColor(TOOLTIP_DEFAULT_BACKGROUND_COLOR.r, TOOLTIP_DEFAULT_BACKGROUND_COLOR.g, TOOLTIP_DEFAULT_BACKGROUND_COLOR.b);
 				self.shoppingTooltips = { WQT_CompareTooltip1, WQT_CompareTooltip2 };
 			</OnLoad>
-			<OnUpdate>
-				if ( self.recalculatePadding ) then
-					self.recalculatePadding = nil;
-					GameTooltip_CalculatePadding(self);
-				end
-
-				self.updateTooltip = (self.updateTooltip or TOOLTIP_UPDATE_TIME) - elapsed;
-				if ( self.updateTooltip > 0 ) then
-					return;
-				end
-				self.updateTooltip = TOOLTIP_UPDATE_TIME;
-
-				local owner = self:GetOwner();
-				if ( owner and owner.UpdateTooltip ) then
-					owner:UpdateTooltip();
-				end
-			</OnUpdate>
 		</Scripts>
 	</GameTooltip>
 	
@@ -1332,54 +1165,7 @@
 
 		</Scripts>
 	</Button>
-	
-	<ScrollFrame name="WQT_OverlayScrollFrameTemplate" mixin="WQT_ScrollFrameMixin" virtual="true">
-		<Frames>
-			<Slider parentKey="ScrollBar">	
-				<Size x="4"/>
-				<HitRectInsets left="-5" right="-4" />
-				<Anchors>
-					<Anchor point="TOPLEFT" relativePoint="TOPRIGHT" x="5" y="-27"/>
-					<Anchor point="BOTTOMLEFT" relativePoint="BOTTOMRIGHT" x="5" y="0"/>
-				</Anchors>
-				<Layers>
-					<Layer level="BACKGROUND">
-						<Texture name="$parentTrack" parentKey="trackBG">
-							<Anchors>
-								<Anchor point="TOPLEFT" x="0" y="0"/>
-								<Anchor point="BOTTOMRIGHT" x="0" y="0"/>
-							</Anchors>
-							<Color r="0" g="0" b="0" a="1"/>
-						</Texture>
-					</Layer>
-				</Layers>
-				<ThumbTexture name="$parentThumbTexture" inherits="HybridScrollBarButton" file="Interface\Buttons\UI-ScrollBar-Knob" parentKey="thumbTexture">
-					<Size x="18" y="24"/>
-					<TexCoords left="0.20" right="0.80" top="0.125" bottom="0.875"/>
-				</ThumbTexture>
-				<Scripts>
-					<OnValueChanged>
-						self:GetParent():ScrollValueChanged(value);
-					</OnValueChanged>
-				</Scripts>
-			</Slider>
-		</Frames>
-		
-		<ScrollChild>
-			<Frame parentKey="ScrollChild">
-				<Anchors>
-					<Anchor point="TOPLEFT" x="0" y="0"/>
-					<Anchor point="RIGHT"/>
-				</Anchors>
-			</Frame>
-		</ScrollChild>
-		<Scripts>
-			<OnLoad method="OnLoad"/>
-			<OnShow method="OnShow"/>
-			<OnMouseWheel method="OnMouseWheel"/>
-		</Scripts>
-	</ScrollFrame>
-	
+
 	<ScrollFrame name="WQT_VersionFrame" parent="WQT_OverlayFrame" parentKey="ScrollFrame" hidden="true" inherits="HybridScrollFrameTemplate">
 		<Anchors>
 			<Anchor point="TOPLEFT" x="10" y="-3"/>
@@ -1422,7 +1208,6 @@
 						parent.offset = min(parent.offset, parent.limit);
 						
 						parent.scrollBar:SetValue(parent.offset);
-						
 					</OnMouseWheel>
 				</Scripts>
 			</Slider>
@@ -1454,5 +1239,7 @@
 			</OnMouseWheel>
 		</Scripts>
 	</ScrollFrame>
+	
+	
  </Ui>
  

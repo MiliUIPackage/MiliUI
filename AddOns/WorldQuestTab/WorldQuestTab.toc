@@ -1,10 +1,10 @@
 ﻿## Interface: 80300
 ## Title: World Quest Tab
 ## Notes: Creates a new quest tab to keep track of world quests.
-## Title-zhTW: |cFF00AA99[任務]|r WorldQuestTab
-## Notes-zhTW: 在世界地圖新增世界任務的標籤，並能依據各種條件過濾任務顯示。
+## Title-zhTW: |cFF00AA99[任務]|r 世界任務標籤
+## Notes-zhTW: WorldQuestTab |n在世界地圖新增世界任務的標籤，並能依據各種條件過濾任務顯示。
 ## Author: LanceDH
-## Version: 8.3.01
+## Version: 8.3.03.2
 ## SavedVariables: BWQDB
 
 WorldQuestTab.xml
