@@ -433,7 +433,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       ShowFocusHighlight = true,
       ShowMouseoverHighlight = true,
       ForceHealthbarOnTarget = false,
-      ForceOutOfCombat = true,
+      ForceOutOfCombat = false,
       ForceNonAttackableUnits = true,
       ForceFriendlyInCombat = "NONE",
       --
@@ -1229,7 +1229,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         show = false,
       },
       eliteicon = {
-        show = true,
+        show = false,
         theme = "default",
         scale = 16,
         x = -58, -- old default: 64
@@ -1312,7 +1312,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         x = -69, -- old default: 55
         y = 0,
         anchor = "CENTER",
-        show = true,
+        show = false,
       },
       unique = {
         threatcolor = {
