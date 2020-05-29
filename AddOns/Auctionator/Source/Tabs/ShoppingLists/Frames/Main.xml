@@ -1,0 +1,162 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Frame
+    name="AuctionatorShoppingListTabFrameTemplate"
+    virtual="true"
+    inherits="AuctionatorTabFrameTemplate"
+    parentKey="AuctionatorShoppingListFrame"
+    mixin="AuctionatorShoppingListTabMixin"
+  >
+    <Scripts>
+      <OnLoad method="OnLoad" />
+      <OnShow method="OnShow" />
+      <OnEvent method="OnEvent" />
+    </Scripts>
+
+    <Frames>
+      <Frame parentKey="DataProvider" mixin="ShoppingListDataProviderMixin">
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnUpdate method="OnUpdate" />
+        </Scripts>
+      </Frame>
+
+      <!-- Shopping List Dropdown -->
+      <Frame inherits="UIDropDownMenuTemplate" parentKey="ListDropdown" mixin="AuctionatorShoppingListDropdownMixin">
+        <Anchors>
+          <Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="50" y="55" />
+        </Anchors>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+        </Scripts>
+      </Frame>
+
+      <!-- List Create/Delete Buttons -->
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_CREATE" parentKey="CreateList" mixin="AuctionatorListCreateButtonMixin">
+        <Anchors>
+          <Anchor point="LEFT" relativeKey="$parent.ListDropdown" relativePoint="RIGHT" x="-12" y="2" />
+        </Anchors>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnClick method="OnClick"/>
+        </Scripts>
+      </Button>
+
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_DELETE" mixin="AuctionatorListDeleteButtonMixin" parentKey="DeleteList">
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.CreateList" relativePoint="TOPRIGHT" x="3"/>
+        </Anchors>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnClick method="OnClick"/>
+        </Scripts>
+      </Button>
+
+      <!-- List Rename Button -->
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_RENAME" mixin="AuctionatorListRenameButtonMixin" parentKey="Rename">
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.DeleteList" relativePoint="TOPRIGHT" x="3" />
+        </Anchors>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnClick method="OnClick"/>
+        </Scripts>
+      </Button>
+
+      <!-- Shopping List item scroll frame -->
+      <Frame parentKey="ScrollList" inherits="ScrollListTemplate" mixin="AuctionatorScrollListMixin">
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" y="-3" />
+          <Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="BOTTOMLEFT" x="300" y="35" />
+        </Anchors>
+        <Layers>
+          <Layer level="OVERLAY">
+            <FontString parentKey="ResultsText" inherits="GameFontNormal" hidden="true">
+              <Anchors>
+                <Anchor point="TOP" relativeKey="$parent.LoadingSpinner" relativePoint="CENTER"/>
+                <Anchor point="LEFT" x="45"/>
+                <Anchor point="RIGHT" x="-67"/>
+              </Anchors>
+              <Color color="NORMAL_FONT_COLOR"/>
+              <Shadow>
+                <Offset>
+                  <AbsDimension x="1" y="-1"/>
+                </Offset>
+                <Color r="0" g="0" b="0"/>
+              </Shadow>
+            </FontString>
+            <Texture parentKey="LoadingSpinner" atlas="auctionhouse-ui-loadingspinner" hidden="true">
+              <Size x="146" y="146"/>
+              <Anchors>
+                <Anchor point="CENTER" x="-12" y="-13"/>
+              </Anchors>
+            </Texture>
+          </Layer>
+        </Layers>
+        <Animations>
+          <AnimationGroup parentKey="SpinnerAnim" looping="REPEAT">
+            <Rotation childKey="LoadingSpinner" order="1" duration="1" degrees="-360"/>
+          </AnimationGroup>
+        </Animations>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnShow method="OnShow"/>
+          <OnEvent method="OnEvent"/>
+        </Scripts>
+      </Frame>
+
+      <!-- List Add Item Button -->
+      <!-- This frame creates a background for us to put buttons on below the ListItem scroll frame -->
+      <Frame>
+        <Size x="296" y="55" />
+
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.ScrollList" relativePoint="BOTTOMLEFT" y="20" x="4" />
+        </Anchors>
+
+        <Layers>
+          <Layer level="BACKGROUND" textureSubLevel="-6">
+            <Texture name="$parentBg" file="Interface\FrameGeneral\UI-Background-Rock" horizTile="true" vertTile="true" parentKey="Bg">
+              <Anchors>
+                <Anchor point="TOPLEFT" x="" y="-21"/>
+                <Anchor point="BOTTOMRIGHT" x="-2" y="2"/>
+              </Anchors>
+            </Texture>
+          </Layer>
+        </Layers>
+      </Frame>
+
+      <!-- List Add Item Button -->
+      <Button
+        name="AuctionatorShoppingLists_AddItem"
+        inherits="UIPanelDynamicResizeButtonTemplate"
+        text="AUCTIONATOR_L_ADD_ITEM"
+        parentKey="AddItem"
+      >
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.ScrollList" relativePoint="BOTTOMLEFT" x="4" y="-4" />
+        </Anchors>
+        <Scripts>
+          <OnClick>self:GetParent():AddItemClicked()</OnClick>
+        </Scripts>
+      </Button>
+
+      <!-- List Manual Search Button -->
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_SEARCH" mixin="AuctionatorListSearchButtonMixin" parentKey="ManualSearch">
+        <Anchors>
+          <Anchor point="TOPRIGHT" relativeKey="$parent.ScrollList" relativePoint="BOTTOMRIGHT" x="-25" y="-4"/>
+        </Anchors>
+        <Scripts>
+          <OnLoad method="OnLoad"/>
+          <OnClick method="OnClick"/>
+        </Scripts>
+      </Button>
+
+      <Frame inherits="AuctionatorResultsListingTemplate">
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.ScrollList" relativePoint="TOPRIGHT" y="27" />
+          <Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="BOTTOMRIGHT" />
+        </Anchors>
+      </Frame>
+    </Frames>
+  </Frame>
+</Ui>

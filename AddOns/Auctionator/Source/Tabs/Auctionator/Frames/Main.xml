@@ -1,0 +1,320 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Frame
+    name="AuctionatorConfigurationTabFrameTemplate"
+    virtual="true"
+    inherits="AuctionatorTabFrameTemplate"
+    parentKey="AuctionatorConfigFrame"
+    mixin="AuctionatorConfigTabMixin"
+  >
+    <Frames>
+      <Frame inherits="AuctionatorConfigurationHeadingFrame" parentKey="AuthorHeading">
+        <KeyValues>
+          <KeyValue key="headingText" value="AUCTIONATOR_L_AUTHOR_HEADER" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="RIGHT" relativeKey="$parent" relativePoint="CENTER" x="-150" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationSubHeadingFrame" parentKey="Author">
+        <KeyValues>
+          <KeyValue key="subHeadingText" value="Borj(amacare)" type="string"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.AuthorHeading" relativePoint="BOTTOMLEFT" y="10" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationHeadingFrame" parentKey="ContributorsHeading">
+        <KeyValues>
+          <KeyValue key="headingText" value="AUCTIONATOR_L_CONTRIBUTORS_HEADER" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.AuthorHeading" relativePoint="TOPRIGHT" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationSubHeadingFrame" parentKey="Contributors">
+        <KeyValues>
+          <KeyValue key="subHeadingText" value="plusmouse" type="string"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.ContributorsHeading" relativePoint="BOTTOMLEFT" y="10"/>
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationHeadingFrame" parentKey="EngageHeading">
+        <KeyValues>
+          <KeyValue key="headingText" value="AUCTIONATOR_L_ENGAGE_HEADER" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.Author" relativePoint="BOTTOMLEFT" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationCopyAndPasteFrame" parentKey="DiscordLink">
+        <KeyValues>
+          <KeyValue key="labelText" value="AUCTIONATOR_L_DISCORD" type="global"/>
+          <KeyValue key="copyText" value="https://tinyurl.com/AuctionatorDiscord" type="string"/>
+          <KeyValue key="tooltipTitleText" value="AUCTIONATOR_L_DISCORD_TOOLTIP_HEADER" type="global" />
+          <KeyValue key="tooltipText" value="AUCTIONATOR_L_DISCORD_TOOLTIP_TEXT" type="global" />
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.EngageHeading" relativePoint="BOTTOMLEFT" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationCopyAndPasteFrame" parentKey="BugReportLink">
+        <KeyValues>
+          <KeyValue key="labelText" value="AUCTIONATOR_L_BUG_REPORT" type="global"/>
+          <KeyValue key="copyText" value="https://tinyurl.com/AuctionatorBug" type="string"/>
+          <KeyValue key="tooltipTitleText" value="AUCTIONATOR_L_BUG_TOOLTIP_HEADER" type="global"/>
+          <KeyValue key="tooltipText" value="AUCTIONATOR_L_BUG_TOOLTIP_TEXT" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.DiscordLink" relativePoint="BOTTOMLEFT" y="10" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationCopyAndPasteFrame" parentKey="TechnicalRoadmap">
+        <KeyValues>
+          <KeyValue key="labelText" value="AUCTIONATOR_L_ROADMAP" type="global"/>
+          <KeyValue key="copyText" value="https://tinyurl.com/Auctionator83Release" type="string"/>
+          <KeyValue key="tooltipTitleText" value="AUCTIONATOR_L_ROADMAP" type="global" />
+          <KeyValue key="tooltipText" value="AUCTIONATOR_L_ROADMAP_TOOLTIP_TEXT" type="global" />
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.BugReportLink" relativePoint="BOTTOMLEFT" y="10" />
+        </Anchors>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationHeadingFrame" parentKey="TranslatorsHeading">
+        <KeyValues>
+          <KeyValue key="headingText" value="AUCTIONATOR_L_TRANSLATORS_HEADER" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.TechnicalRoadmap" relativePoint="BOTTOMLEFT" y="15" />
+        </Anchors>
+      </Frame>
+
+      <Frame parentKey="Translators">
+        <Size y="176" />
+
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.TranslatorsHeading" relativePoint="BOTTOMLEFT" y="10" />
+          <Anchor point="RIGHT" relativeKey="$parent" relativePoint="RIGHT" />
+        </Anchors>
+
+        <Layers>
+          <Layer level="ARTWORK">
+            <FontString parentKey="deDE" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_GERMAN">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" x="20" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="flow0284, SunnySunflow">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.deDE" relativePoint="TOPRIGHT" />
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="ptBR" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_BRAZIL_PORTUGUEUSE">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.deDE" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="Dagnet, dalanwoopy">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.ptBR" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="zhCN" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_SIMPLIFIED_CHINESE">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.ptBR" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="LvWind, dalanwoopy">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.zhCN" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="zhTW" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_TRADITIONAL_CHINESE">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.zhCN" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="RainbowUI">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.zhTW" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="esES" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_SPANISH">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.zhTW" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="dalanwoopy, Franxavis">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.esES" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="esMX" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_LATIN_SPANISH">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.esES" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="ftg3, dalanwoopy">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.esMX" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="frFR" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_FRENCH">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.esMX" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="podvibe">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.frFR" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="itIT" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_ITALIAN">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.frFR" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_HELP">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.itIT" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="koKR" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_KOREAN">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.itIT" relativePoint="BOTTOMLEFT" y="-5" />
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_HELP">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.koKR" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+
+          <Layer level="ARTWORK">
+            <FontString parentKey="ruRU" inherits="GameFontHighlight" justifyH="LEFT" text="AUCTIONATOR_L_TRANSLATORS_RUSSIAN">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.koKR" relativePoint="BOTTOMLEFT" y="-5"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+          <Layer level="ARTWORK">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="Hubbotu, Arrogant_Dreamer">
+              <Size x="225"/>
+              <Anchors>
+                <Anchor point="TOPLEFT" relativeKey="$parent.ruRU" relativePoint="TOPRIGHT"/>
+              </Anchors>
+            </FontString>
+          </Layer>
+        </Layers>
+      </Frame>
+
+      <Frame inherits="AuctionatorConfigurationHeadingFrame" parentKey="VersionHeading">
+        <KeyValues>
+          <KeyValue key="headingText" value="AUCTIONATOR_L_VERSION_HEADER" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.Translators" relativePoint="BOTTOMLEFT" />
+        </Anchors>
+      </Frame>
+      <Frame inherits="AuctionatorConfigurationSubHeadingFrame" parentKey="Version">
+        <KeyValues>
+          <KeyValue key="subHeadingText" value="Auctionator.State.CurrentVersion" type="global"/>
+        </KeyValues>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativeKey="$parent.VersionHeading" relativePoint="BOTTOMLEFT" y="10"/>
+        </Anchors>
+      </Frame>
+
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_FULL_SCAN_BUTTON" mixin="AuctionatorScanButtonMixin" parentKey="ScanButton">
+        <Anchors>
+          <Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="TOPRIGHT" y="7" x="-3" />
+        </Anchors>
+        <Scripts>
+          <OnClick method="OnClick"/>
+        </Scripts>
+      </Button>
+
+      <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_OPEN_ADDON_OPTIONS" parentKey="OptionsButton">
+        <Anchors>
+          <Anchor point="TOPRIGHT" relativeKey="$parent.ScanButton" relativePoint="TOPLEFT" x="-3" />
+        </Anchors>
+        <Scripts>
+          <OnClick>
+		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
+		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
+		  </OnClick>
+        </Scripts>
+      </Button>
+    </Frames>
+  </Frame>
+</Ui>

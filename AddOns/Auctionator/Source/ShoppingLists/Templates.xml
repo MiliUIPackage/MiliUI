@@ -1,0 +1,48 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Button name="AuctionatorScrollListLineTemplate" inherits="ScrollListLineTextTemplate" mixin="AuctionatorScrollListLineMixin" virtual="true">
+    <Size x="0" y="20"/>
+
+    <Anchors>
+      <Anchor point="LEFT"/>
+      <Anchor point="RIGHT"/>
+    </Anchors>
+
+    <Layers>
+      <Layer level="BACKGROUND">
+        <FontString parentKey="Text" inherits="WhiteNormalNumberFont" justifyH="LEFT" maxLines="1">
+          <Anchors>
+            <Anchor point="LEFT" x="4" y="0"/>
+            <Anchor point="RIGHT" x="-4" y="0"/>
+          </Anchors>
+        </FontString>
+      </Layer>
+
+      <Layer level="OVERLAY"><!-- Using a normal texture for highlight to control the behavior. -->
+        <Texture parentKey="SelectedHighlight" atlas="auctionhouse-ui-row-select" alphaMode="ADD" hidden="true"/>
+        <Texture parentKey="HighlightTexture" atlas="auctionhouse-ui-row-highlight" alphaMode="ADD" setAllPoints="true" hidden="true"/>
+      </Layer>
+    </Layers>
+
+    <NormalTexture parentKey="NormalTexture" atlas="auctionhouse-rowstripe-1" setAllPoints="true"/>
+
+    <Frames>
+      <Button parentKey="DeleteButton" inherits="UIPanelButtonTemplate">
+        <Size>
+          <AbsDimension x="15" y="15"/>
+        </Size>
+        <Anchors>
+          <Anchor point="TOPRIGHT" x="-10" y="0"/>
+        </Anchors>
+        <Layers>
+          <Layer level="ARTWORK">
+            <Texture file="Interface\Buttons\UI-GroupLoot-Pass-Up" alpha="0.75" parentKey="texture"/>
+          </Layer>
+        </Layers>
+
+        <Scripts>
+          <OnClick>self:GetParent():DeleteItem()</OnClick>
+        </Scripts>
+      </Button>
+    </Frames>
+  </Button>
+</Ui>

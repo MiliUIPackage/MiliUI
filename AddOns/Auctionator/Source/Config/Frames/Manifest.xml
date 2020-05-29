@@ -1,0 +1,12 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/">
+  <Include file="BasicOptions.xml"/>
+  <Include file="Tooltips.xml"/>
+
+  <Include file="LIFO.xml"/>
+  <Include file="NotLIFO.xml"/>
+  <Include file="Advanced.xml"/>
+
+  <Include file="Database.xml"/>
+  <Include file="ClearData.xml"/>
+  <Include file="About.xml"/>
+</Ui>
