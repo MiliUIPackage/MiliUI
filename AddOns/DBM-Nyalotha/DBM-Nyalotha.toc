@@ -1,8 +1,8 @@
 ## Interface: 80300
 ## X-Min-Interface: 80300
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Ny'alotha|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0奈奧羅薩，甦醒之城|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0尼奥罗萨，觉醒之城|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0奈奧羅薩，甦醒之城|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -19,8 +19,8 @@
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 7
 localization.en.lua
-localization.tw.lua
 localization.cn.lua
+localization.tw.lua
 Wrathion.lua
 Maut.lua
 TheProphetSkitra.lua

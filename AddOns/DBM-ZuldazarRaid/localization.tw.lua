@@ -5,41 +5,29 @@ local L
 --  Ra'wani Kanae/Frida Ironbellows (Both) --
 -- Same exact enoucnter, diff names
 ---------------------------
-L= DBM:GetModLocalization(2344)--Ra'wani Kanae (Alliance)
+--L= DBM:GetModLocalization(2344)--Ra'wani Kanae (Alliance)
 
-L= DBM:GetModLocalization(2333)--Frida Ironbellows (Horde)
+--L= DBM:GetModLocalization(2333)--Frida Ironbellows (Horde)
 
 ---------------------------
 --  King Grong/Grong the Revenant (Both) --
 ---------------------------
-L= DBM:GetModLocalization(2325)--King Grong (Horde)
+--L= DBM:GetModLocalization(2325)--King Grong (Horde)
 
-L= DBM:GetModLocalization(2340)--Grong the Revenant (Alliance)
+--L= DBM:GetModLocalization(2340)--Grong the Revenant (Alliance)
 
 ---------------------------
 --  Grimfang and Firecaller/Flamefist and the Illuminated (Both) --
 -- Same exact enoucnter, diff names
 ---------------------------
-L= DBM:GetModLocalization(2323)--Grimfang and Firecaller (Alliance)
+--L= DBM:GetModLocalization(2323)--Grimfang and Firecaller (Alliance)
 
-L= DBM:GetModLocalization(2341)--Flamefist and the Illuminated (Horde)
+--L= DBM:GetModLocalization(2341)--Flamefist and the Illuminated (Horde)
 
 ---------------------------
 --  Opulence (Alliance) --
 ---------------------------
 L= DBM:GetModLocalization(2342)
-
-L:SetWarningLocalization({
-
-})
-
-L:SetTimerLocalization({
-
-})
-
-L:SetOptionLocalization({
-
-})
 
 L:SetMiscLocalization({
 	Bulwark =	"壁壘",
@@ -63,18 +51,18 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2335)
 
 L:SetOptionLocalization({
-	AnnounceAlternatePhase	= "即使你不在對應位面也顯示階段轉換警告 (計時條不受影響)"
+	AnnounceAlternatePhase	= "為你沒進場也顯示換階段警告(計時器會持續顯示無論此選項是否選取)"
 })
 
 ---------------------------
 -- High Tinker Mekkatorgue (Horde) --
 ---------------------------
-L= DBM:GetModLocalization(2332)
+--L= DBM:GetModLocalization(2332)
 
 ---------------------------
 --  Sea Priest Blockade (Horde) --
 ---------------------------
-L= DBM:GetModLocalization(2337)
+--L= DBM:GetModLocalization(2337)
 
 ---------------------------
 --  Jaina Proudmoore (Horde) --
@@ -87,13 +75,13 @@ L:SetOptionLocalization({
 	Three				= "3人輪流",--Default
 	Four				= "4人輪流",
 	Five				= "5人輪流",
-	SetWeather			= "當與首領開戰時自動將天氣密度轉為最低，並在戰鬥結束後恢復。",
+	SetWeather			= "當開戰時自動地把天氣效果降到最低戰鬥結束後還原設定",
 })
 
 L:SetMiscLocalization({
-	Port			=	"左側船艦",
-	Starboard		=	"右側船艦",
-	Freezing		=	"%s秒後凍結"
+	Port			=	"左舷側",
+	Starboard		=	"右舷側",
+	Freezing		=	"凍結在%s"
 })
 
 -------------

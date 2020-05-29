@@ -8,42 +8,27 @@ local L
 ---------------------------
 --  Abyssal Commander Sivara --
 ---------------------------
-L= DBM:GetModLocalization(2352)
+--L= DBM:GetModLocalization(2352)
 
 ---------------------------
 --  Rage of Azshara --
 ---------------------------
-L= DBM:GetModLocalization(2353)
+--L= DBM:GetModLocalization(2353)
 
 ---------------------------
 --  Underwater Monstrosity --
 ---------------------------
-L= DBM:GetModLocalization(2347)
+--L= DBM:GetModLocalization(2347)
 
 ---------------------------
 --  Lady Priscilla Ashvane --
 ---------------------------
-L= DBM:GetModLocalization(2354)
-
-L:SetWarningLocalization({
-
-})
-
-L:SetTimerLocalization({
-
-})
-
-L:SetOptionLocalization({
-
-})
-
-L:SetMiscLocalization({
-})
+--L= DBM:GetModLocalization(2354)
 
 ---------------------------
 --  Orgozoa --
 ---------------------------
-L= DBM:GetModLocalization(2351)
+--L= DBM:GetModLocalization(2351)
 
 ---------------------------
 --  The Queen's Court --
@@ -69,14 +54,9 @@ L:SetMiscLocalization({
 ---------------------------
 L= DBM:GetModLocalization(2361)
 
-L:SetTimerLocalization{
-	timerStageThreeBerserk		= "小怪狂暴"
-}
-
 L:SetOptionLocalization({
 	SortDesc 			= "$spell:298569的資訊框架用最高減益層數排序 (取代最低的)。",
-	ShowTimeNotStacks	= "$spell:298569的資訊框架顯示剩餘時間而非層數。",
-	timerStageThreeBerserk	= "顯示階段3小怪狂暴的計時器"
+	ShowTimeNotStacks	= "$spell:298569的資訊框架顯示剩餘時間而非層數。"
 })
 
 L:SetMiscLocalization({

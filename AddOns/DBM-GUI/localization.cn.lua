@@ -2,12 +2,12 @@
 -- yleaf(yaroot@gmail.com)
 -- sunlcy@NGA
 -- Mini Dragon(projecteurs@gmail.com)
--- Last update: 2019/08/09
+-- Last update: 2020/05/22
 
 if GetLocale() ~= "zhCN" then return end
-if not DBM_GUI_Translations then DBM_GUI_Translations = {} end
+if not DBM_GUI_L then DBM_GUI_L = {} end
 
-local L = DBM_GUI_Translations
+local L = DBM_GUI_L
 
 L.MainFrame 				= "Deadly Boss Mods"
 
@@ -153,7 +153,18 @@ L.BarEndColorUI				= "结束颜色 (自定义)"
 L.Bar7Header				= "自定义计时条选项"
 L.Bar7ForceLarge			= "总是使用大型计时条"
 L.Bar7CustomInline			= "使用自定义 '!' 图标"
-L.Bar7Footer				= "(测试用计时条)"
+--Dropdown Options
+L.CBTGeneric				= "基本"
+L.CBTAdd					= "小怪入场"
+L.CBTAOE					= "AOE"
+L.CBTTargeted				= "点名技能"
+L.CBTInterrupt				= "打断"
+L.CBTRole					= "剧情"
+L.CBTPhase					= "阶段转换"
+L.CBTImportant				= "重要"
+L.CVoiceOne					= "倒计时语音1"
+L.CVoiceTwo					= "倒计时语音2"
+L.CVoiceThree				= "倒计时语音3"
 
 -- Tab: Timers
 L.AreaTitle_BarColors		= "按类型分类着色"
@@ -168,44 +179,46 @@ L.FillUpBars				= "填充计时条"
 L.ClickThrough				= "禁用鼠标点击事件（允许你点击计时条后面的目标）"
 L.Bar_Decimal				= "%d秒以内显示小数点"
 L.Bar_Alpha					= "计时条透明度: %0.1f"
-L.Bar_DBMOnly				= "以下设置只对 \"DBM\" 计时条有效 (两个判断的操作符是或，任一就变大)"
 L.Bar_EnlargeTime			= "在%d秒后计时条变大"
-L.Bar_EnlargePercent		= "在%0.1f%%后计时条变大"
 L.BarSpark					= "计时条闪光"
 L.BarFlash					= "快走完时闪动"
 L.BarSort					= "按剩余时间排序"
 L.BarColorByType			= "按类着色"
+L.NoBarFade					= "使用开始/结束颜色作为长/短计时条颜色，而不是颜色渐变"
 L.BarInlineIcons			= "显示条内图标"
 L.ShortTimerText			= "使用更短的计时条文字 (当可行时)"
+L.StripTimerText			= "分离CD/下一次 计时条"
 L.KeepBar					= "保持计时条显示直到技能被释放"
 L.KeepBar2					= "(当被模组支持时)"
 L.FadeBar					= "隐藏超出技能范围的计时条"
 
 -- Tab: Spec Warn Frame
-L.Panel_SpecWarnFrame		= "特殊警报"
+L.Panel_SpecWarnFrame		= "特殊团队警报"
 L.Area_SpecWarn				= "特殊警报设置"
 L.SpecWarn_ClassColor		= "为特殊警报启用分职业着色"
 L.ShowSWarningsInChat 		= "在聊天窗口中显示特殊警报"
 L.SWarnNameInNote			= "使用自定义注记的特殊警报请选择SW5"
 L.SpecialWarningIcon		= "特殊警报使用技能图标"
-L.SpecWarn_FlashFrame		= "特殊警报时屏幕边缘泛光"
+L.ShortTextSpellname		= "当可用时，使用更短的技能名称"
 L.SpecWarn_FlashFrameRepeat	= "重复 %d 次 (如果开启的话)"
 L.SpecWarn_Font				= "特殊警报字体"
 L.SpecWarn_FontSize			= "字体大小: %d"
 L.SpecWarn_FontColor		= "字体颜色"
 L.SpecWarn_FontType			= "选择字体"
+L.SpecWarn_Flash			= "屏幕泛光"
 L.SpecWarn_FlashRepeat		= "重复泛光"
-L.SpecWarn_FlashColor		= "泛光顏色 (%d)"
+L.SpecWarn_FlashColor		= "泛光颜色 (%d)"
 L.SpecWarn_FlashDur			= "泛光持续时间: %0.1f"
 L.SpecWarn_FlashAlpha		= "泛光透明度: %0.1f"
 L.SpecWarn_DemoButton		= "测试警报"
 L.SpecWarn_MoveMe			= "设置位置"
 L.SpecWarn_ResetMe			= "重置"
-L.SpecialWarnSound			= "针对你的行为发出特殊警报时播放的声音"
-L.SpecialWarnSound2			= "针对所有人发出特殊警报时播放的声音(默认:当心)"
-L.SpecialWarnSound3			= "针对非常重要事件(灭团点)的特殊警报播放的声音(默认:毁灭)"
-L.SpecialWarnSound4			= "特殊警报: 快跑啊 小女孩"
-L.SpecialWarnSound5			= "使用自定义注记特殊警报的声音"
+L.SpecialWarnSoundOption	= "设置默认声音"
+L.SpecialWarnHeader1		= "类型1: 设置影响您或您的操作的普通优先级警告选项"
+L.SpecialWarnHeader2		= "类型2: 设置影响每个人的正常优先级警告选项"
+L.SpecialWarnHeader3		= "类型3: 设置高优先级警告的选项"
+L.SpecialWarnHeader4		= "类型4: 设置“高优先级”选项会避免特殊警告"
+L.SpecialWarnHeader5		= "类型5: 设置警告选项，并包含玩家姓名"
 
 -- Tab: Spoken Alerts Frame
 L.Panel_SpokenAlerts		= "语音警告"
@@ -223,11 +236,11 @@ L.SWFAll					= "当特殊警报使用任何默认声音时"
 L.SpecWarn_AlwaysVoice		= "总是播放所有语音警告(覆盖Boss特定的选项,建议指挥使用)"
 --TODO, maybe add URLS right to GUI panel on where to acquire 3rd party voice packs?
 L.Area_GetVEM				= "获取夏一可语音包(普通话最新)"
-L.VEMDownload				= "|cFF73C2FBhttps://wow.curseforge.com/projects/dbm-voicepack-yike|r"
+L.VEMDownload				= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/dbm-voicepack-yike|r"
 L.Area_BrowseOtherVP		= "获取其他语音包"
-L.BrowseOtherVPs			= "|cFF73C2FBhttps://wow.curseforge.com/search?search=dbm+voice|r"
+L.BrowseOtherVPs			= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/search?search=dbm+voice|r"
 L.Area_BrowseOtherCT		= "获取其他倒计时语音包"
-L.BrowseOtherCTs			= "|cFF73C2FBhttps://wow.curseforge.com/search?search=dbm+count+pack|r"
+L.BrowseOtherCTs			= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/search?search=dbm+count+pack|r"
 
 -- Tab: Event Sounds
 L.Panel_EventSounds			= "事件音效"
@@ -244,8 +257,8 @@ L.EventFilterDungMythicMusic= "不要在M/M+难度下播放副本音乐"
 L.EventFilterMythicMusic	= "不要在M/M+难度下播放战斗音乐"
 
 -- Tab: Global Filter
-L.Panel_SpamFilter			= "DBM全局过滤"
-L.Area_SpamFilter_Outgoing	= "DBM全局过滤设置"
+L.Panel_SpamFilter			= "全局过滤"
+L.Area_SpamFilter_Outgoing	= "全局过滤设置"
 L.SpamBlockNoShowAnnounce	= "不显示警报或播放警报音效"
 L.SpamBlockNoShowTgtAnnounce= "不显示针对目标类型的警报或播放警报音效(上面那个优先级比这个高)"
 L.SpamBlockNoSpecWarn		= "不要显示特殊警报和特殊警报音效"
@@ -279,6 +292,7 @@ L.FilterInterruptsHeader	= "基于行为偏好的打断技能提示过滤"
 L.FilterInterrupts			= "如果被打断对象不是当前目标/焦点(总是)"
 L.FilterInterrupts2			= "如果被打断对象不是当前目标/焦点(总是)或者打断技能正在冷却(限Boss)"
 L.FilterInterrupts3			= "如果被打断对象不是当前目标/焦点(总是)或者打断技能正在冷却(Boss和小怪)"
+L.FilterInterrupts4			= "过滤全部中断警告"
 L.FilterInterruptNoteName	= "当自定义注记内没有包含你的名字的时候，过滤掉打断提示 (带计数)"
 L.FilterDispels				= "当驱散技能在冷却时, 过滤掉驱散提示"
 L.FilterTrashWarnings		= "当进入普通或英雄副本时，过滤掉所有小怪警报"
@@ -329,6 +343,7 @@ L.ShowQueuePop				= "显示随机小队/团队查找器确认计时条"
 L.Area_AutoLogging			= "自动日志记录选项"
 L.AutologBosses				= "自动采用官方格式记录日志。 (使用 /dbm pull 可提前记录并使得记录更准确，如提前偷药水或是召唤大军。)"
 L.AdvancedAutologBosses		= "自动采用 Transcriptor 记录日志"
+L.RecordOnlyBosses			= "只记录Boss日志 (除掉小怪，请使用 '/dbm pull' 来确保完整记录战斗状态前记录)"
 L.LogOnlyNonTrivial			= "只记录团队Boss，而不记录随机团队，5人本，场景战役。"
 --
 L.Area_3rdParty				= "第三方插件选项"
@@ -340,7 +355,6 @@ L.AutoAcceptGuildInvite		= "自动接受同工会成员的组队邀请"
 L.Area_Advanced				= "高级选项"
 L.FakeBW					= "当检查Bigwig时，假装DBM就是Bigwig"
 L.AITimer					= "DBM为没遇见过的战斗使用人工智能自动产生计时器(在初期的Beta或PTR的Boss测试非常有帮助)。此功能不会对多目标技能生效。"
-L.AutoCorrectTimer			= "自动校正时间过长的计时器(适合在公会正在进行全新副本而DBM模块还没被更新至可靠的程度)。这选项可能会使某些计时器错乱，如Boss在阶段转换时重置技能CD而DBM实在无能为力o_O"
 
 L.Panel_Profile				= "配置文件"
 L.Area_CreateProfile        = "创建DBM核心配置"

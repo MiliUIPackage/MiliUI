@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2157, "DBM-Party-BfA", 8, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(131318)
 mod:SetEncounterID(2111)
 mod:SetZone()
@@ -19,10 +19,10 @@ local specWarnSanguineFeast			= mod:NewSpecialWarningDodge(264757, nil, nil, nil
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 
 --TODO: Use NewNextSourceTimer to split adds from boss
-local timerBloodBoltCD				= mod:NewCDTimer(6.1, 260879, nil, nil, nil, 4, nil, DBM_CORE_INTERRUPT_ICON)
+local timerBloodBoltCD				= mod:NewCDTimer(6.1, 260879, nil, nil, nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON)
 local timerCreepingRotCD			= mod:NewNextTimer(15.8, 260894, nil, nil, nil, 3)
-local timerSanguineFeastCD			= mod:NewNextTimer(30, 264757, nil, nil, nil, 3, nil, DBM_CORE_HEROIC_ICON)
-local timerBloodMirrorCD			= mod:NewCDTimer(47.4, 264603, nil, nil, nil, 1, nil, DBM_CORE_DAMAGE_ICON)--47.4-49.8
+local timerSanguineFeastCD			= mod:NewNextTimer(30, 264757, nil, nil, nil, 3, nil, DBM_CORE_L.HEROIC_ICON)
+local timerBloodMirrorCD			= mod:NewCDTimer(47.4, 264603, nil, nil, nil, 1, nil, DBM_CORE_L.DAMAGE_ICON)--47.4-49.8
 
 mod:AddInfoFrameOption(260685, "Healer")
 
@@ -78,25 +78,3 @@ function mod:SPELL_CAST_START(args)
 		timerBloodMirrorCD:Start()
 	end
 end
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
-	if spellId == 228007 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show()
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 124396 then
-
-	end
-end
-
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257939 then
-	end
-end
---]]

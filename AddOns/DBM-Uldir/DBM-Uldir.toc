@@ -1,5 +1,4 @@
 ## Interface: 80300
-## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Uldir|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0奧迪爾|r
 ## Author: MysticalOS

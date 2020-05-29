@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2127, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(131863)
 mod:SetEncounterID(2115)
 mod:SetZone()
@@ -23,7 +23,7 @@ local specWarnTenderize				= mod:NewSpecialWarningDodge(264923, nil, nil, nil, 1
 local specWarnRottenExpulsion		= mod:NewSpecialWarningDodge(264694, nil, nil, nil, 1, 2)
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(264698, nil, nil, nil, 1, 8)
 
---local timerServantCD				= mod:NewNextTimer(13, 264931, nil, nil, nil, 1, nil, DBM_CORE_DAMAGE_ICON)
+--local timerServantCD				= mod:NewNextTimer(13, 264931, nil, nil, nil, 1, nil, DBM_CORE_L.DAMAGE_ICON)
 --local timerTenderizeCD				= mod:NewNextTimer(29.2, 264923, nil, nil, nil, 3)--Timer for first in each set of 3
 local timerRottenExpulsionCD		= mod:NewCDTimer(14.6, 264694, nil, nil, nil, 3)--14.6--26 (health based?)
 
@@ -36,12 +36,6 @@ function mod:OnCombatStart(delay)
 	--timerServantCD:Start(43.7-delay)--Verify not health based
 	timerRottenExpulsionCD:Start(5-delay)
 	--timerTenderizeCD:Start(-delay)--Also 29.2
-end
-
-function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 end
 
 function mod:SPELL_CAST_START(args)
@@ -72,16 +66,6 @@ function mod:SPELL_CAST_START(args)
 	end
 end
 
---[[
-function mod:SPELL_AURA_APPLIED(args)
-	local spellId = args.spellId
-	if spellId == 194966 then
-
-	end
-end
---mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
---]]
-
 function mod:SPELL_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
 	if spellId == 264698 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
 		specWarnGTFO:Show()
@@ -89,18 +73,3 @@ function mod:SPELL_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
 	end
 end
 mod.SPELL_MISSED = mod.SPELL_DAMAGE
-
---[[
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 124396 then
-
-	end
-end
-
---Tenderize Aura-280030-npc:131863 = pull:25.1
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257939 then
-	end
-end
---]]

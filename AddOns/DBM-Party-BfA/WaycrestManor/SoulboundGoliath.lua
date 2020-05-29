@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2126, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(260551)
 mod:SetEncounterID(2114)
 mod:SetZone()
@@ -17,8 +17,6 @@ mod:RegisterEventsInCombat(
 
 --ability.id = 260508 and type = "begincast" or ability.id = 260551 and type = "cast" or ability.id = 260541
 --TODO, review wildfire/burning bush stuff for heroic+ to see if blizzards warning is good enough.
---local warnSwirlingScythe			= mod:NewTargetAnnounce(195254, 2)
-
 local specWarnCrush					= mod:NewSpecialWarningDefensive(260508, "Tank", nil, nil, 1, 2)
 local specWarnThorns				= mod:NewSpecialWarningSwitch(267907, "Dps", nil, nil, 1, 2)
 local yellThorns					= mod:NewYell(267907)
@@ -26,10 +24,8 @@ local specWarnSoulHarvest			= mod:NewSpecialWarningMoveTo(260512, "Tank", nil, n
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 
 --Timers subject to delays if boss gets stunned by fire
-local timerCrushCD					= mod:NewCDTimer(15, 260508, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)--15 after last cast FINISHES
-local timerThornsCD					= mod:NewCDTimer(21.8, 267907, nil, nil, nil, 3, nil, DBM_CORE_DAMAGE_ICON)
-
---mod:AddRangeFrameOption(5, 194966)
+local timerCrushCD					= mod:NewCDTimer(15, 260508, nil, "Tank", nil, 5, nil, DBM_CORE_L.TANK_ICON)--15 after last cast FINISHES
+local timerThornsCD					= mod:NewCDTimer(21.8, 267907, nil, nil, nil, 3, nil, DBM_CORE_L.DAMAGE_ICON)
 
 mod.vb.crushCount = 0
 
@@ -39,12 +35,6 @@ function mod:OnCombatStart(delay)
 	self.vb.crushCount = 0
 	timerCrushCD:Start(5.7-delay)
 	timerThornsCD:Start(8.1-delay)
-end
-
-function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
@@ -58,7 +48,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	end
 end
---mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
@@ -84,25 +73,3 @@ function mod:RAID_BOSS_WHISPER(msg)
 		specWarnSoulHarvest:Play("moveboss")
 	end
 end
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
-	if spellId == 228007 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show()
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 124396 then
-
-	end
-end
-
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257939 then
-	end
-end
---]]

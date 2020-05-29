@@ -1,6 +1,6 @@
-DBM_GUI_Translations = {}
+DBM_GUI_L = {}
 
-local L = DBM_GUI_Translations
+local L = DBM_GUI_L
 
 L.MainFrame = "Deadly Boss Mods"
 
@@ -13,7 +13,8 @@ L.OTabBosses	= "Bosses"
 L.OTabOptions	= GAMEOPTIONS_MENU
 
 L.TabCategory_Options	 	= "General Options"
-L.TabCategory_BFA	 		= EXPANSION_NAME7 or "Battle for Azeroth"
+L.TabCategory_SHADOWLANDS	= EXPANSION_NAME8 or "Shadowlands"
+L.TabCategory_BFA	 		= EXPANSION_NAME7
 L.TabCategory_LEG	 		= EXPANSION_NAME6
 L.TabCategory_WOD	 		= EXPANSION_NAME5
 L.TabCategory_MOP	 		= EXPANSION_NAME4
@@ -63,16 +64,19 @@ L.UseDialogChannel			= "Dialog audio channel."
 L.UseSFXChannel				= "Sound Effects (SFX) audio channel."
 L.Latency_Text				= "Set max latency sync threshold: %d"
 
+L.Button_RangeFrame			= "Show/hide range frame"
+L.Button_InfoFrame			= "Show/hide info frame"
+L.Button_TestBars			= "Start test bars"
+L.Button_ResetInfoRange		= "Reset Info/Range frames"
+
 L.ModelOptions				= "3D Model Viewer Options"
 L.EnableModels				= "Enable 3D models in boss options"
 L.ModelSoundOptions			= "Set sound option for model viewer"
 L.ModelSoundShort			= SHORT
 L.ModelSoundLong			= TOAST_DURATION_LONG
 
-L.Button_RangeFrame			= "Show/hide range frame"
-L.Button_InfoFrame			= "Show/hide info frame"
-L.Button_TestBars			= "Start test bars"
-L.Button_ResetInfoRange		= "Reset Info/Range frames"
+L.ResizeOptions			 	= "Resize Options"
+L.Button_ResetWindowSize	= "Reset GUI window size"
 
 -- Tab: Raidwarning
 L.Tab_RaidWarning 			= "Raid Warnings"
@@ -122,9 +126,9 @@ L.DisableGuildStatus 		= "Disable progression messages from being sent to guild 
 -- Tab: Barsetup
 L.BarSetup					= "Bar Setup"
 L.BarTexture				= "Bar texture"
-L.BarStyle					= "Bar style"
-L.BarDBM					= "DBM (animations)"
-L.BarSimple					= "Simple (no animation)"
+L.BarStyle					= "Bar behavior"
+L.BarDBM					= "Classic (existing small bar slides to Enlarged anchor)"
+L.BarSimple					= "Simple (small bar disappears and new large bar created)"
 L.BarStartColor				= "Start color"
 L.BarEndColor 				= "End color"
 L.Bar_Font					= "Font used for bars"
@@ -153,7 +157,6 @@ L.BarEndColorUI				= "End color (User)"
 L.Bar7Header				= "User Bar Options"
 L.Bar7ForceLarge			= "Always use large bar"
 L.Bar7CustomInline			= "Use custom '!' inline icon"
-L.Bar7Footer				= "(Dummy Bar won't live update)"
 --Dropdown Options
 L.CBTGeneric				= "Generic"
 L.CBTAdd					= "Add"
@@ -169,7 +172,8 @@ L.CVoiceThree				= "Count Voice 3"
 
 -- Tab: Timers
 L.AreaTitle_BarColors		= "Bar Colors by timer type"
-L.AreaTitle_BarSetup		= "General Bar Options"
+L.AreaTitle_BarSetup		= "Bar Appearance Options"
+L.AreaTitle_Behavior		= "Bar Behavior Options"
 L.AreaTitle_BarSetupSmall 	= "Small Bar Options"
 L.AreaTitle_BarSetupHuge	= "Huge Bar Options"
 L.EnableHugeBar 			= "Enable huge bar (aka Bar 2)"
@@ -180,32 +184,33 @@ L.FillUpBars				= "Fill up"
 L.ClickThrough				= "Disable mouse events (click through)"
 L.Bar_Decimal				= "Decimal shows below time: %d"
 L.Bar_Alpha					= "Bar Alpha: %0.1f"
-L.Bar_DBMOnly				= "Below options only work with \"DBM\" bar style."
 L.Bar_EnlargeTime			= "Bar enlarges below time: %d"
-L.Bar_EnlargePercent		= "Bar enlarges below percent: %0.1f%%"
 L.BarSpark					= "Bar spark"
 L.BarFlash					= "Flash bar about to expire"
 L.BarSort					= "Sort by remaining time"
 L.BarColorByType			= "Color by type"
+L.NoBarFade					= "Use Start/End colors as Small/Large colors instead of gradual color change"
 L.BarInlineIcons			= "Show inline icons"
 L.ShortTimerText			= "Use short timer text (when available)"
+L.StripTimerText			= "Strip CD/Next out of timers"
 L.KeepBar					= "Keep timer active until ability cast"
 L.KeepBar2					= "(when supported by mod)"
 L.FadeBar					= "Fade timers for out of range abilities"
 
 -- Tab: Spec Warn Frame
-L.Panel_SpecWarnFrame		= "Special Warnings"
+L.Panel_SpecWarnFrame		= "Special Raid Warnings"
 L.Area_SpecWarn				= "Special Warning Options"
 L.SpecWarn_ClassColor		= "Use class coloring for special warnings"
 L.ShowSWarningsInChat 		= "Show special warnings in chat frame"
 L.SWarnNameInNote			= "Use SW5 options if a custom note contains your name"
 L.SpecialWarningIcon		= "Show icons on special warnings"
-L.SpecWarn_FlashFrame		= "Show screen flash for special warnings"
-L.SpecWarn_FlashFrameRepeat	= "Repeat %d times (if enabled)"
+L.ShortTextSpellname		= "Use shorter spellname text (when available)"
+L.SpecWarn_FlashFrameRepeat	= "Flash %d times(s)"
 L.SpecWarn_Font				= "Font used for special warnings"
 L.SpecWarn_FontSize			= "Font size: %d"
 L.SpecWarn_FontColor		= "Font color"
 L.SpecWarn_FontType			= "Select font"
+L.SpecWarn_Flash			= "Flash screen"
 L.SpecWarn_FlashRepeat		= "Repeat Flash"
 L.SpecWarn_FlashColor		= "Flash color %d"
 L.SpecWarn_FlashDur			= "Flash duration: %0.1f"
@@ -213,11 +218,12 @@ L.SpecWarn_FlashAlpha		= "Flash alpha: %0.1f"
 L.SpecWarn_DemoButton		= "Show example"
 L.SpecWarn_MoveMe			= "Set position"
 L.SpecWarn_ResetMe			= "Reset to defaults"
-L.SpecialWarnSound			= "Set default sound for special warnings affecting you or your actions"
-L.SpecialWarnSound2			= "Set default sound for special warnings affecting everyone"
-L.SpecialWarnSound3			= "Set default sound for VERY important special warnings"
-L.SpecialWarnSound4			= "Set default sound for run away special warnings"
-L.SpecialWarnSound5			= "Set default sound for special warnings with notes containing your name"
+L.SpecialWarnSoundOption	= "Set default sound"
+L.SpecialWarnHeader1		= "Type 1: Set options for normal priority warnings affecting you or your actions"
+L.SpecialWarnHeader2		= "Type 2: Set options for normal priority warnings affecting everyone"
+L.SpecialWarnHeader3		= "Type 3: Set options for HIGH priority warnings"
+L.SpecialWarnHeader4		= "Type 4: Set options for HIGH priority run away special warnings"
+L.SpecialWarnHeader5		= "Type 5: Set options for warnings with notes containing your player name"
 
 -- Tab: Spoken Alerts Frame
 L.Panel_SpokenAlerts		= "Spoken Alerts"
@@ -235,11 +241,11 @@ L.SWFAll					= "when special warnings use any sound"
 L.SpecWarn_AlwaysVoice		= "Always play all spoken alerts (Even if Special Warning disabled. Useful for Raid Leader, not recommended otherwise)"
 --TODO, maybe add URLS right to GUI panel on where to acquire 3rd party voice packs?
 L.Area_GetVEM				= "Get VEM Voice Pack"
-L.VEMDownload				= "|cFF73C2FBhttps://wow.curseforge.com/projects/dbm-voicepack-vem|r"
+L.VEMDownload				= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/dbm-voicepack-vem|r"
 L.Area_BrowseOtherVP		= "Browse other voice packs on curse"
-L.BrowseOtherVPs			= "|cFF73C2FBhttps://wow.curseforge.com/search?search=dbm+voice|r"
+L.BrowseOtherVPs			= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/search?search=dbm+voice|r"
 L.Area_BrowseOtherCT		= "Browse countdown packs on curse"
-L.BrowseOtherCTs			= "|cFF73C2FBhttps://wow.curseforge.com/search?search=dbm+count+pack|r"
+L.BrowseOtherCTs			= "|cFF73C2FBhttps://www.curseforge.com/wow/addons/search?search=dbm+count+pack|r"
 
 -- Tab: Event Sounds
 L.Panel_EventSounds			= "Event Sounds"
@@ -256,8 +262,8 @@ L.EventFilterDungMythicMusic= "Do not play dungeon music on Mythic/Mythic+ diffi
 L.EventFilterMythicMusic	= "Do not play encounter music on Mythic/Mythic+ difficulty"
 
 -- Tab: Global Filter
-L.Panel_SpamFilter			= "DBM Global Disables & Filters"
-L.Area_SpamFilter_Outgoing	= "DBM Global Disable & Filter Options"
+L.Panel_SpamFilter			= "Global Disables & Filters"
+L.Area_SpamFilter_Outgoing	= "Global Disable & Filter Options"
 L.SpamBlockNoShowAnnounce	= "Do not show text or play sound for ANY general announces"
 L.SpamBlockNoShowTgtAnnounce= "Do not show text or play sound for TARGET general announces (above filter overrides this one)"
 L.SpamBlockNoSpecWarn		= "Do not show special warnings or play special warning sounds"
@@ -291,6 +297,7 @@ L.FilterInterruptsHeader	= "Filter warnings for interruptable spells based on be
 L.FilterInterrupts			= "If caster is not current target/focus (Always)."
 L.FilterInterrupts2			= "if caster is not current target/focus (Always) or interrupt on CD (Boss Only)"
 L.FilterInterrupts3			= "if caster is not current target/focus (Always) or interrupt on CD (Boss & Trash)"
+L.FilterInterrupts4			= "Always filter interrupt warnings (you don't want to see them period)"
 L.FilterInterruptNoteName	= "Filter warnings for interruptable spells (with count) if warning does not contain your name in the custom note"
 L.FilterDispels				= "Filter warnings for dispelable spells if your dispel is on cooldown"
 L.FilterTrashWarnings		= "Filter all trash mob warnings in normal &amp; heroic dungeons"
@@ -352,8 +359,7 @@ L.AutoAcceptFriendInvite	= "Automatically accept group invites from friends"
 L.AutoAcceptGuildInvite		= "Automatically accept group invites from guild members"
 L.Area_Advanced				= "Advanced Options"
 L.FakeBW					= "Pretend to be BigWigs in version checks instead of DBM (Useful for guilds that force using BigWigs)"
-L.AITimer					= "Automatically generate timers for never before seen fights using DBM's built in timer AI (Useful for pulling a test boss for the very first time such as beta or PTR). Note: This won't work properly for multiple adds with same ability."
-L.AutoCorrectTimer			= "Automatically correct timers that are too long (Useful for guilds pulling cutting edge content that boss mods aren't updated for yet). Note: This option may also make some timers worse if boss resets timers on phase changes that DBM isn't coded to handle properly yet."
+L.AITimer					= "Automatically generate timers for never before seen fights using DBM's built in timer AI (Useful for pulling a test boss for the very first time such as beta or PTR). Recommended to always leave this turned ON"
 
 L.Panel_Profile				= "Profiles"
 L.Area_CreateProfile		= "Profile Creation for DBM Core Options"

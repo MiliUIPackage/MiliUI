@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2140, "DBM-Party-BfA", 5, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(120553)
 mod:SetEncounterID(2100)
 mod:SetZone()
@@ -14,7 +14,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_SUCCESS 274991",
 	"UNIT_DIED",
 	"INSTANCE_ENCOUNTER_ENGAGE_UNIT",
-	"UNIT_SPELLCAST_SUCCEEDED boss1"
+	"UNIT_SPELLCAST_SUCCEEDED boss1 boss2 boss3 boss4 boss5"
 )
 
 local warnPutridWaters				= mod:NewTargetAnnounce(275014, 2)
@@ -24,12 +24,11 @@ local yellCrushingEmbrace			= mod:NewYell(270624)
 local specWarnPutridWaters			= mod:NewSpecialWarningMoveAway(275014, nil, nil, nil, 1, 2)
 local yellPutridWaters				= mod:NewYell(275014)
 local specWarnSlam					= mod:NewSpecialWarningDodge(269266, "Tank", nil, 2, 2, 2)
---local specWarnGTFO				= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 
 --local timerCalloftheDeepCD			= mod:NewAITimer(13, 270185, nil, nil, nil, 3)--6.4, 15.1, 19.0, 11.9, 12.1, 12.3, 15.6, 12.1, 12.9, 7.0, 8.6, 7.5, 7.2, 7.4, 7.0, 7.0, 7.3, 7.2
-local timerPutridWatersCD			= mod:NewCDTimer(19.9, 275014, nil, nil, nil, 5, nil, DBM_CORE_MAGIC_ICON)
-local timerSlamCD					= mod:NewCDTimer(7.3, 269266, nil, "Tank", nil, 5, nil, DBM_CORE_TANK_ICON)
-local timerDemolisherTerrorCD		= mod:NewCDTimer(20, 270605, nil, nil, nil, 1, nil, DBM_CORE_TANK_ICON..DBM_CORE_DAMAGE_ICON)
+local timerPutridWatersCD			= mod:NewCDTimer(19.9, 275014, nil, nil, nil, 5, nil, DBM_CORE_L.MAGIC_ICON)
+local timerSlamCD					= mod:NewCDTimer(7.3, 269266, nil, "Tank", nil, 5, nil, DBM_CORE_L.TANK_ICON)
+local timerDemolisherTerrorCD		= mod:NewCDTimer(20, 270605, nil, nil, nil, 1, nil, DBM_CORE_L.TANK_ICON..DBM_CORE_L.DAMAGE_ICON)
 
 mod:AddRangeFrameOption(5, 275014)
 
@@ -89,16 +88,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerPutridWatersCD:Start()
 	end
 end
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
-	if spellId == 228007 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show()
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]
 
 function mod:UNIT_DIED(args)
 	local cid = self:GetCIDFromGUID(args.destGUID)

@@ -1,8 +1,7 @@
-if not WorldMap_EventOverlayDataProviderMixin then return end--Random 8.3 api check
 local mod	= DBM:NewMod(2378, "DBM-Azeroth-BfA", 6, 1028)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200113013939")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(154638)
 mod:SetEncounterID(2351)
 mod:SetReCombatTime(20)
@@ -21,9 +20,9 @@ local specWarnSongoftheEmpress			= mod:NewSpecialWarningDodge(314304, nil, nil, 
 local specWarnForceandVerve				= mod:NewSpecialWarningMoveTo(314333, nil, nil, nil, 3, 2)
 local specWarnSummonSwarmguard			= mod:NewSpecialWarningSwitch(314307, "-Healer", nil, nil, 1, 2)
 
-local timerSongoftheEmpressCD			= mod:NewAITimer(46.2, 314304, nil, nil, nil, 3)
-local timerForceandVerveCD				= mod:NewAITimer(46.2, 314333, nil, nil, nil, 2, nil, DBM_CORE_DEADLY_ICON)
-local timerSummonSwarmguardCD			= mod:NewAITimer(46.2, 314307, nil, nil, nil, 1, nil, DBM_CORE_TANK_ICON..DBM_CORE_DAMAGE_ICON)
+local timerSongoftheEmpressCD			= mod:NewCDTimer(82.0, 314304, nil, nil, nil, 3)
+local timerForceandVerveCD				= mod:NewCDTimer(82.0, 314333, nil, nil, 2, 2, nil, DBM_CORE_L.DEADLY_ICON, nil, 1, 5)
+local timerSummonSwarmguardCD			= mod:NewCDTimer(30.5, 314307, nil, nil, nil, 1, nil, DBM_CORE_L.TANK_ICON..DBM_CORE_L.DAMAGE_ICON)
 
 local BarrierName = DBM:GetSpellInfo(314323)
 

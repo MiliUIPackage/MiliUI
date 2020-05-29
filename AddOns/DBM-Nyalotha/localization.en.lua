@@ -3,37 +3,30 @@ local L
 ---------------------------
 --  Wrathion, the Black Emperor --
 ---------------------------
-L= DBM:GetModLocalization(2368)
-
-L:SetWarningLocalization({
-
-})
-
-L:SetTimerLocalization({
-
-})
-
-L:SetOptionLocalization({
-
-})
-
-L:SetMiscLocalization({
-})
+--L= DBM:GetModLocalization(2368)
 
 ---------------------------
 --  Maut --
 ---------------------------
-L= DBM:GetModLocalization(2365)
+--L= DBM:GetModLocalization(2365)
 
 ---------------------------
 --  The Prophet Skitra --
 ---------------------------
-L= DBM:GetModLocalization(2369)
+--L= DBM:GetModLocalization(2369)
 
 ---------------------------
 --  Dark Inquisitor Xanesh --
 ---------------------------
 L= DBM:GetModLocalization(2377)
+
+L:SetOptionLocalization({
+	InterruptBehavior	= "Set Terror Wave interrupt behavior (Will override everyone elses setting if you are raid leader)",
+	Four				= "4 person rotation ",--Default
+	Five				= "5 person rotation ",
+	Six					= "6 person rotation ",
+	NoReset				= "endless increment "
+})
 
 L:SetMiscLocalization({
 	ObeliskSpawn	= "Obelisks of shadow, rise!"--Only as backup, in case the NPC target check stops working
@@ -52,22 +45,26 @@ L:SetMiscLocalization({
 ---------------------------
 --  Shad'har the Insatiable --
 ---------------------------
-L= DBM:GetModLocalization(2367)
+--L= DBM:GetModLocalization(2367)
 
 ---------------------------
 -- Drest'agath --
 ---------------------------
-L= DBM:GetModLocalization(2373)
+--L= DBM:GetModLocalization(2373)
 
 ---------------------------
 --  Vexiona --
 ---------------------------
-L= DBM:GetModLocalization(2370)
+--L= DBM:GetModLocalization(2370)
 
 ---------------------------
 --  Ra-den the Despoiled --
 ---------------------------
 L= DBM:GetModLocalization(2364)
+
+L:SetOptionLocalization({
+	OnlyParentBondMoves		= "Only show special warning for Charged Bonds if you are the parent point"
+})
 
 L:SetMiscLocalization({
 	Furthest	= "Furthest Target",
@@ -91,17 +88,25 @@ L:SetOptionLocalization({
 ---------------------------
 --  Carapace of N'Zoth --
 ---------------------------
-L= DBM:GetModLocalization(2366)
+--L= DBM:GetModLocalization(2366)
 
 ---------------------------
 --  N'Zoth, the Corruptor --
 ---------------------------
 L= DBM:GetModLocalization(2375)
 
+L:SetOptionLocalization({
+	InterruptBehavior	= "Set Mind Wrack interrupt behavior (Will override everyone elses setting if you are raid leader)",
+	Four				= "4 person rotation ",
+	Five				= "5 person rotation ",--Default
+	Six					= "6 person rotation ",
+	NoReset				= "endless increment ",
+	ArrowOnGlare		= "Show left/right arrow for direction of $spell:317874"
+})
+
 L:SetMiscLocalization({
 	ExitMind		= "Exit Mind",
-	Away			= "Away",
-	Toward			= "Toward"
+	Gate			= "Gate"
 })
 
 -------------

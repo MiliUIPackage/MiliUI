@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2339, "DBM-Party-BfA", 11, 1178)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(144246)
 mod:SetEncounterID(2258)
 mod:SetZone()
@@ -12,8 +12,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 291946 291973",
 	"SPELL_CAST_SUCCESS 291918 294929",
 	"SPELL_AURA_APPLIED 291972 294929",
-	"SPELL_AURA_APPLIED_DOSE 294929",
-	"SPELL_AURA_REMOVED 291946"
+	"SPELL_AURA_APPLIED_DOSE 294929"
 )
 
 --[[
@@ -32,11 +31,10 @@ local specWarnVentingFlames			= mod:NewSpecialWarningMoveTo(291946, nil, nil, ni
 
 local timerAurDropCD				= mod:NewNextTimer(34, 291930, nil, nil, nil, 3)
 local timerExplosiveLeapCD			= mod:NewCDTimer(33.4, 291972, nil, nil, nil, 3)
-local timerVentingFlamesCD			= mod:NewCDTimer(13.4, 291946, nil, nil, nil, 2, nil, DBM_CORE_DEADLY_ICON)
-local timerBlazingChompCD			= mod:NewCDTimer(15.8, 294929, nil, "Tank|Healer", nil, 5, nil, DBM_CORE_TANK_ICON)
+local timerVentingFlamesCD			= mod:NewCDTimer(13.4, 291946, nil, nil, nil, 2, nil, DBM_CORE_L.DEADLY_ICON)
+local timerBlazingChompCD			= mod:NewCDTimer(15.8, 294929, nil, "Tank|Healer", nil, 5, nil, DBM_CORE_L.TANK_ICON)
 
 mod:AddRangeFrameOption(10, 291972)
-mod:AddInfoFrameOption(291937, true)
 
 mod.vb.airDropCount = 0
 
@@ -60,14 +58,10 @@ end
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 291946 then
-		specWarnVentingFlames:Show(DBM_CORE_BREAK_LOS)
+		specWarnVentingFlames:Show(DBM_CORE_L.BREAK_LOS)
 		specWarnVentingFlames:Play("findshelter")
 		--15.5, 33.9, 34.0, 34.0"
 		timerVentingFlamesCD:Start()
-		if self.Options.InfoFrame then
-			DBM.InfoFrame:SetHeader(DBM_CORE_NOTSAFE)
-			DBM.InfoFrame:Show(5, "playergooddebuff", 291937)
-		end
 	elseif spellId == 291973 then
 		--38.6, 33.9, 34.0, 33.4
 		timerExplosiveLeapCD:Start()
@@ -105,32 +99,3 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
-
-function mod:SPELL_AURA_REMOVED(args)
-	local spellId = args.spellId
-	if spellId == 291946 and self.Options.InfoFrame then
-		DBM.InfoFrame:Hide()
-	end
-end
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId)
-	if spellId == 228007 and destGUID == UnitGUID("player") and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show()
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 124396 then
-
-	end
-end
-
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257939 then
-	end
-end
---]]

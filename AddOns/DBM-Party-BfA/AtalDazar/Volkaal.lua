@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2036, "DBM-Party-BfA", 1, 968)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20191024200504")
+mod:SetRevision("20200524143937")
 mod:SetCreatureID(122965)
 mod:SetEncounterID(2085)
 mod:SetZone()
@@ -28,7 +28,7 @@ local specWarnNoxiousStench			= mod:NewSpecialWarningInterrupt(250368, "HasInter
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(250585, nil, nil, nil, 1, 8)
 
 local timerLeapCD					= mod:NewCDTimer(6, 250258, nil, nil, nil, 3)--6 uness delayed by stentch, then 8
-local timerNoxiousStenchCD			= mod:NewCDTimer(18.2, 250368, nil, nil, nil, 4, nil, DBM_CORE_INTERRUPT_ICON..DBM_CORE_DISEASE_ICON)
+local timerNoxiousStenchCD			= mod:NewCDTimer(18.2, 250368, nil, nil, nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON..DBM_CORE_L.DISEASE_ICON)
 
 mod.vb.totemRemaining = 3
 mod.vb.phase = 1
@@ -50,7 +50,7 @@ end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
-	if spellId == 195254 then
+	if spellId == 250258 then
 		specWarnLeap:Show()
 		specWarnLeap:Play("watchstep")
 		timerLeapCD:Start()
@@ -98,10 +98,3 @@ function mod:UNIT_DIED(args)
 		end
 	end
 end
-
---[[
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257939 then
-	end
-end
---]]
