@@ -34,7 +34,7 @@ end
 
 local function AnchorDefaultPosition(tip, parent, anchor, finally)
     if (finally) then
-        LibEvent:trigger("tooltip.anchor.static", tip, parent, anchor.x, anchor.y)
+        LibEvent:trigger("tooltip.anchor.static", tip, parent, anchor.x, anchor.y, anchor.p)
     elseif (anchor.position == "inherit") then
         AnchorDefaultPosition(tip, parent, addon.db.general.anchor, true)
     else
