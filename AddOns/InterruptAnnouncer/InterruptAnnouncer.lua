@@ -3,7 +3,6 @@ local GetNumRaidMembers = GetNumRaidMembers;
 local GetNumPartyMembers = GetNumPartyMembers;
 local IsInInstance = IsInInstance;
 local InstanceType = "none"
-local CTL = _G.ChatThrottleLib;
 local RaidIconMaskToIndex =
 {
 	[COMBATLOG_OBJECT_RAIDTARGET1] = 1,
@@ -50,20 +49,14 @@ interr:SetScript("OnEvent", function(self, event, ...)
             end
 
             if (GetNumGroupMembers() > 0) then
-                local msgType = "SAY";
-                if (InstanceType == "pvp") then
-                    msgType = "SAY";
-                elseif ((IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) and (InstanceType == "party" or InstanceType == "raid" or InstanceType == "scenario")) then -- Dungeon/Raid Finder
-                    msgType = "SAY";
+                local msgType = "PARTY";
+                if ((IsInGroup(LE_PARTY_CATEGORY_INSTANCE) or IsInRaid(LE_PARTY_CATEGORY_INSTANCE)) and (InstanceType == "party" or InstanceType == "raid" or InstanceType == "pvp" or InstanceType == "scenario")) then -- Dungeon/Raid Finder/Battleground
+                    msgType = "INSTANCE_CHAT";
                 elseif (IsInRaid(LE_PARTY_CATEGORY_HOME)) then
-                    msgType = "SAY";
+                    msgType = "RAID";
                 end
 
-                if (CTL) then
-                    CTL:SendChatMessage("ALERT", "IA", msg, msgType);
-                else
-                    SendChatMessage(msg, msgType); -- should NEVER happen
-                end
+                SendChatMessage(msg, msgType); -- should NEVER happen
             else
                 DEFAULT_CHAT_FRAME:AddMessage(msg);
             end

@@ -5,5 +5,4 @@
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 斷法喊話
 ## Notes-zhTW: InterruptAnnouncer |n成功斷法之後會在頻道自動發佈訊息。
 ## Version: 1.0
-libs\ChatThrottleLib\ChatThrottleLib.xml
 InterruptAnnouncer.lua
