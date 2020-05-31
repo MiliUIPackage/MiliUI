@@ -1229,8 +1229,8 @@ ThreatPlates.DEFAULT_SETTINGS = {
         show = false,
       },
       eliteicon = {
-        show = false,
-        theme = "default",
+        show = true,
+        theme = "skullandcross",
         scale = 16,
         x = -58, -- old default: 64
         y = 1, -- old default: 9
