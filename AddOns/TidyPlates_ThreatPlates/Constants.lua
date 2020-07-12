@@ -397,7 +397,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       FriendlyUnits = "NONE",
       EnemyUnits = "NONE",
       SmallPlatesInInstances = false,
-      HideFriendlyUnitsInInstances = true,
+      HideFriendlyUnitsInInstances = false,
     },
     Scale = {
       IgnoreUIScale = true,
@@ -1230,7 +1230,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       },
       eliteicon = {
         show = true,
-        theme = "skullandcross",
+        theme = "default",
         scale = 16,
         x = -58, -- old default: 64
         y = 1, -- old default: 9
