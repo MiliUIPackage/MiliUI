@@ -1,6 +1,9 @@
-local Type, Version = "WeakAurasTextureButton", 22
+if not WeakAuras.IsCorrectVersion() then return end
+
+local Type, Version = "WeakAurasTextureButton", 23
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
+local GetAtlasInfo = WeakAuras.IsClassic() and GetAtlasInfo or C_Texture.GetAtlasInfo
 
 local function Hide_Tooltip()
   GameTooltip:Hide();

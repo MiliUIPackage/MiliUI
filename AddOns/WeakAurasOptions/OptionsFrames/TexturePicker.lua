@@ -1,3 +1,5 @@
+if not WeakAuras.IsCorrectVersion() then return end
+
 -- Lua APIs
 local wipe = wipe
 local pairs, next, type = pairs, next, type
@@ -106,7 +108,7 @@ local function ConstructTexturePicker(frame)
     if(type(self.data.id) == "string") then
       WeakAuras.Add(self.data);
       WeakAuras.SetIconNames(self.data);
-      WeakAuras.SetThumbnail(self.data);
+      WeakAuras.UpdateThumbnail(self.data);
     end
     group:UpdateList();
     local status = dropdown.status or dropdown.localstatus
@@ -153,13 +155,11 @@ local function ConstructTexturePicker(frame)
         blendMode = data.blendMode or "ADD"
       };
     end
-    frame.container.frame:Hide();
-    frame.buttonsContainer.frame:Hide();
-    self.frame:Show();
     frame.window = "texture";
+    frame:UpdateFrameVisible()
     local picked = false;
     local _, givenPath
-    if(type(self.givenPath) == "string") then
+    if type(self.givenPath) == "string" then
       givenPath = self.givenPath;
     else
       _, givenPath = next(self.givenPath);
@@ -186,10 +186,8 @@ local function ConstructTexturePicker(frame)
   end
 
   function group.Close()
-    group.frame:Hide();
-    frame.buttonsContainer.frame:Show();
-    frame.container.frame:Show();
     frame.window = "default";
+    frame:UpdateFrameVisible()
     AceConfigDialog:Open("WeakAuras", frame.container);
   end
 
@@ -200,7 +198,7 @@ local function ConstructTexturePicker(frame)
         if(childData) then
           childData[group.field] = group.givenPath[childId];
           WeakAuras.Add(childData);
-          WeakAuras.SetThumbnail(childData);
+          WeakAuras.UpdateThumbnail(childData);
           WeakAuras.SetIconNames(childData);
         end
       end

@@ -1,3 +1,5 @@
+if not WeakAuras.IsCorrectVersion() then return end
+
 -- Lua APIs
 local pairs = pairs
 
@@ -25,7 +27,7 @@ local colorScheme = {
   [IndentationLib.tokens.TOKEN_COMMENT_LONG] = "|c0000aa00",
   [IndentationLib.tokens.TOKEN_NUMBER] = "|c00ff9900",
   [IndentationLib.tokens.TOKEN_STRING] = "|c00999999",
-  -- ellipsis, curly braces, table acces
+  -- ellipsis, curly braces, table access
   ["..."] = tableColor,
   ["{"] = tableColor,
   ["}"] = tableColor,
@@ -100,25 +102,16 @@ local function ConstructCodeReview(frame)
     end
 
     self.data = data;
-
     self.codeTree:SetTree(data);
-    self.codebox.frame:Show();
 
     WeakAuras.ShowOptions();
-
-    frame.importexport.frame:Hide();
-    frame.container.frame:Hide();
-    frame.buttonsContainer.frame:Hide();
-    self.frame:Show();
     frame.window = "codereview";
+    frame:UpdateFrameVisible()
   end
 
   function group.Close()
-    group.frame:Hide();
-    codebox.frame:Hide();
-    frame.container.frame:Show();
-    frame.buttonsContainer.frame:Show();
     frame.window = "default";
+    frame:UpdateFrameVisible()
   end
 
   return group

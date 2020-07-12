@@ -1,3 +1,5 @@
+if not WeakAuras.IsCorrectVersion() then return end
+
 -- Lua APIs
 local tinsert, wipe = table.insert, wipe
 local pairs = pairs
@@ -7,7 +9,6 @@ local AceGUI = LibStub("AceGUI-3.0")
 local collisions = WeakAuras.collisions
 local displayButtons = WeakAuras.displayButtons
 local savedVars = WeakAuras.savedVars
-local thumbnails = WeakAuras.thumbnails
 
 local importAddonButtons = {}
 local importDisplayButtons = {}
@@ -320,8 +321,6 @@ function WeakAuras.DisableAddonDisplay(id)
     WeakAuras.Delete(data);
     WeakAuras.SyncParentChildRelationships(true);
     frame.buttonsScroll:DeleteChild(displayButtons[id]);
-    thumbnails[id].region:Hide();
-    thumbnails[id] = nil;
     displayButtons[id] = nil;
 
     if(parentData and parentData.controlledChildren) then

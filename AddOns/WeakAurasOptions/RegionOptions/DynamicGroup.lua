@@ -1,142 +1,344 @@
+if not WeakAuras.IsCorrectVersion() then return end
+
 local L = WeakAuras.L
+
+local selfPoints = {
+  default = "CENTER",
+  RIGHT = function(data)
+    if data.align  == "LEFT" then
+      return "TOPLEFT"
+    elseif data.align == "RIGHT" then
+      return "BOTTOMLEFT"
+    else
+      return "LEFT"
+    end
+  end,
+  LEFT = function(data)
+    if data.align  == "LEFT" then
+      return "TOPRIGHT"
+    elseif data.align == "RIGHT" then
+      return "BOTTOMRIGHT"
+    else
+      return "RIGHT"
+    end
+  end,
+  UP = function(data)
+    if data.align == "LEFT" then
+      return "BOTTOMLEFT"
+    elseif data.align == "RIGHT" then
+      return "BOTTOMRIGHT"
+    else
+      return "BOTTOM"
+    end
+  end,
+  DOWN = function(data)
+    if data.align == "LEFT" then
+      return "TOPLEFT"
+    elseif data.align == "RIGHT" then
+      return "TOPRIGHT"
+    else
+      return "TOP"
+    end
+  end,
+  HORIZONTAL = function(data)
+    if data.align == "LEFT" then
+      return "TOP"
+    elseif data.align == "RIGHT" then
+      return "BOTTOM"
+    else
+      return "CENTER"
+    end
+  end,
+  VERTICAL = function(data)
+    if data.align == "LEFT" then
+      return "LEFT"
+    elseif data.align == "RIGHT" then
+      return "RIGHT"
+    else
+      return "CENTER"
+    end
+  end,
+  CIRCLE = "CENTER",
+  COUNTERCIRCLE = "CENTER",
+}
+
+local gridSelfPoints = {
+  RU = "BOTTOMLEFT",
+  UR = "BOTTOMLEFT",
+  LU = "BOTTOMRIGHT",
+  UL = "BOTTOMRIGHT",
+  RD = "TOPLEFT",
+  DR = "TOPLEFT",
+  LD = "TOPRIGHT",
+  DL = "TOPRIGHT",
+}
 
 local function createOptions(id, data)
   local options = {
+    __title = L["Dynamic Group Settings"],
+    __order = 1,
+    groupIcon = {
+      type = "input",
+      width = WeakAuras.normalWidth,
+      name = WeakAuras.newFeatureString..L["Group Icon"],
+      desc = L["Set Thumbnail Icon"],
+      order = 0.5,
+      get = function()
+        return data.groupIcon and tostring(data.groupIcon) or ""
+      end,
+      set = function(info, v)
+        data.groupIcon = v
+        WeakAuras.Add(data)
+        WeakAuras.UpdateThumbnail(data)
+        WeakAuras.SetIconNames(data)
+      end
+    },
+    chooseIcon = {
+      type = "execute",
+      width = WeakAuras.normalWidth,
+      name = L["Choose"],
+      order = 0.51,
+      func = function() WeakAuras.OpenIconPicker(data, "groupIcon", true) end
+    },
+    -- grow options
     grow = {
       type = "select",
+      width = WeakAuras.doubleWidth,
       name = L["Grow"],
-      order = 5,
-      values = WeakAuras.grow_types
+      order = 1,
+      values = WeakAuras.grow_types,
+      set = function(info, v)
+        data.grow = v
+        local selfPoint = selfPoints[data.grow] or selfPoints.default
+        if type(selfPoint) == "function" then
+          selfPoint = selfPoint(data)
+        end
+        data.selfPoint = selfPoint
+        WeakAuras.Add(data)
+        WeakAuras.ReloadTriggerOptions(data)
+        WeakAuras.ResetMoverSizer()
+      end,
     },
+    useAnchorPerUnit = {
+      type = "toggle",
+      order = 1.5,
+      width = WeakAuras.normalWidth,
+      name = WeakAuras.newFeatureString..L["Group by Frame"],
+      desc = L[
+[[Group and anchor each auras by frame.
+
+- Nameplates: attach to nameplates per unit.
+- Unit Frames: attach to unit frame buttons per unit.
+- Custom Frames: choose which frame each region should be anchored to.]]
+      ],
+      hidden = function() return data.grow == "CUSTOM" end,
+    },
+    anchorPerUnit = {
+      type = "select",
+      width = WeakAuras.normalWidth,
+      name = WeakAuras.newFeatureString..L["Group by Frame"],
+      order = 1.6,
+      values = {
+        ["UNITFRAME"] = L["Unit Frames"],
+        ["NAMEPLATE"] = L["Nameplates"],
+        ["CUSTOM"] = L["Custom Frames"],
+      },
+      hidden = function() return data.grow == "CUSTOM" end,
+      disabled = function() return not data.useAnchorPerUnit end
+    },
+    -- custom grow option added below
     align = {
       type = "select",
+      width = WeakAuras.normalWidth,
       name = L["Align"],
-      order = 10,
+      order = 2,
       values = WeakAuras.align_types,
-      hidden = function() return (data.grow == "LEFT" or data.grow == "RIGHT" or data.grow == "HORIZONTAL" or data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") end,
+      set = function(info, v)
+        data.align = v
+        local selfPoint = selfPoints[data.grow] or selfPoints.default
+        if type(selfPoint) == "function" then
+          selfPoint = selfPoint(data)
+        end
+        data.selfPoint = selfPoint
+        WeakAuras.Add(data)
+        WeakAuras.ReloadTriggerOptions(data)
+        WeakAuras.ResetMoverSizer()
+      end,
+      hidden = function() return (data.grow == "CUSTOM" or data.grow == "LEFT" or data.grow == "RIGHT" or data.grow == "HORIZONTAL" or data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE" or data.grow == "GRID") end,
       disabled = function() return data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE" end
     },
     rotated_align = {
       type = "select",
+      width = WeakAuras.normalWidth,
       name = L["Align"],
-      order = 10,
+      order = 3,
       values = WeakAuras.rotated_align_types,
-      hidden = function() return (data.grow == "UP" or data.grow == "DOWN" or data.grow == "VERTICAL" or data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") end,
+      hidden = function() return (data.grow == "CUSTOM" or data.grow == "UP" or data.grow == "DOWN" or data.grow == "VERTICAL" or data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE" or data.grow == "GRID") end,
       get = function() return data.align; end,
-      set = function(info, v) data.align = v; WeakAuras.Add(data); end
+      set = function(info, v)
+        data.align = v
+        local selfPoint = selfPoints[data.grow] or selfPoints.default
+        if type(selfPoint) == "function" then
+          selfPoint = selfPoint(data)
+        end
+        data.selfPoint = selfPoint
+        WeakAuras.Add(data)
+        WeakAuras.ReloadTriggerOptions(data)
+        WeakAuras.ResetMoverSizer()
+      end,
     },
+    -- circle grow options
     constantFactor = {
       type = "select",
+      width = WeakAuras.normalWidth,
       name = L["Constant Factor"],
-      order = 10,
+      order = 4,
       values = WeakAuras.circular_group_constant_factor_types,
       hidden = function() return data.grow ~= "CIRCLE" and data.grow ~= "COUNTERCIRCLE" end
     },
-    space = {
-      type = "range",
-      name = L["Space"],
-      order = 15,
-      softMin = 0,
-      softMax = 300,
-      bigStep = 1,
-      hidden = function() return (data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") and data.constantFactor == "RADIUS" end
-    },
     rotation = {
       type = "range",
-      name = L["Rotation"],
-      order = 15,
+      width = WeakAuras.normalWidth,
+      name = L["Start Angle"],
+      order = 5,
       min = 0,
       max = 360,
       bigStep = 3,
       hidden = function() return data.grow ~= "CIRCLE" and data.grow ~= "COUNTERCIRCLE" end
     },
+    arcLength = {
+      type = "range",
+      width = WeakAuras.normalWidth,
+      name = L["Arc Length"],
+      order = 7,
+      min = 0,
+      max = 360,
+      bigStep = 3,
+      hidden = function() return data.grow ~= "CIRCLE" and data.grow ~= "COUNTERCIRCLE" end
+    },
+    radius = {
+      type = "range",
+      width = WeakAuras.normalWidth,
+      name = L["Radius"],
+      order = 6,
+      softMin = 0,
+      softMax = 500,
+      bigStep = 1,
+      hidden = function() return data.grow == "CUSTOM" or not((data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") and data.constantFactor == "RADIUS") end
+    },
+    -- grid grow options
+    gridType = {
+      type = "select",
+      width = WeakAuras.normalWidth,
+      name = L["Grid direction"],
+      order = 8,
+      values = WeakAuras.grid_types,
+      hidden = function() return data.grow ~= "GRID" end,
+      set = function(info, value)
+        data.selfPoint = gridSelfPoints[value]
+        data.gridType = value
+        WeakAuras.Add(data)
+        WeakAuras.ResetMoverSizer()
+      end,
+    },
+    gridWidth = {
+      type = "range",
+      width = WeakAuras.normalWidth,
+      name = function()
+        if not data.gridType then return "" end
+        if data.gridType:find("^[RL]") then
+          return L["Row Width"]
+        else
+          return L["Column Height"]
+        end
+      end,
+      order = 9,
+      min = 1,
+      softMax = 20,
+      step = 1,
+      hidden = function() return data.grow ~= "GRID" end,
+    },
+    rowSpace = {
+      type = "range",
+      name = L["Row Space"],
+      width = WeakAuras.normalWidth,
+      order = 10,
+      softMin = 0,
+      softMax = 300,
+      step = 1,
+      hidden = function() return data.grow ~= "GRID" end,
+    },
+    columnSpace = {
+      type = "range",
+      name = L["Column Space"],
+      width = WeakAuras.normalWidth,
+      order = 11,
+      softMin = 0,
+      softMax = 300,
+      step = 1,
+      hidden = function() return data.grow ~= "GRID" end,
+    },
+    -- generic grow options
+    space = {
+      type = "range",
+      width = WeakAuras.normalWidth,
+      name = L["Space"],
+      order = 7,
+      softMin = 0,
+      softMax = 300,
+      bigStep = 1,
+      hidden = function()
+        return data.grow == "CUSTOM"
+            or data.grow == "GRID"
+            or ((data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") and data.constantFactor == "RADIUS")
+      end
+    },
     stagger = {
       type = "range",
+      width = WeakAuras.normalWidth,
       name = L["Stagger"],
-      order = 20,
+      order = 8,
       min = -50,
       max = 50,
       step = 0.1,
       bigStep = 1,
-      hidden = function() return data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE" end
-    },
-    radius = {
-      type = "range",
-      name = L["Radius"],
-      order = 20,
-      softMin = 0,
-      softMax = 500,
-      bigStep = 1,
-      hidden = function() return not((data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") and data.constantFactor == "RADIUS") end
-    },
-    animate = {
-      type = "toggle",
-      width = "double",
-      name = L["Animated Expand and Collapse"],
-      order = 30
-    },
-    border = {
-      type = "select",
-      dialogControl = "LSM30_Border",
-      name = L["Border"],
-      order = 35,
-      values = AceGUIWidgetLSMlists.border
-    },
-    background = {
-      type = "select",
-      dialogControl = "LSM30_Background",
-      name = L["Background"],
-      order = 40,
-      values = function()
-        local list = {};
-        for i,v in pairs(AceGUIWidgetLSMlists.background) do
-          list[i] = v;
-        end
-        list["None"] = L["None"];
-
-        return list;
+      hidden = function()
+        return data.grow == "CUSTOM"
+            or data.grow == "CIRCLE"
+            or data.grow == "COUNTERCIRCLE"
+            or data.grow == "GRID"
       end
     },
-    borderOffset = {
-      type = "range",
-      name = L["Border Offset"],
-      order = 45,
-      softMin = 0,
-      softMax = 32,
-      bigStep = 1
-    },
-    backgroundInset = {
-      type = "range",
-      name = L["Background Inset"],
-      order = 47,
-      softMin = 0,
-      softMax = 32,
-      bigStep = 1
-    },
+    -- sort options
     sort = {
       type = "select",
+      width = WeakAuras.doubleWidth,
       name = L["Sort"],
-      order = 48,
+      order = 20,
       values = WeakAuras.group_sort_types
     },
+    -- custom sort option added below
     hybridPosition = {
       type = "select",
+      width = WeakAuras.normalWidth,
       name = L["Hybrid Position"],
-      order = 48.1,
+      order = 21,
       values = WeakAuras.group_hybrid_position_types,
       hidden = function() return not(data.sort == "hybrid") end,
     },
     hybridSortMode = {
       type = "select",
+      width = WeakAuras.normalWidth,
       name = L["Hybrid Sort Mode"],
-      order = 48.2,
+      order = 22,
       values = WeakAuras.group_hybrid_sort_types,
       hidden = function() return not(data.sort == "hybrid") end,
     },
     sortHybrid = {
       type = "multiselect",
+      width = "full",
       name = L["Select the auras you always want to be listed first"],
-      order = 49,
+      order = 23,
       hidden = function() return not(data.sort == "hybrid") end,
       values = function()
         return data.controlledChildren
@@ -152,10 +354,42 @@ local function createOptions(id, data)
         data.sortHybridTable[id] = not(cur);
       end,
     },
+    sortSpace = {
+      type = "description",
+      name = "",
+      width = WeakAuras.doubleWidth,
+      order = 24,
+      hidden = function() return data.sort == "hybrid" end
+    },
+    useLimit = {
+      type = "toggle",
+      order = 25,
+      width = WeakAuras.normalWidth,
+      name = L["Limit"],
+      hidden = function() return data.grow == "CUSTOM" end,
+    },
+    limit = {
+      type = "range",
+      order = 26,
+      width = WeakAuras.normalWidth,
+      name = L["Limit"],
+      min = 0,
+      softMax = 20,
+      step = 1,
+      disabled = function() return not data.useLimit end,
+      hidden = function() return data.grow == "CUSTOM" end,
+    },
+    animate = {
+      type = "toggle",
+      width = WeakAuras.normalWidth,
+      name = L["Animated Expand and Collapse"],
+      order = 27
+    },
     scale = {
       type = "range",
+      width = WeakAuras.normalWidth,
       name = L["Group Scale"],
-      order = 50,
+      order = 28,
       min = 0.05,
       softMax = 2,
       bigStep = 0.05,
@@ -169,303 +403,135 @@ local function createOptions(id, data)
         data.yOffset = data.yOffset/(1-change)
         data.scale = v
         WeakAuras.Add(data);
-        WeakAuras.SetThumbnail(data);
         WeakAuras.ResetMoverSizer();
       end
     },
-    spacer = {
+    endHeader = {
       type = "header",
+      order = 100,
       name = "",
-      order = 51
-    }
+    },
   };
+
+  WeakAuras.AddCodeOption(options, data, L["Custom Grow"], "custom_grow", "https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Code-Blocks#grow",
+                          2, function() return data.grow ~= "CUSTOM" end, {"customGrow"}, nil, nil, nil, nil, nil, true)
+  WeakAuras.AddCodeOption(options, data, L["Custom Sort"], "custom_sort", "https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Code-Blocks#custom-sort",
+                          21, function() return data.sort ~= "custom" end, {"customSort"}, nil, nil, nil, nil, nil, true)
+  WeakAuras.AddCodeOption(options, data, L["Custom Anchor"], "custom_anchor_per_unit", "https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Code-Blocks#group-by-frame",
+                          1.7, function() return not(data.grow ~= "CUSTOM" and data.useAnchorPerUnit and data.anchorPerUnit == "CUSTOM") end, {"customAnchorPerUnit"}, nil, nil, nil, nil, nil, true)
+
+  local borderHideFunc = function() return data.useAnchorPerUnit or data.grow == "CUSTOM" end
+  local disableSelfPoint = function() return data.grow ~= "CUSTOM" and data.grow ~= "GRID" and not data.useAnchorPerUnit end
+
+  for k, v in pairs(WeakAuras.BorderOptions(id, data, nil, borderHideFunc, 70)) do
+    options[k] = v
+  end
 
   return {
     dynamicgroup = options,
-    position = WeakAuras.PositionOptions(id, data, true, true),
+    position = WeakAuras.PositionOptions(id, data, nil, true, disableSelfPoint),
   };
 end
 
-local function createThumbnail(parent)
-  local borderframe = CreateFrame("FRAME", nil, parent);
-  borderframe:SetWidth(32);
-  borderframe:SetHeight(32);
+local function createThumbnail()
+  -- frame
+  local thumbnail = CreateFrame("FRAME", nil, UIParent);
+  thumbnail:SetWidth(32);
+  thumbnail:SetHeight(32);
 
-  local border = borderframe:CreateTexture(nil, "OVERLAY");
-  border:SetAllPoints(borderframe);
+  -- border
+  local border = thumbnail:CreateTexture(nil, "OVERLAY");
+  border:SetAllPoints(thumbnail);
   border:SetTexture("Interface\\BUTTONS\\UI-Quickslot2.blp");
   border:SetTexCoord(0.2, 0.8, 0.2, 0.8);
 
-  local region = CreateFrame("FRAME", nil, borderframe);
-  borderframe.region = region;
-
-  region.children = {};
-
-  return borderframe;
+  return thumbnail
 end
 
-local function modifyThumbnail(parent, borderframe, data, fullModify, size)
-  local region = borderframe.region;
-  size = size or 24;
-
-  for _, child in pairs(region.children) do
-    child:Hide()
-  end
-  local selfPoint;
-  if(data.grow == "RIGHT" or data.grow == "HORIZONTAL") then
-    selfPoint = "LEFT";
-    if(data.align == "LEFT") then
-      selfPoint = "TOP"..selfPoint;
-    elseif(data.align == "RIGHT") then
-      selfPoint = "BOTTOM"..selfPoint;
-    end
-  elseif(data.grow == "LEFT") then
-    selfPoint = "RIGHT";
-    if(data.align == "LEFT") then
-      selfPoint = "TOP"..selfPoint;
-    elseif(data.align == "RIGHT") then
-      selfPoint = "BOTTOM"..selfPoint;
-    end
-  elseif(data.grow == "UP") then
-    selfPoint = "BOTTOM";
-    if(data.align == "LEFT") then
-      selfPoint = selfPoint.."LEFT";
-    elseif(data.align == "RIGHT") then
-      selfPoint = selfPoint.."RIGHT";
-    end
-  elseif(data.grow == "DOWN" or data.grow == "VERTICAL") then
-    selfPoint = "TOP";
-    if(data.align == "LEFT") then
-      selfPoint = selfPoint.."LEFT";
-    elseif(data.align == "RIGHT") then
-      selfPoint = selfPoint.."RIGHT";
-    end
-  elseif(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-    selfPoint = "CENTER";
-  end
-  data.selfPoint = selfPoint;
-
-  local maxWidth, maxHeight = 0, 0;
-  local radius = 0;
-  if(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-    if(data.constantFactor == "RADIUS") then
-      radius = data.radius;
-    else
-      if(#data.controlledChildren == 1) then
-        radius = 0;
-      else
-        radius = (#data.controlledChildren * data.space) / (2 * math.pi)
-      end
-    end
-  end
-  for index, childId in ipairs(data.controlledChildren) do
-    local childData = WeakAuras.GetData(childId);
-    local childRegion = WeakAuras.GetRegion(childId)
-    if(childData and childRegion) then
-      if(data.grow == "LEFT" or data.grow == "RIGHT" or data.grow == "HORIZONTAL") then
-        maxWidth = maxWidth + (childData.width or childRegion.width);
-        maxWidth = maxWidth + (index > 1 and data.space or 0);
-        maxHeight = math.max(maxHeight, (childData.height or childRegion.height));
-      elseif(data.grow == "UP" or data.grow == "DOWN" or data.grow == "VERTICAL") then
-        maxHeight = maxHeight + (childData.height or childRegion.height);
-        maxHeight = maxHeight + (index > 1 and data.space or 0);
-        maxWidth = math.max(maxWidth, (childData.width or childRegion.width));
-      elseif(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-        maxWidth = math.max(maxWidth, (childData.width or childRegion.width));
-        maxHeight = math.max(maxHeight, (childData.height or childRegion.height));
-      end
-    end
-  end
-  if(data.grow == "LEFT" or data.grow == "RIGHT" or data.grow == "HORIZONTAL") then
-    maxHeight = maxHeight + (math.abs(data.stagger) * (#data.controlledChildren - 1));
-  elseif(data.grow == "UP" or data.grow == "DOWN" or data.grow == "VERTICAL") then
-    maxWidth = maxWidth + (math.abs(data.stagger) * (#data.controlledChildren - 1));
-  elseif(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-    maxWidth = maxWidth + (2 * radius);
-    maxHeight = maxHeight + (2 * radius);
-  end
-
-  local scale=1;
-  if maxHeight > 0 and (maxHeight > maxWidth) then
-    scale = size / maxHeight;
-  elseif maxWidth > 0 and (maxWidth >= maxHeight) then
-    scale = size / maxWidth;
-  end
-
-  region:SetPoint("CENTER", borderframe, "CENTER");
-  region:SetWidth(maxWidth * scale);
-  region:SetHeight(maxHeight * scale);
-
-  local xOffset, yOffset = 0, 0;
-  if(math.abs(data.stagger) > 0.1 and not (data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE")) then
-    if(data.grow == "RIGHT" or data.grow == "LEFT" or data.grow == "HORIZONTAL") then
-      if(data.align == "LEFT" and data.stagger > 0) then
-        yOffset = yOffset - (data.stagger * (#data.controlledChildren - 1));
-      elseif(data.align == "RIGHT" and data.stagger < 0) then
-        yOffset = yOffset - (data.stagger * (#data.controlledChildren - 1));
-      elseif(data.align == "CENTER") then
-        if(data.stagger < 0) then
-          yOffset = yOffset - (data.stagger * (#data.controlledChildren - 1) / 2);
-        else
-          yOffset = yOffset - (data.stagger * (#data.controlledChildren - 1) / 2);
-        end
-      end
-    else
-      if(data.align == "LEFT" and data.stagger < 0) then
-        xOffset = xOffset - (data.stagger * (#data.controlledChildren - 1));
-      elseif(data.align == "RIGHT" and data.stagger > 0) then
-        xOffset = xOffset - (data.stagger * (#data.controlledChildren - 1));
-      elseif(data.align == "CENTER") then
-        if(data.stagger < 0) then
-          xOffset = xOffset - (data.stagger * (#data.controlledChildren - 1) / 2);
-        else
-          xOffset = xOffset - (data.stagger * (#data.controlledChildren - 1) / 2);
-        end
-      end
-    end
-  end
-
-  local angle = data.rotation or 0;
-  local angleInc = 360 / (#data.controlledChildren ~= 0 and #data.controlledChildren or 1);
-  if (data.grow == "COUNTERCIRCLE") then
-    angleInc = -angleInc;
-  end
-  radius = 0;
-  if(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-    if(data.constantFactor == "RADIUS") then
-      radius = data.radius;
-    else
-      if(#data.controlledChildren <= 1) then
-        radius = 0;
-      else
-        radius = (#data.controlledChildren * data.space) / (2 * math.pi);
-      end
-    end
-  end
-  for index, childId in pairs(data.controlledChildren) do
-    local childData = WeakAuras.GetData(childId);
-    if(childData) then
-      if(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-        yOffset = cos(angle) * radius * -1;
-        xOffset = sin(angle) * radius;
-        angle = angle + angleInc;
-      end
-      if not(region.children[index]) then
-        region.children[index] = CreateFrame("FRAME", nil, region);
-        region.children[index].texture = region.children[index]:CreateTexture(nil, "OVERLAY");
-        region.children[index].texture:SetAllPoints(region.children[index]);
-      end
-      local childRegion = region.children[index]
-      childRegion:Show()
-      local r, g, b;
-      if(childData.color) then
-        r, g, b = childData.color[1], childData.color[2], childData.color[3];
-      elseif(childData.barColor) then
-        r, g, b = childData.barColor[1], childData.barColor[2], childData.barColor[3];
-      elseif(childData.foregroundColor) then
-        r, g, b = childData.foregroundColor[1], childData.foregroundColor[2], childData.foregroundColor[3];
-      end
-      r, g, b = r or 0.2, g or 0.8, b or 0.2;
-
-      childRegion.texture:SetColorTexture(r, g, b);
-
-      childRegion:ClearAllPoints();
-      childRegion:SetPoint(selfPoint, region, selfPoint, xOffset * scale, yOffset * scale);
-      childRegion:SetWidth((childData.width or childRegion.width or 0) * scale);
-      childRegion:SetHeight((childData.height or childRegion.height or 0) * scale);
-      if(data.grow == "RIGHT" or data.grow == "HORIZONTAL") then
-        xOffset = xOffset + ((childData.width or childRegion.width or 0) + data.space);
-        yOffset = yOffset + data.stagger;
-      elseif(data.grow == "LEFT") then
-        xOffset = xOffset - ((childData.width or childRegion.width or 0) + data.space);
-        yOffset = yOffset + data.stagger;
-      elseif(data.grow == "UP") then
-        yOffset = yOffset + ((childData.height or childRegion.height or 0) + data.space);
-        xOffset = xOffset + data.stagger;
-      elseif(data.grow == "DOWN" or data.grow == "VERTICAL") then
-        yOffset = yOffset - ((childData.height or childRegion.height or 0) + data.space);
-        xOffset = xOffset + data.stagger;
-      end
-    end
-  end
-
-  local index = #data.controlledChildren + 1;
-  if not(region.children[index]) then
-    region.children[index] = CreateFrame("FRAME", nil, region);
-    region.children[index].texture = region.children[index]:CreateTexture(nil, "OVERLAY");
-    region.children[index].texture:SetAllPoints(region.children[index]);
-  end
-  region.children[index].texture:SetColorTexture(1, 1, 1);
-  region.children[index]:ClearAllPoints();
-  region.children[index]:Show()
-  if(data.grow == "RIGHT" or data.grow == "LEFT" or data.grow == "HORIZONTAL") then
-    region.children[index]:SetWidth(size);
-    region.children[index]:SetHeight(1);
-    if(data.align == "LEFT") then
-      region.children[index]:SetPoint("CENTER", region, "TOP");
-    elseif(data.align == "RIGHT") then
-      region.children[index]:SetPoint("CENTER", region, "BOTTOM");
-    else
-      region.children[index]:SetPoint("CENTER", region, "CENTER");
-    end
-  elseif(data.grow == "UP" or data.grow == "DOWN" or data.grow == "VERTICAL") then
-    region.children[index]:SetWidth(1);
-    region.children[index]:SetHeight(size);
-    if(data.align == "LEFT") then
-      region.children[index]:SetPoint("CENTER", region, "LEFT");
-    elseif(data.align == "RIGHT") then
-      region.children[index]:SetPoint("CENTER", region, "RIGHT");
-    else
-      region.children[index]:SetPoint("CENTER", region, "CENTER");
-    end
-  elseif(data.grow == "CIRCLE" or data.grow == "COUNTERCIRCLE") then
-    region.children[index]:SetWidth(1);
-    region.children[index]:SetHeight(1);
-    region.children[index]:SetPoint("CENTER", region, "CENTER");
+local function defaultIconAnimation(self, elapsed)
+  self.elapsed = self.elapsed + elapsed
+  if(self.elapsed < 0.5) then
+    self.t2:SetPoint("TOP", self.t1, "BOTTOM", 0, -2 + (28 * self.elapsed))
+    self.t2:SetAlpha(1 - (2 * self.elapsed))
+  elseif(self.elapsed < 1.5) then
+  -- do nothing
+  elseif(self.elapsed < 2) then
+    self.t2:SetPoint("TOP", self.t1, "BOTTOM", 0, -2 + (28 * (2 - self.elapsed)))
+    self.t2:SetAlpha((2 * self.elapsed) - 3)
+  elseif(self.elapsed < 3) then
+  -- do nothing
+  else
+    self.elapsed = self.elapsed - 3
   end
 end
 
-local function createIcon()
-  local thumbnail = createThumbnail(UIParent);
-  local t1 = thumbnail:CreateTexture(nil, "ARTWORK");
+local function createAnimatedDefaultIcon(parent)
+  local defaultIcon = CreateFrame("FRAME", nil, parent);
+  parent.defaultIcon = defaultIcon;
+
+  local t1 = defaultIcon:CreateTexture(nil, "ARTWORK");
   t1:SetWidth(24);
   t1:SetHeight(6);
   t1:SetColorTexture(0.8, 0, 0);
-  t1:SetPoint("TOP", thumbnail, "TOP", 0, -6);
-  local t2 = thumbnail:CreateTexture(nil, "ARTWORK");
+  t1:SetPoint("TOP", parent, "TOP", 0, -6);
+  local t2 = defaultIcon:CreateTexture(nil, "ARTWORK");
   t2:SetWidth(12);
   t2:SetHeight(12);
   t2:SetColorTexture(0.2, 0.8, 0.2);
   t2:SetPoint("TOP", t1, "BOTTOM", 0, -2);
-  local t3 = thumbnail:CreateTexture(nil, "ARTWORK");
+  local t3 = defaultIcon:CreateTexture(nil, "ARTWORK");
   t3:SetWidth(30);
   t3:SetHeight(4);
   t3:SetColorTexture(0.1, 0.25, 1);
   t3:SetPoint("TOP", t2, "BOTTOM", 0, -2);
-  local t4 = thumbnail:CreateTexture(nil, "OVERLAY");
+  local t4 = defaultIcon:CreateTexture(nil, "OVERLAY");
   t4:SetWidth(1);
   t4:SetHeight(36);
   t4:SetColorTexture(1, 1, 1);
-  t4:SetPoint("CENTER", thumbnail, "CENTER");
+  t4:SetPoint("CENTER", parent, "CENTER");
 
-  thumbnail.elapsed = 0;
-  thumbnail:SetScript("OnUpdate", function(self, elapsed)
-    self.elapsed = self.elapsed + elapsed;
-    if(self.elapsed < 0.5) then
-      t2:SetPoint("TOP", t1, "BOTTOM", 0, -2 + (28 * self.elapsed));
-      t2:SetAlpha(1 - (2 * self.elapsed));
-    elseif(self.elapsed < 1.5) then
-    -- do nothing
-    elseif(self.elapsed < 2) then
-      t2:SetPoint("TOP", t1, "BOTTOM", 0, -2 + (28 * (2 - self.elapsed)));
-      t2:SetAlpha((2 * self.elapsed) - 3);
-    elseif(self.elapsed < 3) then
-    -- do nothing
-    else
-      self.elapsed = self.elapsed - 3;
+  defaultIcon.t1 = t1
+  defaultIcon.t2 = t2
+
+  defaultIcon.elapsed = 0;
+  defaultIcon:SetScript("OnUpdate", defaultIconAnimation)
+  defaultIcon:SetScript("OnHide", function(self) self:SetScript("OnUpdate", nil) end)
+  defaultIcon:SetScript("OnShow", function(self) self:SetScript("OnUpdate", defaultIconAnimation) end)
+
+  return defaultIcon
+end
+
+-- Modify preview thumbnail
+local function modifyThumbnail(parent, frame, data)
+  function frame:SetIcon(path)
+    if not frame.icon then
+      local icon = frame:CreateTexture(nil, "OVERLAY")
+      icon:SetAllPoints(frame)
+      frame.icon = icon
     end
-  end);
-  return thumbnail;
+    local success = frame.icon:SetTexture(path or data.groupIcon) and (path or data.groupIcon)
+    if success then
+      if frame.defaultIcon then
+        frame.defaultIcon:Hide()
+      end
+      frame.icon:Show()
+    else
+      if frame.icon then
+        frame.icon:Hide()
+      end
+      if not frame.defaultIcon then
+        frame.defaultIcon = createAnimatedDefaultIcon(frame)
+      end
+      frame.defaultIcon:Show()
+    end
+  end
+  frame:SetIcon()
+end
+
+local function createIcon()
+  local thumbnail = createThumbnail(UIParent)
+  thumbnail.defaultIcon = createAnimatedDefaultIcon(thumbnail)
+  return thumbnail
 end
 
 WeakAuras.RegisterRegionOptions("dynamicgroup", createOptions, createIcon, L["Dynamic Group"], createThumbnail, modifyThumbnail, L["A group that dynamically controls the positioning of its children"]);

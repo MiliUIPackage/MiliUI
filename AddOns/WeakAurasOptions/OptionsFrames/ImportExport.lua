@@ -1,3 +1,5 @@
+if not WeakAuras.IsCorrectVersion() then return end
+
 -- Lua APIs
 local strtrim, strsub = strtrim, strsub
 
@@ -41,17 +43,15 @@ local function ConstructImportExport(frame)
     elseif(frame.window == "model") then
       frame.modelPicker:CancelClose();
     end
-    frame.container.frame:Hide();
-    frame.buttonsContainer.frame:Hide();
-    self.frame:Show();
     frame.window = "importexport";
+    frame:UpdateFrameVisible()
     if(mode == "export" or mode == "table") then
       if(id) then
         local displayStr;
         if(mode == "export") then
           displayStr = WeakAuras.DisplayToString(id, true);
         elseif(mode == "table") then
-          displayStr = WeakAuras.DisplayToTableString(id);
+          displayStr = WeakAuras.DataToString(id);
         end
         input.editBox:SetMaxBytes(nil);
         input.editBox:SetScript("OnEscapePressed", function() group:Close(); end);
@@ -71,7 +71,7 @@ local function ConstructImportExport(frame)
         input.editBox:ClearFocus();
         pasted = pasted:match( "^%s*(.-)%s*$" );
         if (#pasted > 20) then
-          WeakAuras.ImportString(pasted);
+          WeakAuras.Import(pasted);
           input:SetLabel(L["Processed %i chars"]:format(i));
           input.editBox:SetMaxBytes(2500);
           input.editBox:SetText(strsub(pasted, 1, 2500));
@@ -98,10 +98,8 @@ local function ConstructImportExport(frame)
 
   function group.Close(self)
     input:ClearFocus();
-    self.frame:Hide();
-    frame.container.frame:Show();
-    frame.buttonsContainer.frame:Show();
     frame.window = "default";
+    frame:UpdateFrameVisible()
   end
 
   return group
