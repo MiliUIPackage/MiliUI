@@ -47,7 +47,7 @@
 
 
     <Script>
-        DecursiveEmbedsxmlCheck = "2.7.6.6";
+        DecursiveEmbedsxmlCheck = "2.7.7";
     </Script>
 
 </Ui>

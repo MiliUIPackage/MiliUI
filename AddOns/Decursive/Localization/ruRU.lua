@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.6.6) add-on for World of Warcraft UI
+    Decursive (v 2.7.7) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ T._LoadedFiles["ruRU.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "ruRU");
 
 if not L then
-    T._LoadedFiles["ruRU.lua"] = "2.7.6.6";
+    T._LoadedFiles["ruRU.lua"] = "2.7.7";
     return;
 end;
 
@@ -236,14 +236,14 @@ L["OPT_CURINGOPTIONS_EXPLANATION"] = [=[Выберите типы колдовс
 - Какую кнопку мыши Вы должны будете нажать, чтобы развеять дебафф (Первое заклинание развеивается Левым щелчком, второе Правым, и т.д...)
 
 Все это описано в документации (необходимо прочесть):
-http://www.wowace.com/addons/decursive/]=]
+http://www.wowace.com/addons/decursive/ ]=]
 L["OPT_CURINGORDEROPTIONS"] = "Настройки порядка лечения"
 L["OPT_CURSECHECK_DESC"] = "Если отмечено, то вы сможете видеть и излечивать проклятых игроков"
 L["OPT_CUSTOM_SPELL_ALLOW_EDITING"] = "Разрешить изменение макросов (только для опытных пользователей)"
 L["OPT_CUSTOM_SPELL_ALLOW_EDITING_DESC"] = [=[Отметить, если хотите редактировать внутренний макрос Decursive для вашего заклинания.
 
 Заметка: Включение разрешит вам модифицировать заклинания управляемые Decursive .
-(--- Только для опытных пользователей ---)]=]
+(--- Только для опытных пользователей ---) ]=]
 L["OPT_CUSTOM_SPELL_CURE_TYPES"] = "Типы недугов"
 L["OPT_CUSTOM_SPELL_IS_DEFAULT"] = "Это заклинания часть автоматической настройки Decursive. Если это заклинание больше не работает правильно, вы можете удалить или отключить его для восстановления настроек по умолчанию."
 L["OPT_CUSTOM_SPELL_MACRO_MISSING_NOMINAL_SPELL"] = "ВНИМАНИЕ: Заклинание %q не используется в вашем макросе, информация о дистанции и времени перезарядки может не совпадать..."
@@ -433,4 +433,4 @@ L["UNSTABLERELEASE"] = "Нестабильный релиз"
 
 
 
-T._LoadedFiles["ruRU.lua"] = "2.7.6.6";
+T._LoadedFiles["ruRU.lua"] = "2.7.7";

@@ -80,11 +80,11 @@ Interesting articles and videos about Decursive's usage:
 
 - 2010-11-20 (Updated in 2011-06-11)
 
-A complete Decursive guide by @_darista_: [http://daritos.apotheosis-now.com/?p=24](http://daritos.apotheosis-now.com/?p=24)
+A complete Decursive guide by @_darista_: [daritos.apotheosis-now.com/?p=24](https://arweave.net/HPxs5E0pBpPFf_6G4msyq10535QxZ7uzNAkP_4ZVtRA)
 
 - 2009-07-15
 
-Article: [http://www.hotsdots.com/2009/07/improving-the-interface-using-addons-7-decursive-cleansing-and-dispelling/](http://www.hotsdots.com/2009/07/improving-the-interface-using-addons-7-decursive-cleansing-and-dispelling/)
+Article: [www.hotsdots.com/2009/07/improving-the-interface-using-addons-7-decursive-cleansing-and-dispelling/](https://arweave.net/gfI412ucplZfqM-r2n0fLO7QFlgORLgJWnHtmmrH6to)
 
 
 - 2010-02-20:
@@ -111,15 +111,15 @@ Unless you want to help testing unstable code you should download the versions c
 
 **Do not forget to rate Decursive!**
 
-Bitcoin donation address: **1LEHZuPsiHN4hM3H3Gru5xKmDgCj867eFX**
+Bitcoin donation address: [**1LEHZuPsiHN4hM3H3Gru5xKmDgCj867eFX**](bitcoin:1LEHZuPsiHN4hM3H3Gru5xKmDgCj867eFX)
 
 
-[MUFs]: https://www.wowace.com/projects/decursive/pages/main/mufs/ "Micro Unit Frames"
-[MUF]: https://www.wowace.com/projects/decursive/pages/main/mufs/ "Micro Unit Frame"
-[FAQ]: https://www.wowace.com/projects/decursive/pages/main/faq/ "F.A.Q section"
-[mouse-over macro]: https://www.wowace.com/projects/decursive/pages/main/macro/ "Decursive's mouse-over macro documentation"
-[commands]: https://www.wowace.com/projects/decursive/pages/main/commands/ "Command lines"
-[user-actions]: https://www.wowace.com/projects/decursive/pages/main/user-actions/ "Decursive, user possible actions"
+[MUFs]: https://www.wowace.com/projects/decursive/pages/main/mufs "Micro Unit Frames"
+[MUF]: https://www.wowace.com/projects/decursive/pages/main/mufs "Micro Unit Frame"
+[FAQ]: https://www.wowace.com/projects/decursive/pages/main/faq "F.A.Q section"
+[mouse-over macro]: https://www.wowace.com/projects/decursive/pages/main/macro "Decursive's mouse-over macro documentation"
+[commands]: https://www.wowace.com/projects/decursive/pages/main/commands "Command lines"
+[user-actions]: https://www.wowace.com/projects/decursive/pages/main/user-actions "Decursive, user possible actions"
 [dev]: https://www.2072productions.com/to/decursive_dev
 [ticket]: https://www.wowace.com/addons/decursive/tickets/
 
