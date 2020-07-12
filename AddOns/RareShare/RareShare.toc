@@ -1,0 +1,22 @@
+## Interface: 80300
+## Title: Rare Share: |cff1eff00Core
+## Notes: The core library required by other Rare Share addons
+## Title-zhTW: |cff4DFF4D[地圖]|r 稀有怪分享-主程式
+## Notes-zhTW: Rare Share |n將稀有怪選取為目標時，會出現 '分享' 按鈕，按下後會在綜合頻道報出稀有怪的名字、坐標和血量。
+## Author: pffScrub
+## Version: v1.0.0
+## DefaultState: enabled
+## OptionalDependencies: TomTom
+## SavedVariables: RareShareDB
+
+locales\enUS.lua
+locales\zhTW.lua
+locales\zhCN.lua
+
+
+Init.lua
+Events.lua
+Modules.lua
+UI.lua
+RareShare.lua
+RareFrame.lua

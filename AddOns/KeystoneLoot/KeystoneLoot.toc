@@ -1,0 +1,14 @@
+## Interface: 80300
+## Title: Keystone Loot
+## Version: 2.2.1
+## Notes: |cff00ff00Mythic Plus Loot item level for Keystone, Weekly Chest, and Residuum amount.
+## Title-zhTW: |cffFF7F00[副本]|r 傳奇+ 獎勵提示
+## Notes-zhTW: Keystone Loot |n在傳奇鑰石的滑鼠提示中顯示打完後可拾取的戰利品物品等級、每週寶箱開出的物品等級和泰坦殘質數量。
+## Author: Artanis & DrkGreyHawk
+
+embeds.xml
+
+enUS.lua
+zhTW.lua
+
+KeystoneLoot.lua

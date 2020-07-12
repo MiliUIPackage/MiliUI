@@ -1,0 +1,11 @@
+## Interface: 80300
+## Title : ModelPique
+## Notes: See what a linked mount/companion looks like
+## Title-zhTW: |cffFFFF66[收藏]|r 坐騎/戰寵模組預覽
+## Notes-zhTW: ModelPique |n按住 Ctrl 鍵點聊天視窗中的坐騎/戰寵物品連結，可以看到它長什麼樣子。
+## Author: Pallysrussr
+## Version: 8.2.0.0 Release
+## Dependencies: 
+## SavedVariables:
+
+ModelPique.xml

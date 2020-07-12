@@ -1,0 +1,8 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
+    <Script file="Narcissus.lua"/>
+    <Script file="AdiBags.lua"/>
+    <Script file="Bagnon.lua"/>
+    <Script file="ElvUI.lua"/>
+    <Script file="ArkInventory.lua"/>
+    <Script file="LiteBag.lua"/>
+</Ui>

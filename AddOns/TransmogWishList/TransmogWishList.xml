@@ -1,0 +1,1024 @@
+ <Ui xmlns="http://www.blizzard.com/wow/ui/"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../../FrameXML/UI.xsd">
+
+	<Script file="Libs\LibStub\LibStub.lua"/>
+	<Include file="libs\AceAddon-3.0\AceAddon-3.0.xml"/>
+	<Include file="libs\AceDB-3.0\AceDB-3.0.xml"/>
+	
+	<Script file="TransmogWishList.lua"/>
+
+	<Frame name="TWLCollectionsBackgroundTemplate"  virtual="true">
+		<Anchors>
+			<Anchor point="TOPLEFT" relativePoint="TOPLEFT" y="-60" x="4"/>
+			<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-6" y="5"/>
+		</Anchors>
+
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="BackgroundTile" atlas="collections-background-tile" useAtlasSize="true" vertTile="true" horizTile="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="4" y="-4" />
+						<Anchor point="BOTTOMRIGHT" x="-4" y="4"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			
+			<Layer level="BORDER" textureSubLevel="2">
+				<Texture parentKey="ShadowCornerTopLeft" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerTopRight" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1.0" right="0.0" top="0.0" bottom="1.0"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerBottomLeft" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="0.0" right="1.0" top="1.0" bottom="0.0"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerBottomRight" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1.0" right="0.0" top="1.0" bottom="0.0"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerTop" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.ShadowCornerTopLeft" relativePoint="TOPRIGHT"/>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.ShadowCornerTopRight" relativePoint="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0.9999" right="1" top="0" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerLeft" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.ShadowCornerTopLeft" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.ShadowCornerBottomLeft" relativePoint="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="0.9999" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerRight" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.ShadowCornerTopRight" relativePoint="BOTTOMRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ShadowCornerBottomRight" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="1" right="0" top="0.9999" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="ShadowCornerBottom" atlas="collections-background-shadow-large" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.ShadowCornerBottomLeft" relativePoint="BOTTOMRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.ShadowCornerBottomRight" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+					<TexCoords left="0.9999" right="1" top="1" bottom="0"/>
+				</Texture>
+			</Layer>
+			
+			<Layer level="OVERLAY">
+				<Texture parentKey="OverlayShadowTopLeft" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+				</Texture>
+				
+				<Texture parentKey="OverlayShadowTopRight" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1" right="0" top="0" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="OverlayShadowBottomLeft" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="1" bottom="0"/>
+				</Texture>
+
+				<Texture parentKey="OverlayShadowBottomRight" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1" right="0" top="1" bottom="0"/>
+				</Texture>
+
+				<Texture parentKey="OverlayShadowTop" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.OverlayShadowTopLeft" relativePoint="TOPRIGHT" x="0" y="0"/>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.OverlayShadowTopRight" relativePoint="TOPLEFT" x="0" y="0"/>
+					</Anchors>
+					<TexCoords left="0.9999" right="1" top="0" bottom="1"/>
+				</Texture>
+				
+				<Texture parentKey="OverlayShadowLeft" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.OverlayShadowTopLeft" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.OverlayShadowBottomLeft" relativePoint="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="0.9999" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="OverlayShadowRight" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.OverlayShadowTopRight" relativePoint="BOTTOMRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.OverlayShadowBottomRight" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="1" right="0" top="0.9999" bottom="1"/>
+				</Texture>
+
+				<Texture parentKey="OverlayShadowBottom" atlas="collections-background-shadow-small" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.OverlayShadowBottomLeft" relativePoint="BOTTOMRIGHT" x="0" y="0"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.OverlayShadowBottomRight" relativePoint="BOTTOMLEFT" x="0" y="0"/>
+					</Anchors>
+					<TexCoords left="0.9999" right="1" top="1" bottom="0"/>
+				</Texture>
+			</Layer>
+
+			<Layer level="ARTWORK" textureSubLevel="1">
+				<Texture parentKey="BGCornerFilagreeBottomLeft" atlas="collections-background-filagree" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="0.0" right="1.0" top="0.0" bottom="1.0"/>
+				</Texture>
+
+				<Texture parentKey="BGCornerFilagreeBottomRight" atlas="collections-background-filagree" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1.0" right="0.0" top="0.0" bottom="1.0"/>
+				</Texture>
+			</Layer>
+
+			<Layer level="ARTWORK" textureSubLevel="2">
+				<Texture parentKey="BGCornerTopLeft" atlas="collections-background-corner" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+				</Texture>
+
+				<Texture parentKey="BGCornerTopRight" atlas="collections-background-corner" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1.0" right="0.0" top="0.0" bottom="1.0"/>
+				</Texture>
+
+				<Texture parentKey="BGCornerBottomLeft" atlas="collections-background-corner" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="0.0" right="1.0" top="1.0" bottom="0.0"/>
+				</Texture>
+
+				<Texture parentKey="BGCornerBottomRight" atlas="collections-background-corner" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile"/>
+					</Anchors>
+					<TexCoords left="1.0" right="0.0" top="1.0" bottom="0.0"/>
+				</Texture>
+			</Layer>
+
+			<Layer level="BORDER" textureSubLevel="1">
+				<Texture parentKey="ShadowLineTop" atlas="_collections-background-line" useAtlasSize="true" horizTile="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundTile" x="0" y="-9" />
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile" relativePoint="TOPRIGHT" x="0" y="-13"/>
+					</Anchors>
+				</Texture>
+
+				<Texture parentKey="ShadowLineBottom" atlas="_collections-background-line" useAtlasSize="true" horizTile="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BackgroundTile" relativePoint="BOTTOMLEFT" x="0" y="13" />
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BackgroundTile" x="0" y="9"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+
+		</Layers>
+	</Frame>
+	
+	<DressUpModel name="TWLWardrobeItemsModelTemplate" mixin="TransMogWishListModelMixin" virtual="true">
+		<Size x="78" y="104"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture setAllPoints="true">
+					<Color r="0" g="0" b="0"/>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="-1">
+				<Texture parentKey="Border" atlas="transmog-wardrobe-border-collected" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="-3"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="TransmogStateTexture" atlas="transmog-wardrobe-border-selected" useAtlasSize="true" alphaMode="ADD" hidden="true">
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="OVERLAY" textureSubLevel="1">
+				<FontString parentKey="CollectedString" inherits="GameFontHighlight" maxLines="1" justifyH="CENTER" text="COLLECTED" hidden="true">
+					<Shadow>
+						<Color r="0.32" g="0.5" b="1.0"/>
+					</Shadow>
+					<Anchors>
+						<Anchor point="BOTTOM" x="0" y="5"/>
+					</Anchors>
+				</FontString>
+				<Texture parentKey="CollectedGlow" atlas="collections-newglow" hidden="true">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.CollectedString" x="-20" y="10"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.CollectedString" x="20" y="-10"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="HIGHLIGHT">
+				<Texture atlas="transmog-wardrobe-border-highlighted" alphaMode="ADD" useAtlasSize="true">
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="0"/>
+					</Anchors>
+				</Texture>			
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="HideVisual" setAllPoints="true">
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" atlas="transmog-icon-hidden" useAtlasSize="true" hidden="true">
+							<Anchors>
+								<Anchor point="TOPLEFT" x="-12" y="13" relativePoint="TOPLEFT"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+			</Frame>
+			<Button parentKey="RemoveButton" hidden="true">
+				<Size x="17" y="17"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture file="Interface\FriendsFrame\ClearBroadcastIcon" alpha="0.6" parentKey="texture">
+							<Size>
+								<AbsDimension x="17" y="17"/>
+							</Size>
+							<Anchors>
+								<Anchor point="TOPLEFT" x="0" y="0"/>
+							</Anchors>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick>
+						PlaySound(TWL_SOUNDS.PickUpRing);
+						self:GetParent():RemoveButtonOnClick();
+					</OnClick>
+					<OnEnter>
+						self:Show();
+						GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+						GameTooltip:SetText("移除");
+						GameTooltip:Show();
+						self.texture:SetAlpha(1.0);
+					</OnEnter>
+					<OnLeave>
+						self:Hide();
+						GameTooltip:Hide();
+						self.texture:SetAlpha(0.5);
+					</OnLeave>
+					<OnMouseDown>
+						if self:IsEnabled() then
+							self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 1, -1);
+						end
+					</OnMouseDown>
+					<OnMouseUp>
+						self.texture:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 0);
+					</OnMouseUp>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Animations>
+			<AnimationGroup parentKey="CollectedAnim" looping="NONE" setToFinalAlpha="true">
+				<Alpha childKey="CollectedString" fromAlpha="0" toAlpha="1"  Duration="0.2" order="1" startDelay="0.2" />
+				<Alpha childKey="CollectedGlow" fromAlpha="0" toAlpha="1"  Duration="0.2" order="1" startDelay="0.2" />
+				<Alpha fromAlpha="1" toAlpha="0"  Duration="0.5" order="2" startDelay="1" />
+				<Scripts>
+					<OnFinished>
+						self:GetParent():CollectedAnimOnEnd();
+					</OnFinished>
+					<OnStop>
+						self:GetParent():CollectedAnimOnEnd();
+					</OnStop>
+				</Scripts>
+			</AnimationGroup>
+		</Animations>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+			<OnMouseDown method="OnMouseDown"/>
+			<OnEnter method="OnEnter"/>
+			<OnLeave method="OnLeave"/>
+			<OnUpdate method="OnUpdate"/>
+			<OnShow method="OnShow" />
+		</Scripts>
+	</DressUpModel>
+
+	<FontString name="TWLCollectionsPageTextTemplate" inherits="GameFontWhite" justifyH="RIGHT" virtual="true">
+		<Size x="102" y="0" />
+	</FontString>
+
+	<Button name="TWLCollectionsPrevPageButton" virtual="true">
+		<Size x="32" y="32" />
+		<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Up"/>
+		<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Down"/>
+		<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Disabled"/>
+		<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+	</Button>
+	
+	<Button name="TWLCollectionsNextPageButton" virtual="true">
+		<Size x="32" y="32" />
+		<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Up"/>
+		<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Down"/>
+		<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Disabled"/>
+		<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+	</Button>
+	
+	<Frame name="TWLCollectionsPagingFrameTemplate" mixin="TransmogWishListPagingMixin" virtual="true">
+		<!-- why 33? it makes it so the button textures display without rounding fuzziness on my screen -->
+		<Size x="33" y="32"/>
+		<Frames>
+			<Button parentKey="PrevPageButton" inherits="TWLCollectionsPrevPageButton">
+				<Anchors>
+					<Anchor point="LEFT" x="0" y="0" />
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():PreviousPage();
+					</OnClick>
+				</Scripts>
+			</Button>
+			<Button parentKey="NextPageButton" inherits="TWLCollectionsNextPageButton">
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.PrevButton" relativePoint="RIGHT" x="3" y="0" />
+				</Anchors>
+				<Scripts>
+					<OnClick>
+						self:GetParent():NextPage();
+					</OnClick>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="PageText" inherits="TWLCollectionsPageTextTemplate">
+					<Anchors>
+						<Anchor point="RIGHT" relativeKey="$parent.PrevButton" relativePoint="LEFT" x="-11" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnLoad method="OnLoad"/>
+		</Scripts>
+	</Frame>
+	
+	<Button name="TWLWishButtonTemplate" mixin="TWLWishButtonMixin" virtual="true" hidden="true" enableMouse="true">
+		<Size x="17" y="17"/>
+		<Anchors>
+			<Anchor point="TOPRIGHT"/>
+		</Anchors>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture file="Interface\Addons\TransmogWishList\Images\WishIcon" alpha="0.4" parentKey="texture">
+					<Size>
+						<AbsDimension x="15" y="15"/>
+					</Size>
+					<Anchors>
+						<Anchor point="CENTER" x="0" y="0"/>
+					</Anchors>
+					<TexCoords left="1" right="0" top="0" bottom="1" />
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnEnter method="OnEnter" />
+			<OnLeave method="OnLeave" />
+			<OnMouseDown method="OnMouseDown" />
+			<OnMouseUp method="OnMouseUp" />
+		</Scripts>
+	</Button>
+	
+	<Button name="TWLModButtonTemplate" mixin="TWLModButtonMixin" inherits="UIMenuButtonStretchTemplate"  virtual="true" hidden="false" enableMouse="true" parentArray="ModButtons">
+		<Size x="26" y="24"/>
+		<Anchors>
+			<Anchor point="CENTER" x="0" y="0"/>
+		</Anchors>
+		<Layers>
+			<Layer level="OVERLAY">
+				<Texture parentKey="SelectTexture" file="Interface\BUTTONS\CheckButtonGlow" alpha="0.6" alphaMode="ADD">
+					<Anchors>
+						<Anchor point="TOPLEFt" x="-5" y="5"/>
+						<Anchor point="BOTTOMRIGHT" x="5" y="-5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<HighlightTexture file="Interface\BUTTONS\UI-Common-MouseHilight" alphaMode="ADD"/>
+		<Scripts>
+			<OnClick method="OnClick" />
+			<OnEnter method="OnEnter" />
+			<OnLeave method="OnLeave" />
+		</Scripts>
+	</Button>
+	
+	<Frame name="TWLModButtonContainerTemplate" virtual="true" hidden="false">
+		<Size x="52" y="96" />
+		<Frames>
+			<Button parentKey="ModID1" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID2" inherits="TWLModButtonTemplate" text="1">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID1" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID3" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID2" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID4" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID3" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID5" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="LEFT" relativeKey="$parent.ModID1" relativePoint="RIGHT"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID6" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID5" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID7" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID6" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="ModID8" inherits="TWLModButtonTemplate">
+				<Anchors>
+					<Anchor point="TOP" relativeKey="$parent.ModID7" relativePoint="BOTTOM"/>
+				</Anchors>
+			</Button>
+		</Frames>
+	</Frame>
+	
+	<Frame name="TransmogWishlistButtonTemplate" virtual="true">
+		<Size x="250" y="46"/>
+		<Layers>
+			<Layer level="BACKGROUND">
+				<Texture atlas="PetList-ButtonBackground" parentKey="Background"/>
+			</Layer>
+			<Layer level="ARTWORK">
+				<FontString parentKey="name" inherits="GameFontNormal" justifyH="LEFT" maxLines="2">
+					<Size x="230" y="0"/>
+					<Anchors>
+						<Anchor point="LEFT" x="10" y="6"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="label" inherits="GameFontDisableSmallLeft" justifyH="LEFT" maxLines="1">
+					<Size x="190" y="0"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT" x="0" y="-2"/>
+					</Anchors>
+					<Color r="0.329" g="0.329" b="0.329"/>
+				</FontString>
+			</Layer>
+			<Layer level="OVERLAY">
+				<Texture parentKey="SelectedTexture" atlas="PetList-ButtonSelect" hidden="true"/>
+			</Layer>
+			<Layer level="HIGHLIGHT">
+				<Texture parentKey="HighlightTexture" atlas="PetList-ButtonHighlight" setAllPoints="true"/>
+			</Layer>
+		</Layers>
+		<Scripts>
+		</Scripts>
+	</Frame>
+	
+	<Frame name="TransmogWishlistShadowFrameTemplate" virtual="true">
+		<Layers>
+			<Layer level="ARTWORK" >
+				<FontString parentKey="Title" inherits="GameFontNormalLarge" text="你的清單是空的!"  justifyH="CENTER">
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+						<Anchor point="TOPRIGHT"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="Info" inherits="GameFontNormal" text="TWL_INFO1"  justifyH="LEFT">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Title" relativePoint="BOTTOMLEFT" y="-5"/>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.Title" relativePoint="BOTTOMRIGHT" y="-5"/>
+					</Anchors>
+				</FontString>
+			</Layer>	
+			<Layer level="BACKGROUND">
+				<Texture parentKey="BGTL" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Size x="20" y="20" />
+					<Anchors>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Title" relativePoint="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0" right="0.3" top="0" bottom="0.3" />
+				</Texture>
+				<Texture parentKey="BGTR" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Size x="20" y="20" />
+					<Anchors>
+						<Anchor point="BOTTOMLEFT" relativeKey="$parent.Title" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.7" right="1" top="0" bottom="0.3" />
+				</Texture>
+				<Texture parentKey="BGBL" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Size x="20" y="20" />
+					<Anchors>
+						<Anchor point="TOPRIGHT" relativeKey="$parent.Info" relativePoint="BOTTOMLEFT" y="-5"/>
+					</Anchors>
+					<TexCoords left="0" right="0.3" top="0.7" bottom="1" />
+				</Texture>
+				<Texture parentKey="BGBR" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Size x="20" y="20" />
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Info" relativePoint="BOTTOMRIGHT" y="-5"/>
+					</Anchors>
+					<TexCoords left="0.7" right="1" top="0.7" bottom="1" />
+				</Texture>
+				
+				<Texture parentKey="BGT" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BGTL" relativePoint="TOPRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BGTR" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+					<TexCoords left="0.3" right="0.7" top="0" bottom="0.3" />
+				</Texture>
+				<Texture parentKey="BGB" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BGBL" relativePoint="TOPRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BGBR" relativePoint="BOTTOMLEFT"/>
+					</Anchors>
+					<TexCoords left="0.3" right="0.7" top="0.7" bottom="1" />
+				</Texture>
+				<Texture parentKey="BGL" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BGTL" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BGBL" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0" right="0.3" top="0.3" bottom="0.7" />
+				</Texture>
+				<Texture parentKey="BGR" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BGTR" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BGBR" relativePoint="TOPRIGHT"/>
+					</Anchors>
+					<TexCoords left="0.7" right="1" top="0.3" bottom="0.7" />
+				</Texture>
+				<Texture parentKey="BGC" file="Interface\COMMON\icon-shadow" alpha="0.6">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.BGTL" relativePoint="BOTTOMRIGHT"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.BGBR" relativePoint="TOPLEFT"/>
+					</Anchors>
+					<TexCoords left="0.3" right="0.7" top="0.3" bottom="0.7" />
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+		</Scripts>
+	</Frame>
+
+	<Frame name="TransmogWishListFrame" mixin="TransmogWishListMixin" hidden="true" inherits="TWLCollectionsBackgroundTemplate" enableMouse="true">
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Name" inherits="Fancy24Font" maxLines="1" text="願望清單">
+					<!--<Size x="380" y="0"/>-->
+					<Anchors>
+						<Anchor point="TOP" x="0" y="-37"/>
+					</Anchors>
+					<Color r="1" g="0.82" b="0"/>
+					<Shadow>
+						<Offset x="1" y="-1" />
+						<Color r="0" g="0" b="0"/>
+					</Shadow>
+				</FontString>
+			</Layer>
+		</Layers>
+	
+		<Frames>
+			
+			<Frame parentKey="EmptyListInfo" inherits = "TransmogWishlistShadowFrameTemplate">
+				<Size x="250" y="200" />
+				<Anchors>
+					<Anchor point="CENTER" />
+				</Anchors>
+			</Frame>
+			
+			<Frame parentKey="modpickerOverlay" hidden="true" frameLevel="20" enableMouse="true">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativePoint="TOPLEFT"/>
+					<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture>
+							<Color r="0" g="0" b="0" a="0.75"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Frames>
+					<Frame name="TransmogWishListModPicker" mixin="TWLModPickerMixin" hidden="true" inherits="TWLCollectionsBackgroundTemplate" frameLevel="24">
+						<Anchors>
+							<Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="185" y="-115"/>
+							<Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="-185" y="120"/>
+						</Anchors>
+						
+						<Frames>
+							<DressUpModel parentKey="PreviewModel" inherits="TWLWardrobeItemsModelTemplate">
+								<Anchors>
+									<Anchor point="CENTER" x="0" y="-10"/>
+								</Anchors>
+								<Scripts>
+									<OnEnter />
+									<OnLeave />
+									<OnModelLoaded>
+										self:GetParent():OnModelLoaded();
+									</OnModelLoaded>
+								</Scripts>
+							</DressUpModel>
+							<Frame parentKey="ModList" inherits="TWLModButtonContainerTemplate">
+								<Anchors>
+									<Anchor point="LEFT" relativeKey="$parent.PreviewModel" relativePoint="RIGHT" x="10" y="-1"/>
+								</Anchors>
+							</Frame>
+							<Button parentKey="AcceptButton" inherits="UIPanelButtonTemplate" text="加入">
+								<Size x="75" y="25"/>
+								<Anchors>
+									<Anchor point="BOTTOM" x="-40" y="20"/>
+								</Anchors>
+								<Scripts>
+									<OnClick>
+										PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+										self:GetParent():AddButtonOnClick();
+									</OnClick>
+								</Scripts>
+							</Button>
+							<Button parentKey="CancelButton" inherits="UIPanelButtonTemplate" text="取消">
+								<Size x="75" y="25"/>
+								<Anchors>
+									<Anchor point="BOTTOM" x="40" y="20"/>
+								</Anchors>
+								<Scripts>
+									<OnClick>
+										PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+										self:GetParent():Close();
+									</OnClick>
+								</Scripts>
+							</Button>
+						</Frames>
+						
+						<Layers>
+							<Layer level="ARTWORK">
+								<FontString parentKey="Name" inherits="Fancy24Font" maxLines="1" text="選擇模組">
+									<Size x="380" y="0"/>
+									<Anchors>
+										<Anchor point="TOP" x="0" y="-20"/>
+									</Anchors>
+									<Color r="1" g="0.82" b="0"/>
+									<Shadow>
+										<Offset x="1" y="-1" />
+										<Color r="0" g="0" b="0"/>
+									</Shadow>
+								</FontString>
+								<FontString parentKey="Info" inherits="GameFontWhite" text="Text goes here">
+									<Size x="250" y="0"/>
+									<Anchors>
+										<Anchor point="TOP" relativeKey="$parent.Name" relativePoint="BOTTOM" y="-10"/>
+									</Anchors>
+								</FontString>
+								<FontString parentKey="SelectedText" inherits="GameFontWhite" text="Selected: 1">
+									<Size x="250" y="0"/>
+									<Anchors>
+										<Anchor point="TOP" relativeKey="$parent.PreviewModel" relativePoint="BOTTOM" y="-10"/>
+									</Anchors>
+								</FontString>
+							</Layer>
+						</Layers>
+						
+					</Frame>
+				</Frames>
+				<Scripts>
+					<OnMouseWheel>
+						<!-- This just needs to do nothing to steal mousewheel -->
+						self = self;
+					</OnMouseWheel>
+				</Scripts>
+			</Frame>
+		
+			<EditBox parentKey="AddBox" inherits="InputBoxInstructionsTemplate" mixin="TWLAddBoxMixin" autoFocus="false" letters="10">
+				<Size x="100" y="20"/>
+				<Anchors>
+					<Anchor point="TOPRIGHT" x="-70" y="-40"/>
+				</Anchors>
+				<Scripts>
+					<OnLoad method="OnLoad"/>
+					<OnEscapePressed method="OnEscapePressed"/>
+					<OnEnterPressed method="OnEnterPressed"/>
+					<OnTextChanged method="OnTextChanged"/>
+				</Scripts>
+			</EditBox>
+		
+			<Button name="$parentBackButton" parentKey="backButton" inherits="UIMenuButtonStretchTemplate" text="收藏">
+				<Size x="93" y="27"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" x="-75" y="42"/>
+				</Anchors>
+				<Layers>
+					<Layer level="ARTWORK">
+						<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+							<Size x="10" y="12"/>
+							<Anchors>
+								<Anchor point="LEFT" relativeKey="$parent.Left" relativePoint="LEFT" x="5"/>
+							</Anchors>
+							<TexCoords left="1" right="0" top="0" down="1"/>
+						</Texture>
+					</Layer>
+				</Layers>
+				<Scripts>
+					<OnClick> 
+						PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+						self:GetParent():Hide();
+					</OnClick>	
+				</Scripts>						
+			</Button>
+			
+			<Frame parentKey="PagingFrame" inherits="TWLCollectionsPagingFrameTemplate">
+				<Anchors>
+					<Anchor point="BOTTOM" x="22" y="38"/>
+				</Anchors>
+			</Frame>
+		
+			<DressUpModel parentArray="Models" parentKey="ModelR1C1" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOP" x="-238" y="-85"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR1C2" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C1" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR1C3" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C2" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR1C4" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C3" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR1C5" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C4" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR1C6" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C5" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C1" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR1C1" relativePoint="BOTTOMLEFT" x="0" y="-24"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C2" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C1" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C3" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C2" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C4" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C3" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C5" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C4" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR2C6" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C5" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C1" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR2C1" relativePoint="BOTTOMLEFT" x="0" y="-24"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C2" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR3C1" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C3" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR3C2" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C4" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR3C3" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C5" inherits="TWLWardrobeItemsModelTemplate">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR3C4" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+			<DressUpModel parentArray="Models" parentKey="ModelR3C6" inherits="TWLWardrobeItemsModelTemplate" hidden="false">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeKey="$parent.ModelR3C5" relativePoint="TOPRIGHT" x="16" y="0"/>
+				</Anchors>
+			</DressUpModel>
+		</Frames>
+
+		<Scripts>
+			<OnLoad method="OnLoad" />
+			<OnShow method="OnShow" />
+			<OnHide method="OnHide" />
+			<OnEnter method="OnEnter" />
+			<OnMouseWheel method="OnMouseWheel" />
+		</Scripts>
+	</Frame>
+	
+	<Button name="TransmogWishListButton" inherits="UIMenuButtonStretchTemplate" text="願望清單">
+		<Size x="93" y="27"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture parentKey="Icon" file="Interface\ChatFrame\ChatFrameExpandArrow">
+					<Size x="10" y="12"/>
+					<Anchors>
+						<Anchor point="RIGHT" relativeKey="$parent.Right" relativePoint="RIGHT" x="-5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnClick> 
+				PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+				TransmogWishListFrame:Show();
+			</OnClick>	
+		</Scripts>						
+	</Button>
+	
+	<Frame name="TransmogWishListPopUp" mixin="TWLPopUpMixin" hidden="true">
+		<Size x="500" y="20"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Text" inherits="GameFontWhiteSmall" maxLines="1" text="">
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="BGTop" file="Interface\COMMON\NameShadow">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Text" x="-20" y="5"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Text" relativePoint="TOPRIGHT" x="20" y="-5"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="1" bottom="0" />
+				</Texture>
+				<Texture parentKey="BGBot" file="Interface\COMMON\NameShadow">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Text" x="-20" y="-5"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Text" x="20" y="-5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Animations>
+			<AnimationGroup parentKey="FadeInAnim" looping="NONE" setToFinalAlpha="true">
+				<Alpha fromAlpha="0" toAlpha="1"  Duration="0.1" order="0" />
+				<Scripts>
+					<OnFinished>
+						self:GetParent().CollectedAnim:Play();
+					</OnFinished>
+				</Scripts>
+			</AnimationGroup>
+			<AnimationGroup parentKey="CollectedAnim" looping="NONE" setToFinalAlpha="true">
+				<Alpha fromAlpha="1" toAlpha="0"  Duration="1" order="0" startDelay="2" />
+				<Scripts>
+					<OnFinished>
+						self:GetParent():CollectedAnimOnEnd();
+					</OnFinished>
+				</Scripts>
+			</AnimationGroup>
+		</Animations>
+		<Scripts>
+			<OnShow method="OnShow"/>
+		</Scripts>
+	</Frame>
+	
+	<Frame name="TransmogWishListSetsPopUp" mixin="TWLPopUpMixin" hidden="false">
+		<Size x="300" y="20"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="Text" inherits="GameFontWhiteSmall" maxLines="1" text="">
+					<Anchors>
+						<Anchor point="CENTER"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+			<Layer level="BACKGROUND">
+				<Texture parentKey="BGTop" file="Interface\COMMON\NameShadow">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Text" x="-20" y="5"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Text" relativePoint="TOPRIGHT" x="20" y="-5"/>
+					</Anchors>
+					<TexCoords left="0" right="1" top="1" bottom="0" />
+				</Texture>
+				<Texture parentKey="BGBot" file="Interface\COMMON\NameShadow">
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeKey="$parent.Text" x="-20" y="-5"/>
+						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Text" x="20" y="-5"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Animations>
+			<AnimationGroup parentKey="FadeInAnim" looping="NONE" setToFinalAlpha="true">
+				<Alpha fromAlpha="0" toAlpha="1"  Duration="0.1" order="0" />
+				<Scripts>
+					<OnFinished>
+						self:GetParent().CollectedAnim:Play();
+					</OnFinished>
+				</Scripts>
+			</AnimationGroup>
+			<AnimationGroup parentKey="CollectedAnim" looping="NONE" setToFinalAlpha="true">
+				<Alpha fromAlpha="1" toAlpha="0"  Duration="1" order="0" startDelay="2" />
+				<Scripts>
+					<OnFinished>
+						self:GetParent():CollectedAnimOnEnd();
+					</OnFinished>
+				</Scripts>
+			</AnimationGroup>
+		</Animations>
+		<Scripts>
+			<OnShow method="OnShow"/>
+		</Scripts>
+	</Frame>
+	
+	<Button name="TWLSetsWishButton" mixin="TWLSetsWishButtonMixin" hidden="true" enableMouse="true">
+		<Size x="22" y="22"/>
+		<Layers>
+			<Layer level="ARTWORK">
+				<Texture file="Interface\Addons\TransmogWishList\Images\WishIcon" alpha="0.4" parentKey="texture">
+					<Size x="20" y="20"/>
+					<Anchors>
+						<Anchor point="CENTER" />
+					</Anchors>
+					<TexCoords left="1" right="0" top="0" bottom="1" />
+				</Texture>
+			</Layer>
+		</Layers>
+		<Scripts>
+			<OnEnter method="OnEnter" />
+			<OnLeave method="OnLeave" />
+			<OnMouseDown method="OnMouseDown" />
+			<OnMouseUp method="OnMouseUp" />
+		</Scripts>
+	</Button>
+	
+ </Ui>

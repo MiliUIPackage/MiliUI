@@ -1,0 +1,15 @@
+## Interface: 80300
+## Title: Rare Share: |cffff9956Vale of Eternal Blossoms
+## Notes: The Vale of Eternal Blossoms extension for the Rare Share addon (8.3)
+## Title-zhTW: |cff4DFF4D[地圖]|r 稀有怪分享-恆春谷
+## Notes-zhTW: 恆春谷稀有怪分享 (8.3)
+## Author: pffScrub
+## Version: v0.1.0
+## DefaultState: enabled
+## Dependencies: RareShare
+
+locales\enUS.lua
+locales\zhTW.lua
+locales\zhCN.lua
+
+RareShare_Vale of Eternal Blossoms.lua

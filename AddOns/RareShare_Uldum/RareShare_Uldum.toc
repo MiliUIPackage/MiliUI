@@ -1,0 +1,15 @@
+## Interface: 80300
+## Title: Rare Share: |cffc5ae87Uldum
+## Notes: The Uldum extension for the Rare Share addon (8.3)
+## Title-zhTW: |cff4DFF4D[地圖]|r 稀有怪分享-奧丹姆
+## Notes-zhTW: 奧丹姆稀有怪分享 (8.3)
+## Author: pffScrub
+## Version: v0.5.0
+## DefaultState: enabled
+## Dependencies: RareShare
+
+locales\enUS.lua
+locales\zhTW.lua
+locales\zhCN.lua
+
+RareShare_Uldum.lua

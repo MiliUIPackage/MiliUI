@@ -1,0 +1,16 @@
+## Interface: 80300
+## Title: Corruption Tooltips
+## Author: suspectz (Anayanka - Defias Brotherhood - EU)
+## Notes: Simple addon to show name and level of corruption on item tooltips.
+## Title-zhTW: |cffB973FF[裝備]|r 腐化特效提示
+## Notes-zhTW: Corruption Tooltips |在腐化裝備的滑鼠提示中顯示法術圖示、腐化特效名稱和等級。|n|cffffd200使用方法：|r從Esc>介面>插件>裝備-腐化提示，進行設定。
+## Version: 1.8.2
+## SavedVariables: CorruptionTooltipsDB
+
+Libs\Libs.xml
+Locales\Locales.xml
+
+CorruptionTooltips.lua
+
+Modules\Modules.xml
+Modules\Patches\Patches.xml

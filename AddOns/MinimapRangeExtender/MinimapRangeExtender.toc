@@ -1,0 +1,22 @@
+## Interface: 80300
+## Title: Minimap Range Extender
+## Notes: Show vignette icons sooner
+## Title-zhTW: |cff4DFF4D[地圖]|r 小地圖範圍加大
+## Notes-zhTW: Minimap Range Extender |n加大小地圖的偵測範圍，能夠早一點看到小地圖上的稀有怪和資源。
+## Version: v1-3-gb72c662
+## Author: Kemayo
+## eMail: kemayo at gmail dot com
+## X-Category: Interface Enhancements
+## X-Donate: PayPal:kemayo AT gmail DOT com
+## OptionalDependencies: HereBeDragons
+## SavedVariables: MinimapRangeExtenderDB
+## LoadOnDemand: 0
+
+## X-Embeds: HereBeDragons-2.0
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+addon.lua
+addon.xml
