@@ -4,7 +4,7 @@ function AuctionatorConfigNotLIFOFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigNotLIFOFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_NOT_LIFO_CATEGORY
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   self:SetupPanel()
 

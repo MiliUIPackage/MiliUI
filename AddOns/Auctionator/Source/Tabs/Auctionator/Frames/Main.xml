@@ -299,6 +299,9 @@
         <Anchors>
           <Anchor point="BOTTOMRIGHT" relativeKey="$parent" relativePoint="TOPRIGHT" y="7" x="-3" />
         </Anchors>
+        <KeyValues>
+          <KeyValue key="tooltipText" value="AUCTIONATOR_L_FULL_SCAN_TOOLTIP_TEXT" type="global" />
+        </KeyValues>
         <Scripts>
           <OnClick method="OnClick"/>
         </Scripts>
@@ -309,10 +312,7 @@
           <Anchor point="TOPRIGHT" relativeKey="$parent.ScanButton" relativePoint="TOPLEFT" x="-3" />
         </Anchors>
         <Scripts>
-          <OnClick>
-		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
-		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
-		  </OnClick>
+          <OnClick>InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)</OnClick>
         </Scripts>
       </Button>
     </Frames>

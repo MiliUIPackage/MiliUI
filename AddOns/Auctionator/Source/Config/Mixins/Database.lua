@@ -4,7 +4,7 @@ function AuctionatorConfigDatabaseFrameMixin:Init()
   Auctionator.Debug.Message("AuctionatorConfigDatabaseFrameMixin:OnLoad()")
 
   self.name = "Database"
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   -- self.Title:SetText("Database")
 

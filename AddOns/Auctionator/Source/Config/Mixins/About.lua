@@ -4,7 +4,7 @@ function AuctionatorConfigAboutFrameMixin:Init()
   Auctionator.Debug.Message("AuctionatorConfigAboutFrameMixin:OnLoad()")
 
   self.name = "About"
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   -- self.Title:SetText("About")
 

@@ -4,7 +4,7 @@ function AuctionatorConfigClearDataFrameMixin:Init()
   Auctionator.Debug.Message("AuctionatorConfigClearDataFrameMixin:OnLoad()")
 
   self.name = "Clear Data"
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   -- self.Title:SetText("Clear Data")
 

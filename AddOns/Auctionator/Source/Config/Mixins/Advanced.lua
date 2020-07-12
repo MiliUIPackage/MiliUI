@@ -4,7 +4,7 @@ function AuctionatorConfigAdvancedFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigAdvancedFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_ADVANCED_CATEGORY
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   self:SetupPanel()
 end

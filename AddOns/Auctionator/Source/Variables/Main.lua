@@ -19,8 +19,8 @@ function Auctionator.Variables.Initialize()
 
   Auctionator.Config.Initialize()
 
-  -- Auctionator.State.CurrentVersion = GetAddOnMetadata("Auctionator", "Version")
-  -- Auctionator.Utilities.PrintVersion()
+  Auctionator.State.CurrentVersion = GetAddOnMetadata("Auctionator", "Version")
+  Auctionator.Utilities.PrintVersion()
 
   Auctionator.Variables.InitializeDatabase()
   Auctionator.Variables.InitializeShoppingLists()
@@ -66,9 +66,9 @@ function Auctionator.Variables.InitializeDatabase()
   local count = 0
   for _ in pairs(Auctionator.State.LiveDB) do count = count + 1 end
 
-  -- Auctionator.Utilities.Message(
-  --  Auctionator.Locales.Apply("DATABASE_LOADED", count)
-  -- )
+  Auctionator.Utilities.Message(
+    Auctionator.Locales.Apply("DATABASE_LOADED", count)
+  )
 
   Auctionator.Database.Prune()
 end
@@ -79,4 +79,6 @@ function Auctionator.Variables.InitializeShoppingLists()
   end
 
   Auctionator.ShoppingLists.Lists = AUCTIONATOR_SHOPPING_LISTS
+  Auctionator.ShoppingLists.Prune()
+  AUCTIONATOR_SHOPPING_LISTS = Auctionator.ShoppingLists.Lists
 end

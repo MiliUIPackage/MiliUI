@@ -28,6 +28,12 @@ L["CANNOT_AUCTION"] = "无法拍卖"
 L["CONFIG_ADVANCED_CATEGORY"] = "Advanced"
 --[[Translation missing --]]
 L["CONFIG_ADVANCED_TEXT"] = "Only look here if you know what you're doing"
+--[[Translation missing --]]
+L["CONFIG_ALTERNATE_SCAN"] = "Use alternate slower scan mode by default"
+--[[Translation missing --]]
+L["CONFIG_ALTERNATE_SCAN_HEADER"] = "Alternate Scan Mode"
+--[[Translation missing --]]
+L["CONFIG_ALTERNATE_SCAN_TEXT"] = "The fast scan mode can cause disconnections on busy servers. This setting uses a slower and less likely to disconnect, scan method."
 L["CONFIG_AUCTION_TOOLTIP"] = "显示拍卖鼠标提示。"
 L["CONFIG_AUTO_LIST_SEARCH"] = "自动扫描购物清单中的物品。"
 L["CONFIG_AUTO_LIST_SEARCH_TOOLTIP_HEADER"] = "购物清单自动搜索"
@@ -53,7 +59,15 @@ L["CONFIG_NOT_LIFO_CATEGORY"] = "装备/非战斗宠物"
 --[[Translation missing --]]
 L["CONFIG_PET_TOOLTIP"] = "Show pet tooltips"
 --[[Translation missing --]]
+L["CONFIG_PROFILE_CATEGORY"] = "Profile"
+--[[Translation missing --]]
+L["CONFIG_PROFILE_TEXT"] = "Setup per-character settings."
+--[[Translation missing --]]
+L["CONFIG_PROFILE_TOGGLE"] = "Only apply settings to this character"
+--[[Translation missing --]]
 L["CONFIG_SCAN_SETTINGS"] = "Scan Settings"
+--[[Translation missing --]]
+L["CONFIG_SCANNING"] = "Full Scan Settings"
 L["CONFIG_SELLING_LIFO_HEADER"] = "出售"
 --[[Translation missing --]]
 L["CONFIG_SELLING_LIFO_TEXT"] = "Options to set undercutting percent or values and duration of most items. Without an undercut, these item categories group up with the last item added being the first to sell. Undercutting may not be necessary."
@@ -76,6 +90,20 @@ L["CRAFTED_LEVEL"] = "专业技能等级"
 L["CREATE"] = "创建"
 L["CREATE_LIST_DIALOG"] = "输入新购物清单的名称："
 L["DATABASE_LOADED"] = "数据库已载入 %s 种物品"
+--[[Translation missing --]]
+L["DAY_1"] = "Sunday"
+--[[Translation missing --]]
+L["DAY_2"] = "Monday"
+--[[Translation missing --]]
+L["DAY_3"] = "Tuesday"
+--[[Translation missing --]]
+L["DAY_4"] = "Wednesday"
+--[[Translation missing --]]
+L["DAY_5"] = "Thursday"
+--[[Translation missing --]]
+L["DAY_6"] = "Friday"
+--[[Translation missing --]]
+L["DAY_7"] = "Saturday"
 L["DEFAULT_AUCTION_DURATION"] = "默认拍卖时长"
 L["DELETE"] = "删除"
 L["DELETE_LIST_CONFIRM"] = "确定要删除 “%s” 吗？"
@@ -111,6 +139,30 @@ L["MAIL_TOOLTIP_TOOLTIP_TEXT"] = "在邮箱中物品鼠标提示显示拍卖助�
 L["MAX"] = "最大"
 L["MIN"] = "最小"
 --[[Translation missing --]]
+L["MONTH_1"] = "January"
+--[[Translation missing --]]
+L["MONTH_10"] = "October"
+--[[Translation missing --]]
+L["MONTH_11"] = "November"
+--[[Translation missing --]]
+L["MONTH_12"] = "December"
+--[[Translation missing --]]
+L["MONTH_2"] = "February"
+--[[Translation missing --]]
+L["MONTH_3"] = "March"
+--[[Translation missing --]]
+L["MONTH_4"] = "April"
+--[[Translation missing --]]
+L["MONTH_5"] = "May"
+--[[Translation missing --]]
+L["MONTH_6"] = "June"
+--[[Translation missing --]]
+L["MONTH_7"] = "July"
+--[[Translation missing --]]
+L["MONTH_8"] = "August"
+--[[Translation missing --]]
+L["MONTH_9"] = "September"
+--[[Translation missing --]]
 L["NAME"] = "Name"
 L["NEXT_SCAN_MESSAGE"] = "%s 分 %s 秒后可以开始完整扫描。"
 --[[Translation missing --]]
@@ -125,6 +177,10 @@ L["PET_TOOLTIP_TOOLTIP_HEADER"] = "Pet Tooltips"
 --[[Translation missing --]]
 L["PET_TOOLTIP_TOOLTIP_TEXT"] = "Shows Auctionator information for caged pets."
 L["PRICE"] = "价格"
+--[[Translation missing --]]
+L["PROFILE_TOGGLE_TOOLTIP_HEADER"] = "Enable per character settings"
+--[[Translation missing --]]
+L["PROFILE_TOGGLE_TOOLTIP_TEXT"] = "Makes changes to the Auctionator settings only affect this character."
 --[[Translation missing --]]
 L["QUANTITY"] = "Quantity"
 L["RENAME"] = "重命名"
@@ -160,6 +216,14 @@ L["SPLASH_830_NOT_DONE_1"] = "压价扫描"
 L["SPLASH_830_NOT_DONE_2"] = "价格历史"
 L["SPLASH_830_NOT_DONE_3"] = "高级出售功能"
 L["SPLASH_830_NOT_DONE_HEADER"] = "尚未完成（即将推出！）"
+--[[Translation missing --]]
+L["SPLASH_831_CANCELLING"] = "New Cancelling Tab"
+--[[Translation missing --]]
+L["SPLASH_831_CANCELLING_1"] = "Click once on any auction to cancel it."
+--[[Translation missing --]]
+L["SPLASH_831_CANCELLING_2"] = "Scan for undercuts for all your auctions by clicking \"Undercut Scan\""
+--[[Translation missing --]]
+L["SPLASH_831_CANCELLING_3"] = "Click \"Cancel Undercut\" repeatedly to cancel all undercut auctions."
 L["SPLASH_HIDE_MESSAGE"] = "下次更新前不再显示"
 L["SPLASH_SCREEN_HEADER"] = "欢迎使用拍卖助手Auctionator"
 L["STACK_AUCTION_INFO"] = "%s 个共 %s (每个 %s)"

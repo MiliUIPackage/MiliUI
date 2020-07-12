@@ -19,11 +19,11 @@
   <Script file="IsNotLIFOItemKey.lua"/>
   <Script file="RemoveTextColor.lua"/>
   <Script file="ItemKeyString.lua"/>
+  <Script file="PrettyDate.lua"/>
 
   <Script file="VerifyListTypes.lua"/>
   <Script file="ValidatePercentage.lua"/>
   <Script file="TableKeys.lua"/>
-  <Script file="ArrayIndex.lua"/>
 
   <Script file="Sorting.lua" />
 </Ui>
