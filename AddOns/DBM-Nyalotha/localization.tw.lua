@@ -1,4 +1,4 @@
---2020/02/04
+--2020/06/02
 --三皈依-暗影之月
 
 if GetLocale() ~= "zhTW" then return end
@@ -105,7 +105,8 @@ L:SetOptionLocalization({
 	Five				= "5人輪流 ",--Default
 	Six					= "6人輪流 ",
 	NoReset				= "無盡增長 ",
-	ArrowOnGlare		= "為 $spell:317874 顯示左/右方向箭頭"
+	ArrowOnGlare		= "為 $spell:317874 顯示左/右方向箭頭",
+	HideDead			= "在非傳奇難度隱藏資訊框架中死亡的玩家"
 })
 
 L:SetMiscLocalization({

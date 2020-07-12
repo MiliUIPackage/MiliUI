@@ -68,6 +68,8 @@ L.ModelSoundLong			= TOAST_DURATION_LONG
 
 L.ResizeOptions			 	= "尺寸調整選項"
 L.Button_ResetWindowSize	= "重設GUI視窗大小"
+L.Editbox_WindowWidth		= "GUI視窗寬度"
+L.Editbox_WindowHeight		= "GUI視窗高度"
 
 -- Tab: Raidwarning
 L.Tab_RaidWarning 			= "團隊警告"
@@ -254,20 +256,24 @@ L.EventFilterMythicMusic	= "不要在傳奇/傳奇+難度播放戰鬥音樂"
 
 -- Tab: Global Filter
 L.Panel_SpamFilter			= "全局禁用及過濾"
-L.Area_SpamFilter_Outgoing	= "全局禁用及過濾選項"
+L.Area_SpamFilter_Anounces	= "全局禁用及過濾通告選項"
 L.SpamBlockNoShowAnnounce	= "不顯示任何提示文字或播放警告音效"
 L.SpamBlockNoShowTgtAnnounce= "不顯示目標的提示文字或播放警告音效 (上列選項會覆蓋此選項)"
-L.SpamBlockNoSpecWarn		= "不顯示特別警告或播放特別警告音效"
-L.SpamBlockNoSpecWarnText	= "不顯示特別警告但仍允許播放語音包音效 (上列選項會覆蓋此選項)"
+L.SpamBlockNoSpecWarnText	= "不顯示特別警告文字"
+L.SpamBlockNoSpecWarnFlash	= "不顯示特別警告螢幕閃爍"
+L.SpamBlockNoSpecWarnSound	= "不播放特別警告音效 (如果在“語音警告”面板中啟用了語音包，則仍允許語音包)"
+
+L.Area_SpamFilter_Timers	= "全局禁用及過濾計時選項"
 L.SpamBlockNoShowTimers		= "不顯示計時器"
 L.SpamBlockNoShowUTimers	= "不顯示玩家送出的計時器(自訂/拉怪/休息)"
+L.SpamBlockNoCountdowns		= "不播放倒數音效"
+
+L.Area_SpamFilter_Misc		= "全局禁用及過濾雜項選項"
 L.SpamBlockNoSetIcon		= "不設置標記在目標上"
 L.SpamBlockNoRangeFrame		= "不顯示距離框架"
 L.SpamBlockNoInfoFrame		= "不顯示訊息框架"
 L.SpamBlockNoHudMap			= "不要顯示HudMap"
-L.SpamBlockNoNameplate		= "不要顯示名條光環 (完全禁用)"
-L.SpamBlockNoNameplateLines	= "不要顯示名條光環行 (光環圖示仍然顯示)"
-L.SpamBlockNoCountdowns		= "不播放倒數音效"
+L.SpamBlockNoNameplate		= "不要顯示名條光環 "
 L.SpamBlockNoYells			= "不送出大喊至頻道"
 L.SpamBlockNoNoteSync		= "不接受註記分享"
 L.SpamBlockNoReminders		= "不顯示任何登入，推薦、模組缺失或更新訊息"
@@ -279,8 +285,8 @@ L.SpamBlockNoRangeRestore	= "不因模組預設值還原距離框架的狀態"
 -- Tab: Spam Filter
 L.Area_SpamFilter			= "垃圾過濾選項"
 L.DontShowFarWarnings		= "不發送距離過遠的事件提示/計時器"
-L.StripServerName			= "隱藏警告和計時器的玩家伺服器名稱"
-L.FilterVoidFormSay			= "在虛空型態時不要發送位置/計數聊天喊話"
+L.StripServerName			= "隱藏警告、計時器、距離檢測以及資訊框架的玩家伺服器名稱"
+L.FilterVoidFormSay			= "在虛空型態時不要發送圖示/倒數計時聊天喊話(仍會發送標準聊天喊話)"
 
 L.Area_SpecFilter			= "專精過濾選項"
 L.FilterTankSpec			= "非坦克專精時過濾掉坦克專精的特定警告 (註:不建議玩家關閉此選項因大多數的坦克嘲諷警告都是預設開啟。)"
@@ -313,7 +319,6 @@ L.DisableSFX				= "首領戰鬥時禁用音效頻道"
 L.DisableCinematics			= "禁用遊戲中的過場動畫"
 L.OnlyFight					= "只有戰鬥中，每次動畫播放一次之後"
 L.AfterFirst				= "在副本中，每次動畫播放一次之後"
-L.Always					= ALWAYS
 L.CombatOnly				= "在任何戰鬥中停用"
 L.RaidCombat				= "只在首領戰鬥中停用"
 
