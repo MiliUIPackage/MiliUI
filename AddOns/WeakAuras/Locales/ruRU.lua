@@ -656,7 +656,8 @@ L["Officer"] = "Офицер"
 --[[Translation missing --]]
 L["Offset from progress"] = "Offset from progress"
 L["Offset Timer"] = "Смещение таймера (с.)"
-L["Older set IDs can be found on websites such as wowhead.com/item-sets"] = "Другие ID комплектов можно найти на ru.wowhead.com/item-sets"
+--[[Translation missing --]]
+L["Older set IDs can be found on websites such as wowhead.com/item-sets"] = "Older set IDs can be found on websites such as wowhead.com/item-sets"
 L["On Cooldown"] = "Перезаряжается"
 --[[Translation missing --]]
 L["On Taxi"] = "On Taxi"
@@ -721,7 +722,8 @@ L["Power Type"] = "Тип энергии"
 --[[Translation missing --]]
 L["Precision"] = "Precision"
 L["Preset"] = "Предустановка"
-L["Press Ctrl+C to copy"] = "Нажмите Ctrl+C, чтобы скопировать"
+--[[Translation missing --]]
+L["Press Ctrl+C to copy"] = "Press Ctrl+C to copy"
 L["Princess Huhuran"] = "Принцесса Хухуран"
 L["Print Profiling Results"] = "Вывести результаты профилирования"
 L["Profiling already started."] = "Профилирование уже запущено."

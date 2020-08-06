@@ -72,6 +72,8 @@ local L = WeakAuras.L
 	L["A Unit ID (e.g., party1)."] = "Una ID de unidad (ej., party1)."
 	L["Actions"] = "Acciones"
 	--[[Translation missing --]]
+	L["Add"] = "Add"
+	--[[Translation missing --]]
 	L["Add %s"] = "Add %s"
 	--[[Translation missing --]]
 	L["Add a new display"] = "Add a new display"
@@ -95,7 +97,6 @@ local L = WeakAuras.L
 	L["Add to group %s"] = "Add to group %s"
 	L["Add to new Dynamic Group"] = "Añadir al nuevo Grupo Dinámico"
 	L["Add to new Group"] = "Añadir al nuevo Grupo"
-	L["Add Trigger"] = "Añadir Disparador"
 	L["Addon"] = "Addon"
 	L["Addons"] = "Addons"
 	--[[Translation missing --]]
@@ -224,7 +225,6 @@ Si la duración de la animación es |cFF00CC0010%|r, y el disparador del aura es
 	--[[Translation missing --]]
 	L["Children:"] = "Children:"
 	L["Choose"] = "Escoger"
-	L["Choose Trigger"] = "Escoger Disparador"
 	L["Choose whether the displayed icon is automatic or defined manually"] = "Escoge si quieres que el icono mostrado sea definido automáticamente o manualmente"
 	--[[Translation missing --]]
 	L["Class"] = "Class"
@@ -341,7 +341,6 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED
 	L["Delete children and group"] = "Delete children and group"
 	--[[Translation missing --]]
 	L["Delete Entry"] = "Delete Entry"
-	L["Delete Trigger"] = "Borrar Disparador"
 	L["Desaturate"] = "Desaturar"
 	--[[Translation missing --]]
 	L["Description Text"] = "Description Text"
@@ -368,8 +367,6 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED
 	L["Done"] = "Done"
 	--[[Translation missing --]]
 	L["Don't skip this Version"] = "Don't skip this Version"
-	--[[Translation missing --]]
-	L["Down"] = "Down"
 	--[[Translation missing --]]
 	L["Drag to move"] = "Drag to move"
 	--[[Translation missing --]]
@@ -533,6 +530,8 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	--[[Translation missing --]]
 	L["Group key"] = "Group key"
 	L["Group Member Count"] = "Contador del Miembro de Grupo"
+	--[[Translation missing --]]
+	L["Group Options"] = "Group Options"
 	--[[Translation missing --]]
 	L["Group Role"] = "Group Role"
 	--[[Translation missing --]]
@@ -711,7 +710,6 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	--[[Translation missing --]]
 	L["Move Up"] = "Move Up"
 	L["Multiple Displays"] = "Múltiples auras"
-	L["Multiple Triggers"] = "Disparadores Múltiples"
 	L["Multiselect ignored tooltip"] = [=[
 |cFFFF0000Ignorado|r - |cFF777777Único|r - |cFF777777Múltiple|r
 Ésta opción no será usada al determinar cuándo se mostrará el aura]=]
@@ -1099,6 +1097,8 @@ Sólo un valor coincidente puede ser escogido.]=]
 	--[[Translation missing --]]
 	L["Trigger %s"] = "Trigger %s"
 	--[[Translation missing --]]
+	L["Trigger Combination"] = "Trigger Combination"
+	--[[Translation missing --]]
 	L["True"] = "True"
 	L["Type"] = "Tipo"
 	--[[Translation missing --]]
@@ -1118,8 +1118,6 @@ Sólo un valor coincidente puede ser escogido.]=]
 	--[[Translation missing --]]
 	L["UnitName Filter"] = "UnitName Filter"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "Ignorar animaciones de inicio y final: la animación principal se repetirá hasta que el aura se oculte."
-	--[[Translation missing --]]
-	L["Up"] = "Up"
 	--[[Translation missing --]]
 	L["Update %s by %s"] = "Update %s by %s"
 	L["Update Custom Text On..."] = "Actualizar Texto Personalizado En..."

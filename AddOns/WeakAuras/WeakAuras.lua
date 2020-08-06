@@ -2260,6 +2260,7 @@ if not WeakAuras.IsClassic() then
   loadFrame:RegisterEvent("PET_BATTLE_OPENING_START");
   loadFrame:RegisterEvent("PET_BATTLE_CLOSE");
   loadFrame:RegisterEvent("VEHICLE_UPDATE");
+  loadFrame:RegisterEvent("UPDATE_VEHICLE_ACTIONBAR")
   loadFrame:RegisterEvent("UPDATE_OVERRIDE_ACTIONBAR");
   loadFrame:RegisterEvent("CHALLENGE_MODE_COMPLETED")
   loadFrame:RegisterEvent("CHALLENGE_MODE_START")
@@ -7581,6 +7582,7 @@ end
 
 local ownRealm = select(2, UnitFullName("player"))
 function WeakAuras.UnitNameWithRealm(unit)
+  ownRealm = ownRealm or select(2, UnitFullName("player"))
   local name, realm = UnitFullName(unit)
   return name or "", realm or ownRealm or ""
 end

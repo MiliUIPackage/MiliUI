@@ -868,7 +868,8 @@ L["Power Type"] = "Ressourcentyp"
 --[[Translation missing --]]
 L["Precision"] = "Precision"
 L["Preset"] = "Standard"
-L["Press Ctrl+C to copy"] = "Drücke Strg-C zum Kopieren"
+--[[Translation missing --]]
+L["Press Ctrl+C to copy"] = "Press Ctrl+C to copy"
 --[[Translation missing --]]
 L["Princess Huhuran"] = "Princess Huhuran"
 --[[Translation missing --]]

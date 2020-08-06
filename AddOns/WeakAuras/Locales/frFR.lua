@@ -732,7 +732,8 @@ L["Officer"] = "Officier"
 --[[Translation missing --]]
 L["Offset from progress"] = "Offset from progress"
 L["Offset Timer"] = "Décalage de la durée"
-L["Older set IDs can be found on websites such as wowhead.com/item-sets"] = "Des ID de jeu plus anciennes peuvent être trouvés sur des sites Web tels que wowhead.com/item-sets"
+--[[Translation missing --]]
+L["Older set IDs can be found on websites such as wowhead.com/item-sets"] = "Older set IDs can be found on websites such as wowhead.com/item-sets"
 L["On Cooldown"] = "En recharge"
 --[[Translation missing --]]
 L["On Taxi"] = "On Taxi"
@@ -808,7 +809,8 @@ L["Power Type"] = "Type de puissance"
 --[[Translation missing --]]
 L["Precision"] = "Precision"
 L["Preset"] = "Préréglé"
-L["Press Ctrl+C to copy"] = "Appuyez sur Ctrl+C pour copier"
+--[[Translation missing --]]
+L["Press Ctrl+C to copy"] = "Press Ctrl+C to copy"
 --[[Translation missing --]]
 L["Princess Huhuran"] = "Princess Huhuran"
 --[[Translation missing --]]
