@@ -50,7 +50,7 @@
         </KeyValues>
       </Button>
 
-      <Button name="AuctionatorTabs_Auctionator" inherits="AuctionatorTabButtonTemplate" text="AUCTIONATOR_L_AUCTIONATOR">
+      <Button name="AuctionatorTabs_Auctionator" inherits="AuctionatorTabButtonTemplate" text="Auctionator">
         <KeyValues>
           <KeyValue key="displayMode" value="AuctionatorTabDisplayModes.Auctionator" type="global" />
           <KeyValue key="displayModeKey" value="Auctionator" type="string" />

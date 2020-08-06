@@ -200,7 +200,7 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["SPLASH_832_CUSTOMISATION_1"] = "The price history pane and the bag pane can be disabled"
   L["SPLASH_832_CUSTOMISATION_2"] = "The bag pane sections can start expanded (the default) or be configured to start collapsed"
   L["SPLASH_832_CUSTOMISATION_3"] = "The message in your chat telling you what auction you just created can be turned off"
-  L["SPLASH_832_CUSTOMISATION_4"] = "Gear/Pets have have their own undercutting and duration settings to configure, separate from the settings for most items"
+  L["SPLASH_832_CUSTOMISATION_4"] = "Gear/Pets have their own undercutting and duration settings to configure, separate from the settings for most items"
   L["SPLASH_832_CUSTOMISATION_5"] = "The shortcuts to buy auctions, cancel auctions and select an item from your bag can be changed"
 
   L["SPLASH_HIDE_MESSAGE"] = "Do not show until next update"
@@ -291,7 +291,9 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_SELLING_ICON_SIZE"] = "Bag icon size (reload required)"
   L["CONFIG_SELLING_ICON_SIZE_TOOLTIP_HEADER"] = "Size of Icons"
   L["CONFIG_SELLING_ICON_SIZE_TOOLTIP_TEXT"] = "This lets you make the bag item icons in the selling tab larger (up to 50) or smaller (down to 10). Default size is 42."
+  L["CONFIG_SELLING_RESET_HIDDEN"] = "Restore hidden items"
   L["CONFIG_BAG"] = "Bag"
+  L["HIDE"] = "Hide"
 
   L["LEFT_CLICK"] = "Left Click"
   L["RIGHT_CLICK"] = "Right Click"
@@ -301,8 +303,12 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["SHIFT_RIGHT_CLICK"] = "Shift Right Click"
   L["DISABLED"] = "Disabled"
   L["AUCTIONATOR"] = "Auctionator"
-  
-  L["ADDON_OPTIONS"] = "Auctionator"
+
+  L["DEFAULT_QUANTITY"] = "Default Quantity"
+
+  L["CONFIG_SELLING_DEFAULT_QUANTITY_SUFFIX"] = "Set to 0 for maximum amount"
+  L["CONFIG_SELLING_DEFAULT_QUANTITY_TOOLTIP_HEADER"] = "Default Posting Quantity"
+  L["CONFIG_SELLING_DEFAULT_QUANTITY_TOOLTIP_TEXT"] = "This lets you change the default amount used when posting an item. Set this to 0 to use the maximum possible amount."
 
   return L
 end

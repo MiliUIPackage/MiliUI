@@ -4,7 +4,7 @@ function AuctionatorConfigTooltipsFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigTooltipsFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_TOOLTIPS_CATEGORY
-  self.parent = AUCTIONATOR_L_ADDON_OPTIONS
+  self.parent = "Auctionator"
 
   self:SetupPanel()
 end

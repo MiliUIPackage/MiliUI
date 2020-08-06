@@ -1,6 +1,6 @@
 function Auctionator.Utilities.Message(message)
   print(
-    LIGHTBLUE_FONT_COLOR:WrapTextInColorCode(AUCTIONATOR_L_AUCTIONATOR .. ": ")
+    LIGHTBLUE_FONT_COLOR:WrapTextInColorCode("Auctionator: ")
     .. message
   )
 end
