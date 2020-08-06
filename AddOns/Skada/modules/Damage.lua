@@ -571,7 +571,7 @@ Skada:AddLoadableModule("Damage", nil, function(Skada, L)
 	function mod:OnEnable()
 		dpsmod.metadata = 		{showspots = true, tooltip = dps_tooltip, click1 = playermod, click2 = damagedmod, icon = "Interface\\Icons\\Inv_throwingaxe_02"}
 		playermod.metadata = 	{tooltip = player_tooltip, click1 = spellmod, columns = {Damage = true, Percent = true}}
-		mod.metadata = 			{post_tooltip = damage_tooltip, showspots = true, click1 = playermod, click2 = damagedmod, columns = {Damage = true, DPS = true, Percent = true}, icon = "Interface\\Icons\\Inv_throwingaxe_01"}
+		mod.metadata = 			{post_tooltip = damage_tooltip, showspots = true, click1 = playermod, click2 = damagedmod, columns = {Damage = true, DPS = true, Percent = false}, icon = "Interface\\Icons\\Inv_throwingaxe_01"}
 		damagedmod.metadata = 	{columns = {Damage = true, Percent = true}}
 		spellmod.metadata =		{tooltip = spellmod_tooltip, columns = {Damage = true, Percent = true}}
 

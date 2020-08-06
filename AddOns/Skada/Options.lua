@@ -10,8 +10,8 @@ Skada.windowdefaults = {
 	bartexture="BantoBar",
 	barfont="Accidental Presidency",
 	barfontflags="",
-	barfontsize=13,
-	barheight=18,
+	barfontsize=14,
+	barheight=20,
 	barwidth=240,
 	barorientation=1,
 	barcolor = {r = 0.3, g = 0.3, b = 0.8, a=1},
@@ -26,7 +26,7 @@ Skada.windowdefaults = {
 	roleicons = false,
     showself = true,
 
-	buttons = {menu = true, reset = true, report = true, mode = true, segment = true},
+	buttons = {menu = true, reset = true, report = true, mode = false, segment = false},
 
 	title = {textcolor = {r = 0.9, g = 0.9, b = 0.9, a = 1}, height = 20, font="Accidental Presidency", fontsize=13, texture="Armory", bordercolor = {r=0,g=0,b=0,a=1}, bordertexture="None", borderthickness=2, color = {r=0.3,g=0.3,b=0.3,a=1}, fontflags = ""},
 	background = {
@@ -53,7 +53,10 @@ Skada.windowdefaults = {
 	titleset = true,
 
 	set = "current",
-	mode = nil,
+	mode = L["Damage"],
+	x = 0,
+	y = 20,
+	point = "BOTTOMRIGHT",
 
 	display = "bar",
 	snapto = true,
@@ -103,7 +106,7 @@ Skada.defaults = {
 		feed = "",
 		showtotals = false,
         autostop = false,
-        sortmodesbyusage = true,
+        sortmodesbyusage = false,
         updatefrequency = 0.25,
 
 		modules = {},
@@ -172,7 +175,7 @@ local newdisplay = "bar"
 
 Skada.options = {
 	type="group",
-	name="Skada",
+	name=L["Skada"],
 	plugins = {},
 	args={
 			d = {
