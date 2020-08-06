@@ -1,4 +1,4 @@
-Copyright (c) 2008-2018 JJSheets, StormFX.  All rights reserved.
+Copyright (c) 2008 JJSheets, 2009-2019 StormFX. All rights reserved.
 
 The contents of this software (the "add-on"), excluding third-party resources,
 fall under the aforementioned copyright. The author(s) of this add-on hereby grant
@@ -8,7 +8,7 @@ the following permissions:
   without restrictions.
 
 * Permission to modify or reuse portions of this add-on and to distribute such
-  derivative works as long as the name of this add-on and/or its authors are not
+  derivative works as long as the name of this add-on and/or its author(s) are not
   used in the works in such a way that conflicts with this add-on or its author(s),
   outside of attributing credit.
 
