@@ -73,6 +73,7 @@ L["Configure the scale of the bar."] = "Configurar la escala de la barra."
 L["Configure the Status Tracking Bar"] = "Configurar la barra de seguimiento de estado"
 L["Configure the VehicleBar"] = "Configurar la barra de vehículos."
 L["Configure the XP Bar"] = "Configurar la barra de XP"
+L["Configure the Zone Ability Bar"] = "Configurar la barra de habilidad de zona"
 L["Copy Conditionals"] = "Copiar condiciones"
 L["Create a copy of the auto-generated conditionals in the custom configuration as a base template."] = "Crear una copia de las condiciones generadas automáticamente en la configuración personalizada como plantilla."
 L["CTRL"] = "Ctrl"
@@ -108,6 +109,7 @@ L["Enable the use of a custom condition, disabling all of the above."] = "Habili
 L["Enable the use of the Blizzard Vehicle UI, hiding any Bartender4 bars in the meantime."] = "Habilitar el uso de la interfaz de vehículos de Blizzard, ocultando cualquier barra de Bartender4 mientras tanto (configurable en cada barra)."
 L["Enable the Vehicle Bar"] = "Habilitar la barra de vehículos"
 L["Enable the XP Bar"] = "Activar la barra de XP"
+L["Enable the Zone Ability Bar"] = "Activar la barra de habilidad de zona"
 L["Enable/Disable the bar."] = "Habilitar/deshabilitar la barra."
 L["Enabled"] = "Habilitada"
 L["Extra Action Bar"] = "Barra de acción extra"
@@ -256,5 +258,6 @@ Example: [form:1]9;0]=] ] = [=[Puede emplear cualquier condición de macro en el
 Ejemplo: [form:1]9,0]=]
 L["You can use the preset defaults as a starting point for setting up your interface. Just choose your preferences here and click the button below to reset your profile to the preset default. Note that not all defaults show all bars."] = "Puedes usar los valores preestablecidos como un punto de comienzo para configurar tu interfaz. Solo elige tus preferencias aquí y haz clic en el botón de más abajo para reiniciar tu perfil al perfil preestablecido. Ten en cuenta que no todos los valores preestablecidos muestran todas las barras."
 L["You have to exit the vehicle in order to be able to change the Vehicle UI settings."] = "Tienes que salir del vehículo a fin de poder cambiar la configuración de la interfaz de usuario del vehículo."
+L["Zone Ability Bar"] = "Barra de habilidad de zona"
 L["Zoom"] = "Zoom"
 

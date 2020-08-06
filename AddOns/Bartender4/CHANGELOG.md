@@ -1,10 +1,11 @@
 # Bartender4
 
-## [4.8.8](https://github.com/Nevcairiel/Bartender4/tree/4.8.8) (2019-09-25)
-[Full Changelog](https://github.com/Nevcairiel/Bartender4/compare/4.8.7...4.8.8)
+## [4.9.0](https://github.com/Nevcairiel/Bartender4/tree/4.9.0) (2020-01-27)
+[Full Changelog](https://github.com/Nevcairiel/Bartender4/compare/4.8.9...4.9.0)
 
-- Update TOC for 8.2.5  
-- Also re-layout the MicroMenu after taking it back over  
-- Add a few additional hooks to restore the MicroMenu to its original state  
-    Hopefully this can reduce the impact of other addons also messing with  
-    the MainMenuBar  
+- Update TOC for 8.3  
+- Update Pet Bar on PLAYER\_MOUNT\_DISPLAY\_CHANGED and PLAYER\_TARGET\_CHANGED  
+    The default UI updates the pet bar on these events, so make sure we  
+    follow suit  
+- Update the pet bar on PET\_BAR\_UPDATE\_USABLE  
+    Max fix issue #11  

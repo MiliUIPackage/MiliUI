@@ -211,7 +211,7 @@ L["Three bars stacked"] = "Tre barre sovrapposte"
 L["Toggle actions on key press instead of release"] = "Esegui immediatamente l'azione schiacciando il tasto invence di aspettare il suo rilascio"
 L[ [=[Toggle Button Zoom
 For more style options you need to install Masque]=] ] = [=[Attiva il Pulsante dello Zoom
-Per maggiori scelte stilistiche devi installare ButtonFacade]=]
+Per maggiori scelte stilistiche devi installare Masque]=]
 L["Toggle the button grid."] = "Attiva la griglia dei pulsanti."
 L["Toggle the use of the modifier-based focus-cast functionality."] = "Abilita l'uso del modificatore basato sulle funzionalità del lancio sul focus."
 L["Toggle the use of the modifier-based self-cast functionality."] = "Abilita l'uso del modificatore basato sulla funzionalità di lancio su se stessi."
