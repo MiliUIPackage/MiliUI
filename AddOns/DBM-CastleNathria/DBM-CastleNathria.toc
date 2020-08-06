@@ -1,0 +1,32 @@
+## Interface: 80300
+## X-Min-Interface: 80300
+## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0CastleNathria|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0納撒亞城|r
+## Author: MysticalOS
+## LoadOnDemand: 1
+## RequiredDeps: DBM-Core
+## SavedVariables: DBMCastleNathria_AllSavedVars
+## SavedVariablesPerCharacter: DBMCastleNathria_SavedStats
+## X-DBM-Mod: 1
+## X-DBM-Mod-Type: RAID
+## X-DBM-Mod-Category: SHADOWLANDS
+## X-DBM-Mod-Has-Mythic : 1
+## X-DBM-Mod-Name: Castle Nathria
+## X-DBM-Mod-Name-zhTW: 納撒亞城
+## X-DBM-Mod-Sort: 308
+## X-DBM-Mod-MapID: 2296
+## X-DBM-Mod-MinCoreRevision: 17286
+## X-DBM-Mod-MinExpansion: 8
+localization.en.lua
+localization.tw.lua
+Shriekwing.lua
+HungeringDestroyer.lua
+AltimortheHuntsman.lua
+ArtificerXyMox.lua
+Kaelthas.lua
+LadyInervaDarkvein.lua
+TheCouncilofBlood.lua
+Sludgefist.lua
+StoneborneGenerals.lua
+SireDenathrius.lua
+CastleNathriaTrash.lua

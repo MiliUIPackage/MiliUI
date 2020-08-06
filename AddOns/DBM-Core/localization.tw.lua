@@ -305,6 +305,8 @@ L.NOTSAFE				= "不安全"
 L.SHIELD					= "護盾"
 L.PILLAR							= "柱子"
 L.INCOMING						= "%s 來了"
+L.BOSSTOGETHER				= "首領靠近"
+L.BOSSAPART					= "首領分開"
 --Common Locals end
 
 L.BREAK_USAGE					= "休息時間不可以長過60分鐘。請確定您輸入的時間是分鐘而不是秒。"
@@ -618,8 +620,9 @@ L.LAG_FOOTER					= "無回應:%s"
 
 
 --LDB
-L.LDB_TOOLTIP_HELP1	= "左鍵點擊開啟 "..L.DBM
-L.LDB_TOOLTIP_HELP2	= "右鍵點擊以切換靜默模式"
+L.LDB_TOOLTIP_HELP1					= "點擊開啟" .. L.DBM
+L.LDB_TOOLTIP_HELP2					= "Alt-右鍵點擊以切換無聲模式"
+L.SILENTMODE_IS                     = "無聲模式是 "
 L.LDB_LOAD_MODS		= "載入首領模組"
 L.LDB_CAT_OTHER		= "其他首領模組"
 L.LDB_CAT_GENERAL		= "一般"

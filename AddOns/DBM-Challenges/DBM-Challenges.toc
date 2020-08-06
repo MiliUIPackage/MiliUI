@@ -1,7 +1,7 @@
 ﻿## Interface: 80300
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Challenges|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0挑戰(含幻象)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0挑戰|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0白虎试练场|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
@@ -11,20 +11,20 @@
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: SCENARIO
 ## X-DBM-Mod-Category: BFA
-## X-DBM-Mod-SubCategories: Proving Grounds,Legion Artifacts, BfA Visions
-## X-DBM-Mod-SubCategories-zhTW: 暗影之境,試煉場,軍臨天下神兵,BfA幻象
+## X-DBM-Mod-SubCategories: Shadowlands,Battle for Azeroth,Legion,Proving Grounds
+## X-DBM-Mod-SubCategories-zhTW: 暗影之境,BfA幻象,軍臨天下神兵,試煉場
 ## X-DBM-Mod-Name: Challenges
-## X-DBM-Mod-Name-zhTW: 挑戰(含幻象)
+## X-DBM-Mod-Name-zhTW: 挑戰
 ## X-DBM-Mod-Name-zhCN: 白虎试练场
-## X-DBM-Mod-Name-ruRU: Арена испытаний
 ## X-DBM-Mod-Sort: 416
 ## X-DBM-Mod-MapID: 1148, 1698, 1710, 1703, 1702, 1684, 1673, 1616, 2212, 2213, 2215, 2162
-## X-DBM-Mod-MinCoreRevision: 16130
+## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 61621
-## Version: r128-2-g3d77018
+## Version: r131
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
+Shadowlands\Torghast.lua
 BfA\NzothVisionStormwind.lua
 BfA\NzothVisionOrgrimmar.lua
 Legion\DPSFelTotem.lua

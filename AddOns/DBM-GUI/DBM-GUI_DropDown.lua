@@ -13,7 +13,7 @@ function OptionsList_OnLoad(self, ...)
 	end
 end
 
-local tabFrame1 = CreateFrame("Frame", "DBM_GUI_DropDown", DBM_GUI_OptionsFrame, DBM:IsAlpha() and "BackdropTemplate,OptionsFrameListTemplate" or "OptionsFrameListTemplate")
+local tabFrame1 = CreateFrame("Frame", "DBM_GUI_DropDown", _G["DBM_GUI_OptionsFrame"], DBM:IsAlpha() and "BackdropTemplate,OptionsFrameListTemplate" or "OptionsFrameListTemplate")
 tabFrame1:Hide()
 tabFrame1:SetFrameStrata("TOOLTIP")
 tabFrame1.offset = 0
@@ -43,6 +43,9 @@ tabFrame1List:SetScript("OnVerticalScroll", function(self, offset)
 	tabFrame1.offset = math.floor((offset / 16) + 0.5)
 	tabFrame1:Refresh()
 end)
+if BackdropTemplateMixin then
+	Mixin(tabFrame1List, BackdropTemplateMixin)
+end
 tabFrame1List:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.6)
 
 local tabFrame1ScrollBar = _G[tabFrame1List:GetName() .. "ScrollBar"]
@@ -71,7 +74,6 @@ tabFrame1:SetScript("OnMouseWheel", function(_, delta)
 end)
 
 local ClickFrame = CreateFrame("Button", nil, UIParent)
-ClickFrame:SetAllPoints(DBM_GUI_OptionsFrame)
 ClickFrame:SetFrameStrata("TOOLTIP")
 ClickFrame:RegisterForClicks("AnyDown")
 ClickFrame:SetScript("OnClick", function()
@@ -84,7 +86,7 @@ end)
 
 tabFrame1.buttons = {}
 for i = 1, 10 do
-	local button = CreateFrame("Button", tabFrame1:GetName() .. "Button" .. i, tabFrame1, "UIDropDownMenuButtonTemplate")
+	local button = CreateFrame("Button", tabFrame1:GetName() .. "Button" .. i, tabFrame1, DBM:IsAlpha() and "BackdropTemplate,UIDropDownMenuButtonTemplate" or "UIDropDownMenuButtonTemplate")
 	_G[button:GetName() .. "Check"]:Hide()
 	_G[button:GetName() .. "UnCheck"]:Hide()
 	button:SetFrameLevel(tabFrame1ScrollBar:GetFrameLevel() - 1)

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2375, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200605131836")
+mod:SetRevision("20200715040124")
 mod:SetCreatureID(158041)
 mod:SetEncounterID(2344)
 mod:SetZone()
@@ -97,7 +97,6 @@ local specWarnCollapsingMindscape			= mod:NewSpecialWarningMoveTo(317292, nil, n
 ----N'Zoth
 local specWarnMindgrasp						= mod:NewSpecialWarningSpell(315772, nil, nil, nil, 2, 2)
 local specWarnParanoia						= mod:NewSpecialWarningMoveTo(309980, nil, nil, nil, 1, 2)
-local yellParanoia							= mod:NewShortYell(309980)
 local yellParanoiaRepeater					= mod:NewIconRepeatYell(309980, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell)--using custom yell text "%s" because of custom needs (it has to use not only icons but two asci emoji
 local specWarnEternalTorment				= mod:NewSpecialWarningCount(318449, nil, 311383, nil, 2, 2)
 ----Basher Tentacle
@@ -385,7 +384,7 @@ local function stupefyingGlareLoop(self)
 				direction = DBM_CORE_L.RIGHT--ie Clockwise
 			end
 		end
-	else--Not mythic
+	elseif self:IsLFR() then--LFR
 		--Right, Left, Left (for LFR at least), assumed rest same since timers are
 		--TODO, verify normal and heroic one day, or maybe users will at least report it if it's wrong
 		if self.vb.stupefyingGlareCount == 1 then
@@ -413,7 +412,7 @@ local function stupefyingGlareLoop(self)
 			elseif direction == DBM_CORE_L.LEFT then
 				direction = DBM_CORE_L.RIGHT
 			end
-		else
+		elseif self:IsLFR() then
 			--Right, Left, Left for LFR at least, assumed rest same since timers are
 			--TODO, verify normal and heroic one day, or maybe users will at least report it if it's wrong
 			if self.vb.stupefyingGlareCount == 1 or self.vb.stupefyingGlareCount == 2 then
@@ -429,7 +428,7 @@ end
 
 local updateInfoFrame
 do
-	local floor, tsort = math.floor, table.sort
+	local twipe, tsort = table.wipe, table.sort
 	local lines = {}
 	local sortedLines = {}
 	local tempLines = {}
@@ -441,17 +440,19 @@ do
 		sortedLines[#sortedLines + 1] = key
 	end
 	updateInfoFrame = function()
-		table.wipe(lines)
-		table.wipe(sortedLines)
-		table.wipe(tempLines)
-		table.wipe(tempLinesSorted)
+		twipe(lines)
+		twipe(sortedLines)
+		twipe(tempLines)
+		twipe(tempLinesSorted)
 		--Build Sanity Table
 		for uId in DBM:GetGroupMembers() do
-			if select(4, UnitPosition(uId)) == currentMapId and (difficultyName == "mythic" or not mod.Options.HideDead or not UnitIsDeadOrGhost(uId)) then
-				local unitName = DBM:GetUnitFullName(uId)
-				local count = UnitPower(uId, ALTERNATE_POWER_INDEX)
-				tempLines[unitName] = count
-				tempLinesSorted[#tempLinesSorted + 1] = unitName
+			if select(4, UnitPosition(uId)) == currentMapId then
+				if (difficultyName == "mythic" or not mod.Options.HideDead or not UnitIsDeadOrGhost(uId)) then
+					local unitName = DBM:GetUnitFullName(uId)
+					local count = UnitPower(uId, ALTERNATE_POWER_INDEX)
+					tempLines[unitName] = count
+					tempLinesSorted[#tempLinesSorted + 1] = unitName
+				end
 			end
 		end
 		--Sort it by lowest sorted to top
@@ -463,12 +464,6 @@ do
 		end
 		return lines, sortedLines
 	end
-end
-
---/run DBM:GetModByName("2375"):Test()
-function mod:Test()
-	specWarnStupefyingGlare:Show(1)
-	warnStupefyingGlareSoon:Countdown(10, 5)
 end
 
 function mod:OnCombatStart(delay)
@@ -874,23 +869,21 @@ function mod:SPELL_AURA_APPLIED(args)
 			elseif icon == 10 then
 				icon = "(•_•)"
 			end
-			if ParanoiaTargets[#ParanoiaTargets-1] == UnitName("player") then
+			if ParanoiaTargets[#ParanoiaTargets-1] == playerName then
 				specWarnParanoia:Show(ParanoiaTargets[#ParanoiaTargets])
 				specWarnParanoia:Play("gather")
 				playerIsInPair = true
-			elseif ParanoiaTargets[#ParanoiaTargets] == UnitName("player") then
+			elseif ParanoiaTargets[#ParanoiaTargets] == playerName then
 				specWarnParanoia:Show(ParanoiaTargets[#ParanoiaTargets-1])
 				specWarnParanoia:Play("gather")
 				playerIsInPair = true
 			end
-			if playerIsInPair then--Only repeat yell on mythic and mythic+
+			if playerIsInPair then
 				self:Unschedule(paranoiaYellRepeater)
 				if type(icon) == "number" then icon = DBM_CORE_L.AUTO_YELL_CUSTOM_POSITION:format(icon, "") end
 				self:Schedule(2, paranoiaYellRepeater, self, icon)
+				yellParanoiaRepeater:Yell(icon)
 			end
-		end
-		if args:IsPlayer() then
-			yellParanoia:Yell()
 		end
 	elseif spellId == 313400 and args:IsDestTypePlayer() and self:CheckDispelFilter() and self:AntiSpam(3, 3) then
 		specWarnCorruptedMindDispel:Show(args.destName)
@@ -926,7 +919,6 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnEventHorizon:Show()
 			specWarnEventHorizon:Play("defensive")
 		else
-			local uId = DBM:GetRaidUnitId(args.destName)
 			if self:IsTank() then
 				specWarnEventHorizonSwap:Show(args.destName)
 				specWarnEventHorizonSwap:Play("tauntboss")
@@ -1128,7 +1120,7 @@ function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 				end
 			elseif cid == 162933 then--Thought Harvester
 				self.vb.harvestersAlive = self.vb.harvestersAlive + 1
-				if self:IsMythic() and self:AntiSpam(5, 1) or self:AntiSpam(3, 1) then
+				if self:IsMythic() and self:AntiSpam(6, 1) or self:AntiSpam(3, 1) then
 					self.vb.harvesterCount = self.vb.harvesterCount + 1
 					if self.Options.SpecWarnej21308switch then
 						specWarnThoughtHarvester:Show(self.vb.harvesterCount)

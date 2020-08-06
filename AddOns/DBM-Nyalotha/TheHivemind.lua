@@ -1,11 +1,12 @@
 local mod	= DBM:NewMod(2372, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200524143937")
+mod:SetRevision("20200727023025")
 mod:SetCreatureID(157253, 157254)--Ka'zir and Tek'ris
 mod:SetEncounterID(2333)
 mod:SetZone()
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)--Refine when max number of mythic Volatile Eruption is known
+mod:SetBossHPInfoToHighest()
 mod:SetHotfixNoticeRev(20191109000000)--2019, 11, 09
 mod:SetMinSyncRevision(20191109000000)
 mod.respawnTime = 29
@@ -70,7 +71,6 @@ local timerDronesCD							= mod:NewNextCountTimer(120, 312868, nil, nil, nil, 1,
 --local berserkTimer						= mod:NewBerserkTimer(600)
 
 mod:AddRangeFrameOption(6, 307232)--While 4 yards is supported, we want wiggle room
---mod:AddInfoFrameOption(308360, false)
 mod:AddSetIconOption("SetIconOnAdds", 307637, true, true, {1, 2, 3, 4, 5, 6})
 mod:AddNamePlateOption("NPAuraOnVolatileEruption", 307583)
 mod:AddNamePlateOption("NPAuraOnAcceleratedEvolution", 307637)
@@ -205,9 +205,6 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnCombatEnd()
---	if self.Options.InfoFrame then
---		DBM.InfoFrame:Hide()
---	end
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
@@ -232,11 +229,11 @@ function mod:SPELL_CAST_START(args)
 		warnDarkRecon:Show()
 		timerDarkReconCast:Start()
 	elseif spellId == 307213 then
-		specWarnTekrissHiveControl:Show(L.Together)
+		specWarnTekrissHiveControl:Show(DBM_CORE_L.BOSSTOGETHER)
 		specWarnTekrissHiveControl:Play("phasechange")
 		timerKazirsHiveControlCD:Start(self:IsMythic() and 73.9 or self:IsHeroic() and 92.4 or 98.7)
 	elseif spellId == 307201 then
-		specWarnKazirsHiveControl:Show(L.Apart)
+		specWarnKazirsHiveControl:Show(DBM_CORE_L.BOSSAPART)
 		specWarnKazirsHiveControl:Play("phasechange")
 		timerTekrissHiveControlCD:Start(self:IsMythic() and 73.9 or self:IsHeroic() and 92.4 or 98.7)
 	elseif spellId == 310340 then

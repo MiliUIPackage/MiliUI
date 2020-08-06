@@ -4,7 +4,7 @@ local CL	= DBM_CORE_L
 local DBM = DBM
 local CreateFrame = CreateFrame
 
-local frame = DBM_GUI_OptionsFrame
+local frame = _G["DBM_GUI_OptionsFrame"]
 table.insert(_G["UISpecialFrames"], frame:GetName())
 frame:SetFrameStrata("DIALOG")
 if DBM.Options.GUIPoint then
@@ -48,7 +48,7 @@ frame:SetScript("OnShow", function(self)
 	end
 end)
 frame:SetScript("OnHide", function()
-	DBM_GUI_DropDown:Hide()
+	_G["DBM_GUI_DropDown"]:Hide()
 end)
 frame:SetScript("OnDragStart", frame.StartMoving)
 frame:SetScript("OnDragStop", function(self)
@@ -60,9 +60,8 @@ frame:SetScript("OnDragStop", function(self)
 end)
 frame:SetScript("OnSizeChanged", function(self)
 	self:UpdateMenuFrame()
-	local container = _G[self:GetName() .. "PanelContainer"]
-	if container.displayedFrame then
-		self:DisplayFrame(container.displayedFrame)
+	if DBM_GUI.currentViewing then
+		self:DisplayFrame(DBM_GUI.currentViewing)
 	end
 end)
 frame:SetScript("OnMouseUp", function(self)
@@ -95,9 +94,9 @@ frameHeaderText:SetText(L.MainFrame)
 local frameRevision = frame:CreateFontString("$parentRevision", "ARTWORK", "GameFontDisableSmall")
 frameRevision:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 18)
 if DBM.NewerVersion then
-	frameRevision:SetText(CL.DEADLY_BOSS_MODS.. " " .. DBM.DisplayVersion.. " (" .. DBM:ShowRealDate(DBM.Revision) .. "). |cffff0000Version " .. DBM.NewerVersion .. " is available.|r")
+	frameRevision:SetText(CL.DBM.. " " .. DBM.DisplayVersion.. " (" .. DBM:ShowRealDate(DBM.Revision) .. "). |cffff0000Version " .. DBM.NewerVersion .. " is available.|r")
 else
-	frameRevision:SetText(CL.DEADLY_BOSS_MODS.. " " .. DBM.DisplayVersion.. " (" .. DBM:ShowRealDate(DBM.Revision) .. ")")
+	frameRevision:SetText(CL.DBM.. " " .. DBM.DisplayVersion.. " (" .. DBM:ShowRealDate(DBM.Revision) .. ")")
 end
 
 local frameTranslation = frame:CreateFontString("$parentTranslation", "ARTWORK", "GameFontDisableSmall")
@@ -172,12 +171,8 @@ for i = 1, math.floor(UIParent:GetHeight() / 18) do
 	button:RegisterForClicks("LeftButtonUp")
 	button:SetScript("OnClick", function(self)
 		frame:ClearSelection()
-		for _, tab in ipairs(frame.tabs) do
-			tab.selection = nil
-		end
-		frame.tabs[frame.tab].selection = button
-		button:LockHighlight()
-		DBM_GUI.currentViewing = self.element
+		frame.tabs[frame.tab].selection = self.element
+		self:LockHighlight()
 		frame:DisplayFrame(self.element)
 	end)
 	if i == 1 then
@@ -212,6 +207,7 @@ frameListList.backdropInfo = {
 	insets		= { left = 0, right = 0, top = 5, bottom = 5 }
 }
 if DBM:IsAlpha() then
+	Mixin(frameListList, BackdropTemplateMixin)
 	frameListList:ApplyBackdrop()
 else
 	frameListList:SetBackdrop(frameListList.backdropInfo)
@@ -276,7 +272,7 @@ frameContainerScrollBar:ClearAllPoints()
 frameContainerScrollBar:SetPoint("TOPRIGHT", -4, -15)
 frameContainerScrollBar:SetPoint("BOTTOMRIGHT", 0, 15)
 
-local frameContainerScrollBarBackdrop = CreateFrame("Frame", nil, frameContainerScrollBar)
+local frameContainerScrollBarBackdrop = CreateFrame("Frame", nil, frameContainerScrollBar, DBM:IsAlpha() and "BackdropTemplate")
 frameContainerScrollBarBackdrop:SetPoint("TOPLEFT", -4, 20)
 frameContainerScrollBarBackdrop:SetPoint("BOTTOMRIGHT", 4, -20)
 frameContainerScrollBarBackdrop.backdropInfo = {

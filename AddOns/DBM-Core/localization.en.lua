@@ -192,7 +192,7 @@ L.UPDATEREMINDER_MAJORPATCH			= "WARNING: Do to your " .. L.DEADLY_BOSS_MODS.. "
 L.UPDATEREMINDER_TESTVERSION		= "WARNING: You are using a version of " .. L.DEADLY_BOSS_MODS.. " not intended to be used with this game version. Please make sure you download the appropriate version for your game client from deadlybossmods.com or curse."
 L.VEM								= "WARNING: You are running both " .. L.DEADLY_BOSS_MODS.. " and Voice Encounter Mods. DBM will not run in this configuration and therefore will not be loaded."
 L.OUTDATEDPROFILES					= "WARNING: DBM-Profiles not compatible with this version of " .. L.DBM .. ". It must be removed before DBM can proceed, to avoid conflict."
-L.OUTDATEDSPELLTIMERS				= "WARNING: DBM-SpellTimers breaks " .. L.DBM .. "and must be disabled for " .. L.DBM .. " to function properly."
+L.OUTDATEDSPELLTIMERS				= "WARNING: DBM-SpellTimers breaks " .. L.DBM .. " and must be disabled for " .. L.DBM .. " to function properly."
 L.OUTDATEDRLT						= "WARNING: DBM-RaidLeadTools breaks " .. L.DBM .. ". DBM-RaidLeadTools is no longer supported and must be removed for " .. L.DBM .. " to function properly."
 L.VICTORYSOUND						= "WARNING: DBM-VictorySound is not compatible with this version of " .. L.DBM .. ". It must be removed before " .. L.DBM .. " can proceed, to avoid conflict."
 L.DPMCORE							= "WARNING: Deadly PvP mods is discontinued and not compatible with this version of " .. L.DBM .. ". It must be removed before " .. L.DBM .. " can proceed, to avoid conflict."
@@ -303,7 +303,7 @@ L.ORBS								= "Orbs"
 L.CHEST								= "Chest"--As in Treasure 'Chest'. Not Chest as in body part.
 L.NO_DEBUFF							= "Not %s"--For use in places like info frame where you put "Not Spellname"
 L.ALLY								= "Ally"--Such as "Move to Ally"
-L.ALLIES							= "Allies"--Such as "Move to Ally"
+L.ALLIES							= "Allies"--Such as "Move to Allies"
 L.ADD								= "Add"--A fight Add as in "boss spawned extra adds"
 L.ADDS								= "Adds"
 L.BIG_ADD							= "Big Add"
@@ -317,6 +317,8 @@ L.NOTSAFE							= "Not Safe"
 L.SHIELD							= "Shield"
 L.PILLAR							= "Pillar"
 L.INCOMING							= "%s Incoming"
+L.BOSSTOGETHER						= "Bosses Together"
+L.BOSSAPART							= "Bosses Apart"
 --Common Locals end
 
 L.BREAK_USAGE						= "Break timer cannot be longer than 60 minutes. Make sure you're inputting time in minutes and not seconds."
@@ -677,8 +679,9 @@ L.DISEASE_ICON						= "|TInterface\\EncounterJournal\\UI-EJ-Icons.blp:20:20:0:0:
 L.ENRAGE_ICON						= "|TInterface\\EncounterJournal\\UI-EJ-Icons.blp:20:20:0:0:255:66:102:118:40:58|t"
 
 --LDB
-L.LDB_TOOLTIP_HELP1					= "Left-click to open " .. L.DBM
-L.LDB_TOOLTIP_HELP2					= "Right-click to toggle Silent Mode"
+L.LDB_TOOLTIP_HELP1					= "Click to open " .. L.DBM
+L.LDB_TOOLTIP_HELP2					= "Alt+right click to toggle Silent Mode"
+L.SILENTMODE_IS						= "SilentMode is "
 
 L.LDB_LOAD_MODS						= "Load boss mods"
 
