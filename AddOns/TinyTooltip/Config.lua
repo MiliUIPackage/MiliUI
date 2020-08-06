@@ -20,9 +20,8 @@ addon.db = {
         statusbarText     = true,                  --HP文字
         statusbarColor    = "auto",                 --HP顔色 default|auto|smooth
         statusbarTexture  = "Interface\\AddOns\\TinyTooltip\\texture\\StatusBar", --HP材質
-        anchor            = { position = "cursorRight", returnInCombat = false, returnOnUnitFrame = false, hideInCombat = false, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 200, x = -20, }, --鼠標位置 default|cursor|static|cursorRight
+        anchor            = { position = "cursorRight", hiddenInCombat = false, returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 200, x = -20, }, --鼠標位置 default|cursor|static|cursorRight
         alwaysShowIdInfo  = false,
-		showCaster        = false,
         skinMoreFrames    = true,
         headerFont        = "default",
         headerFontSize    = "default",
@@ -67,8 +66,8 @@ addon.db = {
                 role        = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 moveSpeed   = { enable = false, color = "e8e7a8",  wildcard = "%d%%", filter = "none" },
                 zone        = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
-                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
-                { "guildName", "guildIndex", "guildRank", "guildRealm", },
+                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "statusAFK", "statusDND", "statusDC", },
+                { "guildName", "guildIndex", "guildRank", "guildRealm", "realm", },
                 { "levelValue", "factionName", "gender", "raceName", "className", "isPlayer", "role", "moveSpeed", },
                 { "zone" },
             },

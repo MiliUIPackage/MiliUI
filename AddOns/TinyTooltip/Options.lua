@@ -468,7 +468,7 @@ function widgets:anchor(parent, config)
     frame.dropdown:SetPoint("LEFT", 0, 0)
     frame.anchorbutton:SetPoint("LEFT", frame.dropdown.Label, "LEFT", 1, 0)
     frame.checkbox1 = self:checkbox(frame, {keystring=config.keystring..".hiddenInCombat"})
-    frame.checkbox1:SetPoint("LEFT", frame.dropdown.Label, "RIGHT", 10, -1)
+    frame.checkbox1:SetPoint("LEFT", frame.anchorbutton, "RIGHT", 5, -1)
     frame.checkbox2 = self:checkbox(frame, {keystring=config.keystring..".returnInCombat"})
     frame.checkbox2:SetPoint("LEFT", frame.checkbox1.Text, "RIGHT", 3, 0)
     frame.checkbox3 = self:checkbox(frame, {keystring=config.keystring..".returnOnUnitFrame"})
@@ -491,7 +491,7 @@ widgets.filterDropdata = {"none","ininstance","incombat","inraid","samerealm","s
 widgets.colorDropdata = {"default","class","level","reaction","itemQuality","selection","faction",}
 widgets.bgfileDropdata = {"gradual","dark","alpha","rock","marble",}
 widgets.borderDropdata = {"default","angular",}
-widgets.fontDropdata = {"default", "ChatFontNormal", "GameFontNormal", "QuestFont", "CombatLogFont",}
+widgets.fontDropdata = {"default",}
 widgets.barDropdata = {"Interface\\AddOns\\"..addonName.."\\texture\\StatusBar",}
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
@@ -522,6 +522,7 @@ local options = {
         { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
+		{ keystring = "general.showCaster",   		type = "checkbox" },
         { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
     },
@@ -531,7 +532,7 @@ local options = {
         { keystring = "unit.player.showModel",            type = "checkbox" },
         { keystring = "unit.player.grayForDead",          type = "checkbox" },
         { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
-        { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
+        { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
         { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursorRight","cursor","static"} },
         { keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
         { keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
@@ -564,7 +565,7 @@ local options = {
         { keystring = "unit.npc.showTargetBy",          type = "checkbox" },
         { keystring = "unit.npc.grayForDead",           type = "checkbox" },
         { keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
-        { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.01 },
+        { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
         { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursorRight","cursor","static"} },
         { keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
         { keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
@@ -613,8 +614,8 @@ frame.anchor:SetPoint("TOPLEFT", 32, -16)
 frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
-frame.title:SetText(format("%s |cff33eeff%s|r", addonName, "General"))
-frame.name = addonName
+frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
+frame.name = L["Tooltip"]
 
 local framePC = CreateFrame("Frame", nil, UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
@@ -622,9 +623,9 @@ framePC.anchor:SetPoint("TOPLEFT", 32, -13)
 framePC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 framePC.title = framePC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 framePC.title:SetPoint("TOPLEFT", 18, -16)
-framePC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is Player"))
-framePC.parent = addonName
-framePC.name = " - Player"
+framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is Player"]))
+framePC.parent = L["Tooltip"]
+framePC.name = L["Player"]
 
 framePC.diy = CreateFrame("Button", nil, framePC)
 framePC.diy:SetSize(400, 67)
@@ -648,8 +649,8 @@ framePCScrollFrame:HookScript("OnScrollRangeChanged", function(self, xrange, yra
     self.ScrollBar:SetShown(floor(yrange) ~= 0)
 end)
 framePCScrollFrame:SetScrollChild(framePC)
-framePCScrollFrame.parent = addonName
-framePCScrollFrame.name = " - Player"
+framePCScrollFrame.parent = L["Tooltip"]
+framePCScrollFrame.name = L["Player"]
 
 
 local frameNPC = CreateFrame("Frame", nil, UIParent)
@@ -658,9 +659,9 @@ frameNPC.anchor:SetPoint("TOPLEFT", 32, -16)
 frameNPC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameNPC.title = frameNPC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameNPC.title:SetPoint("TOPLEFT", 18, -16)
-frameNPC.title:SetText(format("%s |cff33eeff%s|r", addonName, "Unit Is NPC"))
-frameNPC.parent = addonName
-frameNPC.name = " - NPC"
+frameNPC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is NPC"]))
+frameNPC.parent = L["Tooltip"]
+frameNPC.name = "NPC"
 
 local frameStatusbar = CreateFrame("Frame", nil, UIParent)
 frameStatusbar.anchor = CreateFrame("Frame", nil, frameStatusbar)
@@ -668,9 +669,9 @@ frameStatusbar.anchor:SetPoint("TOPLEFT", 32, -16)
 frameStatusbar.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameStatusbar.title = frameStatusbar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameStatusbar.title:SetPoint("TOPLEFT", 18, -16)
-frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", addonName, "StatusBar"))
-frameStatusbar.parent = addonName
-frameStatusbar.name = " - StatusBar"
+frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["StatusBar"]))
+frameStatusbar.parent = L["Tooltip"]
+frameStatusbar.name = L["StatusBar"]
 
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
@@ -678,9 +679,9 @@ frameSpell.anchor:SetPoint("TOPLEFT", 32, -16)
 frameSpell.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameSpell.title = frameSpell:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameSpell.title:SetPoint("TOPLEFT", 18, -16)
-frameSpell.title:SetText(format("%s |cff33eeff%s|r", addonName, "Spell"))
-frameSpell.parent = addonName
-frameSpell.name = " - Spell"
+frameSpell.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Spell"]))
+frameSpell.parent = L["Tooltip"]
+frameSpell.name = L["Spell"]
 
 local frameFont = CreateFrame("Frame", nil, UIParent)
 frameFont.anchor = CreateFrame("Frame", nil, frameFont)
@@ -688,9 +689,9 @@ frameFont.anchor:SetPoint("TOPLEFT", 32, -16)
 frameFont.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameFont.title = frameFont:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameFont.title:SetPoint("TOPLEFT", 18, -16)
-frameFont.title:SetText(format("%s |cff33eeff%s|r", addonName, "Font"))
-frameFont.parent = addonName
-frameFont.name = " - Font"
+frameFont.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Font"]))
+frameFont.parent = L["Tooltip"]
+frameFont.name = L["Font"]
 
 local frameVariables = CreateFrame("Frame", nil, UIParent)
 frameVariables.anchor = CreateFrame("Frame", nil, frameVariables)
@@ -698,9 +699,9 @@ frameVariables.anchor:SetPoint("TOPLEFT", 32, -16)
 frameVariables.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
 frameVariables.title = frameVariables:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameVariables.title:SetPoint("TOPLEFT", 18, -16)
-frameVariables.title:SetText(format("%s |cff33eeff%s|r", addonName, "Variables"))
-frameVariables.parent = addonName
-frameVariables.name = " - Variables"
+frameVariables.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Variables"]))
+frameVariables.parent = L["Tooltip"]
+frameVariables.name = L["Variables"]
 
 local function InitVariablesFrame()
     
