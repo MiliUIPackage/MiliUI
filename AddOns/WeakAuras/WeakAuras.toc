@@ -12,7 +12,9 @@
 ## X-Website: https://www.curseforge.com/wow/addons/weakauras-2
 ## X-Curse-Project-ID: 65387
 ## X-WoWI-ID: 24910
-## DefaultState: Enabled
+## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras 2
+## Notes-zhTW: WeakAuras 2 |n一個強大且全面實用的顯示圖形和訊息基於增益，減益和其它觸發。
+## DefaultState: Disabled
 ## LoadOnDemand: 0
 ## SavedVariables: WeakAurasSaved
 ## OptionalDeps: Ace3, LibCompress, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, Masque, GTFO, LibButtonGlow-1.0, LibSpellRange-1.0, LibRangeCheck-2.0, LibDBIcon-1.0, LibClassicDurations, LibClassicCasterino, LibGetFrame-1.0
