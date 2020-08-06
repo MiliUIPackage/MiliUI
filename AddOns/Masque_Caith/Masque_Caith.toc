@@ -1,19 +1,27 @@
 ## Interface: 80300
-## Title: Masque: |cffff8000Caith|r
+## Title: Masque: Caith
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式-Caith 
-## Version: 8.0.0
-## Author: StormFX
-## Dependencies: Masque
-## Notes: Caith skins for Masque.
+
+## Notes: Caith skin for Masque.
 ## Notes-deDE: Caith-Skin für Masque.
 ## Notes-esES: Skin Caith para Masque.
 ## Notes-esMX: Skin Caith para Masque.
 ## Notes-itIT: Skin Caith per Masque.
 ## Notes-ruRU: Скин Caith для Masque.
 ## Notes-zhTW: Masque |cffff8000Caith|r|nMasque 的 Caith 樣式。
-## X-Website: https://www.wowace.com/projects/masque-caith
+
+## Version: 8.2.6
+## Author: StormFX
+## Dependencies: Masque
+
+## X-Website: https://github.com/StormFX/Masque_Caith
 ## X-Category: Interface Enhancements
 ## X-Credits: Zeal, Caith
+## X-Curse-Project-ID: 13594
 ## X-WoWI-ID: 8869
 
-Caith.lua
+# Locales
+Locales.lua
+
+# Skins
+Skins.lua
