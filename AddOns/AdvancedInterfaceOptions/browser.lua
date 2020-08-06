@@ -79,7 +79,7 @@ local OptionsPanel = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContain
 OptionsPanel:Hide()
 OptionsPanel:SetAllPoints()
 OptionsPanel.name = "CVar 遊戲參數"
-OptionsPanel.parent = "進階選項"
+OptionsPanel.parent = "進階"
 
 local Title = OptionsPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title:SetJustifyV('TOP')
@@ -96,7 +96,7 @@ SubText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
 SubText:SetPoint('RIGHT', -32, 0)
 SubText:SetText('這些選項可以調整遊戲中的各種 CVars 參數。')
 
-InterfaceOptions_AddCategory(OptionsPanel, "進階選項")
+InterfaceOptions_AddCategory(OptionsPanel, "進階")
 
 -- FilterBox should adjust the contents of the list frame based on the input text
 -- todo: Display grey "Search" text in the box if it's empty

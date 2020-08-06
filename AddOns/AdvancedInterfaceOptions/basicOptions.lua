@@ -10,7 +10,7 @@ end
 
 local function IsClassic()
     return WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-end
+end   
 
 AdvancedInterfaceOptionsSaved = {}
 local DBVersion = 3
@@ -167,7 +167,7 @@ end
 local AIO = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO:Hide()
 AIO:SetAllPoints()
-local addonNameLoc = "進階選項"
+local addonNameLoc = "進階"
 AIO.name = addonNameLoc
 
 -- Register all of our widgets here so we can iterate over them
@@ -360,7 +360,7 @@ subText:SetText('這些選項可以調整軍臨天下改版後被移除的各種
 local playerTitles = newCheckbox(AIO, 'UnitNamePlayerPVPTitle')
 local playerGuilds = newCheckbox(AIO, 'UnitNamePlayerGuild')
 local playerGuildTitles = newCheckbox(AIO, 'UnitNameGuildTitle')
-local fadeMap = newCheckbox(AIO, 'mapFade')
+local fadeMap = not IsClassic() and newCheckbox(AIO, 'mapFade')
 local secureToggle = newCheckbox(AIO, 'secureAbilityToggle')
 local luaErrors = newCheckbox(AIO, 'scriptErrors')
 local targetDebuffFilter = newCheckbox(AIO, 'noBuffDebuffFilterOnTarget')
@@ -439,14 +439,16 @@ actionCamModeDropdown.initialize = function(dropdown)
 end
 actionCamModeDropdown:HookScript("OnShow", actionCamModeDropdown.initialize)
 
-local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, 2.6, 0.1)
+local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, IsClassic() and 3.4 or 2.6, 0.1)
 cameraFactor:SetPoint('TOPLEFT', actionCamModeDropdown, 'BOTTOMLEFT', 20, -20)
 
 playerTitles:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
 playerGuilds:SetPoint("TOPLEFT", playerTitles, "BOTTOMLEFT", 0, -4)
 playerGuildTitles:SetPoint("TOPLEFT", playerGuilds, "BOTTOMLEFT", 0, -4)
-fadeMap:SetPoint("TOPLEFT", playerGuildTitles, "BOTTOMLEFT", 0, -4)
-secureToggle:SetPoint("TOPLEFT", fadeMap, "BOTTOMLEFT", 0, -4)
+if not IsClassic() then
+	fadeMap:SetPoint("TOPLEFT", playerGuildTitles, "BOTTOMLEFT", 0, -4)
+end
+secureToggle:SetPoint("TOPLEFT", IsClassic() and playerGuildTitles or fadeMap, "BOTTOMLEFT", 0, -4)
 luaErrors:SetPoint("TOPLEFT", secureToggle, "BOTTOMLEFT", 0, -4)
 targetDebuffFilter:SetPoint("TOPLEFT", luaErrors, "BOTTOMLEFT", 0, -4)
 
@@ -557,6 +559,7 @@ chatMouseScroll:SetPoint('TOPLEFT', chatDelay, 'BOTTOMLEFT', 0, -4)
 if IsClassic() then
     classColors:SetPoint('TOPLEFT', chatMouseScroll, 'BOTTOMLEFT', 0, -4)
 end
+
 -- Floating Combat Text section
 local AIO_FCT = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_FCT:Hide()
@@ -842,9 +845,9 @@ SubText_NP:SetJustifyV('TOP')
 SubText_NP:SetJustifyH('LEFT')
 SubText_NP:SetPoint('TOPLEFT', Title_NP, 'BOTTOMLEFT', 0, -8)
 SubText_NP:SetPoint('RIGHT', -32, 0)
-SubText_NP:SetText('這些選項可以調整名條設定。')
+SubText_NP:SetText('這些選項可以調整名條/血條設定。')
 
-local nameplateDistance = newSlider(AIO_NP, 'nameplateMaxDistance', 10, 100)
+local nameplateDistance = newSlider(AIO_NP, 'nameplateMaxDistance', 10, IsClassic() and 20 or 100)
 nameplateDistance:SetPoint('TOPLEFT', SubText_NP, 'BOTTOMLEFT', 0, -20)
 
 local nameplateAtBase = newCheckbox(AIO_NP, 'nameplateOtherAtBase')
@@ -899,7 +902,9 @@ spellStartRecovery.maxText:SetFormattedText("%d %s", spellStartRecovery.minMaxVa
 InterfaceOptions_AddCategory(AIO, addonName)
 InterfaceOptions_AddCategory(AIO_Chat, addonName)
 InterfaceOptions_AddCategory(AIO_C, addonName)
-InterfaceOptions_AddCategory(AIO_FCT, addonName)
+if not IsClassic() then
+    InterfaceOptions_AddCategory(AIO_FCT, addonName)
+end
 -- InterfaceOptions_AddCategory(AIO_ST, addonName)
 InterfaceOptions_AddCategory(AIO_NP, addonName)
 
