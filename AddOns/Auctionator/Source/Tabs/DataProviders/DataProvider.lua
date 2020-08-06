@@ -1,13 +1,12 @@
 DataProviderMixin = {}
 
-local PROCESS_COUNT_PER_UPDATE = 10
-
 -- DataProviderMixin registers for the following events for derived mixins:
 --   1. Auctionator.ShoppingLists.Events.ListResultItemProcessed
 function DataProviderMixin:OnLoad()
   self.results = {}
   self.insertedKeys = {}
   self.entriesToProcess = {}
+  self.processCountPerUpdate = 10
 
   self.searchCompleted = false
 
@@ -16,6 +15,7 @@ function DataProviderMixin:OnLoad()
   self.onUpdate = function() end
   self.onSearchStarted = function() end
   self.onSearchEnded = function() end
+  self.onPreserveScroll = function() end
 end
 
 function DataProviderMixin:OnUpdate(elapsed)
@@ -91,8 +91,15 @@ function DataProviderMixin:SetOnSearchEndedCallback(onSearchEndedCallback)
   self.onSearchEnded = onSearchEndedCallback
 end
 
+function DataProviderMixin:SetOnPreserveScrollCallback(onPreserveScrollCallback)
+  self.onPreserveScroll = onPreserveScrollCallback
+end
+
 function DataProviderMixin:AppendEntries(entries, isLastSetOfResults)
+  Auctionator.Debug.Message("DataProviderMixin:AppendEntries()", #entries)
+
   self.searchCompleted = isLastSetOfResults
+  self.announcedCompletion = false
 
   for _, entry in ipairs(entries) do
     table.insert(self.entriesToProcess, entry)
@@ -103,6 +110,10 @@ end
 -- client.
 function DataProviderMixin:CheckForEntriesToProcess()
   if #self.entriesToProcess == 0 then
+    if not self.announcedCompletion and self.searchCompleted then
+      self.announcedCompletion = true
+      self.onSearchEnded()
+    end
     return
   end
 
@@ -112,7 +123,7 @@ function DataProviderMixin:CheckForEntriesToProcess()
   local entry
   local key
 
-  while processCount < PROCESS_COUNT_PER_UPDATE and #self.entriesToProcess > 0 do
+  while processCount < self.processCountPerUpdate and #self.entriesToProcess > 0 do
     processCount = processCount + 1
     entry = table.remove(self.entriesToProcess)
 
@@ -127,6 +138,7 @@ function DataProviderMixin:CheckForEntriesToProcess()
 
   if #self.entriesToProcess == 0 and self.searchCompleted then
     self.onSearchEnded()
+    self.announcedCompletion = true
   end
 
   self.onUpdate(self.results)

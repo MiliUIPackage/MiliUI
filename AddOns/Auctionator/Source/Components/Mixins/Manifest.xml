@@ -6,12 +6,14 @@
   <Script file="CheckBox.lua"/>
   <Script file="RadioButton.lua"/>
   <Script file="RadioButtonGroup.lua"/>
+  <Script file="HorizontalRadioButtonGroup.lua"/>
   <Script file="NumericInputBox.lua"/>
   <Script file="MoneyInput.lua"/>
   <Script file="CopyAndPasteBox.lua"/>
   <Script file="MinMaxRange.lua"/>
   <Script file="FilterKeySelector.lua"/>
   <Script file="ResetButton.lua"/>
+  <Script file="DropDown.lua"/>
 
   <Script file="Heading.lua"/>
   <Script file="SubHeading.lua"/>

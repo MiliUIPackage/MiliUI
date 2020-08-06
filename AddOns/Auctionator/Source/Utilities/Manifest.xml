@@ -15,15 +15,17 @@
   <Script file="CreateCountString.lua"/>
   <Script file="CreateMoneyString.lua"/>
   <Script file="ApplyThrottlingButton.lua"/>
-  <Script file="PrintVersion.lua"/>
   <Script file="IsNotLIFOItemKey.lua"/>
   <Script file="RemoveTextColor.lua"/>
   <Script file="ItemKeyString.lua"/>
   <Script file="PrettyDate.lua"/>
+  <Script file="ItemInfoFromLocation.lua"/>
+  <Script file="IsShortcutActive.lua"/>
 
   <Script file="VerifyListTypes.lua"/>
   <Script file="ValidatePercentage.lua"/>
   <Script file="TableKeys.lua"/>
+  <Script file="Pool.lua"/>
 
   <Script file="Sorting.lua" />
 </Ui>

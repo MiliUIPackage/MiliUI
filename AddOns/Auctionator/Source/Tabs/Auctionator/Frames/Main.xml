@@ -132,7 +132,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="Dagnet, dalanwoopy">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="Dagnet, sugymaylis">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.ptBR" relativePoint="TOPRIGHT"/>
@@ -149,7 +149,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="LvWind, dalanwoopy">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="sugymaylis, LvWind">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.zhCN" relativePoint="TOPRIGHT"/>
@@ -166,7 +166,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="RainbowUI">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="彩虹ui">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.zhTW" relativePoint="TOPRIGHT"/>
@@ -183,7 +183,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="dalanwoopy, Franxavis">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="sugymaylis, Franxavis">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.esES" relativePoint="TOPRIGHT"/>
@@ -200,7 +200,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="ftg3, dalanwoopy">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="sugymaylis, ftg3">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.esMX" relativePoint="TOPRIGHT"/>
@@ -217,7 +217,7 @@
             </FontString>
           </Layer>
           <Layer level="ARTWORK">
-            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="podvibe">
+            <FontString inherits="GameFontHighlight" justifyH="LEFT" text="PodVibe">
               <Size x="225"/>
               <Anchors>
                 <Anchor point="TOPLEFT" relativeKey="$parent.frFR" relativePoint="TOPRIGHT"/>
@@ -312,7 +312,10 @@
           <Anchor point="TOPRIGHT" relativeKey="$parent.ScanButton" relativePoint="TOPLEFT" x="-3" />
         </Anchors>
         <Scripts>
-          <OnClick>InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)</OnClick>
+          <OnClick>
+		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
+		    InterfaceOptionsFrame_OpenToCategory(AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY)
+		  </OnClick>
         </Scripts>
       </Button>
     </Frames>

@@ -8,7 +8,8 @@ local L = Auctionator.Locales.Apply
 -- Auctionator.Config.Options.SHIFT_STACK_TOOLTIPS: true to show stack price when [shift] is down
 -- Auctionator.Config.Options.AUCTION_TOOLTIPS: true if should show auction tips
 function Auctionator.Tooltip.ShowTipWithPricing(tooltipFrame, itemLink, itemCount)
-  Auctionator.Debug.Message("Auctionator.Tooltip.ShowTipWithPricing", itemLink, itemCount)
+  -- Keep this commented out unless testing please.
+  -- Auctionator.Debug.Message("Auctionator.Tooltip.ShowTipWithPricing", itemLink, itemCount)
 
   local itemKey = Auctionator.Utilities.ItemKeyFromLink(itemLink)
 
@@ -32,7 +33,7 @@ function Auctionator.Tooltip.ShowTipWithPricing(tooltipFrame, itemLink, itemCoun
     auctionPrice = auctionPrice * (showStackPrices and itemCount or 1)
   end
 
-  local vendorPrice, disenchantParams, disenchantPrice
+  local vendorPrice, disenchantStatus, disenchantPrice
   local cannotAuction = 0;
 
   local itemInfo = { GetItemInfo(itemLink) };

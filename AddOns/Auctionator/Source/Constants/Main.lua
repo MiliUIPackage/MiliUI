@@ -14,6 +14,10 @@ Auctionator.Constants = {
     ASCENDING = 1,
     DESCENDING = 0
   },
+  ITEM_TYPES = {
+    ITEM = 1,
+    COMMODITY = 2
+  },
   ITEM_CLASS_IDS = {
     LE_ITEM_CLASS_WEAPON,
     LE_ITEM_CLASS_ARMOR,

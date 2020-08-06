@@ -62,17 +62,6 @@ local function InitializeAuctionChatLogFrame()
   end
 end
 
-local function InitializeSellingFrame()
-  if Auctionator.State.SellingFrameRef == nil then
-    Auctionator.State.SellingFrameRef = CreateFrame(
-      "FRAME",
-      "AuctionatorSellingFrame",
-      AuctionHouseFrame,
-      "AuctionatorSellingFrameTemplate"
-    )
-  end
-end
-
 local function InitializeAuctionHouseTabs()
   if Auctionator.State.TabFrameRef == nil then
     Auctionator.State.TabFrameRef = CreateFrame(
@@ -121,17 +110,33 @@ local function InitializeLateTooltipHooks()
   setTooltipHooks = true
 end
 
+function ShowDefaultTab()
+  local tabs = {
+    AuctionatorTabs_ShoppingLists,
+    AuctionatorTabs_Selling,
+    AuctionatorTabs_Cancelling,
+    AuctionatorTabs_Auctionator,
+  }
+
+  local chosenTab = tabs[Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_TAB)]
+
+  if chosenTab then
+    chosenTab:Click()
+  end
+end
+
 function AuctionatorAHFrameMixin:OnShow()
   Auctionator.Debug.Message("AuctionatorAHFrameMixin:OnShow()")
 
   InitializeFullScanFrame()
   InitializeIncrementalScanFrame()
   InitializeAuctionChatLogFrame()
-  InitializeSellingFrame()
   InitializeLateTooltipHooks()
 
   InitializeAuctionHouseTabs()
   InitializeSplashScreen()
+
+  ShowDefaultTab()
 end
 
 function AuctionatorAHFrameMixin:OnEvent(eventName, ...)

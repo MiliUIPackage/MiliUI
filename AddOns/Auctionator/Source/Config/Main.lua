@@ -10,7 +10,17 @@ Auctionator.Config.Options = {
   ALTERNATE_SCAN_MODE = "alternate_scan_mode",
   FULL_SCAN_STEP = "full_scan_step",
   AUTO_LIST_SEARCH = "auto_list_search",
+
+  DEFAULT_TAB = "default_tab",
+
   AUCTION_CHAT_LOG = "auction_chat_log",
+  SHOW_SELLING_PRICE_HISTORY = "show_selling_price_history",
+  SELLING_BAG_COLLAPSED = "selling_bag_collapsed",
+  SELLING_BAG_SELECT_SHORTCUT = "selling_bag_select_shortcut",
+  SELLING_CANCEL_SHORTCUT = "selling_cancel_shortcut",
+  SELLING_BUY_SHORTCUT = "selling_buy_shortcut",
+  SHOW_SELLING_BAG = "show_selling_bag",
+  SELLING_ICON_SIZE = "selling_icon_size",
 
   NOT_LIFO_AUCTION_DURATION = "not_lifo_auction_duration",
   NOT_LIFO_AUCTION_SALES_PREFERENCE = "not_lifo_auction_sales_preference",
@@ -31,12 +41,24 @@ Auctionator.Config.Options = {
 
   UNDERCUT_SCAN_NOT_LIFO = "undercut_scan_not_lifo",
 
-  SILENCE_AUCTION_ERRORS = "silence_auction_errors"
+  SILENCE_AUCTION_ERRORS = "silence_auction_errors",
+
+  DEFAULT_TAB = "default_tab",
 }
 
 Auctionator.Config.SalesTypes = {
   PERCENTAGE = "percentage",
   STATIC = "static"
+}
+
+Auctionator.Config.Shortcuts = {
+  LEFT_CLICK = "left click",
+  RIGHT_CLICK = "right click",
+  ALT_LEFT_CLICK = "alt left click",
+  SHIFT_LEFT_CLICK = "shift left click",
+  ALT_RIGHT_CLICK = "alt right click",
+  SHIFT_RIGHT_CLICK = "shift right click",
+  NONE = "none",
 }
 
 local defaults = {
@@ -52,6 +74,13 @@ local defaults = {
   [Auctionator.Config.Options.FULL_SCAN_STEP] = 250,
   [Auctionator.Config.Options.AUTO_LIST_SEARCH] = true,
   [Auctionator.Config.Options.AUCTION_CHAT_LOG] = true,
+  [Auctionator.Config.Options.SHOW_SELLING_PRICE_HISTORY] = true,
+  [Auctionator.Config.Options.SELLING_BAG_COLLAPSED] = false,
+  [Auctionator.Config.Options.SELLING_BAG_SELECT_SHORTCUT] = Auctionator.Config.Shortcuts.ALT_LEFT_CLICK,
+  [Auctionator.Config.Options.SELLING_CANCEL_SHORTCUT] = Auctionator.Config.Shortcuts.RIGHT_CLICK,
+  [Auctionator.Config.Options.SELLING_BUY_SHORTCUT] = Auctionator.Config.Shortcuts.ALT_RIGHT_CLICK,
+  [Auctionator.Config.Options.SHOW_SELLING_BAG] = true,
+  [Auctionator.Config.Options.SELLING_ICON_SIZE] = 42,
 
   [Auctionator.Config.Options.NOT_LIFO_AUCTION_DURATION] = 48,
   [Auctionator.Config.Options.NOT_LIFO_AUCTION_SALES_PREFERENCE] = Auctionator.Config.SalesTypes.PERCENTAGE,
@@ -72,6 +101,7 @@ local defaults = {
   [Auctionator.Config.Options.UNDERCUT_SCAN_NOT_LIFO] = true,
 
   [Auctionator.Config.Options.SILENCE_AUCTION_ERRORS] = true,
+  [Auctionator.Config.Options.DEFAULT_TAB] = 0,
 }
 
 local function isValidOption(name)

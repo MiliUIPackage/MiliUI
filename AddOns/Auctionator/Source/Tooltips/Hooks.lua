@@ -240,14 +240,20 @@ function Auctionator.Tooltip.LateHooks()
   -- called before the AH opens.
   hooksecurefunc(AuctionHouseUtil, "SetAuctionHouseTooltip",
     function(owner, rowData)
+      --We only want to add to tooltips that show in our tabs, this lets us
+      --detect the tooltips that need updating (some show the details without an
+      --extra hook).
+      if not rowData.addAuctionatorTip then
+        return
+      end
       if rowData.itemLink then
-        Auctionator.Tooltip.ShowTipWithPricing(GameTooltip, rowData.itemLink, 1)
+        Auctionator.Tooltip.ShowTipWithPricing(GameTooltip, rowData.itemLink, rowData.count ~= nil and rowData.count or 1 )
 
-      else
+      elseif rowData.itemKey then
         local itemLink = select(2, GetItemInfo(rowData.itemKey.itemID))
 
         if itemLink ~= nil then
-          Auctionator.Tooltip.ShowTipWithPricing(GameTooltip, itemLink, 1)
+          Auctionator.Tooltip.ShowTipWithPricing(GameTooltip, itemLink, rowData.count ~= nil and rowData.count or 1)
         end
       end
     end

@@ -18,7 +18,7 @@
           <KeyValue key="groupHeadingText" value="AUCTIONATOR_L_DEFAULT_AUCTION_DURATION" type="global"/>
         </KeyValues>
         <Anchors>
-          <Anchor point="TOPLEFT" relativeKey="$parent.TitleArea" relativePoint="BOTTOMLEFT" y="-10"/>
+          <Anchor point="TOPLEFT" relativeKey="$parent.TitleArea" relativePoint="BOTTOMLEFT" y="-40"/>
         </Anchors>
         <Frames>
           <Frame inherits="AuctionatorConfigurationRadioButton">
@@ -76,7 +76,7 @@
           <KeyValue key="tooltipText" value="AUCTIONATOR_L_PERCENTAGE_TOOLTIP_TEXT" type="global"/>
         </KeyValues>
         <Anchors>
-          <Anchor point="TOPLEFT" relativeKey="$parent.CommoditySalesPreference" relativePoint="BOTTOMLEFT"/>
+          <Anchor point="TOPLEFT" relativeKey="$parent.CommoditySalesPreference" relativePoint="BOTTOMLEFT" y="-7" />
         </Anchors>
       </Frame>
 
