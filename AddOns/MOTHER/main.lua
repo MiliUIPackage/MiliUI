@@ -1,6 +1,7 @@
 MotherFrame = CreateFrame('Frame', 'MotherFrame', UIParent,"BasicFrameTemplateWithInset")
 tinsert(UISpecialFrames, "MotherFrame")
-MotherVersion = "1.0.5"
+
+MotherVersion = "1.0.8"
 MotherFrame:SetSize(500,500)
 MotherFrame:SetPoint("center")
 MotherFrame.AddonName = MotherFrame:CreateFontString(nil , "BORDER", "GameFontNormal")
@@ -22,13 +23,17 @@ MotherFrame:RegisterForDrag("LeftButton")
 
 
 local addon = LibStub("AceAddon-3.0"):NewAddon("Mother", "AceConsole-3.0")
+local icon = LibStub("LibDBIcon-1.0")
 local bunnyLDB = LibStub("LibDataBroker-1.1"):NewDataObject("Mother", {
     type = "data source",
     text = "0",
     icon = 2000861,
     HotCornerIgnore = true,
     OnClick = function(self, button)
-        if button  then
+        if button == "MiddleButton" then
+			icon:Hide("Mother")
+			addon.db.profile.minimap.hide = true
+		else
             if MotherFrame.ButtonID == 0 then
                 sChooses()
             end
@@ -37,20 +42,23 @@ local bunnyLDB = LibStub("LibDataBroker-1.1"):NewDataObject("Mother", {
     end,
     OnTooltipShow = function (tooltip)
         tooltip:AddLine ("母親大人，汙染物商店")
+		tooltip:AddLine ("|cffffffff左/右點擊來開啟選單")
+		tooltip:AddLine ("|cffffffff中鍵點擊來隱藏按鈕")
     end,
 })
-local icon = LibStub("LibDBIcon-1.0")
+
 
 function addon:OnInitialize()
-    self.db = LibStub("AceDB-3.0"):New("MotherDB",
+   self.db = LibStub("AceDB-3.0"):New("MotherDB",
     {
-        profile = { 
-            minimap = { 
+        profile = {
+            minimap = {
                 hide = false,
             },
         },
     })
     icon:Register("Mother", bunnyLDB, self.db.profile.minimap)
+   -- print(addon.db.profile.minimap.hide)
 end
 MotherFrame.events = CreateFrame("frame")
 MotherFrame.events:RegisterEvent('GET_ITEM_INFO_RECEIVED')
@@ -66,10 +74,18 @@ end)
 
 SLASH_MOTHER1 = '/mother'
 function SlashCmdList.MOTHER(msg, editbox)
-    if MotherFrame.ButtonID == 0 then
-        sChooses()
+    if msg == "" then
+        if MotherFrame.ButtonID == 0 then
+            sChooses()
+        end
+        MotherFrame:SetShown(not MotherFrame:IsShown())
+    elseif string.lower(msg) == "hide" then
+        icon:Hide("Mother")
+        addon.db.profile.minimap.hide = true
+    elseif string.lower(msg) == "show" then
+        icon:Show("Mother")
+        addon.db.profile.minimap.hide = false
     end
-    MotherFrame:SetShown(not MotherFrame:IsShown())
 end
 MotherFrame:SetScript("OnMouseDown", function(self, button)
     if button == "LeftButton" and not self.isMoving then
@@ -483,8 +499,8 @@ function sChooses()
 
             for j=rotation,(rotation+10) do
                 for _,data in pairs(corruptlist[j%8+1]) do
-					MotherFrame.Mother3[i].icon:SetFormattedText(MotherFrame.iconStr[data[1]])
-                    MotherFrame.Mother3[i].name:SetFormattedText(color..(MotherFrame.CorruptNames[data[1]]).." ("..MotherFrame.CorruptionTier[data[1]]..")")
+					MotherFrame.Mother3[i].icon:SetFormattedText(MotherFrame.iconStr[data[1] ])
+                    MotherFrame.Mother3[i].name:SetFormattedText(color..(MotherFrame.CorruptNames[data[1] ]).." ("..MotherFrame.CorruptionTier[data[1] ]..")")
                     MotherFrame.Mother3[i].cost:SetFormattedText(color .. string.format("%5d",data[2])..echo)
                     if j == rotation then
                         MotherFrame.Mother3[i].time:SetFormattedText(color.."------")
@@ -572,367 +588,13 @@ function sChooses()
 
         MotherFrame:AddButton("兌換時程",arrayOfElements)
     end
-	--[[
-    do
-        local echo = " |Tinterface/icons/inv_inscription_80_vantusrune_nyalotha.blp:15:15|t"
-        local arrayOfElements = {}
-        arrayOfElements[1] = CreateFrame('Frame')
-        arrayOfElements[1]:SetFrameStrata("BACKGROUND")
-        arrayOfElements[1]:SetSize(10,10)
-        arrayOfElements[1]:SetScript("OnShow",function ()
-
-            MotherFrame.ScrollFrame:ClearAllPoints()
-            MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -45);
-            MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-
-            local nextRotation = 0
-            local rotation = -1
-            local i = 1
-            local color = "|cff00ff00"
-         --   if GetCurrentRegion() == 3 then
-                -- 1589958000 -- begin EU
-                nextRotation = 302400 -  (GetServerTime() - 1589958000) % 302400
-                rotation = math.floor(((GetServerTime() - 1589958000) % 2419200) /302400)
-         --   else
-                -- 1589900400 -- begin US
-         --       nextRotation = 302400 - (GetServerTime() - 1589900400) % 302400
-         --       rotation = math.floor(((GetServerTime() - 1589900400) % 2419200) /302400)
-         --   end
-
-            for j=rotation,(rotation+10) do
-                for _,data in pairs(corruptlist[j%8+1]) do]]
-	--				MotherFrame.Mother[i].icon:SetFormattedText(MotherFrame.iconStr[data[1]])
-       --             MotherFrame.Mother[i].name:SetFormattedText(color..(MotherFrame.CorruptNames[data[1]]).." ("..MotherFrame.CorruptionTier[data[1]]..")")
-        --[[            MotherFrame.Mother[i].cost:SetFormattedText(color .. string.format("%5d",data[2])..echo)
-                    if j == rotation then
-                        MotherFrame.Mother[i].time:SetFormattedText(color.."------")
-                    else
-                        local days = math.floor(nextRotation/86400)
-                        local hours = math.floor(nextRotation%86400/3600)
-                        MotherFrame.Mother[i].time:SetFormattedText(color..DAY_ONELETTER_ABBR.." "..HOUR_ONELETTER_ABBR,days,hours)
-                    end
-                    MotherFrame.Mother[i]:SetID(data[1])
-                    MotherFrame.Mother[i]:Show()
-                    i = i + 1
-                end
-                if color == "|cffffffff" then
-                    color = ""
-                else
-                    color = "|cffffffff"
-                end
-                if j == rotation then
-                    rotation = -1
-                else
-                    nextRotation = nextRotation + 302400
-                end
-            end
-        end)
-        arrayOfElements[1]:SetScript("OnHide",function()
-            MotherFrame.ScrollFrame:ClearAllPoints()
-            MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -80);
-            MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-        end)
-        arrayOfElements[1]:Hide()
-        arrayOfElements[2] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[2]:SetPoint("TOPLEFT",35,-32)
-        arrayOfElements[2]:SetText(CALENDAR_EVENT_NAME)
-        arrayOfElements[2]:Hide()
-
-        arrayOfElements[3] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[3]:SetPoint("TOPLEFT",330,-32)
-		local time = string.gsub(GARRISON_MISSION_TIME_TOTAL,"%%s","")
-
-		arrayOfElements[3]:SetText(time)
-        arrayOfElements[3]:Hide()
-
-        arrayOfElements[4] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[4]:SetPoint("TOPLEFT",415,-32)
-        arrayOfElements[4]:SetText(AUCTION_HOUSE_BROWSE_HEADER_PRICE)
-        arrayOfElements[4]:Hide()
-
-        for i = 1, 100 do
-            local corrupt = CreateFrame('button',nil , arrayOfElements[1], 'InsetFrameTemplate2')
-            local texture = corrupt:CreateTexture('textureName', 'BACKGROUND')
-            texture:SetAllPoints(true)
-            texture:SetColorTexture(0.2, 0.2, 0.2, 1)
-            corrupt:SetHighlightTexture(texture)
-            corrupt:DisableDrawLayer("BORDER")
-            corrupt:SetNormalFontObject('GameFontNormal')
-            corrupt:SetSize(MotherFrame:GetWidth()-30, 20)
-            corrupt:SetPoint("TOPLEFT",4,-(i-1)*20)
-
-			corrupt.icon = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.icon:SetPoint("LEFT",5,0)
-
-            corrupt.name = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.name:SetPoint("LEFT",35,0)
-
-            corrupt.cost = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.cost:SetPoint("LEFT",410,0)
-
-            corrupt.time = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.time:SetPoint("LEFT",315,0)
-
-            corrupt:Hide()
-            corrupt:SetScript("OnEnter",function(self)
-                GameTooltip:Hide();
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-				if self:GetID() and GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()]) then
-					GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()])
-					else 
-					return
-				end
-                GameTooltip:Show()
-            end)
-            corrupt:SetScript("OnLeave",function(self)
-                GameTooltip:Hide();
-            end)
 
 
-            tinsert(MotherFrame.Mother,corrupt)
-        end
-
-
-        MotherFrame:AddButton("MOTHER_EU",arrayOfElements)
-    end
-	
-	do
-        local echo = " |Tinterface/icons/inv_inscription_80_vantusrune_nyalotha.blp:15:15|t"
-        local arrayOfElements = {}
-        arrayOfElements[1] = CreateFrame('Frame')
-        arrayOfElements[1]:SetFrameStrata("BACKGROUND")
-        arrayOfElements[1]:SetSize(10,10)
-        arrayOfElements[1]:SetScript("OnShow",function ()
-
-		MotherFrame.ScrollFrame:ClearAllPoints()
-		MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -45);
-		MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-
-		local nextRotation = 0
-		local rotation = -1
-		local i = 1
-		local color = "|cff00ff00"
-         --   if GetCurrentRegion() == 3 then
-                -- 1589958000 -- begin EU
-         --       nextRotation = 302400 -  (GetServerTime() - 1589958000) % 302400
-          --      rotation = math.floor(((GetServerTime() - 1589958000) % 2419200) /302400)
-         --   else
-                -- 1589900400 -- begin US
-                nextRotation = 302400 - (GetServerTime() - 1589900400) % 302400
-               rotation = math.floor(((GetServerTime() - 1589900400) % 2419200) /302400)
-         --   end
-
-            for j=rotation,(rotation+10) do
-                for _,data in pairs(corruptlist[j%8+1]) do
-				MotherFrame.Mother2[i].icon:SetFormattedText(MotherFrame.iconStr[data[1 
-                    MotherFrame.Mother2[i].name:SetFormattedText(color..(MotherFrame.CorruptNames[data[1] ]).." ("..MotherFrame.CorruptionTier[data[1] ]..")")
-                    MotherFrame.Mother2[i].cost:SetFormattedText(color .. string.format("%5d",data[2])..echo)
-                    if j == rotation then
-                        MotherFrame.Mother2[i].time:SetFormattedText(color.."------")
-                    else
-                        local days = math.floor(nextRotation/86400)
-                        local hours = math.floor(nextRotation%86400/3600)
-                        MotherFrame.Mother2[i].time:SetFormattedText(color..DAY_ONELETTER_ABBR.." "..HOUR_ONELETTER_ABBR,days,hours)
-                    end
-                    MotherFrame.Mother2[i]:SetID(data[1])
-                    MotherFrame.Mother2[i]:Show()
-                    i = i + 1
-                end
-                if color == "|cffffffff" then
-                    color = ""
-                else
-                    color = "|cffffffff"
-                end
-                if j == rotation then
-                    rotation = -1
-                else
-                    nextRotation = nextRotation + 302400
-                end
-            end
-        end)
-        arrayOfElements[1]:SetScript("OnHide",function()
-            MotherFrame.ScrollFrame:ClearAllPoints()
-            MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -80);
-            MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-        end)
-        arrayOfElements[1]:Hide()
-        arrayOfElements[2] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[2]:SetPoint("TOPLEFT",35,-32)
-        arrayOfElements[2]:SetText(CALENDAR_EVENT_NAME)
-        arrayOfElements[2]:Hide()
-
-        arrayOfElements[3] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[3]:SetPoint("TOPLEFT",330,-32)
-local time = string.gsub(GARRISON_MISSION_TIME_TOTAL,"%%s","")
-		arrayOfElements[3]:SetText(time)
-        arrayOfElements[3]:Hide()
-
-        arrayOfElements[4] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[4]:SetPoint("TOPLEFT",415,-32)
-        arrayOfElements[4]:SetText(AUCTION_HOUSE_BROWSE_HEADER_PRICE)
-        arrayOfElements[4]:Hide()
-		for i = 1, 100 do
-            local corrupt = CreateFrame('button',nil , arrayOfElements[1], 'InsetFrameTemplate2')
-            local texture = corrupt:CreateTexture('textureName', 'BACKGROUND')
-            texture:SetAllPoints(true)
-            texture:SetColorTexture(0.2, 0.2, 0.2, 1)
-            corrupt:SetHighlightTexture(texture)
-            corrupt:DisableDrawLayer("BORDER")
-            corrupt:SetNormalFontObject('GameFontNormal')
-            corrupt:SetSize(MotherFrame:GetWidth()-30, 20)
-            corrupt:SetPoint("TOPLEFT",4,-(i-1)*20)
-
-corrupt.icon = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.icon:SetPoint("LEFT",5,0)
-			
-            corrupt.name = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.name:SetPoint("LEFT",35,0)
-
-            corrupt.cost = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.cost:SetPoint("LEFT",410,0)
-
-            corrupt.time = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.time:SetPoint("LEFT",315,0)
-
-            corrupt:Hide()
-            corrupt:SetScript("OnEnter",function(self)
-                GameTooltip:Hide();
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                if self:GetID() and GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()]) then
-					GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()])
-					else 
-					return
-				end
-                GameTooltip:Show()
-            end)
-            corrupt:SetScript("OnLeave",function(self)
-                GameTooltip:Hide();
-            end)
-
-
-            tinsert(MotherFrame.Mother2,corrupt)
-        end
-        MotherFrame:AddButton("MOTHER_US",arrayOfElements)
-    end
-    do
-        local echo = " |Tinterface/icons/inv_inscription_80_vantusrune_nyalotha.blp:15:15|t"
-        local arrayOfElements = {}
-        arrayOfElements[1] = CreateFrame('Frame')
-        arrayOfElements[1]:SetFrameStrata("BACKGROUND")
-        arrayOfElements[1]:SetSize(10,10)
-        arrayOfElements[1]:SetScript("OnShow",function ()
-
-		MotherFrame.ScrollFrame:ClearAllPoints()
-		MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -45);
-		MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-
-		local nextRotation = 0
-		local rotation = -1
-		local i = 1
-		local color = "|cff00ff00"
-				nextRotation = 302400 - (GetServerTime() - 1590015600) % 302400
-                rotation = math.floor(((GetServerTime() - 1590015600) % 2419200) /302400)
-            
-
-            for j=rotation,(rotation+10) do
-                for _,data in pairs(corruptlist[j%8+1]) do
-				MotherFrame.Mother4[i].icon:SetFormattedText(MotherFrame.iconStr[data[1] ])
-                    MotherFrame.Mother4[i].name:SetFormattedText(color..(MotherFrame.CorruptNames[data[1] ]).." ("..MotherFrame.CorruptionTier[data[1] ]..")")
-                    MotherFrame.Mother4[i].cost:SetFormattedText(color .. string.format("%5d",data[2])..echo)
-                    if j == rotation then
-                        MotherFrame.Mother4[i].time:SetFormattedText(color.."------")
-                    else
-                        local days = math.floor(nextRotation/86400)
-                        local hours = math.floor(nextRotation%86400/3600)
-                        MotherFrame.Mother4[i].time:SetFormattedText(color..DAY_ONELETTER_ABBR.." "..HOUR_ONELETTER_ABBR,days,hours)
-                    end
-                    MotherFrame.Mother4[i]:SetID(data[1])
-                    MotherFrame.Mother4[i]:Show()
-                    i = i + 1
-                end
-                if color == "|cffffffff" then
-                    color = ""
-                else
-                    color = "|cffffffff"
-                end
-                if j == rotation then
-                    rotation = -1
-                else
-                    nextRotation = nextRotation + 302400
-                end
-            end
-        end)
-        arrayOfElements[1]:SetScript("OnHide",function()
-            MotherFrame.ScrollFrame:ClearAllPoints()
-            MotherFrame.ScrollFrame:SetPoint("TOPLEFT", MotherFrame, "TOPLEFT", 4, -80);
-            MotherFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MotherFrame, "BOTTOMRIGHT", -5, 5);
-        end)
-        arrayOfElements[1]:Hide()
-        arrayOfElements[2] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[2]:SetPoint("TOPLEFT",35,-32)
-        arrayOfElements[2]:SetText(CALENDAR_EVENT_NAME)
-        arrayOfElements[2]:Hide()
-
-        arrayOfElements[3] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[3]:SetPoint("TOPLEFT",330,-32)
-local time = string.gsub(GARRISON_MISSION_TIME_TOTAL,"%%s","")
-		arrayOfElements[3]:SetText(time)
-        arrayOfElements[3]:Hide()
-
-        arrayOfElements[4] = MotherFrame:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-        arrayOfElements[4]:SetPoint("TOPLEFT",415,-32)
-        arrayOfElements[4]:SetText(AUCTION_HOUSE_BROWSE_HEADER_PRICE)
-        arrayOfElements[4]:Hide()
-		for i = 1, 100 do
-            local corrupt = CreateFrame('button',nil , arrayOfElements[1], 'InsetFrameTemplate2')
-            local texture = corrupt:CreateTexture('textureName', 'BACKGROUND')
-            texture:SetAllPoints(true)
-            texture:SetColorTexture(0.2, 0.2, 0.2, 1)
-            corrupt:SetHighlightTexture(texture)
-            corrupt:DisableDrawLayer("BORDER")
-            corrupt:SetNormalFontObject('GameFontNormal')
-            corrupt:SetSize(MotherFrame:GetWidth()-30, 20)
-            corrupt:SetPoint("TOPLEFT",4,-(i-1)*20)
-
-corrupt.icon = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.icon:SetPoint("LEFT",5,0)
-
-            corrupt.name = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.name:SetPoint("LEFT",35,0)
-
-            corrupt.cost = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.cost:SetPoint("LEFT",410,0)
-
-            corrupt.time = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-            corrupt.time:SetPoint("LEFT",315,0)
-
-            corrupt:Hide()
-            corrupt:SetScript("OnEnter",function(self)
-                GameTooltip:Hide();
-                GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-                if self:GetID() and GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()]) then
-					GameTooltip:SetHyperlink(MotherFrame.CorruptLinks[self:GetID()])
-					else 
-					return
-				end
-                GameTooltip:Show()
-            end)
-            corrupt:SetScript("OnLeave",function(self)
-                GameTooltip:Hide();
-            end)
-
-
-            tinsert(MotherFrame.Mother4,corrupt)
-        end
-        MotherFrame:AddButton("MOTHER_Asia",arrayOfElements)
-    end
-	]]
     -- corrupt
+
+    
     do
 
-        for _, id in pairs(list) do
-            GetItemInfo(id)
-        end
         local echo = " |Tinterface/icons/inv_inscription_80_vantusrune_nyalotha.blp:15:15|t"
         local arrayOfElements = {}
         arrayOfElements[1] = CreateFrame('Frame')
@@ -948,18 +610,17 @@ corrupt.icon = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
             if GetCurrentRegion() == 3 then
                 -- 1589958000 -- begin EU
                 nextRotation = 302400 -  (GetServerTime() - 1589958000) % 302400
-                rotation = math.floor(((GetServerTime() - 1589958000) % 2419200) /302400)
+                currentRotation = math.floor(((GetServerTime() - 1589958000) % 2419200) /302400)
             elseif GetCurrentRegion() == 2 then
 				-- 1590015600 Asia?
 				nextRotation = 302400 - (GetServerTime() - 1590015600) % 302400
-                rotation = math.floor(((GetServerTime() - 1590015600) % 2419200) /302400)
+                currentRotation = math.floor(((GetServerTime() - 1590015600) % 2419200) /302400)
             
 			else
                 -- 1589900400 -- begin US
                 nextRotation = 302400 - (GetServerTime() - 1589900400) % 302400
-                rotation = math.floor(((GetServerTime() - 1589900400) % 2419200) /302400)
+                currentRotation = math.floor(((GetServerTime() - 1589900400) % 2419200) /302400)
             end
-
             for i,id in pairs(list) do
                 for rotation, corrupts in pairs(corruptlist) do
                     for _, corrputinfo in pairs(corrupts) do
@@ -1063,4 +724,4 @@ corrupt.icon = corrupt:CreateFontString(nil , "ARTWORK", "GameFontNormal")
 	MotherFrame.btn[1]:Click()
 end
 
-
+--]]
