@@ -2,7 +2,7 @@
 ## Title: HandyNotes: Mechagon & Nazjatar
 ## Version: 13
 ## Notes: Mechagon & Nazjatar Notes
-## Title-zhTW: |r|cFF0099FF[地圖]|r 地圖標記-機械岡與納沙塔爾
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-機械岡與納沙塔爾
 ## Notes-zhTW: HandyNotes_MechagonAndNazjatar |n機械岡與納沙塔爾的稀有與寶箱
 ## OptionalDeps: Ace3
 ## RequiredDeps: HandyNotes

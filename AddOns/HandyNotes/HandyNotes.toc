@@ -1,7 +1,7 @@
 ﻿## Interface: 80300
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
-## Title-zhTW: |r|cFF0099FF[地圖]|r 地圖標記-主程式
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
 ## Notes-zhTW: Handy Notes |n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
 ## Author: Xinhuan
 ## Version: v1.5.8

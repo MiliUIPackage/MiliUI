@@ -3,7 +3,7 @@
 ## Title: BFAInvasionTimer
 ## Author: Funkydude
 ## Notes: Shows the Battle for Azeroth assault/invasion timer.
-## Title-zhTW: |cff00FFFF[任務]|r 衝突戰計時器-主程式
+## Title-zhTW: |cFF00AA99[任務]|r 衝突戰計時器-主程式
 ## Notes-zhTW: BFAInvasionTimer |顯示下次衝突戰的時間和相關成就進度。|n|cffffd200使用方法：開啟世界地圖顯示計時器。|n滑鼠停留在 "衝突戰" 的標題列上，左鍵拖曳移動位置，右鍵開啟設定選項。
 ## DefaultState: disabled
 ## SavedVariables: BFAInvasionTimerDB, BFAInvasionData

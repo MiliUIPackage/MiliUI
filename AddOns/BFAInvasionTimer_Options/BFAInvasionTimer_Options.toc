@@ -3,7 +3,7 @@
 ## Author: Funkydude
 ## Notes: BFAInvasionTimer Configuration Options.
 ## Notes-zhCN: BFAInvasionTimer 配置选项。
-## Title-zhTW: |cff00FFFF[任務]|r 衝突戰計時器-設定選項
+## Title-zhTW: |cFF00AA99[任務]|r 衝突戰計時器-設定選項
 ## Notes-zhTW: BFAInvasionTimer_Options |n衝突戰計時器的設定選項。
 ## DefaultState: disabled
 ## Version: v8.3.0

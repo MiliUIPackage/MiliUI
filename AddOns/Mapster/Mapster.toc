@@ -2,7 +2,7 @@
 ## Notes: Simple Map Mod
 ## Notes-zhCN: 简单实用的地图模块
 ## Title: Mapster
-## Title-zhTW: |r|cFF0099FF[地圖]|r 地圖增強
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖增強
 ## Notes-zhTW: Mapster |n在世界地圖上顯示座標、顯示未探索區域、自訂地圖大小、透明度和其他功能。|n|cffffd200使用方法：|r從Esc>介面>插件>世界地圖，進行設定。
 ## Author: Nevcairiel
 ## SavedVariables: MapsterDB
