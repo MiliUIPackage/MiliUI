@@ -708,7 +708,7 @@ local options = {
 		},
 		posY = {
 			name = "垂直位置",
-			desc = "與畫面右上角的水平距離，應為負的數值。",
+			desc = "與畫面右上角的垂直距離，應為負的數值。",
 			type = "input",
 			width = "half",
 			get = function() return tostring(db.posY) end,
