@@ -25,7 +25,7 @@ config.sound = {
 config.length = 40;
 
 -- 嗜血音樂所使用的聲音頻道，可以使用的值有主音量 "Master" 和法術音效 "SFX"。
-config.channel = "SFX";
+config.channel = "Master";
 
 --[[
 --Some other examples
