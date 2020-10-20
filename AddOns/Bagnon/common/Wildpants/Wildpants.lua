@@ -72,7 +72,7 @@ local ProfileDefaults = {
 	bank = SetDefaults({
 		borderColor = {1, 1, 0, 1},
 		point = 'LEFT',
-		columns = 12,
+		columns = 26,
 		width = 600,
 		height = 500,
 		x = 95
@@ -88,7 +88,7 @@ local ProfileDefaults = {
 	guild = SetDefaults({
 		borderColor = {0, 1, 0, 1},
 		point = 'CENTER',
-		columns = 20,
+		columns = 6,
 	}, FrameDefaults)
 }
 
@@ -110,9 +110,9 @@ function Addon:OnEnable()
 		flashFind = true, tipCount = true, fading = true,
 
 		glowAlpha = 0.5,
-		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
+		glowQuality = true, glowNew = true, glowQuest = true, glowSets = false, glowUnusable = true,
 
-		emptySlots = true, colorSlots = true,
+		emptySlots = false, colorSlots = true,
 		normalColor = {1, 1, 1},
 		keyColor = {1, .9, .19},
 		quiverColor = {1, .87, .68},
