@@ -1,7 +1,7 @@
 -- Stuf by TotalPackage
 -- http://www.wowinterface.com/list.php?skinnerid=27891
 
-local Stuf = CreateFrame("Frame", "Stuf", UIParent)
+local Stuf = CreateFrame("Frame", "Stuf", UIParent, BackdropTemplateMixin and "BackdropTemplate")
 
 -- LibSharedMedia-3.0 register media files
 local smed = LibStub("LibSharedMedia-3.0")
@@ -997,7 +997,7 @@ do  -- general data updating
 		UpdatePower(unit, uf, nil, true, nil, true)
 	end
 	Stuf:AddEvent("UNIT_HEALTH", UpdateHealth)
-	Stuf:AddEvent("UNIT_HEALTH_FREQUENT", UpdateHealth)
+	-- Stuf:AddEvent("UNIT_HEALTH_FREQUENT", UpdateHealth)
 	Stuf:AddEvent("UNIT_MAXHEALTH", UpdateHealth)
 	Stuf:AddEvent("UNIT_POWER_UPDATE", UpdatePower)
 	Stuf:AddEvent("UNIT_POWER_FREQUENT", UpdatePower)
@@ -1244,8 +1244,8 @@ end
 --------------------------------------------------------
 function Stuf:CreateBase(unit, uf, name, dbe, frametype)  -- basic base frame for many elements
 --------------------------------------------------------
-	local f = CreateFrame(frametype or "Frame", nil, uf)
-	f.border = CreateFrame("Frame", nil, f)
+	local f = CreateFrame(frametype or "Frame", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
+	f.border = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate")
 	f.border:SetPoint("TOPLEFT", -4, 4)
 	f.border:SetPoint("BOTTOMRIGHT", 4, -4)
 	f.ename = name
@@ -1345,7 +1345,7 @@ function Stuf:CreateUnitFrame(unit, fromshow)  -- creates entire unit frame and 
 	
 	if not fromshow then  -- secure stuff, requires out of combat
 		if not uf then
-			uf = CreateFrame("Button", "Stuf.units."..unit, UIParent, "SecureUnitButtonTemplate")
+			uf = CreateFrame("Button", "Stuf.units."..unit, UIParent, "SecureUnitButtonTemplate" )
 			su[unit] = uf
 			uf.frame = uf
 			uf.unit = unit
@@ -1433,7 +1433,7 @@ function Stuf:CreateUnitFrame(unit, fromshow)  -- creates entire unit frame and 
 	if initial then
 		uf.bg = uf:CreateTexture(nil, "BACKGROUND")
 		uf.bg:SetAllPoints(uf)
-		uf.border = CreateFrame("Frame", nil, uf)
+		uf.border = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
 		uf.border:SetPoint("TOPLEFT", -5, 5)
 		uf.border:SetPoint("BOTTOMRIGHT", 5, -5)
 		uf:SetScript("OnEnter", MainOnEnter)

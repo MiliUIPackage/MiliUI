@@ -736,7 +736,7 @@ do  -- Aura Icons --------------------------------------------------------------
 		for i = 1, db.count or 2, 1 do
 			local icon = f[i]
 			if not icon then
-				icon = CreateFrame("Button", lbf and format("Stuf.units.%s.%s.a%d", unit, name, i) or nil, f)
+				icon = CreateFrame("Button", lbf and format("Stuf.units.%s.%s.a%d", unit, name, i) or nil, f, BackdropTemplateMixin and "BackdropTemplate")
 				icon:Hide()
 				icon.overlay = CreateFrame("Frame", nil, icon)
 				icon.overlay:SetFrameLevel(4)
@@ -925,7 +925,7 @@ do  -- Dispell Icon ------------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, "BackdropTemplate")
 			f.texture = f:CreateTexture(nil, "BORDER")
 			f.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 			f.ctext = f:CreateFontString(nil, "ARTWORK")

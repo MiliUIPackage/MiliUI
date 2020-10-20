@@ -219,6 +219,9 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
     local playerx, playery = floor(GetScreenWidth()/2)-200-gap, -floor(GetScreenHeight() * 0.66)
     local targetx, targety = floor(GetScreenWidth()/2)+gap, -floor(GetScreenHeight() * 0.66)
     
+    -- 預設關閉個人資源條
+    SetCVar("nameplateShowSelf", 0)
+
 	if justboss then
 		db.boss1={
 			frame={ x=arenax, y=arenay, w=120, h=10, },
@@ -314,6 +317,10 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 		for i = 2, MAX_BOSS_FRAMES, 1 do
 			db["boss"..i.."target"]={ frame={ x=arenax + 130, y=arenay - (47 * (i - 1)), w=80, h=10, }, }
 		end
+		-- db.boss4.frame.hide = true
+		-- db.boss5.frame.hide = true
+		-- db.boss4target.frame.hide = true
+		-- db.boss5target.frame.hide = true
 		return
 	end
 
@@ -339,10 +346,20 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			},
 			classcolor={ }, 
 			reactioncolor={ 
+				[1]={ r=1, g=0, b=0, },		-- 仇恨
+				[2]={ r=0.8, g=0, b=0, },	-- 敵對
+				[3]={ r=1, g=0.3, b=0, },	-- 不友好
+				[4]={ r=1, g=1, b=0, },		-- 中立
+				[5]={ r=0.4, g=0.8, b=0.2, },	-- 友好
+				[6]={ r=0, g=0.9, b=0, },	-- 尊敬
+				[7]={ r=0, g=0.7, b=0, },	-- 崇敬
+				[8]={ r=0, g=0.5, b=0, },	-- 崇拜
 				[9]={ r=0.8, g=1, b=0.8, },
 				[10]={ r=1, g=0.8, b=0.8, },
 			},
-			powercolor={ },
+			powercolor={
+				[0]={ r=0.2, g=0.5, b=1, },	-- 法力
+			},
 			auracolor={ 
 				Buff={ r=0, g=0, b=0, }, 
 				MyBuff={ r=0.5, g=0.5, b=0.6 },
@@ -357,6 +374,9 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			channelcolor={ r=0, g=1, b=0, },
 			completecolor={ r=1, g=1, b=0, },
 			failcolor={ r=1, g=0, b=0, },
+			hidepartyinraid = true,
+			disableboss = true,
+			strata="LOW",
 		},
 		player={
 			frame={ x=playerx, y=playery, w=200, h=50, bordercolor={r=0, g=0, b=0, a=0, }, fasthp = true, },
@@ -457,13 +477,13 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			totembar={ x=20, y=13, w=32, h=12, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 			runebar={ x=8, y=-10, w=38, h=6, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 			druidbar={
-				x=63, y=-37, w=127, h=3,
+                x=63, y=-37, w=127, h=3,
 				fade=nil, vertical=nil, reverse=nil,
 				barcolormethod="solid", bgcolormethod="solid", bgalpha=0.4,
 				barcolor={ r=0.3, g=0.3, b=1, }, bgcolor={ r=0, g=0, b=0, },
 			},
 			castbar={ 
-				hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
+                hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
 				baralpha=1, bgcolor={ r=0, g=0, b=0, a=0.5, },
 				spellx=34, spelly=-2, spellw=166, spellh=50, 
 				spellfontsize=12, spelljustifyH="LEFT", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
@@ -582,7 +602,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				count=16, rows=2, cols=8, growth="LRBT", showpie=true,
 			},
 			auratimers={
-				x=0, y=-52, w=70, h=13,
+                x=0, y=-52, w=70, h=13,
                 count=12, rows=6, cols=2, growth="TBLR", push="v",
     			hide = true,
 			},
@@ -593,8 +613,9 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			looticon={ x=18, y=10, w=12, h=12, framelevel=10, },
 			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5, },
 			infoicon={ x=50, y=-37, w=12, h=12, hide=true,},
+			lfgicon={ x=-40, y=12, w=30, h=30, circular=true, framelevel=3, },
 			castbar={ 
-				hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
+                hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
 				baralpha=1, bgcolor={ r=0, g=0, b=0, a=0.5, },
 				spellx=34, spelly=-2, spellw=166, spellh=50, 
 				spellfontsize=12, spelljustifyH="LEFT", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
@@ -608,12 +629,15 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 border="None",
 			},
 			comboframe={ 
-				x=80, y=-28, w=29, h=18,
+                x=80, y=-28, w=29, h=18,
 				color={ r=0.7, g=0, b=0, a=1, },
 				glowcolor={ r=1, g=1, b=0, a=0.8, },
 			},
 			inspectbutton={ x=186, y=5, w=25, h=25, framelevel=8, },
 			threatbar={ x=157, y=-2, w=32, h=12, framelevel=5, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
+			inspectbutton={ x=315, y=25, w=26, h=26, framelevel=1, },
+			threatbar={ x=60, y=-11, w=45, h=16, fontsize=14, bgcolor={ r=0, g=0, b=0, a=0.4, }, framelevel=4,},
+			-- rangetext={ x=0, y=-15, w=100, h=10, fontsize=14, justifyH="LEFT", framelevel=4, },
 		},
 		targettarget={
 			frame={ x=targetx+210, y=targety, w=120, h=28, },
@@ -740,16 +764,16 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				fontsize=10, justifyH="RIGHT", justifyV="CENTER", 
                 framelevel = 5,
 			},
-			buffgroup={ 
-				x=0, y=-50, w=12, h=12, 
+			buffgroup={
+                x=0, y=-50, w=12, h=12, 
 				count=10, rows=1, cols=10, growth="LRTB",
 			},
 			debuffgroup={ 
-				x=0, y=-50, w=12, h=12, 
+                x=0, y=-50, w=12, h=12, 
 				count=10, rows=1, cols=10, growth="LRTB", push="v",
 			},
 			auratimers={
-                hide=true,
+				hide=true,
 				x=0, y=-24, w=50, h=12,
 				count=4, rows=4, cols=1, growth="TBLR", push="v",
 			},
@@ -774,6 +798,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 timefontflags="OUTLINE",
                 framelevel=10,
 			},
+			-- rangetext={ x=40, y=20, w=100, h=10, fontsize=12, justifyH="CENTER", framelevel=12, },
 		},
 		focustarget={
 			frame={ x=playerx-175, y=playery/2, w=70, h=50, },
@@ -811,6 +836,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			buffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, },
 			debuffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, push="v", },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
+			raidtargeticon={ hide=true, x=-33, y=10, w=26, h=26, framelevel=6, },
 		},
 		pet={
 			frame={ x=playerx-130, y=playery, w=120, h=50, },
@@ -891,7 +917,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			raidtargeticon={ hide=true, x=4, y=7, w=12, h=12, },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 			castbar={ 
-				x=0, y=0, w=120, h=40, alpha=1,
+                x=0, y=0, w=120, h=40, alpha=1,
 				baralpha=1, bgcolor={ r=0, g=0, b=0, a=0.5, },
 				spellx=34, spelly=5, spellw=120, spellh=50, 
 				spellfontsize=12, spelljustifyH="LEFT", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
@@ -981,8 +1007,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 count=12, rows=1, cols=12,
                 hide=true, 
 			},
-			debuffgroup={ 
-				x=147, y=-14, w=12, h=12, 
+			x=147, y=-14, w=12, h=12, 
                 count=8, rows=2, cols=4, growth="TBLR",
                 hide=true, 
 			},
@@ -995,7 +1020,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			raidtargeticon={ x=115, y=10, w=20, h=20, framelevel = 11, },
 			infoicon={ x=37, y=-28, w=9, h=9, hide=true, },
 			castbar={ 
-				x=0, y=-30, w=250, h=10, alpha=1,
+                x=0, y=-30, w=250, h=10, alpha=1,
 				baralpha=0, bgcolor={ r=1, g=1, b=0, a=0.8, },
 				spellx=0, spelly=0, spellw=250, spellh=12, 
 				spellfontsize=12, spelljustifyH="CENTER", spelljustifyV="CENTER", spellshadowx=0, spellshadowy=0,
@@ -1009,6 +1034,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 timefontflags="OUTLINE",
 			},
 			vehicleicon={ hide=true, },
+			-- lfgicon={ x=-22, y=22, w=20, h=20, circular=true, framelevel=4, },
 		},
 		party2={ frame={ x=16, y=-90, hide=true }, },
 		party3={ frame={ x=16, y=-150, hide=true }, },
@@ -1048,6 +1074,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			buffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, },
 			debuffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, push="v", },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
+			-- raidtargeticon={ hide=true, x=-33, y=10, w=26, h=26, framelevel=6, },
 		},
 		party1target={ frame={ x=280, y=-30, hide=true, }, },
 		party2target={ frame={ x=280, y=-90, hide=true, }, },
@@ -1080,12 +1107,13 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			buffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, },
 			debuffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, push="v", },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
+			-- raidtargeticon={ hide=true, x=-33, y=10, w=26, h=26, framelevel=6, },
 		},
 		partypet2={ frame={ hide=true, x=7, y=-245, }, },
 		partypet3={ frame={ hide=true, x=7, y=-305, }, },
 		partypet4={ frame={ hide=true, x=7, y=-365, }, },
 		arena1={
-			frame={ x=arenax, y=arenay, w=78, h=24, },
+			frame={ hide=true, x=arenax, y=arenay, w=78, h=24, },
 			portrait={ x=0, y=0, w=24, h=24, show3d=nil, },
 			hpbar={ x=24, y=-1, w=53, h=17, barcolormethod="hpgreen", bgcolormethod="hpgreendark", bgalpha=0.3, },
 			mpbar={ x=24, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", bgalpha=0.3, },
@@ -1122,12 +1150,12 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				iconx=-16, icony=0, iconw=14, iconh=14, iconalpha=0,
 			},
 		},
-		arena2={ frame={ x=arenax, y=arenay - 47, w=78, h=24, }, },
-		arena3={ frame={ x=arenax, y=arenay - 94, w=78, h=24, }, },
-		arena4={ frame={ x=arenax, y=arenay - 141, w=78, h=24, }, },
-		arena5={ frame={ x=arenax, y=arenay - 188, w=78, h=24, }, },
+		arena2={ frame={ hide=true, x=arenax, y=arenay - 47, w=78, h=24, }, },
+		arena3={ frame={ hide=true, x=arenax, y=arenay - 94, w=78, h=24, }, },
+		arena4={ frame={ hide=true, x=arenax, y=arenay - 141, w=78, h=24, }, },
+		arena5={ frame={ hide=true, x=arenax, y=arenay - 188, w=78, h=24, }, },
 		arena1target={
-			frame={ x=arenax + 79, y=arenay, w=78, h=24, },
+			frame={ hide=true, x=arenax + 79, y=arenay, w=78, h=24, },
 			portrait={ x=55, y=0, w=24, h=24, show3d=nil, },
 			hpbar={ x=1, y=-1, w=53, h=17, barcolormethod="hpgreen", bgcolormethod="hpgreendark", reverse=true, bgalpha=0.3, },
 			mpbar={ x=1, y=-19, w=53, h=5, barcolormethod="power", bgcolormethod="powerdark", reverse=true, bgalpha=0.3, },
@@ -1153,12 +1181,12 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			},
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 		},
-		arena2target={ frame={ x=arenax + 79, y=arenay - 47, w=78, h=24, }, },
-		arena3target={ frame={ x=arenax + 79, y=arenay - 94, w=78, h=24, }, },
-		arena4target={ frame={ x=arenax + 79, y=arenay - 141, w=78, h=24, }, },
-		arena5target={ frame={ x=arenax + 79, y=arenay - 188, w=78, h=24, }, },
+		arena2target={ frame={ hide=true, x=arenax + 79, y=arenay - 47, w=78, h=24, }, },
+		arena3target={ frame={ hide=true, x=arenax + 79, y=arenay - 94, w=78, h=24, }, },
+		arena4target={ frame={ hide=true, x=arenax + 79, y=arenay - 141, w=78, h=24, }, },
+		arena5target={ frame={ hide=true, x=arenax + 79, y=arenay - 188, w=78, h=24, }, },
 		arenapet1={
-			frame={ x=arenax - 37, y=arenay - 12, w=36, h=12, },
+			frame={ hide=true, x=arenax - 37, y=arenay - 12, w=36, h=12, },
 			portrait={ x=24, y=0, w=12, h=12, },
 			hpbar={ 
 				x=0, y=0, w=24, h=12, 
@@ -1180,21 +1208,25 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			debuffgroup={ hide=true, x=0, y=-12, w=6, h=6, count=6, rows=1, cols=6, push="v", },
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 		},
-		arenapet2={ frame={ x=arenax - 37, y=arenay - 59, w=78, h=24, }, },
-		arenapet3={ frame={ x=arenax - 37, y=arenay - 106, w=78, h=24, }, },
-		arenapet4={ frame={ x=arenax - 37, y=arenay - 153, w=78, h=24, }, },
-		arenapet5={ frame={ x=arenax - 37, y=arenay - 200, w=78, h=24, }, },
+		arenapet2={ frame={ hide=true, x=arenax - 37, y=arenay - 59, w=78, h=24, }, },
+		arenapet3={ frame={ hide=true, x=arenax - 37, y=arenay - 106, w=78, h=24, }, },
+		arenapet4={ frame={ hide=true, x=arenax - 37, y=arenay - 153, w=78, h=24, }, },
+		arenapet5={ frame={ hide=true, x=arenax - 37, y=arenay - 200, w=78, h=24, }, },
 	}
 	local dgc = defaults.global
 	for class, color in pairs(CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS) do
 		dgc.classcolor[class]={ r=color.r, g=color.g, b=color.b, }
 	end
 	for index, color in pairs(FACTION_BAR_COLORS) do
-		dgc.reactioncolor[index]={ r=color.r, g=color.g, b=color.b, }
+		-- 使用自訂顏色
+		if not dgc.reactioncolor[index] then
+			dgc.reactioncolor[index]={ r=color.r, g=color.g, b=color.b, }
+		end
 	end
 	for i = 0, 10, 1 do
 		local color = PowerBarColor[i]
-		if not color then break end
+		-- 使用自訂顏色
+		if dgc.powercolor[i] or not color then break end
 		dgc.powercolor[i]={ r=color.r, g=color.g, b=color.b, }
 	end
 	for dtype, color in pairs(DebuffTypeColor) do
@@ -1655,8 +1687,8 @@ local texttagoptions={ hide=hide, copyelement=copyelement, blank=blank,
 		set=function(info, v)
 			if not taghelp then
 				taghelp=CreateFrame("Frame", nil, Stuf)
-				taghelp:SetWidth(400)
-				taghelp:SetHeight(400)
+				taghelp:SetWidth(500)
+				taghelp:SetHeight(750)
 				taghelp:EnableMouse(true)
 				taghelp:SetMovable(true)
 				taghelp:RegisterForDrag("LeftButton")
@@ -2127,6 +2159,7 @@ local hidealpha = function() return not db.global.morealpha end
 local options
 options={
 	type="group",
+	name = L["Stuf"],
 	args={ 
 		configmode={
 			name=L["Config Mode"], desc=L["Preview everything."], type="toggle", order=1, 
@@ -2675,8 +2708,11 @@ do  -- setup options for grouped colors
 			end,
 		}
 	end
+	-- 將職業名稱改為中文
+	local classNameList = {}
+	FillLocalizedClassList(classNameList)
 	for class, color in pairs(RAID_CLASS_COLORS) do
-		cargs[class]={ name=class, type="color", set=set, get=getcolororblank, hidden=classcolorshide, }
+		cargs[class]={ name=classNameList[class], type="color", set=set, get=getcolororblank, hidden=classcolorshide, }
 	end
 	
 	local pargs = oargs.powercolor.args
@@ -2728,5 +2764,9 @@ function Stuf:OpenOptions(frame)
 		frame.hidden = true
 		CreateOptionFrame()
 	end
-	InterfaceOptionsFrame_OpenToCategory(optionframe)
+	C_Timer.After(0.3, function()
+		InterfaceOptionsFrame_Show()
+		InterfaceOptionsFrame_OpenToCategory(optionframe)
+		InterfaceOptionsFrame_OpenToCategory(optionframe)
+	end)
 end

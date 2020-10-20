@@ -713,7 +713,7 @@ do  -- Inspect Button ----------------------------------------------------------
 		end
 		-- 左鍵: 觀察\n右鍵: 交易\n中鍵: 密語\n按鍵4: 跟隨 (Codes borrowed from UnitFramesPlus)
 		if not f then
-			f = CreateFrame("Button", nil, uf)
+			f = CreateFrame("Button", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
 			f:SetScript("OnMouseUp", function(self, button)
 				if UnitIsPlayer("target") and (not UnitCanAttack("player", "target")) then
 					if button == "LeftButton" then
