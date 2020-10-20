@@ -195,20 +195,8 @@
 	</Frame>
 
 
-	<Frame name="TradeLogFrame" parent="UIParent" movable="true" toplevel="true" enableMouse="true" hidden="true">
+	<Frame name="TradeLogFrame" parent="UIParent" inherits="BackdropTemplate" mixin="BackdropTemplateMixin" movable="true" toplevel="true" enableMouse="true" hidden="true">
 		<TitleRegion setAllPoints="true"/>
-		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-			<EdgeSize>
-				<AbsValue val="16"/>
-			</EdgeSize>
-			<TileSize>
-				<AbsValue val="16"/>
-			</TileSize>
-			<BackgroundInsets>
-				<AbsInset left="3" right="3" top="3" bottom="3"/>
-			</BackgroundInsets>
-			<Color r="0" g="0" b="0"/>
-		</Backdrop>
 		<Size>
 			<AbsDimension x="260" y="270"/>
 		</Size>
@@ -441,11 +429,20 @@
 				TradeLogFrame_OnLoad(self);
 			</OnLoad>
 			<OnShow>
+				self:SetBackdrop({
+					bgFile="Interface\\Tooltips\\UI-Tooltip-Background", 
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					tile = true,
+					tileSize = 16,
+					edgeSize = 16,
+					insets = {left = 3, right = 3, top = 3, bottom = 3},
+				})
+				self:SetBackdropColor(0,0,0);
 				self:SetMovable(true);
-        self:EnableMouse(true);
-        self:RegisterForDrag("LeftButton");
-			  self:SetScript("OnDragStart", self.StartMoving);
-			  self:SetScript("OnDragStop", self.StopMovingOrSizing);
+				self:EnableMouse(true);
+				self:RegisterForDrag("LeftButton");
+				self:SetScript("OnDragStart", self.StartMoving);
+				self:SetScript("OnDragStop", self.StopMovingOrSizing);
 			</OnShow>
 		</Scripts>
 
@@ -663,20 +660,9 @@
 		</HighlightTexture>
 	</Button>
 
-	<Frame name="TradeListFrame" parent="UIParent" movable="true" enableMouse="true" hidden="true">
+	<Frame name="TradeListFrame" parent="UIParent" inherits="BackdropTemplate" mixin="BackdropTemplateMixin" movable="true" enableMouse="true" hidden="true">
 		<TitleRegion setAllPoints="true"/>
-		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-			<EdgeSize>
-				<AbsValue val="16"/>
-			</EdgeSize>
-			<TileSize>
-				<AbsValue val="16"/>
-			</TileSize>
-			<BackgroundInsets>
-				<AbsInset left="3" right="3" top="3" bottom="3"/>
-			</BackgroundInsets>
-            <Color r="0" g="0" b="0"/>
-		</Backdrop>
+
 		<Size>
 			<AbsDimension x="543" y="330"/>
 		</Size>
@@ -687,7 +673,6 @@
 				</Offset>
 			</Anchor>
 		</Anchors>
-
 		<Frames>
 			<Button name="$parentClose" inherits="UIPanelCloseButton">
 				<Anchors>
@@ -698,7 +683,6 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-
 			<Button name="TradeListKeepOnlyTodayButton" inherits="UIPanelButtonTemplate" Text="TRADE_LIST_CLEAR_HISTORY">
 				<Size>
 					<AbsDimension x="90" y="26"/>
@@ -745,8 +729,6 @@
 					</OnValueChanged>
 				</Scripts>
 			</Slider>
-
-
 			<CheckButton name="TradeListOnlyCompleteCB" inherits="OptionsCheckButtonTemplate">
 				<Size>
 					<AbsDimension x="26" y="26"/>
@@ -768,7 +750,7 @@
 					</OnClick>
 				</Scripts>
 			</CheckButton>
-<!-- =================== Table Head ======================== -->
+		
 			<Button name="$parentColumnHeader1" inherits="TradeListFrameColumnHeaderTemplate" text="TRADE_LIST_HEADER_WHEN">
 				<Anchors>
 					<Anchor point="TOPLEFT">
@@ -990,7 +972,7 @@
 				</Anchors>
 			</Button>
 
-			<ScrollFrame name="TradeListScrollFrame" inherits="FauxScrollFrameTemplate">
+			<ScrollFrame name="TradeListScrollFrame" inherits="FauxScrollFrameTemplate,BackdropTemplate" mixin="BackdropTemplateMixin">
 				<Size>
 					<AbsDimension x="40" y="50"/>
 				</Size>
@@ -1015,7 +997,8 @@
 					</OnShow>
 					<OnLoad>
 						ScrollFrame_OnLoad(self);
-						local scrollBar = getglobal(self:GetName().."ScrollBar");
+						
+						<!--local scrollBar = getglobal(self:GetName().."ScrollBar");
 						scrollBar:SetBackdrop( 
 						{
 							bgFile = "Interface\\ChatFrame\\ChatFrameBackground", 
@@ -1030,7 +1013,7 @@
 								bottom = 4},
 						})
 						scrollBar:SetBackdropBorderColor(.2, .2, .2, 1)
-						scrollBar:SetBackdropColor(.1, .1, .1, 1)
+						scrollBar:SetBackdropColor(.1, .1, .1, 1)-->
 					</OnLoad>
 				</Scripts>
 				<Layers>
@@ -1039,6 +1022,15 @@
 		</Frames>
 		<Scripts>
 			<OnShow>
+				self:SetBackdrop({
+					bgFile="Interface\\Tooltips\\UI-Tooltip-Background", 
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					tile = true,
+					tileSize = 16,
+					edgeSize = 16,
+					insets = {left = 3, right = 3, top = 3, bottom = 3},
+				})
+				self:SetBackdropColor(0,0,0);
 			    self:SetMovable(true);
 			    self:EnableMouse(true);
 			    self:RegisterForDrag("LeftButton");
@@ -1049,5 +1041,4 @@
 			</OnShow>
 		</Scripts>
 	</Frame>
-
 </Ui>

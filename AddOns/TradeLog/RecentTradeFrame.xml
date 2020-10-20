@@ -56,19 +56,8 @@
 		</HighlightTexture>
 	</Button>
 
-	<Frame name="RecentTradeFrame" parent="TradeFrame" hidden="false">
+	<Frame name="RecentTradeFrame" parent="TradeFrame" inherits="BackdropTemplate" mixin="BackdropTemplateMixin" hidden="false">
 		<TitleRegion setAllPoints="true"/>
-		<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-			<EdgeSize>
-				<AbsValue val="16"/>
-			</EdgeSize>
-			<TileSize>
-				<AbsValue val="16"/>
-			</TileSize>
-			<BackgroundInsets>
-				<AbsInset left="5" right="5" top="5" bottom="5"/>
-			</BackgroundInsets>
-		</Backdrop>
 		<Size>
 			<AbsDimension x="180" y="451"/>
 		</Size>
@@ -183,6 +172,14 @@
 		<Scripts>
 			<OnLoad>
 				self:RegisterEvent("TRADE_SHOW")
+				self:SetBackdrop({
+					bgFile="Interface\\Tooltips\\UI-Tooltip-Background", 
+					edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+					tile = true,
+					tileSize = 16,
+					edgeSize = 16,
+					insets = {left = 5, right = 5, top = 5, bottom = 5},
+				})
 			</OnLoad>
 			<OnEvent>
 				<!--RecentTradeFrame_UpdateList(GetUnitName("NPC", true):gsub(" %- ", "-"))-->
