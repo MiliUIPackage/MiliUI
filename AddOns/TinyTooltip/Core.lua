@@ -24,7 +24,6 @@ local BASE_MOVEMENT_SPEED = BASE_MOVEMENT_SPEED or 7
 --BLZ function (Fixed for classic WOW)
 local UnitEffectiveLevel = UnitEffectiveLevel or function() end
 local UnitGroupRolesAssigned = UnitGroupRolesAssigned or function() end
-local UnitGroupRolesAssigned = UnitGroupRolesAssigned  or function() end
 local UnitIsQuestBoss = UnitIsQuestBoss or function() end
 local IsFlying = IsFlying or function() end
 
@@ -553,6 +552,7 @@ LibEvent:attachTrigger("tooltip.style.background", function(self, frame, r, g, b
     LibEvent:trigger("tooltip.style.init", frame)
     local rr, gg, bb, aa = frame.style:GetBackdropColor()
     if (rr ~= r or gg ~= g or bb ~= b or aa ~= a) then
+        if (frame.SetBackdrop) then frame:SetBackdrop(nil) end
         frame.style:SetBackdropColor(r or rr, g or gg, b or bb, a or aa)
     end
 end)
@@ -632,12 +632,17 @@ LibEvent:attachTrigger("tooltip.style.border.color", function(self, frame, r, g,
     LibEvent:trigger("tooltip.style.init", frame)
     local rr, gg, bb, aa = frame.style:GetBackdropBorderColor()
     if (rr ~= r or gg ~= g or bb ~= b or aa ~= a) then
+        if (frame.SetBackdrop) then frame:SetBackdrop(nil) end
         frame.style:SetBackdropBorderColor(r or rr, g or gg, b or bb, a or aa)
     end
 end)
 
 local defaultHeaderFont, defaultHeaderSize, defaultHeaderFlag = GameTooltipHeaderText:GetFont()
 LibEvent:attachTrigger("tooltip.style.font.header", function(self, frame, fontObject, fontSize, fontFlag)
+    --没有配置的直接返回,防止SetFont后字体集无法自动匹配
+    if (fontObject == "default" and fontSize == "default" and fontFlag == "default") then
+        return
+    end
     local font, size, flag = GameTooltipHeaderText:GetFont()
     font = addon:GetFont(fontObject, defaultHeaderFont)
     if (fontSize == "default") then
@@ -730,20 +735,22 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         edgeSize = 14,
     }
-    tip:SetBackdrop(nil)
-    tip.style = CreateFrame("Frame", nil, tip)
+    if (tip.SetBackdrop) then
+        tip:SetBackdrop(nil)
+    end
+    tip.style = CreateFrame("Frame", nil, tip, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style:SetFrameLevel(tip:GetFrameLevel())
     tip.style:SetAllPoints()
     tip.style:SetBackdrop(backdrop)
     tip.style:SetBackdropColor(0, 0, 0, 0.9)
     tip.style:SetBackdropBorderColor(0.6, 0.6, 0.6, 0.8)
-    tip.style.inside = CreateFrame("Frame", nil, tip.style)
+    tip.style.inside = CreateFrame("Frame", nil, tip.style, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style.inside:SetBackdrop({edgeSize=1,edgeFile="Interface\\Buttons\\WHITE8X8"})
     tip.style.inside:SetPoint("TOPLEFT", tip.style, "TOPLEFT", 1, -1)
     tip.style.inside:SetPoint("BOTTOMRIGHT", tip.style, "BOTTOMRIGHT", -1, 1)
     tip.style.inside:SetBackdropBorderColor(0.1, 0.1, 0.1, 0.8)
     tip.style.inside:Hide()
-    tip.style.outside = CreateFrame("Frame", nil, tip.style)
+    tip.style.outside = CreateFrame("Frame", nil, tip.style, BackdropTemplateMixin and "BackdropTemplate" or nil)
     tip.style.outside:SetBackdrop({edgeSize=1,edgeFile="Interface\\Buttons\\WHITE8X8"})
     tip.style.outside:SetPoint("TOPLEFT", tip.style, "TOPLEFT", -1, 1)
     tip.style.outside:SetPoint("BOTTOMRIGHT", tip.style, "BOTTOMRIGHT", 1, -1)
@@ -789,7 +796,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             tip.BigFactionIcon = tip:CreateTexture(nil, "OVERLAY")
             tip.BigFactionIcon:SetPoint("TOPRIGHT", tip, "TOPRIGHT", 18, 0)
             tip.BigFactionIcon:SetBlendMode("ADD")
-            tip.BigFactionIcon:SetScale(0.25)
+            tip.BigFactionIcon:SetScale(0.24)
             tip.BigFactionIcon:SetAlpha(0.40)
         end
     end

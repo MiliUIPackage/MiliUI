@@ -25,7 +25,7 @@ local function ColorStatusBar(self, value)
             if (r==1 and g==1 and b==1) then r, g, b = 0, 0.9, 0.1 end
         end
         self:SetStatusBarColor(r, g, b)
-    elseif (addon.db.general.statusbarColor == "smooth") then
+    elseif (value and addon.db.general.statusbarColor == "smooth") then
         HealthBar_OnValueChanged(self, value, true)
     end
 end
@@ -50,13 +50,16 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     bar.TextString:SetFont(NumberFontNormal:GetFont(), 11, "THINOUTLINE")
     bar.capNumericDisplay = true
     bar.lockShow = 1
+    bar:HookScript("OnShow", function(self)
+        ColorStatusBar(self)
+    end)
     bar:HookScript("OnValueChanged", function(self, hp)
         if (hp <= 0) then
             local min, max = self:GetMinMaxValues()
             self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(max), DEAD)
         else
             -- TextStatusBar_UpdateTextString(self)
-			-- 顯示實際血量
+            -- 顯示實際血量
 			local hpLoc
 			if hp < 1e4 then
 				hpLoc = hp
@@ -96,7 +99,7 @@ LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)
     LibEvent:trigger("tooltip.style.border.color", tip, unpack(addon.db.general.borderColor))
     LibEvent:trigger("tooltip.style.background", tip, unpack(addon.db.general.background))
     if (tip.BigFactionIcon) then tip.BigFactionIcon:Hide() end
-    tip:SetBackdrop(nil)
+    if (tip.SetBackdrop) then tip:SetBackdrop(nil) end
 end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)

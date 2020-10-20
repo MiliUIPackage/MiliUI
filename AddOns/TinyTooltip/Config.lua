@@ -2,7 +2,7 @@
 local addon = TinyTooltip
 
 addon.db = {
-    version = 2.6,
+    version = 2.7,
     general = {
         scale             = 1,                      --縮放
         mask              = false,                   --頂部遮罩層
@@ -66,8 +66,8 @@ addon.db = {
                 role        = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 moveSpeed   = { enable = false, color = "e8e7a8",  wildcard = "%d%%", filter = "none" },
                 zone        = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
-                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "statusAFK", "statusDND", "statusDC", },
-                { "guildName", "guildIndex", "guildRank", "guildRealm", "realm", },
+                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
+                { "guildName", "guildIndex", "guildRank", "guildRealm", },
                 { "levelValue", "factionName", "gender", "raceName", "className", "isPlayer", "role", "moveSpeed", },
                 { "zone" },
             },
@@ -78,6 +78,7 @@ addon.db = {
             showTarget = true,
             showTargetBy = true,
             grayForDead = false,
+            showModel = true,
             anchor = { position = "inherit", hiddenInCombat = false, returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             elements = {
                 factionBig   = { enable = false, filter = "none" },
