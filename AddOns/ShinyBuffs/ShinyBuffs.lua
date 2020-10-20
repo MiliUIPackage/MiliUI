@@ -51,7 +51,7 @@ local function SkinningMachine(svtable, btn, dur, c, icon, bor, firstTime)
 	btn:SetSize(db[svtable].size, db[svtable].size)
 	icon:SetSize(db[svtable].size-8, db[svtable].size-8)
 	if firstTime then
-		btn.bg = CreateFrame("Frame", nil, btn)
+		btn.bg = CreateFrame("Frame", nil, btn, "BackdropTemplate")
 		btn.bg:SetPoint("TOPLEFT", btn, "TOPLEFT", -2, 2)
 		dur:SetJustifyH("RIGHT")
 		dur:ClearAllPoints()
@@ -239,7 +239,7 @@ end
 
 local function ShowMover()
 	if not SBmover then
-		SBmover = CreateFrame("Frame", nil, UIParent)
+		SBmover = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
 		SBmover:SetBackdrop({bgFile = "Interface\\AddOns\\ShinyBuffs\\media\\mover.blp"})
 		SBmover:SetBackdropColor(1,1,1,.5)
 		SBmover:SetPoint("TOPRIGHT", BuffFrame, "TOPRIGHT", 5, 5)
