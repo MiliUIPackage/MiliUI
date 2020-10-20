@@ -1,8 +1,8 @@
-﻿## Interface: 80300
+﻿## Interface: 90001
 ## X-Min-Interface: 80300
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Voicepack VV|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0VV语音包|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0VV语音包|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0VV語音包|r
 ## DefaultState: enabled
 ## RequiredDeps: DBM-Core
 ## Author: VV
