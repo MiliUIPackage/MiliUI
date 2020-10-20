@@ -71,7 +71,6 @@ L["Configure the Reputation Bar"] = "Configurar Barra de Reputação"
 L["Configure the scale of the bar."] = "Configura a escala da barra."
 L["Configure the VehicleBar"] = "Configura a barra de Veículo"
 L["Configure the XP Bar"] = "Configurar Barra de Experiência"
-L["Configure the Zone Ability Bar"] = "Configurar Barra de Habilidade da Zona"
 L["Copy Conditionals"] = "Copiar condicionais"
 L["Create a copy of the auto-generated conditionals in the custom configuration as a base template."] = "Cria uma cópia de condicionais geradas automaticamente na configuração custimizada como um modelo base."
 L["CTRL"] = "CTRL"
@@ -103,7 +102,6 @@ L["Enable the use of a custom condition, disabling all of the above."] = "Ativa 
 L["Enable the use of the Blizzard Vehicle UI, hiding any Bartender4 bars in the meantime."] = "Habilita o uso da interface de veiculos da Blizzard, ocultando qualquer barra do Bartender4 imediatamente"
 L["Enable the Vehicle Bar"] = "Habilita a barra de Veículo"
 L["Enable the XP Bar"] = "Habilitar Barra de Experiência"
-L["Enable the Zone Ability Bar"] = "Habilitar Barra de Habilidade da Zona"
 L["Enable/Disable the bar."] = "Ativa/Desativa a barra."
 L["Enabled"] = "Ativada"
 L["Extra Action Bar"] = "Barra de Ações Extra"
@@ -247,6 +245,5 @@ Example: [form:1]9;0]=] ] = [=[Você pode usar qualquer condicional de macro na 
 Exemplo: [forma:1]9;0]=]
 L["You can use the preset defaults as a starting point for setting up your interface. Just choose your preferences here and click the button below to reset your profile to the preset default. Note that not all defaults show all bars."] = "Você pode usar os padrões predefinidos como um ponto de inicio para configurar sua interface. Apenas escolha suas preferencias aqui e clique no botão abaixo para resetar o seu ficheiro para a predefinição padrão. Note que nem todos os padrões mostram todas as barras."
 L["You have to exit the vehicle in order to be able to change the Vehicle UI settings."] = "Você precisa sair do veiculo para poder modificar as configurações da interface de veiculos"
-L["Zone Ability Bar"] = "Barra de Habilidade da Zona"
 L["Zoom"] = "Zoom"
 
