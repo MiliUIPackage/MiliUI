@@ -1,10 +1,9 @@
 local mod	= DBM:NewMod(2147, "DBM-Uldir", nil, 1031)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200612160310")
+mod:SetRevision("20201010001011")
 mod:SetCreatureID(132998)
 mod:SetEncounterID(2122)
-mod:SetZone()
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
 mod:SetHotfixNoticeRev(17906)
 mod:SetMinSyncRevision(18056)
@@ -127,7 +126,7 @@ mod.vb.matrixActive = false
 mod.vb.bloodFeastTarget = nil
 local playerHasImperfect, playerHasBursting, playerHasBargain, playerHasMatrix = false, false, false, false
 local matrixTargets = {}
-local thousandMawsTimers = {25.4, 26.3, 25.5, 24.2, 23.9, 23.1, 21.5, 21.9, 19.4}
+local thousandMawsTimers = {25.4, 26.3, 24.2, 24.2, 23.9, 21.9, 21.5, 20.6, 19.4}
 local thousandMawsTimersLFR = {27.78, 29.2, 27.9, 26.46, 26.13, 25.26, 23.51, 23.95, 21.21}--Timers 4+ extrapolated using 1.093x greater formula
 local seenAdds = {}
 local castsPerGUID = {}
@@ -460,7 +459,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.explosiveIcon = 0
 		self.vb.explosiveCount = self.vb.explosiveCount + 1
 		if self.vb.phase == 1 then
-			local timer = self:IsMythic() and 44 or 26
+			local timer = self:IsMythic() and 42.9 or 26
 			timerExplosiveCorruptionCD:Start(timer, self.vb.explosiveCount+1)
 		elseif self.vb.phase == 2 then
 			timerExplosiveCorruptionCD:Start(15.8, self.vb.explosiveCount+1)--15.8 in all, except mythic, doesn't exist in mythic P2
@@ -725,7 +724,7 @@ function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 			seenAdds[GUID] = true
 			local cid = self:GetCIDFromGUID(GUID)
 			if cid == 134590 then--Big Adds
-				timerBurrowCD:Start(30.5, GUID)
+				timerBurrowCD:Start(29.5, GUID)
 			end
 		end
 	end

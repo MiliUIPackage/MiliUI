@@ -84,21 +84,21 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2405)
 
 L:SetWarningLocalization({
-	specWarnParasiticInfester	= "蟲子寄生在你身上"
+	specWarnParasiticInfester	= "蟲子寄生你"
 })
 
 L:SetTimerLocalization{
-	timerParasiticInfesterCD	= "~Infester"
+	timerParasiticInfesterCD	= "~寄生"
 }
 
 L:SetOptionLocalization({
-	specWarnParasiticInfester	= "Show special warning when you are affected by Parasitic Infester",
-	timerParasiticInfesterCD	= "Show timer for Parasitic Infester",
-	yellParasiticInfester		= "Yell when you are affected by Parasitic Infester"
+	specWarnParasiticInfester	= "受蟲子寄生時顯示特別警告",
+	timerParasiticInfesterCD	= "顯示蟲子寄生的計時器",
+	yellParasiticInfester		= "當您受到蟲子寄生時大喊"
 })
 
 L:SetMiscLocalization({
-	Infester					= "Infester"
+	Infester					= "寄生"
 })
 
 ---------
@@ -107,7 +107,7 @@ L:SetMiscLocalization({
 L = DBM:GetModLocalization("TirnaScitheTrash")
 
 L:SetGeneralLocalization({
-	name =	"特那希迷霧小怪"--Or MOTS Trash?
+	name =	"特那希迷霧小怪"
 })
 
 -----------------------
@@ -150,6 +150,10 @@ L:SetGeneralLocalization({
 -----------------------
 --L= DBM:GetModLocalization(2399)
 
+L:SetMiscLocalization({
+	--Flight	= "畏懼天空吧！"
+})
+
 -----------------------
 -- Ventunax --
 -----------------------
@@ -163,7 +167,11 @@ L:SetGeneralLocalization({
 -----------------------
 -- Devos, Paragon of Doubt --
 -----------------------
---L= DBM:GetModLocalization(2412)
+L= DBM:GetModLocalization(2412)
+
+L:SetMiscLocalization({
+	--RunThrough	= "長矛會刺穿你的心髒！"
+})
 
 ---------
 --Trash--
@@ -171,7 +179,7 @@ L:SetGeneralLocalization({
 L = DBM:GetModLocalization("SpiresofAscensionTrash")
 
 L:SetGeneralLocalization({
-	name =	"晉升之巔小怪"--SoA Trash?
+	name =	"晉升之巔小怪"
 })
 
 -----------------------

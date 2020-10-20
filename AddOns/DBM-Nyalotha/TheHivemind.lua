@@ -1,10 +1,9 @@
 local mod	= DBM:NewMod(2372, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200727023025")
+mod:SetRevision("20200907150556")
 mod:SetCreatureID(157253, 157254)--Ka'zir and Tek'ris
 mod:SetEncounterID(2333)
-mod:SetZone()
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)--Refine when max number of mythic Volatile Eruption is known
 mod:SetBossHPInfoToHighest()
 mod:SetHotfixNoticeRev(20191109000000)--2019, 11, 09

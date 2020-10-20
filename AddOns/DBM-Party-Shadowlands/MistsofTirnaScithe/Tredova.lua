@@ -1,17 +1,16 @@
 local mod	= DBM:NewMod(2405, "DBM-Party-Shadowlands", 3, 1184)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200721185243")
+mod:SetRevision("20200906193246")
 mod:SetCreatureID(164517)
 mod:SetEncounterID(2393)
-mod:SetZone()
 mod:SetUsedIcons(1, 2, 3, 4, 5)--Probably doesn't use all 5, unsure number of mind link targets at max inteligence/energy
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 322550 322614 337235 337249 337255",
-	"SPELL_CAST_SUCCESS 322614 322654 322563",
+	"SPELL_CAST_SUCCESS 322614 322654",
 	"SPELL_AURA_APPLIED 322527 331172 322648 322563",
 	"SPELL_AURA_REMOVED 322450 322527 331172 322648",
 	"SPELL_PERIODIC_DAMAGE 326309",
@@ -40,8 +39,7 @@ local yellParasiticInfester			= mod:NewYell(337235, L.Infester, true, "yellParas
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(326309, nil, nil, nil, 1, 8)
 
 local timerAcceleratedIncubationCD	= mod:NewCDTimer(25.5, 322550, nil, nil, nil, 1, nil, nil, true)--25 unless spell queued
-local timerMindLinkCD				= mod:NewCDTimer(18, 322614, nil, nil, nil, 3, nil, nil, true)--18 unless spell queued, will also not be cast at all if previous link isn't gone
-local timerMarkthePreyCD			= mod:NewCDTimer(25, 322563, nil, nil, nil, 3, nil, nil, true)--25 unless spell queued, doesn't start until boss is above certain energy threshold
+local timerMindLinkCD				= mod:NewCDTimer(15.8, 322614, nil, nil, nil, 3, nil, nil, true)--18 unless spell queued, will also not be cast at all if previous link isn't gone
 local timerAcidExpulsionCD			= mod:NewCDTimer(15, 322654, nil, nil, nil, 3, nil, nil, true)--15 unless spell queued
 local timerParasiticInfesterCD		= mod:NewTimer(21.9, "timerParasiticInfesterCD", 337235, nil, nil, 1, DBM_CORE_L.MYTHIC_ICON, true)
 
@@ -100,17 +98,16 @@ function mod:SPELL_CAST_SUCCESS(args)
 		specWarnAcidExpulsion:Show()
 		specWarnAcidExpulsion:Play("watchstep")
 		timerAcidExpulsionCD:Start()
-	elseif spellId == 322563 then
-		timerMarkthePreyCD:Start()
 	end
 end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
-	if spellId == 322527 then
+	if spellId == 322527 then--Gorging Shield (Consumption starting)
 		timerMindLinkCD:Stop()
 		timerAcidExpulsionCD:Stop()
-		timerMarkthePreyCD:Stop()
+--		timerMarkthePreyCD:Stop()
+		timerAcceleratedIncubationCD:Stop()
 		specWarnConsumption:Show()
 		specWarnConsumption:Play("watchstep")
 		if self.Options.InfoFrame then

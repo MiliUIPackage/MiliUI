@@ -1,13 +1,12 @@
 local mod	= DBM:NewMod(2428, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200724031147")
+mod:SetRevision("20200906193246")
 mod:SetCreatureID(164261)
 mod:SetEncounterID(2383)
-mod:SetZone()
-mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
---mod:SetHotfixNoticeRev(20200112000000)--2020, 1, 12
---mod:SetMinSyncRevision(20190716000000)
+mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
+mod:SetHotfixNoticeRev(20200810000000)--2020, 8, 10
+mod:SetMinSyncRevision(20200810000000)
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -15,7 +14,7 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 334522 329758 334266 329455 329774",
 --	"SPELL_CAST_SUCCESS 329298",
-	"SPELL_AURA_APPLIED 329298 334755 329725 334228 332295",
+	"SPELL_AURA_APPLIED 329298 334755 334228 332295",
 	"SPELL_AURA_APPLIED_DOSE 334755 332295",
 	"SPELL_AURA_REMOVED 329298 334755 334228",
 	"SPELL_DAMAGE 329742",
@@ -27,38 +26,41 @@ mod:RegisterEventsInCombat(
 --	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
---TODO, fine tune icons for Miasma when number of affected targets is known
---TODO, if Gluttonous Miasma has shorter than a 24 second cd, the current icon code will break if any players die
 --TODO, fine tune stacks for essence sap
---TODO, better way to detect expunge?
+--TODO, better way to detect expunge? It needs to be added to combat log
+--TODO, choose what infoframe tracks, sap, or volatile. volatile will be new default sine it's useful to more difficulties. This is on hold until it's in combat log though
+--[[
+(ability.id = 334522 or ability.id = 334266 or ability.id = 329455 or ability.id = 329774) and type = "begincast"
+ or ability.id = 329298 and type = "applydebuff"
+--]]
 local warnGluttonousMiasma						= mod:NewTargetNoFilterAnnounce(329298, 4)
 local warnVolatileEjection						= mod:NewTargetNoFilterAnnounce(334266, 4)
 
 local specWarnGluttonousMiasma					= mod:NewSpecialWarningYouPos(329298, nil, nil, nil, 1, 2)
 local yellGluttonousMiasma						= mod:NewPosYell(329298)
-local specWarnEssenceSap						= mod:NewSpecialWarningStack(334755, nil, 5, nil, nil, 1, 6)--Mythic
+local specWarnEssenceSap						= mod:NewSpecialWarningStack(334755, false, 8, nil, 2, 1, 6)--Mythic, spammy, opt in
 local specWarnConsume							= mod:NewSpecialWarningRun(334522, nil, nil, nil, 4, 2)
 local specWarnExpunge							= mod:NewSpecialWarningMoveAway(329725, nil, nil, nil, 1, 2)
 local specWarnVolatileEjection					= mod:NewSpecialWarningYou(334266, nil, nil, nil, 1, 2)
-local yellVolatileEjection						= mod:NewYell(334266)
+local yellVolatileEjection						= mod:NewYell(334266)--Change to NewPosYell if it's ever added to combat log, can't be trusted as icon yell when relying on syncing
 local specWarnGrowingHunger						= mod:NewSpecialWarningCount(332295, nil, DBM_CORE_L.AUTO_SPEC_WARN_OPTIONS.stack:format(12, 332295), nil, 1, 2)
 local specWarnGrowingHungerOther				= mod:NewSpecialWarningTaunt(332295, nil, nil, nil, 1, 2)
 local specWarnOverwhelm							= mod:NewSpecialWarningDefensive(329774, "Tank", nil, nil, 1, 2)
 --local specWarnGTFO							= mod:NewSpecialWarningGTFO(270290, nil, nil, nil, 1, 8)
 
 --mod:AddTimerLine(BOSS)
-local timerGluttonousMiasmaCD					= mod:NewCDTimer(22.1, 329298, nil, nil, nil, 3)
-local timerConsumeCD							= mod:NewNextCountTimer(120, 334522, nil, nil, nil, 2)
+local timerGluttonousMiasmaCD					= mod:NewCDCountTimer(23.8, 329298, nil, nil, nil, 3, nil, nil, nil, 1, 3)
+local timerConsumeCD							= mod:NewNextCountTimer(119.8, 334522, nil, nil, nil, 2)
 local timerExpungeCD							= mod:NewNextCountTimer(44.3, 329725, nil, nil, nil, 3)
-local timerVolatileEjectionCD					= mod:NewNextCountTimer(44.3, 334266, nil, nil, nil, 3)
-local timerDesolateCD							= mod:NewNextCountTimer(60, 329455, nil, nil, nil, 2, nil, DBM_CORE_L.HEALER_ICON)
-local timerOverwhelmCD							= mod:NewCDTimer(11.2, 329774, nil, "Tank", nil, 5, nil, DBM_CORE_L.TANK_ICON, nil, 2, 3)
+local timerVolatileEjectionCD					= mod:NewNextCountTimer(35.9, 334266, nil, nil, nil, 3)
+local timerDesolateCD							= mod:NewNextCountTimer(59.8, 329455, nil, nil, nil, 2, nil, DBM_CORE_L.HEALER_ICON)
+local timerOverwhelmCD							= mod:NewCDTimer(11.9, 329774, nil, "Tank", nil, 5, nil, DBM_CORE_L.TANK_ICON, nil, 2, 3)
 
 --local berserkTimer							= mod:NewBerserkTimer(600)
 
 --mod:AddRangeFrameOption(10, 310277)
-mod:AddSetIconOption("SetIconOnGluttonousMiasma", 329298, true, false, {1, 2, 3})
-mod:AddSetIconOption("SetIconOnVolatileEjection", 334266, false, false, {4, 5, 6})--off by default since it will break if not EVERYONE in raid is running DBM or BW
+mod:AddSetIconOption("SetIconOnGluttonousMiasma", 329298, true, false, {1, 2, 3, 4})
+mod:AddSetIconOption("SetIconOnVolatileEjection2", 334266, true, false, {5, 6, 7, 8})--Will still break if people missing BW/DBM, but it's too important to have off by default
 --mod:AddNamePlateOption("NPAuraOnVolatileCorruption", 312595)
 mod:AddInfoFrameOption(334755, true)
 mod:AddBoolOption("SortDesc", false)
@@ -67,8 +69,9 @@ mod:AddBoolOption("ShowTimeNotStacks", false)
 local GluttonousTargets = {}
 local essenceSapStacks = {}
 local playerEssenceSap, playerVolatile = false, false
-mod.vb.volatileIcon = 4
+mod.vb.volatileIcon = 5
 mod.vb.volatileCast = 2
+mod.vb.miasmaCount = 0
 mod.vb.expungeCount = 0
 mod.vb.consumeCount = 0
 mod.vb.desolateCount = 0
@@ -153,16 +156,26 @@ function mod:OnCombatStart(delay)
 	playerEssenceSap = false
 	table.wipe(GluttonousTargets)
 	table.wipe(essenceSapStacks)
-	self.vb.volatileIcon = 4
+	self.vb.volatileIcon = 5
 	self.vb.volatileCast = 2--it starts at 2 in the cycle for timer handling
 	self.vb.expungeCount = 0
 	self.vb.consumeCount = 0
 	self.vb.desolateCount = 0
-	timerGluttonousMiasmaCD:Start(3.2-delay)--3-6?
-	timerOverwhelmCD:Start(5.1-delay)
-	timerVolatileEjectionCD:Start(10.1-delay, 1)
-	timerExpungeCD:Start(33-delay, 1)--Hit or miss
-	timerConsumeCD:Start(111-delay, 1)
+	self.vb.miasmaCount = 0
+	timerGluttonousMiasmaCD:Start(3-delay, 1)--3-6?
+	if self:IsEasy() then
+		timerOverwhelmCD:Start(6.2-delay)
+		timerVolatileEjectionCD:Start(12.4-delay, 1)
+		timerDesolateCD:Start(27.5-delay, 1)
+		timerExpungeCD:Start(41-delay, 1)
+		timerConsumeCD:Start(139-delay, 1)
+	else
+		timerOverwhelmCD:Start(5-delay)
+		timerVolatileEjectionCD:Start(10.1-delay, 1)
+		timerDesolateCD:Start(22.2-delay, 1)
+		timerExpungeCD:Start(33-delay, 1)
+		timerConsumeCD:Start(111-delay, 1)
+	end
 --	if self.Options.NPAuraOnVolatileCorruption then
 --		DBM:FireEvent("BossMod_EnableHostileNameplates")
 --	end
@@ -225,18 +238,21 @@ function mod:SPELL_CAST_START(args)
 		self.vb.consumeCount = self.vb.consumeCount + 1
 		specWarnConsume:Show(self.vb.consumeCount)
 		specWarnConsume:Play("justrun")
-		timerConsumeCD:Start(120, self.vb.consumeCount+1)
+		timerConsumeCD:Start(self:IsEasy() and 150 or 120, self.vb.consumeCount+1)
 --	elseif spellId == 329758 then
 --		timerExpungeCD:Start()
 	elseif spellId == 334266 then
-		self.vb.volatileIcon = 4
+		self.vb.volatileIcon = 5
 		self.vb.volatileCast = self.vb.volatileCast + 1
+		--Heroic, Mythic
 		--10.1, 36.1, 12.0, 36.0, 36.0, 36.0, 12.0, 36.0, 36.1, 35.9, 12.1, 35.9, 36.0
+		--Normal, LFR?
+		--12.4, 45, 14.9, 45,
 		--2, 6, 10, 14, etc
 		if self.vb.volatileCast % 4 == 0 then
-			timerVolatileEjectionCD:Start(12, self.vb.volatileCast-1)
+			timerVolatileEjectionCD:Start(self:IsEasy() and 14.9 or 12, self.vb.volatileCast-1)--Minus isn't a bug, the counter is off by 2 for perfect timers
 		else
-			timerVolatileEjectionCD:Start(35.9, self.vb.volatileCast-1)
+			timerVolatileEjectionCD:Start(self:IsEasy() and 45 or 35.9, self.vb.volatileCast-1)--Minus isn't a bug, the counter is off by 2 for perfect timers
 		end
 	elseif spellId == 329455 then
 		self.vb.desolateCount = self.vb.desolateCount + 1
@@ -246,7 +262,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnOverwhelm:Show()
 			specWarnOverwhelm:Play("defensive")
 		end
-		timerOverwhelmCD:Start()
+		timerOverwhelmCD:Start(self:IsEasy() and 15 or 11.2)--11.2
 	end
 end
 
@@ -264,7 +280,8 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 329298 then
 		if self:AntiSpam(10, 3) then
 			table.wipe(GluttonousTargets)
-			timerGluttonousMiasmaCD:Start()
+			self.vb.miasmaCount = self.vb.miasmaCount + 1
+			timerGluttonousMiasmaCD:Start(23.8, self.vb.miasmaCount+1)--Same in all difficulties
 		end
 		if not tContains(GluttonousTargets, args.destName) then
 			table.insert(GluttonousTargets, args.destName)
@@ -287,16 +304,16 @@ function mod:SPELL_AURA_APPLIED(args)
 			if not playerEssenceSap then
 				playerEssenceSap = true
 			end
-			if amount >= 5 then
+			if amount >= 8 then
 				specWarnEssenceSap:Show(amount)
 				specWarnEssenceSap:Play("stackhigh")
 			end
 		end
-	elseif spellId == 329725 then
-		if args:IsPlayer() then
-			specWarnExpunge:Show()
-			specWarnExpunge:Play("scatter")
-		end
+--	elseif spellId == 329725 then
+--		if args:IsPlayer() then
+--			specWarnExpunge:Show()
+--			specWarnExpunge:Play("scatter")
+--		end
 	elseif spellId == 334228 then
 		if args:IsPlayer() then
 			playerVolatile = true
@@ -345,8 +362,8 @@ function mod:OnTranscriptorSync(msg, targetName)
 		targetName = Ambiguate(targetName, "none")
 		if self:AntiSpam(4, targetName) then
 			warnVolatileEjection:CombinedShow(0.75, targetName)
-			if self.Options.SetIconOnVolatileEjection then
-				self:SetIcon(targetName, self.vb.volatileIcon)
+			if self.Options.SetIconOnVolatileEjection2 then
+				self:SetIcon(targetName, self.vb.volatileIcon, 5)
 			end
 			self.vb.volatileIcon = self.vb.volatileIcon + 1
 		end
@@ -360,13 +377,17 @@ function mod:SPELL_DAMAGE(_, _, _, _, _, _, _, _, spellId)
 		specWarnExpunge:Cancel()
 		specWarnExpunge:CancelVoice()
 		if (self.vb.expungeCount) % 3 == 0 then
-			specWarnExpunge:Schedule(43)
-			specWarnExpunge:ScheduleVoice(43, "scatter")
-			timerExpungeCD:StarT(43, self.vb.expungeCount+1)
+			--Actual timers are +5, but since we trigger off damage, have to make adjustment
+			local timer = self:IsEasy() and 55 or 43
+			specWarnExpunge:Schedule(timer)
+			specWarnExpunge:ScheduleVoice(timer, "scatter")
+			timerExpungeCD:StarT(timer, self.vb.expungeCount+1)
 		else
-			specWarnExpunge:Schedule(43)
-			specWarnExpunge:ScheduleVoice(30.8, "scatter")
-			timerExpungeCD:Start(30.8, self.vb.expungeCount+1)
+			--Actual timers are +5, but since we trigger off damage, have to make adjustment
+			local timer = self:IsEasy() and 40 or 30.8
+			specWarnExpunge:Schedule(timer)
+			specWarnExpunge:ScheduleVoice(timer, "scatter")
+			timerExpungeCD:Start(timer, self.vb.expungeCount+1)
 		end
 	end
 end

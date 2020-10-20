@@ -26,11 +26,14 @@ function PanelPrototype:SetMyOwnHeight() -- TODO: remove in 9.x
 	DBM:Debug(self.frame:GetName() .. " is calling a deprecated function SetMyOwnHeight")
 end
 
-function PanelPrototype:CreateCreatureModelFrame(width, height, creatureid)
+function PanelPrototype:CreateCreatureModelFrame(width, height, creatureid, scale)
 	local model = CreateFrame("PlayerModel", "DBM_GUI_Option_" .. self:GetNewID(), self.frame)
 	model.mytype = "modelframe"
 	model:SetSize(width or 100, height or 200)
 	model:SetCreature(tonumber(creatureid) or 448) -- Hogger!!! he kills all of you
+	if scale then
+		model:SetModelScale(scale)
+	end
 	self:SetLastObj(model)
 	return model
 end
@@ -45,7 +48,7 @@ function PanelPrototype:CreateText(text, width, autoplaced, style, justify, myhe
 	textblock.autowidth = not width
 	textblock:SetWidth(width or self.frame:GetWidth())
 	if autoplaced then
-		textblock:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 10, -10)
+		textblock:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 10, -5)
 	end
 	self:SetLastObj(textblock)
 	return textblock
@@ -136,25 +139,10 @@ function PanelPrototype:CreateScrollingMessageFrame(width, height, insertmode, f
 end
 
 function PanelPrototype:CreateEditBox(text, value, width, height)
-	local textbox = CreateFrame("EditBox", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, DBM:IsAlpha() and "BackdropTemplate,InputBoxTemplate" or "InputBoxTemplate")
+	local textbox = CreateFrame("EditBox", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, "BackdropTemplate,InputBoxTemplate")
 	textbox.mytype = "textbox"
 	textbox:SetSize(width or 100, height or 20)
 	textbox:SetAutoFocus(false)
-	textbox.backdropInfo = {
-		bgFile		= "Interface\\Tooltips\\UI-Tooltip-Background", -- 137056
-		edgeFile	= "Interface\\Tooltips\\UI-Tooltip-Border", -- 137057
-		tile		= true,
-		tileSize	= 16,
-		edgeSize	= 16,
-		insets		= { left = 3, right = 3, top = 5, bottom = 3 }
-	}
-	if not DBM:IsAlpha() then
-		textbox:SetBackdrop(textbox.backdropInfo)
-	else
-		textbox:ApplyBackdrop()
-	end
-	textbox:SetBackdropColor(0.1, 0.1, 0.1, 0.6)
-	textbox:SetBackdropBorderColor(0.4, 0.4, 0.4)
 	textbox:SetScript("OnEscapePressed", function(self)
 		self:ClearFocus()
 	end)
@@ -221,7 +209,7 @@ do
 		{ text = "艾爾加隆: 當心!", value = 15391 },
 		{ text = "大野狼: 快逃阿", value = 9278 },
 		{ text = "暴雪團隊表情", value = 37666 },
-		{ text = "克蘇恩: 你將會死亡！", value = 8585 },		
+		{ text = "克蘇恩: 你將會死亡！", value = 8585 },
 		{ text = "無頭騎士: 狂笑", value = 11965 },
 		{ text = "伊利丹: 還沒準備好", value = 11466 },
 		{ text = "伊利丹: 還沒準備好2", value = 68563 },
@@ -233,7 +221,7 @@ do
 		{ text = "夜精靈鐘聲", value = 11742 },
 		{ text = "PvP拔旗", value = 8174 },
 		{ text = "虛空劫奪者: 標記", value = 11213 },
-		{ text = "尤格薩倫: 狂笑", value = 15757 },
+		{ text = "尤格薩倫: 狂笑", value = 15757 }
 	})
 	local tcolors = {
 		{ text = L.CBTGeneric, value = 0 },
@@ -311,7 +299,9 @@ do
 		local frame, frame2, textPad
 		if modvar then -- Special warning, has modvar for sound and note
 			if isTimer then
-				frame = self:CreateDropdown(nil, tcolors, mod, modvar .. "TColor", nil, 20, 25, button)
+				frame = self:CreateDropdown(nil, tcolors, mod, modvar .. "TColor", function(value)
+					mod.Options[modvar .. "TColor"] = value
+				end, 20, 25, button)
 				frame2 = self:CreateDropdown(nil, cvoice, mod, modvar .. "CVoice", function(value)
 					mod.Options[modvar.."CVoice"] = value
 					if type(value) == "string" then
@@ -325,7 +315,7 @@ do
 				textPad = 35
 			else
 				frame = self:CreateDropdown(nil, sounds, mod, modvar .. "SWSound", function(value)
-					mod.Options[modvar.."SWSound"] = value
+					mod.Options[modvar .. "SWSound"] = value
 					DBM:PlaySpecialWarningSound(value)
 				end, 20, 25, button)
 				frame:ClearAllPoints()
@@ -445,7 +435,7 @@ do
 end
 
 function PanelPrototype:CreateArea(name)
-	local area = CreateFrame("Frame", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, DBM:IsAlpha() and "BackdropTemplate,OptionsBoxTemplate" or "OptionsBoxTemplate")
+	local area = CreateFrame("Frame", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, "BackdropTemplate,OptionsBoxTemplate")
 	area.mytype = "area"
 	area:SetBackdropColor(0.15, 0.15, 0.15, 0.5)
 	area:SetBackdropBorderColor(0.4, 0.4, 0.4)
@@ -471,7 +461,7 @@ function PanelPrototype:Rename(newname)
 end
 
 function PanelPrototype:Destroy()
-	tremove(DBM_GUI.frameTypes[self.frame.frameType], self.frame.categoryid)
+	tremove(DBM_GUI.tabs[self.frame.frameType], self.frame.categoryid)
 	tremove(self.parent.panels, self.frame.panelid)
 	self.frame:Hide()
 end
@@ -499,7 +489,7 @@ do
 		if frameType == "option" then
 			frameType = 2
 		end
-		panel.categoryid = DBM_GUI.frameTypes[frameType or 1]:CreateCategory(panel, self and self.frame and self.frame.name)
+		panel.categoryid = self.tabs[frameType or 1]:CreateCategory(panel, self and self.frame and self.frame.name)
 		panel.frameType = frameType
 		PanelPrototype:SetLastObj(panel)
 		self.panels = self.panels or {}

@@ -1,9 +1,8 @@
 local mod	= DBM:NewMod("FreeholdTrash", "DBM-Party-BfA", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200620220858")
+mod:SetRevision("20200930025644")
 --mod:SetModelID(47785)
-mod:SetZone()
 
 mod.isTrashMod = true
 
@@ -43,9 +42,11 @@ local specWarnGTFO						= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 
 function mod:RicochetingTarget(targetname)
 	if not targetname then return end
-	warnRicochetingThrow:Show(targetname)
-	if targetname == UnitName("player") then
-		yellRicochetingThrow:Yell()
+	if self:AntiSpam(3, targetname) then
+		warnRicochetingThrow:CombinedShow(0.5, targetname)
+		if targetname == UnitName("player") then
+			yellRicochetingThrow:Yell()
+		end
 	end
 end
 

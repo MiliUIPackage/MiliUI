@@ -1,11 +1,10 @@
 local mod	= DBM:NewMod(2114, "DBM-Party-BfA", 7, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200611161532")
+mod:SetRevision("20201001003131")
 mod:SetCreatureID(129227)
 mod:SetEncounterID(2106)
 mod:DisableESCombatDetection()--ES fires for nearby trash even if boss isn't pulled
-mod:SetZone()
 mod:SetMinSyncRevision(17732)
 
 mod:RegisterCombat("combat")
@@ -28,7 +27,7 @@ local specWarnTectonicSmash			= mod:NewSpecialWarningDodge(275907, "Tank", nil, 
 local specWarnQuake					= mod:NewSpecialWarningDodge(258627, nil, nil, nil, 2, 2)
 
 local timerCallEarthragerCD			= mod:NewNextCountTimer(60.4, 257593, nil, nil, nil, 1)
---local timerInfusionCD				= mod:NewAITimer(13, 271698, nil, nil, nil, 3, nil, DBM_CORE_L.DAMAGE_ICON)--Health based?
+--local timerInfusionCD				= mod:NewCDTimer(13, 271698, nil, nil, nil, 3, nil, DBM_CORE_L.DAMAGE_ICON)--Health based?
 local timerResonantPulseCD			= mod:NewCDTimer(32.2, 258622, nil, nil, nil, 2)
 local timerTectonicSmashCD			= mod:NewCDTimer(23.0, 275907, nil, nil, nil, 3)--23-28
 
@@ -91,7 +90,7 @@ end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
-	if spellId == 257582 then
+	if spellId == 257582 and self:AntiSpam(3.5, args.destName) then
 		warnRagingGaze:CombinedShow(0.5, args.destName)--In case two adds are up
 		if args:IsPlayer() and self:AntiSpam(3.5, 2) then
 			specWarnRagingGaze:Show()

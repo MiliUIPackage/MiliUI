@@ -10,11 +10,10 @@ end
 local mod	= DBM:NewMod(dungeonID, "DBM-Azeroth-BfA", 4, 1028)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200603121259")
+mod:SetRevision("20200906193246")
 mod:SetCreatureID(creatureID)
 --mod:SetEncounterID(2263)
 --mod:DisableESCombatDetection()
-mod:SetZone()
 --mod:SetHotfixNoticeRev(17775)
 --mod:SetMinSyncRevision(16950)
 

@@ -1,10 +1,9 @@
 local mod	= DBM:NewMod(2355, "DBM-Party-BfA", 11, 1178)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200611161532")
+mod:SetRevision("20200907150556")
 mod:SetCreatureID(150190)
 mod:SetEncounterID(2291)
-mod:SetZone()
 
 mod:RegisterCombat("combat")
 
@@ -47,7 +46,7 @@ local timerFulminatingZapCD			= mod:NewCDTimer(17.0, 302274, nil, nil, nil, 3, n
 local timerFulminatingBurstCD		= mod:NewCDTimer(17.0, 303885, nil, nil, nil, 3, nil, DBM_CORE_L.HEALER_ICON)--Hard Mode
 --Stage 2
 local timerHaywire					= mod:NewBuffActiveTimer(30, 296080, nil, nil, nil, 6)
---local timerHowlingFearCD			= mod:NewAITimer(13.4, 257791, nil, "HasInterrupt", nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON)
+--local timerHowlingFearCD			= mod:NewCDTimer(13.4, 257791, nil, "HasInterrupt", nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON)
 
 mod:AddNamePlateOption("NPAuraOnWalkieShockie", 296522, false)
 

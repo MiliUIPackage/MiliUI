@@ -1,10 +1,9 @@
 local mod	= DBM:NewMod(2375, "DBM-Nyalotha", nil, 1180)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200715040124")
+mod:SetRevision("20200918215052")
 mod:SetCreatureID(158041)
 mod:SetEncounterID(2344)
-mod:SetZone()
 mod:SetUsedIcons(1, 2, 3, 4)
 mod:SetHotfixNoticeRev(20200512000001)--2020, 5, 12
 mod:SetMinSyncRevision(20200311000001)
@@ -137,7 +136,7 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(20957))
 ----Psychus
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(21455))
 local timerMindwrackCD						= mod:NewCDTimer(5.6, 316711, nil, "Tank", 2, 5, nil, DBM_CORE_L.TANK_ICON)--4.9-8.6
-local timerCreepingAnguishCD				= mod:NewNextTimer(28.2, 310184, nil, nil, 2, 5, nil, DBM_CORE_L.TANK_ICON)
+local timerCreepingAnguishCD				= mod:NewNextTimer(26.6, 310184, nil, nil, 2, 5, nil, DBM_CORE_L.TANK_ICON)
 local timerSynampticShock					= mod:NewBuffActiveTimer(30, 313184, nil, nil, nil, 5, nil, DBM_CORE_L.DAMAGE_ICON)--, nil, 1, 4
 ----Mind's Eye
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(20977))
@@ -523,7 +522,7 @@ function mod:OnCombatStart(delay)
 	currentMapId = select(4, UnitPosition("player"))
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(307831))
-		DBM.InfoFrame:Show(self:IsMythic() and 20 or 8, "function", updateInfoFrame, false)
+		DBM.InfoFrame:Show(self:IsLFR() and 10 or 30, "function", updateInfoFrame, false)
 	end
 end
 
@@ -610,7 +609,7 @@ function mod:SPELL_CAST_START(args)
 				warnCreepingAnguish:Show()
 			end
 		end
-		timerCreepingAnguishCD:Start(self:IsMythic() and 26.6 or 28.2)
+		timerCreepingAnguishCD:Start(26.6)
 	elseif spellId == 310134 then
 		specWarnManifestMadness:Show()
 	elseif spellId == 310130 then
@@ -1120,7 +1119,7 @@ function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
 				end
 			elseif cid == 162933 then--Thought Harvester
 				self.vb.harvestersAlive = self.vb.harvestersAlive + 1
-				if self:IsMythic() and self:AntiSpam(6, 1) or self:AntiSpam(3, 1) then
+				if self:IsMythic() and self:AntiSpam(6, 1) or not self:IsMythic() and self:AntiSpam(3, 1) then
 					self.vb.harvesterCount = self.vb.harvesterCount + 1
 					if self.Options.SpecWarnej21308switch then
 						specWarnThoughtHarvester:Show(self.vb.harvesterCount)

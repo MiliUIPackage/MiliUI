@@ -1,9 +1,8 @@
 local mod	= DBM:NewMod("NyalothaTrash", "DBM-Nyalotha", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200611161532")
+mod:SetRevision("20200907150556")
 --mod:SetModelID(47785)
-mod:SetZone()
 mod.isTrashMod = true
 
 mod:RegisterEvents(

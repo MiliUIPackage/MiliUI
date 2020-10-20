@@ -1,9 +1,8 @@
 local mod	= DBM:NewMod("NecroticWakeTrash", "DBM-Party-Shadowlands", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200727210130")
+mod:SetRevision("20200906193246")
 --mod:SetModelID(47785)
-mod:SetZone()
 
 mod.isTrashMod = true
 

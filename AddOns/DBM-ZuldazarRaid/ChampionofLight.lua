@@ -7,10 +7,9 @@ end
 local mod	= DBM:NewMod(dungeonID, "DBM-ZuldazarRaid", 1, 1176)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200611161532")
+mod:SetRevision("20200906193246")
 mod:SetCreatureID(creatureID)
 mod:SetEncounterID(2265)
-mod:SetZone()
 --mod:SetHotfixNoticeRev(17775)
 mod.respawnTime = 17--Ish, from stream watching.
 
