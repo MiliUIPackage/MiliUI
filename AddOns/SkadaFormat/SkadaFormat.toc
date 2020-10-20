@@ -1,8 +1,0 @@
-## Interface: 80300
-## Author: somebody, 彩虹ui
-## Title: Skada中文單位
-## Title-zhTW: |cFF00FFFF[戰鬥]|r Skada 戰鬥統計-中文單位
-## Notes-zhTW: Skada |n將傷害統計數字的單位改為中文。
-## Dependencies: Skada
-## X-Part-Of: Skada
-SkadaFormat.lua
