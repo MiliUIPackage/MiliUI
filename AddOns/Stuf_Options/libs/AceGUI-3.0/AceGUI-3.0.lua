@@ -700,7 +700,7 @@ AceGUI:RegisterLayout("Flow",
 		local oversize
 		for i = 1, #children do
 			local child = children[i]
-			if child then
+			if child then -- 暫時修正
 				oversize = nil
 				local frame = child.frame
 				local frameheight = frame.height or frame:GetHeight() or 0
@@ -719,7 +719,7 @@ AceGUI:RegisterLayout("Flow",
 
 				frame:Show()
 				frame:ClearAllPoints()
-				if i == 1 then -- 暫時修正
+				if i == 1 then
 					-- anchor the first control to the top left
 					frame:SetPoint("TOPLEFT", content)
 					rowheight = frameheight
@@ -739,8 +739,10 @@ AceGUI:RegisterLayout("Flow",
 							-- (maybe error/warn about this?)
 							break
 						end
-						--anchor the previous row, we will now know its height and offset -- 暫時修正
-						if rowstart then rowstart:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(height + (rowoffset - rowstartoffset) + 3)) end 
+						--anchor the previous row, we will now know its height and offset
+						if rowstart then -- 暫時修正
+							rowstart:SetPoint("TOPLEFT", content, "TOPLEFT", 0, -(height + (rowoffset - rowstartoffset) + 3))
+						end
 						height = height + rowheight + 3
 						--save this as the rowstart so we can anchor it after the row is complete and we have the max height and offset of controls in it
 						rowstart = frame
