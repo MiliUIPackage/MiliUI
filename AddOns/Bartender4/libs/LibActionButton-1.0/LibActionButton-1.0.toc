@@ -1,11 +1,11 @@
-## Interface: 90001
+## Interface: 90002
 ## Title: Lib: ActionButton-1.0
 ## Notes: Creates and manages secure Action Buttons
 ## Author: Nevcairiel
 ## X-eMail: h.leppkes@gmail.com
 ## X-Category: Library
 ## X-License: BSD
-## Version: 3afecd6
+## Version: 0.37
 ## OptionalDeps: LibKeyBound-1.0, LibButtonGlow-1.0, LibClassicSpellActionCount-1.0
 
 LibStub\LibStub.lua
