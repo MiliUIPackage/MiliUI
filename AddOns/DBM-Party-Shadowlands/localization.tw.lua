@@ -84,17 +84,19 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2405)
 
 L:SetWarningLocalization({
-	specWarnParasiticInfester	= "蟲子寄生你"
+	specWarnParasiticInfester		= "蟲子寄生你",
+	specWarnParasiticInfesterKick	= "蟲子寄生 - 快打斷！"
 })
 
 L:SetTimerLocalization{
-	timerParasiticInfesterCD	= "~寄生"
+	timerParasiticInfesterCD		= "~寄生"
 }
 
 L:SetOptionLocalization({
-	specWarnParasiticInfester	= "受蟲子寄生時顯示特別警告",
-	timerParasiticInfesterCD	= "顯示蟲子寄生的計時器",
-	yellParasiticInfester		= "當您受到蟲子寄生時大喊"
+	specWarnParasiticInfester		= "受蟲子寄生時顯示特別警告",
+	specWarnParasiticInfesterKick	= "顯示蟲子寄生打斷的特別警告",
+	timerParasiticInfesterCD		= "顯示蟲子寄生的計時器",
+	yellParasiticInfester			= "當您受到蟲子寄生時大喊"
 })
 
 L:SetMiscLocalization({
@@ -151,6 +153,7 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2399)
 
 L:SetMiscLocalization({
+	--Flight	= "Your doom takes flight!",
 	--Flight	= "畏懼天空吧！"
 })
 
@@ -170,7 +173,7 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2412)
 
 L:SetMiscLocalization({
-	--RunThrough	= "長矛會刺穿你的心髒！"
+	--RunThrough	= "長矛會刺穿你的心臟！"
 })
 
 ---------

@@ -1,10 +1,9 @@
 local mod	= DBM:NewMod("d286", "DBM-WorldEvents", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20190903184058")
+mod:SetRevision("20201004235742")
 mod:SetCreatureID(25740)--25740 Ahune, 25755, 25756 the two types of adds
 mod:SetModelID(23447)--Frozen Core, ahunes looks pretty bad.
-mod:SetZone()
 
 mod:SetReCombatTime(10)
 mod:RegisterCombat("combat")

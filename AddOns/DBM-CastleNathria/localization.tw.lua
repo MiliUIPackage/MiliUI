@@ -47,7 +47,7 @@ L:SetTimerLocalization{
 	timerDesiresContainer		= "慾望滿",
 	timerBottledContainer		= "瓶裝滿",
 	timerSinsContainer			= "罪惡滿",
-	timerConcentrateContainer	= "精粹滿"
+	timerConcentrateContainer	= "濃縮滿"
 }
 
 L:SetOptionLocalization({

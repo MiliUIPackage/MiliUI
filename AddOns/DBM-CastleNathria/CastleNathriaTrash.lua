@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("CastleNathriaTrash", "DBM-CastleNathria", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200906193246")
+mod:SetRevision("20201007172449")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
