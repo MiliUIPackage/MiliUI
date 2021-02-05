@@ -1,4 +1,4 @@
-## Interface: 90001
+﻿## Interface: 90002
 ## Title:nib|cffffffffReal|r|cffbf3333UI|r BossSkins
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0DBM樣式|r
 ## Author: Gethe
@@ -16,5 +16,6 @@
 ## X-Curse-Project-ID: nibrealui-bossskins
 ## X-Curse-Repository-ID: wow/nibrealui-bossskins/mainline
 
+SkinContent.lua
 TimerSkin.xml
 Skin.lua

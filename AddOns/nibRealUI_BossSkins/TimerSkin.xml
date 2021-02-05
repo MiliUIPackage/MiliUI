@@ -17,7 +17,15 @@
             <Font font="Interface\AddOns\nibRealUI_BossSkins\media\Roboto-Regular.ttf" height="10" outline="NORMAL"/>
         </Member>
     </FontFamily>
-
+	<Frame name="RealUISkinBackdropTemplate" virtual="true" inherits="BackdropTemplate" mixin="BackdropTemplateMixin">
+        <KeyValues>
+            <KeyValue key="backdropInfo" value="REALUIBOSSSKIN_BACKDROP_0116_1111" type="global" />
+            <KeyValue key="backdropColor" value="REALUIBOSSKIN_BACKDROPCOLOR" type="global" />
+            <KeyValue key="backdropColorAlpha" value="0.5" type="number" />
+            <KeyValue key="backdropBorderColor" value="REALUIBOSSKIN_BACKDROPCOLOR" type="global" />
+            <KeyValue key="backdropBorderColorAlpha" value="1" type="number" />
+            </KeyValues>
+    </Frame>
     <Frame name="RealUISkinTimerTemplate" virtual="true" frameStrata="MEDIUM" topLevel="true">
         <Size>
             <AbsDimension x="185" y="24"/>
@@ -69,7 +77,7 @@
                     </Layer>
                 </Layers>
                 <Frames>
-                    <Frame name="$parentIcon1" parentKey="iconLeft">
+					<Frame name="$parentIcon1" parentKey="iconLeft" inherits="RealUISkinBackdropTemplate">
                         <Size>
                             <AbsDimension x="26" y="26"/>
                         </Size>
@@ -80,7 +88,7 @@
                                 </Offset>
                             </Anchor>
                         </Anchors>
-                        <Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
+                        <!--Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
                             <Color r="0" g="0" b="0" a="0.5"/>
                             <BorderColor r="0" g="0" b="0" a="1"/>
                             <EdgeSize>
@@ -92,7 +100,7 @@
                             <BackgroundInsets>
                                 <AbsInset left="1" right="1" top="1" bottom="1"/>
                             </BackgroundInsets>
-                        </Backdrop>
+                        </Backdrop-->
                         <Layers>
                             <Layer level="OVERLAY">
                                 <Texture parentKey="icon">
@@ -105,7 +113,7 @@
                             </Layer>
                         </Layers>
                     </Frame>
-                    <Frame name="$parentIcon2" parentKey="iconRight">
+						<Frame name="$parentIcon2" parentKey="iconRight" inherits="RealUISkinBackdropTemplate">
                         <Size>
                             <AbsDimension x="26" y="26"/>
                         </Size>
@@ -116,7 +124,7 @@
                                 </Offset>
                             </Anchor>
                         </Anchors>
-                        <Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
+                        <!--Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
                             <Color r="0" g="0" b="0" a="0.5"/>
                             <BorderColor r="0" g="0" b="0" a="1"/>
                             <EdgeSize>
@@ -128,7 +136,7 @@
                             <BackgroundInsets>
                                 <AbsInset left="1" right="1" top="1" bottom="1"/>
                             </BackgroundInsets>
-                        </Backdrop>
+                        </Backdrop-->
                         <Layers>
                             <Layer level="OVERLAY">
                                 <Texture parentKey="icon">
@@ -145,12 +153,12 @@
                 <BarTexture name="$parentTexture" parentKey="texture" file="Interface\AddOns\nibRealUI_BossSkins\media\Plain"/>
                 <BarColor r="1.0" g="0.8" b="0.0"/>
             </StatusBar>
-            <Frame parentKey="backdrop" frameStrata="BACKGROUND">
+				<Frame parentKey="backdrop" frameStrata="BACKGROUND" inherits="RealUISkinBackdropTemplate">
                 <Anchors>
                     <Anchor point="TOPLEFT" relativeTo="$parentBar" x="-1" y="1"/>
                     <Anchor point="BOTTOMRIGHT" relativeTo="$parentBar" x="1" y="-1"/>
                 </Anchors>
-                <Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
+                <!--Backdrop bgFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain" edgeFile="Interface\AddOns\nibRealUI_BossSkins\media\Plain">
                     <Color r="0" g="0" b="0" a="0.5"/>
                     <BorderColor r="0" g="0" b="0" a="1"/>
                     <EdgeSize>
@@ -162,7 +170,7 @@
                     <BackgroundInsets>
                         <AbsInset left="1" right="1" top="1" bottom="1"/>
                     </BackgroundInsets>
-                </Backdrop>
+                </Backdrop-->
             </Frame>
         </Frames>
         <Scripts>
