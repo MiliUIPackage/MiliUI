@@ -139,6 +139,19 @@ function TidyPlatesThreat:ChatCommand(input)
 			TP.DEBUG_PRINT_UNIT(plate.TPFrame.unit, true)
 		elseif command == "migrate" then
 			Addon.MigrateDatabase(TP.Meta("version"))
+		elseif command == "guid" then
+			local plate = C_NamePlate.GetNamePlateForUnit("target")
+			if not plate then return end
+
+			local guid = UnitGUID(plate.TPFrame.unit.unitid)
+			local _, _,  _, _, _, npc_id = strsplit("-", guid)
+
+			print(plate.TPFrame.unit.name, " => NPC-ID:", npc_id, "=>", guid)
+
+			local widgets = C_UIWidgetManager.GetAllWidgetsBySetID(C_UIWidgetManager.GetPowerBarWidgetSetID())
+			for i, w in pairs(widgets) do
+				print (i, w)
+			end
 		else
 			TidyPlatesThreat:ChatCommandDebug(cmd_list)
 		end
@@ -155,8 +168,10 @@ function TidyPlatesThreat:ChatCommandDebug(cmd_list)
 		--TP.Print("|cff89F559Threat Plates|r: Event publishing overview:", true)
 		--Addon:PrintEventService()
 	elseif command == "quest" then
-		Addon:PrintQuests()
-	elseif command == "custom-styles" then
+		Addon:PrintQuests(cmd_list[2])
+	elseif command == "social" then
+		Addon.PrintFriendlist()
+ 	elseif command == "custom-styles" then
 		for k, v in pairs(TidyPlatesThreat.db.profile.uniqueSettings) do
 			print ("Style:", k, "=>", v.Trigger.Type, " - ", v.Trigger[v.Trigger.Type].Input or "nil" )
 		end
@@ -217,7 +232,7 @@ function TidyPlatesThreat:ChatCommandDebug(cmd_list)
 	elseif command == "dbm2" then
 		DBM.Nameplate:Hide(true, UnitGUID("target"), 255824, nil, nil, nil, true, {0.5, 0, 0.55, 0.75})
 	else
-		TP.Print(L["Unknown option: "] .. input, true)
+		TP.Print(L["Unknown option: "] .. command, true)
 		PrintHelp()
 	end
 end

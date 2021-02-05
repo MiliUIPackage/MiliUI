@@ -3,7 +3,7 @@
 ---------------------------------------------------------------------------------------------------
 local ADDON_NAME, Addon = ...
 
-local Widget = Addon.Widgets:NewWidget("Stealth")
+local Widget = (Addon.CLASSIC and {}) or Addon.Widgets:NewWidget("Stealth")
 
 ---------------------------------------------------------------------------------------------------
 -- Imported functions and constants
@@ -53,12 +53,47 @@ local DETECTION_AURAS = {
   -- Battle for Azeroth
   [230368] = true, -- Detector
   [248705] = true, -- Detector
+  [311928] = true, -- Sight Beyond Sight
 }
 
 local DETECTION_UNITS = {
+  -- Legion
+  ["109229"] = true, -- Nightfallen Construct (Suramar)
+  ["111354"] = true, -- Taintheart Befouler
+  ["111528"] = true, -- Deathroot Ancient
+  -- Battle for Azeroth
   ["148483"] = true, -- Ancestral Avenger (Battle of Dazar'alor)
   ["148488"] = true, -- Unliving Augur (Battle of Dazar'alor)
   ["122984"] = true, -- Dazar'ai Colossus (Atal'Dazar)
+  ["154459"] = true, -- Horde Vanguard
+  ["151945"] = true, -- Scavenging Dunerunner
+  -- ["159425"] = true, -- Occult Shadowmender
+  ["159303"] = true, -- Monstrous Behemoth
+  ["159320"] = true, -- Amathet
+  ["161416"] = true, -- Aqir Shadowcrafter
+  ["162534"] = true, -- Anubisath Sentinel
+  ["162508"] = true, -- Anubisath Sentinel
+  ["162417"] = true, -- Anubisath Sentinel
+  ["161571"] = true, -- Anubisath Sentinel
+  ["159219"] = true, -- Umbral Seer
+  -- Shadowlands
+  ["165349"] = true, -- Animated Corpsehound
+  ["164563"] = true, -- Vicious Gargon
+  ["152708"] = true, -- Mawsworn Seeker
+  ["163524"] = true, -- Kyrian Dark-Praetor
+  ["173051"] = true, -- Suppressor Xelors
+  ["171422"] = true, -- Arch-Suppressor Laguas
+  ["151127"] = true, -- Lord of Torment
+  ["152905"] = true, -- Tower Sentinel
+  ["155828"] = true, -- Runecarved Colossus
+  ["157322"] = true, -- Lord of Locks
+  ["167331"] = true, -- Nascent Shade
+  ["151817"] = true, -- Deadsoul Devil
+  ["152656"] = true, -- Deadsoul Stalker
+  ["152898"] = true, -- Deadsoul Chorus
+  ["151818"] = true, -- Deadsoul Miscreation
+  ["175502"] = true, -- Grand Automaton
+  ["156244"] = true, -- Winged Automaton
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -87,7 +122,8 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  return TidyPlatesThreat.db.profile.stealthWidget.ON or TidyPlatesThreat.db.profile.stealthWidget.ShowInHeadlineView
+  local db = TidyPlatesThreat.db.profile.stealthWidget
+  return db.ON or db.ShowInHeadlineView
 end
 
 function Widget:EnabledForStyle(style, unit)
@@ -103,12 +139,12 @@ end
 function Widget:OnUnitAdded(widget_frame, unit)
   local name, spell_id
 
-  local _, _,  _, _, _, npc_id, _ = strsplit("-", unit.guid)
-  if DETECTION_UNITS[npc_id] then
-    name = npc_id
+  if DETECTION_UNITS[unit.NPCID] then
+    name = unit.NPCID
   else
     local DETECTION_AURAS, UnitBuff = DETECTION_AURAS, UnitBuff
     local unitid = unit.unitid
+    local name, _
     for i = 1, 40 do
       name, _, _, _, _, _, _, _, _, spell_id = UnitBuff(unitid, i)
       if not name or DETECTION_AURAS[spell_id] then

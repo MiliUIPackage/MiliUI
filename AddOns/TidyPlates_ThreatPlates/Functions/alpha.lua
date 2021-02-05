@@ -162,7 +162,9 @@ local ALPHA_FUNCTIONS = {
 }
 
 function Addon:GetAlpha(unit)
-  return ALPHA_FUNCTIONS[unit.style](unit, unit.style)
+	if unit.style then -- 暫時修正
+		return ALPHA_FUNCTIONS[unit.style](unit, unit.style)
+	end
 end
 
 

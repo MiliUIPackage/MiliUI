@@ -16,6 +16,7 @@ local GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 
 -- ThreatPlates APIs
 local TidyPlatesThreat = TidyPlatesThreat
+local BackdropTemplate = Addon.BackdropTemplate
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -44,8 +45,47 @@ local BACKDROP = {
     edgeFile = ART_PATH .. "glow_border",
     edgeSize = 10,
     offset = 5,
-    insets = { left = 5, right = 5, top = 5, bottom = 5 }
+    inset = 5,
   },
+}
+
+local ADJUST_BORDER_FOR_SMALL_HEALTHBAR = {
+  threat_glow = {
+    [9] = { edgeSize = 9, offset = 5, },
+    [8] = { edgeSize = 9, offset = 5, },
+    [7] = { edgeSize = 7, offset = 4, },
+    [6] = { edgeSize = 7, offset = 4, },
+    [5] = { edgeSize = 5, offset = 3, },
+    [4] = { edgeSize = 5, offset = 3, },
+    [3] = { edgeSize = 2, offset = 2, },
+    [2] = { edgeSize = 2, offset = 2, },
+    [1] = { edgeSize = 2, offset = 2, },
+  },
+  glow = {
+    [9] = { edgeSize = 9, offset = 5, },
+    [8] = { edgeSize = 9, offset = 5, },
+    [7] = { edgeSize = 7, offset = 4, },
+    [6] = { edgeSize = 7, offset = 4, },
+    [5] = { edgeSize = 5, offset = 3, },
+    [4] = { edgeSize = 5, offset = 3, },
+    [3] = { edgeSize = 2, offset = 2, },
+    [2] = { edgeSize = 2, offset = 2, },
+    [1] = { edgeSize = 2, offset = 2, inset = 2},
+  },
+}
+
+local FRAME_LEVEL_BY_TEXTURE = {
+  default = 0,
+  squarethin = 0,
+  arrows = 6,
+  arrow_down = 6,
+  arrow_less_than = 6,
+  glow = -2,
+  threat_glow = -2,
+  arrows_legacy = 6,
+  bubble = 6,
+  crescent = 6,
+  Stripes = 0,
 }
 
 ---------------------------------------------------------------------------------------------------
@@ -63,16 +103,30 @@ local FocusUpdateTexture, FocusShowBorder, FocusNameModeOffsetX, FocusNameModeOf
 -- Common functions for target and focus widget
 ---------------------------------------------------------------------------------------------------
 
-local function UpdateBorderTexture(db, widget_frame, texture_frame)
+local  function UpdateBorderTexture(db, widget_frame, texture_frame)
   local backdrop = BACKDROP[db.theme]
+
+  local offset = backdrop.offset
+  local edge_size = backdrop.edgeSize
+  local inset = backdrop.inset or 0
+
+  local border_settings_adjustment = ADJUST_BORDER_FOR_SMALL_HEALTHBAR[db.theme]
+  if border_settings_adjustment  then
+    local border_settings = border_settings_adjustment[TidyPlatesThreat.db.profile.settings.healthbar.height]
+    if border_settings then
+      edge_size = border_settings.edgeSize
+      offset = border_settings.offset
+      inset = border_settings.inset or inset
+    end
+  end
+
   texture_frame:SetBackdrop({
     bgFile = backdrop.bgFile,
     edgeFile = backdrop.edgeFile,
-    edgeSize = backdrop.edgeSize,
-    insets = backdrop.insets or { left = 0, right = 0, top = 0, bottom = 0 }
+    edgeSize = edge_size,
+    insets = { left = inset, right = inset, top = inset, bottom = inset }
   })
 
-  local offset = backdrop.offset
   texture_frame:SetPoint("TOPLEFT", widget_frame, "TOPLEFT", - offset, offset)
   texture_frame:SetPoint("BOTTOMRIGHT", widget_frame, "BOTTOMRIGHT", offset, - offset)
 
@@ -120,6 +174,20 @@ local function UpdateCenterTexture(db, widget_frame, texture_frame)
   texture_frame:SetBackdrop(nil)
 end
 
+local function UpdateOverlayTexture(db, widget_frame, texture_frame)
+  local left_texture, right_texture = texture_frame.LeftTexture, texture_frame.RightTexture
+
+  left_texture:SetTexture("Interface\\AddOns\\TidyPlates_ThreatPlates\\Widgets\\TargetArtWidget\\" .. db.theme)
+  left_texture:SetTexCoord(0, 1, 0.4375, 0.5625)
+  left_texture:SetVertexColor(db.r, db.g, db.b, db.a)
+  left_texture:ClearAllPoints()
+  left_texture:SetAllPoints(widget_frame)
+
+  left_texture:Show()
+  right_texture:Hide()
+  texture_frame:SetBackdrop(nil)
+end
+
 local UPDATE_TEXTURE_FUNCTIONS = {
   default = UpdateBorderTexture,
   squarethin = UpdateBorderTexture,
@@ -131,19 +199,7 @@ local UPDATE_TEXTURE_FUNCTIONS = {
   arrows_legacy = UpdateSideTexture,
   bubble = UpdateSideTexture,
   crescent = UpdateSideTexture,
-}
-
-local FRAME_LEVEL_BY_TEXTURE = {
-  default = 6,
-  squarethin = 6,
-  arrows = 14,
-  arrow_down = 14,
-  arrow_less_than = 14,
-  glow = 4,
-  threat_glow = 4,
-  arrows_legacy = 14,
-  bubble = 14,
-  crescent = 14,
+  Stripes = UpdateOverlayTexture,
 }
 
 local function GetHeadlineViewHeight(db)
@@ -187,13 +243,13 @@ function Widget:Create()
 
     WidgetFrame = widget_frame
 
-    local healthbar_mode_frame = _G.CreateFrame("Frame", nil, widget_frame)
+    local healthbar_mode_frame = _G.CreateFrame("Frame", nil, widget_frame, BackdropTemplate)
     healthbar_mode_frame:SetFrameLevel(widget_frame:GetFrameLevel())
-    healthbar_mode_frame.LeftTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
-    healthbar_mode_frame.RightTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
+    healthbar_mode_frame.LeftTexture = widget_frame:CreateTexture(nil, "ARTWORK", nil, (widget_frame == WidgetFrame and 7) or -6)
+    healthbar_mode_frame.RightTexture = widget_frame:CreateTexture(nil, "ARTWORK", nil, 0)
     widget_frame.HealthbarMode = healthbar_mode_frame
 
-    widget_frame.NameModeTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
+    widget_frame.NameModeTexture = widget_frame:CreateTexture(nil, "BACKGROUND", nil, 0)
     widget_frame.NameModeTexture:SetTexture(ThreatPlates.Art .. "Target")
 
     self:UpdateLayout()
@@ -203,7 +259,8 @@ function Widget:Create()
 end
 
 function Widget:IsEnabled()
-  return Settings.ON or SettingsHV.ShowTargetHighlight
+  local db = TidyPlatesThreat.db.profile
+  return db.targetWidget.ON or db.HeadlineView.ShowTargetHighlight
 end
 
 function Widget:OnEnable()
@@ -224,10 +281,11 @@ function Widget:OnTargetUnitAdded(tp_frame, unit)
   local widget_frame = WidgetFrame
 
   if self:EnabledForStyle(unit.style, unit) then
+    local healthbar = tp_frame.visual.healthbar
     widget_frame:SetParent(tp_frame)
-    widget_frame:SetFrameLevel(tp_frame:GetFrameLevel() + FRAME_LEVEL_BY_TEXTURE[Settings.theme])
+    widget_frame:SetFrameLevel(healthbar:GetFrameLevel() + FRAME_LEVEL_BY_TEXTURE[Settings.theme])
     widget_frame:ClearAllPoints()
-    widget_frame:SetAllPoints(tp_frame.visual.healthbar)
+    widget_frame:SetAllPoints(healthbar)
 
     local healthbar_mode_frame = widget_frame.HealthbarMode
     if unit.style == "NameOnly" or unit.style == "NameOnly-Unique" then
@@ -235,6 +293,8 @@ function Widget:OnTargetUnitAdded(tp_frame, unit)
       healthbar_mode_frame.RightTexture:Hide()
       healthbar_mode_frame:Hide()
 
+      --local db = Settings
+      --widget_frame.NameModeTexture:SetVertexColor(db.r, db.g, db.b, db.a)
       widget_frame.NameModeTexture:Show()
     else
       if ShowBorder then
@@ -244,7 +304,7 @@ function Widget:OnTargetUnitAdded(tp_frame, unit)
       else
         healthbar_mode_frame:Hide()
         healthbar_mode_frame.LeftTexture:Show()
-        healthbar_mode_frame.RightTexture:SetShown(UpdateTexture ~= UpdateCenterTexture)
+        healthbar_mode_frame.RightTexture:SetShown(UpdateTexture == UpdateSideTexture)
       end
 
       widget_frame.NameModeTexture:Hide()
@@ -277,7 +337,10 @@ function Widget:UpdateSettings()
   NameModeOffsetY = GetTargetTextureY(SettingsHV)
 
   UpdateTexture = UPDATE_TEXTURE_FUNCTIONS[Settings.theme]
-  ShowBorder = UpdateTexture ~= UpdateSideTexture and UpdateTexture ~= UpdateCenterTexture
+  ShowBorder = (UpdateTexture == UpdateBorderTexture)
+
+  -- Update mouseover settings as they depend on target highlight being shown or not
+  Addon.Element_Mouseover_UpdateSettings()
 
   -- Update the widget if it was already created (not true for immediately after Reload UI or if it was never enabled
   -- in this since last Reload UI)
@@ -310,13 +373,13 @@ function FocusWidget:Create()
 
     FocusWidgetFrame = widget_frame
 
-    local healthbar_mode_frame = _G.CreateFrame("Frame", nil, widget_frame)
+    local healthbar_mode_frame = _G.CreateFrame("Frame", nil, widget_frame, BackdropTemplate)
     healthbar_mode_frame:SetFrameLevel(widget_frame:GetFrameLevel())
-    healthbar_mode_frame.LeftTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
-    healthbar_mode_frame.RightTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
+    healthbar_mode_frame.LeftTexture = widget_frame:CreateTexture(nil, "ARTWORK", nil, (widget_frame == FocusWidgetFrame and 7) or -6)
+    healthbar_mode_frame.RightTexture = widget_frame:CreateTexture(nil, "ARTWORK", nil, 0)
     widget_frame.HealthbarMode = healthbar_mode_frame
 
-    widget_frame.NameModeTexture = widget_frame:CreateTexture(nil, "BACKGROUND", 0)
+    widget_frame.NameModeTexture = widget_frame:CreateTexture(nil, "BACKGROUND", nil, 0)
     widget_frame.NameModeTexture:SetTexture(ThreatPlates.Art .. "Target")
 
     self:UpdateLayout()
@@ -326,7 +389,8 @@ function FocusWidget:Create()
 end
 
 function FocusWidget:IsEnabled()
-  return FocusSettings.ON or FocusSettingsHV.ShowFocusHighlight
+  local db = TidyPlatesThreat.db.profile
+  return db.FocusWidget.ON or db.HeadlineView.ShowFocusHighlight
 end
 
 function FocusWidget:OnEnable()
@@ -347,10 +411,11 @@ function FocusWidget:OnFocusUnitAdded(tp_frame, unit)
   local widget_frame = FocusWidgetFrame
 
   if self:EnabledForStyle(unit.style, unit) then
+    local healthbar = tp_frame.visual.healthbar
     widget_frame:SetParent(tp_frame)
-    widget_frame:SetFrameLevel(tp_frame:GetFrameLevel() + FRAME_LEVEL_BY_TEXTURE[FocusSettings.theme])
+    widget_frame:SetFrameLevel(healthbar:GetFrameLevel() + FRAME_LEVEL_BY_TEXTURE[FocusSettings.theme])
     widget_frame:ClearAllPoints()
-    widget_frame:SetAllPoints(tp_frame.visual.healthbar)
+    widget_frame:SetAllPoints(healthbar)
 
     local healthbar_mode_frame = widget_frame.HealthbarMode
     if unit.style == "NameOnly" or unit.style == "NameOnly-Unique" then
@@ -369,7 +434,7 @@ function FocusWidget:OnFocusUnitAdded(tp_frame, unit)
       else
         healthbar_mode_frame:Hide()
         healthbar_mode_frame.LeftTexture:Show()
-        healthbar_mode_frame.RightTexture:SetShown(FocusUpdateTexture ~= UpdateCenterTexture)
+        healthbar_mode_frame.RightTexture:SetShown(FocusUpdateTexture == UpdateSideTexture)
       end
 
       widget_frame.NameModeTexture:Hide()
@@ -402,7 +467,7 @@ function FocusWidget:UpdateSettings()
   FocusNameModeOffsetY = GetTargetTextureY(FocusSettingsHV)
 
   FocusUpdateTexture = UPDATE_TEXTURE_FUNCTIONS[FocusSettings.theme]
-  FocusShowBorder = FocusUpdateTexture ~= UpdateSideTexture and FocusUpdateTexture ~= UpdateCenterTexture
+  FocusShowBorder = (FocusUpdateTexture == UpdateBorderTexture)
 
   -- Update the widget if it was already created (not true for immediately after Reload UI or if it was never enabled
   -- in this since last Reload UI)
