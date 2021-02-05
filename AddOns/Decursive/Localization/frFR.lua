@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.8) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ T._LoadedFiles["frFR.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "frFR");
 
 if not L then
-    T._LoadedFiles["frFR.lua"] = "2.7.7";
+    T._LoadedFiles["frFR.lua"] = "2.7.8";
     return;
 end
 
@@ -196,6 +196,9 @@ Allez sur |cFFFF0000WoWAce.com|r pour l'obtenir !
 --------]=]
 L["NORMAL"] = "Normal"
 L["NOSPELL"] = "Aucun sort disponible"
+L["NOTICE_FRAME_TEMPLATE"] = [=[|cFFFF0000Decursive - Information|r
+
+%s]=]
 L["OPT_ABOLISHCHECK_DESC"] = "Définit si les unités avec un sort 'Abolir' actif sont affichées et soignées"
 L["OPT_ABOUT"] = "À propos"
 L["OPT_ADD_A_CUSTOM_SPELL"] = "Ajouter un sort / objet personnalisé"
@@ -503,4 +506,4 @@ L["UNSTABLERELEASE"] = "Version instable"
 
 
 
-T._LoadedFiles["frFR.lua"] = "2.7.7";
+T._LoadedFiles["frFR.lua"] = "2.7.8";

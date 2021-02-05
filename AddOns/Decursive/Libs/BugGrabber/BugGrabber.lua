@@ -592,8 +592,7 @@ do
 		local name = addonName or "<name>"
 		if not badAddons[name] then
 			badAddons[name] = true
-			-- 不顯示保護功能的錯誤
-			-- grabError(L.ADDON_CALL_PROTECTED:format(event, name or "<name>", addonFunc or "<func>"))
+			grabError(L.ADDON_CALL_PROTECTED:format(event, name or "<name>", addonFunc or "<func>"))
 		end
 	end
 end

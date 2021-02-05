@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.8) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2020-03-19T23:14:08Z
+    This file was last updated on 2020-08-28T10:13:24Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -317,6 +317,8 @@ function D:SaveLLPos () -- {{{
         if self.profile.MainBarY > 0 then
             self.profile.MainBarY = 0;
         end
+
+        D:Debug("LL pos Saved:", self.profile.MainBarX, self.profile.MainBarY);
 
     end
 end -- }}}
@@ -737,9 +739,9 @@ do
     local Debuffs               = DC.EMPTY_TABLE; local IsCharmed = false; local Unit; local MUF; local IsDebuffed = false; local IsMUFDebuffed = false; local CheckStealth = false;
     local NoScanStatuses        = false;
     local band                  = _G.bit.band;
-    --[===[@debug@
+    --[==[@debug@
     --local debugprofilestop = _G.debugprofilestop;
-    --@end-debug@]===]
+    --@end-debug@]==]
     function D:ScanEveryBody()
 
         if not NoScanStatuses then
@@ -749,9 +751,9 @@ do
         local UnitArray = self.Status.Unit_Array; local i = 1;
         local CheckStealth = self.profile.Show_Stealthed_Status;
 
-        --[===[@debug@
+        --[==[@debug@
         --local start = debugprofilestop();
-        --@end-debug@]===]
+        --@end-debug@]==]
 
         while UnitArray[i] do
             Unit = UnitArray[i];
@@ -769,28 +771,28 @@ do
                 IsDebuffed = (Debuffs[1] and true) or IsCharmed;
                 -- If MUF disagrees
                 if (IsDebuffed ~= IsMUFDebuffed) and not D:DelayedCallExixts("Dcr_Update" .. Unit) then
-                    --[===[@debug@
+                    --[==[@debug@
                     if IsDebuffed then
                         self:AddDebugText("delayed debuff found by scaneveryone");
                         --D:ScheduleDelayedCall("Dcr_lateanalysis" .. Unit, self.MicroUnitF.LateAnalysis, 1, self.MicroUnitF, "ScanEveryone", Debuffs, MUF, MUF.UnitStatus);
                     else
                         self:AddDebugText("delayed UNdebuff found by scaneveryone on", Unit, IsDebuffed, IsMUFDebuffed);
                     end
-                    --@end-debug@]===]
+                    --@end-debug@]==]
 
                     self.MicroUnitF:UpdateMUFUnit(Unit, true);
 
-                    --[===[@debug@
+                    --[==[@debug@
                     --D:Println("HAAAAAAA!!!!!");
-                    --@end-debug@]===]
+                    --@end-debug@]==]
                 end
             end
 
             i = i + 1;
         end
-        --[===[@debug@
+        --[==[@debug@
         --D:Debug("|cFF777777Scanning everybody...", i - 1, "units scanned in ", debugprofilestop() - start, "miliseconds|r");
-        --@end-debug@]===]
+        --@end-debug@]==]
     end
 
 
@@ -875,6 +877,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.7";
+T._LoadedFiles["Decursive.lua"] = "2.7.8";
 
 -- Sin

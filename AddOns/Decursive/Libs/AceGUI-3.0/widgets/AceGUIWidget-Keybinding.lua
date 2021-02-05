@@ -2,7 +2,7 @@
 Keybinding Widget
 Set Keybindings in the Config UI.
 -------------------------------------------------------------------------------]]
-local Type, Version = "Keybinding", 25
+local Type, Version = "Keybinding", 26
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 
@@ -214,7 +214,7 @@ local function Constructor()
 	label:SetJustifyH("CENTER")
 	label:SetHeight(18)
 
-	local msgframe = CreateFrame("Frame", nil, UIParent)
+	local msgframe = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate" or nil)
 	msgframe:SetHeight(30)
 	msgframe:SetBackdrop(ControlBackdrop)
 	msgframe:SetBackdropColor(0,0,0)
@@ -223,7 +223,7 @@ local function Constructor()
 	msgframe:SetToplevel(true)
 
 	local msg = msgframe:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	msg:SetText("請按下要綁定的按鍵。取消綁定請按 Esc 或是再按一次按鈕。")
+	msg:SetText("Press a key to bind, ESC to clear the binding or click the button again to cancel.")
 	msgframe.msg = msg
 	msg:SetPoint("TOPLEFT", 5, -5)
 	msgframe:SetScript("OnUpdate", keybindingMsgFixWidth)

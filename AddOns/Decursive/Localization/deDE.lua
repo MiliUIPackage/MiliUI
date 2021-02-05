@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.7) add-on for World of Warcraft UI
+    Decursive (v 2.7.8) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ T._LoadedFiles["deDE.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "deDE");
 
 if not L then
-    T._LoadedFiles["deDE.lua"] = "2.7.7";
+    T._LoadedFiles["deDE.lua"] = "2.7.8";
     return;
 end;
 
@@ -143,6 +143,7 @@ L["DISABLEWARNING"] = [=[Decursive wurde ausgeschaltet!
 Um es erneut zu aktivieren, gib |cFFFFAA44/DCR ENABLE|r ein.]=]
 L["DISEASE"] = "Krankheit"
 L["DONOT_BL_PRIO"] = "Namen der Prioritätenliste nicht auf schwarze Liste setzen"
+L["DONT_SHOOT_THE_MESSENGER"] = "Decursive ist lediglich der Überbringer der Fehlermeldung. Schießen Sie also nicht auf den Boten, wenden Sie sich stattdessen lieber an den richtigen Adressaten."
 L["FAILEDCAST"] = [=[|cFF22FFFF%s %s|r |cFFAA0000gescheitert bei|r %s
 |cFF00AAAA%s|r]=]
 L["FOCUSUNIT"] = "Focus Einheit"
@@ -166,6 +167,8 @@ L["HLP_LEFTCLICK"] = "Linksklick"
 L["HLP_LL_ONCLICK_TEXT"] = [=[Lies bitte die Dokumentation, um den Umgang mit diesem Addon zu lernen. Suche nach "Decursive" auf WoWAce.com
 (Um diese Liste zu bewegen, bewege die Decursive-Leiste, /dcrshow und Links-Alt-Klick zum Bewegen)]=]
 L["HLP_MIDDLECLICK"] = "Mittlere Maustaste"
+L["HLP_MOUSE4"] = "Maustaste 4"
+L["HLP_MOUSE5"] = "Maustaste 5"
 L["HLP_NOTHINGTOCURE"] = "Es gibt nichts zu heilen!"
 L["HLP_RIGHTCLICK"] = "Rechtsklick"
 L["HLP_USEXBUTTONTOCURE"] = "Benutze \"%s\", um dieses Gebrechen zu heilen!"
@@ -427,4 +430,4 @@ L["UNSTABLERELEASE"] = "Instabile Veröffentlichung"
 
 
 
-T._LoadedFiles["deDE.lua"] = "2.7.7";
+T._LoadedFiles["deDE.lua"] = "2.7.8";

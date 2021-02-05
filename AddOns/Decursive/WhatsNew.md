@@ -1,5 +1,43 @@
-Decursive 2.7.7
+Decursive 2.7.8
 ===============
+
+
+Decursive 2.7.8 (2020-11-21)
+----------------------------
+
+
+- Fix Mistweaver `Detox` detection.
+
+- Adding pet abilities as custom spells in Decursive is now possible again
+  (Decursive used to crash with an integer overflow error).
+
+- WoW Classic: Fix pet abilities detection where only rank 1 could be detected.
+
+- Full Spanish translation (thank to Sugymaylis)
+
+- Full Barzilian Portuguese translation (thank to DarkbreakerSM)
+
+- Add `Will Of The Forsaken` to automatic spell detection.
+
+- Small enhancements to the custom spell interface.
+
+
+**New Way to support Decursive:** If you are an [ADA/Cardano](https://cardano.org) holder you can
+delegate your stake to my pool: [anfra.io](https://anfra.io)
+
+
+
+Decursive 2.7.7.1 (2020-10-18)
+------------------------------
+
+- Prevent a damaged custom spell profile from crashing Decursive when loading.
+
+- Add some resiliency to Decursive initialisation phase to mitigate some third party
+  add-ons' bugs preventing Decursive from loading.
+
+- In progress: Spanish localization by Sugymaylis.
+
+- TOC update for WoW 9.
 
 
 Decursive 2.7.7 (2020-05-09)
