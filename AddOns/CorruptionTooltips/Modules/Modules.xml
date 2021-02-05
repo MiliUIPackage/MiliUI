@@ -1,8 +1,0 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/">
-    <Script file="Config.lua"/>
-    <Script file="DB.lua"/>
-    <Script file="Scanner.lua"/>
-    <Script file="Tooltips.lua"/>
-    <Script file="Summary.lua"/>
-    <Script file="Icons.lua"/>
-</Ui>
