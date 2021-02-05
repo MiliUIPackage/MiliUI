@@ -70,7 +70,7 @@ local function newBox(parent, title, height)
         insets = {left = 4, right = 4, top = 4, bottom = 4},
     }
 
-    local box = CreateFrame('Frame', nil, parent)
+    local box = CreateFrame('Frame', nil, parent, "BackdropTemplate")
     box:SetBackdrop(boxBackdrop)
     box:SetBackdropBorderColor(.3, .3, .3)
     box:SetBackdropColor(.1, .1, .1, .5)
@@ -88,115 +88,166 @@ end
 
 -- and the actual config now
 
-local panel = CreateFrame("Frame", nil, InterfaceOptionsFramePanelContainer)
-panel:Hide()
-panel:SetAllPoints()
-panel.name = "塑形"
+do
+    local panel = CreateFrame("Frame", nil, InterfaceOptionsFramePanelContainer)
+    panel:Hide()
+    panel:SetAllPoints()
+    panel.name = "塑形預覽"
 
-local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-title:SetPoint("TOPLEFT", 16, -16)
-title:SetText("塑形外觀預覽")
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText("塑形外觀預覽")
 
-local subText = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
-subText:SetMaxLines(3)
-subText:SetNonSpaceWrap(true)
-subText:SetJustifyV('TOP')
-subText:SetJustifyH('LEFT')
-subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
-subText:SetPoint('RIGHT', -32, 0)
-subText:SetText("這些選項可以調整如何顯示滑鼠提示的外觀預覽")
+    local subText = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+    subText:SetMaxLines(3)
+    subText:SetNonSpaceWrap(true)
+    subText:SetJustifyV('TOP')
+    subText:SetJustifyH('LEFT')
+    subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
+    subText:SetPoint('RIGHT', -32, 0)
+    subText:SetText("這些選項可以調整如何顯示滑鼠提示的外觀預覽")
 
-local dressed = newCheckbox(panel, 'dressed', '穿上所有衣服 (不要脫光)', "同時顯示要預覽的物品，以及目前身上所穿的裝備。")
-local uncover = newCheckbox(panel, 'uncover', '不要遮住預覽的物品', "移除會遮住的衣物，讓目前正要預覽的物品可以完整呈現。")
-local mousescroll = newCheckbox(panel, 'mousescroll', '使用滑鼠滾輪旋轉', "使用滑鼠滾輪旋轉預覽模特兒。")
-local spin = newCheckbox(panel, 'spin', '自動旋轉', "預覽模型顯示時會持續旋轉。")
-local notifyKnown = newCheckbox(panel, 'notifyKnown', '顯示是否已收集', "顯示你是否已經收集到這個外觀。")
-local currentClass = newCheckbox(panel, 'currentClass', '只預覽當前角色可用的物品', "只有當前角色可以收集外觀的物品才顯示預覽。")
-local byComparison = newCheckbox(panel, 'byComparison', '在裝備比較旁邊顯示', "有裝備比較的滑鼠提示說明時，在旁邊顯示預覽 (比較不容易重疊)。")
-local tokens = newCheckbox(panel, 'tokens', '預覽套裝兌換物品', "滑鼠指向可以用來兌換套裝的物品時顯示裝備預覽。")
+    local dressed = newCheckbox(panel, 'dressed', '穿上所有衣服 (不要脫光)', "同時顯示要預覽的物品，以及目前身上所穿的裝備。")
+    local uncover = newCheckbox(panel, 'uncover', '不要遮住預覽的物品', "移除會遮住的衣物，讓目前正要預覽的物品可以完整呈現。")
+    local mousescroll = newCheckbox(panel, 'mousescroll', '使用滑鼠滾輪旋轉', "使用滑鼠滾輪旋轉預覽模特兒。")
+    local spin = newCheckbox(panel, 'spin', '自動旋轉', "預覽模型顯示時會持續旋轉。")
+    local notifyKnown = newCheckbox(panel, 'notifyKnown', '顯示是否已收藏', "顯示你是否已經收集到這個外觀。")
+    local currentClass = newCheckbox(panel, 'currentClass', '只預覽當前角色可用的物品', "只有當前角色可以收集外觀的物品才顯示預覽。")
+    local byComparison = newCheckbox(panel, 'byComparison', '在裝備比較旁邊顯示', "有裝備比較的滑鼠提示說明時，在旁邊顯示預覽 (比較不容易重疊)。")
+    local tokens = newCheckbox(panel, 'tokens', '預覽套裝兌換物品', "滑鼠指向可以用來兌換套裝的物品時顯示裝備預覽。")
 
-local zoomWorn = newCheckbox(panel, 'zoomWorn', '放大穿著部位', "放大預覽模特兒穿著這個物品的部位。")
-local zoomHeld = newCheckbox(panel, 'zoomHeld', '放大手持物品', "放大預覽手持的物品，不顯示你的角色。")
-local zoomMasked = newCheckbox(panel, 'zoomMasked', '放大時淡化模特兒', "放大時不要顯示模特兒的細節 (和塑形時的衣櫃相同)。")
+    local zoomWorn = newCheckbox(panel, 'zoomWorn', '放大穿著部位', "放大預覽模特兒穿著這個物品的部位。")
+    local zoomHeld = newCheckbox(panel, 'zoomHeld', '放大手持物品', "放大預覽手持的物品，不顯示你的角色。")
+    local zoomMasked = newCheckbox(panel, 'zoomMasked', '放大時淡化模特兒', "放大時不要顯示模特兒的細節 (和塑形時的衣櫃相同)。")
 
-local modifier = newDropdown(panel, 'modifier', "按下特別按鍵時才顯示預覽。", {
-    Alt = "Alt",
-    Ctrl = "Ctrl",
-    Shift = "Shift",
-    None = "無",
-})
-UIDropDownMenu_SetWidth(modifier, 100)
+    local modifier = newDropdown(panel, 'modifier', "按下組合按鍵時才顯示預覽。", {
+        Alt = "Alt",
+        Ctrl = "Ctrl",
+        Shift = "Shift",
+        None = "無",
+    })
+    UIDropDownMenu_SetWidth(modifier, 100)
 
-local anchor = newDropdown(panel, 'anchor', "對齊滑鼠提示的哪個方向，會依據畫面顯示位置調整。", {
+    local anchor = newDropdown(panel, 'anchor', "對齊滑鼠提示的哪個方向，會依據畫面調整顯示位置。", {
     vertical = "上 / 下",
     horizontal = "左 / 右",
 })
-UIDropDownMenu_SetWidth(anchor, 100)
+    UIDropDownMenu_SetWidth(anchor, 100)
 
-local modelBox = newBox(panel, "自訂預覽模特兒", 48)
-local customModel = newCheckbox(modelBox, 'customModel', '使用其他模特兒', "使用指定的種族/性別，而不是當前的角色。")
-local customRaceDropdown = newDropdown(modelBox, 'modelRace', "選擇自訂種族", {
-    [1] = "人類",
-    [3] = "矮人",
-    [4] = "夜精靈",
-    [11] = "德萊尼",
-    [22] = "狼人",
-    [7] = "地精",
-    [24] = "熊貓人",
-    [2] = "獸人",
-    [5] = "不死族",
-    [10] = "血精靈",
-    [8] = "食人妖",
-    [6] = "牛頭人",
-    [9] = "哥布林",
-    -- Allied!
-    [27] = "夜裔精靈",
-    [28] = "高嶺牛頭人",
-    [29] = "虛無精靈",
-    [30] = "光鑄德萊尼",
-	[34] = "黑鐵矮人",
-    [36] = "瑪格哈獸人",
-})
-UIDropDownMenu_SetWidth(customRaceDropdown, 100)
-local customGenderDropdown = newDropdown(modelBox, 'modelGender', "選擇自訂性別", {
-    [0] = "男性",
-    [1] = "女性",
-})
-UIDropDownMenu_SetWidth(customGenderDropdown, 100)
+    -- local modelBox = newBox(panel, "Custom player model", 48)
+    -- local customModel = newCheckbox(modelBox, 'customModel', 'Use a different model', "Instead of your current character, use a specific race/gender")
+    -- local customRaceDropdown = newDropdown(modelBox, 'modelRace', "Choose your custom race", {
+    --     [1] = "Human",
+    --     [3] = "Dwarf",
+    --     [4] = "Night Elf",
+    --     [11] = "Draenei",
+    --     [22] = "Worgen",
+    --     [7] = "Gnome",
+    --     [24] = "Pandaren",
+    --     [2] = "Orc",
+    --     [5] = "Undead",
+    --     [10] = "Blood Elf",
+    --     [8] = "Troll",
+    --     [6] = "Tauren",
+    --     [9] = "Goblin",
+    --     -- Allied!
+    --     [27] = "Nightborne Elf",
+    --     [28] = "Highmountain Tauren",
+    --     [29] = "Void Elf",
+    --     [30] = "Lightforged Draenei",
+    --     [34] = "Dark Iron Dwarf",
+    --     [35] = "Vulpera",
+    --     [36] = "Mag'har Orc",
+    --     [37] = "Mechagnome",
 
--- And put them together:
+    -- })
+    -- UIDropDownMenu_SetWidth(customRaceDropdown, 100)
+    -- local customGenderDropdown = newDropdown(modelBox, 'modelGender', "Choose your custom gender", {
+    --     [0] = "Male",
+    --     [1] = "Female",
+    -- })
+    -- UIDropDownMenu_SetWidth(customGenderDropdown, 100)
 
-zoomWorn:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
-zoomHeld:SetPoint("TOPLEFT", zoomWorn, "BOTTOMLEFT", 0, -4)
-zoomMasked:SetPoint("TOPLEFT", zoomHeld, "BOTTOMLEFT", 0, -4)
+    -- And put them together:
 
-dressed:SetPoint("TOPLEFT", zoomMasked, "BOTTOMLEFT", 0, -4)
-uncover:SetPoint("TOPLEFT", dressed, "BOTTOMLEFT", 0, -4)
-tokens:SetPoint("TOPLEFT", uncover, "BOTTOMLEFT", 0, -4)
-notifyKnown:SetPoint("TOPLEFT", tokens, "BOTTOMLEFT", 0, -4)
-currentClass:SetPoint("TOPLEFT", notifyKnown, "BOTTOMLEFT", 0, -4)
-mousescroll:SetPoint("TOPLEFT", currentClass, "BOTTOMLEFT", 0, -4)
-spin:SetPoint("TOPLEFT", mousescroll, "BOTTOMLEFT", 0, -4)
+    zoomWorn:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
+    zoomHeld:SetPoint("TOPLEFT", zoomWorn, "BOTTOMLEFT", 0, -4)
+    zoomMasked:SetPoint("TOPLEFT", zoomHeld, "BOTTOMLEFT", 0, -4)
 
-local modifierLabel = newFontString(panel, "按下按鍵預覽:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
-modifier:SetPoint("LEFT", modifierLabel, "RIGHT", 4, -2)
+    dressed:SetPoint("TOPLEFT", zoomMasked, "BOTTOMLEFT", 0, -4)
+    uncover:SetPoint("TOPLEFT", dressed, "BOTTOMLEFT", 0, -4)
+    tokens:SetPoint("TOPLEFT", uncover, "BOTTOMLEFT", 0, -4)
+    notifyKnown:SetPoint("TOPLEFT", tokens, "BOTTOMLEFT", 0, -4)
+    currentClass:SetPoint("TOPLEFT", notifyKnown, "BOTTOMLEFT", 0, -4)
+    mousescroll:SetPoint("TOPLEFT", currentClass, "BOTTOMLEFT", 0, -4)
+    spin:SetPoint("TOPLEFT", mousescroll, "BOTTOMLEFT", 0, -4)
 
-local anchorLabel = newFontString(panel, "對齊:", nil, 'TOPLEFT', modifierLabel, 'BOTTOMLEFT', 0, -16)
-anchor:SetPoint("LEFT", anchorLabel, "RIGHT", 4, -2)
+    local modifierLabel = newFontString(panel, "預覽的組合按鍵:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
+    modifier:SetPoint("LEFT", modifierLabel, "RIGHT", 4, -2)
 
-byComparison:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -10)
+    local anchorLabel = newFontString(panel, "位置:", nil, 'TOPLEFT', modifierLabel, 'BOTTOMLEFT', 0, -16)
+    anchor:SetPoint("LEFT", anchorLabel, "RIGHT", 4, -2)
 
-modelBox:SetPoint("TOP", byComparison, "BOTTOM", 0, -20)
-customModel:SetPoint("LEFT", modelBox, 12, 0)
-customRaceDropdown:SetPoint("LEFT", customModel.Text, "RIGHT", 12, -2)
-customGenderDropdown:SetPoint("TOPLEFT", customRaceDropdown, "TOPRIGHT", 4, 0)
+    byComparison:SetPoint("TOPLEFT", anchorLabel, "BOTTOMLEFT", 0, -10)
 
-InterfaceOptions_AddCategory(panel)
+    -- modelBox:SetPoint("TOP", byComparison, "BOTTOM", 0, -20)
+    -- customModel:SetPoint("LEFT", modelBox, 12, 0)
+    -- customRaceDropdown:SetPoint("LEFT", customModel.Text, "RIGHT", 12, -2)
+    -- customGenderDropdown:SetPoint("TOPLEFT", customRaceDropdown, "TOPRIGHT", 4, 0)
+
+    InterfaceOptions_AddCategory(panel)
+end
+
+-- Overlay config
+
+do
+    local panel = CreateFrame("Frame", nil, InterfaceOptionsFramePanelContainer)
+    panel:Hide()
+    panel:SetAllPoints()
+    panel.name = "未收藏圖示"
+    panel.parent = "塑形預覽"
+
+    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    title:SetPoint("TOPLEFT", 16, -16)
+    title:SetText(panel.name)
+
+    local subText = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
+    subText:SetMaxLines(3)
+    subText:SetNonSpaceWrap(true)
+    subText:SetJustifyV('TOP')
+    subText:SetJustifyH('LEFT')
+    subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
+    subText:SetPoint('RIGHT', -32, 0)
+    subText:SetText("這些選項可以控制要在哪些地方顯示尚未收藏的圖示。")
+
+    local bagicon = CreateAtlasMarkup("transmog-icon-hidden")
+	local othercharicon = CreateAtlasMarkup("mailbox")
+
+    local show = panel:CreateFontString(nil, 'ARTWORK', 'GameFontHighlight')
+    show:SetText(("顯示未收藏物品圖示 %s 和此角色無法使用的未收藏物品圖示 %s"):format(bagicon, othercharicon))
+
+    local bags = newCheckbox(panel, 'bags', '背包', ("在背包中尚未收藏外觀的物品上面顯示 %s 圖示。支援遊戲內建的背包、Baggins、Bagnon 和 Inventorian 背包插件。"):format(bagicon))
+    local bags_unbound = newCheckbox(panel, 'bags_unbound', '...只有不是靈魂綁定的物品', "靈魂綁定的物品通常不是已經收藏外觀，就是無法寄給其他角色。")
+    local merchant = newCheckbox(panel, 'merchant', '商人', ("在商人視窗中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
+    local loot = newCheckbox(panel, 'loot', '拾取', ("在拾取視窗中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
+    local encounterjournal = newCheckbox(panel, 'encounterjournal', '冒險指南', ("在冒險指南中尚未收藏外觀的物品上面顯示 %s 圖示。"):format(bagicon))
+	local setjournal = newCheckbox(panel, 'setjournal', '外觀套裝', ("在套裝列表中顯示已收藏/未收藏的套裝物品"))
+
+    show:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
+    bags:SetPoint("TOPLEFT", show, "BOTTOMLEFT", 0, -8)
+    bags_unbound:SetPoint("TOPLEFT", bags, "BOTTOMLEFT", 8, -4)
+    merchant:SetPoint("TOPLEFT", bags_unbound, "BOTTOMLEFT", -8, -4)
+    loot:SetPoint("TOPLEFT", merchant, "BOTTOMLEFT", 0, -4)
+    encounterjournal:SetPoint("TOPLEFT", loot, "BOTTOMLEFT", 0, -4)
+	setjournal:SetPoint("TOPLEFT", encounterjournal, "BOTTOMLEFT", 0, -4)
+
+    InterfaceOptions_AddCategory(panel)
+end
 
 -- Slash handler
 SlashCmdList.APPEARANCETOOLTIP = function(msg)
-    InterfaceOptionsFrame_OpenToCategory("塑形")
-    InterfaceOptionsFrame_OpenToCategory("塑形")
+    InterfaceOptionsFrame_OpenToCategory("塑形預覽")
+    InterfaceOptionsFrame_OpenToCategory("塑形預覽")
 end
 SLASH_APPEARANCETOOLTIP1 = "/appearancetooltip"
 SLASH_APPEARANCETOOLTIP2 = "/aptip"

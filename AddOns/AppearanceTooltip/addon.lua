@@ -45,9 +45,20 @@ function tooltip:ADDON_LOADED(addon)
         anchor = "horizontal", -- vertical / horizontal
         byComparison = true, -- whether to show by the comparison, or fall back to vertical if needed
         tokens = true, -- try to preview tokens?
+        bags = true,
+        bags_unbound = true,
+        merchant = true,
+        loot = true,
+        encounterjournal = true,
+        setjournal = true,
+        appearances_known = {},
+        scan_delay = 0.2,
     })
     db = _G[myname.."DB"]
     ns.db = db
+
+    -- Dressing up custom models is broken currently, so force-disable this. Test it occasionally to see if it gets fixed.
+    db.customModel = false
 
     self:UnregisterEvent("ADDON_LOADED")
 end
@@ -56,6 +67,8 @@ function tooltip:PLAYER_LOGIN()
     tooltip.model:SetUnit("player")
     tooltip.modelZoomed:SetUnit("player")
     C_TransmogCollection.SetShowMissingSourceInItemTooltips(true)
+
+    ns.UpdateSources()
 end
 
 function tooltip:PLAYER_REGEN_ENABLED()
@@ -127,9 +140,16 @@ classwarning:Show()
 
 -- Ye showing:
 GameTooltip:HookScript("OnTooltipSetItem", function(self)
-    ns:ShowItem(select(2, self:GetItem()))
+    ns:ShowItem(select(2, self:GetItem()), self)
 end)
 GameTooltip:HookScript("OnHide", function()
+    ns:HideItem()
+end)
+-- This is mostly world quest rewards:
+GameTooltip.ItemTooltip.Tooltip:HookScript("OnTooltipSetItem", function(self)
+    ns:ShowItem(select(2, self:GetItem()), self)
+end)
+GameTooltip.ItemTooltip.Tooltip:HookScript("OnHide", function()
     ns:HideItem()
 end)
 
@@ -148,7 +168,7 @@ positioner:SetScript("OnUpdate", function(self, elapsed)
     end
     self.elapsed = 0
 
-    local owner, our_point, owner_point = ns:ComputeTooltipAnchors(tooltip.owner, tooltip, db.anchor)
+    local owner, our_point, owner_point = ns:ComputeTooltipAnchors(tooltip.owner, db.anchor)
     if our_point and owner_point then
         tooltip:ClearAllPoints()
         tooltip:SetPoint(our_point, owner, owner_point)
@@ -176,7 +196,7 @@ do
             bottom = {"TOPLEFT", "TOPRIGHT"},
         },
     }
-    function ns:ComputeTooltipAnchors(owner, tooltip, anchor)
+    function ns:ComputeTooltipAnchors(owner, anchor)
         -- Because I always forget: x is left-right, y is bottom-top
         -- Logic here: our tooltip should trend towards the center of the screen, unless something is stopping it.
         -- If comparison tooltips are shown, we shouldn't overlap them
@@ -211,12 +231,14 @@ do
                 else
                     outermostComparisonShown = comparisonTooltip1:IsShown() and comparisonTooltip1 or comparisonTooltip2
                 end
+                local outerx = outermostComparisonShown:GetCenter() * outermostComparisonShown:GetEffectiveScale()
+                local ownerx = owner:GetCenter() * owner:GetEffectiveScale()
                 if
                     -- outermost is right of owner while we're biasing left
-                    (biasLeft and outermostComparisonShown:GetCenter() > owner:GetCenter())
+                    (biasLeft and outerx > ownerx)
                     or
                     -- outermost is left of owner while we're biasing right
-                    ((not biasLeft) and outermostComparisonShown:GetCenter() < owner:GetCenter())
+                    ((not biasLeft) and outerx < ownerx)
                 then
                     -- the comparison won't be in the way, so ignore it
                     outermostComparisonShown = nil
@@ -253,8 +275,9 @@ do
             (primary == "left" and (owner:GetLeft() - tooltip:GetWidth()) < 0)
             or (primary == "right" and (owner:GetRight() + tooltip:GetWidth() > GetScreenWidth()))
         then
-            return self:ComputeTooltipAnchors(originalOwner, tooltip, "vertical")
+            return self:ComputeTooltipAnchors(originalOwner, "vertical")
         end
+        -- ns.Debug("ComputeTooltipAnchors", owner:GetName(), primary, secondary)
         return owner, unpack(points[primary][secondary])
     end
 end
@@ -284,8 +307,9 @@ end)
 
 local _, class = UnitClass("player")
 
-function ns:ShowItem(link)
+function ns:ShowItem(link, for_tooltip)
     if not link then return end
+    for_tooltip = for_tooltip or GameTooltip
     local id = tonumber(link:match("item:(%d+)"))
     if not id or id == 0 then return end
     local token = db.tokens and LAT:ItemIsToken(id)
@@ -318,8 +342,8 @@ function ns:ShowItem(link)
             end
         end
         if found then
-            GameTooltip:AddDoubleLine(ITEM_PURCHASED_COLON, link)
-            GameTooltip:Show()
+            for_tooltip:AddDoubleLine(ITEM_PURCHASED_COLON, link)
+            for_tooltip:Show()
         end
     end
 
@@ -345,7 +369,12 @@ function ns:ShowItem(link)
             if shouldZoom then
                 if itemCamera then
                     model = tooltip.modelWeapon
-                    model:SetItem(id)
+                    local appearanceID = C_TransmogCollection.GetItemInfo(link)
+                    if appearanceID then
+                        model:SetItemAppearance(appearanceID)
+                    else
+                        model:SetItem(id)
+                    end
                 else
                     model = tooltip.modelZoomed
                     model:SetUseTransmogSkin(db.zoomMasked and slot ~= "INVTYPE_HEAD")
@@ -368,7 +397,7 @@ function ns:ShowItem(link)
             end
 
             tooltip:Show()
-            tooltip.owner = GameTooltip
+            tooltip.owner = for_tooltip
 
             positioner:Show()
             spinner:SetShown(db.spin)
@@ -398,10 +427,10 @@ function ns:ShowItem(link)
         known:Hide()
 
         if db.notifyKnown then
-            local hasAppearance, appearanceFromOtherItem, notTransmoggable = ns.PlayerHasAppearance(link)
+            local hasAppearance, appearanceFromOtherItem = ns.PlayerHasAppearance(link)
 
             local label
-            if notTransmoggable then
+            if not ns.CanTransmogItem(link) then
                 label = "|c00ffff00" .. TRANSMOGRIFY_INVALID_DESTINATION
             else
                 if hasAppearance then
@@ -430,12 +459,15 @@ function ns:ResetModel(model)
     -- model:SetAutoDress(db.dressed)
     -- So instead, more complicated:
     if db.customModel then
+        model:SetUnit("none")
         model:SetCustomRace(db.modelRace, db.modelGender)
     else
-        model:Dress()
+        model:SetUnit("player")
     end
     model:RefreshCamera()
-    if not db.dressed then
+    if db.dressed then
+        model:Dress()
+    else
         model:Undress()
     end
 end
@@ -500,6 +532,38 @@ ns.modifiers = {
     None = function() return true end,
 }
 
+---
+
+do
+    local categoryID = 1
+    function ns.UpdateSources()
+        if categoryID > 28 then return ns.Debug("Done updating") end
+        local categoryAppearances = C_TransmogCollection.GetCategoryAppearances(categoryID)
+        local acount, scount = 0, 0
+        for _, categoryAppearance in pairs(categoryAppearances) do
+            acount = acount + 1
+            local appearanceSources = C_TransmogCollection.GetAppearanceSources(categoryAppearance.visualID)
+            local known_any
+            for _, source in pairs(appearanceSources) do
+                if source.isCollected then
+                    scount = scount + 1
+                    -- it's only worth saving if we know the source
+                    known_any = true
+                end
+            end
+            if known_any then
+                ns.db.appearances_known[categoryAppearance.visualID] = true
+            else
+                -- cleaning up after unlearned appearances:
+                ns.db.appearances_known[categoryAppearance.visualID] = nil
+            end
+        end
+        ns.Debug("Updating sources in category", categoryID, "appearances", acount, "sources known", scount)
+        categoryID = categoryID + 1
+        C_Timer.After(db.scan_delay, ns.UpdateSources)
+    end
+end
+
 -- Utility fun
 
 --/dump C_Transmog.GetItemInfo(GetItemInfoInstant(""))
@@ -511,48 +575,83 @@ function ns.CanTransmogItem(itemLink)
     end
 end
 
-function ns.PlayerHasAppearance(item)
-    if not ns.CanTransmogItem(item) then
-        return false, false, true
+local brokenItems = {
+    -- itemid : {appearanceid, sourceid}
+    [153268] = {25124, 90807}, -- Enclave Aspirant's Axe
+}
+-- /dump C_TransmogCollection.GetAppearanceSourceInfo(select(2, C_TransmogCollection.GetItemInfo("")))
+function ns.PlayerHasAppearance(itemLinkOrID)
+    -- hasAppearance, appearanceFromOtherItem
+    local itemID = GetItemInfoInstant(itemLinkOrID)
+    if not itemID then return end
+    local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLinkOrID)
+    if not appearanceID then
+        -- sometimes the link won't actually give us an appearance, but itemID will
+        -- e.g. mythic Drape of Iron Sutures from Shadowmoon Burial Grounds
+        appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemID)
     end
-    local state = ns.CheckTooltipFor(item, TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN, TRANSMOGRIFY_TOOLTIP_ITEM_UNKNOWN_APPEARANCE_KNOWN)
-    if state == TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN then
-        return
+    if not appearanceID and brokenItems[itemID] then
+        -- ...and there's a few that just need to be hardcoded
+        appearanceID, sourceID = unpack(brokenItems[itemID])
     end
-    return true, state == TRANSMOGRIFY_TOOLTIP_ITEM_UNKNOWN_APPEARANCE_KNOWN
+    if not appearanceID then return end
+    if sourceID and ns.db.appearances_known[appearanceID] then
+        local _, _, _, _, sourceKnown = C_TransmogCollection.GetAppearanceSourceInfo(sourceID)
+        return true, not sourceKnown
+    end
+    -- Everything after this is a fallback. All know appearances *should* be in that table... but we run
+    -- this in case, we only know about unequippable items after you've logged in as a class which can use
+    -- them. (Also in case the scanning messed up somehow, I guess?)
+    if not LAI:IsAppropriate(itemID) then
+        -- This is a non-class item, so GetAppearanceSources won't work on it
+        -- We can tell whether the specific source is collected, but not the overall appearance
+        -- Fallback if you've not logged in to a class that can use this item in a while
+        local _, _, _, _, sourceKnown = C_TransmogCollection.GetAppearanceSourceInfo(sourceID)
+        return sourceKnown, false
+    end
+    local sources = C_TransmogCollection.GetAppearanceSources(appearanceID)
+    if sources then
+        local known_any = false
+        for _, source in pairs(sources) do
+            if source.isCollected == true then
+                known_any = true
+                if itemID == source.itemID then
+                    return true, false
+                end
+            end
+        end
+        return known_any, false
+    end
+    return false
 end
 
 do
-    local tooltip
-    function ns.CheckTooltipFor(link, ...)
-        if not tooltip then
-            tooltip = CreateFrame("GameTooltip", "AppearanceTooltipScanningTooltip", nil, "GameTooltipTemplate")
-            tooltip:SetOwner(WorldFrame, "ANCHOR_NONE")
+    local function ColorGradient(perc, ...)
+        if perc >= 1 then
+            local r, g, b = select(select("#", ...) - 2, ...)
+            return r, g, b
+        elseif perc <= 0 then
+            local r, g, b = ...
+            return r, g, b
         end
-        tooltip:ClearLines()
 
-        -- just showing tooltip for an itemid
-        -- uses rather innocent checking so that slot can be a link or an itemid
-        local link = tostring(link) -- so that ":match" is guaranteed to be okay
-        if not link:match("item:") then
-            link = "item:"..link
-        end
-        tooltip:SetHyperlink(link)
+        local num = select("#", ...) / 3
 
-        for i=2, tooltip:NumLines() do
-            local left = _G["AppearanceTooltipScanningTooltipTextLeft"..i]
-            --local right = _G["AppearanceTooltipScanningTooltipTextRight"..i]
-            if left and left:IsShown() then
-                local text = left:GetText()
-                for ii=1, select('#', ...) do
-                    if string.match(text, (select(ii, ...))) then
-                        return text
-                    end
-                end
-            end
-            --if right and right:IsShown() and string.match(right:GetText(), text) then return true end
+        local segment, relperc = math.modf(perc*(num-1))
+        local r1, g1, b1, r2, g2, b2 = select((segment*3)+1, ...)
+
+        return r1 + (r2-r1)*relperc, g1 + (g2-g1)*relperc, b1 + (b2-b1)*relperc
+    end
+    local function rgb2hex(r, g, b)
+        if type(r) == "table" then
+            g = r.g
+            b = r.b
+            r = r.r
         end
-        return false
+        return ("%02x%02x%02x"):format(r*255, g*255, b*255)
+    end
+    function ns.ColorTextByCompletion(text, perc)
+        return ("|cff%s%s|r"):format(rgb2hex(ColorGradient(perc, 1,0,0, 1,1,0, 0,1,0)), text)
     end
 end
 

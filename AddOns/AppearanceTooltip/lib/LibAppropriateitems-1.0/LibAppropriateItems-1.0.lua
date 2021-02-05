@@ -112,14 +112,11 @@ valid_classes = {
             [LE_ITEM_WEAPON_BOWS] = true,
             [LE_ITEM_WEAPON_CROSSBOW] = true,
             [LE_ITEM_WEAPON_GUNS] = true,
-            -- verify the 2h below...
             [LE_ITEM_WEAPON_DAGGER] = true,
             [LE_ITEM_WEAPON_UNARMED] = true,
             [LE_ITEM_WEAPON_AXE1H] = true,
-            [LE_ITEM_WEAPON_MACE1H] = true,
             [LE_ITEM_WEAPON_SWORD1H] = true,
             [LE_ITEM_WEAPON_AXE2H] = true,
-            [LE_ITEM_WEAPON_MACE2H] = true,
             [LE_ITEM_WEAPON_SWORD2H] = true,
             [LE_ITEM_WEAPON_POLEARM] = true,
             [LE_ITEM_WEAPON_STAFF] = true,
@@ -150,10 +147,8 @@ valid_classes = {
     DEMONHUNTER = {
         [LE_ITEM_CLASS_WEAPON] = {
             [LE_ITEM_WEAPON_WARGLAIVE] = true,
-            [LE_ITEM_WEAPON_DAGGER] = true,
             [LE_ITEM_WEAPON_UNARMED] = true,
             [LE_ITEM_WEAPON_AXE1H] = true,
-            [LE_ITEM_WEAPON_MACE1H] = true,
             [LE_ITEM_WEAPON_SWORD1H] = true,
         },
         [LE_ITEM_CLASS_ARMOR] = {
