@@ -48,17 +48,19 @@ addon.tooltips = {
 
 -- 圖標集
 addon.icons = {
-    Alliance  = "|TInterface\\TargetingFrame\\UI-PVP-ALLIANCE:14:14:0:0:64:64:10:36:2:38|t",
-    Horde     = "|TInterface\\TargetingFrame\\UI-PVP-HORDE:14:14:0:0:64:64:4:38:2:36|t",
-    Neutral   = "|TInterface\\Timer\\Panda-Logo:14|t",
-    pvp       = "|TInterface\\TargetingFrame\\UI-PVP-FFA:14:14:0:0:64:64:10:36:0:38|t",
-    class     = "|TInterface\\TargetingFrame\\UI-Classes-Circles:14:14:0:0:256:256:%d:%d:%d:%d|t",
-    battlepet = "|TInterface\\Timer\\Panda-Logo:15|t",
-    pettype   = "|TInterface\\TargetingFrame\\PetBadge-%s:14|t",
-    questboss = "|TInterface\\TargetingFrame\\PortraitQuestBadge:0|t",
-    TANK      = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:0:19:22:41|t",
-    HEALER    = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:1:20|t",
-    DAMAGER   = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
+    Alliance   = "|TInterface\\TargetingFrame\\UI-PVP-ALLIANCE:14:14:0:0:64:64:10:36:2:38|t",
+    Horde      = "|TInterface\\TargetingFrame\\UI-PVP-HORDE:14:14:0:0:64:64:4:38:2:36|t",
+    Neutral    = "|TInterface\\Timer\\Panda-Logo:14|t",
+    pvp        = "|TInterface\\TargetingFrame\\UI-PVP-FFA:14:14:0:0:64:64:10:36:0:38|t",
+    class      = "|TInterface\\TargetingFrame\\UI-Classes-Circles:14:14:0:0:256:256:%d:%d:%d:%d|t",
+    battlepet  = "|TInterface\\Timer\\Panda-Logo:15|t",
+    pettype    = "|TInterface\\TargetingFrame\\PetBadge-%s:14|t",
+    questboss  = "|TInterface\\TargetingFrame\\PortraitQuestBadge:0|t",
+    friend     = "|TInterface\\AddOns\\TinyTooltip\\texture\\friend:14:14:0:0:32:32:1:30:2:30|t",
+    bnetfriend = "|TInterface\\ChatFrame\\UI-ChatIcon-BattleNet:14:14:0:0:32:32:1:30:2:30|t",
+    TANK       = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:0:19:22:41|t",
+    HEALER     = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:1:20|t",
+    DAMAGER    = "|TInterface\\LFGFrame\\UI-LFG-ICON-PORTRAITROLES:14:14:0:0:64:64:20:39:22:41|t",
 }
 
 -- 背景
@@ -70,7 +72,54 @@ addon.bgs = {
     marble  = "Interface\\FrameGeneral\\UI-Background-Marble",
 }
 
--- 配置 (elements鍵不合併)
+--配置 (对elements鍵的值进行合并校验,不含factionBig,npcTitle键)
+local function AutoValidateElements(src, dst)
+    local keys = {}
+    for k, v in ipairs(dst) do
+        keys[k] = true
+        for i = #v, 1, -1 do
+            if (not src[v[i]]) then
+                tremove(v, i)
+            else
+                keys[v[i]] = true
+            end
+        end
+    end
+    for k, v in pairs(src) do
+        if (type(k) ~= "number" and not dst[k]) then
+            dst[k] = v
+            if (k == "factionBig" or k == "npcTitle") then
+            elseif (not keys[k]) then
+                tinsert(dst[1], 1, k)
+            end
+        end
+    end
+    return dst
+end
+
+--字符型数字键转为数字键
+function addon:FixNumericKey(t)
+    local key
+    local tbl = {}
+    for k, v in pairs(t) do
+        if (type(k) == "string" and string.match(k,"^[1-9]%d*$")) then
+            key = tonumber(k)
+            t[k] = nil
+            tbl[key] = v
+        end
+    end
+    for k, v in pairs(tbl) do
+        if (not t[k]) then t[k] = v end
+    end
+    for k, v in pairs(t) do
+        if (type(v) == "table") then
+            t[k] = self:FixNumericKey(v)
+        end
+    end
+    return t
+end
+
+-- 配置合併
 function addon:MergeVariable(src, dst)
     dst.version = src.version
     for k, v in pairs(src) do
@@ -78,6 +127,8 @@ function addon:MergeVariable(src, dst)
             dst[k] = v
         elseif (type(dst[k]) == "table" and k~="elements") then
             self:MergeVariable(v, dst[k])
+        elseif (type(dst[k]) == "table" and k=="elements") then
+            dst[k] = AutoValidateElements(v, dst[k])
         end
     end
     return dst
@@ -224,6 +275,18 @@ function addon:GetClassIcon(class)
     return format(self.icons.class, x1*256, x2*256, y1*256, y2*256)
 end
 
+--好友图标
+function addon:GetFriendIcon(unit)
+    if (UnitIsPlayer(unit)) then
+        local guid = UnitGUID(unit)
+        if (guid and guid~=UnitGUID("player") and C_BattleNet.GetAccountInfoByGUID(guid)) then
+            return self.icons.bnetfriend
+        elseif (guid and C_FriendList.IsFriend(guid)) then
+            return self.icons.friend
+        end
+    end
+end
+
 -- 戰寵
 function addon:GetBattlePet(unit)
     if (UnitIsWildBattlePet(unit) or UnitIsBattlePetCompanion(unit)) then
@@ -317,6 +380,7 @@ function addon:GetUnitInfo(unit)
     t.classIcon    = self:GetClassIcon(class)
     t.roleIcon     = self:GetRoleIcon(unit)
     t.questIcon    = self:GetQuestBossIcon(unit)
+    t.friendIcon   = self:GetFriendIcon(unit)
     --t.battlepetIcon = self:GetBattlePet(unit)
     t.factionName  = factionName
     t.role         = role ~= "NONE" and role
@@ -496,7 +560,7 @@ addon.filterfunc.samerealm = function(raw)
 end
 
 addon.filterfunc.samecrossrealm = function(raw)
-    return UnitRealmRelationship(raw.unit) == LE_REALM_RELATION_SAME
+    return UnitRealmRelationship(raw.unit) ~= LE_REALM_RELATION_COALESCED
 end
 
 addon.filterfunc.inpvp = function(raw)
@@ -639,11 +703,12 @@ end)
 
 local defaultHeaderFont, defaultHeaderSize, defaultHeaderFlag = GameTooltipHeaderText:GetFont()
 LibEvent:attachTrigger("tooltip.style.font.header", function(self, frame, fontObject, fontSize, fontFlag)
-    --没有配置的直接返回,防止SetFont后字体集无法自动匹配
-    if (fontObject == "default" and fontSize == "default" and fontFlag == "default") then
-        return
-    end
     local font, size, flag = GameTooltipHeaderText:GetFont()
+    if (fontObject == "default" and fontSize == "default" and fontFlag == "default") then
+        if (size == defaultHeaderSize and flag == defaultHeaderFlag) then
+            return
+        end
+    end
     font = addon:GetFont(fontObject, defaultHeaderFont)
     if (fontSize == "default") then
         size = defaultHeaderSize
@@ -660,7 +725,7 @@ end)
 
 local defaultBodyFont, defaultBodySize, defaultBodyFlag = GameTooltipText:GetFont()
 LibEvent:attachTrigger("tooltip.style.font.body", function(self, frame, fontObject, fontSize, fontFlag)
-    local font, size, flag = GameTooltipHeaderText:GetFont()
+    local font, size, flag = GameTooltipText:GetFont()
     font = addon:GetFont(fontObject, defaultBodyFont)
     if (fontSize == "default") then
         size = defaultBodySize
@@ -788,7 +853,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     if (tip:HasScript("OnTooltipSetQuest")) then
         tip:HookScript("OnTooltipSetQuest", function(self) LibEvent:trigger("tooltip:quest", self) end)
     end
-    if (tip == GameTooltip) then
+    if (tip == GameTooltip or tip.identity == "diy") then
         tip.GetBackdrop = function(self) return self.style:GetBackdrop() end
         tip.GetBackdropColor = function(self) return self.style:GetBackdropColor() end
         tip.GetBackdropBorderColor = function(self) return self.style:GetBackdropBorderColor() end

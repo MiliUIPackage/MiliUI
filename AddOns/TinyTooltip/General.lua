@@ -58,17 +58,7 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
             local min, max = self:GetMinMaxValues()
             self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(max), DEAD)
         else
-            -- TextStatusBar_UpdateTextString(self)
-            -- 顯示實際血量
-			local hpLoc
-			if hp < 1e4 then
-				hpLoc = hp
-			elseif hp < 1e8 then
-				hpLoc = format("%.1f萬", hp * 0.0001)
-			else
-				hpLoc = format("%.2f億", hp * 0.00000001)
-			end
-			self.TextString:SetFormattedText(hpLoc)
+            TextStatusBar_UpdateTextString(self)
         end
         ColorStatusBar(self, hp)
     end)

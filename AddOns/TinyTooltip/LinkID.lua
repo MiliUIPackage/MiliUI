@@ -3,7 +3,7 @@ local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local addon = TinyTooltip
 
 local function ParseHyperLink(link)
-    local name, value = string.match(link or "", "|?H?(%a+):(%d+):")
+    local name, value = string.match(link or "", "|?H(%a+):(%d+):")
     if (name and value) then
         return name:gsub("^([a-z])", strupper), value
     end
@@ -15,7 +15,7 @@ local function ShowId(tooltip, name, value, noBlankLine)
         local line = addon:FindLine(tooltip, name)
         if (not line) then
             if (not noBlankLine) then tooltip:AddLine(" ") end
-            tooltip:AddLine(format("%s: |cffffffff%s|r", name, value), 0, 1, 0.8)
+            tooltip:AddLine(format("%s: |cffffffff%s|r", addon.L[name] or name, value), 0, 1, 0.8)
             tooltip:Show()
         end
         LibEvent:trigger("tooltip.linkid", tooltip, name, value, noBlankLine)
@@ -88,15 +88,17 @@ local function ShowAchievementId(self)
     end
 end
 
-hooksecurefunc("HybridScrollFrame_CreateButtons", function(self, buttonTemplate)
-    if (buttonTemplate == "StatTemplate") then
-        for _, button in pairs(self.buttons) do
-            button:HookScript("OnEnter", ShowAchievementId)
+if (HybridScrollFrame_CreateButtons) then
+    hooksecurefunc("HybridScrollFrame_CreateButtons", function(self, buttonTemplate)
+        if (buttonTemplate == "StatTemplate") then
+            for _, button in pairs(self.buttons) do
+                button:HookScript("OnEnter", ShowAchievementId)
+            end
+        elseif (buttonTemplate == "AchievementTemplate") then
+            for _, button in pairs(self.buttons) do
+                button:HookScript("OnEnter", ShowAchievementId)
+                button:HookScript("OnLeave", GameTooltip_Hide)
+            end
         end
-    elseif (buttonTemplate == "AchievementTemplate") then
-        for _, button in pairs(self.buttons) do
-            button:HookScript("OnEnter", ShowAchievementId)
-            button:HookScript("OnLeave", GameTooltip_Hide)
-        end
-    end
-end)
+    end)
+end
