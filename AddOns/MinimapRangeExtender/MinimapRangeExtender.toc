@@ -1,9 +1,9 @@
-## Interface: 80300
+## Interface: 90002
 ## Title: Minimap Range Extender
 ## Notes: Show vignette icons sooner
 ## Title-zhTW: |cff4DFF4D[地圖]|r 小地圖範圍加大
 ## Notes-zhTW: Minimap Range Extender |n加大小地圖的偵測範圍，能夠早一點看到小地圖上的稀有怪和資源。
-## Version: v1-3-gb72c662
+## Version: v2
 ## Author: Kemayo
 ## eMail: kemayo at gmail dot com
 ## X-Category: Interface Enhancements
