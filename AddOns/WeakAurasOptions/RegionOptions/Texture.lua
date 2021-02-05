@@ -1,4 +1,5 @@
 if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, OptionsPrivate = ...
 
 local L = WeakAuras.L
 
@@ -8,9 +9,30 @@ local function createOptions(id, data)
     __order = 1,
     texture = {
       type = "input",
-      width = WeakAuras.doubleWidth,
+      width = WeakAuras.doubleWidth - 0.15,
       name = L["Texture"],
       order = 1
+    },
+    chooseTexture = {
+      type = "execute",
+      name = L["Choose"],
+      width = 0.15,
+      order = 1.1,
+      func = function()
+        OptionsPrivate.OpenTexturePicker(data, {}, {
+          texture = "texture",
+          color = "color",
+          rotate = "rotate",
+          discrete_rotation = "discrete_rotation",
+          rotation = "rotation",
+          mirror = "mirror",
+          blendMode = "blendMode"
+        }, OptionsPrivate.Private.texture_types);
+      end,
+      imageWidth = 24,
+      imageHeight = 24,
+      control = "WeakAurasIcon",
+      image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\browse",
     },
     desaturate = {
       type = "toggle",
@@ -21,18 +43,9 @@ local function createOptions(id, data)
     space2 = {
       type = "execute",
       name = "",
-      width = WeakAuras.halfWidth,
+      width = WeakAuras.normalWidth,
       order = 5,
       image = function() return "", 0, 0 end,
-    },
-    chooseTexture = {
-      type = "execute",
-      name = L["Choose"],
-      width = WeakAuras.halfWidth,
-      order = 7,
-      func = function()
-        WeakAuras.OpenTexturePicker(data, "texture", WeakAuras.texture_types);
-      end
     },
     color = {
       type = "color",
@@ -46,7 +59,7 @@ local function createOptions(id, data)
       width = WeakAuras.normalWidth,
       name = L["Blend Mode"],
       order = 12,
-      values = WeakAuras.blend_types
+      values = OptionsPrivate.Private.blend_types
     },
     mirror = {
       type = "toggle",
@@ -91,6 +104,13 @@ local function createOptions(id, data)
       order = 35,
       hidden = function() return data.rotate end
     },
+    textureWrapMode = {
+      type = "select",
+      width = WeakAuras.normalWidth,
+      name = L["Texture Wrap"],
+      order = 36,
+      values = OptionsPrivate.Private.texture_wrap_types
+    },
     endHeader = {
       type = "header",
       order = 100,
@@ -100,7 +120,7 @@ local function createOptions(id, data)
 
   return {
     texture = options,
-    position = WeakAuras.commonOptions.PositionOptions(id, data),
+    position = OptionsPrivate.commonOptions.PositionOptions(id, data),
   };
 end
 
@@ -134,7 +154,7 @@ local function modifyThumbnail(parent, region, data, fullModify, size)
     region.texture:SetHeight(scale * data.height);
   end
 
-  WeakAuras.SetTextureOrAtlas(region.texture, data.texture);
+  WeakAuras.SetTextureOrAtlas(region.texture, data.texture, data.textureWrapMode, data.textureWrapMode);
   region.texture:SetVertexColor(data.color[1], data.color[2], data.color[3], data.color[4]);
   region.texture:SetBlendMode(data.blendMode);
 
@@ -233,7 +253,7 @@ if WeakAuras.IsClassic() then
 end
 
 local function GetAnchors(data)
-  return WeakAuras.default_types_for_anchor
+  return OptionsPrivate.Private.default_types_for_anchor
 end
 
 WeakAuras.RegisterRegionOptions("texture", createOptions, createIcon, L["Texture"], createThumbnail, modifyThumbnail, L["Shows a custom texture"], templates, GetAnchors);

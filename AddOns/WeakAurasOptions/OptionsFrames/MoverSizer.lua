@@ -1,4 +1,6 @@
 if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, OptionsPrivate = ...
+
 
 -- Lua APIs
 local pairs = pairs
@@ -9,11 +11,10 @@ local IsShiftKeyDown, CreateFrame =  IsShiftKeyDown, CreateFrame
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 local WeakAuras = WeakAuras
+local L = WeakAuras.L
 
 local moversizer
 local mover
-
-local savedVars = WeakAuras.savedVars
 
 local function EnsureTexture(self, texture)
   if texture then
@@ -44,7 +45,7 @@ local function moveOnePxl(direction)
       end
       WeakAuras.Add(data, nil, true)
       WeakAuras.UpdateThumbnail(data)
-      WeakAuras.ResetMoverSizer()
+      OptionsPrivate.ResetMoverSizer()
       if data.parent then
         local parentData = WeakAuras.GetData(data.parent)
         if parentData then
@@ -64,9 +65,11 @@ local function ConstructMover(frame)
   local top = CreateFrame("BUTTON", nil, topAndBottom)
   top:SetSize(25, 25)
   top:SetPoint("TOP", topAndBottom)
+  top:SetFrameStrata("BACKGROUND")
   local bottom = CreateFrame("BUTTON", nil, topAndBottom)
   bottom:SetSize(25, 25)
   bottom:SetPoint("BOTTOM", topAndBottom)
+  bottom:SetFrameStrata("BACKGROUND")
 
   local leftAndRight = CreateFrame("Frame", nil, frame)
   leftAndRight:SetClampedToScreen(true)
@@ -75,9 +78,11 @@ local function ConstructMover(frame)
   local left = CreateFrame("BUTTON", nil, leftAndRight)
   left:SetSize(25, 25)
   left:SetPoint("LEFT", leftAndRight)
+  left:SetFrameStrata("BACKGROUND")
   local right = CreateFrame("BUTTON", nil, leftAndRight)
   right:SetSize(25, 25)
   right:SetPoint("RIGHT", leftAndRight)
+  right:SetFrameStrata("BACKGROUND")
 
   top:SetNormalTexture("interface\\buttons\\ui-scrollbar-scrollupbutton-up.blp")
   top:SetHighlightTexture("interface\\buttons\\ui-scrollbar-scrollupbutton-highlight.blp")
@@ -108,6 +113,23 @@ local function ConstructMover(frame)
   right:GetPushedTexture():SetRotation(-math.pi/2)
   right:SetScript("OnClick", function() moveOnePxl("right") end)
 
+  local arrow = CreateFrame("frame", nil, frame)
+  arrow:SetClampedToScreen(true)
+  arrow:SetSize(196, 196)
+  arrow:SetPoint("CENTER", frame, "CENTER")
+  arrow:SetFrameStrata("HIGH")
+  local arrowTexture = arrow:CreateTexture()
+  arrowTexture:SetTexture("Interface\\Addons\\WeakAuras\\Media\\Textures\\offscreen.tga")
+  arrowTexture:SetSize(128, 128)
+  arrowTexture:SetPoint("CENTER", arrow, "CENTER")
+  arrowTexture:SetVertexColor(0.8, 0.8, 0.2)
+  arrowTexture:Hide()
+  local offscreenText = arrow:CreateFontString(nil, "OVERLAY")
+  offscreenText:SetFont(STANDARD_TEXT_FONT, 14, "THICKOUTLINE");
+  offscreenText:SetText(L["Aura is\nOff Screen"])
+  offscreenText:Hide()
+  offscreenText:SetPoint("CENTER", arrow, "CENTER")
+
   local lineX = frame:CreateLine(nil, "OVERLAY", 7)
   lineX:SetThickness(2)
   lineX:SetColorTexture(1,1,0)
@@ -124,7 +146,7 @@ local function ConstructMover(frame)
   lineY:SetIgnoreParentAlpha(true)
   lineY:Hide()
 
-  return lineX, lineY
+  return lineX, lineY, arrowTexture, offscreenText
 end
 
 local function ConstructSizer(frame)
@@ -151,6 +173,9 @@ local function ConstructSizer(frame)
   texTR2:SetPoint("BOTTOMLEFT", topright, "LEFT")
 
   topright.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texTR1:Show()
     texTR2:Show()
   end
@@ -180,6 +205,9 @@ local function ConstructSizer(frame)
   texBR2:SetPoint("TOPLEFT", bottomright, "LEFT")
 
   bottomright.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texBR1:Show()
     texBR2:Show()
   end
@@ -209,6 +237,9 @@ local function ConstructSizer(frame)
   texBL2:SetPoint("TOPRIGHT", bottomleft, "RIGHT")
 
   bottomleft.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texBL1:Show()
     texBL2:Show()
   end
@@ -238,6 +269,9 @@ local function ConstructSizer(frame)
   texTL2:SetPoint("BOTTOMRIGHT", topleft, "RIGHT")
 
   topleft.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texTL1:Show()
     texTL2:Show()
   end
@@ -261,6 +295,9 @@ local function ConstructSizer(frame)
   texT:SetPoint("BOTTOMLEFT", topleft, "LEFT", 3, 0)
 
   top.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texT:Show()
   end
   top.Clear = function()
@@ -280,6 +317,9 @@ local function ConstructSizer(frame)
   texR:SetPoint("TOPLEFT", topright, "TOP", 0, -3)
 
   right.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texR:Show()
   end
   right.Clear = function()
@@ -300,6 +340,9 @@ local function ConstructSizer(frame)
   texB:SetPoint("TOPRIGHT", bottomright, "RIGHT", -3, 0)
 
   bottom.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texB:Show()
   end
   bottom.Clear = function()
@@ -320,6 +363,9 @@ local function ConstructSizer(frame)
   texL:SetPoint("TOPRIGHT", topleft, "TOP", 0, -3)
 
   left.Highlight = function()
+    if WeakAurasOptionsSaved.lockPositions then
+      return
+    end
     texL:Show()
   end
   left.Clear = function()
@@ -379,7 +425,7 @@ local function BuildAlignLines(mover)
 end
 
 local function ConstructMoverSizer(parent)
-  local frame = CreateFrame("FRAME", nil, parent)
+  local frame = CreateFrame("FRAME", nil, parent, BackdropTemplateMixin and "BackdropTemplate")
   frame:SetBackdrop({
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
     edgeSize = 12,
@@ -390,7 +436,7 @@ local function ConstructMoverSizer(parent)
   frame.top, frame.topright, frame.right, frame.bottomright, frame.bottom, frame.bottomleft, frame.left, frame.topleft
   = ConstructSizer(frame)
 
-  frame.lineX, frame.lineY = ConstructMover(frame)
+  frame.lineX, frame.lineY, frame.arrowTexture, frame.offscreenText = ConstructMover(frame)
 
   frame.top.Clear()
   frame.topright.Clear()
@@ -471,6 +517,7 @@ local function ConstructMoverSizer(parent)
     if not ok then
       return
     end
+    self:Show()
 
     mover.selfPoint, mover.anchor, mover.anchorPoint = selfPoint, anchor, anchorPoint
 
@@ -481,7 +528,7 @@ local function ConstructMoverSizer(parent)
     if data.regionType == "group" then
       mover:SetWidth((region.trx - region.blx) * scale)
       mover:SetHeight((region.try - region.bly) * scale)
-      mover:SetPoint(mover.selfPoint or "CENTER", mover.anchor or UIParent, mover.anchorPoint or "CENTER", (xOff + region.blx) * scale, (yOff + region.bly) * scale)
+      mover:SetPoint("BOTTOMLEFT", mover.anchor or UIParent, mover.anchorPoint or "CENTER", (xOff + region.blx) * scale, (yOff + region.bly) * scale)
     else
       mover:SetWidth(region:GetWidth() * scale)
       mover:SetHeight(region:GetHeight() * scale)
@@ -492,17 +539,20 @@ local function ConstructMoverSizer(parent)
     frame:ScaleCorners(region:GetWidth(), region:GetHeight())
     local regionStrata = region:GetFrameStrata()
     if regionStrata then
-      local strata = math.min(tIndexOf(WeakAuras.frame_strata_types, regionStrata) + 1, 9)
-      frame:SetFrameStrata(WeakAuras.frame_strata_types[strata])
-      mover:SetFrameStrata(WeakAuras.frame_strata_types[strata])
+      local strata = math.min(tIndexOf(OptionsPrivate.Private.frame_strata_types, regionStrata) + 1, 9)
+      frame:SetFrameStrata(OptionsPrivate.Private.frame_strata_types[strata])
+      mover:SetFrameStrata(OptionsPrivate.Private.frame_strata_types[strata])
     end
 
-    local db = savedVars.db
+    local db = OptionsPrivate.savedVars.db
     mover.startMoving = function()
-      WeakAuras.CancelAnimation(region, true, true, true, true, true)
+      if WeakAurasOptionsSaved.lockPositions then
+        return
+      end
+      OptionsPrivate.Private.CancelAnimation(region, true, true, true, true, true)
       mover:ClearAllPoints()
       if data.regionType == "group" then
-        mover:SetPoint(mover.selfPoint, region, mover.anchorPoint, region.blx * scale, region.bly * scale)
+        mover:SetPoint("BOTTOMLEFT", region, mover.anchorPoint, region.blx * scale, region.bly * scale)
       else
         mover:SetPoint(mover.selfPoint, region, mover.selfPoint)
       end
@@ -602,7 +652,7 @@ local function ConstructMoverSizer(parent)
       if data.regionType == "group" then
         mover:SetWidth((region.trx - region.blx) * scale)
         mover:SetHeight((region.try - region.bly) * scale)
-        mover:SetPoint(mover.selfPoint, mover.anchor, mover.anchorPoint, (xOff + region.blx) * scale, (yOff + region.bly) * scale)
+        mover:SetPoint("BOTTOMLEFT", mover.anchor, mover.anchorPoint, (xOff + region.blx) * scale, (yOff + region.bly) * scale)
       else
         mover:SetWidth(region:GetWidth() * scale)
         mover:SetHeight(region:GetHeight() * scale)
@@ -615,7 +665,7 @@ local function ConstructMoverSizer(parent)
         end
       end
       WeakAuras.FillOptions()
-      WeakAuras.Animate("display", data, "main", data.animation.main, WeakAuras.regions[data.id].region, false, nil, true)
+      OptionsPrivate.Private.Animate("display", data.uid, "main", data.animation.main, WeakAuras.regions[data.id].region, false, nil, true)
       -- hide alignment lines
       frame.lineY:Hide()
       frame.lineX:Hide()
@@ -636,8 +686,11 @@ local function ConstructMoverSizer(parent)
 
     if region:IsResizable() then
       frame.startSizing = function(point)
+        if WeakAurasOptionsSaved.lockPositions then
+          return
+        end
         mover.isMoving = true
-        WeakAuras.CancelAnimation(region, true, true, true, true, true)
+        OptionsPrivate.Private.CancelAnimation(region, true, true, true, true, true)
         local rSelfPoint, rAnchor, rAnchorPoint, rXOffset, rYOffset = region:GetPoint(1)
         region:StartSizing(point)
         frame.text:ClearAllPoints()
@@ -726,7 +779,7 @@ local function ConstructMoverSizer(parent)
         if data.regionType == "group" then
           mover:SetWidth((region.trx - region.blx) * scale)
           mover:SetHeight((region.try - region.bly) * scale)
-          mover:SetPoint(mover.selfPoint, mover.anchor, mover.anchorPoint, (xOff + region.blx) * scale, (yOff + region.bly) * scale)
+          mover:SetPoint("BOTTOMLEFT", mover.anchor, mover.anchorPoint, (xOff + region.blx) * scale, (yOff + region.bly) * scale)
         else
           mover:SetWidth(region:GetWidth() * scale)
           mover:SetHeight(region:GetHeight() * scale)
@@ -735,7 +788,7 @@ local function ConstructMoverSizer(parent)
         frame.text:Hide()
         frame:SetScript("OnUpdate", nil)
         WeakAuras.FillOptions()
-        WeakAuras.Animate("display", data, "main", data.animation.main, WeakAuras.regions[data.id].region, false, nil, true)
+        OptionsPrivate.Private.Animate("display", data.uid, "main", data.animation.main, WeakAuras.regions[data.id].region, false, nil, true)
         -- hide alignment lines
         frame.lineY:Hide()
         frame.lineX:Hide()
@@ -833,11 +886,16 @@ local function ConstructMoverSizer(parent)
       self.alignCurrentAlpha = newAlpha
     end
 
-    local db = savedVars.db
+    local db = OptionsPrivate.savedVars.db
     local region = self.moving.region
     local data = self.moving.data
     if not self.isMoving then
-      self.selfPoint, self.anchor, self.anchorPoint = region:GetPoint(1)
+      local ok, selfPoint, anchor, anchorPoint = pcall(region.GetPoint, region, 1)
+      if not ok then
+        self:Hide()
+        return
+      end
+      self.selfPoint, self.anchor, self.anchorPoint = selfPoint, anchor, anchorPoint
     end
     self.selfPointIcon:ClearAllPoints()
     self.selfPointIcon:SetPoint("CENTER", region, self.selfPoint)
@@ -873,6 +931,25 @@ local function ConstructMoverSizer(parent)
       self.interims[i]:SetPoint("CENTER", self.anchorPointIcon, "CENTER", x, y)
       self.interims[i]:Show()
     end
+
+    -- HERE
+    frame.arrowTexture:Hide()
+    frame.offscreenText:Hide()
+
+    -- Check if the center is offscreen
+    -- How many pixels of the aura need to be visible
+    local margin = 30
+    local x, y = mover:GetCenter()
+    if x and y then
+      if mover:GetRight() < margin or mover:GetLeft() + margin > GetScreenWidth() or mover:GetTop() < 20 or mover:GetBottom() + margin > GetScreenHeight() then
+        local arrowX, arrowY = frame.arrowTexture:GetCenter()
+        local arrowAngle = atan2(y - arrowY, x - arrowX)
+        frame.offscreenText:Show()
+        frame.arrowTexture:Show()
+        frame.arrowTexture:SetRotation( (arrowAngle - 90) / 180 * math.pi)
+      end
+    end
+
     local regionScale = self.moving.region:GetScale()
     self.text:SetText(("(%.2f, %.2f)"):format(dX*1/regionScale, dY*1/regionScale))
     local midX = (distance / 2) * cos(angle)
@@ -967,7 +1044,7 @@ local function ConstructMoverSizer(parent)
   return frame, mover
 end
 
-function WeakAuras.MoverSizer(parent)
+function OptionsPrivate.MoverSizer(parent)
   if not moversizer or not mover then
     moversizer, mover = ConstructMoverSizer(parent)
   end

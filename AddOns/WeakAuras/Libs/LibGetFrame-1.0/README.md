@@ -16,39 +16,43 @@ local frame = LGF.GetUnitFrame(unit , options)
 ```Lua
 {
     -- raid frames
-    [1] = "^Vd1", -- vuhdo
-    [2] = "^Vd2", -- vuhdo
-    [3] = "^Vd3", -- vuhdo
-    [4] = "^Vd4", -- vuhdo
-    [5] = "^Vd5", -- vuhdo
-    [6] = "^Vd", -- vuhdo
-    [7] = "^HealBot", -- healbot
-    [8] = "^GridLayout", -- grid
-    [9] = "^Grid2Layout", -- grid2
-    [10] = "^ElvUF_RaidGroup", -- elv
-    [11] = "^oUF_bdGrid", -- bdgrid
-    [12] = "^oUF.*raid", -- generic oUF
-    [13] = "^LimeGroup", -- lime
-    [14] = "^SUFHeaderraid", -- suf
-    [15] = "^CompactRaid", -- blizz
+    "^Vd1", -- vuhdo
+    "^Vd2", -- vuhdo
+    "^Vd3", -- vuhdo
+    "^Vd4", -- vuhdo
+    "^Vd5", -- vuhdo
+    "^Vd", -- vuhdo
+    "^HealBot", -- healbot
+    "^GridLayout", -- grid
+    "^Grid2Layout", -- grid2
+    "^PlexusLayout", -- plexus
+    "^ElvUF_RaidGroup", -- elv
+    "^oUF_bdGrid", -- bdgrid
+    "^oUF_.-Raid", -- generic oUF
+    "^LimeGroup", -- lime
+    "^SUFHeaderraid", -- suf
     -- party frames
-    [16] = "^SUFHeaderparty", --suf
-    [17] = "^ElvUF_PartyGroup", -- elv
-    [18] = "^oUF.*party", -- generic oUF
-    [19] = "^PitBull4_Groups_Party", -- pitbull4
-    [20] = "^CompactParty", -- blizz
+    "^AleaUI_GroupHeader", -- Alea
+    "^SUFHeaderparty", --suf
+    "^ElvUF_PartyGroup", -- elv
+    "^oUF_.-Party", -- generic oUF
+    "^PitBull4_Groups_Party", -- pitbull4
+    "^CompactRaid", -- blizz
+    "^CompactParty", -- blizz
     -- player frame
-    [21] = "^SUFUnitplayer",
-    [22] = "^PitBull4_Frames_Player",
-    [23] = "^ElvUF_Player",
-    [24] = "^oUF.*player",
-    [25] = "^PlayerFrame",
+    "^SUFUnitplayer",
+    "^PitBull4_Frames_Player",
+    "^ElvUF_Player",
+    "^oUF_.-Player",
+    "^PlayerFrame",
 }
 ```
 
 - ignorePlayerFrame : boolean (default true)
 - ignoreTargetFrame : boolean (default true)
 - ignoreTargettargetFrame : boolean (default true)
+- ignorePartyFrame : boolean (default false)
+- ignorePartyTargetFrame : boolean (default true)
 - playerFrames : array, default :
 
 ```Lua
@@ -56,7 +60,8 @@ local frame = LGF.GetUnitFrame(unit , options)
     "SUFUnitplayer",
     "PitBull4_Frames_Player",
     "ElvUF_Player",
-    "oUF_TukuiPlayer",
+    "oUF_.-Player",
+    "oUF_PlayerPlate",
     "PlayerFrame",
 }
 ```
@@ -68,8 +73,8 @@ local frame = LGF.GetUnitFrame(unit , options)
     "SUFUnittarget",
     "PitBull4_Frames_Target",
     "ElvUF_Target",
+    "oUF_.-Target",
     "TargetFrame",
-    "oUF_TukuiTarget",
 }
 ```
 
@@ -78,17 +83,44 @@ local frame = LGF.GetUnitFrame(unit , options)
 ```Lua
 {
     "SUFUnittargetarget",
-    "PitBull4_Frames_TargetTarget",
+    "PitBull4_Frames_Target's target",
     "ElvUF_TargetTarget",
+    "oUF_.-TargetTarget",
+    "oUF_ToT",
     "TargetTargetFrame",
-    "oUF_TukuiTargetTarget",
+}
+```
+
+- partyFrames : array, default :
+
+```Lua
+{
+    "^AleaUI_GroupHeader",
+    "^SUFHeaderparty",
+    "^ElvUF_PartyGroup",
+    "^oUF_.-Party",
+    "^PitBull4_Groups_Party",
+    "^CompactParty",
+}
+```
+
+- partyTargetFrames : array, default :
+
+```Lua
+{
+    "SUFChildpartytarget",
 }
 ```
 
 - ignoreFrames : array, default :
 
 ```Lua
-{ }
+{
+        "PitBull4_Frames_Target's target's target",
+        "ElvUF_PartyGroup%dUnitButton%dTarget",
+        "ElvUF_FocusTarget",
+        "RavenButton"
+}
 ```
 
 - returnAll : boolean (default false)

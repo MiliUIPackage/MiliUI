@@ -1,4 +1,5 @@
 if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, Private = ...
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
 
@@ -30,7 +31,7 @@ local function create(parent)
   region:SetHeight(2);
 
   -- Border region
-  local border = CreateFrame("frame", nil, region);
+  local border = CreateFrame("frame", nil, region, BackdropTemplateMixin and "BackdropTemplate")
   region.border = border;
 
   WeakAuras.regionPrototype.create(region);
@@ -77,13 +78,17 @@ end
 
 -- Modify a given region/display
 local function modify(parent, region, data)
-  data.selfPoint = "BOTTOMLEFT";
+  if data.information.groupOffset then
+    data.selfPoint = "BOTTOMLEFT";
+  else
+    data.selfPoint = "CENTER";
+  end
   WeakAuras.regionPrototype.modify(parent, region, data);
   -- Localize
   local border = region.border;
 
   -- Scale
-  region:SetScale(data.scale and data.scale > 0 and data.scale or 1)
+  region:SetScale(data.scale and data.scale > 0 and data.scale <= 10 and data.scale or 1)
 
   -- Get overall bounding box
   local leftest, rightest, lowest, highest = 0, 0, 0, 0;
@@ -109,7 +114,7 @@ local function modify(parent, region, data)
   region.try = highest;
 
   -- Adjust frame-level sorting
-  WeakAuras.FixGroupChildrenOrderForGroup(data);
+  Private.FixGroupChildrenOrderForGroup(data);
 
   -- Control children (does not happen with "group")
   function region:UpdateBorder(childRegion)

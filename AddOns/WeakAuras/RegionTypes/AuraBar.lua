@@ -1,13 +1,14 @@
 if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, Private = ...
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
 local L = WeakAuras.L;
 
 -- Default settings
 local default = {
-  icon = true,
+  icon = false,
   desaturate = false,
-  auto = true,
+  iconSource = -1,
   texture = "Blizzard",
   width = 200,
   height = 15,
@@ -54,17 +55,28 @@ local properties = {
     type = "color",
   },
   icon_visible = {
-    display = L["Icon Visible"],
+    display = {L["Icon"], L["Visibility"]},
     setter = "SetIconVisible",
     type = "bool"
   },
   icon_color = {
-    display = L["Icon Color"],
+    display = {L["Icon"], L["Color"]},
     setter = "SetIconColor",
     type = "color"
   },
+  iconSource = {
+    display = {L["Icon"], L["Source"]},
+    setter = "SetIconSource",
+    type = "list",
+    values = {}
+  },
+  displayIcon = {
+    display = {L["Icon"], L["Fallback"]},
+    setter = "SetIcon",
+    type = "icon",
+  },
   desaturate = {
-    display = L["Icon Desaturate"],
+    display = {L["Icon"], L["Desaturate"]},
     setter = "SetIconDesaturated",
     type = "bool",
   },
@@ -74,12 +86,12 @@ local properties = {
     type = "color"
   },
   sparkColor = {
-    display = L["Spark Color"],
+    display = {L["Spark"], L["Color"]},
     setter = "SetSparkColor",
     type = "color"
   },
   sparkHeight = {
-    display = L["Spark Height"],
+    display = {L["Spark"], L["Height"]},
     setter = "SetSparkHeight",
     type = "number",
     min = 1,
@@ -87,7 +99,7 @@ local properties = {
     bigStep = 1
   },
   sparkWidth = {
-    display = L["Spark Width"],
+    display = {L["Spark"], L["Width"]},
     setter = "SetSparkWidth",
     type = "number",
     min = 1,
@@ -116,23 +128,21 @@ local properties = {
     display = L["Orientation"],
     setter = "SetOrientation",
     type = "list",
-    values = WeakAuras.orientation_types
+    values = Private.orientation_types
   },
   inverse = {
     display = L["Inverse"],
     setter = "SetInverse",
     type = "bool"
-  }
+  },
 };
 
 WeakAuras.regionPrototype.AddProperties(properties, default);
 
 local function GetProperties(data)
-  local overlayInfo = WeakAuras.GetOverlayInfo(data);
+  local overlayInfo = Private.GetOverlayInfo(data);
+  local auraProperties = CopyTable(properties)
   if (overlayInfo and next(overlayInfo)) then
-    local auraProperties = {};
-    WeakAuras.DeepCopy(properties, auraProperties);
-
     for id, display in ipairs(overlayInfo) do
       auraProperties["overlays." .. id] = {
         display = string.format(L["%s Overlay Color"], display),
@@ -141,11 +151,10 @@ local function GetProperties(data)
         type = "color",
       }
     end
-
-    return auraProperties;
-  else
-    return CopyTable(properties);
   end
+
+  auraProperties.iconSource.values = Private.IconSources(data)
+  return auraProperties;
 end
 
 -- Returns tex Coord for 90° rotations + x or y flip
@@ -322,7 +331,7 @@ local barPrototype = {
 
         if (additionalBar.min and additionalBar.max) then
           if (valueWidth ~= 0) then
-            startProgress = max( (additionalBar.min - valueStart) / valueWidth, 0);
+            startProgress = (additionalBar.min - valueStart) / valueWidth;
             endProgress = (additionalBar.max - valueStart) / valueWidth;
 
             if (self.additionalBarsInverse) then
@@ -353,6 +362,9 @@ local barPrototype = {
         if (self.additionalBarsClip) then
           startProgress = max(0, min(1, startProgress));
           endProgress = max(0, min(1, endProgress));
+        else
+          startProgress = max(-10, min(11, startProgress));
+          endProgress = max(-10, min(11, endProgress));
         end
 
         if ((endProgress - startProgress) == 0) then
@@ -416,6 +428,7 @@ local barPrototype = {
   ["OnSizeChanged"] = function(self, width, height)
     self:UpdateProgress();
     self:UpdateAdditionalBars();
+    self:GetParent().subRegionEvents:Notify("OnRegionSizeChanged")
   end,
 
   -- Blizzard like SetMinMaxValues
@@ -756,11 +769,11 @@ local funcs = {
 
       selfPoint = selfPoint or "CENTER"
 
-      if not WeakAuras.point_types[selfPoint] then
+      if not Private.point_types[selfPoint] then
         selfPoint = "CENTER"
       end
 
-      if not WeakAuras.point_types[anchorPoint] then
+      if not Private.point_types[anchorPoint] then
         anchorPoint = "CENTER"
       end
 
@@ -887,6 +900,37 @@ local funcs = {
 
     self:ReOrient()
     self.subRegionEvents:Notify("OrientationChanged")
+  end,
+  SetIcon = function(self, iconPath)
+    if self.displayIcon == iconPath then
+      return
+    end
+    self.displayIcon = iconPath
+    self:UpdateIcon()
+  end,
+  SetIconSource = function(self, source)
+    if self.iconSource == source then
+      return
+    end
+
+    self.iconSource = source
+    self:UpdateIcon()
+  end,
+  UpdateIcon = function(self)
+    local iconPath
+    if self.iconSource == -1 then
+      iconPath = self.state.icon
+    elseif self.iconSource == 0 then
+      iconPath = self.displayIcon
+    else
+      local triggernumber = self.iconSource
+      if triggernumber and self.states[triggernumber] then
+        iconPath = self.states[triggernumber].icon
+      end
+    end
+
+    iconPath = iconPath or self.displayIcon or "Interface\\Icons\\INV_Misc_QuestionMark"
+    WeakAuras.SetTextureOrAtlas(self.icon, iconPath)
   end,
   SetOverlayColor = function(self, id, r, g, b, a)
     self.bar:SetAdditionalBarColor(id, { r, g, b, a});
@@ -1021,7 +1065,8 @@ local function modify(parent, region, data)
   -- Localize
   local bar, iconFrame, icon = region.bar, region.iconFrame, region.icon;
 
-  region.useAuto = data.auto and WeakAuras.CanHaveAuto(data);
+  region.iconSource = data.iconSource
+  region.displayIcon = data.displayIcon
 
   -- Adjust region size
   region:SetWidth(data.width);
@@ -1045,9 +1090,10 @@ local function modify(parent, region, data)
   region.desaturateIcon = data.desaturate
   region.zoom = data.zoom
 
-  region.overlays = {};
   if (data.overlays) then
-    WeakAuras.DeepCopy(data.overlays, region.overlays);
+    region.overlays = CopyTable(data.overlays);
+  else
+    region.overlays = {}
   end
 
   -- Update texture settings
@@ -1121,16 +1167,16 @@ local function modify(parent, region, data)
   region:UpdateEffectiveOrientation()
 
   -- Update tooltip availability
-  local tooltipType = WeakAuras.CanHaveTooltip(data);
+  local tooltipType = Private.CanHaveTooltip(data);
   if tooltipType and data.useTooltip then
     -- Create and enable tooltip-hover frame
     if not region.tooltipFrame then
       region.tooltipFrame = CreateFrame("frame", nil, region);
       region.tooltipFrame:SetAllPoints(icon);
       region.tooltipFrame:SetScript("OnEnter", function()
-        WeakAuras.ShowMouseoverTooltip(region, region.tooltipFrame);
+        Private.ShowMouseoverTooltip(region, region.tooltipFrame);
       end);
-      region.tooltipFrame:SetScript("OnLeave", WeakAuras.HideTooltip);
+      region.tooltipFrame:SetScript("OnLeave", Private.HideTooltip);
     end
 
     region.tooltipFrame:EnableMouse(true);
@@ -1213,15 +1259,7 @@ local function modify(parent, region, data)
       end
     end
 
-    local path = state.icon or "Interface\\Icons\\INV_Misc_QuestionMark"
-    local iconPath = (
-      region.useAuto
-      and path ~= ""
-      and path
-      or data.displayIcon
-      or "Interface\\Icons\\INV_Misc_QuestionMark"
-      );
-    self.icon:SetTexture(iconPath);
+    region:UpdateIcon()
 
     local duration = state.duration or 0
     local effectiveInverse = (state.inverse and not region.inverseDirection) or (not state.inverse and region.inverseDirection);

@@ -1,4 +1,5 @@
 if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, Private = ...
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
 local LCG = LibStub("LibCustomGlow-1.0")
@@ -26,6 +27,7 @@ local default = function(parentType)
     glowYOffset = 0,
   }
   if parentType == "aurabar" then
+    options["glowType"] = "Pixel"
     options["glow_anchor"] = "bar"
   end
   return options
@@ -33,7 +35,7 @@ end
 
 local properties = {
   glow = {
-    display = L["Show Glow"],
+    display = L["Visibility"],
     setter = "SetVisible",
     type = "bool",
     defaultProperty = true
@@ -42,7 +44,7 @@ local properties = {
     display =L["Type"],
     setter = "SetGlowType",
     type = "list",
-    values = WeakAuras.glow_types,
+    values = Private.glow_types,
   },
   useGlowColor = {
     display = L["Use Custom Color"],
@@ -168,6 +170,13 @@ local funcs = {
     local color
     self.glow = visible
 
+    if not self:IsRectValid() then
+      -- This ensures that WoW tries to make the rect valid
+      -- which helps the glow lib to apply the glow in the right size
+      -- See Ticket: #2818
+      self:GetWidth()
+    end
+
     if self.useGlowColor then
       color = self.glowColor
     end
@@ -175,18 +184,17 @@ local funcs = {
     if MSQ and self.parentType == "icon" then
       if (visible) then
         self.__MSQ_Shape = self:GetParent().button.__MSQ_Shape
+        self:Show()
         glowStart(self, self, color);
       else
         self.glowStop(self);
+        self:Hide()
       end
     elseif (visible) then
+      self:Show()
       glowStart(self, self, color);
     else
       self.glowStop(self);
-    end
-    if visible then
-      self:Show()
-    else
       self:Hide()
     end
   end,
@@ -345,6 +353,7 @@ local function modify(parent, region, parentData, data, first)
   region:SetScript("OnSizeChanged", region.UpdateSize)
 end
 
+-- This is used by the templates to add glow
 function WeakAuras.getDefaultGlow(regionType)
   if regionType == "aurabar" then
     return {
@@ -387,4 +396,24 @@ local function supports(regionType)
          or regionType == "aurabar"
 end
 
-WeakAuras.RegisterSubRegionType("subglow", L["Glow"], supports, create, modify, onAcquire, onRelease, default, nil, properties);
+local function addDefaultsForNewAura(data)
+  if data.regionType == "icon" then
+    tinsert(data.subRegions, {
+      ["type"] = "subglow",
+      glow = false,
+      useGlowColor = false,
+      glowColor = {1, 1, 1, 1},
+      glowType = "buttonOverlay",
+      glowLines = 8,
+      glowFrequency = 0.25,
+      glowLength = 10,
+      glowThickness = 1,
+      glowScale = 1,
+      glowBorder = false,
+      glowXOffset = 0,
+      glowYOffset = 0,
+    })
+  end
+end
+
+WeakAuras.RegisterSubRegionType("subglow", L["Glow"], supports, create, modify, onAcquire, onRelease, default, addDefaultsForNewAura, properties);

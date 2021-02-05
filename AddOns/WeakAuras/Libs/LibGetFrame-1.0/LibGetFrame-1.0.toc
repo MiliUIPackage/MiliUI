@@ -1,10 +1,10 @@
-## Interface: 80200
+## Interface: 90001
 ## Title: Lib: GetFrame
 ## Notes: Get unit frame for a unit
 ## Author: Buds
 ## X-Category: Library
 ## X-License: BSD
-## Version: 1.5.1
+## Version: 88001ad
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 

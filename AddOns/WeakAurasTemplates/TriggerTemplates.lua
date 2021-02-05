@@ -129,7 +129,11 @@ local checks = {
   uninterruptible = {
     variable = "interruptible",
     value = 0,
-  };
+  },
+  enchantMissing = {
+    variable = "enchanted",
+    value = 0
+  }
 }
 
 local function buildCondition(trigger, check, properties)
@@ -204,6 +208,10 @@ local function totemActiveGlow(conditions, trigger, regionType)
   GenericGlow(conditions, trigger, regionType, checks.totem)
 end
 
+local function isMissingEnchantGlow(conditions, trigger, regionType)
+  tinsert(conditions, buildCondition(trigger, checks.enchantMissing, {changes("glow", regionType)}));
+end
+
 local function overlayGlow(conditions, trigger, regionType)
   if regionType == "icon" or regionType == "aurabar" then
     tinsert(conditions, buildCondition(trigger, checks.overlayGlow, {changes("glow", regionType)}));
@@ -229,16 +237,36 @@ local function createBuffTrigger(triggers, position, item, buffShowOn, isBuff)
     trigger = {
       unit = item.unit or isBuff and "player" or "target",
       type = "aura2",
-      useName = true,
-      auranames = {
-        tostring(item.buffId or item.spell)
-      },
       matchesShowOn = buffShowOn,
       debuffType = isBuff and "HELPFUL" or "HARMFUL",
       ownOnly = not item.forceOwnOnly and true or item.ownOnly,
       unitExists = false,
     }
   };
+
+  if item.spellIds then
+    if item.exactSpellId then
+      triggers[position].trigger.useExactSpellId = true
+      triggers[position].trigger.auraspellids = {}
+      for index, spell in ipairs(item.spellIds) do
+        triggers[position].trigger.auraspellids[index] = tostring(spell)
+      end
+    else
+      triggers[position].trigger.useName = true
+      triggers[position].trigger.auranames = {}
+      for index, spell in ipairs(item.spellIds) do
+        triggers[position].trigger.auranames[index] = tostring(spell)
+      end
+    end
+  else
+    if item.exactSpellId then
+      triggers[position].trigger.useExactSpellId = true
+      triggers[position].trigger.auraspellids = { tostring(item.buffId or item.spell) }
+    else
+      triggers[position].trigger.useName = true
+      triggers[position].trigger.auranames = { tostring(item.buffId or item.spell) }
+    end
+  end
 
   if triggers[position].trigger.unit == "multi" and buffShowOn == "showOnActive"  then
     local trigger = triggers[position].trigger
@@ -247,17 +275,6 @@ local function createBuffTrigger(triggers, position, item, buffShowOn, isBuff)
     trigger.group_count = "1"
   end
 
-  if (item.spellIds) then
-    triggers[position].trigger.auranames = {}
-    for index, spell in ipairs(item.spellIds) do
-      triggers[position].trigger.auranames[index] = tostring(spell)
-    end
-  end
-  if (item.fullscan) then
-    triggers[position].trigger.use_spellId = true;
-    triggers[position].trigger.fullscan = true;
-    triggers[position].trigger.spellId = tostring(item.buffId or item.spell);
-  end
   if (item.unit == "group") then
     triggers[position].trigger.name_info = "players";
   end
@@ -380,6 +397,20 @@ local function createOverlayGlowTrigger(triggers, position, item)
   };
 end
 
+
+local function createWeaponEnchantTrigger(triggers, position, item, showOn)
+  triggers[position] = {
+    trigger = {
+      type = "status",
+      event = "Weapon Enchant",
+      use_enchant = true,
+      enchant = tostring(item.enchant),
+      weapon = item.weapon,
+      showOn = showOn
+    }
+  }
+end
+
 local function createAbilityAndDurationTrigger(triggers, item)
   createDurationTrigger(triggers, 1, item);
   createAbilityTrigger(triggers, 2, item, "showAlways");
@@ -441,7 +472,7 @@ local function subTypesFor(item, regionType)
         elseif(self.elapsed < 1.5) then
           t1:SetVertexColor(1,1,1,1);
         elseif(self.elapsed < 3) then
-        -- do nothing
+          -- Do nothing
         else
           self.elapsed = self.elapsed - 3;
         end
@@ -1060,6 +1091,38 @@ local function subTypesFor(item, regionType)
       end,
       data = data,
     });
+  elseif (item.type == "weaponenchant") then
+    data.inverse = false
+    tinsert(types, {
+      icon = icon.cd,
+      title = L["Show Only if Enchanted"],
+      description = L["Only shows if the weapon is enchanted."],
+      createTriggers = function(triggers, item)
+        createWeaponEnchantTrigger(triggers, 1, item, "showOnActive");
+      end,
+      data = data,
+    });
+    tinsert(types, {
+      icon = icon.cd,
+      title = L["Show if Enchant Missing"],
+      description = L["Only shows if the weapon is not enchanted."],
+      createTriggers = function(triggers, item)
+        createWeaponEnchantTrigger(triggers, 1, item, "showOnMissing");
+      end,
+      data = data,
+    });
+    tinsert(types, {
+      icon = icon.glow,
+      title = L["Show Always, Glow on Missing"],
+      description = L["Always shows highlights if enchant missing."],
+      createTriggers = function(triggers, item)
+        createWeaponEnchantTrigger(triggers, 1, item, "showAlways");
+      end,
+      createConditions = function(conditions, item, regionType)
+        isMissingEnchantGlow(conditions, 1, regionType);
+      end,
+      data = dataGlow,
+    });
   end
 
   -- filter when createConditions return nothing for this regionType
@@ -1111,8 +1174,7 @@ function WeakAuras.CreateTemplateView(frame)
   local function replaceCondition(data, item, subType)
     local conditions = createConditionsFor(item, subType, data.regionType);
     if conditions then
-      data.conditions = {}
-      WeakAuras.DeepCopy(conditions, data.conditions);
+      data.conditions = CopyTable(conditions);
     end
   end
 
@@ -1126,12 +1188,11 @@ function WeakAuras.CreateTemplateView(frame)
           if v.check.trigger ~= -1 then
             v.check.trigger = v.check.trigger + prevNumTriggers;
           end
-          WeakAuras.DeepCopy(v, data.conditions[position]);
+          data.conditions[position] = CopyTable(v);
           position = position + 1;
         end
       else
-        data.conditions = {};
-        WeakAuras.DeepCopy(conditions, data.conditions);
+        data.conditions = CopyTable(conditions);
       end
     end
   end
@@ -1174,11 +1235,10 @@ function WeakAuras.CreateTemplateView(frame)
     data.triggers = {}
     for i, v in pairs(triggers) do
       data.triggers[i] = data.triggers[i] or {};
-      data.triggers[i].trigger = {};
-      WeakAuras.DeepCopy(v.trigger, data.triggers[i].trigger);
+      data.triggers[i].trigger = CopyTable(v.trigger);
       data.triggers[i].untrigger = {};
       if (v.untrigger) then
-        WeakAuras.DeepCopy(v.untrigger, data.triggers[i].untrigger);
+        data.triggers[i].untrigger = CopyTable(v.untrigger);
       end
     end
     if (#data.triggers > 1) then -- Multiple triggers
@@ -1198,11 +1258,10 @@ function WeakAuras.CreateTemplateView(frame)
     for i, v in pairs(triggers) do
       local position = #data.triggers + 1
       data.triggers[position] = data.triggers[position] or {};
-      data.triggers[position].trigger = {};
-      WeakAuras.DeepCopy(v.trigger, data.triggers[position].trigger);
+      data.triggers[position].trigger = CopyTable(v.trigger);
       data.triggers[position].untrigger = {};
       if (v.untrigger) then
-        WeakAuras.DeepCopy(v.untrigger, data.triggers[position].untrigger);
+        data.triggers[position].untrigger = CopyTable(v.untrigger);
       end
     end
      -- Multiple Triggers, override disjunctive, even if the users set it previously
@@ -1246,8 +1305,7 @@ function WeakAuras.CreateTemplateView(frame)
       templateButton:SetTitle(item.title);
       templateButton:SetDescription(item.description);
       templateButton:SetClick(function()
-        newView.data = {};
-        WeakAuras.DeepCopy(item.data, newView.data);
+        newView.data = CopyTable(item.data);
         WeakAuras.validate(newView.data, WeakAuras.data_stub);
         newView.data.internalVersion = WeakAuras.InternalVersion();
         newView.data.regionType = regionType;
@@ -1352,10 +1410,10 @@ function WeakAuras.CreateTemplateView(frame)
                 newView.data.id = WeakAuras.FindUnusedId(item.title);
                 newView.data.load = {};
                 if (item.load) then
-                  WeakAuras.DeepCopy(item.load, newView.data.load);
+                  newView.data.load = CopyTable(item.load);
                 end
                 if (subType.data) then
-                  WeakAuras.DeepCopy(subType.data, newView.data);
+                  WeakAuras.DeepMixin(newView.data, subType.data)
                 end
                 newView:CancelClose();
                 WeakAuras.NewAura(newView.data, newView.data.regionType, newView.targetId);
@@ -1413,10 +1471,10 @@ function WeakAuras.CreateTemplateView(frame)
           newView.data.id = WeakAuras.FindUnusedId(item.title);
           newView.data.load = {};
           if (item.load) then
-            WeakAuras.DeepCopy(item.load, newView.data.load);
+            newView.data.load = CopyTable(item.load);
           end
           if (subType.data) then
-            WeakAuras.DeepCopy(subType.data, newView.data);
+            WeakAuras.DeepMixin(newView.data, subType.data)
           end
           newView:CancelClose();
           WeakAuras.NewAura(newView.data, newView.data.regionType, newView.targetId);
@@ -1521,16 +1579,14 @@ function WeakAuras.CreateTemplateView(frame)
     replaceButton:SetFullWidth(true);
     replaceButton:SetClick(function()
       replaceTriggers(newView.data, newView.chosenItem, newView.chosenSubType);
-      for _,v in pairs({"class","spec","talent","pvptalent","race"}) do
+      for _,v in pairs({"class", "spec", "talent", "pvptalent", "race", "covenant"}) do
         newView.data.load[v] = nil;
         newView.data.load["use_"..v] = nil;
       end
-      newView.data.load.class = {};
-      newView.data.load.spec = {};
-      WeakAuras.DeepCopy(WeakAuras.data_stub.load.class, newView.data.load.class);
-      WeakAuras.DeepCopy(WeakAuras.data_stub.load.spec, newView.data.load.spec);
+      newView.data.load.class = CopyTable(WeakAuras.data_stub.load.class);
+      newView.data.load.spec = CopyTable(WeakAuras.data_stub.load.spec);
       if (newView.chosenItem.load) then
-        WeakAuras.DeepCopy(newView.chosenItem.load, newView.data.load);
+        WeakAuras.DeepMixin(newView.data.load, newView.chosenItem.load)
       end
     end);
     newViewScroll:AddChild(replaceButton);
@@ -1612,25 +1668,6 @@ function WeakAuras.CreateTemplateView(frame)
 
       createTriggerButton(WeakAuras.triggerTemplates.general, selectedItem);
 
-      -- Items
-      if not WeakAuras.IsClassic() then
-        local itemHeader = AceGUI:Create("Heading");
-        itemHeader:SetFullWidth(true);
-        newViewScroll:AddChild(itemHeader);
-        local itemTypes = {};
-        for _, section in pairs(WeakAuras.triggerTemplates.items) do
-          tinsert(itemTypes, section.title);
-        end
-        newView.item = newView.item or 1;
-        local itemSelector = createDropdown("item", itemTypes);
-        newViewScroll:AddChild(itemSelector);
-        newViewScroll:AddChild(createSpacer());
-        if (WeakAuras.triggerTemplates.items[newView.item]) then
-          local group = createTriggerFlyout(WeakAuras.triggerTemplates.items[newView.item].args, true);
-          newViewScroll:AddChild(group);
-        end
-      end
-
       -- Race
       local raceHeader = AceGUI:Create("Heading");
       raceHeader:SetFullWidth(true);
@@ -1681,12 +1718,10 @@ function WeakAuras.CreateTemplateView(frame)
 
   local newViewMakeBatch = CreateFrame("Button", nil, newView.frame, "UIPanelButtonTemplate");
   newViewMakeBatch:SetScript("OnClick", function()
-    local saveData = {};
-    WeakAuras.DeepCopy(newView.data, saveData);
+    local saveData = CopyTable(newView.data);
     for item in pairs(newView.chosenItemBatch) do
       -- clean data
-      newView.data = {};
-      WeakAuras.DeepCopy(saveData, newView.data);
+      newView.data = CopyTable(saveData);
       -- copy data
       local subType = newView.chosenItemBatchSubType[item]
       replaceTrigger(newView.data, item, subType);
@@ -1694,10 +1729,10 @@ function WeakAuras.CreateTemplateView(frame)
       newView.data.id = WeakAuras.FindUnusedId(item.title);
       newView.data.load = {};
       if (item.load) then
-        WeakAuras.DeepCopy(item.load, newView.data.load);
+        newView.data.load = CopyTable(item.load);
       end
       if (subType.data) then
-        WeakAuras.DeepCopy(subType.data, newView.data);
+        WeakAuras.DeepMixin(newView.data, subType.data)
       end
       -- create aura
       WeakAuras.NewAura(newView.data, newView.data.regionType, newView.targetId);

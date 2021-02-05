@@ -1,6 +1,5 @@
-if not WeakAuras.IsCorrectVersion() then
-  return
-end
+if not WeakAuras.IsCorrectVersion() then return end
+local AddonName, OptionsPrivate = ...
 
 -- Lua APIs
 local pairs, type, ipairs = pairs, type, ipairs
@@ -17,9 +16,6 @@ local WeakAuras = WeakAuras
 local L = WeakAuras.L
 
 local textEditor
-
-local valueFromPath = WeakAuras.ValueFromPath
-local valueToPath = WeakAuras.ValueToPath
 
 local editor_themes = {
   ["Standard"] = {
@@ -57,6 +53,7 @@ local editor_themes = {
   }
 }
 
+if not WeakAurasSaved.editor_tab_spaces then WeakAurasSaved.editor_tab_spaces = 4 end
 local color_scheme = {[0] = "|r"}
 local function set_scheme()
   if not WeakAurasSaved.editor_theme then
@@ -150,36 +147,6 @@ end]=]
   },
 }
 
-local function settings_dropdown_initialize(frame, level, menu)
-  for k, v in pairs(editor_themes) do
-    local item = {
-      text = k,
-      isNotRadio = false,
-      checked = function()
-        return WeakAurasSaved.editor_theme == k
-      end,
-      func = function()
-        WeakAurasSaved.editor_theme = k
-        set_scheme()
-        WeakAuras.editor.editBox:SetText(WeakAuras.editor.editBox:GetText())
-      end
-    }
-    UIDropDownMenu_AddButton(item)
-  end
-  UIDropDownMenu_AddButton(
-    {
-      text = L["Bracket Matching"],
-      isNotRadio = true,
-      checked = function()
-        return WeakAurasSaved.editor_bracket_matching
-      end,
-      func = function()
-        WeakAurasSaved.editor_bracket_matching = not WeakAurasSaved.editor_bracket_matching
-      end
-    }
-  )
-end
-
 local function ConstructTextEditor(frame)
   local group = AceGUI:Create("InlineGroup")
   group.frame:SetParent(frame)
@@ -202,7 +169,7 @@ local function ConstructTextEditor(frame)
   -- display we ned the original, so save it here.
   local originalGetText = editor.editBox.GetText
   set_scheme()
-  IndentationLib.enable(editor.editBox, color_scheme, 4)
+  IndentationLib.enable(editor.editBox, color_scheme, WeakAurasSaved.editor_tab_spaces)
 
   local cancel = CreateFrame("Button", nil, group.frame, "UIPanelButtonTemplate")
   cancel:SetScript(
@@ -261,6 +228,65 @@ local function ConstructTextEditor(frame)
   urlText:SetPoint("RIGHT", settings_frame, "LEFT")
 
   local dropdown = CreateFrame("Frame", "SettingsMenuFrame", settings_frame, "UIDropDownMenuTemplate")
+
+  local function settings_dropdown_initialize(frame, level, menu)
+    if level == 1 then
+      for k, v in pairs(editor_themes) do
+        local item = {
+          text = k,
+          isNotRadio = false,
+          checked = function()
+            return WeakAurasSaved.editor_theme == k
+          end,
+          func = function()
+            WeakAurasSaved.editor_theme = k
+            set_scheme()
+            editor.editBox:SetText(editor.editBox:GetText())
+          end
+        }
+        UIDropDownMenu_AddButton(item, level)
+      end
+      UIDropDownMenu_AddButton(
+        {
+          text = L["Bracket Matching"],
+          isNotRadio = true,
+          checked = function()
+            return WeakAurasSaved.editor_bracket_matching
+          end,
+          func = function()
+            WeakAurasSaved.editor_bracket_matching = not WeakAurasSaved.editor_bracket_matching
+          end
+        },
+      level)
+      UIDropDownMenu_AddButton(
+        {
+          text = L["Indent Size"],
+          hasArrow = true,
+          notCheckable = true,
+          menuList = "spaces"
+        },
+      level)
+    elseif menu == "spaces" then
+      local spaces = {2,4}
+      for _, i in pairs(spaces) do
+        UIDropDownMenu_AddButton(
+          {
+            text = i,
+            isNotRadio = false,
+            checked = function()
+              return WeakAurasSaved.editor_tab_spaces == i
+            end,
+            func = function()
+              WeakAurasSaved.editor_tab_spaces = i
+              IndentationLib.enable(editor.editBox, color_scheme, WeakAurasSaved.editor_tab_spaces)
+              editor.editBox:SetText(editor.editBox:GetText().."\n")
+              IndentationLib.indentEditbox(editor.editBox)
+            end
+          },
+        level)
+      end
+    end
+  end
   UIDropDownMenu_Initialize(dropdown, settings_dropdown_initialize, "MENU")
 
   settings_frame:SetScript(
@@ -332,8 +358,8 @@ local function ConstructTextEditor(frame)
       button:SetCallback(
         "OnClick",
         function()
-          WeakAuras.editor.editBox:Insert(snippet.snippet)
-          WeakAuras.editor:SetFocus()
+          editor.editBox:Insert(snippet.snippet)
+          editor:SetFocus()
         end
       )
       button.deleteButton:SetScript(
@@ -367,7 +393,7 @@ local function ConstructTextEditor(frame)
   end
 
   -- Make sidebar for snippets
-  local snippetsFrame = CreateFrame("FRAME", "WeakAurasSnippets", group.frame)
+  local snippetsFrame = CreateFrame("FRAME", "WeakAurasSnippets", group.frame, BackdropTemplateMixin and "BackdropTemplate")
   snippetsFrame:SetPoint("TOPLEFT", group.frame, "TOPRIGHT", 20, 0)
   snippetsFrame:SetPoint("BOTTOMLEFT", group.frame, "BOTTOMRIGHT", 20, 0)
   snippetsFrame:SetWidth(250)
@@ -563,7 +589,7 @@ local function ConstructTextEditor(frame)
     end
   )
 
-  function group.Open(self, data, path, enclose, multipath, reloadOptions, setOnParent, url)
+  function group.Open(self, data, path, enclose, multipath, reloadOptions, setOnParent, url, validator)
     self.data = data
     self.path = path
     self.multipath = multipath
@@ -589,7 +615,7 @@ local function ConstructTextEditor(frame)
     if (not multipath) then
       for index, field in pairs(path) do
         if (type(field) == "number") then
-          field = "Trigger " .. field + 1
+          field = "Trigger " .. field
         end
         title = title .. " " .. field:sub(1, 1):upper() .. field:sub(2)
       end
@@ -606,14 +632,20 @@ local function ConstructTextEditor(frame)
       "OnTextChanged",
       function(...)
         local str = editor.editBox:GetText()
-        if not (str) or editor.combinedText == true then
+        if not str or str:trim() == "" or editor.combinedText == true then
           editorError:SetText("")
         else
-          local _, errorString
+          local func, errorString
           if (enclose) then
-            _, errorString = loadstring("return function() " .. str .. "\n end")
+            func, errorString = loadstring("return function() " .. str .. "\n end")
           else
-            _, errorString = loadstring("return " .. str)
+            func, errorString = loadstring("return " .. str)
+          end
+          if not errorString and validator then
+            local ok, validate = xpcall(func, function(err) errorString = err end)
+            if ok then
+              errorString = validator(validate)
+            end
           end
           if errorString then
             urlText:Hide()
@@ -636,7 +668,12 @@ local function ConstructTextEditor(frame)
       local combinedText = ""
       for index, childId in pairs(data.controlledChildren) do
         local childData = WeakAuras.GetData(childId)
-        local text = valueFromPath(childData, multipath and path[childId] or path)
+        local text
+        if multipath then
+          text = path[childId] and OptionsPrivate.Private.ValueFromPath(childData, path[childId])
+        else
+          text = OptionsPrivate.Private.ValueFromPath(childData, path)
+        end
         if text then
           if not (singleText) then
             singleText = text
@@ -662,7 +699,7 @@ local function ConstructTextEditor(frame)
         editor.combinedText = true
       end
     else
-      editor:SetText(valueFromPath(data, path) or "")
+      editor:SetText(OptionsPrivate.Private.ValueFromPath(data, path) or "")
     end
     editor:SetFocus()
   end
@@ -717,11 +754,11 @@ local function ConstructTextEditor(frame)
       for index, childId in pairs(self.data.controlledChildren) do
         local text = editor.combinedText and (textById[childId] or "") or editor:GetText()
         local childData = WeakAuras.GetData(childId)
-        valueToPath(childData, self.multipath and self.path[childId] or self.path, text)
+        OptionsPrivate.Private.ValueToPath(childData, self.multipath and self.path[childId] or self.path, text)
         WeakAuras.Add(childData)
       end
     else
-      valueToPath(self.data, self.path, editor:GetText())
+      OptionsPrivate.Private.ValueToPath(self.data, self.path, editor:GetText())
       WeakAuras.Add(self.data)
     end
     if (self.reloadOptions) then
@@ -743,12 +780,11 @@ local function ConstructTextEditor(frame)
     frame:UpdateFrameVisible()
     WeakAuras.FillOptions()
   end
-  WeakAuras.editor = editor
 
   return group
 end
 
-function WeakAuras.TextEditor(frame)
+function OptionsPrivate.TextEditor(frame)
   textEditor = textEditor or ConstructTextEditor(frame)
   return textEditor
 end

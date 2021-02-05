@@ -1,5 +1,5 @@
 local MAJOR_VERSION = "LibGetFrame-1.0"
-local MINOR_VERSION = 20
+local MINOR_VERSION = 25
 if not LibStub then error(MAJOR_VERSION .. " requires LibStub.") end
 local lib = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end
@@ -14,34 +14,35 @@ local maxDepth = 50
 
 local defaultFramePriorities = {
     -- raid frames
-    [1] = "^Vd1", -- vuhdo
-    [2] = "^Vd2", -- vuhdo
-    [3] = "^Vd3", -- vuhdo
-    [4] = "^Vd4", -- vuhdo
-    [5] = "^Vd5", -- vuhdo
-    [6] = "^Vd", -- vuhdo
-    [7] = "^HealBot", -- healbot
-    [8] = "^GridLayout", -- grid
-    [9] = "^Grid2Layout", -- grid2
-    [10] = "^ElvUF_RaidGroup", -- elv
-    [11] = "^oUF_bdGrid", -- bdgrid
-    [12] = "^oUF_.-Raid", -- generic oUF
-    [13] = "^LimeGroup", -- lime
-    [14] = "^SUFHeaderraid", -- suf
+    "^Vd1", -- vuhdo
+    "^Vd2", -- vuhdo
+    "^Vd3", -- vuhdo
+    "^Vd4", -- vuhdo
+    "^Vd5", -- vuhdo
+    "^Vd", -- vuhdo
+    "^HealBot", -- healbot
+    "^GridLayout", -- grid
+    "^Grid2Layout", -- grid2
+    "^PlexusLayout", -- plexus
+    "^ElvUF_RaidGroup", -- elv
+    "^oUF_bdGrid", -- bdgrid
+    "^oUF_.-Raid", -- generic oUF
+    "^LimeGroup", -- lime
+    "^SUFHeaderraid", -- suf
     -- party frames
-    [15] = "^AleaUI_GroupHeader", -- Alea
-    [16] = "^SUFHeaderparty", --suf
-    [17] = "^ElvUF_PartyGroup", -- elv
-    [18] = "^oUF_.-Party", -- generic oUF
-    [19] = "^PitBull4_Groups_Party", -- pitbull4
-    [20] = "^CompactRaid", -- blizz
-    [21] = "^CompactParty", -- blizz
+    "^AleaUI_GroupHeader", -- Alea
+    "^SUFHeaderparty", --suf
+    "^ElvUF_PartyGroup", -- elv
+    "^oUF_.-Party", -- generic oUF
+    "^PitBull4_Groups_Party", -- pitbull4
+    "^CompactRaid", -- blizz
+    "^CompactParty", -- blizz
     -- player frame
-    [22] = "^SUFUnitplayer",
-    [23] = "^PitBull4_Frames_Player",
-    [24] = "^ElvUF_Player",
-    [25] = "^oUF_.-Player",
-    [26] = "^PlayerFrame",
+    "^SUFUnitplayer",
+    "^PitBull4_Frames_Player",
+    "^ElvUF_Player",
+    "^oUF_.-Player",
+    "^PlayerFrame",
 }
 
 local defaultPlayerFrames = {
@@ -66,6 +67,17 @@ local defaultTargettargetFrames = {
     "oUF_.-TargetTarget",
     "oUF_ToT",
     "TargetTargetFrame",
+}
+local defaultPartyFrames = {
+    "^AleaUI_GroupHeader",
+    "^SUFHeaderparty",
+    "^ElvUF_PartyGroup",
+    "^oUF_.-Party",
+    "^PitBull4_Groups_Party",
+    "^CompactParty",
+}
+local defaultPartyTargetFrames = {
+    "SUFChildpartytarget%d",
 }
 
 local GetFramesCache = {}
@@ -140,13 +152,14 @@ end
 
 local function GetUnitFrames(target, ignoredFrames)
     if not UnitExists(target) then
-        if type(target) == "string" and target:find("Player") then
+        if type(target) ~= "string" then return end
+        if target:find("Player") then
             target = select(6, GetPlayerInfoByGUID(target))
         else
             target = target:gsub(" .*", "")
-            if not UnitExists(target) then
-                return
-            end
+        end
+        if not UnitExists(target) then
+            return
         end
     end
 
@@ -176,12 +189,17 @@ local defaultOptions = {
     ignorePlayerFrame = true,
     ignoreTargetFrame = true,
     ignoreTargettargetFrame = true,
+    ignorePartyFrame = false,
+    ignorePartyTargetFrame = true,
     playerFrames = defaultPlayerFrames,
     targetFrames = defaultTargetFrames,
     targettargetFrames = defaultTargettargetFrames,
+    partyFrames = defaultPartyFrames,
+    partyTargetFrames = defaultPartyTargetFrames,
     ignoreFrames = {
         "PitBull4_Frames_Target's target's target",
         "ElvUF_PartyGroup%dUnitButton%dTarget",
+        "ElvUF_FocusTarget",
         "RavenButton"
     },
     returnAll = false,
@@ -194,6 +212,7 @@ local function Init(noDelay)
     GetFramesCacheListener:RegisterEvent("PLAYER_REGEN_ENABLED")
     GetFramesCacheListener:RegisterEvent("PLAYER_ENTERING_WORLD")
     GetFramesCacheListener:RegisterEvent("GROUP_ROSTER_UPDATE")
+    GetFramesCacheListener:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
     GetFramesCacheListener:SetScript("OnEvent", function() ScanForUnitFrames(false) end)
     ScanForUnitFrames(noDelay)
 end
@@ -218,6 +237,16 @@ function lib.GetUnitFrame(target, opt)
     end
     if opt.ignoreTargettargetFrame then
         for _,v in pairs(opt.targettargetFrames) do
+            tinsert(ignoredFrames, v)
+        end
+    end
+    if opt.ignorePartyFrame then
+        for _,v in pairs(opt.partyFrames) do
+            tinsert(ignoredFrames, v)
+        end
+    end
+    if opt.ignorePartyTargetFrame then
+        for _,v in pairs(opt.partyTargetFrames) do
             tinsert(ignoredFrames, v)
         end
     end
