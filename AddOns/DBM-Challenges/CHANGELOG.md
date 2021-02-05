@@ -1,12 +1,19 @@
 # <DBM> Challenges
 
-## [r131](https://github.com/DeadlyBossMods/DBM-Challenges/tree/r131) (2020-07-12)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Challenges/compare/r130...r131) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Challenges/releases)
+## [r137](https://github.com/DeadlyBossMods/DBM-Challenges/tree/r137) (2021-01-05)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Challenges/compare/r136...r137) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Challenges/releases)
 
-- Revert timer default changes  
-- Fix amber glob timer  
-- More fixes  
-- Another possible fix for white tiger  
-- All warnings are now throttled by default on white tiger scenario  
-    All timers are now off by default on white tiger since the mechanics of timers have changed and they can no longer ben trusted to work correctly without new transcriptor logs of dozens of pulls of white tiger to completely rework them  
-- Further improve cvar restoration with efforts check and restore cvar on engage, in case for whatever reason restoration didn't happen on defeat/victory of previous session  
+- Remove mess sourcetree left  
+- no message  
+- The threat level of these abilities was diminished when they were nerfed couple weeks back  
+- Bit cleaner stuff (#14)  
+- ANOTHER fear spell... (#13)  
+- unimportant things  
+- Ci updates from master (#12)  
+- Merge pull request #11 from DeadlyBossMods/arty2  
+    More torghast abilities for coldheart wing  
+- More torghast abilities for coldheart wing  
+- Update CI  
+- Update README.md  
+- Delete .travis.yml  
+- Create ci.yml  

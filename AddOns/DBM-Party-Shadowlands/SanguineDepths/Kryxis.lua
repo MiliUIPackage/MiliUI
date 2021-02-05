@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2388, "DBM-Party-Shadowlands", 8, 1189)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201123041314")
+mod:SetRevision("20210110025723")
 mod:SetCreatureID(162100)
 mod:SetEncounterID(2360)
 
@@ -36,7 +36,7 @@ local specWarnJuggernautRushSoak	= mod:NewSpecialWarningMoveTo(319713, nil, nil,
 
 local timerViciousHeadbuttCD		= mod:NewCDTimer(18.2, 319650, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--18.2 unless delayed by other abilities
 local timerHungeringDrainCD			= mod:NewCDTimer(19.4, 319654, nil, nil, nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON)
-local timerSeveringSmashCD			= mod:NewCDTimer(40.1, 319685, nil, nil, nil, 6)
+local timerSeveringSmashCD			= mod:NewCDTimer(38.9, 319685, nil, nil, nil, 6)
 local timerJuggernautRushCD			= mod:NewCDTimer(18.2, 319713, nil, nil, nil, 3)
 
 mod:AddSetIconOption("SetIconOnJuggernaut", 319713, true, false, {1})
@@ -120,17 +120,17 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, npc, _, _, target)
 	if msg:find("spell:319713") then
 		local targetname = DBM:GetUnitFullName(target)
 		if targetname then
+			if self.Options.SetIconOnJuggernaut then
+				self:SetIcon(targetname, 1, 5)
+			end
 			if targetname == UnitName("player") then
 				specWarnJuggernautRush:Show()
 				specWarnJuggernautRush:Play("targetyou")
 				yellJuggernautRush:Yell()
-				yellJuggernautRushFades:Countdown(5)
+				yellJuggernautRushFades:Countdown(4)
 			else
 				specWarnJuggernautRushSoak:Show(targetname)
 				specWarnJuggernautRushSoak:Play("gathershare")
-			end
-			if self.Options.SetIconOnJuggernaut then
-				self:SetIcon(targetname, 1, 5)
 			end
 		end
 	end

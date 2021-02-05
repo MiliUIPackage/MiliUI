@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2396, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201122233248")
+mod:SetRevision("20210123235530")
 mod:SetCreatureID(162693)
 mod:SetEncounterID(2390)
 
@@ -38,14 +38,14 @@ local specWarnDarkExile				= mod:NewSpecialWarningYou(321894, nil, nil, nil, 1, 
 local timerCometStormCD				= mod:NewCDTimer(24.2, 320772, nil, nil, nil, 3)
 local timerIceboundAegisCD			= mod:NewCDTimer(24.2, 321754, nil, nil, nil, 5, nil, DBM_CORE_L.DAMAGE_ICON)
 local timerFrozenBindsCD			= mod:NewCDTimer(24.2, 323730, nil, nil, nil, 3, nil, DBM_CORE_L.MAGIC_ICON)
-local timerDarkExileCD				= mod:NewCDTimer(37.6, 321894, nil, nil, nil, 3)--37-40+
+local timerDarkExileCD				= mod:NewCDTimer(35.2, 321894, nil, nil, nil, 3)--35.2-40+
 local timerDarkExile				= mod:NewTargetTimer(50, 321894, nil, nil, nil, 5)
 
 mod:AddInfoFrameOption(321754, true)
 
 function mod:OnCombatStart(delay)
 	timerFrozenBindsCD:Start(8.9-delay)--SUCCESS
-	timerIceboundAegisCD:Start(13.2-delay)--may still be 11.7
+	timerIceboundAegisCD:Start(11.7-delay)--11.7-14
 	timerCometStormCD:Start(16.5-delay)--16.5-17.2
 	timerDarkExileCD:Start(26.5-delay)--SUCCESS--26-30
 end

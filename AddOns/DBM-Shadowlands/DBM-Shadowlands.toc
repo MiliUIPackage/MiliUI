@@ -10,12 +10,12 @@
 ## X-DBM-Mod-Type: RAID
 ## X-DBM-Mod-Category: SHADOWLANDS
 ## X-DBM-StatTypes: normal
-## X-DBM-Mod-Name: Word Bosses (SL)
+## X-DBM-Mod-Name: World Bosses (SL)
 ## X-DBM-Mod-Name-zhTW: 世界首領 (暗影之境)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 310
 ## X-DBM-Mod-MapID: 2222
-## X-DBM-Mod-LoadCID: 167524,173104,167527,167526
+## X-DBM-Mod-LoadCID: 167524,167525,167527,167526
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 8
 localization.en.lua

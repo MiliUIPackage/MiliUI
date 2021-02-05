@@ -50,7 +50,7 @@ L:SetTimerLocalization{
 }
 
 L:SetOptionLocalization({
-	timerContainers				= "Show timer that will show container fill progress and time remaining until full"
+	timerContainers2			= "Show timer that will show container fill progress and time remaining until full"
 })
 
 ---------------------------
@@ -66,7 +66,11 @@ L:SetOptionLocalization({
 ---------------------------
 --  Stoneborne Generals --
 ---------------------------
---L= DBM:GetModLocalization(2425)
+L= DBM:GetModLocalization(2425)
+
+L:SetOptionLocalization({
+	ExperimentalTimerCorrection	= "Automatically adjust timers when abilities get spell queued by other abilities"
+})
 
 ---------------------------
 --  Sire Denathrius --

@@ -84,8 +84,8 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2405)
 
 L:SetWarningLocalization({
-	specWarnParasiticInfester		= "蟲子寄生你",
-	specWarnParasiticInfesterKick	= "蟲子寄生 - 快打斷！"
+	specWarnParasiticInfester		= "你中了寄生平靜",
+	specWarnParasiticInfesterKick	= "寄生平靜 - 快打斷"
 })
 
 L:SetTimerLocalization{
@@ -93,10 +93,10 @@ L:SetTimerLocalization{
 }
 
 L:SetOptionLocalization({
-	specWarnParasiticInfester		= "受蟲子寄生時顯示特別警告",
-	specWarnParasiticInfesterKick	= "顯示蟲子寄生打斷的特別警告",
-	timerParasiticInfesterCD		= "顯示蟲子寄生的計時器",
-	yellParasiticInfester			= "當您受到蟲子寄生時大喊"
+	specWarnParasiticInfester		= "當你受到寄生平靜時顯示特別警告",
+	specWarnParasiticInfesterKick	= "需要打斷寄生平靜時顯示特別警告",
+	timerParasiticInfesterCD		= "顯示寄生計時器",
+	yellParasiticInfester			= "當受到平靜感染時大喊"
 })
 
 L:SetMiscLocalization({
@@ -141,7 +141,7 @@ L:SetGeneralLocalization({
 L = DBM:GetModLocalization("AtonementTrash")
 
 L:SetGeneralLocalization({
-	name =	"贖罪之殿小怪"--HoA Trash?
+	name =	"贖罪之殿小怪"
 })
 
 -----------------------
@@ -153,8 +153,8 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2399)
 
 L:SetMiscLocalization({
-	--Flight	= "Your doom takes flight!",
-	--Flight	= "畏懼天空吧！"
+	Flight	= "末日從天而降！",
+	Flight2	= "恐怖來自天空！"
 })
 
 -----------------------
@@ -173,7 +173,7 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(2412)
 
 L:SetMiscLocalization({
-	--RunThrough	= "長矛會刺穿你的心臟！"
+	RunThrough	= "我要用這柄長矛刺穿你的心臟！"
 })
 
 ---------

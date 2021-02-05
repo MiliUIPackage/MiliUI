@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2399, "DBM-Party-Shadowlands", 5, 1186)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201123180349")
+mod:SetRevision("20210123235530")
 mod:SetCreatureID(162059, 163077)--162059 Kin-Tara, 163077 Azules
 mod:SetEncounterID(2357)
 mod:SetBossHPInfoToHighest()
@@ -34,7 +34,7 @@ mod:RegisterEventsInCombat(
 local warnChargedSpear				= mod:NewTargetNoFilterAnnounce(321009, 4)
 
 --Kin-Tara
-local specWarnOverheadSlash			= mod:NewSpecialWarningSoak(320866, "Tank", nil, nil, 1, 2)
+local specWarnOverheadSlash			= mod:NewSpecialWarningDefensive(320966, "Tank", nil, nil, 1, 2)
 local specWarnDarkLance				= mod:NewSpecialWarningInterrupt(327481, "HasInterrupt", nil, nil, 1, 2)
 local specWarnChargedSpear			= mod:NewSpecialWarningMoveAway(321009, nil, nil, nil, 1, 2)
 local yellChargedSpear				= mod:NewYell(321009)
@@ -45,7 +45,7 @@ local specWarnGTFO					= mod:NewSpecialWarningGTFO(317626, nil, nil, nil, 1, 8)
 --Kin-Tara
 local KinTara = DBM:EJ_GetSectionInfo(21637)
 mod:AddTimerLine(KinTara)
-local timerOverheadSlashCD			= mod:NewCDTimer(8.5, 320866, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--8.5-11
+local timerOverheadSlashCD			= mod:NewCDTimer(6.3, 320966, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--6.3-11
 local timerFlightCD					= mod:NewCDTimer(145, 313606, nil, nil, nil, 6)
 local timerChargedSpearCD			= mod:NewCDTimer(15.8, 321009, nil, nil, nil, 3, nil, DBM_CORE_L.DEADLY_ICON)
 --Azules
@@ -62,9 +62,8 @@ function mod:OnCombatStart(delay)
 	self.vb.spearCount = 0
 	self.vb.flightActive = false
 	--Kin-Tara
-	timerOverheadSlashCD:Start(8.5-delay)
+	timerOverheadSlashCD:Start(8.3-delay)
 	timerFlightCD:Start(30.5-delay)
-	DBM:AddMsg("Note, Kin-Tara flight detection on this is using experimental code, report if phase change detection doesn't look functional")
 end
 
 function mod:OnCombatEnd()
@@ -79,7 +78,7 @@ function mod:SPELL_CAST_START(args)
 			self:UnregisterShortTermEvents()
 		end
 		specWarnOverheadSlash:Show()--Will be moved to fire earlier with timers
-		specWarnOverheadSlash:Play("gathershare")
+		specWarnOverheadSlash:Play("defensive")
 		timerOverheadSlashCD:Start()
 	elseif spellId == 327481 then
 		if self.vb.flightActive then
@@ -159,7 +158,7 @@ function mod:OnSync(msg)
 end
 --]]
 
-function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, targetname)
+function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, target)
 	if msg:find("spell:321009") then
 		self.vb.spearCount = self.vb.spearCount + 1
 		if self.vb.flightActive then
@@ -171,15 +170,18 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, _, _, _, targetname)
 		else--Casting it when on ground because enraged
 			timerChargedSpearCD:Start(23.1, self.vb.spearCount+1)
 		end
-		if targetname == UnitName("player") then
-			specWarnChargedSpear:Show()
-			specWarnChargedSpear:Play("runout")
-			yellChargedSpear:Yell()
-		elseif self:CheckNearby(5, targetname) then
-			specWarnChargedSpearNear:Show(targetname)
-			specWarnChargedSpearNear:Play("runaway")
-		else
-			warnChargedSpear:Show(targetname)
+		local targetname = DBM:GetUnitFullName(target)
+		if targetname then
+			if targetname == UnitName("player") then
+				specWarnChargedSpear:Show()
+				specWarnChargedSpear:Play("runout")
+				yellChargedSpear:Yell()
+			elseif self:CheckNearby(5, targetname) then
+				specWarnChargedSpearNear:Show(targetname)
+				specWarnChargedSpearNear:Play("runaway")
+			else
+				warnChargedSpear:Show(targetname)
+			end
 		end
 	end
 end
@@ -217,7 +219,7 @@ function mod:UNIT_POWER_UPDATE()
 	if self.vb.flightActive and bossPower == 0 then--Boss does a hard energy reset to 0 when she lands (flight phase ends)
 		self.vb.flightActive = false
 		self:UnregisterShortTermEvents()
-		timerOverheadSlashCD:Start(8.4)
+		timerOverheadSlashCD:Start(7.2)
 		timerFlightCD:Start(30.4)
 	end
 end
