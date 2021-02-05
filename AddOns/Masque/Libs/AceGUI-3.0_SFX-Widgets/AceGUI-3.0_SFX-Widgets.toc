@@ -1,11 +1,12 @@
-## Interface: 90001
+## Interface: 90002
 ## Title: AceGUI-3.0: SFX Widgets
 
 ## Notes: Adds custom widgets to AceGUI-3.0 and AceConfigDialog-3.0.
+## Notes-itIT: Aggiungi widgets personalizzati ad AceGUI-3.0 e AceConfigDialog-3.0.
 ## Notes-ruRU: Добавляет настраиваемые виджеты для AceGUI-3.0 и AceConfigDialog-3.0.
-## Notes-zhTW: 增加自訂義組件到AceGUI-3.0以及AceConfigDialog-3.0。
+## Notes-zhTW: 新增自訂的小套件到 AceGUI-3.0 和 AceConfigDialog-3.0。
 
-## Version: 1.0.4
+## Version: 323751a
 ## Author: StormFX
 ## OptionalDeps: Ace3
 

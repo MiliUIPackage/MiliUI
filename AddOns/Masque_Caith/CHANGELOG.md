@@ -1,3 +1,5 @@
-## 9.0.0
+## 9.0.1
 
-- Updated the `Interface` version for _Retail_ to `90001`.
+- Changed `Masque_Version` to `API_VERSION`.
+- Updated `API_VERSION` to `90002`.
+- Updated the `Interface` version for Retail to `90002`.

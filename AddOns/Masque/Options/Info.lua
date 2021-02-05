@@ -25,7 +25,7 @@ local pairs, tostring = pairs, tostring
 local LIB_ACR = LibStub("AceConfigRegistry-3.0")
 
 ----------------------------------------
--- Locals
+-- Internal
 ---
 
 -- @ Options\Core
@@ -47,23 +47,21 @@ do
 	-- Formatted Text
 	local UPDATED = "|cff00ff00"..L["Compatible"].."|r"
 	local COMPATIBLE = "|cffffff00"..L["Compatible"].."|r"
-	local INCOMPATIBLE = "|cffff0000"..L["Incompatible"].."|r"
+	-- local INCOMPATIBLE = "|cffff0000"..L["Incompatible"].."|r"
 	local UNKNOWN = "|cff777777"..L["Unknown"].."|r"
 
 	-- Versions
-	local API = Core.API_VERSION
+	-- local API = Core.API_VERSION
 	local OLD = Core.OLD_VERSION
 
-	-- Returns the Status text and tooltip for a skin based on its Masque_Version setting.
+	-- Returns the Status text and tooltip for a skin based on its API_VERSION setting.
 	local function GetStatus(Version)
 		if not Version then
 			return UNKNOWN, L["The status of this skin is unknown."]
-		elseif Version < OLD then
-			return INCOMPATIBLE, L["This skin is outdated and is incompatible with Masque."]
-		elseif Version < API then
-			return COMPATIBLE, L["This skin is outdated but is still compatible with Masque."]
-		else
+		elseif Version >= OLD then
 			return UPDATED, L["This skin is compatible with Masque."]
+		else
+			return COMPATIBLE, L["This skin is outdated but is still compatible with Masque."]
 		end
 	end
 
@@ -88,7 +86,7 @@ do
 		local Version = (Skin.Version and tostring(Skin.Version)) or UNKNOWN
 		local Authors = Skin.Authors or Skin.Author or UNKNOWN
 		local Websites = Skin.Websites or Skin.Website
-		local Status, Tooltip = GetStatus(Skin.Masque_Version)
+		local Status, Tooltip = GetStatus(Skin.API_VERSION)
 
 		-- Options Group
 		local Info = {

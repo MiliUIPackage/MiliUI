@@ -23,8 +23,8 @@ local error, type = error, type
 ---
 
 -- @ Core\Utility
-local GetSize, SetPoints = Core.GetSize, Core.SetPoints
-local GetColor, GetTexCoords = Core.GetColor, Core.GetTexCoords
+local GetColor, GetSize = Core.GetColor, Core.GetSize
+local GetTexCoords, SetPoints = Core.GetTexCoords, Core.SetPoints
 
 ----------------------------------------
 -- Locals
@@ -50,7 +50,7 @@ local function RemoveGloss(Button)
 end
 
 -- Skins or creates the 'Gloss' region of a button.
-local function SkinGloss(Button, Skin, Color, xScale, yScale)
+local function AddGloss(Button, Skin, Color, xScale, yScale)
 	local Region = Button.__MSQ_Gloss
 
 	if not Region then
@@ -89,12 +89,24 @@ end
 -- Skins or removes a 'Gloss' region.
 function Core.SkinGloss(Enabled, Button, Skin, Color, xScale, yScale)
 	local bType = Button.__MSQ_bType
-	Skin = (bType and Skin[bType]) or Skin
+	Skin = Skin[bType] or Skin
 
 	if Enabled and not Skin.Hide and Skin.Texture then
-		SkinGloss(Button, Skin, Color, xScale, yScale)
+		AddGloss(Button, Skin, Color, xScale, yScale)
 	else
 		RemoveGloss(Button)
+	end
+end
+
+-- Sets the color of the 'Gloss' region.
+function Core.SetGlossColor(Region, Button, Skin, Color)
+	Region = Region or Button.__MSQ_Gloss
+
+	if Region then
+		local bType = Button.__MSQ_bType
+		Skin = Skin[bType] or Skin
+
+		Region:SetVertexColor(GetColor(Color or Skin.Color))
 	end
 end
 

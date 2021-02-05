@@ -68,8 +68,8 @@ local Legacy = {
 	},
 	-- [ ARTWORK (-1) ]
 	Shadow = {
-		Ignore = true,
 		CanHide = true,
+		Ignore = true,
 	},
 	-- [ ARTWORK (0) ]
 	Normal = {
@@ -89,8 +89,9 @@ local Legacy = {
 	Disabled = {
 		Func = "GetDisabledTexture",
 		Type = "Texture",
-		Iterate = true,
+		CanHide = true,
 		Hide = true,
+		Iterate = true,
 	},
 	Pushed = {
 		Func = "GetPushedTexture",
@@ -211,6 +212,11 @@ local Legacy = {
 		Type = "Texture",
 		Iterate = true,
 	},
+	UpgradeIcon = {
+		Key = "UpgradeIcon",
+		Type = "Texture",
+		Iterate = true,
+	},
 	IconOverlay = {
 		Key = "IconOverlay",
 		Type = "Texture",
@@ -218,14 +224,14 @@ local Legacy = {
 		NoColor = true,
 		NoTexture = true,
 	},
-	-- LevelLinkLockIcon = {}, -- Unsupported, no reason to.
-	UpgradeIcon = {
-		Key = "UpgradeIcon",
+	-- [ OVERLAY (2) ]
+	IconOverlay2 = {
+		Key = "IconOverlay",
 		Type = "Texture",
 		Iterate = true,
+		NoColor = true,
+		NoTexture = true,
 	},
-	-- [ OVERLAY (2) ]
-	-- IconOverlay2 = {}, -- 9.0
 	NewItem = {
 		Key = "NewItemTexture",
 		Type = "Texture",
@@ -234,10 +240,8 @@ local Legacy = {
 	QuestBorder = {
 		Name = "IconQuestTexture",
 		Type = "Texture",
-		--Iterate = true,
-		--NoColor = true,
-		--NoTexture = true,
 	},
+	-- LevelLinkLockIcon = {}, -- Unsupported, no reason to.
 	-- [ OVERLAY (4) ]
 	SearchOverlay = {
 		Key = "searchOverlay",
@@ -327,57 +331,6 @@ local Action = {
 }
 
 ----------------------------------------
--- "Pet" Type
----
-
-local Pet = {
-	Backdrop = Legacy.Backdrop,
-	Icon = Legacy.Icon,
-	Normal = Legacy.Normal.Pet,
-	Disabled = Legacy.Disabled, -- Unused
-	Pushed = Legacy.Pushed,
-	Flash = Legacy.Flash,
-	HotKey = Legacy.HotKey,
-	Count = Legacy.Count,
-	Checked = Legacy.Checked,
-	Border = Legacy.Border,
-	AutoCastable = Legacy.AutoCastable,
-	NewAction = Legacy.NewAction,
-	SpellHighlight = Legacy.SpellHighlight,
-	Name = Legacy.Name,
-	Highlight = Legacy.Highlight,
-	AutoCastShine = Legacy.AutoCastShine,
-	Cooldown = Legacy.Cooldown,
-	ChargeCooldown = Legacy.ChargeCooldown,
-}
-
-----------------------------------------
--- "Item" Type
----
-
-local Item = {
-	Icon = Legacy.Icon,
-	Normal = Legacy.Normal,
-	Disabled = Legacy.Disabled,
-	Pushed = Legacy.Pushed,
-	Count = Legacy.Count,
-	Checked = (not WOW_RETAIL and Legacy.Checked) or nil, -- Classic Only
-	Border = Legacy.Border, -- Backwards-Compatibility
-	IconBorder = Legacy.IconBorder,
-	SlotHighlight = (WOW_RETAIL and Legacy.SlotHighlight) or nil, -- Retail Only
-	IconOverlay = Legacy.IconOverlay,
-	UpgradeIcon = Legacy.UpgradeIcon,
-	QuestBorder = Legacy.QuestBorder,
-	NewItem = Legacy.NewItem,
-	SearchOverlay = Legacy.SearchOverlay,
-	ContextOverlay = Legacy.ContextOverlay,
-	JunkIcon = Legacy.JunkIcon,
-	Highlight = Legacy.Highlight,
-	Cooldown = Legacy.Cooldown,
-	ChargeCooldown = Legacy.ChargeCooldown,
-}
-
-----------------------------------------
 -- "Aura" Type
 ---
 
@@ -429,7 +382,59 @@ local Enchant = {
 }
 
 ----------------------------------------
--- Types Table
+-- "Item" Type
+---
+
+local Item = {
+	Icon = Legacy.Icon,
+	Normal = Legacy.Normal,
+	Disabled = Legacy.Disabled,
+	Pushed = Legacy.Pushed,
+	Count = Legacy.Count,
+	Checked = (not WOW_RETAIL and Legacy.Checked) or nil, -- Classic Only
+	Border = Legacy.Border, -- Backwards-Compatibility
+	IconBorder = Legacy.IconBorder,
+	SlotHighlight = (WOW_RETAIL and Legacy.SlotHighlight) or nil, -- Retail Only
+	UpgradeIcon = Legacy.UpgradeIcon,
+	IconOverlay = Legacy.IconOverlay,
+	IconOverlay2 = Legacy.IconOverlay2,
+	QuestBorder = Legacy.QuestBorder,
+	NewItem = Legacy.NewItem,
+	SearchOverlay = Legacy.SearchOverlay,
+	ContextOverlay = Legacy.ContextOverlay,
+	JunkIcon = Legacy.JunkIcon,
+	Highlight = Legacy.Highlight,
+	Cooldown = Legacy.Cooldown,
+	ChargeCooldown = Legacy.ChargeCooldown,
+}
+
+----------------------------------------
+-- "Pet" Type
+---
+
+local Pet = {
+	Backdrop = Legacy.Backdrop,
+	Icon = Legacy.Icon,
+	Normal = Legacy.Normal.Pet,
+	Disabled = Legacy.Disabled, -- Unused
+	Pushed = Legacy.Pushed,
+	Flash = Legacy.Flash,
+	HotKey = Legacy.HotKey,
+	Count = Legacy.Count,
+	Checked = Legacy.Checked,
+	Border = Legacy.Border,
+	AutoCastable = Legacy.AutoCastable,
+	NewAction = Legacy.NewAction,
+	SpellHighlight = Legacy.SpellHighlight,
+	Name = Legacy.Name,
+	Highlight = Legacy.Highlight,
+	AutoCastShine = Legacy.AutoCastShine,
+	Cooldown = Legacy.Cooldown,
+	ChargeCooldown = Legacy.ChargeCooldown,
+}
+
+----------------------------------------
+-- Types Tables
 ---
 
 local Types = {
@@ -443,21 +448,28 @@ local Types = {
 	Enchant = Enchant,
 }
 
+local EmptyTypes = {
+	Action = true,
+	Pet = true,
+	Item = true,
+}
+
 ----------------------------------------
 -- Core
 ---
 
 Core.RegTypes = Types
+Core.EmptyTypes = EmptyTypes
 
 ----------------------------------------
 -- API
 ---
 
 -- Adds a custom button type.
-function Core.API:AddType(Type, List)
-	if type(Type) ~= "string" or Types[Type] then
+function Core.API:AddType(Name, List, Type)
+	if type(Name) ~= "string" or Types[Name] then
 		if Core.Debug then
-			error("Bad argument to API method 'AddType'. 'Type' must be a unique string.", 2)
+			error("Bad argument to API method 'AddType'. 'Name' must be a unique string.", 2)
 		end
 		return
 	elseif type(List) ~= "table" or #List < 1 then
@@ -471,8 +483,13 @@ function Core.API:AddType(Type, List)
 
 	for i = 1, #List do
 		local Key = List[i]
-		Cache[Key] = Legacy[Key]
+		local Root = Legacy[Key]
+
+		if Root then
+			Cache[Key] = (Type and Root[Type]) or Root
+		end
 	end
 
-	Types[Type] = Cache
+	Types[Name] = Cache
+	EmptyTypes[Name] = (Type and EmptyTypes[Type]) or nil
 end

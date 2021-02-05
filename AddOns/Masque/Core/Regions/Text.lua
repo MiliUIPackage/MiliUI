@@ -29,14 +29,12 @@ local GetSize, SetPoints = Core.GetSize, Core.SetPoints
 ---
 
 -- Skins a text layer of a button.
-function Core.SkinText(Region, Button, Layer, Skin, xScale, yScale)
+function Core.SkinText(Layer, Region, Button, Skin, xScale, yScale)
 	local bType = Button.__MSQ_bType
 	local Default = Defaults[Layer]
 
-	if bType then
-		Skin = Skin[bType] or Skin
-		Default = Default[bType] or Default
-	end
+	Skin = Skin[bType] or Skin
+	Default = Default[bType] or Default
 
 	Region:SetJustifyH(Skin.JustifyH or Default.JustifyH)
 	Region:SetJustifyV(Skin.JustifyV or "MIDDLE")
