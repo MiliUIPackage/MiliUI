@@ -35,6 +35,19 @@ end
 
 BonusRollPreviewMixin = {}
 function BonusRollPreviewMixin:OnLoad()
+	if(BackdropTemplateMixin) then
+		Mixin(self, BackdropTemplateMixin)
+	end
+
+	self:SetBackdrop({
+		bgFile = [[Interface\ChatFrame\ChatFrameBackground]],
+		edgeFile = [[Interface\Tooltips\UI-Tooltip-Border]],
+		tile = true,
+		edgeSize = 16,
+		tileSize = 16,
+		insets = {left=4, right=4, top=4, bottom=4},
+	})
+
 	self:RegisterEvent('SPELL_CONFIRMATION_PROMPT')
 	self:RegisterEvent('SPELL_CONFIRMATION_TIMEOUT')
 	self:RegisterEvent('PLAYER_ENTERING_WORLD')
@@ -82,25 +95,28 @@ function BonusRollPreviewMixin:OnEvent(event, ...)
 		-- has used the EncounterJournal before changing loot specializations.
 		self:StartEncounter()
 	elseif(event == 'SPELL_CONFIRMATION_PROMPT') then
-		local spellID, confirmType, _, _, currencyID = ...
+		local spellID, confirmType, _, _, currencyID, currencyCost, difficultyID = ...
 		if(confirmType ~= LE_SPELL_CONFIRMATION_PROMPT_TYPE_BONUS_ROLL) then
 			return
 		end
 
 		if(not ignoredSpells[spellID]) then -- ignore blacklisted encounters
 			local instanceID, encounterID = EJ:GetJournalInfoForSpellConfirmation(spellID)
-			if(encounterID and select(2, GetCurrencyInfo(currencyID)) > 0) then
-				self.difficultyID = EJ:GetBonusRollEncounterJournalLinkDifficulty(encounterID, instanceID)
-				self.encounterID = encounterID
-				self.instanceID = instanceID
+			if(encounterID) then
+				local currency = C_CurrencyInfo.GetCurrencyInfo(currencyID)
+				if(currency.quantity >= currencyCost) then
+					self.difficultyID = difficultyID
+					self.encounterID = encounterID
+					self.instanceID = instanceID
 
-				self:RegisterEvent('PLAYER_LOOT_SPEC_UPDATED')
-				self:StartEncounter()
+					self:RegisterEvent('PLAYER_LOOT_SPEC_UPDATED')
+					self:StartEncounter()
 
-				-- show/hide list and handle
-				self:SetShown(BonusRollPreviewDB.alwaysShow)
-				self:UpdatePosition()
-				BonusRollPreviewHandle:Show()
+					-- show/hide list and handle
+					self:SetShown(BonusRollPreviewDB.alwaysShow)
+					self:UpdatePosition()
+					BonusRollPreviewHandle:Show()
+				end
 			end
 		end
 	elseif(event == 'SPELL_CONFIRMATION_TIMEOUT') then
@@ -112,7 +128,7 @@ function BonusRollPreviewMixin:OnEvent(event, ...)
 		-- check for any outstanding bonus rolls
 		for _, info in next, GetSpellConfirmationPromptsInfo() do
 			if(info and info.spellID) then
-				self:OnEvent('SPELL_CONFIRMATION_PROMPT', info.spellID, info.confirmType, nil, nil, info.currencyID)
+				self:OnEvent('SPELL_CONFIRMATION_PROMPT', info.spellID, info.confirmType, nil, nil, info.currencyID, info.currencyCost, info.difficultyID)
 			end
 		end
 	elseif(event == 'PLAYER_LOGIN') then
@@ -136,14 +152,14 @@ function BonusRollPreviewMixin:UpdateItems()
 
 	local numItems = 0
 	for index = 1, EJ_GetNumLoot() do
-		local itemID, encounterID, name, texture, slot, armorType, itemLink = EJ_GetLootInfoByIndex(index)
+		local itemInfo = C_EncounterJournal.GetLootInfoByIndex(index)
 		-- for some reason the API returns all loot for the entire instance
 		-- so we need to make sure we only list the ones for the selected encounter
-		if(encounterID == self.encounterID) then
-			local _, _, _, _, _, itemClass, itemSubClass = GetItemInfoInstant(itemID)
+		if(itemInfo.encounterID == self.encounterID) then
+			local _, _, _, _, _, itemClass, itemSubClass = GetItemInfoInstant(itemInfo.itemID)
 			-- only show equippable and special whitelisted items
 			-- by filtering them by item class/subclass
-			if(itemClass == LE_ITEM_CLASS_WEAPON or itemClass == LE_ITEM_CLASS_ARMOR or (itemClass == LE_ITEM_CLASS_GEM and itemSubClass == LE_ITEM_ARMOR_RELIC) or specialItems[itemID]) then
+			if(itemClass == LE_ITEM_CLASS_WEAPON or itemClass == LE_ITEM_CLASS_ARMOR or (itemClass == LE_ITEM_CLASS_GEM and itemSubClass == LE_ITEM_ARMOR_RELIC) or specialItems[itemInfo.itemID]) then
 				-- add item to item count
 				numItems = numItems + 1
 
@@ -154,14 +170,14 @@ function BonusRollPreviewMixin:UpdateItems()
 				Button:Show()
 
 				-- update its data
-				Button.itemLink = itemLink
-				Button.itemID = itemID
+				Button.itemLink = itemInfo.link
+				Button.itemID = itemInfo.itemID
 
-				if(itemLink) then
-					Button.Icon:SetTexture(texture)
-					Button.Name:SetText(name)
-					Button.Slot:SetText(slot)
-					Button.Class:SetText(armorType)
+				if(itemInfo.link) then
+					Button.Icon:SetTexture(itemInfo.icon)
+					Button.Name:SetText(itemInfo.name)
+					Button.Slot:SetText(itemInfo.slot)
+					Button.Class:SetText(itemInfo.armorType)
 				else
 					-- item is not cached, show temporary information
 					Button.Icon:SetTexture(QUESTION_MARK_ICON)
@@ -170,7 +186,7 @@ function BonusRollPreviewMixin:UpdateItems()
 					Button.Class:SetText('')
 
 					-- add the item to our query list
-					query[itemID] = index
+					query[itemInfo.itemID] = index
 				end
 			end
 		end

@@ -9,7 +9,7 @@ local Options = LibStub('Wasabi'):New(addonName, 'BonusRollPreviewDB', defaults)
 Options:Initialize(function(self)
 	local Title = self:CreateTitle()
 	Title:SetPoint('TOPLEFT', 16, -16)
-	Title:SetText(L[addonName])
+	Title:SetText(addonName)
 
 	local Description = self:CreateDescription()
 	Description:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
@@ -28,7 +28,6 @@ Options:Initialize(function(self)
 	})
 end)
 
-Options.name = L['BonusRollPreview Option']
 _G['SLASH_' .. addonName .. '1'] = '/brp'
 SlashCmdList[addonName] = function(msg)
 	msg = msg:lower()

@@ -1,6 +1,6 @@
-## Interface: 80300
+## Interface: 90000
 ## Author: p3lim
-## Version: 6
+## Version: 8
 ## Title: Lib: Wasabi
 ## Notes: Library for implementing addon configs
 ## OptionalDeps: LibStub
@@ -11,5 +11,4 @@
 LibStub\LibStub.lua
 
 embed.xml
-
 

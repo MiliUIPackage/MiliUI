@@ -1,3 +1,17 @@
+### Changes in 90000.48-Release:
+
+- Added: German translations
+- Changed: Update Interface version
+- Fixed: Shadowlands compatibility
+- Fixed: Tooltips not resetting properly
+
+### Changes in 80100.47-Release:
+
+- Added: Support for Battle for Dazar'alor (and hopefully all future raids automatically)
+- Added: Support for currency cost (although in retrospect, the roll frame doesn't show)
+- Changed: Update Interface version
+- Changed: Updated zhCN translation
+
 ### Changes in 80000.46-Release:
 
 - Fixed: Incorrect item levels on non-normal difficulties

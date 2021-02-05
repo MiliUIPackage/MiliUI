@@ -1,4 +1,4 @@
-local MAJOR, MINOR = 'Wasabi', 6
+local MAJOR, MINOR = 'Wasabi', 8
 assert(LibStub, MAJOR .. ' requires LibStub')
 
 local lib, oldMinor = LibStub:NewLibrary(MAJOR, MINOR)
@@ -8,8 +8,8 @@ end
 
 local databases = {}
 
-local function OnEvent(self, event)
-	if(event == 'PLAYER_LOGIN') then
+local function OnEvent(self, event, arg1)
+	if(event == 'ADDON_LOADED' and arg1 == (self.parent or self.name)) then
 		if(not _G[self.glob]) then
 			_G[self.glob] = CopyTable(self.defaults)
 		end
@@ -22,6 +22,8 @@ local function OnEvent(self, event)
 		end
 
 		self.temp = CopyTable(self.db)
+
+		self:UnregisterEvent(event)
 	end
 end
 
@@ -30,7 +32,7 @@ local function CreatePanelProto(name, glob, defaults)
 	assert(not databases[glob], 'Savedvariables "' .. glob .. '" is already in use')
 
 	local panel = CreateFrame('Frame', name .. 'OptionsPanel', InterfaceOptionsFramePanelContainer)
-	panel:RegisterEvent('PLAYER_LOGIN')
+	panel:RegisterEvent('ADDON_LOADED')
 	panel:HookScript('OnEvent', OnEvent)
 	panel:Hide()
 

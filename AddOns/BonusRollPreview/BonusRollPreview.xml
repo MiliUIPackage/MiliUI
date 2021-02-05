@@ -4,6 +4,14 @@
 	<Include file='libs\EJ_Ext\EJ_Ext.lua'/>
 
 	<Script file='locale\initialize.lua'/>
+	<Script file='locale\deDE.lua'/>
+	<Script file='locale\esES.lua'/>
+	<Script file='locale\esMX.lua'/>
+	<Script file='locale\frFR.lua'/>
+	<Script file='locale\itIT.lua'/>
+	<Script file='locale\koKR.lua'/>
+	<Script file='locale\ptBR.lua'/>
+	<Script file='locale\ruRU.lua'/>
 	<Script file='locale\zhCN.lua'/>
 	<Script file='locale\zhTW.lua'/>
 
@@ -106,11 +114,6 @@
 
 	<Frame name='BonusRollPreview' parent='BonusRollFrame' mixin='BonusRollPreviewMixin' frameLevel='3' hidden='true'>
 		<Size x='286' y='0'/>
-		<Backdrop bgFile='Interface\ChatFrame\ChatFrameBackground' edgeFile='Interface\Tooltips\UI-Tooltip-Border' tile='true'>
-			<EdgeSize val='16'/>
-			<TileSize val='16'/>
-			<BackgroundInsets left='4' right='4' top='4' bottom='4'/>
-		</Backdrop>
 		<Frames>
 			<ScrollFrame parentKey='ScrollFrame'>
 				<Anchors>
@@ -209,23 +212,21 @@
 			<OnEnter>
 				if(self.itemLink) then
 					GameTooltip:SetOwner(self, 'ANCHOR_NONE')
-					GameTooltip:ClearAllPoints()
-					GameTooltip:SetPoint('TOPRIGHT', self, 'TOPLEFT')
+					ContainerFrameItemButton_CalculateItemTooltipAnchors(self, GameTooltip)
+
 					GameTooltip:SetHyperlink(self.itemLink)
 					self:RegisterEvent('MODIFIER_STATE_CHANGED')
 				end
 			</OnEnter>
 			<OnLeave>
-				GameTooltip:Hide()
+				GameTooltip_HideResetCursor()
 				self:UnregisterEvent('MODIFIER_STATE_CHANGED')
 			</OnLeave>
 			<OnEvent>
 				if(IsModifiedClick('COMPAREITEMS') or GetCVarBool('alwaysCompareItems')) then
 					GameTooltip_ShowCompareItem()
 				else
-					for _, shoppingTooltip in next, GameTooltip.shoppingTooltips do
-						shoppingTooltip:Hide()
-					end
+					GameTooltip_HideShoppingTooltips(GameTooltip)
 				end
 
 				if(IsModifiedClick('DRESSUP')) then

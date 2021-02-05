@@ -1,6 +1,6 @@
-## Interface: 80300
+## Interface: 90001
 ## Author: p3lim
-## Version: 80000.46-Release
+## Version: 90000.48-Release
 ## Title: Bonus Roll Preview
 ## Notes: Easily see what the bonus loot roll can yield
 ## Title-zhTW: |cFF00CCFF[團隊]|r 骰子裝備預覽
