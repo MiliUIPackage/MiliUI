@@ -15,6 +15,15 @@ local SHOPPING_LIST_TABLE_LAYOUT = {
   },
   {
     headerTemplate = "AuctionatorStringColumnHeaderTemplate",
+    headerParameters = { "isOwned" },
+    headerText = AUCTIONATOR_L_OWNED_COLUMN,
+    cellTemplate = "AuctionatorStringCellTemplate",
+    cellParameters = { "isOwned" },
+    defaultHide = true,
+    width = 70,
+  },
+  {
+    headerTemplate = "AuctionatorStringColumnHeaderTemplate",
     headerText = AUCTIONATOR_L_RESULTS_AVAILABLE_COLUMN,
     headerParameters = { "totalQuantity" },
     cellTemplate = "AuctionatorStringCellTemplate",
@@ -23,20 +32,20 @@ local SHOPPING_LIST_TABLE_LAYOUT = {
   }
 }
 
-ShoppingListDataProviderMixin = CreateFromMixins(DataProviderMixin, AuctionatorItemKeyLoadingMixin)
+AuctionatorShoppingListDataProviderMixin = CreateFromMixins(AuctionatorDataProviderMixin, AuctionatorItemKeyLoadingMixin)
 
-function ShoppingListDataProviderMixin:OnLoad()
-  Auctionator.Debug.Message("ShoppingListDataProviderMixin:OnLoad()")
+function AuctionatorShoppingListDataProviderMixin:OnLoad()
+  Auctionator.Debug.Message("AuctionatorShoppingListDataProviderMixin:OnLoad()")
 
   self.entriesCount = 0
 
   self:SetUpEvents()
 
-  DataProviderMixin.OnLoad(self)
+  AuctionatorDataProviderMixin.OnLoad(self)
   AuctionatorItemKeyLoadingMixin.OnLoad(self)
 end
 
-function ShoppingListDataProviderMixin:SetUpEvents()
+function AuctionatorShoppingListDataProviderMixin:SetUpEvents()
   Auctionator.EventBus:RegisterSource(self, "Shopping List Data Provider")
 
   Auctionator.EventBus:Register( self, {
@@ -46,7 +55,7 @@ function ShoppingListDataProviderMixin:SetUpEvents()
   })
 end
 
-function ShoppingListDataProviderMixin:ReceiveEvent(eventName, eventData, ...)
+function AuctionatorShoppingListDataProviderMixin:ReceiveEvent(eventName, eventData, ...)
   AuctionatorItemKeyLoadingMixin.ReceiveEvent(self, eventName, eventData, ...)
 
   if eventName == Auctionator.ShoppingLists.Events.ListSearchStarted then
@@ -55,30 +64,42 @@ function ShoppingListDataProviderMixin:ReceiveEvent(eventName, eventData, ...)
       self.onSearchStarted()
     end
   elseif eventName == Auctionator.ShoppingLists.Events.ListSearchEnded then
-    self:AppendEntries(eventData, true)
+    self:AppendEntries(self:AddIsTop(eventData), true)
 
     if self.entriesCount == 0 then
       Auctionator.EventBus:Fire(self, Auctionator.ShoppingLists.Events.ListDataProviderEmpty)
     end
   elseif eventName == Auctionator.ShoppingLists.Events.ListSearchIncrementalUpdate then
-    self:AppendEntries(eventData)
+    self:AppendEntries(self:AddIsTop(eventData))
   end
 end
 
-function ShoppingListDataProviderMixin:Reset()
+function AuctionatorShoppingListDataProviderMixin:AddIsTop(entries)
+  for _, entry in ipairs(entries) do
+    if entry.containsOwnerItem then
+      entry.isOwned = AUCTIONATOR_L_UNDERCUT_YES
+    else
+      entry.isOwned = ""
+    end
+  end
+
+  return entries
+end
+
+function AuctionatorShoppingListDataProviderMixin:Reset()
   self.entriesCount = 0
 
-  DataProviderMixin.Reset(self)
+  AuctionatorDataProviderMixin.Reset(self)
 end
 
-function ShoppingListDataProviderMixin:AppendEntries(entries, isLastSetOfResults)
+function AuctionatorShoppingListDataProviderMixin:AppendEntries(entries, isLastSetOfResults)
   self.entriesCount = self.entriesCount + #entries
 
-  DataProviderMixin.AppendEntries(self, entries, isLastSetOfResults)
+  AuctionatorDataProviderMixin.AppendEntries(self, entries, isLastSetOfResults)
 end
 
 
-function ShoppingListDataProviderMixin:UniqueKey(entry)
+function AuctionatorShoppingListDataProviderMixin:UniqueKey(entry)
   return Auctionator.Utilities.ItemKeyString(entry.itemKey)
 end
 
@@ -88,20 +109,24 @@ local COMPARATORS = {
   totalQuantity = Auctionator.Utilities.NumberComparator
 }
 
-function ShoppingListDataProviderMixin:Sort(fieldName, sortDirection)
+function AuctionatorShoppingListDataProviderMixin:Sort(fieldName, sortDirection)
   local comparator = COMPARATORS[fieldName](sortDirection, fieldName)
 
   table.sort(self.results, function(left, right)
     return comparator(left, right)
   end)
 
-  self.onUpdate(self.results)
+  self:SetDirty()
 end
 
-function ShoppingListDataProviderMixin:GetTableLayout()
+function AuctionatorShoppingListDataProviderMixin:GetTableLayout()
   return SHOPPING_LIST_TABLE_LAYOUT
 end
 
-function ShoppingListDataProviderMixin:GetRowTemplate()
-  return "ShoppingListResultsRowTemplate"
+function AuctionatorShoppingListDataProviderMixin:GetColumnHideStates()
+  return Auctionator.Config.Get(Auctionator.Config.Options.COLUMNS_SHOPPING)
+end
+
+function AuctionatorShoppingListDataProviderMixin:GetRowTemplate()
+  return "AuctionatorShoppingListResultsRowTemplate"
 end

@@ -27,12 +27,31 @@ function AuctionatorListRenameButtonMixin:OnClick()
 end
 
 function AuctionatorListRenameButtonMixin:RenameList(newListName)
-  Auctionator.ShoppingLists.Rename(
-    Auctionator.ShoppingLists.ListIndex(self.currentList.name),
-    newListName
-  )
+  if newListName ~= self.currentList.name then
+    newListName = Auctionator.ShoppingLists.GetUnusedListName(newListName)
+
+    Auctionator.ShoppingLists.Rename(
+      Auctionator.ShoppingLists.ListIndex(self.currentList.name),
+      newListName
+    )
+  end
+
+  if self.currentList.isTemporary then
+    Auctionator.ShoppingLists.MakePermanent(newListName)
+  end
 
   Auctionator.EventBus:Fire(self, ListRenamed, self.currentList)
+end
+
+-- Renaming a temporary list doesn't have much point, so we repurpose the rename
+-- button to save a temporary list
+function AuctionatorListRenameButtonMixin:UpdateForTemporary()
+  if self.currentList.isTemporary then
+    self:SetText(AUCTIONATOR_L_SAVE_AS)
+  else
+    self:SetText(AUCTIONATOR_L_RENAME)
+  end
+  DynamicResizeButton_Resize(self)
 end
 
 function AuctionatorListRenameButtonMixin:ReceiveEvent(eventName, eventData)
@@ -47,4 +66,5 @@ function AuctionatorListRenameButtonMixin:ReceiveEvent(eventName, eventData)
   elseif eventName == RenameDialogOnAccept then
     self:RenameList(eventData)
   end
+  self:UpdateForTemporary()
 end

@@ -41,22 +41,17 @@ function AuctionatorResultsListingMixin:ReceiveEvent(eventName, ...)
 end
 
 function AuctionatorResultsListingMixin:InitializeDataProvider()
-  self:DisableColumns()
-
   self.dataProvider:SetOnUpdateCallback(function()
     self:UpdateTable()
   end)
 
   self.dataProvider:SetOnSearchStartedCallback(function()
     self.ScrollFrame.NoResultsText:Hide()
-    self:ClearColumnSorts()
-    self:DisableColumns()
     self:EnableSpinner()
   end)
 
   self.dataProvider:SetOnSearchEndedCallback(function()
     self:RestoreScrollPosition()
-    self:EnableColumns()
     self:DisableSpinner()
   end)
 
@@ -69,6 +64,9 @@ function AuctionatorResultsListingMixin:RestoreScrollPosition()
   if self.savedScrollPosition == nil then
     return
   end
+
+  -- Ensure all the visuals are positioned (so the scroll restores correctly)
+  self:UpdateTable()
 
   local _, max = self.ScrollFrame.scrollBar:GetMinMaxValues()
   local val = math.min(self.savedScrollPosition or 0, max or 0)
@@ -93,7 +91,7 @@ function AuctionatorResultsListingMixin:PopulateOverride(offset, count)
           row:Populate(rowData, dataIndex);
         end
 
-        for columnIndex, p in ipairs(columns) do
+        for columnIndex, _ in ipairs(columns) do
           local cell = self.tableBuilder:GetCellByIndex(rowIndex, columnIndex);
           if cell.Populate then
             cell.rowData = rowData;
@@ -136,9 +134,13 @@ function AuctionatorResultsListingMixin:InitializeTable()
       "BUTTON",
       columnEntry.headerTemplate,
       columnEntry.headerText,
+      function()
+        self:CustomiseColumns()
+      end,
       function(sortKey, sortDirection)
         self:ClearColumnSorts()
 
+        self.dataProvider:SetPresetSort(sortKey, sortDirection)
         self.dataProvider:Sort(sortKey, sortDirection)
       end,
       unpack((columnEntry.headerParameters or {}))
@@ -152,9 +154,8 @@ function AuctionatorResultsListingMixin:InitializeTable()
       column:SetFillConstraints(1.0, 0)
     end
   end
-
-  self.tableBuilder:Arrange()
   self.isInitialized = true
+  self:UpdateForHiding()
 end
 
 function AuctionatorResultsListingMixin:UpdateTable()
@@ -188,6 +189,71 @@ function AuctionatorResultsListingMixin:ClearColumnSorts()
   end
 end
 
+function AuctionatorResultsListingMixin:CustomiseColumns()
+  if self.dataProvider:GetColumnHideStates() ~= nil then
+    self.CustomiseDropDown:Callback(
+      self.columnSpecification,
+      self.dataProvider:GetColumnHideStates(),
+      function()
+        self:UpdateForHiding()
+    end)
+  end
+end
+
+local function SetColumnShown(column, isShown)
+  column:GetHeaderFrame():SetShown(isShown)
+  for _, cell in ipairs(column.cells) do
+    cell:SetShown(isShown)
+  end
+end
+
+function AuctionatorResultsListingMixin:UpdateForHiding()
+  if not self.dataProvider:GetColumnHideStates() then
+    self.tableBuilder:Arrange()
+    return
+  end
+
+  local hidingDetails = self.dataProvider:GetColumnHideStates()
+
+  local anyFlexibleWidths = false
+  local visibleColumn
+
+  for index, column in ipairs(self.tableBuilder:GetColumns()) do
+    local columnEntry = self.columnSpecification[index]
+
+    -- Import default value if hidden state not already set.
+    if hidingDetails[columnEntry.headerText] == nil then
+      hidingDetails[columnEntry.headerText] = columnEntry.defaultHide or false
+    end
+
+    if hidingDetails[columnEntry.headerText] then
+      SetColumnShown(column, false)
+      column:SetFixedConstraints(0.001, 0)
+    else
+      SetColumnShown(column, true)
+
+      if columnEntry.width ~= nil then
+        column:SetFixedConstraints(columnEntry.width, 0)
+      else
+        anyFlexibleWidths = true
+        column:SetFillConstraints(1.0, 0)
+      end
+
+      if visibleColumn == nil then
+        visibleColumn = column
+      end
+    end
+  end
+
+  -- Checking that at least one column will fill up empty space, if there isn't
+  -- one, the first visible column is modified to do so.
+  if not anyFlexibleWidths then
+    visibleColumn:SetFillConstraints(1.0, 0)
+  end
+
+  self.tableBuilder:Arrange()
+end
+
 function AuctionatorResultsListingMixin:EnableSpinner()
   self.ScrollFrame.ResultsText:Show()
   self.ScrollFrame.LoadingSpinner:Show()
@@ -198,16 +264,4 @@ function AuctionatorResultsListingMixin:DisableSpinner()
   self.ScrollFrame.ResultsText:Hide()
   self.ScrollFrame.LoadingSpinner:Hide()
   self.ScrollFrame.SpinnerAnim:Stop()
-end
-
-function AuctionatorResultsListingMixin:EnableColumns()
-  for _, col in ipairs(self.tableBuilder:GetColumns()) do
-    col.headerFrame:Enable()
-  end
-end
-
-function AuctionatorResultsListingMixin:DisableColumns()
-  for _, col in ipairs(self.tableBuilder:GetColumns()) do
-    col.headerFrame:Disable()
-  end
 end

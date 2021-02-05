@@ -19,6 +19,10 @@
           <Anchor point="RIGHT" relativeKey="$parent" relativePoint="RIGHT"/>
         </Anchors>
       </Frame>
+
+      <Frame parentKey="CustomiseDropDown" inherits="AuctionatorCustomiseColumnsDropDownTemplate" hidden="true"/>
+
+
       <ScrollFrame parentKey="ScrollFrame" inherits="HybridScrollFrameTemplate">
         <Anchors>
           <Anchor point="TOPLEFT" relativeKey="$parent.HeaderContainer" relativePoint="BOTTOMLEFT"/>
@@ -44,7 +48,6 @@
               <Anchors>
                 <Anchor point="CENTER" />
               </Anchors>
-              <Color color="NORMAL_FONT_COLOR"/>
               <Shadow>
                 <Offset>
                   <AbsDimension x="1" y="-1"/>
@@ -58,7 +61,6 @@
                 <Anchor point="LEFT" x="45"/>
                 <Anchor point="RIGHT" x="-67"/>
               </Anchors>
-              <Color color="NORMAL_FONT_COLOR"/>
               <Shadow>
                 <Offset>
                   <AbsDimension x="1" y="-1"/>

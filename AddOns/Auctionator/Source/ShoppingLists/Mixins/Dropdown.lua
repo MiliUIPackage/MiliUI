@@ -4,7 +4,33 @@ function AuctionatorShoppingListDropdownMixin:OnLoad()
   UIDropDownMenu_Initialize(self, self.Initialize, "taint prevention")
   UIDropDownMenu_SetWidth(self, 190)
 
+  self.searchNextTime = true
   self:SetUpEvents()
+end
+
+function AuctionatorShoppingListDropdownMixin:OnShow()
+  if not self.searchNextTime then
+    return
+  end
+  self.searchNextTime = false
+
+  local listName = Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_LIST)
+
+  if listName == Auctionator.Constants.NO_LIST then
+    return
+  end
+
+  local listIndex = Auctionator.ShoppingLists.ListIndex(listName)
+
+  if listIndex ~= nil then
+    self:SelectList(Auctionator.ShoppingLists.Lists[listIndex])
+  end
+end
+
+function AuctionatorShoppingListDropdownMixin:OnEvent(eventName, ...)
+  if eventName == "AUCTION_HOUSE_CLOSED" then
+    self.searchNextTime = true
+  end
 end
 
 function AuctionatorShoppingListDropdownMixin:SetUpEvents()
@@ -14,6 +40,9 @@ function AuctionatorShoppingListDropdownMixin:SetUpEvents()
     Auctionator.ShoppingLists.Events.ListCreated,
     Auctionator.ShoppingLists.Events.ListDeleted,
     Auctionator.ShoppingLists.Events.ListRenamed
+  })
+  FrameUtil.RegisterFrameForEvents(self, {
+    "AUCTION_HOUSE_CLOSED"
   })
 end
 
@@ -40,7 +69,7 @@ end
 
 function AuctionatorShoppingListDropdownMixin:ReceiveEvent(eventName, eventData)
   if eventName == Auctionator.ShoppingLists.Events.ListDeleted or eventName == Auctionator.ShoppingLists.Events.ListCreated then
-    UIDropDownMenu_Initialize(self, self.Initialize)
+    UIDropDownMenu_Initialize(self, self.Initialize, "taint prevention")
   end
 
   if eventName == Auctionator.ShoppingLists.Events.ListCreated then
@@ -52,10 +81,6 @@ function AuctionatorShoppingListDropdownMixin:ReceiveEvent(eventName, eventData)
   end
 
   if eventName == Auctionator.ShoppingLists.Events.ListDeleted then
-    if #Auctionator.ShoppingLists.Lists == 0 then
-      UIDropDownMenu_SetText(self, "")
-    else
-      self:SelectList(Auctionator.ShoppingLists.Lists[1])
-    end
+    UIDropDownMenu_SetText(self, "")
   end
 end

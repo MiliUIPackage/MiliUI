@@ -11,6 +11,8 @@ end
 local SLASH_COMMANDS = {
   ["p"] = Auctionator.SlashCmd.Post,
   ["post"] = Auctionator.SlashCmd.Post,
+  ["cu"] = Auctionator.SlashCmd.CancelUndercut,
+  ["cancelundercut"] = Auctionator.SlashCmd.CancelUndercut,
   ["ra"] = Auctionator.SlashCmd.CleanReset,
   ["resetall"] = Auctionator.SlashCmd.CleanReset,
   ["rt"] = Auctionator.SlashCmd.ResetTimer,
@@ -41,7 +43,7 @@ function Auctionator.SlashCmd.Handler(input)
       Auctionator.Utilities.Message("Unrecognized command '" .. command[1] .. "'")
       Auctionator.SlashCmd.Help()
     else
-      handler(command[2])
+      handler(command[2], command[3])
     end
   end
 end

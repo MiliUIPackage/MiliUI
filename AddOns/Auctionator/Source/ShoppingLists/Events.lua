@@ -5,9 +5,12 @@ Auctionator.ShoppingLists.Events = {
   ListRenamed = "AUCTIONATOR_LIST_RENAMED",
 
   ListItemAdded = "AUCTIONATOR_LIST_ITEM_ADDED",
+  ListItemReplaced = "AUCTIONATOR_LIST_ITEM_REPLACED",
   ListItemSelected = "AUCTIONATOR_LIST_ITEM_SELECTED",
   ListItemDeleted = "AUCTIONATOR_LIST_ITEM_DELETED",
+  ListOrderChanged = "AUCTIONATOR_LIST_ORDER_CHANGED",
   DeleteFromList = "AUCTIONATOR_DELETE_FROM_CURRENT_LIST",
+  EditListItem = "AUCTIONATOR_EDIT_LIST_ITEM",
 
   ListSearchStarted = "AUCTIONATOR_LIST_SEARCH_STARTED",
   ListSearchIncrementalUpdate = "AUCTIONATOR_LIST_SEARCH_INCREMENTAL_UPDATE",
@@ -17,5 +20,10 @@ Auctionator.ShoppingLists.Events = {
 
   CreateDialogOnAccept = "AUCTIONATOR_CREATE_DIALOG_ON_ACCEPT",
   DeleteDialogOnAccept = "AUCTIONATOR_DELETE_DIALOG_ON_ACCEPT",
-  RenameDialogOnAccept = "AUCTIONATOR_RENAME_DIALOG_ON_ACCEPT"
+  RenameDialogOnAccept = "AUCTIONATOR_RENAME_DIALOG_ON_ACCEPT",
+
+  DialogOpened = "SHOPPING_DIALOG_OPENED",
+  DialogClosed = "SHOPPING_DIALOG_CLOSED",
+
+  ShowHistoricalPrices = "SHOPPING_SHOW_HISTORICAL_PRICES",
 }

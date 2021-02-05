@@ -1,14 +1,13 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
-  <Script file="EventBus.lua" />
   <Script file="EventBusMixin.lua" />
 
   <Script file="ItemIdFromLink.lua"/>
   <Script file="ItemKeyFromLink.lua"/>
   <Script file="ItemKeyFromBrowseResult.lua"/>
-  <Script file="ItemKeyFromReplicateResult.lua"/>
   <Script file="IsPetItemKey.lua"/>
   <Script file="Message.lua"/>
   <Script file="StringContains.lua"/>
+  <Script file="ReverseArray.lua"/>
   <Script file="Table.lua" />
   <Script file="Debug.lua"/>
   <Script file="Slice.lua"/>
@@ -19,8 +18,13 @@
   <Script file="RemoveTextColor.lua"/>
   <Script file="ItemKeyString.lua"/>
   <Script file="PrettyDate.lua"/>
+  <Script file="DelimitThousands.lua"/>
   <Script file="ItemInfoFromLocation.lua"/>
   <Script file="IsShortcutActive.lua"/>
+  <Script file="GetPetLevelFromLink.lua"/>
+  <Script file="GetQualityColorFromLink.lua"/>
+  <Script file="ClassicWoWCheck.lua"/>
+  <Script file="RoundTime.lua"/>
 
   <Script file="VerifyListTypes.lua"/>
   <Script file="ValidatePercentage.lua"/>

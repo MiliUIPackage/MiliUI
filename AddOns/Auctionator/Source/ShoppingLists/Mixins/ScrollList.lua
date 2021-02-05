@@ -9,13 +9,16 @@ function AuctionatorScrollListMixin:OnLoad()
 
   self:SetLineTemplate("AuctionatorScrollListLineTemplate")
   self.getNumEntries = self.GetNumEntries
-  self.multiSearchComplete = false
 
   self:InitSearch(
     function(results)
       self:EndSearch(results)
     end,
     function(current, total, results)
+      if self.currentList == nil then
+        return
+      end
+
       Auctionator.EventBus:Fire(self, Auctionator.ShoppingLists.Events.ListSearchIncrementalUpdate, results)
       self.ResultsText:SetText(Auctionator.Locales.Apply("LIST_SEARCH_STATUS", current, total, self.currentList.name))
     end
@@ -28,10 +31,13 @@ function AuctionatorScrollListMixin:SetUpEvents()
 
   Auctionator.EventBus:Register(self, {
     Auctionator.ShoppingLists.Events.ListSelected,
+    Auctionator.ShoppingLists.Events.ListDeleted,
     Auctionator.ShoppingLists.Events.ListItemSelected,
     Auctionator.ShoppingLists.Events.ListItemAdded,
+    Auctionator.ShoppingLists.Events.ListItemReplaced,
     Auctionator.ShoppingLists.Events.ListSearchRequested,
-    Auctionator.ShoppingLists.Events.ListItemDeleted
+    Auctionator.ShoppingLists.Events.ListItemDeleted,
+    Auctionator.ShoppingLists.Events.ListOrderChanged,
   })
 end
 
@@ -61,11 +67,19 @@ function AuctionatorScrollListMixin:ReceiveEvent(eventName, eventData, ...)
     end
 
     self:RefreshScrollFrame()
+  elseif eventName == Auctionator.ShoppingLists.Events.ListDeleted then
+    self.currentList = nil
+
+    self:RefreshScrollFrame()
   elseif eventName == Auctionator.ShoppingLists.Events.ListItemSelected then
     self:StartSearch({ eventData })
   elseif eventName == Auctionator.ShoppingLists.Events.ListItemAdded then
     self:RefreshScrollFrame()
+  elseif eventName == Auctionator.ShoppingLists.Events.ListItemReplaced then
+    self:RefreshScrollFrame()
   elseif eventName == Auctionator.ShoppingLists.Events.ListItemDeleted then
+    self:RefreshScrollFrame()
+  elseif eventName == Auctionator.ShoppingLists.Events.ListOrderChanged then
     self:RefreshScrollFrame()
   elseif eventName == Auctionator.ShoppingLists.Events.ListSearchRequested then
     self:StartSearch(self:GetAllSearchTerms())
@@ -135,7 +149,7 @@ function AuctionatorScrollListMixin:Init()
     local oddRow = (i % 2) == 1
 
     button:GetNormalTexture():SetAtlas(oddRow and "auctionhouse-rowstripe-1" or "auctionhouse-rowstripe-2");
-    button:InitLine(self)
+    button:InitLine(self.currentList)
     button:SetShown(false)
   end
 
@@ -198,4 +212,12 @@ function AuctionatorScrollListMixin:RefreshScrollFrame()
   local displayedHeight = populateCount * buttonHeight
 
   HybridScrollFrame_Update(self.ScrollFrame, totalHeight, displayedHeight)
+end
+
+function AuctionatorScrollListMixin:GetScrollOffset()
+	return HybridScrollFrame_GetOffset(self.ScrollFrame);
+end
+
+function AuctionatorScrollListMixin:SetLineTemplate(lineTemplate)
+  self.lineTemplate = lineTemplate;
 end

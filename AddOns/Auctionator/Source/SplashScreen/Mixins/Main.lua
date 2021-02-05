@@ -1,6 +1,123 @@
 -- We should probably move this into another file too
 local MESSAGES = {
   {
+    Version = "9.0.5",
+    Description = AUCTIONATOR_L_SPLASH_905_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_905_UPDATES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_905_UPDATES_1,
+        }
+      },
+    }
+  },
+  {
+    Version = "9.0.4",
+    Description = AUCTIONATOR_L_SPLASH_904_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_904_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_904_FEATURES_1,
+        }
+      },
+    }
+  },
+  {
+    Version = "9.0.3",
+    Description = AUCTIONATOR_L_SPLASH_903_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_903_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_903_FEATURES_1,
+          AUCTIONATOR_L_SPLASH_903_FEATURES_2,
+        }
+      },
+    }
+  },
+  {
+    Version = "9.0.2",
+    Description = AUCTIONATOR_L_SPLASH_902_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_902_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_902_FEATURES_1,
+        }
+      },
+    }
+  },
+  {
+    Version = "9.0.1",
+    Description = AUCTIONATOR_L_SPLASH_901_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_901_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_901_FEATURES_1,
+          AUCTIONATOR_L_SPLASH_901_FEATURES_2,
+        }
+      },
+      {
+        Title = AUCTIONATOR_L_SPLASH_901_CHANGES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_901_CHANGES_1,
+          AUCTIONATOR_L_SPLASH_901_CHANGES_2,
+        }
+      },
+    }
+  },
+  {
+    Version = "8.3.4",
+    Description = AUCTIONATOR_L_SPLASH_834_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_834_SHOPPING_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_834_SHOPPING_1,
+          AUCTIONATOR_L_SPLASH_834_SHOPPING_2,
+          AUCTIONATOR_L_SPLASH_834_SHOPPING_3,
+        }
+      },
+      {
+        Title = AUCTIONATOR_L_SPLASH_834_SELLING_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_834_SELLING_1,
+          AUCTIONATOR_L_SPLASH_834_SELLING_2,
+        }
+      },
+      {
+        Title = AUCTIONATOR_L_SPLASH_834_MISCELLANEOUS_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_834_MISCELLANEOUS_1,
+        }
+      },
+    }
+  },
+  {
+    Version = "8.3.3",
+    Description = AUCTIONATOR_L_SPLASH_833_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_833_SELLING_IMPROVEMENTS_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_833_SELLING_IMPROVEMENTS_1,
+          AUCTIONATOR_L_SPLASH_833_SELLING_IMPROVEMENTS_2,
+          AUCTIONATOR_L_SPLASH_833_SELLING_IMPROVEMENTS_3,
+          AUCTIONATOR_L_SPLASH_833_SELLING_IMPROVEMENTS_4,
+        }
+      },
+      {
+        Title = AUCTIONATOR_L_SPLASH_833_CONNECTED_REALMS_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_833_CONNECTED_REALMS_1,
+        }
+      },
+    }
+  },
+  {
     Version = "8.3.2",
     Description = AUCTIONATOR_L_SPLASH_832_DESCRIPTION,
     Sections = {

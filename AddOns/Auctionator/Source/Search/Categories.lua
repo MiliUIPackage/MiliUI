@@ -10,8 +10,7 @@
 --    subClasses = {
 --      classID  = integer (subClassID)
 --      name     = string  (resolved by GetItemSubClassInfo( subClassID ))
---      category   = table   (new QueryAuctionItems categoryData format, { classID, subClassID, inventoryType (nil) } )
---      TODO: Probably want to use the inventoryType to create Armor slot categories as well...
+--      category   = table   (new QueryAuctionItems categoryData format, { classID, subClassID, inventoryType? } )
 --    }
 --  }
 
@@ -29,16 +28,7 @@ local ITEM_CLASS_IDS = {
   LE_ITEM_CLASS_QUESTITEM,
   LE_ITEM_CLASS_MISCELLANEOUS
 }
-local INVENTORY_TYPE_IDS = {
-  LE_INVENTORY_TYPE_HEAD_TYPE,
-  LE_INVENTORY_TYPE_SHOULDER_TYPE,
-  LE_INVENTORY_TYPE_CHEST_TYPE,
-  LE_INVENTORY_TYPE_WAIST_TYPE,
-  LE_INVENTORY_TYPE_LEGS_TYPE,
-  LE_INVENTORY_TYPE_FEET_TYPE,
-  LE_INVENTORY_TYPE_WRIST_TYPE,
-  LE_INVENTORY_TYPE_HAND_TYPE,
-}
+local INVENTORY_TYPE_IDS = Auctionator.Constants.INVENTORY_TYPE_IDS
 
 Auctionator.Search.Category = {
   classID = 0,
@@ -48,19 +38,6 @@ Auctionator.Search.Category = {
   category = {},
   subClasses = {}
 }
-
--- TODO: Ununsed in current code (was used in advanced search dialog)
-function Auctionator.Search.Category.Find( key )
-  local category = Auctionator.Search.CategoryLookup[ key ]
-
-  if category == nil then
-    return Auctionator.Search.Category:new(), Auctionator.Search.Category:new()
-  elseif category.parentKey == nil then
-    return category, Auctionator.Search.Category:new()
-  else
-    return Auctionator.Search.CategoryLookup[ category.parentKey ], category
-  end
-end
 
 function Auctionator.Search.Category:new( options )
   options = options or {}
@@ -84,7 +61,7 @@ local function GenerateArmorInventorySlots(parentKey, parentCategory)
       inventoryType = INVENTORY_TYPE_IDS[index],
     }
     local subSubClass = Auctionator.Search.Category:new({
-      classID = subClassID,
+      classID = INVENTORY_TYPE_IDS[index],
       name = name,
       key = parentKey .. [[/]] .. name,
       parentKey = parentKey,
@@ -127,7 +104,7 @@ local function GenerateSubClasses( classID, parentKey )
   return subClasses
 end
 
-for index, classID in ipairs( ITEM_CLASS_IDS ) do
+for _, classID in ipairs( ITEM_CLASS_IDS ) do
   local key = GetItemClassInfo( classID )
   local subClasses = GenerateSubClasses( classID, key )
   local category = {classID = classID}
@@ -143,7 +120,7 @@ for index, classID in ipairs( ITEM_CLASS_IDS ) do
   table.insert( Auctionator.Search.Categories, categoryCategory )
 end
 
-for index, category in ipairs( Auctionator.Search.Categories ) do
+for _, category in ipairs( Auctionator.Search.Categories ) do
   Auctionator.Search.CategoryLookup[ category.key ] = category
 
   for i = 1, #category.subClasses do

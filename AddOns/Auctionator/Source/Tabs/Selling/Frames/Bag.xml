@@ -10,6 +10,8 @@
     </Scripts>
 
     <Frames>
+      <Frame parentKey="ItemIconDropDown" inherits="AuctionatorItemIconDropDownTemplate" hidden="true"/>
+
       <ScrollFrame parentKey="ScrollFrame" inherits="UIPanelScrollFrameTemplate">
         <Anchors>
           <Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" />
@@ -41,17 +43,34 @@
               <TexCoords left="0" right="0.484375" top=".75" bottom="1.0"/>
             </Texture>
           </Layer>
+          <Layer level="BACKGROUND">
+            <Texture parentKey="Background" file="Interface\FrameGeneral\UI-Background-Marble" horizTile="true" vertTile="true" setAllPoints="true">
+              <Anchors>
+                <Anchor point="TOPLEFT" relativePoint="TOPRIGHT"/>
+                <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT" x="23"/>
+              </Anchors>
+            </Texture>
+          </Layer>
         </Layers>
 
         <ScrollChild>
           <Frame parentKey="ItemListingFrame">
             <Frames>
+              <Frame parentKey="Favourites" inherits="AuctionatorBagClassListing">
+                <KeyValues>
+                  <KeyValue key="title" value="AUCTIONATOR_L_FAVOURITES" type="global" />
+                </KeyValues>
+                <Anchors>
+                  <Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" />
+                  <Anchor point="RIGHT" relativeKey="$parent" relativePoint="RIGHT" />
+                </Anchors>
+              </Frame>
               <Frame parentKey="WeaponItems" inherits="AuctionatorBagClassListing">
                 <KeyValues>
                   <KeyValue key="classId" value="LE_ITEM_CLASS_WEAPON" type="global" />
                 </KeyValues>
                 <Anchors>
-                  <Anchor point="TOPLEFT" relativeKey="$parent" relativePoint="TOPLEFT" />
+                  <Anchor point="TOPLEFT" relativeKey="$parent.Favourites" relativePoint="BOTTOMLEFT" />
                   <Anchor point="RIGHT" relativeKey="$parent" relativePoint="RIGHT" />
                 </Anchors>
               </Frame>

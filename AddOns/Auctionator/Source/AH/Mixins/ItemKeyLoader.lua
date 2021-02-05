@@ -7,18 +7,34 @@ local ITEM_KEY_INFO_EVENTS = {
 function AuctionatorAHItemKeyLoaderFrameMixin:OnLoad()
   Auctionator.EventBus:RegisterSource(self, "AuctionatorItemKeyLoadingMixin")
   self.waiting = {}
+  self.cache = {}
   self.waitingCount = 0
   self.registered = false
 end
 
 function AuctionatorAHItemKeyLoaderFrameMixin:Get(itemKey)
-  local info = C_AuctionHouse.GetItemKeyInfo(itemKey)
+  local itemKeyString = Auctionator.Utilities.ItemKeyString(itemKey)
+  local info = self.cache[itemKeyString]
   if info then
     Auctionator.EventBus:Fire(
       self,
       Auctionator.AH.Events.ItemKeyInfo,
       itemKey,
-      info
+      info,
+      true
+    )
+    return
+  end
+
+  info = C_AuctionHouse.GetItemKeyInfo(itemKey)
+  if info then
+    self.cache[itemKeyString] = info
+    Auctionator.EventBus:Fire(
+      self,
+      Auctionator.AH.Events.ItemKeyInfo,
+      itemKey,
+      info,
+      false
     )
   else
     if self.waiting[itemKey.itemID] == nil then
@@ -60,7 +76,7 @@ function AuctionatorAHItemKeyLoaderFrameMixin:OnEvent(event, itemID)
     self.waitingCount = self.waitingCount -1
     self.waiting[itemID] = nil
 
-    for index, key in ipairs(itemKeys) do
+    for _, key in ipairs(itemKeys) do
       self:Get(key)
     end
   end

@@ -2,16 +2,25 @@ local SEARCH_PROVIDER_LAYOUT = {
   {
     headerTemplate = "AuctionatorStringColumnHeaderTemplate",
     headerParameters = { "price" },
-    headerText = AUCTIONATOR_L_RESULTS_PRICE_COLUMN,
+    headerText = AUCTIONATOR_L_BUYOUT_PRICE,
     cellTemplate = "AuctionatorPriceCellTemplate",
     cellParameters = { "price" },
+    width = 140
+  },
+  {
+    headerTemplate = "AuctionatorStringColumnHeaderTemplate",
+    headerParameters = { "bidPrice" },
+    headerText = AUCTIONATOR_L_BID_PRICE,
+    cellTemplate = "AuctionatorPriceCellTemplate",
+    cellParameters = { "bidPrice" },
+    width = 140
   },
   {
     headerTemplate = "AuctionatorStringColumnHeaderTemplate",
     headerText = AUCTIONATOR_L_RESULTS_AVAILABLE_COLUMN,
     headerParameters = { "quantity" },
     cellTemplate = "AuctionatorStringCellTemplate",
-    cellParameters = { "quantity" },
+    cellParameters = { "quantityFormatted" },
   },
   {
     headerTemplate = "AuctionatorStringColumnHeaderTemplate",
@@ -19,6 +28,14 @@ local SEARCH_PROVIDER_LAYOUT = {
     headerParameters = { "level" },
     cellTemplate = "AuctionatorStringCellTemplate",
     cellParameters = { "level" },
+  },
+  {
+    headerTemplate = "AuctionatorStringColumnHeaderTemplate",
+    headerParameters = { "timeLeft" },
+    headerText = AUCTIONATOR_L_TIME_LEFT_H,
+    cellTemplate = "AuctionatorStringCellTemplate",
+    cellParameters = { "timeLeftPretty" },
+    defaultHide = true,
   },
   {
     headerTemplate = "AuctionatorStringColumnHeaderTemplate",
@@ -38,7 +55,7 @@ local SEARCH_EVENTS = {
   "AUCTION_CANCELED",
 }
 
-AuctionatorSearchDataProviderMixin = CreateFromMixins(DataProviderMixin)
+AuctionatorSearchDataProviderMixin = CreateFromMixins(AuctionatorDataProviderMixin)
 
 function AuctionatorSearchDataProviderMixin:OnShow()
   FrameUtil.RegisterFrameForEvents(self, SEARCH_EVENTS)
@@ -67,10 +84,16 @@ function AuctionatorSearchDataProviderMixin:GetTableLayout()
   return SEARCH_PROVIDER_LAYOUT
 end
 
+function AuctionatorSearchDataProviderMixin:GetColumnHideStates()
+  return Auctionator.Config.Get(Auctionator.Config.Options.COLUMNS_SELLING_SEARCH)
+end
+
 local COMPARATORS = {
   price = Auctionator.Utilities.NumberComparator,
-  available = Auctionator.Utilities.NumberComparator,
+  bidPrice = Auctionator.Utilities.NumberComparator,
+  quantity = Auctionator.Utilities.NumberComparator,
   level = Auctionator.Utilities.NumberComparator,
+  timeLeft = Auctionator.Utilities.NumberComparator,
   owned = Auctionator.Utilities.StringComparator,
 }
 
@@ -85,7 +108,7 @@ function AuctionatorSearchDataProviderMixin:Sort(fieldName, sortDirection)
     return comparator(left, right)
   end)
 
-  self.onUpdate(self.results)
+  self:SetDirty()
 end
 
 function AuctionatorSearchDataProviderMixin:OnEvent(eventName, itemRef, auctionID)
@@ -107,6 +130,10 @@ function AuctionatorSearchDataProviderMixin:OnEvent(eventName, itemRef, auctionI
   end
 end
 
+local function cancelShortcutEnabled()
+  return Auctionator.Config.Get(Auctionator.Config.Options.SELLING_CANCEL_SHORTCUT) ~= Auctionator.Config.Shortcuts.NONE
+end
+
 function AuctionatorSearchDataProviderMixin:ProcessCommodityResults(itemID)
   local entries = {}
   local anyOwnedNotLoaded = false
@@ -115,9 +142,13 @@ function AuctionatorSearchDataProviderMixin:ProcessCommodityResults(itemID)
     local resultInfo = C_AuctionHouse.GetCommoditySearchResultInfo(itemID, index)
     local entry = {
       price = resultInfo.unitPrice,
+      bidPrice = nil,
       owners = resultInfo.owners,
       quantity = resultInfo.quantity,
+      quantityFormatted = Auctionator.Utilities.DelimitThousands(resultInfo.quantity),
       level = "0",
+      timeLeftPretty = Auctionator.Utilities.RoundTime(resultInfo.timeLeftSeconds or 0),
+      timeLeft = resultInfo.timeLeftSeconds or 0, --Used in sorting
       auctionID = resultInfo.auctionID,
       itemID = itemID,
       itemType = Auctionator.Constants.ITEM_TYPES.COMMODITY,
@@ -144,15 +175,26 @@ function AuctionatorSearchDataProviderMixin:ProcessCommodityResults(itemID)
   -- called if an auction exists that hasn't been loaded for cancelling yet.
   -- If a user really really wants to avoid an extra request they can turn the
   -- feature off.
-  if anyOwnedNotLoaded and Auctionator.Config.Get(Auctionator.Config.Options.SELLING_CANCEL_SHORTCUT) ~= Auctionator.Config.Shortcuts.NONE then
+  if anyOwnedNotLoaded and cancelShortcutEnabled() then
     Auctionator.AH.QueryOwnedAuctions({})
   end
 
   return entries
 end
 
-local function cancelShortcutEnabled()
-  return Auctionator.Config.Get(Auctionator.Config.Options.SELLING_CANCEL_SHORTCUT) ~= Auctionator.Config.Shortcuts.NONE
+local function TimeLeftBandToHours(timeLeftBand)
+  if timeLeftBand == Enum.AuctionHouseTimeLeftBand.Short then
+    return "0 - 0.5"
+  elseif timeLeftBand == Enum.AuctionHouseTimeLeftBand.Medium then
+    return "0.5 - 2"
+  elseif timeLeftBand == Enum.AuctionHouseTimeLeftBand.Long then
+    return "2 - 12"
+  elseif timeLeftBand == Enum.AuctionHouseTimeLeftBand.VeryLong then
+    return "12 - 48"
+  else
+    Auctionator.Debug.Message("Missing auction time left band")
+    return ""
+  end
 end
 
 function AuctionatorSearchDataProviderMixin:ProcessItemResults(itemKey)
@@ -162,15 +204,26 @@ function AuctionatorSearchDataProviderMixin:ProcessItemResults(itemKey)
   for index = C_AuctionHouse.GetNumItemSearchResults(itemKey), 1, -1 do
     local resultInfo = C_AuctionHouse.GetItemSearchResultInfo(itemKey, index)
     local entry = {
-      price = resultInfo.buyoutAmount or resultInfo.bidAmount,
+      price = resultInfo.buyoutAmount,
+      bidPrice = resultInfo.bidAmount,
       level = tostring(resultInfo.itemKey.itemLevel or 0),
       owners = resultInfo.owners,
+      timeLeftPretty = TimeLeftBandToHours(resultInfo.timeLeft),
+      timeLeft = resultInfo.timeLeft, --Used in sorting and the vanilla AH tooltip code
       quantity = resultInfo.quantity,
+      quantityFormatted = Auctionator.Utilities.DelimitThousands(resultInfo.quantity),
       itemLink = resultInfo.itemLink,
       auctionID = resultInfo.auctionID,
       itemType = Auctionator.Constants.ITEM_TYPES.ITEM,
-      canBuy = not (resultInfo.containsOwnerItem or resultInfo.containsAccountItem)
+      canBuy = resultInfo.buyoutAmount ~= nil and not (resultInfo.containsOwnerItem or resultInfo.containsAccountItem)
     }
+
+    if resultInfo.itemKey.battlePetSpeciesID ~= 0 and entry.itemLink ~= nil then
+      entry.level = tostring(Auctionator.Utilities.GetPetLevelFromLink(entry.itemLink))
+    end
+
+    local qualityColor = Auctionator.Utilities.GetQualityColorFromLink(entry.itemLink)
+    entry.level = "|c" .. qualityColor .. entry.level .. "|r"
 
     if resultInfo.containsOwnerItem then
       -- Test if the auction has been loaded for cancelling

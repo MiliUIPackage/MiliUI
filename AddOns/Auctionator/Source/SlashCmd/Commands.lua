@@ -1,5 +1,6 @@
 local SLASH_COMMAND_DESCRIPTIONS = {
   {commands = "p, post", message = "Posts the chosen item from the \"Selling\" tab." },
+  {commands = "cu, cancelundercut", message = "Cancels the next undercut auction in the \"Cancelling\" tab." },
   {commands = "ra, resetall", message = "Reset database and full scan timer." },
   {commands = "rdb, resetdatabase", message = "Reset Auctionator database."},
   {commands = "rt, resettimer", message = "Reset full scan timer."},
@@ -17,6 +18,14 @@ function Auctionator.SlashCmd.Post()
     :RegisterSource(Auctionator.SlashCmd.Post, "Auctionator.SlashCmd.Post")
     :Fire(Auctionator.SlashCmd.Post, Auctionator.Selling.Events.RequestPost)
     :UnregisterSource(Auctionator.SlashCmd.Post)
+end
+
+function Auctionator.SlashCmd.CancelUndercut()
+  Auctionator.Utilities.Message(AUCTIONATOR_L_CANCEL_UNDERCUT_BUTTON_MACRO)
+  Auctionator.EventBus
+    :RegisterSource(Auctionator.SlashCmd.CancelUndercut, "Auctionator.SlashCmd.CancelUndercut")
+    :Fire(Auctionator.SlashCmd.CancelUndercut, Auctionator.Cancelling.Events.RequestCancelUndercut)
+    :UnregisterSource(Auctionator.SlashCmd.CancelUndercut)
 end
 
 function Auctionator.SlashCmd.ToggleDebug()
@@ -62,7 +71,7 @@ function Auctionator.SlashCmd.ResetConfig()
   end
 end
 
-function Auctionator.SlashCmd.Config(name)
+function Auctionator.SlashCmd.Config(name, value)
   if name == nil then
     Auctionator.Utilities.Message("Current config:")
     for _, name in pairs(Auctionator.Config.Options) do
@@ -70,6 +79,13 @@ function Auctionator.SlashCmd.Config(name)
     end
   elseif type(Auctionator.Config.Get(name)) == "boolean" then
     Auctionator.Config.Set(name, not Auctionator.Config.Get(name))
+    Auctionator.Utilities.Message("Config set " .. name .. " = " .. tostring(Auctionator.Config.Get(name)))
+  elseif type(Auctionator.Config.Get(name)) == "number" then
+    if tonumber(value) == nil then
+      Auctionator.Utilities.Message("Config " .. name .. " not modified; Numerical value required")
+    else
+      Auctionator.Config.Set(name, tonumber(value))
+    end
     Auctionator.Utilities.Message("Config set " .. name .. " = " .. tostring(Auctionator.Config.Get(name)))
   elseif Auctionator.Config.Get(name) ~= nil then
     Auctionator.Utilities.Message("Unable to modify " .. name .. " at this time")
@@ -79,7 +95,7 @@ function Auctionator.SlashCmd.Config(name)
 end
 
 function Auctionator.SlashCmd.Version()
-  Auctionator.Utilities.PrintVersion()
+  Auctionator.Utilities.Message(AUCTIONATOR_L_VERSION_HEADER .. " " .. Auctionator.State.CurrentVersion)
 end
 
 function Auctionator.SlashCmd.Help()

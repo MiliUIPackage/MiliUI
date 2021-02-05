@@ -5,7 +5,14 @@ function AuctionatorCancellingFrameMixin:OnLoad()
 
   self.ResultsListing:Init(self.DataProvider)
 
-  Auctionator.EventBus:Register(self, {Auctionator.Cancelling.Events.RequestCancel})
+  Auctionator.EventBus:Register(self, {
+    Auctionator.Cancelling.Events.RequestCancel,
+    Auctionator.Cancelling.Events.TotalUpdated,
+  })
+end
+
+function AuctionatorCancellingFrameMixin:RefreshButtonClicked()
+  self.DataProvider:QueryAuctions()
 end
 
 function AuctionatorCancellingFrameMixin:ReceiveEvent(eventName, eventData, ...)
@@ -15,5 +22,12 @@ function AuctionatorCancellingFrameMixin:ReceiveEvent(eventName, eventData, ...)
     Auctionator.AH.CancelAuction(eventData)
 
     PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
+
+  elseif eventName == Auctionator.Cancelling.Events.TotalUpdated then
+    self.Total:SetText(
+      AUCTIONATOR_L_TOTAL_ON_SALE:format(
+        Auctionator.Utilities.CreateMoneyString(eventData)
+      )
+    )
   end
 end

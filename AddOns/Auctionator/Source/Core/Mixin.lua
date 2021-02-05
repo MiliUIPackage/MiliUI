@@ -1,28 +1,5 @@
 AuctionatorAHFrameMixin = {}
 
-local function InitializeFullScanFrame()
-  local frame
-  if Auctionator.State.FullScanFrameRef == nil then
-    frame = CreateFrame(
-      "FRAME",
-      "AuctionatorFullScanFrame",
-      AuctionHouseFrame,
-      "AuctionatorFullScanFrameTemplate"
-    )
-
-    Auctionator.State.FullScanFrameRef = frame
-  else
-    frame = Auctionator.State.FullScanFrameRef
-  end
-
-  if (
-    Auctionator.Config.Get(Auctionator.Config.Options.AUTOSCAN) and
-    not Auctionator.Config.Get(Auctionator.Config.Options.ALTERNATE_SCAN_MODE)
-  ) then
-    frame:InitiateScan()
-  end
-end
-
 local function InitializeIncrementalScanFrame()
   local frame
   if Auctionator.State.IncrementalScanFrameRef == nil then
@@ -38,10 +15,8 @@ local function InitializeIncrementalScanFrame()
     frame = Auctionator.State.IncrementalScanFrameRef
   end
 
-  if (
-    Auctionator.Config.Get(Auctionator.Config.Options.AUTOSCAN) and
-    Auctionator.Config.Get(Auctionator.Config.Options.ALTERNATE_SCAN_MODE)
-  ) then
+  if Auctionator.Config.Get(Auctionator.Config.Options.AUTOSCAN) and
+     frame:IsAutoscanReady() then
     frame:InitiateScan()
   end
 end
@@ -74,7 +49,6 @@ local function InitializeAuctionHouseTabs()
 end
 
 local function InitializeSplashScreen()
-  -- TODO Check for display setting before creating
   if Auctionator.State.SplashScreenRef == nil then
     Auctionator.State.SplashScreenRef = CreateFrame(
       "Frame",
@@ -110,13 +84,8 @@ local function InitializeLateTooltipHooks()
   setTooltipHooks = true
 end
 
-function ShowDefaultTab()
-  local tabs = {
-    AuctionatorTabs_ShoppingLists,
-    AuctionatorTabs_Selling,
-    AuctionatorTabs_Cancelling,
-    AuctionatorTabs_Auctionator,
-  }
+local function ShowDefaultTab()
+  local tabs = AuctionatorAHTabsContainer.Tabs
 
   local chosenTab = tabs[Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_TAB)]
 
@@ -128,7 +97,8 @@ end
 function AuctionatorAHFrameMixin:OnShow()
   Auctionator.Debug.Message("AuctionatorAHFrameMixin:OnShow()")
 
-  InitializeFullScanFrame()
+  Auctionator.Utilities.ClassicWoWCheck()
+
   InitializeIncrementalScanFrame()
   InitializeAuctionChatLogFrame()
   InitializeLateTooltipHooks()

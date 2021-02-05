@@ -17,9 +17,10 @@ function AuctionatorBagClassListingMixin:OnLoad()
 
     return button
   end)
-  self.isAuctionatorBag = true
 
-  self.title = GetItemClassInfo(self.classId)
+  if self.title == nil and self.classId ~= nil then
+    self.title = GetItemClassInfo(self.classId)
+  end
 
   self:UpdateTitle()
   self:SetHeight(self.SectionTitle:GetHeight())
@@ -42,7 +43,7 @@ end
 function AuctionatorBagClassListingMixin:Reset()
   self.items = {}
 
-  for index, item in ipairs(self.buttons) do
+  for _, item in ipairs(self.buttons) do
     item:Hide()
     self.buttonPool:Return(item)
   end
@@ -89,11 +90,8 @@ end
 
 function AuctionatorBagClassListingMixin:DrawButtons()
   local rows = 1
-  local lastButton
 
   for index, button in ipairs(self.buttons) do
-    lastButton = button
-
     if index == 1 then
       button:SetPoint("TOPLEFT", self.ItemContainer, "TOPLEFT", 0, -2)
     elseif ((index - 1) % self:GetRowLength()) == 0 then

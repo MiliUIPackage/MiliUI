@@ -5,6 +5,10 @@ local function SelectOwnItem(self)
     return
   end
 
+  -- Deselect any items in the "Sell" tab
+  AuctionHouseFrame.ItemSellFrame:SetItem(nil, nil, false)
+  AuctionHouseFrame.CommoditiesSellFrame:SetItem(nil, nil, false)
+
   AuctionatorTabs_Selling:Click()
 
   local itemInfo = Auctionator.Utilities.ItemInfoFromLocation(itemLocation)

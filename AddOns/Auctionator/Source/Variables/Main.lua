@@ -1,18 +1,5 @@
--- TODO Initialize all the things here!
--- TODO Document all of our saved vars (started in Objects, should aggregate somewhere)
 local VERSION_8_3 = 6
-
--- All the saved variables from the TOC
--- SavedVariablesPerCharacter:
---   AUCTIONATOR_SHOW_ST_PRICE, AUCTIONATOR_ENABLE_ALT, AUCTIONATOR_OPEN_FIRST,
---   AUCTIONATOR_OPEN_BUY, AUCTIONATOR_DEF_DURATION, AUCTIONATOR_SHOW_TIPS, AUCTIONATOR_D_TIPS,
---   AUCTIONATOR_DE_DETAILS_TIPS, AUCTIONATOR_DEFTAB
--- SavedVariables:
---   AUCTIONATOR_CONFIG, AUCTIONATOR_SAVEDVARS, AUCTIONATOR_PRICING_HISTORY, AUCTIONATOR_SHOPPING_LISTS,
---   AUCTIONATOR_PRICE_DATABASE, AUCTIONATOR_TOONS, AUCTIONATOR_STACKING_PREFS, AUCTIONATOR_DB_MAXITEM_AGE,
---   AUCTIONATOR_DB_MAXHIST_AGE, AUCTIONATOR_DB_MAXHIST_DAYS, AUCTIONATOR_FS_CHUNK, AUCTIONATOR_DE_DATA,
---   AUCTIONATOR_DE_DATA_BAK, ITEM_ID_VERSION
-
+local POSTING_HISTORY_DB_VERSION = 1
 
 function Auctionator.Variables.Initialize()
   Auctionator.Variables.InitializeSavedState()
@@ -23,6 +10,7 @@ function Auctionator.Variables.Initialize()
 
   Auctionator.Variables.InitializeDatabase()
   Auctionator.Variables.InitializeShoppingLists()
+  Auctionator.Variables.InitializePostingHistory()
 
   Auctionator.State.Loaded = true
 end
@@ -34,11 +22,52 @@ function Auctionator.Variables.InitializeSavedState()
   Auctionator.SavedState = AUCTIONATOR_SAVEDVARS
 end
 
+-- All "realms" that are connected together use the same AH database, this
+-- determines which database is in use.
+function Auctionator.Variables.GetConnectedRealmRoot()
+  local currentRealm = GetRealmName()
+  local connections = GetAutoCompleteRealms()
+
+  -- We sort so that we always get the same first realm to use for the database
+  table.sort(connections)
+
+  if connections[1] ~= nil then
+    -- Case where we are on a connected realm
+    return connections[1]
+  else
+    -- We are not on a connected realm
+    return currentRealm
+  end
+end
+
+-- Attempt to import from other connected realms (this may happen if another
+-- realm was connected or the databases are not currently shared)
+--
+-- Assumes rootRealm has no active database
+local function ImportFromConnectedRealm(rootRealm)
+  local connections = GetAutoCompleteRealms()
+
+  if #connections == 0 then
+    return false
+  end
+
+  for _, altRealm in ipairs(connections) do
+
+    if AUCTIONATOR_PRICE_DATABASE[altRealm] ~= nil then
+
+      AUCTIONATOR_PRICE_DATABASE[rootRealm] = AUCTIONATOR_PRICE_DATABASE[altRealm]
+      -- Remove old database (no longer needed)
+      AUCTIONATOR_PRICE_DATABASE[altRealm] = nil
+      return true
+    end
+  end
+
+  return false
+end
+
 function Auctionator.Variables.InitializeDatabase()
   Auctionator.Debug.Message("Auctionator.Database.Initialize()")
   -- Auctionator.Utilities.TablePrint(AUCTIONATOR_PRICE_DATABASE, "AUCTIONATOR_PRICE_DATABASE")
-
-  local realm = GetRealmName()
 
   -- First time users need the price database initialized
   if AUCTIONATOR_PRICE_DATABASE == nil then
@@ -47,21 +76,37 @@ function Auctionator.Variables.InitializeDatabase()
     }
   end
 
-  -- Changing how we record item info, so need to reset the DB if prior to 8.3
-  if AUCTIONATOR_PRICE_DATABASE["__dbversion"] < VERSION_8_3 then
+  -- If we changed how we record item info we need to reset the DB
+  if AUCTIONATOR_PRICE_DATABASE["__dbversion"] ~= VERSION_8_3 then
     AUCTIONATOR_PRICE_DATABASE = {
       ["__dbversion"] = VERSION_8_3
     }
   end
 
+  local realm = Auctionator.Variables.GetConnectedRealmRoot()
+
   -- Check for current realm and initialize if not present
   if AUCTIONATOR_PRICE_DATABASE[realm] == nil then
-    AUCTIONATOR_PRICE_DATABASE[realm] = {}
+    if not ImportFromConnectedRealm(realm) then
+      AUCTIONATOR_PRICE_DATABASE[realm] = {}
+    end
   end
 
-  Auctionator.State.LiveDB = AUCTIONATOR_PRICE_DATABASE[realm]
+  Auctionator.Database = CreateAndInitFromMixin(Auctionator.DatabaseMixin, AUCTIONATOR_PRICE_DATABASE[realm])
+  Auctionator.Database:Prune()
+end
 
-  Auctionator.Database.Prune()
+function Auctionator.Variables.InitializePostingHistory()
+  Auctionator.Debug.Message("Auctionator.Variables.InitializePostingHistory()")
+
+  if AUCTIONATOR_POSTING_HISTORY == nil  or
+     AUCTIONATOR_POSTING_HISTORY["__dbversion"] ~= POSTING_HISTORY_DB_VERSION then
+    AUCTIONATOR_POSTING_HISTORY = {
+      ["__dbversion"] = POSTING_HISTORY_DB_VERSION
+    }
+  end
+
+  Auctionator.PostingHistory = CreateAndInitFromMixin(Auctionator.PostingHistoryMixin, AUCTIONATOR_POSTING_HISTORY)
 end
 
 function Auctionator.Variables.InitializeShoppingLists()
@@ -71,5 +116,6 @@ function Auctionator.Variables.InitializeShoppingLists()
 
   Auctionator.ShoppingLists.Lists = AUCTIONATOR_SHOPPING_LISTS
   Auctionator.ShoppingLists.Prune()
+  Auctionator.ShoppingLists.Sort()
   AUCTIONATOR_SHOPPING_LISTS = Auctionator.ShoppingLists.Lists
 end

@@ -18,13 +18,11 @@ function AuctionatorItemKeyCellTemplateMixin:Populate(rowData, index)
 end
 
 function AuctionatorItemKeyCellTemplateMixin:OnEnter()
-  self.rowData.addAuctionatorTip = true
   AuctionHouseUtil.LineOnEnterCallback(self, self.rowData)
   AuctionatorCellMixin.OnEnter(self)
 end
 
 function AuctionatorItemKeyCellTemplateMixin:OnLeave()
-  self.rowData.addAuctionatorTip = false
   AuctionHouseUtil.LineOnLeaveCallback(self, self.rowData)
   AuctionatorCellMixin.OnLeave(self)
 end

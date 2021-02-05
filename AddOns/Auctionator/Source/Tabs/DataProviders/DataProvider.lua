@@ -1,12 +1,13 @@
-DataProviderMixin = {}
+AuctionatorDataProviderMixin = {}
 
--- DataProviderMixin registers for the following events for derived mixins:
+-- AuctionatorDataProviderMixin registers for the following events for derived mixins:
 --   1. Auctionator.ShoppingLists.Events.ListResultItemProcessed
-function DataProviderMixin:OnLoad()
+function AuctionatorDataProviderMixin:OnLoad()
   self.results = {}
   self.insertedKeys = {}
   self.entriesToProcess = {}
   self.processCountPerUpdate = 10
+  self.presetSort = {key = nil, direction = nil}
 
   self.searchCompleted = false
 
@@ -18,13 +19,13 @@ function DataProviderMixin:OnLoad()
   self.onPreserveScroll = function() end
 end
 
-function DataProviderMixin:OnUpdate(elapsed)
+function AuctionatorDataProviderMixin:OnUpdate(elapsed)
   if elapsed >= 0 then
     self:CheckForEntriesToProcess()
   end
 end
 
-function DataProviderMixin:Reset()
+function AuctionatorDataProviderMixin:Reset()
   self.results = {}
   self.insertedKeys = {}
   self.entriesToProcess = {}
@@ -33,11 +34,18 @@ function DataProviderMixin:Reset()
 end
 
 -- Derive: This will be used to help with sorting and filtering unique entries
-function DataProviderMixin:UniqueKey(entry)
+function AuctionatorDataProviderMixin:UniqueKey(entry)
 end
 
 -- Derive: This is the template for sorting the dataset contained by this provider
-function DataProviderMixin:Sort(fieldName, sortDirection)
+function AuctionatorDataProviderMixin:Sort(fieldName, sortDirection)
+end
+
+-- Sets sorting fieldName/sortDirection to use as data is being processed. Set
+-- either to nil to disable any sorting.
+function AuctionatorDataProviderMixin:SetPresetSort(fieldName, sortDirection)
+  self.presetSort.key = fieldName
+  self.presetSort.direction = sortDirection
 end
 
 -- Derive: This defines the Results Listing table layout
@@ -57,46 +65,60 @@ end
 --   6. OPTIONAL width - Integer
 --      If supplied, this will be used to define the column's fixed width.
 --      If omitted, the column will use ColumnWidthConstraints.Fill from TableBuilder
-function DataProviderMixin:GetTableLayout()
+function AuctionatorDataProviderMixin:GetTableLayout()
   return {}
 end
 
-function DataProviderMixin:GetRowTemplate()
+-- Derive: This sets table which stores the options for saving the customised
+-- column view.  If this is nil, it won't be possible to customise the columns.
+function AuctionatorDataProviderMixin:GetColumnHideStates()
+  return nil
+end
+
+function AuctionatorDataProviderMixin:GetRowTemplate()
   return "AuctionatorResultsRowTemplate"
 end
 
-function DataProviderMixin:GetEntryAt(index)
+function AuctionatorDataProviderMixin:GetEntryAt(index)
   -- Auctionator.Debug.Message("INDEX", index)
 
   return self.results[index]
 end
 
-function DataProviderMixin:GetCount()
+function AuctionatorDataProviderMixin:GetCount()
   return #self.results
 end
 
-function DataProviderMixin:SetOnEntryProcessedCallback(onEntryProcessedCallback)
+function AuctionatorDataProviderMixin:SetOnEntryProcessedCallback(onEntryProcessedCallback)
   self.onEntryProcessed = onEntryProcessedCallback
 end
 
-function DataProviderMixin:SetOnUpdateCallback(onUpdateCallback)
+function AuctionatorDataProviderMixin:SetOnUpdateCallback(onUpdateCallback)
   self.onUpdate = onUpdateCallback
 end
 
-function DataProviderMixin:SetOnSearchStartedCallback(onSearchStartedCallback)
+function AuctionatorDataProviderMixin:SetOnSearchStartedCallback(onSearchStartedCallback)
   self.onSearchStarted = onSearchStartedCallback
 end
 
-function DataProviderMixin:SetOnSearchEndedCallback(onSearchEndedCallback)
+function AuctionatorDataProviderMixin:SetOnSearchEndedCallback(onSearchEndedCallback)
   self.onSearchEnded = onSearchEndedCallback
 end
 
-function DataProviderMixin:SetOnPreserveScrollCallback(onPreserveScrollCallback)
+function AuctionatorDataProviderMixin:NotifyCacheUsed()
+  self.cacheUsedCount = self.cacheUsedCount + 1
+end
+
+function AuctionatorDataProviderMixin:SetDirty()
+  self.isDirty = true
+end
+
+function AuctionatorDataProviderMixin:SetOnPreserveScrollCallback(onPreserveScrollCallback)
   self.onPreserveScroll = onPreserveScrollCallback
 end
 
-function DataProviderMixin:AppendEntries(entries, isLastSetOfResults)
-  Auctionator.Debug.Message("DataProviderMixin:AppendEntries()", #entries)
+function AuctionatorDataProviderMixin:AppendEntries(entries, isLastSetOfResults)
+  Auctionator.Debug.Message("AuctionatorDataProviderMixin:AppendEntries()", #entries)
 
   self.searchCompleted = isLastSetOfResults
   self.announcedCompletion = false
@@ -108,22 +130,30 @@ end
 
 -- We process a limited number of entries every frame to avoid freezing the
 -- client.
-function DataProviderMixin:CheckForEntriesToProcess()
+function AuctionatorDataProviderMixin:CheckForEntriesToProcess()
   if #self.entriesToProcess == 0 then
     if not self.announcedCompletion and self.searchCompleted then
       self.announcedCompletion = true
       self.onSearchEnded()
     end
+
+    if self.isDirty then
+      self.onUpdate(self.results)
+      self.isDirty = false
+    end
+
     return
   end
 
-  Auctionator.Debug.Message("DataProviderMixin:CheckForEntriesToProcess()")
+  Auctionator.Debug.Message("AuctionatorDataProviderMixin:CheckForEntriesToProcess()")
 
   local processCount = 0
   local entry
   local key
 
-  while processCount < self.processCountPerUpdate and #self.entriesToProcess > 0 do
+  self.cacheUsedCount = 0
+
+  while processCount < self.processCountPerUpdate + self.cacheUsedCount and #self.entriesToProcess > 0 do
     processCount = processCount + 1
     entry = table.remove(self.entriesToProcess)
 
@@ -132,8 +162,15 @@ function DataProviderMixin:CheckForEntriesToProcess()
       self.insertedKeys[key] = entry
       table.insert(self.results, entry)
 
+      --Used to keep items in a consistent order when fields are identical and sorting
+      entry.sortingIndex = #self.results
+
       self.onEntryProcessed(entry)
     end
+  end
+
+  if self.presetSort.key ~= nil and self.presetSort.direction ~= nil then
+    self:Sort(self.presetSort.key, self.presetSort.direction)
   end
 
   if #self.entriesToProcess == 0 and self.searchCompleted then
@@ -142,4 +179,64 @@ function DataProviderMixin:CheckForEntriesToProcess()
   end
 
   self.onUpdate(self.results)
+  self.isDirty = false
+end
+
+local function WrapCSVParameter(parameter)
+  if type(parameter) == "string" then
+    return "\"" .. string.gsub(parameter, "\"", "") .. "\""
+  else
+    return tostring(parameter)
+  end
+end
+
+function AuctionatorDataProviderMixin:GetCSV(callback)
+  if self:GetCount() == 0 then
+    callback("")
+  end
+
+  local csvResult = ""
+
+  local layout = self:GetTableLayout()
+
+  for index, column in ipairs(layout) do
+    csvResult = csvResult .. WrapCSVParameter(column.headerText)
+
+    if index ~= #layout then
+      csvResult = csvResult ..  ","
+    end
+  end
+  csvResult = csvResult .. "\n"
+
+  local function DoRows(start, finish)
+    finish = math.min(finish, self:GetCount())
+
+    local index = start
+    while index <= finish do
+      local row = self.results[index]
+      for column, cell in ipairs(layout) do
+        csvResult = csvResult .. WrapCSVParameter(row[cell.headerParameters[1]])
+
+        if column ~= #layout then
+          csvResult = csvResult .. ","
+        end
+      end
+
+      if index ~= self:GetCount() then
+        csvResult = csvResult .. "\n"
+      end
+
+      index = index + 1
+    end
+
+    if finish < self:GetCount() then
+      C_Timer.After(0, function()
+        DoRows(finish + 1, (finish - start) + finish + 1)
+      end)
+    else
+      callback(csvResult)
+    end
+  end
+
+  DoRows(1, 50)
 end

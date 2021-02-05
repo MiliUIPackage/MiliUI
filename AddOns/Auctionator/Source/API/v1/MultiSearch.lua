@@ -10,9 +10,9 @@ local function ValidateState(callerID, searchTerms)
   end
 
   for _, term in ipairs(cloned) do
-    if string.match(term, "\"") or string.match(term, ";") then
+    if string.match(term, "^%s*\".*\"%s*$") or string.match(term, ";") then
       Auctionator.API.ComposeError(
-        callerID, "Search term contains \" or ;"
+        callerID, "Search term contains ; or is wrapped in \""
       )
     end
   end
@@ -27,7 +27,7 @@ end
 
 local function StartSearch(callerID, cloned)
   -- Show the shopping list tab for results
-  AuctionHouseFrame.AuctionatorShoppingListTab:Click()
+  AuctionatorTabs_ShoppingLists:Click()
 
   local listName = callerID .. " (" .. AUCTIONATOR_L_TEMPORARY_LOWER_CASE .. ")"
 

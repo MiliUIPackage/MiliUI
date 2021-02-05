@@ -11,3 +11,11 @@ function AuctionatorStringCellTemplateMixin:Populate(rowData, index)
 
   self.text:SetText(rowData[self.columnName])
 end
+
+function AuctionatorStringCellTemplateMixin:OnHide()
+  self.text:Hide()
+end
+
+function AuctionatorStringCellTemplateMixin:OnShow()
+  self.text:Show()
+end

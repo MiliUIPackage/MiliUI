@@ -3,7 +3,6 @@ local zc = addonTable.zc;
 
 local L = Auctionator.Locales.Apply
 
--- TODO DOCUMENTATION
 -- Auctionator.Config.Options.VENDOR_TOOLTIPS: true if should show vendor tips
 -- Auctionator.Config.Options.SHIFT_STACK_TOOLTIPS: true to show stack price when [shift] is down
 -- Auctionator.Config.Options.AUCTION_TOOLTIPS: true if should show auction tips
@@ -28,7 +27,7 @@ function Auctionator.Tooltip.ShowTipWithPricing(tooltipFrame, itemLink, itemCoun
     countString = Auctionator.Utilities.CreateCountString(itemCount)
   end
 
-  local auctionPrice = Auctionator.Database.GetPrice(itemKey)
+  local auctionPrice = Auctionator.Database:GetPrice(itemKey)
   if auctionPrice ~= nil then
     auctionPrice = auctionPrice * (showStackPrices and itemCount or 1)
   end
@@ -73,7 +72,7 @@ function Auctionator.Tooltip.ShowTipWithMultiplePricing(tooltipFrame, itemKeys)
   for _, itemEntry in ipairs(itemKeys) do
     tooltipFrame:AddLine(itemEntry.link)
 
-    auctionPrice = Auctionator.Database.GetPrice(
+    auctionPrice = Auctionator.Database:GetPrice(
       Auctionator.Utilities.ItemKeyFromLink(itemEntry.link)
     )
     if auctionPrice ~= nil then
@@ -98,6 +97,8 @@ end
 
 function Auctionator.Tooltip.AddVendorTip(tooltipFrame, vendorPrice, countString)
   if Auctionator.Config.Get(Auctionator.Config.Options.VENDOR_TOOLTIPS) and vendorPrice > 0 then
+    GameTooltip_ClearMoney(tooltipFrame) -- Remove default price
+
     tooltipFrame:AddDoubleLine(
       L("VENDOR") .. countString,
       WHITE_FONT_COLOR:WrapTextInColorCode(
@@ -171,7 +172,7 @@ function Auctionator.Tooltip.AddPetTip(
   end
 
   local key = "p:" .. tostring(speciesID)
-  local price = Auctionator.Database.GetPrice(key)
+  local price = Auctionator.Database:GetPrice(key)
   BattlePetTooltip:AddLine(" ")
   if price ~= nil then
     BattlePetTooltip:AddLine(

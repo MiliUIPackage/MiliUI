@@ -2,13 +2,14 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
   <Script file="Objects.lua" />
   <Script file="Locales\Main.lua" />
+  <Include file="Constants\Manifest.xml" />
+
+  <Include file="AH\Manifest.xml"/>
 
   <Include file="Components\Manifest.xml" />
 
   <Include file="Search\Manifest.xml" />
   <Include file="Core\Manifest.xml" />
-
-  <Include file="Constants\Manifest.xml" />
 
   <Include file="Utilities\Manifest.xml" />
 
@@ -17,7 +18,6 @@
   <Include file="Variables\Manifest.xml" />
   <Include file="Database\Manifest.xml"/>
 
-  <Include file="FullScan\Manifest.xml"/>
   <Include file="IncrementalScan\Manifest.xml"/>
   <Include file="AuctionChatLog\Manifest.xml"/>
 
@@ -28,13 +28,13 @@
   <Include file="Enchant\Manifest.xml" />
   <Include file="Config\Manifest.xml" />
   <Include file="Selling\Manifest.xml"/>
+  <Include file="PostingHistory\Manifest.xml"/>
 
   <Include file="Cancelling\Manifest.xml"/>
+  <Include file="ReagentSearch\Manifest.xml" />
 
   <Include file="Tabs\Manifest.xml" />
   <Include file="API\Manifest.xml" />
 
   <Include file="SplashScreen\Manifest.xml" />
-
-  <Include file="AH\Manifest.xml"/>
 </Ui>
