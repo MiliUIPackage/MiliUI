@@ -3,7 +3,7 @@
 -- 物品信息庫 Author: M
 ---------------------------------
 
-local MAJOR, MINOR = "LibItemInfo.7000", 3
+local MAJOR, MINOR = "LibItemInfo.7000", 4
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not lib then return end
@@ -178,7 +178,7 @@ function lib:GetUnitItemInfo(unit, index, stats)
 end
 
 --獲取UNIT的裝備等級
---@return unknownCount, 平均装等, 装等总和, 項鍊等級, 是否神器, 最大装等
+--@return unknownCount, 平均装等, 装等总和, 最大武器等级, 是否神器, 最大装等
 function lib:GetUnitItemLevel(unit, stats)
     local total, counts, maxlevel = 0, 0, 0
     local _, count, level
@@ -190,10 +190,9 @@ function lib:GetUnitItemLevel(unit, stats)
             maxlevel = max(maxlevel, level)
         end
     end
-    local mcount, mlevel, mquality, mslot, ocount, olevel, oquality, oslot, necklevel
+    local mcount, mlevel, mquality, mslot, ocount, olevel, oquality, oslot
     mcount, mlevel, _, _, mquality, _, _, _, _, _, mslot = self:GetUnitItemInfo(unit, 16, stats)
     ocount, olevel, _, _, oquality, _, _, _, _, _, oslot = self:GetUnitItemInfo(unit, 17, stats)
-	_, necklevel = self:GetUnitItemInfo(unit, 2, stats)
     counts = counts + mcount + ocount
     if (mquality == 6 or oquality == 6) then
         total = total + max(mlevel, olevel) * 2
@@ -203,5 +202,12 @@ function lib:GetUnitItemLevel(unit, stats)
         total = total + mlevel + olevel
     end
     maxlevel = max(maxlevel, mlevel, olevel)
-    return counts, total/max(16-counts,1), total, necklevel, (mquality == 6 or oquality == 6), maxlevel
+    return counts, total/max(16-counts,1), total, max(mlevel,olevel), (mquality == 6 or oquality == 6), maxlevel
+end
+
+--獲取任务物品實際link
+function lib:GetQuestItemlink(questType, id)
+    tooltip:SetOwner(UIParent, "ANCHOR_NONE")
+    tooltip:SetQuestLogItem(questType, id)
+    return select(2, tooltip:GetItem()) or GetQuestLogItemLink(questType, id)
 end

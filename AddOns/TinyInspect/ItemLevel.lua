@@ -15,6 +15,12 @@ local RELICSLOT = RELICSLOT or "Relic"
 local ARTIFACT_POWER = ARTIFACT_POWER or "Artifact"
 if (GetLocale():sub(1,2) == "zh") then ARTIFACT_POWER = "能量" end
 
+--fixed for 8.x
+local GetLootInfoByIndex = EJ_GetLootInfoByIndex
+if (C_EncounterJournal and C_EncounterJournal.GetLootInfoByIndex) then
+    GetLootInfoByIndex = C_EncounterJournal.GetLootInfoByIndex
+end
+
 --框架 #category Bag|Bank|Merchant|Trade|GuildBank|Auction|AltEquipment|PaperDoll|Loot
 local function GetItemLevelFrame(self, category)
     if (not self.ItemLevelFrame) then
@@ -120,13 +126,20 @@ local function SetItemLevel(self, link, category, BagID, SlotID)
         SetItemSlotString(frame.slotString, self.OrigItemClass, self.OrigItemEquipSlot, self.OrigItemLink)
     else
         local level = ""
-        local _, count, quality, class, subclass, equipSlot
-        if (link and string.match(link, "item:(%d+):")) then
+        local _, count, quality, class, subclass, equipSlot, linklevel
+        if (type(link) == "string" and string.match(link, "item:(%d+):")) then -- 暫時修正
             if (BagID and SlotID and (category == "Bag" or category == "AltEquipment")) then
                 count, level = LibItemInfo:GetContainerItemLevel(BagID, SlotID)
-                _, _, quality, _, _, class, subclass, _, equipSlot = GetItemInfo(link)
+                _, _, quality, linklevel, _, class, subclass, _, equipSlot = GetItemInfo(link)
+                if (count == 0 and level == 0) then
+                    level = linklevel
+                end
             else
                 count, level, _, _, quality, _, _, class, subclass, _, equipSlot = LibItemInfo:GetItemInfo(link)
+            end
+            --背包不显示装等
+            if (equipSlot == "INVTYPE_BAG") then
+                level = ""
             end
             --除了装备和圣物外,其它不显示装等
             if ((equipSlot and string.find(equipSlot, "INVTYPE_"))
@@ -158,7 +171,7 @@ local function SetItemLevel(self, link, category, BagID, SlotID)
 end
 
 --[[ All ]]
-hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink)
+hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, suppressOverlays)
     if (self.ItemLevelCategory or self.isBag) then return end
     local frame = GetItemLevelFrame(self)
     if (TinyInspectDB and not TinyInspectDB.EnableItemLevelOther) then
@@ -172,7 +185,7 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink)
         --QuestInfo
         elseif (self.type and self.objectType == "item") then
             if (QuestInfoFrame and QuestInfoFrame.questLog) then
-                link = GetQuestLogItemLink(self.type, self:GetID())
+                link = LibItemInfo:GetQuestItemlink(self.type, self:GetID())
             else
                 link = GetQuestItemLink(self.type, self:GetID())
             end
@@ -182,12 +195,15 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink)
             SetItemLevel(self, link)
         --EncounterJournal
         elseif (self.encounterID and self.link) then
-            link = select(7, EJ_GetLootInfoByIndex(self.index))
+            link = select(7, GetLootInfoByIndex(self.index))
             SetItemLevel(self, link or self.link)
         --EmbeddedItemTooltip
         elseif (self.Tooltip) then
             link = select(2, self.Tooltip:GetItem())
             SetItemLevel(self, link)
+        else
+            SetItemLevelString(frame.levelString, "")
+            SetItemSlotString(frame.slotString)
         end
     else
         SetItemLevelString(frame.levelString, "")
@@ -260,43 +276,6 @@ LibEvent:attachEvent("ADDON_LOADED", function(self, addonName)
     end
 end)
 
--- Auction
-LibEvent:attachEvent("ADDON_LOADED", function(self, addonName)
-    if (addonName == "Blizzard_AuctionUI") then
-        hooksecurefunc("AuctionFrameBrowse_Update", function()
-            local offset = FauxScrollFrame_GetOffset(BrowseScrollFrame)
-            local itemButton
-            for i = 1, NUM_BROWSE_TO_DISPLAY do
-                itemButton = _G["BrowseButton"..i.."Item"]
-                if (itemButton) then
-                    SetItemLevel(itemButton, GetAuctionItemLink("list", offset+i), "Auction")
-                end
-            end
-        end)
-        hooksecurefunc("AuctionFrameBid_Update", function()
-            local offset = FauxScrollFrame_GetOffset(BidScrollFrame)
-            local itemButton
-            for i = 1, NUM_BIDS_TO_DISPLAY do
-                itemButton = _G["BidButton"..i.."Item"]
-                if (itemButton) then
-                    SetItemLevel(itemButton, GetAuctionItemLink("bidder", offset+i), "Auction")
-                end
-            end
-        end)
-        hooksecurefunc("AuctionFrameAuctions_Update", function()
-            local offset = FauxScrollFrame_GetOffset(AuctionsScrollFrame)
-            local tokenCount = C_WowTokenPublic.GetNumListedAuctionableTokens()
-            local itemButton
-            for i = 1, NUM_AUCTIONS_TO_DISPLAY do
-                itemButton = _G["AuctionsButton"..i.."Item"]
-                if (itemButton) then
-                    SetItemLevel(itemButton, GetAuctionItemLink("owner", offset-tokenCount+i), "Auction")
-                end
-            end
-        end)
-    end
-end)
-
 -- ALT
 if (EquipmentFlyout_DisplayButton) then
     hooksecurefunc("EquipmentFlyout_DisplayButton", function(button, paperDollItemSlot)
@@ -329,17 +308,21 @@ LibEvent:attachEvent("PLAYER_LOGIN", function()
         end)
     end
     -- For Combuctor
-    if (Combuctor and Combuctor.Item and Combuctor.Item.Update) then
-        hooksecurefunc(Combuctor.Item, "Update", function(self)
-            SetItemLevel(self, self.GetItem and self:GetItem(), "Bag", self.GetBag and self:GetBag(), self.GetID and self:GetID())
-        end)
-    elseif (Combuctor and Combuctor.ItemSlot and Combuctor.ItemSlot.Update) then
+    if (Combuctor and Combuctor.ItemSlot and Combuctor.ItemSlot.Update) then
         hooksecurefunc(Combuctor.ItemSlot, "Update", function(self)
             SetItemLevel(self, self:GetItem(), "Bag", self:GetBag(), self:GetID())
         end)
+    elseif (Combuctor and Combuctor.Item and Combuctor.Item.Update) then
+        hooksecurefunc(Combuctor.Item, "Update", function(self)
+            SetItemLevel(self, self.GetItem and self:GetItem() or self.hasItem, "Bag", self.GetBag and self:GetBag() or self.bag, self.GetID and self:GetID())
+        end)
     end
     -- For LiteBag
-    if (LiteBagItemButton_UpdateItem) then
+    if (LiteBag_RegisterHook) then
+        LiteBag_RegisterHook("LiteBagItemButton_Update", function(self)
+            SetItemLevel(self, GetContainerItemLink(self:GetParent():GetID(), self:GetID()), "Bag", self:GetParent():GetID(), self:GetID())
+        end)
+    elseif (LiteBagItemButton_UpdateItem) then
         hooksecurefunc("LiteBagItemButton_UpdateItem", function(self)
             SetItemLevel(self, GetContainerItemLink(self:GetParent():GetID(), self:GetID()), "Bag", self:GetParent():GetID(), self:GetID())
         end)
@@ -528,6 +511,25 @@ ChatFrame_AddMessageEventFilter("CHAT_MSG_PARTY_LEADER", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_GUILD", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_BATTLEGROUND", filter)
 ChatFrame_AddMessageEventFilter("CHAT_MSG_LOOT", filter)
+
+--据说首次拾取大秘钥匙是个item:158923:
+function firstLootKeystone(Hyperlink)
+    local map, level = string.match(Hyperlink, "|Hitem:158923::::::::%d*:%d*:%d*:%d*:%d*:(%d+):(%d+):")
+    if (map and level) then
+        local name = C_ChallengeMode.GetMapUIInfo(map)
+        if name then
+            Hyperlink = Hyperlink:gsub("|h%[(.-)%]|h", "|h["..format(CHALLENGE_MODE_KEYSTONE_HYPERLINK, name, level).."]|h")
+        end
+    end
+    return Hyperlink
+end
+
+ChatFrame_AddMessageEventFilter("CHAT_MSG_LOOT", function(self, event, msg, ...)
+    if (string.find(msg, "item:158923:")) then
+        msg = msg:gsub("(|Hitem:158923:.-|h.-|h)", firstLootKeystone)
+    end
+    return false, msg, ...
+end)
 
 -- 位置設置
 LibEvent:attachTrigger("ITEMLEVEL_FRAME_SHOWN", function(self, frame, parent, category)

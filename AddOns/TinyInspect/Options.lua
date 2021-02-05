@@ -27,7 +27,7 @@ local DefaultDB = {
         EnableItemLevelMerchant = true,
         EnableItemLevelTrade = true,
         EnableItemLevelGuildBank = true,
-        EnableItemLevelAuction = true,
+        EnableItemLevelAuction = false,
         EnableItemLevelAltEquipment = true,
         EnableItemLevelPaperDoll = true,
         EnableItemLevelGuildNews = false,
@@ -47,10 +47,10 @@ local DefaultDB = {
     EnableRaidItemLevel = false,          --團隊裝等
     EnableMouseItemLevel = true,          --鼠標裝等
     EnableMouseSpecialization = true,     --鼠標天賦
-    EnableMouseWeaponLevel = true,        --鼠標武器等級
+    EnableMouseWeaponLevel = false,        --鼠標武器等級
     PaperDollItemLevelOutsideString = false, --PaperDoll文字外邊顯示(沒有在配置面板)
     ItemLevelAnchorPoint = "TOP",         --裝等位置
-    ShowPluginGreenState = false,         --裝備綠字屬性前綴顯示
+    ShowPluginGreenState = true,         --裝備綠字屬性前綴顯示
 }
 
 local options = {
@@ -66,7 +66,6 @@ local options = {
         { key = "Bank" },
         { key = "Merchant" },
         { key = "Trade" },
-        { key = "Auction" },
         { key = "AltEquipment" },
         { key = "GuildBank" },
         { key = "GuildNews" },
@@ -147,7 +146,7 @@ end
 local function CreateSubtypeFrame(list, parent)
     if (not list) then return end
     if (not parent.SubtypeFrame) then
-        parent.SubtypeFrame = CreateFrame("Frame", nil, parent)
+        parent.SubtypeFrame = CreateFrame("Frame", nil, parent, BackdropTemplateMixin and "BackdropTemplate" or nil)
         parent.SubtypeFrame:SetScale(0.92)
         parent.SubtypeFrame:SetPoint("TOPLEFT", 333, 0)
         parent.SubtypeFrame:SetBackdrop({
@@ -200,7 +199,7 @@ local function CreateAnchorFrame(anchorkey, parent)
         end)
         frame[anchorPoint] = button
     end
-    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, "ThinBorderTemplate")
+    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, BackdropTemplateMixin and "ThinBorderTemplate,BackdropTemplate" or "ThinBorderTemplate")
     frame.anchorkey = anchorkey
     frame:SetBackdrop(GameTooltip:GetBackdrop())
     frame:SetBackdropColor(GameTooltip:GetBackdropColor())
