@@ -24,7 +24,8 @@
 				if not InCombatLockdown() and (LOCK_ACTIONBAR ~= "1" or IsShiftKeyDown()) then
 					local spell = self:GetParent().spells[self:GetID()];
 					if spell then
-						PickupSpell(spell.id);
+						local _, _, _, _, _, _, maxRankId = GetSpellInfo(GetSpellInfo(spell.id));
+						PickupSpell(maxRankId);
 					end
 				end
 			</OnDragStart>
@@ -110,7 +111,7 @@
 			</OnDragStop>
 		</Scripts>
 	</StatusBar>
-        <Frame name="FloBarTemplateT" parent="UIParent" enableMouse="true" movable="true" hidden="true" virtual="true">
+        <Frame name="FloBarTemplateT" parent="UIParent" enableMouse="true" movable="true" hidden="true" virtual="true" inherits="BackdropTemplate">
 		<Size>
 			<AbsDimension x="44" y="44"/>
 		</Size>

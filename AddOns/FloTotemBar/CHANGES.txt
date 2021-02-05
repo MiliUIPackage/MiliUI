@@ -1,18 +1,12 @@
-tag e04cea34fc1d6e0c03de4ee0b1f624069806dd21 8.2.39
+tag 81014bdc5dd82f3f7fd0e1962529f15982993a2d 9.0.44.2
 Author:	Floraline <floraline@ophiuchus.org>
-Date:	Thu Oct 10 10:16:21 2019 +0200
+Date:	Thu Nov 19 21:57:56 2020 +0100
 
-Update for 8.2.5
+Tagginf for release
 
-commit a93611dc36198acd8b650677ad1546d84003b9bb
+commit 0cc8d52a1a62560e4ec2174697f24ffd8fbff392
 Author: Floraline <floraline@ophiuchus.org>
-Date:   Thu Oct 10 10:02:26 2019 +0200
+Date:   Thu Nov 19 21:54:49 2020 +0100
 
-    minor
-
-commit a7aac3ab923ac4a8ca20d7867099ea91ee830d5c
-Author: Floraline <floraline@ophiuchus.org>
-Date:   Thu Oct 10 10:01:53 2019 +0200
-
-    Bump toc version
+    Update toc and version number
 

@@ -15,13 +15,11 @@ if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 		},
 		["SHAMAN"] = {
 			["EARTH"] = {
-				{ id = 2484, duration = 20 }, -- 8 Earthbind Totem
-				{ id = 5394, duration = 15, talented = 157153 }, -- 13 Healing Stream Totem / Cloudburst Totem
-				{ id = 210643, duration = 120, talented = 262395 }, -- 15 Totem Mastery
+				{ id = 2484, duration = 20 }, -- 5 Earthbind Totem
+				{ id = 5394, duration = 15, talented = 157153 }, -- 28 Healing Stream Totem / Cloudburst Totem
 				{ id = 192077, duration = 15 }, -- 30 Wind Rush Totem
 				{ id = 51485, duration = 20 }, -- 45 Earthgrab Totem
 				{ id = 192058, duration = 2 }, -- 45 Lightning Surge Totem
-				{ id = 196932, duration = 10 }, -- 45 Voodoo Totem
 				{ id = 61882, duration = 10 }, -- 52 Earthquake Totem
 				{ id = 108280, duration = 10 }, -- 54 Healing Tide Totem
 				{ id = 8143, duration = 10 }, -- 58 Tremor Totem
@@ -29,6 +27,8 @@ if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 				{ id = 207399, duration = 30 }, -- 75 Ancestral Protection Totem
 				{ id = 198838, duration = 15 }, -- 75 Earthen Shield Totem
 				{ id = 192222, duration = 15 }, -- 100 Liquid Magma Totem
+				{ id = 16191, duration = 8 }, -- 38 Mana Tide Totem
+				{ id = 8512, duration = 120 }, -- 49 Windfury
 			}
 		}
 	};
@@ -73,6 +73,16 @@ elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 				{ id = 15107, duration = 120 }, -- windwall
 				{ id = 8835, duration = 120 }, -- grace of air
 				{ id = 25908, duration = 120 }, -- tranquil air
+			}
+		},
+		["PALADIN"] = {
+			["SEAL"] = {
+				{ id = 20154 }, -- righteousness
+				{ id = 21082 }, -- Crusader
+				{ id = 20164 }, -- justice
+				{ id = 20375 }, -- command
+				{ id = 20165 }, -- light
+				{ id = 20166 } -- wisdom
 			}
 		}
 	};

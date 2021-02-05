@@ -81,4 +81,21 @@
 			</Anchor>
 		</Anchors>
 	</Frame>
+
+	<Frame name="FloBarSEAL" inherits="FloBarTemplateT">
+		<Size>
+			<AbsDimension x="44" y="44"/>
+		</Size>
+		<Scripts>
+			<OnLoad>
+				FloTotemBar_OnLoad(self);
+			</OnLoad>
+			<OnEvent>
+				FloTotemBar_OnEvent(self, event, ...);
+			</OnEvent>
+			<OnUpdate>
+				FloLib_OnUpdate(self);
+			</OnUpdate>
+		</Scripts>
+	</Frame>
 </Ui>

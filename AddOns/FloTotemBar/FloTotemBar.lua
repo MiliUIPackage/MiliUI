@@ -8,9 +8,9 @@
 
 local VERSION
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-	VERSION = "8.2.39"
+	VERSION = "9.0.44.2"
 elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-	VERSION = "1.13.39"
+	VERSION = "1.13.43"
 end
 
 -------------------------------------------------------------------------------
@@ -24,6 +24,7 @@ local SHOW_WELCOME = true;
 local FLOTOTEMBAR_OPTIONS_DEFAULT = { [1] = { scale = 1, borders = true, barLayout = "1row", barSettings = {} }, active = 1 };
 FLOTOTEMBAR_OPTIONS = FLOTOTEMBAR_OPTIONS_DEFAULT;
 local FLOTOTEMBAR_BARSETTINGS_DEFAULT = {
+	["SEAL"] = { buttonsOrder = {}, position = "auto", color = { 0.49, 0.49, 0, 0.7 }, hiddenSpells = {} },
 	["TRAP"] = { buttonsOrder = {}, position = "auto", color = { 0.49, 0.49, 0, 0.7 }, hiddenSpells = {} },
 	["EARTH"] = { buttonsOrder = {}, position = "auto", color = { 0, 0.49, 0, 0.7 }, hiddenSpells = {} },
 	["FIRE"] = { buttonsOrder = {}, position = "auto", color = { 0.49, 0, 0, 0.7 }, hiddenSpells = {} },
@@ -107,15 +108,8 @@ function FloTotemBar_OnLoad(self)
 		end
 		self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED");
 	end
-	self:RegisterEvent("PLAYER_ENTERING_WORLD");
 	self:RegisterEvent("LEARNED_SPELL_IN_TAB");
-	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-		self:RegisterEvent("PLAYER_TALENT_UPDATE");
-		self:RegisterEvent("PLAYER_PVP_TALENT_UPDATE");
-	end
 	self:RegisterEvent("CHARACTER_POINTS_CHANGED");
-	self:RegisterEvent("PLAYER_ALIVE");
-	self:RegisterEvent("PLAYER_LEVEL_UP");
 	self:RegisterEvent("SPELLS_CHANGED");
 	self:RegisterEvent("SPELL_UPDATE_COOLDOWN");
 	self:RegisterEvent("ACTIONBAR_UPDATE_USABLE");
@@ -136,9 +130,13 @@ end
 
 function FloTotemBar_OnEvent(self, event, arg1, ...)
 
-	if event == "PLAYER_ENTERING_WORLD" or event == "LEARNED_SPELL_IN_TAB" or event == "PLAYER_ALIVE" or event == "PLAYER_LEVEL_UP" or event == "CHARACTER_POINTS_CHANGED" or event == "PLAYER_TALENT_UPDATE" or event == "PLAYER_PVP_TALENT_UPDATE" or event == "SPELLS_CHANGED" then
+	if event == "LEARNED_SPELL_IN_TAB" or event == "CHARACTER_POINTS_CHANGED" or event == "SPELLS_CHANGED" then
 		if not changingSpec then
-			FloLib_Setup(self);
+			if GetSpecialization() ~= FLOTOTEMBAR_OPTIONS.active then
+				FloTotemBar_CheckTalentGroup(GetSpecialization());
+			else
+				FloLib_Setup(self);
+			end
 		end
 
 	elseif event == "UNIT_SPELLCAST_SUCCEEDED" then
@@ -160,17 +158,17 @@ function FloTotemBar_OnEvent(self, event, arg1, ...)
 	elseif event == "PLAYER_DEAD" then
 		FloTotemBar_ResetTimers(self);
 
-	elseif event == "ADDON_LOADED" and arg1 == "FloTotemBar" then
+	elseif (event == "ADDON_LOADED" and arg1 == "FloTotemBar") or event == "UPDATE_BINDINGS" then
+		if event == "ADDON_LOADED" then
+			FloTotemBar_CheckTalentGroup(FLOTOTEMBAR_OPTIONS.active);
 
-		FloTotemBar_CheckTalentGroup(FLOTOTEMBAR_OPTIONS.active);
-
-		-- Hook the UIParent_ManageFramePositions function
-		hooksecurefunc("UIParent_ManageFramePositions", FloTotemBar_UpdatePositions);
-		if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-			hooksecurefunc("SetSpecialization", function() changingSpec = true; end);
+			-- Hook the UIParent_ManageFramePositions function
+			hooksecurefunc("UIParent_ManageFramePositions", FloTotemBar_UpdatePositions);
+			if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+				hooksecurefunc("SetSpecialization", function() changingSpec = true; end);
+			end
 		end
 
-	elseif event == "UPDATE_BINDINGS" then
 		local totemtype = self.totemtype;
 		if totemtype == "TRAP" then totemtype = "EARTH" end
 		FloLib_UpdateBindings(self, "FLOTOTEM"..totemtype);
@@ -183,17 +181,27 @@ function FloTotemBar_OnEvent(self, event, arg1, ...)
 
 	elseif event == "COMBAT_LOG_EVENT_UNFILTERED" then
 		-- Events used for totem destruction detection
-		local i;
+		local i, pos;
 		for i = 1, #self.spells do
-			if self["activeSpell"..i] and self.spells[self["activeSpell"..i]] then
+			if self.sharedCooldown then
+				pos = 1
+			else
+				pos = i
+			end
+			if self["activeSpell"..pos] and i == self["activeSpell"..pos] then
 				self.spells[i].algo(self, i, CombatLogGetCurrentEventInfo());
 			end
 		end
 	elseif event == "PLAYER_TOTEM_UPDATE" then
 		-- Events used for totem destruction detection
-		local i;
+		local i, pos;
 		for i = 1, #self.spells do
-			if arg1 and self["activeSpell"..i] and self.spells[self["activeSpell"..i]] then
+			if self.sharedCooldown then
+				pos = 1
+			else
+				pos = i
+			end
+			if arg1 and self["activeSpell"..pos] and i == self["activeSpell"..pos] then
 				self.spells[i].algo(self, arg1, i, ...);
 			end
 		end
@@ -366,7 +374,13 @@ function FloTotemBar_UpdateTotem(self, slot, idx)
 	elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 		if self.slot == slot then
 
+			local haveTotem, totemName, startTime, duration, icon = GetTotemInfo(slot);
 			local timeleft = GetTotemTimeLeft(slot);
+			local countdown = _G[self:GetName().."Countdown"..idx];
+			if countdown then
+				countdown:SetMinMaxValues(0, duration);
+				countdown:SetValue(timeleft);
+			end
 			if timeleft == 0 then
 				FloLib_ResetTimer(self, idx);
 			end
@@ -380,8 +394,10 @@ function FloTotemBar_CheckTrapLife(self, spellIdx, timestamp, event, hideCaster,
 	local name = string.upper(spell.name);
 
 	_, _, spellTexture = GetSpellInfo(spell.id);
+	-- bad french localisation
+	if spellName == "Effet Piège immolation" then spellName = "Effet Piège d'immolation" end
 
-	if event ~= nil and strsub(event, 1, 5) == "SPELL" and event ~= "SPELL_CAST_SUCCESS" and event ~= "SPELL_CREATE" and (spell.texture == spellTexture) or (string.find(string.upper(spellName), name, 1, true)) and destGUID ~= "" then
+	if event ~= nil and strsub(event, 1, 5) == "SPELL" and event ~= "SPELL_CAST_SUCCESS" and event ~= "SPELL_CREATE" and (spell.texture == spellTexture or string.find(string.upper(spellName), name, 1, true)) and destGUID ~= "" then
 		if CombatLog_Object_IsA(sourceFlags, COMBATLOG_FILTER_MINE) then
 			FloLib_ResetTimer(self, spellIdx);
 		else
@@ -404,6 +420,15 @@ function FloTotemBar_CheckTrap2Life(self, spellIdx, timestamp, event, hideCaster
 
 	if event ~= nil and strsub(event, 1, 5) == "SWING" and CombatLog_Object_IsA(sourceFlags, COMBATLOG_FILTER_MY_GUARDIAN) then
 		FloLib_ResetTimer(self, spellIdx);
+	end
+end
+
+function FloTotemBar_UpdateSeal(self, spellIdx, timestamp, event, hideCaster, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellId, spellName, ...)
+	if event == "SPELL_AURA_REMOVED" and CombatLog_Object_IsA(sourceFlags, COMBATLOG_FILTER_MINE) then
+		local spell = self.spells[spellIdx];
+		if (spell.name == spellName) then
+			FloLib_ResetTimer(self, spellIdx);
+		end
 	end
 end
 
@@ -434,6 +459,9 @@ function FloTotemBar_SetupSpell(self, spell, pos)
 	elseif FLO_CLASS_NAME == "HUNTER" then
 		duration = spell.duration or 60;
 		algo = ALGO_TRAP[algoIdx];
+	elseif FLO_CLASS_NAME == "PALADIN" then
+		duration = spell.duration or 30;
+		algo = FloTotemBar_UpdateSeal;
 	end
 
 	self.spells[pos] = { id = spell.id, name = spellName, addName = spell.addName, duration = duration, algo = algo, talented = spell.talented, talentedName = spell.talentedName };
@@ -473,7 +501,7 @@ function FloTotemBar_UpdatePosition(self)
 	end
 
 	self:ClearAllPoints();
-	if self == FloBarEARTH or self == FloBarTRAP then
+	if self == FloBarEARTH or self == FloBarTRAP or self == FloBarSEAL then
 		local yOffset = 0;
 		local yOffset1 = 0;
 		local yOffset2 = 0;
@@ -500,6 +528,8 @@ function FloTotemBar_UpdatePosition(self)
             else
 			    self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 512/ACTIVE_OPTIONS.scale, (yOffset + yOffset2)/ACTIVE_OPTIONS.scale);
             end
+		elseif FLO_CLASS_NAME == "PALADIN" then
+			self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 320/ACTIVE_OPTIONS.scale, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);
 		else
 			if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 				self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 464, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);

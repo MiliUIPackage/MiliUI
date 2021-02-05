@@ -4,13 +4,13 @@
 
 -- Some shared functions
 -- Prevent multi-loading
-if not FLOLIB_VERSION or FLOLIB_VERSION < 1.39 then
+if not FLOLIB_VERSION or FLOLIB_VERSION < 1.41 then
 
 local _
 local NUM_SPELL_SLOTS = 10;
 local SCHOOL_COLORS = { 1.0, 0.7, 0.0 };
 
-FLOLIB_VERSION = 1.39;
+FLOLIB_VERSION = 1.41;
 
 FLOLIB_ACTIVATE_SPEC = GetSpellInfo(200749);
 
@@ -377,7 +377,8 @@ function FloLib_UpdateState(self)
 
 		--Cooldown stuffs
 		cooldown = _G[self:GetName().."Button"..i.."Cooldown"];
-        start, duration, enable, charges, maxCharges = GetSpellCooldown(spell.id);
+		local _, _, _, _, _, _, maxRankId = GetSpellInfo(GetSpellInfo(spell.id));
+		start, duration, enable, charges, maxCharges = GetSpellCooldown(maxRankId);
         if spell.talented then
 			start2, duration2, enable2 = GetSpellCooldown(spell.talented);
 			if start > 0 and start2 > 0 then
@@ -399,7 +400,7 @@ function FloLib_UpdateState(self)
 		--Castable stuffs
 		normalTexture = _G[self:GetName().."Button"..i.."NormalTexture"];
 		icon = _G[self:GetName().."Button"..i.."Icon"];
-		isUsable, noMana = IsUsableSpell(spell.id);
+		isUsable, noMana = IsUsableSpell(maxRankId);
 
 		if isUsable then
 			icon:SetVertexColor(1.0, 1.0, 1.0);
@@ -442,15 +443,16 @@ end
 function FloLib_StartTimer(self, guid, spellid)
 
 	local founded = false;
-	local haveTotem, name, startTime, duration, icon;
+	local name, startTime, duration;
 	local countdown;
 	local i;
 
+	name = GetSpellInfo(spellid)
+
 	-- Find spell
 	for i = 1, #self.spells do
-		if self.spells[i].id == spellid or self.spells[i].talented == spellid then
+		if self.spells[i].name == name or self.spells[i].talentedName == name then
 			founded = i;
-
 			duration = self.spells[i].duration;
 			startTime = GetTime();
 			break;
