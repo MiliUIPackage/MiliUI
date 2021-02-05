@@ -1,4 +1,4 @@
-## Interface: 90001
+## Interface: 90002
 ## Title: Bagnon
 ## Author: Tuller & Jaliborc (João Cardoso)
 ## Notes: Single window displays for your inventory and bank
@@ -6,6 +6,6 @@
 ## Notes-zhTW: Bagnon|n功能強大的整合背包。
 ## OptionalDeps: BagBrother, WoWUnit, TestPoncho
 ## SavedVariables: Bagnon_Sets
-## Version: 9.0.3
+## Version: 9.0.5
 
 addons\main\main.xml
