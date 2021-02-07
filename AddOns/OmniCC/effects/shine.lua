@@ -1,17 +1,12 @@
---[[
-	shine.lua
-		a shine finish effect
---]]
-
-local Addon = _G[...]
-local L = _G.OMNICC_LOCALS
-
-local Shine = Addon.FX:Create("shine", L.Shine)
+-- a shine finish effect
+local AddonName, Addon = ...
+local L = LibStub("AceLocale-3.0"):GetLocale(AddonName)
 
 local SHINE_TEXTURE = [[Interface\Cooldown\star4]]
 local SHINE_DURATION = 0.75
 local SHINE_SCALE = 5
 
+local ShineEffect = Addon.FX:Create("shine", L.Shine)
 local ShinePool
 do
 	local function shineAnimation_OnFinished(self)
@@ -93,13 +88,14 @@ do
 	ShinePool = CreateObjectPool(pool_OnCreate, pool_OnRelease)
 end
 
-function Shine:Run(cooldown)
+function ShineEffect:Run(cooldown)
 	local owner = cooldown:GetParent() or cooldown
 
 	if owner and owner:IsVisible() then
 		local shine = ShinePool:Acquire()
 
 		shine:SetParent(owner)
+		shine:ClearAllPoints()
 		shine:SetAllPoints(cooldown)
 		shine:Show()
 

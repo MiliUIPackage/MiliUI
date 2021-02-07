@@ -1,4 +1,4 @@
-local Addon = _G[...]
+local _, Addon = ...
 local FX = {}
 
 local effects = {}
@@ -30,6 +30,8 @@ function FX:All()
 end
 
 function FX:Run(cooldown, effectID)
+    if cooldown:IsForbidden() then return end
+
     local fx = self:Get(effectID)
 
     if fx then

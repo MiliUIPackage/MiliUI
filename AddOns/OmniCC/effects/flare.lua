@@ -1,14 +1,12 @@
 -- a flare finish effect. Artwork by Renaitre
-local AddonName = ...
-local Addon = _G[...]
-local L = _G.OMNICC_LOCALS
+local ADDON, Addon = ...
+local L = LibStub("AceLocale-3.0"):GetLocale(ADDON)
 
-local Flare = Addon.FX:Create("flare", L.Flare)
-
-local SHINE_TEXTURE = ([[Interface\Addons\%s\media\flare]]):format(AddonName)
+local SHINE_TEXTURE = ([[Interface\Addons\%s\media\flare]]):format(ADDON)
 local SHINE_DURATION = 0.75
 local SHINE_SCALE = 5
 
+local FlareEffect = Addon.FX:Create("flare", L.Flare)
 local FlarePool
 do
 	local function shineAnimation_OnFinished(self)
@@ -89,13 +87,14 @@ do
 	FlarePool = CreateObjectPool(pool_OnCreate, pool_OnRelease)
 end
 
-function Flare:Run(cooldown)
+function FlareEffect:Run(cooldown)
 	local owner = cooldown:GetParent() or cooldown
 
 	if owner and owner:IsVisible() then
 		local shine = FlarePool:Acquire()
 
 		shine:SetParent(owner)
+		shine:ClearAllPoints()
 		shine:SetAllPoints(cooldown)
 		shine:Show()
 
