@@ -1,15 +1,14 @@
-## Interface: 80300
+## Interface: 90002
 ## Title: Advanced Interface Options
 ## Author: Stanzilla, Semlar
-## Version: 1.3.4
+## Version: 1.4.3
 ## Notes: Restores access to removed interface options in Legion
-## Title-zhTW: |cFF0099FF[介面]|r 進階介面選項
-## Notes-zhTW: Advanced Interface Options |n讓你可以使用軍臨天下所移除的遊戲介面選項。|n|cffffd200使用方法：|r從Esc>介面>插件>進階，進行設定。
+## Title-zhTW: |r|cFFFFFFFF[其他]|r 進階介面選項
+## Notes-zhTW: Advanced Interface Options |n讓你可以使用軍臨天下所移除的遊戲介面選項。|n|cffffd200使用方法：|r從Esc>介面>插件>進階介面選項，進行設定。
 ## X-Category: Interface Enhancements
 ## X-Website: https://www.curseforge.com/wow/addons/advancedinterfaceoptions
 ## X-Curse-Project-ID: 99982
 ## X-WoWI-ID: 25002
-## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AdvancedInterfaceOptionsSaved
 

@@ -167,7 +167,7 @@ end
 local AIO = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO:Hide()
 AIO:SetAllPoints()
-local addonNameLoc = "進階"
+local addonNameLoc = "進階介面選項"
 AIO.name = addonNameLoc
 
 -- Register all of our widgets here so we can iterate over them
@@ -275,7 +275,7 @@ local function newSlider(parent, cvar, minRange, maxRange, stepSize, getValue, s
 	slider.maxText:SetText(maxRange)
 	slider.text:SetText(label)
 
-	local valueBox = CreateFrame('editbox', nil, slider)
+	local valueBox = CreateFrame('editbox', nil, slider, BackdropTemplateMixin and "BackdropTemplate")
 	valueBox:SetPoint('TOP', slider, 'BOTTOM', 0, 0)
 	valueBox:SetSize(60, 14)
 	valueBox:SetFontObject(GameFontHighlightSmall)
@@ -293,7 +293,7 @@ local function newSlider(parent, cvar, minRange, maxRange, stepSize, getValue, s
 		local factor = 1 / stepSize
 		value = floor(value * factor + 0.5) / factor
 		value = max(minRange, min(maxRange, value))
-		slider:SetValue(value)
+		slider:SetValue(value, true)
 		self:SetText(value)
 		self:ClearFocus()
 	end)
@@ -386,7 +386,7 @@ local lootLeftmostBag = newCheckbox(AIO, 'lootLeftmostBag',
 local enableWoWMouse = newCheckbox(AIO, 'enableWoWMouse')
 
 local questSortingLabel = AIO:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
-questSortingLabel:SetPoint('TOPLEFT', enableWoWMouse, 'BOTTOMLEFT', 0, 0)
+questSortingLabel:SetPoint('TOPLEFT', enableWoWMouse, 'BOTTOMLEFT', 0, -10)
 questSortingLabel:SetText('任務排序方式:')
 
 local questSortingDropdown = CreateFrame("Frame", "AIOQuestSorting", AIO, "UIDropDownMenuTemplate")
@@ -415,7 +415,7 @@ questSortingDropdown:HookScript("OnEnter", function(self)
 end)
 questSortingDropdown:HookScript("OnLeave", GameTooltip_Hide)
 Widgets[ questSortingDropdown ] = 'trackQuestSorting'
-
+--[[ 9.0 已不支援動感鏡頭模式
 local actionCamModeLabel = AIO:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
 actionCamModeLabel:SetPoint('TOPLEFT', questSortingDropdown, 'BOTTOMLEFT', 16, 0)
 actionCamModeLabel:SetText('動感鏡頭模式:')
@@ -438,9 +438,9 @@ actionCamModeDropdown.initialize = function(dropdown)
 	UIDropDownMenu_SetSelectedValue(dropdown, "off") -- TODO: This is wrong, obviously
 end
 actionCamModeDropdown:HookScript("OnShow", actionCamModeDropdown.initialize)
-
+--]]
 local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, IsClassic() and 3.4 or 2.6, 0.1)
-cameraFactor:SetPoint('TOPLEFT', actionCamModeDropdown, 'BOTTOMLEFT', 20, -20)
+cameraFactor:SetPoint('TOPLEFT', questSortingDropdown, 'BOTTOMLEFT', 20, -20)
 
 playerTitles:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
 playerGuilds:SetPoint("TOPLEFT", playerTitles, "BOTTOMLEFT", 0, -4)
@@ -847,11 +847,8 @@ SubText_NP:SetPoint('TOPLEFT', Title_NP, 'BOTTOMLEFT', 0, -8)
 SubText_NP:SetPoint('RIGHT', -32, 0)
 SubText_NP:SetText('這些選項可以調整名條/血條設定。')
 
-local nameplateDistance = newSlider(AIO_NP, 'nameplateMaxDistance', 10, IsClassic() and 20 or 100)
-nameplateDistance:SetPoint('TOPLEFT', SubText_NP, 'BOTTOMLEFT', 0, -20)
-
 local nameplateAtBase = newCheckbox(AIO_NP, 'nameplateOtherAtBase')
-nameplateAtBase:SetPoint("TOPLEFT", nameplateDistance, "BOTTOMLEFT", 0, -16)
+nameplateAtBase:SetPoint("TOPLEFT", SubText_NP, "BOTTOMLEFT", 0, -20)
 nameplateAtBase:SetScript('OnClick', function(self)
 	local checked = self:GetChecked()
 	PlaySound(checked and SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON or SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_OFF)
