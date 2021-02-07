@@ -1,0 +1,18 @@
+tag 87c55fb8218378bc6a248d839cf39589f42158aa 1.8.3
+Author:	Kyle Buller <bullerk@gmail.com>
+Date:	Wed Nov 18 11:42:16 2020 -0600
+
+Tagging as 1.8.3
+
+commit 53dac329e3fa0f98a435d5bd06cfbe5979527524
+Author: Kyle Buller <bullerk@gmail.com>
+Date:   Wed Nov 18 11:41:48 2020 -0600
+
+    Update TOC for 9.0.2
+
+commit a29dedb648e3210ac8f9bc3bd8e695619143eea8
+Author: Kyle Buller <bullerk@gmail.com>
+Date:   Sun Nov 1 15:52:44 2020 -0600
+
+    Move the project back to WowAce
+
