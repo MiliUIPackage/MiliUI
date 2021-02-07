@@ -517,13 +517,3 @@ L["List of damaging spells"] = true
 L["spells"] = true
 L["targets"] = true
 L["Shows damage done on players by friendly players."] = true
-
-L["Skada"] = true
-L["Ignore class abilities"] = true
-L["Ignore damage from other class abilities, such as Unholy Frenzy"] = true
-L["Ignore defensive damage"] = true
-L["Ignore delayed damage from defensive abilities, such as Monk Stagger"] = true
-L["Skada default (Legion)"] = true
-L["Minimalistic"] = true
-L["All glowy 'n stuff"] = true
-L["Transparent"] = true

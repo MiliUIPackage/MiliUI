@@ -98,7 +98,7 @@ do
 end
 
 -- Keybindings
-BINDING_HEADER_Skada = L["Skada"]
+BINDING_HEADER_Skada = "Skada"
 BINDING_NAME_SKADA_TOGGLE = L["Toggle window"]
 BINDING_NAME_SKADA_RESET = L["Reset"]
 BINDING_NAME_SKADA_NEWSEGMENT = L["Start new segment"]
@@ -780,7 +780,7 @@ local function slashHandler(param)
 		Skada:Reset()
 	elseif param == "newsegment" then
 		Skada:NewSegment()
-	elseif param == "toggle" or param == "" then
+	elseif param == "toggle" then
 		Skada:ToggleWindow()
 	elseif param == "debug" then
 		Skada.db.profile.debug = not Skada.db.profile.debug
@@ -820,7 +820,7 @@ local function slashHandler(param)
 			Skada:Print("Usage:")
 			Skada:Print(("%-20s"):format(reportusage))
 		end
-	elseif param == "help" then
+	else
 		Skada:Print("Usage:")
 		Skada:Print(("%-20s"):format(reportusage))
 		Skada:Print(("%-20s"):format("/skada reset"))
@@ -2883,7 +2883,7 @@ function Skada:OnInitialize()
 
 	-- Blizzard options frame
 	local panel = CreateFrame("Frame", "SkadaBlizzOptions")
-	panel.name = L["Skada"]
+	panel.name = "Skada"
 	InterfaceOptions_AddCategory(panel)
 
 	local fs = panel:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
