@@ -388,7 +388,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			hpbar={
 				x=0, y=0, w=200, h=50,
 				fade=false, vertical=nil, reverse=nil, 
-                barcolormethod="class", bgcolormethod="classdark", bgalpha=0.6,
+                barcolormethod="class", bgcolormethod="classdark", bgalpha=0.75,
                 baralpha = 0.4,
                 framelevel = 4,
                 inc = true,
@@ -513,7 +513,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 				x=0, y=0, w=200, h=50,
 				vertical=nil, reverse=nil, 
                 bartexture = "TukTex",
-                barcolormethod="classreaction", bgcolormethod="classreactiondark", bgalpha=0.6,
+                barcolormethod="classreaction", bgcolormethod="classreactiondark", bgalpha=0.75,
                 baralpha = 0.4,
                 framelevel = 4,
                 inc = true,
