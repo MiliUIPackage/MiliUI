@@ -1,13 +1,13 @@
 --- AceConfigDialog-3.0 generates AceGUI-3.0 based windows based on option tables.
 -- @class file
 -- @name AceConfigDialog-3.0
--- @release $Id: AceConfigDialog-3.0.lua 1225 2019-08-06 13:37:52Z nevcairiel $
+-- @release $Id: AceConfigDialog-3.0.lua 1246 2021-01-03 02:43:27Z funkehdude $
 
 local LibStub = LibStub
 local gui = LibStub("AceGUI-3.0")
 local reg = LibStub("AceConfigRegistry-3.0")
 
-local MAJOR, MINOR = "AceConfigDialog-3.0", 78
+local MAJOR, MINOR = "AceConfigDialog-3.0", 80
 local AceConfigDialog, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not AceConfigDialog then return end
@@ -524,7 +524,7 @@ local function OptionOnMouseOver(widget, event)
 		tooltip:AddLine(desc, 1, 1, 1, true)
 	end
 	if type(usage) == "string" then
-		tooltip:AddLine("用法: "..usage, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true)
+		tooltip:AddLine("Usage: "..usage, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true)
 	end
 
 	tooltip:Show()
@@ -551,6 +551,7 @@ do
 		frame:SetPoint("CENTER", UIParent, "CENTER")
 		frame:SetSize(320, 72)
 		frame:SetFrameStrata("TOOLTIP")
+		frame:SetFrameLevel(100) -- Lots of room to draw under it
 		frame:SetScript("OnKeyDown", function(self, key)
 			if key == "ESCAPE" then
 				self:SetPropagateKeyboardInput(false)
@@ -564,7 +565,7 @@ do
 			end
 		end)
 
-		if WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
+		if not frame.SetFixedFrameStrata then -- API capability check (classic check)
 			frame:SetBackdrop({
 				bgFile = [[Interface\DialogFrame\UI-DialogBox-Background-Dark]],
 				edgeFile = [[Interface\DialogFrame\UI-DialogBox-Border]],
@@ -576,6 +577,8 @@ do
 		else
 			local border = CreateFrame("Frame", nil, frame, "DialogBorderDarkTemplate")
 			border:SetAllPoints(frame)
+			frame:SetFixedFrameStrata(true)
+			frame:SetFixedFrameLevel(true)
 		end
 
 		local text = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
@@ -911,7 +914,7 @@ end
 
 local function MultiControlOnClosed(widget, event, ...)
 	local user = widget:GetUserDataTable()
-	if user.valuechanged then
+	if user.valuechanged and not widget:IsReleasing() then
 		local iscustom = user.rootframe:GetUserData("iscustom")
 		local basepath = user.rootframe:GetUserData("basepath") or emptyTbl
 		if iscustom then

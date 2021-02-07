@@ -1,103 +1,110 @@
 local key = "dungeons"
-local prio =  110
+local prio = 110
 local L = Exlist.L
-local NUMBER_OF_DUNGEONS_BFA = 10
 local GetNumSavedInstances, GetSavedInstanceInfo = GetNumSavedInstances, GetSavedInstanceInfo
 local GetLFGDungeonInfo = GetLFGDungeonInfo
 local WrapTextInColorCode = WrapTextInColorCode
-local pairs, table,ipairs = pairs, table,ipairs
+local pairs, table, ipairs = pairs, table, ipairs
 local Exlist = Exlist
 local colors = Exlist.Colors
 local dungeonNames = {}
--- BFA
-local bfaDungeons = {
-  1669, -- Atal'Dazar
-  1710, -- Shrine of the Storm
-  1695, -- Temple of Sethraliss
-  1708, -- The MOTHERLODE!!
-  1712, -- The Underrot
-  1714, -- Tol Dagor
-  1704, -- Freehold
-  1706, -- Waycrest Manor
-  1700, -- Siege of Boralus -- 暫時修正
-  1785, -- Kings' Rest
-  2006, -- 機械岡行動
+-- Shadowlands
+local dungeons = {
+   2115, -- Theater of Pain
+   2114, -- The Necrotic Wake
+   2113, -- Spires of Ascension
+   2112, -- Sanguine Depths 2 ?? todo
+   2111, -- Plaguefall
+   2110, -- Mists of Tirna Scithe
+   2109, -- Halls of Atonement
+   2108 -- De Other Side
 }
-local function Updater(event,...)
-  local t = {
-    ['done'] = 0,
-    ['max'] = NUMBER_OF_DUNGEONS_BFA,
-    ['dungeonList'] = dungeonNames
-  }
-  for i = 1, GetNumSavedInstances() do
-    local name, _, _, _, locked, extended, _, isRaid, _, difficultyName, numEncounters, encounterProgress = GetSavedInstanceInfo(i)
-    if not isRaid and difficultyName == 'Mythic' then
-      -- dungeons
-      if locked then
-        t.dungeonList[name] = {locked = true, done = encounterProgress, max = numEncounters}
-        t.done = t.done + 1
+
+local NUMBER_OF_DUNGEONS = #dungeons
+
+local function Updater(event, ...)
+   local t = {
+      ["done"] = 0,
+      ["max"] = NUMBER_OF_DUNGEONS,
+      ["dungeonList"] = dungeonNames
+   }
+   for i = 1, GetNumSavedInstances() do
+      local name, _, _, _, locked, extended, _, isRaid, _, difficultyName, numEncounters, encounterProgress =
+         GetSavedInstanceInfo(i)
+      if not isRaid and difficultyName == "Mythic" then
+         -- dungeons
+         if locked then
+            t.dungeonList[name] = {locked = true, done = encounterProgress, max = numEncounters}
+            t.done = t.done + 1
+         end
       end
-    end
-  end
-  Exlist.UpdateChar(key,t)
+   end
+   Exlist.UpdateChar(key, t)
 end
 
-local function Linegenerator(tooltip,data,character)
-  if not data or data.done < 1 then return end
-  local info = {
-    character = character,
-    moduleName = key,
-    priority = prio,
-    titleName = WrapTextInColorCode(L['Dungeons'],colors.faded),
-    data = data.done..'/'..data.max,
-  }
-  local sideTooltip = {title = WrapTextInColorCode(L["Mythic Dungeons"],colors.sideTooltipTitle), body = {}}
-  for name,dungInfo in pairs(data.dungeonList) do
-    if dungInfo.locked then
-      local statusCol = dungInfo.done < dungInfo.max and colors.incomplete or colors.completed
-      table.insert(sideTooltip.body,{name,WrapTextInColorCode(string.format("%i/%i", dungInfo.done, dungInfo.max ), statusCol)})
-    else
-      table.insert(sideTooltip.body,{name,WrapTextInColorCode(L["Available"], colors.available)})
-    end
-  end
-  info.OnEnter = Exlist.CreateSideTooltip()
-  info.OnEnterData = sideTooltip
-  info.OnLeave = Exlist.DisposeSideTooltip()
-  Exlist.AddData(info)
+local function Linegenerator(tooltip, data, character)
+   if not data then
+      return
+   end
+   local info = {
+      character = character,
+      moduleName = key,
+      priority = prio,
+      titleName = WrapTextInColorCode(L["Dungeons"], colors.faded),
+      data = data.done .. "/" .. data.max
+   }
+   local sideTooltip = {title = WrapTextInColorCode(L["Mythic Dungeons"], colors.sideTooltipTitle), body = {}}
+   for name, dungInfo in pairs(data.dungeonList) do
+      if dungInfo.locked then
+         local statusCol = dungInfo.done < dungInfo.max and colors.incomplete or colors.completed
+         table.insert(
+            sideTooltip.body,
+            {name, WrapTextInColorCode(string.format("%i/%i", dungInfo.done, dungInfo.max), statusCol)}
+         )
+      else
+         table.insert(sideTooltip.body, {name, WrapTextInColorCode(L["Available"], colors.available)})
+      end
+   end
+   info.OnEnter = Exlist.CreateSideTooltip()
+   info.OnEnterData = sideTooltip
+   info.OnLeave = Exlist.DisposeSideTooltip()
+   Exlist.AddData(info)
 end
 
 local function init()
-  for _,id in ipairs(bfaDungeons) do
-    local name = GetLFGDungeonInfo(id)
-    if name then
-      dungeonNames[(GetLFGDungeonInfo(id))] = {locked = false, done = 0, max = 0}
-    end
-  end
+   for _, id in ipairs(dungeons) do
+      local name = GetLFGDungeonInfo(id)
+      if name then
+         dungeonNames[name] = {locked = false, done = 0, max = 0}
+      end
+   end
 end
 
 local function Modernize(data)
-  -- data is table of module table from character
-  -- always return table or don't use at all
-  if not data then return end
-  for name,info in pairs(data.dungeonList) do
-    if type(info) ~= 'table' then
-      data.dungeonList[name] = {locked = info,done = 0, max = 0}
-    end
-  end
-  return data
+   -- data is table of module table from character
+   -- always return table or don't use at all
+   if not data then
+      return
+   end
+   for name, info in pairs(data.dungeonList) do
+      if type(info) ~= "table" then
+         data.dungeonList[name] = {locked = info, done = 0, max = 0}
+      end
+   end
+   return data
 end
 
 local data = {
-  name = L['Dungeons'],
-  key = key,
-  linegenerator = Linegenerator,
-  priority = prio,
-  updater = Updater,
-  event = {"UPDATE_INSTANCE_INFO","PLAYER_ENTERING_WORLD"},
-  description = L["Tracks weekly completed mythic dungeons"],
-  weeklyReset = true,
-  modernize = Modernize,
-  init = init,
+   name = L["Dungeons"],
+   key = key,
+   linegenerator = Linegenerator,
+   priority = prio,
+   updater = Updater,
+   event = {"UPDATE_INSTANCE_INFO", "PLAYER_ENTERING_WORLD"},
+   description = L["Tracks weekly completed mythic dungeons"],
+   weeklyReset = true,
+   modernize = Modernize,
+   init = init
 }
 
 Exlist.RegisterModule(data)

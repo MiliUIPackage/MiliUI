@@ -1,11 +1,11 @@
 Exlist = {
-  CONSTANTS = {},
-  ModuleData = {
-    updaters = {}, -- [event] = {name,key,override,func)}
-    lineGenerators = {}, -- [i] = {name,func,prio,key,type}
-    modules = {}, -- [key] = {name,enabled,description,modernizeFunc,initFunc,events}
-    resetHandle = {} -- [key] = {weekly,daily,handler}
-  }
+   constants = {},
+   ModuleData = {
+      updaters = {}, -- [event] = {name,key,override,func)}
+      lineGenerators = {}, -- [i] = {name,func,prio,key,type}
+      modules = {}, -- [key] = {name,enabled,description,modernizeFunc,initFunc,events}
+      resetHandle = {} -- [key] = {weekly,daily,handler}
+   }
 }
 Exlist_Config = Exlist_Config or {}
 Exlist.L = {}

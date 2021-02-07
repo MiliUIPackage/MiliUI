@@ -40,6 +40,12 @@ end
 ]]
 
 --[[
+local function customGenerator(tooltip, data)
+
+end
+]]
+
+--[[
 local function Modernize(data)
   -- data is table of module table from character
   -- always return table or don't use at all
@@ -84,6 +90,7 @@ local data = {
   dailyReset = false,
   description = L[""],
   -- globallgenerator = GlobalLineGenerator,
+  -- type = 'customTooltip'
   -- modernize = Modernize,
   -- init = init,
   -- override = true,

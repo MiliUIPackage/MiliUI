@@ -1,22 +1,24 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
 
-<Script file="Worldquests.lua"/>
-<Script file="Azerite.lua"/>
-<Script file="Coins.lua"/>
-<Script file="Currency.lua"/>
-<Script file="Dungeons.lua"/>
-<Script file="Emissaries.lua"/>
-<Script file="Mail.lua"/>
-<Script file="Missions.lua"/>
-<Script file="MythicKey.lua"/>
-<Script file="MythicPlus.lua"/>
-<Script file="Quests.lua"/>
-<Script file="RaiderIOScores.lua"/>
-<Script file="Raids.lua"/>
-<Script file="WorldBosses.lua"/>
-<Script file="Note.lua"/>
-<Script file="Reputation.lua"/>
-
+  <Script file="Worldquests.lua"/>
+  <Script file="Character.lua" />
+  <Script file="Emissaries.lua" />
+  <Script file="Coins.lua" />
+  <Script file="Currency.lua"/>
+  <Script file="Dungeons.lua"/>
+  <Script file="Mail.lua"/>
+  <Script file="Missions.lua"/>
+  <Script file="MythicKey.lua"/>
+  <Script file="MythicPlus.lua"/>
+  <Script file="Quests.lua"/>
+  <Script file="Raids.lua"/>
+  <Script file="WorldBosses.lua"/>
+  <Script file="Note.lua"/>
+  <Script file="Reputation.lua"/>
+  <Script file="WeeklyRewards.lua" />
+  <Script file="Callings.lua" />
+  <Script file="Maw.lua" />
+  <Script file="Covenant.lua" />
 
 </Ui>

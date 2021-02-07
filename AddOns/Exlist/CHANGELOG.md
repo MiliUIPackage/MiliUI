@@ -1,18 +1,19 @@
-1.3.1
-----
-**5 January 2019 - 20:31**
+# [1.4.10](https://github.com/sragia/Exlist/tree/1.4.10) (2021-01-06)
 
-- Allow scrolling for extra info tooltip
-- Add percentage for neck level
-- Improve warfront tracking
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.4.9...1.4.10)
 
-1.3.0
-----
-**22 December 2018 - 16:37**
+## Highlights
 
-- Fix errors for emissaries and world quests
-- Add Darkshore world quest tracking
-- Add missing world bosses
-- Fix Warfront World Boss time left
-- Add Warfront status tracking
-- Add % for weekly Azerite Islands
+ Maw and Covenant tracking. Some bugfixes 
+
+## Commits
+
+sragia (6):
+
+- Reset torghast data too
+- Track features only on ui open
+- Fix some spacing
+- Sort currencies in options by name
+- Add Covenant module
+- Add torghast completion for characters
+
