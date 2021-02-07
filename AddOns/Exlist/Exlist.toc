@@ -1,7 +1,7 @@
 ## Interface: 90002
 ## Title: Exlist
 ## Notes: Shows various information about your characters
-## Title-zhTW: |cffFF7F00[副本]|r 我的分身名冊
+## Title-zhTW: |r|cFFFFFFFF[其他]|r 我的分身名冊
 ## Notes-zhTW: Exlist |n快速查看自己所有分身的地城/團隊/世界王擊殺進度、傳奇鑰石/最佳成績、每日/每週/世界任務、金錢、兌換通貨數量、專業、裝備... 還有更多!|n|cffffd200使用方法：|r點小地圖按鈕觀看資訊，從Esc>介面>插件>分身，進行設定。
 ## Author: Exality
 ## SavedVariables: Exlist_DB, Exlist_Config
