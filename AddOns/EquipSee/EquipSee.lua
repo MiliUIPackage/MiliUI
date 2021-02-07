@@ -261,11 +261,10 @@ local function Eqx_GetEquipSetName_BySlot (bagID, slotID)
 	if (slotNames) then
 		local s = "";
 		local x;
-
 		for x = 1, #slotNames do
 			local sname = slotNames[x];
-			if (string.len (sname) > 6) then
-				sname = string.sub (sname, 1, 3).."...";
+            if (string.len (sname) > 6) then
+				sname = string.sub (sname, 1, 6);
 			end
 			s = s..sname.."\n";
 		end
