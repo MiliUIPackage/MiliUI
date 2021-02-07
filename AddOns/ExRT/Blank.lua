@@ -1,4 +1,0 @@
-local GlobalAddonName, ExRT = ...
-
-
-
