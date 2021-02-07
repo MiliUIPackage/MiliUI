@@ -15,7 +15,7 @@ if ns:IsSameLocale("zhTW") then
 	L["WeekLeader"] = "本週公會最佳"
 	
 	L["|cffffc300Level  Reward   Week Azer|r\n"] = "|cffffc300  等級  獎勵  每週寶箱|r\n"
-	L["|cffff0000%5s|r|cff00ffff%10d%10d/|cffff9900%d\n"] = "|cffff0000%7s|r|cff00ffff%6s%9s\n"
+	L["|cffff0000%5s|r|cff00ffff%10d%10d/|cffff9900%d|r\n"] = "|cffff0000%7s|r|cff00ffff%6s%9s|r\n"
 
 	ns[1] = L
 end

@@ -13,50 +13,35 @@ local yo_OldKey, yo_OldKey2 = nil, nil
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
-	{"2    ",435,440},
-	{"3    ",435,445},
-	{"4    ",440,450},
-	{"5    ",445,450},
-	{"6    ",445,455},
-	{"7    ",450,460},
-	{"8-9  ",455,460},
-	{"10   ",455,465},
-	{"11   ",460,465},
-	{"12-13",460,470},
-	{"14   ",465,470},
-	{"15   ",465,475},
+	{"2    ",187,200},
+	{"3    ",190,203},
+	{"4    ",194,207},
+	{"5    ",194,210},
+	{"6    ",197,210},
+	{"7    ",200,213},
+	{"8-9  ",200,216},
+	{"10-11",203,220},
+	{"12-13",207,223},
+	{"14   ",207,226},
+	{"15   ",210,226},
 }
 
--- Overflowing：1。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地
+-- Overflowing：1.溢流。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地，Inspiring：122，Spiteful：123.惡意，Storming：124
 
-local affixWeeksLegs = { --affixID as used in C_ChallengeMode.GetAffixInfo(affixID)
-    [1] = {[1]=6,[2]=3,[3]=9,[4]=16},
-    [2] = {[1]=5,[2]=13,[3]=10,[4]=16},
-    [3] = {[1]=7,[2]=12,[3]=9,[4]=16},
-    [4] = {[1]=8,[2]=4,[3]=10,[4]=16},
-    [5] = {[1]=11,[2]=2,[3]=9,[4]=16},
-    [6] = {[1]=5,[2]=14,[3]=10,[4]=16},
-    [7] = {[1]=6,[2]=4,[3]=9,[4]=16},
-    [8] = {[1]=7,[2]=2,[3]=10,[4]=16},
-    [9] = {[1]=5,[2]=3,[3]=9,[4]=16},
-    [10] = {[1]=8,[2]=12,[3]=10,[4]=16},
-    [11] = {[1]=7,[2]=13,[3]=9,[4]=16},
-    [12] = {[1]=11,[2]=14,[3]=10,[4]=16},
-}
 --TODO Change this once BFA hits
 local affixWeeks = { --affixID as used in C_ChallengeMode.GetAffixInfo(affixID)
-    [1] = {[1]=10,[2]=7,[3]=12},	--V
-    [2] = {[1]=9,[2]=6,[3]=13},		--V
-    [3] = {[1]=10,[2]=8,[3]=12},	--V
-    [4] = {[1]=9,[2]=5,[3]=3},		--V
-    [5] = {[1]=10,[2]=7,[3]=2},		--V
-    [6] = {[1]=9,[2]=11,[3]=4},		--V
-    [7] = {[1]=10,[2]=8,[3]=14},	--V
-    [8] = {[1]=9,[2]=7,[3]=13},		--V
-    [9] = {[1]=10,[2]=11,[3]=3},	--V
-    [10] = {[1]=9,[2]=6,[3]=4},		--V
-    [11] = {[1]=10,[2]=5,[3]=14},	--?
-    [12] = {[1]=9,[2]=11,[3]=2},	--?
+    [1] = {[1]=10,[2]=11,[3]=3},	--V
+    [2] = {[1]=9,[2]=7,[3]=124},	--V
+    [3] = {[1]=10,[2]=123,[3]=12},	--V
+    [4] = {[1]=9,[2]=122,[3]=4},	--V
+    [5] = {[1]=10,[2]=8,[3]=14},	--V
+    [6] = {[1]=9,[2]=6,[3]=13},		--V
+    [7] = {[1]=10,[2]=123,[3]=3},	--V
+    [8] = {[1]=9,[2]=7,[3]=4},		--V
+    [9] = {[1]=10,[2]=122,[3]=124},	--V
+    [10] = {[1]=9,[2]=11,[3]=13},	--V
+    [11] = {[1]=10,[2]=4,[3]=7},	--?
+    [12] = {[1]=9,[2]=6,[3]=14},	--?
 }
 
 ----------------------------------------------------------------------------------
@@ -154,7 +139,7 @@ local function UpdateTime(block, elapsedTime)
 	end
 
 	if elapsedTime > block.timeLimit then
-		block.TimeLeft:SetText(GetTimeStringFromSeconds(elapsedTime - block.timeLimit, false, true))
+		block.TimeLeft:SetText(SecondsToTime(elapsedTime - block.timeLimit, false, true))
 	end
 end
 
@@ -186,6 +171,26 @@ end
 
 ----------------------------------------------------------------------------------
 ----------------------------------------------------------------------------------
+local function CreateStyle(f, size, level, alpha, alphaborder) 
+    if f.shadow then return end
+
+	local style = {
+		bgFile =  texture,
+		edgeFile = texglow, 
+		edgeSize = 4,
+		insets = { left = 3, right = 3, top = 3, bottom = 3 }
+	}
+    local shadow = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    shadow:SetFrameLevel(level or 0)
+    shadow:SetFrameStrata(f:GetFrameStrata())
+    shadow:SetPoint("TOPLEFT", -size, size)
+    shadow:SetPoint("BOTTOMRIGHT", size, -size)
+    shadow:SetBackdrop(style)
+    shadow:SetBackdropColor(.08,.08,.08, alpha or .9)
+    shadow:SetBackdropBorderColor(0, 0, 0, alphaborder or 1)
+    f.shadow = shadow
+    return shadow
+end
 
 local function GuildLeadersOnLeave(...)
     GameTooltip:Hide()
@@ -326,11 +331,13 @@ local function skinDungens()
 end
 
 local function UpdateAffixes( self)
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetFont( font, fontsize + 2)
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:ClearAllPoints()
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame, "TOP", 0, -180)
-	ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth( 250)
-	ChallengesFrame.WeeklyInfo.Child.RunStatus.ClearAllPoints = dummy
+	if ChallengesFrame.WeeklyInfo.Child.RunStatus then  -- 9.0 暫時修正
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetFont( font, fontsize + 2)
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:ClearAllPoints()
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetPoint("TOP", ChallengesFrame, "TOP", 0, -180)
+		ChallengesFrame.WeeklyInfo.Child.RunStatus:SetWidth( 250)
+		ChallengesFrame.WeeklyInfo.Child.RunStatus.ClearAllPoints = dummy
+	end
 	
 	C_MythicPlus.RequestCurrentAffixes()
     local affixIds = C_MythicPlus.GetCurrentAffixes() --table
@@ -390,7 +397,7 @@ local function Blizzard_ChallengesUI( self)
 	bg:SetAllPoints()
 	bg:SetAtlas("ChallengeMode-guild-background")
 	bg:SetAlpha( .4)
-
+--[[
 	local title = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title:SetFont( font, fontsize + 3)
 	title:SetTextColor(1, 0.75, 0, 1)
@@ -401,45 +408,45 @@ local function Blizzard_ChallengesUI( self)
 	line:SetSize( frame:GetWidth() - 10, 9)
 	line:SetAtlas("ChallengeMode-RankLineDivider", false)
 	line:SetPoint("TOP", 0, -15)
-
+--]]
 	local Levels = frame:CreateFontString(nil, "ARTWORK") --, "GameFontNormalMed1")
 	Levels:SetFont( font, fontsize + 3)
 	Levels:SetTextColor( 0.5, 0.5, 0.5, 1)
 	--Levels:SetText( "2+      4+      7+      10+")
 	Levels:SetText( "2+    4+    7+")
-	Levels:SetPoint("TOPLEFT", 20, -20)
+	Levels:SetPoint("TOPLEFT", 20, -5)
 
 	local line2 = frame:CreateTexture(nil, "ARTWORK")
 	line2:SetSize( frame:GetWidth() - 10, 9)
 	line2:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line2:SetPoint("TOP", 0, -32)
+	line2:SetPoint("TOP", 0, -20)
 
 	local line3 = frame:CreateTexture(nil, "ARTWORK")
 	line3:SetSize( frame:GetWidth() - 10, 9)
 	line3:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line3:SetPoint("TOP", 0, -(iSize + 7) * rowCount - 30)
-
+	line3:SetPoint("TOP", 0, -(iSize + 7) * rowCount - 20)
+--[[
 	local title2 = frame:CreateFontString(nil, "ARTWORK")--, "GameFontNormalMed1")
 	title2:SetFont( font, fontsize + 3)
 	title2:SetTextColor(1, 0.75, 0, 1)
 	title2:SetText( L["Rewards"])
-	title2:SetPoint("TOP", line3, "BOTTOM", 0, 3)
+	title2:SetPoint("TOP", line3, "BOTTOM", 0, 0)
 
 	local line4 = frame:CreateTexture(nil, "ARTWORK")
 	line4:SetSize( frame:GetWidth() - 10, 9)
 	line4:SetAtlas("ChallengeMode-RankLineDivider", false)
-	line4:SetPoint("TOP", title2, "BOTTOM", 0, 3)
-
+	line4:SetPoint("TOP", title2, "BOTTOM", 0, 0)
+--]]
 	local outReward = L["|cffffc300Level  Reward   Week Azer|r\n"]
 	for i, v in ipairs( mythicRewards ) do
-		outReward = outReward .. format(L["|cffff0000%5s|r|cff00ffff%10d%10d/|cffff9900%d\n"], v[1], v[2], v[3], v[4])
+		outReward = outReward .. format(L["|cffff0000%5s|r|cff00ffff%10d%10d/|cffff9900%d|r\n"], v[1], v[2], v[3], v[4])
 	end
 
 	local rewards = frame:CreateFontString(nil, "ARTWORK") --, "GameFontNormalMed1")
 	rewards:SetFont( font, fontsize)
 	rewards:SetText( outReward)
 	rewards:SetJustifyH("LEFT")
-	rewards:SetPoint("TOP", line4, "BOTTOM", 0, 5)
+	rewards:SetPoint("TOP", line3, "BOTTOM", 0, -5)
 
 	local entries = {}
 	for i = 1, rowCount do
@@ -520,6 +527,7 @@ local function OnEvent( self, event, name, ...)
 				SendChatMessage( keys, "PARTY")
 			end
 		end
+	--[[ 移除在公會頻道輸入 !key
 	elseif event == "CHAT_MSG_GUILD" then
 		name = strlower( name)
 		if name == "!key" or name == "!ключ" or name == "!keys" then
@@ -528,7 +536,7 @@ local function OnEvent( self, event, name, ...)
 				SendChatMessage( keys, "GUILD")
 			end
 		end
-	
+	--]]
 	elseif event == "CHAT_MSG_LOOT" then
 		
 		--local b = name:match("Эпохальный ключ")
