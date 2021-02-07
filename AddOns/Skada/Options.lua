@@ -25,7 +25,12 @@ Skada.windowdefaults = {
 	classcolortext = false,
 	classicons = true,
 	roleicons = false,
-	showself = true,
+    showself = true,
+    
+    -- 預設位置
+    y = 0,
+    x = 0,
+    point = "BOTTOMRIGHT",
 
 	buttons = {menu = true, reset = true, report = true, mode = true, segment = true},
 
