@@ -1,11 +1,21 @@
-## Interface: 80300
+## Interface: 90002
 ## Title: BlizzMove
-## Notes: Move those blizzard windows
+## Notes: Makes blizzard frames movable
 ## Title-zhTW: |cFF0099FF[介面]|r 框架解鎖
 ## Notes-zhTW: Blizzmove|n將大部分的預設框架解鎖，可以滑鼠拖曳移動，在標題使用CTRL+滾輪可改變大小。
 ## Author: the-rebel-Mermaid - github.com/the-rebel-Mermaid/BlizzMove/
 ## X-WoWI-ID: 23875
-## Version: 2.1.6
+## Version: v3.0.9
+## OptionalDeps: Ace3
+## X-Embeds: Ace3
+## SavedVariables: BlizzMoveDB
 
-Handle.lua
+# Libraries
+Libs\Libs.xml
+
+# Add-On
 BlizzMove.lua
+BlizzMoveAPI.lua
+BlizzMoveConfig.lua
+Frames.lua
+
