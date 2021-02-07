@@ -1,7 +1,6 @@
-<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
-..\FrameXML\UI.xsd">
-	<Script file="MBB.lua"/>
-	<Frame name="MBBFrame" toplevel="true" parent="UIParent" frameStrata="DIALOG" hidden="true" enableMouse="true">
+<Ui xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd" xmlns="http://www.blizzard.com/wow/ui/">
+	<Script file="MBB.lua" />
+	<Frame name="MBBFrame" hidden="true" parent="UIParent" toplevel="true" frameStrata="DIALOG" enableMouse="true">
 		<Scripts>
 			<OnLoad>
 				MBB_OnLoad();
@@ -11,46 +10,44 @@
 			</OnEvent>
 		</Scripts>
 	</Frame>
-	
-	<Button name="MBB_MinimapButtonFrame" toplevel="true" frameStrata="MEDIUM" parent="Minimap" enableMouse="true" movable="true" hidden="false">
+	<Button name="MBB_MinimapButtonFrame" parent="Minimap" toplevel="true" movable="true" frameStrata="MEDIUM" enableMouse="true">
 		<Size>
-			<AbsDimension x="33" y="33"/>
+			<AbsDimension x="33" y="33" />
 		</Size>
 		<Anchors>
 			<Anchor point="TOPLEFT">
 				<Offset>
-					<AbsDimension x="-18" y="-100"/>
+					<AbsDimension x="-18" y="-100" />
 				</Offset>
 			</Anchor>
 		</Anchors>
 		<Layers>
 			<Layer level="BACKGROUND">
-				<Texture name="$parent_Texture" file="Interface\AddOns\MBB\icon">
+				<Texture name="$parent_Texture" file="Interface\ICONS\artifactability_FireMage_PhoenixBolt">
 					<Size>
-						<AbsDimension x="17" y="17"/>
+						<AbsDimension x="18" y="18" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOPLEFT">
 							<Offset>
-								<AbsDimension x="8" y="-8"/>
+								<AbsDimension x="9" y="-7" />
 							</Offset>
 						</Anchor>
 					</Anchors>
-					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925"/>
+					<TexCoords left="0.075" right="0.925" top="0.075" bottom="0.925" />
 				</Texture>
 			</Layer>
-		<Layer level="OVERLAY">
-			<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
-				<Size>
-					<AbsDimension x="56" y="56"/>
-				</Size>
-				<Anchors>
-					<Anchor point="TOPLEFT"/>
-				</Anchors>
-			</Texture>
-		</Layer>
+			<Layer level="OVERLAY">
+				<Texture file="Interface\Minimap\MiniMap-TrackingBorder">
+					<Size>
+						<AbsDimension x="56" y="56" />
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" />
+					</Anchors>
+				</Texture>
+			</Layer>
 		</Layers>
-		<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
 		<Scripts>
 			<OnLoad>
 				self:RegisterForClicks("LeftButtonUp","RightButtonUp");
@@ -68,7 +65,7 @@
 			<OnEnter>
 				MBB_ShowTimeout = -1;
 				GameTooltip:SetOwner(self, "ANCHOR_LEFT");
-				GameTooltip:AddLine("MinimapButtonBag v" .. MBB_Version);
+				GameTooltip:AddLine(MBB_ADDON_NAME);
 				GameTooltip:AddLine(MBB_TOOLTIP1, 0, 1, 0);
 				GameTooltip:Show();
 			</OnEnter>
@@ -97,11 +94,11 @@
 				MBB_OnUpdate(elapsed);
 			</OnUpdate>
 		</Scripts>
+		<HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD" />
 	</Button>
-	
 	<Button name="MBB_ButtonAdd" hidden="true">
 		<Size>
-			<AbsDimension x="21" y="21"/>
+			<AbsDimension x="21" y="21" />
 		</Size>
 		<Scripts>
 			<OnClick>
@@ -113,14 +110,14 @@
 				self:Hide()
 			</OnLeave>
 		</Scripts>
-		<NormalTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Up"/>
-		<PushedTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Down"/>
-		<DisabledTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Disabled"/>
-		<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
+		<NormalTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Up" />
+		<PushedTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Down" />
+		<DisabledTexture file="Interface\Minimap\UI-Minimap-ZoomInButton-Disabled" />
+		<HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD" />
 	</Button>
 	<Button name="MBB_ButtonRemove" hidden="true">
 		<Size>
-			<AbsDimension x="21" y="21"/>
+			<AbsDimension x="21" y="21" />
 		</Size>
 		<Scripts>
 			<OnClick>
@@ -132,40 +129,31 @@
 				self:Hide()
 			</OnLeave>
 		</Scripts>
-		<NormalTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Up"/>
-		<PushedTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Down"/>
-		<DisabledTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Disabled"/>
-		<HighlightTexture alphaMode="ADD" file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight"/>
+		<NormalTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Up" />
+		<PushedTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Down" />
+		<DisabledTexture file="Interface\Minimap\UI-Minimap-ZoomOutButton-Disabled" />
+		<HighlightTexture file="Interface\Minimap\UI-Minimap-ZoomButton-Highlight" alphaMode="ADD" />
 	</Button>
-	
-	<Frame name="MBB_OptionsFrame" toplevel="true" enableMouse="true" movable="true" parent="UIParent" hidden="true">
+	<Frame name="MBB_OptionsFrame" inherits="BackdropTemplate" hidden="true" parent="UIParent" toplevel="true" movable="true" enableMouse="true">
 		<Size>
-			<AbsDimension x="300" y="290" />
+			<AbsDimension x="315" y="290" />
 		</Size>
 		<Anchors>
 			<Anchor point="CENTER" />
 		</Anchors>
-		<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
-			<BackgroundInsets>
-				<AbsInset left="11" right="12" top="12" bottom="11" />
-			</BackgroundInsets>
-			<TileSize>
-				<AbsValue val="32" />
-			</TileSize>
-			<EdgeSize>
-				<AbsValue val="32" />
-			</EdgeSize>
-		</Backdrop>
+		<KeyValues>
+			<KeyValue key="backdropInfo" value="BACKDROP_TOOLTIP_OPTIONS" keyType="string" type="global" />
+		</KeyValues>
 		<Layers>
-			<Layer level="ARTWORK">
+			<Layer>
 				<Texture name="$parent_Header" file="Interface\DialogFrame\UI-DialogBox-Header">
 					<Size>
-						<AbsDimension x="370" y="64"/>
+						<AbsDimension x="370" y="64" />
 					</Size>
 					<Anchors>
 						<Anchor point="TOP">
 							<Offset>
-								<AbsDimension x="0" y="12"/>
+								<AbsDimension x="0" y="12" />
 							</Offset>
 						</Anchor>
 					</Anchors>
@@ -174,14 +162,14 @@
 					<Anchors>
 						<Anchor point="TOP" relativeTo="$parent_Header">
 							<Offset>
-								<AbsDimension x="0" y="-14"/>
+								<AbsDimension x="0" y="-14" />
 							</Offset>
 						</Anchor>
 					</Anchors>
 				</FontString>
 			</Layer>
-			<Layer level="ARTWORK">
-				<FontString name="$parent_ExpansionLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONLABEL">
+			<Layer>
+				<FontString name="$parent_ExpansionLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONLABEL" justifyH="LEFT">
 					<Size>
 						<AbsDimension x="130" y="15" />
 					</Size>
@@ -194,8 +182,8 @@
 					</Anchors>
 				</FontString>
 			</Layer>
-			<Layer level="ARTWORK">
-				<FontString name="$parent_MaxButtonsLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_MAXBUTTONSLABEL">
+			<Layer>
+				<FontString name="$parent_MaxButtonsLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_MAXBUTTONSLABEL" justifyH="LEFT">
 					<Size>
 						<AbsDimension x="130" y="15" />
 					</Size>
@@ -208,8 +196,8 @@
 					</Anchors>
 				</FontString>
 			</Layer>
-			<Layer level="ARTWORK">
-				<FontString name="$parent_AltExpansionLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_ALTEXPANSIONLABEL">
+			<Layer>
+				<FontString name="$parent_AltExpansionLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_ALTEXPANSIONLABEL" justifyH="LEFT">
 					<Size>
 						<AbsDimension x="130" y="15" />
 					</Size>
@@ -224,17 +212,17 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<Slider name="$parent_TimeoutSlider" inherits="OptionsSliderTemplate">
+			<Slider name="$parent_TimeoutSlider" inherits="OptionsSliderTemplate" minValue="0" maxValue="0">
 				<Anchors>
-					<Anchor point="TOPLEFT" relativeTo="$parent" relativeFrom="TOPLEFT">
+					<Anchor relativeFrom="TOPLEFT" point="TOPLEFT" relativeTo="$parent">
 						<Offset>
 							<AbsDimension x="150" y="-45" />
 						</Offset>
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_SLIDERLABEL">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_SLIDERLABEL" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="130" y="15" />
 							</Size>
@@ -253,10 +241,10 @@
 						if( self:GetValue() == 0 ) then
 							getglobal(self:GetName().."Text"):SetText(MBB_OPTIONS_SLIDEROFF);
 						else
-							getglobal(self:GetName().."Text"):SetText(self:GetValue() .. " " .. MBB_OPTIONS_SLIDERSEK);
+							getglobal(self:GetName().."Text"):SetText(string.format("%.3f", self:GetValue()) .. " " .. MBB_OPTIONS_SLIDERSEK);
 						end
 					</OnValueChanged>
-					<OnLoad>
+					<OnLoad inherit="prepend">
 						self:SetMinMaxValues(0,5);
 						self:SetValueStep(1);
 						getglobal(self:GetName().."High"):SetText("5 " .. MBB_OPTIONS_SLIDERSEK);
@@ -281,8 +269,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONLEFT">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONLEFT" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -317,8 +305,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONTOP">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONTOP" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -353,8 +341,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONRIGHT">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONRIGHT" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -389,8 +377,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONBOTTOM">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONBOTTOM" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -416,18 +404,23 @@
 					</OnShow>
 				</Scripts>
 			</CheckButton>
-			<EditBox name="$parent_MaxButtonsTextBox" enableMouse="true" ignoreArrows="false" letters="3" autoFocus="false">
-				<Backdrop edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
-					<TileSize>
-						<AbsValue val="8" />
-					</TileSize>
-					<EdgeSize>
-						<AbsValue val="8" />
-					</EdgeSize>
-				</Backdrop>
+			<EditBox name="$parent_MaxButtonsTextBox" inherits="BackdropTemplate" enableMouse="true" letters="3" autoFocus="false">
+				<Size>
+					<AbsDimension x="30" y="20" />
+				</Size>
+				<Anchors>
+					<Anchor point="LEFT" relativeTo="$parent_MaxButtonsLabel" relativePoint="RIGHT">
+						<Offset>
+							<AbsDimension x="0" y="0" />
+						</Offset>
+					</Anchor>
+				</Anchors>
+				<KeyValues>
+					<KeyValue key="backdropInfo" value="BACKDROP_MAXBUTTONS_OPTIONS" keyType="string" type="global" />
+				</KeyValues>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentInfo" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_MAXBUTTONSINFO">
+					<Layer>
+						<FontString name="$parentInfo" inherits="GameFontHighlight" text="MBB_OPTIONS_MAXBUTTONSINFO" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="100" y="15" />
 							</Size>
@@ -441,28 +434,6 @@
 						</FontString>
 					</Layer>
 				</Layers>
-				<Size>
-					<AbsDimension x="30" y="20" />
-				</Size>
-				<Anchors>
-					<Anchor point="LEFT" relativeTo="$parent_MaxButtonsLabel" relativePoint="RIGHT">
-						<Offset>
-							<AbsDimension x="0" y="0" />
-						</Offset>
-					</Anchor>
-				</Anchors>
-				<FontString inherits="ChatFontNormal" justifyH="RIGHT">
-					<FontHeight>
-						<AbsValue val="14" />
-					</FontHeight>
-					<Color r="1" g="1" b="1" />
-					<Shadow>
-						<Color r="0" g="0" b="0" />
-						<Offset>
-							<AbsDimension x="1" y="-1" />
-						</Offset>
-					</Shadow>
-				</FontString>
 				<Scripts>
 					<OnEscapePressed>
 						self:SetText(MBB_Options.MaxButtonsPerLine);
@@ -478,13 +449,18 @@
 						MBB_UpdateAltRadioButtons();
 						self:ClearFocus();
 					</OnEnterPressed>
-					<OnLoad>
+					<OnLoad inherit="prepend">
 						self:SetTextInsets(2, 4, 2, 2);
 					</OnLoad>
 					<OnShow>
 						self:SetText(MBB_Options.MaxButtonsPerLine);
 					</OnShow>
 				</Scripts>
+				<FontString inherits="ChatFontNormal" justifyH="RIGHT">
+					<FontHeight>
+						<AbsValue val="14" />
+					</FontHeight>
+				</FontString>
 			</EditBox>
 			<CheckButton name="$parent_LeftAltRadio" inherits="UIRadioButtonTemplate">
 				<Anchors>
@@ -495,8 +471,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONLEFT">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONLEFT" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -530,8 +506,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONTOP">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONTOP" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -565,8 +541,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONRIGHT">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONRIGHT" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -600,8 +576,8 @@
 					</Anchor>
 				</Anchors>
 				<Layers>
-					<Layer level="ARTWORK">
-						<FontString name="$parentLabel" inherits="GameFontHighlight" justifyH="LEFT" text="MBB_OPTIONS_EXPANSIONBOTTOM">
+					<Layer>
+						<FontString name="$parentLabel" inherits="GameFontHighlight" text="MBB_OPTIONS_EXPANSIONBOTTOM" justifyH="LEFT">
 							<Size>
 								<AbsDimension x="50" y="15" />
 							</Size>
@@ -631,7 +607,7 @@
 					<AbsDimension x="125" y="21" />
 				</Size>
 				<Anchors>
-					<Anchor point="TOP" relativeTo="$parent" relativeFrom="TOPLEFT">
+					<Anchor relativeFrom="TOPLEFT" point="TOP" relativeTo="$parent">
 						<Offset>
 							<AbsDimension x="-75" y="-245" />
 						</Offset>
@@ -671,7 +647,7 @@
 					<AbsDimension x="125" y="21" />
 				</Size>
 				<Anchors>
-					<Anchor point="TOP" relativeTo="$parent" relativeFrom="TOPLEFT">
+					<Anchor relativeFrom="TOPLEFT" point="TOP" relativeTo="$parent">
 						<Offset>
 							<AbsDimension x="75" y="-245" />
 						</Offset>
@@ -686,7 +662,7 @@
 		</Frames>
 		<Scripts>
 			<OnShow>
-				MBB_OptionsFrame_HeaderText:SetText("MBB v" .. MBB_Version .. " " .. MBB_OPTIONS_HEADER);
+				MBB_OptionsFrame_HeaderText:SetText("MBB" .. " " .. MBB_OPTIONS_HEADER);
 				MBB_UpdateAltRadioButtons();
 			</OnShow>
 		</Scripts>

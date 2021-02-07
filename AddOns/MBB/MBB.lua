@@ -8,79 +8,7 @@
 	
 ]]
 
---[[
-
-v0.50 - Fixed a few loose button issues, and child/parent frame issues that were causing stack overflows
-
-v0.51 - Changed bar strata to HIGH from LOW to put it in front of things like GRID.
-
-v0.52 - Changed TOC for patch 2.3
-
-v0.60 - Fixed SecureStateAnchor bug for WotLK
-
-v0.61 - Added exclusion for DAGAssist
-
-v0.62 - Fixed stack overflow at line 438
-
-v0.63 - Move button strata from high to medium
-
-v1.00 - Fixes by Yossa for Patch 4.0.1
-
-v1.01 - Replaced old Variables_loaded event with Player_login
-
-v1.10 - replaced getglobals with _G[
-          Fixed saving of position on reload
-		Added French Localisation thanks to Elchizen for providing the data
-		
-v1.11 - Fixed stack overflow issue
-
-v1.12 - Elchizen's localisation had bug and forced it to be in French
-
-v1.13 - Update for patch 4.2
-
-v1.20 - Update for patch 4.3
-
-v1.31 - Update for patch 5.0.4
-
-v1.32 - Update to ignore other Add-On's minimap elements.
-
-v1.33 - Fixed saving button position when detached.
-
-v1.34 - Added another Slash Handler.
-		Fix a reset position issue.
-		Add additional buttons to ignore.
-		Drop some explicitly included buttons because they weren't working.
-		
-v1.35 - Added ignore for Gatherer's Archaeology Nodes.
-		
-v1.36 - Added ignore for Zygor Guides.
-		
-v1.37 - Update for 5.1.
-		
-v1.38 - Update for 5.2.
-		Update to ignore other Add-On's minimap elements.
-
-v1.39 - Update for 5.3.
-
-v1.40 - Update for 5.4.
-
-v2.00 - Update for 6.0.
-
-v2.01 - Update for 6.1.
-
-v2.02 - Update for 6.2.
-
-v3.00 - Update for 7.03.
-
-v3.01 - Update for 7.1.
-
-v3.02 - Update for 7.2.
-
-v3.03 - Update for 7.3.
-
---]]
-
-MBB_Version = "3.03";
+MBB_Version = "4.0.4";
 
 -- Setup some variable for debugging.
 MBB_DebugFlag = 0;
@@ -96,13 +24,32 @@ MBB_Buttons = {};
 MBB_Exclude = {};
 
 MBB_DefaultOptions = {
-	["ButtonPos"] = {-26.3354320526123, -71.3367538452149},    
+	["ButtonPos"] = {-18, -100},
 	["AttachToMinimap"] = 1,
 	["DetachedButtonPos"] = "CENTER",
 	["CollapseTimeout"] = 1,
 	["ExpandDirection"] = 1,
 	["MaxButtonsPerLine"] = 0,
 	["AltExpandDirection"] = 4
+};
+
+
+BACKDROP_MAXBUTTONS_OPTIONS = {
+	edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+	tile = true,
+	--tileEdge = true,
+	tileSize = 8,
+	edgeSize = 8
+};
+
+BACKDROP_TOOLTIP_OPTIONS = {
+	bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+	edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+	tile = true,
+	tileEdge = true,
+	tileSize = 32,
+	edgeSize = 32,
+	insets = { left = 11, right = 12, top = 12, bottom = 11 },
 };
 
 -- Buttons to include with scanning for them first.  Currently unused.
@@ -151,7 +98,10 @@ MBB_Ignore = {
 	[39] = "poiMinimap",	-- QuestPointer
 	[40] = "MiniMapLFGFrame",    -- LFG
 	[41] = "PremadeFilter_MinimapButton",    -- PreMadeFilter
-	[42] = "GarrisonMinimapButton"
+	[42] = "GarrisonMinimapButton",
+	[43] = "TukuiMinimapZone",
+	[44] = "GPSArrow",
+	[45] = "HandyNotes_.*Pin" -- Handy Notes plugins support
 };
 
 MBB_IgnoreSize = {
