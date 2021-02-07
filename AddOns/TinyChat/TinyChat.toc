@@ -7,8 +7,8 @@
 ## Version: 9.0.7
 ## SavedVariables: TinyChatDB
 
-## libs\LibStub\LibStub.lua
-## libs\LibUIDropDownMenu\LibUIDropDownMenu.xml
+libs\LibStub\LibStub.lua
+libs\LibUIDropDownMenu\LibUIDropDownMenu.xml
 
 ## ChatAtFriends.lua
 ChatEmote.lua
