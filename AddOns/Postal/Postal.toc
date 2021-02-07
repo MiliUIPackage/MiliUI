@@ -1,22 +1,26 @@
-## Interface: 80300
+## Interface: 90002
 ## Title: Postal
-## Version: v3.6.0a
-## X-Build: 409
-## X-ReleaseDate: 2018-07-20T8:41:50Z
-## X-Revision: $Revision: 409 $
+## Version: r436
+## X-Build: 436
+## X-ReleaseDate: 2020-11-17T6:32:04Z
+## X-Revision: $Revision: 437 $
 ## Author: Xinhuan
-## X-Credits: Ammo, Rabbit, Grennon, Mikk, oscarucb
+## X-Credits: Ammo, Rabbit, Grennon, Mikk, oscarucb, Jonny aka The_Original_Manbot
 ## X-Category: Mail
 ## Notes: Postal: Enhanced Mailbox support
-## Notes-zhCN: Postal: 增强信箱功能 
+## Notes-ruRU: Postal: Расширенная поддержка почтового ящика
+## Notes-frFR: Postal: améliorations diverses de l'interface d'envoi/réception de courriers.
+## Notes-esES: Postal: soporte mejorado para el buzon
 ## Title-zhTW: |cFF0099FF[介面]|r 信箱增強
 ## Notes-zhTW: Postal |n強化信箱功能。收件人可以快速地選擇分身，避免寄錯；一次收取所有信件，還有更多功能。
+## Notes-zhCN: Postal: 增强信箱功能
+## Notes-ptBR: Postal: Apoio caixa reforçada
 ## OptionalDeps: Ace3, !BlizzBugsSuck, !ClassColors
 ## SavedVariables: Postal3DB
 
 ## LoadManagers: AddonLoader
 ## X-LoadOn-Mailbox: true
-## X-Email: xinhuan AT gmail DOT com
+## X-Email: jonny AT jmbg DOT net
 
 #@no-lib-strip@
 Libs\LibStub\LibStub.lua

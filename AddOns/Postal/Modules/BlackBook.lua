@@ -22,23 +22,6 @@ local Postal_BlackBook_Autocomplete_Flags = {
 	exclude = AUTOCOMPLETE_FLAG_BNET,
 }
 
---職業顔色值
-local LOCAL_CLASS_INFO = {}
-do
-    local localClass, class
-    for class, localClass in pairs(LOCALIZED_CLASS_NAMES_MALE) do
-        LOCAL_CLASS_INFO[localClass] = RAID_CLASS_COLORS[class] or NORMAL_FONT_COLOR
-        LOCAL_CLASS_INFO[localClass].class = class
-    end
-end
-
--- 版本檢查
-local playerClientProgram = 1
-local _, _, _, tocversion = GetBuildInfo()
-if (tocversion >= 11302 and tocversion < 20000) then
-	playerClientProgram = 2
-end
-
 function Postal_BlackBook:OnEnable()
 	if not Postal_BlackBookButton then
 		-- Create the Menu Button
@@ -69,7 +52,7 @@ function Postal_BlackBook:OnEnable()
 		self:RawHookScript(SendMailNameEditBox, "OnChar")
 	end
 	self:HookScript(SendMailNameEditBox, "OnEditFocusGained")
-	self:RawHook("AutoComplete_Update", true)
+	self:SecureHook("AutoComplete_Update")
 	self:RegisterEvent("MAIL_SHOW")
 	self:RegisterEvent("PLAYER_ENTERING_WORLD", "AddAlt")
 
@@ -228,9 +211,9 @@ function Postal_BlackBook:OnEditFocusGained(editbox, ...)
 	SendMailNameEditBox:HighlightText()
 end
 
-function Postal_BlackBook:AutoComplete_Update(editBox, editBoxText, utf8Position, ...)
-	if editBox ~= SendMailNameEditBox or not Postal.db.profile.BlackBook.DisableBlizzardAutoComplete then
-		self.hooks["AutoComplete_Update"](editBox, editBoxText, utf8Position, ...)
+function Postal_BlackBook:AutoComplete_Update(parent, text, cursorPosition)
+	if parent == SendMailNameEditBox and Postal.db.profile.BlackBook.DisableBlizzardAutoComplete then
+		AutoComplete_HideIfAttachedTo(parent)
 	end
 end
 
@@ -248,7 +231,7 @@ function Postal_BlackBook:OnChar(editbox, ...)
 	local player = UnitName("player")
 	local newname
 
-		-- Check all alt list
+	-- Check all alt list
 	if db.AutoCompleteAllAlts then
 		local nosptext = text:gsub("%s*","") -- ignore spaces in matching fully-qualified names
 		local db = Postal.db.global.BlackBook.alts
@@ -265,21 +248,16 @@ function Postal_BlackBook:OnChar(editbox, ...)
 
 	-- Check alt list
 	if db.AutoCompleteAlts then
-	   for pass = 1,2 do
 		local db = Postal.db.global.BlackBook.alts
 		for i = 1, #db do
 			local p, r, f = strsplit("|", db[i])
-			if r == realm and p ~= player and
-			( (pass == 1 and f ~= faction) or
-			  (pass == 2 and f == faction) ) -- prefer same faction, but don't require for alts
-			then
+			if r == realm and f == faction and p ~= player then
 				if strfind(strupper(p), text, 1, 1) == 1 then
 					newname = p
 					break
 				end
 			end
 		end
-	   end
 	end
 
 
@@ -309,17 +287,14 @@ function Postal_BlackBook:OnChar(editbox, ...)
 		end
 	end
 
-	-- Check RealID friends that are online
+	-- Check RealID friends that are online :: rewrite  due to API changes - Jonny
 	if not newname and db.AutoCompleteFriends then
-		local _, numBNetOnline = BNGetNumFriends()
+		local numBNetTotal, numBNetOnline = BNGetNumFriends()
 		for i = 1, numBNetOnline do
-			-- 暫時修正
 			local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
-			local characterName = accountInfo.gameAccountInfo.characterName
-			if (characterName and client == BNET_CLIENT_WOW and accountInfo.gameAccountInfo.wowProjectID == playerClientProgram 
-			and CanCooperateWithGameAccount(accountInfo)) then
-				if strfind(strupper(characterName), text, 1, 1) == 1 then
-					newname = characterName
+			if (accountInfo.gameAccountInfo.characterName and accountInfo.gameAccountInfo.clientProgram == BNET_CLIENT_WOW and CanCooperateWithGameAccount(accountInfo) and accountInfo.gameAccountInfo.wowProjectID == 1 ) then
+				if strfind(strupper(accountInfo.gameAccountInfo.characterName), text, 1, 1) == 1 then
+					newname = accountInfo.gameAccountInfo.characterName
 					break
 				end
 			end
@@ -377,54 +352,9 @@ end
 
 function Postal_BlackBook:SortAndCountNumFriends()
 	wipe(sorttable)
-	-- 本服好友名單
-	local name
 	local numFriends = C_FriendList.GetNumFriends()
 	for i = 1, numFriends do
-		local info = C_FriendList.GetFriendInfoByIndex(i)
-		if info.level and info.className and info.className ~= UNKNOWN then
-			local clr = LOCAL_CLASS_INFO[info.className]
-			name = format("%s |cff%.2x%.2x%.2x(%d %s)|r", info.name, clr.r*255, clr.g*255, clr.b*255, info.level, info.className)
-		else
-			name = info.name
-		end
-		sorttable[i] = name
-	end
-
-	-- Battle.net friends 戰網好友名單
-	if BNGetNumFriends then -- For pre 3.3.5 backwards compat
-		local _, numBNetOnline = BNGetNumFriends()
-		for i= 1, numBNetOnline do
-			-- 暫時修正
-			local accountInfo = C_BattleNet.GetFriendAccountInfo(i)
-			local characterName = accountInfo.gameAccountInfo.characterName
-			if (characterName and accountInfo.gameAccountInfo.clientProgram == BNET_CLIENT_WOW and accountInfo.gameAccountInfo.wowProjectID == playerClientProgram
-			and CanCooperateWithGameAccount(accountInfo)) then
-				if accountInfo.gameAccountInfo.realmName then
-					characterName = characterName.."-"..accountInfo.gameAccountInfo.realmName
-				end
-
-				local l = accountInfo.gameAccountInfo.characterLevel
-				local c = accountInfo.gameAccountInfo.className
-				if l and c then
-					local clr = LOCAL_CLASS_INFO[c]
-					characterName = format("%s |cff82c5ff(%s)|r |cff%.2x%.2x%.2x(%d %s)|r", characterName, accountInfo.accountName, clr.r*255, clr.g*255, clr.b*255, l, c)
-				end
-				
-				-- Check if already on friends list
-				local alreadyOnList = false
-				for j = 1, numFriends do
-					if sorttable[j] == characterName then
-						alreadyOnList = true
-						break
-					end
-				end
-				if not alreadyOnList then
-					numFriends = numFriends + 1
-					sorttable[numFriends] = characterName
-				end
-			end
-		end
+		sorttable[i] = C_FriendList.GetFriendInfoByIndex(i).name
 	end
 
 	-- Sort the list
@@ -437,8 +367,25 @@ end
 
 function Postal_BlackBook.BlackBookMenu(self, level)
 	if not level then return end
+	local altstable = {}
 	local info = self.info
+	local numAltsOnList = 0
 	wipe(info)
+	wipe(altstable)
+	if enableAltsMenu then
+		local db = Postal.db.global.BlackBook.alts
+		local realm = GetRealmName()
+		local faction = UnitFactionGroup("player")
+		local player = UnitName("player")
+		for k in pairs(db) do
+			local p, r, f, l, c = strsplit("|", db[k])
+			if r == realm and f == faction and p ~= player then
+				numAltsOnList = numAltsOnList + 1
+				table.insert(altstable,db[k])
+			end
+		end
+	end
+
 	if level == 1 then
 		info.isTitle = 1
 		info.text = L["Contacts"]
@@ -549,14 +496,12 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "alt" then
 			if not enableAltsMenu then return end
-			local db = Postal.db.global.BlackBook.alts
-			local realm = GetRealmName()
-			local faction = UnitFactionGroup("player")
-			local player = UnitName("player")
+			local db = altstable
 			info.notCheckable = 1
-			for i = 1, #db do
-				local p, r, f, l, c = strsplit("|", db[i])
-				if r == realm and p ~= player then
+			-- 25 or less, don't need multi level menus
+			if numAltsOnList > 0 and numAltsOnList <= 25 then
+				for i = 1, numAltsOnList do
+					local p, r, f, l, c = strsplit("|", db[i])
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
 						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
@@ -567,21 +512,35 @@ function Postal_BlackBook.BlackBookMenu(self, level)
 					info.arg1 = p
 					UIDropDownMenu_AddButton(info, level)
 				end
+
+				info.disabled = 1
+				info.text = nil
+				info.func = nil
+				info.arg1 = nil
+				UIDropDownMenu_AddButton(info, level)
+				info.disabled = nil
+
+				info.text = L["Delete"]
+				info.hasArrow = 1
+				info.keepShownOnClick = 1
+				info.func = self.UncheckHack
+				info.value = "deletealt"
+				UIDropDownMenu_AddButton(info, level)
+			-- More than 25 people, split the list into multiple sublists of 25
+			elseif numAltsOnList > 25 then
+				info.hasArrow = 1
+				info.keepShownOnClick = 1
+				info.func = self.UncheckHack
+				for i = 1, math.ceil(numAltsOnList/25) do
+					info.text  = L["Part %d"]:format(i)
+					info.value = "sapart"..i
+					UIDropDownMenu_AddButton(info, level)
+				end
 			end
-
-			info.disabled = 1
-			info.text = nil
-			info.func = nil
-			info.arg1 = nil
-			UIDropDownMenu_AddButton(info, level)
-			info.disabled = nil
-
-			info.text = L["Delete"]
-			info.hasArrow = 1
-			info.keepShownOnClick = 1
-			info.func = self.UncheckHack
-			info.value = "deletealt"
-			UIDropDownMenu_AddButton(info, level)
+			-- ensure long lists stay on screen
+			if DropDownList2 then DropDownList2:SetClampedToScreen(true) end
+			if DropDownList3 then DropDownList3:SetClampedToScreen(true) end
+			if DropDownList4 then DropDownList4:SetClampedToScreen(true) end
 
 elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			if not enableAllAltsMenu then return end
@@ -591,42 +550,54 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			local player = UnitName("player")
 			local plre = player.."-"..realm
 			info.notCheckable = 1
-			for i = 1, #db do
-				local p, r, f, l, c = strsplit("|", db[i])
-				local pr = p.."-"..r
-				if (pr ~= plre ) then
-					if l and c then
-						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
-						info.text = format("%s-%s |cff%.2x%.2x%.2x(%d %s)|r", p, r, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
-					else
-						info.text = ("%s-%s"):format(p, r)
+			-- 25 or less, don't need multi level menus
+			if #db > 0 and #db <= 25 then
+				for i = 1, #db do
+					local p, r, f, l, c = strsplit("|", db[i])
+					local pr = p.."-"..r
+					if (pr ~= plre ) then
+						if l and c then
+							local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
+							info.text = format("%s-%s |cff%.2x%.2x%.2x(%d %s)|r", p, r, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+						else
+							info.text = ("%s-%s"):format(p, r)
+						end
+						info.func = Postal_BlackBook.SetSendMailName
+						info.arg1 = ("%s-%s"):format(p, r)
+						UIDropDownMenu_AddButton(info, level)
 					end
-					info.func = Postal_BlackBook.SetSendMailName
-					info.arg1 = ("%s-%s"):format(p, r)
+				end
+				info.disabled = 1
+				info.text = nil
+				info.func = nil
+				info.arg1 = nil
+				UIDropDownMenu_AddButton(info, level)
+				info.disabled = nil
+
+				info.text = L["Delete"]
+				info.hasArrow = 1
+				info.keepShownOnClick = 1
+				info.func = self.UncheckHack
+				info.value = "deleteallalt"
+				UIDropDownMenu_AddButton(info, level)
+			-- More than 25 people, split the list into multiple sublists of 25
+			elseif #db > 25 then
+				info.hasArrow = 1
+				info.keepShownOnClick = 1
+				info.func = self.UncheckHack
+				for i = 1, math.ceil(#db/25) do
+					info.text  = L["Part %d"]:format(i)
+					info.value = "aapart"..i
 					UIDropDownMenu_AddButton(info, level)
 				end
 			end
-
-			info.disabled = 1
-			info.text = nil
-			info.func = nil
-			info.arg1 = nil
-			UIDropDownMenu_AddButton(info, level)
-			info.disabled = nil
-
-			info.text = L["Delete"]
-			info.hasArrow = 1
-			info.keepShownOnClick = 1
-			info.func = self.UncheckHack
-			info.value = "deleteallalt"
-			UIDropDownMenu_AddButton(info, level)
-
-			if DropDownList2 then -- ensure long lists stay on screen
-				DropDownList2:SetClampedToScreen(true)
-			end
+			-- ensure long lists stay on screen
+			if DropDownList2 then DropDownList2:SetClampedToScreen(true) end
+			if DropDownList3 then DropDownList3:SetClampedToScreen(true) end
+			if DropDownList4 then DropDownList4:SetClampedToScreen(true) end
 
 		elseif UIDROPDOWNMENU_MENU_VALUE == "friend" then
-			-- Friends list 好友名單
+			-- Friends list
 			local numFriends = Postal_BlackBook:SortAndCountNumFriends()
 
 			-- 25 or less, don't need multi level menus
@@ -635,13 +606,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 					local name = sorttable[i]
 					info.text = name
 					info.func = Postal_BlackBook.SetSendMailName
-					if strfind(name, " |cff82c5ff") then
-						info.arg1 = strmatch(name, "(.*) |cff82c5ff")
-					elseif strfind(name, " |cff") then
-						info.arg1 = strmatch(name, "(.*) |cff")
-					else
-						info.arg1 = name
-					end
+					info.arg1 = name
 					UIDropDownMenu_AddButton(info, level)
 				end
 			elseif numFriends > 25 then
@@ -668,6 +633,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 				sorttable[i] = nil
 			end
 			if not ignoresortlocale[GetLocale()] then table.sort(sorttable) end
+			-- 25 or less, don't need multi level menus
 			if numFriends > 0 and numFriends <= 25 then
 				for i = 1, numFriends do
 					info.text = sorttable[i]
@@ -675,8 +641,8 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 					info.arg1 = strmatch(sorttable[i], "(.*) |cffffd200")
 					UIDropDownMenu_AddButton(info, level)
 				end
+			-- More than 25 people, split the list into multiple sublists of 25
 			elseif numFriends > 25 then
-				-- More than 25 people, split the list into multiple sublists of 25
 				info.hasArrow = 1
 				info.keepShownOnClick = 1
 				info.func = self.UncheckHack
@@ -698,7 +664,7 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 			local player = UnitName("player")
 			for i = 1, #db do
 				local p, r, f, l, c = strsplit("|", db[i])
-				if p ~= player and ( r == realm or all ) then
+				if p ~= player and ( (r == realm and f == faction) or all ) then
 					p = all and p.."-"..r or p
 					if l and c then
 						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
@@ -711,6 +677,117 @@ elseif UIDROPDOWNMENU_MENU_VALUE == "allalt" then
 					UIDropDownMenu_AddButton(info, level)
 				end
 			end
+
+		elseif strfind(UIDROPDOWNMENU_MENU_VALUE, "delsapart") then
+			local db = altstable
+			local startIndex = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "delsapart(%d+)")) * 25 - 24
+			local endIndex = math.min(startIndex+24, numAltsOnList)
+			for i = startIndex, endIndex do
+				local name = sorttable[i]
+				local p, r, f, l, c = strsplit("|", db[i])
+					p = all and p.."-"..r or p
+					if l and c then
+						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
+						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+					else
+						info.text = p
+					end
+					info.func = Postal_BlackBook.DeleteAlt
+					info.arg1 = db[i]
+					UIDropDownMenu_AddButton(info, level)
+			end
+
+		elseif strfind(UIDROPDOWNMENU_MENU_VALUE, "delaapart") then
+			local all = strfind(UIDROPDOWNMENU_MENU_VALUE, "delaapart")
+			local db = Postal.db.global.BlackBook.alts
+			local startIndex = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "delaapart(%d+)")) * 25 - 24
+			local endIndex = math.min(startIndex+24, #db)
+			local realm = GetRealmName()
+			local faction = UnitFactionGroup("player")
+			local player = UnitName("player")
+			for i = startIndex, endIndex do
+				local p, r, f, l, c = strsplit("|", db[i])
+				if p ~= player and ( (r == realm and f == faction) or all ) then
+					p = all and p.."-"..r or p
+					if l and c then
+						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
+						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+					else
+						info.text = p
+					end
+					info.func = Postal_BlackBook.DeleteAlt
+					info.arg1 = db[i]
+					UIDropDownMenu_AddButton(info, level)
+				end
+			end
+
+		elseif strfind(UIDROPDOWNMENU_MENU_VALUE, "sapart") then
+			local db = altstable
+			local startIndex = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "sapart(%d+)")) * 25 - 24
+			local endIndex = math.min(startIndex+24, numAltsOnList)
+			for i = startIndex, endIndex do
+				local name = sorttable[i]
+				local p, r, f, l, c = strsplit("|", db[i])
+				local pr = p.."-"..r
+				if (pr ~= plre ) then
+					if l and c then
+						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
+						info.text = format("%s |cff%.2x%.2x%.2x(%d %s)|r", p, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+					else
+						info.text = p
+					end
+					info.func = Postal_BlackBook.SetSendMailName
+					info.arg1 = p
+					UIDropDownMenu_AddButton(info, level)
+				end
+			end
+			info.disabled = 1
+			info.text = nil
+			info.func = nil
+			info.arg1 = nil
+			UIDropDownMenu_AddButton(info, level)
+			info.disabled = nil
+
+			info.text = L["Delete"]
+			info.hasArrow = 1
+			info.keepShownOnClick = 1
+			info.func = self.UncheckHack
+			info.value = "delsapart"..tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "sapart(%d+)"))
+			UIDropDownMenu_AddButton(info, level)
+
+		elseif strfind(UIDROPDOWNMENU_MENU_VALUE, "aapart") then
+			local db = Postal.db.global.BlackBook.alts
+			local startIndex = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "aapart(%d+)")) * 25 - 24
+			local endIndex = math.min(startIndex+24, #db)
+			for i = startIndex, endIndex do
+				local name = sorttable[i]
+				local p, r, f, l, c = strsplit("|", db[i])
+				local pr = p.."-"..r
+				if (pr ~= plre ) then
+					if l and c then
+						local clr = CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[c] or RAID_CLASS_COLORS[c]
+						info.text = format("%s-%s |cff%.2x%.2x%.2x(%d %s)|r", p, r, clr.r*255, clr.g*255, clr.b*255, l, LOCALIZED_CLASS_NAMES_MALE[c])
+					else
+						info.text = ("%s-%s"):format(p, r)
+					end
+					info.func = Postal_BlackBook.SetSendMailName
+					info.arg1 = ("%s-%s"):format(p, r)
+					UIDropDownMenu_AddButton(info, level)
+				end
+			end
+			info.disabled = 1
+			info.text = nil
+			info.func = nil
+			info.arg1 = nil
+			UIDropDownMenu_AddButton(info, level)
+			info.disabled = nil
+
+			info.text = L["Delete"]
+			info.hasArrow = 1
+			info.keepShownOnClick = 1
+			info.func = self.UncheckHack
+			info.value = "delaapart"..tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "aapart(%d+)"))
+			UIDropDownMenu_AddButton(info, level)
 
 		elseif strfind(UIDROPDOWNMENU_MENU_VALUE, "fpart") then
 			local startIndex = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, "fpart(%d+)")) * 25 - 24
@@ -848,4 +925,3 @@ function Postal_BlackBook.ModuleMenu(self, level)
 		end
 	end
 end
-
