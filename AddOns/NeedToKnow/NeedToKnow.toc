@@ -1,4 +1,4 @@
-## Interface: 80300
+## Interface: 90002
 ## Title: NeedToKnow
 ## Author: Kitjan, lieandswell
 ## Version: 4.0.30
