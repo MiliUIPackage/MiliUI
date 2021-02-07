@@ -1,0 +1,41 @@
+## Interface: 90002
+## Title: Cell
+## Title-zhTW: |cffFF7F00[團隊]|r Cell 團隊框架
+## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
+## DefaultState: enabled
+## Version: r39-release
+## Author: 篠崎
+## SavedVariables: CellDB
+## SavedVariablesPerCharacter: CellCharacterDB
+
+Locales\enUS.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
+Libs\LoadLibs.xml
+
+Core.lua
+Utils.lua
+Revise.lua
+Comm.lua
+Widgets\LoadWidgets.xml
+
+HideBlizzard.lua
+WhatsNew.lua
+
+RaidFrame\Indicators\Base.lua
+RaidFrame\Indicators\Built-in.lua
+RaidFrame\Indicators\AoEHealing.lua
+RaidFrame\Indicators\TargetedSpells.lua
+RaidFrame\Indicators\Custom.lua
+
+RaidFrame\MainFrame.lua
+RaidFrame\UnitButton.lua
+RaidFrame\UnitButton.xml
+RaidFrame\Groups\SoloFrame.lua
+RaidFrame\Groups\PartyFrame.lua
+RaidFrame\Groups\RaidFrame.lua
+RaidFrame\Groups\NPCFrame.lua
+
+ToolFrames\LoadToolFrames.xml
+OptionFrames\LoadOptionFrames.xml

@@ -1,0 +1,10 @@
+lightweight tag 18b1b280ad6bce1aa2be2bc87efe0a67228213c0 r39-release
+Author:	KevinSK <shinozakisama@live.com>
+Date:	Fri Jan 22 13:13:20 2021 +0800
+
+commit 18b1b280ad6bce1aa2be2bc87efe0a67228213c0
+Author: KevinSK <shinozakisama@live.com>
+Date:   Fri Jan 22 13:13:20 2021 +0800
+
+    update zhTW
+
