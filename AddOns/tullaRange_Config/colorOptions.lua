@@ -11,7 +11,7 @@ do
 	ColorOptions = Addon.OptionsPanel:New(
 		'tullaRange_ColorOptions',
 		nil,
-		'tullaRange',
+		'射程著色',
 		L.ColorSettingsTitle
 	)
 
