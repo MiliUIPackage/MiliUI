@@ -61,7 +61,7 @@ local FrameDefaults = {
 local ProfileDefaults = {
 	inventory = SetDefaults({
 		reversedTabs = true,
-		borderColor = {0, 0, 0, 1},
+		borderColor = {0, 0, 0, 0.5},
 		point = 'BOTTOMRIGHT',
 		x = -50, y = 100,
 		columns = 9,
