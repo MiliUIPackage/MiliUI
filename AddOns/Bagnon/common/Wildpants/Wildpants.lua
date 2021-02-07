@@ -39,7 +39,7 @@ local FrameDefaults = {
 
 	strata = 'HIGH', alpha = 1,
 	scale = Addon.FrameScale or 1,
-	color = {0.1254901960784314, 0.1254901960784314, 0.1254901960784314, 1},
+	color = {0.1333333333333333, 0.1333333333333333, 0.1333333333333333, 1},
 	x = 0, y = 0,
 
 	itemScale = Addon.ItemScale or 1,
@@ -61,7 +61,7 @@ local FrameDefaults = {
 local ProfileDefaults = {
 	inventory = SetDefaults({
 		reversedTabs = true,
-		borderColor = {0, 0, 0, 0.5},
+		borderColor = {0, 0, 0, 1},
 		point = 'BOTTOMRIGHT',
 		x = -50, y = 100,
 		columns = 9,
