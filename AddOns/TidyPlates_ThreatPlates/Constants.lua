@@ -260,6 +260,7 @@ local TOTEM_DATA_RETAIL = {
   { SpellID = 108280, ID = "S3", GroupColor = "ffb31f"},		-- Healing Tide Totem
   { SpellID = 160161, ID = "S4", GroupColor = "ffb31f"}, 	  -- Earthquake Totem
   { SpellID = 2484,   ID = "S5",	GroupColor = "ffb31f"},   -- Earthbind Totem (added patch 7.2, TP v8.4.0)
+  { SpellID = 8512,   ID = "S6", GroupColor = "ffb31f", Icon = "spell_nature_windfury" },	  -- Windfury Totem (re-added with 9.0.1)
 
   -- Totems from Totem Mastery
   { SpellID = 202188, ID = "M1", GroupColor = "b8d1ff"}, 	  -- Resonance Totem
@@ -279,7 +280,6 @@ local TOTEM_DATA_RETAIL = {
   { SpellID = 204330, ID = "P2", GroupColor = "2b76ff"},	  -- Skyfury Totem
   { SpellID = 204336, ID = "P4", GroupColor = "2b76ff"},	  -- Grounding Totem
 
-  --{ SpellID = 204332, ID = "P3", GroupColor = "2b76ff"},	  -- Windfury Totem (removed in patch 8.0.1)p
   --{ SpellID = 196932, ID = "N6", GroupColor = "4c9900"},		-- Voodoo Totem (removed in patch 8.0.1)
   --{ SpellID = 192058, ID = "N3", GroupColor = "4c9900"},		-- Lightning  Surge Totem (renamed to Capacitator Totem in patch 8.0.1)
 }
@@ -419,7 +419,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       FriendlyUnits = "NONE",
       EnemyUnits = "NONE",
       SmallPlatesInInstances = false,
-      HideFriendlyUnitsInInstances = false,
+      HideFriendlyUnitsInInstances = true,
     },
     Scale = {
       IgnoreUIScale = true,
@@ -1228,6 +1228,26 @@ ThreatPlates.DEFAULT_SETTINGS = {
 		  },
 		},
 		allowMarked = false,
+	  },
+	  {
+		Trigger = {
+		  Type = "Name",
+          Name = {
+            Input = "幻影複製體",
+            AsArray = {"幻影複製體",},
+          },
+        },
+		Enable = {
+		  UnitReaction = {
+		    FRIENDLY = false,
+		  },
+		  OutOfInstances = false,
+		},
+		name = "幻影複製體",
+		showIcon = false,
+		useColor = false,
+		overrideAlpha = true,
+		scale = 0.7,
 	  },
     },
     CVarsBackup = {}, -- Backup for CVars that should be restored when TP is disabled
