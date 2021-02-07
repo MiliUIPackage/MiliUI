@@ -1,8 +1,9 @@
 # Mapster
 
-## [1.8.5](https://github.com/Nevcairiel/Mapster/tree/1.8.5) (2019-09-25)
-[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.8.4...1.8.5)
+## [1.9.1](https://github.com/Nevcairiel/Mapster/tree/1.9.1) (2020-11-19)
+[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.9.0...1.9.1) [Previous Releases](https://github.com/Nevcairiel/Mapster/releases)
 
-- Update TOC for 8.2.5  
-- Verify the map position can be obtained when computing cursor position  
-- Only create the map options button if its enabled  
+- Update TOC for 9.0.2  
+- Update FogClear data from 9.0.2.36639  
+    Increased the storage to 13 bit per component, as some maps no longer  
+    fit into 12-bit components.  
