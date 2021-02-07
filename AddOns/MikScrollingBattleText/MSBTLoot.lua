@@ -25,6 +25,8 @@ local GetItemInfo = GetItemInfo
 local GetItemCount = GetItemCount
 local DisplayEvent = MikSBT.Animations.DisplayEvent
 
+local IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+
 
 -------------------------------------------------------------------------------
 -- Constants.
@@ -80,7 +82,14 @@ end
 local function HandleCurrency(parserEvent)
 	-- Get information about the looted currency.
 	local itemLink = parserEvent.itemLink
-	local itemName, numAmount, itemTexture, _, _, totalMax, _, itemQuality = GetCurrencyInfo(itemLink)
+	local itemName, numAmount, itemTexture, totalMax, itemQuality
+	if IsClassic then
+		local _
+		itemName, numAmount, itemTexture, _, _, totalMax, _, itemQuality = GetCurrencyInfo(itemLink)
+	else
+		local currency = C_CurrencyInfo.GetCurrencyInfoFromLink(itemLink)
+		itemName, numAmount, itemTexture, totalMax, itemQuality = currency.name, currency.quantity, currency.iconFileID, currency.maxQuantity, currency.quality
+	end
 
 	-- Determine whether to show the event and ignore it if necessary.
 	local currentProfile = MSBTProfiles.currentProfile
@@ -111,7 +120,7 @@ end
 -- Handles looted items.
 -- ****************************************************************************
 local function HandleItems(parserEvent)
-	-- Created items are buggy.  Ignore them.
+	-- Created items are buggy. Ignore them.
 	if (parserEvent.isCreate) then return end
 
 	-- Get information about the looted item.

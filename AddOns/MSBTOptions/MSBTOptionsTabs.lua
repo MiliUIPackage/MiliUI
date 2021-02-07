@@ -31,6 +31,8 @@ local DisableControls = MSBTPopups.DisableControls
 -- Local references to various variables for faster access.
 local fonts = MSBTMedia.fonts
 
+local IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+
 
 -------------------------------------------------------------------------------
 -- Private constants.
@@ -179,10 +181,10 @@ local function MediaTab_ValidateCustomFontPath(fontPath, _, callback)
 	local normalFontPath, normalFontSize = GameFontNormal:GetFont()
 	if (fontPathLower == string.lower(normalFontPath)) then return end
 
-	-- This section is a bit hacky.  First, it seems that in order for a new font
-	-- instance to take effect the text must be changed after setting it.  This
-	-- was not always case, but appears to be now.  Next, the SetFont function now
-	-- returns before the font is actually set.  It appears to be loaded async now.
+	-- This section is a bit hacky. First, it seems that in order for a new font
+	-- instance to take effect the text must be changed after setting it. This
+	-- was not always case, but appears to be now. Next, the SetFont function now
+	-- returns before the font is actually set. It appears to be loaded async now.
 	-- So, when a failing ttf is provided, setup a callback to give the font a
 	-- chance to load before checking it again.
 	validationFontString:SetFont(normalFontPath, normalFontSize)
@@ -367,8 +369,11 @@ end
 -- ****************************************************************************
 local function MediaTab_ValidateCustomSoundPath(soundPath)
 	if (not soundPath or soundPath == "") then return L.MSG_INVALID_SOUND_FILE end
+	-- Ensure that the custom file path is either a number (FileDataID)
+	if (type(soundPath) ~= "string") then return end
 	local soundPathLower = string.lower(soundPath)
-	if (not string.find(soundPathLower, ".mp3") and not string.find(soundPathLower, ".ogg")) then
+	-- Or a string that begins with "Interface" and ends with either ".mp3" or ".ogg"
+	if (((string.find(soundPathLower, "interface") or 0) ~= 1 or (not string.find(soundPathLower, ".mp3") and not string.find(soundPathLower, ".ogg")))) then
 		return L.MSG_INVALID_SOUND_FILE
 	end
 end
@@ -394,7 +399,7 @@ end
 local function MediaTab_AddCustomSound(settings)
 	local soundName = settings.inputText
 	local soundPath = settings.secondInputText
-	if (not string.find(soundPath, "\\", 1, true)) then soundPath = DEFAULT_SOUND_PATH .. soundPath end
+	if (type(soundPath) == "string" and not string.find(soundPath, "\\", 1, true) and not string.find(soundPath, "/", 1, true)) then soundPath = DEFAULT_SOUND_PATH .. soundPath end
 
 	MSBTProfiles.savedMedia.sounds[soundName] = soundPath
 	MSBTMedia.RegisterSound(soundName, soundPath)
@@ -408,7 +413,7 @@ end
 local function MediaTab_ChangeCustomSound(settings)
 	local soundName = settings.saveArg1
 	local soundPath = settings.inputText
-	if (not string.find(soundPath, "\\", 1, true)) then soundPath = DEFAULT_SOUND_PATH .. soundPath end
+	if (type(soundPath) == "string" and not string.find(soundPath, "\\", 1, true) and not string.find(soundPath, "/", 1, true)) then soundPath = DEFAULT_SOUND_PATH .. soundPath end
 
 	MSBTProfiles.savedMedia.sounds[soundName] = soundPath
 	MSBTMedia.sounds[soundName] = soundPath
@@ -707,12 +712,14 @@ local function GeneralTab_Populate()
 		controls.enableBlizzardDamage:SetChecked(true)
 		currentProfile.enableBlizzardDamage = true
 	end
-	if GetCVar("floatingCombatTextCombatHealing") == "0" then
-		controls.enableBlizzardHealing:SetChecked(false)
-		currentProfile.enableBlizzardHealing = false
-	else
-		controls.enableBlizzardHealing:SetChecked(true)
-		currentProfile.enableBlizzardHealing = true
+	if not IsClassic then
+		if GetCVar("floatingCombatTextCombatHealing") == "0" then
+			controls.enableBlizzardHealing:SetChecked(false)
+			currentProfile.enableBlizzardHealing = false
+		else
+			controls.enableBlizzardHealing:SetChecked(true)
+			currentProfile.enableBlizzardHealing = true
+		end
 	end
 	controls.stickyCritsCheckbox:SetChecked(not currentProfile.stickyCritsDisabled)
 	controls.enableSoundsCheckbox:SetChecked(not currentProfile.soundsDisabled)
@@ -841,28 +848,29 @@ local function GeneralTab_Create()
 	controls.enableBlizzardDamage = checkbox
 
 	-- Enable Blizzard healing.
-	checkbox = MSBTControls.CreateCheckbox(tabFrame)
-	objLocale = L.CHECKBOXES["enableBlizzardHealing"]
-	checkbox:Configure(28, objLocale.label, objLocale.tooltip)
-	checkbox:SetPoint("TOPLEFT", controls.enableBlizzardDamage, "BOTTOMLEFT", 0, 0)
-	checkbox:SetClickHandler(
-		function (this, isChecked)
-			if InCombatLockdown() then
-				return
+	if not IsClassic then
+		checkbox = MSBTControls.CreateCheckbox(tabFrame)
+		objLocale = L.CHECKBOXES["enableBlizzardHealing"]
+		checkbox:Configure(28, objLocale.label, objLocale.tooltip)
+		checkbox:SetPoint("TOPLEFT", controls.enableBlizzardDamage, "BOTTOMLEFT", 0, 0)
+		checkbox:SetClickHandler(
+			function (this, isChecked)
+				if InCombatLockdown() then
+					return
+				end
+				MSBTProfiles.SetOption(nil, "enableBlizzardHealing", not isChecked)
+				if isChecked then
+					SetCVar("floatingCombatTextCombatHealing", 1)
+				else
+					SetCVar("floatingCombatTextCombatHealing", 0)
+				end
 			end
-			MSBTProfiles.SetOption(nil, "enableBlizzardHealing", not isChecked)
-			if isChecked then
-				SetCVar("floatingCombatTextCombatHealing", 1)
-			else
-				SetCVar("floatingCombatTextCombatHealing", 0)
-			end
-		end
-	)
-	controls.enableBlizzardHealing = checkbox
-
+		)
+		controls.enableBlizzardHealing = checkbox
+	end
 
 	-- Profile dropdown.
-	local dropdown =  MSBTControls.CreateDropdown(tabFrame)
+	local dropdown = MSBTControls.CreateDropdown(tabFrame)
 	objLocale = L.DROPDOWNS["profile"]
 	dropdown:Configure(180, objLocale.label, objLocale.tooltip)
 	dropdown:SetPoint("TOPLEFT", controls.enableCheckbox, "BOTTOMLEFT", 0, -30)
@@ -1729,7 +1737,7 @@ local function EventsTab_SettingsButtonOnClick(this)
 	local categoryText = tabFrames.events.controls.eventCategoryDropdown:GetSelectedText()
 
 	EraseTable(configTable)
-	configTable.title =  categoryText .. " - " .. this:GetParent().enableCheckbox.fontString:GetText()
+	configTable.title = categoryText .. " - " .. this:GetParent().enableCheckbox.fontString:GetText()
 	configTable.message = eventSettings.message
 	configTable.codes = this:GetParent().codes
 	configTable.scrollArea = eventSettings.scrollArea or DEFAULT_SCROLL_AREA
@@ -2039,7 +2047,7 @@ local function TriggersTab_AddTrigger(settings)
 
 	-- Launch the trigger settings dialog for the new trigger.
 	EraseTable(configTable)
-	configTable.title =  settings.inputText
+	configTable.title = settings.inputText
 	configTable.triggerKey = newKey
 	configTable.parentFrame = tabFrames.triggers
 	configTable.anchorFrame = tabFrames.triggers
@@ -2083,7 +2091,7 @@ local function TriggersTab_TriggerSettingsButtonOnClick(this)
 	local triggerSettings = MSBTProfiles.currentProfile.triggers[triggerKey]
 
 	EraseTable(configTable)
-	configTable.title =  this:GetParent().enableCheckbox.fontString:GetText()
+	configTable.title = this:GetParent().enableCheckbox.fontString:GetText()
 	configTable.triggerKey = triggerKey
 	configTable.parentFrame = tabFrames.triggers
 	configTable.anchorFrame = tabFrames.triggers
@@ -2177,7 +2185,7 @@ local function TriggersTab_EventSettingsButtonOnClick(this)
 	local triggerSettings = MSBTProfiles.currentProfile.triggers[triggerKey]
 
 	EraseTable(configTable)
-	configTable.title =  this:GetParent().enableCheckbox.fontString:GetText()
+	configTable.title = this:GetParent().enableCheckbox.fontString:GetText()
 	configTable.message = triggerSettings.message
 	configTable.scrollArea = triggerSettings.scrollArea or DEFAULT_SCROLL_AREA
 	configTable.alwaysSticky = triggerSettings.alwaysSticky
@@ -3660,7 +3668,7 @@ local function LootAlertsTab_Create()
 
 	-- Item quality checkboxes.
 	local anchor = fontString
-	for quality = LE_ITEM_QUALITY_POOR, LE_ITEM_QUALITY_EPIC do
+	for quality = LE_ITEM_QUALITY_POOR or Enum.ItemQuality.Poor, LE_ITEM_QUALITY_EPIC or Enum.ItemQuality.Epic do
 		local checkbox = MSBTControls.CreateCheckbox(tabFrame)
 		local label = _G["ITEM_QUALITY" .. quality .. "_DESC"]
 		local color = ITEM_QUALITY_COLORS[quality]
@@ -3772,7 +3780,7 @@ local function LootAlertsTab_OnShow()
 
 
 	-- Item qualities.
-	for quality = LE_ITEM_QUALITY_POOR, LE_ITEM_QUALITY_EPIC do
+	for quality = LE_ITEM_QUALITY_POOR or Enum.ItemQuality.Poor, LE_ITEM_QUALITY_EPIC or Enum.ItemQuality.Epic do
 		controls["quality" .. quality .. "Checkbox"]:SetChecked(not currentProfile.qualityExclusions[quality])
 	end
 

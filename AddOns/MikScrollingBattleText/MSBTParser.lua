@@ -182,7 +182,7 @@ end
 
 
 -- ****************************************************************************
--- Compares two global strings so the most specific one comes first.  This
+-- Compares two global strings so the most specific one comes first. This
 -- prevents incorrectly capturing information for certain events.
 -- ****************************************************************************
 local function GlobalStringCompareFunc(globalStringNameOne, globalStringNameTwo)
@@ -377,8 +377,8 @@ local function ParseLogMessage(timestamp, event, hideCaster, sourceGUID, sourceN
 	if (not sourceUnit and TestFlagsAll(sourceFlags, FLAGS_MINE)) then sourceUnit = TestFlagsAll(sourceFlags, FLAGS_MY_GUARDIAN) and "pet" or "player" end
 	if (not recipientUnit and TestFlagsAll(recipientFlags, FLAGS_MINE)) then recipientUnit = TestFlagsAll(recipientFlags, FLAGS_MY_GUARDIAN) and "pet" or "player" end
 
-		-- Ignore the event if it is not one that should be fully parsed and it doesn't pertain to the player
-	-- or pet.  This is done to avoid wasting time parsing events that won't be used like damage that other
+	-- Ignore the event if it is not one that should be fully parsed and it doesn't pertain to the player
+	-- or pet. This is done to avoid wasting time parsing events that won't be used like damage that other
 	-- players are doing.
 	if (not fullParseEvents[event] and sourceUnit ~= "player" and sourceUnit ~= "pet" and
 					recipientUnit ~= "player" and recipientUnit ~= "pet") then
@@ -642,7 +642,7 @@ local function CreateCaptureFuncs()
 		ENVIRONMENTAL_DAMAGE = function (p, ...) p.eventType, p.hazardType, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "environmental", ... end,
 
 		-- Power events.
-		SPELL_ENERGIZE = function (p, ...) p.eventType, p.isGain, p.skillID, p.skillName, p.skillSchool, p.amount, p.overEnergized, p.powerType = "power", true, ... end,
+		SPELL_ENERGIZE = function (p, ...) p.eventType, p.isGain, p.skillID, p.skillName, p.skillSchool, p.amount, p.overEnergized, p.powerType = "power", true, ... p.amount = floor(p.amount * 10 + 0.5) / 10 end,
 		SPELL_DRAIN = function (p, ...) p.eventType, p.isDrain, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
 		SPELL_LEECH = function (p, ...) p.eventType, p.isLeech, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
 
@@ -770,7 +770,7 @@ local function OnUpdateDelayedInfo(this, elapsed)
 					end
 				end -- Loop through group members
 
-				-- Add the player's pet and its class if there is one.  Treat vehicles as the player instead of a pet.
+				-- Add the player's pet and its class if there is one. Treat vehicles as the player instead of a pet.
 				if (petName) then
 					local unitID = "pet"
 					local guid = UnitGUID(unitID)
@@ -888,7 +888,9 @@ local function Enable()
 	-- Register additional events for unit and class map processing.
 	eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 	eventFrame:RegisterEvent("UNIT_PET")
-	eventFrame:RegisterEvent("ARENA_OPPONENT_UPDATE")
+	if WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC then
+		eventFrame:RegisterEvent("ARENA_OPPONENT_UPDATE")
+	end
 	eventFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
 	eventFrame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")
 
