@@ -23,7 +23,7 @@
 		</Anchors>
 		<Layers>
 			<Layer level="BACKGROUND">
-				<Texture name="$parent_Texture" file="Interface\ICONS\artifactability_FireMage_PhoenixBolt">
+				<Texture name="$parent_Texture" file="Interface\AddOns\MBB\icon">
 					<Size>
 						<AbsDimension x="18" y="18" />
 					</Size>
