@@ -196,14 +196,14 @@ if IsClassic then
 			Notification = {
 				name					= L.MSG_NOTIFICATION,
 				offsetX					= -175,
-				offsetY					= 275,
+				offsetY					= 170,
 				scrollHeight			= 200,
 				scrollWidth				= 350,
 			},
 			Static = {
 				name					= L.MSG_STATIC,
 				offsetX					= -20,
-				offsetY					= 90,
+				offsetY					= 170,
 				scrollHeight			= 125,
 				animationStyle			= "Static",
 				direction				= "Down",
@@ -1636,7 +1636,7 @@ else
 		scrollAreas = {
 			Incoming = {
 				name					= L.MSG_INCOMING,
-				offsetX					= -140,
+				offsetX					= -320,
 				offsetY					= -160,
 				animationStyle			= "Parabola",
 				direction				= "Down",
@@ -1647,7 +1647,7 @@ else
 			},
 			Outgoing = {
 				name					= L.MSG_OUTGOING,
-				offsetX					= 100,
+				offsetX					= 280,
 				offsetY					= -160,
 				animationStyle			= "Parabola",
 				direction				= "Down",
@@ -1660,14 +1660,14 @@ else
 			Notification = {
 				name					= L.MSG_NOTIFICATION,
 				offsetX					= -175,
-				offsetY					= 120,
+				offsetY					= 170,
 				scrollHeight			= 200,
 				scrollWidth				= 350,
 			},
 			Static = {
 				name					= L.MSG_STATIC,
 				offsetX					= -20,
-				offsetY					= -300,
+				offsetY					= 170,
 				scrollHeight			= 125,
 				animationStyle			= "Static",
 				direction				= "Down",
