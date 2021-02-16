@@ -24,7 +24,7 @@ MBB_Buttons = {};
 MBB_Exclude = {};
 
 MBB_DefaultOptions = {
-	["ButtonPos"] = {-18, -100},
+	["ButtonPos"] = {-26.3354320526123, -71.3367538452149},    
 	["AttachToMinimap"] = 1,
 	["DetachedButtonPos"] = "CENTER",
 	["CollapseTimeout"] = 1,
