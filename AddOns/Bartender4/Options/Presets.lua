@@ -12,7 +12,7 @@ local Bar = Bartender4.Bar.prototype
 
 -- GLOBALS: GetNumShapeshiftForms
 
-local WoWClassic = select(4, GetBuildInfo()) < 20000
+local WoWClassic = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
 
 local PresetsMod = Bartender4:NewModule("Presets")
 
@@ -46,7 +46,7 @@ local function BuildSingleProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = false
-	Bartender4.db.profile.outofrange = "button"
+	Bartender4.db.profile.outofrange = "hotkey"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
@@ -97,7 +97,7 @@ local function BuildSingleProfile()
 	end
 
 	config = Bartender4.db:GetNamespace("BlizzardArt").profile
-	config.enabled = false
+	config.enabled = true
 	config.artLayout = "ONEBAR"
 	Bartender4:GetModule("BlizzardArt"):Enable()
 	SetBarLocation( config, "BOTTOM", -256, 47 )
@@ -120,7 +120,7 @@ local function BuildDoubleProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = true
-	Bartender4.db.profile.outofrange = "button"
+	Bartender4.db.profile.outofrange = "hotkey"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
@@ -170,7 +170,7 @@ local function BuildDoubleProfile()
 	end
 
 	config = Bartender4.db:GetNamespace("BlizzardArt").profile
-	config.enabled = false
+	config.enabled = true
 	config.artLayout = "TWOBAR"
 	Bartender4:GetModule("BlizzardArt"):Enable()
 	SetBarLocation( config, "BOTTOM", -512, 47 )
@@ -200,7 +200,7 @@ local function BuildBlizzardProfile()
 	end
 
 	Bartender4.db.profile.blizzardVehicle = true
-	Bartender4.db.profile.outofrange = "button"
+	Bartender4.db.profile.outofrange = "hotkey"
 	Bartender4.db.profile.focuscastmodifier = false
 
 	config = Bartender4.db:GetNamespace("ActionBars").profile
@@ -260,7 +260,7 @@ local function BuildBlizzardProfile()
 	end
 
 	config = Bartender4.db:GetNamespace("BlizzardArt").profile
-	config.enabled = false
+	config.enabled = true
 	Bartender4:GetModule("BlizzardArt"):Enable()
 	SetBarLocation( config, "BOTTOM", -512, 47 )
 

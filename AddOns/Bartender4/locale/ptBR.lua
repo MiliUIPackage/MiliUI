@@ -7,9 +7,7 @@ if not L then return end
 
 L[ [=["None" as modifier means its always active, and no modifier is required.
 
-Remember to enable Mouse-Over Casting for the individual bars, on the "State Configuration" tab, if you want it to be active for a specific bar.]=] ] = [=["Nenhum" como modificador significa que será sempre ativo, e nenhum modificador é necessário.
-
-Lembre de ativar 'Mouse sobre forma' para barras individuais, na guia "Configuração de Estado", se você quiser que isto fique ativo em uma barra específica.]=]
+Remember to enable Mouse-Over Casting for the individual bars, on the "State Configuration" tab, if you want it to be active for a specific bar.]=] ] = "\"Nenhum\" como modificador significa que será sempre ativo, e nenhum modificador é necessário. Lembre de ativar 'Mouse sobre forma' para barras individuais, na guia \"Configuração de Estado\", se você quiser que isto fique ativo em uma barra específica."
 L["|cffff0000WARNING|cffffffff: Pressing the button will reset your complete profile! If you're not sure about this, create a new profile and use that to experiment."] = "|cffff0000WARNING|cffffffff: Pressionar o botão irá resetar completamente o seu Perfil! Se você não tem certeza disso, crie um novo Perfil e use-o como experimento."
 L["|cffffff00Click|r to toggle bar lock"] = "|cffffff00Click|r para travar a barra"
 L["|cffffff00Right-click|r to open the options menu"] = "|cffffff00Right-click|r para abrir o menu de opções"
@@ -70,11 +68,9 @@ L["Configure the Fade Out Delay"] = "Configura o atraso do Fade Out"
 L["Configure the Micro Menu"] = "Configura o micro-menu"
 L["Configure the padding of the buttons."] = "Configura o espaçamento dos botões."
 L["Configure the Pet Bar"] = "Configura a barra de Ajudante"
-L["Configure the Reputation Bar"] = "Configurar Barra de Reputação"
 L["Configure the scale of the bar."] = "Configura a escala da barra."
 L["Configure the Status Tracking Bar"] = "Configurar a barra de rastreamento de status"
 L["Configure the VehicleBar"] = "Configura a barra de Veículo"
-L["Configure the XP Bar"] = "Configurar Barra de Experiência"
 L["Copy Conditionals"] = "Copiar condicionais"
 L["Create a copy of the auto-generated conditionals in the custom configuration as a base template."] = "Cria uma cópia de condicionais geradas automaticamente na configuração custimizada como um modelo base."
 L["CTRL"] = "CTRL"
@@ -102,13 +98,11 @@ L["Enable the Extra Action Bar"] = "Habilitar a Barra de Ações Extra"
 L["Enable the FadeOut mode"] = "Habilita o modo Fade Out"
 L["Enable the Micro Menu"] = "Habilita o micro-menu"
 L["Enable the PetBar"] = "Habilita a barra do ajudante"
-L["Enable the Reputation Bar"] = "Habilitar Barra de Reputação"
 L["Enable the StanceBar"] = "Habilita a barra de postura"
 L["Enable the Status Tracking Bar"] = "Ativa a barra de rastreamento de status"
 L["Enable the use of a custom condition, disabling all of the above."] = "Ativa o uso de uma condição customizada, desativando tudo que está acima"
 L["Enable the use of the Blizzard Vehicle UI, hiding any Bartender4 bars in the meantime."] = "Habilita o uso da interface de veiculos da Blizzard, ocultando qualquer barra do Bartender4 imediatamente"
 L["Enable the Vehicle Bar"] = "Habilita a barra de Veículo"
-L["Enable the XP Bar"] = "Habilitar Barra de Experiência"
 L["Enable/Disable the bar."] = "Ativa/Desativa a barra."
 L["Enabled"] = "Ativada"
 L["Extra Action Bar"] = "Barra de Ações Extra"
@@ -192,7 +186,6 @@ L["Pet Bar"] = "Barra do Ajudante"
 L["Positioning"] = "Posicionamento"
 L["Possess Bar"] = "Barra de controle"
 L["Presets"] = "Predefinições"
-L["Reputation Bar"] = "Barra de Reputação"
 L["Reset Position"] = "Redefinir posição"
 L["Reset the position of this bar completly if it ended up off-screen and you cannot reach it anymore."] = "Redefine a posição dessa barra completamente se ela acabou fora da tela e você não consegue mais alcança-la"
 L["Right"] = "Direita"
@@ -229,7 +222,7 @@ L["Three bars stacked"] = "Três barras juntas"
 L["Toggle actions on key press instead of release"] = "Altera as ações nas teclas para pressionar ao invés de soltar"
 L[ [=[Toggle Button Zoom
 For more style options you need to install Masque]=] ] = [=[Alterar o Zoom do Botão
-Para ter mais estilos você precisa instalar o ButtonFacade]=]
+Para ter mais estilos você precisa instalar o Masque]=]
 L["Toggle the button grid."] = "Alterar a grade do botão"
 L["Toggle the use of the modifier-based focus-cast functionality."] = "Alterar o uso da funcionalidade de lançar sobre um modificador baseado no foco."
 L["Toggle the use of the modifier-based self-cast functionality."] = "Alterar o uso da funcionalidade de lançar sobre um modificador baseado em si."
