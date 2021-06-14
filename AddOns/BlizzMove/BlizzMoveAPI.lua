@@ -1,13 +1,34 @@
-local name = ...;
+-- upvalue the globals
+local _G = getfenv(0);
+local LibStub = _G.LibStub;
+local pairs = _G.pairs;
+
+local name = ... or "BlizzMove";
 local BlizzMove = LibStub("AceAddon-3.0"):GetAddon(name);
 if not BlizzMove then return; end
 
-BlizzMoveAPI = BlizzMoveAPI or {};
+_G.BlizzMoveAPI = _G.BlizzMoveAPI or {};
+local BlizzMoveAPI = _G.BlizzMoveAPI;
+
+
+function BlizzMoveAPI:GetVersion()
+	local rawVersion = BlizzMove.Config.version;
+
+	if(rawVersion == '@project' .. '-version@') then
+		return rawVersion, nil, nil, nil, nil;
+	end
+
+	local mayor, minor, patch = string.match(rawVersion, 'v(%d*)%.(%d*)%.(%d*)[a-z]?')
+	local versionInt = patch + minor * 100 + mayor * 10000;
+
+	return rawVersion, mayor, minor, patch, versionInt
+end
+
 ------------------------------------------------------------------------------------------------------
 -- API: Debug Functions
 ------------------------------------------------------------------------------------------------------
 function BlizzMoveAPI:ToggleDebugPrints()
-    BlizzMove.DB.DebugPrints = not BlizzMove.DB.DebugPrints;
+	BlizzMove.DB.DebugPrints = not BlizzMove.DB.DebugPrints;
 
 	BlizzMove:Print("Debug prints have been:", (BlizzMove.DB.DebugPrints and "Enabled") or "Disabled");
 end
@@ -26,7 +47,13 @@ function BlizzMoveAPI:RegisterFrames(framesTable)
 
 		end
 
-		BlizzMove:RegisterFrame(nil, frameName, frameData);
+		BlizzMove:RegisterFrame(nil, frameName, frameData, true);
+
+	end
+
+	if BlizzMove.initialized then
+
+		BlizzMove.Config:RegisterOptions();
 
 	end
 
@@ -45,9 +72,15 @@ function BlizzMoveAPI:RegisterAddOnFrames(addOnFramesTable)
 
 			end
 
-			BlizzMove:RegisterFrame(addOnName, frameName, frameData);
+			BlizzMove:RegisterFrame(addOnName, frameName, frameData, true);
 
 		end
+
+	end
+
+	if BlizzMove.initialized then
+
+		BlizzMove.Config:RegisterOptions();
 
 	end
 

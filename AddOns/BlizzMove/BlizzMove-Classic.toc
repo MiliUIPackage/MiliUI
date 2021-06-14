@@ -1,8 +1,6 @@
-## Interface: 90005
+## Interface: 11307
 ## Title: BlizzMove
 ## Notes: Makes blizzard frames movable
-## Title-zhTW: |cFF0099FF[介面]|r 框架解鎖
-## Notes-zhTW: Blizzmove|n將大部分的預設框架解鎖，可以滑鼠拖曳移動，在標題使用CTRL+滾輪可改變大小。
 ## Author: Kiatra - github.com/Kiatra/BlizzMove/
 ## X-WoWI-ID: 23875
 ## X-Curse-Project-ID: 17809
