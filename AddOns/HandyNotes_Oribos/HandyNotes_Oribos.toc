@@ -2,14 +2,14 @@
 ## Title: HandyNotes: Oribos
 # ## Notes: Shows the NPC and POI locations in Oribos.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-奧睿博司
-## Notes-zhTW: HandyNotes: Shadowlands |n顯示奧睿博司的NPC以及傳送門等位置。
+## Notes-zhTW: HandyNotes: Oribos |n在世界地圖和小地圖中顯示奧睿博司的 NPC 和地點。
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v10
+## Version: v11
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_OribosDB
 ## X-Embeds: AceTimer-3.0
-## X-Date: 2020-12-30
+## X-Date: 2021-03-10
 ## X-Category: Map
 
 #@no-lib-strip@

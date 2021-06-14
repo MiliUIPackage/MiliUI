@@ -50,7 +50,8 @@ map.nodes[49012351] = Rare({
         Transmog({item=184188, slot=L["1h_axe"]}), -- Collector's Corpse Gambrel
         Transmog({item=184181, slot=L["1h_axe"]}), -- Kash's Favored Hook
         Transmog({item=184189, slot=L["1h_axe"]}), -- Stained Fleshgorer
-        Transmog({item=184182, slot=L["1h_axe"]}) -- Strengthened Abomination Hook
+        Transmog({item=184182, slot=L["1h_axe"]}), -- Strengthened Abomination Hook
+        Item({item=183692, quest=62408, covenant=NECROLORD}) -- Jagged Bonesaw
     }
 }) -- Collector Kash
 
@@ -134,7 +135,7 @@ map.nodes[72872891] = Rare({
     rewards={
         Achievement({id=14308, criteria=49724}),
         -- Item({item=184174, note=L["ring"]}), -- Clasp of Death
-        Transmog({item=181810, slot=L["cosmetic"]}) -- Phylactery of the Dead Conniver
+        Transmog({item=181810, slot=L["cosmetic"], covenant=NECROLORD}) -- Phylactery of the Dead Conniver
     }
 }) -- Necromantic Anomaly
 
@@ -154,7 +155,8 @@ map.nodes[50346328] = Rare({
     note=L["nirvaska_note"],
     rewards={
         Achievement({id=14308, criteria=48868}),
-        Transmog({item=183700, slot=L["cloth"]}) -- Forgotten Summoner's Shoulderpads
+        Transmog({item=183700, slot=L["cloth"]}), -- Forgotten Summoner's Shoulderpads
+        Transmog({item=181811, slot=L["cosmetic"], covenant=NECROLORD}) -- Beckoner's Shadowy Crystal
     }
 }) -- Nirvaska the Summoner
 
@@ -170,6 +172,7 @@ map.nodes[53726132] = Rare({
 map.nodes[53841877] = Rare({
     id=159753,
     quest=58004,
+    note=L["ravenomous_note"],
     rewards={
         Achievement({id=14308, criteria=48865}),
         Transmog({item=184184, slot=L["dagger"]}), -- Ravenomous's Acid-Tipped Stinger
@@ -272,7 +275,8 @@ map.nodes[28965138] = Rare({
     rewards={
         Achievement({id=14308, criteria=48864}),
         Transmog({item=184285, slot=L["plate"]}), -- Boneclutched Shackles
-        Transmog({item=181804, slot=L["cosmetic"], covenant=NECROLORD}) -- Trophy of the Reborn Bonelord
+        Transmog({item=181804, slot=L["cosmetic"], covenant=NECROLORD}), -- Trophy of the Reborn Bonelord
+        Item({item=183690, quest=62404, covenant=NECROLORD}) -- Ashen Ink
     },
     pois={
         POI({26314280})
@@ -285,7 +289,7 @@ local OOZE = "|T646670:0|t"
 local GOO = "|T136007:0|t"
 local OIL = "|T136124:0|t"
 
-map.nodes[58197421] = Rare({
+map.nodes[57007421] = Rare({
     id=157226,
     quest={61718, 61719, 61720, 61721, 61722, 61723, 61724},
     questCount=true,
@@ -306,6 +310,9 @@ map.nodes[58197421] = Rare({
         ns.reward.Spacer(),
         ns.reward.Section('{npc:157308}'), -- Corrupted Sediment
         Transmog({item=184302, slot=L["mail"], indent=true}), -- Residue-Coated Muck Waders
+        ns.reward.Spacer(),
+        ns.reward.Section('{npc:157311}'), -- Burnblister
+        Transmog({item=184175, slot=L["wand"], indent=true}), -- Bone-Blistering Wand
         ns.reward.Spacer(),
         ns.reward.Section('{npc:157309}'), -- Violet Mistake
         Transmog({item=184301, slot=L["leather"], indent=true}), -- Twenty-Loop Violet Girdle

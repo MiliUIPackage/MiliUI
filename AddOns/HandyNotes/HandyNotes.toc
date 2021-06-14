@@ -1,11 +1,10 @@
 ## Interface: 90005
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
-## Notes-frFR: Notes pratiques pour vos cartes.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
 ## Notes-zhTW: Handy Notes |n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
 ## Author: Xinhuan
-## Version: v1.6.1
+## Version: v1.6.3
 ## DefaultState: enabled
 ## X-Category: Map
 ## X-eMail: xinhuan @ gmail DOT com
@@ -19,6 +18,7 @@
 ## SavedVariables: HandyNotesDB, HandyNotes_HandyNotesDB
 
 # Library files
+#@no-lib-strip@
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\AceAddon-3.0\AceAddon-3.0.xml
@@ -32,14 +32,10 @@ Libs\AceConfig-3.0\AceConfig-3.0.xml
 Libs\HereBeDragons\HereBeDragons-2.0.lua
 Libs\HereBeDragons\HereBeDragons-Pins-2.0.lua
 Libs\HereBeDragons\HereBeDragons-Migrate.lua
+#@end-no-lib-strip@
 
 # Locale files
 Locales\Locale-enUS.lua
-Locales\Locale-deDE.lua
-Locales\Locale-esES.lua
-Locales\Locale-frFR.lua
-Locales\Locale-koKR.lua
-Locales\Locale-ruRU.lua
 Locales\Locale-zhCN.lua
 Locales\Locale-zhTW.lua
 

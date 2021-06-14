@@ -17,10 +17,8 @@ L["config_fmaster_waypoint"] = "鳥點導航"
 L["config_fmaster_waypoint_desc"] = "進入樞運之環時，自動導航到鳥點。"
 L["config_fmaster_waypoint_dropdown"] = "選擇"
 L["config_fmaster_waypoint_dropdown_desc"] = "選擇要使用的導航方式。"
-L["config_greatvault"] = "寶庫"
-L["config_greatvault_desc"] = "顯示寶庫位置。"
 L["config_guildvault"] = "公會銀行"
-L["config_guildvault_desc"] = "顯示公會銀行位置。"
+L["config_guildvault_desc"] = "顯示公會銀行的位置。"
 L["config_icon_alpha"] = "圖示透明度"
 L["config_icon_alpha_desc"] = "圖示的透明度。"
 L["config_icon_scale"] = "圖示大小"
@@ -30,14 +28,16 @@ L["config_innkeeper_desc"] = "顯示旅店的位置。"
 L["config_mail"] = "郵箱"
 L["config_mail_desc"] = "顯示郵箱的位置。"
 L["config_onlymytrainers"] = "只顯示我的專業相關的訓練師和商人"
-L["config_onlymytrainers_desc"] = [=[只會影響主要專業的訓練師和商人。
+L["config_onlymytrainers_desc"] = [[
+只會影響主要專業的訓練師和商人。
 
-|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r]=]
+|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r
+]]
 L["config_others"] = "其他"
 L["config_others_desc"] = "顯示其他所有的地圖探索點。"
 L["config_picons"] = "顯示專業圖示:"
-L["config_picons_trainer_desc"] = "所有訓練師顯示為一個專業圖示，而不是顯示每一個訓練師的圖示。"
-L["config_picons_vendor_desc"] = "所有商人顯示為一個專業圖示，而不是顯示每一個商人的圖示。"
+L["config_picons_trainer_desc"] = "訓練師顯示專業技能的圖示，而不是訓練師圖示。"
+L["config_picons_vendor_desc"] = "商人顯示專業技能的圖示，而不是商人圖示。"
 L["config_plugin_desc"] = "在世界地圖和小地圖中顯示奧睿博司的 NPC 和地圖探索點的位置。"
 L["config_plugin_name"] = "奧睿博司"
 L["config_portal"] = "傳送門"
@@ -67,7 +67,7 @@ L["config_void_desc"] = "顯示虛空倉庫的位置。"
 L["config_what_to_display"] = "選擇要顯示什麼"
 L["config_what_to_display_desc"] = "這些設定控制要顯示哪類的圖示。"
 L["config_zonegateway"] = "區域通道"
-L["config_zonegateway_desc"] = "顯示區域通道的位置。"
+L["config_zonegateway_desc"] = "顯示各地圖區域的通道位置。"
 L["dev_config_force_nodes"] = "強制顯示地圖點"
 L["dev_config_force_nodes_desc"] = "強制顯示所有的地圖探索點，不論職業、陣營或誓盟。"
 L["dev_config_show_prints"] = "顯示 print()"
@@ -86,6 +86,5 @@ L["Portal to Orgrimmar"] = "奧格瑪傳送門"
 L["Portal to Stormwind"] = "暴風城傳送門"
 L["To Ring of Fates"] = "前往命運之環"
 L["To Ring of Transference"] = "前往樞運之環"
-L["TomTom"] = "TomTom"
-
+L["TomTom"] = true
 end

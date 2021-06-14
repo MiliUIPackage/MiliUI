@@ -1,6 +1,6 @@
 ## Interface: 90005
 ## Title: HandyNotes: Shadowlands
-## Version: 27
+## Version: 30
 ## Notes: Shadowlands Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-暗影之境
 ## Notes-zhTW: HandyNotes: Shadowlands |n暗影之境資料片中的稀有與寶箱
