@@ -1,5 +1,4 @@
 -- List globals here for Mikk's FindGlobals script
--- GLOBALS: LibStub, InterfaceOptionsFrame_OpenToCategory, unpack, ipairs, tostring, tonumber
 
 local addon, TNI = ...
 local ACR = LibStub("AceConfigRegistry-3.0")
@@ -42,10 +41,6 @@ local TEXTURE_NAMES = {
 	"Q_RedTarget",
 	"Q_WhiteTarget",
 	"Hunters_Mark",
-	"whitearrow1",
-	"greenarrow1",
-	"redarrow1",
-	"NeonWhiteArrow",
 }
 
 -- Add the directory prefix to the texture names and localise the descriptions
@@ -113,7 +108,7 @@ local function getNumber(info)
 end
 
 local function setNumber(info, val)
-	local val = tonumber(val)
+	val = tonumber(val)
 	set(info, val)
 end
 
@@ -128,46 +123,46 @@ end
 -- Validates that the value is a number
 local function validateAnyNumber(info, val)
 	local number = tonumber(val)
-	
+
 	-- Must be a number
 	if not number then
 		return false
 	end
-	
+
 	return true
 end
 
 -- Validates that the value is a positive number
 local function validatePositiveNumber(info, val)
 	local number = tonumber(val)
-	
+
 	-- Must be a number
 	if not number then
 		return false
 	end
-	
+
 	-- Must be positive
 	if number <= 0 then
 		return false
 	end
-	
+
 	return true
 end
 
 -- Validates that the value is a number between 0 and 1
 local function validateFractionalNumber(info, val)
 	local number = tonumber(val)
-	
+
 	-- Must be a number
 	if not number then
 		return false
 	end
-	
+
 	-- Must be between 0 and 1
 	if number < 0 or number > 1 then
 		return false
 	end
-	
+
 	return true
 end
 
@@ -314,6 +309,7 @@ local options = {
 				target = CreateUnitConfigTable("target"),
 				mouseover = CreateUnitConfigTable("mouseover"),
 				focus = CreateUnitConfigTable("focus"),
+				targettarget = CreateUnitConfigTable("targettarget"),
 			},
 		},
 	},

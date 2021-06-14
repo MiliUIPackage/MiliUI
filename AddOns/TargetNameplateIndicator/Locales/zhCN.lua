@@ -59,6 +59,14 @@ L["Group.target.friendly.Desc"] = "选取友方目标时的选项"
 L["Group.target.hostile.Desc"] = "选取敌方目标时的选项"
 L["Group.target.Name"] = "选取目标"
 L["Group.target.self.Desc"] = "选取自己为目标时的选项"
+--[[Translation missing --]]
+L["Group.targettarget.friendly.Desc"] = "These options are used when your target's target is friendly to you"
+--[[Translation missing --]]
+L["Group.targettarget.hostile.Desc"] = "These options are used when your target's target is hostile to you"
+--[[Translation missing --]]
+L["Group.targettarget.Name"] = "Target of Target"
+--[[Translation missing --]]
+L["Group.targettarget.self.Desc"] = "These options are used when your target is targeting you"
 L["Option.Unit.enable.Desc"] = "启用/停用此单位的指示箭头"
 L["Option.Unit.enable.Name"] = "启用"
 L["Option.UnitReactionType.anchorPoint.Desc"] = "材质图形要对齐到血条的哪个位置"

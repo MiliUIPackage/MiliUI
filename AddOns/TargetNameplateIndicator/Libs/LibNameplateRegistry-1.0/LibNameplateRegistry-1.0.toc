@@ -1,0 +1,25 @@
+## Interface: 90005
+## X-Max-Interface: 90005
+## X-Min-Interface: 70000
+
+
+## Title: Lib: NameplateRegistry-1.0
+## Notes: an embeddable library providing an abstraction layer for tracking and querying Blizzard's Nameplate frames with ease and efficiency.
+## Author: John Wellesz
+## DefaultState: enabled
+## Version: 0.19T9
+## LoadOnDemand: 1
+## X-Category: Library
+
+## X-License: GNU Lesser General Public License version 3 (LGPLv3)
+
+## OptionalDeps: Libstub, CallbackHandler-1.0
+## X-Embeds: Libstub, CallbackHandler-1.0
+
+## X-ReleaseDate: "2021-03-20T23:29:47Z"
+## X-eMail: LibNameplateRegistry@2072productions.com
+## X-Website: https://www.wowace.com/projects/libnameplateregistry-1-0
+## X-Curse-Project-ID: 62519
+
+embeds.xml
+LibNameplateRegistry-1.0\LibNameplateRegistry-1.0.xml

@@ -59,6 +59,10 @@ L["Group.target.friendly.Desc"] = "These options are used for friendly targets"
 L["Group.target.hostile.Desc"] = "These options are used for hostile targets"
 L["Group.target.Name"] = "Target"
 L["Group.target.self.Desc"] = "These options are used when targeting yourself"
+L["Group.targettarget.friendly.Desc"] = "These options are used when your target's target is friendly to you"
+L["Group.targettarget.hostile.Desc"] = "These options are used when your target's target is hostile to you"
+L["Group.targettarget.Name"] = "Target of Target"
+L["Group.targettarget.self.Desc"] = "These options are used when your target is targeting you"
 L["Option.Unit.enable.Desc"] = "Enables/disables the indicator for this unit"
 L["Option.Unit.enable.Name"] = "Enable"
 L["Option.UnitReactionType.anchorPoint.Desc"] = "The point of the nameplate the texture should be anchored to"
@@ -89,5 +93,4 @@ L["Dropdown.Texture.whitearrow1.Desc"] = "Abstract style white arrow pointing do
 L["Dropdown.Texture.greenarrow1.Desc"] = "Abstract style green arrow pointing downwards"
 L["Dropdown.Texture.redarrow1.Desc"] = "Abstract style red arrow pointing downwards"
 L["Dropdown.Texture.NeonWhiteArrow.Desc"] = "White version of the neon red arrow"
-
 
