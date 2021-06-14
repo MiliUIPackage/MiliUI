@@ -1,4 +1,4 @@
-﻿## Interface: 90002
+﻿## Interface: 90005
 ## Title: Focuser
 ## Title-zhTW: |cFF0099FF[介面]|r 焦點目標助手
 ## Notes: Focuser|nShift+滑鼠左鍵點擊可以將目標設為焦點目標，Shift+點擊地板取消Focus目標。

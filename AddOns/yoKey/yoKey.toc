@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90005
 ## Version: 9.0.2.6
 ## Title: yoKey
 ## Title-zhTW: |cFF00CCFF[團隊]|r 傳奇計時與鑰石資訊

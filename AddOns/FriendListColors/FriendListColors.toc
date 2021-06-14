@@ -1,4 +1,4 @@
-﻿## Interface: 90002
+﻿## Interface: 90005
 ## Title: FriendListColors
 ## Notes: Customize how your friends appear in your friends list!
 ## Title-zhTW: |cffFF9999[社交]|r 彩色好友名單

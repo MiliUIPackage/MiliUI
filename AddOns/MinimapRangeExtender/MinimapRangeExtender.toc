@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90005
 ## Title: Minimap Range Extender
 ## Notes: Show vignette icons sooner
 ## Title-zhTW: |cff4DFF4D[地圖]|r 小地圖範圍加大

@@ -1,5 +1,5 @@
-## Interface: 90002
-## X-Max-Interface: 90002
+## Interface: 90005
+## X-Max-Interface: 90005
 ## X-Min-Interface: 80000
 
 ## Title: Decursive |cffff00ff -Ace3-|r

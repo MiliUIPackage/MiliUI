@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90005
 ## Title: OmniCC
 ## Notes: Cooldown count for everything
 ## Title-zhTW: |cFF0099FF[介面]|r 冷卻時間-主程式

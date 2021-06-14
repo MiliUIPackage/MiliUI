@@ -1,4 +1,4 @@
-﻿## Interface: 90002
+﻿## Interface: 90005
 ## Title: |c00FF0000[整合]|r |cff0088FF[米利UI套組]|r
 ## Notes: 歡迎使用米利UI套組。|n本UI套組不定時更新，|n請上|cff0088FF[米利UI套組]|r取得最新版本的UI。|n若有任何問題歡迎前往討論唷。|n|cffffd200https://addons.miliui.com|r
 

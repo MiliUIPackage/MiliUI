@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90005
 ## Title: FloTotemBar
 ## Author: Floraline
 ## Notes: Add some bars for casting of totems/traps, with timers showing the remaining life time of the objects

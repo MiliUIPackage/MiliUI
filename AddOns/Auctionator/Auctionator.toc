@@ -1,4 +1,4 @@
-## Interface: 90002
+## Interface: 90005
 ## Title: Auctionator
 ## Version: 9.0.5.1
 ## Author: Borjamacare, plusmouse
