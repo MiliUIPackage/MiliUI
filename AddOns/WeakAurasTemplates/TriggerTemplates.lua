@@ -1,5 +1,7 @@
 -- Special layout for the New Aura Trigger template page
 
+local AddonName, TemplatePrivate = ...
+
 local AceGUI = LibStub("AceGUI-3.0");
 local floor, ceil, tinsert = floor, ceil, tinsert;
 local CreateFrame, UnitClass, UnitRace, GetSpecialization = CreateFrame, UnitClass, UnitRace, GetSpecialization;
@@ -133,6 +135,10 @@ local checks = {
   enchantMissing = {
     variable = "enchanted",
     value = 0
+  },
+  queued = {
+    variable = "show",
+    value = 1,
   }
 }
 
@@ -190,6 +196,10 @@ local function GenericGlow(conditions, trigger, regionType, check)
   else
     tinsert(conditions, buildCondition(trigger, check, {changes("yellow", regionType)}));
   end
+end
+
+local function isQueuedGlow(conditions, trigger, regionType)
+  GenericGlow(conditions, trigger, regionType, checks.queued)
 end
 
 local function isBuffedGlow(conditions, trigger, regionType)
@@ -286,14 +296,13 @@ end
 local function createDurationTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "event",
+      type = WeakAuras.GetTriggerCategoryFor("Combat Log"),
       event = "Combat Log",
       subeventSuffix = "_CAST_SUCCESS",
       use_sourceUnit = true,
       sourceUnit = item.unit or "player",
       use_spellId = true,
       spellId = tostring(item.spell),
-      unevent = "timed",
       duration = tostring(item.duration),
     }
   };
@@ -302,11 +311,10 @@ end
 local function createTotemTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Totem"),
       event = "Totem",
       use_totemName = item.totemNumber == nil,
       totemName = GetSpellInfo(item.spell),
-      unevent = "auto",
     }
   };
   if (item.totemNumber) then
@@ -318,9 +326,8 @@ end
 local function createPowerTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Power"),
       event = "Power",
-      unevent = "auto",
       use_unit = true,
       unit = "player",
       use_powertype = true,
@@ -333,11 +340,10 @@ end
 local function createHealthTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Health"),
       event = "Health",
       unit = "player",
       use_unit = true,
-      unevent = "auto",
       use_absorbMode = true,
       use_showAbsorb = true,
       use_showIncomingHeal = true,
@@ -348,9 +354,8 @@ end
 local function createCastTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Cast"),
       event = "Cast",
-      unevent = "auto",
       use_unit = true,
       unit = item.unit or "player",
     },
@@ -360,10 +365,9 @@ end
 local function createAbilityTrigger(triggers, position, item, genericShowOn)
   triggers[position] = {
     trigger = {
+      type = WeakAuras.GetTriggerCategoryFor("Cooldown Progress (Spell)"),
       event = "Cooldown Progress (Spell)",
       spellName = item.spell,
-      type = "status",
-      unevent = "auto",
       use_genericShowOn = true,
       genericShowOn = genericShowOn,
     }
@@ -377,9 +381,8 @@ end
 local function createItemTrigger(triggers, position, item, genericShowOn)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Cooldown Progress (Item)"),
       event = "Cooldown Progress (Item)",
-      unevent = "auto",
       use_genericShowOn = true,
       genericShowOn = genericShowOn,
       itemName = item.spell,
@@ -390,18 +393,17 @@ end
 local function createOverlayGlowTrigger(triggers, position, item)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Spell Activation Overlay"),
       event = "Spell Activation Overlay",
       spellName = item.spell,
     }
   };
 end
 
-
 local function createWeaponEnchantTrigger(triggers, position, item, showOn)
   triggers[position] = {
     trigger = {
-      type = "status",
+      type = WeakAuras.GetTriggerCategoryFor("Weapon Enchant"),
       event = "Weapon Enchant",
       use_enchant = true,
       enchant = tostring(item.enchant),
@@ -409,6 +411,21 @@ local function createWeaponEnchantTrigger(triggers, position, item, showOn)
       showOn = showOn
     }
   }
+end
+
+local function createQueuedActionTrigger(triggers, position, item)
+  triggers[position] = {
+    trigger = {
+      type = WeakAuras.GetTriggerCategoryFor("Queued Action"),
+      event = "Queued Action",
+      spellName = item.spell
+    }
+  }
+end
+
+local function createAbilityAndQueuedActionTrigger(triggers, item)
+  createAbilityTrigger(triggers, 1, item, "showAlways");
+  createQueuedActionTrigger(triggers, 2, item);
 end
 
 local function createAbilityAndDurationTrigger(triggers, item)
@@ -511,6 +528,15 @@ local function subTypesFor(item, regionType)
     }
   }
   if (item.type == "ability") then
+    tinsert(types, {
+      fallback = true,
+      icon = icon.cd,
+      title = L["Basic Show On Cooldown"],
+      description = L["Only shows the aura when the ability is on cooldown."],
+      createTriggers = function(triggers, item)
+        createAbilityTrigger(triggers, 1, item, "showOnCooldown");
+      end,
+    });
     tinsert(types, {
       icon = icon.cd,
       title = L["Basic Show On Cooldown"],
@@ -741,6 +767,19 @@ local function subTypesFor(item, regionType)
             data = dataGlow
           });
         end
+      elseif (item.queued) then
+        tinsert(types, {
+          icon = icon.glow,
+          title = L["Show Cooldown and Action Queued"],
+          description = L["Highlight while action is queued."],
+          createTriggers = createAbilityAndQueuedActionTrigger,
+          createConditions = function(conditions, item, regionType)
+            insufficientResourcesBlue(conditions, 1, regionType);
+            isOnCdGrey(conditions, 1, regionType);
+            isQueuedGlow(conditions, 2, regionType);
+          end,
+          data = dataGlow
+        });
       elseif (item.buff) then
         tinsert(types, {
           icon = icon.glow,
@@ -1043,6 +1082,15 @@ local function subTypesFor(item, regionType)
     });
   elseif(item.type == "totem") then
     tinsert(types, {
+      fallback = true,
+      icon = icon.cd2,
+      title = L["Always Show"],
+      description = L["Always shows the aura."],
+      createTriggers = function(triggers, item)
+        createTotemTrigger(triggers, 1, item);
+      end,
+    });
+    tinsert(types, {
       icon = icon.cd2,
       title = L["Always Show"],
       description = L["Always shows the aura, turns grey if on cooldown."],
@@ -1080,6 +1128,15 @@ local function subTypesFor(item, regionType)
     });
   elseif(item.type == "cast") then
     data.inverse = false
+    tinsert(types, {
+      fallback = true,
+      icon = item.icon,
+      title = item.title,
+      createTriggers = function(triggers, item)
+        createCastTrigger(triggers, 1, item);
+      end,
+      data = data,
+    });
     tinsert(types, {
       icon = item.icon,
       title = item.title,
@@ -1126,6 +1183,7 @@ local function subTypesFor(item, regionType)
   end
 
   -- filter when createConditions return nothing for this regionType
+  local fallbacks = {}
   for index = #types, 1, -1 do
     local type = types[index];
     if type.createConditions then
@@ -1134,13 +1192,21 @@ local function subTypesFor(item, regionType)
       if #conditions == 0 then
         tremove(types, index);
       end
+    elseif type.fallback then
+      tremove(types, index);
+      tinsert(fallbacks, type)
     end
   end
 
-  return types;
+  if #types > 0 then
+    return types
+  end
+  return fallbacks
 end
 
-function WeakAuras.CreateTemplateView(frame)
+function WeakAuras.CreateTemplateView(Private, frame)
+  TemplatePrivate.Private = Private
+
   local newView = AceGUI:Create("InlineGroup");
   newView.frame:SetParent(frame);
   newView.frame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -17, 42);
@@ -1532,17 +1598,10 @@ function WeakAuras.CreateTemplateView(frame)
       WeakAuras.UpdateThumbnail(data);
       WeakAuras.UpdateDisplayButton(data);
     end
-    if (data.controlledChildren) then
-      for index, childId in pairs(data.controlledChildren) do
-        local childData = WeakAuras.GetData(childId);
-        if(childData) then
-          handle(childData, item, subType);
-        end
-      end
-    else
-      handle(data, item, subType);
-      WeakAuras.PickDisplay(data.id);
+    for child in TemplatePrivate.Private.TraverseLeafsOrAura(data) do
+      handle(child, item, subType);
     end
+    WeakAuras.ClearAndUpdateOptions(data.id)
   end
 
   local function addTriggers(data, item, subType)
@@ -1558,17 +1617,10 @@ function WeakAuras.CreateTemplateView(frame)
       WeakAuras.UpdateThumbnail(data);
       WeakAuras.UpdateDisplayButton(data);
     end
-    if (data.controlledChildren) then
-      for index, childId in pairs(data.controlledChildren) do
-        local childData = WeakAuras.GetData(childId);
-        if(childData) then
-          handle(childData, item, subType);
-        end
-      end
-    else
-      handle(data, item, subType);
-      WeakAuras.PickDisplay(data.id);
+    for child in TemplatePrivate.Private.TraverseLeafsOrAura(data) do
+      handle(child, item, subType);
     end
+    WeakAuras.ClearAndUpdateOptions(data.id)
   end
 
   local function createLastPage()
@@ -1654,7 +1706,7 @@ function WeakAuras.CreateTemplateView(frame)
       local classSelector = createDropdown("class", WeakAuras.class_types);
       newViewScroll:AddChild(classSelector);
 
-      if not WeakAuras.IsClassic() then
+      if WeakAuras.IsRetail() then
         local specSelector = createDropdown("spec", WeakAuras.spec_types_specific[newView.class]);
         newViewScroll:AddChild(specSelector);
         newViewScroll:AddChild(createSpacer());
@@ -1802,16 +1854,16 @@ function WeakAuras.CreateTemplateView(frame)
   newViewCancel:SetWidth(100);
   newViewCancel:SetText(L["Cancel"]);
 
-  function newView.Open(self, data)
+  function newView.Open(self, data, targetId)
     frame.window = "newView";
     frame:UpdateFrameVisible()
+    self.targetId = targetId
+    self.data = data -- Might be nil
     if (data) then
-      self.data = data;
       newView.existingAura = true;
       newView.chosenItem = nil;
       newView.chosenSubType = nil;
     else
-      self.data = nil; -- Data is cloned from display template
       newView.existingAura = false;
       newView.chosenItem = nil;
       newView.chosenSubType = nil;
@@ -1819,7 +1871,7 @@ function WeakAuras.CreateTemplateView(frame)
       newView.chosenItemBatch = {};
     end
     newView.class = select(2, UnitClass("player"));
-    if not WeakAuras.IsClassic() then
+    if WeakAuras.IsRetail() then
       newView.spec = GetSpecialization() or 1;
     else
       newView.spec = 1
@@ -1835,11 +1887,6 @@ function WeakAuras.CreateTemplateView(frame)
     if (not self.data) then
       frame:NewAura();
     end
-  end
-
-  function WeakAuras.OpenTriggerTemplate(data, targetId)
-    frame.newView.targetId = targetId;
-    frame.newView:Open(data);
   end
 
   return newView;

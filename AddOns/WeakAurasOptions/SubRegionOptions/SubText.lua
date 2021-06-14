@@ -31,26 +31,6 @@ local function createOptions(parentData, data, index, subIndex)
   local options = {
     __title = L["Text %s"]:format(subIndex),
     __order = 1,
-    __up = function()
-      if (OptionsPrivate.Private.ApplyToDataOrChildData(parentData, OptionsPrivate.MoveSubRegionUp, index, "subtext")) then
-        WeakAuras.ClearAndUpdateOptions(parentData.id)
-      end
-    end,
-    __down = function()
-      if (OptionsPrivate.Private.ApplyToDataOrChildData(parentData, OptionsPrivate.MoveSubRegionDown, index, "subtext")) then
-        WeakAuras.ClearAndUpdateOptions(parentData.id)
-      end
-    end,
-    __duplicate = function()
-      if (OptionsPrivate.Private.ApplyToDataOrChildData(parentData, OptionsPrivate.DuplicateSubRegion, index, "subtext")) then
-        WeakAuras.ClearAndUpdateOptions(parentData.id)
-      end
-    end,
-    __delete = function()
-      if (OptionsPrivate.Private.ApplyToDataOrChildData(parentData, WeakAuras.DeleteSubRegion, index, "subtext")) then
-        WeakAuras.ClearAndUpdateOptions(parentData.id)
-      end
-    end,
     text_visible = {
       type = "toggle",
       width = WeakAuras.halfWidth,
@@ -293,16 +273,11 @@ local function createOptions(parentData, data, index, subIndex)
   -- design I had for anchor options proved to be not general enough for
   -- what SubText needed. So, I removed it, and postponed making it work for unknown future
   -- sub regions
-  local anchors
-  if parentData.controlledChildren then
-    anchors = {}
-    for index, childId in ipairs(parentData.controlledChildren) do
-      local childData = WeakAuras.GetData(childId)
-      Mixin(anchors, OptionsPrivate.Private.GetAnchorsForData(childData, "point"))
-    end
-  else
-     anchors = OptionsPrivate.Private.GetAnchorsForData(parentData, "point")
+  local anchors = {}
+  for child in OptionsPrivate.Private.TraverseLeafsOrAura(parentData) do
+    Mixin(anchors, OptionsPrivate.Private.GetAnchorsForData(child, "point"))
   end
+
   -- Anchor Options
   options.text_anchorsDescription = {
     type = "execute",
@@ -484,18 +459,22 @@ local function createOptions(parentData, data, index, subIndex)
   end
 
   if parentData.controlledChildren then
-    for childIndex, childId in pairs(parentData.controlledChildren) do
-      local parentChildData = WeakAuras.GetData(childId)
-      if parentChildData.subRegions then
-        local childData = parentChildData.subRegions[index]
-        if childData then
-          local get = function(key)
-            return childData["text_text_format_" .. key]
-          end
-          local input = childData["text_text"]
-          OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden, childIndex, #parentData.controlledChildren)
+    local list = {}
+    for child in OptionsPrivate.Private.TraverseLeafs(parentData) do
+      if child.subRegions then
+        local childSubRegion = child.subRegions[index]
+        if childSubRegion then
+          tinsert(list, childSubRegion)
         end
       end
+    end
+
+    for listIndex, childSubRegion in ipairs(list) do
+      local get = function(key)
+        return childSubRegion["text_text_format_" .. key]
+      end
+      local input = childSubRegion["text_text"]
+      OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden, listIndex, #list)
     end
   else
     local get = function(key)
@@ -511,6 +490,8 @@ local function createOptions(parentData, data, index, subIndex)
     width = WeakAuras.doubleWidth,
     hidden = hidden
   })
+
+  OptionsPrivate.AddUpDownDeleteDuplicate(options, parentData, index, "subtext")
 
   return options, commonTextOptions
 end

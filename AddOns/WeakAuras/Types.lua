@@ -10,6 +10,7 @@ local wipe, tinsert = wipe, tinsert
 local GetNumShapeshiftForms, GetShapeshiftFormInfo = GetNumShapeshiftForms, GetShapeshiftFormInfo
 local GetNumSpecializationsForClassID, GetSpecializationInfoForClassID = GetNumSpecializationsForClassID, GetSpecializationInfoForClassID
 local WrapTextInColorCode = WrapTextInColorCode
+local MAX_NUM_TALENTS = MAX_NUM_TALENTS or 20
 
 local function WA_GetClassColor(classFilename)
   local color = (CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS)[classFilename]
@@ -77,6 +78,25 @@ Private.group_hybrid_sort_types = {
   descending = L["Descending"]
 }
 
+if WeakAuras.IsClassic() then
+  Private.time_format_types = {
+    [0] = L["WeakAuras Built-In (63:42 | 3:07 | 10 | 2.4)"],
+    [1] = L["Blizzard (2h | 3m | 10s | 2.4)"],
+  }
+else
+  Private.time_format_types = {
+    [0] = L["WeakAuras Built-In (63:42 | 3:07 | 10 | 2.4)"],
+    [1] = L["Old Blizzard (2h | 3m | 10s | 2.4)"],
+    [2] = L["Modern Blizzard (1h 3m | 3m 7s | 10s | 2.4)"]
+  }
+end
+
+Private.time_precision_types = {
+  [1] = "12.3",
+  [2] = "12.34",
+  [3] = "12.345",
+}
+
 Private.precision_types = {
   [0] = "12",
   [1] = "12.3",
@@ -107,6 +127,33 @@ Private.unit_realm_name_types = {
   always = L["Always include realm"]
 }
 
+local timeFormatter = {}
+if WeakAuras.IsRetail() then
+  Mixin(timeFormatter, SecondsFormatterMixin)
+  timeFormatter:Init(0, SecondsFormatter.Abbreviation.OneLetter)
+
+  -- The default time formatter adds a space between the value and the unit
+  -- While there is a API to strip it, that API does not work on all locales, e.g. german
+  -- Thus, copy the interval descriptions, strip the whitespace from them
+  -- and hack the timeFormatter to use our interval descriptions
+  local timeFormatIntervalDescriptionFixed = {}
+  timeFormatIntervalDescriptionFixed = CopyTable(SecondsFormatter.IntervalDescription)
+  for i, interval in ipairs(timeFormatIntervalDescriptionFixed) do
+    interval.formatString = CopyTable(SecondsFormatter.IntervalDescription[i].formatString)
+    for j, formatString in ipairs(interval.formatString) do
+      interval.formatString[j] = formatString:gsub(" ", "")
+    end
+  end
+
+  timeFormatter.GetIntervalDescription = function(self, interval)
+    return timeFormatIntervalDescriptionFixed[interval]
+  end
+
+  timeFormatter.GetMaxInterval = function(self)
+    return #timeFormatIntervalDescriptionFixed
+  end
+end
+
 local simpleFormatters = {
   AbbreviateNumbers = function(value, state)
     return (type(value) == "number") and AbbreviateNumbers(value) or value
@@ -122,7 +169,26 @@ local simpleFormatters = {
   end,
   round = function(value)
     return (type(value) == "number") and Round(value) or value
-  end
+  end,
+  time = {
+    [0] = function(value)
+      if value > 60 then
+        return string.format("%i:", math.floor(value / 60)) .. string.format("%02i", value % 60)
+      else
+        return string.format("%d", value)
+      end
+    end,
+    -- Old Blizzard
+    [1] = function(value)
+      local fmt, time = SecondsToTimeAbbrev(value)
+      -- Remove the space between the value and unit
+      return fmt:gsub(" ", ""):format(time)
+    end,
+    -- Modern Blizzard
+    [2] = WeakAuras.IsRetail() and function(value)
+      return timeFormatter:Format(value)
+    end
+  }
 }
 
 Private.format_types = {
@@ -167,34 +233,84 @@ Private.format_types = {
   timed = {
     display = L["Time Format"],
     AddOptions = function(symbol, hidden, addOption, get)
+      addOption(symbol .. "_time_format", {
+        type = "select",
+        name = L["Format"],
+        width = WeakAuras.doubleWidth,
+        values = Private.time_format_types,
+        hidden = hidden
+      })
+
+      addOption(symbol .. "_time_dynamic_threshold", {
+        type = "range",
+        min = 0,
+        max = 60,
+        step = 1,
+        name = L["Increase Precision Below"],
+        width = WeakAuras.normalWidth,
+        hidden = hidden,
+      })
+
       addOption(symbol .. "_time_precision", {
         type = "select",
         name = L["Precision"],
         width = WeakAuras.normalWidth,
-        values = Private.precision_types,
-        hidden = hidden
-      })
-      addOption(symbol .. "_time_dynamic", {
-        type = "toggle",
-        name = L["Dynamic"],
-        desc = L["Increased Precision below 3s"],
-        width = WeakAuras.normalWidth,
+        values = Private.time_precision_types,
         hidden = hidden,
-        disabled = function() return get(symbol .. "_time_precision") == 0 end
+        disabled = function() return get(symbol .. "_time_dynamic_threshold") == 0 end
       })
     end,
     CreateFormatter = function(symbol, get)
+      local format = get(symbol .. "_time_format", 0)
+      local threshold = get(symbol .. "_time_dynamic_threshold", 60)
       local precision = get(symbol .. "_time_precision", 1)
-      local dynamic = get(symbol .. "_time_dynamic", false)
 
-      if dynamic then
-        if precision == 1 or precision == 2 or precision == 3 then
-          precision = precision + 3
+      local mainFormater = simpleFormatters.time[format]
+      if not mainFormater then
+        mainFormater = simpleFormatters.time[0]
+      end
+      local formatter
+      if threshold == 0 then
+        formatter = function(value, state)
+          if type(value) ~= 'number' or value == math.huge then
+            return ""
+          end
+          if value <= 0 then
+            return ""
+          end
+          return mainFormater(value)
+        end
+      else
+        local formatString = "%." .. precision .. "f"
+        formatter = function(value, state)
+          if type(value) ~= 'number' or value == math.huge then
+            return ""
+          end
+          if value <= 0 then
+            return ""
+          end
+          if value < threshold then
+            return string.format(formatString, value)
+          else
+            return mainFormater(value, state)
+          end
         end
       end
 
-      return function(value, state)
-        return Private.dynamic_texts.p.func(value, state, precision)
+      local triggerNum, sym = string.match(symbol, "(.+)%.(.+)")
+      sym = sym or symbol
+      if sym == "p" or sym == "t" then
+        -- Special case %p and %t. Since due to how the formatting
+        -- work previously, the time formatter only formats %p and %t
+        -- if the progress type is timed!
+        return function(value, state)
+          if not state or state.progressType ~= "timed" then
+            return value
+          end
+          return formatter(value, state)
+        end
+      else
+        return formatter
       end
     end
   },
@@ -779,7 +895,7 @@ do
   end
 end
 
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   Private.covenant_types = {}
   Private.covenant_types[0] = L["None"]
   for i = 1, 4 do
@@ -939,18 +1055,10 @@ Private.text_word_wrap = {
   Elide = L["Elide"]
 }
 
-Private.event_types = {};
+Private.category_event_prototype = {}
 for name, prototype in pairs(Private.event_prototypes) do
-  if(prototype.type == "event") then
-    Private.event_types[name] = prototype.name;
-  end
-end
-
-Private.status_types = {};
-for name, prototype in pairs(Private.event_prototypes) do
-  if(prototype.type == "status") then
-    Private.status_types[name] = prototype.name;
-  end
+  Private.category_event_prototype[prototype.type] = Private.category_event_prototype[prototype.type] or {}
+  Private.category_event_prototype[prototype.type][name] = prototype.name
 end
 
 Private.subevent_prefix_types = {
@@ -985,6 +1093,7 @@ Private.subevent_suffix_types = {
   _DAMAGE = L["Damage"],
   _MISSED = L["Missed"],
   _HEAL = L["Heal"],
+  _HEAL_ABSORBED = L["Heal Absorbed"],
   _ENERGIZE = L["Energize"],
   _DRAIN = L["Drain"],
   _LEECH = L["Leech"],
@@ -1071,6 +1180,7 @@ Private.environmental_types = {
 }
 
 Private.combatlog_flags_check_type = {
+  Mine = L["Mine"],
   InGroup = L["In Group"],
   NotInGroup = L["Not in Group"]
 }
@@ -1158,7 +1268,7 @@ end
 
 
 Private.talent_types = {}
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   local spec_frame = CreateFrame("frame");
   spec_frame:RegisterEvent("PLAYER_LOGIN")
   spec_frame:SetScript("OnEvent", update_specs);
@@ -1177,20 +1287,27 @@ if not WeakAuras.IsClassic() then
     tier = 1
   end
 else
-  for tab = 1, 5 do
-    for num_talent = 1, 20 do
-      local talentId = (tab - 1)*20+num_talent
+  for tab = 1, GetNumTalentTabs() do
+    for num_talent = 1, GetNumTalents(tab) do
+      local talentId = (tab - 1) * MAX_NUM_TALENTS + num_talent
       Private.talent_types[talentId] = L["Tab "]..tab.." - "..num_talent
     end
   end
 end
 
 Private.pvp_talent_types = {}
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   for i = 1,10 do
     tinsert(Private.pvp_talent_types, string.format(L["PvP Talent %i"], i));
   end
 end
+
+Private.talent_extra_option_types = {
+    [0] = L["Talent Known"],
+    [1] = L["Talent Selected"],
+    [2] = L["Talent |cFFFF0000Not|r Known"],
+    [3] = L["Talent |cFFFF0000Not|r Selected"],
+}
 
 -- GetTotemInfo() only works for the first 5 totems
 Private.totem_types = {};
@@ -1552,6 +1669,10 @@ Private.texture_types = {
     ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\Ring_30px.tga"] = "Ring 30px",
     ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\Ring_40px.tga"] = "Ring 40px",
     ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_AlphaGradient.tga"] = "Square Alpha Gradient",
+
+    ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\square_border_1px.tga"] = "Square Border 1px",
+    ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\square_border_5px.tga"] = "Square Border 5px",
+    ["Interface\\AddOns\\WeakAuras\\Media\\Textures\\square_border_10px.tga"] = "Square Border 10px",
   },
   ["Sparks"] = {
     ["130877"] = "Blizzard Spark",
@@ -1597,6 +1718,29 @@ if WeakAuras.IsClassic() then -- Classic
   do
     local runes = Private.texture_types["Runes"]
     local runes_ids = {165633, 165885, 165922, 166340, 166753, 166754, 241003, 241004, 241005}
+    for _, v in ipairs(runes_ids) do
+      runes[tostring(v)] = nil
+    end
+  end
+elseif WeakAuras.IsBCC() then
+  Private.texture_types["Blizzard Alerts"] = nil
+  do
+    local beams = Private.texture_types["Beams"]
+    local beams_ids = {186193, 186194, 241098, 241099, 369749, 369750}
+    for _, v in ipairs(beams_ids) do
+      beams[tostring(v)] = nil
+    end
+  end
+  do
+    local icons = Private.texture_types["Icons"]
+    local icons_ids = {165605, 240925, 240961, 240972, 241049}
+    for _, v in ipairs(icons_ids) do
+      icons[tostring(v)] = nil
+    end
+  end
+  do
+    local runes = Private.texture_types["Runes"]
+    local runes_ids = {165922, 241003, 241004, 241005}
     for _, v in ipairs(runes_ids) do
       runes[tostring(v)] = nil
     end
@@ -1796,7 +1940,7 @@ Private.swing_types = {
   ["off"] = SECONDARYHANDSLOT
 }
 
-if WeakAuras.IsClassic() then
+if WeakAuras.IsClassic() or WeakAuras.IsBCC() then
   Private.swing_types["ranged"] = RANGEDSLOT
 end
 
@@ -1817,11 +1961,6 @@ Private.custom_trigger_types = {
 
 Private.eventend_types = {
   ["timed"] = L["Timed"],
-  ["custom"] = L["Custom"]
-}
-
-Private.autoeventend_types = {
-  ["auto"] = L["Automatic"],
   ["custom"] = L["Custom"]
 }
 
@@ -1969,14 +2108,22 @@ Private.instance_types = {
   fortyman = L["40 Man Raid"],
   flexible = L["Flex Raid"],
   pvp = L["Battleground"],
-  arena = L["Arena"]
+  arena = L["Arena"],
+  ratedpvp = L["Rated Battleground"],
+  ratedarena = L["Rated Arena"]
 }
+
+if WeakAuras.IsClassic() then
+  Private.instance_types["ratedpvp"] = nil
+  Private.instance_types["arena"] = nil
+  Private.instance_types["ratedarena"] = nil
+end
 
 Private.instance_difficulty_types = {
 
 }
 
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   -- Fill out instance_difficulty_types automatically.
   -- Unfourtunately the names BLizzard gives are not entirely unique,
   -- so try hard to disambiguate them via the type, and if nothing works by
@@ -2056,20 +2203,30 @@ Private.group_types = {
   raid = L["In Raid"]
 }
 
-Private.difficulty_types = {
-  none = L["None"],
-  normal = PLAYER_DIFFICULTY1,
-  heroic = PLAYER_DIFFICULTY2,
-  mythic = PLAYER_DIFFICULTY6,
-  timewalking = PLAYER_DIFFICULTY_TIMEWALKER,
-  lfr = PLAYER_DIFFICULTY3,
-  challenge = PLAYER_DIFFICULTY5
-}
+if WeakAuras.IsRetail() then
+  Private.difficulty_types = {
+    none = L["None"],
+    normal = PLAYER_DIFFICULTY1,
+    heroic = PLAYER_DIFFICULTY2,
+    mythic = PLAYER_DIFFICULTY6,
+    timewalking = PLAYER_DIFFICULTY_TIMEWALKER,
+    lfr = PLAYER_DIFFICULTY3,
+    challenge = PLAYER_DIFFICULTY5
+  }
+elseif WeakAuras.IsBCC() then
+  Private.difficulty_types = {
+    none = L["None"],
+    normal = PLAYER_DIFFICULTY1,
+    heroic = PLAYER_DIFFICULTY2,
+  }
+end
 
-if WeakAuras.IsClassic() then
+
+if WeakAuras.IsClassic() or WeakAuras.IsBCC() then
   Private.raid_role_types = {
     MAINTANK = "|TInterface\\GroupFrame\\UI-Group-maintankIcon:16:16|t "..MAINTANK,
-    MAINASSIST = "|TInterface\\GroupFrame\\UI-Group-mainassistIcon:16:16|t "..MAINASSIST
+    MAINASSIST = "|TInterface\\GroupFrame\\UI-Group-mainassistIcon:16:16|t "..MAINASSIST,
+    NONE = L["Other"]
   }
 else
   Private.role_types = {
@@ -2337,7 +2494,7 @@ if WeakAuras.IsClassic() then
   Private.pet_behavior_types.assist = nil
 end
 
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   Private.pet_spec_types = {
     [1] = select(2, GetSpecializationInfoByID(74)), -- Ferocity
     [2] = select(2, GetSpecializationInfoByID(81)), -- Tenacity
@@ -2436,7 +2593,7 @@ local mythic_plus_ignorelist = {
   [15] = true
 }
 
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   for i = 1, 255 do
     local r = not mythic_plus_ignorelist[i] and C_ChallengeMode.GetAffixInfo(i)
     if r then
@@ -2565,6 +2722,7 @@ Private.internal_fields = {
   uid = true,
   internalVersion = true,
   sortHybridTable = true,
+  tocversion = true,
 }
 
 -- fields that are not included in exported data
@@ -2840,6 +2998,22 @@ Private.difficulty_info = {
     size = "twenty",
     difficulty = "normal",
   },
+  [173] = {
+    size = "party",
+    difficulty = "normal",
+  },
+  [174] = {
+    size = "party",
+    difficulty = "heroic",
+  },
+  [175] = {
+    size = "ten",
+    difficulty = "heroic",
+  },
+  [176] = {
+    size = "twentyfive",
+    difficulty = "heroic",
+  }
 }
 
 Private.glow_types = {
@@ -2891,7 +3065,7 @@ for i = 1, 4 do
   Private.multiUnitUnits.party["party"..i] = true
 end
 
-if not WeakAuras.IsClassic() then
+if WeakAuras.IsRetail() then
   for i = 1, MAX_BOSS_FRAMES do
     Private.baseUnitId["arena"..i] = true
     Private.baseUnitId["boss"..i] = true
@@ -2951,6 +3125,37 @@ Private.reset_ranged_swing_spells = {
   [75] = true, -- Auto Shot
 }
 
+Private.noreset_swing_spells = {
+  [23063] = true, -- Dense Dynamite
+  [4054] = true, -- Rough Dynamite
+  [4064] = true, -- Rough Copper Bomb
+  [4061] = true, -- Coarse Dynamite
+  [8331] = true, -- Ez-Thro Dynamite
+  [4065] = true, -- Large Copper Bomb
+  [4066] = true, -- Small Bronze Bomb
+  [4062] = true, -- Heavy Dynamite
+  [4067] = true, -- Big Bronze Bomb
+  [4068] = true, -- Iron Grenade
+  [23000] = true, -- Ez-Thro Dynamite II
+  [12421] = true, -- Mithril Frag Bomb
+  [4069] = true, -- Big Iron Bomb
+  [12562] = true, -- The Big One
+  [12543] = true, -- Hi-Explosive Bomb
+  [19769] = true, -- Thorium Grenade
+  [19784] = true, -- Dark Iron Bomb
+  [30216] = true, -- Fel Iron Bomb
+  [19821] = true, -- Arcane Bomb
+  [39965] = true, -- Frost Grenade
+  [30461] = true, -- The Bigger One
+  [30217] = true, -- Adamantite Grenade
+  [35476] = true, -- Drums of Battle
+  [35475] = true, -- Drums of War
+  [35477] = true, -- Drums of Speed
+  [35478] = true, -- Drums of Restoration
+  [34120] = true, -- Steady Shot (rank 1)
+  [19434] = true, -- Aimed Shot (rank 1)
+  --35474 Drums of Panic DO reset the swing timer, do not add
+}
 
 Private.item_weapon_types = {}
 
@@ -3132,6 +3337,8 @@ if WeakAuras.IsClassic() then
   Private.threat_unit_types.focus = nil
   Private.item_slot_types[0] = AMMOSLOT
   Private.item_slot_types[18] = RANGEDSLOT
+  Private.talent_extra_option_types[0] = nil
+  Private.talent_extra_option_types[2] = nil
 
   local reset_swing_spell_list = {
     1464, 8820, 11604, 11605, -- Slam
@@ -3140,9 +3347,42 @@ if WeakAuras.IsClassic() then
     2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, -- Raptor Strike
     6807, 6808, 6809, 8972, 9745, 9880, 9881, -- Maul
     20549, -- War Stomp
+    2480, 7919, 7918, 2764, 5019, -- Shoots
   }
   for i, spellid in ipairs(reset_swing_spell_list) do
     Private.reset_swing_spells[spellid] = true
+  end
+
+  Private.glow_types.ACShine = nil
+end
+
+if WeakAuras.IsBCC() then
+  Private.item_slot_types[0] = AMMOSLOT
+  Private.item_slot_types[18] = RANGEDSLOT
+  Private.talent_extra_option_types[0] = nil
+  Private.talent_extra_option_types[2] = nil
+
+  local reset_swing_spell_list = {
+    1464, 8820, 11604, 11605, 25242, -- Slam
+    78, 284, 285, 1608, 11564, 11565, 11566, 11567, 25286, 29707, 30324, -- Heroic Strike
+    845, 7369, 11608, 11609, 20569, 25231, -- Cleave
+    2973, 14260, 14261, 14262, 14263, 14264, 14265, 14266, 27014, -- Raptor Strike
+    6807, 6808, 6809, 8972, 9745, 9880, 9881, 26996, -- Maul
+    20549, -- War Stomp
+    2764, 3018, -- Shoots,
+    19434, 20900, 20901, 20902, 20903, 20904, 27065 -- Aimed Shot
+  }
+  for _, spellid in ipairs(reset_swing_spell_list) do
+    Private.reset_swing_spells[spellid] = true
+  end
+
+  local reset_ranged_swing_spell_list = {
+    2764, 3018, -- Shoots
+    19434, 20900, 20901, 20902, 20903, 20904, 27065 -- Aimed Shot
+  }
+
+  for _, spellid in ipairs(reset_ranged_swing_spell_list) do
+    Private.reset_ranged_swing_spells[spellid] = true
   end
 
   Private.glow_types.ACShine = nil

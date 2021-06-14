@@ -32,6 +32,8 @@ local L = WeakAuras.L
 	L["Always shows the aura, turns grey if the ability is not usable."] = "Sempre mostrar a aura, torne-a cinza se a habilidade não for usável."
 	L["Always shows the aura, turns red when out of range, blue on insufficient resources."] = "Sempre mostrar a aura, torne-a vermelha quando estiver fora de alcance, azul quando não houver recursos suficientes."
 	L["Always shows the aura, turns red when out of range."] = "Sempre mostrar a aura, torne-a vermelha quando estiver fora de alcance."
+	--[[Translation missing --]]
+	L["Always shows the aura."] = "Always shows the aura."
 	L["Back"] = "Voltar"
 	--[[Translation missing --]]
 	L["Basic Show On Cooldown"] = "Basic Show On Cooldown"
@@ -78,6 +80,8 @@ local L = WeakAuras.L
 	--[[Translation missing --]]
 	L["Health"] = "Health"
 	--[[Translation missing --]]
+	L["Highlight while action is queued."] = "Highlight while action is queued."
+	--[[Translation missing --]]
 	L["Highlight while active, red when out of range."] = "Highlight while active, red when out of range."
 	--[[Translation missing --]]
 	L["Highlight while active."] = "Highlight while active."
@@ -118,6 +122,8 @@ local L = WeakAuras.L
 	--[[Translation missing --]]
 	L["Only shows the aura when the ability is ready to use."] = "Only shows the aura when the ability is ready to use."
 	--[[Translation missing --]]
+	L["Other cooldown"] = "Other cooldown"
+	--[[Translation missing --]]
 	L["Pet alive"] = "Pet alive"
 	--[[Translation missing --]]
 	L["Pet Behavior"] = "Pet Behavior"
@@ -132,6 +138,8 @@ local L = WeakAuras.L
 	--[[Translation missing --]]
 	L["Resources and Shapeshift Form"] = "Resources and Shapeshift Form"
 	--[[Translation missing --]]
+	L["Rogue cooldown"] = "Rogue cooldown"
+	--[[Translation missing --]]
 	L["Runes"] = "Runes"
 	--[[Translation missing --]]
 	L["Shapeshift Form"] = "Shapeshift Form"
@@ -145,6 +153,8 @@ local L = WeakAuras.L
 	L["Show Charges with Range Tracking"] = "Show Charges with Range Tracking"
 	--[[Translation missing --]]
 	L["Show Charges with Usable Check"] = "Show Charges with Usable Check"
+	--[[Translation missing --]]
+	L["Show Cooldown and Action Queued"] = "Show Cooldown and Action Queued"
 	--[[Translation missing --]]
 	L["Show Cooldown and Buff"] = "Show Cooldown and Buff"
 	--[[Translation missing --]]
@@ -215,4 +225,6 @@ local L = WeakAuras.L
 	L["Unknown Item"] = "Unknown Item"
 	--[[Translation missing --]]
 	L["Unknown Spell"] = "Unknown Spell"
+	--[[Translation missing --]]
+	L["Warrior cooldown"] = "Warrior cooldown"
 
