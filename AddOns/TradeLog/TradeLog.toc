@@ -1,18 +1,22 @@
 ﻿## Interface: 90005
-## LoadOnDemand: 0
 ## Title: TradeLog
-## Notes: trade history log, recent trade list by Warbaby@163.com
-## Notes-zhCN: 交易记录 by Warbaby (三月十二@聖光之願<冰封十字軍>)
+## Title-zhCN: TradeLog
+## Notes: |cffbc8f8ftrade log, mage warlock trade assistant.|r
+## Notes-zhCN: |cff00ff00TheBurningTrade|r|n|cffbc8f8f交易记录及交易界面增强。|r
 ## Title-zhTW: |cFF77FFBB[交易]|r 交易紀錄
-## Notes-zhTW: TradeLog |n交易紀錄 by Warbaby (三月十二@聖光之願<冰封十字軍>)
-## SavedVariablesPerCharacter: TradeLog_TradesHistory, TradeLog_Announce_Checked, TradeLog_AnnounceChannel
+## Notes-zhTW: TradeLog |n交易時會在聊天視窗中顯示交易內容的訊息，也可以選擇要密語通知對方。|n|cffffd200使用方法：|r點小地圖按鈕觀看交易歷史記錄。
+## DefaultState: Enabled
+## OptionalDeps: Skinner
+## SavedVariablesPerCharacter: TradeLog_TradesHistory, TRADE_LOG_BUTTON_POS, TradeLog_Announce_Checked, TradeLog_AnnounceChannel,TBT_CurrentPortal
+## Author: Warbaby,Mod By Terry@BF
+## LoadOnDemand: 0
 
 Libs\LibDBIcon-1.0.xml
 
 localization-enUS.lua
 localization-zhCN.lua
 localization-zhTW.lua
-localization-koKR.lua
-TradeLog.lua
-RecentTradeFrame.xml
+
+TheBurningTrade.xml
 TradeLogFrame.xml
+## Q-CAT-Version: 1
