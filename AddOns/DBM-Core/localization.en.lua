@@ -278,6 +278,7 @@ L.TIMER_USAGE						= {
 }
 
 L.ERROR_NO_PERMISSION				= "You don't have the required permission to do this."
+L.TIME_TOO_SHORT					= "Pull timer must be longer than 3 seconds."
 
 --Common Locals
 L.NONE								= "None"
@@ -430,7 +431,7 @@ L.AUTO_SPEC_WARN_TEXTS = {
 	stack							= "%%d stacks of %s on you",
 	switch							= "%s - switch targets",
 	switchcount						= "%s - switch targets (%%s)",
-	gtfo							= "%%s under you - move away",
+	gtfo							= "%%s damage - move away",
 	adds							= "Incoming Adds - switch targets",
 	addscustom						= "Incoming Adds - %%s",
 	targetchange					= "Target Change - switch to %%s"
@@ -689,16 +690,4 @@ L.SILENTMODE_IS						= "SilentMode is "
 
 L.LDB_LOAD_MODS						= "Load boss mods"
 
-L.LDB_CAT_SL						= EXPANSION_NAME8
-L.LDB_CAT_BFA						= EXPANSION_NAME7
-L.LDB_CAT_LEG						= EXPANSION_NAME6
-L.LDB_CAT_WOD						= EXPANSION_NAME5
-L.LDB_CAT_MOP						= EXPANSION_NAME4
-L.LDB_CAT_CATA						= EXPANSION_NAME3
-L.LDB_CAT_WOTLK						= EXPANSION_NAME2
-L.LDB_CAT_BC						= EXPANSION_NAME1
-L.LDB_CAT_CLASSIC 					= EXPANSION_NAME0
-L.LDB_CAT_OTHER						= "Other Boss Mods"
-
-L.LDB_CAT_GENERAL					= "General"
 L.LDB_ENABLE_BOSS_MOD				= "Enable boss mod"

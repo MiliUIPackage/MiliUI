@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod(2422, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210118213658")
+mod:SetRevision("20210415024021")
 mod:SetCreatureID(165759)
 mod:SetEncounterID(2402)
 mod:DisableIEEUCombatDetection()--kael gets stuck on boss frames well after encounter has ended, therefor must not re-engage boss off this bug
 mod:SetUsedIcons(1, 2, 3, 4, 5)
 mod.onlyHighest = true--Instructs DBM health tracking to literally only store highest value seen during fight, even if it drops below that
 mod.noBossDeathKill = true--Instructs mod to ignore 165759 deaths, since goal is to heal kael, not kill him
-mod:SetHotfixNoticeRev(20210105000000)--2021, 01, 05
+mod:SetHotfixNoticeRev(20210128000000)--2021, 01, 28
 mod:SetMinSyncRevision(20210105000000)
 --mod.respawnTime = 29
 
@@ -18,23 +18,14 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 325877 329509 329518 328885 325440 325506 333002 326455 337865",
 	"SPELL_CAST_SUCCESS 326583 325665 181113",
 	"SPELL_SUMMON 329565 326075",
-	"SPELL_AURA_APPLIED 326456 328659 341254 328731 325442 333145 326078 332871 326583 328479 323402 337859 335581 343026 341473",
+	"SPELL_AURA_APPLIED 326456 328659 341254 328731 325442 333145 326078 332871 326583 328479 323402 337859 335581 343026 341473 325873",
 	"SPELL_AURA_APPLIED_DOSE 326456 325442 326078",
-	"SPELL_AURA_REMOVED 328731 326078 328479 323402 337859 343026",
+	"SPELL_AURA_REMOVED 328731 326078 328479 323402 337859 343026 325873",
 	"SPELL_PERIODIC_DAMAGE 328579",
 	"SPELL_PERIODIC_MISSED 328579",
 	"UNIT_DIED"
---	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
---TODO, Switch Ember Blast to UnitTargetScanner for max scan speed/efficiency, if shade has boss unit ID and isn't already targetting victim when cast starts
---TODO, adjust ember blast warning to reduce number told to soak it if it's not conventional to just tell everyone but the tanks to do it
---TODO, essence tracking of energy for Cultists?
---TODO, dispel warnings for Vulgar brand (333002) based on difficulty (magic non mythic, curse mythic)?
---TODO, improved infoframe with https://shadowlands.wowhead.com/spell=339251/drained-soul tracking
---TODO, auto mark essence spawns?
---TODO, Keep an eye on add spawns, if blizzard leaves 3 of the add types missing from combat log, scheduling will have to be added
---TODO, add nameplate aura for assassins fixate/attack?
 --[[
 (ability.id = 325877 or ability.id = 329509 or ability.id = 329518 or ability.id = 328885) and type = "begincast"
  or ability.id = 181113 or ability.id = 323402 or target.id = 168973 and type = "death" or (ability.id = 343026 or ability.id = 337859) and (type = "applydebuff" or type = "removedebuff" or type = "applybuff" or type = "removebuff")
@@ -45,7 +36,7 @@ mod:RegisterEventsInCombat(
  or (source.type = "NPC" and source.firstSeen = timestamp) or (target.type = "NPC" and target.firstSeen = timestamp)
  or (abililty.id = 326455 or ability.id = 326455 or ability.id = 325506) and type = "begincast"
 
- ability.id = 328659 or ability.id == 341254 or ability.id = 328731 and (type = "applybuff" or type = "removebuff")
+ or ability.id = 328659 or ability.id == 341254 or ability.id = 328731 and (type = "applybuff" or type = "removebuff")
 --]]
 --Shade of Kael'thas
 local warnFeiryStrike							= mod:NewCastAnnounce(326455, 2, nil, nil, "Melee")
@@ -139,7 +130,6 @@ mod:AddRangeFrameOption(6, 328885)
 mod:AddInfoFrameOption(326078, true)--343026
 mod:AddSetIconOption("SetIconOnEmberBlast", 325877, true, false, {1})
 mod:AddSetIconOption("SetIconOnBirdo", 328731, true, true, {2, 3, 4, 5})
---mod:AddNamePlateOption("NPAuraOnPhoenixEmbers", 328731)
 mod:AddNamePlateOption("NPAuraOnPhoenixFixate", 328479)
 
 mod.vb.addMode = 0--No adds spawning, 1-Adds Spawning from Darithos Tables, 2-Adds spawning from Shade table
@@ -166,7 +156,7 @@ local addTimers = {
 			--Bleakwing Assassin
 			[167566] = {70, 60, 80},
 			--Vile Occultist
-			[165763] = {100, 150},
+			[165763] = {90, 150},
 			--Soul Infuser
 			[165762] = {170, 70},
 			--Pestering Fiend
@@ -266,7 +256,7 @@ local addTimers = {
 			--Bleakwing Assassin
 			[167566] = {20, 60, 80},
 			--Vile Occultist
-			[165763] = {50, 140},
+			[165763] = {40, 140},
 			--Soul Infuser
 			[165762] = {110, 80},--80 iffy, could be 70 or 75
 			--Pestering Fiend
@@ -312,25 +302,6 @@ local addTimers = {
 		},
 	},
 }
-
-function mod:EmberBlastTarget(targetname, uId, bossuid, scanningTime)
-	if not targetname then return end
-	local debuffTimer = self:IsLFR() and 5 or 3
-	if targetname == UnitName("player") then
-		specWarnEmberBlast:Show(DBM_CORE_L.ALLIES)
-		specWarnEmberBlast:Play("gathershare")
-		yellEmberBlast:Yell()
-		yellEmberBlastFades:Countdown(debuffTimer-scanningTime)
-	elseif self.Options.SpecWarn325877moveto then
-		specWarnEmberBlast:Show(targetname)
-		specWarnEmberBlast:Play("gathershare")
-	else
-		warnEmberBlast:Show(targetname)
-	end
-	if self.Options.SetIconOnEmberBlast then
-		self:SetIcon(targetname, 1, debuffTimer-scanningTime+1)--So icon clears 1-3 second after blast
-	end
-end
 
 local updateInfoFrame
 do
@@ -411,7 +382,7 @@ function mod:OnCombatStart(delay)
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Show(6)
 	end
-	if self.Options.NPAuraOnPhoenixFixate then--self.Options.NPAuraOnPhoenixEmbers
+	if self.Options.NPAuraOnPhoenixFixate then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end
 	self:Schedule(42, setForcedAddSpawns, self)
@@ -452,7 +423,7 @@ function mod:OnCombatStart(delay)
 		difficultyName = "lfr"
 		timerBleakwingAssassinCD:Start(70, 1)
 		timerPesteringFiendCD:Start(70, 1)
-		timerVileOccultistCD:Start(100, 1)
+		timerVileOccultistCD:Start(90, 1)
 		self:Unschedule(expectedVile)
 		self:Schedule(110, expectedVile, self)
 		timerSoulInfuserCD:Start(170, 1)
@@ -461,7 +432,7 @@ function mod:OnCombatStart(delay)
 	end
 end
 
-function mod:OnCombatEnd(wipe, isSecondRun)
+function mod:OnCombatEnd(wipe)
 	table.wipe(seenAdds)
 	table.wipe(castsPerGUID)
 	table.wipe(infuserTargets)
@@ -471,11 +442,8 @@ function mod:OnCombatEnd(wipe, isSecondRun)
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
-	if self.Options.NPAuraOnPhoenixFixate then--self.Options.NPAuraOnPhoenixEmbers or
+	if self.Options.NPAuraOnPhoenixFixate then
 		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
-	end
-	if not isSecondRun then
-		DBM:AddMsg("Add timer accuracy may stil suffer greatly until blizzard fixes bugs with adds inconsistently firing events when spawning, especially soul infusers")
 	end
 end
 
@@ -495,12 +463,10 @@ function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 325877 then
 		timerEmberBlastCD:Start(self:IsMythic() and 24.4 or 20.6)--Verify mythic still 24
-		self:BossTargetScanner(args.sourceGUID, "EmberBlastTarget", 0.2, 13)--Scans for 2.6 of 5.0 second cast, will adjust later
 	elseif spellId == 329509 or spellId == 329518 then
 		specWarnBlazingSurge:Show()
 		specWarnBlazingSurge:Play("shockwave")
 		timerBlazingSurgeCD:Start()
-		--self:BossTargetScanner(args.sourceGUID, "BlazingSurgeTarget", 0.1, 12)
 	elseif spellId == 328885 then
 		timerGreaterCastigationCD:Start()
 	elseif spellId == 325440 then
@@ -658,9 +624,6 @@ function mod:SPELL_AURA_APPLIED(args)
 			end
 		end
 	elseif spellId == 328731 then
---		if self.Options.NPAuraOnPhoenixEmbers then
---			DBM.Nameplate:Show(true, args.destGUID, spellId, nil, 20)
---		end
 		timerPhoenixRespawn:Start(20, args.destGUID)
 	elseif spellId == 333145 and self:AntiSpam(5, args.destName) then
 		warnReturnToStone:Show(args.destName)
@@ -707,7 +670,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnShadeSpawned:Show()
 		specWarnShadeSpawned:Play("bigmob")
 		timerFieryStrikeCD:Start(14)
-		timerEmberBlastCD:Start(20.1)
+		timerEmberBlastCD:Start(19.1)
 		timerBlazingSurgeCD:Start(28.8)
 		if self:IsMythic() then
 			timerCloakofFlamesCD:Start(39, 1)
@@ -729,6 +692,21 @@ function mod:SPELL_AURA_APPLIED(args)
 				timerVileOccultistCD:Start(timer, self.vb.occultistCount+1)
 			end
 		end
+	elseif spellId == 325873 then
+		if args:IsPlayer() then
+			specWarnEmberBlast:Show(DBM_CORE_L.ALLIES)
+			specWarnEmberBlast:Play("gathershare")
+			yellEmberBlast:Yell()
+			yellEmberBlastFades:Countdown(self:IsLFR() and 5 or 3)
+		elseif self.Options.SpecWarn325877moveto then
+			specWarnEmberBlast:Show(args.destName)
+			specWarnEmberBlast:Play("gathershare")
+		else
+			warnEmberBlast:Show(args.destName)
+		end
+		if self.Options.SetIconOnEmberBlast then
+			self:SetIcon(args.destName, 1)
+		end
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -736,9 +714,6 @@ mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
 	if spellId == 328731 then
---		if self.Options.NPAuraOnPhoenixEmbers then
---			DBM.Nameplate:Hide(true, args.destGUID, spellId)
---		end
 		timerPhoenixRespawn:Stop(args.destGUID)
 	elseif spellId == 326078 then
 		infuserTargets[args.destName] = nil
@@ -791,7 +766,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			timerVanquisherCD:Start(3, 1)
 			timerBleakwingAssassinCD:Start(20, 1)
 			timerPesteringFiendCD:Start(20, 1)
-			timerVileOccultistCD:Start(50, 1)
+			timerVileOccultistCD:Start(40, 1)
 			self:Schedule(60, expectedVile, self)
 			timerSoulInfuserCD:Start(110, 1)
 			self:Schedule(120, expectedInfuser, self)
@@ -809,6 +784,13 @@ function mod:SPELL_AURA_REMOVED(args)
 			else
 				DBM.InfoFrame:Hide()
 			end
+		end
+	elseif spellId == 325873 then
+		if args:IsPlayer() then
+			yellEmberBlastFades:Cancel()
+		end
+		if self.Options.SetIconOnEmberBlast then
+			self:SetIcon(args.destName, 0)
 		end
 	end
 end
@@ -858,7 +840,7 @@ function mod:UNIT_DIED(args)
 				timerVanquisherCD:Start(8, 1)
 				timerBleakwingAssassinCD:Start(28, 1)
 				timerPesteringFiendCD:Start(28, 1)
-				timerVileOccultistCD:Start(58, 1)
+				timerVileOccultistCD:Start(48, 1)
 				self:Schedule(68, expectedVile, self)
 				timerSoulInfuserCD:Start(128, 1)
 				self:Schedule(138, expectedInfuser, self)
@@ -929,18 +911,7 @@ function mod:OnSync(msg, guid)
 				if timer and timer > 5 then
 					timerPesteringFiendCD:Start(timer, self.vb.fiendCount+1)
 				end
---			elseif cid == 168962 then--Reborn Phoenix
-
 			end
 		end
 	end
 end
-
---[[
---https://shadowlands.wowhead.com/spell=336658/reborn-phoenix-exit
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 336658 then
-
-	end
-end
---]]

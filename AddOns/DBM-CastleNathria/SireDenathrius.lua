@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2424, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210118213658")
+mod:SetRevision("20210509221708")
 mod:SetCreatureID(167406)
 mod:SetEncounterID(2407)
 mod:SetUsedIcons(1, 2, 3, 4, 7, 8)
-mod:SetHotfixNoticeRev(20201227000000)--2020, 12, 27
+mod:SetHotfixNoticeRev(20210202000000)--2021, 02, 02
 mod:SetMinSyncRevision(20201227000000)
 mod.respawnTime = 29
 
@@ -14,7 +14,7 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 326707 326851 327227 328117 329181 333932 344776",
 	"SPELL_CAST_SUCCESS 327796 329943 339196 330042 326005 332849 333980 332619 329181 333979",
-	"SPELL_AURA_APPLIED 326699 338510 327039 327796 327992 329906 332585 329951 332794 329181 344313 338738",
+	"SPELL_AURA_APPLIED 326699 338510 327039 327796 327992 329906 332585 329951 332794 329181 344313 338738 181089",
 	"SPELL_AURA_APPLIED_DOSE 326699 329906 332585",
 	"SPELL_AURA_REMOVED 326699 338510 327039 327796 328117 329951 332794 338738",
 	"SPELL_AURA_REMOVED_DOSE 326699",
@@ -115,7 +115,7 @@ local timerHandofDestructionCD					= mod:NewCDCountTimer(44.3, 333932, nil, nil,
 local timerCommandMassacreCD					= mod:NewCDCountTimer(49.8, 330042, 330137, nil, nil, 3, nil, DBM_CORE_L.DEADLY_ICON)--Mythic 41-45, Heroic 47.4-51
 --Stage Three: Indignation
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(22195))
-local timerShatteringPainCD						= mod:NewCDCountTimer(23.1, 332619, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)
+local timerShatteringPainCD						= mod:NewCDCountTimer(23, 332619, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)
 local timerFatalFitnesseCD						= mod:NewCDCountTimer(22, 332794, nil, nil, nil, 3)
 local timerSinisterReflectionCD					= mod:NewCDCountTimer(60, 333979, nil, nil, nil, 3, nil, DBM_CORE_L.DEADLY_ICON)--Used on mythic, Massacre and Ravage combined
 local timerSinisterReflection					= mod:NewCastTimer(3, 333979, nil, nil, nil, 5, nil, DBM_CORE_L.IMPORTANT_ICON)
@@ -138,36 +138,38 @@ mod.vb.HandCount = 0
 mod.vb.addCount = 0
 mod.vb.DebuffCount = 0
 mod.vb.DebuffIcon = 1
-mod.vb.addIcon = 8
+--mod.vb.addIcon = 8
 mod.vb.painCasting = false
 local expectedStacks = 6
 local P3Transition = false
 local SinStacks, stage2Adds, deadAdds = {}, {}, {}
 local castsPerGUID = {}
-local difficultyName = "None"
+local difficultyName = "normal"
 local playerGUID = UnitGUID("player")
 local selfInMirror = false
 local Timers = {
-	["normal"] = {
+	["normal"] = {--Normal and LFR use same timers
 		[1] = {
 			--Feeding Time (Normal, LFR)
-			[327039] = {20, 35, 35, 25, 35, 25},
+			[327039] = {15, 25, 35, 25, 35, 25},
 			--Cleansing Pain (P1)
-			[326707] = {5.8, 26.7, 32.8, 26.7, 33.9, 26.7},
+			[326707] = {5.8, 26.7, 32.8, 26.7, 32.7, 26.7},
 		},
 		[2] = {
 			--Impale (Seems same as heroic)
-			[329943] = {27.5, 25.9, 27, 23, 32, 18, 39, 35},
+			[329943] = {27.5, 25.9, 27, 23, 31.9, 18, 39, 35},
 			--Hand of Destruction P2 (Seems same as heroic)
 			[333932] = {47.6, 40.9, 40, 57, 19.7},
 			--Adds P2 (Different from heroic)
-			[12345] = {9.7, 85, 75},
+			[181089] = {9.7, 84.5, 75},--75-79 for that last set?
 		},
 		[3] = {--Totally different from heroic
 			--Hand of Destruction P3
 			[333932] = {72.6, 76.4, 94.7},
 			--Fatal Finesse P3
 			[332794] = {17.4, 24, 24.9, 29, 22, 34, 22, 26, 32},
+			--Adds P2 (There are none in phase 3 but sometimes message can trigger after p2 trigger, this stops nil error)
+			[181089] = {},
 		}
 	},
 	["heroic"] = {
@@ -179,17 +181,19 @@ local Timers = {
 		},
 		[2] = {
 			--Impale
-			[329943] = {27.5, 25.9, 27, 23, 32, 18, 39, 35},
+			[329943] = {27.5, 25.9, 27, 23, 31.9, 18, 39, 35},
 			--Hand of Destruction P2
 			[333932] = {47.6, 40.9, 40, 57, 19.7},
 			--Adds P2
-			[12345] = {9.7, 85, 55},
+			[181089] = {9.7, 85, 55},
 		},
 		[3] = {
 			--Hand of Destruction P3
 			[333932] = {27.6, 88, 31.7, 47.5},
 			--Fatal Finesse P3
 			[332794] = {17.4, 48, 6, 21, 27, 19, 26, 21, 40},
+			--Adds P2 (There are none in phase 3 but sometimes message can trigger after p2 trigger, this stops nil error)
+			[181089] = {},
 		}
 	},
 	["mythic"] = {
@@ -205,13 +209,15 @@ local Timers = {
 			--Hand of Destruction P2
 			[333932] = {44.2, 32.3, 39.7, 44.7, 44.8},
 			--Adds P2
-			[12345] = {9.6, 75, 55},
+			[181089] = {9.6, 75, 54.9},
 		},
 		[3] = {
 			--Fatal Finesse P3
 			[332794] = {27, 21.9, 25, 25, 38.9, 33, 12, 12},
 			--Shattering Pain Pain
 			[332619] = {12.8, 25.4, 21.7, 24.2, 24.2, 25.4, 21.8, 23, 25.5},
+			--Adds P2 (There are none in phase 3 but sometimes message can trigger after p2 trigger, this stops nil error)
+			[181089] = {},
 		}
 	},
 }
@@ -285,7 +291,7 @@ function mod:OnCombatStart(delay)
 	--Same on all difficulties
 	timerCleansingPainCD:Start(5.8-delay, 1)--5.8-6.3
 	timerBloodPriceCD:Start(22.3-delay, 1)--22-24
-	timerCommandRavageCD:Start(self:IsEasy() and 53.2 or 50.2-delay, 1)--50-51
+	timerCommandRavageCD:Start(self:IsEasy() and 52.2 or 50.2-delay, 1)--50-51
 	--Where timers diverge
 	if self:IsMythic() then
 		difficultyName = "mythic"
@@ -299,7 +305,7 @@ function mod:OnCombatStart(delay)
 		else
 			difficultyName = "normal"
 			expectedStacks = 4
-			timerFeedingTimeCD:Start(20-delay, 1)
+			timerFeedingTimeCD:Start(15-delay, 1)
 		end
 	end
 --	berserkTimer:Start(-delay)--Confirmed normal and heroic
@@ -376,10 +382,10 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 344776 then
 		if not castsPerGUID[args.sourceGUID] then
 			castsPerGUID[args.sourceGUID] = 0
-			if self.Options.SetIconOnBalefulShadows and self.vb.addIcon > 3 then--Only use up to 5 icons
-				self:ScanForMobs(args.sourceGUID, 2, self.vb.addIcon, 1, 0.2, 12, "SetIconOnBalefulShadows")
-			end
-			self.vb.addIcon = self.vb.addIcon - 1
+--			if self.Options.SetIconOnBalefulShadows and self.vb.addIcon > 3 then--Only use up to 5 icons
+--				self:ScanForMobs(args.sourceGUID, 2, self.vb.addIcon, 1, 0.2, 12, "SetIconOnBalefulShadows")
+--			end
+--			self.vb.addIcon = self.vb.addIcon - 1
 		end
 		castsPerGUID[args.sourceGUID] = castsPerGUID[args.sourceGUID] + 1
 		local count = castsPerGUID[args.sourceGUID]
@@ -459,7 +465,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			timerShatteringPainCD:Start(13.3, 1)--SUCCESS
 			timerFatalFitnesseCD:Start(17.4, 1)--SUCCESS/APPLIED
 			if self:IsEasy() then
-				timerCommandMassacreCD:Start(50, 1)--Seems massacre always first Reflection
+				timerCommandMassacreCD:Start(49.7, 1)--Seems massacre always first Reflection
 				timerHandofDestructionCD:Start(71.6, 1)
 			else
 				timerHandofDestructionCD:Start(27.6, 1)--27-29
@@ -493,7 +499,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 				specWarnShatteringPain:Play("carefly")
 			end
 		else
-			timerShatteringPainCD:Start(self:IsEasy() and 24.2 or 23.1, self.vb.painCount+1)
+			timerShatteringPainCD:Start(23, self.vb.painCount+1)
 			specWarnShatteringPain:Play("carefly")
 		end
 	elseif spellId == 329181 then
@@ -555,10 +561,8 @@ function mod:SPELL_AURA_APPLIED(args)
 				specWarnNightHunterTarget:CombinedShow(0.5, args.destName)
 				specWarnNightHunterTarget:ScheduleVoice(0.5, "helpsoak")
 			end
-		else
-			warnNightHunter:Cancel()
-			warnNightHunter:CombinedShow(0.5, args.destName)
 		end
+		warnNightHunter:CombinedShow(0.5, args.destName)
 		self.vb.DebuffIcon = self.vb.DebuffIcon + 1
 		if self.vb.DebuffIcon > 8 then
 			self.vb.DebuffIcon = 1
@@ -649,11 +653,21 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnWrackingPainTaunt:Play("tauntboss")
 		end
 	elseif spellId == 344313 then
-		self.vb.addIcon = 8
+--		self.vb.addIcon = 8
 		warnBalefulShadows:Show()
 	elseif spellId == 338738 then--Infinity's Toll being applied (Players leaving mind)
 		if args.sourceGUID == playerGUID then
 			selfInMirror = false
+		end
+	elseif spellId == 181089 then--Encounter Event
+		self.vb.addCount = self.vb.addCount + 1
+		warnCrimsonCabalists:Show(self.vb.addCount)
+		local timer = Timers[difficultyName][self.vb.phase][181089][self.vb.addCount+1]
+		if timer then
+			timerCrimsonCabalistsCD:Start(timer, self.vb.addCount+1)
+		end
+		if self.Options.SetIconOnBalefulShadows then--Only use up to 5 icons
+			self:ScanForMobs(175205, 0, 8, 2, 0.2, 12, "SetIconOnBalefulShadows")
 		end
 	end
 end
@@ -746,7 +760,7 @@ function mod:UNIT_DIED(args)
 	if cid == 169196 or cid == 173163 or cid == 173162 or cid == 173164 or cid == 173161 then--crimson-cabalist and all 4 horseman
 		stage2Adds[args.destGUID] = nil
 		deadAdds[args.destGUID] = true
-		if self:AntiSpam(3, 3) then
+		if self:IsHard() and self:AntiSpam(3, 3) then
 			if self.Options.SpecWarn336162dodge then
 				specWarnCrescendo:Show()
 				specWarnCrescendo:Play("watchstep")
@@ -769,12 +783,6 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 
-function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
-	if msg == L.CrimsonSpawn or msg:find(L.CrimsonSpawn) then
-		self:SendSync("CrimsonSpawn")
-	end
-end
-
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	--1 second faster than SPELL_CAST_START
 	if spellId == 330613 and self:AntiSpam(10, 10) then--Script Activating to cast Hand of Destruction
@@ -789,17 +797,5 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 		specWarnHandofDestruction:Play("justrun")
 	elseif spellId == 332749 and P3Transition then
 		P3Transition = false
-	end
-end
-
-function mod:OnSync(msg)
-	if not self:IsInCombat() then return end
-	if msg == "CrimsonSpawn" then
-		self.vb.addCount = self.vb.addCount + 1
-		warnCrimsonCabalists:Show(self.vb.addCount)
-		local timer = Timers[difficultyName][self.vb.phase][12345][self.vb.addCount+1]
-		if timer then
-			timerCrimsonCabalistsCD:Start(timer, self.vb.addCount+1)
-		end
 	end
 end

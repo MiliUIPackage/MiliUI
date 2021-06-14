@@ -1,12 +1,12 @@
 local mod	= DBM:NewMod(2425, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210127052658")
+mod:SetRevision("20210419204419")
 mod:SetCreatureID(168112, 168113)
 mod:SetEncounterID(2417)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
 mod:SetBossHPInfoToHighest()
-mod:SetHotfixNoticeRev(20210126000000)--2021, 01, 26
+mod:SetHotfixNoticeRev(20210128000000)--2021, 01, 28
 mod:SetMinSyncRevision(20210126000000)
 mod.respawnTime = 29
 
@@ -24,7 +24,8 @@ mod:RegisterEventsInCombat(
 --	"SPELL_PERIODIC_MISSED",
 	"UNIT_DIED",
 	"RAID_BOSS_WHISPER",
-	"UNIT_SPELLCAST_START boss1 boss2"
+	"UNIT_SPELLCAST_START boss1 boss2 boss3 boss4 boss5",
+	"UNIT_SPELLCAST_SUCCEEDED boss1 boss2 boss3 boss4 boss5"
 )
 
 --TODO, review more of timers with some bug fixes to fight as well as just a better version of transcriptor recording it., especailly P3 timers after intermission 2
@@ -113,7 +114,6 @@ local timerWickedSlaughterCD					= mod:NewCDTimer(8.5, 342253, nil, "Tank|Healer
 
 local berserkTimer								= mod:NewBerserkTimer(600)
 
---mod:AddRangeFrameOption(10, 310277)
 mod:AddInfoFrameOption(333913, true)
 mod:AddSetIconOption("SetIconOnHeartRend", 334765, true, false, {1, 2, 3, 4})--On by default since it's most important mechanic to manage outside of shadow forces
 mod:AddSetIconOption("SetIconOnWickedBlade2", 333387, false, false, {1, 2})--Off by default since it conflicts with heart rend
@@ -122,7 +122,9 @@ mod:AddSetIconOption("SetIconOnCrystalize", 339690, true, false, {5})
 mod:AddSetIconOption("SetIconOnShadowForces", 342256, true, true, {6, 7, 8})
 mod:AddNamePlateOption("NPAuraOnVolatileShell", 340037)
 mod:AddBoolOption("ExperimentalTimerCorrection", true)
+mod:AddDropdownOption("BladeMarking", {"SetOne", "SetTwo"}, "SetOne", "misc")--SetTwo is BW default
 
+local markingSet = "SetOne"
 local playerName = UnitName("player")
 local LacerationStacks = {}
 local castsPerGUID = {}
@@ -149,12 +151,12 @@ mod.vb.grashDead = false
 --Heart rend triggers 2.3 second ICD
 --Stone fist triggers 3-3.5 second ICD
 --Serrated swipe triggers 2.4 second ICD
---Shattering Blast triggers 12 second ICD first time, and 5.4 second ICD the second time
 --Exclusions:
 --1-Heart rend DC not extended by crystalize most of time
 --2-To prevent swipe from altering it's OWN CD since it's started in success and not start (where timer update is)
 --3-To prevent stone fist from altering it's OWN CD since it's started in success and not start (where timer update is)
---TODO, maybe one day even smarter code it for spell queue order below
+--4-Heart rend is not extended by LFR version Reverberation (or anything else?)
+--5-Heart rend in general seems ot have half ICD of everything else when ICD is triggered
 --Crystallize > tank abilities> wicked blade> eruption>seismic upheaval
 local function updateAllTimers(self, ICD, exclusion)
 	if not self.Options.ExperimentalTimerCorrection then return end
@@ -177,9 +179,9 @@ local function updateAllTimers(self, ICD, exclusion)
 	end
 	local phase = self.vb.phase
 	if not self.vb.kaalDead and (phase == 1 or phase == 3) then
-		if exclusion ~= 1 and timerHeartRendCD:GetRemaining(self.vb.heartCount+1) < ICD then
+		if exclusion ~= 1 and exclusion ~= 4 and timerHeartRendCD:GetRemaining(self.vb.heartCount+1) < (ICD/2) then
 			local elapsed, total = timerHeartRendCD:GetTime(self.vb.heartCount+1)
-			local extend = ICD - (total-elapsed)
+			local extend = (ICD/2) - (total-elapsed)
 			DBM:Debug("timerHeartRendCD extended by: "..extend, 2)
 			timerHeartRendCD:Stop()
 			timerHeartRendCD:Update(elapsed, total+extend, self.vb.heartCount+1)
@@ -273,7 +275,7 @@ function mod:OnCombatStart(delay)
 	table.wipe(castsPerGUID)
 	playerEruption = 0
 	self.vb.HeartIcon = 1
-	self.vb.wickedBladeIcon = 1
+	self.vb.wickedBladeIcon = self.Options.BladeMarking == "SetOne" and 1 or 2
 	self.vb.phase = 1
 	self.vb.bladeCount = 0
 	self.vb.heartCount = 0
@@ -314,6 +316,7 @@ function mod:OnCombatStart(delay)
 		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(333913))
 		DBM.InfoFrame:Show(10, "table", LacerationStacks, 1)
 	end
+	if UnitIsGroupLeader("player") then self:SendSync(self.Options.BladeMarking) end
 --	berserkTimer:Start(-delay)--Confirmed normal and heroic
 end
 
@@ -333,7 +336,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.bladeCount = self.vb.bladeCount + 1
 		specWarnWickedBladeCast:Show(self.vb.bladeCount)
 		specWarnWickedBladeCast:Play("specialsoon")
-		self.vb.wickedBladeIcon = 1
+		self.vb.wickedBladeIcon = markingSet == "SetOne" and 1 or 2
 		timerWickedBladeCD:Start(nil, self.vb.bladeCount+1)
 		updateAllTimers(self, 6)
 	elseif spellId == 334765 then
@@ -362,7 +365,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 334009 then--Leap (LFR)
 		self.vb.eruptionCount = self.vb.eruptionCount + 1
 		timerReverberatingLeapCD:Start(nil, self.vb.eruptionCount+1)
-		updateAllTimers(self, 8)
+		updateAllTimers(self, 8, 4)
 		--self:BossTargetScanner(args.sourceGUID, "EruptionTarget", 0.01, 12)
 	elseif spellId == 334498 then
 		self.vb.upHeavalCount = self.vb.upHeavalCount + 1
@@ -395,7 +398,7 @@ function mod:SPELL_CAST_START(args)
 			--Kaal's Wicked Blade timer is tied to shield 100%
 			--Start initial Grashal timers and reset crystalize timer
 			timerCrystalizeCD:Stop()--Chance this doesn't happen here but at shield
-			timerCrystalizeCD:Start(19.7, self.vb.crystalCount+1)--19.7-20.7
+			timerCrystalizeCD:Start(18.5, self.vb.crystalCount+1)--18.5-20.7
 			timerStoneFistCD:Start(26.4, 1)--26.4-28.1
 			if self:IsLFR() then
 				timerReverberatingLeapCD:Start(29.4, 1)--Assumed for now
@@ -427,9 +430,9 @@ function mod:SPELL_CAST_START(args)
 			timerCrystalizeCD:Start(12.4, self.vb.crystalCount+1)--12.4-12.7
 			timerStoneFistCD:Start(20.9, self.vb.fistCount+1)--20.9-21.2
 			if self:IsLFR() then
-				timerReverberatingLeapCD:Start(30.7, self.vb.eruptionCount+1)--Guessed
+				timerReverberatingLeapCD:Start(25.2, self.vb.eruptionCount+1)--Guessed
 			else
-				timerReverberatingEruptionCD:Start(30.7, self.vb.eruptionCount+1)--30.7-30.9
+				timerReverberatingEruptionCD:Start(25.2, self.vb.eruptionCount+1)--25.2-30.9
 			end
 			--Re-enable Upheaval
 			timerSeismicUpheavalCD:Start(44, 1)--44-44.4
@@ -483,7 +486,7 @@ function mod:SPELL_SUMMON(args)
 		end
 	elseif spellId == 342257 or spellId == 342258 or spellId == 342259 then
 		if self.Options.SetIconOnShadowForces then
-			local icon = spellId == 342257 and 8 or spellId == 342258 and 7 or 6
+			local icon = spellId == 342257 and (markingSet == "SetOne" and 8 or 6) or spellId == 342258 and 7 or (markingSet == "SetOne" and 6 or 8)
 			self:ScanForMobs(args.destGUID, 2, icon, 1, 0.2, 12, "SetIconOnShadowForces")
 		end
 		timerWickedSlaughterCD:Start(6.1, args.destGUID)
@@ -530,7 +533,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		self.vb.wickedBladeIcon = self.vb.wickedBladeIcon + 1
 	elseif spellId == 339690 then
 		if self.Options.SetIconOnCrystalize then
-			self:SetIcon(args.destName, 5)
+			self:SetIcon(args.destName, markingSet == "SetOne" and 5 or 1)
 		end
 		if args:IsPlayer() then
 			specWarnCrystalize:Show()
@@ -572,7 +575,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			timerHeartRendCD:Stop()
 			timerSerratedSwipeCD:Stop()
 			--Start Outgoing boss (Kael) (stuff he still casts airborn) here as well
-			timerWickedBladeCD:Start(25.7, self.vb.bladeCount+1)--TODO, Needs more data and fixing, 25.7-32 spell queue seems off
+			timerWickedBladeCD:Start(25.5, self.vb.bladeCount+1)--TODO, Needs more data and fixing, 25.7-32 spell queue seems off
 		else
 			timerWickedBladeCD:Start(19.6, self.vb.bladeCount+1)
 		end
@@ -616,7 +619,7 @@ function mod:SPELL_AURA_REMOVED_DOSE(args)
 end
 
 function mod:RAID_BOSS_WHISPER(msg)
-	if msg:find("344496") and self:AntiSpam(4, playerName.."2") then--Eruption Backup (if scan fails)
+	if (msg:find("344496") or msg:find("344500")) and self:AntiSpam(4, playerName.."2") then--Eruption Backup (if scan fails)
 		if self.Options.SetIconOnEruption2 then
 			self:SetIcon(playerName, 4, 4.5)--So icon clears 1 second after
 		end
@@ -638,7 +641,7 @@ function mod:RAID_BOSS_WHISPER(msg)
 end
 
 function mod:OnTranscriptorSync(msg, targetName)
-	if msg:find("344496") and targetName then--Eruption Backup (if scan fails)
+	if (msg:find("344496") or msg:find("344500")) and targetName then--Eruption Backup (if scan fails)
 		targetName = Ambiguate(targetName, "none")
 		if self:AntiSpam(4, targetName.."2") then--Same antispam as RAID_BOSS_WHISPER on purpose. if player got personal warning they don't need this one
 			if self.Options.SetIconOnEruption2 then
@@ -663,13 +666,14 @@ function mod:UNIT_DIED(args)
 		timerRavenousFeastCD:Stop((castsPerGUID[args.sourceGUID] or 0)+1, args.destGUID)
 	elseif cid == 173280 then--stone-legion-skirmisher
 		timerWickedSlaughterCD:Stop(args.destGUID)
-	elseif cid == 168112 then--Kaal
+	elseif cid == 168112 and not self.vb.kaalDead then--Kaal
 		self.vb.kaalDead = true
 		timerWickedBladeCD:Stop()
 		timerHeartRendCD:Stop()
 		timerSerratedSwipeCD:Stop()
 		timerCallShadowForcesCD:Stop()
-	elseif cid == 168113 then--Grashaal
+		timerCrystalizeCD:Stop()--Yes this stops on kaal death too, because his death causes grashaal to recast it immediately
+	elseif cid == 168113 and not self.vb.grashDead then--Grashaal
 		self.vb.grashDead = true
 		timerReverberatingEruptionCD:Stop()
 		timerReverberatingLeapCD:Stop()
@@ -688,7 +692,6 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 --]]
-
 --"<10.92 16:10:19> [UNIT_SPELLCAST_START] General Grashaal(Lightea) - Reverberating Leap - 5.2s [[boss2:Cast-3-2084-2296-21431-334009-0026A47AA9:334009]]", -- [614]
 --"<10.92 16:10:19> [CLEU] SPELL_CAST_START#Creature-0-2084-2296-21431-168113-0000247A6F#General Grashaal##nil#334009#Reverberating Leap#nil#nil", -- [616]
 --"<10.94 16:10:19> [DBM_Debug] boss2 changed targets to Kngflyven#nil", -- [618]
@@ -696,5 +699,38 @@ mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 function mod:UNIT_SPELLCAST_START(uId, _, spellId)
 	if spellId == 344496 or spellId == 334009 then
 		self:BossUnitTargetScanner(uId, "EruptionTarget", 1)
+	end
+end
+
+function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
+	if spellId == 343288 then
+		local cid = self:GetUnitCreatureId(uId)
+		if cid == 168112 and not self.vb.kaalDead then--Kaal
+			self.vb.kaalDead = true
+			timerWickedBladeCD:Stop()
+			timerHeartRendCD:Stop()
+			timerSerratedSwipeCD:Stop()
+			timerCallShadowForcesCD:Stop()
+			timerCrystalizeCD:Stop()--Yes this stops on kaal death too, because his death causes grashaal to recast it immediately
+		elseif cid == 168113 and not self.vb.grashDead then--Grashaal
+			self.vb.grashDead = true
+			timerReverberatingEruptionCD:Stop()
+			timerReverberatingLeapCD:Stop()
+			timerSeismicUpheavalCD:Stop()
+			timerCrystalizeCD:Stop()
+			timerStoneFistCD:Stop()
+		end
+	end
+end
+
+do
+	--Delayed function just to make absolute sure RL sync overrides user settings after OnCombatStart functions run
+	local function UpdateYellIcons(self, msg)
+		markingSet = msg
+		self.vb.wickedBladeIcon = msg == "SetOne" and 1 or 2
+	end
+
+	function mod:OnSync(msg)
+		self:Schedule(3, UpdateYellIcons, self, msg)
 	end
 end

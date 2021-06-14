@@ -268,6 +268,7 @@ L.TIMER_USAGE	= {
 }
 
 L.ERROR_NO_PERMISSION				= "权限不足。需要队长或助理权限。"
+L.TIME_TOO_SHORT				= "战斗倒计时需要大于三秒。"
 
 --Common Locals
 L.NEXT						= "下一个 %s"
@@ -613,7 +614,4 @@ L.SILENTMODE_IS     = "静音模式为："
 
 L.LDB_LOAD_MODS		= "载入首领模块"
 
-L.LDB_CAT_OTHER		= "其他首领"
-
-L.LDB_CAT_GENERAL		= "常规"
 L.LDB_ENABLE_BOSS_MOD	= "启用首领模块"

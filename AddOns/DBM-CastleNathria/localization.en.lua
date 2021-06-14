@@ -23,14 +23,7 @@ L:SetOptionLocalization({
 ---------------------------
 --  Artificer Xy'Mox --
 ---------------------------
-L= DBM:GetModLocalization(2418)
-
-L:SetMiscLocalization({
-	Phase2			= "The anticipation to use this relic is killing me! Though, it will more likely kill you.",
-	Phase2Demonic	= "Lok zennshinagas xi ril zila refir il rethule no Rakkas az alar alar archim maev shi ",--Boss has Curse of Tongues
-	Phase3			= "I hope this wondrous item is as lethal as it looks!",
-	Phase3Demonic	= "X ante zila romathis alar il re thorje re az modas "--Boss has Curse of Tongues
-})
+--L= DBM:GetModLocalization(2418)
 
 ---------------------------
 --  Sun King's Salvation/Kael'thas --
@@ -69,18 +62,20 @@ L:SetOptionLocalization({
 L= DBM:GetModLocalization(2425)
 
 L:SetOptionLocalization({
-	ExperimentalTimerCorrection	= "Automatically adjust timers when abilities get spell queued by other abilities"
+	ExperimentalTimerCorrection	= "Automatically adjust timers when abilities get spell queued by other abilities",
+	BladeMarking				= "Set marking behavior for raid (If raid leader, overrides raid)",
+	SetOne						= "DBM Default",
+	SetTwo						= "BigWigs Default"
+})
+
+L:SetMiscLocalization({
+	DBMConfigMsg	= "Marking icons configuration set to %s to match raid leaders configuration."
 })
 
 ---------------------------
 --  Sire Denathrius --
 ---------------------------
-L= DBM:GetModLocalization(2424)
-
-L:SetMiscLocalization({
-	CrimsonSpawn	= "Crimson Cabalists answer the call of Denathrius."
-})
-
+--L= DBM:GetModLocalization(2424)
 
 -------------
 --  Trash  --

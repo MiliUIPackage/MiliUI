@@ -267,6 +267,7 @@ L.TIMER_USAGE	= {
 }
 
 L.ERROR_NO_PERMISSION		= "無權進行此操作。"
+L.TIME_TOO_SHORT			= "備戰計時器必須超過3秒。 "
 
 --Common Locals
 L.NONE						= "無"
@@ -413,7 +414,7 @@ L.AUTO_SPEC_WARN_TEXTS.count				= "%s!(%%s)"
 L.AUTO_SPEC_WARN_TEXTS.stack				= "你中了%%d層%s"
 L.AUTO_SPEC_WARN_TEXTS.switch				= "%s - 快更換目標!"
 L.AUTO_SPEC_WARN_TEXTS.switchcount			= "%s - 快更換目標！(%%s)"
-L.AUTO_SPEC_WARN_TEXTS.gtfo					= "%%s 注意腳下 - 快移動"
+L.AUTO_SPEC_WARN_TEXTS.gtfo					= "%%s 傷害 - 快移動"
 L.AUTO_SPEC_WARN_TEXTS.adds					= "小怪出現 - 快更換目標！"
 L.AUTO_SPEC_WARN_TEXTS.addscustom			= "小怪來了 - %%s"
 L.AUTO_SPEC_WARN_TEXTS.targetchange			= "更換目標 - 轉火 %%s"
@@ -627,6 +628,4 @@ L.LAG_FOOTER					= "無回應:%s"
 L.LDB_TOOLTIP_HELP1				= "點擊開啟" .. L.DBM
 L.SILENTMODE_IS                 = "無聲模式是 "
 L.LDB_LOAD_MODS					= "載入首領模組"
-L.LDB_CAT_OTHER					= "其他首領模組"
-L.LDB_CAT_GENERAL				= "一般"
 L.LDB_ENABLE_BOSS_MOD			= "啟用首領模組"
