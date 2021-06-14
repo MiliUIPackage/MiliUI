@@ -65,13 +65,13 @@ Core.defaults = {
     messageLeading = 1,
     messageLinePadding = 0.2,
 
-    chatHoldTime = 20,
+    chatHoldTime = 1800,
     chatShowOnMouseOver = true,
     chatFadeInDuration = 0.6,
     chatFadeOutDuration = 0.6,
     chatSlideInDuration = 0.3,
 
-    indentWordWrap = true,
+    indentWordWrap = false,
     mouseOverTooltips = true,
     iconTextureYOffset = 4,
   }
