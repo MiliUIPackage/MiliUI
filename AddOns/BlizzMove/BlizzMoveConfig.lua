@@ -147,7 +147,7 @@ end
 function Config:Initialize()
 
 	self:RegisterOptions();
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BlizzMove", "BlizzMove");
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("BlizzMove", "框架解鎖");
 
 end
 
