@@ -28,6 +28,14 @@
           </OnClick>
         </Scripts>
       </Button>
+
+      <EditBox parentKey="SearchFilter" autoFocus="false" historyLines="1" bytes="64" inherits="SearchBoxTemplate">
+        <Size x="250" y="22"/>
+        <Anchors>
+          <Anchor point="TOPLEFT" relativePoint="TOPLEFT" relativeKey="$parent" x="65" y="57"/>
+        </Anchors>
+      </EditBox>
+
       <Frame parentKey="DataProvider" mixin="AuctionatorCancellingDataProviderMixin">
         <Scripts>
           <OnLoad method="OnLoad"/>
@@ -55,6 +63,7 @@
       <Frame mixin="AuctionatorUndercutScanMixin">
         <Scripts>
           <OnLoad method="OnLoad"/>
+          <OnShow method="OnShow" />
           <OnHide method="OnHide" />
           <OnEvent method="OnEvent"/>
         </Scripts>
@@ -75,7 +84,7 @@
             </Scripts>
           </Button>
 
-          <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_CANCEL_UNDERCUT" parentKey="CancelNextButton">
+          <Button inherits="UIPanelDynamicResizeButtonTemplate" text="AUCTIONATOR_L_CANCEL_UNDERCUT" parentKey="CancelNextButton" name="AuctionatorCancelUndercutButton">
             <Anchors>
               <Anchor point="TOPLEFT" relativeKey="$parent.StartScanButton" relativePoint="TOPRIGHT" x="3" />
             </Anchors>

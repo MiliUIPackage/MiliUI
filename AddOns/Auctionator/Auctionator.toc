@@ -1,6 +1,6 @@
 ## Interface: 90005
 ## Title: Auctionator
-## Version: 9.0.5.1
+## Version: 9.0.10.2
 ## Author: Borjamacare, plusmouse
 ## X-Website: http://mods.curse.com/addons/wow/auctionator
 ## X-Localizations: enUS, itIT, deDE, ruRU, koKR, frFR, esES, esMX, zhTW, ptBR, zhCN
@@ -10,7 +10,7 @@
 ## SavedVariables: AUCTIONATOR_CONFIG, AUCTIONATOR_SAVEDVARS, AUCTIONATOR_SHOPPING_LISTS, AUCTIONATOR_PRICE_DATABASE, AUCTIONATOR_POSTING_HISTORY
 ## SavedVariablesPerCharacter: AUCTIONATOR_CHARACTER_CONFIG
 
-zcUtils.lua
+Patches\TaintLess.xml
 
 Locales\Manifest.xml
 

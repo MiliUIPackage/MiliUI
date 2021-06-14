@@ -6,10 +6,14 @@
     virtual="true"
     enableMouse="true"
   >
-
     <Layers>
       <Layer level="OVERLAY">
-        <Texture parentKey="NormalTexture" atlas="auctionhouse-rowstripe-1"/>
+        <Texture parentKey="NormalTexture" atlas="auctionhouse-rowstripe-1">
+          <Anchors>
+            <Anchor point="TOPLEFT" relativePoint="TOPLEFT" x="18"/>
+            <Anchor point="BOTTOMRIGHT" relativePoint="BOTTOMRIGHT"/>
+          </Anchors>
+        </Texture>
       </Layer>
     </Layers>
 

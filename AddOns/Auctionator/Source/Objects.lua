@@ -24,8 +24,10 @@ Auctionator = {
   Cancelling = {},
   Enchant = {},
   Selling = {},
+  Components = {},
   ReagentSearch = {},
   IncrementalScan = {},
+  FullScan = {},
   PostingHistory = {},
 
   Tabs = {

@@ -9,6 +9,10 @@ function AuctionatorCancellingFrameMixin:OnLoad()
     Auctionator.Cancelling.Events.RequestCancel,
     Auctionator.Cancelling.Events.TotalUpdated,
   })
+
+  self.SearchFilter:HookScript("OnTextChanged", function()
+    self.DataProvider:NoQueryRefresh()
+  end)
 end
 
 function AuctionatorCancellingFrameMixin:RefreshButtonClicked()

@@ -26,5 +26,14 @@ function AuctionatorSellingTabMixin:ApplyHiding()
     self.BagListing:Hide()
     self.BagInset:Hide()
     self.CurrentItemListing:SetPoint("LEFT", self, "LEFT", 10, -5)
+    self.HistoryTabsContainer.RealmHistoryTab:ClearAllPoints()
+    self.HistoryTabsContainer.YourHistoryTab:ClearAllPoints()
+    self.HistoryTabsContainer.RealmHistoryTab:SetPoint("TOPRIGHT", self.HistoryTabsContainer, "TOPRIGHT")
+    self.HistoryTabsContainer.YourHistoryTab:SetPoint("TOPRIGHT", self.HistoryTabsContainer.RealmHistoryTab, "TOPLEFT")
+  end
+
+  if Auctionator.Config.Get(Auctionator.Config.Options.SHOW_SELLING_BID_PRICE) then
+    self:SetPoint("TOP", self:GetParent().CategoriesList, "TOP", 0, -110)
+    self.SaleItemFrame:SetPoint("TOP", self, "TOP", 0, 145)
   end
 end
