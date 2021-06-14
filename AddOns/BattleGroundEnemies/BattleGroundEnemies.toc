@@ -1,0 +1,44 @@
+## Interface: 90005
+## Title: BattleGroundEnemies
+## Title-zhTW: |cffFF0000[PVP]|r 戰場目標框架
+## Notes-zhTW: Battle Ground Enemies |n戰場專用的友方和敵方單位框架，可以監控敵人的血量、減益效果、控場遞減...等等多種狀態。
+## DefaultState: disabled
+## Version: 9.0.5.5
+## Author: Bullsei
+## SavedVariables: BattleGroundEnemiesDB
+## OptionalDeps: Ace3, LibStub, LibRaces-1.0, UTF8, DRList-1.0, LibSharedMedia-3.0, AceGUI-3.0-SharedMediaWidgets, LibPlayerSpells-1.0
+
+## X-Curse-Project-ID: 274066
+## X-Wago-ID: nQN5aoNB
+
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
+Locales\enUS.lua
+Locales\deDE.lua
+Locales\esES.lua
+Locales\esMX.lua
+Locales\frFR.lua
+Locales\itIT.lua
+Locales\koKR.lua
+Locales\ptBR.lua
+Locales\ruRU.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
+Data.lua
+Defaults.lua
+Main.lua
+Messaging.lua
+TargetCall.lua
+
+
+Objects\Auracontainer.lua
+Objects\DR.lua
+Objects\ObjectiveAndRespawn.lua
+Objects\Racial.lua
+Objects\Trinket.lua
+
+Testmode.lua
+Options.lua
