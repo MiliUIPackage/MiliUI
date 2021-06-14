@@ -38,13 +38,13 @@ local function Print(self,frame,...)
 	local n=0
 	if self ~= AceConsole then
 		n=n+1
-		tmp[n] = "|cff33ff99"..tostring( self ).."|r:"
+		tmp[n] = ""
 	end
 	for i=1, select("#", ...) do
 		n=n+1
 		tmp[n] = tostring(select(i, ...))
 	end
-	frame:AddMessage( tconcat(tmp," ",1,n) )
+	frame:AddMessage( tconcat(tmp,"",1,n) )
 end
 
 --- Print to DEFAULT_CHAT_FRAME or given ChatFrame (anything with an .AddMessage function)

@@ -2,7 +2,7 @@ AV = LibStub("AceAddon-3.0"):NewAddon("AutoVendor", "AceConsole-3.0", "AceEvent-
 local L = LibStub("AceLocale-3.0"):GetLocale("AutoVendor")
 
 local options = {
-  name = "AutoVendor",
+  name = "自動修裝與賣垃圾 - 設定",
   handler = AV,
   type = 'group',
   args = {
@@ -169,7 +169,7 @@ local defaults = {
 		guildbankrepair = false,
 		soulbound = false,
 		sellnonoptimal = false,
-		selllegionartifact = false,
+		selllegionartifact = true,
 		sellfortunecards = false,
 		selllowlevelitems = false,
 		sellbelowitemlevel = 2,
@@ -226,10 +226,10 @@ end
 function AV:OnInitialize()
 	self.db = LibStub("AceDB-3.0"):New("AutoVendorDB", defaults)
 	local parent = LibStub("AceConfig-3.0"):RegisterOptionsTable("AutoVendor", options, {"autovendor", "av"})
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoVendor", "AutoVendor")
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoVendor", "自動修裝與賣垃圾")
 	profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)
 	LibStub("AceConfig-3.0"):RegisterOptionsTable("AutoVendor.profiles", profiles)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoVendor.profiles", "Profiles", "AutoVendor")
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("AutoVendor.profiles", "設定檔", "自動修裝與賣垃圾")
 
 	local UPDATEPERIOD, elapsed = 1, 0
 	local ldb = LibStub:GetLibrary("LibDataBroker-1.1", true)
