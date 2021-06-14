@@ -25,13 +25,19 @@ L.Updated = '已更新到 v%s'
 L.TitleBags = '%s的背包'
 L.TitleBank = '%s的銀行'
 L.TitleVault = '%s的虛空倉庫'
+
+--dropdowns
+L.TitleFrames = '%s上的記錄'
+L.SelectCharacter = '選擇角色'
+L.ConfirmDelete = '請問您是否確定要刪除 %s 的記錄？'
+
 --interactions
 L.Click = '點擊'
 L.Drag = '<拖動>'
-L.LeftClick = '<右鍵點擊>'
+L.LeftClick = '<左鍵點擊>'
 L.RightClick = '<右鍵點擊>'
 L.DoubleClick = '<連按兩下>'
-L.ShiftClick = '<shift鍵+點擊>'
+L.ShiftClick = '<shift 鍵 + 點擊>'
 
 --tooltips
 L.TipBags = '背包'
@@ -58,7 +64,7 @@ L.TipMove = '%s移動'
 L.TipShowSearch = '%s搜尋'
 L.TipConfigure = '%s設定這框架'
 
-L.GuildFunds = '工會資金'
+L.GuildFunds = '公會資金'
 L.NumWithdraw = '%d 提款'
 L.NumDeposit = '%d 存款'
 L.NumRemainingWithdrawals = '%d 剩餘提款'
@@ -68,7 +74,7 @@ L.TipCountEquip = '已裝備: %d'
 L.TipCountBags = '背包: %d'
 L.TipCountBank = '銀行: %d'
 L.TipCountVault = '虛空倉庫: %d'
-L.TipCountGuild = '工會銀行: %d'
+L.TipCountGuild = '公會銀行: %d'
 L.TipDelimiter = '|'
 
 --databroker plugin tooltips
