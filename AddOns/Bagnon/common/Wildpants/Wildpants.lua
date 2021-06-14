@@ -6,6 +6,7 @@
 local ADDON, Addon = ...
 local Addon = LibStub('WildAddon-1.0'):NewAddon(ADDON, Addon, 'LibItemCache-2.0')
 Addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+Addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 Addon.Version = GetAddOnMetadata(ADDON, 'Version')
 
 local L = LibStub('AceLocale-3.0'):GetLocale(ADDON)
@@ -34,12 +35,12 @@ end
 
 local FrameDefaults = {
 	enabled = true,
-	money = true, broker = false,
+	money = true, broker = true,
 	bagToggle = true, sort = true, search = true, options = true,
 
 	strata = 'HIGH', alpha = 1,
 	scale = Addon.FrameScale or 1,
-	color = {0.1333333333333333, 0.1333333333333333, 0.1333333333333333, 1},
+	color = {0, 0, 0, 0.5},
 	x = 0, y = 0,
 
 	itemScale = Addon.ItemScale or 1,
@@ -61,10 +62,10 @@ local FrameDefaults = {
 local ProfileDefaults = {
 	inventory = SetDefaults({
 		reversedTabs = true,
-		borderColor = {0, 0, 0, 0.5},
+		borderColor = {1, 1, 1, 1},
 		point = 'BOTTOMRIGHT',
 		x = -50, y = 100,
-		columns = 9,
+		columns = 8,
 		width = 384,
 		height = 200,
 	}, FrameDefaults),
@@ -72,7 +73,7 @@ local ProfileDefaults = {
 	bank = SetDefaults({
 		borderColor = {1, 1, 0, 1},
 		point = 'LEFT',
-		columns = 26,
+		columns = 12,
 		width = 600,
 		height = 500,
 		x = 95
@@ -81,14 +82,14 @@ local ProfileDefaults = {
 	vault = SetDefaults({
 		borderColor = {1, 0, 0.98, 1},
 		point = 'LEFT',
-		columns = 8,
+		columns = 10,
 		x = 95
 	}, FrameDefaults),
 
 	guild = SetDefaults({
 		borderColor = {0, 1, 0, 1},
 		point = 'CENTER',
-		columns = 6,
+		columns = 7,
 	}, FrameDefaults)
 }
 
@@ -110,9 +111,9 @@ function Addon:OnEnable()
 		flashFind = true, tipCount = true, fading = true, serverSort = true,
 
 		glowAlpha = 0.5,
-		glowQuality = true, glowNew = true, glowQuest = true, glowSets = false, glowUnusable = true,
+		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
 
-		emptySlots = false, colorSlots = true,
+		emptySlots = true, colorSlots = true,
 		normalColor = {1, 1, 1},
 		keyColor = {1, .9, .19},
 		quiverColor = {1, .87, .68},
