@@ -165,7 +165,7 @@ function eventFrame:ADDON_LOADED(arg1)
             CellDB["appearance"] = {
                 ["scale"] = 1,
                 ["optionsFontSizeOffset"] = 0,
-                ["texture"] = "Cell ".._G.DEFAULT,
+                ["texture"] = "TukTex",
                 ["barColor"] = {"Class Color", {.2, .2, .2}},
                 ["bgColor"] = {"Class Color (dark)", {.667, 0, 0}},
                 ["powerColor"] = {"Power Color", {.7, .7, .7}},
