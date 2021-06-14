@@ -32,8 +32,8 @@ end)
 
 function F:CheckWhatsNew()
     if CellDB["changeLogsViewed"] ~= Cell.version then
-        changeLogsFrame:Show()
-        changeLogsFrame:ClearAllPoints()
-        changeLogsFrame:SetPoint("CENTER")
+        -- changeLogsFrame:Show()
+        -- changeLogsFrame:ClearAllPoints()
+        -- changeLogsFrame:SetPoint("CENTER")
     end
 end
