@@ -1,0 +1,23 @@
+## Interface: 90005
+## Title: Venture Plan
+## Version: 4.15a
+## Notes: Interface improvements for Adventures.
+## Title-zhTW: |cFF00AA99[任務]|r 任務桌計畫通
+## Notes: Venture Plan |n任務桌介面增強，估算任務是否成功，並估算部隊存活情形以及剩餘血量。|n還能推算最佳戰術位置，幫助你派發任務。
+## Notes-zhCN: 冒险界面改进。
+## Author: foxlit
+## License: All rights reserved. Do not modify or redistribute.
+## X-Website: https://www.townlong-yak.com/addons/venture-plan
+## SavedVariables: VP_MissionReports
+## SavedVariablesPerCharacter: VP_SPC
+Libs/Evie.lua
+Locale.lua
+Util.lua
+Widgets.lua
+vs-spells.lua
+vs.lua
+MissionList.lua
+MissionView.lua
+MissionComplete.lua
+Collector.lua
+Loader.lua
