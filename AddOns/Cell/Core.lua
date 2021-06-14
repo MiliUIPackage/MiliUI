@@ -117,10 +117,11 @@ eventFrame:RegisterEvent("PLAYER_LOGIN")
 eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
 eventFrame:RegisterEvent("UNIT_PET")
 
-local cellLoaded, omnicdLoaded
+-- local cellLoaded, omnicdLoaded
 function eventFrame:ADDON_LOADED(arg1)
     if arg1 == addonName then
-        cellLoaded = true
+        -- cellLoaded = true
+        eventFrame:UnregisterEvent("ADDON_LOADED")
         
         if type(CellDB) ~= "table" then CellDB = {} end
         if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
@@ -130,14 +131,17 @@ function eventFrame:ADDON_LOADED(arg1)
         -- general --------------------------------------------------------------------------------
         if type(CellDB["general"]) ~= "table" then
             CellDB["general"] = {
-                ["hideBlizzard"] = true,
                 ["enableTooltips"] = false,
-                ["hideTooltipsInCombat"] = false,
+                ["hideTooltipsInCombat"] = true,
+                -- ["enableAurasTooltips"] = false,
+                ["tooltipsPosition"] = {"BOTTOMLEFT", "Unit Button", "TOPLEFT", 0, 15},
                 ["showSolo"] = true,
                 ["showParty"] = true,
                 ["showPartyPets"] = true,
+                ["hideBlizzard"] = true,
                 ["locked"] = false,
                 ["fadeOut"] = false,
+                ["sortPartyByRole"] = false,
             }
         end
 
@@ -159,14 +163,17 @@ function eventFrame:ADDON_LOADED(arg1)
         -- appearance -----------------------------------------------------------------------------
         if type(CellDB["appearance"]) ~= "table" then
             CellDB["appearance"] = {
-                ["texture"] = "Cell ".._G.DEFAULT,
                 ["scale"] = 1,
                 ["optionsFontSizeOffset"] = 0,
+                ["texture"] = "Cell ".._G.DEFAULT,
                 ["barColor"] = {"Class Color", {.2, .2, .2}},
                 ["bgColor"] = {"Class Color (dark)", {.667, 0, 0}},
                 ["powerColor"] = {"Power Color", {.7, .7, .7}},
-                ["targetColor"] = {1, .19, .19, .5},
-                ["mouseoverColor"] = {1, 1, 1, .5},
+                ["barAnimation"] = "Flash",
+                ["targetColor"] = {1, .31, .31, 1},
+                ["mouseoverColor"] = {1, 1, 1, .6},
+                ["highlightSize"] = 1,
+                ["outOfRangeAlpha"] = .45,
             }
         end
 
@@ -218,7 +225,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["nameColor"] = {"Custom Color", {1, 1, 1}},
                             ["vehicleNamePosition"] = {"TOP", 0},
                             ["textWidth"] = .75,
-                        },
+                        }, -- 1
                         {
                             ["name"] = "Status Text",
                             ["indicatorName"] = "statusText",
@@ -227,7 +234,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["position"] = {"BOTTOM", 0},
                             ["frameLevel"] = 30,
                             ["font"] = {"Cell ".._G.DEFAULT, 11, "Shadow"},
-                        },
+                        }, -- 2
                         {
                             ["name"] = "Health Text",
                             ["indicatorName"] = "healthText",
@@ -239,7 +246,16 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["color"] = {1, 1, 1},
                             ["format"] = "percentage",
                             ["hideFull"] = true,
-                        },
+                        }, -- 3
+                        {
+                            ["name"] = "Status Icon",
+                            ["indicatorName"] = "statusIcon",
+                            ["type"] = "built-in",
+                            ["enabled"] = true,
+                            ["position"] = {"TOP", "TOP", 0, -3},
+                            ["frameLevel"] = 10,
+                            ["size"] = {18, 18},
+                        }, -- 4
                         {
                             ["name"] = "Role Icon",
                             ["indicatorName"] = "roleIcon",
@@ -248,7 +264,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
                             ["size"] = {11, 11},
                             ["customTextures"] = {false, "Interface\\AddOns\\ElvUI\\Media\\Textures\\Tank.tga", "Interface\\AddOns\\ElvUI\\Media\\Textures\\Healer.tga", "Interface\\AddOns\\ElvUI\\Media\\Textures\\DPS.tga"},
-                        },
+                        }, -- 5
                         {
                             ["name"] = "Leader Icon",
                             ["indicatorName"] = "leaderIcon",
@@ -256,7 +272,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["enabled"] = true,
                             ["position"] = {"TOPLEFT", "TOPLEFT", 0, -11},
                             ["size"] = {11, 11},
-                        },
+                        }, -- 6
                         {
                             ["name"] = "Ready Check Icon",
                             ["indicatorName"] = "readyCheckIcon",
@@ -264,7 +280,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["enabled"] = true,
                             ["frameLevel"] = 100,
                             ["size"] = {16, 16},
-                        },
+                        }, -- 7
                         {
                             ["name"] = "Raid Icon (player)",
                             ["indicatorName"] = "playerRaidIcon",
@@ -274,7 +290,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 1,
                             ["size"] = {14, 14},
                             ["alpha"] = .77,
-                        },
+                        }, -- 8
                         {
                             ["name"] = "Raid Icon (target)",
                             ["indicatorName"] = "targetRaidIcon",
@@ -284,7 +300,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 1,
                             ["size"] = {14, 14},
                             ["alpha"] = .77,
-                        },
+                        }, -- 9
                         {
                             ["name"] = "Aggro Indicator",
                             ["indicatorName"] = "aggroIndicator",
@@ -293,7 +309,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
                             ["frameLevel"] = 2,
                             ["size"] = {10, 10},
-                        },
+                        }, -- 10
                         {
                             ["name"] = "Aggro Bar",
                             ["indicatorName"] = "aggroBar",
@@ -302,7 +318,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["position"] = {"BOTTOMLEFT", "TOPLEFT", 1, 0},
                             ["frameLevel"] = 1,
                             ["size"] = {18, 2},
-                        },
+                        }, -- 11
                         {
                             ["name"] = "Shield Bar",
                             ["indicatorName"] = "shieldBar",
@@ -312,7 +328,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 1,
                             ["height"] = 4,
                             ["color"] = {1, 1, 0, 1},
-                        },
+                        }, -- 12
                         {
                             ["name"] = "AoE Healing",
                             ["indicatorName"] = "aoeHealing",
@@ -320,7 +336,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["enabled"] = true,
                             ["height"] = 15,
                             ["color"] = {1, 1, 0},
-                        },
+                        }, -- 13
                         {
                             ["name"] = "External Cooldowns",
                             ["indicatorName"] = "externalCooldowns",
@@ -330,7 +346,8 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 10,
                             ["size"] = {12, 20},
                             ["num"] = 2,
-                        },
+                            ["orientation"] = "right-to-left",
+                        }, -- 14
                         {
                             ["name"] = "Defensive Cooldowns",
                             ["indicatorName"] = "defensiveCooldowns",
@@ -340,7 +357,8 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 10,
                             ["size"] = {12, 20},
                             ["num"] = 2,
-                        },
+                            ["orientation"] = "left-to-right",
+                        }, -- 15
                         {
                             ["name"] = "Tank Active Mitigation",
                             ["indicatorName"] = "tankActiveMitigation",
@@ -349,7 +367,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["position"] = {"TOPLEFT", "TOPLEFT", 10, -1},
                             ["frameLevel"] = 1,
                             ["size"] = {18, 4},
-                        },
+                        }, -- 16
                         {
                             ["name"] = "Dispels",
                             ["indicatorName"] = "dispels",
@@ -359,7 +377,8 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["frameLevel"] = 15,
                             ["size"] = {12, 12},
                             ["dispellableByMe"] = true,
-                        },
+                            ["enableHighlight"] = false,
+                        }, -- 17
                         {
                             ["name"] = "Debuffs",
                             ["indicatorName"] = "debuffs",
@@ -367,11 +386,16 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["enabled"] = true,
                             ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 1, 4},
                             ["frameLevel"] = 1,
-                            ["size"] = {13, 13},
+                            ["size"] = {{13, 13}, {17, 17}},
                             ["num"] = 3,
                             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2},
                             ["dispellableByMe"] = false,
-                        },
+                            ["orientation"] = "left-to-right",
+                            ["bigDebuffs"] = {
+                                209858, -- 死疽溃烂
+                                46392, -- 专注打击
+                            },
+                        }, -- 18
                         {
                             ["name"] = "Raid Debuffs",
                             ["indicatorName"] = "raidDebuffs",
@@ -383,20 +407,39 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["border"] = 2,
                             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2},
                             ["onlyShowTopGlow"] = true,
-                        },
+                        }, -- 19
                         {
                             ["name"] = "Targeted Spells",
                             ["indicatorName"] = "targetedSpells",
                             ["type"] = "built-in",
-                            ["enabled"] = false,
+                            ["enabled"] = true,
                             ["position"] = {"CENTER", "TOPLEFT", 7, -7},
                             ["frameLevel"] = 50,
                             ["size"] = {20, 20},
                             ["border"] = 2,
-                            ["spells"] = {},
+                            ["spells"] = {
+                                320788, -- 冻结之缚
+                                344496, -- 震荡爆发
+                                319941, -- 碎石之跃
+                                322614, -- 心灵连接
+                                320132, -- 暗影之怒
+                                334053, -- 净化冲击波
+                                343556, -- 病态凝视
+                                320596, -- 深重呕吐
+                            },
                             ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, .25, 8, 2},
                             ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", 2},
-                        },
+                        }, -- 20
+                        {
+                            ["name"] = "Target Counter",
+                            ["indicatorName"] = "targetCounter",
+                            ["type"] = "built-in",
+                            ["enabled"] = false,
+                            ["position"] = {"TOP", "TOP", 0, 5},
+                            ["frameLevel"] = 15,
+                            ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline", 0},
+                            ["color"] = {1, .1, .1},
+                        }, -- 21
                     },
                 },
             }
@@ -442,42 +485,33 @@ function eventFrame:ADDON_LOADED(arg1)
     end
 
     -- omnicd ---------------------------------------------------------------------------------
-    if arg1 == "OmniCD" then
-        omnicdLoaded = true
+    -- if arg1 == "OmniCD" then
+    --     omnicdLoaded = true
 
-        local E = OmniCD[1]
-        tinsert(E.unitFrameData, 1, {
-            [1] = "Cell",
-            [2] = "CellPartyFrameMember",
-            [3] = "unitid",
-            [4] = 1,
-        })
+    --     local E = OmniCD[1]
+    --     tinsert(E.unitFrameData, 1, {
+    --         [1] = "Cell",
+    --         [2] = "CellPartyFrameMember",
+    --         [3] = "unitid",
+    --         [4] = 1,
+    --     })
 
-        -- local function SetActiveUnitFrameData()
-        --     E.customUF.enabled = "Cell"
-        --     E.customUF.frame = "CellPartyFrameMember"
-        --     E.customUF.unit = "unitid"
-        --     E.customUF.delay = 1
-        --     E.customUF.active = "Cell"
-        -- end
-        -- hooksecurefunc(E, "SetActiveUnitFrameData", SetActiveUnitFrameData)
+    --     local function UnitFrames()
+    --         if not E.customUF.optionTable.Cell then
+    --             E.customUF.optionTable.Cell = "Cell"
+    --             E.customUF.optionTable.enabled.Cell = {
+    --                 ["delay"] = 1,
+    --                 ["frame"] = "CellPartyFrameMember",
+    --                 ["unit"] = "unitid",
+    --             }
+    --         end
+    --     end
+    --     hooksecurefunc(E, "UnitFrames", UnitFrames)
+    -- end
 
-        local function UnitFrames()
-            if not E.customUF.optionTable.Cell then
-                E.customUF.optionTable.Cell = "Cell"
-                E.customUF.optionTable.enabled.Cell = {
-                    ["delay"] = 1,
-                    ["frame"] = "CellPartyFrameMember",
-                    ["unit"] = "unitid",
-                }
-            end
-        end
-        hooksecurefunc(E, "UnitFrames", UnitFrames)
-    end
-
-    if cellLoaded and omnicdLoaded then
-        eventFrame:UnregisterEvent("ADDON_LOADED")
-    end
+    -- if cellLoaded and omnicdLoaded then
+    --     eventFrame:UnregisterEvent("ADDON_LOADED")
+    -- end
 end
 
 Cell.vars.guid = {}
@@ -607,6 +641,8 @@ function eventFrame:PLAYER_LOGIN()
     Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon = GetSpecializationInfo(prevSpec)
     -- update visibility
     Cell:Fire("UpdateVisibility")
+    -- update sortMethod
+    Cell:Fire("UpdateSortMethod")
     -- update click-castings
     Cell:Fire("UpdateClickCastings")
     -- update indicators
@@ -662,7 +698,7 @@ end)
 SLASH_CELL1 = "/cell"
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
-    if command == "options" then
+    if command == "options" or command == "opt" then
         F:ShowOptionsFrame()
 
     elseif command == "reset" then
@@ -703,9 +739,9 @@ function SlashCmdList.CELL(msg, editbox)
 
     else
         F:Print(L["Available slash commands"]..":\n"..
-            "|cFFFFB5C5/cell options|r: "..L["show Cell options frame"]..".\n"..
-            "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
+            "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
+            "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
             "|cFFFFB5C5/cell reset clickCastings|r: "..L["reset all Click-Castings"]..".\n"..
             "|cFFFFB5C5/cell reset raidDebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..

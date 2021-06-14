@@ -25,6 +25,7 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
     cooldown:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
     cooldown:SetSwipeColor(1, 1, 1)
     cooldown.noCooldownCount = true -- disable omnicc
+    cooldown:SetHideCountdownNumbers(true)
 
     local iconFrame = CreateFrame("Frame", name.."IconFrame", frame)
     iconFrame:SetPoint("TOPLEFT", borderSize, -borderSize)
@@ -66,7 +67,9 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
             frame.duration:SetShadowOffset(1, -1)
             frame.duration:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -120,7 +123,7 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
                 local remain = duration-(GetTime()-start)
                 -- if remain <= 5 then
                 --     frame.duration:SetText(string.format("%.1f", remain))
-                if remain <= 30 then
+                if remain <= 60 then
                     frame.duration:SetText(string.format("%d", remain))
                 else
                     frame.duration:SetText("")
@@ -143,7 +146,6 @@ end
 -------------------------------------------------
 -- CreateAura_BarIcon
 -------------------------------------------------
--- local LSSB = LibStub:GetLibrary("LibSmoothStatusBar-1.0")
 function I:CreateAura_BarIcon(name, parent)
     local frame = CreateFrame("Frame", name, parent, "BackdropTemplate")
     frame:Hide()
@@ -167,12 +169,6 @@ function I:CreateAura_BarIcon(name, parent)
     -- cooldown:SetFillStyle("REVERSE")
     cooldown:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     cooldown:GetStatusBarTexture():SetAlpha(0)
-
-    local duration = cooldown:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
-    frame.duration = duration
-    duration:SetJustifyH("RIGHT")
-    duration:SetPoint("BOTTOMRIGHT", 2, 0)
-    duration:Hide()
 
     local elapsedTime = 0
     cooldown:SetScript("OnUpdate", function(self, elapsed)
@@ -200,7 +196,7 @@ function I:CreateAura_BarIcon(name, parent)
     maskIcon:SetDesaturated(true)
     maskIcon:SetAllPoints(icon)
     -- maskIcon:SetDrawLayer("ARTWORK", 0)
-    maskIcon:SetVertexColor(.4, .4, .4, 1)
+    maskIcon:SetVertexColor(.5, .5, .5, 1)
     maskIcon:AddMaskTexture(mask)
 
     frame:SetScript("OnSizeChanged", function(self, width, height)
@@ -209,15 +205,20 @@ function I:CreateAura_BarIcon(name, parent)
         maskIcon:SetTexCoord(unpack(F:GetTexCoord(width, height)))
     end)
 
-    local stackFrame = CreateFrame("Frame", nil, frame)
-    stackFrame:SetAllPoints(frame)
+    local textFrame = CreateFrame("Frame", nil, frame)
+    textFrame:SetAllPoints(frame)
+    textFrame:SetFrameLevel(cooldown:GetFrameLevel()+1)
 
-    local stack = stackFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+    local stack = textFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
     frame.stack = stack
     stack:SetJustifyH("RIGHT")
-    -- stack:SetJustifyV("TOP")
     stack:SetPoint("TOPRIGHT", 2, 0)
-    -- stack:SetPoint("CENTER", 1, 0)
+
+    local duration = textFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_STATUS")
+    frame.duration = duration
+    duration:SetJustifyH("RIGHT")
+    duration:SetPoint("BOTTOMRIGHT", 2, 0)
+    duration:Hide()
 
     function frame:SetFont(font, size, flags, horizontalOffset)
         if not string.find(font, ".ttf") then font = F:GetFont(font) end
@@ -230,7 +231,9 @@ function I:CreateAura_BarIcon(name, parent)
             duration:SetShadowOffset(1, -1)
             duration:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -265,19 +268,21 @@ function I:CreateAura_BarIcon(name, parent)
             cooldown:Hide()
             frame:SetScript("OnUpdate", nil)
         else
-            -- init bar values
-            cooldown:SetMinMaxValues(0, duration)
-            cooldown:SetValue(GetTime()-start)
-            cooldown:Show()
             if frame.showDuration then
+                cooldown:Hide()
                 frame:SetScript("OnUpdate", function()
                     local remain = duration-(GetTime()-start)
-                    if remain <= 30 then
+                    if remain <= 60 then
                         frame.duration:SetText(string.format("%d", remain))
                     else
                         frame.duration:SetText("")
                     end
                 end)
+            else
+                -- init bar values
+                cooldown:SetMinMaxValues(0, duration)
+                cooldown:SetValue(GetTime()-start)
+                cooldown:Show()
             end
         end
 
@@ -305,8 +310,10 @@ function I:CreateAura_BarIcon(name, parent)
         frame.showDuration = show
         if show then
             duration:Show()
+            cooldown:Hide()
         else
             duration:Hide()
+            cooldown:Show()
         end
     end
 
@@ -335,7 +342,9 @@ function I:CreateAura_Text(name, parent)
             text:SetShadowOffset(1, -1)
             text:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -493,7 +502,7 @@ end
 -------------------------------------------------
 -- CreateAura_Icons
 -------------------------------------------------
-function I:CreateAura_Icons(name, parent)
+function I:CreateAura_Icons(name, parent, num)
     local icons = CreateFrame("Frame", name, parent)
     icons:SetSize(11, 11)
     icons:Hide()
@@ -503,14 +512,14 @@ function I:CreateAura_Icons(name, parent)
 
     function icons:SetSize(width, height)
         icons:OriginalSetSize(width, height)
-        for i = 1, 5 do
+        for i = 1, num do
             icons[i]:SetSize(width, height)
         end
     end
 
     function icons:SetFont(font, ...)
         font = F:GetFont(font)
-        for i = 1, 5 do
+        for i = 1, num do
             icons[i]:SetFont(font, ...)
         end
     end
@@ -531,13 +540,13 @@ function I:CreateAura_Icons(name, parent)
             point2 = "TOP"
         end
         
-        for i = 2, 5 do
+        for i = 2, num do
             icons[i]:ClearAllPoints()
             icons[i]:SetPoint(point1, icons[i-1], point2)
         end
     end
 
-    for i = 1, 5 do
+    for i = 1, num do
         local name = name.."Icons"..i
         local frame = I:CreateAura_BarIcon(name, icons)
         icons[i] = frame
@@ -550,7 +559,7 @@ function I:CreateAura_Icons(name, parent)
     end
 
     function icons:ShowDuration(show)
-        for i = 1, 5 do
+        for i = 1, num do
             icons[i]:ShowDuration(show)
         end
     end

@@ -470,6 +470,131 @@ local function Revise()
         end
     end
 
+    -- r41-release
+    if CellDB["revise"] and dbRevision < 41 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
+                if #layout["indicators"][19]["spells"] == 0 then
+                    layout["indicators"][19]["enabled"] = true
+                    layout["indicators"][19]["spells"] = {320788, 344496, 319941}
+                end
+            end
+        end
+    end
+
+    -- r44-release
+    if CellDB["revise"] and dbRevision < 44 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
+                if not tContains(layout["indicators"][19]["spells"], 320132) then -- 暗影之怒
+                    tinsert(layout["indicators"][19]["spells"], 320132)
+                end
+                if not tContains(layout["indicators"][19]["spells"], 322614) then -- 心灵连接
+                    tinsert(layout["indicators"][19]["spells"], 322614)
+                end
+            end
+        end
+    end
+
+    -- r46-release
+    if CellDB["revise"] and dbRevision < 46 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][13] and layout["indicators"][13]["indicatorName"] == "externalCooldowns" then
+                layout["indicators"][13]["orientation"] = "right-to-left"
+            end
+            if layout["indicators"][14] and layout["indicators"][14]["indicatorName"] == "defensiveCooldowns" then
+                layout["indicators"][14]["orientation"] = "left-to-right"
+            end
+            if layout["indicators"][17] and layout["indicators"][17]["indicatorName"] == "debuffs" then
+                layout["indicators"][17]["orientation"] = "left-to-right"
+            end
+        end
+
+        CellDB["general"]["tooltipsPosition"] = {"BOTTOMLEFT", "Unit Button", "TOPLEFT", 0, 15}
+    end
+
+    -- r47-release
+    if CellDB["revise"] and dbRevision < 47 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
+                if not tContains(layout["indicators"][19]["spells"], 334053) then -- 净化冲击波
+                    tinsert(layout["indicators"][19]["spells"], 334053)
+                end
+            end
+        end
+
+        if type(CellDB["appearance"]["highlightSize"]) ~= "number" then
+            CellDB["appearance"]["highlightSize"] = 1
+        end
+        if type(CellDB["appearance"]["outOfRangeAlpha"]) ~= "number" then
+            CellDB["appearance"]["outOfRangeAlpha"] = .45
+        end
+    end
+
+    -- r48-release
+    if CellDB["revise"] and dbRevision < 48 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
+                if not tContains(layout["indicators"][19]["spells"], 343556) then -- 病态凝视
+                    tinsert(layout["indicators"][19]["spells"], 343556)
+                end
+                if not tContains(layout["indicators"][19]["spells"], 320596) then -- 深重呕吐
+                    tinsert(layout["indicators"][19]["spells"], 320596)
+                end
+            end
+        end
+    end
+
+    -- r49-release
+    if CellDB["revise"] and dbRevision < 49 then
+        if type(CellDB["appearance"]["barAnimation"]) ~= "string" then
+            CellDB["appearance"]["barAnimation"] = "Flash"
+        end
+    end
+
+    -- r50-release
+    if CellDB["revise"] and dbRevision < 50 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            -- add statusIcon
+            if layout["indicators"][4] and layout["indicators"][4]["indicatorName"] ~= "statusIcon" then
+                tinsert(layout["indicators"], 4, {
+                    ["name"] = "Status Icon",
+                    ["indicatorName"] = "statusIcon",
+                    ["type"] = "built-in",
+                    ["enabled"] = true,
+                    ["position"] = {"TOP", "TOP", 0, -3},
+                    ["frameLevel"] = 10,
+                    ["size"] = {18, 18},
+                })
+            end
+
+            -- update debuffs
+            if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
+                if type(layout["indicators"][18]["bigDebuffs"]) ~= "table" then
+                    layout["indicators"][18]["bigDebuffs"] = {
+                        209858, -- 死疽溃烂
+                        46392, -- 专注打击
+                    }
+                    layout["indicators"][18]["size"] = {layout["indicators"][18]["size"], {17, 17}} -- normalSize, bigSize
+                end
+            end
+
+            -- add targetCounter
+            if (not layout["indicators"][21]) or (layout["indicators"][21] and layout["indicators"][21]["indicatorName"] ~= "targetCounter") then
+                tinsert(layout["indicators"], 21, {
+                    ["name"] = "Target Counter",
+                    ["indicatorName"] = "targetCounter",
+                    ["type"] = "built-in",
+                    ["enabled"] = false,
+                    ["position"] = {"TOP", "TOP", 0, 5},
+                    ["frameLevel"] = 15,
+                    ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline", 0},
+                    ["color"] = {1, .1, .1},
+                })
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
 end
 Cell:RegisterCallback("Revise", "Revise", Revise)

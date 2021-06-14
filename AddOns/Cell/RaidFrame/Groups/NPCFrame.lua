@@ -7,7 +7,7 @@ Cell.frames.npcFrame = npcFrame
 
 local anchors = {
 	["solo"] = CellSoloFramePlayer,
-	["party"] = CellPartyFramePet,
+	["party"] = CellPartyFrameHeaderUnitButton1Pet,
 	["raid"] = CellNPCFrameAnchor,
 }
 
@@ -274,12 +274,6 @@ local function NPCFrame_UpdateLayout(layout, which)
             end
         end
     end
-
-    if which == "textWidth" then -- textWidth already initialized in UnitButton.lua
-        for _, b in pairs(Cell.unitButtons.npc) do
-            b:GetScript("OnSizeChanged")(b)
-        end
-    end
 end
 Cell:RegisterCallback("UpdateLayout", "NPCFrame_UpdateLayout", NPCFrame_UpdateLayout)
 
@@ -292,11 +286,11 @@ local function NPCFrame_UpdateVisibility(which)
 
     if not which or which == "pets" then
         if CellDB["general"]["showPartyPets"] then
-            npcFrame:SetFrameRef("party", CellPartyFramePet)
-            anchors["party"] = CellPartyFramePet
+            npcFrame:SetFrameRef("party", CellPartyFrameHeaderUnitButton1Pet)
+            anchors["party"] = CellPartyFrameHeaderUnitButton1Pet
         else
-            npcFrame:SetFrameRef("party", CellPartyFramePlayer)
-            anchors["party"] = CellPartyFramePlayer
+            npcFrame:SetFrameRef("party", CellPartyFrameHeaderUnitButton1)
+            anchors["party"] = CellPartyFrameHeaderUnitButton1
         end
         -- update now if current in a party
         if Cell.vars.groupType == "party" then

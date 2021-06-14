@@ -11,6 +11,7 @@ local debuffBlacklist = {
     80354, -- 时空错位
     264689, -- 疲倦
     206151, -- 挑战者的负担
+    195776, -- 月羽疫病
 }
 
 function I:GetDefaultDebuffBlacklist()
@@ -90,6 +91,9 @@ end
 -- externalCooldowns
 -------------------------------------------------
 local externalCooldowns = {
+    -- death knight
+    51052, -- 反魔法领域
+
     -- demon hunter
     196718, -- 黑暗
 
@@ -126,8 +130,9 @@ do
     externalCooldowns = temp
 end
 
+local bos = GetSpellInfo(6940) -- 牺牲祝福
 function I:IsExternalCooldown(name, source, target)
-    if name == GetSpellInfo(6940) then -- 牺牲祝福
+    if name == bos then
         return source ~= target
     else
         return externalCooldowns[name]
@@ -147,6 +152,7 @@ local defensiveCooldowns = {
     -- demon hunter
     196555, -- 虚空行走
     198589, -- 疾影
+    187827, -- 恶魔变形
 
     -- druid
     22812, -- 树皮术
@@ -229,6 +235,27 @@ local tankActiveMitigations = {
     2565, -- 盾牌格挡
 }
 
+local tankActiveMitigationNames = {
+    -- death knight
+    "|c"..select(4, GetClassColor("DEATHKNIGHT"))..GetSpellInfo(77535).."|r", -- 鲜血护盾
+    "|c"..select(4, GetClassColor("DEATHKNIGHT"))..GetSpellInfo(195181).."|r", -- 白骨之盾
+
+    -- demon hunter
+    "|c"..select(4, GetClassColor("DEMONHUNTER"))..GetSpellInfo(203720).."|r", -- 恶魔尖刺
+
+    -- druid
+    "|c"..select(4, GetClassColor("DRUID"))..GetSpellInfo(192081).."|r", -- 铁鬃
+
+    -- monk
+    "|c"..select(4, GetClassColor("MONK"))..GetSpellInfo(215479).."|r", -- 铁骨酒
+
+    -- paladin
+    "|c"..select(4, GetClassColor("PALADIN"))..GetSpellInfo(132403).."|r", -- 正义盾击
+
+    -- warrior
+    "|c"..select(4, GetClassColor("WARRIOR"))..GetSpellInfo(2565).."|r", -- 盾牌格挡
+}
+
 do
     local temp = {}
     for _, id in pairs(tankActiveMitigations) do
@@ -239,6 +266,10 @@ end
 
 function I:IsTankActiveMitigation(name)
     return tankActiveMitigations[name]
+end
+
+function I:GetTankActiveMitigationString()
+    return table.concat(tankActiveMitigationNames, ", ").."."
 end
 
 -------------------------------------------------

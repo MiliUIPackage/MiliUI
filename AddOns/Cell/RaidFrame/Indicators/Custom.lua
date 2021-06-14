@@ -23,7 +23,7 @@ function I:CreateIndicator(parent, indicatorTable)
     elseif indicatorTable["type"] == "rect" then
         indicator = I:CreateAura_Rect(indicatorName, parent.widget.overlayFrame)
     elseif indicatorTable["type"] == "icons" then
-        indicator = I:CreateAura_Icons(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_Icons(indicatorName, parent.widget.overlayFrame, 10)
     end
     parent.indicators[indicatorName] = indicator
     
@@ -129,7 +129,7 @@ end
 
 function I:CheckCustomIndicators(unit, unitButton, auraType, spellId, start, duration, debuffType, texture, count, refreshing, castByMe)
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if enabledIndicators[indicatorName] then
+        if enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
             if indicatorTable["auras"][spellId] then -- is in indicator spell list
                 if auraType == "buff" then
                     -- check castByMe
@@ -178,9 +178,9 @@ end
 
 function I:ShowCustomIndicators(unit, unitButton, auraType)
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if enabledIndicators[indicatorName] then
+        if enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
             if indicatorTable["isIcons"] then
-                for i = indicatorTable["found"][unit], 5 do
+                for i = indicatorTable["found"][unit], 10 do
                     unitButton.indicators[indicatorName][i]:Hide()
                 end
                 if indicatorTable["found"][unit] == 1 then

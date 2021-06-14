@@ -15,28 +15,39 @@ Cell:StylizeFrame(battleResFrame, {.1, .1, .1, .7}, {0, 0, 0, .5})
 ---------------------------------
 -- Animation
 ---------------------------------
-local onShow, onHide
+local point, relativePoint, onShow, onHide
+local relativeTo = Cell.frames.anchorFrame
+local loaded = false
 
 battleResFrame.onMenuShow = battleResFrame:CreateAnimationGroup()
 battleResFrame.onMenuShow.trans = battleResFrame.onMenuShow:CreateAnimation("translation")
 battleResFrame.onMenuShow.trans:SetDuration(.3)
 battleResFrame.onMenuShow.trans:SetSmoothing("OUT")
 battleResFrame.onMenuShow:SetScript("OnPlay", function()
-	battleResFrame.onMenuHide:Stop()
+    battleResFrame.onMenuHide:Stop()
 end)
 battleResFrame.onMenuShow:SetScript("OnFinished", function()
-	local p, rt, rp, x, y = battleResFrame:GetPoint(1)
-	battleResFrame:ClearAllPoints()
-	local yofs = select(2, battleResFrame.onMenuShow.trans:GetOffset())
-	battleResFrame:SetPoint(p, rt, rp, x, y+yofs)
+    battleResFrame:ClearAllPoints()
+    battleResFrame:SetPoint(point, relativeTo, relativePoint, 0, onShow)
 end)
 
 function battleResFrame:OnMenuShow()
-	local currentY = select(5, battleResFrame:GetPoint(1))
-	if not currentY then return end
-	currentY = math.floor(currentY+.5)
-	battleResFrame.onMenuShow.trans:SetOffset(0, onShow-currentY)
-	battleResFrame.onMenuShow:Play()
+    if not loaded then return end
+
+    if not battleResFrame:IsShown() then
+        battleResFrame.onMenuShow:GetScript("OnFinished")()
+        return
+    end
+
+    local currentY = select(5, battleResFrame:GetPoint(1))
+    if type(currentY) ~= "number" then return end
+    currentY = math.floor(currentY+.5)
+
+    if onShow ~= currentY then
+        local offset = onShow-currentY
+        battleResFrame.onMenuShow.trans:SetOffset(0, offset)
+        battleResFrame.onMenuShow:Play()
+    end
 end
 
 battleResFrame.onMenuHide = battleResFrame:CreateAnimationGroup()
@@ -44,21 +55,30 @@ battleResFrame.onMenuHide.trans = battleResFrame.onMenuHide:CreateAnimation("tra
 battleResFrame.onMenuHide.trans:SetDuration(.3)
 battleResFrame.onMenuHide.trans:SetSmoothing("OUT")
 battleResFrame.onMenuHide:SetScript("OnPlay", function()
-	battleResFrame.onMenuShow:Stop()
+    battleResFrame.onMenuShow:Stop()
 end)
 battleResFrame.onMenuHide:SetScript("OnFinished", function()
-	local p, rt, rp, x, y = battleResFrame:GetPoint(1)
-	battleResFrame:ClearAllPoints()
-	local yofs = select(2, battleResFrame.onMenuHide.trans:GetOffset())
-	battleResFrame:SetPoint(p, rt, rp, x, y+yofs)
+    battleResFrame:ClearAllPoints()
+    battleResFrame:SetPoint(point, relativeTo, relativePoint, 0, onHide)
 end)
 
 function battleResFrame:OnMenuHide()
-	local currentY = select(5, battleResFrame:GetPoint(1))
-	if not currentY then return end
-	currentY = math.floor(currentY+.5)
-	battleResFrame.onMenuHide.trans:SetOffset(0, onHide-currentY)
-	battleResFrame.onMenuHide:Play()
+    if not loaded then return end
+
+    if not battleResFrame:IsShown() then
+        battleResFrame.onMenuHide:GetScript("OnFinished")()
+        return
+    end
+
+    local currentY = select(5, battleResFrame:GetPoint(1))
+    if type(currentY) ~= "number" then return end
+    currentY = math.floor(currentY+.5)
+
+    if onHide ~= currentY then
+        local offset = onHide-currentY
+        battleResFrame.onMenuHide.trans:SetOffset(0, offset)
+        battleResFrame.onMenuHide:Play()
+    end
 end
 
 ---------------------------------
@@ -76,16 +96,13 @@ bar:SetPoint("BOTTOMRIGHT", battleResFrame, -1, 1)
 local title = battleResFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 local stack = battleResFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
 local rTime = battleResFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+local dummy = battleResFrame:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET") -- used for updating width of battleResFrame
+dummy:Hide()
 
 title:SetFont(title:GetFont(), 13)
--- title:SetShadowColor(0, 0, 0)
--- title:SetShadowOffset(0, 0)
 stack:SetFont(stack:GetFont(), 13)
--- stack:SetShadowColor(0, 0, 0)
--- stack:SetShadowOffset(0, 0)
 rTime:SetFont(rTime:GetFont(), 13)
--- rTime:SetShadowColor(0, 0, 0)
--- rTime:SetShadowOffset(0, 0)
+dummy:SetFont(dummy:GetFont(), 13)
 
 title:SetJustifyH("LEFT")
 stack:SetJustifyH("LEFT")
@@ -93,26 +110,25 @@ rTime:SetJustifyH("RIGHT")
 
 title:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", 0, 2)
 stack:SetPoint("LEFT", title, "RIGHT")
--- stack:SetPoint("BOTTOM", bar, "TOP", 0, 1)
-rTime:SetPoint("LEFT", stack, "RIGHT", 4, 0)
+-- rTime:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", -1, 2)
+rTime:SetPoint("LEFT", stack, "RIGHT")
+dummy:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", 0, 22)
 
 title:SetTextColor(.66, .66, .66)
 rTime:SetTextColor(.66, .66, .66)
 
 title:SetText(L["BR"]..": ")
-stack:SetText("|cffff00000|r")
-rTime:SetText("00:00")
+stack:SetText("")
+rTime:SetText("")
+dummy:SetText(L["BR"]..": |cffff00000|r  00:00 ")
 
 battleResFrame:SetScript("OnShow", function()
-	if rTime:GetRight() and title:GetLeft() then
-		rTime:ClearAllPoints()
-		rTime:SetPoint("LEFT", stack, "RIGHT", 4, 0)
-		rTime:SetText("00:00")
-		battleResFrame:SetWidth(math.floor(rTime:GetRight()-title:GetLeft()+2.5))
-	end
-	rTime:SetText("")
-	rTime:ClearAllPoints()
-	rTime:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", -1, 2)
+    battleResFrame:SetWidth(math.floor(dummy:GetWidth()+.5))
+end)
+
+battleResFrame:SetScript("OnHide", function()
+    stack:SetText("")
+    rTime:SetText("")
 end)
 
 ---------------------------------
@@ -122,68 +138,68 @@ local total = 0
 -- local isMovable = false
 
 battleResFrame:SetScript("OnUpdate", function(self, elapsed)
-	-- if isMovable then return end --设置位置
+    -- if isMovable then return end --设置位置
 
-	total = total + elapsed
-	if total >= 0.25 then
-		total = 0
-		
-		-- Upon engaging a boss, all combat resurrection spells will have their cooldowns reset and begin with 1 charge.
-		-- Charges will accumulate at a rate of 1 per (90/RaidSize) minutes.
-		local charges, _, started, duration = GetSpellCharges(20484)
-		if not charges then
-			-- hide out of encounter
-			self:Hide()
-			self:RegisterEvent("SPELL_UPDATE_CHARGES")
-			return
-		end
-		
-		local color = (charges > 0) and "|cffffffff" or "|cffff0000"
-		local remaining = duration - (GetTime() - started)
-		local m = floor(remaining / 60)
-		local s = mod(remaining, 60)
+    total = total + elapsed
+    if total >= 0.25 then
+        total = 0
+        
+        -- Upon engaging a boss, all combat resurrection spells will have their cooldowns reset and begin with 1 charge.
+        -- Charges will accumulate at a rate of 1 per (90/RaidSize) minutes.
+        local charges, _, started, duration = GetSpellCharges(20484)
+        if not charges then
+            -- hide out of encounter
+            battleResFrame:Hide()
+            battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
+            return
+        end
+        
+        local color = (charges > 0) and "|cffffffff" or "|cffff0000"
+        local remaining = duration - (GetTime() - started)
+        local m = floor(remaining / 60)
+        local s = mod(remaining, 60)
 
-		rTime:SetText(("%d:%02d"):format(m, s))
-		stack:SetText(("%s%d|r"):format(color, charges))
-		bar:SetMinMaxValues(0, duration)
-		bar:SetValue(duration - remaining)
-	end
+        stack:SetText(("%s%d|r  "):format(color, charges))
+        rTime:SetText(("%d:%02d"):format(m, s))
+        
+        bar:SetMinMaxValues(0, duration)
+        bar:SetValue(duration - remaining)
+    end
 end)
 
 function battleResFrame:SPELL_UPDATE_CHARGES()
-	local charges = GetSpellCharges(20484)
-	if charges then
-		self:UnregisterEvent("SPELL_UPDATE_CHARGES")
-		-- isMovable = false
-		self:Show()
-	end
+    local charges = GetSpellCharges(20484)
+    if charges then
+        battleResFrame:UnregisterEvent("SPELL_UPDATE_CHARGES")
+        -- isMovable = false
+        battleResFrame:Show()
+    end
 end
 
 function battleResFrame:PLAYER_ENTERING_WORLD()
-	self:UnregisterEvent("SPELL_UPDATE_CHARGES")
-    self:Hide()
+    battleResFrame:UnregisterEvent("SPELL_UPDATE_CHARGES")
+    battleResFrame:Hide()
     
-	local _, instanceType, difficulty = GetInstanceInfo()
-	-- raid
-	if instanceType == "raid" then
-		if IsEncounterInProgress() then --如果 上线时/重载界面后 已在boss战中
-			self:Show()
-		else
-			self:RegisterEvent("SPELL_UPDATE_CHARGES")
-		end
-	end
-	-- challenge mode
-	if difficulty == 8 then
-		self:Show()
-	end
+    local _, instanceType, difficulty = GetInstanceInfo()
+
+    if instanceType == "raid" then -- raid
+        if IsEncounterInProgress() then --如果 上线时/重载界面后 已在boss战中
+            battleResFrame:Show()
+        else
+            battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
+        end
+    
+    elseif difficulty == 8 then -- challenge mode
+        battleResFrame:Show()
+    end
 end
 
 function battleResFrame:CHALLENGE_MODE_START()
-	self:Show()
+    battleResFrame:Show()
 end
 
 battleResFrame:SetScript("OnEvent", function(self, event, ...)
-	self[event](self, ...)
+    battleResFrame[event](self, ...)
 end)
 
 local function UpdateRaidTools(which)
@@ -204,25 +220,32 @@ Cell:RegisterCallback("UpdateRaidTools", "BattleRes_UpdateRaidTools", UpdateRaid
 local function UpdateLayout(layout, which)
     layout = Cell.vars.currentLayoutTable
 
-	battleResFrame:ClearAllPoints()
+    if not loaded or which == "anchor" then
+        battleResFrame:ClearAllPoints()
 
-    if not which or which == "anchor" then
         if layout["anchor"] == "BOTTOMLEFT" then
-            battleResFrame:SetPoint("TOPLEFT", Cell.frames.anchorFrame, "BOTTOMLEFT", 0, -4)
-			onShow, onHide = -4, 10
+            point, relativePoint = "TOPLEFT", "BOTTOMLEFT"
+            onShow, onHide = -4, 10
             
         elseif layout["anchor"] == "BOTTOMRIGHT" then
-            battleResFrame:SetPoint("TOPRIGHT", Cell.frames.anchorFrame, "BOTTOMRIGHT", 0, -4)
-			onShow, onHide = -4, 10
+            point, relativePoint = "TOPRIGHT", "BOTTOMRIGHT"
+            onShow, onHide = -4, 10
             
         elseif layout["anchor"] == "TOPLEFT" then
-			battleResFrame:SetPoint("BOTTOMLEFT", Cell.frames.anchorFrame, "TOPLEFT", 0, 4)
-			onShow, onHide = 4, -10
+            point, relativePoint = "BOTTOMLEFT", "TOPLEFT"
+            onShow, onHide = 4, -10
             
         elseif layout["anchor"] == "TOPRIGHT" then
-            battleResFrame:SetPoint("BOTTOMRIGHT", Cell.frames.anchorFrame, "TOPRIGHT", 0, 4)
-			onShow, onHide = 4, -10
+            point, relativePoint = "BOTTOMRIGHT", "TOPRIGHT"
+            onShow, onHide = 4, -10
         end
+
+        if CellDB["general"]["fadeOut"] then
+            battleResFrame:SetPoint(point, relativeTo, relativePoint, 0, onHide)
+        else
+            battleResFrame:SetPoint(point, relativeTo, relativePoint, 0, onShow)
+        end
+        loaded = true
     end
 end
 Cell:RegisterCallback("UpdateLayout", "BattleRes_UpdateLayout", UpdateLayout)

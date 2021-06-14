@@ -29,6 +29,36 @@ function I:CreateDefensiveCooldowns(parent)
         end
     end
 
+    function defensiveCooldowns:SetOrientation(orientation)
+        local point1, point2, x, y
+        if orientation == "left-to-right" then
+            point1 = "LEFT"
+            point2 = "RIGHT"
+            x = -1
+            y = 0
+        elseif orientation == "right-to-left" then
+            point1 = "RIGHT"
+            point2 = "LEFT"
+            x = 1
+            y = 0
+        elseif orientation == "top-to-bottom" then
+            point1 = "TOP"
+            point2 = "BOTTOM"
+            x = 0
+            y = 1
+        elseif orientation == "bottom-to-top" then
+            point1 = "BOTTOM"
+            point2 = "TOP"
+            x = 0
+            y = -1
+        end
+        
+        for i = 2, 5 do
+            defensiveCooldowns[i]:ClearAllPoints()
+            defensiveCooldowns[i]:SetPoint(point1, defensiveCooldowns[i-1], point2, x, y)
+        end
+    end
+
     for i = 1, 5 do
         local name = parent:GetName().."DefensiveCooldown"..i
         local frame = I:CreateAura_BarIcon(name, defensiveCooldowns)
@@ -64,6 +94,36 @@ function I:CreateExternalCooldowns(parent)
         font = F:GetFont(font)
         for i = 1, 5 do
             externalCooldowns[i]:SetFont(font, ...)
+        end
+    end
+
+    function externalCooldowns:SetOrientation(orientation)
+        local point1, point2, x, y
+        if orientation == "left-to-right" then
+            point1 = "LEFT"
+            point2 = "RIGHT"
+            x = -1
+            y = 0
+        elseif orientation == "right-to-left" then
+            point1 = "RIGHT"
+            point2 = "LEFT"
+            x = 1
+            y = 0
+        elseif orientation == "top-to-bottom" then
+            point1 = "TOP"
+            point2 = "BOTTOM"
+            x = 0
+            y = 1
+        elseif orientation == "bottom-to-top" then
+            point1 = "BOTTOM"
+            point2 = "TOP"
+            x = 0
+            y = -1
+        end
+        
+        for i = 2, 5 do
+            externalCooldowns[i]:ClearAllPoints()
+            externalCooldowns[i]:SetPoint(point1, externalCooldowns[i-1], point2, x, y)
         end
     end
 
@@ -124,32 +184,103 @@ function I:CreateDebuffs(parent)
     debuffs:SetSize(11, 11)
     debuffs:Hide()
 
-    debuffs.OriginalSetSize = debuffs.SetSize
+    debuffs.hAlignment = ""
+    debuffs.vAlignment = ""
+    debuffs.OriginalSetPoint = debuffs.SetPoint
+    function debuffs:SetPoint(point, relativeTo, relativePoint, x, y)
+        debuffs:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
 
-    function debuffs:SetSize(width, height)
-        debuffs:OriginalSetSize(width, height)
-        for i = 1, 5 do
-            debuffs[i]:SetSize(width, height)
+        if string.find(point, "LEFT") then
+            debuffs.hAlignment = "LEFT"
+        elseif string.find(point, "RIGHT") then
+            debuffs.hAlignment = "RIGHT"
+        else
+            debuffs.hAlignment = ""
         end
+
+        if string.find(point, "TOP") then
+            debuffs.vAlignment = "TOP"
+        elseif string.find(point, "BOTTOM") then
+            debuffs.vAlignment = "BOTTOM"
+        else
+            debuffs.vAlignment = ""
+        end
+
+        if debuffs.vAlignment == "" and debuffs.hAlignment == "" then
+            debuffs.vAlignment = "CENTER"
+        end
+
+        debuffs[1]:ClearAllPoints()
+        debuffs[1]:SetPoint(debuffs.vAlignment..debuffs.hAlignment)
+        --! update others' position
+        debuffs:SetOrientation(debuffs.orientation or "left-to-right")
+    end
+
+    debuffs.OriginalSetSize = debuffs.SetSize
+    function debuffs:SetSize(normalSize, bigSize)
+        debuffs:OriginalSetSize(unpack(normalSize))
+        for i = 1, 10 do
+            debuffs[i]:SetSize(unpack(normalSize))
+        end
+        -- store sizes for SetCooldown
+        debuffs.normalSize = normalSize
+        debuffs.bigSize = bigSize
     end
 
     function debuffs:SetFont(font, ...)
         font = F:GetFont(font)
-        for i = 1, 5 do
+        for i = 1, 10 do
             debuffs[i]:SetFont(font, ...)
         end
     end
 
-    for i = 1, 5 do
+    function debuffs:SetOrientation(orientation)
+        debuffs.orientation = orientation
+
+        local point1, point2, v, h
+        v = debuffs.vAlignment == "CENTER" and "" or debuffs.vAlignment
+        h = debuffs.hAlignment
+
+        if orientation == "left-to-right" then
+            point1 = v.."LEFT"
+            point2 = v.."RIGHT"
+        elseif orientation == "right-to-left" then
+            point1 = v.."RIGHT"
+            point2 = v.."LEFT"
+        elseif orientation == "top-to-bottom" then
+            point1 = "TOP"..h
+            point2 = "BOTTOM"..h
+        elseif orientation == "bottom-to-top" then
+            point1 = "BOTTOM"..h
+            point2 = "TOP"..h
+        end
+        
+        for i = 2, 10 do
+            debuffs[i]:ClearAllPoints()
+            debuffs[i]:SetPoint(point1, debuffs[i-1], point2)
+        end
+    end
+
+    for i = 1, 10 do
         local name = parent:GetName().."Debuff"..i
         local frame = I:CreateAura_BarIcon(name, debuffs)
         tinsert(debuffs, frame)
 
-        if i == 1 then
-            frame:SetPoint("TOPLEFT")
-        else
-            frame:SetPoint("LEFT", debuffs[i-1], "RIGHT")
+        frame.OriginalSetCooldown = frame.SetCooldown
+        function frame:SetCooldown(start, duration, debuffType, texture, count, refreshing, isBigDebuff)
+            frame:OriginalSetCooldown(start, duration, debuffType, texture, count, refreshing)
+            if isBigDebuff then
+                frame:SetSize(unpack(debuffs.bigSize))
+            else
+                frame:SetSize(unpack(debuffs.normalSize))
+            end
         end
+
+        -- if i == 1 then
+        --     frame:SetPoint("TOPLEFT")
+        -- else
+        --     frame:SetPoint("LEFT", debuffs[i-1], "RIGHT")
+        -- end
 	end
 end
 
@@ -162,7 +293,10 @@ function I:CreateDispels(parent)
     dispels:Hide()
 
     dispels.highlight = parent.widget.healthBar:CreateTexture(parent:GetName().."DispelHighlight", "ARTWORK")
-    dispels.highlight:SetAllPoints(parent.widget.healthBar)
+    -- dispels.highlight:SetAllPoints(parent.widget.healthBar)
+    dispels.highlight:SetPoint("BOTTOMLEFT", parent.widget.healthBar)
+    dispels.highlight:SetPoint("BOTTOMRIGHT", parent.widget.healthBar)
+    dispels.highlight:SetPoint("TOP", parent.widget.healthBar, "CENTER")
     dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
     dispels.highlight:Hide()
 
@@ -233,6 +367,8 @@ local eventFrame2 = CreateFrame("Frame")
 eventFrame2:RegisterEvent("PLAYER_ENTERING_WORLD")
 
 local function UpdateDebuffsForCurrentZone()
+    F:Debug("|cffff77AARaidDebuffsChanged")
+
     wipe(currentAreaDebuffs)
     local iName = F:GetInstanceName()
     if iName ~= "" then
@@ -242,12 +378,35 @@ end
 Cell:RegisterCallback("RaidDebuffsChanged", "UpdateDebuffsForCurrentZone", UpdateDebuffsForCurrentZone)
 eventFrame2:SetScript("OnEvent", UpdateDebuffsForCurrentZone)
 
-function I:GetDebuffOrder(spellName, spellId)
-    if currentAreaDebuffs[spellName] then
-        return currentAreaDebuffs[spellName]["order"], currentAreaDebuffs[spellName]["glowType"], currentAreaDebuffs[spellName]["glowOptions"]
+function I:GetDebuffOrder(spellName, spellId, count)
+    local t = currentAreaDebuffs[spellId] or currentAreaDebuffs[spellName]
+    if not t then return end
+
+    local showGlow
+    if t["glowCondition"] then
+        if t["glowCondition"][1] == "Stack" then
+            if t["glowCondition"][2] == "=" then
+                if count == t["glowCondition"][3] then showGlow = true end
+            elseif t["glowCondition"][2] == ">" then
+                if count > t["glowCondition"][3] then showGlow = true end
+            elseif t["glowCondition"][2] == ">=" then
+                if count >= t["glowCondition"][3] then showGlow = true end
+            elseif t["glowCondition"][2] == "<" then
+                if count < t["glowCondition"][3] then showGlow = true end
+            elseif t["glowCondition"][2] == "<=" then
+                if count <= t["glowCondition"][3] then showGlow = true end
+            else -- ~=
+                if count ~= t["glowCondition"][3] then showGlow = true end
+            end
+        end
+    else
+        showGlow = true
     end
-    if currentAreaDebuffs[spellId] then
-        return currentAreaDebuffs[spellId]["order"], currentAreaDebuffs[spellId]["glowType"], currentAreaDebuffs[spellId]["glowOptions"]
+
+    if showGlow then
+        return t["order"], t["glowType"], t["glowOptions"]
+    else
+        return t["order"], "None", nil
     end
 end
 
@@ -368,7 +527,9 @@ function I:CreateNameText(parent)
             vehicleText:SetShadowOffset(1, -1)
             vehicleText:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -525,7 +686,9 @@ function I:CreateStatusText(parent)
             timer:SetShadowOffset(1, -1)
             timer:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -584,7 +747,9 @@ function I:CreateHealthText(parent)
             text:SetShadowOffset(1, -1)
             text:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
@@ -784,5 +949,79 @@ function I:CreateShieldBar(parent)
             barWidth = maxWidth * percent
         end
         shieldBar:SetWidth(barWidth)
+    end
+end
+
+-------------------------------------------------
+-- status icon
+-------------------------------------------------
+function I:CreateStatusIcon(parent)
+    local statusIcon = CreateFrame("Frame", parent:GetName().."StatusIcon", parent.widget.overlayFrame)
+    parent.indicators.statusIcon = statusIcon
+    statusIcon:Hide()
+    statusIcon.tex = statusIcon:CreateTexture(nil, "OVERLAY")
+    statusIcon.tex:SetAllPoints(statusIcon)
+
+    function statusIcon:SetTexture(tex)
+        statusIcon.tex:SetTexture(tex)
+    end
+
+    function statusIcon:SetTexCoord(...)
+        statusIcon.tex:SetTexCoord(...)
+    end
+
+    function statusIcon:SetAtlas(...)
+        statusIcon.tex:SetAtlas(...)
+    end
+
+    -- resurrection icon
+    local resurrectionIcon = CreateFrame("Frame", parent:GetName().."ResurrectionIcon", parent.widget.overlayFrame)
+    parent.indicators.resurrectionIcon = resurrectionIcon
+    resurrectionIcon:SetAllPoints(statusIcon)
+    resurrectionIcon:Hide()
+    resurrectionIcon.icon = resurrectionIcon:CreateTexture(nil, "ARTWORK")
+    resurrectionIcon.icon:SetAllPoints(resurrectionIcon)
+    resurrectionIcon.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    resurrectionIcon.icon:SetDesaturated(true)
+    resurrectionIcon.icon:SetVertexColor(.4, .4, .4, .5)
+    resurrectionIcon.icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
+
+    function resurrectionIcon:SetTimer(start, duration)
+        resurrectionIcon.bar:SetMinMaxValues(0, duration)
+        resurrectionIcon.bar:SetValue(GetTime()-start)
+        resurrectionIcon:Show()
+    end
+
+    local bar = CreateFrame("StatusBar", nil, resurrectionIcon)
+    resurrectionIcon.bar = bar
+    bar:SetAllPoints(resurrectionIcon)
+    bar:SetOrientation("VERTICAL")
+    bar:SetReverseFill(true)
+    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+    bar:GetStatusBarTexture():SetAlpha(0)
+    bar.elapsedTime = 0
+    bar:SetScript("OnUpdate", function(self, elapsed)
+        if bar.elapsedTime >= 0.25 then
+            bar:SetValue(bar:GetValue() + bar.elapsedTime)
+            bar.elapsedTime = 0
+        end
+        bar.elapsedTime = bar.elapsedTime + elapsed
+    end)
+
+    local mask = resurrectionIcon:CreateMaskTexture()
+    mask:SetTexture("Interface\\Buttons\\WHITE8x8", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
+    mask:SetPoint("TOPLEFT", bar:GetStatusBarTexture(), "BOTTOMLEFT")
+    mask:SetPoint("BOTTOMRIGHT")
+
+    local maskIcon = bar:CreateTexture(nil, "ARTWORK")
+    maskIcon:SetAllPoints(resurrectionIcon)
+    maskIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    maskIcon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
+    maskIcon:AddMaskTexture(mask)
+
+    statusIcon.OriginalSetFrameLevel = statusIcon.SetFrameLevel
+    function statusIcon:SetFrameLevel(level)
+        statusIcon:OriginalSetFrameLevel(level)
+        resurrectionIcon:SetFrameLevel(level)
     end
 end

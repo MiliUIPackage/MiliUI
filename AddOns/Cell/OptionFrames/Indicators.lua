@@ -96,6 +96,9 @@ local function InitIndicator(indicatorName)
         indicator.preview = CreateFrame("Frame", nil, previewButton)
         indicator.preview:SetAllPoints(indicator)
 
+    elseif indicatorName == "statusIcon" then
+        indicator:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
+
     elseif indicatorName == "roleIcon" then
         indicator:SetTexture("Interface\\AddOns\\Cell\\Media\\UI-LFG-ICON-PORTRAITROLES.blp")
         indicator:SetTexCoord(GetTexCoordsForRoleSmallCircle("DAMAGER"))
@@ -160,12 +163,11 @@ local function InitIndicator(indicatorName)
         end)
 
     elseif indicatorName == "debuffs" then
-        local types = {"", "Curse", "Disease", "Magic", "Poison"}
-        local icons = {132155, 136139, 136128, 136071, 136182}
-        local stacks = {7, 10, 0, 0, 2}
-        for i = 1, 5 do
+        local types = {"", "Curse", "Disease", "Magic", "Poison", "", "Curse", "Disease", "Magic", "Poison"}
+        local icons = {132155, 136139, 136128, 240443, 136182, 132155, 136139, 136128, 240443, 136182}
+        for i = 1, 10 do
             indicator[i]:SetScript("OnShow", function()
-                indicator[i]:SetCooldown(GetTime(), 7, types[i], icons[i], stacks[i])
+                indicator[i]:SetCooldown(GetTime(), 7, types[i], icons[i], i)
                 indicator[i].cooldown.value = 0
                 indicator[i].cooldown:SetScript("OnUpdate", function(self, elapsed)
                     if self.value >= 7 then
@@ -211,7 +213,10 @@ local function InitIndicator(indicatorName)
             indicator.cooldown:Hide()
             indicator.cooldown:SetScript("OnCooldownDone", nil)
         end)
-        
+
+    elseif indicatorName == "targetCounter" then
+        indicator:SetCount(3)
+
     elseif indicatorName == "externalCooldowns" then
         local icons = {135936, 572025, 135966, 627485, 237542}
         for i = 1, 5 do
@@ -246,10 +251,9 @@ local function InitIndicator(indicatorName)
         end
     elseif string.find(indicatorName, "indicator") then
         if indicator.indicatorType == "icons" then
-            local stacks = {1, 2, 3, 4, 5}
-            for i = 1, 5 do
+            for i = 1, 10 do
                 indicator[i]:SetScript("OnShow", function()
-                    indicator[i]:SetCooldown(GetTime(), 7, nil, 134400, stacks[i])
+                    indicator[i]:SetCooldown(GetTime(), 7, nil, 134400, i)
                     indicator[i].cooldown.value = 0
                     indicator[i].cooldown:SetScript("OnUpdate", function(self, elapsed)
                         if self.value >= 7 then
@@ -284,92 +288,94 @@ local function UpdateIndicators(layout, indicatorName, setting, value)
     if not indicatorsTab:IsShown() then return end
 
     if not indicatorName then -- init
-        I:RemoveAllCustomIndicators(previewButton)
-        for _, t in pairs(currentLayoutTable["indicators"]) do
-            local indicator = previewButton.indicators[t["indicatorName"]] or I:CreateIndicator(previewButton, t)
-            InitIndicator(t["indicatorName"])
-            if t["enabled"] then
-                indicator:Show()
-                if indicator.preview then indicator.preview:Show() end
-            else
-                indicator:Hide()
-                if indicator.preview then indicator.preview:Hide() end
-            end
-            -- update position
-            if t["position"] then
-                indicator:ClearAllPoints()
-                indicator:SetPoint(t["position"][1], previewButton, t["position"][2], t["position"][3], t["position"][4])
-            end
-            -- update frameLevel
-            if t["frameLevel"] then
-                indicator:SetFrameLevel(previewButton.widget.overlayFrame:GetFrameLevel()+t["frameLevel"])
-            end
-            -- update size
-            if t["size"] then
-                indicator:SetSize(unpack(t["size"]))
-            end
-            -- update textWidth
-            if t["textWidth"] then
-                indicator:UpdateTextWidth(t["textWidth"])
-            end
-            -- update border
-            if t["border"] then
-                indicator:SetBorder(t["border"])
-            end
-            -- update height
-            if t["height"] then
-                indicator:SetHeight(t["height"])
-            end
-            -- update alpha
-            if t["alpha"] then
-                indicator:SetAlpha(t["alpha"])
-                indicator.alpha = t["alpha"]
-            end
-            -- update num
-            if t["num"] then
-                for i, frame in ipairs(indicator) do
-                    if i <= t["num"] then
-                        frame:Show()
-                    else
-                        frame:Hide()
+        if not layout then -- call from UpdateIndicators() not from Cell:Fire("UpdateIndicators", ...)
+            I:RemoveAllCustomIndicators(previewButton)
+            for _, t in pairs(currentLayoutTable["indicators"]) do
+                local indicator = previewButton.indicators[t["indicatorName"]] or I:CreateIndicator(previewButton, t)
+                InitIndicator(t["indicatorName"])
+                if t["enabled"] then
+                    indicator:Show()
+                    if indicator.preview then indicator.preview:Show() end
+                else
+                    indicator:Hide()
+                    if indicator.preview then indicator.preview:Hide() end
+                end
+                -- update position
+                if t["position"] then
+                    indicator:ClearAllPoints()
+                    indicator:SetPoint(t["position"][1], previewButton, t["position"][2], t["position"][3], t["position"][4])
+                end
+                -- update frameLevel
+                if t["frameLevel"] then
+                    indicator:SetFrameLevel(previewButton.widget.overlayFrame:GetFrameLevel()+t["frameLevel"])
+                end
+                -- update size
+                if t["size"] then
+                    indicator:SetSize(unpack(t["size"]))
+                end
+                -- update textWidth
+                if t["textWidth"] then
+                    indicator:UpdateTextWidth(t["textWidth"])
+                end
+                -- update border
+                if t["border"] then
+                    indicator:SetBorder(t["border"])
+                end
+                -- update height
+                if t["height"] then
+                    indicator:SetHeight(t["height"])
+                end
+                -- update alpha
+                if t["alpha"] then
+                    indicator:SetAlpha(t["alpha"])
+                    indicator.alpha = t["alpha"]
+                end
+                -- update num
+                if t["num"] then
+                    for i, frame in ipairs(indicator) do
+                        if i <= t["num"] then
+                            frame:Show()
+                        else
+                            frame:Hide()
+                        end
                     end
                 end
+                -- update format
+                if t["format"] then -- healthText
+                    indicator:SetFormat(t["format"])
+                    indicator:SetHealth(21377, 65535)
+                end
+                -- update orientation
+                if t["orientation"] then
+                    indicator:SetOrientation(t["orientation"])
+                end
+                -- update font
+                if t["font"] then
+                    indicator:SetFont(unpack(t["font"]))
+                end
+                -- update color
+                if t["color"] then
+                    indicator:SetColor(unpack(t["color"]))
+                end
+                -- update colors
+                if t["colors"] then
+                    indicator:SetColors(t["colors"])
+                end
+                -- update nameColor
+                if t["nameColor"] then
+                    indicator:UpdatePreviewColor(t["nameColor"])
+                end
+                -- update vehicleNamePosition
+                if t["vehicleNamePosition"] then
+                    indicator:UpdateVehicleNamePosition(t["vehicleNamePosition"])
+                end
+                -- update custom texture
+                if t["customTextures"] then
+                    indicator:SetCustomTexture(t["customTextures"])
+                    indicator:SetRole(indicator.roles[indicator.role])
+                end
             end
-            -- update format
-            if t["format"] then -- healthText
-                indicator:SetFormat(t["format"])
-                indicator:SetHealth(21377, 65535)
-            end
-            -- update orientation
-            if t["orientation"] then
-                indicator:SetOrientation(t["orientation"])
-            end
-            -- update font
-            if t["font"] then
-                indicator:SetFont(unpack(t["font"]))
-            end
-            -- update color
-            if t["color"] then
-                indicator:SetColor(unpack(t["color"]))
-            end
-            -- update colors
-            if t["colors"] then
-                indicator:SetColors(t["colors"])
-            end
-            -- update nameColor
-            if t["nameColor"] then
-                indicator:UpdatePreviewColor(t["nameColor"])
-            end
-            -- update vehicleNamePosition
-            if t["vehicleNamePosition"] then
-                indicator:UpdateVehicleNamePosition(t["vehicleNamePosition"])
-            end
-            -- update custom texture
-            if t["customTextures"] then
-                indicator:SetCustomTexture(t["customTextures"])
-                indicator:SetRole(indicator.roles[indicator.role])
-            end
-		end
+        end
 	else
         local indicator = previewButton.indicators[indicatorName]
 		-- changed in IndicatorsTab
@@ -471,7 +477,9 @@ end
 Cell:RegisterCallback("UpdateIndicators", "PreviewButton_UpdateIndicators", UpdateIndicators)
 
 local function UpdateTargetedSpellsPreview()
-    previewButton.indicators.targetedSpells:ShowGlowPreview()
+    if currentLayoutTable and selected and currentLayoutTable["indicators"][selected]["indicatorName"] == "targetedSpells" then
+        previewButton.indicators.targetedSpells:ShowGlowPreview()
+    end
 end
 Cell:RegisterCallback("UpdateTargetedSpells", "UpdateTargetedSpellsPreview", UpdateTargetedSpellsPreview)
 
@@ -670,7 +678,7 @@ createBtn:SetScript("OnClick", function()
             listFrame.scrollFrame:ScrollToBottom()
         end
 
-    end, true, true, 2)
+    end, nil, true, true, 2)
     popup:SetPoint("TOPLEFT", 100, -100)
     popup.dropdown1:SetItems(typeItems)
     popup.dropdown1:SetSelectedItem(1)
@@ -692,7 +700,7 @@ deleteBtn:SetScript("OnClick", function()
         tremove(currentLayoutTable["indicators"], selected)
         LoadIndicatorList()
         listButtons[1]:Click()
-    end, true)
+    end, nil, true)
     popup:SetPoint("TOPLEFT", 100, -120)
 end)
 
@@ -728,6 +736,14 @@ local indicatorSettings = {
     ["nameText"] = {"enabled", "nameColor", "textWidth", "vehicleNamePosition", "namePosition", "font-noOffset"},
     ["statusText"] = {"enabled", "statusPosition", "frameLevel", "font-noOffset"},
     ["healthText"] = {"enabled", "format", "checkbutton:hideFull", "color", "position", "frameLevel", "font"},
+    ["statusIcon"] = {"|TInterface\\RaidFrame\\Raid-Icon-Rez:18:18|t "..
+        "|TInterface\\TargetingFrame\\UI-PhasingIcon:18:18|t "..
+        "|A:nameplates-icon-flag-horde:18:18|a "..
+        "|A:nameplates-icon-flag-alliance:18:18|a "..
+        "|A:nameplates-icon-orb-blue:18:18|a "..
+        "|A:nameplates-icon-orb-green:18:18|a "..
+        "|A:nameplates-icon-orb-orange:18:18|a "..
+        "|A:nameplates-icon-orb-purple:18:18|a ", "enabled", "position", "frameLevel", "size-square"},
     ["roleIcon"] = {"enabled", "position", "size-square", "customTextures"},
     ["leaderIcon"] = {"|cffb7b7b7"..L["Leader Icons will hide while in combat"], "enabled", "position", "size-square"},
     ["readyCheckIcon"] = {"frameLevel", "size-square"},
@@ -737,13 +753,14 @@ local indicatorSettings = {
     ["aggroBar"] = {"enabled", "position", "frameLevel", "size-bar"},
     ["shieldBar"] = {"|cffb7b7b7"..L["With this indicator enabled, shield / overshield textures are disabled"], "enabled", "color-alpha", "position", "frameLevel", "height"},
     ["aoeHealing"] = {"enabled", "color", "height"},
-    ["externalCooldowns"] = {"enabled", "num", "position", "frameLevel", "size"},
-    ["defensiveCooldowns"] = {"enabled", "num", "position", "frameLevel", "size"},
-    ["tankActiveMitigation"] = {"enabled", "position", "frameLevel", "size"},
+    ["externalCooldowns"] = {"enabled", "num:5", "orientation", "position", "frameLevel", "size"},
+    ["defensiveCooldowns"] = {"enabled", "num:5", "orientation", "position", "frameLevel", "size"},
+    ["tankActiveMitigation"] = {"|cffb7b7b7"..I:GetTankActiveMitigationString(), "enabled", "position", "frameLevel", "size"},
     ["dispels"] = {"enabled", "checkbutton:dispellableByMe", "checkbutton2:enableHighlight", "position", "frameLevel", "size-square"},
-    ["debuffs"] = {"enabled", "blacklist", "checkbutton:dispellableByMe", "num", "position", "frameLevel", "size-square", "font"},
+    ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "blacklist", "bigDebuffs", "num:10", "orientation", "position", "frameLevel", "size-normal-big", "font"},
     ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell:GetPlayerClassColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "position", "frameLevel", "size-border", "font"},
     ["targetedSpells"] = {"enabled", "spells", "glow", "position", "frameLevel", "size-border", "font"},
+    ["targetCounter"] = {"|cffb7b7b7"..L["|cffc72727HIGH CPU USAGE!|r Check all visible enemy nameplates. Battleground/Arena only."], "enabled", "color", "position", "frameLevel", "font"},
 }
 
 local function ShowIndicatorSettings(id)
@@ -772,7 +789,7 @@ local function ShowIndicatorSettings(id)
         elseif indicatorType == "rect" then
             settingsTable = {"enabled", "auras", "colors", "position", "frameLevel", "size"}
         elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "checkbutton2:showDuration", "position", "frameLevel", "size-square", "num", "orientation", "font"}
+            settingsTable = {"enabled", "auras", "checkbutton2:showDuration", "num:10", "orientation", "position", "frameLevel", "size-square", "font"}
         end
         -- castByMe
         if currentLayoutTable["indicators"][id]["auraType"] == "buff" then
@@ -802,7 +819,7 @@ local function ShowIndicatorSettings(id)
         -- "enabled", "position", "size", "num", "font"
         local currentSetting = settingsTable[i]
         if currentSetting == "color-alpha" then currentSetting = "color" end
-        if currentSetting == "size-square" or currentSetting == "size-bar" then currentSetting = "size" end
+        if currentSetting == "size-square" or currentSetting == "size-bar" or currentSetting == "size-normal-big" then currentSetting = "size" end
         if currentSetting == "font-noOffset" then currentSetting = "font" end
         if currentSetting == "namePosition" or currentSetting == "statusPosition" then currentSetting = "position" end
         
@@ -814,10 +831,15 @@ local function ShowIndicatorSettings(id)
             w:SetDBValue(L[F:UpperFirst(currentLayoutTable["indicators"][id]["auraType"]).." List"], currentLayoutTable["indicators"][id]["auras"], indicatorType == "icons" or indicatorType == "bars")
         elseif currentSetting == "blacklist" then
             w:SetDBValue(L["Debuff Filter (blacklist)"], CellDB["debuffBlacklist"], true)
+        elseif currentSetting == "bigDebuffs" then
+            w:SetDBValue(L["Big Debuffs"], currentLayoutTable["indicators"][id]["bigDebuffs"], true)
         elseif currentSetting == "spells" then
             w:SetDBValue(L["Spell List"], currentLayoutTable["indicators"][id]["spells"], true)
         elseif currentSetting == "size-border" then
             w:SetDBValue(currentLayoutTable["indicators"][id]["size"], currentLayoutTable["indicators"][id]["border"])
+        elseif string.find(currentSetting, "num") then
+            w:SetDBValue(currentLayoutTable["indicators"][id]["num"], tonumber(select(2,string.split(":", currentSetting))))
+            currentSetting = "num"
         else
             w:SetDBValue(currentLayoutTable["indicators"][id][currentSetting])
         end
@@ -1001,12 +1023,12 @@ local function ShowTab(tab)
 end
 Cell:RegisterCallback("ShowOptionsTab", "IndicatorsTab_ShowTab", ShowTab)
 
-local function UpdateLayout()
-    if previewButton.loaded and currentLayout == Cell.vars.currentLayout then
-        UpdatePreviewButton()
-    end
-end
-Cell:RegisterCallback("UpdateLayout", "IndicatorsTab_UpdateLayout", UpdateLayout)
+-- local function UpdateLayout()
+--     if previewButton.loaded and currentLayout == Cell.vars.currentLayout then
+--         UpdatePreviewButton()
+--     end
+-- end
+-- Cell:RegisterCallback("UpdateLayout", "IndicatorsTab_UpdateLayout", UpdateLayout)
 
 local function UpdateAppearance()
     if previewButton.loaded and currentLayout == Cell.vars.currentLayout then

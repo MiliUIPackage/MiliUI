@@ -5,6 +5,8 @@ local L = select( 2, ...).L
 L["%s lock %s on %s."] = "%s將%s鎖定在%s。"
 L["%s unlock %s from %s."] = "%s將%s從%s解鎖。"
 L["(based on current)"] = "(以目前的為基礎)"
+L["|cff1Aff1AYes|r - Overwrite"] = "|cff1Aff1A是|r - 取代原有的"
+L["|cffff1A1ANo|r - Create New"] = "|cffff1A1A否|r - 建立新的"
 L["About"] = "關於"
 L["ABOUT"] = "Cell 是受 CompactRaid 啟發的團隊框架，參考了其程式碼，重寫並增強。\n我個人很喜歡 CompactRaid，並常年使用它，但其作者似乎已經不再更新了。因此我寫了 Cell，希望你能喜歡。\n另外，我也參考了一些很棒的團隊框架，比如 Aptechka 和 Grid2。\nCell 並不打算成為一個輕量或強大 (如 VuhDo、Grid2) 的團隊框架插件。設定簡單，功能足夠，就行了。"
 L["ACCEPTED"] = "已接受"
@@ -13,7 +15,9 @@ L["AFK"] = "暫離"
 L["Aggro Bar"] = "仇恨值條"
 L["Aggro Indicator"] = "仇恨指示器"
 L["Alpha"] = "透明度"
+L["Alt+Right-Click to remove a player"] = "Alt+右鍵點擊來移除玩家"
 L["Anchor Point"] = "自己的"
+L["Anchored To"] = "對齊到"
 L["AoE Healing"] = "範圍治療 (團補)"
 L["Appearance"] = "外觀"
 L["Arena"] = "競技場"
@@ -55,6 +59,9 @@ L["Create new layout"] = "建立新的版面配置"
 L["Current Layout"] = "目前版面配置"
 L["Current Profile"] = "目前設定檔"
 L["Currently Enabled"] = "目前已啟用"
+L["Cursor"] = "滑鼠游標"
+L["Cursor Left"] = "滑鼠游標左側"
+L["Cursor Right"] = "滑鼠游標右側"
 L["Custom Color"] = "自訂顏色"
 L["DEAD"] = "死亡"
 L["Debuff"] = "減益"
@@ -78,6 +85,8 @@ L["Enabled"] = "啟用"
 L["enableHighlight"] = "顯著標示單位按鈕"
 L["Enter spell id"] = "請輸入法術 ID"
 L["Enter: apply\nESC: discard"] = "Enter: 套用\nESC: 取消"
+L["Error"] = "錯誤"
+L["Export"] = "匯出"
 L["External Cooldowns"] = "減傷 (來自他人)"
 L["Extra Action Button"] = "使用額外快捷鍵"
 L["Fade Out Menu"] = "淡出選單"
@@ -105,9 +114,12 @@ L["Hide"] = "隱藏"
 L["Hide Blizzard Frames"] = "隱藏遊戲內建框架"
 L["Hide Blizzard Raid / Party"] = "隱藏遊戲內建團隊/隊伍框架"
 L["hideFull"] = "滿血時不顯示"
+L["Highlight Size"] = "顯著標示粗細"
 L["Horizontal"] = "水平"
 L["Icon"] = "圖示"
 L["Icons"] = "圖示群組"
+L["Import"] = "匯入"
+L["Incompatible Version"] = "不相容的版本"
 L["Indicator Settings"] = "指示器設定"
 L["Indicator settings are part of Layout settings which are account-wide."] = "指示器設定是版面配置設定的一部分，是帳號共用的。"
 L["Indicators"] = "指示器"
@@ -151,7 +163,9 @@ L["onlyShowTopGlow"] = "只顯著標示當前減益"
 L["Options"] = "選項"
 L["Options UI Font Size"] = "設定選項介面文字大小"
 L["Orientation"] = "方向"
+L["Out of Range Alpha"] = "超出範圍透明度"
 L["Outline"] = "外框"
+L["Overwrite Layout"] = "取代版面配置"
 L["P"] = "PvP 天賦"
 L["Particles"] = "粒子數"
 L["Party"] = "隊伍"
@@ -166,83 +180,6 @@ L["Profiles"] = "設定檔"
 L["Pull"] = "倒數"
 L["Pull Timer"] = "開怪倒數"
 L["pullTimerTips"] = "\n|r開怪倒數\n左鍵: |cffffffff開始倒數計時|r\n右鍵: |cffffffff取消倒數計時|r"
-L["r25-release"] = [[
-    <h1>滑鼠點擊施法</h1>
-    <p>滑鼠點擊施法現在支援鍵盤按鍵和多按鍵滑鼠。</p> 
-    <p>由於程式碼的變動，你會需要重新設定滑鼠點擊施法。</p>
-    <br/>
-    <h1>指示器</h1>
-    <p>指示器的法術清單更新了，現在所有自訂指示器都將檢查法術 ID 而不是法術名稱。</p>
-    <p>因此，需要重新設定自訂指示器的增/減益清單，才能使其正常顯示。</p>
-    <br/>
-    <h1>指示器預覽透明度</h1>
-    <p>現在可以更改指示器預覽中的非當前指示器透明度，如此一來調整指示器會更加方便。</p>
-    <p>查看 "指示器" 頁面右上角的滑桿，你懂的。</p>
-    <br/>
-    <h1>框架位置</h1>
-    <p>每個版面配置都有各自獨立的位置設定。</p>
-    <p>這些框架的位置已經重置：Cell 主要框架、標記、團隊倒數。</p>
-    <br/>
-    <h1>其他</h1>
-    <p>新增的隊伍/團隊預覽模次可以幫助你更方便的調整各種版面配置。</p>
-    <p>隊伍對齊點的功能來啦！到 版面配置 -&gt; 隊伍排列 那邊看看吧。</p>
-    <br/>
-]]
-L["r32-release"] = [[
-    <h1>指示器</h1>
-    <p>新增指示器：血量文字。</p>
-    <p>新增選項：框架層級。</p>
-    <br/>
-    <h1>副本減益 (Beta)</h1>
-    <p>新增暗影之境的副本減益。目前是使用名稱來追蹤減益，之後會加入 "用 ID 追蹤" 的選項。</p>
-    <p>預設啟用所有的減益，你可能會想要停用一些不是那麼重要的減益。</p>
-    <br/>
-    <h1>其他</h1>
-    <p>修正：標記工具列、滑鼠點擊施法。</p>
-    <p>將 "團隊構成" 文字移到 "團隊" 按鈕的滑鼠提示中。</p>
-    <p>新增 "淡出選單" 的選項。</p>
-]]
-L["r34-release"] = [[
-    <h1>指示器</h1>
-    <p>部分內建的指示器現在有了選項：角色職責圖示，隊長圖示，準備確認圖示，仇恨指示器。</p>
-    <p> "減益 (中間)"  新增了 "邊框" 和 "只顯著標示當前減益" 的選項。</p>
-    <br/>
-    <h1>副本減益 (Beta)</h1>
-    <p>所有減益預設都是啟用的，你可能會想要停用一些不是那麼重要的減益。</p>
-    <p>新增 "符合法術 ID" 選項。</p>
-    <p>新增發光效果的詳細設定選項。</p>
-    <br/>
-    <h1>一般</h1>
-    <p>更新了滑鼠提示相關選項。</p>
-    <br/>
-    <h1>版面配置</h1>
-    <p>"文字寬度" 新增 "隱藏" 選項。</p>
-    <br/>
-]]
-L["r37-release"] = [[
-    <h1>指示器</h1>
-    <p>新指示器：名稱、狀態文字、護盾條。</p>
-    <p>"減益" 指示器新增 "只顯示我能驅散的的減益" 選項。</p>
-    <p>團隊圖示指示器新增 "使用自訂材質" 選項。</p>
-    <br/>
-    <h1>其他</h1>
-    <p>由於指示器的變動，一些字體相關選項被移除了。</p>
-    <p>修正 "戰復計時器" 的框架寬度。</p>
-    <p>新增支援【隊友技能冷卻監控】OmniCD 插件（只有 5 人隊伍）。</p>
-    <br/>
-]]
-L["r39-release"] = [[
-    <h1>指示器</h1>
-    <p>新增指示器：被法術選中。</p>
-    <br/>
-    <h1>版面配置</h1>
-    <p>競技場版面配置新增寵物框架。</p>
-    <br/>
-    <h1>其他</h1>
-    <p>OmniCD 作者即使不加入對 Cell 的支援性，現在應該也能正常運作了。</p>
-    <p>輸入 /cell 可以重置 Cell。當 Cell 出現錯誤時，這多少能有點幫助。</p>
-    <br/>
-]]
 L["Raid"] = "團隊"
 L["Raid Debuffs"] = "副本減益"
 L["Raid Icon (player)"] = "團隊圖示 (玩家)"
@@ -279,11 +216,11 @@ L["Show Battle Res Timer"] = "顯示戰復計時器"
 L["show Cell options frame"] = "打開 Cell 設定選項"
 L["Show Current Instance"] = "顯示當前副本"
 L["Show Marks Bar"] = "顯示標記列"
-L["Show Party"] = "有隊伍時顯示"
+L["Show Party"] = "5人隊伍時要顯示"
 L["Show Party Pets"] = "顯示隊伍寵物"
 L["Show pets while in a party"] = "在隊伍中時顯示寵物"
 L["Show ReadyCheck and PullTimer buttons"] = "顯示準備確認和開怪倒數按鈕"
-L["Show Solo"] = "單人時顯示"
+L["Show Solo"] = "單人時要顯示"
 L["Show the number of tanks/healers/damagers while in raid"] = "在團隊時顯示坦克、治療、輸出的數量"
 L["Show while in a party"] = "在隊伍中時顯示"
 L["Show while not in a group"] = "不在隊伍中時顯示"
@@ -291,6 +228,7 @@ L["showDuration"] = "顯示持續時間文字"
 L["Size"] = "大小"
 L["Slash Commands"] = "聊天指令"
 L["Solo/Party"] = "單人/5人隊伍"
+L["Sort Party By Role"] = "依角色職責排列隊伍"
 L["Spell"] = "法術"
 L["Spell List"] = "法術清單"
 L["Status Text"] = "狀態文字"
@@ -315,16 +253,16 @@ L["To HealthBar's"] = "對齊到血條的"
 L["To open options frame, use /cell options"] = "輸入 /cell options 打開設定選項"
 L["To UnitButton's"] = "對齊到單位按鈕的"
 L["togglemenu"] = "選單"
+L["Tooltips"] = "滑鼠提示"
 L["TOP"] = "上"
 L["TOPLEFT"] = "左上"
 L["TOPRIGHT"] = "右上"
 L["top-to-bottom"] = "從上到下"
 L["Track by ID"] = "符合法術 ID"
 L["Translators"] = "翻譯"
+L["Unit Button"] = "單位按鈕"
 L["Unit Button Size"] = "單位按鈕大小"
 L["Unit Spacing"] = "單位間距"
-L["Unit Tooltips"] = "單位滑鼠提示"
-L["UnitButton Color"] = "單位按鈕顏色"
 L["Unlimited"] = "無限制"
 L["Unlock"] = "解鎖"
 L["Use common profile"] = "使用共用設定檔"

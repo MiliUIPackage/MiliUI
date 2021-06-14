@@ -90,6 +90,9 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
                 name, _, texture, startTimeMS, endTimeMS, _, notInterruptible, spellId = UnitChannelInfo(sourceUnit)
             end
 
+            local previousTarget
+            if cast then previousTarget = cast["targetGUID"] end
+
             if spellId and spells[spellId] then
                 local targetUnit = sourceUnit.."target"
                 if UnitExists(targetUnit) then
@@ -109,6 +112,8 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
                     end
                 end
             end
+            if previousTarget then UpdateCastsOnUnit(previousTarget) end
+
         elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_FAILED_QUIET" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "NAME_PLATE_UNIT_REMOVED" then
             if cast then
                 casts[sourceGUID] = nil
@@ -152,7 +157,9 @@ function I:CreateTargetedSpells(parent)
             frame.stack:SetShadowOffset(1, -1)
             frame.stack:SetShadowColor(0, 0, 0, 1)
         else
-            if flags == "Outline" then
+            if flags == "None" then
+                flags = ""
+            elseif flags == "Outline" then
                 flags = "OUTLINE"
             else
                 flags = "OUTLINE, MONOCHROME"
