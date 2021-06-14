@@ -5,6 +5,8 @@ local _V = addon.variables;
 local WQT_Utils = addon.WQT_Utils;
 local WQT_Profiles = addon.WQT_Profiles;
 
+local MAX_CALLINGS = 3;
+
 local MAP_ANCHORS = {
 	[1543] = "BOTTOMLEFT", -- The Maw
 	[1536] = "BOTTOMLEFT", -- Maldraxxus
@@ -78,6 +80,7 @@ function WQT_CallingsBoardMixin:OnEvent(event, ...)
 		local now = GetTime();
 		if (now - self.lastUpdate > 0.5) then
 			local callings = ...;
+			self:UpdateCovenant();
 			self:ProcessCallings(callings);
 			
 			self.lastUpdate = now;
@@ -147,7 +150,6 @@ function WQT_CallingsBoardMixin:UpdateCovenant()
 end
 
 function WQT_CallingsBoardMixin:ProcessCallings(callings)
-	
 	if (self.isUpdating) then
 		-- 1 Update at a time, ty
 		return;
@@ -188,7 +190,7 @@ function WQT_CallingsBoardMixin:PlaceDisplays()
 		
 		if (display.calling and not display.calling.questID) then
 			-- Not risking Constants.Callings.MaxCallings 
-			display.calling.index = 3 - numInactive;
+			display.calling.index = MAX_CALLINGS - numInactive;
 			numInactive = numInactive + 1;
 		end
 		
@@ -206,7 +208,37 @@ function WQT_CallingsBoardMixin:UpdateVisibility()
 	self:SetShown(self.showOnCurrentMap);
 end
 
+function WQT_CallingsBoardMixin:CalculateUncappedObjectives(calling)
+	local numCompleted = 0;
+	local numTotal = 0;
 
+	for objectiveIndex = 1, calling.numObjectives do
+		local objectiveText, objectiveType, finished, numFulfilled, numRequired = GetQuestObjectiveInfo(calling.questID, objectiveIndex, false);
+		
+		if(objectiveType == "progressbar") then
+			return GetQuestProgressBarPercent(calling.questID), 100;
+		end
+		
+		if objectiveText and #objectiveText > 0 and numRequired > 0 then
+			for objectiveSubIndex = 1, numRequired do
+				if objectiveSubIndex <= numFulfilled then
+					numCompleted = numCompleted + 1;
+				end
+				numTotal = numTotal + 1;
+			end
+		end
+	end
+	
+	return numCompleted, numTotal;
+end
+
+function WQT_CallingsBoardMixin:GetQuestData(questID) 
+	for k, display in ipairs(self.Displays) do
+		if (display.calling and display.calling.questID == questID) then
+			return display.questInfo, display.calling;
+		end
+	end
+end
 
 WQT_CallingsBoardDisplayMixin = {};
 
@@ -217,11 +249,37 @@ end
 
 function WQT_CallingsBoardDisplayMixin:SetCovenant(covenantData)
 	self.covenantData = covenantData;
+	
+	if(covenantData) then
+		local bgAtlas = string.format("covenantsanctum-level-border-%s", covenantData.textureKit:lower());
+		self.ProgressBar.BG:SetAtlas(bgAtlas);
+		
+		local r, g, b = 1, 1, 1;
+		if(covenantData.ID == Enum.CovenantType.Kyrian) then
+			r = 0.6;
+			g = 0.74;
+			b = 0.85;
+		elseif(covenantData.ID == Enum.CovenantType.Venthyr) then
+			r = 0.86;
+			g = 0.11;
+			b = 0.11;
+		elseif(covenantData.ID == Enum.CovenantType.NightFae) then
+			r = 0.31;
+			g = 0.55;
+			b = 1;
+		elseif(covenantData.ID == Enum.CovenantType.Necrolord) then
+			r = 0.05;
+			g = 0.74;
+			b = 0.42;
+		end
+		
+		self.ProgressBar.Glow:SetVertexColor(r, g, b);
+	end
 end
 
 function WQT_CallingsBoardDisplayMixin:Setup(calling, covenantData)
 	self.calling = calling;
-	self.covenantData = covenantData;
+	self:SetCovenant(covenantData);
 	
 	self.timeRemaining = 0;
 	self.questInfo = nil;
@@ -264,8 +322,7 @@ function WQT_CallingsBoardDisplayMixin:Update()
 		local onQuest = C_QuestLog.IsOnQuest(questID);
 		local questComplete =  C_QuestLog.IsComplete(questID);
 		self.Glow:SetShown(not onQuest);
-		
-		
+
 		local bangAtlas = self.calling:GetBang();
 		self.Bang:SetAtlas(bangAtlas);
 		self.BangHighlight:SetAtlas(bangAtlas);
@@ -278,17 +335,29 @@ end
 function WQT_CallingsBoardDisplayMixin:UpdateProgress()
 	self.miniIcons:Reset();
 	self.BangHighlight:Hide();
+	self.ProgressBar:Hide();
 	
 	if (not self.calling:IsActive()) then
 		return;
 	end
 	
-	local progress, goal = WorldMapBountyBoardMixin:CalculateBountySubObjectives(self.calling);
-	
-	if (progress == goal) then 
+	local progress, goal = WQT_CallingsBoardMixin:CalculateUncappedObjectives(self.calling);
+
+	if (progress >= goal) then 
 		self.BangHighlight:Show();
 		return;
 	end
+	
+	if (goal > MAX_BOUNTY_OBJECTIVES) then 
+		self.ProgressBar:Show();
+		local perc = progress / goal;
+		local width = self.ProgressBar:GetWidth();
+		
+		self.ProgressBar.Glow:SetPoint("RIGHT", self.ProgressBar, "LEFT", perc * width, 0);
+	
+		return
+	end
+	
 	
 	for i=1, goal do
 		local icon = self.miniIcons:Create();
@@ -311,51 +380,32 @@ end
 
 function WQT_CallingsBoardDisplayMixin:OnEnter()
 	if (not self.calling) then return; end
-
-	GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
 	
 	if (self.calling.isLockedToday) then 
-		GameTooltip:SetText(self.calling:GetDaysUntilNextString(), HIGHLIGHT_FONT_COLOR:GetRGB());
+		local daysUntilString = "";
+		if (GetBuildInfo() < "9.0.5") then
+			daysUntilString = self.calling:GetDaysUntilNextString();
+		else
+			local days = MAX_CALLINGS - self.calling.index + 1;
+			daysUntilString = _G["BOUNTY_BOARD_NO_CALLINGS_DAYS_" .. days] or BOUNTY_BOARD_NO_CALLINGS_DAYS_1;
+		end
+		
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
+		GameTooltip:SetText(daysUntilString, HIGHLIGHT_FONT_COLOR:GetRGB());
+		GameTooltip:Show();
 	else
 		self.Highlight:Show();
+		if (self.calling:IsActive()) then
+			WQT_Utils:ShowQuestTooltip(self, self.questInfo, _V["TOOLTIP_STYLES"].callingActive);
+		else
+			WQT_Utils:ShowQuestTooltip(self, self.questInfo, _V["TOOLTIP_STYLES"].callingAvailable);
+		end
+		
 
 		local questInfo = self.questInfo;
 		local questID = self.calling.questID;
 		local title = QuestUtils_GetQuestName(questID);
-		GameTooltip_SetTitle(GameTooltip, title);
-		
-		local activeCovenantID = C_Covenants.GetActiveCovenantID();
-		if activeCovenantID and activeCovenantID > 0 then
-			local covenantData = C_Covenants.GetCovenantData(activeCovenantID);
-			if covenantData then
-				GameTooltip_AddNormalLine(GameTooltip, covenantData.name);
-			end
-		end
-		
-		local seconds, timeString, timeColor, _, _, category = WQT_Utils:GetQuestTimeString(questInfo, true, true)
-		if (seconds > 0 or category == _V["TIME_REMAINING_CATEGORY"].expired) then
-			timeColor = seconds <= SECONDS_PER_HOUR  and timeColor or NORMAL_FONT_COLOR;
-			GameTooltip:AddLine(BONUS_OBJECTIVE_TIME_LEFT:format(timeString), timeColor.r, timeColor.g, timeColor.b);
-		end
-		
-		local numObjectives = C_QuestLog.GetNumQuestObjectives(questInfo.questId);
-		for objectiveIndex = 1, numObjectives do
-			local objectiveText, _, finished = GetQuestObjectiveInfo(questInfo.questId, objectiveIndex, false);
-			if ( objectiveText and #objectiveText > 0 ) then
-				local objectiveColor = finished and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR;
-				GameTooltip:AddLine(QUEST_DASH .. objectiveText, objectiveColor.r, objectiveColor.g, objectiveColor.b, true);
-			end
-		end
-		
-		GameTooltip_AddBlankLineToTooltip(GameTooltip);
-		GameTooltip_AddNormalLine(GameTooltip, CALLING_QUEST_TOOLTIP_DESCRIPTION, true);
-		GameTooltip_AddQuestRewardsToTooltip(GameTooltip, questID, TOOLTIP_QUEST_REWARDS_STYLE_CALLING_REWARD);
-	
 	end
-	
-	
-	GameTooltip:Show();
-	GameTooltip.recalculatePadding = true;
 end
 
 function WQT_CallingsBoardDisplayMixin:OnLeave()
@@ -366,24 +416,20 @@ end
 function WQT_CallingsBoardDisplayMixin:OnClick()
 	if (self.calling.isLockedToday) then return; end
 
-	if (IsModifiedClick("QUESTWATCHTOGGLE")) then
-		WQT_Utils:ShiftClickQuest(self.questInfo);
+	local openDetails = false;
+	
+	if (self.calling:GetState() == Enum.CallingStates.QuestActive and not WorldMapFrame:IsMaximized()) then
+		openDetails = true;
+	end
+	
+	if (openDetails) then
+		QuestMapFrame_OpenToQuestDetails(self.calling.questID);
 	else
-		local openDetails = false;
-		
-		if (self.calling:GetState() == Enum.CallingStates.QuestActive and not WorldMapFrame:IsMaximized()) then
-			openDetails = true;
-		end
-		
-		if (openDetails) then
-			QuestMapFrame_OpenToQuestDetails(self.calling.questID);
+		local mapID = GetQuestUiMapID(self.calling.questID, true);
+		if ( mapID ~= 0 ) then
+			WorldMapFrame:SetMapID(mapID);
 		else
-			local mapID = GetQuestUiMapID(self.calling.questID, true);
-			if ( mapID ~= 0 ) then
-				WorldMapFrame:SetMapID(mapID);
-			else
-				OpenWorldMap(C_TaskQuest.GetQuestZoneID(self.calling.questID));
-			end
+			OpenWorldMap(C_TaskQuest.GetQuestZoneID(self.calling.questID));
 		end
 	end
 end

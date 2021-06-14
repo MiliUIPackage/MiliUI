@@ -156,6 +156,12 @@ local function FilterDDFunc(ddFrame)
 			ddFrame:AddButton(info);		
 		end
 		
+		-- Quests types that ignore filters
+		info = ddFrame:CreateButtonInfo("expand");
+		info.text = _L["IGNORES_FILTERS"];
+		info.value = "VIQ";
+		ddFrame:AddButton(info);		
+
 		-- Uninterested
 		info = ddFrame:CreateButtonInfo("checkbox");
 		info.text = _L["UNINTERESTED"];
@@ -214,7 +220,6 @@ local function FilterDDFunc(ddFrame)
 			
 				info = ddFrame:CreateButtonInfo("checkbox");
 			
-				--info.notCheckable = false;
 				local filter = WQT.settings.filters[_V["FILTER_TYPES"].faction];
 				local options = filter.flags;
 				local order = WQT.filterOrders[_V["FILTER_TYPES"].faction] 
@@ -337,6 +342,26 @@ local function FilterDDFunc(ddFrame)
 					info.value = "OldFilters" .. value;
 					ddFrame:AddButton(info);
 				end
+			elseif (value == "VIQ") then
+				-- Callings 
+				info = ddFrame:CreateButtonInfo("checkbox");
+				info.text = CALLINGS_QUESTS;
+				info.func = function(_, _, _, value)
+						WQT.settings.general.filterPasses.calling = value;
+						WQT_QuestScrollFrame:UpdateQuestList();
+					end
+				info.checked = function() return WQT.settings.general.filterPasses.calling end;	
+				ddFrame:AddButton(info);
+				
+				-- Threat
+				info = ddFrame:CreateButtonInfo("checkbox");
+				info.text = REPORT_THREAT;
+				info.func = function(_, _, _, value)
+						WQT.settings.general.filterPasses.threat = value;
+						WQT_QuestScrollFrame:UpdateQuestList();
+					end
+				info.checked = function() return WQT.settings.general.filterPasses.threat end;	
+				ddFrame:AddButton(info);
 			end
 		end
 	elseif level == 3 then
@@ -795,6 +820,7 @@ function WQT:TrackDDFunc(ddFrame)
 			info.text = TRACK_QUEST;
 			info.func = function()
 						C_QuestLog.AddWorldQuestWatch(questID, Enum.QuestWatchType.Manual);
+						C_SuperTrack.SetSuperTrackedQuestID(questID);
 						if WQT_WorldQuestFrame:GetAlpha() > 0 then 
 							WQT_QuestScrollFrame:DisplayQuestList();
 						end
@@ -816,9 +842,20 @@ function WQT:TrackDDFunc(ddFrame)
 	
 	ddFrame:AddButton(info);
 	
+	-- LFG if possible
+	info = ddFrame:CreateButtonInfo("option");
+	if (WQT_WorldQuestFrame:ShouldAllowLFG(questInfo)) then
+		info.text = OBJECTIVES_FIND_GROUP;
+		info.func = function()
+			WQT_WorldQuestFrame:SearchGroup(questInfo);
+		end
+		ddFrame:AddButton(info);
+	end
+	
 	-- Dislike toggle
 	info = ddFrame:CreateButtonInfo("checkbox");
 	
+	info.keepShownOnClick = false;
 	info.text = _L["UNINTERESTED"];
 	info.func = function()
 			local dislike = not WQT_Utils:QuestIsDisliked(questID);
@@ -831,16 +868,6 @@ function WQT:TrackDDFunc(ddFrame)
 			end
 	
 	ddFrame:AddButton(info);
-	
-	-- LFG if possible
-	info = ddFrame:CreateButtonInfo("option");
-	if (WQT_WorldQuestFrame:ShouldAllowLFG(questInfo)) then
-		info.text = OBJECTIVES_FIND_GROUP;
-		info.func = function()
-			WQT_WorldQuestFrame:SearchGroup(questInfo);
-		end
-		ddFrame:AddButton(info);
-	end
 	
 	WQT_WorldQuestFrame:TriggerCallback("InitTrackDropDown", ddFrame)
 	
@@ -894,6 +921,9 @@ function WQT:IsFiltering()
 end
 
 function WQT:PassesAllFilters(questInfo)
+	-- Filter pass
+	if(WQT_Utils:QuestIsVIQ(questInfo)) then return true; end
+	
 	if (WQT.settings.general.emissaryOnly or WQT_WorldQuestFrame.autoEmisarryId) then 
 		return questInfo:IsCriteria(WQT.settings.general.bountySelectedOnly or WQT_WorldQuestFrame.autoEmisarryId);
 	end
@@ -1098,6 +1128,8 @@ function WQT:OnEnable()
 	end
 
 	wipe(_V["SETTING_LIST"]);
+	
+	self.isEnabled = true;
 end
 
 ------------------------------------------
@@ -1242,7 +1274,7 @@ function WQT_ListButtonMixin:OnLoad()
 	self.TrackedBorder:SetFrameLevel(self:GetFrameLevel() + 2);
 	self.Highlight:SetFrameLevel(self:GetFrameLevel() + 2);
 	self:EnableKeyboard(false);
-	self.UpdateTooltip = function() WQT_Utils:ShowQuestTooltip(self, self.questInfo) end;
+	self.UpdateTooltip = function() self:OnEnter() end;
 	self.timer = 0;
 end
 
@@ -1293,12 +1325,22 @@ end
 
 function WQT_ListButtonMixin:OnEnter()
 	local questInfo = self.questInfo;
+	if (not questInfo) then return; end
 	self.Highlight:Show();
 	
 	WQT_WorldQuestFrame.pinDataProvider:SetQuestIDPinged(self.questInfo.questId, true);
 	WQT_WorldQuestFrame:ShowWorldmapHighlight(questInfo.questId);
-	WQT_Utils:ShowQuestTooltip(self, questInfo);
 	
+	local style = _V["TOOLTIP_STYLES"].default;
+	if (questInfo:IsQuestOfType(WQT_QUESTTYPE.calling)) then
+		if (C_QuestLog.IsOnQuest(questInfo.questId)) then
+			style = _V["TOOLTIP_STYLES"].callingActive;
+		else
+			style = _V["TOOLTIP_STYLES"].callingAvailable;
+		end
+	end
+
+	WQT_Utils:ShowQuestTooltip(self, questInfo, style);
 	self:SetAlpha(1);
 end
 
@@ -1576,16 +1618,26 @@ function WQT_ScrollListMixin:FilterQuestList()
 	for k, questInfo in ipairs(self.questList) do
 		questInfo.passedFilter = false;
 		if (questInfo.isValid and not questInfo.alwaysHide and questInfo.hasRewardData and not questInfo:IsExpired()) then
-			local pass = BlizFiltering and WorldMap_DoesWorldQuestInfoPassFilters(questInfo) or not BlizFiltering;
-			if (pass and WQTFiltering) then
-				pass = WQT:PassesAllFilters(questInfo);
+			local passed = false;
+			-- Filter passes don't care about anything else
+			if(WQT_Utils:QuestIsVIQ(questInfo)) then 
+				passed = true;
+			else
+				-- Official filtering
+				passed = BlizFiltering and WorldMap_DoesWorldQuestInfoPassFilters(questInfo) or not BlizFiltering;
+				-- Add-on filters
+				if (passed and WQTFiltering) then
+					passed = WQT:PassesAllFilters(questInfo);
+				end
 			end
 			
-			questInfo.passedFilter = pass;
+			questInfo.passedFilter = passed;
+			
 			if (questInfo.passedFilter) then
 				table.insert(self.questListDisplay, questInfo);
 			end
 		end
+		
 		-- In debug, still filter, but show everything.
 		if (not questInfo.passedFilter and addon.debug) then
 				table.insert(self.questListDisplay, questInfo);
@@ -2042,9 +2094,6 @@ function WQT_CoreMixin:OnLoad()
 	self:RegisterEvent("PLAYER_LOGOUT");
 	
 	self:SetScript("OnEvent", function(self, event, ...) 
-			--if	(self.dataProvider) then
-			--	self.dataProvider:OnEvent(event, ...);
-			--end
 			if (self[event]) then 
 				self[event](self, ...) 
 			else 
@@ -2205,12 +2254,6 @@ function WQT_CoreMixin:OnLoad()
 		tab:SetPoint(point, relativeTo, relativePoint, x, y + 2);
 	end)
 	
-	
-	-- Show hightlight in list when hovering over official map pinDataProvider
-	--hooksecurefunc("TaskPOI_OnEnter", function(self)
-	--		
-	--	end)
-
 	hooksecurefunc("TaskPOI_OnLeave", function(self)
 			if (WQT.settings.pin.disablePoI) then return; end
 			
@@ -2254,7 +2297,8 @@ function WQT_CoreMixin:OnLoad()
 			end
 		end);
 
-	LFGListSearchPanelScrollFrame.StartGroupButton:HookScript("OnClick", function() 
+	local LFGParent = LFGListSearchPanelScrollFrameScrollChild;
+	LFGParent.StartGroupButton:HookScript("OnClick", function() 
 			-- If we are creating a group because we couldn't find one, show the info on the create frame
 			if InCombatLockdown() then return; end
 			local searchString = LFGListFrame.SearchPanel.SearchBox:GetText();
@@ -2273,43 +2317,6 @@ function WQT_CoreMixin:OnLoad()
 				WQT_GroupSearch:Show();
 			end
 		end)
-		
-	
-	hooksecurefunc("TaskPOI_OnEnter", function(poi) 
-			if (WQT.settings.pin.disablePoI) then return; end
-			
-			if (poi.questID ~= WQT_QuestScrollFrame.PoIHoverId) then
-				WQT_QuestScrollFrame.PoIHoverId = poi.questID;
-				WQT_QuestScrollFrame:UpdateQuestList(true);
-			end
-			poi.notTracked = not QuestUtils_IsQuestWatched(poi.questID);
-			
-			-- Improve official tooltips overlap
-			local level = GameTooltip:GetFrameLevel();
-			ShoppingTooltip1:SetFrameLevel(level + 1);
-			ShoppingTooltip2:SetFrameLevel(level + 1);
-
-			-- Add quest info to daily quests
-			local questInfo = self.dataProvider:GetQuestById(poi.questID);
-			if(questInfo and (questInfo.isDaily)) then
-				WorldMap_AddQuestTimeToTooltip(poi.questID);
-				if (poi.numObjectives and type(poi.numObjectives) == "number") then
-					for objectiveIndex = 1, poi.numObjectives do
-						local objectiveText, _, finished, numFulfilled, numRequired = GetQuestObjectiveInfo(poi.questID, objectiveIndex, false);
-						if(poi.shouldShowObjectivesAsStatusBar) then 
-							local percent = math.floor((numFulfilled/numRequired) * 100);
-							GameTooltip_ShowProgressBar(GameTooltip, 0, numRequired, numFulfilled, PERCENTAGE_STRING:format(percent));
-						elseif ( objectiveText and #objectiveText > 0 ) then
-							local color = finished and GRAY_FONT_COLOR or HIGHLIGHT_FONT_COLOR;
-							GameTooltip:AddLine(QUEST_DASH .. objectiveText, color.r, color.g, color.b, true);
-						end
-					end
-				end
-			
-				WQT_Utils:AddQuestRewardsToTooltip(GameTooltip, poi.questID);
-				GameTooltip:Show();
-			end
-		end);
 
 	-- Hook hiding of official pins if we replace them with our own
 	local mapWQProvider = WQT_Utils:GetMapWQProvider();
@@ -2487,6 +2494,8 @@ end
 
 -- Only allow LFG for quests that would actually allow it
 function WQT_CoreMixin:ShouldAllowLFG(questInfo)
+	if (not questInfo) then return false; end
+
 	local tagInfo;
 	if (type(questInfo) == "number") then
 		tagInfo = C_QuestLog.GetQuestTagInfo(questInfo);
@@ -2589,10 +2598,7 @@ function WQT_CoreMixin:PLAYER_LOGOUT()
 end
 
 function WQT_CoreMixin:QUEST_WATCH_LIST_CHANGED(...)
-	local questId, added = ...;
-
 	self.ScrollFrame:DisplayQuestList();
-	WQT_WorldQuestFrame.pinDataProvider:RefreshAllData();
 end
 
 function WQT_CoreMixin:TAXIMAP_OPENED(system)
@@ -2704,6 +2710,7 @@ function WQT_CoreMixin:SelectTab(tab)
 	if self.selectedTab ~= tab then
 		ADD:CloseAll();
 		PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
+		WQT_WorldQuestFrame.pinDataProvider:RefreshAllData();
 	end
 	self.selectedTab = tab;
 	
@@ -2715,7 +2722,6 @@ function WQT_CoreMixin:SelectTab(tab)
 	WQT_TabWorld.Hider:Show();
 
 	-- Hide/show when quest details are shown
-	WQT_WorldQuestFrame.pinDataProvider:RefreshAllData();
 	QuestMapFrame_UpdateQuestSessionState(QuestMapFrame);
 	self:HideOverlayFrame();
 
@@ -2801,8 +2807,11 @@ function WQT_CoreMixin:ChangeAnchorLocation(anchor)
 end
 
 function WQT_CoreMixin:LoadExternal(external)
-	external:Init(WQT_Utils);
-	WQT:debugPrint("External", external:GetName(), "loaded on first try.");
+	if (self.isEnabled and external:IsLoaded()) then
+		external:Init(WQT_Utils);
+	else
+		tinsert(addon.externals, external);
+	end
 end
 
 
