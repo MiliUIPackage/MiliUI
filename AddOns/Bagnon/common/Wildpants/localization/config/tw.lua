@@ -50,7 +50,7 @@ L.Spacing = '間距'
 L.Alpha = '透明度'
 
 -- auto display
-L.DisplayOptions = '自動顯示'
+L.DisplayOptions = '自動開關'
 L.DisplayOptionsDesc = '讓你設定在遊戲事件中背包自動開啟或關閉。'
 L.DisplayInventory = '顯示背包'
 L.CloseInventory = '關閉背包'
@@ -79,6 +79,7 @@ L.GlowNew = '高亮新物品'
 L.GlowQuest = '高亮任務物品'
 L.GlowUnusable = '高亮無法使用的物品'
 L.GlowSets = '高亮裝備設定物品'
+L.GlowPoor = '標記垃圾物品'
 L.ColorSlots = '根據背包類型高亮空的槽'
 
 
