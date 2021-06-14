@@ -1,7 +1,7 @@
 ## Interface: 90005
 ## Title: OmniCC Config
 ## Notes: OmniCC's configuration menu
-## Title-zhTW: |cFF0099FF[介面]|r 冷卻時間-設定選項
+## Title-zhTW: |cff00CCFF[快捷列]|r 冷卻時間-設定選項
 ## Notes-zhTW: OmniCC Config |n冷卻倒數計時的設定選項。
 ## Author: Tuller
 ## Dependencies: OmniCC

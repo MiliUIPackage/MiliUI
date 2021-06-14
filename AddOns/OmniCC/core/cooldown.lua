@@ -35,7 +35,6 @@ local function GetGCDTimeRemaining()
     return (start + duration) - GetTime()
 end
 
-
 function Cooldown:CanShowText()
     if self.noCooldownCount then
         return false
@@ -144,7 +143,8 @@ function Cooldown:GetKind()
     end
 
     if cdType == COOLDOWN_TYPE_NORMAL then
-        return "default"
+        return 'default'
+
     end
 
     local parent = self:GetParent()
@@ -228,14 +228,14 @@ end
 
 function Cooldown:UpdateStyle()
     local settings = self._occ_settings
-    if settings and not settings.drawSwipes then
-        self:SetDrawSwipe(false)
-    else
-        -- only call SetDrawSwipe if we have a value set for _occ_draw_swipe
-        -- otherwise we may unintentionally hide cooldown swipes
-        local drawSwipes = self._occ_draw_swipe
-        if drawSwipes ~= nil then
-            self:SetDrawSwipe(drawSwipes)
+    if not settings then
+        return
+    end
+
+    local opacity = tonumber(settings.cooldownOpacity) or 1
+    if opacity < 1 then
+        if self:GetAlpha() ~= opacity then
+            self:SetAlpha(opacity)
         end
     end
 end
@@ -245,18 +245,15 @@ do
 
     local updater = Addon:CreateHiddenFrame('Frame')
 
-    updater:SetScript(
-        'OnUpdate',
-        function(self)
-            for cooldown in pairs(pending) do
-                Cooldown.UpdateText(cooldown)
-                Cooldown.UpdateStyle(cooldown)
-                pending[cooldown] = nil
-            end
-
-            self:Hide()
+    updater:SetScript('OnUpdate', function(self)
+        for cooldown in pairs(pending) do
+            Cooldown.UpdateText(cooldown)
+            Cooldown.UpdateStyle(cooldown)
+            pending[cooldown] = nil
         end
-    )
+
+        self:Hide()
+    end)
 
     function Cooldown:RequestUpdate()
         if not pending[self] then
@@ -299,7 +296,6 @@ function Cooldown:SetTimer(start, duration)
     self._occ_kind = Cooldown.GetKind(self)
     self._occ_priority = Cooldown.GetPriority(self)
     self._occ_show = Cooldown.CanShowText(self)
-    self._occ_draw_swipe = self:GetDrawSwipe()
 
     Cooldown.RequestUpdate(self)
 end
@@ -382,7 +378,8 @@ function Cooldown:SetupHooks()
 
     hooksecurefunc(Cooldown_MT, 'SetCooldown', Cooldown.OnSetCooldown)
     hooksecurefunc(Cooldown_MT, 'SetCooldownDuration', Cooldown.OnSetCooldownDuration)
-    hooksecurefunc('CooldownFrame_SetDisplayAsPercentage', Cooldown.SetDisplayAsPercentage)
+    hooksecurefunc('CooldownFrame_SetDisplayAsPercentage',
+                   Cooldown.SetDisplayAsPercentage)
 end
 
 function Cooldown:UpdateSettings(force)

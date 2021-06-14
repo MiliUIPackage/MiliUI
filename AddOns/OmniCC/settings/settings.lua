@@ -1,10 +1,8 @@
 -- Saved settings setup for OmniCC
-
 local AddonName, Addon = ...
 
 local DB_NAME = AddonName .. 'DB'
-local DB_VERSION = 5
-
+local DB_VERSION = 6
 local LEGACY_DB_NAME = 'OmniCC4Config'
 
 function Addon:InitializeDB()
@@ -33,7 +31,10 @@ end
 
 function Addon:GetDBDefaults()
     return {
-        global = {},
+        global = {
+            -- set to true to automatically disable blizzard cooldown count
+            disableBlizzardCooldownText = true
+        },
         profile = {
             rules = {
                 ['**'] = {
@@ -96,62 +97,20 @@ function Addon:GetDBDefaults()
                     anchor = 'CENTER',
                     xOff = 0,
                     yOff = 0,
-                    -- draw cooldown backgrounds
-                    drawSwipes = true,
+                    -- cooldown opacity
+                    cooldownOpacity = 1,
                     textStyles = {
-                        ['**'] = {
-                            r = 1,
-                            g = 1,
-                            b = 1,
-                            a = 1,
-                            scale = 1
-                        },
-                        soon = {
-                            r = 1,
-                            g = .1,
-                            b = .1,
-                            scale = 1.5
-                        },
-                        seconds = {
-                            r = 1,
-                            g = 1,
-                            b = .1
-                        },
-                        minutes = {
-                            r = 1,
-                            g = 1,
-                            b = 1
-                        },
-                        hours = {
-                            r = .7,
-                            g = .7,
-                            b = .7,
-                            scale = .75
-                        },
-                        days = {
-                            r = .7,
-                            g = .7,
-                            b = .7,
-                            scale = .75
-                        },
-                        charging = {
-                            r = 0.8,
-                            g = 1,
-                            b = .3,
-                            a = .8,
-                            scale = .75
-                        },
-                        controlled = {
-                            r = 1,
-                            g = .1,
-                            b = .1,
-                            scale = 1.5
-                        }
+                        ['**'] = {r = 1, g = 1, b = 1, a = 1, scale = 1},
+                        soon = {r = 1, g = .1, b = .1, scale = 1.5},
+                        seconds = {r = 1, g = 1, b = .1},
+                        minutes = {r = 1, g = 1, b = 1},
+                        hours = {r = .7, g = .7, b = .7, scale = .75},
+                        days = {r = .7, g = .7, b = .7, scale = .75},
+                        charging = {r = 0.8, g = 1, b = .3, a = .8, scale = .75},
+                        controlled = {r = 1, g = .1, b = .1, scale = 1.5}
                     }
                 },
-                [DEFAULT] = {
-                    name = DEFAULT
-                }
+                [DEFAULT] = {name = DEFAULT}
             }
         }
     }
@@ -162,37 +121,32 @@ function Addon:AddDefaultRulesets(db)
         id = 'auras',
         name = AURAS,
         enabled = false,
-        patterns = {
-            'Aura',
-            'Buff',
-            'Debuff'
-        }
+        patterns = {'Aura', 'Buff', 'Debuff'}
     })
 
     table.insert(db.profile.rules, {
         id = 'plates',
         enabled = false,
         name = UNIT_NAMEPLATES,
-        patterns = {
-            'Plate'
-        }
+        patterns = {'Plate'}
     })
 
     table.insert(db.profile.rules, {
         id = 'actions',
         enabled = false,
         name = ACTIONBARS_LABEL,
-        patterns = {
-            'ActionButton'
-        }
+        patterns = {'ActionButton'}
     })
 end
 
 function Addon:UpgradeDB()
     local dbVersion = self.db.global.dbVersion
+
     if dbVersion ~= DB_VERSION then
         if dbVersion == nil then
             self:MigrateLegacySettings(_G[LEGACY_DB_NAME])
+        elseif dbVersion < 6 then
+            self:MigrateDrawSwipesSetting()
         end
 
         self.db.global.dbVersion = DB_VERSION
@@ -238,7 +192,8 @@ function Addon:MigrateLegacySettings(legacyDb)
     if type(oldGroupSettings) == 'table' then
         for id, group in pairs(oldGroupSettings) do
             -- apply the old settings
-            local theme = copyTable(group, self.db.profile.themes[getThemeID(id)])
+            local theme = copyTable(group,
+                                    self.db.profile.themes[getThemeID(id)])
 
             -- enabled -> enableText
             theme.enableText = theme.enabled
@@ -256,18 +211,24 @@ function Addon:MigrateLegacySettings(legacyDb)
         for i = #oldGroups, 1, -1 do
             local group = oldGroups[i]
 
-            tinsert(
-                self.db.profile.rules,
-                1,
-                {
-                    id = getThemeID(group.id),
-                    theme = getThemeID(group.id),
-                    -- group.rules -> patterns
-                    patterns = copyTable(group.rules),
-                    enabled = group.enabled,
-                    priority = i
-                }
-            )
+            table.insert(self.db.profile.rules, 1, {
+                id = getThemeID(group.id),
+                theme = getThemeID(group.id),
+                -- group.rules -> patterns
+                patterns = copyTable(group.rules),
+                enabled = group.enabled,
+                priority = i
+            })
+        end
+    end
+
+    return true
+end
+
+function Addon:MigrateDrawSwipesSetting()
+    for _, theme in pairs(self.db.profile.themes) do
+        if theme.drawSwipes == false then
+            theme.cooldownOpacity = 0
         end
     end
 
