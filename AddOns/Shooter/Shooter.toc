@@ -1,0 +1,9 @@
+## Interface: 90005
+## Title: Shooter
+## Notes: Takes a screenshot when you earn an achievement.
+## Title-zhTW: |r|cFFFFFFFF[其他]|r 成就自動擷圖
+## Notes-zhTW: Shooter |n獲得成就時會自動擷取螢幕畫面，為你的魔獸生活捕捉難忘的回憶。
+## Author: Akcent
+## Version: 1.0.8
+
+Shooter.lua

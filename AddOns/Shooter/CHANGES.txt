@@ -1,0 +1,12 @@
+lightweight tag d4aecbd4bea90c1c4102489e0dcb6096fdb1d127 1.0.8
+Author:	Charles Sarrazin <charles@sarraz.in>
+Date:	Tue Jan 15 21:55:55 2019 +0100
+
+commit d4aecbd4bea90c1c4102489e0dcb6096fdb1d127
+Author: Charles Sarrazin <charles@sarraz.in>
+Date:   Tue Jan 15 21:55:55 2019 +0100
+
+    Update Shooter.toc
+    
+    Update ToC for WOW 8.1
+
