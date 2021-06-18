@@ -457,7 +457,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       ShowFocusHighlight = true,
       ShowMouseoverHighlight = true,
       ForceHealthbarOnTarget = false,
-      ForceOutOfCombat = true,
+      ForceOutOfCombat = false,
       ForceNonAttackableUnits = true,
       ForceFriendlyInCombat = "NONE",
       --
@@ -693,7 +693,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         ShowUnlimitedInInstances = false,
         ShowUnlimitedOnBosses = true,
         HideUnlimitedDuration = false,
-        Scale = 1,
+        Scale = 1.2,
         FilterMode = "Block",
         FilterBySpell = {},
       },
@@ -706,7 +706,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         ShowEnemy = true,
         ShowAllEnemy = (Addon.CLASSIC and true) or false,
         ShowBlizzardForEnemy = (Addon.CLASSIC and false) or true,
-        Scale = 1,
+        Scale = 1.5,
         FilterMode = "Block",
         FilterBySpell = {},
       },
@@ -1496,7 +1496,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       },
       skullicon = {
         scale = 12,
-        x = -69, -- old default: 55
+        x = -55, -- old default: 55
         y = 0,
         anchor = "CENTER",
         show = true,
