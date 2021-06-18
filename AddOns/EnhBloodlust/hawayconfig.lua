@@ -10,7 +10,7 @@ EnhBloodlustConfig = {};
 local config = EnhBloodlustConfig;
 
 -- Bloodlust, Heroism, Time Warp, Ancient Hysteria
-config.spells = {2825, 32182, 80353, 90355, 160452, 178207, 230935, 264667, 256740, 292686}
+config.spells = {2825, 32182, 80353, 90355, 160452, 178207, 230935, 264667, 256740, 292686, 309658}
 
 config.sound = {
 	-- 加入音樂檔案路徑，一行一首歌，結尾加上逗號，會隨機播放。
