@@ -70,9 +70,9 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20210513150709"),
-	DisplayVersion = "9.0.28", -- the string that is shown as version
-	ReleaseRevision = releaseDate(2021, 5, 13) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	Revision = parseCurseDate("20210614215234"),
+	DisplayVersion = "9.0.30", -- the string that is shown as version
+	ReleaseRevision = releaseDate(2021, 6, 14) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -143,10 +143,10 @@ DBM.DefaultOptions = {
 	SpecialWarningSound4 = 9278,--"Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg"
 	SpecialWarningSound5 = 128466,--"Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg"
 	ModelSoundValue = "Short",
-	CountdownVoice = "VP:VV",
+	CountdownVoice = "Corsica",
 	CountdownVoice2 = "Kolt",
 	CountdownVoice3 = "Smooth",
-	ChosenVoicePack = "VV",
+	ChosenVoicePack = "None",
 	VoiceOverSpecW2 = "DefaultOnly",
 	AlwaysPlayVoice = false,
 	EventSoundVictory2 = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\SmoothMcGroove_Fanfare.ogg",
@@ -830,7 +830,7 @@ do
 	local args = setmetatable({}, argsMT)
 
 	function argsMT.__index:IsSpellID(...)
-		return tIndexOf({...}, self.spellId) ~= nil
+		return tIndexOf({...}, args.spellId) ~= nil
 	end
 
 	function argsMT.__index:IsPlayer()
@@ -7520,7 +7520,7 @@ do
 	function DBM:DemoMode()
 		if not testMod then
 			testMod = self:NewMod("TestMod")
-			self:GetModLocalization("TestMod"):SetGeneralLocalization{ name = "Test Mod" }
+			self:GetModLocalization("TestMod"):SetGeneralLocalization{ name = "測試模式" }
 			testWarning1 = testMod:NewAnnounce("%s", 1, "136116")--Interface\\Icons\\Spell_Nature_WispSplode
 			testWarning2 = testMod:NewAnnounce("%s", 2, "136194")
 			testWarning3 = testMod:NewAnnounce("%s", 3, "135826")
@@ -7934,6 +7934,19 @@ function bossModPrototype:UnregisterOnUpdateHandler()
 	self.elapsed = nil
 	self.updateInterval = nil
 	twipe(updateFunctions)
+end
+
+function bossModPrototype:SetStage(stage)
+	if stage == 0 then--Increment request instead of hard value
+		self.vb.phase = self.vb.phase + 1
+	else
+		self.vb.phase = stage
+	end
+	if self.inCombat then--Safety, in event mod manages to run any phase change calls out of combat/during a wipe we'll just safely ignore it
+		fireEvent("DBM_SetStage", self, self.id, self.vb.phase, self.encounterId)--Mod, modId, Stage, Encounter Id (if available).
+		--Note, in Wrath dungeons some encounters return multiple Ids years ago, but blizzard consolidated them recently such as 217, 265 consolidated to just 1972
+		--TODO, see if Wrath Classic uses consolidated Ids or original dual Id system. if wrath classic uses dual Ids, DBM_SetStage using self.encounterId will need to be fixed
+	end
 end
 
 --------------
@@ -12304,7 +12317,7 @@ end
 
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
-	if not revision or revision == "20210513150709" then
+	if not revision or revision == "20210614215234" then
 		-- bad revision: either forgot the svn keyword or using github
 		revision = DBM.Revision
 	end
@@ -12620,7 +12633,7 @@ do
 							addsIconSet[scanID] = nil
 							return
 						end
-					elseif guid2 and (guid2 == creatureID or cid2 == creatureID or cid2 == secondCreatureID) and not addsGUIDs[guid2] then
+					elseif guid2 and ((guid2 == creatureID) or (cid2 == creatureID) or (cid2 == secondCreatureID)) and not addsGUIDs[guid2] then
 						DBM:Debug("Match found, SHOULD be setting icon", 2)
 						if iconSetMethod == 2 then
 							SetRaidTarget(unitid2, mobIcon)
@@ -12676,7 +12689,7 @@ do
 							addsIconSet[scanID] = nil
 							return
 						end
-					elseif guid and (guid == creatureID or cid == creatureID or cid == secondCreatureID) and not addsGUIDs[guid] then
+					elseif guid and ((guid == creatureID) or (cid == creatureID) or (cid == secondCreatureID)) and not addsGUIDs[guid] then
 						DBM:Debug("Match found, SHOULD be setting icon", 2)
 						if iconSetMethod == 2 then
 							SetRaidTarget(unitid, mobIcon)
