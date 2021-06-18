@@ -6,8 +6,8 @@ addon.db = {
     general = {
         scale             = 1.2,                    --縮放
         mask              = false,                  --頂部遮罩層
-        bgfile            = "rock",                 --背景
-        background        = {0.1333333333333333, 0.1333333333333333, 0.1333333333333333, 1},  --背景顔色和透明度
+        bgfile            = "Solid",                --背景
+        background        = {0.133, 0.133, 0.133, 1},  --背景顔色和透明度
         borderSize        = 1,                      --邊框大小（直角邊框才生效）
         borderCorner      = "angular",              --邊框類型 default|angular:直角邊框
         borderColor       = {0.18, 0.18, 0.18, 1},  --邊框顔色和透明度
@@ -34,7 +34,7 @@ addon.db = {
     unit = {
         player = {
             coloredBorder = "class",                --玩家邊框顔色 default|class|level|reaction|itemQuality|selection|faction|HEX
-            background = { colorfunc = "default", alpha = 0.9, },
+            background = { colorfunc = "default", alpha = 1, },
             anchor = { position = "inherit", hiddenInCombat = false, returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             showTarget = true,                      --顯示目標
             showTargetBy = true,                    --顯示被關注
@@ -75,7 +75,7 @@ addon.db = {
         },
         npc = {
             coloredBorder = "reaction",
-            background = { colorfunc = "default", alpha = 0.9, },
+            background = { colorfunc = "default", alpha = 1, },
             showTarget = true,
             showTargetBy = true,
             grayForDead = false,
@@ -105,8 +105,8 @@ addon.db = {
         showItemIcon = true,      --物品圖標
     },
     spell = {
-        borderColor = {0.18, 0.18, 0.18, 1},
-        background = {0.18, 0.18, 0.18, 1},
+        borderColor = {0.133, 0.133, 0.133, 1},
+        background = {0.133, 0.133, 0.133, 1},
         showIcon = true,
     },
     quest = {
