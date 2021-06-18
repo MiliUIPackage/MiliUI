@@ -9,7 +9,7 @@ local TidyPlatesCore = CreateFrame("Frame", nil, WorldFrame)
 -- Local References
 local _
 local max, gsub, tonumber = math.max, string.gsub, tonumber
-local select, pairs, tostring  = select, pairs, tostring 			    -- Local function copy
+local select, pairs, tostring = select, pairs, tostring 			    -- Local function copy
 
 -- WoW APIs
 local wipe, strsplit = wipe, strsplit
@@ -33,7 +33,6 @@ local UnitNameplateShowsWidgetsOnly = UnitNameplateShowsWidgetsOnly
 local TidyPlatesThreat = TidyPlatesThreat
 local Widgets = Addon.Widgets
 local Animations = Addon.Animations
-local LibClassicCasterino = Addon.LibClassicCasterino
 local BackdropTemplate = Addon.BackdropTemplate
 
 local GetNameForNameplate
@@ -53,7 +52,7 @@ if Addon.CLASSIC then
   UnitEffectiveLevel = function(...) return _G.UnitLevel(...) end
 
   UnitChannelInfo = function(...)
-    local text, _, texture, startTime, endTime, _, _, _, spellID = LibClassicCasterino:UnitChannelInfo(...)
+    local text, _, texture, startTime, endTime, _, _, _, spellID = Addon.LibClassicCasterino:UnitChannelInfo(...)
 
     -- With LibClassicCasterino, startTime is nil sometimes which means that no casting information
     -- is available
@@ -65,7 +64,7 @@ if Addon.CLASSIC then
   end
 
   UnitCastingInfo = function(...)
-    local text, _, texture, startTime, endTime, _, _, _, spellID = LibClassicCasterino:UnitCastingInfo(...)
+    local text, _, texture, startTime, endTime, _, _, _, spellID = Addon.LibClassicCasterino:UnitCastingInfo(...)
 
     -- With LibClassicCasterino, startTime is nil sometimes which means that no casting information
     -- is available
@@ -146,7 +145,7 @@ local UpdateStyle
 local UpdatePlate_SetAlpha, UpdatePlate_SetAlphaOnUpdate
 local UpdatePlate_Transparency
 
-local UpdateIndicator_CustomText, UpdateIndicator_CustomScale, UpdateIndicator_CustomScaleText, UpdateIndicator_Standard
+local UpdateIndicator_CustomScale, UpdateIndicator_CustomScaleText, UpdateIndicator_Standard
 local UpdateIndicator_Level, UpdateIndicator_RaidIcon
 local UpdateIndicator_EliteIcon, UpdateIndicator_Name
 local UpdateIndicator_HealthBar
@@ -302,9 +301,9 @@ do
 		style = extended.style
 
 		if style and (extended.stylename ~= stylename) then
+      extended.stylename = stylename
+      unit.style = stylename
       UpdateStyle()
-			extended.stylename = stylename
-			unit.style = stylename
 
       Addon.CreateExtensions(extended, unit.unitid, stylename)
       Widgets:OnUnitAdded(extended, unit)
@@ -767,29 +766,10 @@ do
     if unit.health then
 			-- Scale
       extended:SetScale(Addon.UIScale * Addon:SetScale(unit))
-
-			-- Set Special-Case Regions
-			if style.customtext.show then
-        local text, r, g, b, a = Addon:SetCustomText(unit)
-        visual.customtext:SetText( text or "")
-        visual.customtext:SetTextColor(r or 1, g or 1, b or 1, a or 1)
-			end
-
+      Addon.SetCustomText(extended, unit)
       Addon:UpdateIndicatorNameplateColor(extended)
 		end
 	end
-
-  function UpdateIndicator_CustomText(tp_frame)
-    local style = tp_frame.style.customtext
-    local unit = tp_frame.unit
-    local customtext = tp_frame.visual.customtext
-
-    if style.show then
-      local text, r, g, b, a = Addon:SetCustomText(unit)
-      customtext:SetText( text or "")
-      customtext:SetTextColor(r or 1, g or 1, b or 1, a or 1)
-    end
-  end
 
 	-- OnShowCastbar
 	function OnStartCasting(plate, unitid, channeled)
@@ -1091,7 +1071,8 @@ do
       else
         -- just update the name
         UpdateIndicator_Name()
-        UpdateIndicator_CustomText(extended) -- if it's an NPC, subtitle is saved by name, change that to guid/unitid
+        -- if it's an NPC, subtitle is saved by name, change that to guid/unitid
+        Addon.SetCustomText(extended, extended.unit)
       end
     end
   end
@@ -1402,7 +1383,7 @@ do
       unit.healthmax = _G.UnitHealthMax(unit.unitid) or 1
 
       Addon.UpdateExtensions(tp_frame, unitid, tp_frame.stylename)
-      UpdateIndicator_CustomText(tp_frame)
+      Addon.SetCustomText(tp_frame, unit)
     end
   end
 
@@ -1430,14 +1411,14 @@ do
   end
 
   -- Only registered for player unit
-  --local RIGHTEOUS_FURY_SPELL_IDs = { 20468, 20469, 20470, 25780 }
+  local RIGHTEOUS_FURY_SPELL_IDs = { [20468] = true, [20469] = true, [20470] = true, [25780] = true }
   local function UNIT_AURA(event, unitid)
     local _, name, spellId
     for i = 1, 40 do
       name , _, _, _, _, _, _, _, _, spellId = _G.UnitBuff("player", i, "PLAYER")
       if not name then
         break
-      elseif spellId == 25780 then --RIGHTEOUS_FURY_SPELL_IDs[spellId] then
+      elseif RIGHTEOUS_FURY_SPELL_IDs[spellId] then
         Addon.PlayerIsPaladinTank = true
         return
       end
@@ -1499,6 +1480,8 @@ do
   if Addon.CLASSIC and Addon.PlayerClass == "PALADIN" then
     CoreEvents.UNIT_AURA = UNIT_AURA
     TidyPlatesCore:RegisterUnitEvent("UNIT_AURA", "player")
+    -- UNIT_AURA does not seem to be fired after login (even when buffs are active)
+    UNIT_AURA()
   end
 end
 
@@ -1605,7 +1588,7 @@ do
 --    if not extended.TestBackground then
 --      extended.TestBackground = extended:CreateTexture(nil, "BACKGROUND")
 --      extended.TestBackground:SetAllPoints(extended)
---      extended.TestBackground:SetTexture(ThreatPlates.Media:Fetch('statusbar', TidyPlatesThreat.db.profile.AuraWidget.BackgroundTexture))
+--      extended.TestBackground:SetTexture(Addon.LibSharedMedia:Fetch('statusbar', TidyPlatesThreat.db.profile.AuraWidget.BackgroundTexture))
 --      extended.TestBackground:SetVertexColor(0,0,0,0.5)
 --    end
 
@@ -1693,6 +1676,8 @@ do
     visual.castbar.casttime:ClearAllPoints()
     visual.castbar.casttime:SetPoint("CENTER", visual.castbar, "CENTER", db.CastTimeText.HorizontalOffset, db.CastTimeText.VerticalOffset)
     visual.castbar.casttime:SetShown(db.ShowCastTime)
+
+    Addon.UpdateStyleForStatusText(extended, unit)
 
     -- Hide Stuff
     if style.eliteicon and style.eliteicon.show then
@@ -1794,7 +1779,7 @@ end
 function Addon:DisableCastBars() ShowCastBars = false end
 function Addon:EnableCastBars() ShowCastBars = true end
 
-function Addon:ForceUpdate(all_visible_plates)
+function Addon:ForceUpdate()
   wipe(PlateOnUpdateQueue)
 
   Addon:UpdateConfigurationStatusText()
@@ -1832,8 +1817,14 @@ function Addon:ForceUpdate(all_visible_plates)
     TidyPlatesCore:RegisterEvent("UNIT_TARGET")
   end
 
-  for plate in pairs(self.PlatesVisible) do
-    if plate.TPFrame.Active or all_visible_plates then
+  for plate, unitid in pairs(self.PlatesVisible) do
+    -- If Blizzard default plates are enabled (which means that these nameplates are not active), we need
+    -- to check if they are enabled, so that Active is set correctly and plates are updated shown correctly.
+    if not plate.TPFrame.Active then
+      Addon:UpdateNameplateStyle(plate, unitid)
+    end
+
+    if plate.TPFrame.Active then
       OnResetNameplate(plate)
     end
   end

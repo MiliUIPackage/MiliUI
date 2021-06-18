@@ -16,6 +16,8 @@ local string = string
 -- WoW APIs
 local UnitPlayerControlled = UnitPlayerControlled
 
+-- ThreatPlates APIs
+
 Addon.CLASSIC = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 
 ---------------------------------------------------------------------------------------------------
@@ -23,17 +25,10 @@ Addon.CLASSIC = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
 ---------------------------------------------------------------------------------------------------
 local LibStub = LibStub
 ThreatPlates.L = LibStub("AceLocale-3.0"):GetLocale("TidyPlatesThreat")
-ThreatPlates.Media = LibStub("LibSharedMedia-3.0")
-Addon.LibCustomGlow = LibStub("LibCustomGlow-1.0")
-Addon.LibAceConfigDialog = LibStub("AceConfigDialog-3.0")
-Addon.LibAceConfigRegistry = LibStub("AceConfigRegistry-3.0")
-
-if Addon.CLASSIC then
-	Addon.LibClassicCasterino = LibStub("LibClassicCasterino-ThreatPlates")
-	--Addon.LibClassicCasterino = LibStub("LibClassicCasterino")
-end
 
 Addon.BackdropTemplate = BackdropTemplateMixin and "BackdropTemplate"
+
+local L = ThreatPlates.L
 
 -- Use this once SetBackdrop backwards compatibility is removed
 --if BackdropTemplateMixin then -- Shadowlands
@@ -56,6 +51,10 @@ TidyPlatesThreat = LibStub("AceAddon-3.0"):NewAddon("TidyPlatesThreat", "AceCons
 -- Global for DBM to differentiate between Threat Plates and Tidy Plates: Threat
 TidyPlatesThreatDBM = true
 
+-- Returns if the currently active spec is tank (true) or dps/heal (false)
+Addon.PlayerClass = select(2, UnitClass("player"))
+Addon.PlayerName = select(1, UnitName("player"))
+
 Addon.Animations = {}
 Addon.Cache = {
 	TriggerWildcardTests = {},
@@ -75,17 +74,16 @@ Addon.Cache = {
 ---------------------------------------------------------------------------------------------------
 -- Aura Highlighting
 ---------------------------------------------------------------------------------------------------
-local LibCustomGlow = Addon.LibCustomGlow
 local function Wrapper_ButtonGlow_Start(frame, color, framelevel)
-	LibCustomGlow.ButtonGlow_Start(frame, color, nil, framelevel)
+	Addon.LibCustomGlow.ButtonGlow_Start(frame, color, nil, framelevel)
 end
 
 local function Wrapper_PixelGlow_Start(frame, color, framelevel)
-	LibCustomGlow.PixelGlow_Start(frame, color, nil, nil, nil, nil, nil, nil, nil, nil, framelevel)
+	Addon.LibCustomGlow.PixelGlow_Start(frame, color, nil, nil, nil, nil, nil, nil, nil, nil, framelevel)
 end
 
 local function Wrapper_AutoCastGlow_Start(frame, color, framelevel)
-	LibCustomGlow.AutoCastGlow_Start(frame, color, nil, nil, nil, nil, nil, nil, framelevel)
+	Addon.LibCustomGlow.AutoCastGlow_Start(frame, color, nil, nil, nil, nil, nil, nil, framelevel)
 end
 
 Addon.CUSTOM_GLOW_FUNCTIONS = {
@@ -103,6 +101,31 @@ Addon.CUSTOM_GLOW_WRAPPER_FUNCTIONS = {
 --------------------------------------------------------------------------------------------------
 -- General Functions
 ---------------------------------------------------------------------------------------------------
+
+Addon.LoadOnDemandLibraries = function()
+	local db = TidyPlatesThreat.db.profile
+
+	-- Enable or disable LibDogTagSupport based on custom status text being actually used
+	if db.HeadlineView.FriendlySubtext == "CUSTOM" or db.HeadlineView.EnemySubtext == "CUSTOM" or db.settings.customtext.FriendlySubtext == "CUSTOM" or db.settings.customtext.EnemySubtext == "CUSTOM" then
+		if Addon.LibDogTag == nil then
+			LoadAddOn("LibDogTag-3.0")
+			Addon.LibDogTag = LibStub("LibDogTag-3.0", true)
+			if not Addon.LibDogTag then
+				Addon.LibDogTag = false
+				ThreatPlates.Print(L["Custom status text requires LibDogTag-3.0 to function."], true)
+			else
+				LoadAddOn("LibDogTag-Unit-3.0")
+			  if not  LibStub("LibDogTag-Unit-3.0", true) then
+					Addon.LibDogTag = false
+					ThreatPlates.Print(L["Custom status text requires LibDogTag-Unit-3.0 to function."], true)
+				elseif not Addon.LibDogTag.IsLegitimateUnit["nameplate1"] then
+					Addon.LibDogTag = false
+					ThreatPlates.Print(L["Your version of LibDogTag-Unit-3.0 does not support nameplates. You need to install at least v90000.3 of LibDogTag-Unit-3.0."], true)
+				end
+			end
+		end
+	end
+end
 
 -- Create a percentage-based WoW color based on integer values from 0 to 255 with optional alpha value
 ThreatPlates.RGB = function(red, green, blue, alpha)

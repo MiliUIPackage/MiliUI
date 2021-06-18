@@ -216,25 +216,19 @@ local function ImportStringData(encoded)
     return
   end
 
-  local errorMsg = L["Something went wrong with importing the profile. Please check the import string."]
   local decoded = LibDeflate:DecodeForPrint(encoded)
-
   if not decoded then
-    t.Print(errorMsg, true)
     return
   end
 
   local decompressed = LibDeflate:DecompressDeflate(decoded)
-
   if not decompressed then
-    t.Print(errorMsg, true)
     return
   end
 
   local success, deserialized = LibAceSerializer:Deserialize(decompressed)
 
   if not success then
-    t.Print(errorMsg, true)
     return
   end
 
@@ -915,13 +909,16 @@ local function GetScaleEntry(name, pos, setting, func_disabled, min_value, max_v
     order = pos,
     type = "range",
     step = 0.05,
-    min = min_value,
-    max = max_value,
+    softMin = min_value,
+    softMax = max_value,
+    min = -4.7,
+    max = 5.0,
     isPercent = true,
     arg = setting,
     disabled = func_disabled,
   }
   return entry
+
 end
 
 local function GetScaleEntryDefault(pos, setting, func_disabled)
@@ -4390,11 +4387,11 @@ local function CreateVisibilitySettings()
             type = "toggle",
             width = "full",
             set = function(info, val)
-              info = t.CopyTable(info)
               Addon:CallbackWhenOoC(function()
-                SetValue(info, val)
+                -- Not using SetValue here as it would require to upvalue info which results in an error
+                db.ShowFriendlyBlizzardNameplates = val
                 Addon:SetBaseNamePlateSize() -- adjust clickable area if switching from Blizzard plates to Threat Plate plates
-                Addon:ForceUpdate(true)
+                Addon:ForceUpdate()
               end, L["Unable to change a setting while in combat."])
             end,
             get = GetValue,
@@ -4407,11 +4404,11 @@ local function CreateVisibilitySettings()
             type = "toggle",
             width = "full",
             set = function(info, val)
-              info = t.CopyTable(info)
               Addon:CallbackWhenOoC(function()
-                SetValue(info, val)
+                -- Not using SetValue here as it would require to upvalue info (I think) which results in an error
+                db.ShowEnemyBlizzardNameplates = val
                 Addon:SetBaseNamePlateSize() -- adjust clickable area if switching from Blizzard plates to Threat Plate plates
-                Addon:ForceUpdate(true)
+                Addon:ForceUpdate()
               end, L["Unable to change a setting while in combat."])
             end,
             get = GetValue,
@@ -4431,6 +4428,8 @@ local function CreateVisibilitySettings()
           HideElite = { name = L["Rares & Elites"], order = 2, type = "toggle", arg = { "Visibility", "HideElite" }, },
           HideBoss = { name = L["Bosses"], order = 3, type = "toggle", arg = { "Visibility", "HideBoss" }, },
           HideTapped = { name = L["Tapped Units"], order = 4, type = "toggle", arg = { "Visibility", "HideTapped" }, },
+		      HideGuardian = { name = L["Guardians"], order = 5, type = "toggle", arg = { "Visibility", "HideGuardian" }, },
+          Spacer1 = GetSpacerEntry(9),
           ModeHideFriendlyInCombat = {
             name = L["Friendly Units in Combat"],
             order = 10,
@@ -5112,14 +5111,6 @@ local function CreateAutomationSettings()
         inline = true,
         set = SyncGameSettingsWorld,
         args = {
-          SmallNameplates = {
-            name = L["Small Blizzard Nameplates"],
-            order = 50,
-            type = "toggle",
-            width = "double",
-            desc = L["Reduce the size of the Blizzard's default large nameplates in instances to 50%."],
-            arg = { "Automation", "SmallPlatesInInstances" },
-          },
           HideFriendlyInInstances = {
             name = L["Hide Friendly Nameplates"],
             order = 60,
@@ -5198,7 +5189,7 @@ local function CreateHealthbarOptions()
                   else
                     SetThemeValue(info, val)
                     Addon:SetBaseNamePlateSize()
-					-- Update Target Art widget because of border adjustments for small healthbar heights
+                    -- Update Target Art widget because of border adjustments for small healthbar heights
                     Addon.Widgets:UpdateSettings("TargetArt")
                   end
                 end),
@@ -6347,6 +6338,10 @@ end
 
 local function CustomPlateCheckAndUpdateEntry(info, val, index)
   local triggers = Addon.Split(val)
+  -- Convert spell or aura IDs to numerical values, otherwise they won't be recognized
+  for i, trigger in ipairs(triggers) do
+    triggers[i] = tonumber(trigger) or trigger
+  end
 
   local selected_plate = db.uniqueSettings[index]
   -- Check if here is already another custom nameplate with the same trigger:
@@ -7553,8 +7548,6 @@ local function CreateOptionsTable()
                       order = 10,
                       type = "toggle",
                       set = function(info, value)
-                        info = t.CopyTable(info)
-
                         Addon:CallbackWhenOoC(function()
                           if value then
                             Addon:SetCVarsForOcclusionDetection()
@@ -7564,7 +7557,8 @@ local function CreateOptionsTable()
                             Addon.CVars:RestoreFromProfile("nameplateSelectedAlpha")
                             Addon.CVars:RestoreFromProfile("nameplateOccludedAlphaMult")
                           end
-                          SetValue(info, value)
+                          db.nameplate.toggle.OccludedUnits = value
+                          Addon:ForceUpdate()
                         end, L["Unable to change transparency for occluded units while in combat."])
                       end,
                       arg = { "nameplate", "toggle", "OccludedUnits" },
@@ -7868,31 +7862,67 @@ local function CreateOptionsTable()
             Statustext = {
               name = L["Status Text"],
               type = "group",
+              childGroups = "tab",
               order = 70,
               args = {
                 HealthbarView = {
                   name = L["Healthbar View"],
                   order = 10,
                   type = "group",
-                  inline = true,
+                  inline = false,
                   args = {
                     -- Enable = GetEnableEntryTheme(L["Show Health Text"], L["This option allows you to control whether a unit's health is hidden or shown on nameplates."], "customtext"),
                     FriendlySubtext = {
                       name = L["Friendly Status Text"],
                       order = 10,
                       type = "select",
+                      width = "double",
                       values = t.FRIENDLY_SUBTEXT,
+                      set = function(info, val)
+                        SetValue(info, val)
+                        Addon.LoadOnDemandLibraries()
+                      end,
                       arg = { "settings", "customtext", "FriendlySubtext"}
                     },
-                    Spacer1 = { name = "", order = 15, type = "description", width = "half", },
                     EnemySubtext = {
                       name = L["Enemy Status Text"],
                       order = 20,
                       type = "select",
+                      width = "double",
                       values = t.ENEMY_SUBTEXT,
+                      set = function(info, val)
+                        SetValue(info, val)
+                        Addon.LoadOnDemandLibraries()
+                      end,
                       arg = { "settings", "customtext", "EnemySubtext"}
                     },
-                    Spacer2 = GetSpacerEntry(30),
+                    Spacer2 = GetSpacerEntry(25),
+                    FriendlySubtextCustom = {
+                      name = L["Custom Friendly Status Text"],
+                      type = "input",
+                      order = 30,
+                      width = "double",
+                      arg = { "settings", "customtext", "FriendlySubtextCustom" },
+                      desc = L["Define a custom status text using LibDogTag markup language.\n\nType /dogtag for tag info.\n\nRemember to press ENTER after filling out this box or it will not save."],
+                      hidden = function() return db.settings.customtext.FriendlySubtext ~= "CUSTOM" end,
+                    },
+                    SpacerBlock = {
+                      name = "",
+                      order = 30,
+                      type = "description",
+                      width = "double",
+                      hidden = function() return db.settings.customtext.EnemySubtext ~= "CUSTOM" or db.settings.customtext.FriendlySubtext == "CUSTOM" end,
+                    },
+                    EnemySubtextCustom = {
+                      name = L["Custom Enemy Status Text"],
+                      type = "input",
+                      order = 31,
+                      width = "double",
+                      arg = { "settings", "customtext", "EnemySubtextCustom"},
+                      desc = L["Define a custom status text using LibDogTag markup language.\n\nType /dogtag for tag info.\n\nRemember to press ENTER after filling out this box or it will not save."],
+                      hidden = function() return db.settings.customtext.EnemySubtext ~= "CUSTOM" end,
+                    },
+                    Spacer3 = GetSpacerEntry(35),
                     SubtextColor = {
                       name = L["Color"],
                       order = 40,
@@ -7955,24 +7985,57 @@ local function CreateOptionsTable()
                   name = L["Headline View"],
                   order = 20,
                   type = "group",
-                  inline = true,
+                  inline = false,
                   args = {
                     FriendlySubtext = {
-                      name = L["Friendly Custom Text"],
+                      name = L["Friendly Status Text"],
                       order = 10,
                       type = "select",
+                      width = "double",
                       values = t.FRIENDLY_SUBTEXT,
-                      arg = {"HeadlineView", "FriendlySubtext"}
+                      set = function(info, val)
+                        SetValue(info, val)
+                        Addon.LoadOnDemandLibraries()
+                      end,
+                      arg = { "HeadlineView", "FriendlySubtext"}
                     },
-                    Spacer1 = { name = "", order = 15, type = "description", width = "half", },
                     EnemySubtext = {
-                      name = L["Enemy Custom Text"],
+                      name = L["Enemy Status Text"],
                       order = 20,
                       type = "select",
+                      width = "double",
                       values = t.ENEMY_SUBTEXT,
-                      arg = {"HeadlineView", "EnemySubtext"}
+                      set = function(info, val)
+                        SetValue(info, val)
+                        Addon.LoadOnDemandLibraries()
+                      end,
+                      arg = { "HeadlineView", "EnemySubtext"}
                     },
                     Spacer2 = GetSpacerEntry(25),
+                    FriendlySubtextCustom = {
+                      name = L["Custom Friendly Status Text"],
+                      type = "input",
+                      order = 30,
+                      width = "double",
+                      arg = { "HeadlineView", "FriendlySubtextCustom"},
+                      hidden = function() return db.HeadlineView.FriendlySubtext ~= "CUSTOM" end,
+                    },
+                    SpacerBlock = {
+                      name = "",
+                      order = 30,
+                      type = "description",
+                      width = "double",
+                      hidden = function() return db.HeadlineView.EnemySubtext ~= "CUSTOM" or db.HeadlineView.FriendlySubtext == "CUSTOM" end,
+                    },
+                    EnemySubtextCustom = {
+                      name = L["Custom Enemy Status Text"],
+                      type = "input",
+                      order = 31,
+                      width = "double",
+                      arg = { "HeadlineView", "EnemySubtextCustom"},
+                      hidden = function() return db.HeadlineView.EnemySubtext ~= "CUSTOM" end,
+                    },
+                    Spacer3 = GetSpacerEntry(35),
                     SubtextColor = {
                       name = L["Color"],
                       order = 40,
@@ -8050,100 +8113,116 @@ local function CreateOptionsTable()
                     },
                   },
                 },
-                HealthText = {
-                  name = L["Health Text"],
+                TextFormat = {
+                  name = L["Format"],
                   order = 30,
                   type = "group",
-                  inline = true,
-                  set = SetThemeValue,
+                  inline = false,
                   args = {
-                    EnableAmount = {
-                      name = L["Amount"],
-                      type = "toggle",
-                      order = 10,
-                      desc = L["Display health amount text."],
-                      arg = { "text", "amount" }
-                    },
-                    MaxHP = {
-                      name = L["Max Health"],
-                      type = "toggle",
-                      order = 20,
-                      desc = L["This will format text to show both the maximum hp and current hp."],
-                      arg = { "text", "max" },
-                      disabled = function() return not db.text.amount end
-                    },
-                    Deficit = {
-                      name = L["Deficit"],
-                      type = "toggle",
+                    HealthText = {
+                      name = L["Health Text"],
                       order = 30,
-                      desc = L["This will format text to show hp as a value the target is missing."],
-                      arg = { "text", "deficit" },
-                      disabled = function() return not db.text.amount end
+                      type = "group",
+                      inline = true,
+                      set = SetThemeValue,
+                      args = {
+                        EnableAmount = {
+                          name = L["Amount"],
+                          type = "toggle",
+                          order = 10,
+                          desc = L["Display health amount text."],
+                          arg = { "text", "amount" }
+                        },
+                        MaxHP = {
+                          name = L["Max Health"],
+                          type = "toggle",
+                          order = 20,
+                          desc = L["This will format text to show both the maximum hp and current hp."],
+                          arg = { "text", "max" },
+                          disabled = function() return not db.text.amount end
+                        },
+                        Deficit = {
+                          name = L["Deficit"],
+                          type = "toggle",
+                          order = 30,
+                          desc = L["This will format text to show hp as a value the target is missing."],
+                          arg = { "text", "deficit" },
+                          disabled = function() return not db.text.amount end
+                        },
+                        EnablePercent = {
+                          name = L["Percentage"],
+                          type = "toggle",
+                          order = 40,
+                          desc = L["Display health percentage text."],
+                          arg = { "text", "percent" }
+                        },
+                        Spacer1 = GetSpacerEntry(50),
+                        Full = {
+                          name = L["Full Health"],
+                          type = "toggle",
+                          order = 60,
+                          desc = L["Display health text on units with full health."],
+                          arg = { "text", "full" }
+                        },
+                        Truncate = {
+                          name = L["Shorten"],
+                          type = "toggle",
+                          order = 70,
+                          desc = L["This will format text to a simpler format using M or K for millions and thousands. Disabling this will show exact health amounts."],
+                          arg = { "text", "truncate" },
+                        },
+                        UseLocalizedUnit = {
+                          name = L["Localization"],
+                          type = "toggle",
+                          order = 80,
+                          desc = L["If enabled, the truncated health text will be localized, i.e. local metric unit symbols (like k for thousands) will be used."],
+                          arg = { "text", "LocalizedUnitSymbol" }
+                        },
+                      },
                     },
-                    EnablePercent = {
-                      name = L["Percentage"],
-                      type = "toggle",
-                      order = 40,
-                      desc = L["Display health percentage text."],
-                      arg = { "text", "percent" }
-                    },
-                    Spacer1 = GetSpacerEntry(50),
-                    Full = {
-                      name = L["Full Health"],
-                      type = "toggle",
-                      order = 60,
-                      desc = L["Display health text on units with full health."],
-                      arg = { "text", "full" }
-                    },
-                    Truncate = {
-                      name = L["Shorten"],
-                      type = "toggle",
-                      order = 70,
-                      desc = L["This will format text to a simpler format using M or K for millions and thousands. Disabling this will show exact health amounts."],
-                      arg = { "text", "truncate" },
-                    },
-                    UseLocalizedUnit = {
-                      name = L["Localization"],
-                      type = "toggle",
-                      order = 80,
-                      desc = L["If enabled, the truncated health text will be localized, i.e. local metric unit symbols (like k for thousands) will be used."],
-                      arg = { "text", "LocalizedUnitSymbol" }
+                    AbsorbsText = {
+                      name = L["Absorbs Text"],
+                      order = 35,
+                      type = "group",
+                      inline = true,
+                      set = SetThemeValue,
+                      hidden = function() return Addon.CLASSIC end,
+                      args = {
+                        EnableAmount = {
+                          name = L["Amount"],
+                          type = "toggle",
+                          order = 10,
+                          desc = L["Display absorbs amount text."],
+                          arg = { "text", "AbsorbsAmount" }
+                        },
+                        EnableShorten = {
+                          name = L["Shorten"],
+                          type = "toggle",
+                          order = 20,
+                          desc = L["This will format text to a simpler format using M or K for millions and thousands. Disabling this will show exact absorbs amounts."],
+                          arg = { "text", "AbsorbsShorten" },
+                          disabled = function() return not db.text.AbsorbsAmount end
+                        },
+                        EnablePercentage = {
+                          name = L["Percentage"],
+                          type = "toggle",
+                          order = 30,
+                          desc = L["Display absorbs percentage text."],
+                          arg = { "text", "AbsorbsPercentage" }
+                        },
+                      },
                     },
                   },
                 },
-                AbsorbsText = {
-                  name = L["Absorbs Text"],
-                  order = 35,
+                Layout = {
+                  name = L["General"],
+                  order = 40,
                   type = "group",
-                  inline = true,
-                  set = SetThemeValue,
-                  hidden = function() return Addon.CLASSIC end,
+                  inline = false,
                   args = {
-                    EnableAmount = {
-                      name = L["Amount"],
-                      type = "toggle",
-                      order = 10,
-                      desc = L["Display absorbs amount text."],
-                      arg = { "text", "AbsorbsAmount" }
-                    },
-                    EnableShorten = {
-                      name = L["Shorten"],
-                      type = "toggle",
-                      order = 20,
-                      desc = L["This will format text to a simpler format using M or K for millions and thousands. Disabling this will show exact absorbs amounts."],
-                      arg = { "text", "AbsorbsShorten" },
-                      disabled = function() return not db.text.AbsorbsAmount end
-                    },
-                    EnablePercentage = {
-                      name = L["Percentage"],
-                      type = "toggle",
-                      order = 30,
-                      desc = L["Display absorbs percentage text."],
-                      arg = { "text", "AbsorbsPercentage" }
-                    },
+                    Boundaries = GetBoundariesEntry(40, "customtext"),
                   },
                 },
-                Boundaries = GetBoundariesEntry(40, "customtext"),
               },
             },
             Leveltext = {
@@ -9113,6 +9192,13 @@ local function CreateOptionsTable()
 
   options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(TidyPlatesThreat.db)
   options.args.profiles.order = 10000
+
+  if not Addon.CLASSIC then
+    -- Add dual-spec support
+    local LibDualSpec = LibStub("LibDualSpec-1.0", true)
+    LibDualSpec:EnhanceDatabase(TidyPlatesThreat.db, t.ADDON_NAME)
+    LibDualSpec:EnhanceOptions(options.args.profiles, TidyPlatesThreat.db)
+  end
 
   AddImportExportOptions(options.args.profiles)
 end

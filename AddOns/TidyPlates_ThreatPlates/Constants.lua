@@ -227,6 +227,7 @@ ThreatPlates.ENEMY_SUBTEXT = {
   ROLE_GUILD_LEVEL = L["NPC Role, Guild, or Level"],
   LEVEL = L["Level"],
   ALL = L["Everything"],
+  CUSTOM = L["Custom"],
 }
 
 -- "NPC Role, Guild, or Quest", "Quest"
@@ -238,6 +239,7 @@ ThreatPlates.FRIENDLY_SUBTEXT = {
   ROLE_GUILD_LEVEL = L["NPC Role, Guild, or Level"],
   LEVEL = L["Level"],
   ALL = L["Everything"],
+  CUSTOM = L["Custom"],
 }
 
 -------------------------------------------------------------------------------
@@ -281,7 +283,6 @@ local TOTEM_DATA_RETAIL = {
   { SpellID = 204336, ID = "P4", GroupColor = "2b76ff"},	  -- Grounding Totem
 
   --{ SpellID = 196932, ID = "N6", GroupColor = "4c9900"},		-- Voodoo Totem (removed in patch 8.0.1)
-  --{ SpellID = 192058, ID = "N3", GroupColor = "4c9900"},		-- Lightning  Surge Totem (renamed to Capacitator Totem in patch 8.0.1)
 }
 
 local TOTEM_DATA_CLASSIC = {
@@ -389,7 +390,8 @@ ThreatPlates.DEFAULT_SETTINGS = {
     },
   },
   profile = {
-    -- cache = {}, - removed in 9.3.0
+    CheckForIncompatibleAddons = true,
+	-- cache = {}, - removed in 9.3.0
     -- OldSetting = true, - removed in 8.7.0
     verbose = false,
     -- blizzFadeA = { -- removed in 8.5.1
@@ -400,7 +402,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       toggle  = true,
       amount = -0.3
     },
-    tidyplatesFade = false,
+    -- tidyplatesFade = false, -- removed in 10.1.0 as it was no longer used
     healthColorChange = false,
     customColor =  false,
     allowClass = true, -- old default: false,
@@ -418,7 +420,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
     Automation = {
       FriendlyUnits = "NONE",
       EnemyUnits = "NONE",
-      SmallPlatesInInstances = false,
+      -- SmallPlatesInInstances = false, -- Removed in 10.1.7
       HideFriendlyUnitsInInstances = true,
     },
     Scale = {
@@ -455,7 +457,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       ShowFocusHighlight = true,
       ShowMouseoverHighlight = true,
       ForceHealthbarOnTarget = false,
-      ForceOutOfCombat = false,
+      ForceOutOfCombat = true,
       ForceNonAttackableUnits = true,
       ForceFriendlyInCombat = "NONE",
       --
@@ -469,7 +471,9 @@ ThreatPlates.DEFAULT_SETTINGS = {
       SubtextColor =  RGB(255, 255, 255, 1),
       --
       EnemySubtext = "ROLE_GUILD_LEVEL",
+	  EnemySubtextCustom = "",
       FriendlySubtext = "ROLE_GUILD",
+	  FriendlySubtextCustom = "",
     },
     Visibility = {
       --				showNameplates = true,
@@ -494,6 +498,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       HideNormal = false,
       HideBoss = false,
       HideElite = false,
+	  HideGuardian = false,
       HideTapped = false,
       HideFriendlyInCombat = false,
     },
@@ -608,7 +613,9 @@ ThreatPlates.DEFAULT_SETTINGS = {
       level = 1,
       alpha = 1,
       anchor = "RIGHT",
-      ShowInHeadlineView = false
+      ShowInHeadlineView = false,
+      x_hv = 0,
+      y_hv = 16,
     },
     AuraWidget = {
       ON = true,
@@ -686,7 +693,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         ShowUnlimitedInInstances = false,
         ShowUnlimitedOnBosses = true,
         HideUnlimitedDuration = false,
-        Scale = 1.2,
+        Scale = 1,
         FilterMode = "Block",
         FilterBySpell = {},
       },
@@ -699,7 +706,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         ShowEnemy = true,
         ShowAllEnemy = (Addon.CLASSIC and true) or false,
         ShowBlizzardForEnemy = (Addon.CLASSIC and false) or true,
-        Scale = 1.5,
+        Scale = 1,
         FilterMode = "Block",
         FilterBySpell = {},
       },
@@ -1428,7 +1435,9 @@ ThreatPlates.DEFAULT_SETTINGS = {
         flags = "NONE",
         --
         FriendlySubtext = "HEALTH",
+		FriendlySubtextCustom = "",
         EnemySubtext = "HEALTH",
+		EnemySubtextCustom = "",
         SubtextColorUseHeadline = false,
         SubtextColorUseSpecific = false,
         SubtextColor =  RGB(255, 255, 255, 1),
@@ -1490,7 +1499,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         x = -69, -- old default: 55
         y = 0,
         anchor = "CENTER",
-        show = false,
+        show = true,
       },
       unique = {
         threatcolor = {
