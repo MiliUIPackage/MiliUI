@@ -110,7 +110,7 @@ end
 function ParagonReputation:CreateOptions()	
 	-- [Interface Options] Create Options
 	PR.options = CreateFrame("FRAME",nil)
-	PR.options.name = "Paragon Reputation"
+	PR.options.name = "巔峰聲望提示"
 	InterfaceOptions_AddCategory(PR.options)
 
 	-- [Interface Options] Title
