@@ -99,7 +99,7 @@ local function LoadDefaultSettings(addon)
 		isEnabled = true,
 	})
 	e:AddDefaultSettings('general', 'show_tooltip_key', {
-		isEnabled = true,
+		isEnabled = false,
 	})
 	e:AddDefaultSettings('general', 'announce_party', {
 		isEnabled = false,
