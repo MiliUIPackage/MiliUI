@@ -1496,10 +1496,10 @@ ThreatPlates.DEFAULT_SETTINGS = {
       },
       skullicon = {
         scale = 12,
-        x = -55, -- old default: 55
+        x = 55, -- old default: 55
         y = 0,
         anchor = "CENTER",
-        show = true,
+        show = false,
       },
       unique = {
         threatcolor = {
