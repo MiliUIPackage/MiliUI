@@ -1,7 +1,7 @@
 ## Interface: 90005
 ## Title: Extended Vendor UI |cffffffffv1.8.8
 ## Notes: Extends the merchant interface for easier browsing.
-## Title-zhTW: |cFF2DA267[物品]|r 介面增強
+## Title-zhTW: |cFF2DA267[物品]|r 商人介面增強
 ## Notes-zhTW: Extended Vendor UI |n快速賣出垃圾、無法使用的裝備，以及避免購買到重複的圖紙。|n加大商人的購買視窗，可以用滑鼠滾輪來換頁，並且提供過濾商品和快速賣出垃圾/不要的物品功能。|n|cffffd200使用方法：在商人視窗中選擇過濾方式>快速賣出設定，設定要賣出和不要賣出的物品清單。|n從Esc>介面>插件>商人，開啟其他設定選項。
 ## Author: Germbread
 ## Version: 1.8.8
