@@ -421,7 +421,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       FriendlyUnits = "NONE",
       EnemyUnits = "NONE",
       -- SmallPlatesInInstances = false, -- Removed in 10.1.7
-      HideFriendlyUnitsInInstances = true,
+      HideFriendlyUnitsInInstances = false,
     },
     Scale = {
       IgnoreUIScale = true,
