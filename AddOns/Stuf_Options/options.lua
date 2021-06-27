@@ -613,7 +613,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			looticon={ x=18, y=10, w=12, h=12, framelevel=10, },
 			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5, },
 			infoicon={ x=50, y=-37, w=12, h=12, hide=true,},
-			lfgicon={ x=-40, y=12, w=30, h=30, circular=true, framelevel=3, },
+			lfgicon={ x=-40, y=12, w=30, h=30, circular=true, framelevel=3, hide=true, },
 			castbar={ 
                 hide=false, x=0, y=0, w=200, h=52, alpha=0.8,
 				baralpha=1, bgcolor={ r=0, g=0, b=0, a=0.5, },
