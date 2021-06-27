@@ -1,0 +1,46 @@
+## Interface: 90005
+## Title: WeekKeys
+## Author: Reinisdm
+## Version: 94
+## Notes: Lists your keystones.
+## Title-zhTW: |cFF00CCFF[團隊]|r 鑰石資訊以及裝備查詢
+## Notes-zhTW: WeekKeys |n一個可以顯示自己、公會與好友鑰石資訊的插件(需要對方也有安裝)，還能依據屬性查詢裝備，還有其他增強資訊功能。|n|cffffd200使用方法：|r小地圖旁的小按鈕可開啟此插件頁面。
+## SavedVariables: WeekKeysDB
+
+embeds.xml
+
+Init.lua
+
+locales\enUS.lua
+locales\zhTW.lua
+
+OptionTable.lua
+db.lua
+Prefix.lua
+Convert.lua
+UI.lua
+Reset.lua
+Affix.lua
+loot.lua
+prefix_patterns.lua
+
+Minimap.lua
+Player.lua
+
+Events.lua
+Main.lua
+
+Create.lua
+SlashCommands.lua
+
+iterators.lua
+MyCharacters.lua
+PartyKeys.lua
+GuildKeys.lua
+FriendKeys.lua
+MTable.lua
+lootframe.lua
+achieve.lua
+Torghast.lua
+calculator.lua
+settings.lua

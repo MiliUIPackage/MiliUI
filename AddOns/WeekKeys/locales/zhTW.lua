@@ -1,0 +1,45 @@
+if not (GetLocale() == "zhTW") then
+  return
+end
+
+local L = WeekKeys.L
+
+
+L["keypush"] = "打完獎勵"
+L["rio"] = "Rio"
+L["mykeys"] = "我的鑰石"
+L["guildkeys"] = "公會鑰石"
+L["partykeys"] = "隊伍鑰石"
+L["friends"] = "好友"
+L["mmtable"] = "M+ 資訊"
+L["lootfinder"] = "找裝備"
+L["removeslot"] = "移除過濾部位"
+L["modifier"] = "難度調整"
+L["mother"] = "母親大人"
+L["settings"] = "設定"
+L["pkeys_react"] = "回應隊伍頻道的 !keys 指令"
+L["pkeys_react_tooltip"] = "有人在隊伍頻道輸入 \"!keys\" 時，插件會自動報出你的鑰石。"
+L["covenant"] = "回應隊伍頻道的 !covenant (或 !cov) 指令"
+L["covenant_tooltip"] = "有人在隊伍頻道輸入 \"!covenant\" 或 \"!cov\" 時，插件會自動報出你的誓盟。"
+L["corruptlist"] = "腐化列表"
+L["hide_minimap"] = "隱藏小地圖按鈕"
+L["after x weeks"] = "%d 週後"
+L["SL rares"] = "前夕稀有怪"
+L["Dressingtab"] = "試穿"
+L["info"] = "資訊"
+L["info tooltip"] = "選擇裝備，觀察穿上後的屬性數值。"
+L["update tooltip"] = "重置目前專精的戰利品列表"
+L["torghast"] = "爬塔"
+L["choose ilvls"] = "選擇目前的裝等"
+L["Ash calculator"] = "灰燼計算機"
+
+L["MYTHIC_PLUS_BEST_WEEKLY"] = "最佳"
+L["CHALLENGE_MODE_KEYSTONE_NAME"] = "鑰石"
+L["LEVEL_ABBR"] = "層數"
+L["MYTHIC_PLUS_WEEKLY_BEST_LOOT"] = "每週寶庫"
+L["SLOT_ABBR"] = "部位"
+L["SCORE_POWER_UPS"] = "屬性"
+L["SPEC_FRAME_PRIMARY_STAT"] = "主屬"
+L["SPELL_CRIT_CHANCE"] = "致命"
+L["STAT_VERSATILITY"] = "臨機"
+L["WeekKeys"] = "傳奇+ 地城和鑰石資訊"
