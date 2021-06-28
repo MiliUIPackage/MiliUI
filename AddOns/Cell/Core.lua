@@ -204,7 +204,7 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["layouts"]) ~= "table" then
             CellDB["layouts"] = {
                 ["default"] = {
-                    ["size"] = {66, 46},
+                    ["size"] = {94, 50},
                     ["position"] = {},
                     ["powerHeight"] = 2,
                     ["spacing"] = 3,
