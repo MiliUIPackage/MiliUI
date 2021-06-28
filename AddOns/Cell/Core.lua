@@ -224,7 +224,7 @@ function eventFrame:ADDON_LOADED(arg1)
                             ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
                             ["nameColor"] = {"Custom Color", {1, 1, 1}},
                             ["vehicleNamePosition"] = {"TOP", 0},
-                            ["textWidth"] = .75,
+                            ["textWidth"] = 1,
                         }, -- 1
                         {
                             ["name"] = "Status Text",
