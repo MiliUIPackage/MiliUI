@@ -216,8 +216,8 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 	CreateOptionFrame()
     local arenax, arenay = floor(GetScreenWidth() * 0.70), -floor(GetScreenHeight() * 0.2)
     local gap = 100;
-    local playerx, playery = floor(GetScreenWidth()/2)-200-gap, -floor(GetScreenHeight() * 0.66)
-    local targetx, targety = floor(GetScreenWidth()/2)+gap, -floor(GetScreenHeight() * 0.66)
+    local playerx, playery = floor(GetScreenWidth()/2)-200-gap, -floor(GetScreenHeight() * 0.7)
+    local targetx, targety = floor(GetScreenWidth()/2)+gap, -floor(GetScreenHeight() * 0.7)
     
     -- 預設關閉個人資源條
     SetCVar("nameplateShowSelf", 0)
