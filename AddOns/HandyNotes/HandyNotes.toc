@@ -1,10 +1,11 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: HandyNotes
 ## Notes: Handy notes for your maps
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
 ## Notes-zhTW: Handy Notes |n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
+## Notes-frFR: Notes pratiques pour vos cartes.
 ## Author: Xinhuan
-## Version: v1.6.3
+## Version: v1.6.4
 ## DefaultState: enabled
 ## X-Category: Map
 ## X-eMail: xinhuan @ gmail DOT com
@@ -36,6 +37,11 @@ Libs\HereBeDragons\HereBeDragons-Migrate.lua
 
 # Locale files
 Locales\Locale-enUS.lua
+Locales\Locale-deDE.lua
+Locales\Locale-esES.lua
+Locales\Locale-frFR.lua
+Locales\Locale-koKR.lua
+Locales\Locale-ruRU.lua
 Locales\Locale-zhCN.lua
 Locales\Locale-zhTW.lua
 
