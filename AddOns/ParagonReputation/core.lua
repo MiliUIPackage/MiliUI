@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.34 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.37 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -8,397 +8,6 @@
 
 local ADDON_NAME,ParagonReputation = ...
 local PR = ParagonReputation
-
-local ACTIVE_TOAST = false
-local WAITING_TOAST = {}
-
-local PARAGON_QUESTS = { --[questID] = factionID
-	--Legion
-		[48976] = 2170, -- Argussian Reach
-		[46777] = 2045, -- Armies of Legionfall
-		[48977] = 2165, -- Army of the Light
-		[46745] = 1900, -- Court of Farondis
-		[46747] = 1883, -- Dreamweavers
-		[46743] = 1828, -- Highmountain Tribes
-		[46748] = 1859, -- The Nightfallen
-		[46749] = 1894, -- The Wardens
-		[46746] = 1948, -- Valarjar
-	
-	--Battle for Azeroth
-		--Neutral
-		[54453] = 2164, --Champions of Azeroth
-		[58096] = 2415, --Rajani
-		[55348] = 2391, --Rustbolt Resistance
-		[54451] = 2163, --Tortollan Seekers
-		[58097] = 2417, --Uldum Accord
-		
-		--Horde
-		[54460] = 2156, --Talanji's Expedition
-		[54455] = 2157, --The Honorbound
-		[53982] = 2373, --The Unshackled
-		[54461] = 2158, --Voldunai
-		[54462] = 2103, --Zandalari Empire
-		
-		--Alliance
-		[54456] = 2161, --Order of Embers
-		[54458] = 2160, --Proudmoore Admiralty
-		[54457] = 2162, --Storm's Wake
-		[54454] = 2159, --The 7th Legion
-		[55976] = 2400, --Waveblade Ankoan
-	
-	--Shadowlands
-		[61100] = 2413, --Court of Harvesters
-		[61097] = 2407, --The Ascended
-		[61095] = 2410, --The Undying Army
-		[61098] = 2465, --The Wild Hunt
-}
-
-local PARAGON_REWARDS = {
-	
-	--Legion
-		[2170] = { -- Argussian Reach
-			cache = 152922,
-		}, 
-		[2045] = { -- Armies of Legionfall
-			cache = 152108,
-			rewards = {
-				{ -- Orphaned Felbat
-					type = "PET",
-					itemID = 147841,
-				},
-			},
-		}, 
-		[2165] = { -- Army of the Light
-			cache = 152923,
-			rewards = {
-				{ -- Holy Lightsphere
-					type = "TOY",
-					itemID = 153182,
-				},
-				{ -- Avenging Felcrushed
-					type = "MOUNT",
-					itemID = 153044,
-					mountID = 985,
-				},
-				{ -- Blessed Felcrushed
-					type = "MOUNT",
-					itemID = 153043,
-					mountID = 984,
-				},
-				{ -- Glorious Felcrushed
-					type = "MOUNT",
-					itemID = 153042,
-					mountID = 983,
-				},
-			},
-		}, 
-		[1900] = { -- Court of Farondis
-			cache = 152102,
-			rewards = {
-				{ -- Cloudwing Hippogryph
-					type = "MOUNT",
-					itemID = 147806,
-					mountID = 943,
-				},
-			},
-		}, 
-		[1883] = { -- Dreamweavers
-			cache = 152103,
-			rewards = {
-				{ -- Wild Dreamrunner
-					type = "MOUNT",
-					itemID = 147804,
-					mountID = 942,
-				},
-			},
-		}, 
-		[1828] = { -- Highmountain Tribes
-			cache = 152104,
-			rewards = {
-				{ -- Highmountain Elderhorn
-					type = "MOUNT",
-					itemID = 147807,
-					mountID = 941,
-				},
-			},
-		}, 
-		[1859] = { -- The Nightfallen
-			cache = 152105,
-			rewards = {
-				{ -- Leywoven Flying Carpet
-					type = "MOUNT",
-					itemID = 143764,
-					mountID = 905,
-				},
-			},
-		}, 
-		[1894] = { -- The Wardens
-			cache = 152107,
-			rewards = {
-				{ -- Sira's Extra Cloak
-					type = "TOY",
-					itemID = 147843,
-				},
-			},
-		}, 
-		[1948] = { -- Valarjar
-			cache = 152106,
-			rewards = {
-				{ -- Valarjar Stormwing
-					type = "MOUNT",
-					itemID = 147805,
-					mountID = 944,
-				},
-			},
-		}, 
-	
-	--Battle for Azeroth
-		--Neutral
-		[2164] = { --Champions of Azeroth
-			cache = 166298,
-			rewards = {
-				{ -- Azerite Firework Launcher
-					type = "TOY",
-					itemID = 166877,
-				},
-			},
-		}, 
-		[2415] = { --Rajani
-			cache = 174483,
-			rewards = {
-				{ -- Jade Defender
-					type = "PET",
-					itemID = 174479,
-				},
-			},
-		},
-		[2391] = { --Rustbolt Resistance
-			cache = 170061,
-			rewards = {
-				{ -- Blueprint: Microbot XD
-					type = "QUEST",
-					itemID = 169171,
-					questID = 55079,
-				},
-				{ -- Blueprint: Holographic Digitalization Relay
-					type = "QUEST",
-					itemID = 168906,
-					questID = 56086,
-				},
-				{ -- Blueprint: Rustbolt Resistance Insignia
-					type = "QUEST",
-					itemID = 168494,
-					questID = 55073,
-				},
-			},
-		},
-		[2163] = { --Tortollan Seekers
-			cache = 166245,
-			rewards = {
-				{ -- Bowl of Glowing Pufferfish
-					type = "TOY",
-					itemID = 166704,
-				},
-			},
-		},
-		[2417] = { --Uldum Accord
-			cache = 174484,
-			rewards = {
-				{ -- Cursed Dune Watcher
-					type = "PET",
-					itemID = 174481,
-				},
-			},
-		},
-		
-		--Horde
-		[2156] = { --Talanji's Expedition
-			cache = 166282,
-			rewards = {
-				{ -- Pair of Tiny Bat Wings
-					type = "PET",
-					itemID = 166716,
-				},
-				{ -- For da Blood God!
-					type = "TOY",
-					itemID = 166308,
-				},
-			},
-		},
-		[2157] = { --The Honorbound
-			cache = 166299,
-			rewards = {
-				{ -- Rallying War Banner
-					type = "TOY",
-					itemID = 166879,
-				},
-			},
-		},
-		[2373] = { --The Unshackled
-			cache = 169940,
-			rewards = {
-				{ -- Royal Snapdragon
-					type = "MOUNT",
-					itemID = 169198,
-					mountID = 1237,
-				},
-				{ -- Flopping Fish
-					type = "TOY",
-					itemID = 170203,
-				},
-				{ -- Memento of the Deeps
-					type = "TOY",
-					itemID = 170469,
-				},
-			},
-		},
-		[2158] = { --Voldunai
-			cache = 166290,
-			rewards = {
-				{ -- Goldtusk Inn Breakfast Buffet
-					type = "TOY",
-					itemID = 166703,
-				},
-				{ -- Meerah's Jukebox
-					type = "TOY",
-					itemID = 166880,
-				},
-			},
-		},
-		[2103] = { --Zandalari Empire
-			cache = 166292,
-			rewards = {
-				{ -- Warbeast Kraal Dinner Bell
-					type = "TOY",
-					itemID = 166701,
-				},
-			},
-		},
-		
-		--Alliance
-		[2161] = { --Order of Embers
-			cache = 166297,
-			rewards = {
-				{ -- Cobalt Raven Hatchling
-					type = "PET",
-					itemID = 166718,
-				},
-				{ -- Bewitching Tea Set
-					type = "TOY",
-					itemID = 166808,
-				},
-			},
-		},
-		[2160] = { --Proudmoore Admiralty
-			cache = 166295,
-			rewards = {
-				{ -- Albatross Feather
-					type = "PET",
-					itemID = 166714,
-				},
-				{ -- Proudmoore Music Box
-					type = "TOY",
-					itemID = 166702,
-				},
-			},
-		},
-		[2162] = { --Storm's Wake
-			cache = 166294,
-			rewards = {
-				{ -- Violet Abyssal Eel
-					type = "PET",
-					itemID = 166719,
-				},
-			},
-		},
-		[2159] = { --The 7th Legion
-			cache = 166300,
-			rewards = {
-				{ -- Rallying War Banner
-					type = "TOY",
-					itemID = 166879,
-				},
-			},
-		},
-		[2400] = { --Waveblade Ankoan
-			cache = 169939,
-			rewards = {
-				{ -- Royal Snapdragon
-					type = "MOUNT",
-					itemID = 169198,
-					mountID = 1237,
-				},
-				{ -- Flopping Fish
-					type = "TOY",
-					itemID = 170203,
-				},
-				{ -- Memento of the Deeps
-					type = "TOY",
-					itemID = 170469,
-				},
-			},
-		},
-	
-	--Shadowlands
-		[2413] = { --Court of Harvesters
-			cache = 180648,
-			rewards = {
-				{ -- Stonewing Dredwing Pup
-					type = "PET",
-					itemID = 180601,
-				},
-			},
-		},
-		[2407] = { --The Ascended
-			cache = 180647,
-			rewards = {
-				{ -- Larion Cub
-					type = "PET",
-					itemID = 184399,
-				},
-				{ -- Malfunctioning Goliath Gauntlet
-					type = "TOY",
-					itemID = 184396,
-				},
-				{ -- Mark of Purity
-					type = "TOY",
-					itemID = 184435,
-				},
-			},
-		},
-		[2410] = { --The Undying Army
-			cache = 180646,
-			rewards = {
-				{ -- Reins of the Colossal Slaughterclaw
-					type = "MOUNT",
-					itemID = 182081,
-					mountID = 1350,
-				},
-				{ -- Micromancer's Mystical Cowl
-					type = "PET",
-					itemID = 181269,
-				},
-				{ -- Infested Arachnid Casing
-					type = "TOY",
-					itemID = 184495,
-				},
-			},
-		},
-		[2465] = { --The Wild Hunt
-			cache = 180649,
-			rewards = {
-				{ -- Amber Ardenmoth
-					type = "MOUNT",
-					itemID = 183800,
-					mountID = 1428,
-				},
-				{ -- Hungry Burrower
-					type = "PET",
-					itemID = 180635,
-				},
-			},
-		},
-}
 
 -- [Reputation Watchbar] Color the Reputation Watchbar by the settings. (Thanks Hoalz)
 hooksecurefunc(ReputationBarMixin,"Update",function(self)
@@ -439,25 +48,26 @@ local ParagonIsPetOwned = function(link)
 end
 
 -- [GameTooltip] Add Paragon Rewards to the Tooltip.
-local function AddParagonRewardsToTooltip(tooltip,rewards)
+local ParagonItemInfoReceivedQueue = {}
+local function AddParagonRewardsToTooltip(self,tooltip,rewards)
 	if rewards then
 		for index,data in ipairs(rewards) do
 			local collected
 			local name,link,quality,_,_,_,_,_,_,icon = GetItemInfo(data.itemID)
-			if data.type == "MOUNT" then
+			if data.type == MOUNT then
 				collected = select(11,C_MountJournal.GetMountInfoByID(data.mountID))
-			elseif data.type == "PET" and link then
+			elseif data.type == PET and link then
 				collected = ParagonIsPetOwned(link)
-			elseif data.type == "TOY" then
+			elseif data.type == TOY then
 				collected = PlayerHasToy(data.itemID)
-			elseif data.type == "QUEST" then
+			elseif data.type == BINDING_HEADER_OTHER then
 				collected = C_QuestLog.IsQuestFlaggedCompleted(data.questID)
 			end
 			if name then
-				local color = ITEM_QUALITY_COLORS[quality]
-				tooltip:AddLine(string.format("%s|T%d:0|t %s",collected and "|A:common-icon-checkmark:14:14|a " or "|A:common-icon-redx:14:14|a ",icon,name),color.r,color.g,color.b)
+				tooltip:AddLine(string.format("%s|T%d:0|t %s |cffffd000(|r|cffffffff%s|r|cffffd000)|r",collected and "|A:common-icon-checkmark:14:14|a " or "|A:common-icon-redx:14:14|a ",icon,name,data.type),ITEM_QUALITY_COLORS[quality].r,ITEM_QUALITY_COLORS[quality].g,ITEM_QUALITY_COLORS[quality].b)
 			else
 				tooltip:AddLine(ERR_TRAVEL_PASS_NO_INFO,1,0,0)
+				ParagonItemInfoReceivedQueue[data.itemID] = self
 			end
 		end
 	else
@@ -467,20 +77,21 @@ end
 
 -- [GameTooltip] Show the GameTooltip with the Item Reward on mouseover. (Thanks Brudarek)
 function ParagonReputation:Tooltip(self,event)
-	if not self.factionID or not PARAGON_REWARDS[self.factionID] then return end
+	if not self.questID or not PR.PARAGON_DATA[self.questID] then return end
 	if event == "OnEnter" then
-		local name,_,quality = GetItemInfo(PARAGON_REWARDS[self.factionID].cache)
-		if name ~= nil then
+		local name,_,quality = GetItemInfo(PR.PARAGON_DATA[self.questID].cache)
+		if name then
 			GameTooltip:SetOwner(self,"ANCHOR_NONE")
 			GameTooltip:SetPoint("TOPLEFT",self,"BOTTOMRIGHT")
 			GameTooltip:ClearLines()
 			GameTooltip:AddLine(self.name)
-			local color = ITEM_QUALITY_COLORS[quality]
-			GameTooltip:AddLine(name..self.count,color.r,color.g,color.b)
+			GameTooltip:AddLine(name..self.count,ITEM_QUALITY_COLORS[quality].r,ITEM_QUALITY_COLORS[quality].g,ITEM_QUALITY_COLORS[quality].b)
 			GameTooltip:AddLine(" ")
 			GameTooltip:AddLine(GUILD_TAB_REWARDS)
-			AddParagonRewardsToTooltip(GameTooltip,PARAGON_REWARDS[self.factionID].rewards)
+			AddParagonRewardsToTooltip(self,GameTooltip,PR.PARAGON_DATA[self.questID].rewards)
 			GameTooltip:Show()
+		else
+			ParagonItemInfoReceivedQueue[PR.PARAGON_DATA[self.questID].cache] = self
 		end
 	elseif event == "OnLeave" then
 		GameTooltip_SetDefaultAnchor(GameTooltip,UIParent)
@@ -495,12 +106,17 @@ function ParagonReputation:HookScript()
 			_G["ReputationBar"..n]:HookScript("OnEnter",function(self)
 				PR:Tooltip(self,"OnEnter")
 			end)
+			_G["ReputationBar"..n].OnEnter = _G["ReputationBar"..n]:GetScript("OnEnter")
 			_G["ReputationBar"..n]:HookScript("OnLeave",function(self)
 				PR:Tooltip(self,"OnLeave")
 			end)
+			_G["ReputationBar"..n].OnLeave = _G["ReputationBar"..n]:GetScript("OnLeave")
 		end
 	end
 end
+
+local ACTIVE_TOAST = false
+local WAITING_TOAST = {}
 
 -- [Paragon Toast] Show the Paragon Toast if a Paragon Reward Quest is accepted.
 function ParagonReputation:ShowToast(name,text)
@@ -539,18 +155,24 @@ function ParagonReputation:WaitToast()
 	PR:ShowToast(name,text)
 end
 
--- [Paragon Toast] Handle the QUEST_ACCEPTED event.
-local reward = CreateFrame("FRAME")
-reward:RegisterEvent("QUEST_ACCEPTED")
-reward:SetScript("OnEvent",function(self,event,questID)
-	if PR.DB.toast and PARAGON_QUESTS[questID] then
-		local name = GetFactionInfoByID(PARAGON_QUESTS[questID])
-		local text = GetQuestLogCompletionText(C_QuestLog.GetLogIndexForQuestID(questID))
+-- [Paragon Toast] Handle QUEST_ACCEPTED and GET_ITEM_INFO_RECEIVED events.
+local events = CreateFrame("FRAME")
+events:RegisterEvent("QUEST_ACCEPTED")
+events:RegisterEvent("GET_ITEM_INFO_RECEIVED")
+events:SetScript("OnEvent",function(self,event,arg1,arg2)
+	if event == "QUEST_ACCEPTED" and PR.DB.toast and PR.PARAGON_DATA[arg1] then
+		local name = GetFactionInfoByID(PR.PARAGON_DATA[arg1].factionID)
+		local text = GetQuestLogCompletionText(C_QuestLog.GetLogIndexForQuestID(arg1))
 		if ACTIVE_TOAST then
 			WAITING_TOAST[#WAITING_TOAST+1] = {name,text} --Toast is already active, put this info on the line.
 		else
 			PR:ShowToast(name,text)
 		end
+	elseif event == "GET_ITEM_INFO_RECEIVED" and arg2 and ParagonItemInfoReceivedQueue[arg1] then
+		if ParagonItemInfoReceivedQueue[arg1]:IsMouseOver() and GameTooltip:GetOwner() == ParagonItemInfoReceivedQueue[arg1] then
+			PR:Tooltip(ParagonItemInfoReceivedQueue[arg1],"OnEnter")
+		end
+		ParagonItemInfoReceivedQueue[arg1] = nil
 	end
 end)
 
@@ -587,7 +209,7 @@ hooksecurefunc("ReputationFrame_Update",function()
 				local currentValue,threshold,rewardQuestID,hasRewardPending = C_Reputation.GetFactionParagonInfo(factionID)
 				factionRow.name = name
 				factionRow.count = " |cffffffffx"..floor(currentValue/threshold)-(hasRewardPending and 1 or 0).."|r"
-				factionRow.factionID = factionID
+				factionRow.questID = rewardQuestID
 				if currentValue then
 					local r,g,b = unpack(PR.DB.value)
 					local value = mod(currentValue,threshold)
@@ -639,8 +261,12 @@ hooksecurefunc("ReputationFrame_Update",function()
 			else
 				factionRow.name = nil
 				factionRow.count = nil
-				factionRow.factionID = nil
+				factionRow.questID = nil
 				if factionBar.ParagonOverlay then factionBar.ParagonOverlay:Hide() end
+			end
+			if factionRow:IsMouseOver() then
+				if GameTooltip:GetOwner() == factionRow then GameTooltip:Hide() end
+				factionRow:OnEnter()
 			end
 		else
 			factionRow:Hide()
