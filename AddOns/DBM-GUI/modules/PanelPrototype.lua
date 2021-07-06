@@ -212,7 +212,7 @@ do
 		{ text = "米歐浩斯: 點燃你", value = 49764 },
 		{ text = "夜精靈鐘聲", value = 11742 },
 		{ text = "PvP拔旗", value = 8174 },
-		{ text = "虛空劫奪者: 標記", value = 11213 },
+		{ text = "虛無劫奪者: 標記", value = 11213 },
 		{ text = "尤格薩倫: 狂笑", value = 15757 }
 	})
 	local tcolors = {
