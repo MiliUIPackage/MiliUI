@@ -28,11 +28,9 @@ L["config_innkeeper_desc"] = "顯示旅店的位置。"
 L["config_mail"] = "郵箱"
 L["config_mail_desc"] = "顯示郵箱的位置。"
 L["config_onlymytrainers"] = "只顯示我的專業相關的訓練師和商人"
-L["config_onlymytrainers_desc"] = [[
-只會影響主要專業的訓練師和商人。
+L["config_onlymytrainers_desc"] = [=[只會影響主要專業的訓練師和商人。
 
-|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r
-]]
+|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r]=]
 L["config_others"] = "其他"
 L["config_others_desc"] = "顯示其他所有的地圖探索點。"
 L["config_picons"] = "顯示專業圖示:"
@@ -52,7 +50,7 @@ L["config_restore_nodes_print"] = "所有被隱藏的地圖探索點都已恢復
 L["config_stablemaster"] = "獸欄管理員"
 L["config_stablemaster_desc"] = "顯示獸欄管理員的位置。"
 L["config_tab_general"] = "一般"
-L["config_tab_scale_alpha"] = "縮放大小 / 透明度"
+L["config_tab_scale_alpha"] = "大小 / 透明度"
 L["config_tpplatform"] = "傳送平台"
 L["config_tpplatform_desc"] = "顯示傳送平台的位置。"
 L["config_trainer"] = "專業訓練師"
@@ -84,7 +82,9 @@ L["Into the Maw"] = "進入淵喉"
 L["Mailbox"] = "郵箱"
 L["Portal to Orgrimmar"] = "奧格瑪傳送門"
 L["Portal to Stormwind"] = "暴風城傳送門"
+L["To Keeper's Respite"] = "到守衛者的歇息地"
 L["To Ring of Fates"] = "前往命運之環"
 L["To Ring of Transference"] = "前往樞運之環"
-L["TomTom"] = true
+L["TomTom"] = "TomTom"
+
 end

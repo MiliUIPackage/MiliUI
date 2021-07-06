@@ -9,6 +9,7 @@ local L = ns.locale
 
 local Map = ns.Map
 
+local Item  = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
 local Reward = ns.reward.Reward
@@ -34,6 +35,16 @@ ns.icons.cov_sigil_vn = {Icon('covenant_venthyr'), nil}
 -------------------------------------------------------------------------------
 ---------------------------------- CALLBACKS ----------------------------------
 -------------------------------------------------------------------------------
+
+ns.addon:RegisterEvent('COMBAT_LOG_EVENT_UNFILTERED', function ()
+    -- Listen for aura applied/removed events so we can refresh when the player
+    -- enters and exits the rift in Korthia and the Maw
+    local _,e,_,_,_,_,_,_,t,_,_,s  = CombatLogGetCurrentEventInfo()
+    if (e == 'SPELL_AURA_APPLIED' or e == 'SPELL_AURA_REMOVED') and
+        t == UnitName('player') and (s == 352795 or s == 354870) then
+        C_Timer.After(1, function() ns.addon:Refresh() end)
+    end
+end)
 
 ns.addon:RegisterEvent('UNIT_SPELLCAST_SUCCEEDED', function (...)
     -- Watch for a spellcast event that signals the kitten was pet.
@@ -144,30 +155,29 @@ hooksecurefunc(GameTooltip, 'ClearLines', function(self)
     vignetteHandled = false
 end)
 
-
 -------------------------------------------------------------------------------
 ---------------------------------- COVENANTS ----------------------------------
 -------------------------------------------------------------------------------
 
 ns.covenants = {
-    KYR = { id = 1, icon = 'cov_sigil_ky' },
-    VEN = { id = 2, icon = 'cov_sigil_vn' },
-    FAE = { id = 3, icon = 'cov_sigil_nf' },
-    NEC = { id = 4, icon = 'cov_sigil_nl' }
+    KYR = { id = 1, icon = 'cov_sigil_ky', assault=63824 },
+    VEN = { id = 2, icon = 'cov_sigil_vn', assault=63822 },
+    FAE = { id = 3, icon = 'cov_sigil_nf', assault=63823 },
+    NEC = { id = 4, icon = 'cov_sigil_nl', assault=63543 }
 }
 
 local function ProcessCovenant (node)
-    if node.covenant == nil then return end
-    local data = C_Covenants.GetCovenantData(node.covenant.id)
+    local covenant = node.covenant or node.assault
+    if not covenant then return end
+    if node._covenantProcessed then return end
 
-    -- Add covenant sigil to top-right corner of tooltip
-    node.rlabel = ns.GetIconLink(node.covenant.icon, 13)
+    local name = C_Covenants.GetCovenantData(covenant.id).name
+    local str = node.covenant and L["covenant_required"] or L["cov_assault_only"]
+    local subl = ns.color.Orange(string.format(str, name))
 
-    if not node._covenantProcessed then
-        local subl = ns.color.Orange(string.format(L["covenant_required"], data.name))
-        node.sublabel = node.sublabel and subl..'\n'..node.sublabel or subl
-        node._covenantProcessed = true
-    end
+    node.rlabel = ns.GetIconLink(covenant.icon, 13)
+    node.sublabel = node.sublabel and subl..'\n'..node.sublabel or subl
+    node._covenantProcessed = true
 end
 
 function Reward:GetCategoryIcon()
@@ -189,8 +199,7 @@ end
 
 ns.groups.ANIMA_SHARD = Group('anima_shard', 'crystal_b', {defaults=ns.GROUP_HIDDEN})
 ns.groups.BLESSINGS = Group('blessings', 1022951, {defaults=ns.GROUP_HIDDEN})
-ns.groups.BONUS_BOSS = Group('bonus_boss', 'peg_rd')
-ns.groups.BONUS_EVENT = Group('bonus_event', 'peg_yw')
+ns.groups.BONUS_BOSS = Group('bonus_boss', 'peg_rd', {defaults=ns.GROUP_HIDDEN})
 ns.groups.CARRIAGE = Group('carriages', 'horseshoe_g', {defaults=ns.GROUP_HIDDEN})
 ns.groups.DREDBATS = Group('dredbats', 'flight_point_g', {defaults=ns.GROUP_HIDDEN})
 ns.groups.FAERIE_TALES = Group('faerie_tales', 355498, {defaults=ns.GROUP_HIDDEN})
@@ -198,13 +207,40 @@ ns.groups.FUGITIVES = Group('fugitives', 236247, {defaults=ns.GROUP_HIDDEN})
 ns.groups.GRAPPLES = Group('grapples', 'peg_bk', {defaults=ns.GROUP_HIDDEN})
 ns.groups.HYMNS = Group('hymns', 'scroll', {defaults=ns.GROUP_HIDDEN})
 ns.groups.INQUISITORS = Group('inquisitors', 3528307, {defaults=ns.GROUP_HIDDEN})
+ns.groups.INVASIVE_MAWSHROOM = Group('invasive_mawshroom', 134534, {defaults=ns.GROUP_HIDDEN75})
+ns.groups.KORTHIA_SHARED = Group('korthia_dailies', 1506458, {defaults=ns.GROUP_HIDDEN75})
 ns.groups.MAW_LORE = Group('maw_lore', 'chest_gy')
-ns.groups.STYGIA_NEXUS = Group('stygia_nexus', 'peg_gn', {defaults=ns.GROUP_HIDDEN})
-ns.groups.RIFTSTONE = Group('riftstone', 'portal_b')
+ns.groups.MAWSWORN_CACHE = Group('mawsworn_cache', 3729814, {defaults=ns.GROUP_HIDDEN75})
+ns.groups.NEST_MATERIALS = Group('nest_materials', 136064, {defaults=ns.GROUP_HIDDEN75})
+ns.groups.NILGANIHMAHT_MOUNT = Group('nilganihmaht', 1391724, {defaults=ns.GROUP_HIDDEN75})
+ns.groups.STYGIA_NEXUS = Group('stygia_nexus', 'peg_gn', {defaults=ns.GROUP_HIDDEN75})
+ns.groups.RIFTSTONE = Group('riftstone', 'portal_bl')
+ns.groups.RIFTBOUND_CACHE = Group('riftbound_cache', 'chest_bk', {defaults=ns.GROUP_ALPHA75})
+ns.groups.RIFT_HIDDEN_CACHE = Group('rift_hidden_cache', 'chest_bk', {defaults=ns.GROUP_ALPHA75})
+ns.groups.RIFT_PORTAL = Group('rift_portal', 'portal_gy')
 ns.groups.SINRUNNER = Group('sinrunners', 'horseshoe_o', {defaults=ns.GROUP_HIDDEN})
 ns.groups.SLIME_CAT = Group('slime_cat', 3732497, {defaults=ns.GROUP_HIDDEN})
 ns.groups.STYGIAN_CACHES = Group('stygian_caches', 'chest_nv', {defaults=ns.GROUP_HIDDEN})
 ns.groups.VESPERS = Group('vespers', 3536181, {defaults=ns.GROUP_HIDDEN})
+
+ns.groups.ANIMA_VESSEL = Group('anima_vessel', 'chest_tl', {
+    defaults=ns.GROUP_ALPHA75,
+    IsEnabled=function (self)
+        -- Anima vessels and caches cannot be seen until the "Vault Anima Tracker"
+        -- upgrade is purchased from the Death's Advance quartermaster
+        if not C_QuestLog.IsQuestFlaggedCompleted(64061) then return false end
+        return Group.IsEnabled(self)
+    end
+})
+
+ns.groups.RELIC = Group('relic', 'star_chest_b', {
+    defaults=ns.GROUP_ALPHA75,
+    IsEnabled=function (self)
+        -- Relics cannot be collected until the quest "What Must Be Found" is completed
+        if not C_QuestLog.IsQuestFlaggedCompleted(64506) then return false end
+        return Group.IsEnabled(self)
+    end
+})
 
 -------------------------------------------------------------------------------
 ------------------------------------ MAPS -------------------------------------
@@ -223,6 +259,30 @@ end
 ns.Map = SLMap
 
 -------------------------------------------------------------------------------
+
+local RiftMap = Class('RiftMap', SLMap)
+
+function RiftMap:Prepare()
+    SLMap.Prepare(self)
+
+    self.rifted = false
+    for i, spellID in ipairs{352795, 354870} do
+        if AuraUtil.FindAuraByName(GetSpellInfo(spellID), 'player') then
+            self.rifted = true
+        end
+    end
+end
+
+function RiftMap:CanDisplay(node, coord, minimap)
+    -- check node's rift availability (nil=no, 1=yes, 2=both)
+    if self.rifted and not node.rift then return false end
+    if not self.rifted and node.rift == 1 then return false end
+    return SLMap.CanDisplay(self, node, coord, minimap)
+end
+
+ns.RiftMap = RiftMap
+
+-------------------------------------------------------------------------------
 --------------------------------- REQUIREMENTS --------------------------------
 -------------------------------------------------------------------------------
 
@@ -238,3 +298,11 @@ function Venari:IsMet()
 end
 
 ns.requirement.Venari = Venari
+
+-------------------------------------------------------------------------------
+----------------------------- RELIC RESEARCH ITEMS ----------------------------
+-------------------------------------------------------------------------------
+
+ns.relics = {
+    relic_fragment = Item({item=186685, status=L["num_research"]:format(1)}) -- relic fragment
+}
