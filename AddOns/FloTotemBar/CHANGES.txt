@@ -1,12 +1,12 @@
-tag 81014bdc5dd82f3f7fd0e1962529f15982993a2d 9.0.44.2
+tag 1d851bd3d546c68174450c2c2e44e53e50318579 9.1.45
 Author:	Floraline <floraline@ophiuchus.org>
-Date:	Thu Nov 19 21:57:56 2020 +0100
+Date:	Wed Jun 30 14:18:17 2021 +0200
 
-Tagginf for release
+Tagging for release
 
-commit 0cc8d52a1a62560e4ec2174697f24ffd8fbff392
+commit 6f6ab839207607d81a1b62fa59499b5facb0ac90
 Author: Floraline <floraline@ophiuchus.org>
-Date:   Thu Nov 19 21:54:49 2020 +0100
+Date:   Wed Jun 30 14:17:48 2021 +0200
 
-    Update toc and version number
+    update packaging for release
 

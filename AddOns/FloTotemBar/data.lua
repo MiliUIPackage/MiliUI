@@ -10,7 +10,9 @@ if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 				{ id = 162488, algo = 2 }, -- Steel trap
 				{ id = 187698, algo = 3 }, -- Tar trap
 				{ id = 1543, duration = 20, algo = 4 }, -- Flare
-				{ id = 109248, duration = 10, algo = 4 }
+				{ id = 109248, duration = 10, algo = 4 }, -- Binding Shot
+				{ id = 328231, duration = 15, algo = 4 }, -- Wild Spirits
+                { id = 308491, duration = 10, algo = 4 } -- Resonating Arrow
 			}
 		},
 		["SHAMAN"] = {
@@ -29,6 +31,7 @@ if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
 				{ id = 192222, duration = 15 }, -- 100 Liquid Magma Totem
 				{ id = 16191, duration = 8 }, -- 38 Mana Tide Totem
 				{ id = 8512, duration = 120 }, -- 49 Windfury
+				{ id = 324386, duration = 30 }, -- Vesper Totem
 			}
 		}
 	};

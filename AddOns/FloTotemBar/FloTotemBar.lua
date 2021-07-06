@@ -8,9 +8,9 @@
 
 local VERSION
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-	VERSION = "9.0.44.2"
+	VERSION = "9.1.45"
 elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
-	VERSION = "1.13.43"
+	VERSION = "1.13.45"
 end
 
 -------------------------------------------------------------------------------
@@ -93,6 +93,9 @@ function FloTotemBar_OnLoad(self)
 		self.slot = _G[self.totemtype.."_TOTEM_SLOT"];
 	end
 	self:EnableMouse(1);
+	if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
+		ExtraActionBarFrame:EnableMouse(false);
+	end
 	
 	if SHOW_WELCOME then
 		DEFAULT_CHAT_FRAME:AddMessage( "FloTotemBar "..VERSION.." loaded." );
@@ -272,14 +275,15 @@ function FloTotemBar_TalentGroupChanged(grp)
 	FloTotemBar_CheckTalentGroup(grp);
 	for k, v in pairs(ACTIVE_OPTIONS.barSettings) do
 		local bar = _G["FloBar"..k];
-                if bar ~= nil then
-		        FloLib_Setup(bar);
-		        -- Restore position
-		        if v.position ~= "auto" and v.refPoint then
-			        bar:ClearAllPoints();
-			        bar:SetPoint(unpack(v.refPoint));
-		        end
+		if bar ~= nil then
+			FloLib_Setup(bar);
+			FloTotemBar_ResetTimers(bar);
+			-- Restore position
+			if v.position ~= "auto" and v.refPoint then
+				bar:ClearAllPoints();
+				bar:SetPoint(unpack(v.refPoint));
 			end
+		end
 	end
 end
 
@@ -480,7 +484,6 @@ function FloTotemBar_OnSetup(self)
 	        end
         end
 
-	FloTotemBar_ResetTimers(self);
 end
 
 function FloTotemBar_UpdatePosition(self)
