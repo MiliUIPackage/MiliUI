@@ -19,7 +19,7 @@ local type = type
 local wipe = wipe
 local CLASS_SORT_ORDER, LOCALIZED_CLASS_NAMES_MALE = CLASS_SORT_ORDER, LOCALIZED_CLASS_NAMES_MALE
 local InCombatLockdown, IsInInstance, GetInstanceInfo = InCombatLockdown, IsInInstance, GetInstanceInfo
-local GetCVar, GetCVarBool = GetCVar, GetCVarBool
+local GetCVar, GetCVarBool, GetCVarDefault = GetCVar, GetCVarBool, GetCVarDefault
 local UnitsExists, UnitName = UnitsExists, UnitName
 local GameTooltip = GameTooltip
 
@@ -139,7 +139,7 @@ local db
 local options
 local clipboard
 
-local CreateCustomNameplateEntry
+local CreateCustomNameplateEntry, CreateCustomNameplatesGroup
 
 ---------------------------------------------------------------------------------------------------
 -- Importing and exporting settings and custom nameplates.
@@ -337,12 +337,38 @@ function Addon.UpdateStylesForCurrentInstance()
   end
 end
 
+local TRIGGER_TYPE_TO_NAME_PREFIX = {
+  Aura = L["Aura: "],
+  Cast = L["Cast: "],
+  Name = "",
+  Script = L["Script"],
+}
+
+function Addon.CustomPlateGetHeaderName(index)
+  local custom_style
+
+  if type(index) == "table" then
+    custom_style = index
+  else
+    custom_style = TidyPlatesThreat.db.profile.uniqueSettings[index]
+  end
+
+  local custom_style_name = custom_style.Name
+  if custom_style_name == "" then
+    local trigger_type = custom_style.Trigger.Type
+    custom_style_name = TRIGGER_TYPE_TO_NAME_PREFIX[trigger_type] .. (custom_style.Trigger[trigger_type].Input or "")
+  end
+
+  return custom_style_name
+end
+
 function Addon:InitializeCustomNameplates()
   local db = TidyPlatesThreat.db.profile
 
   Addon.ActiveAuraTriggers = false
   Addon.ActiveCastTriggers = false
   Addon.ActiveWildcardTriggers = false
+  Addon.ActiveScriptTrigger = false
   Addon.UseUniqueWidget = db.uniqueWidget.ON
 
   -- Use wipe to keep references intact
@@ -351,6 +377,7 @@ function Addon:InitializeCustomNameplates()
   wipe(custom_style_triggers.NameWildcard)
   wipe(custom_style_triggers.Aura)
   wipe(custom_style_triggers.Cast)
+  wipe(custom_style_triggers.Script)
   wipe(Addon.Cache.TriggerWildcardTests)
 
   local styles_cache = Addon.Cache.Styles
@@ -358,16 +385,23 @@ function Addon:InitializeCustomNameplates()
   wipe(styles_cache.PerInstance)
 
   for index, custom_style in pairs(db.uniqueSettings) do
-    if type(index) == "number" and custom_style.Trigger.Name.Input ~= "<Enter name here>" and not custom_style.Enable.Never then
+    if type(index) == "number" and custom_style.Trigger.Name.Input ~= "<Enter name here>" and not custom_style.Enable.Never and (custom_style.Trigger.Type ~= "Script" or TidyPlatesThreat.db.global.ScriptingIsEnabled) then
       local trigger_type = custom_style.Trigger.Type
       local trigger_list = custom_style.Trigger[trigger_type].AsArray
 
-      for _, trigger in ipairs(trigger_list) do
-        if trigger_type == "Name" and string.find(trigger, "%*") then
-          local wildcard_trigger = string.gsub(trigger, "%*", ".*")
-          custom_style_triggers.NameWildcard[#custom_style_triggers.NameWildcard + 1] = { wildcard_trigger, custom_style }
-        else
-          custom_style_triggers[trigger_type][trigger] = custom_style
+      -- Custom styles with scripting can either be of type Script or of another type, but with a script attached
+      if trigger_type == "Script" or next(custom_style.Scripts.Code.Functions) ~= nil or next(custom_style.Scripts.Code.Events) ~= nil then
+        custom_style_triggers.Script[#custom_style_triggers.Script + 1] = custom_style
+      end
+
+      if trigger_type ~= "Script" then
+        for _, trigger in ipairs(trigger_list) do
+          if trigger_type == "Name" and string.find(trigger, "%*") then
+            local wildcard_trigger = string.gsub(trigger, "%*", ".*")
+            custom_style_triggers.NameWildcard[#custom_style_triggers.NameWildcard + 1] = { wildcard_trigger, custom_style }
+          elseif trigger_type ~= "Script" then
+            custom_style_triggers[trigger_type][trigger] = custom_style
+          end
         end
       end
 
@@ -401,7 +435,7 @@ function Addon:InitializeCustomNameplates()
   Addon.ActiveAuraTriggers = next(custom_style_triggers.Aura) ~= nil
   Addon.ActiveCastTriggers = next(custom_style_triggers.Cast) ~= nil
   Addon.ActiveWildcardTriggers = next(custom_style_triggers.NameWildcard) ~= nil
-
+  Addon.ActiveScriptTrigger = next(custom_style_triggers.Script) ~= nil
   Addon.UpdateStylesForCurrentInstance()
 end
 
@@ -411,6 +445,8 @@ local function UpdateSpecial() -- Need to add a way to update options table.
   Addon.Widgets:InitializeAllWidgets()
   Addon:ForceUpdate()
 end
+
+Addon.UpdateCustomStyles = UpdateSpecial
 
 local function GetValue(info)
   local DB = TidyPlatesThreat.db.profile
@@ -733,16 +769,25 @@ function Addon:SetCVarsForOcclusionDetection()
   Addon.CVars:Set("nameplateMaxAlpha", 1)
 
   -- Create enough separation between occluded and not occluded nameplates, even for targeted units
-  local occluded_alpha_mult = tonumber(GetCVar("nameplateOccludedAlphaMult"))
+  local occluded_alpha_mult = tonumber(GetCVar("nameplateOccludedAlphaMult")) or tonumber(GetCVarDefault("nameplateOccludedAlphaMult"))
   if occluded_alpha_mult > 0.9  then
     occluded_alpha_mult = 0.9
     Addon.CVars:Set("nameplateOccludedAlphaMult", occluded_alpha_mult)
   end
 
-  local selected_alpha =  tonumber(GetCVar("nameplateSelectedAlpha"))
+  local selected_alpha =  tonumber(GetCVar("nameplateSelectedAlpha")) or tonumber(GetCVarDefault("nameplateSelectedAlpha"))
   if not selected_alpha or (selected_alpha < occluded_alpha_mult + 0.1) then
     selected_alpha = occluded_alpha_mult + 0.1
     Addon.CVars:Set("nameplateSelectedAlpha", selected_alpha)
+  end
+
+  -- Occlusion detection does not work when a target is selected in Classic, see https://github.com/Stanzilla/WoWUIBugs/issues/134
+  if Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC then
+    local not_selected_alpha =  tonumber(GetCVar("nameplateNotSelectedAlpha")) or tonumber(GetCVarDefault("nameplateNotSelectedAlpha"))
+    if not not_selected_alpha or (not_selected_alpha < occluded_alpha_mult + 0.1) then
+      not_selected_alpha = occluded_alpha_mult + 0.1
+      Addon.CVars:Set("nameplateNotSelectedAlpha", not_selected_alpha)
+    end
   end
 end
 
@@ -1728,11 +1773,11 @@ local function CreateComboPointsWidgetOptions()
             type = "select",
             order = 10,
             values = {
-              DEATHKNIGHT = (not Addon.CLASSIC and L["Death Knight"]) or nil,
+              DEATHKNIGHT = ((not Addon.IS_CLASSIC and not Addon.IS_TBC_CLASSIC) and L["Death Knight"]) or nil,
               DRUID = L["Druid"],
               MAGE = L["Arcane Mage"],
-              MONK = (not Addon.CLASSIC and L["Windwalker Monk"]) or nil,
-              PALADIN = (not Addon.CLASSIC and L["Paladin"]) or nil,
+              MONK = ((not Addon.IS_CLASSIC and not Addon.IS_TBC_CLASSIC) and L["Windwalker Monk"]) or nil,
+              PALADIN = ((not Addon.IS_CLASSIC and not Addon.IS_TBC_CLASSIC) and L["Paladin"]) or nil,
               ROGUE = L["Rogue"],
               WARLOCK = L["Warlock"],
             },
@@ -1896,7 +1941,7 @@ local function CreateArenaWidgetOptions()
     type = "group",
     order = 10,
     set = SetValueWidget,
-    hidden = function() return Addon.CLASSIC end,
+    hidden = function() return Addon.IS_CLASSIC end,
     args = {
       Enable = GetEnableEntry(L["Enable Arena Widget"], L["This widget shows various icons (orbs and numbers) on enemy nameplates in arenas for easier differentiation."], "arenaWidget", false, function(info, val) SetValuePlain(info, val); Addon.Widgets:InitializeWidget("Arena") end),
       Orbs = {
@@ -2095,7 +2140,7 @@ end
     name = L["Quest"],
     order = 100,
     type = "group",
-    hidden = function() return Addon.CLASSIC end,
+    hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
     args = {
       Enable = GetEnableEntry(L["Enable Quest Widget"], L["This widget shows a quest icon above unit nameplates or colors the nameplate healthbar of units that are involved with any of your current quests."], "questWidget", true,
         function(info, val)
@@ -2191,7 +2236,7 @@ local function CreateStealthWidgetOptions()
     name = L["Stealth"],
     order = 80,
     type = "group",
-    hidden = function() return Addon.CLASSIC end,
+    hidden = function() return Addon.IS_CLASSIC end,
     args = {
       Enable = GetEnableEntry(L["Enable Stealth Widget"], L["This widget shows a stealth icon on nameplates of units that can detect stealth."], "stealthWidget", true, function(info, val) SetValuePlain(info, val); Addon.Widgets:InitializeWidget("Stealth") end),
       Layout = {
@@ -2355,7 +2400,7 @@ local function CreateExperienceWidgetOptions()
     type = "group",
     order = 54,
     childGroups = "tab",
-    hidden = function() return Addon.CLASSIC end,
+    hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
     set = SetValueWidget,
     args = {
       Enable = GetEnableEntry(
@@ -2583,7 +2628,7 @@ local function CreateFocusWidgetOptions()
     name = L["Focus Highlight"],
     type = "group",
     order = 55,
-    hidden = function() return Addon.CLASSIC end,
+    hidden = function() return Addon.IS_CLASSIC end,
     args = {
       Enable = GetEnableEntry(L["Enable Focus Widget"], L["This widget highlights the nameplate of your current focus target by showing a border around the healthbar and by coloring the nameplate's healtbar and/or name with a custom color."], "FocusWidget", false, function(info, val) SetValuePlain(info, val); Addon.Widgets:InitializeWidget("Focus") end),
       Texture = {
@@ -3410,6 +3455,7 @@ local function CreateAurasWidgetOptions()
                 end,
                 arg = { "AuraWidget", "Debuffs", "ShowBlizzardForFriendly" },
                 disabled = function() return not db.AuraWidget.Debuffs.ShowFriendly end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end
               },
               Dispellable = {
                 name = L["Dispellable"],
@@ -3555,6 +3601,7 @@ local function CreateAurasWidgetOptions()
                 end,
                 arg = { "AuraWidget", "Debuffs", "ShowBlizzardForEnemy" },
                 disabled = function() return not db.AuraWidget.Debuffs.ShowEnemy end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end
               },
             },
           },
@@ -3887,6 +3934,7 @@ local function CreateAurasWidgetOptions()
                 end,
                 arg = { "AuraWidget", "CrowdControl", "ShowBlizzardForFriendly" },
                 disabled = function() return not db.AuraWidget.CrowdControl.ShowFriendly end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end
               },
               Dispellable = {
                 name = L["Dispellable"],
@@ -3941,7 +3989,8 @@ local function CreateAurasWidgetOptions()
                   end
                 end,
                 arg = { "AuraWidget", "CrowdControl", "ShowAllEnemy" },
-                disabled = function() return not db.AuraWidget.CrowdControl.ShowEnemy end
+                disabled = function() return not db.AuraWidget.CrowdControl.ShowEnemy end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end
               },
               Blizzard = {
                 name = L["Blizzard"],
@@ -3954,7 +4003,8 @@ local function CreateAurasWidgetOptions()
                   SetValueWidget(info, val)
                 end,
                 arg = { "AuraWidget", "CrowdControl", "ShowBlizzardForEnemy" },
-                disabled = function() return not db.AuraWidget.CrowdControl.ShowEnemy or Addon.CLASSIC end,
+                disabled = function() return not db.AuraWidget.CrowdControl.ShowEnemy end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end
               },
             },
           },
@@ -4556,13 +4606,13 @@ local function CreateBlizzardSettings()
         inline = true,
         set = SetValue,
         get = GetValue,
-        disabled = function() return Addon.CLASSIC and (db.ShowFriendlyBlizzardNameplates or db.ShowEnemyBlizzardNameplates) end,
+        disabled = function() return (Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC) and (db.ShowFriendlyBlizzardNameplates or db.ShowEnemyBlizzardNameplates) end,
         args = {
           Description = {
             type = "description",
             order = 1,
             name = L["Because of side effects with Blizzard nameplates, this function is disabled in instances or when Blizzard nameplates are used for friendly or neutral/enemy units (see General - Visibility)."],
-            hidden = function() return not Addon.CLASSIC or (not db.ShowFriendlyBlizzardNameplates and not db.ShowEnemyBlizzardNameplates) end,
+            hidden = function() return not Addon.IS_CLASSIC or not Addon.IS_TBC_CLASSIC or (not db.ShowFriendlyBlizzardNameplates and not db.ShowEnemyBlizzardNameplates) end,
             width = "full",
           },
           ToggleSync = {
@@ -4688,7 +4738,7 @@ local function CreateBlizzardSettings()
             order = 10,
             type = "range",
             min = 0,
-            max = (Addon.CLASSIC and 20) or 100,
+            max = (Addon.IS_CLASSIC  and 20) or (Addon.IS_TBC_CLASSIC and 41) or 100,
             step = 1,
             width = "double",
             desc = L["The max distance to show nameplates."],
@@ -4766,7 +4816,7 @@ local function CreateBlizzardSettings()
             get = GetCVarBoolTPTP,
             desc = L["Clamps the target's nameplate to the edges of the screen, even if the target is off-screen."],
             arg = "clampTargetNameplateToScreen",
-            hidden = function() return not Addon.CLASSIC end,
+            hidden = function() return not Addon.IS_CLASSIC end,
           },
         },
       },
@@ -4819,7 +4869,7 @@ local function CreateBlizzardSettings()
         order = 45,
         type = "group",
         inline = true,
-        hidden = function() return Addon.CLASSIC end,
+        hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
         args = {
           HideBuffs = {
             type = "toggle",
@@ -4871,7 +4921,7 @@ local function CreateBlizzardSettings()
                   "nameplateMaxDistance", "nameplateTargetBehindMaxDistance",
                   -- "nameplateGlobalScale" -- Reset it to 1, if it get's somehow corrupted
                 }
-                if Addon.CLASSIC then
+                if Addon.IS_CLASSIC then
                   cvars[#cvars + 1] = "clampTargetNameplateToScreen"
                 end
                 for k, v in pairs(cvars) do
@@ -5199,14 +5249,14 @@ local function CreateHealthbarOptions()
                 order = 29,
                 type = "toggle",
                 arg = { "settings", "healthbar", "ShowHealAbsorbs" },
-                hidden = function() return Addon.CLASSIC end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
               },
               ShowAbsorbs = {
                 name = L["Absorbs"],
                 order = 30,
                 type = "toggle",
                 arg = { "settings", "healthbar", "ShowAbsorbs" },
-                hidden = function() return Addon.CLASSIC end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
               },
               ShowMouseoverHighlight = {
                 type = "toggle",
@@ -5331,7 +5381,7 @@ local function CreateHealthbarOptions()
                 order = 90,
                 type = "group",
                 inline = true,
-                hidden = function() return Addon.CLASSIC end,
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
                 args = {
                   AbsorbColor = {
                     name = L["Color"],
@@ -5745,12 +5795,14 @@ local function CreateCastbarOptions()
                 type = "toggle",
                 disabled = function() return not db.settings.castborder.show end,
                 arg = { "settings", "castnostop", "ShowOverlay" },
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
               },
               EnableInterruptShield = {
                 name = L["Interrupt Shield"],
                 order = 70,
                 type = "toggle",
                 arg = { "settings", "castnostop", "ShowInterruptShield" },
+                hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
               },
               CastTarget = {
                 name = L["Cast Target"],
@@ -6201,14 +6253,8 @@ local function CreateSpecRolesRetail()
   return result
 end
 
-local function CustomPlateGetHeaderName(index)
-  local trigger_type = db.uniqueSettings[index].Trigger.Type
-  local prefix = (trigger_type == "Aura" and L["Aura: "]) or (trigger_type == "Cast" and L["Cast: "]) or ""
-  return prefix .. (db.uniqueSettings[index].Trigger[trigger_type].Input or "")
-end
-
 local function CustomPlateGetSlotName(index)
-  local name = "#" .. index .. ". " .. CustomPlateGetHeaderName(index)
+  local name = "#" .. index .. ". " .. Addon.CustomPlateGetHeaderName(index)
   if db.uniqueSettings[index].Enable.Never then
     name = "|cffA0A0A0" .. name .. "|r"
   end
@@ -6304,6 +6350,10 @@ StaticPopupDialogs["TriggerAlreadyExistsDisablingIt"] = {
 local function CustomPlateCheckIfTriggerIsUnique(trigger_type, triggers, selected_plate)
   local duplicate_triggers = {}
 
+  if trigger_type == "Script" then
+    return true, duplicate_triggers
+  end
+
   for i, trigger_value in ipairs(triggers) do
     if trigger_value ~= nil and trigger_value ~= "" then
       -- Check if here is already another custom nameplate with the same trigger:
@@ -6331,7 +6381,7 @@ end
 
 local function CustomPlateUpdateEntry(index)
   options.args.Custom.args["#" .. index].name = CustomPlateGetSlotName(index)
-  options.args.Custom.args["#" .. index].args.Header.name = CustomPlateGetHeaderName(index)
+  options.args.Custom.args["#" .. index].args.Header.name = Addon.CustomPlateGetHeaderName(index)
 
   CustomPlateSetIcon(index) -- Executes UpdateSpecial()
 end
@@ -6353,23 +6403,31 @@ local function CustomPlateCheckAndUpdateEntry(info, val, index)
   end
 end
 
+local function CustomPlateGetExampleForEventScript(custom_style, event)
+  local script_function
+  if event == "WoWEvent" then
+    script_function = custom_style.Scripts.Code.Events[custom_style.Scripts.Event]
+    if script_function == "" then
+      script_function = Addon.WIDGET_EVENTS[event].FunctionExample
+    end
+  elseif event == "Legacy" then
+    script_function = custom_style.Scripts.Code.Legacy
+  else
+    script_function = custom_style.Scripts.Code.Functions[event] or Addon.WIDGET_EVENTS[event].FunctionExample
+  end
+
+  return script_function
+end
+
 local function UpdateCustomNameplateSlots(...)
   local entry = options.args.Custom.args
   if ... then
-    -- Use pairs as iterater as the table is in a somewhat invalid format (non-iteratable with ipairs) as long as the
-    -- custom styles have not been migrated to V2
-    for index, custom_style in pairs(db.uniqueSettings) do
-      if type(index) == "number" and custom_style.Trigger.Name.Input ~= "<Enter name here>"  then
-        entry["#" .. index] = CreateCustomNameplateEntry(index)
-      end
-    end
-
-    UpdateSpecial()
-  else
     local slots = {...}
     for _, slot_no in pairs(slots) do
       entry["#" .. slot_no] = CreateCustomNameplateEntry(slot_no)
     end
+  else
+    CreateCustomNameplatesGroup()
   end
 end
 
@@ -6451,10 +6509,9 @@ CreateCustomNameplateEntry = function(index)
 
           ShowExportFrame(export_data)
         end,
-        disabled = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
       },
       Header = {
-        name = CustomPlateGetHeaderName(index),
+        name = Addon.CustomPlateGetHeaderName(index),
         type = "header",
         order = 9,
       },
@@ -6468,7 +6525,7 @@ CreateCustomNameplateEntry = function(index)
             name = L["Type"],
             type = "select",
             order = 10,
-            values = { Name = L["Name"], Aura = L["Aura"], Cast = L["Cast"], },
+            values = { Name = L["Name"], Aura = L["Aura"], Cast = L["Cast"], Script = (TidyPlatesThreat.db.global.ScriptingIsEnabled and L["Script"]) or nil },
             set = function(info, val)
               -- If the uses switches to a trigger that is already in use, the current custom nameplate
               -- is disabled (otherwise, if we would not switch to it, the user could not change it at all.
@@ -6482,15 +6539,6 @@ CreateCustomNameplateEntry = function(index)
               CustomPlateUpdateEntry(index)
             end,
             arg = { "uniqueSettings", index, "Trigger", "Type" },
-            -- Available only for custom nameplates with version >= 2
-            desc = function()
-              if TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 then
-                return L["This option is disabled as you are still using the obsolete custom nameplates format. Migrate your custom nameplates to the new format (using the Migration button at the top) to enable this option."]
-              else
-                return nil
-              end
-            end,
-            disabled = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
           },
           Spacer1 = GetSpacerEntry(15),
           -- Name Trigger
@@ -6569,6 +6617,17 @@ CreateCustomNameplateEntry = function(index)
               return tostring(db.uniqueSettings[index].Trigger["Cast"].Input or "")
             end,
             hidden = function() return db.uniqueSettings[index].Trigger.Type ~= "Cast" end,
+          },
+          NameOfCustomStyle = {
+            name = L["Name"],
+            type = "input",
+            order = 40,
+            width = "full",
+            set = function(info, val)
+              SetValue(info, val)
+              CustomPlateUpdateEntry(index)
+            end,
+            arg = { "uniqueSettings", index, "Name" },
           },
         },
       },
@@ -6919,7 +6978,6 @@ CreateCustomNameplateEntry = function(index)
             end,
             arg = { "uniqueSettings", index, "UseAutomaticIcon" },
             desc = L["Find a suitable icon based on the current trigger. For Name trigger, the preview does not work. For multi-value triggers, the preview always is the icon of the first trigger entered."],
-            hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
           },
           Spacer1 = GetSpacerEntry(3),
           Icon = {
@@ -6955,13 +7013,257 @@ CreateCustomNameplateEntry = function(index)
           },
         },
       },
+      Script = {
+        name = L["Scripts"],
+        order = 60,
+        type = "group",
+        width = "full",
+        inline = false,
+        hidden = function() return not TidyPlatesThreat.db.global.ScriptingIsEnabled end,
+        args = {
+          WidgetType = {
+            name = L["Type"],
+            order = 10,
+            type = "select",
+            values = { Standard = L["Standard"], TargetOnly = L["Target Only"], FocusOnly = L["Focus Only"], },
+            arg = { "uniqueSettings", index, "Scripts", "Type" },
+          },
+          WidgetFunction = {
+            name = L["Function"],
+            order = 20,
+            type = "select",
+            values = function()
+              local custom_style = db.uniqueSettings[index]
+              local script_functions = t.CopyTable(Addon.SCRIPT_FUNCTIONS[custom_style.Scripts.Type])
+
+              for key, function_name in pairs(script_functions) do
+                local color = "ffffff"
+                if key == "WoWEvent" then
+                  -- If no WoW event is defined, color the entry in grey
+                  if next(custom_style.Scripts.Code.Events) then
+                    color = "00ff00"
+                  end
+                elseif custom_style.Scripts.Code.Functions[function_name] then
+                  color = "00ff00"
+                end
+                script_functions[key] = "|cff" .. color .. function_name .. "|r"
+              end
+
+              if custom_style.Scripts.Code.Legacy and custom_style.Scripts.Code.Legacy ~= "" then
+                script_functions.Legacy = "|cffff0000Legacy Code|r"
+              end
+
+              return script_functions
+            end,
+            get = function(info)
+              local val = GetValue(info)
+              local values = info.option.values()
+
+              -- If the current value is no longer valid (LegacyCode removed or type switch), change it to some valid value
+              if not values[val] then
+                val = t.DEFAULT_SETTINGS.profile.uniqueSettings["**"].Scripts.Function
+                db.uniqueSettings[index].Scripts.Function = val
+              end
+
+              return val
+            end,
+            arg = { "uniqueSettings", index, "Scripts", "Function" },
+          },
+          WoWEventName = {
+            name = L["Event Name"],
+            order = 30,
+            type = "input",
+            width = "double",
+            set = function(info, val)
+              if val ~= "" then
+                val = string.upper(val)
+                if not db.uniqueSettings[index].Scripts.Code.Events[val] then
+                  db.uniqueSettings[index].Scripts.Code.Events[val] = ""
+                end
+              end
+              SetValue(info, val)
+            end,
+            get = function(info)
+              local wow_event
+              if db.uniqueSettings[index].Scripts.Function == "WoWEvent" then
+                wow_event = db.uniqueSettings[index].Scripts.Event
+                if not db.uniqueSettings[index].Scripts.Code.Events[wow_event] then
+                  -- Script for event was deleted, so switch to another event (if available) as function still is WoWEvent
+                  -- Set (WoW) event to the first non-internal event or to nil
+                  db.uniqueSettings[index].Scripts.Event = wow_event
+                end
+              end
+              return wow_event
+            end,
+            arg = { "uniqueSettings", index, "Scripts", "Event" },
+            disabled = function() return db.uniqueSettings[index].Scripts.Function ~= "WoWEvent" end,
+          },
+          Spacer1 = GetSpacerEntry(40),
+          Spacer2 =  { name = "", order = 41, type = "description", width = "double", },
+          WoWEventWithScript = {
+            name = L["Events with Script"],
+            order = 50,
+            type = "select",
+            width = "double",
+            values = function()
+              local events_with_scripts = { }
+              for event, script in pairs(db.uniqueSettings[index].Scripts.Code.Events) do
+                events_with_scripts[event] = event
+              end
+              return events_with_scripts
+            end,
+            arg = { "uniqueSettings", index, "Scripts", "Event" },
+            disabled = function() return db.uniqueSettings[index].Scripts.Function ~= "WoWEvent" or not next(db.uniqueSettings[index].Scripts.Code.Events) end,
+          },
+          Spacer3 = GetSpacerEntry(55),
+          Script = {
+            name = L["Script"],
+            order = 60,
+            type = "input",
+            multiline = 12,
+            width = "full",
+            set = function(info, val)
+              -- Delete the event from the list
+              if val and val:gsub("^%s*(.-)%s*$", "%1"):len() == 0 then
+                val = nil
+              end
+
+              local custom_style = db.uniqueSettings[index]
+              if custom_style.Scripts.Function == "WoWEvent" then
+                custom_style.Scripts.Code.Events[custom_style.Scripts.Event] = val
+              elseif custom_style.Scripts.Function == "Legacy" then
+                custom_style.Scripts.Code.Legacy = val
+              else
+                custom_style.Scripts.Code.Functions[custom_style.Scripts.Function] = val
+              end
+
+              -- Empty input field and drop down showing the current event (as it was deleted)
+              if not val then
+                custom_style.Scripts.Event = nil
+              end
+
+              Addon:InitializeCustomNameplates()
+              Addon.Widgets:UpdateSettings("Script")
+            end,
+            get = function(info)
+              return CustomPlateGetExampleForEventScript(db.uniqueSettings[index], db.uniqueSettings[index].Scripts.Function)
+            end,
+          },
+          Extend = {
+            name = L["Extend"],
+            order = 61,
+            type = "execute",
+            width = "half",
+            func = function(info)
+              if not Addon.ScriptEditor then
+                local frame = LibAceGUI:Create("Window")
+                frame:SetTitle(L["Threat Plates Script Editor"])
+                frame:SetCallback("OnClose", function(widget) frame:_Cancel() end)
+                frame:SetLayout("fill")
+                Addon.ScriptEditor = frame
+
+                local group = LibAceGUI:Create("InlineGroup");
+                group.frame:SetParent(frame.frame)
+                group.frame:SetPoint("BOTTOMRIGHT", frame.frame, "BOTTOMRIGHT", -17, 12)
+                group.frame:SetPoint("TOPLEFT", frame.frame, "TOPLEFT", 17, -10)
+                group:SetLayout("fill")
+                frame:AddChild(group)
+
+                local editor = LibAceGUI:Create("MultiLineEditBox")
+                editor:SetWidth(400)
+                editor.button:Hide()
+                editor:SetFullWidth(true)
+                editor.frame:SetFrameStrata("FULLSCREEN")
+                editor:SetLabel("")
+                group:AddChild(editor)
+                editor.frame:SetClipsChildren(true)
+                frame.Editor = editor
+
+                IndentationLib.enable(editor.editBox)
+
+                local cancel_button = CreateFrame("Button", nil, group.frame, "UIPanelButtonTemplate")
+                cancel_button:SetScript("OnClick", function() frame:_Cancel() end)
+                cancel_button:SetPoint("BOTTOMRIGHT", -27, 13);
+                cancel_button:SetFrameLevel(cancel_button:GetFrameLevel() + 1)
+                cancel_button:SetHeight(20);
+                cancel_button:SetWidth(100);
+                cancel_button:SetText(L["Cancel"]);
+
+                local close_button = CreateFrame("Button", nil, group.frame, "UIPanelButtonTemplate")
+                close_button:SetScript("OnClick", function() frame:_Done() end)
+                close_button:SetPoint("RIGHT", cancel_button, "LEFT", -10, 0)
+                close_button:SetFrameLevel(close_button:GetFrameLevel() + 1)
+                close_button:SetHeight(20);
+                close_button:SetWidth(100);
+                close_button:SetText(L["Done"]);
+
+                -- CTRL + S saves and closes, ESC cancels and closes
+                editor.editBox:HookScript("OnKeyDown", function(_, key)
+                  if IsControlKeyDown() and key == "S" then
+                    frame:_Done()
+                  end
+                  if key == "ESCAPE" then
+                    frame:_Cancel()
+                  end
+                end)
+
+                function frame._Cancel(self)
+                  frame:Hide()
+                  Addon.LibAceConfigDialog:Open(t.ADDON_NAME)
+                end
+
+                function frame._Done(self)
+                  -- Delete the event from the list
+                  local val = Addon.ScriptEditor.Editor:GetText()
+                  if val and val:gsub("^%s*(.-)%s*$", "%1"):len() == 0 then
+                    val = nil
+                  end
+
+                  local custom_style = db.uniqueSettings[index]
+                  if custom_style.Scripts.Function == "WoWEvent" then
+                    custom_style.Scripts.Code.Events[custom_style.Scripts.Event] = val
+                  elseif custom_style.Scripts.Function == "Legacy" then
+                    custom_style.Scripts.Code.Legacy = val
+                  else
+                    custom_style.Scripts.Code.Functions[custom_style.Scripts.Function] = val
+                  end
+
+                  -- Empty input field and drop down showing the current event (as it was deleted)
+                  if not val then
+                    custom_style.Scripts.Event = nil
+                  end
+
+                  Addon:InitializeCustomNameplates()
+                  Addon.Widgets:UpdateSettings("Script")
+
+                  frame:Hide()
+                  Addon.LibAceConfigDialog:Open(t.ADDON_NAME)
+                end
+              end
+
+              local label
+              if db.uniqueSettings[index].Scripts.Function == "WoWEvent" then
+                label = "WoW Event: " .. db.uniqueSettings[index].Scripts.Event
+              else
+                label = "Event: " .. db.uniqueSettings[index].Scripts.Function
+              end
+              Addon.ScriptEditor.Editor:SetLabel(label)
+
+              Addon.ScriptEditor.Editor:SetText(CustomPlateGetExampleForEventScript(db.uniqueSettings[index], db.uniqueSettings[index].Scripts.Function))
+
+              Addon.LibAceConfigDialog:Close(t.ADDON_NAME)
+              Addon.ScriptEditor:Show()
+            end,
+          },
+        },
+      },
     },
   }
 
   return entry
 end
 
-local function CreateCustomNameplatesGroup()
+CreateCustomNameplatesGroup = function()
   local entry = {
     NewSlot = {
       name = L["New"],
@@ -6978,12 +7280,9 @@ local function CreateCustomNameplatesGroup()
         table.insert(db.uniqueSettings, slot_no, t.CopyTable(t.DEFAULT_SETTINGS.profile.uniqueSettings["**"]))
         db.uniqueSettings[slot_no].Trigger.Name.Input = ""
 
-        options.args.Custom.args = CreateCustomNameplatesGroup()
-        UpdateSpecial()
-
+        CreateCustomNameplatesGroup()
         Addon.LibAceConfigDialog:SelectGroup(t.ADDON_NAME, "Custom", "#" ..  slot_no)
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
     },
     DeleteSlot = {
       name = L["Delete"],
@@ -6998,9 +7297,7 @@ local function CreateCustomNameplatesGroup()
         if slot_no then
           table.remove(db.uniqueSettings, slot_no)
 
-          options.args.Custom.args = CreateCustomNameplatesGroup()
-          UpdateSpecial()
-
+          CreateCustomNameplatesGroup()
           Addon.LibAceConfigDialog:SelectGroup(t.ADDON_NAME, "Custom", "#" ..  math.min(slot_no, #db.uniqueSettings))
         end
       end,
@@ -7016,7 +7313,6 @@ local function CreateCustomNameplatesGroup()
           return false
         end
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
     },
     MoveUp = {
       name = L["Move Up"],
@@ -7039,7 +7335,6 @@ local function CreateCustomNameplatesGroup()
           end
         end
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
     },
     MoveDown = {
       name = L["Move Down"],
@@ -7062,7 +7357,6 @@ local function CreateCustomNameplatesGroup()
           end
         end
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
     },
     SortAsc = {
       name = L["Sort A-Z"],
@@ -7079,12 +7373,9 @@ local function CreateCustomNameplatesGroup()
           return a_key < b_key
         end)
 
-        options.args.Custom.args = CreateCustomNameplatesGroup()
-        UpdateSpecial()
-
+        CreateCustomNameplatesGroup()
         --Addon.LibAceConfigDialog:SelectGroup(t.ADDON_NAME, "Custom", "#" ..  slot_no)
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
     },
     SortDesc = {
       name = L["Sort Z-A"],
@@ -7101,26 +7392,9 @@ local function CreateCustomNameplatesGroup()
           return a_key > b_key
         end)
 
-        options.args.Custom.args = CreateCustomNameplatesGroup()
-        UpdateSpecial()
-
+        CreateCustomNameplatesGroup()
         --Addon.LibAceConfigDialog:SelectGroup(t.ADDON_NAME, "Custom", "#" ..  slot_no)
       end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
-    },
-    MigrateVersion1 = {
-      name = L["|cffFFFFFFMigrate Custom Nameplates Settings|r"],
-      order = 20,
-      type = "execute",
-      width = "full",
-      func = function()
-        Addon.MigrationCustomNameplatesV1()
-
-        options.args.Custom.args = CreateCustomNameplatesGroup()
-        UpdateSpecial()
-      end,
-      confirm = function(info) return L["|cffFF0000NOTE|r\nMigration should only delete deprecated default custom nameplates and re-order the remaining ones. Nevertheless, it is highly advised to backup your settings (the SavedVariables file TidyPlates_ThreatPlates.lua) in case something goes wrong.\n\nAre you sure you want to migrate your custom nameplates?"] end,
-      hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion > 1 end,
     },
     Spacer1 = GetSpacerEntry(25),
     GeneralSettings = {
@@ -7159,15 +7433,7 @@ local function CreateCustomNameplatesGroup()
           type = "group",
           order = 20,
           inline = true,
-          disabled = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 end,
           args = {
-            VersionWarning = {
-              type = "description",
-              order = 1,
-              width = "full",
-              name = L["|cffFF0000This option is disabled as you are still using the obsolete custom nameplates format. Migrate your custom nameplates to the new format (using the Migration button at the top) to enable this option.|r"],
-              hidden = function() return TidyPlatesThreat.db.global.CustomNameplatesVersion > 1 end,
-            },
             Export = {
               name = L["Export Custom Nameplates"],
               order = 10,
@@ -7231,8 +7497,7 @@ local function CreateCustomNameplatesGroup()
                           table.insert(db.uniqueSettings, slot_no + i, custom_style)
                         end
 
-                        options.args.Custom.args = CreateCustomNameplatesGroup()
-                        UpdateSpecial()
+                        CreateCustomNameplatesGroup()
                       end
                     end
                   else
@@ -7249,15 +7514,18 @@ local function CreateCustomNameplatesGroup()
     },
   }
 
+
   -- Use pairs as iterater as the table is in a somewhat invalid format (non-iteratable with ipairs) as long as the
   -- custom styles have not been migrated to V2
   for index, custom_style in pairs(db.uniqueSettings) do
-    if type(index) == "number" and custom_style.Trigger.Name.Input ~= "<Enter name here>"  then
+    if type(index) == "number" and custom_style.Trigger.Name.Input ~= "<Enter name here>" and
+      (custom_style.Trigger.Type ~= "Script" or TidyPlatesThreat.db.global.ScriptingIsEnabled) then
       entry["#" .. index] = CreateCustomNameplateEntry(index)
     end
   end
 
-  return entry
+  options.args.Custom.args = entry
+  UpdateSpecial()
 end
 
 -- Return the Options table
@@ -7374,7 +7642,7 @@ local function CreateOptionsTable()
                             SetValuePlain(info, val)
                             Addon.Widgets:InitializeWidget("Focus")
                           end,
-                          hidden = function() return Addon.CLASSIC end,
+                          hidden = function() return Addon.IS_CLASSIC end,
                         },
                         TargetMouseoverHighlight = {
                           name = L["Show Mouseover"],
@@ -7555,6 +7823,7 @@ local function CreateOptionsTable()
                             Addon.CVars:RestoreFromProfile("nameplateMinAlpha")
                             Addon.CVars:RestoreFromProfile("nameplateMaxAlpha")
                             Addon.CVars:RestoreFromProfile("nameplateSelectedAlpha")
+                            Addon.CVars:RestoreFromProfile("nameplateNotSelectedAlpha")
                             Addon.CVars:RestoreFromProfile("nameplateOccludedAlphaMult")
                           end
                           db.nameplate.toggle.OccludedUnits = value
@@ -8186,7 +8455,7 @@ local function CreateOptionsTable()
                       type = "group",
                       inline = true,
                       set = SetThemeValue,
-                      hidden = function() return Addon.CLASSIC end,
+                      hidden = function() return Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC end,
                       args = {
                         EnableAmount = {
                           name = L["Amount"],
@@ -8908,7 +9177,7 @@ local function CreateOptionsTable()
               desc = L["Set the roles your specs represent."],
               disabled = function() return not db.threat.ON end,
               order = 70,
-              args = (Addon.CLASSIC and CreateSpecRolesClassic()) or CreateSpecRolesRetail(),
+              args = ((Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC) and CreateSpecRolesClassic()) or CreateSpecRolesRetail(),
             },
           },
         },
@@ -9187,13 +9456,12 @@ local function CreateOptionsTable()
 
   options.args.Totems.args = TotemOpts;
 
-  options.args.Custom.args = CreateCustomNameplatesGroup()
-  UpdateSpecial()
+  CreateCustomNameplatesGroup()
 
   options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(TidyPlatesThreat.db)
   options.args.profiles.order = 10000
 
-  if not Addon.CLASSIC then
+  if not Addon.IS_CLASSIC and not Addon.IS_TBC_CLASSIC then
     -- Add dual-spec support
     local LibDualSpec = LibStub("LibDualSpec-1.0", true)
     LibDualSpec:EnhanceDatabase(TidyPlatesThreat.db, t.ADDON_NAME)
@@ -9252,7 +9520,7 @@ function TidyPlatesThreat:ProfChange()
       base.ClassIconWidget.args.Textures.args["Prev" .. k_c].image = path .. "ClassIconWidget\\" .. db.classWidget.theme .. "\\" .. CLASS_SORT_ORDER[k_c]
     end
 
-    if not Addon.CLASSIC then
+    if not Addon.IS_CLASSIC and not Addon.IS_TBC_CLASSIC then
       base.QuestWidget.args.ModeIcon.args.Texture.args.Preview.image = path .. "QuestWidget\\" .. db.questWidget.IconTexture
     end
 
@@ -9267,21 +9535,14 @@ function TidyPlatesThreat:ProfChange()
       options.args.Totems.args[totem_info.Name].args.Textures.args.Icon.image = "Interface\\Addons\\TidyPlates_ThreatPlates\\Widgets\\TotemIconWidget\\" .. db.totemSettings[totem_info.ID].Style .. "\\" .. totem_info.Icon
     end
 
-    options.args.Custom.args = CreateCustomNameplatesGroup()
+    CreateCustomNameplatesGroup()
   end
 
   TidyPlatesThreat:ReloadTheme()
 end
 
-function TidyPlatesThreat:ConfigTableChanged(...)
-  options.args.Custom.args = CreateCustomNameplatesGroup()
-end
-
-function TidyPlatesThreat:OpenOptions()
-  db = self.db.profile
-
-  HideUIPanel(InterfaceOptionsFrame)
-  HideUIPanel(GameMenuFrame)
+local function RegisterOptionsTable()
+  db = TidyPlatesThreat.db.profile
 
   if not options then
     CreateOptionsTable()
@@ -9289,48 +9550,55 @@ function TidyPlatesThreat:OpenOptions()
 
     -- Setup options dialog
     Addon.LibAceConfigRegistry:RegisterOptionsTable(t.ADDON_NAME, options)
-    Addon.LibAceConfigRegistry.RegisterCallback(self, "ConfigTableChange", "ConfigTableChanged")
+    Addon.LibAceConfigRegistry.RegisterCallback(TidyPlatesThreat, "ConfigTableChange", "ConfigTableChanged")
     Addon.LibAceConfigDialog:SetDefaultSize(t.ADDON_NAME, 1000, 640)
   end
+end
 
-  Addon.LibAceConfigDialog:Open(t.ADDON_NAME);
+function TidyPlatesThreat:ConfigTableChanged(...)
+  RegisterOptionsTable()
+  CreateCustomNameplatesGroup()
+end
+
+function TidyPlatesThreat:OpenOptions()
+  HideUIPanel(InterfaceOptionsFrame)
+  HideUIPanel(GameMenuFrame)
+
+  RegisterOptionsTable()
+  Addon.LibAceConfigDialog:Open(t.ADDON_NAME)
 end
 
 function Addon.RestoreLegacyCustomNameplates()
-  if TidyPlatesThreat.db.global.CustomNameplatesVersion == 1 then
-    t.Print(L["You need to convert your custom nameplates to the current format before you can add legacy custom nameplates."], true)
-  else
-    local legacy_custom_plates = {}
+  local legacy_custom_plates = {}
 
-    for i, v in ipairs(Addon.LEGACY_CUSTOM_NAMEPLATES) do
-      legacy_custom_plates[i] = t.CopyTable(v)
-      Addon.MergeDefaultsIntoTable(legacy_custom_plates[i], Addon.LEGACY_CUSTOM_NAMEPLATES["**"])
-    end
-
-    local custom_plates = TidyPlatesThreat.db.profile.uniqueSettings
-    local max_slot_no = #custom_plates
-
-    local index = 1
-    for _, legacy_custom_plate in ipairs(legacy_custom_plates) do
-      -- Only need to check for double name trigger as legacy custom nameplates only have these kind of triggers
-      local trigger_value = legacy_custom_plate.Trigger.Name.Input
-      local trigger_already_used = Addon.Cache.CustomPlateTriggers.Name[trigger_value]
-
-      if trigger_already_used == nil or trigger_already_used.Enable.Never then
-        local error_msg = L["Adding legacy custom nameplate for %s ..."]:gsub("%%s", trigger_value)
-        t.Print(error_msg)
-
-        table.insert(custom_plates, max_slot_no + index, legacy_custom_plate)
-        index = index + 1
-      else
-        local error_msg = L["Legacy custom nameplate %s already exists. Skipping it."]:gsub("%%s", trigger_value)
-        t.Print(error_msg, true)
-      end
-    end
-
-    Addon.LibAceConfigRegistry:NotifyChange(t.ADDON_NAME)
-    UpdateSpecial()
+  for i, v in ipairs(Addon.LEGACY_CUSTOM_NAMEPLATES) do
+    legacy_custom_plates[i] = t.CopyTable(v)
+    Addon.MergeDefaultsIntoTable(legacy_custom_plates[i], Addon.LEGACY_CUSTOM_NAMEPLATES["**"])
   end
+
+  local custom_plates = TidyPlatesThreat.db.profile.uniqueSettings
+  local max_slot_no = #custom_plates
+
+  local index = 1
+  for _, legacy_custom_plate in ipairs(legacy_custom_plates) do
+    -- Only need to check for double name trigger as legacy custom nameplates only have these kind of triggers
+    local trigger_value = legacy_custom_plate.Trigger.Name.Input
+    local trigger_already_used = Addon.Cache.CustomPlateTriggers.Name[trigger_value]
+
+    if trigger_already_used == nil or trigger_already_used.Enable.Never then
+      local error_msg = L["Adding legacy custom nameplate for %s ..."]:gsub("%%s", trigger_value)
+      t.Print(error_msg)
+
+      table.insert(custom_plates, max_slot_no + index, legacy_custom_plate)
+      index = index + 1
+    else
+      local error_msg = L["Legacy custom nameplate %s already exists. Skipping it."]:gsub("%%s", trigger_value)
+      t.Print(error_msg, true)
+    end
+  end
+
+  Addon.LibAceConfigRegistry:NotifyChange(t.ADDON_NAME)
+  UpdateSpecial()
 end
 
 -----------------------------------------------------

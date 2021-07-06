@@ -20,9 +20,17 @@
     <Include file="LibCustomGlow-1.0\LibCustomGlow-1.0.xml"/>
     <Script file="LibDeflate\LibDeflate.lua"/>
 
-    <!---->
-    <Include file="LibDualSpec-1.0\LibDualSpec-1.0.lua"/>
-    <!---->
+    <Script file="ForAllIndentsAndPurposes\indent.lua"/>
 
-    <!---->
+    <!--@version-retail@-->
+    <Include file="LibDualSpec-1.0\LibDualSpec-1.0.lua"/>
+    <!--@end-version-retail@-->
+
+    <!--@version-bcc@
+    @end-version-bcc@-->
+
+    <!--@version-classic@
+    <Script file="LibClassicCasterino\LibClassicCasterino.lua"/>
+    <Include file="LibClassicDurations\LibClassicDurations.xml"/>
+    @end-version-classic@-->
 </Ui>

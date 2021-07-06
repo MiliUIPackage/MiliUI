@@ -86,6 +86,7 @@ local function PrintHelp()
 	TP.Print(L["options:"], true)
 	TP.Print(L["  profile <name>          Switch the current profile to <name>"], true)
 	TP.Print(L["  legacy-custom-styles    Adds (legacy) default custom styles for nameplates that are deleted when migrating custom nameplates to the current format"], true)
+	TP.Print(L["  toggle-scripting        Enable or disable scripting support (for beta testing)"], true)
 	TP.Print(L["  help                    Prints this help message"], true)
 	TP.Print(L["  <no option>             Displays options dialog"], true)
 	TP.Print(L["Additional chat commands:"], true)
@@ -133,6 +134,15 @@ function TidyPlatesThreat:ChatCommand(input)
 		else
 			TP.Print(L["|cff89F559Threat Plates|r: No profile specified"], true)
 		end
+	elseif input == "toggle-scripting" then
+		TidyPlatesThreat.db.global.ScriptingIsEnabled = not TidyPlatesThreat.db.global.ScriptingIsEnabled
+		if TidyPlatesThreat.db.global.ScriptingIsEnabled then
+			TP.Print(L["Scriping for custom styles for nameplates is now |cff00ff00enabled!|r."])
+		else
+			TP.Print(L["Scriping for custom styles for nameplates is now |cffff0000disabled!|r."])
+		end
+		Addon.UpdateCustomStyles()
+		TidyPlatesThreat:ConfigTableChanged()
 --	elseif command == "toggle-view-friendly-units" then
 --		TidyPlatesThreat:ToggleNameplateModeFriendlyUnits()
 --	elseif command == "toggle-view-neutral-units" then
@@ -140,34 +150,7 @@ function TidyPlatesThreat:ChatCommand(input)
 --	elseif command == "toggle-view-enemy-units" then
 --		TidyPlatesThreat:ToggleNameplateModeEnemyUnits()
 	elseif DEBUG then
-		if command == "searchdb" then
-			TP.Print("|cff89F559Threat Plates|r: Searching settings:", true)
-			SearchDBForString(TidyPlatesThreat.db.profile, "<Profile>", string.lower(cmd_list[2]))
-			SearchDBForString(TidyPlatesThreat.db.global, "<Profile>", string.lower(cmd_list[2]))
-		elseif command == "cache" then
-			Addon.DebugPrintCaches()
-		elseif command == "unit" then
-			local plate = C_NamePlate.GetNamePlateForUnit("target")
-			if not plate then return end
-			TP.DEBUG_PRINT_UNIT(plate.TPFrame.unit, true)
-		elseif command == "migrate" then
-			Addon.MigrateDatabase(TP.Meta("version"))
-		elseif command == "guid" then
-			local plate = C_NamePlate.GetNamePlateForUnit("target")
-			if not plate then return end
-
-			local guid = UnitGUID(plate.TPFrame.unit.unitid)
-			local _, _,  _, _, _, npc_id = strsplit("-", guid)
-
-			print(plate.TPFrame.unit.name, " => NPC-ID:", npc_id, "=>", guid)
-
-			local widgets = C_UIWidgetManager.GetAllWidgetsBySetID(C_UIWidgetManager.GetPowerBarWidgetSetID())
-			for i, w in pairs(widgets) do
-				print (i, w)
-			end
-		else
-			TidyPlatesThreat:ChatCommandDebug(cmd_list)
-		end
+		TidyPlatesThreat:ChatCommandDebug(cmd_list)
 	else
 		TP.Print(L["Unknown option: "] .. input, true)
 		PrintHelp()
@@ -177,7 +160,36 @@ end
 function TidyPlatesThreat:ChatCommandDebug(cmd_list)
 	local command = cmd_list[1]
 
-	if command == "event" then
+	if command == "searchdb" then
+		TP.Print("|cff89F559Threat Plates|r: Searching settings:", true)
+		SearchDBForString(TidyPlatesThreat.db.profile, "<Profile>", string.lower(cmd_list[2]))
+		SearchDBForString(TidyPlatesThreat.db.global, "<Profile>", string.lower(cmd_list[2]))
+	elseif command == "cache" then
+		Addon.DebugPrintCaches()
+	elseif command == "unit" then
+		local plate = C_NamePlate.GetNamePlateForUnit("target")
+		if not plate then return end
+		TP.DEBUG_PRINT_UNIT(plate.TPFrame.unit, true)
+	--elseif command == "migrate" then
+	--	Addon.TestMigration()
+	--	Addon.MigrateDatabase(TP.Meta("version"))
+	elseif command == "print-custom-styles" then
+		TP.DEBUG_PRINT_TABLE(TidyPlatesThreat.db.profile.uniqueSettings)
+		--Addon.MigrateDatabase(TP.Meta("version"))
+	elseif command == "guid" then
+		local plate = C_NamePlate.GetNamePlateForUnit("target")
+		if not plate then return end
+
+		local guid = UnitGUID(plate.TPFrame.unit.unitid)
+		local _, _,  _, _, _, npc_id = strsplit("-", guid)
+
+		print(plate.TPFrame.unit.name, " => NPC-ID:", npc_id, "=>", guid)
+
+		local widgets = C_UIWidgetManager.GetAllWidgetsBySetID(C_UIWidgetManager.GetPowerBarWidgetSetID())
+		for i, w in pairs(widgets) do
+			print (i, w)
+		end
+	elseif command == "event" then
 		--TP.Print("|cff89F559Threat Plates|r: Event publishing overview:", true)
 		--Addon:PrintEventService()
 	elseif command == "quest" then

@@ -17,8 +17,9 @@ local string = string
 local UnitPlayerControlled = UnitPlayerControlled
 
 -- ThreatPlates APIs
-
-Addon.CLASSIC = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+Addon.IS_CLASSIC = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
+Addon.IS_TBC_CLASSIC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
+Addon.IS_MAINLINE = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 
 ---------------------------------------------------------------------------------------------------
 -- Libraries
@@ -63,6 +64,7 @@ Addon.Cache = {
 		NameWildcard = {},
 		Aura = {},
 		Cast = {},
+		Script = {},
 	},
 	Styles = {
 		ForAllInstances = {},
@@ -115,10 +117,10 @@ Addon.LoadOnDemandLibraries = function()
 				ThreatPlates.Print(L["Custom status text requires LibDogTag-3.0 to function."], true)
 			else
 				LoadAddOn("LibDogTag-Unit-3.0")
-			  if not  LibStub("LibDogTag-Unit-3.0", true) then
+			  if not LibStub("LibDogTag-Unit-3.0", true) then
 					Addon.LibDogTag = false
 					ThreatPlates.Print(L["Custom status text requires LibDogTag-Unit-3.0 to function."], true)
-				elseif not Addon.LibDogTag.IsLegitimateUnit["nameplate1"] then
+				elseif not Addon.LibDogTag.IsLegitimateUnit or not Addon.LibDogTag.IsLegitimateUnit["nameplate1"] then
 					Addon.LibDogTag = false
 					ThreatPlates.Print(L["Your version of LibDogTag-Unit-3.0 does not support nameplates. You need to install at least v90000.3 of LibDogTag-Unit-3.0."], true)
 				end
@@ -310,6 +312,31 @@ end
 --------------------------------------------------------------------------------------------------
 -- Debug Functions
 ---------------------------------------------------------------------------------------------------
+
+Addon.PrintMessage = function(channel, ...)
+	--local verbose = TidyPlatesThreat.db.profile.verbose
+	if channel == "DEBUG" and Addon.DEBUG then
+		print("|cff89F559TP|r - |cff0000ff" .. channel .. "|r:", ...)
+	elseif channel == "ERROR" then
+		print("|cff89F559TP|r - |cffff0000" .. channel .. "|r:", ...)
+	elseif channel == "WARNING" then
+		print("|cff89F559TP|r - |cffff8000" .. channel .. "|r:", ...)
+	else
+		print("|cff89F559TP|r:", channel, ...)
+	end
+end
+
+Addon.PrintDebugMessage = function(...)
+	Addon.PrintMessage("DEBUG", ...)
+end
+
+Addon.PrintErrorMessage = function(...)
+	Addon.PrintMessage("ERROR", ...)
+end
+
+Addon.PrintWarningMessage = function(...)
+	Addon.PrintMessage("WARNING", ...)
+end
 
 local function DEBUG(...)
   print (ThreatPlates.Meta("titleshort") .. "-Debug:", ...)
