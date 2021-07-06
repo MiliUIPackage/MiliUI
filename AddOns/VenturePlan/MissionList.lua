@@ -206,9 +206,9 @@ local function UpdateMissions()
 	
 	local ni, anima = 1, C_CurrencyInfo.GetCurrencyInfo(1813)
 	anima = (anima and anima.quantity or 0)
-	ni = pushMissionSet(ni, missions, nil, haveUnassignedRookies, anima)
 	ni = pushMissionSet(ni, cMissions, inProgressMissions, haveUnassignedRookies, anima)
 	ni = pushMissionSet(ni, inProgressMissions, nil, haveUnassignedRookies, anima)
+	ni = pushMissionSet(ni, missions, nil, haveUnassignedRookies, anima)
 	MissionList.numMissions = ni-1
 	for i=ni, #MissionList.Missions do
 		MissionList.Missions[i]:Hide()
