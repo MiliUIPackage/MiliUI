@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: OmniCC Config
 ## Notes: OmniCC's configuration menu
 ## Title-zhTW: |cFF0099FF[介面]|r 冷卻時間-設定選項

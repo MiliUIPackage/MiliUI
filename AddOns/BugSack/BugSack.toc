@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Version: v9.0.1
 ## Title: BugSack
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息收集袋

@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: BattleGroundEnemies
 ## Title-zhTW: |cffFF0000[PVP]|r 戰場目標框架
 ## Notes-zhTW: Battle Ground Enemies |n戰場專用的友方和敵方單位框架，可以監控敵人的血量、減益效果、控場遞減...等等多種狀態。

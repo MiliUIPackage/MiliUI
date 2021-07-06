@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: EnhancedMenu
 ## Notes: Extends popup menus.
 ## Notes-zhCN: 右键菜单增强

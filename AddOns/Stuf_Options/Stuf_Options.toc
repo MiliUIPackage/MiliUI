@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: Stuf_Options
 ## Author: TotalPackage
 ## Notes: Configuration Menu for Stuf.

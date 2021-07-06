@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: Stuf Unit Frames
 ## Author: TotalPackage
 ## Notes: Main unitframes replacement. Assembly optional.

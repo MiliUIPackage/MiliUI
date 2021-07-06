@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: Astral Keys
 ## Notes: Keystone Manager for Guilds and Friends
 ## Title-zhTW: |cFF00CCFF[團隊]|r 鑰石名單

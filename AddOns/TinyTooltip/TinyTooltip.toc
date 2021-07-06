@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: TinyTooltip
 ## Notes: TinyTooltip
 ## Title-zhTW: |cff0099FF[介面]|r 滑鼠提示增強

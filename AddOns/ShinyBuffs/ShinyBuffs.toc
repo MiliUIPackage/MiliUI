@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Title: ShinyBuffs
 ## Author: Seerah
 ## Notes: Skin and move your buffs/debuffs!

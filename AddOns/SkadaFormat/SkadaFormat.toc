@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Author: somebody, 彩虹ui
 ## Title: Skada中文單位
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Skada 戰鬥統計-中文單位

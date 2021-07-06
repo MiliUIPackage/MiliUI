@@ -1,4 +1,4 @@
-## Interface: 90005
+## Interface: 90100
 ## Plain Title: Glass
 ## Author: mixxorz
 ## Version: 1.8.0
