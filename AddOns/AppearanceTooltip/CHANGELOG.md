@@ -1,6 +1,7 @@
 # AppearanceTooltip
 
-## [v26](https://github.com/kemayo/wow-appearancetooltip/tree/v26) (2021-01-05)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/commits/v26) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v29](https://github.com/kemayo/wow-appearancetooltip/tree/v29) (2021-07-01)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v28...v29) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Update cameraids for various allied races, support backpacks  
+- Blizzard deprecation wrapper for some C\_Transmog functions breaks  
+    Fixes #9  

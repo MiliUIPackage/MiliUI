@@ -66,7 +66,7 @@ end
 function tooltip:PLAYER_LOGIN()
     tooltip.model:SetUnit("player")
     tooltip.modelZoomed:SetUnit("player")
-    C_TransmogCollection.SetShowMissingSourceInItemTooltips(true)
+    C_CVar.SetCVar("missingTransmogSourceInItemTooltips", "1")
 
     ns.UpdateSources()
 end
@@ -570,7 +570,7 @@ end
 function ns.CanTransmogItem(itemLink)
     local itemID = GetItemInfoInstant(itemLink)
     if itemID then
-        local canBeChanged, noChangeReason, canBeSource, noSourceReason = C_Transmog.GetItemInfo(itemID)
+        local canBeChanged, noChangeReason, canBeSource, noSourceReason = C_Transmog.CanTransmogItem(itemID)
         return canBeSource, noSourceReason
     end
 end
@@ -578,6 +578,7 @@ end
 local brokenItems = {
     -- itemid : {appearanceid, sourceid}
     [153268] = {25124, 90807}, -- Enclave Aspirant's Axe
+    [153316] = {25123, 90885}, -- Praetor's Ornamental Edge
 }
 -- /dump C_TransmogCollection.GetAppearanceSourceInfo(select(2, C_TransmogCollection.GetItemInfo("")))
 function ns.PlayerHasAppearance(itemLinkOrID)
