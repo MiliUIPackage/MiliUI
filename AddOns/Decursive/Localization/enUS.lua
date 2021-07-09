@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.8) add-on for World of Warcraft UI
+    Decursive (v 2.7.8.3) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -504,9 +504,8 @@ You may want to turn on Lua error reporting (/console scriptErrors 1).]=]
 L["TOOFAR"] = "Too far"
 L["UNITSTATUS"] = "Unit Status: "
 L["UNSTABLERELEASE"] = "Unstable release"
+L["Decursive"] = "Decursive"
 
 
 
-
-
-T._LoadedFiles["enUS.lua"] = "2.7.8";
+T._LoadedFiles["enUS.lua"] = "2.7.8.3";
