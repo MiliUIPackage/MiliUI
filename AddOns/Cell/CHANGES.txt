@@ -1,166 +1,22 @@
-lightweight tag 20c5a19425e9c54b8cf2d5fb284242a1be3f5a61 r50-release
+lightweight tag 0fdc28dbcd010ce1bf84ae906b64875e9e7a2d15 r54-release
 Author:	KevinSK <shinozakisama@live.com>
-Date:	Sat May 1 03:23:08 2021 +0800
+Date:	Fri Jul 9 01:48:31 2021 +0800
 
-commit 20c5a19425e9c54b8cf2d5fb284242a1be3f5a61
+commit 0fdc28dbcd010ce1bf84ae906b64875e9e7a2d15
 Author: KevinSK <shinozakisama@live.com>
-Date:   Sat May 1 03:23:08 2021 +0800
+Date:   Fri Jul 9 01:48:31 2021 +0800
 
-    Update zhTW.lua
+    update changelog
 
-commit 749b72b9e02b98d97822b8c3836b2cccad9c241b
+commit b1871d1e15ef8fabd589a80dca0e5af9688e13c9
 Author: KevinSK <shinozakisama@live.com>
-Date:   Sat May 1 03:14:57 2021 +0800
+Date:   Fri Jul 9 01:44:20 2021 +0800
 
-    update change logs
+    make battleRes and aggroIndicator pixel perfect
 
-commit c4d412fc9222e2c55dcd04137bb6256355b8a66a
+commit 5ead47202ca123a72a812435401f2a9fbb0df822
 Author: KevinSK <shinozakisama@live.com>
-Date:   Sat May 1 02:38:04 2021 +0800
+Date:   Fri Jul 9 01:43:23 2021 +0800
 
-    rename whatsNew to changeLogs
-
-commit 586c32b94c51e0c6c0cc4a1c9aee978f739b8bf7
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat May 1 02:30:25 2021 +0800
-
-    add Status Icon indicator
-
-commit 30fd36fbf52f382ce596b1aaa2966b4260eda81e
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 22:44:33 2021 +0800
-
-    targetCounter v2
-
-commit 77c8107f8bd62138cb6303f7256059a56f7918df
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 21:02:14 2021 +0800
-
-    update targetCounter v1
-
-commit 42217834d18aed9a7e73e5466515ae961e288e65
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 21:01:18 2021 +0800
-
-    update default bigDebuffs spell list
-
-commit 467b000a7360320fe891eadc93be1972354dee65
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 04:24:08 2021 +0800
-
-    update font outline "None"
-
-commit 8db24929d30494c11e8fb2e56f2f0d464f13f6fd
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 04:19:03 2021 +0800
-
-    add text outline "None"
-
-commit b90edfa0f77d123f1b9b57cc3f469a2bfd424897
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 03:39:45 2021 +0800
-
-    implement BigDebuffs
-
-commit b90edfa0f77d123f1b9b57cc3f469a2bfd424897
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 03:39:45 2021 +0800
-
-    implement BigDebuffs
-
-commit b90edfa0f77d123f1b9b57cc3f469a2bfd424897
-Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Apr 30 03:39:45 2021 +0800
-
-    implement BigDebuffs
-
-commit 40c88457d326b5d70866f777686f8d3baa304901
-Author: honeyhoney <honeyhoney@users.noreply.github.com>
-Date:   Thu Apr 29 03:52:29 2021 +0100
-
-    Added option for no outline on text
-
-commit d0467a45a0ce53b16c669af4ca10645420bad873
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Apr 28 00:37:28 2021 +0800
-
-    Update UnitButton.lua
-
-commit 1533c541bab3f944df2e70dd0c8ed5ea6f1cdb5a
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Apr 28 00:36:51 2021 +0800
-
-    change the size of dispel highlight
-
-commit caccd2166a513453c70efa9bb5dd838e1fb3b2ea
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Apr 28 00:36:19 2021 +0800
-
-    Update LibPixelPerfect.lua
-
-commit eb79cdbee11c5f1e5ffa35e2575715d537ae72f9
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 17:45:29 2021 +0800
-
-    fix highlight size
-
-commit a448056efde1e3a632dd8e394ef95921ced26a18
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 07:48:09 2021 +0800
-
-    update indicator preview (increased icons)
-
-commit 7979c5cb4eb86b28d58196c1aadde35f6bfd0660
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 07:05:15 2021 +0800
-
-    increase icons
-
-commit ce219ae6d740e2e1b42da7a5d97f3cfc2b461b5b
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 05:58:56 2021 +0800
-
-    increase the number of icons for Debuffs and Icons(custom)
-
-commit 65b23f94db5b1dba9453ecb217d8beeb52e5eff5
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 05:09:16 2021 +0800
-
-    add var:justApplied for refreshing check
-
-commit 9b99c70d8476a624e4f8249cad45a0c2c219306d
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 04:58:21 2021 +0800
-
-    update BR text alignment
-
-commit d239d64df6b89018509bc91cfb2055569c366a5b
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 04:53:35 2021 +0800
-
-    Update BattleRes.lua
-
-commit af46a9a34c3a8e55de21d3c0abe798374eff4c34
-Author: KevinSK <shinozakisama@live.com>
-Date:   Sat Apr 24 04:53:00 2021 +0800
-
-    fix BattleRes's position
-
-commit 0a3cd844d793ffe2e5dfe57fb0c41e8301a0de5e
-Author: KevinSK <shinozakisama@live.com>
-Date:   Thu Apr 22 19:02:04 2021 +0800
-
-    Update RaidDebuffs_SL.lua
-
-commit 3e60f90d868dcdc7f5a8c1afa51777cfc62f2b8e
-Author: KevinSK <shinozakisama@live.com>
-Date:   Mon Apr 12 12:56:56 2021 +0800
-
-    fix scaling issue after resolution changed
-
-commit dfe36e8f4890ea7ba1b1a630505daed557279d48
-Author: KevinSK <shinozakisama@live.com>
-Date:   Mon Apr 12 12:56:38 2021 +0800
-
-    Update RaidDebuffs_SL.lua
+    fix battleres visibility
 

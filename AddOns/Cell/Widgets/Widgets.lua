@@ -5,7 +5,7 @@
 local addonName, addon = ...
 local L = addon.L
 local F = addon.funcs
-local LPP = LibStub:GetLibrary("LibPixelPerfect")
+local P = addon.pixelPerfectFuncs
 
 -----------------------------------------
 -- Color
@@ -146,7 +146,7 @@ function addon:StylizeFrame(frame, color, borderColor)
     if not color then color = {.1, .1, .1, .9} end
     if not borderColor then borderColor = {0, 0, 0, 1} end
 
-    frame:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1})
+    frame:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
     frame:SetBackdropColor(unpack(color))
     frame:SetBackdropBorderColor(unpack(borderColor))
 end
@@ -207,7 +207,7 @@ end
 -----------------------------------------
 -- tooltip
 -----------------------------------------
-local function SetTooltip(widget, anchor, x, y, ...)
+function addon:SetTooltip(widget, anchor, x, y, ...)
     local tooltips = {...}
 
     if #tooltips ~= 0 then
@@ -263,7 +263,7 @@ function addon:ChangeSizeWithAnimation(frame, targetWidth, targetHeight, startFu
             animationTimer:Cancel()
             animationTimer = nil
             if endFunc then endFunc() end
-            if repoint then LPP:PixelPerfectPoint(frame) end -- already point to another frame
+            if repoint then P:PixelPerfectPoint(frame) end -- already point to another frame
         end
     end)
 end
@@ -275,7 +275,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     local b = CreateFrame("Button", nil, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
     if parent then b:SetFrameLevel(parent:GetFrameLevel()+1) end
     b:SetText(text)
-    b:SetSize(unpack(size))
+    P:Size(b, size[1], size[2])
 
     local color, hoverColor
     if buttonColor == "red" then
@@ -368,7 +368,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     if noBorder then
         b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
     else
-        b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1, insets = {left=1,top=1,right=1,bottom=1}})
+        b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
     end
     
     if buttonColor and string.find(buttonColor, "transparent") then -- drop down item
@@ -407,7 +407,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     -- click sound
     b:SetScript("PostClick", function() PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON) end)
 
-    SetTooltip(b, "ANCHOR_TOPLEFT", 0, 3, ...)
+    addon:SetTooltip(b, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     -- texture
     function b:SetTexture(tex, texSize, point)
@@ -444,6 +444,24 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
             b:SetScript("OnMouseDown", nil)
             b:SetScript("OnMouseUp", nil)
         end)
+    end
+
+    function b:UpdatePixelPerfect()
+        P:Resize(b)
+        P:Repoint(b)
+
+        if not noBorder then
+            -- backup colors
+            local currentBackdropColor = {b:GetBackdropColor()}
+            local currentBackdropBorderColor = {b:GetBackdropBorderColor()}
+            -- update backdrop
+            b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+            -- restore colors
+            b:SetBackdropColor(unpack(currentBackdropColor))
+            b:SetBackdropBorderColor(unpack(currentBackdropBorderColor))
+            wipe(currentBackdropColor)
+            wipe(currentBackdropBorderColor)
+        end
     end
 
     return b
@@ -552,7 +570,7 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
         cb:SetHitRectInsets(0, -cb.label:GetStringWidth()-5, 0, 0)
     end
 
-    SetTooltip(cb, "ANCHOR_TOPLEFT", 0, 2, ...)
+    addon:SetTooltip(cb, "ANCHOR_TOPLEFT", 0, 2, ...)
 
     return cb
 end
@@ -982,13 +1000,13 @@ function addon:CreateStatusBar(parent, width, height, maxValue, smooth, func, sh
     -- REVIEW: in 9.0, edgeSize = -1 will case a thicker outline
     local border = CreateFrame("Frame", nil, bar, "BackdropTemplate")
     bar.border = border
-    border:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8x8", edgeSize=1})
+    border:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8x8", edgeSize=P:Scale(1)})
     border:SetBackdropBorderColor(0, 0, 0, 1)
-    border:SetPoint("TOPLEFT", -1, 1)
-    border:SetPoint("BOTTOMRIGHT", 1, -1)
+    P:Point(border, "TOPLEFT", bar, "TOPLEFT", -1, 1)
+    P:Point(border, "BOTTOMRIGHT", bar, "BOTTOMRIGHT", 1, -1)
 
-    bar:SetWidth(width)
-    bar:SetHeight(height)
+    P:Width(bar, width)
+    P:Height(bar, height)
     bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8x8"})
     bar:SetBackdropColor(.07, .07, .07, .9)
     -- bar:SetBackdropBorderColor(0, 0, 0, 1)
@@ -1033,6 +1051,14 @@ function addon:CreateStatusBar(parent, width, height, maxValue, smooth, func, sh
     bar:SetScript("OnHide", function()
         bar:SetValue(0)
     end)
+
+    function bar:UpdatePixelPerfect()
+        P:Resize(bar)
+        P:Repoint(bar)
+        border:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8x8", edgeSize=P:Scale(1)})
+        border:SetBackdropBorderColor(0, 0, 0, 1)
+        P:Repoint(border)
+    end
 
     return bar
 end
@@ -1820,10 +1846,16 @@ end)
 list:SetScript("OnHide", function() list:Hide() end)
 
 -- close dropdown
-function addon:RegisterForCloseDropdown(button)
-    button:HookScript("OnClick", function()
-        list:Hide()
-    end)
+function addon:RegisterForCloseDropdown(f)
+    if f:GetObjectType() == "Button" then
+        f:HookScript("OnClick", function()
+            list:Hide()
+        end)
+    elseif f:GetObjectType() == "Slider" then
+        f:HookScript("OnValueChanged", function()
+            list:Hide()
+        end)
+    end
 end
 
 -- store created buttons

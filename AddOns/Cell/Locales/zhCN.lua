@@ -107,6 +107,7 @@ L["BR"] = "战复"
 L["Appearance"] = "外观"
 L["Texture"] = "材质"
 L["Scale"] = "缩放"
+L["A UI reload is required.\nDo it now?"] = "需要重载界面。\n现在重载么？"
 L["Pixel Perfect"] = "像素精确"
 L["Options UI Font Size"] = "选项界面字体尺寸"
 L["Power Color"] = "能量颜色"
@@ -308,6 +309,7 @@ L["sec"] = "秒"
 L["dispellableByMe"] = "只显示我能驱散的减益"
 L["castByMe"] = "只显示我施放的增益"
 L["showDuration"] = "显示持续时间文本"
+L["Show duration text instead of icon animation"] = "用持续时间文本取代图标动画"
 L["enableHighlight"] = "高亮单位按钮"
 L["onlyShowTopGlow"] = "仅为当前减益显示高亮效果"
 
@@ -365,6 +367,24 @@ L["Bug Report & Suggestion"] = "问题报告与建议"
 -------------------------------------------------
 L["Change Logs"] = "更新记录"
 L["CHANGE LOGS"] = [[
+    <h1>r54-release (Jul 9, 2021, 01:49 GMT+8)</h1>
+    <p>* 修复了战复计时器。</p>
+    <br/>
+
+    <h1>r53-release (Jul 8, 2021, 16:48 GMT+8)</h1>
+    <p>* 更新副本减益（统御圣所）。</p>
+    <br/>
+
+    <h1>r52-release (Jul 8, 2021, 5:50 GMT+8)</h1>
+    <p>- 从点击施法中移除了一个无效法术: 204293 “灵魂链接”（奶萨pvp天赋）。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r51-release (Jul 7, 2021, 13:50 GMT+8)</h1>
+    <p>* 更新Cell缩放。Cell主框体现在为像素精确，选项框体则不会强行实现像素精确。</p>
+    <p>* 更新副本减益列表，现在不全，之后还会更新。</p>
+    <br/>
+    
     <h1>r50-release (May 1, 2021, 03:20 GMT+8)</h1>
     <h2>指示器</h2>
     <P>+ 新指示器：状态图标，目标计数（仅战场、竞技场）。</P>
