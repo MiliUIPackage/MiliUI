@@ -81,7 +81,7 @@ L:SetGeneralLocalization({
 -----------------------
 -- Tred'ova --
 -----------------------
---L= DBM:GetModLocalization(2405)
+L= DBM:GetModLocalization(2405)
 
 L:SetWarningLocalization({
 	specWarnParasiticInfester		= "你中了寄生平靜",

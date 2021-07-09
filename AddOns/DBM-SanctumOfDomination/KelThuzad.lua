@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2440, "DBM-SanctumOfDomination", nil, 1193)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210614184808")
+mod:SetRevision("20210707230305")
 mod:SetCreatureID(175559)
 mod:SetEncounterID(2422)
 mod:SetUsedIcons(1, 2, 3, 4, 6, 7, 8)
 mod:SetBossHPInfoToHighest()--Boss heals at least twice
 mod.noBossDeathKill = true--Instructs mod to ignore 175559 deaths, since it dies multiple times
-mod:SetHotfixNoticeRev(20210512000000)--2021-05-12
+mod:SetHotfixNoticeRev(20210707000000)--2021-07-07
 --mod:SetMinSyncRevision(20201222000000)
 --mod.respawnTime = 29
 
@@ -17,9 +17,9 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 348071 348428 346459 352999 347291 352997 348756 353000 352293 349799 355127 352379 355055 352355 352348 354198",
 --	"SPELL_CAST_SUCCESS 352293",
 	"SPELL_SUMMON 352096 352094 352092 346469",
-	"SPELL_AURA_APPLIED 352530 348978 347292 347518 347454 355948 353808 348760 352051 355389 357928 348787",
+	"SPELL_AURA_APPLIED 352530 348978 347292 347518 347454 355948 353808 348760 352051 355389 348787",
 	"SPELL_AURA_APPLIED_DOSE 348978 352051",
-	"SPELL_AURA_REMOVED 354198 348978 347292 355948 353808 348760 355389 357928 348787",
+	"SPELL_AURA_REMOVED 354198 348978 347292 355948 353808 348760 355389 348787",
 --	"SPELL_PERIODIC_DAMAGE",
 --	"SPELL_PERIODIC_MISSED",
 	"UNIT_DIED"
@@ -86,7 +86,7 @@ local timerGlacialWrathCD							= mod:NewCDTimer(43.9, 346459, nil, nil, nil, 3,
 local timerOblivionsEchoCD							= mod:NewCDTimer(37, 347291, nil, nil, nil, 3)--37-60?
 local timerFrostBlastCD								= mod:NewCDTimer(40.1, 348756, nil, nil, nil, 3, nil, DBM_CORE_L.MAGIC_ICON)
 --Stage Two: The Phylactery Opens
-local timerNecoticDestruction						= mod:NewCastTimer(23, 352293, nil, nil, nil, 6)
+local timerVengefulDestruction						= mod:NewCastTimer(23, 352293, nil, nil, nil, 6)
 ----Remnant of Kel'Thuzad
 local timerFoulWindsCD								= mod:NewCDTimer(12.1, 355127, nil, nil, nil, 2, nil, DBM_CORE_L.MYTHIC_ICON)
 local timerFreezingBlastCD							= mod:NewNextCountTimer(4.9, 352379, nil, nil, nil, 3)
@@ -165,6 +165,7 @@ function mod:OnCombatEnd()
 	if self.Options.NPAuraOnNecroticEmpowerment or self.Options.NPAuraOnFixate then
 		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
 	end
+	DBM:AddMsg("Timers for this fight are incomplete/inaccurate until a lot more data is collected from various push timings. This data can only be improved with transcriptor logs")
 end
 
 function mod:SPELL_CAST_START(args)
@@ -187,7 +188,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 348756 or spellId == 353000 then--348756 confirmed heroic
 		timerFrostBlastCD:Start()
 --		self:ScheduleMethod(0.2, "BossTargetScanner", args.sourceGUID, "FrostBlast", 0.1, 10, true, nil, nil, nil, true)
-	elseif spellId == 352293 then--Necrotic Destruction
+	elseif spellId == 352293 then--Vengeful Destruction
 		--Stop KT timers
 		self:SetStage(2)
 		self.vb.addIcon = 8
@@ -199,7 +200,7 @@ function mod:SPELL_CAST_START(args)
 		timerOblivionsEchoCD:Stop()
 		timerFrostBlastCD:Stop()
 		--Start KTs destruction cast timer
-		timerNecoticDestruction:Start()
+		timerVengefulDestruction:Start()
 		--Start Remnant timers (may not start here but when he's actually engaged/attacked after entering zone
 		timerFreezingBlastCD:Start(6.8, 1)
 		if self:IsMythic() then
@@ -255,7 +256,7 @@ end
 --[[
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
---	if spellId == 352293 then--Necrotic Destruction ended (assumed phase trigger to return to active KT engagement)
+--	if spellId == 352293 then--Vengeful Destruction ended (assumed phase trigger to return to active KT engagement)
 		--Start KT timers
 --		self:SetStage(1)
 --		timerHowlingBlizzardCD:Start(2)
@@ -355,7 +356,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			self.vb.wrathIcon = 1
 			DBM:AddMsg("Cast event for Glacial Wrath is wrong, doing backup icon reset")
 		end
-	elseif spellId == 348760 or spellId == 357928 then--and self:AntiSpam(5, args.destName)
+	elseif spellId == 348760 then--and self:AntiSpam(5, args.destName)
 		if args:IsPlayer() then
 			specWarnFrostBlast:Show(DBM_CORE_L.ALLIES)
 			specWarnFrostBlast:Play("gathershare")
@@ -438,7 +439,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		if self.Options.SetIconOnGlacialWrath then
 			self:SetIcon(args.destName, 0)
 		end
-	elseif spellId == 348760 or spellId == 357928 then
+	elseif spellId == 348760 then
 		if args:IsPlayer() then
 			yellFrostBlastFades:Cancel()
 		end
