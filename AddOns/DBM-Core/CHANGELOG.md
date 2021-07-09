@@ -1,8 +1,17 @@
 # Deadly Boss Mods Core
 
-## [9.1.1-18-g79af9bc](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/79af9bc8a0c40c8c87dafbfb2988e439fbb1b094) (2021-07-08)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/9.1.1...79af9bc8a0c40c8c87dafbfb2988e439fbb1b094) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [9.1.1-24-g7a76b91](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/7a76b918db6615409caaca5928bcd22a16a0283e) (2021-07-09)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/9.1.1...7a76b918db6615409caaca5928bcd22a16a0283e) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
+- extend P3 data on heroic sylvanas just a bit longer from latest public logs, before heading to bed  
+- Fulfil 2x request to use icons for traps, including yells/etc on raznal. while at it, fixed a bug where target warning never actually fired and showed who traps were on (other than personal warning)  
+- fix typo  
+- First KT update  
+    Update initial KT timers, and updated timers for KT at a 100/0 mana phase change.  
+    Disabled timers for other mana phase changes since they won't be applicable anymore. Those need verified logs phasing at those values  
+    Fixed frost blast detection in phase 3 and updated P3 initial timers  
+- Begin populating P1 and P3 heroic timer data from public sylvanas wipes  
+- Update BW version check, which I might have neglected for a while, oops  
 - Good catch luacheck!  
 - Populated timer tables for normal sylvanas, heroic still needs work, but no public logs yet.  
     Also added timers for the heartseekers  
