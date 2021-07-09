@@ -5,7 +5,7 @@
 ## Title-zhTW: |cFF0099FF[介面]|r 冒險指南副本進度
 ## Notes-zhTW: Adventure Guide Lockouts |n在冒險指南中顯示副本首領和世界王的擊殺進度，方便查看否已經打過。
 ## Author: alex_chrome, Meivyn
-## Version: 1.3.8
+## Version: 1.4.0
 
 Instances.lua
 WorldBosses.lua

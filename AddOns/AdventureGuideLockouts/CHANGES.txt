@@ -1,10 +1,10 @@
-lightweight tag 1e381305e094de6db1b18b16d22ef8bba7dabfc2 v1.3.8
+lightweight tag 9041406f693a35a90cc3ab8566c3debe106186d9 v1.4.0
 Author:	Meivyn <meivyn@live.ca>
-Date:	Tue Dec 22 14:14:14 2020 -0500
+Date:	Wed Jul 7 03:05:30 2021 -0400
 
-commit 1e381305e094de6db1b18b16d22ef8bba7dabfc2
+commit 9041406f693a35a90cc3ab8566c3debe106186d9
 Author: Meivyn <meivyn@live.ca>
-Date:   Tue Dec 22 14:14:14 2020 -0500
+Date:   Wed Jul 7 03:05:30 2021 -0400
 
-    Update Nurgash questID
+    Fix Mor'geth quest ID
 

@@ -1,9 +1,19 @@
 # Changelog
 
+## v1.4.0
+
+- Updated Mor'geth quest ID
+
+## v1.3.9
+
+- Updated for patch 9.1
+
 ## v1.3.8
+
 - Updated Nurgash quest ID
 
 ## v1.3.7
+
 - Temp fix for Nurgash incorrectly appearing as available, its world quest was changed since Beta
 
 ## v1.3.6
