@@ -1,8 +1,17 @@
 # Deadly Boss Mods Core
 
-## [9.1.1-24-g7a76b91](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/7a76b918db6615409caaca5928bcd22a16a0283e) (2021-07-09)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/9.1.1...7a76b918db6615409caaca5928bcd22a16a0283e) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [9.1.1-30-g415248c](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/415248c24406725485f86a604455b30a64e6175a) (2021-07-10)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/9.1.1...415248c24406725485f86a604455b30a64e6175a) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
+- rename zhTW to localization.tw (#609)  
+    Sorry, I made a mistake.  
+- Creat zhTW.lua (#608)  
+- Redid the heroic sylvanas timers for P3, post July 9th hotfixes. Although something tells me, I will be redoing these timers again since I don't think some of these changes were intentional, just side effects of fight enrage/length tweaks that resulted in two mechanics virtually vanishing from the phase.  
+- Hide infoframe in stage 2 sylvanas since it doesn't do anything there ATM, but then reshow it in stage 3 to track bane stacks  
+    Improved bane warning to announce all stacks not just initial application  
+- Fixed minor bug with source name missing in ruin interrupt warning  
+- Updated spiked balls to use CLEU event on raznal and updated first timer now that locks are easier to read. 👍  
+    Updated heroic P3 timers for sylvanas to include further data  
 - extend P3 data on heroic sylvanas just a bit longer from latest public logs, before heading to bed  
 - Fulfil 2x request to use icons for traps, including yells/etc on raznal. while at it, fixed a bug where target warning never actually fired and showed who traps were on (other than personal warning)  
 - fix typo  
