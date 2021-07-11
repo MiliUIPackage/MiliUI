@@ -1,4 +1,4 @@
-REALUIBOSSSKIN_BACKDROP_0116_1111={
+REALUIBOSSSKIN_BACKDROP={
     bgFile=[[Interface\AddOns\nibRealUI_BossSkins\media\Plain]],
     edgeFile=[[Interface\AddOns\nibRealUI_BossSkins\media\Plain]],
     edgeSize=1,

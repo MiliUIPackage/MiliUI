@@ -150,7 +150,7 @@ local function registerDBMStyle()
     f:UnregisterEvent("ADDON_LOADED")
     f:UnregisterEvent("PLAYER_LOGIN")
 
-    skin.defaults = {
+    skin.Options = {
         Skin = "RealUI",
         Template = "RealUISkinTimerTemplate",
         Texture = [[Interface\AddOns\nibRealUI_BossSkins\media\Plain]],
@@ -158,7 +158,8 @@ local function registerDBMStyle()
         IconLocked = false,
 
         Font = "", --If this has any set font it will override the XML font template, so it needs to be blank.
-        FontSize = 8,
+        FontSize = 10,
+        FontFlag = "OUTLINE",
 
         StartColorR = 1,
         StartColorG = 0.8,
@@ -173,26 +174,27 @@ local function registerDBMStyle()
         TimerPoint = "TOP",
         TimerX = 281.5,
         TimerY = -135,
-        BarYOffset = 9,
+        BarYOffset = 30,
 
         HugeWidth = 185,
+        HugeHeight = 10,
         HugeScale = 1,
         HugeTimerPoint = "TOP",
         HugeTimerX = -249,
         HugeTimerY = -134.5,
-        HugeBarYOffset = 9,
+        HugeBarYOffset = 30,
     }
 
-    debug("Override texture", DBM.Bars.options.Texture)
-    if DBM.Bars.options.Texture:find("DBM") then
-        DBM.Bars.options.Texture = skin.defaults.Texture
+    -- print("Override texture", DBT.Options.Texture)
+    if DBT.Options.Texture:find("DBM") then
+        DBT.Options.Texture = skin.defaults.Texture
     end
 
-    debug("Set skin", DBM.Bars.options.Template, skin.defaults.Template)
-    if (DBM.Bars.options.Template ~= skin.defaults.Template) then
-        --only set the skin if it isn't already set.
-        DBM.Bars:SetSkin("nibRealUI_BossSkins")
-    end
+    -- print("Set skin", DBT.Options.Template, skin.defaults.Template)
+    -- if (DBT.Options.Template ~= skin.defaults.Template) then
+        -- only set the skin if it isn't already set.
+        DBT:SetSkin("nibRealUI_BossSkins")
+    -- end
 end
 
 f:RegisterEvent("ADDON_LOADED")

@@ -19,7 +19,7 @@
     </FontFamily>
 	<Frame name="RealUISkinBackdropTemplate" virtual="true" inherits="BackdropTemplate" mixin="BackdropTemplateMixin">
         <KeyValues>
-            <KeyValue key="backdropInfo" value="REALUIBOSSSKIN_BACKDROP_0116_1111" type="global" />
+            <KeyValue key="backdropInfo" value="REALUIBOSSSKIN_BACKDROP" type="global" />
             <KeyValue key="backdropColor" value="REALUIBOSSKIN_BACKDROPCOLOR" type="global" />
             <KeyValue key="backdropColorAlpha" value="0.5" type="number" />
             <KeyValue key="backdropBorderColor" value="REALUIBOSSKIN_BACKDROPCOLOR" type="global" />

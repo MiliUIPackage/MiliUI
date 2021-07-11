@@ -77,31 +77,31 @@ DBT.DefaultOptions = {
 	Bar7CustomInline = true,
 	-- Small bar
 	BarXOffset = 0,
-	BarYOffset = 0,
-	Width = 183,
-	Height = 20,
-	Alpha = 0.8,
+	BarYOffset = 30,
+	Width = 185,
+	Height = 10,
+	Alpha = 1,
 	Scale = 0.9,
-	TimerX = -223,
-	TimerY = -260,
+	TimerX = 281.5,
+	TimerY = -135,
 	ExpandUpwards = false,
 	FillUpBars = true,
-	TimerPoint = "TOPRIGHT",
+	TimerPoint = "TOP",
 	Sort = "Sort",
 	-- Huge bar
 	EnlargeBarTime = 11,
 	HugeBarXOffset = 0,
-	HugeBarYOffset = 0,
-	HugeWidth = 200,
-	HugeHeight = 20,
+	HugeBarYOffset = 30,
+	HugeWidth = 185,
+	HugeHeight = 10,
 	HugeAlpha = 1,
-	HugeScale = 1.03,
-	HugeTimerX = 0,
-	HugeTimerY = -120,
+	HugeScale = 1,
+	HugeTimerX = -249,
+	HugeTimerY = -135,
 	ExpandUpwardsLarge = false,
-	FillUpLargeBars = true,
+	FillUpLargeBars = false,
 	HugeBarsEnabled = true,
-	HugeTimerPoint = "CENTER",
+	HugeTimerPoint = "TOP",
 	HugeSort = "Sort",
 	-- Misc
 	TextColorR = 1,
@@ -122,9 +122,9 @@ DBT.DefaultOptions = {
 	KeepBars = true,
 	FadeBars = true,
 	StripCDText = true,
-	Texture = "Interface\\AddOns\\DBM-StatusBarTimers\\textures\\default.blp",
+	Texture = [[Interface\AddOns\nibRealUI_BossSkins\media\Plain]],
 	Font = "standardFont",
-	FontFlag = "None",
+	FontFlag = "OUTLINE",
 	BarStyle = "NoAnim",
 	Skin = ""
 }
@@ -228,18 +228,18 @@ do
 			spark:SetTexture("Interface\\AddOns\\DBM-Core\\textures\\Spark.blp")
 			spark:SetBlendMode("ADD")
 			local timer = bar:CreateFontString("$parentTimer", "OVERLAY", "GameFontHighlightSmall")
-			timer:SetPoint("RIGHT", bar, "RIGHT", -1, 0.5)
+			timer:SetPoint("BOTTOMRIGHT", bar, "TOPRIGHT", -1, 2)
 			local name = bar:CreateFontString("$parentName", "OVERLAY", "GameFontHighlightSmall")
-			name:SetPoint("LEFT", bar, "LEFT", 7, 0.5)
+			name:SetPoint("BOTTOMLEFT", bar, "TOPLEFT", -1, 2)
 			name:SetPoint("RIGHT", timer, "LEFT", -7, 0)
 			name:SetWordWrap(false)
 			name:SetJustifyH("LEFT")
 			local icon1 = bar:CreateTexture("$parentIcon1", "OVERLAY")
-			icon1:SetPoint("RIGHT", bar, "LEFT")
-			icon1:SetSize(20, 20)
+            icon1:SetPoint("BOTTOMRIGHT", bar, "BOTTOMLEFT", -4, 0)
+            icon1:SetSize(26, 26)
 			local icon2 = bar:CreateTexture("$parentIcon2", "OVERLAY")
-			icon2:SetPoint("LEFT", bar, "RIGHT")
-			icon2:SetSize(20, 20)
+			icon2:SetPoint("BOTTOMLEFT", bar, "BOTTOMRIGHT", -4, 0)
+			icon2:SetSize(26, 26)
 
 			fCounter = fCounter + 1
 		end
