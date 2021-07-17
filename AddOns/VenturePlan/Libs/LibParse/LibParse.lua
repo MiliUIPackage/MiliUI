@@ -291,7 +291,7 @@ end
 
 function JsonReader:ReadString()
 	local result = ""
-	if self:Next() ~= '"' then error("聲明錯誤: self:Next() ~= '\"'") end
+	if self:Next() ~= '"' then error("Assertion error: self:Next() ~= '\"'") end
 	while self:Peek() ~= '"' do
 		local ch = self:Next()
 		if ch == '\\' then
@@ -303,12 +303,12 @@ function JsonReader:ReadString()
 		result = result .. ch
 	end
 	
-	if self:Next() ~= '"' then error("聲明錯誤: self:Next() ~= '\"'") end
+	if self:Next() ~= '"' then error("Assertion error: self:Next() ~= '\"'") end
 	return gsub(result, "u%x%x(%x%x)", function(m) return strchar(tonumber(m, 16)) end)
 end
 
 function JsonReader:ReadComment()
-	if self:Next() ~= '/' then error("聲明錯誤: self:Next() ~= '/'") end
+	if self:Next() ~= '/' then error("Assertion error: self:Next() ~= '/'") end
 	local second = self:Next()
 	if second == '/' then
 		self:ReadSingleLineComment()
@@ -342,7 +342,7 @@ end
 
 function JsonReader:ReadArray()
 	local result = {}
-	if self:Next() ~= '[' then error("聲明錯誤: self:Next() ~= '['") end
+	if self:Next() ~= '[' then error("Assertion error: self:Next() ~= '['") end
 	local done = false
 	if self:Peek() == ']' then
 		done = true;
@@ -361,13 +361,13 @@ function JsonReader:ReadArray()
 			end
 		end
 	end
-	if self:Next() ~= ']' then error("聲明錯誤: self:Next() ~= ']'") end
+	if self:Next() ~= ']' then error("Assertion error: self:Next() ~= ']'") end
 	return result
 end
 
 function JsonReader:ReadObject()
 	local result = {}
-	if self:Next() ~= '{' then error("聲明錯誤: self:Next() ~= '{'") end
+	if self:Next() ~= '{' then error("Assertion error: self:Next() ~= '{'") end
 	local done = false
 	if self:Peek() == '}' then
 		done = true
@@ -396,7 +396,7 @@ function JsonReader:ReadObject()
 			end
 		end
 	end
-	if self:Next() ~= "}" then error("聲明錯誤: self:Next() ~= '}'") end
+	if self:Next() ~= "}" then error("Assertion error: self:Next() ~= '}'") end
 	return result
 end
 

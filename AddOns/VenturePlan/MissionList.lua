@@ -31,25 +31,6 @@ function EV:GARRISON_MISSION_NPC_CLOSED()
 		S[MissionList]:ReturnToTop()
 	end
 end
-local function LogCounter_OnClick()
-	local cb = MissionPage.CopyBox
-	cb.Title:SetText("徵求: 冒險報告")
-	cb.Intro:SetText(L"The Cursed Adventurer's Guide hungers. Only the tales of your companions' adventures, conveyed in excruciating detail, will satisfy it.")
-	cb.FirstInputBoxLabel:SetText("要提交您的冒險報告，" .. "|n" .. "1. 加入:")
-	cb.SecondInputBoxLabel:SetText("2. 上傳以下文字到logs頻道:")
-	cb.ResetButton:SetText("重置冒險報告")
-	cb.FirstInputBox:SetText("https://discord.gg/NKrmT28Nvk")
-	cb.FirstInputBox:SetCursorPosition(0)
-	cb.SecondInputBox:SetText(T.ExportMissionReports())
-	cb.SecondInputBox:SetCursorPosition(0)
-	cb:Show()
-	PlaySound(170567)
-end
-local function LogCounter_Update()
-	local lc, c = MissionPage.LogCounter, T.GetMissionReportCount()
-	lc:SetShown(c > 0)
-	lc:SetText(BreakUpLargeNumbers(c))
-end
 
 local bufferedTentativeGroup = {}
 local function ConfigureMission(me, mi, haveSpareCompanions, availAnima)
@@ -117,7 +98,7 @@ local function ConfigureMission(me, mi, haveSpareCompanions, availAnima)
 		end
 		totalHP, totalATK = totalHP + e.health, totalATK + e.attack
 	end
-	local tag = "[" .. (mi.missionScalar or 0) .. (mi.isElite and "+]" or mi.isRare and "*]" or "]")
+	local tag = "[" .. (mi.missionScalar or 0) .. (mi.isElite and "精英".."]" or mi.isRare and "稀有".."]" or "]")
 	if hasNovelSpells then
 		tag = tag .. " |TInterface/EncounterJournal/UI-EJ-WarningTextIcon:16:16|t"
 	end
@@ -131,8 +112,12 @@ local function ConfigureMission(me, mi, haveSpareCompanions, availAnima)
 	
 	me:Show()
 end
-local function cmpMissionInfo(a, b)
-	local ac, bc = a.timeLeftSeconds, b.timeLeftSeconds
+local function cmpMissionInfo(a,b)
+	local ac, bc = a.completed or a.timeLeftSeconds == 0, b.completed or b.timeLeftSeconds == 0
+	if ac ~= bc then
+		return ac
+	end
+	ac, bc = a.timeLeftSeconds, b.timeLeftSeconds
 	if (not ac) ~= (not bc) then
 		return not ac
 	end
@@ -222,12 +207,15 @@ local function UpdateMissions()
 		m.hasTentativeGroup = U.MissionHasTentativeGroup(mid)
 		m.hasPendingStart = U.IsMissionStartingSoon(mid)
 	end
+	for i=1,inProgressMissions and #inProgressMissions or 0 do
+		missions[#missions+1] = inProgressMissions[i]
+	end
 	
 	local ni, anima = 1, C_CurrencyInfo.GetCurrencyInfo(1813)
 	anima = (anima and anima.quantity or 0)
-	ni = pushMissionSet(ni, cMissions, inProgressMissions, haveUnassignedRookies, anima)
-	ni = pushMissionSet(ni, inProgressMissions, nil, haveUnassignedRookies, anima)
+	ni = pushMissionSet(ni, cMissions, missions, haveUnassignedRookies, anima)
 	ni = pushMissionSet(ni, missions, nil, haveUnassignedRookies, anima)
+	ni = pushMissionSet(ni, inProgressMissions, missions, haveUnassignedRookies, anima)
 	MissionList.numMissions = ni-1
 	for i=ni, #MissionList.Missions do
 		MissionList.Missions[i]:Hide()
@@ -325,9 +313,6 @@ function EV:I_ADVENTURES_UI_LOADED()
 	MissionPage = T.CreateObject("MissionPage", CovenantMissionFrame.MissionTab)
 	MissionList = MissionPage.MissionList
 	T.MissionList = MissionList
-	local lc = MissionPage.LogCounter
-	lc.tooltipHeader, lc.tooltipText = "|cff1eff00" .. L"Adventure Report", NORMAL_FONT_COLOR_CODE .. L"A detailed record of an adventure completed by your companions." .. "|n|n|cff1eff00" .. L"Use: Feed the Cursed Adventurer's Guide."
-	lc:SetScript("OnClick", LogCounter_OnClick)
 	HookAndCallOnShow(CovenantMissionFrame.MissionTab.MissionList, function(self)
 		self:Hide()
 		S[MissionPage]:Show()
@@ -335,9 +320,7 @@ function EV:I_ADVENTURES_UI_LOADED()
 	HookAndCallOnShow(S[MissionList], function()
 		CovenantMissionFrameFollowers:Hide()
 		UpdateMissions()
-		LogCounter_Update()
 	end)
-	EV.I_STORED_LOG_UPDATE = LogCounter_Update
 	EV.GARRISON_MISSION_LIST_UPDATE = QueueListSync
 	EV.GARRISON_MISSION_FINISHED = QueueListSync
 	EV.I_MISSION_LIST_UPDATE = QueueListSync
@@ -347,10 +330,6 @@ function EV:I_ADVENTURES_UI_LOADED()
 	EV.I_MISSION_QUEUE_CHANGED = UBSync
 	EV.I_COMPLETE_QUEUE_UPDATE = UBSync
 	EV.I_MISSION_COMPLETION_STEP = MissionComplete_Toast
-	MissionPage.CopyBox.ResetButton:SetScript("OnClick", function(self)
-		EV("I_RESET_STORED_LOGS")
-		self:GetParent():Hide()
-	end)
 	EV.I_UPDATE_CURRENCY_SHIFT = function(e, cid)
 		local p = MissionPage.ProgressCounter:GetScript("OnEvent")
 		p(MissionPage.ProgressCounter, e, cid)

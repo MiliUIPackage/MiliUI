@@ -119,7 +119,7 @@ local function CommonTooltip_OnEnter(self)
 		if self.currencyID == 1889 then
 			local ci = C_CurrencyInfo.GetCurrencyInfo(self.currencyID)
 			local q = ci and U.GetShiftedCurrencyValue(self.currencyID, ci.quantity) or "??"
-			GameTooltip:AddLine("|n" .. (L"Current Progress: %s"):format("|cffffffff" .. q .. "|r"))
+			GameTooltip:AddLine("" .. (L"Current Progress: %s"):format("|cffffffff" .. q .. "|r"))
 			GameTooltip:Show()
 		end
 	elseif self.achievementID then
@@ -317,7 +317,7 @@ local function TooltipProgressBar_Activate(self, tip, cur, max, label, q1)
 	self.Fill2:SetTexCoord(tl, tl+self.v2, 0, 1)
 	self.Fill2:SetShown((q1 or 0) > 0)
 	self:SetParent(tip)
-	tip:AddLine(("|TInterface/Minimap/PartyRaidBlipsV2:5:65:0:0:64:32:62:63:0:2|t "):rep(3))
+	tip:AddLine(("|TInterface/Minimap/PartyRaidBlipsV2:5:47:0:0:64:32:62:63:0:2|t "):rep(3))
 	local lastLine = _G[tip:GetName() .. "TextLeft" .. (tip:NumLines()-1)]
 	self:SetPoint("TOPLEFT", lastLine, "BOTTOMLEFT", 0, -2)
 	self:Show()
@@ -524,7 +524,7 @@ local function FollowerButton_OnEnter(self)
 	end
 	if not (info.isAutoTroop or info.missionTimeEnd) then
 		local act = U.FollowerIsFavorite(info.garrFollowerID) and BATTLE_PET_UNFAVORITE or BATTLE_PET_FAVORITE
-		local short = GetAltModifierKeyText("CHATLINK") .. "+|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:0:0:0:-1:512:512:2:78:240:316|t: "
+		local short = "Alt" .. "+|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:0:0:0:-1:512:512:2:78:240:316|t: "
 		GameTooltip:AddLine(" ")
 		GameTooltip:AddLine(short .. act, 0.5, 0.8, 1)
 		GameTooltip:Show()
@@ -547,6 +547,8 @@ local function FollowerButton_SetInfo(self, info)
 	s.Portrait:SetTexture(info.portraitIconID)
 	s.Portrait2:SetTexture(info.portraitIconID)
 	s.TextLabel:SetText(onMission and mtl or info.level)
+	s.TextLabel:ClearAllPoints()
+	s.TextLabel:SetPoint("CENTER", 5, -18)
 	s.TextLabel:SetTextColor(mc.r, mc.g, mc.b)
 	s.PortraitR:SetVertexColor(dc, dc, dc)
 	s.PortraitT:SetShown(inTG)
@@ -1204,24 +1206,24 @@ function Factory.RaisedBorder(parent)
 		t:SetSize(42, 42)
 		t:SetPoint("TOPLEFT")
 		t:SetTexture("Interface/Garrison/AdventureMissionsFrame")
-		t:SetTexCoord(650/1024, 688/1024, 1119/2048, 1158/2048)
+		t:SetTexCoord(815/1024, 854/1024, 1119/2048, 1158/2048)
 		t = border:CreateTexture(nil, "BACKGROUND", nil, 1)
 		t:SetSize(42, 42)
 		t:SetPoint("TOPRIGHT")
 		t:SetTexture("Interface/Garrison/AdventureMissionsFrame")
-		t:SetTexCoord(650/1024, 688/1024, 1119/2048, 1158/2048)
+		t:SetTexCoord(815/1024, 854/1024, 1119/2048, 1158/2048)
 		Mirror(t, true, false)
 		t = border:CreateTexture(nil, "BACKGROUND", nil, 1)
 		t:SetSize(42, 42)
 		t:SetPoint("BOTTOMLEFT")
 		t:SetTexture("Interface/Garrison/AdventureMissionsFrame")
-		t:SetTexCoord(650/1024, 688/1024, 1119/2048, 1158/2048)
+		t:SetTexCoord(815/1024, 854/1024, 1119/2048, 1158/2048)
 		Mirror(t, false, true)
 		t = border:CreateTexture(nil, "BACKGROUND", nil, 1)
 		t:SetSize(42, 42)
 		t:SetPoint("BOTTOMRIGHT")
 		t:SetTexture("Interface/Garrison/AdventureMissionsFrame")
-		t:SetTexCoord(650/1024, 688/1024, 1119/2048, 1158/2048)
+		t:SetTexCoord(815/1024, 854/1024, 1119/2048, 1158/2048)
 		Mirror(t, true, true)
 		t = parent:CreateTexture(nil, "BACKGROUND", nil, -2)
 		t:SetTexture("Interface/FrameGeneral/UIFrame"..CovenKit.."Background", true, true)
@@ -1235,112 +1237,12 @@ function Factory.RaisedBorder(parent)
 		t:SetAlpha(0.45)
 	end
 end
-function Factory.LockedCopyInputBox(parent)
-	local f = CreateFrame("EditBox", nil, parent, "InputBoxTemplate")
-	f:SetHighlightColor(1,0.8,0.3, 0.6)
-	f:SetScript("OnEscapePressed", f.ClearFocus)
-	f:SetScript("OnTextChanged", LockedInputBox_OnTextChanged)
-	f:SetAutoFocus(false)
-	f:SetSize(250, 20)
-	return f
-end
-function Factory.CopyBoxUI(parent)
-	local f = CreateFrame("Frame", nil, parent)
-	f:SetSize(335, 340)
-	f:SetFrameLevel(600)
-	f:SetPoint("CENTER")
-	local fbg = CreateFrame("Button", nil, f)
-	fbg:SetAllPoints(parent)
-	fbg:SetScript("OnMouseWheel", function() end)
-	fbg:SetScript("OnClick", function() if not f:IsMouseOver(0, 0, -10, 10) then f:Hide() end end)
-	fbg:RegisterForClicks("AnyUp")
-	fbg:EnableMouse(true)
-	fbg:SetFrameLevel(500)
-	local t = fbg:CreateTexture(nil, "BACKGROUND")
-	t:SetColorTexture(0,0,0,0.9)
-	t:SetAllPoints()
-	t = f:CreateTexture(nil, "BACKGROUND")
-	t:SetAtlas("UI-Frame-"..CovenKit.."-CardParchmentWider")
-	t:SetAllPoints()
-	t = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge2")
-	t:SetText("Moonkittens for sale")
-	t:SetPoint("TOP", 0, -34)
-	t, f.Title = f:CreateFontString(nil, "OVERLAY", "GameFontBlackMedium"), t
-	t:SetWidth(270)
-	t:SetPoint("TOP", f.Title, "BOTTOM", 0, -10)
-	t:SetJustifyH("LEFT")
-	t:SetTextColor(0.1, 0.1, 0.1)
-	t:SetText("These adorable rascals are guaranteed to moonfire literally everything around them.");
-	t, f.Intro = f:CreateFontString(nil, "OVERLAY", "GameFontBlackMedium"), t
-	t:SetWidth(270)
-	t:SetJustifyH("LEFT")
-	t:SetText("1. Moonfire.")
-	t:SetTextColor(0.1, 0.1, 0.1)
-	local ub = CreateObject("LockedCopyInputBox", f)
-	ub:SetPoint("TOP", f.Intro, "BOTTOM", 0, -60)
-	ub:SetText("Very moon,")
-	ub:SetTextColor(0.25, 0.75, 1)
-	t:SetPoint("BOTTOM", ub, "TOP", 0, 6)
-	f.FirstInputBox = ub
-	f.FirstInputBoxLabel = t
-
-	local cb = CreateObject("LockedCopyInputBox", f)
-	cb:SetPoint("TOP", ub, "TOP", 0, -50)
-	cb:SetText("Much fire!")
-	f.SecondInputBox = cb
-	t = f:CreateFontString(nil, "OVERLAY", "GameFontBlackMedium")
-	t:SetWidth(270)
-	t:SetJustifyH("LEFT")
-	t:SetPoint("BOTTOM", cb, "TOP", 0, 6)
-	t:SetText("2. Kittens.")
-	t:SetTextColor(0.1, 0.1, 0.1)
-	f.SecondInputBoxLabel = t
-
-	f:SetScript("OnKeyDown", function(self, key)
-		f:SetPropagateKeyboardInput(key ~= "ESCAPE")
-		if key == "ESCAPE" then
-			self:Hide()
-		end
-	end)
-
-	t = CreateObject("PanelButton", f)
-	t:SetPoint("BOTTOM", 0, 34 + (UIBUTTON_HEIGHT-22)/2)
-	t:SetWidth(216)
-	t:SetText("Reset")
-	t, f.ResetButton = CreateFrame("Button", nil, f, "UIPanelCloseButtonNoScripts"), t
-	t:SetPoint("TOPRIGHT", -8, -8)
-	t:SetScript("OnClick", function()
-		f:Hide()
-	end)
-	t, f.CloseButton2 = f:CreateFontString(nil, "OVERLAY", "GameFontBlackSmall"), t
-	t:SetPoint("BOTTOMRIGHT", -16, 14)
-	t:SetText(GetAddOnMetadata(AN, "Title") .. " v" .. GetAddOnMetadata(AN, "Version"))
-	f.VersionText = t
-
-	f:SetScript("OnHide", function(self)
-		if self:IsShown() then
-			self:Hide()
-		else
-			PlaySound(170568)
-		end
-		if self:GetParent().keyFocus == self then
-			self:GetParent().keyFocus = nil
-		end
-	end)
-	f:SetScript("OnShow", function(self)
-		self:GetParent().keyFocus = self
-	end)
-
-	return f
-end
 function Factory.MissionPage(parent)
 	local f = CreateFrame("Frame", nil, parent)
 	local s = CreateObject("Shadow", f)
 	f:SetAllPoints()
 	f:EnableMouse(true)
 	s.MissionList = CreateObject("MissionList", f)
-	s.CopyBox = CreateObject("CopyBoxUI", f)
-	s.CopyBox:Hide()
 	local resButton = CreateObject("ResourceButton", f, 1813) do
 		s.ResourceCounter = resButton
 		resButton:SetPoint("TOPRIGHT", -72, -30)
@@ -1356,12 +1258,6 @@ function Factory.MissionPage(parent)
 	local prButton = CreateObject("ResourceButton", f, 1889) do
 		s.ProgressCounter = prButton
 		prButton:SetPoint("RIGHT", ccButton, "LEFT", -35, 0)
-	end
-	local logsButton = CreateObject("ILButton", f, 1889) do
-		s.LogCounter = logsButton
-		logsButton:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-		logsButton.Icon:SetTexture("Interface/Icons/INV_Inscription_80_Scroll")
-		logsButton:SetPoint("RIGHT", prButton, "LEFT", -35, 0)
 	end
 	local uButton = CreateObject("PanelButton", f) do
 		s.UnButton, uButton.Glow = uButton, CreateObject("PanelButtonGlow", uButton)
@@ -1601,7 +1497,7 @@ function Factory.MissionButton(parent)
 	t:SetScript("OnClick", TentativeGroupClear_OnClick)
 	t:SetPushedTextOffset(-1, -1)
 	s.TentativeClear = t
-	t = cf:CreateFontString(nil, "BACKGROUND", "GameFontNormalSmall")
+	t = cf:CreateFontString(nil, "BACKGROUND", "GameFontNormal")
 	t:SetTextColor(0.97, 0.94, 0.70)
 	t:SetPoint("TOPLEFT", 16, -38)
 	t, s.TagText = CreateObject("BoardGroup", cf), t
@@ -1961,7 +1857,7 @@ function Factory.FollowerListButton(parent, isTroop)
 	t:SetAlpha(0.85)
 	t:SetSize(24, s.HealthBG:GetHeight())
 	t:SetPoint("BOTTOMLEFT", s.HealthBG, "BOTTOMLEFT")
-	t, s.Health = f2:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall"), t
+	t, s.Health = f2:CreateFontString(nil, "OVERLAY", "GameFontNormal"), t
 	t:SetPoint("BOTTOMLEFT", f, "BOTTOM", -6, 11)
 	t, s.TextLabel = f2:CreateTexture(nil, "ARTWORK", nil, 4), t
 	t:SetSize(14,16)

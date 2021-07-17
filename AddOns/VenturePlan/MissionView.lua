@@ -475,7 +475,7 @@ local function Predictor_OnEnter(self)
 	GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
 	GameTooltip:SetText(ITEM_QUALITY_COLORS[5].hex .. L"Cursed Adventurer's Guide")
 	GameTooltip:AddLine(ITEM_UNIQUE, 1,1,1, 1)
-	GameTooltip:AddLine(L"Use: Read the guide, determining the fate of your adventuring party.", 0, 1, 0, 1)
+	GameTooltip:AddLine(L"Use: Read the guide, determining the fate of your adventuring party.", 0, 0.8, 1, 1)
 	GameTooltip:AddLine(L'"Do not believe its lies! Balance druids are not emergency rations."', 1, 0.835, 0.09, 1)
 	GameTooltip:Show()
 end
@@ -497,8 +497,8 @@ local function Predictor_ShowResult(self, sim, incompleteModel, recoverUntil, re
 
 	if incompleteModel then
 		GameTooltip:AddLine(L"Not all abilities have been taken into account.", 0.9,0.25,0.15)
-	elseif oodBuild then
-		GameTooltip:AddLine(L"The Guide may be out of date.", 0.9,0.25,0.15)
+	--[[elseif oodBuild then
+		GameTooltip:AddLine(L"The Guide may be out of date.", 0.9,0.25,0.15)]]
 	end
 	if inProgress then
 		GameTooltip:AddLine(L"Not all outcomes have been examined.", 0.9, 0.25, 0.15, 1)
@@ -769,7 +769,7 @@ local function Shuffler_OnEnter(self, source)
 		GameTooltip:AddLine(L"Victory could not be guaranteed.", 1,1,1)
 	else -- not running, not finished
 		GameTooltip:AddLine(ITEM_UNIQUE, 1,1,1, 1)
-		GameTooltip:AddLine(L"Use: Let the book select troops and battle tactics.", 0, 1, 0, 1)
+		GameTooltip:AddLine(L"Use: Let the book select troops and battle tactics.", 0, 0.8, 1, 1)
 		local c = a2 and WHITE_FONT_COLOR or RED_FONT_COLOR -- can start?
 		GameTooltip:AddLine(L"Requires a companion in the party", c.r, c.g, c.b)
 		GameTooltip:AddLine(L'"Chapter 1: Mages Must Melee."', 1, 0.835, 0.09, 1)
@@ -852,9 +852,9 @@ function EV:I_ADVENTURES_UI_LOADED()
 	cag:SetScript("OnEnter", Predictor_OnEnter)
 	cag:SetScript("OnLeave", Predictor_OnLeave)
 	cag:SetScript("OnClick", Predictor_OnClick)
-	local cat = T.CreateObject("IconButton", MP.Board, 32, "Interface/Icons/INV_Misc_Book_06")
+	local cat = T.CreateObject("IconButton", MP.Board, 46, "Interface/Icons/INV_Misc_Book_06")
 	cat:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-	cat:SetPoint("TOPLEFT", cag, "TOPRIGHT", 4, 0)
+	cat:SetPoint("TOPLEFT", cag, "TOPRIGHT", 6, 0)
 	cat:SetScript("OnEnter", Shuffler_OnEnter)
 	cat:SetScript("OnLeave", Shuffler_OnLeave)
 	cat:SetScript("OnClick", Shuffler_OnClick)
