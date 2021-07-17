@@ -7,6 +7,20 @@ local function Revise()
     local dbRevision = CellDB["revise"] and tonumber(string.match(CellDB["revise"], "%d+")) or 0
     F:Debug("DBRevision:", dbRevision)
 
+    if CellDB["revise"] and dbRevision < 46 then -- update from an extremely version
+        local f = CreateFrame("Frame")
+        f:RegisterEvent("PLAYER_ENTERING_WORLD")
+        f:SetScript("OnEvent", function()
+            f:UnregisterAllEvents()
+            local popup = Cell:CreateConfirmPopup(CellMainFrame, 260, L["RESET"], function()
+                CellDB = nil
+                ReloadUI()
+            end)
+            popup:SetPoint("TOPLEFT")
+        end)
+        return
+    end
+
     --[[
     -- r4-alpha add "castByMe"
     if not(CellDB["revise"]) or CellDB["revise"] < "r4-alpha" then
@@ -266,7 +280,6 @@ local function Revise()
             end
         end
     end
-    ]]
 
     -- r33-release
     if CellDB["revise"] and dbRevision < 33 then
@@ -486,10 +499,10 @@ local function Revise()
     if CellDB["revise"] and dbRevision < 44 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not tContains(layout["indicators"][19]["spells"], 320132) then -- 暗影之怒
+                if not F:TContains(layout["indicators"][19]["spells"], 320132) then -- 暗影之怒
                     tinsert(layout["indicators"][19]["spells"], 320132)
                 end
-                if not tContains(layout["indicators"][19]["spells"], 322614) then -- 心灵连接
+                if not F:TContains(layout["indicators"][19]["spells"], 322614) then -- 心灵连接
                     tinsert(layout["indicators"][19]["spells"], 322614)
                 end
             end
@@ -512,12 +525,13 @@ local function Revise()
 
         CellDB["general"]["tooltipsPosition"] = {"BOTTOMLEFT", "Unit Button", "TOPLEFT", 0, 15}
     end
+    ]]
 
     -- r47-release
     if CellDB["revise"] and dbRevision < 47 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not tContains(layout["indicators"][19]["spells"], 334053) then -- 净化冲击波
+                if not F:TContains(layout["indicators"][19]["spells"], 334053) then -- 净化冲击波
                     tinsert(layout["indicators"][19]["spells"], 334053)
                 end
             end
@@ -535,10 +549,10 @@ local function Revise()
     if CellDB["revise"] and dbRevision < 48 then
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][19] and layout["indicators"][19]["indicatorName"] == "targetedSpells" then
-                if not tContains(layout["indicators"][19]["spells"], 343556) then -- 病态凝视
+                if not F:TContains(layout["indicators"][19]["spells"], 343556) then -- 病态凝视
                     tinsert(layout["indicators"][19]["spells"], 343556)
                 end
-                if not tContains(layout["indicators"][19]["spells"], 320596) then -- 深重呕吐
+                if not F:TContains(layout["indicators"][19]["spells"], 320596) then -- 深重呕吐
                     tinsert(layout["indicators"][19]["spells"], 320596)
                 end
             end
@@ -591,6 +605,65 @@ local function Revise()
                     ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline", 0},
                     ["color"] = {1, .1, .1},
                 })
+            end
+        end
+    end
+
+    -- r55-release
+    if CellDB["revise"] and dbRevision < 55 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            -- update debuffs
+            if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
+                --- 焚化者阿寇拉斯
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 355732) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355732) -- 融化灵魂
+                end
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 355738) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355738) -- 灼热爆破
+                end
+                -- 凇心之欧罗斯
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 356667) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356667) -- 刺骨之寒
+                end
+                -- 刽子手瓦卢斯
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 356925) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356925) -- 屠戮
+                end
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 356923) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 356923) -- 撕裂
+                end
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 358973) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 358973) -- 恐惧浪潮
+                end
+                -- 粉碎者索苟冬
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 355806) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 355806) -- 重压
+                end
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 358777) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 358777) -- 痛苦之链
+                end
+            end
+        end
+    end
+
+    -- r56-release
+    if CellDB["revise"] and dbRevision < 56 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["indicators"][20] and layout["indicators"][20]["indicatorName"] == "targetedSpells" then
+                if not F:TContains(layout["indicators"][20]["spells"], 356924) then
+                    tinsert(layout["indicators"][20]["spells"], 356924)  -- 屠戮
+                end
+                if not F:TContains(layout["indicators"][20]["spells"], 356666) then -- 刺骨之寒
+                    tinsert(layout["indicators"][20]["spells"], 356666)
+                end
+                if not F:TContains(layout["indicators"][20]["spells"], 319713) then -- 巨兽奔袭
+                    tinsert(layout["indicators"][20]["spells"], 319713)
+                end
+            end
+            if layout["indicators"][18] and layout["indicators"][18]["indicatorName"] == "debuffs" then
+                if not F:TContains(layout["indicators"][18]["bigDebuffs"], 240559) then
+                    tinsert(layout["indicators"][18]["bigDebuffs"], 240559)  -- 重伤
+                end
             end
         end
     end

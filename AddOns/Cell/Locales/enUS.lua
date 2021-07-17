@@ -36,11 +36,24 @@ select(2, ...).L = setmetatable({
     ["bottom-to-top"] = "Bottom-to-Top",
 
     ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2.\nCell is not meant to be a lightweight or powerful (like VuhDo, Grid2) raid frames addon. It's easy to use and good enough for you (hope so).",
+    ["RESET"] = "Cell requires a full reset after updating from a very old version.\n|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
     
     ["pullTimerTips"] = "\n|rPull Timer\nLeft-Click: |cffffffffstart timer|r\nRight-Click: |cffffffffcancel timer|r",
     ["marksTips"] = "\n|rTarget marker\nLeft-Click: |cffffffffset raid marker on target|r\nRight-Click: |cfffffffflock raid marker on target (in your group)|r",
 
     ["CHANGE LOGS"] = [[
+        <h1>r56-release (Jul 16, 2021, 01:20 GMT+8)</h1>
+        <p>* Updated TargetedSpells and BigDebuffs.</p>
+        <p>* Fixed unit button border.</p>
+        <p>* Fixed status text "DEAD".</p>
+        <br/>
+
+        <h1>r55-release (Jul 13, 2021, 17:35 GMT+8)</h1>
+        <p>* Updated RaidDebuffs (Tazavesh).</p>
+        <p>* Updated BigDebuffs (tormented affix related).</p>
+        <p>* Fixed button backdrop in options frame.</p>
+        <br/>
+
         <h1>r54-release (Jul 9, 2021, 01:49 GMT+8)</h1>
         <p>* Fixed BattleRes timer.</p>
         <br/>

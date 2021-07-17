@@ -4,6 +4,7 @@ local L = select( 2, ...).L
 
 L["New version found (%s). Please visit %s to get the latest version."] = "发现新版本 (%s)。 请访问 %s 下载最新版本。"
 L["ABOUT"] = "Cell 是受启发于 CompactRaid 的团队框架，参考了其代码，重写并增强。\n我个人很喜欢 CompactRaid，并常年使用它，但其作者似乎已经不再更新了。因此我写了 Cell，希望你能喜欢。\n另外，我也参考了一些很棒的团队框架，比如 Aptechka 和 Grid2。\nCell 并不打算成为一个轻量或强大（如 VuhDo、Grid2）的团队框架插件。设置简单，功能足够，就行了。"
+L["RESET"] = "从过旧的版本更新，需要重置Cell。\n|cff22ff22是|r - 重置Cell\n|cffff2222否|r - 我自己搞定"
 
 -------------------------------------------------
 -- slash command
@@ -367,6 +368,18 @@ L["Bug Report & Suggestion"] = "问题报告与建议"
 -------------------------------------------------
 L["Change Logs"] = "更新记录"
 L["CHANGE LOGS"] = [[
+    <h1>r56-release (Jul 16, 2021, 01:20 GMT+8)</h1>
+    <p>* 更新了“被法术选中”和“放大显示的减益”。</p>
+    <p>* 修复了单位按钮的边框。</p>
+    <p>* 修复了“死亡”状态文字。</p>
+    <br/>
+
+    <h1>r55-release (Jul 13, 2021, 17:35 GMT+8)</h1>
+    <p>* 更新副本减益（塔扎维什）。</p>
+    <p>* 更新放大显示的减益（折磨词缀相关）。</p>
+    <p>* 修复了选项框体中按钮背景的尺寸。</p>
+    <br/>
+
     <h1>r54-release (Jul 9, 2021, 01:49 GMT+8)</h1>
     <p>* 修复了战复计时器。</p>
     <br/>

@@ -1,22 +1,40 @@
-lightweight tag 0fdc28dbcd010ce1bf84ae906b64875e9e7a2d15 r54-release
+lightweight tag 7599eb632767245516a78bc3b358e151cbf0412a r56-release
 Author:	KevinSK <shinozakisama@live.com>
-Date:	Fri Jul 9 01:48:31 2021 +0800
+Date:	Fri Jul 16 01:19:24 2021 +0800
 
-commit 0fdc28dbcd010ce1bf84ae906b64875e9e7a2d15
+commit 7599eb632767245516a78bc3b358e151cbf0412a
 Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Jul 9 01:48:31 2021 +0800
+Date:   Fri Jul 16 01:19:24 2021 +0800
 
-    update changelog
+    update locales
 
-commit b1871d1e15ef8fabd589a80dca0e5af9688e13c9
+commit 4271814922f2cd59b5bd1bab3c0b0faa4ce32c72
 Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Jul 9 01:44:20 2021 +0800
+Date:   Fri Jul 16 01:11:50 2021 +0800
 
-    make battleRes and aggroIndicator pixel perfect
+    update targetedSpells
 
-commit 5ead47202ca123a72a812435401f2a9fbb0df822
+commit 7de27bb1f2312c733e1e49506741fa8c0f42c1eb
 Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Jul 9 01:43:23 2021 +0800
+Date:   Wed Jul 14 18:03:08 2021 +0800
 
-    fix battleres visibility
+    fix border size
+
+commit 032b57c2e83ed509b36ee61f56a6ea5cae8acc83
+Author: KevinSK <shinozakisama@live.com>
+Date:   Wed Jul 14 17:35:19 2021 +0800
+
+    update bigDebuffs list
+
+commit 37c7e154c5c2d84f8f89f280a505d79ce48e1616
+Author: KevinSK <shinozakisama@live.com>
+Date:   Wed Jul 14 03:56:43 2021 +0800
+
+    fix "DEAD"
+
+commit ebe41222eb41e4132d8b627e3669e25706d61579
+Author: KevinSK <shinozakisama@live.com>
+Date:   Wed Jul 14 03:56:31 2021 +0800
+
+    update targetedSpells
 
