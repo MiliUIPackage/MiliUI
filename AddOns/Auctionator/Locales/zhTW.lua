@@ -396,5 +396,6 @@ L["VERSION_HEADER"] = "版本"
 L["VERSION_MESSAGE"] = "版本 %s"
 L["YOUR_HISTORY"] = "你的歷史記錄"
 
+L["ADDON_OPTIONS"] = "拍賣"
   return L
 end

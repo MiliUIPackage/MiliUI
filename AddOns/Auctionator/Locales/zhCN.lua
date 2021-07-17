@@ -79,10 +79,8 @@ L["CONFIG_PRICE_HISTORY_TOOLTIP_TEXT"] = "停用此选项时，将会隐藏销�
 L["CONFIG_PROFILE_CATEGORY"] = "设定档"
 L["CONFIG_PROFILE_TEXT"] = "角色专用设定"
 L["CONFIG_PROFILE_TOGGLE"] = "设定只会套用到这个角色"
---[[Translation missing --]]
-L["CONFIG_QUANTITIES_CATEGORY"] = "Selling: Quantities"
---[[Translation missing --]]
-L["CONFIG_QUANTITIES_TEXT"] = "Choose the default quantity used for the different item categories."
+L["CONFIG_QUANTITIES_CATEGORY"] = "销售：数量"
+L["CONFIG_QUANTITIES_TEXT"] = "选择用于不同物品类别的默认数量。"
 L["CONFIG_SCAN_SETTINGS"] = "扫描设定"
 L["CONFIG_SCANNING"] = "完整扫描设定"
 L["CONFIG_SELLING_AUTO_SELECT_NEXT"] = "自动选择背包中的下一个物品"
@@ -323,16 +321,11 @@ L["SPLASH_901_DESCRIPTION"] = "此版本中最大的变更是可自定义的物�
 L["SPLASH_901_FEATURES_1"] = "所有结果视图上的字段都可自定义。右击任何字段标题以查看选项。"
 L["SPLASH_901_FEATURES_2"] = "小型标签页选项，用于当过多的插件将标签添加到拍卖行时。"
 L["SPLASH_901_FEATURES_HEADER"] = "新功能"
---[[Translation missing --]]
-L["SPLASH_9010_DESCRIPTION"] = "Revamped selling quantity settings, if you have custom quantities set you'll likely need to set them again for this update."
---[[Translation missing --]]
-L["SPLASH_9010_FEATURES_1"] = "The default quantities for use in the Selling tab are now set based on the item's type. Find them in the \"Selling: Quantities\" options"
---[[Translation missing --]]
-L["SPLASH_9010_FEATURES_HEADER"] = "Features"
---[[Translation missing --]]
-L["SPLASH_9010_UNANNOUNCED_1"] = "A new \"Show bid price option when listing an item\" option, found in \"Selling\" options, to allow bid prices to be set from the Selling tab"
---[[Translation missing --]]
-L["SPLASH_9010_UNANNOUNCED_HEADER"] = "Unannounced features from 9.0.9"
+L["SPLASH_9010_DESCRIPTION"] = "改进了销售数量设置，如果您设置过自定义数量，可能需要为此次更新重新设置它们。"
+L["SPLASH_9010_FEATURES_1"] = "销售标签页中使用的默认数量现在根据商品类型单独设置。 在“销售：数量”选项中找到它们"
+L["SPLASH_9010_FEATURES_HEADER"] = "新功能"
+L["SPLASH_9010_UNANNOUNCED_1"] = "在“销售”选项中添加了一个新的“列出项目时显示出价选项”选项，以允许从“销售”标签页中设置出价"
+L["SPLASH_9010_UNANNOUNCED_HEADER"] = "9.0.9 版本的未公布功能"
 L["SPLASH_902_DESCRIPTION"] = "除了各种错误修正，还有一项新功能。"
 L["SPLASH_902_FEATURES_1"] = "销售标签页中新增了一个“你的历史记录”区块来显示您过去创建的拍卖价格。"
 L["SPLASH_902_FEATURES_HEADER"] = "新功能"

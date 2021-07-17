@@ -8,7 +8,7 @@ Auctionator.Config.Options = {
   SHIFT_STACK_TOOLTIPS = "shift_stack_tooltips",
   AUTOSCAN = "autoscan_2",
   AUTOSCAN_INTERVAL = "autoscan_interval",
-  REPLICATE_SCAN = "replicate_scan",
+  REPLICATE_SCAN = "replicate_scan_2",
   AUTO_LIST_SEARCH = "auto_list_search",
   DEFAULT_LIST = "default_list_2",
 
@@ -91,7 +91,7 @@ local defaults = {
   [Auctionator.Config.Options.SHIFT_STACK_TOOLTIPS] = true,
   [Auctionator.Config.Options.AUTOSCAN] = false,
   [Auctionator.Config.Options.AUTOSCAN_INTERVAL] = 15,
-  [Auctionator.Config.Options.REPLICATE_SCAN] = false,
+  [Auctionator.Config.Options.REPLICATE_SCAN] = true,
   [Auctionator.Config.Options.AUTO_LIST_SEARCH] = true,
   [Auctionator.Config.Options.DEFAULT_LIST] = Auctionator.Constants.NO_LIST,
   [Auctionator.Config.Options.AUCTION_CHAT_LOG] = true,
@@ -123,18 +123,18 @@ local defaults = {
   [Auctionator.Config.Options.LIFO_UNDERCUT_STATIC_VALUE] = 0,
 
   [Auctionator.Config.Options.DEFAULT_QUANTITIES] = {
-    [LE_ITEM_CLASS_WEAPON]           = 1,
-    [LE_ITEM_CLASS_ARMOR]            = 1,
-    [LE_ITEM_CLASS_CONTAINER]        = 0,
-    [LE_ITEM_CLASS_GEM]              = 0,
-    [LE_ITEM_CLASS_ITEM_ENHANCEMENT] = 0,
-    [LE_ITEM_CLASS_CONSUMABLE]       = 0,
-    [LE_ITEM_CLASS_GLYPH]            = 0,
-    [LE_ITEM_CLASS_TRADEGOODS]       = 0,
-    [LE_ITEM_CLASS_RECIPE]           = 0,
-    [LE_ITEM_CLASS_BATTLEPET]        = 1,
-    [LE_ITEM_CLASS_QUESTITEM]        = 0,
-    [LE_ITEM_CLASS_MISCELLANEOUS]    = 0,
+    [Enum.ItemClass.Weapon]           = 1,
+    [Enum.ItemClass.Armor]            = 1,
+    [Enum.ItemClass.Container]        = 0,
+    [Enum.ItemClass.Gem]              = 0,
+    [Enum.ItemClass.ItemEnhancement]  = 0,
+    [Enum.ItemClass.Consumable]       = 0,
+    [Enum.ItemClass.Glyph]            = 0,
+    [Enum.ItemClass.Tradegoods]       = 0,
+    [Enum.ItemClass.Recipe]           = 0,
+    [Enum.ItemClass.Battlepet]        = 1,
+    [Enum.ItemClass.Questitem]        = 0,
+    [Enum.ItemClass.Miscellaneous]    = 0,
   },
 
   [Auctionator.Config.Options.PRICE_HISTORY_DAYS] = 21,
@@ -159,7 +159,7 @@ local defaults = {
   [Auctionator.Config.Options.COLUMNS_POSTING_HISTORY] = {},
 }
 
-local function isValidOption(name)
+function Auctionator.Config.IsValidOption(name)
   for _, option in pairs(Auctionator.Config.Options) do
     if option == name then
       return true
@@ -184,7 +184,7 @@ end
 function Auctionator.Config.Set(name, value)
   if AUCTIONATOR_CONFIG == nil then
     error("AUCTIONATOR_CONFIG not initialized")
-  elseif not isValidOption(name) then
+  elseif not Auctionator.Config.IsValidOption(name) then
     error("Invalid option '" .. name .. "'")
   elseif AUCTIONATOR_CHARACTER_CONFIG ~= nil then
     AUCTIONATOR_CHARACTER_CONFIG[name] = value

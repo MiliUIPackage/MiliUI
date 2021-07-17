@@ -22,7 +22,7 @@ local function NormalizePrice(price)
 end
 
 local function IsEquipment(itemInfo)
-  return itemInfo.classId == LE_ITEM_CLASS_WEAPON or itemInfo.classId == LE_ITEM_CLASS_ARMOR
+  return itemInfo.classId == Enum.ItemClass.Weapon or itemInfo.classId == Enum.ItemClass.Armor
 end
 
 local function IsValidItem(item)
@@ -466,7 +466,6 @@ function AuctionatorSaleItemMixin:ProcessItemResults(itemKey)
 
   if result == nil then
     -- This item was not found in the AH, so use the lowest price from the dbKey
-    -- TODO: DB price does not account for iLvl
     postingPrice = Auctionator.Database:GetFirstPrice(dbKeys)
   elseif result ~= nil and result.containsOwnerItem then
     -- Posting an item I have alread posted, and that is the current lowest price, so just

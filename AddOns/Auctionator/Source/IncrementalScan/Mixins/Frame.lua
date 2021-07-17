@@ -40,20 +40,20 @@ function AuctionatorIncrementalScanFrameMixin:OnEvent(event, ...)
 
   elseif event == "AUCTION_HOUSE_CLOSED" and self.doingFullScan then
     self.doingFullScan = false
-    Auctionator.Utilities.Message(AUCTIONATOR_L_FULL_SCAN_FAILED)
+    Auctionator.Utilities.Message(AUCTIONATOR_L_FULL_SCAN_ALTERNATE_FAILED)
     Auctionator.EventBus:Fire(self, Auctionator.IncrementalScan.Events.ScanFailed)
   end
 end
 
 function AuctionatorIncrementalScanFrameMixin:IsAutoscanReady()
-  local timeSinceLastScan = time() - (self.state.TimeOfLastScan or 0)
+  local timeSinceLastScan = time() - (self.state.TimeOfLastBrowseScan or 0)
 
   return timeSinceLastScan >= (Auctionator.Config.Get(Auctionator.Config.Options.AUTOSCAN_INTERVAL) * 60)
 end
 
 function AuctionatorIncrementalScanFrameMixin:InitiateScan()
   if not self.doingFullScan then
-    Auctionator.Utilities.Message(AUCTIONATOR_L_STARTING_FULL_SCAN)
+    Auctionator.Utilities.Message(AUCTIONATOR_L_STARTING_FULL_SCAN_ALTERNATE)
     Auctionator.AH.SendBrowseQuery({searchString = "", sorts = {}, filters = {}, itemClassFilters = {}})
     self.previousDatabaseCount = Auctionator.Database:GetItemCount()
     self.doingFullScan = true
@@ -128,7 +128,7 @@ function AuctionatorIncrementalScanFrameMixin:NextStep()
       self.doingFullScan = false
 
       Auctionator.EventBus:Fire(self, Auctionator.IncrementalScan.Events.ScanComplete)
-      self.state.TimeOfLastScan = time()
+      self.state.TimeOfLastBrowseScan = time()
     end
     Auctionator.EventBus:Fire(self, Auctionator.IncrementalScan.Events.PricesProcessed)
 
