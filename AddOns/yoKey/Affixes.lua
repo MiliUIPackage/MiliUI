@@ -13,25 +13,26 @@ local yo_OldKey, yo_OldKey2 = nil, nil
 
 local mythicRewards = {
 --	{"Level","End","Weekly","Azer Weekly"},
-	{"2    ",187,200},
-	{"3    ",190,203},
-	{"4    ",194,207},
-	{"5    ",194,210},
-	{"6    ",197,210},
-	{"7    ",200,213},
-	{"8-9  ",200,216},
-	{"10-11",203,220},
-	{"12-13",207,223},
-	{"14   ",207,226},
-	{"15   ",210,226},
+	{"2    ",210,226},
+	{"3    ",213,226},
+	{"4    ",216,226},
+	{"5    ",220,229},
+	{"6    ",223,229},
+	{"7    ",223,233},
+	{"8-9  ",226,236},
+	{"10   ",229,239},
+	{"11   ",229,242},
+	{"12-13",233,246},
+	{"14   ",236,249},
+	{"15   ",236,252},
 }
 
 -- Overflowing：1.溢流。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地，Inspiring：122，Spiteful：123.惡意，Storming：124
 
 --TODO Change this once BFA hits
 local affixWeeks = { --affixID as used in C_ChallengeMode.GetAffixInfo(affixID)
-    [1] = {[1]=10,[2]=11,[3]=3},	--V
-    [2] = {[1]=9,[2]=7,[3]=124},	--V
+    [1] = {[1]=10,[2]=11,[3]=124},	--V
+    [2] = {[1]=9,[2]=6,[3]=3},	--V
     [3] = {[1]=10,[2]=123,[3]=12},	--V
     [4] = {[1]=9,[2]=122,[3]=4},	--V
     [5] = {[1]=10,[2]=8,[3]=14},	--V
@@ -518,7 +519,7 @@ local function OnEvent( self, event, name, ...)
 		
 		challengeMapID = C_ChallengeMode.GetActiveChallengeMapID()
 		yo_OldKey = CheckInventoryKeystone()
-
+	--[[ 移除在隊伍頻道輸入 !key
 	elseif event == "CHAT_MSG_PARTY_LEADER" or event == "CHAT_MSG_PARTY" then
 		name = strlower( name)
 		if name == "!key" or name == "!ключ" or name == "!keys" then
@@ -527,7 +528,7 @@ local function OnEvent( self, event, name, ...)
 				SendChatMessage( keys, "PARTY")
 			end
 		end
-	--[[ 移除在公會頻道輸入 !key
+	-- 移除在公會頻道輸入 !key
 	elseif event == "CHAT_MSG_GUILD" then
 		name = strlower( name)
 		if name == "!key" or name == "!ключ" or name == "!keys" then

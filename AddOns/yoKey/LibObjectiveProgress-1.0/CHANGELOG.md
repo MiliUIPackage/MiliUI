@@ -1,7 +1,6 @@
 # LibObjectiveProgress-1.0
 
-## v1.8.1 (2020-12-29)
+## v1.8.2 (2021-07-11)
  
 
-- Converted repository to Git and made some minor TOC updates.  
-- Added tag v1.8.0 for changeset b1b8262b5c2c  
+- Updated quest data to Patch 9.1.0 Build 39335. Bumped TOC Interface version as well.  
