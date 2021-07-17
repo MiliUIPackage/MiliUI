@@ -246,29 +246,21 @@ L["consumption_note"] = [[
 
 |cFFFF0000當在戰鬥中時, {npc:179758} 不會刷新給此稀有吞噬.|r
 ]]
-L["darkmaul_note"] = [[
-從入侵的淵喉菇收集 {item:187153} 並且餵給 {npc:180063}. 你必須要完成此事件10次來取得坐騎.
-
-|cFFFF8C00當你在團隊時進度不會被計算!|r
-]]
+L["darkmaul_note"] = "從入侵的淵喉菇收集 {item:187153} 並且餵給 {npc:180063}. 你必須要完成此事件10次來取得坐騎."
 L["dislodged_nest_note"] = "點選附近的劇毒飛蛾拿到 {spell:355181}. 對 {npc:178547} 使用額外動作按鈕上的 {spell:355131} 來騎上牠並操縱牠去撞巢穴所在的樹."
 L["escaped_wilderling_note"] = "點選 {npc:180014} 來開始馴服事件."
 L["flayedwing_transporter_note"] = "點選 {npc:178633} 來進入或離開玄秘寶庫."
 L["fleshwing_note"] = "和 {npc:180079} 對話來開始收集事件."
 L["forgotten_feather_note"] = "在一個可以從守衛者歇息地跳下去的漂浮小島上."
 L["konthrogz_note"] = "從一個吞食者傳送門事件中刷新."
-L["korthia_limited_rare"] = nil
+L["korthia_limited_rare"] = "|cFFFF8C00此稀有在某些日子不會刷新|r"
 L["krelva_note"] = "當血量到80%時會移動到另外一個平台, 然後當血量剩60%會移動到陸地上. |cFFFF8C00你必須在60%後有打到稀有才有計算擊殺!|r"
 L["kroke_note"] = "擊殺區域內的 {npc:179029} 直到他出現. 當 {npc:179029} 不存在時沒有辦法召喚."
 L["maelie_wanderer"] = "{npc:179912} 會刷新在所標註的位置. 當你點選牠後會對牠使用 {spell:355862} 持續使用六天後，回去找 {npc:179930} 來取得坐騎."
 L["malbog_note"] = "和 {npc:179729} 說話來拿到 {spell:355078} 接著跟隨著足跡直到你找到血肉殘駭."
 L["offering_box_note"] = "需要 {item:187033}, 可以在附近廢墟西邊牆頂找到."
 L["pop_quiz_note"] = "猜謎比賽會隨機刷新在地圖上. 點選被遺棄的帷幕法杖並回答 {npc:180162} 的問題."
-L["razorwing_note"] = [[
-交出10次吞食者掉落的 {item:187054}.
-
-|cFFFF8C00當你在團隊時進度不會被計算!|r
-]]
+L["razorwing_note"] = "交出10次吞食者掉落的 {item:187054}."
 L["reliwik_note"] = "點選未腐化的刃翼蛋來拉他下來."
 L["spectral_bound_chest"] = "點選3個附近的 {item:179369} 來解鎖箱子."
 L["spectral_bound_note"] = "靈縛寶箱"
@@ -279,6 +271,7 @@ L["worldcracker_note"] = "和 {npc:180028} 交談來觸發護送事件."
 L["archivist_key_note"] = "從 {npc:178257} 購買 %s 來解鎖."
 L["korthian_shrine_note"] = "點選祭壇以取得 {spell:352367} 來看到通往 alter 的隱藏路徑."
 L["num_research"] = "%d 編目研究"
+L["plus_research"] = "+ 研究"
 L["options_icons_relic"] = "{achievement:15066}"
 L["options_icons_relic_desc"] = "顯示成就的所有20個文物位置."
 
@@ -290,7 +283,7 @@ L["rift_portal_note"] = [[
 |cFFFF8C00並非所有裂隙傳送門在任何時間都是啟動的.|r
 ]]
 L["rift_rare_only_note"] = "此稀有僅在 |cFFFFFF00裂隙|r 位面內可以看到並被擊殺"
-L["rift_rare_exit_note"] = "此稀有在裂隙中被互動後會離開 |cFFFFFF00裂隙|r 位面"
+L["rift_rare_exit_note"] = "此稀有必須有 {spell:354840} 增益否則會出錯! 在裂隙中和其互動後會離開 |cFFFFFF00裂隙|r 位面"
 L["options_icons_rift_portal"] = "{npc:179595}"
 L["options_icons_rift_portal_desc"] = "顯示用來進入 |cFFFFFF00裂隙|r 的 {npc:179595} 位置"
 
@@ -497,9 +490,18 @@ L["etherwyrm_label"] = "翼靈蛇牢籠"
 L["etherwyrm_note"] = "需要暗夜妖精進攻戰進行中. 在裂隙時擊殺 {npc:179030} 來獲得 {item:186190}. 在荒寂谷地洞穴對翼靈蛇牢籠使用鑰匙 ({npc:175821} 只存在現實位面)."
 L["fallen_charger_note"] = "在全地圖大喊後, 他會沿者兩條路線中的一條移動, 如果沒有被人撞到則在到達科西亞後消失."
 L["ikras_note"] = "環繞墮滅堡飛行。這是個攻擊他的好位置。"
-L["lilabom_note"] = "收集全部5個部份來完成寵物"
-L["orophea_note"] = "從東南方的拾取 {spell:337143} 並提供給 {npc:172577} 啟動。"
+L["lilabom_note"] = [[
+收集全部5個部件來完成寵物. 有些部件可能出現在多個位置.
+
+• {item:186183}
+• {item:186184}
+• {item:186185}
+• {item:186186}
+• {item:186187}
+]]
+L["orophea_note"] = "從東南方拾取 {spell:337143} 並交給 {npc:172577} 來啟動。"
 L["sanngror_note"] = "如果他是無法攻擊的，等到她停止對靈魂做實驗即可。"
+L["sly_note"] = "和 {npc:179068} 說話來取得 {spell:353322} 增益, 並且在3個不同的琪瑞安進攻戰找到 {npc:179096}."
 L["talaporas_note"] = "和3名其他玩家，站在平台的角落並施放 {spell:331800} 召喚稀有。"
 L["valis_note"] = "按正確順序點擊三個 {npc:174810} 召喚稀有。順序每次點擊都會更換並且錯誤點擊符文會受到傷害和負面效果 {spell:343636}。"
 L["yero_note"] = "靠近 {npc:172862} 然後跟著他進入附近的一個山洞，在那裡他變為敵對。"
@@ -530,99 +532,115 @@ L["Cordial"] = "友善"
 L["Tentative"] = "猶豫"
 
 L["stygian_cache"] = "冥魄儲藏箱"
-L["stygian_cache_note"] = "每次重生只有一個人能夠拾取"
+L["stygian_cache_note"] = "每次重生只有一個人能夠拾取!"
 
-L["box_of_torments_note"] = "在悲慘之牢下方開啟 {npc:173837}"
-L["tormentors_notes_note"] = "拾取 {npc:173811} 的屍體"
-L["words_of_warden_note"] = "在一些罐子後面的石頭上檢查 {npc:173841}"
+L["box_of_torments_note"] = "在悲慘之牢下方開啟 {npc:173837}."
+L["tormentors_notes_note"] = "拾取 {npc:173811} 的屍體."
+L["words_of_warden_note"] = "在一些罐子後面的石頭上檢查 {npc:173841}."
 
 -- Locations given relative to a map area name
-L["nexus_area_calcis_branch"] = nil
-L["nexus_area_calcis_crystals"] = nil
-L["nexus_area_cradle_bridge"] = nil
-L["nexus_area_domination_bridge"] = nil
-L["nexus_area_domination_edge"] = nil
-L["nexus_area_domination_room"] = nil
-L["nexus_area_domination_stairs"] = nil
-L["nexus_area_gorgoa_bank"] = nil
-L["nexus_area_gorgoa_middle"] = nil
-L["nexus_area_gorgoa_mouth"] = nil
-L["nexus_area_perdition_wall"] = nil
-L["nexus_area_torment_rock"] = nil
-L["nexus_area_zone_edge"] = nil
-L["nexus_area_zovaal_edge"] = nil
-L["nexus_area_zovaal_wall"] = nil
+L["nexus_area_calcis_branch"] = "位於白堊之地的水晶分叉上（使用錨點）"
+L["nexus_area_calcis_crystals"] = "在白堊之地的一些青色水晶後面 "
+L["nexus_area_cradle_bridge"] = "毀滅之源的橋下"
+L["nexus_area_domination_bridge"] = "統御祭壇南方的橋上"
+L["nexus_area_domination_edge"] = "統御祭壇的邊上"
+L["nexus_area_domination_room"] = "統御祭壇樓頂的一個小房間裡"
+L["nexus_area_domination_stairs"] = "統御祭壇 {npc:173904} 旁邊"
+L["nexus_area_gorgoa_bank"] = "果戈亞河邊（靈魂之河）"
+L["nexus_area_gorgoa_middle"] = "就在河中央喲！"
+L["nexus_area_gorgoa_mouth"] = "果戈亞河口（靈魂之河）"
+L["nexus_area_perdition_wall"] = "墮滅堡的外牆邊"
+L["nexus_area_torment_rock"] = "折磨平原的岩石上"
+L["nexus_area_zone_edge"] = "沿著區域的邊緣"
+L["nexus_area_zovaal_edge"] = "佐瓦爾的大釜的邊緣"
+L["nexus_area_zovaal_wall"] = "佐瓦爾的大釜下面牆邊"
 -- Locations given relative to a named cave/cavern
-L["nexus_cave_anguish_lower"] = nil
-L["nexus_cave_anguish_outside"] = nil
-L["nexus_cave_anguish_upper"] = nil
-L["nexus_cave_desmotaeron"] = nil
-L["nexus_cave_echoing_outside"] = nil
-L["nexus_cave_forlorn"] = nil
-L["nexus_cave_howl_outside"] = nil
-L["nexus_cave_howl"] = nil
-L["nexus_cave_roar"] = nil
-L["nexus_cave_ledge"] = nil
-L["nexus_cave_prodigum"] = nil
-L["nexus_cave_soulstained"] = nil
-L["nexus_cave_torturer"] = nil
+L["nexus_cave_anguish_lower"] = "苦楚之洞內（下層）"
+L["nexus_cave_anguish_outside"] = "苦楚之洞外"
+L["nexus_cave_anguish_upper"] = "苦楚之洞內（上層）"
+L["nexus_cave_desmotaeron"] = "淵喉外的小洞穴內"
+L["nexus_cave_echoing_outside"] = "回音之洞外"
+L["nexus_cave_forlorn"] = "荒棄之息洞穴內。"
+L["nexus_cave_howl_outside"] = "死亡之嚎洞穴外的地面上"
+L["nexus_cave_howl"] = "死亡之嚎洞穴內"
+L["nexus_cave_roar"] = "死亡之哮洞穴內"
+L["nexus_cave_ledge"] = "在壁架下方的一個小洞穴中 "
+L["nexus_cave_prodigum"] = "浪骸之所的小洞穴內"
+L["nexus_cave_soulstained"] = "魂漬原野的小洞穴內"
+L["nexus_cave_torturer"] = "折磨者陋居內"
 -- Locations given relative to a named NPC
-L["nexus_npc_akros"] = nil
-L["nexus_npc_dekaris"] = nil
-L["nexus_npc_dolos"] = nil
-L["nexus_npc_ekphoras"] = nil
-L["nexus_npc_incinerator"] = nil
-L["nexus_npc_orophea"] = nil
-L["nexus_npc_orrholyn"] = nil
-L["nexus_npc_portal"] = nil
-L["nexus_npc_talaporas"] = nil
-L["nexus_npc_thanassos"] = nil
-L["nexus_npc_willbreaker"] = nil
+L["nexus_npc_akros"] = "{npc:170787} 旁邊的樓梯上"
+L["nexus_npc_dekaris"] = "{npc:157964} 處山峰頂上"
+L["nexus_npc_dolos"] = "{npc:170711} 後面的地面上"
+L["nexus_npc_ekphoras"] = "{npc:169827} 的平台邊上"
+L["nexus_npc_incinerator"] = "{npc:156203} 下面的一個小窗台上"
+L["nexus_npc_orophea"] = "{npc:172577} 旁邊地面上"
+L["nexus_npc_orrholyn"] = "{npc:162845} 的平台下面找到"
+L["nexus_npc_portal"] = "{npc:167531} 後面的小石頭上"
+L["nexus_npc_talaporas"] = "{npc:170302} 的平台樓梯上"
+L["nexus_npc_thanassos"] = "{npc:170731} 的平台後面"
+L["nexus_npc_willbreaker"] = "{npc:168233} 後面的角落"
 -- Locations given relative to the main path/road nearby
-L["nexus_road_below"] = nil
-L["nexus_road_cave"] = nil
-L["nexus_road_mawrats"] = nil
-L["nexus_road_next"] = nil
-L["nexus_room_ramparts"] = nil
+L["nexus_road_below"] = "在主幹道下方的地面上 "
+L["nexus_road_cave"] = "在路下面的一個小山洞裡 "
+L["nexus_road_mawrats"] = "在路邊的一群噬淵鼠"
+L["nexus_road_next"] = "主路旁"
+L["nexus_room_ramparts"] = "在城牆下的一個小房間裡"
 -- Random locations described as best as possible
-L["nexus_misc_crystal_ledge"] = nil
-L["nexus_misc_floating_cage"] = nil
-L["nexus_misc_below_ramparts"] = nil
-L["nexus_misc_grapple_ramparts"] = nil
-L["nexus_misc_grapple_rock"] = nil
-L["nexus_misc_ledge_below"] = nil
-L["nexus_misc_three_chains"] = nil
+L["nexus_misc_crystal_ledge"] = "在一些青色水晶的岩石壁架上"
+L["nexus_misc_floating_cage"] = "再漂浮的籠子上（使用錨點）"
+L["nexus_misc_below_ramparts"] = "沿著城牆的底部"
+L["nexus_misc_grapple_ramparts"] = "在城牆之上（使用錨點）"
+L["nexus_misc_grapple_rock"] = "通過錨點到岩石上"
+L["nexus_misc_ledge_below"] = "在窗台下的地面上 "
+L["nexus_misc_three_chains"] = "在地上的三個鐵鏈"
 
-L["stolen_anima_vessel"] = "遭竊靈魄容器"
+L["stolen_anima_vessel"] = "遭竊的靈魄容器"
 L["hidden_anima_cache"] = "隱藏靈魄寶箱"
 L["options_icons_anima_vessel"] = "遭竊靈魄容器"
-L["options_icons_anima_vessel_desc"] = "顯示 |cFFFFFF00裂隙|r 中靈魄容器的位置"
+L["options_icons_anima_vessel_desc"] = "顯示進攻戰時和 |cFFFFFF00裂隙|r 中靈魄容器的位置."
 
 L["rift_hidden_cache"] = "裂隙隱藏寶箱"
 L["options_icons_rift_hidden_cache"] = "裂隙隱藏寶箱"
-L["options_icons_rift_hidden_cache_desc"] = "顯示在 |cFFFFFF00裂隙|r 內的寶箱位置"
+L["options_icons_rift_hidden_cache_desc"] = "顯示在 |cFFFFFF00裂隙|r 內的寶箱位置."
 
 L["options_icons_bonus_boss"] = "獎勵精英"
-L["options_icons_bonus_boss_desc"] = "顯示獎勵精英位置。"
+L["options_icons_bonus_boss_desc"] = "顯示獎勵精英位置."
 L["options_icons_riftstone"] = "{npc:174962}"
-L["options_icons_riftstone_desc"] = "顯示混亂裂隙石傳送者位置。"
+L["options_icons_riftstone_desc"] = "顯示混亂裂隙石傳送者位置."
 L["options_icons_grapples"] = "{npc:176308}"
-L["options_icons_grapples_desc"] = "顯示使用 {item:184653} 升級後可使用的 {npc:176308} 位置"
-L["options_icons_maw_lore"] = "淵喉知識物品"
-L["options_icons_maw_lore_desc"] = "顯示 {achievement:14761} 成就中淵喉知識物品的位置"
+L["options_icons_grapples_desc"] = "顯示使用 {item:184653} 升級後可使用的 {npc:176308} 位置."
 L["options_icons_stygia_nexus"] = "冥魄核心"
-L["options_icons_stygia_nexus_desc"] = "顯示 {item:184168} 坐騎所需的冥魄核心位置"
+L["options_icons_stygia_nexus_desc"] = "顯示 {item:184168} 坐騎所需的冥魄核心位置."
 L["options_icons_stygian_caches"] = "冥魄儲藏箱"
-L["options_icons_stygian_caches_desc"] = "顯示含有額外冥魄寶箱的位置"
+L["options_icons_stygian_caches_desc"] = "顯示含有額外冥魄寶箱的位置."
 
-L["cov_assault_only"] = nil
-L["domination_chest"] = "統御寶箱"
-L["domination_chest_note"] = "需要4個 {item:186727} 來打開全部封印"
-L["gold_band_note"] = "在山頂的一個尖端上"
-L["harrower_key_ring"] = "Harrower's Key Ring"
-L["harrower_key_note"] = "在 {npc:178311} 旁邊的牆上."
+L["cov_assault_only"] = "僅在 %s進攻戰 時刷新"
+
 L["helgarde_supply"] = "黑爾嘉德補給箱"
-L["maw_mad_note"] = "在墮滅堡附近隨機奔跑, 總是在這裡重生."
+L["helgarde_supply_note"] = "在淵喉區域各處刷新。你的 {npc:180598} 可以幫助你找到它們。"
+L["options_icons_helgarde_cache"] = "黑爾嘉德補給箱"
+L["options_icons_helgarde_cache_desc"] = nil
+
+L["mawsworn_cache_ramparts_note"] = "此寶箱在城牆頂上。使用錨點或 {npc:177093} 到它們那裡。"
+L["mawsworn_cache_tower_note"] = "此寶箱位於塔上並需要 {npc:177093} 到達。使用 {spell:349853} 技能爬上去。"
+L["mawsworn_cache_quest_note"] = "{item:186573} 將只在你完成 {quest:63545} 任務後掉落！"
+
+L["nilg_silver_ring_note"] = "需要4個 {item:186727} 來打開全部封印"
+L["nilg_silver_ring_note1"] = "擊殺 {npc:177444} 並打開 {item:186970}。"
+L["nilg_silver_ring_note2"] = "拾取掠心者的鑰匙鏈，位於地下室房間 {npc:178311} 旁邊的牆上。"
+L["nilg_silver_ring_note3"] = "打淵喉區域內的黑爾嘉德補給箱。你的 {npc:180598} 可以幫助你找到它們。"
+L["nilg_silver_ring_note4"] = "反復擊殺淵喉區域的 {npc:177134}（低掉率）。"
+L["nilg_stone_ring_note"] = "在死靈領主突襲收集4個 {item:186600} 並在佐瓦爾的大釜的任意 {npc:171492} 組合它們。"
+L["nilg_stone_ring_note1"] = "在墮滅堡城牆頂上的淵誓之箱（黃圖標）內找到。"
+L["nilg_stone_ring_note2"] = "完成 {quest:63545} 任務，然後拾取淵誓之箱直到你找到任務物品 {item:186573}。此任務可以共享！"
+L["nilg_stone_ring_note3"] = "從墮滅堡中央區域的 {npc:179601} 拾取。"
+L["nilg_stone_ring_note4"] = "墮滅堡 {npc:170634} 旁的地面上找到。你的 {npc:180598} 可以幫助你找到它們。"
+L["nilg_gold_band_note"] = "在山頂的一個尖端上"
 L["nilganihmaht_note"] = "你必須蒐集5個戒指, 並且把它們帶給在裂隙中的 {npc:179572} ."
-L["options_icons_nilganihmaht"] = "{npc:179572}"
-L["options_icons_nilganihmaht_desc"] = "顯示 {spell:354354} 坐騎部件的位置."
+L["calcis"] = nil
+L["desmotaeron"] = nil
+
+L["zovault_note"] = "每天拖曳 {npc:179883} 到 {npc:179904} 處, 保證給予裂隙傳送門石."
+L["options_icons_zovault"] = "{npc:179883}"
+L["options_icons_zovault_desc"] = "顯示 {npc:179883} 有可能的位置."
