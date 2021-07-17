@@ -1,8 +1,8 @@
 ## Interface: 90100
 ## X-Min-Interface: 90100
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Sanctum of Domination|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0統御聖所|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0统御圣所|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0統御聖所|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -13,15 +13,15 @@
 ## X-DBM-Mod-Category: SHADOWLANDS
 ## X-DBM-StatTypes: lfr,normal,heroic,mythic
 ## X-DBM-Mod-Name: Sanctum of Domination
-## X-DBM-Mod-Name-zhTW: 統御聖所
 ## X-DBM-Mod-Name-zhCN: 统御圣所
+## X-DBM-Mod-Name-zhTW: 統御聖所
 ## X-DBM-Mod-Sort: 307
 ## X-DBM-Mod-MapID: 2450
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 8
 localization.en.lua
-localization.tw.lua
 localization.cn.lua
+localization.tw.lua
 TheTarragrue.lua
 TheEyeoftheJailer.lua
 TheNine.lua
