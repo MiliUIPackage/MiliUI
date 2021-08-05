@@ -11,14 +11,27 @@ local cost = {
     [1] = 1250,
     [2] = 2000,
     [3] = 3200,
-    [4] = 5150
+    [4] = 5150,
+    [5] = 5150,
+    [6] = 5150
+}
+local cost2 = {
+    [0] = 0,
+    [1] = 0,
+    [2] = 0,
+    [3] = 0,
+    [4] = 0,
+    [5] = 1100,
+    [6] = 1650
 }
 local ilvls = {
     [0] = 0,
     [1] = 190,
     [2] = 210,
     [3] = 225,
-    [4] = 235
+    [4] = 235,
+    [5] = 249,
+    [6] = 262
 }
 local from = 0
 
@@ -54,10 +67,10 @@ function()
                 if a <= from then
                     b:Hide()
                 elseif quantity >= cost[a] - cost[from] then
-                    b:SetFormattedText("(%d -> %d) |cff00ff00 %d |T3743738:0|t",ilvls[from],ilvls[a],cost[a] - cost[from]) 
+                    b:SetFormattedText("(%d -> %d) |cff00ff00 %d |T3743738:0|t |cff00ff00 %d |T4067362:0|t",ilvls[from],ilvls[a],cost[a] - cost[from], cost2[a] - cost2[from]) 
                     b:Show()
                 else
-                    b:SetFormattedText("(%d -> %d) |cffffffff %d |T3743738:0|t",ilvls[from],ilvls[a],cost[a] - cost[from]) 
+                    b:SetFormattedText("(%d -> %d) |cffffffff %d |T3743738:0|t |cff00ff00 %d |T4067362:0|t",ilvls[from],ilvls[a],cost[a] - cost[from], cost2[a] - cost2[from]) 
                     b:Show()
                 end
             end

@@ -147,8 +147,8 @@ function WeekKeys.UI.ThorgastButton(name, parent)
         record = record or 0
         record2 = record2 or 0
 
-        self.record:SetText(record .. "/8")
-        self.record2:SetText(record2 .. "/8")
+        self.record:SetText(record .. "/12")
+        self.record2:SetText(record2 .. "/12")
     end
 
 
@@ -397,11 +397,11 @@ function WeekKeys.UI.LootFinderButton(name,parent)
         elseif source == "raid" then
             self.source:SetTexture('interface/minimap/objecticonsatlas.blp')
             --                      0.5009765625,0.5224609375,0.294921875,0.337890625
-            self.source:SetTexCoord(0.283203125, 0.3046875, 0.94140625, 0.984375)
+            self.source:SetTexCoord(0.5009765625,0.5224609375,0.294921875,0.337890625)
         elseif source == "instance" then--34060
             self.source:SetTexture('interface/minimap/objecticonsatlas.blp')
             --                      0.1728515625,0.1943359375,0.912109375,0.955078125
-            self.source:SetTexCoord(0.24609375,0.267578125,0.951171875,0.994140625)
+            self.source:SetTexCoord(0.1728515625,0.1943359375,0.912109375,0.955078125)
         else
             self.source:SetTexture()
         end

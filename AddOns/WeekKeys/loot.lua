@@ -912,7 +912,7 @@ function LootFinder:Find()
     EJ_SetDifficulty(LootFinder.raid_difficult)
     index = 1
     while EJ_GetInstanceByIndex(index, true) ~= nil do -- for each instance
-        if LootFinder.raids[index] == nil then LootFinder.raids[index] = false end
+        if LootFinder.raids[index] == nil then LootFinder.raids[index] = true end
         if LootFinder.raids[index] then -- if not black-listed
             local instanceID, instancename = EJ_GetInstanceByIndex(index, true) -- get instanceID and instance name
             EJ_SelectInstance(instanceID) -- select instance

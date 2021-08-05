@@ -32,6 +32,7 @@ L["torghast"] = "Torghast"
 L["choose ilvls"] = "Choose current ilvl"
 L["Ash calculator"] = "Ash calculator"
 
+-- 自行加入
 L["MYTHIC_PLUS_BEST_WEEKLY"] = strsplit(":",MYTHIC_PLUS_BEST_WEEKLY)
 L["CHALLENGE_MODE_KEYSTONE_NAME"] = strsplit(":",CHALLENGE_MODE_KEYSTONE_NAME)
 L["LEVEL_ABBR"] = LEVEL_ABBR
@@ -42,3 +43,4 @@ L["SPEC_FRAME_PRIMARY_STAT"] = SPEC_FRAME_PRIMARY_STAT
 L["SPELL_CRIT_CHANCE"] = SPELL_CRIT_CHANCE
 L["STAT_VERSATILITY"] = STAT_VERSATILITY
 L["WeekKeys"] = "WeekKeys"
+L["Torghast, Tower of the Damned"] = "Torghast, Tower of the Damned"

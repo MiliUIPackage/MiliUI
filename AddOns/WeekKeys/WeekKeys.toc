@@ -1,10 +1,10 @@
 ## Interface: 90100
 ## Title: WeekKeys
 ## Author: Reinisdm
-## Version: 94
+## Version: v113
 ## Notes: Lists your keystones.
 ## Title-zhTW: |cFF00CCFF[團隊]|r 鑰石資訊以及裝備查詢
-## Notes-zhTW: WeekKeys |n一個可以顯示自己、公會與好友鑰石資訊的插件(需要對方也有安裝)，還能依據屬性查詢裝備，還有其他增強資訊功能。|n|cffffd200使用方法：|r小地圖旁的小按鈕可開啟此插件頁面。
+## Notes-zhTW: WeekKeys |n查看你所有角色、隊伍、好友和公會成員的鑰石。查看 M+ 掉落裝等、依屬性尋找裝備。還有爬塔記錄和灰燼計算機。|n|cffffd200使用方法：|r點小地圖按鈕。
 ## SavedVariables: WeekKeysDB
 
 embeds.xml

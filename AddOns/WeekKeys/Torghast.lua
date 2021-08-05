@@ -49,7 +49,7 @@ function()
     if C_AreaPoiInfo.GetAreaPOIInfo(1543, 6640) then
         fontstr:SetText(C_AreaPoiInfo.GetAreaPOIInfo(1543, 6640).name or "")
     else
-        fontstr:SetText("Torghast, Tower of the Damned")
+        fontstr:SetText(L["Torghast, Tower of the Damned"])
     end
 
     WeekKeys.AddButton(L["torghast"],elements)

@@ -223,7 +223,7 @@ local function createraidlist(btn)
     local i = 1
     EJ_SelectTier(LootFinder.expansion)
     while EJ_GetInstanceByIndex(i, true) ~= nil do
-        LootFinder.raids[i] = false
+        LootFinder.raids[i] = true
         local _, name, _, _, _, _, buttonImage2 = EJ_GetInstanceByIndex(i, true)
         local button = WeekKeys.UI.Button(nil, back)
         button.name = name
@@ -596,7 +596,7 @@ WeekKeys.AddInit(function()
     instance_btn:SetPoint("Topleft",140,-50)
     instance_btn.texture:SetTexture('interface/minimap/objecticonsatlas.blp')
     --                      0.1728515625,0.1943359375,0.912109375,0.955078125
-    instance_btn.texture:SetTexCoord(0.24609375,0.267578125,0.951171875,0.994140625)
+    instance_btn.texture:SetTexCoord(0.1728515625,0.1943359375,0.912109375,0.955078125)
     instance_btn:SetScript("OnClick",function(self)
         self.showframe = self.showframe or createinstancelist(self)
         if self.showframe:IsShown() then
@@ -630,7 +630,7 @@ WeekKeys.AddInit(function()
     raid_btn:SetPoint("Topleft",180,-50)
     raid_btn.texture:SetTexture('interface/minimap/objecticonsatlas.blp')
     --                      0.5009765625,0.5224609375,0.294921875,0.337890625
-    raid_btn.texture:SetTexCoord(0.283203125, 0.3046875, 0.94140625, 0.984375)
+    raid_btn.texture:SetTexCoord(0.5009765625,0.5224609375,0.294921875,0.337890625)
     raid_btn:SetScript("OnClick",function(self)
         self.showframe = self.showframe or createraidlist(self)
         if self.showframe:IsShown() then

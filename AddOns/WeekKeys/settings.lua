@@ -17,7 +17,10 @@ function()
     myCheckButton:SetPoint("TOPLEFT", 10, -15);
     WeekKeys_CheckButton1Text:SetText(L["pkeys_react"]);
     myCheckButton.tooltip = L["pkeys_react_tooltip"];
-    if WeekKeysDB.Settings["pkeyslink"] == true then
+    if WeekKeysDB.Settings["pkeyslink"] == nil then -- 更改預設值
+		WeekKeysDB.Settings["pkeyslink"] = true
+	end
+	if WeekKeysDB.Settings["pkeyslink"] == true then 
         myCheckButton:SetChecked(true)
     end
     myCheckButton:SetScript("OnClick",function(self)
@@ -33,7 +36,7 @@ function()
     myCheckButton2:SetPoint("TOPLEFT", 10, -35);
     WeekKeys_CheckButton2Text:SetTextColor(1,1,1)
     WeekKeys_CheckButton2Text:SetText(L["hide_minimap"]);
-    if WeekKeys.db.global.minimap.hide == true then
+    if WeekKeys.db.global.minimap.hide == true then -- 更改預設值
         myCheckButton2:SetChecked(true)
     end
     myCheckButton2:SetScript("OnClick",function(self)
@@ -51,7 +54,10 @@ function()
     myCheckButton3:SetPoint("TOPLEFT", 10, -55);
     WeekKeys_CheckButton3Text:SetText(L.covenant);
     myCheckButton3.tooltip = L.covenant_tooltip
-    if WeekKeysDB.Settings["covenant"] == true then
+    if WeekKeysDB.Settings["covenant"] == nil then
+		WeekKeysDB.Settings["covenant"] = true
+	end
+	if WeekKeysDB.Settings["covenant"] == true then
         myCheckButton3:SetChecked(true)
     end
     myCheckButton3:SetScript("OnClick",function(self)

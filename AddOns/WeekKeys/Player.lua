@@ -45,6 +45,9 @@ function WeekKeys.PlayerData()
         if not C_MythicPlus.IsWeeklyRewardAvailable() then
             WeekKeys.DB.RemoveReward()
         end
+        --[[ mythic score?
+            C_PlayerInfo.GetPlayerMythicPlusRatingSummary
+        ]]
 
         local torghast_number = 1
 
