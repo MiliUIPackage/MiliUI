@@ -1,4 +1,3 @@
-# 10.2.5 (2021-07-02)
+# 10.2.9 (2021-07-28)
 
-* Fixed a Lua error that occurred when the personal nameplate was enabled and the player entered combat [Issue #495, Comment #5709, #5704].
-* Fixed a typo in TOC file which caused the addon version not being set correctly. 
+* Fixed a lag/freeze issue when switching talents or specs that happened when the options dialog was opened at least once [Comment #5764].

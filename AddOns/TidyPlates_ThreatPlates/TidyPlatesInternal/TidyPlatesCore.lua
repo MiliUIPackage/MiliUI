@@ -478,13 +478,29 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 local RaidIconList = { "STAR", "CIRCLE", "DIAMOND", "TRIANGLE", "MOON", "SQUARE", "CROSS", "SKULL" }
 
+local MAP_UNIT_REACTION = {
+  [1] = "HOSTILE",
+  [2] = "HOSTILE",
+  [3] = "HOSTILE",
+  [4] = "NEUTRAL",
+  [5] = "FRIENDLY",
+  [6] = "FRIENDLY",
+  [7] = "FRIENDLY",
+  [8] = "FRIENDLY",
+}
+
 -- GetUnitReaction: Determines the reaction, and type of unit from the health bar color
 local function GetReactionByColor(red, green, blue)
   if red < .1 then 	-- Friendly
     return "FRIENDLY"
   elseif red > .5 then
-    if green > .9 then return "NEUTRAL"
-    else return "HOSTILE" end
+    if green > .9 then
+      return "NEUTRAL"
+    else
+      return "HOSTILE"
+    end
+  else
+    return "HOSTILE"
   end
 end
 
@@ -554,7 +570,7 @@ function Addon:UpdateUnitCondition(unit, unitid)
 
   unit.red, unit.green, unit.blue = _G.UnitSelectionColor(unitid)
 
-  unit.reaction = GetReactionByColor(unit.red, unit.green, unit.blue) or "HOSTILE"
+  unit.reaction = MAP_UNIT_REACTION[UnitReaction(unitid, "player")] or GetReactionByColor(unit.red, unit.green, unit.blue)
   -- Enemy players turn to neutral, e.g., when mounting a flight path mount, so fix reaction in that situations
   if unit.reaction == "NEUTRAL" and (unit.type == "PLAYER" or UnitPlayerControlled(unitid)) then
     unit.reaction = "HOSTILE"
@@ -1074,7 +1090,8 @@ do
   end
 
   function CoreEvents:UNIT_NAME_UPDATE(unitid)
-    if UnitIsUnit("player", unitid) then return end -- Skip personal resource bar
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
+    if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
     local plate = GetNamePlateForUnit(unitid) -- can plate ever be nil here?
 
@@ -1137,7 +1154,8 @@ do
 	end
 
   UNIT_TARGET = function(event, unitid)
-    if SettingsTargetUnitHide or unitid == "player" or unitid == "target" then return end
+    -- Skip special unit ids (which are updated with their nameplate unit id anyway) and personal nameplate
+    if SettingsTargetUnitHide or unitid == "target" or UnitIsUnit("player", unitid) then return end
 
     local plate = GetNamePlateForUnit(unitid)
     if plate and plate.TPFrame.Active then
@@ -1190,6 +1208,7 @@ do
   end
 
   local function UNIT_HEALTH(event, unitid)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
     local plate = GetNamePlateForUnit(unitid)
@@ -1202,14 +1221,21 @@ do
       --if tp_frame.Active then
       --if tp_frame:IsShown() then
       local visual = tp_frame.visual
-      if visual.healthbar:IsShown() or visual.customtext:IsShown() then
+      if tp_frame.Active or (tp_frame:IsShown() and (visual.healthbar:IsShown() or visual.customtext:IsShown())) then
         OnHealthUpdate(plate)
         Addon.UpdateExtensions(plate.TPFrame, unitid, plate.TPFrame.stylename)
       end
     end
+
+    --local tp_frame = plate and plate.TPFrame -- or nil, false if plate == nil
+    --if tp_frame and tp_frame.Active then
+    --  OnHealthUpdate(plate)
+    --  Addon.UpdateExtensions(plate.TPFrame, unitid, plate.TPFrame.stylename)
+    --end
 	end
 
   function CoreEvents:UNIT_MAXHEALTH(unitid)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
     local plate = GetNamePlateForUnit(unitid)
@@ -1220,7 +1246,8 @@ do
   end
 
   function CoreEvents:UNIT_THREAT_LIST_UPDATE(unitid)
-    if unitid == "player" or unitid == "target" then return end
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
+    if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
     local plate = PlatesByUnit[unitid]
     if plate then
@@ -1257,6 +1284,7 @@ do
 	end
 
 	local function UNIT_SPELLCAST_START(event, unitid, ...)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
     local plate = GetNamePlateForUnit(unitid)
@@ -1267,6 +1295,7 @@ do
 
   -- Update spell currently being cast
   local function UnitSpellcastMidway(event, unitid, ...)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
     local plate = GetNamePlateForUnit(unitid)
@@ -1277,6 +1306,7 @@ do
   end
 
   local function UNIT_SPELLCAST_STOP(event, unitid, ...)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
     -- plate can be nil, e.g., if unitid = player, combat ends and the player resource bar is already hidden
@@ -1288,6 +1318,7 @@ do
   end
 
   local function UNIT_SPELLCAST_CHANNEL_START(event, unitid, ...)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
 		local plate = GetNamePlateForUnit(unitid)
@@ -1298,6 +1329,7 @@ do
 	end
 
   local function UNIT_SPELLCAST_CHANNEL_STOP(event, unitid, ...)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
 		local plate = GetNamePlateForUnit(unitid)
@@ -1307,6 +1339,7 @@ do
 	end
 
   function Addon.UNIT_SPELLCAST_INTERRUPTED(event, unitid, castGUID, spellID, sourceName, interrupterGUID)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
     if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 
     local plate = GetNamePlateForUnit(unitid)
@@ -1403,8 +1436,10 @@ do
 	end
 
   local function UNIT_ABSORB_AMOUNT_CHANGED(event, unitid)
-    local plate = GetNamePlateForUnit(unitid)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
+    if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
+    local plate = GetNamePlateForUnit(unitid)
     if plate and plate.TPFrame.Active then
       local tp_frame = plate.TPFrame
       local unit = tp_frame.unit
@@ -1420,8 +1455,10 @@ do
   end
 
   local function UNIT_HEAL_ABSORB_AMOUNT_CHANGED(event, unitid)
-    local plate = GetNamePlateForUnit(unitid)
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
+    if unitid == "target" or UnitIsUnit("player", unitid) then return end
 
+    local plate = GetNamePlateForUnit(unitid)
     if plate and plate.TPFrame.Active then
       Addon.UpdateExtensions(plate.TPFrame, unitid, plate.TPFrame.stylename)
     end
@@ -1429,7 +1466,10 @@ do
 
   -- Update all elements that depend on the unit's reaction towards the player
   function CoreEvents:UNIT_FACTION(unitid)
-    if unitid == "player" then
+    -- Skip special unitids (they are updated via their nameplate unitid) and personal nameplate
+    if unitid == "target" then
+      return
+    elseif unitid == "player" then
       SetUpdateAll() -- Update all plates
     else
       -- Update just the unitid's plate

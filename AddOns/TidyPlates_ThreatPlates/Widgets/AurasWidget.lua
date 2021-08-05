@@ -362,6 +362,7 @@ local CROWD_CONTROL_SPELLS_TBC_CLASSIC = {
     [19970] = PC_ROOT,                       -- Rank 6
     [27010] = PC_ROOT,                       -- Rank 7
   [19675] = PC_ROOT,                       -- Feral Charge Effect - Triggered By: Feral Charge
+  [45334] = PC_ROOT,                       -- Feral Charge Effect - Triggered By: Feral Charge
   [2637] = LOC_SLEEP,                      -- Hibernate
     [18657] = LOC_SLEEP,                     -- Rank 2
     [18658] = LOC_SLEEP,                     -- Rank 3
@@ -585,6 +586,11 @@ local CROWD_CONTROL_SPELLS_TBC_CLASSIC = {
   -- Racial Traits
   ---------------------------------------------------------------------------------------------------
   [20549] = LOC_STUN,       -- War Stomp (Tauren)
+
+  ---------------------------------------------------------------------------------------------------
+  -- Weapons & Items
+  ---------------------------------------------------------------------------------------------------
+  [34510] = LOC_STUN,       -- Deep Thunder and Stormherald (Weapon)
 }
 
 local CROWD_CONTROL_SPELLS_CLASSIC = {

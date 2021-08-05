@@ -1,4 +1,27 @@
 ﻿------------------------------------------------------
+10.2.9 (2021-07-28)
+------------------------------------------------------
+* Fixed a lag/freeze issue when switching talents or specs that happened when the options dialog was opened at least once [Comment #5764].
+
+------------------------------------------------------
+10.2.8 (2021-07-24)
+------------------------------------------------------
+* Fixed a bug with Combo Points widget in TBC Classic where the first combo point after a target switch was not shown immediately [Comment #5757].
+
+------------------------------------------------------
+10.2.7 (2021-07-21)
+------------------------------------------------------
+* Fixed a bug with unit visibility not being applied correctly [Comment #5768, #5765].
+* Fixed a bug where hostile and neutral units where colored in the wrong color [Comment #5755, #5756, #5763, #5770, Issue #501].
+
+------------------------------------------------------
+10.2.6 (2021-07-18)
+------------------------------------------------------
+* Fixed an inconsistency with nameplate visibility where the target unit's nameplate was shown with Blizzard default nameplates, but not with Threat Plates [Issue #494].
+* Fixed a bug with friendly and enemy players reaction in sanctuary areas in WoW Classic [Issue #42, Comment #5730].
+* Stun from weapons Deep Thunder and Stormherald as well as Feral Charge Effect are now recognized as crowd-control aura [IM, Comment #5746].
+
+------------------------------------------------------
 10.2.5 (2021-07-02)
 ------------------------------------------------------
 * Fixed a Lua error that occurred when the personal nameplate was enabled and the player entered combat [Issue #495, Comment #5709, #5704].
