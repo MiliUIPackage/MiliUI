@@ -84,13 +84,12 @@ L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
 L["Sort Party By Role"] = "按职责排列小队"
 L["Raid Tools"] = "团队工具"
 L["Only in Group"] = "仅在队伍中"
-L["Show the number of tanks/healers/damagers while in raid"] = "当在团队时显示坦克、治疗、输出的个数"
 L["Only show when you have permission to do this"] = "仅在你有权限这样做时显示"
-L["Show ReadyCheck and PullTimer buttons"] = "显示 就位确认 与 开怪倒数 按钮"
+L["ReadyCheck and PullTimer buttons"] = "就位确认 与 开怪倒数 按钮"
 L["pullTimerTips"] = "\n|r开怪倒数\n左键单击: |cffffffff开始倒计时|r\n右键单击: |cffffffff取消倒计时|r"
 L["Ready"] = "就位"
 L["Pull"] = "倒数"
-L["Show Marks Bar"] = "显示标记工具条"
+L["Marks Bar"] = "标记工具条"
 L["Target Marks"] = "目标标记"
 L["World Marks"] = "世界标记"
 L["Both"] = "全部"
@@ -98,9 +97,24 @@ L["marksTips"] = "\n|r目标标记\n左键单击: |cffffffff在目标上设置�
 L["Mover"] = "移动框"
 L["Unlock"] = "解锁"
 L["Lock"] = "锁定"
-L["Show Battle Res Timer"] = "显示战复计时器"
+L["Battle Res Timer"] = "战复计时器"
 L["Only show during encounter or in mythic+"] = "仅在首领战或者史诗钥石地下城中显示"
 L["BR"] = "战复"
+L["HIGH CPU USAGE"] = "高CPU占用"
+L["MODERATE CPU USAGE"] = "中等CPU占用"
+L["Death Report"] = "死亡通报"
+L["Report deaths to group"] = "向队伍通报死亡信息"
+L["Use |cFFFFB5C5/cell report X|r to set the number of reports during a raid encounter"] = "用 |cFFFFB5C5/cell report X|r 来设定团队战中的通报个数"
+L["Current: "] = "当前："
+L["all"] = "全部"
+L["first %d"] = "前 %d 个"
+L["Cell will report all deaths during a raid encounter."] = "Cell 将会通报团队战中的全部死亡信息。"
+L["Cell will report first %d deaths during a raid encounter."] = "Cell 将会通报团队战中的前 %d 个死亡信息。"
+L["A 0-40 integer is required."] = "需要一个0到40的整数。"
+L["instakill"] = "秒杀"
+L["Buff Tracker"] = "补buff提示"
+L["Check if your group members need some raid buffs"] = "检查队伍是否需要补耐力、智力、攻强"
+L["Unaffected"] = "未获得此增益"
 
 -------------------------------------------------
 -- appearance
@@ -325,7 +339,7 @@ L["Indicator settings are part of Layout settings which are account-wide."] = "�
 L["The spells list of a icons indicator is unordered (no priority)."] = "图标组指示器的法术列表是无序的（无优先级）。"
 L["The priority of spells decreases from top to bottom."] = "法术优先级从上到下递减。"
 L["With this indicator enabled, shield / overshield textures are disabled"] = "启用该指示器将会禁用血条上的护盾材质"
-L["|cffc72727HIGH CPU USAGE!|r Check all visible enemy nameplates. Battleground/Arena only."] = "|cffc72727高CPU占用！|r检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
+L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
 
 -------------------------------------------------
 -- raid debuffs
@@ -368,6 +382,16 @@ L["Bug Report & Suggestion"] = "问题报告与建议"
 -------------------------------------------------
 L["Change Logs"] = "更新记录"
 L["CHANGE LOGS"] = [[
+    <h1>r58-release (Jul 26, 2021, 18:25 GMT+8)</h1>
+    <p>* 更新对 OmniCD 的支持，现在也支持团队模式啦。</p>
+    <p>* 更新了繁中、韩文。</p>
+    <br/>
+
+    <h1>r57-release (Jul 26, 2021, 00:52 GMT+8)</h1>
+    <p>+ 新功能：死亡通报 &amp; 补buff提示。</p>
+    <p>* 更新了副本减益。</p>
+    <br/>
+
     <h1>r56-release (Jul 16, 2021, 01:20 GMT+8)</h1>
     <p>* 更新了“被法术选中”和“放大显示的减益”。</p>
     <p>* 修复了单位按钮的边框。</p>

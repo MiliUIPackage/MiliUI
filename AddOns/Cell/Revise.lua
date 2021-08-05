@@ -668,6 +668,19 @@ local function Revise()
         end
     end
 
+    -- r57-release
+    if CellDB["revise"] and dbRevision < 57 then
+        if type(CellDB["raidTools"]["deathReport"]) ~= "table" then
+            CellDB["raidTools"]["deathReport"] = {false, 10}
+        end
+        if type(CellDB["raidTools"]["showBuffTracker"]) ~= "boolean" then
+            CellDB["raidTools"]["showBuffTracker"] = false
+        end
+        if type(CellDB["raidTools"]["buffTrackerPosition"]) ~= "table" then
+            CellDB["raidTools"]["buffTrackerPosition"] = {}
+        end
+    end
+
     CellDB["revise"] = Cell.version
 end
 Cell:RegisterCallback("Revise", "Revise", Revise)

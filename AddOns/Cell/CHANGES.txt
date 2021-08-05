@@ -1,40 +1,16 @@
-lightweight tag 7599eb632767245516a78bc3b358e151cbf0412a r56-release
+lightweight tag 85509a3722c85785e236b06bfb98ebf0f8b7d04f r58-release
 Author:	KevinSK <shinozakisama@live.com>
-Date:	Fri Jul 16 01:19:24 2021 +0800
+Date:	Mon Jul 26 18:26:09 2021 +0800
 
-commit 7599eb632767245516a78bc3b358e151cbf0412a
+commit 85509a3722c85785e236b06bfb98ebf0f8b7d04f
 Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Jul 16 01:19:24 2021 +0800
+Date:   Mon Jul 26 18:26:09 2021 +0800
 
-    update locales
+    update zhTW & koKR
 
-commit 4271814922f2cd59b5bd1bab3c0b0faa4ce32c72
+commit 9662ecc1f2f746c073bf19bf068ada7776c5a52c
 Author: KevinSK <shinozakisama@live.com>
-Date:   Fri Jul 16 01:11:50 2021 +0800
+Date:   Mon Jul 26 18:25:49 2021 +0800
 
-    update targetedSpells
-
-commit 7de27bb1f2312c733e1e49506741fa8c0f42c1eb
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Jul 14 18:03:08 2021 +0800
-
-    fix border size
-
-commit 032b57c2e83ed509b36ee61f56a6ea5cae8acc83
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Jul 14 17:35:19 2021 +0800
-
-    update bigDebuffs list
-
-commit 37c7e154c5c2d84f8f89f280a505d79ce48e1616
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Jul 14 03:56:43 2021 +0800
-
-    fix "DEAD"
-
-commit ebe41222eb41e4132d8b627e3669e25706d61579
-Author: KevinSK <shinozakisama@live.com>
-Date:   Wed Jul 14 03:56:31 2021 +0800
-
-    update targetedSpells
+    update support for OmniCD (raid frame)
 
