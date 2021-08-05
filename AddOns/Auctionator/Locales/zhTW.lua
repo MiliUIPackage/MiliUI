@@ -1,8 +1,7 @@
 AUCTIONATOR_LOCALES.zhTW = function()
   local L = {}
 
-L = L or {}
-L["ADD_FAVOURITE"] = "新增最愛"
+  L["ADD_FAVOURITE"] = "新增最愛"
 L["ADD_ITEM"] = "加入物品"
 L["ADD_TERM_TO_LIST_DIALOG"] = "輸入搜尋關鍵字來加入:"
 L["ALT_LEFT_CLICK"] = "Alt + 左鍵點擊"
@@ -63,6 +62,9 @@ L["CONFIG_CANCELLING_TEXT"] = "更改取消標籤頁面行為的選項。"
 L["CONFIG_CHAT_LOG"] = "在聊天視窗顯示拍賣訊息"
 L["CONFIG_CHAT_LOG_TOOLTIP_HEADER"] = "拍賣聊天記錄"
 L["CONFIG_CHAT_LOG_TOOLTIP_TEXT"] = "停用此選項時，將不會掃描你的拍賣看是否有新的變化。"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT"] = "顯示利潤而非製造成本"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT_TOOLTIP_HEADER"] = "製造成本顯示利潤"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT_TOOLTIP_TEXT"] = "當拍賣行開啟時，製造畫面將顯示製造物品的成本。啟用此選項以改顯示利潤。"
 L["CONFIG_DEBUG"] = "輸出除錯訊息"
 L["CONFIG_DEBUG_TOOLTIP_HEADER"] = "拍賣小幫手除錯"
 L["CONFIG_DEBUG_TOOLTIP_TEXT"] = "僅供維護人員使用，將除錯訊息輸出到聊天視窗。"

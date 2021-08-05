@@ -1,8 +1,7 @@
 AUCTIONATOR_LOCALES.zhCN = function()
   local L = {}
 
-L = L or {}
-L["ADD_FAVOURITE"] = "加入收藏"
+  L["ADD_FAVOURITE"] = "加入收藏"
 L["ADD_ITEM"] = "加入物品"
 L["ADD_TERM_TO_LIST_DIALOG"] = "输入搜寻关键字来加入:"
 L["ALT_LEFT_CLICK"] = "Alt + 左键点击"
@@ -63,6 +62,9 @@ L["CONFIG_CANCELLING_TEXT"] = "更改取消标签页面行为的选项。"
 L["CONFIG_CHAT_LOG"] = "在聊天视窗显示拍卖讯息"
 L["CONFIG_CHAT_LOG_TOOLTIP_HEADER"] = "拍卖聊天记录"
 L["CONFIG_CHAT_LOG_TOOLTIP_TEXT"] = "停用此选项时，将不会扫描你的拍卖看是否有新的变化。"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT"] = "显示利润而不是制作成本"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT_TOOLTIP_HEADER"] = "制作成本显示利润"
+L["CONFIG_CRAFTING_COST_SHOW_PROFIT_TOOLTIP_TEXT"] = "当拍卖行打开时，制造窗口将显示制作物品的成本。 启用此选项以显示利润。"
 L["CONFIG_DEBUG"] = "输出除错讯息"
 L["CONFIG_DEBUG_TOOLTIP_HEADER"] = "拍卖小帮手除错"
 L["CONFIG_DEBUG_TOOLTIP_TEXT"] = "仅供维护人员使用，将除错讯息输出到聊天视窗。"
@@ -395,6 +397,7 @@ L["VENDOR_TOOLTIP_TOOLTIP_TEXT"] = "鼠标指向时，在鼠标提示中显示�
 L["VERSION_HEADER"] = "版本"
 L["VERSION_MESSAGE"] = "版本 %s"
 L["YOUR_HISTORY"] = "你的历史记录"
+
 
   return L
 end
