@@ -344,7 +344,7 @@ do
 		if not DBT_AllPersistentOptions then
 			DBT_AllPersistentOptions = {}
 		end
-		local DBM_UsedProfile = DBM_UsedProfile
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
 		if not DBT_AllPersistentOptions[DBM_UsedProfile] then
 			DBT_AllPersistentOptions[DBM_UsedProfile] = {}
 		end
@@ -371,7 +371,7 @@ do
 			self:AddMsg(DBM_CORE_L.PROFILE_CREATE_ERROR)
 			return
 		end
-		local DBM_UsedProfile = DBM_UsedProfile
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
 		if not DBT_AllPersistentOptions then
 			DBT_AllPersistentOptions = {}
 		end
@@ -393,7 +393,7 @@ do
 		if not DBT_AllPersistentOptions then
 			DBT_AllPersistentOptions = {}
 		end
-		local DBM_UsedProfile = DBM_UsedProfile
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
 		if not id or not DBT_AllPersistentOptions[DBM_UsedProfile] or not DBT_AllPersistentOptions[DBM_UsedProfile][id] then
 			DBM:AddMsg(DBM_CORE_L.PROFILE_APPLY_ERROR:format(id or DBM_CORE_L.UNKNOWN))
 			return
@@ -410,7 +410,7 @@ do
 		if not DBT_AllPersistentOptions then
 			DBT_AllPersistentOptions = {}
 		end
-		local DBM_UsedProfile = DBM_UsedProfile
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
 		if not hasPrinted then
 			if not name or not DBT_AllPersistentOptions[name] then
 				DBM:AddMsg(DBM_CORE_L.PROFILE_COPY_ERROR:format(name or DBM_CORE_L.UNKNOWN))
@@ -443,7 +443,8 @@ do
 			return
 		end
 		DBT_AllPersistentOptions[name] = nil
-		self.Options = DBT_AllPersistentOptions[_G["DBM_UsedProfile"]][id]
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
+		self.Options = DBT_AllPersistentOptions[DBM_UsedProfile][id]
 		self:Rearrange()
 	end
 
@@ -1131,7 +1132,7 @@ do
 			error("Skin '" .. id .. "' doesn't exist", 2)
 		end
 		unusedBars = {}
-		local DBM_UsedProfile = DBM_UsedProfile
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
 		if not DBT_AllPersistentOptions then
 			DBT_AllPersistentOptions = {}
 		end
@@ -1149,6 +1150,19 @@ do
 			self:SetOption(option, value, true)
 		end
 		self:SetOption("Skin", id) -- Forces an UpdateBars and ApplyStyle
+	end
+
+	function DBT:ResetSkin()
+		local DBM_UsedProfile = DBM_UsedProfile or "Default"
+		if not DBT_AllPersistentOptions then
+			DBT_AllPersistentOptions = {}
+		end
+		if not DBT_AllPersistentOptions[DBM_UsedProfile] then
+			DBT_AllPersistentOptions[DBM_UsedProfile] = {}
+		end
+		DBT_AllPersistentOptions[DBM_UsedProfile]["DBM"] = self.DefaultOptions
+		self.Options = self.DefaultOptions
+		self:SetOption("Skin", "") -- Forces an UpdateBars and ApplyStyle
 	end
 
 	function DBT:GetSkins()

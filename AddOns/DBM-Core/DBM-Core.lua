@@ -70,9 +70,9 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20210714171927"),
-	DisplayVersion = "9.1.5", -- the string that is shown as version
-	ReleaseRevision = releaseDate(2021, 7, 14) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	Revision = parseCurseDate("20210802052654"),
+	DisplayVersion = "9.1.8", -- the string that is shown as version
+	ReleaseRevision = releaseDate(2021, 8, 1) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 }
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -730,7 +730,7 @@ local function SendWorldSync(self, prefix, msg, noBNet)
 	if IsInGuild() then
 		SendAddonMessage("D4", prefix.."\t"..msg, "GUILD")--Even guild syncs send realm so we can keep antispam the same across realid as well.
 	end
-	if not noBNet then
+	if self.Options.EnableWBSharing and not noBNet then
 		local _, numBNetOnline = BNGetNumFriends()
 		local connectedServers = GetAutoCompleteRealms()
 		for i = 1, numBNetOnline do
@@ -2794,14 +2794,14 @@ do
 	end
 
 	local function linkHook(self, link, string, button, ...)
-		local linkType, arg1, arg2, arg3, arg4, arg5, arg6 = strsplit(":", link)
+		local _, linkType, arg1, arg2, arg3, arg4, arg5, arg6 = strsplit(":", link)
 		if linkType ~= "DBM" then
 			return
 		end
 		if arg1 == "cancel" then
-			DBT:CancelBar(link:match("DBM:cancel:(.+):nil$"))
+			DBT:CancelBar(link:match("garrmission:DBM:cancel:(.+):nil$"))
 		elseif arg1 == "ignore" then
-			cancel = link:match("DBM:ignore:(.+):[^%s:]+$")
+			cancel = link:match("garrmission:DBM:ignore:(.+):[^%s:]+$")
 			ignore = link:match(":([^:]+)$")
 			showPopupConfirmIgnore(ignore, cancel)
 		elseif arg1 == "update" then
@@ -2828,16 +2828,6 @@ do
 			_G["ChatFrame" .. i]:HookScript("OnHyperlinkClick", linkHook)
 		end
 		i = i + 1
-	end
-end
-
-do
-	local old = ItemRefTooltip.SetHyperlink -- we have to hook this function since the default ChatFrame code assumes that all links except for player and channel links are valid arguments for this function
-	function ItemRefTooltip:SetHyperlink(link, ...)
-		if link and link:sub(0, 4) == "DBM:" then
-			return
-		end
-		return old(self, link, ...)
 	end
 end
 
@@ -4504,7 +4494,7 @@ do
 		if mod and modvar and text and text ~= "" then
 			if DBM:AntiSpam(5, modvar) then--Don't allow calling same note more than once per 5 seconds
 				DBM:AddMsg(L.NOTE_SHARE_SUCCESS:format(sender, ability))
-				DBM:AddMsg(("|HDBM:noteshare:%s:%s:%s:%s:%s|h|cff3588ff[%s]|r|h"):format(modid, modvar, ability, text, sender, L.NOTE_SHARE_LINK))
+				DBM:AddMsg(("|Hgarrmission:DBM:noteshare:%s:%s:%s:%s:%s|h|cff3588ff[%s]|r|h"):format(modid, modvar, ability, text, sender, L.NOTE_SHARE_LINK))
 				--DBM:ShowNoteEditor(mod, modvar, ability, text, sender)
 			else
 				DBM:Debug(sender.." is attempting to send too many notes so notes are being throttled")
@@ -6071,7 +6061,7 @@ do
 					mod:OnTimerRecovery()
 				end
 			end
-			if savedDifficulty == "worldboss" and self.Options.EnableWBSharing and not mod.noWBEsync then
+			if savedDifficulty == "worldboss" and mod.WBEsync then
 				if lastBossEngage[modId..playerRealm] and (GetTime() - lastBossEngage[modId..playerRealm] < 30) then return end--Someone else synced in last 10 seconds so don't send out another sync to avoid needless sync spam.
 				lastBossEngage[modId..playerRealm] = GetTime()--Update last engage time, that way we ignore our own sync
 				SendWorldSync(self, "WBE", modId.."\t"..playerRealm.."\t"..startHp.."\t8\t"..name)
@@ -6303,7 +6293,7 @@ do
 					sendWhisper(k, msg)
 				end
 				fireEvent("DBM_Kill", mod)
-				if savedDifficulty == "worldboss" and self.Options.EnableWBSharing and not mod.noWBEsync then
+				if savedDifficulty == "worldboss" and mod.WBEsync then
 					if lastBossDefeat[modId..playerRealm] and (GetTime() - lastBossDefeat[modId..playerRealm] < 30) then return end--Someone else synced in last 10 seconds so don't send out another sync to avoid needless sync spam.
 					lastBossDefeat[modId..playerRealm] = GetTime()--Update last defeat time before we send it, so we don't handle our own sync
 					SendWorldSync(self, "WBD", modId.."\t"..playerRealm.."\t8\t"..name)
@@ -7200,7 +7190,8 @@ AddMsg = DBM.AddMsg
 
 function DBM:Debug(text, level)
 	--But we still want to generate callbacks for level 1 and 2 events
-	if (level or 1) < 3 then
+	local userLevel = self.Options.DebugLevel
+	if userLevel == 3 or (level or 1) < 3 then--Cap debug level to 2 for trannscriptor unless user specifically specifies 3
 		fireEvent("DBM_Debug", text, level)
 	end
 	if not self.Options or not self.Options.DebugMode then return end
@@ -8123,7 +8114,7 @@ do
 	local rangeCache = {}
 	local rangeUpdated = {}
 
-	function bossModPrototype:CheckBossDistance(cidOrGuid, onlyBoss, itemId, defaultReturn)
+	function bossModPrototype:CheckBossDistance(cidOrGuid, onlyBoss, itemId, distance, defaultReturn)
 		if not DBM.Options.DontShowFarWarnings then return true end--Global disable.
 		cidOrGuid = cidOrGuid or self.creatureId
 		local uId = DBM:GetUnitIdFromGUID(cidOrGuid, onlyBoss)
@@ -8134,7 +8125,7 @@ do
 				return inRange
 			else--IsItemInRange doesn't work on all bosses/npcs, but tank checks do
 				DBM:Debug("CheckBossDistance failed on IsItemInRange for: "..cidOrGuid, 2)
-				return self:CheckTankDistance(cidOrGuid, nil, onlyBoss, defaultReturn)--Return tank distance check fallback
+				return self:CheckTankDistance(cidOrGuid, distance, onlyBoss, defaultReturn)--Return tank distance check fallback
 			end
 		end
 		DBM:Debug("CheckBossDistance failed on uId for: "..cidOrGuid, 2)
@@ -10312,7 +10303,7 @@ do
 			if announceType == "target" or announceType == "targetcount" or announceType == "close" or announceType == "reflect" then
 				catType = "announceother"
 			--Directly affects you
-			elseif announceType == "you" or announceType == "youcount" or announceType == "youpos" or announceType == "move" or announceType == "dodge" or announceType == "dodgecount" or announceType == "moveaway" or announceType == "moveawaycount" or announceType == "keepmove" or announceType == "stopmove" or announceType == "run" or announceType == "stack" or announceType == "moveto" or announceType == "soak" or announceType == "soakpos" then
+			elseif announceType == "you" or announceType == "youcount" or announceType == "youpos" or announceType == "move" or announceType == "dodge" or announceType == "dodgecount" or announceType == "moveaway" or announceType == "moveawaycount" or announceType == "keepmove" or announceType == "stopmove" or announceType == "run" or announceType == "stack" or announceType == "moveto" or announceType == "soak" or announceType == "soakcount" or announceType == "soakpos" then
 				catType = "announcepersonal"
 			--Things you have to do to fulfil your role
 			elseif announceType == "taunt" or announceType == "dispel" or announceType == "interrupt" or announceType == "interruptcount" or announceType == "switch" or announceType == "switchcount" then
@@ -10435,6 +10426,10 @@ do
 
 	function bossModPrototype:NewSpecialWarningSoak(text, optionDefault, ...)
 		return newSpecialWarning(self, "soak", text, nil, optionDefault, ...)
+	end
+
+	function bossModPrototype:NewSpecialWarningSoakCount(text, optionDefault, ...)
+		return newSpecialWarning(self, "soakcount", text, nil, optionDefault, ...)
 	end
 
 	function bossModPrototype:NewSpecialWarningJump(text, optionDefault, ...)
@@ -11273,6 +11268,10 @@ do
 		return newTimer(self, "target", ...)
 	end
 
+	function bossModPrototype:NewTargetCountTimer(...)
+		return newTimer(self, "targetcount", ...)
+	end
+
 	--Buff/Debuff/event on boss
 	function bossModPrototype:NewBuffActiveTimer(...)
 		return newTimer(self, "active", ...)
@@ -11805,8 +11804,8 @@ function bossModPrototype:RegisterCombat(cType, ...)
 	if self.noRegenDetection then
 		info.noRegenDetection = self.noRegenDetection
 	end
-	if self.noWBEsync then
-		info.noWBEsync = self.noWBEsync
+	if self.WBEsync then
+		info.WBEsync = self.WBEsync
 	end
 	if self.noBossDeathKill then
 		info.noBossDeathKill = self.noBossDeathKill
@@ -11933,10 +11932,10 @@ function bossModPrototype:DisableRegenDetection()
 	end
 end
 
-function bossModPrototype:DisableWBEngageSync()
-	self.noWBEsync = true
+function bossModPrototype:EnableWBEngageSync()
+	self.WBEsync = true
 	if self.combatInfo then
-		self.combatInfo.noWBEsync = true
+		self.combatInfo.WBEsync = true
 	end
 end
 
@@ -12019,7 +12018,7 @@ end
 
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
-	if not revision or revision == "20210714171927" then
+	if not revision or type(revision) == "string" then
 		-- bad revision: either forgot the svn keyword or using github
 		revision = DBM.Revision
 	end
@@ -12272,11 +12271,11 @@ do
 	"nameplate21", "nameplate22", "nameplate23", "nameplate24", "nameplate25", "nameplate26", "nameplate27", "nameplate28", "nameplate29", "nameplate30",
 	"nameplate31", "nameplate32", "nameplate33", "nameplate34", "nameplate35", "nameplate36", "nameplate37", "nameplate38", "nameplate39", "nameplate40",
 	"mouseover", "target"}
-	function bossModPrototype:ScanForMobs(creatureID, iconSetMethod, mobIcon, maxIcon, scanInterval, scanningTime, optionName, isFriendly, secondCreatureID, skipMarked)
+	function bossModPrototype:ScanForMobs(creatureID, iconSetMethod, mobIcon, maxIcon, scanInterval, scanningTime, optionName, isFriendly, secondCreatureID, skipMarked, allAllowed)
 		if not optionName then optionName = self.findFastestComputer[1] end
-		if canSetIcons[optionName] then
+		if canSetIcons[optionName] or allAllowed then
 			--Declare variables.
-			DBM:Debug("canSetIcons true", 2)
+			DBM:Debug("canSetIcons or allAllowed true", 2)
 			local timeNow = GetTime()
 			if not creatureID then--This function must not be used to boss, so remove self.creatureId. Accepts cid, guid and cid table
 				error("DBM:ScanForMobs calld without creatureID")

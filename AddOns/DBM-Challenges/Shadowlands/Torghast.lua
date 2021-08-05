@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod("d1963", "DBM-Challenges", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210223182948")
+mod:SetRevision("20210802003238")
 
 mod:RegisterCombat("scenario", 2162)--1911-1912 are outdoor areas
 mod.noStatistics = true
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 288210 292903 295985 296748 295001 294362 304075 296523 270248 270264 270348 263085 215710 294526 294533 298844 297018 295942 294165 330118 258935 308026 335528 277040 329608 330438 330471 294401 294517 296839 297020 242391 330573 332165 258938 329422 329423 329930 329908 329909",
+	"SPELL_CAST_START 288210 292903 295985 296748 295001 294362 304075 296523 270248 270264 270348 263085 215710 294526 294533 298844 297018 295942 294165 330118 258935 308026 335528 277040 329608 330438 330471 294401 294517 296839 297020 242391 330573 332165 258938 329422 329423 329930 329908 329909 81008 351931",
 	"SPELL_AURA_APPLIED 304093 277040",
 	"SPELL_AURA_APPLIED_DOSE 303678",
 	"SPELL_AURA_REMOVED 277040",
@@ -37,11 +37,14 @@ local specWarnProphecyOfDeath		= mod:NewSpecialWarningDodge(330471, nil, nil, ni
 local specWarnDiscordantBarrage		= mod:NewSpecialWarningDodge(294401, nil, nil, nil, 2, 2)
 local specWarnBindSouls				= mod:NewSpecialWarningDodge(297020, nil, nil, nil, 2, 2)
 local specWarnInferno				= mod:NewSpecialWarningDodge(335528, nil, nil, nil, 2, 2)
+local specWarnQuake					= mod:NewSpecialWarningJump(81008, nil, nil, nil, 2, 2)
+
 local specWarnGroundCrush			= mod:NewSpecialWarningRun(295985, nil, nil, nil, 4, 2)
 --local specWarnMightySlam			= mod:NewSpecialWarningRun(296748, nil, nil, nil, 4, 2)
 local specWarnWhirlwind				= mod:NewSpecialWarningRun(295001, nil, nil, nil, 4, 2)
 local specWarnSoulblastNova			= mod:NewSpecialWarningRun(294533, nil, nil, nil, 4, 2)
 local specWarnCrushingStomp			= mod:NewSpecialWarningRun(329909, nil, nil, nil, 4, 2)
+local specWarnPainBringer			= mod:NewSpecialWarningRun(351931, nil, nil, nil, 4, 2)
 local specWarnDeafeningHowl			= mod:NewSpecialWarningCast(296523, "SpellCaster", nil, nil, 1, 2)
 local specWarnBoneShrapnel			= mod:NewSpecialWarningStack(303678, nil, 4, nil, nil, 1, 6)
 local specWarnMassCripple			= mod:NewSpecialWarningDispel(304093, "RemoveMagic", nil, nil, 1, 2)
@@ -131,6 +134,9 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 335528 and self:AntiSpam(3, 7) then
 		specWarnInferno:Show()
 		specWarnInferno:Play("watchstep")
+	elseif spellId == 81008 and self:AntiSpam(3, 7) then
+		specWarnQuake:Schedule(0.75)
+		specWarnQuake:ScheduleVoice(0.75, "jumpnow")
 	elseif spellId == 295985 then
 		if self:AntiSpam(4, 1) then
 			specWarnGroundCrush:Show()
@@ -148,6 +154,9 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 329909 and self:AntiSpam(4, 1) then
 		specWarnCrushingStomp:Show()
 		specWarnCrushingStomp:Play("justrun")
+	elseif spellId == 351931 and self:AntiSpam(4, 1) then
+		specWarnPainBringer:Show()
+		specWarnPainBringer:Play("justrun")
 	elseif (spellId == 296523 or spellId == 318995) and self:AntiSpam(4, 5) then
 		specWarnDeafeningHowl:Show()
 		specWarnDeafeningHowl:Play("stopcast")
