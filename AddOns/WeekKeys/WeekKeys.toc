@@ -1,10 +1,10 @@
 ## Interface: 90100
 ## Title: WeekKeys
-## Author: Reinisdm
-## Version: v113
-## Notes: Lists your keystones.
-## Title-zhTW: |cFF00CCFF[團隊]|r 鑰石資訊以及裝備查詢
+## Title-zhTW: |cffFF7F00[副本]|r 傳奇+ 鑰石和裝備資訊
 ## Notes-zhTW: WeekKeys |n查看你所有角色、隊伍、好友和公會成員的鑰石。查看 M+ 掉落裝等、依屬性尋找裝備。還有爬塔記錄和灰燼計算機。|n|cffffd200使用方法：|r點小地圖按鈕。
+## Author: Reinisdm
+## Version: v116
+## Notes: Lists your keystones.
 ## SavedVariables: WeekKeysDB
 
 embeds.xml
@@ -12,6 +12,7 @@ embeds.xml
 Init.lua
 
 locales\enUS.lua
+locales\zhCN.lua
 locales\zhTW.lua
 
 OptionTable.lua
@@ -40,7 +41,7 @@ GuildKeys.lua
 FriendKeys.lua
 MTable.lua
 lootframe.lua
-achieve.lua
+## achieve.lua
 Torghast.lua
 calculator.lua
 settings.lua

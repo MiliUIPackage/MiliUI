@@ -15,7 +15,7 @@ local cost = {
     [5] = 5150,
     [6] = 5150
 }
-local cost2 = {
+local ashcost = {
     [0] = 0,
     [1] = 0,
     [2] = 0,
@@ -63,14 +63,18 @@ function()
             self:SetChecked(true) 
             from = self.id
             local quantity = C_CurrencyInfo.GetCurrencyInfo(1828).quantity
+            local quantity2 = C_CurrencyInfo.GetCurrencyInfo(1906).quantity
+
             for a,b in pairs(fontstrings) do
                 if a <= from then
                     b:Hide()
-                elseif quantity >= cost[a] - cost[from] then
-                    b:SetFormattedText("(%d -> %d) |cff00ff00 %d |T3743738:0|t |cff00ff00 %d |T4067362:0|t",ilvls[from],ilvls[a],cost[a] - cost[from], cost2[a] - cost2[from]) 
+                elseif quantity >= cost[a] - cost[from] and quantity2 >= ashcost[a] - ashcost[from] then
+                    b:SetFormattedText("(%d -> %d) |cff00ff00 %d |T3743738:0|t %d |T4067362:0|t",
+                        ilvls[from],ilvls[a],cost[a] - cost[from], ashcost[a] - ashcost[from])
                     b:Show()
-                else
-                    b:SetFormattedText("(%d -> %d) |cffffffff %d |T3743738:0|t |cff00ff00 %d |T4067362:0|t",ilvls[from],ilvls[a],cost[a] - cost[from], cost2[a] - cost2[from]) 
+                else 
+                    b:SetFormattedText("(%d -> %d) |cffffffff %d |T3743738:0|t %d |T4067362:0|t",
+                        ilvls[from],ilvls[a],cost[a] - cost[from], ashcost[a] - ashcost[from])
                     b:Show()
                 end
             end
