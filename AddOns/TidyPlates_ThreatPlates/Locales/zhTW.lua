@@ -1,4 +1,4 @@
-﻿local L = LibStub("AceLocale-3.0"):NewLocale("TidyPlatesThreat", "zhTW", false)
+local L = LibStub("AceLocale-3.0"):NewLocale("TidyPlatesThreat", "zhTW", false)
 if not L then return end
 
 L["  /tptpdps       Toggles DPS/Healing threat plates"] = "/tptpdps 切換顯示 DPS/治療仇恨系統的血條"
@@ -15,23 +15,7 @@ L[" options by typing: /tptp"] = " 的設定選項請輸入： /tptp"
 L[" The change will be applied after you leave combat."] = "將會在戰鬥結束後會套用變更。"
 L[" to DPS."] = " 為傷害輸出。"
 L[" to tanking."] = " 為坦克。"
-L[ [=[
-
-Feel free to email me at |cff00ff00threatplates@gmail.com|r
-
---
-
-Blacksalsify
-
-(Original author: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)]=] ] = [=[
-
-隨時歡迎 Email 給我 |cff00ff00threatplates@gmail.com|r
-
---
-
-Blacksalsify
-
-(原作者: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)]=]
+L["\n\n--\n\nBackupiseasy\n\n(Original author: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)"] = "\n\n--\n\nBackupiseasy\n\n(原作者: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)"
 L[". You cannot use two custom nameplates with the same trigger. The imported custom nameplate will be disabled."] = "。同一個觸發條件無法使用兩個自訂血條，匯入的自訂血條將會被停用。"
 L["|cff00ff00High Threat|r"] = "|cff00ff00高仇恨|r"
 L["|cff00ff00Low Threat|r"] = "|cff00ff00低仇恨|r"
@@ -996,7 +980,7 @@ L["Frame Order"] = "框架順序"
 L["Healthbar, Auras"] = "血條, 光環"
 L["Auras, Healthbar"] = "光環, 血條"
 L["\n\nFeel free to email me at |cff00ff00threatplates@gmail.com|r\n\n--\n\nBlacksalsify\n\n(Original author: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)"] = "\n\n隨時歡迎寫信給我 |cff00ff00threatplates@gmail.com|r\n\n--\n\nBlacksalsify\n\n(原作者: Suicidal Katt - |cff00ff00Shamtasticle@gmail.com|r)"
-L[" Warning|r \n----------------------------------------------------------\n"] = " 警告|r \n--------------------------------------------------------\n"
+L[" Warning|r \n---------------------------------------\n"] = " 警告|r \n---------------------------------------\n"
 L["Toggle a background showing the area of the clicable area."] = "顯示/關閉可點擊區域的背景範圍。"
 L["Crest"] = "奢華"
 L["Clean"] = "簡約"

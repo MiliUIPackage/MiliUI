@@ -1,3 +1,4 @@
-# 10.2.9 (2021-07-28)
+# 10.2.10 (2021-08-08)
 
-* Fixed a lag/freeze issue when switching talents or specs that happened when the options dialog was opened at least once [Comment #5764].
+* Added support for anima-charged combo points from new covenant legendary "Resouding Clarity" [Issue #508, Comment #5813, #5821].
+* Fixed a Lua error that occured when player totems turn into neutral totems (e.g., when the player is mind-controlled) [Issue #506, Comment #5814].
