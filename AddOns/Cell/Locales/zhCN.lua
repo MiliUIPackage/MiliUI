@@ -199,6 +199,12 @@ L["Rename layout"] = "重命名布局"
 L["Create new layout"] = "新建布局"
 L["(based on current)"] = "(基于当前)"
 L["Delete layout"] = "删除布局"
+L["Copy"] = "复制"
+L["Copy Indicators"] = "复制指示器"
+L["Copy selected indicators to another layout"] = "复制选中的指示器到其他布局"
+L["Close"] = "关闭"
+L["From"] = "从"
+L["To"] = "到"
 L["Layout Auto Switch"] = "布局自动切换"
 L["Solo/Party"] = "单人/小队"
 L["Arena"] = "竞技场"
@@ -382,6 +388,12 @@ L["Bug Report & Suggestion"] = "问题报告与建议"
 -------------------------------------------------
 L["Change Logs"] = "更新记录"
 L["CHANGE LOGS"] = [[
+    <h1>r59-release (Aug 7, 2021, 18:23 GMT+8)</h1>
+    <p>* 新增了“复制指示器”相关功能。</p>
+    <p>* 更新了“布局自动切换”</p>
+    <p>* 更新了“副本减益”、“被法术选中”、“死亡通报”。</p>
+    <br/>
+
     <h1>r58-release (Jul 26, 2021, 18:25 GMT+8)</h1>
     <p>* 更新对 OmniCD 的支持，现在也支持团队模式啦。</p>
     <p>* 更新了繁中、韩文。</p>

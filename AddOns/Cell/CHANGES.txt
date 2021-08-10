@@ -1,16 +1,70 @@
-lightweight tag 85509a3722c85785e236b06bfb98ebf0f8b7d04f r58-release
+lightweight tag 40145eba2dbc4cec07ba100463893e136687a162 r59-release
 Author:	KevinSK <shinozakisama@live.com>
-Date:	Mon Jul 26 18:26:09 2021 +0800
+Date:	Sat Aug 7 18:24:11 2021 +0800
 
-commit 85509a3722c85785e236b06bfb98ebf0f8b7d04f
+commit 40145eba2dbc4cec07ba100463893e136687a162
 Author: KevinSK <shinozakisama@live.com>
-Date:   Mon Jul 26 18:26:09 2021 +0800
+Date:   Sat Aug 7 18:24:11 2021 +0800
 
-    update zhTW & koKR
+    update changelogs
 
-commit 9662ecc1f2f746c073bf19bf068ada7776c5a52c
+commit 472a0ac6fbf1b7d112e386d3707ee96b7f7dbf13
 Author: KevinSK <shinozakisama@live.com>
-Date:   Mon Jul 26 18:25:49 2021 +0800
+Date:   Sat Aug 7 17:52:11 2021 +0800
 
-    update support for OmniCD (raid frame)
+    implement CopyIndicators
+
+commit 2be597e48a8bddb151d1f1da70aac560c417984e
+Author: KevinSK <shinozakisama@live.com>
+Date:   Sat Aug 7 14:33:56 2021 +0800
+
+    fix visibility of buffTracker
+
+commit bae37aba14b683e453da6d16b86230575f591fe9
+Author: KevinSK <shinozakisama@live.com>
+Date:   Fri Aug 6 06:00:07 2021 +0800
+
+    update init events
+
+commit 3f8ca7842582b2d8527ec8787cf2904837785b63
+Author: KevinSK <shinozakisama@live.com>
+Date:   Wed Aug 4 04:04:58 2021 +0800
+
+    implement layout auto switch by role
+
+commit 5279fb6b1470766258f46056a00e66b5064e7165
+Author: KevinSK <shinozakisama@live.com>
+Date:   Tue Aug 3 19:22:42 2021 +0800
+
+    Update RaidDebuffs_SL.lua
+
+commit 57c72f2117e70e322fbd4208e29fce79965a0ddd
+Author: KevinSK <shinozakisama@live.com>
+Date:   Tue Aug 3 19:22:30 2021 +0800
+
+    reduce the frequency of updating priority
+
+commit 2fc6755867fb57b3d1b2b6f5c424c0ed5a4ba760
+Author: KevinSK <shinozakisama@live.com>
+Date:   Mon Aug 2 16:15:10 2021 +0800
+
+    Update DeathReport.lua
+
+commit 058df3f728c2dcefe35a40c78cf5eb10c4fd1e27
+Author: KevinSK <shinozakisama@live.com>
+Date:   Mon Aug 2 16:14:59 2021 +0800
+
+    update CellRaidFrameMember
+
+commit b04d978c481745c3fc1b5e0f7d9251d87e74bb9b
+Author: KevinSK <shinozakisama@live.com>
+Date:   Mon Aug 2 16:14:39 2021 +0800
+
+    Update TargetedSpells.lua
+
+commit f7c6ea263437d16a8c720f5a735b6598bbb1ac7d
+Author: KevinSK <shinozakisama@live.com>
+Date:   Mon Aug 2 16:13:44 2021 +0800
+
+    Update RaidDebuffs_SL.lua
 
