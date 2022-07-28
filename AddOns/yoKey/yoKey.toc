@@ -1,5 +1,5 @@
 ## Interface: 90205
-## Version: 9.1.0.1
+## Version: 9.2.0.1
 ## Title: yoKey
 ## Title-zhTW: |cFF00CCFF[團隊]|r 傳奇計時與鑰石資訊
 ## Notes-zhTW: yoKey |n在傳奇難度地城視窗中增加詞綴排程、戰利品和每週寶箱的物品等級、本週公會最佳成績。|n還會在滑鼠提示中顯示小怪的%。|n|cffffd200使用方法：|r按 i 開啟地城搜尋器視窗 > 點 '傳奇難度地城' 標籤頁面。

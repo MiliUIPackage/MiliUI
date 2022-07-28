@@ -27,22 +27,22 @@ local mythicRewards = {
 	{"15   ",236,252},
 }
 
--- Overflowing：1.溢流。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地，Inspiring：122，Spiteful：123.惡意，Storming：124
+-- Overflowing：1.溢流。Skittish：2.輕浮，Volcanic：3.火山，Necrotic：4.壞死，Teeming：5.擁擠，Raging：6.狂怒，Bolsterin：7.激勵，Sanguine：8.膿血，Tyrannical：9.暴君，Fortified：10.強悍，Bursting：11.屍爆，Grievous：12.兇殘，Explosive：13.火爆，Quaking：14.震地，Inspiring：122.振奮，Spiteful：123.惡意，Storming：124
 
 --TODO Change this once BFA hits
 local affixWeeks = { --affixID as used in C_ChallengeMode.GetAffixInfo(affixID)
     [1] = {[1]=10,[2]=11,[3]=124},	--V
-    [2] = {[1]=9,[2]=6,[3]=3},	--V
-    [3] = {[1]=10,[2]=123,[3]=12},	--V
-    [4] = {[1]=9,[2]=122,[3]=4},	--V
-    [5] = {[1]=10,[2]=8,[3]=14},	--V
-    [6] = {[1]=9,[2]=6,[3]=13},		--V
-    [7] = {[1]=10,[2]=123,[3]=3},	--V
-    [8] = {[1]=9,[2]=7,[3]=4},		--V
-    [9] = {[1]=10,[2]=122,[3]=124},	--V
-    [10] = {[1]=9,[2]=11,[3]=13},	--V
-    [11] = {[1]=10,[2]=8,[3]=12},	--V
-    [12] = {[1]=9,[2]=6,[3]=14},	--?
+    [2] = {[1]=9,[2]=6,[3]=3},		--V
+    [3] = {[1]=10,[2]=122,[3]=12},	--V
+    [4] = {[1]=9,[2]=123,[3]=4},	--V
+    [5] = {[1]=10,[2]=7,[3]=14},	--V
+    [6] = {[1]=9,[2]=8,[3]=124},	--V
+    [7] = {[1]=10,[2]=6,[3]=13},	--V
+    [8] = {[1]=9,[2]=11,[3]=3},		--V
+    [9] = {[1]=10,[2]=123,[3]=12},	--V
+    [10] = {[1]=9,[2]=122,[3]=14},	--V
+    [11] = {[1]=10,[2]=8,[3]=4},	--V
+    [12] = {[1]=9,[2]=7,[3]=13},	--V
 }
 
 ----------------------------------------------------------------------------------
@@ -497,7 +497,7 @@ end
 
 local function OnEvent( self, event, name, ...)
 	if event == "ADDON_LOADED" and name == "Blizzard_ChallengesUI" then
-		Blizzard_ChallengesUI( self)	
+		-- Blizzard_ChallengesUI( self)	-- 不顯示詞綴和裝等
 		ChallengesKeystoneFrame:HookScript("OnShow", SlotKeystone)
 
 	elseif event == "BAG_UPDATE" then
