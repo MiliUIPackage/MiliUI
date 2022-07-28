@@ -5,6 +5,7 @@
 ## Notes: Essential tool to impress that chick in your raid.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-主程式
 ## Notes-zhTW: Details! Damage Meter |n可以看自己和隊友的DPS、HPS...等模組化的傷害統計資訊，還有各種好用的戰鬥分析工具和外掛套件。|n|cffffd200使用方法：|r點小地圖按鈕，或從Esc>介面設定>插件>戰鬥-統計，進行設定。
+## DefaultState: Disabled
 ## SavedVariables: _detalhes_global
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibItemUpgradeInfo-1.0, LibGroupInSpecT-1.1, LibCompress, LibGraph-2.0
