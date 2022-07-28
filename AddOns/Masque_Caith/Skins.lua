@@ -1,7 +1,7 @@
 --[[
 
 	This file is part of 'Masque: Caith', an add-on for World of Warcraft. For bug reports,
-	suggestions and license information, please visit https://github.com/SFX-WoW/Masque_Caith.
+	documentation and license information, please visit https://github.com/SFX-WoW/Masque_Caith.
 
 	* File...: Skins.lua
 	* Author.: StormFX
@@ -9,8 +9,6 @@
 	Caith Skin
 
 ]]
-
--- GLOBALS: GetAddOnMetadata, LibStub
 
 local MSQ = LibStub and LibStub("Masque", true)
 if not MSQ then return end
@@ -28,8 +26,9 @@ local L = Core.Locale
 local Version = GetAddOnMetadata(AddOn, "Version")
 local Websites = {
 	"https://github.com/SFX-WoW/Masque_Caith",
-	"https://www.wowace.com/projects/masque-caith",
 	"https://www.curseforge.com/wow/addons/masque-caith",
+	"https://addons.wago.io/addons/masque-caith",
+	"https://www.wowace.com/projects/masque-caith",
 	"https://www.wowinterface.com/downloads/info8869",
 }
 
@@ -50,14 +49,14 @@ MSQ:AddSkin("Caith", {
 	-- Skin
 	-- Mask = nil,
 	Backdrop = {
-		Texture = [[Interface\AddOns\Masque_Caith\Textures\Backdrop-Action]],
+		Texture = [[Interface\AddOns\Masque\Textures\Backdrop\Action]],
 		-- TexCoords = {0, 1, 0, 1},
 		Color = {1, 1, 1, 1},
 		BlendMode = "BLEND",
 		DrawLayer = "BACKGROUND",
 		DrawLevel = -1,
-		Width = 42,
-		Height = 42,
+		Width = 36,
+		Height = 36,
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
@@ -65,14 +64,14 @@ MSQ:AddSkin("Caith", {
 		-- UseColor = nil,
 		-- SetAllPoints = nil,
 		Item = {
-			Texture = [[Interface\AddOns\Masque_Caith\Textures\Backdrop-Item]],
+			Texture = [[Interface\AddOns\Masque\Textures\Backdrop\Item]],
 			-- TexCoords = {0, 1, 0, 1},
 			Color = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "BACKGROUND",
 			DrawLevel = -1,
-			Width = 42,
-			Height = 42,
+			Width = 36,
+			Height = 36,
 			Point = "CENTER",
 			RelPoint = "CENTER",
 			OffsetX = 0,
@@ -81,14 +80,14 @@ MSQ:AddSkin("Caith", {
 			-- SetAllPoints = nil,
 		},
 		Pet = {
-			Texture = [[Interface\AddOns\Masque_Caith\Textures\Backdrop-Pet]],
+			Texture = [[Interface\AddOns\Masque\Textures\Backdrop\Pet]],
 			-- TexCoords = {0, 1, 0, 1},
 			Color = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "BACKGROUND",
 			DrawLevel = -1,
-			Width = 42,
-			Height = 42,
+			Width = 36,
+			Height = 36,
 			Point = "CENTER",
 			RelPoint = "CENTER",
 			OffsetX = 0,
@@ -179,7 +178,7 @@ MSQ:AddSkin("Caith", {
 	HotKey = {
 		JustifyH = "RIGHT",
 		JustifyV = "MIDDLE",
-		DrawLayer = "ARTWORK",
+		DrawLayer = "OVERLAY",
 		Width = 42,
 		Height = 10,
 		Point = "TOPRIGHT",
@@ -190,7 +189,7 @@ MSQ:AddSkin("Caith", {
 	Count = {
 		JustifyH = "RIGHT",
 		JustifyV = "MIDDLE",
-		DrawLayer = "ARTWORK",
+		DrawLayer = "OVERLAY",
 		Width = 42,
 		Height = 10,
 		Point = "BOTTOMRIGHT",
@@ -201,7 +200,7 @@ MSQ:AddSkin("Caith", {
 	Duration = {
 		JustifyH = "CENTER",
 		JustifyV = "MIDDLE",
-		DrawLayer = "ARTWORK",
+		DrawLayer = "OVERLAY",
 		Width = 42,
 		Height = 10,
 		Point = "TOP",
@@ -300,6 +299,20 @@ MSQ:AddSkin("Caith", {
 		-- SetAllPoints = nil,
 	},
 	IconOverlay = {
+		-- Atlas = "AzeriteIconFrame",
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 36,
+		Height = 36,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	IconOverlay2 = {
 		-- Atlas = "AzeriteIconFrame",
 		-- Color = {1, 1, 1, 1},
 		BlendMode = "BLEND",
@@ -440,7 +453,7 @@ MSQ:AddSkin("Caith", {
 		-- Color = {1, 1, 1, 1},
 		BlendMode = "BLEND",
 		DrawLayer = "OVERLAY",
-		DrawLevel = 5,
+		DrawLevel = 3,
 		Width = 16,
 		Height = 16,
 		Point = "TOPLEFT",

@@ -1,7 +1,6 @@
-## Interface: 90205
-## Title: Masque: Caith
-## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式-Caith 
+## Interface: 30400
 
+## Title: Masque: Caith
 ## Notes: Caith skin for Masque.
 ## Notes-deDE: Caith-Skin für Masque.
 ## Notes-esMX: Skin Caith para Masque.
@@ -9,7 +8,7 @@
 ## Notes-frFR: Skin de Caith pour Masque.
 ## Notes-itIT: Skin Caith per Masque.
 ## Notes-ruRU: Скин Caith для Masque.
-## Notes-zhTW: Masque |cffff8000Caith|r|nMasque 的 Caith 樣式。
+## Notes-zhTW: Masque的Caith皮膚。
 
 ## Version: 9.2.6
 ## Author: StormFX

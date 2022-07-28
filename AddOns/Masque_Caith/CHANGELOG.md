@@ -1,5 +1,7 @@
-## 9.0.1
+## 9.2.6
 
-- Changed `Masque_Version` to `API_VERSION`.
-- Updated `API_VERSION` to `90002`.
-- Updated the `Interface` version for Retail to `90002`.
+### Release Notes
+
+- Added Wrath of the Lich King Classic support.
+
+[Release History](https://github.com/SFX-WoW/Masque_Caith/wiki/History)
