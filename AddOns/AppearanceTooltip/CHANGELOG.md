@@ -1,7 +1,9 @@
 # AppearanceTooltip
 
-## [v29](https://github.com/kemayo/wow-appearancetooltip/tree/v29) (2021-07-01)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v28...v29) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v32](https://github.com/kemayo/wow-appearancetooltip/tree/v32) (2022-06-01)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v31...v32) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Blizzard deprecation wrapper for some C\_Transmog functions breaks  
-    Fixes #9  
+- Update luacheck  
+- Update packager for better changelog  
+- Bump TOC for 9.2.5  
+- Fix C\_TransmogCollection errors for 9.2.5  
