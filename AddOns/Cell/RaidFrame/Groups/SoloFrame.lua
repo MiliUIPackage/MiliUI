@@ -1,5 +1,6 @@
 local _, Cell = ...
 local F = Cell.funcs
+local P = Cell.pixelPerfectFuncs
 
 local soloFrame = CreateFrame("Frame", "CellSoloFrame", Cell.frames.mainFrame, "SecureFrameTemplate")
 Cell.frames.soloFrame = soloFrame
@@ -22,17 +23,36 @@ local function SoloFrame_UpdateLayout(layout, which)
     -- if layout ~= Cell.vars.currentLayout then return end
     if Cell.vars.groupType ~= "solo" and init then return end
     init = true
-    layout = Cell.vars.currentLayoutTable
+    layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["party"]
+    layout = CellDB["layouts"][layout]
 
     if not which or which == "size" then
         local width, height = unpack(layout["size"])
-        playerButton:SetSize(width, height)
-        petButton:SetSize(width, height)
+        P:Size(playerButton, width, height)
+        if layout["petSize"][1] then
+            P:Size(petButton, layout["petSize"][2], layout["petSize"][3])
+        else
+            P:Size(petButton, width, height)
+        end
+    end
+
+    if which == "petSize" then
+        if layout["petSize"][1] then
+            P:Size(petButton, layout["petSize"][2], layout["petSize"][3])
+        else
+            P:Size(petButton, layout["size"][1], layout["size"][2])
+        end
+    end
+
+    -- NOTE: SetOrientation BEFORE SetPowerSize
+    if not which or which == "barOrientation" then
+        playerButton.func.SetOrientation(unpack(layout["barOrientation"]))
+        petButton.func.SetOrientation(unpack(layout["barOrientation"]))
     end
     
-    if not which or which == "power" then
-        playerButton.func.SetPowerHeight(layout["powerHeight"])
-        petButton.func.SetPowerHeight(layout["powerHeight"])
+    if not which or which == "power" or which == "barOrientation" then
+        playerButton.func.SetPowerSize(layout["powerSize"])
+        petButton.func.SetPowerSize(layout["powerSize"])
     end
 
 

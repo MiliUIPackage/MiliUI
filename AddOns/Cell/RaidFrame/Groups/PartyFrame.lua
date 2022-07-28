@@ -1,5 +1,6 @@
 local _, Cell = ...
 local F = Cell.funcs
+local P = Cell.pixelPerfectFuncs
 
 local partyFrame = CreateFrame("Frame", "CellPartyFrame", Cell.frames.mainFrame, "SecureFrameTemplate")
 Cell.frames.partyFrame = partyFrame
@@ -8,9 +9,19 @@ partyFrame:SetAllPoints(Cell.frames.mainFrame)
 local header = CreateFrame("Frame", "CellPartyFrameHeader", partyFrame, "SecureGroupHeaderTemplate")
 header:SetAttribute("template", "CellUnitButtonTemplate")
 
--- OmniCD
 function header:UpdateButtonUnits(bName, unit)
-    _G[bName].unitid = unit
+    if not unit then return end
+    
+    _G[bName].unitid = unit -- OmniCD
+
+    local petUnit
+    if unit == "player" then
+        petUnit = "pet"
+    else
+        petUnit = string.gsub(unit, "party", "partypet")
+    end
+    Cell.unitButtons.party.units[unit] = _G[bName]
+    Cell.unitButtons.party.units[petUnit] = _G[bName].petButton
 end
 
 header:SetAttribute("initialConfigFunction", [[
@@ -64,28 +75,6 @@ for i, playerButton in ipairs({header:GetChildren()}) do
     playerButton.petButton = petButton
     SecureHandlerSetFrameRef(playerButton, "petButton", petButton)
     
-    playerButton.guessUnit = i == 1 and "player" or "party"..(i-1)
-    petButton.guessUnit = i == 1 and "pet" or "partypet"..(i-1)
-
-    -- update current party member buttons
-    playerButton:HookScript("OnAttributeChanged", function(self, name, value)
-        if name == "unit" then
-            if value then
-                local petUnit
-                if value == "player" then
-                    petUnit = "pet"
-                else
-                    petUnit = string.gsub(value, "party", "partypet")
-                end
-                Cell.unitButtons.party.units[value] = self
-                Cell.unitButtons.party.units[petUnit] = self.petButton
-            else
-                Cell.unitButtons.party.units[self.guessUnit] = nil
-                Cell.unitButtons.party.units[self.petButton.guessUnit] = nil
-            end
-        end
-    end)
-
     -- for IterateAllUnitButtons
     Cell.unitButtons.party["player"..i] = playerButton
     Cell.unitButtons.party["pet"..i] = petButton
@@ -100,9 +89,8 @@ local function PartyFrame_UpdateLayout(layout, which)
     -- if layout ~= Cell.vars.currentLayout then return end
     if Cell.vars.groupType ~= "party" and init then return end
     init = true
-    layout = Cell.vars.currentLayoutTable
-
-    local buttons = Cell.unitButtons.party
+    layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["party"]
+    layout = CellDB["layouts"][layout]
 
     -- anchor
     local point, playerAnchorPoint, petAnchorPoint, playerSpacing, petSpacing, headerPoint
@@ -178,21 +166,40 @@ local function PartyFrame_UpdateLayout(layout, which)
         header:SetAttribute("unitsPerColumn", 5)
     end
 
-    if not which or which == "size" or which == "power" then
+    if not which or which == "size" or which == "petSize" or which == "power" or which == "barOrientation" then
         for i, playerButton in ipairs({header:GetChildren()}) do
             local petButton = playerButton.petButton
 
             if not which or which == "size" then
                 local width, height = unpack(layout["size"])
-                playerButton:SetSize(width, height)
-                petButton:SetSize(width, height)
-                header:SetAttribute("buttonWidth", width)
-                header:SetAttribute("buttonHeight", height)
+                P:Size(playerButton, width, height)
+                header:SetAttribute("buttonWidth", P:Scale(width))
+                header:SetAttribute("buttonHeight", P:Scale(height))
+                P:Size(petButton, width, height)
+                if layout["petSize"][1] then
+                    P:Size(petButton, layout["petSize"][2], layout["petSize"][3])
+                else
+                    P:Size(petButton, width, height)
+                end
             end
 
-            if not which or which == "power" then
-                playerButton.func.SetPowerHeight(layout["powerHeight"])
-                petButton.func.SetPowerHeight(layout["powerHeight"])
+            if which == "petSize" then
+                if layout["petSize"][1] then
+                    P:Size(petButton, layout["petSize"][2], layout["petSize"][3])
+                else
+                    P:Size(petButton, layout["size"][1], layout["size"][2])
+                end
+            end
+
+            -- NOTE: SetOrientation BEFORE SetPowerSize
+            if not which or which == "barOrientation" then
+                playerButton.func.SetOrientation(unpack(layout["barOrientation"]))
+                petButton.func.SetOrientation(unpack(layout["barOrientation"]))
+            end
+           
+            if not which or which == "power" or which == "barOrientation" then
+                playerButton.func.SetPowerSize(layout["powerSize"])
+                petButton.func.SetPowerSize(layout["powerSize"])
             end
         end
     end

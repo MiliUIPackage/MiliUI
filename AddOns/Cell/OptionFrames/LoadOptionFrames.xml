@@ -2,16 +2,23 @@
 ..\FrameXML\UI.xsd">
 	<Script file="OptionsFrame.lua"/>
 	<Script file="General.lua"/>
+	<Script file="General_Nicknames.lua"/>
 	<Script file="Appearance.lua"/>
 	<Script file="Layouts.lua"/>
-	<Script file="CopyIndicators.lua"/>
-	<Script file="ImportExport.lua"/>
-	<Script file="ClickCastings_DefaultSpells.lua"/>
+	<Script file="Layouts_PowerFilters.lua"/>
+	<Script file="Layouts_ImportExport.lua"/>
 	<Script file="ClickCastings.lua"/>
-	<Script file="Indicators_DefaultSpells.lua"/>
 	<Script file="Indicators.lua"/>
+	<Script file="Indicators_Copy.lua"/>
+	<Script file="Indicators_Export.lua"/>
+	<Script file="Indicators_Import.lua"/>
+	<Script file="Indicators_TextureSelector.lua"/>
 	<Script file="RaidDebuffs.lua"/>
-	<Script file="RaidDebuffs_BfA.lua"/>
-	<Script file="RaidDebuffs_SL.lua"/>
+	<Script file="RaidDebuffs_ImportExport.lua"/>
+	<Script file="Glows.lua"/>
 	<Script file="About.lua"/>
+	<Script file="About_ImportExport.lua"/>
+	<Script file="GlowOptions.lua"/>
+	<Script file="Changelogs.lua"/>
+	<Script file="CodeSnippets.lua"/>
 </Ui>

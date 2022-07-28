@@ -1,18 +1,26 @@
 local addonName, Cell = ...
 _G.Cell = Cell
+Cell.defaults = {}
 Cell.frames = {}
 Cell.vars = {}
 Cell.funcs = {}
 Cell.iFuncs = {}
+Cell.animations = {}
 
 local F = Cell.funcs
 local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
---[===[@debug@
+-- sharing version check
+Cell.MIN_VERSION = 95
+Cell.MIN_LAYOUTS_VERSION = 98
+Cell.MIN_INDICATORS_VERSION = 99
+Cell.MIN_DEBUFFS_VERSION = 78
+
+--[==[@debug@
 local debugMode = true
---@end-debug@]===]
+--@end-debug@]==]
 function F:Debug(arg, ...)
 	if debugMode then
 		if type(arg) == "string" or type(arg) == "number" then
@@ -48,26 +56,26 @@ font_status:SetFont(GameFontNormal:GetFont(), 11)
 -------------------------------------------------
 -- layout
 -------------------------------------------------
-local delayedGroupType, delayedGroupChanged, delayedRoleChanged
+local delayedLayoutGroupType, delayedUpdateIndicators
 local delayedFrame = CreateFrame("Frame")
 delayedFrame:SetScript("OnEvent", function()
     delayedFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
-    F:UpdateLayout(delayedGroupType, delayedGroupChanged, delayedRoleChanged)
+    F:UpdateLayout(delayedLayoutGroupType, delayedUpdateIndicators)
 end)
 
-function F:UpdateLayout(groupType, groupChanged, roleChanged)
+function F:UpdateLayout(layoutGroupType, updateIndicators)
     if InCombatLockdown() then
-        F:Debug("|cffbbbbbbF:UpdateLayout(\""..groupType.."\") DELAYED")
-        delayedGroupType, delayedGroupChanged, delayedRoleChanged = groupType, groupChanged, roleChanged
+        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\") DELAYED")
+        delayedLayoutGroupType, delayedUpdateIndicators = layoutGroupType, updateIndicators
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
-        F:Debug("|cffbbbbbbF:UpdateLayout(\""..groupType.."\")")
-        Cell.vars.layoutGroupType = groupType
-        local layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole][groupType]
+        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
+        -- Cell.vars.layoutGroupType = layoutGroupType
+        local layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole][layoutGroupType]
         Cell.vars.currentLayout = layout
         Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
-        if groupChanged or roleChanged then
+        if updateIndicators then
             Cell:Fire("UpdateIndicators")
         end
     end
@@ -79,7 +87,9 @@ local bgMaxPlayers = {
 
 -- layout auto switch
 local instanceType
-local function GroupTypeChanged()
+local function PreUpdateLayout()
+    if not Cell.vars.playerSpecRole then return end
+
     if instanceType == "pvp" then
         local name, _, _, _, _, _, _, id = GetInstanceInfo()
         if bgMaxPlayers[id] then
@@ -98,15 +108,20 @@ local function GroupTypeChanged()
         Cell.vars.inBattleground = 5 -- treat as bg 5
         F:UpdateLayout("arena", true)
     else
+        Cell.vars.inBattleground = false
         if Cell.vars.groupType == "solo" or Cell.vars.groupType == "party" then
             F:UpdateLayout("party", true)
-        else
-            F:UpdateLayout("raid", true)
+        else -- raid
+            if Cell.vars.inMythic then
+                F:UpdateLayout("mythic", true)
+            else
+                F:UpdateLayout("raid", true)
+            end
         end
-        Cell.vars.inBattleground = false
     end
 end
-Cell:RegisterCallback("GroupTypeChanged", "Core_GroupTypeChanged", GroupTypeChanged)
+Cell:RegisterCallback("GroupTypeChanged", "Core_GroupTypeChanged", PreUpdateLayout)
+Cell:RegisterCallback("RoleChanged", "Core_RoleChanged", PreUpdateLayout)
 
 -------------------------------------------------
 -- events
@@ -123,7 +138,12 @@ function eventFrame:ADDON_LOADED(arg1)
         
         if type(CellDB) ~= "table" then CellDB = {} end
 
-        if type(CellDB["indicatorPreviewAlpha"]) ~= "number" then CellDB["indicatorPreviewAlpha"] = .5 end
+        if type(CellDB["indicatorPreviewAlpha"]) ~= "number" then CellDB["indicatorPreviewAlpha"] = 0.5 end
+        if type(CellDB["indicatorPreviewScale"]) ~= "number" then CellDB["indicatorPreviewScale"] = 1 end
+
+        if type(CellDB["customTextures"]) ~= "table" then CellDB["customTextures"] = {} end
+        
+        if type(CellDB["snippets"]) ~= "table" then CellDB["snippets"] = {} end
 
         -- general --------------------------------------------------------------------------------
         if type(CellDB["general"]) ~= "table" then
@@ -131,51 +151,139 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["enableTooltips"] = false,
                 ["hideTooltipsInCombat"] = true,
                 -- ["enableAurasTooltips"] = false,
-                ["tooltipsPosition"] = {"BOTTOMLEFT", "Unit Button", "TOPLEFT", 0, 15},
+                ["tooltipsPosition"] = {"BOTTOMLEFT", "Default", "TOPLEFT", 0, 15},
                 ["showSolo"] = true,
                 ["showParty"] = true,
                 ["showPartyPets"] = true,
                 ["hideBlizzard"] = true,
                 ["locked"] = false,
                 ["fadeOut"] = false,
+                ["menuPosition"] = "top_bottom",
                 ["sortPartyByRole"] = false,
             }
         end
 
-        -- raidTools --------------------------------------------------------------------------------
-        if type(CellDB["raidTools"]) ~= "table" then
-            CellDB["raidTools"] = {
-                ["showBuffTracker"] = false,
-                ["showBattleRes"] = true,
-                ["deathReport"] = {false, 10},
-                ["showButtons"] = false,
-                ["pullTimer"] = {"ExRT", 7},
-                ["showMarks"] = false,
-                ["marks"] = "both",
-                ["buttonsPosition"] = {},
-                ["marksPosition"] = {},
-                ["buffTrackerPosition"] = {},
+        -- nicknames ------------------------------------------------------------------------------
+        if type(CellDB["nicknames"]) ~= "table" then
+            CellDB["nicknames"] = {
+                ["mine"] = "",
+                ["sync"] = false,
+                ["custom"] = false,
+                ["list"] = {},
             }
         end
-        -- if type(CellDB["clamped"]) ~= "boolean" then CellDB["clamped"] = false end
+
+        -- tools ----------------------------------------------------------------------------------
+        if type(CellDB["tools"]) ~= "table" then
+            CellDB["tools"] = {
+                ["showBattleRes"] = true,
+                ["buffTracker"] = {false, {}},
+                ["deathReport"] = {false, 10},
+                ["readyAndPull"] = {false, {"default", 7}, {}},
+                ["marks"] = {false, "both_h", {}},
+            }
+        end
+
+        -- glows ----------------------------------------------------------------------------------
+        if type(CellDB["glows"]) ~= "table" then
+            local POWER_INFUSION = GetSpellInfo(10060)
+            local INNERVATE = GetSpellInfo(29166)
+
+            CellDB["glows"] = {
+                ["spellRequest"] = {
+                    ["enabled"] = false,
+                    ["checkIfExists"] = true,
+                    ["knownSpellsOnly"] = true,
+                    ["freeCooldownOnly"] = true,
+                    ["replyCooldown"] = true,
+                    ["responseType"] = "me",
+                    ["timeout"] = 10,
+                    -- ["replyAfterCast"] = nil,
+                    ["spells"] = {
+                        { 
+                            ["spellId"] = 10060,
+                            ["buffId"] = 10060,
+                            ["keywords"] = POWER_INFUSION,
+                            ["glowOptions"] = {
+                                "pixel", -- [1] glow type
+                                {
+                                    {1,1,0,1}, -- [1] color
+                                    0, -- [2] x
+                                    0, -- [3] y
+                                    9, -- [4] N
+                                    0.25, -- [5] frequency
+                                    8, -- [6] length
+                                    2 -- [7] thickness
+                                } -- [2] glowOptions
+                            },
+                            ["isBuiltIn"] = true
+                        },
+                        { 
+                            ["spellId"] = 29166,
+                            ["buffId"] = 29166,
+                            ["keywords"] = INNERVATE,
+                            ["glowOptions"] = {
+                                "pixel", -- [1] glow type
+                                {
+                                    {0,1,1,1}, -- [1] color
+                                    0, -- [2] x
+                                    0, -- [3] y
+                                    9, -- [4] N
+                                    0.25, -- [5] frequency
+                                    8, -- [6] length
+                                    2 -- [7] thickness
+                                } -- [2] glowOptions
+                            },
+                            ["isBuiltIn"] = true
+                        },
+                    }, -- [8] spells
+                },
+                ["dispelRequest"] = {
+                    ["enabled"] = false,
+                    ["dispellableByMe"] = true,
+                    ["responseType"] = "all",
+                    ["timeout"] = 10,
+                    ["debuffs"] = {},
+                    ["glowOptions"] = {
+                        "shine", -- [1] glow type
+                        {
+                            {1,0,0.4,1}, -- [1] color
+                            0, -- [2] x
+                            0, -- [3] y
+                            9, -- [4] N
+                            0.5, -- [5] frequency
+                            2, -- [6] scale
+                        } -- [2] glowOptions
+                    }
+                },
+            }
+        end
 
         -- appearance -----------------------------------------------------------------------------
         if type(CellDB["appearance"]) ~= "table" then
-            CellDB["appearance"] = {
-                ["scale"] = 1,
-                ["optionsFontSizeOffset"] = 0,
-                ["texture"] = "TukTex",
-                ["barColor"] = {"Class Color", {.2, .2, .2}},
-                ["bgColor"] = {"Class Color (dark)", {.667, 0, 0}},
-                ["powerColor"] = {"Power Color", {.7, .7, .7}},
-                ["barAnimation"] = "Flash",
-                ["targetColor"] = {1, .31, .31, 1},
-                ["mouseoverColor"] = {1, 1, 1, .6},
-                ["highlightSize"] = 1,
-                ["outOfRangeAlpha"] = .45,
-            }
+            -- get recommended scale
+            local pScale = P:GetPixelPerfectScale()
+            local scale
+            if pScale >= 0.7 then
+                scale = 1
+            elseif pScale >= 0.5 then
+                scale = 1.4
+            else
+                scale = 2
+            end
+
+            CellDB["appearance"] = F:Copy(Cell.defaults.appearance)
+            -- update recommended scale
+            CellDB["appearance"]["scale"] = scale
         end
         P:SetRelativeScale(CellDB["appearance"]["scale"])
+
+        -- color ---------------------------------------------------------------------------------
+        if CellDB["appearance"]["accentColor"] then -- version < r103
+            if CellDB["appearance"]["accentColor"][1] == "custom" then 
+                Cell:OverrideAccentColor(CellDB["appearance"]["accentColor"][2])
+            end
+        end
 
         -- click-casting --------------------------------------------------------------------------
         if type(CellDB["clickCastings"]) ~= "table" then CellDB["clickCastings"] = {} end
@@ -184,6 +292,9 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
             CellDB["clickCastings"][Cell.vars.playerClass] = {
                 ["useCommon"] = true,
+                ["alwaysTargeting"] = {
+                    ["common"] = "disabled",
+                },
                 ["common"] = {
                     {"type1", "target"},
                     {"type2", "togglemenu"},
@@ -192,6 +303,7 @@ function eventFrame:ADDON_LOADED(arg1)
             -- https://wow.gamepedia.com/SpecializationID
             for sepcIndex = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
                 local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, sepcIndex)
+                CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
                 CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
                     {"type1", "target"},
                     {"type2", "togglemenu"},
@@ -203,258 +315,7 @@ function eventFrame:ADDON_LOADED(arg1)
         -- layouts --------------------------------------------------------------------------------
         if type(CellDB["layouts"]) ~= "table" then
             CellDB["layouts"] = {
-                ["default"] = {
-                    ["size"] = {94, 50},
-                    ["position"] = {},
-                    ["powerHeight"] = 2,
-                    ["spacing"] = 3,
-                    ["orientation"] = "vertical",
-                    ["anchor"] = "TOPLEFT",
-                    ["columns"] = 8,
-                    ["rows"] = 8,
-                    ["groupSpacing"] = 0,
-                    ["groupFilter"] = {true, true, true, true, true, true, true, true},
-                    ["indicators"] = {
-                        {
-                            ["name"] = "Name Text",
-                            ["indicatorName"] = "nameText",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"CENTER", "CENTER", 0, 0},
-                            ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
-                            ["nameColor"] = {"Custom Color", {1, 1, 1}},
-                            ["vehicleNamePosition"] = {"TOP", 0},
-                            ["textWidth"] = 1,
-                        }, -- 1
-                        {
-                            ["name"] = "Status Text",
-                            ["indicatorName"] = "statusText",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"BOTTOM", 0},
-                            ["frameLevel"] = 30,
-                            ["font"] = {"Cell ".._G.DEFAULT, 11, "Shadow"},
-                        }, -- 2
-                        {
-                            ["name"] = "Health Text",
-                            ["indicatorName"] = "healthText",
-                            ["type"] = "built-in",
-                            ["enabled"] = false,
-                            ["position"] = {"TOP", "CENTER", 0, -5},
-                            ["frameLevel"] = 1,
-                            ["font"] = {"Cell ".._G.DEFAULT, 10, "Shadow", 0},
-                            ["color"] = {1, 1, 1},
-                            ["format"] = "percentage",
-                            ["hideFull"] = true,
-                        }, -- 3
-                        {
-                            ["name"] = "Status Icon",
-                            ["indicatorName"] = "statusIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOP", "TOP", 0, -3},
-                            ["frameLevel"] = 10,
-                            ["size"] = {18, 18},
-                        }, -- 4
-                        {
-                            ["name"] = "Role Icon",
-                            ["indicatorName"] = "roleIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
-                            ["size"] = {11, 11},
-                            ["customTextures"] = {false, "Interface\\AddOns\\ElvUI\\Media\\Textures\\Tank.tga", "Interface\\AddOns\\ElvUI\\Media\\Textures\\Healer.tga", "Interface\\AddOns\\ElvUI\\Media\\Textures\\DPS.tga"},
-                        }, -- 5
-                        {
-                            ["name"] = "Leader Icon",
-                            ["indicatorName"] = "leaderIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOPLEFT", "TOPLEFT", 0, -11},
-                            ["size"] = {11, 11},
-                        }, -- 6
-                        {
-                            ["name"] = "Ready Check Icon",
-                            ["indicatorName"] = "readyCheckIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["frameLevel"] = 100,
-                            ["size"] = {16, 16},
-                        }, -- 7
-                        {
-                            ["name"] = "Raid Icon (player)",
-                            ["indicatorName"] = "playerRaidIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOP", "TOP", 0, 3},
-                            ["frameLevel"] = 1,
-                            ["size"] = {14, 14},
-                            ["alpha"] = .77,
-                        }, -- 8
-                        {
-                            ["name"] = "Raid Icon (target)",
-                            ["indicatorName"] = "targetRaidIcon",
-                            ["type"] = "built-in",
-                            ["enabled"] = false,
-                            ["position"] = {"TOP", "TOP", -14, 3},
-                            ["frameLevel"] = 1,
-                            ["size"] = {14, 14},
-                            ["alpha"] = .77,
-                        }, -- 9
-                        {
-                            ["name"] = "Aggro Indicator",
-                            ["indicatorName"] = "aggroIndicator",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
-                            ["frameLevel"] = 2,
-                            ["size"] = {10, 10},
-                        }, -- 10
-                        {
-                            ["name"] = "Aggro Bar",
-                            ["indicatorName"] = "aggroBar",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"BOTTOMLEFT", "TOPLEFT", 1, 0},
-                            ["frameLevel"] = 1,
-                            ["size"] = {18, 2},
-                        }, -- 11
-                        {
-                            ["name"] = "Shield Bar",
-                            ["indicatorName"] = "shieldBar",
-                            ["type"] = "built-in",
-                            ["enabled"] = false,
-                            ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 0, 0},
-                            ["frameLevel"] = 1,
-                            ["height"] = 4,
-                            ["color"] = {1, 1, 0, 1},
-                        }, -- 12
-                        {
-                            ["name"] = "AoE Healing",
-                            ["indicatorName"] = "aoeHealing",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["height"] = 15,
-                            ["color"] = {1, 1, 0},
-                        }, -- 13
-                        {
-                            ["name"] = "External Cooldowns",
-                            ["indicatorName"] = "externalCooldowns",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"RIGHT", "RIGHT", 2, 5},
-                            ["frameLevel"] = 10,
-                            ["size"] = {12, 20},
-                            ["num"] = 2,
-                            ["orientation"] = "right-to-left",
-                        }, -- 14
-                        {
-                            ["name"] = "Defensive Cooldowns",
-                            ["indicatorName"] = "defensiveCooldowns",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"LEFT", "LEFT", -2, 5},
-                            ["frameLevel"] = 10,
-                            ["size"] = {12, 20},
-                            ["num"] = 2,
-                            ["orientation"] = "left-to-right",
-                        }, -- 15
-                        {
-                            ["name"] = "Tank Active Mitigation",
-                            ["indicatorName"] = "tankActiveMitigation",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"TOPLEFT", "TOPLEFT", 10, -1},
-                            ["frameLevel"] = 1,
-                            ["size"] = {18, 4},
-                        }, -- 16
-                        {
-                            ["name"] = "Dispels",
-                            ["indicatorName"] = "dispels",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
-                            ["frameLevel"] = 15,
-                            ["size"] = {12, 12},
-                            ["dispellableByMe"] = true,
-                            ["enableHighlight"] = false,
-                        }, -- 17
-                        {
-                            ["name"] = "Debuffs",
-                            ["indicatorName"] = "debuffs",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 1, 4},
-                            ["frameLevel"] = 1,
-                            ["size"] = {{13, 13}, {17, 17}},
-                            ["num"] = 3,
-                            ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2},
-                            ["dispellableByMe"] = false,
-                            ["orientation"] = "left-to-right",
-                            ["bigDebuffs"] = {
-                                209858, -- 死疽溃烂
-                                46392, -- 专注打击
-                                -- 焚化者阿寇拉斯
-                                355732, -- 融化灵魂
-                                355738, -- 灼热爆破
-                                -- 凇心之欧罗斯
-                                356667, -- 刺骨之寒
-                                -- 刽子手瓦卢斯
-                                356925, -- 屠戮
-                                356923, -- 撕裂
-                                358973, -- 恐惧浪潮
-                                -- 粉碎者索苟冬
-                                355806, -- 重压
-                                358777, -- 痛苦之链
-                            },
-                        }, -- 18
-                        {
-                            ["name"] = "Raid Debuffs",
-                            ["indicatorName"] = "raidDebuffs",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"CENTER", "CENTER", 0, 3},
-                            ["frameLevel"] = 20,
-                            ["size"] = {22, 22},
-                            ["border"] = 2,
-                            ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2},
-                            ["onlyShowTopGlow"] = true,
-                        }, -- 19
-                        {
-                            ["name"] = "Targeted Spells",
-                            ["indicatorName"] = "targetedSpells",
-                            ["type"] = "built-in",
-                            ["enabled"] = true,
-                            ["position"] = {"CENTER", "TOPLEFT", 7, -7},
-                            ["frameLevel"] = 50,
-                            ["size"] = {20, 20},
-                            ["border"] = 2,
-                            ["spells"] = {
-                                320788, -- 冻结之缚
-                                344496, -- 震荡爆发
-                                319941, -- 碎石之跃
-                                322614, -- 心灵连接
-                                320132, -- 暗影之怒
-                                334053, -- 净化冲击波
-                                343556, -- 病态凝视
-                                320596, -- 深重呕吐
-                                356924, -- 屠戮
-                            },
-                            ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, .25, 8, 2},
-                            ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", 2},
-                        }, -- 20
-                        {
-                            ["name"] = "Target Counter",
-                            ["indicatorName"] = "targetCounter",
-                            ["type"] = "built-in",
-                            ["enabled"] = false,
-                            ["position"] = {"TOP", "TOP", 0, 5},
-                            ["frameLevel"] = 15,
-                            ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline", 0},
-                            ["color"] = {1, .1, .1},
-                        }, -- 21
-                    },
-                },
+                ["default"] = F:Copy(Cell.defaults.layout)
             }
         end
 
@@ -464,6 +325,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["TANK"] = {
                     ["party"] = "default",
                     ["raid"] = "default",
+                    ["mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
@@ -471,6 +333,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["HEALER"] = {
                     ["party"] = "default",
                     ["raid"] = "default",
+                    ["mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
@@ -478,6 +341,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["DAMAGER"] = {
                     ["party"] = "default",
                     ["raid"] = "default",
+                    ["mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
@@ -514,11 +378,13 @@ function eventFrame:ADDON_LOADED(arg1)
         -- }
         
         -- misc ---------------------------------------------------------------------------------
-        Cell.loaded = true
         Cell.version = GetAddOnMetadata(addonName, "version")
-        Cell:Fire("Revise")
+        Cell.versionNum = tonumber(string.match(Cell.version, "%d+")) 
+        if not CellDB["revise"] then CellDB["firstRun"] = true end
+        F:Revise()
         F:CheckWhatsNew()
-
+        F:RunSnippets()
+        Cell.loaded = true
     end
 
     -- omnicd ---------------------------------------------------------------------------------
@@ -551,13 +417,14 @@ function eventFrame:ADDON_LOADED(arg1)
     -- end
 end
 
-Cell.vars.guid = {}
+-- Cell.vars.guids = {} -- NOTE: moved to UnitButton.lua OnShow/OnHide
 Cell.vars.role = {["TANK"]=0, ["HEALER"]=0, ["DAMAGER"]=0}
 function eventFrame:GROUP_ROSTER_UPDATE()
-    wipe(Cell.vars.guid)
+    -- wipe(Cell.vars.guids)
     if IsInRaid() then
         if Cell.vars.groupType ~= "raid" then
             Cell.vars.groupType = "raid"
+            F:Debug("|cffffbb77GroupTypeChanged:|r raid")
             Cell:Fire("GroupTypeChanged", "raid")
         end
         -- reset raid setup
@@ -567,10 +434,10 @@ function eventFrame:GROUP_ROSTER_UPDATE()
         -- update guid & raid setup
         for i = 1, GetNumGroupMembers() do
             -- update guid
-            local playerGUID = UnitGUID("raid"..i)
-            if playerGUID then
-                Cell.vars.guid[playerGUID] = "raid"..i
-            end
+            -- local playerGUID = UnitGUID("raid"..i)
+            -- if playerGUID then
+            --     Cell.vars.guids[playerGUID] = "raid"..i
+            -- end
             -- update raid setup
             local role = select(12, GetRaidRosterInfo(i))
             if role and Cell.vars.role[role] then
@@ -583,50 +450,71 @@ function eventFrame:GROUP_ROSTER_UPDATE()
             _G["CellRaidFrameMember"..i] = nil
         end
         F:UpdateRaidSetup()
+        -- update Cell.unitButtons.party.units
+        Cell.unitButtons.party.units["player"] = nil
+        Cell.unitButtons.party.units["pet"] = nil
+        for i = 1, 4 do
+            Cell.unitButtons.party.units["party"..i] = nil
+            Cell.unitButtons.party.units["partypet"..i] = nil
+        end
 
     elseif IsInGroup() then
         if Cell.vars.groupType ~= "party" then
             Cell.vars.groupType = "party"
+            F:Debug("|cffffbb77GroupTypeChanged:|r party")
             Cell:Fire("GroupTypeChanged", "party")
         end
         -- update guid
-        Cell.vars.guid[UnitGUID("player")] = "player"
-        if UnitGUID("pet") then
-            Cell.vars.guid[UnitGUID("pet")] = "pet"
-        end
-        for i = 1, 4 do
-            local playerGUID = UnitGUID("party"..i)
-            if playerGUID then
-                Cell.vars.guid[playerGUID] = "party"..i
-            else
-                break
-            end
+        -- Cell.vars.guids[UnitGUID("player")] = "player"
+        -- if UnitGUID("pet") then
+        --     Cell.vars.guids[UnitGUID("pet")] = "pet"
+        -- end
+        -- for i = 1, 4 do
+        --     local playerGUID = UnitGUID("party"..i)
+        --     if playerGUID then
+        --         Cell.vars.guids[playerGUID] = "party"..i
+        --     else
+        --         break
+        --     end
 
-            local petGUID = UnitGUID("partypet"..i)
-            if petGUID then
-                Cell.vars.guid[petGUID] = "partypet"..i
-            end
-        end
+        --     local petGUID = UnitGUID("partypet"..i)
+        --     if petGUID then
+        --         Cell.vars.guids[petGUID] = "partypet"..i
+        --     end
+        -- end
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
+        end
+        -- update Cell.unitButtons.party.units
+        for i = GetNumGroupMembers(), 4 do
+            Cell.unitButtons.party.units["party"..i] = nil
+            Cell.unitButtons.party.units["partypet"..i] = nil
         end
 
     else
         if Cell.vars.groupType ~= "solo" then
             Cell.vars.groupType = "solo"
+            F:Debug("|cffffbb77GroupTypeChanged:|r solo")
             Cell:Fire("GroupTypeChanged", "solo")
         end
         -- update guid
-        Cell.vars.guid[UnitGUID("player")] = "player"
-        if UnitGUID("pet") then
-            Cell.vars.guid[UnitGUID("pet")] = "pet"
-        end
+        -- Cell.vars.guids[UnitGUID("player")] = "player"
+        -- if UnitGUID("pet") then
+        --     Cell.vars.guids[UnitGUID("pet")] = "pet"
+        -- end
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
+        end
+        -- update Cell.unitButtons.party.units
+        Cell.unitButtons.party.units["player"] = nil
+        Cell.unitButtons.party.units["pet"] = nil
+        for i = 1, 4 do
+            Cell.unitButtons.party.units["party"..i] = nil
+            Cell.unitButtons.party.units["partypet"..i] = nil
         end
     end
 
@@ -638,27 +526,45 @@ function eventFrame:GROUP_ROSTER_UPDATE()
     end
 end
 
-function eventFrame:UNIT_PET()
-    if not IsInRaid() then
-        eventFrame:GROUP_ROSTER_UPDATE()
-    end
-end
+-- NOTE: used to update pet in Cell.vars.guids
+-- function eventFrame:UNIT_PET()
+--     if not IsInRaid() then
+--         eventFrame:GROUP_ROSTER_UPDATE()
+--     end
+-- end
 
 local inInstance
 function eventFrame:PLAYER_ENTERING_WORLD()
     -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
     F:Debug("PLAYER_ENTERING_WORLD")
+    Cell.vars.inMythic = false
 
     local isIn, iType = IsInInstance()
     instanceType = iType
     if isIn then
         F:Debug("|cffff1111Entered Instance:|r", iType)
-        GroupTypeChanged()
+        PreUpdateLayout()
         inInstance = true
+
+        -- NOTE: delayed check mythic raid
+        if Cell.vars.groupType == "raid" and iType == "raid" then
+            C_Timer.After(0.5, function()
+                local difficultyID, difficultyName = select(3, GetInstanceInfo()) --! can't get difficultyID, difficultyName immediately after entering an instance
+                Cell.vars.inMythic = difficultyID == 16
+                if Cell.vars.inMythic then
+                    PreUpdateLayout()
+                end
+            end)
+        end
+
     elseif inInstance then -- left insntance
         F:Debug("|cffff1111Left Instance|r")
-        GroupTypeChanged()
+        PreUpdateLayout()
         inInstance = false
+    end
+
+    if CellDB["firstRun"] then
+        F:FirstRun()
     end
 end
 
@@ -666,10 +572,13 @@ local prevSpec
 function eventFrame:PLAYER_LOGIN()
     F:Debug("PLAYER_LOGIN")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-    eventFrame:RegisterEvent("UNIT_PET")
+    -- eventFrame:RegisterEvent("UNIT_PET")
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
-    
+
+    Cell.vars.playerNameShort = GetUnitName("player")
+    Cell.vars.playerNameFull = F:UnitFullName("player")
+
     --! init bgMaxPlayers
     for i = 1, GetNumBattlegroundTypes() do
         local bgName, _, _, _, _, _, bgId, maxPlayers = GetBattlegroundInfo(i)
@@ -692,18 +601,19 @@ function eventFrame:PLAYER_LOGIN()
     -- Cell:Fire("UpdateIndicators") -- NOTE: already update in GROUP_ROSTER_UPDATE -> GroupTypeChanged -> F:UpdateLayout
     -- update texture and font
     Cell:Fire("UpdateAppearance")
-    Cell:UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"])
-    Cell:Fire("UpdatePixelPerfect")
-    -- update raid tools
-    Cell:Fire("UpdateRaidTools")
+    Cell:UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"], CellDB["appearance"]["useGameFont"])
+    -- update tools
+    Cell:Fire("UpdateTools")
+    -- update glows
+    Cell:Fire("UpdateGlows")
     -- update raid debuff list
     Cell:Fire("UpdateRaidDebuffs")
     -- hide blizzard
     if CellDB["general"]["hideBlizzard"] then F:HideBlizzard() end
-    -- lock
-    F:UpdateFrameLock(CellDB["general"]["locked"])
-    -- fade out
-    F:UpdateMenuFadeOut(CellDB["general"]["fadeOut"])
+    -- lock & menu
+    Cell:Fire("UpdateMenu")
+    -- update pixel perfect
+    Cell:Fire("UpdatePixelPerfect")
 end
 
 local forceRecheck
@@ -714,6 +624,7 @@ end)
 -- PLAYER_SPECIALIZATION_CHANGED fires when level up, ACTIVE_TALENT_GROUP_CHANGED usually fire twice.
 -- NOTE: ACTIVE_TALENT_GROUP_CHANGED fires before PLAYER_LOGIN, but can't GetSpecializationInfo before PLAYER_LOGIN
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
+    F:Debug("ACTIVE_TALENT_GROUP_CHANGED")
     -- not in combat & spec CHANGED
     if not InCombatLockdown() and (prevSpec and prevSpec ~= GetSpecialization() or forceRecheck) then
         prevSpec = GetSpecialization()
@@ -722,15 +633,15 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
         if not Cell.vars.playerSpecID then -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
             forceRecheck = true
             checkSpecFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+            F:Debug("|cffffbb77RoleChanged:|r FAILED")
         else
             forceRecheck = false
             checkSpecFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
             if not CellDB["clickCastings"][Cell.vars.playerClass]["useCommon"] then
                 Cell:Fire("UpdateClickCastings")
             end
-            F:Debug("|cffbbbbbbRoleChanged:", Cell.vars.playerSpecRole)
-            F:UpdateLayout(Cell.vars.layoutGroupType, false, true)
-            -- Cell:Fire("RoleChanged", Cell.vars.playerSpecRole)
+            F:Debug("|cffffbb77RoleChanged:|r", Cell.vars.playerSpecRole)
+            Cell:Fire("RoleChanged", Cell.vars.playerSpecRole)
         end
     end
 end
@@ -753,18 +664,18 @@ function SlashCmdList.CELL(msg, editbox)
             Cell.frames.anchorFrame:ClearAllPoints()
             Cell.frames.anchorFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
             Cell.vars.currentLayoutTable["position"] = {}
-            Cell.frames.raidButtonsFrame:ClearAllPoints()
-            Cell.frames.raidButtonsFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
-            CellDB["raidTools"]["buttonsPosition"] = {}
+            Cell.frames.readyAndPullFrame:ClearAllPoints()
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
+            CellDB["tools"]["readyAndPull"][3] = {}
             Cell.frames.raidMarksFrame:ClearAllPoints()
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
-            CellDB["raidTools"]["marksPosition"] = {}
+            CellDB["tools"]["marks"][3] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
             Cell.frames.anchorFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
-            Cell.frames.raidButtonsFrame:ClearAllPoints()
-            Cell.frames.raidButtonsFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
+            Cell.frames.readyAndPullFrame:ClearAllPoints()
+            Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
             Cell.frames.raidMarksFrame:ClearAllPoints()
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
             CellDB = nil
@@ -774,11 +685,11 @@ function SlashCmdList.CELL(msg, editbox)
             CellDB["layouts"] = nil
             ReloadUI()
 
-        elseif rest == "raidDebuffs" then
+        elseif rest == "raiddebuffs" then
             CellDB["raidDebuffs"] = nil
             ReloadUI()
             
-        elseif rest == "clickCastings" then
+        elseif rest == "clickcastings" then
             CellDB["clickCastings"] = nil
             ReloadUI()
         end
@@ -791,8 +702,8 @@ function SlashCmdList.CELL(msg, editbox)
             else
                 F:Print(string.format(L["Cell will report first %d deaths during a raid encounter."], rest))
             end
-            CellDB["raidTools"]["deathReport"][2] = rest
-            Cell:Fire("UpdateRaidTools", "deathReport")
+            CellDB["tools"]["deathReport"][2] = rest
+            Cell:Fire("UpdateTools", "deathReport")
         else
             F:Print(L["A 0-40 integer is required."])
         end
@@ -803,8 +714,8 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
-            "|cFFFFB5C5/cell reset clickCastings|r: "..L["reset all Click-Castings"]..".\n"..
-            "|cFFFFB5C5/cell reset raidDebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
+            "|cFFFFB5C5/cell reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
+            "|cFFFFB5C5/cell reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
             "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
         )
     end

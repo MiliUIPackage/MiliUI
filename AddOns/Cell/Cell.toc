@@ -1,10 +1,14 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: Cell
 ## Title-zhTW: |cFF00CCFF[團隊]|r Cell 團隊框架
 ## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
-## Version: r59-release
+## Version: r104-release
 ## Author: 篠崎
 ## SavedVariables: CellDB
+
+## X-Curse-Project-ID: 409666
+## X-Wago-ID: qv63LLKb
+## X-WoWI-ID: 26244
 
 Locales\enUS.lua
 Locales\zhCN.lua
@@ -18,16 +22,16 @@ Utils.lua
 Revise.lua
 Comm.lua
 Widgets\LoadWidgets.xml
+Defaults\LoadDefaults.xml
 
 HideBlizzard.lua
-ChangeLogs.lua
 
-RaidFrame\Indicators\Base.lua
-RaidFrame\Indicators\Built-in.lua
-RaidFrame\Indicators\AoEHealing.lua
-RaidFrame\Indicators\TargetCounter.lua
-RaidFrame\Indicators\TargetedSpells.lua
-RaidFrame\Indicators\Custom.lua
+Indicators\Base.lua
+Indicators\Built-in.lua
+Indicators\AoEHealing.lua
+Indicators\TargetCounter.lua
+Indicators\TargetedSpells.lua
+Indicators\Custom.lua
 
 RaidFrame\MainFrame.lua
 RaidFrame\UnitButton.lua
@@ -37,5 +41,6 @@ RaidFrame\Groups\PartyFrame.lua
 RaidFrame\Groups\RaidFrame.lua
 RaidFrame\Groups\NPCFrame.lua
 
-ToolFrames\LoadToolFrames.xml
+Tools\LoadTools.xml
 OptionFrames\LoadOptionFrames.xml
+RaidDebuffs\LoadRaidDebuffs.xml

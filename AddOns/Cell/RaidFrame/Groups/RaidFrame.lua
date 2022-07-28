@@ -1,5 +1,6 @@
 local _, Cell = ...
 local F = Cell.funcs
+local P = Cell.pixelPerfectFuncs
 
 local raidFrame = CreateFrame("Frame", "CellRaidFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
 Cell.frames.raidFrame = raidFrame
@@ -7,7 +8,7 @@ raidFrame:SetAllPoints(Cell.frames.mainFrame)
 
 local npcFrameAnchor = CreateFrame("Frame", "CellNPCFrameAnchor", raidFrame, "SecureFrameTemplate")
 npcFrameAnchor:Hide()
-raidFrame:SetFrameRef("npcanchor", npcFrameAnchor)
+raidFrame:SetFrameRef("npcAnchor", npcFrameAnchor)
 
 raidFrame:SetAttribute("_onattributechanged", [[
 	if name ~= "visibility" then
@@ -24,7 +25,7 @@ raidFrame:SetAttribute("_onattributechanged", [[
     if not maxGroup then return end -- NOTE: empty subgroup will cause maxGroup == nil
     
     local header = self:GetFrameRef("subgroup"..maxGroup)
-    local npcFrameAnchor = self:GetFrameRef("npcanchor")
+    local npcFrameAnchor = self:GetFrameRef("npcAnchor")
     local spacing = self:GetAttribute("spacing") or 0
     local orientation = self:GetAttribute("orientation") or "vertical"
     local anchor = self:GetAttribute("anchor") or "TOPLEFT"
@@ -99,7 +100,7 @@ columnAnchorPoint = [STRING] - the anchor point of each new column (ie. use LEFT
 --]]
 local groupHeaders = {}
 local function CreateGroupHeader(group)
-    local headerName = "CellGroupHeaderSubGroup"..group
+    local headerName = "CellRaidFrameHeader"..group
 	local header = CreateFrame("Frame", headerName, raidFrame, "SecureGroupHeaderTemplate")
     groupHeaders[group] = header
     Cell.unitButtons.raid[headerName] = header
@@ -170,23 +171,35 @@ local function RaidFrame_UpdateLayout(layout, which)
     -- if layout ~= Cell.vars.currentLayout then return end
     if Cell.vars.groupType ~= "raid" and init then return end
     init = true
-    layout = Cell.vars.currentLayoutTable
     
     if Cell.vars.inBattleground == 5 then
-        for i = 1, 3 do
-            RegisterAttributeDriver(arenaPetButtons[i], "state-visibility", "[@raidpet"..i..", exists] show; hide")
+        layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["arena"]
+        if CellDB["general"]["showPartyPets"] then
+            for i = 1, 3 do
+                RegisterAttributeDriver(arenaPetButtons[i], "state-visibility", "[@raidpet"..i..", exists] show; hide")
+            end
         end
     elseif Cell.vars.inBattleground == 15 or Cell.vars.inBattleground == 40 then
+        layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["battleground"..Cell.vars.inBattleground]
+        for i = 1, 3 do
+            UnregisterAttributeDriver(arenaPetButtons[i], "state-visibility")
+            arenaPetButtons[i]:Hide()
+        end
+    elseif Cell.vars.inMythic then
+        layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["mythic"]
         for i = 1, 3 do
             UnregisterAttributeDriver(arenaPetButtons[i], "state-visibility")
             arenaPetButtons[i]:Hide()
         end
     else
+        layout = CellDB["layoutAutoSwitch"][Cell.vars.playerSpecRole]["raid"]
         for i = 1, 3 do
             UnregisterAttributeDriver(arenaPetButtons[i], "state-visibility")
             arenaPetButtons[i]:Hide()
         end
     end
+
+    layout = CellDB["layouts"][layout]
 
     local width, height = unpack(layout["size"])
 
@@ -200,29 +213,38 @@ local function RaidFrame_UpdateLayout(layout, which)
     for i, group in ipairs(shownGroups) do
         local header = groupHeaders[group]
 
-        if not which or which == "size" or which == "power" or which == "groupFilter" then
+        if not which or which == "size" or which == "petSize" or which == "power" or which == "groupFilter" or which == "barOrientation" then
             for j, b in ipairs({header:GetChildren()}) do
                 if not which or which == "size" or which == "groupFilter" then
-                    b:SetWidth(width)
-                    b:SetHeight(height)
+                    P:Size(b, width, height)
                     b:ClearAllPoints()
                 end
-                if not which or which == "power" or which == "groupFilter" then
-                    b.func.SetPowerHeight(layout["powerHeight"])
+                -- NOTE: SetOrientation BEFORE SetPowerSize
+                if not which or which == "barOrientation" then
+                    b.func.SetOrientation(unpack(layout["barOrientation"]))
+                end
+                if not which or which == "power" or which == "groupFilter" or which == "barOrientation" then
+                    b.func.SetPowerSize(layout["powerSize"])
                 end
             end
 
             if not which or which == "size" or which == "groupFilter" then
                 --! important new button size depend on buttonWidth & buttonHeight
-                header:SetAttribute("buttonWidth", width)
-                header:SetAttribute("buttonHeight", height)
+                header:SetAttribute("buttonWidth", P:Scale(width))
+                header:SetAttribute("buttonHeight", P:Scale(height))
 
-                npcFrameAnchor:SetSize(width, height)
+                P:Size(npcFrameAnchor, width, height)
             end
 
             for i = 1, 3 do
-                arenaPetButtons[i]:SetSize(width, height)
-                arenaPetButtons[i].func.SetPowerHeight(layout["powerHeight"])
+                if layout["petSize"][1] then
+                    P:Size(arenaPetButtons[i], layout["petSize"][2], layout["petSize"][3])
+                else
+                    P:Size(arenaPetButtons[i], width, height)
+                end
+                -- NOTE: SetOrientation BEFORE SetPowerSize
+                arenaPetButtons[i].func.SetOrientation(unpack(layout["barOrientation"]))
+                arenaPetButtons[i].func.SetPowerSize(layout["powerSize"])
             end
         end
 
@@ -354,12 +376,13 @@ local function RaidFrame_UpdateLayout(layout, which)
             raidFrame:SetAttribute("visibility", 1) -- NOTE: trigger _onattributechanged to set npcFrameAnchor point!
         end
 
+        -- REVIEW: fix name width
         if which == "groupFilter" then
             for j, b in ipairs({header:GetChildren()}) do
-                b:GetScript("OnSizeChanged")(b)
+                b.widget.healthBar:GetScript("OnSizeChanged")(b.widget.healthBar)
             end
             for i = 1, 3 do
-                arenaPetButtons[i]:GetScript("OnSizeChanged")(arenaPetButtons[i])
+                arenaPetButtons[i].widget.healthBar:GetScript("OnSizeChanged")(arenaPetButtons[i].widget.healthBar)
             end
         end
     end
@@ -376,3 +399,19 @@ local function RaidFrame_UpdateLayout(layout, which)
     end
 end
 Cell:RegisterCallback("UpdateLayout", "RaidFrame_UpdateLayout", RaidFrame_UpdateLayout)
+
+local function RaidFrame_UpdateVisibility(which)
+    if which == "pets" and Cell.vars.inBattleground == 5 then
+        if CellDB["general"]["showPartyPets"] then
+            for i = 1, 3 do
+                RegisterAttributeDriver(arenaPetButtons[i], "state-visibility", "[@raidpet"..i..", exists] show; hide")
+            end
+        else
+            for i = 1, 3 do
+                UnregisterAttributeDriver(arenaPetButtons[i], "state-visibility")
+                arenaPetButtons[i]:Hide()
+            end
+        end
+    end
+end
+Cell:RegisterCallback("UpdateVisibility", "RaidFrame_UpdateVisibility", RaidFrame_UpdateVisibility)

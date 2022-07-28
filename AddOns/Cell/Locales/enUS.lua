@@ -13,12 +13,17 @@ select(2, ...).L = setmetatable({
     ["P"] = "PvP Talent",
     ["notBound"] = "|cff777777".._G.NOT_BOUND,
 
+    ["PET"] = "Pet",
+    ["VEHICLE"] = "Vehicle",
+
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
     ["castByMe"] = "Only show buffs cast by me",
     ["showDuration"] = "Show duration text",
+    ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",
     ["hideFull"] = "Hide while HP is full",
-    ["onlyShowTopGlow"] = "Only show glow for top debuffs",
+    ["onlyShowTopGlow"] = "Only show glow for the first debuff",
+    ["circledStackNums"] = "Circled Stack Numbers",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -35,13 +40,293 @@ select(2, ...).L = setmetatable({
     ["top-to-bottom"] = "Top-to-Bottom",
     ["bottom-to-top"] = "Bottom-to-Top",
 
+    ["ALL"] = "All",
+    ["INVERT"] = "Invert",
+    ["Default"] = _G.DEFAULT,
+
     ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2.\nCell is not meant to be a lightweight or powerful (like VuhDo, Grid2) raid frames addon. It's easy to use and good enough for you (hope so).",
     ["RESET"] = "Cell requires a full reset after updating from a very old version.\n|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
     
+    ["syncTips"] = "Set the master layout here\nAll indicators of slave layout are fully in-sync with the master\nIt's a two-way sync, but all indicators of slave layout will be lost when set a master",
     ["pullTimerTips"] = "\n|rPull Timer\nLeft-Click: |cffffffffstart timer|r\nRight-Click: |cffffffffcancel timer|r",
     ["marksTips"] = "\n|rTarget marker\nLeft-Click: |cffffffffset raid marker on target|r\nRight-Click: |cfffffffflock raid marker on target (in your group)|r",
 
-    ["CHANGE LOGS"] = [[
+    ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
+    ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
+
+    ["CHANGELOGS"] = [[
+        <h1>r104-release (Jun 3, 2022, 20:30 GMT+8)</h1>
+        <p>* Bump up toc.</p>
+        <br/>
+
+        <h1>r103-release (May 11, 2022, 08:10 GMT+8)</h1>
+        <p>+ Implemented accent color for options UI.</p>
+        <br/>
+
+        <h1>r102-beta (May 8, 2022, 21:45 GMT+8)</h1>
+        <p>* Updated raid debuffs.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r101-beta (May 8, 2022, 06:10 GMT+8)</h1>
+        <p>* Updated settings export.</p>
+        <p>* Updated raid debuffs.</p>
+        <p>* Fixed name text length.</p>
+        <br/>
+
+        <h1>r100-release (May 7, 2022, 01:07 GMT+8)</h1>
+        <p>* Fixed several bugs.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r99-release (May 5, 2022, 14:10 GMT+8)</h1>
+        <p>* Rewrote nicknames.</p>
+        <p>* Added frame level to Name Text indicator.</p>
+        <p>* Updated Status Icon indicator.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r98-release (Apr 24, 2022, 16:10 GMT+8)</h1>
+        <p>+ Implemented indicator sync.</p>
+        <p>+ Implemented custom death color.</p>
+        <p>* Updated Role Icon indicator.</p>
+        <p>* Lowered the frame level of Aggro (border) indicator.</p>
+        <p>* Updated indicator preview.</p>
+        <p>* Updated zhTW.</p>
+        <p>* Bug fixes.</p>
+        <br/>
+        
+        <h1>r97-release (Apr 19, 2022, 20:10 GMT+8)</h1>
+        <p>+ Added nicknames (beta).</p>
+        <p>* Updated locales.</p>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r96-release (Apr 19, 2022, 11:55 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r95-release (Apr 18, 2022, 09:17 GMT+8)</h1>
+        <p>+ Added a "Round Up Duration" option into Aura Icon Options.</p>
+        <p>* Updated duration text options for custom TEXT indicators.</p>
+        <p>* Updated zhTW.</p>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r94-release (Apr 17, 2022, 08:10 GMT+8)</h1>
+        <p>+ Added Aura Icon Options in Appearance tab.</p>
+        <p>+ Added Show aura tooltip options: Debuffs and RaidDebuffs.</p>
+        <p>* Added yOffset for indicator font options: icon and icons.</p>
+        <p>* Updated zhTW.</p>
+        <p>* Fixed some bugs.</p>
+        <br/>
+
+        <h1>r93-release (Apr 16, 2022, 06:45 GMT+8)</h1>
+        <p>+ Added an indicator: Externals + Defensives.</p>
+        <p>+ Added a new custom indicator type: texture.</p>
+        <p>+ Implemented import &amp; export for all settings (check About tab).</p>
+        <p>+ Implemented layout auto switch for Mythic (raid).</p>
+        <p>* Updated zhTW.</p>
+        <p>* Fixed some bugs.</p>
+        <br/>
+
+        <h1>r92-release (Apr 12, 2022, 14:30 GMT+8)</h1>
+        <p>* Fixed health color (gradient).</p>
+        <br/>
+
+        <h1>r91-release (Apr 12, 2022, 08:35 GMT+8)</h1>
+        <p>* Fixed Targeted Spells indicator.</p>
+        <p>* Updated Spell Request.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r90-release (Apr 11, 2022, 01:10 GMT+8)</h1>
+        <p>+ Added a Menu Position option.</p>
+        <p>* Updated Spell Request, deleted old settings.</p>
+        <p>* Fixed unit buttons initialization issue.</p>
+        <p>* Updated Layout Preview.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r89-release (Apr 8, 2022, 09:22 GMT+8)</h1>
+        <p>* Implemented Spell Request (replace PI Request), it's way better.</p>
+        <p>* Fixed bugs.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r88-release (Apr 7, 2022, 16:45 GMT+8)</h1>
+        <p>* Fixed heal prediction and request glow.</p>
+        <br/>
+
+        <h1>r87-release (Apr 7, 2022, 04:40 GMT+8)</h1>
+        <h2>Tools</h2>
+        <p>+ Implemented Power Infusion Request.</p>
+        <p>+ Implemented Dispel Request.</p>
+        <h2>Layouts</h2>
+        <p>+ Added Show NPC Frame option.</p>
+        <p>+ Implemented vertical unit button.</p>
+        <h2>Indicators</h2>
+        <p>* Added Show Duration option to debuffs, externals and defensives.</p>
+        <h2>Misc</h2>
+        <p>* Rewrote Options UI.</p>
+        <p>* Fixed range check for NPCs.</p>
+        <p>* Update zhTW.</p>
+        <br/>
+
+        <h1>r86-release (Mar 27, 2022, 15:00 GMT+8)</h1>
+        <p>* Added a "Default" anchor option for tooltips.</p>
+        <br/>
+
+        <h1>r85-release (Mar 26, 2022, 18:00 GMT+8)</h1>
+        <p>* Fixed bugs (occured when scale ~= 1).</p>
+        <br/>
+
+        <h1>r84-release (Mar 26, 2022, 15:45 GMT+8)</h1>
+        <p>+ Implemented layout sharing.</p>
+        <p>+ Added new custom indicator type: Color.</p>
+        <p>* Updated SotFO debuffs.</p>
+        <br/>
+
+        <h1>r83-release (Mar 18, 2022, 13:50 GMT+8)</h1>
+        <p>+ Implemented indicators import/export.</p>
+        <p>* Fixed Health Text indicator.</p>
+        <br/>
+
+        <h1>r82-release (Mar 16, 2022, 13:20 GMT+8)</h1>
+        <p>+ Implemented unitbutton fadeIn &amp; fadeOut.</p>
+        <p>* Updated BigDebuffs.</p>
+        <p>* Try to fix boss6/7/8 health updating issues with CLEU.</p>
+        <br/>
+
+        <h1>r81-release (Mar 12, 2022, 14:00 GMT+8)</h1>
+        <p>* Marks Bar: added vertical layout.</p>
+        <p>* Updated SotFO debuffs.</p>
+        <br/>
+
+        <h1>r80-release (Mar 10, 2022, 17:00 GMT+8)</h1>
+        <p>* Fixed NPC frame (horizontal layout).</p>
+        <p>+ Implemented separate NPC frame.</p>
+        <br/>
+
+        <h1>r79-release (Mar 10, 2022, 10:35 GMT+8)</h1>
+        <p>* Updated NPC frame (5 -> 8).</p>
+        <p>* Updated name text width options.</p>
+        <br/>
+
+        <h1>r78-release (Mar 9, 2022, 00:45 GMT+8)</h1>
+        <p>+ Implemented Raid Debuffs import/export/reset, check out the tips in Raid Debuffs.</p>
+        <p>* Updated SotFO debuffs.</p>
+        <p>* Updated zhCN.</p>
+        <br/>
+
+        <h1>r77-release (Mar 3, 2022, 08:21 GMT+8)</h1>
+        <p>* Bug fixes: click-castings (priest).</p>
+        <p>+ Added "Use Game Font" option in Appearance.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r76-release (Feb 24, 2022, 11:20 GMT+8)</h1>
+        <p>+ Updated raid debuffs: Sepulcher of the First Ones.</p>
+        <p>* Bug fixes: appearance preview.</p>
+        <br/>
+
+        <h1>r75-release (Feb 17, 2022, 00:22 GMT+8)</h1>
+        <h2>Appearance</h2>
+        <p>* Updated button highlight size option: negative size.</p>
+        <p>+ New power color: Power Color (dark).</p>
+        <h2>General</h2>
+        <p>* Updated pixel perfect: raid tools.</p>
+        <p>* Disabled Death Report in battlegrounds and arenas.</p>
+        <h2>Layouts</h2>
+        <p>* Updated layout creation.</p>
+        <h2>Raid Debuffs</h2>
+        <p>+ New raid debuffs sharing feature (beta): shift + left click on instance/boss to share debuffs via chat link.</p>
+        <br/>
+
+        <h1>r74-release (Jan 12, 2022, 22:20 GMT+8)</h1>
+        <p>* Bugs fix: layout auto switch, health text indicator.</p>
+        <p>+ New "Condition" option in Raid Debuffs.</p>
+        <br/>
+
+        <h1>r73-release (Dec 8, 2021, 22:22 GMT+8)</h1>
+        <p>* Defect fixes.</p>
+        <br/>
+        
+        <h1>r72-release (Dec 7, 2021, 15:20 GMT+8)</h1>
+        <p>* Fixed Debuffs indicator delayed refreshing issue.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r71-release (Nov 30, 2021, 04:15 GMT+8)</h1>
+        <p>+ Added "Circled Stack Numbers" option to custom text indicator.</p>
+        <p>+ Added status color options to Status Text indicator.</p>
+        <p>+ Implemented power bar filters (Layouts).</p>
+        <p>* Bug fixes (indicator preview).</p>
+        <p>* Updated the default spell list of Defensive Cooldowns indicator.</p>
+        <p>* Updated zhTW.</p>
+        <p>+ Cell can provide a "Healers" indicator on first run.</p>
+        <br/>
+
+        <h1>r70-release (Nov 18, 2021, 09:20 GMT+8)</h1>
+        <p>+ Added several new options in Appearance.</p>
+        <p>+ Added "Show Duration" option to custom TEXT indicator.</p>
+        <br/>
+
+        <h1>r69-release (Nov 16, 2021, 09:10 GMT+8)</h1>
+        <p>+ Added "Background Alpha" in Appearance.</p>
+        <p>* Updated Raid Debuffs indicator, it can show up to 3 debuffs now.</p>
+        <br/>
+
+        <h1>r68-release (Nov 5, 2021, 22:40 GMT+8)</h1>
+        <p>+ Added an Icon Animation option in Appearance.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r67-release (Oct 8, 2021, 02:55 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r66-release (Oct 7, 2021, 23:30 GMT+8)</h1>
+        <p>+ Added support for Class Colors addon.</p>
+        <p>+ Implemented Always Targeting (Click-Castings).</p>
+        <br/>
+
+        <h1>r65-release (Sep 23, 2021, 10:00 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <p>* Updated Targeted Spells.</p>
+        <p>+ Added spell icons for indicator aura list.</p>
+        <br/>
+
+        <h1>r64-release (Sep 1, 2021, 08:18 GMT+8)</h1>
+        <p>* Updated Big Debuffs, Targeted Spells and Raid Debuffs.</p>
+        <br/>
+
+        <h1>r63-release (Aug 24, 2021, 03:06 GMT+8)</h1>
+        <p>* Debuff blacklist will not affect other indicators any more.</p>
+        <p>* Updated Big Debuffs and Raid Debuffs.</p>
+        <br/>
+
+        <h1>r62-release (Aug 20, 2021, 06:05 GMT+8)</h1>
+        <p>+ Added a Rename button for indicators.</p>
+        <p>* Fixed Layout Auto Switch (battleground &amp; arena).</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r61-release (Aug 16, 2021, 22:30 GMT+8)</h1>
+        <p>+ New Indicator: Aggro (border).</p>
+        <p>* Renamed Indicators: Aggro Indicator -> Aggro (blink), Aggro Bar -> Aggro (bar).</p>
+        <p>* Updated zhCN, zhTW.</p>
+        <br/>
+
+        <h1>r60-release (Aug 16, 2021, 04:08 GMT+8)</h1>
+        <p>+ Added spellId 0 for ICONS indicator to match all auras.</p>
+        <p>+ Added pet button size options.</p>
+        <p>* Updated party frame UnitIds, made them more reliable.</p>
+        <p>* Updated anchors of indicators.</p>
+        <p>* Updated Death Report, Buff Tracker and Targeted Spells.</p>
+        <br/>
+        
         <h1>r59-release (Aug 7, 2021, 18:23 GMT+8)</h1>
         <p>* Implemented Copy Indicators.</p>
         <p>* Updated Layout Auto Switch.</p>
@@ -224,6 +509,8 @@ select(2, ...).L = setmetatable({
         <h2>Misc</h2>
         <p>+ Party/Raid Preview Mode will help you adjust layouts.</p>
         <p>+ Group Anchor Point comes, go check it out in Layouts -&gt; Group Arrangement.</p>
+        <br/>
+        <br/>
         <br/>
     ]],
 }, {
