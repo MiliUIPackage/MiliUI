@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title : ModelPique
 ## Notes: See what a linked mount/companion looks like
 ## Title-zhTW: |cffFFFF66[收藏]|r 坐騎/戰寵模組預覽

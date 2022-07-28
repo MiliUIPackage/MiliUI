@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: AutoVendor
 ## Notes: Automatically sells useless stuff and repairs your gear
 ## Title-zhTW: |cFF2DA267[物品]|r 自動修裝與賣垃圾

@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: Align (1.10)
 ## Author: Akeru (swyatt@gmail.com)
 ## Notes: Grid to Align UI elements.

@@ -1,4 +1,4 @@
-﻿## Interface: 90100
+﻿## Interface: 90205
 ## Title: TradeLog
 ## Title-zhCN: TradeLog
 ## Notes: |cffbc8f8ftrade log, mage warlock trade assistant.|r

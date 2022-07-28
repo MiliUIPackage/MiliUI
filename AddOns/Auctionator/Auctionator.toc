@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: Auctionator
 ## Version: 9.1.2-3-g349b591
 ## Author: Borjamacare, plusmouse

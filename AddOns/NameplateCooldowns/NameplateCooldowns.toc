@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: NameplateCooldowns
 ## Notes: Shows the cooldowns of enemy players above their nameplates
 ## Title-zhTW: |cffFF0000[PVP]|r 血條技能冷卻監控

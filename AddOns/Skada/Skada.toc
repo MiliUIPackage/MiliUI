@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: Skada
 ## Notes: Modular damage meter.
 ## Notes-zhCN: 模块化伤害统计。

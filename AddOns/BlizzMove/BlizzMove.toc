@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: BlizzMove
 ## Notes: Makes blizzard frames movable
 ## Title-zhTW: |cFF0099FF[介面]|r 框架解鎖

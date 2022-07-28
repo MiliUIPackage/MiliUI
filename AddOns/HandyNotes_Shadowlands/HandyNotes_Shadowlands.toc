@@ -1,4 +1,4 @@
-## Interface: 90100
+## Interface: 90205
 ## Title: HandyNotes: Shadowlands
 ## Version: 36
 ## Notes: Shadowlands Notes

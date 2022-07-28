@@ -1,4 +1,4 @@
-﻿## Interface: 90100
+﻿## Interface: 90205
 ## Title: TransmogWishList
 ## Notes: A lightweight wish list for transmog appearances.
 ## Title-zhTW: |cffFFFF66[收藏]|r 塑形願望清單
