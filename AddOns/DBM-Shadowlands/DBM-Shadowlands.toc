@@ -1,4 +1,5 @@
-## Interface: 90100
+## Interface: 90205
+## Version: 9.2.19
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0World Bosses (Shadowlands)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0暗影之境|r
 ## Author: MysticalOS
@@ -14,13 +15,19 @@
 ## X-DBM-Mod-Name-zhTW: 世界首領 (暗影之境)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 310
-## X-DBM-Mod-MapID: 2222
-## X-DBM-Mod-LoadCID: 167524,167525,167527,167526,178958
+## X-DBM-Mod-MapID: 2222, 2374
+## X-DBM-Mod-LoadCID: 167524,167525,167527,167526,178958,182466
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 8
+## X-Curse-Project-ID: 3358
+## X-WoWI-ID: 8814
+## X-Wago-ID: qv633o6b
+
 localization.en.lua
+localization.tw.lua
 Valinor.lua
 Mortanis.lua
 Oranomonos.lua
 Nurgash.lua
 Morgeth.lua
+Antros.lua

@@ -5,16 +5,18 @@ DBM_GUI = {
 	panels	= {}
 }
 
+local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
+
 local next, type, pairs, strsplit, tonumber, tostring, ipairs, tinsert, tsort, mfloor = next, type, pairs, strsplit, tonumber, tostring, ipairs, table.insert, table.sort, math.floor
-local CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontNormalSmall, GameFontHighlight, GameFontHighlightSmall, ChatFontNormal, UIParent = CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontNormalSmall, GameFontHighlight, GameFontHighlightSmall, ChatFontNormal, UIParent
+local CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontHighlight, ChatFontNormal, UIParent = CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontHighlight, ChatFontNormal, UIParent
 local RAID_DIFFICULTY1, RAID_DIFFICULTY2, RAID_DIFFICULTY3, RAID_DIFFICULTY4, PLAYER_DIFFICULTY1, PLAYER_DIFFICULTY2, PLAYER_DIFFICULTY3, PLAYER_DIFFICULTY6, PLAYER_DIFFICULTY_TIMEWALKER, CHALLENGE_MODE, ALL, CLOSE, SPECIALIZATION = RAID_DIFFICULTY1, RAID_DIFFICULTY2, RAID_DIFFICULTY3, RAID_DIFFICULTY4, PLAYER_DIFFICULTY1, PLAYER_DIFFICULTY2, PLAYER_DIFFICULTY3, PLAYER_DIFFICULTY6, PLAYER_DIFFICULTY_TIMEWALKER, CHALLENGE_MODE, ALL, CLOSE, SPECIALIZATION
 local LibStub, DBM, DBM_GUI, DBM_OPTION_SPACER = _G["LibStub"], DBM, DBM_GUI, DBM_OPTION_SPACER
 local playerName, realmName, playerLevel = UnitName("player"), GetRealmName(), UnitLevel("player")
 
 StaticPopupDialogs["IMPORTPROFILE_ERROR"] = {
-	text = "There are one or more errors importing this profile. Please see the chat for more information. Would you like to continue and reset found errors to default?",
-	button1 = "Import and fix",
-	button2 = "No",
+	text = "導入此設定檔有一個或多個錯誤。 請參閱聊天獲得更多訊息。 您想繼續並將發現的錯誤重置為預設值嗎？ ",
+	button1 = "匯入與修正",
+	button2 = "不要",
 	OnAccept = function(self)
 		self.importFunc()
 	end,
@@ -35,15 +37,15 @@ do
 			local LSM = LibStub("LibSharedMedia-3.0")
 			soundsRegistered = true
 			-- Embedded Sound Clip media
-			LSM:Register("sound", "AirHorn (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
-			LSM:Register("sound", "Jaina: Beware", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
-			LSM:Register("sound", "Jaina: Beware (reverb)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
-			LSM:Register("sound", "Thrall: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
-			LSM:Register("sound", "Saurfang: Don't Die", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
+			LSM:Register("sound", "準備行動 (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
+			LSM:Register("sound", "珍娜: Beware", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
+			LSM:Register("sound", "珍娜: Beware (reverb)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
+			LSM:Register("sound", "索爾: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
+			LSM:Register("sound", "薩魯法爾: Don't Die", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
 			-- Blakbyrd
-			LSM:Register("sound", "Blakbyrd Alert 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
-			LSM:Register("sound", "Blakbyrd Alert 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
-			LSM:Register("sound", "Blakbyrd Alert 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
+			LSM:Register("sound", "後院警報 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
+			LSM:Register("sound", "後院警報 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
+			LSM:Register("sound", "後院警報 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
 			-- User Media
 			if DBM.Options.CustomSounds >= 1 then
 				LSM:Register("sound", "DBM: Custom 1", [[Interface\AddOns\DBM-CustomSounds\Custom1.ogg]])
@@ -138,7 +140,7 @@ do
 	local popupFrame
 
 	local function createPopupFrame()
-		popupFrame = CreateFrame("Frame", nil, UIParent, DBM:IsShadowlands() and "BackdropTemplate")
+		popupFrame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
 		popupFrame:SetFrameStrata("DIALOG")
 		popupFrame:SetFrameLevel(popupFrame:GetFrameLevel() + 10)
 		popupFrame:SetSize(512, 512)
@@ -151,11 +153,7 @@ do
 			edgeSize	= 32,
 			insets		= { left = 8, right = 8, top = 8, bottom = 8 }
 		}
-		if DBM:IsShadowlands() then
-			popupFrame:ApplyBackdrop()
-		else
-			popupFrame:SetBackdrop(popupFrame.backdropInfo)
-		end
+		popupFrame:ApplyBackdrop()
 		popupFrame:SetMovable(true)
 		popupFrame:EnableMouse(true)
 		popupFrame:RegisterForDrag("LeftButton")
@@ -164,7 +162,7 @@ do
 		popupFrame:Hide()
 		popupFrame.text = ""
 
-		local backdrop = CreateFrame("Frame", nil, popupFrame, DBM:IsShadowlands() and "BackdropTemplate")
+		local backdrop = CreateFrame("Frame", nil, popupFrame, "BackdropTemplate")
 		backdrop.backdropInfo = {
 			bgFile		= "Interface\\ChatFrame\\ChatFrameBackground",
 			edgeFile	= "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -173,21 +171,17 @@ do
 			edgeSize	= 16,
 			insets		= { left = 3, right = 3, top = 5, bottom = 3 }
 		}
-		if DBM:IsShadowlands() then
-			backdrop:ApplyBackdrop()
-		else
-			backdrop:SetBackdrop(backdrop.backdropInfo)
-		end
+		backdrop:ApplyBackdrop()
 		backdrop:SetBackdropColor(0.1, 0.1, 0.1, 0.6)
 		backdrop:SetBackdropBorderColor(0.4, 0.4, 0.4)
 		backdrop:SetPoint("TOPLEFT", 15, -15)
 		backdrop:SetPoint("BOTTOMRIGHT", -40, 40)
 
-		local scrollFrame = CreateFrame("ScrollFrame", "TestScrollFrame", popupFrame, "UIPanelScrollFrameTemplate")
+		local scrollFrame = CreateFrame("ScrollFrame", nil, popupFrame, "UIPanelScrollFrameTemplate")
 		scrollFrame:SetPoint("TOPLEFT", 15, -22)
 		scrollFrame:SetPoint("BOTTOMRIGHT", -40, 45)
 
-		local input = CreateFrame("EditBox", "TestEditBox", scrollFrame)
+		local input = CreateFrame("EditBox", nil, scrollFrame)
 		input:SetTextInsets(7, 7, 3, 3)
 		input:SetFontObject(ChatFontNormal)
 		input:SetMultiLine(true)
@@ -242,7 +236,7 @@ do
 
 	function DBM_GUI:CreateExportProfile(export)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -255,7 +249,7 @@ do
 
 	function DBM_GUI:CreateImportProfile(importFunc)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -306,9 +300,59 @@ function DBM_GUI:ShowHide(forceshow)
 	end
 end
 
+local catbutton, lastButton, addSpacer
+local function addOptions(mod, catpanel, v)
+	if v == DBM_OPTION_SPACER then
+		addSpacer = true
+	else
+		lastButton = catbutton
+		if v.line then
+			catbutton = catpanel:CreateLine(v.text)
+		elseif type(mod.Options[v]) == "boolean" then
+			if mod.Options[v .. "TColor"] then
+				catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true, nil, nil, nil, mod, v, nil, true)
+			elseif mod.Options[v .. "SWSound"] then
+				catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true, nil, nil, nil, mod, v)
+			else
+				catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true)
+			end
+			catbutton:SetScript("OnShow", function(self)
+				self:SetChecked(mod.Options[v])
+			end)
+			catbutton:SetScript("OnClick", function(self)
+				mod.Options[v] = not mod.Options[v]
+				if mod.optionFuncs and mod.optionFuncs[v] then
+					mod.optionFuncs[v]()
+				end
+			end)
+		elseif mod.dropdowns and mod.dropdowns[v] then
+			local dropdownOptions = {}
+			for _, val in ipairs(mod.dropdowns[v]) do
+				tinsert(dropdownOptions, {
+					text	= mod.localization.options[val],
+					value	= val
+				})
+			end
+			catbutton = catpanel:CreateDropdown(mod.localization.options[v], dropdownOptions, mod, v, function(value)
+				mod.Options[v] = value
+				if mod.optionFuncs and mod.optionFuncs[v] then
+					mod.optionFuncs[v]()
+				end
+			end, nil, 32)
+			if not addSpacer then
+				catbutton:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, -10)
+			end
+		end
+		if addSpacer then
+			catbutton:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, -6)
+			addSpacer = false
+		end
+	end
+end
+
 function DBM_GUI:CreateBossModPanel(mod)
 	if not mod.panel then
-		DBM:AddMsg("Couldn't create boss mod panel for " .. mod.localization.general.name)
+		DBM:AddMsg("無法建立".. mod.localization.general.name .."的首領模組面板")
 		return false
 	end
 	local panel = mod.panel
@@ -321,8 +365,8 @@ function DBM_GUI:CreateBossModPanel(mod)
 	for i = 1, 8 do
 		local icon = panel.frame:CreateTexture()
 		icon:SetTexture(137009) -- "Interface\\TargetingFrame\\UI-RaidTargetingIcons.blp"
-        icon:SetPoint("TOP", panel.frame, 81 - (i * 18), -26)
-        icon:SetSize(16, 16)
+		icon:SetPoint("TOP", panel.frame, 81 - (i * 18), -26)
+		icon:SetSize(16, 16)
 		if not mod.usedIcons or not mod.usedIcons[i] then
 			icon:SetAlpha(0.25)
 		end
@@ -334,10 +378,18 @@ function DBM_GUI:CreateBossModPanel(mod)
 		elseif	i == 6 then		icon:SetTexCoord(0.25,	0.5,	0.25,	0.5)
 		elseif	i == 7 then		icon:SetTexCoord(0.5,	0.75,	0.25,	0.5)
 		elseif	i == 8 then		icon:SetTexCoord(0.75,	1,		0.25,	0.5)
+--		elseif	i == 9 then		icon:SetTexCoord(0,		0.25,	0.5,	0.75)
+--		elseif	i == 10 then	icon:SetTexCoord(0.25,	0.5,	0.5,	0.75)
+--		elseif	i == 11 then	icon:SetTexCoord(0.5,	0.75,	0.5,	0.75)
+--		elseif	i == 12 then	icon:SetTexCoord(0.75,	1,		0.5,	0.75)
+--		elseif	i == 13 then	icon:SetTexCoord(0,		0.25,	0.75,	1)
+--		elseif	i == 14 then	icon:SetTexCoord(0.25,	0.5,	0.75,	1)
+--		elseif	i == 15 then	icon:SetTexCoord(0.5,	0.75,	0.75,	1)
+--		elseif	i == 16 then	icon:SetTexCoord(0.75,	1,		0.75,	1)
 		end
 	end
 
-	local reset = panel:CreateButton(L.Mod_Reset, 155, 30, nil, GameFontNormalSmall)
+	local reset = panel:CreateButton(L.Mod_Reset, 155, 30, nil, GameFontNormal)
 	reset.myheight = 40
 	reset:SetPoint("TOPRIGHT", panel.frame, "TOPRIGHT", -24, -4)
 	reset:SetScript("OnClick", function(self)
@@ -350,87 +402,71 @@ function DBM_GUI:CreateBossModPanel(mod)
 		mod:Toggle()
 	end)
 
+	if mod.addon and not mod.addon.oldOptions and DBM.Options.GroupOptionsBySpell then
+		for spellID, options in getmetatable(mod.groupOptions).__pairs(mod.groupOptions) do
+			if spellID:find("^line") then
+				panel:CreateLine(options)
+			else
+				local title, desc, _, icon
+				if tonumber(spellID) then
+					local _title = DBM:GetSpellInfo(spellID)
+					if _title then
+						title, desc, icon = _title, tonumber(spellID), GetSpellTexture(spellID)
+					else--Not a valid spellid (Such as a ptr/beta mod loaded on live
+						title, desc, icon = spellID, L.NoDescription, 136116
+					end
+				elseif spellID:find("^ej") then
+					title, desc, _, icon = DBM:EJ_GetSectionInfo(spellID:gsub("ej", ""))
+				elseif spellID:find("^at") then
+					spellID = spellID:gsub("at", "")
+					_, title, _, _, _, _, _, desc, _, icon = GetAchievementInfo(spellID)
+				else
+					title = spellID
+				end
+				local catpanel = panel:CreateAbility(title, icon)
+				if desc then
+					catpanel:CreateSpellDesc(desc)
+				end
+				catbutton, lastButton, addSpacer = nil, nil, nil
+				for _, v in ipairs(options) do
+					addOptions(mod, catpanel, v)
+				end
+			end
+		end
+	end
+
 	local scannedCategories = {}
 	for _, catident in pairs(mod.categorySort) do
 		category = mod.optionCategories[catident]
 		if not scannedCategories[catident] and category then
 			scannedCategories[catident] = true
 			local catpanel = panel:CreateArea(mod.localization.cats[catident])
-			local catbutton, lastButton, addSpacer
+			catbutton, lastButton, addSpacer = nil, nil, nil
 			for _, v in ipairs(category) do
-				if v == DBM_OPTION_SPACER then
-					addSpacer = true
-				else
-					lastButton = catbutton
-					if v.line then
-						catbutton = catpanel:CreateLine(v.text)
-					elseif type(mod.Options[v]) == "boolean" then
-						if mod.Options[v .. "TColor"] then
-							catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true, nil, nil, nil, mod, v, nil, true)
-						elseif mod.Options[v .. "SWSound"] then
-							catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true, nil, nil, nil, mod, v)
-						else
-							catbutton = catpanel:CreateCheckButton(mod.localization.options[v], true)
-						end
-						catbutton:SetScript("OnShow", function(self)
-							self:SetChecked(mod.Options[v])
-						end)
-						catbutton:SetScript("OnClick", function(self)
-							mod.Options[v] = not mod.Options[v]
-							if mod.optionFuncs and mod.optionFuncs[v] then
-								mod.optionFuncs[v]()
-							end
-						end)
-					elseif mod.buttons and mod.buttons[v] then
-						local but = mod.buttons[v]
-						catbutton = catpanel:CreateButton(v, but.width, but.height, but.onClick, but.fontObject)
-					elseif mod.editboxes and mod.editboxes[v] then
-						local editBox = mod.editboxes[v]
-						catbutton = catpanel:CreateEditBox(mod.localization.options[v], "", editBox.width, editBox.height)
-						catbutton:SetScript("OnShow", function(self)
-							catbutton:SetText(mod.Options[v])
-						end)
-						catbutton:SetScript("OnEnterPressed", function(self)
-							if mod.optionFuncs and mod.optionFuncs[v] then
-								mod.optionFuncs[v]()
-							end
-						end)
-					elseif mod.sliders and mod.sliders[v] then
-						local slider = mod.sliders[v]
-						catbutton = catpanel:CreateSlider(mod.localization.options[v], slider.minValue, slider.maxValue, slider.valueStep)
-						catbutton:SetScript("OnShow", function(self)
-							self:SetValue(mod.Options[v])
-						end)
-						catbutton:HookScript("OnValueChanged", function(self)
-							if mod.optionFuncs and mod.optionFuncs[v] then
-								mod.optionFuncs[v]()
-							end
-						end)
-					elseif mod.dropdowns and mod.dropdowns[v] then
-						local dropdownOptions = {}
-						for _, val in ipairs(mod.dropdowns[v]) do
-							dropdownOptions[#dropdownOptions + 1] = {
-								text	= mod.localization.options[val],
-								value	= val
-							}
-						end
-						catbutton = catpanel:CreateDropdown(mod.localization.options[v], dropdownOptions, mod, v, function(value)
-							mod.Options[v] = value
-							if mod.optionFuncs and mod.optionFuncs[v] then
-								mod.optionFuncs[v]()
-							end
-						end, nil, 32)
-						if not addSpacer then
-							catbutton:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, -10)
-						end
-					end
-					if addSpacer then
-						catbutton:SetPoint("TOPLEFT", lastButton, "BOTTOMLEFT", 0, -6)
-						addSpacer = false
+				addOptions(mod, catpanel, v)
+			end
+		end
+	end
+end
+
+local function GetSpecializationGroup()
+	if isRetail then
+		return GetSpecialization() or 1
+	else
+		local numTabs = GetNumTalentTabs()
+		local highestPointsSpent, currentSpecGroup = 0, 1
+		if MAX_TALENT_TABS then
+			for i=1, MAX_TALENT_TABS do
+				if ( i <= numTabs ) then
+					local _, _, pointsSpent = GetTalentTabInfo(i)
+					if pointsSpent > highestPointsSpent then
+						highestPointsSpent = pointsSpent
+						currentSpecGroup = i
 					end
 				end
 			end
 		end
+		return currentSpecGroup
 	end
 end
 
@@ -535,7 +571,7 @@ do
 
 			-- Start import/export
 			local function actuallyImport(importTable)
-				local profileID = playerLevel > 9 and DBM_UseDualProfile and (GetSpecialization() or 1) or 0
+				local profileID = playerLevel > 9 and DBM_UseDualProfile and GetSpecializationGroup() or 0
 				for _, id in ipairs(DBM.ModLists[addon.modId]) do
 					_G[addon.modId:gsub("-", "") .. "_AllSavedVars"][playerName .. "-" .. realmName][id][profileID] = importTable[id]
 					DBM:GetModByName(id).Options = importTable[id]
@@ -544,16 +580,18 @@ do
 			end
 
 			local importExportProfilesArea = panel:CreateArea(L.Area_ImportExportProfile)
-			importExportProfilesArea:CreateText(L.ImportExportInfo, nil, true)
+			local test = importExportProfilesArea:CreateText(L.ImportExportInfo, nil, true)
+			test:SetPoint("TOPLEFT", 15, -10)
 			local exportProfile = importExportProfilesArea:CreateButton(L.ButtonExportProfile, 120, 20, function()
 				local exportProfile = {}
-				local profileID = playerLevel > 9 and DBM_UseDualProfile and (GetSpecialization() or 1) or 0
+				local profileID = playerLevel > 9 and DBM_UseDualProfile and GetSpecializationGroup() or 0
 				for _, id in ipairs(DBM.ModLists[addon.modId]) do
 					exportProfile[id] = _G[addon.modId:gsub("-", "") .. "_AllSavedVars"][playerName .. "-" .. realmName][id][profileID]
 				end
 				DBM_GUI:CreateExportProfile(exportProfile)
 			end)
-			exportProfile:SetPoint("TOPLEFT", 12, -20)
+			exportProfile.myheight = 0
+			exportProfile:SetPoint("TOPLEFT", 12, -25)
 			local importProfile = importExportProfilesArea:CreateButton(L.ButtonImportProfile, 120, 20, function()
 				DBM_GUI:CreateImportProfile(function(importTable)
 					local errors = {}
@@ -597,13 +635,13 @@ do
 			return
 		end
 
-		local ptext = panel:CreateText(L.BossModLoaded:format(subtab and addon.subTabs[subtab] or addon.name), nil, nil, GameFontNormal)
-		ptext:SetPoint("TOPLEFT", panel.frame, "TOPLEFT", 10, modProfileArea and -235 or -10)
+		local ptext = panel:CreateText(L.BossModLoaded:format(subtab and addon.subTabs[subtab] or addon.name), nil, nil, nil, "CENTER")
+		ptext:SetPoint("TOPLEFT", panel.frame, "TOPLEFT", 10, modProfileArea and -245 or -10)
 
 		local singleLine, doubleLine, noHeaderLine = 0, 0, 0
 		local area = panel:CreateArea()
 		area.frame.isStats = true
-		area.frame:SetPoint("TOPLEFT", 10, modProfileArea and -250 or -25)
+		area.frame:SetPoint("TOPLEFT", 10, modProfileArea and -260 or -25)
 
 		local statOrder = {
 			"lfr", "normal", "normal25", "heroic", "heroic25", "mythic", "challenge", "timewalker"
@@ -630,7 +668,7 @@ do
 				local Title			= area:CreateText(mod.localization.general.name, nil, nil, GameFontHighlight, "LEFT")
 
 				local function CreateText(text, header)
-					local frame = area:CreateText(text or "", nil, nil, header and GameFontHighlightSmall or GameFontNormalSmall, "LEFT")
+					local frame = area:CreateText(text or "", nil, nil, header and GameFontHighlight or GameFontNormal, "LEFT")
 					frame:Hide()
 					return frame
 				end
@@ -679,7 +717,7 @@ do
 					heroic		= mod.addon.minExpansion < 5 and RAID_DIFFICULTY3 or PLAYER_DIFFICULTY2,
 					heroic25	= RAID_DIFFICULTY4,
 					mythic		= PLAYER_DIFFICULTY6,
-					challenge	= mod.addon.minExpansion < 6 and CHALLENGE_MODE or (PLAYER_DIFFICULTY6 .. "+"),
+					challenge	= (mod.addon.minExpansion < 6 and not mod.upgradedMPlus) and CHALLENGE_MODE or (PLAYER_DIFFICULTY6 .. "+"),
 					timewalker	= PLAYER_DIFFICULTY_TIMEWALKER
 				}
 				if (mod.addon.type == "PARTY" or mod.addon.type == "SCENARIO") or -- Fixes dungeons being labled incorrectly
@@ -688,7 +726,6 @@ do
 					statTypes.normal = PLAYER_DIFFICULTY1
 					statTypes.heroic = PLAYER_DIFFICULTY2
 				end
-
 
 				local lastArea = 0
 
@@ -736,7 +773,7 @@ do
 	local category = {}
 	local subTabId = 0
 	local expansions = {
-		"CLASSIC", "BC", "WOTLK", "CATA", "MOP", "WOD", "LEG", "BFA", "SHADOWLANDS"
+		"CLASSIC", "BC", "WOTLK", "CATA", "MOP", "WOD", "LEG", "BFA", "SHADOWLANDS", "DRAGONFLIGHT"
 	}
 
 	function DBM_GUI:UpdateModList()
@@ -753,7 +790,7 @@ do
 				if not IsAddOnLoaded(addon.modId) then
 					local button = addon.panel:CreateButton(L.Button_LoadMod, 200, 30)
 					button.modid = addon
-					button.headline = addon.panel:CreateText(L.BossModLoad_now, 350)
+					button.headline = addon.panel:CreateText(L.BossModLoad_now, 350, nil, nil, "CENTER")
 					button.headline:SetHeight(50)
 					button.headline:SetPoint("CENTER", button, "CENTER", 0, 80)
 

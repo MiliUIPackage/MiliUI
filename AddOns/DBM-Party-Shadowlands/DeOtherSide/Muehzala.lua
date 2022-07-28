@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2410, "DBM-Party-Shadowlands", 7, 1188)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210123235530")
+mod:SetRevision("20220614201118")
 mod:SetCreatureID(169769)
 mod:SetEncounterID(2396)
 
@@ -9,7 +9,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 325258 327646 326171",
-	"SPELL_CAST_SUCCESS 325725 324698 326171 327426",
+	"SPELL_CAST_SUCCESS 325725 326171 327426",
 	"SPELL_AURA_APPLIED 325725 334970",
 	"SPELL_AURA_REMOVED 325725 334970"
 --	"UNIT_DIED"
@@ -45,9 +45,10 @@ local specWarnDeathgate				= mod:NewSpecialWarningMoveTo(324698, nil, nil, nil, 
 
 --Stage 1: The Master of Death
 local timerMasterofDeathCD			= mod:NewCDTimer(32.8, 325258, nil, nil, nil, 3)
-local timerCosmicArtificeCD			= mod:NewCDCountTimer(19.5, 325725, nil, nil, nil, 3, nil, DBM_CORE_L.MAGIC_ICON)
-local timerSoulcrusherCD			= mod:NewCDCountTimer(17.8, 327646, nil, "Tank|Healer", nil, 5, nil, DBM_CORE_L.TANK_ICON)
-local timerShatterRealityCD			= mod:NewCDTimer(25.3, 326171, nil, nil, nil, 2, nil, DBM_CORE_L.DEADLY_ICON)
+local timerCosmicArtificeCD			= mod:NewCDCountTimer(19.5, 325725, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerSoulcrusherCD			= mod:NewCDCountTimer(17.8, 327646, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerShatterRealityCD			= mod:NewCDTimer(25.3, 326171, nil, nil, nil, 6)
+local timerShatterReality			= mod:NewCastTimer(10, 326171, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 --Stage 2: Shattered Reality
 local timerCoalescing				= mod:NewCastTimer(25, 334970, nil, nil, nil, 6)
 
@@ -60,7 +61,7 @@ function mod:OnCombatStart(delay)
 	self.vb.soulCount = 0
 	timerCosmicArtificeCD:Start(3.7-delay, 1)--SUCCESS
 	timerSoulcrusherCD:Start(5.9-delay, 1)
-	timerMasterofDeathCD:Start(9.5-delay)
+	timerMasterofDeathCD:Start(9.3-delay)
 	timerShatterRealityCD:Start(60)
 end
 
@@ -68,7 +69,7 @@ function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 325258 then
 		specWarnMasterofDeath:Show()
-		specWarnMasterofDeath:Play("watchwave")
+		specWarnMasterofDeath:Play("shockwave")
 		timerMasterofDeathCD:Start()
 	elseif spellId == 327646 then
 		self.vb.soulCount = self.vb.soulCount + 1
@@ -84,6 +85,9 @@ function mod:SPELL_CAST_START(args)
 		timerCosmicArtificeCD:Stop()
 		timerSoulcrusherCD:Stop()
 		warnShatterReality:Show()
+		timerShatterReality:Start()
+		specWarnDeathgate:Schedule(4)
+		specWarnDeathgate:ScheduleVoice(4, "findshelter")
 	end
 end
 
@@ -96,9 +100,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 		else
 			timerCosmicArtificeCD:Start(20, self.vb.cosmicCount+1)
 		end
-	elseif spellId == 324698 then--Deathgate finished
-		specWarnDeathgate:Show(args.spellName)
-		specWarnDeathgate:Play("findshelter")
+--	elseif spellId == 324698 then--Deathgate finished
+--		specWarnDeathgate:Show(args.spellName)
+--		specWarnDeathgate:Play("findshelter")
 ---	elseif spellId == 326171 then--Shattered Reality ending (Phase 2 begin)
 --		self.vb.cosmicCount = 0
 --		timerCosmicArtificeCD:Start(2, 1)
@@ -131,8 +135,8 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.cosmicCount = 0
 		self.vb.soulCount = 0
 		timerCoalescing:Stop()
+		timerCosmicArtificeCD:Start(11.1, 1)--11-19 (maybe a case of pause/resume from previous stage?)
 		timerMasterofDeathCD:Start(15.6)
-		timerCosmicArtificeCD:Start(19.6, 1)
 		timerSoulcrusherCD:Start(21.8, 1)
 		timerShatterRealityCD:Start(76.4)
 	end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2399, "DBM-Party-Shadowlands", 5, 1186)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210123235530")
+mod:SetRevision("20220614201118")
 mod:SetCreatureID(162059, 163077)--162059 Kin-Tara, 163077 Azules
 mod:SetEncounterID(2357)
 mod:SetBossHPInfoToHighest()
@@ -10,7 +10,7 @@ mod:SetUsedIcons(1)
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 320966 327481 317623",
+	"SPELL_CAST_START 320966 327481 317623 324368",
 	"SPELL_CAST_SUCCESS 323636",
 	"SPELL_AURA_APPLIED 323828",
 	"SPELL_PERIODIC_DAMAGE 317626",
@@ -31,25 +31,24 @@ mod:RegisterEventsInCombat(
  or (ability.id = 324368 or ability.id = 317661) and type = "begincast"
 --]]
 --Kin-Tara
+local KinTara = DBM:EJ_GetSectionInfo(21637)
+mod:AddTimerLine(KinTara)
 local warnChargedSpear				= mod:NewTargetNoFilterAnnounce(321009, 4)
 
---Kin-Tara
 local specWarnOverheadSlash			= mod:NewSpecialWarningDefensive(320966, "Tank", nil, nil, 1, 2)
 local specWarnDarkLance				= mod:NewSpecialWarningInterrupt(327481, "HasInterrupt", nil, nil, 1, 2)
 local specWarnChargedSpear			= mod:NewSpecialWarningMoveAway(321009, nil, nil, nil, 1, 2)
 local yellChargedSpear				= mod:NewYell(321009)
 local specWarnChargedSpearNear		= mod:NewSpecialWarningClose(321009, nil, nil, nil, 1, 2)
---Azules
-local specWarnGTFO					= mod:NewSpecialWarningGTFO(317626, nil, nil, nil, 1, 8)
 
---Kin-Tara
-local KinTara = DBM:EJ_GetSectionInfo(21637)
-mod:AddTimerLine(KinTara)
-local timerOverheadSlashCD			= mod:NewCDTimer(6.3, 320966, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--6.3-11
+local timerOverheadSlashCD			= mod:NewCDTimer(6.3, 320966, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--6.3-11
 local timerFlightCD					= mod:NewCDTimer(145, 313606, nil, nil, nil, 6)
-local timerChargedSpearCD			= mod:NewCDTimer(15.8, 321009, nil, nil, nil, 3, nil, DBM_CORE_L.DEADLY_ICON)
+local timerChargedSpearCD			= mod:NewCDTimer(15.8, 321009, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 --Azules
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(21639))
+local specBarrage					= mod:NewSpecialWarningDodge(324368, nil, nil, nil, 2, 6)
+local specWarnGTFO					= mod:NewSpecialWarningGTFO(317626, nil, nil, nil, 1, 8)
+
 local timerInsidiousVenomCD			= mod:NewCDTimer(11.4, 317661, nil, nil, nil, 2)
 local timerMawTouchedVenomCD		= mod:NewCDTimer(15.8, 317655, nil, nil, nil, 3)
 
@@ -91,6 +90,9 @@ function mod:SPELL_CAST_START(args)
 		end
 --	elseif spellId == 317623 then
 --		timerMawTouchedVenomCD:Start()
+	elseif spellId == 324368 and self:AntiSpam(6, 1) then
+		specBarrage:Show()
+		specBarrage:Play("watchorb")
 	end
 end
 

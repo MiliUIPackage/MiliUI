@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod(2390, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210519141141")
+mod:SetRevision("20220321074908")
 mod:SetCreatureID(162329)
 mod:SetEncounterID(2366)
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 320644 317231 320729",
+	"SPELL_CAST_START 320644 317231 320729 339415",
 	"SPELL_CAST_SUCCESS 320050 320114 331618",
 	"SPELL_AURA_APPLIED 320102"
 --	"SPELL_PERIODIC_DAMAGE",
@@ -33,10 +33,10 @@ local specWarnBloodandGlory			= mod:NewSpecialWarningYou(320102, nil, nil, nil, 
 local specWarnOppressiveBanner		= mod:NewSpecialWarningSwitch(331618, nil, nil, nil, 1, 2)
 --local specWarnGTFO					= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 
-local timerBrutalComboCD			= mod:NewCDCountTimer(15.8, 320644, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--Sequenced timer
-local timerMightofMaldraxxusCD		= mod:NewCDCountTimer(15.8, 320050, nil, nil, nil, 6, nil, DBM_CORE_L.DEADLY_ICON)
-local timerBloodandGloryCD			= mod:NewCDCountTimer(70.5, 320102, nil, nil, nil, 3, nil, DBM_CORE_L.DAMAGE_ICON)
-local timerOppressiveBannerCD		= mod:NewCDCountTimer(30.3, 331618, nil, nil, nil, 1, nil, DBM_CORE_L.DAMAGE_ICON)
+local timerBrutalComboCD			= mod:NewCDCountTimer(15.8, 320644, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Sequenced timer
+local timerMightofMaldraxxusCD		= mod:NewCDCountTimer(15.8, 320050, nil, nil, nil, 6, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerBloodandGloryCD			= mod:NewCDCountTimer(70.5, 320102, nil, nil, nil, 3, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerOppressiveBannerCD		= mod:NewCDCountTimer(30.3, 331618, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)
 
 mod.vb.MightCount = 0
 mod.vb.MightCastCount = 0

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2387, "DBM-Party-Shadowlands", 4, 1185)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210722020303")
+mod:SetRevision("20220612153538")
 mod:SetCreatureID(164185)
 mod:SetEncounterID(2380)
 
@@ -26,8 +26,8 @@ mod:RegisterEventsInCombat(
  or (ability.id = 328206 or ability.id = 326389) and type = "cast"
  --]]
 local warnStoneShatteringLeap		= mod:NewTargetNoFilterAnnounce(319592, 3)
+local warnStonesCall				= mod:NewSpellAnnounce(319733, 2)
 
-local specWarnStoneCall				= mod:NewSpecialWarningSpell(319733, nil, nil, nil, 2, 2)
 local specWarnCurseofStoneDispel	= mod:NewSpecialWarningDispel(319603, "RemoveCurse", nil, nil, 1, 2)
 local specWarnCurseofStone			= mod:NewSpecialWarningYou(319603, nil, nil, nil, 1, 2)
 local specWarnBloodTorrent			= mod:NewSpecialWarningSpell(319702, nil, nil, nil, 2, 2)
@@ -36,9 +36,9 @@ local yellStoneShatteringLeap		= mod:NewYell(319592, 47482)
 local yellStoneShatteringLeapFades	= mod:NewShortFadesYell(319592, 47482)
 --local specWarnGTFO					= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 
-local timerStoneCallCD				= mod:NewCDTimer(37.6, 319733, nil, nil, nil, 1, nil, DBM_CORE_L.DAMAGE_ICON)--37.6-49.19 (42-51 now? Or maybe health based)
+local timerStoneCallCD				= mod:NewCDTimer(37.6, 319733, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)--37.6-49.19 (42-51 now? Or maybe health based)
 local timerStoneShatteringLeapCD	= mod:NewCDTimer(29.1, 319592, 47482, nil, nil, 3)--shortText "Leap"
-local timerCurseofStoneCD			= mod:NewCDTimer(29.1, 327411, nil, nil, nil, 3, nil, DBM_CORE_L.CURSE_ICON)
+local timerCurseofStoneCD			= mod:NewCDTimer(29.1, 319603, nil, nil, nil, 3, nil, DBM_COMMON_L.CURSE_ICON)
 local timerBloodTorrentCD			= mod:NewCDTimer(16.9, 319702, nil, nil, nil, 2)--16.9 unless delayed by one of other casts
 
 mod:AddNamePlateOption("NPAuraOnStoneForm", 319724)
@@ -74,8 +74,7 @@ end
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 319733 then
-		specWarnStoneCall:Show()
-		specWarnStoneCall:Play("killmob")
+		warnStonesCall:Show()
 		timerStoneCallCD:Start()
 	elseif spellId == 319941 then
 		self:ScheduleMethod(0.2, "BossTargetScanner", args.sourceGUID, "LeapTarget", 0.1, 8, true, nil, nil, nil, true)

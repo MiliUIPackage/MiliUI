@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod(2395, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210123235530")
+mod:SetRevision("20220531183904")
 mod:SetCreatureID(162691)
 mod:SetEncounterID(2387)
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 320596 320655",
+	"SPELL_CAST_START 320596 320637 320655",
 	"SPELL_PERIODIC_DAMAGE 320646",
 	"SPELL_PERIODIC_MISSED 320646",
 	"UNIT_SPELLCAST_START boss1"
@@ -28,7 +28,7 @@ local specWarnGTFO					= mod:NewSpecialWarningGTFO(320646, nil, nil, nil, 1, 8)
 
 local timerHeavingRetchCD			= mod:NewCDTimer(32.7, 320596, nil, nil, nil, 3)--32.7-42
 local timerFetidGasCD				= mod:NewCDTimer(24.6, 320637, nil, nil, nil, 3)
-local timerCrunchCD					= mod:NewCDTimer(11.7, 320655, nil, "Tank|Healer", nil, 5, nil, DBM_CORE_L.TANK_ICON)--11-20, spell queues behind other 2 casts
+local timerCrunchCD					= mod:NewCDTimer(11.7, 320655, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--11-20, spell queues behind other 2 casts
 
 function mod:RetchTarget(targetname, uId)
 	if not targetname then return end

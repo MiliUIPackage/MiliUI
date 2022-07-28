@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2445, "DBM-SanctumOfDomination", nil, 1193)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210802035513")
+mod:SetRevision("20220216010021")
 mod:SetCreatureID(175727)
 mod:SetEncounterID(2434)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -51,32 +51,34 @@ local specWarnTorment						= mod:NewSpecialWarningDodge(352158, nil, nil, nil, 2
 local specWarnTormentedEruptions			= mod:NewSpecialWarningDodge(349985, nil, nil, nil, 2, 2)
 local specWarnBrandofTorment				= mod:NewSpecialWarningYou(350647, nil, nil, nil, 1, 2)
 local yellBrandofTorment					= mod:NewYell(350647)
-local specWarnRuinblade						= mod:NewSpecialWarningStack(350422, nil, 2, nil, nil, 1, 6)
+local specWarnRuinblade						= mod:NewSpecialWarningStack(350422, nil, 1, nil, nil, 1, 6)
 local specWarnRuinbladeTaunt				= mod:NewSpecialWarningTaunt(350422, nil, nil, nil, 1, 2)
 --Mawsworn Agonizer
 local specWarnAgonizingSpike				= mod:NewSpecialWarningInterruptCount(351779, "false", nil, nil, 1, 2)--Opt in
 --Garrosh Hellscream
-local specWarnWarmongerShackles				= mod:NewSpecialWarningSwitch(348985, nil, nil, nil, 1, 2)
+local specWarnWarmongerShackles				= mod:NewSpecialWarningSwitch(350415, nil, nil, nil, 1, 2)
 --local specWarnGTFO						= mod:NewSpecialWarningGTFO(340324, nil, nil, nil, 1, 8)
 
 --mod:AddTimerLine(BOSS)
 local timerTormentCD						= mod:NewCDCountTimer(35, 352158, nil, nil, nil, 3, nil, nil, true)--Ability is reset by eruption?
 local timerTormentedEruptionsCD				= mod:NewCDCountTimer(160.7, 349985, nil, nil, nil, 3, nil, nil, true)--Tied to bosses energy cycle
 local timerSpawnMawswornCD					= mod:NewCDCountTimer(57.5, 350615, nil, nil, nil, 1, nil, nil, true)--Ability is reset by eruption?
-local timerBrandofTormentCD					= mod:NewCDCountTimer(16, 350648, nil, nil, nil, 3)--Secondary ability cast in 3s after each spawn mawsworn
-local timerRuinbladeCD						= mod:NewCDCountTimer(32.9, 350422, nil, "Tank|Healer", nil, 5, nil, DBM_CORE_L.TANK_ICON)--Ability is reset by eruption
+local timerBrandofTormentCD					= mod:NewCDCountTimer(16, 350647, nil, nil, nil, 3)--Secondary ability cast in 3s after each spawn mawsworn
+local timerRuinbladeCD						= mod:NewCDCountTimer(32.9, 350422, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Ability is reset by eruption
 local timerShacklesCD						= mod:NewCDCountTimer(161, 350415, 298215, nil, nil, 6)--Tied to bosses energy cycle
 --Hellscream
-local timerHellscream						= mod:NewCastTimer(35, 350411, nil, nil, nil, 2, nil, DBM_CORE_L.DEADLY_ICON)
+local timerHellscream						= mod:NewCastTimer(35, 350411, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 
 --local berserkTimer						= mod:NewBerserkTimer(600)
 
 --mod:AddRangeFrameOption("8")
-mod:AddInfoFrameOption(352158, true)
-mod:AddSetIconOption("SetIconOnBrandofTorment", 342077, true, false, {1, 2, 3, 4})
+mod:AddInfoFrameOption(352158, false)
+mod:AddSetIconOption("SetIconOnBrandofTorment", 350647, true, false, {1, 2, 3, 4})
 mod:AddSetIconOption("SetIconOnMawsworn", 350615, true, true, {5, 6, 7, 8})
 mod:AddNamePlateOption("NPAuraOnDefiance", 350650)
 mod:AddNamePlateOption("NPAuraOnTormented", 350649)
+mod:GroupSpells(350415, 350411)--Shackles and hellscream, same mechanic, hellscream is aoe during shackles
+mod:GroupSpells(350647, 350649)--Brand of torment and tormented debuff from it
 
 local castsPerGUID = {}
 mod.vb.shacklesCount = 0
@@ -126,7 +128,7 @@ local allTimers = {
 		--Call Mawsworn
 		[350615] = {28, 165, 180.9, 150},
 		--Hellscream
-		[350411] = {80, 164.5, 178.8},
+		[350411] = {80, 164, 178.8},
 	},
 }
 
@@ -154,12 +156,12 @@ function mod:OnCombatStart(delay)
 	elseif self:IsHeroic() then
 		difficultyName = "heroic"
 		timerSpawnMawswornCD:Start(28-delay, 1)
-		timerBrandofTormentCD:Start(31.4-delay, 1)
+		timerBrandofTormentCD:Start(30.4-delay, 1)
 		timerShacklesCD:Start(80-delay, 1)--Only one that's really consistent the whole fight
 	else
 		difficultyName = "normal"
 		timerSpawnMawswornCD:Start(28-delay, 1)
-		timerBrandofTormentCD:Start(31.4-delay, 1)
+		timerBrandofTormentCD:Start(30.4-delay, 1)
 		timerShacklesCD:Start(80-delay, 1)--Only one that's really consistent the whole fight
 	end
 	timerTormentedEruptionsCD:Start(130-delay, 1)--Same across all
@@ -202,7 +204,7 @@ function mod:SPELL_CAST_START(args)
 		if not castsPerGUID[args.sourceGUID] then
 			castsPerGUID[args.sourceGUID] = 0
 --			if self.Options.SetIconOnMawsworn and self.vb.addIcon > 3 then--Only use up to 5 icons
---				self:ScanForMobs(args.sourceGUID, 2, self.vb.addIcon, 1, 0.2, 12, "SetIconOnMawsworn")
+--				self:ScanForMobs(args.sourceGUID, 2, self.vb.addIcon, 1, nil, 12, "SetIconOnMawsworn")
 --			end
 --			self.vb.addIcon = self.vb.addIcon - 1
 		end
@@ -242,7 +244,7 @@ function mod:SPELL_CAST_START(args)
 			timerSpawnMawswornCD:Start(timer, self.vb.mawswornSpawn+1)
 		end
 		if self.Options.SetIconOnMawsworn then--This icon method may be faster than GUID matching, but also risks being slower and less consistent if marker has nameplates off
-			self:ScanForMobs(177594, 0, 8, 4, 0.2, 15, "SetIconOnMawsworn")
+			self:ScanForMobs(177594, 0, 8, 4, nil, 15, "SetIconOnMawsworn")
 		end
 	elseif spellId == 350411 then--Hellscream/Shackles
 		timerHellscream:Start(self:IsHeroic() and 35 or self:IsMythic() and 25 or 50)--Heroic and mythic known, other difficulties not yet
@@ -276,7 +278,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	elseif spellId == 350648 then
 		self.vb.brandIcon = 1
 		self.vb.brandCount = self.vb.brandCount + 1
-		timerBrandofTormentCD:Start(15.7, self.vb.brandCount+1)
+		timerBrandofTormentCD:Start(15.1, self.vb.brandCount+1)
 	end
 end
 
@@ -305,12 +307,17 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 350422 or spellId == 350448 then
 		local amount = args.amount or 1
-		if amount >= 2 then
+		if amount >= 1 then
 			if args:IsPlayer() then
 				specWarnRuinblade:Show(amount)
 				specWarnRuinblade:Play("stackhigh")
 			else
-				if not UnitIsDeadOrGhost("player") and not DBM:UnitDebuff("player", spellId) then
+				local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
+				local remaining
+				if expireTime then
+					remaining = expireTime-GetTime()
+				end
+				if (not remaining or remaining and remaining < 32.8) and not UnitIsDeadOrGhost("player") then
 					specWarnRuinbladeTaunt:Show(args.destName)
 					specWarnRuinbladeTaunt:Play("tauntboss")
 				else

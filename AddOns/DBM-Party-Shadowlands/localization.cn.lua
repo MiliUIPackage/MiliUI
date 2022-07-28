@@ -1,8 +1,17 @@
---Mini Dragon <流浪者酒馆-Brilla@金色平原> 20200920
+--Mini Dragon <流浪者酒馆-Brilla@金色平原> 20220617
 --夏一可，暴雪娱乐
 
 if GetLocale() ~= "zhCN" then return end
 local L
+
+-----------------------
+-- <<<Global (M+ Affixes) >>> --
+-----------------------
+L = DBM:GetModLocalization("MPlusAffixesSL")
+
+L:SetGeneralLocalization({
+	name =	"大秘境词缀"
+})
 
 -----------------------
 -- <<<The Necrotic Wake (1182J/2286M) >>> --
@@ -87,8 +96,8 @@ L:SetGeneralLocalization({
 --L= DBM:GetModLocalization(2405)
 
 L:SetWarningLocalization({
-	specWarnParasiticInfester	= "你中了寄生平静",
-	specWarnParasiticInfesterKick	= "寄生平静 - 快打断"
+		warnInfestor					= "寄生平静在 %s",
+		specWarnParasiticInfesterKick	= "寄生平静 - 快打断"
 })
 
 L:SetTimerLocalization{
@@ -96,10 +105,10 @@ L:SetTimerLocalization{
 }
 
 L:SetOptionLocalization({
-	specWarnParasiticInfester	= "当你受到寄生平静时显示特别警告",
+	warnInfestor					= "通告寄生平静的目标",
 	specWarnParasiticInfesterKick	= "需要打断寄生平静时显示特殊警告",
-	timerParasiticInfesterCD	= "显示寄生计时器",
-	yellParasiticInfester		= "当受到平静感染时大喊"
+	timerParasiticInfesterCD	= "显示寄生寄生计时器",
+	yellParasiticInfester		= "当受到寄生平静感染时大喊"
 })
 
 L:SetMiscLocalization({
@@ -287,4 +296,65 @@ L = DBM:GetModLocalization("SanguineDepthsTrash")
 
 L:SetGeneralLocalization({
 	name =	"赤红深渊小怪"
+})
+
+-----------------------
+-- <<<Tazavesh, the Veiled Market (1194J/2441M)>>> --
+-----------------------
+-----------------------
+-- Zo'phex the Sentinel --
+-----------------------
+--L= DBM:GetModLocalization(2437)
+
+-----------------------
+-- The Menagerie --
+-----------------------
+--L= DBM:GetModLocalization(2454)
+
+L:SetMiscLocalization({
+	AchilliteRPTrigger	= "狂暴的野兽给您添乱了？解决方法很简单！",
+	VenzaRPTrigger		= "机会来了！斧子归我了！"
+})
+
+-----------------------
+-- Mailroom Mayhem --
+-----------------------
+--L= DBM:GetModLocalization(2436)
+
+-----------------------
+-- Au'myza's Oasis --
+-----------------------
+--L= DBM:GetModLocalization(2452)
+
+-----------------------
+-- So'azmi --
+-----------------------
+--L= DBM:GetModLocalization(2451)
+
+L:SetMiscLocalization({
+	RPTrigger	= "不好意思打扰了，索·利亚。希望我们没耽误你什么大事。"
+})
+
+-----------------------
+-- Hylbrande --
+-----------------------
+--L= DBM:GetModLocalization(2448)
+
+-----------------------
+-- Timecap'n Hooktail --
+-----------------------
+--L= DBM:GetModLocalization(2449)
+
+-----------------------
+-- So'leah --
+-----------------------
+--L= DBM:GetModLocalization(2455)
+
+---------
+--Trash--
+---------
+L = DBM:GetModLocalization("TazaveshTrash")
+
+L:SetGeneralLocalization({
+	name =	"塔扎维什小怪"
 })

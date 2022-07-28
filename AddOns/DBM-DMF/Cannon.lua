@@ -1,8 +1,7 @@
 local mod	= DBM:NewMod("Cannon", "DBM-DMF")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20190903184058")
-mod:SetZone()
+mod:SetRevision("20211011125402")
 
 mod:RegisterEvents(
 	"SPELL_CAST_SUCCESS 102120",
@@ -10,7 +9,7 @@ mod:RegisterEvents(
 )
 mod.noStatistics = true
 
-local timerMagicWings				= mod:NewBuffFadesTimer(8, 102116, nil, nil, nil, 5)
+local timerMagicWings				= mod:NewBuffFadesTimer(8, 102116, nil, false, 2, 5)
 
 local markWings = false
 
@@ -24,7 +23,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	end
 end
 
-function mod:UNIT_AURA(uId)
+function mod:UNIT_AURA()
 	if DBM:UnitBuff("player", DBM:GetSpellInfo(102116)) and not markWings then
 		timerMagicWings:Start()
 		markWings = true

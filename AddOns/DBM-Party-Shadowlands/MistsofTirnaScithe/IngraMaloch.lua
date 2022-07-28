@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod(2400, "DBM-Party-Shadowlands", 3, 1184)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201124184127")
+mod:SetRevision("20220616190832")
 mod:SetCreatureID(164567)
 mod:SetEncounterID(2397)
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_AURA_APPLIED 321006 323059 323137",
+	"SPELL_AURA_APPLIED 321006 323059 323137 323138",
 	"SPELL_AURA_REMOVED 321006 323059",
 	"SPELL_CAST_START 323057 323149 323137 328756",
 --	"SPELL_CAST_SUCCESS 323177",
@@ -40,12 +40,12 @@ local specWarnTearsoftheForrest			= mod:NewSpecialWarningDodge(323177, nil, nil,
 local specWarnGTFO						= mod:NewSpecialWarningGTFO(323250, nil, nil, nil, 1, 8)
 
 --Phases
---local timerEmbraceDarknessCD			= mod:NewCDTimer(66.7, 323149, nil, nil, nil, 2, nil, DBM_CORE_L.HEALER_ICON)
---local timerRepulsiveVisageCD			= mod:NewCDTimer(15.8, 328756, nil, nil, nil, 2, nil, DBM_CORE_L.MAGIC_ICON)
+--local timerEmbraceDarknessCD			= mod:NewCDTimer(66.7, 323149, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+--local timerRepulsiveVisageCD			= mod:NewCDTimer(15.8, 328756, nil, nil, nil, 2, nil, DBM_COMMON_L.MAGIC_ICON)
 --Droman Oulfarran
-local timerBewilderingPollenCD			= mod:NewCDTimer(15.8, 323137, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)--15.8-20.6, unsure if spellqueue causes the variation or just inconsistent energy rates
+local timerBewilderingPollenCD			= mod:NewCDTimer(15.8, 323137, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--15.8-20.6, unsure if spellqueue causes the variation or just inconsistent energy rates
 local timerTearsoftheForestCD			= mod:NewCDTimer(15.8, 323177, nil, nil, nil, 3)--15.8-20.6, unsure if spellqueue causes the variation or just inconsistent energy rates
-local timerDromansWrath					= mod:NewBuffActiveTimer(12, 323059, nil, nil, nil, 6)
+local timerDromansWrath					= mod:NewBuffActiveTimer(15, 323059, nil, nil, nil, 6)
 
 function mod:OnCombatStart(delay)
 	--Not 100% sure boss timers start here or Soul Shackle, Droman's timers def start at soul Shackle
@@ -92,11 +92,11 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 321006 then
 		warnSoulShackle:Show(args.destName)
 		--Droman
-		timerBewilderingPollenCD:Start(8.8)
+		timerBewilderingPollenCD:Start(7.3)
 		timerTearsoftheForestCD:Start(13.5)
 	elseif spellId == 323059 then
 		warnDromansWrath:Show(args.destName)
-		timerDromansWrath:Start(12)
+		timerDromansWrath:Start(15)
 		--Boss
 		--timerEmbraceDarknessCD:Stop()
 		--timerRepulsiveVisageCD:Stop()

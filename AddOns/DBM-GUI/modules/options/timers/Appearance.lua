@@ -6,16 +6,16 @@ local BarSetupPanel = DBM_GUI.Cat_Timers:CreateNewPanel(L.Panel_Appearance, "opt
 local BarSetup = BarSetupPanel:CreateArea(L.AreaTitle_BarSetup)
 local movemebutton = BarSetup:CreateButton(L.MoveMe, 100, 16)
 movemebutton:SetPoint("TOPRIGHT", BarSetup.frame, "TOPRIGHT", -2, -4)
-movemebutton:SetNormalFontObject(GameFontNormalSmall)
-movemebutton:SetHighlightFontObject(GameFontNormalSmall)
+movemebutton:SetNormalFontObject(GameFontNormal)
+movemebutton:SetHighlightFontObject(GameFontNormal)
 movemebutton:SetScript("OnClick", function()
 	DBT:ShowMovableBar()
 end)
 
 local testmebutton = BarSetup:CreateButton(L.Button_TestBars, 100, 16)
 testmebutton:SetPoint("BOTTOMRIGHT", BarSetup.frame, "BOTTOMRIGHT", -2, 4)
-testmebutton:SetNormalFontObject(GameFontNormalSmall)
-testmebutton:SetHighlightFontObject(GameFontNormalSmall)
+testmebutton:SetNormalFontObject(GameFontNormal)
+testmebutton:SetHighlightFontObject(GameFontNormal)
 testmebutton:SetScript("OnClick", function()
 	DBM:DemoMode()
 end)
@@ -27,8 +27,8 @@ color2:SetPoint("TOPLEFT", color1, "TOPRIGHT", 20, 0)
 color1.myheight = 84
 color2.myheight = 0
 
-local color1reset = BarSetup:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
-local color2reset = BarSetup:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
+local color1reset = BarSetup:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color2reset = BarSetup:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
 color1reset:SetPoint("TOP", color1, "BOTTOM", 5, -10)
 color2reset:SetPoint("TOP", color2, "BOTTOM", 5, -10)
 color1reset:SetScript("OnClick", function()
@@ -241,10 +241,7 @@ FontSizeSlider:HookScript("OnValueChanged", createDBTOnValueChangedHandler("Font
 
 local DisableBarFade = BarSetup:CreateCheckButton(L.NoBarFade, false, nil, nil, "NoBarFade")
 DisableBarFade:SetPoint("TOPLEFT", FontSizeSlider, "BOTTOMLEFT", 0, -85)
-DisableBarFade.myheight = 75 -- Extra padding because right buttons are offset from sliders
 
---[[
-Temporarily disabled while skinning system is being worked on.
 local skins = {}
 for id, skin in pairs(DBT:GetSkins()) do
 	table.insert(skins, {
@@ -259,19 +256,18 @@ if #skins > 1 then
 	BarSkin:SetPoint("TOPLEFT", DisableBarFade, "BOTTOMLEFT", -20, -10)
 	BarSkin.myheight = 45
 end
-]]--
 
 local Sorts = {
 	{
-		text	= "None",
+		text	= L.None,
 		value	= "None"
 	},
 	{
-		text	= "Highest at top",
+		text	= L.Highest,
 		value	= "Sort"
 	},
 	{
-		text	= "Lowest at top",
+		text	= L.Lowest,
 		value	= "Invert"
 	}
 }
@@ -306,10 +302,17 @@ BarScaleSlider:SetPoint("TOPLEFT", BarHeightSlider, "BOTTOMLEFT", 0, -10)
 BarScaleSlider:SetValue(DBT.Options.Scale)
 BarScaleSlider:HookScript("OnValueChanged", createDBTOnValueChangedHandler("Scale"))
 
+local saturateSlider = BarSetup:CreateSlider(L.BarSaturation, 0, 1, 0.05, 455)
+saturateSlider:SetPoint("TOPLEFT", BarScaleSlider, "BOTTOMLEFT", 0, -20)
+saturateSlider:SetValue(DBT.Options.DesaturateValue)
+saturateSlider:HookScript("OnValueChanged", createDBTOnValueChangedHandler("DesaturateValue"))
+saturateSlider.myheight = 55
+
 local SortDropDown = BarSetupSmall:CreateDropdown(L.BarSort, Sorts, "DBT", "Sort", function(value)
 	DBT:SetOption("Sort", value)
 end)
-SortDropDown:SetPoint("TOPLEFT", BarScaleSlider, "BOTTOMLEFT", -20, -25)
+SortDropDown:SetPoint("TOPLEFT", saturateSlider, "BOTTOMLEFT", -20, -25)
+SortDropDown.myheight = 70
 
 local BarOffsetXSlider = BarSetupSmall:CreateSlider(L.Slider_BarOffSetX, -50, 50, 1, 120)
 BarOffsetXSlider:SetPoint("TOPLEFT", BarSetupSmall.frame, "TOPLEFT", 350, -90)
@@ -331,8 +334,8 @@ AlphaSlider.myheight = 0
 
 local barResetbutton = BarSetupSmall:CreateButton(L.SpecWarn_ResetMe, 120, 16)
 barResetbutton:SetPoint("BOTTOMRIGHT", BarSetupSmall.frame, "BOTTOMRIGHT", -2, 4)
-barResetbutton:SetNormalFontObject(GameFontNormalSmall)
-barResetbutton:SetHighlightFontObject(GameFontNormalSmall)
+barResetbutton:SetNormalFontObject(GameFontNormal)
+barResetbutton:SetHighlightFontObject(GameFontNormal)
 barResetbutton:SetScript("OnClick", function()
 	resetDBTValueToDefault(BarWidthSlider, "Width")
 	resetDBTValueToDefault(BarHeightSlider, "Height")
@@ -402,8 +405,8 @@ HugeAlphaSlider.myheight = 0
 
 local hugeBarResetbutton = BarSetupHuge:CreateButton(L.SpecWarn_ResetMe, 120, 16)
 hugeBarResetbutton:SetPoint("BOTTOMRIGHT", BarSetupHuge.frame, "BOTTOMRIGHT", -2, 4)
-hugeBarResetbutton:SetNormalFontObject(GameFontNormalSmall)
-hugeBarResetbutton:SetHighlightFontObject(GameFontNormalSmall)
+hugeBarResetbutton:SetNormalFontObject(GameFontNormal)
+hugeBarResetbutton:SetHighlightFontObject(GameFontNormal)
 hugeBarResetbutton:SetScript("OnClick", function()
 	resetDBTValueToDefault(HugeBarWidthSlider, "HugeWidth")
 	resetDBTValueToDefault(HugeBarHeightSlider, "HugeHeight")

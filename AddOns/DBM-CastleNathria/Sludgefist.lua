@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2394, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210224082525")
+mod:SetRevision("20220220020808")
 mod:SetCreatureID(164407)
 mod:SetEncounterID(2399)
 mod:SetUsedIcons(1)
@@ -55,14 +55,14 @@ local specWarnSiesmicShift						= mod:NewSpecialWarningMoveAway(340817, nil, nil
 --local specWarnGTFO							= mod:NewSpecialWarningGTFO(270290, nil, nil, nil, 1, 8)
 
 --All timers outside of stun and gaze will use keep arg so timers remain visible if they come off CD during gaze stun
-local timerHatefulGazeCD						= mod:NewCDCountTimer(68.9, 331209, nil, nil, nil, 3, nil, DBM_CORE_L.IMPORTANT_ICON, nil, 1, 4)
-local timerStunnedImpact						= mod:NewBuffActiveTimer(12, 331314, nil, nil, nil, 5, nil, DBM_CORE_L.DAMAGE_ICON)
+local timerHatefulGazeCD						= mod:NewCDCountTimer(68.9, 331209, nil, nil, nil, 3, nil, DBM_COMMON_L.IMPORTANT_ICON, nil, 1, 4)
+local timerStunnedImpact						= mod:NewBuffActiveTimer(12, 331314, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
 local timerChainLinkCD							= mod:NewCDCountTimer(68.9, 335300, nil, nil, nil, 3, nil, nil, true)
-local timerChainSlamCD							= mod:NewCDCountTimer(68.9, 335354, nil, nil, nil, 3, nil, DBM_CORE_L.HEROIC_ICON, true)
+local timerChainSlamCD							= mod:NewCDCountTimer(68.9, 335470, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON, true)
 local timerDestructiveStompCD					= mod:NewCDCountTimer(44.3, 332318, 247733, nil, nil, 3, nil, nil, true)
 local timerFallingRubbleCD						= mod:NewCDCountTimer(68.9, 332572, nil, nil, nil, 3, nil, nil, true)
 local timerColossalRoarCD						= mod:NewCDCountTimer(31.9, 332687, 226056, nil, nil, 2, nil, nil, true)
-local timerSiesmicShiftCD						= mod:NewCDCountTimer(34, 340817, nil, nil, nil, 3, nil, DBM_CORE_L.MYTHIC_ICON, true)--Mythic
+local timerSiesmicShiftCD						= mod:NewCDCountTimer(34, 340817, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON, true)--Mythic
 
 --local berserkTimer							= mod:NewBerserkTimer(600)
 
@@ -99,18 +99,15 @@ function mod:OnCombatStart(delay)
 	playerPartner = nil
 	table.wipe(ChainLinkTargets)
 	--Roar cast instantly on pull, no timer needed
-	if self:IsLFR() then
-		timerFallingRubbleCD:Start(12.1-delay, 1)--Unknown, not in combat log
-		timerDestructiveStompCD:Start(18.5-delay, 1)
-		timerHatefulGazeCD:Start(51.3-delay, 1)
-	else
-		timerChainLinkCD:Start(4.7-delay, 1)
-		timerFallingRubbleCD:Start(12.5-delay, 1)
-		timerDestructiveStompCD:Start(18.2-delay, 1)
-		timerHatefulGazeCD:Start(50.1-delay, 1)
-		if self:IsHard() then
+	--These 3 are same across board
+	timerFallingRubbleCD:Start(12.1-delay, 1)--Unknown, not in combat log
+	timerDestructiveStompCD:Start(18.1-delay, 1)
+	timerHatefulGazeCD:Start(50.1-delay, 1)
+	if not self:IsLFR() then
+		timerChainLinkCD:Start(4.7-delay, 1)--Used on normal+
+		if self:IsHard() then--Heroic+
 			timerChainSlamCD:Start(28.3-delay, 1)
-			if self:IsMythic() then
+			if self:IsMythic() then--Mythic+
 				self.vb.shiftCount = 0
 				timerSiesmicShiftCD:Start(18.1, 1)
 			end
@@ -157,12 +154,12 @@ function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 331209 then
 		self.vb.gazeCount = self.vb.gazeCount + 1
-		timerHatefulGazeCD:Start(self:IsLFR() and 70.3 or 67.3, self.vb.gazeCount+1)
+		timerHatefulGazeCD:Start(self:IsLFR() and 69.1 or 67.3, self.vb.gazeCount+1)
 		if self.Options.SetIconGaze then
 			self:SetIcon(args.destName, 1)
 		end
 		if args:IsPlayer() then
-			specWarnHatefulGaze:Show(DBM_CORE_L.PILLAR)
+			specWarnHatefulGaze:Show(DBM_COMMON_L.PILLAR)
 			specWarnHatefulGaze:Play("targetyou")
 			yellHatefulGaze:Yell()
 			yellHatefulGazeFades:Countdown(spellId)

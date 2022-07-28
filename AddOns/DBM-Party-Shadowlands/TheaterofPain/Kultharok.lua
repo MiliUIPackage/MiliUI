@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2389, "DBM-Party-Shadowlands", 6, 1187)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210123235530")
+mod:SetRevision("20220618205015")
 mod:SetCreatureID(162309)
 mod:SetEncounterID(2364)
 
@@ -34,9 +34,11 @@ local yellPhantasmalParasite		= mod:NewYell(319626)
 local specWarnGraspingHands			= mod:NewSpecialWarningDodge(319589, nil, nil, nil, 2, 2)
 --local specWarnGTFO				= mod:NewSpecialWarningGTFO(257274, nil, nil, nil, 1, 8)
 
-local timerDrawSoulCD				= mod:NewCDTimer(20.5, 319521, nil, nil, nil, 3, nil, DBM_CORE_L.DAMAGE_ICON)
-local timerPhantasmalParasiteCD		= mod:NewCDTimer(25.5, 319626, nil, nil, nil, 3, nil, DBM_CORE_L.HEALER_ICON..DBM_CORE_L.MAGIC_ICON)
+local timerDrawSoulCD				= mod:NewCDTimer(20.5, 319521, nil, nil, nil, 3, nil, DBM_COMMON_L.DAMAGE_ICON)
+local timerPhantasmalParasiteCD		= mod:NewCDTimer(25.5, 319626, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON..DBM_COMMON_L.MAGIC_ICON)
 local timerGraspingHandsCD			= mod:NewCDTimer(20.6, 319589, nil, nil, nil, 3)
+
+mod:GroupSpells(319521, 333567)--Draw soul is mechanic, possession is screwing up mechanic
 
 function mod:OnCombatStart(delay)
 	timerPhantasmalParasiteCD:Start(3.3-delay)--SUCCESS
@@ -68,12 +70,11 @@ end
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 319521 then
+		warnDrawSoul:CombinedShow(0.3, args.destName)
 		if args:IsPlayer() then
 			specWarnDrawSoul:Show()
 			specWarnDrawSoul:Play("justrun")
 			--yellDrawSoul:Yell()
-		else
-			warnDrawSoul:Show(args.destName)
 		end
 	elseif spellId == 319416 then
 		if args:IsPlayer() then

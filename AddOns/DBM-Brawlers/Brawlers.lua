@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BrawlersGeneral", "DBM-Brawlers")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201102223314")
+mod:SetRevision("20220324235238")
 --mod:SetCreatureID(60491)
 --mod:SetModelID(41448)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)
@@ -33,7 +33,6 @@ local currentZoneID = select(8, GetInstanceInfo())
 local modsStopped = false
 local eventsRegistered = false
 local lastRank = 0
-local QueuedBuff = DBM:GetSpellInfo(132639)
 
 local function setDialog(self, set)
 	if not self.Options.NormalizeVolume then return end
@@ -200,7 +199,7 @@ end
 --Most group up for this so they can buff eachother for matches. Syncing should greatly improve reliability, especially for match end since the person fighting definitely should detect that (probably missing yells still)
 function mod:OnSync(msg)
 	if msg == "MatchBegin" then
-		if not (currentZoneID == 369 or currentZoneID == 1043) then return end
+		if currentZoneID ~= 369 and currentZoneID ~= 1043 then return end
 		if not eventsRegistered then
 			eventsRegistered = true
 			self:RegisterShortTermEvents(
@@ -216,7 +215,7 @@ function mod:OnSync(msg)
 			v()
 		end
 	elseif msg == "MatchEnd" then
-		if not (currentZoneID == 369 or currentZoneID == 1043) then return end
+		if currentZoneID ~= 369 and currentZoneID ~= 1043 then return end
 		currentFighter = nil
 		self:Stop()
 		--Boss from any rank can be fought by any rank now, so we just need to always cancel them all
@@ -245,6 +244,7 @@ function mod:OnSync(msg)
 end
 
 do
+	local QueuedBuff = DBM:GetSpellInfo(132639)
 	function mod:UNIT_AURA()
 		local currentQueueRank = select(16, DBM:UnitBuff("player", QueuedBuff))
 		if currentQueueRank and currentQueueRank ~= lastRank then

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2355, "DBM-Party-BfA", 11, 1178)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20200924162053")
+mod:SetRevision("20220613012903")
 mod:SetCreatureID(150190)
 mod:SetEncounterID(2291)
 
@@ -24,8 +24,9 @@ mod:RegisterEventsInCombat(
  or ability.id = 302274 or ability.id = 303885 or ability.id = 301351 or ability.id = 295445 or ability.id = 301177) and type = "cast"
  or (target.id = 150295 or target.id = 155760) and type = "death"
  --]]
+ --Stage 1
+ mod:AddTimerLine(DBM:EJ_GetSectionInfo(20037))
 local warnReinforcementRelay		= mod:NewSpellAnnounce(301351, 2)
-local warnHaywire					= mod:NewTargetNoFilterAnnounce(296080, 1)
 local warnFulminatingZap			= mod:NewTargetNoFilterAnnounce(302274, 2, nil, "Healer")
 
 local specWarnCannonBlast			= mod:NewSpecialWarningDodge(295536, nil, nil, nil, 2, 2)
@@ -33,20 +34,22 @@ local specWarnWreck					= mod:NewSpecialWarningDefensive(295445, "Tank", nil, ni
 local specWarnFulminatingBurst		= mod:NewSpecialWarningMoveTo(303885, nil, nil, nil, 1, 2)
 local yellFulminatingBurst			= mod:NewYell(303885, nil, nil, nil, "YELL")
 local yellFulminatingBurstFades		= mod:NewShortFadesYell(303885, nil, nil, nil, "YELL")
+
+--local timerCannonBlastCD			= mod:NewCDTimer(7.7, 295536, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--7.7-13.4 variation, useless timer
+local timerReinforcementRelayCD		= mod:NewCDTimer(32.8, 301351, nil, nil, nil, 1)
+local timerWreckCD					= mod:NewCDTimer(24.3, 295445, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerFulminatingZapCD			= mod:NewCDTimer(17.0, 302274, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)--Assumed
+local timerFulminatingBurstCD		= mod:NewCDTimer(17.0, 303885, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)--Hard Mode
 --Stage 2
+ mod:AddTimerLine(DBM:EJ_GetSectionInfo(20039))
+local warnHaywire					= mod:NewTargetNoFilterAnnounce(296080, 1)
+
 local specWarnAnnihilationRay		= mod:NewSpecialWarningSpell(295939, nil, nil, nil, 2, 2)
 local specWarnAntiTresField			= mod:NewSpecialWarningMoveTo(303252, nil, nil, nil, 1, 2)
 local yellAntiTresField				= mod:NewYell(303252)
---local specWarnGTFO				= mod:NewSpecialWarningGTFO(238028, nil, nil, nil, 1, 8)
 
---local timerCannonBlastCD			= mod:NewCDTimer(7.7, 295536, nil, nil, nil, 3, nil, DBM_CORE_L.DEADLY_ICON)--7.7-13.4 variation, useless timer
-local timerReinforcementRelayCD		= mod:NewCDTimer(32.8, 301351, nil, nil, nil, 1)
-local timerWreckCD					= mod:NewCDTimer(24.3, 295445, nil, nil, nil, 5, nil, DBM_CORE_L.TANK_ICON)
-local timerFulminatingZapCD			= mod:NewCDTimer(17.0, 302274, nil, nil, nil, 3, nil, DBM_CORE_L.HEALER_ICON)--Assumed
-local timerFulminatingBurstCD		= mod:NewCDTimer(17.0, 303885, nil, nil, nil, 3, nil, DBM_CORE_L.HEALER_ICON)--Hard Mode
---Stage 2
 local timerHaywire					= mod:NewBuffActiveTimer(30, 296080, nil, nil, nil, 6)
---local timerHowlingFearCD			= mod:NewCDTimer(13.4, 257791, nil, "HasInterrupt", nil, 4, nil, DBM_CORE_L.INTERRUPT_ICON)
+--local timerHowlingFearCD			= mod:NewCDTimer(13.4, 257791, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 
 mod:AddNamePlateOption("NPAuraOnWalkieShockie", 296522, false)
 
@@ -61,15 +64,15 @@ local function checkHardMode(self)
 			local cid = self:GetUnitCreatureId(unitID)
 			if cid == 150295 then--MK1
 				found = true
-				timerFulminatingZapCD:Start(8.4)--SUCCESS--Assumed
-				timerWreckCD:Start(15.7)--Assumed
-				timerReinforcementRelayCD:Start(19.8)--Assumed
+				timerFulminatingZapCD:Start(7.4)--SUCCESS--Assumed
+				timerWreckCD:Start(14.7)--Assumed
+				timerReinforcementRelayCD:Start(18.8)--Assumed
 			elseif cid == 155760 then--MK2 (hard mode)
 				found = true
 				self.vb.hard = true
-				timerFulminatingBurstCD:Start(8.4)--SUCCESS--VERIFIED
-				timerWreckCD:Start(15.7)--VERIFIED
-				timerReinforcementRelayCD:Start(19.8)--VERIFIED
+				timerFulminatingBurstCD:Start(7.4)--SUCCESS--VERIFIED
+				timerWreckCD:Start(14.7)--VERIFIED
+				timerReinforcementRelayCD:Start(18.8)--VERIFIED
 			end
 		end
 	end
@@ -80,11 +83,11 @@ end
 
 function mod:OnCombatStart(delay)
 	self.vb.hard = false
-	self:Schedule(1-delay, checkHardMode, self)
+	self:Schedule(2-delay, checkHardMode, self)
 	table.wipe(unitTracked)
 	if self.Options.NPAuraOnWalkieShockie then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
-		self:RegisterOnUpdateHandler(function(self)
+		self:RegisterOnUpdateHandler(function()
 			for i = 1, 40 do
 				local UnitID = "nameplate"..i
 				local GUID = UnitGUID(UnitID)
@@ -176,7 +179,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnFulminatingZap:Show(args.destName)
 	elseif spellId == 303885 then
 		if args:IsPlayer() then
-			specWarnFulminatingBurst:Show(DBM_CORE_L.ALLY)
+			specWarnFulminatingBurst:Show(DBM_COMMON_L.ALLY)
 			yellFulminatingBurst:Yell()
 			yellFulminatingBurstFades:Countdown(spellId)
 		else
@@ -185,7 +188,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnFulminatingBurst:Play("gathershare")
 	elseif spellId == 303252 then
 		if args:IsPlayer() then
-			specWarnAntiTresField:Show(DBM_CORE_L.ALLY)
+			specWarnAntiTresField:Show(DBM_COMMON_L.ALLY)
 			yellAntiTresField:Yell()
 		else
 			specWarnAntiTresField:Show(args.destName)

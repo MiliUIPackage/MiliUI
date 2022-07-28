@@ -1,66 +1,78 @@
 local mod	= DBM:NewMod(2454, "DBM-Party-Shadowlands", 9, 1194)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210620030927")
+mod:SetRevision("20220616190832")
 mod:SetCreatureID(176556, 176555, 176705)
 mod:SetEncounterID(2441)
 mod:SetUsedIcons(1)
+mod:SetHotfixNoticeRev(20220405000000)
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 349663 349797 349987 349934 349954 350086 350101",
-	"SPELL_AURA_APPLIED 349627 349933 349954 350101",
+	"SPELL_CAST_SUCCESS 181089",
+	"SPELL_AURA_APPLIED 349627 349933 349954 350037",
 	"SPELL_AURA_REMOVED 349627 349933",
 --	"SPELL_PERIODIC_DAMAGE",
 --	"SPELL_PERIODIC_MISSED",
 	"UNIT_DIED",
-	"INSTANCE_ENCOUNTER_ENGAGE_UNIT"
---	"UNIT_SPELLCAST_SUCCEEDED boss1"
+	"RAID_BOSS_WHISPER",
+	"CHAT_MSG_MONSTER_SAY"
 )
 
---TODO, target scan grasp to warn target during cast?
---TODO, find way of detecting hard mode and start engage timers for incoming bosses
+--TODO, find way of detecting hard mode timers
+--[[
+(ability.id = 349663 or ability.id = 349797 or ability.id = 349987 or ability.id = 349934 or ability.id = 349954 or ability.id = 350086 or ability.id = 350101) and type = "begincast"
+ or ability.id = 181089 and type = "cast"
+ or ability.id = 350037 and type = "applybuff"
+ or target.id = 176556 and type = "death"
+ or type = "dungeonencounterstart" or type = "dungeonencounterend"
+--]]
+--General
+--local specWarnGTFO				= mod:NewSpecialWarningGTFO(320366, nil, nil, nil, 1, 8)
 --Alcruux
+mod:AddTimerLine(DBM:EJ_GetSectionInfo(23159))
 local warnGluttony					= mod:NewTargetNoFilterAnnounce(349627, 2)
 
---Alcruux
 local specWarnGluttony				= mod:NewSpecialWarningYou(349627, nil, nil, nil, 1, 2)
 local yellGluttony					= mod:NewYell(349627)
 local yellGluttonyFades				= mod:NewShortFadesYell(349627)
 local specWarnGripofHunger			= mod:NewSpecialWarningRun(349663, nil, nil, nil, 4, 2)
 local specWarnGrandConsumption		= mod:NewSpecialWarningDodge(349663, nil, nil, nil, 2, 2)
+
+local timerGripofHungerCD			= mod:NewCDTimer(23, 349663, nil, nil, nil, 2)--23-30
+local timerGrandconsumptionCD		= mod:NewCDTimer(30.3, 349797, nil, nil, nil, 3)
+
+mod:AddSetIconOption("SetIconOnGluttony", 349627, true, false, {1})
 --Achillite
+mod:AddTimerLine(DBM:EJ_GetSectionInfo(23231))
 local specWarnVentingProtocol		= mod:NewSpecialWarningDodge(349987, nil, nil, nil, 2, 2)
 local specWarnPurificationProtocol	= mod:NewSpecialWarningDispel(349954, "RemoveMagic", nil, nil, 1, 2)
+
+local timerAchilliteCD				= mod:NewNextTimer(23, "ej23231", nil, nil, nil, 1, "132349")
+local timerVentingProtocolCD		= mod:NewCDTimer(26.6, 349987, nil, nil, nil, 3)
+local timerFlagellationProtocolCD	= mod:NewCDTimer(23, 349934, nil, nil, nil, 3)
+local timerPurificationProtocolCD	= mod:NewCDTimer(18.2, 320200, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
+
+mod:AddInfoFrameOption(349934, true)
 --Venza Goldfuse
+mod:AddTimerLine(DBM:EJ_GetSectionInfo(23241))
 local specWarnWhirlingAnnihilation	= mod:NewSpecialWarningRun(350086, nil, nil, nil, 4, 2)
 local specWarnChainsofDamnation		= mod:NewSpecialWarningSwitch(350101, "-Healer", nil, nil, 1, 2)
 local yellChainsofDamnation			= mod:NewYell(350101, nil, nil, nil, "YELL")
---local specWarnGTFO				= mod:NewSpecialWarningGTFO(320366, nil, nil, nil, 1, 8)
 
---Alcruux
-local timerGripofHungerCD			= mod:NewAITimer(11, 349663, nil, nil, nil, 2)
-local timerGrandconsumptionCD		= mod:NewAITimer(11, 349797, nil, nil, nil, 3)
---Achillite
-local timerAchilliteCD				= mod:NewNextTimer(11, "ej23231", nil, nil, nil, 1, "132349")
-local timerVentingProtocolCD		= mod:NewAITimer(11, 349987, nil, nil, nil, 3)
-local timerFlagellationProtocolCD	= mod:NewAITimer(11, 349934, nil, nil, nil, 3)
-local timerPurificationProtocolCD	= mod:NewAITimer(15.8, 320200, nil, nil, nil, 3, nil, DBM_CORE_L.MAGIC_ICON)
---Venza Goldfuse
-local timerVenzaCD					= mod:NewNextTimer(11, "ej23241", nil, nil, nil, 1, "132349")
-local timerWhirlingAnnihilationCD	= mod:NewAITimer(15.8, 350086, nil, nil, nil, 2, nil, DBM_CORE_L.DEADLY_ICON)
-local timerChainsofDamnationCD		= mod:NewAITimer(11, 350101, nil, nil, nil, 1)
-
-mod:AddSetIconOption("SetIconOnFeast", 349627, true, false, {1})
-mod:AddInfoFrameOption(349933, true)
+local timerVenzaCD					= mod:NewNextTimer(23, "ej23241", nil, nil, nil, 1, "132349")
+local timerWhirlingAnnihilationCD	= mod:NewCDTimer(30.3, 350086, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerChainsofDamnationCD		= mod:NewCDCountTimer(30.3, 350101, nil, nil, nil, 1)
 
 local activeBossGUIDS = {}
+mod.vb.chainsCast = 0
 
 function mod:OnCombatStart(delay)
 	--Alcruux timers
-	timerGripofHungerCD:Start(1-delay)
-	timerGrandconsumptionCD:Start(1-delay)
+	timerGripofHungerCD:Start(11.8-delay)
+	timerGrandconsumptionCD:Start(24.2-delay)
 	--if hardmode stuff then
 		--timerAchilliteCD:Start(28-delay)
 		--timerVenzaCD:Start(65-delay)
@@ -98,7 +110,26 @@ function mod:SPELL_CAST_START(args)
 		specWarnWhirlingAnnihilation:ScheduleVoice(1, "keepmove")
 		timerWhirlingAnnihilationCD:Start()
 	elseif spellId == 350101 then
-		timerChainsofDamnationCD:Start()
+		self.vb.chainsCast = self.vb.chainsCast + 1
+		specWarnChainsofDamnation:Show()
+		specWarnChainsofDamnation:Play("targetchange")
+		timerChainsofDamnationCD:Start(self.vb.chainsCast == 1 and 21.8 or 30.3, self.vb.chainsCast+1)
+	end
+end
+
+function mod:SPELL_CAST_SUCCESS(args)
+	local spellId = args.spellId
+	if spellId == 181089 then
+		local cid = self:GetCIDFromGUID(args.sourceGUID)
+		if cid == 176555 then--Achillite
+			timerPurificationProtocolCD:Start(4.7)
+			timerFlagellationProtocolCD:Start(14.5)
+			timerVentingProtocolCD:Start(21.7)
+		elseif cid == 176705 then--Venza Gldfuse
+			self.vb.chainsCast = 0
+			timerChainsofDamnationCD:Start(4.8, 1)
+			timerWhirlingAnnihilationCD:Start(16.9)
+		end
 	end
 end
 
@@ -113,7 +144,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			warnGluttony:Show(args.destName)
 		end
-		if self.Options.SetIconOnFeast then
+		if self.Options.SetIconOnGluttony then
 			self:SetIcon(args.destName, 1)
 		end
 	elseif spellId == 349933 then
@@ -125,13 +156,10 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 349954 then
 		specWarnPurificationProtocol:CombinedShow(0.3, args.destName)
 		specWarnPurificationProtocol:ScheduleVoice(0.3, "helpdispel")
-	elseif spellId == 350101 then
-		if args:IsPlayer() then
-			yellChainsofDamnation:Yell()
-		else
-			specWarnChainsofDamnation:Show(args.destName)
-			specWarnChainsofDamnation:Play("killmob")
-		end
+	elseif spellId == 350037 then--Achillite "dying" (doesn't fire UNIT_DIED)
+		timerVentingProtocolCD:Stop()
+		timerFlagellationProtocolCD:Stop()
+		timerPurificationProtocolCD:Stop()
 	end
 end
 
@@ -141,7 +169,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		if args:IsPlayer() then
 			yellGluttonyFades:Cancel()
 		end
-		if self.Options.SetIconOnFeast then
+		if self.Options.SetIconOnGluttony then
 			self:SetIcon(args.destName, 0)
 		end
 	elseif spellId == 349933 then
@@ -166,38 +194,34 @@ function mod:UNIT_DIED(args)
 	if cid == 176556 then--Alcruux
 		timerGripofHungerCD:Stop()
 		timerGrandconsumptionCD:Stop()
-	elseif cid == 176555 then--Achillite
-		timerVentingProtocolCD:Stop()
-		timerPurificationProtocolCD:Stop()
-	elseif cid == 176705 then--Venza Gldfuse
-		timerWhirlingAnnihilationCD:Stop()
-		timerChainsofDamnationCD:Stop()
 	end
 end
 
-function mod:INSTANCE_ENCOUNTER_ENGAGE_UNIT()
-	for i = 1, 5 do
-		local unitID = "boss"..i
-		local unitGUID = UnitGUID(unitID)
-		if UnitExists(unitID) and not activeBossGUIDS[unitGUID] then
-			activeBossGUIDS[unitGUID] = true
-			local cid = self:GetUnitCreatureId(unitID)
-			if cid == 176555 then--Achillite
-				timerVentingProtocolCD:Start(1)
-				timerFlagellationProtocolCD:Start(1)
-				timerPurificationProtocolCD:Start(1)
-			elseif cid == 176705 then--Venza Gldfuse
-				timerWhirlingAnnihilationCD:Start(1)
-				timerChainsofDamnationCD:Start(1)
-			end
-		end
+function mod:RAID_BOSS_WHISPER(msg)
+	if msg:find("350101") then
+		yellChainsofDamnation:Yell()
 	end
 end
 
---[[
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 257453  then
-
+function mod:CHAT_MSG_MONSTER_SAY(msg, npc, _, _, target)
+	--"<457.34 22:32:38> [CHAT_MSG_MONSTER_SAY] Are rampaging beasts ruining your day? We have the solution!#Xy'noc###Omegal##0#0##0#1027#nil#0#false#false#false#false", -- [6130]
+	--"<480.65 22:33:01> [INSTANCE_ENCOUNTER_ENGAGE_UNIT] Fake Args:#boss1#true#true#true#Achillite#Creature-0-4228-2441-29407-176555-00002A9633#elite#1982340#bo
+	--"<481.86 22:33:02> [CLEU] SPELL_CAST_SUCCESS#Creature-0-4228-2441-29407-176555-00002A9633#Achillite##nil#181089#Encounter Event#nil#nil", -- [6420]
+	if (msg == L.AchilliteRPTrigger or msg:find(L.AchilliteRPTrigger)) and self:LatencyCheck() then
+		self:SendSync("AchilliteRP")
+	--"<506.68 22:33:27> [CHAT_MSG_MONSTER_SAY] Now's my chance! That axe is mine!#Venza Goldfuse###Omegal##0#0##0#1039#nil#0#false#false#false#false", -- [6741]
+	--"<530.43 22:33:51> [INSTANCE_ENCOUNTER_ENGAGE_UNIT] Fake Args:#boss1#true#true#true#Achillite#Creature-0-4228-2441-29407-176555-00002A9633#elite#43829#boss2#true#true#true#Venza Goldfuse#Creature-0-4228-2441-29407-176705-00002A
+	--"<530.43 22:33:51> [CLEU] SPELL_CAST_SUCCESS#Creature-0-4228-2441-29407-176705-00002A9633#Venza Goldfuse##nil#181089#Encounter Event#nil#nil", -- [7113]
+	elseif (msg == L.VenzaRPTrigger or msg:find(L.VenzaRPTrigger)) and self:LatencyCheck() then
+		self:SendSync("VenzaRP")
 	end
 end
---]]
+
+function mod:OnSync(msg, targetname)
+	if not self:IsInCombat() then return end
+	if msg == "AchilliteRP" then
+		timerAchilliteCD:Start(23.3)
+	elseif msg == "VenzaRP" then
+		timerVenzaCD:Start(23.7)
+	end
+end

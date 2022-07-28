@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2446, "DBM-SanctumOfDomination", nil, 1193)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20210719233901")
+mod:SetRevision("20220301011458")
 mod:SetCreatureID(175731)
 mod:SetEncounterID(2436)
 mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20210718000000)--2021-07-18
+mod:SetHotfixNoticeRev(20210815000000)--2021-08-15
 mod:SetMinSyncRevision(20210718000000)
 mod.respawnTime = 29
 
@@ -14,7 +14,6 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 352589 352538 350732 352833 352660 356090 355352 350734",
 	"SPELL_AURA_APPLIED 352385 352394 350734 350496 350732",--350534
---	"SPELL_AURA_APPLIED_DOSE",
 	"SPELL_AURA_REMOVED 352385 352394 350496",--350534
 	"SPELL_PERIODIC_DAMAGE 350455",
 	"SPELL_PERIODIC_MISSED 350455",
@@ -51,7 +50,7 @@ local yellThreatNeutralizationFades				= mod:NewIconFadesYell(350496, 37859)
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(340324, nil, nil, nil, 1, 8)
 
 --mod:AddTimerLine(BOSS)
-local timerEliminationPatternCD					= mod:NewCDCountTimer(31.6, 350735, 350732, "Tank|Healer", nil, 5, nil, DBM_CORE_L.TANK_ICON)--Time between casts not known, but link reset kinda works
+local timerEliminationPatternCD					= mod:NewCDCountTimer(31.6, 350735, 350732, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Time between casts not known, but link reset kinda works
 local timerDisintegrationCD						= mod:NewCDCountTimer(34.6, 352833, 182908, nil, nil, 3)--Continues whether linked or not
 local timerFormSentryCD							= mod:NewCDTimer(72.6, 352660, nil, nil, nil, 1)--Time between casts not known, but link reset kinda works
 local timerThreatNeutralizationCD				= mod:NewCDCountTimer(11.4, 350496, 167180, nil, nil, 3, nil, nil, true)--Continues whether linked or not
@@ -61,6 +60,9 @@ local timerThreatNeutralizationCD				= mod:NewCDCountTimer(11.4, 350496, 167180,
 mod:AddRangeFrameOption(10, 350496)
 mod:AddInfoFrameOption(352394, true)
 mod:AddSetIconOption("SetIconOnThreat", 350496, true, false, {1, 2, 3})
+mod:AddMiscLine(DBM_CORE_L.OPTION_CATEGORY_DROPDOWNS)
+mod:AddDropdownOption("IconBehavior", {"TypeOne", "TypeTwo"}, "TypeOne", "misc")--TypeTwo is BW default
+mod:GroupSpells(350732, 350735)
 
 mod.vb.timerMode = 0
 mod.vb.coreActive = false
@@ -69,6 +71,7 @@ mod.vb.protocolCount = 0
 mod.vb.patternCount = 0
 mod.vb.threatCount = 0
 mod.vb.comboCount = 0
+mod.vb.iconSetting = 1
 local radiantEnergy = DBM:GetSpellInfo(352394)
 local playerSafe = false
 local playersSafe = {}
@@ -80,7 +83,7 @@ local allTimers = {
 			--Threat Neutralization
 			[356090] = {8.5, 12.2, 21.8},
 			--Disintegration
-			[352833] = {15.6},
+			[352833] = {15.4},
 		},
 		[1] = {--Post Link
 			--Threat Neutralization
@@ -94,48 +97,34 @@ local allTimers = {
 			--Threat Neutralization
 			[356090] = {10.7, 12.2},
 			--Disintegration
-			[352833] = {15.6},
+			[352833] = {15.4},
 		},
 		[1] = {--Post Link
 			--Threat Neutralization
 			[356090] = {0, 12.1, 12.1, 26.7, 12.1},
 			--Disintegration
-			[352833] = {5.9, 40.1},
+			[352833] = {5.8, 40.1},
 		},
 	},
-	["normal"] = {
+	["normal"] = {--LFR is same
 		[0] = {--Initial
 			--Threat Neutralization
-			[356090] = {10.7, 11, 23.2},
+			[356090] = {10.4, 11, 23.2},
 			--Disintegration
-			[352833] = {15.6},
+			[352833] = {15.4},
 		},
 		[1] = {--Post Link
 			--Threat Neutralization
 			[356090] = {4.5, 12.1, 23, 15.7, 12.1},
 			--Disintegration
-			[352833] = {18.2, 32.5},
+			[352833] = {18, 32.5},
 		},
 	},
---	["lfr"] = {
---		[0] = {--Initial
---			--Threat Neutralization
---			[350496] = {},
---			--Disintegration
---			[352833] = {},
---		},
---		[1] = {--Post Link
---			--Threat Neutralization
---			[350496] = {},
---			--Disintegration
---			[352833] = {},
---		},
---	},
 }
 
 local updateInfoFrame
 do
-	local DBM, DBM_CORE_L = DBM, DBM_CORE_L
+	local DBM, DBM_COMMON_L = DBM, DBM_COMMON_L
 	local UnitPower, UnitPowerMax, UnitName = UnitPower, UnitPowerMax, UnitName
 	local twipe = table.wipe
 	local lines, sortedLines = {}, {}
@@ -156,7 +145,7 @@ do
 		end
 		--Player safety status
 		if mod.vb.coreActive then
-			addLine(radiantEnergy, DBM_CORE_L.NOTSAFE)
+			addLine(radiantEnergy, DBM_COMMON_L.NOTSAFE)
 			for uId in DBM:GetGroupMembers() do
 				local unitName = DBM:GetUnitFullName(uId)
 				if not playersSafe[unitName] then
@@ -199,7 +188,8 @@ local function showthreat(self)
 		end
 	end
 	--Now deal with every possible scenario
-	if meleeCount == 3 or meleeCount == 0 then--All melee or all ranged, results same either way
+	--All melee or all ranged, Or user wants icons to match bigwigs. results same, use CLEU/table insert order
+	if self.vb.iconSetting == 2 or meleeCount == 3 or meleeCount == 0 then
 		if setIcon then
 			self:SetIcon(nameOne, 1)
 		end
@@ -420,6 +410,7 @@ function mod:OnCombatStart(delay)
 	self.vb.threatCount = 0
 	self.vb.patternCount = 0--which pattern SET it is
 	self.vb.comboCount = 0--Which cast within the pattern set
+	self.vb.iconSetting = self.Options.IconBehavior == "TypeOne" and 1 or 2
 	timerFormSentryCD:Start(3.6-delay, 1)--Same in all
 	timerDisintegrationCD:Start(15.4-delay, 1)--Same in all
 	timerEliminationPatternCD:Start(25.3-delay, 1)--Same in all
@@ -427,7 +418,7 @@ function mod:OnCombatStart(delay)
 		difficultyName = "mythic"
 		timerThreatNeutralizationCD:Start(8, 1)
 	else
-		timerThreatNeutralizationCD:Start(10.7, 1)
+		timerThreatNeutralizationCD:Start(10.4, 1)
 		if self:IsHeroic() then
 			difficultyName = "heroic"
 		else
@@ -449,6 +440,9 @@ function mod:OnCombatStart(delay)
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:SetHeader(radiantEnergy)
 		DBM.InfoFrame:Show(8, "function", updateInfoFrame, false, false)
+	end
+	if UnitIsGroupLeader("player") then
+		self:SendSync("IconMethod", self.vb.iconSetting)
 	end
 end
 
@@ -549,9 +543,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerDisintegrationCD:Stop()
 		timerFormSentryCD:Stop()
 		timerEliminationPatternCD:Stop()
-		timerDisintegrationCD:Start(5.8)
-		timerFormSentryCD:Start(self:IsEasy() and 11.5 or 18)
-		timerEliminationPatternCD:Start(28.3, self.vb.patternCount+1)
+		timerDisintegrationCD:Start(self:IsEasy() and 18 or 5.8)
+		timerFormSentryCD:Start(self:IsEasy() and 10.7 or 18)
+		timerEliminationPatternCD:Start(28.2, self.vb.patternCount+1)
 	elseif spellId == 352394 then
 		playersSafe[args.destName] = true
 		if args:IsPlayer() then
@@ -615,15 +609,23 @@ function mod:CHAT_MSG_MONSTER_YELL(msg, _, _, _, targetName)
 	end
 end
 
-function mod:OnSync(msg, target)
-	if not self:IsInCombat() then return end
-	if msg == "Dissection" then
-		local targetName = DBM:GetUnitFullName(target) or target
-		if targetName then
-			warnDisintegration:Show(targetName)--Everyone needs to dodge it so everyone gets special warning. this is just informative message
-			if targetName == UnitName("player") then
-				yellDisintegration:Yell()
+do
+	--Delayed function just to make absolute sure RL sync overrides user settings after OnCombatStart functions run
+	local function UpdateIcons(self, setting)
+		self.vb.iconSetting = setting
+	end
+	function mod:OnSync(msg, target, sender)
+		if not self:IsInCombat() then return end
+		if msg == "Dissection" and sender then
+			local targetName = DBM:GetUnitFullName(target) or target
+			if targetName then
+				warnDisintegration:Show(targetName)--Everyone needs to dodge it so everyone gets special warning. this is just informative message
+				if targetName == UnitName("player") then
+					yellDisintegration:Yell()
+				end
 			end
+		elseif msg == "IconMethod" then
+			self:Schedule(3, UpdateIcons, self, target)
 		end
 	end
 end

@@ -1,8 +1,7 @@
 local mod	= DBM:NewMod("Rings", "DBM-DMF")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20190903184058")
-mod:SetZone()
+mod:SetRevision("20200803045206")
 
 mod:RegisterCombat("combat")
 
@@ -17,11 +16,8 @@ local warnRings		= mod:NewCountAnnounce(170823, 1, nil, false)--Spammy, so off b
 
 local timerGame		= mod:NewBuffActiveTimer(10, 170820, nil, nil, nil, 5, nil, nil, nil, 1, 5)
 
-local wingsName = DBM:GetSpellInfo(170820)
-
 local function checkBuff()
-	wingsName = DBM:GetSpellInfo(170820)
-	local name, _, _, _, duration, expires, _, _, _, spellId = DBM:UnitBuff("player", wingsName)
+	local name, _, _, _, _, expires, _, _, _, spellId = DBM:UnitBuff("player", 170820)
 	if name and spellId == 170820 then
 		local time = expires-GetTime()
 		timerGame:Stop()

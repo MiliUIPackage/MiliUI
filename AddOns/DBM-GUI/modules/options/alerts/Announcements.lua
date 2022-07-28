@@ -1,3 +1,5 @@
+local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
+
 local L		= DBM_GUI_L
 local CL	= DBM_CORE_L
 
@@ -95,7 +97,7 @@ local Sounds = DBM_GUI:MixinSharedMedia3("sound", {
 	},
 	{
 		text	= "Classic",
-		value	= 11742 -- "Sound\\Doodad\\BellTollNightElf.ogg"
+		value	= isRetail and 11742 or 6674 -- "Sound\\Doodad\\BellTollNightElf.ogg"
 	},
 	{
 		text	= "Ding",
@@ -130,16 +132,16 @@ end)
 
 local movemebutton = raidwarnoptions:CreateButton(L.MoveMe, 100, 16)
 movemebutton:SetPoint("TOPRIGHT", raidwarnoptions.frame, "TOPRIGHT", -2, -4)
-movemebutton:SetNormalFontObject(GameFontNormalSmall)
-movemebutton:SetHighlightFontObject(GameFontNormalSmall)
+movemebutton:SetNormalFontObject(GameFontNormal)
+movemebutton:SetHighlightFontObject(GameFontNormal)
 movemebutton:SetScript("OnClick", function()
 	DBM:MoveWarning()
 end)
 
 local resetbutton = raidwarnoptions:CreateButton(L.SpecWarn_ResetMe, 120, 16)
 resetbutton:SetPoint("BOTTOMRIGHT", raidwarnoptions.frame, "BOTTOMRIGHT", -2, 4)
-resetbutton:SetNormalFontObject(GameFontNormalSmall)
-resetbutton:SetHighlightFontObject(GameFontNormalSmall)
+resetbutton:SetNormalFontObject(GameFontNormal)
+resetbutton:SetHighlightFontObject(GameFontNormal)
 resetbutton:SetScript("OnClick", function()
 	-- Set Options
 	DBM.Options.ShowWarningsInChat = DBM.DefaultOptions.ShowWarningsInChat
@@ -180,16 +182,16 @@ local color1 = raidwarncolors:CreateColorSelect(64)
 local color2 = raidwarncolors:CreateColorSelect(64)
 local color3 = raidwarncolors:CreateColorSelect(64)
 local color4 = raidwarncolors:CreateColorSelect(64)
-local color1text = raidwarncolors:CreateText(L.RaidWarnColor_1, 64)
-local color2text = raidwarncolors:CreateText(L.RaidWarnColor_2, 64)
-local color3text = raidwarncolors:CreateText(L.RaidWarnColor_3, 64)
-local color4text = raidwarncolors:CreateText(L.RaidWarnColor_4, 64)
-local color1reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormalSmall)
-local color2reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormalSmall)
-local color3reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormalSmall)
-local color4reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormalSmall)
+local color1text = raidwarncolors:CreateText(L.RaidWarnColor_1, 64, nil, nil, "CENTER", 0)
+local color2text = raidwarncolors:CreateText(L.RaidWarnColor_2, 64, nil, nil, "CENTER", 0)
+local color3text = raidwarncolors:CreateText(L.RaidWarnColor_3, 64, nil, nil, "CENTER", 0)
+local color4text = raidwarncolors:CreateText(L.RaidWarnColor_4, 64, nil, nil, "CENTER", 0)
+local color1reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormal)
+local color2reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormal)
+local color3reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormal)
+local color4reset = raidwarncolors:CreateButton(L.Reset, 60, 10, nil, GameFontNormal)
 
-color1.myheight = 84
+color1.myheight = 100
 color2.myheight = 0
 color3.myheight = 0
 color4.myheight = 0
@@ -229,5 +231,5 @@ UpdateColorFrames(color2, color2text, color2reset, 2)
 UpdateColorFrames(color3, color3text, color3reset, 3)
 UpdateColorFrames(color4, color4text, color4reset, 4)
 
-local infotext = raidwarncolors:CreateText(L.InfoRaidWarning, 380, false, GameFontNormalSmall, "LEFT")
+local infotext = raidwarncolors:CreateText(L.InfoRaidWarning, 380, false, GameFontNormal, "LEFT", 0)
 infotext:SetPoint("BOTTOMLEFT", raidwarncolors.frame, "BOTTOMLEFT", 10, 10)

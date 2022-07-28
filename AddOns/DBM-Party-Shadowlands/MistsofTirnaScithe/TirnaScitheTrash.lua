@@ -1,15 +1,15 @@
 local mod	= DBM:NewMod("TirnaScitheTrash", "DBM-Party-Shadowlands", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201129045556")
+mod:SetRevision("20220702183245")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 321968 324909 324923 324914 324776 340305 340304 340300 340160 340189 326046 325418",
-	"SPELL_CAST_SUCCESS 325418",
-	"SPELL_AURA_APPLIED 322557 322938 324914 324776 325224 340288 326046 340544",
+	"SPELL_CAST_START 321968 324909 324923 324914 324776 340305 340304 340300 340160 340189 326046 325418 331718",
+	"SPELL_CAST_SUCCESS 325418 340544 322938",
+	"SPELL_AURA_APPLIED 322557 324914 324776 325224 340288 326046",
 	"SPELL_AURA_APPLIED_DOSE 340288"
 )
 
@@ -47,6 +47,8 @@ local specWarnStimulateResistanceDispel	= mod:NewSpecialWarningDispel(326046, "M
 local specWarnStimulateRegeneration		= mod:NewSpecialWarningInterrupt(340544, "HasInterrupt", nil, nil, 1, 2)
 local specWarnVolatileAcid				= mod:NewSpecialWarningMoveAway(325418, nil, nil, nil, 1, 2)
 local yellVolatileAcid					= mod:NewYell(325418)
+--Unknown
+local specWarnSpearFlurry				= mod:NewSpecialWarningDodge(331718, nil, nil, nil, 2, 2)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role
 
@@ -65,7 +67,7 @@ function mod:VolatileAcid(targetname, uId)
 	if self:AntiSpam(3, targetname) then
 		if targetname == UnitName("player") then
 			specWarnVolatileAcid:Show()
-			specWarnVolatileAcid:Play("runout")
+			specWarnVolatileAcid:Play("range5")
 			yellVolatileAcid:Yell()
 		else
 			warnVolatileAcid:Show(targetname)
@@ -85,13 +87,13 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 324923 and self:AntiSpam(3, 2) then
 		specWarnBrambleBurst:Show()
 		specWarnBrambleBurst:Play("watchfeet")
-	elseif spellId == 324914 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+	elseif spellId == 324914 and self:CheckInterruptFilter(args.sourceGUID, false, true) and self:AntiSpam(2, 5) then
 		specWarnNourishtheForest:Show(args.sourceName)
 		specWarnNourishtheForest:Play("kickcast")
-	elseif spellId == 324776 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+	elseif spellId == 324776 and self:CheckInterruptFilter(args.sourceGUID, false, true) and self:AntiSpam(2, 5) then
 		specWarnBramblethornCoat:Show(args.sourceName)
 		specWarnBramblethornCoat:Play("kickcast")
-	elseif spellId == 326046 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+	elseif spellId == 326046 and self:CheckInterruptFilter(args.sourceGUID, false, true) and self:AntiSpam(2, 5) then
 		specWarnStimulateResistance:Show(args.sourceName)
 		specWarnStimulateResistance:Play("kickcast")
 	elseif spellId == 340305 then
@@ -110,7 +112,10 @@ function mod:SPELL_CAST_START(args)
 		specWarnPoolOfRadiance:Show()
 		specWarnPoolOfRadiance:Play("mobout")
 	elseif spellId == 325418 then
-		self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "CrushingLeap", 0.1, 4)
+		self:ScheduleMethod(0.1, "BossTargetScanner", args.sourceGUID, "VolatileAcid", 0.1, 4)
+	elseif spellId == 331718 and self:IsValidWarning(args.sourceGUID) and self:AntiSpam(3, 2) then
+		specWarnSpearFlurry:Show()
+		specWarnSpearFlurry:Play("shockwave")
 	end
 end
 
@@ -120,11 +125,17 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if spellId == 325418 and self:AntiSpam(3, args.destName) then--Backup, in case no one in party was targetting mob casting Volatile Acid (ie target scanning would fail)
 		if args:IsPlayer() then
 			specWarnVolatileAcid:Show()
-			specWarnVolatileAcid:Play("runout")
+			specWarnVolatileAcid:Play("range5")
 			yellVolatileAcid:Yell()
 		else
 			warnVolatileAcid:Show(args.destName)
 		end
+	elseif spellId == 340544 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+		specWarnStimulateRegeneration:Show(args.sourceName)
+		specWarnStimulateRegeneration:Play("kickcast")
+	elseif spellId == 322938 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+		specWarnHarvestEssence:Show(args.sourceName)
+		specWarnHarvestEssence:Play("kickcast")
 	end
 end
 
@@ -137,12 +148,6 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 325224 and args:IsDestTypePlayer() and self:CheckDispelFilter() and self:AntiSpam(3, 5) then
 		specWarnAnimaInjection:Show(args.destName)
 		specWarnAnimaInjection:Play("helpdispel")
-	elseif spellId == 322938 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
-		specWarnHarvestEssence:Show(args.sourceName)
-		specWarnHarvestEssence:Play("kickcast")
-	elseif spellId == 340544 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
-		specWarnStimulateRegeneration:Show(args.sourceName)
-		specWarnStimulateRegeneration:Play("kickcast")
 	elseif spellId == 322486 then
 		if args:IsPlayer() then
 			specWarnOvergrowth:Show()

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2405, "DBM-Party-Shadowlands", 3, 1184)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20201224023810")
+mod:SetRevision("20220220020808")
 mod:SetCreatureID(164517)
 mod:SetEncounterID(2393)
 mod:SetUsedIcons(1, 2, 3, 4, 5)--Probably doesn't use all 5, unsure number of mind link targets at max inteligence/energy
@@ -26,7 +26,9 @@ ability.id = 322550 and type = "begincast"
  or (ability.id = 322527 or ability.id = 322450) and (type = "applybuff" or type = "removebuff" or type = "applydebuff" or type = "removedebuff")
  or (ability.id = 337235 or ability.id = 337249 or ability.id = 337255) and type = "begincast"
 --]]
+--TODO, find way to group all the parasitic stuff which was generalized on purpose to clean up the mod
 local warnMarkthePrey				= mod:NewTargetNoFilterAnnounce(322563, 3)
+local warnInfestor					= mod:NewAnnounce("warnInfestor", 4, 337235, nil, nil, nil, 337235)
 
 local specWarnConsumption			= mod:NewSpecialWarningDodge(322450, nil, nil, nil, 2, 2)
 local specWarnConsumptionKick		= mod:NewSpecialWarningInterrupt(322450, "HasInterrupt", nil, 2, 1, 2)
@@ -35,27 +37,25 @@ local specWarnMindLink				= mod:NewSpecialWarningMoveAway(322648, nil, nil, nil,
 local yellMindLink					= mod:NewYell(322648)
 local specWarnMarkthePrey			= mod:NewSpecialWarningYou(322563, nil, nil, nil, 1, 2)
 local specWarnAcidExpulsion			= mod:NewSpecialWarningDodge(322654, nil, nil, nil, 2, 2)
-local specWarnParasiticInfester		= mod:NewSpecialWarning("specWarnParasiticInfester", nil, nil, nil, 1, 2, 4, 337235)
-local specWarnParasiticInfesterKick	= mod:NewSpecialWarning("specWarnParasiticInfesterKick", nil, nil, nil, 1, 2, 4, 337235)
+local specWarnParasiticInfesterKick	= mod:NewSpecialWarning("specWarnParasiticInfesterKick", nil, nil, nil, 1, 2, 4, 337235, 337235)
 local yellParasiticInfester			= mod:NewYell(337235, L.Infester, true, "yellParasiticInfester")
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(326309, nil, nil, nil, 1, 8)
 
 local timerAcceleratedIncubationCD	= mod:NewCDTimer(34, 322550, nil, nil, nil, 1, nil, nil, true)--34-43?
-local timerMindLinkCD				= mod:NewCDTimer(15.4, 322614, nil, nil, nil, 3, nil, nil, true)--15-19, still not cast if everyone already affected by it.
+local timerMindLinkCD				= mod:NewCDTimer(15.4, 322648, nil, nil, nil, 3, nil, nil, true)--15-19, still not cast if everyone already affected by it.
 local timerAcidExpulsionCD			= mod:NewCDTimer(19.4, 322654, nil, nil, nil, 3, nil, nil, true)--19-26
-local timerParasiticInfesterCD		= mod:NewTimer(23, "timerParasiticInfesterCD", 337235, nil, nil, 4, DBM_CORE_L.MYTHIC_ICON..DBM_CORE_L.INTERRUPT_ICON, true)--23-26.3
+local timerParasiticInfesterCD		= mod:NewTimer(23, "timerParasiticInfesterCD", 337235, nil, nil, 4, DBM_COMMON_L.MYTHIC_ICON..DBM_COMMON_L.INTERRUPT_ICON, true)--23-26.3
 
 mod:AddInfoFrameOption(322527, true)
-mod:AddSetIconOption("SetIconOnMindLink", 296944, true, false, {1, 2, 3, 4, 5})
+mod:AddSetIconOption("SetIconOnMindLink", 322648, true, false, {1, 2, 3, 4, 5})
 
 mod.vb.mindLinkIcon = 1
 mod.vb.firstPray = false
 
 function mod:InfesterTarget(targetname, uId)
 	if not targetname then return end
+	warnInfestor:Show(targetname)
 	if targetname == UnitName("player") then
-		specWarnParasiticInfester:Show()
-		specWarnParasiticInfester:Play("targetyou")
 		yellParasiticInfester:Yell()
 	end
 end
@@ -63,7 +63,7 @@ end
 function mod:OnCombatStart(delay)
 	self.vb.mindLinkIcon = 1
 	self.vb.firstPray = false
-	timerAcidExpulsionCD:Start(8-delay)
+	timerAcidExpulsionCD:Start(7.1-delay)
 	timerMindLinkCD:Start(18.1-delay)
 	timerAcceleratedIncubationCD:Start(45.2-delay)
 	if self:IsMythic() then
@@ -120,8 +120,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerAcidExpulsionCD:Stop()
 --		timerMarkthePreyCD:Stop()
 		timerAcceleratedIncubationCD:Stop()
-		specWarnConsumption:Show()
-		specWarnConsumption:Play("watchstep")
+		if self:AntiSpam(3, 1) then
+			specWarnConsumption:Show()
+			specWarnConsumption:Play("watchstep")
+		end
 		if self.Options.InfoFrame then
 			DBM.InfoFrame:SetHeader(args.spellName)
 			DBM.InfoFrame:Show(2, "enemyabsorb", nil, args.amount, "boss1")
