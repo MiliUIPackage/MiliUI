@@ -1,0 +1,38 @@
+## Interface: 90205
+## Title: Astral Keys
+## Notes: Keystone Manager for Guilds and Friends
+## Title-zhTW: |cFF00CCFF[團隊]|r 鑰石名單
+## Notes-zhTW: Astral Keys |n列出你的每個角色、公會成員和好友的鑰石，也會顯示保底打了沒，一起揪揪 M+！！|n|cffffd200使用方法：|r點小地圖按鈕。|n|cffFF2D2D特別注意：|r每週登入過的角色才會有記錄。|n只要安裝並載入這個插件的公會成員和好友，就能看到彼此的鑰石。
+## Author: Astral
+## Version: 3.42
+## SavedVariables: AstralKeys, AstralCharacters, AstralKeysSettings, AstralMinimap, AstralAffixes, AstralLists, AstralUnits
+
+Init.lua
+Localization\Localization.lua
+Localization\enUS.lua
+Localization\zhTW.lua
+
+embeds.xml
+
+fonts.xml
+Events.lua
+Tables.lua
+Settings.lua
+Communications.lua
+
+Lists.lua
+Lists\Lists.lua
+Lists\Friends.lua
+Lists\Guild.lua
+
+Affixes.lua
+Unit Information.lua
+Character Info.lua
+Dungeons.lua
+Key Information.lua
+
+AstralKeys.lua
+Frame Functions.lua
+Frame.xml
+MinimapButton.lua
+Options.lua
