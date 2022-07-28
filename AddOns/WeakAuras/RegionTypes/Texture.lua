@@ -1,10 +1,7 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, Private = ...
 
 local L = WeakAuras.L;
-
-local root2 = math.sqrt(2);
-local halfroot2 = root2/2;
 
 local default = {
   texture = "Interface\\Addons\\WeakAuras\\PowerAurasMedia\\Auras\\Aura3",
@@ -69,7 +66,8 @@ local properties = {
 WeakAuras.regionPrototype.AddProperties(properties, default);
 
 local function create(parent)
-  local region = CreateFrame("FRAME", nil, UIParent);
+  local region = CreateFrame("Frame", nil, UIParent);
+  region.regionType = "texture"
   region:SetMovable(true);
   region:SetResizable(true);
   region:SetMinResize(1, 1);
@@ -81,9 +79,6 @@ local function create(parent)
   texture:SetAllPoints(region);
 
   WeakAuras.regionPrototype.create(region);
-  region.values = {};
-
-  region.AnchorSubRegion = WeakAuras.regionPrototype.AnchorSubRegion
 
   return region;
 end
@@ -240,4 +235,8 @@ local function modify(parent, region, data)
   WeakAuras.regionPrototype.modifyFinish(parent, region, data);
 end
 
-WeakAuras.RegisterRegionType("texture", create, modify, default, properties);
+local function validate(data)
+  Private.EnforceSubregionExists(data, "subbackground")
+end
+
+WeakAuras.RegisterRegionType("texture", create, modify, default, properties, validate);

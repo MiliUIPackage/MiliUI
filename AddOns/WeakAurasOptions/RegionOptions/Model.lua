@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 local L = WeakAuras.L;
@@ -25,7 +25,7 @@ local function createOptions(id, data)
       func = function()
         OptionsPrivate.OpenModelPicker(data, {});
       end,
-      disabled = function() return data.modelIsUnit end,
+      disabled = function() return data.modelIsUnit or (WeakAuras.BuildInfo > 80100 and data.modelDisplayInfo) end,
       imageWidth = 24,
       imageHeight = 24,
       control = "WeakAurasIcon",
@@ -42,7 +42,7 @@ local function createOptions(id, data)
       width = WeakAuras.normalWidth,
       name = L["Animation Sequence"],
       min = 0,
-      max = 150,
+      softMax = 1499,
       step = 1,
       bigStep = 1,
       order = 6,
@@ -224,7 +224,7 @@ local function createOptions(id, data)
 end
 
 local function createThumbnail()
-  local borderframe = CreateFrame("FRAME", nil, UIParent);
+  local borderframe = CreateFrame("Frame", nil, UIParent);
   borderframe:SetWidth(32);
   borderframe:SetHeight(32);
 
@@ -291,8 +291,8 @@ local function createIcon()
     width = 40
   };
 
-  local thumbnail = createThumbnail(UIParent);
-  modifyThumbnail(UIParent, thumbnail, data, nil, 50);
+  local thumbnail = createThumbnail();
+  modifyThumbnail(UIParent, thumbnail, data);
 
   return thumbnail;
 end

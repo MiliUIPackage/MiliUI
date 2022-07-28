@@ -1,9 +1,10 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 -- Lua APIs
 local pairs, type, ipairs = pairs, type, ipairs
 local loadstring = loadstring
+local gsub = gsub
 
 -- WoW APIs
 local CreateFrame = CreateFrame
@@ -148,22 +149,41 @@ end]=]
 }
 
 local function ConstructTextEditor(frame)
-  local group = AceGUI:Create("InlineGroup")
+  local group = AceGUI:Create("WeakAurasInlineGroup")
   group.frame:SetParent(frame)
-  group.frame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -17, 12)
-  group.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 17, -10)
+  group.frame:SetPoint("TOPLEFT", frame, "TOPLEFT", 16, -16);
+  group.frame:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", -16, 46);
   group.frame:Hide()
-  group:SetLayout("fill")
+  group:SetLayout("flow")
+
+  local title = AceGUI:Create("Label")
+  title:SetFontObject(GameFontNormalHuge)
+  title:SetFullWidth(true)
+  title:SetText(L["Code Editor"])
+  group:AddChild(title)
 
   local editor = AceGUI:Create("MultiLineEditBox")
-  editor:SetWidth(400)
-  editor.button:Hide()
+  editor:SetFullWidth(true)
+  editor:SetFullHeight(true)
+  editor:DisableButton(true)
   local fontPath = SharedMedia:Fetch("font", "Fira Mono Medium")
   if (fontPath) then
     editor.editBox:SetFont(fontPath, 12)
   end
   group:AddChild(editor)
   editor.frame:SetClipsChildren(true)
+
+  local originalOnCursorChanged = editor.editBox:GetScript("OnCursorChanged")
+  editor.editBox:SetScript("OnCursorChanged", function(self, ...)
+    -- WORKAROUND the editbox sends spurious OnCursorChanged events if its resized
+    -- That makes AceGUI scroll the editbox to make the cursor visible, leading to unintended
+    -- movements. Prevent all of that by checking if the edit box has focus, as otherwise the cursor
+    -- is invisible, and we don't care about making it visible
+    if not self:HasFocus() then
+      return
+    end
+    originalOnCursorChanged(self, ...)
+  end)
 
   -- The indention lib overrides GetText, but for the line number
   -- display we ned the original, so save it here.
@@ -178,7 +198,7 @@ local function ConstructTextEditor(frame)
       group:CancelClose()
     end
   )
-  cancel:SetPoint("BOTTOMRIGHT", -27, 13)
+  cancel:SetPoint("BOTTOMRIGHT", -20, -24)
   cancel:SetFrameLevel(cancel:GetFrameLevel() + 1)
   cancel:SetHeight(20)
   cancel:SetWidth(100)
@@ -205,13 +225,13 @@ local function ConstructTextEditor(frame)
   settings_frame:RegisterForClicks("LeftButtonUp")
 
   local helpButton = CreateFrame("Button", nil, group.frame, "UIPanelButtonTemplate")
-  helpButton:SetPoint("BOTTOMLEFT", 12, 13)
+  helpButton:SetPoint("BOTTOMLEFT", 12, -24)
   helpButton:SetFrameLevel(cancel:GetFrameLevel() + 1)
   helpButton:SetHeight(20)
   helpButton:SetWidth(100)
   helpButton:SetText(L["Help"])
 
-  local urlText = CreateFrame("editbox", nil, group.frame)
+  local urlText = CreateFrame("EditBox", nil, group.frame)
   urlText:SetFrameLevel(cancel:GetFrameLevel() + 1)
   urlText:SetFont(STANDARD_TEXT_FONT, 12)
   urlText:EnableMouse(true)
@@ -220,11 +240,11 @@ local function ConstructTextEditor(frame)
   urlText:Hide()
 
   local urlCopyLabel = urlText:CreateFontString(nil, "BACKGROUND", "GameFontHighlightSmall")
-  urlCopyLabel:SetPoint("BOTTOMLEFT", group.frame, "BOTTOMLEFT", 12, 18)
+  urlCopyLabel:SetPoint("BOTTOMLEFT", group.frame, "BOTTOMLEFT", 12, -20)
   urlCopyLabel:SetText(L["Press Ctrl+C to copy"])
   urlCopyLabel:Hide()
 
-  urlText:SetPoint("TOPLEFT", urlCopyLabel, "TOPRIGHT", 12, 13)
+  urlText:SetPoint("TOPLEFT", urlCopyLabel, "TOPRIGHT", 12, 0)
   urlText:SetPoint("RIGHT", settings_frame, "LEFT")
 
   local dropdown = CreateFrame("Frame", "SettingsMenuFrame", settings_frame, "UIDropDownMenuTemplate")
@@ -349,8 +369,9 @@ local function ConstructTextEditor(frame)
     -- iterate saved snippets and make buttons
     for order, snippet in ipairs(savedSnippets) do
       local button = AceGUI:Create("WeakAurasSnippetButton")
+      local snippetInsert = gsub(snippet.snippet, "|", "||")
       button:SetTitle(snippet.name)
-      button:SetDescription(snippet.snippet)
+      button:SetDescription(snippetInsert)
       button:SetEditable(true)
       button:SetRelativeWidth(1)
       button:SetNew(snippet.new)
@@ -358,7 +379,7 @@ local function ConstructTextEditor(frame)
       button:SetCallback(
         "OnClick",
         function()
-          editor.editBox:Insert(snippet.snippet)
+          editor.editBox:Insert(snippetInsert)
           editor:SetFocus()
         end
       )
@@ -393,7 +414,7 @@ local function ConstructTextEditor(frame)
   end
 
   -- Make sidebar for snippets
-  local snippetsFrame = CreateFrame("FRAME", "WeakAurasSnippets", group.frame, BackdropTemplateMixin and "BackdropTemplate")
+  local snippetsFrame = CreateFrame("Frame", "WeakAurasSnippets", group.frame, "BackdropTemplate")
   snippetsFrame:SetPoint("TOPLEFT", group.frame, "TOPRIGHT", 20, 0)
   snippetsFrame:SetPoint("BOTTOMLEFT", group.frame, "BOTTOMRIGHT", 20, 0)
   snippetsFrame:SetWidth(250)
@@ -515,7 +536,7 @@ local function ConstructTextEditor(frame)
   editorError:SetPoint("LEFT", helpButton, "RIGHT", 0, 4)
   editorError:SetPoint("RIGHT", settings_frame, "LEFT")
 
-  local editorLine = CreateFrame("Editbox", nil, group.frame)
+  local editorLine = CreateFrame("EditBox", nil, group.frame)
   -- Set script on enter pressed..
   editorLine:SetPoint("BOTTOMRIGHT", editor.frame, "TOPRIGHT", -100, -15)
   editorLine:SetFont(STANDARD_TEXT_FONT, 10)
@@ -711,7 +732,7 @@ local function ConstructTextEditor(frame)
     frame:UpdateFrameVisible()
   end
 
-  local function extractTexts(input, ids)
+  local function extractTexts(input)
     local texts = {}
 
     local currentPos, id, startIdLine, startId, endId, endIdLine
@@ -753,7 +774,7 @@ local function ConstructTextEditor(frame)
       OptionsPrivate.Private.ValueToPath(self.data, self.path, editor:GetText())
       WeakAuras.Add(self.data)
     else
-      local textById = editor.combinedText and extractTexts(editor:GetText(), self.data.controlledChildren)
+      local textById = editor.combinedText and extractTexts(editor:GetText())
       for child in OptionsPrivate.Private.TraverseLeafsOrAura(self.data) do
         local text = editor.combinedText and (textById[child.id] or "") or editor:GetText()
         OptionsPrivate.Private.ValueToPath(child, self.multipath and self.path[child.id] or self.path, text)

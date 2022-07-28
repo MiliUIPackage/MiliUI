@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 local L = WeakAuras.L;
@@ -54,40 +54,8 @@ local function getWidth(data, region)
   end
 end
 
--- Create region options table
-local function createOptions(id, data)
-  -- Region options
-  local options = {
-    __title = L["Group Settings"],
-    __order = 1,
-    groupIcon = {
-      type = "input",
-      width = WeakAuras.doubleWidth - 0.15,
-      name = L["Group Icon"],
-      desc = L["Set Thumbnail Icon"],
-      order = 0.50,
-      get = function()
-        return data.groupIcon and tostring(data.groupIcon) or ""
-      end,
-      set = function(info, v)
-        data.groupIcon = v
-        WeakAuras.Add(data)
-        WeakAuras.UpdateThumbnail(data)
-      end
-    },
-    chooseIcon = {
-      type = "execute",
-      width = 0.15,
-      name = L["Choose"],
-      order = 0.51,
-      func = function()
-         OptionsPrivate.OpenIconPicker(data, { [data.id] = {"groupIcon"} }, true)
-       end,
-       imageWidth = 24,
-       imageHeight = 24,
-       control = "WeakAurasIcon",
-       image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\browse",
-    },
+local function createDistributeAlignOptions(id, data)
+  return {
     align_h = {
       type = "select",
       width = WeakAuras.normalWidth,
@@ -483,7 +451,7 @@ local function createOptions(id, data)
         end
         local spaced;
         local previousData;
-        for index, childId in pairs(data.controlledChildren) do
+        for _, childId in pairs(data.controlledChildren) do
           local childData = WeakAuras.GetData(childId);
           if(childData) then
             local _, bottom, _, top = getRect(childData);
@@ -551,7 +519,45 @@ local function createOptions(id, data)
         WeakAuras.Add(data);
         OptionsPrivate.ResetMoverSizer();
       end
+    }
+  }
+end
+
+-- Create region options table
+local function createOptions(id, data)
+  -- Region options
+  local options = {
+    __title = L["Group Settings"],
+    __order = 1,
+    groupIcon = {
+      type = "input",
+      width = WeakAuras.doubleWidth - 0.15,
+      name = L["Group Icon"],
+      desc = L["Set Thumbnail Icon"],
+      order = 0.50,
+      get = function()
+        return data.groupIcon and tostring(data.groupIcon) or ""
+      end,
+      set = function(info, v)
+        data.groupIcon = v
+        WeakAuras.Add(data)
+        WeakAuras.UpdateThumbnail(data)
+      end
     },
+    chooseIcon = {
+      type = "execute",
+      width = 0.15,
+      name = L["Choose"],
+      order = 0.51,
+      func = function()
+         OptionsPrivate.OpenIconPicker(data, { [data.id] = {"groupIcon"} }, true)
+       end,
+       imageWidth = 24,
+       imageHeight = 24,
+       control = "WeakAurasIcon",
+       image = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\browse",
+    },
+    -- Alignment/Distribute options are added below
     scale = {
       type = "range",
       width = WeakAuras.normalWidth,
@@ -581,8 +587,33 @@ local function createOptions(id, data)
     },
   };
 
-  for k, v in pairs(OptionsPrivate.commonOptions.BorderOptions(id, data, nil, nil, 70)) do
-    options[k] = v
+  local hasSubGroups = false
+  local hasDynamicSubGroup = false
+  for index, childId in pairs(data.controlledChildren) do
+    local childData = WeakAuras.GetData(childId);
+    if childData.controlledChildren then
+      hasSubGroups = true
+    end
+    if childData.regionType == "dynamicgroup" then
+      hasDynamicSubGroup = true
+    end
+
+    if hasSubGroups and hasDynamicSubGroup then
+      break
+    end
+  end
+
+
+  if not hasSubGroups then
+    for k, v in pairs(createDistributeAlignOptions(id, data)) do
+      options[k] = v
+    end
+  end
+
+  if not hasDynamicSubGroup then
+    for k, v in pairs(OptionsPrivate.commonOptions.BorderOptions(id, data, nil, nil, 70)) do
+      options[k] = v
+    end
   end
 
   return {
@@ -593,7 +624,7 @@ end
 
 local function createThumbnail()
   -- frame
-  local thumbnail = CreateFrame("FRAME", nil, UIParent);
+  local thumbnail = CreateFrame("Frame", nil, UIParent);
   thumbnail:SetWidth(32);
   thumbnail:SetHeight(32);
 
@@ -612,7 +643,7 @@ end
 
 local function createDefaultIcon(parent)
   -- default Icon
-  local defaultIcon = CreateFrame("FRAME", nil, parent);
+  local defaultIcon = CreateFrame("Frame", nil, parent);
   parent.defaultIcon = defaultIcon;
 
   local t1 = defaultIcon:CreateTexture(nil, "ARTWORK");
@@ -636,9 +667,9 @@ end
 
 -- Modify preview thumbnail
 local function modifyThumbnail(parent, frame, data)
-  function frame:SetIcon(path)
+  function frame:SetIcon()
     if data.groupIcon then
-      local success = frame.icon:SetTexture(data.groupIcon)
+      local success = WeakAuras.SetTextureOrAtlas(frame.icon, data.groupIcon)
       if success then
         if frame.defaultIcon then
           frame.defaultIcon:Hide()
@@ -657,12 +688,12 @@ local function modifyThumbnail(parent, frame, data)
     frame.defaultIcon:Show()
   end
 
-  frame:SetIcon(nil)
+  frame:SetIcon()
 end
 
 -- Create "new region" preview
 local function createIcon()
-  local thumbnail = createThumbnail(UIParent)
+  local thumbnail = createThumbnail()
   thumbnail.defaultIcon = createDefaultIcon(thumbnail)
   return thumbnail
 end

@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
@@ -395,12 +395,32 @@ local function createOptions(id, data)
     }
     local index = 0.01
     for id, display in ipairs(overlayInfo) do
+      options["overlaytexture" .. id] = {
+        type = "select",
+        dialogControl = "LSM30_Statusbar",
+        width = WeakAuras.doubleWidth,
+        name = string.format(L["%s Texture"], display),
+        values = AceGUIWidgetLSMlists.statusbar,
+        order = 58.1 + index,
+        set = function(info, texture)
+          if (not data.overlaysTexture) then
+            data.overlaysTexture = {};
+          end
+          data.overlaysTexture[id] = texture;
+          WeakAuras.Add(data);
+        end,
+        get = function()
+          if data.overlaysTexture and data.overlaysTexture[id] then
+            return data.overlaysTexture[id]
+          end
+        end
+      }
       options["overlaycolor" .. id] = {
         type = "color",
         width = WeakAuras.normalWidth,
         name = string.format(L["%s Color"], display),
         hasAlpha = true,
-        order = 58 + index,
+        order = 58.2 + index,
         get = function()
           if (data.overlays and data.overlays[id]) then
             return unpack(data.overlays[id]);
@@ -422,7 +442,7 @@ local function createOptions(id, data)
       type = "toggle",
       width = WeakAuras.normalWidth,
       name = L["Clip Overlays"],
-      order = 58 + index;
+      order = 58.3 + index;
     }
 
   end
@@ -436,7 +456,7 @@ end
 -- Create preview thumbnail
 local function createThumbnail()
   -- Preview frame
-  local borderframe = CreateFrame("FRAME", nil, UIParent);
+  local borderframe = CreateFrame("Frame", nil, UIParent);
   borderframe:SetWidth(32);
   borderframe:SetHeight(32);
 
@@ -447,13 +467,13 @@ local function createThumbnail()
   border:SetTexCoord(0.2, 0.8, 0.2, 0.8);
 
   -- Main region
-  local region = CreateFrame("FRAME", nil, borderframe);
+  local region = CreateFrame("Frame", nil, borderframe);
   borderframe.region = region;
   region:SetWidth(32);
   region:SetHeight(32);
 
   -- Status-bar frame
-  local bar = CreateFrame("FRAME", nil, region);
+  local bar = CreateFrame("Frame", nil, region);
   borderframe.bar = bar;
 
   -- Fake status-bar
@@ -594,7 +614,7 @@ local function modifyThumbnail(parent, borderframe, data, fullModify, width, hei
     end
 
     if data then
-      local name, icon = WeakAuras.GetNameAndIcon(data)
+      local _, icon = WeakAuras.GetNameAndIcon(data)
       borderframe:SetIcon(icon)
     end
 
@@ -618,7 +638,7 @@ local function createIcon()
   };
 
   -- Create and configure thumbnail
-  local thumbnail = createThumbnail(UIParent);
+  local thumbnail = createThumbnail();
   modifyThumbnail(UIParent, thumbnail, data, nil, 32, 18);
   thumbnail:SetIcon("Interface\\Icons\\INV_Sword_62");
 
@@ -777,29 +797,5 @@ local function GetAnchors(data)
   return anchorPoints;
 end
 
-local function subCreateOptions(parentData, data, index, subIndex)
-  local order = 9
-  local options = {
-    __title = L["Foreground"],
-    __order = 1,
-    __up = function()
-      for child in OptionsPrivate.Private.TraverseLeafsOrAura(parentData) do
-        OptionsPrivate.MoveSubRegionUp(child, index, "aurabar_bar")
-      end
-      WeakAuras.ClearAndUpdateOptions(parentData.id)
-    end,
-    __down = function()
-      for child in OptionsPrivate.Private.TraverseLeafsOrAura(parentData) do
-        OptionsPrivate.MoveSubRegionDown(child, index, "aurabar_bar")
-      end
-      WeakAuras.ClearAndUpdateOptions(parentData.id)
-    end,
-    __notcollapsable = true
-  }
-  return options
-end
-
 -- Register new region type options with WeakAuras
 WeakAuras.RegisterRegionOptions("aurabar", createOptions, createIcon, L["Progress Bar"], createThumbnail, modifyThumbnail, L["Shows a progress bar with name, timer, and icon"], templates, GetAnchors);
-
-WeakAuras.RegisterSubRegionOptions("aurabar_bar", subCreateOptions, L["Foreground"]);

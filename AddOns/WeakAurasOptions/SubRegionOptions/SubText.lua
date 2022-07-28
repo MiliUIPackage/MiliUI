@@ -1,7 +1,6 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
-local SharedMedia = LibStub("LibSharedMedia-3.0")
 local L = WeakAuras.L
 
 local screenWidth, screenHeight = math.ceil(GetScreenWidth() / 20) * 20, math.ceil(GetScreenHeight() / 20) * 20
@@ -474,14 +473,14 @@ local function createOptions(parentData, data, index, subIndex)
         return childSubRegion["text_text_format_" .. key]
       end
       local input = childSubRegion["text_text"]
-      OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden, listIndex, #list)
+      OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden, false, listIndex, #list)
     end
   else
     local get = function(key)
       return data["text_text_format_" .. key]
     end
     local input = data["text_text"]
-    OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden)
+    OptionsPrivate.AddTextFormatOption(input, true, get, addOption, hidden, setHidden, false)
   end
 
   addOption("footer", {

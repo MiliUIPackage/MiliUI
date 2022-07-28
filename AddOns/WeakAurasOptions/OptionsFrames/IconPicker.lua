@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 -- Lua APIs
@@ -8,7 +8,6 @@ local pairs  = pairs
 local CreateFrame, GetSpellInfo = CreateFrame, GetSpellInfo
 
 local AceGUI = LibStub("AceGUI-3.0")
-local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
@@ -32,9 +31,6 @@ local function ConstructIconPicker(frame)
 
   local function iconPickerFill(subname, doSort)
     scroll:ReleaseChildren();
-
-    local distances = {};
-    local names = {};
 
     -- Work around special numbers such as inf and nan
     if (tonumber(subname)) then
@@ -66,9 +62,10 @@ local function ConstructIconPicker(frame)
       for name, icons in pairs(spellCache.Get()) do
         if(name:lower():find(subname, 1, true)) then
           if icons.spells then
-            for spellId, icon in pairs(icons.spells) do
-              if (not usedIcons[icon]) then
-                AddButton(name, icon)
+            for spell, icon in icons.spells:gmatch("(%d+)=(%d+)") do
+              local iconId = tonumber(icon)
+              if (not usedIcons[iconId]) then
+                AddButton(name, iconId)
                 num = num + 1;
                 if(num >= 500) then
                   break;
@@ -76,9 +73,10 @@ local function ConstructIconPicker(frame)
               end
             end
           elseif icons.achievements then
-            for _, icon in pairs(icons.achievements) do
-              if (not usedIcons[icon]) then
-                AddButton(name, icon)
+            for _, icon in icons.achievements:gmatch("(%d+)=(%d+)") do
+              local iconId = tonumber(icon)
+              if (not usedIcons[iconId]) then
+                AddButton(name, iconId)
                 num = num + 1;
                 if(num >= 500) then
                   break;
@@ -95,7 +93,7 @@ local function ConstructIconPicker(frame)
     end
   end
 
-  local input = CreateFrame("EDITBOX", nil, group.frame, "InputBoxTemplate");
+  local input = CreateFrame("EditBox", nil, group.frame, "InputBoxTemplate");
   input:SetScript("OnTextChanged", function(...) iconPickerFill(input:GetText(), false); end);
   input:SetScript("OnEnterPressed", function(...) iconPickerFill(input:GetText(), true); end);
   input:SetScript("OnEscapePressed", function(...) input:SetText(""); iconPickerFill(input:GetText(), true); end);

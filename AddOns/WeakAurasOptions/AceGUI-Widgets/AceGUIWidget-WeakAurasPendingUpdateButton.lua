@@ -7,7 +7,7 @@ local L = WeakAuras.L
 
 local pairs, next, type, unpack = pairs, next, type, unpack
 
-local Type, Version = "WeakAurasPendingUpdateButton", 1
+local Type, Version = "WeakAurasPendingUpdateButton", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then
@@ -65,6 +65,7 @@ local methods = {
     self:SetTitle(self.companionData.name)
     self.update:SetScript("OnClick", self.callbacks.OnUpdateClick)
     local data = OptionsPrivate.Private.StringToTable(self.companionData.encoded, true)
+    WeakAuras.PreAdd(data.d)
     self.data = data.d
     self.frame:EnableKeyboard(false)
     self:Enable()
@@ -288,7 +289,7 @@ Constructor
 
 local function Constructor()
   local name = "WeakAurasPendingUpdateButton" .. AceGUI:GetNextWidgetNum(Type)
-  local button = CreateFrame("BUTTON", name, UIParent)
+  local button = CreateFrame("Button", name, UIParent)
   button:SetHeight(32)
   button:SetWidth(1000)
   button.data = {}
@@ -319,7 +320,7 @@ local function Constructor()
 
   button.description = {}
 
-  local update = CreateFrame("BUTTON", nil, button)
+  local update = CreateFrame("Button", nil, button)
   button.update = update
   update.disabled = true
   update.func = function()
@@ -333,12 +334,14 @@ local function Constructor()
   -- Add logo
   local updateLogo = CreateFrame("Frame", nil, button)
   button.updateLogo = updateLogo
-  local tex = updateLogo:CreateTexture(nil, "OVERLAY")
+  local tex = updateLogo:CreateTexture()
   tex:SetTexture([[Interface\AddOns\WeakAuras\Media\Textures\wagoupdate_logo.tga]])
   tex:SetAllPoints()
   updateLogo.tex = tex
   updateLogo:SetSize(24, 24)
   updateLogo:SetPoint("CENTER", update)
+  updateLogo:SetFrameStrata(update:GetFrameStrata())
+  updateLogo:SetFrameLevel(update:GetFrameLevel()-1)
 
   -- Animation On Hover
   local animGroup = update:CreateAnimationGroup()

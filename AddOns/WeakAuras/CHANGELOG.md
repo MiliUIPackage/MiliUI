@@ -1,36 +1,39 @@
-# [3.5.0](https://github.com/WeakAuras/WeakAuras2/tree/3.5.0) (2021-06-29)
+# [4.0.2](https://github.com/WeakAuras/WeakAuras2/tree/4.0.2) (2022-06-01)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/3.4.3...3.5.0)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/4.0.1...4.0.2)
 
 ## Highlights
 
- - Added a few new Patch 9.1 features
-- Performance Optimizations
-- Added BCC Encounter IDs 
+ - bug fixes 
 
 ## Commits
 
-InfusOnWoW (8):
+InfusOnWoW (4):
 
-- Make translations a bit easier
-- Add new soul bind traits and new conduits
-- Add most new legendary effects
-- Add Shards of Domination buffs
-- Move some StopMotion texture definitions to the plugin
-- Fix New from Templates adding two glows
-- Only update ViewTexture if it changed
-- Be less brain dead for updating the "eye" texture in the Options
+- Work around invalid geometry even harder
+- Tweak visibility handling again
+- Tweak Profiling output
+- Fix Time formatting flooring the seconds, instead of ceiling them
+
+Jens N (1):
+
+- Fixed issue with "Array"-type options in aura groups
 
 Stanzilla (2):
 
-- Update TOC for Patch 9.1.0
-- Update WeakAurasModelPaths from wow.tools
+- Update TOC for Patch 9.2.5
+- CI: Speed up build times by using `plain-copy` for model path files
 
-mrbuds (1):
+mrbuds (10):
 
-- add bcc encounter ids and show list in correct order
-
-nullKomplex (1):
-
-- Update map of legendary ids and bonus ids. (#3170)
+- clean more unused variables
+- fix chat message_voice condition not displayed correctly in options
+- remove BackdropTemplateMixin workaround
+- bufftrigger2: rename local frame to Buff2Frame
+- cleanup unused variables and functions
+- CreateFrame: use same casing for frameType
+- replace deprecated function C_LegendaryCrafting.GetRuneforgePowersByClassAndSpec
+- none of the time formatters have 2 arguments
+- rename WeakAuras.lua "frame" to "WeakAurasFrame"
+- Fix assignement ambiguity
 

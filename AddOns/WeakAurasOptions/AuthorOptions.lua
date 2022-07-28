@@ -58,7 +58,7 @@
       bigStep (optional) -> step size of the slider. Defaults to 0.05
       step (optional) -> like bigStep, but applies to number input as well
 ]]
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 local WeakAuras = WeakAuras
@@ -69,7 +69,7 @@ local conflictBlue = "|cFF4080FF"
 local conflict = {} -- magic value
 
 local function atLeastOneSet(references, key)
-  for id, optionData in pairs(references) do
+  for _, optionData in pairs(references) do
     local childOption = optionData.options[optionData.index]
     if childOption[key] ~= nil then
       return true
@@ -288,7 +288,7 @@ end
 local function getUser(option)
   return function()
     local value
-    for id, optionData in pairs(option.references) do
+    for _, optionData in pairs(option.references) do
       if not optionData.config then
         return
       elseif value == nil then
@@ -335,7 +335,7 @@ end
 local function getValues(option)
   local values = {}
   local firstChild = true
-  for id, optionData in pairs(option.references) do
+  for _, optionData in pairs(option.references) do
     local childOption = optionData.options[optionData.index]
     local childValues = childOption.values
     local i = 1
@@ -400,7 +400,7 @@ end
 -- setters for AceConfig
 local function set(data, option, key)
   return function(_, value)
-    for id, optionData in pairs(option.references) do
+    for _, optionData in pairs(option.references) do
       local childOption = optionData.options[optionData.index]
       local childData = optionData.data
       childOption[key] = value
@@ -412,7 +412,7 @@ end
 
 local function setUser(data, option)
   return function(_, value)
-    for id, optionData in pairs(option.references) do
+    for _, optionData in pairs(option.references) do
       local childData = optionData.data
       local childConfig = optionData.config
       childConfig[option.key] = value
@@ -465,7 +465,7 @@ local function setUserNum(data, option)
     if value ~= "" then
       local num = tonumber(value)
       if not num or math.abs(num) == math.huge or tostring(num) == "nan" then return end
-      for id, optionData in pairs(option.references) do
+      for _, optionData in pairs(option.references) do
         local childData = optionData.data
         local childConfig = optionData.config
         childConfig[option.key] = num
@@ -525,6 +525,34 @@ local function setArrayStr(data, option, array, index)
     end
     WeakAuras.ClearAndUpdateOptions(data.id, true)
   end
+end
+
+local function ensureUniqueKey(candidate, suffix, options, index)
+  index = index or 1
+  local goodKey = true
+  local key = candidate
+  local existingKeys = {}
+  for _, option in ipairs(options) do
+    if option.key then
+      if option.key == key then
+        goodKey = false
+      end
+      existingKeys[option.key] = true
+    end
+  end
+  if not goodKey then
+    local prefix = candidate .. suffix
+    while not goodKey do
+      key = prefix .. index
+      goodKey = not existingKeys[key]
+      index = index + 1
+    end
+  end
+  return key
+end
+
+local function generateKey(prefix, options, index)
+  return ensureUniqueKey(prefix, "", options, index)
 end
 
 local typeControlAdders, addAuthorModeOption
@@ -806,7 +834,7 @@ typeControlAdders = {
         type = "input",
         width = WeakAuras.normalWidth - 0.15,
         name = (value == conflict and conflictBlue or "") .. L["Value %i"]:format(j),
-        desc = descSelect(option, j, conflict),
+        desc = descSelect(option, j),
         order = order(),
         get = function()
           if value ~= conflict then
@@ -948,7 +976,7 @@ typeControlAdders = {
     end
     args[prefix .. "default"] = {
       type = "multiselect",
-      width = WeakAuras.normalWidth,
+      width = WeakAuras.normalWidth * 0.9,
       name = L["Default"],
       order = order(),
       values = defaultValues,
@@ -984,7 +1012,7 @@ typeControlAdders = {
         type = "input",
         width = WeakAuras.normalWidth - 0.15,
         name = (value == conflict and conflictBlue or "") .. L["Value %i"]:format(j),
-        desc = descSelect(option, j, conflict),
+        desc = descSelect(option, j),
         order = order(),
         get = function()
           if value ~= conflict then
@@ -1312,7 +1340,7 @@ typeControlAdders = {
           path[#path + 1] = j
           childOption.subOptions[j] = {
             type = "toggle",
-            key = "subOption" .. j,
+            key = generateKey("subOption", childOption.subOptions, j),
             name = L["Sub Option %i"]:format(j),
             default = false,
             width = 1,
@@ -1411,7 +1439,7 @@ local function duplicate(data, options, index)
           end
         end
         while existingKeys[newOption.key] do
-          newOption.key = newOption.key .. "copy"
+          newOption.key = generateKey(newOption.key .. "copy", childOptions, 1)
         end
       end
       if newOption.name then
@@ -1424,7 +1452,7 @@ local function duplicate(data, options, index)
   end
 end
 
-local function ensureNonDuplicateKey(option)
+local function validateNonDuplicateKey(option)
   -- note: this has some unintuitive behavior
   -- e.g. if aura A has option keys "foo", "bar"
   -- and aura B has option keys "foo", "baz",
@@ -1511,6 +1539,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           tinsert(newPath, #childGroup.subOptions + 1)
           OptionsPrivate.InsertCollapsed(id, "author", newPath, childCollapsed)
           local childOption = tremove(optionData.options, optionData.index)
+          childOption.key = ensureUniqueKey(childOption.key, "In", childGroup.subOptions)
           local childData = optionData.data
           tinsert(childGroup.subOptions, childOption)
           WeakAuras.Add(childData)
@@ -1540,6 +1569,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           tinsert(newPath, 1)
           OptionsPrivate.InsertCollapsed(id, "author", newPath, childCollapsed)
           local childOption = tremove(optionData.options, optionData.index)
+          childOption.key = ensureUniqueKey(childOption.key, "In", childGroup.subOptions)
           local childData = optionData.data
           tinsert(childGroup.subOptions, 1, childOption)
           WeakAuras.Add(childData)
@@ -1565,7 +1595,6 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
         local parent = optionData.parent
         local parentOptions = parent and parent.references[id].options or optionData.data.authorOptions
         local childOption = tremove(optionData.options, optionData.index)
-        local childCollapsed = OptionsPrivate.IsCollapsed(id, "author", optionData.path, true)
         if parent and parent.groupType == "array" then
           local dereferencedParent = parent.references[id].options[parent.references[id].index]
           if dereferencedParent.nameSource == optionData.index then
@@ -1575,6 +1604,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           end
         end
         OptionsPrivate.RemoveCollapsed(id, "author", optionData.path)
+        childOption.key = ensureUniqueKey(childOption.key, "Out", parentOptions)
         tinsert(parentOptions, path[#path - 1], childOption)
         path[#path] = nil
         OptionsPrivate.InsertCollapsed(id, "author", path)
@@ -1599,7 +1629,6 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
         local parent = optionData.parent
         local parentOptions = parent and parent.references[id].options or optionData.data.authorOptions
         local childOption = tremove(optionData.options, optionData.index)
-        local childCollapsed = OptionsPrivate.IsCollapsed(id, "author", optionData.path, true)
         if parent and parent.groupType == "array" then
           local dereferencedParent = parent.references[id].options[parent.references[id].index]
           if dereferencedParent.nameSource == optionData.index then
@@ -1609,6 +1638,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           end
         end
         OptionsPrivate.RemoveCollapsed(id, "author", optionData.path)
+        childOption.key = ensureUniqueKey(childOption.key, "Out", parentOptions)
         tinsert(parentOptions, path[#path - 1] + 1, childOption)
         path[#path] = nil
         path[#path] = path[#path] + 1
@@ -1736,7 +1766,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
           -- mostly because it would have a very non-intuitive effect
           -- the names and keys would likely not match anymore, and so
           -- the merged display would basically explode into a bunch of separate options
-          childOption.name = childOption.name or ("Option %i"):format(i)
+          childOption.name = childOption.name or (L["Option %i"]):format(i)
           if not childOption.key then
             local newKey = "option" .. i
             local existingKeys = {}
@@ -1779,7 +1809,7 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
       width = WeakAuras.normalWidth,
       name = name(option, "key", optionClass == "group" and L["Group key"] or L["Option key"]),
       order = order(),
-      validate = ensureNonDuplicateKey(option),
+      validate = validateNonDuplicateKey(option),
       get = get(option, "key"),
       set = set(data, option, "key")
     }
@@ -1830,7 +1860,6 @@ function addAuthorModeOption(options, args, data, order, prefix, i)
   local addControlsForType = typeControlAdders[option.type]
   if addControlsForType then
     addControlsForType(options, args, data, order, prefix, i)
-    local option = options[i]
   end
 end
 
@@ -1964,7 +1993,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
             while i <= #values or i <= #childValues do
               if firstChild then
                 values[i] = childValues[i][nameSource] or conflictBlue .. L["Entry %i"]:format(i)
-              elseif childValues[i] ~= values[i] then
+              elseif childValues[i][nameSource] ~= values[i] then
                 values[i] = conflictBlue .. L["Entry %i"]:format(i)
               end
               i = i + 1
@@ -2183,7 +2212,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
     elseif optionType == "number" then
       userOption.type = "input"
       userOption.get = getUserNumAsString(option)
-      userOption.set = setUserNum(data, option, true)
+      userOption.set = setUserNum(data, option)
     elseif optionType == "range" then
       userOption.softMax = option.softMax
       userOption.softMin = option.softMin
@@ -2214,7 +2243,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
         return value
       end
       userOption.set = function(_, k, v)
-        for id, optionData in pairs(option.references) do
+        for _, optionData in pairs(option.references) do
           optionData.config[option.key][k] = v
           WeakAuras.Add(optionData.data)
         end
@@ -2227,7 +2256,7 @@ local function addUserModeOption(options, args, data, order, prefix, i)
       local name = {}
       local firstName = nil
       local conflict = false
-      for id, optionData in pairs(option.references) do
+      for _, optionData in pairs(option.references) do
         local childOption = optionData.options[optionData.index]
         if childOption.useName and #childOption.text > 0 then
           if firstName == nil then
@@ -2310,7 +2339,6 @@ local function mergeOptions(mergedOptions, data, options, config, prepath, paren
   local nextInsert = 1
   for i = 1, #options do
     local path = CopyTable(prepath)
-    local option = options[i]
     path[#path + 1] = i
     -- find the best place to start inserting the next option to merge
     local nextToMerge = options[i]
@@ -2381,7 +2409,7 @@ local function mergeOptions(mergedOptions, data, options, config, prepath, paren
               -- check if nextToMerge.nameSource was merged in the same spot as mergedOption.nameSource
               local subMergedOption = mergedOption.subOptions[mergedOption.nameSource]
               local optionData = subMergedOption.references[data.id]
-              if not optionData or optionData.optionIndex ~= nextToMerge.nameSource then
+              if not optionData or optionData.index ~= nextToMerge.nameSource then
                 -- either an option was not merged at the name source's index, or the wrong option was.
                 -- in both cases, the name source is conflicted. Fallback to "Entry #" as entry names
                 mergedOption.nameSource = nil
@@ -2528,7 +2556,7 @@ function OptionsPrivate.GetAuthorOptions(data)
           local i = #child.authorOptions + 1
           child.authorOptions[i] = {
             type = "toggle",
-            key = "option" .. i,
+            key = generateKey("option", child.authorOptions, i),
             name = L["Option %i"]:format(i),
             default = false,
             width = 1,
@@ -2585,9 +2613,9 @@ function OptionsPrivate.GetAuthorOptions(data)
       desc = L["Configure what options appear on this panel."],
       order = order(),
       func = function()
-        for data in OptionsPrivate.Private.TraverseLeafsOrAura(data) do
+        for configData in OptionsPrivate.Private.TraverseLeafsOrAura(data) do
           -- no need to add, author mode is picked up by ClearAndUpdateOptions
-          data.authorMode = true
+          configData.authorMode = true
         end
         WeakAuras.ClearAndUpdateOptions(data.id, true)
       end

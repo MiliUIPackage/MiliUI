@@ -50,7 +50,7 @@ Returns the tooltip text for additional properties.
 GetTriggerConditions(data, triggernum)
 Returns the potential conditions for a trigger
 ]]--
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, Private = ...
 
 -- Lua APIs
@@ -89,11 +89,15 @@ local unitExistScanFunc = {}
 -- Which units exist
 local existingUnits = {}
 
+-- Contains all scanFuncs that fetch the role + roleIcon
+local groupRoleScanFunc = {}
+
 -- Loaded ScanFuncs per unit type
 local groupScanFuncs = {}
 --Active ScanFuncs per actual unit id
 local activeGroupScanFuncs = {}
 
+local raidMarkScanFuncs = {}
 
 -- Multi Target tracking
 local scanFuncNameMulti = {}
@@ -128,8 +132,14 @@ local function UnitIsVisibleFixed(unit)
   return unitVisible[unit]
 end
 
-local function UnitInSubgroupOrPlayer(unit)
-  return UnitInSubgroup(unit) or UnitIsUnit("player", unit)
+local function UnitInSubgroupOrPlayer(unit, includePets)
+  if includePets == nil then
+    return UnitInSubgroup(unit) or UnitIsUnit("player", unit)
+  elseif includePets == "PlayersAndPets" then
+    return UnitInSubgroup(WeakAuras.petUnitToUnit[unit] or unit) or UnitIsUnit("player", unit) or UnitIsUnit("pet", unit)
+  elseif includePets == "PetsOnly" then
+    return UnitInSubgroup(WeakAuras.petUnitToUnit[unit]) or UnitIsUnit("pet", unit)
+  end
 end
 
 local function GetOrCreateSubTable(base, next, ...)
@@ -259,7 +269,7 @@ local function UpdateToolTipDataInMatchData(matchData, time)
   return changed
 end
 
-local function UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId)
+local function UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId, modRate)
   if not matchData[unit] then
     matchData[unit] = {}
   end
@@ -276,6 +286,7 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, filter, name
       debuffClassIcon = debuffClassIcon,
       duration = duration,
       expirationTime = expirationTime,
+      modRate = modRate,
       unitCaster = unitCaster,
       casterName = unitCaster and GetUnitName(unitCaster, false) or "",
       spellId = spellId,
@@ -329,6 +340,11 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, filter, name
 
   if data.expirationTime ~= expirationTime then
     data.expirationTime = expirationTime
+    changed = true
+  end
+
+  if data.modRate ~= modRate then
+    data.modRate = modRate
     changed = true
   end
 
@@ -398,12 +414,12 @@ local function UpdateMatchData(time, matchDataChanged, unit, index, filter, name
   return changed or data.lastChanged == time
 end
 
-local function calculateNextCheck(triggerInfoRemaining, auraDataRemaining, auraDataExpirationTime,  nextCheck)
+local function calculateNextCheck(triggerInfoRemaining, auraDataRemaining, auraDataExpirationTime, modRate, nextCheck)
   if auraDataRemaining > 0 and auraDataRemaining >= triggerInfoRemaining then
     if not nextCheck then
-      return auraDataExpirationTime - triggerInfoRemaining
+      return auraDataExpirationTime - triggerInfoRemaining * modRate
     else
-      return min(auraDataExpirationTime - triggerInfoRemaining, nextCheck)
+      return min(auraDataExpirationTime - triggerInfoRemaining * modRate, nextCheck)
     end
   end
   return nextCheck
@@ -426,9 +442,10 @@ local function FindBestMatchData(time, id, triggernum, triggerInfo, matchedUnits
     for index, auraData in pairs(unitData) do
       local remCheck = true
       if triggerInfo.remainingFunc and auraData.expirationTime then
-        local remaining = auraData.expirationTime - time
+        local modRate = auraData.modRate or 1
+        local remaining = (auraData.expirationTime - time) / modRate
         remCheck = triggerInfo.remainingFunc(remaining)
-        nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, nextCheck)
+        nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, modRate, nextCheck)
       end
 
       if remCheck then
@@ -462,9 +479,10 @@ local function FindBestMatchDataForUnit(time, id, triggernum, triggerInfo, unit)
   for index, auraData in pairs(matchDataByTrigger[id][triggernum][unit]) do
     local remCheck = true
     if triggerInfo.remainingFunc and auraData.expirationTime then
-      local remaining = auraData.expirationTime - time
+      local modRate = auraData.modRate or 1
+      local remaining = (auraData.expirationTime - time) / modRate
       remCheck = triggerInfo.remainingFunc(remaining)
-      nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, nextCheck)
+      nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, modRate, nextCheck)
     end
 
     if remCheck then
@@ -478,7 +496,13 @@ local function FindBestMatchDataForUnit(time, id, triggernum, triggerInfo, unit)
   return bestMatch, matchCount, stackCount, nextCheck
 end
 
-local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, matchCount, unitCount, maxUnitCount, matchCountPerUnit, totalStacks, affected, unaffected)
+local roleIcons = {
+  DAMAGER = CreateTextureMarkup([[Interface\LFGFrame\UI-LFG-ICON-ROLES]], 256, 256, 0, 0, GetTexCoordsForRole("DAMAGER")),
+  HEALER = CreateTextureMarkup([[Interface\LFGFrame\UI-LFG-ICON-ROLES]], 256, 256, 0, 0, GetTexCoordsForRole("HEALER")),
+  TANK = CreateTextureMarkup([[Interface\LFGFrame\UI-LFG-ICON-ROLES]], 256, 256, 0, 0, GetTexCoordsForRole("TANK"))
+}
+
+local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, matchCount, unitCount, maxUnitCount, matchCountPerUnit, totalStacks, affected, unaffected, role, raidMark)
   local debuffClassIcon = WeakAuras.EJIcons[bestMatch.debuffClass]
   if not triggerStates[cloneId] then
     triggerStates[cloneId] = {
@@ -492,13 +516,18 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       progressType = "timed",
       duration = bestMatch.duration,
       expirationTime = bestMatch.expirationTime,
+      modRate = bestMatch.modRate,
       unitCaster = bestMatch.unitCaster,
       casterName = bestMatch.casterName,
       spellId = bestMatch.spellId,
       index = bestMatch.index,
+      filter = bestMatch.filter,
       unit = bestMatch.unit,
       unitName = bestMatch.unitName,
       GUID = bestMatch.unit and UnitGUID(bestMatch.unit) or bestMatch.GUID,
+      role = role,
+      roleIcon = role and roleIcons[role],
+      raidMark = raidMark,
       matchCount = matchCount,
       unitCount = unitCount,
       maxUnitCount = maxUnitCount,
@@ -529,6 +558,17 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
     local GUID = bestMatch.unit and UnitGUID(bestMatch.unit) or bestMatch.GUID
     if state.GUID ~= GUID then
       state.GUID = GUID
+      changed = true
+    end
+
+    if state.role ~= role then
+      state.role = role
+      state.roleIcon = roleIcons[role]
+      changed = true
+    end
+
+    if state.raidMark ~= raidMark then
+      state.raidMark = raidMark
       changed = true
     end
 
@@ -590,6 +630,11 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
       changed = true
     end
 
+    if state.modRate ~= bestMatch.modRate then
+      state.modRate = bestMatch.modRate
+      changed = true
+    end
+
     if state.progressType ~= "timed" then
       state.progressType = "timed"
       changed = true
@@ -608,6 +653,11 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
 
     if state.index ~= bestMatch.index then
       state.index = bestMatch.index
+      changed = true
+    end
+
+    if state.filter ~= bestMatch.filter then
+      state.filter = bestMatch.filter
       changed = true
     end
 
@@ -678,7 +728,7 @@ local function UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, mat
   end
 end
 
-local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId, unit, matchCount, unitCount, maxUnitCount, matchCountPerUnit, totalStacks, affected, unaffected)
+local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId, unit, matchCount, unitCount, maxUnitCount, matchCountPerUnit, totalStacks, affected, unaffected, role, raidMark)
   local fallbackName, fallbackIcon = BuffTrigger.GetNameAndIconSimple(WeakAuras.GetData(triggerInfo.id), triggerInfo.triggernum)
   if not triggerStates[cloneId] then
     triggerStates[cloneId] = {
@@ -687,6 +737,7 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       progressType = 'timed',
       duration = 0,
       expirationTime = math.huge,
+      modRate = 1,
       matchCount = matchCount,
       unitCount = unitCount,
       maxUnitCount = maxUnitCount,
@@ -696,6 +747,9 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       affected = affected,
       unaffected = unaffected,
       unit = unit,
+      role = role,
+      raidMark = raidMark,
+      roleIcon = role and roleIcons[role],
       unitName = unit and GetUnitName(unit, false) or "",
       destName = "",
       name = fallbackName,
@@ -743,8 +797,30 @@ local function UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId,
       changed = true
     end
 
+    if state.modRate ~= 1 then
+      state.modRate = 1
+      changed = true
+    end
+
     if state.unit ~= unit then
       state.unit = unit
+      changed = true
+    end
+
+    local GUID = unit and UnitGUID(unit)
+    if state.GUID ~= GUID then
+      state.GUID = GUID
+      changed = true
+    end
+
+    if state.role ~= role then
+      state.role = role
+      state.roleIcon = roleIcons[role]
+      changed = true
+    end
+
+    if state.raidMark ~= raidMark then
+      state.raidMark = raidMark
       changed = true
     end
 
@@ -837,17 +913,34 @@ local function RemoveState(triggerStates, cloneId)
   end
 end
 
-local function GetAllUnits(unit, allUnits)
+local function GetAllUnits(unit, allUnits, includePets)
   if unit == "group" then
     if allUnits then
       local i = 1
       local raid = true
+      local pets = true
       return function()
         if raid then
           if i <= 40 then
-            local ret = WeakAuras.raidUnits[i]
-            i = i + 1
+            local ret
+            if includePets == "PlayersAndPets" then
+              ret = pets and WeakAuras.raidpetUnits[i] or WeakAuras.raidUnits[i]
+              pets = not pets
+              if pets then
+                i = i + 1
+              end
+            elseif includePets == "PetsOnly" then
+              ret = WeakAuras.raidpetUnits[i]
+              i = i + 1
+            else -- raid
+              ret = WeakAuras.raidUnits[i]
+              i = i + 1
+            end
             return ret
+          end
+          if includePets and pets then
+            pets = not pets
+            return "pet"
           end
           raid = false
           i = 1
@@ -855,8 +948,20 @@ local function GetAllUnits(unit, allUnits)
         end
 
         if i <= 4 then
-          local ret =  WeakAuras.partyUnits[i]
-          i = i + 1
+          local ret
+          if includePets == "PlayersAndPets" then
+            ret = pets and WeakAuras.partypetUnits[i] or WeakAuras.partyUnits[i]
+            pets = not pets
+            if pets then
+              i = i + 1
+            end
+          elseif includePets == "PetsOnly" then
+            ret = WeakAuras.partypetUnits[i]
+            i = i + 1
+          else -- group
+            ret = WeakAuras.partyUnits[i]
+            i = i + 1
+          end
           return ret
         end
 
@@ -869,10 +974,23 @@ local function GetAllUnits(unit, allUnits)
     if IsInRaid() then
       local i = 1
       local max = GetNumGroupMembers()
+      local pets = true
       return function()
         if i <= max then
-          local ret = WeakAuras.raidUnits[i]
-          i = i + 1
+          local ret
+          if includePets == "PlayersAndPets" then
+            ret = pets and WeakAuras.raidpetUnits[i] or WeakAuras.raidUnits[i]
+            pets = not pets
+            if pets then
+              i = i + 1
+            end
+          elseif includePets == "PetsOnly" then
+            ret = WeakAuras.raidpetUnits[i]
+            i = i + 1
+          else -- raid
+            ret = WeakAuras.raidUnits[i]
+            i = i + 1
+          end
           return ret
         end
         i = 1
@@ -880,14 +998,39 @@ local function GetAllUnits(unit, allUnits)
     else
       local i = 0
       local max = GetNumSubgroupMembers()
+      local pets = true
       return function()
         if i == 0 then
-          i = 1
-          return "player"
+          if includePets == "PlayersAndPets" then
+            local ret = pets and "pet" or "player"
+            pets = not pets
+            if pets then
+                i = i + 1
+            end
+            return ret
+          elseif includePets == "PetsOnly" then
+            i = 1
+            return "pet"
+          else -- group
+            i = 1
+            return "player"
+          end
         else
           if i <= max then
-            local ret =  WeakAuras.partyUnits[i]
-            i = i + 1
+            local ret
+            if includePets == "PlayersAndPets" then
+              ret = pets and WeakAuras.partypetUnits[i] or WeakAuras.partyUnits[i]
+              pets = not pets
+              if pets then
+                i = i + 1
+              end
+            elseif includePets == "PetsOnly" then
+              ret = WeakAuras.partypetUnits[i]
+              i = i + 1
+            else -- group
+              ret = WeakAuras.partyUnits[i]
+              i = i + 1
+            end
             return ret
           end
         end
@@ -898,7 +1041,7 @@ local function GetAllUnits(unit, allUnits)
     local i = 1
     local max
     if unit == "boss" then
-      max = MAX_BOSS_FRAMES
+      max = 10
     elseif unit == "arena" then
       max = 5
     elseif unit == "nameplate" then
@@ -943,7 +1086,13 @@ local function MaxUnitCount(triggerInfo)
 end
 
 local function TriggerInfoApplies(triggerInfo, unit)
-  if triggerInfo.ignoreSelf and UnitIsUnit("player", unit) then
+  local controllingUnit = unit
+  if WeakAuras.UnitIsPet(unit) then
+    controllingUnit = WeakAuras.petUnitToUnit[unit]
+  end
+
+
+  if triggerInfo.ignoreSelf and UnitIsUnit("player", controllingUnit) then
     return false
   end
 
@@ -959,11 +1108,11 @@ local function TriggerInfoApplies(triggerInfo, unit)
     return false
   end
 
-  if triggerInfo.groupRole and not triggerInfo.groupRole[UnitGroupRolesAssigned(unit) or ""] then
+  if triggerInfo.groupRole and not triggerInfo.groupRole[UnitGroupRolesAssigned(controllingUnit) or ""] then
     return false
   end
 
-  if triggerInfo.raidRole and not triggerInfo.raidRole[WeakAuras.UnitRaidRole(unit) or ""] then
+  if triggerInfo.raidRole and not triggerInfo.raidRole[WeakAuras.UnitRaidRole(controllingUnit) or ""] then
     return false
   end
 
@@ -979,14 +1128,23 @@ local function TriggerInfoApplies(triggerInfo, unit)
     return false
   end
 
+  if triggerInfo.unit == "group" then
+    local isPet = WeakAuras.UnitIsPet(unit)
+    if triggerInfo.includePets == "PetsOnly" and not isPet then
+      return false
+    elseif triggerInfo.includePets == nil and isPet then -- exclude pets
+      return false
+    end
+  end
+
   if triggerInfo.unit == "group" and triggerInfo.groupSubType == "party" then
     if IsInRaid() then
       -- Filter our player/party# while in raid and keep only raid units that are correct
-      if not Private.multiUnitUnits.raid[unit] or not UnitInSubgroupOrPlayer(unit) then
+      if not Private.multiUnitUnits.raid[unit] or not UnitInSubgroupOrPlayer(unit, triggerInfo.includePets) then
         return false
       end
     else
-      if not UnitInSubgroupOrPlayer(unit) then
+      if not UnitInSubgroupOrPlayer(unit, triggerInfo.includePets) then
         return false
       end
     end
@@ -1001,7 +1159,7 @@ local function TriggerInfoApplies(triggerInfo, unit)
     return false
   end
 
-  if triggerInfo.class and not triggerInfo.class[select(2, UnitClass(unit))] then
+  if triggerInfo.class and not triggerInfo.class[select(2, UnitClass(controllingUnit))] then
     return false
   end
 
@@ -1015,7 +1173,7 @@ end
 local function FormatAffectedUnaffected(triggerInfo, matchedUnits)
   local affected = ""
   local unaffected = ""
-  for unit in GetAllUnits(triggerInfo.unit) do
+  for unit in GetAllUnits(triggerInfo.unit, nil, triggerInfo.includePets) do
     if activeGroupScanFuncs[unit] and activeGroupScanFuncs[unit][triggerInfo] then
       if matchedUnits[unit] then
         affected = affected .. (GetUnitName(unit, false) or unit) .. ", "
@@ -1041,6 +1199,33 @@ local function SatisfiesGroupMatchCount(triggerInfo, unitCount, maxUnitCount, ma
     return false
   end
   return true
+end
+
+local function SatisfiesMatchCountPerUnit(triggerInfo, countPerUnit)
+  return not triggerInfo.matchPerUnitCountFunc or triggerInfo.matchPerUnitCountFunc(countPerUnit)
+end
+
+local function bestUnit(triggerInfo, bestMatch)
+  if bestMatch then
+    return bestMatch.unit
+  elseif not triggerInfo.groupTrigger and triggerInfo.unit then
+    return triggerInfo.unit
+  end
+end
+
+local function roleForTriggerInfo(triggerInfo, unit)
+  if triggerInfo.fetchRole then
+    return UnitGroupRolesAssigned(unit)
+  end
+end
+
+local function markForTriggerInfo(triggerInfo, unit)
+  if triggerInfo.fetchRaidMark then
+    local rt = GetRaidTargetIndex(unit)
+    if rt then
+      return "{rt" .. GetRaidTargetIndex(unit) .. "}"
+    end
+  end
 end
 
 local function SortMatchDataByUnitIndex(a, b)
@@ -1084,10 +1269,14 @@ local function UpdateTriggerState(time, id, triggernum)
         affected, unaffected = FormatAffectedUnaffected(triggerInfo, matchedUnits)
       end
 
+      local unit = bestUnit(triggerInfo, bestMatch)
+      local role = roleForTriggerInfo(triggerInfo, unit)
+      local mark = markForTriggerInfo(triggerInfo, unit)
+
       if bestMatch then
-        updated = UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, matchCount, unitCount, maxUnitCount, matchCount, totalStacks, affected, unaffected)
+        updated = UpdateStateWithMatch(time, bestMatch, triggerStates, cloneId, matchCount, unitCount, maxUnitCount, matchCount, totalStacks, affected, unaffected, role, mark)
       else
-        updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId, not triggerInfo.groupTrigger and triggerInfo.unit or nil, 0, 0, maxUnitCount, 0, 0, affected, unaffected)
+        updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, cloneId, unit, 0, 0, maxUnitCount, 0, 0, affected, unaffected, role, mark)
       end
     else
       updated = RemoveState(triggerStates, cloneId)
@@ -1099,9 +1288,10 @@ local function UpdateTriggerState(time, id, triggernum)
         for index, auraData in pairs(unitData) do
           local remCheck = true
           if triggerInfo.remainingFunc and auraData.expirationTime then
-            local remaining = auraData.expirationTime - time
+            local modRate = auraData.modRate or 1
+            local remaining = (auraData.expirationTime - time) / modRate
             remCheck = triggerInfo.remainingFunc(remaining)
-            nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, nextCheck)
+            nextCheck = calculateNextCheck(triggerInfo.remainingCheck, remaining, auraData.expirationTime, modRate, nextCheck)
           end
 
           if remCheck then
@@ -1145,12 +1335,20 @@ local function UpdateTriggerState(time, id, triggernum)
           usedCloneIds[cloneId] = 1
         end
 
-        updated = UpdateStateWithMatch(time, auraData, triggerStates, cloneId, matchCount, unitCount, maxUnitCount, matchCountPerUnit[auraData.unit], totalStacks, affected, unaffected) or updated
+
+        local role = roleForTriggerInfo(triggerInfo, auraData.unit)
+        local mark = markForTriggerInfo(triggerInfo, auraData.unit)
+        updated = UpdateStateWithMatch(time, auraData, triggerStates, cloneId, matchCount, unitCount, maxUnitCount,
+                                      matchCountPerUnit[auraData.unit], totalStacks, affected, unaffected, role, mark) or updated
         cloneIds[cloneId] = true
       end
 
       if matchCount == 0 then
-        updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, "", nil, 0, 0, maxUnitCount, 0, totalStacks, affected, unaffected) or updated
+        local unit = bestUnit(triggerInfo, nil)
+        local role = roleForTriggerInfo(triggerInfo, unit)
+        local mark = markForTriggerInfo(triggerInfo, unit)
+        updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, "", nil, 0, 0, maxUnitCount, 0, totalStacks,
+                                         affected, unaffected, role, mark) or updated
         cloneIds[""] = true
       end
     end
@@ -1165,20 +1363,23 @@ local function UpdateTriggerState(time, id, triggernum)
     if matchDataByTrigger[id] and matchDataByTrigger[id][triggernum] then
       for unit, unitData in pairs(matchDataByTrigger[id][triggernum]) do
         local bestMatch, countPerUnit, stacks, nextCheckForMatch = FindBestMatchDataForUnit(time, id, triggernum, triggerInfo, unit)
-        matchCount = matchCount + countPerUnit
-        totalStacks = totalStacks + (stacks or 0)
-        if bestMatch then
-          unitCount = unitCount + 1
-          matchedUnits[unit] = true
-        end
 
-        if not nextCheck then
-          nextCheck = nextCheckForMatch
-        elseif nextCheckForMatch then
-          nextCheck = min(nextCheck, nextCheckForMatch)
+        if SatisfiesMatchCountPerUnit(triggerInfo, countPerUnit) then
+          matchCount = matchCount + countPerUnit
+          totalStacks = totalStacks + (stacks or 0)
+          if bestMatch then
+            unitCount = unitCount + 1
+            matchedUnits[unit] = true
+          end
+
+          if not nextCheck then
+            nextCheck = nextCheckForMatch
+          elseif nextCheckForMatch then
+            nextCheck = min(nextCheck, nextCheckForMatch)
+          end
+          matches[unit] = bestMatch
+          matchCountPerUnit[unit] = countPerUnit
         end
-        matches[unit] = bestMatch
-        matchCountPerUnit[unit] = countPerUnit
       end
     end
 
@@ -1194,22 +1395,33 @@ local function UpdateTriggerState(time, id, triggernum)
       if triggerInfo.perUnitMode == "affected" then
         for unit, bestMatch in pairs(matches) do
           if bestMatch then
-            updated = UpdateStateWithMatch(time, bestMatch, triggerStates, unit, matchCount, unitCount, maxUnitCount, matchCountPerUnit[unit], totalStacks, affected, unaffected) or updated
+            local role = roleForTriggerInfo(triggerInfo, unit)
+            local mark = markForTriggerInfo(triggerInfo, unit)
+            updated = UpdateStateWithMatch(time, bestMatch, triggerStates, unit, matchCount, unitCount, maxUnitCount,
+                                           matchCountPerUnit[unit], totalStacks, affected, unaffected, role, mark)
+                                           or updated
             cloneIds[unit] = true
           end
         end
       else
         -- state per unaffected unit
-        for unit in GetAllUnits(triggerInfo.unit) do
+        for unit in GetAllUnits(triggerInfo.unit, nil, triggerInfo.includePets) do
           if activeGroupScanFuncs[unit] and activeGroupScanFuncs[unit][triggerInfo] then
             local bestMatch = matches[unit]
+            local role = roleForTriggerInfo(triggerInfo, unit)
+            local mark = markForTriggerInfo(triggerInfo, unit)
             if bestMatch then
               if triggerInfo.perUnitMode == "all" then
-                updated = UpdateStateWithMatch(time, bestMatch, triggerStates, unit, matchCount, unitCount, maxUnitCount, matchCountPerUnit[unit], totalStacks, affected, unaffected) or updated
+                updated = UpdateStateWithMatch(time, bestMatch, triggerStates, unit, matchCount, unitCount, maxUnitCount,
+                                               matchCountPerUnit[unit], totalStacks, affected, unaffected, role, mark)
+                                               or updated
                 cloneIds[unit] = true
               end
             else
-              updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, unit, unit, matchCount, unitCount, maxUnitCount, matchCountPerUnit[unit], totalStacks, affected, unaffected) or updated
+              updated = UpdateStateWithNoMatch(time, triggerStates, triggerInfo, unit, unit, matchCount,
+                                               unitCount, maxUnitCount, matchCountPerUnit[unit], totalStacks,
+                                              affected, unaffected, role)
+                                              or updated
               cloneIds[unit] = true
             end
           end
@@ -1253,7 +1465,7 @@ local function PrepareMatchData(unit, filter)
     local time = GetTime()
     local index = 1
     while true do
-      local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer = UnitAura(unit, index, filter)
+      local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer, _, modRate = UnitAura(unit, index, filter)
       if not name then
         break
       end
@@ -1266,7 +1478,7 @@ local function PrepareMatchData(unit, filter)
         debuffClass = string.lower(debuffClass)
       end
 
-      local updatedMatchData = UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId)
+      local updatedMatchData = UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId, modRate)
       index = index + 1
     end
 
@@ -1348,7 +1560,6 @@ end
 local function ScanUnitWithFilter(matchDataChanged, time, unit, filter,
   scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup,
   scanFuncName, scanFuncSpellId, scanFuncGeneral)
-
   if not scanFuncName and not scanFuncSpellId and not scanFuncGeneral and not scanFuncNameGroup and not scanFuncSpellIdGroup and not scanFuncGeneralGroup then
     if matchDataUpToDate[unit] then
       matchDataUpToDate[unit][filter] = nil
@@ -1361,7 +1572,7 @@ local function ScanUnitWithFilter(matchDataChanged, time, unit, filter,
 
   if UnitExistsFixed(unit) then
     while true do
-      local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer = UnitAura(unit, index, filter)
+      local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, isBossDebuff, isCastByPlayer, _, modRate = UnitAura(unit, index, filter)
       if not name then
         break
       end
@@ -1374,7 +1585,7 @@ local function ScanUnitWithFilter(matchDataChanged, time, unit, filter,
         debuffClass = string.lower(debuffClass)
       end
 
-      local updatedMatchData = UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId)
+      local updatedMatchData = UpdateMatchData(time, matchDataChanged, unit, index, filter, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, isBossDebuff, isCastByPlayer, spellId, modRate)
 
       if updatedMatchData then -- Aura data changed, check against triggerInfos
         CheckScanFuncs(scanFuncName and scanFuncName[name], unit, filter, index)
@@ -1408,6 +1619,24 @@ local function UpdateStates(matchDataChanged, time)
   end
 end
 
+local function ScanGroupRoleScanFunc(matchDataChanged)
+  for id, idData in pairs(groupRoleScanFunc) do
+    matchDataChanged[id] = matchDataChanged[id] or {}
+    for _, triggerInfo in ipairs(idData) do
+      matchDataChanged[id][triggerInfo.triggernum] = true
+    end
+  end
+end
+
+local function ScanRaidMarkScanFunc(matchDataChanged)
+  for id, idData in pairs(raidMarkScanFuncs) do
+    matchDataChanged[id] = matchDataChanged[id] or {}
+    for _, triggerInfo in ipairs(idData) do
+      matchDataChanged[id][triggerInfo.triggernum] = true
+    end
+  end
+end
+
 local function ScanGroupUnit(time, matchDataChanged, unitType, unit)
   local unitExists = UnitExistsFixed(unit)
   if existingUnits[unit] ~= unitExists then
@@ -1426,7 +1655,6 @@ local function ScanGroupUnit(time, matchDataChanged, unitType, unit)
   scanFuncName[unit] = scanFuncName[unit] or {}
   scanFuncSpellId[unit] = scanFuncSpellId[unit] or {}
   scanFuncGeneral[unit] = scanFuncGeneral[unit] or {}
-
   if unitType then
     scanFuncNameGroup[unit] = scanFuncNameGroup[unit] or {}
     scanFuncSpellIdGroup[unit] = scanFuncSpellIdGroup[unit] or {}
@@ -1460,20 +1688,6 @@ local function ScanGroupUnit(time, matchDataChanged, unitType, unit)
   end
 end
 
-local function ScanAllGroup(time, matchDataChanged)
-  -- We iterate over all raid/player unit ids here because ScanGroupUnit also
-  -- handles the cases where a unit existence changes.
-  for unit in GetAllUnits("group") do
-    ScanGroupUnit(time, matchDataChanged, "group", unit)
-  end
-end
-
-local function ScanAllBoss(time, matchDataChanged)
-  for unit in GetAllUnits("boss") do
-    ScanGroupUnit(time, matchDataChanged, "boss", unit)
-  end
-end
-
 local function ScanUnit(time, arg1)
   if (Private.multiUnitUnits.raid[arg1] and IsInRaid()) then
     ScanGroupUnit(time, matchDataChanged, "group", arg1)
@@ -1490,8 +1704,7 @@ local function ScanUnit(time, arg1)
   end
 end
 
-local function AddScanFuncs(triggerInfo, unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
-  local filter = triggerInfo.debuffType
+local function AddScanFuncs(triggerInfo, filter, unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
   if triggerInfo.auranames then
     for _, name in ipairs(triggerInfo.auranames) do
       if name ~= "" then
@@ -1519,8 +1732,7 @@ local function AddScanFuncs(triggerInfo, unit, scanFuncName, scanFuncSpellId, sc
   end
 end
 
-local function RemoveScanFuncs(triggerInfo, unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
-  local filter = triggerInfo.debuffType
+local function RemoveScanFuncs(triggerInfo, filter, unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
   if triggerInfo.auranames then
     for _, name in ipairs(triggerInfo.auranames) do
       if name ~= "" then
@@ -1555,7 +1767,13 @@ local function RecheckActive(triggerInfo, unit, unitsToRemoveScan)
   if unitExists and TriggerInfoApplies(triggerInfo, unit) then
     if (not activeGroupScanFuncs[unit] or not activeGroupScanFuncs[unit][triggerInfo]) then
       triggerInfo.maxUnitCount = triggerInfo.maxUnitCount + 1
-      AddScanFuncs(triggerInfo, unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      if triggerInfo.debuffType == "BOTH" then
+        AddScanFuncs(triggerInfo, "HELPFUL", unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+        AddScanFuncs(triggerInfo, "HARMFUL", unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      else
+        AddScanFuncs(triggerInfo, triggerInfo.debuffType, unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      end
+
       activeGroupScanFuncs[unit] = activeGroupScanFuncs[unit] or {}
       activeGroupScanFuncs[unit][triggerInfo] = true
       matchDataChanged[triggerInfo.id] = matchDataChanged[triggerInfo.id] or {}
@@ -1565,7 +1783,12 @@ local function RecheckActive(triggerInfo, unit, unitsToRemoveScan)
     -- Either the unit doesn't exist or the TriggerInfo no longer applies
     if activeGroupScanFuncs[unit] and activeGroupScanFuncs[unit][triggerInfo] then
       triggerInfo.maxUnitCount = triggerInfo.maxUnitCount - 1
-      RemoveScanFuncs(triggerInfo, unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      if triggerInfo.debuffType == "BOTH" then
+        RemoveScanFuncs(triggerInfo, "HELPFUL", unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+        RemoveScanFuncs(triggerInfo, "HARMFUL", unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      else
+        RemoveScanFuncs(triggerInfo, triggerInfo.debuffType, unit, scanFuncNameGroup, scanFuncSpellIdGroup, scanFuncGeneralGroup)
+      end
       if unitsToRemoveScan then
         unitsToRemoveScan[unit] = unitsToRemoveScan[unit] or {}
         unitsToRemoveScan[unit][triggerInfo] = true
@@ -1585,8 +1808,8 @@ local function RecheckActiveForUnitType(unitType, unit, unitsToRemoveScan)
   end
 end
 
-local frame = CreateFrame("FRAME")
-WeakAuras.frames["WeakAuras Buff2 Frame"] = frame
+local Buff2Frame = CreateFrame("Frame")
+WeakAuras.frames["WeakAuras Buff2 Frame"] = Buff2Frame
 
 local function EventHandler(frame, event, arg1, arg2, ...)
 
@@ -1607,9 +1830,13 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       tinsert(unitsToRemove, "focus")
     end
   elseif event == "UNIT_PET" then
-    ScanGroupUnit(time, matchDataChanged, nil, "pet")
-    if not UnitExistsFixed("pet") then
-      tinsert(unitsToRemove, "pet")
+    local pet = WeakAuras.unitToPetUnit[arg1]
+    if pet then
+      ScanGroupUnit(time, matchDataChanged, nil, pet)
+      RecheckActiveForUnitType("group", pet, deactivatedTriggerInfos)
+      if not UnitExistsFixed(pet) then
+        tinsert(unitsToRemove, pet)
+      end
     end
   elseif event == "NAME_PLATE_UNIT_ADDED" then
     nameplateExists[arg1] = true
@@ -1623,7 +1850,6 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       RecheckActiveForUnitType("nameplate", arg1, deactivatedTriggerInfos)
     end
   elseif event == "ENCOUNTER_START" or event == "ENCOUNTER_END" or event == "INSTANCE_ENCOUNTER_ENGAGE_UNIT" then
-    local unitsToCheck = {}
     for unit in GetAllUnits("boss", true) do
       RecheckActiveForUnitType("boss", unit, deactivatedTriggerInfos)
       if not UnitExistsFixed(unit) then
@@ -1631,7 +1857,6 @@ local function EventHandler(frame, event, arg1, arg2, ...)
       end
     end
   elseif event =="ARENA_OPPONENT_UPDATE" then
-    local unitsToCheck = {}
     for unit in GetAllUnits("arena", true) do
       RecheckActiveForUnitType("arena", unit, deactivatedTriggerInfos)
       if not UnitExistsFixed(unit) then
@@ -1640,13 +1865,13 @@ local function EventHandler(frame, event, arg1, arg2, ...)
     end
   elseif event == "GROUP_ROSTER_UPDATE" then
     unitVisible = {}
-    local unitsToCheck = {}
-    for unit in GetAllUnits("group", true) do
+    for unit in GetAllUnits("group", true, "PlayersAndPets") do
       RecheckActiveForUnitType("group", unit, deactivatedTriggerInfos)
       if not UnitExistsFixed(unit) then
         tinsert(unitsToRemove, unit)
       end
     end
+    ScanGroupRoleScanFunc(matchDataChanged)
   elseif event == "UNIT_FLAGS" or event == "UNIT_NAME_UPDATE" or event == "PLAYER_FLAGS_CHANGED"
       or event == "PARTY_MEMBER_ENABLE" or event == "PARTY_MEMBER_DISABLE"
   then
@@ -1671,6 +1896,8 @@ local function EventHandler(frame, event, arg1, arg2, ...)
         tinsert(unitsToRemove, unit)
       end
     end
+  elseif event == "RAID_TARGET_UPDATE" then
+    ScanRaidMarkScanFunc(matchDataChanged)
   end
 
   DeactivateScanFuncs(deactivatedTriggerInfos)
@@ -1684,37 +1911,38 @@ local function EventHandler(frame, event, arg1, arg2, ...)
   Private.StopProfileSystem("bufftrigger2")
 end
 
-frame:RegisterEvent("UNIT_AURA")
-frame:RegisterEvent("UNIT_FACTION")
-frame:RegisterEvent("UNIT_NAME_UPDATE")
-frame:RegisterEvent("UNIT_FLAGS")
-frame:RegisterEvent("PLAYER_FLAGS_CHANGED")
-frame:RegisterUnitEvent("UNIT_PET", "player")
+Buff2Frame:RegisterEvent("UNIT_AURA")
+Buff2Frame:RegisterEvent("UNIT_FACTION")
+Buff2Frame:RegisterEvent("UNIT_NAME_UPDATE")
+Buff2Frame:RegisterEvent("UNIT_FLAGS")
+Buff2Frame:RegisterEvent("PLAYER_FLAGS_CHANGED")
+Buff2Frame:RegisterEvent("UNIT_PET")
+Buff2Frame:RegisterEvent("RAID_TARGET_UPDATE")
 if not WeakAuras.IsClassic() then
-  frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
+  Buff2Frame:RegisterEvent("PLAYER_FOCUS_CHANGED")
   if WeakAuras.IsRetail() then
-    frame:RegisterEvent("ARENA_OPPONENT_UPDATE")
+    Buff2Frame:RegisterEvent("ARENA_OPPONENT_UPDATE")
   end
-  frame:RegisterEvent("UNIT_ENTERED_VEHICLE")
-  frame:RegisterEvent("UNIT_EXITED_VEHICLE")
+  Buff2Frame:RegisterEvent("UNIT_ENTERED_VEHICLE")
+  Buff2Frame:RegisterEvent("UNIT_EXITED_VEHICLE")
 else
   LCD.RegisterCallback("WeakAuras", "UNIT_BUFF", function(event, unit)
-    EventHandler(frame, "UNIT_AURA", unit)
+    EventHandler(Buff2Frame, "UNIT_AURA", unit)
   end)
 end
-frame:RegisterEvent("PLAYER_TARGET_CHANGED")
-frame:RegisterEvent("ENCOUNTER_START")
-frame:RegisterEvent("ENCOUNTER_END")
-frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
-frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
-frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
-frame:RegisterEvent("GROUP_ROSTER_UPDATE")
-frame:RegisterEvent("PLAYER_ENTERING_WORLD")
-frame:RegisterEvent("PARTY_MEMBER_DISABLE")
-frame:RegisterEvent("PARTY_MEMBER_ENABLE")
-frame:SetScript("OnEvent", EventHandler)
+Buff2Frame:RegisterEvent("PLAYER_TARGET_CHANGED")
+Buff2Frame:RegisterEvent("ENCOUNTER_START")
+Buff2Frame:RegisterEvent("ENCOUNTER_END")
+Buff2Frame:RegisterEvent("INSTANCE_ENCOUNTER_ENGAGE_UNIT")
+Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
+Buff2Frame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+Buff2Frame:RegisterEvent("GROUP_ROSTER_UPDATE")
+Buff2Frame:RegisterEvent("PLAYER_ENTERING_WORLD")
+Buff2Frame:RegisterEvent("PARTY_MEMBER_DISABLE")
+Buff2Frame:RegisterEvent("PARTY_MEMBER_ENABLE")
+Buff2Frame:SetScript("OnEvent", EventHandler)
 
-frame:SetScript("OnUpdate", function()
+Buff2Frame:SetScript("OnUpdate", function()
   if WeakAuras.IsPaused() then
     return
   end
@@ -1797,7 +2025,9 @@ function BuffTrigger.UnloadAll()
   wipe(scanFuncNameMulti)
   wipe(scanFuncSpellIdMulti)
   wipe(unitExistScanFunc)
+  wipe(groupRoleScanFunc)
   wipe(groupScanFuncs)
+  wipe(raidMarkScanFuncs)
   wipe(matchDataByTrigger)
   wipe(matchDataMulti)
   wipe(matchDataChanged)
@@ -1809,20 +2039,29 @@ local function LoadAura(id, triggernum, triggerInfo)
   if not triggerInfo.unit then
     return
   end
-  local filter = triggerInfo.debuffType
   local time = GetTime();
 
   local unitsToCheck = {}
 
   if triggerInfo.unit == "multi" then
-     AddScanFuncs(triggerInfo, nil, scanFuncNameMulti, scanFuncSpellIdMulti, nil)
+    if triggerInfo.debuffType == "BOTH" then
+      AddScanFuncs(triggerInfo, "HELPFUL", nil, scanFuncNameMulti, scanFuncSpellIdMulti, nil)
+      AddScanFuncs(triggerInfo, "HARMFUL", nil, scanFuncNameMulti, scanFuncSpellIdMulti, nil)
+    else
+      AddScanFuncs(triggerInfo, triggerInfo.debuffType, nil, scanFuncNameMulti, scanFuncSpellIdMulti, nil)
+    end
   elseif triggerInfo.groupTrigger then
     triggerInfo.maxUnitCount = 0
-    for unit in GetAllUnits(triggerInfo.unit) do
+    for unit in GetAllUnits(triggerInfo.unit, nil, triggerInfo.includePets) do
       RecheckActive(triggerInfo, unit, unitsToCheck)
     end
   else
-    AddScanFuncs(triggerInfo, triggerInfo.unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
+    if triggerInfo.debuffType == "BOTH" then
+      AddScanFuncs(triggerInfo, "HELPFUL", triggerInfo.unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
+      AddScanFuncs(triggerInfo, "HARMFUL", triggerInfo.unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
+    else
+      AddScanFuncs(triggerInfo, triggerInfo.debuffType, triggerInfo.unit, scanFuncName, scanFuncSpellId, scanFuncGeneral)
+    end
     unitsToCheck[triggerInfo.unit] = true
   end
 
@@ -1834,6 +2073,16 @@ local function LoadAura(id, triggernum, triggerInfo)
     if existingUnits[triggerInfo.unit] == nil then
       existingUnits[triggerInfo.unit] = UnitExistsFixed(triggerInfo.unit)
     end
+  end
+
+  if triggerInfo.fetchRole then
+    groupRoleScanFunc[id] = groupRoleScanFunc[id] or {}
+    tinsert(groupRoleScanFunc[id], triggerInfo)
+  end
+
+  if triggerInfo.fetchRaidMark then
+    raidMarkScanFuncs[id] = raidMarkScanFuncs[id]  or {}
+    tinsert(raidMarkScanFuncs[id], triggerInfo)
   end
 
   if triggerInfo.groupTrigger then
@@ -1873,6 +2122,9 @@ function BuffTrigger.UnloadDisplays(toUnload)
     for unit, unitData in pairs(unitExistScanFunc) do
       unitData[id] = nil
     end
+
+    groupRoleScanFunc[id] = nil
+    raidMarkScanFuncs[id] = nil
 
     for unit, unitData in pairs(matchData) do
       for filter, filterData in pairs(unitData) do
@@ -1951,6 +2203,10 @@ function BuffTrigger.Rename(oldid, newid)
     unitData[newid] = unitData[oldid]
     unitData[oldid] = nil
   end
+  groupRoleScanFunc[newid] = groupRoleScanFunc[oldid]
+  groupRoleScanFunc[oldid] = nil
+  raidMarkScanFuncs[newid] = raidMarkScanFuncs[oldid]
+  raidMarkScanFuncs[oldid] = nil
   matchDataChanged[newid] = matchDataChanged[oldid]
   matchDataChanged[oldid] = nil
 end
@@ -1988,7 +2244,7 @@ local function createScanFunc(trigger)
 
   if use_total then
     local ret2 = [[
-      if not(matchData.duration %s %s) then
+      if not(matchData.duration / matchData.modRate %s %s) then
         return false
       end
     ]]
@@ -2283,6 +2539,14 @@ function BuffTrigger.Add(data)
         end
       end
 
+      local matchPerUnitCountFunc
+      if IsGroupTrigger(trigger) and combineMode == "showPerUnit" and perUnitMode ~= "unaffected" and trigger.useMatchPerUnit_count
+         and tonumber(trigger.matchPerUnit_count) and trigger.matchPerUnit_countOperator then
+        local count = tonumber(trigger.matchPerUnit_count)
+        local match_countFuncStr = Private.function_strings.count:format(trigger.matchPerUnit_countOperator, count)
+        matchPerUnitCountFunc = WeakAuras.LoadFunction(match_countFuncStr)
+      end
+
       local groupTrigger = trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party"
       local effectiveIgnoreSelf = (groupTrigger or trigger.unit == "nameplate") and trigger.ignoreSelf
       local effectiveGroupRole = groupTrigger and trigger.useGroupRole and trigger.group_role
@@ -2342,6 +2606,8 @@ function BuffTrigger.Add(data)
         compareFunc = trigger.combineMode == "showHighest" and highestExpirationTime or lowestExpirationTime,
         unitExists = showIfInvalidUnit,
         fetchTooltip = not IsSingleMissing(trigger) and trigger.unit ~= "multi" and trigger.fetchTooltip,
+        fetchRole = WeakAuras.IsRetail() and trigger.unit ~= "multi" and trigger.fetchRole,
+        fetchRaidMark = trigger.unit ~= "multi" and trigger.fetchRaidMark,
         groupTrigger = IsGroupTrigger(trigger),
         ignoreSelf = effectiveIgnoreSelf,
         ignoreDead = effectiveIgnoreDead,
@@ -2355,9 +2621,11 @@ function BuffTrigger.Add(data)
         class = effectiveClass,
         hostility = effectiveHostility,
         matchCountFunc = matchCountFunc,
+        matchPerUnitCountFunc = matchPerUnitCountFunc,
         useAffected = unit == "group" and trigger.useAffected,
         isMulti = trigger.unit == "multi",
-        nameChecker = effectiveNameCheck and WeakAuras.ParseNameCheck(trigger.unitName)
+        nameChecker = effectiveNameCheck and WeakAuras.ParseNameCheck(trigger.unitName),
+        includePets = trigger.use_includePets and trigger.includePets
       }
       triggerInfos[id] = triggerInfos[id] or {}
       triggerInfos[id][triggernum] = triggerInformation
@@ -2403,9 +2671,9 @@ function BuffTrigger.SetToolTip(trigger, state)
   if not state.unit or not state.index then
     return false
   end
-  if trigger.debuffType == "HELPFUL" then
+  if state.filter == "HELPFUL" then
     GameTooltip:SetUnitBuff(state.unit, state.index)
-  elseif trigger.debuffType == "HARMFUL" then
+  elseif state.filter == "HARMFUL" then
     GameTooltip:SetUnitDebuff(state.unit, state.index)
   end
   return true
@@ -2493,15 +2761,24 @@ function BuffTrigger.GetAdditionalProperties(data, triggernum)
   end
 
   if not IsSingleMissing(trigger) and trigger.unit ~= "multi" and trigger.fetchTooltip then
-    ret = ret .. "|cFFFF0000%tooltip|r - " .. L["Tooltip"] .. "\n"
-    ret = ret .. "|cFFFF0000%tooltip1|r - " .. L["First Value of Tooltip Text"] .. "\n"
-    ret = ret .. "|cFFFF0000%tooltip2|r - " .. L["Second Value of Tooltip Text"] .. "\n"
-    ret = ret .. "|cFFFF0000%tooltip3|r - " .. L["Third Value of Tooltip Text"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".tooltip|r - " .. L["Tooltip"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".tooltip1|r - " .. L["First Value of Tooltip Text"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".tooltip2|r - " .. L["Second Value of Tooltip Text"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".tooltip3|r - " .. L["Third Value of Tooltip Text"] .. "\n"
+  end
+
+  if WeakAuras.IsRetail() and trigger.unit ~= "multi" and trigger.fetchRole then
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".role|r - " .. L["Assigned Role"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".roleIcon|r - " .. L["Assigned Role Icon"] .. "\n"
+  end
+
+  if trigger.unit ~= "multi" and trigger.fetchRaidMark then
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".raidMark|r - " .. L["Raid Mark"] .. "\n"
   end
 
   if (trigger.unit == "group" or trigger.unit == "raid" or trigger.unit == "party") and trigger.useAffected then
-    ret = ret .. "|cFFFF0000%affected|r - " .. L["Names of affected Players"] .. "\n"
-    ret = ret .. "|cFFFF0000%unaffected|r - " .. L["Names of unaffected Players"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".affected|r - " .. L["Names of affected Players"] .. "\n"
+    ret = ret .. "|cFFFF0000%".. triggernum .. ".unaffected|r - " .. L["Names of unaffected Players"] .. "\n"
   end
 
   return ret
@@ -2524,12 +2801,14 @@ function BuffTrigger.GetTriggerConditions(data, triggernum)
 
   result["expirationTime"] = {
     display = L["Remaining Duration"],
-    type = "timer"
+    type = "timer",
+    useModRate = true
   }
 
   result["duration"] = {
     display = L["Total Duration"],
-    type = "number"
+    type = "number",
+    useModRate = true
   }
 
   result["stacks"] = {
@@ -2628,6 +2907,7 @@ function BuffTrigger.CreateFallbackState(data, triggernum, state)
   state.progressType = "timed"
   state.duration = 0
   state.expirationTime = math.huge
+  state.modRate = 1
   local name, icon = BuffTrigger.GetNameAndIconSimple(data, triggernum)
   state.name = name
   state.icon = icon
@@ -2854,7 +3134,12 @@ local function CleanUpMulti(guid)
     local time = GetTime()
     for key, data in pairs(matchDataMulti[guid]) do
       for source, sourceData in pairs(data) do
-        local removeAt = sourceData.expirationTime or (sourceData.time + 60)
+        local removeAt
+        if sourceData.expirationTime and sourceData.expirationTime ~= math.huge then
+          removeAt = sourceData.expirationTime
+        else
+          removeAt = sourceData.time + 60
+        end
         if removeAt <= time then
           RemoveMatchDataMulti(matchDataMulti[guid], guid, key, source)
         else
@@ -2871,8 +3156,8 @@ local function CleanUpMulti(guid)
   if nextCheck then
     local timeUntilNext = nextCheck - GetTime()
     if timeUntilNext > 0 then
-     cleanupTimerMulti[guid].handle = timer:ScheduleTimerFixed(CleanUpMulti, timeUntilNext, guid)
-     cleanupTimerMulti[guid].nextTime = nextCheck
+      cleanupTimerMulti[guid].handle = timer:ScheduleTimerFixed(CleanUpMulti, timeUntilNext, guid)
+      cleanupTimerMulti[guid].nextTime = nextCheck
    end
   end
 end
@@ -2900,6 +3185,7 @@ local function UpdateMatchDataMulti(time, base, key, event, sourceGUID, sourceNa
       icon = icon,
       duration = 0,
       expirationTime = math.huge,
+      modRate = 1,
       spellId = spellId,
       GUID = destGUID,
       sourceGUID = sourceGUID,
@@ -2968,11 +3254,11 @@ local function UpdateMatchDataMulti(time, base, key, event, sourceGUID, sourceNa
   return updated
 end
 
-local function AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId)
+local function AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
   if expirationTime == 0 then
     expirationTime = math.huge
   else
-    ScheduleMultiCleanUp(matchData.GUID, expirationTime)
+    ScheduleMultiCleanUp(matchData.GUID, expirationTime / (modRate or 1))
   end
   local changed = false
   if matchData.name ~= name then
@@ -3011,6 +3297,11 @@ local function AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, de
     changed = true
   end
 
+  if matchData.modRate ~= modRate then
+    matchData.modRate = modRate
+    changed = true
+  end
+
   if matchData.unitCaster ~= unitCaster then
     matchData.unitCaster = unitCaster
     changed = true
@@ -3044,7 +3335,7 @@ end
 local function AugmentMatchDataMulti(matchData, unit, filter, sourceGUID, nameKey, spellKey)
   local index = 1
   while true do
-    local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId = UnitAura(unit, index, filter)
+    local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate = UnitAura(unit, index, filter)
     if not name then
       return false
     end
@@ -3058,7 +3349,7 @@ local function AugmentMatchDataMulti(matchData, unit, filter, sourceGUID, nameKe
     end
     local auraSourceGuid = unitCaster and UnitGUID(unitCaster)
     if (name == nameKey or spellId == spellKey) and sourceGUID == auraSourceGuid then
-      local changed = AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId)
+      local changed = AugmentMatchDataMultiWith(matchData, unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
       return changed
     end
     index = index + 1
@@ -3134,7 +3425,7 @@ end
 local function CheckAurasMulti(base, unit, filter)
   local index = 1
   while true do
-    local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId = UnitAura(unit, index, filter)
+    local name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate = UnitAura(unit, index, filter)
     if not name then
       return false
     end
@@ -3148,7 +3439,7 @@ local function CheckAurasMulti(base, unit, filter)
     end
     local auraCasterGUID = unitCaster and UnitGUID(unitCaster)
     if base[name] and base[name][auraCasterGUID] then
-      local changed = AugmentMatchDataMultiWith(base[name][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId)
+      local changed = AugmentMatchDataMultiWith(base[name][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
       if changed then
         for id, idData in pairs(base[name][auraCasterGUID].auras) do
           for triggernum in pairs(idData) do
@@ -3159,7 +3450,7 @@ local function CheckAurasMulti(base, unit, filter)
       end
     end
     if base[spellId] and base[spellId][auraCasterGUID] then
-      local changed = AugmentMatchDataMultiWith(base[spellId][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId)
+      local changed = AugmentMatchDataMultiWith(base[spellId][auraCasterGUID], unit, name, icon, stacks, debuffClass, duration, expirationTime, unitCaster, isStealable, _, spellId, _, _, _, _, modRate)
       if changed then
         for id, idData in pairs(base[spellId][auraCasterGUID].auras) do
           for triggernum in pairs(idData) do
@@ -3184,7 +3475,7 @@ end
 
 function BuffTrigger.InitMultiAura()
   if not multiAuraFrame then
-    multiAuraFrame = CreateFrame("frame")
+    multiAuraFrame = CreateFrame("Frame")
     multiAuraFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     multiAuraFrame:RegisterEvent("UNIT_TARGET")
     multiAuraFrame:RegisterEvent("UNIT_AURA")

@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, Private = ...
 
 local WeakAuras = WeakAuras;
@@ -119,11 +119,16 @@ local screenWidth, screenHeight = math.ceil(GetScreenWidth() / 20) * 20, math.ce
 function Private.GetAnchorsForData(parentData, type)
   local result
   if not parentData.controlledChildren then
-    if not WeakAuras.regionOptions[parentData.regionType] or not WeakAuras.regionOptions[parentData.regionType].getAnchors then
+    if not WeakAuras.regionOptions[parentData.regionType] then
       return
     end
 
-    local anchors = WeakAuras.regionOptions[parentData.regionType].getAnchors(parentData)
+    local anchors
+    if WeakAuras.regionOptions[parentData.regionType].getAnchors then
+      anchors = WeakAuras.regionOptions[parentData.regionType].getAnchors(parentData)
+    else
+      anchors = Private.default_types_for_anchor
+    end
     for anchorId, anchorData in pairs(anchors) do
       if anchorData.type == type then
         result = result or {}
@@ -132,23 +137,6 @@ function Private.GetAnchorsForData(parentData, type)
     end
   end
   return result
-end
-
-function WeakAuras.regionPrototype:AnchorSubRegion(subRegion, anchorType, selfPoint, anchorPoint, anchorXOffset, anchorYOffset)
-  subRegion:ClearAllPoints()
-
-  if anchorType == "point" then
-    local xOffset = anchorXOffset or 0
-    local yOffset = anchorYOffset or 0
-    subRegion:SetPoint(Private.point_types[selfPoint] and selfPoint or "CENTER",
-                       self, Private.point_types[anchorPoint] and anchorPoint or "CENTER",
-                       xOffset, yOffset)
-  else
-    anchorXOffset = anchorXOffset or 0
-    anchorYOffset = anchorYOffset or 0
-    subRegion:SetPoint("bottomleft", self, "bottomleft", -anchorXOffset, -anchorYOffset)
-    subRegion:SetPoint("topright", self, "topright", anchorXOffset,  anchorYOffset)
-  end
 end
 
 -- Sound / Chat Message / Custom Code
@@ -279,8 +267,7 @@ local function SendChat(self, options)
   if (not options or WeakAuras.IsOptionsOpen()) then
     return
   end
-
-  Private.HandleChatAction(options.message_type, options.message, options.message_dest, options.message_channel, options.r, options.g, options.b, self, options.message_custom, nil, options.message_formaters);
+  Private.HandleChatAction(options.message_type, options.message, options.message_dest, options.message_dest_isunit, options.message_channel, options.r, options.g, options.b, self, options.message_custom, nil, options.message_formaters, options.message_voice);
 end
 
 local function RunCode(self, func)
@@ -462,7 +449,27 @@ local function UpdateTimerTick(self)
   end
 end
 
+local function AnchorSubRegion(self, subRegion, anchorType, selfPoint, anchorPoint, anchorXOffset, anchorYOffset)
+  subRegion:ClearAllPoints()
+
+  if anchorType == "point" then
+    local xOffset = anchorXOffset or 0
+    local yOffset = anchorYOffset or 0
+    subRegion:SetPoint(Private.point_types[selfPoint] and selfPoint or "CENTER",
+                       self, Private.point_types[anchorPoint] and anchorPoint or "CENTER",
+                       xOffset, yOffset)
+  else
+    anchorXOffset = anchorXOffset or 0
+    anchorYOffset = anchorYOffset or 0
+    subRegion:SetPoint("bottomleft", self, "bottomleft", -anchorXOffset, -anchorYOffset)
+    subRegion:SetPoint("topright", self, "topright", anchorXOffset,  anchorYOffset)
+  end
+end
+
+WeakAuras.regionPrototype.AnchorSubRegion = AnchorSubRegion
+
 function WeakAuras.regionPrototype.create(region)
+  local defaultsForRegion = WeakAuras.regionTypes[region.regionType] and WeakAuras.regionTypes[region.regionType].default;
   region.SoundPlay = SoundPlay;
   region.SoundStop = SoundStop;
   region.SoundRepeatStop = SoundRepeatStop;
@@ -488,8 +495,10 @@ function WeakAuras.regionPrototype.create(region)
     region:RealClearAllPoints();
     region:ResetPosition();
   end
-  region.SetRegionAlpha = SetRegionAlpha;
-  region.GetRegionAlpha = GetRegionAlpha;
+  if (defaultsForRegion and defaultsForRegion.alpha) then
+    region.SetRegionAlpha = SetRegionAlpha;
+    region.GetRegionAlpha = GetRegionAlpha;
+  end
   region.SetAnimAlpha = SetAnimAlpha;
 
   region.SetTriggerProvidesTimer = SetTriggerProvidesTimer
@@ -497,6 +506,8 @@ function WeakAuras.regionPrototype.create(region)
   region.UpdateTimerTick = UpdateTimerTick
 
   region.subRegionEvents = CreateSubRegionEventSystem()
+  region.AnchorSubRegion = AnchorSubRegion
+  region.values = {} -- For SubText
 
   region:SetPoint("CENTER", UIParent, "CENTER")
 end
@@ -504,12 +515,12 @@ end
 -- SetDurationInfo
 
 function WeakAuras.regionPrototype.modify(parent, region, data)
+  region.state = nil
+  region.states = nil
   region.subRegionEvents:ClearSubscribers()
 
   local defaultsForRegion = WeakAuras.regionTypes[data.regionType] and WeakAuras.regionTypes[data.regionType].default;
-  if (defaultsForRegion and defaultsForRegion.alpha) then
-    region:SetRegionAlpha(data.alpha);
-  end
+
   if region.SetRegionAlpha then
     region:SetRegionAlpha(data.alpha)
   end
@@ -577,7 +588,7 @@ function WeakAuras.regionPrototype.modify(parent, region, data)
       data.actions.start[fullKey] = default
     end
     return data.actions.start[fullKey]
-  end)
+  end, true)
 
   region.finishFormatters = Private.CreateFormatters(data.actions.finish.message, function(key, default)
     local fullKey = "message_format_" .. key
@@ -585,7 +596,7 @@ function WeakAuras.regionPrototype.modify(parent, region, data)
       data.actions.finish[fullKey] = default
     end
     return data.actions.finish[fullKey]
-  end)
+  end, true)
 
 end
 
@@ -631,7 +642,7 @@ end
 
 local regionsForFrameTick = {}
 
-local frameForFrameTick = CreateFrame("FRAME");
+local frameForFrameTick = CreateFrame("Frame");
 
 WeakAuras.frames["Frame Tick Frame"] = frameForFrameTick
 
@@ -762,7 +773,20 @@ function WeakAuras.regionPrototype.AddExpandFunction(data, region, cloneId, pare
 
       Private.RunConditions(region, uid, true)
       region.subRegionEvents:Notify("PreHide")
-      region:Hide();
+      if region:IsProtected() then
+        if InCombatLockdown() then
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "error",
+            L["Cannot hide secure frame in combat lockdown. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"],
+            true)
+        else
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "warning",
+            L["Secure frame detected. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"])
+          region:Hide()
+        end
+      else
+        Private.AuraWarnings.UpdateWarning(uid, "protected_frame")
+        region:Hide()
+      end
       region.states = nil
       region.state = nil
       if (cloneId) then
@@ -779,7 +803,22 @@ function WeakAuras.regionPrototype.AddExpandFunction(data, region, cloneId, pare
       end
       Private.RunConditions(region, uid, true)
       region.subRegionEvents:Notify("PreHide")
-      region:Hide();
+
+      if region:IsProtected() then
+        if InCombatLockdown() then
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "error",
+            L["Cannot hide secure frame in combat lockdown. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"],
+            true)
+        else
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "warning",
+            L["Secure frame detected. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"])
+          region:Hide()
+        end
+      else
+        Private.AuraWarnings.UpdateWarning(uid, "protected_frame")
+        region:Hide()
+      end
+
       region.states = nil
       region.state = nil
       if (cloneId) then
@@ -820,7 +859,21 @@ function WeakAuras.regionPrototype.AddExpandFunction(data, region, cloneId, pare
       region.subRegionEvents:Notify("PreShow")
 
       Private.ApplyFrameLevel(region)
-      region:Show();
+      if region:IsProtected() then
+        if InCombatLockdown() then
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "error",
+            L["Cannot show secure frame in combat lockdown. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"],
+            true)
+        else
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "warning",
+            L["Secure frame detected. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"])
+          region:Show()
+        end
+      else
+        Private.AuraWarnings.UpdateWarning(uid, "protected_frame")
+        region:Show()
+      end
+
       Private.PerformActions(data, "start", region);
       if not(Private.Animate("display", data.uid, "start", data.animation.start, region, true, startMainAnimation, nil, cloneId)) then
         startMainAnimation();
@@ -866,16 +919,30 @@ function WeakAuras.regionPrototype.AddExpandFunction(data, region, cloneId, pare
       if (region.toShow) then
         return;
       end
-      region.toShow = true;
+      region.toShow = true
 
       if(region.PreShow) then
         region:PreShow();
       end
 
       region.subRegionEvents:Notify("PreShow")
-
       Private.ApplyFrameLevel(region)
-      region:Show();
+
+      if region:IsProtected() then
+        if InCombatLockdown() then
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "error",
+            L["Cannot show secure frame in combat lockdown. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"],
+            true)
+        else
+          Private.AuraWarnings.UpdateWarning(uid, "protected_frame", "warning",
+            L["Secure frame detected. Find more information:\nhttps://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"])
+          region:Show()
+        end
+      else
+        Private.AuraWarnings.UpdateWarning(uid, "protected_frame")
+        region:Show()
+      end
+
       Private.PerformActions(data, "start", region);
       if not(Private.Animate("display", data.uid, "start", data.animation.start, region, true, startMainAnimation, nil, cloneId)) then
         startMainAnimation();
@@ -910,7 +977,7 @@ end
 
 function WeakAuras.SetTextureOrAtlas(texture, path, wrapModeH, wrapModeV)
   if type(path) == "string" and GetAtlasInfo(path) then
-    texture:SetAtlas(path);
+    return texture:SetAtlas(path);
   else
     local needToClear = true
     if (texture.wrapModeH and texture.wrapModeH ~= wrapModeH) or (texture.wrapModeV and texture.wrapModeV ~= wrapModeV) then
@@ -921,6 +988,52 @@ function WeakAuras.SetTextureOrAtlas(texture, path, wrapModeH, wrapModeV)
     if needToClear then
       texture:SetTexture(nil)
     end
-    texture:SetTexture(path, wrapModeH, wrapModeV);
+    return texture:SetTexture(path, wrapModeH, wrapModeV);
+  end
+end
+
+do
+  local function move_condition_subregions(data, offset, afterPos)
+    if data.conditions then
+      for conditionIndex, condition in ipairs(data.conditions) do
+        if type(condition.changes) == "table" then
+          for changeIndex, change in ipairs(condition.changes) do
+            if change.property then
+              local subRegionIndex, property = change.property:match("^sub%.(%d+)%.(.*)")
+              subRegionIndex = tonumber(subRegionIndex)
+              if subRegionIndex and property then
+                if (subRegionIndex >= afterPos) then
+                  change.property = "sub." .. subRegionIndex + offset .. "." .. property
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  function Private.EnforceSubregionExists(data, subregionType)
+    data.subRegions = data.subRegions or {}
+    -- search and save indexes of matching subregions
+    local indexes = {}
+    for index, subRegionData in ipairs(data.subRegions) do
+      if subRegionData.type == subregionType then
+        table.insert(indexes, index)
+      end
+    end
+    -- add if missing
+    if #indexes == 0 then
+      tinsert(data.subRegions, 1, {
+        ["type"] = subregionType
+      })
+      move_condition_subregions(data, 1, 1)
+    -- delete duplicate
+    elseif #indexes > 1 then
+      for i = #indexes, 2, -1 do
+        table.remove(data.subRegions, indexes[i])
+        move_condition_subregions(data, -1, indexes[i])
+      end
+    end
   end
 end

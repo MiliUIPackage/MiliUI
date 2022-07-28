@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 local L = WeakAuras.L
 local regionOptions = WeakAuras.regionOptions
@@ -180,12 +180,7 @@ function OptionsPrivate.GetDisplayOptions(data)
         end
         WeakAuras.Add(data);
         WeakAuras.UpdateThumbnail(data);
-        if(data.parent) then
-          local parentData = WeakAuras.GetData(data.parent);
-          if(parentData) then
-            WeakAuras.Add(parentData);
-          end
-        end
+        OptionsPrivate.Private.AddParents(data)
         OptionsPrivate.ResetMoverSizer();
       end,
       args = options

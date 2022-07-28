@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, Private = ...
 
 local SharedMedia = LibStub("LibSharedMedia-3.0");
@@ -27,7 +27,7 @@ local default = {
 
   shadowColor = { 0, 0, 0, 1},
   shadowXOffset = 1,
-  shadowYOffset = -1,
+  shadowYOffset = -1
 };
 
 local properties = {
@@ -54,7 +54,8 @@ local function GetProperties(data)
 end
 
 local function create(parent)
-  local region = CreateFrame("FRAME", nil, parent);
+  local region = CreateFrame("Frame", nil, parent);
+  region.regionType = "text"
   region:SetMovable(true);
 
   local text = region:CreateFontString(nil, "OVERLAY");
@@ -62,7 +63,6 @@ local function create(parent)
   text:SetWordWrap(true);
   text:SetNonSpaceWrap(true);
 
-  region.values = {};
   region.duration = 0;
   region.expirationTime = math.huge;
 
@@ -93,7 +93,7 @@ local function modify(parent, region, data)
   local tooltipType = Private.CanHaveTooltip(data);
   if(tooltipType and data.useTooltip) then
     if not region.tooltipFrame then
-      region.tooltipFrame = CreateFrame("frame", nil, region);
+      region.tooltipFrame = CreateFrame("Frame", nil, region);
       region.tooltipFrame:SetAllPoints(region);
       region.tooltipFrame:SetScript("OnEnter", function()
         Private.ShowMouseoverTooltip(region, region);
@@ -264,7 +264,11 @@ local function modify(parent, region, data)
   WeakAuras.regionPrototype.modifyFinish(parent, region, data);
 end
 
-WeakAuras.RegisterRegionType("text", create, modify, default, GetProperties);
+local function validate(data)
+  Private.EnforceSubregionExists(data, "subbackground")
+end
+
+WeakAuras.RegisterRegionType("text", create, modify, default, GetProperties, validate);
 
 -- Fallback region type
 

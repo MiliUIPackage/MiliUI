@@ -1,4 +1,4 @@
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 local AddonName, OptionsPrivate = ...
 
 -- Lua APIs
@@ -7,8 +7,8 @@ local pairs, type, error = pairs, type, error
 local _G = _G
 
 -- WoW APIs
-local GetScreenWidth, GetScreenHeight, CreateFrame, GetAddOnInfo, PlaySound, IsAddOnLoaded, LoadAddOn, UnitName
-  = GetScreenWidth, GetScreenHeight, CreateFrame, GetAddOnInfo, PlaySound, IsAddOnLoaded, LoadAddOn, UnitName
+local GetScreenWidth, GetScreenHeight, CreateFrame, UnitName
+  = GetScreenWidth, GetScreenHeight, CreateFrame, UnitName
 
 local AceGUI = LibStub("AceGUI-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
@@ -89,7 +89,7 @@ local function CreateFrameSizer(frame, callback, position)
     xOffset2, yOffset2 = -6, -6
   end
 
-  local handle = CreateFrame("BUTTON", nil, frame)
+  local handle = CreateFrame("Button", nil, frame)
   handle:SetPoint(position, frame)
   handle:SetSize(25, 25)
   handle:EnableMouse()
@@ -133,23 +133,23 @@ local minWidth = 750
 local minHeight = 240
 
 function OptionsPrivate.CreateFrame()
-  local WeakAuras_DropDownMenu = CreateFrame("frame", "WeakAuras_DropDownMenu", nil, "UIDropDownMenuTemplate")
+  CreateFrame("Frame", "WeakAuras_DropDownMenu", nil, "UIDropDownMenuTemplate")
   local frame
   local db = OptionsPrivate.savedVars.db
   local odb = OptionsPrivate.savedVars.odb
   -------- Mostly Copied from AceGUIContainer-Frame--------
-  frame = CreateFrame("FRAME", "WeakAurasOptions", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+  frame = CreateFrame("Frame", "WeakAurasOptions", UIParent, "BackdropTemplate")
 
   tinsert(UISpecialFrames, frame:GetName())
   frame:SetBackdrop({
-    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    bgFile = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\Square_FullWhite",
     edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
     tile = true,
     tileSize = 32,
     edgeSize = 32,
     insets = { left = 8, right = 8, top = 8, bottom = 8 }
   })
-  frame:SetBackdropColor(0, 0, 0, 1)
+  frame:SetBackdropColor(0.1, 0.1, 0.1, 0.85)
   frame:EnableMouse(true)
   frame:SetMovable(true)
   frame:SetResizable(true)
@@ -180,7 +180,7 @@ function OptionsPrivate.CreateFrame()
       data.region:Collapse()
       data.region:OptionsClosed()
       if WeakAuras.clones[id] then
-        for cloneId, cloneRegion in pairs(WeakAuras.clones[id]) do
+        for _, cloneRegion in pairs(WeakAuras.clones[id]) do
           cloneRegion:Collapse()
           cloneRegion:OptionsClosed()
         end
@@ -217,7 +217,7 @@ function OptionsPrivate.CreateFrame()
   local close = CreateDecoration(frame)
   close:SetPoint("TOPRIGHT", -30, 12)
 
-  local closebutton = CreateFrame("BUTTON", nil, close, "UIPanelCloseButton")
+  local closebutton = CreateFrame("Button", nil, close, "UIPanelCloseButton")
   closebutton:SetPoint("CENTER", close, "CENTER", 1, -1)
   closebutton:SetScript("OnClick", WeakAuras.HideOptions)
 
@@ -278,6 +278,7 @@ function OptionsPrivate.CreateFrame()
       self.iconPicker.frame:Hide()
       self.modelPicker.frame:Hide()
       self.importexport.frame:Hide()
+      self.update.frame:Hide()
       self.texteditor.frame:Hide()
       self.codereview.frame:Hide()
       if self.newView then
@@ -350,7 +351,11 @@ function OptionsPrivate.CreateFrame()
           self.newView.frame:Hide()
         end
       end
-
+      if self.window == "update" then
+        self.update.frame:Show()
+      else
+        self.update.frame:Hide()
+      end
       if self.window == "default" then
         if self.loadProgessVisible then
           self.loadProgress:Show()
@@ -370,7 +375,7 @@ function OptionsPrivate.CreateFrame()
     end
   end
 
-  local minimizebutton = CreateFrame("BUTTON", nil, minimize)
+  local minimizebutton = CreateFrame("Button", nil, minimize)
   minimizebutton:SetWidth(30)
   minimizebutton:SetHeight(30)
   minimizebutton:SetPoint("CENTER", minimize, "CENTER", 1, -1)
@@ -407,7 +412,7 @@ function OptionsPrivate.CreateFrame()
   tipFrame.frame:Hide()
   frame.tipFrame = tipFrame
 
-  local tipPopup = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate")
+  local tipPopup = CreateFrame("Frame", nil, frame, "BackdropTemplate")
   tipPopup:SetFrameStrata("FULLSCREEN")
   tipPopup:SetBackdrop({
     bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
@@ -433,7 +438,7 @@ function OptionsPrivate.CreateFrame()
   tipPopupLabel:SetJustifyH("LEFT")
   tipPopupLabel:SetJustifyV("TOP")
 
-  local urlWidget = CreateFrame("EDITBOX", nil, tipPopup, "InputBoxTemplate")
+  local urlWidget = CreateFrame("EditBox", nil, tipPopup, "InputBoxTemplate")
   urlWidget:SetFont(STANDARD_TEXT_FONT, 12)
   urlWidget:SetPoint("TOPLEFT", tipPopupLabel, "BOTTOMLEFT", 6, 0)
   urlWidget:SetPoint("TOPRIGHT", tipPopupLabel, "BOTTOMRIGHT", 0, 0)
@@ -486,7 +491,7 @@ function OptionsPrivate.CreateFrame()
   addFooter(L["Find Auras"], [[Interface\AddOns\WeakAuras\Media\Textures\wagoupdate_logo.tga]], "https://wago.io",
             L["Browse Wago, the largest collection of auras."])
 
-  if not WeakAurasCompanion then
+  if not OptionsPrivate.Private.CompanionData.slugs then
     addFooter(L["Update Auras"], [[Interface\AddOns\WeakAuras\Media\Textures\wagoupdate_refresh.tga]], "https://weakauras.wtf",
             L["Keep your Wago imports up to date with the Companion App."])
   end
@@ -536,11 +541,12 @@ function OptionsPrivate.CreateFrame()
   frame.importexport = OptionsPrivate.ImportExport(frame)
   frame.texteditor = OptionsPrivate.TextEditor(frame)
   frame.codereview = OptionsPrivate.CodeReview(frame)
+  frame.update = OptionsPrivate.UpdateFrame(frame)
 
   frame.moversizer, frame.mover = OptionsPrivate.MoverSizer(frame)
 
   -- filter line
-  local filterInput = CreateFrame("editbox", "WeakAurasFilterInput", frame, "SearchBoxTemplate")
+  local filterInput = CreateFrame("EditBox", "WeakAurasFilterInput", frame, "SearchBoxTemplate")
   filterInput:SetScript("OnTextChanged", function(self)
     SearchBoxTemplate_OnTextChanged(self)
     OptionsPrivate.SortDisplayButtons(filterInput:GetText())
@@ -662,10 +668,8 @@ function OptionsPrivate.CreateFrame()
   -- override SetScroll to make children visible as needed
   local oldSetScroll = buttonsScroll.SetScroll
   buttonsScroll.SetScroll = function(self, value)
-    if self:GetScrollPos() ~= value then
-      oldSetScroll(self, value)
-      self.LayoutFunc(self.content, self.children, true)
-    end
+    oldSetScroll(self, value)
+    self.LayoutFunc(self.content, self.children, true)
   end
 
   function buttonsScroll:SetScrollPos(top, bottom)
@@ -691,20 +695,6 @@ function OptionsPrivate.CreateFrame()
     self.content:SetPoint("TOPRIGHT", 0, status.offset)
 
     status.scrollvalue = status.offset / ((height - viewheight) / 1000.0)
-  end
-
-  local numAddons = 0
-
-  for addon, addonData in pairs(OptionsPrivate.Private) do
-    numAddons = numAddons + 1
-  end
-
-  if numAddons > 0 then
-    local addonsButton = AceGUI:Create("WeakAurasNewHeaderButton")
-    addonsButton:SetText(L["Addons"])
-    addonsButton:SetDescription(L["Manage displays defined by Addons"])
-    addonsButton:SetClick(function() frame:PickOption("Addons") end)
-    frame.addonsButton = addonsButton
   end
 
   -- Ready to Install section
@@ -775,22 +765,24 @@ function OptionsPrivate.CreateFrame()
   loadedButton:SetCollapseDescription(L["Collapse all loaded displays"])
   loadedButton:SetViewClick(function()
     OptionsPrivate.Private.PauseAllDynamicGroups()
-    if loadedButton.view.func() == 2 then
+    if loadedButton.view.visibility == 2 then
       for id, child in pairs(displayButtons) do
         if OptionsPrivate.Private.loaded[id] ~= nil then
           child:PriorityHide(2)
         end
       end
+      loadedButton:PriorityHide(2)
     else
       for id, child in pairs(displayButtons) do
         if OptionsPrivate.Private.loaded[id] ~= nil then
           child:PriorityShow(2)
         end
       end
+      loadedButton:PriorityShow(2)
     end
     OptionsPrivate.Private.ResumeAllDynamicGroups()
   end)
-  loadedButton:SetViewTest(function()
+  loadedButton.RecheckVisibility = function(self)
     local none, all = true, true
     for id, child in pairs(displayButtons) do
       if OptionsPrivate.Private.loaded[id] ~= nil then
@@ -802,14 +794,19 @@ function OptionsPrivate.CreateFrame()
         end
       end
     end
+    local newVisibility
     if all then
-      return 2
+      newVisibility = 2
     elseif none then
-      return 0
+      newVisibility = 0
     else
-      return 1
+      newVisibility = 1
     end
-  end)
+    if newVisibility ~= self.view.visibility then
+      self.view.visibility = newVisibility
+      self:UpdateViewTexture()
+    end
+  end
   loadedButton:SetViewDescription(L["Toggle the visibility of all loaded displays"])
   frame.loadedButton = loadedButton
 
@@ -835,22 +832,24 @@ function OptionsPrivate.CreateFrame()
   unloadedButton:SetCollapseDescription(L["Collapse all non-loaded displays"])
   unloadedButton:SetViewClick(function()
     OptionsPrivate.Private.PauseAllDynamicGroups()
-    if unloadedButton.view.func() == 2 then
+    if unloadedButton.view.visibility == 2 then
       for id, child in pairs(displayButtons) do
         if OptionsPrivate.Private.loaded[id] == nil then
           child:PriorityHide(2)
         end
       end
+      unloadedButton:PriorityHide(2)
     else
       for id, child in pairs(displayButtons) do
         if OptionsPrivate.Private.loaded[id] == nil then
           child:PriorityShow(2)
         end
       end
+      unloadedButton:PriorityShow(2)
     end
     OptionsPrivate.Private.ResumeAllDynamicGroups()
   end)
-  unloadedButton:SetViewTest(function()
+  unloadedButton.RecheckVisibility = function(self)
     local none, all = true, true
     for id, child in pairs(displayButtons) do
       if OptionsPrivate.Private.loaded[id] == nil then
@@ -862,14 +861,19 @@ function OptionsPrivate.CreateFrame()
         end
       end
     end
+    local newVisibility
     if all then
-      return 2
+      newVisibility = 2
     elseif none then
-      return 0
+      newVisibility = 0
     else
-      return 1
+      newVisibility = 1
     end
-  end)
+    if newVisibility ~= self.view.visibility then
+      self.view.visibility = newVisibility
+      self:UpdateViewTexture()
+    end
+  end
   unloadedButton:SetViewDescription(L["Toggle the visibility of all non-loaded displays"])
   frame.unloadedButton = unloadedButton
 
@@ -1019,6 +1023,10 @@ function OptionsPrivate.CreateFrame()
 
     AceConfigDialog:Open("WeakAuras", group)
     tabsWidget:SetTitle("")
+
+    if data.controlledChildren and #data.controlledChildren == 0 then
+      WeakAurasOptions:NewAura()
+    end
   end
 
   frame.ClearPick = function(self, id)
@@ -1040,19 +1048,37 @@ function OptionsPrivate.CreateFrame()
     self:FillOptions()
   end
 
+  frame.OnRename = function(self, uid, oldid, newid)
+    if type(frame.pickedDisplay) == "string" and frame.pickedDisplay == oldid then
+      frame.pickedDisplay = newid
+    else
+      for i, childId in pairs(tempGroup.controlledChildren) do
+        if (childId == newid) then
+          tempGroup.controlledChildren[i] = newid
+        end
+      end
+    end
+  end
+
   frame.ClearPicks = function(self, noHide)
     OptionsPrivate.Private.PauseAllDynamicGroups()
+    for id, button in pairs(displayButtons) do
+      button:ClearPick(true)
+      if not noHide then
+        button:PriorityHide(1)
+      end
+    end
+    if not noHide then
+      for id, button in pairs(displayButtons) do
+        if button.data.controlledChildren then
+          button:RecheckVisibility()
+        end
+      end
+    end
 
     frame.pickedDisplay = nil
     frame.pickedOption = nil
     wipe(tempGroup.controlledChildren)
-    for id, button in pairs(displayButtons) do
-      button:ClearPick(noHide)
-    end
-    --newButton:ClearPick(noHide)
-    if frame.addonsButton then
-      frame.addonsButton:ClearPick(noHide)
-    end
     loadedButton:ClearPick(noHide)
     unloadedButton:ClearPick(noHide)
     container:ReleaseChildren()
@@ -1064,30 +1090,46 @@ function OptionsPrivate.CreateFrame()
     OptionsPrivate.ClearTriggerExpandState()
   end
 
-  local function GetTarget(pickedDisplay)
-    local targetId
-    if pickedDisplay then
-      if type(pickedDisplay) == "table" and tempGroup.controlledChildren and tempGroup.controlledChildren[1] then
-        targetId = tempGroup.controlledChildren[1]
-      elseif type(pickedDisplay) == "string" then
-        targetId = pickedDisplay
+  frame.GetTargetAura = function(self)
+    if self.pickedDisplay then
+      if type(self.pickedDisplay) == "table" and tempGroup.controlledChildren and tempGroup.controlledChildren[1] then
+        return tempGroup.controlledChildren[1]
+      elseif type(self.pickedDisplay) == "string" then
+        return self.pickedDisplay
       end
     end
-    return targetId
+    return nil
   end
 
-  frame.NewAura = function(self, fromGroup)
-    local targetId = GetTarget(self.pickedDisplay)
-    self:ClearPicks()
+  frame.NewAura = function(self)
+    local targetId
+    local targetIsDynamicGroup
+
+    if self.pickedDisplay then
+      if type(self.pickedDisplay) == "table" and tempGroup.controlledChildren and tempGroup.controlledChildren[1] then
+        targetId = tempGroup.controlledChildren[1]
+        WeakAuras.PickDisplay(targetId)
+      elseif type(self.pickedDisplay) == "string" then
+        targetId = self.pickedDisplay
+      else
+        self:ClearPicks()
+      end
+    end
+
     if targetId then
       local pickedButton = WeakAuras.GetDisplayButton(targetId)
-      if pickedButton then
-        pickedButton:Pick()
+      if pickedButton.data.controlledChildren then
+        targetIsDynamicGroup = pickedButton.data.regionType == "dynamicgroup"
+      else
+        local parent = pickedButton.data.parent
+        local parentData = parent and WeakAuras.GetData(parent)
+        targetIsDynamicGroup = parentData and parentData.regionType == "dynamicgroup"
       end
     end
     self.moversizer:Hide()
     self.pickedOption = "New"
 
+    container:ReleaseChildren()
     container.frame:SetPoint("TOPLEFT", frame, "TOPRIGHT", -63 - WeakAuras.normalWidth * 340, -8)
     container:SetLayout("fill")
     local border = AceGUI:Create("InlineGroup")
@@ -1111,7 +1153,7 @@ function OptionsPrivate.CreateFrame()
       button:SetDescription(L["Offer a guided way to create auras for your character"])
       button:SetIcon("Interface\\Icons\\INV_Misc_Book_06")
       button:SetClick(function()
-        OptionsPrivate.OpenTriggerTemplate(nil, targetId)
+        OptionsPrivate.OpenTriggerTemplate(nil, self:GetTargetAura())
       end)
       containerScroll:AddChild(button)
 
@@ -1132,13 +1174,31 @@ function OptionsPrivate.CreateFrame()
       tinsert(regionTypesSorted, regionType)
     end
 
+    -- Sort group + dynamic group first, then the others alphabeticaly
     table.sort(regionTypesSorted, function(a, b)
+      if (a == "group") then
+        return true
+      end
+
+      if (b == "group") then
+        return false
+      end
+
+      if (a == "dynamicgroup") then
+        return true
+      end
+      if (b == "dynamicgroup") then
+        return false
+      end
+
       return regionOptions[a].displayName < regionOptions[b].displayName
     end)
 
     for index, regionType in ipairs(regionTypesSorted) do
-      local regionData = regionOptions[regionType]
-      if (not (fromGroup and (regionType == "group" or regionType == "dynamicgroup"))) then
+      if (targetIsDynamicGroup and (regionType == "group" or regionType == "dynamicgroup")) then
+        -- Dynamic groups can't contain group/dynamic groups
+      else
+        local regionData = regionOptions[regionType]
         local button = AceGUI:Create("WeakAurasNewButton")
         button:SetTitle(regionData.displayName)
         if(type(regionData.icon) == "string" or type(regionData.icon) == "table") then
@@ -1146,7 +1206,7 @@ function OptionsPrivate.CreateFrame()
         end
         button:SetDescription(regionData.description)
         button:SetClick(function()
-          WeakAuras.NewAura(nil, regionType, targetId)
+          WeakAuras.NewAura(nil, regionType, self:GetTargetAura())
         end)
         containerScroll:AddChild(button)
       end
@@ -1205,50 +1265,22 @@ function OptionsPrivate.CreateFrame()
     containerScroll:AddChild(importButton)
   end
 
-  frame.PickOption = function(self, option, fromGroup)
-    local targetId = GetTarget(self.pickedDisplay)
-    self:ClearPicks()
-    if targetId then
-      local pickedButton = WeakAuras.GetDisplayButton(targetId)
-      if pickedButton then
-        pickedButton:Pick()
-      end
-    end
-    self.moversizer:Hide()
-    self.pickedOption = option
-    if option == "Addons" then
-      frame.addonsButton:Pick()
-
-      local containerScroll = AceGUI:Create("ScrollFrame")
-      containerScroll:SetLayout("AbsoluteList")
-      container:SetLayout("fill")
-      container:AddChild(containerScroll)
-
-      OptionsPrivate.CreateImportButtons()
-      WeakAuras.SortImportButtons(containerScroll)
-    else
-      error("An options button other than New or Addons was selected... but there are no other options buttons!")
-    end
-  end
-
-  frame.PickDisplay = function(self, id, tab, noHide)
-    if self.pickedDisplay == id then
-      return
-    end
-
-    OptionsPrivate.Private.PauseAllDynamicGroups()
-
-    self:ClearPicks(noHide)
-    local data = WeakAuras.GetData(id)
-
-    displayButtons[id]:Pick()
-    self.pickedDisplay = id
-
+  local function ExpandParents(data)
     if data.parent then
       if not displayButtons[data.parent]:GetExpanded() then
         displayButtons[data.parent]:Expand()
       end
+      local parentData = WeakAuras.GetData(data.parent)
+      ExpandParents(parentData)
     end
+  end
+
+  frame.PickDisplay = function(self, id, tab, noHide)
+    local data = WeakAuras.GetData(id)
+
+    -- Always expand even if already picked
+    ExpandParents(data)
+
     if OptionsPrivate.Private.loaded[id] ~= nil then
       -- Under loaded
       if not loadedButton:GetExpanded() then
@@ -1260,6 +1292,18 @@ function OptionsPrivate.CreateFrame()
         unloadedButton:Expand()
       end
     end
+
+    if self.pickedDisplay == id then
+      return
+    end
+
+    OptionsPrivate.Private.PauseAllDynamicGroups()
+
+    self:ClearPicks(noHide)
+
+    displayButtons[id]:Pick()
+    self.pickedDisplay = id
+
 
     if tab then
       self.selectedTab = tab
@@ -1278,10 +1322,7 @@ function OptionsPrivate.CreateFrame()
     for child in OptionsPrivate.Private.TraverseAllChildren(data) do
       displayButtons[child.id]:PriorityShow(1)
     end
-
-    if data.controlledChildren and #data.controlledChildren == 0 then
-      WeakAurasOptions:NewAura(true)
-    end
+    displayButtons[data.id]:RecheckParentVisibility()
 
     OptionsPrivate.Private.ResumeAllDynamicGroups()
   end
@@ -1308,7 +1349,7 @@ function OptionsPrivate.CreateFrame()
     else
       local wasGroup = false
       if type(self.pickedDisplay) == "string" then
-        if WeakAuras.GetData(self.pickedDisplay).controlledChildren then
+        if WeakAuras.GetData(self.pickedDisplay).controlledChildren or WeakAuras.GetData(id).controlledChildren then
           wasGroup = true
         elseif not OptionsPrivate.IsDisplayPicked(id) then
           tinsert(tempGroup.controlledChildren, self.pickedDisplay)
@@ -1332,7 +1373,7 @@ function OptionsPrivate.CreateFrame()
       alreadySelected[child.id] = true
     end
 
-    for index, id in ipairs(batchSelection) do
+    for _, id in ipairs(batchSelection) do
       if not alreadySelected[id] then
         displayButtons[id]:Pick()
         tinsert(tempGroup.controlledChildren, id)

@@ -3,7 +3,7 @@ WeakAurasTreeGroup Container
 Container that uses a tree control to switch between groups.
 This file was forked from AceGUIContainer-TreeGroup.lua version 41
 -------------------------------------------------------------------------------]]
-if not WeakAuras.IsCorrectVersion() then return end
+if not WeakAuras.IsCorrectVersion() or not WeakAuras.IsLibsOK() then return end
 
 local Type, Version = "WeakAurasTreeGroup", 2
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
@@ -657,13 +657,13 @@ local function Constructor()
 	treeframe:SetScript("OnSizeChanged", Tree_OnSizeChanged)
 	treeframe:SetScript("OnMouseWheel", Tree_OnMouseWheel)
 
-	local treeframeBG = CreateFrame("Frame", nil, treeframe, BackdropTemplateMixin and "BackdropTemplate")
+	local treeframeBG = CreateFrame("Frame", nil, treeframe, "BackdropTemplate")
 	treeframeBG:SetBackdrop(PaneBackdrop)
 	treeframeBG:SetBackdropColor(0.1, 0.1, 0.1, 0.5)
 	treeframeBG:SetBackdropBorderColor(0.4, 0.4, 0.4)
 	treeframeBG:SetAllPoints(treeframe)
 
-	local dragger = CreateFrame("Frame", nil, treeframe, BackdropTemplateMixin and "BackdropTemplate")
+	local dragger = CreateFrame("Frame", nil, treeframe, "BackdropTemplate")
 	dragger:SetWidth(8)
 	dragger:SetPoint("TOP", treeframe, "TOPRIGHT")
 	dragger:SetPoint("BOTTOM", treeframe, "BOTTOMRIGHT")
@@ -688,7 +688,7 @@ local function Constructor()
 	scrollbg:SetAllPoints(scrollbar)
 	scrollbg:SetColorTexture(0, 0, 0, 0.4)
 
-	local border = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate")
+	local border = CreateFrame("Frame", nil, frame, "BackdropTemplate")
 	border:SetPoint("TOPLEFT", treeframe, "TOPRIGHT")
 	border:SetPoint("BOTTOMRIGHT")
 	border:SetBackdrop(PaneBackdrop)
