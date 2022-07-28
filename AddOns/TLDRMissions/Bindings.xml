@@ -1,0 +1,23 @@
+<Bindings>
+	<Binding name="TLDRMISSIONS_CALCULATE" header="TLDRMISSIONS" category="ADDONS">
+		TLDRMissions.GUI.CalculateButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_CANCEL" category="ADDONS">
+		TLDRMissions.GUI.AbortButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_SKIP" category="ADDONS">
+		TLDRMissions.GUI.SkipCalculationButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_START" category="ADDONS">
+		TLDRMissions.GUI.StartMissionButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_SKIPSEND" category="ADDONS">
+		TLDRMissions.GUI.SkipMissionButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_COMPLETE" category="ADDONS">
+		TLDRMissions.GUI.CompleteMissionsButton:Click()
+	</Binding>
+    <Binding name="TLDRMISSIONS_SHORTCUT" category="ADDONS">
+        TLDRMissions.GUI.shortcutButton:Click()
+    </Binding>
+</Bindings>
