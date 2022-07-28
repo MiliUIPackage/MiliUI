@@ -1,10 +1,7 @@
-## 9.1.0
+## 9.2.6
 
-### General
+### Release Notes
 
-- Updated the `Interface` version for _Retail_ to `90100`.
+- Added Wrath of the Lich King Classic support.
 
-### Localization
-
-- Updated deDE. (Quil)
-- Updated ruRU. (Vitality_Spirit)
+[Release History](https://github.com/SFX-WoW/Masque/wiki/History)
