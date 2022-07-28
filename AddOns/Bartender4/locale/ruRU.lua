@@ -36,6 +36,7 @@ L["Bartender4 was written by Nevcairiel of EU-Antonidas. He will accept cookies 
 L["Blizzard Art"] = "Blizzard Арт"
 L["Blizzard Art Bar"] = "Панели Blizzard Арт"
 L["Blizzard interface"] = "Интерфейс Blizzard"
+L["Both"] = "Оба"
 L["Button %s"] = "Кнопка %s"
 L["Button Grid"] = "Сетка кнопок"
 L["Button Lock"] = "Закрепить кнопки"

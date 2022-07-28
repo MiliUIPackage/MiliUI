@@ -6,7 +6,7 @@
 	Generic Bar Frame Template
 ]]
 local _, Bartender4 = ...
-local Bar = CreateFrame("Button")
+local Bar = CreateFrame("Frame")
 local Bar_MT = {__index = Bar}
 
 local table_concat, table_insert, tostring, assert, pairs, min, max = table.concat, table.insert, tostring, assert, pairs, min, max
@@ -55,7 +55,13 @@ do
 
 	local function barReAnchorForSnap(self)
 		local x,y,anchor = nil, nil, self:GetAnchor()
-		x = (self.config.position.growHorizontal == "RIGHT") and self:GetLeft() or self:GetRight()
+		if self.config.position.growHorizontal == "RIGHT" then
+			x = self:GetLeft()
+		elseif self.config.position.growHorizontal == "LEFT" then
+			x = self:GetRight()
+		elseif self.config.position.growHorizontal == "BOTH" then
+			x = self:GetCenter()
+		end
 		y = (self.config.position.growVertical == "DOWN") and self:GetTop() or self:GetBottom()
 		self:ClearSetPoint(anchor, UIParent, "BOTTOMLEFT", x, y)
 		self:SetWidth(self.overlay:GetWidth())
@@ -64,7 +70,13 @@ do
 
 	local function barReAnchorNormal(self)
 		local x,y,anchor = nil, nil, self:GetAnchor()
-		x = (self.config.position.growHorizontal == "RIGHT") and self:GetLeft() or self:GetRight()
+		if self.config.position.growHorizontal == "RIGHT" then
+			x = self:GetLeft()
+		elseif self.config.position.growHorizontal == "LEFT" then
+			x = self:GetRight()
+		elseif self.config.position.growHorizontal == "BOTH" then
+			x = self:GetCenter()
+		end
 		y = (self.config.position.growVertical == "DOWN") and self:GetTop() or self:GetBottom()
 		self:ClearSetPoint(anchor, UIParent, "BOTTOMLEFT", x, y)
 		self:SetWidth(1)
@@ -230,7 +242,13 @@ function Bar:ApplyConfig(config)
 end
 
 function Bar:GetAnchor()
-	return ((self.config.position.growVertical == "DOWN") and "TOP" or "BOTTOM") .. ((self.config.position.growHorizontal == "RIGHT") and "LEFT" or "RIGHT")
+	local anchor = (self.config.position.growVertical == "DOWN") and "TOP" or "BOTTOM"
+	if self.config.position.growHorizontal == "RIGHT" then
+		anchor = anchor .. "LEFT"
+	elseif self.config.position.growHorizontal == "LEFT" then
+		anchor = anchor .. "RIGHT"
+	end
+	return anchor
 end
 
 function Bar:AnchorOverlay()

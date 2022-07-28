@@ -1,9 +1,10 @@
 # Bartender4
 
-## [4.10.9](https://github.com/Nevcairiel/Bartender4/tree/4.10.9) (2021-05-21)
-[Full Changelog](https://github.com/Nevcairiel/Bartender4/compare/4.10.8...4.10.9) [Previous Releases](https://github.com/Nevcairiel/Bartender4/releases)
+## [4.11.2](https://github.com/Nevcairiel/Bartender4/tree/4.11.2) (2022-06-27)
+[Full Changelog](https://github.com/Nevcairiel/Bartender4/compare/4.11.1...4.11.2) [Previous Releases](https://github.com/Nevcairiel/Bartender4/releases)
 
-- Fix changing the self-cast modifier on classic  
-    Fixes #54  
-- Support Shadowform stance paging on BCC  
-    Fixes #55  
+- Update TOC  
+- The ActionBar MT should be of class Frame, not Button  
+- Use checkout v2 for pull requests  
+- Remove CF API key from the locale import step  
+    The global env already covers it  

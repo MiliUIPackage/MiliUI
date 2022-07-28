@@ -1,9 +1,7 @@
-## Interface: 90205
+## Interface: 11403
 
 ## Title: Bartender4
 ## Notes: Simple and Advanced combined - Bartender4 ActionBar AddOn
-## Title-zhTW: |cFF0099FF[介面]|r 自訂快捷
-## Notes-zhTW: Bartender4|n將原先系統預設的快捷鍵位置隨自己喜好排列擺設。|n|cffffd200使用方法：|r輸入指令『/bt』
 
 ## Version: 4.11.2
 
@@ -17,7 +15,7 @@
 ## X-WoWI-ID: 11190
 
 ## SavedVariables: Bartender4DB
-## OptionalDeps: Ace3, Masque, LibButtonGlow-1.0, LibActionButton-1.0, LibKeyBound-1.0, LibDBIcon-1.0, LibWindow-1.1, LibDualSpec-1.0
+## OptionalDeps: Ace3, Masque, LibButtonGlow-1.0, LibActionButton-1.0, LibKeyBound-1.0, LibDBIcon-1.0, LibWindow-1.1, LibClassicSpellActionCount-1.0
 
 #@no-lib-strip@
 libs\LibStub\LibStub.lua
@@ -37,13 +35,13 @@ libs\AceLocale-3.0\AceLocale-3.0.xml
 libs\AceGUI-3.0\AceGUI-3.0.xml
 libs\AceConfig-3.0\AceConfig-3.0.xml
 
+libs\LibClassicSpellActionCount-1.0\LibClassicSpellActionCount-1.0.lua
 
 libs\LibKeyBound-1.0\lib.xml
 libs\LibButtonGlow-1.0\LibButtonGlow-1.0.lua
 libs\LibActionButton-1.0\LibActionButton-1.0.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\LibWindow-1.1\LibWindow-1.1.lua
-libs\LibDualSpec-1.0\LibDualSpec-1.0.lua
 #@end-no-lib-strip@
 
 libs\SimpleSticky.lua
