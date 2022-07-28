@@ -1,0 +1,12 @@
+﻿## Interface: 90205
+## Title: Details!: Storage
+## Notes: Stores information for Details! Damage Meter
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-儲存資料
+## Notes-zhTW: Details!: Storage |n儲存供 Details! 戰鬥統計使用的儲存資料。
+## Dependencies: Details
+## DefaultState: Enabled
+## LoadOnDemand: 1
+
+## SavedVariables: DetailsDataStorage
+
+Details_DataStorage.lua
