@@ -282,7 +282,7 @@ function events.ADDON_LOADED(a1)
 			end
 		end
 		if not Stuf.OpenOptions then -- AceConfig hack to be LOD friendly
-			Stuf.panel = CreateFrame("Frame")
+			Stuf.panel = CreateFrame("Frame", nil, nil, BackdropTemplateMixin and 'BackdropTemplate')
 			Stuf.panel.name = L["Stuf"]
 			Stuf.panel:SetScript("OnShow", SlashCmdList.STUF)
 			InterfaceOptions_AddCategory(Stuf.panel)
@@ -997,10 +997,8 @@ do  -- general data updating
 		UpdatePower(unit, uf, nil, true, nil, true)
 	end
 	Stuf:AddEvent("UNIT_HEALTH", UpdateHealth)
-	-- Stuf:AddEvent("UNIT_HEALTH_FREQUENT", UpdateHealth)
 	Stuf:AddEvent("UNIT_MAXHEALTH", UpdateHealth)
 	Stuf:AddEvent("UNIT_POWER_UPDATE", UpdatePower)
-	Stuf:AddEvent("UNIT_POWER_FREQUENT", UpdatePower)
 	Stuf:AddEvent("UNIT_MAXPOWER", UpdatePower)
 	Stuf:AddEvent("UNIT_DISPLAYPOWER", UpdatePowerType)
 	
@@ -1345,7 +1343,7 @@ function Stuf:CreateUnitFrame(unit, fromshow)  -- creates entire unit frame and 
 	
 	if not fromshow then  -- secure stuff, requires out of combat
 		if not uf then
-			uf = CreateFrame("Button", "Stuf.units."..unit, UIParent, "SecureUnitButtonTemplate" )
+			uf = CreateFrame("Button", "Stuf.units."..unit, UIParent, "SecureUnitButtonTemplate,BackdropTemplate")
 			su[unit] = uf
 			uf.frame = uf
 			uf.unit = unit
@@ -1535,7 +1533,7 @@ function Stuf:CreateUnitFrame(unit, fromshow)  -- creates entire unit frame and 
 	end
 
 	if dbf.fasthp then
-		uf.fasthpframe = uf.fasthpframe or CreateFrame("Frame", nil, uf)
+		uf.fasthpframe = uf.fasthpframe or CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 		uf.fasthpframe.unit, uf.fasthpframe.uf = uf.unit, uf
 		uf.fasthpframe:SetScript("OnUpdate", FastHealthOnUpdate)
 	elseif uf.fasthpframe then

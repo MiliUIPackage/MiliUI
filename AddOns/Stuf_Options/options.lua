@@ -175,8 +175,8 @@ end
 local optionframe
 local function CreateOptionFrame()
 	if optionframe then return end
-    optionframe = AceConfigDialog:AddToBlizOptions("Stuf", L["Stuf"])
-	optionframe.fshow = CreateFrame("Frame", nil, optionframe)
+	optionframe = AceConfigDialog:AddToBlizOptions("Stuf", L["Stuf"])
+	optionframe.fshow = CreateFrame("Frame", nil, optionframe, BackdropTemplateMixin and 'BackdropTemplate')
 	optionframe.fshow:SetScript("OnShow", function(this)
 		local w = InterfaceOptionsFrame:GetWidth()
 		if not InterfaceOptionsFrame:IsMovable() then
@@ -195,10 +195,12 @@ local function CreateOptionFrame()
 		end
 	end)
 	optionframe.fshow:SetScript("OnHide", function(this)
-		if this.oldw then
-			InterfaceOptionsFrame:SetWidth(this.oldw)
-			this.oldw = nil
-		end
+		--------edited out 5 may 2022
+		--	if this.oldw then
+		--	InterfaceOptionsFrame:SetWidth(this.oldw)
+		--	this.oldw = nil
+		--end
+		--------------------
 		if this.moved then
 			InterfaceOptionsFrame:SetMovable(false)
 			InterfaceOptionsFrame:RegisterForDrag()
@@ -1687,7 +1689,7 @@ local texttagoptions={ hide=hide, copyelement=copyelement, blank=blank,
 	name=L["Pattern Tag Help"], type="toggle", order=30,
 		set=function(info, v)
 			if not taghelp then
-				taghelp=CreateFrame("Frame", nil, Stuf)
+				taghelp=CreateFrame("Frame", nil, Stuf, BackdropTemplateMixin and "BackdropTemplate")
 				taghelp:SetWidth(500)
 				taghelp:SetHeight(750)
 				taghelp:EnableMouse(true)
@@ -1699,7 +1701,7 @@ local texttagoptions={ hide=hide, copyelement=copyelement, blank=blank,
 				taghelp:SetBackdrop({ bgFile="Interface\\Tooltips\\UI-Tooltip-Background" })
 				taghelp:SetBackdropColor(0, 0, 0, 0.7)
 				
-				taghelp.close = CreateFrame("Button", nil, taghelp, "UIPanelCloseButton")
+				taghelp.close = CreateFrame("Button", nil, taghelp, "UIPanelCloseButton,BackdropTemplate")
 				taghelp.close:SetWidth(22)
 				taghelp.close:SetHeight(22)
 				taghelp.close:SetPoint("TOPRIGHT", 4, 4)
@@ -2177,7 +2179,7 @@ options={
 			name=L["Toggle Highlighter"], desc=L["Highlights currently selected element."], type="toggle", order=1, 
 			set=function(info, v)
 				if not highlight then
-					highlight=CreateFrame("Frame", nil, Stuf)
+					highlight=CreateFrame("Frame", nil, Stuf, BackdropTemplateMixin and 'BackdropTemplate')
 					highlight.t=highlight:CreateTexture(nil, "OVERLAY")
 					highlight.t:SetTexture("Interface\\AddOns\\Stuf\\media\\outline.tga")
 					highlight.t:SetVertexColor(1, 1, 0, 0.7)
@@ -2400,7 +2402,7 @@ options={
 			},
 		},
 		targettarget={
-			name=_G.TARGET.." ".._G.TARGET, type="group", order=7,
+			name=_G.TARGET..L[" of Tar"], type="group", order=7,
 			args={
 				frame=frame,
 				portrait=portrait,
@@ -2417,7 +2419,8 @@ options={
 			},
 		},
 		targettargettarget={
-			name=_G.TARGET.." ".._G.TARGET.." ".._G.TARGET, type="group", order=7.1,
+			-- name=_G.TARGET.." ".._G.TARGET.." ".._G.TARGET, type="group", order=7.1,
+			name=L["Tar"]..L[" of Tar"]..L[" of Tar"], type="group", order=7.1,
 			args={ 
 				frame=frame,
 				portrait=portrait,

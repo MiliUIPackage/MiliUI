@@ -216,7 +216,7 @@ do  -- Health and Power Bars ---------------------------------------------------
 			f = Stuf:CreateBase(unit, uf, name, db)
 			f.bg = f:CreateTexture(nil, "BACKGROUND")
 			f.bg:SetAllPoints(f)
-			f.barbase = CreateFrame("Frame", nil, uf)
+			f.barbase = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.bar = f:CreateTexture(nil, "ARTWORK")
 			
 			uf.refreshfuncs[name] = UpdateStatusBar
@@ -541,7 +541,7 @@ do  -- Cast Bar ----------------------------------------------------------------
 		if not f then
 			f = Stuf:CreateBase(unit, uf, name, db)
 			f:Hide()
-			f.barbase = CreateFrame("Frame", nil, uf)
+			f.barbase = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.bg = f:CreateTexture(nil, "BACKGROUND")
 			f.bg:SetAllPoints(f)
 			f.bar = f:CreateTexture(nil, "BORDER")
@@ -658,7 +658,7 @@ do  -- Threat Bar --------------------------------------------------------------
 		end
 		if not f then
 			f = Stuf:CreateBase(unit, uf, name, db)
-			f.barbase = CreateFrame("Frame", nil, uf)
+			f.barbase = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.bg = f:CreateTexture(nil, "BACKGROUND")
 			f.bg:SetAllPoints(f)
 			f.bar = f:CreateTexture(nil, "BORDER")
@@ -738,7 +738,7 @@ if CLS == "SHAMAN" or CLS == "DRUID" or CLS == "DEATHKNIGHT" or CLS == "PALADIN"
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f:SetHeight(1)
 			f:SetWidth(1)
 
@@ -826,17 +826,17 @@ if CLS == "SHAMAN" or CLS == "DRUID" or CLS == "DEATHKNIGHT" or CLS == "PALADIN"
 			end
 
 			for i = 1, 4, 1 do
-				local b = CreateFrame("Frame", nil, f)
+				local b = CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 				b:SetScript("OnUpdate", TotemOnUpdate)
 
-				b.click = CreateFrame("Button", nil, b)
+				b.click = CreateFrame("Button", nil, b, BackdropTemplateMixin and 'BackdropTemplate')
 				b.click:RegisterForClicks("RightButtonUp")
 				b.click:SetScript("OnEnter", TotemOnEnter)
 				b.click:SetScript("OnLeave", Stuf.GameTooltipOnLeave)
 				b.click:SetScript("OnClick", TotemOnClick)
 				b.click.id = (i == 1 and 2) or (i == 2 and 1) or i  -- switch earth and fire
 
-				b.barbase = CreateFrame("Frame", nil, b)
+				b.barbase = CreateFrame("Frame", nil, b, BackdropTemplateMixin and 'BackdropTemplate')
 				b.bg = b:CreateTexture(nil, "BACKGROUND")
 				b.bg:SetAllPoints(b.barbase)
 				b.bar = b:CreateTexture(nil, "BORDER")
@@ -947,7 +947,7 @@ if CLS == "DRUID" or CLS == "PRIEST" or CLS == "SHAMAN" then  -- Druid Bar -----
 			f = Stuf:CreateBase(unit, uf, name, db)
 			f.bg = f:CreateTexture(nil, "BACKGROUND")
 			f.bg:SetAllPoints(f)
-			f.barbase = CreateFrame("Frame", nil, uf)
+			f.barbase = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.bar = f:CreateTexture(nil, "ARTWORK")
 			
 			uf.refreshfuncs[name] = function(unit, uf, f)

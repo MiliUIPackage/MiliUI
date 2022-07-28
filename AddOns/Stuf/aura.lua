@@ -136,7 +136,7 @@ do  -- Timer Bars handlers -----------------------------------------------------
 		if not timer then
 			timer = tremove(bars)  -- attempt to get unused timer
 			if not timer then  -- create new timer
-				timer = CreateFrame("Frame", nil, p)
+				timer = CreateFrame("Frame", nil, p, BackdropTemplateMixin and 'BackdropTemplate')
 				timer:SetScript("OnUpdate", TimerOnUpdate)
 				timer:SetScript("OnHide", TimerOnHide)
 				timer:Hide()
@@ -359,7 +359,10 @@ do 	-- Aura handlers -----------------------------------------------------------
 	local temp, debuffconfig, rtime, showpet = { }, nil, nil, nil
 	local UnitBuff, UnitDebuff, UnitIsUnit = UnitBuff, UnitDebuff, UnitIsUnit
 	function UpdateAura(unit, uf, _, _, _, config)  -- updates all elements dealing with buffs/debuffs
-		uf = uf or su[unit]
+		-----------------------------------------------
+		-- edited on 3MAY2022 uf = uf or su[unit]
+		uf = type(uf) == "table" and uf or su[unit]
+		-----------------------------------------------
 		if not uf or uf.hidden then return end
 		
 		local allow, clr, bfilter, dfilter, onlymineb, onlymined = true, nil, nil, nil, nil, nil
@@ -624,7 +627,7 @@ do  -- Aura Icons --------------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f:SetSize(2, 2)
 			f.unit = unit
 			f.db = db
@@ -636,7 +639,7 @@ do  -- Aura Icons --------------------------------------------------------------
 				uf.refreshfuncs.tempenchant = TempEnchantOnUpdate
 				uf.metroelements.tempenchant = TempEnchantOnUpdate
 			elseif isplayer and isbuff then
-				f.secure = CreateFrame("Frame", nil, f, "SecureAuraHeaderTemplate")
+				f.secure = CreateFrame("Frame", nil, f, "SecureAuraHeaderTemplate,BackdropTemplate")
 				f.secure:SetSize(2, 2)
 				f.secure:SetAttribute("unit", "player")
 				f.secure:SetAttribute("filter", "HELPFUL")
@@ -736,9 +739,9 @@ do  -- Aura Icons --------------------------------------------------------------
 		for i = 1, db.count or 2, 1 do
 			local icon = f[i]
 			if not icon then
-				icon = CreateFrame("Button", lbf and format("Stuf.units.%s.%s.a%d", unit, name, i) or nil, f, BackdropTemplateMixin and "BackdropTemplate")
+				icon = CreateFrame("Button", lbf and format("Stuf.units.%s.%s.a%d", unit, name, i) or nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 				icon:Hide()
-				icon.overlay = CreateFrame("Frame", nil, icon)
+				icon.overlay = CreateFrame("Frame", nil, icon, BackdropTemplateMixin and 'BackdropTemplate')
 				icon.overlay:SetFrameLevel(4)
 				icon.texture = icon.overlay:CreateTexture(nil, "BORDER")
 				icon.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
@@ -880,7 +883,7 @@ do  -- Aura Icons --------------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f:SetWidth(2)
 			f:SetHeight(2)
 			f.unit = unit
@@ -925,7 +928,7 @@ do  -- Dispell Icon ------------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf, "BackdropTemplate")
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.texture = f:CreateTexture(nil, "BORDER")
 			f.texture:SetTexCoord(0.07, 0.93, 0.07, 0.93)
 			f.ctext = f:CreateFontString(nil, "ARTWORK")

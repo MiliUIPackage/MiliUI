@@ -82,7 +82,7 @@ do
 		f:Show()
 		if db.show3d then  -- create or setup 3D model
 			if not f.d3 then
-				local d3 = CreateFrame("PlayerModel", nil, f)
+				local d3 = CreateFrame("PlayerModel", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 				d3:SetAllPoints(f)
 				d3:SetScript("OnShow", PortraitOnShow)
 				d3:SetModelScale(2)
@@ -342,7 +342,7 @@ do  -- General Icons -----------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f.texture = f:CreateTexture(nil, "ARTWORK")
 			f.texture:SetAllPoints()
 			f.SetTexture = SetTexture
@@ -623,7 +623,7 @@ do  -- Combo Points ------------------------------------------------------------
 			return
 		end
 		if not f then
-			f = CreateFrame("Frame", nil, uf)
+			f = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 			f:SetScript("OnUpdate", ComboOnUpdate)
 			
 			Stuf:AddEvent("UNIT_POWER_FREQUENT", UpdateComboPoints)
@@ -642,7 +642,7 @@ do  -- Combo Points ------------------------------------------------------------
 		if db.combostyle == 2 then  -- individual circles
 			f.individual = true
 			for i = 1, 6, 1 do
-				local c = f[i] or CreateFrame("Frame", nil, f)
+				local c = f[i] or CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 				c:SetWidth(db["combo"..i.."w"] or 10)
 				c:SetHeight(db["combo"..i.."h"] or 10)
 				c:SetPoint("TOPLEFT", db["combo"..i.."x"] or ((i-1)*10 + 1), db["combo"..i.."y"] or 0)
@@ -714,7 +714,7 @@ do  -- Inspect Button ----------------------------------------------------------
 		-- 左鍵: 觀察\n右鍵: 交易\n中鍵: 密語\n按鍵4: 跟隨 (Codes borrowed from UnitFramesPlus)
 		if not f then
 			f = CreateFrame("Button", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
-			f:SetScript("OnMouseUp", function(self, button)
+			f:SetScript("OnMouseUp", function(this, button)
 				if UnitIsPlayer("target") and (not UnitCanAttack("player", "target")) then
 					if button == "LeftButton" then
 						if CheckInteractDistance("target", 1) then
