@@ -4,12 +4,12 @@
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-奧睿博司
 ## Notes-zhTW: HandyNotes: Oribos |n在世界地圖和小地圖中顯示奧睿博司的 NPC 和地點。
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v13
+## Version: v17
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_OribosDB
 ## X-Embeds: AceTimer-3.0
-## X-Date: 2021-07-04
+## X-Date: 2022-06-01
 ## X-Category: Map
 
 #@no-lib-strip@

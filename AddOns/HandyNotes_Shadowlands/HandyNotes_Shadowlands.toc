@@ -1,6 +1,6 @@
 ## Interface: 90205
 ## Title: HandyNotes: Shadowlands
-## Version: 36
+## Version: 47
 ## Notes: Shadowlands Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-暗影之境
 ## Notes-zhTW: HandyNotes: Shadowlands |n在地圖上顯示暗影之境的寶藏和稀有怪位置。

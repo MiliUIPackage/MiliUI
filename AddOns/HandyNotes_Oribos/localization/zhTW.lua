@@ -28,9 +28,11 @@ L["config_innkeeper_desc"] = "顯示旅店的位置。"
 L["config_mail"] = "郵箱"
 L["config_mail_desc"] = "顯示郵箱的位置。"
 L["config_onlymytrainers"] = "只顯示我的專業相關的訓練師和商人"
-L["config_onlymytrainers_desc"] = [=[只會影響主要專業的訓練師和商人。
+L["config_onlymytrainers_desc"] = [[
+只會影響主要專業的訓練師和商人。
 
-|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r]=]
+|cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r
+]]
 L["config_others"] = "其他"
 L["config_others_desc"] = "顯示其他所有的地圖探索點。"
 L["config_picons"] = "顯示專業圖示:"
@@ -39,7 +41,7 @@ L["config_picons_vendor_desc"] = "商人顯示專業技能的圖示，而不是�
 L["config_plugin_desc"] = "在世界地圖和小地圖中顯示奧睿博司的 NPC 和地圖探索點的位置。"
 L["config_plugin_name"] = "奧睿博司"
 L["config_portal"] = "傳送門"
-L["config_portal_desc"] = "顯示傳送門或傳送點的位置。"
+L["config_portal_desc"] = "顯示傳送門的位置。"
 L["config_portaltrainer"] = "傳送門訓練師"
 L["config_portaltrainer_desc"] = "顯示法師傳送門訓練師的位置。"
 L["config_reforge"] = "護甲強化"
@@ -82,9 +84,13 @@ L["Into the Maw"] = "進入淵喉"
 L["Mailbox"] = "郵箱"
 L["Portal to Orgrimmar"] = "奧格瑪傳送門"
 L["Portal to Stormwind"] = "暴風城傳送門"
-L["To Keeper's Respite"] = "到守衛者的歇息地"
+L["To Keeper's Respite"] = "前往守衛者歇息地"
 L["To Ring of Fates"] = "前往命運之環"
 L["To Ring of Transference"] = "前往樞運之環"
-L["TomTom"] = "TomTom"
+L["TomTom"] = true
+L["Portal to Zereth Mortis"] = "澤瑞斯莫提斯傳送門"
+L["Portal to Karazhan"] = "卡拉贊傳送門"
+L["Portal to Mechagon"] = "機械崗傳送門"
+L["Portal to Gorgrond"] = "戈古隆德傳送門"
 
 end

@@ -1,5 +1,23 @@
 ## Revision History:
 
+#### v12 (June 01, 2022)
+-------------------------------
+* Bump .toc to 90205
+
+#### v11 (February 22, 2022)
+-------------------------------
+* Bump .toc to 90200
+
+#### v10 (November 03, 2021)
+-------------------------------
+* Added a missing Sinfall Surface Flyer
+* Bump .toc to 90105
+
+#### v9 (June 30 , 2021)
+-------------------------------
+* Updated zhTW
+* Bump .toc to 90100
+
 #### v8 (March 10 , 2021)
 -------------------------------
 * Added Spanish localization by [Irakua](https://www.curseforge.com/members/Irakua)

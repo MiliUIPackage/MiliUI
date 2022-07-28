@@ -51,4 +51,12 @@ local function devmode()
 
 end
 
+function addon:debugmsg(msg)
+
+    if private.global.dev and private.db.show_prints then
+        print("|CFFFF6666Oribos: |r"..msg)
+    end
+
+end
+
 private.devmode = devmode
