@@ -1,10 +1,10 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.37 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.40 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
 				  helping me with the vars and
-				  the options.						]]--	
+				  the options.						]]--
 
 local ADDON_NAME,ParagonReputation = ...
 local PR = ParagonReputation
@@ -13,7 +13,7 @@ local LOCALE = GetLocale()
 PR.L = {}
 
 -- Chinese (Simplified) (Thanks dxlmike)
-if LOCALE == "zhCN" then 
+if LOCALE == "zhCN" then
 	PR.L["PARAGON"] = "巅峰"
 	PR.L["OPTIONDESC"] = "可以自定巅峰声望条的一些设定."
 	PR.L["TOASTDESC"] = "切换获得巅峰奖励时是否弹出通知."
