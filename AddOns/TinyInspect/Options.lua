@@ -20,7 +20,7 @@ local DefaultDB = {
     ShowItemBorder = true,                --物品直角邊框
     EnableItemLevel  = true,              --物品等級
       ShowColoredItemLevelString = true, --裝等文字隨物品品質
-      ShowCorruptedMark = true,           --腐蚀装备标记
+      ShowCorruptedMark = true,          --腐蚀装备标记
       ShowItemSlotString = true,          --物品部位文字
         EnableItemLevelBag = true,
         EnableItemLevelBank = true,
@@ -199,10 +199,15 @@ local function CreateAnchorFrame(anchorkey, parent)
         end)
         frame[anchorPoint] = button
     end
-    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, BackdropTemplateMixin and "ThinBorderTemplate,BackdropTemplate" or "ThinBorderTemplate")
+    local frame = CreateFrame("Frame", nil, parent.SubtypeFrame or parent, BackdropTemplateMixin and "BackdropTemplate,ThinBorderTemplate" or "ThinBorderTemplate")
     frame.anchorkey = anchorkey
-    frame:SetBackdrop(GameTooltip:GetBackdrop())
-    frame:SetBackdropColor(GameTooltip:GetBackdropColor())
+    frame:SetBackdrop({
+            bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile     = true, tileSize = 8, edgeSize = 16,
+            insets   = {left = 4, right = 4, top = 4, bottom = 4}
+    })
+    frame:SetBackdropColor(0, 0, 0, 0.7)
     frame:SetBackdropBorderColor(1, 1, 1, 0)
     frame:SetSize(80, 80)
     frame:SetPoint("TOPRIGHT", 100, -5)
