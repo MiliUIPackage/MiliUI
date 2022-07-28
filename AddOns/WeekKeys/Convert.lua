@@ -23,7 +23,7 @@ end
 
 function WeekKeys.Convert.NewTableToString(tabl)
     return string.format("%d:%s:%s:%s:%d:%s:%s:%s:%s",tabl.covenant or 0,tabl.name or "", tabl.realm or "", tostring(tabl.classID or ""), tabl.ilvl or 0,
-    tostring(tabl.record or ""), tostring(tabl.keyID or ""),tostring(tabl.keyLevel or ""), tabl.faction)
+    tostring(tabl.record or ""), tostring(tabl.keyID or ""),tostring(tabl.keyLevel or ""), tabl.faction or "")
 end
 
 function WeekKeys.Convert.OldTableToString(tabl)
@@ -93,4 +93,46 @@ function convert.TblToStr(update_type,data)
     end
 
     return str:sub(1,-2)
+end
+
+
+function convert.Player(player)
+
+    local tbl = {}
+
+    local _, classFile = GetClassInfo(player.classID)
+    local _, _, _, argbHex = GetClassColor(classFile)
+    tbl.colored = "|c"..argbHex..player.name.."|r"
+
+    if player.realm ~= GetRealmName():gsub(' ','') then
+        tbl.colored = tbl.colored .. " (*)"
+    end
+
+    local keystone = ""
+    if player.keyID then
+        keystone = string.format("%s (%d)",C_ChallengeMode.GetMapUIInfo(player.keyID), player.keyLevel)
+        -- add icon if instance have covenant bonuss
+        if player.keyID == 375 or player.keyID == 377 then
+            keystone = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. keystone
+        elseif player.keyID == 376 or player.keyID == 381 then
+            keystone = "|Tinterface/icons/ui_sigil_kyrian.blp:20:20|t" .. keystone
+        elseif player.keyID == 378 or player.keyID == 380 then
+            keystone =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. keystone
+        elseif player.keyID == 379 or player.keyID == 382 then
+            keystone =  "|Tinterface/icons/ui_sigil_necrolord.blp:20:20|t" .. keystone
+        end
+    end
+    tbl.keystone = keystone
+
+    tbl.realm = player.realm
+    tbl.ilvl = player.ilvl
+    tbl.record = player.record
+    tbl.faction = player.faction
+    tbl.covenant = player.covenant
+    tbl.reward = player.reward
+    tbl.mscore = player.mscore
+    tbl.recordtable = player.recordtable
+    tbl.ref = player
+
+    return tbl
 end

@@ -11,6 +11,6 @@ WeekKeys.icon.minimap_data = LibStub("LibDataBroker-1.1"):NewDataObject("WeekKey
         WeekKeys.WeekFrame:SetShown(not WeekKeys.WeekFrame:IsShown())
     end,
     OnTooltipShow = function (tooltip)
-        tooltip:AddLine (WeekKeys.L["WeekKeys"])
+        tooltip:AddLine ("WeekKeys")
     end,
 })

@@ -1,4 +1,4 @@
-WeekKeys.DB = {}
+WeekKeys.DB = WeekKeys.DB or {}
 function WeekKeys.DB.RemoveReward()
     local player = UnitName("player")
     for _,v in pairs(WeekKeysDB.Characters) do
@@ -69,9 +69,9 @@ function WeekKeys.DB.SaveCovenantChar(DB,covenantID, name, realm, classID, ilvl,
             if classID then
                 v.classID = tonumber(classID)
             end
-            
+
             v.keyID = tonumber(keyid)
-            
+
             if keylevel then
                 v.keyLevel = tonumber(keylevel)
             end
@@ -113,9 +113,9 @@ function WeekKeys.DB.SaveVars(DB, name, realm, classID, ilvl, record, keyid, key
             if classID then
                 v.classID = tonumber(classID)
             end
-            
+
             v.keyID = tonumber(keyid)
-            
+
             if keylevel then
                 v.keyLevel = tonumber(keylevel)
             end
@@ -172,15 +172,15 @@ function WeekKeys.DB.GetFactionCovenant(DB, tbl)
             tbl[6][index] = string.format("%s (%d)",C_ChallengeMode.GetMapUIInfo(char.keyID), char.keyLevel)
 
             if char.keyID == 375 or char.keyID == 377 then
-                tbl[6][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[6][index] 
+                tbl[6][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[6][index]
             elseif char.keyID == 376 or char.keyID == 381 then
                 tbl[6][index] = "|Tinterface/icons/ui_sigil_kyrian.blp:20:20|t" .. tbl[6][index]
             elseif char.keyID == 378 or char.keyID == 380 then
-                tbl[6][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[6][index] 
+                tbl[6][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[6][index]
             elseif char.keyID == 379 or char.keyID == 382 then
                 tbl[6][index] =  "|Tinterface/icons/ui_sigil_necrolord.blp:20:20|t" .. tbl[6][index]
             end
-        
+
         else
             tbl[6][index] = ""
         end
@@ -264,7 +264,7 @@ function WeekKeys.DB.GetCharsByNameRealm(DB,name,realm,tbl)
     for index,char in pairs(DB) do
 
     end
-    
+
 end
 -- /dump WeekKeys.DB.GetFormattedData(WeekKeysDB.Characters)
 function WeekKeys.DB.GetFormattedData(DB, tbl)
@@ -294,11 +294,11 @@ function WeekKeys.DB.GetFormattedData(DB, tbl)
         if char.keyID and C_ChallengeMode.GetMapUIInfo(char.keyID) then
             tbl[5][index] = string.format("%s (%d)",C_ChallengeMode.GetMapUIInfo(char.keyID), char.keyLevel)
             if char.keyID == 375 or char.keyID == 377 then
-                tbl[5][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[5][index] 
+                tbl[5][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[5][index]
             elseif char.keyID == 376 or char.keyID == 381 then
                 tbl[5][index] = "|Tinterface/icons/ui_sigil_kyrian.blp:20:20|t" .. tbl[5][index]
             elseif char.keyID == 378 or char.keyID == 380 then
-                tbl[5][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[5][index] 
+                tbl[5][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[5][index]
             elseif char.keyID == 379 or char.keyID == 382 then
                 tbl[5][index] =  "|Tinterface/icons/ui_sigil_necrolord.blp:20:20|t" .. tbl[5][index]
             end
@@ -404,7 +404,7 @@ function WeekKeys.DB.GetGuildFormatted(DB, tbl)
     tbl[4] = wipe(tbl[4] or {}) -- рекорд
     tbl[5] = wipe(tbl[5] or {}) -- ключ
     tbl[6] = wipe(tbl[6] or {}) -- недельный сундук
-    
+
     for i = 1, GetNumGuildMembers() do
         local nameRealm, _, _, level, _, _, _, _, online, _, _, _, _, isMobile, _, _ = GetGuildRosterInfo(i);
         local name,realm = strsplit("-",nameRealm)
@@ -419,17 +419,17 @@ function WeekKeys.DB.GetGuildFormatted(DB, tbl)
                     tbl[4][index] = char.record
                     if char.keyID and C_ChallengeMode.GetMapUIInfo(char.keyID) and char.keyLevel > 1 then
                         tbl[5][index] = string.format("%s (%d)",C_ChallengeMode.GetMapUIInfo(char.keyID), char.keyLevel)
-                        
+
                         if char.keyID == 375 or char.keyID == 377 then
-                            tbl[5][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[5][index] 
+                            tbl[5][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[5][index]
                         elseif char.keyID == 376 or char.keyID == 381 then
                             tbl[5][index] = "|Tinterface/icons/ui_sigil_kyrian.blp:20:20|t" .. tbl[5][index]
                         elseif char.keyID == 378 or char.keyID == 380 then
-                            tbl[5][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[5][index] 
+                            tbl[5][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[5][index]
                         elseif char.keyID == 379 or char.keyID == 382 then
                             tbl[5][index] =  "|Tinterface/icons/ui_sigil_necrolord.blp:20:20|t" .. tbl[5][index]
                         end
-                        
+
                     else
                         tbl[5][index] = ""
                     end
@@ -453,7 +453,7 @@ function WeekKeys.DB.GetFriends(DB, tbl, detailed)
     tbl[1] = wipe(tbl[1] or {}) -- faction
     tbl[2] = wipe(tbl[2] or {}) -- name
     tbl[3] = wipe(tbl[3] or {}) -- realm
-    tbl[4] = wipe(tbl[4] or {}) -- 
+    tbl[4] = wipe(tbl[4] or {}) --
     tbl[5] = wipe(tbl[5] or {})
     tbl[6] = wipe(tbl[6] or {})
     tbl[7] = wipe(tbl[7] or {})
@@ -519,11 +519,11 @@ function WeekKeys.DB.GetCharsByFriend(DB, tbl, battletag)
 
             tbl[6][index] = string.format("%s (%d)",C_ChallengeMode.GetMapUIInfo(player.keyID), player.keyLevel)
             if player.keyID == 375 or player.keyID == 377 then
-                tbl[6][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[6][index] 
+                tbl[6][index] = "|Tinterface/icons/ui_sigil_nightfae.blp:20:20|t" .. tbl[6][index]
             elseif player.keyID == 376 or player.keyID == 381 then
                 tbl[6][index] = "|Tinterface/icons/ui_sigil_kyrian.blp:20:20|t" .. tbl[6][index]
             elseif player.keyID == 378 or player.keyID == 380 then
-                tbl[6][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[6][index] 
+                tbl[6][index] =  "|Tinterface/icons/ui_sigil_venthyr.blp:20:20|t" .. tbl[6][index]
             elseif player.keyID == 379 or player.keyID == 382 then
                 tbl[6][index] =  "|Tinterface/icons/ui_sigil_necrolord.blp:20:20|t" .. tbl[6][index]
             end

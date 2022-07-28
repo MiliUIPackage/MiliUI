@@ -19,13 +19,23 @@ function Iterators.FormatPlayerList(list,writeRealm)
     ---@return table formatted table with formatted data
     return function()
         i = i + 1
+        if list[i] then list[i].reward = nil end
+        while type(list[i]) == "table" and next(list[i]) == nil do
+            table.remove(list, i)
+        end
         local char = list[i]
+
         table.wipe(formatted)
         if not char then return end
 
-        local _, classFile, _ = GetClassInfo(char.classID)
-        local _, _, _, argbHex = GetClassColor(classFile)
-        local colored_nickname = "|c"..argbHex..char.name.."|r"
+        local colored_nickname
+        if char.classID then
+            local _, classFile, _ = GetClassInfo(char.classID)
+            local _, _, _, argbHex = GetClassColor(classFile)
+            colored_nickname = "|c"..argbHex..char.name.."|r"
+        else
+            colored_nickname = char.name
+        end
         if writeRealm and char.realm ~= realm then
             colored_nickname = colored_nickname .. " (*)"
         end
@@ -52,33 +62,8 @@ function Iterators.FormatPlayerList(list,writeRealm)
         formatted.faction = char.faction
         formatted.covenant = char.covenant
         formatted.reward = char.reward
+        formatted.mscore = char.mscore
+        formatted.recordtable = char.recordtable
         return i, formatted
-    end
-end
-
-
---- 'for' loop iterator loops LootList
----@return function iterator loop iterator
-function Iterators.LootList()
-    if #LootFinder.loot_list == 0 then return function() end end
-    local index = 0
-    --- iterator
-    ---@return integer index position in LootList table
-    ---@return string source instance/raid
-    ---@return string name dungeon name
-    ---@return string boss boss name
-    ---@return string itemlink modified itemlink
-    ---@return integer icon  items iconID
-    ---@return integer mainatr str/agi/int value
-    ---@return integer crit crit value
-    ---@return integer haste haste value
-    ---@return integer mastery mastery value
-    ---@return integer versality versality value
-    return function()
-        index = index + 1
-        local tbl = LootFinder.loot_list[index]
-        if not tbl then return end
-        --index, name, boss, itemlink, icon, mainstat, crit, haste, mastery, versality
-        return index, tbl.source, tbl.name, tbl.boss, tbl.itemlink, tbl.icon, tbl.mainstat, tbl.crit, tbl.haste, tbl.mastery, tbl.versality
     end
 end

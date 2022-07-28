@@ -1,8 +1,9 @@
 local Addon = ...
-local VERSION = 116
+local VERSION = 152
 local buttons = {}
 local elements = {}
 local buttonID = 1
+
     --[[
         {type = "Fontstr", point = "TEXT", point_x = number, point_y = number, text = "text", width = number, height = number}
     --]]
@@ -12,7 +13,7 @@ function WeekKeys:Create()
     WeekKeys.WeekFrame = CreateFrame('Frame', 'WeekKeysFrame', UIParent,"BasicFrameTemplateWithInset")
     local WeekFrame = WeekKeys.WeekFrame
     tinsert(UISpecialFrames, 'WeekKeysFrame')
-    WeekFrame:SetSize(500,500)
+    WeekFrame:SetSize(600,500)
     if WeekKeysDB.Settings["MainFramePos"] then
         local db = WeekKeysDB.Settings["MainFramePos"]
         WeekFrame:SetPoint(db["point"],db["xOfs"],db["yOfs"])
@@ -22,7 +23,7 @@ function WeekKeys:Create()
 
     WeekFrame.AddonName = WeekFrame:CreateFontString(nil , "BORDER", "GameFontNormal")
     WeekFrame.AddonName:SetPoint("top",0,-5)
-    WeekFrame.AddonName:SetFormattedText("%s (v%d)   ",WeekKeys.L["WeekKeys"], VERSION)
+    WeekFrame.AddonName:SetFormattedText("%s (v%d)   ",Addon, VERSION)
     WeekFrame.AddonName:SetTextColor(1,1,1)
     WeekFrame:SetMovable(true)
     WeekFrame:RegisterForDrag("LeftButton")

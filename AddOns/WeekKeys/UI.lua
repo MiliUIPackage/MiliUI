@@ -159,7 +159,35 @@ function WeekKeys.UI.FactionCovenantButton(name, parent)
     local btn = WeekKeys.UI.Button(name, parent)
     local height = btn:GetHeight()
     btn:RegisterForClicks("RightButtonUp","LeftButtonUp")
+    ------------------- tooltip -------------------
+    btn.tooltip = nil
+    function btn:SetTooltip(tbl)
+        btn.tooltip = tbl
+    end
 
+    btn:SetScript("OnEnter",function(self)
+        GameTooltip:Hide();
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        local pattern = "(%d) (%d) %s"
+        if self.tooltip and #self.tooltip > 0 then
+            GameTooltip:AddLine(RATED_PVP_WEEKLY_VAULT ..' (' .. min(8,#self.tooltip) .. '/8)')
+            for i = 1, min(8,#self.tooltip) do
+                local chest = C_MythicPlus.GetRewardLevelForDifficultyLevel(self.tooltip[i].level)
+                if i == 1 or i == 4 or i == 8 then
+                    GameTooltip:AddLine(pattern:format(chest, self.tooltip[i].level,C_ChallengeMode.GetMapUIInfo(self.tooltip[i].mapChallengeModeID)),0,1,0)
+                else
+                    local pattern = "           (%d) %s"
+                    GameTooltip:AddLine(pattern:format(self.tooltip[i].level,C_ChallengeMode.GetMapUIInfo(self.tooltip[i].mapChallengeModeID)),1,1,1)
+                end
+
+            end
+            GameTooltip:Show()
+        end
+    end)
+
+    btn:SetScript("OnLeave",function(self)
+        GameTooltip:Hide();
+    end)
     --------------------- faction -----------------
     btn.faction = btn:CreateTexture('textureName', 'CENTER')
     btn.faction:SetPoint("LEFT", 2,0)
@@ -219,18 +247,25 @@ function WeekKeys.UI.FactionCovenantButton(name, parent)
         self.ilvl:SetText(ilvl or "")
     end
 
+    btn.mscore = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    btn.mscore:SetPoint("LEFT",240,0)
+    btn.mscore:SetSize(60,height)
+    function btn:Setmscore(mscore)
+        self.mscore:SetText(mscore or 0)
+    end
+
     --------------------- record ----------------------
     btn.record = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    btn.record:SetPoint("LEFT",240,0)
-    btn.record:SetSize(50,height)
+    btn.record:SetPoint("LEFT",300,0)
+    btn.record:SetSize(70,height)
     function btn:SetRecord(record)
         self.record:SetText(record or "")
     end
 
     --------------------- keystone ----------------------
     btn.keystone = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    btn.keystone:SetPoint("LEFT",290,0) -- 470
-    btn.keystone:SetSize(180,height)
+    btn.keystone:SetPoint("LEFT",370,0) -- 470
+    btn.keystone:SetSize(210,height)
     btn.keystone:SetJustifyH("LEFT")
     btn.keystone:SetTextColor(1,1,1)
     function btn:SetKeystone(keystone)
@@ -289,9 +324,9 @@ function WeekKeys.UI.CovenantButton(name, parent)
      function btn:SetRealm(str)
          self.realm = str
      end
- 
+
      function btn:GetNameFaction()
-         local name = self.name:GetText():gsub(" %(%*%)",""):sub(11,-3) 
+         local name = self.name:GetText():gsub(" %(%*%)",""):sub(11,-3)
          return name, self.realm
      end
 
@@ -303,9 +338,17 @@ function WeekKeys.UI.CovenantButton(name, parent)
         self.ilvl:SetText(ilvl or "???")
     end
 
+    -------------------- mscore ---------------------
+    btn.mscore = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    btn.mscore:SetPoint("LEFT",240,0)
+    btn.mscore:SetSize(60,height)
+    function btn:Setmscore(mscore)
+        self.mscore:SetText(mscore or 0)
+    end
+
     --------------------- record ----------------------
     btn.record = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    btn.record:SetPoint("LEFT",240,0)
+    btn.record:SetPoint("LEFT",300,0)
     btn.record:SetSize(50,height)
     function btn:SetRecord(record)
         self.record:SetText(record or "")
@@ -313,8 +356,8 @@ function WeekKeys.UI.CovenantButton(name, parent)
 
     --------------------- keystone ----------------------
     btn.keystone = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    btn.keystone:SetPoint("LEFT",290,0) -- 470
-    btn.keystone:SetSize(180,height)
+    btn.keystone:SetPoint("LEFT",350,0) -- 470
+    btn.keystone:SetSize(380,height)
     btn.keystone:SetJustifyH("LEFT")
     btn.keystone:SetTextColor(1,1,1)
     function btn:SetKeystone(keystone)
@@ -357,11 +400,11 @@ function WeekKeys.UI.MTableButton(name,parent,bool)
 
     btn.rio = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     btn.rio:SetPoint("LEFT", 315,0)
-    btn.rio:SetSize(50, height)
+    btn.rio:SetSize(90, height)
     btn.rio:SetTextColor(1,1,1)
 
     btn.mod = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-    btn.mod:SetPoint("LEFT", 365,0)
+    btn.mod:SetPoint("LEFT", 405,0)
     btn.mod:SetSize(85, height)
     btn.mod:SetTextColor(1,1,1)
 
@@ -369,7 +412,7 @@ function WeekKeys.UI.MTableButton(name,parent,bool)
         btn.level:SetText(level)
         btn.week:SetText(week)
         btn.push:SetText(push)
-        btn.rio:SetText(rio)
+        btn.rio:SetFormattedText("%d / %d",rio ,rio/3)
         btn.mod:SetText(mod)
     end
 
@@ -383,9 +426,23 @@ end
 function WeekKeys.UI.LootFinderButton(name,parent)
     local btn = WeekKeys.UI.Button(name, parent)
 
+    -- favorite icon
+    btn.favorite = btn:CreateTexture('textureName', 'CENTER')
+    btn.favorite:SetPoint("LEFT",5,0)
+    btn.favorite:SetSize(18,18)
+    btn.favorite:SetTexture('Interface/AuctionFrame/AuctionHouse')
+    btn.SetFavorite = function(self, item, db)
+        if self.LF:IsFavorite(item, db) then
+            -- turn on
+            self.favorite:SetTexCoord(0.9306640625,0.9560546875,0.591796875,0.642578125)
+        else
+           -- turn off
+           self.favorite:SetTexCoord(0.9580078125,0.9833984375,0.591796875,0.642578125)
+        end
+    end
     -- source icon
     btn.source = btn:CreateTexture('textureName', 'CENTER')
-    btn.source:SetPoint("LEFT",5,0)
+    btn.source:SetPoint("LEFT",25,0)
     btn.source:SetSize(18,18)
     ---Set Loot texture
     ---@param self Button
@@ -397,11 +454,11 @@ function WeekKeys.UI.LootFinderButton(name,parent)
         elseif source == "raid" then
             self.source:SetTexture('interface/minimap/objecticonsatlas.blp')
             --                      0.5009765625,0.5224609375,0.294921875,0.337890625
-            self.source:SetTexCoord(0.5009765625,0.5224609375,0.294921875,0.337890625)
+            self.source:SetTexCoord(0.689453125,0.732421875,0.166015625,0.1875)
         elseif source == "instance" then--34060
             self.source:SetTexture('interface/minimap/objecticonsatlas.blp')
             --                      0.1728515625,0.1943359375,0.912109375,0.955078125
-            self.source:SetTexCoord(0.1728515625,0.1943359375,0.912109375,0.955078125)
+            self.source:SetTexCoord(0.912109375,0.955078125,0.044921875,0.06640625)
         else
             self.source:SetTexture()
         end
@@ -409,7 +466,7 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- icon
     btn.icon = btn:CreateTexture('textureName', 'CENTER')
-    btn.icon:SetPoint("LEFT",25,0)
+    btn.icon:SetPoint("LEFT",45,0)
     btn.icon:SetSize(18,18)
     ---Set Loot texture
     ---@param self Button
@@ -420,7 +477,7 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- dungeon
     btn.instance = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-    btn.instance:SetPoint("LEFT",45,0)
+    btn.instance:SetPoint("LEFT",65,0)
     btn.instance:SetSize(180,20)
     btn.instance:SetJustifyH("LEFT")
     ---Set dungeon name
@@ -433,7 +490,7 @@ function WeekKeys.UI.LootFinderButton(name,parent)
     -- main atr
     btn.mainatr = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
     btn.mainatr:SetPoint("LEFT",230,0)
-    btn.mainatr:SetSize(50,20)
+    btn.mainatr:SetSize(70,20)
     ---Set Main atr value
     ---@param self Button
     ---@param mainatr integer str/agi/int value
@@ -443,8 +500,8 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- crit
     btn.crit = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-    btn.crit:SetPoint("LEFT",280,0)
-    btn.crit:SetSize(50,20)
+    btn.crit:SetPoint("LEFT",300,0)
+    btn.crit:SetSize(70,20)
     ---Set Crit value
     ---@param self Button
     ---@param crit integer crit value
@@ -454,8 +511,8 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- haste
     btn.haste = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-    btn.haste:SetPoint("LEFT",330,0)
-    btn.haste:SetSize(50,20)
+    btn.haste:SetPoint("LEFT",370,0)
+    btn.haste:SetSize(70,20)
     ---Set haste value
     ---@param self Button
     ---@param haste integer haste value
@@ -465,8 +522,8 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- mastery
     btn.mastery = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-    btn.mastery:SetPoint("LEFT",380,0)
-    btn.mastery:SetSize(50,20)
+    btn.mastery:SetPoint("LEFT",440,0)
+    btn.mastery:SetSize(70,20)
     ---Set mastery value
     ---@param self Button
     ---@param mastery integer mastery value
@@ -476,8 +533,8 @@ function WeekKeys.UI.LootFinderButton(name,parent)
 
     -- vers
     btn.versality = btn:CreateFontString(nil , "ARTWORK", "GameFontNormal")
-    btn.versality:SetPoint("LEFT",430,0)
-    btn.versality:SetSize(50,20)
+    btn.versality:SetPoint("LEFT",510,0)
+    btn.versality:SetSize(70,20)
     ---Set versality value
     ---@param self Button
     ---@param versality integer versality value
@@ -497,6 +554,57 @@ function WeekKeys.UI.LootFinderButton(name,parent)
         self:SetDungeon(self.dung)
         GameTooltip:Hide()
     end)
+
+    return btn
+end
+
+
+function WeekKeys.UI.IconNameButton(name, parent)
+    local btn = WeekKeys.UI.Button(name, parent)
+    local height = btn:GetHeight()
+    btn:RegisterForClicks("RightButtonUp","LeftButtonUp")
+    ------------------- tooltip -------------------
+    btn.tooltip = nil
+    function btn:SetTooltip(tbl)
+        btn.tooltip = tbl
+    end
+
+    btn:SetScript("OnEnter",function(self)
+        GameTooltip:Hide();
+        GameTooltip:SetOwner(self, "ANCHOR_LEFT")
+        if self.tooltip then
+            GameTooltip:SetHyperlink(self.tooltip)
+            GameTooltip:Show()
+        end
+    end)
+
+    btn:SetScript("OnLeave",function(self)
+        GameTooltip:Hide();
+    end)
+
+    ---------------------- icon ---------------------
+    btn.icon = btn:CreateTexture('textureName', 'CENTER')
+    btn.icon:SetPoint("LEFT",5,0)
+    btn.icon:SetSize(18,18)
+
+    btn.SetIcon = function (self, icon, coords)
+        self.icon:SetTexture(icon)
+        if coords then
+            self.icon:SetTexCoord(unpack(coords))
+        else
+            self.icon:SetTexCoord(0,1,0,1)
+        end
+    end
+
+    --------------------- name ----------------------
+    btn.name = btn:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    btn.name:SetPoint("LEFT",25,0)
+    btn.name:SetSize(200,height)
+    btn.name:SetJustifyH("LEFT")
+    function btn:SetName(name)
+        self.name:SetText(name or "")
+    end
+
 
     return btn
 end

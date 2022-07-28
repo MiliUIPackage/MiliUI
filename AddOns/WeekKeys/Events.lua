@@ -9,7 +9,7 @@ function WeekKeys:ADDON_LOADED(eve,addon) -- insert keystone
                     if link and link:find("keystone") then
                         PickupContainerItem(container, slot)
                         if (CursorHasItem()) then
-                            return C_ChallengeMode.SlotKeystone()
+                            C_ChallengeMode.SlotKeystone()
                         end
                     end
                 end
@@ -31,7 +31,7 @@ function WeekKeys:CHAT_MSG_PARTY(msg,arg1)
             for slot=1, GetContainerNumSlots(container) do
                 local _, _, _, _, _, _, slotLink, _, _, _ = GetContainerItemInfo(container, slot)
                 if slotLink and slotLink:match("|Hkeystone:") then
-                    return SendChatMessage("WeekKeys "..slotLink,"party")
+                    SendChatMessage("WeekKeys "..slotLink,"party")
                 end
             end
         end
@@ -50,6 +50,8 @@ function WeekKeys:CHAT_MSG_INSTANCE_CHAT(msg,arg1)
 		SendChatMessage("WeekKeys: "..data.textureKit.." - "..data.name,"INSTANCE_CHAT")
     end
 end
+--C_ChallengeMode.GetMapUIInfo(C_LFGList.GetOwnedKeystoneActivityAndGroupAndLevel(true))
+--C_LFGList.GetOwnedKeystoneActivityAndGroupAndLevel(true)
 
 function WeekKeys:CHAT_MSG_LOOT() -- looting weekly chest
     C_Timer.After(1,function()

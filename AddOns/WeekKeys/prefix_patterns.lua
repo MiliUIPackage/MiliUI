@@ -2,7 +2,7 @@
 WeekKeys.Patterns = {}
 local patterns = WeekKeys.Patterns
 
-patterns.CurrentVersion = "update3"
+patterns.CurrentVersion = "update4"
 
 patterns.update4 = {
     "covenant",

@@ -7,6 +7,8 @@ function WeekKeys:OnInitialize()
     WeekKeysDB.Characters = WeekKeysDB.Characters or {}
     WeekKeysDB.Settings = WeekKeysDB.Settings or {}
 
+    WeekKeys.MyChars.db = WeekKeysDB.Characters
+
     self:RegisterEvent("ADDON_LOADED")
     self:RegisterEvent("PLAYER_ENTERING_WORLD")
     self:RegisterEvent("CHALLENGE_MODE_MAPS_UPDATE")
@@ -18,6 +20,7 @@ function WeekKeys:OnInitialize()
     if self.NeedReset() then
         self.ResetDB()
     end
+
     C_MythicPlus.RequestRewards()
     C_MythicPlus.RequestMapInfo()
     C_MythicPlus.RequestCurrentAffixes()

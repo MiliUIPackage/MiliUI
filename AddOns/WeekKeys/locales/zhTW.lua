@@ -1,9 +1,8 @@
 if not (GetLocale() == "zhTW") then
-  return
+    return
 end
 
 local L = WeekKeys.L
-
 
 L["keypush"] = "完成獎勵"
 L["rio"] = "Rio"
@@ -12,7 +11,7 @@ L["guildkeys"] = "公會鑰石"
 L["partykeys"] = "隊伍鑰石"
 L["friends"] = "好友鑰石"
 L["mmtable"] = "M+ 資訊"
-L["lootfinder"] = "找裝備"
+L["lootfinder"] = "掉落查詢"
 L["removeslot"] = "移除過濾部位"
 L["modifier"] = "難度調整"
 L["mother"] = "母親大人"

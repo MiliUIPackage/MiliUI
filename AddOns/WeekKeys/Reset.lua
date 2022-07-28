@@ -12,6 +12,7 @@ function WeekKeys.ResetDB()
             v.record = nil
             v.reward = true
         end
+        v.recordtable = nil
         v.keyID = nil
         v.keyLevel = nil
         v.torghast1 = nil
