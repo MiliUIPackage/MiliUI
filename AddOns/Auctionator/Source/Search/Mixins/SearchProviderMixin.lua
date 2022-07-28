@@ -24,6 +24,10 @@ end
 function AuctionatorSearchProviderMixin:HasCompleteTermResults()
 end
 
+-- Derive
+function AuctionatorSearchProviderMixin:GetCurrentEmptyResult()
+end
+
 function AuctionatorSearchProviderMixin:RegisterEvents(events)
   Auctionator.Debug.Message("AuctionatorSearchProviderMixin:RegisterEvents()", events)
 
@@ -71,4 +75,8 @@ function AuctionatorSearchProviderMixin:GetNextSearchParameter()
   else
     error("You requested a term that does not exist: " .. (self.index == nil and "nil" or self.index))
   end
+end
+
+function AuctionatorSearchProviderMixin:GetCurrentSearchParameter()
+  return self.terms[self.index - 1]
 end

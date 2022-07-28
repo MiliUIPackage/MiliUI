@@ -1,10 +1,7 @@
-AuctionatorPriceCellTemplateMixin = CreateFromMixins(AuctionatorCellMixin, TableBuilderCellMixin)
+AuctionatorPriceCellTemplateMixin = CreateFromMixins(AuctionatorCellMixin, AuctionatorRetailImportTableBuilderCellMixin)
 
 function AuctionatorPriceCellTemplateMixin:Init(columnName)
   self.columnName = columnName
-
-  self.MoneyDisplay:ClearAllPoints();
-  self.MoneyDisplay:SetPoint("LEFT");
 end
 
 function AuctionatorPriceCellTemplateMixin:Populate(rowData, index)

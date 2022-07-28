@@ -2,9 +2,5 @@
   <Script file="Events.lua" />
   <Script file="Main.lua" />
   <Script file="ImportExport.lua" />
-  <Include file="Mixins\Manifest.xml" />
-
-  <Script file="Dialogs.lua" />
-
-  <Include file="Templates.xml" />
+  <Script file="Hooks.lua" />
 </Ui>

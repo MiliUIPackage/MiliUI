@@ -47,18 +47,20 @@ function Auctionator.Tooltip.ShowTipWithPricingDBKey(tooltipFrame, dbKeys, itemL
     local bindType = itemInfo[Auctionator.Constants.ITEM_INFO.BIND_TYPE]
     cannotAuction = bindType == LE_ITEM_BIND_ON_ACQUIRE or bindType == LE_ITEM_BIND_QUEST;
     local sellPrice = itemInfo[Auctionator.Constants.ITEM_INFO.SELL_PRICE]
-    local isArtifact = itemInfo[Auctionator.Constants.ITEM_INFO.RARITY] == Enum.ItemQuality.Artifact
-    local isLegendary = itemInfo[Auctionator.Constants.ITEM_INFO.RARITY] == Enum.ItemQuality.Legendary
-    if sellPrice ~= nil and not isArtifact and not isLegendary then
+
+    if Auctionator.Utilities.IsVendorable(itemInfo) then
       vendorPrice = sellPrice * (showStackPrices and itemCount or 1);
     end
 
     disenchantStatus = Auctionator.Enchant.DisenchantStatus(itemInfo)
-    disenchantPrice = Auctionator.Enchant.GetDisenchantAuctionPrice(itemLink)
+    local disenchantPriceForOne = Auctionator.Enchant.GetDisenchantAuctionPrice(itemLink, itemInfo)
+    if disenchantPriceForOne ~= nil then
+      disenchantPrice = disenchantPriceForOne * (showStackPrices and itemCount or 1)
+    end
   end
 
   if Auctionator.Debug.IsOn() then
-    tooltipFrame:AddDoubleLine("ItemID", dbKeys[1])
+    tooltipFrame:AddDoubleLine("DBKey", dbKeys[1])
   end
 
   if vendorPrice ~= nil then
@@ -66,7 +68,13 @@ function Auctionator.Tooltip.ShowTipWithPricingDBKey(tooltipFrame, dbKeys, itemL
   end
   Auctionator.Tooltip.AddAuctionTip(tooltipFrame, auctionPrice, countString, cannotAuction)
   if disenchantStatus ~= nil then
-    Auctionator.Tooltip.AddDisenchantTip(tooltipFrame, disenchantPrice, disenchantStatus)
+    Auctionator.Tooltip.AddDisenchantTip(tooltipFrame, disenchantPrice, countString, disenchantStatus)
+
+    if Auctionator.Constants.IsClassic and IsShiftKeyDown() and Auctionator.Config.Get(Auctionator.Config.Options.ENCHANT_TOOLTIPS) then
+      for _, line in ipairs(Auctionator.Enchant.GetDisenchantBreakdown(itemLink, itemInfo)) do
+        tooltipFrame:AddLine(line)
+      end
+    end
   end
   tooltipFrame:Show()
 end
@@ -157,7 +165,7 @@ function Auctionator.Tooltip.AddAuctionTip (tooltipFrame, auctionPrice, countStr
 end
 
 function Auctionator.Tooltip.AddDisenchantTip (
-  tooltipFrame, disenchantPrice, disenchantStatus
+  tooltipFrame, disenchantPrice, countString, disenchantStatus
 )
   if not Auctionator.Config.Get(Auctionator.Config.Options.ENCHANT_TOOLTIPS) then
     return
@@ -165,7 +173,7 @@ function Auctionator.Tooltip.AddDisenchantTip (
 
   if disenchantPrice ~= nil then
     tooltipFrame:AddDoubleLine(
-      L("DISENCHANT"),
+      L("DISENCHANT") .. countString,
       WHITE_FONT_COLOR:WrapTextInColorCode(
         Auctionator.Utilities.CreatePaddedMoneyString(disenchantPrice)
       )
@@ -173,7 +181,7 @@ function Auctionator.Tooltip.AddDisenchantTip (
   elseif disenchantStatus.isDisenchantable and
          disenchantStatus.supportedXpac then
     tooltipFrame:AddDoubleLine(
-      L("DISENCHANT"),
+      L("DISENCHANT") .. countString,
       WHITE_FONT_COLOR:WrapTextInColorCode(
         L("UNKNOWN") .. "  "
       )

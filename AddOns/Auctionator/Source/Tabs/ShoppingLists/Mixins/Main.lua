@@ -7,15 +7,16 @@ local EditListItem = Auctionator.ShoppingLists.Events.EditListItem
 local DialogOpened = Auctionator.ShoppingLists.Events.DialogOpened
 local DialogClosed = Auctionator.ShoppingLists.Events.DialogClosed
 local ShowHistoricalPrices = Auctionator.ShoppingLists.Events.ShowHistoricalPrices
+local ListItemAdded = Auctionator.ShoppingLists.Events.ListItemAdded
+local ListItemReplaced = Auctionator.ShoppingLists.Events.ListItemReplaced
+local ListOrderChanged = Auctionator.ShoppingLists.Events.ListOrderChanged
+local CopyIntoList = Auctionator.ShoppingLists.Events.CopyIntoList
 
 function AuctionatorShoppingListTabMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorShoppingListTabMixin:OnLoad()")
 
-  Auctionator.ShoppingLists.InitializeDialogs()
-
   self:SetUpEvents()
-  self:SetUpAddItemDialog()
-  self:SetUpEditItemDialog()
+  self:SetUpItemDialog()
   self:SetUpExportDialog()
   self:SetUpImportDialog()
   self:SetUpExportCSVDialog()
@@ -23,8 +24,11 @@ function AuctionatorShoppingListTabMixin:OnLoad()
 
   -- Add Item button starts in the default state until a list is selected
   self.AddItem:Disable()
+  self.SortItems:Disable()
 
   self.ResultsListing:Init(self.DataProvider)
+
+  self.RecentsTabsContainer:SetView(Auctionator.Constants.ShoppingListViews.Recents)
 end
 
 function AuctionatorShoppingListTabMixin:SetUpEvents()
@@ -33,27 +37,12 @@ function AuctionatorShoppingListTabMixin:SetUpEvents()
 
   -- Auctionator Events
   Auctionator.EventBus:RegisterSource(self, "Auctionator Shopping List Tab")
-  Auctionator.EventBus:Register(self, { ListSelected, ListDeleted, ListItemSelected, EditListItem, DialogOpened, DialogClosed, ShowHistoricalPrices })
+  Auctionator.EventBus:Register(self, { ListSelected, ListDeleted, ListItemSelected, EditListItem, DialogOpened, DialogClosed, ShowHistoricalPrices, CopyIntoList })
 end
 
-function AuctionatorShoppingListTabMixin:SetUpAddItemDialog()
-  self.addItemDialog = CreateFrame("Frame", "AuctionatorAddItemFrame", self, "AuctionatorShoppingItemTemplate")
-  self.addItemDialog:Init(AUCTIONATOR_L_LIST_ADD_ITEM_HEADER, AUCTIONATOR_L_ADD_ITEM)
-  self.addItemDialog:SetPoint("CENTER")
-
-  self.addItemDialog:SetOnFinishedClicked(function(newItemString)
-    self:AddItemToList(newItemString)
-  end)
-end
-
-function AuctionatorShoppingListTabMixin:SetUpEditItemDialog()
-  self.editItemDialog = CreateFrame("Frame", "AuctionatorEditItemFrame", self, "AuctionatorShoppingItemTemplate")
-  self.editItemDialog:Init(AUCTIONATOR_L_LIST_EDIT_ITEM_HEADER, AUCTIONATOR_L_EDIT_ITEM)
-  self.editItemDialog:SetPoint("CENTER")
-
-  self.editItemDialog:SetOnFinishedClicked(function(newItemString)
-    self:ReplaceItemInList(newItemString)
-  end)
+function AuctionatorShoppingListTabMixin:SetUpItemDialog()
+  self.itemDialog = CreateFrame("Frame", "AuctionatorShoppingItemFrame", self, "AuctionatorShoppingItemTemplate")
+  self.itemDialog:SetPoint("CENTER")
 end
 
 function AuctionatorShoppingListTabMixin:SetUpExportDialog()
@@ -85,18 +74,20 @@ function AuctionatorShoppingListTabMixin:OnShow()
 end
 
 function AuctionatorShoppingListTabMixin:OnEvent(event, ...)
-  self.addItemDialog:ResetAll()
-  self.addItemDialog:Hide()
+  self.itemDialog:ResetAll()
+  self.itemDialog:Hide()
 end
 
 function AuctionatorShoppingListTabMixin:ReceiveEvent(eventName, eventData)
   if eventName == ListSelected then
     self.selectedList = eventData
     self.AddItem:Enable()
-  elseif eventName == ListDeleted then
-    self.Rename:Disable()
+    self.SortItems:Enable()
+  elseif eventName == ListDeleted and self.selectedList ~= nil and eventData == self.selectedList.name then
+    self.selectedList = nil
     self.AddItem:Disable()
     self.ManualSearch:Disable()
+    self.SortItems:Disable()
 
   elseif eventName == DialogOpened then
     self.isDialogOpen = true
@@ -104,12 +95,16 @@ function AuctionatorShoppingListTabMixin:ReceiveEvent(eventName, eventData)
     self.Export:Disable()
     self.Import:Disable()
     self.ExportCSV:Disable()
+    self.OneItemSearchExtendedButton:Disable()
   elseif eventName == DialogClosed then
     self.isDialogOpen = false
-    self.AddItem:Enable()
+    if self.selectedList ~= nil then
+      self.AddItem:Enable()
+    end
     self.Export:Enable()
     self.Import:Enable()
     self.ExportCSV:Enable()
+    self.OneItemSearchExtendedButton:Enable()
 
   elseif eventName == ShowHistoricalPrices and not self.isDialogOpen then
     self.itemHistoryDialog:Show()
@@ -117,6 +112,10 @@ function AuctionatorShoppingListTabMixin:ReceiveEvent(eventName, eventData)
   elseif eventName == EditListItem then
     self.editingItemIndex = eventData
     self:EditItemClicked()
+
+  elseif eventName == CopyIntoList then
+    local newItem = eventData
+    self:CopyIntoList(newItem)
   end
 end
 
@@ -133,6 +132,18 @@ function AuctionatorShoppingListTabMixin:AddItemToList(newItemString)
   Auctionator.EventBus:Fire(self, Auctionator.ShoppingLists.Events.ListItemAdded, self.selectedList)
 end
 
+function AuctionatorShoppingListTabMixin:CopyIntoList(searchTerm)
+  if self.selectedList == nil then
+    Auctionator.Utilities.Message(AUCTIONATOR_L_COPY_NO_LIST_SELECTED)
+  else
+    self:AddItemToList(searchTerm)
+    Auctionator.Utilities.Message(AUCTIONATOR_L_COPY_ITEM_ADDED:format(
+      GREEN_FONT_COLOR:WrapTextInColorCode(Auctionator.Search.PrettifySearchString(searchTerm)),
+      GREEN_FONT_COLOR:WrapTextInColorCode(self.selectedList.name)
+    ))
+  end
+end
+
 function AuctionatorShoppingListTabMixin:ReplaceItemInList(newItemString)
   if self.selectedList == nil then
     Auctionator.Utilities.Message(
@@ -147,12 +158,32 @@ function AuctionatorShoppingListTabMixin:ReplaceItemInList(newItemString)
 end
 
 function AuctionatorShoppingListTabMixin:AddItemClicked()
-  self.addItemDialog:Show()
+  self.itemDialog:Init(AUCTIONATOR_L_LIST_ADD_ITEM_HEADER, AUCTIONATOR_L_ADD_ITEM)
+  self.itemDialog:SetOnFinishedClicked(function(newItemString)
+    self:AddItemToList(newItemString)
+  end)
+
+  self.itemDialog:Show()
 end
 
 function AuctionatorShoppingListTabMixin:EditItemClicked()
-  self.editItemDialog:Show()
-  self.editItemDialog:SetItemString(self.selectedList.items[self.editingItemIndex])
+  self.itemDialog:Init(AUCTIONATOR_L_LIST_EDIT_ITEM_HEADER, AUCTIONATOR_L_EDIT_ITEM)
+  self.itemDialog:SetOnFinishedClicked(function(newItemString)
+    self:ReplaceItemInList(newItemString)
+  end)
+
+  self.itemDialog:Show()
+  self.itemDialog:SetItemString(self.selectedList.items[self.editingItemIndex])
+end
+
+function AuctionatorShoppingListTabMixin:ExtendedSearchClicked()
+  self.itemDialog:Init(AUCTIONATOR_L_LIST_EXTENDED_SEARCH_HEADER, AUCTIONATOR_L_SEARCH)
+  self.itemDialog:SetOnFinishedClicked(function(newItemString)
+    self.OneItemSearchButton:DoSearch(newItemString)
+  end)
+
+  self.itemDialog:Show()
+  self.itemDialog:SetItemString(self.OneItemSearchBox:GetText())
 end
 
 function AuctionatorShoppingListTabMixin:ImportListsClicked()
@@ -168,4 +199,11 @@ function AuctionatorShoppingListTabMixin:ExportCSVClicked()
     self.exportCSVDialog:SetExportString(result)
     self.exportCSVDialog:Show()
   end)
+end
+
+function AuctionatorShoppingListTabMixin:SortItemsClicked()
+  table.sort(self.selectedList.items, function(a, b)
+    return a:lower():gsub("\"", "") < b:lower():gsub("\"", "")
+  end)
+  Auctionator.EventBus:Fire(self, Auctionator.ShoppingLists.Events.ListOrderChanged, self.selectedList)
 end

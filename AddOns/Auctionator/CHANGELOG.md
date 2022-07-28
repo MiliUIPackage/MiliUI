@@ -1,9 +1,13 @@
 # Auctionator
 
-## [9.1.2-3-g349b591](https://github.com/Auctionator/Auctionator/tree/349b59100f76db6ad807f3e8f300a1e8812973f2) (2021-07-24)
-[Full Changelog](https://github.com/Auctionator/Auctionator/compare/9.1.2...349b59100f76db6ad807f3e8f300a1e8812973f2) [Previous Releases](https://github.com/Auctionator/Auctionator/releases)
+## [9.2.22](https://github.com/Auctionator/Auctionator/tree/9.2.22) (2022-07-22)
+[Full Changelog](https://github.com/Auctionator/Auctionator/compare/9.2.21...9.2.22) [Previous Releases](https://github.com/Auctionator/Auctionator/releases)
 
-- Fix logic error with tooltip loading item info  
-    Used variables since deleted.  
-- ReagentSearch: Do not use vendor prices for limited quantity items  
-- Add button to put item price history to the side of the shopping tab  
+- Support new post confirmation dialog for when Blizzard revamps the AH  
+- Bugfix: Error when using API.v1.GetVendorPriceByItemID  
+- API: Add way to get vendor sale price for items seen  
+- Add Wrath beta support  
+- Commenting  
+- [Fixes #1174] Classic: Keyring items didn't select correctly with cursor  
+- [Partial #1174] Classic: Add keys to the item listing in the Selling tab  
+- Cancelling: Undercut scan: Show "Bid" if an item has a bid on it instead of ?  

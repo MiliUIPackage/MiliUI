@@ -5,6 +5,7 @@ local SLASH_COMMAND_DESCRIPTIONS = {
   {commands = "rdb, resetdatabase", message = "Reset Auctionator database."},
   {commands = "rt, resettimer", message = "Reset full scan timer."},
   {commands = "rc, resetconfig", message = "Reset configuration to defaults."},
+  {commands = "npd, nopricedb", message = "Disable recording auction prices."},
   {commands = "d, debug", message = "Toggle debug mode."},
   {commands = "c, config", message = "Show current configuration values."},
   {commands = "c [toggle-name], config [toggle-name]", message = "Toggle the value of the configuration value [toggle-name]."},
@@ -49,6 +50,7 @@ end
 function Auctionator.SlashCmd.ResetTimer()
   if Auctionator.Debug.IsOn() then
     Auctionator.SavedState.TimeOfLastReplicateScan = nil
+    Auctionator.SavedState.TimeOfLastGetAllScan = nil
     Auctionator.Utilities.Message("Scan timer reset.")
   else
     Auctionator.Utilities.Message("Requires debug mode.")
@@ -58,6 +60,15 @@ end
 function Auctionator.SlashCmd.CleanReset()
   Auctionator.SlashCmd.ResetTimer()
   Auctionator.SlashCmd.ResetDatabase()
+end
+
+function Auctionator.SlashCmd.NoPriceDB()
+  Auctionator.Config.Set(Auctionator.Config.Options.NO_PRICE_DATABASE, true)
+
+  AUCTIONATOR_PRICE_DATABASE = nil
+  Auctionator.Variables.InitializeDatabase()
+
+  Auctionator.Utilities.Message("Disabled recording auction prices in the price database.")
 end
 
 function Auctionator.SlashCmd.ResetConfig()

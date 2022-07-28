@@ -1,6 +1,55 @@
 -- We should probably move this into another file too
 local MESSAGES = {
   {
+    Version = "9.1.8",
+    Description = AUCTIONATOR_L_SPLASH_9108_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_9108_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_1,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_2,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_3,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_4,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_5,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_6,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_7,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_8,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_9,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_10,
+          AUCTIONATOR_L_SPLASH_9108_FEATURES_11,
+        },
+      },
+    },
+  },
+  {
+    Version = "9.1.6",
+    Description = AUCTIONATOR_L_SPLASH_9106_DESCRIPTION,
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_9106_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_9106_FEATURES_1,
+          AUCTIONATOR_L_SPLASH_9106_FEATURES_2,
+          AUCTIONATOR_L_SPLASH_9106_FEATURES_3,
+        }
+      },
+    }
+  },
+  {
+    Version = "9.1.5",
+    Description = "",
+    Sections = {
+      {
+        Title = AUCTIONATOR_L_SPLASH_9105_FEATURES_HEADER,
+        Entries = {
+          AUCTIONATOR_L_SPLASH_9105_FEATURES_2,
+          AUCTIONATOR_L_SPLASH_9105_FEATURES_3,
+        }
+      },
+    }
+  },
+  {
     Version = "9.0.10",
     Description = AUCTIONATOR_L_SPLASH_9010_DESCRIPTION,
     Sections = {
@@ -259,6 +308,8 @@ function AuctionatorSplashScreenMixin:OnLoad()
 
   self:ReformatCheckbox()
   self:CreateMessagesText()
+
+  self:ShowIfNeeded()
 end
 
 function AuctionatorSplashScreenMixin:OnShow()
@@ -275,6 +326,22 @@ function AuctionatorSplashScreenMixin:ReformatCheckbox()
   end)
 
   self.HideCheckbox.CheckBox.Label:SetPoint("TOPLEFT", self.HideCheckbox.CheckBox, "TOPRIGHT", 3, -7 )
+end
+
+function AuctionatorSplashScreenMixin:ShowIfNeeded()
+  local lastViewedSplashScreenVersion = Auctionator.Config.Get(Auctionator.Config.Options.SPLASH_SCREEN_VERSION)
+  local mostRecentSplashScreenVersion = self:GetMostRecentVersion()
+
+  if lastViewedSplashScreenVersion ~= mostRecentSplashScreenVersion then
+    Auctionator.Config.Set(
+      Auctionator.Config.Options.HIDE_SPLASH_SCREEN,
+      false
+    )
+  end
+
+  if not Auctionator.Config.Get(Auctionator.Config.Options.HIDE_SPLASH_SCREEN) then
+    self:Show()
+  end
 end
 
 function AuctionatorSplashScreenMixin:GetMostRecentVersion()

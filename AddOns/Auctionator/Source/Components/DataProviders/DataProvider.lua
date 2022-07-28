@@ -6,7 +6,7 @@ function AuctionatorDataProviderMixin:OnLoad()
   self.results = {}
   self.insertedKeys = {}
   self.entriesToProcess = {}
-  self.processCountPerUpdate = 10
+  self.processCountPerUpdate = 200
   self.presetSort = {key = nil, direction = nil}
 
   self.searchCompleted = false
@@ -32,6 +32,7 @@ function AuctionatorDataProviderMixin:Reset()
   self.results = {}
   self.insertedKeys = {}
   self.entriesToProcess = {}
+  self.processingIndex = 0
 
   self.searchCompleted = false
 end
@@ -50,6 +51,15 @@ function AuctionatorDataProviderMixin:SetPresetSort(fieldName, sortDirection)
   self.presetSort.key = fieldName
   self.presetSort.direction = sortDirection
 end
+
+-- Uses sortingIndex to restore original order before sorting
+function AuctionatorDataProviderMixin:ClearSort()
+  self:SetPresetSort(nil, nil)
+  table.sort(self.results, function(left, right)
+    return left.sortingIndex < right.sortingIndex
+  end)
+end
+
 
 -- Derive: This defines the Results Listing table layout
 -- The table layout should be an array of table layout column entries consisting of:
@@ -160,12 +170,13 @@ function AuctionatorDataProviderMixin:CheckForEntriesToProcess()
 
   self.cacheUsedCount = 0
 
-  while processCount < self.processCountPerUpdate + self.cacheUsedCount and #self.entriesToProcess > 0 do
-    processCount = processCount + 1
-    entry = table.remove(self.entriesToProcess)
+  while processCount < self.processCountPerUpdate + self.cacheUsedCount and self.processingIndex < #self.entriesToProcess do
+    self.processingIndex = self.processingIndex + 1
+    entry = self.entriesToProcess[self.processingIndex]
 
     key = self:UniqueKey(entry)
     if self.insertedKeys[key] == nil then
+      processCount = processCount + 1
       self.insertedKeys[key] = entry
       table.insert(self.results, entry)
 
@@ -180,7 +191,14 @@ function AuctionatorDataProviderMixin:CheckForEntriesToProcess()
     self:Sort(self.presetSort.key, self.presetSort.direction)
   end
 
-  if #self.entriesToProcess == 0 and self.searchCompleted then
+  local resetQueue = false
+  if self.processingIndex == #self.entriesToProcess then
+    self.entriesToProcess = {}
+    self.processingIndex = 0
+    resetQueue = true
+  end
+
+  if resetQueue and self.searchCompleted then
     self.onSearchEnded()
     self.announcedCompletion = true
   end

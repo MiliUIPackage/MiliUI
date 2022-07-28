@@ -26,6 +26,13 @@ function Auctionator.ShoppingLists.BatchImportFromString(importString)
     end
 
     Auctionator.ShoppingLists.OneImportFromString(name, items)
+
+    if name ~= nil and name:len() > 0 then
+      Auctionator.EventBus
+        :RegisterSource(Auctionator.ShoppingLists.BatchImportFromString, "BatchImportFromString")
+        :Fire(Auctionator.ShoppingLists.BatchImportFromString, Auctionator.ShoppingLists.Events.ListCreated, Auctionator.ShoppingLists.GetListByName(name))
+        :UnregisterSource(Auctionator.ShoppingLists.BatchImportFromString)
+    end
   end
 end
 
@@ -68,6 +75,11 @@ function Auctionator.ShoppingLists.OldBatchImportFromString(importString)
     end
 
     Auctionator.ShoppingLists.OldOneImportFromString(name, items)
+
+    Auctionator.EventBus
+      :RegisterSource(Auctionator.ShoppingLists.OldBatchImportFromString, "OldBatchImportFromString")
+      :Fire(Auctionator.ShoppingLists.OldBatchImportFromString, Auctionator.ShoppingLists.Events.ListCreated, Auctionator.ShoppingLists.GetListByName(name))
+      :UnregisterSource(Auctionator.ShoppingLists.OldBatchImportFromString)
   end
 end
 
@@ -97,19 +109,22 @@ function Auctionator.ShoppingLists.TSMImportFromString(importString)
   for index, itemString in ipairs(itemStrings) do
     --TSM uses the same format for normal items and pets, so we try to load an
     --item with the ID first, if that doesn't work, then we try loading a pet.
-    local match = string.match(itemString, "^i:(%d+)$")
+    local itemType, stringID = string.match(itemString, "^([ip]):(%d+)$")
 
-    local id = tonumber(match) or tonumber(itemString)
+    local id = tonumber(stringID) or tonumber(itemString)
 
     local item = Item:CreateFromItemID(id)
-    if item:IsItemEmpty() then
+
+    if itemType == "p" or item:IsItemEmpty() then
       item = Item:CreateFromItemID(Auctionator.Constants.PET_CAGE_ID)
     end
-
     item:ContinueOnItemLoad(function()
       items[index] = GetItemInfo(id)
-      if items[index] == nil then
+      if itemType == "p" or items[index] == nil then
         items[index] = C_PetJournal.GetPetInfoBySpeciesID(id)
+        if type(items[index]) ~= "string" then
+          items[index] = nil
+        end
       end
 
       if items[index] == nil then

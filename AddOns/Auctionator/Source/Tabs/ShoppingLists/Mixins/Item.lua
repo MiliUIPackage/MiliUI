@@ -1,10 +1,30 @@
 AuctionatorShoppingItemMixin = CreateFromMixins(AuctionatorEscapeToCloseMixin)
 
+local NO_QUALITY = ""
+
+local function InitializeQualityDropDown(dropDown)
+  local qualityStrings = {}
+  local qualityIDs = {}
+
+  table.insert(qualityStrings, AUCTIONATOR_L_ANY_UPPER)
+  table.insert(qualityIDs, NO_QUALITY)
+
+  for _, quality in ipairs(Auctionator.Constants.QualityIDs) do
+    table.insert(qualityStrings, Auctionator.Utilities.CreateColoredQuality(quality))
+    table.insert(qualityIDs, tostring(quality))
+  end
+  dropDown:InitAgain(qualityStrings, qualityIDs)
+end
+
 function AuctionatorShoppingItemMixin:OnLoad()
   self.onFinishedClicked = function() end
 
   self.SearchContainer.ResetSearchStringButton:SetClickCallback(function()
     self.SearchContainer.SearchString:SetText("")
+  end)
+
+  self.QualityContainer.ResetQualityButton:SetClickCallback(function()
+    self.QualityContainer.DropDown:SetValue(NO_QUALITY)
   end)
 
   local onEnterCallback = function()
@@ -37,6 +57,13 @@ function AuctionatorShoppingItemMixin:OnLoad()
     OnTab = function()
       self.SearchContainer.SearchString:SetFocus()
     end
+  })
+
+  InitializeQualityDropDown(self.QualityContainer.DropDown)
+
+  Auctionator.EventBus:Register(self, {
+    Auctionator.ShoppingLists.Events.ListSearchStarted,
+    Auctionator.ShoppingLists.Events.ListSearchEnded
   })
 end
 
@@ -74,12 +101,16 @@ function AuctionatorShoppingItemMixin:SetOnFinishedClicked(callback)
 end
 
 function AuctionatorShoppingItemMixin:OnFinishedClicked()
+  if not self.Finished:IsEnabled() then
+    return
+  end
+
   self:Hide()
 
   if self:HasItemInfo() then
     self.onFinishedClicked(self:GetItemString())
   else
-    Auctionator.Utilities.Message("No item info was specified.")
+    Auctionator.Utilities.Message(AUCTIONATOR_L_NO_ITEM_INFO_SPECIFIED)
   end
 end
 
@@ -103,23 +134,15 @@ function AuctionatorShoppingItemMixin:GetItemString()
     self.ItemLevelRange:GetValue() .. Auctionator.Constants.AdvancedSearchDivider ..
     self.LevelRange:GetValue() .. Auctionator.Constants.AdvancedSearchDivider ..
     self.CraftedLevelRange:GetValue() .. Auctionator.Constants.AdvancedSearchDivider ..
-    self.PriceRange:GetValue()
+    self.PriceRange:GetValue() .. Auctionator.Constants.AdvancedSearchDivider ..
+    self.QualityContainer.DropDown:GetValue()
 end
 
 function AuctionatorShoppingItemMixin:SetItemString(itemString)
   local search = Auctionator.Search.SplitAdvancedSearch(itemString)
 
-  local searchTerm = ""
-  if string.match(search.queryString, "^\".*\"$") then
-    --Check for exact searches, if so, extract the search term from the
-    --queryString
-    searchTerm = select(1, string.match(search.queryString, "^\"(.*)\"$"))
-    self.SearchContainer.IsExact:SetChecked(true)
-  else
-    searchTerm = search.queryString
-    self.SearchContainer.IsExact:SetChecked(false)
-  end
-  self.SearchContainer.SearchString:SetText(searchTerm)
+  self.SearchContainer.IsExact:SetChecked(search.isExact)
+  self.SearchContainer.SearchString:SetText(search.searchString)
 
   self.FilterKeySelector:SetValue(search.categoryKey)
 
@@ -143,6 +166,12 @@ function AuctionatorShoppingItemMixin:SetItemString(itemString)
   else
     self.PriceRange:SetMax(nil)
   end
+
+  if search.quality == nil then
+    self.QualityContainer.DropDown:SetValue(NO_QUALITY)
+  else
+    self.QualityContainer.DropDown:SetValue(tostring(search.quality))
+  end
 end
 
 function AuctionatorShoppingItemMixin:ResetAll()
@@ -159,4 +188,10 @@ function AuctionatorShoppingItemMixin:ResetAll()
   self.CraftedLevelRange:Reset()
 end
 
-
+function AuctionatorShoppingItemMixin:ReceiveEvent(eventName)
+  if eventName == Auctionator.ShoppingLists.Events.ListSearchStarted then
+    self.Finished:Disable()
+  elseif eventName == Auctionator.ShoppingLists.Events.ListSearchEnded then
+    self.Finished:Enable()
+  end
+end

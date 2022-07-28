@@ -5,7 +5,8 @@ local VENDOR_PRICE_CACHE_DB_VERSION = 1
 function Auctionator.Variables.Initialize()
   Auctionator.Variables.InitializeSavedState()
 
-  Auctionator.Config.Initialize()
+  Auctionator.Config.InitializeData()
+  Auctionator.Config.InitializeFrames()
 
   Auctionator.State.CurrentVersion = GetAddOnMetadata("Auctionator", "Version")
 
@@ -22,24 +23,6 @@ function Auctionator.Variables.InitializeSavedState()
     AUCTIONATOR_SAVEDVARS = {}
   end
   Auctionator.SavedState = AUCTIONATOR_SAVEDVARS
-end
-
--- All "realms" that are connected together use the same AH database, this
--- determines which database is in use.
-function Auctionator.Variables.GetConnectedRealmRoot()
-  local currentRealm = GetRealmName()
-  local connections = GetAutoCompleteRealms()
-
-  -- We sort so that we always get the same first realm to use for the database
-  table.sort(connections)
-
-  if connections[1] ~= nil then
-    -- Case where we are on a connected realm
-    return connections[1]
-  else
-    -- We are not on a connected realm
-    return currentRealm
-  end
 end
 
 -- Attempt to import from other connected realms (this may happen if another
@@ -120,6 +103,8 @@ function Auctionator.Variables.InitializeShoppingLists()
   Auctionator.ShoppingLists.Prune()
   Auctionator.ShoppingLists.Sort()
   AUCTIONATOR_SHOPPING_LISTS = Auctionator.ShoppingLists.Lists
+
+  AUCTIONATOR_RECENT_SEARCHES = AUCTIONATOR_RECENT_SEARCHES or {}
 end
 
 function Auctionator.Variables.InitializeVendorPriceCache()

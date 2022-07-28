@@ -9,13 +9,13 @@
   <Script file="HorizontalRadioButtonGroup.lua"/>
   <Script file="NumericInputBox.lua"/>
   <Script file="TextInput.lua"/>
-  <Script file="MoneyInput.lua"/>
   <Script file="CopyAndPasteBox.lua"/>
   <Script file="MinMaxRange.lua"/>
   <Script file="FilterKeySelector.lua"/>
   <Script file="ResetButton.lua"/>
   <Script file="DropDown.lua"/>
   <Script file="KeyBinding.lua"/>
+  <Script file="MiniTabButton.lua"/>
 
   <Script file="Heading.lua"/>
   <Script file="SubHeading.lua"/>
