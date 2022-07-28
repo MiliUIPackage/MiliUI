@@ -1,3 +1,4 @@
+
 SLASH_TRADELOGSHOW1 = "/tbtdebug";
 SlashCmdList["TRADELOGSHOW"] = function(msg)
 	DEFAULT_CHAT_FRAME:AddMessage("(debug)TradeId-"..msg.." |Htradelog:"..msg.."|h[DETAIL]|h:");
@@ -35,22 +36,16 @@ function TradeLog_CreateNewTrade()
 end
 
 function TradeLog_OnLoad(self)
-	local menu = CreateFrame("Frame", "TBT_AnnounceChannelDropDown", TradeFrame, "UIDropDownMenuTemplate");
-	-- menu:SetPoint("BOTTOMLEFT", "TradeFrame", "BOTTOMLEFT", 80, 49);
-	UIDropDownMenu_SetWidth(TBT_AnnounceChannelDropDown, 62, 3);
-    TBT_AnnounceChannelDropDown:SetScript("OnShow", function(self) self:SetFrameLevel(TradeFrame:GetFrameLevel()) end)
 
 	local cb = CreateFrame("CheckButton", "TBT_AnnounceCB", TradeFrame, "OptionsCheckButtonTemplate");
-	cb:SetPoint("BOTTOMLEFT", "TradeFrame", "BOTTOMLEFT", 16, 0);
-	cb:SetWidth(26);
-	cb:SetHeight(26);
+	cb:SetPoint("BOTTOMLEFT", "TradeFrame", "BOTTOMLEFT", 10, 5);
+	cb:SetWidth(20);
+	cb:SetHeight(20);
 	TBT_AnnounceCBText:SetText(TRADE_LOG_ANNOUNCE);
 	cb.tooltipText = TRADE_LOG_ANNOUNCE_TIP;
 	cb:SetScript("OnClick", function(self) TradeLog_Announce_Checked = self:GetChecked()and true or false; end);
 
-    menu:SetPoint('BOTTOMLEFT', cb, 50, -3)
-
-	self:RegisterEvent("VARIABLES_LOADED");
+   	self:RegisterEvent("VARIABLES_LOADED");
 	self:RegisterEvent("TRADE_SHOW");
 	self:RegisterEvent("TRADE_CLOSED");
 	self:RegisterEvent("TRADE_REQUEST_CANCEL");
@@ -66,7 +61,7 @@ end
 
 function TradeLog_OnEvent(self, event, arg1, arg2, ...)
 	if (event=="UI_ERROR_MESSAGE") then
-		if(arg2==ERR_TRADE_BAG_FULL or arg2==ERR_TRADE_MAX_COUNT_EXCEEDED or arg2==ERR_TRADE_TARGET_BAG_FULL or arg2==ERR_TRADE_TARGET_MAX_COUNT_EXCEEDED) then
+		if(arg2==ERR_TRADE_BAG_FULL or arg2==ERR_TOO_MUCH_GOLD or arg2==ERR_TRADE_MAX_COUNT_EXCEEDED or arg2==ERR_TRADE_TARGET_BAG_FULL or arg2==ERR_TRADE_TARGET_MAX_COUNT_EXCEEDED) then
 			curr().result = "error";
 			curr().reason=arg2;
 			TradeLog_LogTradeAndReset();
@@ -103,10 +98,7 @@ function TradeLog_OnEvent(self, event, arg1, arg2, ...)
 			v.id = v.id or k 
 		end
 
-		TradeLog_AnnounceChannel = TradeLog_AnnounceChannel or "WHISPER";
-
-		UIDropDownMenu_Initialize(TBT_AnnounceChannelDropDown, TBT_AnnounceChannelDropDown_Initialize);
-		UIDropDownMenu_SetSelectedValue(TBT_AnnounceChannelDropDown, TradeLog_AnnounceChannel);
+		TradeLog_AnnounceChannel = "WHISPER";
 
 		if(TradeLog_Announce_Checked) then TBT_AnnounceCB:SetChecked(1); end;
 
