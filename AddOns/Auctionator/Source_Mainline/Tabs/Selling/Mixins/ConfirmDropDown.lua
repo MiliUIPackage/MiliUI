@@ -1,7 +1,12 @@
 AuctionatorConfirmDropDownMixin = {}
 
+local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
+
 function AuctionatorConfirmDropDownMixin:OnLoad()
-  UIDropDownMenu_Initialize(self, AuctionatorConfirmDropDownMixin.Initialize, "MENU")
+  LibDD:Create_UIDropDownMenu(self)
+
+  LibDD:UIDropDownMenu_SetInitializeFunction(self, AuctionatorConfirmDropDownMixin.Initialize)
+  LibDD:UIDropDownMenu_SetDisplayMode(self, "MENU")
   Auctionator.EventBus:Register(self, {
     Auctionator.Selling.Events.ConfirmCallback,
     Auctionator.AH.Events.Ready,
@@ -26,7 +31,7 @@ end
 
 function AuctionatorConfirmDropDownMixin:Initialize()
   if not self.data then
-    HideDropDownMenu(1)
+    LibDD:HideDropDownMenu(1)
     return
   end
 
@@ -34,9 +39,9 @@ function AuctionatorConfirmDropDownMixin:Initialize()
     self.commoditiesPurchaseOngoing = true
   end
 
-  local confirmInfo = UIDropDownMenu_CreateInfo()
+  local confirmInfo = LibDD:UIDropDownMenu_CreateInfo()
   confirmInfo.notCheckable = 1
-  confirmInfo.text = AUCTIONATOR_L_CONFIRM .. " " .. Auctionator.Utilities.CreateMoneyString(self.data.price * self.data.quantity)
+  confirmInfo.text = AUCTIONATOR_L_CONFIRM .. " " .. GetMoneyString(self.data.price * self.data.quantity, true)
 
   confirmInfo.disabled = false
   confirmInfo.func = function()
@@ -49,7 +54,7 @@ function AuctionatorConfirmDropDownMixin:Initialize()
     PlaySound(SOUNDKIT.IG_MAINMENU_OPEN)
   end
 
-  local cancelInfo = UIDropDownMenu_CreateInfo()
+  local cancelInfo = LibDD:UIDropDownMenu_CreateInfo()
   cancelInfo.notCheckable = 1
   cancelInfo.text = AUCTIONATOR_L_CANCEL
 
@@ -57,8 +62,8 @@ function AuctionatorConfirmDropDownMixin:Initialize()
   cancelInfo.func = function()
   end
 
-  UIDropDownMenu_AddButton(confirmInfo)
-  UIDropDownMenu_AddButton(cancelInfo)
+  LibDD:UIDropDownMenu_AddButton(confirmInfo)
+  LibDD:UIDropDownMenu_AddButton(cancelInfo)
 end
 
 function AuctionatorConfirmDropDownMixin:Callback(itemInfo)
@@ -71,5 +76,5 @@ function AuctionatorConfirmDropDownMixin:Callback(itemInfo)
 end
 
 function AuctionatorConfirmDropDownMixin:Toggle()
-  ToggleDropDownMenu(1, nil, self, "cursor", -15, 20)
+  LibDD:ToggleDropDownMenu(1, nil, self, "cursor", -15, 20)
 end

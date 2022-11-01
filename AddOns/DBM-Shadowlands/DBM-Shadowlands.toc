@@ -1,5 +1,5 @@
-## Interface: 90205
-## Version: 9.2.19
+## Interface: 100000
+## Version: 10.0.0
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0World Bosses (Shadowlands)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0暗影之境|r
 ## Author: MysticalOS

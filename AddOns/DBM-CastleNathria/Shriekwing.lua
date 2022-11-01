@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2393, "DBM-CastleNathria", nil, 1190)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220202090223")
+mod:SetRevision("20220822021157")
 mod:SetCreatureID(164406)
 mod:SetEncounterID(2398)
 mod:SetUsedIcons(1, 2, 3)
@@ -61,7 +61,6 @@ local yellDeadlyDescent							= mod:NewYell(343021, nil, false)--Useless with on
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(340324, nil, nil, nil, 1, 8)
 
 --Stage One - Thirst for Blood
---mod:AddTimerLine(BOSS)
 local timerExsanguinatingBiteCD					= mod:NewCDTimer(17.8, 328857, 17253, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--10-22.9 (too varaible for a countdown by default)
 local timerEcholocationCD						= mod:NewCDTimer(23, 342074, nil, nil, nil, 3, nil, nil, nil, 1, 3)--Seems to be 42.7 without a hitch
 local timerEarsplittingShriekCD					= mod:NewCDTimer(47.1, 330711, 251719, nil, nil, 2)--Shortname "Shriek"
@@ -208,6 +207,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnBloodLantern:Show(args.destName)
 	elseif spellId == 328921 then
 		self:SetStage(2)
+		if self:IsFated() then
+			self:AffixEvent(0)--Stop Affix Bars
+		end
 		specWarnBloodshroud:Show()
 		specWarnBloodshroud:Play("phasechange")
 		timerExsanguinatingBiteCD:Stop()
@@ -228,6 +230,10 @@ function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
 	if spellId == 328921 then--Bloodshroud removed
 		self.vb.waveCount = 0
+		if self:IsFated() then
+			--Purposely uses stage 2 table entry
+			self:AffixEvent(1, 2)--Restart Affix Bars
+		end
 		self:SetStage(1)
 		timerEarsplittingShriekCD:Stop()
 		timerEchoingSonar:Stop()

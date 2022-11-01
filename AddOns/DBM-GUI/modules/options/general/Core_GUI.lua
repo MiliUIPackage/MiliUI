@@ -73,8 +73,8 @@ end)
 
 local resetbutton = generaloptions:CreateButton(L.Button_ResetInfoRange, 120, 16)
 resetbutton:SetPoint("BOTTOMRIGHT", generaloptions.frame, "BOTTOMRIGHT", -5, 5)
-resetbutton:SetNormalFontObject(GameFontNormal)
-resetbutton:SetHighlightFontObject(GameFontNormal)
+resetbutton:SetNormalFontObject(GameFontNormalSmall)
+resetbutton:SetHighlightFontObject(GameFontNormalSmall)
 resetbutton:SetScript("OnClick", function()
 	DBM.Options.InfoFrameX = DBM.DefaultOptions.InfoFrameX
 	DBM.Options.InfoFrameY = DBM.DefaultOptions.InfoFrameY
@@ -120,8 +120,8 @@ local optionsFrame = _G["DBM_GUI_OptionsFrame"]
 
 local resetbutton2 = resizeOptions:CreateButton(L.Button_ResetWindowSize, 120, 16)
 resetbutton2:SetPoint("BOTTOMRIGHT", resizeOptions.frame, "BOTTOMRIGHT", -5, 5)
-resetbutton2:SetNormalFontObject(GameFontNormal)
-resetbutton2:SetHighlightFontObject(GameFontNormal)
+resetbutton2:SetNormalFontObject(GameFontNormalSmall)
+resetbutton2:SetHighlightFontObject(GameFontNormalSmall)
 resetbutton2:SetScript("OnClick", function()
 	DBM.Options.GUIWidth = DBM.DefaultOptions.GUIWidth
 	DBM.Options.GUIHeight = DBM.DefaultOptions.GUIHeight

@@ -118,9 +118,7 @@ function AuctionatorSaleItemMixin:OnUpdate()
   end
 
   self.TotalPrice:SetText(
-    Auctionator.Utilities.CreateMoneyString(
-      self.Quantity:GetNumber() * self.Price:GetAmount()
-    )
+    GetMoneyString(self.Quantity:GetNumber() * self.Price:GetAmount(), true)
   )
 
   if self.Quantity:GetNumber() > self:GetPostLimit() then
@@ -129,7 +127,7 @@ function AuctionatorSaleItemMixin:OnUpdate()
 
   self.MaxButton:SetEnabled(self.Quantity:GetNumber() ~= self:GetPostLimit())
 
-  self.DepositPrice:SetText(Auctionator.Utilities.CreateMoneyString(self:GetDeposit()))
+  self.DepositPrice:SetText(GetMoneyString(self:GetDeposit(), true))
   self:UpdatePostButtonState()
   self:UpdateSkipButtonState()
 end
@@ -149,14 +147,14 @@ function AuctionatorSaleItemMixin:GetDeposit()
       self.itemInfo.itemKey.itemID,
       self:GetDuration(),
       self.Quantity:GetNumber()
-    )
+    ) or deposit
 
   elseif self.itemInfo.itemType == Auctionator.Constants.ITEM_TYPES.ITEM then
     deposit = C_AuctionHouse.CalculateItemDeposit(
       self.itemInfo.location,
       self:GetDuration(),
       self.Quantity:GetNumber()
-    )
+    ) or deposit
   end
 
   return NormalizePrice(deposit)
@@ -186,11 +184,7 @@ function AuctionatorSaleItemMixin:ReceiveEvent(event, ...)
     local buyoutAmount, shouldUndercut = ...
 
     if shouldUndercut then
-      if Auctionator.Utilities.IsNotLIFOItemKey(self.itemInfo.itemKey) then
-        buyoutAmount = Auctionator.Selling.CalculateNotLIFOPriceFromPrice(buyoutAmount)
-      else --Not LIFO
-        buyoutAmount = Auctionator.Selling.CalculateLIFOPriceFromPrice(buyoutAmount)
-      end
+      buyoutAmount = Auctionator.Selling.CalculateItemPriceFromPrice(buyoutAmount)
     end
 
     self:UpdateSalesPrice(buyoutAmount)
@@ -246,6 +240,8 @@ function AuctionatorSaleItemMixin:SetItemName()
       self.itemInfo.keyName = AuctionHouseUtil.GetItemDisplayTextFromItemKey(
         self.itemInfo.itemKey, itemInfo, false
       )
+      self.itemInfo.keyName = Auctionator.Utilities.ApplyProfessionQuality(self.itemInfo.keyName, self.itemInfo.itemKey.itemID)
+
       self.TitleArea.Text:SetText(self.itemInfo.keyName)
       self:UpdateVisuals()
     end)
@@ -277,21 +273,14 @@ function AuctionatorSaleItemMixin:UpdateForNoItem()
   self.MaxButton:Disable()
   self:UpdateSalesPrice(0)
 
-  self.DepositPrice:SetText(Auctionator.Utilities.CreateMoneyString(100))
-  self.TotalPrice:SetText(Auctionator.Utilities.CreateMoneyString(100))
+  self.DepositPrice:SetText(GetMoneyString(100, true))
+  self.TotalPrice:SetText(GetMoneyString(100, true))
 end
 
 function AuctionatorSaleItemMixin:SetDuration()
-  if Auctionator.Utilities.IsNotLIFOItemKey(self.itemInfo.itemKey) then
-    self.Duration:SetSelectedValue(
-      Auctionator.Config.Get(Auctionator.Config.Options.NOT_LIFO_AUCTION_DURATION)
-    )
-
-  else
-    self.Duration:SetSelectedValue(
-      Auctionator.Config.Get(Auctionator.Config.Options.LIFO_AUCTION_DURATION)
-    )
-  end
+  self.Duration:SetSelectedValue(
+    Auctionator.Config.Get(Auctionator.Config.Options.AUCTION_DURATION)
+  )
 end
 
 function AuctionatorSaleItemMixin:SetQuantity()
@@ -398,7 +387,7 @@ end
 function AuctionatorSaleItemMixin:GetCommodityThreshold(itemID)
   local amount = 0
   -- Scan half the auctions, of the first 500, whichever is fewer
-  local target = math.min(500, math.floor(C_AuctionHouse.GetCommoditySearchResultsQuantity(itemID) * 0.5))
+  local target = math.min(5000, math.floor(C_AuctionHouse.GetCommoditySearchResultsQuantity(itemID) * 0.2))
   for index = 1, C_AuctionHouse.GetNumCommoditySearchResults(itemID) do
     local result = C_AuctionHouse.GetCommoditySearchResultInfo(itemID, index)
 
@@ -447,7 +436,7 @@ function AuctionatorSaleItemMixin:ProcessCommodityResults(itemID, ...)
     postingPrice = result.unitPrice
   else
     -- Otherwise, we're not the lowest price, so calculate based on user preferences
-    postingPrice = Auctionator.Selling.CalculateLIFOPriceFromPrice(result.unitPrice)
+    postingPrice = Auctionator.Selling.CalculateItemPriceFromPrice(result.unitPrice)
   end
 
   -- Didn't find anything currently posted, and nothing in DB
@@ -493,12 +482,7 @@ function AuctionatorSaleItemMixin:ProcessItemResults(itemKey)
     -- use this price
     postingPrice = result.buyoutAmount
   else
-    -- Otherwise, we're not the lowest price, so calculate based on user preferences
-    if Auctionator.Utilities.IsNotLIFOItemKey(itemKey) then
-      postingPrice = Auctionator.Selling.CalculateNotLIFOPriceFromPrice(result.buyoutAmount)
-    else --Not LIFO
-      postingPrice = Auctionator.Selling.CalculateLIFOPriceFromPrice(result.buyoutAmount)
-    end
+    postingPrice = Auctionator.Selling.CalculateItemPriceFromPrice(result.buyoutAmount or result.bidAmount)
   end
 
   -- Didn't find anything currently posted, and nothing in DB
@@ -537,7 +521,7 @@ end
 function AuctionatorSaleItemMixin:GetConfirmationMessage()
   -- Check if the item was underpriced compared to the currently on sale items
   if self.priceThreshold ~= nil and self.priceThreshold >= self.Price:GetAmount() then
-    return AUCTIONATOR_L_CONFIRM_POST_LOW_PRICE:format(Auctionator.Utilities.CreateMoneyString(self.Price:GetAmount()))
+    return AUCTIONATOR_L_CONFIRM_POST_LOW_PRICE:format(GetMoneyString(self.Price:GetAmount(), true))
   end
 
   -- Determine if the item is worth more to sell to a vendor than to post on the
@@ -637,6 +621,10 @@ function AuctionatorSaleItemMixin:PostItem(confirmed)
   )
 
   Auctionator.EventBus:Fire(self, Auctionator.Selling.Events.RefreshHistory)
+
+  if Auctionator.Config.Get(Auctionator.Config.Options.SAVE_LAST_DURATION_AS_DEFAULT) then
+    Auctionator.Config.Set(Auctionator.Config.Options.AUCTION_DURATION, self.Duration:GetValue())
+  end
 
   -- Save item info for refreshing search results
   self.lastItemInfo = self.itemInfo

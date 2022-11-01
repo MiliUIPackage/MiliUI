@@ -1,4 +1,4 @@
-## Interface: 90205
+## Interface: 100000
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (WoD)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-德拉諾之霸|r
@@ -20,7 +20,7 @@
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r35-3-g3b58695
+## Version: r41-22-gbd4c047
 ## X-DBM-Mod-MinExpansion: 5
 localization.en.lua
 localization.tw.lua
@@ -33,3 +33,7 @@ IronDocks\Nokgar.lua
 IronDocks\GrimrailEnforcers.lua
 IronDocks\Oshir.lua
 IronDocks\Skulloc.lua
+SMBurialGrounds\SadanaBloodfury.lua
+SMBurialGrounds\Nhallish.lua
+SMBurialGrounds\Bonemaw.lua
+SMBurialGrounds\Nerzhul.lua

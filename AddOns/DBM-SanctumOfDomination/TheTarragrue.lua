@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2435, "DBM-SanctumOfDomination", nil, 1193)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20220202092809")
+mod:SetRevision("20220822021157")
 mod:SetCreatureID(175611)
 mod:SetEncounterID(2423)
 mod:SetUsedIcons(1)
 mod:SetHotfixNoticeRev(20210706000000)--2021-07-06
 --mod:SetMinSyncRevision(20201222000000)
---mod.respawnTime = 29
+mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
@@ -54,7 +54,6 @@ local specWarnHungeringMist							= mod:NewSpecialWarningDodge(347679, nil, nil,
 local specWarnFuryoftheAges							= mod:NewSpecialWarningDispel(347490, "RemoveEnrage", nil, nil, 1, 2)
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(340324, nil, nil, nil, 1, 8)
 
---mod:AddTimerLine(BOSS)
 local timerOverpowerCD								= mod:NewCDCountTimer(27.1, 346985, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerChainsofEternityCD						= mod:NewCDCountTimer(27.1, 347269, nil, nil, nil, 3, nil, nil, nil, 1, 3)
 local timerPedatorsHowlCD							= mod:NewCDCountTimer(25.5, 347283, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)

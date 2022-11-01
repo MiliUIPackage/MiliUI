@@ -6,7 +6,7 @@ Auctionator.Config.Options = {
   AUCTION_TOOLTIPS = "auction_tooltips",
   SHIFT_STACK_TOOLTIPS = "shift_stack_tooltips",
   ENCHANT_TOOLTIPS = "enchant_tooltips",
-  REPLICATE_SCAN = "replicate_scan_2",
+  REPLICATE_SCAN = "replicate_scan_3",
   AUTO_LIST_SEARCH = "auto_list_search",
   DEFAULT_LIST = "default_list_2",
 
@@ -25,6 +25,7 @@ Auctionator.Config.Options = {
   SELLING_SKIP_SHORTCUT = "selling_skip_shortcut",
   SHOW_SELLING_BID_PRICE = "show_selling_bid_price",
   SELLING_CONFIRM_LOW_PRICE = "selling_confirm_low_price",
+  SAVE_LAST_DURATION_AS_DEFAULT = "save_last_duration_as_default",
 
   GEAR_PRICE_MULTIPLIER = "gear_vendor_price_multiplier",
 
@@ -44,6 +45,7 @@ Auctionator.Config.Options = {
   COLUMNS_CANCELLING = "columns_cancelling",
 
   CRAFTING_COST_SHOW_PROFIT = "crafting_cost_show_profit",
+  CRAFTING_INFO_SHOW = "crafting_info_show",
 
   SHOPPING_LIST_MISSING_TERMS = "shopping_list_missing_terms",
 }
@@ -71,7 +73,7 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.AUCTION_TOOLTIPS] = true,
   [Auctionator.Config.Options.SHIFT_STACK_TOOLTIPS] = true,
   [Auctionator.Config.Options.ENCHANT_TOOLTIPS] = false,
-  [Auctionator.Config.Options.REPLICATE_SCAN] = true,
+  [Auctionator.Config.Options.REPLICATE_SCAN] = false,
   [Auctionator.Config.Options.AUTO_LIST_SEARCH] = true,
   [Auctionator.Config.Options.DEFAULT_LIST] = Auctionator.Constants.NO_LIST,
   [Auctionator.Config.Options.AUCTION_CHAT_LOG] = true,
@@ -87,6 +89,7 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.SELLING_SKIP_SHORTCUT] = "SHIFT-SPACE",
   [Auctionator.Config.Options.SHOW_SELLING_BID_PRICE] = false,
   [Auctionator.Config.Options.SELLING_CONFIRM_LOW_PRICE] = true,
+  [Auctionator.Config.Options.SAVE_LAST_DURATION_AS_DEFAULT] = false,
 
   [Auctionator.Config.Options.GEAR_PRICE_MULTIPLIER] = 0,
 
@@ -108,6 +111,7 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.COLUMNS_POSTING_HISTORY] = {},
 
   [Auctionator.Config.Options.CRAFTING_COST_SHOW_PROFIT] = false,
+  [Auctionator.Config.Options.CRAFTING_INFO_SHOW] = true,
 
   [Auctionator.Config.Options.SHOPPING_LIST_MISSING_TERMS] = false,
 }

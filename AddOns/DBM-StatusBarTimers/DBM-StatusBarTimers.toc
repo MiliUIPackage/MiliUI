@@ -1,4 +1,4 @@
-## Interface: 90205
+## Interface: 100000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FFStatus Bar Timers (REQUIRED)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF狀態條計時器|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF状态条计时器|r
@@ -9,7 +9,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: ee0b66f
+## Version: 494a4d8
 ## X-Website: https://deadlybossmods.com
 
 DBT.lua

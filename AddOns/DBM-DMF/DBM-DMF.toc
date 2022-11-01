@@ -1,4 +1,4 @@
-## Interface: 90205
+## Interface: 100000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Darkmoon Faire|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0暗月马戏团|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0暗月馬戲團|r
@@ -6,7 +6,7 @@
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMDMF_AllSavedVars
-## SavedVariablesPerCharacter: DBMWorldDMF_SavedStats
+## SavedVariablesPerCharacter: DBMDMF_SavedStats
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: OTHER
 ## X-DBM-Mod-Category: OTHER

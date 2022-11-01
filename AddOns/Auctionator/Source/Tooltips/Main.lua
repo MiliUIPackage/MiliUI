@@ -59,6 +59,28 @@ function Auctionator.Tooltip.ShowTipWithPricingDBKey(tooltipFrame, dbKeys, itemL
     end
   end
 
+  local prospectStatus = false
+  local prospectValue
+  if Auctionator.Prospect then
+    local itemID = GetItemInfoInstant(itemLink)
+    prospectStatus = Auctionator.Prospect.IsProspectable(itemID)
+    local prospectForOne = Auctionator.Prospect.GetProspectAuctionPrice(itemID)
+    if prospectForOne ~= nil then
+      prospectValue = math.floor(prospectForOne * (showStackPrices and itemCount or 1))
+    end
+  end
+
+  local millStatus = false
+  local millValue
+  if Auctionator.Mill then
+    local itemID = GetItemInfoInstant(itemLink)
+    millStatus = Auctionator.Mill.IsMillable(itemID)
+    local millForOne = Auctionator.Mill.GetMillAuctionPrice(itemID)
+    if millForOne ~= nil then
+      millValue = math.floor(millForOne * (showStackPrices and itemCount or 1))
+    end
+  end
+
   if Auctionator.Debug.IsOn() then
     tooltipFrame:AddDoubleLine("DBKey", dbKeys[1])
   end
@@ -76,6 +98,15 @@ function Auctionator.Tooltip.ShowTipWithPricingDBKey(tooltipFrame, dbKeys, itemL
       end
     end
   end
+
+  if prospectStatus then
+    Auctionator.Tooltip.AddProspectTip(tooltipFrame, prospectValue, countString)
+  end
+
+  if millStatus then
+    Auctionator.Tooltip.AddMillTip(tooltipFrame, millValue, countString)
+  end
+
   tooltipFrame:Show()
 end
 
@@ -182,6 +213,54 @@ function Auctionator.Tooltip.AddDisenchantTip (
          disenchantStatus.supportedXpac then
     tooltipFrame:AddDoubleLine(
       L("DISENCHANT") .. countString,
+      WHITE_FONT_COLOR:WrapTextInColorCode(
+        L("UNKNOWN") .. "  "
+      )
+    )
+  end
+end
+
+function Auctionator.Tooltip.AddProspectTip (
+  tooltipFrame, prospectValue, countString
+)
+  if not Auctionator.Config.Get(Auctionator.Config.Options.PROSPECT_TOOLTIPS) then
+    return
+  end
+
+  if prospectValue ~= nil then
+    tooltipFrame:AddDoubleLine(
+      L("PROSPECT") .. countString,
+      WHITE_FONT_COLOR:WrapTextInColorCode(
+        Auctionator.Utilities.CreatePaddedMoneyString(prospectValue)
+      )
+    )
+  else
+    tooltipFrame:AddDoubleLine(
+      L("PROSPECT") .. countString,
+      WHITE_FONT_COLOR:WrapTextInColorCode(
+        L("UNKNOWN") .. "  "
+      )
+    )
+  end
+end
+
+function Auctionator.Tooltip.AddMillTip (
+  tooltipFrame, millValue, countString
+)
+  if not Auctionator.Config.Get(Auctionator.Config.Options.MILL_TOOLTIPS) then
+    return
+  end
+
+  if millValue ~= nil then
+    tooltipFrame:AddDoubleLine(
+      L("MILL") .. countString,
+      WHITE_FONT_COLOR:WrapTextInColorCode(
+        Auctionator.Utilities.CreatePaddedMoneyString(millValue)
+      )
+    )
+  else
+    tooltipFrame:AddDoubleLine(
+      L("MILL") .. countString,
       WHITE_FONT_COLOR:WrapTextInColorCode(
         L("UNKNOWN") .. "  "
       )

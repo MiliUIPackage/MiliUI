@@ -25,7 +25,7 @@ function AuctionatorFullScanFrameMixin:InitiateScan()
     self.inProgress = true
 
     self:RegisterForEvents()
-    Auctionator.Utilities.Message(AUCTIONATOR_L_STARTING_FULL_SCAN)
+    Auctionator.Utilities.Message(AUCTIONATOR_L_STARTING_FULL_SCAN_REPLICATE)
     C_AuctionHouse.ReplicateItems()
     -- 10% complete after making the replicate request
     Auctionator.EventBus:Fire(self, Auctionator.FullScan.Events.ScanProgress, 0.1)
@@ -100,37 +100,36 @@ function AuctionatorFullScanFrameMixin:ProcessBatch(startIndex, stepSize, limit)
     local info = { C_AuctionHouse.GetReplicateItemInfo(i) }
     local link = C_AuctionHouse.GetReplicateItemLink(i)
     local timeLeft = C_AuctionHouse.GetReplicateItemTimeLeft(i)
+    local index = i
 
     if not info[18] then
-      ItemEventListener:AddCallback(info[17], (function(index)
-        return function()
-          local link = C_AuctionHouse.GetReplicateItemLink(index)
+      ItemEventListener:AddCallback(info[17], function()
+        local link = C_AuctionHouse.GetReplicateItemLink(index)
 
-          Auctionator.Utilities.DBKeyFromLink(link, function(dbKeys)
-            self.waitingForData = self.waitingForData - 1
+        Auctionator.Utilities.DBKeyFromLink(link, function(dbKeys)
+          self.waitingForData = self.waitingForData - 1
 
-            table.insert(self.scanData, {
-              replicateInfo = { C_AuctionHouse.GetReplicateItemInfo(index) },
-              itemLink      = link,
-              timeLeft      = C_AuctionHouse.GetReplicateItemTimeLeft(index),
-            })
-            table.insert(self.dbKeysMapping, dbKeys)
+          self.scanData[index + 1] = {
+            replicateInfo = { C_AuctionHouse.GetReplicateItemInfo(index) },
+            itemLink      = link,
+            timeLeft      = C_AuctionHouse.GetReplicateItemTimeLeft(index),
+          }
+          self.dbKeysMapping[index + 1] = dbKeys
 
-            if self.waitingForData == 0 then
-              self:EndProcessing()
-            end
-          end)
-        end
-      end)(i))
+          if self.waitingForData == 0 then
+            self:EndProcessing()
+          end
+        end)
+      end)
     else
       Auctionator.Utilities.DBKeyFromLink(link, function(dbKeys)
         self.waitingForData = self.waitingForData - 1
-        table.insert(self.scanData, {
+        self.scanData[index + 1] = {
           replicateInfo = info,
           itemLink      = link,
           timeLeft      = timeLeft,
-        })
-        table.insert(self.dbKeysMapping, dbKeys)
+        }
+        self.dbKeysMapping[index + 1] = dbKeys
 
         if self.waitingForData == 0 then
           self:EndProcessing()
@@ -160,7 +159,7 @@ function AuctionatorFullScanFrameMixin:OnEvent(event, ...)
       self:ResetData()
 
       Auctionator.Utilities.Message(
-        AUCTIONATOR_L_FULL_SCAN_FAILED .. " " .. self:NextScanMessage()
+        AUCTIONATOR_L_FULL_SCAN_FAILED_REPLICATE .. " " .. self:NextScanMessage()
       )
       Auctionator.EventBus:Fire(self, Auctionator.FullScan.Events.ScanFailed)
     end

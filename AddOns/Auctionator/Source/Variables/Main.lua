@@ -50,6 +50,20 @@ local function ImportFromConnectedRealm(rootRealm)
   return false
 end
 
+local function ImportFromNotNormalizedName(target)
+  local unwantedName = GetRealmName()
+
+  if AUCTIONATOR_PRICE_DATABASE[unwantedName] ~= nil then
+
+    AUCTIONATOR_PRICE_DATABASE[target] = AUCTIONATOR_PRICE_DATABASE[unwantedName]
+    -- Remove old database (no longer needed)
+    AUCTIONATOR_PRICE_DATABASE[unwantedName] = nil
+    return true
+  end
+
+  return false
+end
+
 function Auctionator.Variables.InitializeDatabase()
   Auctionator.Debug.Message("Auctionator.Database.Initialize()")
   -- Auctionator.Utilities.TablePrint(AUCTIONATOR_PRICE_DATABASE, "AUCTIONATOR_PRICE_DATABASE")
@@ -72,7 +86,7 @@ function Auctionator.Variables.InitializeDatabase()
 
   -- Check for current realm and initialize if not present
   if AUCTIONATOR_PRICE_DATABASE[realm] == nil then
-    if not ImportFromConnectedRealm(realm) then
+    if not ImportFromNotNormalizedName(realm) and not ImportFromConnectedRealm(realm) then
       AUCTIONATOR_PRICE_DATABASE[realm] = {}
     end
   end
@@ -99,10 +113,10 @@ function Auctionator.Variables.InitializeShoppingLists()
     AUCTIONATOR_SHOPPING_LISTS = {}
   end
 
-  Auctionator.ShoppingLists.Lists = AUCTIONATOR_SHOPPING_LISTS
-  Auctionator.ShoppingLists.Prune()
-  Auctionator.ShoppingLists.Sort()
-  AUCTIONATOR_SHOPPING_LISTS = Auctionator.ShoppingLists.Lists
+  Auctionator.Shopping.Lists.Data = AUCTIONATOR_SHOPPING_LISTS
+  Auctionator.Shopping.Lists.Prune()
+  Auctionator.Shopping.Lists.Sort()
+  AUCTIONATOR_SHOPPING_LISTS = Auctionator.Shopping.Lists.Data
 
   AUCTIONATOR_RECENT_SEARCHES = AUCTIONATOR_RECENT_SEARCHES or {}
 end

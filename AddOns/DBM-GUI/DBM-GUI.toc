@@ -1,4 +1,4 @@
-## Interface: 90205
+## Interface: 100000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FFOptions GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF使用者介面|r
@@ -9,7 +9,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: ee0b66f
+## Version: 494a4d8
 ## X-Website: https://deadlybossmods.com
 
 localization.en.lua
