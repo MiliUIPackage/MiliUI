@@ -1,9 +1,6 @@
 <!--
 Thank you to Stinth for the big help with the automatic mapping scripts!
 Also thanks to Mombe, Gemsplitter, Mendo, Kvisky, Zivils, Omny
-regex to replace names:
-\["creatureType"\] = (".*");
-\["creatureType"\] = L\[$1\];
 -->
 <Ui xmlns="http://www.blizzard.com/wow/ui/">
     <Script file='DeOtherSide.lua'/>
@@ -14,4 +11,8 @@ regex to replace names:
     <Script file='SpiresOfAscension.lua'/>
     <Script file='TheNecroticWake.lua'/>
     <Script file='TheaterOfPain.lua'/>
+    <Script file='TazaveshLower.lua'/>
+    <Script file='TazaveshUpper.lua'/>
+    <Script file='GrimrailDepot.lua'/>
+    <Script file='IronDocks.lua'/>
 </Ui>

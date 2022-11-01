@@ -1,31 +1,35 @@
-v3.5.8
-- Tormented Affix support including Abilities and Anima Powers for new minibosses (credit to Blazeton/stschake)
-v3.5.7
-- automatic mapping updates (credit to Stinth)
-- 9.1 updates
-v3.5.6
-- fixed an issue causing a long freeze and crash when opening mdt
-v3.5.5
-- logo update
-v3.5.4
-- nil fix (math.round)
-v3.5.3
-- visual update for pull outlines
-v3.5.2
-- updated G42 and G43 in Plaguefall: Slime Tentacle infront of Domina Venomblade now awards 10 count
-v3.5.1
-- added 2x Plagueroc in Plaguefall once again
-v3.5.0
-- 9.0.5 TOC update
-v3.4.9
-- locale error fix
-v3.4.8
-- mapping updates
-- locale fixes
-v3.4.7
-- affix list fix
-- fix enemy info model frame strata
-v3.4.6
-- nil fix
-v3.4.5
-- Dungeon Data is included once again
+v4.0.1.4
+- datacollection on beta realm
+v4.0.1.3
+- fixed an issue that would cause shrouded enemies to not properly display and count for enemy forces
+v4.0.1.2
+- added mapping for Shadowmoon Burial Grounds, Court of Stars and Nokhud Offensive
+v4.0.1.1
+- fix toc
+v4.0.1.0
+- prepatch release
+v4.0.0.8-Alpha
+- removed keybindings to avoid taint
+- removed settings in blizzard interface options to avoid taint
+- minimap button option has been moved into the options window
+- Halls of Valor mapping
+- fixed notes
+v4.0.0.7-Alpha
+- toc update
+v4.0.0.6-Alpha
+- Agethar Academy Mapping
+v4.0.0.5-Alpha
+- locale fix
+v4.0.0.4-Alpha
+- plugin support
+- pull number
+- new pois
+v4.0.0.3-Alpha
+- Datacollection: Reloading now adds collected spells and characteristics to enemy data which can be viewerd via enemy info
+v4.0.0.2-Alpha
+- fix xml error
+v4.0.0.1-Alpha
+- cleaned up initial mapping
+- data collection active for Alpha versions
+v4.0.0.0-Alpha
+- initial raw mapping of ruby life pools and azure vault
