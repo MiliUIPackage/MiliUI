@@ -357,14 +357,14 @@ addon.hiddenOptions = {
 	["enableFloatingCombatText"] = { prettyName = SHOW_COMBAT_TEXT_TEXT, description = OPTION_TOOLTIP_SHOW_COMBAT_TEXT , type = "boolean" },
 	["floatingCombatTextAllSpellMechanics"] = { prettyName = nil, description = "", type = "boolean" },
 	["floatingCombatTextAuras"] = { prettyName = COMBAT_TEXT_SHOW_AURAS_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_AURAS , type = "boolean" },
-	["floatingCombatTextCombatDamage"] = { prettyName = SHOW_DAMAGE_TEXT, description = OPTION_TOOLTIP_SHOW_DAMAGE, type = "boolean" },
+	["floatingCombatTextCombatDamage"] = { prettyName = SHOW_DAMAGE_TEXT_TEXT or SHOW_DAMAGE_TEXT, description = OPTION_TOOLTIP_SHOW_DAMAGE, type = "boolean" },
 	["floatingCombatTextCombatDamageAllAutos"] = { prettyName = nil, description = "顯示所有自動攻擊數字，而不是隱藏非事件數字", type = "boolean" },
 	["floatingCombatTextCombatDamageDirectionalOffset"] = { prettyName = nil, description = "開始時傷害數字的指向偏移值", type = "boolean" },
 	["floatingCombatTextCombatDamageDirectionalScale"] = { prettyName = "不同方向和大小", description = "大小不同的傷害數字會往不同的方向移動 (停用 = 不要使用不同方向大小)", type = "boolean" },
 	["floatingCombatTextCombatHealing"] = { prettyName = SHOW_COMBAT_HEALING, description = OPTION_TOOLTIP_SHOW_COMBAT_HEALING, type = "boolean" },
 	["floatingCombatTextCombatHealingAbsorbSelf"] = { prettyName = SHOW_COMBAT_HEALING_ABSORB_SELF.." (自己)", description = OPTION_TOOLTIP_SHOW_COMBAT_HEALING_ABSORB_SELF, type = "boolean" },
 	["floatingCombatTextCombatHealingAbsorbTarget"] = { prettyName = SHOW_COMBAT_HEALING_ABSORB_TARGET.." (目標)" , description = OPTION_TOOLTIP_SHOW_COMBAT_HEALING_ABSORB_TARGET, type = "boolean" },
-	["floatingCombatTextCombatLogPeriodicSpells"] = { prettyName = LOG_PERIODIC_EFFECTS, description = OPTION_TOOLTIP_LOG_PERIODIC_EFFECTS, type = "boolean" },
+	["floatingCombatTextCombatLogPeriodicSpells"] = { prettyName = LOG_PERIODIC_EFFECTS_TEXT or LOG_PERIODIC_EFFECTS, description = OPTION_TOOLTIP_LOG_PERIODIC_EFFECTS, type = "boolean" },
 	["floatingCombatTextCombatState"] = { prettyName = COMBAT_TEXT_SHOW_COMBAT_STATE_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_COMBAT_STATE, type = "boolean" },
 	["floatingCombatTextComboPoints"] = { prettyName = COMBAT_TEXT_SHOW_COMBO_POINTS_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_COMBO_POINTS , type = "boolean" },
 	["floatingCombatTextDamageReduction"] = { prettyName =COMBAT_TEXT_SHOW_RESISTANCES_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_RESISTANCES, type = "boolean" },
@@ -375,7 +375,7 @@ addon.hiddenOptions = {
 	["floatingCombatTextHonorGains"] = { prettyName = COMBAT_TEXT_SHOW_HONOR_GAINED_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_HONOR_GAINED, type = "boolean" },
 	["floatingCombatTextLowManaHealth"] = { prettyName = COMBAT_TEXT_SHOW_LOW_HEALTH_MANA_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_LOW_HEALTH_MANA, type = "boolean" },
 	["floatingCombatTextPeriodicEnergyGains"] = { prettyName = COMBAT_TEXT_SHOW_PERIODIC_ENERGIZE_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_PERIODIC_ENERGIZE, type = "boolean" },
-	["floatingCombatTextPetMeleeDamage"] = { prettyName = SHOW_PET_MELEE_DAMAGE, description = OPTION_TOOLTIP_SHOW_PET_MELEE_DAMAGE, type = "boolean" },
+	["floatingCombatTextPetMeleeDamage"] = { prettyName = SHOW_PET_MELEE_DAMAGE_TEXT or SHOW_PET_MELEE_DAMAGE, description = OPTION_TOOLTIP_SHOW_PET_MELEE_DAMAGE, type = "boolean" },
 	["floatingCombatTextPetSpellDamage"] = { prettyName = SHOW_PET_SPELL_DAMAGE, description = "顯示寵物的法術傷害", type = "boolean" },
 	["floatingCombatTextReactives"] = { prettyName = COMBAT_TEXT_SHOW_REACTIVES_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_REACTIVES, type = "boolean" },
 	["floatingCombatTextRepChanges"] = { prettyName = COMBAT_TEXT_SHOW_REPUTATION_TEXT, description = OPTION_TOOLTIP_COMBAT_TEXT_SHOW_REPUTATION, type = "boolean" },
@@ -1029,14 +1029,28 @@ local CategoryNames = { -- not sure how meaningful these really are (/Blizzard_C
 		help: cvar description text
 --]]
 
-for _, info in pairs(C_Console.GetAllCommands()) do
-	if not addon.hiddenOptions[info.command]
-	  and info.commandType == 0 -- cvar, rather than script
-	  and info.category ~= 0 -- ignore debug category
-	  and not strfind(info.command:lower(), 'debug') -- a number of commands with "debug" in their name are inexplicibly not in the "debug" category
-	  and info.category ~= 8 -- ignore GM category
-	then
-		local value = GetCVar(info.command)
+function addon:CVarExists(cvar)
+	return not not select(2, pcall(function() return GetCVarInfo(cvar) end))
+end
+
+-- Returns filtered list of CVars
+function addon:GetCVars()
+	local cvars = {}
+	for _, info in ipairs(C_Console.GetAllCommands()) do
+		if info.commandType == 0 -- cvar, rather than script
+		  and info.category ~= 0 -- ignore debug category
+		  and not strfind(info.command:lower(), 'debug') -- a number of commands with "debug" in their name are inexplicibly not in the "debug" category
+		  and info.category ~= 8 -- ignore GM category
+		  and addon:CVarExists(info.command) -- real cvar?
+		then
+			table.insert(cvars, info)
+		end
+	end
+	return cvars
+end
+
+for _, info in pairs(addon:GetCVars()) do
+	if not addon.hiddenOptions[info.command] then
 		local optionTable = {
 			-- prettyName = info.command, -- the api doesn't provide pretty names, so the only way to keep these would be to create a table for them
 			description = info.help,

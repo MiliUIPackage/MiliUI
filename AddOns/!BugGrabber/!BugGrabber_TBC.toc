@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 20504
 ## Title: BugGrabber
 ## Version: v10.0.0
 ## Notes: Grabs bugs for the bug sack.
@@ -12,8 +12,6 @@
 ## Notes-esMX: Grabs bugs for the bug sack.
 ## Notes-itIT: Grabs bugs for the bug sack.
 ## Notes-ptBR: Grabs bugs for the bug sack.
-## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息擷取
-## Notes-zhTW: BugGrabber|n將錯誤訊息擷取至錯誤訊息收集袋
 ## Author: Funkydude
 ## X-Credits: Rabbit, Rowne, Ramble, kergoth, ckknight, Fritti
 ## X-License: All Rights Reserved

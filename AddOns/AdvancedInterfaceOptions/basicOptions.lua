@@ -10,7 +10,22 @@ end
 
 local function IsClassic()
     return WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-end   
+end
+
+local function IsBCC()
+  return WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
+end
+
+local function IsRetail()
+  return WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+end
+
+local function BlizzardOptionsPanel_UpdateCombatText()
+	-- Hack to call CombatText_UpdateDisplayedMessages which only exists if the Blizzard_CombatText AddOn is loaded
+	if CombatText_UpdateDisplayedMessages then
+		CombatText_UpdateDisplayedMessages()
+	end
+end
 
 AdvancedInterfaceOptionsSaved = {}
 local DBVersion = 3
@@ -364,25 +379,6 @@ local fadeMap = not IsClassic() and newCheckbox(AIO, 'mapFade')
 local secureToggle = newCheckbox(AIO, 'secureAbilityToggle')
 local luaErrors = newCheckbox(AIO, 'scriptErrors')
 local targetDebuffFilter = newCheckbox(AIO, 'noBuffDebuffFilterOnTarget')
-local reverseCleanupBags
-if not IsClassic() then
-    reverseCleanupBags = newCheckbox(AIO, 'reverseCleanupBags',
-        function(self)
-            return GetSortBagsRightToLeft()
-        end,
-        function(self, checked)
-            SetSortBagsRightToLeft(checked)
-        end
-    )
-end
-local lootLeftmostBag = newCheckbox(AIO, 'lootLeftmostBag',
-	function(self)
-		return GetInsertItemsLeftToRight()
-	end,
-	function(self, checked)
-		SetInsertItemsLeftToRight(checked)
-	end
-)
 local enableWoWMouse = newCheckbox(AIO, 'enableWoWMouse')
 
 local questSortingLabel = AIO:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
@@ -393,7 +389,7 @@ local questSortingDropdown = CreateFrame("Frame", "AIOQuestSorting", AIO, "UIDro
 questSortingDropdown:SetPoint("TOPLEFT", questSortingLabel, "BOTTOMLEFT", -16, -10)
 questSortingDropdown.initialize = function(dropdown)
 	local sortMode = { "top", "proximity" }
-	local sortModeLoc = { "上方", "附近" }
+	local sortModeLoc = { "上方", "距離最近" }
 	for i, mode in next, sortMode do
 		local info = UIDropDownMenu_CreateInfo()
 		info.text = sortModeLoc[i]
@@ -439,9 +435,36 @@ actionCamModeDropdown.initialize = function(dropdown)
 end
 actionCamModeDropdown:HookScript("OnShow", actionCamModeDropdown.initialize)
 --]]
-local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, IsClassic() and 3.4 or 2.6, 0.1)
+local function cameraFactor_SetValue(self, value, userInput)
+	if userInput then
+		addon:SetCVar(self.cvar, value)
+		if not IsRetail() then
+			setCustomVar(InterfaceOptionsCameraPanelMaxDistanceSlider, value)
+		end
+	end
+end
+
+local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, not IsRetail() and 3.4 or 2.6, 0.1, nil, cameraFactor_SetValue)
 cameraFactor:SetPoint('TOPLEFT', questSortingDropdown, 'BOTTOMLEFT', 20, -20)
 
+if not IsRetail() then
+	-- blizzard options overwrites this cvar at start and is capped to 2.0
+	hooksecurefunc("BlizzardOptionsPanel_SetupControl", function(control)
+		if control == InterfaceOptionsCameraPanelMaxDistanceSlider then
+			SetCVar("cameraDistanceMaxZoomFactor", getCustomVar(control))
+			control:SetMinMaxValues(1, 3.4)
+			local text = control.Text
+			text:SetText(text:GetText().." |cffffffff(15-50)|r")
+		end
+	end)
+
+	-- also update from the blizzard slider otherwise it can lead to confusing behavior where it gets overwritten
+	InterfaceOptionsCameraPanelMaxDistanceSlider:HookScript("OnValueChanged", function(self, value, userInput)
+		if userInput then
+			setCustomVar(InterfaceOptionsCameraPanelMaxDistanceSlider, value)
+		end
+	end)
+end
 playerTitles:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
 playerGuilds:SetPoint("TOPLEFT", playerTitles, "BOTTOMLEFT", 0, -4)
 playerGuildTitles:SetPoint("TOPLEFT", playerGuilds, "BOTTOMLEFT", 0, -4)
@@ -452,13 +475,33 @@ secureToggle:SetPoint("TOPLEFT", IsClassic() and playerGuildTitles or fadeMap, "
 luaErrors:SetPoint("TOPLEFT", secureToggle, "BOTTOMLEFT", 0, -4)
 targetDebuffFilter:SetPoint("TOPLEFT", luaErrors, "BOTTOMLEFT", 0, -4)
 
-if not IsClassic() then
+local reverseCleanupBags = GetSortBagsRightToLeft and SetSortBagsRightToLeft and newCheckbox(AIO, 'reverseCleanupBags',
+	function(self)
+		return GetSortBagsRightToLeft()
+	end,
+	function(self, checked)
+		SetSortBagsRightToLeft(checked)
+	end
+)
+
+local lootLeftmostBag = GetInsertItemsLeftToRight and SetInsertItemsLeftToRight and newCheckbox(AIO, 'lootLeftmostBag',
+	function(self)
+		return GetInsertItemsLeftToRight()
+	end,
+	function(self, checked)
+		SetInsertItemsLeftToRight(checked)
+	end
+)
+
+if reverseCleanupBags then
     reverseCleanupBags:SetPoint("TOPLEFT", targetDebuffFilter, "BOTTOMLEFT", 0, -4)
     lootLeftmostBag:SetPoint("TOPLEFT", reverseCleanupBags, "BOTTOMLEFT", 0, -4)
     enableWoWMouse:SetPoint("TOPLEFT", lootLeftmostBag, "BOTTOMLEFT", 0, -4)
-else
+elseif lootLeftmostBag then
     lootLeftmostBag:SetPoint("TOPLEFT", targetDebuffFilter, "BOTTOMLEFT", 0, -4)
     enableWoWMouse:SetPoint("TOPLEFT", lootLeftmostBag, "BOTTOMLEFT", 0, -4)
+else
+    enableWoWMouse:SetPoint("TOPLEFT", targetDebuffFilter, "BOTTOMLEFT", 0, -4)
 end
 
 -- Checkbox to enforce all settings through reloads
@@ -499,10 +542,11 @@ StaticPopupDialogs['AIO_RESET_EVERYTHING'] = {
 		self:GetParent().button1:SetEnabled(self:GetText():lower() == 'irreversible')
 	end,
 	OnAccept = function()
-		for cvar in pairs(addon.hiddenOptions) do
+		for _, info in ipairs(addon:GetCVars()) do
+			local cvar = info.command
 			local current, default = GetCVarInfo(cvar)
 			if current ~= default then
-				print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 重置成 |cffaaffaa%s|r', tostring(cvar), tostring(current), tostring(default)))
+				print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', tostring(cvar), tostring(current), tostring(default)))
 				addon:SetCVar(cvar, default)
 			end
 		end
@@ -518,12 +562,114 @@ StaticPopupDialogs['AIO_RESET_EVERYTHING'] = {
 }
 
 local resetButton = CreateFrame('button', nil, AIO, 'UIPanelButtonTemplate')
-resetButton:SetSize(120, 20)
+resetButton:SetSize(120, 22)
 resetButton:SetText("載入預設值")
 resetButton:SetPoint('BOTTOMRIGHT', -10, 10)
 resetButton:SetScript('OnClick', function(self)
 	StaticPopup_Show('AIO_RESET_EVERYTHING')
 end)
+
+-- Backup Settings
+local function BackupSettings()
+	--[[
+		FIXME: We probably don't actually want to back up every CVar
+		Some CVars use bitfields to track progress that the player likely isn't expecting to be undone by a restore
+		We may need to manually create a list of CVars to ignore, I don't know if there's a way to automate this
+	--]]
+	local cvarBackup = {}
+	local settingCount = 0
+	for _, info in ipairs(addon:GetCVars()) do
+		-- Only record CVars that don't match their default value
+		-- NOTE: Defaults can potentially change, should we store every cvar?
+		local currentValue, defaultValue = GetCVarInfo(info.command)
+		if currentValue ~= defaultValue then
+			-- Normalize casing to simplify lookups
+			local cvar = info.command:lower()
+			cvarBackup[cvar] = currentValue
+			settingCount = settingCount + 1
+		end
+	end
+
+	-- TODO: Support multiple backups (save & restore named cvar profiles)
+	if not AdvancedInterfaceOptionsSaved.Backups then
+		AdvancedInterfaceOptionsSaved.Backups = {}
+	end
+	AdvancedInterfaceOptionsSaved.Backups[1] = {
+		timestamp = GetServerTime(),
+		cvars = cvarBackup,
+	}
+
+	print(format("進階介面選項: 已備份 %d 個自訂的 CVar 遊戲參數設定!", settingCount))
+end
+
+StaticPopupDialogs["AIO_BACKUP_SETTINGS"] = {
+	text = "是否要儲存目前的 CVar 遊戲參數設定，以便日後能夠還原設定?",
+	button1 = "備份設定",
+	button2 = "取消",
+	OnAccept = BackupSettings,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+}
+
+local backupButton = CreateFrame("button", nil, AIO, "UIPanelButtonTemplate")
+backupButton:SetSize(120, 22)
+backupButton:SetText("備份設定")
+backupButton:SetPoint("BOTTOMLEFT", resetButton, "TOPLEFT", 0, 50)
+backupButton:SetScript("OnClick", function(self)
+	StaticPopup_Show("AIO_BACKUP_SETTINGS")
+end)
+
+-- Restore Settings
+local function RestoreSettings()
+	local backup = AdvancedInterfaceOptionsSaved.Backups and AdvancedInterfaceOptionsSaved.Backups[1]
+	if backup then
+		for _, info in ipairs(addon:GetCVars()) do
+			local cvar = info.command
+			local backupValue = backup.cvars[cvar:lower()] -- Always lowercase cvar names
+			local currentValue, defaultValue = GetCVarInfo(cvar)
+			if backupValue then
+				-- Restore value from backup
+				if currentValue ~= backupValue then
+					print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(backupValue)))
+					addon:SetCVar(cvar, backupValue)
+				end
+			else
+				-- CHECKME: If CVar isn't in backup and isn't set to default value, should we reset to default or ignore it?
+				if currentValue ~= defaultValue then
+					print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(defaultValue)))
+					addon:SetCVar(cvar, defaultValue)
+				end
+			end
+		end
+	end
+end
+
+StaticPopupDialogs["AIO_RESTORE_SETTINGS"] = {
+	text = "是否要從備份還原 CVar 遊戲參數設定?\n注意: 此動作無法復原!",
+	button1 = "還原設定",
+	button2 = "取消",
+	OnAccept = RestoreSettings,
+	OnShow = function(self)
+		-- Disable accept button if we don't have any backups
+		self.button1:SetEnabled(AdvancedInterfaceOptionsSaved.Backups and AdvancedInterfaceOptionsSaved.Backups[1])
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = 3,
+	showAlert = true,
+}
+
+local restoreButton = CreateFrame("button", nil, AIO, "UIPanelButtonTemplate")
+restoreButton:SetSize(120, 22)
+restoreButton:SetText("還原設定")
+restoreButton:SetPoint("TOPLEFT", backupButton, "BOTTOMLEFT", 0, -2)
+restoreButton:SetScript("OnClick", function(self)
+	StaticPopup_Show("AIO_RESTORE_SETTINGS")
+end)
+
 
 -- Chat section
 local AIO_Chat = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
@@ -549,14 +695,11 @@ SubText_Chat:SetText('這些選項可以調整不在預設介面中的聊天設�
 
 local chatMouseScroll = newCheckbox(AIO_Chat, 'chatMouseScroll')
 local chatDelay = newCheckbox(AIO_Chat, 'removeChatDelay')
-local classColors
-if IsClassic() then
-    classColors = newCheckbox(AIO_Chat, 'chatClassColorOverride')
-end
-
 chatDelay:SetPoint('TOPLEFT', SubText_Chat, 'BOTTOMLEFT', 0, -8)
 chatMouseScroll:SetPoint('TOPLEFT', chatDelay, 'BOTTOMLEFT', 0, -4)
+
 if IsClassic() then
+    local classColors = newCheckbox(AIO_Chat, 'chatClassColorOverride')
     classColors:SetPoint('TOPLEFT', chatMouseScroll, 'BOTTOMLEFT', 0, -4)
 end
 
@@ -624,7 +767,7 @@ local uvars = {
 	enableFloatingCombatText = "SHOW_COMBAT_TEXT",
 	floatingCombatTextLowManaHealth = "COMBAT_TEXT_SHOW_LOW_HEALTH_MANA",
 	floatingCombatTextAuras = "COMBAT_TEXT_SHOW_AURAS",
-	floatingCombatTextAuras = "COMBAT_TEXT_SHOW_AURA_FADE",
+	floatingCombatTextAuraFade = "COMBAT_TEXT_SHOW_AURA_FADE",
 	floatingCombatTextCombatState = "COMBAT_TEXT_SHOW_COMBAT_STATE",
 	floatingCombatTextDodgeParryMiss = "COMBAT_TEXT_SHOW_DODGE_PARRY_MISS",
 	floatingCombatTextDamageReduction = "COMBAT_TEXT_SHOW_RESISTANCES",
@@ -636,7 +779,6 @@ local uvars = {
 	floatingCombatTextPeriodicEnergyGains = "COMBAT_TEXT_SHOW_PERIODIC_ENERGIZE",
 	floatingCombatTextFloatMode = "COMBAT_TEXT_FLOAT_MODE",
 	floatingCombatTextHonorGains = "COMBAT_TEXT_SHOW_HONOR_GAINED",
-	alwaysShowActionBars = "ALWAYS_SHOW_MULTIBARS",
 	showCastableBuffs = "SHOW_CASTABLE_BUFFS",
 	showDispelDebuffs = "SHOW_DISPELLABLE_DEBUFFS",
 	showArenaEnemyFrames = "SHOW_ARENA_ENEMY_FRAMES",
@@ -899,9 +1041,7 @@ spellStartRecovery.maxText:SetFormattedText("%d %s", spellStartRecovery.minMaxVa
 InterfaceOptions_AddCategory(AIO, addonName)
 InterfaceOptions_AddCategory(AIO_Chat, addonName)
 InterfaceOptions_AddCategory(AIO_C, addonName)
-if not IsClassic() then
-    InterfaceOptions_AddCategory(AIO_FCT, addonName)
-end
+InterfaceOptions_AddCategory(AIO_FCT, addonName)
 -- InterfaceOptions_AddCategory(AIO_ST, addonName)
 InterfaceOptions_AddCategory(AIO_NP, addonName)
 

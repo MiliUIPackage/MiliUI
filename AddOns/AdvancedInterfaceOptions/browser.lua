@@ -2,29 +2,19 @@ local addonName, addon = ...
 local _G = _G
 local E = addon:Eve()
 
-function addon:CVarExists(cvar)
-	-- FIXME: This no longer works to identify whether a cvar exists
-	return pcall(function() return GetCVarDefault(cvar) end)
-end
-
 -- C_Console.GetAllCommands() does not return the complete list of CVars on login
 -- Repopulate the list using UpdateCVarList() when the CVar browser is opened
 local CVarList = {}
+
 local function UpdateCVarList()
-	for i, info in pairs(C_Console.GetAllCommands()) do
+	for i, info in pairs(addon:GetCVars()) do
 		local cvar = info.command
-		if info.commandType == 0 -- cvar, rather than script
-		and info.category ~= 0 -- ignore debug category
-		and not strfind(info.command:lower(), 'debug') -- a number of commands with "debug" in their name are inexplicibly not in the "debug" category
-		and info.category ~= 8 -- ignore GM category
-		then
-			if addon.hiddenOptions[cvar] then
-				CVarList[cvar] = addon.hiddenOptions[cvar]
-			else
-				CVarList[cvar] = {
-					description = info.help,
-				}
-			end
+		if addon.hiddenOptions[cvar] then
+			CVarList[cvar] = addon.hiddenOptions[cvar]
+		else
+			CVarList[cvar] = {
+				description = info.help,
+			}
 		end
 	end
 end
@@ -50,9 +40,35 @@ end
 
 local function TraceCVar(cvar, value, ...)
 	if not addon:CVarExists(cvar) then return end
+
+	--[=[
+		-- Example calls to debugstack(2) as of patch 9.1.5
+		-- A call to `SetCVar' results in this hook running twice because SetCVar is a wrapper for C_CVar.SetCVar
+
+		1) `C_CVar.SetCVar' traces to `SetCVar' in CvarUtil.lua
+		[string "=[C]"]: in function `SetCVar'
+		[string "@Interface\SharedXML\CvarUtil.lua"]:13: in function <Interface\SharedXML\CvarUtil.lua:9>
+		[string "=[C]"]: in function `SetCVar'
+		[string "@Interface\AddOns\AdvancedInterfaceOptions\browser.lua"]:89: in main chunk
+
+		2) `SetCVar' traces to the function that invoked it
+		[string "=[C]"]: in function `SetCVar'
+		[string "@Interface\AddOns\AdvancedInterfaceOptions\browser.lua"]:89: in main chunk
+	]=]
+
 	local trace = debugstack(2)
-	local func, source, lineNum = trace:match("in function `([^']+)'%s*([^:%[]+):(%d+)")
-	if source then
+	local source, lineNum = trace:match("\"@([^\"]+)\"%]:(%d+)")
+	if not source then
+		-- Attempt to pull source out of "in function <file:line>" string
+		source, lineNum = trace:match("in function <([^:%[>]+):(%d+)>")
+		if not source then
+			-- Give up and record entire traceback
+			source = trace
+			lineNum = "(unhandled exception)"
+		end
+	end
+	-- Ignore C_CVar.SetCVar hook if it originated from CvarUtil.lua
+	if source and not source:lower():find("[\\/]sharedxml[\\/]cvarutil%.lua") then
 		local realValue = GetCVar(cvar) -- the client does some conversions to the original value
 		if SVLoaded then
 			AdvancedInterfaceOptionsSaved.ModifiedCVars[ cvar:lower() ] = source .. ':' .. lineNum
@@ -68,6 +84,9 @@ local function TraceCVar(cvar, value, ...)
 end
 
 hooksecurefunc('SetCVar', TraceCVar) -- /script SetCVar(cvar, value)
+if C_CVar and C_CVar.SetCVar then
+	hooksecurefunc(C_CVar, 'SetCVar', TraceCVar) -- C_CVar.SetCVar(cvar, value)
+end
 hooksecurefunc('ConsoleExec', function(msg)
 	local cmd, cvar, value = msg:match('^(%S+)%s+(%S+)%s*(%S*)')
 	if cmd then
