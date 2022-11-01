@@ -1,9 +1,9 @@
-## Interface: 90205
-## Title: Bagnon Void Storage
+## Interface: 100000
+## Title: |TInterface/Addons/BagBrother/Art/Bagnon-Small:16:16|t Bagnon |cffffffffVoid Storage|r
 ## Author: Jaliborc (João Cardoso)
-## Notes: Single window display for your void storage
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合-虛空銀行
 ## Notes-zhTW: Bagnon Void Storage|n功能強大的整合背包。
+## Notes: Load on demand void storage display.|n|cffbbbbbbBy João Cardoso|r|n|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Patreon:12:12:0:-4|t |cff82c5ffpatreon.com/jaliborc|r|n|n
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1
 

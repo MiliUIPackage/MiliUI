@@ -1,11 +1,11 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: Details!: Elitism (plugin)
 ## Notes: Show avoidable damage and abilities taken by players.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-可避免傷害分析
-## Notes-zhTW: DDetails!: Elitism (plugin) |n顯示可避免的傷害與法術詳細資訊，看看誰都不躲技能的。
+## Notes-zhTW: Details!: Elitism (plugin) |n顯示可避免的傷害與法術詳細資訊，看看誰都不躲技能的。
 ## RequiredDeps: Details
 ## Author: Eduardo Speroni
-## Version: v2.6.1
+## Version: v2.7.0
 ## X-License: MIT
 ## X-Curse-Project-ID: 381128
 ## X-Wago-ID: nQN5VP6B

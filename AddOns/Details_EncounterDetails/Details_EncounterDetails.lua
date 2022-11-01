@@ -33,7 +33,7 @@ local _table_insert = table.insert --> lua library local
 local _unpack = unpack --> lua library local
 local _bit_band = bit.band
 
-local CONST_FONT_SIZE = 14
+local CONST_FONT_SIZE = 10
 
 --> Create the plugin Object
 local EncounterDetails = _detalhes:NewPluginObject ("Details_EncounterDetails", DETAILSPLUGIN_ALWAYSENABLED)
@@ -98,7 +98,7 @@ local ability_type_table = {
 local function CreatePluginFrames (data)
 	
 	--> catch Details! main object
-	local _detalhes = _G._detalhes
+	local _detalhes = Details
 	local DetailsFrameWork = _detalhes.gump
 
 	--> saved data if any
@@ -529,22 +529,22 @@ local function CreatePluginFrames (data)
 		--build the menu options
 			
 			--summary
-			CoolTip:AddLine (Loc ["STRING_FIGHT_SUMMARY"])
+			CoolTip:AddLine(Loc ["STRING_FIGHT_SUMMARY"])
 			CoolTip:AddMenu (1, EncounterDetails.Frame.switch, "main")
 			CoolTip:AddIcon ("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 22, 0, 0.1015625, 0, 0.505625)
 		
 			--chart
-			CoolTip:AddLine (Loc ["Damage Graphic"])
+			CoolTip:AddLine(Loc ["Damage Graphic"])
 			CoolTip:AddMenu (1, EncounterDetails.Frame.switch, "graph")
 			CoolTip:AddIcon ("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 22, 0.1271875, 0.21875, 0, 0.505625)
 			
 			--emotes
-			CoolTip:AddLine (Loc ["Boss Emotes"])
+			CoolTip:AddLine(Loc ["Boss Emotes"])
 			CoolTip:AddMenu (1, EncounterDetails.Frame.switch, "emotes")
 			CoolTip:AddIcon ("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 22, 91/256, 116/256, 0, 0.505625)
 			
 			--weakauras
-			CoolTip:AddLine (Loc ["Create Encounter Weakauras"])
+			CoolTip:AddLine(Loc ["Create Encounter Weakauras"])
 			CoolTip:AddMenu (1, EncounterDetails.Frame.switch, "spellsauras")
 			
 			if (_G.WeakAuras) then
@@ -554,7 +554,7 @@ local function CreatePluginFrames (data)
 			end
 
 			--phases
-			CoolTip:AddLine (Loc ["Damage by Boss Phase"])
+			CoolTip:AddLine(Loc ["Damage by Boss Phase"])
 			CoolTip:AddMenu (1, EncounterDetails.Frame.switch, "phases")
 			CoolTip:AddIcon ("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 22, 151/256, 176/256, 0, 0.505625)
 			
@@ -623,7 +623,7 @@ end
 		GameCooltip:SetType ("tooltipbar")
 		GameCooltip:SetOwner (row)
 		
-		GameCooltip:AddLine (Loc ["Click to Report"], nil, 1, "orange")
+		GameCooltip:AddLine ("Click to Report", nil, 1, "orange")
 		GameCooltip:AddIcon ([[Interface\TUTORIALFRAME\UI-TUTORIAL-FRAME]], 1, 1, 12, 16, 0.015625, 0.13671875, 0.4375, 0.59765625)
 		GameCooltip:AddStatusBar (0, 1, 1, 1, 1, 1, false, {value = 100, color = {.3, .3, .3, .5}, specialSpark = false, texture = [[Interface\AddOns\Details\images\bar_serenity]]})
 		
@@ -651,7 +651,7 @@ end
 					local overkill = event [10] or 0
 					if (overkill > 0) then
 						amount = amount - overkill
-						overkill = " (" .. _detalhes:ToK (overkill) .. Loc [" |cFFFF8800overkill|r)"]
+						overkill = " (" .. _detalhes:ToK (overkill) .. " |cFFFF8800overkill|r)"
 					else
 						overkill = ""
 					end
@@ -847,7 +847,7 @@ local function EnemySkills (habilidade, barra)
 	
 	_table_sort (tabela_jogadores, _detalhes.Sort2)
 	
-	GameCooltip:AddLine (barra.lineText1:GetText() .. Loc [" Damage Done"])
+	GameCooltip:AddLine (barra.lineText1:GetText() .. " Damage Done")
 	
 	local ToK = _detalhes.ToKFunctions [_detalhes.ps_abbreviation]
 	
@@ -917,7 +917,7 @@ local function DamageTakenDetails (jogador, barra)
 
 	_table_sort (meus_agressores, _detalhes.Sort2)
 	
-	GameCooltip:AddLine (barra.lineText1:GetText() .. Loc [" Damage Taken"])
+	GameCooltip:AddLine (barra.lineText1:GetText() .. " Damage Taken")
 
 	local max = #meus_agressores
 	if (max > 20) then
@@ -1656,7 +1656,7 @@ function EncounterDetails:OpenAndRefresh (_, segment)
 			
 			EncounterDetails:FormatCooltipSettings()
 			
-			GameCooltip:AddLine (barra.lineText1:GetText().." ".. Loc ["Damage Done"])
+			GameCooltip:AddLine (barra.lineText1:GetText().." ".. "Damage Done")
 			
 			local topDamage = dano_em[1] and dano_em[1][2]
 			
@@ -1688,7 +1688,7 @@ function EncounterDetails:OpenAndRefresh (_, segment)
 			GameCooltip:SetOwner (self, "right", "left", -10, 0)
 			
 			GameCooltip:AddLine (" ")
-			GameCooltip:AddLine (Loc ["CLICK to Report"])
+			GameCooltip:AddLine ("CLICK to Report")
 			GameCooltip:Show()
 		end
 
@@ -1741,7 +1741,7 @@ function EncounterDetails:OpenAndRefresh (_, segment)
 			EncounterDetails.SetBarBackdrop_OnEnter (self)
 			
 			GameCooltip:AddLine (" ")
-			GameCooltip:AddLine (Loc ["CLICK to Report"])
+			GameCooltip:AddLine(Loc ["CLICK to Report"])
 			
 			GameCooltip:SetOwner (self, "left", "right", -60, 0)
 			GameCooltip:Show()
@@ -1807,7 +1807,7 @@ function EncounterDetails:OpenAndRefresh (_, segment)
 				add_damage_done:SetScript ("OnClick", EncounterDetails.BossInfoRowClick)
 				
 				barra.lineText1:SetPoint ("left", add_damage_done, "right", 2, 0)
-				barra.textura:SetStatusBarTexture (nil)
+				barra.textura:SetStatusBarTexture("")
 				
 				_detalhes:SetFontSize (barra.lineText1, CONST_FONT_SIZE)
 				_detalhes:SetFontSize (barra.lineText4, CONST_FONT_SIZE)
@@ -2154,112 +2154,108 @@ local CLEvents = function (self, event)
 	end
 end
 
-function EncounterDetails:OnEvent (_, event, ...)
-
-	if (event == "ENCOUNTER_START") then
-		--> tracks if a enemy spell is instant cast.
-		EncounterDetails.CLEvents:RegisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
-		
-	elseif (event == "ENCOUNTER_END") then
-		EncounterDetails.CLEvents:UnregisterEvent ("COMBAT_LOG_EVENT_UNFILTERED")
-	
-	elseif (event == "ADDON_LOADED") then
-		local AddonName = select (1, ...)
-		if (AddonName == "Details_EncounterDetails") then
-			
-			if (_G._detalhes and _G._detalhes:InstallOkey()) then
-				
-				if (DetailsFramework.IsClassicWow()) then
-					return
-				end
-				
-				--> create widgets
-				CreatePluginFrames (data)
-
-				local PLUGIN_MINIMAL_DETAILS_VERSION_REQUIRED = 1
-				local PLUGIN_TYPE = "TOOLBAR"
-				local PLUGIN_LOCALIZED_NAME = Loc ["STRING_PLUGIN_NAME"]
-				local PLUGIN_REAL_NAME = "DETAILS_PLUGIN_ENCOUNTER_DETAILS"
-				local PLUGIN_ICON = [[Interface\Scenarios\ScenarioIcon-Boss]]
-				local PLUGIN_AUTHOR = "Terciob"
-				local PLUGIN_VERSION = "v1.06"
-				
-				local default_settings = {
-					show_icon = 5, --automatic
-					hide_on_combat = false, --hide the window when a new combat start
-					max_emote_segments = 3,
-					opened = 0,
-					encounter_timers_dbm = {},
-					encounter_timers_bw = {},
-					window_scale = 1,
-					last_section_selected = "main",
-				}
-
-				--> Install
-				local install, saveddata, is_enabled = _G._detalhes:InstallPlugin (
-					PLUGIN_TYPE,
-					PLUGIN_LOCALIZED_NAME,
-					PLUGIN_ICON,
-					EncounterDetails, 
-					PLUGIN_REAL_NAME,
-					PLUGIN_MINIMAL_DETAILS_VERSION_REQUIRED, 
-					PLUGIN_AUTHOR, 
-					PLUGIN_VERSION, 
-					default_settings
-				)
-				
-				if (type (install) == "table" and install.error) then
-					print (install.error)
-				end
---				table.wipe (EncounterDetailsDB.encounter_spells)
-				EncounterDetails.charsaved = EncounterDetailsDB or {emotes = {}}
-				EncounterDetailsDB = EncounterDetails.charsaved
-				
-				EncounterDetails.charsaved.encounter_spells = EncounterDetails.charsaved.encounter_spells or {}
-				
-				EncounterDetails.boss_emotes_table = EncounterDetails.charsaved.emotes
-				
-				--> build a table on global saved variables
-				if (not _detalhes.global_plugin_database ["DETAILS_PLUGIN_ENCOUNTER_DETAILS"]) then
-					_detalhes.global_plugin_database ["DETAILS_PLUGIN_ENCOUNTER_DETAILS"] = {encounter_timers_dbm = {}, encounter_timers_bw= {}}
-				end
-				
-				--> Register needed events
-				_G._detalhes:RegisterEvent (EncounterDetails, "COMBAT_PLAYER_ENTER")
-				_G._detalhes:RegisterEvent (EncounterDetails, "COMBAT_PLAYER_LEAVE")
-				_G._detalhes:RegisterEvent (EncounterDetails, "COMBAT_BOSS_FOUND")
-				_G._detalhes:RegisterEvent (EncounterDetails, "DETAILS_DATA_RESET")
-				
-				_G._detalhes:RegisterEvent (EncounterDetails, "GROUP_ONENTER")
-				_G._detalhes:RegisterEvent (EncounterDetails, "GROUP_ONLEAVE")
-				
-				_G._detalhes:RegisterEvent (EncounterDetails, "ZONE_TYPE_CHANGED")
-				
-				EncounterDetailsFrame:RegisterEvent ("ENCOUNTER_START")
-				EncounterDetailsFrame:RegisterEvent ("ENCOUNTER_END")
-				EncounterDetails.EnemySpellPool = EncounterDetails.charsaved.encounter_spells
-				enemy_spell_pool = EncounterDetails.EnemySpellPool
-				EncounterDetails.CLEvents = CreateFrame ("frame", nil, UIParent, "BackdropTemplate")
-				EncounterDetails.CLEvents:SetScript ("OnEvent", CLEvents)
-				EncounterDetails.CLEvents:Hide()
-				
-				EncounterDetails.BossWhispColors = {
-					[1] = "RAID_BOSS_EMOTE",
-					[2] = "RAID_BOSS_WHISPER",
-					[3] = "MONSTER_EMOTE",
-					[4] = "MONSTER_SAY",
-					[5] = "MONSTER_WHISPER",
-					[6] = "MONSTER_PARTY",
-					[7] = "MONSTER_YELL",
-				}
-				
-				--> embed the plugin into the plugin window
-				if (DetailsPluginContainerWindow) then
-					DetailsPluginContainerWindow.EmbedPlugin (EncounterDetails, EncounterDetails.Frame)
-				end
-				
-			end
+local installPluginFunc = function()
+	if (Details and Details.InstallOkey and Details:InstallOkey()) then
+		if (DetailsFramework.IsClassicWow()) then
+			return
 		end
-		
+
+		--create widgets
+		CreatePluginFrames(data)
+
+		local PLUGIN_MINIMAL_DETAILS_VERSION_REQUIRED = 1
+		local PLUGIN_TYPE = "TOOLBAR"
+		local PLUGIN_LOCALIZED_NAME = Loc ["STRING_PLUGIN_NAME"]
+		local PLUGIN_REAL_NAME = "DETAILS_PLUGIN_ENCOUNTER_DETAILS"
+		local PLUGIN_ICON = [[Interface\Scenarios\ScenarioIcon-Boss]]
+		local PLUGIN_AUTHOR = "Terciob"
+		local PLUGIN_VERSION = "v1.06"
+
+		local defaultSettings = {
+			show_icon = 5, --automatic
+			hide_on_combat = false, --hide the window when a new combat start
+			max_emote_segments = 3,
+			opened = 0,
+			encounter_timers_dbm = {},
+			encounter_timers_bw = {},
+			window_scale = 1,
+			last_section_selected = "main",
+		}
+
+		--install
+		local install, saveddata, isEnabled = Details:InstallPlugin(
+			PLUGIN_TYPE,
+			PLUGIN_LOCALIZED_NAME,
+			PLUGIN_ICON,
+			EncounterDetails,
+			PLUGIN_REAL_NAME,
+			PLUGIN_MINIMAL_DETAILS_VERSION_REQUIRED,
+			PLUGIN_AUTHOR,
+			PLUGIN_VERSION,
+			defaultSettings
+		)
+
+		if (type(install) == "table" and install.error) then
+			print(install.error)
+		end
+
+		--table.wipe(EncounterDetailsDB.encounter_spells)
+		EncounterDetails.charsaved = EncounterDetailsDB or {emotes = {}}
+		EncounterDetailsDB = EncounterDetails.charsaved
+		EncounterDetails.charsaved.encounter_spells = EncounterDetails.charsaved.encounter_spells or {}
+		EncounterDetails.boss_emotes_table = EncounterDetails.charsaved.emotes
+
+		--build a table on global saved variables
+		if (not _detalhes.global_plugin_database["DETAILS_PLUGIN_ENCOUNTER_DETAILS"]) then
+			_detalhes.global_plugin_database["DETAILS_PLUGIN_ENCOUNTER_DETAILS"] = {encounter_timers_dbm = {}, encounter_timers_bw= {}}
+		end
+
+		--Register needed events
+		Details:RegisterEvent(EncounterDetails, "COMBAT_PLAYER_ENTER")
+		Details:RegisterEvent(EncounterDetails, "COMBAT_PLAYER_LEAVE")
+		Details:RegisterEvent(EncounterDetails, "COMBAT_BOSS_FOUND")
+		Details:RegisterEvent(EncounterDetails, "DETAILS_DATA_RESET")
+		Details:RegisterEvent(EncounterDetails, "GROUP_ONENTER")
+		Details:RegisterEvent(EncounterDetails, "GROUP_ONLEAVE")
+		Details:RegisterEvent(EncounterDetails, "ZONE_TYPE_CHANGED")
+
+		EncounterDetailsFrame:RegisterEvent("ENCOUNTER_START")
+		EncounterDetailsFrame:RegisterEvent("ENCOUNTER_END")
+		EncounterDetails.EnemySpellPool = EncounterDetails.charsaved.encounter_spells
+		enemy_spell_pool = EncounterDetails.EnemySpellPool
+		EncounterDetails.CLEvents = CreateFrame("frame", nil, UIParent, "BackdropTemplate")
+		EncounterDetails.CLEvents:SetScript("OnEvent", CLEvents)
+		EncounterDetails.CLEvents:Hide()
+
+		EncounterDetails.BossWhispColors = {
+			[1] = "RAID_BOSS_EMOTE",
+			[2] = "RAID_BOSS_WHISPER",
+			[3] = "MONSTER_EMOTE",
+			[4] = "MONSTER_SAY",
+			[5] = "MONSTER_WHISPER",
+			[6] = "MONSTER_PARTY",
+			[7] = "MONSTER_YELL",
+		}
+
+		--embed the plugin into the plugin window
+		if (DetailsPluginContainerWindow) then
+			DetailsPluginContainerWindow.EmbedPlugin(EncounterDetails, EncounterDetails.Frame)
+		end
+	end
+end
+
+function EncounterDetails:OnEvent(self, event, ...)
+	if (event == "ENCOUNTER_START") then
+		--tracks if a enemy spell is instant cast
+		EncounterDetails.CLEvents:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
+	elseif (event == "ENCOUNTER_END") then
+		EncounterDetails.CLEvents:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
+
+	elseif (event == "ADDON_LOADED") then
+		local addonName = select(1, ...)
+		if (addonName == "Details_EncounterDetails") then
+			C_Timer.After(1, installPluginFunc)
+		end
 	end
 end

@@ -1,16 +1,10 @@
-lightweight tag a5d0e8bdf993736f8393b86b6cace3a769e80a43 4.0.8-release
-Author:	GitHub <noreply@github.com>
-Date:	Sat Jan 30 17:49:57 2021 +0000
+lightweight tag 388439776e653b8fc650636835b914a888e6cefa 4.0.15-release
+Author:	pereira-a <pereirasmandre@gmail.com>
+Date:	Mon Oct 31 13:52:00 2022 +0000
 
-commit 48bda60046631d359382afded13a9f389ba3a0f8
+commit 388439776e653b8fc650636835b914a888e6cefa
 Author: pereira-a <pereirasmandre@gmail.com>
-Date:   Sat Jan 30 17:49:13 2021 +0000
+Date:   Mon Oct 31 13:52:00 2022 +0000
 
-    Revert "Update to handle buttons that do not have "OnClick" scripts"
-
-commit 48bda60046631d359382afded13a9f389ba3a0f8
-Author: pereira-a <pereirasmandre@gmail.com>
-Date:   Sat Jan 30 17:49:13 2021 +0000
-
-    Revert "Update to handle buttons that do not have "OnClick" scripts"
+    change icon drag location formula
 

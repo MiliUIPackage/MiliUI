@@ -832,7 +832,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.style.mask:SetPoint("TOPLEFT", 3, -3)
     tip.style.mask:SetPoint("BOTTOMRIGHT", tip.style, "TOPRIGHT", -3, -32)
     tip.style.mask:SetBlendMode("ADD")
-    tip.style.mask:SetGradientAlpha("VERTICAL", 0, 0, 0, 0, 0.9, 0.9, 0.9, 0.4)
+    tip.style.mask:SetGradient("VERTICAL", CreateColor(0, 0, 0, 0), CreateColor(0.9, 0.9, 0.9, 0.4)) -- 10.0 fix
     tip.style.mask:Hide()
     tip:HookScript("OnShow", function(self) LibEvent:trigger("tooltip:show", self) end)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)

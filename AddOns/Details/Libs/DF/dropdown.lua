@@ -1,37 +1,22 @@
 
 local DF = _G ["DetailsFramework"]
 if (not DF or not DetailsFrameworkCanLoad) then
-	return 
+	return
 end
 
 local _
-local _rawset = rawset --> lua local
-local _rawget = rawget --> lua local
-local _setmetatable = setmetatable --> lua local
-local _unpack = unpack --> lua local
-local _type = type --> lua local
-local _math_floor = math.floor --> lua local
-local loadstring = loadstring --> lua local
-local _string_len = string.len --> lua local
-
-local cleanfunction = function() end
-local APIDropDownFunctions = false
+local loadedAPIDropDownFunctions = false
 
 do
 	local metaPrototype = {
 		WidgetType = "dropdown",
-		SetHook = DF.SetHook,
-		HasHook = DF.HasHook,
-		ClearHooks = DF.ClearHooks,
-		RunHooksForWidget = DF.RunHooksForWidget,
-
 		dversion = DF.dversion,
 	}
 
 	--check if there's a metaPrototype already existing
 	if (_G[DF.GlobalWidgetControlNames["dropdown"]]) then
 		--get the already existing metaPrototype
-		local oldMetaPrototype = _G[DF.GlobalWidgetControlNames ["dropdown"]]
+		local oldMetaPrototype = _G[DF.GlobalWidgetControlNames["dropdown"]]
 		--check if is older
 		if ( (not oldMetaPrototype.dversion) or (oldMetaPrototype.dversion < DF.dversion) ) then
 			--the version is older them the currently loading one
@@ -42,294 +27,241 @@ do
 		end
 	else
 		--first time loading the framework
-		_G[DF.GlobalWidgetControlNames ["dropdown"]] = metaPrototype
+		_G[DF.GlobalWidgetControlNames["dropdown"]] = metaPrototype
 	end
 end
 
-local DropDownMetaFunctions = _G[DF.GlobalWidgetControlNames ["dropdown"]]
+local DropDownMetaFunctions = _G[DF.GlobalWidgetControlNames["dropdown"]]
+
+DF:Mixin(DropDownMetaFunctions, DF.SetPointMixin)
+DF:Mixin(DropDownMetaFunctions, DF.FrameMixin)
+DF:Mixin(DropDownMetaFunctions, DF.TooltipHandlerMixin)
+DF:Mixin(DropDownMetaFunctions, DF.ScriptHookMixin)
 
 ------------------------------------------------------------------------------------------------------------
---> metatables
+--metatables
 
-	DropDownMetaFunctions.__call = function (_table, value)
-		--> unknow
+	DropDownMetaFunctions.__call = function(object, value)
+		--unknown
 	end
-	
+
 ------------------------------------------------------------------------------------------------------------
---> members
+--members
+	--selected value
+	local gmember_value = function(object)
+		return object:GetValue()
+	end
 
-	--> selected value
-	local gmember_value = function (_object)
-		return _object:GetValue()
+	--tooltip
+	local gmember_tooltip = function(object)
+		return object:GetTooltip()
 	end
-	--> tooltip
-	local gmember_tooltip = function (_object)
-		return _object:GetTooltip()
+
+	--shown
+	local gmember_shown = function(object)
+		return object:IsShown()
 	end
-	--> shown
-	local gmember_shown = function (_object)
-		return _object:IsShown()
+
+	--frame width
+	local gmember_width = function(object)
+		return object.button:GetWidth()
 	end
-	--> frame width
-	local gmember_width = function (_object)
-		return _object.button:GetWidth()
+
+	--frame height
+	local gmember_height = function(object)
+		return object.button:GetHeight()
 	end
-	--> frame height
-	local gmember_height = function (_object)
-		return _object.button:GetHeight()
+
+	--current text
+	local gmember_text = function(object)
+		return object.label:GetText()
 	end
-	--> current text
-	local gmember_text = function (_object)
-		return _object.label:GetText()
+
+	--menu creation function
+	local gmember_function = function(object)
+		return object:GetFunction()
 	end
-	--> menu creation function
-	local gmember_function = function (_object)
-		return _object:GetFunction()
+
+	--menu width
+	local gmember_menuwidth = function(object)
+		return rawget(object, "realsizeW")
 	end
-	--> menu width
-	local gmember_menuwidth = function (_object)
-		return _rawget (self, "realsizeW")
+
+	--menu height
+	local gmember_menuheight = function(object)
+		return rawget(object, "realsizeH")
 	end
-	--> menu height
-	local gmember_menuheight = function (_object)
-		return _rawget (self, "realsizeH")
-	end
-	
+
 	DropDownMetaFunctions.GetMembers = DropDownMetaFunctions.GetMembers or {}
-	DropDownMetaFunctions.GetMembers ["value"] = gmember_value
-	DropDownMetaFunctions.GetMembers ["text"] = gmember_text
-	DropDownMetaFunctions.GetMembers ["shown"] = gmember_shown
-	DropDownMetaFunctions.GetMembers ["width"] = gmember_width
-	DropDownMetaFunctions.GetMembers ["menuwidth"] = gmember_menuwidth
-	DropDownMetaFunctions.GetMembers ["height"] = gmember_height
-	DropDownMetaFunctions.GetMembers ["menuheight"] = gmember_menuheight
-	DropDownMetaFunctions.GetMembers ["tooltip"] = gmember_tooltip
-	DropDownMetaFunctions.GetMembers ["func"] = gmember_function	
-	
-	DropDownMetaFunctions.__index = function (_table, _member_requested)
+	DropDownMetaFunctions.GetMembers["value"] = gmember_value
+	DropDownMetaFunctions.GetMembers["text"] = gmember_text
+	DropDownMetaFunctions.GetMembers["shown"] = gmember_shown
+	DropDownMetaFunctions.GetMembers["width"] = gmember_width
+	DropDownMetaFunctions.GetMembers["menuwidth"] = gmember_menuwidth
+	DropDownMetaFunctions.GetMembers["height"] = gmember_height
+	DropDownMetaFunctions.GetMembers["menuheight"] = gmember_menuheight
+	DropDownMetaFunctions.GetMembers["tooltip"] = gmember_tooltip
+	DropDownMetaFunctions.GetMembers["func"] = gmember_function
 
-		local func = DropDownMetaFunctions.GetMembers [_member_requested]
+	DropDownMetaFunctions.__index = function(object, key)
+		local func = DropDownMetaFunctions.GetMembers[key]
 		if (func) then
-			return func (_table, _member_requested)
+			return func(object, key)
 		end
-		
-		local fromMe = _rawget (_table, _member_requested)
-		if (fromMe) then
-			return fromMe
+
+		local alreadyHaveKey = rawget(object, key)
+		if (alreadyHaveKey) then
+			return alreadyHaveKey
 		end
-		
-		return DropDownMetaFunctions [_member_requested]
+
+		return DropDownMetaFunctions[key]
 	end
-	
+
 ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	--> tooltip
-	local smember_tooltip = function (_object, _value)
-		return _object:SetTooltip (_value)
+	--tooltip
+	local smember_tooltip = function(object, value)
+		return object:SetTooltip(value)
 	end
-	--> show
-	local smember_show = function (_object, _value)
-		if (_value) then
-			return _object:Show()
+
+	--show
+	local smember_show = function(object, value)
+		if (value) then
+			return object:Show()
 		else
-			return _object:Hide()
+			return object:Hide()
 		end
 	end
-	--> hide
-	local smember_hide = function (_object, _value)
-		if (not _value) then
-			return _object:Show()
+
+	--hide
+	local smember_hide = function(object, value)
+		if (not value) then
+			return object:Show()
 		else
-			return _object:Hide()
+			return object:Hide()
 		end
 	end
-	--> frame width
-	local smember_width = function (_object, _value)
-		return _object.dropdown:SetWidth (_value)
+
+	--frame width
+	local smember_width = function(object, value)
+		return object.dropdown:SetWidth(value)
 	end
-	--> frame height
-	local smember_height = function (_object, _value)
-		return _object.dropdown:SetHeight (_value)
-	end	
-	--> menu creation function
-	local smember_function = function (_object, _value)
-		return _object:SetFunction (_value)
+
+	--frame height
+	local smember_height = function(object, value)
+		return object.dropdown:SetHeight(value)
 	end
-	--> menu width
-	local smember_menuwidth = function (_object, _value)
-		_object:SetMenuSize (_value, nil)
+
+	--menu creation function
+	local smember_function = function(object, value)
+		return object:SetFunction(value)
 	end
-	--> menu height
-	local smember_menuheight = function (_object, _value)
-		_object:SetMenuSize (nil, _value)
+
+	--menu width
+	local smember_menuwidth = function(object, value)
+		object:SetMenuSize(value, nil)
 	end
-	
+
+	--menu height
+	local smember_menuheight = function(object, value)
+		object:SetMenuSize(nil, value)
+	end
+
 	DropDownMetaFunctions.SetMembers = DropDownMetaFunctions.SetMembers or {}
-	DropDownMetaFunctions.SetMembers ["tooltip"] = smember_tooltip
-	DropDownMetaFunctions.SetMembers ["show"] = smember_show
-	DropDownMetaFunctions.SetMembers ["hide"] = smember_hide
-	DropDownMetaFunctions.SetMembers ["width"] = smember_width
-	DropDownMetaFunctions.SetMembers ["menuwidth"] = smember_menuwidth
-	DropDownMetaFunctions.SetMembers ["height"] = smember_height
-	DropDownMetaFunctions.SetMembers ["menuheight"] = smember_menuheight
-	DropDownMetaFunctions.SetMembers ["func"] = smember_function
-	
-	DropDownMetaFunctions.__newindex = function (_table, _key, _value)
-		local func = DropDownMetaFunctions.SetMembers [_key]
+	DropDownMetaFunctions.SetMembers["tooltip"] = smember_tooltip
+	DropDownMetaFunctions.SetMembers["show"] = smember_show
+	DropDownMetaFunctions.SetMembers["hide"] = smember_hide
+	DropDownMetaFunctions.SetMembers["width"] = smember_width
+	DropDownMetaFunctions.SetMembers["menuwidth"] = smember_menuwidth
+	DropDownMetaFunctions.SetMembers["height"] = smember_height
+	DropDownMetaFunctions.SetMembers["menuheight"] = smember_menuheight
+	DropDownMetaFunctions.SetMembers["func"] = smember_function
+
+	DropDownMetaFunctions.__newindex = function(object, key, value)
+		local func = DropDownMetaFunctions.SetMembers[key]
 		if (func) then
-			return func (_table, _value)
+			return func(object, value)
 		else
-			return _rawset (_table, _key, _value)
+			return rawset(object, key, value)
 		end
 	end
 
 ------------------------------------------------------------------------------------------------------------
 
-function DropDownMetaFunctions:SetBackdrop(...)
-	return self.dropdown:SetBackdrop(...)
-end
-
-function DropDownMetaFunctions:SetBackdropColor(...)
-	return self.dropdown:SetBackdropColor(...)
-end
-
-function DropDownMetaFunctions:SetBackdropBorderColor(...)
-	return self.dropdown:SetBackdropBorderColor(...)
-end
-
---> methods
-	function DropDownMetaFunctions:IsShown()
-		return self.dropdown:IsShown()
-	end
-	function DropDownMetaFunctions:Show()
-		return self.dropdown:Show()
-	end
-	function DropDownMetaFunctions:Hide()
-		return self.dropdown:Hide()
-	end
-
---> menu width and height
-	function DropDownMetaFunctions:SetMenuSize (w, h)
-		if (w) then
-			return _rawset (self, "realsizeW", w)
+--menu width and height
+	function DropDownMetaFunctions:SetMenuSize(width, height)
+		if (width) then
+			return rawset(self, "realsizeW", width)
 		end
-		if (h) then
-			return _rawset (self, "realsizeH", h)
+		if (height) then
+			return rawset(self, "realsizeH", height)
 		end
 	end
+
 	function DropDownMetaFunctions:GetMenuSize()
-		return _rawget (self, "realsizeW"), _rawget (self, "realsizeH")
+		return rawget(self, "realsizeW"), rawget(self, "realsizeH")
 	end
-	
---> function
-	function DropDownMetaFunctions:SetFunction (func)
-		return _rawset (self, "func", func)
+
+--function
+	function DropDownMetaFunctions:SetFunction(func)
+		return rawset(self, "func", func)
 	end
+
 	function DropDownMetaFunctions:GetFunction()
-		return _rawget (self, "func")
+		return rawget(self, "func")
 	end
-	
---> value
+
+--value
 	function DropDownMetaFunctions:GetValue()
-		return _rawget (self, "myvalue")
-	end
-	function DropDownMetaFunctions:SetValue (value)
-		return _rawset (self, "myvalue", value)
+		return rawget(self, "myvalue")
 	end
 
---> setpoint
-	function DropDownMetaFunctions:SetPoint (v1, v2, v3, v4, v5)
-		v1, v2, v3, v4, v5 = DF:CheckPoints (v1, v2, v3, v4, v5, self)
-		if (not v1) then
-			print ("Invalid parameter for SetPoint")
-			return
-		end
-		return self.widget:SetPoint (v1, v2, v3, v4, v5)
+	function DropDownMetaFunctions:SetValue(value)
+		return rawset(self, "myvalue", value)
 	end
 
---> sizes
-	function DropDownMetaFunctions:SetSize (w, h)
-		if (w) then
-			self.dropdown:SetWidth (w)
-		end
-		if (h) then
-			return self.dropdown:SetHeight (h)
-		end
-	end
-	
---> tooltip
-	function DropDownMetaFunctions:SetTooltip (tooltip)
-		if (tooltip) then
-			return _rawset (self, "have_tooltip", tooltip)
-		else
-			return _rawset (self, "have_tooltip", nil)
-		end
-	end
-	function DropDownMetaFunctions:GetTooltip()
-		return _rawget (self, "have_tooltip")
-	end
-	
---> frame levels
-	function DropDownMetaFunctions:GetFrameLevel()
-		return self.dropdown:GetFrameLevel()
-	end
-	function DropDownMetaFunctions:SetFrameLevel (level, frame)
+--frame levels
+	function DropDownMetaFunctions:SetFrameLevel(level, frame)
 		if (not frame) then
-			return self.dropdown:SetFrameLevel (level)
+			return self.dropdown:SetFrameLevel(level)
 		else
-			local framelevel = frame:GetFrameLevel (frame) + level
-			return self.dropdown:SetFrameLevel (framelevel)
+			local framelevel = frame:GetFrameLevel(frame) + level
+			return self.dropdown:SetFrameLevel(framelevel)
 		end
 	end
 
---> frame stratas
-	function DropDownMetaFunctions:GetFrameStrata()
-		return self.dropdown:GetFrameStrata()
-	end
-	function DropDownMetaFunctions:SetFrameStrata (strata)
-		if (_type (strata) == "table") then
-			self.dropdown:SetFrameStrata (strata:GetFrameStrata())
-		else
-			self.dropdown:SetFrameStrata (strata)
-		end
-	end
-	
---> enabled
+--enabled
 	function DropDownMetaFunctions:IsEnabled()
 		return self.dropdown:IsEnabled()
 	end
-	
+
 	function DropDownMetaFunctions:Enable()
-		
-		self:SetAlpha (1)
-		_rawset (self, "lockdown", false)
-		
+		self:SetAlpha(1)
+		rawset(self, "lockdown", false)
+
 		if (self.OnEnable) then
-			self.OnEnable (self)
+			self.OnEnable(self)
 		end
-		--return self.dropdown:Enable()
 	end
-	
+
 	function DropDownMetaFunctions:Disable()
-	
-		self:SetAlpha (.4)
-		_rawset (self, "lockdown", true)
-		
+		self:SetAlpha(.4)
+		rawset(self, "lockdown", true)
+
 		if (self.OnDisable) then
-			self.OnDisable (self)
+			self.OnDisable(self)
 		end
-		--return self.dropdown:Disable()
 	end
 
---> fixed value
-	function DropDownMetaFunctions:SetFixedParameter (value)
-		_rawset (self, "FixedValue", value)
+--fixed value
+	function DropDownMetaFunctions:SetFixedParameter(value)
+		rawset(self, "FixedValue", value)
 	end
-	
+
 ------------------------------------------------------------------------------------------------------------
---> scripts
+--scripts
 
-local last_opened = false
+local lastOpened = false
 
 local isOptionVisible = function(self, thisOption)
 	if (type(thisOption.shown) == "boolean") then
@@ -392,36 +324,36 @@ function DropDownMetaFunctions:NoOptionSelected()
 		return
 	end
 
-	self.label:SetText (self.empty_text or "no option selected")
-	self.label:SetPoint ("left", self.icon, "right", 2, 0)
-	self.label:SetTextColor (1, 1, 1, 0.4)
+	self.label:SetText(self.empty_text or "no option selected")
+	self.label:SetPoint("left", self.icon, "right", 2, 0)
+	self.label:SetTextColor(1, 1, 1, 0.4)
 
 	if (self.empty_icon) then
-		self.icon:SetTexture (self.empty_icon)
+		self.icon:SetTexture(self.empty_icon)
 	else
-		self.icon:SetTexture ([[Interface\COMMON\UI-ModelControlPanel]])
-		self.icon:SetTexCoord (0.625, 0.78125, 0.328125, 0.390625)
+		self.icon:SetTexture([[Interface\COMMON\UI-ModelControlPanel]])
+		self.icon:SetTexCoord(0.625, 0.78125, 0.328125, 0.390625)
 	end
 
-	self.icon:SetVertexColor (1, 1, 1, 0.4)
+	self.icon:SetVertexColor(1, 1, 1, 0.4)
 	self.last_select = nil
 end
 
 function DropDownMetaFunctions:NoOption(state)
 	if (state) then
 		self:Disable()
-		self:SetAlpha (0.5)
+		self:SetAlpha(0.5)
 		self.no_options = true
 		self.label:SetText ("沒有選項")
-		self.label:SetPoint ("left", self.icon, "right", 2, 0)
-		self.label:SetTextColor (1, 1, 1, 0.4)
-		self.icon:SetTexture ([[Interface\CHARACTERFRAME\UI-Player-PlayTimeUnhealthy]])
-		self.icon:SetTexCoord (0, 1, 0, 1)
-		self.icon:SetVertexColor (1, 1, 1, 0.4)		
+		self.label:SetPoint("left", self.icon, "right", 2, 0)
+		self.label:SetTextColor(1, 1, 1, 0.4)
+		self.icon:SetTexture([[Interface\CHARACTERFRAME\UI-Player-PlayTimeUnhealthy]])
+		self.icon:SetTexCoord(0, 1, 0, 1)
+		self.icon:SetVertexColor(1, 1, 1, 0.4)
 	else
 		self.no_options = false
 		self:Enable()
-		self:SetAlpha (1)
+		self:SetAlpha(1)
 	end
 end
 
@@ -433,9 +365,9 @@ local runCallbackFunctionForButton = function(button)
 		--need: the the callback func, the object of the dropdown (capsule), the object (capsule) of the button to get FixedValue and the last need the value of the optionTable
 		local success, errorText = pcall(button.table.onclick, button:GetParent():GetParent():GetParent().MyObject, button.object.FixedValue, button.table.value)
 		if (not success) then
-			error ("Details! Framework: dropdown " .. button:GetParent():GetParent():GetParent().MyObject:GetName() ..  " error: " .. errorText)
+			error("Details! Framework: dropdown " .. button:GetParent():GetParent():GetParent().MyObject:GetName() ..  " error: " .. errorText)
 		end
-		button:GetParent():GetParent():GetParent().MyObject:RunHooksForWidget ("OnOptionSelected", button:GetParent():GetParent():GetParent().MyObject, button.object.FixedValue, button.table.value)
+		button:GetParent():GetParent():GetParent().MyObject:RunHooksForWidget("OnOptionSelected", button:GetParent():GetParent():GetParent().MyObject, button.object.FixedValue, button.table.value)
 	end
 end
 
@@ -445,7 +377,7 @@ local canRunCallbackFunctionForOption = function(canRunCallback, optionTable, dr
 		if (optionTable.onclick) then
 			local success, errorText = pcall(optionTable.onclick, dropdownObject, fixedValue, optionTable.value)
 			if (not success) then
-				error ("Details! Framework: dropdown " .. dropdownObject:GetName() ..  " error: " .. errorText)
+				error("Details! Framework: dropdown " .. dropdownObject:GetName() ..  " error: " .. errorText)
 			end
 			dropdownObject:RunHooksForWidget("OnOptionSelected", dropdownObject, fixedValue, optionTable.value)
 		end
@@ -458,7 +390,7 @@ end
 --@onlyShown: the selected option index when selecting by option number must be visible
 --@runCallback: run the callback (onclick) function after selecting the option
 function DropDownMetaFunctions:Select(optionName, byOptionNumber, onlyShown, runCallback)
-	if (type (optionName) == "boolean" and not optionName) then
+	if (type(optionName) == "boolean" and not optionName) then
 		self:NoOptionSelected()
 		return false
 	end
@@ -504,6 +436,7 @@ function DropDownMetaFunctions:Select(optionName, byOptionNumber, onlyShown, run
 			self:Selected(optionTableSelected)
 			canRunCallbackFunctionForOption(runCallback, optionTableSelected, self)
 			return true
+
 		else
 			local optionTableSelected = optionsTable[optionIndex]
 
@@ -577,7 +510,7 @@ function DropDownMetaFunctions:Selected(thisOption)
 			self.icon:SetVertexColor(1, 1, 1, 1)
 		end
 
-		self.icon:SetSize(self:GetHeight()-2, self:GetHeight()-2)
+		self.icon:SetSize(self:GetHeight()-4, self:GetHeight()-4)
 	else
 		self.label:SetPoint("left", self.label:GetParent(), "left", 4, 0)
 	end
@@ -599,9 +532,9 @@ function DropDownMetaFunctions:Selected(thisOption)
 	end
 
 	if (thisOption.font) then
-		self.label:SetFont(thisOption.font, 14)
+		self.label:SetFont(thisOption.font, 13)
 	else
-		self.label:SetFont("GameFontHighlight", 14)
+		self.label:SetFont("GameFontHighlight", 13)
 	end
 
 	self:SetValue(thisOption.value)
@@ -626,10 +559,10 @@ function DropDownMetaFunctions:Open()
 	self.dropdown.dropdownframe:Show()
 	self.dropdown.dropdownborder:Show()
 	self.opened = true
-	if (last_opened) then
-		last_opened:Close()
+	if (lastOpened) then
+		lastOpened:Close()
 	end
-	last_opened = self
+	lastOpened = self
 end
 
 function DropDownMetaFunctions:Close()
@@ -644,7 +577,7 @@ function DropDownMetaFunctions:Close()
 	selectedTexture:Hide()
 
 	self.opened = false
-	last_opened = false
+	lastOpened = false
 end
 
 --close by escape key
@@ -693,11 +626,11 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 
 		--has at least 1 option?
 		if (optionsTable and optionsTable[1]) then
-			local scrollFrame = _G [button:GetName() .. "_ScrollFrame"]
-			local scrollChild = _G [button:GetName() .. "_ScrollFrame_ScrollChild"]
-			local scrollBorder = _G [button:GetName() .. "_Border"]
-			local selectedTexture = _G [button:GetName() .. "_ScrollFrame_ScrollChild_SelectedTexture"]
-			local mouseOverTexture = _G [button:GetName() .. "_ScrollFrame_ScrollChild_MouseOverTexture"]
+			local scrollFrame = _G[button:GetName() .. "_ScrollFrame"]
+			local scrollChild = _G[button:GetName() .. "_ScrollFrame_ScrollChild"]
+			local scrollBorder = _G[button:GetName() .. "_Border"]
+			local selectedTexture = _G[button:GetName() .. "_ScrollFrame_ScrollChild_SelectedTexture"]
+			local mouseOverTexture = _G[button:GetName() .. "_ScrollFrame_ScrollChild_MouseOverTexture"]
 
 			local i = 1
 			local showing = 0
@@ -756,13 +689,13 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 					if (thisOption.iconsize) then
 						thisOptionFrame.icon:SetSize(thisOption.iconsize[1], thisOption.iconsize[2])
 					else
-						thisOptionFrame.icon:SetSize(20, 20)
+						thisOptionFrame.icon:SetSize(thisOptionFrame:GetHeight()-6, thisOptionFrame:GetHeight()-6)
 					end
 
 					if (thisOption.font) then
-						thisOptionFrame.label:SetFont(thisOption.font, 10.5)
+						thisOptionFrame.label:SetFont(thisOption.font, 13.5)
 					else
-						thisOptionFrame.label:SetFont("GameFontHighlight", 10.5)
+						thisOptionFrame.label:SetFont("GameFontHighlight", 13.5)
 					end
 
 					if (thisOption.statusbar) then
@@ -821,11 +754,11 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 			if (currentText) then
 				selectedTexture:Hide()
 			else
-				selectedTexture:SetWidth(frameWitdh-20)
+				selectedTexture:SetWidth(frameWitdh - 20)
 			end
 
-			for i = showing + 1, #object.menus do
-				object.menus[i]:Hide()
+			for o = showing + 1, #object.menus do
+				object.menus[o]:Hide()
 			end
 
 			local size = object.realsizeH
@@ -835,7 +768,7 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 				object:ShowScroll()
 				scrollFrame:EnableMouseWheel(true)
 				object.scroll:Altura(size-35) --height
-				object.scroll:SetMinMaxValues(0, (showing*20) - size + 2)
+				object.scroll:SetMinMaxValues(0, (showing * 20) - size + 2)
 
 				--width
 				scrollBorder:SetWidth(frameWitdh+20)
@@ -845,16 +778,16 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 				--height
 				scrollBorder:SetHeight(size+2)
 				scrollFrame:SetHeight(size+2)
-				scrollChild:SetHeight((showing*20)+20)
+				scrollChild:SetHeight((showing * 20) + 20)
 
 				--mouse over texture
-				mouseOverTexture:SetWidth(frameWitdh-7)
+				mouseOverTexture:SetWidth(frameWitdh - 7)
 
 				--selected
 				selectedTexture:SetWidth(frameWitdh - 9)
 
 				for index, row in ipairs(object.menus) do
-					row:SetPoint("topright", scrollChild, "topright", -22, ((-index-1)*20)-5)
+					row:SetPoint("topright", scrollChild, "topright", -22, ((-index-1) * 20) - 5)
 				end
 			else
 				--hide scrollbar and disable wheel
@@ -865,20 +798,20 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 				scrollFrame:SetWidth(frameWitdh)
 				scrollChild:SetWidth(frameWitdh)
 				--height
-				scrollBorder:SetHeight((showing*20) + 1)
-				scrollFrame:SetHeight((showing*20) + 1)
+				scrollBorder:SetHeight((showing * 20) + 1)
+				scrollFrame:SetHeight((showing * 20) + 1)
 				--mouse over texture
 				mouseOverTexture:SetWidth(frameWitdh - 1)
 				--selected
 				selectedTexture:SetWidth(frameWitdh - 1)
 
 				for index, row in ipairs(object.menus) do
-					row:SetPoint("topright", scrollChild, "topright", -5, ((-index-1)*20)-5)
+					row:SetPoint("topright", scrollChild, "topright", -5, ((-index-1) * 20) -5)
 				end
 			end
 
 			if (object.myvaluelabel and currentIndex and scrollFrame.slider:IsShown()) then
-				object.scroll:SetValue(max((currentIndex*20) - 80, 0))
+				object.scroll:SetValue(max((currentIndex * 20) - 80, 0))
 			else
 				object.scroll:SetValue(0)
 			end
@@ -893,140 +826,129 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 	end
 end
 
-function DetailsFrameworkDropDownOnEnter (self)
-
-	local capsule = self.MyObject
-	local kill = capsule:RunHooksForWidget ("OnEnter", self, capsule)
+function DetailsFrameworkDropDownOnEnter(self)
+	local object = self.MyObject
+	local kill = object:RunHooksForWidget("OnEnter", self, object)
 	if (kill) then
 		return
 	end
 
-	if (self.MyObject.onenter_backdrop) then
-		self:SetBackdropColor (unpack (self.MyObject.onenter_backdrop))
+	if (object.onenter_backdrop) then
+		self:SetBackdropColor(unpack(object.onenter_backdrop))
 	else
-		self:SetBackdropColor (.2, .2, .2, .2)
+		self:SetBackdropColor(.2, .2, .2, .2)
 	end
-	
-	if (self.MyObject.onenter_backdrop_border_color) then
-		self:SetBackdropBorderColor (unpack (self.MyObject.onenter_backdrop_border_color))
+
+	if (object.onenter_backdrop_border_color) then
+		self:SetBackdropBorderColor(unpack(object.onenter_backdrop_border_color))
 	end
-	
+
 	self.arrowTexture2:Show()
-	
-	if (self.MyObject.have_tooltip) then 
-		GameCooltip2:Preset (2)
-		
-		if (type (self.MyObject.have_tooltip) == "function") then
-			GameCooltip2:AddLine (self.MyObject.have_tooltip() or "")
-		else
-			GameCooltip2:AddLine (self.MyObject.have_tooltip)
-		end
 
-		GameCooltip2:SetOwner (self)
-		GameCooltip2:ShowCooltip()
-	end
-
+	object:ShowTooltip()
 end
 
-function DetailsFrameworkDropDownOnLeave (self)
-	local capsule = self.MyObject
-	local kill = capsule:RunHooksForWidget ("OnLeave", self, capsule)
+function DetailsFrameworkDropDownOnLeave(self)
+	local object = self.MyObject
+	local kill = object:RunHooksForWidget("OnLeave", self, object)
 	if (kill) then
 		return
 	end
 
-	if (self.MyObject.onleave_backdrop) then
-		self:SetBackdropColor (unpack (self.MyObject.onleave_backdrop))
+	if (object.onleave_backdrop) then
+		self:SetBackdropColor(unpack(object.onleave_backdrop))
 	else
-		self:SetBackdropColor (1, 1, 1, .5)
+		self:SetBackdropColor(1, 1, 1, .5)
 	end
-	
-	if (self.MyObject.onleave_backdrop_border_color) then
-		self:SetBackdropBorderColor (unpack (self.MyObject.onleave_backdrop_border_color))
+
+	if (object.onleave_backdrop_border_color) then
+		self:SetBackdropBorderColor(unpack(object.onleave_backdrop_border_color))
 	end
-	
+
 	self.arrowTexture2:Hide()
-	
-	if (self.MyObject.have_tooltip) then 
-		GameCooltip2:ShowMe (false)
-	end
+
+	object:HideTooltip()
 end
 
-function DetailsFrameworkDropDownOnSizeChanged (self, w, h)
-	self.MyObject.label:SetSize (self:GetWidth()-40, 10)
+function DetailsFrameworkDropDownOnSizeChanged(self)
+	local object = self.MyObject
+	object.label:SetSize(self:GetWidth() - 40, 10)
 end
 
-function DetailsFrameworkDropDownOnShow (self)
-	local capsule = self.MyObject
-	local kill = capsule:RunHooksForWidget ("OnShow", self, capsule)
+function DetailsFrameworkDropDownOnShow(self)
+	local object = self.MyObject
+	local kill = object:RunHooksForWidget("OnShow", self, object)
 	if (kill) then
 		return
 	end
 end
 
-function DetailsFrameworkDropDownOnHide (self)
-	local capsule = self.MyObject
-	local kill = capsule:RunHooksForWidget ("OnHide", self, capsule)
+function DetailsFrameworkDropDownOnHide(self)
+	local object = self.MyObject
+	local kill = object:RunHooksForWidget("OnHide", self, object)
 	if (kill) then
 		return
 	end
-	
-	self.MyObject:Close()
+	object:Close()
 end
 
-function DF:BuildDropDownFontList (on_click, icon, icon_texcoord, icon_size)
-	local t = {}
-	local SharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
-	for name, fontPath in pairs (SharedMedia:HashTable ("font")) do 
-		t[#t+1] = {value = name, label = name, onclick = on_click, icon = icon, iconsize = icon_size, texcoord = icon_texcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
+function DF:BuildDropDownFontList(onClick, icon, iconTexcoord, iconSize)
+	local fontTable = {}
+
+	local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
+	for name, fontPath in pairs(SharedMedia:HashTable("font")) do
+		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSize, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
 	end
-	table.sort (t, function (t1, t2) return t1.label < t2.label end)
-	return t
+
+	table.sort(fontTable, function(t1, t2) return t1.label < t2.label end)
+
+	return fontTable
 end
 
 ------------------------------------------------------------------------------------------------------------
-function DropDownMetaFunctions:SetTemplate (template)
+--template
 
+function DropDownMetaFunctions:SetTemplate(template)
 	self.template = template
 
 	if (template.width) then
-		self:SetWidth (template.width)
+		self:SetWidth(template.width)
 	end
 	if (template.height) then
-		self:SetHeight (template.height)
+		self:SetHeight(template.height)
 	end
-	
+
 	if (template.backdrop) then
-		self:SetBackdrop (template.backdrop)
+		self:SetBackdrop(template.backdrop)
 	end
 	if (template.backdropcolor) then
-		local r, g, b, a = DF:ParseColors (template.backdropcolor)
-		self:SetBackdropColor (r, g, b, a)
+		local r, g, b, a = DF:ParseColors(template.backdropcolor)
+		self:SetBackdropColor(r, g, b, a)
 		self.onleave_backdrop = {r, g, b, a}
 	end
 	if (template.backdropbordercolor) then
-		local r, g, b, a = DF:ParseColors (template.backdropbordercolor)
-		self:SetBackdropBorderColor (r, g, b, a)
+		local r, g, b, a = DF:ParseColors(template.backdropbordercolor)
+		self:SetBackdropBorderColor(r, g, b, a)
 		self.onleave_backdrop_border_color = {r, g, b, a}
 	end
 
 	if (template.onentercolor) then
-		local r, g, b, a = DF:ParseColors (template.onentercolor)
+		local r, g, b, a = DF:ParseColors(template.onentercolor)
 		self.onenter_backdrop = {r, g, b, a}
 	end
-	
+
 	if (template.onleavecolor) then
-		local r, g, b, a = DF:ParseColors (template.onleavecolor)
+		local r, g, b, a = DF:ParseColors(template.onleavecolor)
 		self.onleave_backdrop = {r, g, b, a}
 	end
-	
+
 	if (template.onenterbordercolor) then
-		local r, g, b, a = DF:ParseColors (template.onenterbordercolor)
+		local r, g, b, a = DF:ParseColors(template.onenterbordercolor)
 		self.onenter_backdrop_border_color = {r, g, b, a}
 	end
 
 	if (template.onleavebordercolor) then
-		local r, g, b, a = DF:ParseColors (template.onleavebordercolor)
+		local r, g, b, a = DF:ParseColors(template.onleavebordercolor)
 		self.onleave_backdrop_border_color = {r, g, b, a}
 	end
 
@@ -1061,286 +983,269 @@ function DropDownMetaFunctions:RefreshDropIcon()
 			self.dropdown.arrowTexture:SetPoint("right", self.dropdown, "right", unpack(template.dropiconpoints))
 			self.dropdown.arrowTexture2:SetPoint("right", self.dropdown, "right", unpack(template.dropiconpoints))
 		end
-
-		
 	end
 end
 
 ------------------------------------------------------------------------------------------------------------
---> object constructor
+--object constructor
 
-function DF:CreateDropDown (parent, func, default, w, h, member, name, template)
-	return DF:NewDropDown (parent, parent, name, member, w, h, func, default, template)
+function DF:CreateDropDown(parent, func, default, width, height, member, name, template)
+	return DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
 end
 
-function DF:NewDropDown (parent, container, name, member, w, h, func, default, template)
-
+function DF:NewDropDown(parent, container, name, member, width, height, func, default, template)
 	if (not name) then
 		name = "DetailsFrameworkDropDownNumber" .. DF.DropDownCounter
 		DF.DropDownCounter = DF.DropDownCounter + 1
-		
+
 	elseif (not parent) then
-		return error ("Details! FrameWork: parent not found.", 2)
+		return error("Details! Framework: parent not found.", 2)
 	end
+
 	if (not container) then
 		container = parent
 	end
-	
-	if (name:find ("$parent")) then
-		local parentName = DF.GetParentName (parent)
-		name = name:gsub ("$parent", parentName)
+
+	if (name:find("$parent")) then
+		local parentName = DF.GetParentName(parent)
+		name = name:gsub("$parent", parentName)
 	end
-	
-	local DropDownObject = {type = "dropdown", dframework = true}
-	
+
+	local dropDownObject = {type = "dropdown", dframework = true}
+
 	if (member) then
-		parent [member] = DropDownObject
-	end	
-	
+		parent[member] = dropDownObject
+	end
+
 	if (parent.dframework) then
 		parent = parent.widget
 	end
 	if (container.dframework) then
 		container = container.widget
-	end	
-	
+	end
+
 	if (default == nil) then
 		default = 1
 	end
 
-	--> default members:
-		--> misc
-		DropDownObject.container = container
-		
-	DropDownObject.dropdown = DF:CreateNewDropdownFrame (parent, name)
-	
-	DropDownObject.widget = DropDownObject.dropdown
-	
-	DropDownObject.__it = {nil, nil}
+	dropDownObject.dropdown = DF:CreateNewDropdownFrame(parent, name)
+	dropDownObject.dropdown:SetWidth(width)
+	dropDownObject.dropdown:SetHeight(height)
 
-	if (not APIDropDownFunctions) then
-		APIDropDownFunctions = true
-		local idx = getmetatable (DropDownObject.dropdown).__index
-		for funcName, funcAddress in pairs (idx) do 
-			if (not DropDownMetaFunctions [funcName]) then
-				DropDownMetaFunctions [funcName] = function (object, ...)
-					local x = loadstring ( "return _G['"..object.dropdown:GetName().."']:"..funcName.."(...)")
-					return x (...)
+	dropDownObject.container = container
+	dropDownObject.widget = dropDownObject.dropdown
+	dropDownObject.dropdown.MyObject = dropDownObject
+
+	if (not loadedAPIDropDownFunctions) then
+		loadedAPIDropDownFunctions = true
+		local idx = getmetatable(dropDownObject.dropdown).__index
+		for funcName, funcAddress in pairs(idx) do
+			if (not DropDownMetaFunctions[funcName]) then
+				DropDownMetaFunctions[funcName] = function(object, ...)
+					local x = loadstring( "return _G['"..object.dropdown:GetName().."']:"..funcName.."(...)")
+					return x(...)
 				end
 			end
 		end
 	end
-	
-	DropDownObject.dropdown.MyObject = DropDownObject
-	
-	DropDownObject.dropdown:SetWidth (w)
-	DropDownObject.dropdown:SetHeight (h)
 
-	DropDownObject.func = func
-	DropDownObject.realsizeW = 150
-	DropDownObject.realsizeH = 150
-	DropDownObject.FixedValue = nil
-	DropDownObject.opened = false
-	DropDownObject.menus = {}
-	DropDownObject.myvalue = nil
-	
-	DropDownObject.label = _G [name .. "_Text"]
-	
-	DropDownObject.icon = _G [name .. "_IconTexture"]
-	DropDownObject.statusbar = _G [name .. "_StatusBarTexture"]
-	DropDownObject.select = _G [name .. "_SelectedTexture"]
-	
-	local scroll = _G [DropDownObject.dropdown:GetName() .. "_ScrollFrame"]
+	dropDownObject.func = func
+	dropDownObject.realsizeW = 150
+	dropDownObject.realsizeH = 150
+	dropDownObject.FixedValue = nil
+	dropDownObject.opened = false
+	dropDownObject.menus = {}
+	dropDownObject.myvalue = nil
+	dropDownObject.label = 	_G[name .. "_Text"]
+	dropDownObject.icon = 	_G[name .. "_IconTexture"]
+	dropDownObject.statusbar = _G[name .. "_StatusBarTexture"]
+	dropDownObject.select = _G[name .. "_SelectedTexture"]
 
-	DropDownObject.scroll = DF:NewScrollBar (scroll, _G [DropDownObject.dropdown:GetName() .. "_ScrollFrame".."_ScrollChild"], -18, -18)
-	DF:ReskinSlider (scroll)
-	
-	function DropDownObject:HideScroll()
+	local scroll = _G[dropDownObject.dropdown:GetName() .. "_ScrollFrame"]
+	dropDownObject.scroll = DF:NewScrollBar(scroll, _G[dropDownObject.dropdown:GetName() .. "_ScrollFrame" .. "_ScrollChild"], -18, -18)
+	DF:ReskinSlider(scroll)
+
+	function dropDownObject:HideScroll()
 		scroll.baixo:Hide()
 		scroll.cima:Hide()
 		scroll.slider:Hide()
 	end
-	function DropDownObject:ShowScroll()
+
+	function dropDownObject:ShowScroll()
 		scroll.baixo:Show()
 		scroll.cima:Show()
 		scroll.slider:Show()
 	end
-	
-	DropDownObject:HideScroll()
-	DropDownObject.label:SetSize (DropDownObject.dropdown:GetWidth()-40, 10)
-	
-	DropDownObject.HookList = {
+
+	dropDownObject:HideScroll()
+	dropDownObject.label:SetSize(dropDownObject.dropdown:GetWidth()-40, 10)
+
+	--hook list
+	dropDownObject.HookList = {
 		OnEnter = {},
 		OnLeave = {},
 		OnHide = {},
 		OnShow = {},
 		OnOptionSelected = {},
-	}	
-	
-	DropDownObject.dropdown:SetScript ("OnShow", DetailsFrameworkDropDownOnShow)
-	DropDownObject.dropdown:SetScript ("OnHide", DetailsFrameworkDropDownOnHide)
-	DropDownObject.dropdown:SetScript ("OnEnter", DetailsFrameworkDropDownOnEnter)
-	DropDownObject.dropdown:SetScript ("OnLeave", DetailsFrameworkDropDownOnLeave)
-	
-	--> setup class
-	_setmetatable (DropDownObject, DropDownMetaFunctions)
+	}
 
-	--> initialize first menu selected
-	if (type (default) == "string") then
-		DropDownObject:Select (default)
-		
-	elseif (type (default) == "number") then
-		if (not DropDownObject:Select (default)) then
-			DropDownObject:Select (default, true)
+	--set default scripts
+	dropDownObject.dropdown:SetScript("OnShow", DetailsFrameworkDropDownOnShow)
+	dropDownObject.dropdown:SetScript("OnHide", DetailsFrameworkDropDownOnHide)
+	dropDownObject.dropdown:SetScript("OnEnter", DetailsFrameworkDropDownOnEnter)
+	dropDownObject.dropdown:SetScript("OnLeave", DetailsFrameworkDropDownOnLeave)
+
+	setmetatable(dropDownObject, DropDownMetaFunctions)
+
+	--initialize first menu selected
+	if (type(default) == "string") then
+		dropDownObject:Select(default)
+
+	elseif (type(default) == "number") then
+		if (not dropDownObject:Select(default)) then
+			dropDownObject:Select(default, true)
 		end
 	end
 
 	if (template) then
-		DropDownObject:SetTemplate(template)
+		dropDownObject:SetTemplate(template)
 	end
-	
-	return DropDownObject
 
+	return dropDownObject
 end
 
-local default_backdrop = {bgFile = [[Interface\DialogFrame\UI-DialogBox-Background]], edgeFile = [[Interface\DialogFrame\UI-DialogBox-Border]], 
+local defaultBackdrop = {bgFile = [[Interface\DialogFrame\UI-DialogBox-Background]], edgeFile = [[Interface\DialogFrame\UI-DialogBox-Border]],
 edgeSize = 1, tile = true, tileSize = 16, insets = {left = 1, right = 1, top = 0, bottom = 1}}
-local border_backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, insets = {left = 0, right = 0, top = 0, bottom = 0}}
-local child_backdrop = {bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 256, insets = {left = 0, right = 0, top = 0, bottom = 0}}
+local borderBackdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, insets = {left = 0, right = 0, top = 0, bottom = 0}}
+local childBackdrop = {bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 256, insets = {left = 0, right = 0, top = 0, bottom = 0}}
 
-function DF:CreateNewDropdownFrame (parent, name)
-	local f = CreateFrame ("button", name, parent,"BackdropTemplate")
-	f:SetBackdrop (default_backdrop)
-	f:SetSize (150, 20)
-	
-	local statusbar = f:CreateTexture ("$parent_StatusBarTexture", "BACKGROUND")
-	statusbar:SetPoint ("topleft", f, "topleft", 0, 0)
-	statusbar:SetPoint ("bottomright", f, "bottomright", 0, 0)
-	f.statusbar = statusbar
-	
-	local icon = f:CreateTexture ("$parent_IconTexture", "ARTWORK")
-	icon:SetPoint ("left", f, "left", 2, 0)
-	icon:SetSize (20, 20)
-	icon:SetTexture ([[Interface\COMMON\UI-ModelControlPanel]])
-	icon:SetTexCoord (0.625, 0.78125, 0.328125, 0.390625)
-	icon:SetVertexColor (1, 1, 1, 0.4)
-	f.icon = icon
-	
-	local text = f:CreateFontString ("$parent_Text", "ARTWORK", "GameFontHighlight")
-	text:SetPoint ("left", icon, "right", 5, 0)
-	text:SetJustifyH ("left")
-	text:SetText ("未選擇任何選項")
-	text:SetTextColor (1, 1, 1, 0.4)
-	DF:SetFontSize (text, 14)
-	f.text = text
-	
-	local arrow = f:CreateTexture ("$parent_ArrowTexture2", "OVERLAY")
-	arrow:SetPoint ("right", f, "right", 5, -1)
-	arrow:SetBlendMode ("ADD")
-	arrow:SetTexture ([[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Highlight]])
-	arrow:Hide()
-	arrow:SetSize (32, 28)
-	f.arrowTexture2 = arrow
-	
-	local buttonTexture = f:CreateTexture ("$parent_ArrowTexture", "OVERLAY")
-	buttonTexture:SetPoint ("right", f, "right", 5, -1)
-	buttonTexture:SetTexture ([[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Up]])
-	buttonTexture:SetSize (32, 28)
-	f.arrowTexture = buttonTexture
-	
+function DF:CreateNewDropdownFrame(parent, name)
+	local newDropdownFrame = CreateFrame("button", name, parent, "BackdropTemplate")
+	newDropdownFrame:SetBackdrop(defaultBackdrop)
+	newDropdownFrame:SetBackdropColor(1, 1, 1, .5)
+	newDropdownFrame:SetSize(150, 20)
+
+	local statusbar = newDropdownFrame:CreateTexture("$parent_StatusBarTexture", "BACKGROUND")
+	statusbar:SetPoint("topleft", newDropdownFrame, "topleft", 0, 0)
+	statusbar:SetPoint("bottomright", newDropdownFrame, "bottomright", 0, 0)
+	newDropdownFrame.statusbar = statusbar
+
+	local icon = newDropdownFrame:CreateTexture("$parent_IconTexture", "ARTWORK")
+	icon:SetPoint("left", newDropdownFrame, "left", 2, 0)
+	icon:SetSize(20, 20)
+	icon:SetTexture([[Interface\COMMON\UI-ModelControlPanel]])
+	icon:SetTexCoord(0.625, 0.78125, 0.328125, 0.390625)
+	icon:SetVertexColor(1, 1, 1, 0.4)
+	newDropdownFrame.icon = icon
+
+	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlightSmall")
+	text:SetPoint("left", icon, "right", 5, 0)
+	text:SetJustifyH("left")
+	text:SetText("no option selected")
+	text:SetTextColor(1, 1, 1, 0.4)
+	DF:SetFontSize(text, 10)
+	newDropdownFrame.text = text
+
+	local arrowHightlight = newDropdownFrame:CreateTexture("$parent_ArrowTexture2", "OVERLAY", nil, 2)
+	arrowHightlight:SetPoint("right", newDropdownFrame, "right", 5, -1)
+	arrowHightlight:SetBlendMode("ADD")
+	arrowHightlight:SetTexture([[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Highlight]])
+	arrowHightlight:Hide()
+	arrowHightlight:SetSize(32, 28)
+	newDropdownFrame.arrowTexture2 = arrowHightlight
+
+	local arrowTexture = newDropdownFrame:CreateTexture("$parent_ArrowTexture", "OVERLAY", nil, 1)
+	arrowTexture:SetPoint("right", newDropdownFrame, "right", 5, -1)
+	arrowTexture:SetTexture([[Interface\Buttons\UI-ScrollBar-ScrollDownButton-Up]])
+	arrowTexture:SetSize(32, 28)
+	newDropdownFrame.arrowTexture = arrowTexture
+
 	--scripts
-	f:SetScript ("OnSizeChanged", DetailsFrameworkDropDownOnSizeChanged)
-	f:SetScript ("OnMouseDown", DetailsFrameworkDropDownOnMouseDown)
-	
-	--on load
-	f:SetBackdropColor (1, 1, 1, .5)
-	f.arrowTexture:SetDrawLayer ("OVERLAY", 1)
-	f.arrowTexture2:SetDrawLayer ("OVERLAY", 2)
-	
+	newDropdownFrame:SetScript("OnSizeChanged", DetailsFrameworkDropDownOnSizeChanged)
+	newDropdownFrame:SetScript("OnMouseDown", DetailsFrameworkDropDownOnMouseDown)
+
 	--dropdown
-	local border = CreateFrame ("frame", "$Parent_Border", f,"BackdropTemplate")
+	local border = CreateFrame("frame", "$Parent_Border", newDropdownFrame, "BackdropTemplate")
 	border:Hide()
-	border:SetFrameStrata ("FULLSCREEN")
-	border:SetSize (150, 150)
-	border:SetPoint ("topleft", f, "bottomleft")
-	border:SetBackdrop (border_backdrop)
-	border:SetScript ("OnHide", DetailsFrameworkDropDownOptionsFrameOnHide)
-	border:SetBackdropColor (0, 0, 0, 0.92)
-	border:SetBackdropBorderColor (0, 0, 0, 1)
-	f.dropdownborder = border
-	
-	local scroll = CreateFrame ("ScrollFrame", "$Parent_ScrollFrame", f,"BackdropTemplate")
+	border:SetFrameStrata("FULLSCREEN")
+	border:SetSize(150, 150)
+	border:SetPoint("topleft", newDropdownFrame, "bottomleft", 0, 0)
+	border:SetBackdrop(borderBackdrop)
+	border:SetScript("OnHide", DetailsFrameworkDropDownOptionsFrameOnHide)
+	border:SetBackdropColor(0, 0, 0, 0.92)
+	border:SetBackdropBorderColor(0, 0, 0, 1)
+	newDropdownFrame.dropdownborder = border
+
+	local scroll = CreateFrame("ScrollFrame", "$Parent_ScrollFrame", newDropdownFrame, "BackdropTemplate")
+	scroll:SetFrameStrata("FULLSCREEN")
+	scroll:SetSize(150, 150)
+	scroll:SetPoint("topleft", newDropdownFrame, "bottomleft", 0, 0)
 	scroll:Hide()
-	scroll:SetFrameStrata ("FULLSCREEN")
-	scroll:SetSize (150, 150)
-	scroll:SetPoint ("topleft", f, "bottomleft", 0, 0)
-	f.dropdownframe = scroll
+	newDropdownFrame.dropdownframe = scroll
 
-	local child = CreateFrame ("frame", "$Parent_ScrollChild", scroll,"BackdropTemplate")
-	child:SetSize (150, 150)
-	child:SetPoint ("topleft", scroll, "topleft", 0, 0)
-	child:SetBackdrop (child_backdrop)
-	child:SetBackdropColor (0, 0, 0, 1)
+	local child = CreateFrame("frame", "$Parent_ScrollChild", scroll, "BackdropTemplate")
+	child:SetSize(150, 150)
+	child:SetPoint("topleft", scroll, "topleft", 0, 0)
+	child:SetBackdrop(childBackdrop)
+	child:SetBackdropColor(0, 0, 0, 1)
 
-	local t = child:CreateTexture(nil, "background")
-	t:SetAllPoints()
-	t:SetColorTexture(0, 0, 0, 1)
-	
-	DF:ApplyStandardBackdrop (child)
-	
-	local selected = child:CreateTexture ("$parent_SelectedTexture", "BACKGROUND")
-	selected:SetSize (150, 16)
+	local backgroundTexture = child:CreateTexture(nil, "background")
+	backgroundTexture:SetAllPoints()
+	backgroundTexture:SetColorTexture(0, 0, 0, 1)
+
+	DF:ApplyStandardBackdrop(child)
+
+	local selected = child:CreateTexture("$parent_SelectedTexture", "BACKGROUND")
+	selected:SetSize(150, 16)
+	selected:SetPoint("left", child, "left", 2, 0)
+	selected:SetTexture([[Interface\RAIDFRAME\Raid-Bar-Hp-Fill]])
 	selected:Hide()
-	selected:SetPoint ("left", child, "left", 2, 0)
-	selected:SetTexture ([[Interface\RAIDFRAME\Raid-Bar-Hp-Fill]])
 	child.selected = selected
-	
-	local mouseover = child:CreateTexture ("$parent_MouseOverTexture", "ARTWORK")
-	mouseover:SetBlendMode ("ADD")
+
+	local mouseover = child:CreateTexture("$parent_MouseOverTexture", "ARTWORK")
+	mouseover:SetBlendMode("ADD")
+	mouseover:SetTexture([[Interface\Buttons\UI-Listbox-Highlight]])
+	mouseover:SetSize(150, 15)
+	mouseover:SetPoint("left", child, "left", 2, 0)
 	mouseover:Hide()
-	mouseover:SetTexture ([[Interface\Buttons\UI-Listbox-Highlight]])
-	mouseover:SetSize (150, 15)
-	mouseover:SetPoint ("left", child, "left", 2, 0)
 	child.mouseover = mouseover
-	
-	scroll:SetScrollChild (child)
-	tinsert (UISpecialFrames, f.dropdownborder:GetName())
-	tinsert (UISpecialFrames, f.dropdownframe:GetName())
-	
-	return f
+
+	scroll:SetScrollChild(child)
+	tinsert(UISpecialFrames, newDropdownFrame.dropdownborder:GetName())
+	--tinsert(UISpecialFrames, f.dropdownframe:GetName()) --not adding this solves an issue with ConsolePort addon and stackoverflows on Hide...
+
+	return newDropdownFrame
 end
 
-function DF:CreateDropdownButton (parent, name)
+function DF:CreateDropdownButton(parent, name)
+	local newButton = CreateFrame("button", name, parent, "BackdropTemplate")
+	newButton:SetSize(150, 20)
 
-	local f = CreateFrame ("button", name, parent,"BackdropTemplate")
-	f:SetSize (150, 20)
+	local statusbar = newButton:CreateTexture("$parent_StatusBarTexture", "ARTWORK")
+	statusbar:SetPoint("topleft", newButton, "topleft", 0, 0)
+	statusbar:SetPoint("bottomright", newButton, "bottomright", 0, 0)
+	statusbar:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
+	newButton.statusbar = statusbar
 
-	local statusbar = f:CreateTexture ("$parent_StatusBarTexture", "ARTWORK")
-	statusbar:SetPoint ("topleft", f, "topleft", 0, 0)
-	statusbar:SetPoint ("bottomright", f, "bottomright", 0, 0)
-	statusbar:SetSize (150, 20)
-	statusbar:SetTexture ([[Interface\Tooltips\UI-Tooltip-Background]])
-	f.statusbar = statusbar
-	
-	local icon = f:CreateTexture ("$parent_IconTexture", "OVERLAY")
-	icon:SetPoint ("left", f, "left", 2, 0)
-	icon:SetSize (20, 20)
-	icon:SetTexture ([[Interface\ICONS\Spell_ChargePositive]])
-	f.icon = icon
-	
-	local text = f:CreateFontString ("$parent_Text", "OVERLAY", "GameFontHighlight")
-	text:SetPoint ("left", icon, "right", 5, 0)
-	text:SetJustifyH ("left")
-	DF:SetFontSize (text, 14)
-	f.label = text
-	
-	local rightButton = DF:CreateButton(f, function()end, 16, 16, "", 0, 0, "", "rightButton", "$parentRightButton", nil, DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
-	rightButton:SetPoint("right", f, "right", -2, 0)
+	local icon = newButton:CreateTexture("$parent_IconTexture", "OVERLAY")
+	icon:SetPoint("left", newButton, "left", 2, 0)
+	icon:SetSize(20, 20)
+	icon:SetTexture([[Interface\ICONS\Spell_ChargePositive]])
+	newButton.icon = icon
+
+	local text = newButton:CreateFontString("$parent_Text", "OVERLAY", "GameFontHighlightSmall")
+	text:SetPoint("left", icon, "right", 5, 0)
+	text:SetJustifyH("left")
+	DF:SetFontSize(text, 13)
+	newButton.label = text
+
+	local rightButton = DF:CreateButton(newButton, function()end, 16, 16, "", 0, 0, "", "rightButton", "$parentRightButton", nil, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+	rightButton:SetPoint("right", newButton, "right", -2, 0)
 	rightButton:Hide()
 
-	f:SetScript ("OnMouseDown", DetailsFrameworkDropDownOptionClick)
-	f:SetScript ("OnEnter", DetailsFrameworkDropDownOptionOnEnter)
-	f:SetScript ("OnLeave", DetailsFrameworkDropDownOptionOnLeave)
+	newButton:SetScript("OnMouseDown", DetailsFrameworkDropDownOptionClick)
+	newButton:SetScript("OnEnter", DetailsFrameworkDropDownOptionOnEnter)
+	newButton:SetScript("OnLeave", DetailsFrameworkDropDownOptionOnLeave)
 
-	return f
+	return newButton
 end

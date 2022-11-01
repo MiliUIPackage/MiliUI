@@ -6,7 +6,7 @@
 local CONFIG = ...
 local L = LibStub('AceLocale-3.0'):GetLocale(CONFIG)
 local ADDON, Addon = CONFIG:match('[^_]+'), _G[CONFIG:match('[^_]+')]
-local General = Addon.OptionsGroup('GeneralOptions')
+local General = Addon.OptionsGroup('GeneralOptions', '背包')
 
 function General:Populate()
 	self:AddCheck('locked')

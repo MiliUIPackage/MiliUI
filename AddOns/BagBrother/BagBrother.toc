@@ -1,14 +1,14 @@
-## Interface: 90205
 ## Title: BagBrother
 ## Notes: Stores data about your characters inventory, bank, vault and guild bank, so that you may view them from anywhere.
 ## Title-zhTW: |cFF2DA267[物品]|r 物品資訊
 ## Notes-zhTW: BagBrother 儲存角色背包和銀行的物品資訊。
+## Interface: 100000
 ## Author: Jaliborc (João Cardoso)
 ## SavedVariables: BrotherBags
-## OptionalDeps: LibStub, WoWUnit
+## OptionalDeps: WoWUnit
 
-LibStub.lua
-Startup.lua
-Events.lua
-API.lua
-Interface.lua
+Code\LibStub.lua
+Code\Startup.lua
+Code\Events.lua
+Code\API.lua
+Code\Interface.lua

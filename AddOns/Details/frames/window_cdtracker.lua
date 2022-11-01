@@ -42,7 +42,7 @@ function Details.CooldownTracking.DisableTracker()
 end
 
 
---> Library Open Raid Callbacks
+--Library Open Raid Callbacks
     --callback on the event 'CooldownListUpdate', this is triggered when a player in the group sent the list of cooldowns
     --@unitId: which unit got updated
     --@unitCooldows: a table with [spellId] = cooldownInfo
@@ -100,10 +100,10 @@ end
     end
 
 
---> Frames
+--Frames
     --hide all bars created
     function Details.CooldownTracking.HideAllBars()
-        for _, bar in ipairs (DetailsOnlineCDTrackerScreenPanel.bars) do
+        for _, bar in ipairs(DetailsOnlineCDTrackerScreenPanel.bars) do
             bar:ClearAllPoints()
             bar:Hide()
 
@@ -173,6 +173,7 @@ end
         local spellIcon = GetSpellTexture(cooldownFrame.spellId)
         if (spellIcon) then
             cooldownFrame:SetIcon(spellIcon, .1, .9, .1, .9)
+
             local classColor = C_ClassColor.GetClassColor(cooldownFrame.class)
             cooldownFrame:SetStatusBarColor(classColor.r, classColor.g, classColor.b)
             cooldownFrame:SetLeftText(DF:RemoveRealmName(cooldownFrame.unitName))
@@ -210,7 +211,7 @@ end
         end
     end
 
---> update cooldown frames based on the amount of players in the group or raid
+--update cooldown frames based on the amount of players in the group or raid
     function Details.CooldownTracking.RefreshCooldownFrames()
         local screenPanel = DetailsOnlineCDTrackerScreenPanel
 
@@ -333,14 +334,14 @@ end
     end
 
 
---> Options panel
+--Options panel
 
     --initialize the cooldown options window and embed it to Details! options panel
     function Details:InitializeCDTrackerWindow()
         local DetailsCDTrackerWindow = CreateFrame("frame", "DetailsCDTrackerWindow", UIParent, "BackdropTemplate")
         DetailsCDTrackerWindow:SetSize(700, 480)
         DetailsCDTrackerWindow.Frame = DetailsCDTrackerWindow
-        DetailsCDTrackerWindow.__name = "Cooldown Tracker"
+        DetailsCDTrackerWindow.__name = "冷卻追蹤器"
         DetailsCDTrackerWindow.real_name = "DETAILS_CDTRACKERWINDOW"
         DetailsCDTrackerWindow.__icon = [[Interface\TUTORIALFRAME\UI-TUTORIALFRAME-SPIRITREZ]]
         DetailsCDTrackerWindow.__iconcoords = {130/512, 256/512, 0, 1}
@@ -364,62 +365,62 @@ end
         --check if the window exists, if not create it
         if (not _G.DetailsCDTrackerWindow or not _G.DetailsCDTrackerWindow.Initialized) then
             _G.DetailsCDTrackerWindow.Initialized = true
-            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, "Details! Online CD Tracker", "DetailsCDTrackerWindow")
+            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, "Details! 線上冷卻追蹤器", "DetailsCDTrackerWindow")
             DF:ApplyStandardBackdrop(f)
             --enabled with a toggle button
             --execute to reset position
             --misc configs
-            local options_text_template = DF:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
-            local options_dropdown_template = DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
-            local options_switch_template = DF:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE")
-            local options_slider_template = DF:GetTemplate ("slider", "OPTIONS_SLIDER_TEMPLATE")
-            local options_button_template = DF:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE")
+            local options_text_template = DF:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")
+            local options_dropdown_template = DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
+            local options_switch_template = DF:GetTemplate("switch", "OPTIONS_CHECKBOX_TEMPLATE")
+            local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
+            local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
             local generalOptions = {
                 {--enable ocd
                     type = "toggle",
                     get = function() return Details.ocd_tracker.enabled end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         if (value) then
                             Details.CooldownTracking.EnableTracker()
                         else
                             Details.CooldownTracking.DisableTracker()
                         end
                     end,
-                    name = "Enable Experimental Cooldown Tracker",
-                    desc = "Enable Experimental Cooldown Tracker",
+                    name = "啟用實驗冷卻跟踪器",
+                    desc = "啟用實驗冷卻跟踪器",
                 },
 
                 {--show only in group
                     type = "toggle",
                     get = function() return Details.ocd_tracker.show_conditions.only_in_group end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.show_conditions.only_in_group = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Only in Group",
-                    desc = "Only in Group",
+                    name = "只有在隊伍中",
+                    desc = "只有在隊伍中",
                 },
 
                 {--show only inside instances
                     type = "toggle",
                     get = function() return Details.ocd_tracker.show_conditions.only_inside_instance end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.show_conditions.only_inside_instance = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Only Inside Instances",
-                    desc = "Only Inside Instances",
+                    name = "只有在副本中",
+                    desc = "只有在副本中",
                 },
                 {--lock frame
                     type = "toggle",
                     get = function() return Details.ocd_tracker.framme_locked end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.framme_locked = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Lock Frame",
-                    desc = "Lock Frame",
+                    name = "鎖定框架",
+                    desc = "鎖定框架",
                 },
 
                 {type = "breakline"},
@@ -427,67 +428,67 @@ end
                 {--filter: show raid wide defensive cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["defensive-raid"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["defensive-raid"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Defensive: Raid",
-                    desc = "Exanple: druid tranquility.",
+                    name = "減傷：團隊",
+                    desc = "範例：druid tranquility.",
                 },
 
                 {--filter: show target defensive cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["defensive-target"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["defensive-target"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Defensive: Target",
-                    desc = "Exanple: priest pain suppression.",
+                    name = "減傷：目標",
+                    desc = "範例：priest pain suppression.",
                 },
 
                 {--filter: show personal defensive cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["defensive-personal"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["defensive-personal"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Defensive: Personal",
-                    desc = "Exanple: mage ice block.",
+                    name = "減傷：個人",
+                    desc = "範例：mage ice block.",
                 },
 
                 {--filter: show ofensive cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["ofensive"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["ofensive"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Offensive Cooldowns",
-                    desc = "Exanple: priest power infusion.",
+                    name = "進攻技能冷卻",
+                    desc = "範例：牧師能量灌注。",
                 },
 
                 {--filter: show utility cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["utility"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["utility"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Utility Cooldowns",
-                    desc = "Exanple: druid roar.",
+                    name = "技能冷卻",
+                    desc = "範例：druid roar.",
                 },
 
                 {--filter: show interrupt cooldowns
                     type = "toggle",
                     get = function() return Details.ocd_tracker.filters["interrupt"] end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.filters["interrupt"] = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
-                    name = "Interrupt Cooldowns",
-                    desc = "Exanple: rogue kick.",
+                    name = "打斷冷卻",
+                    desc = "範例：rogue kick.",
                 },                
 
                 {type = "breakline"},
@@ -495,7 +496,7 @@ end
                 {--bar width
                     type = "range",
                     get = function() return Details.ocd_tracker.width end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.width = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
@@ -509,7 +510,7 @@ end
                 {--bar height
                     type = "range",
                     get = function() return Details.ocd_tracker.height end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.height = value
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
@@ -523,15 +524,15 @@ end
                 {--bar height
                     type = "range",
                     get = function() return Details.ocd_tracker.lines_per_column end,
-                    set = function (self, fixedparam, value)
+                    set = function(self, fixedparam, value)
                         Details.ocd_tracker.lines_per_column = floor(value)
                         Details.CooldownTracking.RefreshCooldownFrames()
                     end,
                     min = 1,
                     max = 30,
                     step = 1,
-                    name = "Lines Per Column",
-                    desc = "Lines Per Column",
+                    name = "每欄行數",
+                    desc = "每欄行數",
                 },
 
             }
@@ -554,7 +555,7 @@ end
             DF:SetFontSize(warning1, 14)
             local animationHub = DF:CreateAnimationHub(warning1)
             local anim1 = DF:CreateAnimation(animationHub, "rotation", 1, 0, 35)
-            anim1:SetEndDelay(math.huge)
+            anim1:SetEndDelay(10000000)
             anim1:SetSmoothProgress(1)
             animationHub:Play()
             animationHub:Pause()

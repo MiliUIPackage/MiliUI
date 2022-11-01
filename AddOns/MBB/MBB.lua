@@ -8,7 +8,7 @@
 	
 ]]
 
-MBB_Version = "4.0.4";
+MBB_Version = "4.0.15";
 
 -- Setup some variable for debugging.
 MBB_DebugFlag = 0;
@@ -52,8 +52,10 @@ BACKDROP_TOOLTIP_OPTIONS = {
 	insets = { left = 11, right = 12, top = 12, bottom = 11 },
 };
 
--- Buttons to include with scanning for them first.  Currently unused.
-MBB_Include = {};
+-- Buttons to force include
+MBB_Include = {
+	[1] = "BagSync_MinimapButton" -- doesn't have de OnClick script
+};
 
 -- Button names to always ignore.
 MBB_Ignore = {
@@ -101,7 +103,11 @@ MBB_Ignore = {
 	[42] = "GarrisonMinimapButton",
 	[43] = "TukuiMinimapZone",
 	[44] = "GPSArrow",
-	[45] = "HandyNotes_.*Pin" -- Handy Notes plugins support
+	[45] = "HandyNotes_.*Pin", -- Handy Notes plugins support,
+	[46] = "DugisArrowMinimapPoint1",  --Dugi Guides arrow
+	[47] = "DugisArrowMinimapPoint2",  --Dugi Guides arrow
+	[48] = "DugisArrowMinimapPoint3",  --Dugi Guides arrow
+	[49] = "TTMinimapButton" -- Tom tom / Wow-pro guides
 };
 
 MBB_IgnoreSize = {
@@ -735,12 +741,21 @@ function MBB_IsKnownButton(name, opt)
 	return false;
 end
 
+function MBB_isButtonToBeIncluded(name)
+	for _, button in ipairs(MBB_Include) do
+		if( string.find(name, button) ) then
+			return true;
+		end
+	end
+end
+
 function MBB_OnUpdate(elapsed)
 	if( MBB_CheckTime >= 3 ) then
 		MBB_CheckTime = 0;
+		
 		local children = {Minimap:GetChildren()};
 		for _, child in ipairs(children) do
-			if( child:HasScript("OnClick") and not child.oshow and child:GetName() and not MBB_IsKnownButton(child:GetName(), 3) ) then
+			if( child:GetName() and not child.oshow and ((child:HasScript("OnClick") and not MBB_IsKnownButton(child:GetName(), 3)) or (MBB_isButtonToBeIncluded(child:GetName()))) ) then
 				MBB_PrepareButton(child:GetName());
 				if( not MBB_IsInArray(MBB_Exclude, child:GetName()) ) then
 					MBB_AddButton(child:GetName());
@@ -761,7 +776,7 @@ function MBB_OnUpdate(elapsed)
 
 		local angle = math.deg(math.atan2(ypos,xpos));
 		
-		MBB_MinimapButtonFrame:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 53-(cos(angle)*81), -55+(sin(angle)*81));
+		MBB_MinimapButtonFrame:SetPoint("TOPLEFT", Minimap, "TOPLEFT", 83-(cos(angle)*99), -83+(sin(angle)*99));
 	end
 	
 	if( MBB_Options.CollapseTimeout and MBB_Options.CollapseTimeout ~= 0 ) then

@@ -169,7 +169,7 @@ function widgets:colorpick(parent, config)
     frame.Text:SetPoint("LEFT", frame, "RIGHT", 5, 0)
     frame.Text:SetText(L[config.keystring])
     frame.Text:SetShown(not config.hidetitle)
-    frame:GetNormalTexture():SetVertexColor(r, g, b, a)
+    frame:GetNormalTexture():SetVertexColor(r or 1, g or 1, b or 1, a or 1)
     frame:SetScript("OnClick", function(self)
         local r, g, b, a = self:GetNormalTexture():GetVertexColor()
         local info = {
@@ -427,7 +427,8 @@ function widgets:anchorbutton(parent, config)
             saframe.ky = self.keystring .. ".y"
             saframe.cp = self.keystring .. ".p"
             saframe[GetVariable(saframe.cp) or "BOTTOMRIGHT"]:GetNormalTexture():SetVertexColor(1, 0.2, 0.1)
-            saframe:SetPoint(GetVariable(saframe.cp) or "BOTTOMRIGHT", UIParent, GetVariable(saframe.cp) or "BOTTOMRIGHT", GetVariable(saframe.kx) or -CONTAINER_OFFSET_X-13, GetVariable(saframe.ky) or CONTAINER_OFFSET_Y)
+            saframe:ClearAllPoints()
+			saframe:SetPoint(GetVariable(saframe.cp) or "BOTTOMRIGHT", UIParent, GetVariable(saframe.cp) or "BOTTOMRIGHT", GetVariable(saframe.kx) or -CONTAINER_OFFSET_X-13, GetVariable(saframe.ky) or CONTAINER_OFFSET_Y)
             saframe:Show()
         elseif (value == "cursor") then
             caframe.cx = self.keystring .. ".cx"
@@ -532,7 +533,7 @@ local options = {
         { keystring = "general.borderSize",         type = "slider", min = 1, max = 6, step = 1 },
         { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
         { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
-        { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursorRight","cursor","static"} },
+        { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursorRight"} }, --,"cursor","static"} }, 10.0 無法移動位置
         { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
@@ -546,7 +547,7 @@ local options = {
         { keystring = "unit.player.grayForDead",          type = "checkbox" },
         { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
         { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-        { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursorRight","cursor","static"} },
+        { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursorRight"} }, --,"cursor","static"} },
         { keystring = "unit.player.elements.factionBig",  type = "element", filter = false,},
         { keystring = "unit.player.elements.raidIcon",    type = "element", filter = true, },
         { keystring = "unit.player.elements.roleIcon",    type = "element", filter = true, },
@@ -581,7 +582,7 @@ local options = {
         { keystring = "unit.npc.grayForDead",           type = "checkbox" },
         { keystring = "unit.npc.coloredBorder",         type = "dropdown", dropdata = widgets.colorDropdata },
         { keystring = "unit.npc.background",            type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
-        { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursorRight","cursor","static"} },
+        { keystring = "unit.npc.anchor",                type = "anchor", dropdata = {"inherit","default","cursorRight"} }, --,"cursor","static"} },
         { keystring = "unit.npc.elements.factionBig",   type = "element", filter = false,},
         { keystring = "unit.npc.elements.raidIcon",     type = "element", filter = true, },
         { keystring = "unit.npc.elements.classIcon",    type = "element", filter = true, },
@@ -626,7 +627,7 @@ local options = {
 local frame = CreateFrame("Frame", nil, UIParent)
 frame.anchor = CreateFrame("Frame", nil, frame)
 frame.anchor:SetPoint("TOPLEFT", 32, -16)
-frame.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frame.anchor:SetSize(SettingsPanel:GetWidth()-64, 1) -- 10.0 fix
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
 frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
@@ -635,7 +636,7 @@ frame.name = L["Tooltip"]
 local framePC = CreateFrame("Frame", nil, UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
 framePC.anchor:SetPoint("TOPLEFT", 32, -13)
-framePC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+framePC.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 framePC.title = framePC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 framePC.title:SetPoint("TOPLEFT", 18, -16)
 framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is Player"]))
@@ -672,7 +673,7 @@ framePCScrollFrame:Hide()
 local frameNPC = CreateFrame("Frame", nil, UIParent)
 frameNPC.anchor = CreateFrame("Frame", nil, frameNPC)
 frameNPC.anchor:SetPoint("TOPLEFT", 32, -16)
-frameNPC.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameNPC.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 frameNPC.title = frameNPC:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameNPC.title:SetPoint("TOPLEFT", 18, -16)
 frameNPC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is NPC"]))
@@ -695,7 +696,7 @@ frameNPCScrollFrame.name = "NPC"
 local frameStatusbar = CreateFrame("Frame", nil, UIParent)
 frameStatusbar.anchor = CreateFrame("Frame", nil, frameStatusbar)
 frameStatusbar.anchor:SetPoint("TOPLEFT", 32, -16)
-frameStatusbar.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameStatusbar.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 frameStatusbar.title = frameStatusbar:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameStatusbar.title:SetPoint("TOPLEFT", 18, -16)
 frameStatusbar.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["StatusBar"]))
@@ -705,7 +706,7 @@ frameStatusbar.name = L["StatusBar"]
 local frameSpell = CreateFrame("Frame", nil, UIParent)
 frameSpell.anchor = CreateFrame("Frame", nil, frameSpell)
 frameSpell.anchor:SetPoint("TOPLEFT", 32, -16)
-frameSpell.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameSpell.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 frameSpell.title = frameSpell:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameSpell.title:SetPoint("TOPLEFT", 18, -16)
 frameSpell.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Spell"]))
@@ -715,7 +716,7 @@ frameSpell.name = L["Spell"]
 local frameFont = CreateFrame("Frame", nil, UIParent)
 frameFont.anchor = CreateFrame("Frame", nil, frameFont)
 frameFont.anchor:SetPoint("TOPLEFT", 32, -16)
-frameFont.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameFont.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 frameFont.title = frameFont:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameFont.title:SetPoint("TOPLEFT", 18, -16)
 frameFont.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Font"]))
@@ -725,7 +726,7 @@ frameFont.name = L["Font"]
 local frameVariables = CreateFrame("Frame", nil, UIParent)
 frameVariables.anchor = CreateFrame("Frame", nil, frameVariables)
 frameVariables.anchor:SetPoint("TOPLEFT", 32, -16)
-frameVariables.anchor:SetSize(InterfaceOptionsFramePanelContainer:GetWidth()-64, 1)
+frameVariables.anchor:SetSize(SettingsPanel:GetWidth()-64, 1)
 frameVariables.title = frameVariables:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frameVariables.title:SetPoint("TOPLEFT", 18, -16)
 frameVariables.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Variables"]))

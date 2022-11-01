@@ -21,8 +21,7 @@ function Item:Construct()
 	return b
 end
 
-function Item:GetBlizzard()
-end
+function Item:GetBlizzard() end
 
 
 --[[ Events ]]--
@@ -32,7 +31,11 @@ function Item:OnClick(button)
 		return
 	elseif IsModifiedClick('SPLITSTACK') then
 		if not CursorHasItem() and not self.info.locked and self.info.count > 1 then
-			StackSplitFrame:OpenStackSplitFrame(self.info.count, self, 'BOTTOMLEFT', 'TOPLEFT')
+			if OpenStackSplitFrame then
+				OpenStackSplitFrame(self.info.count, self, 'BOTTOMLEFT', 'TOPLEFT')
+			else
+				StackSplitFrame:OpenStackSplitFrame(self.info.count, self, 'BOTTOMLEFT', 'TOPLEFT')
+			end
 		end
 	else
 		local type, amount = GetCursorInfo()
@@ -65,16 +68,18 @@ end
 
 --[[ Update ]]--
 
-function Item:ShowTooltip()
-	GameTooltip:SetOwner(self:GetTipAnchor())
+function Item:UpdateTooltip()
+	if not self.info.cached then
+		GameTooltip:SetOwner(self:GetTipAnchor())
 
-	local pet = {GameTooltip:SetGuildBankItem(self:GetSlot())}
-	if pet[1] and pet[1] > 0 then
-		BattlePetToolTip_Show(unpack(pet))
+		local pet = {GameTooltip:SetGuildBankItem(self:GetSlot())}
+		if pet[1] and pet[1] > 0 then
+			BattlePetToolTip_Show(unpack(pet))
+		end
+
+		GameTooltip:Show()
+		CursorUpdate(self)
 	end
-
-	GameTooltip:Show()
-	CursorUpdate(self)
 end
 
 function Item:SplitStack(split)
@@ -82,6 +87,7 @@ function Item:SplitStack(split)
 	SplitGuildBankItem(tab, slot, split)
 end
 
+function Item:UpdateFocus() end
 function Item:UpdateCooldown() end
 
 
