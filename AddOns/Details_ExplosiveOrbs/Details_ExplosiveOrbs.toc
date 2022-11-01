@@ -1,7 +1,7 @@
 ## Interface: 100000
 ## Title: Details!: Explosive Orbs (plugin)
 ## Notes: Show how many explosive orbs players target and hit.
-## Title-zhTW: |cF00FFFF[戰鬥]|r Details! 戰鬥統計-炸藥統計
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-炸藥統計
 ## Notes-zhTW: Details!: Explosive Orbs (plugin) |n統計與顯示玩家選中與擊中不同炸藥的次數。
 ## RequiredDeps: Details
 ## Author: LiangYuxuan
