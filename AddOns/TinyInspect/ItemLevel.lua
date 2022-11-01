@@ -212,7 +212,7 @@ hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, sup
 end)
 
 -- Bag
-hooksecurefunc("ContainerFrame_Update", function(self)
+local function hookbag(self)
     local id = self:GetID()
     local name = self:GetName()
     local button
@@ -220,13 +220,25 @@ hooksecurefunc("ContainerFrame_Update", function(self)
         button = _G[name.."Item"..i]
         SetItemLevel(button, GetContainerItemLink(id, button:GetID()), "Bag", id, button:GetID())
     end
-end)
+end
+for i = 1, 5 do
+    local frame = _G["ContainerFrame1" .. i]
+    if frame then
+        hooksecurefunc(frame, "Update", hookbag)
+    end
+end
 
 -- Bank
-hooksecurefunc("BankFrameItemButton_Update", function(self)
+local function hookbank(self)
     if (self.isBag) then return end
     SetItemLevel(self, GetContainerItemLink(self:GetParent():GetID(), self:GetID()), "Bank")
-end)
+end
+for i = 6, 13 do
+    local frame = _G["ContainerFrame1" .. i]
+    if frame then
+        hooksecurefunc(frame, "Update", hookbank)
+    end
+end
 
 -- Merchant
 hooksecurefunc("MerchantFrameItem_UpdateQuality", function(self, link)
@@ -242,18 +254,18 @@ hooksecurefunc("TradeFrame_UpdateTargetItem", function(id)
 end)
 
 -- Loot
-hooksecurefunc("LootFrame_UpdateButton", function(index)
-    local button = _G["LootButton"..index]
-    local numLootItems = LootFrame.numLootItems
-    local numLootToShow = LOOTFRAME_NUMBUTTONS
-    if (numLootItems > LOOTFRAME_NUMBUTTONS) then
-		numLootToShow = numLootToShow - 1
-	end
-    local slot = (numLootToShow * (LootFrame.page - 1)) + index
-    if (button:IsShown()) then
-        SetItemLevel(button, GetLootSlotLink(slot), "Loot")
-    end
-end)
+-- hooksecurefunc("LootFrame_UpdateButton", function(index)
+--     local button = _G["LootButton"..index]
+--     local numLootItems = LootFrame.numLootItems
+--     local numLootToShow = LOOTFRAME_NUMBUTTONS
+--     if (numLootItems > LOOTFRAME_NUMBUTTONS) then
+-- 		numLootToShow = numLootToShow - 1
+-- 	end
+--     local slot = (numLootToShow * (LootFrame.page - 1)) + index
+--     if (button:IsShown()) then
+--         SetItemLevel(button, GetLootSlotLink(slot), "Loot")
+--     end
+-- end)
 
 -- GuildBank
 local MAX_GUILDBANK_SLOTS_PER_TAB = 98
