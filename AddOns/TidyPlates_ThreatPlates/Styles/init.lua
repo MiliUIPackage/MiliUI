@@ -10,12 +10,12 @@ function Addon:RegisterTheme(name, create)
 			create = create
 		}
 	else
-		t.Print("Theme by the name of '"..name.."' already exists.")
+		Addon.Logging.Error("Theme by the name of '"..name.."' already exists.")
 	end
 end
 
-function Addon:SetThemes(tidy_plates_threat)
+function Addon:SetThemes()
 	for k, v in pairs(ThemeTable) do
-		self.Theme[v.name] = v.create(tidy_plates_threat, v.name)
+		self.Theme[v.name] = v.create(v.name)
 	end
 end

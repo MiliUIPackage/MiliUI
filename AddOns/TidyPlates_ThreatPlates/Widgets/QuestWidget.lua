@@ -4,7 +4,7 @@
 local ADDON_NAME, Addon = ...
 local ThreatPlates = Addon.ThreatPlates
 
-local Widget = ((Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC) and {}) or Addon.Widgets:NewWidget("Quest")
+local Widget = ((Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC or Addon.IS_WRATH_CLASSIC) and {}) or Addon.Widgets:NewWidget("Quest")
 
 ---------------------------------------------------------------------------------------------------
 -- Imported functions and constants
@@ -16,7 +16,7 @@ local string, tonumber, next, pairs, ipairs = string, tonumber, next, pairs, ipa
 -- WoW APIs
 local WorldFrame = WorldFrame
 local InCombatLockdown, IsInInstance = InCombatLockdown, IsInInstance
-local UnitName, UnitIsUnit, UnitDetailedThreatSituation = UnitName, UnitIsUnit, UnitDetailedThreatSituation
+local UnitName, UnitIsUnit = UnitName, UnitIsUnit
 local UnitExists = UnitExists
 local IsInRaid, IsInGroup, GetNumGroupMembers, GetNumSubgroupMembers = IsInRaid, IsInGroup, GetNumGroupMembers, GetNumSubgroupMembers
 local wipe = wipe
@@ -28,9 +28,8 @@ local GetQuestLogTitle, GetNumQuestLogEntries = C_QuestLog.GetQuestLogTitle, C_Q
 local GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
-local ON_UPDATE_INTERVAL = Addon.ON_UPDATE_PER_FRAME
 local PlayerName = Addon.PlayerName
+local UnitDetailedThreatSituationWrapper = Addon.UnitDetailedThreatSituationWrapper
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -39,7 +38,6 @@ local _G =_G
 
 local InCombat = false
 local TooltipFrame = CreateFrame("GameTooltip", "ThreatPlates_Tooltip", nil, "GameTooltipTemplate")
-local PlayerName = UnitName("player")
 local ICON_COLORS = {}
 local Font
 
@@ -126,7 +124,7 @@ function IsQuestUnit(unit)
     local text = line:GetText()
     local text_r, text_g, text_b = line:GetTextColor()
 
-    if text_r > 0.99 and text_g > 0.82 and text_b == 0 then
+    if text_r > 0.99 and text_g > 0.8 and text_b == 0 then
       -- A line with this color is either the quest title or a player name (if on a group quest, but always after the quest title)
       if text == PlayerName then
         quest_progress_player = true
@@ -192,7 +190,7 @@ function Addon:IsPlayerQuestUnit(unit)
 end
 
 local function ShowQuestUnit(unit)
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
 
   if IsInInstance() and db.HideInInstance then
     return false
@@ -202,7 +200,7 @@ local function ShowQuestUnit(unit)
     if db.HideInCombat then
       return false
     elseif db.HideInCombatAttacked then
-      local _, threatStatus = UnitDetailedThreatSituation("player", unit.unitid)
+      local _, threatStatus = UnitDetailedThreatSituationWrapper("player", unit.unitid)
       return (threatStatus == nil)
     end
   end
@@ -211,7 +209,7 @@ local function ShowQuestUnit(unit)
 end
 
 local function ShowQuestUnitHealthbar(unit)
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
   return db.ON and db.ModeHPBar and ShowQuestUnit(unit)
 end
 
@@ -493,7 +491,7 @@ end
 ---------------------------------------------------------------------------------------------------
 
 function Widget:Create(tp_frame)
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
 
   -- Required Widget Code
   local widget_frame = _G.CreateFrame("Frame", nil, tp_frame)
@@ -521,7 +519,7 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
   return db.ON or db.ShowInHeadlineView
 end
 
@@ -566,14 +564,14 @@ end
 
 function Widget:EnabledForStyle(style, unit)
   if (style == "NameOnly" or style == "NameOnly-Unique") then
-    return TidyPlatesThreat.db.profile.questWidget.ShowInHeadlineView
+    return Addon.db.profile.questWidget.ShowInHeadlineView
   elseif style ~= "etotem" then
-    return TidyPlatesThreat.db.profile.questWidget.ON
+    return Addon.db.profile.questWidget.ON
   end
 end
 
 function Widget:OnUnitAdded(widget_frame, unit)
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
   widget_frame:SetSize(db.scale, db.scale)
   widget_frame:SetAlpha(db.alpha)
 
@@ -589,7 +587,7 @@ end
 function Widget:UpdateFrame(widget_frame, unit)
   local show, quest_type, current = IsQuestUnit(unit, true)
 
-  local db = TidyPlatesThreat.db.profile.questWidget
+  local db = Addon.db.profile.questWidget
   if show and db.ModeIcon and ShowQuestUnit(unit) then
 
     -- Updates based on settings / unit style
@@ -655,28 +653,28 @@ end
 -- Load settings from the configuration which are shared across all aura widgets
 -- used (for each widget) in UpdateWidgetConfig
 function Widget:UpdateSettings()
-  Font = Addon.LibSharedMedia:Fetch('font', TidyPlatesThreat.db.profile.questWidget.Font)
+  Font = Addon.LibSharedMedia:Fetch('font', Addon.db.profile.questWidget.Font)
 end
 
 function Addon:PrintQuests(command)
   local quest_id = tonumber(command)
   if quest_id then
     local quest_log_index = GetLogIndexForQuestID(quest_id)
-    print ("Quest" .. tostring(quest_id) .. ": Log-Nr =", quest_log_index)
+    Addon.Logging.Debug("Quest" .. tostring(quest_id) .. ": Log-Nr =", quest_log_index)
     if quest_log_index then
       local quest_info = GetQuestInfo(quest_log_index)
       if quest_info then
-        ThreatPlates.DEBUG_PRINT_TABLE(quest_info)
+        Addon.Debug.PrintTable(quest_info)
 
         local objectives = GetQuestObjectives(quest_id)
-        ThreatPlates.DEBUG_PRINT_TABLE(objectives)
+        Addon.Debug.PrintTable(objectives)
       end
     end
   elseif command == "tooltip" then
     if not UnitExists("target") then return end
 
     for name, _ in pairs(GroupMembers) do
-      print("Character:", name)
+      Addon.Logging.Debug("Character:", name)
     end
 
     local quest_title
@@ -692,7 +690,7 @@ function Addon:PrintQuests(command)
       local text = line:GetText()
       local text_r, text_g, text_b = line:GetTextColor()
 
-      print("=== Line:", text)
+      Addon.Logging.Debug("=== Line:", text)
       if text_r > 0.99 and text_g > 0.82 and text_b == 0 then
         -- A line with this color is either the quest title or a player name (if on a group quest, but always after the quest title)
         -- if quest_title_found then
@@ -700,29 +698,29 @@ function Addon:PrintQuests(command)
         -- else
         if text == PlayerName then
           quest_progress_player = true
-          print("  Player:", text)
+          Addon.Logging.Debug("  Player:", text)
         elseif not GroupMembers[text] then
-          print("Quest:", text)
+          Addon.Logging.Debug("Quest:", text)
           quest_progress_player = true
           quest_title = text
         else
           quest_progress_player = false
-          print("  Character:", text)
+          Addon.Logging.Debug("  Character:", text)
         end
       elseif quest_progress_player then
         local objective_name, current, goal
         local objective_type = false
 
-        print ("    => Objective:", text)
+        Addon.Logging.Debug("    => Objective:", text)
         -- Check if area / progress quest
         if string.find(text, "%%") then
           objective_name, current, goal = string.match(text, "^(.*) %(?(%d+)%%%)?$")
           objective_type = "area"
-          print ("    => Area: <" .. text .. ">", objective_name, current, goal)
+          Addon.Logging.Debug("    => Area: <" .. text .. ">", objective_name, current, goal)
         else
           -- Standard x/y /pe quest
           objective_name, current, goal = QuestObjectiveParser(text)
-          print ("    => Standard: <" .. text .. ">", objective_name, current, goal)
+          Addon.Logging.Debug("    => Standard: <" .. text .. ">", objective_name, current, goal)
         end
 
         if objective_name then
@@ -747,32 +745,32 @@ function Addon:PrintQuests(command)
           -- A unit may be target of more than one quest, the quest indicator should be show if at least one quest is not completed.
           if current and goal then
             if current == goal then
-              print ("  => Finished!")
+              Addon.Logging.Debug("  => Finished!")
             end
           end
         end
       end
     end
   else
-    print ("Quests List:", tablelength(QuestByID))
+    Addon.Logging.Debug("Quests List:", tablelength(QuestByID))
     for quest_id, title in pairs(QuestByID) do
       if not command or string.find(title, command) then
         local quest = QuestByTitle[title]
         if quest.Objectives then --and tablelength(quest.objectives) > 0 then
-          print ("*", title .. " [ID:" .. tostring(quest_id) .. "]")
+          Addon.Logging.Debug("*", title .. " [ID:" .. tostring(quest_id) .. "]")
           for name, val in pairs (quest.Objectives) do
-            print ("  - |" .. name .."| :", val.numFulfilled, "/", val.numRequired, "[" .. val.type .. "]")
+            Addon.Logging.Debug("  - |" .. name .."| :", val.numFulfilled, "/", val.numRequired, "[" .. val.type .. "]")
           end
         end
       end
     end
 
-    print ("QuestUnitsToUpdate:", tablelength(QuestUnitsToUpdate))
+    Addon.Logging.Debug("QuestUnitsToUpdate:", tablelength(QuestUnitsToUpdate))
 
-    print ("Waiting for quest log updates for the following quests:")
+    Addon.Logging.Debug("Waiting for quest log updates for the following quests:")
     for questID, title in pairs(QuestsToUpdate) do
       local questIndex = GetLogIndexForQuestID(questID)
-      print ("  Quest:", title .. " [" .. tostring(questIndex) .. "]")
+      Addon.Logging.Debug("  Quest:", title .. " [" .. tostring(questIndex) .. "]")
     end
   end
 end

@@ -10,10 +10,8 @@ local Widget = Addon.Widgets:NewWidget("ClassIcon")
 ---------------------------------------------------------------------------------------------------
 
 -- WoW APIs
-local UnitReaction = UnitReaction
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -53,7 +51,7 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile.classWidget
+  local db = Addon.db.profile.classWidget
   return db.ON or db.ShowInHeadlineView
 end
 
@@ -61,9 +59,9 @@ function Widget:EnabledForStyle(style, unit)
   if unit.type ~= "PLAYER" then return false end
 
   if (style == "NameOnly" or style == "NameOnly-Unique") then
-    return TidyPlatesThreat.db.profile.classWidget.ShowInHeadlineView
+    return Addon.db.profile.classWidget.ShowInHeadlineView
   elseif style ~= "etotem" then
-    return TidyPlatesThreat.db.profile.classWidget.ON
+    return Addon.db.profile.classWidget.ON
   end
 end
 
@@ -79,10 +77,9 @@ function Widget:OnUnitAdded(widget_frame, unit)
   -- 	end
   -- else
 
-  local db = TidyPlatesThreat.db.profile
+  local db = Addon.db.profile
 
-  local unit_reaction = UnitReaction(unit.unitid, "player")
-  if (unit_reaction < 4 and db.HostileClassIcon) or (unit_reaction > 4 and db.friendlyClassIcon) then
+  if (unit.reaction == "HOSTILE" and db.HostileClassIcon) or (unit.reaction == "FRIENDLY" and db.friendlyClassIcon) then
     db = db.classWidget
 
     -- Updates based on settings / unit style
@@ -110,7 +107,7 @@ function Widget:OnUnitAdded(widget_frame, unit)
 end
 
 --function Widget:OnUpdatePlateMode(widget_frame, unit)
---  local db = TidyPlatesThreat.db.profile
+--  local db = Addon.db.profile
 --  if (unit.reaction == "HOSTILE" and db.HostileClassIcon) or (unit.reaction == "FRIENDLY" and db.friendlyClassIcon) then
 --    db = db.classWidget
 --

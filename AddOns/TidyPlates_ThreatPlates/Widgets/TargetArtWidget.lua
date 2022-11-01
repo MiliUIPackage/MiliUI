@@ -15,7 +15,6 @@ local Widget = Addon.Widgets:NewTargetWidget("TargetArt")
 local GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local BackdropTemplate = Addon.BackdropTemplate
 
 local _G =_G
@@ -112,7 +111,7 @@ local  function UpdateBorderTexture(db, widget_frame, texture_frame)
 
   local border_settings_adjustment = ADJUST_BORDER_FOR_SMALL_HEALTHBAR[db.theme]
   if border_settings_adjustment  then
-    local border_settings = border_settings_adjustment[TidyPlatesThreat.db.profile.settings.healthbar.height]
+    local border_settings = border_settings_adjustment[Addon.db.profile.settings.healthbar.height]
     if border_settings then
       edge_size = border_settings.edgeSize
       offset = border_settings.offset
@@ -131,7 +130,11 @@ local  function UpdateBorderTexture(db, widget_frame, texture_frame)
   texture_frame:SetPoint("BOTTOMRIGHT", widget_frame, "BOTTOMRIGHT", offset, - offset)
 
   texture_frame:SetBackdropBorderColor(db.r, db.g, db.b, db.a)
-  texture_frame:SetBackdropColor(db.r, db.g, db.b, db.a - 0.70) -- 80/255 => 1 - 0.69
+  local backdrop_alpha = db.a - 0.70 -- 80/255 => 1 - 0.69
+  if backdrop_alpha < 0 then
+    backdrop_alpha = 0
+  end
+  texture_frame:SetBackdropColor(db.r, db.g, db.b, backdrop_alpha)
 
   texture_frame.LeftTexture:Hide()
   texture_frame.RightTexture:Hide()
@@ -259,7 +262,7 @@ function Widget:Create()
 end
 
 function Widget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile
+  local db = Addon.db.profile
   return db.targetWidget.ON or db.HeadlineView.ShowTargetHighlight
 end
 
@@ -330,8 +333,8 @@ function Widget:UpdateLayout()
 end
 
 function Widget:UpdateSettings()
-  Settings = TidyPlatesThreat.db.profile.targetWidget
-  SettingsHV = TidyPlatesThreat.db.profile.HeadlineView
+  Settings = Addon.db.profile.targetWidget
+  SettingsHV = Addon.db.profile.HeadlineView
 
   NameModeOffsetX = SettingsHV.name.x
   NameModeOffsetY = GetTargetTextureY(SettingsHV)
@@ -389,7 +392,7 @@ function FocusWidget:Create()
 end
 
 function FocusWidget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile
+  local db = Addon.db.profile
   return db.FocusWidget.ON or db.HeadlineView.ShowFocusHighlight
 end
 
@@ -460,8 +463,8 @@ function FocusWidget:UpdateLayout()
 end
 
 function FocusWidget:UpdateSettings()
-  FocusSettings = TidyPlatesThreat.db.profile.FocusWidget
-  FocusSettingsHV = TidyPlatesThreat.db.profile.HeadlineView
+  FocusSettings = Addon.db.profile.FocusWidget
+  FocusSettingsHV = Addon.db.profile.HeadlineView
 
   FocusNameModeOffsetX = FocusSettingsHV.name.x
   FocusNameModeOffsetY = GetTargetTextureY(FocusSettingsHV)

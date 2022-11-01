@@ -15,14 +15,12 @@ local format = format
 local ceil = ceil
 
 -- WoW APIs
-local UnitReaction,UnitIsUnit = UnitReaction, UnitIsUnit
 local UnitPower, UnitPowerMax = UnitPower, UnitPowerMax
 local PowerBarColor = PowerBarColor
 local SPELL_POWER_MANA = SPELL_POWER_MANA
 local GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local BackdropTemplate = Addon.BackdropTemplate
 
 local _G =_G
@@ -212,7 +210,7 @@ function Widget:Create()
 end
 
 function Widget:IsEnabled()
-  return TidyPlatesThreat.db.profile.ResourceWidget.ON
+  return Addon.db.profile.ResourceWidget.ON
 end
 
 -- EVENT: UNIT_POWER_UPDATE: "unitID", "powerType"
@@ -245,7 +243,7 @@ function Widget:OnTargetUnitAdded(tp_frame, unit)
 
   local show
   if unit.type == "PLAYER" then
-    show = (UnitReaction(unit.unitid, "player") > 4 and db.ShowFriendly) or db.ShowEnemyPlayer
+    show = (unit.reaction == "FRIENDLY" and db.ShowFriendly) or db.ShowEnemyPlayer
   else
     show = ((unit.isBoss or unit.isRare) and db.ShowEnemyBoss) or db.ShowEnemyNPC
   end
@@ -350,7 +348,7 @@ function Widget:UpdateLayout()
 end
 
 function Widget:UpdateSettings()
-  self.db = TidyPlatesThreat.db.profile.ResourceWidget
+  self.db = Addon.db.profile.ResourceWidget
 
   -- Update the widget if it was already created (not true for immediately after Reload UI or if it was never enabled
   -- in this since last Reload UI)

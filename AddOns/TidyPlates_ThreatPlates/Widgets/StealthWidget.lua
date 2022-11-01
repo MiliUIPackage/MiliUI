@@ -13,10 +13,9 @@ local Widget = (Addon.IS_CLASSIC and {}) or Addon.Widgets:NewWidget("Stealth")
 local strsplit = strsplit
 
 -- WoW APIs
-local UnitReaction, UnitIsPlayer, UnitBuff = UnitReaction, UnitIsPlayer, UnitBuff
+local UnitBuff = UnitBuff
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -96,6 +95,9 @@ local DETECTION_UNITS = {
   ["156244"] = true, -- Winged Automaton
 }
 
+Addon.Data.StealthDetectionAuras = DETECTION_AURAS
+Addon.Data.StealthDetectionUnits = DETECTION_UNITS
+
 ---------------------------------------------------------------------------------------------------
 -- Stealth Widget Functions
 ---------------------------------------------------------------------------------------------------
@@ -122,17 +124,17 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile.stealthWidget
+  local db = Addon.db.profile.stealthWidget
   return db.ON or db.ShowInHeadlineView
 end
 
 function Widget:EnabledForStyle(style, unit)
-  if UnitReaction(unit.unitid, "player") > 4 or unit.type == "PLAYER" then return false end
+  if unit.reaction == "FRIENDLY" or unit.type == "PLAYER" then return false end
 
   if (style == "NameOnly" or style == "NameOnly-Unique") then
-    return TidyPlatesThreat.db.profile.stealthWidget.ShowInHeadlineView
+    return Addon.db.profile.stealthWidget.ShowInHeadlineView
   elseif style ~= "etotem" then
-    return TidyPlatesThreat.db.profile.stealthWidget.ON
+    return Addon.db.profile.stealthWidget.ON
   end
 end
 
@@ -157,7 +159,7 @@ function Widget:OnUnitAdded(widget_frame, unit)
     return
   end
 
-  local db = TidyPlatesThreat.db.profile.stealthWidget
+  local db = Addon.db.profile.stealthWidget
 
   -- Updates based on settings / unit style
   if unit.style == "NameOnly" or unit.style == "NameOnly-Unique" then
@@ -177,7 +179,7 @@ function Widget:OnUnitAdded(widget_frame, unit)
 end
 
 --function Widget:OnUpdateStyle(widget_frame, unit)
---  local db = TidyPlatesThreat.db.profile.stealthWidget
+--  local db = Addon.db.profile.stealthWidget
 --  -- Updates based on settings / unit style
 --  if unit.style == "NameOnly" or unit.style == "NameOnly-Unique" then
 --    widget_frame:SetPoint("CENTER", widget_frame:GetParent(), "CENTER", db.x_hv, db.y_hv)

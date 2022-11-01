@@ -32,7 +32,6 @@ local C_FriendList_ShowFriends, C_FriendList_GetNumOnlineFriends = C_FriendList.
 local C_FriendList_GetFriendInfo = C_FriendList.GetFriendInfo
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local PATH = "Interface\\AddOns\\TidyPlates_ThreatPlates\\Widgets\\SocialWidget\\"
 local ICON_FRIEND = PATH .. "friendicon"
 local ICON_GUILDMATE = PATH .. "guildicon"
@@ -54,7 +53,7 @@ local _G =_G
 local BNGetFriendInfo, BNGetFriendInfoByID = BNGetFriendInfo, BNGetFriendInfoByID -- For Classic
 local GetFriendAccountInfo, GetGameAccountInfoByID -- For Retail
 
-if Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC then
+if Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC or Addon.IS_WRATH_CLASSIC then
   local AccountInfo = {
     gameAccountInfo = {}
   }
@@ -200,6 +199,10 @@ function Widget:UNIT_NAME_UPDATE(unitid)
     local widget_frame = plate.TPFrame.widgets.Social
     if widget_frame.Active then
       local unit = plate.TPFrame.unit
+
+      -- * Creating full unit name here (not using GetUnitName(unitid, true) as I don't know if 
+      -- * game_account_info.characterName .. "-" .. game_account_info.realmName would always be equal to
+      -- * GetUnitName for the same unitid
       local name, realm = UnitName(unitid)
       unit.fullname = GetFullName(name, realm)
 
@@ -210,12 +213,12 @@ end
 
 local function IsFriend(unit)
   -- no need to check for ShowInHeadlineView as this is for coloring the healthbar
-  return TidyPlatesThreat.db.profile.socialWidget.ON and (ListFriends[unit.fullname] or ListBnetFriends[unit.fullname])
+  return Addon.db.profile.socialWidget.ON and (ListFriends[unit.fullname] or ListBnetFriends[unit.fullname])
 end
 
 local function IsGuildmate(unit)
   -- no need to check for ShowInHeadlineView as this is for coloring the healthbar
-  return TidyPlatesThreat.db.profile.socialWidget.ON and ListGuildMembers[unit.fullname]
+  return Addon.db.profile.socialWidget.ON and ListGuildMembers[unit.fullname]
 end
 
 ThreatPlates.IsFriend = IsFriend
@@ -243,12 +246,12 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  local db = TidyPlatesThreat.db.profile.socialWidget
+  local db = Addon.db.profile.socialWidget
   return db.ON or db.ShowInHeadlineView
 end
 
 function Widget:OnEnable()
-  if TidyPlatesThreat.db.profile.socialWidget.ShowFriendIcon then
+  if Addon.db.profile.socialWidget.ShowFriendIcon then
     self:RegisterEvent("FRIENDLIST_UPDATE")
     self:RegisterEvent("GUILD_ROSTER_UPDATE")
     self:RegisterEvent("BN_CONNECTED")
@@ -270,17 +273,17 @@ function Widget:EnabledForStyle(style, unit)
   if unit.type ~= "PLAYER" then return false end
 
   if (style == "NameOnly" or style == "NameOnly-Unique") then
-    return TidyPlatesThreat.db.profile.socialWidget.ShowInHeadlineView
+    return Addon.db.profile.socialWidget.ShowInHeadlineView
   elseif style ~= "etotem" then
-    return TidyPlatesThreat.db.profile.socialWidget.ON
+    return Addon.db.profile.socialWidget.ON
   end
 end
 
 function Widget:OnUnitAdded(widget_frame, unit)
-  local db = TidyPlatesThreat.db.profile.socialWidget
+  local db = Addon.db.profile.socialWidget
   widget_frame.Icon:SetSize(db.scale, db.scale)
 
-  db = TidyPlatesThreat.db.profile.FactionWidget
+  db = Addon.db.profile.FactionWidget
   widget_frame.FactionIcon:SetSize(db.scale, db.scale)
 
   local name, realm = UnitName(unit.unitid)
@@ -291,7 +294,7 @@ end
 
 function Widget:UpdateFrame(widget_frame, unit)
   -- I will probably expand this to a table with 'friend = true','guild = true', and 'bnet = true' and have 3 textuers show.
-  local db = TidyPlatesThreat.db.profile.socialWidget
+  local db = Addon.db.profile.socialWidget
   local friend_texture = db.ShowFriendIcon and (ListFriends[unit.name] or ListBnetFriends[unit.fullname] or ListGuildMembers[unit.fullname])
   local faction_texture
   if db.ShowFactionIcon then
@@ -313,7 +316,7 @@ function Widget:UpdateFrame(widget_frame, unit)
   local name_style = unit.style == "NameOnly" or unit.style == "NameOnly-Unique"
   local icon = widget_frame.Icon
   if friend_texture then
-    -- db = TidyPlatesThreat.db.profile.socialWidget
+    -- db = Addon.db.profile.socialWidget
     if name_style then
       icon:SetPoint("CENTER", widget_frame:GetParent(), db.x_hv, db.y_hv)
     else
@@ -329,7 +332,7 @@ function Widget:UpdateFrame(widget_frame, unit)
   icon = widget_frame.FactionIcon
   if faction_texture then
     -- apply settings to faction icon
-    db = TidyPlatesThreat.db.profile.FactionWidget
+    db = Addon.db.profile.FactionWidget
     if name_style then
       icon:SetPoint("CENTER", widget_frame:GetParent(), db.x_hv, db.y_hv)
     else
@@ -348,7 +351,7 @@ end
 --function Widget:OnUpdateStyle(widget_frame, unit)
 --  local name_style = unit.style == "NameOnly" or unit.style == "NameOnly-Unique"
 --  if widget_frame.Icon:IsShown() then
---    local db = TidyPlatesThreat.db.profile.socialWidget
+--    local db = Addon.db.profile.socialWidget
 --    if name_style then
 --      widget_frame.Icon:SetPoint("CENTER", widget_frame:GetParent(), db.x_hv, db.y_hv)
 --    else
@@ -358,7 +361,7 @@ end
 --
 --  if widget_frame.FactionIcon:IsShown() then
 --    -- apply settings to faction icon
---    local db = TidyPlatesThreat.db.profile.FactionWidget
+--    local db = Addon.db.profile.FactionWidget
 --    if name_style then
 --      widget_frame.FactionIcon:SetPoint("CENTER", widget_frame:GetParent(), db.x_hv, db.y_hv)
 --    else
@@ -368,15 +371,15 @@ end
 --end
 
 function Addon.PrintFriendlist()
-  print ("BNet Friends:")
+  Addon.Logging.Debug("BNet Friends:")
   local _, BnetOnline = _G.BNGetNumFriends()
   for i = 1, BnetOnline do
     local account_info = GetFriendAccountInfo(i)
     local game_account_info = account_info.gameAccountInfo
 
-    print ("  " .. tostring(i) .. ":", game_account_info.clientProgram, game_account_info.characterName, game_account_info.realmName, game_account_info.isOnline)
+    Addon.Logging.Debug("  " .. tostring(i) .. ":", game_account_info.clientProgram, game_account_info.characterName, game_account_info.realmName, game_account_info.isOnline)
     if game_account_info.isOnline and game_account_info.clientProgram == BNET_CLIENT_WOW and game_account_info.characterName then
-      print ("    => Add:", GetFullName(game_account_info.characterName, game_account_info.realmName))
+      Addon.Logging.Debug("    => Add:", GetFullName(game_account_info.characterName, game_account_info.realmName))
       ListBnetFriends[GetFullName(game_account_info.characterName, game_account_info.realmName)] = ICON_BNET_FRIEND
     end
   end

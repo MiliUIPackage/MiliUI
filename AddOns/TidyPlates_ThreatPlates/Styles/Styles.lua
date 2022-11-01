@@ -9,16 +9,16 @@ local ThreatPlates = Addon.ThreatPlates
 local InCombatLockdown, IsInInstance = InCombatLockdown, IsInInstance
 local UnitIsPlayer, UnitPlayerControlled, UnitIsUnit = UnitIsPlayer, UnitPlayerControlled, UnitIsUnit
 local UnitIsOtherPlayersPet = UnitIsOtherPlayersPet
-local UnitIsBattlePet = UnitIsBattlePet
+local UnitIsBattlePet, UnitCreatureType = UnitIsBattlePet, UnitCreatureType
 local UnitCanAttack = UnitCanAttack
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local TOTEMS = Addon.TOTEMS
 local GetUnitVisibility = ThreatPlates.GetUnitVisibility
 local NameTriggers, AuraTriggers, CastTriggers = Addon.Cache.CustomPlateTriggers.Name, Addon.Cache.CustomPlateTriggers.Aura, Addon.Cache.CustomPlateTriggers.Cast
 local NameWildcardTriggers, TriggerWildcardTests = Addon.Cache.CustomPlateTriggers.NameWildcard, Addon.Cache.TriggerWildcardTests
 local CustomStylesForAllInstances, CustomStylesForCurrentInstance = Addon.Cache.Styles.ForAllInstances, Addon.Cache.Styles.ForCurrentInstance
+local UpdateCustomStyleAfterAuraTrigger = Addon.UpdateCustomStyleAfterAuraTrigger
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -29,7 +29,7 @@ local _G =_G
 -- Wrapper functions for WoW Classic
 ---------------------------------------------------------------------------------------------------
 
-if Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC then
+if Addon.IS_CLASSIC or Addon.IS_TBC_CLASSIC or Addon.IS_WRATH_CLASSIC then
   UnitIsBattlePet = function(...) return false end
 end
 
@@ -68,51 +68,24 @@ local MAP_UNIT_TYPE_TO_TP_TYPE = {
   EnemyPet         = "Pet",
   EnemyMinus       = "Minus",
   NeutralNPC       = "Neutral",
-  NeutralTotem     = "Totem",    -- When players are mind-controled, their totems turn neutral it seems (at least in Classic): https://www.curseforge.com/wow/addons/tidy-plates-threat-plates/issues/506
-  NeutralGuardian  = "Guardian",
-  NeutralPet       = "Pet",      -- Sometimes, friendly pets turn into neutral pets when you lose control over them (e.g., in quests).
   NeutralMinus     = "Minus",
-  --                  Tapped
 }
 
---local function GetUnitType(unit)
---  local faction = REACTION_MAPPING[unit.reaction]
---  local unit_class
---
---  -- not all combinations are possible in the game: Friendly Minus, Neutral Player/Totem/Pet
---  if unit.type == "PLAYER" then
---    unit_class = "Player"
---    unit.TP_DetailedUnitType = faction .. "Player"
---  elseif unit.TotemSettings then
---    unit_class = "Totem"
---    unit.TP_DetailedUnitType = "Totem"
---  elseif UnitIsOtherPlayersPet(unit.unitid) then -- player pets are also considered guardians, so this check has priority
---    unit_class = "Pet"
---    unit.TP_DetailedUnitType = "Pet"
---  elseif UnitPlayerControlled(unit.unitid) then
---    unit_class = "Guardian"
---    unit.TP_DetailedUnitType = "Guardian"
---  elseif unit.isMini then
---    unit_class = "Minus"
---    unit.TP_DetailedUnitType = "Minus"
---  else
---    unit_class = "NPC"
---    unit.TP_DetailedUnitType = (faction == "Neutral" and "Neutral") or (faction .. unit_class)
---  end
---
---  return faction, unit_class
---end
+local REMAP_UNSUPPORTED_UNIT_TYPES = {
+  NeutralTotem     = "FriendlyTotem",    -- When players are mind-controled, their totems turn neutral it seems (at least in Classic): https://www.curseforge.com/wow/addons/tidy-plates-threat-plates/issues/506
+  NeutralGuardian  = "FriendlyGuardian",
+  NeutralPet       = "FriendlyPet",      -- Sometimes, friendly pets turn into neutral pets when you lose control over them (e.g., in quests).
+}
 
 local function GetUnitType(unit)
-  local faction = REACTION_MAPPING[unit.reaction]
   local unit_class
-
   -- not all combinations are possible in the game: Friendly Minus, Neutral Player/Totem/Pet
   if unit.type == "PLAYER" then
     unit_class = "Player"
   elseif unit.TotemSettings then
     unit_class = "Totem"
   elseif UnitIsOtherPlayersPet(unit.unitid) or UnitIsUnit(unit.unitid, "pet") then -- player pets are also considered guardians, so this check has priority
+    -- ? Better to use UnitIsOwnerOrControllerOfUnit("player", unit.unitid) here?
     unit_class = "Pet"
   elseif UnitPlayerControlled(unit.unitid) then
     unit_class = "Guardian"
@@ -122,7 +95,12 @@ local function GetUnitType(unit)
     unit_class = "NPC"
   end
 
-  unit.TP_DetailedUnitType = MAP_UNIT_TYPE_TO_TP_TYPE[faction .. unit_class]
+  -- Sometimes, friendly pets or totems turn into neutral when you lose control over them (e.g., in quests or
+  -- when players are mind-controled). So map unknown neutral types (totems, pets, guardians) to friendly ones  
+  local unit_type = REACTION_MAPPING[unit.reaction] .. unit_class
+  unit_type = REMAP_UNSUPPORTED_UNIT_TYPES[unit_type] or unit_type
+
+  unit.TP_DetailedUnitType = MAP_UNIT_TYPE_TO_TP_TYPE[unit_type]
 
   if unit.TP_DetailedUnitType == "EnemyNPC" then
     unit.TP_DetailedUnitType = (unit.isBoss and "Boss") or (unit.isElite and "Elite") or unit.TP_DetailedUnitType
@@ -132,21 +110,21 @@ local function GetUnitType(unit)
     unit.TP_DetailedUnitType = "Tapped"
   end
 
-  return faction .. unit_class
+  -- If nameplate visibility is controlled by Wow itself (configured via CVars), this function is never used as
+  -- nameplates aren't created in the first place (e.g. friendly NPCs, totems, guardians, pets, ...)
+  return GetUnitVisibility(unit_type)
 end
 
 local function ShowUnit(unit)
-  -- If nameplate visibility is controlled by Wow itself (configured via CVars), this function is never used as
-  -- nameplates aren't created in the first place (e.g. friendly NPCs, totems, guardians, pets, ...)
-  local unit_type = GetUnitType(unit)
-  local show, headline_view = GetUnitVisibility(unit_type)
+  local show, headline_view = GetUnitType(unit)
+
   -- If a unit is targeted, show the nameplate if possible.
   show = show or unit.isTarget
 
   if not show then return false, false, headline_view end
 
   local e, b = (unit.isElite or unit.isRare), unit.isBoss
-  local db_base = TidyPlatesThreat.db.profile
+  local db_base = Addon.db.profile
   local db = db_base.Visibility
 
   local hide_unit_type = false
@@ -207,7 +185,7 @@ function Addon:GetThreatStyle(unit)
 end
 
 local function GetStyleForPlate(custom_style)
-  -- If a name trigger style is found with useStyle == false, that means that it's active, but only the icon will be shown.
+  -- If a style is found with useStyle == false, that means that it's active, but only the icon will be shown.
   if custom_style.useStyle then
     return (custom_style.showNameplate and "unique") or (custom_style.ShowHeadlineView and "NameOnly-Unique") or "etotem"
   end
@@ -218,11 +196,10 @@ end
 -- Depends on:
 --   * unit.name
 function Addon.UnitStyle_NameDependent(unit)
-  local db = TidyPlatesThreat.db.profile
+  local db = Addon.db.profile
 
   local plate_style, custom_style, totem_settings
-
-  local name_custom_style = NameTriggers[unit.name]
+  local name_custom_style = NameTriggers[unit.name] or NameTriggers[unit.NPCID]
   if name_custom_style and name_custom_style.Enable.UnitReaction[unit.reaction] then
     custom_style = name_custom_style
     plate_style = GetStyleForPlate(custom_style)
@@ -262,8 +239,8 @@ function Addon.UnitStyle_NameDependent(unit)
     end
   end
 
-  if not plate_style then
-    -- Check for totem
+  if not plate_style and UnitCreatureType(unit.unitid) == Addon.TotemCreatureType and UnitPlayerControlled(unit.unitid) then
+    -- Check for player totems and ignore NPC totems
     local totem_id = TOTEMS[unit.name]
     if totem_id then
       totem_settings = db.totemSettings[totem_id]
@@ -289,24 +266,38 @@ end
 
 local UnitStyle_NameDependent = Addon.UnitStyle_NameDependent
 
-function Addon.UnitStyle_AuraDependent(unit, aura_id, aura_name)
-  local plate_style
+function Addon.UnitStyle_AuraTrigger_Initialize(unit)
+  if Addon.ActiveAuraTriggers then
+    unit.PreviousCustomStyleAura = unit.CustomStyleAura
+    unit.CustomStyleAura = nil
+  end
+end
+
+function Addon.UnitStyle_AuraTrigger_UpdateStyle(unit)
+  -- Set the style if a aura trigger for a custom nameplate was found or the aura trigger
+  -- is no longer there
+  if Addon.ActiveAuraTriggers and (unit.CustomStyleAura or unit.PreviousCustomStyleAura) then 
+    UpdateCustomStyleAfterAuraTrigger(unit)
+  end
+end
+
+function Addon.UnitStyle_AuraTrigger_CheckIfActive(unit, aura_id, aura_name, aura_cast_by_player)
+  -- Do this to prevent overwrite the first aura trigger custom style found (which is the one being used)
+  if not Addon.ActiveAuraTriggers or unit.CustomStyleAura then return false end
 
   local unique_settings = AuraTriggers[aura_id] or AuraTriggers[aura_name]
-  if unique_settings and unique_settings.useStyle and unique_settings.Enable.UnitReaction[unit.reaction] then
-    plate_style = (unique_settings.showNameplate and "unique") or (unique_settings.ShowHeadlineView and "NameOnly-Unique") or "etotem"
-
+  -- Check if enabled for unit's faction and check for show only my auras
+  if unique_settings and unique_settings.useStyle and unique_settings.Enable.UnitReaction[unit.reaction] and (not unique_settings.Trigger.Aura.ShowOnlyMine or aura_cast_by_player) then
     -- As this is called for every aura on a unit, never set it to false (overwriting a previous true value)
-    if plate_style then
-      unit.CustomStyleAura = plate_style
-      unit.CustomPlateSettingsAura = unique_settings
+    unit.CustomStyleAura = (unique_settings.showNameplate and "unique") or (unique_settings.ShowHeadlineView and "NameOnly-Unique") or "etotem"
+    unit.CustomPlateSettingsAura = unique_settings
 
-      local _, _, icon = _G.GetSpellInfo(aura_id)
-      unique_settings.AutomaticIcon = icon
-    end
+    local _, _, icon = _G.GetSpellInfo(aura_id)
+    unique_settings.AutomaticIcon = icon
+    return true
+  else
+    return false
   end
-
-  return plate_style
 end
 
 function Addon.UnitStyle_CastDependent(unit, spell_id, spell_name)
@@ -316,13 +307,11 @@ function Addon.UnitStyle_CastDependent(unit, spell_id, spell_name)
   if unique_settings and unique_settings.useStyle and unique_settings.Enable.UnitReaction[unit.reaction] then
     plate_style = (unique_settings.showNameplate and "unique") or (unique_settings.ShowHeadlineView and "NameOnly-Unique") or "etotem"
 
-    if plate_style then
-      unit.CustomStyleCast = plate_style
-      unit.CustomPlateSettingsCast = unique_settings
+    unit.CustomStyleCast = plate_style
+    unit.CustomPlateSettingsCast = unique_settings
 
-      local _, _, icon = _G.GetSpellInfo(spell_id)
-      unique_settings.AutomaticIcon = icon
-    end
+    local _, _, icon = _G.GetSpellInfo(spell_id)
+    unique_settings.AutomaticIcon = icon
   end
 
   return plate_style

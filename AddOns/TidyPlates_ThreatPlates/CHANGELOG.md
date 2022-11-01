@@ -1,4 +1,4 @@
-# 10.2.10 (2021-08-08)
+# 11.0.4 (2022-10-31)
 
-* Added support for anima-charged combo points from new covenant legendary "Resouding Clarity" [Issue #508, Comment #5813, #5821].
-* Fixed a Lua error that occured when player totems turn into neutral totems (e.g., when the player is mind-controlled) [Issue #506, Comment #5814].
+* Added Maim (Druid) to Auras widget as CC aura for Wrath Classic.
+* Fixed a Lua error when a nameplate was shown for a non-existing unit (e.g., Ring of Transference in Oribos) [Issue #575].

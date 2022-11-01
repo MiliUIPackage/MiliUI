@@ -13,11 +13,10 @@ local Widget = (Addon.IS_CLASSIC and {}) or Addon.Widgets:NewWidget("Arena")
 local pairs = pairs
 
 -- WoW APIs
-local GetNumArenaOpponents, UnitReaction = GetNumArenaOpponents, UnitReaction
+local GetNumArenaOpponents = GetNumArenaOpponents
 local IsInInstance, IsInBrawl = IsInInstance, C_PvP.IsInBrawl
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local Font = Addon.Font
 
 local PATH = "Interface\\AddOns\\TidyPlates_ThreatPlates\\Widgets\\ArenaWidget\\"
@@ -92,7 +91,7 @@ function Widget:Create(tp_frame)
 end
 
 function Widget:IsEnabled()
-  return TidyPlatesThreat.db.profile.arenaWidget.ON
+  return Addon.db.profile.arenaWidget.ON
 end
 
 function Widget:OnEnable()
@@ -102,7 +101,7 @@ function Widget:OnEnable()
 end
 
 function Widget:EnabledForStyle(style, unit)
-  return UnitReaction(unit.unitid, "player") < 4 and not (style == "NameOnly" or style == "NameOnly-Unique" or style == "etotem")
+  return unit.reaction == "HOSTILE" and not (style == "NameOnly" or style == "NameOnly-Unique" or style == "etotem")
 end
 
 function Widget:OnUnitAdded(widget_frame, unit)
@@ -133,7 +132,7 @@ function Widget:OnUnitAdded(widget_frame, unit)
 
   if Settings.HideName then
     widget_frame:GetParent().visual.name:Hide()
-  elseif TidyPlatesThreat.db.profile.settings.name.show then
+  elseif Addon.db.profile.settings.name.show then
     widget_frame:GetParent().visual.name:Show()
   end
 
@@ -160,5 +159,5 @@ function Widget:UpdateLayout(widget_frame)
 end
 
 function Widget:UpdateSettings()
-  Settings = TidyPlatesThreat.db.profile.arenaWidget
+  Settings = Addon.db.profile.arenaWidget
 end

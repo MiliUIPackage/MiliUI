@@ -12,11 +12,12 @@ local ceil, string_format = ceil, string.format
 local GetSpellTexture = GetSpellTexture
 local GetNamePlateForUnit = C_NamePlate.GetNamePlateForUnit
 local InCombatLockdown = InCombatLockdown
+local UnitName, UnitIsUnit, UnitClass = UnitName, UnitIsUnit, UnitClass
 
 -- ThreatPlates APIs
-local TidyPlatesThreat = TidyPlatesThreat
 local BackdropTemplate = Addon.BackdropTemplate
 local Font = Addon.Font
+local TransliterateCyrillicLetters = Addon.TransliterateCyrillicLetters
 
 local _G =_G
 -- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
@@ -160,32 +161,49 @@ local function UpdateLayoutHealthbar(self, db, style)
 
   local db_target_unit = db.healthbar.TargetUnit
   Font:UpdateText(self, self.TargetUnit, db_target_unit)
-
-  local width, height = self:GetSize()
-  self.TargetUnit:SetSize(width, height)
+  Font:UpdateTextSize(self, self.TargetUnit, db_target_unit)
   self.TargetUnit:SetShown(self.TargetUnit:GetText() ~= nil and db_target_unit.Show)
 
   SettingsTargetUnit = db_target_unit
 end
 
-local function ShowTargetUnit(self, target_of_target_name, class_name)
+local function ShowTargetUnit(self, unitid)
   if SettingsTargetUnit.ShowOnlyInCombat and not InCombatLockdown() then
     self:HideTargetUnit()
     return
   end
 
   local target_of_target = self.TargetUnit
-  if target_of_target_name then
-    target_of_target:SetText("|cffffffff[|r " .. target_of_target_name .. " |cffffffff]|r")
-    target_of_target.ClassName = class_name
-    target_of_target:Show()
+  
+  -- If just the color should be updated, unitid will be nil
+  if unitid then
+    local target_of_target_unit = unitid .. "target"
+    if not SettingsTargetUnit.ShowNotMyself or not UnitIsUnit("player", target_of_target_unit) then
+      local target_of_target_name = UnitName(target_of_target_unit)
+      if target_of_target_name then
+        target_of_target_name = TransliterateCyrillicLetters(target_of_target_name)
+        if SettingsTargetUnit.ShowBrackets then
+          target_of_target_name = "|cffffffff[|r " .. target_of_target_name .. " |cffffffff]|r" 
+        end
+        target_of_target:SetText(target_of_target_name)
+        
+        local _, class_name = UnitClass(target_of_target_unit)       
+        target_of_target.ClassName = class_name
+        
+        target_of_target:Show()
+      else
+        self:HideTargetUnit()
+      end
+    else
+      self:HideTargetUnit()
+    end
   end
 
   -- Update the color if the element is shown
   if target_of_target:IsShown() then
     local color
     if SettingsTargetUnit.UseClassColor and target_of_target.ClassName then
-      color = TidyPlatesThreat.db.profile.Colors.Classes[target_of_target.ClassName]
+      color = Addon.db.profile.Colors.Classes[target_of_target.ClassName]
     else
       color = SettingsTargetUnit.CustomColor
     end
@@ -256,7 +274,7 @@ end
 --end
 
 local function SetFormat(self, show)
-  local db = TidyPlatesThreat.db.profile.settings
+  local db = Addon.db.profile.settings
 
   if show then
     self.InterruptShield:SetShown(db.castnostop.ShowInterruptShield)
@@ -308,9 +326,8 @@ local function UpdateLayoutCastbar(self, db, style)
   self.InterruptBorder:SetFrameLevel(frame_level)
 
   Font:UpdateText(self, self.CastTarget, db.castbar.CastTarget)
+  Font:UpdateTextSize(self, self.CastTarget, db.castbar.CastTarget)
 
-  local width, height = self:GetSize()
-  self.CastTarget:SetSize(width, height)
   self.CastTarget:SetShown(db.castbar.CastTarget.Show)
 end
 
@@ -392,7 +409,7 @@ local EnabledConfigMode = false
 local ConfigModePlate
 
 local function ShowOnUnit(unit)
-  local db = TidyPlatesThreat.db.profile.settings.castbar
+  local db = Addon.db.profile.settings.castbar
 
   local style = unit.style
   return style ~= "etotem" and style ~= "empty" and
@@ -412,7 +429,7 @@ function Addon:ConfigCastbar()
 
         castbar:SetScript("OnUpdate", function(self, elapsed)
           if ShowOnUnit(plate.TPFrame.unit) then
-            local db = TidyPlatesThreat.db.profile.settings
+            local db = Addon.db.profile.settings
 
             self:SetMinMaxValues(0, 100)
             self:SetValue(50)
@@ -464,7 +481,7 @@ function Addon:ConfigCastbar()
         castbar:_Hide()
       end
     else
-      ThreatPlates.Print(ThreatPlates.L["Please select a target unit to enable configuration mode."], true)
+      Addon.Logging.Warning(ThreatPlates.L["Please select a target unit to enable configuration mode."])
     end
   else
     local castbar = ConfigModePlate.TPFrame.visual.castbar
