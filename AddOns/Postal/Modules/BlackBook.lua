@@ -33,7 +33,6 @@ function Postal_BlackBook:OnEnable()
 		Postal_BlackBookButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Round")
 		Postal_BlackBookButton:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
 		Postal_BlackBookButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
-		Postal_BlackBookButton:SetFrameLevel(10) -- 暫時修正
 		Postal_BlackBookButton:SetScript("OnClick", function(self, button, down)
 			if Postal_DropDownMenu.initialize ~= Postal_BlackBook.BlackBookMenu then
 				CloseDropDownMenus()
