@@ -13,10 +13,29 @@
 local _, Core = ...
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local type = type
+
+----------------------------------------
+-- locals
+---
+
+local ActionTypes, WOW_RETAIL = Core.ActionTypes, Core.WOW_RETAIL
+
+----------------------------------------
+-- Functions
+---
+
+-- An empty function.
+function Core.NoOp() end
+
+-- Returns the scale factor for a button.
+local function GetScaleSize(Button)
+	local Scale = (Button and Button.__MSQ_Scale) or 1
+	return 36 / Scale
+end
 
 ----------------------------------------
 -- Color
@@ -32,13 +51,6 @@ function Core.GetColor(Color, Alpha)
 end
 
 ----------------------------------------
--- NoOp
----
-
--- An empty function.
-function Core.NoOp() end
-
-----------------------------------------
 -- Points
 ---
 
@@ -46,8 +58,11 @@ function Core.NoOp() end
 function Core.SetPoints(Region, Button, Skin, Default, SetAllPoints)
 	Region:ClearAllPoints()
 
+	local Anchor, Regions = Skin.Anchor, Button.__Regions
+	Anchor = (Anchor and Regions) and Regions[Anchor]
+
 	if SetAllPoints then
-		Region:SetAllPoints(Button)
+		Region:SetAllPoints(Anchor or Button)
 	else
 		local Point = Skin.Point
 		local RelPoint = Skin.RelPoint or Point
@@ -71,7 +86,7 @@ function Core.SetPoints(Region, Button, Skin, Default, SetAllPoints)
 			OffsetY = Default.OffsetY or 0
 		end
 
-		Region:SetPoint(Point, Button, RelPoint, OffsetX or 0, OffsetY or 0)
+		Region:SetPoint(Point, Anchor or Button, RelPoint, OffsetX or 0, OffsetY or 0)
 	end
 end
 
@@ -81,8 +96,10 @@ end
 
 -- Returns the x and y scale of a button.
 function Core.GetScale(Button)
-	local x = (Button:GetWidth() or 36) / 36
-	local y = (Button:GetHeight() or 36) / 36
+	local ScaleSize = GetScaleSize(Button)
+	local w, h = Button:GetSize()
+	local x = (w or ScaleSize) / ScaleSize
+	local y = (h or ScaleSize) / ScaleSize
 	return x, y
 end
 
@@ -91,9 +108,10 @@ end
 ---
 
 -- Returns a height and width.
-function Core.GetSize(Width, Height, xScale, yScale)
-	local w = (Width or 36) * xScale
-	local h = (Height or 36) * yScale
+function Core.GetSize(Width, Height, xScale, yScale, Button)
+	local ScaleSize = GetScaleSize(Button)
+	local w = (Width or ScaleSize) * xScale
+	local h = (Height or ScaleSize) * yScale
 	return w, h
 end
 
@@ -107,5 +125,24 @@ function Core.GetTexCoords(Coords)
 		return Coords[1] or 0, Coords[2] or 1, Coords[3] or 0, Coords[4] or 1
 	else
 		return 0, 1, 0, 1
+	end
+end
+
+----------------------------------------
+-- Type Skin
+---
+
+-- Returns a skin based on the button type.
+function Core.GetTypeSkin(Button, Type, Skin)
+	if Button.__MSQ_IsAura then
+		return Skin[Type] or Skin.Aura or Skin
+	elseif Button.__MSQ_IsItem then
+		if Type == "ReagentBag" then
+			return Skin.ReagentBag or Skin.BagSlot or Skin.Item or Skin
+		else
+			return Skin[Type] or Skin.Item or Skin
+		end
+	else
+		return Skin[Type] or Skin
 	end
 end

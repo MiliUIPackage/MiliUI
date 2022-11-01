@@ -13,7 +13,7 @@
 local _, Core = ...
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local type = type
@@ -31,7 +31,19 @@ local GetSize, SetPoints = Core.GetSize, Core.SetPoints
 
 -- Skins a button or region mask.
 function Core.SkinMask(Region, Button, Skin, xScale, yScale)
-	local ButtonMask = Button.__MSQ_Mask
+	local ButtonMask = Button.__MSQ_Mask or Button.IconMask
+	local CircleMask = Button.CircleMask
+
+	-- Disable the bag slot mask in 10.0 to enable custom masks.
+	if CircleMask then
+		local Icon = Button.icon
+
+		if Icon then
+			Icon:RemoveMaskTexture(CircleMask)
+		end
+
+		CircleMask:SetTexture()
+	end
 
 	-- Region
 	if Region then
@@ -43,13 +55,14 @@ function Core.SkinMask(Region, Button, Skin, xScale, yScale)
 				Region:AddMaskTexture(ButtonMask)
 				Region.__MSQ_ButtonMask = true
 			end
-		elseif Region.__MSQ_ButtonMask then
+		elseif ButtonMask then
 			Region:RemoveMaskTexture(ButtonMask)
 			Region.__MSQ_ButtonMask = nil
 		end
 
 		-- Region Mask
 		local RegionMask = Region.__MSQ_Mask
+		local Type = type(SkinMask)
 
 		if SkinMask then
 			if not RegionMask then
@@ -57,13 +70,29 @@ function Core.SkinMask(Region, Button, Skin, xScale, yScale)
 				Region.__MSQ_Mask = RegionMask
 			end
 
-			if type(SkinMask) == "table" then
-				RegionMask:SetTexture(SkinMask.Texture)
-				RegionMask:SetSize(GetSize(SkinMask.Width, SkinMask.Height, xScale, yScale))
-				SetPoints(RegionMask, Region, Skin, nil, SkinMask.SetAllPoints)
-			else
-				RegionMask:SetTexture(SkinMask)
+			if Type == "table" then
+				local Atlas, Texture = SkinMask.Atlas, SkinMask.Texture
+
+				if Atlas then
+					local UseAtlasSize = SkinMask.UseAtlasSize
+
+					ButtonMask:SetAtlas(Atlas, UseAtlasSize)
+
+					if not UseAtlasSize then
+						ButtonMask:SetSize(GetSize(SkinMask.Width, SkinMask.Height, xScale, yScale, Button))
+					end
+
+					SetPoints(RegionMask, Region, SkinMask, nil, SkinMask.SetAllPoints)
+				elseif Texture then
+					RegionMask:SetTexture(Texture, SkinMask.WrapH, SkinMask.WrapV)
+					RegionMask:SetSize(GetSize(SkinMask.Width, SkinMask.Height, xScale, yScale, Button))
+					SetPoints(RegionMask, Region, SkinMask, nil, SkinMask.SetAllPoints)
+				end
+			elseif Type == "string" then
+				RegionMask:SetTexture(SkinMask, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 				RegionMask:SetAllPoints(Region)
+			else
+				return
 			end
 
 			if not Region.__MSQ_RegionMask then
@@ -80,12 +109,27 @@ function Core.SkinMask(Region, Button, Skin, xScale, yScale)
 		ButtonMask = ButtonMask or Button:CreateMaskTexture()
 		Button.__MSQ_Mask = ButtonMask
 
-		if type(Skin) == "table" then
-			ButtonMask:SetTexture(Skin.Texture)
-			ButtonMask:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale))
-			SetPoints(ButtonMask, Button, Skin, nil, Skin.SetAllPoints)
-		else
-			ButtonMask:SetTexture(Skin)
+		local Type = type(Skin)
+
+		if Type == "table" then
+			local Atlas, Texture = Skin.Atlas, Skin.Texture
+
+			if Atlas then
+				local UseAtlasSize = Skin.UseAtlasSize
+				ButtonMask:SetAtlas(Atlas, UseAtlasSize)
+
+				if not UseAtlasSize then
+					ButtonMask:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
+				end
+
+				SetPoints(ButtonMask, Button, Skin, nil, Skin.SetAllPoints)
+			elseif Texture then
+				ButtonMask:SetTexture(Texture, Skin.WrapH, Skin.WrapV)
+				ButtonMask:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
+				SetPoints(ButtonMask, Button, Skin, nil, Skin.SetAllPoints)
+			end
+		elseif Type == "string" then
+			ButtonMask:SetTexture(Skin, "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE")
 			ButtonMask:SetAllPoints(Button)
 		end
 	end

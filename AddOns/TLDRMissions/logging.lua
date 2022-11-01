@@ -225,6 +225,7 @@ function addon:logCompletedMission(missionID, canComplete, success, overmaxSucce
     if addon.db.profile.DEVTESTING then
         if addon.db.profile.ZENKTESTING then
             if (not TLDRMissionsLogging[missionID].sentTime) or ((TLDRMissionsLogging[missionID].sentTime + 64800) < time()) then
+                TLDRMissionsLogging[missionID] = nil
                 return
             end
         end
@@ -238,8 +239,18 @@ function addon:logCompletedMission(missionID, canComplete, success, overmaxSucce
                     if minion.predictedFinalHP < 0 then minion.predictedFinalHP = 0 end
                     
                     if (finalHealth[boardIndex] < (minion.predictedFinalHP - 2)) or (finalHealth[boardIndex] > (minion.predictedFinalHP + 2)) then -- allow for small variance for minions healing slightly between sim and being sent
+                    
+                        -- new exception: allow Kyrian to have their damage taken overestimated by up to 20HP, due to rounding bug that I am now giving up trying to solve
+                        -- eg: finalHealth 273, predictedFinalHP 270 - dont report anymore
+                        if (C_Covenants.GetActiveCovenantID() == 1) and (finalHealth[boardIndex] > minion.predictedFinalHP) and ((finalHealth[boardIndex] - 20) < minion.predictedFinalHP) then
+                            TLDRMissionsLogging[missionID] = nil
+                            return
+                        end
+                        
                         print("DEVTESTING: Discrepancy for mission " ..missionID)
-                        WeakAuras.ScanEvents("TLDRMISSIONS_DEVTESTING")
+                        if WeakAuras then
+                            WeakAuras.ScanEvents("TLDRMISSIONS_DEVTESTING")
+                        end
                         addon.GUI.CompleteMissionsButton.usedShortcut = false
                         return
                     end

@@ -1,7 +1,7 @@
 local addonName = ...
 local addon = _G[addonName]
 local LibStub = addon.LibStub
---[[ $Id: AceGUIWidget-DropDown.lua 1262 2022-04-07 23:00:32Z funkehdude $ ]]--
+--[[ $Id: AceGUIWidget-DropDown.lua 1284 2022-09-25 09:15:30Z nevcairiel $ ]]--
 local AceGUI = LibStub("AceGUI-3.0")
 
 -- Lua APIs
@@ -13,10 +13,6 @@ local tsort = table.sort
 local PlaySound = PlaySound
 local UIParent, CreateFrame = UIParent, CreateFrame
 local _G = _G
-
--- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
--- List them here for Mikk's FindGlobals script
--- GLOBALS: CLOSE
 
 local function fixlevels(parent,...)
 	local i = 1
@@ -256,7 +252,7 @@ do
 
 	local function Constructor()
 		local count = AceGUI:GetNextWidgetNum(widgetType)
-		local frame = CreateFrame("Frame", "AceGUI30Pullout"..count, UIParent, "BackdropTemplate")
+		local frame = CreateFrame("Frame", "TLDRAceGUI30Pullout"..count, UIParent, "BackdropTemplate")
 		local self = {}
 		self.count = count
 		self.type = widgetType
@@ -307,7 +303,7 @@ do
 		scrollFrame.obj = self
 		itemFrame.obj = self
 
-		local slider = CreateFrame("Slider", "AceGUI30PulloutScrollbar"..count, scrollFrame, "BackdropTemplate")
+		local slider = CreateFrame("Slider", "TLDRAceGUI30PulloutScrollbar"..count, scrollFrame, "BackdropTemplate")
 		slider:SetOrientation("VERTICAL")
 		slider:SetHitRectInsets(0, 0, -10, 0)
 		slider:SetBackdrop(sliderBackdrop)
@@ -652,7 +648,7 @@ do
 	local function Constructor()
 		local count = AceGUI:GetNextWidgetNum(widgetType)
 		local frame = CreateFrame("Frame", nil, UIParent)
-		local dropdown = CreateFrame("Frame", "AceGUI30DropDown"..count, frame, "UIDropDownMenuTemplate")
+		local dropdown = CreateFrame("Frame", "TLDRAceGUI30DropDown"..count, frame, "UIDropDownMenuTemplate")
 
 		local self = {}
 		self.type = widgetType

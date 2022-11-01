@@ -79,6 +79,7 @@
 
     <Frame name="ExtVendor_JunkItemListTemplate" virtual="true">
         <Size x="570" y="260"/>
+		<!--
         <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
             <EdgeSize>
                 <AbsValue val="16"/>
@@ -90,6 +91,7 @@
                 <AbsInset left="5" right="5" top="5" bottom="5"/>
             </BackgroundInsets>
         </Backdrop>
+		//-->
         <Layers>
             <Layer level="ARTWORK">
                 <FontString name="$parentText" inherits="GameFontNormalLeft">
@@ -122,6 +124,7 @@
         <Size>
             <AbsDimension x="640" y="72"/>
         </Size>
+		<!--
         <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
             <BackgroundInsets>
                 <AbsInset left="11" right="11" top="12" bottom="11"/>
@@ -134,6 +137,7 @@
             </EdgeSize>
             <Color r="0" g="0" b="0" a="1"/>
         </Backdrop>
+		//-->
         <Layers>
             <Layer level="BACKGROUND">
                 <Texture name="$parentBG2">
@@ -250,6 +254,7 @@
                 <Anchors>
                     <Anchor point="CENTER" relativeTo="MerchantFrame"/>
                 </Anchors>
+				<!--
                 <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
                     <BackgroundInsets>
                         <AbsInset left="11" right="11" top="12" bottom="11"/>
@@ -262,6 +267,7 @@
                     </EdgeSize>
                     <Color r="0" g="0" b="0" a="1"/>
                 </Backdrop>
+				//-->
                 <Layers>
                     <Layer level="BACKGROUND">
                         <Texture name="$parentBG2">

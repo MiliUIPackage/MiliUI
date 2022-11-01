@@ -15,7 +15,7 @@ local MASQUE, Core = ...
 assert(LibStub, MASQUE.." requires LibStub.")
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local print = print
@@ -34,14 +34,14 @@ local WOW_VERSION = select(4, GetBuildInfo()) or 0
 Core.WOW_VERSION = WOW_VERSION
 
 -- Retail
-Core.WOW_RETAIL = (WOW_VERSION > 90000 and true) or nil
+Core.WOW_RETAIL = (WOW_VERSION >= 100000 and true) or nil
 
 ----------------------------------------
 -- API
 ---
 
 do
-	local VERSION = 90002
+	local VERSION = 100000
 	Core.API = LibStub:NewLibrary(MASQUE, VERSION)
 
 	----------------------------------------
@@ -62,7 +62,6 @@ do
 		"https://github.com/SFX-WoW/Masque",
 		"https://www.curseforge.com/wow/addons/masque",
 		"https://addons.wago.io/addons/masque",
-		"https://www.wowace.com/projects/masque",
 		"https://www.wowinterface.com/downloads/info12097",
 	}
 end
@@ -77,7 +76,7 @@ function Masque:OnInitialize()
 		profile = {
 			Debug = false,
 			SkinInfo = true,
-			StandAlone = false,
+			StandAlone = true,
 			Groups = {
 				["*"] = {
 					Backdrop = false,
@@ -86,8 +85,10 @@ function Masque:OnInitialize()
 					Gloss = false,
 					Inherit = true,
 					Pulse = true,
+					Scale = 1,
 					Shadow = false,
 					SkinID = "Caith",
+					UseScale = false,
 				},
 			},
 			LDB = {
@@ -105,6 +106,7 @@ function Masque:OnInitialize()
 	Core.db = db
 
 	local LDS = (WOW_VERSION > 30000) and LibStub("LibDualSpec-1.0", true)
+
 	if LDS then
 		LDS:EnhanceDatabase(Core.db, MASQUE)
 		Core.USE_LDS = true
@@ -125,6 +127,7 @@ end
 -- PLAYER_LOGIN Event
 function Masque:OnEnable()
 	local Setup = Core.Setup
+
 	if Setup then
 		Setup("Core")
 		Setup("LDB")

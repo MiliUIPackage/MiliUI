@@ -1,0 +1,21 @@
+<Ui>
+    <Frame name="TLDRMissionsFollowerList" parent="GarrisonLandingPage" inherits="BaseLandingPageFollowerListTemplate" mixin="GarrisonFollowerList">
+		<KeyValues>
+			<KeyValue key="showUncollected" value="true" type="boolean"/>
+			<KeyValue key="canCastSpellsOnFollowers" value="true" type="boolean"/>
+			<KeyValue key="isLandingPage" value="true" type="boolean"/>
+		</KeyValues>
+		<Layers>
+			<Layer level="BORDER">
+				<FontString parentKey="LandingPageHeader" inherits="QuestFont_Enormous" text="GARRISON_FOLLOWERS">
+					<Anchors>
+						<Anchor point="LEFT" relativeKey="$parent.$parent.HeaderBar" x="26"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Anchors>
+			<Anchor point="TOPLEFT" x="45" y="-120"/>
+		</Anchors>
+	</Frame>
+</Ui>

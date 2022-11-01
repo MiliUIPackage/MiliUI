@@ -13,7 +13,7 @@
 local MASQUE, Core = ...
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local error, pairs, type = error, pairs, type
@@ -26,13 +26,13 @@ local error, pairs, type = error, pairs, type
 local Skins = Core.Skins
 
 -- @ Skins\Regions
-local EmptyTypes, RegTypes = Core.EmptyTypes, Core.RegTypes
+local ActionTypes, BaseTypes, RegTypes = Core.ActionTypes, Core.BaseTypes, Core.RegTypes
 
 -- @ Core\Utility
 local GetColor, GetScale, NoOp = Core.GetColor, Core.GetScale, Core.NoOp
 
 -- @ Core\Core
-local GetType, GetRegion = Core.GetType, Core.GetRegion
+local GetRegion, GetSubType, GetType = Core.GetRegion, Core.GetSubType, Core.GetType
 
 -- @ Core\Button
 local SkinButton = Core.SkinButton
@@ -97,12 +97,22 @@ function GMT:AddButton(Button, Regions, Type, Strict)
 
 	Type = Type or Button.__MSQ_bType
 
+	local Checked
+
 	if not Type or not RegTypes[Type] then
 		Type = GetType(Button, oType)
+		Checked = true
 	end
 
-	Button.__MSQ_bType = Type or false
-	Button.__MSQ_EmptyType = EmptyTypes[Type]
+	if BaseTypes[Type] and not Checked then
+		Type = GetSubType(Button, Type)
+	end
+
+	Button.__MSQ_bType = Type
+
+	if ActionTypes[Type] then
+		self.ActionButtons = true
+	end
 
 	Regions = Regions or Button.__Regions
 
@@ -150,7 +160,7 @@ function GMT:AddButton(Button, Regions, Type, Strict)
 	local db = self.db
 
 	if not db.Disabled and not self.Queued then
-		SkinButton(Button, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Pulse)
+		SkinButton(Button, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Scale, db.Pulse)
 	end
 end
 
@@ -207,7 +217,7 @@ function GMT:RemoveButton(Button)
 	if Button then
 		local Regions = self.Buttons[Button]
 
-		if Regions then
+		if Regions and not self.db.Disabled then
 			SkinButton(Button, Regions, false)
 		end
 
@@ -225,14 +235,14 @@ function GMT:ReSkin(arg)
 			local Regions = self.Buttons[arg]
 
 			if Regions then
-				SkinButton(arg, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Pulse)
+				SkinButton(arg, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Scale, db.Pulse)
 			end
 		else
 			local SkinID, Backdrop, Shadow = db.SkinID, db.Backdrop, db.Shadow
 			local Gloss, Colors, Pulse = db.Gloss, db.Colors, db.Pulse
 
 			for Button, Regions in pairs(self.Buttons) do
-				SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Colors, Pulse)
+				SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Colors, db.Scale, Pulse)
 			end
 
 			if not arg then
@@ -285,6 +295,8 @@ end
 -- * This methods is intended for internal use only.
 function GMT:__Disable(Silent)
 	self.db.Disabled = true
+	self.db.Scale = 1
+	self.db.UseScale = false
 
 	for Button, Regions in pairs(self.Buttons) do
 		SkinButton(Button, Regions, false)
@@ -325,6 +337,8 @@ function GMT:__Reset()
 	self.db.Shadow = false
 	self.db.Gloss = false
 	self.db.Pulse = true
+	self.db.Scale = 1
+	self.db.UseScale = false
 
 	for Layer in pairs(self.db.Colors) do
 		self.db.Colors[Layer] = nil
@@ -354,6 +368,9 @@ function GMT:__Set(Option, Value)
 		end
 
 		self:ReSkin()
+	elseif Option == "Scale" then
+		db.Scale = Value or 1
+		self:ReSkin()
 	elseif db[Option] ~= nil then
 		Value = (Value and true) or false
 		db[Option] = Value
@@ -362,6 +379,9 @@ function GMT:__Set(Option, Value)
 			for Button in pairs(self.Buttons) do
 				SetPulse(Button, Value)
 			end
+		elseif Option == "UseScale" and not Value then
+			db.Scale = 1
+			self:ReSkin()
 		else
 			local func = Core["Skin"..Option]
 
@@ -459,11 +479,11 @@ function GMT:__Update(IsNew)
 		local p_db = self.Parent.db
 
 		if db.Inherit then
-			db.SkinID = p_db.SkinID
-			db.Backdrop = p_db.Backdrop
-			db.Shadow = p_db.Shadow
-			db.Gloss = p_db.Gloss
-			db.Pulse = p_db.Pulse
+			local Options = {"SkinID", "Backdrop", "Shadow", "Gloss", "Pulse", "Scale", "UseScale"}
+
+			for i, v in ipairs(Options) do
+				db[v] = p_db[v]
+			end
 
 			local Colors = db.Colors
 			local p_Colors = p_db.Colors

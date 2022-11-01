@@ -94,12 +94,12 @@ function lib:UIDropDownMenu_InitializeHelper(frame)
 	-- Hide all the buttons
 	local button, dropDownList;
 	for i = 1, L_UIDROPDOWNMENU_MAXLEVELS, 1 do
-		dropDownList = _G["L_DropDownList"..i];
+		dropDownList = _G["L_TLDR_DropDownList"..i];
 		if ( i >= L_UIDROPDOWNMENU_MENU_LEVEL or frame ~= L_UIDROPDOWNMENU_OPEN_MENU ) then
 			dropDownList.numButtons = 0;
 			dropDownList.maxWidth = 0;
 			for j=1, L_UIDROPDOWNMENU_MAXBUTTONS, 1 do
-				button = _G["L_DropDownList"..i.."Button"..j];
+				button = _G["L_TLDR_DropDownList"..i.."Button"..j];
 				button:Hide();
 			end
 			dropDownList:Hide();
@@ -190,7 +190,7 @@ local function create_MenuButton(name, parent)
 		local level =  self:GetParent():GetParent():GetID() + 1
 		lib:CloseDropDownMenus(level)
 		if self:IsEnabled() then
-			local listFrame = _G["L_DropDownList"..level];
+			local listFrame = _G["L_TLDR_DropDownList"..level];
 			if ( not listFrame or not listFrame:IsShown() or select(2, listFrame:GetPoint()) ~= self ) then
 				lib:ToggleDropDownMenu(level, self:GetParent().value, nil, nil, nil, nil, self:GetParent().menuList, self)
 			end
@@ -252,7 +252,7 @@ local function create_MenuButton(name, parent)
 	local function button_OnEnter(self)
 		if ( self.hasArrow ) then
 			local level =  self:GetParent():GetID() + 1;
-			local listFrame = _G["L_DropDownList"..level];
+			local listFrame = _G["L_TLDR_DropDownList"..level];
 			if ( not listFrame or not listFrame:IsShown() or select(2, listFrame:GetPoint()) ~= self ) then
 				lib:ToggleDropDownMenu(self:GetParent():GetID() + 1, self.value, nil, nil, nil, nil, self.menuList, self);
 			end
@@ -322,6 +322,13 @@ local function create_MenuButton(name, parent)
 					_G[self:GetName().."UnCheck"]:Hide();
 					checked = true;
 				end
+                if self.hasCross then
+                    _G[self:GetName().."CrossMark"]:Show()
+                    _G[self:GetName().."Check"]:Hide()
+                    if not checked then
+                        _G[self:GetName().."CrossMark"]:Hide()
+                    end
+                end
 			end
 		else
 			self:GetParent():Hide();
@@ -468,7 +475,7 @@ local function creatre_DropDownList(name, parent)
 			self.showTimer = nil;
 		end
 		if ( self:GetID() > 1 ) then
-			self.parent = _G["L_DropDownList"..(self:GetID() - 1)];
+			self.parent = _G["L_TLDR_DropDownList"..(self:GetID() - 1)];
 		end
 	end)
 	f:SetScript("OnHide", function(self)
@@ -599,16 +606,16 @@ end
 -- //////////////////////////////////////////////////////////////
 -- Handling two frames from LibUIDropDownMenu.xml
 local function create_DropDownButtons()
-	L_DropDownList1 = creatre_DropDownList("L_DropDownList1")
+	L_DropDownList1 = creatre_DropDownList("L_TLDR_DropDownList1")
 	L_DropDownList1:SetToplevel(true)
 	L_DropDownList1:SetFrameStrata("FULLSCREEN_DIALOG")
 	L_DropDownList1:Hide()
 	L_DropDownList1:SetID(1)
 	L_DropDownList1:SetSize(180, 10)
-	local _, fontHeight, _ = _G["L_DropDownList1Button1NormalText"]:GetFont()
+	local _, fontHeight, _ = _G["L_TLDR_DropDownList1Button1NormalText"]:GetFont()
 	L_UIDROPDOWNMENU_DEFAULT_TEXT_HEIGHT = fontHeight
 	
-	L_DropDownList2 = creatre_DropDownList("L_DropDownList2")
+	L_DropDownList2 = creatre_DropDownList("L_TLDR_DropDownList2")
 	L_DropDownList2:SetToplevel(true)
 	L_DropDownList2:SetFrameStrata("FULLSCREEN_DIALOG")
 	L_DropDownList2:Hide()
@@ -665,7 +672,7 @@ function lib:UIDropDownMenu_Initialize(frame, initFunction, displayMode, level, 
 		level = 1;
 	end
 
-	local dropDownList = _G["L_DropDownList"..level];
+	local dropDownList = _G["L_TLDR_DropDownList"..level];
 	dropDownList.dropdown = frame;
 	dropDownList.shouldRefresh = true;
 
@@ -785,7 +792,7 @@ function lib:UIDropDownMenu_CreateFrames(level, index)
 	while ( level > L_UIDROPDOWNMENU_MAXLEVELS ) do
 		L_UIDROPDOWNMENU_MAXLEVELS = L_UIDROPDOWNMENU_MAXLEVELS + 1;
 		--local newList = CreateFrame("Button", "L_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS, nil, "L_UIDropDownListTemplate");
-		local newList = creatre_DropDownList("L_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS)
+		local newList = creatre_DropDownList("L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS)
 		newList:SetFrameStrata("FULLSCREEN_DIALOG");
 		newList:SetToplevel(true);
 		newList:Hide();
@@ -795,7 +802,7 @@ function lib:UIDropDownMenu_CreateFrames(level, index)
 --		for i = WoWRetail and 1 or (L_UIDROPDOWNMENU_MINBUTTONS+1), L_UIDROPDOWNMENU_MAXBUTTONS do
 		for i=1, L_UIDROPDOWNMENU_MAXBUTTONS do
 			--local newButton = CreateFrame("Button", "L_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS.."Button"..i, newList, "L_UIDropDownMenuButtonTemplate");
-			local newButton = create_MenuButton("L_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS.."Button"..i, newList)
+			local newButton = create_MenuButton("L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MAXLEVELS.."Button"..i, newList)
 			newButton:SetID(i);
 		end
 	end
@@ -804,7 +811,7 @@ function lib:UIDropDownMenu_CreateFrames(level, index)
 		L_UIDROPDOWNMENU_MAXBUTTONS = L_UIDROPDOWNMENU_MAXBUTTONS + 1;
 		for i=1, L_UIDROPDOWNMENU_MAXLEVELS do
 			--local newButton = CreateFrame("Button", "L_DropDownList"..i.."Button"..L_UIDROPDOWNMENU_MAXBUTTONS, _G["L_DropDownList"..i], "L_UIDropDownMenuButtonTemplate");
-			local newButton = create_MenuButton("L_DropDownList"..i.."Button"..L_UIDROPDOWNMENU_MAXBUTTONS, _G["L_DropDownList"..i])
+			local newButton = create_MenuButton("L_TLDR_DropDownList"..i.."Button"..L_UIDROPDOWNMENU_MAXBUTTONS, _G["L_TLDR_DropDownList"..i])
 			newButton:SetID(L_UIDROPDOWNMENU_MAXBUTTONS);
 		end
 	end
@@ -863,7 +870,7 @@ function lib:UIDropDownMenu_AddButton(info, level)
 		level = 1;
 	end
 
-	local listFrame = _G["L_DropDownList"..level];
+	local listFrame = _G["L_TLDR_DropDownList"..level];
 	local index;
 	if (listFrame) then
 		index = listFrame.numButtons and (listFrame.numButtons + 1) or 1
@@ -877,7 +884,7 @@ function lib:UIDropDownMenu_AddButton(info, level)
 	delegateFrame:SetAttribute("createframes-index", index);
 	delegateFrame:SetAttribute("createframes", true);
 
-	listFrame = listFrame or _G["L_DropDownList"..level];
+	listFrame = listFrame or _G["L_TLDR_DropDownList"..level];
 	local listFrameName = listFrame:GetName();
 
 	-- Set the number of buttons in the listframe
@@ -1001,6 +1008,7 @@ function lib:UIDropDownMenu_AddButton(info, level)
 	button.arg1 = info.arg1;
 	button.arg2 = info.arg2;
 	button.hasArrow = info.hasArrow;
+    button.hasCross = info.hasCross
 	button.hasColorSwatch = info.hasColorSwatch;
 	button.notCheckable = info.notCheckable;
 	button.menuList = info.menuList;
@@ -1175,9 +1183,9 @@ function lib:UIDropDownMenu_AddButton(info, level)
 	local colorSwatch = _G[listFrameName.."Button"..index.."ColorSwatch"];
 	if ( info.hasColorSwatch ) then
 		if (WoWClassicEra or WoWClassicTBC) then
-			_G["L_DropDownList"..level.."Button"..index.."ColorSwatch".."NormalTexture"]:SetVertexColor(info.r, info.g, info.b);
+			_G["L_TLDR_DropDownList"..level.."Button"..index.."ColorSwatch".."NormalTexture"]:SetVertexColor(info.r, info.g, info.b);
 		else
-			_G["L_DropDownList"..level.."Button"..index.."ColorSwatch"].Color:SetVertexColor(info.r, info.g, info.b);
+			_G["L_TLDR_DropDownList"..level.."Button"..index.."ColorSwatch"].Color:SetVertexColor(info.r, info.g, info.b);
 		end
 		button.r = info.r;
 		button.g = info.g;
@@ -1298,11 +1306,11 @@ function lib:UIDropDownMenu_Refresh(frame, useValue, dropdownLevel)
 		dropdownLevel = L_UIDROPDOWNMENU_MENU_LEVEL;
 	end
 
-	local listFrame = _G["L_DropDownList"..dropdownLevel];
+	local listFrame = _G["L_TLDR_DropDownList"..dropdownLevel];
 	listFrame.numButtons = listFrame.numButtons or 0;
 	-- Just redraws the existing menu
 	for i=1, L_UIDROPDOWNMENU_MAXBUTTONS do
-		local button = _G["L_DropDownList"..dropdownLevel.."Button"..i];
+		local button = _G["L_TLDR_DropDownList"..dropdownLevel.."Button"..i];
 		local checked = nil;
 
 		if(i <= listFrame.numButtons) then
@@ -1327,8 +1335,9 @@ function lib:UIDropDownMenu_Refresh(frame, useValue, dropdownLevel)
 
 		if not button.notCheckable and button:IsShown() then
 			-- If checked show check image
-			local checkImage = _G["L_DropDownList"..dropdownLevel.."Button"..i.."Check"];
-			local uncheckImage = _G["L_DropDownList"..dropdownLevel.."Button"..i.."UnCheck"];
+			local checkImage = _G["L_TLDR_DropDownList"..dropdownLevel.."Button"..i.."Check"];
+			local uncheckImage = _G["L_TLDR_DropDownList"..dropdownLevel.."Button"..i.."UnCheck"];
+            
 			if ( checked ) then
 				if not button.ignoreAsMenuSelection then
 					somethingChecked = true;
@@ -1367,16 +1376,16 @@ function lib:UIDropDownMenu_Refresh(frame, useValue, dropdownLevel)
 	end
 	if (not frame.noResize) then
 		for i=1, L_UIDROPDOWNMENU_MAXBUTTONS do
-			local button = _G["L_DropDownList"..dropdownLevel.."Button"..i];
+			local button = _G["L_TLDR_DropDownList"..dropdownLevel.."Button"..i];
 			button:SetWidth(maxWidth);
 		end
-		lib:UIDropDownMenu_RefreshDropDownSize(_G["L_DropDownList"..dropdownLevel]);
+		lib:UIDropDownMenu_RefreshDropDownSize(_G["L_TLDR_DropDownList"..dropdownLevel]);
 	end
 end
 
 function lib:UIDropDownMenu_RefreshAll(frame, useValue)
 	for dropdownLevel = L_UIDROPDOWNMENU_MENU_LEVEL, 2, -1 do
-		local listFrame = _G["L_DropDownList"..dropdownLevel];
+		local listFrame = _G["L_TLDR_DropDownList"..dropdownLevel];
 		if ( listFrame:IsShown() ) then
 			lib:UIDropDownMenu_Refresh(frame, nil, dropdownLevel);
 		end
@@ -1440,13 +1449,13 @@ function lib:UIDropDownMenu_GetSelectedID(frame)
 		if (WoWClassicEra or WoWClassicTBC) then
 			maxNum = L_UIDROPDOWNMENU_MAXBUTTONS
 		else
-			local listFrame = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL];
+			local listFrame = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL];
 			maxNum = listFrame.numButtons
 		end
 		for i=1, maxNum do]]
-		local listFrame = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL];
+		local listFrame = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL];
 		for i=1, listFrame.numButtons do
-			local button = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i];
+			local button = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i];
 			-- See if checked or not
 			if ( lib:UIDropDownMenu_GetSelectedName(frame) ) then
 				if ( button:GetText() == lib:UIDropDownMenu_GetSelectedName(frame) ) then
@@ -1466,7 +1475,7 @@ function lib:UIDropDownMenu_GetSelectedValue(frame)
 end
 
 function lib:HideDropDownMenu(level)
-	local listFrame = _G["L_DropDownList"..level];
+	local listFrame = _G["L_TLDR_DropDownList"..level];
 	listFrame:Hide();
 end
 
@@ -1479,7 +1488,7 @@ function lib:ToggleDropDownMenu(level, value, dropDownFrame, anchorName, xOffset
 	delegateFrame:SetAttribute("createframes", true);
 	L_UIDROPDOWNMENU_MENU_LEVEL = level;
 	L_UIDROPDOWNMENU_MENU_VALUE = value;
-	local listFrameName = "L_DropDownList"..level;
+	local listFrameName = "L_TLDR_DropDownList"..level;
 	local listFrame = _G[listFrameName];
 	if (WoWRetail) then
 		lib:UIDropDownMenu_ClearCustomFrames(listFrame);
@@ -1590,7 +1599,7 @@ function lib:ToggleDropDownMenu(level, value, dropDownFrame, anchorName, xOffset
 			end
 			listFrame:ClearAllPoints();
 			-- If this is a dropdown button, not the arrow anchor it to itself
-			if ( strsub(button:GetParent():GetName(), 0,14) == "L_DropDownList" and strlen(button:GetParent():GetName()) == 15 ) then
+			if ( strsub(button:GetParent():GetName(), 0,14) == "L_TLDR_DropDownList" and strlen(button:GetParent():GetName()) == 15 ) then
 				anchorFrame = button;
 			else
 				anchorFrame = button:GetParent();
@@ -1697,7 +1706,7 @@ function lib:ToggleDropDownMenu(level, value, dropDownFrame, anchorName, xOffset
 			end
 
 			listFrame:ClearAllPoints();
-			listFrame.parentLevel = tonumber(strmatch(anchorFrame:GetName(), "L_DropDownList(%d+)"));
+			listFrame.parentLevel = tonumber(strmatch(anchorFrame:GetName(), "L_TLDR_DropDownList(%d+)"));
 			listFrame.parentID = anchorFrame:GetID();
 			listFrame:SetPoint(point, anchorFrame, relativePoint, xOffset, yOffset);
 		end
@@ -1716,7 +1725,7 @@ function lib:CloseDropDownMenus(level)
 		level = 1;
 	end
 	for i=level, L_UIDROPDOWNMENU_MAXLEVELS do
-		_G["L_DropDownList"..i]:Hide();
+		_G["L_TLDR_DropDownList"..i]:Hide();
 	end
 	-- yes, we also want to close the menus which created by built-in UIDropDownMenus
 	for i=level, UIDROPDOWNMENU_MAXLEVELS do
@@ -1728,7 +1737,7 @@ local function containsMouse()
 	local result = false
 	
 	for i = 1, L_UIDROPDOWNMENU_MAXLEVELS do
-		local dropdown = _G["L_DropDownList"..i];
+		local dropdown = _G["L_TLDR_DropDownList"..i];
 		if dropdown:IsShown() and dropdown:IsMouseOver() then
 			result = true;
 		end
@@ -1826,12 +1835,12 @@ function lib:UIDropDownMenu_ClearAll(frame)
 
 	local button, checkImage, uncheckImage;
 	for i=1, L_UIDROPDOWNMENU_MAXBUTTONS do
-		button = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i];
+		button = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i];
 		button:UnlockHighlight();
 
-		checkImage = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i.."Check"];
+		checkImage = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i.."Check"];
 		checkImage:Hide();
-		uncheckImage = _G["L_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i.."UnCheck"];
+		uncheckImage = _G["L_TLDR_DropDownList"..L_UIDROPDOWNMENU_MENU_LEVEL.."Button"..i.."UnCheck"];
 		uncheckImage:Hide();
 	end
 end
@@ -1886,15 +1895,15 @@ function lib:UIDropDownMenuButton_OpenColorPicker(self, button)
 end
 
 function lib:UIDropDownMenu_DisableButton(level, id)
-	_G["L_DropDownList"..level.."Button"..id]:Disable();
+	_G["L_TLDR_DropDownList"..level.."Button"..id]:Disable();
 end
 
 function lib:UIDropDownMenu_EnableButton(level, id)
-	_G["L_DropDownList"..level.."Button"..id]:Enable();
+	_G["L_TLDR_DropDownList"..level.."Button"..id]:Enable();
 end
 
 function lib:UIDropDownMenu_SetButtonText(level, id, text, colorCode)
-	local button = _G["L_DropDownList"..level.."Button"..id];
+	local button = _G["L_TLDR_DropDownList"..level.."Button"..id];
 	if ( colorCode) then
 		button:SetText(colorCode..text.."|r");
 	else
@@ -1903,11 +1912,11 @@ function lib:UIDropDownMenu_SetButtonText(level, id, text, colorCode)
 end
 
 function lib:UIDropDownMenu_SetButtonNotClickable(level, id)
-	_G["L_DropDownList"..level.."Button"..id]:SetDisabledFontObject(GameFontHighlightSmallLeft);
+	_G["L_TLDR_DropDownList"..level.."Button"..id]:SetDisabledFontObject(GameFontHighlightSmallLeft);
 end
 
 function lib:UIDropDownMenu_SetButtonClickable(level, id)
-	_G["L_DropDownList"..level.."Button"..id]:SetDisabledFontObject(GameFontDisableSmallLeft);
+	_G["L_TLDR_DropDownList"..level.."Button"..id]:SetDisabledFontObject(GameFontDisableSmallLeft);
 end
 
 function lib:UIDropDownMenu_DisableDropDown(dropDown)
@@ -1953,9 +1962,9 @@ end
 
 function lib:UIDropDownMenu_GetValue(id)
 	--Only works if the dropdown has just been initialized, lame, I know =(
-	local button = _G["L_DropDownList1Button"..id];
+	local button = _G["L_TLDR_DropDownList1Button"..id];
 	if ( button ) then
-		return _G["L_DropDownList1Button"..id].value;
+		return _G["L_TLDR_DropDownList1Button"..id].value;
 	else
 		return nil;
 	end
@@ -2023,7 +2032,7 @@ function lib.DropDownExpandArrowMixin:OnEnter()
 	lib:CloseDropDownMenus(level);
 
 	if self:IsEnabled() then
-		local listFrame = _G["L_DropDownList"..level];
+		local listFrame = _G["L_TLDR_DropDownList"..level];
 		if ( not listFrame or not listFrame:IsShown() or select(2, listFrame:GetPoint()) ~= self ) then
 			lib:ToggleDropDownMenu(level, self:GetParent().value, nil, nil, nil, nil, self:GetParent().menuList, self);
 		end

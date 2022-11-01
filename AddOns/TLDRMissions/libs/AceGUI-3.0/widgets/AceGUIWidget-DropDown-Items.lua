@@ -1,7 +1,7 @@
 local addonName = ...
 local addon = _G[addonName]
 local LibStub = addon.LibStub
---[[ $Id: AceGUIWidget-DropDown-Items.lua 1202 2019-05-15 23:11:22Z nevcairiel $ ]]--
+--[[ $Id: AceGUIWidget-DropDown-Items.lua 1272 2022-08-29 15:56:35Z nevcairiel $ ]]--
 
 local AceGUI = LibStub("AceGUI-3.0")
 
@@ -44,7 +44,7 @@ local ItemBase = {
 	-- NOTE: The ItemBase version is added to each item's version number
 	--       to ensure proper updates on ItemBase changes.
 	--       Use at least 1000er steps.
-	version = 1000,
+	version = 2000,
 	counter = 0,
 }
 
@@ -153,7 +153,7 @@ end
 function ItemBase.Create(type)
 	-- NOTE: Most of the following code is copied from AceGUI-3.0/Dropdown widget
 	local count = AceGUI:GetNextWidgetNum(type)
-	local frame = CreateFrame("Button", "AceGUI30DropDownItem"..count)
+	local frame = CreateFrame("Button", "TLDRAceGUI30DropDownItem"..count)
 	local self = {}
 	self.frame = frame
 	frame.obj = self
@@ -181,7 +181,7 @@ function ItemBase.Create(type)
 	highlight:Hide()
 	self.highlight = highlight
 
-	local check = frame:CreateTexture("OVERLAY")
+	local check = frame:CreateTexture(nil, "OVERLAY")
 	check:SetWidth(16)
 	check:SetHeight(16)
 	check:SetPoint("LEFT",frame,"LEFT",3,-1)
@@ -189,7 +189,7 @@ function ItemBase.Create(type)
 	check:Hide()
 	self.check = check
 
-	local sub = frame:CreateTexture("OVERLAY")
+	local sub = frame:CreateTexture(nil, "OVERLAY")
 	sub:SetWidth(16)
 	sub:SetHeight(16)
 	sub:SetPoint("RIGHT",frame,"RIGHT",-3,-1)

@@ -12,6 +12,7 @@
 
 local _, Core = ...
 local WOW_RETAIL = Core.WOW_RETAIL
+local WOW_CLASSIC = not WOW_RETAIL
 
 ----------------------------------------
 -- Region Settings
@@ -34,6 +35,7 @@ local WOW_RETAIL = Core.WOW_RETAIL
 
 local Legacy = {
 	-- [ BACKGROUND (-1) ]
+	-- Only provided by default for MultiActionBars in Classic.
 	Backdrop = {
 		Name = "FloatingBG",
 		Type = "Texture",
@@ -66,6 +68,10 @@ local Legacy = {
 			NoTexture = true,
 		},
 	},
+	SlotIcon = {
+		CanHide = true,
+		Ignore = true,
+	},
 	-- [ ARTWORK (-1) ]
 	Shadow = {
 		CanHide = true,
@@ -78,13 +84,6 @@ local Legacy = {
 		Name = "NormalTexture",
 		Type = "Texture",
 		CanHide = true,
-		Pet = {
-			--Key = "NormalTexture",
-			Func = "GetNormalTexture",
-			Name = "NormalTexture2",
-			Type = "Texture",
-			CanHide = true,
-		},
 	},
 	Disabled = {
 		Func = "GetDisabledTexture",
@@ -155,6 +154,18 @@ local Legacy = {
 		Type = "Texture",
 		Iterate = true,
 	},
+	SlotHighlight = {
+		Key = "SlotHighlightTexture",
+		Type = "Texture",
+		Iterate = true,
+	},
+	Name = {
+		Key = "Name",
+		Name = "Name",
+		Type = "FontString",
+		Iterate = true,
+		NoColor = true,
+	},
 	Border = {
 		Key = "Border",
 		Name = "Border",
@@ -186,21 +197,10 @@ local Legacy = {
 		Type = "Texture",
 		NoColor = true,
 	},
-	SlotHighlight = {
-		Key = "SlotHighlightTexture",
-		Type = "Texture",
-		Iterate = true,
-	},
+	-- [ OVERLAY (1) ]
 	Gloss = {
 		Ignore = true,
 		CanHide = true,
-	},
-	-- [ OVERLAY (1) ]
-	AutoCastable = { -- Only used by Pet buttons.
-		--Key = "AutoCastable", -- Causes issues with Pet bars.
-		Name = "AutoCastable",
-		Type = "Texture",
-		Iterate = true,
 	},
 	NewAction = {
 		Key = "NewActionTexture",
@@ -212,8 +212,9 @@ local Legacy = {
 		Type = "Texture",
 		Iterate = true,
 	},
-	UpgradeIcon = {
-		Key = "UpgradeIcon",
+	AutoCastable = { -- Only used by Pet buttons.
+		Key = "AutoCastable",
+		-- Name = "AutoCastable",
 		Type = "Texture",
 		Iterate = true,
 	},
@@ -224,19 +225,39 @@ local Legacy = {
 		NoColor = true,
 		NoTexture = true,
 	},
-	-- [ OVERLAY (2) ]
-	NewItem = {
-		Key = "NewItemTexture",
+	UpgradeIcon = {
+		Key = "UpgradeIcon",
 		Type = "Texture",
+		Iterate = true,
+	},
+	-- [ OVERLAY (2) ]
+	IconOverlay2 = {
+		Key = "IconOverlay",
+		Type = "Texture",
+		Iterate = true,
 		NoColor = true,
+		NoTexture = true,
 	},
 	QuestBorder = {
 		Name = "IconQuestTexture",
 		Type = "Texture",
 	},
+	NewItem = {
+		Key = "NewItemTexture",
+		Type = "Texture",
+		NoColor = true,
+	},
 	-- LevelLinkLockIcon = {}, -- Unsupported, no reason to.
 	-- [ OVERLAY (4) ]
 	SearchOverlay = {
+		Key = "searchOverlay",
+		Name = "SearchOverlay",
+		Type = "Texture",
+		CanMask = true,
+		Iterate = true,
+		UseColor = true,
+	},
+	ContextOverlay = {
 		Key = "searchOverlay",
 		Name = "SearchOverlay",
 		Type = "Texture",
@@ -249,14 +270,6 @@ local Legacy = {
 		Key = "JunkIcon",
 		Type = "Texture",
 		Iterate = true,
-	},
-	-- [ OVERLAY (*) ]
-	Name = {
-		Key = "Name",
-		Name = "Name",
-		Type = "FontString",
-		Iterate = true,
-		NoColor = true,
 	},
 	-- [ HIGHLIGHT (0) ]
 	Highlight = {
@@ -307,7 +320,7 @@ if WOW_RETAIL then
 end
 
 ----------------------------------------
--- "Action" Type
+-- "Action" Types
 ---
 
 local Action = {
@@ -332,7 +345,7 @@ local Action = {
 }
 
 ----------------------------------------
--- "Aura" Type
+-- "Aura" Types
 ---
 
 local Aura = {
@@ -348,10 +361,6 @@ local Aura = {
 	ChargeCooldown = Legacy.ChargeCooldown,
 }
 
-----------------------------------------
--- "Debuff" Type
----
-
 local Debuff = {
 	Icon = Legacy.Icon.Aura,
 	Normal = Legacy.Normal, -- Unused
@@ -364,10 +373,6 @@ local Debuff = {
 	Cooldown = Legacy.Cooldown,
 	ChargeCooldown = Legacy.ChargeCooldown,
 }
-
-----------------------------------------
--- "Enchant" Type
----
 
 local Enchant = {
 	Icon = Legacy.Icon.Aura,
@@ -383,7 +388,7 @@ local Enchant = {
 }
 
 ----------------------------------------
--- "Item" Type
+-- "Item" Types
 ---
 
 local Item = {
@@ -392,7 +397,7 @@ local Item = {
 	Disabled = Legacy.Disabled,
 	Pushed = Legacy.Pushed,
 	Count = Legacy.Count,
-	Checked = (not WOW_RETAIL and Legacy.Checked) or nil, -- Classic Only
+	Checked = (WOW_CLASSIC and Legacy.Checked) or nil, -- Classic Only
 	Border = Legacy.Border, -- Backwards-Compatibility
 	IconBorder = Legacy.IconBorder,
 	SlotHighlight = (WOW_RETAIL and Legacy.SlotHighlight) or nil, -- Retail Only
@@ -410,48 +415,36 @@ local Item = {
 }
 
 ----------------------------------------
--- "Pet" Type
----
-
-local Pet = {
-	Backdrop = Legacy.Backdrop,
-	Icon = Legacy.Icon,
-	Normal = Legacy.Normal.Pet,
-	Disabled = Legacy.Disabled, -- Unused
-	Pushed = Legacy.Pushed,
-	Flash = Legacy.Flash,
-	HotKey = Legacy.HotKey,
-	Count = Legacy.Count,
-	Checked = Legacy.Checked,
-	Border = Legacy.Border,
-	AutoCastable = Legacy.AutoCastable,
-	NewAction = Legacy.NewAction,
-	SpellHighlight = Legacy.SpellHighlight,
-	Name = Legacy.Name,
-	Highlight = Legacy.Highlight,
-	AutoCastShine = Legacy.AutoCastShine,
-	Cooldown = Legacy.Cooldown,
-	ChargeCooldown = Legacy.ChargeCooldown,
-}
-
-----------------------------------------
 -- Types Tables
 ---
 
 local Types = {
 	Legacy = Legacy,
 	Action = Action,
-	Pet = Pet,
-	Item = Item,
 	Aura = Aura,
+	Backpack = Item,
+	BagSlot = Item,
 	Buff = Aura,
 	Debuff = Debuff,
 	Enchant = Enchant,
+	Item = Item,
+	Pet = Action,
+	Possess = Action,
+	ReagentBag = Item,
+	Stance = Action,
+}
+
+local BaseTypes = {
+	Action = true,
+	Aura = true,
+	Item = true,
 }
 
 local EmptyTypes = {
 	Action = true,
+	BagSlot = true,
 	Pet = true,
+	ReagentBag = true,
 	Item = true,
 }
 
@@ -460,7 +453,27 @@ local EmptyTypes = {
 ---
 
 Core.RegTypes = Types
+Core.BaseTypes = BaseTypes
 Core.EmptyTypes = EmptyTypes
+
+Core.ActionTypes = {
+	Action = true,
+	Pet = true,
+	Possess = true,
+	Stance = true,
+}
+Core.AuraTypes = {
+	Aura = true,
+	Buff = true,
+	Debuff = true,
+	Enchant = true,
+}
+Core.ItemTypes = {
+	Backpack = true,
+	BagSlot = true,
+	Item = true,
+	ReagentBag = true,
+}
 
 ----------------------------------------
 -- API
@@ -478,6 +491,11 @@ function Core.API:AddType(Name, List, Type)
 			error("Bad argument to API method 'AddType'. 'List' must be an indexed table.", 2)
 		end
 		return
+	elseif Type and type(Type) ~= "string" then
+		if Core.Debug then
+			error("Bad argument to API method 'AddType'. 'Type' must be a string.", 2)
+		end
+		return
 	end
 
 	local Cache = {}
@@ -492,5 +510,13 @@ function Core.API:AddType(Name, List, Type)
 	end
 
 	Types[Name] = Cache
-	EmptyTypes[Name] = (Type and EmptyTypes[Type]) or nil
+
+	if Type then
+		if BaseTypes[Type] then
+			local TypeList = Core[Type.."Types"]
+			TypeList[Name] = true
+		end
+
+		EmptyTypes[Name] = EmptyTypes[Type]
+	end
 end

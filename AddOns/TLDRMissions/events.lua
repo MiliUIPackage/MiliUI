@@ -95,10 +95,6 @@ local function eventHandler(self, event, ...)
         end
     elseif (event == "ADDON_LOADED") and (addonName == arg1) then
         addon:RefreshProfile()
-    elseif (event == "ADDON_LOADED") then
-        if _G.GarrisonLandingPageFollowerList then
-			addon.followerList:Init()
-		end
     elseif event == "GARRISON_MISSION_COMPLETE_RESPONSE" then
         addon:logCompletedMission(...)
     elseif event == "GARRISON_MISSION_STARTED" then
@@ -113,3 +109,4 @@ eventFrame:RegisterEvent("ADVENTURE_MAP_OPEN")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("GARRISON_MISSION_COMPLETE_RESPONSE")
 eventFrame:RegisterEvent("GARRISON_MISSION_STARTED")
+eventFrame:RegisterEvent("GARRISON_MISSION_FINISHED")

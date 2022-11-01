@@ -15,7 +15,7 @@
 local _, Core = ...
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local error, type = error, type
@@ -31,18 +31,20 @@ local hooksecurefunc, random = hooksecurefunc, random
 ---
 
 -- @ Skins\Default
-local Default = Core.Skins.Default.Normal
+local Default = Core.DEFAULT_SKIN.Normal
 
 -- @ Core\Utility
-local GetSize, SetPoints = Core.GetSize, Core.SetPoints
-local GetColor, GetTexCoords = Core.GetColor, Core.GetTexCoords
+local GetColor, GetSize, GetTexCoords = Core.GetColor, Core.GetSize, Core.GetTexCoords
+local GetTypeSkin, SetPoints = Core.GetTypeSkin, Core.SetPoints
 
 ----------------------------------------
 -- Locals
 ---
 
-local DEF_TEXTURE = Default.Texture
+local DEF_ATLAS = Default.Atlas
 local DEF_COLOR = Default.Color
+local DEF_TEXTURE = Default.Texture
+local DEF_USESIZE = Default.UseAtlasSize
 
 ----------------------------------------
 -- UpdateNormal
@@ -52,24 +54,34 @@ local DEF_COLOR = Default.Color
 local function UpdateNormal(Button, IsEmpty)
 	IsEmpty = IsEmpty or Button.__MSQ_Empty
 
-	local Normal = Button.__MSQ_Normal
+	local Region = Button.__MSQ_Normal
 	local Skin = Button.__MSQ_NormalSkin
 
-	if Normal and (Skin and not Skin.Hide) then
-		local Texture = Button.__MSQ_Random or Skin.Texture or DEF_TEXTURE
-		local Coords = Skin.TexCoords
+	if Region and (Skin and not Skin.Hide) then
+		local Atlas = Skin.Atlas
+		local Texture = Button.__MSQ_Random or Skin.Texture
 		local Color = Button.__MSQ_NormalColor or DEF_COLOR
+		local UseEmpty = Button.__MSQ_EmptyType and IsEmpty
+		local Coords
 
-		-- Empty settings for types that can be empty.
-		if Button.__MSQ_EmptyType and IsEmpty then
-			Texture = Skin.EmptyTexture or Texture
-			Coords = Skin.EmptyCoords or Coords
-			Color = Skin.EmptyColor or Color
+		Color = (UseEmpty and Skin.EmptyColor) or Color
+
+		if Atlas then
+			Atlas = (UseEmpty and Skin.EmptyAtlas) or Atlas
+			Region:SetAtlas(Atlas, Skin.UseAtlasSize)
+		elseif Texture then
+			Texture = (UseEmpty and Skin.EmptyTexture) or Texture
+			Coords = (UseEmpty and Skin.EmptyCoords) or Skin.TexCoords
+			Region:SetTexture(Texture)
+		elseif DEF_ATLAS then
+			Region:SetAtlas(DEF_ATLAS, DEF_USESIZE)
+		elseif DEF_TEXTURE then
+			Coords = Default.TexCoords
+			Region:SetTexture(DEF_TEXTURE)
 		end
 
-		Normal:SetTexture(Texture)
-		Normal:SetTexCoord(GetTexCoords(Coords))
-		Normal:SetVertexColor(GetColor(Color))
+		Region:SetTexCoord(GetTexCoords(Coords))
+		Region:SetVertexColor(GetColor(Color))
 	end
 end
 
@@ -77,11 +89,14 @@ end
 -- Hook
 ---
 
--- Counters changes to a button's 'Normal' texture.
+-- Counters changes to a button's 'Normal' Texture or Atlas.
 -- * The behavior of changing the texture when a button is empty is only used
---   by default UI in the case of Pet buttons. Some add-ons still use this
+--   by Classic UI in the case of Pet buttons. Some add-ons still use this
 --   behavior for other button types, so it needs to be countered.
-local function Hook_SetNormalTexture(Button, Texture)
+-- * In Dragonflight, the UpdateButtonArt method swaps the `Normal` Atlas for one with
+--   Edit Mode indicators, so we need to counter that, too.
+-- * See `UpdateNormal` above.
+local function Hook_SetNormal(Button, Texture)
 	local Skin = Button.__MSQ_NormalSkin
 	if not Skin then return end
 
@@ -107,12 +122,19 @@ end
 -- Core
 ---
 
--- Skins the 'Normal' layer of a button and sets up the hooks.
+-- Skins the `Normal` layer of a button and sets up any necessary hooks.
 function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 	local IsButton = Button.GetNormalTexture
 	local Custom = Button.__MSQ_NewNormal
+	local Normal = IsButton and Button:GetNormalTexture()
 
-	Region = Region or (IsButton and Button:GetNormalTexture())
+	-- Catch add-ons using a custom `Normal` texture.
+	if (Region and Normal) and Region ~= Normal then
+		Normal:SetTexture()
+		Normal:Hide()
+	else
+		Region = Region or Normal
+	end
 
 	-- States Enabled
 	if Skin.UseStates then
@@ -128,7 +150,6 @@ function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 		if Region then
 			-- Fix for BT4's Pet buttons.
 			Region:SetAlpha(0)
-
 			Region:SetTexture()
 			Region:Hide()
 		end
@@ -137,9 +158,7 @@ function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 		Button.__MSQ_NewNormal = Region
 	end
 
-	local bType = Button.__MSQ_bType
-	Skin = Skin[bType] or Skin
-
+	Skin = GetTypeSkin(Button, Button.__MSQ_bType, Skin)
 	Button.__MSQ_Normal = Region
 	Button.__MSQ_NormalSkin = Skin
 	Button.__MSQ_NormalColor = Color or Skin.Color or DEF_COLOR
@@ -164,7 +183,6 @@ function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 
 	-- Counter the BT4 fix above.
 	Region:SetAlpha(1)
-
 	UpdateNormal(Button)
 
 	if not Button.__MSQ_Enabled then
@@ -176,12 +194,17 @@ function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 
 	Region:SetBlendMode(Skin.BlendMode or "BLEND")
 	Region:SetDrawLayer(Skin.DrawLayer or "ARTWORK", Skin.DrawLevel or 0)
-	Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale))
+
+	if not Skin.UseAtlasSize then
+		Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
+	end
+
 	SetPoints(Region, Button, Skin, nil, Skin.SetAllPoints)
 	Region:Show()
 
 	if IsButton and Button.__MSQ_EmptyType and not Button.__MSQ_NormalHook then
-		hooksecurefunc(Button, "SetNormalTexture", Hook_SetNormalTexture)
+		hooksecurefunc(Button, "SetNormalAtlas", Hook_SetNormal)
+		hooksecurefunc(Button, "SetNormalTexture", Hook_SetNormal)
 		Button.__MSQ_NormalHook = true
 	end
 end
@@ -195,9 +218,7 @@ function Core.SetNormalColor(Region, Button, Skin, Color)
 	Region = Region or Button.__MSQ_Normal
 
 	if Region then
-		local bType = Button.__MSQ_bType
-		Skin = Skin[bType] or Skin
-
+		Skin = GetTypeSkin(Button, Button.__MSQ_bType, Skin)
 		Button.__MSQ_NormalColor = Color or Skin.Color or DEF_COLOR
 		UpdateNormal(Button)
 	end

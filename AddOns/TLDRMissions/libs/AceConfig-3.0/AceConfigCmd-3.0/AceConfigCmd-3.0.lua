@@ -4,7 +4,7 @@ local LibStub = addon.LibStub
 --- AceConfigCmd-3.0 handles access to an options table through the "command line" interface via the ChatFrames.
 -- @class file
 -- @name AceConfigCmd-3.0
--- @release $Id: AceConfigCmd-3.0.lua 1202 2019-05-15 23:11:22Z nevcairiel $
+-- @release $Id: AceConfigCmd-3.0.lua 1284 2022-09-25 09:15:30Z nevcairiel $
 
 --[[
 AceConfigCmd-3.0
@@ -40,16 +40,9 @@ local error, assert = error, assert
 -- WoW APIs
 local _G = _G
 
--- Global vars/functions that we don't upvalue since they might get hooked, or upgraded
--- List them here for Mikk's FindGlobals script
--- GLOBALS: LibStub, SELECTED_CHAT_FRAME, DEFAULT_CHAT_FRAME
-
-
 local L = setmetatable({}, {	-- TODO: replace with proper locale
 	__index = function(self,k) return k end
 })
-
-
 
 local function print(msg)
 	(SELECTED_CHAT_FRAME or DEFAULT_CHAT_FRAME):AddMessage(msg)
@@ -404,7 +397,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 		return
 	end
 
-	local str = strsub(info.input,inputpos);
+	local strInput = strsub(info.input,inputpos);
 
 	if tab.type=="execute" then
 		------------ execute --------------------------------------------
@@ -417,21 +410,21 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 		local res = true
 		if tab.pattern then
-			if not(type(tab.pattern)=="string") then err(info, inputpos, "'pattern' - expected a string") end
-			if not strmatch(str, tab.pattern) then
-				usererr(info, inputpos, "'"..str.."' - " .. L["invalid input"])
+			if type(tab.pattern)~="string" then err(info, inputpos, "'pattern' - expected a string") end
+			if not strmatch(strInput, tab.pattern) then
+				usererr(info, inputpos, "'"..strInput.."' - " .. L["invalid input"])
 				return
 			end
 		end
 
-		do_final(info, inputpos, tab, "set", str)
+		do_final(info, inputpos, tab, "set", strInput)
 
 
 
 	elseif tab.type=="toggle" then
 		------------ toggle --------------------------------------------
 		local b
-		local str = strtrim(strlower(str))
+		local str = strtrim(strlower(strInput))
 		if str=="" then
 			b = callmethod(info, inputpos, tab, "get")
 
@@ -468,9 +461,9 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 	elseif tab.type=="range" then
 		------------ range --------------------------------------------
-		local val = tonumber(str)
+		local val = tonumber(strInput)
 		if not val then
-			usererr(info, inputpos, "'"..str.."' - "..L["expected number"])
+			usererr(info, inputpos, "'"..strInput.."' - "..L["expected number"])
 			return
 		end
 		if type(info.step)=="number" then
@@ -490,7 +483,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 	elseif tab.type=="select" then
 		------------ select ------------------------------------
-		local str = strtrim(strlower(str))
+		local str = strtrim(strlower(strInput))
 
 		local values = tab.values
 		if type(values) == "function" or type(values) == "string" then
@@ -531,7 +524,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 	elseif tab.type=="multiselect" then
 		------------ multiselect -------------------------------------------
-		local str = strtrim(strlower(str))
+		local str = strtrim(strlower(strInput))
 
 		local values = tab.values
 		if type(values) == "function" or type(values) == "string" then
@@ -568,7 +561,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 			--check that the opt is valid
 			local ok
-			for k,v in pairs(values) do
+			for k in pairs(values) do
 				if strlower(k)==opt then
 					opt = k	-- overwrite with key (in case of case mismatches)
 					ok = true
@@ -637,7 +630,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 	elseif tab.type=="color" then
 		------------ color --------------------------------------------
-		local str = strtrim(strlower(str))
+		local str = strtrim(strlower(strInput))
 		if str == "" then
 			--TODO: Show current value
 			return
@@ -709,7 +702,7 @@ local function handle(info, inputpos, tab, depth, retfalse)
 
 	elseif tab.type=="keybinding" then
 		------------ keybinding --------------------------------------------
-		local str = strtrim(strlower(str))
+		local str = strtrim(strlower(strInput))
 		if str == "" then
 			--TODO: Show current value
 			return

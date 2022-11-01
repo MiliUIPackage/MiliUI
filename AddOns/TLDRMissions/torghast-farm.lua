@@ -3,7 +3,9 @@
 addon = {}
     
 SlashCmdList["TLDRMISSIONS_TFF_SLASHCMD"] = function(msg)
-    addon:Init()
+    if msg then msg = tonumber(msg) end
+    if msg and ((msg < 1) or (msg > 16)) then return end
+    addon:Init(msg)
 end
 _G["SLASH_TLDRMISSIONS_TFF_SLASHCMD1"] = "/tldr-tff"
 
@@ -79,7 +81,7 @@ local badMapIDs = {
 }
 
 local sayOnce
-function addon:Init()
+function addon:Init(layer)
     frame:RegisterEvent("GOSSIP_SHOW")
     frame:RegisterEvent("CHAT_MSG_MONSTER_SAY")
     frame:RegisterEvent("VIGNETTE_MINIMAP_UPDATED")
@@ -91,7 +93,7 @@ function addon:Init()
             local arg1 = ...
             if not arg1 then return end
             if not torghastWings[arg1] then return end
-            C_GossipInfo.SelectOption(5)
+            C_GossipInfo.SelectOption(layer or 5)
         elseif event == "CHAT_MSG_MONSTER_SAY" then
             local text, monsterName = ...
             if (monsterName ~= "Runecarver") and (monsterName ~= "Резчик Рун") then return end

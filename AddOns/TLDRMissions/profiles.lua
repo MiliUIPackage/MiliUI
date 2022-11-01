@@ -98,178 +98,14 @@ function addon:RefreshProfile()
 	addon.db.RegisterCallback(self, "OnProfileChanged", "ProfileChanged")
     addon.db.RegisterCallback(self, "OnProfileCopied", "ProfileChanged")
 	addon.db.RegisterCallback(self, "OnProfileReset", "ProfileChanged")
-    
-    if TLDRMissionsOptions then
-        if TLDRMissionsOptions.selectedRewards then
-            for i = 1, 12 do
-                if TLDRMissionsOptions.selectedRewards[i] == "any" then
-                    TLDRMissionsOptions.selectedRewards[i] = nil
-                end
-                if TLDRMissionsOptions.selectedRewards[i] ~= nil then
-                    addon.db.profile.selectedRewards[i] = TLDRMissionsOptions.selectedRewards[i]
-                end
-            end
-            TLDRMissionsOptions.selectedRewards = nil
-        end
-        
-        if TLDRMissionsOptions.excludedRewards then
-            for i = 1, 12 do
-                if TLDRMissionsOptions.excludedRewards[i] ~= nil then
-                    addon.db.profile.excludedRewards[i] = TLDRMissionsOptions.excludedRewards[i]
-                end
-            end 
-            TLDRMissionsOptions.excludedRewards = nil
-        end
-        
-        if TLDRMissionsOptions.hardestOrEasiest ~= nil then
-            addon.db.profile.hardestOrEasiest = TLDRMissionsOptions.hardestOrEasiest
-            TLDRMissionsOptions.hardestOrEasiest = nil
-        end
-        
-        if TLDRMissionsOptions.fewestOrMost ~= nil then
-            addon.db.profile.fewestOrMost = TLDRMissionsOptions.fewestOrMost
-            TLDRMissionsOptions.fewestOrMost = nil
-        end
-        
-        if TLDRMissionsOptions.lowestOrHighest ~= nil then
-            addon.db.profile.lowestOrHighest = TLDRMissionsOptions.lowestOrHighest
-            TLDRMissionsOptions.lowestOrHighest = nil
-        end
-        
-        if TLDRMissionsOptions.followerXPSpecialTreatment ~= nil then
-            addon.db.profile.followerXPSpecialTreatment = TLDRMissionsOptions.followerXPSpecialTreatment
-            TLDRMissionsOptions.followerXPSpecialTreatment = nil
-        end
-        
-        if TLDRMissionsOptions.followerXPSpecialTreatmentMinimum ~= nil then
-            addon.db.profile.followerXPSpecialTreatmentMinimum = TLDRMissionsOptions.followerXPSpecialTreatmentMinimum
-            TLDRMissionsOptions.followerXPSpecialTreatmentMinimum = nil
-        end
-        
-        if TLDRMissionsOptions.followerXPSpecialTreatmentAlgorithm ~= nil then
-            addon.db.profile.followerXPSpecialTreatmentAlgorithm = TLDRMissionsOptions.followerXPSpecialTreatmentAlgorithm
-            TLDRMissionsOptions.followerXPSpecialTreatmentAlgorithm = nil
-        end
-    
-        if TLDRMissionsOptions.workPerFrame ~= nil then
-            addon.db.profile.workPerFrame = TLDRMissionsOptions.workPerFrame
-            TLDRMissionsOptions.workPerFrame = nil
-        end
-    
-        if TLDRMissionsOptions.reputations ~= nil then
-            addon.db.profile.reputations = TLDRMissionsOptions.reputations
-            TLDRMissionsOptions.reputations = nil
-        end
-        
-        if TLDRMissionsOptions.craftingCacheTypes ~= nil then    
-            for k, v in pairs(addon.craftingCacheCategories) do
-                if type(TLDRMissionsOptions.craftingCacheTypes[k]) == "table" then
-                    for i = 1, 3 do
-                        addon.db.profile.craftingCacheTypes[k][i] = TLDRMissionsOptions.craftingCacheTypes[k][i]
-                    end
-                end
-            end
-            TLDRMissionsOptions.craftingCacheTypes = nil
-        end
-        
-        if TLDRMissionsOptions.animaItemQualities ~= nil then
-            for i = 1, 4 do
-                addon.db.profile.animaItemQualities[i] = TLDRMissionsOptions.animaItemQualities[i]
-            end
-            TLDRMissionsOptions.animaItemQualities = nil
-        end
-        
-        if TLDRMissionsOptions.runecarver ~= nil then
-            addon.db.profile.runecarver = TLDRMissionsOptions.runecarver
-            TLDRMissionsOptions.runecarver = nil
-        end
-        
-        if TLDRMissionsOptions.gearGoldCategories ~= nil then
-            for goldCategory, v in pairs(TLDRMissionsOptions.gearGoldCategories) do
-                addon.db.profile.gearGoldCategories[goldCategory] = TLDRMissionsOptions.gearGoldCategories[goldCategory]
-            end
-            TLDRMissionsOptions.gearGoldCategories = nil
-        end
-        
-        if TLDRMissionsOptions.sanctumFeatureCategories ~= nil then
-            for categoryName, category in pairs(addon.sanctumFeatureItems) do
-                for itemID in pairs(category) do
-                    if TLDRMissionsOptions.sanctumFeatureCategories[itemID] ~= nil then
-                        addon.db.profile.sanctumFeatureCategories[itemID] = TLDRMissionsOptions.sanctumFeatureCategories[itemID]
-                    end
-                end
-            end
-            
-            for categoryName, category in pairs(addon.sanctumFeatureCurrencies) do
-                for currencyID in pairs(category) do
-                    if TLDRMissionsOptions.sanctumFeatureCategories[currencyID] ~= nil then
-                        addon.db.profile.sanctumFeatureCategories[currencyID] = TLDRMissionsOptions.sanctumFeatureCategories[currencyID]
-                    end
-                end
-            end
-            TLDRMissionsOptions.sanctumFeatureCategories = nil
-        end
-        
-        if TLDRMissionsOptions.allowProcessingAnywhere ~= nil then
-            addon.db.profile.allowProcessingAnywhere = TLDRMissionsOptions.allowProcessingAnywhere
-            TLDRMissionsOptions.allowProcessingAnywhere = nil
-        end
-        
-        if TLDRMissionsOptions.autoStart ~= nil then
-            addon.db.profile.autoStart = TLDRMissionsOptions.autoStart
-            TLDRMissionsOptions.autoStart = nil
-        end
-        
-        if TLDRMissionsOptions.estimateLimit ~= nil then
-            addon.db.profile.estimateLimit = TLDRMissionsOptions.estimateLimit
-            TLDRMissionsOptions.estimateLimit = nil
-        end
-        
-        if TLDRMissionsOptions.durationLower ~= nil then
-            addon.db.profile.durationLower = TLDRMissionsOptions.durationLower
-            TLDRMissionsOptions.durationLower = nil
-        end
-        
-        if TLDRMissionsOptions.durationHigher ~= nil then
-            addon.db.profile.durationHigher = TLDRMissionsOptions.durationHigher
-            TLDRMissionsOptions.durationHigher = nil
-        end
-        
-        if TLDRMissionsOptions.autoShowUI ~= nil then
-            addon.db.profile.autoShowUI = TLDRMissionsOptions.autoShowUI
-            TLDRMissionsOptions.autoShowUI = nil
-        end
-        
-        if TLDRMissionsOptions.DEVTESTING then
-            addon.db.profile.DEVTESTING = TLDRMissionsOptions.DEVTESTING
-            TLDRMissionsOptions.DEVTESTING = nil
-        end
-        
-        if TLDRMissionsOptions.LevelRestriction ~= nil then
-            addon.db.profile.LevelRestriction = TLDRMissionsOptions.LevelRestriction
-            TLDRMissionsOptions.LevelRestriction = nil
-        end
-        
-        if TLDRMissionsOptions.AnimaCostLimit ~= nil then
-            addon.db.profile.AnimaCostLimit = TLDRMissionsOptions.AnimaCostLimit
-            TLDRMissionsOptions.AnimaCostLimit = nil
-        end
-    end
 
     local function setupAnimaCostDropDown(name)
-        if TLDRMissionsOptions and TLDRMissionsOptions.animaCosts and TLDRMissionsOptions.animaCosts[name] then
-            addon.db.profile.animaCosts[name] = TLDRMissionsOptions.animaCosts[name]
-        end
         local options = {"10-24", "25-29", "30-49", "50-99", "100+"}
 
         LibDD:UIDropDownMenu_Initialize(_G["TLDRMissions"..name.."AnimaCostDropDown"], function(self, level, menuList)
             local info = LibDD:UIDropDownMenu_CreateInfo()        
             
             for _, option in ipairs(options) do
-                if TLDRMissionsOptions and TLDRMissionsOptions.animaCosts and TLDRMissionsOptions.animaCosts[name] and TLDRMissionsOptions.animaCosts[name][option] ~= nil then
-                    addon.db.profile.animaCosts[name][option] = TLDRMissionsOptions.animaCosts[name][option]
-                end
-                
                 info.text = option.." ".."靈魄"
                 info.checked = addon.db.profile.animaCosts[name][option]
                 info.isNotRadio = true
@@ -296,10 +132,6 @@ function addon:RefreshProfile()
     setupAnimaCostDropDown("Gear")
     setupAnimaCostDropDown("SanctumFeature")
     setupAnimaCostDropDown("AnythingForXP")
-    
-    if TLDRMissionsOptions then
-        TLDRMissionsOptions.animaCosts = nil
-    end
 
     LibDD:UIDropDownMenu_Initialize(TLDRMissionsFollowerXPSpecialTreatmentDropDown, function(self, level, menuList)
         local info = LibDD:UIDropDownMenu_CreateInfo()

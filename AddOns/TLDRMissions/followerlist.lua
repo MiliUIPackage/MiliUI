@@ -1,3 +1,5 @@
+if true then return end
+
 local addonName = ...
 local addon = _G[addonName]
 addon.followerList = {}
@@ -122,30 +124,26 @@ function addon:Init()
         
         --@@
         if self.followerType == 123 then
-            local uncollectedFollowers = {}
-            local nemea
+            local uncollectedFollowers,known = {},{}
             for garrFollowerID, data in pairs(gDB) do
-                local known
                 for _, follower in pairs(followers) do
                     if (garrFollowerID == follower.garrFollowerID) then
-                        known = true
-                        if (garrFollowerID == 1270) or (garrFollowerID == 1271) then
-                            nemea = true
+                        known[garrFollowerID] = true
+                        if (garrFollowerID == 1270) then
+                            gDB[1271] = nil
                         end
-                        break
+                        if (garrFollowerID == 1271) then
+                            gDB[1270] = nil
+                        end
                     end
                 end
-                if (not known) and ((data.covenantID == 0) or (data.covenantID == C_Covenants.GetActiveCovenantID())) then
-                    local continue = true
-                    if (garrFollowerID == 1270) or (garrFollowerID == 1271) then
-                        if nemea then continue = false end
-                    end
-                    if continue then
-                        local info = C_Garrison.GetFollowerInfo(garrFollowerID)
-                        info.source = data.source
-                        info.status = GARRISON_FOLLOWER_ON_MISSION
-                        table.insert(uncollectedFollowers, info)
-                    end
+            end
+            for garrFollowerID, data in pairs(gDB) do
+                if (not known[garrFollowerID]) and ((data.covenantID == 0) or (data.covenantID == C_Covenants.GetActiveCovenantID())) then
+                    local info = C_Garrison.GetFollowerInfo(garrFollowerID)
+                    info.source = data.source
+                    info.status = GARRISON_FOLLOWER_ON_MISSION
+                    table.insert(uncollectedFollowers, info)
                 end
             end
             if #uncollectedFollowers > 0 then
@@ -159,7 +157,6 @@ function addon:Init()
             end
         end
         --@@
-        
 
     	local scrollFrame = self.listScroll;
     	local offset = HybridScrollFrame_GetOffset(scrollFrame);
@@ -168,7 +165,7 @@ function addon:Init()
     	local showCounters = self.showCounters;
     	local canExpand = self.canExpand;
     	local totalHeight = 7;
-    
+        
     	for i = 1, numButtons do
     		local button = buttons[i];
     		local index = offset + i; -- adjust index
@@ -345,13 +342,10 @@ function addon:Init()
     	local displayedHeight = numButtons * scrollFrame.buttonHeight;
     	HybridScrollFrame_Update(scrollFrame, totalHeight, displayedHeight);
     
-    	followerFrame.lastUpdate = GetTime();
+    	--followerFrame.lastUpdate = GetTime();
     end
     
-    local o = GarrisonFollowerList_GetTopButton
-    function GarrisonFollowerList_GetTopButton(self, offset)
-        if not((self == GarrisonLandingPageFollowerList) or (self == CovenantMissionFrame.FollowerList)) then return o(self, offset) end
-        
+    local function GarrisonFollowerList_GetTopButton(self, offset)
     	local followerFrame = self;
     	local buttonHeight = followerFrame.listScroll.buttonHeight;
     	local expandedFollower = followerFrame.expandedFollower;
@@ -359,27 +353,17 @@ function addon:Init()
         
         --@@
         local uncollectedFollowers = {}
-        local nemea
         for garrFollowerID, data in pairs(gDB) do
             local known
             for _, follower in pairs(followers) do
                 if (garrFollowerID == follower.garrFollowerID) then
                     known = true
-                    if (garrFollowerID == 1270) or (garrFollowerID == 1271) then
-                        nemea = true
-                    end
                     break
                 end
             end
             if (not known) and ((data.covenantID == 0) or (data.covenantID == C_Covenants.GetActiveCovenantID())) then
-                local continue = true
-                if (garrFollowerID == 1270) or (garrFollowerID == 1271) then
-                    if nemea then continue = false end
-                end
-                if continue then
-                    local info = C_Garrison.GetFollowerInfo(garrFollowerID)
-                    table.insert(uncollectedFollowers, info)
-                end
+                local info = C_Garrison.GetFollowerInfo(garrFollowerID)
+                table.insert(uncollectedFollowers, info)
             end
         end
         --@@
@@ -422,6 +406,56 @@ function addon:Init()
     	return #followers, 0;
     end
     
-    GarrisonLandingPageFollowerList.UpdateData = newUpdateData
+	TLDRMissionsFollowerList.followerTab = TLDRMissionsFollowerList:GetParent().FollowerTab;
+	TLDRMissionsFollowerList.followers = { };
+	TLDRMissionsFollowerList.followersList = { };
+	TLDRMissionsFollowerList:DirtyList();
+	TLDRMissionsFollowerList.followerType = 123;
+
+	TLDRMissionsFollowerList.listScroll.update = function() TLDRMissionsFollowerList:UpdateData() end
+    TLDRMissionsFollowerList.UpdateData = newUpdateData
+	TLDRMissionsFollowerList.listScroll.dynamic = function(offset) return GarrisonFollowerList_GetTopButton(TLDRMissionsFollowerList, offset); end
+ 
+  	HybridScrollFrame_CreateButtons(TLDRMissionsFollowerList.listScroll, "CovenantMissionFollowerOrCategoryListButtonTemplate", 7, FOLLOWER_LIST_BUTTON_INITIAL_OFFSET, nil, nil, nil, FOLLOWER_LIST_BUTTON_OFFSET)
+    TLDRMissionsFollowerList.listScroll.followerFrame = TLDRMissionsFollowerList:GetParent()
+    TLDRMissionsFollowerList:UpdateFollowers()
+    
+    local selectedTab = 1
+    hooksecurefunc("GarrisonLandingPageTab_SetTab", function(self)
+        selectedTab = self:GetID()
+    end)
+    
+    GarrisonLandingPageTab2:HookScript("OnClick", function()
+        if not InCombatLockdown() and (selectedTab == 2) and (GarrisonLandingPageFollowerList.followerType == 123) then
+            TLDRMissionsFollowerList:Show()
+            GarrisonLandingPageFollowerList:Hide()
+        end
+    end)
+    GarrisonLandingPageTab1:HookScript("OnClick", function()
+        if selectedTab ~= 2 then
+            TLDRMissionsFollowerList:Hide()
+        end
+    end)
+    
+    local combatEventFrame = CreateFrame("Frame")
+    combatEventFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+    combatEventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    combatEventFrame:SetScript("OnEvent", function(self, event, ...)
+        if selectedTab ~= 2 then return end
+        if event == "PLAYER_REGEN_ENABLED" then
+            if GarrisonLandingPageFollowerList.followerType == 123 then
+                TLDRMissionsFollowerList:Show()
+                GarrisonLandingPageFollowerList:Hide()
+            end
+        else
+            TLDRMissionsFollowerList:Hide()
+            GarrisonLandingPageFollowerList:Show()
+        end
+    end)
+    
     CovenantMissionFrame.FollowerList.UpdateData = newUpdateData
+    
+    hooksecurefunc(CovenantMissionFrame.FollowerList, "Setup", function(self)
+        CovenantMissionFrame.FollowerList.listScroll.dynamic = function(offset) return GarrisonFollowerList_GetTopButton(self, offset); end
+    end)
 end

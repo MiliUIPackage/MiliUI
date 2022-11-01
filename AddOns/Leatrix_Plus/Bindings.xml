@@ -1,0 +1,23 @@
+<Bindings>
+
+	<!-- Toggle panel -->
+	<Binding name="LEATRIX_PLUS_GLOBAL_TOGGLE" category = "ADDONS">
+		SlashCmdList["Leatrix_Plus"]()
+	</Binding>
+
+	<!-- Show web link -->
+	<Binding name="LEATRIX_PLUS_GLOBAL_WEBLINK" category = "ADDONS">
+		SlashCmdList["Leatrix_Plus"]("id")
+	</Binding>
+
+	<!-- Announce rare -->
+	<Binding name="LEATRIX_PLUS_GLOBAL_RARE" category = "ADDONS">
+		SlashCmdList["Leatrix_Plus"]("ra")
+	</Binding>
+
+	<!-- Mount special -->
+	<Binding name="LEATRIX_PLUS_GLOBAL_MOUNTSPECIAL" category = "ADDONS">
+		DoEmote('mountspecial')
+	</Binding>
+
+</Bindings>

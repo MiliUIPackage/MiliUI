@@ -75,11 +75,14 @@ function addon:getCleaveEnemies(follower, field, taunter)
         [1] = {{6, 7}, {7}, {8, 10, 11, 12}, {10, 11, 12}, {11, 12, 5}, {12}, {5, 9}, {9}},
         -- options 7+11 cleaved them both
         -- options 8+11+12 targetted only 11
-        [2] = {{5, 6}, {6}, {9, 10}, {10}, {7, 11}, {11}, {8, 12}, {12}},
+        -- options 5+6+8 taunted by 6, targetted only 6 - see below
+        -- options 5+6+8 notaunt targetted 5+6
+        [2] = {{6}, {5, 6}, {9, 10}, {10}, {7, 11}, {11}, {8, 12}, {12}},
         -- Kleia affected by taunt: options 5+7+8+10+11, taunted by 11, targetted 5+7+11
         -- Lost Sybille: options 8+12 cleaved both
         [3] = {{6, 7}, {7}, {5, 9, 10, 11}, {9, 10, 11}, {10, 11}, {11, 7, 5}, {8, 12}, {12}},
-        [4] = {{7, 8}, {8}, {6, 10, 11, 12}, {10, 11, 12}, {11}, {12}, {5}, {9}},
+        -- options 9+11+12 targetted 11+12
+        [4] = {{7, 8}, {8}, {6, 10, 11, 12}, {10, 11, 12}, {11, 12}, {12}, {5}, {9}},
         -- with nothing in slot 2, cleaved both 0 and 3            
         [5] = {{2}, {0, 3}, {3}, {1, 4}, {4}},
         [6] = {{2, 3}, {3}, {0}, {1}, {4}},
@@ -111,6 +114,7 @@ function addon:getCleaveEnemies(follower, field, taunter)
         end
     end
     if taunter then
+
         local function getTauntPriorityPair()
             for _, set in ipairs(priorityOrder[follower.boardIndex]) do
                 if set[1] == taunter.boardIndex then
@@ -121,6 +125,7 @@ function addon:getCleaveEnemies(follower, field, taunter)
         priorityPair = getTauntPriorityPair()
     else
         priorityOrder[1] = {{6, 7}, {7}, {8, 10, 11, 12}, {10, 11, 12}, {11, 12}, {12}, {5, 9}, {9}} -- conflict with an 11 that had taunted
+        priorityOrder[2] = {{5, 6}, {6}, {9, 10}, {10}, {7, 11}, {11}, {8, 12}, {12}}
         priorityPair = getPriorityPair()
     end
     
@@ -229,10 +234,12 @@ function addon:getLineEnemies(follower, field, taunter)
         -- Forest's Touch; options 8+11, targetted 11
         [2] = {{5, 9}, {6, 10}, {9}, {10}, {7, 11}, {11}, {8, 12}, {12}},
         -- options 8+10+11 targetted only 10
-        -- options 8+11 targetted only 11  
-        [3] = {{6, 10}, {5, 9}, {7, 11}, {10}, {11}, {8, 12}, {9}, {12}},
+        -- options 8+11 targetted only 11
+        -- options 5+7+10 targetted only 7  
+        [3] = {{6, 10}, {7, 11}, {5, 9}, {10}, {11}, {8, 12}, {9}, {12}},
         -- options 5+9+10+11 targetted only 11
-        [4] = {{7, 11}, {8, 12}, {6, 10}, {11}, {5, 9}, {12}, {10}, {9}},
+        -- options 5+9+10 targetted only 10
+        [4] = {{7, 11}, {8, 12}, {6, 10}, {11}, {10}, {5, 9}, {12}, {9}},
         [5] = {{2, 0}, {3, 1}, {4}, {0}, {1}},
         [6] = {{2, 0}, {3, 1}, {4}, {0}, {1}},
         [7] = {{3, 1}, {4}, {2, 0}, {1}, {0}},
@@ -731,11 +738,11 @@ function addon:getPseudorandomRitualFervor(follower, field)
         {alive = {6, 7, 9, 10, 11, 12}, target = 7},
         {alive = {6, 7, 10, 11}, target = 11},
         {alive = {7, 9, 11}, target = 9},
-        {alive = {6, 7, 11}, target = 7}, -- matches 2226
+        {alive = {6, 7, 11}, target = 7},
         {alive = {6, 7, 9, 10, 11}, target = 7},
         {alive = {7, 11, 12}, target = 11},
         {alive = {7, 9, 10, 11, 12}, target = 9},
-        {alive = {11, 12}, target = 12},  -- matches 2226
+        {alive = {11, 12}, target = 12},
         {alive = {9, 10, 11, 12}, target = 12},
         {alive = {7, 10, 11, 12}, target = 12},
         {alive = {7, 10, 11}, target = 10},
@@ -767,6 +774,9 @@ function addon:getPseudorandomRitualFervor(follower, field)
         {alive = {5, 6, 7, 8, 10, 11}, target = 6},
         {alive = {7, 8}, target = 8},
         {alive = {5, 8, 11}, target = 8},
+        {alive = {5, 7, 8, 11}, target = 11},
+        {alive = {6, 7, 8, 11, 12}, target = 7},
+        {alive = {7, 8, 9, 10, 11}, target = 8},
         
         -- observed in 2281
         -- see https://github.com/teelolws/TLDRMissions/issues/98
@@ -807,10 +817,14 @@ function addon:getPseudorandomRitualFervor(follower, field)
         {alive = {5, 6, 8, 9, 10, 11}, target = 6},
         {alive = {5, 8, 9, 10}, target = 10},
         {alive = {5, 8, 10, 11, 12}, target = 8},
+        {alive = {8, 9}, target = 9},
         
         -- observed in 2258 [Environment Effect]
         {alive = {5, 6, 7, 8, 9, 10}, target = 6},
         {alive = {6, 10}, target = 10},
+        {alive = {5, 6, 7, 10}, target = 10},
+        {alive = {5, 9, 10}, target = 9},
+        {alive = {5, 7, 9, 10}, target = 10},
         
         -- observed in 2259 [Environment Effect]
         {alive = {7, 8, 10}, target = 8},
@@ -915,6 +929,7 @@ function addon:getPseudorandomLashOut(follower, field)
         {alive = {0, 4, 6, 7, 10}, target = 4},
         {alive = {0, 6, 7}, target = 6},
         {alive = {0, 2, 6, 7, 10}, target = 2},
+        {alive = {0, 2, 6, 7}, target = 7},
         {alive = {0, 1, 3, 4, 5, 6, 7, 8, 10}, target = 5},
         {alive = {0, 1, 2, 3, 4, 7, 8, 10}, target = 10},
         {alive = {0, 1, 3, 7, 8}, target = 1},
@@ -959,6 +974,13 @@ function addon:getPseudorandomLashOut(follower, field)
         {alive = {0, 1, 6}, target = 1},
         {alive = {0, 2, 3, 7, 10}, target = 2},
         {alive = {0, 1, 3, 4, 5, 6, 7, 10}, target = 10},
+        {alive = {1, 2, 5, 6, 7, 8, 10}, target = 10},
+        {alive = {1, 2, 6, 7, 8, 10}, target = 2},
+        {alive = {0, 2, 8}, target = 2},
+        {alive = {0, 4, 8}, target = 4},
+        {alive = {0, 3, 5, 6, 7, 10}, target = 3},
+        {alive = {0, 1, 2, 3, 5, 10}, target = 1},
+        {alive = {0, 1, 3, 4, 7}, target = 1},
 
         -- observed in 2224 (Panic Attack)
         -- see https://github.com/TLDRMissions/TLDRMissions/issues/120
@@ -1033,6 +1055,42 @@ function addon:getPseudorandomLashOut(follower, field)
         {alive = {1, 2, 3, 4, 7, 9, 10, 11, 12}, target = 7},
         {alive = {1, 3, 4, 7, 9, 10, 11, 12}, target = 12},
         {alive = {1, 3, 4, 11, 12}, target = 3},
+        {alive = {0, 1, 3, 12}, target = 12},
+        {alive = {0, 1, 2, 4, 10, 11}, target = 1},
+        {alive = {0, 2, 3, 6, 7, 10, 11}, target = 11},
+        {alive = {0, 3, 6, 7, 10, 11}, target = 3},
+        {alive = {0, 1, 2, 3, 4, 6, 7, 10, 11, 12}, target = 1},
+        {alive = {0, 2, 3, 4, 6, 7, 10, 11, 12}, target = 6},
+        {alive = {0, 4, 10, 11, 12}, target = 4},
+        {alive = {0, 10, 11, 12}, target = 12},
+        {alive = {0, 1, 2, 11, 12}, target = 1},
+        {alive = {0, 1, 2, 3, 6, 7, 10, 11}, target = 11},
+        {alive = {0, 1, 3, 6, 7, 10, 11}, target = 11},
+        {alive = {0, 4, 12}, target = 4},
+        {alive = {0, 1, 10}, target = 1},
+        {alive = {0, 1, 3, 4, 11, 12}, target = 1},
+        {alive = {0, 1, 4, 11, 12}, target = 1},
+        {alive = {1, 4, 9, 10}, target = 10},
+        {alive = {0, 1, 4, 10, 11}, target = 1},
+        {alive = {0, 1, 2, 4, 10, 11, 12}, target = 12},
+        {alive = {0, 1, 2, 4, 7, 11}, target = 1},
+        {alive = {0, 1, 3, 4, 9, 11, 12}, target = 12},
+        {alive = {0, 1, 2, 3, 7, 10, 11}, target = 11},
+        {alive = {0, 1, 2, 3, 4, 9, 10, 11, 12}, target = 4},
+        {alive = {0, 1, 3, 4, 9, 11}, target = 1},
+        {alive = {0, 2, 3, 7, 10, 11, 12}, target = 12},
+        {alive = {0, 1, 4, 7, 11}, target = 1},
+        {alive = {0, 1, 2, 4, 9, 10, 11, 12}, target = 12},
+        {alive = {0, 1, 4, 12}, target = 12},
+        {alive = {0, 1, 10, 11}, target = 11},
+        {alive = {0, 1, 2, 4, 6, 7}, target = 1},
+        {alive = {0, 1, 2, 12}, target = 12},
+        {alive = {0, 1, 4, 6, 7}, target = 1},
+        {alive = {0, 1, 3, 4, 7, 9, 10, 11, 12}, target = 7},
+        {alive = {1, 10}, target = 10},
+        {alive = {0, 1, 6, 7, 11}, target = 1},
+        {alive = {1, 7}, target = 7},
+        {alive = {0, 1, 9, 12}, target = 12},
     }
     
     local aliveMinions = {}

@@ -255,10 +255,12 @@ local function updateRewardText(mission)
 end
 
 local function processResults(results, dontClear)
+    if not results.counter then results.counter = missionCounter end
+    
     if missionWaitingUserAcceptance then
         if (results.defeats == 0) and (results.victories > 0) then
             local problem -- something further down the chain is feeding multiple successes into the queue when it shouldn't. probably a caching problem. this is the workaround in the meantime
-            if missionWaitingUserAcceptance.missionID == results.missionID then
+            if missionWaitingUserAcceptance and (missionWaitingUserAcceptance.missionID == results.missionID) then
                 problem = true
             end
             
@@ -270,18 +272,17 @@ local function processResults(results, dontClear)
             end
             
             if not problem then
-                results.counter = missionCounter
                 table.insert(calculatedMissionBacklog, results)
                 for i = 1, 5 do
                     if results.combination[i] then
                         alreadyUsedFollowers[results.combination[i]] = true
                     end
                 end
-            else
-                if table.getn(calculatedMissionBacklog) > 0 then
-                    processResults(table.remove(calculatedMissionBacklog, 1), true)
-                    return
-                end
+            --else
+                --if table.getn(calculatedMissionBacklog) > 0 then
+                --    processResults(table.remove(calculatedMissionBacklog, 1), true)
+                --    return
+                --end
             end
         end
         if addon:isCurrentWorkBatchEmpty() then
@@ -289,7 +290,9 @@ local function processResults(results, dontClear)
         end
         return
     end
+    
     missionWaitingUserAcceptance = results
+    
     clearReportText()
     
     if (results.defeats == 0) and (results.victories > 0) then
@@ -409,6 +412,40 @@ local function startSacrifice()
     sacrificeStarted = true
     
     local missions = C_Garrison.GetAvailableMissions(123)
+    local excludedMissions = {}
+    
+    for _, category in pairs(addon.db.profile.excludedRewards) do
+        local missions = {}
+        if category == "gold" then
+            missions = addon:GetGoldMissions()
+        elseif category == "followerxp" then
+            missions = addon:GetFollowerXPMissions()
+        elseif category == "followerxp-items" then
+            missions = addon:GetFollowerXPItemMissions()
+        elseif category == "anima" then
+            missions = addon:GetAnimaMissions()
+        elseif category == "pet-charms" then
+            missions = addon:GetPetCharmMissions()
+        elseif category == "augment-runes" then
+            missions = addon:GetAugmentRuneMissions()
+        elseif category == "reputation" then
+            missions = addon:GetReputationMissions()
+        elseif category == "crafting-cache" then
+            missions = addon:GetCraftingCacheMissions()
+        elseif category == "runecarver" then
+            missions = addon:GetRunecarverMissions()    
+        elseif category == "campaign" then
+            missions = addon:GetCampaignMissions()
+        elseif category == "gear" then
+            missions = addon:GetGearMissions()
+        elseif category == "sanctum" then
+            missions = addon:GetSanctumFeatureMissions()
+        end
+        
+        for _, mission in pairs(missions) do
+            excludedMissions[mission.missionID] = true
+        end
+    end
     
     local m = {}
     for _, mission in pairs(missions) do
@@ -418,7 +455,7 @@ local function startSacrifice()
             duration = duration/3600
             local d = addon.db.profile.durationLower
             if d <= 1 then d = 0 end
-            if (duration >= d) and (duration <= addon.db.profile.durationHigher) then
+            if (duration >= d) and (duration <= addon.db.profile.durationHigher) and (not excludedMissions[mission.missionID]) then
                 table.insert(m, mission)
             end
         end
@@ -575,12 +612,14 @@ gui.CalculateButton:SetScript("OnClick", function (self, button)
             if (not exists) and (not excludedMissions[mission.missionID]) then
                 local animaCost = C_Garrison.GetMissionCost(mission.missionID)
                 if not animaCost then animaCost = 1 end
-                if 
-                        ( (animaCost < 25) and addon.db.profile.animaCosts[acCategory]["10-24"] ) or
-                        ( (animaCost < 30) and (animaCost > 24) and addon.db.profile.animaCosts[acCategory]["25-29"] ) or
-                        ( (animaCost < 50) and (animaCost > 29) and addon.db.profile.animaCosts[acCategory]["30-49"] ) or
-                        ( (animaCost < 100) and (animaCost > 49) and addon.db.profile.animaCosts[acCategory]["50-99"] ) or 
-                        ( (animaCost > 99) and addon.db.profile.animaCosts[acCategory]["100+"] ) then
+                if      ( gui.AnimaCostLimitSlider:GetValue() >= animaCost ) and
+                        (
+                          ( (animaCost < 25) and addon.db.profile.animaCosts[acCategory]["10-24"] ) or
+                          ( (animaCost < 30) and (animaCost > 24) and addon.db.profile.animaCosts[acCategory]["25-29"] ) or
+                          ( (animaCost < 50) and (animaCost > 29) and addon.db.profile.animaCosts[acCategory]["30-49"] ) or
+                          ( (animaCost < 100) and (animaCost > 49) and addon.db.profile.animaCosts[acCategory]["50-99"] ) or 
+                          ( (animaCost > 99) and addon.db.profile.animaCosts[acCategory]["100+"] )
+                        ) then
                     local _, _, _, _, duration = C_Garrison.GetMissionTimes(mission.missionID)
                     duration = duration/3600
                     
@@ -663,12 +702,14 @@ gui.CalculateButton:SetScript("OnClick", function (self, button)
             local animaCost = C_Garrison.GetMissionCost(mission.missionID)
             if not animaCost then animaCost = 1 end
             local acCategory = "AnythingForXP"
-            if 
-                    ( (animaCost < 25) and addon.db.profile.animaCosts[acCategory]["10-24"] ) or
-                    ( (animaCost < 30) and (animaCost > 24) and addon.db.profile.animaCosts[acCategory]["25-29"] ) or
-                    ( (animaCost < 50) and (animaCost > 29) and addon.db.profile.animaCosts[acCategory]["30-49"] ) or
-                    ( (animaCost < 100) and (animaCost > 49) and addon.db.profile.animaCosts[acCategory]["50-99"] ) or 
-                    ( (animaCost > 99) and addon.db.profile.animaCosts[acCategory]["100+"] ) then
+            if      ( gui.AnimaCostLimitSlider:GetValue() >= animaCost ) and
+                    (
+                        ( (animaCost < 25) and addon.db.profile.animaCosts[acCategory]["10-24"] ) or
+                        ( (animaCost < 30) and (animaCost > 24) and addon.db.profile.animaCosts[acCategory]["25-29"] ) or
+                        ( (animaCost < 50) and (animaCost > 29) and addon.db.profile.animaCosts[acCategory]["30-49"] ) or
+                        ( (animaCost < 100) and (animaCost > 49) and addon.db.profile.animaCosts[acCategory]["50-99"] ) or 
+                        ( (animaCost > 99) and addon.db.profile.animaCosts[acCategory]["100+"] )
+                    ) then
                 local _, _, _, _, duration = C_Garrison.GetMissionTimes(mission.missionID)
                 duration = duration/3600
                 
@@ -806,10 +847,12 @@ gui.CalculateButton:SetScript("OnClick", function (self, button)
                     useSpecialTreatment = true
                 else
                     local rewards = C_Garrison.GetMissionRewardInfo(nextMission.missionID)
-                    for _, reward in pairs(rewards) do
-                        if reward.followerXP then
-                            useSpecialTreatment = true
-                            break
+                    if rewards then
+                        for _, reward in pairs(rewards) do
+                            if reward.followerXP then
+                                useSpecialTreatment = true
+                                break
+                            end
                         end
                     end
                 end
@@ -989,6 +1032,7 @@ gui.StartMissionButton:SetScript("OnClick", function(self, button)
 		clearReportText()
         gui.shortcutButton:SetText(FAILED)
         gui.FailedCalcLabel:SetText(L["NotEnoughAnimaError"])
+        gui.SkipMissionButton:SetEnabled(true)
         self:SetEnabled(true)
         AceEvent:SendMessage("TLDRMISSIONS_NOT_ENOUGH_ANIMA")
         if WeakAuras then

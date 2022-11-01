@@ -456,13 +456,13 @@ function addon:GetCampaignMissions(hard)
             if reward.currencyID and (reward.currencyID == 1889) then
                 local quantity = C_CurrencyInfo.GetCurrencyInfo(1889).quantity
                 local include = false
-                if quantity < 5 then
+                if quantity < 4 then
                     include = addon.db.profile.campaignCategories["1-4"]
-                elseif quantity < 9 then
+                elseif quantity < 8 then
                     include = addon.db.profile.campaignCategories["5-8"]
-                elseif quantity < 13 then
+                elseif quantity < 12 then
                     include = addon.db.profile.campaignCategories["9-12"]
-                elseif quantity < 17 then
+                elseif quantity < 16 then
                     include = addon.db.profile.campaignCategories["13-16"]
                 else
                     include = addon.db.profile.campaignCategories["17+"]

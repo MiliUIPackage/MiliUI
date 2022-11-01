@@ -7,7 +7,7 @@
 	<Script file="FloLib.lua"/>
 	<CheckButton name="FloButtonTemplateT" inherits="ActionButtonTemplate, SecureActionButtonTemplate" virtual="true">
 		<Size>
-			<AbsDimension x="30" y="30"/>
+			<AbsDimension x="45" y="45"/>
 		</Size>
 		<Scripts>
 			<OnLoad>
@@ -17,8 +17,6 @@
 				self:RegisterForDrag("LeftButton", "RightButton");
 				self:RegisterForClicks("LeftButtonUp", "RightButtonUp");
 				local normalTexture = _G[self:GetName().."NormalTexture"];
-				normalTexture:SetWidth(54);	
-				normalTexture:SetHeight(54);	
 			</OnLoad>
 			<OnDragStart>
 				if not InCombatLockdown() and (LOCK_ACTIONBAR ~= "1" or IsShiftKeyDown()) then
@@ -56,7 +54,7 @@
 	</CheckButton>
 	<StatusBar name="FloCountdownT" drawLayer="BORDER" orientation="VERTICAL" enableMouse="true" virtual="true">
 		<Size>
-			<AbsDimension x="4" y="30"/>
+			<AbsDimension x="4" y="35"/>
 		</Size>
 		<Anchors>
 			<Anchor point="LEFT">
@@ -325,4 +323,6 @@
 			</OnUpdate>
 		</Scripts>
         </Frame>
+
+		
 </Ui>

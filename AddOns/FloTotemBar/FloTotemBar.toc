@@ -1,10 +1,7 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: FloTotemBar
 ## Author: Floraline
 ## Notes: Add some bars for casting of totems/traps, with timers showing the remaining life time of the objects
-## Title-zhTW: |c00FF00AA[|cFFABD473獵|cFF0070DE薩|r|c00FF00AA]|r 圖騰、陷阱專用快捷
-## Notes-zhTW: FloTotemBar|n陷阱/圖騰快捷列並顯示持續時間。|n|cffffd200使用方法：|r輸入指令『/ftb』
-## DefaultState: disabled
 ## OptionalDeps: ButtonFacade
 ## Dependencies:
 ## SavedVariables: 

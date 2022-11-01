@@ -415,7 +415,7 @@ function addon:arrangeFollowerCombinationsByFewestFollowersPlusTroops(followers,
                 local missionInfo = C_Garrison.GetBasicMissionInfo(missionID)
                 if missionInfo then
                     if _G["TLDRMissionsResultCache"..missionID][missionInfo.missionScalar] then
-                        local cache = _G["TLDRMissionsResultCache"..missionID][C_Garrison.GetBasicMissionInfo(missionID).missionScalar][info.garrFollowerID]
+                        local cache = _G["TLDRMissionsResultCache"..missionID][missionInfo.missionScalar][info.garrFollowerID]
                         if cache ~= nil then
                             if (cache == false) or (hp < cache) then
                                 continue = false
@@ -531,17 +531,44 @@ function addon:arrangeFollowerCombinationsByFewestFollowersPlusTroops(followers,
                 table.insert(lineup, follower2)
                 for k = (j+1), #followers do
                     local follower3 = followers[k]
-                    testFollower(follower3, function(callback, batch)
-                        if (missionID ~= 2266) and (missionID ~= 2343) then
-                            -- test the followers + 1 troop
-                            if addon.db.profile.minimumTroops < 4 then
-                                testEachTroop(nil, batch)
+                    
+                    local continue = true
+                    if TLDRMissionsResultCacheIndex[missionID] then
+                        local info = addon:C_Garrison_GetFollowerInfo(follower1)
+                        local info2 = addon:C_Garrison_GetFollowerInfo(follower2)
+                        local info3 = addon:C_Garrison_GetFollowerInfo(follower3)
+                        local missionInfo = C_Garrison.GetBasicMissionInfo(missionID)
+                        
+                        -- lowest follower ID, middle, highest followerID
+                        local f = {info.garrFollowerID, info2.garrFollowerID, info3.garrFollowerID}
+                        table.sort(f, function(a, b) return a < b end) 
+                        
+                        if missionInfo then
+                            if _G["TLDRMissionsResultCache"..missionID][missionInfo.missionScalar] then
+                                local cache = _G["TLDRMissionsResultCache"..missionID][C_Garrison.GetBasicMissionInfo(missionID).missionScalar][f[1].."_trio"]
+                                if cache ~= nil then
+                                    local cache2 = cache[f[2].."+"..f[3]]
+                                    if (cache2 ~= nil) and (cache2 == false) then
+                                        continue = false
+                                    end
+                                end
                             end
                         end
-                        
-                        -- test the follower + 2 troops
-                        testEachTroop(testEachTroop, batch)
-                    end)
+                    end
+                
+                    if continue then
+                        testFollower(follower3, function(callback, batch)
+                            if (missionID ~= 2266) and (missionID ~= 2343) then
+                                -- test the followers + 1 troop
+                                if addon.db.profile.minimumTroops < 4 then
+                                    testEachTroop(nil, batch)
+                                end
+                            end
+                            
+                            -- test the follower + 2 troops
+                            testEachTroop(testEachTroop, batch)
+                        end)
+                    end
                 end
                 table.remove(lineup)
             end

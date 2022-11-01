@@ -9,12 +9,10 @@
 
 	[ Notes ]
 
-	To help with translations, use the localization system on WoWAce (https://www.wowace.com/projects/masque/localization)
+	To help with translations, use the localization system on CurseForge (https://www.curseforge.com/wow/addons/masque/localization)
 	or contribute directly on GitHub (https://github.com/SFX-WoW/Masque).
 
 ]]
-
--- GLOBALS: GetLocale
 
 if GetLocale() ~= "frFR" then return end
 
@@ -44,11 +42,19 @@ L["API"] = "API"
 ---
 
 L["About"] = "À propos"
--- L["Click to load Masque's options."] = "Click to load Masque's options."
-L["Load Options"] = "Options de chargement"
--- L["Masque's options are load on demand. Click the button below to load them."] = "Masque's options are load on demand. Click the button below to load them."
--- L["This action will increase memory usage."] = "This action will increase memory usage."
 -- L["This section will allow you to view information about Masque and any skins you have installed."] = "This section will allow you to view information about Masque and any skins you have installed."
+
+----------------------------------------
+-- Default Classic Skin
+---
+
+-- L["The default Classic button style."] = "The default Classic button style."
+
+----------------------------------------
+-- Default Skin
+---
+
+-- L["The default button style."] = "The default button style."
 
 ----------------------------------------
 -- Developer Settings
@@ -142,6 +148,7 @@ L["Profile Settings"] = "Paramètres de Profil"
 -- Skin Settings
 ---
 
+-- L["Adjust the scale of this group's skin."] = "Adjust the scale of this group's skin."
 L["Backdrop"] = "Paramètres de fond"
 L["Checked"] = "Coché"
 L["Color"] = "Couleur"
@@ -151,6 +158,7 @@ L["Disable"] = "Désactiver"
 L["Disable the skinning of this group."] = "Désactiver le skin (style) de ce groupe."
 L["Disabled"] = "Désactivé"
 L["Enable"] = "Activer"
+-- L["Enable skin scaling."] = "Enable skin scaling."
 L["Enable the Backdrop texture."] = "Activer la texture de fond."
 -- L["Enable the Gloss texture."] = "Enable the Gloss texture."
 -- L["Enable the Shadow texture."] = "Enable the Shadow texture."
@@ -164,6 +172,7 @@ L["Normal"] = "Normal"
 L["Pushed"] = "Enfoncé"
 L["Reset all skin options to the defaults."] = "Restaure les couleurs par défauts."
 L["Reset Skin"] = "Réinit. toutes les couleurs"
+-- L["Scale"] = "Scale"
 L["Set the color of the Backdrop texture."] = "Définir la couleur de la texture de fond."
 L["Set the color of the Checked texture."] = "Définir la couleur de la texture cochée."
 L["Set the color of the Cooldown animation."] = "Définir la couleur de l'animation du cooldown"

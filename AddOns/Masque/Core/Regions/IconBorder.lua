@@ -25,10 +25,11 @@ local hooksecurefunc = hooksecurefunc
 ---
 
 -- @ Skins\Default
-local Default = Core.Skins.Default.IconBorder
+local Default = Core.DEFAULT_SKIN.IconBorder
 
 -- @ Core\Utility
 local GetSize, GetTexCoords, SetPoints = Core.GetSize, Core.GetTexCoords, Core.SetPoints
+local GetTypeSkin = Core.GetTypeSkin
 
 ----------------------------------------
 -- Locals
@@ -70,17 +71,21 @@ end
 
 -- Skins the 'IconBorder' region of a button.
 function Core.SkinIconBorder(Region, Button, Skin, xScale, yScale)
+	Skin = GetTypeSkin(Button, Button.__MSQ_bType, Skin)
+
 	local Texture = Region.__MSQ_Texture or Region:GetTexture()
+
+	if Texture ~= DEFAULT_TEXTURE and Texture ~= RELIC_TEXTURE then
+		Texture = DEFAULT_TEXTURE
+	end
+
+	Region.__MSQ_Texture = Texture
 
 	if Button.__MSQ_Enabled then
 		Region.__MSQ_Skin = Skin
-		Region.__MSQ_Texture = Texture
-
 		Hook_SetTexture(Region, Texture)
 	else
 		Region.__MSQ_Skin = nil
-		Region.__MSQ_Texture = nil
-
 		Region:SetTexture(Texture)
 	end
 

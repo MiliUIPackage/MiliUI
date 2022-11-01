@@ -15,7 +15,7 @@
 local _, Core = ...
 
 ----------------------------------------
--- Lua
+-- Lua API
 ---
 
 local error, type = error, type
@@ -32,6 +32,7 @@ local hooksecurefunc = hooksecurefunc
 
 -- @ Core\Utility
 local GetSize, GetTexCoords, SetPoints = Core.GetSize, Core.GetTexCoords, Core.SetPoints
+local GetTypeSkin = Core.GetTypeSkin
 
 -- @ Core\Regions\Mask
 local SkinMask = Core.SkinMask
@@ -44,7 +45,7 @@ local UpdateNormal = Core.UpdateNormal
 ---
 
 -- Sets a button's empty state and updates its regions.
-local function SetEmpty(Button, IsEmpty)
+local function SetEmpty(Button, IsEmpty, Limit)
 	IsEmpty = (IsEmpty and true) or nil
 	Button.__MSQ_Empty = IsEmpty
 
@@ -59,12 +60,27 @@ local function SetEmpty(Button, IsEmpty)
 		if Gloss then Gloss:Show() end
 	end
 
-	UpdateNormal(Button, IsEmpty)
+	if not Limit then
+		UpdateNormal(Button, IsEmpty)
+	end
 end
 
 ----------------------------------------
 -- Hooks
 ---
+
+-- Types of buttons to hook.
+local IconHook = {
+	Action = true,
+	Pet = true,
+}
+
+-- We don't need to hook these in Retail. 
+-- @ Core\Button Hooks
+if not Core.WOW_RETAIL then
+	IconHook.BagSlot = true
+	IconHook.Item = true
+end
 
 -- Sets a button's empty state to empty.
 local function Hook_Hide(Region)
@@ -86,19 +102,22 @@ end
 -- Core
 ---
 
+Core.SetEmpty = SetEmpty
+
 -- Skins the 'Icon' region of a button.
 function Core.SkinIcon(Region, Button, Skin, xScale, yScale)
+	local bType = Button.__MSQ_bType
+
 	Button.__MSQ_Icon = Region
 	Region.__MSQ_Button = Button
 
 	-- Skin
-	local bType = Button.__MSQ_bType
-	Skin = Skin[bType] or Skin
+	Skin = GetTypeSkin(Button, bType, Skin)
 
 	Region:SetParent(Button)
 	Region:SetTexCoord(GetTexCoords(Skin.TexCoords))
 	Region:SetDrawLayer(Skin.DrawLayer or "BACKGROUND", Skin.DrawLevel or 0)
-	Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale))
+	Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
 	SetPoints(Region, Button, Skin, nil, Skin.SetAllPoints)
 
 	-- Mask
@@ -110,10 +129,11 @@ function Core.SkinIcon(Region, Button, Skin, xScale, yScale)
 
 	if Button.__MSQ_EmptyType then
 		-- Empty Status
-		SetEmpty(Button, not Region:IsShown())
+		local IsEmpty = not Region:IsShown() or Region:GetAlpha() == 0
+		SetEmpty(Button, IsEmpty)
 
 		-- Hooks
-		if not Region.__MSQ_Hooked then
+		if IconHook[bType] and not Region.__MSQ_Hooked then
 			hooksecurefunc(Region, "Hide", Hook_Hide)
 			hooksecurefunc(Region, "Show", Hook_Show)
 			Region.__MSQ_Hooked = true
