@@ -529,7 +529,7 @@ _V["SETTING_CATEGORIES"] = {
 	,{["id"]="COLORS_TIME", ["parentCategory"] = "COLORS", ["label"] = _L["TIME_COLORS"], ["expanded"] = true}
 	,{["id"]="COLORS_REWARD_RING", ["parentCategory"] = "COLORS", ["label"] = _L["REWARD_COLORS_RING"]}
 	,{["id"]="COLORS_REWARD_AMOUNT", ["parentCategory"] = "COLORS", ["label"] = _L["REWARD_COLORS_AMOUNT"]}
-	,{["id"]="WQTU", ["label"] = "Utilities"}
+	,{["id"]="WQTU", ["label"] = _L["Utilities"]}
 	,{["id"]="TOMTOM", ["label"] = "TomTom"}
 }
 
@@ -1030,7 +1030,7 @@ _V["WQT_CVAR_LIST"] = {
 _V["WQT_TYPEFLAG_LABELS"] = {
 		[2] = {["Default"] = DEFAULT, ["Elite"] = ELITE, ["PvP"] = PVP, ["Petbattle"] = PET_BATTLE_PVP_QUEUE, ["Dungeon"] = TRACKER_HEADER_DUNGEON, ["Raid"] = RAID, ["Profession"] = BATTLE_PET_SOURCE_4, ["Invasion"] = _L["TYPE_INVASION"], ["Assault"] = SPLASH_BATTLEFORAZEROTH_8_1_FEATURE2_TITLE
 			, ["Daily"] = DAILY, ["Threat"] = REPORT_THREAT, ["Bonus"] = SCENARIO_BONUS_LABEL}
-		,[3] = {["Item"] = ITEMS, ["Armor"] = WORLD_QUEST_REWARD_FILTERS_EQUIPMENT, ["Gold"] = WORLD_QUEST_REWARD_FILTERS_GOLD, ["Currency"] = CURRENCY, ["Artifact"] = ITEM_QUALITY6_DESC, ["Anima"] = ANIMA, ["Conduits"] = _L["REWARD_CONDUITS"]
+		,[3] = {["Item"] = ITEMS, ["Armor"] = WORLD_QUEST_REWARD_FILTERS_EQUIPMENT, ["Gold"] = WORLD_QUEST_REWARD_FILTERS_GOLD, ["Currency"] = CURRENCY, ["Artifact"] = ITEM_QUALITY6_DESC, ["Anima"] = _L["ANIMA"], ["Conduits"] = _L["REWARD_CONDUITS"]
 			, ["Relic"] = RELICSLOT, ["None"] = NONE, ["Experience"] = POWER_TYPE_EXPERIENCE, ["Honor"] = HONOR, ["Reputation"] = REPUTATION}
 	};
 	
@@ -1308,6 +1308,7 @@ _V["WQT_FACTION_DATA"] = {
 	,[2413] =	{ ["expansion"] = LE_EXPANSION_SHADOWLANDS,["playerFaction"] = nil ,["texture"] = 3257751 } -- Court of Harvesters
 	,[2465] =	{ ["expansion"] = LE_EXPANSION_SHADOWLANDS,["playerFaction"] = nil ,["texture"] = 3641394 } -- The Wild Hunt
 	,[2432] =	{ ["expansion"] = LE_EXPANSION_SHADOWLANDS,["playerFaction"] = nil ,["texture"] = 3729461 } -- Ve'nari
+	,[2470] =	{ ["expansion"] = LE_EXPANSION_SHADOWLANDS,["playerFaction"] = nil ,["texture"] = 4083292 } -- Death's Advance
 }
 -- Add localized faction names
 for k, v in pairs(_V["WQT_FACTION_DATA"]) do
@@ -1445,6 +1446,12 @@ end
 
 -- This is just easier to maintain than changing the entire string every time
 _V["PATCH_NOTES"] = {
+		{["version"] = "9.1.01",
+			["intro"] = { "Update for 9.1 content" },
+			["changes"] = {
+				"Changed the calling board progress icons to a texture that looks better at their small scale.",
+			},
+		},
 		{["version"] = "9.0.08",
 			["minor"] = "2",
 			["fixes"] = {

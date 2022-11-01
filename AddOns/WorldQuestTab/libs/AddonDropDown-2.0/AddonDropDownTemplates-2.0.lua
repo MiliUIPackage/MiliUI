@@ -528,7 +528,7 @@ function frameMixin:OnUpdate(elapsed)
 end
 
 function frameMixin:StartAutoCloseCount()
-	if (self.level > 1 ) then
+	if (self.level and self.level > 1 ) then -- 10.0 fix
 		self.parentFrame:StartAutoCloseCount();
 		return;
 	end
