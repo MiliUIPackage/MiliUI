@@ -1181,7 +1181,7 @@ end
 local function CreateClassColors()
 	local frame = CreatePopup()
 	frame:SetWidth(260)
-	frame:SetHeight(300)
+	frame:SetHeight(350)
 
 	-- Close button.
 	local button = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
@@ -1204,7 +1204,7 @@ local function CreateClassColors()
 	local anchor = checkbox
 	local globalStringSchoolIndex = 0
 	local colorswatch, fontString
-	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR DEMONHUNTER", "[^%s]+") do
+	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR DEMONHUNTER EVOKER", "[^%s]+") do
 		colorswatch = MSBTControls.CreateColorswatch(frame)
 		colorswatch:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", anchor == checkbox and 20 or 0, anchor == checkbox and -10 or -5)
 		colorswatch:SetColorChangedHandler(
@@ -1251,7 +1251,7 @@ local function ShowClassColors(configTable)
 	frame.colorCheckbox:SetChecked(not MSBTProfiles.currentProfile.classColoringDisabled)
 
 	local profileEntry
-	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR DEMONHUNTER", "[^%s]+") do
+	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR DEMONHUNTER EVOKER", "[^%s]+") do
 		profileEntry = MSBTProfiles.currentProfile[class]
 		frame[class .. "Colorswatch"]:SetColor(profileEntry.colorR, profileEntry.colorG, profileEntry.colorB)
 		frame[class .. "Checkbox"]:SetChecked(not profileEntry.disabled)
@@ -1552,7 +1552,7 @@ local function CreateScrollAreaMoverFrame(scrollArea)
 		frame:SetScript("OnMouseUp", MoverFrameOnMouseUp)
 
 		local fontString = frame:CreateFontString(nil, "OVERLAY")
-		local fontPath = "Fonts\\ARIALN.TTF"
+		local fontPath = STANDARD_TEXT_FONT
 		if (GetLocale() == "koKR") then fontPath = "Fonts\\2002.TTF" end
 		fontString:SetFont(fontPath, 12)
 		fontString:SetPoint("CENTER")
@@ -2359,7 +2359,7 @@ local function CreateClasses()
 	frame.allClassesCheckbox = checkbox
 
 	local anchor = checkbox
-	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR", "[^ ]+") do
+	for class in string.gmatch("DEATHKNIGHT DRUID HUNTER MAGE MONK PALADIN PRIEST ROGUE SHAMAN WARLOCK WARRIOR DEMONHUNTER EVOKER", "[^ ]+") do
 		checkbox = MSBTControls.CreateCheckbox(frame)
 		checkbox:Configure(24, CLASS_NAMES[class], nil)
 		checkbox:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", anchor == frame.allClassesCheckbox and 20 or 0, anchor == frame.allClassesCheckbox and -10 or 0)
@@ -3469,10 +3469,14 @@ local function CreateTriggerPopup()
 	}
 
 	-- Localized warrior stances.
-	local warriorStances = {
-		[1] = GetSkillName(2457),
-		[2] = GetSkillName(71),
-	}
+	local warriorStances
+	if WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC then
+		warriorStances = {
+			[1] = GetSkillName(2457),
+			[2] = GetSkillName(71),
+			[3] = GetSkillName(2458),
+		}
+	end
 
 	-- Localized zone types.
 	local zoneTypes = {arena = objLocale["zoneTypeArena"], pvp = objLocale["zoneTypePvP"], party = objLocale["zoneTypeParty"], raid = objLocale["zoneTypeRaid"]}
@@ -3545,10 +3549,13 @@ local function CreateTriggerPopup()
 		recentlyFired = {controlType = "slider", minValue = 1, maxValue = 30, step = 1, default = 5, relations = lessThanRelations, defaultRelation = "lt"},
 		trivialTarget = {controlType = "dropdown", items = booleanItems, default = "false", relations = booleanRelations},
 		unavailableSkill = {controlType = "editbox", relations = equalityRelations},
-		warriorStance = {controlType = "dropdown", items = warriorStances, default = 1, relations = booleanRelations},
 		zoneName = {controlType = "editbox", relations = stringRelations},
 		zoneType = {controlType = "dropdown", items = zoneTypes, default = "arena", relations = booleanRelations},
 	}
+
+	if warriorStances then
+		frame.conditionData["warriorStance"] = {controlType = "dropdown", items = warriorStances, default = 1, relations = booleanRelations}
+	end
 
 	-- Event condition data.
 	local commonSourceFields = "sourceName sourceAffiliation sourceReaction sourceControl sourceUnitType "

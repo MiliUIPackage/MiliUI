@@ -111,14 +111,27 @@ local function UpdateContainerButton(button, bag, slot)
     end)
 end
 
-hooksecurefunc("ContainerFrame_Update", function(container)
-    local bag = container:GetID()
-    local name = container:GetName()
-    for i = 1, container.size, 1 do
-        local button = _G[name .. "Item" .. i]
-        UpdateContainerButton(button, bag)
+if _G.ContainerFrame_Update then
+    hooksecurefunc("ContainerFrame_Update", function(container)
+        local bag = container:GetID()
+        local name = container:GetName()
+        for i = 1, container.size, 1 do
+            local button = _G[name .. "Item" .. i]
+            UpdateContainerButton(button, bag)
+        end
+    end)
+else
+    local update = function(frame)
+        for _, itemButton in frame:EnumerateValidItems() do
+            UpdateContainerButton(itemButton, itemButton:GetBagID(), itemButton:GetID())
+        end
     end
-end)
+    -- can't use ContainerFrameUtil_EnumerateContainerFrames because it depends on the combined bags setting
+    hooksecurefunc(ContainerFrameCombinedBags, "UpdateItems", update)
+    for _, frame in ipairs(UIParent.ContainerFrames) do
+        hooksecurefunc(frame, "UpdateItems", update)
+    end
+end
 
 hooksecurefunc("BankFrameItemButton_Update", function(button)
     if not button.isBag then
@@ -145,19 +158,36 @@ end)
 
 -- Loot frame
 
-hooksecurefunc("LootFrame_UpdateButton", function(index)
-    local button = _G["LootButton"..index]
-    if not button then return end
-    if button.appearancetooltipoverlay then button.appearancetooltipoverlay:Hide() end
-    if not ns.db.loot then return end
-    -- ns.Debug("LootFrame_UpdateButton", button:IsEnabled(), button.slot, button.slot and GetLootSlotLink(button.slot))
-    if button:IsEnabled() and button.slot then
-        local link = GetLootSlotLink(button.slot)
+if _G.LootFrame_UpdateButton then
+    hooksecurefunc("LootFrame_UpdateButton", function(index)
+        local button = _G["LootButton"..index]
+        if not button then return end
+        if button.appearancetooltipoverlay then button.appearancetooltipoverlay:Hide() end
+        if not ns.db.loot then return end
+        -- ns.Debug("LootFrame_UpdateButton", button:IsEnabled(), button.slot, button.slot and GetLootSlotLink(button.slot))
+        if button:IsEnabled() and button.slot then
+            local link = GetLootSlotLink(button.slot)
+            if link then
+                UpdateOverlay(button, link)
+            end
+        end
+    end)
+else
+    local function handleSlot(frame)
+        if not frame.Item then return end
+        if frame.Item.appearancetooltipoverlay then frame.Item.appearancetooltipoverlay:Hide() end
+        if not ns.db.loot then return end
+        local data = frame:GetElementData()
+        if not (data and data.slotIndex) then return end
+        local link = GetLootSlotLink(data.slotIndex)
         if link then
-            UpdateOverlay(button, link)
+            UpdateOverlay(frame.Item, link)
         end
     end
-end)
+    LootFrame.ScrollBox:RegisterCallback("OnUpdate", function(...)
+        LootFrame.ScrollBox:ForEachFrame(handleSlot)
+    end)
+end
 
 -- Encounter Journal frame
 
@@ -200,27 +230,48 @@ f:RegisterAddonHook("Blizzard_Collections", function()
         end
         return string.sub(text, 1, -2)
     end
-    local function update(self)
-        local offset = HybridScrollFrame_GetOffset(self)
-        local buttons = self.buttons
-        for i = 1, #buttons do
-            local button = buttons[i]
-            if button.appearancetooltipoverlay then button.appearancetooltipoverlay.text:SetText("") end
-            if ns.db.setjournal and button:IsShown() then
-                local setID = button.setID
-                if not button.appearancetooltipoverlay then
-                    button.appearancetooltipoverlay = CreateFrame("Frame", nil, button)
-                    button.appearancetooltipoverlay.text = button.appearancetooltipoverlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-                    button.appearancetooltipoverlay:SetAllPoints()
-                    button.appearancetooltipoverlay.text:SetPoint("BOTTOMRIGHT", -2, 2)
-                    button.appearancetooltipoverlay:Show()
+    if WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame then
+        local function update(self)
+            local offset = HybridScrollFrame_GetOffset(self)
+            local buttons = self.buttons
+            for i = 1, #buttons do
+                local button = buttons[i]
+                if button.appearancetooltipoverlay then button.appearancetooltipoverlay.text:SetText("") end
+                if ns.db.setjournal and button:IsShown() then
+                    local setID = button.setID
+                    if not button.appearancetooltipoverlay then
+                        button.appearancetooltipoverlay = CreateFrame("Frame", nil, button)
+                        button.appearancetooltipoverlay.text = button.appearancetooltipoverlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                        button.appearancetooltipoverlay:SetAllPoints()
+                        button.appearancetooltipoverlay.text:SetPoint("BOTTOMRIGHT", -2, 2)
+                        button.appearancetooltipoverlay:Show()
+                    end
+                    button.appearancetooltipoverlay.text:SetText(buildSetText(setID))
                 end
-                button.appearancetooltipoverlay.text:SetText(buildSetText(setID))
             end
         end
+        hooksecurefunc(WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame, "Update", update)
+        hooksecurefunc(WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame, "update", update)
+    else
+        local function handleSlot(frame)
+            if frame.appearancetooltipoverlay then frame.appearancetooltipoverlay.text:SetText("") end
+            if ns.db.setjournal and frame:IsShown() then
+                local data = frame:GetElementData()
+                local setID = data.setID
+                if not frame.appearancetooltipoverlay then
+                    frame.appearancetooltipoverlay = CreateFrame("Frame", nil, frame)
+                    frame.appearancetooltipoverlay.text = frame.appearancetooltipoverlay:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+                    frame.appearancetooltipoverlay:SetAllPoints()
+                    frame.appearancetooltipoverlay.text:SetPoint("BOTTOMRIGHT", -2, 2)
+                    frame.appearancetooltipoverlay:Show()
+                end
+                frame.appearancetooltipoverlay.text:SetText(buildSetText(setID))
+            end
+        end
+        WardrobeCollectionFrame.SetsCollectionFrame.ListContainer.ScrollBox:RegisterCallback("OnUpdate", function(...)
+            WardrobeCollectionFrame.SetsCollectionFrame.ListContainer.ScrollBox:ForEachFrame(handleSlot)
+        end)
     end
-    hooksecurefunc(WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame, "Update", update)
-    hooksecurefunc(WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame, "update", update)
 end)
 
 -- Other addons:
@@ -230,9 +281,24 @@ f:RegisterAddonHook("Inventorian", function()
     local AA = LibStub("AceAddon-3.0", true)
     local inv = AA and AA:GetAddon("Inventorian", true)
     if inv then
-        hooksecurefunc(inv.Item.prototype, "Update", function(self, ...)
-            UpdateContainerButton(self, self.bag)
-        end)
+        local function ToIndex(bag, slot) -- copied from inside Inventorian
+            return (bag < 0 and bag * 100 - slot) or (bag * 100 + slot)
+        end
+        local function invContainerUpdateSlot(self, bag, slot)
+            if not self.items[ToIndex(bag, slot)] then return end
+            UpdateContainerButton(self.items[ToIndex(bag, slot)], bag, slot)
+        end
+        local function hookInventorian()
+            hooksecurefunc(inv.bag.itemContainer, "UpdateSlot", invContainerUpdateSlot)
+            hooksecurefunc(inv.bank.itemContainer, "UpdateSlot", invContainerUpdateSlot)
+        end
+        if inv.bag then
+            hookInventorian()
+        else
+            hooksecurefunc(inv, "OnEnable", function()
+                hookInventorian()
+            end)
+        end
     end
 end)
 

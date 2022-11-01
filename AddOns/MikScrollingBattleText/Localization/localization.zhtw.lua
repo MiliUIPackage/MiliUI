@@ -18,9 +18,12 @@ local L = MikSBT.translations
 -- Fonts
 ------------------------------
 
-L.FONT_FILES["MSBT bKAI00M"] = "Fonts\\bKAI00M.TTF"
+L.FONT_FILES["MSBT bLEI00D"] = "Fonts\\bLEI00D.TTF"
 
-L.DEFAULT_FONT_NAME = "MSBT bKAI00M"
+L.DEFAULT_FONT_NAME = "MSBT bLEI00D"
+
+L.MSBT_MSBT = "戰鬥-捲動文字"
+L.MSBT_OPENOPTION = " 開啟捲動戰鬥文字設定"
 
 
 ------------------------------
@@ -28,13 +31,13 @@ L.DEFAULT_FONT_NAME = "MSBT bKAI00M"
 ------------------------------
 
 L.COMMAND_USAGE = {
-	"使用方法: " .. MikSBT.COMMAND .. " <指令> [參數]",
-	" 指令:",
-	"  " .. L.COMMAND_RESET .. " - 重置",
-	"  " .. L.COMMAND_DISABLE .. " - 停用",
-	"  " .. L.COMMAND_ENABLE .. " - 啟用",
-	"  " .. L.COMMAND_SHOWVER .. " - 顯示目前版本",
-	"  " .. L.COMMAND_HELP .. " - 幫助",
+ "使用方法: " .. MikSBT.COMMAND .. " <指令> [參數]",
+ " 指令:",
+ "  " .. L.COMMAND_RESET .. " - 重置",
+ "  " .. L.COMMAND_DISABLE .. " - 停用",
+ "  " .. L.COMMAND_ENABLE .. " - 啟用",
+ "  " .. L.COMMAND_SHOWVER .. " - 顯示目前版本",
+ "  " .. L.COMMAND_HELP .. " - 說明",
 }
 
 
@@ -69,10 +72,14 @@ L.MSG_STATIC			= "靜態訊息"
 L.MSG_COMBAT					= "戰鬥"
 L.MSG_DISPEL					= "驅散魔法"
 L.MSG_CHI_FULL					= "真氣滿了"
+L.MSG_AC						= "祕法充能"
+L.MSG_AC_FULL					= "滿祕法充能"
 L.MSG_CP						= "連擊點"
 L.MSG_CP_FULL					= "終結技"
 L.MSG_HOLY_POWER_FULL			= "聖能滿了"
 L.MSG_SHADOW_ORBS_FULL			= "暗影寶珠滿了"
+L.MSG_ESSENCE				= "Essence"
+L.MSG_ESSENCE_FULL			= "Full Essence"
 L.MSG_KILLING_BLOW				= "擊殺"
 L.MSG_TRIGGER_LOW_HEALTH		= "生命值偏低"
 L.MSG_TRIGGER_LOW_MANA			= "法力值偏低"

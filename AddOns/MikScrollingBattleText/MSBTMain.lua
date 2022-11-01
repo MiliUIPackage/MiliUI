@@ -106,7 +106,7 @@ local SPELLID_AUTOSHOT = 75
 -- Spell names.
 local SPELL_BLINK					= GetSkillName(1953)
 --local SPELL_BLIZZARD				= GetSkillName(10)
-local SPELL_BLOOD_STRIKE			= WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC and GetSkillName(60945)
+local SPELL_BLOOD_STRIKE			= WOW_PROJECT_ID < WOW_PROJECT_CLASSIC and GetSkillName(60945)
 --local SPELL_BLOOD_STRIKE_OFF_HAND	= GetSkillName(66215)
 --local SPELL_HELLFIRE				= GetSkillName(1949)
 --local SPELL_HURRICANE				= GetSkillName(16914)
@@ -594,6 +594,29 @@ local function HandleHolyPower(amount, powerType)
 	if (eventSettings.disabled) then return end
 
 	-- Don't do anything if 0 Holy Power
+	if (amount == 0) then return end
+
+	-- Display the event.
+	if amount <= 0 then
+		return
+	end
+
+	DisplayEvent(eventSettings, FormatEvent(eventSettings.message, amount))
+end
+
+-- ****************************************************************************
+-- Handle essence changes.
+-- ****************************************************************************
+local function HandleEssence(amount, powerType)
+	-- Get the correct event settings.
+	local eventSettings = MSBTProfiles.currentProfile.events.NOTIFICATION_ESSENCE_CHANGE
+	local maxAmount = UnitPowerMax("player", powerType)
+	if (amount == maxAmount) then eventSettings = MSBTProfiles.currentProfile.events.NOTIFICATION_ESSENCE_FULL end
+
+	-- Don't do anything if the event is disabled.
+	if (eventSettings.disabled) then return end
+
+	-- Don't do anything if 0 Essence
 	if (amount == 0) then return end
 
 	-- Display the event.
@@ -1375,6 +1398,11 @@ function eventFrame:UNIT_POWER_UPDATE(unitID, powerToken)
 	-- Handle Arcane Charges uniquely.
 	elseif (powerToken == "ARCANE_CHARGES" and playerClass == "MAGE") then
 		if (powerAmount ~= lastPowerAmount) then HandleArcanePower(powerAmount, powerType) end
+		doFullDetect = false
+
+	-- Handle Essence uniquely.
+	elseif (powerToken == "ESSENCE" and playerClass == "EVOKER") then
+		if (powerAmount ~= lastPowerAmount) then HandleEssence(powerAmount, powerType) end
 		doFullDetect = false
 
 	end

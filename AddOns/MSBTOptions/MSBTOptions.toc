@@ -1,9 +1,11 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: MSBT [|cffffff80Options|r]
 ## Author: Mikord
 ## Notes: Load on demand options for Mik's Scrolling Battle Text.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥訊息滾動 (設置)
 ## Notes-zhTW: MSBTOptions |nMSBT的設定介面
+## X-Category-zhTW: 戰鬥
+## DefaultState: disabled
 ## Dependencies: MikScrollingBattleText
 ## LoadOnDemand: 1
 ## X-Child-Of: MikScrollingBattleText

@@ -49,7 +49,7 @@ local RUNE_COOLDOWN = 10
 -- Parameter locations.
 local ITEM_INFO_TEXTURE_POSITION = 10
 
-
+local tocversion = select(4, GetBuildInfo())
 -------------------------------------------------------------------------------
 -- Private variables.
 -------------------------------------------------------------------------------
@@ -426,7 +426,12 @@ local function UseContainerItemHook(bag, slot)
 	if (not itemCooldownsEnabled) then return end
 
 	-- Get item id for the used bag and slot.
-	local itemID = GetContainerItemID(bag, slot)
+	local itemID
+	if tocversion >= 100002 then
+		itemID = C_Container.GetContainerItemID(bag, slot)
+	else
+		itemID = GetContainerItemID(bag, slot)
+	end
 	if (itemID) then OnItemUse(itemID) end
 end
 
@@ -461,7 +466,11 @@ _, playerClass = UnitClass("player")
 -- Setup hooks.
 hooksecurefunc("UseAction", UseActionHook)
 hooksecurefunc("UseInventoryItem", UseInventoryItemHook)
-hooksecurefunc("UseContainerItem", UseContainerItemHook)
+if tocversion >= 100002 then
+	hooksecurefunc(C_Container, "UseContainerItem", UseContainerItemHook)
+else
+	hooksecurefunc("UseContainerItem", UseContainerItemHook)
+end
 hooksecurefunc("UseItemByName", UseItemByNameHook)
 
 -- Specify the abilities that reset cooldowns.

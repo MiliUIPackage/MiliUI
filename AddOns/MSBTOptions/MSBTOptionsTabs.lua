@@ -31,7 +31,7 @@ local DisableControls = MSBTPopups.DisableControls
 -- Local references to various variables for faster access.
 local fonts = MSBTMedia.fonts
 
-local IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+local IsClassic = WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC
 
 
 -------------------------------------------------------------------------------
@@ -1648,6 +1648,8 @@ local function EventsTab_SetupEvents()
 	EventsTab_AddEvent(category, "NOTIFICATION_CP_FULL", c.CP_AMOUNT)
 	EventsTab_AddEvent(category, "NOTIFICATION_HOLY_POWER_CHANGE", c.HOLY_POWER_AMOUNT)
 	EventsTab_AddEvent(category, "NOTIFICATION_HOLY_POWER_FULL", c.HOLY_POWER_AMOUNT)
+	EventsTab_AddEvent(category, "NOTIFICATION_ESSENCE_CHANGE", c.ESSENCE_AMOUNT)
+	EventsTab_AddEvent(category, "NOTIFICATION_ESSENCE_FULL", c.ESSENCE_AMOUNT)
 	EventsTab_AddEvent(category, "NOTIFICATION_HONOR_GAIN", c.HONOR_AMOUNT)
 	EventsTab_AddEvent(category, "NOTIFICATION_REP_GAIN", c.REP_AMOUNT)
 	EventsTab_AddEvent(category, "NOTIFICATION_REP_LOSS", c.REP_AMOUNT)
