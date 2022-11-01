@@ -12,23 +12,26 @@ local customIndicators = {
     ["debuff"] = {},
 }
 
+Cell.snippetVars.enabledIndicators = enabledIndicators
+Cell.snippetVars.customIndicators = customIndicators
+
 function I:CreateIndicator(parent, indicatorTable)
     local indicatorName = indicatorTable["indicatorName"]
     local indicator
     if indicatorTable["type"] == "icon" then
-        indicator = I:CreateAura_BarIcon(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_BarIcon(parent:GetName()..indicatorName, parent.widget.overlayFrame)
     elseif indicatorTable["type"] == "text" then
-        indicator = I:CreateAura_Text(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_Text(parent:GetName()..indicatorName, parent.widget.overlayFrame)
     elseif indicatorTable["type"] == "bar" then
-        indicator = I:CreateAura_Bar(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_Bar(parent:GetName()..indicatorName, parent.widget.overlayFrame)
     elseif indicatorTable["type"] == "rect" then
-        indicator = I:CreateAura_Rect(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_Rect(parent:GetName()..indicatorName, parent.widget.overlayFrame)
     elseif indicatorTable["type"] == "icons" then
-        indicator = I:CreateAura_Icons(indicatorName, parent.widget.overlayFrame, 10)
+        indicator = I:CreateAura_Icons(parent:GetName()..indicatorName, parent.widget.overlayFrame, 10)
     elseif indicatorTable["type"] == "color" then
-        indicator = I:CreateAura_Color(indicatorName, parent)
+        indicator = I:CreateAura_Color(parent:GetName()..indicatorName, parent)
     elseif indicatorTable["type"] == "texture" then
-        indicator = I:CreateAura_Texture(indicatorName, parent.widget.overlayFrame)
+        indicator = I:CreateAura_Texture(parent:GetName()..indicatorName, parent.widget.overlayFrame)
     end
     parent.indicators[indicatorName] = indicator
     
@@ -145,6 +148,7 @@ function I:CheckCustomIndicators(unit, unitButton, auraType, spellId, start, dur
                     if indicatorTable["castByMe"] == castByMe then
                         if indicatorTable["isIcons"] then
                             if indicatorTable["found"][unit] <= indicatorTable["num"] then
+                                unitButton.indicators[indicatorName]:UpdateSize(indicatorTable["found"][unit])
                                 unitButton.indicators[indicatorName][indicatorTable["found"][unit]]:SetCooldown(start, duration, debuffType, texture, count, refreshing)
                                 indicatorTable["found"][unit] = indicatorTable["found"][unit] + 1
                                 unitButton.indicators[indicatorName]:Show()

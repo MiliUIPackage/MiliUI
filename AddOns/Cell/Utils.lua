@@ -2,24 +2,86 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 
+Cell.vars.playerFaction = UnitFactionGroup("player")
 -------------------------------------------------
 -- game version
 -------------------------------------------------
-function F:IsAsian()
-    return LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
+Cell.isAsian = LOCALE_zhCN or LOCALE_zhTW or LOCALE_koKR
+
+Cell.isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
+Cell.isClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
+-- Cell.isBCC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_BURNING_CRUSADE
+-- Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WRATH_OF_THE_LICH_KING
+Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+
+-------------------------------------------------
+-- WotLK
+-------------------------------------------------
+function F:GetActiveTalentInfo()
+    local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
+
+    local maxPoints = 0
+    local specName, specIcon, specFileName
+
+    for i = 1, GetNumTalentTabs() do
+        local name, texture, pointsSpent, fileName = GetTalentTabInfo(i)
+        if pointsSpent > maxPoints then
+            maxPoints = pointsSpent
+            specIcon = texture
+            specFileName = fileName
+        elseif pointsSpent == maxPoints then
+            specIcon = 132148
+        end
+    end
+
+    return which, specIcon, specFileName
 end
 
-function F:IsClassic()
-    return WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-end
+-- local specRoles = {
+--     ["DeathKnightBlood"] = "DAMAGER",
+--     ["DeathKnightFrost"] = "TANK",
+--     ["DeathKnightUnholy"] = "DAMAGER",
 
-function F:IsBCC()
-    return WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC
-end
+--     ["DruidRestoration"] = "HEALER",
+--     ["DruidBalance"] = "DAMAGER",
+--     -- ["DruidFeralCombat"] = nil,
 
-function F:IsRetail()
-    return WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-end
+--     ["HunterBeastMastery"] = "DAMAGER",
+--     ["HunterSurvival"] = "DAMAGER",
+--     ["HunterMarksmanship"] = "DAMAGER",
+    
+--     ["MageFrost"] = "DAMAGER",
+--     ["MageArcane"] = "DAMAGER",
+--     ["MageFire"] = "DAMAGER",
+
+--     ["PaladinHoly"] = "HEALER",
+--     ["PaladinCombat"] = "DAMAGER",
+--     ["PaladinProtection"] = "TANK",
+
+--     ["PriestShadow"] = "DAMAGER",
+--     ["PriestHoly"] = "HEALER",
+--     ["PriestDiscipline"] = "HEALER",
+
+--     ["RogueCombat"] = "DAMAGER",
+--     ["RogueSubtlety"] = "DAMAGER",
+--     ["RogueAssassination"] = "DAMAGER",
+
+--     ["ShamanElementalCombat"] = "DAMAGER",
+--     ["ShamanEnhancement"] = "DAMAGER",
+--     ["ShamanRestoration"] = "HEALER",
+
+--     ["WarlockSummoning"] = "DAMAGER",
+--     ["WarlockDestruction"] = "DAMAGER",
+--     ["WarlockCurses"] = "DAMAGER",
+
+--     ["WarriorArms"] = "DAMAGER",
+--     ["WarriorFury"] = "DAMAGER",
+--     ["WarriorProtection"] = "TANK",
+-- }
+
+-- function F:GetPlayerRole()
+
+-- end
 
 -------------------------------------------------
 -- color
@@ -200,7 +262,7 @@ elseif LOCALE_koKR then
     symbol_1K, symbol_10K, symbol_1B = "천", "만", "억"
 end
 
-if F:IsAsian() then
+if Cell.isAsian then
     function F:FormatNumber(n)
         if abs(n) >= 100000000 then
             return string.format("%.3f"..symbol_1B, n/100000000)
@@ -352,6 +414,19 @@ function F:TRemove(t, v)
     end
 end
 
+function F:TMergeOverwrite(...)
+    local tbls = {...}
+    if #tbls == 0 then return {} end
+
+    local temp = F:Copy(tbls[1])
+    for i = 2, #tbls do
+        for k, v in pairs(tbls[i]) do
+            temp[k] = v
+        end
+    end
+    return temp
+end
+
 function F:RemoveElementsExceptKeys(tbl, ...)
     local keys = {}
     for _, v in ipairs({...}) do
@@ -430,6 +505,21 @@ function F:ConvertTable(t)
     return temp
 end
 
+function F:ConvertAurasTable(t, convertIdToName)
+    if not convertIdToName then
+        return F:ConvertTable(t)
+    end
+
+    local temp = {}
+    for k, v in ipairs(t) do
+        local name = GetSpellInfo(v)
+        if name then
+            temp[name] = k
+        end
+    end
+    return temp
+end
+
 function F:CheckTableRemoved(previous, after)
     local aa = {}
     local ret = {}
@@ -448,9 +538,9 @@ end
 -------------------------------------------------
 -- general
 -------------------------------------------------
-function F:GetRealmName()
-    return string.gsub(GetRealmName(), " ", "")
-end
+-- function F:GetRealmName()
+--     return string.gsub(GetRealmName(), " ", "")
+-- end
 
 function F:UnitFullName(unit)
     if not unit or not UnitIsPlayer(unit) then return end
@@ -459,7 +549,11 @@ function F:UnitFullName(unit)
     
     --? name might be nil in some cases?
     if name and not string.find(name, "-") then
-        name = name.."-"..F:GetRealmName()
+        local server = GetNormalizedRealmName()
+        --? server might be nil in some cases?
+        if server then
+            name = name.."-"..server
+        end
     end
     
     return name
@@ -488,11 +582,25 @@ end
 
 local SEC = _G.SPELL_DURATION_SEC
 local MIN = _G.SPELL_DURATION_MIN
+
+local PATTERN_SEC
+local PATTERN_MIN
+if strfind(SEC, "1f") then
+    PATTERN_SEC = "%.0"
+elseif strfind(SEC, "2f") then
+    PATTERN_SEC = "%.00"
+end
+if strfind(MIN, "1f") then
+    PATTERN_MIN = "%.0"
+elseif strfind(MIN, "2f") then
+    PATTERN_MIN = "%.00"
+end
+
 function F:SecondsToTime(seconds)
     if seconds > 60 then
-        return gsub(format(MIN, seconds / 60), "%.0", "")
+        return gsub(format(MIN, seconds / 60), PATTERN_MIN, "")
     else
-        return gsub(format(SEC, seconds), "%.0", "")
+        return gsub(format(SEC, seconds), PATTERN_SEC, "")
     end
 end
 
@@ -530,10 +638,22 @@ function F:IterateAllUnitButtons(func, updateCurrentGroupOnly)
         for _, b in pairs(Cell.unitButtons.arena) do
             func(b)
         end
+
+        -- raid pet
+        for index, b in pairs(Cell.unitButtons.raidpet) do
+            if index ~= "units" then
+                func(b)
+            end
+        end
     end
 
     -- npc
     for _, b in ipairs(Cell.unitButtons.npc) do
+        func(b)
+    end
+
+    -- spotlight
+    for _, b in pairs(Cell.unitButtons.spotlight) do
         func(b)
     end
 end
@@ -541,13 +661,27 @@ end
 function F:GetUnitButtonByUnit(unit)
     if not unit then return end
 
-    if Cell.vars.groupType == "raid" then
-        return Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
-    elseif Cell.vars.groupType == "party" then
-        return Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
-    else -- solo
-        return Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
+    local normal, spotlight
+    for _, b in pairs(Cell.unitButtons.spotlight) do
+        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+            spotlight = b
+            break
+        end
     end
+
+    if Cell.vars.groupType == "raid" then
+        if Cell.vars.inBattleground == 5 then
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
+        else
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.raidpet.units[unit]
+        end
+    elseif Cell.vars.groupType == "party" then
+        normal = Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
+    else -- solo
+        normal = Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
+    end
+
+    return normal, spotlight
 end
 
 function F:GetUnitButtonByGUID(guid)
@@ -573,7 +707,7 @@ function F:UpdateTextWidth(fs, text, width, relativeTo)
             end
         end
     elseif width[1] == "length" then
-        if F:IsAsian() then
+        if Cell.isAsian then
             if string.len(text) == string.utf8len(text) then -- en
                 fs:SetText(string.utf8sub(text, 1, width[3] or width[2]))
             else
@@ -755,9 +889,13 @@ end
 
 function F:GetPetUnit(playerUnit)
     if Cell.vars.groupType == "party" then
-        return "partypet"..strfind(playerUnit, "^party(%d+)$")
+        if playerUnit == "player" then
+            return "pet"
+        else
+            return "partypet"..select(3, strfind(playerUnit, "^party(%d+)$"))
+        end
     elseif Cell.vars.groupType == "raid" then
-        return "raidpet"..strfind(playerUnit, "^raid(%d+)$")
+        return "raidpet"..select(3, strfind(playerUnit, "^raid(%d+)$"))
     else
         return "pet"
     end
@@ -780,6 +918,23 @@ function F:IterateGroupMembers()
     end
 end
 
+function F:IterateGroupPets()
+    local groupType = IsInRaid() and "raid" or "party"
+    local numGroupMembers = GetNumGroupMembers()
+    local i = groupType == "party" and 0 or 1
+
+    return function()
+        local ret
+        if i == 0 and groupType == "party" then
+            ret = "pet"
+        elseif i <= numGroupMembers and i > 0 then
+            ret = groupType .. "pet" .. i
+        end
+        i = i + 1
+        return ret
+    end
+end
+
 function F:GetGroupType()
     if IsInRaid() then
         return "raid"
@@ -795,6 +950,50 @@ function F:UnitInGroup(unit, ignorePets)
         return UnitInParty(unit) or UnitInRaid(unit)
     else
         return UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit)
+    end
+end
+
+function F:GetTargetUnitID()
+    if IsInGroup() then
+        if not F:UnitInGroup("target") then return end
+
+        if UnitIsPlayer("target") then
+            for unit in F:IterateGroupMembers() do
+                if UnitIsUnit("target", unit) then
+                    return unit
+                end
+            end
+        else
+            for unit in F:IterateGroupPets() do
+                if UnitIsUnit("target", unit) then
+                    return unit
+                end
+            end
+        end
+    else
+        if UnitIsUnit("target", "player") then
+            return "player"
+        elseif UnitIsUnit("target", "pet") then
+            return "pet"
+        end
+    end
+end
+
+function F:GetTargetPetID()
+    if IsInGroup() then
+        if not F:UnitInGroup("target") then return end
+
+        if UnitIsPlayer("target") then
+            for unit in F:IterateGroupMembers() do
+                if UnitIsUnit("target", unit) then
+                    return F:GetPetUnit(unit)
+                end
+            end
+        end
+    else
+        if UnitIsUnit("target", "player") then
+            return "pet"
+        end
     end
 end
 
@@ -847,9 +1046,10 @@ end
 -------------------------------------------------
 Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
 local LSM = LibStub("LibSharedMedia-3.0", true)
+LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
 function F:GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
-    if LSM and LSM:IsValid("statusbar", CellDB["appearance"]["texture"]) then
+    if LSM:IsValid("statusbar", CellDB["appearance"]["texture"]) then
         Cell.vars.texture = LSM:Fetch("statusbar", CellDB["appearance"]["texture"])
     else
         Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
@@ -858,7 +1058,7 @@ function F:GetBarTexture()
 end
 
 function F:GetFont(font)
-    if font and LSM and LSM:IsValid("font", font) then
+    if font and LSM:IsValid("font", font) then
         return LSM:Fetch("font", font)
     else
         if CellDB["appearance"]["useGameFont"] then
@@ -881,7 +1081,7 @@ function F:GetFontItems()
     local items = {}
     local fonts, fontNames
     
-    if LSM then
+    -- if LSM then
         fonts, fontNames = F:Copy(LSM:HashTable("font")), F:Copy(LSM:List("font"))
         -- insert default font
         tinsert(fontNames, 1, defaultFontName)
@@ -897,19 +1097,19 @@ function F:GetFontItems()
                 -- end,
             })
         end
-    else
-        fontNames = {defaultFontName}
-        fonts = {[defaultFontName] = defaultFont}
+    -- else
+    --     fontNames = {defaultFontName}
+    --     fonts = {[defaultFontName] = defaultFont}
 
-        tinsert(items, {
-            ["text"] = defaultFontName,
-            ["font"] = defaultFont,
-            -- ["onClick"] = function()
-            --     CellDB["appearance"]["font"] = defaultFontName
-            --     Cell:Fire("UpdateAppearance", "font")
-            -- end,
-        })
-    end
+    --     tinsert(items, {
+    --         ["text"] = defaultFontName,
+    --         ["font"] = defaultFont,
+    --         -- ["onClick"] = function()
+    --         --     CellDB["appearance"]["font"] = defaultFontName
+    --         --     Cell:Fire("UpdateAppearance", "font")
+    --         -- end,
+    --     })
+    -- end
     return items, fonts, defaultFontName, defaultFont 
 end
 
@@ -1127,24 +1327,54 @@ function F:FindAuraById(unit, type, spellId)
     end
 end
 
-function F:FindDebuffByIds(unit, spellIds)
-    local debuffs = {}
-    AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(...)
-        local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = ...
-        if spellIds[spellId] then
-            debuffs[spellId] = debuffType
-        end
-    end)
-    return debuffs
-end
+if Cell.isRetail then
+    function F:FindDebuffByIds(unit, spellIds)
+        local debuffs = {}
+        AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+            if spellIds[spellId] then
+                debuffs[spellId] = debuffType
+            end
+        end)
+        return debuffs
+    end
 
-function F:FindAuraByDebuffTypes(unit, types)
-    local debuffs = {}
-    AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(...)
-        local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = ...
-        if types == "all" or types[debuffType] then
-            debuffs[spellId] = debuffType
+    function F:FindAuraByDebuffTypes(unit, types)
+        local debuffs = {}
+        AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+            if types == "all" or types[debuffType] then
+                debuffs[spellId] = debuffType
+            end
+        end)
+        return debuffs
+    end
+else
+    function F:FindDebuffByIds(unit, spellIds)
+        local debuffs = {}
+        for i = 1, 40 do
+            local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = UnitDebuff(unit, i)
+            if not name then
+                break
+            end
+
+            if spellIds[spellId] then
+                debuffs[spellId] = debuffType
+            end
         end
-    end)
-    return debuffs
+        return debuffs
+    end
+
+    function F:FindAuraByDebuffTypes(unit, types)
+        local debuffs = {}
+        for i = 1, 40 do
+            local name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId = UnitDebuff(unit, i)
+            if not name then
+                break
+            end
+
+            if types == "all" or types[debuffType] then
+                debuffs[spellId] = debuffType
+            end
+        end
+        return debuffs
+    end
 end

@@ -4,7 +4,8 @@ local F = Cell.funcs
 local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 
-local DebuffTypeColor = DebuffTypeColor
+local DebuffTypeColor = F:Copy(DebuffTypeColor)
+DebuffTypeColor.cleu = {r=0, g=1, b=1}
 -------------------------------------------------
 -- CreateAura_BorderIcon
 -------------------------------------------------
@@ -12,10 +13,10 @@ local function BorderIcon_SetFont(frame, font, size, flags, xOffset, yOffset)
     if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
 
     if flags == "Shadow" then
-        frame.stack:SetFont(font, size)
+        frame.stack:SetFont(font, size, "")
         frame.stack:SetShadowOffset(1, -1)
         frame.stack:SetShadowColor(0, 0, 0, 1)
-        frame.duration:SetFont(font, size)
+        frame.duration:SetFont(font, size, "")
         frame.duration:SetShadowOffset(1, -1)
         frame.duration:SetShadowColor(0, 0, 0, 1)
     else
@@ -109,7 +110,7 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
     frame:Hide()
     -- frame:SetSize(11, 11)
     frame:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
-    frame:SetBackdropColor(0, 0, 0, .75)
+    frame:SetBackdropColor(0, 0, 0, 0.75)
     
     local border = frame:CreateTexture(name.."Border", "BORDER")
     frame.border = border
@@ -131,7 +132,7 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
 
     local icon = iconFrame:CreateTexture(name.."Icon", "ARTWORK")
     frame.icon = icon
-    icon:SetTexCoord(.12, .88, .12, .88)
+    icon:SetTexCoord(0.12, 0.88, 0.12, 0.88)
     icon:SetAllPoints(iconFrame)
 
     local textFrame = CreateFrame("Frame", nil, iconFrame)
@@ -189,10 +190,10 @@ local function BarIcon_SetFont(frame, font, size, flags, xOffset, yOffset)
     if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
 
     if flags == "Shadow" then
-        frame.stack:SetFont(font, size)
+        frame.stack:SetFont(font, size, "")
         frame.stack:SetShadowOffset(1, -1)
         frame.stack:SetShadowColor(0, 0, 0, 1)
-        frame.duration:SetFont(font, size)
+        frame.duration:SetFont(font, size, "")
         frame.duration:SetShadowOffset(1, -1)
         frame.duration:SetShadowColor(0, 0, 0, 1)
     else
@@ -219,10 +220,12 @@ end
 local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing)
     if duration == 0 then
         frame.cooldown:Hide()
+        frame.duration:Hide()
         frame:SetScript("OnUpdate", nil)
     else
         if frame.showDuration then
             frame.cooldown:Hide()
+            frame.duration:Show()
             frame:SetScript("OnUpdate", function()
                 local remain = duration-(GetTime()-start)
                 if remain < 0 then remain = 0 end
@@ -262,6 +265,7 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
             frame.cooldown:SetMinMaxValues(0, duration)
             frame.cooldown:SetValue(GetTime()-start)
             frame.cooldown:Show()
+            frame.duration:Hide()
         end
     end
 
@@ -271,7 +275,7 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
         frame.spark:SetColorTexture(r, g, b, 1)
     else
         r, g, b = 0, 0, 0
-        frame.spark:SetColorTexture(.5, .5, .5, 1)
+        frame.spark:SetColorTexture(0.5, 0.5, 0.5, 1)
     end
 
     frame:SetBackdropColor(r, g, b, 1)
@@ -418,7 +422,7 @@ local function Text_SetFont(frame, font, size, flags)
     if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
 
     if flags == "Shadow" then
-        frame.text:SetFont(font, size)
+        frame.text:SetFont(font, size, "")
         frame.text:SetShadowOffset(1, -1)
         frame.text:SetShadowColor(0, 0, 0, 1)
     else
@@ -693,28 +697,55 @@ function I:CreateAura_Color(name, parent)
         end
     end
 
-    function color:SetColors(colors)
-        color.type = colors[1]
-
-        if colors[1] == "solid" then
-            solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
-            solidTex:SetTexture(Cell.vars.texture)
-            solidTex:Show()
-            gradientTex:Hide()
-        elseif colors[1] == "gradient-vertical" then
-            gradientTex:SetGradientAlpha("VERTICAL", colors[2][1], colors[2][2], colors[2][3], colors[2][4], colors[3][1], colors[3][2], colors[3][3], colors[3][4])
-            gradientTex:Show()
-            solidTex:Hide()
-        elseif colors[1] == "gradient-horizontal" then
-            gradientTex:SetGradientAlpha("HORIZONTAL", colors[2][1], colors[2][2], colors[2][3], colors[2][4], colors[3][1], colors[3][2], colors[3][3], colors[3][4])
-            gradientTex:Show()
-            solidTex:Hide()
-        elseif colors[1] == "debuff-type" then
-            solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
-            solidTex:SetTexture(Cell.vars.texture)
-            solidTex:Show()
-            gradientTex:Hide()
-            color.alpha = colors[2][4]
+    if Cell.isRetail then
+        function color:SetColors(colors)
+            color.type = colors[1]
+    
+            if colors[1] == "solid" then
+                solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
+                solidTex:SetTexture(Cell.vars.texture)
+                solidTex:Show()
+                gradientTex:Hide()
+            elseif colors[1] == "gradient-vertical" then
+                gradientTex:SetGradient("VERTICAL", CreateColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4]), CreateColor(colors[3][1], colors[3][2], colors[3][3], colors[3][4]))
+                gradientTex:Show()
+                solidTex:Hide()
+            elseif colors[1] == "gradient-horizontal" then
+                gradientTex:SetGradient("HORIZONTAL", CreateColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4]), CreateColor(colors[3][1], colors[3][2], colors[3][3], colors[3][4]))
+                gradientTex:Show()
+                solidTex:Hide()
+            elseif colors[1] == "debuff-type" then
+                solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
+                solidTex:SetTexture(Cell.vars.texture)
+                solidTex:Show()
+                gradientTex:Hide()
+                color.alpha = colors[2][4]
+            end
+        end
+    else
+        function color:SetColors(colors)
+            color.type = colors[1]
+    
+            if colors[1] == "solid" then
+                solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
+                solidTex:SetTexture(Cell.vars.texture)
+                solidTex:Show()
+                gradientTex:Hide()
+            elseif colors[1] == "gradient-vertical" then
+                gradientTex:SetGradientAlpha("VERTICAL", colors[2][1], colors[2][2], colors[2][3], colors[2][4], colors[3][1], colors[3][2], colors[3][3], colors[3][4])
+                gradientTex:Show()
+                solidTex:Hide()
+            elseif colors[1] == "gradient-horizontal" then
+                gradientTex:SetGradientAlpha("HORIZONTAL", colors[2][1], colors[2][2], colors[2][3], colors[2][4], colors[3][1], colors[3][2], colors[3][3], colors[3][4])
+                gradientTex:Show()
+                solidTex:Hide()
+            elseif colors[1] == "debuff-type" then
+                solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
+                solidTex:SetTexture(Cell.vars.texture)
+                solidTex:Show()
+                gradientTex:Hide()
+                color.alpha = colors[2][4]
+            end
         end
     end
         
@@ -753,17 +784,41 @@ end
 -------------------------------------------------
 function I:CreateAura_Icons(name, parent, num)
     local icons = CreateFrame("Frame", name, parent)
-    -- icons:SetSize(11, 11)
     icons:Hide()
     icons.indicatorType = "icons"
 
     icons.OriginalSetSize = icons.SetSize
 
+    function icons:UpdateSize(iconsShown)
+        if not (icons.width and icons.height and icons.orientation) then return end -- not init
+        if iconsShown then -- call from I:CheckCustomIndicators or preview
+            if icons.orientation == "horizontal" then
+                icons:OriginalSetSize(P:Scale(icons.width)*iconsShown, P:Scale(icons.height))
+            else
+                icons:OriginalSetSize(P:Scale(icons.width), P:Scale(icons.height)*iconsShown)
+            end
+        else
+            for i = 1, num do
+                if icons[i]:IsShown() then
+                    if icons.orientation == "horizontal" then
+                        icons:OriginalSetSize(P:Scale(icons.width)*i, P:Scale(icons.height))
+                    else
+                        icons:OriginalSetSize(P:Scale(icons.width), P:Scale(icons.height)*i)
+                    end
+                end
+            end
+        end
+    end
+
     function icons:SetSize(width, height)
-        icons:OriginalSetSize(width, height)
+        icons.width = width
+        icons.height = height
+
         for i = 1, num do
             P:Size(icons[i], width, height)
         end
+
+        icons:UpdateSize()
     end
 
     function icons:SetFont(font, ...)
@@ -778,21 +833,31 @@ function I:CreateAura_Icons(name, parent, num)
         if orientation == "left-to-right" then
             point1 = "TOPLEFT"
             point2 = "TOPRIGHT"
+            icons.orientation = "horizontal"
         elseif orientation == "right-to-left" then
             point1 = "TOPRIGHT"
             point2 = "TOPLEFT"
+            icons.orientation = "horizontal"
         elseif orientation == "top-to-bottom" then
             point1 = "TOPLEFT"
             point2 = "BOTTOMLEFT"
+            icons.orientation = "vertical"
         elseif orientation == "bottom-to-top" then
             point1 = "BOTTOMLEFT"
             point2 = "TOPLEFT"
+            icons.orientation = "vertical"
         end
         
-        for i = 2, num do
+        for i = 1, num do
             P:ClearPoints(icons[i])
-            P:Point(icons[i], point1, icons[i-1], point2)
+            if i == 1 then
+                P:Point(icons[i], point1)
+            else
+                P:Point(icons[i], point1, icons[i-1], point2)
+            end
         end
+
+        icons:UpdateSize()
     end
 
     for i = 1, num do
@@ -814,7 +879,7 @@ function I:CreateAura_Icons(name, parent, num)
     end
 
     function icons:UpdatePixelPerfect()
-        P:Resize(icons)
+        -- P:Resize(icons)
         P:Repoint(icons)
         for i = 1, num do
             icons[i]:UpdatePixelPerfect()

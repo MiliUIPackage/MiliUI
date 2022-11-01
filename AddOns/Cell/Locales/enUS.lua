@@ -10,20 +10,26 @@ select(2, ...).L = setmetatable({
     ["assist"] = "Assist",
     ["togglemenu"] = "Menu",
     ["T"] = "Talent",
+    ["C"] = "Class Talent",
+    ["S"] = "Spec Talent",
     ["P"] = "PvP Talent",
     ["notBound"] = "|cff777777".._G.NOT_BOUND,
 
     ["PET"] = "Pet",
     ["VEHICLE"] = "Vehicle",
 
+    ["showGroupNumber"] = "Show group number",
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
+    ["showDispelTypeIcons"] = "Show dispel type icons",
     ["castByMe"] = "Only show buffs cast by me",
+    ["trackByName"] = "Track by name",
     ["showDuration"] = "Show duration text",
     ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",
     ["hideFull"] = "Hide while HP is full",
     ["onlyShowTopGlow"] = "Only show glow for the first debuff",
-    ["circledStackNums"] = "Circled Stack Numbers",
+    ["circledStackNums"] = "Circled stack numbers",
+    ["hideDamager"] = "Hide Damager",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -35,26 +41,214 @@ select(2, ...).L = setmetatable({
     ["TOPLEFT"] = "Top Left",
     ["TOPRIGHT"] = "Top Right",
 
-    ["left-to-right"] = "Left-to-Right",
-    ["right-to-left"] = "Right-to-Left",
-    ["top-to-bottom"] = "Top-to-Bottom",
-    ["bottom-to-top"] = "Bottom-to-Top",
+    ["left-to-right"] = "Left to Right",
+    ["right-to-left"] = "Right to Left",
+    ["top-to-bottom"] = "Top to Bottom",
+    ["bottom-to-top"] = "Bottom to Top",
 
     ["ALL"] = "All",
     ["INVERT"] = "Invert",
     ["Default"] = _G.DEFAULT,
 
-    ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2.\nCell is not meant to be a lightweight or powerful (like VuhDo, Grid2) raid frames addon. It's easy to use and good enough for you (hope so).",
+    ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2 and VuhDo.\nCell is not meant to be a lightweight or powerful raid frame addon. It's easy to use and good enough for you (hope so).",
     ["RESET"] = "Cell requires a full reset after updating from a very old version.\n|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
-    
+
+    ["clickcastingsHints"] = "Left-Click: edit\nRight-Click: delete",
     ["syncTips"] = "Set the master layout here\nAll indicators of slave layout are fully in-sync with the master\nIt's a two-way sync, but all indicators of slave layout will be lost when set a master",
+    ["readyCheckTips"] = "\n|rReady Check\nLeft-Click: |cffffffffinitiate a ready check|r\nRight-Click: |cffffffffstart a role check|r",
     ["pullTimerTips"] = "\n|rPull Timer\nLeft-Click: |cffffffffstart timer|r\nRight-Click: |cffffffffcancel timer|r",
     ["marksTips"] = "\n|rTarget marker\nLeft-Click: |cffffffffset raid marker on target|r\nRight-Click: |cfffffffflock raid marker on target (in your group)|r",
-
+    ["cleuAurasTips"] = "Check CLEU events for invisible auras",
+    ["raidRosterTips"] = "[Right-Click] promote/demote (assistant). [Alt+Right-Click] uninvite.",
+    
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>r135-release (Nov 1, 2022, 06:27 GMT+8)</h1>
+        <p>* Fixed arena pets.</p>
+        <p>* Updated shields on Wrath Classic.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r134-release (Oct 30, 2022, 19:20 GMT+8)</h1>
+        <p>+ Implemented raid pets (limited to 20 buttons).</p>
+        <p>* Added a "Hide Damager" option to Role Icon indicator.</p>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r133-release (Oct 28, 2022, 05:15 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r132-release (Oct 27, 2022, 19:07 GMT+8)</h1>
+        <p>+ New indicator: Health Thresholds.</p>
+        <p>* Updated spells for DF.</p>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r131-beta (Oct 26, 2022, 18:37 GMT+8)</h1>
+        <p>* Temporary fix for Dragonflight.</p>
+        <br/>
+
+        <h1>r130-release (Oct 24, 2022, 22:00 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r129-release (Oct 22, 2022, 19:37 GMT+8)</h1>
+        <p>* Add an option to disable LibHealComm.</p>
+        <p>* Split "Hide Blizzard Raid / Party" into two options.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r128-release (Oct 21, 2022, 18:57 GMT+8)</h1>
+        <p>* Updated alignment of indicators with multiple icons. Horizontal/Vertical centering is supported.</p>
+        <p>* Added alpha to each status of StatusText.</p>
+        <p>+ Added spotlight button size. You can find this in Layouts -> Unit Button Size (3rd page).</p>
+        <p>* Updated raid debuffs.</p>
+        <p>* Updated defensives and externals.</p>
+        <br/>
+
+        <h1>r127-release (Oct 19, 2022, 02:45 GMT+8)</h1>
+        <p>* Fixed heal prediction in WotLK.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r126-release (Oct 17, 2022, 16:35 GMT+8)</h1>
+        <p>* Fixed icon duration text.</p>
+        <p>* Added "Show group number" to Name Text indicator.</p>
+        <p>* Made spotlight menu always on-screen.</p>
+        <p>* Updated default spell list of Defensives and Externals.</p>
+        <p>* Updated raid roster frame, right-click on a member to set assistant.</p>
+        <p>* Updated Ready button, right-click on it to start a role check.</p>
+        <br/>
+
+        <h1>r125-release (Oct 15, 2022, 16:30 GMT+8)</h1>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r124-release (Oct 15, 2022, 15:27 GMT+8)</h1>
+        <p>* Fixed menu (Options button) visibility.</p>
+        <p>* Updated menu fade in/out.</p>
+        <br/>
+
+        <h1>r123-release (Oct 15, 2022, 03:22 GMT+8)</h1>
+        <p>* Update default click-castings spells list.</p>
+        <p>* Update zhTW.</p>
+        <br/>
+
+        <h1>r122-release (Oct 14, 2022, 04:25 GMT+8)</h1>
+        <p>* Fixed Click-Castings.</p>
+        <br/>
+        
+        <h1>r121-release (Oct 13, 2022, 14:40 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <br/>
+        
+        <h1>r120-release (Oct 12, 2022, 20:45 GMT+8)</h1>
+        <p>* Fixed Click-Castings.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r119-release (Oct 12, 2022, 18:10 GMT+8)</h1>
+        <p>+ Spotlight Frame (new): Shows up to 5 units you care about more. Each button can be set to target, target of target, focus, a group member or pet.</p>
+        <p>* Update Click-Castings.</p>
+        <p>* Update menu fade-in and fade-out.</p>
+        <p>* Update zhTW.</p>
+        <br/>
+
+        <h1>r118-release (Oct 9, 2022, 23:30 GMT+8)</h1>
+        <p>* Updated Buff Tracker.</p>
+        <p>* Fixed vehicle targeting in WotLK.</p>
+        <br/>
+
+        <h1>r117-release (Oct 7, 2022, 10:37 GMT+8)</h1>
+        <h2>Wrath Classic</h2>
+        <p>* Updated shields: Shield Bar indicator, Shield / Overshield textures. (PWS with Glyph of PWS and Divine Aegis (from yourself) are supported.)</p>
+        <br/>
+
+        <h1>r116-release (Oct 5, 2022, 00:27 GMT+8)</h1>
+        <p>* Updated heal prediction in Wrath Classic (using LibHealComm-4.0).</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r115-release (Oct 2, 2022, 07:35 GMT+8)</h1>
+        <p>* Updated indicators: Dispels and Consumables.</p>
+        <p>* Updated zhTW.</p>
+        <p>* Fixed Consumables indicator in WotLK.</p>
+        <br/>
+
+        <h1>r114-release (Oct 1, 2022, 04:00 GMT+8)</h1>
+        <p>+ New indicator: Consumables.</p>
+        <p>* Updated indicators: AoEHealing, TargetedSpells and Debuffs.</p>
+        <p>* Updated zhTW.</p>
+        <h2>Retail</h2>
+        <p>* Fixed CLEU auras and Mirror Image.</p>
+        <h2>Wrath Classic</h2>
+        <p>* Updated raid debuffs.</p>
+        <br/>
+
+        <h1>r113-release (Sep 22, 2022, 16:30 GMT+8)</h1>
+        <p>* Fixed custom defensives and externals.</p>
+        <h2>Retail</h2>
+        <p>+ Implemented CLEU auras (check Raid Debuffs indicator).</p>
+        <h2>Wrath Classic</h2>
+        <p>* Updated debuffs.</p>
+        <p>* Fixed health bar color.</p>
+        <br/>
+       
+        <h1>r112-release (Sep 11, 2022, 19:00 GMT+8)</h1>
+        <p>* Add custom auras support to Defensives and Externals.</p>
+        <p>* Add Mirror Image to Defensives.</p>
+        <p>* Add Cell default texture to LibSharedMedia.</p>
+        <h2>Wrath Classic</h2>
+        <p>* Updated raid debuffs.</p>
+        <p>* Fixed power filter.</p>
+        <br/>
+
+        <h1>r111-release (Sep 3, 2022, 12:07 GMT+8)</h1>
+        <p>* Fixed game version check.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r110-release (Sep 1, 2022, 19:50 GMT+8)</h1>
+        <p>* Fixed pull button.</p>
+        <p>* Fixed tooltips for checkbuttons.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r109-release (Aug 27, 2022, 03:10 GMT+8)</h1>
+        <h2>Retail</h2>
+        <p>* The "Weakened Soul" debuff from other players will not be visible anymore.</p>
+        <p>* Updated M+ debuffs.</p>
+        <h2>Wrath Classic</h2>
+        <p>* Cell should work on Wrath Classic now (not all Retail features are available).</p>
+        <br/>
+
+        <p><a href="older">Click to view older changelogs</a></p>
+        <br/>
+    ]],
+
+    ["OLDER_CHANGELOGS"] = [[
+        <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
+        <p>* Updated M+ debuffs.</p>
+        <p>* Fixed several bugs.</p>
+        <br/>
+
+        <h1>r107-release (Aug 6, 2022, 19:50 GMT+8)</h1>
+        <p>* Updated M+ season 4 related debuffs.</p>
+        <p>* Added a "Current Season" item to expansion dropdown in Raid Debuffs.</p>
+        <br/>
+
+        <h1>r106-beta (Aug 3, 2022, 00:45 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r105-beta (Aug 1, 2022, 23:00 GMT+8)</h1>
+        <p>* Removed LibGroupInSpecT.</p>
+        <br/>
+
         <h1>r104-release (Jun 3, 2022, 20:30 GMT+8)</h1>
         <p>* Bump up toc.</p>
         <br/>
@@ -510,7 +704,8 @@ select(2, ...).L = setmetatable({
         <p>+ Party/Raid Preview Mode will help you adjust layouts.</p>
         <p>+ Group Anchor Point comes, go check it out in Layouts -&gt; Group Arrangement.</p>
         <br/>
-        <br/>
+
+        <p><a href="recent">Click to view recent changelogs</a></p>
         <br/>
     ]],
 }, {

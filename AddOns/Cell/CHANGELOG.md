@@ -1,3 +1,8 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r103-release...423c3d9d5c22cad1d925f1a0ee5ec77761fd1a07)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r134-release...126f7de4a8ebff88421c3e7de85050dea912562a)
 
-- Bump up toc
+- Fix arena pets
+- Update shields on WotLK
+- Update zhTW
+- Add a tooltip for Show Raid Pets
+- Restore EJSuggestTab_GetPlayerTierIndex
+- [snippet] CustomTexture_ShieldAndAbsorb

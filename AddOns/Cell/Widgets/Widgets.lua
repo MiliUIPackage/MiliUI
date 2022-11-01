@@ -53,35 +53,35 @@ local font_class_title_name = strupper(addonName).."_FONT_CLASS_TITLE"
 local font_class_name = strupper(addonName).."_FONT_CLASS"
 
 local font_title = CreateFont(font_title_name)
-font_title:SetFont(GameFontNormal:GetFont(), 14)
+font_title:SetFont(GameFontNormal:GetFont(), 14, "")
 font_title:SetTextColor(1, 1, 1, 1)
 font_title:SetShadowColor(0, 0, 0)
 font_title:SetShadowOffset(1, -1)
 font_title:SetJustifyH("CENTER")
 
 local font_title_disable = CreateFont(font_title_disable_name)
-font_title_disable:SetFont(GameFontNormal:GetFont(), 14)
-font_title_disable:SetTextColor(.4, .4, .4, 1)
+font_title_disable:SetFont(GameFontNormal:GetFont(), 14, "")
+font_title_disable:SetTextColor(0.4, 0.4, 0.4, 1)
 font_title_disable:SetShadowColor(0, 0, 0)
 font_title_disable:SetShadowOffset(1, -1)
 font_title_disable:SetJustifyH("CENTER")
 
 local font = CreateFont(font_name)
-font:SetFont(GameFontNormal:GetFont(), 13)
+font:SetFont(GameFontNormal:GetFont(), 13, "")
 font:SetTextColor(1, 1, 1, 1)
 font:SetShadowColor(0, 0, 0)
 font:SetShadowOffset(1, -1)
 font:SetJustifyH("CENTER")
 
 local font_disable = CreateFont(font_disable_name)
-font_disable:SetFont(GameFontNormal:GetFont(), 13)
-font_disable:SetTextColor(.4, .4, .4, 1)
+font_disable:SetFont(GameFontNormal:GetFont(), 13, "")
+font_disable:SetTextColor(0.4, 0.4, 0.4, 1)
 font_disable:SetShadowColor(0, 0, 0)
 font_disable:SetShadowOffset(1, -1)
 font_disable:SetJustifyH("CENTER")
 
 local font_special = CreateFont(font_special_name)
-font_special:SetFont("Interface\\AddOns\\Cell\\Media\\font.ttf", 12)
+font_special:SetFont("Interface\\AddOns\\Cell\\Media\\font.ttf", 12, "")
 font_special:SetTextColor(1, 1, 1, 1)
 font_special:SetShadowColor(0, 0, 0)
 font_special:SetShadowOffset(1, -1)
@@ -89,14 +89,14 @@ font_special:SetJustifyH("CENTER")
 font_special:SetJustifyV("MIDDLE")
 
 local font_class_title = CreateFont(font_class_title_name)
-font_class_title:SetFont(GameFontNormal:GetFont(), 14)
+font_class_title:SetFont(GameFontNormal:GetFont(), 14, "")
 font_class_title:SetTextColor(accentColor.t[1], accentColor.t[2], accentColor.t[3])
 font_class_title:SetShadowColor(0, 0, 0)
 font_class_title:SetShadowOffset(1, -1)
 font_class_title:SetJustifyH("CENTER")
 
 local font_class = CreateFont(font_class_name)
-font_class:SetFont(GameFontNormal:GetFont(), 13)
+font_class:SetFont(GameFontNormal:GetFont(), 13, "")
 font_class:SetTextColor(accentColor.t[1], accentColor.t[2], accentColor.t[3])
 font_class:SetShadowColor(0, 0, 0)
 font_class:SetShadowOffset(1, -1)
@@ -112,12 +112,12 @@ function addon:UpdateOptionsFont(offset, useGameFont)
     end
     fontSizeOffset = offset
 
-    font_title:SetFont(defaultFont, 14+offset)
-    font_title_disable:SetFont(defaultFont, 14+offset)
-    font:SetFont(defaultFont, 13+offset)
-    font_disable:SetFont(defaultFont, 13+offset)
-    font_class_title:SetFont(defaultFont, 14+offset)
-    font_class:SetFont(defaultFont, 13+offset)
+    font_title:SetFont(defaultFont, 14+offset, "")
+    font_title_disable:SetFont(defaultFont, 14+offset, "")
+    font:SetFont(defaultFont, 13+offset, "")
+    font_disable:SetFont(defaultFont, 13+offset, "")
+    font_class_title:SetFont(defaultFont, 14+offset, "")
+    font_class:SetFont(defaultFont, 13+offset, "")
 end
 
 -----------------------------------------
@@ -357,7 +357,7 @@ function addon:CreateMovableFrame(title, name, width, height, frameStrata, frame
     header.text:SetPoint("CENTER", header)
     
     header.closeBtn = addon:CreateButton(header, "×", "red", {20, 20}, false, false, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
-    header.closeBtn:SetPoint("RIGHT")
+    header.closeBtn:SetPoint("TOPRIGHT")
     header.closeBtn:SetScript("OnClick", function() f:Hide() end)
 
     return f
@@ -367,25 +367,38 @@ end
 -- tooltip
 -----------------------------------------
 local function ShowTooltips(widget, anchor, x, y, tooltips)
+    if type(tooltips) ~= "table" or #tooltips == 0 then
+        CellTooltip:Hide()
+        return
+    end
+
     CellTooltip:SetOwner(widget, anchor or "ANCHOR_TOP", x or 0, y or 0)
     CellTooltip:AddLine(tooltips[1])
     for i = 2, #tooltips do
-        CellTooltip:AddLine("|cffffffff" .. tooltips[i])
+        if tooltips[i] then
+            CellTooltip:AddLine("|cffffffff" .. tooltips[i])
+        end
     end
     CellTooltip:Show()
 end
 
 function addon:SetTooltips(widget, anchor, x, y, ...)
-    local tooltips = {...}
+    if not widget.tooltipsInited then
+        widget._tooltipsInited = true
 
-    if #tooltips ~= 0 then
         widget:HookScript("OnEnter", function()
-            ShowTooltips(widget, anchor, x, y, tooltips)
+            ShowTooltips(widget, anchor, x, y, widget.tooltips)
         end)
         widget:HookScript("OnLeave", function()
             CellTooltip:Hide()
         end)
     end
+
+    widget.tooltips = {...}
+end
+
+function addon:ClearTooltips(widget)
+    widget.tooltips = nil
 end
 
 -----------------------------------------
@@ -404,7 +417,7 @@ function addon:ChangeSizeWithAnimation(frame, targetWidth, targetHeight, step, s
     local diffW = (targetWidth - currentWidth) / step
     
     local animationTimer
-    animationTimer = C_Timer.NewTicker(.025, function()
+    animationTimer = C_Timer.NewTicker(0.025, function()
         if diffW ~= 0 then
             if diffW > 0 then
                 currentWidth = math.min(currentWidth + diffW, targetWidth)
@@ -499,9 +512,9 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     elseif buttonColor == "transparent-light" then -- drop down item
         color = {0, 0, 0, 0}
         hoverColor = {0.5, 1, 0, 0.5}
-    elseif buttonColor == "transparent-class" then -- drop down item
+    elseif buttonColor == "transparent-accent" then -- drop down item
         color = {0, 0, 0, 0}
-        if class == "PRIEST" then
+        if class == "PRIEST" and not accentColorOverride then
             hoverColor = {accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.4}
         else
             hoverColor = {accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.6}
@@ -551,7 +564,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
             bg:SetDrawLayer("BACKGROUND", -8)
             b.bg = bg
             bg:SetAllPoints(b)
-            bg:SetColorTexture(.115, .115, .115, 1)
+            bg:SetColorTexture(0.115, 0.115, 0.115, 1)
         end
 
         b:SetBackdropBorderColor(0, 0, 0, 1)
@@ -570,7 +583,20 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     end
 
     -- click sound
-    b:SetScript("PostClick", function() PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON) end)
+    if Cell.isRetail then
+        b:SetScript("PostClick", function(self, button, down)
+            --! NOTE: ActionButtonUseKeyDown will affect OnClick
+            if template and strfind(template, "Secure") then
+                if down == GetCVarBool("ActionButtonUseKeyDown") then
+                    PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+                end
+            else
+                PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+            end
+        end)
+    else
+        b:SetScript("PostClick", function() PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON) end)
+    end
 
     addon:SetTooltips(b, "ANCHOR_TOPLEFT", 0, 3, ...)
 
@@ -605,7 +631,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
             b:SetScript("OnMouseUp", b.onMouseUp)
         end)
         b:HookScript("OnDisable", function()
-            b.tex:SetVertexColor(.4, .4, .4)
+            b.tex:SetVertexColor(0.4, 0.4, 0.4)
             b:SetScript("OnMouseDown", nil)
             b:SetScript("OnMouseUp", nil)
         end)
@@ -628,124 +654,6 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
             currentBackdropColor = nil
             currentBackdropBorderColor = nil
         end
-    end
-
-    return b
-end
-
-local sendChannel
-local function UpdateSendChannel()
-    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
-        sendChannel = "INSTANCE_CHAT"
-    elseif IsInRaid() then
-        sendChannel = "RAID"
-    else
-        sendChannel = "PARTY"
-    end
-end
-
-function addon:CreateBuffButton(parent, size, spellId)
-    local spellName, _, spellIcon = GetSpellInfo(spellId)
-
-    local b = CreateFrame("Button", nil, parent, "SecureActionButtonTemplate,BackdropTemplate")
-    if parent then b:SetFrameLevel(parent:GetFrameLevel()+1) end
-    P:Size(b, size[1], size[2])
-    
-    b:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
-    b:SetBackdropBorderColor(0, 0, 0, 1)
-
-    b:RegisterForClicks("LeftButtonDown", "RightButtonDown")
-    b:SetAttribute("type1", "spell")
-    b:SetAttribute("spell", spellName)
-    b:HookScript("OnClick", function(self, button, down)
-        if button == "RightButton" then
-            local msg = F:GetUnaffectedString(spellId)
-            if msg then
-                UpdateSendChannel()
-                SendChatMessage(msg, sendChannel)
-            end
-        end
-    end)
-
-    b.texture = b:CreateTexture(nil, "OVERLAY")
-    P:Point(b.texture, "TOPLEFT", b, "TOPLEFT", 1, -1)
-    P:Point(b.texture, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
-    b.texture:SetTexture(spellIcon)
-    b.texture:SetTexCoord(.08, .92, .08, .92)
-
-    b.count = b:CreateFontString(nil, "OVERLAY")
-    P:Point(b.count, "TOPLEFT", b.texture, "TOPLEFT", 2, -2)
-    b.count:SetFont(GameFontNormal:GetFont(), 14, "OUTLINE")
-    b.count:SetShadowColor(0, 0, 0)
-    b.count:SetShadowOffset(0, 0)
-    b.count:SetTextColor(1, 0, 0)
-
-    b:SetScript("OnLeave", function()
-        CellTooltip:Hide()
-    end)
-
-    function b:SetTooltips(list)
-        b:SetScript("OnEnter", function()
-            if F:Getn(list) ~= 0 then
-                CellTooltip:SetOwner(b, "ANCHOR_TOPLEFT", 0, 3)
-                CellTooltip:AddLine(L["Unaffected"])
-                for unit in pairs(list) do
-                    local class = select(2, UnitClass(unit))
-                    local name = UnitName(unit)
-                    if class and name then
-                        -- CellTooltip:AddLine(RAID_CLASS_COLORS[class]:WrapTextInColorCode(name))
-                        CellTooltip:AddLine("|c"..RAID_CLASS_COLORS[class].colorStr..name.."|r")
-                    end
-                end
-                CellTooltip:Show()
-            end
-        end)
-    end
-
-    function b:SetDesaturated(flag)
-        b.texture:SetDesaturated(flag)
-    end
-
-    function b:StartGlow(glowType, ...)
-        if glowType == "Normal" then
-            LCG.PixelGlow_Stop(b)
-            LCG.AutoCastGlow_Stop(b)
-            LCG.ButtonGlow_Start(b, ...)
-        elseif glowType == "Pixel" then
-            LCG.ButtonGlow_Stop(b)
-            LCG.AutoCastGlow_Stop(b)
-            -- color, N, frequency, length, thickness
-            LCG.PixelGlow_Start(b, ...)
-        elseif glowType == "Shine" then
-            LCG.ButtonGlow_Stop(b)
-            LCG.PixelGlow_Stop(b)
-            LCG.AutoCastGlow_Stop(b)
-            -- color, N, frequency, scale
-            LCG.AutoCastGlow_Start(b, ...)
-        end
-    end
-
-    function b:StopGlow()
-        LCG.ButtonGlow_Stop(b)
-        LCG.PixelGlow_Stop(b)
-        LCG.AutoCastGlow_Stop(b)
-    end
-
-    function b:Reset()
-        b.texture:SetDesaturated(false)
-        b.count:SetText("")
-        b:SetAlpha(1)
-        b:StopGlow()
-    end
-
-    function b:UpdatePixelPerfect()
-        P:Resize(b)
-        P:Repoint(b)
-        b:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
-        b:SetBackdropBorderColor(0, 0, 0, 1)
-
-        P:Repoint(b.texture)
-        P:Repoint(b.count)
     end
 
     return b
@@ -924,11 +832,13 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
     cb:SetScript("OnEnable", function()
         cb.label:SetTextColor(1, 1, 1)
         checkedTexture:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.7)
+        cb:SetBackdropBorderColor(0, 0, 0, 1)
     end)
 
     cb:SetScript("OnDisable", function()
         cb.label:SetTextColor(0.4, 0.4, 0.4)
         checkedTexture:SetColorTexture(0.4, 0.4, 0.4)
+        cb:SetBackdropBorderColor(0, 0, 0, 0.4)
     end)
 
     function cb:SetText(text)
@@ -1149,7 +1059,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     slider:SetSize(width, 10)
     local unit = isPercentage and "%" or ""
 
-    addon:StylizeFrame(slider, {.115, .115, .115, 1})
+    addon:StylizeFrame(slider, {0.115, 0.115, 0.115, 1})
     
     local nameText = slider:CreateFontString(nil, "OVERLAY", font_name)
     nameText:SetText(name)
@@ -1206,7 +1116,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     highText:SetPoint("BOTTOM", currentEditBox)
 
     local tex = slider:CreateTexture(nil, "ARTWORK")
-    tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], .7)
+    tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.7)
     tex:SetSize(8, 8)
     slider:SetThumbTexture(tex)
 
@@ -1220,7 +1130,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     end
     slider:SetScript("OnEnter", slider.onEnter)
     slider.onLeave = function()
-        tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], .7)
+        tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.7)
         CellTooltip:Hide()
     end
     slider:SetScript("OnLeave", slider.onLeave)
@@ -1289,13 +1199,13 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     slider:SetValue(low) -- NOTE: needs to be after OnValueChanged
 
     slider:SetScript("OnDisable", function()
-        nameText:SetTextColor(.4, .4, .4)
+        nameText:SetTextColor(0.4, 0.4, 0.4)
         currentEditBox:SetEnabled(false)
         slider:SetScript("OnEnter", nil)
         slider:SetScript("OnLeave", nil)
-        tex:SetColorTexture(.4, .4, .4, .7)
-        lowText:SetTextColor(.4, .4, .4)
-        highText:SetTextColor(.4, .4, .4)
+        tex:SetColorTexture(0.4, 0.4, 0.4, 0.7)
+        lowText:SetTextColor(0.4, 0.4, 0.4)
+        highText:SetTextColor(0.4, 0.4, 0.4)
     end)
     
     slider:SetScript("OnEnable", function()
@@ -1303,7 +1213,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
         currentEditBox:SetEnabled(true)
         slider:SetScript("OnEnter", slider.onEnter)
         slider:SetScript("OnLeave", slider.onLeave)
-        tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], .7)
+        tex:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.7)
         lowText:SetTextColor(unpack(colors.grey.t))
         highText:SetTextColor(unpack(colors.grey.t))
     end)
@@ -1339,7 +1249,11 @@ function addon:CreateSwitch(parent, size, leftText, leftValue, rightText, rightV
     textRight:SetText(rightText)
 
     local highlight = switch:CreateTexture(nil, "ARTWORK")
-    highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], class=="PRIEST" and 0.35 or 0.45)
+    if class == "PRIEST" and not accentColorOverride then
+        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.35)
+    else
+        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.45)
+    end
 
     local function UpdateHighlight(which)
         highlight:ClearAllPoints()
@@ -1395,11 +1309,112 @@ function addon:CreateSwitch(parent, size, leftText, leftValue, rightText, rightV
     end)
 
     switch:SetScript("OnEnter", function()
-        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], class=="PRIEST" and 0.55 or 0.65)
+        if class == "PRIEST" and not accentColorOverride then
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.55)
+        else
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.65)
+        end
     end)
 
     switch:SetScript("OnLeave", function()
-        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], class=="PRIEST" and 0.35 or 0.45)
+        if class == "PRIEST" and not accentColorOverride then
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.35)
+        else
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.45)
+        end
+    end)
+
+    return switch
+end
+
+function addon:CreateTripleSwitch(parent, size, func)
+    local switch = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+    P:Size(switch, size[1], size[2])
+    addon:StylizeFrame(switch, {0.115, 0.115, 0.115, 1})
+    
+    local highlight = switch:CreateTexture(nil, "ARTWORK")
+    if class == "PRIEST" and not accentColorOverride then
+        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.35)
+    else
+        highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.45)
+    end
+
+    local function UpdateHighlight(which)
+        local width = size[1] - 2
+
+        highlight:ClearAllPoints()
+        if which == "LEFT" then
+            highlight:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", switch, "BOTTOMLEFT", P:Scale(width/3+1), P:Scale(1))
+        elseif which == "CENTER" then
+            highlight:SetPoint("TOPLEFT", P:Scale(width/3+1), P:Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-width/3-1), P:Scale(1))
+        else
+            highlight:SetPoint("TOPLEFT", P:Scale(width/3*2+1), P:Scale(-1))
+            highlight:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+        end
+    end
+
+    local ag = highlight:CreateAnimationGroup()
+    local t1 = ag:CreateAnimation("Translation")
+    -- t1:SetOffset(highlight:GetWidth(), 0)
+    t1:SetDuration(0.2)
+    t1:SetSmoothing("IN_OUT")
+    ag:SetScript("OnPlay", function()
+        switch.isPlaying = true -- prevent continuous clicking
+    end)
+    ag:SetScript("OnFinished", function()
+        switch.isPlaying = false
+        if switch.selected == "LEFT" then
+            switch:SetSelected("CENTER", true)
+        elseif switch.selected == "CENTER" then
+            switch:SetSelected("RIGHT", true)
+        else
+            switch:SetSelected("LEFT", true)
+        end
+    end)
+    
+    function switch:SetSelected(value, runFunc)
+        local width = size[1] - 2
+
+        if value == "LEFT" then
+            switch.selected = "LEFT"
+            UpdateHighlight("LEFT")
+            t1:SetOffset(width/3, 0)
+            
+        elseif value == "CENTER" then
+            switch.selected = "CENTER"
+            UpdateHighlight("CENTER")
+            t1:SetOffset(width/3, 0)
+        else
+            switch.selected = "RIGHT"
+            UpdateHighlight("RIGHT")
+            t1:SetOffset(-width/3*2, 0)
+        end
+
+        if func and runFunc then func(value) end
+    end
+
+    switch:SetScript("OnMouseDown", function()
+        if switch.selected and not switch.isPlaying then
+            ag:Play()
+        end
+    end)
+
+    switch:SetScript("OnEnter", function()
+        if class == "PRIEST" and not accentColorOverride then
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.55)
+        else
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.65)
+        end
+    end)
+
+    switch:SetScript("OnLeave", function()
+        if class == "PRIEST" and not accentColorOverride then
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.35)
+        else
+            highlight:SetColorTexture(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.45)
+        end
     end)
 
     return switch
@@ -1435,7 +1450,7 @@ function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, fu
     P:Width(bar, width)
     P:Height(bar, height)
     bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8x8"})
-    bar:SetBackdropColor(.07, .07, .07, .9)
+    bar:SetBackdropColor(0.07, 0.07, 0.07, 0.9)
     -- bar:SetBackdropBorderColor(0, 0, 0, 1)
 
     if showText then
@@ -1506,9 +1521,9 @@ function addon:CreateStatusBarButton(parent, text, size, maxValue, template)
     bar:SetPoint("TOPLEFT", b)
     bar:SetPoint("BOTTOMRIGHT", b)
     bar:SetStatusBarTexture("Interface\\AddOns\\Cell\\Media\\statusbar.tga")
-    bar:SetStatusBarColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], .5)
+    bar:SetStatusBarColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.5)
     bar:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = 1})
-    bar:SetBackdropColor(.115, .115, .115, 1)
+    bar:SetBackdropColor(0.115, 0.115, 0.115, 1)
     bar:SetBackdropBorderColor(0, 0, 0, 0)
     P:Size(bar, size[1], size[2])
     bar:SetMinMaxValues(0, maxValue)
@@ -1571,7 +1586,7 @@ function addon:CreateMask(parent, text, points) -- points = {topleftX, topleftY,
         parent.mask:EnableMouseWheel(true) -- can't scroll-through
 
         parent.mask.text = parent.mask:CreateFontString(nil, "OVERLAY", font_title_name)
-        parent.mask.text:SetTextColor(1, .2, .2)
+        parent.mask.text:SetTextColor(1, 0.2, 0.2)
         parent.mask.text:SetPoint("LEFT", 5, 0)
         parent.mask.text:SetPoint("RIGHT", -5, 0)
 
@@ -1729,21 +1744,18 @@ end
 -----------------------------------------
 -- popup edit box
 -----------------------------------------
-function addon:CreatePopupEditBox(parent, width, func, multiLine)
+function addon:CreatePopupEditBox(parent, func, multiLine)
     if not parent.popupEditBox then
         local eb = CreateFrame("EditBox", addonName.."PopupEditBox", parent, "BackdropTemplate")
         parent.popupEditBox = eb
         eb:Hide()
-        eb:SetWidth(width)
         eb:SetAutoFocus(true)
         eb:SetFontObject(font)
         eb:SetJustifyH("LEFT")
         eb:SetMultiLine(true)
         eb:SetMaxLetters(255)
         eb:SetTextInsets(5, 5, 3, 4)
-        eb:SetPoint("TOPLEFT")
-        eb:SetPoint("TOPRIGHT")
-        addon:StylizeFrame(eb, {.115, .115, .115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        addon:StylizeFrame(eb, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
         
         eb:SetScript("OnEscapePressed", function()
             eb:SetText("")
@@ -1764,7 +1776,7 @@ function addon:CreatePopupEditBox(parent, width, func, multiLine)
         tipsBackground:SetPoint("TOPLEFT", eb, "BOTTOMLEFT")
         tipsBackground:SetPoint("TOPRIGHT", eb, "BOTTOMRIGHT")
         tipsBackground:SetPoint("BOTTOM", tipsText, 0, -2)
-        tipsBackground:SetColorTexture(.115, .115, .115, .9)
+        tipsBackground:SetColorTexture(0.115, 0.115, 0.115, 0.9)
         tipsBackground:Hide()
 
         function eb:SetTips(text)
@@ -1792,18 +1804,18 @@ function addon:CreatePopupEditBox(parent, width, func, multiLine)
 
     -- set parent(for hiding) & size
     parent.popupEditBox:ClearAllPoints()
-    parent.popupEditBox:SetWidth(width)
     parent.popupEditBox:SetFrameStrata("DIALOG")
 
     return parent.popupEditBox
 end
 
 -----------------------------------------
--- cascaded menu
+-- cascading menu
 -----------------------------------------
-local menu = addon:CreateFrame(addonName.."CascadedMenu", UIParent, 100, 20)
+local menu = addon:CreateFrame(addonName.."CascadingMenu", UIParent, 100, 20)
 addon.menu = menu
 tinsert(UISpecialFrames, menu:GetName())
+menu:SetClampedToScreen(true)
 menu:SetBackdropColor(0.115, 0.115, 0.115, 0.977)
 menu:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
 menu:SetFrameStrata("TOOLTIP")
@@ -1827,17 +1839,19 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
         if itemTable[i] and itemTable[i]:GetObjectType() == "Button" then
             b = itemTable[i]
             b:SetText(item.text)
-            if level == 0 then b:Show() end -- show valid top menu buttons
         else
-            b = addon:CreateButton(itemParent, item.text, "transparent-class", {98 ,18}, true)
+            b = addon:CreateButton(itemParent, item.text, "transparent-accent", {98 ,18}, true)
             tinsert(itemTable, b)
-            if i == 1 then
-                b:SetPoint("TOPLEFT", 1, -1)
-                b:SetPoint("RIGHT", -1, 0)
-            else
-                b:SetPoint("TOPLEFT", itemTable[i-1], "BOTTOMLEFT")
-                b:SetPoint("RIGHT", itemTable[i-1])
-            end
+        end
+
+        b:SetParent(itemParent)
+        b:ClearAllPoints()
+        if i == 1 then
+            b:SetPoint("TOPLEFT", 1, -1)
+            b:SetPoint("RIGHT", -1, 0)
+        else
+            b:SetPoint("TOPLEFT", itemTable[i-1], "BOTTOMLEFT")
+            b:SetPoint("RIGHT", itemTable[i-1])
         end
 
         if item.textColor then
@@ -1868,7 +1882,9 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
             b:GetFontString():SetPoint("LEFT", P:Scale(5), 0)
         end
 
-        if level > 0 then
+        if level == 0 then
+            b:Show()-- show valid top menu buttons
+        else
             b:Hide()
             b:SetScript("OnHide", function(self) self:Hide() end)
         end
@@ -1877,8 +1893,8 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
             -- create sub menu level+1
             if not menu[level+1] then
                 -- menu[level+1] parent == menu[level]
-                menu[level+1] = addon:CreateFrame(addonName.."CascadedSubMenu"..level, level == 0 and menu or menu[level], 100, 20)
-                menu[level+1]:SetBackdropColor(.115, .115, .115, 1)
+                menu[level+1] = addon:CreateFrame(addonName.."CascadingSubMenu"..level, level == 0 and menu or menu[level], 100, 20)
+                menu[level+1]:SetBackdropColor(0.115, 0.115, 0.115, 1)
                 menu[level+1]:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
                 -- menu[level+1]:SetScript("OnHide", function(self) self:Hide() end)
             end
@@ -1931,15 +1947,119 @@ local function CreateItemButtons(items, itemTable, itemParent, level)
     itemParent:SetHeight(2 + #items*18)
 end
 
-function menu:SetItems(items)
+local function CreateItemButtons_Scroll(items, itemTable, limit)
+    menu:SetScript("OnHide", function(self) self:Hide() end)
+
+    for i, item in pairs(items) do
+        local b
+        if itemTable[i] and itemTable[i]:GetObjectType() == "Button" then
+            b = itemTable[i]
+            b:SetText(item.text)
+        else
+            b = addon:CreateButton(menu.scrollFrame.content, item.text, "transparent-accent", {98 ,18}, true)
+            tinsert(itemTable, b)
+        end
+        
+        b:Show()
+        b:SetParent(menu.scrollFrame.content)
+        b:ClearAllPoints()
+        if i == 1 then
+            b:SetPoint("TOPLEFT", 1, -1)
+            b:SetPoint("RIGHT", -1, 0)
+        else
+            b:SetPoint("TOPLEFT", itemTable[i-1], "BOTTOMLEFT")
+            b:SetPoint("RIGHT", itemTable[i-1])
+        end
+
+        if item.textColor then
+            b:GetFontString():SetTextColor(unpack(item.textColor))
+        end
+
+        if item.icon then
+            if not b.icon then
+                b.iconBg = b:CreateTexture(nil, "BORDER")
+                P:Size(b.iconBg, 16, 16)
+                b.iconBg:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
+                b.iconBg:SetColorTexture(0, 0, 0, 1)
+
+                b.icon = b:CreateTexture(nil, "ARTWORK")
+                b.icon:SetPoint("TOPLEFT", b.iconBg, P:Scale(1), P:Scale(-1))
+                b.icon:SetPoint("BOTTOMRIGHT", b.iconBg, P:Scale(-1), P:Scale(1))
+                b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            end
+            b.icon:SetTexture(item.icon)
+            b.icon:Show()
+            b.iconBg:Show()
+            b:GetFontString():SetPoint("LEFT", b.iconBg, "RIGHT", P:Scale(2), 0)
+        else
+            if b.icon then
+                b.icon:Hide()
+                b.iconBg:Hide()
+            end
+            b:GetFontString():SetPoint("LEFT", P:Scale(5), 0)
+        end
+
+        -- if item.marker then
+        --     if not b.marker then
+        --         b.marker = b:CreateTexture(nil, "OVERLAY")
+        --         P:Size(b.marker, 16, 16)
+        --         b.marker:SetAllPoints(b.iconBg)
+        --     end
+        --     b.marker:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\icon_marker.tga")
+        --     b.marker:SetVertexColor(1, 1, 1, 0.77)
+        --     b.marker:SetBlendMode("ADD")
+        --     b.marker:Show()
+        -- else
+        --     if b.marker then
+        --         b.marker:Hide()
+        --     end
+        -- end
+
+        if b.childrenSymbol then b.childrenSymbol:Hide() end
+
+        b:SetScript("OnEnter", function()
+            b:SetBackdropColor(unpack(b.hoverColor))
+        end)
+
+        b:SetScript("OnClick", function()
+            PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
+            menu:Hide()
+            if item.onClick then item.onClick(item.text) end
+        end)
+    end
+
+    -- update height
+    local n = #items
+    menu.scrollFrame:SetContentHeight(P:Scale(2) + n * P:Scale(18))
+    if n <= limit then
+        menu:SetHeight(P:Scale(2) + n * P:Scale(18))
+    else
+        menu:SetHeight(P:Scale(2) + limit * P:Scale(18))
+    end
+end
+
+function menu:SetItems(items, limit)
     -- clear topmenu
     for _, b in pairs({menu:GetChildren()}) do
         if b:GetObjectType() == "Button" then
             b:Hide()
         end
     end
+
+    if not menu.scrollFrame then
+        addon:CreateScrollFrame(menu)
+        menu.scrollFrame:SetScrollStep(18)
+    end
+    menu.scrollFrame:Reset()
+
     -- create buttons -- items, itemTable, itemParent, level
-    CreateItemButtons(items, menu.items, menu, 0)
+    if limit then
+        menu.scrollFrame:Show()
+        CreateItemButtons_Scroll(items, menu.items, limit)
+    else
+        menu.scrollFrame:Hide()
+        CreateItemButtons(items, menu.items, menu, 0)
+    end
 end
 
 function menu:SetWidths(...)
@@ -1994,21 +2114,21 @@ function addon:CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delay
     local alpha = fadeIn:CreateAnimation("Alpha")
     alpha:SetFromAlpha(0)
     alpha:SetToAlpha(1)
-    alpha:SetDuration(.5)
+    alpha:SetDuration(0.5)
     
     local fadeOutIn = text:CreateAnimationGroup()
     local alpha1 = fadeOutIn:CreateAnimation("Alpha")
     alpha1:SetStartDelay(delayTime)
     alpha1:SetFromAlpha(1)
     alpha1:SetToAlpha(0)
-    alpha1:SetDuration(.5)
+    alpha1:SetDuration(0.5)
     alpha1:SetOrder(1)
     local alpha2 = fadeOutIn:CreateAnimation("Alpha")
     alpha2:SetFromAlpha(0)
     alpha2:SetToAlpha(1)
-    alpha2:SetDuration(.5)
+    alpha2:SetDuration(0.5)
     alpha2:SetOrder(2)
-    alpha2:SetStartDelay(.1)
+    alpha2:SetStartDelay(0.1)
 
     local maxHScrollRange
     local elapsedTime, delay, scroll = 0, 0, 0
@@ -2348,7 +2468,7 @@ local function SetHighlightItem(i)
     end
 end
 
-function addon:CreateDropdown(parent, width, dropdownType)
+function addon:CreateDropdown(parent, width, dropdownType, isMini)
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     P:Size(menu, width, 20)
     menu:EnableMouse(true)
@@ -2356,25 +2476,37 @@ function addon:CreateDropdown(parent, width, dropdownType)
     addon:StylizeFrame(menu, {0.115, 0.115, 0.115, 1})
     
     -- button: open/close menu list
-    menu.button = addon:CreateButton(menu, "", "transparent-class", {18 ,20})
-    addon:StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
-    menu.button:SetPoint("TOPRIGHT")
-    menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
-    menu.button:SetNormalTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
-    menu.button:SetPushedTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-pushed]])
+    if isMini then
+        menu.button = addon:CreateButton(menu, "", "transparent-accent", {18 ,18})
+        menu.button:SetAllPoints(menu)
+        menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
+        -- selected item
+        menu.text = menu.button:CreateFontString(nil, "OVERLAY", font_name)
+        menu.text:SetPoint("LEFT", P:Scale(1), 0)
+        menu.text:SetPoint("RIGHT", P:Scale(-1), 0)
+        menu.text:SetJustifyH("CENTER")
+    else
+        menu.button = addon:CreateButton(menu, "", "transparent-accent", {18 ,20})
+        addon:StylizeFrame(menu.button, {0.115, 0.115, 0.115, 1})
+        menu.button:SetPoint("TOPRIGHT")
+        menu.button:SetFrameLevel(menu:GetFrameLevel()+1)
+        menu.button:SetNormalTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
+        menu.button:SetPushedTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-pushed]])
 
-    local disabledTexture = menu.button:CreateTexture(nil, "OVERLAY")
-    disabledTexture:SetTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
-    disabledTexture:SetVertexColor(0.4, 0.4, 0.4, 1)
-    menu.button:SetDisabledTexture(disabledTexture)
+        local disabledTexture = menu.button:CreateTexture(nil, "OVERLAY")
+        disabledTexture:SetTexture([[Interface\AddOns\Cell\Media\Icons\dropdown-normal]])
+        disabledTexture:SetVertexColor(0.4, 0.4, 0.4, 1)
+        menu.button:SetDisabledTexture(disabledTexture)
+        -- selected item
+        menu.text = menu:CreateFontString(nil, "OVERLAY", font_name)
+        menu.text:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
+        menu.text:SetPoint("BOTTOMRIGHT", P:Scale(-18), P:Scale(1))
+        menu.text:SetJustifyH("LEFT")
+    end
 
     -- selected item
-    menu.text = menu:CreateFontString(nil, "OVERLAY", font_name)
     menu.text:SetJustifyV("MIDDLE")
-    menu.text:SetJustifyH("LEFT")
     menu.text:SetWordWrap(false)
-    menu.text:SetPoint("TOPLEFT", P:Scale(5), P:Scale(-1))
-    menu.text:SetPoint("BOTTOMRIGHT", P:Scale(-18), P:Scale(1))
 
     if dropdownType == "texture" then
         menu.texture = menu:CreateTexture(nil, "ARTWORK")
@@ -2400,7 +2532,7 @@ function addon:CreateDropdown(parent, width, dropdownType)
                 if dropdownType == "texture" then
                     menu.texture:SetTexture(value)
                 elseif dropdownType == "font" then
-                    menu.text:SetFont(value, 13+fontSizeOffset)
+                    menu.text:SetFont(value, 13+fontSizeOffset, "")
                 end
                 break
             end
@@ -2490,7 +2622,7 @@ function addon:CreateDropdown(parent, width, dropdownType)
             local b
             if not list.items[i] then
                 -- init
-                b = addon:CreateButton(list.scrollFrame.content, item.text, "transparent-class", {18 ,18}, true) --! width is not important
+                b = addon:CreateButton(list.scrollFrame.content, item.text, "transparent-accent", {18 ,18}, true) --! width is not important
                 table.insert(list.items, b)
 
                 -- texture
@@ -2504,6 +2636,21 @@ function addon:CreateDropdown(parent, width, dropdownType)
                 b:SetText(item.text)
             end
 
+            local fs = b:GetFontString()
+            if isMini then
+                fs:ClearAllPoints()
+                fs:SetJustifyH("CENTER")
+                fs:SetPoint("LEFT", 1, 0)
+                fs:SetPoint("RIGHT", -1, 0)
+            else
+                fs:ClearAllPoints()
+                fs:SetJustifyH("LEFT")
+                fs:SetPoint("LEFT", 5, 0)
+                fs:SetPoint("RIGHT", -5, 0)
+            end
+
+            b:SetEnabled(not item.disabled)
+
             -- texture
             if item.texture then
                 b.texture:SetTexture(item.texture)
@@ -2515,9 +2662,9 @@ function addon:CreateDropdown(parent, width, dropdownType)
             -- font
             local f, s = font:GetFont()
             if item.font then
-                b:GetFontString():SetFont(item.font, s)
+                b:GetFontString():SetFont(item.font, s, "")
             else
-                b:GetFontString():SetFont(f, s)
+                b:GetFontString():SetFont(f, s, "")
             end
 
             -- highlight
@@ -2638,7 +2785,7 @@ function addon:CreateBindingButton(parent, width)
         parent.bindingButton:SetFrameStrata("TOOLTIP")
         parent.bindingButton:Hide()
         tinsert(UISpecialFrames, parent.bindingButton:GetName())
-        addon:StylizeFrame(parent.bindingButton, {.1, .1, .1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
+        addon:StylizeFrame(parent.bindingButton, {0.1, 0.1, 0.1, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3]})
 
         parent.bindingButton.close = addon:CreateButton(parent.bindingButton, "×", "red", {18, 18}, true, true, "CELL_FONT_SPECIAL", "CELL_FONT_SPECIAL")
         parent.bindingButton.close:SetPoint("TOPRIGHT", -1, -1)
@@ -2731,7 +2878,7 @@ local function CreateGrid(parent, text, width)
     grid:RegisterForClicks("LeftButtonUp", "RightButtonUp")
 
     grid:SetScript("OnEnter", function() 
-        grid:SetBackdropColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], .15)
+        grid:SetBackdropColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.15)
         parent:Highlight()
     end)
 

@@ -34,7 +34,7 @@ local function ShowMover(show)
         if not CellDB["tools"]["readyAndPull"][1] then return end
         buttonsFrame:EnableMouse(true)
         buttonsFrame.moverText:Show()
-        Cell:StylizeFrame(buttonsFrame, {0, 1, 0, .4}, {0, 0, 0, 0})
+        Cell:StylizeFrame(buttonsFrame, {0, 1, 0, 0.4}, {0, 0, 0, 0})
         if not F:HasPermission() then -- button not shown
             readyBtn:Show()
             pullBtn:Show()
@@ -56,10 +56,12 @@ Cell:RegisterCallback("ShowMover", "RaidButtons_ShowMover", ShowMover)
 -------------------------------------------------
 pullBtn = Cell:CreateStatusBarButton(buttonsFrame, L["Pull"], {60, 17}, 7, "SecureActionButtonTemplate")
 pullBtn:SetPoint("BOTTOMLEFT")
--- pullBtn:SetPoint("BOTTOMRIGHT")
-pullBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
-pullBtn:SetAttribute("type1", "macro")
-pullBtn:SetAttribute("type2", "macro")
+if Cell.isRetail then
+    -- NOTE: ActionButtonUseKeyDown will affect this
+    pullBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp", "LeftButtonDown", "RightButtonDown")
+else
+    pullBtn:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+end
 pullBtn:Hide()
 
 -------------------------------------------------
@@ -69,8 +71,9 @@ pullBtn:SetScript("OnEvent", function(self, event, ...)
     self[event](self, ...)
 end)
 
-local pullTicker
-local function Start(sec)
+local pullTicker, isPullTickerRunning
+local function Start(sec, sendToChat)
+    isPullTickerRunning = true
     pullBtn:SetMaxValue(sec)
     pullBtn:Start()
     
@@ -84,16 +87,28 @@ local function Start(sec)
     pullTicker = C_Timer.NewTicker(1, function()
         pullBtn.sec = pullBtn.sec - 1
         if pullBtn.sec == 0 then
+            isPullTickerRunning = false
             pullBtn:SetText(L["Go!"])
+            if sendToChat then
+                SendChatMessage(L["Go!"], IsInRaid() and "RAID_WARNING" or "PARTY")
+            end
         elseif pullBtn.sec == -1 then
             pullBtn:SetText(L["Pull"])
         else
             pullBtn:SetText(pullBtn.sec)
+            if sendToChat then
+                if pullBtn.sec > 3 then
+                    SendChatMessage(pullBtn.sec, IsInRaid() and "RAID" or "PARTY")
+                else
+                    SendChatMessage(pullBtn.sec, IsInRaid() and "RAID_WARNING" or "PARTY")
+                end
+            end
         end
     end, sec+1)
 end
 
 local function Stop()
+    isPullTickerRunning = false
     pullBtn:Stop()
            
     -- update button text
@@ -139,8 +154,13 @@ P:Point(readyBtn, "BOTTOMLEFT", pullBtn, "TOPLEFT", 0, 3)
 -- P:Point(readyBtn, "BOTTOMRIGHT", pullBtn, "TOPRIGHT", 0, 3)
 readyBtn:Hide()
 
-readyBtn:SetScript("OnClick", function()
-    DoReadyCheck()
+readyBtn:RegisterForClicks("LeftButtonDown", "RightButtonDown")
+readyBtn:SetScript("OnClick", function(self, button)
+    if button == "LeftButton" then
+        DoReadyCheck()
+    else
+        InitiateRolePoll()
+    end
 end)
 readyBtn:RegisterEvent("READY_CHECK")
 readyBtn:RegisterEvent("READY_CHECK_FINISHED")
@@ -205,6 +225,10 @@ local function UpdateTools(which)
 
     if not which or which == "pullTimer" then
         pullBtn:UnregisterAllEvents()
+        pullBtn:SetScript("OnMouseUp", nil)
+        pullBtn:SetAttribute("type1", "macro")
+        pullBtn:SetAttribute("type2", "macro")
+
         if CellDB["tools"]["readyAndPull"][2][1] == "mrt" then
             pullBtn:RegisterEvent("CHAT_MSG_ADDON")
             pullBtn:SetAttribute("macrotext1", "/ert pull "..CellDB["tools"]["readyAndPull"][2][2])
@@ -218,10 +242,26 @@ local function UpdateTools(which)
             pullBtn:SetAttribute("macrotext1", "/pull "..CellDB["tools"]["readyAndPull"][2][2])
             pullBtn:SetAttribute("macrotext2", "/pull 0")
         else -- default
-            -- C_PartyInfo.DoCountdown(CellDB["tools"]["readyAndPull"][2][2])
-            pullBtn:RegisterEvent("START_TIMER")
-            pullBtn:SetAttribute("macrotext1", "/cd "..CellDB["tools"]["readyAndPull"][2][2])
-            pullBtn:SetAttribute("macrotext2", "/cd 0")
+            if Cell.isRetail then
+                -- C_PartyInfo.DoCountdown(CellDB["tools"]["readyAndPull"][2][2])
+                pullBtn:RegisterEvent("START_TIMER")
+                pullBtn:SetAttribute("macrotext1", "/cd "..CellDB["tools"]["readyAndPull"][2][2])
+                pullBtn:SetAttribute("macrotext2", "/cd 0")
+            else
+                pullBtn:SetAttribute("type1", nil)
+                pullBtn:SetAttribute("type2", nil)
+                pullBtn:SetScript("OnMouseUp", function(self, button)
+                    if button == "LeftButton" then
+                        SendChatMessage(L["Pull in %d sec"]:format(CellDB["tools"]["readyAndPull"][2][2]), IsInRaid() and "RAID_WARNING" or "PARTY")
+                        Start(CellDB["tools"]["readyAndPull"][2][2], true)
+                    else
+                        if isPullTickerRunning then
+                            SendChatMessage(L["Pull timer cancelled"], IsInRaid() and "RAID_WARNING" or "PARTY")
+                            Stop()
+                        end
+                    end
+                end)
+            end
         end
     end
 

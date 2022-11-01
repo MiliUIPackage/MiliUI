@@ -3,7 +3,7 @@ if not LOCALE_zhCN then return end
 local L = select( 2, ...).L
 
 L["New version found (%s). Please visit %s to get the latest version."] = "发现新版本 (%s)。 请访问 %s 下载最新版本。"
-L["ABOUT"] = "Cell 是受启发于 CompactRaid 的团队框架，参考了其代码，重写并增强。\n我个人很喜欢 CompactRaid，并常年使用它，但其作者似乎已经不再更新了。因此我写了 Cell，希望你能喜欢。\n另外，我也参考了一些很棒的团队框架，比如 Aptechka 和 Grid2。\nCell 并不打算成为一个轻量或强大（如 VuhDo、Grid2）的团队框架插件。设置简单，功能足够，就行了。"
+L["ABOUT"] = "Cell 受启发于 CompactRaid，但并非其修改版或增强版，而是一个全新的团队框架。\n我个人很喜欢 CompactRaid，并常年使用它，但其作者似乎已经不再更新了。因此我写了 Cell，希望你能喜欢。\n另外，我也参考了一些很棒的团队框架，比如 Aptechka、Grid2 和 VuhDo。\nCell 并不打算成为一个轻量或强大的团队框架插件。设置简单，功能足够，就行了。"
 L["RESET"] = "从过旧的版本更新，需要重置Cell。\n|cff22ff22是|r - 重置Cell\n|cffff2222否|r - 我自己搞定"
 
 -------------------------------------------------
@@ -65,7 +65,8 @@ L["Confirm"] = "确认"
 -------------------------------------------------
 L["General"] = "常规"
 L["Blizzard Frames"] = "暴雪框体"
-L["Hide Blizzard Raid / Party"] = "隐藏暴雪团队/小队"
+L["Hide Blizzard Party"] = "隐藏暴雪小队"
+L["Hide Blizzard Raid"] = "隐藏暴雪团队"
 L["Hide Blizzard Frames"] = "隐藏暴雪框体"
 L["Require reload of the UI"] = "需要重载界面"
 L["Tooltips"] = "鼠标提示"
@@ -81,8 +82,6 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
-L["Show Party Pets"] = "显示小队宠物"
-L["Show pets while in a party"] = "当在小队时显示宠物"
 L["Lock Cell Frame"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
@@ -95,8 +94,11 @@ L["only in group"] = "仅在队伍中"
 L["Only show when you have permission to do this"] = "仅在你有权限这样做时显示"
 L["ReadyCheck and PullTimer buttons"] = "就位确认 与 开怪倒数 按钮"
 L["pullTimerTips"] = "\n|r开怪倒数\n左键单击: |cffffffff开始倒计时|r\n右键单击: |cffffffff取消倒计时|r"
+L["readyCheckTips"] = "\n|r就位确认\n左键单击: |cffffffff就位确认|r\n右键单击: |cffffffff职责确认|r"
 L["Ready"] = "就位"
 L["Pull"] = "倒数"
+L["Pull in %d sec"] = "%d秒后开怪"
+L["Pull timer cancelled"] = "取消开怪"
 L["Marks Bar"] = "标记工具条"
 L["Target Marks"] = "目标标记"
 L["World Marks"] = "世界标记"
@@ -122,12 +124,15 @@ L["Cell will report first %d deaths during a raid encounter."] = "Cell 将会通
 L["A 0-40 integer is required."] = "需要一个0到40的整数。"
 L["instakill"] = "秒杀"
 L["Buff Tracker"] = "增益检查"
-L["Check if your group members need some raid buffs"] = "检查队伍是否需要补耐力、智力、攻强"
+L["Check if your group members need some raid buffs"] = "检查队伍成员是否需要某些团队增益"
 L["|cffffb5c5Left-Click:|r cast the spell"] = "|cffffb5c5左键：|r施放技能"
 L["|cffffb5c5Right-Click:|r report unaffected"] = "|cffffb5c5右键：|r报告缺少该增益的玩家"
 L["Unaffected"] = "未获得此增益"
 L["Missing Buff"] = "缺少增益"
 L["many"] = "很多"
+L["Use |cFFFFB5C5/cell buff X|r to set icon size"] = "用 |cFFFFB5C5/cell buff X|r 来设定图标尺寸"
+L["Buff Tracker icon size is set to %d."] = "将增益检查图标的尺寸设置为 %d。"
+L["A positive integer is required."] = "需要一个正整数。"
 
 -------------------------------------------------
 -- nickname
@@ -201,11 +206,14 @@ L["Left Spell"] = "左键法术"
 L["Any Spells"] = "所有法术"
 L["Current Profile"] = "当前配置"
 L["Common"] = "通用"
+L["Primary Talents"] = "主天赋"
+L["Secondary Talents"] = "副天赋"
 L["New"] = "新建"
 L["Save"] = "保存"
 L["Discard"] = "撤销"
-L["left-click: edit"] = "左键：编辑"
-L["right-click: delete"] = "右键：删除"
+L["clickcastingsHints"] = "左键：编辑\n右键：删除"
+L["Conflicts Detected!"] = "发现冲突！"
+L["Remove"] = "移除"
 
 L["Left"] = "左键"
 L["Right"] = "右键"
@@ -229,6 +237,8 @@ L["Menu"] = "菜单"
 
 L["T"] = "天赋"
 L["P"] = "PvP天赋"
+L["C"] = "职业天赋"
+L["S"] = "专精天赋"
 
 L["Edit"] = "编辑"
 L["Extra Action Button"] = "额外按键"
@@ -265,6 +275,7 @@ L["Horizontal"] = "横向"
 L["Party"] = "小队"
 L["Unit Button Size"] = "单位按钮尺寸"
 L["Pet Button Size"] = "宠物按钮尺寸"
+L["Spotlight Button Size"] = "特别关注按钮尺寸"
 L["Width"] = "宽"
 L["Height"] = "高"
 L["Power Size"] = "能量条尺寸"
@@ -276,6 +287,7 @@ L["Group Spacing"] = "队伍间距"
 L["Bar Orientation"] = "条方向"
 L["Rotate Texture"] = "旋转材质"
 L["Friendly NPC Frame"] = "友方 NPC 框体"
+L["Other Frames"] = "其他框体"
 L["Show NPC Frame"] = "显示 NPC 框体"
 L["Separate NPC Frame"] = "分离 NPC 框体"
 L["Show friendly NPCs in a separate frame"] = "将友方 NPC 显示在一个单独的框体中"
@@ -283,6 +295,16 @@ L["You can move it in Preview mode"] = "你可以在“预览”模式中移动�
 L["Power Bar Filters"] = "能量条过滤"
 L["PET"] = "宠物"
 L["VEHICLE"] = "载具"
+L["Show Party/Arena Pets"] = "显示小队/竞技场宠物"
+L["Show Raid Pets"] = "显示团队宠物"
+L["Raid Pets"] = "团队宠物"
+L["Spotlight Frame"] = "特别关注框体"
+L["Show units you care about more in a separate frame"] = "将你特别关注的单位显示在一个单独的框体中"
+L["Target of Target"] = "目标的目标"
+L["Unit"] = "目标单位"
+L["Unit's Pet"] = "目标单位的宠物"
+L["Clear"] = "清除"
+L["Invalid unit."] = "无效单位。"
 L["Tip: Every layout has its own position setting"] = "提示：每个布局都有其单独的位置设置"
 
 -------------------------------------------------
@@ -354,6 +376,8 @@ L["Dispels"] = "驱散"
 L["Debuffs"] = "减益"
 L["Targeted Spells"] = "被法术选中"
 L["Target Counter"] = "目标计数"
+L["Consumables"] = "消耗品"
+L["Health Thresholds"] = "血量阈值"
 
 L["Create new indicator"] = "创建新指示器"
 L["Rename indicator"] = "重命名指示器"
@@ -427,9 +451,16 @@ L["Horizontal Gradient"] = "水平渐变"
 L["Debuff Type"] = "减益类型"
 L["Rotation"] = "旋转"
 L["Externals + Defensives, no need to enable all of them"] = "包含了来自他人与自身的减伤，不必将它们全都启用"
+L["Highlight Type"] = "高亮类型"
 
+L["Click to preview"] = "点击预览"
+L["Debug Mode"] = "调试模式"
+
+L["showGroupNumber"] = "显示队伍编号"
 L["dispellableByMe"] = "只显示我能驱散的减益"
+L["showDispelTypeIcons"] = "显示驱散类型图标"
 L["castByMe"] = "只显示我施放的增益"
+L["trackByName"] = "匹配法术名称"
 L["showDuration"] = "显示持续时间文本"
 L["Show duration text instead of icon animation"] = "用持续时间文本取代图标动画"
 L["enableHighlight"] = "高亮单位按钮"
@@ -438,6 +469,8 @@ L["circledStackNums"] = "用带圈数字显示层数"
 L["Require font support"] = "需要字体支持"
 L["showTooltip"] = "显示鼠标提示"
 L["This will make these icons not click-through-able"] = "将会使这些图标无法点击穿透"
+L["Only one threshold is displayed at a time"] = "同一时间只显示一个阈值"
+L["hideDamager"] = "隐藏伤害输出"
 
 L["left-to-right"] = "从左到右"
 L["right-to-left"] = "从右到左"
@@ -451,6 +484,8 @@ L["The spells list of a icons indicator is unordered (no priority)."] = "图标�
 L["The priority of spells decreases from top to bottom."] = "法术优先级从上到下递减。"
 L["With this indicator enabled, shield / overshield textures are disabled"] = "启用该指示器将会禁用血条上的护盾材质"
 L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
+L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
+L["raidRosterTips"] = "[右键] 助理，[Alt+右键] 移除。"
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
 
@@ -489,6 +524,7 @@ L["No custom debuffs to export!"] = "没有能够导出的减益！"
 L["This will overwrite your debuffs"] = "这将覆盖你的副本减益"
 L["Raid Debuffs updated: %s."] = "已更新副本减益：%s。"
 L["Reset debuffs?"] = "重置减益？"
+L["Current Season"] = "当前赛季"
 
 -------------------------------------------------
 -- glows
@@ -554,7 +590,193 @@ L["unnamed"] = "未命名"
 -- CHANGELOGS
 -------------------------------------------------
 L["Changelogs"] = "更新记录"
+L["Click to view recent changelogs"] = "点击查看近期更新记录"
+L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r135-release (Nov 1, 2022, 06:27 GMT+8)</h1>
+    <p>* 修复竞技场宠物。</p>
+    <p>* 更新巫妖王之怒怀旧服的护盾。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r134-release (Oct 30, 2022, 19:20 GMT+8)</h1>
+    <p>+ 被迫添加了团队宠物（最多20个草草草）。</p>
+    <p>* 为“职责图标”指示器添加了“隐藏伤害输出”的选项。</p>
+    <p>* 修复了几坨bug。</p>
+    <br/>
+        
+    <h1>r133-release (Oct 28, 2022, 05:15 GMT+8)</h1>
+    <p>* 修bug。</p>
+    <br/>
+
+    <h1>r132-release (Oct 27, 2022, 19:07 GMT+8)</h1>
+    <p>+ 新指示器：血量阈值。</p>
+    <p>* 更新巨龙时代的部分法术。</p>
+    <p>* 修bug。</p>
+    <br/>
+
+    <h1>r131-beta (Oct 26, 2022, 18:37 GMT+8)</h1>
+    <p>* 巨龙时代临时修复。</p>
+    <br/>
+
+    <h1>r130-release (Oct 24, 2022, 22:00 GMT+8)</h1>
+    <p>* 小修一下。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r129-release (Oct 22, 2022, 19:37 GMT+8)</h1>
+    <p>* 添加了一个用于禁用 LibHealComm 的选项。</p>
+    <p>* 将“隐藏暴雪团队/小队”分为了两个选项。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r128-release (Oct 21, 2022, 18:57 GMT+8)</h1>
+    <p>* 更新多图标指示器的对其方式，现在支持水平/垂直居中。</p>
+    <p>* 为状态文字指示器的每个状态颜色添加了透明度。</p>
+    <p>+ 现在可以单独设置特别关注框体的单位按钮尺寸了，在“布局”下的“单位按钮尺寸”的第3页。</p>
+    <p>* 更新副本减益。</p>
+    <p>* 更新减伤指示器。</p>
+    <br/>
+
+    <h1>r127-release (Oct 19, 2022, 02:45 GMT+8)</h1>
+    <p>* 修复巫妖王之怒怀旧服的治疗预估（感谢 橘子味橙汁 帮忙发现了问题所在）。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r126-release (Oct 17, 2022, 16:35 GMT+8)</h1>
+    <p>* 修复图标的持续时间文本。</p>
+    <p>* 为“名字”指示器添加了“显示队伍编号”的选项。</p>
+    <p>* 特别关注框体的菜单现在总是显示在屏幕内。</p>
+    <p>* 更新“减伤”指示器的默认法术列表。</p>
+    <p>* 更新团队名单框体，可以在这里设置助理了。</p>
+    <p>* 更新“就位”按钮，右键单击可以进行职责确认。</p>
+    <br/>
+
+    <h1>r125-release (Oct 15, 2022, 16:30 GMT+8)</h1>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r124-release (Oct 15, 2022, 15:27 GMT+8)</h1>
+    <p>* 修复菜单（选项按钮）的可见性。</p>
+    <p>* 更新菜单的淡入淡出。</p>
+    <br/>
+
+    <h1>r123-release (Oct 15, 2022, 03:22 GMT+8)</h1>
+    <p>* 更新点击施法的默认法术列表。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r122-release (Oct 14, 2022, 04:25 GMT+8)</h1>
+    <p>* 修复了点击施法的另一个bug。</p>
+    <br/>
+
+    <h1>r121-release (Oct 13, 2022, 14:40 GMT+8)</h1>
+    <p>* 修复那啥的bug。</p>
+    <br/>
+
+    <h1>r120-release (Oct 12, 2022, 20:45 GMT+8)</h1>
+    <p>* 修复点击施法。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r119-release (Oct 12, 2022, 18:10 GMT+8)</h1>
+    <p>+ 特别关注框体（新）：可最多设置5个你特别关注的单位。每个单位按钮可以设置为目标、目标的目标、焦点、队伍成员或宠物。</p>
+    <p>* 更新点击施法。</p>
+    <p>* 更新菜单的淡入淡出。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r118-release (Oct 9, 2022, 23:30 GMT+8)</h1>
+    <p>* 更新“增益检查”工具。</p>
+    <p>* 尝试修复怀旧服不能选中载具的问题。</p>
+    <br/>
+
+    <h1>r117-release (Oct 7, 2022, 10:37 GMT+8)</h1>
+    <h2>巫妖王之怒</h2>
+    <p>* 更新护盾：护盾条指示器, 护盾材质。仅支持真言术：盾（需要真言术：盾雕文）与神圣庇护（自己施加的）。</p>
+    <br/>
+
+    <h1>r116-release (Oct 5, 2022, 00:27 GMT+8)</h1>
+    <p>* 更新巫妖王之怒怀旧服中的“治疗预估”（使用 LibHealComm-4.0）。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r115-release (Oct 2, 2022, 07:35 GMT+8)</h1>
+    <p>* 更新指示器：驱散，消耗品。</p>
+    <p>* 更新繁中。</p>
+    <p>* 修复怀旧服的消耗品指示器。</p>
+    <br/>
+
+    <h1>r114-release (Oct 1, 2022, 04:00 GMT+8)</h1>
+    <p>+ 新指示器：消耗品（虽然叫这个名字，但也可以追踪其他法术。使用调试模式来寻找ID，因为这个ID可能与法术/物品的ID不一致）。</p>
+    <p>* 更新指示器：AoE 治疗，被法术选中，减益。</p>
+    <p>* 更新繁中。</p>
+    <h2>正式服</h2>
+    <p>* 修复通过战斗记录事件匹配的法术效果和法师的镜像。</p>
+    <h2>巫妖王之怒</h2>
+    <p>* 更新副本减益。</p>
+    <br/>
+
+    <h1>r113-release (Sep 22, 2022, 16:30 GMT+8)</h1>
+    <p>* 修复“减伤”指示器的自定义法术功能。</p>
+    <h2>正式服</h2>
+    <p>+ 实现了通过战斗记录匹配不可见法术效果的功能（详见“副本减益”指示器）。</p>
+    <h2>巫妖王之怒</h2>
+    <p>* 更新副本减益。</p>
+    <p>* 修复血条颜色。</p>
+    <br/>
+
+    <h1>r112-release (Sep 11, 2022, 19:00 GMT+8)</h1>
+    <p>* 减伤指示器现在支持添加自定义法术。</p>
+    <p>* 将法师的镜像加入减伤指示器。</p>
+    <p>* 将 Cell 的默认材质加入到 LibSharedMedia，这样你就可以在其他插件中用这个材质啦。</p>
+    <h2>巫妖王之怒</h2>
+    <p>* 更新副本减益。</p>
+    <p>* 当职责不正确的情况下强制显示能量条。</p>
+    <br/>
+
+    <h1>r111-release (Sep 3, 2022, 12:07 GMT+8)</h1>
+    <p>* 修复游戏版本检查。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r110-release (Sep 1, 2022, 19:50 GMT+8)</h1>
+    <p>* 修复“倒数”按钮。</p>
+    <p>* 修复部分复选框的鼠标提示。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r109-release (Aug 27, 2022, 03:10 GMT+8)</h1>
+    <h2>正式服</h2>
+    <p>* 来自其他玩家的“虚弱灵魂”减益将不再可见。</p>
+    <p>* 更新当前赛季史诗钥石地下城的相关减益。</p>
+    <h2>巫妖王之怒</h2>
+    <p>* Cell 基本可以在巫妖王之怒怀旧服中使用了（但并非所有正式服的功能都可用，有些不想做，有些做不了）。</p>
+    <br/>
+
+    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
+    <br/>
+]]
+
+L["OLDER_CHANGELOGS"] = [[
+    <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
+    <p>* 更新当前赛季史诗钥石地下城的相关减益（感谢 夕曦@NGA 提供的列表）。</p>
+    <p>* 修复了几处小问题。</p>
+    <br/>
+
+    <h1>r107-release (Aug 6, 2022, 19:50 GMT+8)</h1>
+    <p>* 更新了第四赛季相关减益。</p>
+    <p>* 在“副本减益”中的版本下拉菜单中添加了“当前赛季”项。</p>
+    <br/>
+
+    <h1>r106-beta (Aug 3, 2022, 00:45 GMT+8)</h1>
+    <p>* 小修一下。</p>
+    <br/>
+
+    <h1>r105-beta (Aug 1, 2022, 23:00 GMT+8)</h1>
+    <p>* 移除 LibGroupInSpecT。</p>
+    <br/>
+
     <h1>r104-release (Jun 3, 2022, 20:30 GMT+8)</h1>
     <p>* 仅提升版本号。</p>
     <br/>
@@ -1007,6 +1229,7 @@ L["CHANGELOGS"] = [[
     <p>+ 新增的小队/团队预览模式可以帮你更方便地调整各种布局啦。</p>
     <p>+ 队伍锚点功能来啦，到 布局 -&gt; 队伍排列 那里看看吧。</p>
     <br/>
-    <br/>
+
+    <p><a href="recent">]]..L["Click to view recent changelogs"]..[[</a></p>
     <br/>
 ]]

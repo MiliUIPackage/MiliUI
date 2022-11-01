@@ -1,12 +1,39 @@
 local addonName, Cell = ...
 
 -- number of built-in indicators
-Cell.defaults.builtIns = 23
+Cell.defaults.builtIns = 25
+
+Cell.defaults.indicatorIndices = {
+    ["nameText"] = 1,
+    ["statusText"] = 2,
+    ["healthText"] = 3,
+    ["healthThresholds"] = 4,
+    ["statusIcon"] = 5,
+    ["roleIcon"] = 6,
+    ["leaderIcon"] = 7,
+    ["readyCheckIcon"] = 8,
+    ["playerRaidIcon"] = 9,
+    ["targetRaidIcon"] = 10,
+    ["aggroBlink"] = 11,
+    ["aggroBar"] = 12,
+    ["aggroBorder"] = 13,
+    ["shieldBar"] = 14,
+    ["aoeHealing"] = 15,
+    ["externalCooldowns"] = 16,
+    ["defensiveCooldowns"] = 17,
+    ["allCooldowns"] = 18,
+    ["tankActiveMitigation"] = 19,
+    ["dispels"] = 20,
+    ["debuffs"] = 21,
+    ["raidDebuffs"] = 22,
+    ["targetedSpells"] = 23,
+    ["targetCounter"] = 24,
+    ["consumables"] = 25,
+}
 
 Cell.defaults.layout = {
     -- ["syncWith"] = "layoutName",
     ["size"] = {94, 50},
-    ["petSize"] = {false, 94, 50},
     ["position"] = {},
     ["powerSize"] = 2,
     ["spacing"] = 3,
@@ -18,6 +45,8 @@ Cell.defaults.layout = {
     ["groupSpacing"] = 0,
     ["groupFilter"] = {true, true, true, true, true, true, true, true},
     ["friendlyNPC"] = {true, false, {}},
+    ["pet"] = {true, false, {}, false, {94, 50}}, -- partyPetsEnabled, raidPetsEnabled, raidPetsPosition, sizeEnabled, size
+    ["spotlight"] = {false, {}, {}, false, {94, 50}}, -- enabled, units, position, sizeEnabled, size
     ["powerFilters"] = {
         ["DEATHKNIGHT"] = {["TANK"] = true, ["DAMAGER"] = true},
         ["DEMONHUNTER"] = {["TANK"] = true, ["DAMAGER"] = true},
@@ -46,7 +75,8 @@ Cell.defaults.layout = {
             ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
             ["nameColor"] = {"custom", {1, 1, 1}},
             ["vehicleNamePosition"] = {"TOP", 0},
-            ["textWidth"] = {"percentage", 1},
+            ["textWidth"] = {"percentage", 0.75},
+            ["showGroupNumber"] = false,
         }, -- 1
         {
             ["name"] = "Status Text",
@@ -57,15 +87,15 @@ Cell.defaults.layout = {
             ["frameLevel"] = 30,
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Shadow"},
             ["colors"] = {
-                ["AFK"] = {1, 0.19, 0.19},
-                ["OFFLINE"] = {1, 0.19, 0.19},
-                ["DEAD"] = {1, 0.19, 0.19},
-                ["GHOST"] = {1, 0.19, 0.19},
-                ["FEIGN"] = {1, 1, 0.12},
-                ["DRINKING"] = {0.12, 0.75, 1},
-                ["PENDING"] = {1, 1, 0.12},
-                ["ACCEPTED"] = {0.12, 1, 0.12},
-                ["DECLINED"] = {1, 0.19, 0.19},
+                ["AFK"] = {1, 0.19, 0.19, 1},
+                ["OFFLINE"] = {1, 0.19, 0.19, 1},
+                ["DEAD"] = {1, 0.19, 0.19, 1},
+                ["GHOST"] = {1, 0.19, 0.19, 1},
+                ["FEIGN"] = {1, 1, 0.12, 1},
+                ["DRINKING"] = {0.12, 0.75, 1, 1},
+                ["PENDING"] = {1, 1, 0.12, 1},
+                ["ACCEPTED"] = {0.12, 1, 0.12, 1},
+                ["DECLINED"] = {1, 0.19, 0.19, 1},
             },
         }, -- 2
         {
@@ -81,6 +111,16 @@ Cell.defaults.layout = {
             ["hideFull"] = true,
         }, -- 3
         {
+            ["name"] = "Health Thresholds",
+            ["indicatorName"] = "healthThresholds",
+            ["type"] = "built-in",
+            ["enabled"] = false,
+            ["thickness"] = 1,
+            ["thresholds"] = {
+                {0.35, {1, 0, 0, 1}},
+            },
+        }, -- 4
+        {
             ["name"] = "Status Icon",
             ["indicatorName"] = "statusIcon",
             ["type"] = "built-in",
@@ -88,16 +128,17 @@ Cell.defaults.layout = {
             ["position"] = {"TOP", "TOP", 0, -3},
             ["frameLevel"] = 10,
             ["size"] = {18, 18},
-        }, -- 4
+        }, -- 5
         {
             ["name"] = "Role Icon",
             ["indicatorName"] = "roleIcon",
             ["type"] = "built-in",
             ["enabled"] = true,
+            ["hideDamager"] = false,
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
             ["size"] = {11, 11},
             ["roleTexture"] = {"default", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\Tank.tga", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\Healer.tga", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\DPS.tga"},
-        }, -- 5
+        }, -- 6
         {
             ["name"] = "Leader Icon",
             ["indicatorName"] = "leaderIcon",
@@ -105,7 +146,7 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, -11},
             ["size"] = {11, 11},
-        }, -- 6
+        }, -- 7
         {
             ["name"] = "Ready Check Icon",
             ["indicatorName"] = "readyCheckIcon",
@@ -113,7 +154,7 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["frameLevel"] = 100,
             ["size"] = {16, 16},
-        }, -- 7
+        }, -- 8
         {
             ["name"] = "Raid Icon (player)",
             ["indicatorName"] = "playerRaidIcon",
@@ -122,8 +163,8 @@ Cell.defaults.layout = {
             ["position"] = {"TOP", "TOP", 0, 3},
             ["frameLevel"] = 2,
             ["size"] = {14, 14},
-            ["alpha"] = .77,
-        }, -- 8
+            ["alpha"] = 0.77,
+        }, -- 9
         {
             ["name"] = "Raid Icon (target)",
             ["indicatorName"] = "targetRaidIcon",
@@ -132,8 +173,8 @@ Cell.defaults.layout = {
             ["position"] = {"TOP", "TOP", -14, 3},
             ["frameLevel"] = 2,
             ["size"] = {14, 14},
-            ["alpha"] = .77,
-        }, -- 9
+            ["alpha"] = 0.77,
+        }, -- 10
         {
             ["name"] = "Aggro (blink)",
             ["indicatorName"] = "aggroBlink",
@@ -142,7 +183,7 @@ Cell.defaults.layout = {
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
             ["frameLevel"] = 3,
             ["size"] = {10, 10},
-        }, -- 10
+        }, -- 11
         {
             ["name"] = "Aggro (bar)",
             ["indicatorName"] = "aggroBar",
@@ -151,7 +192,7 @@ Cell.defaults.layout = {
             ["position"] = {"BOTTOMLEFT", "TOPLEFT", 1, 0},
             ["frameLevel"] = 1,
             ["size"] = {18, 2},
-        }, -- 11
+        }, -- 12
         {
             ["name"] = "Aggro (border)",
             ["indicatorName"] = "aggroBorder",
@@ -159,7 +200,7 @@ Cell.defaults.layout = {
             ["enabled"] = false,
             ["frameLevel"] = 3,
             ["thickness"] = 3,
-        }, -- 12
+        }, -- 13
         {
             ["name"] = "Shield Bar",
             ["indicatorName"] = "shieldBar",
@@ -169,7 +210,7 @@ Cell.defaults.layout = {
             ["frameLevel"] = 2,
             ["height"] = 4,
             ["color"] = {1, 1, 0, 1},
-        }, -- 13
+        }, -- 14
         {
             ["name"] = "AoE Healing",
             ["indicatorName"] = "aoeHealing",
@@ -177,7 +218,7 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["height"] = 15,
             ["color"] = {1, 1, 0},
-        }, -- 14
+        }, -- 15
         {
             ["name"] = "External Cooldowns",
             ["indicatorName"] = "externalCooldowns",
@@ -190,7 +231,7 @@ Cell.defaults.layout = {
             ["num"] = 2,
             ["orientation"] = "right-to-left",
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
-        }, -- 15
+        }, -- 16
         {
             ["name"] = "Defensive Cooldowns",
             ["indicatorName"] = "defensiveCooldowns",
@@ -203,7 +244,7 @@ Cell.defaults.layout = {
             ["num"] = 2,
             ["orientation"] = "left-to-right",
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
-        }, -- 16
+        }, -- 17
         {
             ["name"] = "Externals + Defensives",
             ["indicatorName"] = "allCooldowns",
@@ -216,7 +257,7 @@ Cell.defaults.layout = {
             ["num"] = 2,
             ["orientation"] = "left-to-right",
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
-        }, -- 17
+        }, -- 18
         {
             ["name"] = "Tank Active Mitigation",
             ["indicatorName"] = "tankActiveMitigation",
@@ -225,7 +266,7 @@ Cell.defaults.layout = {
             ["position"] = {"TOPLEFT", "TOPLEFT", 10, -1},
             ["frameLevel"] = 2,
             ["size"] = {18, 4},
-        }, -- 18
+        }, -- 19
         {
             ["name"] = "Dispels",
             ["indicatorName"] = "dispels",
@@ -235,8 +276,9 @@ Cell.defaults.layout = {
             ["frameLevel"] = 15,
             ["size"] = {12, 12},
             ["dispellableByMe"] = true,
-            ["enableHighlight"] = true,
-        }, -- 19
+            ["highlightType"] = "gradient",
+            ["showDispelTypeIcons"] = true,
+        }, -- 20
         {
             ["name"] = "Debuffs",
             ["indicatorName"] = "debuffs",
@@ -251,33 +293,7 @@ Cell.defaults.layout = {
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
             ["dispellableByMe"] = false,
             ["orientation"] = "left-to-right",
-            ["bigDebuffs"] = {
-                240443, -- 爆裂
-                209858, -- 死疽溃烂
-                46392, -- 专注打击
-                -----------------------------------------------
-                -- NOTE: Encrypted Affix - Shadowlands Season 3
-                -- 尤型拆卸者
-                366297, -- 解构
-                366288, -- 猛力砸击
-                -----------------------------------------------
-                -----------------------------------------------
-                -- NOTE: Tormented Affix - Shadowlands Season 2
-                -- 焚化者阿寇拉斯
-                -- 355732, -- 融化灵魂
-                -- 355738, -- 灼热爆破
-                -- 凇心之欧罗斯
-                -- 356667, -- 刺骨之寒
-                -- 刽子手瓦卢斯
-                -- 356925, -- 屠戮
-                -- 356923, -- 撕裂
-                -- 358973, -- 恐惧浪潮
-                -- 粉碎者索苟冬
-                -- 355806, -- 重压
-                -- 358777, -- 痛苦之链
-                -----------------------------------------------
-            },
-        }, -- 20
+        }, -- 21
         {
             ["name"] = "Raid Debuffs",
             ["indicatorName"] = "raidDebuffs",
@@ -294,7 +310,7 @@ Cell.defaults.layout = {
             ["onlyShowTopGlow"] = true,
             ["orientation"] = "left-to-right",
             ["showTooltip"] = false,
-        }, -- 21
+        }, -- 22
         {
             ["name"] = "Targeted Spells",
             ["indicatorName"] = "targetedSpells",
@@ -304,28 +320,9 @@ Cell.defaults.layout = {
             ["frameLevel"] = 50,
             ["size"] = {20, 20},
             ["border"] = 2,
-            ["spells"] = {
-                320788, -- 冻结之缚
-                344496, -- 震荡爆发
-                319941, -- 碎石之跃
-                322614, -- 心灵连接
-                320132, -- 暗影之怒
-                334053, -- 净化冲击波
-                320596, -- 深重呕吐
-                356924, -- 屠戮
-                356666, -- 刺骨之寒
-                319713, -- 巨兽奔袭
-                338606, -- 病态凝视
-                343556, -- 病态凝视
-                324079, -- 收割之镰
-                317963, -- 知识烦扰
-                333861, -- 回旋利刃
-                332234, -- 挥发精油
-                -- 328429, -- 窒息勒压
-            },
-            ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
+            -- ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
             ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", 2, 1},
-        }, -- 22
+        }, -- 23
         {
             ["name"] = "Target Counter",
             ["indicatorName"] = "targetCounter",
@@ -335,6 +332,13 @@ Cell.defaults.layout = {
             ["frameLevel"] = 15,
             ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline"},
             ["color"] = {1, 0.1, 0.1},
-        }, -- 23
+        }, -- 24
+        {
+            ["name"] = "Consumables",
+            ["indicatorName"] = "consumables",
+            ["type"] = "built-in",
+            ["enabled"] = true,
+            ["speed"] = 1,
+        }, -- 25
     },
 }

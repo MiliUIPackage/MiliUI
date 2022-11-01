@@ -2,7 +2,8 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 local P = Cell.pixelPerfectFuncs
-local LGIST = LibStub:GetLibrary("LibGroupInSpecT-1.1")
+local LCG = LibStub("LibCustomGlow-1.0")
+local LGI = LibStub:GetLibrary("LibGroupInfo")
 
 local UnitIsConnected = UnitIsConnected
 local UnitIsVisible = UnitIsVisible
@@ -10,26 +11,33 @@ local UnitIsDeadOrGhost = UnitIsDeadOrGhost
 local UnitIsUnit = UnitIsUnit
 local UnitIsPlayer = UnitIsPlayer
 local UnitGUID = UnitGUID
-local UnitClass = UnitClass
+local UnitClassBase = UnitClassBase
 local IsInGroup = IsInGroup
 local IsInRaid = IsInRaid
 
--- 21562: Power Word: Fortitude
--- 1459: Arcane Brilliance
--- 6673: Battle Shout
 -------------------------------------------------
--- vars
+-- buffs
 -------------------------------------------------
-local enabled
-local buttons = {}
-local available = {}
-local order = {"PWF", "AB", "BS"}
-local myUnit = ""
+local buffs = {
+    ["PWF"] = {["id"]=21562, ["glowColor"]={F:GetClassColor("PRIEST")}}, -- Power Word: Fortitude
+    ["MotW"] = {["id"]=1126, ["glowColor"]={F:GetClassColor("DRUID")}}, -- Mark of the Wild
+    ["AB"] = {["id"]=1459, ["glowColor"]={F:GetClassColor("MAGE")}}, -- Arcane Brilliance
+    ["BS"] = {["id"]=6673, ["glowColor"]={F:GetClassColor("WARRIOR")}}, -- Battle Shout
+}
+
+do
+    for _, t in pairs(buffs) do
+        local name, _, icon = GetSpellInfo(t["id"])
+        t["name"] = name
+        t["icon"] = icon
+    end
+end
+
+local order = {"PWF", "MotW", "AB", "BS"}
 
 -------------------------------------------------
 -- required buffs
 -------------------------------------------------
-
 local requiredBuffs = {
     [250] = "BS", -- Blood
     [251] = "BS", -- Frost
@@ -80,34 +88,56 @@ local requiredBuffs = {
     [73] = "BS", -- Protection
 }
 
+-------------------------------------------------
+-- vars
+-------------------------------------------------
+local enabled
+local myUnit = ""
+local hasBuffProvider
+
+local available = {
+    ["PWF"] = false,
+    ["MotW"] = false,
+    ["AB"] = false,
+    ["BS"] = false,
+}
+
 local unaffected = {
     ["PWF"] = {},
+    ["MotW"] = {},
     ["AB"] = {},
     ["BS"] = {},
 }
--- CELL_UNAFFECTED = unaffected
 
-function F:GetUnaffectedString(spellId)
-    local list, buff
-    local ret = {}
-    if spellId == 21562 then
-        list = unaffected["PWF"]
-        buff = ITEM_MOD_STAMINA_SHORT
-    elseif spellId == 1459 then
-        list = unaffected["AB"]
-        buff = ITEM_MOD_INTELLECT_SHORT
-    elseif spellId == 6673 then
-        list = unaffected["BS"]
-        buff = ITEM_MOD_ATTACK_POWER_SHORT
+local function Reset(which)
+    if not which or which == "available" then
+        for k, v in pairs(available) do
+            available[k] = false
+        end
+        hasBuffProvider = false
     end
+
+    if not which or which == "unaffected" then
+        for k, v in pairs(unaffected) do
+            wipe(unaffected[k])
+        end
+    end
+end
+
+function F:GetUnaffectedString(spell)
+    local list = unaffected[spell]
+    local buff = buffs[spell]["name"]
+
+    local players = {}
     for unit in pairs(list) do
         local name = UnitName(unit)
-        tinsert(ret, name)
+        tinsert(players, name)
     end
-    if #ret == 0 then
+
+    if #players == 0 then
         return
-    elseif #ret <= 10 then
-        return L["Missing Buff"].." ("..buff.."): "..table.concat(ret, ", ")
+    elseif #players <= 10 then
+        return L["Missing Buff"].." ("..buff.."): "..table.concat(players, ", ")
     else
         return L["Missing Buff"].." ("..buff.."): "..L["many"]
     end
@@ -140,23 +170,22 @@ buffTrackerFrame.moverText:SetPoint("TOP", 0, -3)
 buffTrackerFrame.moverText:SetText(L["Mover"])
 buffTrackerFrame.moverText:Hide()
 
-local fakeButtonFrame = CreateFrame("Frame", nil, buffTrackerFrame)
-P:Point(fakeButtonFrame, "BOTTOMLEFT", buffTrackerFrame)
-P:Point(fakeButtonFrame, "TOPRIGHT", buffTrackerFrame, "BOTTOMRIGHT", 0, 32)
-fakeButtonFrame:EnableMouse(true)
-fakeButtonFrame:SetFrameLevel(buffTrackerFrame:GetFrameLevel()+10)
-fakeButtonFrame:Hide()
+local fakeIconsFrame = CreateFrame("Frame", nil, buffTrackerFrame)
+P:Point(fakeIconsFrame, "BOTTOMLEFT", buffTrackerFrame)
+P:Point(fakeIconsFrame, "TOPRIGHT", buffTrackerFrame, "BOTTOMRIGHT", 0, 32)
+fakeIconsFrame:EnableMouse(true)
+fakeIconsFrame:SetFrameLevel(buffTrackerFrame:GetFrameLevel()+10)
+fakeIconsFrame:Hide()
 
 local fakeIcons = {}
-local function CreateFakeIcon(spellId)
-    local spellName, _, spellIcon = GetSpellInfo(spellId)
-    local bg = fakeButtonFrame:CreateTexture(nil, "BORDER")
+local function CreateFakeIcon(spellIcon)
+    local bg = fakeIconsFrame:CreateTexture(nil, "BORDER")
     bg:SetColorTexture(0, 0, 0, 1)
     P:Size(bg, 32, 32)
     
-    local icon = fakeButtonFrame:CreateTexture(nil, "ARTWORK")
+    local icon = fakeIconsFrame:CreateTexture(nil, "ARTWORK")
     icon:SetTexture(spellIcon)
-    icon:SetTexCoord(.08, .92, .08, .92)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     P:Point(icon, "TOPLEFT", bg, "TOPLEFT", 1, -1)
     P:Point(icon, "BOTTOMRIGHT", bg, "BOTTOMRIGHT", -1, 1)
 
@@ -169,25 +198,31 @@ local function CreateFakeIcon(spellId)
     return bg
 end
 
-local fakePWF = CreateFakeIcon(21562)
-P:Point(fakePWF, "BOTTOMLEFT")
-local fakeAB = CreateFakeIcon(1459)
-P:Point(fakeAB, "BOTTOMLEFT",fakePWF, "BOTTOMRIGHT", 3, 0)
-local fakeBS = CreateFakeIcon(6673)
-P:Point(fakeBS, "BOTTOMLEFT", fakeAB, "BOTTOMRIGHT", 3, 0)
+do
+    for _, k in ipairs(order) do
+        tinsert(fakeIcons, CreateFakeIcon(buffs[k]["icon"]))
+        local i = #fakeIcons
+        
+        if i == 1 then
+            P:Point(fakeIcons[i], "BOTTOMLEFT")
+        else
+            P:Point(fakeIcons[i], "BOTTOMLEFT", fakeIcons[i-1], "BOTTOMRIGHT", 3, 0)
+        end
+    end
+end
 
 local function ShowMover(show)
     if show then
         if not CellDB["tools"]["buffTracker"][1] then return end
         buffTrackerFrame:EnableMouse(true)
         buffTrackerFrame.moverText:Show()
-        Cell:StylizeFrame(buffTrackerFrame, {0, 1, 0, .4}, {0, 0, 0, 0})
-        fakeButtonFrame:Show()
+        Cell:StylizeFrame(buffTrackerFrame, {0, 1, 0, 0.4}, {0, 0, 0, 0})
+        fakeIconsFrame:Show()
     else
         buffTrackerFrame:EnableMouse(false)
         buffTrackerFrame.moverText:Hide()
         Cell:StylizeFrame(buffTrackerFrame, {0, 0, 0, 0}, {0, 0, 0, 0})
-        fakeButtonFrame:Hide()
+        fakeIconsFrame:Hide()
     end
 end
 Cell:RegisterCallback("ShowMover", "BuffTracker_ShowMover", ShowMover)
@@ -195,40 +230,147 @@ Cell:RegisterCallback("ShowMover", "BuffTracker_ShowMover", ShowMover)
 -------------------------------------------------
 -- buttons
 -------------------------------------------------
-buttons["PWF"] = Cell:CreateBuffButton(buffTrackerFrame, {32, 32}, 21562)
-P:Point(buttons["PWF"], "BOTTOMLEFT")
-buttons["PWF"]:Hide()
-buttons["PWF"]:SetTooltips(unaffected["PWF"])
-buttons["PWF"].glowColor = {1, 1, 1}
+local sendChannel
+local function UpdateSendChannel()
+    if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+        sendChannel = "INSTANCE_CHAT"
+    elseif IsInRaid() then
+        sendChannel = "RAID"
+    else
+        sendChannel = "PARTY"
+    end
+end
 
-buttons["AB"] = Cell:CreateBuffButton(buffTrackerFrame, {32, 32}, 1459)
-P:Point(buttons["AB"], "BOTTOMLEFT", buttons["PWF"], "BOTTOMRIGHT", 3, 0)
-buttons["AB"]:Hide()
-buttons["AB"]:SetTooltips(unaffected["AB"])
-buttons["AB"].glowColor = {.25, .78, .92}
+local function CreateBuffButton(parent, size, spell, icon, index)
+    local b = CreateFrame("Button", nil, parent, "SecureActionButtonTemplate,BackdropTemplate")
+    if parent then b:SetFrameLevel(parent:GetFrameLevel()+1) end
+    P:Size(b, size[1], size[2])
+    
+    b:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+    b:SetBackdropBorderColor(0, 0, 0, 1)
 
-buttons["BS"] = Cell:CreateBuffButton(buffTrackerFrame, {32, 32}, 6673)
-P:Point(buttons["BS"], "BOTTOMLEFT", buttons["AB"], "BOTTOMRIGHT", 3, 0)
-buttons["BS"]:Hide()
-buttons["BS"]:SetTooltips(unaffected["BS"])
-buttons["BS"].glowColor = {.78, .61, .43}
+    b:RegisterForClicks("LeftButtonUp", "RightButtonUp", "LeftButtonDown", "RightButtonDown") -- NOTE: ActionButtonUseKeyDown will affect this
+    b:SetAttribute("type1", "spell")
+    b:SetAttribute("spell", spell)
+    b:HookScript("OnClick", function(self, button, down)
+        if button == "RightButton" then
+            local msg = F:GetUnaffectedString(index)
+            if msg then
+                UpdateSendChannel()
+                SendChatMessage(msg, sendChannel)
+            end
+        end
+    end)
+
+    b.texture = b:CreateTexture(nil, "OVERLAY")
+    P:Point(b.texture, "TOPLEFT", b, "TOPLEFT", 1, -1)
+    P:Point(b.texture, "BOTTOMRIGHT", b, "BOTTOMRIGHT", -1, 1)
+    b.texture:SetTexture(icon)
+    b.texture:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+
+    b.count = b:CreateFontString(nil, "OVERLAY")
+    P:Point(b.count, "TOPLEFT", b.texture, "TOPLEFT", 2, -2)
+    b.count:SetFont(GameFontNormal:GetFont(), 14, "OUTLINE")
+    b.count:SetShadowColor(0, 0, 0)
+    b.count:SetShadowOffset(0, 0)
+    b.count:SetTextColor(1, 0, 0)
+
+    b:SetScript("OnLeave", function()
+        CellTooltip:Hide()
+    end)
+
+    function b:SetTooltips(list)
+        b:SetScript("OnEnter", function()
+            if F:Getn(list) ~= 0 then
+                CellTooltip:SetOwner(b, "ANCHOR_TOPLEFT", 0, 3)
+                CellTooltip:AddLine(L["Unaffected"])
+                for unit in pairs(list) do
+                    local class = UnitClassBase(unit)
+                    local name = UnitName(unit)
+                    if class and name then
+                        CellTooltip:AddLine(F:GetClassColorStr(class)..name.."|r")
+                    end
+                end
+                CellTooltip:Show()
+            end
+        end)
+    end
+
+    function b:SetDesaturated(flag)
+        b.texture:SetDesaturated(flag)
+    end
+
+    function b:StartGlow(glowType, ...)
+        if glowType == "Normal" then
+            LCG.PixelGlow_Stop(b)
+            LCG.AutoCastGlow_Stop(b)
+            LCG.ButtonGlow_Start(b, ...)
+        elseif glowType == "Pixel" then
+            LCG.ButtonGlow_Stop(b)
+            LCG.AutoCastGlow_Stop(b)
+            -- color, N, frequency, length, thickness
+            LCG.PixelGlow_Start(b, ...)
+        elseif glowType == "Shine" then
+            LCG.ButtonGlow_Stop(b)
+            LCG.PixelGlow_Stop(b)
+            LCG.AutoCastGlow_Stop(b)
+            -- color, N, frequency, scale
+            LCG.AutoCastGlow_Start(b, ...)
+        end
+    end
+
+    function b:StopGlow()
+        LCG.ButtonGlow_Stop(b)
+        LCG.PixelGlow_Stop(b)
+        LCG.AutoCastGlow_Stop(b)
+    end
+
+    function b:Reset()
+        b.texture:SetDesaturated(false)
+        b.count:SetText("")
+        b:SetAlpha(1)
+        b:StopGlow()
+    end
+
+    function b:UpdatePixelPerfect()
+        P:Resize(b)
+        P:Repoint(b)
+        b:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+        b:SetBackdropBorderColor(0, 0, 0, 1)
+
+        P:Repoint(b.texture)
+        P:Repoint(b.count)
+    end
+
+    return b
+end
+
+local buttons = {}
+
+do
+    for _, k in ipairs(order) do
+        buttons[k] = CreateBuffButton(buffTrackerFrame, {32, 32}, buffs[k]["name"], buffs[k]["icon"], k)
+        buttons[k]:Hide()
+        buttons[k]:SetTooltips(unaffected[k])
+    end
+end
 
 local function UpdateButtons()
-    for _, name in pairs(order) do
-        if available[name] then
-            local n = F:Getn(unaffected[name])
+    for _, k in pairs(order) do
+        if available[k] then
+            local n = F:Getn(unaffected[k])
             if n == 0 then
-                buttons[name].count:SetText("")
-                buttons[name]:SetAlpha(0.5)
-                buttons[name]:StopGlow()
+                buttons[k].count:SetText("")
+                buttons[k]:SetAlpha(0.5)
+                buttons[k]:StopGlow()
             else
-                buttons[name].count:SetText(n)
-                buttons[name]:SetAlpha(1)
-                if unaffected[name][myUnit] then
+                buttons[k].count:SetText(n)
+                buttons[k]:SetAlpha(1)
+                if unaffected[k][myUnit] then
                     -- color, N, frequency, length, thickness
-                    buttons[name]:StartGlow("Pixel", buttons[name].glowColor, 8, 0.25, P:Scale(8), P:Scale(2))
+                    buttons[k]:StartGlow("Pixel", buffs[k]["glowColor"], 8, 0.25, P:Scale(8), P:Scale(2))
                 else
-                    buttons[name]:StopGlow()
+                    buttons[k]:StopGlow()
                 end
             end
         end
@@ -240,21 +382,38 @@ local function AnchorButtons()
         buffTrackerFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         local last
-        for _, name in pairs(order) do
-            buttons[name]:ClearAllPoints()
-            if available[name] then
-                buttons[name]:Show()
+        for _, k in pairs(order) do
+            buttons[k]:ClearAllPoints()
+            if available[k] then
+                buttons[k]:Show()
                 if last then
-                    buttons[name]:SetPoint("BOTTOMLEFT", last, "BOTTOMRIGHT", 3, 0)
+                    buttons[k]:SetPoint("BOTTOMLEFT", last, "BOTTOMRIGHT", 3, 0)
                 else
-                    buttons[name]:SetPoint("BOTTOMLEFT")
+                    buttons[k]:SetPoint("BOTTOMLEFT")
                 end
-                last = buttons[name]
+                last = buttons[k]
             else
-                buttons[name]:Hide()
-                buttons[name]:Reset()
+                buttons[k]:Hide()
+                buttons[k]:Reset()
             end
         end
+    end
+end
+
+local function ResizeButtons()
+    if InCombatLockdown() then
+        buffTrackerFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+    else
+        local size = CellDB["tools"]["buffTracker"][3]
+        for _, i in pairs(fakeIcons) do
+            P:Size(i, size, size)
+        end
+        for _, b in pairs(buttons) do
+            P:Size(b, size, size)
+        end
+
+        local n = F:Getn(buttons)
+        P:Size(buffTrackerFrame, n * size + (n - 1) * 3, size + 18)
     end
 end
 
@@ -263,58 +422,54 @@ end
 -------------------------------------------------
 local function CheckUnit(unit, updateBtn)
     -- print("CheckUnit", unit)
-    if not (available["PWF"] or available["AB"] or available["BS"]) then return end
+    if not hasBuffProvider then return end
 
     if UnitIsConnected(unit) and UnitIsVisible(unit) and not UnitIsDeadOrGhost(unit) then
-        local info = LGIST:GetCachedInfo(UnitGUID(unit))
-        local spec = info and info.global_spec_id or ""
+        local info = LGI:GetCachedInfo(UnitGUID(unit))
+        local spec = info and info.specId or ""
         local required = requiredBuffs[spec]
-        if available["PWF"] then
-            if not F:FindAuraById(unit, "BUFF", 21562) then
-                unaffected["PWF"][unit] = true
-            else
-                unaffected["PWF"][unit] = nil
-            end
-        end
-        if available["AB"] then
-            if required == "AB" and not F:FindAuraById(unit, "BUFF", 1459) then
-                unaffected["AB"][unit] = true
-            else
-                unaffected["AB"][unit] = nil
-            end
-        end
-        if available["BS"] then
-            if required == "BS" and not F:FindAuraById(unit, "BUFF", 6673) then
-                unaffected["BS"][unit] = true
-            else
-                unaffected["BS"][unit] = nil
+
+        for k, v in pairs(available) do
+            if v ~= false and (required == k or k == "PWF" or k == "MotW") then
+                if not F:FindAuraById(unit, "BUFF", buffs[k]["id"]) then
+                    unaffected[k][unit] = true
+                else
+                    unaffected[k][unit] = nil
+                end
             end
         end
     else
-        unaffected["PWF"][unit] = nil
-        unaffected["AB"][unit] = nil
-        unaffected["BS"][unit] = nil
+        for k, t in pairs(unaffected) do
+            t[unit] = nil
+        end
     end
     
     if updateBtn then UpdateButtons() end
 end
 
 local function IterateAllUnits()
-    available["PWF"], available["AB"], available["BS"] = false, false, false
+    Reset("available")
     myUnit = ""
 
     for unit in F:IterateGroupMembers() do
-        if UnitIsConnected(unit) and UnitIsVisible(unit) and not UnitIsDeadOrGhost(unit) then
-            if select(2, UnitClass(unit)) == "PRIEST" then
+        if UnitIsConnected(unit) and UnitIsVisible(unit) then
+            if UnitClassBase(unit) == "PRIEST" then
                 available["PWF"] = true
+                hasBuffProvider = true
             end
-            if select(2, UnitClass(unit)) == "MAGE" then
+            if UnitClassBase(unit) == "DRUID" then
+                available["MotW"] = true
+                hasBuffProvider = true
+            end
+            if UnitClassBase(unit) == "MAGE" then
                 available["AB"] = true
+                hasBuffProvider = true
             end
-            if select(2, UnitClass(unit)) == "WARRIOR" then
+            if UnitClassBase(unit) == "WARRIOR" then
                 available["BS"] = true
+                hasBuffProvider = true
             end
-            -- if available["PWF"] and available["AB"] and available["BS"] then break end
+
             if UnitIsUnit("player", unit) then
                 myUnit = unit
             end
@@ -323,9 +478,8 @@ local function IterateAllUnits()
 
     AnchorButtons()
     
-    wipe(unaffected["PWF"])
-    wipe(unaffected["AB"])
-    wipe(unaffected["BS"])
+    Reset("unaffected")
+
     for unit in F:IterateGroupMembers() do
         CheckUnit(unit)
     end
@@ -337,7 +491,7 @@ end
 -- events
 -------------------------------------------------
 function buffTrackerFrame:UnitUpdated(event, guid, unit, info)
-    --    print(event, guid, unit, info.global_spec_id)
+    -- print(event, guid, unit, info.specId)
     if unit == "player" then 
         if UnitIsUnit("player", myUnit) then CheckUnit(myUnit, true) end
     elseif UnitIsPlayer(unit) then -- ignore pets
@@ -364,10 +518,7 @@ function buffTrackerFrame:GROUP_ROSTER_UPDATE(immediate)
         buffTrackerFrame:UnregisterEvent("PLAYER_UNGHOST")
         buffTrackerFrame:UnregisterEvent("UNIT_AURA")
 
-        available["PWF"], available["AB"], available["BS"] = false, false, false
-        wipe(unaffected["PWF"])
-        wipe(unaffected["AB"])
-        wipe(unaffected["BS"])
+        Reset()
         AnchorButtons()
         return
     end
@@ -406,6 +557,7 @@ end
 function buffTrackerFrame:PLAYER_REGEN_ENABLED()
     buffTrackerFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
     AnchorButtons()
+    ResizeButtons()
 end
 
 buffTrackerFrame:SetScript("OnEvent", function(self, event, ...)
@@ -420,7 +572,7 @@ local function UpdateTools(which)
         if CellDB["tools"]["buffTracker"][1] then
             buffTrackerFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
             buffTrackerFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
-            LGIST.RegisterCallback(buffTrackerFrame, "GroupInSpecT_Update", "UnitUpdated") 
+            LGI.RegisterCallback(buffTrackerFrame, "GroupInfo_Update", "UnitUpdated") 
 
             if not enabled and which == "buffTracker" then -- already in world, manually enabled
                 buffTrackerFrame:GROUP_ROSTER_UPDATE(true)
@@ -431,18 +583,17 @@ local function UpdateTools(which)
             end
         else
             buffTrackerFrame:UnregisterAllEvents()
-            LGIST.UnregisterCallback(buffTrackerFrame, "GroupInSpecT_Update")
+            LGI.UnregisterCallback(buffTrackerFrame, "GroupInfo_Update")
             
-            wipe(unaffected["PWF"])
-            wipe(unaffected["AB"])
-            wipe(unaffected["BS"])
-            available["PWF"], available["AB"], available["BS"] = false, false, false
+            Reset()
             myUnit = ""
             AnchorButtons()
 
             enabled = false
             ShowMover(false)
         end
+
+        ResizeButtons()
     end
 
     if not which then -- position
@@ -453,9 +604,10 @@ Cell:RegisterCallback("UpdateTools", "BuffTracker_UpdateTools", UpdateTools)
 
 local function UpdatePixelPerfect()
     P:Resize(buffTrackerFrame)
-    fakePWF:UpdatePixelPerfect()
-    fakeAB:UpdatePixelPerfect()
-    fakeBS:UpdatePixelPerfect()
+
+    for _, i in pairs(fakeIcons) do
+        i:UpdatePixelPerfect()
+    end
 
     for _, b in pairs(buttons) do
         b:UpdatePixelPerfect()

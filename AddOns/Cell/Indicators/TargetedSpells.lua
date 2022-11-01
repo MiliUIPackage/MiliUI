@@ -14,22 +14,7 @@ local UnitChannelInfo = UnitChannelInfo
 -------------------------------------------------
 -- targeted spells
 -------------------------------------------------
-local spells, glow = {}, {}
 local casts, castsOnUnit = {}, {}
-
-local function UpdateTargetedSpells(setting, value, value2)
-    F:Debug("|cffff7777UpdateTargetedSpells:|r", setting, value, value2)
-    if setting == "spells" then
-        spells = F:ConvertTable(value)
-    elseif setting == "glow" then
-        glow = value
-    else
-        spells = F:ConvertTable(value)
-        glow = value2
-    end
-    -- spells[69068] = true
-end
-Cell:RegisterCallback("UpdateTargetedSpells", "UpdateTargetedSpells", UpdateTargetedSpells)
 
 local function GetCastsOnUnit(guid)
     if castsOnUnit[guid] then
@@ -52,8 +37,8 @@ local function GetCastsOnUnit(guid)
 end
 
 local function UpdateCastsOnUnit(guid)
-    local b = F:GetUnitButtonByGUID(guid)
-    if not b then return end
+    local b1, b2 = F:GetUnitButtonByGUID(guid)
+    if not (b1 or b2) then return end
 
     local allCasts = 0
     local startTime, endTime, spellId, icon
@@ -67,10 +52,17 @@ local function UpdateCastsOnUnit(guid)
     end
 
     if allCasts == 0 then
-        b.indicators.targetedSpells:Hide()
+        if b1 then b1.indicators.targetedSpells:Hide() end
+        if b2 then b2.indicators.targetedSpells:Hide() end
     else
-        b.indicators.targetedSpells:SetCooldown(startTime, endTime-startTime, icon, allCasts)
-        b.indicators.targetedSpells:ShowGlow(unpack(glow))
+        if b1 then
+            b1.indicators.targetedSpells:SetCooldown(startTime, endTime-startTime, icon, allCasts)
+            b1.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
+        end
+        if b2 then
+            b2.indicators.targetedSpells:SetCooldown(startTime, endTime-startTime, icon, allCasts)
+            b2.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
+        end
     end
 end
 
@@ -107,7 +99,7 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
 
             if cast then previousTarget = cast["targetGUID"] end
 
-            if spellId and spells[spellId] then
+            if spellId and Cell.vars.targetedSpellsList[spellId] then
                 local targetUnit = sourceUnit.."target"
                 if UnitIsVisible(targetUnit) then
                     for member in F:IterateGroupMembers() do
@@ -158,7 +150,7 @@ function I:CreateTargetedSpells(parent)
 
         frame.border:Show()
         frame.cooldown:Show()
-        frame.cooldown:SetSwipeColor(unpack(glow[2]))
+        frame.cooldown:SetSwipeColor(unpack(Cell.vars.targetedSpellsGlow[2]))
         frame.cooldown:SetCooldown(start, duration)
         frame.icon:SetTexture(icon)
         frame:Show()
@@ -168,7 +160,7 @@ function I:CreateTargetedSpells(parent)
         if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
 
         if flags == "Shadow" then
-            frame.stack:SetFont(font, size)
+            frame.stack:SetFont(font, size, "")
             frame.stack:SetShadowOffset(1, -1)
             frame.stack:SetShadowColor(0, 0, 0, 1)
         else
@@ -226,7 +218,7 @@ function I:CreateTargetedSpells(parent)
     end)
 
     function frame:ShowGlowPreview()
-        frame:ShowGlow(unpack(glow))
+        frame:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
     end
 
     function frame:HideGlowPreview()

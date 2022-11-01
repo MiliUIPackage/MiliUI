@@ -7,7 +7,7 @@ function F:Revise()
     local dbRevision = CellDB["revise"] and tonumber(string.match(CellDB["revise"], "%d+")) or 0
     F:Debug("DBRevision:", dbRevision)
 
-    if CellDB["revise"] and dbRevision < 81 then -- update from an unsupported version
+    if CellDB["revise"] and dbRevision < 100 then -- update from an unsupported version
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
@@ -45,7 +45,7 @@ function F:Revise()
         -- add "textWidth"
         for _, layout in pairs(CellDB["layouts"]) do
             if not layout["textWidth"] then
-                layout["textWidth"] = .75
+                layout["textWidth"] = 0.75
             end
         end
         -- remove old raid tools related
@@ -127,8 +127,8 @@ function F:Revise()
     -- r22-release
     if not(CellDB["revise"]) or dbRevision < 22 then
         -- highlight color
-        if not CellDB["appearance"]["targetColor"] then CellDB["appearance"]["targetColor"] = {1, .19, .19, .5} end
-        if not CellDB["appearance"]["mouseoverColor"] then CellDB["appearance"]["mouseoverColor"] = {1, 1, 1, .5} end
+        if not CellDB["appearance"]["targetColor"] then CellDB["appearance"]["targetColor"] = {1, 0.19, 0.19, 0.5} end
+        if not CellDB["appearance"]["mouseoverColor"] then CellDB["appearance"]["mouseoverColor"] = {1, 1, 1, 0.5} end
         for _, layout in pairs(CellDB["layouts"]) do
             -- columns/rows
             if type(layout["columns"]) ~= "number" then layout["columns"] = 8 end
@@ -143,7 +143,7 @@ function F:Revise()
             -- 		["enabled"] = true,
             -- 		["position"] = {"TOP", "TOP", 0, 3},
             -- 		["size"] = {14, 14},
-            -- 		["alpha"] = .77,
+            -- 		["alpha"] = 0.77,
             -- 	})
             -- end
         end
@@ -165,7 +165,7 @@ function F:Revise()
                         ["enabled"] = true,
                         ["position"] = {"TOP", "TOP", 0, 3},
                         ["size"] = {14, 14},
-                        ["alpha"] = .77,
+                        ["alpha"] = 0.77,
                     })
                 end
             end
@@ -177,7 +177,7 @@ function F:Revise()
                     ["enabled"] = false,
                     ["position"] = {"TOP", "TOP", -14, 3},
                     ["size"] = {14, 14},
-                    ["alpha"] = .77,
+                    ["alpha"] = 0.77,
                 })
             end
         end
@@ -372,7 +372,7 @@ function F:Revise()
                         if sTable[3] == "None" or sTable[3] == "Normal" then
                             sTable[4] = {color}
                         elseif sTable[3] == "Pixel" then
-                            sTable[4] = {color, 9, .25, 8, 2}
+                            sTable[4] = {color, 9, 0.25, 8, 2}
                         elseif sTable[3] == "Shine" then
                             sTable[4] = {color, 9, 0.5, 1}
                         end
@@ -413,7 +413,7 @@ function F:Revise()
                     ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
                     ["nameColor"] = {"Custom Color", {1, 1, 1}},
                     ["vehicleNamePosition"] = {"TOP", 0},
-                    ["textWidth"] = .75,
+                    ["textWidth"] = 0.75,
                 })
             end
 
@@ -476,7 +476,7 @@ function F:Revise()
                     ["size"] = {20, 20},
                     ["border"] = 2,
                     ["spells"] = {},
-                    ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, .25, 8, 2},
+                    ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
                     ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", 2},
                 })
             end
@@ -540,7 +540,7 @@ function F:Revise()
             CellDB["appearance"]["highlightSize"] = 1
         end
         if type(CellDB["appearance"]["outOfRangeAlpha"]) ~= "number" then
-            CellDB["appearance"]["outOfRangeAlpha"] = .45
+            CellDB["appearance"]["outOfRangeAlpha"] = 0.45
         end
     end
 
@@ -602,7 +602,7 @@ function F:Revise()
                     ["position"] = {"TOP", "TOP", 0, 5},
                     ["frameLevel"] = 15,
                     ["font"] = {"Cell ".._G.DEFAULT, 15, "Outline", 0},
-                    ["color"] = {1, .1, .1},
+                    ["color"] = {1, 0.1, 0.1},
                 })
             end
         end
@@ -977,7 +977,6 @@ function F:Revise()
             CellDB["raidTools"]["buttonsPosition"] = nil
         end
     end
-    ]=]
     
     -- r82-release
     if CellDB["revise"] and dbRevision < 82 then
@@ -1281,6 +1280,7 @@ function F:Revise()
             end
         end
     end
+    ]=]
 
     -- r103-release
     if CellDB["revise"] and dbRevision < 103 then
@@ -1288,6 +1288,155 @@ function F:Revise()
             CellDB["appearance"]["accentColor"] = {"class_color", {1, 0.26667, 0.4}}
         end
     end
-    
+
+    -- r107-release
+    if CellDB["revise"] and dbRevision < 107 then
+        -- add season 4 debuffs
+        if not F:TContains(CellDB["bigDebuffs"], 373391) then
+            tinsert(CellDB["bigDebuffs"], 373391) -- 梦魇
+        end
+        if not F:TContains(CellDB["bigDebuffs"], 373429) then
+            tinsert(CellDB["bigDebuffs"], 373429) -- 腐臭虫群
+        end
+        Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
+    end
+
+    -- r117-release
+    if CellDB["revise"] and dbRevision < 117 then
+        -- enable shield in WotLK
+        if Cell.isWrath then
+            CellDB["appearance"]["shield"] = true
+            CellDB["appearance"]["overshield"] = true
+        end
+    end
+
+    -- r118-release
+    if CellDB["revise"] and dbRevision < 118 then
+        -- fix default value in Wrath Classic
+        if Cell.isWrath and CellDB["tools"]["marks"][2] == "both_h" then
+            CellDB["tools"]["marks"][2] = "target_h"
+        end
+
+        -- add size
+        if not CellDB["tools"]["buffTracker"][3] then
+            if Cell.isRetail then
+                CellDB["tools"]["buffTracker"][3] = 32
+            else
+                CellDB["tools"]["buffTracker"][3] = 27
+            end
+        end
+    end
+
+    -- r119-release
+    if CellDB["revise"] and dbRevision < 119 then
+        -- spotlight
+        for _, layout in pairs(CellDB["layouts"]) do
+            if not layout["spotlight"] then
+                layout["spotlight"] = {false, {}, {}} -- enabled, units, position
+            end
+        end
+    end
+
+    -- r128-release
+    if CellDB["revise"] and dbRevision < 128 then
+        -- spotlight
+        for _, layout in pairs(CellDB["layouts"]) do
+            if layout["spotlight"] and #layout["spotlight"] ~= 5 then
+                -- sizeEnabled
+                layout["spotlight"][4] = false
+                -- size
+                layout["spotlight"][5] = {66, 46}
+            end
+        end
+    end
+
+    -- r129-release
+    if CellDB["revise"] and dbRevision < 129 then
+        if type(CellDB["general"]["hideBlizzard"]) == "boolean" then
+            CellDB["general"]["hideBlizzardParty"] = CellDB["general"]["hideBlizzard"]
+            CellDB["general"]["hideBlizzardRaid"] = CellDB["general"]["hideBlizzard"]
+            CellDB["general"]["hideBlizzard"] = nil
+        end
+
+        if type(CellDB["appearance"]["useLibHealComm"]) ~= "boolean" then
+            CellDB["appearance"]["useLibHealComm"] = Cell.isWrath
+        end
+    end
+
+    -- r132-release (merge r114 r115 r117)
+    if CellDB["revise"] and dbRevision < 132 then
+        local healthThresholdsIndex = Cell.defaults.indicatorIndices.healthThresholds
+        local shieldBarIndex = Cell.defaults.indicatorIndices.shieldBar
+        local dispelsIndex = Cell.defaults.indicatorIndices.dispels
+        local consumablesIndex = Cell.defaults.indicatorIndices.consumables
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            -- add healthThresholds
+            if layout["indicators"][healthThresholdsIndex]["indicatorName"] ~= "healthThresholds" then
+                tinsert(layout["indicators"], healthThresholdsIndex, {
+                    ["name"] = "Health Thresholds",
+                    ["indicatorName"] = "healthThresholds",
+                    ["type"] = "built-in",
+                    ["enabled"] = false,
+                    ["thickness"] = 1,
+                    ["thresholds"] = {
+                        {0.35, {1, 0, 0, 1}},
+                    },
+                })
+            end
+
+            -- add ShieldBar back (r117)
+            if layout["indicators"][shieldBarIndex]["indicatorName"] ~= "shieldBar" then
+                tinsert(layout["indicators"], shieldBarIndex, {
+                    ["name"] = "Shield Bar",
+                    ["indicatorName"] = "shieldBar",
+                    ["type"] = "built-in",
+                    ["enabled"] = false,
+                    ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 0, 0},
+                    ["frameLevel"] = 2,
+                    ["height"] = 4,
+                    ["color"] = {1, 1, 0, 1},
+                })
+            end
+            
+            -- add Consumables (r114)
+            if not layout["indicators"][consumablesIndex] or layout["indicators"][consumablesIndex]["indicatorName"] ~= "consumables" then
+                tinsert(layout["indicators"], consumablesIndex, {
+                    ["name"] = "Consumables",
+                    ["indicatorName"] = "consumables",
+                    ["type"] = "built-in",
+                    ["enabled"] = true,
+                    ["speed"] = 1,
+                })
+            end
+            
+            -- add speed to Consumables (r115)
+            if not layout["indicators"][consumablesIndex]["speed"] then
+                layout["indicators"][consumablesIndex]["speed"] = 1
+            end
+            
+            -- add highlightType to Dispels (r115)
+            if not layout["indicators"][dispelsIndex]["highlightType"] then
+                layout["indicators"][dispelsIndex]["highlightType"] = "gradient"
+            end
+            
+            -- add showDispelTypeIcons to Dispels (r115)
+            if type(layout["indicators"][dispelsIndex]["showDispelTypeIcons"]) ~= "boolean" then
+                layout["indicators"][dispelsIndex]["showDispelTypeIcons"] = true
+            end
+        end
+    end
+
+    -- r134-release add SILLY raid pets
+    if CellDB["revise"] and dbRevision < 134 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            if not layout["pet"] then
+                layout["pet"] = {CellDB["general"]["showPartyPets"], false, {}, layout["petSize"][1], {layout["petSize"][2], layout["petSize"][3]}} -- partyPetsEnabled, raidPetsEnabled, raidPetsPosition, sizeEnabled, size
+                layout["petSize"] = nil
+            end
+        end
+        CellDB["general"]["showPartyPets"] = nil
+    end
+
     CellDB["revise"] = Cell.version
 end

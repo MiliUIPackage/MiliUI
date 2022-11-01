@@ -12,17 +12,16 @@ local playerSummoned = {}
 local eventFrame = CreateFrame("Frame")
 eventFrame:SetScript("OnEvent", function()
     local timestamp, subevent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellId, spellName = CombatLogGetCurrentEventInfo()
-    -- check summoned
-    for guid, expirationTime in pairs(playerSummoned) do
-        if GetTime() >= expirationTime then
-            playerSummoned[guid] = nil
-        end
-    end
     -- if subevent == "SPELL_SUMMON" then print(subevent, sourceName, sourceGUID, destName, destGUID, spellName) end
     if subevent == "SPELL_SUMMON" then
+        -- print(sourceGUID == Cell.vars.playerGUID, destGUID, spellName)
         if sourceGUID == Cell.vars.playerGUID and destGUID and I:IsAoEHealing(spellName) then
-            if I:GetSummonDuration(spellName) then
-                playerSummoned[destGUID] = GetTime() + I:GetSummonDuration(spellName) -- expirationTime
+            local duration = I:GetSummonDuration(spellName)
+            if duration then
+                playerSummoned[destGUID] = GetTime() + duration -- expirationTime
+                C_Timer.After(duration, function()
+                    playerSummoned[destGUID] = nil
+                end)
             end
         end
         -- texplore(playerSummoned)
@@ -30,26 +29,28 @@ eventFrame:SetScript("OnEvent", function()
     -- if (subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL") then print(subevent, sourceName, sourceGUID, destName, spellId, spellName) end
     if subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL" then
         if destGUID then
-            if (sourceGUID == Cell.vars.playerGUID and I:IsAoEHealing(spellName)) or playerSummoned[sourceGUID] then
-                local b = F:GetUnitButtonByGUID(destGUID)
-                if b then b.indicators.aoeHealing:ShowUp() end
+            -- print(sourceGUID, playerSummoned[sourceGUID])
+            if (sourceGUID == Cell.vars.playerGUID and (I:IsAoEHealing(spellName) or I:IsAoEHealing(spellId))) or playerSummoned[sourceGUID] then
+                local b1, b2 = F:GetUnitButtonByGUID(destGUID)
+                if b1 then b1.indicators.aoeHealing:ShowUp() end
+                if b2 then b2.indicators.aoeHealing:ShowUp() end
             end
         end
     end
 end)
 
 function I:CreateAoEHealing(parent)
-    local aoeHealing = CreateFrame("Frame", nil, parent.widget.healthBar)
-	parent.indicators.aoeHealing = aoeHealing
-	aoeHealing:SetPoint("TOPLEFT", parent.widget.healthBar)
+    local aoeHealing = CreateFrame("Frame", parent:GetName().."AoEHealing", parent.widget.healthBar)
+    parent.indicators.aoeHealing = aoeHealing
+    aoeHealing:SetPoint("TOPLEFT", parent.widget.healthBar)
     aoeHealing:SetPoint("TOPRIGHT", parent.widget.healthBar)
     aoeHealing:SetFrameLevel(parent.widget.healthBar:GetFrameLevel()+1)
     -- aoeHealing:SetHeight(15)
-	aoeHealing:Hide()
+    aoeHealing:Hide()
 
-	aoeHealing.tex = aoeHealing:CreateTexture(nil, "ARTWORK")
+    aoeHealing.tex = aoeHealing:CreateTexture(nil, "ARTWORK")
     aoeHealing.tex:SetAllPoints(aoeHealing)
-	aoeHealing.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
+    aoeHealing.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
     
     local ag = aoeHealing:CreateAnimationGroup()
     local a1 = ag:CreateAnimation("Alpha")
@@ -72,8 +73,14 @@ function I:CreateAoEHealing(parent)
         aoeHealing:Hide()
     end)
 
-	function aoeHealing:SetColor(r, g, b)
-		aoeHealing.tex:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, .77)
+    if Cell.isRetail then
+        function aoeHealing:SetColor(r, g, b)
+            aoeHealing.tex:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 0.77))
+        end
+    else
+        function aoeHealing:SetColor(r, g, b)
+            aoeHealing.tex:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, 0.77)
+        end
     end
 
     function aoeHealing:ShowUp()

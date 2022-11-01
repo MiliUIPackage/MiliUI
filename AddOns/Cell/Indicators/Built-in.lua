@@ -17,9 +17,35 @@ function I:CreateDefensiveCooldowns(parent)
     defensiveCooldowns.OriginalSetSize = defensiveCooldowns.SetSize
 
     function defensiveCooldowns:SetSize(width, height)
-        defensiveCooldowns:OriginalSetSize(width, height)
+        -- defensiveCooldowns:OriginalSetSize(width, height)
+        defensiveCooldowns.width = width
+        defensiveCooldowns.height = height
+
         for i = 1, 5 do
             P:Size(defensiveCooldowns[i], width, height)
+        end
+
+        defensiveCooldowns:UpdateSize()
+    end
+
+    function defensiveCooldowns:UpdateSize(iconsShown)
+        if not (defensiveCooldowns.width and defensiveCooldowns.height and defensiveCooldowns.orientation) then return end -- not init
+        if iconsShown then -- call from I:UnitButton_UpdateBuffs or preview
+            if defensiveCooldowns.orientation == "horizontal" then
+                defensiveCooldowns:OriginalSetSize(P:Scale(defensiveCooldowns.width)*iconsShown-P:Scale(iconsShown-1), P:Scale(defensiveCooldowns.height))
+            else
+                defensiveCooldowns:OriginalSetSize(P:Scale(defensiveCooldowns.width), P:Scale(defensiveCooldowns.height)*iconsShown-P:Scale(iconsShown-1))
+            end
+        else
+            for i = 1, 5 do
+                if defensiveCooldowns[i]:IsShown() then
+                    if defensiveCooldowns.orientation == "horizontal" then
+                        defensiveCooldowns:OriginalSetSize(P:Scale(defensiveCooldowns.width)*i-P:Scale(i-1), P:Scale(defensiveCooldowns.height))
+                    else
+                        defensiveCooldowns:OriginalSetSize(P:Scale(defensiveCooldowns.width), P:Scale(defensiveCooldowns.height)*i-P:Scale(i-1))
+                    end
+                end
+            end
         end
     end
 
@@ -33,31 +59,41 @@ function I:CreateDefensiveCooldowns(parent)
     function defensiveCooldowns:SetOrientation(orientation)
         local point1, point2, x, y
         if orientation == "left-to-right" then
-            point1 = "LEFT"
-            point2 = "RIGHT"
+            point1 = "TOPLEFT"
+            point2 = "TOPRIGHT"
+            defensiveCooldowns.orientation = "horizontal"
             x = -1
             y = 0
         elseif orientation == "right-to-left" then
-            point1 = "RIGHT"
-            point2 = "LEFT"
+            point1 = "TOPRIGHT"
+            point2 = "TOPLEFT"
+            defensiveCooldowns.orientation = "horizontal"
             x = 1
             y = 0
         elseif orientation == "top-to-bottom" then
-            point1 = "TOP"
-            point2 = "BOTTOM"
+            point1 = "TOPLEFT"
+            point2 = "BOTTOMLEFT"
+            defensiveCooldowns.orientation = "vertical"
             x = 0
             y = 1
         elseif orientation == "bottom-to-top" then
-            point1 = "BOTTOM"
-            point2 = "TOP"
+            point1 = "BOTTOMLEFT"
+            point2 = "TOPLEFT"
+            defensiveCooldowns.orientation = "vertical"
             x = 0
             y = -1
         end
         
-        for i = 2, 5 do
+        for i = 1, 5 do
             P:ClearPoints(defensiveCooldowns[i])
-            P:Point(defensiveCooldowns[i], point1, defensiveCooldowns[i-1], point2, x, y)
+            if i == 1 then
+                P:Point(defensiveCooldowns[i], point1)
+            else
+                P:Point(defensiveCooldowns[i], point1, defensiveCooldowns[i-1], point2, x, y)
+            end
         end
+
+        defensiveCooldowns:UpdateSize()
     end
 
     for i = 1, 5 do
@@ -65,12 +101,12 @@ function I:CreateDefensiveCooldowns(parent)
         local frame = I:CreateAura_BarIcon(name, defensiveCooldowns)
         tinsert(defensiveCooldowns, frame)
 
-        if i == 1 then
-            P:Point(frame, "TOPLEFT")
-        else
-            P:Point(frame, "LEFT", defensiveCooldowns[i-1], "RIGHT", -1, 0)
-        end
-	end
+        -- if i == 1 then
+        --     P:Point(frame, "TOPLEFT")
+        -- else
+        --     P:Point(frame, "LEFT", defensiveCooldowns[i-1], "RIGHT", -1, 0)
+        -- end
+    end
 
     function defensiveCooldowns:ShowDuration(show)
         for i = 1, 5 do
@@ -79,7 +115,7 @@ function I:CreateDefensiveCooldowns(parent)
     end
 
     function defensiveCooldowns:UpdatePixelPerfect()
-        P:Resize(defensiveCooldowns)
+        -- P:Resize(defensiveCooldowns)
         P:Repoint(defensiveCooldowns)
         for i = 1, 5 do
             defensiveCooldowns[i]:UpdatePixelPerfect()
@@ -93,15 +129,40 @@ end
 function I:CreateExternalCooldowns(parent)
     local externalCooldowns = CreateFrame("Frame", parent:GetName().."ExternalCooldownParent", parent.widget.overlayFrame)
     parent.indicators.externalCooldowns = externalCooldowns
-    -- externalCooldowns:SetSize(20, 10)
     externalCooldowns:Hide()
 
     externalCooldowns.OriginalSetSize = externalCooldowns.SetSize
 
     function externalCooldowns:SetSize(width, height)
-        externalCooldowns:OriginalSetSize(width, height)
+        -- externalCooldowns:OriginalSetSize(width, height)
+        externalCooldowns.width = width
+        externalCooldowns.height = height
+
         for i = 1, 5 do
             P:Size(externalCooldowns[i], width, height)
+        end
+
+        externalCooldowns:UpdateSize()
+    end
+
+    function externalCooldowns:UpdateSize(iconsShown)
+        if not (externalCooldowns.width and externalCooldowns.height and externalCooldowns.orientation) then return end -- not init
+        if iconsShown then -- call from I:UnitButton_UpdateBuffs or preview
+            if externalCooldowns.orientation == "horizontal" then
+                externalCooldowns:OriginalSetSize(P:Scale(externalCooldowns.width)*iconsShown-P:Scale(iconsShown-1), P:Scale(externalCooldowns.height))
+            else
+                externalCooldowns:OriginalSetSize(P:Scale(externalCooldowns.width), P:Scale(externalCooldowns.height)*iconsShown-P:Scale(iconsShown-1))
+            end
+        else
+            for i = 1, 5 do
+                if externalCooldowns[i]:IsShown() then
+                    if externalCooldowns.orientation == "horizontal" then
+                        externalCooldowns:OriginalSetSize(P:Scale(externalCooldowns.width)*i-P:Scale(i-1), P:Scale(externalCooldowns.height))
+                    else
+                        externalCooldowns:OriginalSetSize(P:Scale(externalCooldowns.width), P:Scale(externalCooldowns.height)*i-P:Scale(i-1))
+                    end
+                end
+            end
         end
     end
 
@@ -115,44 +176,48 @@ function I:CreateExternalCooldowns(parent)
     function externalCooldowns:SetOrientation(orientation)
         local point1, point2, x, y
         if orientation == "left-to-right" then
-            point1 = "LEFT"
-            point2 = "RIGHT"
+            point1 = "TOPLEFT"
+            point2 = "TOPRIGHT"
+            externalCooldowns.orientation = "horizontal"
             x = -1
             y = 0
         elseif orientation == "right-to-left" then
-            point1 = "RIGHT"
-            point2 = "LEFT"
+            point1 = "TOPRIGHT"
+            point2 = "TOPLEFT"
+            externalCooldowns.orientation = "horizontal"
             x = 1
             y = 0
         elseif orientation == "top-to-bottom" then
-            point1 = "TOP"
-            point2 = "BOTTOM"
+            point1 = "TOPLEFT"
+            point2 = "BOTTOMLEFT"
+            externalCooldowns.orientation = "vertical"
             x = 0
             y = 1
         elseif orientation == "bottom-to-top" then
-            point1 = "BOTTOM"
-            point2 = "TOP"
+            point1 = "BOTTOMLEFT"
+            point2 = "TOPLEFT"
+            externalCooldowns.orientation = "vertical"
             x = 0
             y = -1
         end
         
-        for i = 2, 5 do
+        for i = 1, 5 do
             P:ClearPoints(externalCooldowns[i])
-            P:Point(externalCooldowns[i], point1, externalCooldowns[i-1], point2, x, y)
+            if i == 1 then
+                P:Point(externalCooldowns[i], point1)
+            else
+                P:Point(externalCooldowns[i], point1, externalCooldowns[i-1], point2, x, y)
+            end
         end
+
+        externalCooldowns:UpdateSize()
     end
 
     for i = 1, 5 do
         local name = parent:GetName().."ExternalCooldown"..i
         local frame = I:CreateAura_BarIcon(name, externalCooldowns)
         tinsert(externalCooldowns, frame)
-
-        if i == 1 then
-            P:Point(frame, "TOPLEFT")
-        else
-            P:Point(frame, "RIGHT", externalCooldowns[i-1], "LEFT", 1, 0)
-        end
-	end
+    end
 
     function externalCooldowns:ShowDuration(show)
         for i = 1, 5 do
@@ -161,7 +226,7 @@ function I:CreateExternalCooldowns(parent)
     end
 
     function externalCooldowns:UpdatePixelPerfect()
-        P:Resize(externalCooldowns)
+        -- P:Resize(externalCooldowns)
         P:Repoint(externalCooldowns)
         for i = 1, 5 do
             externalCooldowns[i]:UpdatePixelPerfect()
@@ -180,9 +245,35 @@ function I:CreateAllCooldowns(parent)
     allCooldowns.OriginalSetSize = allCooldowns.SetSize
 
     function allCooldowns:SetSize(width, height)
-        allCooldowns:OriginalSetSize(width, height)
+        -- allCooldowns:OriginalSetSize(width, height)
+        allCooldowns.width = width
+        allCooldowns.height = height
+
         for i = 1, 5 do
             P:Size(allCooldowns[i], width, height)
+        end
+
+        allCooldowns:UpdateSize()
+    end
+
+    function allCooldowns:UpdateSize(iconsShown)
+        if not (allCooldowns.width and allCooldowns.height and allCooldowns.orientation) then return end -- not init
+        if iconsShown then -- call from I:UnitButton_UpdateBuffs or preview
+            if allCooldowns.orientation == "horizontal" then
+                allCooldowns:OriginalSetSize(P:Scale(allCooldowns.width)*iconsShown-P:Scale(iconsShown-1), P:Scale(allCooldowns.height))
+            else
+                allCooldowns:OriginalSetSize(P:Scale(allCooldowns.width), P:Scale(allCooldowns.height)*iconsShown-P:Scale(iconsShown-1))
+            end
+        else
+            for i = 1, 5 do
+                if allCooldowns[i]:IsShown() then
+                    if allCooldowns.orientation == "horizontal" then
+                        allCooldowns:OriginalSetSize(P:Scale(allCooldowns.width)*i-P:Scale(i-1), P:Scale(allCooldowns.height))
+                    else
+                        allCooldowns:OriginalSetSize(P:Scale(allCooldowns.width), P:Scale(allCooldowns.height)*i-P:Scale(i-1))
+                    end
+                end
+            end
         end
     end
 
@@ -196,44 +287,48 @@ function I:CreateAllCooldowns(parent)
     function allCooldowns:SetOrientation(orientation)
         local point1, point2, x, y
         if orientation == "left-to-right" then
-            point1 = "LEFT"
-            point2 = "RIGHT"
+            point1 = "TOPLEFT"
+            point2 = "TOPRIGHT"
+            allCooldowns.orientation = "horizontal"
             x = -1
             y = 0
         elseif orientation == "right-to-left" then
-            point1 = "RIGHT"
-            point2 = "LEFT"
+            point1 = "TOPRIGHT"
+            point2 = "TOPLEFT"
+            allCooldowns.orientation = "horizontal"
             x = 1
             y = 0
         elseif orientation == "top-to-bottom" then
-            point1 = "TOP"
-            point2 = "BOTTOM"
+            point1 = "TOPLEFT"
+            point2 = "BOTTOMLEFT"
+            allCooldowns.orientation = "vertical"
             x = 0
             y = 1
         elseif orientation == "bottom-to-top" then
-            point1 = "BOTTOM"
-            point2 = "TOP"
+            point1 = "BOTTOMLEFT"
+            point2 = "TOPLEFT"
+            allCooldowns.orientation = "vertical"
             x = 0
             y = -1
         end
         
-        for i = 2, 5 do
+        for i = 1, 5 do
             P:ClearPoints(allCooldowns[i])
-            P:Point(allCooldowns[i], point1, allCooldowns[i-1], point2, x, y)
+            if i == 1 then
+                P:Point(allCooldowns[i], point1)
+            else
+                P:Point(allCooldowns[i], point1, allCooldowns[i-1], point2, x, y)
+            end
         end
+
+        allCooldowns:UpdateSize()
     end
 
     for i = 1, 5 do
         local name = parent:GetName().."ExternalCooldown"..i
         local frame = I:CreateAura_BarIcon(name, allCooldowns)
         tinsert(allCooldowns, frame)
-
-        if i == 1 then
-            P:Point(frame, "TOPLEFT")
-        else
-            P:Point(frame, "RIGHT", allCooldowns[i-1], "LEFT", 1, 0)
-        end
-	end
+    end
 
     function allCooldowns:ShowDuration(show)
         for i = 1, 5 do
@@ -242,7 +337,7 @@ function I:CreateAllCooldowns(parent)
     end
 
     function allCooldowns:UpdatePixelPerfect()
-        P:Resize(allCooldowns)
+        -- P:Resize(allCooldowns)
         P:Repoint(allCooldowns)
         for i = 1, 5 do
             allCooldowns[i]:UpdatePixelPerfect()
@@ -263,7 +358,7 @@ function I:CreateTankActiveMitigation(parent)
     bar:SetReverseFill(true)
 
     local tex = bar:CreateTexture(nil, "ARTWORK")
-    tex:SetColorTexture(.7, .7, .7)
+    tex:SetColorTexture(0.7, 0.7, 0.7)
     tex:SetPoint("TOPLEFT")
     tex:SetPoint("BOTTOMRIGHT", bar:GetStatusBarTexture(), "BOTTOMLEFT")
 
@@ -294,43 +389,11 @@ function I:CreateDebuffs(parent)
     -- debuffs:SetSize(11, 11)
     debuffs:Hide()
 
-    debuffs.hAlignment = ""
-    debuffs.vAlignment = ""
-    debuffs.OriginalSetPoint = debuffs.SetPoint
-    function debuffs:SetPoint(point, relativeTo, relativePoint, x, y)
-        debuffs:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
-
-        if string.find(point, "LEFT") then
-            debuffs.hAlignment = "LEFT"
-        elseif string.find(point, "RIGHT") then
-            debuffs.hAlignment = "RIGHT"
-        else
-            debuffs.hAlignment = ""
-        end
-
-        if string.find(point, "TOP") then
-            debuffs.vAlignment = "TOP"
-        elseif string.find(point, "BOTTOM") then
-            debuffs.vAlignment = "BOTTOM"
-        else
-            debuffs.vAlignment = ""
-        end
-
-        if debuffs.vAlignment == "" and debuffs.hAlignment == "" then
-            debuffs.vAlignment = "CENTER"
-        end
-
-        debuffs[1]:ClearAllPoints()
-        debuffs[1]:SetPoint(debuffs.vAlignment..debuffs.hAlignment)
-        --! update others' position
-        debuffs:SetOrientation(debuffs.orientation or "left-to-right")
-    end
-
     debuffs.OriginalSetSize = debuffs.SetSize
     function debuffs:SetSize(normalSize, bigSize)
-        debuffs:OriginalSetSize(P:Scale(normalSize[1]), P:Scale(normalSize[2]))
+        -- debuffs:OriginalSetSize(P:Scale(normalSize[1]), P:Scale(normalSize[2]))
         for i = 1, 10 do
-            debuffs[i]:SetSize(P:Scale(normalSize[1]), P:Scale(normalSize[2]))
+            P:Size(debuffs[i], normalSize[1], normalSize[2])
         end
         -- store sizes for SetCooldown
         debuffs.normalSize = normalSize
@@ -338,6 +401,24 @@ function I:CreateDebuffs(parent)
         -- remove wrong data from UnitButton.lua (UpdateIndicators)
         debuffs.width = nil
         debuffs.height = nil
+
+        debuffs:UpdateSize()
+    end
+
+    function debuffs:UpdateSize()
+        if not (debuffs.normalSize and debuffs.bigSize and debuffs.orientation) then return end -- not init
+
+        local size = 0
+        for i = 1, 10 do
+            if debuffs[i]:IsShown() then
+                size = size + debuffs[i].width
+            end
+        end
+        if debuffs.orientation == "left-to-right" or debuffs.orientation == "right-to-left"  then
+            debuffs:OriginalSetSize(size, debuffs.normalSize[2])
+        else
+            debuffs:OriginalSetSize(debuffs.normalSize[1], size)
+        end
     end
 
     function debuffs:SetFont(font, ...)
@@ -347,13 +428,44 @@ function I:CreateDebuffs(parent)
         end
     end
 
+    debuffs.hAlignment = ""
+    debuffs.vAlignment = ""
+    debuffs.OriginalSetPoint = debuffs.SetPoint
+    function debuffs:SetPoint(point, relativeTo, relativePoint, x, y)
+        debuffs:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
+
+        if string.find(point, "LEFT$") then
+            debuffs.hAlignment = "LEFT"
+        elseif string.find(point, "RIGHT$") then
+            debuffs.hAlignment = "RIGHT"
+        else
+            debuffs.hAlignment = ""
+        end
+
+        if string.find(point, "^TOP") then
+            debuffs.vAlignment = "TOP"
+        elseif string.find(point, "^BOTTOM") then
+            debuffs.vAlignment = "BOTTOM"
+        else
+            debuffs.vAlignment = ""
+        end
+
+        if debuffs.hAlignment == "" and debuffs.vAlignment == "" then
+            debuffs.vAlignment = "CENTER"
+        end
+
+        -- debuffs[1]:ClearAllPoints()
+        -- debuffs[1]:SetPoint(debuffs.vAlignment..debuffs.hAlignment)
+        -- --! update icons
+        debuffs:SetOrientation(debuffs.orientation or "left-to-right")
+    end
+
+    --! NOTE: SetPoint must be invoked before SetOrientation
     function debuffs:SetOrientation(orientation)
         debuffs.orientation = orientation
-
         local point1, point2, v, h
         v = debuffs.vAlignment == "CENTER" and "" or debuffs.vAlignment
         h = debuffs.hAlignment
-
         if orientation == "left-to-right" then
             point1 = v.."LEFT"
             point2 = v.."RIGHT"
@@ -368,10 +480,16 @@ function I:CreateDebuffs(parent)
             point2 = "TOP"..h
         end
         
-        for i = 2, 10 do
-            debuffs[i]:ClearAllPoints()
-            debuffs[i]:SetPoint(point1, debuffs[i-1], point2)
+        for i = 1, 10 do
+            P:ClearPoints(debuffs[i])
+            if i == 1 then
+                P:Point(debuffs[i], point1)
+            else
+                P:Point(debuffs[i], point1, debuffs[i-1], point2)
+            end
         end
+
+        debuffs:UpdateSize()
     end
 
     for i = 1, 10 do
@@ -388,13 +506,7 @@ function I:CreateDebuffs(parent)
                 P:Size(frame, debuffs.normalSize[1], debuffs.normalSize[2])
             end
         end
-
-        -- if i == 1 then
-        --     frame:SetPoint("TOPLEFT")
-        -- else
-        --     frame:SetPoint("LEFT", debuffs[i-1], "RIGHT")
-        -- end
-	end
+    end
 
     function debuffs:ShowDuration(show)
         for i = 1, 10 do
@@ -420,8 +532,11 @@ function I:CreateDebuffs(parent)
     end
 
     function debuffs:UpdatePixelPerfect()
-        debuffs:OriginalSetSize(P:Scale(debuffs.normalSize[1]), P:Scale(debuffs.normalSize[2]))
+        -- debuffs:OriginalSetSize(P:Scale(debuffs.normalSize[1]), P:Scale(debuffs.normalSize[2]))
         P:Repoint(debuffs)
+        for i = 1, 10 do
+            debuffs[i]:UpdatePixelPerfect()
+        end
     end
 end
 
@@ -433,12 +548,13 @@ function I:CreateDispels(parent)
     parent.indicators.dispels = dispels
     dispels:Hide()
 
-    dispels.highlight = parent.widget.healthBar:CreateTexture(parent:GetName().."DispelHighlight", "ARTWORK")
+    dispels.highlight = parent.widget.healthBar:CreateTexture(parent:GetName().."DispelHighlight", "OVERLAY")
     -- dispels.highlight:SetAllPoints(parent.widget.healthBar)
-    dispels.highlight:SetPoint("BOTTOMLEFT", parent.widget.healthBar)
-    dispels.highlight:SetPoint("BOTTOMRIGHT", parent.widget.healthBar)
-    dispels.highlight:SetPoint("TOP", parent.widget.healthBar, "CENTER")
-    dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+    -- dispels.highlight:SetPoint("BOTTOMLEFT", parent.widget.healthBar)
+    -- dispels.highlight:SetPoint("BOTTOMRIGHT", parent.widget.healthBar)
+    -- dispels.highlight:SetPoint("TOP", parent.widget.healthBar)
+    -- dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+    -- dispels.highlight:SetVertexColor(0, 0, 0, 0)
     dispels.highlight:Hide()
 
     dispels.OriginalSetSize = dispels.SetSize
@@ -455,10 +571,12 @@ function I:CreateDispels(parent)
 
         local i = 1
         for dispelType, _ in pairs(dispelTypes) do
-            dispels[i]:SetDispel(dispelType)
-            i = i + 1
-            if dispelType then
+            if a == 0 and dispelType then
                 r, g, b, a = DebuffTypeColor[dispelType].r, DebuffTypeColor[dispelType].g, DebuffTypeColor[dispelType].b, 1
+            end
+            if dispels.showIcons then
+                dispels[i]:SetDispel(dispelType)
+                i = i + 1
             end
         end
 
@@ -468,15 +586,44 @@ function I:CreateDispels(parent)
         end
 
         -- highlight
-        dispels.highlight:SetGradientAlpha("VERTICAL", r, g, b, a, r, g, b, 0)
+        if dispels.highlightType == "entire" then
+            dispels.highlight:SetVertexColor(r, g, b, a ~= 0 and 0.5 or 0)
+        elseif dispels.highlightType == "current" then
+            dispels.highlight:SetVertexColor(r, g, b, a)
+        else
+            if Cell.isRetail then
+                dispels.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, a), CreateColor(r, g, b, 0))
+            else
+                dispels.highlight:SetGradientAlpha("VERTICAL", r, g, b, a, r, g, b, 0)
+            end
+        end
     end
 
-    function dispels:EnableHighlight(enabled)
-        if enabled then
-            dispels.highlight:Show()
-        else
+    function dispels:UpdateHighlight(highlightType)
+        dispels.highlightType = highlightType
+
+        if highlightType == "none" then
             dispels.highlight:Hide()
+        elseif highlightType == "gradient" then
+            dispels.highlight:ClearAllPoints()
+            dispels.highlight:SetAllPoints(parent.widget.healthBar)
+            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+            dispels.highlight:Show()
+        elseif highlightType == "entire" then
+            dispels.highlight:ClearAllPoints()
+            dispels.highlight:SetAllPoints(parent.widget.healthBar)
+            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+            dispels.highlight:Show()
+        elseif highlightType == "current" then
+            dispels.highlight:ClearAllPoints()
+            dispels.highlight:SetAllPoints(parent.widget.healthBar:GetStatusBarTexture())
+            dispels.highlight:SetTexture(Cell.vars.texture)
+            dispels.highlight:Show()
         end
+    end
+
+    function dispels:ShowIcons(show)
+        dispels.showIcons = show
     end
 
     for i = 1, 4 do
@@ -490,7 +637,7 @@ function I:CreateDispels(parent)
             icon:SetPoint("RIGHT", dispels[i-1], "LEFT", 7, 0)
         end
 
-        icon:SetTexCoord(.15, .85, .15, .85)
+        icon:SetTexCoord(0.15, 0.85, 0.15, 0.85)
         icon:SetDrawLayer("ARTWORK", i)
 
         function icon:SetDispel(dispelType)
@@ -628,63 +775,41 @@ function I:CreateRaidDebuffs(parent)
         end
     end
 
-    raidDebuffs.hAlignment = ""
-    raidDebuffs.vAlignment = ""
-    raidDebuffs.isCentered = false
-    raidDebuffs.OriginalSetPoint = raidDebuffs.SetPoint
-    function raidDebuffs:SetPoint(point, relativeTo, relativePoint, x, y)
-        raidDebuffs:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
-
-        if string.find(point, "LEFT") then
-            raidDebuffs.hAlignment = "LEFT"
-        elseif string.find(point, "RIGHT") then
-            raidDebuffs.hAlignment = "RIGHT"
-        else
-            raidDebuffs.hAlignment = ""
-        end
-
-        if string.find(point, "TOP") then
-            raidDebuffs.vAlignment = "TOP"
-        elseif string.find(point, "BOTTOM") then
-            raidDebuffs.vAlignment = "BOTTOM"
-        else
-            raidDebuffs.vAlignment = ""
-        end
-
-        if raidDebuffs.vAlignment == "" and raidDebuffs.hAlignment == "" then
-            raidDebuffs.isCentered = true
-        else
-            raidDebuffs.isCentered = false
-        end
-
-        raidDebuffs:SetOrientation(raidDebuffs.orientation or "left-to-right")
-    end
-
     -- update parent size to make position right
-    function raidDebuffs:UpdateSize()
+    function raidDebuffs:UpdateSize(iconsShown)
         if not (raidDebuffs.orientation and raidDebuffs.width and raidDebuffs.height) then return end
         
-        local shows = 1
-        for i = 2, 3 do
-            if raidDebuffs[i]:IsShown() then
-                shows = shows + 1
+        local width, height = raidDebuffs.width, raidDebuffs.height
+        if iconsShown then -- call from UnitButton_UpdateDebuffs or preview
+            if raidDebuffs.orientation == "horizontal"  then
+                width = P:Scale(raidDebuffs.width) * iconsShown + P:Scale(iconsShown - 1) 
+                height = P:Scale(raidDebuffs.height)
+            else
+                width = P:Scale(raidDebuffs.width)
+                height = P:Scale(raidDebuffs.height) * iconsShown + P:Scale(iconsShown - 1)
+            end
+        else
+            for i = 1, 3 do
+                if raidDebuffs[i]:IsShown() then
+                    if raidDebuffs.orientation == "horizontal"  then
+                        width = P:Scale(raidDebuffs.width) * i + P:Scale(i - 1) 
+                        height = P:Scale(raidDebuffs.height)
+                    else
+                        width = P:Scale(raidDebuffs.width)
+                        height = P:Scale(raidDebuffs.height) * i + P:Scale(i - 1)
+                    end
+                end
             end
         end
 
-        -- gap = 1
-        if raidDebuffs.orientation == "left-to-right" or raidDebuffs.orientation == "right-to-left"  then
-            raidDebuffs:OriginalSetSize(P:Scale(raidDebuffs.width * shows + shows - 1), P:Scale(raidDebuffs.height))
-        elseif raidDebuffs.orientation == "top-to-bottom" or raidDebuffs.orientation == "bottom-to-top" then
-            raidDebuffs:OriginalSetSize(P:Scale(raidDebuffs.width), P:Scale(raidDebuffs.height * shows + shows - 1))
-        end
+        raidDebuffs:OriginalSetSize(width, height)
     end
 
     raidDebuffs.OriginalSetSize = raidDebuffs.SetSize
     function raidDebuffs:SetSize(width, height)
         raidDebuffs.width = width
         raidDebuffs.height = height
-
-        raidDebuffs:OriginalSetSize(width, height)
+        
         for i = 1, 3 do
             raidDebuffs[i]:SetSize(width, height)
         end
@@ -693,37 +818,41 @@ function I:CreateRaidDebuffs(parent)
     end
 
     function raidDebuffs:SetOrientation(orientation)
-        raidDebuffs.orientation = orientation
-
-        local point1, point2, v, h, xOff, yOff
-        v = raidDebuffs.vAlignment
-        h = raidDebuffs.hAlignment
+        local point1, point2, xOff, yOff
 
         if orientation == "left-to-right" then
-            point1 = v.."LEFT"
-            point2 = v.."RIGHT"
+            point1 = "TOPLEFT"
+            point2 = "TOPRIGHT"
+            raidDebuffs.orientation = "horizontal"
             xOff = 1
             yOff = 0
         elseif orientation == "right-to-left" then
-            point1 = v.."RIGHT"
-            point2 = v.."LEFT"
+            point1 = "TOPRIGHT"
+            point2 = "TOPLEFT"
+            raidDebuffs.orientation = "horizontal"
             xOff = -1
             yOff = 0
         elseif orientation == "top-to-bottom" then
-            point1 = "TOP"..h
-            point2 = "BOTTOM"..h
+            point1 = "TOPLEFT"
+            point2 = "BOTTOMLEFT"
+            raidDebuffs.orientation = "vertical"
             xOff = 0
             yOff = -1
         elseif orientation == "bottom-to-top" then
-            point1 = "BOTTOM"..h
-            point2 = "TOP"..h
+            point1 = "BOTTOMLEFT"
+            point2 = "TOPLEFT"
+            raidDebuffs.orientation = "vertical"
             xOff = 0
             yOff = 1
         end
         
         for i = 1, 3 do
-            raidDebuffs[i]:ClearAllPoints()
-            raidDebuffs[i]:SetPoint(point1, raidDebuffs[i-1], point2, P:Scale(xOff), P:Scale(yOff))
+            P:ClearPoints(raidDebuffs[i])
+            if i == 1 then
+                P:Point(raidDebuffs[i], point1)
+            else
+                P:Point(raidDebuffs[i], point1, raidDebuffs[i-1], point2, P:Scale(xOff), P:Scale(yOff))
+            end
         end
 
         raidDebuffs:UpdateSize()
@@ -758,10 +887,10 @@ function I:CreateRaidDebuffs(parent)
         tinsert(raidDebuffs, frame)
         frame:SetScript("OnShow", raidDebuffs.UpdateSize)
         frame:SetScript("OnHide", raidDebuffs.UpdateSize)
-	end
+    end
 
     function raidDebuffs:UpdatePixelPerfect()
-        raidDebuffs:OriginalSetSize(P:Scale(raidDebuffs.width), P:Scale(raidDebuffs.height))
+        -- raidDebuffs:OriginalSetSize(P:Scale(raidDebuffs.width), P:Scale(raidDebuffs.height))
         P:Repoint(raidDebuffs)
         for i = 1, 3 do
             raidDebuffs[i]:UpdatePixelPerfect()
@@ -799,6 +928,12 @@ end
 -------------------------------------------------
 -- name text
 -------------------------------------------------
+local font_name = CreateFont("CELL_FONT_NAME")
+font_name:SetFont(GameFontNormal:GetFont(), 13, "")
+
+local font_status = CreateFont("CELL_FONT_STATUS")
+font_status:SetFont(GameFontNormal:GetFont(), 11, "")
+
 function I:CreateNameText(parent)
     local nameText = CreateFrame("Frame", parent:GetName().."NameText", parent.widget.overlayFrame)
     parent.indicators.nameText = nameText
@@ -823,10 +958,10 @@ function I:CreateNameText(parent)
         if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
 
         if flags == "Shadow" then
-            nameText.name:SetFont(font, size)
+            nameText.name:SetFont(font, size, "")
             nameText.name:SetShadowOffset(1, -1)
             nameText.name:SetShadowColor(0, 0, 0, 1)
-            nameText.vehicle:SetFont(font, size-2)
+            nameText.vehicle:SetFont(font, size-2, "")
             nameText.vehicle:SetShadowOffset(1, -1)
             nameText.vehicle:SetShadowColor(0, 0, 0, 1)
         else
@@ -881,12 +1016,37 @@ function I:CreateNameText(parent)
 
     function nameText:UpdateName()
         local name
-        if Cell.vars.nicknameCustomEnabled then
-            name = Cell.vars.nicknameCustoms[parent.state.fullName] or Cell.vars.nicknameCustoms[parent.state.name] or Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+        
+        -- only check nickname for players
+        if parent.state.isPlayer then
+            if Cell.vars.nicknameCustomEnabled then
+                name = Cell.vars.nicknameCustoms[parent.state.fullName] or Cell.vars.nicknameCustoms[parent.state.name] or Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+            else
+                name = Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+            end
         else
-            name = Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+            name = parent.state.name
         end
+
         F:UpdateTextWidth(nameText.name, name, nameText.width, parent.widget.healthBar)
+
+        if nameText.name:GetText() then
+            if nameText.isPreview then
+                if nameText.showGroupNumber then
+                    nameText.name:SetText("|cffbbbbbb7-|r"..nameText.name:GetText())
+                end
+            else
+                if IsInRaid() and nameText.showGroupNumber then
+                    local raidIndex = UnitInRaid(parent.state.unit)
+                    if raidIndex then
+                        local subgroup = select(3, GetRaidRosterInfo(raidIndex))
+                        -- nameText.name:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\group"..subgroup..":0:0:0:-1:64:64:6:58:6:58|t"..nameText.name:GetText())
+                        nameText.name:SetText("|cffbbbbbb"..subgroup.."-|r"..nameText.name:GetText())
+                    end
+                end
+            end
+        end
+
         nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
     end
 
@@ -921,8 +1081,8 @@ function I:CreateNameText(parent)
 
     function nameText:UpdateTextWidth(width)
         nameText.width = width
-        F:UpdateTextWidth(nameText.name, parent.state.name, width, parent.widget.healthBar)
-        nameText:SetSize(nameText.name:GetWidth(), nameText.name:GetHeight())
+        
+        nameText:UpdateName()
 
         if parent.state.inVehicle or nameText.isPreview then
             F:UpdateTextWidth(nameText.vehicle, nameText.isPreview and L["Vehicle Name"] or UnitName(parent.state.displayedUnit), width, parent.widget.healthBar)
@@ -939,6 +1099,11 @@ function I:CreateNameText(parent)
 
     function nameText:SetColor(r, g, b)
         nameText.name:SetTextColor(r, g, b)
+    end
+
+    function nameText:ShowGroupNumber(show)
+        nameText.showGroupNumber = show
+        nameText:UpdateName()
     end
 
     parent.widget.healthBar:SetScript("OnSizeChanged", function()
@@ -958,14 +1123,14 @@ end
 local startTimeCache = {}
 function I:CreateStatusText(parent)
     local statusText = CreateFrame("Frame", parent:GetName().."StatusText", parent.widget.overlayFrame)
-	parent.indicators.statusText = statusText
-	statusText:Hide()
+    parent.indicators.statusText = statusText
+    statusText:Hide()
 
-	local text = statusText:CreateFontString(nil, "ARTWORK", "CELL_FONT_STATUS")
-	statusText.text = text
+    local text = statusText:CreateFontString(nil, "ARTWORK", "CELL_FONT_STATUS")
+    statusText.text = text
 
     local timer = statusText:CreateFontString(nil, "ARTWORK", "CELL_FONT_STATUS")
-	statusText.timer = timer
+    statusText.timer = timer
     
     function statusText:GetStatus()
         return statusText.status
@@ -1005,10 +1170,10 @@ function I:CreateStatusText(parent)
         if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
 
         if flags == "Shadow" then
-            text:SetFont(font, size)
+            text:SetFont(font, size, "")
             text:SetShadowOffset(1, -1)
             text:SetShadowColor(0, 0, 0, 1)
-            timer:SetFont(font, size)
+            timer:SetFont(font, size, "")
             timer:SetShadowOffset(1, -1)
             timer:SetShadowColor(0, 0, 0, 1)
         else
@@ -1029,29 +1194,29 @@ function I:CreateStatusText(parent)
     end
 
     function statusText:ShowTimer()
-		timer:Show()
-		if not startTimeCache[parent.state.guid] then startTimeCache[parent.state.guid] = GetTime() end
-		
-		statusText.ticker = C_Timer.NewTicker(1, function()
-			if not parent.state.guid and parent.state.unit then -- ElvUI AFK mode
-				parent.state.guid = UnitGUID(parent.state.unit)
-			end
-			if parent.state.guid and startTimeCache[parent.state.guid] then
-				timer:SetFormattedText(F:FormatTime(GetTime() - startTimeCache[parent.state.guid]))
-			else
-				timer:SetText("")
-			end
-		end)
-	end
+        timer:Show()
+        if not startTimeCache[parent.state.guid] then startTimeCache[parent.state.guid] = GetTime() end
+        
+        statusText.ticker = C_Timer.NewTicker(1, function()
+            if not parent.state.guid and parent.state.unit then -- ElvUI AFK mode
+                parent.state.guid = UnitGUID(parent.state.unit)
+            end
+            if parent.state.guid and startTimeCache[parent.state.guid] then
+                timer:SetFormattedText(F:FormatTime(GetTime() - startTimeCache[parent.state.guid]))
+            else
+                timer:SetText("")
+            end
+        end)
+    end
 
-	function statusText:HideTimer(reset)
-		timer:Hide()
-		timer:SetText("")
-		if reset then
-			if statusText.ticker then statusText.ticker:Cancel() end
-			startTimeCache[parent.state.guid] = nil
-		end
-	end
+    function statusText:HideTimer(reset)
+        timer:Hide()
+        timer:SetText("")
+        if reset then
+            if statusText.ticker then statusText.ticker:Cancel() end
+            startTimeCache[parent.state.guid] = nil
+        end
+    end
 end
 
 -------------------------------------------------
@@ -1069,7 +1234,7 @@ function I:CreateHealthText(parent)
         if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
 
         if flags == "Shadow" then
-            text:SetFont(font, size)
+            text:SetFont(font, size, "")
             text:SetShadowOffset(1, -1)
             text:SetShadowColor(0, 0, 0, 1)
         else
@@ -1131,12 +1296,12 @@ end
 -------------------------------------------------
 function I:CreateRoleIcon(parent)
     local roleIcon = parent.widget.overlayFrame:CreateTexture(parent:GetName().."RoleIcon", "ARTWORK", nil, -7)
-	parent.indicators.roleIcon = roleIcon
-	-- roleIcon:SetPoint("TOPLEFT", overlayFrame)
+    parent.indicators.roleIcon = roleIcon
+    -- roleIcon:SetPoint("TOPLEFT", overlayFrame)
     -- roleIcon:SetSize(11, 11)
     
     function roleIcon:SetRole(role)
-        if role == "TANK" or role == "HEALER" or role == "DAMAGER" then
+        if role == "TANK" or role == "HEALER" or (not roleIcon.hideDamager and role == "DAMAGER") then
             if roleIcon.texture == "default" then
                 roleIcon:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\UI-LFG-ICON-PORTRAITROLES.blp")
                 roleIcon:SetTexCoord(GetTexCoordsForRoleSmallCircle(role))
@@ -1163,9 +1328,9 @@ function I:CreateRoleIcon(parent)
                 roleIcon:SetTexCoord(0, 1, 0, 1)
             end
             roleIcon:Show()
-		else
-			roleIcon:Hide()
-		end
+        else
+            roleIcon:Hide()
+        end
     end
 
     function roleIcon:SetRoleTexture(t)
@@ -1174,6 +1339,10 @@ function I:CreateRoleIcon(parent)
         roleIcon.HEALER = t[3]
         roleIcon.DAMAGER = t[4]
     end
+
+    function roleIcon:HideDamager(hide)
+        roleIcon.hideDamager = hide
+    end
 end
 
 -------------------------------------------------
@@ -1181,10 +1350,10 @@ end
 -------------------------------------------------
 function I:CreateLeaderIcon(parent)
     local leaderIcon = parent.widget.overlayFrame:CreateTexture(parent:GetName().."LeaderIcon", "ARTWORK", nil, -7)
-	parent.indicators.leaderIcon = leaderIcon
-	-- leaderIcon:SetPoint("TOPLEFT", roleIcon, "BOTTOM")
-	-- leaderIcon:SetPoint("TOPLEFT", 0, -11)
-	-- leaderIcon:SetSize(11, 11)
+    parent.indicators.leaderIcon = leaderIcon
+    -- leaderIcon:SetPoint("TOPLEFT", roleIcon, "BOTTOM")
+    -- leaderIcon:SetPoint("TOPLEFT", 0, -11)
+    -- leaderIcon:SetSize(11, 11)
     leaderIcon:Hide()
     
     function leaderIcon:SetIcon(isLeader, isAssistant)
@@ -1206,8 +1375,8 @@ end
 function I:CreateReadyCheckIcon(parent)
     local readyCheckIcon = CreateFrame("Frame", parent:GetName().."ReadyCheckIcon", parent.widget.overlayFrame)
     parent.indicators.readyCheckIcon = readyCheckIcon
-	-- readyCheckIcon:SetSize(16, 16)
-	readyCheckIcon:SetPoint("CENTER", parent.widget.healthBar)
+    -- readyCheckIcon:SetSize(16, 16)
+    readyCheckIcon:SetPoint("CENTER", parent.widget.healthBar)
     readyCheckIcon:Hide()
     readyCheckIcon:SetIgnoreParentAlpha(true)
     
@@ -1224,7 +1393,7 @@ end
 -------------------------------------------------
 function I:CreateAggroBorder(parent)
     local aggroBorder = CreateFrame("Frame", parent:GetName().."AggroBorder", parent, "BackdropTemplate")
-	parent.indicators.aggroBorder = aggroBorder
+    parent.indicators.aggroBorder = aggroBorder
     P:Point(aggroBorder, "TOPLEFT", parent, "TOPLEFT", 1, -1)
     P:Point(aggroBorder, "BOTTOMRIGHT", parent, "BOTTOMRIGHT", -1, 1)
     aggroBorder:Hide()
@@ -1235,35 +1404,51 @@ function I:CreateAggroBorder(parent)
     local right = aggroBorder:CreateTexture(nil, "BORDER")
 
     top:SetTexture("Interface\\Buttons\\WHITE8x8")
-    top:SetGradientAlpha("VERTICAL", 1, 0.1, 0.1, 0, 1, 0.1, 0.1, 1)
     top:SetPoint("TOPLEFT")
     top:SetPoint("TOPRIGHT")
     top:SetHeight(5)
-
+    
     bottom:SetTexture("Interface\\Buttons\\WHITE8x8")
-    bottom:SetGradientAlpha("VERTICAL", 1, 0.1, 0.1, 1, 1, 0.1, 0.1, 0)
     bottom:SetPoint("BOTTOMLEFT")
     bottom:SetPoint("BOTTOMRIGHT")
     bottom:SetHeight(5)
-
+    
     left:SetTexture("Interface\\Buttons\\WHITE8x8")
-    left:SetGradientAlpha("HORIZONTAL", 1, 0.1, 0.1, 1, 1, 0.1, 0.1, 0)
     left:SetPoint("TOPLEFT")
     left:SetPoint("BOTTOMLEFT")
     left:SetWidth(5)
-
+    
     right:SetTexture("Interface\\Buttons\\WHITE8x8")
-    right:SetGradientAlpha("HORIZONTAL", 1, 0.1, 0.1, 0, 1, 0.1, 0.1, 1)
     right:SetPoint("TOPRIGHT")
     right:SetPoint("BOTTOMRIGHT")
     right:SetWidth(5)
+    
+    if Cell.isRetail then
+        top:SetGradient("VERTICAL", CreateColor(1, 0.1, 0.1, 0), CreateColor(1, 0.1, 0.1, 1))
+        bottom:SetGradient("VERTICAL", CreateColor(1, 0.1, 0.1, 1), CreateColor(1, 0.1, 0.1, 0))
+        left:SetGradient("HORIZONTAL", CreateColor(1, 0.1, 0.1, 1), CreateColor(1, 0.1, 0.1, 0))
+        right:SetGradient("HORIZONTAL", CreateColor(1, 0.1, 0.1, 0), CreateColor(1, 0.1, 0.1, 1))
 
-    function aggroBorder:ShowAggro(r, g, b)
-        top:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, 1)
-        bottom:SetGradientAlpha("VERTICAL", r, g, b, 1, r, g, b, 0)
-        left:SetGradientAlpha("HORIZONTAL", r, g, b, 1, r, g, b, 0)
-        right:SetGradientAlpha("HORIZONTAL", r, g, b, 0, r, g, b, 1)
-        aggroBorder:Show()
+        function aggroBorder:ShowAggro(r, g, b)
+            top:SetGradient("VERTICAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 1))
+            bottom:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+            left:SetGradient("HORIZONTAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
+            right:SetGradient("HORIZONTAL", CreateColor(r, g, b, 0), CreateColor(r, g, b, 1))
+            aggroBorder:Show()
+        end
+    else
+        top:SetGradientAlpha("VERTICAL", 1, 0.1, 0.1, 0, 1, 0.1, 0.1, 1)
+        bottom:SetGradientAlpha("VERTICAL", 1, 0.1, 0.1, 1, 1, 0.1, 0.1, 0)
+        left:SetGradientAlpha("HORIZONTAL", 1, 0.1, 0.1, 1, 1, 0.1, 0.1, 0)
+        right:SetGradientAlpha("HORIZONTAL", 1, 0.1, 0.1, 0, 1, 0.1, 0.1, 1)
+
+        function aggroBorder:ShowAggro(r, g, b)
+            top:SetGradientAlpha("VERTICAL", r, g, b, 0, r, g, b, 1)
+            bottom:SetGradientAlpha("VERTICAL", r, g, b, 1, r, g, b, 0)
+            left:SetGradientAlpha("HORIZONTAL", r, g, b, 1, r, g, b, 0)
+            right:SetGradientAlpha("HORIZONTAL", r, g, b, 0, r, g, b, 1)
+            aggroBorder:Show()
+        end
     end
 
     function aggroBorder:SetThickness(n)
@@ -1279,13 +1464,13 @@ end
 -------------------------------------------------
 function I:CreateAggroBlink(parent)
     local aggroBlink = CreateFrame("Frame", parent:GetName().."AggroBlink", parent.widget.overlayFrame, "BackdropTemplate")
-	parent.indicators.aggroBlink = aggroBlink
-	-- aggroBlink:SetPoint("TOPLEFT")
-	-- aggroBlink:SetSize(10, 10)
-	aggroBlink:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
-	aggroBlink:SetBackdropColor(1, 0, 0, 1)
-	aggroBlink:SetBackdropBorderColor(0, 0, 0, 1)
-	aggroBlink:Hide()
+    parent.indicators.aggroBlink = aggroBlink
+    -- aggroBlink:SetPoint("TOPLEFT")
+    -- aggroBlink:SetSize(10, 10)
+    aggroBlink:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+    aggroBlink:SetBackdropColor(1, 0, 0, 1)
+    aggroBlink:SetBackdropBorderColor(0, 0, 0, 1)
+    aggroBlink:Hide()
 
     local blink = aggroBlink:CreateAnimationGroup()
     aggroBlink.blink = blink
@@ -1296,14 +1481,14 @@ function I:CreateAggroBlink(parent)
     alpha:SetFromAlpha(1)
     alpha:SetToAlpha(0)
     alpha:SetDuration(0.5)
-	
-	aggroBlink:SetScript("OnShow", function(self)
-		self.blink:Play()
-	end)
-	
-	aggroBlink:SetScript("OnHide", function(self)
-		self.blink:Stop()
-	end)
+    
+    aggroBlink:SetScript("OnShow", function(self)
+        self.blink:Play()
+    end)
+    
+    aggroBlink:SetScript("OnHide", function(self)
+        self.blink:Stop()
+    end)
 
     function aggroBlink:ShowAggro(r, g, b)
         aggroBlink:SetBackdropColor(r, g, b)
@@ -1405,7 +1590,7 @@ function I:CreateStatusIcon(parent)
     resurrectionIcon.icon:SetAllPoints(resurrectionIcon)
     resurrectionIcon.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     resurrectionIcon.icon:SetDesaturated(true)
-    resurrectionIcon.icon:SetVertexColor(.4, .4, .4, .5)
+    resurrectionIcon.icon:SetVertexColor(0.4, 0.4, 0.4, 0.5)
     resurrectionIcon.icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Rez")
 
     function resurrectionIcon:SetTimer(start, duration)
@@ -1446,4 +1631,91 @@ function I:CreateStatusIcon(parent)
         statusIcon:OriginalSetFrameLevel(level)
         resurrectionIcon:SetFrameLevel(level)
     end
+end
+
+-------------------------------------------------
+-- health threshold
+-------------------------------------------------
+function I:CreateHealthThresholds(parent)
+    local healthThresholds = CreateFrame("Frame", parent:GetName().."HealthThresholds", parent.widget.healthBar)
+    parent.indicators.healthThresholds = healthThresholds
+    healthThresholds:SetAllPoints(parent.widget.healthBar)
+    healthThresholds:SetFrameLevel(parent.widget.healthBar:GetFrameLevel()+1)
+    
+    healthThresholds.tex = healthThresholds:CreateTexture(nil, "ARTWORK")
+    
+    function healthThresholds:SetThickness(thickness)
+        healthThresholds.thickness = thickness
+        P:Size(healthThresholds.tex, thickness, thickness)
+    end
+
+    function healthThresholds:SetOrientation(orientation)
+        healthThresholds.orientation = orientation
+        healthThresholds.tex:ClearAllPoints()
+        if orientation == "horizontal" then
+            healthThresholds.tex:SetPoint("TOP")
+            healthThresholds.tex:SetPoint("BOTTOM")
+        else
+            healthThresholds.tex:SetPoint("LEFT")
+            healthThresholds.tex:SetPoint("RIGHT")
+        end
+    end
+    
+    function healthThresholds:CheckThreshold(percent)
+        local found
+        for i, t in ipairs(Cell.vars.healthThresholds) do
+            if percent < t[1] then
+                found = i
+                break
+            end
+        end
+        if found then
+            if healthThresholds.orientation == "horizontal" then
+                healthThresholds.tex:SetPoint("LEFT", Cell.vars.healthThresholds[found][1] * parent.widget.healthBar:GetWidth(), 0)
+            else
+                healthThresholds.tex:SetPoint("BOTTOM", 0, Cell.vars.healthThresholds[found][1] * parent.widget.healthBar:GetHeight())
+            end
+            healthThresholds.tex:SetColorTexture(unpack(Cell.vars.healthThresholds[found][2]))
+            healthThresholds:Show()
+        else
+            healthThresholds:Hide()
+        end
+    end
+
+    if parent == CellIndicatorsPreviewButton then
+        healthThresholds.tex:Hide()
+
+        function healthThresholds:UpdateThresholdsPreview()
+            for i, t in ipairs(Cell.vars.healthThresholds) do
+                healthThresholds[i] = healthThresholds[i] or healthThresholds:CreateTexture(nil, "ARTWORK")
+                P:Size(healthThresholds[i], healthThresholds.thickness, healthThresholds.thickness)
+                healthThresholds[i]:SetColorTexture(unpack(t[2]))
+                -- healthThresholds[i]:SetBlendMode("ADD")
+                
+                healthThresholds[i]:ClearAllPoints()
+                if healthThresholds.orientation == "horizontal" then
+                    healthThresholds[i]:SetPoint("TOP")
+                    healthThresholds[i]:SetPoint("BOTTOM")
+                    healthThresholds[i]:SetPoint("LEFT", t[1] * parent.widget.healthBar:GetWidth(), 0)
+                else
+                    healthThresholds[i]:SetPoint("LEFT")
+                    healthThresholds[i]:SetPoint("RIGHT")
+                    healthThresholds[i]:SetPoint("BOTTOM", 0, t[1] * parent.widget.healthBar:GetHeight())
+                end
+                healthThresholds[i]:Show()
+            end
+            -- hide unused
+            for i = #Cell.vars.healthThresholds+1, #healthThresholds do
+                if healthThresholds[i] then
+                    healthThresholds[i]:Hide()
+                end
+            end
+        end
+    end
+end
+
+-- sort and save
+function I:UpdateHealthThresholds()
+    Cell.vars.healthThresholds = Cell.vars.currentLayoutTable.indicators[Cell.defaults.indicatorIndices.healthThresholds].thresholds
+    F:Sort(Cell.vars.healthThresholds, 1, "ascending")
 end

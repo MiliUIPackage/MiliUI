@@ -27,7 +27,8 @@ Cell.defaults.appearance = {
     ["highlightSize"] = 1,
     ["outOfRangeAlpha"] = 0.45,
     ["healPrediction"] = true,
-    ["healAbsorb"] = true,
+    ["useLibHealComm"] = Cell.isWrath,
+    ["healAbsorb"] = Cell.isRetail,
     ["shield"] = true,
     ["overshield"] = true,
 }

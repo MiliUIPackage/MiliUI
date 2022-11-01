@@ -1,3 +1,4 @@
+-- /script SetAllowDangerousScripts(true)
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
@@ -217,7 +218,7 @@ function SR:UNIT_SPELLCAST_SUCCEEDED(unit, _, spellId)
 end
 
 SR:SetScript("OnEvent", function(self, event, ...)
-	self[event](self, ...)
+    self[event](self, ...)
 end)
 
 -- CELL_SR_SPELLS = srSpells

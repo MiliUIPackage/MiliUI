@@ -37,7 +37,7 @@ end
 local ticker
 local function StartTicker()
     if ticker then ticker:Cancel() end
-    ticker = C_Timer.NewTicker(.25, function()
+    ticker = C_Timer.NewTicker(0.25, function()
         -- reset
         for _, ct in pairs(counter) do
             wipe(ct)
@@ -65,12 +65,19 @@ local function StartTicker()
 
         -- update indicator
         for guid in pairs(Cell.vars.guids) do
-            local b = F:GetUnitButtonByGUID(guid)
-            if b then
+            local b1, b2 = F:GetUnitButtonByGUID(guid)
+            if b1 then
                 if counter[guid] then
-                    b.indicators.targetCounter:SetCount(F:Getn(counter[guid]))
+                    b1.indicators.targetCounter:SetCount(F:Getn(counter[guid]))
                 else
-                    b.indicators.targetCounter:SetCount(0)
+                    b1.indicators.targetCounter:SetCount(0)
+                end
+            end
+            if b2 then
+                if counter[guid] then
+                    b2.indicators.targetCounter:SetCount(F:Getn(counter[guid]))
+                else
+                    b2.indicators.targetCounter:SetCount(0)
                 end
             end
         end
@@ -132,7 +139,7 @@ function I:CreateTargetCounter(parent)
         if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
 
         if flags == "Shadow" then
-            text:SetFont(font, size)
+            text:SetFont(font, size, "")
             text:SetShadowOffset(1, -1)
             text:SetShadowColor(0, 0, 0, 1)
         else

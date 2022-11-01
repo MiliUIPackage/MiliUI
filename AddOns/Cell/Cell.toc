@@ -1,9 +1,10 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: Cell
 ## Title-zhTW: |cFF00CCFF[團隊]|r Cell 團隊框架
 ## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
-## Version: r104-release
+## Version: r135-release
 ## Author: 篠崎
+## X-Flavor: Mainline
 ## SavedVariables: CellDB
 
 ## X-Curse-Project-ID: 409666
@@ -31,6 +32,7 @@ Indicators\Built-in.lua
 Indicators\AoEHealing.lua
 Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
+Indicators\Consumables.lua
 Indicators\Custom.lua
 
 RaidFrame\MainFrame.lua
@@ -39,8 +41,10 @@ RaidFrame\UnitButton.xml
 RaidFrame\Groups\SoloFrame.lua
 RaidFrame\Groups\PartyFrame.lua
 RaidFrame\Groups\RaidFrame.lua
+RaidFrame\Groups\RaidPetFrame.lua
 RaidFrame\Groups\NPCFrame.lua
+RaidFrame\Groups\SpotlightFrame.lua
 
 Tools\LoadTools.xml
-OptionFrames\LoadOptionFrames.xml
+Modules\LoadModules.xml
 RaidDebuffs\LoadRaidDebuffs.xml

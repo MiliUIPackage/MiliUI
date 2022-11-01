@@ -1,0 +1,52 @@
+## Interface: 30400
+## Title: Cell
+## Version: r135-release
+## Author: 篠崎
+## X-Flavor: Wrath
+## SavedVariables: CellDB
+## SavedVariablesPerCharacter: CellCharacterDB
+
+## X-Curse-Project-ID: 409666
+## X-Wago-ID: qv63LLKb
+## X-WoWI-ID: 26244
+
+Locales\enUS.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+Locales\koKR.lua
+
+Libs\LoadLibs_Wrath.xml
+
+Core_Wrath.lua
+Utils.lua
+Revise.lua
+Comm.lua
+Widgets\LoadWidgets.xml
+Defaults\LoadDefaults_Wrath.xml
+
+HideBlizzard.lua
+
+Indicators\Base.lua
+Indicators\Built-in.lua
+Indicators\AoEHealing.lua
+Indicators\TargetCounter.lua
+Indicators\TargetedSpells.lua
+Indicators\Consumables.lua
+Indicators\Custom_Wrath.lua
+
+RaidFrame\MainFrame.lua
+RaidFrame\UnitButton_Wrath.lua
+RaidFrame\UnitButton.xml
+RaidFrame\Groups\SoloFrame.lua
+RaidFrame\Groups\PartyFrame.lua
+RaidFrame\Groups\RaidFrame.lua
+RaidFrame\Groups\RaidPetFrame.lua
+RaidFrame\Groups\NPCFrame.lua
+RaidFrame\Groups\SpotlightFrame.lua
+
+Tools\LoadTools_Wrath.xml
+RaidDebuffs\ExpansionData.lua
+Modules\LoadModules_Wrath.xml
+RaidDebuffs\LoadRaidDebuffs_Wrath.xml
+
+LMAO.lua

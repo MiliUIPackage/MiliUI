@@ -2,21 +2,22 @@ local addonName, addon = ...
 local L = addon.L
 local F = addon.funcs
 local P = addon.pixelPerfectFuncs
+local LCG = LibStub("LibCustomGlow-1.0")
 
 -----------------------------------------
 -- Color
 -----------------------------------------
 local colors = {
-    grey = {s="|cFFB2B2B2", t={.7, .7, .7}},
-    yellow = {s="|cFFFFD100", t= {1, .82, 0}},
-    orange = {s="|cFFFFC0CB", t= {1, .65, 0}},
-    firebrick = {s="|cFFFF3030", t={1, .19, .19}},
-    skyblue = {s="|cFF00CCFF", t={0, .8, 1}},
-    chartreuse = {s="|cFF80FF00", t={.5, 1, 0}},
+    grey = {s="|cFFB2B2B2", t={0.7, 0.7, 0.7}},
+    yellow = {s="|cFFFFD100", t= {1, 0.82, 0}},
+    orange = {s="|cFFFFC0CB", t= {1, 0.65, 0}},
+    firebrick = {s="|cFFFF3030", t={1, 0.19, 0.19}},
+    skyblue = {s="|cFF00CCFF", t={0, 0.8, 1}},
+    chartreuse = {s="|cFF80FF00", t={0.5, 1, 0}},
 }
 
 local class = select(2, UnitClass("player"))
-local classColor = {s="|cCCB2B2B2", t={.7, .7, .7}}
+local classColor = {s="|cCCB2B2B2", t={0.7, 0.7, 0.7}}
 if class then
     classColor.t[1], classColor.t[2], classColor.t[3], classColor.s = GetClassColor(class)
     classColor.s = "|c"..classColor.s
@@ -337,7 +338,7 @@ local function CreateSetting_Thickness(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_Thickness", parent, 240, 50)
         settingWidgets["thickness"] = widget
 
-        widget.size = addon:CreateSlider(L["Size"], widget, 2, 12, 110, 1)
+        widget.size = addon:CreateSlider(L["Size"], widget, 1, 15, 110, 1)
         widget.size:SetPoint("TOPLEFT", widget, 5, -20)
         widget.size.afterValueChangedFn = function(value)
             widget.func(value)
@@ -505,7 +506,7 @@ local function CreateSetting_TextWidth(parent)
                     widget.percent:Hide()
                     widget.lengthValue = 5
                     
-                    if F:IsAsian() then
+                    if Cell.isAsian then
                         widget.length2:SetText(5)
                         widget.length2:Show()
                         widget.func({"length", 5, 5})
@@ -563,10 +564,11 @@ local function CreateSetting_TextWidth(parent)
         widget.length.confirmBtn:SetScript("OnClick", function()
             local length = tonumber(widget.length:GetText())
             widget.length:SetText(length)
+            widget.length:ClearFocus()
             widget.length.confirmBtn:Hide()
             widget.lengthValue = length
             
-            if F:IsAsian() then
+            if Cell.isAsian then
                 widget.func({"length", length, tonumber(widget.length2:GetText()) or widget.lengthValue2})
             else
                 widget.func({"length", length})
@@ -588,7 +590,7 @@ local function CreateSetting_TextWidth(parent)
         widget.length2 = addon:CreateEditBox(widget, 33, 20, false, false, true)
         widget.length2:SetPoint("TOPLEFT", widget.length, "TOPRIGHT", 25, 0)
 
-        if F:IsAsian() then
+        if Cell.isAsian then
             widget.nonEnText = widget.length:CreateFontString(nil, "OVERLAY", font_name)
             widget.nonEnText:SetText(L["NON-EN"])
             widget.nonEnText:SetPoint("BOTTOMLEFT", widget.length, "TOPLEFT", 0, 1)
@@ -605,6 +607,7 @@ local function CreateSetting_TextWidth(parent)
             widget.length2.confirmBtn:SetScript("OnClick", function()
                 local length = tonumber(widget.length2:GetText())
                 widget.length2:SetText(length)
+                widget.length2:ClearFocus()
                 widget.length2.confirmBtn:Hide()
                 widget.func({"length", tonumber(widget.length:GetText()) or widget.lengthValue, length})
                 widget.lengthValue2 = length
@@ -651,7 +654,7 @@ local function CreateSetting_TextWidth(parent)
                 widget.length:Show()
                 widget.percent:Hide()
 
-                if F:IsAsian() then
+                if Cell.isAsian then
                     widget.lengthValue2 = width[3] or width[2]
                     widget.length2:SetText(width[3] or width[2])
                     widget.length2:Show()
@@ -677,7 +680,7 @@ local function CreateSetting_Alpha(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_Alpha", parent, 240, 50)
         settingWidgets["alpha"] = widget
 
-        widget.alpha = addon:CreateSlider(L["Alpha"], widget, 0, 1, 110, .01)
+        widget.alpha = addon:CreateSlider(L["Alpha"], widget, 0, 1, 110, 0.01)
         widget.alpha:SetPoint("TOPLEFT", widget, 5, -20)
         widget.alpha.afterValueChangedFn = function(value)
             widget.func(value)
@@ -813,7 +816,7 @@ local function CreateSetting_Orientation(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_Orientation", parent, 240, 50)
         settingWidgets["orientation"] = widget
 
-        widget.orientation = addon:CreateDropdown(widget, 110)
+        widget.orientation = addon:CreateDropdown(widget, 153)
         widget.orientation:SetPoint("TOPLEFT", 5, -20)
         widget.orientation:SetItems({
             {
@@ -1476,19 +1479,19 @@ local function CreateSetting_Colors(parent)
             {
                 ["text"] = "75%",
                 ["onClick"] = function()
-                    widget.colorsTable[2][4] = .75
+                    widget.colorsTable[2][4] = 0.75
                 end,
             },
             {
                 ["text"] = "50%",
                 ["onClick"] = function()
-                    widget.colorsTable[2][4] = .5
+                    widget.colorsTable[2][4] = 0.5
                 end,
             },
             {
                 ["text"] = "25%",
                 ["onClick"] = function()
-                    widget.colorsTable[2][4] = .25
+                    widget.colorsTable[2][4] = 0.25
                 end,
             },
             {
@@ -1548,6 +1551,7 @@ local function CreateSetting_Colors(parent)
             local newSec = tonumber(secEditBox:GetText())
             widget.colorsTable[3][4] = newSec
             secEditBox:SetText(newSec)
+            secEditBox:ClearFocus()
             secEditBox.confirmBtn:Hide()
         end)
 
@@ -1795,90 +1799,102 @@ local function CreateSetting_StatusColors(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_StatusColors", parent, 240, 100)
         settingWidgets["statusColors"] = widget
 
-        local afkColor = addon:CreateColorPicker(widget, L["AFK"], false, function(r, g, b)
+        local afkColor = addon:CreateColorPicker(widget, L["AFK"], true, function(r, g, b, a)
             widget.colorsTable["AFK"][1] = r
             widget.colorsTable["AFK"][2] = g 
             widget.colorsTable["AFK"][3] = b
+            widget.colorsTable["AFK"][4] = a
             widget.func(nil, "statusColors")
         end)
         afkColor:SetPoint("TOPLEFT", 5, -7)
         
-        local offlineColor = addon:CreateColorPicker(widget, L["OFFLINE"], false, function(r, g, b)
+        local offlineColor = addon:CreateColorPicker(widget, L["OFFLINE"], true, function(r, g, b, a)
             widget.colorsTable["OFFLINE"][1] = r
             widget.colorsTable["OFFLINE"][2] = g 
             widget.colorsTable["OFFLINE"][3] = b
+            widget.colorsTable["OFFLINE"][4] = a
             widget.func(nil, "statusColors")
         end)
         offlineColor:SetPoint("TOPLEFT", afkColor, "TOPRIGHT", 70, 0)
         
-        local deadColor = addon:CreateColorPicker(widget, L["DEAD"], false, function(r, g, b)
+        local deadColor = addon:CreateColorPicker(widget, L["DEAD"], true, function(r, g, b, a)
             widget.colorsTable["DEAD"][1] = r
             widget.colorsTable["DEAD"][2] = g 
             widget.colorsTable["DEAD"][3] = b
+            widget.colorsTable["DEAD"][4] = a
             widget.func(nil, "statusColors")
         end)
         deadColor:SetPoint("TOPLEFT", offlineColor, "TOPRIGHT", 70, 0)
 
-        local ghostColor = addon:CreateColorPicker(widget, L["GHOST"], false, function(r, g, b)
+        local ghostColor = addon:CreateColorPicker(widget, L["GHOST"], true, function(r, g, b, a)
             widget.colorsTable["GHOST"][1] = r
             widget.colorsTable["GHOST"][2] = g 
             widget.colorsTable["GHOST"][3] = b
+            widget.colorsTable["GHOST"][4] = a
             widget.func(nil, "statusColors")
         end)
         ghostColor:SetPoint("TOPLEFT", afkColor, "BOTTOMLEFT", 0, -8)
 
-        local feignColor = addon:CreateColorPicker(widget, L["FEIGN"], false, function(r, g, b)
+        local feignColor = addon:CreateColorPicker(widget, L["FEIGN"], true, function(r, g, b, a)
             widget.colorsTable["FEIGN"][1] = r
             widget.colorsTable["FEIGN"][2] = g 
             widget.colorsTable["FEIGN"][3] = b
+            widget.colorsTable["FEIGN"][4] = a
             widget.func(nil, "statusColors")
         end)
         feignColor:SetPoint("TOPLEFT", ghostColor, "TOPRIGHT", 70, 0)
 
-        local drinkingColor = addon:CreateColorPicker(widget, L["DRINKING"], false, function(r, g, b)
+        local drinkingColor = addon:CreateColorPicker(widget, L["DRINKING"], true, function(r, g, b, a)
             widget.colorsTable["DRINKING"][1] = r
             widget.colorsTable["DRINKING"][2] = g 
             widget.colorsTable["DRINKING"][3] = b
+            widget.colorsTable["DRINKING"][4] = a
             widget.func(nil, "statusColors")
         end)
         drinkingColor:SetPoint("TOPLEFT", feignColor, "TOPRIGHT", 70, 0)
 
-        local pendingColor = addon:CreateColorPicker(widget, L["PENDING"], false, function(r, g, b)
+        local pendingColor = addon:CreateColorPicker(widget, L["PENDING"], true, function(r, g, b, a)
             widget.colorsTable["PENDING"][1] = r
             widget.colorsTable["PENDING"][2] = g 
             widget.colorsTable["PENDING"][3] = b
+            widget.colorsTable["PENDING"][4] = a
             widget.func(nil, "statusColors")
         end)
         pendingColor:SetPoint("TOPLEFT", ghostColor, "BOTTOMLEFT", 0, -8)
+        pendingColor:SetEnabled(Cell.isRetail)
 
-        local acceptedColor = addon:CreateColorPicker(widget, L["ACCEPTED"], false, function(r, g, b)
+        local acceptedColor = addon:CreateColorPicker(widget, L["ACCEPTED"], true, function(r, g, b, a)
             widget.colorsTable["ACCEPTED"][1] = r
             widget.colorsTable["ACCEPTED"][2] = g 
             widget.colorsTable["ACCEPTED"][3] = b
+            widget.colorsTable["ACCEPTED"][4] = a
             widget.func(nil, "statusColors")
         end)
         acceptedColor:SetPoint("TOPLEFT", pendingColor, "TOPRIGHT", 70, 0)
+        acceptedColor:SetEnabled(Cell.isRetail)
 
-        local declinedColor = addon:CreateColorPicker(widget, L["DECLINED"], false, function(r, g, b)
+        local declinedColor = addon:CreateColorPicker(widget, L["DECLINED"], true, function(r, g, b, a)
             widget.colorsTable["DECLINED"][1] = r
             widget.colorsTable["DECLINED"][2] = g 
             widget.colorsTable["DECLINED"][3] = b
+            widget.colorsTable["DECLINED"][4] = a
             widget.func(nil, "statusColors")
         end)
         declinedColor:SetPoint("TOPLEFT", acceptedColor, "TOPRIGHT", 70, 0)
+        declinedColor:SetEnabled(Cell.isRetail)
 
         local resetBtn = addon:CreateButton(widget, L["Reset All"], "accent", {70, 20})
         resetBtn:SetPoint("TOPLEFT", pendingColor, "BOTTOMLEFT", 0, -8)
         resetBtn:SetScript("OnClick", function()
-            widget.colorsTable["AFK"] = {1, 0.19, 0.19}
-            widget.colorsTable["OFFLINE"] = {1, 0.19, 0.19}
-            widget.colorsTable["DEAD"] = {1, 0.19, 0.19}
-            widget.colorsTable["GHOST"] = {1, 0.19, 0.19}
-            widget.colorsTable["FEIGN"] = {1, 1, 0.12}
-            widget.colorsTable["DRINKING"] = {0.12, 0.75, 1}
-            widget.colorsTable["PENDING"] = {1, 1, 0.12}
-            widget.colorsTable["ACCEPTED"] = {0.12, 1, 0.12}
-            widget.colorsTable["DECLINED"] = {1, 0.19, 0.19}
+            widget.colorsTable["AFK"] = {1, 0.19, 0.19, 1}
+            widget.colorsTable["OFFLINE"] = {1, 0.19, 0.19, 1}
+            widget.colorsTable["DEAD"] = {1, 0.19, 0.19, 1}
+            widget.colorsTable["GHOST"] = {1, 0.19, 0.19, 1}
+            widget.colorsTable["FEIGN"] = {1, 1, 0.12, 1}
+            widget.colorsTable["DRINKING"] = {0.12, 0.75, 1, 1}
+            widget.colorsTable["PENDING"] = {1, 1, 0.12, 1}
+            widget.colorsTable["ACCEPTED"] = {0.12, 1, 0.12, 1}
+            widget.colorsTable["DECLINED"] = {1, 0.19, 0.19, 1}
 
             afkColor:SetColor(widget.colorsTable["AFK"])
             offlineColor:SetColor(widget.colorsTable["OFFLINE"])
@@ -1943,6 +1959,8 @@ local function CreateSetting_CheckButton(parent)
             widget.cb:SetText(L[settingName])
             if tooltip then
                 addon:SetTooltips(widget.cb, "ANCHOR_TOPLEFT", 0, 2, L[settingName], string.split("|", tooltip))
+            else
+                addon:ClearTooltips(widget.cb)
             end
         end
     else
@@ -1976,6 +1994,8 @@ local function CreateSetting_CheckButton2(parent)
             widget.cb:SetText(L[settingName])
             if tooltip then
                 addon:SetTooltips(widget.cb, "ANCHOR_TOPLEFT", 0, 2, L[settingName], string.split("|", tooltip))
+            else
+                addon:ClearTooltips(widget.cb)
             end
         end
     else
@@ -2009,6 +2029,8 @@ local function CreateSetting_CheckButton3(parent)
             widget.cb:SetText(L[settingName])
             if tooltip then
                 addon:SetTooltips(widget.cb, "ANCHOR_TOPLEFT", 0, 2, L[settingName], string.split("|", tooltip))
+            else
+                addon:ClearTooltips(widget.cb)
             end
         end
     else
@@ -2093,7 +2115,7 @@ local function CreateSetting_RoleTexture(parent)
     local widget
 
     if not settingWidgets["roleTexture"] then
-        widget = addon:CreateFrame("CellIndicatorSettings_RoleTexture", parent, 240, 165)
+        widget = addon:CreateFrame("CellIndicatorSettings_RoleTexture", parent, 240, 180)
         settingWidgets["roleTexture"] = widget
 
         widget.texture = addon:CreateDropdown(widget, 260)
@@ -2274,7 +2296,7 @@ local function CreateSetting_Glow(parent)
                     widget.glowLines:Show()
                     widget.glowLines:SetValue(9)
                     widget.glowFrequency:Show()
-                    widget.glowFrequency:SetValue(.25)
+                    widget.glowFrequency:SetValue(0.25)
                     widget.glowLength:Show()
                     widget.glowLength:SetValue(8)
                     widget.glowThickness:Show()
@@ -2284,7 +2306,7 @@ local function CreateSetting_Glow(parent)
                     widget.glow[1] = "Pixel"
                     widget.glow[2] = {0.95,0.95,0.32,1}
                     widget.glow[3] = 9
-                    widget.glow[4] = .25
+                    widget.glow[4] = 0.25
                     widget.glow[5] = 8
                     widget.glow[6] = 2
                     widget.func(widget.glow)
@@ -2299,7 +2321,7 @@ local function CreateSetting_Glow(parent)
                     widget.glowParticles:Show()
                     widget.glowParticles:SetValue(9)
                     widget.glowFrequency:Show()
-                    widget.glowFrequency:SetValue(.5)
+                    widget.glowFrequency:SetValue(0.5)
                     widget.glowScale:Show()
                     widget.glowScale:SetValue(100)
                     widget.glowLines:Hide()
@@ -2308,7 +2330,7 @@ local function CreateSetting_Glow(parent)
                     widget.glow[1] = "Shine"
                     widget.glow[2] = {0.95,0.95,0.32,1}
                     widget.glow[3] = 9
-                    widget.glow[4] = .5
+                    widget.glow[4] = 0.5
                     widget.glow[5] = 1
                     widget.glow[6] = nil
                     widget.func(widget.glow)
@@ -2340,7 +2362,7 @@ local function CreateSetting_Glow(parent)
         widget.glowParticles:SetPoint("TOPLEFT", widget.glowType, "BOTTOMLEFT", 0, -25)
 
         -- glowFrequency
-        widget.glowFrequency = addon:CreateSlider(L["Frequency"], widget, -2, 2, 110, .05, function(value)
+        widget.glowFrequency = addon:CreateSlider(L["Frequency"], widget, -2, 2, 110, 0.05, function(value)
             widget.glow[4] = value
             widget.func(widget.glow)
         end)
@@ -2374,7 +2396,7 @@ local function CreateSetting_Glow(parent)
 
         -- show db value
         function widget:SetDBValue(t)
-            -- {"Pixel", {0.95,0.95,0.32,1}, 9, .25, 8, 2},
+            -- {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
             widget.glow = t
             widget.glowType:SetSelectedValue(t[1])
             widget.glowColor:SetColor(t[2])
@@ -2493,43 +2515,43 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
 
     -- tooltip
     if not parent.popupEditBox then
-        local popup = addon:CreatePopupEditBox(parent, 20)
+        local popup = addon:CreatePopupEditBox(parent)
         popup:SetNumeric(true)
 
         popup:SetScript("OnTextChanged", function()
             local spellId = tonumber(popup:GetText())
             if not spellId then
-                CellTooltip:Hide()
+                CellSpellTooltip:Hide()
                 return
             end
 
             local name = GetSpellInfo(spellId)
             if not name then
-                CellTooltip:Hide()
+                CellSpellTooltip:Hide()
                 return
             end
             
-            CellTooltip:SetOwner(popup, "ANCHOR_NONE")
-            CellTooltip:SetPoint("TOPLEFT", popup, "BOTTOMLEFT", 0, -1)
-            CellTooltip:SetHyperlink("spell:"..spellId)
-            CellTooltip:Show()
+            CellSpellTooltip:SetOwner(popup, "ANCHOR_NONE")
+            CellSpellTooltip:SetPoint("TOPLEFT", popup, "BOTTOMLEFT", 0, -1)
+            CellSpellTooltip:SetHyperlink("spell:"..spellId)
+            CellSpellTooltip:Show()
         end)
         
         popup:HookScript("OnHide", function()
-            CellTooltip:Hide()
+            CellSpellTooltip:Hide()
         end)
     end
 
     -- new
     if not auraButtons[0] then
-        auraButtons[0] = addon:CreateButton(parent, "", "transparent-class", {20, 20})
+        auraButtons[0] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
         auraButtons[0]:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\new", {16, 16}, {"RIGHT", -1, 0})
         auraButtons[0]:SetPoint("BOTTOMLEFT")
         auraButtons[0]:SetPoint("RIGHT")
     end
     
     auraButtons[0]:SetScript("OnClick", function(self)
-        local popup = addon:CreatePopupEditBox(parent, self:GetWidth(), function(text)
+        local popup = addon:CreatePopupEditBox(parent, function(text)
             local spellId = tonumber(text)
             local spellName = GetSpellInfo(spellId)
             if (spellId and spellName) or (spellId == 0 and isZeroValid) then
@@ -2543,6 +2565,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
             end
         end)
         popup:SetPoint("TOPLEFT", self)
+        popup:SetPoint("BOTTOMRIGHT", self)
         popup:ShowEditBox("")
         if isZeroValid then
             parent.popupEditBox:SetTips("|cff777777"..L["Enter spell id"]..", 0 = ".. L["all"])
@@ -2555,7 +2578,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
     for i, spell in ipairs(auraTable) do
         -- creation
         if not auraButtons[i] then
-            auraButtons[i] = addon:CreateButton(parent, "", "transparent-class", {20, 20})
+            auraButtons[i] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
 
             -- spellIcon
             auraButtons[i].spellIconBg = auraButtons[i]:CreateTexture(nil, "BORDER")
@@ -2588,56 +2611,56 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
             auraButtons[i].del = addon:CreateButton(auraButtons[i], "", "none", {18, 20}, true, true)
             auraButtons[i].del:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\delete", {16, 16}, {"CENTER", 0, 0})
             auraButtons[i].del:SetPoint("RIGHT")
-            auraButtons[i].del.tex:SetVertexColor(.6, .6, .6, 1)
+            auraButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             auraButtons[i].del:SetScript("OnEnter", function()
                 auraButtons[i]:GetScript("OnEnter")(auraButtons[i])
                 auraButtons[i].del.tex:SetVertexColor(1, 1, 1, 1)
             end)
             auraButtons[i].del:SetScript("OnLeave",  function()
                 auraButtons[i]:GetScript("OnLeave")(auraButtons[i])
-                auraButtons[i].del.tex:SetVertexColor(.6, .6, .6, 1)
+                auraButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             end)
             
             -- edit
             auraButtons[i].edit = addon:CreateButton(auraButtons[i], "", "none", {18, 20}, true, true)
             auraButtons[i].edit:SetPoint("RIGHT", auraButtons[i].del, "LEFT", 1, 0)
             auraButtons[i].edit:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info", {16, 16}, {"CENTER", 0, 0})
-            auraButtons[i].edit.tex:SetVertexColor(.6, .6, .6, 1)
+            auraButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             auraButtons[i].edit:SetScript("OnEnter", function()
                 auraButtons[i]:GetScript("OnEnter")(auraButtons[i])
                 auraButtons[i].edit.tex:SetVertexColor(1, 1, 1, 1)
             end)
             auraButtons[i].edit:SetScript("OnLeave",  function()
                 auraButtons[i]:GetScript("OnLeave")(auraButtons[i])
-                auraButtons[i].edit.tex:SetVertexColor(.6, .6, .6, 1)
+                auraButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             end)
 
             -- down
             auraButtons[i].down = addon:CreateButton(auraButtons[i], "", "none", {18, 20}, true, true)
             auraButtons[i].down:SetPoint("RIGHT", auraButtons[i].edit, "LEFT", 1, 0)
             auraButtons[i].down:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\down", {16, 16}, {"CENTER", 0, 0})
-            auraButtons[i].down.tex:SetVertexColor(.6, .6, .6, 1)
+            auraButtons[i].down.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             auraButtons[i].down:SetScript("OnEnter", function()
                 auraButtons[i]:GetScript("OnEnter")(auraButtons[i])
                 auraButtons[i].down.tex:SetVertexColor(1, 1, 1, 1)
             end)
             auraButtons[i].down:SetScript("OnLeave",  function()
                 auraButtons[i]:GetScript("OnLeave")(auraButtons[i])
-                auraButtons[i].down.tex:SetVertexColor(.6, .6, .6, 1)
+                auraButtons[i].down.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             end)
             
             -- up
             auraButtons[i].up = addon:CreateButton(auraButtons[i], "", "none", {18, 20}, true, true)
             auraButtons[i].up:SetPoint("RIGHT", auraButtons[i].down, "LEFT", 1, 0)
             auraButtons[i].up:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\up", {16, 16}, {"CENTER", 0, 0})
-            auraButtons[i].up.tex:SetVertexColor(.6, .6, .6, 1)
+            auraButtons[i].up.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             auraButtons[i].up:SetScript("OnEnter", function()
                 auraButtons[i]:GetScript("OnEnter")(auraButtons[i])
                 auraButtons[i].up.tex:SetVertexColor(1, 1, 1, 1)
             end)
             auraButtons[i].up:SetScript("OnLeave",  function()
                 auraButtons[i]:GetScript("OnLeave")(auraButtons[i])
-                auraButtons[i].up.tex:SetVertexColor(.6, .6, .6, 1)
+                auraButtons[i].up.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
             end)
         end
         
@@ -2672,19 +2695,19 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
                 if not parent.popupEditBox:IsShown() then
                     local name = GetSpellInfo(self.spellId)
                     if not name then
-                        CellTooltip:Hide()
+                        CellSpellTooltip:Hide()
                         return
                     end
                     
-                    CellTooltip:SetOwner(auraButtons[i], "ANCHOR_NONE")
-                    CellTooltip:SetPoint("TOPRIGHT", auraButtons[i], "TOPLEFT", -1, 0)
-                    CellTooltip:SetHyperlink("spell:"..self.spellId)
-                    CellTooltip:Show()
+                    CellSpellTooltip:SetOwner(auraButtons[i], "ANCHOR_NONE")
+                    CellSpellTooltip:SetPoint("TOPRIGHT", auraButtons[i], "TOPLEFT", -1, 0)
+                    CellSpellTooltip:SetHyperlink("spell:"..self.spellId)
+                    CellSpellTooltip:Show()
                 end
             end)
             auraButtons[i]:HookScript("OnLeave", function()
                 if not parent.popupEditBox:IsShown() then
-                    CellTooltip:Hide()
+                    CellSpellTooltip:Hide()
                 end
             end)
         end
@@ -2727,7 +2750,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
 
         -- functions
         auraButtons[i].edit:SetScript("OnClick", function()
-            local popup = addon:CreatePopupEditBox(parent, auraButtons[i]:GetWidth(), function(text)
+            local popup = addon:CreatePopupEditBox(parent, function(text)
                 local spellId = tonumber(text)
                 if spellId == 0 then
                     if isZeroValid then
@@ -2764,6 +2787,7 @@ local function CreateAuraButtons(parent, auraButtons, auraTable, noUpDownButtons
 
             end)
             popup:SetPoint("TOPLEFT", auraButtons[i])
+            popup:SetPoint("BOTTOMRIGHT", auraButtons[i])
             popup:ShowEditBox(auraButtons[i].spellId or "")
             parent.popupEditBox:SetTips("|cff777777"..L["Enter spell id"])
         end)
@@ -2815,7 +2839,7 @@ local function CreateSetting_Auras(parent)
         widget.frame:SetPoint("TOPLEFT", 5, -20)
         widget.frame:SetPoint("RIGHT", -5, 0)
         widget.frame:Show()
-        addon:StylizeFrame(widget.frame, {.15, .15, .15, 1})
+        addon:StylizeFrame(widget.frame, {0.15, 0.15, 0.15, 1})
 
         widget.text = widget:CreateFontString(nil, "OVERLAY", font_name)
         widget.text:SetPoint("BOTTOMLEFT", widget.frame, "TOPLEFT", 0, 1)
@@ -2855,7 +2879,7 @@ local function CreateSetting_Auras2(parent)
         widget.frame:SetPoint("TOPLEFT", 5, -20)
         widget.frame:SetPoint("RIGHT", -5, 0)
         widget.frame:Show()
-        addon:StylizeFrame(widget.frame, {.15, .15, .15, 1})
+        addon:StylizeFrame(widget.frame, {0.15, 0.15, 0.15, 1})
 
         widget.text = widget:CreateFontString(nil, "OVERLAY", font_name)
         widget.text:SetPoint("BOTTOMLEFT", widget.frame, "TOPLEFT", 0, 1)
@@ -2878,6 +2902,1005 @@ local function CreateSetting_Auras2(parent)
         end
     else
         widget = settingWidgets["auras2"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+local cleuAuraButtons = {}
+local function CreateCleuAuraButtons(parent, auraTable, updateHeightFunc)
+    local n = #auraTable
+
+    -- tooltip
+    if not parent.inputs then
+        local inputs = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+        addon:StylizeFrame(inputs, {0.115, 0.115, 0.115, 1})
+        inputs:SetFrameStrata("DIALOG")
+        inputs:Hide()
+        inputs:SetScript("OnHide", function()
+            inputs:Hide()
+            inputs.spellEB.isValid = false
+            inputs.durationEB.isValid = false
+            inputs.spellEB:SetText("")
+            inputs.durationEB:SetText("")
+            inputs.okBtn:SetEnabled(false)
+            CellSpellTooltip:Hide()
+        end)
+
+        local function Validate()
+            inputs.okBtn:SetEnabled(inputs.spellEB.isValid and inputs.durationEB.isValid)
+        end
+
+        local spellEB = addon:CreateEditBox(inputs, 20, 20, false, false, true)
+        spellEB:SetAutoFocus(true)
+        spellEB.tip = spellEB:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        spellEB.tip:SetTextColor(0.4, 0.4, 0.4, 1)
+        spellEB.tip:SetText("ID")
+        spellEB.tip:SetPoint("RIGHT", -5, 0)
+        spellEB:SetScript("OnTextChanged", function()
+            spellEB.isValid = false
+            local spellId = tonumber(spellEB:GetText())
+            if not spellId then
+                CellSpellTooltip:Hide()
+                Validate()
+                return
+            end
+
+            local name = GetSpellInfo(spellId)
+            if not name then
+                CellSpellTooltip:Hide()
+                Validate()
+                return
+            end
+            
+            CellSpellTooltip:SetOwner(spellEB, "ANCHOR_NONE")
+            CellSpellTooltip:SetPoint("TOPLEFT", spellEB, "BOTTOMLEFT", 0, -1)
+            CellSpellTooltip:SetHyperlink("spell:"..spellId)
+            CellSpellTooltip:Show()
+            spellEB.isValid = true
+            Validate()
+        end)
+        spellEB:HookScript("OnHide", function()
+            CellSpellTooltip:Hide()
+        end)
+        spellEB:SetScript("OnEscapePressed", function()
+            inputs:Hide()
+        end)
+        
+        local durationEB = addon:CreateEditBox(inputs, 20, 20, false, false, true)
+        durationEB:SetAutoFocus(true)
+        durationEB:SetMaxLetters(2)
+        durationEB.tip = durationEB:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+        durationEB.tip:SetTextColor(0.4, 0.4, 0.4, 1)
+        durationEB.tip:SetText(_G.AUCTION_DURATION)
+        durationEB.tip:SetPoint("RIGHT", -5, 0)
+        durationEB:SetScript("OnTextChanged", function()
+            durationEB.isValid = false
+            local duration = tonumber(durationEB:GetText())
+            if not duration or duration == 0 then
+                Validate()
+                return
+            end
+            durationEB.isValid = true
+            Validate()
+        end)
+        durationEB:SetScript("OnEscapePressed", function()
+            inputs:Hide()
+        end)
+
+        spellEB:SetScript("OnTabPressed", function()
+            durationEB:SetFocus(true)
+        end)
+        durationEB:SetScript("OnTabPressed", function()
+            spellEB:SetFocus(true)
+        end)
+
+        local okBtn = addon:CreateButton(inputs, "OK", "green", {40, 20})
+        okBtn:SetEnabled(false)
+
+        spellEB:SetPoint("TOPLEFT")
+        spellEB:SetPoint("BOTTOMRIGHT", inputs, "BOTTOMLEFT", 120, 0)
+        okBtn:SetPoint("BOTTOMRIGHT")
+        okBtn:SetPoint("TOPLEFT", inputs, "TOPRIGHT", -30, 0)
+        durationEB:SetPoint("TOPLEFT", spellEB, "TOPRIGHT", -1, 0)
+        durationEB:SetPoint("BOTTOMRIGHT", okBtn, "BOTTOMLEFT", 1, 0)
+
+        parent.inputs = inputs
+        inputs.spellEB = spellEB
+        inputs.durationEB = durationEB
+        inputs.okBtn = okBtn
+    end
+
+    -- new
+    if not cleuAuraButtons[0] then
+        cleuAuraButtons[0] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+        cleuAuraButtons[0]:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\new", {16, 16}, {"RIGHT", -1, 0})
+        cleuAuraButtons[0]:SetPoint("BOTTOMLEFT")
+        cleuAuraButtons[0]:SetPoint("RIGHT")
+    end
+    
+    cleuAuraButtons[0]:SetScript("OnClick", function(self)
+        parent.inputs:SetPoint("TOPLEFT", self)
+        parent.inputs:SetPoint("BOTTOMRIGHT", self)
+        parent.inputs:Show()
+        parent.inputs.spellEB:SetText("")
+        parent.inputs.durationEB:SetText("")
+        parent.inputs.okBtn:SetEnabled(false)
+        parent.inputs.okBtn:SetScript("OnClick", function()
+            local spellId = tonumber(parent.inputs.spellEB:GetText())
+            local duration = tonumber(parent.inputs.durationEB:GetText())
+            -- update db
+            tinsert(auraTable, {spellId, duration})
+            parent.func(auraTable)
+            CreateCleuAuraButtons(parent, auraTable, updateHeightFunc)
+            updateHeightFunc(19)
+            parent.inputs:Hide()
+        end)
+    end)
+
+    for i, t in ipairs(auraTable) do
+        -- creation
+        if not cleuAuraButtons[i] then
+            cleuAuraButtons[i] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+
+            -- spellIcon
+            cleuAuraButtons[i].spellIconBg = cleuAuraButtons[i]:CreateTexture(nil, "BORDER")
+            cleuAuraButtons[i].spellIconBg:SetSize(16, 16)
+            cleuAuraButtons[i].spellIconBg:SetPoint("TOPLEFT", 2, -2)
+            cleuAuraButtons[i].spellIconBg:SetColorTexture(0, 0, 0, 1)
+            cleuAuraButtons[i].spellIconBg:Hide()
+
+            cleuAuraButtons[i].spellIcon = cleuAuraButtons[i]:CreateTexture(nil, "OVERLAY")
+            cleuAuraButtons[i].spellIcon:SetPoint("TOPLEFT", cleuAuraButtons[i].spellIconBg, 1, -1)
+            cleuAuraButtons[i].spellIcon:SetPoint("BOTTOMRIGHT", cleuAuraButtons[i].spellIconBg, -1, 1)
+            cleuAuraButtons[i].spellIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            cleuAuraButtons[i].spellIcon:Hide()
+
+            -- spellId text
+            cleuAuraButtons[i].spellIdText = cleuAuraButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            cleuAuraButtons[i].spellIdText:SetPoint("LEFT", cleuAuraButtons[i].spellIconBg, "RIGHT", 5, 0)
+            cleuAuraButtons[i].spellIdText:SetPoint("RIGHT", cleuAuraButtons[i], "LEFT", 80, 0)
+            cleuAuraButtons[i].spellIdText:SetWordWrap(false)
+            cleuAuraButtons[i].spellIdText:SetJustifyH("LEFT")
+            
+            -- spellName text
+            cleuAuraButtons[i].spellNameText = cleuAuraButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            cleuAuraButtons[i].spellNameText:SetPoint("LEFT", cleuAuraButtons[i].spellIdText, "RIGHT", 5, 0)
+            cleuAuraButtons[i].spellNameText:SetPoint("RIGHT", -70, 0)
+            cleuAuraButtons[i].spellNameText:SetWordWrap(false)
+            cleuAuraButtons[i].spellNameText:SetJustifyH("LEFT")
+
+            -- duration text
+            cleuAuraButtons[i].durationText = cleuAuraButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            cleuAuraButtons[i].durationText:SetPoint("LEFT", cleuAuraButtons[i].spellNameText, "RIGHT", 5, 0)
+            cleuAuraButtons[i].durationText:SetPoint("RIGHT", -40, 0)
+            cleuAuraButtons[i].durationText:SetWordWrap(false)
+            cleuAuraButtons[i].durationText:SetJustifyH("LEFT")
+
+            -- del
+            cleuAuraButtons[i].del = addon:CreateButton(cleuAuraButtons[i], "", "none", {18, 20}, true, true)
+            cleuAuraButtons[i].del:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\delete", {16, 16}, {"CENTER", 0, 0})
+            cleuAuraButtons[i].del:SetPoint("RIGHT")
+            cleuAuraButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            cleuAuraButtons[i].del:SetScript("OnEnter", function()
+                cleuAuraButtons[i]:GetScript("OnEnter")(cleuAuraButtons[i])
+                cleuAuraButtons[i].del.tex:SetVertexColor(1, 1, 1, 1)
+            end)
+            cleuAuraButtons[i].del:SetScript("OnLeave",  function()
+                cleuAuraButtons[i]:GetScript("OnLeave")(cleuAuraButtons[i])
+                cleuAuraButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            end)
+            
+            -- edit
+            cleuAuraButtons[i].edit = addon:CreateButton(cleuAuraButtons[i], "", "none", {18, 20}, true, true)
+            cleuAuraButtons[i].edit:SetPoint("RIGHT", cleuAuraButtons[i].del, "LEFT", 1, 0)
+            cleuAuraButtons[i].edit:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info", {16, 16}, {"CENTER", 0, 0})
+            cleuAuraButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            cleuAuraButtons[i].edit:SetScript("OnEnter", function()
+                cleuAuraButtons[i]:GetScript("OnEnter")(cleuAuraButtons[i])
+                cleuAuraButtons[i].edit.tex:SetVertexColor(1, 1, 1, 1)
+            end)
+            cleuAuraButtons[i].edit:SetScript("OnLeave",  function()
+                cleuAuraButtons[i]:GetScript("OnLeave")(cleuAuraButtons[i])
+                cleuAuraButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            end)
+        end
+        
+        local name, _, icon = GetSpellInfo(t[1])
+        cleuAuraButtons[i].spellIdText:SetText(t[1])
+        cleuAuraButtons[i].spellNameText:SetText(name or L["Invalid"])
+        cleuAuraButtons[i].durationText:SetText(t[2])
+        if icon then
+            cleuAuraButtons[i].spellIcon:SetTexture(icon)
+            cleuAuraButtons[i].spellIconBg:Show()
+            cleuAuraButtons[i].spellIcon:Show()
+        else
+            cleuAuraButtons[i].spellIconBg:Hide()
+            cleuAuraButtons[i].spellIcon:Hide()
+        end
+        cleuAuraButtons[i].spellId = t[1]
+        cleuAuraButtons[i].duration = t[2]
+
+        -- spell tooltip
+        cleuAuraButtons[i]:HookScript("OnEnter", function(self)
+            if parent.inputs:IsShown() then return end
+
+            local name = GetSpellInfo(self.spellId)
+            if not name then
+                CellSpellTooltip:Hide()
+                return
+            end
+            
+            CellSpellTooltip:SetOwner(cleuAuraButtons[i], "ANCHOR_NONE")
+            CellSpellTooltip:SetPoint("TOPRIGHT", cleuAuraButtons[i], "TOPLEFT", -1, 0)
+            CellSpellTooltip:SetHyperlink("spell:"..self.spellId)
+            CellSpellTooltip:Show()
+        end)
+        cleuAuraButtons[i]:HookScript("OnLeave", function()
+            if parent.inputs:IsShown() then return end
+            CellSpellTooltip:Hide()
+        end)
+        
+        -- points
+        cleuAuraButtons[i]:ClearAllPoints()
+        if i == 1 then -- first
+            cleuAuraButtons[i]:SetPoint("TOPLEFT")
+        else
+            cleuAuraButtons[i]:SetPoint("TOPLEFT", cleuAuraButtons[i-1], "BOTTOMLEFT", 0, 1)
+        end
+        cleuAuraButtons[i]:SetPoint("RIGHT")
+        cleuAuraButtons[i]:Show()
+
+        -- functions
+        cleuAuraButtons[i].edit:SetScript("OnClick", function()
+            parent.inputs:SetPoint("TOPLEFT", cleuAuraButtons[i])
+            parent.inputs:SetPoint("BOTTOMRIGHT", cleuAuraButtons[i])
+            parent.inputs:Show()
+            parent.inputs.spellEB:SetText(cleuAuraButtons[i].spellId)
+            parent.inputs.durationEB:SetText(cleuAuraButtons[i].duration)
+            parent.inputs.okBtn:SetEnabled(false)
+            parent.inputs.okBtn:SetScript("OnClick", function()
+                local spellId = tonumber(parent.inputs.spellEB:GetText())
+                local duration = tonumber(parent.inputs.durationEB:GetText())
+                local spellName, _, spellIcon = GetSpellInfo(spellId)
+                -- update text
+                cleuAuraButtons[i].spellIdText:SetText(spellId)
+                cleuAuraButtons[i].spellNameText:SetText(spellName)
+                cleuAuraButtons[i].durationText:SetText(duration)
+                cleuAuraButtons[i].spellId = spellId
+                cleuAuraButtons[i].duration = duration
+                -- update db
+                auraTable[i] = {spellId, duration}
+                parent.func(auraTable)
+                if spellIcon then
+                    cleuAuraButtons[i].spellIcon:SetTexture(spellIcon)
+                    cleuAuraButtons[i].spellIconBg:Show()
+                    cleuAuraButtons[i].spellIcon:Show()
+                else
+                    cleuAuraButtons[i].spellIconBg:Hide()
+                    cleuAuraButtons[i].spellIcon:Hide()
+                end
+                parent.inputs:Hide()
+            end)
+        end)
+
+        cleuAuraButtons[i].del:SetScript("OnClick", function()
+            tremove(auraTable, i)
+            parent.func(auraTable)
+            CreateCleuAuraButtons(parent, auraTable, updateHeightFunc)
+            updateHeightFunc(-19)
+        end)
+    end
+
+    for i = n+1, #cleuAuraButtons do
+        cleuAuraButtons[i]:Hide()
+        cleuAuraButtons[i]:ClearAllPoints()
+    end
+end
+
+local function CreateSetting_CleuAuras(parent)
+    local widget
+
+    if not settingWidgets["cleuAuras"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_CleuAuras", parent, 240, 128)
+        settingWidgets["cleuAuras"] = widget
+
+        widget.frame = addon:CreateFrame(nil, widget, 20, 20)
+        widget.frame:SetPoint("TOPLEFT", 5, -20)
+        widget.frame:SetPoint("RIGHT", -5, 0)
+        widget.frame:Show()
+        addon:StylizeFrame(widget.frame, {0.15, 0.15, 0.15, 1})
+
+        widget.text = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.text:SetPoint("BOTTOMLEFT", widget.frame, "TOPLEFT", 0, 1)
+
+        -- associate db
+        function widget:SetFunc(func)
+            widget.frame.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(t)
+            widget.text:SetText(L["cleuAurasTips"])
+            CreateCleuAuraButtons(widget.frame, t, function(diff)
+                widget.frame:SetHeight((#t+1)*19+1)
+                widget:SetHeight((#t+1)*19+1 + 20 + 5)
+                if diff then parent:SetHeight(parent:GetHeight()+diff) end
+            end)
+            widget.frame:SetHeight((#t+1)*19+1)
+            widget:SetHeight((#t+1)*19+1 + 20 + 5)
+        end
+    else
+        widget = settingWidgets["cleuAuras"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+local function CreateConsumablePreview(parent, style)
+    local f = CreateFrame("Frame", "CellIndicatorSettings_ConsumablesPreview_Type"..style, parent, "BackdropTemplate")
+    f:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+    f:SetBackdropColor(0.2, 0.2, 0.2, 1)
+    f:SetBackdropBorderColor(0, 0, 0, 1)
+
+    local text = f:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    text:SetPoint("CENTER")
+    text:SetText("Type "..style)
+    
+    Cell.iFuncs:CreateConsumables(f, true)
+
+    function f:UpdateTicker(speed)
+        f:SetScript("OnShow", function()
+            f.consumables:ShowUp(style, {1, 1, 1})
+            f.ticker = C_Timer.NewTicker(2/speed, function()
+                f.consumables:ShowUp(style, {1, 1, 1})
+            end)
+        end)
+    
+        f:SetScript("OnHide", function()
+            if f.ticker then
+                f.ticker:Cancel()
+                f.ticker = nil
+            end
+        end)
+    end
+
+    return f
+end
+
+local function CreateSetting_ConsumablesPreview(parent)
+    local widget
+
+    if not settingWidgets["consumablesPreview"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_ConsumablesPreview", parent, 240, 220)
+        settingWidgets["consumablesPreview"] = widget
+
+        local typeA = CreateConsumablePreview(widget, "A")
+        typeA:SetSize(70, 50)
+        typeA:SetPoint("TOPLEFT", 5, -5)
+        
+        local typeB = CreateConsumablePreview(widget, "B")
+        typeB:SetSize(70, 50)
+        typeB:SetPoint("TOPLEFT", typeA, "TOPRIGHT", 5, 0)
+
+        local typeD = CreateConsumablePreview(widget, "D")
+        typeD:SetSize(70, 50)
+        typeD:SetPoint("TOPLEFT", typeB, "TOPRIGHT", 5, 0)
+        
+        local typeC1 = CreateConsumablePreview(widget, "C1")
+        typeC1:SetSize(70, 50)
+        typeC1:SetPoint("TOPLEFT", typeA, "BOTTOMLEFT", 0, -5)
+        
+        local typeC2 = CreateConsumablePreview(widget, "C2")
+        typeC2:SetSize(70, 50)
+        typeC2:SetPoint("TOPLEFT", typeC1, "TOPRIGHT", 5, 0)
+        
+        local typeC3 = CreateConsumablePreview(widget, "C3")
+        typeC3:SetSize(70, 50)
+        typeC3:SetPoint("TOPLEFT", typeC2, "TOPRIGHT", 5, 0)
+        
+        local typeE = CreateConsumablePreview(widget, "E")
+        typeE:SetSize(70, 50)
+        typeE:SetPoint("TOPLEFT", typeC1, "BOTTOMLEFT", 0, -5)
+
+        local previews = {
+            A = typeA,
+            B = typeB,
+            C1 = typeC1,
+            C2 = typeC2,
+            C3 = typeC3,
+            D = typeD,
+            E = typeE,
+        }
+       
+        local speedSlider = addon:CreateSlider(_G.SPEED, widget, 0.5, 1.5, 145, 0.05)
+        speedSlider:SetPoint("TOPLEFT", typeE, "BOTTOMLEFT", 0, -25)
+        speedSlider.afterValueChangedFn = function(value)
+            widget.func(value)
+
+            for _, f in pairs(previews) do
+                f:UpdateTicker(value)
+                f.consumables:SetSpeed(value)
+                f:Hide()
+                f:Show()
+            end
+        end
+
+        function widget:SetDBValue(speed)
+            speedSlider:SetValue(speed)
+
+            for _, f in pairs(previews) do
+                f:UpdateTicker(speed)
+                f.consumables:SetSpeed(speed)
+                f:Hide()
+                f:Show()
+            end
+        end
+
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+    else
+        widget = settingWidgets["consumablesPreview"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+local consumableButtons = {}
+local function CreateConsumableButtons(parent, spellTable, updateHeightFunc)
+    local n = #spellTable
+
+    -- tooltip
+    if not parent.popupEditBox then
+        local popup = addon:CreatePopupEditBox(parent)
+        popup:SetNumeric(true)
+
+        popup:SetScript("OnTextChanged", function()
+            local spellId = tonumber(popup:GetText())
+            if not spellId then
+                CellSpellTooltip:Hide()
+                return
+            end
+
+            local name = GetSpellInfo(spellId)
+            if not name then
+                CellSpellTooltip:Hide()
+                return
+            end
+            
+            CellSpellTooltip:SetOwner(popup, "ANCHOR_NONE")
+            CellSpellTooltip:SetPoint("TOPLEFT", popup, "BOTTOMLEFT", 0, -1)
+            CellSpellTooltip:SetHyperlink("spell:"..spellId)
+            CellSpellTooltip:Show()
+        end)
+        
+        popup:HookScript("OnHide", function()
+            CellSpellTooltip:Hide()
+        end)
+    end
+
+    -- new
+    if not consumableButtons[0] then
+        consumableButtons[0] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+        consumableButtons[0]:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\new", {16, 16}, {"RIGHT", -1, 0})
+        consumableButtons[0]:SetPoint("BOTTOMLEFT")
+        consumableButtons[0]:SetPoint("RIGHT")
+    end
+    
+    consumableButtons[0]:SetScript("OnClick", function(self)
+        local popup = addon:CreatePopupEditBox(parent, function(text)
+            local spellId = tonumber(text)
+            local spellName = GetSpellInfo(spellId)
+            if spellId and spellName then
+                -- update db
+                tinsert(spellTable, {
+                    spellId,
+                    {"A", {1, 1, 1}}
+                })
+                parent.func(spellTable)
+                CreateConsumableButtons(parent, spellTable, updateHeightFunc)
+                updateHeightFunc(19)
+            else
+                F:Print(L["Invalid spell id."])
+            end
+        end)
+        popup:SetPoint("TOPLEFT", self)
+        popup:SetPoint("BOTTOMRIGHT", self)
+        popup:ShowEditBox("")
+        parent.popupEditBox:SetTips("|cff777777"..L["Enter spell id"])
+    end)
+
+
+    for i, spell in ipairs(spellTable) do
+        -- creation
+        if not consumableButtons[i] then
+            consumableButtons[i] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+
+            -- spellIcon
+            consumableButtons[i].spellIconBg = consumableButtons[i]:CreateTexture(nil, "BORDER")
+            consumableButtons[i].spellIconBg:SetSize(16, 16)
+            consumableButtons[i].spellIconBg:SetPoint("TOPLEFT", 2, -2)
+            consumableButtons[i].spellIconBg:SetColorTexture(0, 0, 0, 1)
+            consumableButtons[i].spellIconBg:Hide()
+
+            consumableButtons[i].spellIcon = consumableButtons[i]:CreateTexture(nil, "OVERLAY")
+            consumableButtons[i].spellIcon:SetPoint("TOPLEFT", consumableButtons[i].spellIconBg, 1, -1)
+            consumableButtons[i].spellIcon:SetPoint("BOTTOMRIGHT", consumableButtons[i].spellIconBg, -1, 1)
+            consumableButtons[i].spellIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            consumableButtons[i].spellIcon:Hide()
+
+            -- spellId text
+            consumableButtons[i].spellIdText = consumableButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            consumableButtons[i].spellIdText:SetPoint("LEFT", consumableButtons[i].spellIconBg, "RIGHT", 5, 0)
+            consumableButtons[i].spellIdText:SetPoint("RIGHT", consumableButtons[i], "LEFT", 80, 0)
+            consumableButtons[i].spellIdText:SetWordWrap(false)
+            consumableButtons[i].spellIdText:SetJustifyH("LEFT")
+            
+            -- spellName text
+            consumableButtons[i].spellNameText = consumableButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            consumableButtons[i].spellNameText:SetPoint("LEFT", consumableButtons[i].spellIdText, "RIGHT", 5, 0)
+            consumableButtons[i].spellNameText:SetPoint("RIGHT", -90, 0)
+            consumableButtons[i].spellNameText:SetWordWrap(false)
+            consumableButtons[i].spellNameText:SetJustifyH("LEFT")
+
+            -- style dropdown
+            consumableButtons[i].styleDropdown = addon:CreateDropdown(consumableButtons[i], 30, nil, true)
+            P:Height(consumableButtons[i].styleDropdown, 16)
+            consumableButtons[i].styleDropdown:SetPoint("TOPLEFT", consumableButtons[i], 180, -2)
+            consumableButtons[i].styleDropdown.button:HookScript("OnEnter", function()
+                consumableButtons[i]:GetScript("OnEnter")(consumableButtons[i])
+            end)
+            consumableButtons[i].styleDropdown.button:HookScript("OnLeave", function()
+                consumableButtons[i]:GetScript("OnLeave")(consumableButtons[i])
+            end)
+
+            local items = {}
+            for _, style in pairs({"A", "B", "C1", "C2", "C3", "D", "E"}) do
+                tinsert(items, {
+                    ["text"] = style,
+                    ["onClick"] = function()
+                        CellIndicatorsPreviewButton.indicators.consumables:ShowUp(style, consumableButtons[i].animationColor)
+                        consumableButtons[i].animationType = style
+                        -- update db
+                        spellTable[i][2][1] = style
+                        parent.func(spellTable)
+                    end,
+                })
+            end
+            consumableButtons[i].styleDropdown:SetItems(items)
+
+            -- color
+            consumableButtons[i].colorPicker = addon:CreateColorPicker(consumableButtons[i], "", false, nil, function(r, g, b, a)
+                spellTable[i][2][2][1] = r
+                spellTable[i][2][2][2] = g
+                spellTable[i][2][2][3] = b
+                parent.func(spellTable)
+                consumableButtons[i].animationColor = {r, g, b}
+                CellIndicatorsPreviewButton.indicators.consumables:ShowUp(consumableButtons[i].animationType, consumableButtons[i].animationColor)
+            end)
+            consumableButtons[i].colorPicker:SetPoint("TOPLEFT", consumableButtons[i].styleDropdown, "TOPRIGHT", 2, -1)
+            consumableButtons[i].colorPicker:HookScript("OnEnter", function()
+                consumableButtons[i]:GetScript("OnEnter")(consumableButtons[i])
+            end)
+            consumableButtons[i].colorPicker:HookScript("OnLeave", function()
+                consumableButtons[i]:GetScript("OnLeave")(consumableButtons[i])
+            end)
+
+            -- del
+            consumableButtons[i].del = addon:CreateButton(consumableButtons[i], "", "none", {18, 20}, true, true)
+            consumableButtons[i].del:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\delete", {16, 16}, {"CENTER", 0, 0})
+            consumableButtons[i].del:SetPoint("RIGHT")
+            consumableButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            consumableButtons[i].del:SetScript("OnEnter", function()
+                consumableButtons[i]:GetScript("OnEnter")(consumableButtons[i])
+                consumableButtons[i].del.tex:SetVertexColor(1, 1, 1, 1)
+            end)
+            consumableButtons[i].del:SetScript("OnLeave",  function()
+                consumableButtons[i]:GetScript("OnLeave")(consumableButtons[i])
+                consumableButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            end)
+            
+            -- edit
+            consumableButtons[i].edit = addon:CreateButton(consumableButtons[i], "", "none", {18, 20}, true, true)
+            consumableButtons[i].edit:SetPoint("RIGHT", consumableButtons[i].del, "LEFT", 1, 0)
+            consumableButtons[i].edit:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info", {16, 16}, {"CENTER", 0, 0})
+            consumableButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            consumableButtons[i].edit:SetScript("OnEnter", function()
+                consumableButtons[i]:GetScript("OnEnter")(consumableButtons[i])
+                consumableButtons[i].edit.tex:SetVertexColor(1, 1, 1, 1)
+            end)
+            consumableButtons[i].edit:SetScript("OnLeave",  function()
+                consumableButtons[i]:GetScript("OnLeave")(consumableButtons[i])
+                consumableButtons[i].edit.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            end)
+
+            -- preview
+            consumableButtons[i]:SetScript("OnClick", function(self, button)
+                CellIndicatorsPreviewButton.indicators.consumables:ShowUp(consumableButtons[i].animationType, consumableButtons[i].animationColor)
+            end)
+        end
+        
+        -- fill data
+        local name, _, icon = GetSpellInfo(spell[1])
+        consumableButtons[i].spellIdText:SetText(spell[1])
+        consumableButtons[i].spellId = spell[1]
+        consumableButtons[i].spellNameText:SetText(name or L["Invalid"])
+        if icon then
+            consumableButtons[i].spellIcon:SetTexture(icon)
+            consumableButtons[i].spellIconBg:Show()
+            consumableButtons[i].spellIcon:Show()
+        else
+            consumableButtons[i].spellIconBg:Hide()
+            consumableButtons[i].spellIcon:Hide()
+        end
+
+        consumableButtons[i].animationType = spell[2][1]
+        consumableButtons[i].styleDropdown:SetSelected(spell[2][1])
+        consumableButtons[i].animationColor = spell[2][2]
+        consumableButtons[i].colorPicker:SetColor(spell[2][2])
+
+        -- spell tooltip
+        consumableButtons[i]:HookScript("OnEnter", function(self)
+            if not parent.popupEditBox:IsShown() then
+                local name = GetSpellInfo(self.spellId)
+                if not name then
+                    CellSpellTooltip:Hide()
+                    return
+                end
+                
+                CellSpellTooltip:SetOwner(consumableButtons[i], "ANCHOR_NONE")
+                CellSpellTooltip:SetPoint("TOPRIGHT", consumableButtons[i], "TOPLEFT", -1, 0)
+                CellSpellTooltip:SetHyperlink("spell:"..self.spellId)
+                CellSpellTooltip:Show()
+            end
+        end)
+        consumableButtons[i]:HookScript("OnLeave", function()
+            if not parent.popupEditBox:IsShown() then
+                CellSpellTooltip:Hide()
+            end
+        end)
+        
+        -- points
+        consumableButtons[i]:ClearAllPoints()
+        if i == 1 then -- first
+            consumableButtons[i]:SetPoint("TOPLEFT")
+        else
+            consumableButtons[i]:SetPoint("TOPLEFT", consumableButtons[i-1], "BOTTOMLEFT", 0, 1)
+        end
+        consumableButtons[i]:SetPoint("RIGHT")
+        consumableButtons[i]:Show()
+
+        -- functions
+        consumableButtons[i].edit:SetScript("OnClick", function()
+            local popup = addon:CreatePopupEditBox(parent, function(text)
+                local spellId = tonumber(text)
+                local spellName, _, spellIcon = GetSpellInfo(spellId)
+                if spellId and spellName then
+                    -- update text
+                    consumableButtons[i].spellIdText:SetText(spellId)
+                    consumableButtons[i].spellId = spellId
+                    consumableButtons[i].spellNameText:SetText(spellName)
+                    -- update db
+                    spellTable[i][1] = spellId
+                    parent.func(spellTable)
+                    if spellIcon then
+                        consumableButtons[i].spellIcon:SetTexture(spellIcon)
+                        consumableButtons[i].spellIconBg:Show()
+                        consumableButtons[i].spellIcon:Show()
+                    else
+                        consumableButtons[i].spellIconBg:Hide()
+                        consumableButtons[i].spellIcon:Hide()
+                    end
+                else
+                    F:Print(L["Invalid spell id."])
+                end
+            end)
+            popup:SetPoint("TOPLEFT", consumableButtons[i])
+            popup:SetPoint("BOTTOMRIGHT", consumableButtons[i])
+            popup:ShowEditBox(consumableButtons[i].spellId or "")
+            parent.popupEditBox:SetTips("|cff777777"..L["Enter spell id"])
+        end)
+
+        consumableButtons[i].del:SetScript("OnClick", function()
+            tremove(spellTable, i)
+            parent.func(spellTable)
+            CreateConsumableButtons(parent, spellTable, updateHeightFunc)
+            updateHeightFunc(-19)
+        end)
+    end
+
+    for i = n+1, #consumableButtons do
+        consumableButtons[i]:Hide()
+        consumableButtons[i]:ClearAllPoints()
+    end
+end
+
+local function CreateSetting_ConsumablesList(parent)
+    local widget
+
+    if not settingWidgets["consumablesList"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_ConsumablesList", parent, 240, 128)
+        settingWidgets["consumablesList"] = widget
+
+        widget.text = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.text:SetPoint("TOPLEFT", 7, -7)
+        widget.text:SetText(L["Click to preview"])
+
+        widget.debug = addon:CreateButton(widget, L["Debug Mode"], "accent", {100, 17})
+        widget.debug:SetPoint("TOPRIGHT", -5, -5)
+        widget.debug.enabled = false
+        widget.debug:SetScript("OnClick", function(self)
+            if self.enabled then
+                self.enabled = false
+                LCG.PixelGlow_Stop(widget.debug)
+            else
+                self.enabled = true
+                LCG.PixelGlow_Start(widget.debug, {0,1,0,1}, 9, 0.25, 8, 1)
+            end
+            Cell.vars.consumablesDebugModeEnabled = self.enabled
+        end)
+
+        widget.frame = addon:CreateFrame(nil, widget, 20, 20)
+        widget.frame:SetPoint("TOPLEFT", 5, -27)
+        widget.frame:SetPoint("RIGHT", -5, 0)
+        widget.frame:Show()
+        addon:StylizeFrame(widget.frame, {0.15, 0.15, 0.15, 1})
+
+        -- associate db
+        function widget:SetFunc(func)
+            widget.frame.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(t)
+            CreateConsumableButtons(widget.frame, t, function(diff)
+                widget.frame:SetHeight((#t+1)*19+1)
+                widget:SetHeight((#t+1)*19+1 + 27 + 5)
+                if diff then parent:SetHeight(parent:GetHeight()+diff) end
+            end)
+            widget.frame:SetHeight((#t+1)*19+1)
+            widget:SetHeight((#t+1)*19+1 + 27 + 5)
+        end
+    else
+        widget = settingWidgets["consumablesList"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+local thresholdButtons = {}
+local function CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
+    local n = #thresholdTable
+
+    -- new
+    if not thresholdButtons[0] then
+        thresholdButtons[0] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+        thresholdButtons[0]:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\new", {16, 16}, {"RIGHT", -1, 0})
+        thresholdButtons[0]:SetPoint("BOTTOMLEFT")
+        thresholdButtons[0]:SetPoint("RIGHT")
+    end
+    
+    thresholdButtons[0]:SetScript("OnClick", function(self)
+        tinsert(thresholdTable, {0.99, {1, 0, 0, 1}})
+        parent.func(thresholdTable)
+        CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
+        updateHeightFunc(19)
+    end)
+
+
+    for i, t in ipairs(thresholdTable) do
+        -- creation
+        if not thresholdButtons[i] then
+            thresholdButtons[i] = addon:CreateButton(parent, "", "transparent-accent", {20, 20})
+
+            -- threshold
+            thresholdButtons[i].eb = addon:CreateEditBox(thresholdButtons[i], 35, 16, false, false, true)
+            thresholdButtons[i].eb:SetPoint("TOPLEFT", 2, -2)
+            thresholdButtons[i].eb:SetMaxLetters(2)
+            thresholdButtons[i].eb:HookScript("OnEnter", function()
+                thresholdButtons[i]:GetScript("OnEnter")(thresholdButtons[i])
+            end)
+            thresholdButtons[i].eb:HookScript("OnLeave", function()
+                thresholdButtons[i]:GetScript("OnLeave")(thresholdButtons[i])
+            end)
+            
+            thresholdButtons[i].confirmBtn = addon:CreateButton(thresholdButtons[i], "OK", "accent", {27, 16})
+            thresholdButtons[i].confirmBtn:SetPoint("TOPLEFT", thresholdButtons[i].eb, "TOPRIGHT", P:Scale(-1), 0)
+            thresholdButtons[i].confirmBtn:Hide()
+            thresholdButtons[i].confirmBtn:SetScript("OnHide", function()
+                thresholdButtons[i].confirmBtn:Hide()
+            end)
+            thresholdButtons[i].confirmBtn:HookScript("OnEnter", function()
+                thresholdButtons[i]:GetScript("OnEnter")(thresholdButtons[i])
+            end)
+            thresholdButtons[i].confirmBtn:HookScript("OnLeave", function()
+                thresholdButtons[i]:GetScript("OnLeave")(thresholdButtons[i])
+            end)
+            thresholdButtons[i].confirmBtn:SetScript("OnClick", function()
+                local newThreshold = tonumber(thresholdButtons[i].eb:GetText())
+                thresholdTable[i][1] = newThreshold / 100
+                parent.func(thresholdTable)
+                thresholdButtons[i].eb:ClearFocus()
+                thresholdButtons[i].confirmBtn:Hide()
+                CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
+            end)
+
+            thresholdButtons[i].eb:SetScript("OnTextChanged", function(self, userChanged)
+                if userChanged then
+                    local newThreshold = tonumber(self:GetText())
+                    if newThreshold and newThreshold ~= thresholdTable[i][1] * 100 then
+                        thresholdButtons[i].confirmBtn:Show()
+                    else
+                        thresholdButtons[i].confirmBtn:Hide()
+                    end
+                end
+            end)
+
+            -- percentSign
+            thresholdButtons[i].percentSign = thresholdButtons[i]:CreateFontString(nil, "OVERLAY", font_name)
+            thresholdButtons[i].percentSign:SetPoint("LEFT", thresholdButtons[i].eb, "RIGHT", 2, 0)
+            thresholdButtons[i].percentSign:SetText("%")
+
+            -- color
+            thresholdButtons[i].colorPicker = addon:CreateColorPicker(thresholdButtons[i], "", true, nil, function(r, g, b, a)
+                thresholdTable[i][2][1] = r
+                thresholdTable[i][2][2] = g
+                thresholdTable[i][2][3] = b
+                thresholdTable[i][2][4] = a
+                parent.func(thresholdTable)
+            end)
+            thresholdButtons[i].colorPicker:SetPoint("TOPLEFT", thresholdButtons[i].eb, "TOPRIGHT", P:Scale(30), P:Scale(-1))
+            thresholdButtons[i].colorPicker:HookScript("OnEnter", function()
+                thresholdButtons[i]:GetScript("OnEnter")(thresholdButtons[i])
+            end)
+            thresholdButtons[i].colorPicker:HookScript("OnLeave", function()
+                thresholdButtons[i]:GetScript("OnLeave")(thresholdButtons[i])
+            end)
+
+            -- del
+            thresholdButtons[i].del = addon:CreateButton(thresholdButtons[i], "", "none", {18, 20}, true, true)
+            thresholdButtons[i].del:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\delete", {16, 16}, {"CENTER", 0, 0})
+            thresholdButtons[i].del:SetPoint("RIGHT")
+            thresholdButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            thresholdButtons[i].del:SetScript("OnEnter", function()
+                thresholdButtons[i]:GetScript("OnEnter")(thresholdButtons[i])
+                thresholdButtons[i].del.tex:SetVertexColor(1, 1, 1, 1)
+            end)
+            thresholdButtons[i].del:SetScript("OnLeave",  function()
+                thresholdButtons[i]:GetScript("OnLeave")(thresholdButtons[i])
+                thresholdButtons[i].del.tex:SetVertexColor(0.6, 0.6, 0.6, 1)
+            end)
+        end
+        
+        -- fill data
+        thresholdButtons[i].eb:SetText(t[1]*100)
+        thresholdButtons[i].colorPicker:SetColor(t[2])
+
+        -- points
+        thresholdButtons[i]:ClearAllPoints()
+        if i == 1 then -- first
+            thresholdButtons[i]:SetPoint("TOPLEFT")
+        else
+            thresholdButtons[i]:SetPoint("TOPLEFT", thresholdButtons[i-1], "BOTTOMLEFT", 0, P:Scale(1))
+        end
+        thresholdButtons[i]:SetPoint("RIGHT")
+        thresholdButtons[i]:Show()
+
+        -- functions
+        thresholdButtons[i].del:SetScript("OnClick", function()
+            tremove(thresholdTable, i)
+            parent.func(thresholdTable)
+            CreateThresholdButtons(parent, thresholdTable, updateHeightFunc)
+            updateHeightFunc(-19)
+        end)
+    end
+
+    for i = n+1, #thresholdButtons do
+        thresholdButtons[i]:Hide()
+        thresholdButtons[i]:ClearAllPoints()
+    end
+end
+
+local function CreateSetting_Thresholds(parent)
+    local widget
+
+    if not settingWidgets["thresholds"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_Thresholds", parent, 240, 128)
+        settingWidgets["thresholds"] = widget
+
+        widget.text = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.text:SetPoint("TOPLEFT", 7, -7)
+        widget.text:SetText(L["Only one threshold is displayed at a time"])
+
+        widget.frame = addon:CreateFrame(nil, widget, 100, 20)
+        widget.frame:SetPoint("TOPLEFT", 5, -27)
+        -- widget.frame:SetPoint("RIGHT", -5, 0)
+        widget.frame:Show()
+        addon:StylizeFrame(widget.frame, {0.15, 0.15, 0.15, 1})
+
+        -- associate db
+        function widget:SetFunc(func)
+            widget.frame.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(t)
+            CreateThresholdButtons(widget.frame, t, function(diff)
+                widget.frame:SetHeight((#t+1)*19+1)
+                widget:SetHeight((#t+1)*19+1 + 27 + 5)
+                if diff then parent:SetHeight(parent:GetHeight()+diff) end
+            end)
+            widget.frame:SetHeight((#t+1)*19+1)
+            widget:SetHeight((#t+1)*19+1 + 27 + 5)
+        end
+    else
+        widget = settingWidgets["thresholds"]
+    end
+
+    widget:Show()
+    return widget
+end
+
+local function CreateSetting_HighlightType(parent)
+    local widget
+
+    if not settingWidgets["highlightType"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_HighlightType", parent, 240, 50)
+        settingWidgets["highlightType"] = widget
+
+        widget.highlightType = addon:CreateDropdown(widget, 245)
+        widget.highlightType:SetPoint("TOPLEFT", 5, -20)
+        widget.highlightType:SetItems({
+            {
+                ["text"] = L["None"],
+                ["value"] = "none",
+                ["onClick"] = function()
+                    widget.func("none")
+                end,
+            },
+            {
+                ["text"] = L["Gradient"].." - "..L["Health Bar"].." ("..L["Entire"]..")",
+                ["value"] = "gradient",
+                ["onClick"] = function()
+                    widget.func("gradient")
+                end,
+            },
+            {
+                ["text"] = L["Solid"].." - "..L["Health Bar"].." ("..L["Entire"]..")",
+                ["value"] = "entire",
+                ["onClick"] = function()
+                    widget.func("entire")
+                end,
+            },
+            {
+                ["text"] = L["Solid"].." - "..L["Health Bar"].." ("..L["Current"]..")",
+                ["value"] = "current",
+                ["onClick"] = function()
+                    widget.func("current")
+                end,
+            },
+        })
+
+        widget.highlightTypeText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.highlightTypeText:SetText(L["Highlight Type"])
+        widget.highlightTypeText:SetPoint("BOTTOMLEFT", widget.highlightType, "TOPLEFT", 0, 1)
+
+        -- associate db
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+        
+        -- show db value
+        function widget:SetDBValue(highlightType)
+            widget.highlightType:SetSelectedValue(highlightType)
+        end
+    else
+        widget = settingWidgets["highlightType"]
     end
 
     widget:Show()
@@ -2994,14 +4017,24 @@ function addon:CreateIndicatorSettings(parent, settingsTable)
             tinsert(widgetsTable, CreateSetting_Duration(parent))
         elseif setting == "roleTexture" then
             tinsert(widgetsTable, CreateSetting_RoleTexture(parent))
-        elseif setting == "glow" then
+        elseif setting == "glow" or setting == "targetedSpellsGlow" then
             tinsert(widgetsTable, CreateSetting_Glow(parent))
         elseif setting == "texture" then
             tinsert(widgetsTable, CreateSetting_Texture(parent))
-        elseif setting == "auras" or setting == "blacklist" or setting == "spells" then
+        elseif setting == "auras" or setting == "blacklist" or setting == "targetedSpellsList" or setting == "customDefensives" or setting == "customExternals" then
             tinsert(widgetsTable, CreateSetting_Auras(parent))
         elseif setting == "auras2" or setting == "bigDebuffs" then
             tinsert(widgetsTable, CreateSetting_Auras2(parent))
+        elseif setting == "cleuAuras" then
+            tinsert(widgetsTable, CreateSetting_CleuAuras(parent))
+        elseif setting == "consumablesPreview" then
+            tinsert(widgetsTable, CreateSetting_ConsumablesPreview(parent))
+        elseif setting == "consumablesList" then
+            tinsert(widgetsTable, CreateSetting_ConsumablesList(parent))
+        elseif setting == "highlightType" then
+            tinsert(widgetsTable, CreateSetting_HighlightType(parent))
+        elseif setting == "thresholds" then
+            tinsert(widgetsTable, CreateSetting_Thresholds(parent))
         else -- tips
             tinsert(widgetsTable, CreateSetting_Tips(parent, setting))
         end

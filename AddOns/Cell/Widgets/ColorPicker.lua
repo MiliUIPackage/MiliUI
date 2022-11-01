@@ -37,7 +37,11 @@ local function UpdateColor_HSBA(h, s, b, a, updateBrightness, updatePickers)
 
     if updateBrightness then
         local _r, _g, _b = F:ConvertHSBToRGB(h, s, 1)
-        brightness.tex:SetGradient("VERTICAL", 0, 0, 0, _r, _g, _b)
+        if addon.isRetail then
+            brightness.tex:SetGradient("VERTICAL", CreateColor(0, 0, 0, 1), CreateColor(_r, _g, _b, 1))
+        else
+            brightness.tex:SetGradient("VERTICAL", 0, 0, 0, _r, _g, _b)
+        end
     end
 
     if updatePickers then
@@ -222,7 +226,11 @@ local function CreateColorPicker()
         hueSaturation[i]:SetTexture("Interface\\Buttons\\WHITE8x8")
         -- hueSaturation[i]:SetColorTexture(1, 1, 1, 1)
         -- hueSaturation[i]:SetVertexColor(1, 1, 1, 1)
-        hueSaturation[i]:SetGradient("HORIZONTAL", color[i].r, color[i].g, color[i].b, color[i+1].r, color[i+1].g, color[i+1].b)
+        if addon.isRetail then
+            hueSaturation[i]:SetGradient("HORIZONTAL", CreateColor(color[i].r, color[i].g, color[i].b, 1), CreateColor(color[i+1].r, color[i+1].g, color[i+1].b, 1))
+        else
+            hueSaturation[i]:SetGradient("HORIZONTAL", color[i].r, color[i].g, color[i].b, color[i+1].r, color[i+1].g, color[i+1].b)
+        end
 
         -- width
         hueSaturation[i]:SetWidth(sectionSize)
@@ -240,7 +248,11 @@ local function CreateColorPicker()
     local saturation = hueSaturation:CreateTexture(name.."HS_Saturation", "ARTWORK", nil, 1)
     saturation:SetBlendMode("BLEND")
     saturation:SetTexture("Interface\\Buttons\\WHITE8x8")
-    saturation:SetGradientAlpha("VERTICAL", 1, 1, 1, 1, 1, 1, 1, 0)
+    if addon.isRetail then
+        saturation:SetGradient("VERTICAL", CreateColor(1, 1, 1, 1), CreateColor(1, 1, 1, 0))
+    else
+        saturation:SetGradientAlpha("VERTICAL", 1, 1, 1, 1, 1, 1, 1, 0)
+    end
     saturation:SetAllPoints(hueSaturation)
 
     --------------------------------------------------
@@ -310,7 +322,11 @@ local function CreateColorPicker()
     alpha.tex:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
     alpha.tex:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
     alpha.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
-    alpha.tex:SetGradient("VERTICAL", 0, 0, 0, 1, 1, 1)
+    if addon.isRetail then
+        alpha.tex:SetGradient("VERTICAL", CreateColor(0, 0, 0, 1), CreateColor(1, 1, 1, 1))
+    else
+        alpha.tex:SetGradient("VERTICAL", 0, 0, 0, 1, 1, 1)
+    end
 
     alpha.thumb1 = alpha:CreateTexture(nil, "ARTWORK")
     P:Size(alpha.thumb1, 17, 1)
@@ -337,12 +353,12 @@ local function CreateColorPicker()
     picker:SetMovable(true)
 
     function picker:StartMoving(x, y, mouseX, mouseY)
-        local uiScale = UIParent:GetEffectiveScale()
+        local scale = P:GetEffectiveScale()
         self:SetScript("OnUpdate", function(self)
             local newMouseX, newMouseY = GetCursorPosition()
 
-            local newX = x + (newMouseX - mouseX) / uiScale
-            local newY = y + (newMouseY - mouseY) / uiScale
+            local newX = x + (newMouseX - mouseX) / scale
+            local newY = y + (newMouseY - mouseY) / scale
             
             if newX < 0 then -- left
                 newX = 0
@@ -371,7 +387,7 @@ local function CreateColorPicker()
         if button ~= 'LeftButton' then return end
         local x, y = select(4, picker:GetPoint(1))
         local mouseX, mouseY = GetCursorPosition()
-        
+
         picker:StartMoving(x, y, mouseX, mouseY)
     end)
 
@@ -385,12 +401,12 @@ local function CreateColorPicker()
         local hueSaturationX, hueSaturationY = hueSaturation:GetLeft(), hueSaturation:GetBottom()
         local mouseX, mouseY = GetCursorPosition()
         
-        local uiScale = UIParent:GetEffectiveScale()
-        mouseX, mouseY = mouseX/uiScale, mouseY/uiScale
+        local scale = P:GetEffectiveScale()
+        mouseX, mouseY = mouseX/scale, mouseY/scale
         
         -- start dragging
         local x, y = select(4, picker:GetPoint(1))
-        picker:StartMoving(mouseX/uiScale-hueSaturationX, mouseY/uiScale-hueSaturationY, mouseX, mouseY)
+        picker:StartMoving(mouseX/scale-hueSaturationX, mouseY/scale-hueSaturationY, mouseX, mouseY)
     end)
 
     hueSaturation:SetScript("OnMouseUp", function(self, button)
