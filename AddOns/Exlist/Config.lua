@@ -7,7 +7,7 @@ local AceConfDia = LibStub("AceConfigDialog-3.0")
 
 local addonVersion = GetAddOnMetadata(name, "version")
 -- @debug@
-if addonVersion == "1.4.10" then
+if addonVersion == "1.6.1" then
    addonVersion = "Development"
 end
 -- @end-debug@
@@ -531,12 +531,12 @@ Exlist.SetupConfig = function(refresh)
             order = 1.4,
             width = 0.5,
             fontSize = "large",
-            name = WrapTextInColorCode(L["Item Level"], "ffffd200")
+            name = WrapTextInColorCode(L["iLvl"], "ffffd200")
          },
          OrderLabel = {
             type = "description",
             order = 1.5,
-            width = 1.2,
+            width = 1.3,
             fontSize = "large",
             name = WrapTextInColorCode(L["Order"], "ffffd200")
          }
@@ -570,7 +570,7 @@ Exlist.SetupConfig = function(refresh)
    end
    -- Characters
    local characters = settings.allowedCharacters
-   n = 1
+   n = 2
    for char, v in spairs(
       characters,
       function(t, a, b)
@@ -687,7 +687,7 @@ Exlist.SetupConfig = function(refresh)
 
       -- Spacer
       n = n + 1
-      charOptions.args[char .. "spacer"] = {type = "description", order = n, name = "", width = 0.5}
+      charOptions.args[char .. "spacer"] = {type = "description", order = n, name = "", width = 0.7}
 
       -- Delete Data
       n = n + 1
@@ -808,12 +808,10 @@ function Exlist.InitConfig()
                C_Timer.After(
                   0.1,
                   function()
-                     InterfaceOptionsFrame_Show()
-                     InterfaceOptionsFrame_OpenToCategory(L["World Quests"])
-					 InterfaceOptionsFrame_OpenToCategory(L[name])
+                     _G.SettingsPanel.GameTab:SetSelected(true);
+                     _G.SettingsPanel.AddOnsTab:SetSelected(true);
                   end
                )
-               --  InterfaceOptionsFrame_OpenToCategory(name)
             end
          }
       }

@@ -3,7 +3,6 @@ local prio = 10
 local Exlist = Exlist
 local L = Exlist.L
 local colors = Exlist.Colors
--- local strings = Exlist.Strings
 
 local function toggleChatEvent(register)
    for i = 1, 10 do

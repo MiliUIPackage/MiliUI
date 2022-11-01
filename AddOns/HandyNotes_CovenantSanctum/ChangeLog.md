@@ -1,5 +1,23 @@
 ## Revision History:
 
+#### v15 (Oktober 25, 2022)
+-------------------------------
+* Added portal icons
+    * same icons as before, but now they are included in the addon folder
+* Fixed opening the settings panel (Dragonflight)
+* Updated config layout (Dragonflight)
+* Bump .toc to 100000
+
+#### v14 (September 29, 2022)
+-------------------------------
+* Added an option to create a Blizzard waypoint
+    * Easy waypoints now sets Blizzard waypoints by default.
+    * Please check the options to change it to TomTom (if installed)
+
+#### v13 (August 17, 2022)
+-------------------------------
+* Bump .toc to 90207
+
 #### v12 (June 01, 2022)
 -------------------------------
 * Bump .toc to 90205

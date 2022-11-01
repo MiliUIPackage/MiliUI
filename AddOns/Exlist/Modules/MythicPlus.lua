@@ -9,42 +9,6 @@ local WrapTextInColorCode, SecondsToTime = WrapTextInColorCode, SecondsToTime
 local table, ipairs = table, ipairs
 local initialized = 0
 local playersName
-local mapTimes = {
-   --[mapId] = {+1Time,+2Time,+3Time} in seconds
-   --BFA
-   [244] = {1800, 1440, 1080}, -- Atal'dazar
-   [245] = {2160, 1728, 1296}, -- Freehold
-   [246] = {1980, 1584, 1188}, -- Tol Dagor
-   [247] = {2340, 1872, 1404}, -- The MOTHERLODE!!
-   [248] = {2340, 1872, 1404}, -- Waycrest Manor
-   [249] = {2340, 1872, 1404}, -- Kings' Rest
-   [250] = {2160, 1728, 1296}, -- Temple of Sethraliss
-   [251] = {1800, 1440, 1080}, -- The Underrot
-   [252] = {2340, 1872, 1404}, -- Shrine of the Storm
-   [353] = {2160, 1728, 1296}, -- Siege of Boralus
-   [197] = {2100, 1680, 1260}, -- Eye of Azshara
-   [198] = {1800, 1440, 1080}, -- Darkheart Thicket
-   [199] = {2340, 1872, 1405}, -- BRH
-   [200] = {2700, 2160, 1620}, -- HoV
-   [206] = {1980, 1584, 1188}, -- Nelth
-   [207] = {1980, 1584, 1188}, -- VotW
-   [208] = {1440, 1152, 864}, -- Maw
-   [209] = {2700, 2160, 1620}, -- Arc
-   [210] = {1800, 1440, 1080}, -- CoS
-   [227] = {2340, 1872, 1404}, -- Kara: Lower
-   [233] = {2100, 1680, 1260}, -- Cath
-   [234] = {2100, 1680, 1260}, -- Kara: Upper
-   [239] = {2100, 1680, 1260}, -- Seat
-   -- SL
-   [375] = {1800, 1440, 1080}, -- Mists of Tirna Scithe
-   [376] = {2160, 1728, 1296}, -- Necrotic Wake
-   [377] = {2340, 1872, 1404}, -- De Other Side
-   [378] = {1860, 1488, 1116}, -- Halls of Atonement
-   [379] = {2280, 1824, 1358}, -- Plaguefall
-   [380] = {2460, 1944, 1476}, -- Sanguine Depths
-   [381] = {2340, 1872, 1404}, -- Spires of Ascension
-   [382] = {2220, 1776, 1332} -- Theater of Pain
-}
 local mapIds = {}
 
 local function IsItPlayersRun(members)
@@ -141,26 +105,6 @@ local function Updater(event)
    Exlist.UpdateChar(key, t)
 end
 
-local function MythicPlusTimeString(time, mapId)
-   if not time or not mapId then
-      return
-   end
-   local times = mapTimes[mapId] or {}
-   local rstring = ""
-   local secTime = time
-   local colors = colors.mythicplus.times
-   for i = 1, #times do
-      if secTime > times[i] then
-         if i == 1 then
-            return WrapTextInColorCode("(" .. L["Depleted"] .. ") " .. Exlist.FormatTime(secTime), colors[i])
-         else
-            return WrapTextInColorCode("(+" .. (i - 1) .. ") " .. Exlist.FormatTime(secTime), colors[i])
-         end
-      end
-   end
-   return WrapTextInColorCode("(+3) " .. Exlist.FormatTime(time), colors[#colors])
-end
-
 local function Linegenerator(tooltip, data, character)
    if not data or (data.bestLvl and data.bestLvl < 2 and data.chest and not data.chest.available) then
       return
@@ -185,7 +129,7 @@ local function Linegenerator(tooltip, data, character)
       for i = 1, #maps do
          table.insert(
             sideTooltip.body,
-            {"+" .. maps[i].level .. " " .. maps[i].name, MythicPlusTimeString(maps[i].time, maps[i].mapId)}
+            {"+" .. maps[i].level .. " " .. maps[i].name, Exlist.FormatTime(maps[i].time)}
          )
       end
       info.OnEnter = Exlist.CreateSideTooltip()

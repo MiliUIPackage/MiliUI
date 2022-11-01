@@ -21,6 +21,7 @@ Exlist.accountSync = {
 }
 
 local function getPairedCharOptions(startOrder)
+   local configDB = Exlist.ConfigDB
    local pairedCharacters = configDB.accountSync.pairedCharacters
    local options = {}
    if (pairedCharacters) then

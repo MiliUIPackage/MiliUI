@@ -1,16 +1,16 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: HandyNotes: CovenantSanctum
 ## Notes: Shows the NPC and POI locations in your covenant sanctum.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-誓盟聖所
 ## Notes-zhTW: HandyNotes: Shadowlands |n顯示誓盟聖所的NPC以及魂絆熔爐等位置。
-## Dependencies: HandyNotes
+## Notes-deDE: Zeigt die Positionen von NPCs und anderer POIs im Paktsanktum an.
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v12
+## Version: v15
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_CovenantSanctumDB
 ## X-Embeds: AceTimer-3.0
-## X-Date: 2022-06-01
+## X-Date: 2022-10-25
 ## X-Category: Map
 
 #@no-lib-strip@

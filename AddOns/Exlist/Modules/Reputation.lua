@@ -48,14 +48,6 @@ local function spairs(t, order)
    end
 end
 
-local statusMarks = {
-   [true] = [[Interface/Addons/Exlist/Media/Icons/ok-icon]],
-   [false] = [[Interface/Addons/Exlist/Media/Icons/cancel-icon]]
-}
-local function AddCheckmark(text, status)
-   return string.format("|T%s:0|t %s", statusMarks[status], text)
-end
-
 local function AddReputationToCache(name, factionID)
    if not name or not factionID then
       return
@@ -107,11 +99,18 @@ local function Updater(event)
    end
    for _, faction in ipairs(settings.reputation.cache) do
       local name, description, standingID, barMin, barMax, barValue = GetFactionInfoByID(faction.factionID)
+      local friendshipReputation = C_GossipInfo.GetFriendshipReputation(faction.factionID)
       if name then
          local curr = barValue - barMin -- current
          local max = barMax - barMin -- max
-         local paragonReward
-         if standingID >= 8 and C_Reputation.IsFactionParagon(faction.factionID) then
+         local paragonReward, friendStandingLevel
+         local isFriend = false
+         if (friendshipReputation and friendshipReputation.friendshipFactionID ~= 0) then
+            -- Friendship
+            isFriend = true
+            friendStandingLevel = friendshipReputation.reaction
+         end
+         if standingID >= (isFriend and 6 or 8) and C_Reputation.IsFactionParagon(faction.factionID) then
             -- Paragon stuff
             standingID = 100
             local currentValue, threshold, rewardQuestID, hasRewardPending, tooLowLevelForParagon =
@@ -128,6 +127,8 @@ local function Updater(event)
             description = description,
             standing = standingID,
             curr = curr,
+            isFriend = isFriend,
+            friendStandingLevel = friendStandingLevel,
             max = max,
             paragonReward = paragonReward
          }
@@ -171,11 +172,11 @@ local function Linegenerator(tooltip, data, character)
          Exlist.ShortenText(factionInfo.name, "", true),
          WrapTextInColorCode(
             string.format("%s/%s", Exlist.ShortenNumber(factionInfo.curr), Exlist.ShortenNumber(factionInfo.max)),
-            colors.repColors[factionInfo.standing]
+            factionInfo.isFriend and colors.friendColors[factionInfo.standing] or colors.repColors[factionInfo.standing]
          )
       )
       if factionInfo.paragonReward then
-         text = AddCheckmark(text, true)
+         text = Exlist.AddCheckmark(text, true)
       end
       info.data = text
    else
@@ -190,19 +191,26 @@ local function Linegenerator(tooltip, data, character)
             local text1 = r.name
             local text2 = ""
             if r.standing == 8 then
-               text2 = WrapTextInColorCode(standingNames[r.standing], colors.repColors[r.standing])
+               text2 =
+                  WrapTextInColorCode(
+                  standingNames[r.standing],
+                  r.isFriend and colors.friendColors[r.standing] or colors.repColors[r.standing]
+               )
             else
                text2 =
                   string.format(
                   "%s (%s/%s)",
-                  WrapTextInColorCode(standingNames[r.standing], colors.repColors[r.standing]),
+                  WrapTextInColorCode(
+                     r.isFriend and r.friendStandingLevel or standingNames[r.standing],
+                     r.isFriend and colors.friendColors[r.standing] or colors.repColors[r.standing]
+                  ),
                   Exlist.ShortenNumber(r.curr),
                   Exlist.ShortenNumber(r.max)
                )
             end
             if r.paragonReward then
                paragonAvailable = true
-               text2 = AddCheckmark(text2, true)
+               text2 = Exlist.AddCheckmark(text2, true)
             end
             table.insert(sideTooltip.body, {text1, text2})
          end
@@ -217,31 +225,12 @@ local function Linegenerator(tooltip, data, character)
    end
 end
 
---[[
-local function GlobalLineGenerator(tooltip,data)
-
-end
-]]
---[[
-local function Modernize(data)
--- data is table of module table from character
--- always return table or don't use at all
-return data
-end
-]]
 local function init()
    -- code that will run before any other function
    settings = Exlist.ConfigDB.settings
    UpdateReputationCache()
 end
 
---[[
-local function ResetHandler(resetType)
--- code that will be run at reset for this module
--- instead of just wiping all data that is keyed
--- by this module key
-end
-]]
 local selectedFaction = 0
 local function AddOptions(refresh)
    -- Make reputation list
@@ -437,11 +426,7 @@ local data = {
    weeklyReset = false,
    dailyReset = false,
    description = L["Allows to select different reputation progress for your characters"],
-   -- globallgenerator = GlobalLineGenerator,
-   -- modernize = Modernize,
    init = init
-   -- override = true,
-   -- specialResetHandle = ResetHandler
 }
 
 Exlist.RegisterModule(data)

@@ -1,6 +1,6 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: HandyNotes: Draenor
-## Version: 2.6
+## Version: 2.8
 ## Notes: Draenor Rares and Treasures simplified
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-德拉諾
 ## Notes-zhTW: HandyNotes: Shadowlands |n顯示德拉諾稀有與寶箱的位置。

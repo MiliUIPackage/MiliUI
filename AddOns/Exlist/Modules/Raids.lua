@@ -326,13 +326,15 @@ end
 local function init()
    defaultSettings = {
       -- Shadowlands
+      [GetLFGDungeonInfo(2288) or "Sepulcher of the First Ones"] = {enabled = true, expansion = 9, order = 8},
+      [GetLFGDungeonInfo(2226) or "Sanctum of Domination"] = {enabled = true, expansion = 9, order = 9},
       [GetLFGDungeonInfo(2093) or "Castle Nathria"] = {enabled = true, expansion = 9, order = 10},
       -- BFA
-      [GetLFGDungeonInfo(2033) or "Ny'alotha, the Waking City"] = {enabled = true, expansion = 8, order = 5},
-      [GetLFGDungeonInfo(2014) or "The Eternal Palace"] = {enabled = true, expansion = 8, order = 6},
-      [GetLFGDungeonInfo(1951) or "Crucible of Storms"] = {enabled = true, expansion = 8, order = 7},
-      [GetLFGDungeonInfo(1942) or "Battle of Dazar'alor"] = {enabled = true, expansion = 8, order = 8},
-      [GetLFGDungeonInfo(1887) or "Uldir"] = {enabled = true, expansion = 8, order = 9},
+      [GetLFGDungeonInfo(2033) or "Ny'alotha, the Waking City"] = {enabled = false, expansion = 8, order = 5},
+      [GetLFGDungeonInfo(2014) or "The Eternal Palace"] = {enabled = false, expansion = 8, order = 6},
+      [GetLFGDungeonInfo(1951) or "Crucible of Storms"] = {enabled = false, expansion = 8, order = 7},
+      [GetLFGDungeonInfo(1942) or "Battle of Dazar'alor"] = {enabled = false, expansion = 8, order = 8},
+      [GetLFGDungeonInfo(1887) or "Uldir"] = {enabled = false, expansion = 8, order = 9},
       -- LEGION
       [GetLFGDungeonInfo(1640) or "Antorus, the Burning Throne"] = {enabled = false, expansion = 7, order = 1},
       [GetLFGDungeonInfo(1527) or "Tomb of Sargeras"] = {enabled = false, expansion = 7, order = 2},
@@ -548,6 +550,18 @@ local function init()
          [2091] = {name = "Reliquary of Opulence", totalEncounters = 3, order = 2},
          [2092] = {name = "Blood from Stone", totalEncounters = 3, order = 3},
          [2093] = {name = "An Audience with Arrogance", totalEncounters = 1, order = 4}
+      },
+      [GetLFGDungeonInfo(2226) or "Sanctum of Domination"] = {
+         [2221] = {name = "The Jailer's Vanguard", totalEncounters = 3, order = 1},
+         [2222] = {name = "The Dark Bastille", totalEncounters = 3, order = 2},
+         [2223] = {name = "Shackles of Fate", totalEncounters = 3, order = 3},
+         [2224] = {name = "The Reckoning", totalEncounters = 1, order = 4}
+      },
+      [GetLFGDungeonInfo(2288) or "Sepulcher of the First Ones"] = {
+         [2292] = {name = "Ephemeral Plains", totalEncounters = 4, order = 1},
+         [2291] = {name = "Cornerstone of Creation", totalEncounters = 3, order = 2},
+         [2293] = {name = "Domination's Grasp", totalEncounters = 3, order = 3},
+         [2294] = {name = "The Grand Design", totalEncounters = 1, order = 4}
       }
    }
 

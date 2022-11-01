@@ -1,9 +1,10 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: tullaRange
 ## Author: Tuller
 ## Notes: Out of range coloring based on RedRange
 ## Title-zhTW: |cFF0099FF[介面]|r 射程著色
 ## Notes-zhTW: tullaRange|n將超出範圍、法力、能量、集中值不足的按鍵著色。
-## Version: 9.0.4
+## X-Category-zhTW: 介面
+## Version: 10.0.2
 ## SavedVariables: TULLARANGE_COLORS
 tullaRange.lua

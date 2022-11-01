@@ -64,7 +64,8 @@ local zones = {
    1565, -- Ardenweald
    1536, -- Maldraxxus
    1525, -- Revendreth
-   1543 -- The Maw
+   1543, -- The Maw
+   1970, -- Zereth Mortis
 }
 
 local rewardRules = {}

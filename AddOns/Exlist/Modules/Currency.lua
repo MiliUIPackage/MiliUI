@@ -291,7 +291,7 @@ local data = {
    linegenerator = Linegenerator,
    priority = prio,
    updater = Updater,
-   event = {"CURRENCY_DISPLAY_UPDATE", "PLAYER_MONEY"},
+   event = {"CURRENCY_DISPLAY_UPDATE", "PLAYER_MONEY", "BAG_UPDATE"},
    description = L["Collects information about different currencies  and user specified item amounts in inventory"],
    weeklyReset = false
 }

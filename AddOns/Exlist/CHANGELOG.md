@@ -1,19 +1,14 @@
-# [1.4.10](https://github.com/sragia/Exlist/tree/1.4.10) (2021-01-06)
+# [1.6.1](https://github.com/sragia/Exlist/tree/1.6.1) (2022-10-28)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.4.9...1.4.10)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.0...1.6.1)
 
 ## Highlights
 
- Maw and Covenant tracking. Some bugfixes 
+ Reputation fixes and TOC update 
 
 ## Commits
 
-sragia (6):
+Aigars Bedeicis (1):
 
-- Reset torghast data too
-- Track features only on ui open
-- Fix some spacing
-- Sort currencies in options by name
-- Add Covenant module
-- Add torghast completion for characters
+- Fix non-friend reputations and update toc number
 

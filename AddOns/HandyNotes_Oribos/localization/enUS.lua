@@ -82,18 +82,21 @@ Only affects the trainer and vendor of main professions.
 
 L["config_fmaster_waypoint"] = "Flightmaster Waypoint"
 L["config_fmaster_waypoint_desc"] = "Sets automatically a waypoint to the flightmaster if you enter the Ring of Transference."
-L["config_fmaster_waypoint_dropdown"] = "Choose"
-L["config_fmaster_waypoint_dropdown_desc"] = "Choose how the waypoint should be created."
-L["Blizzard"] = true
-L["TomTom"] = true
-L["Both"] = true
 
 L["config_easy_waypoints"] = "Easy Waypoints"
 L["config_easy_waypoints_desc"] = "Activates simplified waypoint creation. \nAllows you to set a waypoint by right-clicking and access to more options by CTRL + right-clicking."
 
+L["config_waypoint_dropdown"] = "Choose"
+L["config_waypoint_dropdown_desc"] = "Choose how the waypoint should be created."
+L["Blizzard"] = true
+L["TomTom"] = true
+L["Both"] = true
+
 L["config_picons"] = "Show profession icons for:"
 L["config_picons_vendor_desc"] = "Show profession icons for vendors instead of the vendor icons."
 L["config_picons_trainer_desc"] = "Show profession icons for trainers instead of the trainer icons."
+L["config_use_old_picons"] = "Show the old profession symbols"
+L["config_use_old_picons_desc"] = "Show the old profession icons again instead of the new ones (before Dragonflight)."
 
 L["config_restore_nodes"] = "Restore hidden nodes"
 L["config_restore_nodes_desc"] = "Restore all nodes that were hidden via the context menu."
@@ -119,6 +122,7 @@ L["dev_config_show_prints_desc"] = "Show print() messages in the chat window."
 
 L["handler_context_menu_addon_name"] = "HandyNotes: Oribos"
 L["handler_context_menu_add_tomtom"] = "Add to TomTom"
+L['handler_context_menu_add_map_pin'] = "Set map waypoint"
 L["handler_context_menu_hide_node"] = "Hide this node"
 
 --============================================TOOLTIPS============================================--

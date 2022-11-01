@@ -24,6 +24,24 @@ local L = Exlist.L
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
 local affixThreshold = {2, 4, 7, 10}
 
+local function getTimewornKey()
+   for bag = 0, 4 do
+      for slot = 1, GetContainerNumSlots(bag) do
+         if (GetContainerItemID(bag, slot) == 187786) then
+            local itemLink = GetContainerItemLink(bag, slot);
+            local _, _, mapId, mapLevel = strsplit(':', itemLink)
+
+            return {
+               link = itemLink,
+               dungeon = C_ChallengeMode.GetMapUIInfo(mapId),
+               mapId = mapId,
+               level = mapLevel
+            }
+         end
+      end
+   end
+end
+
 local function Updater(event)
    if not C_MythicPlus.IsMythicPlusActive() then
       return
@@ -79,8 +97,11 @@ local function Updater(event)
             L["Keystone"],
             mapName,
             keyLevel
-         )
+         ),
+         timeWornKey = getTimewornKey()
       }
+
+
 
       Exlist.UpdateChar(key, t)
    end
@@ -118,6 +139,37 @@ local function Linegenerator(tooltip, data, character)
       OnClickData = data.itemLink
    }
    Exlist.AddData(info)
+
+   -- Legion Key
+   if (data.timeWornKey) then
+      local mapId = tonumber(data.timeWornKey.mapId)
+      local dungeonName = settings.shortenInfo and Exlist.ShortenedMPlus[mapId] or data.timeWornKey.dungeon
+      local info = {
+         data = WrapTextInColorCode("[" .. dungeonName .. " +" .. data.timeWornKey.level .. "]", colors.mythicplus.key),
+         character = character,
+         moduleName = key .. '_timeworn',
+         priority = prio + 0.01,
+         titleName = L["Legion M+ Key"],
+         OnClick = function(self, arg1, ...)
+            if IsShiftKeyDown() then
+               if not arg1 then
+                  return
+               end
+               if ChatEdit_GetActiveWindow() then
+                  ChatEdit_InsertLink(arg1)
+               else
+                  ChatFrame_OpenChat(arg1, DEFAULT_CHAT_FRAME)
+               end
+            else
+               ItemRefTooltip:SetOwner(UIParent, "ANCHOR_PRESERVE")
+               ItemRefTooltip:SetHyperlink(arg1)
+               ShowUIPanel(ItemRefTooltip)
+            end
+         end,
+         OnClickData = data.timeWornKey.itemLink
+      }
+      Exlist.AddData(info)
+   end
 end
 
 local function GlobalLineGenerator(tooltip, data)

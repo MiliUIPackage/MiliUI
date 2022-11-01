@@ -23,15 +23,6 @@ local function Linegenerator(tooltip, data, character)
       priority = prio,
       moduleName = key,
       titleName = L["Note"]
-      -- data = "",
-      -- colOff = 0,
-      -- dontResize = false,
-      -- OnEnter = function() end,
-      -- OnEnterData = {},
-      -- OnLeave = function() end,
-      -- OnLeaveData = {},
-      -- OnClick = function() end,
-      -- OnClickData = {},
    }
    local name = data.name
    local realm = data.realm
@@ -92,30 +83,6 @@ local function Linegenerator(tooltip, data, character)
    Exlist.AddData(info)
 end
 
---[[
-local function GlobalLineGenerator(tooltip,data)
-
-end
-]]
---[[
-local function Modernize(data)
--- data is table of module table from character
--- always return table or don't use at all
-return data
-end
-]]
---[[
-local function init()
--- code that will run before any other function
-end
-]]
---[[
-local function ResetHandler(resetType)
--- code that will be run at reset for this module
--- instead of just wiping all data that is keyed
--- by this module key
-end
-]]
 local data = {
    name = L["Note"],
    key = key,
@@ -126,11 +93,6 @@ local data = {
    weeklyReset = false,
    dailyReset = false,
    description = L["Add Note to your characters"]
-   -- globallgenerator = GlobalLineGenerator,
-   -- modernize = Modernize,
-   -- init = init,
-   -- override = true,
-   -- specialResetHandle = ResetHandler
 }
 
 Exlist.RegisterModule(data)

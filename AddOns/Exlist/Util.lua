@@ -191,10 +191,14 @@ function Exlist.CreateSideTooltip(statusbar)
       sideTooltip:SetClampedToScreen(true)
       local parentFrameLevel = self:GetFrameLevel(self)
       sideTooltip:SetFrameLevel(parentFrameLevel + 5)
-      sideTooltip:SetBackdrop(Exlist.DEFAULT_BACKDROP)
+
+      Mixin(sideTooltip.NineSlice, BackdropTemplateMixin);
+      SharedTooltip_SetBackdropStyle(sideTooltip, nil, sideTooltip.IsEmbedded);
+      sideTooltip.NineSlice:SetScript("OnSizeChanged", sideTooltip.NineSlice.OnBackdropSizeChanged);
+      sideTooltip.NineSlice:SetBackdrop(Exlist.DEFAULT_BACKDROP);
       local c = settings.backdrop
-      sideTooltip:SetBackdropColor(c.color.r, c.color.g, c.color.b, c.color.a)
-      sideTooltip:SetBackdropBorderColor(c.borderColor.r, c.borderColor.g, c.borderColor.b, c.borderColor.a)
+      sideTooltip.NineSlice:SetCenterColor(c.color.r, c.color.g, c.color.b, c.color.a)
+      sideTooltip.NineSlice:SetBorderColor(c.borderColor.r, c.borderColor.g, c.borderColor.b, c.borderColor.a)
       if statusbar then
          statusbar.total = statusbar.total or 100
          statusbar.curr = statusbar.curr or 0
@@ -465,4 +469,13 @@ end
 
 function Exlist.GetSettings(key)
    return Exlist.ConfigDB.settings[key] or {}
+end
+
+local statusMarks = {
+   [true] = [[Interface/Addons/Exlist/Media/Icons/ok-icon]],
+   [false] = [[Interface/Addons/Exlist/Media/Icons/cancel-icon]]
+}
+
+function Exlist.AddCheckmark(text, status)
+   return string.format("|T%s:0|t %s", statusMarks[status], text)
 end

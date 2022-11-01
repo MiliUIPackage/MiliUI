@@ -44,8 +44,7 @@ local function devmode()
 
     SLASH_ORIBOS1 = "/oribos"
     SlashCmdList["ORIBOS"] = function(msg)
-        InterfaceOptionsFrame_Show()
-        InterfaceOptionsFrame_OpenToCategory('HandyNotes')
+        Settings.OpenToCategory('HandyNotes')
         LibStub('AceConfigDialog-3.0'):SelectGroup('HandyNotes', 'plugins', 'Oribos')
     end
 

@@ -2,7 +2,6 @@ local key = "emissary"
 local prio = 70
 local WrapTextInColorCode, SecondsToTime = WrapTextInColorCode, SecondsToTime
 local time = time
-local IsQuestFlaggedCompleted = IsQuestFlaggedCompleted
 local C_TaskQuest, C_Timer = C_TaskQuest, C_Timer
 local UnitLevel = UnitLevel
 local GetNumQuestLogEntries, GetQuestLogTitle, GetQuestObjectiveInfo =

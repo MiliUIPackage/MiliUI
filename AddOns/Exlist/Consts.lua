@@ -77,7 +77,15 @@ Exlist.ShortenedMPlus = {
    [250] = L["ToS"], -- Temple of Sethraliss
    [251] = L["URot"], -- The Underrot
    [252] = L["SotS"], -- Shrine of the Storm
-   [353] = L["SoB"] -- Siege of Boralus
+   [353] = L["SoB"], -- Siege of Boralus
+   -- SL
+   -- S4
+   [370] = L["Work"], -- Workshop
+   [391] = L["Streets"], -- Streets of Wonder
+   [169] = L["ID"], -- Iron Docks
+   [166] = L["GD"], -- Grimrail Depot
+   [369] = L["Junk"], -- Junkyard
+   [392] = L['Gambit'], -- Gambit
 }
 
 local Colors = {
@@ -131,17 +139,17 @@ local Colors = {
    },
    ilvlColors = {
       -- Shadowlands --
-      {ilvl = 140, str = "ff26ff3f"},
-      {ilvl = 150, str = "ff26ffba"},
-      {ilvl = 160, str = "ff26e2ff"},
-      {ilvl = 170, str = "ff26a0ff"},
-      {ilvl = 180, str = "ff2663ff"},
-      {ilvl = 190, str = "ff8e26ff"},
-      {ilvl = 200, str = "ffe226ff"},
-      {ilvl = 210, str = "ffff2696"},
-      {ilvl = 220, str = "ffff2634"},
-      {ilvl = 230, str = "ffff7526"},
-      {ilvl = 240, str = "ffffc526"}
+      {ilvl = 200, str = "ff26ff3f"},
+      {ilvl = 210, str = "ff26ffba"},
+      {ilvl = 220, str = "ff26e2ff"},
+      {ilvl = 230, str = "ff26a0ff"},
+      {ilvl = 240, str = "ff2663ff"},
+      {ilvl = 250, str = "ff8e26ff"},
+      {ilvl = 260, str = "ffe226ff"},
+      {ilvl = 270, str = "ffff2696"},
+      {ilvl = 280, str = "ffff2634"},
+      {ilvl = 290, str = "ffff7526"},
+      {ilvl = 300, str = "ffffc526"}
    },
    profColors = {
       {val = 20, color = "c6c3b4"},
@@ -164,6 +172,15 @@ local Colors = {
       [6] = "ff5fff20", -- Honored
       [7] = "ff2096ff", -- Revered
       [8] = "ffd220ff", -- Exiled
+      [100] = "ffff20ca" -- Paragon
+   },
+   friendColors = {
+      [1] = "ffff8300", -- Unfriendly
+      [2] = "ffffc300", -- Neutral
+      [3] = "fff7ff20", -- Friendly
+      [4] = "ff5fff20", -- Honored
+      [5] = "ff2096ff", -- Revered
+      [6] = "ffd220ff", -- Exiled
       [100] = "ffff20ca" -- Paragon
    },
    paragonReward = "fff4f142"
@@ -198,3 +215,6 @@ Exlist.Expansions = {
    L["Battle for Azeroth"],
    L["Shadowlands"]
 }
+
+Exlist.OKMark = [[Interface/Addons/Exlist/Media/Icons/ok-icon]]
+Exlist.CancelMark = [[Interface/Addons/Exlist/Media/Icons/cancel-icon]]

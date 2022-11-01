@@ -263,9 +263,11 @@ local function Linegenerator(tooltip, data, character)
          table.insert(sideTooltip.body, t[i])
       end
    end
-   info.OnEnter = Exlist.CreateSideTooltip()
-   info.OnEnterData = sideTooltip
-   info.OnLeave = Exlist.DisposeSideTooltip()
+   if (#sideTooltip.body > 0) then
+      info.OnEnter = Exlist.CreateSideTooltip()
+      info.OnEnterData = sideTooltip
+      info.OnLeave = Exlist.DisposeSideTooltip()
+   end
 
    Exlist.AddData(info)
 end

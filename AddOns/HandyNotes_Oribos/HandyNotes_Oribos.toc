@@ -1,15 +1,16 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: HandyNotes: Oribos
 ## Notes: Shows the NPC and POI locations in Oribos.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-奧睿博司
 ## Notes-zhTW: HandyNotes: Oribos |n在世界地圖和小地圖中顯示奧睿博司的 NPC 和地點。
+## Notes-deDE: Zeigt die Positionen von NPCs und anderen Orten von Interesse in Oribos an.
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v17
+## Version: v20
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_OribosDB
 ## X-Embeds: AceTimer-3.0
-## X-Date: 2022-06-01
+## X-Date: 2022-10-25
 ## X-Category: Map
 
 #@no-lib-strip@

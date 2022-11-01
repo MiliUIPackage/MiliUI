@@ -135,13 +135,13 @@ local butTool
 local fontSet = settings.fonts
 local font = LSM:Fetch("font", settings.Font)
 local hugeFont = CreateFont("Exlist_HugeFont")
-hugeFont:SetFont(font, fontSet.big.size)
+hugeFont:SetFont(font, fontSet.big.size, "OUTLINE")
 hugeFont:SetTextColor(1, 1, 1)
 local smallFont = CreateFont("Exlist_SmallFont")
-smallFont:SetFont(font, fontSet.small.size)
+smallFont:SetFont(font, fontSet.small.size,"OUTLINE")
 smallFont:SetTextColor(1, 1, 1)
 local mediumFont = CreateFont("Exlist_MediumFont")
-mediumFont:SetFont(font, fontSet.medium.size)
+mediumFont:SetFont(font, fontSet.medium.size,"OUTLINE")
 mediumFont:SetTextColor(1, 1, 1)
 
 Exlist.Fonts = {
@@ -805,7 +805,7 @@ function Exlist.AddLine(tooltip, info, fontSize)
    else
       local font = LSM:Fetch("font", settings.Font)
       fontObj = CreateFont("Exlist_Font" .. fontSize)
-      fontObj:SetFont(font, fontSize)
+      fontObj:SetFont(font, fontSize, "OUTLINE")
       fontObj:SetTextColor(1, 1, 1)
       customFonts[fontSize] = fontObj
    end
@@ -1109,7 +1109,7 @@ end
 
 -- DISPLAY INFO
 butTool = CreateFrame("Frame", "Exlist_Tooltip", UIParent)
-local bg = butTool:CreateTexture("CharInf_BG", "HIGH")
+local bg = butTool:CreateTexture(nil, "ARTWORK")
 butTool:SetSize(32, 32)
 bg:SetTexture("Interface\\AddOns\\Exlist\\Media\\Icons\\logo")
 bg:SetSize(32, 32)
@@ -1235,11 +1235,11 @@ function Exlist.RefreshAppearance()
          end
    )
    local font = LSM:Fetch("font", settings.Font)
-   hugeFont:SetFont(font, settings.fonts.big.size)
-   smallFont:SetFont(font, settings.fonts.small.size)
-   mediumFont:SetFont(font, settings.fonts.medium.size)
+   hugeFont:SetFont(font, settings.fonts.big.size, "OUTLINE")
+   smallFont:SetFont(font, settings.fonts.small.size, "OUTLINE")
+   mediumFont:SetFont(font, settings.fonts.medium.size, "OUTLINE")
    for fontSize, f in pairs(customFonts) do
-      f:SetFont(font, fontSize)
+      f:SetFont(font, fontSize, "OUTLINE")
    end
    butTool:SetScale(settings.iconScale)
    if settings.showMinimapIcon then
@@ -1430,6 +1430,7 @@ function ResetHandling()
 end
 
 local function AnnounceReset(msg)
+   if not settings.announceReset then return end
    local channel = IsInRaid() and "raid" or "party"
    if IsInGroup() then
       SendChatMessage(string.format("[%s] %s", L[addonName], msg), channel)

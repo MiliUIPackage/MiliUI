@@ -1,24 +1,24 @@
 -------------------------------------------------------------------------------
 ---------------------------------- NAMESPACE ----------------------------------
 -------------------------------------------------------------------------------
-
 local ADDON_NAME, ns = ...
 
 -------------------------------------------------------------------------------
 -------------------------------- ICONS & GLOWS --------------------------------
 -------------------------------------------------------------------------------
 
-local ICONS = "Interface\\Addons\\"..ADDON_NAME.."\\core\\artwork\\icons"
-local GLOWS = "Interface\\Addons\\"..ADDON_NAME.."\\core\\artwork\\glows"
+local ICONS = 'Interface\\Addons\\' .. ADDON_NAME .. '\\core\\artwork\\icons'
+local GLOWS = 'Interface\\Addons\\' .. ADDON_NAME .. '\\core\\artwork\\glows'
 
-local function Icon(name) return ICONS..'\\'..name..'.blp' end
-local function Glow(name) return GLOWS..'\\'..name..'.blp' end
+local function Icon(name) return ICONS .. '\\' .. name .. '.blp' end
+local function Glow(name) return GLOWS .. '\\' .. name .. '.blp' end
 
 local DEFAULT_ICON = 454046
 local DEFAULT_GLOW = Glow('square_icon')
 
 ns.icons = { -- name => path
 
+    -- Red, Blue, Yellow, Purple, Green, Pink, Lime, Navy, Teal
     chest_bk = {Icon('chest_black'), Glow('chest')},
     chest_bl = {Icon('chest_blue'), Glow('chest')},
     chest_bn = {Icon('chest_brown'), Glow('chest')},
@@ -46,15 +46,17 @@ ns.icons = { -- name => path
     paw_g = {Icon('paw_green'), Glow('paw')},
     paw_y = {Icon('paw_yellow'), Glow('paw')},
 
-    peg_wb = {Icon('peg_white_blue'), Glow('peg')},
-    peg_wg = {Icon('peg_white_green'), Glow('peg')},
-    peg_wr = {Icon('peg_white_red'), Glow('peg')},
-    peg_wy = {Icon('peg_white_yellow'), Glow('peg')},
+    peg_bl = {Icon('peg_blue'), Glow('peg')},
+    peg_bk = {Icon('peg_black'), Glow('peg')},
+    peg_gn = {Icon('peg_green'), Glow('peg')},
+    peg_rd = {Icon('peg_red'), Glow('peg')},
+    peg_yw = {Icon('peg_yellow'), Glow('peg')},
 
-    portal_b = {Icon('portal_blue'), Glow('portal')},
-    portal_g = {Icon('portal_green'), Glow('portal')},
-    portal_p = {Icon('portal_purple'), Glow('portal')},
-    portal_r = {Icon('portal_red'), Glow('portal')},
+    portal_bl = {Icon('portal_blue'), Glow('portal')},
+    portal_gy = {Icon('portal_gray'), Glow('portal')},
+    portal_gn = {Icon('portal_green'), Glow('portal')},
+    portal_pp = {Icon('portal_purple'), Glow('portal')},
+    portal_rd = {Icon('portal_red'), Glow('portal')},
 
     quest_ab = {Icon('quest_available_blue'), Glow('quest_available')},
     quest_ag = {Icon('quest_available_green'), Glow('quest_available')},
@@ -82,7 +84,7 @@ ns.icons = { -- name => path
     envelope = {Icon('envelope'), Glow('envelope')},
     left_mouse = {Icon('left_mouse'), nil},
     scroll = {Icon('scroll'), Glow('scroll')},
-    world_quest = {Icon('world_quest'), Glow('world_quest')},
+    world_quest = {Icon('world_quest'), Glow('world_quest')}
 
 }
 
@@ -97,11 +99,11 @@ local function GetIconPath(name)
 end
 
 local function GetIconLink(name, size, offsetX, offsetY)
-    local link = "|T"..GetIconPath(name)..":"..size..":"..size
+    local link = '|T' .. GetIconPath(name) .. ':' .. size .. ':' .. size
     if offsetX and offsetY then
-        link = link..':'..offsetX..':'..offsetY
+        link = link .. ':' .. offsetX .. ':' .. offsetY
     end
-    return link.."|t"
+    return link .. '|t'
 end
 
 local function GetGlowPath(name)

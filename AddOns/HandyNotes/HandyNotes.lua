@@ -180,11 +180,13 @@ local continentZoneList = WoWClassic and {
 	[1414] = true, -- Kalimdor
 	[1415] = true, -- Eastern Kingdoms
 	[1945] = true, -- Outlands
+	[113] = true, -- Northrend
 
 	-- mapFile compat entries
 	["Kalimdor"]              = 1414,
 	["Azeroth"]               = 1415,
 	["Expansion01"]           = 1945,
+	["Northrend"]             = 113,
 }
 or {
 	[12]  = true, -- Kalimdor
@@ -197,6 +199,7 @@ or {
 	[875] = true, -- Zandalar
 	[876] = true, -- Kul Tiras
 	[1550] = true, -- Shadowlands
+	[1978] = true, -- Dragon Isles
 
 	-- mapFile compat entries
 	["Kalimdor"]              = 12,
@@ -362,6 +365,11 @@ function HandyNotesWorldMapPinMixin:OnAcquired(pluginName, x, y, iconpath, scale
 	self.mapFile = legacyMapFile
 
 	self:SetPosition(x, y)
+
+	-- we need to handle right clicks for our nodes, so disable button pass-through
+	if self.SetPassThroughButtons then
+		self:SetPassThroughButtons("")
+	end
 
 	local size = 12 * db.icon_scale * scale
 	self:SetSize(size, size)
@@ -616,7 +624,7 @@ function HandyNotes:OnInitialize()
 	-- Register options table and slash command
 	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("HandyNotes", options)
 	self:RegisterChatCommand("handynotes", function() LibStub("AceConfigDialog-3.0"):Open("HandyNotes") end)
-	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("HandyNotes", "HandyNotes")
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("HandyNotes", L["HandyNotes"])
 
 	-- Get the option table for profiles
 	options.args.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db)

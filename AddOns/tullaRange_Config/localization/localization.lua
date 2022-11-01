@@ -5,6 +5,8 @@
 local AddonName, Addon = ...
 
 local L = {
+	AddonNameLoc = "tullaRange",
+
 	ColorSettings = 'Colors',
 
 	ColorSettingsTitle = 'tullaRange color configuration settings',
