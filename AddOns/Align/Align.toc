@@ -1,8 +1,0 @@
-## Interface: 90205
-## Title: Align (1.10)
-## Author: Akeru (swyatt@gmail.com)
-## Notes: Grid to Align UI elements.
-## Title-zhTW: |r|cFFFFFFFF[其他]|r 對齊網格
-## Notes-zhTW: Align |n顯示調整UI時方便用來對齊位置的網格線。|n|cffffd200使用方法：|r輸入 /網格，或 /align 切換顯示網格。或是輸入 /網格 32、/網格 64、/網格 128 或 /網格 256，切換顯示不同大小的網格。
-## DefaultState: Disabled
-Align.lua
