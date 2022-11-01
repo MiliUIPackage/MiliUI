@@ -4,7 +4,7 @@ function AuctionatorConfigSellingShortcutsFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigSellingShortcutsFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_SELLING_SHORTCUTS_CATEGORY
-  self.parent = "Auctionator"
+  self.parent = "拍賣小助手"
 
   self:SetupPanel()
 end
