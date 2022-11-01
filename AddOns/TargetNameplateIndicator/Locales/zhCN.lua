@@ -14,6 +14,22 @@ L["Dropdown.RegionPoint.TOPLEFT.Desc"] = "左上 - 矩形的左上角"
 L["Dropdown.RegionPoint.TOPRIGHT.Desc"] = "右上 - 矩形的右上角"
 L["Dropdown.Texture.arrow_tip_green.Desc"] = "绿色3D箭头"
 L["Dropdown.Texture.arrow_tip_red.Desc"] = "红色3D箭头"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_Away.Desc"] = "Red Arrows Away From Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_FocusAway.Desc"] = "Yellow Arrows Away From Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_FocusTowards.Desc"] = "Yellow Arrows Towards Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_FriendAway.Desc"] = "Green Arrows Away From Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_FriendTowards.Desc"] = "Green Arrows Towards Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_SelfAway.Desc"] = "Blue Arrows Away From Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_SelfTowards.Desc"] = "Blue Arrows Towards Nameplate"
+--[[Translation missing --]]
+L["Dropdown.Texture.Arrows_Towards.Desc"] = "Red Arrows Towards Nameplate"
 L["Dropdown.Texture.BlueArrow.Desc"] = "蓝色向下箭头"
 L["Dropdown.Texture.bluearrow1.Desc"] = "抽象蓝色向下箭头"
 L["Dropdown.Texture.circles_target.Desc"] = "红色同心圆标靶"
@@ -79,6 +95,10 @@ L["Option.UnitReactionType.opacity.Desc"] = "材质图形的透明度，1 - 完�
 L["Option.UnitReactionType.opacity.Name"] = "材质透明度"
 L["Option.UnitReactionType.texture.Desc"] = "指示箭头使用的材质图形"
 L["Option.UnitReactionType.texture.Name"] = "材质"
+--[[Translation missing --]]
+L["Option.UnitReactionType.textureCustom.Desc"] = "The custom texture path to use for the indicator"
+--[[Translation missing --]]
+L["Option.UnitReactionType.textureCustom.Name"] = "Custom Texture"
 L["Option.UnitReactionType.texturePoint.Desc"] = "材质图形的哪个位置要对齐到血条"
 L["Option.UnitReactionType.texturePoint.Name"] = "材质对齐点"
 L["Option.UnitReactionType.width.Desc"] = "材质图形的宽度"

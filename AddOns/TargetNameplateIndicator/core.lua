@@ -265,8 +265,17 @@ end
 ------
 -- Indicator functions
 ------
+
+--- @type table<string, Indicator>
 TNI.Indicators = {}
 
+--- @class Indicator : Frame
+--- @field Texture Texture
+--- @field enabled boolean
+--- @field unit string
+--- @field priority number
+--- @field LNR_RegisterCallback fun(string, string)
+--- @field GetPlateByGUID fun(string):Frame,table
 local Indicator = {}
 
 function Indicator:Update(nameplate)
@@ -274,13 +283,20 @@ function Indicator:Update(nameplate)
 	self.Texture:ClearAllPoints()
 
 	local unitConfig = TNI.db.profile[self.unit]
+	if not unitConfig then return end -- 暫時修正
 	local config = UnitIsUnit("player", self.unit) and unitConfig.self or UnitIsFriend("player", self.unit) and unitConfig.friendly or unitConfig.hostile
 
 	self:SetShown(unitConfig.enable)
+	self.enabled = unitConfig.enable;
 
 	if nameplate and config.enable then
+		local texture = config.texture
+		if texture == "custom" then
+			texture = config.textureCustom
+		end
+
 		self.Texture:Show()
-		self.Texture:SetTexture(config.texture)
+		self.Texture:SetTexture(texture)
 		self.Texture:SetSize(config.width, config.height)
 		self.Texture:SetAlpha(config.opacity)
 		self.Texture:SetPoint(config.texturePoint, nameplate, config.anchorPoint, config.xOffset, config.yOffset)
@@ -310,7 +326,7 @@ end
 -- - If an equal or higher priority indicator is displaying, this returns false.
 function Indicator:CheckAndHideLowerPriorityIndicators()
 	for unit, indicator in pairs(TNI.Indicators) do
-		if self.unit ~= indicator.unit and UnitIsUnit(self.unit, unit) then -- If the indicator is for a different unit token but it's the same unit,
+		if indicator.enabled and self.unit ~= indicator.unit and UnitIsUnit(self.unit, unit) then -- If the indicator is for a different unit token but it's the same unit,
 			if self.priority > indicator.priority then -- If this indicator is a higher priority, hide the other indicator and return true
 				indicator:Update()
 				return true
@@ -342,8 +358,8 @@ function Indicator:VerifyNameplateUnitToken()
 end
 
 local function CreateIndicator(unit, priority)
-	-- 暫時加上 UIParent
-	local indicator = CreateFrame("Frame", "TargetNameplateIndicator_" .. unit, UIParent)
+	--- @type Indicator
+	local indicator = CreateFrame("Frame", "TargetNameplateIndicator_" .. unit)
 	indicator:SetFrameStrata("BACKGROUND")
 	indicator.Texture = indicator:CreateTexture("$parentTexture", "OVERLAY")
 
@@ -369,6 +385,7 @@ end
 -- Non-target Indicator functions
 ------
 
+--- @class NonTargetIndicator:Indicator
 local NonTargetIndicator = {}
 
 function NonTargetIndicator:OnUpdate()
@@ -399,6 +416,7 @@ function NonTargetIndicator:OnUpdate()
 end
 
 local function CreateNonTargetIndicator(unit, priority)
+	--- @type NonTargetIndicator
 	local indicator = CreateIndicator(unit, priority)
 
 	Mixin(indicator, NonTargetIndicator)

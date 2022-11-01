@@ -1,3 +1,23 @@
+## 1.44
+- Add more textures from Inokis of Curse
+
+## 1.43
+- Add textures from Inokis of Curse
+- Add support for Classic/BC Classic
+	- This is untested, please report any errors
+
+## 1.42
+- Bump TOC Interface version to 9.2.5
+
+## 1.41
+- Add support for custom textures (contributed by @markgravity)
+
+## 1.40
+- Prevent indicators from being hidden by disabled higher-priority indicators
+
+## 1.39
+- Bump TOC Interface version to 9.1
+
 ## 1.38
 - Add Target of Target indicator
 - Refactor checking of other indicators to priority-based system

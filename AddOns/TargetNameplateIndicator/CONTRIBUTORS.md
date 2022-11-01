@@ -30,3 +30,11 @@ Texture contributors:
 - Q_RedTarget - Red target arrow - ContinuousQ
 - Q_WhiteTarget - White target arrow - ContinuousQ
 - Hunters_Mark - Red Hunter's Mark Arrow - thisguyyouknow
+- Arrows_Towards - Red Arrows Towards Nameplate - Inokis
+- Arrows_Away - Red Arrows Away From Nameplate - Inokis
+- Arrows_SelfTowards - Blue Arrows Towards Nameplate - Inokis
+- Arrows_SelfAway - Blue Arrows Away From Nameplate - Inokis
+- Arrows_FriendTowards - Green Arrows Towards Nameplate - Inokis
+- Arrows_FriendAway - Green Arrows Away From Nameplate - Inokis
+- Arrows_FocusTowards - Yellow Arrows Towards Nameplate - Inokis
+- Arrows_FocusAway - Yellow Arrows Away From Nameplate - Inokis

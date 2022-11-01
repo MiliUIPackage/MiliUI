@@ -1,5 +1,3 @@
--- List globals here for Mikk's FindGlobals script
-
 local addon, TNI = ...
 local ACR = LibStub("AceConfigRegistry-3.0")
 local ACD = LibStub("AceConfigDialog-3.0")
@@ -41,10 +39,20 @@ local TEXTURE_NAMES = {
 	"Q_RedTarget",
 	"Q_WhiteTarget",
 	"Hunters_Mark",
+	"Arrows_Towards",
+	"Arrows_Away",
+	"Arrows_SelfTowards",
+	"Arrows_SelfAway",
+	"Arrows_FriendTowards",
+	"Arrows_FriendAway",
+	"Arrows_FocusTowards",
+	"Arrows_FocusAway",
 }
 
 -- Add the directory prefix to the texture names and localise the descriptions
-local TEXTURES = {}
+local TEXTURES = {
+	custom = L["Custom"]
+}
 do
 	for _, textureName in ipairs(TEXTURE_NAMES) do
 		local description = L[("Dropdown.Texture.%s.Desc"):format(textureName)]
@@ -195,6 +203,17 @@ local function CreateUnitRectionTypeConfigTable(unit, unitReactionType, order)
 				values = TEXTURES,
 				style = "dropdown",
 			},
+			textureCustom = {
+				name = getName,
+				desc = getDesc,
+				order = nextIndex(),
+				width = "full",
+				type = "input",
+				hidden = function(info)
+					local unitConfig, _ = findProfileTableAndKey(info)
+					return unitConfig.texture ~= "custom"
+				end,
+			},
 			textureDisplay = {
 				name = "",
 				width = "full",
@@ -202,6 +221,11 @@ local function CreateUnitRectionTypeConfigTable(unit, unitReactionType, order)
 				type = "description",
 				image = function(info)
 					local unitConfig, _ = findProfileTableAndKey(info)
+
+					if unitConfig.texture == "custom" then
+						return unitConfig.textureCustom
+					end
+
 					return unitConfig.texture
 				end,
 				imageWidth = 100,
