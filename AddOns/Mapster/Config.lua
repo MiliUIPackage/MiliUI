@@ -6,7 +6,7 @@ All rights reserved.
 local Mapster = LibStub("AceAddon-3.0"):GetAddon("Mapster")
 local L = LibStub("AceLocale-3.0"):GetLocale("Mapster")
 
-local WoWClassic = select(4, GetBuildInfo()) < 20000
+local WoWClassic = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
 
 local optGetter, optSetter
 do
@@ -27,12 +27,12 @@ local function getOptions()
 	if not options then
 		options = {
 			type = "group",
-			name = L["Mapster"],
+			name = "Mapster",
 			args = {
 				general = {
 					order = 1,
 					type = "group",
-					name = L["General Settings"],
+					name = "General Settings",
 					get = optGetter,
 					set = optSetter,
 					args = {
@@ -144,35 +144,36 @@ end
 
 local function optFunc()
 	-- open the profiles tab before, so the menu expands
-	InterfaceOptionsFrame:Show()
 	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Profiles)
 	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Mapster)
-	InterfaceOptionsFrame:Raise()
+	if InterfaceOptionsFrame then
+		InterfaceOptionsFrame:Raise()
+	end
 end
 
 function Mapster:SetupOptions()
 	self.optionsFrames = {}
 
 	-- setup options table
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Mapster", getOptions)
-	self.optionsFrames.Mapster = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", L["Mapster"], nil, "general")
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("地圖增強", getOptions)
+	self.optionsFrames.Mapster = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", nil, nil, "general")
 
-	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), L["Profiles"])
+	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "設定檔")
 
 	LibStub("AceConsole-3.0"):RegisterChatCommand( "mapster", optFunc)
 end
 
 function Mapster:RegisterModuleOptions(name, optionTbl, displayName)
 	moduleOptions[name] = optionTbl
-	self.optionsFrames[name] = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", displayName, L["Mapster"], name)
+	self.optionsFrames[name] = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", displayName, "地圖增強", name)
 end
 
 function Mapster:SetupMapButton()
 	-- create button on the worldmap to toggle the options
-	self.optionsButton = CreateFrame("Button", "MapsterOptionsButton", WorldMapFrame.BorderFrame, "UIPanelButtonTemplate")
+	self.optionsButton = CreateFrame("Button", "MapsterOptionsButton", WorldMapFrame.BorderFrame.TitleContainer or WorldMapFrame, "UIPanelButtonTemplate")
 	self.optionsButton:SetWidth(95)
 	self.optionsButton:SetHeight(18)
-	self.optionsButton:SetText(L["Mapster "])
+	self.optionsButton:SetText("地圖增強")
 	self.optionsButton:ClearAllPoints()
 	if WoWClassic then
 		self.optionsButton:SetParent(WorldMapFrame)
@@ -180,7 +181,7 @@ function Mapster:SetupMapButton()
 		self.optionsButton:SetWidth(110)
 		self.optionsButton:SetHeight(22)
 	else
-		self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrame.BorderFrame.TitleBg, "TOPRIGHT", -21, 1)
+		self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrame.BorderFrame.TitleContainer, "TOPRIGHT", -48, -1)
 	end
 
 	if self.db.profile.hideMapButton then

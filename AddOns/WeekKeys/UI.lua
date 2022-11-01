@@ -5,13 +5,13 @@ function WeekKeys.UI.Button(name, parent, bool)
     local button = CreateFrame('Button', name, parent)
 
 
-    local txt = button:CreateTexture('textureName', 'BACKGROUND')
+    local txt = button:CreateTexture(nil, 'BACKGROUND')
     txt:SetPoint('TOPLEFT', 2, 0)
     txt:SetPoint('bottomright', -2, 0)
     txt:SetColorTexture(1,1,1,0.2)
     button:SetHighlightTexture(txt)
 
-    button.texture = button:CreateTexture('textureName', 'CENTER')
+    button.texture = button:CreateTexture()
     button.texture:SetPoint('TOPLEFT', 2, 0)
     button.texture:SetPoint('bottomright', -2, 0)
     button.texture:SetColorTexture(0.2, 0.2, 0.2, 0)
@@ -26,13 +26,13 @@ function WeekKeys.UI.Button(name, parent, bool)
         button:SetSize(parent:GetSize())
         button:SetPoint("TOPLEFT",0,-parent:GetHeight())
     end
-
-    if bool then
-        button.texture2 = button:CreateTexture('textureName2', 'ARTWORK')
-        button.texture2:SetAllPoints(true)
-        button.texture2:SetColorTexture(0.2, 0.2, 0.2, 1)
-        button:SetNormalTexture(texture2)
-    end
+--
+--  if bool then
+--      button.texture2 = button:CreateTexture()
+--      button.texture2:SetAllPoints(true)
+--      button.texture2:SetColorTexture(0.2, 0.2, 0.2, 1)
+--      button:SetNormalTexture(texture2)
+--  end
 
     return button
 end
@@ -189,7 +189,7 @@ function WeekKeys.UI.FactionCovenantButton(name, parent)
         GameTooltip:Hide();
     end)
     --------------------- faction -----------------
-    btn.faction = btn:CreateTexture('textureName', 'CENTER')
+    btn.faction = btn:CreateTexture()
     btn.faction:SetPoint("LEFT", 2,0)
     btn.faction:SetSize(20, 20)
     function btn:SetFaction(faction)
@@ -202,7 +202,7 @@ function WeekKeys.UI.FactionCovenantButton(name, parent)
         end
     end
     ------------------------ covenant ---------------
-    btn.covenant = btn:CreateTexture('textureName', 'CENTER')
+    btn.covenant = btn:CreateTexture()
     btn.covenant:SetPoint("LEFT", 20,0)
     btn.covenant:SetSize(20, 20)
     function btn:SetCovenant(covenantID)
@@ -293,7 +293,7 @@ function WeekKeys.UI.CovenantButton(name, parent)
     btn:RegisterForClicks("RightButtonUp","LeftButtonUp")
 
     ------------------------ covenant ---------------
-    btn.covenant = btn:CreateTexture('textureName', 'CENTER')
+    btn.covenant = btn:CreateTexture()
     btn.covenant:SetPoint("LEFT", 0,0)
     btn.covenant:SetSize(20, 20)
     function btn:SetCovenant(covenantID)
@@ -427,21 +427,21 @@ function WeekKeys.UI.LootFinderButton(name,parent)
     local btn = WeekKeys.UI.Button(name, parent)
 
     -- favorite icon
-    btn.favorite = btn:CreateTexture('textureName', 'CENTER')
+    btn.favorite = btn:CreateTexture()
     btn.favorite:SetPoint("LEFT",5,0)
     btn.favorite:SetSize(18,18)
     btn.favorite:SetTexture('Interface/AuctionFrame/AuctionHouse')
     btn.SetFavorite = function(self, item, db)
         if self.LF:IsFavorite(item, db) then
             -- turn on
-            self.favorite:SetTexCoord(0.9306640625,0.9560546875,0.591796875,0.642578125)
+            self.favorite:SetTexCoord(0.9404296875,0.9794921875,0.095703125,0.166015625)
         else
            -- turn off
-           self.favorite:SetTexCoord(0.9580078125,0.9833984375,0.591796875,0.642578125)
+           self.favorite:SetTexCoord(0.9404296875,0.9794921875,0.169921875,0.240234375)
         end
     end
     -- source icon
-    btn.source = btn:CreateTexture('textureName', 'CENTER')
+    btn.source = btn:CreateTexture()
     btn.source:SetPoint("LEFT",25,0)
     btn.source:SetSize(18,18)
     ---Set Loot texture
@@ -465,7 +465,7 @@ function WeekKeys.UI.LootFinderButton(name,parent)
     end
 
     -- icon
-    btn.icon = btn:CreateTexture('textureName', 'CENTER')
+    btn.icon = btn:CreateTexture()
     btn.icon:SetPoint("LEFT",45,0)
     btn.icon:SetSize(18,18)
     ---Set Loot texture
@@ -583,7 +583,7 @@ function WeekKeys.UI.IconNameButton(name, parent)
     end)
 
     ---------------------- icon ---------------------
-    btn.icon = btn:CreateTexture('textureName', 'CENTER')
+    btn.icon = btn:CreateTexture()
     btn.icon:SetPoint("LEFT",5,0)
     btn.icon:SetSize(18,18)
 

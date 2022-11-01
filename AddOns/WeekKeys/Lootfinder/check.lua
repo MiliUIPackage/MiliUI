@@ -43,12 +43,16 @@ function LF:FilterCheck(itemlink)
         end
     end
 
-    local _, _, _, _, _, _, _, _, itemEquipLoc, _, _, _, subclassID = GetItemInfo(itemlink)
+    local _, _, _, _, _, _, _, _, itemEquipLoc, _, _, classID, subclassID = GetItemInfo(itemlink)
+
+    if classID == 4 and self.class > 0 and self:GetArmorTypeID() ~= subclassID then
+        return false
+    end
 
     if not self[itemEquipLoc](self,subclassID) and self.slotid < 15 then
         return false
     end
-
+--asdasd
 
     return true
 end

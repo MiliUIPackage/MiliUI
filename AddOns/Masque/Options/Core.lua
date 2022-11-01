@@ -59,7 +59,7 @@ function Setup.Core(self)
 
 	local Options = {
 		type = "group",
-		name = MASQUE,
+		name = "快捷美化",
 		args = {
 			Core = {
 				type = "group",

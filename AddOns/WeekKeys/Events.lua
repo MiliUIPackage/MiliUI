@@ -18,7 +18,7 @@ function WeekKeys:ADDON_LOADED(eve,addon) -- insert keystone
     end
 end
 function WeekKeys:PLAYER_ENTERING_WORLD()
-    C_Timer.After(1,C_MythicPlus.RequestRewards)
+    C_MythicPlus.RequestRewards()
 end
 function WeekKeys:CHALLENGE_MODE_MAPS_UPDATE()
     WeekKeys.PlayerData()

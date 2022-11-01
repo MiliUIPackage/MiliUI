@@ -16,7 +16,6 @@ WeekKeys.AstralKeys = {}
 WeekKeys.WeekKeys = {}
 function WeekKeys.AstralKeys.GUILD(msg, sender)
     local guildName = GetGuildInfo("player");
-    if not guildName then return end -- 暫時修正
     WeekKeysDB.Guild = WeekKeysDB.Guild or {}
     WeekKeysDB.Guild[guildName] = WeekKeysDB.Guild[guildName] or {}
 

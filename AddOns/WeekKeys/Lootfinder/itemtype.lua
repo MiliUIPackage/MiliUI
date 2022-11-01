@@ -306,6 +306,9 @@ local weapons = {
 }
 
 -----------------------------------------------------------------------
+function LF:GetArmorTypeID()
+    return gear_type[self.class]
+end
 
 function LF:INVTYPE_HEAD(subclass)
     if self.slotid == 0 and subclass == gear_type[self.class] then

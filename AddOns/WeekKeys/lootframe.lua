@@ -676,7 +676,7 @@ WeekKeys.AddInit(function()
     end)
     slot_btn:Hide()
     arrayOfElements[#arrayOfElements + 1] = slot_btn
-
+--[[
     local instance_label = WeekKeys.WeekFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     instance_label:SetSize(40, 20)
     instance_label:SetPoint("TOPLEFT", 155, -30)
@@ -684,6 +684,7 @@ WeekKeys.AddInit(function()
     instance_label:Hide()
     arrayOfElements[#arrayOfElements + 1] = instance_label
     -- instances
+
     local instance_btn = WeekKeys.UI.Button(nil, WeekKeys.WeekFrame)
     instance_btn:SetSize(30,30)
     instance_btn:SetPoint("Topleft",159,-50)
@@ -698,6 +699,7 @@ WeekKeys.AddInit(function()
         for _,v in pairs(hide_frames) do v:Hide() end
         self.showframe:Show()
     end)
+
     instance_btn:SetScript("OnEnter",function(self)
         GameTooltip:Hide();
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
@@ -710,7 +712,7 @@ WeekKeys.AddInit(function()
     end)
     instance_btn:Hide()
     arrayOfElements[#arrayOfElements + 1] = instance_btn
-
+--]]
     local raid_label = WeekKeys.WeekFrame:CreateFontString(nil, "ARTWORK", "GameFontNormal")
     raid_label:SetSize(40, 20)
     raid_label:SetPoint("TOPLEFT", 200, -30)

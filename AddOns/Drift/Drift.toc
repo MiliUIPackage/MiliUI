@@ -1,9 +1,10 @@
-## Interface: 90205
+## Interface: 100000
 ## Title: Drift
 ## Notes: Modifies default UI frames so you can click and drag to move and scale.
 ## Title-zhTW: |cff0099FF[介面]|r 移動和縮放視窗
-## Notes-zhTW: Drift |n允許自由拖曳移動和縮放遊戲內建的各種視窗，並且會保存位置，就算登出登入後位置也不會跑掉。|n|cffffd200使用方法：|r左鍵拖曳視窗標題，或拖曳視窗內沒有功能的地方來移動位置。|n右鍵往上或往下拖曳來縮放視窗大小。|n從Esc>介面>插件>移動視窗，進行設定和重置視窗。
-## Version: 1.1.1
+## Notes-zhTW: Drift |n|n允許自由拖曳移動和縮放遊戲內建的各種視窗，並且會保存位置，就算登出登入後位置也不會跑掉。|n|n|cffffd200使用方法:|r|n按住左鍵拖曳視窗標題，或拖曳視窗內沒有功能的地方來移動位置。|n|n按住右鍵往上或往下拖曳來縮放視窗大小。|n|n從Esc>選項>插件>移動視窗，進行設定和重置視窗。
+## X-Category-zhTW: 介面
+## Version: 2.0.0
 ## Author: Jared Wasserman
 ## SavedVariables: DriftPoints, DriftScales, DriftOptions
 

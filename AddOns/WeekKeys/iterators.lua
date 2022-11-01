@@ -15,8 +15,7 @@ function Iterators.FormatPlayerList(list,writeRealm)
     realm = realm:gsub(" ","")
     local formatted = {}
     local i = 0
-    ---'for ... in' iterator
-    ---@return table formatted table with formatted data
+
     return function()
         i = i + 1
         if list[i] then list[i].reward = nil end
@@ -26,7 +25,7 @@ function Iterators.FormatPlayerList(list,writeRealm)
         local char = list[i]
 
         table.wipe(formatted)
-        if not char then return end
+        if not char then return  end
 
         local colored_nickname
         if char.classID then

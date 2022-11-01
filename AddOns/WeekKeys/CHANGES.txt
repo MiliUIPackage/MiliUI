@@ -1,10 +1,22 @@
-lightweight tag dbf548349f545e1048785f3bd34b92fef9b136b9 v150
+lightweight tag 463376a81266375e5a3d7be2feedbd805a5fd044 v155
 Author:	Reinisdm <65504797+Reinisdm@users.noreply.github.com>
-Date:	Tue May 3 00:26:04 2022 +0300
+Date:	Tue Nov 1 12:16:03 2022 +0200
 
-commit dbf548349f545e1048785f3bd34b92fef9b136b9
+commit 463376a81266375e5a3d7be2feedbd805a5fd044
 Author: Reinisdm <65504797+Reinisdm@users.noreply.github.com>
-Date:   Tue May 3 00:26:04 2022 +0300
+Date:   Tue Nov 1 12:16:03 2022 +0200
 
-    fix loading
+    fix critical error and toc update
+
+commit 1540689913d8acced74eaddaf3d17ee7c5e188e6
+Author: Reinisdm <65504797+Reinisdm@users.noreply.github.com>
+Date:   Tue Nov 1 12:15:51 2022 +0200
+
+    fix critical bugs
+
+commit bf628f6d032e0bf35913f45ebdb32477601167d7
+Author: Reinisdm <65504797+Reinisdm@users.noreply.github.com>
+Date:   Fri Sep 9 11:19:25 2022 +0300
+
+    Fast mythic plus loot fix.
 
