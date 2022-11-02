@@ -537,6 +537,7 @@ L["YOU"] = "你的"
 L["YOU_COLUMN"] = "你的?"
 L["YOUR_HISTORY"] = "你的歷史記錄"
 
+L["ADDONS_AUCTIONATOR"] = "拍賣"
 
   return L
 end

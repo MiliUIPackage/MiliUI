@@ -4,7 +4,7 @@ function AuctionatorConfigProfileFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigProfileFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_PROFILE_CATEGORY
-  self.parent = "拍賣小助手"
+  self.parent = AUCTIONATOR_L_ADDONS_AUCTIONATOR
 
   self:SetupPanel()
 end

@@ -9,7 +9,7 @@ function AuctionatorPanelConfigMixin:SetupPanel()
     self:Save()
   end
 
-  InterfaceOptions_AddCategory(self, "拍賣小助手")
+  InterfaceOptions_AddCategory(self, AUCTIONATOR_L_ADDONS_AUCTIONATOR)
 end
 
 function AuctionatorPanelConfigMixin:IndentationForSubSection()

@@ -4,7 +4,7 @@ function AuctionatorConfigSellingAllItemsFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigSellingAllItemsFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_SELLING_ALL_ITEMS_CATEGORY
-  self.parent = "拍賣小助手"
+  self.parent = AUCTIONATOR_L_ADDONS_AUCTIONATOR
 
   self:SetupPanel()
 
