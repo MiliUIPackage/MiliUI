@@ -82,6 +82,8 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
+L["Increase Health Update Rate"] = "增加血条刷新速率"
+L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Lock Cell Frame"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
@@ -469,6 +471,7 @@ L["circledStackNums"] = "用带圈数字显示层数"
 L["Require font support"] = "需要字体支持"
 L["showTooltip"] = "显示鼠标提示"
 L["This will make these icons not click-through-able"] = "将会使这些图标无法点击穿透"
+L["Tooltips need to be enabled in General tab"] = "需要先启用常规页面中的鼠标提示功能"
 L["Only one threshold is displayed at a time"] = "同一时间只显示一个阈值"
 L["hideDamager"] = "隐藏伤害输出"
 
@@ -593,6 +596,11 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r136-release (Nov 2, 2022, 17:59 GMT+8)</h1>
+    <p>+ 添加了一个增加血条刷新速率的选项（但不推荐使用）。</p>
+    <p>* 好像修复了什么bug，但我忘了。</p>
+    <br/>
+
     <h1>r135-release (Nov 1, 2022, 06:27 GMT+8)</h1>
     <p>* 修复竞技场宠物。</p>
     <p>* 更新巫妖王之怒怀旧服的护盾。</p>
