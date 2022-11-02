@@ -1,0 +1,10 @@
+## Interface: 100000
+## Title: Masque: |cffffffffFlatSquares|r
+## Version: 1.0.9
+## Author: ccfreak
+## Notes: FlatSquares skin for Masque.
+## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - FlatSquares 
+## Notes-zhTW: Masque |cffff8000FlatSquares|r|nMasque 的 FlatSquares 樣式。
+## Dependencies: Masque
+
+FlatSquares.lua

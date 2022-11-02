@@ -1,0 +1,10 @@
+lightweight tag cefe69baa9210e214efa3640d22828cc9c83314b 9.0.2
+Author:	Andrew Scott <ascott18@gmail.com>
+Date:	Sun Oct 30 10:25:24 2022 -0700
+
+commit cefe69baa9210e214efa3640d22828cc9c83314b
+Author: Andrew Scott <ascott18@gmail.com>
+Date:   Sun Oct 30 10:25:24 2022 -0700
+
+    Fix the position of the icon for skins that don't take up their whole container
+

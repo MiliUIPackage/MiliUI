@@ -1,0 +1,14 @@
+## Interface: 100000
+## Title: Edit Mode Expanded
+## Version: 10.0-001
+## Notes: Expands Edit Mode to apply to other frames
+## Title-zhTW: |cff0099FF[介面]|r 擴充編輯模式
+## Notes-zhTW: Edit Mode Expanded |n|n讓編輯模式可以移動更多介面框架。
+## X-Category-zhTW: 介面
+## Author: Teelo
+## SavedVariablesPerCharacter: EditModeExpandedDB
+## X-Curse-Project-ID: 695703
+
+libs\LibStub.lua
+libs\EditModeExpanded-1.0\EditModeExpanded-1.0.lua
+EditModeExpanded.lua

@@ -1,0 +1,9 @@
+## Interface: 100000
+## Version: 2.0.2
+## Title: Masque Blizz Bars
+## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪快捷列
+## Notes-zhTW: Masque Blizz Bars|n使內建的暴雪快捷列可以支援 Masque 的樣式。
+## Author: SimGuy3k, Madnessbox
+## RequiredDeps: Masque
+
+MasqueBlizzBars.lua

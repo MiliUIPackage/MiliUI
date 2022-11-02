@@ -1,6 +1,6 @@
 ## Interface: 100000
 ## Title: Masque: Caith
-## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式-Caith 
+## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - Caith 
 ## Notes: Caith skin for Masque.
 ## Notes-deDE: Caith-Skin für Masque.
 ## Notes-esMX: Skin Caith para Masque.
