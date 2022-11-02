@@ -75,7 +75,7 @@ Cell.defaults.layout = {
             ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
             ["nameColor"] = {"custom", {1, 1, 1}},
             ["vehicleNamePosition"] = {"TOP", 0},
-            ["textWidth"] = {"percentage", 0.75},
+            ["textWidth"] = {"percentage", 1},
             ["showGroupNumber"] = false,
         }, -- 1
         {
