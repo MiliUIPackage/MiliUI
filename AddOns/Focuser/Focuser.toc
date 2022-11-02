@@ -1,8 +1,0 @@
-﻿## Interface: 90205
-## Title: Focuser
-## Title-zhTW: |cFF0099FF[介面]|r 焦點目標助手
-## Notes: Focuser|nShift+滑鼠左鍵點擊可以將目標設為焦點目標，Shift+點擊地板取消Focus目標。
-## Author: Slizen
-## Version: 0.51
-
-Focuser.lua

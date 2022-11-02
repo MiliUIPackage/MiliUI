@@ -1,8 +1,0 @@
-Changes since tag v0.69
-
-commit f7dd1da9c7b4076cb6f66d943292c2d52ee28427
-Author: noisex <noisex@ya.ru>
-Date:   Sun Nov 4 01:08:49 2018 +0300
-
-    minor update
-
