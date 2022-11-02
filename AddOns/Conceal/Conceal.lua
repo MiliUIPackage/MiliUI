@@ -8,7 +8,7 @@ local defaults = {
         health = 30,
         power = false,
         mouseover = true,
-        alpha = 10,
+        alpha = 20,
         actionBar1 = false,
         actionBar1ConcealDuringCombat = false,
         actionBar2 = false,
@@ -92,8 +92,8 @@ local options = {
             },
             selfFrameConcealDuringCombat = {
                 order = 3.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量隱藏玩家框架。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏玩家框架。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -112,8 +112,8 @@ local options = {
             },
             targetFrameConcealDuringCombat = {
                 order = 3.4,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏目標框架。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏目標框架。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -138,8 +138,8 @@ local options = {
             },
             actionBar1ConcealDuringCombat = {
                 order = 4.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 1。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 1。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -164,8 +164,8 @@ local options = {
             },
             actionBar2ConcealDuringCombat = {
                 order = 5.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 2。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 2。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -190,8 +190,8 @@ local options = {
             },
             actionBar3ConcealDuringCombat = {
                 order = 6.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 3。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 3。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -216,8 +216,8 @@ local options = {
             },
             actionBar4ConcealDuringCombat = {
                 order = 7.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 4。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 4。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -242,8 +242,8 @@ local options = {
             },
             actionBar5ConcealDuringCombat = {
                 order = 8.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 5。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 5。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -268,8 +268,8 @@ local options = {
             },
             actionBar6ConcealDuringCombat = {
                 order = 9.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 6。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 6。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -294,8 +294,8 @@ local options = {
             },
             actionBar7ConcealDuringCombat = {
                 order = 10.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 7。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 7。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -320,8 +320,8 @@ local options = {
             },
             actionBar8ConcealDuringCombat = {
                 order = 11.2,
-                name = "戰鬥中隱藏",
-                desc = "戰鬥中和低血量時隱藏快捷列 8。",
+                name = "只有滑鼠指向才顯示",
+                desc = "戰鬥中和低血量時也要隱藏快捷列 8。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -346,8 +346,8 @@ local options = {
             },
             petActionBarConcealDuringCombat = {
                 order = 13.2,
-                name = "戰鬥中隱藏寵物快捷列",
-                desc = "戰鬥中和低血量時隱藏寵物快捷列。",
+                name = "只有滑鼠指向才顯示寵物快捷列",
+                desc = "戰鬥中和低血量時也要隱藏寵物快捷列。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -366,8 +366,8 @@ local options = {
             },
             stanceBarConcealDuringCombat = {
                 order = 13.4,
-                name = "戰鬥中隱藏姿勢形態列",
-                desc = "戰鬥中和低血量時隱藏姿勢形態列。",
+                name = "只有滑鼠指向才顯示姿勢形態列",
+                desc = "戰鬥中和低血量時也要隱藏姿勢形態列。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -386,8 +386,8 @@ local options = {
             },
             microBarConcealDuringCombat = {
                 order = 13.6,
-                name = "戰鬥中隱藏微型選單和背包",
-                desc = "戰鬥中和低血量時隱藏微型選單和背包。",
+                name = "只有滑鼠指向才顯示微型選單和背包",
+                desc = "戰鬥中和低血量時也要隱藏微型選單和背包。",
                 type = "toggle",
                 get = "GetStatus",
                 set = "SetStatus",
@@ -617,7 +617,7 @@ function Conceal:HideElements()
     if self.db.profile["actionBar8"] and not ActionBar8:IsMouseOver() then ActionBar8:SetAlpha(frameAlpha); end
     if self.db.profile["petActionBar"] and not PetActionBar:IsMouseOver() then PetActionBar:SetAlpha(frameAlpha); end
     if self.db.profile["stanceBar"] and not StanceBar:IsMouseOver() then StanceBar:SetAlpha(frameAlpha); end
-    if self.db.profile["microBar"] and not MicroButtonAndBagsBar:IsMouseOver() then MicroButtonAndBagsBar:SetAlpha(frameAlpha); end
+    if self.db.profile["microBar"] and not MicroButtonAndBagsBar:IsMouseOver() then QueueStatusButton:SetParent(UIParent); MicroButtonAndBagsBar:SetAlpha(frameAlpha); end
 end
 
 function Conceal:TargetChanged()
