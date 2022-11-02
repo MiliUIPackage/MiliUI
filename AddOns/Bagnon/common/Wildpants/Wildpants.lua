@@ -111,7 +111,7 @@ function Addon:OnEnable()
 		display = {banker = true, guildBanker = true, voidStorageBanker = true, crafting = true, tradePartner = true, socketing = true, auctioneer = true, merchant = true, mailInfo = true, scrappingMachine = true},
 		resetPlayer = true, flashFind = true, tipCount = true, serverSort = true,
 
-		glowAlpha = 0.5,
+		glowAlpha = 1,
 		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
 
 		emptySlots = false, colorSlots = true,
