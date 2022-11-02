@@ -87,7 +87,7 @@ function Masque:OnInitialize()
 					Pulse = true,
 					Scale = 1,
 					Shadow = false,
-					SkinID = "Caith",
+					SkinID = "FlatSquares",
 					UseScale = false,
 				},
 			},
