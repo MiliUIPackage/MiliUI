@@ -2,7 +2,7 @@
 ## Title: Edit Mode Expanded
 ## Version: 10.0-001
 ## Notes: Expands Edit Mode to apply to other frames
-## Title-zhTW: |cff0099FF[介面]|r 擴充編輯模式
+## Title-zhTW: |cff0099FF[介面]|r 編輯模式擴充包
 ## Notes-zhTW: Edit Mode Expanded |n|n讓編輯模式可以移動更多介面框架。
 ## X-Category-zhTW: 介面
 ## Author: Teelo
@@ -10,5 +10,6 @@
 ## X-Curse-Project-ID: 695703
 
 libs\LibStub.lua
+libs\AceDB-3.0\AceDB-3.0.xml
 libs\EditModeExpanded-1.0\EditModeExpanded-1.0.lua
 EditModeExpanded.lua
