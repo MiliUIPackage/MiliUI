@@ -45,7 +45,7 @@ function AuctionatorScrollListLineRecentsMixin:CopyItem()
   Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.CopyIntoList, self.searchTerm)
 end
 
-function AuctionatorScrollListLineRecentsMixin:OnClick()
+function AuctionatorScrollListLineRecentsMixin:OnSelected()
   self.LastSearchedHighlight:Show()
   self.shouldRemoveHighlight = false
   Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.OneItemSearch, self.searchTerm)

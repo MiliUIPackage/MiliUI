@@ -7,26 +7,16 @@ function AuctionatorResultsListingMixin:Init(dataProvider)
   self.dataProvider = dataProvider
   self.columnSpecification = self.dataProvider:GetTableLayout()
 
-  local view = CreateScrollBoxListLinearView()
-  view:SetElementExtent(20)
-
-  if Auctionator.Constants.IsClassic then
-    view:SetElementInitializer("Button", dataProvider:GetRowTemplate(), function(frame, index)
-      frame:Populate(self.dataProvider:GetEntryAt(index), index)
-    end)
-  else
-    view:SetElementInitializer(dataProvider:GetRowTemplate(), function(frame, index)
-      frame:Populate(self.dataProvider:GetEntryAt(index), index)
-    end)
-  end
-
-  ScrollUtil.InitScrollBoxListWithScrollBar(self.ScrollArea.ScrollBox, self.ScrollArea.ScrollBar, view)
-
-  self.ScrollArea.ScrollBox:RegisterCallback(ScrollBoxListMixin.Event.OnDataRangeChanged, self.ApplyHiding, self)
+  -- Initialize ScrollFrame (HybridScrollFrame.lua#11)
+  HybridScrollFrame_OnLoad(self.ScrollFrame)
+  -- Add buttons to the scroll frame using our template (HybridScrollFrame.lua#201)
+  HybridScrollFrame_CreateButtons(self.ScrollFrame, dataProvider:GetRowTemplate())
+  -- Keey scroll bar visible (HybridScrollFrame.lua#255)
+  HybridScrollFrame_SetDoNotHideScrollBar(self.ScrollFrame, true)
 
   -- Create an instance of table builder - note that the ScrollFrame we reference
   -- mixes a TableBuilder implementation in
-  self.tableBuilder = AuctionatorRetailImportCreateTableBuilder()
+  self.tableBuilder = AuctionatorRetailImportCreateTableBuilder(HybridScrollFrame_GetButtons(self.ScrollFrame))
   -- Set the frame that will be used for header columns for this tableBuilder
   self.tableBuilder:SetHeaderContainer(self.HeaderContainer)
 
@@ -40,7 +30,7 @@ function AuctionatorResultsListingMixin:InitializeDataProvider()
   end)
 
   self.dataProvider:SetOnSearchStartedCallback(function()
-    self.ScrollArea.NoResultsText:Hide()
+    self.ScrollFrame.NoResultsText:Hide()
     self:EnableSpinner()
   end)
 
@@ -48,11 +38,11 @@ function AuctionatorResultsListingMixin:InitializeDataProvider()
     self:RestoreScrollPosition()
     self:DisableSpinner()
 
-    self.ScrollArea.NoResultsText:SetShown(self.dataProvider:GetCount() == 0)
+    self.ScrollFrame.NoResultsText:SetShown(self.dataProvider:GetCount() == 0)
   end)
 
   self.dataProvider:SetOnPreserveScrollCallback(function()
-    self.savedScrollPosition = self.ScrollArea.ScrollBox:GetScrollPercentage()
+    self.savedScrollPosition = self.ScrollFrame.scrollBar:GetValue()
   end)
 
   self.dataProvider:SetOnResetScrollCallback(function()
@@ -61,10 +51,16 @@ function AuctionatorResultsListingMixin:InitializeDataProvider()
 end
 
 function AuctionatorResultsListingMixin:RestoreScrollPosition()
-  if self.savedScrollPosition ~= nil then
-    self:UpdateTable()
-    self.ScrollArea.ScrollBox:SetScrollPercentage(self.savedScrollPosition)
+  if self.savedScrollPosition == nil then
+    return
   end
+
+  -- Ensure all the visuals are positioned (so the scroll restores correctly)
+  self:UpdateTable()
+
+  local _, max = self.ScrollFrame.scrollBar:GetMinMaxValues()
+  local val = math.min(self.savedScrollPosition or 0, max or 0)
+  self.ScrollFrame.scrollBar:SetValue(val)
 end
 
 function AuctionatorResultsListingMixin:OnShow()
@@ -73,22 +69,31 @@ function AuctionatorResultsListingMixin:OnShow()
     return
   end
 
-  self:UpdateDimensionsForHiding()
-  self:ApplyHiding()
+  self:UpdateForHiding()
+  self:UpdateTable()
+end
+
+-- TODO I can't figure out where the magic is that causes this to be invoked...
+-- I think its in one of the HybridScrollFrame_ methods that SetScript(OnUpdate...)?
+function AuctionatorResultsListingMixin:OnUpdate()
+  if not self.isInitialized then
+    return
+  end
+
   self:UpdateTable()
 end
 
 function AuctionatorResultsListingMixin:InitializeTable()
   self.tableBuilder:Reset()
-  self.tableBuilder:SetTableMargins(15)
   self.tableBuilder:SetDataProvider(function(index)
     return self.dataProvider:GetEntryAt(index)
   end)
+  self.tableBuilder:SetTableMargins(15)
 
-  ScrollUtil.RegisterTableBuilder(self.ScrollArea.ScrollBox, self.tableBuilder, function(a) return a end)
+  local column
 
   for _, columnEntry in ipairs(self.columnSpecification) do
-    local column = self.tableBuilder:AddColumn()
+    column = self.tableBuilder:AddColumn()
     column:ConstructHeader(
       "BUTTON",
       columnEntry.headerTemplate,
@@ -119,8 +124,7 @@ function AuctionatorResultsListingMixin:InitializeTable()
     end
   end
   self.isInitialized = true
-  self:UpdateDimensionsForHiding()
-  self:ApplyHiding()
+  self:UpdateForHiding()
 end
 
 function AuctionatorResultsListingMixin:UpdateTable()
@@ -128,11 +132,24 @@ function AuctionatorResultsListingMixin:UpdateTable()
     return
   end
 
-  local tmpDataProvider = CreateIndexRangeDataProvider(self.dataProvider:GetCount())
+  local buttons = HybridScrollFrame_GetButtons(self.ScrollFrame)
+  local buttonCount = #buttons
+  local displayCount = self.dataProvider:GetCount()
+  local buttonHeight = buttons[1]:GetHeight()
+  local visibleElementHeight = displayCount * buttonHeight
 
-  local shouldPreserveScroll = self.savedScrollPosition ~= nil
+  local offset = HybridScrollFrame_GetOffset(self.ScrollFrame)
+  local populateCount = math.min(buttonCount, displayCount)
 
-  self.ScrollArea.ScrollBox:SetDataProvider(tmpDataProvider, shouldPreserveScroll)
+  self.tableBuilder:Populate(offset, populateCount)
+
+  for i = 1, buttonCount do
+    local visible = i <= displayCount
+    buttons[i]:SetShown(visible)
+  end
+
+  local regionHeight = self.ScrollFrame:GetHeight()
+  HybridScrollFrame_Update(self.ScrollFrame, visibleElementHeight, regionHeight)
 end
 
 function AuctionatorResultsListingMixin:ClearColumnSorts()
@@ -147,34 +164,19 @@ function AuctionatorResultsListingMixin:CustomiseColumns()
       self.columnSpecification,
       self.dataProvider:GetColumnHideStates(),
       function()
-        self:UpdateDimensionsForHiding()
-        self:ApplyHiding()
+        self:UpdateForHiding()
     end)
   end
 end
 
--- Hide cells and column header
 local function SetColumnShown(column, isShown)
   column:GetHeaderFrame():SetShown(isShown)
-  for _, cell in pairs(column.cells) do
+  for _, cell in ipairs(column.cells) do
     cell:SetShown(isShown)
   end
 end
 
--- Prevent hidden columns displaying and overlapping visible ones
-function AuctionatorResultsListingMixin:ApplyHiding()
-  local hidingDetails = self.dataProvider:GetColumnHideStates()
-  if hidingDetails == nil then
-    return
-  end
-
-  for index, column in ipairs(self.tableBuilder:GetColumns()) do
-    local columnEntry = self.columnSpecification[index]
-    SetColumnShown(column, not hidingDetails[columnEntry.headerText])
-  end
-end
-
-function AuctionatorResultsListingMixin:UpdateDimensionsForHiding()
+function AuctionatorResultsListingMixin:UpdateForHiding()
   if not self.dataProvider:GetColumnHideStates() then
     self.tableBuilder:Arrange()
     return
@@ -222,13 +224,13 @@ function AuctionatorResultsListingMixin:UpdateDimensionsForHiding()
 end
 
 function AuctionatorResultsListingMixin:EnableSpinner()
-  self.ScrollArea.ResultsText:Show()
-  self.ScrollArea.LoadingSpinner:Show()
-  self.ScrollArea.SpinnerAnim:Play()
+  self.ScrollFrame.ResultsText:Show()
+  self.ScrollFrame.LoadingSpinner:Show()
+  self.ScrollFrame.SpinnerAnim:Play()
 end
 
 function AuctionatorResultsListingMixin:DisableSpinner()
-  self.ScrollArea.ResultsText:Hide()
-  self.ScrollArea.LoadingSpinner:Hide()
-  self.ScrollArea.SpinnerAnim:Stop()
+  self.ScrollFrame.ResultsText:Hide()
+  self.ScrollFrame.LoadingSpinner:Hide()
+  self.ScrollFrame.SpinnerAnim:Stop()
 end

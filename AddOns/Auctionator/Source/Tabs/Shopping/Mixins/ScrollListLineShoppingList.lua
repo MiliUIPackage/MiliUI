@@ -96,7 +96,7 @@ function AuctionatorScrollListLineShoppingListMixin:OnLeave()
   self:DetectDragEnd()
 end
 
-function AuctionatorScrollListLineShoppingListMixin:OnClick()
+function AuctionatorScrollListLineShoppingListMixin:OnSelected()
   self.LastSearchedHighlight:Show()
   self.shouldRemoveHighlight = false
   Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.ListItemSelected, self.searchTerm)

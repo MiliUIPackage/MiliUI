@@ -16,7 +16,7 @@ end
 
 function AuctionatorScrollListMixin:OnShow()
   self:Init()
-  self:RefreshScrollFrame(true)
+  self:RefreshScrollFrame()
 end
 
 function AuctionatorScrollListMixin:Init()
@@ -24,56 +24,83 @@ function AuctionatorScrollListMixin:Init()
     return
   end
 
+  self.ScrollFrame.update = function()
+    self:RefreshScrollFrame()
+  end
+
+  HybridScrollFrame_CreateButtons(self.ScrollFrame, self.lineTemplate, 0, 0)
+
+  for i, button in ipairs(self.ScrollFrame.buttons) do
+    local oddRow = (i % 2) == 1
+
+    button:GetNormalTexture():SetAtlas(oddRow and "auctionhouse-rowstripe-1" or "auctionhouse-rowstripe-2");
+    self:InitLine(button)
+    button:SetShown(false)
+  end
+
+  HybridScrollFrame_SetDoNotHideScrollBar(self.ScrollFrame, true);
+
+  self.tableBuilder = AuctionatorRetailImportCreateTableBuilder(
+    HybridScrollFrame_GetButtons(self.ScrollFrame),
+    AuctionatorShoppingTableBuilderMixin
+  )
+
+  self.tableBuilder:SetDataProvider(function(index)
+    return self:GetEntry(index)
+  end)
+
   self.isInitialized = true
-
-  self.ScrollBox.wheelPanScalar = 4.0
-
-  local view = CreateScrollBoxListLinearView()
-
-  view:SetPadding(2, 2, 2, 2, 0);
-
-  ScrollUtil.InitScrollBoxListWithScrollBar(self.ScrollBox, self.ScrollBar, view);
-
-  local function FirstTimeInit(frame)
-    if frame.created == nil then
-      self:InitLine(frame)
-      frame.created = true
-    end
-  end
-  view:SetElementExtent(20)
-  if Auctionator.Constants.IsClassic then
-    view:SetElementInitializer("Button", self.lineTemplate, function(frame, elementData)
-      FirstTimeInit(frame)
-      frame:Populate(elementData.searchTerm, elementData.index)
-    end)
-  else
-    view:SetElementInitializer(self.lineTemplate, function(frame, elementData)
-      FirstTimeInit(frame)
-      frame:Populate(elementData.searchTerm, elementData.index)
-    end)
-  end
 end
 
-function AuctionatorScrollListMixin:RefreshScrollFrame(persistScroll)
+function AuctionatorScrollListMixin:RefreshScrollFrame()
   Auctionator.Debug.Message("AuctionatorScrollListMixin:RefreshScrollFrame()")
 
-  if not self.isInitialized or not self:IsVisible() then
+  self.scrollFrameDirty = false
+
+  if not self.isInitialized or not self:IsShown() then
     return
   end
 
-  local entries = {}
-  for i = 1, self:GetNumEntries() do
-    table.insert(entries, {
-      searchTerm = self:GetEntry(i),
-      index = i,
-    })
+  local buttons = HybridScrollFrame_GetButtons(self.ScrollFrame)
+  local buttonCount = #buttons
+
+  local numResults = self:GetNumEntries()
+  if numResults == 0 then
+    -- Make sure previous list items are removed from UI
+    for i = 1, buttonCount do
+      buttons[i]:SetShown(false)
+    end
+
+    return
   end
 
-  self.ScrollBox:SetDataProvider(CreateDataProvider(entries), persistScroll)
+  local buttonHeight = buttons[1]:GetHeight()
+
+  local offset = self:GetScrollOffset()
+  local populateCount = math.min(buttonCount, numResults)
+
+  self.tableBuilder:Populate(offset, populateCount)
+
+  for i = 1, buttonCount do
+    local visible = (i + offset <= numResults) and (i <= numResults)
+    local button = buttons[i]
+
+    if visible then
+      button:Enable()
+      button:UpdateDisplay()
+    end
+
+    button:SetShown(visible)
+  end
+
+  local totalHeight = numResults * buttonHeight
+  local displayedHeight = populateCount * buttonHeight
+
+  HybridScrollFrame_Update(self.ScrollFrame, totalHeight, displayedHeight)
 end
 
-function AuctionatorScrollListMixin:ScrollToBottom()
-  self.ScrollBox:SetScrollPercentage(1)
+function AuctionatorScrollListMixin:GetScrollOffset()
+	return HybridScrollFrame_GetOffset(self.ScrollFrame);
 end
 
 function AuctionatorScrollListMixin:SetLineTemplate(lineTemplate)
