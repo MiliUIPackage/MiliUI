@@ -1,0 +1,11 @@
+## Interface: 30400
+## Title: Masque: |cffffffffRaeli|r
+## Notes: Raeli's skins for Masque.
+## Version: r26
+## Author: Raeli
+## Dependencies: Masque
+
+## X-Curse-Project-ID: 283762
+## X-WOWI-ID: 25719
+
+Masque_Raeli.lua

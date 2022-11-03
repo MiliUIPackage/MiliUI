@@ -1,0 +1,13 @@
+## Interface: 100000
+## Title: Masque: |cffffffffRaeli|r
+## Notes: Raeli's skins for Masque.
+## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - Raeli
+## Notes-zhTW: Masque |cffff8000Raeli|r|nMasque 的 Raeli樣式。
+## Version: r26
+## Author: Raeli
+## Dependencies: Masque
+
+## X-Curse-Project-ID: 283762
+## X-WOWI-ID: 25719
+
+Masque_Raeli.lua
