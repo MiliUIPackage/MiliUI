@@ -8,10 +8,6 @@
 	local isTBC = DetailsFramework.IsTBCWow()
 	local isWOTLK = DetailsFramework.IsWotLKWow()
 
-	Details.UnregisteredTokens = {}
-	Details.IgnoredDamageEvents = {}
-	Details.RogueRaceCache = {}
-
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --local pointers
 
@@ -662,14 +658,12 @@
 		if (who_serial == "") then
 			if (who_flags and bitBand(who_flags, OBJECT_TYPE_PETS) ~= 0) then --� um pet
 				--pets must have a serial
-				Details.IgnoredDamageEvents[#Details.IgnoredDamageEvents+1] = {"INVALID SERIAL", token, time, who_serial, who_name, who_flags, alvo_serial, alvo_name, alvo_flags, alvo_flags2, spellid, spellname, spelltype, amount, overkill, school, resisted, blocked, absorbed, critical, glacing, crushing, isoffhand, isreflected}
 				return
 			end
 		end
 
 		if (not alvo_name) then
 			--no target name, just quit
-			Details.IgnoredDamageEvents[#Details.IgnoredDamageEvents+1] = {"INVALID TARGET", token, time, who_serial, who_name, who_flags, alvo_serial, alvo_name, alvo_flags, alvo_flags2, spellid, spellname, spelltype, amount, overkill, school, resisted, blocked, absorbed, critical, glacing, crushing, isoffhand, isreflected}
 			return
 
 		elseif (not who_name) then
@@ -681,7 +675,6 @@
 
 		--check if the spell isn't in the backlist
 		if (damage_spells_to_ignore[spellid]) then
-			Details.IgnoredDamageEvents[#Details.IgnoredDamageEvents+1] = {"SPELL IGNORED", token, time, who_serial, who_name, who_flags, alvo_serial, alvo_name, alvo_flags, alvo_flags2, spellid, spellname, spelltype, amount, overkill, school, resisted, blocked, absorbed, critical, glacing, crushing, isoffhand, isreflected}
 			return
 		end
 
@@ -940,6 +933,11 @@
 					(not _detalhes.in_group and who_flags and bitBand(who_flags, AFFILIATION_GROUP) ~= 0)
 				)
 			) then
+				--avoid Fel Armor and Undulating Maneuvers to start a combat
+				if ((spellid == 387846 or spellid == 352561) and who_name == _detalhes.playername) then
+					return
+				end
+
 				if (_detalhes.encounter_table.id and _detalhes.encounter_table["start"] >= GetTime() - 3 and _detalhes.announce_firsthit.enabled) then
 					local link
 					if (spellid <= 10) then
@@ -4848,6 +4846,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	end
 
 	function _detalhes:CallWipe (from_slash)
+		Details:Msg("清除已由您的團隊隊長請求。")
+
 		if (_detalhes.wipe_called) then
 			if (from_slash) then
 				return _detalhes:Msg(Loc ["STRING_WIPE_ERROR1"])
@@ -5071,6 +5071,12 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		if (_detalhes.debug) then
 			_detalhes:Msg("(debug) |cFFFFFF00ENCOUNTER_START|r event triggered.")
 		end
+
+		C_Timer.After(1, function()
+			if (C_CVar.GetCVar("AdvancedCombatLogging") == "1") then
+				Details:Msg("您已啟用進階戰鬥紀錄，您的數字可能不同於其他玩家 (遊戲中的bug)。")
+			end
+		end)
 
 		_detalhes.latest_ENCOUNTER_END = _detalhes.latest_ENCOUNTER_END or 0
 		if (_detalhes.latest_ENCOUNTER_END + 10 > GetTime()) then
@@ -5944,9 +5950,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local func = token_list[token]
 		if (func) then
 			return func(nil, token, time, who_serial, who_name, who_flags, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12)
-		else
-			Details.UnregisteredTokens[token] = {time, token, hidding, who_serial, who_name, who_flags, who_flags2, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12}
-			return
 		end
 	end
 
@@ -6089,12 +6092,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 				if (auto_regen_power_specs[_detalhes.cached_specs[UnitGUID("raid" .. i)]]) then
 					auto_regen_cache[name] = auto_regen_power_specs[_detalhes.cached_specs[UnitGUID("raid" .. i)]]
-				end
-
-				local _, class = UnitClass("raid"..i)
-				if (class == "ROGUE") then
-					local _, race = UnitRace("raid"..i)
-					Details.RogueRaceCache[name] = race
 				end
 			end
 
