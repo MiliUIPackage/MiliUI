@@ -87,7 +87,7 @@ function Masque:OnInitialize()
 					Pulse = true,
 					Scale = 1,
 					Shadow = false,
-					SkinID = "FlatSquares",
+					SkinID = "Raeli - Square Edge",
 					UseScale = false,
 				},
 			},
