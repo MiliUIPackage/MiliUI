@@ -58,8 +58,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Checked]],
 	},
 	Border = { -- Item Quality
-		Width = 36,
-		Height = 36,
+		Width = 42,
+		Height = 42,
 		BlendMode = "ADD",
 		DrawLayer = "OVERLAY",
 		DrawLevel = 5,
@@ -84,7 +84,7 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Width = 36,
 		Height = 36,
 		BlendMode = 'ADD',
-		Color = {1, 1, 1, 1},
+		Color = {1, 1, 1, 0.3},
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Highlight]],
 	},
 	-- SlotHighlight
@@ -181,7 +181,7 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		DrawLevel = 0,
 		Point = "CENTER",
 		RelPoint = "CENTER",
-		OffsetX = 50000000,
+		OffsetX = 0,
 		OffsetY = 0,
 		-- SetAllPoints = nil,
 	},
