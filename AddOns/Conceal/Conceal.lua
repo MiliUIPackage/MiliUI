@@ -9,6 +9,7 @@ local defaults = {
         power = false,
         mouseover = true,
         alpha = 20,
+        animationDuration = 0.25,
         actionBar1 = false,
         actionBar1ConcealDuringCombat = false,
         actionBar2 = false,
@@ -60,6 +61,19 @@ local options = {
                 min = 0,
                 max = 100,   
                 step = 5,
+                disabled = false,
+            },
+            animationDuration = {
+                order = 1.2,
+                name = "淡出動畫持續時間",
+                desc = "控制淡出動畫效果快一點或慢一點，以秒為單位。",
+                width = 2,
+                type = "range",
+                get = "GetSlider",
+                set = "SetSlider",
+                min = 0,
+                max = 2,   
+                step = 0.05,
                 disabled = false,
             },
             health = {
@@ -416,8 +430,6 @@ function Conceal:OnInitialize()
     self.optionsFrame = ACD:AddToBlizOptions("Conceal_options", "隱藏")  
     
     Conceal:RegisterEvent("ADDON_LOADED", "loadConfig");
-    -- Conceal:RegisterEvent("PLAYER_ENTERING_WORLD", "refreshGUI");
-    -- Conceal:RegisterEvent("PLAYER_LEAVING_WORLD", "refreshGUI");
     Conceal:RegisterEvent("PLAYER_ENTER_COMBAT", "DidEnterCombat");
     Conceal:RegisterEvent("PLAYER_LEAVE_COMBAT", "DidExitCombat");
     Conceal:RegisterEvent("PLAYER_REGEN_DISABLED", "DidEnterCombat");
@@ -425,6 +437,8 @@ function Conceal:OnInitialize()
     Conceal:RegisterEvent("PLAYER_TARGET_CHANGED", "TargetChanged");
     
     Conceal:HideGcdFlash()
+	
+	QueueStatusButton:SetParent(UIParent) -- 自行加入
     
     C_Timer.NewTicker(0.10, function()
         Conceal:ShowMouseOverElements()
@@ -445,11 +459,58 @@ function Conceal:isHealthBelowThreshold()
     end
 end
 
+function Conceal:FadeIn(frame)
+    local alphaTimer = self.db.profile["animationDuration"];
+    if alphaTimer == 0 then
+        alphaTimer = 0.01
+    end
+    local frameAlpha = self.db.profile["alpha"];
+    if frameAlpha > 1 then frameAlpha = frameAlpha / 100; end
+    
+    local currentAlpha = frame:GetAlpha()
+    currentAlpha = tonumber(string.format("%.2f", currentAlpha))
+    if (currentAlpha == frameAlpha) then 
+    
+        local animation = frame:CreateAnimationGroup();
+        local fadeIn = animation:CreateAnimation("Alpha");
+        fadeIn:SetFromAlpha(frameAlpha);
+        fadeIn:SetToAlpha(1);
+        fadeIn:SetDuration(alphaTimer);
+        fadeIn:SetStartDelay(0);
+        animation:SetToFinalAlpha(true)    
+              
+        animation:Play();
+    end
+end
+
+function Conceal:FadeOut(frame)
+    local alphaTimer = self.db.profile["animationDuration"];
+    if alphaTimer == 0 then
+        alphaTimer = 0.01
+    end
+    local frameAlpha = self.db.profile["alpha"];
+    if frameAlpha > 1 then frameAlpha = frameAlpha / 100; end
+
+    local currentAlpha = frame:GetAlpha()
+    currentAlpha = tonumber(string.format("%.2f", currentAlpha))
+
+    if (currentAlpha == 1) then 
+        local animation = frame:CreateAnimationGroup();
+        local fadeIn = animation:CreateAnimation("Alpha");
+        fadeIn:SetFromAlpha(1);
+        fadeIn:SetToAlpha(frameAlpha);
+        fadeIn:SetDuration(alphaTimer);
+        fadeIn:SetStartDelay(0);
+        
+        animation:SetToFinalAlpha(true)      
+        animation:Play();
+    end
+end
 
 -- Actions
 function Conceal:ShowCombatElements()
 
-    if self.db.profile["selfFrame"] and not self.db.profile["selfFrameConcealDuringCombat"] then PlayerFrame:SetAlpha(1) end
+    if self.db.profile["selfFrame"] and not self.db.profile["selfFrameConcealDuringCombat"] then Conceal:FadeIn(PlayerFrame) end --PlayerFrame:SetAlpha(1) end
     if self.db.profile["targetFrame"] and not self.db.profile["targetFrameConcealDuringCombat"] then TargetFrame:SetAlpha(1) end
 
     -- Action Bar 1
@@ -481,17 +542,17 @@ function Conceal:ShowMouseOverElements()
 
     if self.db.profile["selfFrame"] then 
         if PlayerFrame:IsMouseOver() then 
-            PlayerFrame:SetAlpha(1); 
+            Conceal:FadeIn(PlayerFrame)
         elseif self.db.profile["selfFrameConcealDuringCombat"] then 
-            PlayerFrame:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(PlayerFrame)
         end 
     end
 
     if self.db.profile["targetFrame"] then 
         if TargetFrame:IsMouseOver() then 
-            TargetFrame:SetAlpha(1); 
+            Conceal:FadeIn(TargetFrame)
         elseif self.db.profile["targetFrameConcealDuringCombat"] then 
-            TargetFrame:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(TargetFrame)
         end 
     end
 
@@ -504,83 +565,84 @@ function Conceal:ShowMouseOverElements()
         end
         if isMouseOverActionBar1 then 
             for i=1,12 do
-                _G["ActionButton" ..i]:SetAlpha(1)
+                -- _G["ActionButton" ..i]:SetAlpha(1)
+                Conceal:FadeIn(_G["ActionButton" ..i])
             end
         elseif self.db.profile["actionBar1ConcealDuringCombat"] then
             for i=1,12 do
-                _G["ActionButton" ..i]:SetAlpha(frameAlpha)
+                Conceal:FadeOut(_G["ActionButton" ..i])
             end
         end
     end
 
     if self.db.profile["actionBar2"] then 
         if ActionBar2:IsMouseOver() then 
-            ActionBar2:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar2)
         elseif self.db.profile["actionBar2ConcealDuringCombat"] then 
-            ActionBar2:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar2)
         end 
     end 
     if self.db.profile["actionBar3"] then 
         if ActionBar3:IsMouseOver() then 
-            ActionBar3:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar3)
         elseif self.db.profile["actionBar3ConcealDuringCombat"] then 
-            ActionBar3:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar3)
         end 
     end
     if self.db.profile["actionBar4"] then 
         if ActionBar4:IsMouseOver() then 
-            ActionBar4:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar4)
         elseif self.db.profile["actionBar4ConcealDuringCombat"] then 
-            ActionBar4:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar4)
         end 
     end
     if self.db.profile["actionBar5"] then 
         if ActionBar5:IsMouseOver() then 
-            ActionBar5:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar5)
         elseif self.db.profile["actionBar5ConcealDuringCombat"] then 
-            ActionBar5:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar5)
         end 
     end
     if self.db.profile["actionBar6"] then 
         if ActionBar6:IsMouseOver() then 
-            ActionBar6:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar6)
         elseif self.db.profile["actionBar6ConcealDuringCombat"] then 
-            ActionBar6:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar6)
         end 
     end
     if self.db.profile["actionBar7"] then 
         if ActionBar7:IsMouseOver() then 
-            ActionBar7:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar7)
         elseif self.db.profile["actionBar7ConcealDuringCombat"] then 
-            ActionBar7:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar7)
         end 
     end
     if self.db.profile["actionBar8"] then 
         if ActionBar8:IsMouseOver() then 
-            ActionBar8:SetAlpha(1); 
+            Conceal:FadeIn(ActionBar8)
         elseif self.db.profile["actionBar8ConcealDuringCombat"] then 
-            ActionBar8:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(ActionBar8)
         end 
     end
     if self.db.profile["petActionBar"] then 
         if PetActionBar:IsMouseOver() then 
-            PetActionBar:SetAlpha(1); 
+            Conceal:FadeIn(PetActionBar)
         elseif self.db.profile["petActionBarConcealDuringCombat"] then 
-            PetActionBar:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(PetActionBar)
         end 
     end
     if self.db.profile["stanceBar"]  then 
         if StanceBar:IsMouseOver() then 
-            StanceBar:SetAlpha(1); 
+            Conceal:FadeIn(StanceBar)
         elseif self.db.profile["stanceBarConcealDuringCombat"] then 
-            StanceBar:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(StanceBar)
         end 
     end
     if self.db.profile["microBar"]  then 
-        if MicroButtonAndBagsBar:IsMouseOver() then 
-            MicroButtonAndBagsBar:SetAlpha(1); 
+		if MicroButtonAndBagsBar:IsMouseOver() then 
+            Conceal:FadeIn(MicroButtonAndBagsBar)
         elseif self.db.profile["microBarConcealDuringCombat"] then 
-            MicroButtonAndBagsBar:SetAlpha(frameAlpha); 
+            Conceal:FadeOut(MicroButtonAndBagsBar)
         end 
     end
 end
@@ -593,8 +655,8 @@ function Conceal:HideElements()
     if frameAlpha > 1 then frameAlpha = frameAlpha / 100; end
     
     -- Player Frame
-    if self.db.profile["selfFrame"] and not PlayerFrame:IsMouseOver() then PlayerFrame:SetAlpha(frameAlpha); end
-    if self.db.profile["targetFrame"] and not TargetFrame:IsMouseOver() then TargetFrame:SetAlpha(frameAlpha); end
+    if self.db.profile["selfFrame"] and not PlayerFrame:IsMouseOver() then Conceal:FadeOut(PlayerFrame) end
+    if self.db.profile["targetFrame"] and not TargetFrame:IsMouseOver() then Conceal:FadeOut(TargetFrame); end
 
     -- Action Bar 1
     local isActionBar1Concealable = self.db.profile["actionBar1"]
@@ -604,20 +666,20 @@ function Conceal:HideElements()
     end
     if isActionBar1Concealable and not isMouseOverActionBar1 then 
         for i=1,12 do
-            _G["ActionButton" ..i]:SetAlpha(frameAlpha)
+            Conceal:FadeOut(_G["ActionButton" ..i])
         end
     end
 
-    if self.db.profile["actionBar2"] and not ActionBar2:IsMouseOver() then ActionBar2:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar3"] and not ActionBar3:IsMouseOver() then ActionBar3:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar4"] and not ActionBar4:IsMouseOver() then ActionBar4:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar5"] and not ActionBar5:IsMouseOver() then ActionBar5:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar6"] and not ActionBar6:IsMouseOver() then ActionBar6:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar7"] and not ActionBar7:IsMouseOver() then ActionBar7:SetAlpha(frameAlpha); end
-    if self.db.profile["actionBar8"] and not ActionBar8:IsMouseOver() then ActionBar8:SetAlpha(frameAlpha); end
-    if self.db.profile["petActionBar"] and not PetActionBar:IsMouseOver() then PetActionBar:SetAlpha(frameAlpha); end
-    if self.db.profile["stanceBar"] and not StanceBar:IsMouseOver() then StanceBar:SetAlpha(frameAlpha); end
-    if self.db.profile["microBar"] and not MicroButtonAndBagsBar:IsMouseOver() then QueueStatusButton:SetParent(UIParent); MicroButtonAndBagsBar:SetAlpha(frameAlpha); end
+    if self.db.profile["actionBar2"] and not ActionBar2:IsMouseOver() then Conceal:FadeOut(ActionBar2); end
+    if self.db.profile["actionBar3"] and not ActionBar3:IsMouseOver() then Conceal:FadeOut(ActionBar3); end
+    if self.db.profile["actionBar4"] and not ActionBar4:IsMouseOver() then Conceal:FadeOut(ActionBar4); end
+    if self.db.profile["actionBar5"] and not ActionBar5:IsMouseOver() then Conceal:FadeOut(ActionBar5); end
+    if self.db.profile["actionBar6"] and not ActionBar6:IsMouseOver() then Conceal:FadeOut(ActionBar6); end
+    if self.db.profile["actionBar7"] and not ActionBar7:IsMouseOver() then Conceal:FadeOut(ActionBar7); end
+    if self.db.profile["actionBar8"] and not ActionBar8:IsMouseOver() then Conceal:FadeOut(ActionBar8); end
+    if self.db.profile["petActionBar"] and not PetActionBar:IsMouseOver() then Conceal:FadeOut(PetActionBar); end
+    if self.db.profile["stanceBar"] and not StanceBar:IsMouseOver() then Conceal:FadeOut(StanceBar); end
+    if self.db.profile["microBar"] and not MicroButtonAndBagsBar:IsMouseOver() then Conceal:FadeOut(MicroButtonAndBagsBar); end
 end
 
 function Conceal:TargetChanged()
