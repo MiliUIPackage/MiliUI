@@ -1,5 +1,5 @@
 local CURRENT_BUILD = "10.0.0"
-local MAJOR, MINOR = "EditModeExpanded-1.0", 2
+local MAJOR, MINOR = "EditModeExpanded-1.0", 7
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -7,11 +7,32 @@ if not lib then return end
 local index = 13
 local frames = {}
 local framesDB = {}
+local framesDialogs = {}
+local framesDialogsKeys = {}
+
+-- run OnLoad the first time RegisterFrame is called by an addon
+local f = {}
+function f.OnLoad() f.OnLoad = nil end
 
 -- some caching tables, save the state of frames just before entering Edit Mode
 local wasVisible = {}
 local originalSize = {}
 local defaultSize = {}
+
+local MICRO_BUTTONS = {
+	"CharacterMicroButton",
+	"SpellbookMicroButton",
+	"TalentMicroButton",
+	"AchievementMicroButton",
+	"QuestLogMicroButton",
+	"GuildMicroButton",
+	"LFDMicroButton",
+	"EJMicroButton",
+	"CollectionsMicroButton",
+	"MainMenuMicroButton",
+	"HelpMicroButton",
+	"StoreMicroButton",
+	}
 
 -- Custom version of FrameXML\Mixin.lua where I instead do *not* overwrite existing functions 
 local function Mixin(object, ...)
@@ -52,20 +73,16 @@ local function duplicateMicroButtonAndBagsBar(db)
     end)
     
     duplicate:Show()
+    
     CharacterMicroButton:ClearAllPoints();
     CharacterMicroButton:SetPoint("BOTTOMLEFT", duplicate, "BOTTOMLEFT", 7, 6)
-    CharacterMicroButton:SetParent(duplicate)
-    SpellbookMicroButton:SetParent(duplicate)
-    TalentMicroButton:SetParent(duplicate)
-    AchievementMicroButton:SetParent(duplicate)
-    QuestLogMicroButton:SetParent(duplicate)
-    GuildMicroButton:SetParent(duplicate)
-    LFDMicroButton:SetParent(duplicate)
-    CollectionsMicroButton:SetParent(duplicate)
-    EJMicroButton:SetParent(duplicate)
-    StoreMicroButton:SetParent(duplicate)
-    MainMenuMicroButton:SetParent(duplicate)
-    HelpMicroButton:SetParent(duplicate)
+    
+    UpdateMicroButtonsParent(duplicate)
+    hooksecurefunc("UpdateMicroButtonsParent", function(parent)
+        for i=1, #MICRO_BUTTONS do
+            _G[MICRO_BUTTONS[i]]:SetParent(duplicate)
+        end
+    end)
     
     MainMenuBarBackpackButton:SetPoint("TOPRIGHT", duplicate, -4, 2)
     MainMenuBarBackpackButton:SetParent(duplicate)
@@ -103,9 +120,11 @@ function lib:RegisterFrame(frame, name, db)
     -- IMPORTANT: force update every patch incase of UI changes that cause problems and/or make this library redundant!
     if not (GetBuildInfo() == CURRENT_BUILD) then return end
     
+    if f.OnLoad then f.OnLoad() end
+    
     -- If the frame was already registered (perhaps by another addon that uses this library), don't register it again
     for _, f in ipairs(frames) do
-        if frame == f then
+        if (frame == f) or ((frame == MicroButtonAndBagsBar) and (f == MicroButtonAndBagsBarMovable)) then
             if (not framesDB[f.system].x) and (not framesDB[f.system].y) then
                 -- import new db settings if there are none saved in the existing db
                 framesDB[f.system].x = db.x
@@ -152,6 +171,11 @@ function lib:RegisterFrame(frame, name, db)
             self:SetMovable(true);
             self.Selection:ShowSelected();
             self.isSelected = true;
+            if framesDialogs[self.system] then
+                EditModeExpandedSystemSettingsDialog:AttachToSystemFrame(self)
+            else
+                EditModeExpandedSystemSettingsDialog:Hide()
+            end
     	end
         for _, f in ipairs(frames) do
             if f ~= frame then
@@ -179,13 +203,6 @@ function lib:RegisterFrame(frame, name, db)
     function frame:SetHasActiveChanges(hasActiveChanges)
         self.hasActiveChanges = hasActiveChanges;
     end
-    
-    if db.x and db.y then
-        frame:ClearAllPoints()
-        frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
-    else
-        db.x, db.y = frame:GetRect()
-    end
 
     EditModeManagerExpandedFrame.AccountSettings[frame.system] = CreateFrame("CheckButton", nil, EditModeManagerExpandedFrame.AccountSettings, "UICheckButtonTemplate")
     local checkButtonFrame = EditModeManagerExpandedFrame.AccountSettings[frame.system]
@@ -210,30 +227,85 @@ function lib:RegisterFrame(frame, name, db)
     
     if db.enabled == nil then db.enabled = true end
     checkButtonFrame:SetChecked(db.enabled)
+    
+    function frame:GetSettingValue(setting, useRawValue)
+    	if (not self:IsInitialized()) or (not db.settings) or (not db.settings[settings]) then
+    		return 0;
+    	end
+    	return db.settings[setting]
+    end
+    
+    function frame:SetScaleOverride(newScale)
+    	local oldScale = self:GetScale();
+    
+    	self:SetScale(newScale);
+    
+    	if oldScale == newScale then
+    		return;
+    	end
+    
+    	-- Update position to try and keep the system frame in the same position since scale changes how offsets work
+    	local numPoints = self:GetNumPoints();
+    	for i = 1, numPoints do
+    		local point, relativeTo, relativePoint, offsetX, offsetY = self:GetPoint(i);
+    
+    		-- Undo old scale adjustment so we're working with 1.0 scale offsets
+    		-- Then apply the newScale adjustment
+    		offsetX = offsetX * oldScale / newScale;
+    		offsetY = offsetY * oldScale / newScale;
+    		self:SetPoint(point, relativeTo, relativePoint, offsetX, offsetY);
+    	end
+    end
+    
+    if db.settings and db.settings[Enum.EditModeUnitFrameSetting.FrameSize] then
+        frame:SetScaleOverride(db.settings[Enum.EditModeUnitFrameSetting.FrameSize]/100)
+    end
+    
+    if db.x and db.y then
+        frame:ClearAllPoints()
+        frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
+    else
+        db.x, db.y = frame:GetRect()
+    end
+    
+    if db.settings and (db.settings[Enum.EditModeActionBarSetting.Hideable] ~= nil) then
+        frame:SetShown(framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= 1)
+    end
 end
 
 if not (GetBuildInfo() == CURRENT_BUILD) then return end
 
-local EditModeManagerExpandedFrame = CreateFrame("Frame", "EditModeManagerExpandedFrame", nil)
-EditModeManagerExpandedFrame:Hide()
-EditModeManagerExpandedFrame:SetPoint("TOPLEFT", EditModeManagerFrame, "TOPRIGHT", 2, 0)
-EditModeManagerExpandedFrame:SetPoint("BOTTOMLEFT", EditModeManagerFrame, "BOTTOMRIGHT", 2, 0)
-EditModeManagerExpandedFrame:SetWidth(250)
-EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
-EditModeManagerExpandedFrame.Title:SetPoint("TOP", 0, -15)
-EditModeManagerExpandedFrame.Title:SetText("擴充包")
-EditModeManagerExpandedFrame.Border = CreateFrame("Frame", nil, EditModeManagerExpandedFrame, "DialogBorderTranslucentTemplate")
-EditModeManagerExpandedFrame.AccountSettings = CreateFrame("Frame", nil, EditModeManagerExpandedFrame)
-EditModeManagerExpandedFrame.AccountSettings:SetPoint("TOPLEFT", 0, -35)
-EditModeManagerExpandedFrame.AccountSettings:SetPoint("BOTTOMLEFT", 10, 10)
-EditModeManagerExpandedFrame.AccountSettings:SetWidth(200)
+--
+-- Code for Expanded Manager Frame here
+-- This is a frame that will show checkboxes, to turn on/off all custom frames during Edit Mode
+--
 
-EditModeManagerFrame:HookScript("OnShow", function()
-    EditModeManagerExpandedFrame:Show()
-end)
-
-EditModeManagerFrame:HookScript("OnHide", function()
+hooksecurefunc(f, "OnLoad", function()
+    CreateFrame("Frame", "EditModeManagerExpandedFrame", nil)
     EditModeManagerExpandedFrame:Hide()
+    EditModeManagerExpandedFrame:SetPoint("TOPLEFT", EditModeManagerFrame, "TOPRIGHT", 2, 0)
+    EditModeManagerExpandedFrame:SetPoint("BOTTOMLEFT", EditModeManagerFrame, "BOTTOMRIGHT", 2, 0)
+    EditModeManagerExpandedFrame:SetWidth(250)
+    EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
+    EditModeManagerExpandedFrame.Title:SetPoint("TOP", 0, -15)
+    EditModeManagerExpandedFrame.Title:SetText("擴充包")
+    EditModeManagerExpandedFrame.Border = CreateFrame("Frame", nil, EditModeManagerExpandedFrame, "DialogBorderTranslucentTemplate")
+    EditModeManagerExpandedFrame.AccountSettings = CreateFrame("Frame", nil, EditModeManagerExpandedFrame)
+    EditModeManagerExpandedFrame.AccountSettings:SetPoint("TOPLEFT", 0, -35)
+    EditModeManagerExpandedFrame.AccountSettings:SetPoint("BOTTOMLEFT", 10, 10)
+    EditModeManagerExpandedFrame.AccountSettings:SetWidth(200)
+    
+    EditModeManagerFrame:HookScript("OnShow", function()
+        EditModeManagerExpandedFrame:Show()
+    end)
+    
+    EditModeManagerFrame:HookScript("OnHide", function()
+        EditModeManagerExpandedFrame:Hide()
+    end)
+    
+    function EditModeManagerExpandedFrame:ClearSelectedSystem()
+    	EditModeExpandedSystemSettingsDialog:Hide();
+    end
 end)
 
 -- use this if a frame by default doesn't have a size set yet
@@ -272,18 +344,274 @@ hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
     for _, frame in ipairs(frames) do
         frame:ClearHighlight();
         frame:StopMovingOrSizing();
+        
         frame:SetShown(wasVisible[frame.system])
+        if framesDB[frame.system] and framesDB[frame.system].settings and (framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= nil) then
+            frame:SetShown(framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= 1)
+        end
+        
         if originalSize[frame.system] then
             frame:SetSize(originalSize[frame.system].x, originalSize[frame.system].y)
         end
     end
     wipe(wasVisible)
+    wipe(originalSize)
+    EditModeExpandedSystemSettingsDialog:Hide()
 end)
 
 hooksecurefunc(EditModeManagerFrame, "SelectSystem", function(self, systemFrame)
+    local wasCustom
     for _, frame in ipairs(frames) do
         if systemFrame ~= frame then
             frame:HighlightSystem()
+        else
+            wasCustom = true
         end
     end
+    if not wasCustom then
+        EditModeExpandedSystemSettingsDialog:Hide()
+    end            
+end)
+
+--
+-- Edit Mode Dialog Box code
+--
+
+hooksecurefunc(f, "OnLoad", function()
+    local frame = CreateFrame("Frame", "EditModeExpandedSystemSettingsDialog", UIParent, "ResizeLayoutFrame")
+    Mixin(frame, EditModeSystemSettingsDialogMixin)
+    frame:SetMovable(true)
+    frame:SetClampedToScreen(true)
+    frame:EnableMouse(true)
+    frame:RegisterForDrag("LeftButton")
+    frame:SetDontSavePosition(true)
+    frame:SetFrameStrata("DIALOG")
+    frame:SetFrameLevel(200)
+    frame:Hide()
+    frame:SetSize(300, 350)
+    frame:SetPoint("TOPLEFT")
+    frame.widthPadding = 40
+    frame.heightPadding = 40
+    frame.Title = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
+    frame.Title:SetPoint("TOP", 0, -15)
+    frame.Border = CreateFrame("Frame", nil, frame, "DialogBorderTranslucentTemplate")
+    frame.Border.ignoreInLayout = true
+    frame.CloseButton = CreateFrame("Button", nil, frame, "UIPanelCloseButton")
+    frame.CloseButton.ignoreInLayout = true
+    frame.CloseButton:SetPoint("TOPRIGHT")
+    frame.Settings = CreateFrame("Frame", nil, frame, "VerticalLayoutFrame")
+    frame.Settings:SetSize(1, 1)
+    frame.Settings.spacing = 2
+    frame.Settings:SetPoint("TOP", frame.Title, "BOTTOM", 0, -12)
+    frame.Buttons = CreateFrame("Frame", nil, frame, "VerticalLayoutFrame")
+    frame.Buttons.spacing = 2
+    frame.Buttons:SetPoint("TOPLEFT", frame.Settings, "BOTTOMLEFT", 0, -12)
+    frame.Buttons.RevertChangesButton = CreateFrame("Button", nil, frame.Buttons, "EditModeSystemSettingsDialogButtonTemplate")
+    frame.Buttons.RevertChangesButton:SetText(HUD_EDIT_MODE_REVERT_CHANGES)
+    frame.Buttons.RevertChangesButton.layoutIndex = 1
+    frame.Buttons.Divider = frame.Buttons:CreateTexture(nil, "ARTWORK")
+    frame.Buttons.Divider:SetMask("Interface\FriendsFrame\UI-FriendsFrame-OnlineDivider")
+    frame.Buttons.Divider:Hide()
+    frame.Buttons.Divider:SetSize(330, 16)
+    frame.Buttons.Divider.layoutIndex = 2
+    frame:SetScript("OnLoad", frame.OnLoad)
+    frame:SetScript("OnHide", frame.OnHide)
+    frame:SetScript("OnDragStart", frame.OnDragStart)
+    frame:SetScript("OnDragStop", frame.OnDragStop)
+    frame:OnLoad()
+    
+    CreateFrame("Frame", "EditModeExpandedSettingSlider", frame)
+    Mixin(EditModeExpandedSettingSlider, EditModeSettingSliderMixin)
+    EditModeExpandedSettingSlider:Hide()
+    EditModeExpandedSettingSlider:SetSize(343, 32)
+    EditModeExpandedSettingSlider.Label = EditModeExpandedSettingSlider:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
+    EditModeExpandedSettingSlider.Label:SetJustifyH("LEFT")
+    EditModeExpandedSettingSlider.Label:SetSize(100, 32)
+    EditModeExpandedSettingSlider.Label:SetPoint("LEFT")
+    EditModeExpandedSettingSlider.Slider = CreateFrame("Frame", nil, EditModeExpandedSettingSlider, "MinimalSliderWithSteppersTemplate")
+    EditModeExpandedSettingSlider.Slider:SetSize(200, 32)
+    EditModeExpandedSettingSlider.Slider:SetPoint("LEFT", EditModeExpandedSettingSlider.Label, "RIGHT", 5, 0)
+    EditModeExpandedSettingSlider:SetScript("OnLoad", EditModeExpandedSettingSlider.OnLoad)
+    EditModeExpandedSettingSlider:OnLoad()
+    
+    function EditModeExpandedSettingSlider:OnSliderValueChanged(value)
+    	if not self.initInProgress then
+    		EditModeExpandedSystemSettingsDialog:OnSettingValueChanged(self.setting, value);
+    	end
+    end
+end)
+
+local function GetSystemSettingDisplayInfo(dialogs)
+    return dialogs
+end
+
+local function showAsPercentage(value)
+	local roundToNearestInteger = true;
+	return FormatPercentage(value / 100, roundToNearestInteger);
+end
+
+local function ConvertValueDefault(self, value, forDisplay)
+	if forDisplay then
+		return self:ClampValue((value * self.stepSize) + self.minValue);
+	else
+		return (value - self.minValue) / self.stepSize;
+	end
+end
+
+hooksecurefunc(f, "OnLoad", function()
+    EditModeExpandedSystemSettingsDialog.CloseButton:SetScript("OnClick", function()                                                                 
+		EditModeManagerExpandedFrame:ClearSelectedSystem();
+	end)
+    
+    function EditModeExpandedSystemSettingsDialog:UpdateSettings(systemFrame)
+    	if systemFrame == self.attachedToSystem then
+    		self:ReleaseAllNonSliders();
+            local draggingSlider = self:ReleaseNonDraggingSliders();
+    
+    		local settingsToSetup = {};
+    
+    		local systemSettingDisplayInfo = GetSystemSettingDisplayInfo(framesDialogs[self.attachedToSystem.system]);
+    		for index, displayInfo in ipairs(systemSettingDisplayInfo) do
+  				local settingPool = self:GetSettingPool(displayInfo.type);
+				if settingPool then
+					local settingFrame;
+
+					if draggingSlider and draggingSlider.setting == displayInfo.setting then
+						-- This is a slider that is being interacted with and so was not released.
+						settingFrame = draggingSlider;
+					else
+						settingFrame = settingPool:Acquire();
+					end
+
+					settingFrame:SetPoint("TOPLEFT");
+  					settingFrame.layoutIndex = index;
+                    
+                    local settingName = (self.attachedToSystem:UseSettingAltName(displayInfo.setting) and displayInfo.altName) and displayInfo.altName or displayInfo.name;
+  					local updatedDisplayInfo = self.attachedToSystem:UpdateDisplayInfoOptions(displayInfo);
+                    if not framesDB[self.attachedToSystem.system].settings then framesDB[self.attachedToSystem.system].settings = {} end
+  					
+                    local savedValue = framesDB[self.attachedToSystem.system].settings[updatedDisplayInfo.setting]
+                    
+                    if displayInfo.setting == Enum.EditModeUnitFrameSetting.FrameSize then
+                        savedValue = savedValue or 100
+                        settingFrame:OnLoad()
+                        
+                        CallbackRegistryMixin.OnLoad(settingFrame);
+
+                    	local function OnValueChanged(self, value)
+                            if not self.initInProgress then
+                                EditModeExpandedSystemSettingsDialog:OnSettingValueChanged(self.setting, value);
+                            end
+                        end
+                        
+                        settingFrame.cbrHandles = EventUtil.CreateCallbackHandleContainer();
+                    	settingFrame.cbrHandles:RegisterCallback(settingFrame.Slider, MinimalSliderWithSteppersMixin.Event.OnValueChanged, OnValueChanged, settingFrame);
+                    end
+                    
+                    if displayInfo.setting == Enum.EditModeActionBarSetting.Hideable then
+                        savedValue = framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting]
+                        if savedValue == nil then savedValue = 0 end
+                        settingFrame.Button:SetChecked(savedValue)
+                        settingFrame.Button:HookScript("OnClick", function()
+                            if settingFrame.Button:GetChecked() then
+                                framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 1
+                                EditModeExpandedSystemSettingsDialog.attachedToSystem:Hide()
+                            else
+                                framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 0
+                                EditModeExpandedSystemSettingsDialog.attachedToSystem:Show()
+                            end
+                        end)
+                    end
+                    
+  					settingsToSetup[settingFrame] = { displayInfo = updatedDisplayInfo, currentValue = savedValue, settingName = settingName },
+  					settingFrame:Show();
+  				end
+    		end
+    
+    		self.Buttons:ClearAllPoints();
+    
+    		if not next(settingsToSetup) then
+    			self.Settings:Hide();
+    			self.Buttons:SetPoint("TOP", self.Title, "BOTTOM", 0, -12);
+    		else
+    			self.Settings:Show();
+    			self.Settings:Layout();
+    			for settingFrame, settingData in pairs(settingsToSetup) do
+    				settingFrame:SetupSetting(settingData);
+    			end
+    			self.Buttons:SetPoint("TOPLEFT", self.Settings, "BOTTOMLEFT", 0, -12);
+    		end
+    	end
+    end
+end)
+
+-- param1: custom system frame
+function lib:RegisterResizable(frame)
+    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
+    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] then return end
+    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
+    framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] = true
+    table.insert(framesDialogs[frame.system],
+		{
+			setting = Enum.EditModeUnitFrameSetting.FrameSize,
+			name = HUD_EDIT_MODE_SETTING_UNIT_FRAME_FRAME_SIZE,
+			type = Enum.EditModeSettingDisplayType.Slider,
+			minValue = 10,
+			maxValue = 200,
+			stepSize = 5,
+			ConvertValue = ConvertValueDefault,
+			formatter = showAsPercentage,
+		})
+end
+
+Enum.EditModeActionBarSetting.Hideable = 10 
+function lib:RegisterHideable(frame)
+    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
+    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeActionBarSetting.Hideable] then return end
+    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
+    framesDialogsKeys[frame.system][Enum.EditModeActionBarSetting.Hideable] = true
+    table.insert(framesDialogs[frame.system],
+        {
+            setting = Enum.EditModeActionBarSetting.Hideable,
+            name = "隱藏",
+            type = Enum.EditModeSettingDisplayType.Checkbox,
+    })
+end
+
+
+hooksecurefunc(f, "OnLoad", function()
+    function EditModeExpandedSystemSettingsDialog:OnSettingValueChanged(setting, value)
+        local attachedToSystem = self.attachedToSystem
+    	if attachedToSystem then
+            local db = framesDB[attachedToSystem.system]
+            if not db.settings then db.settings = {} end
+            db.settings[setting] = value
+            if setting == Enum.EditModeUnitFrameSetting.FrameSize then
+                attachedToSystem:SetScaleOverride(value/100)
+                db.x, db.y = self:GetRect()
+            end
+    	end
+    end
+    
+    function EditModeExpandedSystemSettingsDialog:OnLoad()
+    	local function onCloseCallback()
+    		EditModeExpandedManagerFrame:ClearSelectedSystem();
+    	end
+    
+    	self.Buttons.RevertChangesButton:SetOnClickHandler(GenerateClosure(self.RevertChanges, self));
+    
+    	self.onCloseCallback = onCloseCallback;
+    
+    	self.pools = CreateFramePoolCollection();
+    	self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingDropdownTemplate");
+    	self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingSliderTemplate");
+    	self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingCheckboxTemplate");
+    
+    	local function resetExtraButton(pool, button)
+    		FramePool_HideAndClearAnchors(pool, button);
+    		button:Enable();
+    	end
+    	self.pools:CreatePool("BUTTON", self.Buttons, "EditModeSystemSettingsDialogExtraButtonTemplate", resetExtraButton);
+    end
+    EditModeExpandedSystemSettingsDialog:OnLoad()
 end)
