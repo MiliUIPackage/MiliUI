@@ -559,7 +559,7 @@ function F:FirstRun()
             ["num"] = 5,
             ["orientation"] = "right-to-left",
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
-            ["showDuration"] = false,
+            ["showDuration"] = true,
             ["auraType"] = "buff",
             ["castByMe"] = true,
             ["auras"] = spells,
