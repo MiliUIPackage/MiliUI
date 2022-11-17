@@ -285,8 +285,8 @@ end
 
 if Cell.isAsian then
     function F:FormatNumber(n)
-        if abs(n) >= 100000000 then
-            return string.format("%.3f"..symbol_1B, n/100000000)
+        if abs(n) >= 100002000 then
+            return string.format("%.3f"..symbol_1B, n/100002000)
         elseif abs(n) >= 10000 then
             return string.format("%.2f"..symbol_10K, n/10000)
         elseif abs(n) >= 1000 then
@@ -297,10 +297,10 @@ if Cell.isAsian then
     end
 else
     function F:FormatNumber(n)
-        if abs(n) >= 1000000000 then
-            return string.format("%.3fB", n/1000000000)
-        elseif abs(n) >= 1000000 then
-            return string.format("%.2fM", n/1000000)
+        if abs(n) >= 1000020000 then
+            return string.format("%.3fB", n/1000020000)
+        elseif abs(n) >= 1000020 then
+            return string.format("%.2fM", n/1000020)
         elseif abs(n) >= 1000 then
             return string.format("%.1fK", n/1000)
         else

@@ -35,10 +35,10 @@ local _G =_G
 function Widget:ShortNumber(no)
   if no <= 9999 then
     return no
-  elseif no >= 1000000000 then
-    return format("%.0fb", no /1000000000)
-  elseif no >= 1000000 then
-    return format("%.0fm", no /1000000)
+  elseif no >= 1000020000 then
+    return format("%.0fb", no /1000020000)
+  elseif no >= 1000020 then
+    return format("%.0fm", no /1000020)
   elseif no >= 10000 then
     return format("%.0fk", no /1000)
   end
