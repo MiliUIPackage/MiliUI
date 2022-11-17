@@ -166,6 +166,7 @@ ThreatPlates.SPEC_ROLES = {
   DEATHKNIGHT = { true, false, false },
   DEMONHUNTER = { false, true },
   DRUID 			= { false, false, true, false },
+  EVOKER      = { false, false },
   HUNTER			= { false, false, false },
   MAGE				= { false, false, false },
   MONK 				= { true, false, false },
@@ -558,7 +559,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       ShowFocusHighlight = true,
       ShowMouseoverHighlight = true,
       ForceHealthbarOnTarget = false,
-      ForceOutOfCombat = false,
+      ForceOutOfCombat = true,
       ForceNonAttackableUnits = true,
       ForceFriendlyInCombat = "NONE",
       --
@@ -581,7 +582,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       --				showHostileUnits = true,
       --				showFriendlyUnits = false,
       FriendlyPlayer = { Show = true, UseHeadlineView = true },
-      FriendlyNPC = { Show = "nameplateShowFriendlyNPCs", UseHeadlineView = true },
+      FriendlyNPC = { Show = true, UseHeadlineView = true },
       FriendlyTotem = { Show = "nameplateShowFriendlyTotems", UseHeadlineView = true },
       FriendlyGuardian = { Show = "nameplateShowFriendlyGuardians", UseHeadlineView = true },
       FriendlyPet = { Show = "nameplateShowFriendlyPets", UseHeadlineView = true },
@@ -635,7 +636,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
 --      b = 1,
 --    },
     ColorByReaction = {
-      -- (Addon.IS_MAINLINE and RGB(128, 128, 255)) or 
+      -- Only tables for colors are allowed here, otherwise resetting these colors in the options will result in a Lua error
       FriendlyPlayer = RGB(0, 0, 255),           -- PlayerPvPOff, Mainline: purple, Classic: blue
       FriendlyNPC = RGB(0, 255, 0),              -- green
       HostileNPC = RGB(255, 0, 0),               -- red
@@ -1226,8 +1227,8 @@ ThreatPlates.DEFAULT_SETTINGS = {
         Type = "SCALED_PERCENTAGE",
         SecondPlayersName = true,
         ShowAlways = false,
-        ShowInGroups = true,
-        ShowWithPet = true,
+        ShowInGroups = false,
+        ShowWithPet = false,
 		-- Layout
         Anchor = "LEFT",
         InsideAnchor = false,
@@ -1290,7 +1291,15 @@ ThreatPlates.DEFAULT_SETTINGS = {
           [4] = RGB(255, 105, 0),
           [5] = RGB(255, 0, 0),
         },
-        MAGE = {
+        EVOKER = {
+          [1] = RGB(66, 151, 216),
+          [2] = RGB(66, 151, 216),
+          [3] = RGB(66, 151, 216),
+          [4] = RGB(66, 151, 216),
+          [5] = RGB(66, 151, 216),
+          [6] = RGB(66, 151, 216),
+        },
+		MAGE = {
           [1] = RGB(105, 204, 240),
           [2] = RGB(105, 204, 240),
           [3] = RGB(105, 204, 240),
@@ -1340,6 +1349,18 @@ ThreatPlates.DEFAULT_SETTINGS = {
           Shadow = true,
         },
       },
+      EssenceCooldown = {
+        Show = true,
+        HorizontalOffset = 1,
+        VerticalOffset = 0,
+        Font = {
+          Typeface = Addon.DEFAULT_FONT,
+          Size = 10,
+          Color = RGB(66, 151, 216),
+          flags = "OUTLINE",
+          Shadow = true,
+        },
+      },
     },
     socialWidget = {
       ON = true,
@@ -1350,7 +1371,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       y_hv = 6,
       --anchor = "Top",
       ShowInHeadlineView = true,
-      ShowFriendIcon = false,
+      ShowFriendIcon = true,
       ShowFactionIcon = false,
       ShowFriendColor = false,
       FriendColor = RGB(29, 39, 61),      -- Blizzard friend dark blue, color for healthbars of friends
@@ -1944,10 +1965,10 @@ ThreatPlates.DEFAULT_SETTINGS = {
       },
       skullicon = {
         scale = 12,
-        x = 55, -- old default: 55
+        x = -69, -- old default: 55
         y = 0,
         anchor = "CENTER",
-        show = false,
+        show = true,
       },
       unique = {
         threatcolor = {
