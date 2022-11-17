@@ -2,17 +2,26 @@ AuctionatorCraftingInfoFrameMixin = {}
 
 function AuctionatorCraftingInfoFrameMixin:OnLoad()
   FrameUtil.RegisterFrameForEvents(self, {
-    "AUCTION_HOUSE_SHOW",
-    "AUCTION_HOUSE_CLOSED",
+    "PLAYER_INTERACTION_MANAGER_FRAME_SHOW",
+    "PLAYER_INTERACTION_MANAGER_FRAME_HIDE",
   })
   self:UpdateSearchButton()
 
+  -- Uses Init rather than an event as the event handler can fire before the
+  -- ProfessionsPane pane has finished initialising a recipe
   hooksecurefunc(ProfessionsFrame.CraftingPage.SchematicForm, "Init", function(...)
     self:ShowIfRelevant()
     if self:IsVisible() then
       self:UpdateTotal()
     end
   end)
+
+  ProfessionsFrame.CraftingPage.SchematicForm:RegisterCallback(ProfessionsRecipeSchematicFormMixin.Event.AllocationsModified, function()
+    self:ShowIfRelevant()
+    if self:IsVisible() then
+      self:UpdateTotal()
+    end
+  end, self)
 
   Auctionator.API.v1.RegisterForDBUpdate(AUCTIONATOR_L_REAGENT_SEARCH, function()
     if self:IsVisible() then
@@ -24,19 +33,26 @@ end
 function AuctionatorCraftingInfoFrameMixin:ShowIfRelevant()
   self:SetShown(Auctionator.Config.Get(Auctionator.Config.Options.CRAFTING_INFO_SHOW) and ProfessionsFrame.CraftingPage.SchematicForm:GetRecipeInfo() ~= nil)
 
-  if self:IsShown() then
+  if self:IsVisible() then
     self:ClearAllPoints()
 
     local reagents = ProfessionsFrame.CraftingPage.SchematicForm.Reagents
-    local optionalReagents = ProfessionsFrame.CraftingPage.SchematicForm.OptionalReagents
+    local framesToBeBelow = {
+      ProfessionsFrame.CraftingPage.SchematicForm.OptionalReagents,
+    }
+    for _, f in ipairs(ProfessionsFrame.CraftingPage.SchematicForm.extraSlotFrames) do
+      table.insert(framesToBeBelow, f)
+    end
+    local min = reagents
+    for _, f in ipairs(framesToBeBelow) do
+      if f:GetBottom() < min:GetBottom() then
+        min = f
+      end
+    end
 
     self:SetPoint("LEFT", reagents, "LEFT", 0, -10)
 
-    if reagents:GetBottom() > optionalReagents:GetBottom() then
-      self:SetPoint("TOP", optionalReagents, "BOTTOM")
-    else
-      self:SetPoint("TOP", reagents, "BOTTOM")
-    end
+    self:SetPoint("TOP", min, "BOTTOM")
 
     self:UpdateSearchButton()
   end
@@ -56,7 +72,9 @@ function AuctionatorCraftingInfoFrameMixin:IsAnyReagents()
 end
 
 function AuctionatorCraftingInfoFrameMixin:UpdateTotal()
-  self.Total:SetText(Auctionator.CraftingInfo.GetInfoText())
+  local text, lines = Auctionator.CraftingInfo.GetInfoText()
+  self.Total:SetText(text)
+  self:SetHeight(16 * lines)
 end
 
 function AuctionatorCraftingInfoFrameMixin:SearchButtonClicked()
@@ -68,5 +86,8 @@ function AuctionatorCraftingInfoFrameMixin:SearchButtonClicked()
 end
 
 function AuctionatorCraftingInfoFrameMixin:OnEvent(...)
-  self:UpdateSearchButton()
+  local eventName, paneType = ...
+  if paneType == Enum.PlayerInteractionType.Auctioneer then
+    self:UpdateSearchButton()
+  end
 end

@@ -1,8 +1,8 @@
 # Auctionator
 
-## [10.0.2](https://github.com/Auctionator/Auctionator/tree/10.0.2) (2022-10-27)
-[Full Changelog](https://github.com/Auctionator/Auctionator/compare/10.0.1...10.0.2) 
+## [10.0.11](https://github.com/Auctionator/Auctionator/tree/10.0.11) (2022-11-16)
+[Full Changelog](https://github.com/Auctionator/Auctionator/compare/10.0.10...10.0.11) 
 
-- Mainline: Revert simplify click hook as it broke the shortcut for a user  
-- [Fixes #1248] Mainline: CraftingInfo: Error when no recipe selected  
-- Classic: Work around Blizzard search API ignoring quality parameter  
+- Mainline: Add Profession Equipment to Selling bag tab categories  
+- [Fixes #1271] Error due to API result sometimes being nil now instead of -1  
+- Remove compatiblity code between 10.0.0 and 10.0.2  

@@ -4,13 +4,8 @@ function Auctionator.Utilities.ItemInfoFromLocation(location)
   local itemKey = C_AuctionHouse.GetItemKeyFromItem(location)
   local itemType = C_AuctionHouse.GetItemCommodityStatus(location)
 
-  local icon, itemCount, quality, itemLink, _
-  if C_Container and C_Container.GetContainerItemInfo then
-    local itemInfo = C_Container.GetContainerItemInfo(location:GetBagAndSlot())
-    icon, itemCount, quality, itemLink = itemInfo.iconFileID, itemInfo.stackCount, itemInfo.quality, itemInfo.hyperlink
-  else
-    icon, itemCount, _, quality, _, _, itemLink = GetContainerItemInfo(location:GetBagAndSlot())
-  end
+  local itemInfo = C_Container.GetContainerItemInfo(location:GetBagAndSlot())
+  local icon, itemCount, quality, itemLink = itemInfo.iconFileID, itemInfo.stackCount, itemInfo.quality, itemInfo.hyperlink
 
   local _, _, _, _, _, classID, _ = GetItemInfoInstant(itemLink or itemKey.itemID)
 
@@ -26,7 +21,7 @@ function Auctionator.Utilities.ItemInfoFromLocation(location)
 
   -- The first time the AH is loaded sometimes when a full scan is running the
   -- quality info may not be available. This just gives a sensible fail value.
-  if quality == -1 then
+  if quality == nil then
     Auctionator.Debug.Message("Missing quality", itemKey.itemID)
     quality = 1
   end
