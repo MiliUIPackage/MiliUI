@@ -27,7 +27,7 @@ local Print = MikSBT.Print
 local GetSkillName = MikSBT.GetSkillName
 
 local IsClassic = WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC
-local tocversion = select(4, GetBuildInfo())
+
 
 -------------------------------------------------------------------------------
 -- Private constants.
@@ -3265,15 +3265,12 @@ local function SetupBlizzardOptions()
 	frame.name = L.MSBT_MSBT
 
 	-- Create an option button in the center of the frame to launch MSBT's options.
-	local button = CreateFrame("Button", nil, frame, "OptionsButtonTemplate")
+	local button = CreateFrame("Button", nil, frame, IsClassic and "OptionsButtonTemplate" or "UIPanelButtonTemplate")
+	button:SetSize(280, 26)
 	button:SetPoint("CENTER")
-	button:SetWidth(280)
-	button:SetHeight(26)
 	button:SetText(MikSBT.COMMAND .. L.MSBT_OPENOPTION)
 	button:SetScript("OnClick",
 		function (this)
-			InterfaceOptionsFrameCancel_OnClick()
-			HideUIPanel(GameMenuFrame)
 			ShowOptions()
 		end
 	)
@@ -3695,9 +3692,7 @@ local function OnEvent(this, event, arg1)
 		InitSavedVariables()
 
 		-- Add a button to launch MSBT's options from the Blizzard interface options.
-		if tocversion < 100002 then
-			SetupBlizzardOptions()
-		end
+		SetupBlizzardOptions()
 
 		-- Let the media module know the variables are initialized.
 		MikSBT.Media.OnVariablesInitialized()

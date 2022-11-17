@@ -28,6 +28,9 @@ local GetSkillName = MikSBT.GetSkillName
 local DisplayEvent = MikSBT.Animations.DisplayEvent
 local HandleCooldowns = MSBTTriggers.HandleCooldowns
 
+local IsClassic = WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC
+
+
 
 -------------------------------------------------------------------------------
 -- Constants.
@@ -49,7 +52,6 @@ local RUNE_COOLDOWN = 10
 -- Parameter locations.
 local ITEM_INFO_TEXTURE_POSITION = 10
 
-local tocversion = select(4, GetBuildInfo())
 -------------------------------------------------------------------------------
 -- Private variables.
 -------------------------------------------------------------------------------
@@ -427,10 +429,10 @@ local function UseContainerItemHook(bag, slot)
 
 	-- Get item id for the used bag and slot.
 	local itemID
-	if tocversion >= 100002 then
-		itemID = C_Container.GetContainerItemID(bag, slot)
-	else
+	if IsClassic then
 		itemID = GetContainerItemID(bag, slot)
+	else
+		itemID = C_Container.GetContainerItemID(bag, slot)
 	end
 	if (itemID) then OnItemUse(itemID) end
 end
@@ -457,7 +459,11 @@ end
 
 -- Setup event frame.
 eventFrame:Hide()
-eventFrame:SetScript("OnEvent", function (self, event, ...) if (self[event]) then self[event](self, ...) end end)
+eventFrame:SetScript("OnEvent", function (self, event, ...)
+	if (self[event]) then
+		self[event](self, ...)
+	end
+end)
 eventFrame:SetScript("OnUpdate", OnUpdate)
 
 -- Get the player's class.
@@ -466,10 +472,10 @@ _, playerClass = UnitClass("player")
 -- Setup hooks.
 hooksecurefunc("UseAction", UseActionHook)
 hooksecurefunc("UseInventoryItem", UseInventoryItemHook)
-if tocversion >= 100002 then
-	hooksecurefunc(C_Container, "UseContainerItem", UseContainerItemHook)
-else
+if IsClassic then
 	hooksecurefunc("UseContainerItem", UseContainerItemHook)
+else
+	hooksecurefunc(C_Container, "UseContainerItem", UseContainerItemHook)
 end
 hooksecurefunc("UseItemByName", UseItemByNameHook)
 

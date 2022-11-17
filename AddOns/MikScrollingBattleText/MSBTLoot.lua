@@ -25,8 +25,9 @@ local GetItemInfo = GetItemInfo
 local GetItemCount = GetItemCount
 local DisplayEvent = MikSBT.Animations.DisplayEvent
 
-local IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-local tocversion = select(4, GetBuildInfo())
+local IsClassic = WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC
+
+
 
 -------------------------------------------------------------------------------
 -- Constants.
@@ -38,13 +39,8 @@ local SILVER = string_gsub(SILVER_AMOUNT, "%%d *", "")
 local COPPER = string_gsub(COPPER_AMOUNT, "%%d *", "")
 
 -- Localized name for item types.
-local ITEM_TYPE_QUEST
+local ITEM_TYPE_QUEST = _G.GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM or Enum.ItemClass.Questitem)
 
-if tocversion >= 100002 then
-	ITEM_TYPE_QUEST = _G.GetItemClassInfo(Enum.ItemClass.Questitem)
-else
-	ITEM_TYPE_QUEST = _G.GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM)
-end
 
 -------------------------------------------------------------------------------
 -- Private variables.
@@ -165,7 +161,7 @@ local function HandleItems(parserEvent)
 	else
             numItems = numItems + numLooted
 	end
-	local numTotal = numItems 
+	local numTotal = numItems
 
 	-- Format the event and display it.
 	local eventSettings = MSBTProfiles.currentProfile.events.NOTIFICATION_LOOT
