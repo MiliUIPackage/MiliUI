@@ -79,8 +79,12 @@
 
     <Frame name="ExtVendor_JunkItemListTemplate" virtual="true">
         <Size x="570" y="260"/>
-		<!--
-        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+        <KeyValues>
+			<KeyValue key="backdropInfo" value="BACKDROP_TOOLTIP_16_16_5555" type="global"/>
+			<KeyValue key="backdropColor" value="BLACK" type="global"/>
+			<KeyValue key="backdropBorderColor" value="WHITE" type="global"/>
+		</KeyValues>
+		<!--<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
             <EdgeSize>
                 <AbsValue val="16"/>
             </EdgeSize>
@@ -90,8 +94,7 @@
             <BackgroundInsets>
                 <AbsInset left="5" right="5" top="5" bottom="5"/>
             </BackgroundInsets>
-        </Backdrop>
-		//-->
+        </Backdrop>-->
         <Layers>
             <Layer level="ARTWORK">
                 <FontString name="$parentText" inherits="GameFontNormalLeft">
@@ -124,8 +127,12 @@
         <Size>
             <AbsDimension x="640" y="72"/>
         </Size>
-		<!--
-        <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+		<KeyValues>
+			<KeyValue key="backdropInfo" value="BACKDROP_TOOLTIP_16_16_5555" type="global"/>
+			<KeyValue key="backdropColor" value="BLACK" type="global"/>
+			<KeyValue key="backdropBorderColor" value="WHITE" type="global"/>
+		</KeyValues>
+        <!--<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
             <BackgroundInsets>
                 <AbsInset left="11" right="11" top="12" bottom="11"/>
             </BackgroundInsets>
@@ -136,8 +143,7 @@
                 <AbsValue val="32"/>
             </EdgeSize>
             <Color r="0" g="0" b="0" a="1"/>
-        </Backdrop>
-		//-->
+        </Backdrop>-->
         <Layers>
             <Layer level="BACKGROUND">
                 <Texture name="$parentBG2">
@@ -254,8 +260,12 @@
                 <Anchors>
                     <Anchor point="CENTER" relativeTo="MerchantFrame"/>
                 </Anchors>
-				<!--
-                <Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
+				<KeyValues>
+					<KeyValue key="backdropInfo" value="BACKDROP_TOOLTIP_16_16_5555" type="global"/>
+					<KeyValue key="backdropColor" value="BLACK" type="global"/>
+					<KeyValue key="backdropBorderColor" value="WHITE" type="global"/>
+				</KeyValues>
+                <!--<Backdrop bgFile="Interface\DialogFrame\UI-DialogBox-Background" edgeFile="Interface\DialogFrame\UI-DialogBox-Border" tile="true">
                     <BackgroundInsets>
                         <AbsInset left="11" right="11" top="12" bottom="11"/>
                     </BackgroundInsets>
@@ -266,8 +276,7 @@
                         <AbsValue val="32"/>
                     </EdgeSize>
                     <Color r="0" g="0" b="0" a="1"/>
-                </Backdrop>
-				//-->
+                </Backdrop>-->
                 <Layers>
                     <Layer level="BACKGROUND">
                         <Texture name="$parentBG2">

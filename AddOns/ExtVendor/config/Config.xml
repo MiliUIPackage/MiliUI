@@ -76,8 +76,12 @@
                 </FontString>
             </Layer>
         </Layers>
-		<!--
-        <Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
+        <KeyValues>
+			<KeyValue key="backdropInfo" value="BACKDROP_TOOLTIP_16_16_5555" type="global"/>
+			<KeyValue key="backdropColor" value="BLACK" type="global"/>
+			<KeyValue key="backdropBorderColor" value="WHITE" type="global"/>
+		</KeyValues>
+		<!--<Backdrop bgFile="Interface\Tooltips\UI-Tooltip-Background" edgeFile="Interface\Tooltips\UI-Tooltip-Border" tile="true">
             <BorderColor r="0.5" g="0.5" b="0.5"/>
             <Color r="0.25" g="0.25" b="0.25" a="0.5"/>
             <BackgroundInsets>
@@ -89,8 +93,7 @@
             <EdgeSize>
                 <AbsValue val="16"/>
             </EdgeSize>
-        </Backdrop>
-		//-->
+        </Backdrop>-->
     </Frame>
 
     <Frame name="ExtVendorConfigContainer">

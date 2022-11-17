@@ -19,18 +19,19 @@ function ExtVendor_ElvUICheck()
 
             button:StripTextures();
             button:StyleButton(false);
-            button:SetTemplate("Default", true);
+            --button:SetTemplate("Default", true);
+            button:CreateBackdrop(nil, true);
             button:Point("TOPLEFT", item, "TOPLEFT", 4, -4);
             icon:SetTexCoord(unpack(E.TexCoords));
             icon:SetInside();
             iconBorder:SetAlpha(0);
-            hooksecurefunc(iconBorder, 'SetVertexColor', function(self, r, g, b)
-                self:GetParent():SetBackdropBorderColor(r, g, b);
-                self:SetTexture("");
-            end);
-            hooksecurefunc(iconBorder, 'Hide', function(self)
-                self:GetParent():SetBackdropBorderColor(unpack(E.media.bordercolor));
-            end);
+            --hooksecurefunc(iconBorder, 'SetVertexColor', function(self, r, g, b)
+            --    self:GetParent():SetBackdropBorderColor(r, g, b);
+            --    self:SetTexture("");
+            --end);
+            --hooksecurefunc(iconBorder, 'Hide', function(self)
+            --    self:GetParent():SetBackdropBorderColor(unpack(E.media.bordercolor));
+            --end);
 
             _G["MerchantItem"..i.."MoneyFrame"]:ClearAllPoints();
             _G["MerchantItem"..i.."MoneyFrame"]:Point("BOTTOMLEFT", button, "BOTTOMRIGHT", 3, 0);

@@ -5,7 +5,7 @@ EXTVENDOR_QUICKVENDOR_DEFAULT_BLACKLIST = {
     50741,  -- Vile Fumigator's Mask
     12185,  -- Bloodsail Admiral's Hat
     33292,  -- Hallowed Helm
-    38506,  -- Don Carlos' Famous Hat
+    --38506,  -- Don Carlos' Famous Hat   --changed into toy
     38276,  -- Haliscan Brimmed Hat
     63205,  -- Safety Goggles
     10542,  -- Goblin Mining Helmet

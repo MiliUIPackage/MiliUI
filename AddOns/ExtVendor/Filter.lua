@@ -212,7 +212,7 @@ function ExtVendor_IsItemFiltered(itemId, searchString, itemName, itemQuality, i
     local isHeirloom = false;
     if (itemId) then isHeirloom = C_Heirloom.IsItemHeirloom(itemId); end
     
-    if (itemClassId == LE_ITEM_CLASS_RECIPE) then
+    if (itemClassId == Enum.ItemClass.Recipe) then
         -- filter known recipes
         if (EXTVENDOR_DATA['config']['hide_known_recipes'] and isKnown) then
             return true, L["FILTER_REASON_ALREADY_KNOWN"];
@@ -241,7 +241,7 @@ function ExtVendor_IsItemFiltered(itemId, searchString, itemName, itemQuality, i
         end
         -- filter collected mounts
         if (EXTVENDOR_DATA['config']['hide_known_mounts']) then
-            if ((itemClassId == LE_ITEM_CLASS_MISCELLANEOUS) and (itemSubClassId == LE_ITEM_MISCELLANEOUS_MOUNT) and isKnown) then
+            if ((itemClassId == Enum.ItemClass.Miscellaneous) and (itemSubClassId == Enum.ItemMiscellaneousSubclass.Mount) and isKnown) then
                 return true, L["FILTER_REASON_ALREADY_KNOWN"];
             end
         end

@@ -2,51 +2,51 @@ local L = LibStub("AceLocale-3.0"):GetLocale("ExtVendor", true);
 
 local CLASS_PROFICIENCIES = {
     ["DEATHKNIGHT"] = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_POLEARM },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Axe2H, Enum.ItemWeaponSubclass.Mace2H, Enum.ItemWeaponSubclass.Sword2H, Enum.ItemWeaponSubclass.Polearm},
     },
     ["DEMONHUNTER"] = {
-        weapons = { LE_ITEM_WEAPON_WARGLAIVE, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H },
+        weapons = { Enum.ItemWeaponSubclass.Warglaive, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed, Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H },
     },
     ["DRUID"]       = {
-        weapons = { LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED },
+        weapons = { Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Mace2H, Enum.ItemWeaponSubclass.Polearm, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed },
     },
     ["HUNTER"]      = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_BOWS, LE_ITEM_WEAPON_GUNS, LE_ITEM_WEAPON_CROSSBOW },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Axe2H, Enum.ItemWeaponSubclass.Sword2H, Enum.ItemWeaponSubclass.Polearm, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed, Enum.ItemWeaponSubclass.Bows, Enum.ItemWeaponSubclass.Guns, Enum.ItemWeaponSubclass.Crossbow},
     },
     ["MAGE"]        = {
-        weapons = { LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_WAND },
+        weapons = { Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Wand },
     },
     ["MONK"]        = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_UNARMED },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Polearm, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Unarmed },
     },
     ["PALADIN"]     = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_POLEARM },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Axe2H, Enum.ItemWeaponSubclass.Mace2H, Enum.ItemWeaponSubclass.Sword2H, Enum.ItemWeaponSubclass.Polearm },
         canUseShields = true,
     },
     ["PRIEST"]      = {
-        weapons = { LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_WAND },
+        weapons = { Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Wand },
     },
     ["ROGUE"]       = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed },
     },
     ["SHAMAN"]      = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_STAFF },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Axe2H, Enum.ItemWeaponSubclass.Mace2H, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed, Enum.ItemWeaponSubclass.Staff },
         canUseShields = true,
     },
     ["WARLOCK"]     = {
-        weapons = { LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_STAFF, LE_ITEM_WEAPON_WAND },
+        weapons = { Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Staff, Enum.ItemWeaponSubclass.Wand },
     },
     ["WARRIOR"]     = {
-        weapons = { LE_ITEM_WEAPON_AXE1H, LE_ITEM_WEAPON_MACE1H, LE_ITEM_WEAPON_SWORD1H, LE_ITEM_WEAPON_AXE2H, LE_ITEM_WEAPON_MACE2H, LE_ITEM_WEAPON_SWORD2H, LE_ITEM_WEAPON_DAGGER, LE_ITEM_WEAPON_UNARMED, LE_ITEM_WEAPON_POLEARM, LE_ITEM_WEAPON_STAFF },
+        weapons = { Enum.ItemWeaponSubclass.Axe1H, Enum.ItemWeaponSubclass.Mace1H, Enum.ItemWeaponSubclass.Sword1H, Enum.ItemWeaponSubclass.Axe2H, Enum.ItemWeaponSubclass.Mace2H, Enum.ItemWeaponSubclass.Sword2H, Enum.ItemWeaponSubclass.Dagger, Enum.ItemWeaponSubclass.Unarmed, Enum.ItemWeaponSubclass.Polearm, Enum.ItemWeaponSubclass.Staff },
         canUseShields = true,
     },
 };
 
 local ARMOR_RANKS = {
-    [LE_ITEM_ARMOR_CLOTH] = 1,
-    [LE_ITEM_ARMOR_LEATHER] = 2,
-    [LE_ITEM_ARMOR_MAIL] = 3,
-    [LE_ITEM_ARMOR_PLATE] = 4,
+    [Enum.ItemArmorSubclass.Cloth] = 1,
+    [Enum.ItemArmorSubclass.Leather] = 2,
+    [Enum.ItemArmorSubclass.Mail] = 3,
+    [Enum.ItemArmorSubclass.Plate] = 4,
 };
 
 --========================================
@@ -228,12 +228,12 @@ end
 function ExtVendor_IsUsableArmorType(itemClassId, itemSubClassId, slot)
     local maxArmor = select(2, ExtVendor_GetOptimalArmorType());
 
-    if ((itemClassId == LE_ITEM_CLASS_ARMOR) and (slot ~= "INVTYPE_CLOAK")) then
-        if ((itemSubClassId == LE_ITEM_ARMOR_CLOTH) or (itemSubClassId == LE_ITEM_ARMOR_LEATHER) or (itemSubClassId == LE_ITEM_ARMOR_MAIL) or (itemSubClassId == LE_ITEM_ARMOR_PLATE)) then
+    if ((itemClassId == Enum.ItemArmorSubclass) and (slot ~= "INVTYPE_CLOAK")) then
+        if ((itemSubClassId == Enum.ItemArmorSubclass.Cloth) or (itemSubClassId == Enum.ItemArmorSubclass.Leather) or (itemSubClassId == Enum.ItemArmorSubclass.Mail) or (itemSubClassId == Enum.ItemArmorSubclass.Plate)) then
             if (ARMOR_RANKS[itemSubClassId] > ARMOR_RANKS[maxArmor]) then
                 return false;
             end
-        elseif (itemSubClassId == LE_ITEM_ARMOR_SHIELD) then
+        elseif (itemSubClassId == Enum.ItemArmorSubclass.Shield) then
             local cls = select(2, UnitClass("player"));
             if (CLASS_PROFICIENCIES[cls].canUseShields) then
                 return true;
@@ -250,8 +250,8 @@ end
 -- based on class proficiencies
 --========================================
 function ExtVendor_IsUsableWeaponType(itemClassId, itemSubClassId, slot)
-    if (itemClassId == LE_ITEM_CLASS_WEAPON) then
-        if ((itemSubClassId ~= LE_ITEM_WEAPON_GENERIC) and (itemSubClassId ~= LE_ITEM_WEAPON_FISHINGPOLE)) then
+    if (itemClassId == Enum.ItemClass.Weapon) then
+        if ((itemSubClassId ~= Enum.ItemArmorSubclass.Generic) and (itemSubClassId ~= Enum.ItemWeaponSubclass.Fishingpole)) then
             local cls = select(2, UnitClass("player"));
             for index, wt in pairs(CLASS_PROFICIENCIES[cls].weapons) do
                 if (wt == itemSubClassId) then
@@ -270,11 +270,11 @@ end
 -- (cloth/leather/mail/plate)
 --========================================
 function ExtVendor_IsOptimalArmor(itemClassId, itemSubClassId, slot)
-    if (itemClassId == LE_ITEM_CLASS_ARMOR) then
+    if (itemClassId == Enum.ItemClass.Armor) then
         if (slot == "INVTYPE_CLOAK") then
             return true;
         end
-        if ((itemSubClassId == LE_ITEM_ARMOR_CLOTH) or (itemSubClassId == LE_ITEM_ARMOR_LEATHER) or (itemSubClassId == LE_ITEM_ARMOR_MAIL) or (itemSubClassId == LE_ITEM_ARMOR_PLATE)) then
+        if ((itemSubClassId == Enum.ItemArmorSubclass.Cloth) or (itemSubClassId == Enum.ItemArmorSubclass.Leather) or (itemSubClassId == Enum.ItemArmorSubclass.Mail) or (itemSubClassId == Enum.ItemArmorSubclass.Plate)) then
             local opt = ExtVendor_GetOptimalArmorType();
             if (ARMOR_RANKS[itemSubClassId] < ARMOR_RANKS[opt]) then
                 --DebugMessage("ExtVendor_IsOptimalArmor(\"" .. type .. "\", \"" .. subType .. "\", \"" .. slot .. "\") = FALSE");
@@ -302,13 +302,13 @@ function ExtVendor_GetOptimalArmorType()
     local optArmor, maxArmor;
 
     if ((cls == "MAGE") or (cls == "WARLOCK") or (cls == "PRIEST")) then
-        maxArmor = LE_ITEM_ARMOR_CLOTH;
+        maxArmor = Enum.ItemArmorSubclass.Cloth;
     elseif ((cls == "ROGUE") or (cls == "DRUID") or (cls == "MONK") or (cls == "DEMONHUNTER")) then
-        maxArmor = LE_ITEM_ARMOR_LEATHER;
+        maxArmor = Enum.ItemArmorSubclass.Leather;
     elseif ((cls == "HUNTER") or (cls == "SHAMAN")) then
-        maxArmor = LE_ITEM_ARMOR_MAIL;
+        maxArmor = Enum.ItemArmorSubclass.Mail;
     elseif ((cls == "PALADIN") or (cls == "WARRIOR") or (cls == "DEATHKNIGHT")) then
-        maxArmor = LE_ITEM_ARMOR_PLATE;
+        maxArmor = Enum.ItemArmorSubclass.Plate;
     end
     optArmor = maxArmor;
     return optArmor, maxArmor;
@@ -358,24 +358,16 @@ end
 -- the player's current level)
 --========================================
 function ExtVendor_IsOutdatedItemLevel(itemLevel, playerLevel)
-    local i;
-    local itemExpac, playerExpac;
-    for i = #MAX_PLAYER_LEVEL_TABLE, 0, -1 do
-        if (playerLevel <= MAX_PLAYER_LEVEL_TABLE[i]) then
-            playerExpac = i;
-        end
-    end
-    for i = #MAX_PLAYER_LEVEL_TABLE, 0, -1 do
-        if (itemLevel <= MAX_PLAYER_LEVEL_TABLE[i]) then
-            itemExpac = i;
-        end
-    end
+    local playerExpac = GetExpansionForLevel(playerLevel) or GetServerExpansionLevel()
+    local itemExpac = GetExpansionForLevel(itemLevel) or GetServerExpansionLevel()
+    -- ToDo:  test above logic (changes were required for 9.0.1
+
     if (itemExpac > playerExpac) then
-        return false, itemExpac, playerExpac;
+        return false, itemExpac, playerExpac
     elseif (itemExpac < (playerExpac - 1)) then
-        return true, itemExpac, playerExpac;
+        return true, itemExpac, playerExpac
     else
-        return (itemLevel <= playerLevel - 10), itemExpac, playerExpac;
+        return (itemLevel <= playerLevel - 10), itemExpac, playerExpac
     end
 end
 
@@ -385,7 +377,7 @@ end
 -- weapon - excluding rings, etc.)
 --========================================
 function ExtVendor_ItemIsValidForTransmog(itemClassId, itemSubClassId, equipSlot)
-    if ((itemClassId ~= LE_ITEM_CLASS_ARMOR) and (itemClassId ~= LE_ITEM_CLASS_WEAPON)) then return false; end
+    if ((itemClassId ~= Enum.ItemClass.Armor) and (itemClassId ~= Enum.ItemClass.Weapon)) then return false; end
     if ((equipSlot ~= "INVTYPE_HEAD") and
         (equipSlot ~= "INVTYPE_SHOULDER") and
         (equipSlot ~= "INVTYPE_CLOAK") and

@@ -1,16 +1,16 @@
 local L = LibStub("AceLocale-3.0"):GetLocale("ExtVendor", true);
 
 local ABOUT = {
-    author = "Germbread (Deathwing-US, Whitemane-US)",
+    author = "Germbread (Deathwing-US, Whitemane-US) - Updated for DF Meredith (Stormrage-US)",
     email = GetAddOnMetadata("ExtVendor", "X-Email"),
     hosts = {
         "https://www.curseforge.com/wow/addons",
         "https://www.curseforge.com/wow/addons/extended-vendor-ui",
+		"https://www.curseforge.com/wow/addons/extended-vendor-ui-fixed-for-dragonflight",
     },
     
     translators = {
-        { name = "彩虹ui", locale = "Traditional Chinese (zhTW)" },
-        { name = "BNS", locale = "Simplified Chinese (zhCN)" },
+        { name = "BNS", locale = "Traditional Chinese (zhTW), Simplified Chinese (zhCN)" },
         { name = "next96", locale = "Korean (koKR)" },
     },
 };
