@@ -9,7 +9,9 @@
 ## Notes-zhTW: WeakAuras的模組路徑
 ## X-Category: Interface Enhancements
 ## Globe-Main: WeakAuras
-## DefaultState: Enabled
+## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras 模組路徑
+## Notes-zhTW: WeakAuras Model Paths |nWeakAuras 的模組路徑
+## DefaultState: Disabled
 ## LoadOnDemand: 1
 ## Dependencies: WeakAuras, WeakAurasOptions
 
