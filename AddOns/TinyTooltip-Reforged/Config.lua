@@ -4,25 +4,25 @@ local addon = TinyTooltipReforged
 addon.db = {
     version = 3.3,
     general = {
-        scale             = 1.2,
-        mask              = true,
-        bgfile            = "Blizzard Parchment",
-        background        = {0, 0, 0, 0.7},
-        borderSize        = 1,
-        borderCorner      = "Blizzard Tooltip",
-        borderColor       = {0.6, 0.6, 0.6, 0.8},
-        statusbarHeight   = 6,
-        statusbarPosition = "default",
-        statusbarOffsetX  = 0,
-        statusbarOffsetY  = 0,
-	statusbarFont	  = "default",
-        statusbarFontSize = 12,
-        statusbarFontFlag = "THINOUTLINE",
-        statusbarText     = true,
-        statusbarColor    = "auto",
-        statusbarTexture  = "Blizzard",
-	statusbarTextFormat = "healthmaxpercent",
-        anchor            = { position = "default", hiddenInCombat = false, defaultInCombat = true, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
+        scale             = 1.2,                    --縮放
+        mask              = false,                  --頂部遮罩層
+        bgfile            = "Solid",                --背景
+        background        = {0.133, 0.133, 0.133, 1},  --背景顔色和透明度
+        borderSize        = 1,                      --邊框大小（直角邊框才生效）
+        borderCorner      = "angular",              --邊框類型 default|angular:直角邊框
+        borderColor       = {0.18, 0.18, 0.18, 1},  --邊框顔色和透明度
+        statusbarHeight   = 4,                      --HP高度
+        statusbarPosition = "bottom",               --HP位置 default|bottom|top
+        statusbarOffsetX  = 0,                      --HP X偏移 0:自動
+        statusbarOffsetY  = 0,                      --HP Y偏移 0:自動
+	    statusbarFont	  = "default",
+        statusbarFontSize = 10,                     --HP文字大小
+        statusbarFontFlag = "THINOUTLINE",          --HP文字樣式
+        statusbarText     = true,                   --HP文字
+        statusbarColor    = "auto",                 --HP顔色 default|auto|smooth
+        statusbarTexture  = "Interface\\AddOns\\TinyTooltip-Reforged\\texture\\StatusBar",
+	    statusbarTextFormat = "healthmaxpercent",
+        anchor            = { position = "cursorRight", hiddenInCombat = false, returnInCombat = false, returnOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", y = 240, x = -5, }, --鼠標位置 default|cursor|static|cursorRight
         alwaysShowIdInfo  = false,
         skinMoreFrames    = true,
         headerFont        = "default",
@@ -36,14 +36,14 @@ addon.db = {
     unit = {
         player = {
             coloredBorder = "class",
-            background = { colorfunc = "class", alpha = 0.9, },
-            anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = true, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
+            background = { colorfunc = "default", alpha = 0.9, },
+            anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             showTarget = true, 
-	    showSpec = true,
+	        showSpec = true,
             showTargetBy = true,
-            showModel = false,  
-            grayForDead = true, 
-	    showIlevelAndSpecialization = false,
+            showModel = true,  
+            grayForDead = false, 
+	        showIlevelAndSpecialization = false,
             elements = {
                 raidIcon    = { enable = true, filter = "none" },
                 roleIcon    = { enable = true, filter = "none" },
@@ -59,7 +59,7 @@ addon.db = {
                 statusDND   = { enable = true, color = "ffd200", wildcard = "(%s)", filter = "none" },
                 statusDC    = { enable = true, color = "999999", wildcard = "(%s)", filter = "none" },
                 guildName   = { enable = true, color = "ff00ff", wildcard = "<%s>", filter = "none" },
-                guildIndex  = { enable = false, color = "cc88ff", wildcard = "%s",  filter = "none" },
+                guildIndex  = { enable = true, color = "cc88ff", wildcard = "%s",  filter = "none" },
                 guildRank   = { enable = true, color = "cc88ff", wildcard = "(%s)", filter = "none" },
                 guildRealm  = { enable = false, color = "00cccc", wildcard = "%s",   filter = "none" },
                 levelValue  = { enable = true, color = "level",   wildcard = "%s",  filter = "none" }, 
@@ -71,18 +71,18 @@ addon.db = {
                 role        = { enable = false, color = "ffffff",  wildcard = "(%s)", filter = "none" },
                 moveSpeed   = { enable = false, color = "e8e7a8",  wildcard = "%d%%", filter = "none" },
                 zone        = { enable = true,  color = "ffffff",  wildcard = "%s", filter = "none" },
-                { "friendIcon", "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "statusAFK", "statusDND", "statusDC", },
-                { "guildName", "guildIndex", "guildRank", "guildRealm","realm", },
+                { "raidIcon", "roleIcon", "pvpIcon", "factionIcon", "classIcon", "title", "name", "realm", "statusAFK", "statusDND", "statusDC", },
+                { "guildName", "guildIndex", "guildRank", "guildRealm", },
                 { "levelValue", "factionName", "gender", "raceName", "className", "isPlayer", "role", "moveSpeed", },
                 { "zone" },
             },
         },
         npc = {
             coloredBorder = "reaction",
-            background = { colorfunc = "default", alpha = 0.9, },
+            background = { colorfunc = "default", alpha = 1, },
             showTarget = true,
             showTargetBy = true,
-            grayForDead = true,
+            grayForDead = false,
             showModel = false,
             anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             elements = {
@@ -109,8 +109,8 @@ addon.db = {
         showItemIcon = true,    
     },
     spell = {
-        borderColor = {0.6, 0.6, 0.6, 0.8},
-        background = {0, 0, 0, 0.8},
+        borderColor = {0.133, 0.133, 0.133, 1},
+        background = {0.133, 0.133, 0.133, 1},
         showIcon = true,
     },
     quest = {
