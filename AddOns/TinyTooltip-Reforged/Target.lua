@@ -49,7 +49,8 @@ end)
 
 
 -- Targeted By
-
+--[[
+--NOT WORKING
 local function GetTargetByString(mouseover, num, tip)
     local count, prefix = 0, IsInRaid() and "raid" or "party"
     local roleIcon, colorCode, name
@@ -93,4 +94,4 @@ LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
         end
 --   end
 end)
-
+]]

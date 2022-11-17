@@ -25,6 +25,7 @@ local function strip(text)
 end
 
 local function ColorBorder(tip, config, raw)
+    if (not raw) then return end
     if (config.coloredBorder and addon.colorfunc[config.coloredBorder]) then
         local r, g, b = addon.colorfunc[config.coloredBorder](raw)
         LibEvent:trigger("tooltip.style.border.color", tip, r, g, b)
@@ -39,6 +40,7 @@ local function ColorBorder(tip, config, raw)
 end
 
 local function ColorBackground(tip, config, raw)
+    if (not raw) then return end
     local bg = config.background
     if not bg then return end
     if (bg.colorfunc == "default" or bg.colorfunc == "" or bg.colorfunc == "inherit") then
@@ -55,7 +57,8 @@ local function ColorBackground(tip, config, raw)
 end
 
 local function GrayForDead(tip, config, unit)
-    if (unit and config.grayForDead and UnitIsDeadOrGhost(unit)) then -- 暫時修正
+    if (not unit) then return end
+    if (config.grayForDead and UnitIsDeadOrGhost(unit)) then
         local line, text
         LibEvent:trigger("tooltip.style.border.color", tip, 0.6, 0.6, 0.6)
         LibEvent:trigger("tooltip.style.background", tip, 0.1, 0.1, 0.1)
@@ -69,7 +72,8 @@ local function GrayForDead(tip, config, unit)
 end
 
 local function ShowBigFactionIcon(tip, config, raw)
-    if (raw and config.elements.factionBig and config.elements.factionBig.enable and tip.BigFactionIcon and (raw.factionGroup=="Alliance" or raw.factionGroup == "Horde")) then -- 暫時修正
+    if (not raw) then return end
+    if (config.elements.factionBig and config.elements.factionBig.enable and tip.BigFactionIcon and (raw.factionGroup=="Alliance" or raw.factionGroup == "Horde")) then
         tip.BigFactionIcon:Show()
         tip.BigFactionIcon:SetTexture("Interface\\Timer\\".. raw.factionGroup .."-Logo")
         tip:Show()
@@ -78,6 +82,7 @@ local function ShowBigFactionIcon(tip, config, raw)
 end
 
 local function PlayerCharacter(tip, unit, config, raw)
+    if (not raw) then return end
     local data = addon:GetUnitData(unit, config.elements, raw)
     addon:HideLines(tip, 2, 3)
     addon:HideLine(tip, "^"..LEVEL)
@@ -94,6 +99,7 @@ local function PlayerCharacter(tip, unit, config, raw)
 end
 
 local function NonPlayerCharacter(tip, unit, config, raw)
+    if (not raw) then return end
     local levelLine = addon:FindLine(tip, "^"..LEVEL)
     if (levelLine or tip:NumLines() > 1) then
         local data = addon:GetUnitData(unit, config.elements, raw)
@@ -125,8 +131,7 @@ local function NonPlayerCharacter(tip, unit, config, raw)
 end
 
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
-    if (not addon.GetUnitInfo) then return end -- 暫時修正
-	local unit = UnitTokenFromGUID(data.guid)
+    local unit = UnitTokenFromGUID(data.guid)
     local raw = addon:GetUnitInfo(data.guid)
     if (UnitIsPlayer(unit)) then
         PlayerCharacter(GameTooltip, unit, addon.db.unit.player, raw)

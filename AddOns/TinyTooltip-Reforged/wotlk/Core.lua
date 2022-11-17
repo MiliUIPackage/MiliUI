@@ -32,7 +32,7 @@ setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
 local actualVersion = GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
--- print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
+print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
     GameTooltip,

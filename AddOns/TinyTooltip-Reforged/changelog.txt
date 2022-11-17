@@ -1,3 +1,11 @@
+v9.3.2
+- Added extra checks to unit info
+- Turned off targeted by 
+- Added a fix for the rematch add-on
+
+v9.3.1
+- Turned off ItemID as causes an issue with comparison manager
+
 v9.3 (10.0.2)
 - Fixed LUA issues in 10.0.2
 - updated various hooks to new formats

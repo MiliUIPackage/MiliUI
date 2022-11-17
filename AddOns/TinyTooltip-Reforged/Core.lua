@@ -337,8 +337,8 @@ end
 
 local t = {}
 function addon:GetUnitInfo(unit)
-    if not unit then return end -- 暫時修正
-	local unit = UnitTokenFromGUID(unit)
+    if (not unit) then return end
+    local unit = UnitTokenFromGUID(unit)
     if (not unit) then return end
     local name, realm = UnitName(unit)
     local pvpName = UnitPVPName(unit)
@@ -493,12 +493,12 @@ function addon:FormatData(value, config, raw)
 end
 
 function addon:GetUnitData(unit, elements, raw)
+    if (not raw) then return end
     local data = {}
     local config, name, title
     if (not raw) then
         raw = self:GetUnitInfo(unit)
     end
-	if (not raw) then return data end -- 暫時修正
     for i, v in ipairs(elements) do
         data[i] = {}
         for ii, e in ipairs(v) do
@@ -546,27 +546,25 @@ addon.colorfunc.level = function(raw)
 end
 
 addon.colorfunc.reaction = function(raw)
-	if raw then -- 暫時修正
-		local color = FACTION_BAR_COLORS[raw.reaction or 4]
-	else
-		local color = FACTION_BAR_COLORS[4]
-	end
-    if color then
-		return color.r, color.g, color.b, addon:GetHexColor(color)
-	end
+    if (not raw) then return end
+    local color = FACTION_BAR_COLORS[raw.reaction or 4]
+    return color.r, color.g, color.b, addon:GetHexColor(color)
 end
 
 addon.colorfunc.itemQuality = function(raw)
+    if (not raw) then return end
     local color = ITEM_QUALITY_COLORS[raw.itemQuality or 0]
     return color.r, color.g, color.b, addon:GetHexColor(color)
 end
 
 addon.colorfunc.selection = function(raw)
+    if (not raw) then return end
     local r, g, b = UnitSelectionColor(raw.unit)
     return r, g, b, addon:GetHexColor(r, g, b)
 end
 
 addon.colorfunc.faction = function(raw)
+    if (not raw) then return end
     if (raw.factionGroup == "Neutral") then
         return 0.9, 0.7, 0, "e5b200"
     elseif (raw.factionGroup == UnitFactionGroup("player")) then
@@ -577,26 +575,32 @@ addon.colorfunc.faction = function(raw)
 end
 
 addon.filterfunc.reaction6 = function(raw, reaction)
+    if (not raw) then return end
     return (raw.reaction or 4) >= 6
 end
 
 addon.filterfunc.reaction5 = function(raw, reaction)
+    if (not raw) then return end
     return (raw.reaction or 4) >= 5
 end
 
 addon.filterfunc.reaction = function(raw, reaction)
+    if (not raw) then return end
     return (raw.reaction or 4) >= (tonumber(reaction) or 5)
 end
 
 addon.filterfunc.inraid = function(raw)
+    if (not raw) then return end
     return IsInRaid()
 end
 
 addon.filterfunc.incombat = function(raw)
+    if (not raw) then return end
     return InCombatLockdown()
 end
 
 addon.filterfunc.samerealm = function(raw)
+    if (not raw) then return end
     return raw.realm == GetRealmName()
 end
 
@@ -877,7 +881,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
         if (not self.GetUnit) then return end -- 暫時修正
 		local unit = select(2, self:GetUnit())
-        if (not unit) then return end	   
+        if (not unit) then return end
         LibEvent:trigger("tooltip:unit", self, unit)
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)

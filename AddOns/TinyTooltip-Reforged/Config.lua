@@ -2,7 +2,7 @@
 local addon = TinyTooltipReforged
  
 addon.db = {
-    version = 3.3,
+    version = 9.3,
     general = {
         scale             = 1.2,                    --縮放
         mask              = false,                  --頂部遮罩層

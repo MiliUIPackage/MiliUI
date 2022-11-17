@@ -162,8 +162,8 @@ addon.L = {
 	["|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r"] = "|cffFFE4E1[浮動提示增強]|r|cffFF3333 不是有效的設定檔內容。|r",
 	["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"] = "|cFF00FFFF[浮動提示增強]|r |cffFFE4E1已重置設定。|r",
 	
-	["Tooltip"] = "浮動提示 ",
-	["TinyTooltip"] = "浮動提示增強",
+	["Tooltip"] = "浮動提示資訊",
+	["TinyTooltip"] = "浮動提示資訊增強",
 	["General"] = "一般",
 	["Player"] = "玩家",
 	["Unit Is Player"] = "玩家單位",
