@@ -559,7 +559,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       ShowFocusHighlight = true,
       ShowMouseoverHighlight = true,
       ForceHealthbarOnTarget = false,
-      ForceOutOfCombat = true,
+      ForceOutOfCombat = false,
       ForceNonAttackableUnits = true,
       ForceFriendlyInCombat = "NONE",
       --
@@ -1227,8 +1227,8 @@ ThreatPlates.DEFAULT_SETTINGS = {
         Type = "SCALED_PERCENTAGE",
         SecondPlayersName = true,
         ShowAlways = false,
-        ShowInGroups = false,
-        ShowWithPet = false,
+        ShowInGroups = true,
+        ShowWithPet = true,
 		-- Layout
         Anchor = "LEFT",
         InsideAnchor = false,
@@ -1371,7 +1371,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
       y_hv = 6,
       --anchor = "Top",
       ShowInHeadlineView = true,
-      ShowFriendIcon = true,
+      ShowFriendIcon = false,
       ShowFactionIcon = false,
       ShowFriendColor = false,
       FriendColor = RGB(29, 39, 61),      -- Blizzard friend dark blue, color for healthbars of friends
@@ -1968,7 +1968,7 @@ ThreatPlates.DEFAULT_SETTINGS = {
         x = -69, -- old default: 55
         y = 0,
         anchor = "CENTER",
-        show = true,
+        show = false,
       },
       unique = {
         threatcolor = {
