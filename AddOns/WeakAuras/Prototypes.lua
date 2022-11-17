@@ -686,6 +686,33 @@ if WeakAuras.IsClassicOrBCCOrWrath() then
   end
 end
 
+if WeakAuras.IsRetail() then
+  function WeakAuras.CheckTalentSpellId(spellId)
+    local configId = C_ClassTalents.GetActiveConfigID()
+    local configInfo = C_Traits.GetConfigInfo(configId)
+    for _, treeId in ipairs(configInfo.treeIDs) do
+      local nodes = C_Traits.GetTreeNodes(treeId)
+      for _, nodeId in ipairs(nodes) do
+        local node = C_Traits.GetNodeInfo(configId, nodeId)
+        if node.ID ~= 0 then
+          for _, talentId in ipairs(node.entryIDs) do
+            local entryInfo = C_Traits.GetEntryInfo(configId, talentId)
+            local definitionInfo = C_Traits.GetDefinitionInfo(entryInfo.definitionID)
+            if definitionInfo.spellID == spellId then
+              local spellName, _, icon = GetSpellInfo(spellId)
+              local rank = node.activeRank
+              if node.activeEntry then
+                rank = node.activeEntry.entryID == talentId and node.activeEntry.rank or 0
+              end
+              return spellName, icon, rank
+            end
+          end
+        end
+      end
+    end
+  end
+end
+
 function WeakAuras.CheckPvpTalentByIndex(index)
   local checkTalentSlotInfo = C_SpecializationInfo.GetPvpTalentSlotInfo(1)
   if checkTalentSlotInfo then
@@ -852,26 +879,40 @@ function Private.ExecEnv.CheckRaidFlags(flags, flagToCheck)
   end
 end
 
+local function IsSpellKnownOrOverridesAndBaseIsKnown(spell, pet)
+  if IsSpellKnown(spell, pet) then
+    return true
+  end
+  local baseSpell = FindBaseSpellByID(spell)
+  if baseSpell and baseSpell ~= spell then
+    if FindSpellOverrideByID(baseSpell) == spell then
+      return IsSpellKnown(baseSpell, pet)
+    end
+  end
+end
+
 function WeakAuras.IsSpellKnownForLoad(spell, exact)
-  local result = IsPlayerSpell(spell) or IsSpellKnown(spell, true)
+  local result = IsPlayerSpell(spell)
+                 or IsSpellKnownOrOverridesAndBaseIsKnown(spell, false)
+                 or IsSpellKnownOrOverridesAndBaseIsKnown(spell, true)
   if exact or result then
     return result
   end
   -- Dance through the spellname to the current spell id
-  spell = GetSpellInfo(spell)
-  if (spell) then
-    spell = select(7, GetSpellInfo(spell))
-  end
-  if spell then
-    return WeakAuras.IsSpellKnown(spell)
+  local spellName = GetSpellInfo(spell)
+  if (spellName) then
+    local otherSpell = select(7, GetSpellInfo(spellName))
+    if otherSpell and otherSpell ~= spell then
+      return WeakAuras.IsSpellKnownForLoad(otherSpell)
+    end
   end
 end
 
 function WeakAuras.IsSpellKnown(spell, pet)
   if (pet) then
-    return IsSpellKnown(spell, pet);
+    return IsSpellKnownOrOverridesAndBaseIsKnown(spell, true)
   end
-  return IsPlayerSpell(spell) or IsSpellKnown(spell);
+  return IsPlayerSpell(spell) or IsSpellKnownOrOverridesAndBaseIsKnown(spell, false)
 end
 
 function WeakAuras.IsSpellKnownIncludingPet(spell)
@@ -881,19 +922,7 @@ function WeakAuras.IsSpellKnownIncludingPet(spell)
   if (not spell) then
     return false;
   end
-  if (WeakAuras.IsSpellKnown(spell) or WeakAuras.IsSpellKnown(spell, true)) then
-    return true;
-  end
-  -- WORKAROUND brain damage around void eruption
-  -- In shadow form void eruption is overridden by void bolt, yet IsSpellKnown for void bolt
-  -- returns false, whereas it returns true for void eruption
-  local baseSpell = FindBaseSpellByID(spell);
-  if (not baseSpell) then
-    return false;
-  end
-  if (baseSpell ~= spell) then
-    return WeakAuras.IsSpellKnown(baseSpell) or WeakAuras.IsSpellKnown(baseSpell, true);
-  end
+  return WeakAuras.IsSpellKnown(spell, false) or WeakAuras.IsSpellKnown(spell, true)
 end
 
 function Private.ExecEnv.CompareSpellIds(a, b, exactCheck)
@@ -4307,8 +4336,6 @@ Private.event_prototypes = {
         type = "toggle",
         test = "true",
         collapse = "extra Cooldown Progress (Spell)",
-        enable = WeakAuras.IsRetail(),
-        hidden = not WeakAuras.IsRetail()
       },
       {
         name = "matchedRune",
@@ -5442,6 +5469,7 @@ Private.event_prototypes = {
           local triggerRemaining = %s
           local triggerCount = %q
           local triggerCast = %s
+          local triggerIsCooldown = %s
           local cloneId = useClone and id or ""
           local state = states[cloneId]
 
@@ -5475,7 +5503,7 @@ Private.event_prototypes = {
             or event == "BigWigs_PauseBar"
             or event == "BigWigs_ResumeBar"
             then
-              if Private.ExecEnv.BigWigsTimerMatches(id, triggerText, triggerTextOperator, triggerSpellId, triggerCount, triggerCast) then
+              if Private.ExecEnv.BigWigsTimerMatches(id, triggerText, triggerTextOperator, triggerSpellId, triggerCount, triggerCast, triggerIsCooldown) then
                 local bar = WeakAuras.GetBigWigsTimerById(id)
                 if bar then
                   copyOrSchedule(bar, cloneId)
@@ -5541,6 +5569,7 @@ Private.event_prototypes = {
         trigger.remaining or 0,
         trigger.use_count and trigger.count or "",
         trigger.use_cast == nil and "nil" or trigger.use_cast and "true" or "false",
+        trigger.use_isCooldown == nil and "nil" or trigger.use_isCooldown and "true" or "false",
         trigger.remaining_operator or "<"
       )
     end,
@@ -5581,6 +5610,15 @@ Private.event_prototypes = {
         name = "cast",
         display = L["Cast Bar"],
         desc = L["Filter messages with format <message>"],
+        type = "tristate",
+        test = "true",
+        init = "false",
+        conditionType = "bool"
+      },
+      {
+        name = "isCooldown",
+        display = L["Cooldown"],
+        desc = L["Cooldown bars show time before an ability is ready to be use, BigWigs prefix them with '~'"],
         type = "tristate",
         test = "true",
         init = "false",
@@ -5991,14 +6029,13 @@ Private.event_prototypes = {
         if (trigger.talent.multi) then
           local ret = [[
             local active = false;
-            local activeIcon;
-            local activeName;
-            local _
+            local activeIcon, activeName, _
           ]]
           if WeakAuras.IsRetail() then
             ret = ret .. [[
               local index
               local firstLoop = true
+              local rank = 0
             ]]
           else
             ret = ret .. [[
@@ -6027,34 +6064,35 @@ Private.event_prototypes = {
               local ret2 = [[
                 local spellId = %s
                 local shouldBeActive = %s
-                local hasTalent = IsPlayerSpell(spellId)
                 if spellId then
-                  activeName, _, activeIcon = GetSpellInfo(spellId)
-                end
-                if hasTalent then
-                  if shouldBeActive then
-                    if firstLoop then
-                      active = true
+                  local hasTalent = IsPlayerSpell(spellId)
+                  activeName, activeIcon, rank = WeakAuras.CheckTalentSpellId(spellId)
+                  if activeName ~= nil then
+                    local hasTalent = rank > 0
+                    if hasTalent then
+                      if shouldBeActive then
+                        if firstLoop then
+                          active = true
+                        else
+                          active = active and true
+                        end
+                      else
+                        active = false
+                      end
+                      firstLoop = false
                     else
-                      active = active and true
-                    end
-                  else
-                    active = false
-                  end
-                  firstLoop = false
-                elseif hasTalent == false then
-                  if shouldBeActive then
-                    active = false
-                  else
-                    if firstLoop then
-                      active = true
-                    else
-                      active = active and true
+                      if shouldBeActive then
+                        active = false
+                      else
+                        if firstLoop then
+                          active = true
+                        else
+                          active = active and true
+                        end
+                      end
+                      firstLoop = false
                     end
                   end
-                  firstLoop = false
-                else
-                  -- nil case means talent index in data is not known for this class/spec
                 end
               ]]
               ret = ret .. ret2:format(index, value and "true" or "false")
@@ -6161,6 +6199,7 @@ Private.event_prototypes = {
           end
         end,
         test = "active",
+        reloadOptions = true,
       },
       {
         name = "inverse",
@@ -6183,6 +6222,32 @@ Private.event_prototypes = {
         init = "activeName",
         store = "true",
         test = "true"
+      },
+      {
+        display = L["Rank"],
+        desc = L["Check if a single talent match a Rank"],
+        name = "stacks",
+        type = "number",
+        conditionType = "number",
+        init = "rank",
+        store = true,
+        enable = function(trigger)
+          if WeakAuras.IsRetail() then
+            if trigger.use_class and trigger.class
+            and trigger.use_spec and trigger.spec
+            and trigger.use_talent == false
+            and trigger.talent and type(trigger.talent.multi) == "table"
+            then
+              local count, value = 0
+              for _, v in pairs(trigger.talent.multi) do
+                value = v
+                count = count + 1
+              end
+              return count == 1 and value == true
+            end
+          end
+          return false
+        end,
       },
     },
     automaticrequired = true,
@@ -7288,20 +7353,12 @@ Private.event_prototypes = {
       }
     },
     nameFunc = function(trigger)
-      if not trigger.use_inverse then
-        local name = GetItemInfo(trigger.itemName);
-        return name;
-      else
-        return nil;
-      end
+      local name = GetItemInfo(trigger.itemName);
+      return name;
     end,
     iconFunc = function(trigger)
-      if not trigger.use_inverse then
-        local _, _, _, _, icon = GetItemInfoInstant(trigger.itemName or 0);
-        return icon;
-      else
-        return nil;
-      end
+      local _, _, _, _, icon = GetItemInfoInstant(trigger.itemName or 0);
+      return icon;
     end,
     hasItemID = true,
     automaticrequired = true
@@ -8550,6 +8607,16 @@ Private.event_prototypes = {
         conditionType = "number"
       },
       {
+        name = "meleehastepercent",
+        display = L["Melee Haste (%)"],
+        type = "number",
+        init = "GetMeleeHaste()",
+        store = true,
+        conditionType = "number",
+        enable = WeakAuras.IsWrathClassic(),
+        hidden = not WeakAuras.IsWrathClassic()
+      },
+      {
         name = "expertiserating",
         display = L["Expertise Rating"],
         type = "number",
@@ -9406,7 +9473,6 @@ if WeakAuras.IsClassicOrBCCOrWrath() then
   end
   if not WeakAuras.IsWrathClassic() then
     Private.event_prototypes["Death Knight Rune"] = nil
-    Private.event_prototypes["Crowd Controlled"] = nil
   end
   Private.event_prototypes["Alternate Power"] = nil
   Private.event_prototypes["Equipment Set"] = nil

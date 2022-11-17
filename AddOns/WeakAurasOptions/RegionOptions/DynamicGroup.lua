@@ -72,6 +72,16 @@ local gridSelfPoints = {
   DR = "TOPLEFT",
   LD = "TOPRIGHT",
   DL = "TOPRIGHT",
+  HD = "TOP",
+  HU = "BOTTOM",
+  VR = "LEFT",
+  VL = "RIGHT",
+  DH = "TOP",
+  UH = "BOTTOM",
+  LV = "RIGHT",
+  RV = "LEFT",
+  HV = "CENTER",
+  VH = "CENTER",
 }
 
 local function createOptions(id, data)
@@ -202,6 +212,7 @@ local function createOptions(id, data)
     },
     rotation = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Start Angle"],
       order = 5,
@@ -219,6 +230,7 @@ local function createOptions(id, data)
     },
     arcLength = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Total Angle"],
       order = 8,
@@ -230,6 +242,7 @@ local function createOptions(id, data)
     },
     radius = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Radius"],
       order = 9,
@@ -255,10 +268,11 @@ local function createOptions(id, data)
     },
     gridWidth = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = function()
         if not data.gridType then return "" end
-        if data.gridType:find("^[RL]") then
+        if data.gridType:find("^[RLH]") then
           return L["Row Width"]
         else
           return L["Column Height"]
@@ -272,6 +286,7 @@ local function createOptions(id, data)
     },
     rowSpace = {
       type = "range",
+      control = "WeakAurasSpinBox",
       name = L["Row Space"],
       width = WeakAuras.normalWidth,
       order = 10,
@@ -282,6 +297,7 @@ local function createOptions(id, data)
     },
     columnSpace = {
       type = "range",
+      control = "WeakAurasSpinBox",
       name = L["Column Space"],
       width = WeakAuras.normalWidth,
       order = 11,
@@ -293,6 +309,7 @@ local function createOptions(id, data)
     -- generic grow options
     space = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Space"],
       order = 7,
@@ -307,6 +324,7 @@ local function createOptions(id, data)
     },
     stagger = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Stagger"],
       order = 8,
@@ -382,6 +400,7 @@ local function createOptions(id, data)
     },
     limit = {
       type = "range",
+      control = "WeakAurasSpinBox",
       order = 26,
       width = WeakAuras.normalWidth,
       name = L["Limit"],
@@ -399,6 +418,7 @@ local function createOptions(id, data)
     },
     scale = {
       type = "range",
+      control = "WeakAurasSpinBox",
       width = WeakAuras.normalWidth,
       name = L["Group Scale"],
       order = 28,
@@ -433,7 +453,7 @@ local function createOptions(id, data)
   OptionsPrivate.commonOptions.AddCodeOption(options, data, L["Custom Anchor"], "custom_anchor_per_unit", "https://github.com/WeakAuras/WeakAuras2/wiki/Custom-Code-Blocks#group-by-frame",
                           1.7, function() return not(data.grow ~= "CUSTOM" and data.useAnchorPerUnit and data.anchorPerUnit == "CUSTOM") end, {"customAnchorPerUnit"}, false, { setOnParent = true })
 
-  local borderHideFunc = function() return data.useAnchorPerUnit or data.grow == "CUSTOM" end
+  local borderHideFunc = function() return data.useAnchorPerUnit end
   local disableSelfPoint = function() return data.grow ~= "CUSTOM" and data.grow ~= "GRID" and not data.useAnchorPerUnit end
 
   for k, v in pairs(OptionsPrivate.commonOptions.BorderOptions(id, data, nil, borderHideFunc, 70)) do

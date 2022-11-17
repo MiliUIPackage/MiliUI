@@ -1,7 +1,7 @@
 ## Interface: 100002
 ## Title: WeakAuras Model Paths
 ## Author: The WeakAuras Team
-## Version: 5.0.5
+## Version: 5.2.0
 ## Notes: Model paths for WeakAuras
 ## Notes-esES: Las rutas de archivos de modelos en 3D para WeakAuras
 ## Notes-deDE: 3D-Model Pfade für WeakAuras
@@ -9,9 +9,7 @@
 ## Notes-zhTW: WeakAuras的模組路徑
 ## X-Category: Interface Enhancements
 ## Globe-Main: WeakAuras
-## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras 模組路徑
-## Notes-zhTW: WeakAuras Model Paths |nWeakAuras 的模組路徑
-## DefaultState: Disabled
+## DefaultState: Enabled
 ## LoadOnDemand: 1
 ## Dependencies: WeakAuras, WeakAurasOptions
 
