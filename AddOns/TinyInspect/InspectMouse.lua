@@ -40,7 +40,8 @@ local function AppendToGameTooltip(guid, ilevel, spec, weaponLevel, isArtifact)
 end
 
 --觸發觀察
-GameTooltip:HookScript("OnTooltipSetUnit", function(self)
+-- GameTooltip:HookScript("OnTooltipSetUnit", function(self)
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self) -- 10.0.2 fix
     if (TinyInspectDB and (TinyInspectDB.EnableMouseItemLevel or TinyInspectDB.EnableMouseSpecialization)) then
         local _, unit = self:GetUnit()
         if (not unit) then return end
