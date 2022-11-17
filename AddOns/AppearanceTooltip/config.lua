@@ -182,7 +182,7 @@ do
     mousescroll:SetPoint("TOPLEFT", currentClass, "BOTTOMLEFT", 0, -4)
     spin:SetPoint("TOPLEFT", mousescroll, "BOTTOMLEFT", 0, -4)
 
-    local modifierLabel = newFontString(panel, "預覽的組合按鍵:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
+    local modifierLabel = newFontString(panel, "預覽的輔助鍵:", nil, 'TOPLEFT', spin, 'BOTTOMLEFT', 0, -10)
     modifier:SetPoint("LEFT", modifierLabel, "RIGHT", 4, -2)
 
     local anchorLabel = newFontString(panel, "位置:", nil, 'TOPLEFT', modifierLabel, 'BOTTOMLEFT', 0, -16)

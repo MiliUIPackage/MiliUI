@@ -1,6 +1,8 @@
 # AppearanceTooltip
 
-## [v34.1](https://github.com/kemayo/wow-appearancetooltip/tree/v34.1) (2022-10-26)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v34...v34.1) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v36](https://github.com/kemayo/wow-appearancetooltip/tree/v36) (2022-11-16)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v35.1...v36) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Fix Inventorian integration  
+- Fix error for Horde Dracthyr  
+- SetParent on the attached tooltip to avoid overlap issues  
+    This was mostly visible when showing an item tooltip from LibQTip  

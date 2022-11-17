@@ -1,4 +1,4 @@
-## Interface: 80000
+## Interface: 100000
 ## Title: Lib: AppropriateItems-1.0
 ## Notes: What items are appropriate for a given class
 ## Author: Kemayo

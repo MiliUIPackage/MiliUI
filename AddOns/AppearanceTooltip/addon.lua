@@ -3,12 +3,14 @@ local myfullname = GetAddOnMetadata(myname, "Title")
 
 local GetScreenWidth = GetScreenWidth
 local GetScreenHeight = GetScreenHeight
-local IsDressableItem = IsDressableItem
 
 local setDefaults, db
 
 local LAT = LibStub("LibArmorToken-1.0")
 local LAI = LibStub("LibAppropriateItems-1.0")
+
+-- minor compat:
+local IsDressableItem = _G.IsDressableItem or C_Item.IsDressableItemByID
 
 local tooltip = CreateFrame("Frame", "AppearanceTooltipTooltip", UIParent, "TooltipBorderedFrameTemplate")
 tooltip:SetClampedToScreen(true)
@@ -135,23 +137,47 @@ classwarning:SetPoint("TOPLEFT", tooltip, "TOPLEFT", 6, -12)
 classwarning:SetPoint("TOPRIGHT", tooltip, "TOPRIGHT", -6, -12)
 -- ITEM_WRONG_CLASS = "That item can't be used by players of your class!"
 -- STAT_USELESS_TOOLTIP = "|cff808080Provides no benefit for your class|r"
-classwarning:SetText("Your class can't transmogrify this item")
+classwarning:SetText("你的職業無法使用這個物品塑形")
 classwarning:Show()
 
 -- Ye showing:
-GameTooltip:HookScript("OnTooltipSetItem", function(self)
-    ns:ShowItem(select(2, self:GetItem()), self)
-end)
-GameTooltip:HookScript("OnHide", function()
-    ns:HideItem()
-end)
--- This is mostly world quest rewards:
-GameTooltip.ItemTooltip.Tooltip:HookScript("OnTooltipSetItem", function(self)
-    ns:ShowItem(select(2, self:GetItem()), self)
-end)
-GameTooltip.ItemTooltip.Tooltip:HookScript("OnHide", function()
-    ns:HideItem()
-end)
+do
+    local function GetTooltipItem(tip)
+        if _G.TooltipDataProcessor then
+            return TooltipUtil.GetDisplayedItem(tip)
+        end
+        return tip:GetItem()
+    end
+    local function OnTooltipSetItem(self)
+        ns:ShowItem(select(2, GetTooltipItem(self)), self)
+    end
+    local function OnHide(self)
+        ns:HideItem()
+    end
+
+    local tooltips = {}
+    function ns.RegisterTooltip(tip)
+        if (not tip) or tooltips[tip] then
+            return
+        end
+        if not _G.TooltipDataProcessor then
+            tip:HookScript("OnTooltipSetItem", OnTooltipSetItem)
+        end
+        tip:HookScript("OnHide", OnHide)
+        tooltips[tip] = tip
+    end
+
+    if _G.TooltipDataProcessor then
+        TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
+            if tooltips[self] then
+                ns:ShowItem(select(2, TooltipUtil.GetDisplayedItem(self)), self)
+            end
+        end)
+    end
+
+    ns.RegisterTooltip(GameTooltip)
+    ns.RegisterTooltip(GameTooltip.ItemTooltip.Tooltip)
+end
 
 ----
 
@@ -293,8 +319,18 @@ end)
 
 local hider = CreateFrame("Frame")
 hider:Hide()
+local shouldHide = function(owner)
+    if not owner then return true end
+    if not owner:IsShown() then return true end
+    if _G.TooltipDataProcessor then
+        if not TooltipUtil.GetDisplayedItem(owner) then return true end
+    else
+        if not owner:GetItem() then return true end
+    end
+    return false
+end
 hider:SetScript("OnUpdate", function(self)
-    if (tooltip.owner and not (tooltip.owner:IsShown() and tooltip.owner:GetItem())) or not tooltip.owner then
+    if shouldHide(tooltip.owner) then
         spinner:Hide()
         positioner:Hide()
         tooltip:Hide()
@@ -396,7 +432,8 @@ function ns:ShowItem(link, for_tooltip)
                 model:SetFacing(self.slot_facings[slot] - (db.rotate and 0.5 or 0))
             end
 
-            tooltip:Show()
+            tooltip:SetParent(for_tooltip)
+			tooltip:Show()
             tooltip.owner = for_tooltip
 
             positioner:Show()

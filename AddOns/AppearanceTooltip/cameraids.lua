@@ -16,6 +16,8 @@ local races = {
     [8] = "Troll",
     [6] = "Tauren",
     [9] = "Goblin",
+    [52] = "Dracthyr",
+    [70] = "Dracthyr",
     -- Allied!
     [27] = "Nightborne", -- "Nightborne",
     [28] = "HighmountainTauren", -- "HighmountainTauren",
@@ -23,10 +25,23 @@ local races = {
     [30] = "LightforgedDraenei", -- "LightforgedDraenei",
     [31] = "ZandalariTroll",
     [32] = "KulTiran",
-    [34] = "Dwarf", -- "DarkIronDwarf",
+    [34] = "DarkIronDwarf",
     [35] = "Vulpera",
     [36] = "MagharOrc", -- "MagharOrc",
     [37] = "Mechagnome",
+}
+local fallback_races = {
+    Nightborne = "NightElf", -- Nightborne -> male Blood Elf / female Night Elf
+    MagharOrc = "Orc", -- Maghar -> Orc
+    LightforgedDraenei = "Draenei", -- Lightforged -> Draenei
+    KulTiran = "Human", -- Kul'Tiran -> Human
+    HighmountainTauren = "Tauren", -- Highmountain -> Tauren
+    VoidElf = "BloodElf", -- Void Elf -> Blood Elf
+    Mechagnome = "Gnome", -- Mechagnome -> Gnome
+    Vulpera = "Goblin", -- Vulpera -> Goblin
+    ZandalariTroll = "Troll", -- Zandalari -> Troll
+    DarkIronDwarf = "Dwarf", -- Dark Iron -> Dwarf
+    Dracthyr = {"BloodElf", "Human"}, -- Dracthyr -> male Draenei / female Human
 }
 local genders = {
     [0] = "Male",
@@ -58,26 +73,12 @@ local item_slots = {
     INVTYPE_HOLDABLE = "Offhand",
     INVTYPE_SHIELD = "Shield",
 }
-local subclasses = {
-    [LE_ITEM_WEAPON_DAGGER] = "Dagger",
-    [LE_ITEM_WEAPON_UNARMED] = "FistWeapon",
-    [LE_ITEM_WEAPON_AXE1H] = "1HAxe",
-    [LE_ITEM_WEAPON_MACE1H] = "1HMace",
-    [LE_ITEM_WEAPON_SWORD1H] = "1HSword",
-    [LE_ITEM_WEAPON_AXE2H] = "2HAxe",
-    [LE_ITEM_WEAPON_MACE2H] = "2HMace",
-    [LE_ITEM_WEAPON_SWORD2H] = "2HSword",
-    [LE_ITEM_WEAPON_POLEARM] = "Polearm",
-    [LE_ITEM_WEAPON_STAFF] = "Staff",
-    [LE_ITEM_WEAPON_WARGLAIVE] = "Glaive",
-    [LE_ITEM_WEAPON_BOWS] = "Bow",
-    [LE_ITEM_WEAPON_CROSSBOW] = "Crossbow",
-    [LE_ITEM_WEAPON_GUNS] = "Gun",
-    [LE_ITEM_WEAPON_WAND] = "Wand",
-    -- Fallbacks
-    [LE_ITEM_WEAPON_FISHINGPOLE] = "Staff",
-    [LE_ITEM_WEAPON_GENERIC] = "1HSword",
-}
+local subclasses = {}
+for k,v in pairs(Enum.ItemWeaponSubclass) do
+    subclasses[v] = k
+end
+subclasses[Enum.ItemWeaponSubclass.Fishingpole] = "Staff"
+subclasses[Enum.ItemWeaponSubclass.Generic] = "Sword1H"
 
 local _, _, playerRaceID = UnitRace("player")
 local playerSex
@@ -99,17 +100,30 @@ function ns:GetCameraID(itemLinkOrID, raceID, genderID)
     if item_slots[slot] then
         itemcamera = true
         if item_slots[slot] == true then
-            key = "Weapon-" .. subclasses[subclass]
+            key = "Weapon-" .. subclasses[subclass] or subclasses["Generic"]
         else
             key = "Weapon-" .. item_slots[slot]
         end
     else
         local race = races[raceID or playerRaceID]
         local gender = genderID and genders[genderID] or playerSex
-        if not raceID and race == 'Worgen' and select(2, HasAlternateForm()) then
-            race = 'Human'
+        if not raceID then
+            -- alt form races need special handling:
+            if race == 'Worgen' and select(2, C_PlayerInfo.GetAlternateFormInfo()) then
+                race = 'Human'
+            end
+            if race == 'Dracthyr' and not select(2, C_PlayerInfo.GetAlternateFormInfo()) then
+                gender = 'Male'
+            end
         end
         key = ("%s-%s-%s"):format(race, gender, slot_override[itemid] or slots[slot] or "Default")
+        if not slots_to_cameraids[key] and fallback_races[race] then
+            local fallback = fallback_races[race]
+            if type(fallback) == "table" then
+                fallback = fallback[genderID == 0 and 1 or 2]
+            end
+            key = ("%s-%s-%s"):format(fallback, gender, slot_override[itemid] or slots[slot] or "Default")
+        end
     end
     -- ns.Debug("GetCameraID", key, slots_to_cameraids[key], itemcamera)
     return slots_to_cameraids[key], itemcamera
@@ -118,23 +132,24 @@ end
 -- https://wow.tools/dbc/?dbc=uicamera
 -- Transmog-[race]-[gender]-[slot]
 slots_to_cameraids = {
-    ["Weapon-1HAxe"] = 242,
-    ["Weapon-1HMace"] = 244,
-    ["Weapon-1HSword"] = 238,
-    ["Weapon-2HAxe"] = 243,
-    ["Weapon-2HMace"] = 245,
-    ["Weapon-2HSword"] = 239,
-    ["Weapon-Bow"] = 251,
+    -- the 1h/2h have names altered to fit with the Enum.ItemWeaponSubclass names
+    ["Weapon-Axe1H"] = 242,
+    ["Weapon-Mace1H"] = 244,
+    ["Weapon-Sword1H"] = 238,
+    ["Weapon-Axe2H"] = 243,
+    ["Weapon-Mace2H"] = 245,
+    ["Weapon-Sword2H"] = 239,
+    ["Weapon-Bows"] = 251, -- Bow
     ["Weapon-Crossbow"] = 253,
     ["Weapon-Dagger"] = 241,
-    ["Weapon-FistWeapon"] = 248,
-    ["Weapon-Glaive"] = 624,
+    ["Weapon-Unarmed"] = 248, -- FistWeapon
+    ["Weapon-Warglaive"] = 624, -- Glaive
     ["Weapon-Gun"] = 252,
-    ["Weapon-Offhand"] = 250,
     ["Weapon-Polearm"] = 247,
     ["Weapon-Shield"] = 249,
     ["Weapon-Staff"] = 246,
     ["Weapon-Wand"] = 240,
+    ["Weapon-Offhand"] = 250,
     --
     ["BloodElf-Female-Back"] = 467,
     ["BloodElf-Female-Back-Backpack"] = 1490,
@@ -162,6 +177,19 @@ slots_to_cameraids = {
     ["BloodElf-Male-Tabard"] = 459,
     ["BloodElf-Male-Waist"] = 462,
     ["BloodElf-Male-Wrist"] = 460,
+    ["Dracthyr-Male-Back"] = 1706,
+    ["Dracthyr-Male-Back-Backpack"] = 1699,
+    ["Dracthyr-Male-Feet"] = 1705,
+    ["Dracthyr-Male-Hands"] = 1708,
+    ["Dracthyr-Male-Head"] = 1702,
+    ["Dracthyr-Male-Legs"] = 1701,
+    ["Dracthyr-Male-Robe"] = 1698,
+    ["Dracthyr-Male-Shirt"] = 1709,
+    ["Dracthyr-Male-Shoulder"] = 1704,
+    ["Dracthyr-Male-Shoulder-Alt"] = 1703,
+    ["Dracthyr-Male-Tabard"] = 1707,
+    ["Dracthyr-Male-Waist"] = 1700,
+    ["Dracthyr-Male-Wrist"] = 1711,
     ["Draenei-Female-Back"] = 345,
     ["Draenei-Female-Back-Backpack"] = 1492,
     ["Draenei-Female-Feet"] = 358,

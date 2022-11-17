@@ -3,6 +3,9 @@ local myfullname = GetAddOnMetadata(myname, "Title")
 
 local LAI = LibStub("LibAppropriateItems-1.0")
 
+-- minor compat:
+local IsDressableItem = _G.IsDressableItem or C_Item.IsDressableItemByID
+
 local f = CreateFrame("Frame")
 f:SetScript("OnEvent", function(self, event, ...) if f[event] then return f[event](f, ...) end end)
 local hooks = {}
@@ -192,11 +195,13 @@ end
 -- Encounter Journal frame
 
 f:RegisterAddonHook("Blizzard_EncounterJournal", function()
-    hooksecurefunc("EncounterJournal_SetLootButton", function(item)
-        if item.appearancetooltipoverlay then item.appearancetooltipoverlay:Hide() end
-        if not ns.db.encounterjournal then return end
-        if item.link then
-            UpdateOverlay(item, item.link, "TOPLEFT", 4, -4)
+    hooksecurefunc("EncounterJournal_LootCallback", function(itemID)
+        local scrollBox = EncounterJournal.encounter.info.LootContainer.ScrollBox
+        local button = scrollBox:FindFrameByPredicate(function(button)
+            return button.itemID == itemID
+        end);
+        if button then
+            UpdateOverlay(button, button.link, "TOPLEFT", 5, -4)
         end
     end)
 end)
@@ -206,9 +211,9 @@ end)
 f:RegisterAddonHook("Blizzard_Collections", function()
     local function setCompletion(setID)
         local have, need = 0, 0
-        for _, known in pairs(C_TransmogSets.GetSetSources(setID)) do
+        for _, appearance in pairs(C_TransmogSets.GetSetPrimaryAppearances(setID)) do
             need = need + 1
-            if known then
+            if appearance.collected then
                 have = have + 1
             end
         end
@@ -343,7 +348,7 @@ f:RegisterAddonHook("AdiBags", function()
     local AdiBags = AA and AA:GetAddon("AdiBags", true)
     if not AdiBags then return end
     local filter = AdiBags:RegisterFilter("Appearance Unknown", 86, "ABEvent-1.0")
-    filter.uiName = "Unknown appearance"
+    filter.uiName = "未收藏外觀"
     filter.uiDesc = TRANSMOGRIFY_TOOLTIP_APPEARANCE_UNKNOWN
 
     function filter:OnInitialize()
@@ -369,14 +374,14 @@ f:RegisterAddonHook("AdiBags", function()
             IsDressableItem(slotData.link) and
             ns.CanTransmogItem(slotData.link)
         then
-            return appropriateItem and "Appearance Unknown" or "Appearance Unknown (other class)"
+            return appropriateItem and "未收藏外觀" or "未收藏外觀 (其他職業)"
         end
     end
     function filter:GetOptions()
         return {
             other = {
-                name = "Unlearnable items",
-                desc = "Include items that the current character can't learn",
+                name = "無法使用的物品",
+                desc = "包含當前角色無法使用的物品",
                 type = "toggle",
                 order = 60,
             },
@@ -389,20 +394,16 @@ end)
 
 -- SilverDragon
 f:RegisterAddonHook("SilverDragon", function()
+    if not (SilverDragon and SilverDragon.RegisterCallback) then
+        -- Geniunely unsure what'd cause this, but see #11 on github
+        return
+    end
     SilverDragon.RegisterCallback("AppearanceTooltip", "LootWindowOpened", function(_, window)
+        ns.RegisterTooltip(_G["SilverDragonLootTooltip"])
         if window and window.buttons and #window.buttons then
             for i, button in ipairs(window.buttons) do
                 UpdateOverlay(button, button:GetItem())
             end
         end
     end)
-    local tooltip = _G["SilverDragonLootTooltip"]
-    if tooltip then
-        tooltip:HookScript("OnTooltipSetItem", function(self)
-            ns:ShowItem(select(2, self:GetItem()), self)
-        end)
-        tooltip:HookScript("OnHide", function()
-            ns:HideItem()
-        end)
-    end
 end)
