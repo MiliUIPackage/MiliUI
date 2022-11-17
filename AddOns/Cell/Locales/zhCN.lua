@@ -11,6 +11,7 @@ L["RESET"] = "从过旧的版本更新，需要重置Cell。\n|cff22ff22是|r - 
 -------------------------------------------------
 L["Available slash commands"] = "可用的斜杠命令"
 L["show Cell options frame"] = "打开Cell选项界面"
+L["create a \"Healers\" indicator"] = "创建一个 “Healers” 指示器"
 L["reset Cell position"] = "重置Cell位置"
 L["These \"reset\" commands below affect all your characters in this account"] = "以下这些“重置”命令会影响该账号下的所有角色"
 L["reset all Layouts and Indicators"] = "重置所有布局与指示器"
@@ -573,12 +574,14 @@ L["IDs separated by whitespaces"] = "用空格分隔多个法术ID"
 -------------------------------------------------
 L["About"] = "关于"
 L["Author"] = "作者"
-L["Special Thanks"] = "蟹蟹"
+L["Special Thanks"] = "特别感谢"
+L["Patrons"] = "感谢发电"
 L["Translators"] = "翻译"
 L["Slash Commands"] = "斜杠命令"
 L["Bug Report & Suggestion"] = "问题报告与建议"
 L["Import & Export All Settings"] = "导入导出所有设置"
 L["All Cell settings will be overwritten!"] = "所有 Cell 设置将被覆盖！"
+L["Autorun will be disabled for all code snippets"] = "将禁用所有代码片段的自动运行"
 L["Include Nickname Settings"] = "包含昵称设置"
 
 -------------------------------------------------
@@ -596,6 +599,20 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r139-release (Nov 13, 2022, 23:10 GMT+8)</h1>
+    <p>* 更新唤魔师法术。</p>
+    <p>* 更新斜杠命令。</p>
+    <p>* 更新特别关注框体。</p>
+    <p>* 更新繁中与韩文。</p>
+    <p>* 修复减益的鼠标提示。</p>
+    <br/>
+
+    <h1>r138-release (Nov 12, 2022, 04:56 GMT+8)</h1>
+    <p>* 更新导入导出。</p>
+    <p>* 将“单位间距”分为“单位间距 X”与“单位间距 Y”。</p>
+    <p>* 修不完的bug。</p>
+    <br/>
+
     <h1>r137-release (Nov 4, 2022, 18:07 GMT+8)</h1>
     <p>* 为团队宠物与分离的NPC框体添加了移动按钮。</p>
     <p>* 更新繁中。</p>

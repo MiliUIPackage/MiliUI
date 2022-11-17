@@ -3,6 +3,27 @@ local L = Cell.L
 local F = Cell.funcs
 
 Cell.vars.playerFaction = UnitFactionGroup("player")
+
+local classToID = {
+    WARRIOR = 1,
+    PALADIN = 2,
+    HUNTER = 3,
+    ROGUE = 4,
+    PRIEST = 5,
+    DEATHKNIGHT = 6,
+    SHAMAN = 7,
+    MAGE = 8,
+    WARLOCK = 9,
+    MONK = 10,
+    DRUID = 11,
+    DEMONHUNTER = 12,
+    EVOKER = 13,
+}
+
+function F:GetClassID(class)
+    return classToID[class]
+end
+
 -------------------------------------------------
 -- game version
 -------------------------------------------------
@@ -264,8 +285,8 @@ end
 
 if Cell.isAsian then
     function F:FormatNumber(n)
-        if abs(n) >= 100002000 then
-            return string.format("%.3f"..symbol_1B, n/100002000)
+        if abs(n) >= 100000000 then
+            return string.format("%.3f"..symbol_1B, n/100000000)
         elseif abs(n) >= 10000 then
             return string.format("%.2f"..symbol_10K, n/10000)
         elseif abs(n) >= 1000 then
@@ -276,15 +297,23 @@ if Cell.isAsian then
     end
 else
     function F:FormatNumber(n)
-        if abs(n) >= 1000020000 then
-            return string.format("%.3fB", n/1000020000)
-        elseif abs(n) >= 1000020 then
-            return string.format("%.2fM", n/1000020)
+        if abs(n) >= 1000000000 then
+            return string.format("%.3fB", n/1000000000)
+        elseif abs(n) >= 1000000 then
+            return string.format("%.2fM", n/1000000)
         elseif abs(n) >= 1000 then
             return string.format("%.1fK", n/1000)
         else
             return n
         end
+    end
+end
+
+function F:KeepDecimals(num, n)
+    if num < 0 then
+        return -(abs(num) - abs(num) % 0.1 ^ n)
+    else
+        return num - num % 0.1 ^ n
     end
 end
 
@@ -505,6 +534,7 @@ function F:ConvertTable(t)
     return temp
 end
 
+local GetSpellInfo = GetSpellInfo
 function F:ConvertAurasTable(t, convertIdToName)
     if not convertIdToName then
         return F:ConvertTable(t)
@@ -533,6 +563,21 @@ function F:CheckTableRemoved(previous, after)
         end
     end
     return ret
+end
+
+function F:FilterInvalidSpells(t)
+    if not t then return end
+    for i = #t, 1, -1 do
+        local spellId
+        if type(t[i]) == "number" then
+            spellId = t[i]
+        else -- consumables
+            spellId = t[i][1]
+        end
+        if not GetSpellInfo(spellId) then
+            tremove(t, i)
+        end
+    end
 end
 
 -------------------------------------------------
@@ -954,45 +999,41 @@ function F:UnitInGroup(unit, ignorePets)
 end
 
 function F:GetTargetUnitID()
-    if IsInGroup() then
-        if not F:UnitInGroup("target") then return end
+    if UnitIsUnit("target", "player") then
+        return "player"
+    elseif UnitIsUnit("target", "pet") then
+        return "pet"
+    end
 
-        if UnitIsPlayer("target") then
-            for unit in F:IterateGroupMembers() do
-                if UnitIsUnit("target", unit) then
-                    return unit
-                end
-            end
-        else
-            for unit in F:IterateGroupPets() do
-                if UnitIsUnit("target", unit) then
-                    return unit
-                end
+    if not F:UnitInGroup("target") then return end
+
+    if UnitIsPlayer("target") then
+        for unit in F:IterateGroupMembers() do
+            if UnitIsUnit("target", unit) then
+                return unit
             end
         end
     else
-        if UnitIsUnit("target", "player") then
-            return "player"
-        elseif UnitIsUnit("target", "pet") then
-            return "pet"
+        for unit in F:IterateGroupPets() do
+            if UnitIsUnit("target", unit) then
+                return unit
+            end
         end
     end
 end
 
 function F:GetTargetPetID()
-    if IsInGroup() then
-        if not F:UnitInGroup("target") then return end
+    if UnitIsUnit("target", "player") then
+        return "pet"
+    end
 
-        if UnitIsPlayer("target") then
-            for unit in F:IterateGroupMembers() do
-                if UnitIsUnit("target", unit) then
-                    return F:GetPetUnit(unit)
-                end
+    if not F:UnitInGroup("target") then return end
+
+    if UnitIsPlayer("target") then
+        for unit in F:IterateGroupMembers() do
+            if UnitIsUnit("target", unit) then
+                return F:GetPetUnit(unit)
             end
-        end
-    else
-        if UnitIsUnit("target", "player") then
-            return "pet"
         end
     end
 end
@@ -1330,7 +1371,7 @@ end
 if Cell.isRetail then
     function F:FindDebuffByIds(unit, spellIds)
         local debuffs = {}
-        AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+        AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
             if spellIds[spellId] then
                 debuffs[spellId] = debuffType
             end
@@ -1340,7 +1381,7 @@ if Cell.isRetail then
 
     function F:FindAuraByDebuffTypes(unit, types)
         local debuffs = {}
-        AuraUtil.ForEachAura(unit, "HARMFUL", 10, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
+        AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
             if types == "all" or types[debuffType] then
                 debuffs[spellId] = debuffType
             end

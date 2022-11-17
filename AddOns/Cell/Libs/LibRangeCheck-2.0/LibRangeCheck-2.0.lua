@@ -41,7 +41,7 @@ License: Public Domain
 -- @class file
 -- @name LibRangeCheck-2.0
 local MAJOR_VERSION = "LibRangeCheck-2.0"
-local MINOR_VERSION = tonumber(("$Revision: 215 $"):match("%d+")) + 100002
+local MINOR_VERSION = tonumber(("$Revision: 215 $"):match("%d+")) + 100000
 
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
 if not lib then return end

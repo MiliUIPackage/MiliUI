@@ -45,7 +45,7 @@ local function CreatePreviewButton()
         previewButtonBG:SetPoint("TOPLEFT", indicatorsTab, "TOPRIGHT", 5, -1)
 
         local x = 10
-        local y = Round(-60 / CellDB["indicatorPreviewScale"])
+        local y = Round(-70 / CellDB["indicatorPreviewScale"])
 
         if (previewButton.width * CellDB["indicatorPreviewScale"]) <= 105 then
             x = Round((115-previewButton.width)/2)+5
@@ -74,7 +74,7 @@ local function CreatePreviewButton()
     previewAlphaSlider.highText:Hide()
 
     -- preview scale
-    previewScaleSlider = Cell:CreateSlider(L["Scale"], previewButtonBG, 1, 3, 50, 1, nil, function(value)
+    previewScaleSlider = Cell:CreateSlider(L["Scale"], previewButtonBG, 1, 5, 50, 1, nil, function(value)
         CellDB["indicatorPreviewScale"] = value
         previewButton:SetScale(value)
         previewButton:UpdatePoint()
@@ -1660,6 +1660,22 @@ local function ShowTab(tab)
     end
 end
 Cell:RegisterCallback("ShowOptionsTab", "IndicatorsTab_ShowTab", ShowTab)
+
+function F:ReloadIndicatorList()
+    if not init then return end
+    if indicatorsTab:IsShown() then
+        LoadIndicatorList()
+        listFrame.scrollFrame:ScrollToBottom()
+        listButtons[#listButtons]:Click()
+    else
+        indicatorsTab:SetScript("OnShow", function()
+            indicatorsTab:SetScript("OnShow", nil)
+            UpdateIndicators()
+            LoadIndicatorList()
+            listButtons[1]:Click()
+        end)
+    end
+end
 
 local function UpdateLayout()
     if previewButton and currentLayout == Cell.vars.currentLayout then

@@ -14,12 +14,10 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 99
-Cell.MIN_LAYOUTS_VERSION = 134
-Cell.MIN_INDICATORS_VERSION = 132
-Cell.MIN_DEBUFFS_VERSION = 99
-
-CELL_IMPORT_EXPORT_PREFIX = "CELL_WRATH"
+Cell.MIN_VERSION = 138
+Cell.MIN_LAYOUTS_VERSION = 138
+Cell.MIN_INDICATORS_VERSION = 138
+Cell.MIN_DEBUFFS_VERSION = 138
 
 --[==[@debug@
 -- local debugMode = true
@@ -584,6 +582,7 @@ function eventFrame:PLAYER_LOGIN()
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
     eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+    eventFrame:RegisterEvent("UI_SCALE_CHANGED")
 
     Cell.vars.playerNameShort = GetUnitName("player")
     Cell.vars.playerNameFull = F:UnitFullName("player")
@@ -618,6 +617,7 @@ function eventFrame:PLAYER_LOGIN()
     -- update texture and font
     Cell:Fire("UpdateAppearance")
     Cell:UpdateOptionsFont(CellDB["appearance"]["optionsFontSizeOffset"], CellDB["appearance"]["useGameFont"])
+    Cell:UpdateAboutFont(CellDB["appearance"]["optionsFontSizeOffset"])
     -- update tools
     Cell:Fire("UpdateTools")
     -- update glows
@@ -633,6 +633,11 @@ function eventFrame:PLAYER_LOGIN()
     Cell:Fire("UpdatePixelPerfect")
     -- update CLEU
     Cell:Fire("UpdateCLEU")
+end
+
+function eventFrame:UI_SCALE_CHANGED()
+    Cell:Fire("UpdatePixelPerfect")
+    Cell:Fire("UpdateAppearance", "scale")
 end
 
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
@@ -668,6 +673,9 @@ function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
     if command == "options" or command == "opt" then
         F:ShowOptionsFrame()
+
+    elseif command == "healers" then
+        F:FirstRun()
 
     elseif command == "reset" then
         if rest == "position" then
@@ -731,6 +739,7 @@ function SlashCmdList.CELL(msg, editbox)
     else
         F:Print(L["Available slash commands"]..":\n"..
             "|cFFFFB5C5/cell options|r, |cFFFFB5C5/cell opt|r: "..L["show Cell options frame"]..".\n"..
+            "|cFFFFB5C5/cell healers|r: "..L["create a \"Healers\" indicator"]..".\n"..
             "|cFFFF7777"..L["These \"reset\" commands below affect all your characters in this account"]..".|r\n"..
             "|cFFFFB5C5/cell reset position|r: "..L["reset Cell position"]..".\n"..
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..

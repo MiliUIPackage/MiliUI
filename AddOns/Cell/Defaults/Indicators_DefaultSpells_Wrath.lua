@@ -25,7 +25,7 @@ end
 -- bigDebuffs
 -------------------------------------------------
 local bigDebuffs = {
-    
+    46392, -- 专注打击
 }
 
 function I:GetDefaultBigDebuffs()
@@ -303,6 +303,7 @@ function F:FirstRun()
         })
         Cell:Fire("UpdateIndicators", Cell.vars.currentLayout, indicatorName, "create", currentLayoutTable["indicators"][last+1])
         CellDB["firstRun"] = false
+        F:ReloadIndicatorList()
     end, function()
         CellDB["firstRun"] = false
     end)

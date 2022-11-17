@@ -4,7 +4,7 @@
 ## Author: deezo
 ## X-Category: Library
 ## X-License: BSD
-## Version: 357b944
+## Version: e685cd9
 ## OptionalDeps: Masque
 
 LibStub\LibStub.lua

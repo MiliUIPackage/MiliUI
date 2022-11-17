@@ -2,7 +2,7 @@
 -- File: Layout_Defaults_Wrath.lua
 -- Author: enderneko (enderneko-dev@outlook.com)
 -- File Created: 2022/08/21 04:06:04 +0800
--- Last Modified: 2022/10/30 06:22:20 +0800
+-- Last Modified: 2022/11/13 05:50:23 +0800
 --]]
 
 local addonName, Cell = ...
@@ -42,7 +42,8 @@ Cell.defaults.layout = {
     ["size"] = {66, 46},
     ["position"] = {},
     ["powerSize"] = 2,
-    ["spacing"] = 3,
+    ["spacingX"] = 3,
+    ["spacingY"] = 3,
     ["orientation"] = "vertical",
     ["barOrientation"] = {"horizontal", false},
     ["anchor"] = "TOPLEFT",
@@ -220,7 +221,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "aoeHealing",
             ["type"] = "built-in",
             ["enabled"] = true,
-            ["height"] = 15,
+            ["height"] = 10,
             ["color"] = {1, 1, 0},
         }, -- 15
         {

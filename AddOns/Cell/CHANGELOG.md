@@ -1,9 +1,14 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r136-release...51e86c55029f4e43512f47253392ce1386135d1e)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r138-release...7a05452b635055c8b9796250ffbe720376f24a58)
 
-- Fix custom indicator on wotlk
-- Add a mover to raid pets
-- Add a mover button to npc frame
-- Remove Weakened Soul check
-- Update zhTW
-- Update spotlight preview
-- Update snippets
+- Fix aura tooltips
+- Update debuffBlacklist
+- Update evoker spells
+- Update slash commands
+- Update buff tracker
+- Update phaseReason color
+- Update spotlight related functions
+- Update translators
+- Update zhTW koKR
+- Update indicator preview
+- Update patrons
+- [snippet] RepointPartyAndArenaPets
