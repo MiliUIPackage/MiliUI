@@ -1,14 +1,14 @@
-# [1.6.1](https://github.com/sragia/Exlist/tree/1.6.1) (2022-10-28)
+# [1.6.4](https://github.com/sragia/Exlist/tree/1.6.4) (2022-11-16)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.0...1.6.1)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.3...1.6.4)
 
 ## Highlights
 
- Reputation fixes and TOC update 
+ Small evoker spec icons 
 
 ## Commits
 
 Aigars Bedeicis (1):
 
-- Fix non-friend reputations and update toc number
+- Add evoker spec icons
 

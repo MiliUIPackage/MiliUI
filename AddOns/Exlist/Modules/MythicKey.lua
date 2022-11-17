@@ -4,13 +4,11 @@ local C_ChallengeMode = C_ChallengeMode
 local C_MythicPlus = C_MythicPlus
 local NUM_BAG_SLOTS = NUM_BAG_SLOTS
 local UnitName, GetRealmName = UnitName, GetRealmName
-local GetContainerNumSlots, GetContainerItemLink = GetContainerNumSlots, GetContainerItemLink
 local ItemRefTooltip, UIParent, ShowUIPanel = ItemRefTooltip, UIParent, ShowUIPanel
 local string, strsplit, time, tonumber = string, strsplit, time, tonumber
 local WrapTextInColorCode = WrapTextInColorCode
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
-local GetContainerItemID = GetContainerItemID
 local ChatEdit_GetActiveWindow, ChatEdit_InsertLink, ChatFrame_OpenChat =
    ChatEdit_GetActiveWindow,
    ChatEdit_InsertLink,
@@ -26,9 +24,9 @@ local affixThreshold = {2, 4, 7, 10}
 
 local function getTimewornKey()
    for bag = 0, 4 do
-      for slot = 1, GetContainerNumSlots(bag) do
-         if (GetContainerItemID(bag, slot) == 187786) then
-            local itemLink = GetContainerItemLink(bag, slot);
+      for slot = 1, C_Container.GetContainerNumSlots(bag) do
+         if (C_Container.GetContainerItemID(bag, slot) == 187786) then
+            local itemLink = C_Container.GetContainerItemLink(bag, slot);
             local _, _, mapId, mapLevel = strsplit(':', itemLink)
 
             return {

@@ -50,7 +50,9 @@ Exlist.iconPaths = {
    [71] = [[Interface\AddOns\Exlist\Media\Icons\WARRIORArms.tga]],
    [72] = [[Interface\AddOns\Exlist\Media\Icons\WARRIORFury.tga]],
    [73] = [[Interface\AddOns\Exlist\Media\Icons\WARRIORProtection.tga]],
-   [0] = [[Interface\AddOns\Exlist\Media\Icons\SpecNone.tga]]
+   [0] = [[Interface\AddOns\Exlist\Media\Icons\SpecNone.tga]],
+   [1467] = [[Interface\AddOns\Exlist\Media\Icons\EVOKERdevastation.tga]],
+   [1468] = [[Interface\AddOns\Exlist\Media\Icons\EVOKERpreservation.tga]]
 }
 
 Exlist.ShortenedMPlus = {
