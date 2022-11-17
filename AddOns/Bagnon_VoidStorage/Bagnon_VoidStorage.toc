@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 100002
 ## Title: |TInterface/Addons/BagBrother/Art/Bagnon-Small:16:16|t Bagnon |cffffffffVoid Storage|r
 ## Author: Jaliborc (João Cardoso)
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合-虛空銀行

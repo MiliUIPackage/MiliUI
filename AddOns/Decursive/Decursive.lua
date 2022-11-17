@@ -803,14 +803,14 @@ do
         local start = GetTime();
         local strings = {"string1", "string2", "strring3"};
         local teststring = "unitraid5"
-        for i =1, 1000000 do
+        for i =1, 1000020 do
             teststring = strings[i%3 + 1];
             test = "test_"..teststring;
         end
         D:Debug("pass (\"\".. completed in:", GetTime() - start, test);
 
         start = GetTime();
-        for i =1, 1000000 do
+        for i =1, 1000020 do
             local t = strings[i%3 + 1];
             test = ("test_%s"):format(teststring);
         end

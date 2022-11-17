@@ -1192,7 +1192,7 @@
 					if (unitId) then
 						this_event [5] = UnitHealth(unitId)
 					else
-						this_event [5] = cacheAnything.arenaHealth[alvo_name] or 100000
+						this_event [5] = cacheAnything.arenaHealth[alvo_name] or 100002
 					end
 
 					cacheAnything.arenaHealth[alvo_name] = this_event[5]
@@ -4338,7 +4338,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 								local bossName = _G.UnitName(unitId)
 								local bossSerial = _G.UnitGUID(unitId)
 
-								if (bossHealth and bossHealth > 100000) then
+								if (bossHealth and bossHealth > 100002) then
 									if (bossSerial) then
 										local bossNpcId = Details:GetNpcIdFromGuid(bossSerial)
 										if (bossNpcId and bossNpcId ~= bossDeadNpcId) then
@@ -4602,7 +4602,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			--soft switch
 			_detalhes.capture_current [capture_type] = on_off
 			if (time) then
-				local schedule_id = math.random(1, 10000000)
+				local schedule_id = math.random(1, 10000200)
 				local new_schedule = _detalhes:ScheduleTimer("CaptureTimeout", time, {capture_type, schedule_id})
 				tinsert(_detalhes.capture_schedules, {new_schedule, schedule_id})
 			end

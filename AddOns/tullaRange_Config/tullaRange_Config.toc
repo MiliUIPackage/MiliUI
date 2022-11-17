@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 100002
 ## Title: tullaRange Config
 ## Notes: GUI based configuration for tullaRange
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷列著色 (設置)

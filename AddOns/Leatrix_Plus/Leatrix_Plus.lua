@@ -27,7 +27,7 @@
 	-- Check Wow version is valid
 	do
 		local gameversion, gamebuild, gamedate, gametocversion = GetBuildInfo()
-		if gametocversion and gametocversion < 100000 then
+		if gametocversion and gametocversion < 100002 then
 			-- Game client is Wow Classic
 			C_Timer.After(2, function()
 				print(L["LEATRIX PLUS: WRONG VERSION INSTALLED!"])
@@ -13522,7 +13522,7 @@
 							if endSound < 1 then endSound = 1 elseif endSound >= 5000000 then endSound = 5000000 end
 							endBox:SetText(endSound)
 						else
-							endSound = 100000
+							endSound = 100002
 							endBox:SetText(endSound)
 						end
 					end)
@@ -13587,10 +13587,10 @@
 						return
 					end)
 					-- Step buttons
-					frame.millionBtn = LeaPlusLC:CreateButton("SoundMillionButton", frame, "1000000", "TOPLEFT", 26, -122, 0, 25, true, "Set the editbox step value to 1000000.")
+					frame.millionBtn = LeaPlusLC:CreateButton("SoundMillionButton", frame, "1000020", "TOPLEFT", 26, -122, 0, 25, true, "Set the editbox step value to 1000020.")
 					frame.millionBtn:SetScale(0.5)
 
-					frame.hundredThousandBtn = LeaPlusLC:CreateButton("SoundHundredThousandButton", frame, "100000", "TOPLEFT", 16, -112, 0, 25, true, "Set the editbox step value to 100000.")
+					frame.hundredThousandBtn = LeaPlusLC:CreateButton("SoundHundredThousandButton", frame, "100002", "TOPLEFT", 16, -112, 0, 25, true, "Set the editbox step value to 100002.")
 					frame.hundredThousandBtn:ClearAllPoints()
 					frame.hundredThousandBtn:SetPoint("LEFT", frame.millionBtn, "RIGHT", 10, 0)
 					frame.hundredThousandBtn:SetScale(0.5)
@@ -13630,19 +13630,19 @@
 						frame.oneBtn:SetAlpha(0.3)
 					end
 
-					LeaPlusLC.SoundByte = 1000000
+					LeaPlusLC.SoundByte = 1000020
 					DimAllBoxes()
 					frame.millionBtn:SetAlpha(1)
 
 					-- Step button handlers
 					frame.millionBtn:SetScript("OnClick", function()
-						LeaPlusLC.SoundByte = 1000000
+						LeaPlusLC.SoundByte = 1000020
 						DimAllBoxes()
 						frame.millionBtn:SetAlpha(1)
 					end)
 
 					frame.hundredThousandBtn:SetScript("OnClick", function()
-						LeaPlusLC.SoundByte = 100000
+						LeaPlusLC.SoundByte = 100002
 						DimAllBoxes()
 						frame.hundredThousandBtn:SetAlpha(1)
 					end)

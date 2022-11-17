@@ -3695,7 +3695,7 @@ local function OnEvent(this, event, arg1)
 		InitSavedVariables()
 
 		-- Add a button to launch MSBT's options from the Blizzard interface options.
-		if tocversion < 100000 then
+		if tocversion < 100002 then
 			SetupBlizzardOptions()
 		end
 

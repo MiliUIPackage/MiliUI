@@ -3644,7 +3644,7 @@ end
 
 local uniqueId = 0;
 function WeakAuras.GetUniqueCloneId()
-  uniqueId = (uniqueId + 1) % 1000000;
+  uniqueId = (uniqueId + 1) % 1000020;
   return uniqueId;
 end
 

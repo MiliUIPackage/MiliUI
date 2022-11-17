@@ -465,7 +465,7 @@ do
                     afterUpdate()
                 end,
                 min = 0,
-                max = 100000,
+                max = 100002,
                 step = 1,
                 name = Loc ["STRING_OPTIONS_DEATHLOG_MINHEALING"],
                 desc = Loc ["STRING_OPTIONS_DEATHLOG_MINHEALING_DESC"],

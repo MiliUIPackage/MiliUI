@@ -3,7 +3,7 @@
 ## Notes: An options menu for Bagnon
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合設定介面
 ## Notes-zhTW: Bagnon Config|n背包整合設定介面。
-## Interface: 100000
+## Interface: 100002
 ## Dependencies: Bagnon
 ## LoadOnDemand: 1
 

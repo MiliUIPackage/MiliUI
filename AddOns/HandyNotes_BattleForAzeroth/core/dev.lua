@@ -64,7 +64,7 @@ local function BootstrapDevelopmentEnvironment()
     local lastCheck = GetTime()
     local quests = {}
     local changed = {}
-    local max_quest_id = 100000
+    local max_quest_id = 100002
 
     if ns:GetOpt('show_debug_quest') then
         C_Timer.After(2, function()

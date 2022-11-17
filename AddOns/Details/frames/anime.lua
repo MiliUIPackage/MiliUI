@@ -84,7 +84,7 @@ end
 
 function _detalhes.PlayBestDamageOnGuild (damage)
 
-	damage = damage or 100000000
+	damage = damage or 100002000
 
 	--create the main frame
 	local DetailsNewDamageRecord = CreateFrame("frame", "DetailsNewDamageRecordAnimationFrame", UIParent)
@@ -133,7 +133,7 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	BigFlash:SetPoint("center", DetailsNewDamageRecord, "center", -2, 2)
 	BigFlash:SetSize(314, 100)
 	BigFlash:SetDesaturated(false)
-	BigFlash:SetTexCoord(0.0010000000149012, 0.77400001525879, 0.0010000000149012, 0.65800003051758)
+	BigFlash:SetTexCoord(0.0010000200149012, 0.77400001525879, 0.0010000200149012, 0.65800003051758)
 	if (0 ~= 0) then
 	    BigFlash:SetRotation (0)
 	end
@@ -168,7 +168,7 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	FlashSwipe:SetPoint("center", DetailsNewDamageRecord, "center", -99, 0)
 	FlashSwipe:SetSize(100, 57)
 	FlashSwipe:SetDesaturated(false)
-	FlashSwipe:SetTexCoord(0.78199996948242, 0.91900001525879, 0.0010000000149012, 0.2760000038147)
+	FlashSwipe:SetTexCoord(0.78199996948242, 0.91900001525879, 0.0010000200149012, 0.2760000038147)
 	if (0 ~= 0) then
 	    FlashSwipe:SetRotation (0)
 	end
@@ -322,7 +322,7 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	NewDamageRecord.alpha:SetTarget (NewDamageRecord)
 	NewDamageRecord.alpha:SetOrder (3)
 	NewDamageRecord.alpha:SetDuration(1)
-	NewDamageRecord.alpha:SetStartDelay (0.10000000149012)
+	NewDamageRecord.alpha:SetStartDelay (0.10000200149012)
 	NewDamageRecord.alpha:SetEndDelay (0)
 	NewDamageRecord.alpha:SetFromAlpha (1)
 	NewDamageRecord.alpha:SetToAlpha (0)

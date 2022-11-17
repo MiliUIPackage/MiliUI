@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 100002
 ## Title: !!NoTaint2
 ## Notes: Reduce the chance that GREAT EditMode being tainted.
 ## Title-zhCN: |cff880303[爱不易]|r !!NoTaint2

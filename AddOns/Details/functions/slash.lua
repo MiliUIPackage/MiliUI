@@ -387,8 +387,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 		
 		local combat = _detalhes.combate:NovaTabela (true, _detalhes.tabela_overall, 1)
 		local self = combat[1]:PegarCombatente (UnitGUID("player"), UnitName ("player"), 1297, true)
-		self.total = 100000
-		self.total_without_pet = 100000
+		self.total = 100002
+		self.total_without_pet = 100002
 		
 		if (not _detalhes.um___) then
 			_detalhes.um___ = 0
@@ -425,8 +425,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 		combat.start_time = GetTime()-30
 		combat.end_time = GetTime()
 		
-		combat.totals_grupo [1] = 100000
-		combat.totals [1] = 100000
+		combat.totals_grupo [1] = 100002
+		combat.totals [1] = 100002
 	
 		--combat.instance_type = "raid"
 		--combat.is_trash = true

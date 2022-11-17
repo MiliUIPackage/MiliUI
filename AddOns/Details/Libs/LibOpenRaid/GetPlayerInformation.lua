@@ -27,12 +27,12 @@ local isTimewalkWoW = function()
 end
 
 local IsDragonflight = function()
-	return select(4, GetBuildInfo()) >= 100000
+	return select(4, GetBuildInfo()) >= 100002
 end
 
 local IsShadowlands = function()
     local versionString, revision, launchDate, gameVersion = GetBuildInfo()
-    if (gameVersion >= 90000 and gameVersion < 100000) then
+    if (gameVersion >= 90000 and gameVersion < 100002) then
         return true
     end
 end
@@ -69,11 +69,11 @@ function openRaidLib.GetTalentVersion()
         return CONST_TALENT_VERSION_CLASSIC
     end
 
-    if (buildInfo >= 70000 and buildInfo <= 100000) then --legion bfa shadowlands
+    if (buildInfo >= 70000 and buildInfo <= 100002) then --legion bfa shadowlands
         return CONST_TALENT_VERSION_LEGION
     end
 
-    if (buildInfo >= 100000 and buildInfo <= 200000) then --dragonflight
+    if (buildInfo >= 100002 and buildInfo <= 200000) then --dragonflight
         return CONST_TALENT_VERSION_DRAGONFLIGHT
     end
 end

@@ -57,7 +57,7 @@ BUGS:
 local versionString, revision, launchDate, gameVersion = GetBuildInfo()
 
 local isExpansion_Dragonflight = function()
-	if (gameVersion >= 100000) then
+	if (gameVersion >= 100002) then
 		return true
 	end
 end

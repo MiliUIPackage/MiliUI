@@ -40,7 +40,7 @@ local COPPER = string_gsub(COPPER_AMOUNT, "%%d *", "")
 -- Localized name for item types.
 local ITEM_TYPE_QUEST
 
-if tocversion >= 100000 then
+if tocversion >= 100002 then
 	ITEM_TYPE_QUEST = _G.GetItemClassInfo(Enum.ItemClass.Questitem)
 else
 	ITEM_TYPE_QUEST = _G.GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM)

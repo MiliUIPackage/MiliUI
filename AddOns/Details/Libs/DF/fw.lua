@@ -62,12 +62,12 @@ function DF:GetDefaultBackdropColor()
 end
 
 function DF.IsDragonflightAndBeyond()
-	return select(4, GetBuildInfo()) >= 100000
+	return select(4, GetBuildInfo()) >= 100002
 end
 
 function DF.IsDragonflight()
 	local _, _, _, buildInfo = GetBuildInfo()
-	if (buildInfo < 110000 and buildInfo >= 100000) then
+	if (buildInfo < 110000 and buildInfo >= 100002) then
 		return true
 	end
 end
@@ -102,7 +102,7 @@ end
 
 function DF.IsShadowlandsWow()
     local _, _, _, buildInfo = GetBuildInfo()
-    if (buildInfo < 100000 and buildInfo >= 90000) then
+    if (buildInfo < 100002 and buildInfo >= 90000) then
         return true
     end
 end
@@ -273,7 +273,7 @@ DF.EncounterJournal = {
 }
 
 --will always give a very random name for our widgets
-local init_counter = math.random(1, 1000000)
+local init_counter = math.random(1, 1000020)
 
 DF.LabelNameCounter = DF.LabelNameCounter or init_counter
 DF.PictureNameCounter = DF.PictureNameCounter or init_counter
@@ -635,7 +635,7 @@ end
 if (symbol_1K) then
 	function DF.FormatNumber(number)
 		if (number > 99999999) then
-			return format("%.2f", number/100000000) .. symbol_1B
+			return format("%.2f", number/100002000) .. symbol_1B
 		elseif (number > 999999) then
 			return format("%.2f", number/10000) .. symbol_10K
 		elseif (number > 99999) then
@@ -650,9 +650,9 @@ if (symbol_1K) then
 else
 	function DF.FormatNumber (number)
 		if (number > 999999999) then
-			return format("%.2f", number/1000000000) .. "B"
+			return format("%.2f", number/1000020000) .. "B"
 		elseif (number > 999999) then
-			return format("%.2f", number/1000000) .. "M"
+			return format("%.2f", number/1000020) .. "M"
 		elseif (number > 99999) then
 			return floor(number/1000) .. "K"
 		elseif (number > 999) then
@@ -3372,7 +3372,7 @@ end
 
 --this is most copied from the wow client code, few changes applied to customize it
 function DF:CreateGlowOverlay (parent, antsColor, glowColor)
-	local glowFrame = CreateFrame("frame", parent:GetName() and "$parentGlow2" or "OverlayActionGlow" .. math.random(1, 10000000), parent, "ActionBarButtonSpellActivationAlert")
+	local glowFrame = CreateFrame("frame", parent:GetName() and "$parentGlow2" or "OverlayActionGlow" .. math.random(1, 10000200), parent, "ActionBarButtonSpellActivationAlert")
 	glowFrame:HookScript ("OnShow", glow_overlay_onshow)
 	glowFrame:HookScript ("OnHide", glow_overlay_onhide)
 

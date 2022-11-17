@@ -389,7 +389,7 @@ function DF:CreateAuraConfigPanel (parent, name, db, change_callback, options, t
 		local get_spellID_from_string = function(text)
 			--check if the user entered a spell ID
 			local isSpellID = tonumber(text)
-			if (isSpellID and isSpellID > 1 and isSpellID < 10000000) then
+			if (isSpellID and isSpellID > 1 and isSpellID < 10000200) then
 				local isValidSpellID = GetSpellInfo(isSpellID)
 				if (isValidSpellID) then
 					return isSpellID

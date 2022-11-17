@@ -8628,7 +8628,7 @@ detailsFramework.BorderFunctions = {
 
 -- ~borderframe
 function detailsFramework:CreateBorderFrame (parent, name)
-	local parentName = name or "DetailsFrameworkBorderFrame" .. tostring(math.random(1, 100000000))
+	local parentName = name or "DetailsFrameworkBorderFrame" .. tostring(math.random(1, 100002000))
 
 	local f = CreateFrame("frame", parentName, parent, "BackdropTemplate")
 	f:SetFrameLevel(f:GetFrameLevel()+1)
@@ -9129,7 +9129,7 @@ end
 -- ~unitframe
 local globalBaseFrameLevel = 1 -- to be increased + used across each new plate
 function detailsFramework:CreateUnitFrame(parent, name, unitFrameSettingsOverride, healthBarSettingsOverride, castBarSettingsOverride, powerBarSettingsOverride)
-	local parentName = name or ("DetailsFrameworkUnitFrame" .. tostring(math.random(1, 100000000)))
+	local parentName = name or ("DetailsFrameworkUnitFrame" .. tostring(math.random(1, 100002000)))
 
 	--create the main unit frame
 	local mewUnitFrame = CreateFrame("button", parentName, parent, "BackdropTemplate")
@@ -10103,7 +10103,7 @@ local listbox_options = {
 function detailsFramework:CreateListBox(parent, name, data, options, headerTable, headerOptions)
 
 	options = options or {}
-	name = name or "ListboxUnamed_" .. (math.random(100000, 1000000))
+	name = name or "ListboxUnamed_" .. (math.random(100002, 1000020))
 
 	--canvas
 	local frameCanvas = CreateFrame("scrollframe", name, parent, "BackdropTemplate")

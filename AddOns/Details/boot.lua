@@ -1101,7 +1101,7 @@ do
 
 end
 
-if (select(4, GetBuildInfo()) >= 100000) then
+if (select(4, GetBuildInfo()) >= 100002) then
 	local f = CreateFrame("frame")
 	f:RegisterEvent("ADDON_ACTION_FORBIDDEN")
 	f:SetScript("OnEvent", function()

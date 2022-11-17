@@ -129,7 +129,7 @@ resetbutton2:SetScript("OnClick", function()
 end)
 
 local minWidth, minHeight, maxWidth, maxHeight
-if DBM:GetTOC() < 100000 then -- Is live
+if DBM:GetTOC() < 100002 then -- Is live
 	minWidth, minHeight = optionsFrame:GetMinResize()
 	maxWidth, maxHeight = optionsFrame:GetMaxResize()
 else -- Is DragonFlight

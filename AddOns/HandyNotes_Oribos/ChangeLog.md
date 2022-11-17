@@ -10,7 +10,7 @@
 * Fixed opening the settings panel (Dragonflight)
 * Updated config layout (Dragonflight)
 * Update localization
-* Bump .toc to 100000
+* Bump .toc to 100002
 
 ##### NOTE: If you liked this addon, you might want to check out my new addon for the Dragonflight's capital city [Valdrakken](https://www.curseforge.com/wow/addons/handynotes-valdrakken)
 

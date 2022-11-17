@@ -21,7 +21,7 @@ local AddOn, Core = ...
 
 -- Locale
 local L = Core.Locale
-local API_VERSION = 100000
+local API_VERSION = 100002
 
 -- Skin Info
 local Version = GetAddOnMetadata(AddOn, "Version")

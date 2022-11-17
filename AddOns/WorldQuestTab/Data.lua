@@ -998,17 +998,17 @@ _V["QUESTS_NOT_COUNTING"] = {
 	}
 
 _V["NUMBER_ABBREVIATIONS_ASIAN"] = {
-		{["value"] = 1000000000, ["format"] = _L["NUMBERS_THIRD"]}
-		,{["value"] = 100000000, ["format"] = _L["NUMBERS_SECOND"], ["decimal"] = true}
-		,{["value"] = 100000, ["format"] = _L["NUMBERS_FIRST"]}
+		{["value"] = 1000020000, ["format"] = _L["NUMBERS_THIRD"]}
+		,{["value"] = 100002000, ["format"] = _L["NUMBERS_SECOND"], ["decimal"] = true}
+		,{["value"] = 100002, ["format"] = _L["NUMBERS_FIRST"]}
 		,{["value"] = 1000, ["format"] = _L["NUMBERS_FIRST"], ["decimal"] = true}
 	}
 
 _V["NUMBER_ABBREVIATIONS"] = {
-		{["value"] = 10000000000, ["format"] = _L["NUMBERS_THIRD"]}
-		,{["value"] = 1000000000, ["format"] = _L["NUMBERS_THIRD"], ["decimal"] = true}
-		,{["value"] = 10000000, ["format"] = _L["NUMBERS_SECOND"]}
-		,{["value"] = 1000000, ["format"] = _L["NUMBERS_SECOND"], ["decimal"] = true}
+		{["value"] = 10000200000, ["format"] = _L["NUMBERS_THIRD"]}
+		,{["value"] = 1000020000, ["format"] = _L["NUMBERS_THIRD"], ["decimal"] = true}
+		,{["value"] = 10000200, ["format"] = _L["NUMBERS_SECOND"]}
+		,{["value"] = 1000020, ["format"] = _L["NUMBERS_SECOND"], ["decimal"] = true}
 		,{["value"] = 10000, ["format"] = _L["NUMBERS_FIRST"]}
 		,{["value"] = 1000, ["format"] = _L["NUMBERS_FIRST"], ["decimal"] = true}
 	}

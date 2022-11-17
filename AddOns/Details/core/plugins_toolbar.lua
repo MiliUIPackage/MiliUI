@@ -17,7 +17,7 @@
 
 		--random name if nameless
 		if (not framename) then
-			framename = "DetailsToolbarButton" .. math.random(1, 100000)
+			framename = "DetailsToolbarButton" .. math.random(1, 100002)
 		end
 
 		--create button from template

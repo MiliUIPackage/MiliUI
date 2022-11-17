@@ -6,7 +6,7 @@
     * same icons as before, but now they are included in the addon folder
 * Fixed opening the settings panel (Dragonflight)
 * Updated config layout (Dragonflight)
-* Bump .toc to 100000
+* Bump .toc to 100002
 
 #### v14 (September 29, 2022)
 -------------------------------

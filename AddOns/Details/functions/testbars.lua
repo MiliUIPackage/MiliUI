@@ -237,9 +237,9 @@ function Details:CreateTestBars (alphabet, isArena)
             robot:SetSpecId(specs [math.random(1, #specs)])
         end
         
-        robot.total = math.random(10000000, 60000000)
-        robot.damage_taken = math.random(10000000, 60000000)
-        robot.friendlyfire_total = math.random(10000000, 60000000)
+        robot.total = math.random(10000200, 60000000)
+        robot.damage_taken = math.random(10000200, 60000000)
+        robot.friendlyfire_total = math.random(10000200, 60000000)
         
         total_damage = total_damage + robot.total
         
@@ -247,7 +247,7 @@ function Details:CreateTestBars (alphabet, isArena)
             local robot_death = current_combat[4]:PegarCombatente ("0x0000-0000-0000", robot.nome, 0x114, true)
             robot_death.grupo = true
             robot_death.classe = robot.classe
-            local esta_morte = {{true, 96648, 100000, time(), 0, "Lady Holenna"}, {true, 96648, 100000, time()-52, 100000, "Lady Holenna"}, {true, 96648, 100000, time()-86, 200000, "Lady Holenna"}, {true, 96648, 100000, time()-101, 300000, "Lady Holenna"}, {false, 55296, 400000, time()-54, 400000, "King Djoffrey"}, {true, 14185, 0, time()-59, 400000, "Lady Holenna"}, {false, 87351, 400000, time()-154, 400000, "King Djoffrey"}, {false, 56236, 400000, time()-158, 400000, "King Djoffrey"} } 
+            local esta_morte = {{true, 96648, 100002, time(), 0, "Lady Holenna"}, {true, 96648, 100002, time()-52, 100002, "Lady Holenna"}, {true, 96648, 100002, time()-86, 200000, "Lady Holenna"}, {true, 96648, 100002, time()-101, 300000, "Lady Holenna"}, {false, 55296, 400000, time()-54, 400000, "King Djoffrey"}, {true, 14185, 0, time()-59, 400000, "Lady Holenna"}, {false, 87351, 400000, time()-154, 400000, "King Djoffrey"}, {false, 56236, 400000, time()-158, 400000, "King Djoffrey"} } 
             local t = {esta_morte, time(), robot.nome, robot.classe, 400000, "52m 12s",  ["dead"] = true}
             table.insert(current_combat.last_events_tables, #current_combat.last_events_tables+1, t)
             
@@ -299,10 +299,10 @@ function Details:CreateTestBars (alphabet, isArena)
             robot:SetSpecId(specs [math.random(1, #specs)])
         end
         
-        robot.total = math.random(10000000, 60000000)
-        robot.totalover = math.random(10000000, 60000000)
-        robot.totalabsorb = math.random(10000000, 60000000)
-        robot.healing_taken = math.random(10000000, 60000000)
+        robot.total = math.random(10000200, 60000000)
+        robot.totalover = math.random(10000200, 60000000)
+        robot.totalabsorb = math.random(10000200, 60000000)
+        robot.healing_taken = math.random(10000200, 60000000)
         
         total_heal = total_heal + robot.total
         

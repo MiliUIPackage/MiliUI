@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 100002
 ## Version: 5.7.153 DF hotfix
 ## Title: Mik's Scrolling Battle Text
 ## Author: Mikord

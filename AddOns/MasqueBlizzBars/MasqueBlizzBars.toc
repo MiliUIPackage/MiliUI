@@ -1,4 +1,4 @@
-## Interface: 100000
+## Interface: 100002
 ## Version: 2.0.2
 ## Title: Masque Blizz Bars
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪快捷列

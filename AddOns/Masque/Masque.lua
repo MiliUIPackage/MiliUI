@@ -34,14 +34,14 @@ local WOW_VERSION = select(4, GetBuildInfo()) or 0
 Core.WOW_VERSION = WOW_VERSION
 
 -- Retail
-Core.WOW_RETAIL = (WOW_VERSION >= 100000 and true) or nil
+Core.WOW_RETAIL = (WOW_VERSION >= 100002 and true) or nil
 
 ----------------------------------------
 -- API
 ---
 
 do
-	local VERSION = 100000
+	local VERSION = 100002
 	Core.API = LibStub:NewLibrary(MASQUE, VERSION)
 
 	----------------------------------------
