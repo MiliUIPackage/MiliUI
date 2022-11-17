@@ -1,14 +1,22 @@
+--
+-- Internal variables
+--
+
 local CURRENT_BUILD = "10.0.0"
-local MAJOR, MINOR = "EditModeExpanded-1.0", 7
+local MAJOR, MINOR = "EditModeExpanded-1.0", 19
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
 -- the internal frames provided by Blizzard go up to index 12. They reference an Enum.
 local index = 13
 local frames = {}
-local framesDB = {}
+local baseFramesDB = {} -- the base db that includes all profiles inside
+local framesDB = {} -- the currently selected db inside the profile
 local framesDialogs = {}
 local framesDialogsKeys = {}
+
+local ENUM_EDITMODEACTIONBARSETTING_HIDEABLE = 10 -- Enum.EditModeActionBarSetting.Hideable = 10
+local ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED = 11
 
 -- run OnLoad the first time RegisterFrame is called by an addon
 local f = {}
@@ -19,20 +27,7 @@ local wasVisible = {}
 local originalSize = {}
 local defaultSize = {}
 
-local MICRO_BUTTONS = {
-	"CharacterMicroButton",
-	"SpellbookMicroButton",
-	"TalentMicroButton",
-	"AchievementMicroButton",
-	"QuestLogMicroButton",
-	"GuildMicroButton",
-	"LFDMicroButton",
-	"EJMicroButton",
-	"CollectionsMicroButton",
-	"MainMenuMicroButton",
-	"HelpMicroButton",
-	"StoreMicroButton",
-	}
+local profilesInitialised
 
 -- Custom version of FrameXML\Mixin.lua where I instead do *not* overwrite existing functions 
 local function Mixin(object, ...)
@@ -47,6 +42,31 @@ local function Mixin(object, ...)
 
     return object;
 end
+
+-- functions declared further down
+local pinToMinimap
+local unpinFromMinimap
+local getOffsetXY
+
+--
+-- Code to deal with splitting the Main Menu Bar from the Backpack bar
+--
+
+-- from FrameXML\MainMenuBarMicroButtons.lua 
+local MICRO_BUTTONS = {
+	"CharacterMicroButton",
+	"SpellbookMicroButton",
+	"TalentMicroButton",
+	"AchievementMicroButton",
+	"QuestLogMicroButton",
+	"GuildMicroButton",
+	"LFDMicroButton",
+	"EJMicroButton",
+	"CollectionsMicroButton",
+	"MainMenuMicroButton",
+	"HelpMicroButton",
+	"StoreMicroButton",
+	}
 
 -- MicroButtonAndBagsBar:GetTop gets checked by EditModeManager, setting the scale of the Right Action bars
 -- to allow it to be moved, we need to duplicate the frame, hide the original, and make the duplicate the one being moved instead
@@ -108,19 +128,60 @@ local function duplicateMicroButtonAndBagsBar(db)
     return duplicate
 end
 
+--
+-- Public API
+--
+
 -- Call this on a frame to register it for capture during Edit Mode
 -- param1: frame, the Frame to register
 -- param2: name, localized name to appear when the frame is selected during Edit Mode
 -- param3: db, a table in your saved variables to save the frame position in
-function lib:RegisterFrame(frame, name, db)
+-- param4: frame to anchor to, default is UIParent
+-- param5: point to anchor, default is BOTTOMLEFT
+function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint)
     assert(type(frame) == "table")
     assert(type(name) == "string")
     assert(type(db) == "table")
     
-    -- IMPORTANT: force update every patch incase of UI changes that cause problems and/or make this library redundant!
-    if not (GetBuildInfo() == CURRENT_BUILD) then return end
+    if not anchorTo then anchorTo = UIParent end
+    if not anchorPoint then anchorPoint = "BOTTOMLEFT" end
+    frame.EMEanchorTo = anchorTo
+    frame.EMEanchorPoint = anchorPoint
     
+    -- IMPORTANT: force update every patch incase of UI changes that cause problems and/or make this library redundant!
+    if GetBuildInfo() ~= CURRENT_BUILD then return end
+    
+    -- if this is the first frame being registered, load the other parts of this library
     if f.OnLoad then f.OnLoad() end
+    
+    local baseDB = db
+    
+    if profilesInitialised then
+        local layoutInfo = EditModeManagerFrame:GetActiveLayoutInfo()
+        local profileName = layoutInfo.layoutType.."-"..layoutInfo.layoutName
+        if layoutInfo.layoutType == Enum.EditModeLayoutType.Character then
+            local unitName, unitRealm = UnitFullName("player")
+            profileName = layoutInfo.layoutType.."-"..unitName.."-"..unitRealm.."-"..layoutInfo.layoutName
+        end
+        
+        if not db.profiles then db.profiles = {} end
+        if not db.profiles[profileName] then
+            db.profiles[profileName] = {}
+            db.profiles[profileName].x = db.x
+            db.profiles[profileName].y = db.y
+            db.profiles[profileName].enabled = db.enabled
+            db.profiles[profileName].settings = db.settings
+            db.profiles[profileName].defaultX = db.defaultX
+            db.profiles[profileName].defaultY = db.defaultY
+            
+            db.x = nil
+            db.y = nil
+            db.enabled = nil
+            db.settings = nil
+        end
+        
+        db = db.profiles[profileName]
+    end
     
     -- If the frame was already registered (perhaps by another addon that uses this library), don't register it again
     for _, f in ipairs(frames) do
@@ -129,14 +190,17 @@ function lib:RegisterFrame(frame, name, db)
                 -- import new db settings if there are none saved in the existing db
                 framesDB[f.system].x = db.x
                 framesDB[f.system].y = db.y
-                f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
+                local x, y = getOffsetXY(frame, db.x, db.y)
+                f:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y)
             end
             return
         end
     end
     
-    if frame == MicroButtonAndBagsBar then
+    if not IsAddOnLoaded("Dominos") and frame == MicroButtonAndBagsBar then -- 自行加入達美樂的相容性
         frame = duplicateMicroButtonAndBagsBar(db)
+        frame.EMEanchorTo = anchorTo
+        frame.EMEanchorPoint = anchorPoint
         if not db.MenuBar then db.MenuBar = {} end
         db = db.MenuBar
     end
@@ -147,7 +211,19 @@ function lib:RegisterFrame(frame, name, db)
     
     frame.system = index
     index = index + 1
+    baseFramesDB[frame.system] = baseDB 
     framesDB[frame.system] = db
+
+    db.defaultScale = frame:GetScale()
+    db.defaultX, db.defaultY = frame:GetRect()
+    
+    -- needs investigation: why does this frame behave 'weirdly' if default scale 1 is not set?
+    if frame == FocusFrameSpellBar then
+        if not db.settings then db.settings = {} end
+        if not db.settings[Enum.EditModeUnitFrameSetting.FrameSize] then
+            db.settings[Enum.EditModeUnitFrameSetting.FrameSize] = 100
+        end
+    end
 
 	frame.Selection = CreateFrame("Frame", nil, frame, "EditModeSystemSelectionTemplate")
     frame.Selection:SetAllPoints(frame)
@@ -159,12 +235,48 @@ function lib:RegisterFrame(frame, name, db)
 	frame.Selection:SetLabelText(frame.systemName);
 	frame:SetupSettingsDialogAnchor();
 	frame.snappedFrames = {};
-
+    frame.Selection:EnableKeyboard();
+    frame.Selection:SetPropagateKeyboardInput(true);
+    -- prevent the frame to go outside the screen
+    frame:SetClampedToScreen(true);
+    
     function frame.UpdateMagnetismRegistration() end
 
     frame.Selection:SetScript("OnMouseDown", function()
     	frame:SelectSystem()
     end)
+
+    frame.Selection:SetScript("OnKeyDown", function(self, key)
+        frame:MoveWithArrowKey(key);
+    end)
+
+    function frame:MoveWithArrowKey(key)
+        if self.isSelected then
+            local x, y = self:GetRect();
+
+            local new_x = x;
+            local new_y = y;
+
+            if key == "RIGHT" then      new_x = new_x + 1;
+            elseif key == "LEFT" then   new_x = new_x - 1;
+            elseif key == "UP" then     new_y = new_y + 1;
+            elseif key == "DOWN" then   new_y = new_y - 1;
+            end
+            
+            if new_x ~= x or new_y ~= y then
+                -- consume the key used to prevent movement / cam turning
+                self.Selection:SetPropagateKeyboardInput(false);
+                local db = framesDB[frame.system]
+                db.x, db.y = new_x, new_y;
+                self:ClearAllPoints()
+                local x, y = getOffsetXY(frame, db.x, db.y)
+                self:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y);
+                return
+            end
+        end
+
+        self.Selection:SetPropagateKeyboardInput(true);
+    end
     
     function frame:SelectSystem()
         if not self.isSelected then
@@ -188,7 +300,12 @@ function lib:RegisterFrame(frame, name, db)
         if frame:CanBeMoved() then
             frame:StopMovingOrSizing();
         end
+        local db = framesDB[frame.system]
         db.x, db.y = self:GetRect()
+        
+        local x, y = getOffsetXY(frame, db.x, db.y)
+        frame:ClearAllPoints()
+        frame:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y)
     end)
     
     function frame:ClearHighlight()
@@ -206,15 +323,48 @@ function lib:RegisterFrame(frame, name, db)
 
     EditModeManagerExpandedFrame.AccountSettings[frame.system] = CreateFrame("CheckButton", nil, EditModeManagerExpandedFrame.AccountSettings, "UICheckButtonTemplate")
     local checkButtonFrame = EditModeManagerExpandedFrame.AccountSettings[frame.system]
+    frame.EMECheckButtonFrame = checkButtonFrame
+    local resetButton = CreateFrame("Button", nil, EditModeManagerFrame, "UIPanelButtonTemplate")
+    resetButton:SetWidth(50) -- 自行加入
+	resetButton:SetText(RESET)
+    resetButton:SetPoint("TOPLEFT", checkButtonFrame.Text, "TOPRIGHT", 20, 2)
+    resetButton:SetScript("OnClick", function()
+        local db = framesDB[frame.system]
+        frame:ClearAllPoints()
+        frame:SetScaleOverride(1)
+        if not db.defaultX then db.defaultX = 0 end
+        if not db.defaultY then db.defaultY = 0 end
+        local x, y = getOffsetXY(frame, db.defaultX, db.defaultY)
+        if not pcall( function() frame:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y) end ) then
+            -- need a better solution here
+            frame:SetPoint("BOTTOMLEFT", nil, "BOTTOMLEFT", x, y)
+        end
+        
+        db.x = db.defaultX
+        db.y = db.defaultY
+        if not db.settings then db.settings = {} end
+        db.settings[Enum.EditModeUnitFrameSetting.FrameSize] = 100
+        EditModeExpandedSystemSettingsDialog:Hide()
+        frame:HighlightSystem()
+    end)
+    
+    EditModeManagerExpandedFrame:HookScript("OnHide", function()
+        resetButton:Hide()
+    end)
+    
+    EditModeManagerExpandedFrame:HookScript("OnShow", function()
+        resetButton:Show()
+    end)
     
     checkButtonFrame:SetScript("OnClick", function(self)
         local isChecked = self:GetChecked()
+        local db = framesDB[frame.system]
         db.enabled = isChecked
         frame:SetShown(isChecked)
     end)
     
     checkButtonFrame.Text:SetText(name)
-    checkButtonFrame.Text:SetFontObject(GameFontHighlightSmall)
+    checkButtonFrame.Text:SetFontObject(GameFontHighlightMedium)
     
     checkButtonFrame.index = frame.system
     if frame.system == 13 then
@@ -229,6 +379,7 @@ function lib:RegisterFrame(frame, name, db)
     checkButtonFrame:SetChecked(db.enabled)
     
     function frame:GetSettingValue(setting, useRawValue)
+        local db = framesDB[frame.system]
     	if (not self:IsInitialized()) or (not db.settings) or (not db.settings[settings]) then
     		return 0;
     	end
@@ -262,16 +413,117 @@ function lib:RegisterFrame(frame, name, db)
     end
     
     if db.x and db.y then
+        if frame:GetScale() == 1 then
+            -- if stored coordinates are outside the screen resolution, reset them back to defaults
+            local _, _, screenX, screenY = UIParent:GetRect()
+            if (db.x < 0) or (db.x >= screenX) or (db.y < 0) or (db.y > screenY) then
+                db.x, db.y = frame:GetRect()
+            end
+        end 
         frame:ClearAllPoints()
-        frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", db.x, db.y)
+        local x, y = getOffsetXY(frame, db.x, db.y)
+        frame:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y)
     else
         db.x, db.y = frame:GetRect()
     end
     
-    if db.settings and (db.settings[Enum.EditModeActionBarSetting.Hideable] ~= nil) then
-        frame:SetShown(framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= 1)
+    if db.settings and (db.settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
+        frame:SetShown(framesDB[frame.system].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= 1)
+    end
+    
+    hooksecurefunc(frame, "AddExtraButtons", function(self)
+        self.resetToDefaultPositionButton:SetOnClickHandler(function()
+            resetButton:Click()
+        end)
+    end)
+end
+
+-- use this if a frame by default doesn't have a size set yet
+function lib:SetDefaultSize(frame, x, y)
+    assert(type(frame) == "table")
+    assert(type(x) == "number")
+    assert(type(y) == "number")
+    
+    defaultSize[frame.system] = {["x"] = x, ["y"] = y}
+end
+
+-- use this for small frames - frames that have a dimension < 40, that you don't want to be bumped up to 40 during Edit Mode
+function lib:SetDontResize(frame)
+    assert(type(frame) == "table")
+    
+    frame.EMEDontResize = true
+end
+
+-- call this if the frame needs to be moved back into position at some point after ADDON_LOADED
+function lib:RepositionFrame(frame)
+    local db = framesDB[frame.system]
+    frame:ClearAllPoints()
+    if (not (db.x or db.defaultX)) or (not (db.y or db.defaultY)) then
+        return
+    end
+    local x, y = getOffsetXY(frame, db.x or db.defaultX, db.y or db.defaultY)
+    local anchorPoint = frame.EMEanchorPoint
+    if not pcall( function() frame:SetPoint(anchorPoint, frame.EMEanchorTo, anchorPoint, x, y) end ) then
+        frame:SetPoint(anchorPoint, nil, anchorPoint, x, y)
     end
 end
+
+-- Call this to add a slider to the frames dialog box, allowing is to be resized using frame:SetScale
+-- param1: custom system frame
+function lib:RegisterResizable(frame)
+    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
+    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] then return end
+    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
+    framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] = true
+    table.insert(framesDialogs[frame.system],
+		{
+			setting = Enum.EditModeUnitFrameSetting.FrameSize,
+			name = HUD_EDIT_MODE_SETTING_UNIT_FRAME_FRAME_SIZE,
+			type = Enum.EditModeSettingDisplayType.Slider,
+			minValue = 10,
+			maxValue = 200,
+			stepSize = 5,
+			ConvertValue = ConvertValueDefault,
+			formatter = showAsPercentage,
+		})
+end
+ 
+-- Call this to add a checkbox to the frames dialog box, allowing the frame to be permanently hidden outside of Edit Mode
+-- param1: custom system frame
+function lib:RegisterHideable(frame)
+    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
+    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] then return end
+    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
+    framesDialogsKeys[frame.system][ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] = true
+    table.insert(framesDialogs[frame.system],
+        {
+            setting = ENUM_EDITMODEACTIONBARSETTING_HIDEABLE,
+            name = "隱藏",
+            type = Enum.EditModeSettingDisplayType.Checkbox,
+    })
+end
+
+-- implemented further down the file
+-- param1: custom system frame
+--function lib:RegisterMinimapPinnable(frame)
+
+-- a simple check of "has this frame been registered with EME" - maybe you want to test if another addon registered it already?
+function lib:IsRegistered(frame)
+    for _, f in pairs(frames) do
+        if frame == f then return true end
+    end
+    return false
+end
+
+-- Is the Expanded frame checkbox checked for this frame?
+function lib:IsFrameEnabled(frame)
+    local db = framesDB[frame.system]
+    return db.enabled
+end
+
+--
+-- Require update on game patch
+--
 
 if not (GetBuildInfo() == CURRENT_BUILD) then return end
 
@@ -281,12 +533,13 @@ if not (GetBuildInfo() == CURRENT_BUILD) then return end
 --
 
 hooksecurefunc(f, "OnLoad", function()
-    CreateFrame("Frame", "EditModeManagerExpandedFrame", nil)
-    EditModeManagerExpandedFrame:Hide()
+    CreateFrame("Frame", "EditModeManagerExpandedFrame", nil, UIParent)
+    EditModeManagerExpandedFrame:Hide();
+    EditModeManagerExpandedFrame:SetScale(UIParent:GetScale());
     EditModeManagerExpandedFrame:SetPoint("TOPLEFT", EditModeManagerFrame, "TOPRIGHT", 2, 0)
     EditModeManagerExpandedFrame:SetPoint("BOTTOMLEFT", EditModeManagerFrame, "BOTTOMRIGHT", 2, 0)
-    EditModeManagerExpandedFrame:SetWidth(250)
-    EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightMedium")
+    EditModeManagerExpandedFrame:SetWidth(300)
+    EditModeManagerExpandedFrame.Title = EditModeManagerExpandedFrame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     EditModeManagerExpandedFrame.Title:SetPoint("TOP", 0, -15)
     EditModeManagerExpandedFrame.Title:SetText("擴充包")
     EditModeManagerExpandedFrame.Border = CreateFrame("Frame", nil, EditModeManagerExpandedFrame, "DialogBorderTranslucentTemplate")
@@ -294,6 +547,8 @@ hooksecurefunc(f, "OnLoad", function()
     EditModeManagerExpandedFrame.AccountSettings:SetPoint("TOPLEFT", 0, -35)
     EditModeManagerExpandedFrame.AccountSettings:SetPoint("BOTTOMLEFT", 10, 10)
     EditModeManagerExpandedFrame.AccountSettings:SetWidth(200)
+    EditModeManagerExpandedFrame.CloseButton = CreateFrame("Button", nil, EditModeManagerExpandedFrame, "UIPanelCloseButton")
+    EditModeManagerExpandedFrame.CloseButton:SetPoint("TOPRIGHT")
     
     EditModeManagerFrame:HookScript("OnShow", function()
         EditModeManagerExpandedFrame:Show()
@@ -308,16 +563,10 @@ hooksecurefunc(f, "OnLoad", function()
     end
 end)
 
--- use this if a frame by default doesn't have a size set yet
-function lib:SetDefaultSize(frame, x, y)
-    assert(type(frame) == "table")
-    assert(type(x) == "number")
-    assert(type(y) == "number")
-    
-    defaultSize[frame.system] = {["x"] = x, ["y"] = y}
-end
-
 hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function(self)
+    -- can cause errors if the player is in combat - eg trying to move or show/hide protected frames
+    if InCombatLockdown() then return end
+    
     if #frames <= 0 then EditModeManagerExpandedFrame:Hide() end
     for _, frame in ipairs(frames) do
         frame:SetHasActiveChanges(false)
@@ -325,7 +574,7 @@ hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function(self)
         wasVisible[frame.system] = frame:IsShown()
         frame:SetShown(framesDB[frame.system].enabled)
         local x, y = frame:GetSize()
-        if (x < 40) or (y < 40) then
+        if (not frame.EMEDontResize) and ((x < 40) or (y < 40)) then
             originalSize[frame.system] = {["x"] = x, ["y"] = y}
             if defaultSize[frame.system] then
                 frame:SetSize(defaultSize[frame.system].x, defaultSize[frame.system].y)
@@ -341,13 +590,23 @@ hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function(self)
 end)
 
 hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
+    if InCombatLockdown() then
+        print("編輯模式擴充包錯誤: 戰鬥中無法正常結束編輯模式!")
+        return
+    end
+    
     for _, frame in ipairs(frames) do
         frame:ClearHighlight();
         frame:StopMovingOrSizing();
         
-        frame:SetShown(wasVisible[frame.system])
-        if framesDB[frame.system] and framesDB[frame.system].settings and (framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= nil) then
-            frame:SetShown(framesDB[frame.system].settings[Enum.EditModeActionBarSetting.Hideable] ~= 1)
+        if framesDB[frame.system] and framesDB[frame.system].settings and (framesDB[frame.system].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
+            if (framesDB[frame.system].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1) then
+                frame:Hide()
+            else
+                frame:SetShown(wasVisible[frame.system])
+            end
+        else
+            frame:SetShown(wasVisible[frame.system])
         end
         
         if originalSize[frame.system] then
@@ -419,6 +678,13 @@ hooksecurefunc(f, "OnLoad", function()
     frame:SetScript("OnDragStart", frame.OnDragStart)
     frame:SetScript("OnDragStop", frame.OnDragStop)
     frame:OnLoad()
+    function frame:UpdateSizeAndAnchors(systemFrame)
+    	if systemFrame == self.attachedToSystem then
+            frame:ClearAllPoints()
+            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 400, 500);
+    		self:Layout();
+    	end
+    end
     
     CreateFrame("Frame", "EditModeExpandedSettingSlider", frame)
     Mixin(EditModeExpandedSettingSlider, EditModeSettingSliderMixin)
@@ -508,17 +774,34 @@ hooksecurefunc(f, "OnLoad", function()
                     	settingFrame.cbrHandles:RegisterCallback(settingFrame.Slider, MinimalSliderWithSteppersMixin.Event.OnValueChanged, OnValueChanged, settingFrame);
                     end
                     
-                    if displayInfo.setting == Enum.EditModeActionBarSetting.Hideable then
+                    if displayInfo.setting == ENUM_EDITMODEACTIONBARSETTING_HIDEABLE then
                         savedValue = framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting]
                         if savedValue == nil then savedValue = 0 end
                         settingFrame.Button:SetChecked(savedValue)
-                        settingFrame.Button:HookScript("OnClick", function()
+                        settingFrame.Button:SetScript("OnClick", function()
                             if settingFrame.Button:GetChecked() then
                                 framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 1
                                 EditModeExpandedSystemSettingsDialog.attachedToSystem:Hide()
+                                wasVisible[EditModeExpandedSystemSettingsDialog.attachedToSystem.system] = false
                             else
                                 framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 0
                                 EditModeExpandedSystemSettingsDialog.attachedToSystem:Show()
+                                wasVisible[EditModeExpandedSystemSettingsDialog.attachedToSystem.system] = true
+                            end
+                        end)
+                    end
+                    
+                    if displayInfo.setting == ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED then
+                        savedValue = framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting]
+                        if savedValue == nil then savedValue = 0 end
+                        settingFrame.Button:SetChecked(savedValue)
+                        settingFrame.Button:SetScript("OnClick", function()
+                            if settingFrame.Button:GetChecked() then
+                                framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 1
+                                pinToMinimap(EditModeExpandedSystemSettingsDialog.attachedToSystem)
+                            else
+                                framesDB[EditModeExpandedSystemSettingsDialog.attachedToSystem.system].settings[displayInfo.setting] = 0
+                                unpinFromMinimap(EditModeExpandedSystemSettingsDialog.attachedToSystem)
                             end
                         end)
                     end
@@ -544,40 +827,6 @@ hooksecurefunc(f, "OnLoad", function()
     	end
     end
 end)
-
--- param1: custom system frame
-function lib:RegisterResizable(frame)
-    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
-    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] then return end
-    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
-    framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] = true
-    table.insert(framesDialogs[frame.system],
-		{
-			setting = Enum.EditModeUnitFrameSetting.FrameSize,
-			name = HUD_EDIT_MODE_SETTING_UNIT_FRAME_FRAME_SIZE,
-			type = Enum.EditModeSettingDisplayType.Slider,
-			minValue = 10,
-			maxValue = 200,
-			stepSize = 5,
-			ConvertValue = ConvertValueDefault,
-			formatter = showAsPercentage,
-		})
-end
-
-Enum.EditModeActionBarSetting.Hideable = 10 
-function lib:RegisterHideable(frame)
-    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
-    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeActionBarSetting.Hideable] then return end
-    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
-    framesDialogsKeys[frame.system][Enum.EditModeActionBarSetting.Hideable] = true
-    table.insert(framesDialogs[frame.system],
-        {
-            setting = Enum.EditModeActionBarSetting.Hideable,
-            name = "隱藏",
-            type = Enum.EditModeSettingDisplayType.Checkbox,
-    })
-end
-
 
 hooksecurefunc(f, "OnLoad", function()
     function EditModeExpandedSystemSettingsDialog:OnSettingValueChanged(setting, value)
@@ -615,3 +864,202 @@ hooksecurefunc(f, "OnLoad", function()
     end
     EditModeExpandedSystemSettingsDialog:OnLoad()
 end)
+
+--
+-- Profile handling
+--
+do
+    local f = CreateFrame("Frame")
+    f:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+    f:SetScript("OnEvent", function()
+        profilesInitialised = true
+        
+        for _, frame in pairs(frames) do
+            EditModeExpandedSystemSettingsDialog:Hide()
+            local db = baseFramesDB[frame.system]
+            if frame == MicroButtonAndBagsBarMovable then
+                if not db.MenuBar then db.MenuBar = {} end
+                db = db.MenuBar
+            end
+            
+            -- if currently selected Edit Mode profile does not exist in the db, try importing a legacy db instead
+            local layoutInfo = EditModeManagerFrame:GetActiveLayoutInfo()
+            local profileName = layoutInfo.layoutType.."-"..layoutInfo.layoutName
+            if layoutInfo.layoutType == Enum.EditModeLayoutType.Character then
+                local unitName, unitRealm = UnitFullName("player")
+                profileName = layoutInfo.layoutType.."-"..unitName.."-"..unitRealm.."-"..layoutInfo.layoutName
+            end
+            
+            if not db.profiles then db.profiles = {} end
+            if not db.profiles[profileName] then
+                db.profiles[profileName] = {}
+                db.profiles[profileName].x = db.x
+                db.profiles[profileName].y = db.y
+                db.profiles[profileName].enabled = db.enabled
+                db.profiles[profileName].settings = db.settings
+                db.profiles[profileName].defaultX = db.defaultX
+                db.profiles[profileName].defaultY = db.defaultY
+                
+                db.x = nil
+                db.y = nil
+                db.enabled = nil
+                db.settings = nil
+            end
+            
+            db = db.profiles[profileName]
+            framesDB[frame.system] = db
+
+            -- update scale
+            if db.settings and db.settings[Enum.EditModeUnitFrameSetting.FrameSize] then
+                frame:SetScaleOverride(db.settings[Enum.EditModeUnitFrameSetting.FrameSize]/100)
+            end
+            
+            -- update position
+            frame:ClearAllPoints()
+            local anchorPoint = frame.EMEanchorPoint
+            if db.x and db.y then
+                local x, y = getOffsetXY(frame, db.x, db.y)
+                frame:SetPoint(anchorPoint, frame.EMEanchorTo, anchorPoint, x, y)
+            else
+                if db.defaultX and db.defaultY then
+                    local x, y = getOffsetXY(frame, db.defaultX, db.defaultY)
+                    if not pcall( function() frame:SetPoint(anchorPoint, frame.EMEanchorTo, anchorPoint, x, y) end ) then
+                        frame:SetPoint(anchorPoint, nil, anchorPoint, x, y)
+                    end
+                end
+            end
+            
+            -- the option in the expanded frame
+            if db.enabled == nil then db.enabled = true end
+            frame.EMECheckButtonFrame:SetChecked(db.enabled)
+            
+            -- frame hide option
+            if db.settings and (db.settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
+                frame:SetShown(framesDB[frame.system].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= 1)
+            end
+            
+            -- minimap pinning
+            if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] then
+                if db.settings and (db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] ~= nil) then
+                    if db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] == 1 then
+                        pinToMinimap(frame)
+                    else
+                        unpinFromMinimap(frame)
+                    end
+                end
+            end
+            
+            -- only way I can find to un-select frames
+            if EditModeManagerFrame.editModeActive and frame:IsShown() then
+                frame:HighlightSystem()
+            end
+        end
+    end)
+end
+
+--
+-- allow a frame to be pinned to the minimap
+--
+
+-- Prerequsities: LibDataBroker and LibDBIcon
+function lib:RegisterMinimapPinnable(frame)
+    local name = frame:GetName().."LDB"
+    local db = framesDB[frame.system]
+    if not db.minimap then db.minimap = {} end
+    if not db.settings then db.settings = {} end
+    
+    -- requirements to show the minimap icon:
+    -- 1. player has selected option to pin the frame to the minimap
+    -- 2. the frame is actually currently visible
+    db.minimap.hide = not ((db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] == 1) and frame:IsShown())
+    
+    local LDB = LibStub("LibDataBroker-1.1"):NewDataObject(name, {
+        type = "data source",
+        text = frame:GetName(),
+        icon = "",
+    })
+    local icon = LibStub("LibDBIcon-1.0")
+    icon:Register(name, LDB, db.minimap)
+    
+    frame:HookScript("OnShow", function()
+        local db = framesDB[frame.system]
+        if not db.minimap then db.minimap = {} end
+        if db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] == 1 then
+            db.minimap.hide = nil
+            icon:Show(name)
+            frame:ClearAllPoints()
+            frame:SetPoint("CENTER", icon:GetMinimapButton(name), "CENTER")
+        end
+    end)
+    
+    frame:HookScript("OnHide", function()
+        local db = framesDB[frame.system]
+        if not db.minimap then db.minimap = {} end
+        if not db.settings then db.settings = {} end
+        if db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] ~= 1 then
+            db.minimap.hide = true
+        end
+        icon:Hide(name)
+    end)
+    
+    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
+    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] then return end
+    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
+    framesDialogsKeys[frame.system][ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] = true
+    table.insert(framesDialogs[frame.system],
+        {
+            setting = ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED,
+            name = "貼齊小地圖",
+            type = Enum.EditModeSettingDisplayType.Checkbox,
+        }
+    )
+    
+    frame.minimapLDBIcon = icon
+end
+
+function pinToMinimap(frame)
+    local db = framesDB[frame.system]
+    if not db.minimap then db.minimap = {} end
+    
+    db.minimap.hide = nil
+    frame.minimapLDBIcon:Show(frame:GetName().."LDB")
+    
+    frame:ClearAllPoints()
+    frame:SetPoint("CENTER", frame.minimapLDBIcon:GetMinimapButton(frame:GetName().."LDB"), "CENTER")
+end
+
+function unpinFromMinimap(frame)
+    local db = framesDB[frame.system]
+    frame:ClearAllPoints()
+    local x, y = getOffsetXY(frame, db.x, db.y)
+    frame:SetPoint(frame.EMEanchorPoint, frame.EMEanchorTo, frame.EMEanchorPoint, db.x, db.y)
+    db.minimap.hide = true
+    frame.minimapLDBIcon:Hide(frame:GetName().."LDB")
+end
+
+--
+-- Handle frame being based on a frame other than UIParent
+--
+function getOffsetXY(frame, x, y)
+    if frame.EMEanchorTo == UIParent then
+        return x, y
+    end
+    
+    local anchorPoint = frame.EMEanchorPoint or "BOTTOMLEFT"
+    if anchorPoint == "BOTTOMLEFT" then
+        local targetX, targetY = frame.EMEanchorTo:GetRect()
+        return x - targetX, y - targetY
+    elseif anchorPoint == "BOTTOMRIGHT" then
+        local targetX, targetY, targetWidth = frame.EMEanchorTo:GetRect()
+        local width = frame:GetSize()
+        return (x+width) - (targetX+targetWidth), y - targetY
+    elseif anchorPoint == "TOPLEFT" then
+        local targetX, targetY, _, targetHeight = frame.EMEanchorTo:GetRect()
+        local _, height = frame:GetSize()
+        return x - targetX, (y+height) - (targetY+targetHeight)
+    else -- TOPRIGHT
+        local targetX, targetY, targetWidth, targetHeight = frame.EMEanchorTo:GetRect()
+        local width, height = frame:GetSize()
+        return (x+width) - (targetX+targetWidth), (y+width) - (targetY+targetWidth)
+    end 
+end
