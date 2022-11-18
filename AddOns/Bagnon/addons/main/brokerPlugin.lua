@@ -35,9 +35,9 @@ Addon:NewModule('LDB', LDB:NewDataObject(ADDON .. 'Launcher', {
 	OnUpdate = function(self)
 		local free, total = 0, 0
 		for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-			local numFree, family = GetContainerNumFreeSlots(bag)
+			local numFree, family = C_Container.GetContainerNumFreeSlots(bag)
 			if family == 0 then
-				total = total + GetContainerNumSlots(bag)
+				total = total + C_Container.GetContainerNumSlots(bag)
 				free = free + numFree
 			end
 		end

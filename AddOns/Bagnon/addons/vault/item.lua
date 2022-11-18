@@ -33,9 +33,9 @@ function Item:OnClick(button)
 
 		if not isRight and type == 'item' and link then
 			for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-				for slot = 1, GetContainerNumSlots(bag) do
-					if GetContainerItemLink(bag, slot) == link then
-						UseContainerItem(bag, slot)
+				for slot = 1, C_Container.GetContainerNumSlots(bag) do
+					if C_Container.GetContainerItemLink(bag, slot) == link then
+						C_Container.UseContainerItem(bag, slot)
 					end
 				end
 			end

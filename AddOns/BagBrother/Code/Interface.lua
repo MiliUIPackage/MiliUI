@@ -87,7 +87,7 @@ end
 
 function Interface:GetBag(realm, player, bag)
   if tonumber(bag) then
-    local slot = bag > 0 and ContainerIDToInventoryID(bag)
+    local slot = bag > 0 and C_Container.ContainerIDToInventoryID(bag)
     if slot then
       return Interface:GetItem(realm, player, 'equip', slot)
     else

@@ -18,7 +18,7 @@ along with the library. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 This file is part of LibItemCache.
 --]]
 
-local Lib = LibStub:NewLibrary('LibItemCache-2.0', 34)
+local Lib = LibStub:NewLibrary('LibItemCache-2.0', 35)
 if not Lib then return end
 
 local PLAYER, FACTION, REALM, REALMS
@@ -58,6 +58,7 @@ end
 setmetatable(Caches, { __index = AccessInterfaces })
 Events:Embed(Lib)
 
+Lib.NumBags = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS
 Lib:RegisterEvent('BANKFRAME_OPENED', function() Lib.AtBank = true; Lib:SendMessage('CACHE_BANK_OPENED') end)
 Lib:RegisterEvent('BANKFRAME_CLOSED', function() Lib.AtBank = false; Lib:SendMessage('CACHE_BANK_CLOSED') end)
 
@@ -80,6 +81,17 @@ end
 if CanGuildBankRepair then
 	Lib:RegisterEvent('GUILDBANKFRAME_OPENED', function() Lib.AtGuild = true; Lib:SendMessage('CACHE_GUILD_OPENED') end)
 	Lib:RegisterEvent('GUILDBANKFRAME_CLOSED', function() Lib.AtGuild = false; Lib:SendMessage('CACHE_GUILD_CLOSED') end)
+	-- Seems like Blizz nuked GUILDBANKFRAME_OPENED and GUILDBANKFRAME_CLOSED from orbit with 10.0, so resorting to the below to get guild bank working
+	Lib:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW', function(_,frame)
+		if frame == Enum.PlayerInteractionType.GuildBanker then
+			Lib.AtGuild = true; Lib:SendMessage('CACHE_GUILD_OPENED')
+		end
+	end)
+	Lib:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE', function(_,frame)
+		if frame == Enum.PlayerInteractionType.GuildBanker then
+			Lib.AtGuild = false; Lib:SendMessage('CACHE_GUILD_CLOSED')
+		end
+	end)
 end
 
 
@@ -174,22 +186,22 @@ function Lib:GetBagInfo(owner, bag)
 
 		item.name, item.icon, item.viewable = name, icon, view
 	elseif tonumber(bag) then
-		item.free = GetContainerNumFreeSlots(bag)
+		item.free = C_Container.GetContainerNumFreeSlots(bag)
 
 		if bag == REAGENTBANK_CONTAINER then
 			item.cost = GetReagentBankCost()
 			item.owned = IsReagentBankUnlocked()
 		elseif bag == KEYRING then
-			item.count = HasKey and HasKey() and GetContainerNumSlots(bag)
+			item.count = HasKey and HasKey() and C_Container.GetContainerNumSlots(bag)
 			item.free = item.count and item.free and (item.count + item.free - 32)
 		elseif bag > BACKPACK_CONTAINER then
-			item.slot = ContainerIDToInventoryID(bag)
+			item.slot = C_Container.ContainerIDToInventoryID(bag)
 			item.link = GetInventoryItemLink('player', item.slot)
 			item.icon = GetInventoryItemTexture('player', item.slot)
-			item.count = GetContainerNumSlots(bag)
+			item.count = C_Container.GetContainerNumSlots(bag)
 
-			if bag > NUM_BAG_SLOTS then
-				item.owned = (bag - NUM_BAG_SLOTS) <= GetNumBankSlots()
+			if bag > Lib.NumBags then
+				item.owned = (bag - Lib.NumBags) <= GetNumBankSlots()
 				item.cost = GetBankSlotCost()
 			end
 		end
@@ -204,12 +216,12 @@ function Lib:GetBagInfo(owner, bag)
 		item.count = INVSLOT_LAST_EQUIPPED
 		item.owned = true
 	else
-		item.owned = item.owned or (bag >= KEYRING and bag <= NUM_BAG_SLOTS) or item.id or item.link
+		item.owned = item.owned or (bag >= KEYRING and bag <= Lib.NumBags) or item.id or item.link
 
 		if bag == KEYRING then
 			item.family = 9
 		elseif bag <= BACKPACK_CONTAINER then
-			item.count = item.count or item.owned and GetContainerNumSlots(bag)
+			item.count = item.count or item.owned and C_Container.GetContainerNumSlots(bag)
 			item.family = bag ~= REAGENTBANK_CONTAINER and 0 or REAGENTBANK_CONTAINER
 		end
 	end
@@ -234,7 +246,7 @@ function Lib:GetItemInfo(owner, bag, slot)
 	elseif bag == 'vault' then
 		item.id, item.icon, item.locked, item.recent, item.filtered, item.quality = GetVoidItemInfo(1, slot)
 	else
-		item.icon, item.count, item.locked, item.quality, item.readable, item.lootable, item.link, item.filtered, item.worthless, item.id = GetContainerItemInfo(bag, slot)
+		item.icon, item.count, item.locked, item.quality, item.readable, item.lootable, item.link, item.filtered, item.worthless, item.id = C_Container.GetContainerItemInfo(bag, slot)
 	end
 
 	return Lib:RestoreItemData(item)
@@ -257,7 +269,7 @@ function Lib:GetItemID(owner, bag, slot)
 	elseif bag == 'vault' then
 		return GetVoidItemInfo(1, slot)
 	else
-		return GetContainerItemID(bag, slot)
+		return C_Container.GetContainerItemID(bag, slot)
 	end
 end
 
@@ -273,7 +285,7 @@ function Lib:PickupItem(owner, bag, slot)
 		elseif bag == 'vault' then
 			ClickVoidStorageSlot(1, slot)
 		else
-			PickupContainerItem(bag, slot)
+			C_Container.PickupContainerItem(bag, slot)
 		end
 	end
 end
@@ -311,7 +323,7 @@ function Lib:IsBagCached(realm, name, isguild, bag)
 		return not Lib.AtGuild
 	end
 
-	local isBankBag = bag == BANK_CONTAINER or bag == REAGENTBANK_CONTAINER or type(bag) == 'number' and bag > NUM_BAG_SLOTS
+	local isBankBag = Lib:IsBank(bag) or Lib:IsReagents(bag) or type(bag) == 'number' and Lib:IsBankBag(bag)
 	return isBankBag and not Lib.AtBank or bag == 'vault' and not Lib.AtVault
 end
 
@@ -410,7 +422,7 @@ function Lib:IsBank(bag)
 end
 
 function Lib:IsBankBag(bag)
-  return bag > NUM_BAG_SLOTS and bag <= (NUM_BAG_SLOTS + NUM_BANKBAGSLOTS)
+  return bag > Lib.NumBags and bag <= (Lib.NumBags + NUM_BANKBAGSLOTS)
 end
 
 function Lib:IsReagents(bag)

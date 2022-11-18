@@ -17,16 +17,16 @@ This file is part of BagBrother.
 
 
 function BagBrother:SaveBag(bag, onlyItems, saveSize)
-	local size = GetContainerNumSlots(bag)
+	local size = C_Container.GetContainerNumSlots(bag)
 	if size > 0 then
 		local items = {}
 		for slot = 1, size do
-			local _, count, _,_,_,_, link = GetContainerItemInfo(bag, slot)
+			local _, count, _,_,_,_, link = C_Container.GetContainerItemInfo(bag, slot)
 			items[slot] = self:ParseItem(link, count)
 		end
 
 		if not onlyItems then
-			self:SaveEquip(ContainerIDToInventoryID(bag), size)
+			self:SaveEquip(C_Container.ContainerIDToInventoryID(bag), size)
 		elseif saveSize then
 			items.size = size
 		end
