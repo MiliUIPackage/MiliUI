@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2514, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20221016031101")
+mod:SetRevision("20221106015735")
 mod:SetCreatureID(190609)
 mod:SetEncounterID(2565)
 --mod:SetUsedIcons(1, 2, 3)
@@ -34,7 +34,7 @@ mod:RegisterEventsInCombat(
 local warnOverwhelmingPoweer					= mod:NewCountAnnounce(389011, 3, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(389011))--Typical stack warnings have amount and playername, but since used as personal, using count object to just display amount then injecting option text for stack
 local warnEnergyBomb							= mod:NewTargetAnnounce(374352, 3)
 
-local specWarnOverwhelmingPower					= mod:NewSpecialWarningStack(389011, false, 2, nil, nil, 1, 6)
+local specWarnOverwhelmingPower					= mod:NewSpecialWarningStack(389011, false, 3, nil, nil, 1, 6)
 local specWarnAstralBreath						= mod:NewSpecialWarningDodge(374361, nil, nil, nil, 2, 2)
 local specWarnPowerVacuum						= mod:NewSpecialWarningRun(388822, nil, nil, nil, 4, 2)
 local specWarnEnergyBomb						= mod:NewSpecialWarningMoveAway(374352, nil, nil, nil, 1, 2)
@@ -42,7 +42,7 @@ local yellEnergyBomb							= mod:NewYell(374352)
 local yellEnergyBombFades						= mod:NewShortFadesYell(374352)
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(389007, nil, nil, nil, 1, 8)
 
-local timerAstralBreathCD						= mod:NewCDTimer(61.5, 374361, nil, nil, nil, 3)
+local timerAstralBreathCD						= mod:NewCDTimer(29, 374361, nil, nil, nil, 3)--29-32
 local timerPowerVacuumCD						= mod:NewCDTimer(23.4, 388822, nil, nil, nil, 2)--23-28
 local timerEnergyBombCD							= mod:NewCDTimer(14.1, 374352, nil, nil, nil, 3)--14.1-20
 --local timerDecaySprayCD						= mod:NewAITimer(35, 376811, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -96,7 +96,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 389011 and args:IsPlayer() then
 		local amount = args.amount or 1
-		if self.Options.SpecWarn389011stack and amount == 2 then
+		if self.Options.SpecWarn389011stack and amount == 3 then
 			specWarnOverwhelmingPower:Show(amount)
 			specWarnOverwhelmingPower:Play("stackhigh")
 		else

@@ -5,8 +5,8 @@ mod:SetRevision("20220822021157")
 mod:SetCreatureID(175729)
 mod:SetEncounterID(2432)
 mod:SetUsedIcons(1, 2, 3, 4, 7, 8)
-mod:SetHotfixNoticeRev(20210831000020)--2021-08-31
-mod:SetMinSyncRevision(20210831000020)
+mod:SetHotfixNoticeRev(20210831000000)--2021-08-31
+mod:SetMinSyncRevision(20210831000000)
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")

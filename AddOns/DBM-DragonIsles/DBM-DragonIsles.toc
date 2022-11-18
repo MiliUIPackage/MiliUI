@@ -1,5 +1,5 @@
 ## Interface: 100002
-## Version: 10.0.0
+## Version: 10.0.0-8-g790b45a
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0World Bosses (Dragonflight)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0世界首領 (巨龍崛起)|r
 ## Author: MysticalOS

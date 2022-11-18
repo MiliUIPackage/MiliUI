@@ -4,7 +4,7 @@ local L		= mod:GetLocalizedStrings()
 mod:SetRevision("20220908201246")
 mod:SetCreatureID(180773)
 mod:SetEncounterID(2512)
-mod:SetHotfixNoticeRev(20220301000020)
+mod:SetHotfixNoticeRev(20220301000000)
 mod:SetMinSyncRevision(20220125000000)
 --mod.respawnTime = 29
 
