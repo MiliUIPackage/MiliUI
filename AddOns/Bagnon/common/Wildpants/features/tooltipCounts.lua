@@ -57,10 +57,10 @@ end
 --[[ Events ]]--
 
 function TipCounts.OnItem(tip)
-	local name, link = tip:GetItem()
-	if name ~= '' then
-		TipCounts:AddOwners(tip, link)
-	end
+	-- local name, link = tip:GetItemInfo()
+	-- if name ~= '' then
+	-- 	TipCounts:AddOwners(tip, link)
+	-- end
 end
 
 function TipCounts.OnQuest(tip, type, quest)
