@@ -29,9 +29,10 @@ local function ShowId(tooltip, name, value, noBlankLine)
 end
 
 local function ShowLinkIdInfo(tooltip, data)
--- Not working for comparision manager
---    local name, link = tooltip:GetItem()
---    ShowId(tooltip, ParseHyperLink(link))
+    if (data.type == Enum.TooltipDataType.Item) then
+        local itemName, itemLink, itemID = TooltipUtil.GetDisplayedItem(tooltip)
+        ShowId(tooltip, ParseHyperLink(itemLink))
+    end
 end
 
 -- keystone (not working)
@@ -81,7 +82,11 @@ end
 
 -- Spell
 if (clientToc>=100002) then
-    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
+      if not pcall(function() ShowId(self, "Spell", (select(2,self:GetSpell()))) end) then
+         return 
+      end
+    end)
 else
     GameTooltip:HookScript("OnTooltipSetSpell", function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)
 end

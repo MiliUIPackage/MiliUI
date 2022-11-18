@@ -32,6 +32,7 @@ addon.L = {
     
     ["item.coloredItemBorder"]              = "顯示物品邊框顏色",
 	["item.showItemIcon"]                   = "顯示物品圖示",
+	["item.showExtendedItemInformation"]    = "顯示更多物品資訊",
     ["quest.coloredQuestBorder"]            = "顯示任務邊框顏色",
     
     ["unit.player.anchor.position"]         = "位置",
@@ -176,4 +177,5 @@ addon.L = {
 	["Keystone"] = "鑰石",
 	["Quest"] = "任務",
 	["Achievement"] = "成就",
+	["|cffffdd22Expansion:|r |cff64cd3c%s|r"] = "|cffffdd22資料片:|r |cff64cd3c%s|r"
 }

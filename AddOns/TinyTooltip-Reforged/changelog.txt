@@ -1,3 +1,10 @@
+v9.3.3
+[WoTLK] added checkbox on/off item level display
+[DF] Added Expansion Source and checkbox on/off (may add more soruce information later)
+[DF] Fixed itemID display with comparision manager
+[General] New format to changelog to show expansion changes are for
+[DF] Added a fix for addons that use custom tooltips and do not hold same information so LUA error
+
 v9.3.2
 - Added extra checks to unit info
 - Turned off targeted by 

@@ -21,6 +21,7 @@ addon.db = {
         statusbarColor    = "auto",              
         statusbarTexture  = "Interface\\AddOns\\TinyTooltip-Reforged\\texture\\StatusBar",
         anchor            = { position = "cursor", hiddenInCombat = false, defaultInCombat = true, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
+        showItemLevel	  = true,
         alwaysShowIdInfo  = true,
         skinMoreFrames    = true,
         headerFont        = "default",
@@ -39,7 +40,7 @@ addon.db = {
             showTarget = true, 
 	    showSpec = true,
             showTargetBy = true,
-            showModel = false,  
+            showModel = false,
             grayForDead = true, 
 	    showIlevelAndSpecialization = false,
             elements = {

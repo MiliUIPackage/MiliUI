@@ -209,7 +209,7 @@ hooksecurefunc("NotifyInspect", function(unit)
       if (not data.realm) then
           data.realm = GetRealmName()
       end
-      data.expired = time() + 3
+      data.expired = time() + 5
       inspecting = data
       LibEvent:trigger("UNIT_INSPECT_STARTED", data)
   end
@@ -264,7 +264,7 @@ LibEvent:attachEvent("INSPECT_READY", function(self, guid)
         expired   = GetTime() + 4,
         data      = guids[guid],
         onTimeout = function(self) inspecting = false end,
-        onExecute = function(self)         
+        onExecute = function(self) 
             local count, ilevel, _, weaponLevel, isArtifact, maxLevel = LibItemInfo:GetUnitItemLevel(self.data.unit)
             if (ilevel <= 0) then return true end
             if (count == 0 and ilevel > 0) then
@@ -285,7 +285,7 @@ LibEvent:attachEvent("INSPECT_READY", function(self, guid)
     })
 end)
 
-LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)    
+LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data) 
     if (data.guid == UnitGUID("mouseover")) then
         AppendToGameTooltip(data.guid, floor(data.ilevel), data.spec, data.weaponLevel, data.isArtifact)
     end

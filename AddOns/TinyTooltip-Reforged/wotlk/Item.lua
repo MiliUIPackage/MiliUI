@@ -55,6 +55,7 @@ LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
     -- before legion 7.1.0 client
     if (clientToc <= 70100) then
       if (not self) then return end
+      if (not addon.db.general.showItemLevel) then return end
       local iName, iLink, iRare, ilvl = GetItemInfo(link)
       local ilvlLine, _, lineRight = FindLine(tip, "Item Level")
       local ilvlText = format("%s |cffffffff%d|r", "Item Level", tonumber(ilvl))
@@ -83,8 +84,6 @@ hooksecurefunc("EmbeddedItemTooltip_OnTooltipSetItem", function(self)
     local r, g, b = self.IconBorder:GetVertexColor()
     ColorBorder(tip, r, g, b)
 end)
-
-
 
 
 

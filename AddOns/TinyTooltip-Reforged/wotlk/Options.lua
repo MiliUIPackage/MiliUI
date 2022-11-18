@@ -539,6 +539,7 @@ local options = {
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor"} },
         { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
+	{ keystring = "general.showItemLevel",	    type = "checkbox" },
         { keystring = "quest.coloredQuestBorder",   type = "checkbox" },
         { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },

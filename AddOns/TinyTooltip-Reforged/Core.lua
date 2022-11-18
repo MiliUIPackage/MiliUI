@@ -881,7 +881,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
         if (not self.GetUnit) then return end -- 暫時修正
 		local unit = select(2, self:GetUnit())
-        if (not unit) then return end
+        if (not unit) then return end	   
         LibEvent:trigger("tooltip:unit", self, unit)
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
