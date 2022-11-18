@@ -1,7 +1,15 @@
+<!--
+Filename: d:\Dev\WoW Addons\Cell\Widgets\TooltipTemplate copy.xml
+Path: d:\Dev\WoW Addons\Cell\Widgets
+Created Date: Wednesday, November 16th 2022, 6:11:39 am
+Author: enderneko
+
+Copyright (c) 2022 Your Company
+-->
 <Ui 
     xmlns="http://www.blizzard.com/wow/ui/" 
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ..\FrameXML\UI.xsd">
-    <GameTooltip name="CellTooltipTemplate" mixin="GameTooltipDataMixin" frameStrata="TOOLTIP" clampedToScreen="true" hidden="true" virtual="true">
+    <GameTooltip name="CellTooltipTemplate" frameStrata="TOOLTIP" clampedToScreen="true" hidden="true" virtual="true">
         <Layers>
             <Layer level="ARTWORK">
                 <FontString name="$parentTextLeft1" justifyH="LEFT" inherits="CELL_FONT_WIDGET_TITLE" hidden="true">

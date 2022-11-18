@@ -285,8 +285,8 @@ end
 
 if Cell.isAsian then
     function F:FormatNumber(n)
-        if abs(n) >= 100002000 then
-            return string.format("%.3f"..symbol_1B, n/100002000)
+        if abs(n) >= 100000000 then
+            return string.format("%.3f"..symbol_1B, n/100000000)
         elseif abs(n) >= 10000 then
             return string.format("%.2f"..symbol_10K, n/10000)
         elseif abs(n) >= 1000 then
@@ -297,10 +297,10 @@ if Cell.isAsian then
     end
 else
     function F:FormatNumber(n)
-        if abs(n) >= 1000020000 then
-            return string.format("%.3fB", n/1000020000)
-        elseif abs(n) >= 1000020 then
-            return string.format("%.2fM", n/1000020)
+        if abs(n) >= 1000000000 then
+            return string.format("%.3fB", n/1000000000)
+        elseif abs(n) >= 1000000 then
+            return string.format("%.2fM", n/1000000)
         elseif abs(n) >= 1000 then
             return string.format("%.1fK", n/1000)
         else
@@ -1330,20 +1330,21 @@ end
 --     end
 -- end
 
+-- https://wowpedia.fandom.com/wiki/Patch_10.0.2/API_changes
 local lines = {}
 function F:GetSpellInfo(spellId)
     wipe(lines)
-
+    
     local name, _, icon = GetSpellInfo(spellId)
     if not name then return end
-    
-    CellScanningTooltip:ClearLines()
-    CellScanningTooltip:SetHyperlink("spell:"..spellId)
-    for i = 2, min(5, CellScanningTooltip:NumLines()) do
-        tinsert(lines, _G["CellScanningTooltipTextLeft"..i]:GetText())
+
+    local data = C_TooltipInfo.GetSpellByID(spellId)
+    for i, line in ipairs(data.lines) do
+        TooltipUtil.SurfaceArgs(line)
+        -- line.leftText
+        -- line.rightText
     end
-    -- CellScanningTooltip:SetOwner(CellOptionsFrame_RaidDebuffsTab, "ANCHOR_RIGHT")
-    -- CellScanningTooltip:Show()
+
     return name, icon, table.concat(lines, "\n")
 end
 

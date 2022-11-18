@@ -1,14 +1,8 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r138-release...7a05452b635055c8b9796250ffbe720376f24a58)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r141-release...b816fb992b265d890a8e303c57789f4f008f8423)
 
-- Fix aura tooltips
-- Update debuffBlacklist
-- Update evoker spells
-- Update slash commands
-- Update buff tracker
-- Update phaseReason color
-- Update spotlight related functions
-- Update translators
-- Update zhTW koKR
-- Update indicator preview
+- Make options frame openable in combat
+- Update koKR
 - Update patrons
-- [snippet] RepointPartyAndArenaPets
+- [snippet] IndicatorIcons_CustomColor
+- [snippet] ShieldAndAbsorb_CustomTexture
+- [snippet] fix big debuffs

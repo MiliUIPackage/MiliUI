@@ -1,6 +1,6 @@
 ## Interface: 30400
 ## Title: Cell
-## Version: r139-release
+## Version: r142-release
 ## Author: 篠崎
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
@@ -21,7 +21,7 @@ Core_Wrath.lua
 Utils.lua
 Revise.lua
 Comm.lua
-Widgets\LoadWidgets.xml
+Widgets\LoadWidgets_Wrath.xml
 Defaults\LoadDefaults_Wrath.xml
 
 HideBlizzard.lua
@@ -46,6 +46,7 @@ RaidFrame\Groups\SpotlightFrame.lua
 
 Tools\LoadTools_Wrath.xml
 RaidDebuffs\ExpansionData.lua
+Patrons.lua
 Modules\LoadModules_Wrath.xml
 RaidDebuffs\LoadRaidDebuffs_Wrath.xml
 

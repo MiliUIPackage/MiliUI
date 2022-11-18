@@ -18,13 +18,12 @@ local function RegisterDragForOptionsFrame(frame)
     frame:RegisterForDrag("LeftButton")
     frame:SetScript("OnDragStart", function()
         optionsFrame:StartMoving()
+        optionsFrame:SetUserPlaced(false)
     end)
     frame:SetScript("OnDragStop", function()
         optionsFrame:StopMovingOrSizing()
         P:PixelPerfectPoint(optionsFrame)
-        -- optionsFrame:ClearAllPoints()
-        -- optionsFrame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", optionsFrame:GetLeft(), optionsFrame:GetTop())
-        -- print( optionsFrame:GetLeft(), optionsFrame:GetTop())
+        P:SavePosition(optionsFrame, CellDB["optionsFramePosition"])
     end)
 end
 
@@ -46,7 +45,7 @@ local function CreateTabButtons()
     closeBtn:SetScript("OnClick", function()
         optionsFrame:Hide()
     end)
-    
+
     -- line 1
     layoutsBtn:SetPoint("BOTTOMLEFT", optionsFrame, "TOPLEFT", 0, P:Scale(-1))
     indicatorsBtn:SetPoint("BOTTOMLEFT", layoutsBtn, "BOTTOMRIGHT", P:Scale(-1), 0)
@@ -106,11 +105,6 @@ end
 -------------------------------------------------
 local init
 function F:ShowOptionsFrame()
-    if InCombatLockdown() then
-        F:Print(L["Can't change options in combat."])
-        return
-    end
-    
     if not init then
         init = true
         P:Resize(optionsFrame)
@@ -127,7 +121,9 @@ function F:ShowOptionsFrame()
         generalBtn:Click()
     end
     
-    P:PixelPerfectPoint(optionsFrame)
+    if not P:LoadPosition(optionsFrame, CellDB["optionsFramePosition"]) then
+        P:PixelPerfectPoint(optionsFrame)
+    end
     optionsFrame:Show()
 end
 
@@ -140,14 +136,9 @@ optionsFrame:SetScript("OnHide", function()
     end
 end)
 
-optionsFrame:SetScript("OnShow", function()
-    P:PixelPerfectPoint(optionsFrame)
-end)
-
-optionsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
-optionsFrame:SetScript("OnEvent", function()
-    optionsFrame:Hide()
-end)
+-- optionsFrame:SetScript("OnShow", function()
+--     P:PixelPerfectPoint(optionsFrame)
+-- end)
 
 -- for Raid Debuffs import
 function F:ShowRaidDebuffsTab()
@@ -160,3 +151,51 @@ function F:ShowLayousTab()
     optionsFrame:Show()
     layoutsBtn:Click()
 end
+
+-------------------------------------------------
+-- InCombatLockdown
+-------------------------------------------------
+local protectedTabs = {}
+function F:ApplyCombatFunctionToTab(tab)
+    tinsert(protectedTabs, tab)
+    Cell:CreateCombatMask(tab)
+    
+    if InCombatLockdown() then
+        tab.combatMask:Show()
+    end
+
+    tab:HookScript("OnShow", function()
+        if InCombatLockdown() then
+            tab.combatMask:Show()
+        end
+    end)
+end
+
+local protectedWidgets = {}
+function F:ApplyCombatFunctionToWidget(widget)
+    tinsert(protectedWidgets, widget)
+
+    if InCombatLockdown() then
+        widget:SetEnabled(false)
+    end
+end
+
+optionsFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
+optionsFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+optionsFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_REGEN_DISABLED" then
+        for _, f in pairs(protectedTabs) do
+            f.combatMask:Show()
+        end
+        for _, w in pairs(protectedWidgets) do
+            w:SetEnabled(false)
+        end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        for _, f in pairs(protectedTabs) do
+            f.combatMask:Hide()
+        end
+        for _, w in pairs(protectedWidgets) do
+            w:SetEnabled(true)
+        end
+    end
+end)

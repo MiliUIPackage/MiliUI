@@ -35,7 +35,7 @@ L["Aggro (blink)"] = "어그로(반짝임)"
 L["Aggro (border)"] = "어그로(테두리)"
 L["all"] = "모두"
 L["ALL"] = "모두"
-L["All Bosses"] = "모든 보스"
+L["All Bosses"] = "모든 우두머리"
 L["All Cell settings will be overwritten!"] = "모든 Cell 설정을 덮어씁니다!"
 L["All indicators of %s will be replaced with those in %s"] = "%s의 모든 표시기는 %s의 표시기로 대체됩니다."
 L["Alpha"] = "투명도"
@@ -73,8 +73,7 @@ L["BG 16-40"] = "전장 16-40"
 --[[ L["Big Debuffs"] = "Big Debuffs"--]] 
 L["Blizzard Frames"] = "블리자드 창"
 L["Border"] = "테두리"
---[[Translation missing --]]
---[[ L["Boss Name"] = "Boss Name"--]] 
+L["Boss Name"] = "우두머리 이름"
 L["Both"] = "둘다"
 L["BOTTOM"] = "하단"
 L["BOTTOMLEFT"] = "좌측 하단"
@@ -95,17 +94,14 @@ L["Button5"] = "5번 버튼"
 --[[ L["C"] = "Class Talent"--]] 
 --[[Translation missing --]]
 --[[ L["Cancel"] = "Cancel"--]] 
-L["Can't change options in combat."] = "전투 중 옵션을 바꿀 수 없습니다."
+L["Can't change options in combat"] = "전투 중 옵션을 바꿀 수 없습니다."
 L["castByMe"] = "자신이 시전한 강화 효과만"
---[[Translation missing --]]
---[[ L["Cell will report all deaths during a raid encounter."] = "Cell will report all deaths during a raid encounter."--]] 
---[[Translation missing --]]
---[[ L["Cell will report first %d deaths during a raid encounter."] = "Cell will report first %d deaths during a raid encounter."--]] 
+L["Cell will report all deaths during a raid encounter."] = "Cell은 공격대 교전 중 모든 죽음을 보고합니다."
+L["Cell will report first %d deaths during a raid encounter."] = "Cell은 공격대 교전 중 처음 %d명의 죽음을 보고합니다."
 L["CENTER"] = "중앙"
 --[[Translation missing --]]
 --[[ L["Changelogs"] = "Changelogs"--]] 
---[[Translation missing --]]
---[[ L["Check all visible enemy nameplates. Battleground/Arena only."] = "Check all visible enemy nameplates. Battleground/Arena only."--]] 
+L["Check all visible enemy nameplates. Battleground/Arena only."] = "보이는 모든 적 이름표를 확인합니다. 전장/투기장 전용."
 --[[Translation missing --]]
 --[[ L["Check If Exists"] = "Check If Exists"--]] 
 --[[Translation missing --]]
@@ -118,13 +114,11 @@ L["Class Color (dark)"] = "직업 색상 (어둡게)"
 --[[ L["Clear"] = "Clear"--]] 
 --[[Translation missing --]]
 --[[ L["cleuAurasTips"] = "Check CLEU events for invisible auras"--]] 
---[[Translation missing --]]
---[[ L["Click to preview"] = "Click to preview"--]] 
+L["Click to preview"] = "클릭하여 미리보기"
 L["Click-Castings"] = "클릭-주문 시전"
 L["clickcastingsHints"] = "좌클릭: 편집\n우클릭: 삭제"
 L["Close"] = "닫기"
---[[Translation missing --]]
---[[ L["Code Snippets"] = "Code Snippets"--]] 
+L["Code Snippets"] = "코드 스니핏"
 L["Color"] = "색상"
 --[[Translation missing --]]
 --[[ L["Color Duration Text"] = "Color Duration Text"--]] 
@@ -133,8 +127,7 @@ L["Condition"] = "조건"
 L["Confirm"] = "확인"
 --[[Translation missing --]]
 --[[ L["Conflicts Detected!"] = "Conflicts Detected!"--]] 
---[[Translation missing --]]
---[[ L["Consumables"] = "Consumables"--]] 
+L["Consumables"] = "소모품"
 --[[Translation missing --]]
 --[[ L["Contains"] = "Contains"--]] 
 L["Copy"] = "복사"
@@ -146,10 +139,8 @@ L["Create"] = "생성"
 L["Create new debuff (id)"] = "새로운 약화 효과 생성 (ID)"
 L["Create new indicator"] = "새로운 지시기 생성"
 L["Create new layout"] = "새로운 배치 생성"
---[[Translation missing --]]
---[[ L["Current"] = " Current"--]] 
---[[Translation missing --]]
---[[ L["Current Boss"] = "Current Boss"--]] 
+L["Current"] = "현재"
+L["Current Boss"] = "현재 우두머리"
 L["Current Profile"] = "현재 프로필"
 L["Current Season"] = "현재 시즌"
 --[[Translation missing --]]
@@ -175,11 +166,9 @@ L["Debuff Filter (blacklist)"] = "약화 효과 필터 (차단 목록)"
 L["Debuff List"] = "약화 효과 목록"
 L["Debuff Type"] = "약화 효과 유형"
 L["Debuffs"] = "약화 효과"
---[[Translation missing --]]
---[[ L["Debug Mode"] = "Debug Mode"--]] 
+L["Debug Mode"] = "디버그 모드"
 L["DECLINED"] = "거부"
---[[Translation missing --]]
---[[ L["Default layout"] = "Default layout"--]] 
+L["Default layout"] = "기본 배치"
 L["Defensive Cooldowns"] = "방어 재사용 시간"
 L["Delete"] = "삭제"
 L["Delete debuff?"] = "약화 효과 삭제?"
@@ -216,8 +205,7 @@ L["Enabled"] = "사용"
 L["enableHighlight"] = "강조 사용"
 L["Enter spell id"] = "주문 ID 입력"
 L["Enter: apply\nESC: discard"] = "Enter: 적용 ESC: 취소"
---[[Translation missing --]]
---[[ L["Entire"] = "Entire"--]] 
+L["Entire"] = "전체"
 --[[Translation missing --]]
 --[[ L["Error"] = "Error"--]] 
 L["Export"] = "내보내기"
@@ -249,18 +237,14 @@ L["Frequency"] = "빈도"
 --[[ L["From: "] = "From: "--]] 
 L["General"] = "일반"
 L["GHOST"] = "유령"
---[[Translation missing --]]
---[[ L["Glow"] = "Glow"--]] 
-L["Glow Color"] = "Glow 색상"
---[[Translation missing --]]
---[[ L["Glow Options"] = "Glow Options"--]] 
-L["Glow Type"] = "Glow 형태"
+L["Glow"] = "반짝임"
+L["Glow Color"] = "반짝임 색상"
+L["Glow Options"] = "반짝임 옵션"
+L["Glow Type"] = "반짝임 유형"
 --[[Translation missing --]]
 --[[ L["Glow unit button when a group member sends a %s request"] = "Glow unit button when a group member sends a %s request"--]] 
---[[Translation missing --]]
---[[ L["Glows"] = "Glows"--]] 
---[[Translation missing --]]
---[[ L["Gradient"] = "Gradient"--]] 
+L["Glows"] = "반짝임"
+L["Gradient"] = "그러데이션"
 L["Group Arrangement"] = "그룹 배치"
 L["Group Columns"] = "그룹 열"
 L["Group Filter"] = "그룹 필터"
@@ -285,8 +269,7 @@ L["Hide Blizzard Raid"] = "블리자드 공격대 숨기기"
 --[[Translation missing --]]
 --[[ L["hideDamager"] = "Hide Damager"--]] 
 L["hideFull"] = "전체 숨김"
---[[Translation missing --]]
---[[ L["HIGH CPU USAGE"] = "HIGH CPU USAGE"--]] 
+L["HIGH CPU USAGE"] = "높은 CPU 사용량"
 L["Highlight Size"] = "강조 크기"
 L["Highlight Type"] = "강조 유형"
 L["Horizontal"] = "가로"
@@ -294,8 +277,7 @@ L["Horizontal"] = "가로"
 --[[ L["Horizontal Gradient"] = "Horizontal Gradient"--]] 
 L["Icon"] = "아이콘"
 L["Icons"] = "아이콘들"
---[[Translation missing --]]
---[[ L["IDs separated by whitespaces"] = "IDs separated by whitespaces"--]] 
+L["IDs separated by whitespaces"] = "공백으로 구분된 ID"
 --[[Translation missing --]]
 --[[ L["If disabled, no check, no reply, just glow"] = "If disabled, no check, no reply, just glow"--]] 
 L["Import"] = "가져오기"
@@ -303,12 +285,10 @@ L["Import & Export All Settings"] = "모든 설정 가져오기 & 내보내기"
 L["Include Nickname Settings"] = "별명 설정 포함"
 --[[Translation missing --]]
 --[[ L["Incompatible Version"] = "Incompatible Version"--]] 
---[[Translation missing --]]
---[[ L["Increase Health Update Rate"] = "Increase Health Update Rate"--]] 
+L["Increase Health Update Rate"] = "생명력 업데이트 속도 증가"
 L["Indicator Settings"] = "표시기 설정"
-L["Indicator settings are part of Layout settings which are account-wide."] = "지시기 설정은 계정 전체에 적용되는 배치 설정의 일부입니다."
---[[Translation missing --]]
---[[ L["Indicator Sync"] = "Indicator Sync"--]] 
+L["Indicator settings are part of Layout settings which are account-wide."] = "표시기 설정은 계정 전체 배치 설정의 일부입니다."
+L["Indicator Sync"] = "표시기 동기화"
 L["Indicators"] = "표시기"
 --[[Translation missing --]]
 --[[ L["Inherit: "] = "Inherit:"--]] 
@@ -317,12 +297,10 @@ L["Indicators"] = "표시기"
 L["Instance Name"] = "인스턴스 이름"
 L["Invalid"] = "유효하지 않음"
 L["Invalid spell id."] = "잘못된 주문 ID입니다."
---[[Translation missing --]]
---[[ L["Invalid unit."] = "Invalid unit."--]] 
+L["Invalid unit."] = "잘못된 유닛입니다."
 --[[Translation missing --]]
 --[[ L["INVERT"] = "Invert"--]] 
---[[Translation missing --]]
---[[ L["It will be renamed if this layout name already exists"] = "It will be renamed if this layout name already exists"--]] 
+L["It will be renamed if this layout name already exists"] = "이 배치 이름이 이미 있는 경우 이름이 변경됩니다."
 --[[Translation missing --]]
 --[[ L["Known Spells Only"] = "Known Spells Only"--]] 
 L["Layout"] = "배치"
@@ -353,18 +331,15 @@ L["Middle"] = "가운데 버튼"
 L["Misc"] = "기타"
 --[[Translation missing --]]
 --[[ L["Missing Buff"] = "Missing Buff"--]] 
---[[Translation missing --]]
---[[ L["MODERATE CPU USAGE"] = "MODERATE CPU USAGE"--]] 
+L["MODERATE CPU USAGE"] = "적당한 CPU 사용량"
 L["Monochrome Outline"] = "단색 테두리"
 L["Mouseover Highlight Color"] = "마우스오버 강조 색상"
 L["Mover"] = "이동"
 L["My Nickname"] = "내 별명"
 L["Name Color"] = "이름 색상"
---[[Translation missing --]]
---[[ L["Name or Name-Server"] = "Name or Name-Server"--]] 
+L["Name or Name-Server"] = "이름 혹은 이름-서버"
 L["Name Text"] = "이름 문자"
---[[Translation missing --]]
---[[ L["Name Width / UnitButton Width"] = "Name Width / UnitButton Width"--]] 
+L["Name Width / UnitButton Width"] = "이름 너비 / 유닛버튼 너비"
 L["Name: "] = "이름:"
 --[[Translation missing --]]
 --[[ L["Never"] = "Never"--]] 
@@ -373,8 +348,7 @@ L["New version found (%s). Please visit %s to get the latest version."] = "새�
 L["Nickname"] = "별명"
 L["Nickname Options"] = "별명 옵션"
 L["No"] = "아니요"
---[[Translation missing --]]
---[[ L["No custom debuffs to export!"] = "No custom debuffs to export!"--]] 
+L["No custom debuffs to export!"] = "내보낼 사용자 정의 약화 효과가 없습니다!"
 L["None"] = "없음"
 --[[Translation missing --]]
 --[[ L["NON-EN"] = "NON-EN"--]] 
@@ -389,13 +363,12 @@ L["only in group"] = "그룹에서만"
 --[[Translation missing --]]
 --[[ L["Only one threshold is displayed at a time"] = "Only one threshold is displayed at a time"--]] 
 L["Only show during encounter or in mythic+"] = "신화+ 에서만 표시"
-L["Only show when you have permission to do this"] = "이 작업을 수행 할 권한이 있을경우에만 표시"
+L["Only show when you have permission to do this"] = "이 작업을 수행할 수 있는 권한이 있는 경우에만 표시"
 --[[Translation missing --]]
 --[[ L["Only visible to me"] = "Only visible to me"--]] 
 L["onlyShowTopGlow"] = "Glow만 표시"
 L["Options"] = "옵션"
---[[Translation missing --]]
---[[ L["Options UI Accent Color"] = "Options UI Accent Color"--]] 
+L["Options UI Accent Color"] = "옵션 UI 강조 색상"
 L["Options UI Font Size"] = "UI 글자 크기 옵션"
 L["Orientation"] = "방향"
 --[[Translation missing --]]
@@ -404,8 +377,7 @@ L["Out of Range Alpha"] = "사정거리 밖 투명도"
 L["Outline"] = "테두리"
 --[[Translation missing --]]
 --[[ L["Overshield Texture"] = "Overshield Texture"--]] 
---[[Translation missing --]]
---[[ L["Overwrite Layout"] = "Overwrite Layout"--]] 
+L["Overwrite Layout"] = "배치 덮어쓰기"
 L["P"] = "PvP 특성"
 L["Particles"] = "입자"
 L["Party"] = "파티"
@@ -420,13 +392,11 @@ L["Pixel"] = "픽셀"
 L["Pixel Perfect"] = "완벽한 픽셀"
 --[[Translation missing --]]
 --[[ L["Play Icon Animation When"] = "Play Icon Animation When"--]] 
---[[Translation missing --]]
---[[ L["Power Bar Filters"] = "Power Bar Filters"--]] 
-L["Power Color"] = "파워 색상"
+L["Power Bar Filters"] = "자원 바 필터"
+L["Power Color"] = "자원 색상"
 --[[Translation missing --]]
 --[[ L["Power Color (dark)"] = "Power Color (dark)"--]] 
---[[Translation missing --]]
---[[ L["Power Size"] = "Power Size"--]] 
+L["Power Size"] = "자원 크기"
 L["Press Key to Bind"] = "단축키 지정"
 L["Preview"] = "미리보기"
 --[[Translation missing --]]
@@ -480,7 +450,7 @@ L["Require reload of the UI"] = "UI 재시작 필요"
 L["Reset All"] = "모두 초기화"
 L["reset all Cell settings"] = "모든 Cell 설정 초기화"
 L["reset all Click-Castings"] = "모든 클릭 주문 시전 초기화"
-L["reset all Layouts and Indicators"] = "모든 배치 및 지시기 초기화"
+L["reset all Layouts and Indicators"] = "모든 배치 및 표시기 초기화"
 L["reset all Raid Debuffs"] = "모든 공격대 디버프 초기화"
 L["reset Cell position"] = "Cell 위치 초기화"
 --[[Translation missing --]]
@@ -501,8 +471,7 @@ L["Right"] = "오른쪽 버튼"
 L["RIGHT"] = "우측"
 L["right-to-left"] = "우측에서 좌측으로"
 L["Role Icon"] = "역할 아이콘"
---[[Translation missing --]]
---[[ L["Rotate Texture"] = "Rotate Texture"--]] 
+L["Rotate Texture"] = "텍스처 회전"
 --[[Translation missing --]]
 --[[ L["Rotation"] = "Rotation"--]] 
 --[[Translation missing --]]
@@ -526,8 +495,8 @@ L["Shield Bar"] = "보호막 바"
 --[[ L["Shield Texture"] = "Shield Texture"--]] 
 L["Shift+Enter: add a new line"] = "Shift+Enter: 새로운 라인 추가"
 L["Shine"] = "Shine"
-L["show Cell options frame"] = "Cell 옵션 창"
-L["Show Current Instance"] = "현재 인스턴스만 표시"
+L["show Cell options frame"] = "Cell 옵션 창 표시"
+L["Show Current Instance"] = "현재 인스턴스 표시"
 --[[Translation missing --]]
 --[[ L["Show duration text instead of icon animation"] = "Show duration text instead of icon animation"--]] 
 --[[Translation missing --]]
@@ -541,8 +510,7 @@ L["Show Solo"] = "솔로잉시 표시"
 --[[ L["Show units you care about more in a separate frame"] = "Show units you care about more in a separate frame"--]] 
 L["Show while in a party"] = "파티시에만 표시합니다."
 L["Show while not in a group"] = "솔로잉시 표시합니다."
---[[Translation missing --]]
---[[ L["showDispelTypeIcons"] = "Show Dispel Type Icons"--]] 
+L["showDispelTypeIcons"] = "해제 유형 아이콘 표시"
 L["showDuration"] = "지속시간 표시"
 --[[Translation missing --]]
 --[[ L["showGroupNumber"] = "Show group number"--]] 
@@ -555,8 +523,7 @@ L["Size"] = "크기"
 L["Slash Commands"] = "슬래시 명령어"
 --[[Translation missing --]]
 --[[ L["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event)."--]] 
---[[Translation missing --]]
---[[ L["Solid"] = "Solid"--]] 
+L["Solid"] = "단색"
 L["Solo/Party"] = "솔로잉/파티"
 L["Sort Party By Role"] = "역할별로 파티 정렬"
 L["Special Thanks"] = "특히 감사"
@@ -609,8 +576,7 @@ L["Thickness"] = "두께"
 --[[Translation missing --]]
 --[[ L["This will overwrite your debuffs"] = "This will overwrite your debuffs"--]] 
 L["Timeout"] = "시간 초과"
---[[Translation missing --]]
---[[ L["Tip: Every layout has its own position setting"] = "Tip: Every layout has its own position setting"--]] 
+L["Tip: Every layout has its own position setting"] = "팁: 모든 배치에는 자체 위치 설정이 있습니다."
 --[[Translation missing --]]
 --[[ L["To"] = "To"--]] 
 L["To HealthBar's"] = "생명력 바에서"

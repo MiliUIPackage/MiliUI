@@ -60,6 +60,8 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame.cooldown:SetSwipeColor(r, g, b)
         frame.cooldown:SetCooldown(start, duration)
         frame.duration:Show()
+
+        local fmt
         frame:SetScript("OnUpdate", function()
             local remain = duration-(GetTime()-start)
             if remain < 0 then remain = 0 end
@@ -79,20 +81,20 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
 
             -- format
             if remain > 60 then
-                remain = string.format("%dm", remain/60)
+                fmt, remain = "%dm", remain/60
             else
                 if Cell.vars.iconDurationRoundUp then
-                    remain = math.ceil(remain)
+                    fmt, remain = "%d", ceil(remain)
                 else
                     if remain < Cell.vars.iconDurationDecimal then
-                        remain = string.format("%.1f", remain)
+                        fmt = "%.1f"
                     else
-                        remain = string.format("%d", remain)
+                        fmt = "%d"
                     end
                 end
             end
 
-            frame.duration:SetText(remain)
+            frame.duration:SetFormattedText(fmt, remain)
         end)
     end
 
@@ -226,6 +228,8 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
         if frame.showDuration then
             frame.cooldown:Hide()
             frame.duration:Show()
+
+            local fmt
             frame:SetScript("OnUpdate", function()
                 local remain = duration-(GetTime()-start)
                 if remain < 0 then remain = 0 end
@@ -245,20 +249,20 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
 
                 -- format
                 if remain > 60 then
-                    remain = string.format("%dm", remain/60)
+                    fmt, remain = "%dm", remain/60
                 else
                     if Cell.vars.iconDurationRoundUp then
-                        remain = math.ceil(remain)
+                        fmt, remain = "%d", ceil(remain)
                     else
                         if remain < Cell.vars.iconDurationDecimal then
-                            remain = string.format("%.1f", remain)
+                            fmt = "%.1f"
                         else
-                            remain = string.format("%d", remain)
+                            fmt = "%d"
                         end
                     end
                 end
 
-                frame.duration:SetText(remain)
+                frame.duration:SetFormattedText(fmt, remain)
             end)
         else
             -- init bar values
@@ -458,13 +462,14 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
         frame.text:SetText(count)
         frame:SetScript("OnUpdate", nil)
     else
+        local fmt
         if frame.durationTbl[1] then
             if count == 0 then
-                count = ""
+                fmt, count = "%s", ""
             elseif frame.circledStackNums then
-                count = circled[count] .. " "
+                fmt, count = "%s ", circled[count] .. " "
             else
-                count = count .. " "
+                fmt = "%d "
             end
             frame:SetScript("OnUpdate", function()
                 local remain = duration-(GetTime()-start)
@@ -476,29 +481,34 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
                 elseif remain <= duration * frame.colors[2][4] then
                     frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
                 else
-                    frame.text:SetTextColor(unpack(frame.colors[1]))
+                    frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
                 end
 
                 -- format
+                local fmt2
                 if remain > 60 then
-                    remain = string.format("%dm", remain/60)
+                    fmt2, remain = fmt .. "%dm", remain/60
                 else
                     if frame.durationTbl[2] then
-                        remain = math.ceil(remain)
+                        fmt2, remain = fmt .. "%d", ceil(remain)
                     else
                         if remain < frame.durationTbl[3] then
-                            remain = string.format("%.1f", remain)
+                            fmt2 = fmt .. "%.1f"
                         else
-                            remain = string.format("%d", remain)
+                            fmt2 = fmt .. "%d"
                         end
                     end
                 end
-
-                frame.text:SetText(count..remain)
+                frame.text:SetFormattedText(fmt2, count, remain)
             end)
         else
             count = count == 0 and 1 or count
-            count = frame.circledStackNums and circled[count] or count
+            if frame.circledStackNums then
+                fmt = circled[count]
+                count = nil
+            else
+                fmt = "%d"
+            end
             frame:SetScript("OnUpdate", function()
                 local remain = duration-(GetTime()-start)
                 -- update color
@@ -507,10 +517,10 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
                 elseif remain <= duration * frame.colors[2][4] then
                     frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
                 else
-                    frame.text:SetTextColor(unpack(frame.colors[1]))
+                    frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
                 end
                 -- update text
-                frame.text:SetText(count)
+                frame.text:SetFormattedText(fmt, count)
             end)
 
         end
