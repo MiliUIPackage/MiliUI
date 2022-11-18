@@ -63,7 +63,7 @@ local options = {
     get = function(info) return f.db.global.EMEOptions[info[#info]] end,
     args = {
         description = {
-            name = "所有變更都需要重新載入介面 /reload ! 如果你不想要插件支援某個框架，請取消勾選。",
+            name = "所有變更都需要重新載入介面 /reload ! 如果你不想要插件動到某個框架，請取消勾選。",
             type = "description",
             fontSize = "medium",
             order = 0,
@@ -195,7 +195,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         --
         
         AceConfigRegistry:RegisterOptionsTable("EditModeExpanded", options)
-        AceConfigDialog:AddToBlizOptions("EditModeExpanded", "擴充包")
+        AceConfigDialog:AddToBlizOptions("EditModeExpanded", "編輯模式")
         
         if not IsAddOnLoaded("Dominos") and not IsAddOnLoaded("Bartender4") then -- moving/resizing found to be incompatible
             if db.EMEOptions.menu then
@@ -266,6 +266,11 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if db.EMEOptions.totem then
                 registerTotemFrame(db)
             end
+        elseif class == "MONK" then
+            -- Summon black ox uses totem frame
+            if db.EMEOptions.totem then
+                registerTotemFrame(db)
+            end
         end
         
         
@@ -320,23 +325,21 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.targetCast then
             lib:RegisterFrame(TargetFrameSpellBar, "目標施法條", f.db.global.TargetSpellBar, TargetFrame, "TOPLEFT")
-            hooksecurefunc("Target_Spellbar_AdjustPosition", function(self)
-                if self ~= TargetFrameSpellBar then return end
+            hooksecurefunc(TargetFrameSpellBar, "AdjustPosition", function(self)
                 lib:RepositionFrame(TargetFrameSpellBar)
                 if EditModeManagerFrame.editModeActive then
                     TargetFrameSpellBar:Show()
                 end
             end)
-            TargetFrameSpellBar:HookScript("OnShow", function(self)
-                lib:RepositionFrame(TargetFrameSpellBar)
-            end)
+            --TargetFrameSpellBar:HookScript("OnShow", function(self)
+            --    lib:RepositionFrame(TargetFrameSpellBar)
+            --end)
         end
         
         if db.EMEOptions.focusCast then
             lib:RegisterFrame(FocusFrameSpellBar, "專注目標施法條", f.db.global.FocusSpellBar, FocusFrame, "TOPLEFT")
             lib:SetDontResize(FocusFrameSpellBar)
-            hooksecurefunc("Target_Spellbar_AdjustPosition", function(self)
-                if self ~= FocusFrameSpellBar then return end
+            hooksecurefunc(FocusFrameSpellBar, "AdjustPosition", function(self)
                 lib:RepositionFrame(FocusFrameSpellBar)
                 if EditModeManagerFrame.editModeActive then
                     FocusFrameSpellBar:Show()

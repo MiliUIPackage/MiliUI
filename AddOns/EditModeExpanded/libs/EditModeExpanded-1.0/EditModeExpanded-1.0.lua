@@ -2,8 +2,8 @@
 -- Internal variables
 --
 
-local CURRENT_BUILD = "10.0.0"
-local MAJOR, MINOR = "EditModeExpanded-1.0", 19
+local CURRENT_BUILD = "10.0.2"
+local MAJOR, MINOR = "EditModeExpanded-1.0", 20
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -566,6 +566,7 @@ end)
 hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function(self)
     -- can cause errors if the player is in combat - eg trying to move or show/hide protected frames
     if InCombatLockdown() then return end
+    if not EditModeManagerExpandedFrame then return end -- happens if library is embedded but nothing has been registered
     
     if #frames <= 0 then EditModeManagerExpandedFrame:Hide() end
     for _, frame in ipairs(frames) do
@@ -594,6 +595,7 @@ hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
         print("編輯模式擴充包錯誤: 戰鬥中無法正常結束編輯模式!")
         return
     end
+    if not EditModeManagerExpandedFrame then return end -- happens if library is embedded but nothing has been registered
     
     for _, frame in ipairs(frames) do
         frame:ClearHighlight();
@@ -996,9 +998,7 @@ function lib:RegisterMinimapPinnable(frame)
         local db = framesDB[frame.system]
         if not db.minimap then db.minimap = {} end
         if not db.settings then db.settings = {} end
-        if db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] ~= 1 then
-            db.minimap.hide = true
-        end
+        db.minimap.hide = true
         icon:Hide(name)
     end)
     
