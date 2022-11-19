@@ -8,6 +8,8 @@ local LibItemGem = LibStub:GetLibrary("LibItemGem.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
 local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 
+local GetContainerItemLink = C_Container.GetContainerItemLink
+
 local ARMOR = ARMOR or "Armor"
 local WEAPON = WEAPON or "Weapon"
 local MOUNTS = MOUNTS or "Mount"

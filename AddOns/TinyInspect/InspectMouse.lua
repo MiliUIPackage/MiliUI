@@ -43,7 +43,8 @@ end
 -- GameTooltip:HookScript("OnTooltipSetUnit", function(self)
 TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self) -- 10.0.2 fix
     if (TinyInspectDB and (TinyInspectDB.EnableMouseItemLevel or TinyInspectDB.EnableMouseSpecialization)) then
-        local _, unit = self:GetUnit()
+		if (not self.GetUnit) then return end  -- 10.0.2 fix
+		local _, unit = self:GetUnit()
         if (not unit) then return end
         local guid = UnitGUID(unit)
         if (not guid) then return end

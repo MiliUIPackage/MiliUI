@@ -129,7 +129,7 @@ end
 --獲取容器裏物品裝備等級
 function lib:GetContainerItemLevel(pid, id)
     if (pid < 0) then
-        local link = GetContainerItemLink(pid, id)
+        local link = C_Container.GetContainerItemLink(pid, id)
         return self:GetItemInfo(link)
     end
     local text, level
