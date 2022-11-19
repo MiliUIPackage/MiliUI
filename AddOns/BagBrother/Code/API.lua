@@ -21,8 +21,8 @@ function BagBrother:SaveBag(bag, onlyItems, saveSize)
 	if size > 0 then
 		local items = {}
 		for slot = 1, size do
-			local _, count, _,_,_,_, link = C_Container.GetContainerItemInfo(bag, slot)
-			items[slot] = self:ParseItem(link, count)
+			local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
+			items[slot] = self:ParseItem(containerInfo and containerInfo.hyperlink or nil, containerInfo and containerInfo.stackCount or nil)
 		end
 
 		if not onlyItems then
@@ -51,11 +51,11 @@ function BagBrother:ParseItem(link, count)
 			local focus = GetMouseFocus():GetName()
 
 			if focus == 'TradeSkillSkillIcon' then
-				link = GetTradeSkillItemLink(TradeSkillFrame.selectedSkill)
+				link = C_TradeSkillUI.GetRecipeItemLink(TradeSkillFrame.selectedSkill)
 			else
 				local i = focus:match('TradeSkillReagent(%d+)')
 				if i then
-					link = GetTradeSkillReagentItemLink(TradeSkillFrame.selectedSkill, tonumber(i))
+					link = C_TradeSkillUI.GetRecipeReagentItemLink(TradeSkillFrame.selectedSkill, tonumber(i))
 				end
 			end
 		end

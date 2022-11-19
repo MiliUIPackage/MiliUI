@@ -81,17 +81,6 @@ end
 if CanGuildBankRepair then
 	Lib:RegisterEvent('GUILDBANKFRAME_OPENED', function() Lib.AtGuild = true; Lib:SendMessage('CACHE_GUILD_OPENED') end)
 	Lib:RegisterEvent('GUILDBANKFRAME_CLOSED', function() Lib.AtGuild = false; Lib:SendMessage('CACHE_GUILD_CLOSED') end)
-	-- Seems like Blizz nuked GUILDBANKFRAME_OPENED and GUILDBANKFRAME_CLOSED from orbit with 10.0, so resorting to the below to get guild bank working
-	Lib:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_SHOW', function(_,frame)
-		if frame == Enum.PlayerInteractionType.GuildBanker then
-			Lib.AtGuild = true; Lib:SendMessage('CACHE_GUILD_OPENED')
-		end
-	end)
-	Lib:RegisterEvent('PLAYER_INTERACTION_MANAGER_FRAME_HIDE', function(_,frame)
-		if frame == Enum.PlayerInteractionType.GuildBanker then
-			Lib.AtGuild = false; Lib:SendMessage('CACHE_GUILD_CLOSED')
-		end
-	end)
 end
 
 
@@ -160,6 +149,7 @@ function Lib:IterateOwners()
 				players = Caches:GetPlayers(REALMS[i])
 				guilds = Caches:GetGuilds(REALMS[i])
 				suffix = REALMS[i] ~= REALM and ' - ' .. REALMS[i] or ''
+				--print(players, guilds, suffix)
 			end
 		end
 	end
@@ -246,7 +236,7 @@ function Lib:GetItemInfo(owner, bag, slot)
 	elseif bag == 'vault' then
 		item.id, item.icon, item.locked, item.recent, item.filtered, item.quality = GetVoidItemInfo(1, slot)
 	else
-		item.icon, item.count, item.locked, item.quality, item.readable, item.lootable, item.link, item.filtered, item.worthless, item.id = C_Container.GetContainerItemInfo(bag, slot)
+		item.icon, item.count, item.locked, item.quality, item.readable, item.lootable, item.link, item.filtered, item.worthless, item.id = Lib:GetContainerItemInfo(bag, slot)
 	end
 
 	return Lib:RestoreItemData(item)
@@ -290,6 +280,12 @@ function Lib:PickupItem(owner, bag, slot)
 	end
 end
 
+function Lib:GetContainerItemInfo(bag, slot)
+	local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
+	if not containerInfo then return nil end
+	
+	return containerInfo.iconFileID, containerInfo.stackCount, containerInfo.isLocked, containerInfo.quality, containerInfo.isReadable, containerInfo.hasLoot, containerInfo.hyperlink, containerInfo.isFiltered, containerInfo.hasNoValue, containerInfo.itemID, containerInfo.isBound
+end
 
 --[[ Advanced ]]--
 

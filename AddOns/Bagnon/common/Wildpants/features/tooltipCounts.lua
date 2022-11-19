@@ -15,7 +15,8 @@ local TOTAL = SILVER:format(L.Total)
 
 --[[ Startup ]]--
 
-function TipCounts:OnEnable()
+function TipCounts:OnEnable() --print('TipCounts:OnEnable()')
+	
 	if Addon.sets.tipCount then
 		if not self.Text then
 			self.Text, self.Counts = {}, {}
@@ -29,26 +30,19 @@ function TipCounts:OnEnable()
 	end
 end
 
-function TipCounts:Hook(tip)
-	tip:HookScript('OnTooltipCleared', self.OnClear)
-
+function TipCounts:Hook(tip) --print('TipCounts:Hook(tip)')
+	
+	GameTooltip:HookScript('OnTooltipCleared', self.OnClear)
 	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, self.OnItem)
-	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Quest, self.OnQuest)
-
-	if tip.SetQuestLogItem then
-		hooksecurefunc(tip, 'SetQuestLogItem', self.OnQuest)
-	end
+	hooksecurefunc(GameTooltip, 'SetQuestItem', self.OnQuest)
+	hooksecurefunc(GameTooltip, 'SetQuestLogItem', self.OnQuest)
 
 	if C_TradeSkillUI then
 		if C_TradeSkillUI.GetRecipeFixedReagentItemLink then
-			if tip.SetRecipeReagentItem then
-				hooksecurefunc(tip, 'SetRecipeReagentItem', self.OnTradeSkill('GetRecipeFixedReagentItemLink'))
-			end
+			hooksecurefunc(GameTooltip, 'SetRecipeReagentItem', self.OnTradeSkill('GetRecipeFixedReagentItemLink'))
 		else
-			if tip.SetRecipeReagentItem and tip.SetRecipeResultItem then
-				hooksecurefunc(tip, 'SetRecipeReagentItem', self.OnTradeSkill('GetRecipeReagentItemLink'))
-				hooksecurefunc(tip, 'SetRecipeResultItem', self.OnTradeSkill('GetRecipeItemLink'))
-			end
+			hooksecurefunc(GameTooltip, "SetRecipeReagentItem", self.OnTradeSkill('GetRecipeReagentItemLink'))
+			hooksecurefunc(GameTooltip, "SetRecipeResultItem", self.OnTradeSkill('GetRecipeItemLink'))
 		end
 	end
 end
@@ -56,8 +50,8 @@ end
 
 --[[ Events ]]--
 
-function TipCounts.OnItem(tip)
-	-- local name, link = tip:GetItemInfo()
+function TipCounts.OnItem(tip) --print('function TipCounts.OnItem(tip)', tip)
+	-- local name, link = tip:GetItem()
 	-- if name ~= '' then
 	-- 	TipCounts:AddOwners(tip, link)
 	-- end
@@ -73,18 +67,19 @@ function TipCounts.OnTradeSkill(api)
 	end
 end
 
-function TipCounts.OnClear(tip)
+function TipCounts.OnClear(tip) --print('function TipCounts.OnClear()')
 	tip.__tamedCounts = false
 end
 
 
 --[[ API ]]--
 
-function TipCounts:AddOwners(tip, link)
+function TipCounts:AddOwners(tip, link) --print(GetTime(),'function TipCounts:AddOwners(tip, link)')
 	if not Addon.sets.tipCount or tip.__tamedCounts then
+		--print(GetTime(),'return TipCounts:AddOwners',not Addon.sets.tipCount, tip.__tamedCounts)
 		return
 	end
-
+  
 	local itemID = tonumber(link and GetItemInfo(link) and link:match('item:(%d+)')) -- Blizzard doing craziness when doing GetItemInfo
 	if not itemID or itemID == HEARTHSTONE_ITEM_ID then
 		return

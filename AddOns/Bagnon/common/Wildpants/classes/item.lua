@@ -147,7 +147,7 @@ function Item:OnPreClick(button)
 				for _, bag in ipairs {BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11} do
 					for slot = 1, C_Container.GetContainerNumSlots(bag) do
 						if C_Container.GetContainerItemID(bag, slot) == self.info.id then
-							local free = self.info.stack - select(2, C_Container.GetContainerItemInfo(bag, slot))
+							local free = self.info.stack - select(2, GetContainerItemInfo(bag, slot))
 							if free > 0 then
 								C_Container.SplitContainerItem(self:GetBag(), self:GetID(), min(self.info.count, free))
 								C_Container.PickupContainerItem(bag, slot)
@@ -202,8 +202,8 @@ function Item:Update()
 	self:UpdateSlotColor()
 	self:UpdateBorder()
 
-	SetItemButtonTexture(self, (self.info.icon and self.info.icon.iconFileID) or self:GetEmptyItemIcon())
-	SetItemButtonCount(self, (self.info.icon and self.info.icon.stackCount))
+	SetItemButtonTexture(self, self.info.icon or self:GetEmptyItemIcon())
+	SetItemButtonCount(self, self.info.count)
 end
 
 function Item:UpdateSecondary()
@@ -224,6 +224,7 @@ end
 --[[ Appearance ]]--
 
 function Item:UpdateBorder()
+
 	local id, quality, link = self.info.id, self.info.quality, self.info.link
 	local new = Addon.sets.glowNew and self:IsNew()
 	local quest, questID = self:IsQuestItem()
@@ -237,7 +238,7 @@ function Item:UpdateBorder()
 		elseif Addon.sets.glowUnusable and Unfit:IsItemUnusable(id) then
 			r,g,b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
 		elseif Addon.sets.glowSets and Search:InSet(link) then
-	  	r,g,b = .2, 1, .8
+			r,g,b = .2, 1, .8
 		elseif Addon.sets.glowQuality and quality and quality > 1 then
 			r,g,b = GetItemQualityColor(quality)
 		end
@@ -273,10 +274,10 @@ function Item:UpdateSlotColor()
 	if not self.info.id then
 		local color = Addon.sets.colorSlots and Addon.sets[self:GetSlotType() .. 'Color'] or {}
 		local r,g,b = color[1] or 1, color[2] or 1, color[3] or 1
-
 		SetItemButtonTextureVertexColor(self, r,g,b)
 		self:GetNormalTexture():SetVertexColor(r,g,b)
 	else
+
 		self:GetNormalTexture():SetVertexColor(1,1,1)
 	end
 end
@@ -402,9 +403,9 @@ end
 
 function Item:IsQuestItem()
 	if self.info.id then
-		if not self.info.cached and C_Container.GetContainerItemQuestInfo then
-			local isQuest, questID, isActive = C_Container.GetContainerItemQuestInfo(self:GetBag(), self:GetID())
-			return isQuest, (questID and not isActive)
+		local questInfo = C_Container.GetContainerItemQuestInfo(self:GetBag(), self:GetID())
+		if not self.info.cached and questInfo then
+			return questInfo.isQuestItem, (questInfo.questId and not questInfo.isActive)
 		else
 			return self.info.class == Enum.ItemClass.Questitem or Search:ForQuest(self.info.link)
 		end
@@ -414,8 +415,8 @@ end
 function Item:IsUpgrade()
 	if PawnShouldItemLinkHaveUpgradeArrow then
 		return self:GetItem() and PawnShouldItemLinkHaveUpgradeArrow(self:GetItem()) or false
-	elseif C_Container.IsContainerItemAnUpgrade then
-		return not self:IsCached() and C_Container.IsContainerItemAnUpgrade(self:GetBag(), self:GetID())
+	elseif IsContainerItemAnUpgrade then
+		return not self:IsCached() and IsContainerItemAnUpgrade(self:GetBag(), self:GetID())
 	else
 		return false
 	end
@@ -442,6 +443,8 @@ function Item:IsSlot(bag, slot)
 end
 
 function Item:GetInfo()
+local a = self:GetFrame():GetItemInfo(self:GetBag(), self:GetID())
+
 	return self:GetFrame():GetItemInfo(self:GetBag(), self:GetID())
 end
 

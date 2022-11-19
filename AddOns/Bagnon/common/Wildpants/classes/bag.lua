@@ -13,6 +13,81 @@ Bag.FILTER_ICONS = {'bags-icon-equipment', 'bags-icon-consumables', 'bags-icon-t
 Bag.GetBagID = Bag.GetID
 Bag.GetSlot = Bag.GetID
 
+local ContainerFrameFilterDropDown_OnLoad
+do
+	local function OnBagFilterClicked(bagID, filterID, value)
+		C_Container.SetBagSlotFlag(bagID, filterID, value)
+		ContainerFrameSettingsManager:SetFilterFlag(bagID, filterID, value)
+	end
+
+	local function AddButtons_BagFilters(bagID, level)
+		if not ContainerFrame_CanContainerUseFilterMenu(bagID) then
+			return
+		end
+
+		local info = UIDropDownMenu_CreateInfo()
+		info.text = BAG_FILTER_ASSIGN_TO
+		info.isTitle = 1
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+
+		info = UIDropDownMenu_CreateInfo()
+		local activeBagFilter = ContainerFrameSettingsManager:GetFilterFlag(bagID)
+
+		for i, flag in ContainerFrameUtil_EnumerateBagGearFilters() do
+			info.text = BAG_FILTER_LABELS[flag]
+			info.checked = activeBagFilter == flag
+			info.func = function(_, _, _, value)
+				return OnBagFilterClicked(bagID, flag, not value)
+			end
+
+			UIDropDownMenu_AddButton(info, level)
+		end
+	end
+
+	local function AddButtons_BagCleanup(bagID, level)
+		local info = UIDropDownMenu_CreateInfo()
+
+		info.text = BAG_FILTER_CLEANUP
+		info.isTitle = 1
+		info.notCheckable = 1
+		UIDropDownMenu_AddButton(info, level)
+
+		info = UIDropDownMenu_CreateInfo()
+		info.text = BAG_FILTER_IGNORE
+		info.func = function(_, _, _, value)
+			if bagID == -1 then -- bank
+				C_Container.SetBankAutosortDisabled(not value)
+			elseif bagID == 0 then -- backback
+				C_Container.SetBackpackAutosortDisabled(not value)
+			else
+				C_Container.SetBagSlotFlag(bagID, Enum.BagSlotFlags.DisableAutoSort, not value)
+			end
+		end
+
+		if bagID == -1 then -- bank
+			info.checked = C_Container.GetBankAutosortDisabled()
+		elseif bagID == 0 then -- backpack
+			info.checked = C_Container.GetBackpackAutosortDisabled()
+		else
+			info.checked = C_Container.GetBagSlotFlag(bagID, Enum.BagSlotFlags.DisableAutoSort)
+		end
+
+		UIDropDownMenu_AddButton(info, level)
+	end
+
+	local ContainerFrameFilterDropDown_Initialize = function(self, level, addFiltersForAllBags)
+		local frame = self:GetParent()
+		local bagID = frame:GetID()
+
+		AddButtons_BagFilters(bagID, level)
+		AddButtons_BagCleanup(bagID, level)
+	end
+
+	ContainerFrameFilterDropDown_OnLoad = function(dropdown)
+		UIDropDownMenu_SetInitializeFunction(dropdown, ContainerFrameFilterDropDown_Initialize);
+	end
+end
 
 --[[ Construct ]]--
 
@@ -51,7 +126,10 @@ function Bag:New(parent, id)
 	ct:SetTexture([[Interface\Buttons\CheckButtonHilight]])
 	ct:SetBlendMode('ADD')
 	ct:SetAllPoints()
-
+	
+	bag.FilterDropDown = CreateFrame("Frame", nil, bag, "UIDropDownMenuTemplate")
+	ContainerFrameFilterDropDown_OnLoad(bag.FilterDropDown)
+	
 	bag:SetID(id)
 	bag:SetNormalTexture(nt)
 	bag:SetPushedTexture(pt)
@@ -81,9 +159,10 @@ end
 function Bag:OnClick(button)
 	if button == 'RightButton' and ContainerFrame1FilterDropDown then
 		if not self:IsReagents() and self:GetInfo().owned then
-			ContainerFrame1FilterDropDown:SetParent(self)
+			--ContainerFrame1FilterDropDown:SetParent(self)
 			PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-			ToggleDropDownMenu(1, nil, ContainerFrame1FilterDropDown, self, 0, 0)
+			--ToggleDropDownMenu(1, nil, ContainerFrame1FilterDropDown, self, 0, 0)
+			ToggleDropDownMenu(1, nil, self.FilterDropDown, self, 0, 0);
 		end
 	elseif self:IsPurchasable() then
 		self:Purchase()
@@ -185,9 +264,25 @@ function Bag:Update()
 
 	if not self.cached then
 		local id = self:GetID()
+
 		for i, atlas in ipairs(self.FILTER_ICONS) do
-			local active = C_Container and (id > 0 and C_Container.GetBagSlotFlag(id, 2^i)) or
-										 GetBagSlotFlag and (self:IsBankBag() and GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i) or GetBagSlotFlag(id, i))
+		
+			local a = nil
+			if C_Container then
+				if id > 0 then
+					a = C_Container.GetBagSlotFlag(id, 2^i)
+				end
+			else
+				if C_Container.GetBagSlotFlag then
+					if self:IsBankBag() then print('self:IsBankBag()',self:IsBankBag())
+						a = C_Container.GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i)
+					end
+				else
+					a = C_Container.GetBagSlotFlag(id, i)
+				end
+			end
+			
+			local active = a
 			if active then
 				return self.FilterIcon.Icon:SetAtlas(atlas)
 			end
@@ -196,8 +291,8 @@ function Bag:Update()
 end
 
 function Bag:UpdateCursor()
-	if not self:IsCustomSlot() then
-		if CursorCanGoInSlot(self:GetInfo().slot) then
+	if not self:IsCustomSlot() and self:GetID() >= 0 then
+		if C_PaperDollInfo.CanCursorCanGoInSlot(self:GetID()) then
 			self:LockHighlight()
 		else
 			self:UnlockHighlight()
@@ -287,6 +382,7 @@ function Bag:SetFocus(focus)
 end
 
 function Bag:SetIcon(icon)
+
 	local color = self:GetInfo().owned and 1 or .1
 	SetItemButtonTexture(self, icon)
 	SetItemButtonTextureVertexColor(self, 1, color, color)
