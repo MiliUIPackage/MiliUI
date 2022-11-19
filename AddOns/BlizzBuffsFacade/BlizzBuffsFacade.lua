@@ -2,8 +2,8 @@
 local LMB = LibStub("Masque", true) or (LibMasque and LibMasque("Button"))
 if not LMB then return end
 
-local Buffs = LMB:Group("Blizzard Buffs", "Buffs")
-local Debuffs = LMB:Group("Blizzard Buffs", "Debuffs")
+local Buffs = LMB:Group("暴雪增益/減益", "增益")
+local Debuffs = LMB:Group("暴雪增益/減益", "減益")
 
 if AuraButtonMixin then
 	-- Dragonflight+
@@ -49,7 +49,7 @@ if AuraButtonMixin then
 						-- only debuffs have symbol
 						frame.symbol:SetParent(skinWrapper);
 					end
-					Buffs:AddButton(skinWrapper, {
+					group:AddButton(skinWrapper, {
 						Icon = frame.SkinnedIcon, 
 						Border = frame.Border,
 						Count = frame.count,
