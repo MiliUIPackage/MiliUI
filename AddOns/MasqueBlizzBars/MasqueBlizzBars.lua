@@ -18,128 +18,219 @@ local MSQ = LibStub("Masque")
 -- Title will be used for the group name shown in Masque
 -- Buttons should contain a list of frame names with an integer value
 --  If  0, assume to be a singular button with that name
---  If >0, attempt to loop through frames with the name prefix suffixed with the integer range
+--  If >0, attempt to loop through frames with the name prefix suffixed with
+--  the integer range
+-- State can be used for storing information about special buttons
 local MasqueBlizzBars = {
 	Groups = {
 		ActionBar = {
-			Title = "Action Bar 1",
+			Title = "快捷列 1",
 			Buttons = {
 				ActionButton = NUM_ACTIONBAR_BUTTONS
 			}
 		},
 		MultiBarBottomLeft = {
-			Title = "Action Bar 2",
+			Title = "快捷列 2",
 			Buttons = {
 				MultiBarBottomLeftButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarBottomRight = {
-			Title = "Action Bar 3",
+			Title = "快捷列 3",
 			Buttons = {
 				MultiBarBottomRightButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarLeft = {
-			Title = "Action Bar 4",
+			Title = "快捷列 4",
 			Buttons = {
 				MultiBarLeftButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarRight = {
-			Title = "Action Bar 5",
+			Title = "快捷列 5",
 			Buttons = {
 				MultiBarRightButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		-- Three new bars for 10.0.0
 		MultiBar5 = {
-			Title = "Action Bar 6",
+			Title = "快捷列 6",
 			Buttons = {
 				MultiBar5Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBar6 = {
-			Title = "Action Bar 7",
+			Title = "快捷列 7",
 			Buttons = {
 				MultiBar6Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBar7 = {
-			Title = "Action Bar 8",
+			Title = "快捷列 8",
 			Buttons = {
 				MultiBar7Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		PetBar = {
-			Title = "Pet Bar",
+			Title = "寵物列",
 			Buttons = {
 				PetActionButton = NUM_PET_ACTION_SLOTS
 			}
 		},
 		PossessBar = {
-			Title = "Possess Bar",
+			Title = "控制列",
 			Buttons = {
 				PossessButton = NUM_POSSESS_SLOTS
 			}
 		},
-		-- Since 10.0.0 the value is in the XML frame definition
 		StanceBar = {
-			Title = "Stance Bar",
+			Title = "形態列",
 			Buttons = {
+				-- Moved to XML frame definition in 10.0.0
 				StanceButton = StanceBar.numButtons
 			}
 		},
-		-- SpellFlyout always has one button at UI init time
 		SpellFlyout = {
-			Title = "Spell Flyouts",
+			Title = "彈出式技能選單",
 			Buttons = {
+				-- SpellFlyout has one button at UI init time
 				SpellFlyoutButton = 1
+			}
+		},
+		OverrideActionBar = {
+			Title = "載具列",
+			Buttons = {
+				-- Static value in game code is not a global
+				OverrideActionBarButton = 6
+
+				-- Exit Button loses its icon if skinned, so
+				-- it's not included here
+			}
+		},
+		ExtraAbilityContainer = {
+			Title = "額外技能",
+
+			-- Keep track of the frames that have been processed
+			State = {
+				ExtraActionButton = false,
+				ZoneAbilityButton = {}
+			},
+			Buttons = {
+				-- These buttons don't seem to exist until the
+				-- first time they're used so we'll pick them
+				-- up later
 			}
 		}
 	}
 }
 
+-- Handle events for buttons that get created dynamically by Blizzard
+function MasqueBlizzBars:HandleEvent(event, target)
+	-- Handle ExtraActionButton on Extra ActionBar updates
+	--
+	-- We don't handle the ZAB here because if EAB and ZAB are both
+	-- active, the ZAB will get added after the event fires and get
+	-- missed.
+	if event == "UPDATE_EXTRA_ACTIONBAR" then
+		local bar = MasqueBlizzBars.Groups.ExtraAbilityContainer
+		local eab = ExtraActionButton1
+
+		-- Make sure the EAB exists and hasn't already been added
+		if not bar.State.ExtraActionButton and eab and
+		   eab:GetObjectType() == "CheckButton" then
+			bar.Group:AddButton(eab)
+			bar.State.ExtraActionButton = true
+		end
+	end
+end
+
+-- Spell Flyout buttons are created as needed when a flyout is opened, so
+-- check for any new buttons any time that happens
 function MasqueBlizzBars:SpellFlyout_Toggle(flyoutID, ...)
-	-- Determine how many buttons the flyout will actually have
 	local _, _, numSlots, _ = GetFlyoutInfo(flyoutID)
 	local activeSlots = 0
         for slot = 1, numSlots do
 		local _, _, isKnown, _, _ = GetFlyoutSlotInfo(flyoutID, slot)
 		if (isKnown) then
-			activeSlots = activeSlots+1
+			activeSlots = activeSlots + 1
 		end
 	end
 
 	-- Skin any extra buttons found
-	local flyoutGroup = MasqueBlizzBars.Groups.SpellFlyout
-	local numButtons = flyoutGroup.Buttons.SpellFlyoutButton
+	local bar = MasqueBlizzBars.Groups.SpellFlyout
+	local numButtons = bar.Buttons.SpellFlyoutButton
         if (numButtons < activeSlots) then
-		for i = numButtons+1, activeSlots do
-			flyoutGroup.Group:AddButton(_G["SpellFlyoutButton"..i])
+		for i = numButtons + 1, activeSlots do
+			bar.Group:AddButton(_G["SpellFlyoutButton"..i])
 		end
-		flyoutGroup.Buttons.SpellFlyoutButton = activeSlots
+		bar.Buttons.SpellFlyoutButton = activeSlots
+	end
+end
+
+-- Attempt to adopt the ZoneAbilityButton, which has no name, when Blizzard
+-- tries to update the displayed buttons. We do this here because when
+-- UPDATE_EXTRA_ACTIONBAR is fired and both EAB and ZAB are active, it will
+-- fire too early, the ZAB won't exist, and we'll miss it completely.
+function MasqueBlizzBars:ZoneAbilityFrame_UpdateDisplayedZoneAbilities()
+	local zac = ZoneAbilityFrame.SpellButtonContainer
+	local bar = MasqueBlizzBars.Groups.ExtraAbilityContainer
+
+	for i=1, select("#", zac:GetChildren()) do
+		local zab = select(i, zac:GetChildren())
+
+		-- Try not to add buttons that are already added
+		--
+		-- I'm not sure if the Frame created for the ZAB is used for
+		-- the whole life of the UI so if the frame changes, we'll
+		-- skin whatever replaced it.
+		if zab and zab:GetObjectType() == "Button" then
+			if bar.State.ZoneAbilityButton[i] ~= zab then
+
+				-- Define the regions for this weird button
+				local zabRegions = {
+					Icon = zab.Icon,
+					Count = zab.Count,
+					Cooldown = zab.Cooldown,
+					Normal = zab.NormalTexture,
+					Highlight = zab:GetHighlightTexture()
+				}
+
+				bar.Group:AddButton(zab, zabRegions, "Action")
+				bar.State.ZoneAbilityButton[i] = zab
+			end
+		end
 	end
 end
 
 function MasqueBlizzBars:Init()
-	hooksecurefunc(SpellFlyout, "Toggle", MasqueBlizzBars.SpellFlyout_Toggle)
+	-- Hook functions to skin elusive buttons
+	hooksecurefunc(SpellFlyout, "Toggle",
+	               MasqueBlizzBars.SpellFlyout_Toggle)
 
-	for k, v in pairs(MasqueBlizzBars.Groups) do
-		v.Group = MSQ:Group("Blizzard Action Bars", v.Title)
-	end
+	hooksecurefunc(ZoneAbilityFrame, "UpdateDisplayedZoneAbilities",
+	               MasqueBlizzBars.ZoneAbilityFrame_UpdateDisplayedZoneAbilities)
 
-	MasqueBlizzBars:UpdateActionBars()
-end
+	-- Capture events to skin elusive buttons
+	MasqueBlizzBars.Events = CreateFrame("Frame")
+	MasqueBlizzBars.Events:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
+	MasqueBlizzBars.Events:SetScript("OnEvent", MasqueBlizzBars.HandleEvent)
 
-function MasqueBlizzBars:UpdateActionBars()
-	for k, v in pairs(MasqueBlizzBars.Groups) do
-		for _k, _v in pairs(v.Buttons) do
-			-- If the number is zero this is a singular button name
-			if (_v == 0) then
-				v.Group:AddButton(_G[_k])
+	-- Create groups for each defined button group and add any buttons
+	-- that should exist at this point
+	for _, bar in pairs(MasqueBlizzBars.Groups) do
+		bar.Group = MSQ:Group("暴雪快捷列", bar.Title)
+
+		for button, count in pairs(bar.Buttons) do
+
+			-- If zero, assume button is the actual button name
+			if (count == 0) then
+				bar.Group:AddButton(_G[button])
+
+			-- Otherwise, append the range of numbers to the name
 			else
-				for i = 1, _v do
-					v.Group:AddButton(_G[_k..i])
+				for i = 1, count do
+					bar.Group:AddButton(_G[button..i])
 				end
 			end
 		end

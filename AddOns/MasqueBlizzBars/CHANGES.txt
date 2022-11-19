@@ -1,10 +1,13 @@
-lightweight tag 2b15ef4ed1a3dc6b7c1863731f0fe898de3f7304 2.0.2
+lightweight tag 2e72cd12a971a1b2db3d1cba6f90908e778ed8ca 2.0.3
 Author:	Kevin Stange <kstange@gmail.com>
-Date:	Tue Nov 1 17:53:57 2022 -0500
+Date:	Tue Nov 8 15:10:47 2022 -0600
 
-commit 2b15ef4ed1a3dc6b7c1863731f0fe898de3f7304
+commit 2e72cd12a971a1b2db3d1cba6f90908e778ed8ca
 Author: Kevin Stange <kstange@gmail.com>
-Date:   Tue Nov 1 17:53:57 2022 -0500
+Date:   Tue Nov 8 15:10:47 2022 -0600
 
-    Go back to 2.0.2 for release
+    Update to version 2.0.3
+    
+    Add support for Vehicle Bar, Extra Action Button, and Zone Ability
+    Button.
 
