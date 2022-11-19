@@ -51,6 +51,7 @@ local defaults = {
         ToT = {},
         TargetSpellBar = {},
         FocusSpellBar = {},
+		CompactRaidFrameManager = {},
     }
 }
 
@@ -340,10 +341,10 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterFrame(FocusFrameSpellBar, "專注目標施法條", f.db.global.FocusSpellBar, FocusFrame, "TOPLEFT")
             lib:SetDontResize(FocusFrameSpellBar)
             hooksecurefunc(FocusFrameSpellBar, "AdjustPosition", function(self)
-                lib:RepositionFrame(FocusFrameSpellBar)
                 if EditModeManagerFrame.editModeActive then
                     FocusFrameSpellBar:Show()
                 end
+				lib:RepositionFrame(FocusFrameSpellBar)
             end)
             FocusFrameSpellBar:HookScript("OnShow", function(self)
                 lib:RepositionFrame(FocusFrameSpellBar)
