@@ -18,43 +18,51 @@ local TOTAL = SILVER:format(L.Total)
 function TipCounts:OnEnable() --print('TipCounts:OnEnable()')
 	
 	if Addon.sets.tipCount then
+		GameTooltip:HookScript('OnTooltipCleared', self.OnClear)
+		TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, self.OnItem)
+		hooksecurefunc(GameTooltip, 'SetQuestItem', self.OnQuest)
+		hooksecurefunc(GameTooltip, 'SetQuestLogItem', self.OnQuest)
+
+		if C_TradeSkillUI then
+			if C_TradeSkillUI.GetRecipeFixedReagentItemLink then
+				hooksecurefunc(GameTooltip, 'SetRecipeReagentItem', self.OnTradeSkill('GetRecipeFixedReagentItemLink'))
+			else
+				hooksecurefunc(GameTooltip, "SetRecipeReagentItem", self.OnTradeSkill('GetRecipeReagentItemLink'))
+				hooksecurefunc(GameTooltip, "SetRecipeResultItem", self.OnTradeSkill('GetRecipeItemLink'))
+			end
+		end	
 		if not self.Text then
 			self.Text, self.Counts = {}, {}
-
-			for _,frame in pairs {UIParent:GetChildren()} do
-				if not frame:IsForbidden() and frame:GetObjectType() == 'GameTooltip' then
-					self:Hook(frame)
-				end
-			end
 		end
 	end
 end
-
-function TipCounts:Hook(tip) --print('TipCounts:Hook(tip)')
-	
-	GameTooltip:HookScript('OnTooltipCleared', self.OnClear)
-	TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, self.OnItem)
-	hooksecurefunc(GameTooltip, 'SetQuestItem', self.OnQuest)
-	hooksecurefunc(GameTooltip, 'SetQuestLogItem', self.OnQuest)
-
-	if C_TradeSkillUI then
-		if C_TradeSkillUI.GetRecipeFixedReagentItemLink then
-			hooksecurefunc(GameTooltip, 'SetRecipeReagentItem', self.OnTradeSkill('GetRecipeFixedReagentItemLink'))
-		else
-			hooksecurefunc(GameTooltip, "SetRecipeReagentItem", self.OnTradeSkill('GetRecipeReagentItemLink'))
-			hooksecurefunc(GameTooltip, "SetRecipeResultItem", self.OnTradeSkill('GetRecipeItemLink'))
-		end
-	end
-end
-
 
 --[[ Events ]]--
 
-function TipCounts.OnItem(tip) --print('function TipCounts.OnItem(tip)', tip)
-	-- local name, link = tip:GetItem()
-	-- if name ~= '' then
-	-- 	TipCounts:AddOwners(tip, link)
-	-- end
+function TipCounts.OnItem(tip) 
+	if tip:GetObjectType() ~= 'GameTooltip' then
+		return
+	end
+
+	local name, link
+	if tip == ShoppingTooltip1 or tip == ShoppingTooltip2 then
+		if tip.info and tip.info.tooltipData and tip.info.tooltipData.guid then
+			local guid = tip.info.tooltipData.guid
+			link = C_Item.GetItemLinkByGUID(guid)
+		else
+			name, link = tip:GetItem()
+		end
+	else
+				name, link = tip:GetItem()
+	end
+	
+    if not link then
+		return
+	end
+
+	if name ~= '' then
+		TipCounts:AddOwners(tip, link)
+	end
 end
 
 function TipCounts.OnQuest(tip, type, quest)

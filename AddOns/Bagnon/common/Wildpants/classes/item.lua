@@ -297,13 +297,15 @@ end
 
 function Item:UpdateCooldown()
 	if self.info.id and (not self.info.cached) then
-			local start, duration, enable = C_Container.GetContainerItemCooldown(self:GetBag(), self:GetID())
-			local fade = duration > 0 and 0.4 or 1
-
-			CooldownFrame_Set(self.Cooldown, start, duration, enable)
-			SetItemButtonTextureVertexColor(self, fade,fade,fade)
+		local start, duration, enable = C_Container.GetContainerItemCooldown(self:GetBag(), self:GetID())
+		CooldownFrame_Set(self.Cooldown, start, duration, enable)
+		if duration > 0 and enable == 0 then
+			SetItemButtonTextureVertexColor(self, 0.4, 0.4, 0.4)
+		else
+			SetItemButtonTextureVertexColor(self, 1, 1, 1)
+		end
 	else
-		CooldownFrame_Set(self.Cooldown, 0,0,0)
+		SetItemButtonTextureVertexColor(self, 1, 1, 1)
 		self.Cooldown:Hide()
 	end
 end

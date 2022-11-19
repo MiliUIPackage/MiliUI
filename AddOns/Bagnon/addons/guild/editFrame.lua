@@ -31,7 +31,7 @@ function EditFrame:New(parent)
 	bg:SetPoint('TOPLEFT', f)
 	bg:SetPoint('BOTTOMRIGHT', f.ScrollBar, 0, -16)
 
-	f:SetScript('OnEvent', function(f, event, ...) print(event) f[event](f, ...) end)
+	f:SetScript('OnEvent', function(f, event, ...) f[event](f, ...) end)
 	f:SetScript('OnShow', f.RegisterEvents)
 	f:SetScript('OnHide', f.OnHide)
 	f:SetScrollChild(edit)
