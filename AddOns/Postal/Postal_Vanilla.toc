@@ -1,9 +1,9 @@
 ## Interface: 11403
 ## Title: Postal
-## Version: r531
-## X-Build: 531
-## X-ReleaseDate: 2022-10-28T4:40:13Z
-## X-Revision: 531
+## Version: v3.9.0
+## X-Build: 555
+## X-ReleaseDate: 2022-11-19T16:36:54Z
+## X-Revision: 555
 ## Author: Xinhuan
 ## X-Credits: Ammo, Rabbit, Grennon, Mikk, oscarucb, Jonny aka The_Original_Manbot
 ## X-Category: Mail

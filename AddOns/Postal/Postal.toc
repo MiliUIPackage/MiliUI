@@ -1,13 +1,16 @@
 ## Interface: 100002
 ## Title: Postal
-## Version: r531
-## X-Build: 531
-## X-ReleaseDate: 2022-10-28T4:40:13Z
-## X-Revision: 531
+## Version: v3.9.0
+## X-Build: 555
+## X-ReleaseDate: 2022-11-19T16:36:54Z
+## X-Revision: 555
 ## Author: Xinhuan
 ## X-Credits: Ammo, Rabbit, Grennon, Mikk, oscarucb, Jonny aka The_Original_Manbot
 ## X-Category: Mail
 ## Notes: Postal: Enhanced Mailbox support
+## Notes-ruRU: Postal: Расширенная поддержка почтового ящика
+## Notes-frFR: Postal: améliorations diverses de l'interface d'envoi/réception de courriers.
+## Notes-esES: Postal: soporte mejorado para el buzon
 ## Notes-zhCN: Postal: 增强信箱功能
 ## Title-zhTW: |cFF0099FF[介面]|r 信箱增強
 ## Notes-zhTW: Postal |n強化信箱功能。收件人可以快速地選擇分身，避免寄錯；一次收取所有信件，還有更多功能。
@@ -33,7 +36,7 @@ Localization.lua
 Postal.lua
 
 # Users can comment out any module (or delete the .lua) of any module they do not wish to load
-##Modules\Express.lua
+Modules\Express.lua
 Modules\OpenAll.lua
 Modules\Wire.lua
 Modules\Select.lua
@@ -43,4 +46,4 @@ Modules\BlackBook.lua
 Modules\DoNotWant.lua
 Modules\CarbonCopy.lua
 Modules\Forward.lua
-##Modules\QuickAttach.lua
+Modules\QuickAttach.lua

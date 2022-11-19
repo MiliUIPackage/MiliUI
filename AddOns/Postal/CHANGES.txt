@@ -1,0 +1,14 @@
+------------------------------------------------------------------------
+r555 | Zimzarina | 2022-11-19 16:36:54 +0000 (Sat, 19 Nov 2022) | 1 line
+Changed paths:
+   M /trunk/Postal.toc
+
+Re-enabled Express.lua
+------------------------------------------------------------------------
+r554 | Zimzarina | 2022-11-19 16:35:31 +0000 (Sat, 19 Nov 2022) | 1 line
+Changed paths:
+   M /trunk/Modules/Express.lua
+
+Fixed Express.lua for C_Container namespace changes in 10.0.2 patch
+------------------------------------------------------------------------
+
