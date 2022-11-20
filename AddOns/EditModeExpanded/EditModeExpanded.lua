@@ -36,6 +36,7 @@ local defaults = {
             targetOfTarget = true,
             targetCast = true,
             focusCast = true,
+            compactRaidFrameContainer = true,
         },
         MicroButtonAndBagsBar = {},
         BackpackBar = {},
@@ -51,7 +52,9 @@ local defaults = {
         ToT = {},
         TargetSpellBar = {},
         FocusSpellBar = {},
-		CompactRaidFrameManager = {},
+        CompactRaidFrameContainer = {},
+        CompactRaidFrameManager = {},
+        TalkingHead = {},
     }
 }
 
@@ -59,8 +62,8 @@ local f = CreateFrame("Frame")
 
 local options = {
     type = "group",
-	name = "編輯模式擴充包",
-    set = function(info, value) f.db.global.EMEOptions[info[#info]] = value end,
+    name = "編輯模式擴充包",
+	set = function(info, value) f.db.global.EMEOptions[info[#info]] = value end,
     get = function(info) return f.db.global.EMEOptions[info[#info]] end,
     args = {
         description = {
@@ -132,6 +135,11 @@ local options = {
         focusCast = {
             name = "專注目標施法條",
             desc = "啟用/停用支援專注目標施法條",
+            type = "toggle",
+        },
+        compactRaidFrameContainer = {
+            name = "團隊框架",
+            desc = "啟用/停用團隊框架的額外選項",
             type = "toggle",
         },
     },
@@ -232,6 +240,51 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterFrame(VehicleSeatIndicator, "坐騎座位", db.VehicleSeatIndicator)
             lib:RegisterResizable(VehicleSeatIndicator)
         end
+        
+        if db.EMEOptions.compactRaidFrameContainer then
+            local originalFrameManagerX, originalFrameManagerY = CompactRaidFrameManager:GetRect()
+            lib:RegisterFrame(CompactRaidFrameContainer, "團隊框架", db.CompactRaidFrameContainer)
+            local wasMoved = false
+            lib:RegisterCustomCheckbox(CompactRaidFrameContainer, "隱藏團隊框架管理員", 
+                -- on checked
+                function()
+                    if wasMoved then return end
+                    wasMoved = true
+                    
+                    -- this frame cannot be :Hide() hidden, as other frames are parented to it. Cannot change the parenting either, without causing other problems.
+                    -- So, instead, lets shove it off the screen.
+                    --local x, y = CompactRaidFrameContainer:GetRect()
+                    originalFrameManagerX, originalFrameManagerY = CompactRaidFrameManager:GetRect()
+                    CompactRaidFrameManager:ClearAllPoints()
+                    CompactRaidFrameManager:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", 0, 0)
+                    --CompactRaidFrameContainer:ClearAllPoints()
+                    --CompactRaidFrameContainer:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+                end,
+                
+                -- on unchecked
+                function()
+                    if not wasMoved then return end
+                    wasMoved = false
+                    
+                    local x, y = CompactRaidFrameContainer:GetRect()
+                    CompactRaidFrameManager:ClearAllPoints()
+                    CompactRaidFrameManager:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", originalFrameManagerX, originalFrameManagerY)
+                    CompactRaidFrameContainer:ClearAllPoints()
+                    CompactRaidFrameContainer:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+                end
+            )
+        end
+        
+        --if db.EMEOptions.talkingHead then
+            lib:RegisterFrame(TalkingHeadFrame, "", db.TalkingHead)
+            lib:RegisterHideable(TalkingHeadFrame)
+            TalkingHeadFrame:HookScript("OnEvent", function(...)
+                if lib:IsFrameMarkedHidden(TalkingHeadFrame) then
+                    TalkingHeadFrame:Close()
+                    TalkingHeadFrame:Hide()
+                end
+            end)
+        --end
         
         local class = UnitClassBase("player")
         
@@ -344,7 +397,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 if EditModeManagerFrame.editModeActive then
                     FocusFrameSpellBar:Show()
                 end
-				lib:RepositionFrame(FocusFrameSpellBar)
+                lib:RepositionFrame(FocusFrameSpellBar)
             end)
             FocusFrameSpellBar:HookScript("OnShow", function(self)
                 lib:RepositionFrame(FocusFrameSpellBar)
