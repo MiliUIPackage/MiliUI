@@ -51,6 +51,12 @@ ns.conditions.AuraActive = Class{
 }
 ns.conditions.AuraInactive = Class(Negated(ns.conditions.AuraActive))
 
+ns.conditions.SpellKnown = Class{
+    __parent = Condition,
+    type = 'spell',
+    Matched = function(self) return IsSpellKnown(self.id) end,
+}
+
 ns.conditions.Covenant = Class{
     __parent = RankedCondition,
     type = 'covenant',
@@ -125,6 +131,11 @@ ns.conditions.Item = Class{
         return self.__parent.Label(self)
     end,
     Matched = function(self) return GetItemCount(self.id, true) >= (self.count or 1) end,
+}
+
+ns.conditions.Toy = Class{
+    __parent = ns.conditions.Item,
+    Matched = function(self) return PlayerHasToy(self.id) end,
 }
 
 ns.conditions.QuestComplete = Class{

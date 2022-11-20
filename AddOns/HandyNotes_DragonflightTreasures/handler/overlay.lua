@@ -3,6 +3,8 @@ local _, myfullname = GetAddOnInfo(myname)
 
 local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 
+ns.suppressoverlay = {}
+
 local function hideTextureWithAtlas(atlas, ...)
     for i=1, select("#", ...) do
         local region = select(i, ...)
@@ -184,7 +186,10 @@ function ns.SetupMapOverlay()
         local uiMapID = WorldMapFrame.mapID
         local info = C_Map.GetMapInfo(uiMapID)
         local parentMapID = info and info.parentMapID or 0
-        if ns.db.worldmapoverlay and (ns.points[uiMapID] or ns.points[parentMapID]) then
+        if ns.db.worldmapoverlay and (
+            (ns.points[uiMapID] and not ns.suppressoverlay[uiMapID]) or
+            (ns.points[parentMapID] and not ns.suppressoverlay[parentMapID])
+        ) then
             self:Show()
         else
             self:Hide()

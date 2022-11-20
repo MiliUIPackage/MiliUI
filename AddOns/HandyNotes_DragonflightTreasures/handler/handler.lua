@@ -6,9 +6,10 @@ local HL = LibStub("AceAddon-3.0"):NewAddon(myname, "AceEvent-3.0")
 -- local L = LibStub("AceLocale-3.0"):GetLocale(myname, true)
 ns.HL = HL
 
+local HBD = LibStub("HereBeDragons-2.0")
 local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 
-ns.DEBUG = GetAddOnMetadata(myname, "Version") == 'v3'
+ns.DEBUG = GetAddOnMetadata(myname, "Version") == 'v4'
 
 ns.CLASSIC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 
@@ -159,6 +160,21 @@ function ns.RegisterPoints(zone, points, defaults)
                 ns.points[zone][rcoord] = rpoint
             end 
         end
+        if point.parent then
+            local x, y = HandyNotes:getXY(coord)
+            local mapinfo = C_Map.GetMapInfo(zone)
+            if mapinfo and mapinfo.parentMapID and mapinfo.parentMapID ~= 0 then
+                local pzone = mapinfo.parentMapID
+                local px, py = HBD:TranslateZoneCoordinates(x, y, zone, pzone)
+                if px and py then
+                    if not ns.points[pzone] then
+                        ns.points[pzone] = {}
+                    end
+                    local pcoord = HandyNotes:getCoord(px, py)
+                    ns.points[pzone][pcoord] = point
+                end
+            end
+        end
     end
 end
 function ns.RegisterVignettes(zone, vignettes, defaults)
@@ -216,6 +232,7 @@ ns.playerClassColor = RAID_CLASS_COLORS[playerClass]
 ns.playerName = UnitName("player")
 ns.playerFaction = UnitFactionGroup("player")
 ns.playerClassMask = ({
+    -- this is 2^(classID - 1)
     WARRIOR = 0x1,
     PALADIN = 0x2,
     HUNTER = 0x4,
@@ -228,10 +245,16 @@ ns.playerClassMask = ({
     MONK = 0x200,
     DRUID = 0x400,
     DEMONHUNTER = 0x800,
+    EVOKER = 0x1000,
 })[playerClass] or 0
 
 ---------------------------------------------------------
 -- All the utility code
+
+function ns.GetCriteria(achievement, criteriaid)
+    local retOK, criteriaString, criteriaType, completed, quantity, reqQuantity, charName, flags, assetID, quantityString, criteriaID, eligible = pcall(criteriaid < 100 and GetAchievementCriteriaInfo or GetAchievementCriteriaInfoByID, achievement, criteriaid, true)
+    return criteriaString, criteriaType, completed, quantity, reqQuantity, charName, flags, assetID, quantityString, criteriaID, eligible
+end
 
 local mob_name
 if _G.C_TooltipInfo then
@@ -306,7 +329,7 @@ local function render_string(s, context)
             return CreateAtlasMarkup("questnormal") .. (C_QuestLog.IsQuestFlaggedCompleted(id) and completeColor or incompleteColor):WrapTextInColorCode(id)
         elseif variant == "achievement" then
             if mainid and subid then
-                local criteria = (subid < 40 and GetAchievementCriteriaInfo or GetAchievementCriteriaInfoByID)(mainid, subid)
+                local criteria = ns.GetCriteria(mainid, subid)
                 if criteria then
                     return criteria
                 end
@@ -436,7 +459,7 @@ local function work_out_label(point)
         return (render_string(point.label, point))
     end
     if point.achievement and point.criteria and type(point.criteria) ~= "table" and point.criteria ~= true then
-        local criteria = (point.criteria < 40 and GetAchievementCriteriaInfo or GetAchievementCriteriaInfoByID)(point.achievement, point.criteria)
+        local criteria = ns.GetCriteria(point.achievement, point.criteria)
         if criteria then
             return criteria
         end
@@ -642,8 +665,7 @@ local get_point_progress = function(point)
 end
 
 local function tooltip_criteria(tooltip, achievement, criteriaid, ignore_quantityString)
-    local getinfo = (criteriaid < 40 and GetAchievementCriteriaInfo or GetAchievementCriteriaInfoByID)
-    local criteria, _, complete, _, _, _, flags, _, quantityString = getinfo(achievement, criteriaid, true) -- include hidden
+    local criteria, _, complete, _, _, _, flags, _, quantityString = ns.GetCriteria(achievement, criteriaid) -- include hidden
     if quantityString and not ignore_quantityString then
         local is_progressbar = bit.band(flags, EVALUATION_TREE_FLAG_PROGRESS_BAR) == EVALUATION_TREE_FLAG_PROGRESS_BAR
         local label = (criteria and #criteria > 0 and not is_progressbar) and criteria or PVP_PROGRESS_REWARDS_HEADER
@@ -1031,7 +1053,7 @@ do
         if (level == 1) then
             -- Create the title of the menu
             info.isTitle = 1
-            info.text = myfullname
+            info.text = "地圖標記-巨龍群島"
             info.notCheckable = 1
             LibDD:UIDropDownMenu_AddButton(info, level)
             wipe(info)
@@ -1048,7 +1070,7 @@ do
 
             if TomTom then
                 -- Waypoint menu item
-                info.text = "Create waypoint"
+                info.text = "建立導航"
                 info.notCheckable = 1
                 info.func = createWaypoint
                 info.arg1 = currentZone
@@ -1068,7 +1090,7 @@ do
             end
 
             -- Hide menu item
-            info.text         = "Hide node"
+            info.text         = "隱藏此地點"
             info.notCheckable = 1
             info.func         = hideNode
             info.arg1         = currentZone
@@ -1078,7 +1100,7 @@ do
 
             if point.achievement then
                 -- Waypoint menu item
-                info.text = render_string("Hide all {achievement:" .. point.achievement .. "} in all zones")
+                info.text = render_string("隱藏所有區域的 {achievement:" .. point.achievement .. "}")
                 info.notCheckable = 1
                 info.func = hideAchievement
                 info.arg1 = point.achievement
@@ -1089,7 +1111,7 @@ do
             if point.group then
                 if not ns.hiddenConfig.groupsHiddenByZone then
                     local map = C_Map.GetMapInfo(currentZone)
-                    info.text = "Hide all " .. render_string(ns.groups[point.group] or point.group, point) .. " in " .. (map and map.name or "this zone")
+                    info.text = "隱藏所有在" .. (map and map.name or "此區域") .. "的 " .. render_string(ns.groups[point.group] or point.group, point)
                     info.notCheckable = 1
                     info.func = hideGroupZone
                     info.arg1 = currentZone
@@ -1098,7 +1120,7 @@ do
                     wipe(info)
                 end
                 if not ns.hiddenConfig.groupsHidden then
-                    info.text = "Hide all " .. render_string(ns.groups[point.group] or point.group, point) .. " in all zones"
+                    info.text = "隱藏所有區域的 " .. render_string(ns.groups[point.group] or point.group, point)
                     info.notCheckable = 1
                     info.func = hideGroup
                     info.arg1 = currentZone
@@ -1109,7 +1131,7 @@ do
             end
 
             -- Close menu item
-            info.text         = "Close"
+            info.text         = "關閉"
             info.func         = closeAllDropdowns
             info.notCheckable = 1
             LibDD:UIDropDownMenu_AddButton(info, level)
@@ -1132,9 +1154,14 @@ do
                     LibDD:UIDropDownMenu_SetDisplayMode(HL_Dropdown, "MENU")
                 end
                 LibDD:ToggleDropDownMenu(1, nil, HL_Dropdown, self, 0, 0)
+                return
             end
             if button == "LeftButton" and IsShiftKeyDown() and _G.MAP_PIN_HYPERLINK then
                 sendToChat(button, uiMapID, coord)
+                return
+            end
+            if point.OnClick then
+                point:OnClick(button, uiMapID, coord)
             end
         end
     end
@@ -1189,7 +1216,7 @@ function HL:OnInitialize()
     ns.db = self.db.profile
     ns.hidden = self.db.char.hidden
     -- Initialize our database with HandyNotes
-    HandyNotes:RegisterPluginDB(myname:gsub("HandyNotes_", ""), HLHandler, ns.options)
+    HandyNotes:RegisterPluginDB("巨龍群島", HLHandler, ns.options)
 
     -- Watch for events... but mitigate spammy events by bucketing in Refresh
     self:RegisterEvent("LOOT_CLOSED", "RefreshOnEvent")
