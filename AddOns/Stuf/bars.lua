@@ -670,6 +670,9 @@ do  -- Threat Bar --------------------------------------------------------------
 			ThreatOnUpdate = ThreatOnUpdate or function(this, a1)
 				local dir = this.dir or 1
 				local alp = (this.alp or 0) + a1 * dir
+
+				if this.basealpha + alp > 1 then alp = 1- this.basealpha end --fix
+
 				if (dir == 1 and alp > 0.3) or (dir == -1 and alp < -0.3) then
 					this.dir = dir * -1
 				end

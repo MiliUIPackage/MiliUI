@@ -1,7 +1,7 @@
 -- Stuf by TotalPackage
 -- http://www.wowinterface.com/list.php?skinnerid=27891
 
-local Stuf = CreateFrame("Frame", "Stuf", UIParent, BackdropTemplateMixin and "BackdropTemplate")
+local Stuf = CreateFrame("Frame", "Stuf", UIParent, BackdropTemplateMixin and 'BackdropTemplate')
 
 -- LibSharedMedia-3.0 register media files
 local smed = LibStub("LibSharedMedia-3.0")
@@ -297,14 +297,14 @@ function events.ADDON_LOADED(a1)
 			end
 		end
 
-		InterfaceOptionsFrameOkay:HookScript("OnClick", GroupUpdate)
+		--InterfaceOptionsFrameOkay:HookScript("OnClick", GroupUpdate)
 		Stuf:AddEvent("GROUP_ROSTER_UPDATE", Stuf.CreateParty)
 		Stuf:CreateParty()
 		
 		if ArenaEnemyFrames then
 			Stuf:CreateArena()
 		else
-			hooksecurefunc("Arena_LoadUI", function() if Stuf.CreateArena then Stuf:CreateArena() end end)
+			--hooksecurefunc("Arena_LoadUI", function() if Stuf.CreateArena then Stuf:CreateArena() end end)
 		end
 
 		Stuf:DefaultCastBar("player")
@@ -593,7 +593,7 @@ end
 ------------------------------------------------------------------------------------
 function Stuf:UpdateTextLook(t, font, afont, fontsize, fontflag, hj, vj, tc, sx, sy)
 ------------------------------------------------------------------------------------
-	t:SetFont(afont or Stuf:GetMedia("font", font), fontsize or 12, fontflag ~= "None" and fontflag)
+	t:SetFont(afont or Stuf:GetMedia("font", font), fontsize or 12, fontflag ~= "None" and fontflag or "")
 	t:SetJustifyH(hj or "CENTER")
 	if vj ~= "none" then
 		t:SetJustifyV(vj or "CENTER")
@@ -721,7 +721,7 @@ do  -- color methods = function(parent, element db, 0-1 if hpthreshold, solid co
 end
 
 do  -- statusbar texture orientations
-	local setw, seth, setc = PlayerFrameBackground.SetWidth, PlayerFrameBackground.SetHeight, PlayerFrameBackground.SetTexCoord
+	local setw, seth, setc = PlayerFrame.PlayerFrameContainer.FrameTexture.SetWidth, PlayerFrame.PlayerFrameContainer.FrameTexture.SetHeight, PlayerFrame.PlayerFrameContainer.FrameTexture.SetTexCoord
 	local function verval(val)
 		return ((val > 1) and 1) or ((val <= 0) and 0.00001) or val
 	end
@@ -1242,8 +1242,8 @@ end
 --------------------------------------------------------
 function Stuf:CreateBase(unit, uf, name, dbe, frametype)  -- basic base frame for many elements
 --------------------------------------------------------
-	local f = CreateFrame(frametype or "Frame", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
-	f.border = CreateFrame("Frame", nil, f, BackdropTemplateMixin and "BackdropTemplate")
+	local f = CreateFrame(frametype or "Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
+	f.border = CreateFrame("Frame", nil, f, BackdropTemplateMixin and 'BackdropTemplate')
 	f.border:SetPoint("TOPLEFT", -4, 4)
 	f.border:SetPoint("BOTTOMRIGHT", 4, -4)
 	f.ename = name
@@ -1431,7 +1431,7 @@ function Stuf:CreateUnitFrame(unit, fromshow)  -- creates entire unit frame and 
 	if initial then
 		uf.bg = uf:CreateTexture(nil, "BACKGROUND")
 		uf.bg:SetAllPoints(uf)
-		uf.border = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and "BackdropTemplate")
+		uf.border = CreateFrame("Frame", nil, uf, BackdropTemplateMixin and 'BackdropTemplate')
 		uf.border:SetPoint("TOPLEFT", -5, 5)
 		uf.border:SetPoint("BOTTOMRIGHT", 5, -5)
 		uf:SetScript("OnEnter", MainOnEnter)
