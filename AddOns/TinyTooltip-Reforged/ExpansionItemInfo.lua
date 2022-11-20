@@ -1,9 +1,12 @@
---[[ Warning: Very much under development ]]
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 local addon = TinyTooltipReforged
+local addonName = "TinyTooltip-Reforged"
 
+addon.print = function(...)
+    print(addonName, " ", ...);
+end
 
 function addon:ParseItemLink(itemLink, State)
     if (not itemLink) then return nil end
@@ -29,7 +32,6 @@ function addon:ParseItemLink(itemLink, State)
     end
 end
 
-
 function AddExpansionInfo(tooltip, data)
     if (not addon.db.item.showExtendedItemInformation) then return end
     if (not data) then return end
@@ -38,10 +40,9 @@ function AddExpansionInfo(tooltip, data)
         local itemName, itemLink, itemID = TooltipUtil.GetDisplayedItem(tooltip)
         if (not itemLink) then return end
         local expID = select(15, GetItemInfo(itemLink))
-
-        local itemID, bonusIDList, bonusIDCount = addon:ParseItemLink(itemLink, true)     
+        local itemID, bonusIDList, bonusIDCount = addon:ParseItemLink(itemLink, true)
+        if (not expID) then return end    
         tooltip:AddLine(format(addon.L["|cffffdd22Expansion:|r |cff64cd3c%s|r"], _G['EXPANSION_NAME' .. expID]))
-
     end 
 end
 

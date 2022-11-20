@@ -159,9 +159,9 @@ addon.L = {
     ["TargetBy"] = "被關注",
 	
 	["<Drag element to customize the style>"] = "<拖曳上面的項目來自訂內容排列方式>",
-	["|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r"] = "|cffFFE4E1[浮動提示增強]|r|cff00FFFF 設定檔匯入成功。|r",
-	["|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r"] = "|cffFFE4E1[浮動提示增強]|r|cffFF3333 不是有效的設定檔內容。|r",
-	["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"] = "|cFF00FFFF[浮動提示增強]|r |cffFFE4E1已重置設定。|r",
+	["|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r"] = "|cffFFE4E1[浮動提示資訊增強]|r|cff00FFFF 設定檔匯入成功。|r",
+	["|cffFFE4E1[TinyTooltipReforged]|r|cffFF3333 unvalidated variables. |r"] = "|cffFFE4E1[浮動提示資訊增強]|r|cffFF3333 不是有效的設定檔內容。|r",
+	["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"] = "|cFF00FFFF[浮動提示資訊增強]|r |cffFFE4E1已重置設定。|r",
 	
 	["Tooltip"] = "浮動提示資訊",
 	["TinyTooltip"] = "浮動提示資訊增強",

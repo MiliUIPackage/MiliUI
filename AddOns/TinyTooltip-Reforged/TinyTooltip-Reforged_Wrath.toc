@@ -2,7 +2,7 @@
 ## Title: TinyTooltip-Reforged (WOTLK Classic) |cFF69CCF0by Beezer|r
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.3.3
+## Version: 9.3
 ## SavedVariables: BigTipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip

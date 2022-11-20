@@ -49,8 +49,6 @@ end)
 
 
 -- Targeted By
---[[
---NOT WORKING
 local function GetTargetByString(mouseover, num, tip)
     local count, prefix = 0, IsInRaid() and "raid" or "party"
     local roleIcon, colorCode, name
@@ -60,7 +58,6 @@ local function GetTargetByString(mouseover, num, tip)
         if UnitIsUnit(mouseover, prefix..i.."target") and not UnitIsUnit(prefix..i, "player") then
             count = count + 1
             if (isPlayer or prefix == "party") then
-
                 if (first) then
                     tip:AddLine(format("%s:", addon.L and addon.L.TargetBy or "Targeted By"))
                     first = false
@@ -78,20 +75,21 @@ local function GetTargetByString(mouseover, num, tip)
 end
 
 LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
---    if (tip:IsUnit("mouseover")) then
+    if not pcall(function() tip:IsUnit("mouseover") end) then return end
+
+    -- this doesn't work!
+    if (tip:IsUnit("mouseover")) then
+
+
         local num = GetNumGroupMembers()
-
-
         if (num >= 1) and
           ((addon.db.unit.player.showTargetBy and UnitIsPlayer("mouseover"))
           or (addon.db.unit.npc.showTargetBy and not UnitIsPlayer("mouseover"))) then
-
-
             local text = GetTargetByString("mouseover", num, tip)
             if (text) then
                 tip:AddLine(format("%s: %s", addon.L and addon.L.TargetBy or "Targeted By", text), nil, nil, nil, true)
             end
         end
---   end
+   end
 end)
-]]
+

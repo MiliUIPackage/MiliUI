@@ -550,7 +550,6 @@ local options = {
         { keystring = "unit.player.showTargetBy",         type = "checkbox" },
         { keystring = "unit.player.showModel",            type = "checkbox" },
         { keystring = "unit.player.grayForDead",          type = "checkbox" },
-        -- { keystring = "unit.player.showIlevelAndSpecialization", type = "checkbox" },
         { keystring = "unit.player.coloredBorder",        type = "dropdown", dropdata = widgets.colorDropdata },
         { keystring = "unit.player.background",           type = "dropdownslider", dropdata = widgets.colorDropdata, min = 0, max = 1, step = 0.1 },
         { keystring = "unit.player.anchor",               type = "anchor", dropdata = {"inherit", "default","cursor", "cursorRight", "static"} },

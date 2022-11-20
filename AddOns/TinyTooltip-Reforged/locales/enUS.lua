@@ -1,5 +1,5 @@
 
-local addon = TinyTooltip or select(2, ...)
+local addon = TinyTooltipReforged or select(2, ...)
 
 addon.L = {
     ["general.statusbarOffsetX"] = "Statusbar Margin-X (0:Default)",
@@ -23,19 +23,10 @@ addon.L = {
     ["TargetBy"]                    = "Targeted By",
     ["showTargetBy"]                = "Show Targeted By",
 	
-	["Tooltip"] = "Tooltip",
-	["TinyTooltip"] = "TinyTooltip",
-	["General"] = "General",
-	["Player"] = "Player",
-	["Unit Is Player"] = "Unit Is Player",
-	["Unit Is NPC"] = "Unit Is NPC",
-	["StatusBar"] = "StatusBar",
-	["Font"] = "Font",
-	["Variables"] = "Variables",
-	["Spell"] = "Spell",
-	["Item"] = "Item",
-	["Keystone"] = "Keystone",
-	["Quest"] = "Quest",
-	["Achievement"] = "Achievement",
-	["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"] = "|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r",
+	-- 自行加入
+	["dropdown.healthmaxpercent"] = "health/max (percent)",
+    ["dropdown.healthpercent"]	= "health (percent)",
+    ["dropdown.healthmax"]		= "health/max",
+    ["dropdown.health"]         = "health",
+    ["dropdown.percent"]        = "percent",
 }

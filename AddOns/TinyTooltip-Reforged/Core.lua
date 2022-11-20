@@ -879,18 +879,16 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
 
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
-        if (not self.GetUnit) then return end -- 暫時修正
-		local unit = select(2, self:GetUnit())
+        if not pcall(function() select(2, self:GetUnit()) end) then return end
+        local unit = select(2, self:GetUnit())
         if (not unit) then return end	   
         LibEvent:trigger("tooltip:unit", self, unit)
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
-
--- Not Working for comparison Manager
---        local link = select(2, self:GetItem())
---        if (not link) then return end
---        LibEvent:trigger("tooltip:item", self, link)
-
+        if not pcall(function()  select(2, self:GetItem()) end) then return end       
+        local link = select(2, self:GetItem())
+        if (not link) then return end
+        LibEvent:trigger("tooltip:item", self, link)
     end)
     TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
         LibEvent:trigger("tooltip:spell", self)
@@ -930,6 +928,7 @@ if (SharedTooltip_SetBackdropStyle) then
         end
     end)
 end
+
 
 LibEvent:attachTrigger("TINYTOOLTIP_REFORGED_GENERAL_INIT", function(self)
     LibEvent:trigger("tooltip.style.font.header", GameTooltip, addon.db.general.headerFont, addon.db.general.headerFontSize, addon.db.general.headerFontFlag)

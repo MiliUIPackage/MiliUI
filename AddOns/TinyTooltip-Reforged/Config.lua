@@ -43,7 +43,6 @@ addon.db = {
             showTargetBy = true,
             showModel = true,  
             grayForDead = false, 
-	        showIlevelAndSpecialization = false,
             elements = {
                 raidIcon    = { enable = true, filter = "none" },
                 roleIcon    = { enable = true, filter = "none" },
@@ -107,6 +106,7 @@ addon.db = {
     item = {
         coloredItemBorder = true,
         showItemIcon = true,    
+		showExtendedItemInformation = false,		
     },
     spell = {
         borderColor = {0.133, 0.133, 0.133, 1},
