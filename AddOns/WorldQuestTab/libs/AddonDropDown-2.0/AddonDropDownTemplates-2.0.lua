@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "AddonDropDownTemplates-2.0", 2
+﻿local MAJOR, MINOR = "AddonDropDownTemplates-2.0", 2
 local ADDT, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not ADDT then return end -- No Upgrade needed.
@@ -528,7 +528,7 @@ function frameMixin:OnUpdate(elapsed)
 end
 
 function frameMixin:StartAutoCloseCount()
-	if (self.level and self.level > 1 ) then -- 10.0 fix
+	if (self.level > 1 ) then
 		self.parentFrame:StartAutoCloseCount();
 		return;
 	end

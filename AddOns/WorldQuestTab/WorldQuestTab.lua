@@ -2074,7 +2074,7 @@ function WQT_CoreMixin:OnLoad()
 			WQT_WorldQuestFrame:TriggerCallback("QuestsLoaded")
 		end, addonName)
 	
-	self.dataProvider:RegisterCallback("BufferUpdated", function(progress)
+	self.dataProvider:RegisterCallback("BufferUpdated", function(progress) 
 			if (progress == 0 or progress == 1) then
 				self.ProgressBar:Hide();
 			else
@@ -2285,21 +2285,21 @@ function WQT_CoreMixin:OnLoad()
 		end);
 		
 	LFGListFrame.EntryCreation:HookScript("OnHide", function() 
-			if (not InCombatLockdown()) then
+		if (not InCombatLockdown()) then
 				WQT_GroupSearch:Hide();
 			end
 		end);
 		
 	hooksecurefunc("LFGListUtil_FindQuestGroup", function(questID, isFromGreenEyeButton)
-			if (isFromGreenEyeButton) then
+		if (isFromGreenEyeButton) then
 				WQT_GroupSearch:Hide();
 				WQT_GroupSearch.questId = nil;
 				WQT_GroupSearch.title = nil;
 			end
 		end);
 
-	local LFGParent = LFGListSearchPanelScrollFrameScrollChild;
-	if LFGParent ~= nil then
+	local LFGParent = LFGListFrame.SearchPanel.ScrollBox;
+	if LFGParent and LFGParent.StartGroupButton then
 		LFGParent.StartGroupButton:HookScript("OnClick", function() 
 			-- If we are creating a group because we couldn't find one, show the info on the create frame
 			if InCombatLockdown() then return; end
@@ -2320,7 +2320,6 @@ function WQT_CoreMixin:OnLoad()
 			end
 		end)
 	end
-
 	-- Hook hiding of official pins if we replace them with our own
 	local mapWQProvider = WQT_Utils:GetMapWQProvider();
 	hooksecurefunc(mapWQProvider, "RefreshAllData", function() 
@@ -2483,7 +2482,7 @@ function WQT_CoreMixin:SearchGroup(questInfo)
 		WQT_GroupSearch:SetFrameLevel(LFGListFrame.SearchPanel.SearchBox:GetFrameLevel()+5);
 		WQT_GroupSearch:ClearAllPoints();
 		WQT_GroupSearch:SetPoint("TOPLEFT", LFGListFrame.SearchPanel.SearchBox, "BOTTOMLEFT", -2, -3);
-		WQT_GroupSearch:SetPoint("RIGHT", LFGListFrame.SearchPanel, "RIGHT", -30, 0);
+		WQT_GroupSearch:SetPoint("RIGHT", LFGListFrame.SearchPanel.SearchBox, "RIGHT", -30, 0);
 	
 		WQT_GroupSearch.Text:SetText(_L["FORMAT_GROUP_SEARCH"]:format(id, title));
 		WQT_GroupSearch.downArrow = false;

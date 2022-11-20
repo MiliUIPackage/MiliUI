@@ -1,4 +1,4 @@
- <Ui xmlns="http://www.blizzard.com/wow/ui/"
+﻿ <Ui xmlns="http://www.blizzard.com/wow/ui/"
      xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
      xsi:schemaLocation="http://www.blizzard.com/wow/ui/ ../../FrameXML/UI.xsd">
 
@@ -1210,7 +1210,7 @@
 				self:SetParent(LFGListFrame.SearchPanel.SearchBox);
 				self:SetFrameLevel(LFGListFrame.SearchPanel.SearchBox:GetFrameLevel()+5);
 				self:SetPoint("TOPLEFT", LFGListFrame.SearchPanel.SearchBox, "BOTTOMLEFT", -2, -3);
-				self:SetPoint("RIGHT", LFGListFrame.SearchPanel, "RIGHT", -30, 0);
+				self:SetPoint("RIGHT", LFGListFrame.SearchPanel.SearchBox, "RIGHT", -30, 0);
 			</OnLoad>
 			<OnShow>
 				local height = self.Text:GetHeight();
