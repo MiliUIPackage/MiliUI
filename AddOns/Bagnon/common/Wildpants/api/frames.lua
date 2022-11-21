@@ -60,6 +60,10 @@ function Frames:AreBasicsEnabled()
 end
 
 function Frames:IsEnabled(id)
+	--The guild bank is currently closed.
+	if self:Get(id).addon == 'Bagnon_GuildBank' then
+		return false
+	end
 	if self:Get(id).addon then
 		return GetAddOnEnableState(UnitName('player'), self:Get(id).addon) == 2
 	end

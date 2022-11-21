@@ -149,7 +149,6 @@ function Lib:IterateOwners()
 				players = Caches:GetPlayers(REALMS[i])
 				guilds = Caches:GetGuilds(REALMS[i])
 				suffix = REALMS[i] ~= REALM and ' - ' .. REALMS[i] or ''
-				--print(players, guilds, suffix)
 			end
 		end
 	end
@@ -418,7 +417,7 @@ function Lib:IsBank(bag)
 end
 
 function Lib:IsBankBag(bag)
-  return bag > Lib.NumBags and bag <= (Lib.NumBags + NUM_BANKBAGSLOTS)
+  return bag > Lib.NumBags and bag <= (Lib.NumBags+1 + NUM_BANKBAGSLOTS)
 end
 
 function Lib:IsReagents(bag)

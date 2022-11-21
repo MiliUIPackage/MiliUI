@@ -53,7 +53,7 @@ function Item:Construct()
 	b.Cooldown, b.QuestBorder = _G[name .. 'Cooldown'], _G[name .. 'IconQuestTexture']
 	b.UpdateTooltip = self.UpdateTooltip
 
-	b.newitemglowAnim:SetLooping('NONE')
+	b.newitemglowAnim:SetLooping('REPEAT')
 	b.IconOverlay:SetAtlas('AzeriteIconFrame')
 	b.QuestBorder:SetTexture(TEXTURE_ITEM_QUEST_BANG)
 	b.IconGlow:SetTexture('Interface/Buttons/UI-ActionButton-Border')
@@ -147,7 +147,7 @@ function Item:OnPreClick(button)
 				for _, bag in ipairs {BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11} do
 					for slot = 1, C_Container.GetContainerNumSlots(bag) do
 						if C_Container.GetContainerItemID(bag, slot) == self.info.id then
-							local free = self.info.stack - select(2, GetContainerItemInfo(bag, slot))
+							local free = self.info.stack - (C_Container.GetContainerItemInfo(bag, slot)).stackCount
 							if free > 0 then
 								C_Container.SplitContainerItem(self:GetBag(), self:GetID(), min(self.info.count, free))
 								C_Container.PickupContainerItem(bag, slot)
@@ -264,7 +264,7 @@ function Item:UpdateBorder()
 	self.NewItemTexture:SetAtlas(quality and NEW_ITEM_ATLAS_BY_QUALITY[quality] or 'bags-glow-white')
 	self.NewItemTexture:SetShown(new and not paid)
 
-	self.JunkIcon:SetShown(Addon.sets.glowPoor and quality == 0 and not self.info.worthless)
+	self.JunkIcon:SetShown((Addon.sets.glowPoor and quality == 0 and not self.info.worthless))
 	self.BattlepayItemTexture:SetShown(new and paid)
 	self.QuestBorder:SetShown(questID)
 	self.IconOverlay:SetShown(overlay)

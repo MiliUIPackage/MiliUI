@@ -274,7 +274,7 @@ function Bag:Update()
 				end
 			else
 				if C_Container.GetBagSlotFlag then
-					if self:IsBankBag() then print('self:IsBankBag()',self:IsBankBag())
+					if self:IsBankBag() then
 						a = C_Container.GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i)
 					end
 				else

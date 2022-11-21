@@ -16,8 +16,8 @@ This file is part of BagBrother.
 --]]
 
 local NUM_VAULT_SLOTS = 80 * 2
-local FIRST_BANK_SLOT = 1 + NUM_BAG_SLOTS
-local LAST_BANK_SLOT = NUM_BANKBAGSLOTS + NUM_BAG_SLOTS
+local FIRST_BANK_SLOT = NUM_BAG_SLOTS + NUM_REAGENTBAG_FRAMES + 1					--4 + 1 + 1
+local LAST_BANK_SLOT = NUM_BAG_SLOTS + NUM_REAGENTBAG_FRAMES + 1 + NUM_BANKBAGSLOTS		--4 + 1 + 1 + 7
 
 
 --[[ Continuous Events ]]--

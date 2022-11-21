@@ -127,7 +127,7 @@ function AutoDisplay:RegisterGameEvents()
 	self:OverrideInteraction('MailInfo', 'MAIL_SHOW')
 end
 
-function AutoDisplay:AddInteraction(type, showEvent, hideEvent)
+function AutoDisplay:AddInteraction(type, showEvent, hideEvent) 
 	if type and Addon.sets.display[type:gsub('^.', strlower)]  then
 		if Interactions and Interactions[type] then
 			self.Interact[Interactions[type]] = (showEvent and 0x1) + (hideEvent and 0x2)
