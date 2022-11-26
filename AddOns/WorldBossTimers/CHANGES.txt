@@ -1,0 +1,36 @@
+tag 857918425ec1e9734d1a0887856f484e5be97a65 v1.9.8
+Author:	Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:	Sat Nov 19 08:39:28 2022 +0100
+
+Bug fixes and change to manual removal of timers
+
+commit b4274d291a78c7b2f526ccc3e6c1c59eab825f14
+Author: Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:   Sat Nov 19 08:25:09 2022 +0100
+
+    Bump interface version and wbt version
+
+commit 240b080da2e615056581e35537a3a830899dcca0
+Author: Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:   Sat Nov 19 08:22:39 2022 +0100
+
+    Fix issue with thread-pooled object's SetScript not cleaned up
+
+commit 4437d2c8d9a9bda088e7806428b172d1df6bf201
+Author: Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:   Sun Oct 30 15:38:42 2022 +0100
+
+    Change conditions for timer removal, fixes #80
+
+commit cf38887f136d48aece8c95b3c0708c3610098602
+Author: Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:   Sun Oct 30 15:16:34 2022 +0100
+
+    Refactor and document some GUI code
+
+commit 1b4dbe71594ba1bea86049063877c3d7f9eec63d
+Author: Filip Stenstrom <filip.stenstrom.4488@gmail.com>
+Date:   Sun Oct 30 11:52:44 2022 +0100
+
+    Remove help for unused option, fixes #37
+
