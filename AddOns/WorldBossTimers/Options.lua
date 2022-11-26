@@ -270,14 +270,14 @@ end
 
 ----- Options table -----
 function Options.InitializeOptionsTable()
-    local desc_toggle = "Enable/Disable";
+    local desc_toggle = "啟用/禁用";
 
     Options.optionsTable = {
       type = "group",
       childGroups = "select",
       args = {
         sharing_explanation_header = {
-            name = Util.ColoredString(Util.COLOR_ORANGE, "Hints:"),
+            name = Util.ColoredString(Util.COLOR_ORANGE, "提示:"),
             order = t_cnt:plusplus(),
             type = "description",
             fontSize = "large",
@@ -285,29 +285,28 @@ function Options.InitializeOptionsTable()
         },
         sharing_explanation_body = {
             name = -- Hint_1
-                    "- Press the " .. Util.ColoredString(Util.COLOR_ORANGE, "Req.") ..
-                    " button to request timers from other nearby " ..  Util.ColoredString(Util.COLOR_ORANGE, "WBT") ..
-                    " users. Since 8.2.5 this no longer causes automatic sharing. The other player must manually " ..
-                    " share the timer by using the " .. Util.ColoredString(Util.COLOR_ORANGE, "Share") .. " button.\n" ..
+                    "- 點擊 " .. Util.ColoredString(Util.COLOR_ORANGE, "請求") ..
+                    " 按鈕將發送請求訊息給周圍有使用 " ..  Util.ColoredString(Util.COLOR_ORANGE, "世界頭目計時") ..
+                    " 的玩家。 8.2.5 版本之後沒有自動分享功能，只能請玩家使用" .. Util.ColoredString(Util.COLOR_ORANGE, "分享") .. "按鈕手動分享\n" ..
                     -- Hint_2
-                    "- Click a timer that is shown in " .. Util.ColoredString(Util.COLOR_RED, "red") ..
-                    " to reset that (and only that) timer.",
+                    "- 點擊計時為 " .. Util.ColoredString(Util.COLOR_RED, "紅色") ..
+                    " 的計時條來重製『這個』計時。",
             order = t_cnt:plusplus(),
             type = "description",
             fontSize = "medium",
             width = "full",
         },
         lock = {
-            name = "Lock GUI",
+            name = "鎖定介面",
             order = t_cnt:plusplus(),
-            desc = "Toggle if the GUI should be locked or movable",
+            desc = "切換介面是否鎖定或可以移動。",
             type = "toggle",
             width = "full",
             set = function(info, val) Options.lock:Toggle(); end,
             get = function(info) return Options.lock.get() end,
         },
         show = {
-            name = "Show GUI",
+            name = "顯示介面",
             order = t_cnt:plusplus(),
             desc = desc_toggle,
             type = "toggle",
@@ -316,7 +315,7 @@ function Options.InitializeOptionsTable()
             get = function(info) return Options.show_gui.get(); end,
         },
         show_boss_zone_only = {
-            name = "Only show GUI in boss zones",
+            name = "只在世界頭目地圖顯示介面",
             order = t_cnt:plusplus(),
             desc = desc_toggle,
             type = "toggle",
@@ -325,7 +324,7 @@ function Options.InitializeOptionsTable()
             get = function(info) return Options.show_boss_zone_only.get(); end,
         },
         sound = {
-            name = "Sound",
+            name = "聲音",
             order = t_cnt:plusplus(),
             desc = desc_toggle,
             type = "toggle",
@@ -334,47 +333,47 @@ function Options.InitializeOptionsTable()
             get = function(info) return Options.sound.get(); end,
         },
         cyclic = {
-            name = "Cyclic (show expired)",
+            name = "循環 (顯示過期的)",
             order = t_cnt:plusplus(),
-            desc = "If you missed a kill, the timer will wrap around and will now have a red color",
+            desc = "假如你錯過了一個擊殺機會，計時器將會重新計算，並且以紅色顯示。",
             type = "toggle",
             width = "full",
             set = function(info, val) Options.cyclic:Toggle(); end,
             get = function(info) return Options.cyclic.get(); end,
         },
         multi_realm = {
-            name = "Multi-realm + Warmode",
+            name = "多伺服器 + 戰爭模式",
             order = t_cnt:plusplus(),
-            desc = "Show timers that are not for your current Realm or Warmode",
+            desc = "顯示不在目前伺服器+戰爭模式的其他計時器",
             type = "toggle",
             width = "full",
             set = function(info, val) Options.multi_realm:Toggle(); end,
             get = function(info) return Options.multi_realm.get(); end,
         },
         highlight = {
-            name = "Highlight boss in current zone",
+            name = "當前區域的頭目強調顯示",
             order = t_cnt:plusplus(),
-            desc = "The boss in your current zone will have a different color if your Realm + Warmode matches the timer:\n" ..
-                    Util.ColoredString(Util.COLOR_LIGHTGREEN, "Green") .. " if timer not expired\n" ..
-                    Util.ColoredString(Util.COLOR_YELLOW, "Yellow") .." if timer expired (with Cyclic mode)",
+            desc = "符合目前區域+伺服器+戰爭模式的計時器時間將會使用不同的顏色來強調顯示:\n" ..
+                    Util.ColoredString(Util.COLOR_LIGHTGREEN, "Green") .. "如果計時器有效計時中（未到期）\n" ..
+                    Util.ColoredString(Util.COLOR_YELLOW, "Yellow") .."如果計時器過期 (循環模式下)",
             type = "toggle",
             width = "full",
             set = function(info, val) Options.highlight:Toggle(); end,
             get = function(info) return Options.highlight.get(); end,
         },
         show_saved = {
-            name = "Show if saved",
+            name = "保存進度顯示",
             order = t_cnt:plusplus(),
-            desc = "Appends a colored 'X' (" .. Util.ColoredString(Util.COLOR_RED, "X") .. "/" .. Util.ColoredString(Util.COLOR_GREEN, "X") .. ")" ..
-                    " after the timer if you are saved for the boss.\n" ..
-                    "NOTE: The color of the 'X' has no special meaning, it's just for improved visibility.",
+            desc = "假如你的頭目已有進度，附加一個著色的 'X' (" .. Util.ColoredString(Util.COLOR_RED, "X") .. "/" .. Util.ColoredString(Util.COLOR_GREEN, "X") .. ")" ..
+                    "在計時器後方。\n" ..
+                    "注意: 'X' 的顏色沒有什麼特別的意思，只是方便辨識用。",
             type = "toggle",
             width = "full",
             set = function(info, val) Options.show_saved:Toggle(); end,
             get = function(info) return Options.show_saved.get(); end,
         },
         log_level = {
-            name = "Log level",
+            name = "記錄等級",
             order = t_cnt:plusplus(),
             desc = "Log level",
             type = "select",
@@ -385,7 +384,7 @@ function Options.InitializeOptionsTable()
             get = function(info) return Options.log_level.get(); end,
         },
         spawn_alert_sound = {
-            name = "Spawn alert sound",
+            name = "重生警告音",
             order = t_cnt:plusplus(),
             desc = "Sound alert that plays when boss spawns",
             type = "select",
@@ -396,7 +395,7 @@ function Options.InitializeOptionsTable()
             get = function(info) return Options.spawn_alert_sound.get(); end,
         },
         spawn_alert_sec_before = {
-            name = "Alert sec before spawn",
+            name = "重生前多久播放警告音",
             order = t_cnt:plusplus(),
             desc = "How many seconds before boss spawns that alerts should happen",
             type = "range",

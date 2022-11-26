@@ -1,6 +1,8 @@
 ## Interface: 100002
 ## Title: WorldBossTimers
 ## Notes: Creates timers for world bosses
+## Title-zhTW: |cff4DFF4D[地圖]|r 世界頭目計時
+## Notes-zhTW: WorldBossTimers |n|n世界頭目計時器，方便追蹤頭目重生時間。
 ## Author: Soulstorm
 ## Version: v1.9.8
 ## SavedVariables: WorldBossTimersDB

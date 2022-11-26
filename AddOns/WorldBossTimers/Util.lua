@@ -118,9 +118,9 @@ function Util.FormatTimeSeconds(seconds)
     local mins = math.floor(seconds / 60);
     local secs = math.floor(seconds % 60);
     if mins > 0 then
-        return mins .. "m " .. secs .. "s";
+        return mins .. "分" .. secs .. "秒";
     else
-        return secs .. "s";
+        return secs .. "秒";
     end
 end
 

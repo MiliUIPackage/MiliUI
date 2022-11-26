@@ -88,6 +88,7 @@ end
 
 function KillInfo:SetInitialValues(name)
     self.name                  = name;
+    -- self.name_zhTW             = KillInfo.GetZhTWNameFromName(name);
     self.version               = KillInfo.CURRENT_VERSION;
     self.cyclic                = false;
     self.reset                 = false;
@@ -101,6 +102,10 @@ function KillInfo:SetInitialValues(name)
     self.announce_times        = {1, 2, 3, 10, 30, 1*60, 5*60, 10*60};
     self.has_triggered_respawn = false;
 end
+
+-- function KillInfo:GetZhTWNameFromName(name)
+--     return WBT.BossData.Get(name).name_zhTW
+-- end
 
 function KillInfo:Print(indent)
     print(indent .. "name: "                  .. self.name);
@@ -219,7 +224,7 @@ function KillInfo:GetSpawnTimeAsText()
         if t_lower == nil or t_upper == nil then
             return outdated;
         elseif t_lower < 0 then
-            return "0s" .. RANDOM_DELIM .. Util.FormatTimeSeconds(t_upper)
+            return "0秒" .. RANDOM_DELIM .. Util.FormatTimeSeconds(t_upper)
         else
             return Util.FormatTimeSeconds(t_lower) .. RANDOM_DELIM .. Util.FormatTimeSeconds(t_upper)
         end

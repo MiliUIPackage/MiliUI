@@ -51,6 +51,7 @@ end
 local tracked_bosses = {
     ["Oondasta"] = {
         name = "Oondasta",
+        name_zhTW = "烏達斯塔",
         color = "|cff21ffa3",
         ids = {69161},
         is_saved_fcn = function() return IsSavedWorldBoss(4); end,
@@ -70,6 +71,7 @@ local tracked_bosses = {
     },
     ["Rukhmar"] = {
         name = "Rukhmar",
+        name_zhTW = "魯克馬爾",
         color = "|cfffa6e06",
         ids = {83746},
         is_saved_fcn = function() return IsSavedWorldBoss(9); end,
@@ -89,6 +91,7 @@ local tracked_bosses = {
     },
     ["Galleon"] = {
         name = "Galleon",
+        name_zhTW = "帆船",
         color = "|cffc1f973",
         ids = {62346},
         is_saved_fcn = function() return IsSavedWorldBoss(2); end,
@@ -108,6 +111,7 @@ local tracked_bosses = {
     },
     ["Nalak"] = {
         name = "Nalak",
+        name_zhTW = "納拉卡",
         color = "|cff0081cc",
         ids = {69099},
         is_saved_fcn = function() return IsSavedWorldBoss(3); end,
@@ -127,6 +131,7 @@ local tracked_bosses = {
     },
     ["Sha of Anger"] = {
         name = "Sha of Anger",
+        name_zhTW = "憤怒之煞",
         color = "|cff8a1a9f",
         ids = {60491},
         is_saved_fcn = function() return IsSavedWorldBoss(1); end,
@@ -146,6 +151,7 @@ local tracked_bosses = {
     },
     ["Huolon"] = {
         name = "Huolon",
+        name_zhTW = "霍龍",
         color = "|cfff7f713",
         ids = {73167},
         is_saved_fcn = NeverSaved,
@@ -165,6 +171,7 @@ local tracked_bosses = {
     },
     ["Rustfeather"] = {
         name = "Rustfeather",
+        name_zhTW = "鏽羽",
         color = "|cffffe17d",
         ids = {152182},
         is_saved_fcn = function() return IsSavedDaily(55811); end,
@@ -184,6 +191,7 @@ local tracked_bosses = {
     },
     ["A. Harvester"] = {
         name = "A. Harvester", -- Shortened to keep GUI text to one line.
+        name_zhTW = "蛛網收割者",
         color = "|cffe08748",
         ids = {151934},
         is_saved_fcn = function() return IsSavedDaily(55512); end,
@@ -218,6 +226,7 @@ end
 local function ZandalariWarbringerFromTemplate(zone, map_id, color, perimiter)
     return {
         name = ZWBName(zone),
+        name_zhTW = "贊達拉戰爭使者",
         color = color,
         ids = {69769, 69842, 69841},
         is_saved_fcn = NeverSaved,
@@ -294,4 +303,5 @@ end
 
 for name, data in pairs(tracked_bosses) do
     data.name_colored = data.color .. data.name .. Util.COLOR_DEFAULT;
+    data.name_zhTW_colored = data.color .. data.name_zhTW .. Util.COLOR_DEFAULT;
 end

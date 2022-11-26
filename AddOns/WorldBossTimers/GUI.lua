@@ -24,9 +24,9 @@ local WIDTH_EXTENDED = 240;
 
 -- The sum of the relatives is not 1, because I've had issues with "Flow"
 -- elements sometimes overflowing to next line then.
-local BTN_OPTS_REL_WIDTH  = 30/100;
-local BTN_REQ_REL_WIDTH   = 30/100;
-local BTN_SHARE_REL_WIDTH = 39/100; -- Needs the extra width or name might not show.
+local BTN_OPTS_REL_WIDTH  = 33/100;
+local BTN_REQ_REL_WIDTH   = 33/100;
+local BTN_SHARE_REL_WIDTH = 33/100; -- Needs the extra width or name might not show.
 
 
 --------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ function GUI.GetLabelText(kill_info, all_info)
         prefix = Util.ColoredString(Util.COLOR_DARKGREEN, strsub(kill_info.realm_name_normalized, 0, 3)) .. ":"
                 .. Util.ColoredString(Util.WarmodeColor(kill_info.realm_type), strsub(kill_info.realm_type, 0, 1)) .. ":";
     end
-    return prefix .. WBT.GetColoredBossName(kill_info.name) .. ": " .. WBT.GetSpawnTimeOutput(kill_info);
+    return prefix .. WBT.GetColoredBossNameZhTW(kill_info.name) .. ": " .. WBT.GetSpawnTimeOutput(kill_info);
 end
 
 function GUI:RemoveLabel(guid, label)
@@ -332,7 +332,7 @@ function GUI:NewBasicWindow()
     window:SetWidth(self.width);
     window:SetHeight(self.height);
 
-    window:SetTitle("WorldBossTimers");
+    window:SetTitle("世界頭目計時");
     window:SetLayout("List");
     window:EnableResize(false);
 
@@ -363,17 +363,17 @@ function GUI:New()
 
     self.btn_req = GUI.AceGUI:Create("Button");
     self.btn_req:SetRelativeWidth(BTN_REQ_REL_WIDTH);
-    self.btn_req:SetText("Req.");
+    self.btn_req:SetText("請求");
     self.btn_req:SetCallback("OnClick", WBT.RequestKillData);
 
     self.btn_opts = GUI.AceGUI:Create("Button");
-    self.btn_opts:SetText("/wbt");
+    self.btn_opts:SetText("設定");
     self.btn_opts:SetRelativeWidth(BTN_OPTS_REL_WIDTH);
     self.btn_opts:SetCallback("OnClick", function() WBT.AceConfigDialog:Open(WBT.addon_name); end);
 
     self.btn_share = GUI.AceGUI:Create("Button");
     self.btn_share:SetRelativeWidth(BTN_SHARE_REL_WIDTH);
-    self.btn_share:SetText("Share");
+    self.btn_share:SetText("分享");
     self.btn_share:SetCallback("OnClick", WBT.Functions.AnnounceTimerInChat);
 
     self.btn_container = GUI.AceGUI:Create("SimpleGroup");

@@ -4,7 +4,7 @@
 
 -- addonName, addonTable = ...;
 local _, WBT = ...;
-WBT.addon_name = "WorldBossTimers";
+WBT.addon_name = "世界頭目計時";
 
 
 WBT.Dev = {};
@@ -142,7 +142,7 @@ WBT.defaults = {
         lock = false,
         sound_enabled = true,
         multi_realm = false,
-        show_boss_zone_only = false,
+        show_boss_zone_only = true,
         cyclic = false,
         highlight = false,
         show_saved = false,
@@ -303,6 +303,11 @@ function WBT.GetColoredBossName(name)
 end
 local GetColoredBossName = WBT.GetColoredBossName;
 
+function WBT.GetColoredBossNameZhTW(name)
+    return BossData.Get(name).name_zhTW_colored;
+end
+local GetColoredBossNameZhTW = WBT.GetColoredBossNameZhTW;
+
 local function RegisterEvents()
     boss_death_frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
     boss_combat_frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
@@ -321,7 +326,7 @@ function WBT.ResetBoss(guid)
         kill_info:Reset();
         gui:Update();
         local name = KillInfo.ParseGUID(guid).boss_name;
-        Logger.Info(GetColoredBossName(name) .. " has been reset.");
+        Logger.Info(GetColoredBossNameZhTW(name) .. "已被重置。");
     else
         local cyclic = Util.ColoredString(Util.COLOR_RED, "cyclic");
         WBT:Print("Ctrl-clicking a timer that is " .. cyclic .. " will reset it."
@@ -375,11 +380,11 @@ local function GetSafeSpawnAnnouncerWithCooldown()
         local t_now = GetServerTime();
 
         if not kill_info then
-            Logger.Info("No timer found for current location+realm+warmode.");
+            Logger.Info("目前的區域+伺服器+戰爭模式找不到計時器。");
             return announced;
         end
         if not ((t_last_announce + 1) <= t_now) then
-            Logger.Info("Can only share once per second.");
+            Logger.Info("每一秒鐘只能分享一次。");
             return announced;
         end
 
@@ -389,7 +394,7 @@ local function GetSafeSpawnAnnouncerWithCooldown()
             t_last_announce = t_now;
             announced = true;
         else
-            Logger.Info("Cannot share timer for " .. GetColoredBossName(kill_info.name) .. ":");
+            Logger.Info("無法分享：" .. GetColoredBossNameZhTW(kill_info.name) .. ":");
             Logger.Info(errors);
             return announced;
         end
@@ -476,7 +481,7 @@ local function InitCombatScannerFrame()
 
         local t = GetServerTime();
         if WBT.IsBoss(name) and t > self.t_next then
-            WBT:Print(GetColoredBossName(name) .. " is now engaged in combat!");
+            WBT:Print(GetColoredBossNameZhTW(name) .. "已進入戰鬥!");
             PlaySoundAlertBossCombat(name);
             FlashClientIcon();
             self.t_next = t + time_out;
@@ -572,7 +577,7 @@ function WBT.AceAddon:InitChatParsing()
                         local ignore_cyclic = true;
                         if WBT.IsBoss(name) and not IsDead(guid, ignore_cyclic) then
                             WBT.SetKillInfo(name, t_death);
-                            WBT:Print("Received " .. GetColoredBossName(name) .. " timer from: " .. sender);
+                            WBT:Print("收到 " .. GetColoredBossNameZhTW(name) .. " 的計時資料。 來源: " .. sender);
                         end
                     end
                 end
