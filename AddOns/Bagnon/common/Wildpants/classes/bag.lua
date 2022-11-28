@@ -13,81 +13,6 @@ Bag.FILTER_ICONS = {'bags-icon-equipment', 'bags-icon-consumables', 'bags-icon-t
 Bag.GetBagID = Bag.GetID
 Bag.GetSlot = Bag.GetID
 
-local ContainerFrameFilterDropDown_OnLoad
-do
-	local function OnBagFilterClicked(bagID, filterID, value)
-		C_Container.SetBagSlotFlag(bagID, filterID, value)
-		ContainerFrameSettingsManager:SetFilterFlag(bagID, filterID, value)
-	end
-
-	local function AddButtons_BagFilters(bagID, level)
-		if not ContainerFrame_CanContainerUseFilterMenu(bagID) then
-			return
-		end
-
-		local info = UIDropDownMenu_CreateInfo()
-		info.text = BAG_FILTER_ASSIGN_TO
-		info.isTitle = 1
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-
-		info = UIDropDownMenu_CreateInfo()
-		local activeBagFilter = ContainerFrameSettingsManager:GetFilterFlag(bagID)
-
-		for i, flag in ContainerFrameUtil_EnumerateBagGearFilters() do
-			info.text = BAG_FILTER_LABELS[flag]
-			info.checked = activeBagFilter == flag
-			info.func = function(_, _, _, value)
-				return OnBagFilterClicked(bagID, flag, not value)
-			end
-
-			UIDropDownMenu_AddButton(info, level)
-		end
-	end
-
-	local function AddButtons_BagCleanup(bagID, level)
-		local info = UIDropDownMenu_CreateInfo()
-
-		info.text = BAG_FILTER_CLEANUP
-		info.isTitle = 1
-		info.notCheckable = 1
-		UIDropDownMenu_AddButton(info, level)
-
-		info = UIDropDownMenu_CreateInfo()
-		info.text = BAG_FILTER_IGNORE
-		info.func = function(_, _, _, value)
-			if bagID == -1 then -- bank
-				C_Container.SetBankAutosortDisabled(not value)
-			elseif bagID == 0 then -- backback
-				C_Container.SetBackpackAutosortDisabled(not value)
-			else
-				C_Container.SetBagSlotFlag(bagID, Enum.BagSlotFlags.DisableAutoSort, not value)
-			end
-		end
-
-		if bagID == -1 then -- bank
-			info.checked = C_Container.GetBankAutosortDisabled()
-		elseif bagID == 0 then -- backpack
-			info.checked = C_Container.GetBackpackAutosortDisabled()
-		else
-			info.checked = C_Container.GetBagSlotFlag(bagID, Enum.BagSlotFlags.DisableAutoSort)
-		end
-
-		UIDropDownMenu_AddButton(info, level)
-	end
-
-	local ContainerFrameFilterDropDown_Initialize = function(self, level, addFiltersForAllBags)
-		local frame = self:GetParent()
-		local bagID = frame:GetID()
-
-		AddButtons_BagFilters(bagID, level)
-		AddButtons_BagCleanup(bagID, level)
-	end
-
-	ContainerFrameFilterDropDown_OnLoad = function(dropdown)
-		UIDropDownMenu_SetInitializeFunction(dropdown, ContainerFrameFilterDropDown_Initialize);
-	end
-end
 
 --[[ Construct ]]--
 
@@ -126,10 +51,7 @@ function Bag:New(parent, id)
 	ct:SetTexture([[Interface\Buttons\CheckButtonHilight]])
 	ct:SetBlendMode('ADD')
 	ct:SetAllPoints()
-	
-	bag.FilterDropDown = CreateFrame("Frame", nil, bag, "UIDropDownMenuTemplate")
-	ContainerFrameFilterDropDown_OnLoad(bag.FilterDropDown)
-	
+
 	bag:SetID(id)
 	bag:SetNormalTexture(nt)
 	bag:SetPushedTexture(pt)
@@ -158,19 +80,18 @@ end
 
 function Bag:OnClick(button)
 	if button == 'RightButton' and ContainerFrame1FilterDropDown then
-		if not self:IsReagents() and self:GetInfo().owned then
-			--ContainerFrame1FilterDropDown:SetParent(self)
+		if not self:IsReagents() and self.info.owned then
+			ContainerFrame1FilterDropDown:SetParent(self)
 			PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON)
-			--ToggleDropDownMenu(1, nil, ContainerFrame1FilterDropDown, self, 0, 0)
-			ToggleDropDownMenu(1, nil, self.FilterDropDown, self, 0, 0);
+			ToggleDropDownMenu(1, nil, ContainerFrame1FilterDropDown, self, 0, 0)
 		end
 	elseif self:IsPurchasable() then
 		self:Purchase()
-	elseif CursorHasItem() and not self:GetInfo().cached then
+	elseif CursorHasItem() and not self.info.cached then
 		if self:IsBackpack() then
 			PutItemInBackpack()
 		else
-			PutItemInBag(self:GetInfo().slot)
+			PutItemInBag(self.info.slot)
 		end
 	elseif self:CanToggle() then
 		self:Toggle()
@@ -180,9 +101,9 @@ function Bag:OnClick(button)
 end
 
 function Bag:OnDrag()
-	if self:IsCustomSlot() and not self:GetInfo().cached then
+	if self:IsCustomSlot() and not self.info.cached then
 		PlaySound(SOUNDKIT.IG_BACKPACK_OPEN)
-		PickupBagFromSlot(self:GetInfo().slot)
+		PickupBagFromSlot(self.info.slot)
 	end
 end
 
@@ -213,7 +134,7 @@ function Bag:RegisterEvents()
 		self:RegisterMessage('CACHE_BANK_CLOSED', 'RegisterEvents')
 	end
 
-	if not self:GetInfo().cached then
+	if not self.info.cached then
 		if self:IsReagents() then
 			self:RegisterEvent('REAGENTBANK_PURCHASED', 'Update')
 		elseif self:IsCustomSlot() then
@@ -241,13 +162,14 @@ end
 function Bag:Update()
 	local info = self:GetInfo()
 
+	self.info = info
 	self.FilterIcon:SetShown(not info.cached)
 	self.Count:SetText(info.free and info.free > 0 and info.free or '')
 	self:UpdateCursor()
 	self:UpdateToggle()
 	self:UpdateLock()
 
-  if self:IsBackpack() or self:IsBank() then
+	if self:IsBackpack() or self:IsBank() then
 		self:SetIcon('Interface/Buttons/Button-Backpack-Up')
 	elseif self:IsReagents() then
 		self:SetIcon('Interface/Icons/Achievement_GuildPerk_BountifulBags')
@@ -255,7 +177,7 @@ function Bag:Update()
 		self:SetIcon('Interface/ContainerFrame/KeyRing-Bag-Icon')
 	else
 		self:SetIcon(info.icon or 'Interface/PaperDoll/UI-PaperDoll-Slot-Bag')
-	  self.link = info.link
+	  	self.link = info.link
 
 		if not info.icon then
 			self.Count:SetText('')
@@ -264,25 +186,9 @@ function Bag:Update()
 
 	if not self.cached then
 		local id = self:GetID()
-
 		for i, atlas in ipairs(self.FILTER_ICONS) do
-		
-			local a = nil
-			if C_Container then
-				if id > 0 then
-					a = C_Container.GetBagSlotFlag(id, 2^i)
-				end
-			else
-				if C_Container.GetBagSlotFlag then
-					if self:IsBankBag() then
-						a = C_Container.GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i)
-					end
-				else
-					a = C_Container.GetBagSlotFlag(id, i)
-				end
-			end
-			
-			local active = a
+			local active = C_Container and (id > 0 and C_Container.GetBagSlotFlag(id, 2^i)) or
+						   GetBagSlotFlag and (self:IsBankBag() and GetBankBagSlotFlag(id - NUM_BAG_SLOTS, i) or GetBagSlotFlag(id, i))
 			if active then
 				return self.FilterIcon.Icon:SetAtlas(atlas)
 			end
@@ -291,13 +197,13 @@ function Bag:Update()
 end
 
 function Bag:UpdateCursor()
-	if not self:IsCustomSlot() and self:GetID() >= 0 then
-		if C_PaperDollInfo.CanCursorCanGoInSlot(self:GetID()) then
+	--[[if not self:IsCustomSlot() then
+		if CursorCanGoInSlot(self.info.slot) then
 			self:LockHighlight()
 		else
 			self:UnlockHighlight()
 		end
-	end
+	end--]]
 end
 
 function Bag:UpdateToggle()
@@ -318,7 +224,7 @@ function Bag:UpdateTooltip()
 		GameTooltip:SetText(self:IsReagents() and REAGENT_BANK or BANK_BAG_PURCHASE, 1, 1, 1)
 		GameTooltip:AddLine(L.TipPurchaseBag:format(L.Click))
 
-		SetTooltipMoney(GameTooltip, self:GetInfo().cost)
+		SetTooltipMoney(GameTooltip, self.info.cost)
 	elseif self:IsBackpack() then
 		GameTooltip:SetText(BACKPACK_TOOLTIP, 1,1,1)
 	elseif self:IsBank() then
@@ -327,10 +233,10 @@ function Bag:UpdateTooltip()
 		GameTooltip:SetText(REAGENT_BANK, 1,1,1)
 	elseif self:IsKeyring() then
 		GameTooltip:SetText(KEYRING, 1,1,1)
-	elseif self.link and self:GetInfo().cached then
+	elseif self.link and self.info.cached then
 		GameTooltip:SetHyperlink(self.link)
 	elseif self.link then
-		GameTooltip:SetInventoryItem('player', C_Container.ContainerIDToInventoryID(self:GetID()))
+		GameTooltip:SetInventoryItem('player', self.info.slot)
 	elseif self:IsBankBag() then
 		GameTooltip:SetText(BANK_BAG, 1, 1, 1)
 	else
@@ -382,8 +288,7 @@ function Bag:SetFocus(focus)
 end
 
 function Bag:SetIcon(icon)
-
-	local color = self:GetInfo().owned and 1 or .1
+	local color = self.info.owned and 1 or .1
 	SetItemButtonTexture(self, icon)
 	SetItemButtonTextureVertexColor(self, 1, color, color)
 end
@@ -420,19 +325,18 @@ function Bag:IsCustomSlot()
 end
 
 function Bag:CanToggle()
-	return self:IsBackpack() or self:IsBank() or self:GetInfo().owned
+	return self:IsBackpack() or self:IsBank() or self.info.owned
 end
 
 
 --[[ Info ]]--
 
 function Bag:IsPurchasable()
-	local info = self:GetInfo()
-	return not info.cached and not info.owned
+	return not self.info.cached and not self.info.owned
 end
 
 function Bag:IsToggled()
-	return self:GetFrame():IsShowingBag(self:GetID()) and self:GetInfo().owned
+	return self:GetFrame():IsShowingBag(self:GetID()) and self.info.owned
 end
 
 function Bag:GetInfo()

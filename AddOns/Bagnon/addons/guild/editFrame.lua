@@ -72,7 +72,6 @@ end
 function EditFrame:Update()
 	local text = GetGuildBankText(GetCurrentGuildBankTab()) or ''
 	local edit = self:GetScrollChild()
-
 	edit.text = text
 	edit:SetText(text)
 end

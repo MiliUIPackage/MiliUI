@@ -7,6 +7,7 @@ local ADDON, Addon = ...
 local Item = Addon.Tipped:NewClass('Item', Addon.IsRetail and 'ItemButton' or 'Button', 'ContainerFrameItemButtonTemplate', true)
 local Search = LibStub('LibItemSearch-1.2')
 local Unfit = LibStub('Unfit-1.0')
+local C = LibStub('C_Everywhere').Container
 
 Item.SlotTypes = {
 	[-3] = 'reagent',
@@ -53,7 +54,7 @@ function Item:Construct()
 	b.Cooldown, b.QuestBorder = _G[name .. 'Cooldown'], _G[name .. 'IconQuestTexture']
 	b.UpdateTooltip = self.UpdateTooltip
 
-	b.newitemglowAnim:SetLooping('REPEAT')
+	b.newitemglowAnim:SetLooping('NONE')
 	b.IconOverlay:SetAtlas('AzeriteIconFrame')
 	b.QuestBorder:SetTexture(TEXTURE_ITEM_QUEST_BANG)
 	b.IconGlow:SetTexture('Interface/Buttons/UI-ActionButton-Border')
@@ -87,14 +88,14 @@ end
 
 function Item:GetBlizzard(id)
     if not Addon.sets.displayBlizzard and Addon.Frames:AreBasicsEnabled() then
-			local id = self:NumFrames() + 1
-			local bag = ceil(id / 36)
-			local slot = (id-1) % 36 + 1
-			local b = _G[format('ContainerFrame%dItem%d', bag, slot)]
-			if b then
-					b:ClearAllPoints()
-					return self:Bind(b)
-			end
+		local id = self:NumFrames() + 1
+		local bag = ceil(id / 36)
+		local slot = (id-1) % 36 + 1
+		local b = _G[format('ContainerFrame%dItem%d', bag, slot)]
+		if b then
+				b:ClearAllPoints()
+				return self:Bind(b)
+		end
     end
 end
 
@@ -142,21 +143,21 @@ end
 
 function Item:OnPreClick(button)
 	if not IsModifiedClick() and button == 'RightButton' then
-		if REAGENTBANK_CONTAINER and Addon:InBank() and IsReagentBankUnlocked() and C_Container.GetContainerNumFreeSlots(REAGENTBANK_CONTAINER) > 0 then
+		if REAGENTBANK_CONTAINER and Addon:InBank() and IsReagentBankUnlocked() and C.GetContainerNumFreeSlots(REAGENTBANK_CONTAINER) > 0 then
 			if not Addon:IsReagents(self:GetBag()) and Search:IsReagent(self.info.link) then
 				for _, bag in ipairs {BANK_CONTAINER, 5, 6, 7, 8, 9, 10, 11} do
-					for slot = 1, C_Container.GetContainerNumSlots(bag) do
-						if C_Container.GetContainerItemID(bag, slot) == self.info.id then
-							local free = self.info.stack - (C_Container.GetContainerItemInfo(bag, slot)).stackCount
+					for slot = 1, C.GetContainerNumSlots(bag) do
+						if C.GetContainerItemID(bag, slot) == self.info.id then
+							local free = self.info.stack - C.GetContainerItemInfo(bag, slot).stackCount
 							if free > 0 then
-								C_Container.SplitContainerItem(self:GetBag(), self:GetID(), min(self.info.count, free))
-								C_Container.PickupContainerItem(bag, slot)
+								C.SplitContainerItem(self:GetBag(), self:GetID(), min(self.info.count, free))
+								C.PickupContainerItem(bag, slot)
 							end
 						end
 					end
 				end
 
-				C_Container.UseContainerItem(self:GetBag(), self:GetID(), nil, true)
+				C.UseContainerItem(self:GetBag(), self:GetID(), nil, true)
 			end
 		end
 	end
@@ -224,7 +225,6 @@ end
 --[[ Appearance ]]--
 
 function Item:UpdateBorder()
-
 	local id, quality, link = self.info.id, self.info.quality, self.info.link
 	local new = Addon.sets.glowNew and self:IsNew()
 	local quest, questID = self:IsQuestItem()
@@ -238,7 +238,7 @@ function Item:UpdateBorder()
 		elseif Addon.sets.glowUnusable and Unfit:IsItemUnusable(id) then
 			r,g,b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
 		elseif Addon.sets.glowSets and Search:InSet(link) then
-			r,g,b = .2, 1, .8
+	  	r,g,b = .2, 1, .8
 		elseif Addon.sets.glowQuality and quality and quality > 1 then
 			r,g,b = GetItemQualityColor(quality)
 		end
@@ -264,7 +264,7 @@ function Item:UpdateBorder()
 	self.NewItemTexture:SetAtlas(quality and NEW_ITEM_ATLAS_BY_QUALITY[quality] or 'bags-glow-white')
 	self.NewItemTexture:SetShown(new and not paid)
 
-	self.JunkIcon:SetShown((Addon.sets.glowPoor and quality == 0 and not self.info.worthless))
+	self.JunkIcon:SetShown(Addon.sets.glowPoor and quality == 0 and not self.info.worthless)
 	self.BattlepayItemTexture:SetShown(new and paid)
 	self.QuestBorder:SetShown(questID)
 	self.IconOverlay:SetShown(overlay)
@@ -274,10 +274,10 @@ function Item:UpdateSlotColor()
 	if not self.info.id then
 		local color = Addon.sets.colorSlots and Addon.sets[self:GetSlotType() .. 'Color'] or {}
 		local r,g,b = color[1] or 1, color[2] or 1, color[3] or 1
+
 		SetItemButtonTextureVertexColor(self, r,g,b)
 		self:GetNormalTexture():SetVertexColor(r,g,b)
 	else
-
 		self:GetNormalTexture():SetVertexColor(1,1,1)
 	end
 end
@@ -297,15 +297,13 @@ end
 
 function Item:UpdateCooldown()
 	if self.info.id and (not self.info.cached) then
-		local start, duration, enable = C_Container.GetContainerItemCooldown(self:GetBag(), self:GetID())
-		CooldownFrame_Set(self.Cooldown, start, duration, enable)
-		if duration > 0 and enable == 0 then
-			SetItemButtonTextureVertexColor(self, 0.4, 0.4, 0.4)
-		else
-			SetItemButtonTextureVertexColor(self, 1, 1, 1)
-		end
+			local start, duration, enable = C.GetContainerItemCooldown(self:GetBag(), self:GetID())
+			local fade = duration > 0 and 0.4 or 1
+
+			CooldownFrame_Set(self.Cooldown, start, duration, enable)
+			SetItemButtonTextureVertexColor(self, fade,fade,fade)
 	else
-		SetItemButtonTextureVertexColor(self, 1, 1, 1)
+		CooldownFrame_Set(self.Cooldown, 0,0,0)
 		self.Cooldown:Hide()
 	end
 end
@@ -405,9 +403,11 @@ end
 
 function Item:IsQuestItem()
 	if self.info.id then
-		local questInfo = C_Container.GetContainerItemQuestInfo(self:GetBag(), self:GetID())
-		if not self.info.cached and questInfo then
-			return questInfo.isQuestItem, (questInfo.questId and not questInfo.isActive)
+		if not self.info.cached and C.GetContainerItemQuestInfo then
+			local info = C.GetContainerItemQuestInfo(self:GetBag(), self:GetID())
+			if info then
+				return info.isQuestItem, (info.questID and not info.isActive)
+			end
 		else
 			return self.info.class == Enum.ItemClass.Questitem or Search:ForQuest(self.info.link)
 		end
@@ -437,7 +437,7 @@ function Item:IsNew()
 end
 
 function Item:IsPaid()
-	return C_Container.IsBattlePayItem(self:GetBag(), self:GetID())
+	return C.IsBattlePayItem(self:GetBag(), self:GetID())
 end
 
 function Item:IsSlot(bag, slot)
@@ -445,8 +445,6 @@ function Item:IsSlot(bag, slot)
 end
 
 function Item:GetInfo()
-local a = self:GetFrame():GetItemInfo(self:GetBag(), self:GetID())
-
 	return self:GetFrame():GetItemInfo(self:GetBag(), self:GetID())
 end
 

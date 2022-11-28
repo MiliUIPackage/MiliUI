@@ -18,7 +18,7 @@ along with the library. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 This file is part of LibItemCache.
 --]]
 
-local Lib = LibStub:NewLibrary('LibItemCache-2.0', 35)
+local Lib = LibStub:NewLibrary('LibItemCache-2.0', 37)
 if not Lib then return end
 
 local PLAYER, FACTION, REALM, REALMS
@@ -43,10 +43,11 @@ local FindRealms = function()
 	end
 end
 
+local C = LibStub('C_Everywhere').Container
 local Events, Caches = LibStub('AceEvent-3.0'), {}
 local AccessInterfaces = function(self, key)
 	for name, lib in LibStub:IterateLibraries() do
-		if lib.IsItemCache and lib[key] then
+		if lib.IsItemCache == true and lib[key] then
 			self[key] = lib[key]
 			return self[key]
 		end
@@ -172,22 +173,22 @@ function Lib:GetBagInfo(owner, bag)
 		if not query then
 			item.deposit, item.withdraw, item.remaining = deposit, withdraw, remaining
 		end
-
 		item.name, item.icon, item.viewable = name, icon, view
+		
 	elseif tonumber(bag) then
-		item.free = C_Container.GetContainerNumFreeSlots(bag)
+		item.free = C.GetContainerNumFreeSlots(bag)
 
 		if bag == REAGENTBANK_CONTAINER then
 			item.cost = GetReagentBankCost()
 			item.owned = IsReagentBankUnlocked()
 		elseif bag == KEYRING then
-			item.count = HasKey and HasKey() and C_Container.GetContainerNumSlots(bag)
+			item.count = HasKey and HasKey() and C.GetContainerNumSlots(bag)
 			item.free = item.count and item.free and (item.count + item.free - 32)
 		elseif bag > BACKPACK_CONTAINER then
-			item.slot = C_Container.ContainerIDToInventoryID(bag)
+			item.count = C.GetContainerNumSlots(bag)
+			item.slot = C.ContainerIDToInventoryID(bag)
 			item.link = GetInventoryItemLink('player', item.slot)
 			item.icon = GetInventoryItemTexture('player', item.slot)
-			item.count = C_Container.GetContainerNumSlots(bag)
 
 			if bag > Lib.NumBags then
 				item.owned = (bag - Lib.NumBags) <= GetNumBankSlots()
@@ -209,8 +210,10 @@ function Lib:GetBagInfo(owner, bag)
 
 		if bag == KEYRING then
 			item.family = 9
+		elseif bag > NUM_BAG_SLOTS and bag <= Lib.NumBags then
+			item.family = REAGENTBANK_CONTAINER
 		elseif bag <= BACKPACK_CONTAINER then
-			item.count = item.count or item.owned and C_Container.GetContainerNumSlots(bag)
+			item.count = item.count or item.owned and C.GetContainerNumSlots(bag)
 			item.family = bag ~= REAGENTBANK_CONTAINER and 0 or REAGENTBANK_CONTAINER
 		end
 	end
@@ -221,21 +224,29 @@ end
 function Lib:GetItemInfo(owner, bag, slot)
 	local realm, name, isguild = Lib:GetOwnerAddress(owner)
 	local cached = Lib:IsBagCached(realm, name, isguild, bag)
-
-	local api = isguild and 'GetGuildItem' or 'GetItem'
-	local item = cached and Caches[api](Caches, realm, name, bag, slot) or {}
+	local item
 
 	if cached then
+		item = Caches[isguild and 'GetGuildItem' or 'GetItem'](Caches, realm, name, bag, slot) or {}
 		item.cached = true
 	elseif isguild then
-		item.link = GetGuildBankItemLink(bag, slot)
+		item = {link = GetGuildBankItemLink(bag, slot)}
 		item.icon, item.count, item.locked = GetGuildBankItemInfo(bag, slot)
 	elseif bag == 'equip' then
-		item.link = GetInventoryItemLink('player', slot)
+		item = {link = GetInventoryItemLink('player', slot)}
 	elseif bag == 'vault' then
+		item = {}
 		item.id, item.icon, item.locked, item.recent, item.filtered, item.quality = GetVoidItemInfo(1, slot)
 	else
-		item.icon, item.count, item.locked, item.quality, item.readable, item.lootable, item.link, item.filtered, item.worthless, item.id = Lib:GetContainerItemInfo(bag, slot)
+		item = C.GetContainerItemInfo(bag, slot)
+		if item then
+			-- just for now for backwards compatibility or it will break too many things
+			item.icon, item.count, item.locked = item.iconFileID, item.stackCount, item.isLocked
+			item.readable, item.lootable, item.link = item.isReadable, item.hasLoot, item.hyperlink
+			item.filtered, item.worthless, item.id = item.isFiltered, item.hasNoValue, item.itemID
+		else
+			item = {}
+		end
 	end
 
 	return Lib:RestoreItemData(item)
@@ -246,9 +257,7 @@ function Lib:GetItemID(owner, bag, slot)
 	local cached = Lib:IsBagCached(realm, name, isguild, bag)
 
 	if cached then
-		local api = isguild and 'GetGuildItem' or 'GetItem'
-		local item = Caches[api](Caches, realm, name, bag, slot)
-
+		local item = Caches[isguild and 'GetGuildItem' or 'GetItem'](Caches, realm, name, bag, slot)
 		return item and (item.id or item.link and tonumber(item.link:match('(%d+)')))
 	elseif isguild then
 		local link = GetGuildBankItemLink(bag, slot)
@@ -258,7 +267,7 @@ function Lib:GetItemID(owner, bag, slot)
 	elseif bag == 'vault' then
 		return GetVoidItemInfo(1, slot)
 	else
-		return C_Container.GetContainerItemID(bag, slot)
+		return C.GetContainerItemID(bag, slot)
 	end
 end
 
@@ -274,17 +283,11 @@ function Lib:PickupItem(owner, bag, slot)
 		elseif bag == 'vault' then
 			ClickVoidStorageSlot(1, slot)
 		else
-			C_Container.PickupContainerItem(bag, slot)
+			C.PickupContainerItem(bag, slot)
 		end
 	end
 end
 
-function Lib:GetContainerItemInfo(bag, slot)
-	local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
-	if not containerInfo then return nil end
-	
-	return containerInfo.iconFileID, containerInfo.stackCount, containerInfo.isLocked, containerInfo.quality, containerInfo.isReadable, containerInfo.hasLoot, containerInfo.hyperlink, containerInfo.isFiltered, containerInfo.hasNoValue, containerInfo.itemID, containerInfo.isBound
-end
 
 --[[ Advanced ]]--
 
@@ -405,7 +408,7 @@ function Lib:IsBackpack(bag)
 end
 
 function Lib:IsBackpackBag(bag)
-  return bag > BACKPACK_CONTAINER and bag <= NUM_BAG_SLOTS
+  return bag > BACKPACK_CONTAINER and bag <= Lib.NumBags
 end
 
 function Lib:IsKeyring(bag)
@@ -417,7 +420,7 @@ function Lib:IsBank(bag)
 end
 
 function Lib:IsBankBag(bag)
-  return bag > Lib.NumBags and bag <= (Lib.NumBags+1 + NUM_BANKBAGSLOTS)
+  return bag > Lib.NumBags and bag <= (Lib.NumBags + NUM_BANKBAGSLOTS)
 end
 
 function Lib:IsReagents(bag)

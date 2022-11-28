@@ -15,18 +15,19 @@ along with the addon. If not, see <http://www.gnu.org/licenses/gpl-3.0.txt>.
 This file is part of BagBrother.
 --]]
 
+local C = LibStub('C_Everywhere').Container
 
 function BagBrother:SaveBag(bag, onlyItems, saveSize)
-	local size = C_Container.GetContainerNumSlots(bag)
+	local size = C.GetContainerNumSlots(bag)
 	if size > 0 then
 		local items = {}
 		for slot = 1, size do
-			local containerInfo = C_Container.GetContainerItemInfo(bag, slot)
-			items[slot] = self:ParseItem(containerInfo and containerInfo.hyperlink or nil, containerInfo and containerInfo.stackCount or nil)
+			local _, count, _,_,_,_, link = C.GetContainerItemInfo(bag, slot)
+			items[slot] = self:ParseItem(link, count)
 		end
 
 		if not onlyItems then
-			self:SaveEquip(C_Container.ContainerIDToInventoryID(bag), size)
+			self:SaveEquip(C.ContainerIDToInventoryID(bag), size)
 		elseif saveSize then
 			items.size = size
 		end
@@ -49,13 +50,12 @@ function BagBrother:ParseItem(link, count)
 		local id = tonumber(link:match('item:(%d+):')) -- check for profession window bug
 		if id == 0 and TradeSkillFrame then
 			local focus = GetMouseFocus():GetName()
-
 			if focus == 'TradeSkillSkillIcon' then
-				link = C_TradeSkillUI.GetRecipeItemLink(TradeSkillFrame.selectedSkill)
+				link = GetTradeSkillItemLink(TradeSkillFrame.selectedSkill)
 			else
 				local i = focus:match('TradeSkillReagent(%d+)')
 				if i then
-					link = C_TradeSkillUI.GetRecipeReagentItemLink(TradeSkillFrame.selectedSkill, tonumber(i))
+					link = GetTradeSkillReagentItemLink(TradeSkillFrame.selectedSkill, tonumber(i))
 				end
 			end
 		end
