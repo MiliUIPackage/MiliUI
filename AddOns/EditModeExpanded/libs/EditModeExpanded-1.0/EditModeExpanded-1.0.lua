@@ -3,7 +3,7 @@
 --
 
 local CURRENT_BUILD = "10.0.2"
-local MAJOR, MINOR = "EditModeExpanded-1.0", 25
+local MAJOR, MINOR = "EditModeExpanded-1.0", 28
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -522,11 +522,11 @@ end
 function lib:RegisterResizable(frame)
     local systemID = getSystemID(frame)
     
-    if not framesDialogs[frame.system] then framesDialogs[frame.system] = {} end
-    if framesDialogsKeys[frame.system] and framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] then return end
-    if not framesDialogsKeys[frame.system] then framesDialogsKeys[frame.system] = {} end
-    framesDialogsKeys[frame.system][Enum.EditModeUnitFrameSetting.FrameSize] = true
-    table.insert(framesDialogs[frame.system],
+    if not framesDialogs[systemID] then framesDialogs[systemID] = {} end
+    if framesDialogsKeys[systemID] and framesDialogsKeys[systemID][Enum.EditModeUnitFrameSetting.FrameSize] then return end
+    if not framesDialogsKeys[systemID] then framesDialogsKeys[systemID] = {} end
+    framesDialogsKeys[systemID][Enum.EditModeUnitFrameSetting.FrameSize] = true
+    table.insert(framesDialogs[systemID],
 		{
 			setting = Enum.EditModeUnitFrameSetting.FrameSize,
 			name = HUD_EDIT_MODE_SETTING_UNIT_FRAME_FRAME_SIZE,
@@ -537,6 +537,16 @@ function lib:RegisterResizable(frame)
 			ConvertValue = ConvertValueDefault,
 			formatter = showAsPercentage,
 		})
+end
+
+function lib:UpdateFrameResize(frame)
+    local systemID = getSystemID(frame)
+    local db = framesDB[systemID]
+    
+    if not db.settings then db.settings = {} end
+    if db.settings[Enum.EditModeUnitFrameSetting.FrameSize] ~= nil then
+        frame:SetScale(db.settings[Enum.EditModeUnitFrameSetting.FrameSize]/100)
+    end
 end
  
 -- Call this to add a checkbox to the frames dialog box, allowing the frame to be permanently hidden outside of Edit Mode
@@ -557,7 +567,8 @@ function lib:RegisterHideable(frame)
 end
 
 function lib:IsFrameMarkedHidden(frame)
-	local systemID = getSystemID(frame)
+    local systemID = getSystemID(frame)
+    
     if not framesDB[systemID].settings then framesDB[systemID].settings = {} end
     return framesDB[systemID].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1
 end
@@ -1085,6 +1096,7 @@ end
 --
 
 -- Prerequsities: LibDataBroker and LibDBIcon
+-- Must be called during PLAYER_ENTERING_WORLD or later, or issues with MBB compatibility can occur
 function lib:RegisterMinimapPinnable(frame)
     local name = frame:GetName().."LDB"
     local db = framesDB[frame.system]
@@ -1152,6 +1164,19 @@ function lib:RegisterMinimapPinnable(frame)
     )
     
     frame.minimapLDBIcon = icon
+    
+    -- compatibility with Minimap Button Bag
+    if MBB_Version and MBB_OnClick then
+        hooksecurefunc("MBB_OnClick", function()
+            if (db.settings[ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED] == 1) then
+                if MBB_IsShown == 1 then
+                    frame:Show()
+                else
+                    frame:Hide()
+                end
+            end
+        end)
+    end
 end
 
 function pinToMinimap(frame)

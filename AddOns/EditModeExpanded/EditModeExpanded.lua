@@ -37,6 +37,9 @@ local defaults = {
             targetCast = true,
             focusCast = true,
             compactRaidFrameContainer = true,
+            talkingHead = true,
+			minimap = true,
+            uiWidgetTopCenterContainerFrame = false,
         },
         MicroButtonAndBagsBar = {},
         BackpackBar = {},
@@ -55,6 +58,8 @@ local defaults = {
         CompactRaidFrameContainer = {},
         CompactRaidFrameManager = {},
         TalkingHead = {},
+		Minimap = {},
+        UIWidgetTopCenterContainerFrame = {},
     }
 }
 
@@ -142,6 +147,21 @@ local options = {
             desc = "啟用/停用團隊框架的額外選項",
             type = "toggle",
         },
+        talkingHead = {
+            name = "對話頭像",
+            desc = "啟用/停用對話頭像的額外選項",
+            type = "toggle",
+        },
+		minimap = {
+            name = "小地圖",
+            desc = "啟用/停用對話小地圖的額外選項",
+            type = "toggle",
+        },
+        uiWidgetTopCenterContainerFrame = {
+            name = "子區域資訊",
+            desc = "啟用/停用支援畫面最頂端的子區域資訊。請注意，這個框架的行為...通常...如果你不在有顯示任何東西的地區時!",
+            type = "toggle",
+        },
     },
 }
 
@@ -218,13 +238,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
 			if db.EMEOptions.xp then
 				lib:RegisterFrame(StatusTrackingBarManager, "經驗條", db.StatusTrackingBarManager)
 				lib:RegisterResizable(StatusTrackingBarManager)
-			end
-			
-			if db.EMEOptions.lfg then
-				QueueStatusButton:SetParent(UIParent)
-				lib:RegisterFrame(QueueStatusButton, "排隊資訊", db.QueueStatusButton)
-				lib:RegisterResizable(QueueStatusButton)
-				lib:RegisterMinimapPinnable(QueueStatusButton)
+				lib:RegisterHideable(StatusTrackingBarManager)
 			end
 		end
 
@@ -275,7 +289,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
             )
         end
         
-        --if db.EMEOptions.talkingHead then
+        if db.EMEOptions.talkingHead then
             lib:RegisterFrame(TalkingHeadFrame, "", db.TalkingHead)
             lib:RegisterHideable(TalkingHeadFrame)
             TalkingHeadFrame:HookScript("OnEvent", function(...)
@@ -284,7 +298,12 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     TalkingHeadFrame:Hide()
                 end
             end)
-        --end
+            lib:RegisterResizable(TalkingHeadFrame)
+            -- should be moved to PLAYER_ENTERING_WORLD or something
+            C_Timer.After(1, function()
+                lib:UpdateFrameResize(TalkingHeadFrame)
+            end)
+        end
         
         local class = UnitClassBase("player")
         
@@ -361,10 +380,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if ( not AchievementFrame ) then
     			AchievementFrame_LoadUI()
             end
-            lib:RegisterFrame(AchievementAlertSystem.alertContainer, "成就通知", f.db.global.Achievements)
-            lib:SetDefaultSize(AchievementAlertSystem.alertContainer, 20, 20)
-            AchievementAlertSystem.alertContainer.Selection:HookScript("OnMouseDown", function()
+            lib:RegisterFrame(AlertFrame, "成就通知", f.db.global.Achievements)
+            lib:SetDefaultSize(AlertFrame, 20, 20)
+            AlertFrame.Selection:HookScript("OnMouseDown", function()
                 AchievementAlertSystem:AddAlert(6)
+            end)
+            AlertFrame:HookScript("OnEvent", function()
+                lib:RepositionFrame(AlertFrame)
             end)
         end
         
@@ -385,9 +407,10 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     TargetFrameSpellBar:Show()
                 end
             end)
-            --TargetFrameSpellBar:HookScript("OnShow", function(self)
-            --    lib:RepositionFrame(TargetFrameSpellBar)
-            --end)
+            TargetFrameSpellBar:HookScript("OnShow", function(self)
+                lib:RepositionFrame(TargetFrameSpellBar)
+            end)
+            lib:SetDontResize(TargetFrameSpellBar)
         end
         
         if db.EMEOptions.focusCast then
@@ -402,6 +425,24 @@ f:SetScript("OnEvent", function(__, event, arg1)
             FocusFrameSpellBar:HookScript("OnShow", function(self)
                 lib:RepositionFrame(FocusFrameSpellBar)
             end)
+        end
+        
+        if db.EMEOptions.lfg then
+            QueueStatusButton:SetParent(UIParent)
+            lib:RegisterFrame(QueueStatusButton, "排隊資訊", db.QueueStatusButton)
+            lib:RegisterResizable(QueueStatusButton)
+            lib:RegisterMinimapPinnable(QueueStatusButton)
+        end
+        
+        if db.EMEOptions.minimap then
+            lib:RegisterFrame(MinimapCluster, "", db.Minimap)
+            lib:RegisterResizable(MinimapCluster)
+            C_Timer.After(1, function()lib:UpdateFrameResize(MinimapCluster)end)
+        end
+        
+        if db.EMEOptions.uiWidgetTopCenterContainerFrame then
+            lib:RegisterFrame(UIWidgetTopCenterContainerFrame, "子區域資訊", db.UIWidgetTopCenterContainerFrame)
+            lib:SetDontResize(UIWidgetTopCenterContainerFrame)
         end
     elseif (event == "PLAYER_TOTEM_UPDATE") then
         if totemFrameLoaded then
