@@ -18,7 +18,6 @@ local PSPEC = PSPEC
 local RARE = GARRISON_MISSION_RARE
 local OFFLINE = FRIENDS_LIST_OFFLINE
 local BASE_MOVEMENT_SPEED = BASE_MOVEMENT_SPEED or 7
-local TOOLTIP_UPDATE_TIME = TOOLTIP_UPDATE_TIME or 0.2
 
 --BLZ function (Fixed for classic WOW)
 local UnitEffectiveLevel = UnitEffectiveLevel or function() end
@@ -134,7 +133,6 @@ function addon:FindLine(tooltip, keyword)
     local line, text
     for i = 2, tooltip:NumLines() do
         line = _G[tooltip:GetName() .. "TextLeft" .. i]
-        if (not line) then return end
         text = line:GetText() or ""
         if (strfind(text, keyword)) then
             return line, i, _G[tooltip:GetName() .. "TextRight" .. i]
@@ -338,7 +336,10 @@ function addon:GetZone(unit, unitname, realm)
 end
 
 local t = {}
-function addon:GetUnitInfo(unit)       
+function addon:GetUnitInfo(unit)
+    if (not unit) then return end
+    local unit = UnitTokenFromGUID(unit)
+    if (not unit) then return end
     local name, realm = UnitName(unit)
     local pvpName = UnitPVPName(unit)
     local gender = UnitSex(unit)
@@ -396,6 +397,64 @@ function addon:GetUnitInfo(unit)
     return t
 end
 
+function addon:SettingsGetUnitInfo(unit)       
+    local name, realm = UnitName(unit)
+    local pvpName = UnitPVPName(unit)
+    local gender = UnitSex(unit)
+    local level = UnitLevel(unit)
+    local effectiveLevel = UnitEffectiveLevel(unit)
+    local raceName, race = UnitRace(unit)
+    local className, class = UnitClass(unit)
+    local factionGroup, factionName = UnitFactionGroup(unit)
+    local reaction = UnitReaction(unit, "player")
+    local guildName, guildRank, guildIndex, guildRealm = GetGuildInfo(unit)
+    local classif = UnitClassification(unit)
+    local role = UnitGroupRolesAssigned(unit)
+
+        t.raidIcon     = self:GetRaidIcon(unit)
+        t.pvpIcon      = self:GetPVPIcon(unit)
+        t.factionIcon  = self:GetFactionIcon(factionGroup)
+        t.classIcon    = self:GetClassIcon(class)
+        t.roleIcon     = self:GetRoleIcon(unit)
+        t.questIcon    = self:GetQuestBossIcon(unit)
+        t.friendIcon   = self:GetFriendIcon(unit)
+        --t.battlepetIcon = self:GetBattlePet(unit)
+        t.factionName  = factionName
+        t.role         = role ~= "NONE" and role
+        t.name         = name
+        t.gender       = self:GetGender(gender)
+        t.realm        = realm or GetRealmName()
+        t.levelValue   = level >= 0 and level or "??"
+        t.className    = className
+        t.raceName     = raceName
+        t.guildName    = guildName
+        t.guildRank    = guildRank
+        t.guildIndex   = guildName and guildIndex
+        t.guildRealm   = guildRealm
+        t.statusAFK    = UnitIsAFK(unit) and AFK
+        t.statusDND    = UnitIsDND(unit) and DND
+        t.statusDC     = not UnitIsConnected(unit) and OFFLINE
+        t.reactionName = reaction and _G["FACTION_STANDING_LABEL"..reaction]
+        t.creature     = UnitCreatureType(unit)
+        t.classifBoss  = (level==-1 or classif == "worldboss") and BOSS
+        t.classifElite = classif == "elite" and ELITE
+        t.classifRare  = (classif == "rare" or classif == "rareelite") and RARE
+        t.isPlayer     = UnitIsPlayer(unit) and PLAYER
+        t.moveSpeed    = self:GetUnitSpeed(unit)
+        t.zone         = self:GetZone(unit, t.name, t.realm)
+        t.unit         = unit                     --unit
+        t.level        = level                    --1~123|-1
+        t.effectiveLevel = effectiveLevel or level
+        t.race         = race                     --nil|NightElf|Troll...
+        t.class        = class                    --DRUID|HUNTER...
+        t.factionGroup = factionGroup             --Alliance|Horde|Neutral
+    t.reaction     = reaction                 --nil|1|2|3|4|5|6|7|8
+    t.classif      = classif                  --normal|worldboss|elite|rare|rareelite
+    t.title, t.titleIsPrefix = self:GetTitle(name, pvpName)
+    if (t.classifBoss) then t.classifElite = false end
+    return t
+end
+
 -- Filter
 function addon:CheckFilter(config, raw)
     if (IsAltKeyDown() or IsControlKeyDown()) then return true end
@@ -434,6 +493,7 @@ function addon:FormatData(value, config, raw)
 end
 
 function addon:GetUnitData(unit, elements, raw)
+    if (not raw) then return end
     local data = {}
     local config, name, title
     if (not raw) then
@@ -464,19 +524,6 @@ function addon:GetUnitData(unit, elements, raw)
         if (not data[i][1]) then tremove(data, i) end
     end
     return data
-end
-
--- HookScript
-function addon:TinyHookScript(script, func, scripts)
-    if (self:HasScript(script)) then
-        self:HookScript(script, func)
-    elseif (scripts) then
-        for _, newscript in ipairs(scripts) do
-            if (self[newscript]) then
-                hooksecurefunc(self, newscript, func)
-            end
-        end
-    end
 end
 
 addon.filterfunc, addon.colorfunc = {}, {}
@@ -617,7 +664,7 @@ LibEvent:attachTrigger("tooltip.style.background", function(self, frame, r, g, b
         local g = tonumber(g) or tonumber(gg)
         local b = tonumber(b) or tonumber(bb)
         local a = tonumber(a) or tonumber(aa)
-        frame.style:SetBackdropColor(r or 1, g or 1, b or 1, a or 0.9)
+        frame.style:SetBackdropColor(r or 1, g or 1, b or 1, a or 1)
     end
 end)
 
@@ -741,13 +788,7 @@ LibEvent:attachTrigger("tooltip.style.font.body", function(self, frame, fontObje
 end)
 
 LibEvent:attachTrigger("tooltip.statusbar.height", function(self, height)
-    if (not addon.db.general.statusbarEnabled) then
-        GameTooltipStatusBar:SetHeight(0)
-    else
-        if not pcall(function() GameTooltipStatusBar:SetHeight(height) end) then GameTooltipStatusBar:SetHeight(12)
-        else GameTooltipStatusBar:SetHeight(height) end
-        LibEvent:trigger("tooltip.statusbar.font", addon.db.general.statusbarFont, addon.db.general.statusbarFontSize, addon.db.general.statusbarFontFlag)
-    end
+    GameTooltipStatusBar:SetHeight(height or 12)
 end)
 
 LibEvent:attachTrigger("tooltip.statusbar.text", function(self, boolean)
@@ -833,59 +874,30 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
     tip.style.mask:SetPoint("BOTTOMRIGHT", tip.style, "TOPRIGHT", -3, -32)
     tip.style.mask:SetBlendMode("ADD")
     tip.style.mask:SetGradient("VERTICAL", {r=0, b=0, g=0, a=0},{ r=0.9, b=0.9, g=0.9, a=0.4})
-    tip.style.mask:Hide()    
+    tip.style.mask:Hide()
     tip:HookScript("OnShow", function(self) LibEvent:trigger("tooltip:show", self) end)
     tip:HookScript("OnHide", function(self) LibEvent:trigger("tooltip:hide", self) end)
-    tip.TinyHookScript = addon.TinyHookScript
-    if(tip.ProcessInfo) then
-        hooksecurefunc(tip, "ProcessInfo", function(self, info)
-            if (not info or not info.tooltipData) then return end
-            local flag = info.tooltipData.type
-            local guid = info.tooltipData.guid
-            if (flag == 0) then
-                if (self.GetItem) then
-                    local link = select(2, self:GetItem())
-		    LibEvent:trigger("tooltip:item", self, link)
-                else
-                    local link = select(2, GetItemInfo(info.tooltipData.id))
-                    LibEvent:trigger("tooltip:item", self, link)
-                end
-            elseif (flag == 1) then
-                LibEvent:trigger("tooltip:spell", self)
-            elseif (flag == 2) then
-                if (not self.GetUnit) then return end
-                local unit = select(2, self:GetUnit())
-                if (unit) then
-                    LibEvent:trigger("tooltip:unit", self, unit, guid)
-                end
-            elseif (flag == 7) then
-                LibEvent:trigger("tooltip:aura", self, info.tooltipData.args)
-            end
-        end)
-    end
-    tip:TinyHookScript("OnEvent", function(self, event, ...) LibEvent:trigger("tooltip:event", self, event, ...) end)
-    if (tip:HasScript("OnTooltipSetUnit")) then
-        tip:TinyHookScript("OnTooltipSetUnit", function(self) 
-          local unit = select(2, self:GetUnit()) 
-          if (not unit) then return end
-          LibEvent:trigger("tooltip:unit", self, unit)
-        end)
-    end
-    if (tip:HasScript("OnTooltipSetItem")) then
-        tip:TinyHookScript("OnTooltipSetItem", function(self)
-            local link = select(2, self:GetItem())
-            if (not link) then return end
-            LibEvent:trigger("tooltip:item", self, link)
-        end)
-    end  
-    if (tip:HasScript("OnTooltipSetSpell")) then
-        tip:TinyHookScript("OnTooltipSetSpell", function(self) LibEvent:trigger("tooltip:spell", self) end)
-    end
+
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
+        if not pcall(function() select(2, self:GetUnit()) end) then return end
+        local unit = select(2, self:GetUnit())
+        if (not unit) then return end	   
+        LibEvent:trigger("tooltip:unit", self, unit)
+    end)
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
+        if not pcall(function()  select(2, self:GetItem()) end) then return end       
+        local link = select(2, self:GetItem())
+        if (not link) then return end
+        LibEvent:trigger("tooltip:item", self, link)
+    end)
+    TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Spell, function(self)
+        LibEvent:trigger("tooltip:spell", self)
+    end)
     if (tip:HasScript("OnTooltipCleared")) then
-        tip:TinyHookScript("OnTooltipCleared", function(self) LibEvent:trigger("tooltip:cleared", self) end)
+        tip:HookScript("OnTooltipCleared", function(self) LibEvent:trigger("tooltip:cleared", self) end)
     end
     if (tip:HasScript("OnTooltipSetQuest")) then
-        tip:TinyHookScript("OnTooltipSetQuest", function(self) LibEvent:trigger("tooltip:quest", self) end)
+        tip:HookScript("OnTooltipSetQuest", function(self) LibEvent:trigger("tooltip:quest", self) end)
     end
     if (tip == GameTooltip or tip.identity == "diy") then
         tip.GetBackdrop = function(self) return self.style:GetBackdrop() end
@@ -898,13 +910,6 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             tip.BigFactionIcon:SetScale(0.24)
             tip.BigFactionIcon:SetAlpha(0.40)
         end
-        tip:TinyHookScript("OnUpdate", function(self, elapsed)
-            self.updateElapsed = (self.updateElapsed or 0) + elapsed
-            if (self.updateElapsed >= TOOLTIP_UPDATE_TIME) then
-                self.updateElapsed = 0
-                LibEvent:trigger("tooltip:update", self)
-            end
-        end)
     end
     if (tip.DisableDrawLayer) then
         tip:DisableDrawLayer("BACKGROUND")
@@ -921,22 +926,9 @@ if (SharedTooltip_SetBackdropStyle) then
         if (self.style and self.NineSlice) then
             self.NineSlice:Hide()
         end
-        if (self.style and self.SetBackdrop) then
-            self:SetBackdrop(nil)
-        end
     end)
 end
 
-if (GameTooltip_SetBackdropStyle) then
-    hooksecurefunc("GameTooltip_SetBackdropStyle", function(self, style)
-        if (self.style and self.NineSlice) then
-            self.NineSlice:Hide()
-        end
-        if (self.style and self.SetBackdrop) then
-            self:SetBackdrop(nil)
-        end
-    end)
-end
 
 LibEvent:attachTrigger("TINYTOOLTIP_REFORGED_GENERAL_INIT", function(self)
     LibEvent:trigger("tooltip.style.font.header", GameTooltip, addon.db.general.headerFont, addon.db.general.headerFontSize, addon.db.general.headerFontFlag)
@@ -960,3 +952,13 @@ end)
 hooksecurefunc("GameTooltip_SetDefaultAnchor", function(self, parent)
     LibEvent:trigger("tooltip:anchor", self, parent)
 end)
+
+-- tooltip:init
+-- tooltip:anchor
+-- tooltip:show
+-- tooltip:hide
+-- tooltip:unit
+-- tooltip:item
+-- tooltip:spell
+-- tooltip:quest
+-- tooltip:cleared

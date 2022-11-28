@@ -1,3 +1,8 @@
+
+---------------------------------
+-- 簡易下拉菜單 Author: M
+---------------------------------
+
 local MAJOR, MINOR = "LibDropdown.7000", 2
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 

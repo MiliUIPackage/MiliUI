@@ -2,6 +2,13 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
+-- load only on classic wotlk
+if (clientToc == 30400) then
+  local LibInspect = LibStub("LibClassicInspector")
+  local LibDetours = LibStub("LibDetours-1.0")
+  local TinyTooltipGS = TTR_GS
+end
+
 local addon = TinyTooltipReforged
 
 local function FindLine(tooltip, keyword)
@@ -77,3 +84,10 @@ hooksecurefunc("EmbeddedItemTooltip_OnTooltipSetItem", function(self)
     local r, g, b = self.IconBorder:GetVertexColor()
     ColorBorder(tip, r, g, b)
 end)
+
+
+
+
+
+
+

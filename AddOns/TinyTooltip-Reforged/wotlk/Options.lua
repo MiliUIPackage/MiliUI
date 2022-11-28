@@ -13,16 +13,16 @@ local UIDropDownMenuTemplate = "UIDropDownMenuTemplate"
 
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
-local addonName, ns = ...
+local addonName = ...
 local addon = TinyTooltipReforged
 local CopyTable = CopyTable
 
-ns.L = ns.L or {}
+addon.L = addon.L or {}
 setmetatable(addon.L, { __index = function(self, k)
     local s = {strsplit(".", k)}
     return rawget(self,s[#s]) or (s[#s]:gsub("([a-z])([A-Z])", "%1 %2"):gsub("^(%a)", strupper))
 end})
-local L = ns.L
+local L = addon.L
 
 local function CallTrigger(keystring, value)
     for _, tip in ipairs(addon.tooltips) do
@@ -602,7 +602,6 @@ local options = {
         { keystring = "unit.npc.elements.moveSpeed",    type = "element", color = true, wildcard = true, filter = true, },
     },
     statusbar = {
-        { keystring = "general.statusbarEnabled",      type = "checkbox" },
         { keystring = "general.statusbarText",      type = "checkbox" },
         { keystring = "general.statusbarHeight",    type = "slider", min = 0, max = 24, step = 1 },
         { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },

@@ -1,9 +1,11 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
+local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
+
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
-local addon = TinyTooltipReforged
-local L = addon.L
+
+local guids, inspecting = {}, false
 
 local AFK = AFK
 local DND = DND
@@ -16,12 +18,13 @@ local FACTION_ALLIANCE = FACTION_ALLIANCE
 
 local TOOLTIP_UPDATE_TIME = TOOLTIP_UPDATE_TIME or 0.2
 
+local addon = TinyTooltipReforged
+
 local function strip(text)
     return (text:gsub("%s+([|%x%s]+)<trim>", "%1"))
 end
 
 local function ColorBorder(tip, config, raw)
-    if (tip ~= GameTooltip) then return end
     if (not raw) then return end
     if (config.coloredBorder and addon.colorfunc[config.coloredBorder]) then
         local r, g, b = addon.colorfunc[config.coloredBorder](raw)
@@ -75,13 +78,11 @@ local function ShowBigFactionIcon(tip, config, raw)
         tip.BigFactionIcon:SetTexture("Interface\\Timer\\".. raw.factionGroup .."-Logo")
         tip:Show()
         tip:SetMinimumWidth(tip:GetWidth() + 20)
-    else
-        tip:Show()
-        tip:SetMinimumWidth(tip:GetWidth() + 5)
     end
 end
 
 local function PlayerCharacter(tip, unit, config, raw)
+    if (not raw) then return end
     local data = addon:GetUnitData(unit, config.elements, raw)
     addon:HideLines(tip, 2, 3)
     addon:HideLine(tip, "^"..LEVEL)
@@ -98,7 +99,7 @@ local function PlayerCharacter(tip, unit, config, raw)
 end
 
 local function NonPlayerCharacter(tip, unit, config, raw)
-    if (tip ~= GameTooltip) then return end
+    if (not raw) then return end
     local levelLine = addon:FindLine(tip, "^"..LEVEL)
     if (levelLine or tip:NumLines() > 1) then
         local data = addon:GetUnitData(unit, config.elements, raw)
@@ -129,8 +130,9 @@ local function NonPlayerCharacter(tip, unit, config, raw)
     ShowBigFactionIcon(tip, config, raw)
 end
 
-LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
-    local raw = addon:GetUnitInfo(unit)
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
+    local unit = UnitTokenFromGUID(data.guid)
+    local raw = addon:GetUnitInfo(data.guid)
     if (UnitIsPlayer(unit)) then
         PlayerCharacter(GameTooltip, unit, addon.db.unit.player, raw)
     else
