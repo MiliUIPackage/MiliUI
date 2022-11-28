@@ -2,6 +2,8 @@ local myname, ns = ...
 
 local MAPID = ns.OHNAHRANPLAINS -- Ohn'ahran Plains
 
+-- forgotten dragon treasure: 53246888
+
 ns.RegisterPoints(MAPID, {
     -- https://www.wowhead.com/beta/achievement=16299/treasures-of-the-ohnahran-plains
     [32413815] = { -- Nokhud Warspear
@@ -25,15 +27,16 @@ ns.RegisterPoints(MAPID, {
         },
         note="Fetch {item:195453} from {npc:192997}",
     },
-    --[[
-    [] = { -- Emerald Gem Cluster
+    [33205532] = { -- Emerald Gem Cluster
         criteria=54700,
         quest=70391,
-        loot={},
+        loot={
+            200865, -- Glimmering Ysemerald Cluster
+        },
+        hide_before=ns.conditions.MajorFaction(ns.FACTION_DRAGONSCALE, 21),
         active={ns.conditions.Item(198843), ns.conditions.QuestComplete(70392), any=true}, -- Emerald Gardens Explorer's Notes
         note="Find {item:198843} in other treasures"
     },
-    --]]
     [73475616] = { -- Cracked Centaur Horn
         criteria=54709,
         quest=70402,
@@ -48,6 +51,7 @@ ns.RegisterPoints(MAPID, {
             199338, -- Copper Coin of the Isles
         },
         note="In cave",
+        path=81667175,
     },
     [51985830] = { -- Yennu's Boat
         criteria=54711,
@@ -59,6 +63,32 @@ ns.RegisterPoints(MAPID, {
     },
 }, {
     achievement=16299, -- Treasures
+    minimap=true,
+})
+ns.RegisterPoints(MAPID, {
+    [56017879] = {
+        quest=71033,
+        label="Water-Bound Chest",
+        loot={
+            197955, -- Sword of the Eternal Guard
+        },
+        note="Survive the trial of the elements",
+        vignette=5407,
+    },
+    [82317322] = { -- The Great Swog
+        npc=191608,
+        loot={
+            199341, -- Regurgitated
+            199342, -- Weighted
+            202102, -- Immaculate
+            {202042, toy=true, note="In bags"}, -- Aquatic Shades
+            {199234, note="In bags"}, -- Schematic: Khaz'gorite Fisherfriend
+        },
+        active={ns.conditions.Item(199338), ns.conditions.Item(199339), ns.conditions.Item(199340), any=true},
+        texture=ns.atlas_texture("Fishing-Hole", {r=1, g=0.5, b=0.5}), scale=1.2,
+        minimap=true,
+        path=81657175,
+    },
 })
 
 -- Divine Kiss of Ohn'ahra mount:
@@ -160,7 +190,11 @@ ns.RegisterPoints(MAPID, {
         criteria=56066,
         quest=nil,
         npc=193209,
-        loot={},
+        loot={
+            {200879, note="Hatches into..."}, -- Zenet Egg
+            {198825, mount=1672}, -- Zenet Hatchling
+        },
+        note="Flying",
     },
     [87406140] = { -- Liskheszaera
         criteria=56067,
@@ -217,15 +251,16 @@ ns.RegisterPoints(MAPID, {
         vignette=5195,
         -- hide_before=ns.MAXLEVEL, -- TODO
     },
-    [] = { -- Oshigol
+    --]]
+    [60812677] = { -- Oshigol
         criteria=56074,
         quest=69877,
         npc=193235,
         loot={},
+        note="Patrols",
         vignette=5199,
         -- hide_before=ns.MAXLEVEL, -- TODO
     },
-    --]]
     [74414762] = { -- Fulgurb
         criteria=56075,
         quest=69856,
@@ -267,9 +302,12 @@ ns.RegisterPoints(MAPID, {
     --]]
     [29554146] = { -- Shade of Grief
         criteria=56080,
-        quest=nil,
+        quest=nil, -- ...no quest changed
         npc=187559,
-        loot={},
+        loot={
+            {196985, quest=69185}, -- Cliffside Wylderdrake: Horned Jaw
+        },
+        vignette=5181, -- Solethus' Gravestone
     },
     --[[
     [] = { -- Nokhud Warmaster
@@ -286,15 +324,13 @@ ns.RegisterPoints(MAPID, {
         npc=187781,
         loot={},
     },
-    --[[
-    [] = { -- Hunter of Deep
+    [80364198] = { -- Hunter of the Deep
         criteria=56083,
-        quest=nil,
+        quest=nil, -- no quest tripped
         npc=188095,
-        loot={},
-        vignette=5077,
+        loot={}, -- supplies and centaur rep...
+        vignette=5077, -- vignette wasn't actually shown, just a swarm of no-data vignettes
     },
-    --]]
     [80413867] = { -- Irontree
         criteria=56084,
         quest=66356,
@@ -391,6 +427,71 @@ ns.RegisterPoints(MAPID, {
     --]]
 }, {
     achievement=16677, -- Adventurer
+})
+ns.RegisterPoints(MAPID, {
+    [81447834] = { -- Seereel, the Spring
+        achievement=16678, -- Adventurer of the *Azure Span*
+        criteria=56118,
+        quest=nil,
+        npc=193710,
+        loot={},
+    },
+    [81207780] = { -- Astray Splasher
+        achievement=16678, -- Adventurer of the *Azure Span*
+        criteria=56130,
+        quest=nil,
+        npc=197411,
+        loot={},
+    },
+    [59926695] = { -- Prozela Galeshot
+        quest=69968, -- 72815 also
+        npc=193669,
+        loot={
+            {197383, quest=69584}, -- Renewed Proto-Drake: Heavy Horns
+        },
+        vignette=5240,
+    },
+    [44904923] = { -- Skaara
+        quest=70783, -- 72847 also
+        npc=192949,
+        loot={
+            200442, -- Basilisk Hide Jerkin
+            198411, -- Claw of Preparedness
+            {196976, quest=69176}, -- Cliffside Wylderdrake: Head Mane
+        },
+        vignette=5389,
+    },
+    [26356534] = { -- Ripsaw the Stalker
+        quest=69851, -- also 72845
+        npc=193153,
+        loot={
+            200137, -- Chitin Dreadbringer
+        },
+        vignette=5178,
+    },
+    [22996667] = { -- Territorial Coastling
+        quest=69852, -- also 72851
+        npc=193163,
+        loot={
+            200212, -- Sand-Encrusted Greaves
+            200442, -- Basilisk Hide Jerkin
+        },
+        vignette=5179,
+    },
+    [26073414] = { -- Ty'foon the Ascended
+        quest=66970, -- also 72852
+        npc=191354,
+        loot={
+            198429, -- Typhoon Bringer
+        },
+        path=24503340,
+        vignette=5131,
+    },
+    [72615598] = { -- Biryuk
+        quest=nil,
+        npc=193168,
+        loot={}, -- only supplies and commendations
+    }
 })
 
 -- Who's a Good Bakar?
@@ -515,28 +616,17 @@ ns.RegisterPoints(MAPID, {
     -- icon=930453, -- Inv_stbernarddogpet
 })
 
--- Dragon Glyphs
-local glyph = {
-    achievement=16576,
-    atlas="Warfront-AllianceHero-Silver",
-    minimap=true,
-    requires=ns.DRAGONRIDING,
-    group="glyphs",
-}
+-- Sleeping on the Job
 ns.RegisterPoints(MAPID, {
-    [57793081] = {criteria=55792, quest=16054,}, -- Ohn'ahra's Roost
-    [30393607] = {criteria=55793, quest=16055,}, -- Nokhudon Hold
-    [30156156] = {criteria=55794, quest=16056,}, -- Emerald Gardens
-    [29547543] = {criteria=55795, quest=16057,}, -- The Eternal Kurgans
-    [44736457] = {criteria=55796, quest=16058,}, -- Szar Skeleth
-    [47327216] = {criteria=55797, quest=16059,}, -- Mirror of the Sky
-    [57138010] = {criteria=55798, quest=16060,}, -- Ohn'iri Springs
-    [84077727] = {criteria=55799, quest=16061,}, -- Dragonsprings Summit
-    [86543932] = {criteria=55800, quest=16062,}, -- Rusza'thar Reach
-    [61376423] = {criteria=55801, quest=16063,}, -- Windsong Rise
-    [80001300] = {criteria=56134, quest=16670,}, -- Rubyscale Outpost
-    [78422117] = {criteria=56139, quest=16671,}, -- Mirewood Fen
-}, glyph)
-ns.RegisterPoints(ns.WAKINGSHORES, {
-    [48828664] = {criteria=56134, quest=16670,}, -- Rubyscale Outpost
-}, glyph)
+    [33515321] = {criteria=55776, npc=198064,}, -- Dreamguard Felyasra
+    [29876222] = {criteria=55777, npc=198068, path=29696022}, -- Dreamguard Erezsra
+    [25296540] = {criteria=55778, npc=198069,}, -- Dreamguard Sayliasra
+    [18025378] = {criteria=55779, npc=198074,}, -- Dreamguard Aiyelasra
+    [19088289] = {criteria=55780, npc=198073,}, -- Dreamguard Lucidra
+    [29404153] = {criteria=55781, npc=198075,}, -- Dreamguard Taelyasra
+}, {
+    achievement=16574,
+    note="/sleep",
+    texture=ns.atlas_texture("VenthyrAssaultsQuest-32x32", {r=0, g=1, b=0}), scale=1.2,
+    minimap=true,
+})

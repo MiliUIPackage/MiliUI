@@ -2,6 +2,10 @@ local myname, ns = ...
 
 local MAPID = ns.THALDRASZUS -- Thaldraszus
 
+--[[ mining walls
+40857586 ?
+--]]
+
 ns.RegisterPoints(MAPID, {
     -- https://www.wowhead.com/beta/achievement=16301/treasures-of-thaldraszus
     [33957694] = { -- Cracked Hourglass
@@ -14,33 +18,33 @@ ns.RegisterPoints(MAPID, {
     [58158005] = { -- Sandy Wooden Duck
         criteria=54811,
         quest=70608,
-        loot={},
+        loot={}, -- as of 20221127 this is still placeholder loot item (190190)
         active={ns.conditions.QuestComplete(70538), ns.conditions.Item(199069), any=true}, -- Yennu's Map
         note="Find {item:199069} nearby",
         related={
             [54937543] = {quest=70538,loot={{199069,quest=70538},},atlas="poi-workorders",active=false,}, -- Yennu's Map
         },
+        vignette=5371,
     },
-    --[[
-    [] = { -- Amber Gem Cluster
+    [52607673] = { -- Amber Gem Cluster
         criteria=54812,
         quest=70408,
         loot={},
+        hide_before=ns.conditions.MajorFaction(ns.FACTION_DRAGONSCALE, 21),
         active={ns.conditions.QuestComplete(70407), ns.conditions.Item(198852), any=true}, -- Bear Termination Orders
         note="Find {item:198852} in other treasures",
     },
-    --]]
     [60234160] = { -- Elegant Canvas Brush
         criteria=54813,
         quest=70609,
-        loot={},
+        loot={}, -- as of 20221123 this is still placeholder loot item (190190)
     },
     [64851650] = { -- Surveyor's Magnifying Glass
         criteria=54814,
         quest=70610,
-        loot={},
+        loot={}, -- as of 20221123 this is still placeholder loot item (190190)
     },
-    [64801650] = { -- Acorn Harvester
+    [49456291] = { -- Acorn Harvester
         criteria=54815,
         quest=70611,
         loot={
@@ -50,6 +54,17 @@ ns.RegisterPoints(MAPID, {
     },
 }, {
     achievement=16301, -- Treasures
+    minimap=true,
+})
+ns.RegisterPoints(MAPID, {
+    [56264118] = { -- Forgetful Apprentice's Tome
+        quest=70264,
+        loot={
+            198659, -- Forgetful Apprentice's Tome (+inscription)
+        },
+        note="Inscription",
+        vignette=5291,
+    },
 })
 
 -- Rares
@@ -64,13 +79,16 @@ ns.RegisterPoints(MAPID, {
         vignette=5180,
     },
     --]]
-    [57808380] = { -- Innumerable Ruination
+    [57968158] = { -- Innumerable Ruination
         criteria=56135,
         quest=nil,
         npc=193126,
-        loot={},
+        loot={
+            200760, -- Unstable Arcane Cell
+        },
     },
-    [90204020] = { -- Blightpaw the Depraved
+    [31737253] = { -- Blightpaw the Depraved
+        -- overlaps a bit with plains @ 90204020
         criteria=56136,
         quest=nil,
         npc=193128,
@@ -186,14 +204,15 @@ ns.RegisterPoints(MAPID, {
         loot={},
         vignette=5177,
     },
-    [] = { -- The Weeping Vilomah
+    --]]
+    [46287298] = { -- The Weeping Vilomah
+        -- TODO: this is the vignette-location, I haven't actually found the route to it yet...
         criteria=56153,
         quest=65365,
         npc=183984,
         loot={},
         vignette=4958,
     },
-    --]]
     [52806760] = { -- Craggravated Elemental
         criteria=56154,
         quest=69964,
@@ -201,12 +220,16 @@ ns.RegisterPoints(MAPID, {
         loot={},
         vignette=5237,
     },
-    [38406800] = { -- The Great Shellkhan
+    [38436824] = { -- The Great Shellkhan
         criteria=56155,
         quest=72121,
         npc=191305,
-        loot={},
+        loot={
+            {200999, toy=true,}, -- The Super Shellkhan Gang
+        },
+        note="Bring a {item:200949:Case of Fresh Gleamfish} from 45.6, 54.8 in Azure Span",
         vignette=5439,
+        route={38436824, 32009999, highlightOnly=true},
     },
     [44806900] = { -- Corrupted Proto-Dragon
         criteria=56156,
@@ -214,6 +237,7 @@ ns.RegisterPoints(MAPID, {
         npc=193658,
         loot={},
         vignette=5235,
+        note="Interact with the egg inside the cave",
     },
     --[[
     [] = { -- Lord Epochbrgl
@@ -234,25 +258,45 @@ ns.RegisterPoints(MAPID, {
 }, {
     achievement=16679, -- Adventurer
 })
-
--- Dragon Glyphs
 ns.RegisterPoints(MAPID, {
-    [66018234] = {criteria=55812, quest=16098,}, -- Temporal Conflux
-    [46097388] = {criteria=55813, quest=16099,}, -- Stormshroud Peak
-    [35568556] = {criteria=55814, quest=16100,}, -- South Hold Gate
-    [41265827] = {criteria=55815, quest=16101,}, -- Valdrakken
-    [49854023] = {criteria=55816, quest=16102,}, -- Algeth'era
-    [61575661] = {criteria=55817, quest=16103,}, -- Tyrhold
-    [62414046] = {criteria=55818, quest=16104,}, -- Algeth'ar Academy
-    [67091176] = {criteria=55819, quest=16105,}, -- Veiled Ossuary
-    [72405171] = {criteria=55820, quest=16106,}, -- Vault of the Incarnates
-    [72966914] = {criteria=55821, quest=16107,}, -- Thaldraszus Apex
-    [52656743] = {criteria=56159, quest=16666,}, -- Gelikyr Overlook
-    [55767233] = {criteria=56160, quest=16667,}, -- Passage of Time
-}, {
-    achievement=16578,
-    atlas="Warfront-AllianceHero-Silver",
-    minimap=true,
-    requires=ns.DRAGONRIDING,
-    group="glyphs",
+    [37538339] = { -- Private Shikzar
+        quest=70986,
+        npc=193127,
+        loot={},
+        vignette=5406,
+    },
+    [36808557] = { -- Lookout Mordren
+        quest=72813, -- 69967 on vignette?
+        npc=193668,
+        loot={
+            200182, -- Riveted Drape
+        },
+        vignette=5239,
+        -- despawns without any loot, asks you to help comrades at the South Hold Gate... -- something to remove his debuff first, maybe?
+    },
+    [37777413] = { -- Acrosoth
+        quest=72834, -- 72114
+        npc=193243,
+        loot={
+            {197403, quest=69604}, -- Renewed Proto-Drake: Club Tail
+        },
+        vignette=5436,
+        note="Flying nearby",
+    },
+    [55797732] = { -- Henlare
+        quest=69873, -- 72814
+        npc=193229,
+        loot={
+            200880, -- Wind-Sealet Mana Capsule
+        },
+        vignette=5196,
+    },
+    [36737280] = { -- Liskron the Dazzling
+        quest=72842, -- vignette 72116
+        npc=193273,
+        loot={
+            {196976, quest=69176}, -- Cliffside Wylderdrake: Head Mane
+        },
+        vignette=5437,
+    },
 })

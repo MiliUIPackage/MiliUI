@@ -9,7 +9,7 @@ ns.HL = HL
 local HBD = LibStub("HereBeDragons-2.0")
 local LibDD = LibStub:GetLibrary("LibUIDropDownMenu-4.0")
 
-ns.DEBUG = GetAddOnMetadata(myname, "Version") == 'v4'
+ns.DEBUG = GetAddOnMetadata(myname, "Version") == 'v14'
 
 ns.CLASSIC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 
@@ -940,6 +940,38 @@ local handle_tooltip_by_coord = function(tooltip, uiMapID, coord)
     return handle_tooltip(tooltip, ns.points[uiMapID] and ns.points[uiMapID][coord])
 end
 
+do
+    local currentZone, currentPoint
+    local function is_valid_related_point(basePoint, point)
+        if not (basePoint and point) then return false end
+        if basePoint.group and basePoint.group == point.group then return true end
+        if basePoint.achievement and basePoint.achievement == point.achievement then return true end
+        return false
+    end
+    local function iter(t, prestate)
+        if not t then return nil end
+        local state, point = next(t, prestate)
+        while state do -- Have we reached the end of this zone?
+            if is_valid_related_point(currentPoint, point) then
+                return state, point
+            end
+            state, point = next(t, state) -- Get next data
+        end
+        return
+    end
+    function ns.IterateRelatedPointsInZone(uiMapID, point)
+        currentPoint = point
+        return iter, ns.points[uiMapID], nil
+    end
+    function ns.PointHasRelatedPointsInZone(uiMapID, point)
+        for _, rpoint in ns.IterateRelatedPointsInZone(uiMapID, point) do
+            if rpoint ~= point then
+                return true
+            end
+        end
+    end
+end
+
 ---------------------------------------------------------
 -- Plugin Handlers to HandyNotes
 local HLHandler = {}
@@ -987,14 +1019,34 @@ local function showAchievement(button, achievement)
 end
 
 local function createWaypoint(button, uiMapID, coord)
+    local x, y = HandyNotes:getXY(coord)
     if TomTom then
-        local x, y = HandyNotes:getXY(coord)
         TomTom:AddWaypoint(uiMapID, x, y, {
             title = get_point_info_by_coord(uiMapID, coord),
             persistent = nil,
             minimap = true,
             world = true
         })
+    elseif C_Map and C_Map.CanSetUserWaypointOnMap and C_Map.CanSetUserWaypointOnMap(uiMapID) then
+        local uiMapPoint = UiMapPoint.CreateFromCoordinates(uiMapID, x, y)
+        C_Map.SetUserWaypoint(uiMapPoint)
+        C_SuperTrack.SetSuperTrackedUserWaypoint(true)
+    end
+end
+local function createWaypointForAll(button, uiMapID, coord)
+    if not TomTom then return end
+    local point = ns.points[uiMapID] and ns.points[uiMapID][coord]
+    if not point then return end
+    for rcoord, rpoint in ns.IterateRelatedPointsInZone(uiMapID, point) do
+        if ns.should_show_point(rcoord, rpoint, uiMapID, false) then
+            local x, y = HandyNotes:getXY(rcoord)
+            TomTom:AddWaypoint(uiMapID, x, y, {
+                title = get_point_info_by_coord(uiMapID, rcoord),
+                persistent = nil,
+                minimap = true,
+                world = true
+            })
+        end
     end
 end
 
@@ -1068,11 +1120,21 @@ do
                 wipe(info)
             end
 
-            if TomTom then
+            if TomTom or (C_Map and C_Map.CanSetUserWaypointOnMap and C_Map.CanSetUserWaypointOnMap(currentZone)) then
                 -- Waypoint menu item
                 info.text = "建立導航"
                 info.notCheckable = 1
                 info.func = createWaypoint
+                info.arg1 = currentZone
+                info.arg2 = currentCoord
+                LibDD:UIDropDownMenu_AddButton(info, level)
+                wipe(info)
+            end
+            -- Specifically for TomTom, since it supports multiples:
+            if TomTom and ns.PointHasRelatedPointsInZone(currentZone, point) then
+                info.text = render_string(("建立導航到所有的 %s"):format(point.group and (ns.groups[point.group] or point.group) or ("{achievement:%d}"):format(point.achievement)), point)
+                info.notCheckable = 1
+                info.func = createWaypointForAll
                 info.arg1 = currentZone
                 info.arg2 = currentCoord
                 LibDD:UIDropDownMenu_AddButton(info, level)
@@ -1255,6 +1317,9 @@ do
         HL:SendMessage("HandyNotes_NotifyUpdate", myname:gsub("HandyNotes_", ""))
         if ns.RouteWorldMapDataProvider then
             ns.RouteWorldMapDataProvider:RefreshAllData()
+        end
+        if ns.RouteMiniMapDataProvider then
+            ns.RouteMiniMapDataProvider:UpdateMinimapRoutes()
         end
     end
     function HL:RefreshOnEvent(event)

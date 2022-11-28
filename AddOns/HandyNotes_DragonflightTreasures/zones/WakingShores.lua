@@ -2,6 +2,11 @@ local myname, ns = ...
 
 local MAPID = ns.WAKINGSHORES -- Waking Shores
 
+--[[ mining walls
+52344167 herb
+41079405 ?
+--]]
+
 ns.RegisterPoints(MAPID, {
     -- https://www.wowhead.com/beta/achievement=16297/treasures-of-the-waking-shores
     [65804182] = { -- Replica Dragon Goblet
@@ -25,19 +30,22 @@ ns.RegisterPoints(MAPID, {
         nearby={40924140, label="{spell:199061:Fragrant Plant Scent}"},
         note="Find {item:199061} in other treasures to make this appear, then use the Fragrant Plant nearby",
     },
-    --[[
-    [] = { -- Ruby Gem Cluster
+    [61347079] = { -- Ruby Gem Cluster
         criteria=54713,
         quest=70598,
-        loot={},
+        loot={
+            200864, -- Glimmering Alexstraszite Cluster
+        },
+        hide_before=ns.conditions.MajorFaction(ns.FACTION_DRAGONSCALE, 21),
         active={ns.conditions.Item(198843), ns.conditions.QuestComplete(70392), any=true}, -- Ruby Gem Cluster Map
         note="Find {item:198843} in other treasures"
     },
-    --]]
     [46713121] = { -- Yennu's Kite
         criteria=54701,
         quest=70345,
-        loot={},
+        loot={
+            {202022, toy=true}, -- Yennu's Kite
+        },
         note="In the tree",
     },
     [69314658] = { -- Dead Man's Chestplate
@@ -56,41 +64,49 @@ ns.RegisterPoints(MAPID, {
     [48498516] = { -- Torn Riding Pack
         criteria=54703,
         quest=70378,
-        loot={},
+        loot={}, -- just supplies
         note="Top of waterfall",
     },
-    --[[
-    [] = { -- Misty Treasure Chest
+    [58585301] = { -- Misty Treasure Chest
         criteria=55403,
         quest=65646,
-        loot={},
+        loot={
+            202194, -- Misty Satchel (34 slot bag)
+        },
+        note="On a well-hidden ledge just below the top of the waterfall",
+        -- (the clue is the nearby scouts and non-interactable handhold-objects)
     },
-    [] = { -- Onyx Gem Cluster
+    [29454699] = { -- Onyx Gem Cluster
         criteria=55448,
         quest=72020,
-        loot={},
+        loot={
+            200867, -- Glimmering Neltharite Cluster
+        },
+        hide_before=ns.conditions.MajorFaction(ns.FACTION_DRAGONSCALE, 21),
         active={ns.conditions.Item(200738), ns.conditions.QuestComplete(72021), any=true}, -- Onyx Gem Cluster Map
-        note="Buy {item:200738}"
+        note="Buy {item:200738}",
         related={
             [47008280] = {quest=72021,loot={{200738,quest=72021}},atlas="poi-workorders",active=false,}, -- Onyx Gem Cluster Map
         },
     },
-    --]]
 }, {
     achievement=16297, -- Treasures
+    minimap=true,
 })
 
 -- Rares
 ns.RegisterPoints(MAPID, {
     -- https://www.wowhead.com/beta/achievement=16676/adventurer-of-the-waking-shores
-    --[[
-    [] = { -- Gushgut the Beaksinker
+    [52535855] = { -- Gushgut the Beaksinker
         criteria=56033,
-        quest=70718,
+        quest=70718, -- didn't actually trigger?
         npc=196056,
-        loot={},
+        loot={
+            {197098, quest=69299}, -- Highland Drake: Finned Back
+        },
         vignette=5380,
     },
+    --[[
     [] = { -- Nulltheria the Void Gazer
         criteria=56034,
         quest=nil,
@@ -112,10 +128,12 @@ ns.RegisterPoints(MAPID, {
         loot={},
     },
     [43427361] = { -- Helmet Missingway
+        -- no quest, no loot, it just deaggros and runs away and you get achievement-credit
         criteria=56037,
         quest=nil,
-        npc=199645,
+        npc=193263, -- 199645 is the criteria asset
         loot={},
+        minimap=true, -- just a neutral mob wandering, no vignette
     },
     [48436605] = { -- Brundin the Dragonbane
         criteria=56038,
@@ -198,7 +216,9 @@ ns.RegisterPoints(MAPID, {
         criteria=56048,
         quest=72130,
         npc=193154,
-        loot={},
+        loot={
+            200858, -- Plume of the Forgotten
+        },
         vignette=5383,
     },
     --[[
@@ -214,7 +234,9 @@ ns.RegisterPoints(MAPID, {
         criteria=56050,
         quest=72127,
         npc=193198,
-        loot={},
+        loot={
+            200286, -- Dragonbane Lance
+        },
         vignette=5385,
     },
     [64456922] = { -- Possessive Hornswog
@@ -225,6 +247,7 @@ ns.RegisterPoints(MAPID, {
             {199916, pet=3365}, -- Roseate Hopper
         },
         vignette=5139, -- Hidden Hornswog Hoard
+        atlas="VignetteLootElite", scale=1.2,
         note="Bring {item:200064}, {item:200065}, and {item:200066} here to enter",
         related={
             [47738363] = {quest=70864,label="{item:200064}",inbag=200064,atlas="Islands-AzeriteChest",}, -- Marmoni's Prize
@@ -243,17 +266,19 @@ ns.RegisterPoints(MAPID, {
     --]]
     [31825440] = { -- Death's Shadow
         criteria=56053,
-        quest=nil,
+        quest=67027, -- check
         npc=190985,
         loot={},
+        note="Give 20x{item:191264:Restored Obsidian Key} to {npc:191640:Sabellian} to trigger {quest:67027}",
         vignette=5113,
         -- hide_before=ns.MAXLEVEL, -- TODO
     },
     [23825742] = { -- Shas'ith
         criteria=56054,
-        quest=nil,
+        quest=66903, -- check
         npc=189822,
         loot={},
+        note="Give 20x{item:191264:Restored Obsidian Key} to {npc:186681:Wrathion} to trigger {quest:66903}",
         vignette=5108,
         -- hide_before=ns.MAXLEVEL, -- TODO
     },
@@ -262,7 +287,9 @@ ns.RegisterPoints(MAPID, {
         quest=69891,
         npc=193266,
         loot={},
+        note="In the Fluttering Cavern",
         vignette=5209, -- Resplendent Shimmerwing
+        path=35228165,
     },
     [25825982] = { -- Cauldronbearer Blakor
         criteria=56056,
@@ -304,22 +331,24 @@ ns.RegisterPoints(MAPID, {
         npc=193232,
         loot={},
     },
-    --[[
-    [] = { -- Morchok
+    [32215221] = { -- Morchok
         criteria=56988,
-        quest=nil,
+        quest=66901, -- check
         npc=187306,
         loot={},
+        note="Give 20x{item:191264:Restored Obsidian Key} to {npc:187275:Igys the Believer} to trigger {quest:66901}",
         vignette=5388, -- 5119 for "Morchock Reformed"?
         -- hide_before=ns.MAXLEVEL, -- TODO
     },
-    [] = { -- Shadeslash Trakken
+    [47297386] = { -- Shadeslash Trakken
         criteria=56989,
         quest=70719,
         npc=193271,
         loot={},
+        path=48457426,
         vignette=5381,
     },
+    --[[
     [] = { -- Slurpo, the Incredible Snail
         criteria=57003,
         quest=72126,
@@ -354,14 +383,92 @@ ns.RegisterPoints(MAPID, {
         },
         worldquest=65994,
         vignette=5126,
-    }
+    },
+    [54808220] = { -- Klozicc the Ascended
+        quest=66960, -- also 72841
+        npc=187209,
+        loot={
+            {197023, quest=69223}, -- Cliffside Wylderdrake: Maned Neck
+            {197602, quest=69806}, -- Windborne Velocidrake: Cluster Horns
+            {200198, toy=true}, -- Primalist Prison
+            200246, -- Lost Delving Lamp
+        },
+        vignette=5127,
+    },
+    [77602220] = { -- Ancient Hornswog
+        quest=66076, -- verify; vignette
+        npc=187111,
+        loot={
+            {196992, quest=69192}, -- Cliffside Wylderdrake: Heavy Horns
+            {197403, quest=69604}, -- Renewed Proto-Drake: Club Tail
+            {200249, toy=true}, -- Mage's Chewed Wand
+            200442, -- Basilisk Hide Jerkin
+        },
+        vignette=5057,
+    },
+    [46715715] = { -- Monsoo, The Boiling Rage
+        -- This is rare-flagged, but has no quest, no loot, and no criteria-completion...
+        quest=nil,
+        npc=190718,
+        loot={},
+        vignette=nil,
+        note="Kill {npc:190719:Primalist Arlin} to trigger",
+    },
+    [54512137] = { -- Firava the Rekindler
+        quest=72839, -- also 70648
+        npc=195915,
+        loot={
+            {197135, quest=69336}, -- Highland Drake: Toothy Mouth
+            200133, -- Volcanic Chakram
+            200217, -- Blazing Essence
+        },
+        vignette=5372,
+    },
+    [60598286] = { -- Terillod the Devout
+        quest=72850, -- also 70751, 71240
+        npc=193171,
+        loot={
+            200208, -- Cloud Coalescing Handwraps
+        },
+        vignette=5387,
+    },
+    [28047868] = { -- Beakers
+        -- no quest, no vignette, just a random rare-flagged mob
+        quest=nil,
+        npc=193177,
+        loot={},
+    },
 })
+
+--[[
+-- Grand Hunt
+ns.RegisterPoints(MAPID, {
+    [41158455] = { -- Degmakh
+        npc=194251,
+        loot={
+            198990, -- Drakewatcher's Cord
+        },
+        vignette=5266,
+    },
+    [47767707] = { -- Muugurv
+        npc=194225,
+        loot={
+            198985, -- Drakewatcher's Vestement
+        },
+        vignette=5264,
+    },
+}, {
+    achievement=16545, criteria=true,
+})
+--]]
+
 
 -- Symbols of Hope
 ns.RegisterPoints(MAPID, {
     [73193776] = { -- Wingrest Embassy
         criteria=55841,
         quest=72096,
+        note="Top of tower",
     },
     [73035290] = { -- Skytop Observatory
         criteria=55842,
@@ -404,26 +511,4 @@ ns.RegisterPoints(MAPID, {
     note="Interact with the {npc:198123:Hope Kite}",
     atlas="CreationCatalyst-32x32",
     minimap=true,
-})
-
--- Dragon Glyphs
-ns.RegisterPoints(MAPID, {
-    [75005700] = {criteria=55782, quest=15985,}, -- Skytop Observatory Tower
-    [74345754] = {criteria=56131, quest=16668,}, -- Skytop Observatory Rostrum
-    [58097858] = {criteria=56132, quest=16669,}, -- Flashfrost Enclave
-    [54467421] = {criteria=55785, quest=15988,}, -- Ruby Life Pools Peaks
-    [73082051] = {criteria=55783, quest=15986,}, -- Wingrest Embassy
-    [40957193] = {criteria=55784, quest=15987,}, -- Obsidian Bulwark
-    [46405214] = {criteria=55786, quest=15989,}, -- The Overflowing Spring
-    [52601721] = {criteria=55787, quest=15990,}, -- Life-Binder Observatory
-    [57705491] = {criteria=55788, quest=15991,}, -- Crumbling Life Archway
-    [69274623] = {criteria=55789, quest=16051,}, -- Dragonheart Outpost
-    [74873733] = {criteria=55790, quest=16052,}, -- Scalecracker Peak
-    [21765140] = {criteria=55791, quest=16053,}, -- Obsidian Throne
-}, {
-    achievement=16575,
-    atlas="Warfront-AllianceHero-Silver",
-    minimap=true,
-    requires=ns.DRAGONRIDING,
-    group="glyphs",
 })

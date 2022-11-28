@@ -18,51 +18,66 @@ ns.RegisterPoints(MAPID, {
         active={ns.conditions.QuestComplete(70535), ns.conditions.Item(199066), any=true}, -- Letter of Caution
         note="Find {item:199066} in other treasures",
     },
-    --[[
-    [] = { -- Sapphire Gem Cluster
+    [48632466] = { -- Sapphire Gem Cluster
         criteria=54806,
         quest=70605,
-        loot={},
+        loot={
+            200866, -- Glimmering Malygite Cluster
+        },
+        hide_before=ns.conditions.MajorFaction(ns.FACTION_DRAGONSCALE, 21),
         active={ns.conditions.QuestComplete(70536), ns.conditions.Item(199067), any=true}, -- Precious Plans
         note="Find {item:199067} in other treasures",
     },
-    --]]
     [74905499] = { -- Lost Compass
         criteria=54807,
         quest=70606,
-        loot={},
+        loot={
+            {202711, toy=true}, -- Lost Compass
+        },
     },
-    --[[
-    [] = { -- Rubber Fish
+    [54642933] = { -- Rubber Fish
         criteria=54808,
         quest=70380,
-        loot={},
+        loot={
+            202712, -- Rubber Fish
+        },
     },
-    --]]
     [26544629] = { -- Pepper Hammer
         criteria=54809,
         quest=70441,
         loot={
             {193834, pet=3321}, -- Blackfeather Nester
         },
-        note="Use the Tree Sap on the stick",
+        note="Climb the tree, then use the Tree Sap on the stick to summon {npc:195373}",
     },
 }, {
     achievement=16300, -- Treasures
+    minimap=true,
+})
+
+ns.RegisterPoints(MAPID, {
+    [45635482] = { -- for The Great Shellkhan in Thaldraszus
+        achievement=16679, criteria=56155,
+        quest=72121,
+        loot={200949}, -- Case of Fresh Gleamfish
+        note="Quickly take this to {npc:191305} in Thaldraszus @ 38.4, 68.2",
+        route={45635482, 52550000, highlightOnly=true},
+        minimap=true,
+    },
 })
 
 -- Rares
 ns.RegisterPoints(MAPID, {
     -- https://www.wowhead.com/beta/achievement=16678/adventurer-of-the-azure-span
-    --[[
-    [] = { -- Wilrive
+    [59405520] = { -- Wilrive
         criteria=56097,
-        quest=69948,
+        quest=69948, -- didn't actually trigger
         npc=193632,
-        loot={},
+        loot={
+            200174, -- Bonesigil Shoulderguards
+        },
         vignette=5224,
     },
-    --]]
     [27804580] = { -- Dragonhunter Gorund
         criteria=56098,
         quest=66956, -- ?
@@ -91,12 +106,17 @@ ns.RegisterPoints(MAPID, {
         loot={},
         vignette=5153,
     },
-    [] = { -- Mucka the Raker
+    --]]
+    [57685441] = { -- Mucka the Raker
+        -- ...very prone to resetting+evading and healing to full
         criteria=56102,
-        quest=nil,
+        quest=nil, -- no quest popped
         npc=193201,
-        loot={},
+        loot={
+            {200249, toy=true}, -- Mage's Chewed Wand
+        },
     },
+    --[[
     [] = { -- Brackle
         criteria=56103,
         quest=70165,
@@ -112,11 +132,14 @@ ns.RegisterPoints(MAPID, {
         loot={},
         vignette=5252,
     },
-    [60733168] = { -- Azure Pathfinder
+    [61213127] = { -- Azure Pathfinder
         criteria=56105,
         quest=nil,
         npc=194210,
         loot={},
+        note="Patrols the icy area",
+        route={61213127, 59163080, 57562986, 54223190, 52023452, 49283837},
+        minimap=true,
     },
     [73002660] = { -- Beogoka
         criteria=56106,
@@ -206,12 +229,6 @@ ns.RegisterPoints(MAPID, {
         npc=193708,
         loot={},
     },
-    [81447834] = { -- Seereel, the Spring
-        criteria=56118,
-        quest=nil,
-        npc=193710,
-        loot={},
-    },
     --[[
     [] = { -- Moth'go Deeploom
         criteria=56119,
@@ -233,10 +250,14 @@ ns.RegisterPoints(MAPID, {
     },
     --]]
     [13604860] = { -- Bisquius
+        -- also get achievement 16444, Leftovers' Revenge
         criteria=55381,
         quest=nil,
         npc=197557,
-        loot={},
+        loot={
+            200882,
+        },
+        note="Complete {spell:388961:Community Feasts}",
     },
     --[[
     [] = { -- Blightfur
@@ -255,10 +276,19 @@ ns.RegisterPoints(MAPID, {
     --]]
     [54803420] = { -- Spellwrought Snowman
         criteria=56124,
-        quest=69879,
+        quest=69879, -- didn't actually trigger?
         npc=193238,
         loot={},
         vignette=5200,
+        note="Collect 10x {npc:193424:Arcane Energy} for {npc:193255: Archmage Cleary} nearby",
+        related={
+            [53913570] = {label="{npc:193255: Archmage Cleary}", atlas="mechagon-projects", note="Gather {npc:193424:Arcane Energy}",},
+        },
+        nearby={
+            54013628, 54083719, 54163467, 53493476, 53393655, 52923710, 52203733, 51683682, 51953565,
+            label="{npc:193424:Arcane Energy}",
+            note="Bring to {npc:193242:Arcane Pedestal}",
+        },
     },
     [11093217] = { -- Snarglebone
         criteria=56125,
@@ -300,38 +330,67 @@ ns.RegisterPoints(MAPID, {
         loot={},
     },
     --]]
-    [81207780] = { -- Astray Splasher
-        criteria=56130,
-        quest=nil,
-        npc=197411,
-        loot={},
-    },
 }, {
     achievement=16678, -- Adventurer
 })
-
--- Dragon Glyphs
-local glyph = {
-    achievement=16577,
-    atlas="Warfront-AllianceHero-Silver",
-    minimap=true,
-    requires=ns.DRAGONRIDING,
-    group="glyphs",
-}
 ns.RegisterPoints(MAPID, {
-    [45772569] = {criteria=55802, quest=16064,}, -- Cobalt Assembly
-    [39206301] = {criteria=55803, quest=16065,}, -- Azure Archives
-    [68656035] = {criteria=55804, quest=16066,}, -- Ruins of Karnthar
-    [70584626] = {criteria=55805, quest=16067,}, -- Lost Ruins
-    [10393582] = {criteria=55806, quest=16068,}, -- Brackenhide Hollow
-    [26733168] = {criteria=55807, quest=16069,}, -- Creektooth Den
-    [60626999] = {criteria=55808, quest=16070,}, -- Imbu
-    [52974904] = {criteria=55809, quest=16071,}, -- Zelthrak Outpost
-    [67642911] = {criteria=55810, quest=16072,}, -- Rhonin's Shield
-    [72593986] = {criteria=55811, quest=16073,}, -- Vakthros Range
-    [36552815] = {criteria=56143, quest=16672,}, -- Forkriver Crossing
-    [56811603] = {criteria=56145, quest=16673,}, -- The Fallen Course
-}, glyph)
-ns.RegisterPoints(ns.OHNAHRANPLAINS, {
-    [70118660] = {criteria=56143, quest=16672,}, -- Forkriver Crossing
-}, glyph)
+    [23443327] = { -- Cascade
+        npc=186962,
+        quest=72836, -- 72358?
+        loot={
+            {197098, quest=69299}, -- Highland Drake: Finned Back
+            200135, -- Corroded Greatsword
+        },
+        vignette=5050,
+    },
+    [38185903] = { -- Forgotten Creation
+        npc=193214,
+        quest=72840,
+        loot={
+            200210, -- Amnesia
+            200758, -- Breastplate of Storied Antiquity
+        },
+        vignette=5191,
+    },
+    [70063318] = { -- Summoned Destroyer
+        npc=193288,
+        quest=72848, -- also 69895
+        loot={
+            200163, -- Ring of Embers
+            200868, -- Integrated Primal Fire
+        },
+        vignette=5213,
+    },
+    [17394121] = { -- Vakril, the Strongest Tuskarr
+        npc=193223,
+        quest=72853, -- 69872
+        loot={
+            {201728, quest=72853}, -- Vakril's Strongbox
+            {197001, quest=69201}, -- Cliffside Wylderdrake: Finned Cheek
+        },
+        vignette=5194,
+    },
+    [27004840] = { -- Breezebiter
+        npc=195353,
+        quest=nil,
+        loot={
+            {201440, mount=1553},
+        },
+        note="Flying",
+    },
+})
+
+-- Ley Line in the Span
+-- https://www.wowhead.com/achievement=16638/ley-line-in-the-span
+ns.RegisterPoints(MAPID, {
+    [43786190] = {criteria=55972, quest=72138,}, -- Azure Archives
+    [26303631] = {criteria=55973, quest=72139,}, -- Ancient Outlook
+    [65402835] = {criteria=55976, quest=72140,}, -- Slyvern Plunge
+    [66075111] = {criteria=55974, quest=72136,}, -- Rustpine Den
+    [66725958] = {criteria=55975, quest=72141,}, -- Ruins of Karnthar
+}, {
+    achievement=16638,
+    atlas="AzeriteReady",
+    minimap=true,
+    note="Interact with the {npc:198260}; sometimes a Miner will need to break a rock wall before you can get in",
+})

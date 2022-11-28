@@ -2,7 +2,7 @@
 ## Title: HandyNotes: Dragonflight Treasures
 ## Notes: Where are the hidden treasures in the Dragon Isles?
 ## Author: Kemayo
-## Version: v4
+## Version: v14
 ## DefaultState: enabled
 ## X-Category: Map
 ## X-eMail: kemayo @ gmail DOT com
@@ -11,6 +11,7 @@
 ## SavedVariables: HandyNotes_DragonflightTreasuresDB
 ## RequiredDeps: HandyNotes
 ## OptionalDeps: !LibUIDropDownMenu
+
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍群島
 ## Notes-zhTW: HandyNotes: Dragonflight Treasures |n在地圖上顯示巨龍群島的寶藏和稀有怪位置。
 ## X-Category-zhTW: 地圖
@@ -31,3 +32,4 @@ zones\WakingShores.lua
 shared\ExpeditionScoutsPack.lua
 
 achievements\HighestPeaks.lua
+achievements\DragonGlyphs.lua

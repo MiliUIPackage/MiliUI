@@ -87,7 +87,7 @@ do
             for _, points in pairs(ns.points) do
                 for _, point in pairs(points) do
                     if point.group then
-                        gcache[point.group] = true
+                        gcache[point.group] = point.group
                     end
                 end
             end

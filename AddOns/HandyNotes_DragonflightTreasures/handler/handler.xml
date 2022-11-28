@@ -7,5 +7,6 @@
 <Script file="config.lua"/>
 <Script file="overlay.lua"/>
 <Script file="routes.lua"/>
+<Script file="routes_minimap.lua"/>
 
 </Ui>

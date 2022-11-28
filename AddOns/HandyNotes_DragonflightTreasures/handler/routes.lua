@@ -121,7 +121,7 @@ end
 
 function RoutePinMixin:OnLoad()
     -- This is below normal handynotes pins
-    self:UseFrameLevelType("PIN_FRAME_LEVEL_EVENT_OVERLAY")
+    self:UseFrameLevelType(ns.CLASSIC and "PIN_FRAME_LEVEL_MAP_LINK" or "PIN_FRAME_LEVEL_EVENT_OVERLAY")
     self:SetSize(40, 40)
     self:EnableMouse()
 end
