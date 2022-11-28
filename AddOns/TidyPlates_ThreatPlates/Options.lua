@@ -10413,7 +10413,7 @@ local function CreateOptionsTable()
   };
   for i, class in ipairs(class_list) do
     ClassOpts["Prev" .. i] = {
-      name = class,
+      name = L[class],
       type = "execute",
       order = i,
       image = "Interface\\AddOns\\TidyPlates_ThreatPlates\\Widgets\\ClassIconWidget\\" .. db.classWidget.theme .. "\\" .. class,

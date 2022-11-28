@@ -606,6 +606,7 @@ end
 
 -- UpdateUnitCondition: High volatility data
 function Addon:UpdateUnitCondition(unit, unitid)
+  if not unitid then return end -- 暫時修正
   unit.level = UnitEffectiveLevel(unitid)
 
   local c = GetCreatureDifficultyColor(unit.level)
