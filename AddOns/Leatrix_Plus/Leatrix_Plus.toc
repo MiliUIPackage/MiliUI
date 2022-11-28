@@ -9,11 +9,11 @@
 ## Notes-zhTW: Leatrix Plus |n|n讓生活更美好的插件，提供多種各式各樣的遊戲功能設定。|n|n|cffffd200使用方法: |r左鍵點小地圖按鈕的藍色閃電，或輸入 /ltp 開啟設定。
 ## Notes-zhTW: 哆啦A夢的百寶袋
 
-## Version: 10.0.11
+## Version: 10.0.13
 ## Author: Leatrix
 ## SavedVariables: LeaPlusDB
 
-## OptionalDeps: ElvUI, Glass, XLoot
+## OptionalDeps: ElvUI, Glass
 
 ## X-Curse-Project-ID: 94855
 

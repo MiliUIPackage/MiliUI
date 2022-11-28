@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 10.0.11 (16th November 2022)
+-- 	Leatrix Plus 10.0.13 (23rd November 2022)
 ----------------------------------------------------------------------
 
 --	01:Functns, 02:Locks, 03:Restart, 20:Live, 30:Isolated, 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "10.0.11"
+	LeaPlusLC["AddonVer"] = "10.0.13"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -27,7 +27,7 @@
 	-- Check Wow version is valid
 	do
 		local gameversion, gamebuild, gamedate, gametocversion = GetBuildInfo()
-		if gametocversion and gametocversion < 100002 then
+		if gametocversion and gametocversion < 100000 then
 			-- Game client is Wow Classic
 			C_Timer.After(2, function()
 				print(L["LEATRIX PLUS: WRONG VERSION INSTALLED!"])
@@ -39,7 +39,6 @@
 	-- Check for addons
 	if IsAddOnLoaded("ElvUI") then LeaPlusLC.ElvUI = unpack(ElvUI) end
 	if IsAddOnLoaded("Glass") then LeaPlusLC.Glass = true end
-	if IsAddOnLoaded("XLoot") then LeaPlusLC.XLoot = true end
 
 ----------------------------------------------------------------------
 --	L00: Leatrix Plus
@@ -60,12 +59,6 @@
 	_G.BINDING_NAME_LEATRIX_PLUS_GLOBAL_WEBLINK = L["Show web link"]
 	_G.BINDING_NAME_LEATRIX_PLUS_GLOBAL_RARE = L["Announce rare"]
 	_G.BINDING_NAME_LEATRIX_PLUS_GLOBAL_MOUNTSPECIAL = L["Mount special"]
-
-	-- LeaPlusLC.DF: New functions added in 10.0.2
-	local GetContainerNumSlots = C_Container and C_Container.GetContainerNumSlots or GetContainerNumSlots
-	local GetContainerItemLink = C_Container and C_Container.GetContainerItemLink or GetContainerItemLink
-	local GetContainerItemInfo = C_Container and C_Container.GetContainerItemInfo or GetContainerItemInfo
-	local UseContainerItem = C_Container and C_Container.UseContainerItem or UseContainerItem
 
 	-- Faster auto loot
 	-- Prints NO QUALITY LOOT in chat frequently but it does this with or without addons (just less frequent without addons)
@@ -603,7 +596,6 @@
 		LeaPlusLC:LockOption("ClassColFrames", "ClassColFramesBtn", true)			-- Class colored frames
 		LeaPlusLC:LockOption("SetWeatherDensity", "SetWeatherDensityBtn", false)	-- Set weather density
 		LeaPlusLC:LockOption("MuteGameSounds", "MuteGameSoundsBtn", false)			-- Mute game sounds
-		LeaPlusLC:LockOption("FasterLooting", "FasterLootingBtn", true)				-- Faster auto loot
 		LeaPlusLC:LockOption("FasterMovieSkip", "FasterMovieSkipBtn", true)			-- Faster movie skip
 		LeaPlusLC:LockOption("NoTransforms", "NoTransformsBtn", false)				-- Remove transforms
 	end
@@ -684,7 +676,6 @@
 		or	(LeaPlusLC["NoRestedEmotes"]		~= LeaPlusDB["NoRestedEmotes"])			-- Silence rested emotes
 		or	(LeaPlusLC["NoPetAutomation"]		~= LeaPlusDB["NoPetAutomation"])		-- Disable pet automation
 		or	(LeaPlusLC["FasterLooting"]			~= LeaPlusDB["FasterLooting"])			-- Faster auto loot
-		or	(LeaPlusLC["FixBlizzardLootSpam"]	~= LeaPlusDB["FixBlizzardLootSpam"])	-- Faster auto loot fix spam
 		or	(LeaPlusLC["FasterMovieSkip"]		~= LeaPlusDB["FasterMovieSkip"])		-- Faster movie skip
 		or	(LeaPlusLC["CombatPlates"]			~= LeaPlusDB["CombatPlates"])			-- Combat plates
 		or	(LeaPlusLC["EasyItemDestroy"]		~= LeaPlusDB["EasyItemDestroy"])		-- Easy item destroy
@@ -1053,6 +1044,8 @@
 			-- Automatically skip cinematics in instances
 			CinematicFrame:HookScript("OnShow", function()
 				if LeaPlusLC["MovieSkipInstance"] == "On" and IsInInstance() and CinematicFrame:IsShown() and CinematicFrame.closeDialog and CinematicFrameCloseDialogConfirmButton then
+					-- local mapID = C_Map.GetBestMapForUnit("player") or nil
+					-- if mapID and mapID == 2002 then return end -- Sanctum of Domination: Sylvanas fight (causes block taint)
 					CinematicFrameCloseDialog:Hide()
 					CinematicFrameCloseDialogConfirmButton:Click()
 				end
@@ -1060,6 +1053,8 @@
 
 			MovieFrame:HookScript("OnShow", function()
 				if LeaPlusLC["MovieSkipInstance"] == "On" and IsInInstance() and MovieFrame:IsShown() and MovieFrame.CloseDialog and MovieFrame.CloseDialog.ConfirmButton and not LeaPlusLC.MoviePlaying then
+					-- local mapID = C_Map.GetBestMapForUnit("player") or nil
+					-- if mapID and mapID == 2002 then return end -- Sanctum of Domination: Sylvanas fight (causes block taint)
 					MovieFrame.CloseDialog.ConfirmButton:Click()
 				end
 			end)
@@ -2228,105 +2223,6 @@
 
 		if LeaPlusLC["FasterLooting"] == "On" then
 
-			-- Hopefully this is temporary but then again how long does it take for Blizzard to comment out two print statements
-			-- (that's assuming that they actually want to fix this)
-			-- https://github.com/leatrix/leatrix-plus/issues/113
-
-			-- Create configuration panel
-			local FasterLootPanel = LeaPlusLC:CreatePanel("Faster auto loot", "FasterLootPanel")
-
-			LeaPlusLC:MakeTx(FasterLootPanel, "Settings", 16, -72)
-			LeaPlusLC:MakeCB(FasterLootPanel, "FixBlizzardLootSpam", "Fix Blizzard's NO QUALITY LOOT spam", 16, -92, true, "If checked, the NO QUALITY LOOT spam which Blizzard added to Dragonflight will be hidden.|n|nIn Dragonflight, Blizzard added code to the game that spams you with NO QUALITY LOOT messages when you loot items.  With faster looting, messages are more frequent.|n|nThis setting hides this pointless spam by replacing Blizzard's looting code.|n|nIf you are using a loot frame replacement addon, you may need to uncheck this setting.")
-
-			if LeaPlusLC.ElvUI then
-				LeaLockList["FixBlizzardLootSpam"] = LeaPlusLC["FixBlizzardLootSpam"]
-				LeaPlusLC:LockItem(LeaPlusCB["FixBlizzardLootSpam"], true)
-				LeaPlusCB["FixBlizzardLootSpam"].tiptext = LeaPlusCB["FixBlizzardLootSpam"].tiptext .. "|n|n|cff00AAFF" .. L["Cannot be used with ElvUI."]
-			end
-
-			if LeaPlusLC.XLoot then
-				LeaLockList["FixBlizzardLootSpam"] = LeaPlusLC["FixBlizzardLootSpam"]
-				LeaPlusLC:LockItem(LeaPlusCB["FixBlizzardLootSpam"], true)
-				LeaPlusCB["FixBlizzardLootSpam"].tiptext = LeaPlusCB["FixBlizzardLootSpam"].tiptext .. "|n|n|cff00AAFF" .. L["Cannot be used with XLoot."]
-			end
-
-			-- Help button hidden
-			FasterLootPanel.h:Hide()
-
-			-- Back button handler
-			FasterLootPanel.b:SetScript("OnClick", function()
-				FasterLootPanel:Hide(); LeaPlusLC["PageF"]:Show(); LeaPlusLC["Page7"]:Show()
-				return
-			end)
-
-			-- Reset button handler
-			FasterLootPanel.r.tiptext = FasterLootPanel.r.tiptext .. "|n|n" .. L["Note that this will not reset settings that require a UI reload."]
-			FasterLootPanel.r:SetScript("OnClick", function()
-
-				-- Refresh configuration panel
-				FasterLootPanel:Hide(); FasterLootPanel:Show()
-
-			end)
-
-			-- Show configuration panal when options panel button is clicked
-			LeaPlusCB["FasterLootingBtn"]:SetScript("OnClick", function()
-				if IsShiftKeyDown() and IsControlKeyDown() then
-					-- Preset profile
-				else
-					FasterLootPanel:Show()
-					LeaPlusLC:HideFrames()
-				end
-			end)
-
-			-- Apply fix for Blizzard's NO QUALITY LOOT spam
-			if LeaPlusLC["FixBlizzardLootSpam"] == "On" and not LeaLockList["FixBlizzardLootSpam"] then
-
-				LootFrame:UnregisterEvent("LOOT_OPENED")
-				local abc = CreateFrame("FRAME")
-				abc:RegisterEvent("LOOT_OPENED")
-				abc:SetScript("OnEvent", function(self)
-
-					local dataProvider = CreateDataProvider()
-					for slotIndex = 1, GetNumLootItems() do
-						local texture, item, quantity, currencyID, itemQuality, locked, isQuestItem, questID, isActive, isCoin = GetLootSlotInfo(slotIndex)
-						local quality = itemQuality or Enum.ItemQuality.Common
-						local group = isCoin and 1 or 0
-						dataProvider:Insert({slotIndex = slotIndex, group = group, quality = quality})
-					end
-
-					-- Sort loot list to put quality items first
-					dataProvider:SetSortComparator(function(a, b)
-						if a.group ~= b.group then
-							return a.group > b.group
-						end
-						if a.quality ~= b.quality then
-							return a.quality > b.quality
-						end
-						return a.slotIndex < b.slotIndex
-					end)
-
-					-- Show the loot frame in the Edit Mode position
-					LootFrame.ScrollBox:SetDataProvider(dataProvider)
-
-					if GetCVarBool("lootUnderMouse") then
-						local x, y = GetCursorPosition()
-						x = x / (LootFrame:GetEffectiveScale()) - 30
-						y = math.max((y / LootFrame:GetEffectiveScale()) + 50, 350)
-						LootFrame:ClearAllPoints()
-						LootFrame:SetPoint("TOPLEFT", nil, "BOTTOMLEFT", x, y)
-						LootFrame:Raise()
-					else
-						EditModeSystemMixin.ApplySystemAnchor(LootFrame)
-					end
-
-					LootFrame:Show()
-					LootFrame:Resize()
-					LootFrame:PlayOpenAnimation()
-
-				end)
-
-			end
-
 			-- Time delay
 			local tDelay = 0
 
@@ -2933,7 +2829,29 @@
 
 			-- Declarations
 			local IterationCount, totalPrice = 500, 0
-			local SellJunkTicker, mBagID, mBagSlot
+			local SellJunkTicker
+
+			-- Create custom NewTicker function (from Wrath)
+			local function LeaPlusNewTicker(duration, callback, iterations)
+				local ticker = setmetatable({}, TickerMetatable)
+				ticker._remainingIterations = iterations
+				ticker._callback = function()
+					if (not ticker._cancelled) then
+						callback(ticker)
+						--Make sure we weren't cancelled during the callback
+						if (not ticker._cancelled) then
+							if (ticker._remainingIterations) then
+								ticker._remainingIterations = ticker._remainingIterations - 1
+							end
+							if (not ticker._remainingIterations or ticker._remainingIterations > 0) then
+								C_Timer.After(duration, ticker._callback)
+							end
+						end
+					end
+				end
+				C_Timer.After(duration, ticker._callback)
+				return ticker
+			end
 
 			-- Create configuration panel
 			local SellJunkFrame = LeaPlusLC:CreatePanel("Sell junk automatically", "SellJunkFrame")
@@ -2977,10 +2895,10 @@
 
 			-- Function to stop selling
 			local function StopSelling()
-				if SellJunkTicker then SellJunkTicker:Cancel() end
+				if SellJunkTicker then SellJunkTicker._cancelled = true; end
 				StartMsg:Hide()
 				SellJunkFrame:UnregisterEvent("ITEM_LOCKED")
-				SellJunkFrame:UnregisterEvent("ITEM_UNLOCKED")
+				SellJunkFrame:UnregisterEvent("UI_ERROR_MESSAGE")
 			end
 
 			-- Create excluded box
@@ -3201,18 +3119,8 @@
 			eb.Text:SetScript("OnLeave", GameTooltip_Hide)
 
 			-- Show item ID in item tooltips while configuration panel is showing
-			if TooltipDataProcessor then -- LeaPlusLC.DF - added in 10.0.2
+			if TooltipDataProcessor then
 				TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self)
-					if SellJunkFrame:IsShown() then
-						local void, itemLink = self:GetItem()
-						if itemLink then
-							local itemID = GetItemInfoFromHyperlink(itemLink)
-							if itemID then self:AddLine(L["Item ID"] .. ": " .. itemID) end
-						end
-					end
-				end)
-			else
-				GameTooltip:HookScript("OnTooltipSetItem", function(self)
 					if SellJunkFrame:IsShown() then
 						local void, itemLink = self:GetItem()
 						if itemLink then
@@ -3232,8 +3140,8 @@
 
 				-- Traverse bags and sell grey items
 				for BagID = 0, 4 do
-					for BagSlot = 1, GetContainerNumSlots(BagID) do
-						CurrentItemLink = GetContainerItemLink(BagID, BagSlot)
+					for BagSlot = 1, C_Container.GetContainerNumSlots(BagID) do
+						CurrentItemLink = C_Container.GetContainerItemLink(BagID, BagSlot)
 						if CurrentItemLink then
 							void, void, Rarity, void, void, void, void, void, void, void, ItemPrice = GetItemInfo(CurrentItemLink)
 							-- Don't sell whitelisted items
@@ -3249,20 +3157,17 @@
 								end
 							end
 							-- Continue
-							local void, itemCount = GetContainerItemInfo(BagID, BagSlot)
+							local cInfo = C_Container.GetContainerItemInfo(BagID, BagSlot)
+							local itemCount = cInfo.stackCount
 							if Rarity == 0 and ItemPrice ~= 0 then
 								SoldCount = SoldCount + 1
 								if MerchantFrame:IsShown() then
 									-- If merchant frame is open, vendor the item
-									UseContainerItem(BagID, BagSlot)
+									C_Container.UseContainerItem(BagID, BagSlot)
 									-- Perform actions on first iteration
 									if SellJunkTicker._remainingIterations == IterationCount then
 										-- Calculate total price
 										totalPrice = totalPrice + (ItemPrice * itemCount)
-										-- Store first sold bag slot for analysis
-										if SoldCount == 1 then
-											mBagID, mBagSlot = BagID, BagSlot
-										end
 									end
 								else
 									-- If merchant frame is not open, stop selling
@@ -3300,34 +3205,29 @@
 			if LeaPlusLC["AutoSellJunk"] == "On" then SetupEvents() end
 
 			-- Event handler
-			SellJunkFrame:SetScript("OnEvent", function(self, event)
+			SellJunkFrame:SetScript("OnEvent", function(self, event, arg1)
 				if event == "MERCHANT_SHOW" then
-					-- Reset variables
-					totalPrice, mBagID, mBagSlot = 0, -1, -1
+					-- Check for vendors that refuse to buy items
+					SellJunkFrame:RegisterEvent("UI_ERROR_MESSAGE")
+					-- Reset variable
+					totalPrice = 0
 					-- Do nothing if shift key is held down
 					if IsShiftKeyDown() then return end
 					-- Cancel existing ticker if present
-					if SellJunkTicker then SellJunkTicker:Cancel() end
+					if SellJunkTicker then SellJunkTicker._cancelled = true; end
 					-- Sell grey items using ticker (ends when all grey items are sold or iteration count reached)
-					SellJunkTicker = C_Timer.NewTicker(0.2, SellJunkFunc, IterationCount)
+					SellJunkTicker = LeaPlusNewTicker(0.2, SellJunkFunc, IterationCount)
 					SellJunkFrame:RegisterEvent("ITEM_LOCKED")
-					SellJunkFrame:RegisterEvent("ITEM_UNLOCKED")
 				elseif event == "ITEM_LOCKED" then
 					StartMsg:Show()
 					SellJunkFrame:UnregisterEvent("ITEM_LOCKED")
-				elseif event == "ITEM_UNLOCKED" then
-					SellJunkFrame:UnregisterEvent("ITEM_UNLOCKED")
-					-- Check whether vendor refuses to buy items
-					if mBagID and mBagSlot and mBagID ~= -1 and mBagSlot ~= -1 then
-						local texture, count, locked = GetContainerItemInfo(mBagID, mBagSlot)
-						if count and not locked then
-							-- Item has been unlocked but still not sold so stop selling
-							StopSelling()
-						end
-					end
 				elseif event == "MERCHANT_CLOSED" then
 					-- If merchant frame is closed, stop selling
 					StopSelling()
+				elseif event == "UI_ERROR_MESSAGE" then
+					if arg1 == 46 then
+						StopSelling() -- Vendor refuses to buy items
+					end
 				end
 			end)
 
@@ -3470,22 +3370,27 @@
 			local ChainPanel = LeaPlusLC:CreatePanel("Show player chain", "ChainPanel")
 
 			-- Add dropdown menu
-			LeaPlusLC:CreateDropDown("PlayerChainMenu", "Chain style", ChainPanel, 146, "TOPLEFT", 16, -112, {L["ELITE"], L["BOSS"]}, "")
+			LeaPlusLC:CreateDropDown("PlayerChainMenu", "Chain style", ChainPanel, 146, "TOPLEFT", 16, -112, {L["ELITE"], L["BOSS"], L["RARE"]}, "")
 
 			-- Set chain style
 			local function SetChainStyle()
 				-- Get dropdown menu value
 				local chain = LeaPlusLC["PlayerChainMenu"] -- Numeric value
 				-- Set chain style according to value
-				if chain == 1 then -- Gold
+				if chain == 1 then -- Elite (Gold)
 					playerChain:SetAtlas("UI-HUD-UnitFrame-Target-PortraitOn-Boss-Gold", true)
 					playerChain:ClearAllPoints()
 					playerChain:SetPoint("TOPLEFT", 8, -9)
 					playerChain:SetVertexColor(1, 1, 1, 1)
-				elseif chain == 2 then -- Gold Winged
+				elseif chain == 2 then -- Boss (Gold Winged)
 					playerChain:SetAtlas("UI-HUD-UnitFrame-Target-PortraitOn-Boss-Gold-Winged", true)
 					playerChain:ClearAllPoints()
 					playerChain:SetPoint("TOPLEFT", -11, -8)
+					playerChain:SetVertexColor(1, 1, 1, 1)
+				elseif chain == 3 then -- Rare (Silver)
+					playerChain:SetAtlas("UI-HUD-UnitFrame-Target-PortraitOn-Boss-Rare-Silver", true)
+					playerChain:ClearAllPoints()
+					playerChain:SetPoint("TOPLEFT", 8, -9)
 					playerChain:SetVertexColor(1, 1, 1, 1)
 				end
 			end
@@ -9447,11 +9352,7 @@
 
 			end
 
-			if TooltipDataProcessor then -- 10.0.2
-				TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, ShowTip)
-			else
-				GameTooltip:HookScript("OnTooltipSetUnit", ShowTip)
-			end
+			TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, ShowTip)
 
 		end
 
@@ -10995,7 +10896,7 @@
 				LeaPlusLC:LoadVarNum("BordersRight", 0, 0, 300)				-- Right border
 				LeaPlusLC:LoadVarNum("BordersAlpha", 0, 0, 0.9)				-- Border alpha
 				LeaPlusLC:LoadVarChk("ShowPlayerChain", "Off")				-- Show player chain
-				LeaPlusLC:LoadVarNum("PlayerChainMenu", 1, 1, 2)			-- Player chain dropdown value
+				LeaPlusLC:LoadVarNum("PlayerChainMenu", 1, 1, 3)			-- Player chain dropdown value
 				LeaPlusLC:LoadVarChk("ShowReadyTimer", "Off")				-- Show ready timer
 				LeaPlusLC:LoadVarChk("ShowWowheadLinks", "Off")				-- Show Wowhead links
 				LeaPlusLC:LoadVarChk("WowheadLinkComments", "Off")			-- Show Wowhead links to comments
@@ -11071,7 +10972,6 @@
 				LeaPlusLC:LoadVarChk("NoRaidRestrictions", "Off")			-- Remove raid restrictions
 				LeaPlusLC:LoadVarChk("NoConfirmLoot", "Off")				-- Disable loot warnings
 				LeaPlusLC:LoadVarChk("FasterLooting", "Off")				-- Faster auto loot
-				LeaPlusLC:LoadVarChk("FixBlizzardLootSpam", "Off")			-- Faster auto loot fix spam
 				LeaPlusLC:LoadVarChk("FasterMovieSkip", "Off")				-- Faster movie skip
 				LeaPlusLC:LoadVarChk("MovieSkipInstance", "Off")			-- Skip instance movies
 				LeaPlusLC:LoadVarChk("CombatPlates", "Off")					-- Combat plates
@@ -11453,7 +11353,6 @@
 			LeaPlusDB["NoRaidRestrictions"]		= LeaPlusLC["NoRaidRestrictions"]
 			LeaPlusDB["NoConfirmLoot"] 			= LeaPlusLC["NoConfirmLoot"]
 			LeaPlusDB["FasterLooting"] 			= LeaPlusLC["FasterLooting"]
-			LeaPlusDB["FixBlizzardLootSpam"] 	= LeaPlusLC["FixBlizzardLootSpam"]
 			LeaPlusDB["FasterMovieSkip"] 		= LeaPlusLC["FasterMovieSkip"]
 			LeaPlusDB["MovieSkipInstance"] 		= LeaPlusLC["MovieSkipInstance"]
 			LeaPlusDB["CombatPlates"]			= LeaPlusLC["CombatPlates"]
@@ -13188,8 +13087,8 @@
 			elseif str == "deletelooms" then
 				-- Delete heirlooms from bags
 				for bag = 0, 4 do
-					for slot = 1, GetContainerNumSlots(bag) do
-						local name = GetContainerItemLink(bag, slot)
+					for slot = 1, C_Container.GetContainerNumSlots(bag) do
+						local name = C_Container.GetContainerItemLink(bag, slot)
 						if name and string.find(name, "00ccff") then
 							print(name)
 							PickupContainerItem(bag, slot)
@@ -13649,7 +13548,7 @@
 							if endSound < 1 then endSound = 1 elseif endSound >= 5000000 then endSound = 5000000 end
 							endBox:SetText(endSound)
 						else
-							endSound = 100002
+							endSound = 100000
 							endBox:SetText(endSound)
 						end
 					end)
@@ -13714,10 +13613,10 @@
 						return
 					end)
 					-- Step buttons
-					frame.millionBtn = LeaPlusLC:CreateButton("SoundMillionButton", frame, "1000020", "TOPLEFT", 26, -122, 0, 25, true, "Set the editbox step value to 1000020.")
+					frame.millionBtn = LeaPlusLC:CreateButton("SoundMillionButton", frame, "1000000", "TOPLEFT", 26, -122, 0, 25, true, "Set the editbox step value to 1000000.")
 					frame.millionBtn:SetScale(0.5)
 
-					frame.hundredThousandBtn = LeaPlusLC:CreateButton("SoundHundredThousandButton", frame, "100002", "TOPLEFT", 16, -112, 0, 25, true, "Set the editbox step value to 100002.")
+					frame.hundredThousandBtn = LeaPlusLC:CreateButton("SoundHundredThousandButton", frame, "100000", "TOPLEFT", 16, -112, 0, 25, true, "Set the editbox step value to 100000.")
 					frame.hundredThousandBtn:ClearAllPoints()
 					frame.hundredThousandBtn:SetPoint("LEFT", frame.millionBtn, "RIGHT", 10, 0)
 					frame.hundredThousandBtn:SetScale(0.5)
@@ -13757,19 +13656,19 @@
 						frame.oneBtn:SetAlpha(0.3)
 					end
 
-					LeaPlusLC.SoundByte = 1000020
+					LeaPlusLC.SoundByte = 1000000
 					DimAllBoxes()
 					frame.millionBtn:SetAlpha(1)
 
 					-- Step button handlers
 					frame.millionBtn:SetScript("OnClick", function()
-						LeaPlusLC.SoundByte = 1000020
+						LeaPlusLC.SoundByte = 1000000
 						DimAllBoxes()
 						frame.millionBtn:SetAlpha(1)
 					end)
 
 					frame.hundredThousandBtn:SetScript("OnClick", function()
-						LeaPlusLC.SoundByte = 100002
+						LeaPlusLC.SoundByte = 100000
 						DimAllBoxes()
 						frame.hundredThousandBtn:SetAlpha(1)
 					end)
@@ -14094,7 +13993,6 @@
 				LeaPlusDB["NoRaidRestrictions"] = "On"			-- Remove raid restrictions
 				LeaPlusDB["NoConfirmLoot"] = "On"				-- Disable loot warnings
 				LeaPlusDB["FasterLooting"] = "On"				-- Faster auto loot
-				LeaPlusDB["FixBlizzardLootSpam"] = "On"			-- Faster auto loot fix spam
 				LeaPlusDB["FasterMovieSkip"] = "On"				-- Faster movie skip
 				LeaPlusDB["MovieSkipInstance"] = "On"			-- Skip instance movies
 				LeaPlusDB["CombatPlates"] = "On"				-- Combat plates
@@ -14532,7 +14430,6 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoTransforms"				, 	"Remove transforms"				, 	340, -252, 	false, 	"If checked, you will be able to have certain transforms removed automatically when they are applied to your character.|n|nYou can choose the transforms in the configuration panel.|n|nExamples include Weighted Jack-o'-Lantern and Hallowed Wand.|n|nTransforms applied during combat will be removed when combat ends.")
 
 	LeaPlusLC:CfgBtn("SetWeatherDensityBtn", LeaPlusCB["SetWeatherDensity"])
-	LeaPlusLC:CfgBtn("FasterLootingBtn", LeaPlusCB["FasterLooting"])
 	LeaPlusLC:CfgBtn("MuteGameSoundsBtn", LeaPlusCB["MuteGameSounds"])
 	LeaPlusLC:CfgBtn("FasterMovieSkipBtn", LeaPlusCB["FasterMovieSkip"])
 	LeaPlusLC:CfgBtn("NoTransformsBtn", LeaPlusCB["NoTransforms"])
