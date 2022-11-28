@@ -1,41 +1,52 @@
-# [5.2.0](https://github.com/WeakAuras/WeakAuras2/tree/5.2.0) (2022-11-15)
+# [5.2.1](https://github.com/WeakAuras/WeakAuras2/tree/5.2.1) (2022-11-26)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.1.1...5.2.0)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.2.0...5.2.1)
 
 ## Highlights
 
- - Replace Sliders in options with new SpinBox widget
-- Add Blizzard Atlas textures to the picker
-- Bug Fixes 
+ - Dynamic Groups: Introduce options for aura order for centered
+- Bug fixes 
 
 ## Commits
 
-InfusOnWoW (5):
+InfusOnWoW (20):
 
-- Add some nil check for Private.regions[id].region
-- Fix diff algorithm to correctly allow for ignoring nested values
-- Options: Make dragEnd run the trigger functions again
-- Fix Conditions with paused states
-- Make IsSpellKnown* checks check the base spell more correctly
+- Fix lua error if there's no tooltip
+- Fix background framelevel setting for AuraBar
+- Cooldown Tracking: Don't react within 2s of PLAYER_ENTERING_WORLD
+- Add an additional sanity check to custom duration return values
+- Improve error message if color animations return odd values
+- Fix Exact Spell ID for Charges Changed
+- Bump version
+- Correct LibUiDropDownMenu name in OptionalDeps
+- Use LibUIDropDownMenu for UIDropDownMenus
+- Add Evoker to CalculateGCDDuration
+- Disable snapping to pixel grids for Ticks too
+- Texture/Progress Texture: Improve atlas compatibility
+- Use C_TooltipInfo instead of a hidden tooltip on DF
+- Icon: Add some helpful text to Icon that hints at other addons
+- Dynamic Groups: Introduce options for aura order for centered
+- Make lua checkers a bit happier
+- AuraBar: Ensure that Scale does always call Reorient
+- Bug report template: Ask for verifyable steps in the Reproduction Steps
+- Don't try to reanachor frames that are dragged into a dynamic group
+- Forward arguments of PLAYER_ENTERING_WORLD to WA_DELAYERD_PEW
 
-Jesse Manelius (1):
+Lars Kunert (1):
 
-- Use SetClampedToScreen on title instead of using complicated code
+- Update "Talent Known" trigger on spec changes
 
-Stanzilla (1):
+Stanzilla (4):
 
-- Bump retail TOC for Patch 10.0.2
+- Lua LSP: Add more globals to the list
+- Lua LSP: Disable the checks that currently cause the LSP to crash
+- Add a Lua LSP config file and update some types
+- Ignore WeakAurasModelPaths and Type* files for Code Spell Checker
 
-Tharre (2):
+mrbuds (4):
 
-- Crowd Controlled: enable for classic era
-- Spell Cooldown: enable LOC option for classic
-
-mrbuds (5):
-
-- Texture picker: keep aspect ratio for atlas in preview
-- fix broken zoom on icons
-- Texture Picker: add "Blizzard Atlas" category with all atlas (#3966)
-- Add "blizzard alert" textures for evoker
-- SpinBox Widget (#3981)
+- Cast trigger: fix empowered cache for target on target change
+- Talent load condition: fix talents for overriden spells
+- Update talents
+- Aura trigger: fix tooltip filters
 
