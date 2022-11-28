@@ -10,7 +10,7 @@ EnhBloodlustConfig = {};
 local config = EnhBloodlustConfig;
 
 -- Bloodlust, Heroism, Time Warp, Ancient Hysteria
-config.spells = {390386, 2825, 32182, 80353, 90355, 160452, 178207, 230935, 264667, 256740, 292686, 309658}
+config.spells = {390386, 2825, 80353, 264667, 32182, 90355, 160452, 178207, 230935, 256740, 292686, 309658}
 
 config.sound = {
 	-- 加入音樂檔案路徑，一行一首歌，結尾加上逗號，會隨機播放。
@@ -25,26 +25,4 @@ config.sound = {
 config.length = 40;
 
 -- 嗜血音樂所使用的聲音頻道，可以使用的值有主音量 "Master" 和法術音效 "SFX"。
-config.channel = "Master";
-
---[[
---Some other examples
-
---Duration
-config.sound = {
-    "Sound\\Music\\ZoneMusic\\DMF_L70ETC01.mp3"
-}
-config.length = 264;
-
---Short
-config.sound = {
-    "Interface\\AddOns\\EnhBloodlust\\bloodlust_short.mp3"
-}
-config.length = 4;
-
---Long
-config.sound = {
-    ""Interface\\AddOns\\EnhBloodlust\\bloodlust_mid.mp3""
-}
-config.length = 40;
-]]--
+config.channel = "SFX";

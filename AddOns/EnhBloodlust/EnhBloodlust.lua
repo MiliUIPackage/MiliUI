@@ -1,8 +1,8 @@
 EnhBloodlust = CreateFrame("frame")
 EnhBloodlust:SetScript("OnEvent", function(self, event, ...) if self[event] then return self[event](self, event, ...) end end)
 
-local UpdateSeconds, DelayTime, TrackLength, TrackPosition, MusicSetting, Volume, config = 1, 0, 0, -1, 0, 0, EnhBloodlustConfig;
-local AmbienceVolume = 0.6;
+local config = EnhBloodlustConfig
+local playing = false
 
 EnhBloodlust:RegisterEvent("ADDON_LOADED")
 function EnhBloodlust:ADDON_LOADED(e, addon)
@@ -15,6 +15,7 @@ function EnhBloodlust:ADDON_LOADED(e, addon)
 end
 
 SLASH_ENHBLOODLUST1 = '/enhbl';
+SLASH_ENHBLOODLUST2 = '/測試音樂';
 function SlashCmdList.ENHBLOODLUST(args)
     EnhBloodlust:BLOODLUST();
 end
@@ -39,40 +40,25 @@ function EnhBloodlust:PLAYER_REGEN_ENABLED()
 	EnhBloodlust:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 end
 
-function EnhBloodlust:ON_UPDATE()
-	local CurrentTime = GetTime();
-	if (CurrentTime >= DelayTime) then
-		DelayTime = (CurrentTime + UpdateSeconds);
-		TrackPosition = (TrackPosition + UpdateSeconds);
- 	  	if (TrackPosition >= TrackLength) then
-			EnhBloodlust:SetScript("OnUpdate", nil);
-			SetCVar("Sound_MusicVolume", Volume)
-			SetCVar("Sound_AmbienceVolume", AmbienceVolume)
-		end
- 	end
-end
-
 function EnhBloodlust:BLOODLUST()
-	Volume = tonumber(GetCVar("Sound_MusicVolume"))
-	AmbienceVolume = tonumber(GetCVar("Sound_AmbienceVolume"))
-	if (Volume == 0) then Volume = 0.4; end
+	-- 檢查是否已經播放音樂
+	if playing then return end
+	
+	local Volume = tonumber(GetCVar("Sound_MusicVolume"))
+	local AmbienceVolume = tonumber(GetCVar("Sound_AmbienceVolume"))
 	SetCVar("Sound_MusicVolume", 0)
 	SetCVar("Sound_AmbienceVolume", 0)
 
     if (config.channel == nil) then
         config.channel = "Master";
     end
---[[
-    for _,v in pairs(config.sound) do
-        PlaySoundFile(v, config.channel);
-    end
---]]
 
 	-- 隨機播放一首歌曲
-	PlaySoundFile(config.sound[ math.random( #config.sound ) ], config.channel);
+	playing = PlaySoundFile(config.sound[ math.random( #config.sound ) ], config.channel);
 	
-    TrackLength = config.length;
-
-	DelayTime, TrackPosition = 0, -1;
-	EnhBloodlust:SetScript("OnUpdate", function() EnhBloodlust:ON_UPDATE(); end)
+    C_Timer.After(config.length, function()
+		SetCVar("Sound_MusicVolume", Volume)
+		SetCVar("Sound_AmbienceVolume", AmbienceVolume)
+		playing = false
+	end)
 end
