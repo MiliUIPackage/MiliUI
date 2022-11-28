@@ -1,7 +1,7 @@
 ﻿## Interface: 100002
 ## Title: World Quest Tab Utilities
 ## Notes: Plug-in for World Quest Tab.
-## Title-zhTW: |cff00FFFF[任務]|r 世界任務標籤頁-小工具
+## Title-zhTW: |cFF00AA99[任務]|r 世界任務標籤頁-小工具
 ## Notes-zhTW: World Quest Tab Utilities |n世界任務標籤頁的外掛套件。
 ## Dependencies: WorldQuestTab
 ## Author: LanceDH
