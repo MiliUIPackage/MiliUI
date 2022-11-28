@@ -465,7 +465,7 @@ do
                     afterUpdate()
                 end,
                 min = 0,
-                max = 100002,
+                max = 100000,
                 step = 1,
                 name = Loc ["STRING_OPTIONS_DEATHLOG_MINHEALING"],
                 desc = Loc ["STRING_OPTIONS_DEATHLOG_MINHEALING_DESC"],
@@ -6377,7 +6377,7 @@ do
 		end
 
 		sectionFrame.ConsolidadeSpellsSwitch:SetPoint(startX, startY - 20)
-        _detalhes:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 12)
+        _detalhes:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 13)
         
         local sectionOptions = {
 

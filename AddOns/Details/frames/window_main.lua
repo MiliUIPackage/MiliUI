@@ -28,6 +28,9 @@ local IsInInstance = _G.IsInInstance
 
 local tokFunctions = Details.ToKFunctions
 
+local _, Details222 = ...
+_ = nil
+
 --constants
 local baseframe_strata = "LOW"
 local defaultBackdropSt = {
@@ -3127,7 +3130,7 @@ local function CreateAlertFrame(baseframe, instancia)
 
 	local text = alert_bg:CreateFontString(nil, "overlay", "GameFontNormal")
 	text:SetPoint("right", alert_bg, "right", -14, 0)
-	Details:SetFontSize(text, 10)
+	Details:SetFontSize(text, 13)
 	text:SetTextColor(1, 1, 1, 0.8)
 
 	local rotate_frame = CreateFrame("frame", "DetailsAlertFrameRotate" .. instancia.meu_id, alert_bg)
@@ -5404,12 +5407,12 @@ function Details:StatusBarAlert(text, icon, color, time)
 			if (text.size) then
 				Details:SetFontSize(statusbar.text, text.size)
 			else
-				Details:SetFontSize(statusbar.text, 9)
+				Details:SetFontSize(statusbar.text, 12)
 			end
 		else
 			statusbar.text:SetText(text)
 			statusbar.text:SetTextColor(1, 1, 1, 1)
-			Details:SetFontSize(statusbar.text, 9)
+			Details:SetFontSize(statusbar.text, 12)
 		end
 	else
 		statusbar.text:SetText("")
@@ -7933,7 +7936,10 @@ function Details:RefreshTitleBarText()
 		if (instanceMode == DETAILS_MODE_GROUP or instanceMode == DETAILS_MODE_ALL) then
 			local segment = self:GetSegment()
 			if (segment == DETAILS_SEGMENTID_OVERALL) then
-				sName = sName .. " " .. Loc["STRING_OVERALL"]
+				local dynamicOverallDataCustomID = Details222.GetCustomDisplayIDByName(Loc["STRING_CUSTOM_DYNAMICOVERAL"])
+				if ((dynamicOverallDataCustomID ~= self.sub_atributo) and self.atributo ~= 5) then
+					sName = sName .. " " .. Loc["STRING_OVERALL"]
+				end
 
 			elseif (segment >= 2) then
 				sName = sName .. " [" .. segment .. "]"
@@ -9420,7 +9426,7 @@ function Details:CreateFakeWindow()
 	tb:SetBackdropColor(0.7, 0.7, 0.7, 0.4)
 	local tt = tb:CreateFontString(nil, "overlay", "GameFontNormal")
 	Details:SetFontColor(tt, "white")
-	Details:SetFontSize(tt, 10)
+	Details:SetFontSize(tt, 13)
 	Details:SetFontFace(tt, LibStub:GetLibrary("LibSharedMedia-3.0"):Fetch("font", "Accidental Presidency"))
 	tt:SetPoint("bottomleft", tb, 3, 4)
 	tt:SetText(Loc ["STRING_ATTRIBUTE_DAMAGE_DONE"])

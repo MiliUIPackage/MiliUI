@@ -6,10 +6,7 @@
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
 ## SavedVariablesPerCharacter: EncounterDetailsDB
-
-#@no-lib-strip@
-embeds.xml
-#@end-no-lib-strip@
+## X-Category-zhTW: 戰鬥
 
 enUS.lua
 zhTW.lua

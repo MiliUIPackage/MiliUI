@@ -1,0 +1,9 @@
+## Interface: 100002
+## Title: Details!: Compare 2.0
+## Notes: Replace the Compare tab in the player breakdown window.
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-比較 2.0
+## Notes-zhTW: Details!: Compare 2.0 |n替換玩家戰鬥分析視窗中的比較標籤
+## RequiredDeps: Details
+## X-Category-zhTW: 戰鬥
+
+Details_Compare2.lua

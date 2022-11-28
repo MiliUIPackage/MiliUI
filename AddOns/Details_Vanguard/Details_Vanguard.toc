@@ -6,9 +6,6 @@
 ## SavedVariablesPerCharacter: _detalhes_databaseVanguard
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
-
-#@no-lib-strip@
-embeds.xml
-#@end-no-lib-strip@
+## X-Category-zhTW: 戰鬥
 
 Details_Vanguard.lua

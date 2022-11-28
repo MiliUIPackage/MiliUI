@@ -5,12 +5,13 @@
 ## Notes-zhTW: Details!: Explosive Orbs (plugin) |n統計與顯示玩家選中與擊中不同炸藥的次數。
 ## RequiredDeps: Details
 ## Author: LiangYuxuan
-## Version: v10.0.0
+## Version: v10.0.2
 ## SavedVariablesPerCharacter: ExplosiveOrbsLog
 ## X-License: MIT
 ## X-Curse-Project-ID: 352367
 ## X-WoWI-ID: 25932
 ## X-Wago-ID: ZQ6aXANW
+## X-Category-zhTW: 戰鬥
 
 Libs\Load_Libs.xml
 

@@ -364,11 +364,11 @@ function Details:CreateEventTrackerFrame(parent, name)
 			righticon:SetPoint("right", line, "right", 0, 0)
 			
 			local lefttext = statusbar:CreateFontString("$parentLeftText", "overlay", "GameFontNormal")
-			DF:SetFontSize(lefttext, 12)
+			DF:SetFontSize(lefttext, 13)
 			lefttext:SetPoint("left", lefticon, "right", 2, 0)
 			
 			local righttext = statusbar:CreateFontString("$parentRightText", "overlay", "GameFontNormal")
-			DF:SetFontSize(righttext, 12)
+			DF:SetFontSize(righttext, 13)
 			righttext:SetPoint("right", righticon, "left", -2, 0)
 			
 			lefttext:SetJustifyH("left")

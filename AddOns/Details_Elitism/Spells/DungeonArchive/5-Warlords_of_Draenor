@@ -1,0 +1,75 @@
+local Spells = {
+    -- Iron Docks
+    [172963] = 20, -- Gatecrasher (Siegemaster Olugar / Siegemaster Rokra)
+    [164632] = 20, -- Burning Arrows (Grom'kar Flameslinger)
+    [173105] = 20, -- Whirling Chains (Grom'kar Chainmaster)
+    [168514] = 20, -- Cannon Barrage (Environment)
+    [168540] = 20, -- Cannon Barrage (Environment)
+    [173113] = 20, -- Hatchet Toss (Grom'kar Deckhand)
+    [178299] = 20, -- High Explosive Grenade (Grom'kar Technician)
+    [173149] = 20, -- Flaming Arrows (Grom'kar Flameslinger) - TODO is initial tick avoidable?
+    [173351] = 20, -- Trampling Stampede (Rampaging Clefthoof)
+    [173324] = 20, -- Jagged Caltrops (Thunderlord Wrangler)
+    [173517] = 20, -- Lava Blast (Ironwing Flamespitter)
+    [173489] = 20, -- Lava Barrage (Ironwing Flamespitter)
+
+    [164734] = 20, -- Shredding Swipes (Dreadfang)
+    [163276] = 20, -- Shredded Tendons (Grimrail Enforcers)
+    [163668] = 20, -- Flaming Slash (Grimrail Enforcers - Makogg Emberblade)
+    [165152] = 20, -- Lava Sweep (Grimrail Enforcers - Makogg Emberblade)
+    [163276] = 20, -- Ogre Traps (Grimrail Enforcers - Neesa Nox)
+    [163379] = 20, -- Bombsquad (Grimrail Enforcers - Nessa Nox)
+    [161256] = 20, -- Primal Assault (Oshir)
+    [178157] = 20, -- Acid Spit (Oshir)
+    [178156] = 20, -- Acid Splash (Oshir)
+    [168148] = 20, -- Cannon Barrage (Skulloc)
+    [168390] = 20, -- Cannon Barrage (Skulloc)
+    [169129] = 20, -- Backdraft (Skulloc)
+    [169132] = 20, -- Backdraft (Skulloc)
+
+
+    -- Grimrail Depot
+    [164188] = 20, -- Blackrock Bomb (Grimrail Bombardier)
+    [176131] = 20, -- Cannon Barrage (Grom'kar Boomer)
+    [160963] = 20, -- Blackrock Mortar (Grom'kar Boomer)
+    [166676] = 20, -- Shrapnel Blast (Grom'kar Gunner)
+    [176147] = 20, -- Ignite (Grom'kar Gunner)
+    [176033] = 20, -- Flametongue (Grom'kar Cinderseer)
+    [167038] = 20, -- Slag Tanker (Environmnet)
+    [166404] = 20, -- Arcane Blitz (Grimrail Scout)
+    [166340] = 20, -- Thunder Zone (Grom'kar Far Seer) - TODO is initial tick avoidable?
+    [166380] = 20, -- Reckless Slash (Grom'kar Captain)
+
+    [162513] = 20, -- VX18-B Target Eliminator (Railmaster Rocketspark)
+    [163741] = 20, -- Blackrock Mortar (Nitrogg Thundertower)
+    [161220] = 20, -- Suppressive Fire (Nitrogg Thundertower)
+    [166570] = 20, -- Slag Blast (Nitrogg Thundertower)
+    [156303] = 20, -- Shrapnel Blast (Grom'kar Gunner)
+    [162065] = 20, -- Freezing Snare (Skylord Tovra)
+    [162057] = 20, -- Spinning Spear (Skylord Tovra)
+    [161588] = 20, -- Diffused Energy (Skylord Tovra)
+}
+
+
+local SpellsNoTank = {
+    -- Iron Docks
+    [172982] = 20, -- Shattering Strike (Siegemaster Olugar / Siegemaster Rokra)
+    [167233] = 20, -- Bladestorm (Grom'kar Battlemaster / Pitwarden Gwarnok)
+    [167516] = 20, -- Shrapnel Blast (Grom'kar Incinerator)
+    [167815] = 20, -- Rending Cleave (Thunderlord Wrangler)
+    [168401] = 20, -- Bladestorm (Koramar)
+
+    -- Grimrail Depot
+    [161089] = 20, -- Mad Dash (Borka the Brute)
+    [164170] = 20, -- Dash (Grimrail Overseer) - always targets tank despite marker?
+    [164163] = 20, -- Hewing Swipe (Grimrail Overseer)
+}
+
+
+local Auras = {
+     -- Iron Docks
+    [164504] = true, -- Intimidated (Fleshrender Nok'gar)
+    [172631] = true, -- Knocked Down (Slippery Grease, Grom'kar Technician)
+ }
+
+local AurasNoTank = {}

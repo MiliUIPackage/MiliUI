@@ -7,5 +7,6 @@
 ## LoadOnDemand: 1
 ## Dependencies: Details
 ## SavedVariables: DetailsDataStorage
+## X-Category-zhTW: 戰鬥
 
 Details_DataStorage.lua

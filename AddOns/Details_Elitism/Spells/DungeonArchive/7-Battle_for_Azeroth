@@ -1,0 +1,71 @@
+local Spells = {
+    -- Operation: Mechagon - Junkyard
+    [300659] = 20, -- Consuming Slime (Toxic Monstrosity)
+    [300816] = 20, -- Slimewave (Slime Elemental)
+    [300427] = 20, -- Shockwave (Scrapbone Bully)
+    [300160] = 20, -- Gyro-Scrap (Heavy Scrapbot)
+    [294890] = 20, -- Gyro-Scrap (Malfunctioning Scrapbot)
+    [300129] = 20, -- Self-Destruct Protocol (Malfunctioning Scrapbot)
+    [294894] = 20, -- Malfunction Sparks (Malfunctioning Scrapbot / HK-8 Aerial Oppression Unit)
+    [300561] = 20, -- Explosion (Scrapbone Trashtosser)
+    [299475] = 20, -- B.O.R.K (Scraphound)
+    [299535] = 20, -- Scrap Blast (Pistonhead Blaster)
+    [301680] = 20, -- Rapid Fire (Mechagon Cavalry)
+    [301681] = 20, -- Charge (Mechagon Cavalry) - TODO does deal avoidable dmg, but Details does not show it?
+
+    [297283] = 20, -- Cave In (King Gobbamak)
+    [302681] = 20, -- Mega Taze (Trixie Tazer)
+    [298947] = 20, -- Roadkill (Naeno Megacrash)
+    [298588] = 20, -- Crash (Naeno Megacrash)
+    [298940] = 20, -- Bolt Buster (Naeno Megacrash)
+    [295552] = 20, -- Cannon Blast (HK-8 Aerial Oppression Unit)
+    [302384] = 20, -- Static Discharge (HK-8 Aerial Oppression Unit)
+    [296560] = 20, -- Clinging Static (HK-8 Aerial Oppression Unit)
+    [296522] = 20, -- Self-Destruct (HK-8 Aerial Oppression Unit)
+    [296150] = 20, -- Vent Blast (HK-8 Aerial Oppression Unit - Environment)
+
+
+    -- Operation: Mechagon - Workshop
+    [282943] = 20, -- Piston Smasher (Environment)
+    [282945] = 20, -- Buzz Saw (Environment)
+    [294128] = 20, -- Rocket Barrage (Rocket Tonk)
+    [294073] = 20, -- Flying Peck (Strider Tonk)
+    [294349] = 20, -- Volatile Waste (Living Waste)
+    [301299] = 20, -- Furnace Flames (Environment)
+    [293861] = 20, -- Anti-Personnel Squirrel (Anti-Personnel Squirrel)
+    [294324] = 20, -- Mega Drill (Waste Processing Unit)
+    [295168] = 20, -- Capacitor Discharge (Blastatron X-80)
+    [293986] = 20, -- Sonic Pulse (Spider Tank / Blastatron X-80)
+    [294058] = 20, -- High-Explosive Rockets (Spider Tank / Blastatron X-80)
+
+    [285020] = 20, -- Whirling Edge (The Platinum Pummeler)
+    [285377] = 20, -- B.4.T.T.L.3. Mine (The Platinum Pummeler)
+    [283422] = 20, -- Maximum Thrust (Gnomercy 4.U.)
+    [291930] = 20, -- Air Drop (K.U-J.0.)
+    [291953] = 20, -- Junk Bomb (K.U.-J.0.)
+    [291949] = 20, -- Venting Flames (K.U-J.0.)
+    [294954] = 20, -- Self-Trimming Hedge (Machinist's Garden)
+    [285443] = 20, -- "Hidden" Flame Cannon (Machinist's Garden)
+    [285460] = 20, -- Discom-BOMB-ulator (Machinist's Garden)
+    [294869] = 20, -- Roaring Flame (Machinist's Garden)
+    [291613] = 20, -- Take Off! (King Mechagon)
+    [291915] = 20, -- Plasma Orb (King Mechagon)
+    [291856] = 20, -- Recalibrate (King Mechagon)
+}
+
+
+local SpellsNoTank = {
+    -- Operation: Mechagon - Workshop
+    [294291] = 20, -- Process Waste (Waste Processing Unit)
+}
+
+
+local Auras = {
+    -- Operation: Mechagon - Junkyard
+    [398529] = true, -- Gooped (Gunker)
+
+    -- Operation: Mechagon - Workshop
+    [285153] = true, -- Foe Flipper (Gnomercy 4.U.)
+ }
+
+local AurasNoTank = {}

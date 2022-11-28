@@ -2,7 +2,7 @@
 --data for shadowlands expansion
 
 local versionString, revision, launchDate, gameVersion = GetBuildInfo()
-if (gameVersion >= 100002 or gameVersion < 90000) then
+if (gameVersion >= 100000 or gameVersion < 90000) then
     return
 end
 

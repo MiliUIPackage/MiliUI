@@ -245,7 +245,7 @@ local MultiChartFrameMixin = {
 }
 
 function DF:CreateGraphicMultiLineFrame(parent, name)
-    name = name or ("DetailsMultiChartFrameID" .. math.random(1, 10000200))
+    name = name or ("DetailsMultiChartFrameID" .. math.random(1, 10000000))
 
     local f = CreateFrame("frame", name, parent, "BackdropTemplate")
 

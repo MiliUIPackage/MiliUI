@@ -4,6 +4,7 @@
 	local Details = _G.Details
 	local DF = _G.DetailsFramework
 	local _
+	local addonName, Details222 = ...
 
 	local CONST_CLIENT_LANGUAGE = DF.ClientLanguage
 
@@ -473,12 +474,12 @@
 		if (not _detalhes.tabela_vigente) then
 			return
 		end
-		
+
 		pet_tooltip_frame:SetOwner(WorldFrame, "ANCHOR_NONE")
 		pet_tooltip_frame:SetHyperlink ("unit:" .. (serial or ""))
 
 		Details.tabela_vigente.raid_roster_indexed = Details.tabela_vigente.raid_roster_indexed or {}
-		
+
 		local line1 = _G ["DetailsPetOwnerFinderTextLeft2"]
 		local text1 = line1 and line1:GetText()
 		if (text1 and text1 ~= "") then
@@ -513,7 +514,7 @@
 				end
 			end
 		end
-	
+
 		local line2 = _G ["DetailsPetOwnerFinderTextLeft3"]
 		local text2 = line2 and line2:GetText()
 		if (text2 and text2 ~= "") then

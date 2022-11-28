@@ -381,7 +381,7 @@ local createDropdown = function(thisFrame)
 		thisFrame.linhas_amt:SetText(Loc ["STRING_REPORTFRAME_LINES"])
 		thisFrame.linhas_amt:SetTextColor(.9, .9, .9, 1)
 		thisFrame.linhas_amt:SetPoint("bottomleft", thisFrame, "bottomleft", 58, 12)
-		Details:SetFontSize(thisFrame.linhas_amt, 10)
+		Details:SetFontSize(thisFrame.linhas_amt, 13)
 
 		local slider = CreateFrame("Slider", "Details_Report_Slider", thisFrame, "BackdropTemplate")
 		thisFrame.slider = slider
@@ -546,14 +546,14 @@ local createDropdown = function(thisFrame)
 		local checkbox = CreateFrame("CheckButton", "Details_Report_CB_1", thisFrame, "ChatConfigCheckButtonTemplate,BackdropTemplate")
 		checkbox:SetPoint("topleft", thisFrame.wisp_who, "bottomleft", -25, -4)
 		_G[checkbox:GetName().."Text"]:SetText(Loc ["STRING_REPORTFRAME_CURRENT"])
-		Details:SetFontSize(_G[checkbox:GetName().."Text"], 10)
+		Details:SetFontSize(_G[checkbox:GetName().."Text"], 13)
 		checkbox.tooltip = Loc ["STRING_REPORTFRAME_CURRENTINFO"]
 		checkbox:SetHitRectInsets(0, -35, 0, 0)
 
 		local checkbox2 = CreateFrame("CheckButton", "Details_Report_CB_2", thisFrame, "ChatConfigCheckButtonTemplate,BackdropTemplate")
 		checkbox2:SetPoint("topleft", thisFrame.wisp_who, "bottomleft", 35, -4)
 		_G[checkbox2:GetName().."Text"]:SetText(Loc ["STRING_REPORTFRAME_REVERT"])
-		Details:SetFontSize(_G[checkbox2:GetName().."Text"], 10)
+		Details:SetFontSize(_G[checkbox2:GetName().."Text"], 13)
 		checkbox2.tooltip = Loc ["STRING_REPORTFRAME_REVERTINFO"]
 		checkbox2:SetHitRectInsets(0, -35, 0, 0)
 	end

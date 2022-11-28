@@ -10,7 +10,8 @@
 	local _detalhes = 		_G._detalhes
 	local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
 	local _
-	
+	local addonName, Details222 = ...
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --basic functions
 
@@ -63,7 +64,7 @@
 				Details.FadeHandler.Fader(row, "in")
 			end
 		end
-		local fade_desc = Loc ["Default animation, makes the bar fade in or fade out when showing or hiding in the window"]
+		local fade_desc = "Default animation, makes the bar fade in or fade out when showing or hiding in the window"
 		_detalhes:InstallRowAnimation ("Fade", fade_desc , fade_func, nil)
 		
 		_detalhes:SelectRowAnimation ("Fade")

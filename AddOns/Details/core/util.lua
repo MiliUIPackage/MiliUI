@@ -339,12 +339,12 @@
 	--get the fractional number representing the alphabetical letter
 	function _detalhes:GetOrderNumber(who_name)
 		--local name = upper (who_name .. "zz")
-		--local byte1 = abs(_string_byte (name, 2)-91)/1000020
+		--local byte1 = abs(_string_byte (name, 2)-91)/1000000
 		--return byte1 + abs(_string_byte (name, 1)-91)/10000
-		return _math_random (1000, 9000) / 1000020
+		return _math_random (1000, 9000) / 1000000
 	end
 
-	--/script print(tonumber(4/1000020)) - 4e-006
+	--/script print(tonumber(4/1000000)) - 4e-006
 	--0.000004
 	--set all table keys to lower
 	local temptable = {}
@@ -399,8 +399,8 @@
 		end
 
 		function _detalhes:ToK (numero)
-			if (numero > 100002000) then
-				return _string_format ("%.2f", numero/100002000) .. symbol_1B
+			if (numero > 100000000) then
+				return _string_format ("%.2f", numero/100000000) .. symbol_1B
 			elseif (numero > 10000) then
 				return _string_format ("%.2f", numero/10000) .. symbol_10K
 			elseif (numero > 1000) then
@@ -411,7 +411,7 @@
 
 		function _detalhes:ToK2 (numero)
 			if (numero > 99999999) then
-				return _string_format ("%.2f", numero/100002000) .. symbol_1B
+				return _string_format ("%.2f", numero/100000000) .. symbol_1B
 			elseif (numero > 999999) then
 				return _string_format ("%.2f", numero/10000) .. symbol_10K
 			elseif (numero > 99999) then
@@ -426,8 +426,8 @@
 
 		--short numbers no numbers after comma
 		function _detalhes:ToK0 (numero)
-			if (numero > 100002000) then
-				return _string_format ("%.0f", numero/100002000) .. symbol_1B
+			if (numero > 100000000) then
+				return _string_format ("%.0f", numero/100000000) .. symbol_1B
 			elseif (numero > 10000) then
 				return _string_format ("%.0f", numero/10000) .. symbol_10K
 			elseif (numero > 1000) then
@@ -437,8 +437,8 @@
 		end
 
 		function _detalhes:ToKMin (numero)
-			if (numero > 100002000) then
-				return _string_format ("%.2f", numero/100002000) .. symbol_1B
+			if (numero > 100000000) then
+				return _string_format ("%.2f", numero/100000000) .. symbol_1B
 			elseif (numero > 10000) then
 				return _string_format ("%.2f", numero/10000) .. symbol_10K
 			elseif (numero > 1000) then
@@ -449,7 +449,7 @@
 
 		function _detalhes:ToK2Min (numero)
 			if (numero > 99999999) then
-				return _string_format ("%.2f", numero/100002000) .. symbol_1B
+				return _string_format ("%.2f", numero/100000000) .. symbol_1B
 			elseif (numero > 999999) then
 				return _string_format ("%.2f", numero/10000) .. symbol_10K
 			elseif (numero > 99999) then
@@ -464,8 +464,8 @@
 
 		--short numbers no numbers after comma
 		function _detalhes:ToK0Min (numero)
-			if (numero > 100002000) then
-				return _string_format ("%.0f", numero/100002000) .. symbol_1B
+			if (numero > 100000000) then
+				return _string_format ("%.0f", numero/100000000) .. symbol_1B
 			elseif (numero > 10000) then
 				return _string_format ("%.0f", numero/10000) .. symbol_10K
 			elseif (numero > 1000) then
@@ -476,8 +476,8 @@
 
 		--short numbers no numbers after comma
 		function _detalhes:ToKReport (numero)
-			if (numero > 100002000) then
-				return _string_format ("%.2f", numero/100002000) .. symbol_1B
+			if (numero > 100000000) then
+				return _string_format ("%.2f", numero/100000000) .. symbol_1B
 			elseif (numero > 10000) then
 				return _string_format ("%.1f", numero/10000) .. symbol_10K
 			elseif (numero > 1000) then
@@ -490,7 +490,7 @@
 			n = _math_floor(n)
 			if (custom) then
 				if (n > 99999999) then
-					return _string_format (custom, n/100002000) .. symbol_1B
+					return _string_format (custom, n/100000000) .. symbol_1B
 				elseif (n > 9999) then
 					return _string_format (custom, n/10000) .. symbol_10K
 				elseif (n > 999) then
@@ -540,9 +540,9 @@
 		--short numbers
 		function _detalhes:ToK (numero)
 			if (numero > 999999999) then
-				return format("%.2f", numero/1000020000) .. "B"
-			elseif (numero > 1000020) then
-				return _string_format ("%.2f", numero/1000020) .. "M"
+				return format("%.2f", numero/1000000000) .. "B"
+			elseif (numero > 1000000) then
+				return _string_format ("%.2f", numero/1000000) .. "M"
 			elseif (numero > 999) then
 				return _string_format ("%.1f", numero/1000) .. "K"
 			end
@@ -552,9 +552,9 @@
 
 		function _detalhes:ToK2 (numero)
 			if (numero > 999999999) then
-				return format("%.2f", numero/1000020000) .. "B"
+				return format("%.2f", numero/1000000000) .. "B"
 			elseif (numero > 999999) then
-				return _string_format ("%.2f", numero/1000020) .. "M"
+				return _string_format ("%.2f", numero/1000000) .. "M"
 			elseif (numero > 99999) then
 				return _math_floor(numero/1000) .. "K"
 			elseif (numero > 999) then
@@ -567,9 +567,9 @@
 		--short numbers no numbers after comma
 		function _detalhes:ToK0 (numero)
 			if (numero > 999999999) then
-				return format("%.2f", numero/1000020000) .. "B"
-			elseif (numero > 1000020) then
-				return _string_format ("%.0f", numero/1000020) .. "M"
+				return format("%.2f", numero/1000000000) .. "B"
+			elseif (numero > 1000000) then
+				return _string_format ("%.0f", numero/1000000) .. "M"
 			elseif (numero > 1000) then
 				return _string_format ("%.0f", numero/1000) .. "K"
 			end
@@ -578,8 +578,8 @@
 		end
 
 		function _detalhes:ToKMin (numero)
-			if (numero > 1000020) then
-				return _string_format ("%.2f", numero/1000020) .. "m"
+			if (numero > 1000000) then
+				return _string_format ("%.2f", numero/1000000) .. "m"
 			elseif (numero > 1000) then
 				return _string_format ("%.1f", numero/1000) .. "k"
 			end
@@ -589,7 +589,7 @@
 
 		function _detalhes:ToK2Min (numero)
 			if (numero > 999999) then
-				return _string_format ("%.2f", numero/1000020) .. "m"
+				return _string_format ("%.2f", numero/1000000) .. "m"
 			elseif (numero > 99999) then
 				return _math_floor(numero/1000) .. "k"
 			elseif (numero > 999) then
@@ -601,8 +601,8 @@
 
 		--short numbers no numbers after comma
 		function _detalhes:ToK0Min (numero)
-			if (numero > 1000020) then
-				return _string_format ("%.0f", numero/1000020) .. "m"
+			if (numero > 1000000) then
+				return _string_format ("%.0f", numero/1000000) .. "m"
 			elseif (numero > 1000) then
 				return _string_format ("%.0f", numero/1000) .. "k"
 			end
@@ -612,8 +612,8 @@
 
 		--short numbers no numbers after comma
 		function _detalhes:ToKReport (numero)
-			if (numero > 1000020) then
-				return _string_format ("%.2f", numero/1000020) .. "M"
+			if (numero > 1000000) then
+				return _string_format ("%.2f", numero/1000000) .. "M"
 			elseif (numero > 1000) then
 				return _string_format ("%.1f", numero/1000) .. "K"
 			end
@@ -625,7 +625,7 @@
 			n = _math_floor(n)
 			if (custom) then
 				if (n > 999999) then
-					return _string_format (custom, n/1000020) .. "M"
+					return _string_format (custom, n/1000000) .. "M"
 				elseif (n > 999) then
 					return _string_format (custom, (n/1000))
 				else
@@ -1203,6 +1203,11 @@ end
 					local blue_now = ThisGradient.StartBlue + (percent  * ThisGradient.OnePercentBlue)
 					local alpha_now = ThisGradient.StartAlpha + (percent  * ThisGradient.OnePercentAlpha)
 
+					red_now = Saturate(red_now)
+					green_now = Saturate(green_now)
+					blue_now = Saturate(blue_now)
+					alpha_now = Saturate(alpha_now)
+
 					if (ThisGradient.ObjectType == "frame") then
 						ThisGradient.Object:SetBackdropColor(red_now, green_now, blue_now, alpha_now)
 					elseif (ThisGradient.ObjectType == "texture") then
@@ -1300,6 +1305,9 @@ end
 
 		if (EndFunction and type(EndFunction) == "string") then
 			EndFunction = loadstring (EndFunction) or false
+			if (EndFunction) then
+				DetailsFramework:SetEnvironment(EndFunction)
+			end
 		end
 
 		GradientFrameControl.gradientes [#GradientFrameControl.gradientes+1] = {

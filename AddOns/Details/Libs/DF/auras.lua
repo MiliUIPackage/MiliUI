@@ -10,7 +10,7 @@ local GetSpellInfo = GetSpellInfo
 local lower = string.lower
 local GetSpellBookItemInfo = GetSpellBookItemInfo
 
-local CONST_MAX_SPELLS = 400000
+local CONST_MAX_SPELLS = 450000
 
 function DF:GetAuraByName (unit, spellName, isDebuff)
 	isDebuff = isDebuff and "HARMFUL|PLAYER"
@@ -389,7 +389,7 @@ function DF:CreateAuraConfigPanel (parent, name, db, change_callback, options, t
 		local get_spellID_from_string = function(text)
 			--check if the user entered a spell ID
 			local isSpellID = tonumber(text)
-			if (isSpellID and isSpellID > 1 and isSpellID < 10000200) then
+			if (isSpellID and isSpellID > 1 and isSpellID < 10000000) then
 				local isValidSpellID = GetSpellInfo(isSpellID)
 				if (isValidSpellID) then
 					return isSpellID
@@ -813,7 +813,7 @@ function DF:CreateAuraConfigPanel (parent, name, db, change_callback, options, t
 			icon:SetSize(lineHeight - 2, lineHeight - 2)
 			
 			local name = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
-			DF:SetFontSize(name, 14)
+			DF:SetFontSize(name, 13)
 
 			local remove_button = CreateFrame("button", "$parentRemoveButton", line, "UIPanelCloseButton")
 			remove_button:SetSize(16, 16)
@@ -862,6 +862,7 @@ function DF:CreateAuraConfigPanel (parent, name, db, change_callback, options, t
 		
 		local title = DF:CreateLabel(parent, title)
 		title.textcolor = "silver"
+		title.textsize = 13
 		title:SetPoint("bottomleft", scroll, "topleft", 0, 2)
 
 		for i = 1, lineAmount do

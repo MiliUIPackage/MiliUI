@@ -135,7 +135,7 @@ function _detalhes:OpenWelcomeWindow()
 		end
 		DetailsWelcomeWindow.SetLocTimer = _detalhes:ScheduleTimer("WelcomeSetLoc", 12)
 
---/script local f=CreateFrame("frame");local g=false;f:SetScript("OnUpdate",function(s,e)if not g then local r=math.random for i=1,2500000 do local a=r(1,1000020);a=a+1 end g=true else print(string.format("cpu: %.3f",e));f:SetScript("OnUpdate",nil)end end)
+--/script local f=CreateFrame("frame");local g=false;f:SetScript("OnUpdate",function(s,e)if not g then local r=math.random for i=1,2500000 do local a=r(1,1000000);a=a+1 end g=true else print(string.format("cpu: %.3f",e));f:SetScript("OnUpdate",nil)end end)
 	
 	function _detalhes:CalcCpuPower()
 		local f = CreateFrame("frame")
@@ -145,7 +145,7 @@ function _detalhes:OpenWelcomeWindow()
 			if (not got and not InCombatLockdown()) then
 				local r = math.random
 				for i = 1, 2500000 do 
-					local a = r (1, 1000020)
+					local a = r (1, 1000000)
 					a = a + 1
 				end
 				got = true
@@ -1390,15 +1390,15 @@ local window_openned_at = time()
 			joe.classe = actors_classes [math.random(1, #actors_classes)]
 			joe.total = 7500000
 			joe.total_without_pet = 7500000
-			joe.damage_taken = math.random(100002, 600000)
-			joe.friendlyfire_total = math.random(100002, 600000)
+			joe.damage_taken = math.random(100000, 600000)
+			joe.friendlyfire_total = math.random(100000, 600000)
 			
 			total_damage = total_damage + joe.total
 
 			--local joe_death = current_combat[4]:PegarCombatente (0x0000000000000, joe.nome, 0x114, true)
 			--joe_death.grupo = true
 			--joe_death.classe = joe.classe
-			--local esta_morte = {{true, 96648, 100002, time(), 0, "Lady Holenna"}, {true, 96648, 100002, time()-52, 100002, "Lady Holenna"}, {true, 96648, 100002, time()-86, 200000, "Lady Holenna"}, {true, 96648, 100002, time()-101, 300000, "Lady Holenna"}, {false, 55296, 400000, time()-54, 400000, "King Djoffrey"}, {true, 14185, 0, time()-59, 400000, "Lady Holenna"}, {false, 87351, 400000, time()-154, 400000, "King Djoffrey"}, {false, 56236, 400000, time()-158, 400000, "King Djoffrey"} } 
+			--local esta_morte = {{true, 96648, 100000, time(), 0, "Lady Holenna"}, {true, 96648, 100000, time()-52, 100000, "Lady Holenna"}, {true, 96648, 100000, time()-86, 200000, "Lady Holenna"}, {true, 96648, 100000, time()-101, 300000, "Lady Holenna"}, {false, 55296, 400000, time()-54, 400000, "King Djoffrey"}, {true, 14185, 0, time()-59, 400000, "Lady Holenna"}, {false, 87351, 400000, time()-154, 400000, "King Djoffrey"}, {false, 56236, 400000, time()-158, 400000, "King Djoffrey"} } 
 			--local t = {esta_morte, time(), joe.nome, joe.classe, 400000, "52m 12s",  ["dead"] = true}
 			--table.insert(current_combat.last_events_tables, #current_combat.last_events_tables+1, t)
 			
@@ -1413,15 +1413,15 @@ local window_openned_at = time()
 			
 			joe.targets ["My Old Lady"] = 3500000
 			joe.targets ["My Self"] = 2000000
-			joe.targets ["Another Man"] = 1000021
-			joe.targets ["Another Random Guy"] = 1000021
+			joe.targets ["Another Man"] = 1000001
+			joe.targets ["Another Random Guy"] = 1000001
 			
 			joe.spells:PegaHabilidade (300000, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300000].total = 4500000
-			joe.spells:PegaHabilidade (300001, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300001].total = 1000021
-			joe.spells:PegaHabilidade (300002, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300002].total = 1000021
+			joe.spells:PegaHabilidade (300001, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300001].total = 1000001
+			joe.spells:PegaHabilidade (300002, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300002].total = 1000001
 			joe.spells:PegaHabilidade (300003, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300003].total = 2000000
-			joe.spells:PegaHabilidade (300004, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300004].total = 4100002
-			joe.spells:PegaHabilidade (300005, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300005].total = 1000023
+			joe.spells:PegaHabilidade (300004, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300004].total = 4100000
+			joe.spells:PegaHabilidade (300005, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300005].total = 1000003
 			joe.spells:PegaHabilidade (300006, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300006].total = 800000
 			joe.spells:PegaHabilidade (300007, true, "SPELL_DAMAGE"); joe.spells._ActorTable [300007].total = 700000
 			

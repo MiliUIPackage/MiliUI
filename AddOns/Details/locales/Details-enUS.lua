@@ -1189,7 +1189,7 @@ L["STRING_OPTIONS_TEXTEDITOR_CANCEL_TOOLTIP"] = "Finish the editing and ignore a
 L["STRING_OPTIONS_TEXTEDITOR_COLOR_TOOLTIP"] = "Select the text and then click on the color button to change selected text color."
 L["STRING_OPTIONS_TEXTEDITOR_COMMA"] = "Comma"
 L["STRING_OPTIONS_TEXTEDITOR_COMMA_TOOLTIP"] = [=[Add a function to format numbers, separating with commas.
-Example: 1000020 to 1.000.000.]=]
+Example: 1000000 to 1.000.000.]=]
 L["STRING_OPTIONS_TEXTEDITOR_DATA"] = "[Data %s]"
 L["STRING_OPTIONS_TEXTEDITOR_DATA_TOOLTIP"] = [=[Add a data feed:
 

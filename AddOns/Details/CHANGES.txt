@@ -1,64 +1,46 @@
-tag bee6ec628be58a51953e09b90dedd45de7e9b2bb Details.DF.Wrath.10258.146
+tag 4f39a7c43a4a009aaf34416b8085cb2177914b34 Details.DF.SL.Wrath.10142.146
 Author:	Tercio Jose <terciob19@hotmail.com>
-Date:	Wed Nov 2 13:32:28 2022 -0300
+Date:	Sat Oct 15 13:11:49 2022 -0300
 
-commit 61e7f2ad52bc05f2e4077fd405bd8235e0893dcb
+commit 035c8d6a7fe65202fa4c8b749d43f0dce0dcf56b
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Wed Nov 2 13:32:09 2022 -0300
+Date:   Sat Oct 15 13:11:18 2022 -0300
 
-    Release with update to framework
+    bug fixes
 
-commit 45a980023cb09cebb5ca40da37d4a6a893a51d6e
+commit 3f3d4db5f0d3656d68d50d3c826117eb6d8be13c
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Tue Nov 1 19:45:51 2022 -0300
+Date:   Fri Oct 14 13:21:58 2022 -0300
 
-    General fixes
+    QuickDispatch now uses xpcall instead of pcall, fixed search box erroring on some searchs
 
-commit 422e24b826f6983b0699bb384cc8f20c3e5aa3af
+commit 50ed1cf776588b100ea208b88c393398041e0b94
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Sun Oct 30 18:17:25 2022 -0300
+Date:   Thu Oct 13 19:08:17 2022 -0300
 
-    Fix warlock entering in combat due to periodic damage
+    Added Misses
 
-commit 422e24b826f6983b0699bb384cc8f20c3e5aa3af
+commit bebb4af33c3c39fd2dd88159a9a3ea04db26e80f
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Sun Oct 30 18:17:25 2022 -0300
+Date:   Thu Oct 13 13:41:07 2022 -0300
 
-    Fix warlock entering in combat due to periodic damage
+    updates
 
-commit 886d7df56045699a569210725c2d24ea43f472ea
-Author: Flamanis <Flamanis@users.noreply.github.com>
-Date:   Sun Oct 30 12:42:23 2022 -0500
-
-    Fix Chat Embeds
-    
-    Fix GetTab to get the proper chat tab.
-    
-    When windows are ReleaseEmbed, clear the groupings and reset the windowSwitchButton parent so you can move the window.
-    
-    When single window is toggled off, save the current position of the second window so you can restore to the correct position.
-
-commit 886d7df56045699a569210725c2d24ea43f472ea
-Author: Flamanis <Flamanis@users.noreply.github.com>
-Date:   Sun Oct 30 12:42:23 2022 -0500
-
-    Fix Chat Embeds
-    
-    Fix GetTab to get the proper chat tab.
-    
-    When windows are ReleaseEmbed, clear the groupings and reset the windowSwitchButton parent so you can move the window.
-    
-    When single window is toggled off, save the current position of the second window so you can restore to the correct position.
-
-commit 4a198c599632b18ab80b2dfd91fcd469ccf7da66
+commit 6243a32740d002de384577337f8ebc5c2d26d84d
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Fri Oct 28 11:51:44 2022 -0300
+Date:   Wed Oct 12 18:37:00 2022 -0300
 
-    reinstall panel fixed, inspect range fixed (flamanis), evoker cooldowns added
+    More bug fixes
 
-commit 4c11441c3eb1da7d61bfda946d43470a6ac16a02
+commit 69899679e712f61425cbac8300d7e2fcd0c9f26d
 Author: Tercio Jose <terciob19@hotmail.com>
-Date:   Wed Oct 26 21:50:34 2022 -0300
+Date:   Mon Oct 10 16:51:56 2022 -0300
 
-    Round of general fixes
+    Merging Seal of Command on Wrath classic
+
+commit 1ed29008aae667f2cb96c2718166850de605feed
+Author: Tercio Jose <terciob19@hotmail.com>
+Date:   Mon Oct 10 13:26:13 2022 -0300
+
+    Small bug fixes and improvements
 

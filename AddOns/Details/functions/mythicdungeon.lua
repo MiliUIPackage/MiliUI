@@ -5,6 +5,7 @@ local unpack = _G.unpack
 local GetTime = _G.GetTime
 local tremove = _G.tremove
 local GetInstanceInfo = _G.GetInstanceInfo
+local addonName, Details222 = ...
 
 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 

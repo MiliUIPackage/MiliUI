@@ -1,7 +1,8 @@
 --[[ Declare all Details classes and container indexes ]]
 
-do 
+do
 	local _detalhes = 	_G._detalhes
+	local addonName, Details222 = ...
 	local setmetatable = setmetatable
 	-------- container que armazena o cache de pets
 		_detalhes.container_pets = {}
@@ -189,7 +190,7 @@ do
 	function _detalhes:Pets()
 		return self.pets
 	end
-	
+
 	function _detalhes:GetSpec(actor)
 		return self.spec or actor and actor.spec
 	end

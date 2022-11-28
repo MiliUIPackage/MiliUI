@@ -2,6 +2,7 @@
 local _detalhes = _G._detalhes
 local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
 local _
+local addonName, Details222 = ...
 
 	--install skin function:
 	function _detalhes:InstallSkin (skin_name, skin_table)
@@ -1310,7 +1311,7 @@ local _
 				["width"] = 265.999943487933,
 				["texcoord"] = {
 					0.342000007629395,
-					0.00100002001490116,
+					0.00100000001490116,
 					1,
 					0.573999977111816,
 				},
@@ -2164,7 +2165,7 @@ local _
 			},
 			["clickthrough_window"] = false,
 			["bars_grow_direction"] = 1,
-			["bg_alpha"] = 0.51000022026558,
+			["bg_alpha"] = 0.51000002026558,
 			["switch_tank_in_combat"] = false,
 			["bars_inverted"] = false,
 			["switch_damager_in_combat"] = false,
@@ -2411,9 +2412,9 @@ local _
 				},
 				["width"] = 266.000061035156,
 				["texcoord"] = {
-					0.00100002001490116, -- [1]
+					0.00100000001490116, -- [1]
 					1, -- [2]
-					0.00100002001490116, -- [3]
+					0.00100000001490116, -- [3]
 					0.703000030517578, -- [4]
 				},
 				["enabled"] = false,
