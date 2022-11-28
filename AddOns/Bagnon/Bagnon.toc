@@ -1,9 +1,9 @@
 ## Interface: 100002
 ## Title: |TInterface/Addons/BagBrother/Art/Bagnon-Small:16:16|t Bagnon
 ## Author: Tuller & Jaliborc (João Cardoso)
+## Notes: The famous bag interface, designed to help the player find items|nas quickly and easily as possible. Possessions can be viewed at|nany time, from anywhere and from any character.|n|cffbbbbbbBy João Cardoso and Jason Greer|r|n|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Patreon:12:12:0:-4|t |cff82c5ffpatreon.com/jaliborc|r
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合
 ## Notes-zhTW: Bagnon|n功能強大的整合背包。
-## Notes: The famous bag interface, designed to help the player find items|nas quickly and easily as possible. Possessions can be viewed at|nany time, from anywhere and from any character.|n|cffbbbbbbBy João Cardoso and Jason Greer|r|n|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Patreon:12:12:0:-4|t |cff82c5ffpatreon.com/jaliborc|r
 ## OptionalDeps: BagBrother, WoWUnit
 ## SavedVariables: Bagnon_Sets
 ## Dependencies: BagBrother
