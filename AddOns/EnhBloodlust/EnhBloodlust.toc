@@ -2,7 +2,7 @@
 ## Title: Enhanced Bloodlust
 ## Notes: Add a music in Bloodlust or Heroism!
 ## Author: Vilkku
-## Title-zhTW: |cffFF2D2D[戰鬥]|r 嗜血音樂
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂
 ## Notes-zhTW: Enhanced Bloodlust |n|n為嗜血與英勇效果添加超棒的音樂。
 ## X-Category-zhTW: 戰鬥
 
