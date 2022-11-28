@@ -1,6 +1,6 @@
 local SALE_ITEM_EVENTS = {
-  "ITEM_SEARCH_RESULTS_UPDATED",
-  "COMMODITY_SEARCH_RESULTS_UPDATED",
+  Auctionator.AH.Events.CommoditySearchResultsReady,
+  Auctionator.AH.Events.ItemSearchResultsReady,
 }
 
 -- Necessary because attempting to post an auction with copper value silently
@@ -22,7 +22,7 @@ local function NormalizePrice(price)
 end
 
 local function IsEquipment(itemInfo)
-  return itemInfo.classID == Enum.ItemClass.Weapon or itemInfo.classID == Enum.ItemClass.Armor
+  return itemInfo.classId == Enum.ItemClass.Weapon or itemInfo.classId == Enum.ItemClass.Armor
 end
 
 local function IsValidItem(item)
@@ -191,6 +191,25 @@ function AuctionatorSaleItemMixin:ReceiveEvent(event, ...)
 
   elseif event == Auctionator.Selling.Events.RefreshSearch then
     self:RefreshButtonClicked()
+
+  elseif event == Auctionator.AH.Events.CommoditySearchResultsReady then
+    local itemID = ...
+    if itemID ~= self.expectedItemKey.itemID then
+      return
+    end
+
+    self:ProcessCommodityResults(...)
+    Auctionator.EventBus:Unregister(self, SALE_ITEM_EVENTS)
+
+  elseif event == Auctionator.AH.Events.ItemSearchResultsReady then
+    local itemKey = ...
+    if Auctionator.Utilities.ItemKeyString(itemKey) ~=
+        Auctionator.Utilities.ItemKeyString(self.expectedItemKey) then
+      return
+    end
+
+    self:ProcessItemResults(...)
+    Auctionator.EventBus:Unregister(self, SALE_ITEM_EVENTS)
   end
 end
 
@@ -259,7 +278,7 @@ function AuctionatorSaleItemMixin:UpdateForNewItem()
   if price ~= nil then
     self:UpdateSalesPrice(price)
   elseif IsEquipment(self.itemInfo) then
-    self:SetEquipmentMultiplier(self.itemInfo)
+    self:SetEquipmentMultiplier(self.itemInfo.itemLink)
   else
     self:UpdateSalesPrice(0)
   end
@@ -283,7 +302,7 @@ function AuctionatorSaleItemMixin:SetDuration()
 end
 
 function AuctionatorSaleItemMixin:SetQuantity()
-  local defaultQuantity = Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_QUANTITIES)[self.itemInfo.classID]
+  local defaultQuantity = Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_QUANTITIES)[self.itemInfo.classId]
 
   if self.itemInfo.count == 0 then
     self.Quantity:SetNumber(0)
@@ -297,7 +316,7 @@ function AuctionatorSaleItemMixin:SetQuantity()
 end
 
 function AuctionatorSaleItemMixin:DoSearch(itemInfo, ...)
-  FrameUtil.RegisterFrameForEvents(self, SALE_ITEM_EVENTS)
+  Auctionator.EventBus:Register(self, SALE_ITEM_EVENTS)
 
   local sortingOrder
 
@@ -311,10 +330,10 @@ function AuctionatorSaleItemMixin:DoSearch(itemInfo, ...)
     -- Bug with PTR C_AuctionHouse.MakeItemKey(...), it always sets the
     -- itemLevel to a non-zero value, so we have to create the key directly
     self.expectedItemKey = {itemID = itemInfo.itemKey.itemID, itemLevel = 0, itemSuffix = 0, battlePetSpeciesID = 0}
-    Auctionator.AH.SendSellSearchQuery(self.expectedItemKey, {sortingOrder}, true)
+    Auctionator.AH.SendSellSearchQueryByItemKey(self.expectedItemKey, {sortingOrder}, true)
   else
     self.expectedItemKey = itemInfo.itemKey
-    Auctionator.AH.SendSearchQuery(itemInfo.itemKey, {sortingOrder}, true)
+    Auctionator.AH.SendSearchQueryByItemKey(self.expectedItemKey, {sortingOrder}, true)
   end
   Auctionator.EventBus:Fire(self, Auctionator.Selling.Events.SellSearchStart, self.expectedItemKey)
 end
@@ -334,40 +353,23 @@ function AuctionatorSaleItemMixin:UpdateSalesPrice(salesPrice)
   self.BidPrice:Clear()
 end
 
-function AuctionatorSaleItemMixin:SetEquipmentMultiplier(itemInfo)
+function AuctionatorSaleItemMixin:SetEquipmentMultiplier(itemLink)
   self:UpdateSalesPrice(0)
 
-  local multiplier = Auctionator.Config.Get(Auctionator.Config.Options.GEAR_PRICE_MULTIPLIER)
-  local vendorPrice = itemInfo.vendorPrice
-  if multiplier ~= 0 and vendorPrice ~= 0 then
-    -- Check for a vendor price multiplier being set (and a vendor price)
-    self:UpdateSalesPrice(
-      vendorPrice * multiplier + self:GetDeposit()
-    )
-  end
+  local item = Item:CreateFromItemLink(itemLink)
+  item:ContinueOnItemLoad(function()
+    local multiplier = Auctionator.Config.Get(Auctionator.Config.Options.GEAR_PRICE_MULTIPLIER)
+    local vendorPrice = select(Auctionator.Constants.ITEM_INFO.SELL_PRICE, GetItemInfo(itemLink))
+    if multiplier ~= 0 and vendorPrice ~= 0 then
+      -- Check for a vendor price multiplier being set (and a vendor price)
+      self:UpdateSalesPrice(
+        vendorPrice * multiplier + self:GetDeposit()
+      )
+    end
+  end)
 end
 
 function AuctionatorSaleItemMixin:OnEvent(eventName, ...)
-  if eventName == "COMMODITY_SEARCH_RESULTS_UPDATED" then
-    local itemID = ...
-    if itemID ~= self.expectedItemKey.itemID then
-      return
-    end
-
-    self:ProcessCommodityResults(...)
-    FrameUtil.UnregisterFrameForEvents(self, SALE_ITEM_EVENTS)
-
-  elseif eventName == "ITEM_SEARCH_RESULTS_UPDATED" then
-    local itemKey = ...
-    if Auctionator.Utilities.ItemKeyString(itemKey) ~=
-        Auctionator.Utilities.ItemKeyString(self.expectedItemKey) then
-      return
-    end
-
-    self:ProcessItemResults(...)
-    FrameUtil.UnregisterFrameForEvents(self, SALE_ITEM_EVENTS)
-  end
-
 end
 
 function AuctionatorSaleItemMixin:GetCommodityResult(itemID)
@@ -522,8 +524,9 @@ function AuctionatorSaleItemMixin:GetConfirmationMessage()
 
   -- Determine if the item is worth more to sell to a vendor than to post on the
   -- AH.
-  local vendorPrice = self.itemInfo.vendorPrice
-  if self.itemInfo.isVendorable and
+  local itemInfo = { GetItemInfo(self.itemInfo.itemLink) }
+  local vendorPrice = itemInfo[Auctionator.Constants.ITEM_INFO.SELL_PRICE]
+  if Auctionator.Utilities.IsVendorable(itemInfo) and
      vendorPrice * self.Quantity:GetNumber() + self:GetDeposit()
        > math.floor(self.Price:GetAmount() * self.Quantity:GetNumber() * Auctionator.Constants.AfterAHCut) then
     return AUCTIONATOR_L_CONFIRM_POST_BELOW_VENDOR

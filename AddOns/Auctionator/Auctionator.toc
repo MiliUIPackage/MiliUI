@@ -1,6 +1,6 @@
 ## Interface: 100002
 ## Title: Auctionator
-## Version: 10.0.12
+## Version: 10.0.15
 ## Author: Borjamacare, plusmouse
 ## X-Website: https://www.curseforge.com/wow/addons/auctionator
 ## X-Category: Auction/Economy
@@ -11,6 +11,7 @@
 ## SavedVariables: AUCTIONATOR_CONFIG, AUCTIONATOR_SAVEDVARS, AUCTIONATOR_SHOPPING_LISTS, AUCTIONATOR_PRICE_DATABASE, AUCTIONATOR_POSTING_HISTORY, AUCTIONATOR_VENDOR_PRICE_CACHE, AUCTIONATOR_RECENT_SEARCHES
 ## SavedVariablesPerCharacter: AUCTIONATOR_CHARACTER_CONFIG
 ## OptionalDeps: LibAHTab
+## X-Category-zhTW: 交易
 
 Libs\Manifest.xml
 Libs_Mainline\Manifest.xml
