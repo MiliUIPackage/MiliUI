@@ -1,6 +1,5 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r143-release...e217a40410af9a213f21d175ffde7ac333c1b054)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r147-release...2558e22269d4cd00f429dc5592ad5cf8a9a2d2cb)
 
-- Add several shortcuts to spotlight frame
-- Fix macro editbox in click-castings tab
-- Update Widgets_IndicatorSettings
-- Update Patrons
+- Fix raid outdoor layout on wrath
+- Fix targeted spells
+- Update zhTW

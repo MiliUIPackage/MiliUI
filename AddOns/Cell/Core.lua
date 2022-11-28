@@ -105,9 +105,11 @@ local function PreUpdateLayout()
             F:UpdateLayout("party", true)
         else -- raid
             if Cell.vars.inMythic then
-                F:UpdateLayout("mythic", true)
+                F:UpdateLayout("raid_mythic", true)
+            elseif Cell.vars.inInstance then
+                F:UpdateLayout("raid_instance", true)
             else
-                F:UpdateLayout("raid", true)
+                F:UpdateLayout("raid_outdoor", true)
             end
         end
     end
@@ -309,6 +311,13 @@ function eventFrame:ADDON_LOADED(arg1)
                     {"type2", "togglemenu"},
                 } 
             end
+            -- add "Initials" (no spec)
+            local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, 5)
+            CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
+            CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
+                {"type1", "target"},
+                {"type2", "togglemenu"},
+            }
             -- add resurrections
             for _, t in pairs(F:GetResurrectionClickCastings(Cell.vars.playerClass)) do
                 tinsert(CellDB["clickCastings"][Cell.vars.playerClass]["common"], t)
@@ -332,24 +341,27 @@ function eventFrame:ADDON_LOADED(arg1)
             CellDB["layoutAutoSwitch"] = {
                 ["TANK"] = {
                     ["party"] = "default",
-                    ["raid"] = "default",
-                    ["mythic"] = "default",
+                    ["raid_outdoor"] = "default",
+                    ["raid_instance"] = "default",
+                    ["raid_mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
                 },
                 ["HEALER"] = {
                     ["party"] = "default",
-                    ["raid"] = "default",
-                    ["mythic"] = "default",
+                    ["raid_outdoor"] = "default",
+                    ["raid_instance"] = "default",
+                    ["raid_mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
                 },
                 ["DAMAGER"] = {
                     ["party"] = "default",
-                    ["raid"] = "default",
-                    ["mythic"] = "default",
+                    ["raid_outdoor"] = "default",
+                    ["raid_instance"] = "default",
+                    ["raid_mythic"] = "default",
                     ["arena"] = "default",
                     ["battleground15"] = "default",
                     ["battleground40"] = "default",
@@ -587,8 +599,11 @@ function eventFrame:PLAYER_ENTERING_WORLD()
 
     local isIn, iType = IsInInstance()
     instanceType = iType
+    Cell.vars.inInstance = isIn
+
     if isIn then
         F:Debug("|cffff1111Entered Instance:|r", iType)
+        Cell:Fire("EnterInstance", iType)
         PreUpdateLayout()
         inInstance = true
 
@@ -605,6 +620,7 @@ function eventFrame:PLAYER_ENTERING_WORLD()
 
     elseif inInstance then -- left insntance
         F:Debug("|cffff1111Left Instance|r")
+        Cell:Fire("LeaveInstance")
         PreUpdateLayout()
         inInstance = false
     end
