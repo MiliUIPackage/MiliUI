@@ -178,18 +178,18 @@ local function CreateOptionFrame()
 	optionframe = AceConfigDialog:AddToBlizOptions("Stuf", L["Stuf"])
 	optionframe.fshow = CreateFrame("Frame", nil, optionframe, BackdropTemplateMixin and 'BackdropTemplate')
 	optionframe.fshow:SetScript("OnShow", function(this)
-		local w = InterfaceOptionsFrame:GetWidth()
-		if not InterfaceOptionsFrame:IsMovable() then
-			this.p, this.rt, this.rp, this.x, this.y = InterfaceOptionsFrame:GetPoint()
-			InterfaceOptionsFrame:SetMovable(true)
-			InterfaceOptionsFrame:RegisterForDrag("LeftButton")
-			InterfaceOptionsFrame:SetScript("OnDragStart", OnDragStart)
-			InterfaceOptionsFrame:SetScript("OnDragStop", OnDragStop)
+		local w = SettingsPanel:GetWidth()
+		if not SettingsPanel:IsMovable() then
+			this.p, this.rt, this.rp, this.x, this.y = SettingsPanel:GetPoint()
+			SettingsPanel:SetMovable(true)
+			SettingsPanel:RegisterForDrag("LeftButton")
+			SettingsPanel:SetScript("OnDragStart", OnDragStart)
+			SettingsPanel:SetScript("OnDragStop", OnDragStop)
 			this.moved = true
 		end
 		if w < 860 then
 			this.oldw = w
-			InterfaceOptionsFrame:SetWidth(860)
+			SettingsPanel:SetWidth(860)
 		else
 			this.oldw = nil
 		end
@@ -197,17 +197,17 @@ local function CreateOptionFrame()
 	optionframe.fshow:SetScript("OnHide", function(this)
 		--------edited out 5 may 2022
 		--	if this.oldw then
-		--	InterfaceOptionsFrame:SetWidth(this.oldw)
+		--	SettingsPanel:SetWidth(this.oldw)
 		--	this.oldw = nil
 		--end
 		--------------------
 		if this.moved then
-			InterfaceOptionsFrame:SetMovable(false)
-			InterfaceOptionsFrame:RegisterForDrag()
-			InterfaceOptionsFrame:SetScript("OnDragStart", nil)
-			InterfaceOptionsFrame:SetScript("OnDragStop", nil)
-			InterfaceOptionsFrame:ClearAllPoints()
-			InterfaceOptionsFrame:SetPoint(this.p, this.rt, this.rp, this.x, this.y)
+			SettingsPanel:SetMovable(false)
+			SettingsPanel:RegisterForDrag()
+			SettingsPanel:SetScript("OnDragStart", nil)
+			SettingsPanel:SetScript("OnDragStop", nil)
+			SettingsPanel:ClearAllPoints()
+			SettingsPanel:SetPoint(this.p, this.rt, this.rp, this.x, this.y)
 		end
 	end)
 end
@@ -1697,7 +1697,7 @@ local texttagoptions={ hide=hide, copyelement=copyelement, blank=blank,
 				taghelp:RegisterForDrag("LeftButton")
 				taghelp:SetScript("OnDragStart", OnDragStart)
 				taghelp:SetScript("OnDragStop", OnDragStop)
-				taghelp:SetPoint("TOP", UIParent, "BOTTOMLEFT", InterfaceOptionsFrame:GetRight() - 100, InterfaceOptionsFrame:GetTop() + 100)
+				taghelp:SetPoint("TOP", UIParent, "BOTTOMLEFT", SettingsPanel:GetRight() - 100, SettingsPanel:GetTop() + 100)
 				taghelp:SetBackdrop({ bgFile="Interface\\Tooltips\\UI-Tooltip-Background" })
 				taghelp:SetBackdropColor(0, 0, 0, 0.7)
 				
@@ -2283,7 +2283,7 @@ options={
 				},
 				disableboss={ name=L["Disable Default Boss Frames"], type="toggle", width="double", desc=L["Disable default boss frames and use Stuf's. Automatically reloads UI"], confirm=true, 
 					set=function(info, v) set(info, v) ReloadUI() end, get=get, order=12.6, },
-				disableprframes={ name=L["Hide Default Group Frames"], desc=L["May need to reload to take full effect."], type="toggle", width="double", 
+				disableprframes={ name=L["Hide Default Group Frames"], desc=L["May need to reload to take full effect."], type="toggle", width="double", confirm=true,
 					set=function(info, v) set(info, v) end, get=get, order=12.7, },
 				classification={
 					name=L["Classification Text"], dialogInline=true, type="group", order=12.9,
@@ -2769,8 +2769,6 @@ function Stuf:OpenOptions(frame)
 		CreateOptionFrame()
 	end
 	C_Timer.After(0.3, function()
-		InterfaceOptionsFrame_Show()
-		InterfaceOptionsFrame_OpenToCategory(optionframe)
-		InterfaceOptionsFrame_OpenToCategory(optionframe)
+		Settings.OpenToCategory(L["Stuf"], true)
 	end)
 end

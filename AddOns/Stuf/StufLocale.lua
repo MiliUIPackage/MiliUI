@@ -15,6 +15,5 @@ StufLocalization = {
 [" <Left-click> to inspect.\n"] = " <左鍵> 觀察\n",
 [" <Middle-click> to note target.\n"] = " <中鍵> 密語\n",
 [" <Right-click> to dressup."] = " <右鍵> 交易\n <按鍵4> 跟隨",
-
 }
 end

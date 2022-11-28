@@ -10,6 +10,7 @@
 ## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, Stuf_OptionsLocale
 ## LoadOnDemand: 1
 
+
 embeds.xml
 Stuf_OptionsLocale.lua
 options.lua

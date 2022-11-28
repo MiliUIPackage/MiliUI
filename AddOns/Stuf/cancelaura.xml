@@ -1,13 +1,13 @@
 <Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
 ..\FrameXML\UI.xsd">
-	<Button name="StufBuffTemplate" inherits="SecureActionButtonTemplate" toplevel="true" virtual="true">
+	<Button name="StufBuffTemplate" inherits="SecureActionButtonTemplate,BackdropTemplate" toplevel="true" virtual="true">
 		<Size x="10" y="10"/>
 		<Attributes>
 			<Attribute name="type" value="cancelaura"/>
 		</Attributes>
 		<Scripts>
 			<OnLoad>
-				self:RegisterForClicks("RightButtonUp")
+				self:RegisterForClicks("AnyDown", "AnyUp")
 				self:SetBackdrop({ bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, })
 				self:SetBackdropColor(1, 0, 0, 0)
 			</OnLoad>

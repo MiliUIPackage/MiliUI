@@ -361,6 +361,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 	function UpdateAura(unit, uf, _, _, _, config)  -- updates all elements dealing with buffs/debuffs
 		-----------------------------------------------
 		-- edited on 3MAY2022 uf = uf or su[unit]
+		if unit then uf = su[unit] end --fix 100002--I noticed that Unit_Aura event throw wrong uf table
 		uf = type(uf) == "table" and uf or su[unit]
 		-----------------------------------------------
 		if not uf or uf.hidden then return end
@@ -615,11 +616,14 @@ do  -- Aura Icons --------------------------------------------------------------
 				f.hidden = true
 				f:Hide()
 				if isplayer then
-					if istemp then
+					if istemp and TemporaryEnchantFrame then -- 10.0.2 fix
 						TemporaryEnchantFrame:Show()
 					elseif isbuff then
 						BuffFrame:Show()
 						BuffFrame:RegisterEvent("UNIT_AURA")
+					elseif isdebuff then
+						DebuffFrame:Show()
+						DebuffFrame:RegisterEvent("UNIT_AURA")
 					end
 				end
 				UpdateAura(unit, uf, nil, nil, nil, config)
@@ -673,7 +677,7 @@ do  -- Aura Icons --------------------------------------------------------------
 		if db.framelevel then
 			f:SetFrameLevel(db.framelevel)
 		end
-		if istemp then
+		if istemp and TemporaryEnchantFrame then -- 10.0.2 fix
 			TemporaryEnchantFrame:Hide()
 		elseif isplayer and isbuff then
 			BuffFrame:Hide()
@@ -700,6 +704,9 @@ do  -- Aura Icons --------------------------------------------------------------
 			end
 			f.secure:SetFrameLevel(f:GetFrameLevel() + 20)
 			f.secure:Show()
+		elseif isplayer and isdebuff then
+			DebuffFrame:Hide()
+			DebuffFrame:UnregisterEvent("UNIT_AURA")
 		end
 		f:Show()
 

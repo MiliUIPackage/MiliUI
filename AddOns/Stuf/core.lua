@@ -71,6 +71,67 @@ local dropdown = {  -- use blizz's default unit dropdown menus
 local metrounits = { }
 
 -- local functions
+local function HideFrame(frame) -- 從 Cell 借來的 code
+    if not frame then return end
+    
+    frame:UnregisterAllEvents()
+    frame:Hide()
+    frame:SetParent(hiddenParent)
+
+    local health = frame.healthBar or frame.healthbar
+    if health then
+        health:UnregisterAllEvents()
+    end
+
+    local power = frame.manabar
+    if power then
+        power:UnregisterAllEvents()
+    end
+
+    local spell = frame.castBar or frame.spellbar
+    if spell then
+        spell:UnregisterAllEvents()
+    end
+
+    local altpowerbar = frame.powerBarAlt
+    if altpowerbar then
+        altpowerbar:UnregisterAllEvents()
+    end
+
+    local buffFrame = frame.BuffFrame
+    if buffFrame then
+        buffFrame:UnregisterAllEvents()
+    end
+
+    local petFrame = frame.PetFrame
+    if petFrame then
+        petFrame:UnregisterAllEvents()
+    end
+end
+
+local function HideBlizzardParty() -- 從 Cell 借來的 code
+    _G.UIParent:UnregisterEvent("GROUP_ROSTER_UPDATE")
+
+    if _G.CompactPartyFrame then
+        _G.CompactPartyFrame:UnregisterAllEvents()
+    end
+
+    if _G.PartyFrame then
+        _G.PartyFrame:UnregisterAllEvents()
+        _G.PartyFrame:SetScript('OnShow', nil)
+        for frame in _G.PartyFrame.PartyMemberFramePool:EnumerateActive() do
+            HideFrame(frame)
+        end
+        HideFrame(_G.PartyFrame)
+    else
+        for i = 1, 4 do
+            HideFrame(_G["PartyMemberFrame"..i])
+            HideFrame(_G["CompactPartyMemberFrame"..i])
+        end
+        HideFrame(_G.PartyMemberBackground)
+    end
+end
+
 local function IsInGroup()
 	return UnitExists("party1") or Stuf.numraid ~= 0
 end
@@ -115,7 +176,7 @@ function events.ADDON_LOADED(a1)
 	events.ADDON_LOADED = Stuf.nofunc
 	Stuf:RegisterEvent("PLAYER_LOGIN")
 	events.PLAYER_LOGIN = function()
-		if InCombatLockdown() then return print(L["|cff00ff00Stuf|r: "]..L["Cannot load Stuf while in combat."]) end
+		if InCombatLockdown() then return print("|cff00ff00Stuf|r: "..L["Cannot load Stuf while in combat."]) end
 		
 		-- Saved Variables
 		if StufDB == "perchar" then
@@ -125,7 +186,7 @@ function events.ADDON_LOADED(a1)
 			StufCharDB = StufDB.temp
 			db = StufCharDB
 			StufDB = "perchar"
-			print(L["|cff00ff00Stuf|r: "]..L["Settings copied to this character."])
+			print("|cff00ff00Stuf|r: "..L["Settings copied to this character."])
 		else
 			StufCharDB = nil
 			StufDB = type(StufDB) == "table" and StufDB or { }
@@ -137,7 +198,7 @@ function events.ADDON_LOADED(a1)
 				Stuf:LoadDefaults(db)
 				db.global.init = 9
 			else
-				return print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options is required to initialize variables."])
+				return print("|cff00ff00Stuf|r: "..L["Stuf_Options is required to initialize variables."])
 			end
 		end
 
@@ -241,11 +302,8 @@ function events.ADDON_LOADED(a1)
 		DisableDefault(FocusFrame)
 		DisableDefault(TargetofFocusFrame)
 				
-		if dbg.disableprframes and _G.CompactRaidFrameManager then
-			CompactRaidFrameManager:UnregisterAllEvents() 
-			CompactRaidFrameManager:Hide() 
-			CompactRaidFrameContainer:UnregisterAllEvents() 
-			CompactRaidFrameContainer:Hide() 
+		if dbg.disableprframes then
+			HideBlizzardParty()  -- 隱藏遊戲內建隊伍框架，暫時修正
 		end
 		
 		for i = 1, 4, 1 do
@@ -270,7 +328,6 @@ function events.ADDON_LOADED(a1)
 		end
 
 		SLASH_STUF1 = "/stuf"
-		SLASH_STUF2 = "/頭像"
 		SlashCmdList.STUF = function()
 			if not Stuf.OpenOptions then
 				LoadAddOn("Stuf_Options")
@@ -278,12 +335,12 @@ function events.ADDON_LOADED(a1)
 			if Stuf.OpenOptions then
 				Stuf:OpenOptions(Stuf.panel)
 			else
-				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
+				print("|cff00ff00Stuf|r: "..L["Stuf_Options not found."])
 			end
 		end
 		if not Stuf.OpenOptions then -- AceConfig hack to be LOD friendly
 			Stuf.panel = CreateFrame("Frame", nil, nil, BackdropTemplateMixin and 'BackdropTemplate')
-			Stuf.panel.name = L["Stuf"]
+			Stuf.panel.name = "Stuf"
 			Stuf.panel:SetScript("OnShow", SlashCmdList.STUF)
 			InterfaceOptions_AddCategory(Stuf.panel)
 		end
