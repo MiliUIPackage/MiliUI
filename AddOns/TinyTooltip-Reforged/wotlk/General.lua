@@ -9,12 +9,6 @@ TinyTooltipReforgedCharacterDB = {}
 
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
--- load only on classic wotlk
-if (clientToc == 30400) then
-  local LibInspect = LibStub("LibClassicInspector")
-  local LibDetours = LibStub("LibDetours-1.0")
-end
-
 local addon = TinyTooltipReforged
 
 local function ColorStatusBar(self, value)
@@ -112,10 +106,14 @@ end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)
     if (tip ~= GameTooltip) then return end
-    LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
-    local w = GameTooltipStatusBar.TextString:GetWidth() + 10
-    if (GameTooltipStatusBar:IsShown() and w > tip:GetWidth()) then
-        tip:SetMinimumWidth(w+2)
-        tip:Show()
+    if (addon.db.general.statusbarEnabled) then
+        LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
+        local w = GameTooltipStatusBar.TextString:GetWidth() + 10
+        if (GameTooltipStatusBar:IsShown() and w > tip:GetWidth()) then
+            tip:SetMinimumWidth(w+2)
+            tip:Show()
+        end
+    else
+        GameTooltipStatusBar:Hide()
     end
 end)
