@@ -45,9 +45,9 @@ Cell.defaults.layout = {
     ["rows"] = 8,
     ["groupSpacing"] = 0,
     ["groupFilter"] = {true, true, true, true, true, true, true, true},
-    ["friendlyNPC"] = {true, false, {}},
-    ["pet"] = {true, false, {}, false, {94, 50}}, -- partyPetsEnabled, raidPetsEnabled, raidPetsPosition, sizeEnabled, size
-    ["spotlight"] = {false, {}, {}, false, {94, 50}}, -- enabled, units, position, sizeEnabled, size
+    ["npc"] = {true, false, {}, false, {66, 46}}, -- npcEnabled, separateNpc, position, sizeEnabled, size
+    ["pet"] = {true, false, {}, false, {66, 46}}, -- partyPetsEnabled, raidPetsEnabled, raidPetsPosition, sizeEnabled, size
+    ["spotlight"] = {false, {}, {}, false, {66, 46}}, -- enabled, units, position, sizeEnabled, size
     ["powerFilters"] = {
         ["DEATHKNIGHT"] = {["TANK"] = true, ["DAMAGER"] = true},
         ["DEMONHUNTER"] = {["TANK"] = true, ["DAMAGER"] = true},
