@@ -475,6 +475,8 @@ L["Down, then Left"] = "Bas puis Gauche"
 L["Down, then Right"] = "Bas puis Droite"
 --[[Translation missing --]]
 L["Dragonflight"] = "Dragonflight"
+--[[Translation missing --]]
+L["Dragonriding"] = "Dragonriding"
 L["Drain"] = "Drain"
 L["Dropdown Menu"] = "Menu Déroulant"
 --[[Translation missing --]]
@@ -694,6 +696,12 @@ L["Golemagg the Incinerator"] = "Golemagg the Incinerator"
 --[[Translation missing --]]
 L["Gothik the Harvester"] = "Gothik the Harvester"
 L["Gradient"] = "Dégradé"
+--[[Translation missing --]]
+L["Gradient Color"] = "Gradient Color"
+--[[Translation missing --]]
+L["Gradient Enabled"] = "Gradient Enabled"
+--[[Translation missing --]]
+L["Gradient Orientation"] = "Gradient Orientation"
 L["Gradient Pulse"] = "Pulsation dégradée"
 --[[Translation missing --]]
 L["Grand Widow Faerlina"] = "Grand Widow Faerlina"
@@ -793,6 +801,8 @@ L["Hit Rating"] = "Hit Rating"
 L["Hodir"] = "Hodir"
 L["Holy Resistance"] = "Résistance au sacré"
 L["Horde"] = "Horde"
+--[[Translation missing --]]
+L["Horizontal"] = "Horizontal"
 L["Hostile"] = "Hostile"
 L["Hostility"] = "Hostilité"
 L["Humanoid"] = "Humanoïde"
@@ -1758,6 +1768,8 @@ L["Values/Remaining Time below this value are displayed as no progress."] = "Les
 L["Vault of Archavon"] = "Vault of Archavon"
 L["Versatility (%)"] = "Polyvalence (%)"
 L["Versatility Rating"] = "Score de Polyvalence"
+--[[Translation missing --]]
+L["Vertical"] = "Vertical"
 --[[Translation missing --]]
 L["Vesperon"] = "Vesperon"
 L["Viscidus"] = "Viscidus"
