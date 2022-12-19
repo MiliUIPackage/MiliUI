@@ -1,13 +1,11 @@
 ## Interface: 100002
 ## Title: WeakAuras Templates
 ## Author: The WeakAuras Team
-## Version: 5.2.1
+## Version: 5.3.1
 ## Notes: Templates for WeakAuras
 ## X-Category: Interface Enhancements
 ## Globe-Main: WeakAuras
-## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras 模板
-## Notes-zhTW: WeakAuras Templates |nWeakAuras 的模板
-## DefaultState: Disabled
+## DefaultState: Enabled
 ## LoadOnDemand: 1
 ## Dependencies: WeakAuras, WeakAurasOptions
 
