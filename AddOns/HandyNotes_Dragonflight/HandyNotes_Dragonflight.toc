@@ -1,0 +1,15 @@
+## Interface: 100002
+## Title: HandyNotes: Dragonflight
+## Version: 23
+## Notes: Dragonflight Notes
+## OptionalDeps: Ace3
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍群島
+## Notes-zhTW: HandyNotes: Dragonflight |n在地圖上顯示巨龍群島的寶藏和稀有怪位置。
+## X-Category-zhTW: 地圖
+## RequiredDeps: HandyNotes
+## X-Embeds: Ace3
+## SavedVariables: HandyNotes_DragonflightDB
+
+embeds.xml
+core\core.xml
+plugin.xml
