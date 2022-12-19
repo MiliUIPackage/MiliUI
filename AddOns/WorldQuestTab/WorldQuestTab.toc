@@ -3,8 +3,9 @@
 ## Notes: Creates a new quest tab to keep track of world quests.
 ## Title-zhTW: |cFF00AA99[任務]|r 世界任務標籤頁-主程式
 ## Notes-zhTW: World Quest Tab |n在世界地圖旁的任務記錄中顯示世界任務的標籤頁面，可以過濾任務和加入追蹤，操作方式和一般的任務完全相同!|n還會增強世界地圖上面的世界任務圖示。|n|cffffd200使用方法：|r點世界地圖旁的世界任務標籤頁>過濾方式>設定，進行設定。
+## X-Category-zhTW: 任務
 ## Author: LanceDH
-## Version: 10.0.2.1
+## Version: 10.0.2.2
 ## SavedVariables: BWQDB
 ## X-Website: https://www.curseforge.com/wow/addons/worldquesttab
 ## X-Curse-Project-ID: 102243
