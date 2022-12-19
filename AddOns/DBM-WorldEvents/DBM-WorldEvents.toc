@@ -22,6 +22,7 @@
 ## X-DBM-Mod-Sort: 354
 ## X-DBM-Mod-LoadCID: 55003,54499,15467,15466,49687,15664,23558,27215,23486,24710,24484,153931,167749,121820,121818,121911,121912,121913,121821
 ## X-DBM-Mod-MinCoreRevision: 12473
+## X-Category-zhTW: 團隊
 localization.en.lua
 localization.tw.lua
 localization.cn.lua

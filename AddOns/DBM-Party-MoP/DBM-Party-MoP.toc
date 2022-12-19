@@ -1,7 +1,6 @@
 ## Interface: 100002
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (MoP)|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf05人队-熊猫人之谜|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-潘達利亞之謎|r
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -11,17 +10,18 @@
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: MOP
 ## X-DBM-StatTypes: normal,heroic,challenge
-## X-DBM-Mod-SubCategoriesID: 960, 961, 959, 962, 994, 1011, 1007, 1001, 1004
+## X-DBM-Mod-SubCategoriesID: 960
 ## X-DBM-Mod-Name: Dungeons (MoP)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (潘達利亞之謎)
 ## X-DBM-Mod-Name-zhCN: 5人副本 (熊猫人之谜)
 ## X-DBM-Mod-Sort: 715
-## X-DBM-Mod-MapID: 960,961,959,962,994,1011,1007,1001,1004
+## X-DBM-Mod-MapID: 960
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 4
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r44-1-gdc92dd8
+## Version: r45-13-g4715fc9
+## X-Category-zhTW: 團隊
 
 localization.en.lua
 localization.tw.lua
@@ -30,3 +30,4 @@ JadeSerpentTemple\WiseMari.lua
 JadeSerpentTemple\LibraryEvent.lua
 JadeSerpentTemple\LiuFlameheart.lua
 JadeSerpentTemple\ShaofDoubt.lua
+JadeSerpentTemple\JadeTempleTrash.lua

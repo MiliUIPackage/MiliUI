@@ -16,6 +16,7 @@
 ## X-DBM-Mod-Sort: 317
 ## X-DBM-Mod-MapID: 369,1043
 ## X-DBM-Mod-MinCoreRevision: 12473
+## X-Category-zhTW: 團隊
 localization.en.lua
 localization.cn.lua
 localization.tw.lua

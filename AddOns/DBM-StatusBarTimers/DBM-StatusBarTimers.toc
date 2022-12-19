@@ -11,5 +11,6 @@
 ## Author: MysticalOS, QartemisT
 ## Version: 494a4d8
 ## X-Website: https://deadlybossmods.com
+## X-Category-zhTW: 團隊
 
 DBT.lua

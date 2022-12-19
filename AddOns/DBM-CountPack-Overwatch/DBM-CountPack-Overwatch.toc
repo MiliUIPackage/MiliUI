@@ -1,0 +1,14 @@
+## Interface:100002
+## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Countpack Overwatch|r
+## Title-zhTW: |cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0鬥陣特攻倒數語音|r
+## DefaultState: enabled
+## RequiredDeps: DBM-Core
+## Author: MysticalOS, Domekologe
+## Version: 1.4.20-2
+## X-DBM-CountPack: 1
+## X-DBM-CountPack-GlobalName: DBMCPOverwatch
+## X-Curse-Project-ID: 267605
+## X-Wago-ID: kRNLxQNo
+## X-Category-zhTW: 團隊
+
+CountLoadList.lua

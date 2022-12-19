@@ -55,8 +55,8 @@ local VPReplaceCustom		= voiceReplaceArea:CreateCheckButton(L.ReplacesCustom, tr
 
 local resetbutton = voiceReplaceArea:CreateButton(L.SpecWarn_ResetMe, 120, 16)
 resetbutton:SetPoint("BOTTOMRIGHT", voiceReplaceArea.frame, "BOTTOMRIGHT", -2, 4)
-resetbutton:SetNormalFontObject(GameFontNormal)
-resetbutton:SetHighlightFontObject(GameFontNormal)
+resetbutton:SetNormalFontObject(GameFontNormalSmall)
+resetbutton:SetHighlightFontObject(GameFontNormalSmall)
 resetbutton:SetScript("OnClick", function()
 	-- Set Options
 	DBM.Options.VPReplacesAnnounce = DBM.DefaultOptions.VPReplacesAnnounce

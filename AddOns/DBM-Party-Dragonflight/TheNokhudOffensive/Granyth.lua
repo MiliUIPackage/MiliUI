@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2498, "DBM-Party-Dragonflight", 3, 1198)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20221106015735")
+mod:SetRevision("20221217213243")
 mod:SetCreatureID(186616)
 mod:SetEncounterID(2637)
 mod:SetUsedIcons(8)
@@ -62,6 +62,7 @@ mod:AddSetIconOption("SetIconOnAdd", 386320, true, 5, {8})
 mod.vb.eruptionCount = 0
 mod.vb.shardsCount = 0
 mod.vb.addCount = 0
+local addsTimers = {6, 32.7, 40}
 
 function mod:OnCombatStart(delay)
 	self.vb.eruptionCount = 0
@@ -71,7 +72,7 @@ function mod:OnCombatStart(delay)
 	timerTectonicStompCD:Start(15.5-delay)
 	timerEruptionCD:Start(28.8-delay)
 	if self:IsMythic() then
-		timerSummonSaboteurCD:Start(15-delay, 1)
+		timerSummonSaboteurCD:Start(5.6-delay, 1)
 	end
 end
 
@@ -89,7 +90,7 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 388283 then
 		self.vb.eruptionCount = self.vb.eruptionCount + 1
 		specWarnEruption:Show(self.vb.eruptionCount)
-		specWarnEruption:Play("aesoon")
+		specWarnEruption:Play("interruptsoon")
 --		timerEruptionCD:Start()--In between times not known yet since doing fight correctly shouldn't see in betweens
 	elseif spellId == 388817 then--388817 confirmed on mythic/heroic/normal, 385657 unused?
 		self.vb.shardsCount = self.vb.shardsCount + 1
@@ -122,7 +123,7 @@ function mod:SPELL_SUMMON(args)
 	if spellId == 386747 or spellId == 386748 or spellId == 386320 then--386747 Lance 1, 386748 Lance 2, 386320 Lance 3
 		self.vb.addCount = self.vb.addCount + 1
 		warnAdd:Show(self.vb.addCount)
-		timerSummonSaboteurCD:Start(nil, self.vb.addCount+1)
+--		timerSummonSaboteurCD:Start(nil, self.vb.addCount+1)--No longer starts here
 		if self.Options.SetIconOnAdd then--195821, 195820, 195580
 			self:ScanForMobs(args.destGUID, 2, 8, 1, nil, 12, "SetIconOnAdd")
 		end
@@ -144,8 +145,11 @@ function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
 	if spellId == 361966 then--Lanced!
 		--Resets these timers
+		if self:IsMythic() then
+			timerSummonSaboteurCD:Start(5.6, self.vb.addCount+1)
+		end
 		timerShardsofStoneCD:Start(10)
-		timerTectonicStompCD:Start(16.2)
+		timerTectonicStompCD:Start(15.3)
 		timerEruptionCD:Start(28.6)
 	end
 end

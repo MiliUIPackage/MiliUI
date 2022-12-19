@@ -992,10 +992,10 @@ function barPrototype:ApplyStyle()
 		end
 	end
 	if barOptions.IconLocked then
-		-- local sizeHeight = enlarged and barHugeHeight or barHeight
-		-- frame:SetSize(enlarged and barHugeWidth or barWidth, sizeHeight)
-		-- icon1:SetSize(sizeHeight, sizeHeight)
-		-- icon2:SetSize(sizeHeight, sizeHeight)
+		local sizeHeight = enlarged and barHugeHeight or barHeight
+		frame:SetSize(enlarged and barHugeWidth or barWidth, sizeHeight)
+		icon1:SetSize(sizeHeight, sizeHeight)
+		icon2:SetSize(sizeHeight, sizeHeight)
 	end
 	self.frame:Show()
 	if sparkEnabled then

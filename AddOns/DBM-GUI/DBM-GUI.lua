@@ -8,15 +8,15 @@ DBM_GUI = {
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
 
 local next, type, pairs, strsplit, tonumber, tostring, ipairs, tinsert, tsort, mfloor = next, type, pairs, strsplit, tonumber, tostring, ipairs, table.insert, table.sort, math.floor
-local CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontHighlight, ChatFontNormal, UIParent = CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontHighlight, ChatFontNormal, UIParent
+local CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontNormalSmall, GameFontHighlight, GameFontHighlightSmall, ChatFontNormal, UIParent = CreateFrame, C_Timer, GetExpansionLevel, IsAddOnLoaded, GameFontNormal, GameFontNormalSmall, GameFontHighlight, GameFontHighlightSmall, ChatFontNormal, UIParent
 local RAID_DIFFICULTY1, RAID_DIFFICULTY2, RAID_DIFFICULTY3, RAID_DIFFICULTY4, PLAYER_DIFFICULTY1, PLAYER_DIFFICULTY2, PLAYER_DIFFICULTY3, PLAYER_DIFFICULTY6, PLAYER_DIFFICULTY_TIMEWALKER, CHALLENGE_MODE, ALL, CLOSE, SPECIALIZATION = RAID_DIFFICULTY1, RAID_DIFFICULTY2, RAID_DIFFICULTY3, RAID_DIFFICULTY4, PLAYER_DIFFICULTY1, PLAYER_DIFFICULTY2, PLAYER_DIFFICULTY3, PLAYER_DIFFICULTY6, PLAYER_DIFFICULTY_TIMEWALKER, CHALLENGE_MODE, ALL, CLOSE, SPECIALIZATION
 local LibStub, DBM, DBM_GUI, DBM_OPTION_SPACER = _G["LibStub"], DBM, DBM_GUI, DBM_OPTION_SPACER
 local playerName, realmName, playerLevel = UnitName("player"), GetRealmName(), UnitLevel("player")
 
 StaticPopupDialogs["IMPORTPROFILE_ERROR"] = {
-	text = "導入此設定檔有一個或多個錯誤。 請參閱聊天獲得更多訊息。 您想繼續並將發現的錯誤重置為預設值嗎？ ",
-	button1 = "匯入與修正",
-	button2 = "不要",
+	text = "There are one or more errors importing this profile. Please see the chat for more information. Would you like to continue and reset found errors to default?",
+	button1 = "Import and fix",
+	button2 = "No",
 	OnAccept = function(self)
 		self.importFunc()
 	end,
@@ -37,15 +37,15 @@ do
 			local LSM = LibStub("LibSharedMedia-3.0")
 			soundsRegistered = true
 			-- Embedded Sound Clip media
-			LSM:Register("sound", "準備行動 (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
-			LSM:Register("sound", "珍娜: Beware", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
-			LSM:Register("sound", "珍娜: Beware (reverb)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
-			LSM:Register("sound", "索爾: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
-			LSM:Register("sound", "薩魯法爾: Don't Die", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
+			LSM:Register("sound", "AirHorn (DBM)", [[Interface\AddOns\DBM-Core\sounds\AirHorn.ogg]])
+			LSM:Register("sound", "Jaina: Beware", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware.ogg]])
+			LSM:Register("sound", "Jaina: Beware (reverb)", [[Interface\AddOns\DBM-Core\sounds\SoundClips\beware_with_reverb.ogg]])
+			LSM:Register("sound", "Thrall: That's Incredible!", [[Interface\AddOns\DBM-Core\sounds\SoundClips\incredible.ogg]])
+			LSM:Register("sound", "Saurfang: Don't Die", [[Interface\AddOns\DBM-Core\sounds\SoundClips\dontdie.ogg]])
 			-- Blakbyrd
-			LSM:Register("sound", "後院警報 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
-			LSM:Register("sound", "後院警報 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
-			LSM:Register("sound", "後院警報 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
+			LSM:Register("sound", "Blakbyrd Alert 1", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert1.ogg]])
+			LSM:Register("sound", "Blakbyrd Alert 2", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert2.ogg]])
+			LSM:Register("sound", "Blakbyrd Alert 3", [[Interface\AddOns\DBM-Core\sounds\BlakbyrdAlerts\Alert3.ogg]])
 			-- User Media
 			if DBM.Options.CustomSounds >= 1 then
 				LSM:Register("sound", "DBM: Custom 1", [[Interface\AddOns\DBM-CustomSounds\Custom1.ogg]])
@@ -240,7 +240,7 @@ do
 
 	function DBM_GUI:CreateExportProfile(export)
 		if not canWeWork then
-			DBM:AddMsg("缺少需要的函數庫來匯出。")
+			DBM:AddMsg("Missing required libraries to export.")
 			return
 		end
 		if not popupFrame then
@@ -253,7 +253,7 @@ do
 
 	function DBM_GUI:CreateImportProfile(importFunc)
 		if not canWeWork then
-			DBM:AddMsg("缺少需要的函數庫來匯出。")
+			DBM:AddMsg("Missing required libraries to export.")
 			return
 		end
 		if not popupFrame then
@@ -356,7 +356,7 @@ end
 
 function DBM_GUI:CreateBossModPanel(mod)
 	if not mod.panel then
-		DBM:AddMsg("無法建立".. mod.localization.general.name .."的首領模組面板")
+		DBM:AddMsg("Couldn't create boss mod panel for " .. mod.localization.general.name)
 		return false
 	end
 	local panel = mod.panel
@@ -393,7 +393,7 @@ function DBM_GUI:CreateBossModPanel(mod)
 		end
 	end
 
-	local reset = panel:CreateButton(L.Mod_Reset, 155, 30, nil, GameFontNormal)
+	local reset = panel:CreateButton(L.Mod_Reset, 155, 30, nil, GameFontNormalSmall)
 	reset.myheight = 40
 	reset:SetPoint("TOPRIGHT", panel.frame, "TOPRIGHT", -24, -4)
 	reset:SetScript("OnClick", function(self)
@@ -672,7 +672,7 @@ do
 				local Title			= area:CreateText(mod.localization.general.name, nil, nil, GameFontHighlight, "LEFT")
 
 				local function CreateText(text, header)
-					local frame = area:CreateText(text or "", nil, nil, header and GameFontHighlight or GameFontNormal, "LEFT")
+					local frame = area:CreateText(text or "", nil, nil, header and GameFontHighlightSmall or GameFontNormalSmall, "LEFT")
 					frame:Hide()
 					return frame
 				end
@@ -744,16 +744,14 @@ do
 						lastArea = lastArea + 1
 						local section = sections[lastArea]
 						section.header:SetText(statTypes[statType])
-						area.frame:HookScript("OnShow", function()
-							local kills, pulls, bestRank, bestTime = mod.stats[statType .. "Kills"] or 0, mod.stats[statType .. "Pulls"] or 0, mod.stats[statType .. "BestRank"] or 0, mod.stats[statType .. "BestTime"]
-							section.value1:SetText(kills)
-							section.value2:SetText(pulls - kills)
-							if statType == "challenge" and bestRank > 0 then
-								section.value3:SetText(bestTime and ("%d:%02d (%d)"):format(mfloor(bestTime / 60), bestTime % 60) or "-", bestRank)
-							else
-								section.value3:SetText(bestTime and ("%d:%02d"):format(mfloor(bestTime / 60), bestTime % 60) or "-")
-							end
-						end)
+						local kills, pulls, bestRank, bestTime = mod.stats[statType .. "Kills"] or 0, mod.stats[statType .. "Pulls"] or 0, mod.stats[statType .. "BestRank"] or 0, mod.stats[statType .. "BestTime"]
+						section.value1:SetText(kills)
+						section.value2:SetText(pulls - kills)
+						if statType == "challenge" and bestRank > 0 then
+							section.value3:SetText(bestTime and ("%d:%02d (%d)"):format(mfloor(bestTime / 60), bestTime % 60) or "-", bestRank)
+						else
+							section.value3:SetText(bestTime and ("%d:%02d"):format(mfloor(bestTime / 60), bestTime % 60) or "-")
+						end
 					end
 				end
 				Title:SetPoint("TOPLEFT", area.frame, "TOPLEFT", 10, -10 - (L.FontHeight * 5 * noHeaderLine) - (L.FontHeight * 6 * singleLine) - (L.FontHeight * 10 * doubleLine))

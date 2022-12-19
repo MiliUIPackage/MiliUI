@@ -1,4 +1,5 @@
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
+local isWrath = WOW_PROJECT_ID == (WOW_PROJECT_WRATH_CLASSIC or 11)
 local isClassic = WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2)
 
 local L = DBM_GUI_L
@@ -16,8 +17,8 @@ local check6 = specArea:CreateCheckButton(L.ShortTextSpellname, true, nil, "Spec
 
 local movemebutton = specArea:CreateButton(L.MoveMe, 120, 16)
 movemebutton:SetPoint("TOPRIGHT", specArea.frame, "TOPRIGHT", -2, -4)
-movemebutton:SetNormalFontObject(GameFontNormal)
-movemebutton:SetHighlightFontObject(GameFontNormal)
+movemebutton:SetNormalFontObject(GameFontNormalSmall)
+movemebutton:SetHighlightFontObject(GameFontNormalSmall)
 movemebutton:SetScript("OnClick", function()
 	DBM:MoveSpecialWarning()
 end)
@@ -26,7 +27,7 @@ local color0 = specArea:CreateColorSelect(64)
 color0:SetPoint("TOPLEFT", specArea.frame, "TOPLEFT", 20, -200)
 local color0text = specArea:CreateText(L.FontColor, 80)
 color0text:SetPoint("BOTTOM", color0, "TOP", 5, 4)
-local color0reset = specArea:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color0reset = specArea:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color0reset:SetPoint("TOP", color0, "BOTTOM", 5, -10)
 color0reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFontCol[1] = DBM.DefaultOptions.SpecialWarningFontCol[1]
@@ -133,37 +134,63 @@ durationSlider:HookScript("OnValueChanged", function(self)
 end)
 durationSlider.myheight = 0
 
-local sounds = DBM_GUI:MixinSharedMedia3("sound", {
-	{ text = "Algalon: Beware!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
-	{ text = "BB Wolf: Run Away", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
-	{ text = "Illidan: Not Prepared", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
-	{ text = "Illidan: Not Prepared2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
-	{ text = "Kil'Jaeden: Destruction", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
-	{ text = "Loatheb: I see you", value = isRetail and 128466 or 8826 },
-	{ text = "Night Elf Bell", value = isRetail and 11742 or 6674 },
-	{ text = "PvP Flag", value = 8174 },
-})
-do
-	local tinsert = table.insert
-
-	if isRetail then
-		tinsert(sounds, { text = "Blizzard Raid Emote", value = 37666 })
-		tinsert(sounds, { text = "C'Thun: You Will Die!", value = 8585 })
-		tinsert(sounds, { text = "Headless Horseman: Laugh", value = 11965 })
-		tinsert(sounds, { text = "Kaz'rogal: Marked", value = 11052 })
-		tinsert(sounds, { text = "Lady Malande: Flee", value = 11482 })
-		tinsert(sounds, { text = "Milhouse: Light You Up", value = 49764 })
-		tinsert(sounds, { text = "Void Reaver: Marked", value = 11213 })
-		tinsert(sounds, { text = "Yogg Saron: Laugh", value = 15757 })
-	end
+local sounds
+if isRetail then
+	sounds = DBM_GUI:MixinSharedMedia3("sound", {
+		{ text = "Algalon: Beware!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
+		{ text = "BB Wolf: Run Away", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
+		{ text = "Blizzard Raid Emote", value = 37666 },
+		{ text = "C'Thun: You Will Die!", value = 8585 },
+		{ text = "Headless Horseman: Laugh", value = 11965 },
+		{ text = "Illidan: Not Prepared", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
+		{ text = "Illidan: Not Prepared2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
+		{ text = "Kaz'rogal: Marked", value = 11052 },
+		{ text = "Kil'Jaeden: Destruction", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
+		{ text = "Lady Malande: Flee", value = 11482 },
+		{ text = "Loatheb: I see you", value = isRetail and 128466 or 8826 },
+		{ text = "Milhouse: Light You Up", value = 49764 },
+		{ text = "Night Elf Bell", value = isRetail and 11742 or 6674 },
+		{ text = "PvP Flag", value = 8174 },
+		{ text = "Void Reaver: Marked", value = 11213 },
+		{ text = "Yogg Saron: Laugh", value = 15757 },
+	})
+elseif isWrath then--Basically all but Blizzard Raid Emote which was added in MoP
+	sounds = DBM_GUI:MixinSharedMedia3("sound", {
+		{ text = "Algalon: Beware!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
+		{ text = "BB Wolf: Run Away", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
+		{ text = "C'Thun: You Will Die!", value = 8585 },
+		{ text = "Headless Horseman: Laugh", value = 11965 },
+		{ text = "Illidan: Not Prepared", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
+		{ text = "Illidan: Not Prepared2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
+		{ text = "Kaz'rogal: Marked", value = 11052 },
+		{ text = "Kil'Jaeden: Destruction", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
+		{ text = "Lady Malande: Flee", value = 11482 },
+		{ text = "Loatheb: I see you", value = isRetail and 128466 or 8826 },
+		{ text = "Milhouse: Light You Up", value = 49764 },
+		{ text = "Night Elf Bell", value = isRetail and 11742 or 6674 },
+		{ text = "PvP Flag", value = 8174 },
+		{ text = "Void Reaver: Marked", value = 11213 },
+		{ text = "Yogg Saron: Laugh", value = 15757 },
+	})
+else--Vanilla
+	sounds = DBM_GUI:MixinSharedMedia3("sound", {
+		{ text = "Algalon: Beware!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
+		{ text = "BB Wolf: Run Away", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
+		{ text = "Illidan: Not Prepared", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
+		{ text = "Illidan: Not Prepared2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
+		{ text = "Kil'Jaeden: Destruction", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
+		{ text = "Loatheb: I see you", value = isRetail and 128466 or 8826 },
+		{ text = "Night Elf Bell", value = isRetail and 11742 or 6674 },
+		{ text = "PvP Flag", value = 8174 },
+	})
 end
 
 local specWarnOne = specPanel:CreateArea(L.SpecialWarnHeader1)
 
 local showbuttonOne = specWarnOne:CreateButton(L.SpecWarn_DemoButton, 120, 16)
 showbuttonOne:SetPoint("BOTTOMRIGHT", specWarnOne.frame, "BOTTOMRIGHT", -2, 4)
-showbuttonOne:SetNormalFontObject(GameFontNormal)
-showbuttonOne:SetHighlightFontObject(GameFontNormal)
+showbuttonOne:SetNormalFontObject(GameFontNormalSmall)
+showbuttonOne:SetHighlightFontObject(GameFontNormalSmall)
 showbuttonOne:SetScript("OnClick", function()
 	DBM:ShowTestSpecialWarning(nil, 1, nil, true)
 end)
@@ -172,7 +199,7 @@ local color1 = specWarnOne:CreateColorSelect(64)
 color1:SetPoint("TOPLEFT", specWarnOne.frame, "TOPLEFT", 20, -30)
 local color1text = specWarnOne:CreateText(L.SpecWarn_FlashColor:format(1), 85)
 color1text:SetPoint("BOTTOM", color1, "TOP", 5, 4)
-local color1reset = specWarnOne:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color1reset = specWarnOne:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color1reset:SetPoint("TOP", color1, "BOTTOM", 5, -10)
 color1reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFlashCol1[1] = DBM.DefaultOptions.SpecialWarningFlashCol1[1]
@@ -231,8 +258,8 @@ local specWarnTwo = specPanel:CreateArea(L.SpecialWarnHeader2)
 
 local showbuttonTwo = specWarnTwo:CreateButton(L.SpecWarn_DemoButton, 120, 16)
 showbuttonTwo:SetPoint("BOTTOMRIGHT", specWarnTwo.frame, "BOTTOMRIGHT", -2, 4)
-showbuttonTwo:SetNormalFontObject(GameFontNormal)
-showbuttonTwo:SetHighlightFontObject(GameFontNormal)
+showbuttonTwo:SetNormalFontObject(GameFontNormalSmall)
+showbuttonTwo:SetHighlightFontObject(GameFontNormalSmall)
 showbuttonTwo:SetScript("OnClick", function()
 	DBM:ShowTestSpecialWarning(nil, 2, nil, true)
 end)
@@ -241,7 +268,7 @@ local color2 = specWarnTwo:CreateColorSelect(64)
 color2:SetPoint("TOPLEFT", specWarnTwo.frame, "TOPLEFT", 20, -30)
 local color2text = specWarnTwo:CreateText(L.SpecWarn_FlashColor:format(2), 85)
 color2text:SetPoint("BOTTOM", color2, "TOP", 5, 4)
-local color2reset = specWarnTwo:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color2reset = specWarnTwo:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color2reset:SetPoint("TOP", color2, "BOTTOM", 5, -10)
 color2reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFlashCol2[1] = DBM.DefaultOptions.SpecialWarningFlashCol2[1]
@@ -300,8 +327,8 @@ local specWarnThree = specPanel:CreateArea(L.SpecialWarnHeader3)
 
 local showbuttonThree = specWarnThree:CreateButton(L.SpecWarn_DemoButton, 120, 16)
 showbuttonThree:SetPoint("BOTTOMRIGHT", specWarnThree.frame, "BOTTOMRIGHT", -2, 4)
-showbuttonThree:SetNormalFontObject(GameFontNormal)
-showbuttonThree:SetHighlightFontObject(GameFontNormal)
+showbuttonThree:SetNormalFontObject(GameFontNormalSmall)
+showbuttonThree:SetHighlightFontObject(GameFontNormalSmall)
 showbuttonThree:SetScript("OnClick", function()
 	DBM:ShowTestSpecialWarning(nil, 3, nil, true)
 end)
@@ -310,7 +337,7 @@ local color3 = specWarnThree:CreateColorSelect(64)
 color3:SetPoint("TOPLEFT", specWarnThree.frame, "TOPLEFT", 20, -30)
 local color3text = specWarnThree:CreateText(L.SpecWarn_FlashColor:format(3), 85)
 color3text:SetPoint("BOTTOM", color3, "TOP", 5, 4)
-local color3reset = specWarnThree:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color3reset = specWarnThree:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color3reset:SetPoint("TOP", color3, "BOTTOM", 5, -10)
 color3reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFlashCol3[1] = DBM.DefaultOptions.SpecialWarningFlashCol3[1]
@@ -371,8 +398,8 @@ local specWarnFour = specPanel:CreateArea(L.SpecialWarnHeader4)
 
 local showbuttonFour = specWarnFour:CreateButton(L.SpecWarn_DemoButton, 120, 16)
 showbuttonFour:SetPoint("BOTTOMRIGHT", specWarnFour.frame, "BOTTOMRIGHT", -2, 4)
-showbuttonFour:SetNormalFontObject(GameFontNormal)
-showbuttonFour:SetHighlightFontObject(GameFontNormal)
+showbuttonFour:SetNormalFontObject(GameFontNormalSmall)
+showbuttonFour:SetHighlightFontObject(GameFontNormalSmall)
 showbuttonFour:SetScript("OnClick", function()
 	DBM:ShowTestSpecialWarning(nil, 4, nil, true)
 end)
@@ -381,7 +408,7 @@ local color4 = specWarnFour:CreateColorSelect(64)
 color4:SetPoint("TOPLEFT", specWarnFour.frame, "TOPLEFT", 20, -30)
 local color4text = specWarnFour:CreateText(L.SpecWarn_FlashColor:format(4), 85)
 color4text:SetPoint("BOTTOM", color4, "TOP", 5, 4)
-local color4reset = specWarnFour:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color4reset = specWarnFour:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color4reset:SetPoint("TOP", color4, "BOTTOM", 5, -10)
 color4reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFlashCol4[1] = DBM.DefaultOptions.SpecialWarningFlashCol4[1]
@@ -442,8 +469,8 @@ local specWarnFive = specPanel:CreateArea(L.SpecialWarnHeader5)
 
 local showbuttonFive = specWarnFive:CreateButton(L.SpecWarn_DemoButton, 120, 16)
 showbuttonFive:SetPoint("BOTTOMRIGHT", specWarnFive.frame, "BOTTOMRIGHT", -2, 4)
-showbuttonFive:SetNormalFontObject(GameFontNormal)
-showbuttonFive:SetHighlightFontObject(GameFontNormal)
+showbuttonFive:SetNormalFontObject(GameFontNormalSmall)
+showbuttonFive:SetHighlightFontObject(GameFontNormalSmall)
 showbuttonFive:SetScript("OnClick", function()
 	DBM:ShowTestSpecialWarning(nil, 5, nil, true)
 end)
@@ -452,7 +479,7 @@ local color5 = specWarnFive:CreateColorSelect(64)
 color5:SetPoint("TOPLEFT", specWarnFive.frame, "TOPLEFT", 20, -30)
 local color5text = specWarnFive:CreateText(L.SpecWarn_FlashColor:format(5), 85)
 color5text:SetPoint("BOTTOM", color5, "TOP", 5, 4)
-local color5reset = specWarnFive:CreateButton(L.Reset, 64, 10, nil, GameFontNormal)
+local color5reset = specWarnFive:CreateButton(L.Reset, 64, 10, nil, GameFontNormalSmall)
 color5reset:SetPoint("TOP", color5, "BOTTOM", 5, -10)
 color5reset:SetScript("OnClick", function()
 	DBM.Options.SpecialWarningFlashCol5[1] = DBM.DefaultOptions.SpecialWarningFlashCol5[1]
@@ -509,8 +536,8 @@ flashRepSlider5.myheight = 0
 
 local resetbutton = specArea:CreateButton(L.SpecWarn_ResetMe, 120, 16)
 resetbutton:SetPoint("BOTTOMRIGHT", specArea.frame, "BOTTOMRIGHT", -2, 4)
-resetbutton:SetNormalFontObject(GameFontNormal)
-resetbutton:SetHighlightFontObject(GameFontNormal)
+resetbutton:SetNormalFontObject(GameFontNormalSmall)
+resetbutton:SetHighlightFontObject(GameFontNormalSmall)
 resetbutton:SetScript("OnClick", function()
 	-- Set Options
 	DBM.Options.SWarnNameInNote = DBM.DefaultOptions.SWarnNameInNote

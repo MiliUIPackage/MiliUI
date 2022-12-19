@@ -1,6 +1,6 @@
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
 local isClassic = WOW_PROJECT_ID == (WOW_PROJECT_CLASSIC or 2)
-local isDragonflight = DBM:GetTOC() >= 100000
+local isModernAPI = DBM:GetTOC() > 30400
 
 local L		= DBM_GUI_L
 local CL	= DBM_COMMON_L
@@ -219,7 +219,7 @@ function PanelPrototype:CreateEditBox(text, value, width, height)
 		self:ClearFocus()
 	end)
 	textbox:SetText(value)
-	local textboxText = textbox:CreateFontString("$parentText", "BACKGROUND", "GameFontNormal")
+	local textboxText = textbox:CreateFontString("$parentText", "BACKGROUND", "GameFontNormalSmall")
 	textboxText:SetPoint("TOPLEFT", textbox, "TOPLEFT", -4, 14)
 	textboxText:SetText(text)
 	self:SetLastObj(textbox)
@@ -274,24 +274,24 @@ do
 		{ text = "SA 4", value = 4 },
 		-- Inject DBMs custom media that's not available to LibSharedMedia because it uses SoundKit Id (which LSM doesn't support)
 		--{ text = "AirHorn (DBM)", value = "Interface\\AddOns\\DBM-Core\\sounds\\AirHorn.ogg" },
-		{ text = "艾爾加隆: 當心!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
-		{ text = "大野狼: 快逃阿", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
-		{ text = "伊利丹: 還沒準備好", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
-		{ text = "伊利丹: 還沒準備好2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
-		{ text = "基爾加丹: 毀滅", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
-		{ text = "憎恨者: 我看到你了", value = isRetail and 128466 or 8826 },
-		{ text = "夜精靈鐘聲", value = isRetail and 11742 or 6674 },
-		{ text = "PvP拔旗", value = 8174 },
+		{ text = "Algalon: Beware!", value = isRetail and 15391 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\UR_Algalon_BHole01.ogg" },
+		{ text = "BB Wolf: Run Away", value = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg" },
+		{ text = "Illidan: Not Prepared", value = not isClassic and 11466 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\BLACK_Illidan_04.ogg" },
+		{ text = "Illidan: Not Prepared2", value = isRetail and 68563 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\VO_703_Illidan_Stormrage_03.ogg" },
+		{ text = "Kil'Jaeden: Destruction", value = not isClassic and 12506 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\KILJAEDEN02.ogg" },
+		{ text = "Loatheb: I see you", value = isRetail and 128466 or 8826 },
+		{ text = "Night Elf Bell", value = isRetail and 11742 or 6674 },
+		{ text = "PvP Flag", value = 8174 },
 	})
 	if isRetail then
-		tinsert(sounds, { text = "暴雪團隊表情", value = 37666 })
-		tinsert(sounds, { text = "克蘇恩: 你將會死亡！", value = 8585 })
-		tinsert(sounds, { text = "無頭騎士: 狂笑", value = 11965 })
-		tinsert(sounds, { text = "卡茲洛加: 標記", value = 11052 })
-		tinsert(sounds, { text = "瑪蘭黛女士: 逃走", value = 11482 })
-		tinsert(sounds, { text = "米歐浩斯: 點燃你", value = 49764 })
-		tinsert(sounds, { text = "虛無劫奪者: 標記", value = 11213 })
-		tinsert(sounds, { text = "尤格薩倫: 狂笑", value = 15757 })
+		tinsert(sounds, { text = "Blizzard Raid Emote", value = 37666 })
+		tinsert(sounds, { text = "C'Thun: You Will Die!", value = 8585 })
+		tinsert(sounds, { text = "Headless Horseman: Laugh", value = 11965 })
+		tinsert(sounds, { text = "Kaz'rogal: Marked", value = 11052 })
+		tinsert(sounds, { text = "Lady Malande: Flee", value = 11482 })
+		tinsert(sounds, { text = "Milhouse: Light You Up", value = 49764 })
+		tinsert(sounds, { text = "Void Reaver: Marked", value = 11213 })
+		tinsert(sounds, { text = "Yogg Saron: Laugh", value = 15757 })
 	end
 
 	local function RGBPercToHex(r, g, b)
@@ -544,7 +544,7 @@ function PanelPrototype:CreateAbility(titleText, icon)
 		button.toggle:SetPushedTexture(area.hidden and 130836 or 130820) -- "Interface\\Buttons\\UI-PlusButton-DOWN", "Interface\\Buttons\\UI-MinusButton-DOWN"
 		_G["DBM_GUI_OptionsFrame"]:DisplayFrame(DBM_GUI.currentViewing)
 	end
-	if not isDragonflight then
+	if not isModernAPI then
 		button:RegisterForClicks('')
 	end
 	--
