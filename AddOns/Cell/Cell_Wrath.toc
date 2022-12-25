@@ -1,6 +1,6 @@
 ## Interface: 30400
 ## Title: Cell
-## Version: r149-release
+## Version: r151-release
 ## Author: 篠崎
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
@@ -50,5 +50,3 @@ RaidDebuffs\ExpansionData.lua
 Patrons.lua
 Modules\LoadModules_Wrath.xml
 RaidDebuffs\LoadRaidDebuffs_Wrath.xml
-
-LMAO.lua

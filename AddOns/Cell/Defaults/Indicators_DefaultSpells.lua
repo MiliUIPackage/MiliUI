@@ -21,6 +21,7 @@ local debuffBlacklist = {
     352562, -- 起伏机动
     356419, -- 审判灵魂
     387847, -- 邪甲术
+    213213, -- 伪装
 }
 
 function I:GetDefaultDebuffBlacklist()
@@ -36,20 +37,25 @@ end
 -- bigDebuffs
 -------------------------------------------------
 local bigDebuffs = {
-    240443, -- 爆裂
-    209858, -- 死疽溃烂
     46392, -- 专注打击
     -----------------------------------------------
-    -- NOTE: Shrouded Affix - Shadowlands Season 4
-    373391, -- 梦魇
-    373429, -- 腐臭虫群
+    240443, -- 爆裂
+    209858, -- 死疽溃烂
+    240559, -- 重伤
+    -- 226512, -- 鲜血脓液（血池）
     -----------------------------------------------
+    -- NOTE: Thundering Affix - Dragonflight Season 1
+    396369, -- 闪电标记
+    396364, -- 狂风标记
+    -----------------------------------------------
+    -- NOTE: Shrouded Affix - Shadowlands Season 4
+    -- 373391, -- 梦魇
+    -- 373429, -- 腐臭虫群
     -----------------------------------------------
     -- NOTE: Encrypted Affix - Shadowlands Season 3
     -- 尤型拆卸者
     -- 366297, -- 解构
     -- 366288, -- 猛力砸击
-    -----------------------------------------------
     -----------------------------------------------
     -- NOTE: Tormented Affix - Shadowlands Season 2
     -- 焚化者阿寇拉斯
@@ -64,7 +70,6 @@ local bigDebuffs = {
     -- 粉碎者索苟冬
     -- 355806, -- 重压
     -- 358777, -- 痛苦之链
-    -----------------------------------------------
 }
 
 function I:GetDefaultBigDebuffs()
@@ -530,22 +535,21 @@ if UnitClassBase("player") == "WARLOCK" then
 else    
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
-    eventFrame:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
+    -- eventFrame:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
 
-    local lock
-    eventFrame:SetScript("OnEvent", function(self, event)
-        if event == "PLAYER_ENTERING_WORLD" then
-            eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-        end
-        
+    local lock, timer
+
+    local function UpdateDispellable()
+        if timer then timer:Cancel() end
+        timer = C_Timer.NewTimer(1, function() lock = nil end)
+
         if lock then return end
         lock = true
-        C_Timer.After(1, function() lock = nil end)
-    
+
         -- update dispellable
         wipe(dispellable)
         local activeConfigID = C_ClassTalents.GetActiveConfigID()
-        if dispelNodeID[Cell.vars.playerSpecID] then
+        if activeConfigID and dispelNodeID[Cell.vars.playerSpecID] then
             for dispelType, value in pairs(dispelNodeID[Cell.vars.playerSpecID]) do
                 if type(value) == "boolean" then
                     dispellable[dispelType] = value
@@ -557,9 +561,18 @@ else
                 end
             end
         end
-    
+
         -- texplore(dispellable)
+    end
+
+    eventFrame:SetScript("OnEvent", function(self, event)
+        if event == "PLAYER_ENTERING_WORLD" then
+            eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+        end
+        UpdateDispellable()
     end)
+
+    Cell:RegisterCallback("SpecChanged", "Dispellable_SpecChanged", UpdateDispellable)
 end
 
 -------------------------------------------------
@@ -572,6 +585,7 @@ local drinks = {
     43182, -- 饮水
     172786, -- 饮料
     308433, -- 食物和饮料
+    369162, -- 饮用
 }
 
 do
@@ -598,7 +612,7 @@ local spells =  {
     48438, -- 野性成长
     102351, -- 塞纳里奥结界
     102352, -- 塞纳里奥结界
-    391888, -- 激变蜂群
+    391891, -- 激变蜂群
 
     -- evoker
     363502, -- 梦境飞行
@@ -724,6 +738,11 @@ end
 -- targetedSpells
 -------------------------------------------------
 local targetedSpells = {
+    -- Legion ----------------------
+    -- 英灵殿
+    193092, -- 放血扫击
+
+    -- Shadowlands -----------------
     320788, -- 冻结之缚
     344496, -- 震荡爆发
     319941, -- 碎石之跃
@@ -741,6 +760,16 @@ local targetedSpells = {
     333861, -- 回旋利刃
     332234, -- 挥发精油
     -- 328429, -- 窒息勒压
+
+    -- Dragonflight ----------------
+    -- 红玉新生法池
+    372858, -- 灼热打击
+    -- 奈萨鲁斯
+    374533, -- 炽热挥舞
+    377018, -- 熔火真金
+    -- 蕨皮山谷
+    381444, -- 野蛮冲撞
+    373912, -- 腐朽打击
 }
 
 function I:GetDefaultTargetedSpellsList()

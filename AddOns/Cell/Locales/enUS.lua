@@ -68,6 +68,22 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>r151-release (Dec 17, 2022, 10:18 GMT+8)</h1>
+        <p>* Updated VotI debuffs.</p>
+        <p>* Fixed range checker for evoker.</p>
+        <p>* Fixed dispellable checker.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r150-release (Dec 12, 2022, 07:55 GMT+8)</h1>
+        <p>* Updated Dragonflight debuffs.</p>
+        <p>* Updated BAR indicators.</p>
+        <p>* Updated Dispel indicator.</p>
+        <p>* Updated range checker, removed LibRangeCheck.</p>
+        <p>* Removed LibHealComm (if you would like to use it, install the standalone library instead).</p>
+        <p>* Bug fixes.</p>
+        <br/>
+
         <h1>r149-release (Nov 29, 2022, 06:35 GMT+8)</h1>
         <p>* Added NPC button size options.</p>
         <p>* Added a bar orientation option "Vertical B".</p>
