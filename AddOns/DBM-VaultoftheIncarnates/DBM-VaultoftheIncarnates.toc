@@ -24,6 +24,7 @@
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
+
 Eranog.lua
 Terros.lua
 ThePrimalistCouncil.lua

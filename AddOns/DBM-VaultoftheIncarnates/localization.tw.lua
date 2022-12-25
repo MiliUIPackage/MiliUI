@@ -2,7 +2,7 @@ if GetLocale() ~= "zhTW" then return end
 local L
 
 ---------------------------
---  Eranog -- 艾拉諾格
+--  Eranog --
 ---------------------------
 --L= DBM:GetModLocalization(2480)
 
@@ -19,44 +19,53 @@ local L
 --})
 
 ---------------------------
---  Terros -- 泰洛斯
+--  Terros --
 ---------------------------
 --L= DBM:GetModLocalization(2500)
 
 ---------------------------
---  The Primalist Council -- 原始議會
+--  The Primalist Council --
 ---------------------------
 --L= DBM:GetModLocalization(2486)
 
 ---------------------------
---  Sennarth, The Cold Breath -- 瑟娜爾絲，冰冷之息
+--  Sennarth, The Cold Breath --
 ---------------------------
 --L= DBM:GetModLocalization(2482)
 
 ---------------------------
---  Dathea, Ascended -- 晉升者達瑟雅
+--  Dathea, Ascended --
 ---------------------------
 --L= DBM:GetModLocalization(2502)
 
 ---------------------------
---  Kurog Grimtotem -- 庫洛格-恐怖圖騰
+--  Kurog Grimtotem --
 ---------------------------
 L= DBM:GetModLocalization(2491)
 
 L:SetTimerLocalization({
-	timerDamageCD = "攻擊階段 (%s)",
-	timerAvoidCD = "防禦階段 (%s)",
-	timerUltimateCD = "終極階段 (%s)"
+	timerDamageCD = "攻擊 (%s)",
+	timerAvoidCD = "屏障 (%s)",
+	timerUltimateCD = "洪荒之終 (%s)",
+	timerAddEnrageCD = "激怒 (%s)"
 })
 
 L:SetOptionLocalization({
-	timerDamageCD = "顯示攻擊階段的 $spell:382563, $spell:373678, $spell:391055, $spell:373487 的計時器",
-	timerAvoidCD = "顯示防禦階段的 $spell:373329, $spell:391019, $spell:395893, $spell:390920 的計時器",
-	timerUltimateCD = "顯示終極階段的 $spell:374022, $spell:372456, $spell:374691, $spell:374215 的計時器"
+	timerDamageCD = "顯示針對目標攻擊：$spell:382563, $spell:373678, $spell:391055, $spell:373487 的計時器",
+	timerAvoidCD = "顯示屏障階段：$spell:373329, $spell:391019, $spell:395893, $spell:390920 的計時器",
+	timerUltimateCD = "顯示洪荒之終：$spell:374022, $spell:372456, $spell:374691, $spell:374215 的計時器",
+	timerAddEnrageCD = "顯示在傳奇難度上增加的激怒計時器"
+})
+
+L:SetMiscLocalization({
+	Fire	= "烈焰",
+	Frost	= "冰霜",
+	Earth	= "大地",
+	Storm	= "風暴"
 })
 
 ---------------------------
---  Broodkeeper Diurna -- 巢穴守護者迪烏爾娜
+--  Broodkeeper Diurna --
 ---------------------------
 L= DBM:GetModLocalization(2493)
 
@@ -66,13 +75,14 @@ L:SetMiscLocalization({
 })
 
 ---------------------------
---  Raszageth the Storm-Eater -- 萊薩傑絲，噬雷之龍
+--  Raszageth the Storm-Eater --
 ---------------------------
 L= DBM:GetModLocalization(2499)
 
 L:SetMiscLocalization({
 	negative = "負極",
 	positive = "正極"
+	BreathEmote	= "深吸"
 })
 
 -------------
