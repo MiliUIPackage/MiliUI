@@ -1,3 +1,74 @@
+10.0.30 - 16th January 2023
+- For 'Mute game sounds' ('System'), you can now mute the dragonriding Vigor recharging sound.
+- You can use /run leaplus("traits") to learn all available dragonriding traits instantly.
+- PTR (10.0.5): For 'Sell junk automatically', you can now choose whether uncollected grey gear should be excluded for your character, your alts or both.
+
+10.0.29 - 11th January 2023
+- Added music for Algeth'ar Academy (Media > Dungeons).
+
+10.0.28 - 7th January 2023
+- For 'Mute mount sounds' ('System'), you can now mute Archdruid's Lunarwing Form.
+- For 'Remove transforms' ('System'), you can now remove the Atomically Recalibrated transform (from the Atomic Recalibrator toy).
+- For 'Show train all button' ('Interface'), the train all button now has a global name of LeaPlusGlobalTrainAllButton.
+- Fixed an issue with 'Enhance tooltip' ('Interface') which may have caused the target line to be shown outside of the tooltip frame.
+
+10.0.27 - 4th January 2023
+- For 'Mute custom sounds' ('System'), clicking Mute or Unmute will show the number of muted or unmuted sounds in chat.  You can now separate sound IDs in the sound list with comma, space or new line.  If you want to listen to a sound (for testing), enter the sound file ID into the new player editbox and click the play button.  You can scroll the mousewheel over the new player editbox to listen to neighbouring sound files.
+- For 'Filter chat messages' ('Chat'), the 'Block spell links during combat' setting now also applies to the yell channel.
+
+10.0.26 - 30th December 2022
+- Added a new option called 'Mute custom sounds' ('System').  You can enter sound file IDs (separated by comma) along with a brief note describing each ID in the configuration panel editbox.  After that, click the Mute button and you will never hear the sounds again.  For example, entering 'DevAura 569679, RetAura 568744' will mute both aura sounds.  Read the editbox tooltip for more details.
+- The 'Manage widget power' option has been removed since you can move it with Edit Mode (encounter bar).
+
+10.0.25 - 27th December 2022
+- For 'Sell junk automatically', there is a new setting in the configuration panel that lets you exclude grey armor and weapons from being sold.  This setting is disabled by default.  If you are saving grey armor for game patch 10.0.5 (when it will become transmogable), you can enable this setting now to prevent grey armor and weapons from being sold.
+- PTR (10.0.5): For 'Sell junk automatically', there is a new setting in the configuration panel that lets you exclude grey armor and weapons that you have not collected the appearances for (on any character).
+- PTR (10.0.5): The 'Manage durability' option ('Frames') is now disabled as you can move the durability frame with Edit Mode.  The option will be removed when patch 10.0.5 goes live.
+
+10.0.24 - 21st December 2022
+- For 'Mute game sounds' ('System'), the mount settings have been moved into a new option called 'Mute mount sounds'.  You can now make ottuks quieter.
+- For 'Enhance minimap', adjusted the way that the 'Combine addon buttons' button frame is layered with other frames.
+- For 'Automate quests' ('Automation'), quests from Khuri (Fishing Trainer) (The Waking Shores, Dragon Isles) will no longer be automated.
+
+10.0.23 - 16th December 2022
+- For 'Automate quests' ('Automation'), quests which require Blizzard account-bound items will no longer be turned-in automatically.  The waygate quests from Thaelin Darkanvil will no longer be selected automatically.
+
+10.0.22 - 11th December 2022
+- For 'Remove transforms' ('System'), the 'Professions' setting now applies to all professions except fishing.
+
+10.0.21 - 11th December 2022
+- For 'Mute game sounds' ('System'), 'Dragonriding' now includes Highland Drake roars.
+- Fixed an issue with 'Recent chat window' ('Chat') which caused some chat links to interfere with dragging and highlighting text.
+
+10.0.20 - 10th December 2022
+- Updated code for 'Remove transforms' ('System') and 'Show cooldowns' ('Interface').
+
+10.0.19 - 9th December 2022
+- For 'Sell junk automatically' ('Automation'), whitelisted a few grey quest items that the game thinks can be sold but actually they cannot be sold.
+- Updated code for 'Remove transforms' ('System') and fixed an issue with the 'Professions' setting.
+- Updated code for 'Show cooldowns' ('Interface').
+
+10.0.18 - 6th December 2022
+- For 'Mute game sounds' ('System'), 'Dragonriding' now includes Windborne Velocidrake roars.
+- For 'Sell junk automatically' ('Automation'), Leatrix Plus will no longer attempt to sell Carefully Rolled Message (junk item).
+- For 'Remove transforms' ('System'), the 'Professions' setting no longer applies to fishing.
+- For 'Faster auto loot' ('System'), you can now specify the looting delay.  It's recommended to leave this setting at the default value of 0.3 but you can try lower values if you wish.
+
+10.0.17 - 3rd December 2022
+- For 'Mute game sounds' ('System'), you can now make dragonriding quieter.  This includes summon, roar and landing stomp sounds.
+- For 'Remove transforms' ('System'), the 'Professions' setting now applies to enchanting, fishing, engineering, herbalism and skinning in addition to mining.
+- For 'Automate quests' ('Automation'), quests from Khadin (Master Artisan) (Ohn'ahran Plains) will no longer be selected, accepted or turned-in automatically.
+
+10.0.16 - 30th November 2022
+- For 'Enhance minimap' ('Interface'), there is a new setting in the configuration panel to unclamp the minimap cluster so you can drag it to the edge of the screen.
+- For 'Remove transforms' ('System'), there is a new setting in the configuration panel to automatically remove Dragonflight profession transforms (such as Rockin' Mining Gear).
+- For 'Enhance minimap' ('Interface'), the 'Combine addon buttons' setting now supports the Armory addon.
+- Added some new movies.  You can watch at Media > Movies (Dragonflight) and listen at Media > Various > Cinematics (Dragonflight).
+- Added a music track to Media > Dungeons > Uldaman (Dragonflight).
+
+10.0.15 - 24th November 2022
+- The 'Faster movie skip' ('System') setting to skip instance movies automatically has been removed.
+
 10.0.13 - 23rd November 2022
 - Updated 'Sell junk automatically' ('Automation') internal code.  Fixed an issue which caused the addon to attempt to sell junk to vendors that don't want to buy it.  Fixed an issue with 'Show vendor summary in chat' which caused no vendor summary to be shown (this was caused by changes to Blizzard's Dragonflight game code).
 
@@ -216,7 +287,7 @@
 
 9.2.04 - 30th March 2022
 - Added a new option 'Show train all button' ('Interface').  If checked, a button will be added to the train skills frame which will allow you to train all available skills instantly.
-- For 'Automate quests' ('Automation'), quests will not be selected automatically if there is a gossip option containing the '<' character.
+- For 'Automate quests' ('Automation'), quests will not be selected automatically if there is a gossip option containing the less than symbol.
 - Removed the temporary fix for the player frame not showing after completing Zereth Mortis puzzles as Blizzard have now fixed the bug in the game.
 
 9.2.03 - 23rd March 2022
