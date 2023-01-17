@@ -66,17 +66,6 @@ local function InitializeSplashScreen()
   end
 end
 
-local setTooltipHooks = false
-local function InitializeLateTooltipHooks()
-  if setTooltipHooks then
-    return
-  end
-
-  Auctionator.Tooltip.MainlineLateHooks()
-
-  setTooltipHooks = true
-end
-
 local setupSearchCategories = false
 local function InitializeSearchCategories()
   if setupSearchCategories then
@@ -85,7 +74,7 @@ local function InitializeSearchCategories()
 
   Auctionator.Search.InitializeCategories()
 
-  setTooltipHooks = true
+  setupSearchCategories = true
 end
 
 local function ShowDefaultTab()
@@ -110,7 +99,6 @@ function AuctionatorAHFrameMixin:OnShow()
 
   InitializeIncrementalScanFrame()
   InitializeFullScanFrame()
-  InitializeLateTooltipHooks()
   InitializeSearchCategories()
 
   InitializeAuctionHouseTabs()

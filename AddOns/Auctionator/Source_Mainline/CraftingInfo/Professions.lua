@@ -8,9 +8,9 @@ function Auctionator.CraftingInfo.InitializeProfessionsFrame()
   if ProfessionsFrame then
     addedFunctionality = true
 
-    local craftingPageButton = CreateFrame("BUTTON", "AuctionatorCraftingInfoProfessionsFrame", ProfessionsFrame.CraftingPage.SchematicForm, "AuctionatorCraftingInfoProfessionsFrameTemplate");
-    local ordersPageButton = CreateFrame("BUTTON", "AuctionatorCraftingInfoProfessionsOrderFrame", ProfessionsFrame.OrdersPage.OrderView.OrderDetails.SchematicForm, "AuctionatorCraftingInfoProfessionsFrameTemplate");
-    ordersPageButton:SetDoNotShowProfit()
+    local craftingPageContainer = CreateFrame("Frame", "AuctionatorCraftingInfoProfessionsFrame", ProfessionsFrame.CraftingPage.SchematicForm, "AuctionatorCraftingInfoProfessionsFrameTemplate");
+    local ordersPageContainer = CreateFrame("Frame", "AuctionatorCraftingInfoProfessionsOrderFrame", ProfessionsFrame.OrdersPage.OrderView.OrderDetails.SchematicForm, "AuctionatorCraftingInfoProfessionsFrameTemplate");
+    ordersPageContainer:SetDoNotShowProfit()
   end
 end
 
@@ -29,15 +29,24 @@ function Auctionator.CraftingInfo.DoTradeSkillReagentsSearch(schematicForm)
 
   local continuableContainer = ContinuableContainer:Create()
 
-  local outputInfo = C_TradeSkillUI.GetRecipeOutputItemData(recipeID, transaction:CreateOptionalCraftingReagentInfoTbl(), transaction:GetAllocationItemGUID())
+  local outputLink = Auctionator.CraftingInfo.GetOutputItemLink(recipeID, recipeLevel, transaction:CreateOptionalCraftingReagentInfoTbl(), transaction:GetAllocationItemGUID())
 
-  if outputInfo.hyperlink then
-    table.insert(possibleItems, outputInfo.hyperlink)
-    continuableContainer:AddContinuable(Item:CreateFromItemLink(outputInfo.hyperlink))
+  if outputLink then
+    table.insert(possibleItems, outputLink)
+    continuableContainer:AddContinuable(Item:CreateFromItemLink(outputLink))
+  -- Special case, enchants don't include an output in the API, so we use a
+  -- precomputed table to get the output
+  elseif Auctionator.CraftingInfo.EnchantSpellsToItems[recipeID] then
+    local itemID = Auctionator.CraftingInfo.EnchantSpellsToItems[recipeID][1]
+    table.insert(possibleItems, itemID)
+    continuableContainer:AddContinuable(Item:CreateFromItemID(itemID))
+  -- Probably doesn't have a specific item output, but include the recipe name
+  -- anyway just in case
   else
     table.insert(searchTerms, recipeInfo.name)
   end
 
+  -- Select all mandatory reagents
   for slotIndex, reagentSlotSchematic in ipairs(recipeSchematic.reagentSlotSchematics) do
     if reagentSlotSchematic.reagentType == Enum.CraftingReagentType.Basic and #reagentSlotSchematic.reagents > 0 then
       local itemID = reagentSlotSchematic.reagents[1].itemID
@@ -49,21 +58,16 @@ function Auctionator.CraftingInfo.DoTradeSkillReagentsSearch(schematicForm)
     end
   end
 
+  -- Go through the items one by one and get their names
   local function OnItemInfoReady()
     for _, itemInfo in ipairs(possibleItems) do
-      local name = GetItemInfo(itemInfo)
-      table.insert(searchTerms, name)
+      local itemInfo = {GetItemInfo(itemInfo)}
+      if not Auctionator.Utilities.IsBound(itemInfo) then
+        table.insert(searchTerms, itemInfo[1])
+      end
     end
 
-    if transaction:IsRecipeType(Enum.TradeskillRecipeType.Enchant) then
-      -- Enchanting names are pretty unique, and we want to be able to find the
-      -- enchantment (which has a name that isn't exactly recipeInfo.name)
-      -- Hence we do a non-exact search.
-      Auctionator.API.v1.MultiSearch(AUCTIONATOR_L_REAGENT_SEARCH, searchTerms)
-    else
-      -- Exact search to avoid spurious results, say with "Shrouded Cloth"
-      Auctionator.API.v1.MultiSearchExact(AUCTIONATOR_L_REAGENT_SEARCH, searchTerms)
-    end
+    Auctionator.API.v1.MultiSearchExact(AUCTIONATOR_L_REAGENT_SEARCH, searchTerms)
   end
 
   continuableContainer:ContinueOnLoad(OnItemInfoReady)
@@ -79,26 +83,91 @@ local function GetSkillReagentsTotal(schematicForm)
   return Auctionator.CraftingInfo.CalculateCraftCost(recipeSchematic, transaction)
 end
 
-local function GetAHProfit(schematicForm)
-  local outputInfo = C_TradeSkillUI.GetRecipeOutputItemData(
-    schematicForm.recipeSchematic.recipeID,
-    schematicForm:GetTransaction():CreateCraftingReagentInfoTbl(),
-    schematicForm:GetTransaction():GetAllocationItemGUID()
-  )
-  local count = schematicForm.recipeSchematic.quantityMin
-  local recipeLink = outputInfo.hyperlink
+local function CalculateProfitFromCosts(currentAH, toCraft, count)
+  return math.floor(math.floor(currentAH * count * Auctionator.Constants.AfterAHCut - toCraft) / 100) * 100
+end
 
-  if recipeLink == nil or recipeLink:match("enchant:") then
+-- Search through a list of items for the first matching the wantedQuality
+local function GetItemIDByReagentQuality(possibleItemIDs, wantedQuality)
+  if #possibleItemIDs == 1 then
+    return possibleItemIDs[1]
+  end
+
+  for _, itemID in ipairs(possibleItemIDs) do
+    local quality = C_TradeSkillUI.GetItemReagentQualityByItemInfo(itemID)
+    if quality == wantedQuality then
+      return itemID
+    end
+  end
+end
+
+local function GetEnchantProfit(schematicForm)
+  local recipeID = schematicForm.recipeSchematic.recipeID
+  local reagents = schematicForm:GetTransaction():CreateCraftingReagentInfoTbl()
+  local allocationGUID = schematicForm:GetTransaction():GetAllocationItemGUID()
+
+
+  local recipeLevel = schematicForm:GetCurrentRecipeLevel()
+  local recipeInfo = C_TradeSkillUI.GetRecipeInfo(recipeID, recipeLevel)
+
+  local possibleOutputItemIDs = Auctionator.CraftingInfo.EnchantSpellsToItems[recipeID] or {}
+  local itemID
+
+  -- For Dragonflight recipes determine the quality and then select the quality
+  -- from the list of possible results.
+  local recipeSchematic = C_TradeSkillUI.GetRecipeSchematic(recipeID, false, recipeLevel)
+  if recipeSchematic ~= nil and recipeSchematic.hasCraftingOperationInfo then
+    local operationInfo = C_TradeSkillUI.GetCraftingOperationInfo(recipeID, reagents, allocationGUID)
+    if operationInfo ~= nil then
+      itemID = GetItemIDByReagentQuality(possibleOutputItemIDs, operationInfo.guaranteedCraftingQualityID)
+    end
+  end
+  -- Not a dragonflight recipe, or has no quality data, so only one possible
+  -- output
+  if itemID == nil then
+    itemID = possibleOutputItemIDs[1]
+  end
+
+  if itemID ~= nil then
+    local currentAH = Auctionator.API.v1.GetAuctionPriceByItemID(AUCTIONATOR_L_REAGENT_SEARCH, itemID) or 0
+
+    local vellumCost = Auctionator.API.v1.GetVendorPriceByItemID(AUCTIONATOR_L_REAGENT_SEARCH, Auctionator.Constants.EnchantingVellumID) or 0
+    local toCraft = GetSkillReagentsTotal(schematicForm) + vellumCost
+
+    local count = schematicForm.recipeSchematic.quantityMin
+
+    return CalculateProfitFromCosts(currentAH, toCraft, count)
+  else
     return nil
   end
+end
 
-  local currentAH = Auctionator.API.v1.GetAuctionPriceByItemLink(AUCTIONATOR_L_REAGENT_SEARCH, recipeLink)
-  if currentAH == nil then
-    currentAH = 0
+local function GetAHProfit(schematicForm)
+  local recipeInfo = schematicForm:GetRecipeInfo()
+
+  if recipeInfo.isEnchantingRecipe then
+    return GetEnchantProfit(schematicForm)
+
+  else
+    local recipeLink = Auctionator.CraftingInfo.GetOutputItemLink(
+      recipeInfo.recipeID,
+      schematicForm:GetCurrentRecipeLevel(),
+      schematicForm:GetTransaction():CreateCraftingReagentInfoTbl(),
+      schematicForm:GetTransaction():GetAllocationItemGUID()
+    )
+
+    if recipeLink ~= nil then
+      local currentAH = Auctionator.API.v1.GetAuctionPriceByItemLink(AUCTIONATOR_L_REAGENT_SEARCH, recipeLink) or 0
+
+      local toCraft = GetSkillReagentsTotal(schematicForm)
+
+      local count = schematicForm.recipeSchematic.quantityMin
+
+      return CalculateProfitFromCosts(currentAH, toCraft, count)
+    else
+      return nil
+    end
   end
-  local toCraft = GetSkillReagentsTotal(schematicForm)
-
-  return math.floor(math.floor(currentAH * count * Auctionator.Constants.AfterAHCut - toCraft) / 100) * 100
 end
 
 local function CraftCostString(schematicForm)

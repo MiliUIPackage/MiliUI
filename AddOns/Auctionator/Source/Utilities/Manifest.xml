@@ -20,7 +20,9 @@
   <Script file="FormatTime.lua"/>
   <Script file="StringJoin.lua"/>
   <Script file="SplitCommand.lua"/>
+  <Script file="PriceWarningThreshold.lua"/>
   <Script file="IsVendorable.lua"/>
+  <Script file="IsBound.lua"/>
 
   <Script file="VerifyListTypes.lua"/>
   <Script file="ValidatePercentage.lua"/>
