@@ -1,5 +1,36 @@
 # tullaRange release notes
 
+## 10.0.9
+
+* Fix macro checks
+
+## 10.0.8
+
+* Added [Hollicsh](https://github.com/Hollicsh)'s Russian localization
+
+## 10.0.7
+
+* Removed a leftover debug green background from the options menu
+
+## 10.0.6
+
+* Apply [Odjur](https://github.com/Odjur)'s optimizations
+* Add desaturate to configuration settings
+* Add update frequency to internal configuration settings
+* Readjust UI to implement desaturate and opacity settings
+
+## 10.0.5
+
+* No longer desaturating when unusable, just out of range or out of mana
+
+## 10.0.4
+
+* Desaturate when recoloring abilities (thanks to Guema)
+
+## 10.0.3
+
+* Updated TOC files for 10.0.2
+
 ## 10.0.2
 
 * Improve check for new Settings UI
