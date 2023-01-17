@@ -10,7 +10,7 @@ DebuffTypeColor.cleu = {r=0, g=1, b=1}
 -- CreateAura_BorderIcon
 -------------------------------------------------
 local function BorderIcon_SetFont(frame, font, size, flags, xOffset, yOffset)
-    if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
+    font = F:GetFont(font)
 
     if flags == "Shadow" then
         frame.stack:SetFont(font, size, "")
@@ -189,7 +189,7 @@ end
 -- CreateAura_BarIcon
 -------------------------------------------------
 local function BarIcon_SetFont(frame, font, size, flags, xOffset, yOffset)
-    if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
+    font = F:GetFont(font)
 
     if flags == "Shadow" then
         frame.stack:SetFont(font, size, "")
@@ -225,14 +225,42 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
         frame.duration:Hide()
         frame:SetScript("OnUpdate", nil)
     else
-        if frame.showDuration then
+        local threshold
+        if frame.showDuration == true then
             frame.cooldown:Hide()
             frame.duration:Show()
+            -- update threshold
+            threshold = duration
+        else -- false or number
+            -- init bar values
+            frame.cooldown:SetMinMaxValues(0, duration)
+            frame.cooldown:SetValue(GetTime()-start)
+            frame.cooldown:Show()
+            -- update threshold and duration visibility
+            if not frame.showDuration then
+                frame.duration:Hide()
+            elseif frame.showDuration == 0 then
+                threshold = duration
+                frame.duration:Show()
+            elseif frame.showDuration >= 1 then
+                threshold = frame.showDuration
+                frame.duration:Show()
+            else -- < 1
+                threshold = frame.showDuration * duration
+                frame.duration:Show()
+            end
+        end
 
+        if frame.showDuration then
             local fmt
             frame:SetScript("OnUpdate", function()
                 local remain = duration-(GetTime()-start)
                 if remain < 0 then remain = 0 end
+
+                if remain > threshold then
+                    frame.duration:SetText("")
+                    return
+                end
 
                 -- color
                 if Cell.vars.iconDurationColors then
@@ -264,12 +292,6 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
 
                 frame.duration:SetFormattedText(fmt, remain)
             end)
-        else
-            -- init bar values
-            frame.cooldown:SetMinMaxValues(0, duration)
-            frame.cooldown:SetValue(GetTime()-start)
-            frame.cooldown:Show()
-            frame.duration:Hide()
         end
     end
 
@@ -423,7 +445,7 @@ end
 -- CreateAura_Text
 -------------------------------------------------
 local function Text_SetFont(frame, font, size, flags)
-    if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
+    font = F:GetFont(font)
 
     if flags == "Shadow" then
         frame.text:SetFont(font, size, "")
@@ -576,7 +598,7 @@ end
 -- CreateAura_Rect
 -------------------------------------------------
 local function Rect_SetFont(frame, font, size, flags, xOffset, yOffset)
-    if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
+    font = F:GetFont(font)
 
     if flags == "Shadow" then
         frame.stack:SetFont(font, size, "")
@@ -663,7 +685,7 @@ end
 -- CreateAura_Bar
 -------------------------------------------------
 local function Bar_SetFont(bar, font, size, flags, xOffset, yOffset)
-    if not strfind(strlower(font), ".ttf") then font = F:GetFont(font) end
+    font = F:GetFont(font)
 
     if flags == "Shadow" then
         bar.stack:SetFont(font, size, "")
@@ -901,10 +923,9 @@ function I:CreateAura_Icons(name, parent, num)
         icons:UpdateSize()
     end
 
-    function icons:SetFont(font, ...)
-        font = F:GetFont(font)
+    function icons:SetFont(...)
         for i = 1, num do
-            icons[i]:SetFont(font, ...)
+            icons[i]:SetFont(...)
         end
     end
 

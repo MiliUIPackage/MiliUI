@@ -1,8 +1,7 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r150-release...e7aa99f07d641d62f03383f4a4fef05926951d29)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r152-release...7d40eab289c8248b48bc1973a8f43e1270f3aa64)
 
-- Update VotI debuffs
-- Fix range checker for evoker
-- Fix dispellable
-- Update koKR & zhTW
+- Try to fix font issue
+- Update debuffs for Ulduar
+- Update targetedSpells
+- Fix pixel perfect for aggroBorder
 - Update patrons
-- Remove tips about RaidAlerter

@@ -535,7 +535,7 @@ function F:ConvertTable(t)
 end
 
 local GetSpellInfo = GetSpellInfo
-function F:ConvertAurasTable(t, convertIdToName)
+function F:ConvertSpellTable(t, convertIdToName)
     if not convertIdToName then
         return F:ConvertTable(t)
     end
@@ -1273,6 +1273,8 @@ end
 function F:GetFont(font)
     if font and LSM:IsValid("font", font) then
         return LSM:Fetch("font", font)
+    elseif type(font) == "string" and strfind(strlower(font), ".ttf$") then
+        return font
     else
         if CellDB["appearance"]["useGameFont"] then
             return GameFontNormal:GetFont()
