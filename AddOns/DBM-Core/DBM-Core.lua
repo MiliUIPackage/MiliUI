@@ -149,11 +149,11 @@ DBM.DefaultOptions = {
 	SpecialWarningSound4 = not isClassic and 9278 or "Interface\\AddOns\\DBM-Core\\sounds\\ClassicSupport\\HoodWolfTransformPlayer01.ogg",--"Sound\\Creature\\HoodWolf\\HoodWolfTransformPlayer01.ogg"
 	SpecialWarningSound5 = isRetail and 128466 or 8826,--"Sound\\Creature\\Loathstare\\Loa_Naxx_Aggro02.ogg"
 	ModelSoundValue = "Short",
-	CountdownVoice = "VP:VV",
-	CountdownVoice2 = "Kolt",
-	CountdownVoice3 = "Smooth",
-	PullVoice = "VP:VV",
-	ChosenVoicePack2 = (GetLocale() == "enUS" or GetLocale() == "enGB") and "VEM" or "None",
+	CountdownVoice = "VP:AnnieSeal",
+	CountdownVoice2 = "VP:AnnieSeal",
+	CountdownVoice3 = "VP:AnnieSeal",
+	PullVoice = "VP:AnnieSeal",
+	ChosenVoicePack2 = "AnnieSeal",
 	VPReplacesAnnounce = true,
 	VPReplacesSA1 = true,
 	VPReplacesSA2 = true,
