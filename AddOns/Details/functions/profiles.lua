@@ -5,6 +5,7 @@
 	local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
 	local _
 	local addonName, Details222 = ...
+	local detailsFramework = DetailsFramework
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --Profiles:
@@ -853,9 +854,9 @@ local default_profile = {
 			--0.2000,
 			--0.4980,
 			--0.5764,
-			0.20000001788139,
-			0.57647061347961,
-			0.49803924560547,
+			0.2000,
+			0.5764,
+			0.4980,
 		},
 	},
 
@@ -865,6 +866,7 @@ local default_profile = {
 		friendlyfire = "darkorange",
 		cooldown = "yellow",
 		debuff = "purple",
+		buff = "silver",
 	},
 
 	fade_speed = 0.15,
@@ -1103,7 +1105,9 @@ local default_profile = {
 			fontcolor = {1, 1, 1, 1},
 			fontcolor_right = {1, 0.7, 0, 1}, --{1, 0.9254, 0.6078, 1}
 			fontshadow = false,
-			background = {0.1960, 0.1960, 0.1960, 0.8697},
+			bar_color = {0.3960, 0.3960, 0.3960, 0.8700},
+			background = {0.0941, 0.0941, 0.0941, 0.8},
+			divisor_color = {1, 1, 1, 1},
 			abbreviation = 2, -- 2 = ToK I Upper 5 = ToK I Lower -- was 8
 			maximize_method = 1,
 			show_amount = false,
@@ -1220,6 +1224,9 @@ local default_player_data = {
 			height = 18,
 			lines_per_column = 12,
 		},
+
+	--mythic plus log
+		mythic_plus_log = {},
 
 	--force all fonts to have this outline
 		force_font_outline = "",
@@ -1362,6 +1369,12 @@ local default_global_data = {
 		slash_me_used = false,
 		trinket_data = {},
 
+		merge_pet_abilities = false,
+		merge_player_abilities = false,
+
+		played_class_time = true,
+		check_stuttering = true,
+
 	--spell category feedback
 		spell_category_savedtable = {},
 		spell_category_latest_query = 0,
@@ -1435,7 +1448,7 @@ local default_global_data = {
 		},
 
 	--auras (wa auras created from the aura panel)
-		details_auras = {},
+		details_auras = {}, --deprecated due to major security wa code revamp
 
 	--ilvl
 		item_level_pool = {},
@@ -1459,11 +1472,12 @@ local default_global_data = {
 		npcid_pool = {},
 
 	--aura creation frame libwindow
-		createauraframe = {},
+		createauraframe = {}, --deprecated
 
 	--min health done on the death report
 		deathlog_healingdone_min = 1,
 		deathlog_healingdone_min_arena = 400,
+		deathlog_line_height = 16,
 
 	--mythic plus config
 		mythic_plus = {
@@ -1775,11 +1789,16 @@ function Details:ExportCurrentProfile()
 	return compressedData
 end
 
-function Details:ImportProfile (profileString, newProfileName)
-
+---bIsFromImportPrompt is true when the import call is from the import window
+---@param profileString string
+---@param newProfileName string
+---@param bImportAutoRunCode boolean
+---@param bIsFromImportPrompt boolean
+---@return boolean
+function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCode, bIsFromImportPrompt)
 	if (not newProfileName or type(newProfileName) ~= "string" or string.len(newProfileName) < 2) then
 		Details:Msg(Loc ["invalid profile name or profile name is too short."]) --localize-me
-		return
+		return false
 	end
 
 	profileString = DetailsFramework:Trim (profileString)
@@ -1810,6 +1829,10 @@ function Details:ImportProfile (profileString, newProfileName)
 		local defaultGlobalData = Details.default_global_data
 		--profile defaults
 		local defaultProfileData = Details.default_profile
+
+		if (not bImportAutoRunCode or not bIsFromImportPrompt) then
+			globalData.run_code = nil
+		end
 
 		--transfer player and global data tables from the profile to details object
 		for key, _ in pairs(defaultPlayerData) do
@@ -1875,15 +1898,96 @@ function Details:ImportProfile (profileString, newProfileName)
 			DetailsFramework.table.copy(instance.hide_on_context, Details.instance_defaults.hide_on_context)
 		end
 
-
-		Details:Msg(Loc ["profile successfully imported."])--localize-me
+		Details:Msg("設定檔成功匯入。")--localize-me
 		return true
 	else
-		Details:Msg(Loc ["failed to decompress profile data."])--localize-me
+		Details:Msg("無法解壓縮設定檔數據。")--localize-me
+		return false
 	end
 end
 
+--create a import profile confirmation dialog with a text box to enter the profile name and a checkbox to select if should import auto run scripts
+function Details.ShowImportProfileConfirmation(message, callback)
+	if (not Details.profileConfirmationDialog) then
+		local promptFrame = CreateFrame("frame", "DetailsImportProfileDialog", UIParent, "BackdropTemplate")
+		promptFrame:SetSize(400, 170)
+		promptFrame:SetFrameStrata("FULLSCREEN")
+		promptFrame:SetPoint("center", UIParent, "center", 0, 100)
+		promptFrame:EnableMouse(true)
+		promptFrame:SetMovable(true)
+		promptFrame:RegisterForDrag ("LeftButton")
+		promptFrame:SetScript("OnDragStart", function() promptFrame:StartMoving() end)
+		promptFrame:SetScript("OnDragStop", function() promptFrame:StopMovingOrSizing() end)
+		promptFrame:SetScript("OnMouseDown", function(self, button) if (button == "RightButton") then promptFrame.EntryBox:ClearFocus() promptFrame:Hide() end end)
+		tinsert(UISpecialFrames, "DetailsImportProfileDialog")
 
+		detailsFramework:CreateTitleBar(promptFrame, "Import Profile Confirmation")
+		detailsFramework:ApplyStandardBackdrop(promptFrame)
 
+		local prompt = promptFrame:CreateFontString(nil, "overlay", "GameFontNormal")
+		prompt:SetPoint("top", promptFrame, "top", 0, -25)
+		prompt:SetJustifyH("center")
+		prompt:SetSize(360, 36)
+		promptFrame.prompt = prompt
 
+		local button_text_template = detailsFramework:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")
+		local options_dropdown_template = detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
 
+		local textbox = detailsFramework:CreateTextEntry(promptFrame, function()end, 380, 20, "textbox", nil, nil, options_dropdown_template)
+		textbox:SetPoint("topleft", promptFrame, "topleft", 10, -60)
+		promptFrame.EntryBox = textbox
+
+		--create a detailsframework checkbox to select if want to import the auto run scripts
+		local checkbox = detailsFramework:CreateSwitch(promptFrame, function()end, false, _, _, _, _, _, _, _, _, _, _, DetailsFramework:GetTemplate("switch", "OPTIONS_CHECKBOX_BRIGHT_TEMPLATE"))
+		checkbox:SetPoint("topleft", promptFrame, "topleft", 10, -90)
+		checkbox:SetAsCheckBox()
+		promptFrame.checkbox = checkbox
+
+		--create the checkbox label with the text: "Import Auto Run Scripts"
+		local checkboxLabel = promptFrame:CreateFontString(nil, "overlay", "GameFontNormal")
+		checkboxLabel:SetPoint("left", checkbox.widget, "right", 2, 0)
+		checkboxLabel:SetText("匯入自動運行腳本")
+		checkboxLabel:SetJustifyH("left")
+		promptFrame.checkboxLabel = checkboxLabel
+
+		local buttonTrue = detailsFramework:CreateButton(promptFrame, nil, 60, 20, "Okey", nil, nil, nil, nil, nil, nil, options_dropdown_template)
+		buttonTrue:SetPoint("bottomright", promptFrame, "bottomright", -10, 5)
+		promptFrame.button_true = buttonTrue
+
+		local buttonFalse = detailsFramework:CreateButton(promptFrame, function() promptFrame.textbox:ClearFocus() promptFrame:Hide() end, 60, 20, "Cancel", nil, nil, nil, nil, nil, nil, options_dropdown_template)
+		buttonFalse:SetPoint("bottomleft", promptFrame, "bottomleft", 10, 5)
+		promptFrame.button_false = buttonFalse
+
+		local executeCallback = function()
+			local bCanImportAutoRunCode = promptFrame.checkbox:GetValue()
+			local myFunc = buttonTrue.true_function
+			if (myFunc) then
+				local okey, errormessage = pcall(myFunc, textbox:GetText(), bCanImportAutoRunCode)
+				textbox:ClearFocus()
+				if (not okey) then
+					print("error:", errormessage)
+				end
+				promptFrame:Hide()
+			end
+		end
+
+		buttonTrue:SetClickFunction(function()
+			executeCallback()
+		end)
+
+		textbox:SetHook("OnEnterPressed", function()
+			executeCallback()
+		end)
+
+		promptFrame:Hide()
+		Details.profileConfirmationDialog = promptFrame
+	end
+
+	Details.profileConfirmationDialog:Show()
+	Details.profileConfirmationDialog.EntryBox:SetText("")
+	Details.profileConfirmationDialog.EntryBox:SetFocus(false)
+
+	Details.profileConfirmationDialog.prompt:SetText(message)
+	Details.profileConfirmationDialog.button_true.true_function = callback
+	Details.profileConfirmationDialog.textbox:SetFocus(true)
+end

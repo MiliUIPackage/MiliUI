@@ -1606,21 +1606,21 @@
 			GameCooltip:SetOption("SparkTexture", [[Interface\Buttons\WHITE8X8]])
 			GameCooltip:SetOption("SparkWidth", 1)
 			GameCooltip:SetOption("SparkHeight", 20)
-			GameCooltip:SetOption("SparkColor", "gray")
+			GameCooltip:SetOption("SparkColor", Details.tooltip.divisor_color)
 			GameCooltip:SetOption("SparkAlpha", 0.15)
 			GameCooltip:SetOption("SparkPositionXOffset", 5)
 			--GameCooltip:SetOption("SparkAlpha", 0.3)
 			--GameCooltip:SetOption("SparkPositionXOffset", -2)
-			
 
 			value = value or 100
 
 			if (not side) then
-				local r, g, b, a = unpack(Details.tooltip.background)
-				GameCooltip:AddStatusBar (value, 1, r, g, b, a, useSpark, {value = 100, color = {.21, .21, .21, 0.8}, texture = [[Interface\AddOns\Details\images\bar_serenity]]})
+				local r, g, b, a = unpack(Details.tooltip.bar_color)
+				local rBG, gBG, bBG, aBG = unpack(Details.tooltip.background)
+				GameCooltip:AddStatusBar (value, 1, r, g, b, a, useSpark, {value = 100, color = {rBG, gBG, bBG, aBG}, texture = [[Interface\AddOns\Details\images\bar_serenity]]})
 
 			else
-				GameCooltip:AddStatusBar (value, 2, unpack(Details.tooltip.background))
+				GameCooltip:AddStatusBar (value, 2, unpack(Details.tooltip.bar_color))
 			end
 		end
 
@@ -1658,7 +1658,7 @@
 			GameCooltip:Reset()
 			GameCooltip:SetType ("tooltip")
 
-			GameCooltip:SetOption("StatusBarTexture", [[Interface\AddOns\Details\images\bar_background_dark]])
+			GameCooltip:SetOption("StatusBarTexture", [[Interface\AddOns\Details\images\bar_background_dark_withline]])
 
 			GameCooltip:SetOption("TextSize", Details.tooltip.fontsize)
 			GameCooltip:SetOption("TextFont",  Details.tooltip.fontface)
@@ -1727,16 +1727,10 @@
 					local avatar = NickTag:GetNicknameTable (objeto.serial, true)
 					if (avatar and not Details.ignore_nicktag) then
 						if (avatar [2] and avatar [4] and avatar [1]) then
-							GameCooltip:SetBannerImage (1, avatar [2], 80, 40, avatarPoint, avatarTexCoord, nil) --overlay [2] avatar path
-							GameCooltip:SetBannerImage (2, avatar [4], 200, 55, backgroundPoint, avatar [5], avatar [6]) --background
-							GameCooltip:SetBannerText (1, (not Details.ignore_nicktag and avatar [1]) or objeto.nome, textPoint, avatarTextColor, 14, SharedMedia:Fetch ("font", Details.tooltip.fontface)) --text [1] nickname
+							GameCooltip:SetBannerImage (1, 1, avatar [2], 80, 40, avatarPoint, avatarTexCoord, nil) --overlay [2] avatar path
+							GameCooltip:SetBannerImage (1, 2, avatar [4], 200, 55, backgroundPoint, avatar [5], avatar [6]) --background
+							GameCooltip:SetBannerText (1, 1, (not Details.ignore_nicktag and avatar [1]) or objeto.nome, textPoint, avatarTextColor, 14, SharedMedia:Fetch ("font", Details.tooltip.fontface)) --text [1] nickname
 						end
-					else
-						--if (Details.remove_realm_from_name and objeto.displayName:find("%*")) then
-						--	GameCooltip:SetBannerImage (1, [[Interface\AddOns\Details\images\background]], 20, 30, avatarPoint, avatarTexCoord, {0, 0, 0, 0}) --overlay [2] avatar path
-						--	GameCooltip:SetBannerImage (2, [[Interface\PetBattles\Weather-BurntEarth]], 160, 30, {{"bottomleft", "topleft", 0, -5}, {"bottomright", "topright", 0, -5}}, {0.12, 0.88, 1, 0}, {0, 0, 0, 0.1}) --overlay [2] avatar path {0, 0, 0, 0}
-						--	GameCooltip:SetBannerText (1, objeto.nome, {"left", "left", 11, -8}, {1, 1, 1, 0.7}, 10, SharedMedia:Fetch ("font", Details.tooltip.fontface)) --text [1] nickname
-						--end
 					end
 				end
 

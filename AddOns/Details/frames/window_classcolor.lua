@@ -7,7 +7,7 @@ local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 --config class colors
 function Details:OpenClassColorsConfig()
     if (not _G.DetailsClassColorManager) then
-        DF:CreateSimplePanel(UIParent, 300, 425, Loc ["STRING_OPTIONS_CLASSCOLOR_MODIFY"], "DetailsClassColorManager")
+        DF:CreateSimplePanel(UIParent, 300, 455, Loc ["STRING_OPTIONS_CLASSCOLOR_MODIFY"], "DetailsClassColorManager")
         local panel = _G.DetailsClassColorManager
 
         DF:ApplyStandardBackdrop(panel)
@@ -143,7 +143,7 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("damage")
                 end,
-                name = "Damage",
+                name = "傷害",
                 desc = "Damage",
             },
             {--heal
@@ -152,7 +152,7 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("heal")
                 end,
-                name = "Heal",
+                name = "治療",
                 desc = "Heal",
             },
             {--friendlyfire
@@ -161,7 +161,7 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("friendlyfire")
                 end,
-                name = "Friendly Fire",
+                name = "友方誤傷",
                 desc = "Friendly Fire",
             },
             {--cooldown
@@ -170,7 +170,7 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("cooldown")
                 end,
-                name = "Cooldown",
+                name = "冷卻",
                 desc = "Cooldown",
             },
             {--debuff
@@ -179,8 +179,17 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("debuff")
                 end,
-                name = "Debuff",
+                name = "減益",
                 desc = "Debuff",
+            },
+            {--buff
+                type = "select",
+                get = function() return Details.death_log_colors.buff end,
+                values = function()
+                    return buildColorList("buff")
+                end,
+                name = "增益",
+                desc = "Buff",
             },
         }
 
@@ -191,10 +200,10 @@ function Details:OpenClassColorsConfig()
         local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
         local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
-        DetailsFramework:BuildMenu(panel, deathLogOptions, 5, -285, 700, true, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template)
+        DetailsFramework:BuildMenu(panel, deathLogOptions, 5, -315, 700, true, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template)
 
-        local deathLogColorsLabel = DF:CreateLabel(panel, "Colors on Death Log:", 12, "yellow")
-        deathLogColorsLabel:SetPoint("topleft", panel, "topleft", 5, -265)
+        local deathLogColorsLabel = DF:CreateLabel(panel, "死亡日誌顏色:", 12, "yellow")
+        deathLogColorsLabel:SetPoint("topleft", panel, "topleft", 5, -295)
     end
 
     for class, button in pairs(_G.DetailsClassColorManager.buttons) do

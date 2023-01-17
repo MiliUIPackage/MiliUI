@@ -80,8 +80,8 @@ local Spells = {
     [372372] = 20, -- Magma Fist (Qalashi Trainee)
     [379410] = 20, -- Throw Lava (Qalashi Lavabearer) - TODO which one is correct?
     [394969] = 20, -- Throw Lava (Qalashi Lavabearer) - TODO which one is correct?
-    [372208] = 20, -- Djaradin Lava (Qalashi Lavabearer) - TODO confirm, which one is correct?
-    [398200] = 20, -- Djaradin Lava (Qalashi Lavabearer) - TODO confirm, which one is correct?
+    [372208] = 20, -- Djaradin Lava (Qalashi Lavabearer) - TODO which one is correct?
+    [398200] = 20, -- Djaradin Lava (Qalashi Lavabearer) - TODO which one is correct?
     [372203] = 20, -- Scorching Breath (Qalashi Irontorch)
     [372293] = 20, -- Conflagrant Battery (Irontorch Commander)
     [378831] = 20, -- Explosive Concoction (Qalashi Plunderer)
@@ -104,7 +104,7 @@ local Spells = {
 
 
     -- The Nokhud Offensive
-    [384868] = 20, -- Multi-Shot (Nokhud Longbow) - TODO confirm
+    [384868] = 20, -- Multi-Shot (Nokhud Longbow)
     [384479] = 20, -- Rain of Arrows (Nokhud Longbow)
     [384336] = 20, -- War Stomp (Nokhud Plainstomper / Nokhud Lancemaster / Nokhud Defender)
     [386028] = 20, -- Thunder Clap (Primalist Thunderbeast)
@@ -120,10 +120,10 @@ local Spells = {
     [374711] = 20, -- Ravaging Spear (Nokhud Warspear / Balara)
 
     [385916] = 20, -- Tectonic Stomp (Granyth)
-    --[??????] = 20, -- Swirlies prior to pull (The Raging Tempest) - TODO
+    [386920] = 20, -- Raging Lightning (The Raging Tempest)
     [391967] = 20, -- Electrical Overload (The Raging Tempest)
     [386916] = 20, -- The Raging Tempest (The Raging Tempest)
-    [388104] = 20, -- Ritual of Desecration (Environment) - TODO confirm ID
+    [388104] = 20, -- Ritual of Desecration (Environment)
     [385193] = 20, -- Earthsplitter (Maruuk) - TODO which is correct?
     [384960] = 20, -- Earthsplitter (Maruuk) - TODO which is correct?
     [395669] = 20, -- Aftershock (Maruuk)
@@ -141,18 +141,18 @@ local Spells = {
     [368297] = 20, -- Toxic Trap, Trigger (Bonebolt Hunter)
     [368299] = 20, -- Toxic Trap, Area (Bonebolt Hunter)
     [382556] = 20, -- Ragestorm (Bracken Warscourge)
-    --[??????] = 20, -- area during Decay Ritual (Environment) - TODO
+    [384673] = 20, -- Spreading Rot (Decay Ritual, Environment)
     --[381770] = 20, -- Gushing Ooze (Decaying Slime) - TODO probably not avoidable for melee
     [378055] = 20, -- Burst (Decaying Slime)
     [378054] = 20, -- Withering Away! (Decaying Slime)
     --[373872] = 20, -- Gushing Ooze (Monstrous Decay) - TODO probably not avoidable for melee
     [374569] = 20, -- Burst (Monstrous Decay)
     [373943] = 20, -- Stomp (Wilted Oak)
-    --[??????] = 20, -- bear traps (Environment) - TODO
-    --[??????] = 20, -- arrow swirlies (Environment) - TODO
+    [385303] = 20, -- Teeth Trap (Environment)
+    [385524] = 20, -- Sentry Fire (Environment)
     [385805] = 20, -- Violent Whirlwind (Stinkbreath)
-    [385186] = 20, -- Stink Breath (Stinkbreath) - TODO can targeted player outrange?
-    --[??????] = 20, -- does river deal damage? (Environment) - TODO
+    --[385186] = 20, -- Stink Breath (Stinkbreath) - TODO can targeted player outrange?
+    [379425] = 20, -- Rotting Creek (Environment)
     [383392] = 20, -- Rotting Surge, Impact (Filth Caller)
     [383399] = 20, -- Rotting Surge, periodic (Filth Caller)
 
@@ -163,6 +163,7 @@ local Spells = {
     [373944] = 20, -- Rotburst Totem, Spawn (Decatriarch Wratheye)
     [376170] = 20, -- Choking Rotcloud, Frontal (Decatriarch Wratheye)
     [376149] = 20, -- Choking Rotcloud, Area (Decatriarch Wratheye)
+    [379425] = 20, -- Decaying Fog (Environment, Decatriarch Wratheye)
 
 
     -- The Azure Vault
@@ -192,8 +193,9 @@ local Spells = {
     --[374045] = 20, -- Expulse (Containment Apparatus) - no indicator
     [375215] = 20, -- Cave In (Curious Swoglet)
     [374563] = 20, -- Dazzle (Dazzling Dragonfly)
+    [374741] = 20, -- Magma Crush (Flamecaller Aymi)
     [375080] = 20, -- Whirling Fury (Squallbringer Cyraz)
-    --[385168] = 20, -- Thunderstorm (Primalist Galesinger) - TODO is first tick avoidable?
+    [385168] = 20, -- Thunderstorm (Primalist Galesinger) - TODO is first tick avoidable?
     [375384] = 20, -- Rumbling Earth (Primalist Earthshaker)
     [383204] = 20, -- Crashing Tsunami (Environment)
     [390290] = 20, -- Flash Flood (Infuser Sariya)
@@ -241,7 +243,6 @@ local Spells = {
     [212031] = 20, -- Charged Blast (Bound Energy)
     [209404] = 20, -- Seal Magic (Duskwatch Arcanist)
     [211391] = 20, -- Felblaze Puddle (Legion Hound) - TODO is first tick avoidable?
-    [214688] = 20, -- Carrion Swarm (Gerenth the Vile) - TODO removed?
 
     [206574] = 20, -- Resonant Slash, Front (Patrol Captain Gerdo)
     [206580] = 20, -- Resonant Slash, Back (Patrol Captain Gerdo)
@@ -312,7 +313,6 @@ local Spells = {
 
     [397785] = 20, -- Wash Away (Wise Mari)
     [397793] = 20, -- Corrupted Geyser (Wise Mari)
-    --[115167] = 20, -- Corrupted Waters (Wise Mari) - TODO removed?
     [106856] = 20, -- Serpent Kick (Liu Flameheart)
     [106938] = 20, -- Serpent Wave (Liu Flameheart)
     [106864] = 20, -- Jade Serpent Kick (Liu Flameheart)
@@ -331,15 +331,15 @@ local SpellsNoTank = {
     [375727] = 20, -- Sand Breath (Chrono-Lord Deios)
 
     -- Neltharus
-    [384019] = 20, -- Fiery Focus (Chargath, Bane of Scales) - TODO check ID
+    [384019] = 20, -- Fiery Focus (Chargath, Bane of Scales)
 
     -- The Nokhud Offensive
-    [384512] = 20, -- Cleaving Strikes (Nokhud Lancemaster / Nokhud Defender) - TODO confirm
+    [384512] = 20, -- Cleaving Strikes (Nokhud Lancemaster / Nokhud Defender)
     [387135] = 20, -- Arcing Strike (Primalist Arcblade)
 
     -- Brackenhide Hollow
-    [382712] = 20, -- Necrotic Breath, Initial (Wilted Oak) - TODO is this avoidable by tank?
-    [382805] = 20, -- Necrotic Breath, DoT (Wilted Oak) - TODO is this avoidable by tank?
+    [382712] = 20, -- Necrotic Breath, Initial (Wilted Oak)
+    [382805] = 20, -- Necrotic Breath, DoT (Wilted Oak)
     [377807] = 20, -- Cleave (Rira Hackclaw)
     [381419] = 20, -- Savage Charge (Rira Hackclaw)
     [377559] = 20, -- Vine Whip (Treemouth)
@@ -350,9 +350,9 @@ local SpellsNoTank = {
     [372222] = 20, -- Arcane Cleave (Azureblade)
 
     -- Halls of Infusion
-    [375349] = 20, -- Gusting Breath (Gusting Proto-Drake) - TODO is this avoidable by tank?
-    [375341] = 20, -- Tectonic Breath (Subterranean Proto-Drake) - TODO is this avoidable by tank?
-    [375353] = 20, -- Oceanic Breath (Glacial Proto-Drake) - TODO is this avoidable by tank?
+    [375349] = 20, -- Gusting Breath (Gusting Proto-Drake)
+    [375341] = 20, -- Tectonic Breath (Subterranean Proto-Drake)
+    [375353] = 20, -- Oceanic Breath (Glacial Proto-Drake)
     [384524] = 20, -- Titanic Fist (Watcher Irideus)
     --[388245] = 20, -- Gulp (Gulping Goliath) - TODO how to handle this properly?
 
@@ -375,14 +375,15 @@ local SpellsNoTank = {
 
 local Auras = {
     -- Uldaman: Legacy of Tyr
-    [369411] = true, -- Sonic Burst (Cavern Seeker) - 369412 seems to be variant with damage
+    [369411] = true, -- Sonic Burst (Cavern Seeker)
     [372652] = true, -- Resonating Orb (Sentinel Talondras)
 
     -- The Azure Vault
-    [386368] = true, -- Polymorphed (Polymorphic Rune, Environment) - TODO confirm ID
+    [386368] = true, -- Polymorphed (Polymorphic Rune, Environment)
     [396722] = true, -- Absolute Zero, Root (Telash Greywing)
 
     -- Court of Stars
+    [214987] = true, -- Righteous Indignation (Suspicious Noble) - TODO find ID for stun
     [224333] = true -- Enveloping Winds (Advisor Melandrus)
 }
 

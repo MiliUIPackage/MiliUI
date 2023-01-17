@@ -311,8 +311,6 @@
 		detailsFramework:ApplyStandardBackdrop(f.Header)
 		f.Header.__background:SetColorTexture(.60, .60, .60)
 
-		--print(f.Header:GetSize())
-
 		local playerSelectionLabel = detailsFramework:CreateLabel(playerScroll, "點擊來選擇玩家", 14)
 		playerSelectionLabel:SetPoint("bottom", playerScroll, "bottom", 0, 7)
 
