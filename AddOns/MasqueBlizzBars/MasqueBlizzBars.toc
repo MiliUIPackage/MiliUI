@@ -1,13 +1,14 @@
 ## Interface: 100002
+## Version: 10.0.2.0
 ## Title: Masque Blizzard Bars
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪快捷列
 ## Notes-zhTW: Masque Blizz Bars|n使內建的暴雪快捷列可以支援 Masque 的樣式。
-## Version: 2.0.3
 ## X-Category-zhTW: 介面
-## Author: SimGuy3k, Madnessbox
+## Author: SimGuy, Madnessbox
 ## RequiredDeps: Masque
 
 ## X-Curse-Project-ID: 694481
+## X-WoWI-ID: 26502
 ## X-Wago-ID: e56nWDK9
 
 MasqueBlizzBars.lua

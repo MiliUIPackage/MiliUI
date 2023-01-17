@@ -1,3 +1,9 @@
+-- 
+-- Masque Blizzard Bars
+-- Enables Masque to skin the built-in WoW 快捷列s
+--
+-- Copyright 2022 SimGuy
+-- Copyright 2020 Madnessbox
 --
 -- This program is free software: you can redistribute it and/or modify
 -- it under the terms of the GNU General Public License as published by the
@@ -16,8 +22,10 @@
 local MSQ = LibStub("Masque")
 
 -- Title will be used for the group name shown in Masque
+-- Delayed indicates this group will be deferred to a hook or event
 -- Buttons should contain a list of frame names with an integer value
---  If  0, assume to be a singular button with that name
+--  If -1, assume to be a singular button with that name
+--  If  0, this is a dynamic frame to be skinned later
 --  If >0, attempt to loop through frames with the name prefix suffixed with
 --  the integer range
 -- State can be used for storing information about special buttons
@@ -92,10 +100,9 @@ local MasqueBlizzBars = {
 			}
 		},
 		SpellFlyout = {
-			Title = "彈出式技能選單",
+			Title = "彈出選單的技能",
 			Buttons = {
-				-- SpellFlyout has one button at UI init time
-				SpellFlyoutButton = 1
+				SpellFlyoutButton = 0
 			}
 		},
 		OverrideActionBar = {
@@ -117,9 +124,20 @@ local MasqueBlizzBars = {
 				ZoneAbilityButton = {}
 			},
 			Buttons = {
-				-- These buttons don't seem to exist until the
-				-- first time they're used so we'll pick them
-				-- up later
+				-- These buttons exist until the first time
+				-- they're used so we'll pick them up later
+			}
+		},
+		PetBattleFrame = {
+			Title = "寵物對戰列",
+			State = {
+				PetBattleButton = {}
+			},
+			Buttons = {
+				-- These buttons are all children of 
+				-- PetBattleFrame.BottomFrame but some don't
+				-- exist or have defined names until the first
+				-- battle
 			}
 		}
 	}
@@ -141,6 +159,34 @@ function MasqueBlizzBars:HandleEvent(event, target)
 		   eab:GetObjectType() == "CheckButton" then
 			bar.Group:AddButton(eab)
 			bar.State.ExtraActionButton = true
+		end
+
+	-- Handle Pet Battle Buttons on Pet Battle start
+	elseif event == "PET_BATTLE_OPENING_START" then
+		local bar = MasqueBlizzBars.Groups.PetBattleFrame
+		local pbf = _G["PetBattleFrame"]["BottomFrame"]
+
+		-- Find the Pet Battle Frame children that are buttons
+		-- but only skin the ones that haven't already been seen
+		for i = 1, select("#", pbf:GetChildren()) do
+			local pbb = select(i, pbf:GetChildren())
+			if type(pbb) == "table" and pbb.GetObjectType then
+				local name = pbb:GetDebugName()
+				local obj = pbb:GetObjectType()
+				if bar.State.PetBattleButton[name] ~= pbb and
+				   (obj == "CheckButton" or obj == "Button") then
+					-- Define the regions for this weird button
+					local pbbRegions = {
+						Icon = pbb.Icon,
+						Count = pbb.Count,
+						Cooldown = nil, -- These buttons have no cooldown frame
+						Normal = pbb.NormalTexture,
+						Highlight = pbb:GetHighlightTexture()
+					}
+					bar.Group:AddButton(pbb, pbbRegions)
+					bar.State.PetBattleButton[name] = pbb
+				end
+			end
 		end
 	end
 end
@@ -176,7 +222,7 @@ function MasqueBlizzBars:ZoneAbilityFrame_UpdateDisplayedZoneAbilities()
 	local zac = ZoneAbilityFrame.SpellButtonContainer
 	local bar = MasqueBlizzBars.Groups.ExtraAbilityContainer
 
-	for i=1, select("#", zac:GetChildren()) do
+	for i = 1, select("#", zac:GetChildren()) do
 		local zab = select(i, zac:GetChildren())
 
 		-- Try not to add buttons that are already added
@@ -185,7 +231,8 @@ function MasqueBlizzBars:ZoneAbilityFrame_UpdateDisplayedZoneAbilities()
 		-- the whole life of the UI so if the frame changes, we'll
 		-- skin whatever replaced it.
 		if zab and zab:GetObjectType() == "Button" then
-			if bar.State.ZoneAbilityButton[i] ~= zab then
+			local name = zab:GetDebugName()
+			if bar.State.ZoneAbilityButton[name] ~= zab then
 
 				-- Define the regions for this weird button
 				local zabRegions = {
@@ -197,7 +244,35 @@ function MasqueBlizzBars:ZoneAbilityFrame_UpdateDisplayedZoneAbilities()
 				}
 
 				bar.Group:AddButton(zab, zabRegions, "Action")
-				bar.State.ZoneAbilityButton[i] = zab
+				bar.State.ZoneAbilityButton[name] = zab
+			end
+		end
+	end
+end
+
+-- Skin any buttons in the table as members of the given Masque group.
+-- If parent is set, then the button names are children of the parent
+-- table. The buttons value can be a nested table.
+function MasqueBlizzBars:Skin(buttons, group, parent)
+	if not parent then parent = _G end
+	for button, children in pairs(buttons) do
+		if (type(children) == "table") then
+			if parent[button] then
+				--print('recurse:', button, parent[button])
+				MasqueBlizzBars:Skin(children, group, parent[button])
+			end
+		else
+			-- If -1, assume button is the actual button name
+			if children == -1 then
+				--print("button:", button, children, parent[button])
+				group:AddButton(parent[button])
+
+			-- Otherwise, append the range of numbers to the name
+			elseif children > 0 then
+				for i = 1, children do
+					--print("button:", button, children, parent[button..i])
+					group:AddButton(parent[button..i])
+				end
 			end
 		end
 	end
@@ -214,25 +289,15 @@ function MasqueBlizzBars:Init()
 	-- Capture events to skin elusive buttons
 	MasqueBlizzBars.Events = CreateFrame("Frame")
 	MasqueBlizzBars.Events:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
+	MasqueBlizzBars.Events:RegisterEvent("PET_BATTLE_OPENING_START")
 	MasqueBlizzBars.Events:SetScript("OnEvent", MasqueBlizzBars.HandleEvent)
 
 	-- Create groups for each defined button group and add any buttons
 	-- that should exist at this point
-	for _, bar in pairs(MasqueBlizzBars.Groups) do
-		bar.Group = MSQ:Group("暴雪快捷列", bar.Title)
-
-		for button, count in pairs(bar.Buttons) do
-
-			-- If zero, assume button is the actual button name
-			if (count == 0) then
-				bar.Group:AddButton(_G[button])
-
-			-- Otherwise, append the range of numbers to the name
-			else
-				for i = 1, count do
-					bar.Group:AddButton(_G[button..i])
-				end
-			end
+	for _, cont in pairs(MasqueBlizzBars.Groups) do
+		cont.Group = MSQ:Group("暴雪快捷列", cont.Title)
+		if not cont.Delayed then
+			MasqueBlizzBars:Skin(cont.Buttons, cont.Group)
 		end
 	end
 end
