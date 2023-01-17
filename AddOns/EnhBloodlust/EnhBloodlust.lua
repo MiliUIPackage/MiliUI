@@ -26,10 +26,14 @@ end
 
 function EnhBloodlust:COMBAT_LOG_EVENT_UNFILTERED()
 	local _, event, _, _, _, _, _, destGUID, _, _, _, spellID = CombatLogGetCurrentEventInfo()
-	if (event == "SPELL_AURA_APPLIED") and (destGUID == UnitGUID("player")) and (EnhBloodlust_Status ~= 0) then
+	if (event == "SPELL_AURA_APPLIED") and (destGUID == UnitGUID("player")) and (not playing) then
 		for _,v in pairs(config.spells) do
             if v == spellID then
-                EnhBloodlust:BLOODLUST();
+                if spellID == 390386 and C_UnitAuras.GetPlayerAuraBySpellID(spellID).duration < 40 then -- 檢查龍人套裝嗜血，播放短音效。
+						PlaySoundFile(config.soundShort[ math.random( #config.soundShort ) ], config.channel);
+				else
+					EnhBloodlust:BLOODLUST();
+				end
 				break;
             end
         end
