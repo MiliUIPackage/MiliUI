@@ -1,7 +1,7 @@
 ## Interface: 30400
 ## Title: Masque: |cffffffffRaeli|r
 ## Notes: Raeli's skins for Masque.
-## Version: 27.0.0
+## Version: 27.1.0
 ## Author: Raeli
 ## Dependencies: Masque
 
