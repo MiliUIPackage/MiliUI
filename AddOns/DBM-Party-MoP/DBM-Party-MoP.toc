@@ -20,7 +20,7 @@
 ## X-DBM-Mod-MinExpansion: 4
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r45-13-g4715fc9
+## Version: r57-1-gf31591a
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

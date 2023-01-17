@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2499, "DBM-VaultoftheIncarnates", nil, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20221223223142")
---mod:SetCreatureID(181224)--way too many CIDs to guess right now
+mod:SetRevision("20221230191810")
+mod:SetCreatureID(189492)
 mod:SetEncounterID(2607)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
-mod:SetHotfixNoticeRev(20221220000000)
+mod:SetHotfixNoticeRev(20221260000000)
 mod:SetMinSyncRevision(20221217000000)
 --mod.respawnTime = 29
 
@@ -58,31 +58,31 @@ local specWarnHurricaneWing						= mod:NewSpecialWarningCount(377612, nil, nil, 
 local specWarnStaticCharge						= mod:NewSpecialWarningYouPos(381615, nil, 37859, nil, 1, 2)
 local yellStaticCharge							= mod:NewShortPosYell(381615, 37859)
 local yellStaticChargeFades						= mod:NewIconFadesYell(381615, 37859)
-local specWarnVolatileCurrent					= mod:NewSpecialWarningMoveAwayCount(388643, nil, nil, nil, 2, 2)
+local specWarnVolatileCurrent					= mod:NewSpecialWarningMoveAwayCount(388643, nil, 384738, nil, 2, 2)--"Sparks"
 local specWarnElectrifiedJaws					= mod:NewSpecialWarningDefensive(377658, nil, nil, nil, 1, 2)
 local specWarnElectrifiedJawsOther				= mod:NewSpecialWarningTaunt(377658, nil, nil, nil, 1, 2)
-local specWarnLightingBreath					= mod:NewSpecialWarningDodgeCount(377594, nil, nil, nil, 2, 2)
+local specWarnLightingBreath					= mod:NewSpecialWarningDodgeCount(377594, nil, 18357, nil, 2, 2)
 
 local timerHurricaneWingCD						= mod:NewCDCountTimer(35, 377612, nil, nil, nil, 2)
-local timerStaticChargeCD						= mod:NewCDCountTimer(35, 381615, nil, nil, nil, 3)
-local timerStaticCharge							= mod:NewCastTimer(35, 381615, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
-local timerVolatileCurrentCD					= mod:NewCDCountTimer(47, 388643, nil, nil, nil, 3)--More data needed
+local timerStaticChargeCD						= mod:NewCDCountTimer(35, 381615, 167180, nil, nil, 3)--"Bombs"
+local timerStaticCharge							= mod:NewCastTimer(35, 381615, 167180, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)--"Bombs"
+local timerVolatileCurrentCD					= mod:NewCDCountTimer(47, 388643, 384738, nil, nil, 3)
 local timerElectrifiedJawsCD					= mod:NewCDCountTimer(25, 377658, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerLightningBreathCD					= mod:NewCDCountTimer(35, 377594, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerLightningBreathCD					= mod:NewCDCountTimer(35, 377594, 18357, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 
 mod:AddSetIconOption("SetIconOnStaticCharge", 381615, true, 0, {1, 2, 3})
 --Intermission: The Primalist Strike
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25683))
 --Raszageth
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25402))
-local warnLightningDevastation					= mod:NewCountAnnounce(385065, 3)--NOT on our platform
+local warnLightningDevastation					= mod:NewCountAnnounce(385065, 3, nil, nil, 125030)--NOT on our platform
 
 local specWarnStormNova							= mod:NewSpecialWarningSpell(382434, nil, nil, nil, 2, 2)
-local specWarnLightningDevastation				= mod:NewSpecialWarningDodgeCount(385065, nil, nil, nil, 3, 2)--On our platform!
+local specWarnLightningDevastation				= mod:NewSpecialWarningDodgeCount(385065, nil, 125030, nil, 3, 2)--On our platform!
 
 local timerStormNovaCD							= mod:NewCDTimer(5, 382434, nil, nil, nil, 2)
 local timerStormNova							= mod:NewCastTimer(5, 382434, nil, nil, nil, 5)
-local timerLightningDevastationCD				= mod:NewCDCountTimer(13.3, 385065, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerLightningDevastationCD				= mod:NewCDCountTimer(13.3, 385065, 125030, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
 
 mod:AddBoolOption("SetBreathToBait", false)
 --Primalist Forces
@@ -112,7 +112,7 @@ local warnStormsurge						= mod:NewEndAnnounce(387261, 1)
 local warnInversion							= mod:NewTargetAnnounce(394584, 4)
 local warnFocusedCharge						= mod:NewYouAnnounce(394582, 1)
 local warnScatteredCharge					= mod:NewYouAnnounce(394583, 4)
-local warnFulminatingCharge					= mod:NewTargetNoFilterAnnounce(378829, 3)
+local warnFulminatingCharge					= mod:NewTargetNoFilterAnnounce(378829, 3, nil, nil, 345338)
 
 local specWarnStormsurge					= mod:NewSpecialWarningMoveAwayCount(387261, nil, nil, nil, 2, 2)--Maybe shorttext 28089?
 local specWarnPositiveCharge				= mod:NewSpecialWarningYou(391990, nil, nil, nil, 1, 13)--Split warning so user can custom sounds
@@ -121,14 +121,14 @@ local yellStormCharged						= mod:NewIconRepeatYell(391989)
 local specWarnInversion						= mod:NewSpecialWarningMoveAway(394584, nil, nil, nil, 3, 13, 4)
 local yellInversion							= mod:NewIconRepeatYell(394584)
 --local specWarnScatteredCharge				= mod:NewSpecialWarningMoveAway(394583, nil, nil, nil, 1, 2)
-local specWarnTempestWing					= mod:NewSpecialWarningCount(385574, nil, nil, nil, 2, 2)--Dodge?
-local specWarnFulminatingCharge				= mod:NewSpecialWarningYouPos(378829, nil, nil, nil, 1, 2)
-local yellFulminatingCharge					= mod:NewShortPosYell(378829)
-local yellFulminatingChargeFades			= mod:NewIconFadesYell(378829)
+local specWarnTempestWing					= mod:NewSpecialWarningCount(385574, nil, 63533, nil, 2, 2)--"Storm Wave"
+local specWarnFulminatingCharge				= mod:NewSpecialWarningYouPos(378829, nil, 221175, nil, 1, 2)--"Charge" shortname
+local yellFulminatingCharge					= mod:NewShortPosYell(378829, 221175)--"Charge" shortname
+local yellFulminatingChargeFades			= mod:NewIconFadesYell(378829, 221175)--"Charge" shortname
 
 local timerStormsurgeCD						= mod:NewCDCountTimer(35, 387261, nil, nil, nil, 2)--Maybe shorttext 28089?
-local timerTempestWingCD					= mod:NewCDCountTimer(35, 385574, nil, nil, nil, 3)
-local timerFulminatingChargeCD				= mod:NewCDCountTimer(35, 378829, nil, nil, nil, 3)
+local timerTempestWingCD					= mod:NewCDCountTimer(35, 385574, 63533, nil, nil, 3)
+local timerFulminatingChargeCD				= mod:NewCDCountTimer(35, 378829, 345338, nil, nil, 3)--shortname "Charges"
 local timerInversionCD						= mod:NewCDCountTimer(6, 394584, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 
 mod:AddSetIconOption("SetIconOnFulminatingCharge", 378829, true, 0, {1, 2, 3})
@@ -139,29 +139,29 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(25812))
 --Colossal Stormfiend
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25816))
 local warnFuse								= mod:NewStackAnnounce(389878, 2, nil, "Tank|Healer")
+local warnStormBreak						= mod:NewSpellAnnounce(389870, 3, nil, nil, 7794)--Shortname Teleport
 
-local specWarnStormBreak					= mod:NewSpecialWarningDodge(389870, nil, nil, nil, 2, 2)
 local specWarnBallLightning					= mod:NewSpecialWarningDodge(385068, nil, nil, nil, 2, 2)
 
 local timerLightningStrikeCD				= mod:NewCDTimer(31.6, 376126, nil, nil, nil, 3)
-local timerStormBreakCD						= mod:NewCDCountTimer(23.1, 389870, nil, nil, nil, 3)
+local timerStormBreakCD						= mod:NewCDCountTimer(23.1, 389870, 7794, nil, nil, 3)
 local timerBallLightningCD					= mod:NewCDCountTimer(23.1, 385068, nil, nil, nil, 3)
 --Stage Three: Storm Incarnate
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25477))
 local warnMagneticCharge					= mod:NewTargetNoFilterAnnounce(399713, 3)
 
 local specWarnStormEater					= mod:NewSpecialWarningSpell(395885, nil, nil, nil, 2, 2, 4)
-local specWarnThunderousBlast				= mod:NewSpecialWarningDefensive(386410, nil, nil, nil, 1, 2)
+local specWarnThunderousBlast				= mod:NewSpecialWarningDefensive(386410, nil, 309024, nil, 1, 2)--"Blast"
 local specWarnThunderstruckArmor			= mod:NewSpecialWarningTaunt(391285, nil, nil, nil, 1, 2)
-local specWarnMagneticCharge				= mod:NewSpecialWarningYouPos(399713, nil, nil, nil, 1, 2)
-local yellMagneticCharge					= mod:NewShortPosYell(399713)
-local yellMagneticChargeFades				= mod:NewIconFadesYell(399713)
+local specWarnMagneticCharge				= mod:NewSpecialWarningYou(399713, nil, nil, nil, 1, 2)
+local yellMagneticCharge					= mod:NewShortYell(399713)
+local yellMagneticChargeFades				= mod:NewShortFadesYell(399713)
 
-local timerStormEaterCD						= mod:NewAITimer(35, 395885, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
+local timerStormEaterCD						= mod:NewCDTimer(35, 395885, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerMagneticChargeCD					= mod:NewCDCountTimer(35, 399713, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerThunderousBlastCD				= mod:NewCDCountTimer(35, 386410, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerThunderousBlastCD				= mod:NewCDCountTimer(35, 386410, 309024, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
-mod:AddSetIconOption("SetIconOnMagneticCharge", 399713, true, 0, {4, 5, 6})
+mod:AddSetIconOption("SetIconOnMagneticCharge", 399713, true, 0, {4})
 mod:GroupSpells(386410, 391285)--Thunderous Blast and associated melted armor debuff
 
 --P1
@@ -182,7 +182,6 @@ mod.vb.stormSurgeCount = 0
 mod.vb.ballCount = 0
 --P3
 mod.vb.magneticCount = 0
-mod.vb.magneticIcon = 4
 local castsPerGUID = {}
 local playerPolarity = nil
 local difficultyName = "normal"
@@ -242,7 +241,7 @@ local allTimers = {
 			--Volatile Current
 			[388643] = {61.5, 57},--Different from normal
 			--Electrified Jaws
-			[377658] = {38.5, 24.4, 22.9, 30.7, 24.2, 25.8},--Same as normal
+			[377658] = {38.5, 24.4, 22.9, 30, 24.2, 25.8},--Same as normal
 			--Stormsurge
 			[387261] = {8.5, 80, 80, 80},
 			--Fulminating Charge
@@ -258,7 +257,7 @@ local allTimers = {
 			--Fulminating Charge
 			[378829] = {53, 60},
 			--Thunderous blast
-			[386410] = {32, 31, 30, 29},
+			[386410] = {32, 29.9, 30, 29},
 			--Magnetic Charge (Heroic/Mythic Only)
 			[399713] = {38, 63, 33},
 		},
@@ -316,7 +315,9 @@ local function warnDeepBreath(self, myPlatform)
 	if myPlatform then
 		specWarnLightningDevastation:Show(self.vb.breathCount)
 		specWarnLightningDevastation:Play("breathsoon")
-		timerLightningDevastationCD:SetSTFade(true, self.vb.breathCount+1)--If it's on this platform this time, next one isn't so we fade timer for next one
+		if self.vb.phase == 1.5 then--Only fade in first intermission, raid isn't split in second one
+			timerLightningDevastationCD:SetSTFade(true, self.vb.breathCount+1)--If it's on this platform this time, next one isn't so we fade timer for next one
+		end
 	else--No emote, on other platform
 		warnLightningDevastation:Show(self.vb.breathCount)
 	end
@@ -324,14 +325,14 @@ end
 
 local function yellRepeater(self, text, repeatTotal, inversion)
 	repeatTotal = repeatTotal + 1
-	if repeatTotal < 3 then
+--	if repeatTotal < 3 then
 		if inversion then
 			yellInversion:Yell(text)
 		else
 			yellStormCharged:Yell(text)
 		end
 		self:Schedule(1.5, yellRepeater, self, text, repeatTotal, inversion)
-	end
+--	end
 end
 
 function mod:OnCombatStart(delay)
@@ -394,7 +395,6 @@ function mod:SPELL_CAST_START(args)
 		self.vb.energyCount = self.vb.energyCount + 1
 		specWarnHurricaneWing:Show(self.vb.energyCount)
 		specWarnHurricaneWing:Play("pushbackincoming")
-		specWarnHurricaneWing:ScheduleVoice(1.5, "movecenter")
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, self.vb.phase, spellId, self.vb.energyCount+1) or 35
 		if timer then
 			timerHurricaneWingCD:Start(timer, self.vb.energyCount+1)
@@ -429,7 +429,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 385065 then
 		self.vb.breathCount = self.vb.breathCount + 1
-		local timer = self.vb.phase == 1.5 and (self:IsMythic() and 9.7 or self:IsHeroic() and 12.1 or 13.3) or (self:IsMythc() and 29 or self:IsHeroic() and 31.5 or 32.7)
+		local timer = self.vb.phase == 1.5 and (self:IsMythic() and 9.7 or self:IsHeroic() and 12.1 or 13.3) or (self:IsMythic() and 29 or self:IsHeroic() and 31.5 or 32.7)
 		if self.Options.SetBreathToBait then
 			timer = timer - 1.5--Sets timer for baiting breath instead of breath activation
 		end
@@ -449,7 +449,7 @@ function mod:SPELL_CAST_START(args)
 		--TODO, add cast bar though
 	elseif spellId == 387261 then
 		self.vb.stormSurgeCount = self.vb.stormSurgeCount + 1
-		specWarnStormsurge:Show(self.vb.energyCount)
+		specWarnStormsurge:Show(self.vb.stormSurgeCount)
 		specWarnStormsurge:Play("scatter")
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, self.vb.phase, spellId, self.vb.stormSurgeCount+1) or 80
 		if timer then
@@ -472,8 +472,7 @@ function mod:SPELL_CAST_START(args)
 			timerTempestWingCD:Start(timer, self.vb.wingCount+1)
 		end
 	elseif spellId == 389870 and self:AntiSpam(5, 1) then
-		specWarnStormBreak:Show()
-		specWarnStormBreak:Play("watchstep")
+		warnStormBreak:Show()
 		timerStormBreakCD:Start()
 	elseif spellId == 385068 and self:AntiSpam(5, 2) then
 		self.vb.ballCount = self.vb.ballCount + 1
@@ -525,7 +524,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 			timerFulminatingChargeCD:Start(timer, self.vb.chargeCount+1)
 		end
 	elseif spellId == 399713 then
-		self.vb.magneticIcon = 4
 		self.vb.magneticCount = self.vb.magneticCount + 1
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, self.vb.phase, spellId, self.vb.magneticCount+1)
 		if timer then
@@ -743,18 +741,16 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnFulminatingCharge:CombinedShow(0.5, args.destName)
 		self.vb.chargeIcon = self.vb.chargeIcon + 1
 	elseif spellId == 399713 then
-		local icon = self.vb.magneticIcon
 		if self.Options.SetIconOnMagneticCharge then
-			self:SetIcon(args.destName, icon)
+			self:SetIcon(args.destName, 4)
 		end
 		if args:IsPlayer() then
-			specWarnMagneticCharge:Show(self:IconNumToTexture(icon))
-			specWarnMagneticCharge:Play("mm"..icon)
-			yellMagneticCharge:Yell(icon, icon)
-			yellMagneticChargeFades:Countdown(spellId, nil, icon)
+			specWarnMagneticCharge:Show()
+			specWarnMagneticCharge:Play("targetyou")
+			yellMagneticCharge:Yell()
+			yellMagneticChargeFades:Countdown(spellId)
 		end
-		warnMagneticCharge:CombinedShow(0.5, args.destName)
-		self.vb.magneticIcon = self.vb.magneticIcon + 1
+		warnMagneticCharge:Show(args.destName)
 	elseif spellId == 391285 and not args:IsPlayer() then
 		local uId = DBM:GetRaidUnitId(args.destName)
 		if self:IsTanking(uId) then--Filter idiots in front of boss that aren't tank.

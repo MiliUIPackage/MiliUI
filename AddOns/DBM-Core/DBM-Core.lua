@@ -70,16 +70,16 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20221223234713"),
+	Revision = parseCurseDate("20230111082908"),
 }
 
 local fakeBWVersion, fakeBWHash
 local bwVersionResponseString = "V^%d^%s"
 -- The string that is shown as version
 if isRetail then
-	DBM.DisplayVersion = "10.0.12"
-	DBM.ReleaseRevision = releaseDate(2022, 12, 23) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
-	fakeBWVersion, fakeBWHash = 243, "d58ab26"
+	DBM.DisplayVersion = "10.0.19"
+	DBM.ReleaseRevision = releaseDate(2023, 1, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	fakeBWVersion, fakeBWHash = 259, "3fbb48c"
 elseif isClassic then
 	DBM.DisplayVersion = "1.14.29 alpha"
 	DBM.ReleaseRevision = releaseDate(2022, 11, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
@@ -89,8 +89,8 @@ elseif isBCC then
 	DBM.ReleaseRevision = releaseDate(2022, 8, 1) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	fakeBWVersion, fakeBWHash = 41, "287b8dd"
 elseif isWrath then
-	DBM.DisplayVersion = "3.4.23 alpha"
-	DBM.ReleaseRevision = releaseDate(2022, 12, 13) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "3.4.24 alpha"
+	DBM.ReleaseRevision = releaseDate(2023, 1, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	fakeBWVersion, fakeBWHash = 41, "287b8dd"
 end
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
@@ -338,6 +338,7 @@ DBM.DefaultOptions = {
 	DontPlayCountdowns = false,
 	DontSendYells = false,
 	BlockNoteShare = false,
+	DontAutoGossip = false,
 	DontShowPT2 = false,
 	DontShowPTCountdownText = false,
 	DontPlayPTCountdown = false,
@@ -449,7 +450,7 @@ if isRetail then
 		[1220]={45, 1},[1779]={45, 1},--Legion World bosses
 		[1643]={50, 1},[1642]={50, 1},[1718]={50, 1},[1943]={50, 1},[1876]={50, 1},[2105]={50, 1},[2111]={50, 1},[2275]={50, 1},--Bfa World bosses and warfronts
 		[2222]={60, 1},[2374]={60, 1},--Shadowlands World Bosses
-		[2574]={70, 1},--Dragonflight World Bosses
+		[2444]={70, 1},[2512]={70, 1},[2574]={70, 1},--Dragonflight World Bosses
 		--Raids
 		[509]={30, 3},[531]={30, 3},[469]={30, 3},[409]={30, 3},--Classic Raids
 		[564]={30, 3},[534]={30, 3},[532]={30, 3},[565]={30, 3},[544]={30, 3},[548]={30, 3},[580]={30, 3},[550]={30, 3},--BC Raids
@@ -2644,7 +2645,7 @@ function DBM:IsTrivial(customLevel)
 			return true
 		end
 	else
-		--First, auto bail and return non trivial if it's an instancce not in table to prevent nil error
+		--First, auto bail and return non trivial if it's an instance not in table to prevent nil error
 		if not instanceDifficultyBylevel[LastInstanceMapID] then return false end
 		--Content is trivial if player level is 10 higher than content involved
 		local levelDiff = isRetail and 10 or 15
@@ -2653,6 +2654,22 @@ function DBM:IsTrivial(customLevel)
 		end
 	end
 	return false
+end
+
+function DBM:GetGossipID()
+	if self.Options.DontAutoGossip then return false end
+	local table = C_GossipInfo.GetOptions()
+	if table[1] and table[1].gossipOptionID then
+		return table[1].gossipOptionID
+	else
+		return false
+	end
+end
+
+function DBM:SelectGossip(gossipOptionID)
+	if gossipOptionID and not self.Options.DontAutoGossip then
+		C_GossipInfo.SelectOption(gossipOptionID)
+	end
 end
 
 ---------------
@@ -3545,7 +3562,11 @@ function DBM:LoadMod(mod, force)
 	local loaded, reason = LoadAddOn(mod.modId)
 	if not loaded then
 		if reason then
-			self:AddMsg(L.LOAD_MOD_ERROR:format(tostring(mod.name), tostring(_G["ADDON_"..reason or ""])))
+			if reason == "DISABLED" then
+				self:AddMsg(L.LOAD_MOD_DISABLED:format(mod.name))
+			else
+				self:AddMsg(L.LOAD_MOD_ERROR:format(tostring(mod.name), tostring(_G["ADDON_"..reason or ""])))
+			end
 		else
 			self:Debug("LoadAddOn failed and did not give reason")
 		end
@@ -4538,6 +4559,7 @@ do
 
 	function DBM:ENCOUNTER_END(encounterID, name, difficulty, size, success)
 		self:Debug("ENCOUNTER_END event fired: "..encounterID.." "..name.." "..difficulty.." "..size.." "..success)
+		self:CheckAvailableMods()
 		for i = #inCombat, 1, -1 do
 			local v = inCombat[i]
 			if not v.combatInfo then return end
@@ -4561,7 +4583,6 @@ do
 				return
 			end
 		end
-		self:CheckAvailableMods()
 	end
 
 	function DBM:BOSS_KILL(encounterID, name)
@@ -5854,7 +5875,7 @@ function DBM:EJ_GetSectionInfo(sectionID)
 	local info = EJ_GetSectionInfo(sectionID)
 	if not info then
 		if self.Options.BadIDAlert then
-			self:AddMsg("|cffff0000Invalid call to EJ_GetSectionInfo for sectionID: |r"..sectionID..". 請回報此bug")
+			self:AddMsg("|cffff0000無效的調用在EJ_GetSectionInfo於此sectionID: |r"..sectionID..". 請回報此bug")
 		else
 			self:Debug("|cffff0000Invalid call to EJ_GetSectionInfo for sectionID: |r"..sectionID)
 		end
@@ -6960,6 +6981,8 @@ bossModPrototype.GetUnitIdFromCID = DBM.GetUnitIdFromCID
 bossModPrototype.GetUnitIdFromGUID = DBM.GetUnitIdFromGUID
 bossModPrototype.CheckNearby = DBM.CheckNearby
 bossModPrototype.IsTrivial = DBM.IsTrivial
+bossModPrototype.GetGossipID = DBM.GetGossipID
+bossModPrototype.SelectGossip = DBM.SelectGossip
 
 do
 	local TargetScanning = private:GetModule("TargetScanning")
@@ -7448,6 +7471,7 @@ do
 		[96231] = true,--Paldin Rebuke
 		[106839] = true,--Druid Skull Bash
 		[116705] = true,--Monk Spear Hand Strike
+		[147362] = true,--Hunter Countershot
 		[183752] = true,--Demon hunter Disrupt
 		[351338] = true,--Evoker Quell
 	}
