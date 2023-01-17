@@ -85,25 +85,30 @@ local function GetUnitSubtitle(unit)
 
 	if not subtitle then
 		local tooltip_data = C_TooltipInfo_GetUnit(unit.unitid)
-		TooltipSurfaceArgs(tooltip_data)
-    TooltipSurfaceArgs(tooltip_data.lines[1])
-    TooltipSurfaceArgs(tooltip_data.lines[2])
+    if tooltip_data then
+      TooltipSurfaceArgs(tooltip_data)
+      
+      if #tooltip_data.lines >= 2 then 
+        TooltipSurfaceArgs(tooltip_data.lines[1])
+        TooltipSurfaceArgs(tooltip_data.lines[2])
 
-    name = tooltip_data.lines[1].leftText
+        name = tooltip_data.lines[1].leftText
 
-		if name then name = gsub( gsub( (name), "|c........", "" ), "|r", "" ) else return end	-- Strip color escape sequences: "|c"
-		if name ~= UnitName(unit.unitid) then return end	-- Avoid caching information for the wrong unit
+        if name then name = gsub( gsub( (name), "|c........", "" ), "|r", "" ) else return end	-- Strip color escape sequences: "|c"
+        if name ~= UnitName(unit.unitid) then return end	-- Avoid caching information for the wrong unit
 
-		-- Tooltip Format Priority: Faction, Description, Level
-		local tooltip_subtitle = tooltip_data.lines[2].leftText or ""
+        -- Tooltip Format Priority: Faction, Description, Level
+        local tooltip_subtitle = tooltip_data.lines[2].leftText or ""
 
-		if string.match(tooltip_subtitle, UNIT_LEVEL_TEMPLATE) then
-			subtitle = ""
-		else
-			subtitle = tooltip_subtitle
-		end
-    
-		UnitSubtitles[name] = subtitle
+        if string.match(tooltip_subtitle, UNIT_LEVEL_TEMPLATE) then
+          subtitle = ""
+        else
+          subtitle = tooltip_subtitle
+        end
+        
+        UnitSubtitles[name] = subtitle
+      end
+    end
 	end
 
 	-- Maintaining a cache allows us to avoid the hit
