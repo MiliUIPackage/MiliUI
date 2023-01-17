@@ -48,7 +48,7 @@ local function AnchorFrame(tip, parent, anchor, isUnitFrame, finally)
         return LibEvent:trigger("tooltip.anchor.none", tip, parent)
     end
     if (anchor.defaultInCombat and InCombatLockdown()) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
-    if (anchor.defaultOnUnitFrame and isUnitFrame) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
+ --   if (anchor.defaultOnUnitFrame and isUnitFrame) then return AnchorDefaultPosition(tip, parent, anchor, finally) end
     if (anchor.position == "cursorRight") then
         LibEvent:trigger("tooltip.anchor.cursor.right", tip, parent)
     elseif (anchor.position == "cursor") then

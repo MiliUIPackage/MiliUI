@@ -26,27 +26,28 @@ local function GetTargetString(unit)
     end
 end
 
-TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
-    local unit = UnitTokenFromGUID(data.guid)
-    if (not unit) then return end
-    if (not UnitExists("mouseover")) then return end
-    if (addon.db.unit.player.showTarget and UnitIsPlayer("mouseover"))
-        or (addon.db.unit.npc.showTarget and not UnitIsPlayer("mouseover")) then
+GameTooltip:HookScript("OnUpdate", function(self, elapsed)
+    --self.updateElapsed = (self.updateElapsed or 0) + elapsed
+    --if (self.updateElapsed >= TOOLTIP_UPDATE_TIME) then
+        --self.updateElapsed = 0
 
-        local line = addon:FindLine(self, "^"..TARGET..":")
-        local text = GetTargetString("mouseovertarget")
-        if (line and not text) then
-            addon:HideLine(self, "^"..TARGET..":")
-            self:Show()
-        elseif (not line and text) then
-            self:AddLine(format("%s: %s", TARGET, text))
-            self:Show()
-        elseif (line) then
-            line:SetFormattedText("%s: %s", TARGET, text)
+        if (not UnitExists("mouseover")) then return end
+        if (addon.db.unit.player.showTarget and UnitIsPlayer("mouseover"))
+            or (addon.db.unit.npc.showTarget and not UnitIsPlayer("mouseover")) then
+            local line = addon:FindLine(self, "^"..TARGET..":")
+            local text = GetTargetString("mouseovertarget")
+            if (line and not text) then
+                addon:HideLine(self, "^"..TARGET..":")
+                self:Show()
+            elseif (not line and text) then
+                self:AddLine(format("%s: %s", TARGET, text))
+                self:Show()
+            elseif (line) then
+                line:SetFormattedText("%s: %s", TARGET, text)
+            end
         end
-    end
+    --end
 end)
-
 
 -- Targeted By
 local function GetTargetByString(mouseover, num, tip)
@@ -66,6 +67,7 @@ local function GetTargetByString(mouseover, num, tip)
                 colorCode = select(4,GetClassColor(select(2,UnitClass(prefix..i))))
                 name      = UnitName(prefix..i)
                 tip:AddLine("   " .. roleIcon .. " |c" .. colorCode .. name .. "|r")
+                tip:Show()
             end
         end
     end
@@ -75,12 +77,7 @@ local function GetTargetByString(mouseover, num, tip)
 end
 
 LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
-    if not pcall(function() tip:IsUnit("mouseover") end) then return end
-
-    -- this doesn't work!
-    if (tip:IsUnit("mouseover")) then
-
-
+    if (unit and UnitIsUnit(unit, "mouseover")) then
         local num = GetNumGroupMembers()
         if (num >= 1) and
           ((addon.db.unit.player.showTargetBy and UnitIsPlayer("mouseover"))
@@ -88,6 +85,7 @@ LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
             local text = GetTargetByString("mouseover", num, tip)
             if (text) then
                 tip:AddLine(format("%s: %s", addon.L and addon.L.TargetBy or "Targeted By", text), nil, nil, nil, true)
+                tip:Show()
             end
         end
    end
