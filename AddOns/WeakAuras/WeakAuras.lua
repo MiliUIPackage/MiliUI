@@ -2905,6 +2905,7 @@ local function pAdd(data, simpleChange)
       end
     end
     Private.UpdatedTriggerState(id)
+    Private.callbacks:Fire("Add", data.uid, data.id, data, simpleChange)
   else
     Private.DebugLog.SetEnabled(data.uid, data.information.debugLog)
 
@@ -3013,6 +3014,7 @@ local function pAdd(data, simpleChange)
     end
 
     Private.UpdateSoundIcon(data)
+    Private.callbacks:Fire("Add", data.uid, data.id, data, simpleChange)
   end
 end
 
@@ -3611,6 +3613,7 @@ function Private.PerformActions(data, when, region)
   end
 end
 
+--- @type fun(id: auraId): auraData?
 function WeakAuras.GetData(id)
   return id and db.displays[id];
 end
@@ -3787,14 +3790,6 @@ local function UpdateMouseoverTooltip(region)
 end
 
 function Private.ShowMouseoverTooltip(region, owner)
-  if region:IsAnchoringRestricted() then
-    local data = region.id and WeakAuras.GetData(region.id)
-    if data then
-      Private.AuraWarnings.UpdateWarning(data.uid, "anchoring", "warning", L["This aura tried to show a tooltip on a anchoring restricted region"])
-    end
-    return
-  end
-
   currentTooltipRegion = region;
   currentTooltipOwner = owner;
 
@@ -4620,7 +4615,7 @@ local function nextState(char, state)
   return state
 end
 
-local function ContainsPlaceHolders(textStr, symbolFunc)
+local function ContainsPlaceHolders(textStr, symbolFunc, checkDoublePercent)
   if not textStr then
     return false
   end
@@ -4629,13 +4624,17 @@ local function ContainsPlaceHolders(textStr, symbolFunc)
   local state = 0
   local currentPos = 1
   local start = 1
+  local containsDoublePercent = false
   while currentPos <= endPos do
     local char = string.byte(textStr, currentPos);
     local nextState = nextState(char, state)
 
     if state == 1 then -- Last char was a %
-      if char == 123 then
+      if char == 123 then -- {
         start = currentPos + 1
+      elseif char == 37 then -- %
+        containsDoublePercent = true
+        start = currentPos
       else
         start = currentPos
       end
@@ -4659,6 +4658,9 @@ local function ContainsPlaceHolders(textStr, symbolFunc)
     end
   end
 
+  if checkDoublePercent then
+    return containsDoublePercent
+  end
   return false
 end
 
@@ -4687,7 +4689,7 @@ function Private.ContainsPlaceHolders(textStr, toCheck)
 end
 
 function Private.ContainsAnyPlaceHolders(textStr)
-  return ContainsPlaceHolders(textStr, function(symbol) return true end)
+  return ContainsPlaceHolders(textStr, function(symbol) return true end, true)
 end
 
 local function ValueForSymbol(symbol, region, customFunc, regionState, regionStates, useHiddenStates, formatters)
@@ -4741,6 +4743,9 @@ function Private.ReplacePlaceHolders(textStr, region, customFunc, useHiddenState
   if (endPos == 2) then
     if string.byte(textStr, 1) == 37 then
       local symbol = string.sub(textStr, 2)
+      if symbol == "%" then
+        return "%" -- Double % input
+      end
       local value = ValueForSymbol(symbol, region, customFunc, regionState, regionStates, useHiddenStates, formatters);
       if (value) then
         textStr = tostring(value);
@@ -4764,7 +4769,7 @@ function Private.ReplacePlaceHolders(textStr, region, customFunc, useHiddenState
         end
       end
     elseif state == 1 then -- Percent Start State
-      if char == 123 then
+      if char == 123 then -- { sign
         start = currentPos + 1
       else
         start = currentPos

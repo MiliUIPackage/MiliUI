@@ -58,10 +58,8 @@ local L = WeakAuras.L
 	L["%s total auras"] = "Всего %s |4индикация:индикации:индикаций;"
 	L["%s Trigger Function"] = "%s Функция триггера"
 	L["%s Untrigger Function"] = "%s Функция детриггера"
-	--[[Translation missing --]]
-	L["%s X offset by %d"] = "%s X offset by %d"
-	--[[Translation missing --]]
-	L["%s Y offset by %d"] = "%s Y offset by %d"
+	L["%s X offset by %d"] = "%s X смещение на %d"
+	L["%s Y offset by %d"] = "%s Y смещение на %d"
 	L["%s Zoom: %d%%"] = "%s Увеличение %d%%"
 	L["%s, Border"] = "%s; Граница"
 	L["%s, Offset: %0.2f;%0.2f"] = "%s; Смещение (%.4g, %.4g)"
@@ -241,8 +239,7 @@ Off Screen]=] ] = [=[Индикация за
 	L["Choose"] = "Выбрать"
 	L["Class"] = "Класс"
 	L["Clear Debug Logs"] = "Очистить записи"
-	--[[Translation missing --]]
-	L["Clear Saved Data"] = "Clear Saved Data"
+	L["Clear Saved Data"] = "Очистить сохраненные данные"
 	L["Clip Overlays"] = "Обрезать наложения"
 	L["Clipped by Progress"] = "Ограничить прогрессом"
 	L["Close"] = "Закрыть"
@@ -374,8 +371,7 @@ UNIT_POWER  UNIT_AURA, PLAYER_TARGET_CHANGED]=]
 	L["Enable \"swipe\" part of the overlay"] = "Включить эту часть наложения"
 	L["Enable Debug Log"] = "Журнал отладки"
 	L["Enable Debug Logging"] = "Включить ведение журнала отладки"
-	--[[Translation missing --]]
-	L["Enable Gradient"] = "Enable Gradient"
+	L["Enable Gradient"] = "Включить градиент"
 	L["Enable Swipe"] = "Включить наложение"
 	L["Enable the \"Swipe\" radial overlay"] = "Включает отображение анимации восстановления"
 	L["Enabled"] = "Включен"
@@ -748,8 +744,7 @@ Can use \ to escape -.]=] ] = [=[Формат записи: Имя, Имя-Иг�
 	L["Rows"] = "Строки"
 	L["Same"] = "Такая же"
 	L["Same texture as Foreground"] = "Такая же текстура, что и на переднем плане"
-	--[[Translation missing --]]
-	L["Saved Data"] = "Saved Data"
+	L["Saved Data"] = "Сохраненные данные"
 	L["Scale"] = "Масштаб"
 	L["Search"] = "Поиск"
 	L["Select Talent"] = "Выбрать талант"
@@ -850,10 +845,8 @@ Can use \ to escape -.]=] ] = [=[Формат записи: Имя, Имя-Иг�
 	L["Texture Rotation"] = "Texture Rotation"
 	L["Texture Settings"] = "Настройки текстуры"
 	L["Texture Wrap"] = "Обтекание текстурой"
-	--[[Translation missing --]]
-	L["Texture X Offset"] = "Texture X Offset"
-	--[[Translation missing --]]
-	L["Texture Y Offset"] = "Texture Y Offset"
+	L["Texture X Offset"] = "Смещение текстуры X"
+	L["Texture Y Offset"] = "Смещение текстуры Y"
 	--[[Translation missing --]]
 	L["The addon ElvUI is enabled. It might add cooldown numbers to the swipe. You can configure these in the ElvUI settings"] = "The addon ElvUI is enabled. It might add cooldown numbers to the swipe. You can configure these in the ElvUI settings"
 	--[[Translation missing --]]
@@ -878,8 +871,7 @@ It might not work correctly with your version!]=] ] = [=[Индикация бы
 В вашей версии она может работать неправильно!]=]
 	L["This display is currently loaded"] = "Эта индикация загружена"
 	L["This display is not currently loaded"] = "Эта индикация не загружена"
-	--[[Translation missing --]]
-	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."
+	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "Это позволяет собирать журналы отладки. Пользовательский код может добавлять отладочную информацию в журнал с помощью функции DebugPrint."
 	L["This is a modified version of your aura, |cff9900FF%s.|r"] = "Это изменённая версия вашей индикации |cFF9900FF%s|r"
 	L["This is a modified version of your group: |cff9900FF%s|r"] = "Это изменённая версия вашей группы индикаций |cFF9900FF%s|r"
 	L["This region of type \"%s\" is not supported."] = "Регион типа \"%s\" не поддерживается."

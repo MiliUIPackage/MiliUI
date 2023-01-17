@@ -44,10 +44,22 @@ L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00f
 • |cffffff00Smart Group|r adjusts to your current group type, matching just the "player" when solo, "party" units (including "player") in a party or "raid" units in a raid.
 
 |cffffff00*|r Yellow Unit settings will create clones for each matching unit while this trigger is providing Dynamic Info to the Aura.]=]
+--[[Translation missing --]]
+L["1. Profession 1. Accessory"] = "1. Profession 1. Accessory"
+--[[Translation missing --]]
+L["1. Profession 2. Accessory"] = "1. Profession 2. Accessory"
+--[[Translation missing --]]
+L["1. Professsion Tool"] = "1. Professsion Tool"
 L["10 Man Raid"] = "Рейд на 10 игроков"
 L["10 Player Raid"] = "Рейд на 10 игроков"
 L["10 Player Raid (Heroic)"] = "Рейд на 10 игроков (героический)"
 L["10 Player Raid (Normal)"] = "Рейд на 10 игроков (обычный)"
+--[[Translation missing --]]
+L["2. Profession 1. Accessory"] = "2. Profession 1. Accessory"
+--[[Translation missing --]]
+L["2. Profession 2. Accessory"] = "2. Profession 2. Accessory"
+--[[Translation missing --]]
+L["2. Professsion Tool"] = "2. Professsion Tool"
 L["20 Man Raid"] = "Рейд на 20 игроков"
 L["20 Player Raid"] = "Рейд на 20 игроков"
 L["25 Man Raid"] = "Рейд на 25 игроков"
@@ -244,28 +256,18 @@ L["Caster's Target"] = "Цель заклинателя"
 L["Cataclysm"] = "Cataclysm"
 L["Ceil"] = "Ceil (к большему целому)"
 L["Center"] = "Центр"
---[[Translation missing --]]
-L["Center, then alternating bottom and top"] = "Center, then alternating bottom and top"
---[[Translation missing --]]
-L["Center, then alternating left and right"] = "Center, then alternating left and right"
---[[Translation missing --]]
-L["Center, then alternating right and left"] = "Center, then alternating right and left"
---[[Translation missing --]]
-L["Center, then alternating top and bottom"] = "Center, then alternating top and bottom"
+L["Center, then alternating bottom and top"] = "По центру, затем чередуя низ и верх"
+L["Center, then alternating left and right"] = "По центру, затем чередуя влево и вправо"
+L["Center, then alternating right and left"] = "По центру, затем чередуя вправо и влево"
+L["Center, then alternating top and bottom"] = "По центру, затем чередуя верх и низ"
 L["Centered Horizontal"] = "Горизонтально по центру"
---[[Translation missing --]]
-L["Centered Horizontal, then Centered Vertical"] = "Centered Horizontal, then Centered Vertical"
---[[Translation missing --]]
-L["Centered Horizontal, then Down"] = "Centered Horizontal, then Down"
---[[Translation missing --]]
-L["Centered Horizontal, then Up"] = "Centered Horizontal, then Up"
+L["Centered Horizontal, then Centered Vertical"] = "По центру по горизонтали, затем по центру по вертикали"
+L["Centered Horizontal, then Down"] = "По центру по горизонтали, затем вниз"
+L["Centered Horizontal, then Up"] = "По центру по горизонтали, затем вверх"
 L["Centered Vertical"] = "Вертикально по центру"
---[[Translation missing --]]
-L["Centered Vertical, then Centered Horizontal"] = "Centered Vertical, then Centered Horizontal"
---[[Translation missing --]]
-L["Centered Vertical, then Left"] = "Centered Vertical, then Left"
---[[Translation missing --]]
-L["Centered Vertical, then Right"] = "Centered Vertical, then Right"
+L["Centered Vertical, then Centered Horizontal"] = "По центру по вертикали, затем по центру по горизонтали"
+L["Centered Vertical, then Left"] = "По центру по вертикали, затем влево"
+L["Centered Vertical, then Right"] = "По центру по вертикали, затем вправо"
 L["Changed"] = "Изменен"
 L["Channel"] = "Канал"
 L["Channel (Spell)"] = "Потоковое"
@@ -331,8 +333,7 @@ L["Crushing"] = "Сокрушительный удар"
 L["C'thun"] = "К'Тун"
 L["Current Experience"] = "Текущее количество опыта"
 L["Current Movement Speed (%)"] = "Текущая скорость движения"
---[[Translation missing --]]
-L["Current Stage"] = "Current Stage"
+L["Current Stage"] = "Текущий этап"
 L[ [=[Current Zone Group
 ]=] ] = [=[Текущая группа игровых зон
 ]=]
@@ -354,6 +355,8 @@ L["Custom Sort"] = "Свой критерий сортировки"
 --[[Translation missing --]]
 L["Custom Text Function"] = "Custom Text Function"
 L["Custom Trigger Combination"] = "Комбинация триггеров"
+--[[Translation missing --]]
+L["Custom Variables"] = "Custom Variables"
 L["Daakara"] = "Даакара"
 L["Damage"] = "Урон"
 L["Damage Shield"] = "Урон от щита"
@@ -1041,8 +1044,7 @@ L["Resting"] = "Отдыхает"
 L["Resurrect"] = "Воскрешение"
 L["Right"] = "Справа"
 L["Right to Left"] = "Справа налево"
---[[Translation missing --]]
-L["Right, then Centered Vertical"] = "Right, then Centered Vertical"
+L["Right, then Centered Vertical"] = "Вправо, затем по центру по вертикали"
 L["Right, then Down"] = "Вправо, затем вниз"
 L["Right, then Up"] = "Вправо, затем вверх"
 L["Role"] = "Роль"
@@ -1254,11 +1256,9 @@ L["Third"] = "Третье"
 L["Third Value of Tooltip Text"] = "Третье значение из текста подсказки"
 L["This aura calls GetData a lot, which is a slow function."] = "Эта аура вызывает функцию GetData, являющуюся медленной, слишком много раз."
 L["This aura has caused a Lua error."] = "Индикация вызвала ошибку Lua."
---[[Translation missing --]]
-L["This aura is saving %s KB of data"] = "This aura is saving %s KB of data"
+L["This aura is saving %s KB of data"] = "Эта аура сохраняет %s КБ данных"
 L["This aura plays a sound via a condition."] = "Индикация воспроизводит звук с помощью условия."
 L["This aura plays a sound via an action."] = "Индикация воспроизводит звук с помощью действия."
-L["This aura tried to show a tooltip on a anchoring restricted region"] = "Индикация попыталась показать подсказку при наведении курсора на кадр, имеющий ограничения для крепления."
 L["Thorim"] = "Торим"
 L["Threat Percent"] = "Процент угрозы"
 L["Threat Situation"] = "Положение в списке угроз"
@@ -1335,19 +1335,17 @@ L["unknown location"] = "неизвестное местонахождение"
 L["Unlimited"] = "Неограниченное"
 L["Untrigger %s"] = "Детриггер %s"
 L["Up"] = "Вверх"
---[[Translation missing --]]
-L["Up, then Centered Horizontal"] = "Up, then Centered Horizontal"
+L["Up, then Centered Horizontal"] = "Вверх, затем по центру по горизонтали"
 L["Up, then Left"] = "Вверх, затем влево"
 L["Up, then Right"] = "Вверх, затем вправо"
---[[Translation missing --]]
-L["Update Position"] = "Update Position"
+L["Update Position"] = "Обновить позицию"
 L["Usage:"] = "Доступные команды:"
 L["Use /wa minimap to show the minimap icon again."] = "Используйте команду /wa minimap, чтобы вновь отобразить иконку на миникарте."
 L["Use Custom Color"] = "Использовать свой цвет"
 L["Use Legacy floor rounding"] = "Использовать метод округления Floor"
 L["Use Watched Faction"] = "Использовать фракцию, репутацию с которой вы сейчас отслеживаете"
-L["Using WeakAuras.clones is deprecated. Use WeakAuras.GetRegion(id, cloneId) instead."] = "Использование WeakAuras.clones устарело. Взамен воспользуйтесь WeakAuras.GetRegion(id, cloneId)."
-L["Using WeakAuras.regions is deprecated. Use WeakAuras.GetRegion(id) instead."] = "Использование WeakAuras.regions устарело. Взамен воспользуйтесь WeakAuras.GetRegion(id)."
+L["Using WeakAuras.clones is deprecated. Use WeakAuras.GetRegion(id, cloneId) instead."] = "Использование WeakAuras.clones устарело. Вместо этого используйте WeakAuras.GetRegion(id, cloneId)."
+L["Using WeakAuras.regions is deprecated. Use WeakAuras.GetRegion(id) instead."] = "Использование WeakAuras.regions устарело. Вместо этого используйте WeakAuras.GetRegion(id)."
 L["Vaelastrasz the Corrupt"] = "Валестраз Порочный"
 L["Valithria Dreamwalker"] = "Валитрия Сноходица"
 L["Val'kyr Twins"] = "Валь'киры-близнецы"
