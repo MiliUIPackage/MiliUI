@@ -16,7 +16,8 @@ local _, Core = ...
 -- Lua API
 ---
 
-local error, setmetatable, type = error, setmetatable, type
+local error, setmetatable, t_insert = error, setmetatable, table.insert
+local t_sort, type = table.sort, type
 
 ----------------------------------------
 -- Internal
@@ -29,12 +30,27 @@ local Layers = Core.RegTypes.Legacy
 -- Locals
 ---
 
-local Skins, SkinList = {}, {}
+local AddedSkins, BaseSkins = {}, {}
+local Skins, SkinList, SkinOrder = {}, {}, {}
+
 local Hidden = {Hide = true}
+
+-- Legacy Skin IDs
+local LegacyIDs = {
+	["Blizzard"] = "Blizzard Classic",
+	["Classic"] = "Classic Redux",
+	["Default"] = "Blizzard Classic",
+	["Default (Classic)"] = "Blizzard Classic",
+}
 
 ----------------------------------------
 -- Functions
 ---
+
+-- Returns the ID of a renamed skin.
+local function GetSkinID(SkinID)
+	return LegacyIDs[SkinID]
+end
 
 -- Returns a valid shape.
 local function GetShape(Shape)
@@ -44,12 +60,30 @@ local function GetShape(Shape)
 	return Shape
 end
 
+-- Sorts the `SkinOrder` table, for display in drop-downs.
+local function SortSkins()
+	t_sort(AddedSkins)
+
+	local c = #BaseSkins
+
+	for k, v in ipairs(AddedSkins) do
+		SkinOrder[k + c] = v
+	end
+end
+
 -- Adds data to the skin tables.
-local function AddSkin(SkinID, SkinData)
+local function AddSkin(SkinID, SkinData, Base)
+	local Skin_API = SkinData.API_VERSION or SkinData.Masque_Version
 	local Template = SkinData.Template
 	local Default = Core.DEFAULT_SKIN
 
 	if Template then
+		-- Only do this for skins using the Dragonflight skin as a template.
+		-- All other template IDs are handled by the `Skins` metatable.
+		if Skin_API == 100000 and Template == "Default" then
+			Template = "Blizzard Modern"		
+		end
+
 		setmetatable(SkinData, {__index = Skins[Template]})
 	end
 
@@ -72,7 +106,7 @@ local function AddSkin(SkinID, SkinData)
 	end
 
 	SkinData.SkinID = SkinID
-	SkinData.API_VERSION = SkinData.API_VERSION or SkinData.Masque_Version
+	SkinData.API_VERSION = Skin_API
 
 	local Shape = SkinData.Shape
 	SkinData.Shape = GetShape(Shape)
@@ -80,6 +114,14 @@ local function AddSkin(SkinID, SkinData)
 	Skins[SkinID] = SkinData
 
 	if not SkinData.Disable then
+		if Base then
+			t_insert(BaseSkins, SkinID)
+			t_insert(SkinOrder, SkinID)
+		else
+			t_insert(AddedSkins, SkinID)
+			SortSkins()
+		end
+
 		SkinList[SkinID] = SkinID
 	end
 end
@@ -90,16 +132,20 @@ end
 
 Core.__Hidden = Hidden
 Core.AddSkin = AddSkin
+Core.GetSkinID = GetSkinID
 
 Core.Skins = setmetatable(Skins, {
-	__index = function(self, id)
-		if id == "Blizzard" then
-			return self.Classic
+	__index = function(self, SkinID)
+		local NewID = GetSkinID(SkinID)
+
+		if NewID then
+			return self[NewID]
 		end
 	end
 })
 
 Core.SkinList = SkinList
+Core.SkinOrder = SkinOrder
 
 ----------------------------------------
 -- API
@@ -152,7 +198,7 @@ end
 
 -- Retrieves the default skin.
 function API:GetDefaultSkin()
-	return "Classic"
+	return Core.DEFAULT_SKIN_ID, Core.DEFAULT_SKIN
 end
 
 -- Retrieves the skin data for the specified skin.

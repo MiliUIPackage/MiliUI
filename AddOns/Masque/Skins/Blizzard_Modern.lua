@@ -3,12 +3,14 @@
 	This file is part of 'Masque', an add-on for World of Warcraft. For bug reports,
 	suggestions and license information, please visit https://github.com/SFX-WoW/Masque.
 
-	* File...: Skins\Default.lua
+	* File...: Skins\Blizzard_Modern.lua
 	* Author.: Blizzard Entertainment
 
-	'Default' Skin
+	"Blizzard Modern" Skin
 
-	* Note: Some attributes are modified for internal consistency.
+	Notes:
+	* Emulates the default Dragonflight button style.
+	* Some attributes are modified for internal consistency.
 
 ]]
 
@@ -17,17 +19,20 @@ local _, Core = ...
 if not Core.WOW_RETAIL then return end
 
 ----------------------------------------
--- Locals
+-- Internal
 ---
 
-local L, Hidden = Core.Locale, Core.__Hidden
+-- @ Locales\enUS
+local L = Core.Locale
+
+-- @ Skins\Skins
+local Hidden = Core.__Hidden
 
 ----------------------------------------
--- Default
+-- Blizzard Modern
 ---
 
-local SkinID = "Default"
-Core.SkinList[SkinID] = SkinID
+local SkinID = "Blizzard Modern"
 
 local Skin = {
 	SkinID = SkinID,
@@ -35,7 +40,7 @@ local Skin = {
 	Shape = "Square",
 
 	-- Info
-	Description = L["The default button style."],
+	Description = L["The default Dragonflight button style."],
 	Version = Core.Version,
 	Author = "|cff0099ffBlizzard Entertainment|r",
 
@@ -140,6 +145,7 @@ local Skin = {
 			OffsetX = 0,
 			OffsetY = 0,
 			-- SetAllPoints = nil,
+			UseMask = true,
 		},
 		BagSlot = {
 			-- TexCoords = {0, 1, 0, 1},
@@ -280,7 +286,6 @@ local Skin = {
 			Atlas = "bag-main",
 			UseAtlasSize = false,
 			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "ARTWORK",
 			DrawLevel = 0,
@@ -297,7 +302,6 @@ local Skin = {
 			Atlas = "bag-border",
 			UseAtlasSize = false,
 			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "ARTWORK",
 			DrawLevel = 0,
@@ -314,7 +318,6 @@ local Skin = {
 			Texture = [[Interface\Buttons\UI-Quickslot-Depress]],
 			-- TexCoords = {0, 1, 0, 1},
 			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "ARTWORK",
 			DrawLevel = 0,
@@ -330,7 +333,6 @@ local Skin = {
 			Atlas = "bag-reagent-border",
 			UseAtlasSize = false,
 			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "ARTWORK",
 			DrawLevel = 0,
@@ -463,14 +465,14 @@ local Skin = {
 		-- SetAllPoints = nil,
 	},
 	SlotHighlight = {
-		Texture = [[Interface\Buttons\CheckButtonHilight]],
-		-- TexCoords = {0, 1, 0, 1},
+		Atlas = "bag-border-highlight",
+		UseAtlasSize = false,
 		-- Color = {1, 1, 1, 1},
-		BlendMode = "ADD",
-		DrawLayer = "OVERLAY",
-		DrawLevel = 6,
-		Width = 30,
-		Height = 30,
+		BlendMode = "BLEND",
+		DrawLayer = "ARTWORK",
+		DrawLevel = 0,
+		Width = 36,
+		Height = 36,
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
@@ -480,7 +482,6 @@ local Skin = {
 			Atlas = "bag-main-highlight",
 			UseAtlasSize = false,
 			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
 			BlendMode = "BLEND",
 			DrawLayer = "ARTWORK",
 			DrawLevel = 0,
@@ -491,22 +492,6 @@ local Skin = {
 			OffsetX = 0,
 			OffsetY = 0,
 			-- SetAllPoints = nil,
-		},
-		BagSlot = {
-			Atlas = "bag-border-highlight",
-			UseAtlasSize = false,
-			-- Color = {1, 1, 1, 1},
-			-- EmptyColor = {1, 1, 1, 1},
-			BlendMode = "BLEND",
-			DrawLayer = "ARTWORK",
-			DrawLevel = 0,
-			Width = 36,
-			Height = 36,
-			Point = "CENTER",
-			RelPoint = "CENTER",
-			OffsetX = 0,
-			OffsetY = 0,
-			SetAllPoints = true,
 		},
 	},
 	Name = {
@@ -843,23 +828,25 @@ local Skin = {
 		-- SetAllPoints = nil,
 	},
 	Cooldown = {
-		Texture = [[Interface\HUD\UIActionBarIconFrameMask]],
-		EdgeTexture = [[Interface\Cooldown\edge]],
+		Texture = [[Interface\AddOns\Masque\Textures\Cooldown\Swipe-Modern]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Cooldown\Edge]],
 		PulseTexture = [[Interface\Cooldown\star4]],
 		Color = {0, 0, 0, 0.8},
-		Width = 50,
-		Height = 50,
+		Width = 31.5,
+		Height = 31.5,
+		Anchor = "Icon",
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
-		OffsetY = -0.5,
+		OffsetY = 0,
 		-- SetAllPoints = nil,
 	},
 	ChargeCooldown = {
-		EdgeTexture = [[Interface\Cooldown\edge]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Cooldown\Edge]],
 		PulseTexture = [[Interface\Cooldown\star4]],
-		Width = 32,
-		Height = 32,
+		Width = 31,
+		Height = 31,
+		Anchor = "Icon",
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
@@ -868,5 +855,11 @@ local Skin = {
 	},
 }
 
-Core.Skins[SkinID] = Skin
+----------------------------------------
+-- Core
+---
+
+Core.AddSkin(SkinID, Skin, true)
+
 Core.DEFAULT_SKIN = Skin
+Core.DEFAULT_SKIN_ID = SkinID

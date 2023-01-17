@@ -22,7 +22,7 @@ local pairs, type = pairs, type
 -- WoW API
 ---
 
-local hooksecurefunc = hooksecurefunc
+local ContainerFrame_GetContainerNumSlots, hooksecurefunc = ContainerFrame_GetContainerNumSlots, hooksecurefunc
 
 ----------------------------------------
 -- Internal
@@ -31,7 +31,7 @@ local hooksecurefunc = hooksecurefunc
 -- @ Masque
 local WOW_RETAIL = Core.WOW_RETAIL
 
--- @ Skins\Default(_Classic)
+-- @ Skins\Blizzard(_Classic)
 local DEFAULT_SKIN = Core.DEFAULT_SKIN
 
 -- @ Skins\Skins
@@ -73,16 +73,15 @@ local IsBackground = {
 -- Function to toggle the icon backdrops.
 local function SetIconBackdrop(Button, Limit)
 	local Icon = Button:GetItemButtonIconTexture()
-	local IconID = Icon:GetTexture()
-	local IsEmpty
+	local Texture = Icon:GetTexture()
+	local Alpha, IsEmpty = 1, nil
 
-	if IsBackground[IconID] then
-		Icon:SetAlpha(0)
+	if IsBackground[Texture] then
+		Alpha = 0
 		IsEmpty = true
-	else
-		Icon:SetAlpha(1)
 	end
 
+	Icon:SetAlpha(Alpha)
 	SetEmpty(Button, IsEmpty, Limit)
 end
 
@@ -119,7 +118,7 @@ local function UpdateTextures(Button, Limit)
 
 		if BagID then
 			local Size = ContainerFrame_GetContainerNumSlots(BagID)
-			IsEmpty = (Size and Size == 0) or nil
+			IsEmpty = (Size == 0) or nil
 		end
 
 		SetEmpty(Button, IsEmpty, Limit)
@@ -165,10 +164,19 @@ local function Hook_UpdateButtonArt(Button, HideDivider)
 
 	if not Button.__MSQ_Enabled then return end
 
-	local Pushed, Skin = Button.PushedTexture, Button.__MSQ_Skin
+	local Skin = Button.__MSQ_Skin
 
-	if Pushed and Skin then
-		SkinTexture("Pushed", Pushed, Button, Skin.Pushed, Button.__MSQ_PushedColor, GetScale(Button))
+	if Skin then
+		local Normal = Button.NormalTexture
+		local Pushed = Button.PushedTexture
+		local xScale, yScale = GetScale(Button)
+
+		if Normal then
+			SkinNormal(Normal, Button, Skin.Normal, Button.__MSQ_NormalColor, xScale, yScale)
+		end
+		if Pushed then
+			SkinTexture("Pushed", Pushed, Button, Skin.Pushed, Button.__MSQ_PushedColor, xScale, yScale)
+		end
 	end
 end
 
@@ -210,7 +218,7 @@ function Core.SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Color
 	local Skin, Disabled
 
 	if SkinID then
-		Skin = Skins[SkinID] or Skins.Classic
+		Skin = Skins[SkinID] or DEFAULT_SKIN
 		Button.__MSQ_Skin = Skin
 	else
 		local Addon = Button.__MSQ_Addon or false
@@ -312,7 +320,7 @@ function Core.SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Color
 			UpdateButtonArt(Button)
 		end
 
-		-- Set the button art.
+		-- Update the textures.
 		if Button.UpdateTextures then
 			UpdateTextures(Button, true)
 		end
