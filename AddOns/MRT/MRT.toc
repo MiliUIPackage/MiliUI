@@ -7,17 +7,15 @@
 ## DefaultState: Disabled
 ## OptionalDeps: ExRT
 ## SavedVariables: VMRT
-## Version: 4710
+## Version: 4720
+## X-Category-zhTW: 團隊
 core.lua
 Functions.lua
 embeds.xml
 ExLib.lua
-localization\localization.ru.lua
 localization\localization.en.lua
-localization\localization.de.lua
 localization\localization.cn.lua
 localization\localization.tw.lua
-localization\localization.kr.lua
 localization\localization.lua
 BlizzFix.lua
 Options.lua
