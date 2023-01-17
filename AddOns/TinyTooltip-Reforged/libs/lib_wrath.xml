@@ -4,7 +4,10 @@
     <Script file="CallbackHandler-1.0.lua"/>
     <Script file="LibSharedMedia-3.0.lua"/>
     <Script file="LibEvent.lua"/>
+    <Script file="LibDetours-1.0.lua"/>   
+    <Script file="LibClassicInspector.lua"/>
     <Script file="LibSchedule.lua"/>
     <Script file="LibDropdown.lua"/>
     <Script file="LibJSON.lua"/>
+    <Script file="LibItemInfo.lua"/>
 </Ui>

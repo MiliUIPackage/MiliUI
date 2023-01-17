@@ -2,6 +2,13 @@
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
+-- load only on classic wotlk
+if (clientToc == 30400) then
+  local LibInspect = LibStub("LibClassicInspector")
+  local LibDetours = LibStub("LibDetours-1.0")
+  local TinyTooltipGS = TTR_GS
+end
+
 local addon = TinyTooltipReforged
 
 local function FindLine(tooltip, keyword)
@@ -33,14 +40,6 @@ local function ItemIcon(tip, link)
     end
 end
 
-local stacks = setmetatable({}, {
-    __index = function(t,i)
-        local _, _, _, _, _, _, _, stack = GetItemInfo(i)
-        t[i] = stack
-        return stack
-    end
-})
-
 local function ItemStackCount(tip, link)
     if (addon.db.item.showStackCount) then
         local stackCount = select(8, GetItemInfo(link))
@@ -49,30 +48,24 @@ local function ItemStackCount(tip, link)
             addon:GetLine(tip,1):SetText(text)
         end
     end
-    if (addon.db.item.showStackCountAlt) then
-        local stack = stacks[link]
-        if (stack and stack > 1) then
-            tip:AddLine(format("Stack Size: |cff00eeee%d|r",stack))
-        end 
-    end
 end
 
 LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
     local quality = select(3, GetItemInfo(link)) or 0
+    -- before legion 7.1.0 client
     if (clientToc <= 70100) then
       if (not self) then return end
-      if (addon.db.general.showItemLevel) then
-          local iName, iLink, iRare, ilvl = GetItemInfo(link)
-          local ilvlLine, _, lineRight = FindLine(tip, "Item Level")
-          local ilvlText = format("%s |cffffffff%d|r", "Item Level", tonumber(ilvl))
-          if (ilvl and tonumber(ilvl)>1) then 
-              if (not ilvlLine) then
-                  tip:AddDoubleLine(ilvlText, "")
-              else
-                  ilvlLine:SetText(ilvlText)
-              end 
-          end
-       end
+      if (not addon.db.general.showItemLevel) then return end
+      local iName, iLink, iRare, ilvl = GetItemInfo(link)
+      local ilvlLine, _, lineRight = FindLine(tip, "Item Level")
+      local ilvlText = format("%s |cffffffff%d|r", "Item Level", tonumber(ilvl))
+      if (ilvl and tonumber(ilvl)>1) then 
+          if (not ilvlLine) then
+              tip:AddDoubleLine(ilvlText, "")
+          else
+              ilvlLine:SetText(ilvlText)
+          end 
+      end
     else
       local effectiveILvl, isPreview, baseILvl = GetDetailedItemLevelInfo(link)
       if (effectiveILvl and tonumber(effectiveILvl)>1) then
@@ -91,3 +84,10 @@ hooksecurefunc("EmbeddedItemTooltip_OnTooltipSetItem", function(self)
     local r, g, b = self.IconBorder:GetVertexColor()
     ColorBorder(tip, r, g, b)
 end)
+
+
+
+
+
+
+

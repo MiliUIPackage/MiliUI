@@ -3,7 +3,6 @@ TinyTooltipReforged = {}
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
-local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
 local AFK = AFK
 local DND = DND
@@ -881,3 +880,12 @@ hooksecurefunc("GameTooltip_SetDefaultAnchor", function(self, parent)
     LibEvent:trigger("tooltip:anchor", self, parent)
 end)
 
+-- tooltip:init
+-- tooltip:anchor
+-- tooltip:show
+-- tooltip:hide
+-- tooltip:unit
+-- tooltip:item
+-- tooltip:spell
+-- tooltip:quest
+-- tooltip:cleared

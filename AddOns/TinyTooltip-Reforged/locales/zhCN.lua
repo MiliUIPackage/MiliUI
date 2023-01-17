@@ -10,8 +10,6 @@ addon.L = {
     ["general.borderColor"]                 = "边框颜色",
     ["general.scale"]                       = "框架缩放",
     ["general.borderSize"]                  = "边框大小",
-    ["general.statusbarEnabled"]	    = "启用状态栏",
-    ["general.statusbarTextFormat"]	    = "状态栏文本格式",
     ["general.statusbarHeight"]             = "HP高度",
     ["general.borderCorner"]                = "边框样式",
     ["general.bgfile"]                      = "背景材质",
@@ -33,7 +31,6 @@ addon.L = {
     
     ["item.coloredItemBorder"]              = "物品边框染色",
     ["item.showItemIcon"]                   = "显示物品图标",
-    ["item.showExpansionInformation"]	    = "显示扩展信息",
     ["quest.coloredQuestBorder"]            = "任务边框染色",
     
     ["unit.player.anchor.position"]         = "框架锚点",
@@ -153,12 +150,4 @@ addon.L = {
     ["Anchor"]   = "锚点器",
     
     ["TargetBy"] = "被关注",
-
-    ["authorguild"] = "龙战士",
-    ["authorrealm"] = "阿格拉玛 ЕU",
-    ["authorname"]  = "蜂鸣器",
-
-    ["showStackCount"]		    = "顯示堆棧計數（在工具提示標題中）",
-    ["showStackCountAlt"]	    = "顯示堆棧計數（在工具提示正文中）",
-
 }

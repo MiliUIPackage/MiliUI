@@ -45,9 +45,7 @@ local function CallTrigger(keystring, value)
             LibEvent:trigger("tooltip.style.bgfile", tip, value)
         end
     end
-    if (keystring == "general.statusbarEnabled") then
-      LibEvent:trigger("tooltip.statusbar.height", value)
-    elseif (keystring == "general.statusbarText") then
+    if (keystring == "general.statusbarText") then
         LibEvent:trigger("tooltip.statusbar.text", value)
     elseif (keystring == "general.statusbarHeight") then
         LibEvent:trigger("tooltip.statusbar.height", value)
@@ -540,11 +538,9 @@ local options = {
         { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
         { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor", "cursorRight", "static"} },
-        { keystring = "item.showStackCount",        type = "checkbox" },
-        { keystring = "item.showStackCountAlt",     type = "checkbox" },
-		{ keystring = "item.coloredItemBorder",     type = "checkbox" },
+        { keystring = "item.coloredItemBorder",     type = "checkbox" },
         { keystring = "item.showItemIcon",          type = "checkbox" },
-        { keystring = "item.showExpansionInformation",          type = "checkbox" },
+        { keystring = "item.showExtendedItemInformation",          type = "checkbox" },
 		{ keystring = "quest.coloredQuestBorder",   type = "checkbox" },
         { keystring = "general.alwaysShowIdInfo",   type = "checkbox" },        
         { keystring = "general.SavedVariablesPerCharacter",   type = "checkbox" },
@@ -607,8 +603,7 @@ local options = {
         { keystring = "unit.npc.elements.moveSpeed",    type = "element", color = true, wildcard = true, filter = true, },
     },
     statusbar = {
-        { keystring = "general.statusbarEnabled",   type = "checkbox" },
-		{ keystring = "general.statusbarText",      type = "checkbox" },
+        { keystring = "general.statusbarText",      type = "checkbox" },
         { keystring = "general.statusbarHeight",    type = "slider", min = 0, max = 24, step = 1 },
         { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
         { keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
@@ -650,7 +645,7 @@ frame.name = L["Tooltip"]
 
 frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 frame.text:SetPoint("TOPLEFT", 30, -40)
-frame.text:SetText(format("by |cffF58CBA%s|r |cffff00ff<%s>|r - |cff33eeff%s|r", L["authorname"], L["authorguild"], L["authorrealm"]))
+frame.text:SetText("by |cffF58CBABeezer|r |cffff00ff<The Dragon Fighters>|r - |cff33eeffAggramar EU|r")
 
 local framePC = CreateFrame("Frame", nil, UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
@@ -1050,7 +1045,7 @@ LibEvent:attachTrigger("tinytooltipreforged:diy:player", function(self, unit, sk
     if (toggleVisible and frame:IsShown()) then
         return frame:Hide()
     end
-    local raw = addon:GetUnitInfo(unit)
+    local raw = addon:SettingsGetUnitInfo(unit)
     local frameWidth, lineWidth, totalLines = 0, 0, 0
     local config, value
     for i, v in ipairs(diytable) do

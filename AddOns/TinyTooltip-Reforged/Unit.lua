@@ -1,8 +1,11 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
+local LibSchedule = LibStub:GetLibrary("LibSchedule.7000")
+local LibItemInfo = LibStub:GetLibrary("LibItemInfo.7000")
 
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
-local addon = TinyTooltipReforged
+
+local guids, inspecting = {}, false
 
 local AFK = AFK
 local DND = DND
@@ -13,11 +16,16 @@ local OFFLINE = FRIENDS_LIST_OFFLINE
 local FACTION_HORDE = FACTION_HORDE
 local FACTION_ALLIANCE = FACTION_ALLIANCE
 
+local TOOLTIP_UPDATE_TIME = TOOLTIP_UPDATE_TIME or 0.2
+
+local addon = TinyTooltipReforged
+
 local function strip(text)
     return (text:gsub("%s+([|%x%s]+)<trim>", "%1"))
 end
 
 local function ColorBorder(tip, config, raw)
+    if (not raw) then return end
     if (config.coloredBorder and addon.colorfunc[config.coloredBorder]) then
         local r, g, b = addon.colorfunc[config.coloredBorder](raw)
         LibEvent:trigger("tooltip.style.border.color", tip, r, g, b)
@@ -32,6 +40,7 @@ local function ColorBorder(tip, config, raw)
 end
 
 local function ColorBackground(tip, config, raw)
+    if (not raw) then return end
     local bg = config.background
     if not bg then return end
     if (bg.colorfunc == "default" or bg.colorfunc == "" or bg.colorfunc == "inherit") then
@@ -48,6 +57,7 @@ local function ColorBackground(tip, config, raw)
 end
 
 local function GrayForDead(tip, config, unit)
+    if (not unit) then return end
     if (config.grayForDead and UnitIsDeadOrGhost(unit)) then
         local line, text
         LibEvent:trigger("tooltip.style.border.color", tip, 0.6, 0.6, 0.6)
@@ -62,15 +72,17 @@ local function GrayForDead(tip, config, unit)
 end
 
 local function ShowBigFactionIcon(tip, config, raw)
+    if (not raw) then return end
     if (config.elements.factionBig and config.elements.factionBig.enable and tip.BigFactionIcon and (raw.factionGroup=="Alliance" or raw.factionGroup == "Horde")) then
         tip.BigFactionIcon:Show()
         tip.BigFactionIcon:SetTexture("Interface\\Timer\\".. raw.factionGroup .."-Logo")
         tip:Show()
-        tip:SetMinimumWidth(tip:GetWidth() + 30)
+        tip:SetMinimumWidth(tip:GetWidth() + 20)
     end
 end
 
 local function PlayerCharacter(tip, unit, config, raw)
+    if (not raw) then return end
     local data = addon:GetUnitData(unit, config.elements, raw)
     addon:HideLines(tip, 2, 3)
     addon:HideLine(tip, "^"..LEVEL)
@@ -84,10 +96,10 @@ local function PlayerCharacter(tip, unit, config, raw)
     ColorBackground(tip, config, raw)
     GrayForDead(tip, config, unit)
     ShowBigFactionIcon(tip, config, raw)
-    addon:AutoSetTooltipWidth(tip)
 end
 
 local function NonPlayerCharacter(tip, unit, config, raw)
+    if (not raw) then return end
     local levelLine = addon:FindLine(tip, "^"..LEVEL)
     if (levelLine or tip:NumLines() > 1) then
         local data = addon:GetUnitData(unit, config.elements, raw)
@@ -99,7 +111,7 @@ local function NonPlayerCharacter(tip, unit, config, raw)
             end
             if (i == 2) then
                 if (config.elements.npcTitle.enable and titleLine) then
-                    titleLine:SetText(addon:FormatData(titleLine:GetText(), config.elements.npcTitle, raw))
+                    --titleLine:SetText(addon:FormatData(titleLine:GetText(), config.elements.npcTitle, raw))
                     increase = 1
                 end
                 i = i + increase
@@ -116,15 +128,15 @@ local function NonPlayerCharacter(tip, unit, config, raw)
     ColorBackground(tip, config, raw)
     GrayForDead(tip, config, unit)
     ShowBigFactionIcon(tip, config, raw)
-    addon:AutoSetTooltipWidth(tip)
 end
 
-LibEvent:attachTrigger("tooltip:unit", function(self, tip, unit)
-    local raw = addon:GetUnitInfo(unit)
+TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Unit, function(self, data)
+    local unit = UnitTokenFromGUID(data.guid)
+    local raw = addon:GetUnitInfo(data.guid)
     if (UnitIsPlayer(unit)) then
-        PlayerCharacter(tip, unit, addon.db.unit.player, raw)
+        PlayerCharacter(GameTooltip, unit, addon.db.unit.player, raw)
     else
-        NonPlayerCharacter(tip, unit, addon.db.unit.npc, raw)
+        NonPlayerCharacter(GameTooltip, unit, addon.db.unit.npc, raw)
     end
 end)
 

@@ -5,7 +5,6 @@ if (GetLocale() ~= "zhTW") then return end
 
 addon.L = {
     ["general.mask"]                        = "頂部光澤",
-    ["general.statusbarEnabled"]            = "啟用狀態列",
     ["general.statusbarText"]               = "血量文字",
     ["general.background"]                  = "背景顔色",
     ["general.borderColor"]                 = "邊框顔色",
@@ -33,7 +32,7 @@ addon.L = {
     
     ["item.coloredItemBorder"]              = "顯示物品邊框顏色",
 	["item.showItemIcon"]                   = "顯示物品圖示",
-	["item.showExpansionInformation"]	    = "顯示更多物品資訊",
+	["item.showExtendedItemInformation"]    = "顯示更多物品資訊",
     ["quest.coloredQuestBorder"]            = "顯示任務邊框顏色",
     
     ["unit.player.anchor.position"]         = "位置",
@@ -155,9 +154,9 @@ addon.L = {
     ["bodyFontSize"]      = "內容文字大小",
     ["bodyFontFlag"]      = "內容文字外框",
     
-    ["Anchor"]   			= "移動",
-    ["Caster"]				= "施法者",
-    ["TargetBy"]			= "被關注",
+    ["Anchor"]   = "移動",
+    ["Caster"] = "施法者",
+    ["TargetBy"] = "被關注",
 	
 	["<Drag element to customize the style>"] = "<拖曳上面的項目來自訂內容排列方式>",
 	["|cffFFE4E1[TinyTooltipReforged]|r|cff00FFFF variables has been imported successfully. |r"] = "|cffFFE4E1[浮動提示資訊增強]|r|cff00FFFF 設定檔匯入成功。|r",
@@ -178,9 +177,5 @@ addon.L = {
 	["Keystone"] = "鑰石",
 	["Quest"] = "任務",
 	["Achievement"] = "成就",
-	["|cff999999Out of Range|r"] = "|cff999999距離過遠|r",
-	["Expansion"]			= "資料片",
-    ["showStackCount"]		= "顯示最大堆疊數量 (在標題)",
-    ["showStackCountAlt"]	= "顯示最大堆疊數量 (在內文)",
-	["Stack Size: |cff00eeee%d|r"] = "堆疊大小: |cff00eeee%d|r",
+	["|cffffdd22Expansion:|r |cff64cd3c%s|r"] = "|cffffdd22資料片:|r |cff64cd3c%s|r"
 }

@@ -1,0 +1,60 @@
+v9.3.3
+[WoTLK] added checkbox on/off item level display
+[DF] Added Expansion Source and checkbox on/off (may add more soruce information later)
+[DF] Fixed itemID display with comparision manager
+[General] New format to changelog to show expansion changes are for
+[DF] Added a fix for addons that use custom tooltips and do not hold same information so LUA error
+
+v9.3.2
+- Added extra checks to unit info
+- Turned off targeted by 
+- Added a fix for the rematch add-on
+
+v9.3.1
+- Turned off ItemID as causes an issue with comparison manager
+
+v9.3 (10.0.2)
+- Fixed LUA issues in 10.0.2
+- updated various hooks to new formats
+- Fixed Item ID and Spell ID display
+- Fixed status bar
+- Added a text format for status bar in the options
+- Fixed fonts, scaling and font size
+- Fixed backgrounds
+- Fixed Target (may still jitter)
+- Fixed iLevel and Specialization (sometimes reports wrong)
+- Basics are all ok for Launch of 10.0.2
+- Fixed Target in other tooltips none units
+
+v9.2.3 (10.0.0)
+- made changes to static anchor
+- removed return on unitframes as this is not working since 10.0.0
+- renamed "return on" to "default on" as it goes to the default location
+
+
+v9.2.2 (10.0.0)
+- fixed string should be int issue
+- added player item level
+- added player spec 
+- removed static anchor from anchors
+- added fix for alpha on backgrounds
+
+v9.2.1 (10.0.0)
+- fixed frend icon
+- fix for saved variables (file size)
+
+v9.2 (10.0.0)
+- Added support for WOTLK Classic
+- Fixed LUA errors for WOTLK Classic
+- Added a basic version of displaying Item Level in tool tip for items
+- Fixed some shadowlands issue
+- Readded Font Flags back in
+- *BUG* return in combat/hidden in combat/return on unit frame not working
+
+
+pre v9.2 (10.0.0)
+- Release with basic fixes for LUA errors
+- Fixed LUA error when selecting anchor points
+- Renamed internal project settings to not conflict with original tinytooltip
+- Fixed backgrounds LUA error
+- Removed Font Flags LUA error

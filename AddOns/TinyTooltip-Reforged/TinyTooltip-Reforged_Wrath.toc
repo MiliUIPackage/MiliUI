@@ -1,5 +1,5 @@
 ## Interface: 30400
-## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
+## Title: TinyTooltip-Reforged (WOTLK Classic) |cFF69CCF0by Beezer|r
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
 ## Version: 9.3
@@ -7,7 +7,7 @@
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip
 ## Title-zhTW: |cff0099FF[介面]|r 浮動提示資訊增強
-## Notes-zhTW: TinyTooltip-Reforged (Dragonflight) |cFF69CCF0by Beezer|r |n|n提供更多的選項讓你可以自訂滑鼠指向時所顯示的提示說明。|n|n|cffffd200使用方法: |r從Esc>介面>插件>浮動提示資訊，進行設定。|n|n發生任何問題請輸入 /tip reset |n恢復成預設值。
+## Notes-zhTW: TinyTooltip-Reforged (Dragonflight) |cFF69CCF0by Beezer|r |n|n提供更多的選項讓你可以自訂滑鼠指向時所顯示的提示說明。|n|n|cffffd200使用方法: |r在遊戲內建的編輯模式中勾選 "浮動提示資訊" 來移動位置。|n|n從Esc>選項>插件>浮動提示，進行設定。|n|n發生任何問題請輸入 /tip reset |n恢復成預設值。
 ## X-Category-zhTW: 介面
 
 libs\lib_wrath.xml

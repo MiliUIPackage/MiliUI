@@ -9,6 +9,12 @@ TinyTooltipReforgedCharacterDB = {}
 
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
+-- load only on classic wotlk
+if (clientToc == 30400) then
+  local LibInspect = LibStub("LibClassicInspector")
+  local LibDetours = LibStub("LibDetours-1.0")
+end
+
 local addon = TinyTooltipReforged
 
 local function ColorStatusBar(self, value)
@@ -20,13 +26,7 @@ local function ColorStatusBar(self, value)
         end
         local r, g, b
         if (UnitIsPlayer(unit)) then
-            if (CUSTOM_CLASS_COLORS) then
-                local color = CUSTOM_CLASS_COLORS[select(2,UnitClass(unit))]
- 		self:SetStatusBarColor(color.r, color.g, color.b)
-            else      
-                r, g, b = GetClassColor(select(2,UnitClass(unit)))
-                self:SetStatusBarColor(r, g, b)
-            end
+            r, g, b = GetClassColor(select(2,UnitClass(unit)))
         else
             r, g, b = GameTooltip_UnitColor(unit)
             if (g == 0.6) then g = 0.9 end
@@ -40,42 +40,6 @@ end
 
 local function IsTableEmpty(table)
     return (next(table) == nil)
-end
-
-local function UpdateHealthBar(self, hp)
-    if (not addon.db.general.statusbarText) then 
-        GameTooltipStatusBar.TextString:Hide() 
-    else
-        GameTooltipStatusBar.TextString:Show() 
-    end
-    local unit = "mouseover"
-    local focus = GetMouseFocus()
-    if (focus and focus.unit) then
-        unit = focus.unit
-    end
-    local min, maxhp = self:GetMinMaxValues()
-    if (UnitIsDeadOrGhost(unit) or UnitIsGhost(unit)) then
-	self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(maxhp), DEAD)
-    else
-        if (not hp or hp <= 0) then
-  	    self.TextString:SetFormattedText("|cff999999Out of Range|r")
-        else
-          local percent = ceil((hp*100)/maxhp)
-          if (addon.db.general.statusbarTextFormat == "Health / Max (Percent)") then
-              self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          elseif (addon.db.general.statusbarTextFormat == "Health / Max") then
-              self.TextString:SetFormattedText("%s / %s", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp))
-          elseif (addon.db.general.statusbarTextFormat == "Percent") then
-              self.TextString:SetFormattedText("%d%%", percent)
-          elseif (addon.db.general.statusbarTextFormat == "Health") then
-              self.TextString:SetFormattedText("%s", AbbreviateLargeNumbers(hp))
-          elseif (addon.db.general.statusbarTextFormat == "Health (Percent)") then
-              self.TextString:SetFormattedText("%s (%d%%)", AbbreviateLargeNumbers(hp), percent)
-          else -- default
-              self.TextString:SetFormattedText("%s / %s (%d%%)", AbbreviateLargeNumbers(hp), AbbreviateLargeNumbers(maxhp), percent)
-          end
-        end
-    end
 end
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
@@ -98,17 +62,22 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     bar.TextString:SetFont(NumberFontNormal:GetFont(), 11, "THINOUTLINE")
     bar.capNumericDisplay = true
     bar.lockShow = 1
-    if (not addon.db.general.statusbarEnabled) then GameTooltipStatusBar:Hide() end
-    if (not addon.db.general.statusbarText) then GameTooltipStatusBar.TextString:Hide() end
+    bar:HookScript("OnShow", function(self)
+        ColorStatusBar(self)
+    end)
     bar:HookScript("OnValueChanged", function(self, hp)
-        UpdateHealthBar(self, hp)
+        if (hp <= 0) then
+            local min, max = self:GetMinMaxValues()	
+	    self.TextString:SetFormattedText("|cff999999%s|r |cffffcc33<%s>|r", AbbreviateLargeNumbers(max), DEAD)	
+        else
+            TextStatusBar_UpdateTextString(self)
+        end
         ColorStatusBar(self, hp)
     end)
     bar:HookScript("OnShow", function(self)
         if (addon.db.general.statusbarHeight == 0) then
             self:Hide()
         end
-        ColorStatusBar(self)
     end)
     --Variables
     if (IsTableEmpty(BigTipReforgedDB) or 
@@ -143,14 +112,10 @@ end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)
     if (tip ~= GameTooltip) then return end
-    if (addon.db.general.statusbarEnabled) then
-        LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
-        local w = GameTooltipStatusBar.TextString:GetWidth() + 10
-        if (GameTooltipStatusBar:IsShown() and w > tip:GetWidth()) then
-            tip:SetMinimumWidth(w+2)
-            tip:Show()
-        end
-    else
-        GameTooltipStatusBar:Hide()
+    LibEvent:trigger("tooltip.statusbar.position", addon.db.general.statusbarPosition, addon.db.general.statusbarOffsetX, addon.db.general.statusbarOffsetY)
+    local w = GameTooltipStatusBar.TextString:GetWidth() + 10
+    if (GameTooltipStatusBar:IsShown() and w > tip:GetWidth()) then
+        tip:SetMinimumWidth(w+2)
+        tip:Show()
     end
 end)
