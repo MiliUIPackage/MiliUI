@@ -149,14 +149,25 @@ function lib:GetUnitItemInfo(unit, index, stats)
     if (not self:HasLocalCached(link)) then
         return 1, 0
     end
-    local text, level
-    for i = 2, 5 do
-        if (_G[unittip:GetName().."TextLeft" .. i]) then
-            text = _G[unittip:GetName().."TextLeft" .. i]:GetText() or ""
-            level = string.match(text, ItemLevelPattern)
-            if (level) then break end
-        end
-    end
+    local text, level, link
+
+-- Gets item level from the tooltip - but not in wrath
+--    for i = 2, 5 do
+--        local itemId = GetInventoryItemID(unit, i)
+--        if (itemId) then            
+--            local level = select(4, GetItemInfo(itemId))
+--	    local _, link, _, level,_,_,_,_,_,_,_, classID,_ = GetItemInfo(itemId)
+
+--            if (level) then break end
+--        if (_G[unittip:GetName().."TextLeft" .. i]) then
+--            text = _G[unittip:GetName().."TextLeft" .. i]:GetText() or ""
+--            level = string.match(text, ItemLevelPattern)
+--            if (level) then break end
+--        end
+--    end
+    local itemId = GetInventoryItemID(unit, index)
+    if (not itemId) then return 1, 0 end
+    _, link, _, level,_,_,_,_,_,_,_, classID,_ = GetItemInfo(itemId)
     self:GetStatsViaTooltip(unittip, stats)
     if (string.match(link, "item:(%d+):")) then
         return 0, tonumber(level) or 0, GetItemInfo(link)
@@ -171,27 +182,41 @@ end
 function lib:GetUnitItemLevel(unit, stats)
     local total, counts, maxlevel = 0, 0, 0
     local _, count, level
-    for i = 1, 15 do
-        if (i ~= 4) then    
+    for i = 1, 18 do
+        if (i ~= 4) then  
             count, level = self:GetUnitItemInfo(unit, i, stats)
-            total = total + level
             counts = counts + count
+            total = total + level            
             maxlevel = max(maxlevel, level)
         end
     end
     local mcount, mlevel, mquality, mslot, ocount, olevel, oquality, oslot
     mcount, mlevel, _, _, mquality, _, _, _, _, _, mslot = self:GetUnitItemInfo(unit, 16, stats)
     ocount, olevel, _, _, oquality, _, _, _, _, _, oslot = self:GetUnitItemInfo(unit, 17, stats)
-    counts = counts + mcount + ocount
-    if (mquality == 6 or oquality == 6) then
-        total = total + max(mlevel, olevel) * 2
-    elseif (oslot == "INVTYPE_2HWEAPON" or mslot == "INVTYPE_2HWEAPON" or mslot == "INVTYPE_RANGED" or mslot == "INVTYPE_RANGEDRIGHT") then 
-        total = total + max(mlevel, olevel) * 2
-    else
-        total = total + mlevel + olevel
+--    rcount, rlevel, _, _, rquality, _, _, _, _, _, rslot = self:GetUnitItemInfo(unit, 18, stats)
+--    counts = counts + mcount + ocount + rcount
+--    if (mquality == 6 or oquality == 6) then
+--        total = total + max(mlevel, olevel) * 2
+--    elseif (oslot == "INVTYPE_2HWEAPON" or mslot == "INVTYPE_2HWEAPON" or mslot == "INVTYPE_RANGED" or mslot == "INVTYPE_RANGEDRIGHT") then 
+--        total = total + max(mlevel, olevel) * 2
+--    else
+--        total = total + mlevel + olevel + rlevel
+--    end
+--    maxlevel = max(maxlevel, mlevel, olevel, rlevel)
+--    return counts, total/max(16-counts,1), total, max(mlevel,olevel), (mquality == 6 or oquality == 6), maxlevel
+
+   
+    -- get the counts of missing items
+    local tv, v = 0, 0
+    for i = 1, 18 do
+        if (i ~= 4) then
+          local link = GetInventoryItemLink(unit, i)
+          if (not link) then
+              tv = tv + 1
+          end 
+        end     
     end
-    maxlevel = max(maxlevel, mlevel, olevel)
-    return counts, total/max(16-counts,1), total, max(mlevel,olevel), (mquality == 6 or oquality == 6), maxlevel
+    return counts, total/max(17-tv,1), total, max(mlevel,olevel), (mquality == 6 or oquality == 6), maxlevel
 end
 
 function lib:GetQuestItemlink(questType, id)

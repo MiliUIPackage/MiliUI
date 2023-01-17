@@ -1,51 +1,49 @@
 
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
-local actualVersion = GetAddOnMetadata("TinyInspect-Reforged", "Version") or UNKNOWN
+local actualVersion = GetAddOnMetadata("TinyInspect-Reforged", "Version") or "unknown"
 
 local addon, ns = ...
+
 local L = ns.L or {}
+
 setmetatable(L, { __index = function(_, k)
     return k:gsub("([a-z])([A-Z])", "%1 %2")
 end})
 
 local DefaultDB = {
     version = actualVersion,
-    ShowItemBorder = true,                --物品直角邊框
-    EnableItemLevel  = true,              --物品等級
-      ShowColoredItemLevelString = true, --裝等文字隨物品品質
-      ShowCorruptedMark = true,          --腐蚀装备标记
-      ShowItemSlotString = true,          --物品部位文字
+    ShowItemBorder = true,
+    EnableItemLevel  = true,
+      ShowColoredItemLevelString = false,
+      ShowCorruptedMark = false,
+      ShowItemSlotString = true,
         EnableItemLevelBag = true,
         EnableItemLevelBank = true,
         EnableItemLevelMerchant = true,
         EnableItemLevelTrade = true,
         EnableItemLevelGuildBank = true,
-        EnableItemLevelAuction = false,
+        EnableItemLevelAuction = true,
         EnableItemLevelAltEquipment = true,
         EnableItemLevelPaperDoll = true,
-        EnableItemLevelGuildNews = false,
-        EnableItemLevelChat = false,
+        EnableItemLevelGuildNews = true,
+        EnableItemLevelChat = true,
         EnableItemLevelLoot = true,
         EnableItemLevelOther = true,
-    ShowInspectAngularBorder = true,
+    ShowInspectAngularBorder = false,
     ShowInspectColoredLabel = true,
     ShowCharacterItemSheet = true,
     ShowInspectItemSheet = true,
-        ShowOwnFrameWhenInspecting = true,
-        ShowItemStats = false,
-	HideStatsCompareFrame = true,
+        ShowOwnFrameWhenInspecting = false,
     EnablePartyItemLevel = true,
         SendPartyItemLevelToSelf = true,
         SendPartyItemLevelToParty = false,
         ShowPartySpecialization = true,
     EnableRaidItemLevel = false,
     EnableMouseItemLevel = true,
-    EnableMouseSpecialization = true,
     EnableMouseWeaponLevel = true,
     PaperDollItemLevelOutsideString = false,
     ItemLevelAnchorPoint = "TOP",
-    ShowPluginGreenState = true,
-    HideOffHandEnchantIcon = true,
+    ShowPluginGreenState = false,
 }
 
 local options = {
@@ -55,7 +53,6 @@ local options = {
         { key = "ShowColoredItemLevelString" },
         { key = "ShowCorruptedMark" },
         { key = "ShowItemSlotString" },
-	{ key = "PaperDollItemLevelOutsideString" },
       },
       subtype = {
         { key = "Bag" },
@@ -66,7 +63,7 @@ local options = {
         { key = "GuildBank" },
         { key = "GuildNews" },
         { key = "PaperDoll" },
-        -- { key = "Chat" },
+        { key = "Chat" },
         { key = "Loot" },
         { key = "Other" },
       },
@@ -78,8 +75,6 @@ local options = {
     { key = "ShowInspectItemSheet",
         child = {
             { key = "ShowOwnFrameWhenInspecting" },
-            { key = "ShowItemStats" },
-            { key = "HideStatsCompareFrame" },
         }
     },
     { key = "EnablePartyItemLevel",
@@ -90,16 +85,14 @@ local options = {
       }
     },
     { key = "EnableRaidItemLevel",
-        checkedFunc = function() TinyInspectRaidFrame:Show() end,
-        uncheckedFunc = function() TinyInspectRaidFrame:Hide() end,
+        checkedFunc = function() TinyInspectReforgedRaidFrame:Show() end,
+        uncheckedFunc = function() TinyInspectReforgedRaidFrame:Hide() end,
     },
     { key = "EnableMouseItemLevel",
       child = {
-        { key = "EnableMouseSpecialization" },
         { key = "EnableMouseWeaponLevel" },
       }
     },
-    { key = "HideOffHandEnchantIcon" },
 }
 
 if (GetLocale():sub(1,2) == "zh") then
@@ -259,14 +252,10 @@ end
 local frame = CreateFrame("Frame", nil, UIParent)
 frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
-frame.title:SetText(L.Title)
-frame.name = L.OptionName
+frame.title:SetText(addon)
+frame.name = addon
 
-frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-frame.text:SetPoint("TOPLEFT", 30, -40)
-frame.text:SetText("by |cffF58CBABeezer|r |cffff00ff<The Dragon Fighters>|r - |cff33eeffAggramar EU|r")
-
-CreateCheckbox(options, frame, frame.title, 18, 25)
+CreateCheckbox(options, frame, frame.title, 18, 9)
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
     if (not TinyInspectReforgedDB or not TinyInspectReforgedDB.version) then
@@ -283,12 +272,11 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
 end)
 
 InterfaceOptions_AddCategory(frame)
-SLASH_TinyInspect1 = "/tinyinspectr"
-SLASH_TinyInspect2 = "/tir"
-
-function SlashCmdList.TinyInspect(msg, editbox)
+SLASH_TinyInspectReforged1 = "/tinyinspectr"
+SLASH_TinyInspectReforged2 = "/tir"
+function SlashCmdList.TinyInspectReforged(msg, editbox)
     if (msg == "raid") then
-        return ToggleFrame(TinyInspectRaidFrame)
+        return ToggleFrame(TinyInspectReforgedRaidFrame)
     end
     InterfaceOptionsFrame_OpenToCategory(frame)
     InterfaceOptionsFrame_OpenToCategory(frame)

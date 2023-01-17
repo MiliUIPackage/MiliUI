@@ -11,6 +11,7 @@ local function GetStateValue(unit, state, value, default)
 end
 
 function ShowInspectItemStatsFrame(frame, unit)
+    if (TinyInspectReforgedDB.HideStatsCompareFrame) then return end
     if (not frame.expandButton) then
         local expandButton = CreateFrame("Button", nil, frame)
         expandButton:SetSize(12, 12)

@@ -1,4 +1,3 @@
-
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
 local function SetItemAngularBorder(self, quality, itemIDOrLink)
@@ -37,10 +36,7 @@ local function SetItemAngularBorder(self, quality, itemIDOrLink)
     end
 end
 
-hooksecurefunc("SetItemButtonQuality", function(self, quality, itemIDOrLink, suppressOverlays)
-    SetItemAngularBorder(self, quality, itemIDOrLink)
-end)
-
+hooksecurefunc("SetItemButtonQuality", SetItemAngularBorder)
 LibEvent:attachEvent("ADDON_LOADED", function(self, addonName)
     if (addonName == "Blizzard_InspectUI") then
         hooksecurefunc("InspectPaperDollItemSlotButton_Update", function(self)

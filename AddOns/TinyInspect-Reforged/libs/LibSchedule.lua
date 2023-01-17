@@ -1,8 +1,3 @@
-
----------------------------------
--- 計劃任務庫 Author: M
----------------------------------
-
 local MAJOR, MINOR = "LibSchedule.7000", 1
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
@@ -38,20 +33,18 @@ frame:SetScript("OnUpdate", function(self, elasped)
     end
 end)
 
---Task的字段
 local metatable = {
-    identity  = '', --唯一签名(必须)
-    timer     = 0,  --初始计时点
-    elasped   = 1,  --执行的周期
-    begined   = 0,  --开始时间点
-    expired   = 0,  --过期时间点
-    override  = false, --是否覆蓋
-    onStart   = function(self) end, --添加后执行
-    onTimeout = function(self) end, --超时后执行
-    onExecute = function(self) return true end, --定時執行,直到返回true才停止
+    identity  = '',
+    timer     = 0,
+    elasped   = 1,
+    begined   = 0,
+    expired   = 0,
+    override  = false,
+    onStart   = function(self) end,
+    onTimeout = function(self) end,
+    onExecute = function(self) return true end,
 }
 
---添加Task
 function lib:AddTask(item, override)
     if (override or item.override) then
         for i, v in ipairs(frame.schedules) do
@@ -73,7 +66,6 @@ function lib:AddTask(item, override)
     return self
 end
 
---刪除Task
 function lib:RemoveTask(identity, useLike)
     for i, v in ipairs(frame.schedules) do
         if (useLike) then
@@ -87,7 +79,6 @@ function lib:RemoveTask(identity, useLike)
     return self
 end
 
---執行Task
 function lib:AwakeTask(identity, useLike)
     for i, v in ipairs(frame.schedules) do
         if (useLike) then
@@ -101,7 +92,6 @@ function lib:AwakeTask(identity, useLike)
     return self
 end
 
---查找Task
 function lib:SearchTask(identity, useLike)
     local identities = {}
     for i, v in ipairs(frame.schedules) do
