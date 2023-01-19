@@ -1781,7 +1781,7 @@ function EncounterDetails:OpenAndRefresh (_, segment)
 				barra:HookScript ("OnMouseDown", EncounterDetails.BossInfoRowClick)
 				
 				local add_damage_done = _CreateFrame ("Button", nil, barra, "BackdropTemplate")
-				barra.report_text = Loc ["Details! Tamage Taken of "]
+				barra.report_text = Loc ["Details! Damage Taken of "]
 				add_damage_done.report_text = Loc ["Details! Damage Done of "]
 				add_damage_done.barra = barra
 				add_damage_done:SetWidth (EncounterDetails.CooltipLineHeight)

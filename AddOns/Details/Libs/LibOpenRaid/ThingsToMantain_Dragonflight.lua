@@ -121,7 +121,7 @@ do
 			[INVSLOT_MAINHAND] = true,
 			[INVSLOT_FEET] = true,
 			[INVSLOT_WRIST] = true,
-			[INVSLOT_HAND] = false,
+			[INVSLOT_HAND] = true,
 		}
 
 		-- how to get the enchantId:
@@ -189,6 +189,17 @@ do
 			[371186] = {tier = {[558] = 3, [473] = 1, [515] = 2}}, --Charged Phial of Alacrity
 			[393714] = {tier = {[45] = 3, [38] = 2, [32] = 1}}, --Crystalline Phial of Perception
 			[371339] = {tier = {[562] = 3, [476] = 1, [519] = 2}}, --Phial of Elemental Chaos
+		}
+
+		LIB_OPEN_RAID_ALL_POTIONS = {
+			[370511] = 1, --Refreshing Healing Potion
+			[371039] = 1, --Potion of Withering Vitality
+			[370607] = 1, --Aerated Mana Potion
+			[371024] = 1, --Elemental Potion of Power
+			[371028] = 1, --Elemental Potion of Ultimate Power
+			[371033] = 1, --Potion of Frozen Focus
+			[371125] = 1, --Potion of the Hushed Zephyr
+			[371052] = 1, --Potion of Chilled Clarity
 		}
 
 		--spellId of healing from potions

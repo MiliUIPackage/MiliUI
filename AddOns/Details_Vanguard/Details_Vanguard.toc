@@ -8,4 +8,8 @@
 ## OptionalDeps: Ace3
 ## X-Category-zhTW: 戰鬥
 
+#@no-lib-strip@
+embeds.xml
+#@end-no-lib-strip@
+
 Details_Vanguard.lua
