@@ -11,6 +11,7 @@ addon.db = {
         borderSize        = 1,                      --邊框大小（直角邊框才生效）
         borderCorner      = "angular",              --邊框類型 default|angular:直角邊框
         borderColor       = {0.18, 0.18, 0.18, 1},  --邊框顔色和透明度
+        statusbarEnabled  = true,
         statusbarHeight   = 4,                      --HP高度
         statusbarPosition = "bottom",               --HP位置 default|bottom|top
         statusbarOffsetX  = 0,                      --HP X偏移 0:自動
@@ -107,6 +108,8 @@ addon.db = {
         coloredItemBorder = true,
         showItemIcon = true,    
 		showExtendedItemInformation = false,		
+		showStackCount = false,
+        showStackCountAlt = false,		
     },
     spell = {
         borderColor = {0.133, 0.133, 0.133, 1},

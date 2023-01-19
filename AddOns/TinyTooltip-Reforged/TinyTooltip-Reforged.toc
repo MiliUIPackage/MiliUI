@@ -24,7 +24,7 @@ Quest.lua
 LinkID.lua
 Mount.lua
 SkinFrames.lua
-ExpansionItemInfo.lua
+ExpansionInfo.lua
 
 libs\Template.xml
 locales\locales.xml
