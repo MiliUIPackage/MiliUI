@@ -18,10 +18,6 @@ L:SetWarningLocalization({
 	SpecWarnIntensity	= "%s在%s有(%d)層"
 })
 
-L:SetMiscLocalization({
-	Event1	= "啊，還沒結束。"
-})
-
 -----------------------
 -- Liu Flameheart --
 -----------------------
@@ -31,15 +27,6 @@ L= DBM:GetModLocalization(658)
 -- Sha of Doubt --
 -----------------------
 L= DBM:GetModLocalization(335)
-
--------------
---  Temple of the Jade Serpent Trash  --
--------------
-L = DBM:GetModLocalization("JadeTempleTrash")
-
-L:SetGeneralLocalization({
-	name =	"玉蛟寺小怪"
-})
 
 -----------------------
 -- <<<Stormstout Brewery>>> --

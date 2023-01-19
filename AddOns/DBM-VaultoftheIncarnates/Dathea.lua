@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2502, "DBM-VaultoftheIncarnates", nil, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20221228062737")
+mod:SetRevision("20230117031931")
 mod:SetCreatureID(189813)
 mod:SetEncounterID(2635)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -14,7 +14,7 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 387849 388302 376943 388410 375580 387943 385812 384273 387627 391382 395501",
 --	"SPELL_CAST_SUCCESS",
-	"SPELL_SUMMON 384757 384757",
+	"SPELL_SUMMON 387857",
 	"SPELL_AURA_APPLIED 391686 375580",
 	"SPELL_AURA_APPLIED_DOSE 375580",
 --	"SPELL_AURA_REMOVED",
@@ -24,15 +24,12 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
---TODO, refine range checker to not be needed at all times if a determinate pre warning can be detected or scheduled for new conductive marks going out, and all being gone
---TODO, add unstable gusts?
---TODO, how to handle Incubating Seeds, 50 yards is a big radius. can players avoid it by moving away or is it a "kill it very hard and very fast" thing https://www.wowhead.com/beta/spell=389049/incubating-seed
 --[[
 (ability.id = 387849 or ability.id = 388302 or ability.id = 376943 or ability.id = 388410 or ability.id = 375580) and type = "begincast"
  or ability.id = 391600 and type = "cast" and source.id = 189813
 --]]
 --Dathea, Ascended
-mod:AddTimerLine(DBM:EJ_GetSectionInfo(25340))
+mod:AddTimerLine(DBM_COMMON_L.BOSS)
 local warnRagingBurst							= mod:NewCountAnnounce(388302, 3, nil, nil, 86189)
 local warnZephyrSlam							= mod:NewStackAnnounce(375580, 2, nil, "Tank|Healer")
 
@@ -57,9 +54,9 @@ mod:AddRangeFrameOption(5, 391686)
 --mod:AddInfoFrameOption(391686, true)
 --Volatile Infuser
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25903))
-local warnBlowback								= mod:NewCastAnnounce(387627, 4)--Fallback warning, should know it's being cast even if not in distance of knockback, so you don't walk into it
+local warnBlowback								= mod:NewCastAnnounce(395501, 4)--Fallback warning, should know it's being cast even if not in distance of knockback, so you don't walk into it
 
-local specWarnBlowback							= mod:NewSpecialWarningSpell(387627, nil, nil, nil, 2, 2)--Distance based warning, Ie in range of knockback
+local specWarnBlowback							= mod:NewSpecialWarningSpell(395501, nil, nil, nil, 2, 2)--Distance based warning, Ie in range of knockback
 local specWarnDivertedEssence					= mod:NewSpecialWarningInterruptCount(387943, "HasInterrupt", nil, nil, 1, 2)
 local specWarnAerialSlash						= mod:NewSpecialWarningDefensive(385812, nil, nil, nil, 1, 2)
 

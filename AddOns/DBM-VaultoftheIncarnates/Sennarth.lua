@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2482, "DBM-VaultoftheIncarnates", nil, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230109220434")
+mod:SetRevision("20230117031931")
 mod:SetCreatureID(187967)
 mod:SetEncounterID(2592)
 mod:SetUsedIcons(1, 2, 3)
@@ -15,7 +15,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 371976 372082 373405 374112 373027 371983 372539",
 	"SPELL_CAST_SUCCESS 372238 181113 396792",
 	"SPELL_SUMMON 372242 372843",
-	"SPELL_AURA_APPLIED 371976 372082 372030 372044 385083 373048",
+	"SPELL_AURA_APPLIED 371976 372082 372030 372044 385083 373048 374104",
 	"SPELL_AURA_APPLIED_DOSE 372030 385083",
 	"SPELL_AURA_REMOVED 371976 372082 372030 373048",
 	"SPELL_AURA_REMOVED_DOSE 372030",
@@ -26,9 +26,6 @@ mod:RegisterEventsInCombat(
 	"CHAT_MSG_RAID_BOSS_EMOTE"
 )
 
---TODO, GTFO for icy Ground?
---TODO, I cannot be bothered to do these timers. After 3 hours on boss logs (yet again), decided not to bother with more accurate approach. Half assed will have to be good enough
---TODO, timers need more work, but it'll be helpful when phase change events added to combat log or at very least transcriptor for easier table reading.
 --[[
 (ability.id = 371976 or ability.id = 372082 or ability.id = 373405 or ability.id = 373027 or ability.id = 371983) and type = "begincast"
  or (ability.id = 372238 or ability.id = 372648) and type = "cast"
@@ -46,6 +43,7 @@ local warnChillingBlast							= mod:NewTargetAnnounce(371976, 2)
 local warnEnvelopingWebs						= mod:NewTargetNoFilterAnnounce(372082, 3)
 local warnWrappedInWebs							= mod:NewTargetNoFilterAnnounce(372044, 4)
 local warnCallSpiderlings						= mod:NewCountAnnounce(372238, 2)
+local warnFrostbreathArachnid						= mod:NewSpellAnnounce("ej24899", 2)
 
 local specWarnChillingBlast						= mod:NewSpecialWarningMoveAway(371976, nil, nil, nil, 1, 2)
 local yellChillingBlast							= mod:NewYell(371976)
@@ -57,6 +55,7 @@ local specWarnStickyWebbing						= mod:NewSpecialWarningStack(372030, nil, 3, ni
 local specWarnGossamerBurst						= mod:NewSpecialWarningSpell(373405, nil, nil, nil, 2, 12)
 local specWarnWebBlast							= mod:NewSpecialWarningTaunt(385083, nil, nil, nil, 1, 2)
 local specWarnGustingRime						= mod:NewSpecialWarningDodgeCount(396792, nil, nil, nil, 2, 2, 4)
+local specWarnFreezingBreath						= mod:NewSpecialWarningDodge(374112, nil, nil, nil, 1, 2)
 
 local timerChillingBlastCD						= mod:NewCDCountTimer(18.5, 371976, nil, nil, nil, 3)--18.5-54.5
 local timerEnvelopingWebsCD						= mod:NewCDCountTimer(24, 372082, nil, nil, nil, 3)--24-46.9
@@ -64,18 +63,12 @@ local timerGossamerBurstCD						= mod:NewCDCountTimer(36.9, 373405, nil, nil, ni
 local timerGustingrimeCD						= mod:NewAITimer(38.8, 396792, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerCallSpiderlingsCD					= mod:NewCDCountTimer(25.1, 372238, nil, nil, nil, 1)--17.6-37
 local timerFrostbreathArachnidCD				= mod:NewCDCountTimer(98.9, "ej24899", nil, nil, nil, 1)
+local timerFreezingBreathCD							= mod:NewCDTimer(11.1, 374112, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerPhaseCD								= mod:NewPhaseTimer(30)
 
 --mod:AddRangeFrameOption("8")
 mod:AddInfoFrameOption(372030, false)--Useful raid leader tool, but not needed by everyone
-mod:AddSetIconOption("SetIconOnWeb", 372082, true, false, {1, 2, 3})
---Intermission: Guardians of Frost
-mod:AddTimerLine(DBM:EJ_GetSectionInfo(24898))
-local warnFrostbreathArachnid						= mod:NewSpellAnnounce("ej24899", 2)
 
-local specWarnFreezingBreath						= mod:NewSpecialWarningDodge(374112, nil, nil, nil, 1, 2)
-
-local timerFreezingBreathCD							= mod:NewCDTimer(11.1, 374112, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --Stage Two: Cold Peak
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(24885))
 local warnApexofIce									= mod:NewCastAnnounce(372539, 3)
