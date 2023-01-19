@@ -1,3 +1,8 @@
+
+-------------------------------------
+-- 物品寶石庫 Author: M
+-------------------------------------
+
 local MAJOR, MINOR = "LibItemGem.7000", 1
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
