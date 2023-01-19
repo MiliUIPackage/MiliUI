@@ -8,7 +8,7 @@ local LibItemEnchant = LibStub:GetLibrary("LibItemEnchant.7000")
 local EnchantParts = {
     [5]  = {1, CHESTSLOT},
     [8]  = {1, FEETSLOT},
-    --[9]  = {0, WRISTSLOT},
+    [9]  = {0, WRISTSLOT},
     [11] = {1, FINGER0SLOT},
     [12] = {1, FINGER1SLOT},
     [15] = {1, BACKSLOT},
@@ -183,7 +183,7 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
             icon = GetIconFrame(frame)
             icon.title = ENCHANTS .. ": " .. EnchantParts[itemframe.index][2]
             icon.bg:SetVertexColor(1, 0.2, 0.2, 0.6)
-            icon.texture:SetTexture("Interface\\Cursor\\" .. (EnchantParts[itemframe.index][1]==1 and "Quest" or "QuestRepeatable"))
+            icon.texture:SetTexture("Interface\\Cursor\\" .. (EnchantParts[itemframe.index][1]==1 and "Quest" or "Quest"))
             icon:ClearAllPoints()
             icon:SetPoint("LEFT", anchorFrame, "RIGHT", num == 1 and 6 or 1, 0)
             if (itemframe.index == 17 and TinyInspectReforgedDB.HideOffHandEnchantIcon) then icon:Hide() 
