@@ -1,6 +1,6 @@
-## Interface: 100002
+## Interface: 100005
 ## Title: Masque Skinner: Blizz Buffs
-## Version: 9.0.3
+## Version: 10.0.0
 ## Author: Cybeloras of Aerie Peak
 ## Notes: Skins the Blizzard buff and debuff frames with Masque
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪增/減益效果框架
