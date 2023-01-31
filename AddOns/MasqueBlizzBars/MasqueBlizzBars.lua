@@ -1,6 +1,6 @@
 -- 
 -- Masque Blizzard Bars
--- Enables Masque to skin the built-in WoW 快捷列s
+-- Enables Masque to skin the built-in WoW action bars
 --
 -- Copyright 2022 SimGuy
 -- Copyright 2020 Madnessbox
@@ -21,8 +21,12 @@
 
 local MSQ = LibStub("Masque")
 
+local _, Shared = ...
+local L = Shared.Locale
+
 -- Title will be used for the group name shown in Masque
 -- Delayed indicates this group will be deferred to a hook or event
+-- Notes will be displayed (if provided) in the Masque settings UI
 -- Buttons should contain a list of frame names with an integer value
 --  If -1, assume to be a singular button with that name
 --  If  0, this is a dynamic frame to be skinned later
@@ -32,81 +36,83 @@ local MSQ = LibStub("Masque")
 local MasqueBlizzBars = {
 	Groups = {
 		ActionBar = {
-			Title = "快捷列 1",
+			Title = "Action Bar 1",
 			Buttons = {
 				ActionButton = NUM_ACTIONBAR_BUTTONS
 			}
 		},
 		MultiBarBottomLeft = {
-			Title = "快捷列 2",
+			Title = "Action Bar 2",
 			Buttons = {
 				MultiBarBottomLeftButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarBottomRight = {
-			Title = "快捷列 3",
+			Title = "Action Bar 3",
 			Buttons = {
 				MultiBarBottomRightButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarLeft = {
-			Title = "快捷列 4",
+			Title = "Action Bar 4",
 			Buttons = {
 				MultiBarLeftButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBarRight = {
-			Title = "快捷列 5",
+			Title = "Action Bar 5",
 			Buttons = {
 				MultiBarRightButton = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		-- Three new bars for 10.0.0
 		MultiBar5 = {
-			Title = "快捷列 6",
+			Title = "Action Bar 6",
 			Buttons = {
 				MultiBar5Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBar6 = {
-			Title = "快捷列 7",
+			Title = "Action Bar 7",
 			Buttons = {
 				MultiBar6Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		MultiBar7 = {
-			Title = "快捷列 8",
+			Title = "Action Bar 8",
 			Buttons = {
 				MultiBar7Button = NUM_MULTIBAR_BUTTONS
 			}
 		},
 		PetBar = {
-			Title = "寵物列",
+			Title = "Pet Bar",
 			Buttons = {
 				PetActionButton = NUM_PET_ACTION_SLOTS
 			}
 		},
 		PossessBar = {
-			Title = "控制列",
+			Title = "Possess Bar",
 			Buttons = {
 				PossessButton = NUM_POSSESS_SLOTS
 			}
 		},
 		StanceBar = {
-			Title = "形態列",
+			Title = "Stance Bar",
 			Buttons = {
 				-- Moved to XML frame definition in 10.0.0
 				StanceButton = StanceBar.numButtons
 			}
 		},
 		SpellFlyout = {
-			Title = "彈出選單的技能",
+			Title = "Spell Flyouts",
+			Notes = L["This group includes all flyouts shown anywhere in the game, such as Action Bars and the Spellbook."],
 			Buttons = {
 				SpellFlyoutButton = 0
 			}
 		},
 		OverrideActionBar = {
-			Title = "載具列",
+			Title = "Vehicle Bar",
+			Notes = L["This bar is shown when you enter a vehicle with abilities. The exit button is not currently able to be skinned."],
 			Buttons = {
 				-- Static value in game code is not a global
 				OverrideActionBarButton = 6
@@ -116,7 +122,8 @@ local MasqueBlizzBars = {
 			}
 		},
 		ExtraAbilityContainer = {
-			Title = "額外技能",
+			Title = "Extra Ability Buttons",
+			Notes = L["This group includes the Extra Action Button shown during encounters and quests, and all Zone Ability Buttons shown for location-based abilities.\n\nSome buttons have additional background images framing them, so square skins tend to work best."],
 
 			-- Keep track of the frames that have been processed
 			State = {
@@ -129,7 +136,7 @@ local MasqueBlizzBars = {
 			}
 		},
 		PetBattleFrame = {
-			Title = "寵物對戰列",
+			Title = "Pet Battle Bar",
 			State = {
 				PetBattleButton = {}
 			},
@@ -294,8 +301,13 @@ function MasqueBlizzBars:Init()
 
 	-- Create groups for each defined button group and add any buttons
 	-- that should exist at this point
-	for _, cont in pairs(MasqueBlizzBars.Groups) do
-		cont.Group = MSQ:Group("暴雪快捷列", cont.Title)
+	for id, cont in pairs(MasqueBlizzBars.Groups) do
+		cont.Group = MSQ:Group(L["Blizzard Action Bars"], cont.Title, id)
+		-- Reset l10n group names after ensuring migration to Static IDs
+		cont.Group:SetName(L[cont.Title])
+		if cont.Notes then
+			cont.Group.Notes = cont.Notes
+		end
 		if not cont.Delayed then
 			MasqueBlizzBars:Skin(cont.Buttons, cont.Group)
 		end
