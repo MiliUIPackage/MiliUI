@@ -1,4 +1,4 @@
-## Interface: 100002
+## Interface: 100005
 ## Title: Details!: Tiny Threat (plugin)
 ## Notes: Threat meter plugin, show threat for group members in the window. Select it from the Plugin menu in the Orange Cogwheel.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-仇恨值

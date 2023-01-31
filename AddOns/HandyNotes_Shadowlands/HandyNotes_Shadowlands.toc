@@ -1,4 +1,4 @@
-## Interface: 100002
+## Interface: 100005
 ## Title: HandyNotes: Shadowlands
 ## Version: 47
 ## Notes: Shadowlands Notes
