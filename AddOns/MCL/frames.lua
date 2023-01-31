@@ -44,6 +44,45 @@ function MCL_frames:CreateMainFrame()
 	MCL_mainFrame.settings.tex:SetTexture("Interface\\AddOns\\MCL\\icons\\settings.blp")
 	MCL_mainFrame.settings:SetScript("OnClick", function()MCL_frames:openSettings()end)
 
+	MCL_mainFrame.compare = CreateFrame("Button", nil, MCL_mainFrame);
+	MCL_mainFrame.compare:SetSize(60, 15)
+	MCL_mainFrame.compare:SetPoint("TOPRIGHT", MCL_mainFrame, "TOPRIGHT", -60, -1)
+	MCL_mainFrame.compare.tex = MCL_mainFrame.compare:CreateTexture()
+	MCL_mainFrame.compare.tex:SetAllPoints(MCL_mainFrame.compare)
+	MCL_mainFrame.compare.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
+	MCL_mainFrame.compare.tex:SetVertexColor(0.1,0.1,0.1,0.95, MCL_SETTINGS.opacity)
+	MCL_mainFrame.compare.text = MCL_mainFrame.compare:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+	MCL_mainFrame.compare.text:SetPoint("CENTER", MCL_mainFrame.compare, "CENTER", 0, 0);
+	MCL_mainFrame.compare.text:SetText("Mount Off")
+	MCL_mainFrame.compare.text:SetTextColor(0, 0.7, 0.85)	
+	MCL_mainFrame.compare:SetScript("OnClick", function()core.Function:compareLink()end)
+
+	MCL_mainFrame.sa = CreateFrame("Button", nil, MCL_mainFrame);
+	MCL_mainFrame.sa:SetSize(60, 15)
+	MCL_mainFrame.sa:SetPoint("TOPRIGHT", MCL_mainFrame, "TOPRIGHT", -125, -1)
+	MCL_mainFrame.sa.tex = MCL_mainFrame.sa:CreateTexture()
+	MCL_mainFrame.sa.tex:SetAllPoints(MCL_mainFrame.sa)
+	MCL_mainFrame.sa.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
+	MCL_mainFrame.sa.tex:SetVertexColor(0.1,0.1,0.1,0.95, MCL_SETTINGS.opacity)
+	MCL_mainFrame.sa.text = MCL_mainFrame.sa:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+	MCL_mainFrame.sa.text:SetPoint("CENTER", MCL_mainFrame.sa, "CENTER", 0, 0);
+	MCL_mainFrame.sa.text:SetText("SA")
+	MCL_mainFrame.sa.text:SetTextColor(0, 0.7, 0.85)	
+	MCL_mainFrame.sa:SetScript("OnClick", function()core.Function:simplearmoryLink()end)	
+	
+	MCL_mainFrame.dfa = CreateFrame("Button", nil, MCL_mainFrame);
+	MCL_mainFrame.dfa:SetSize(60, 15)
+	MCL_mainFrame.dfa:SetPoint("TOPRIGHT", MCL_mainFrame, "TOPRIGHT", -190, -1)
+	MCL_mainFrame.dfa.tex = MCL_mainFrame.dfa:CreateTexture()
+	MCL_mainFrame.dfa.tex:SetAllPoints(MCL_mainFrame.dfa)
+	MCL_mainFrame.dfa.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
+	MCL_mainFrame.dfa.tex:SetVertexColor(0.1,0.1,0.1,0.95, MCL_SETTINGS.opacity)
+	MCL_mainFrame.dfa.text = MCL_mainFrame.dfa:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+	MCL_mainFrame.dfa.text:SetPoint("CENTER", MCL_mainFrame.dfa, "CENTER", 0, 0);
+	MCL_mainFrame.dfa.text:SetText("DFA")
+	MCL_mainFrame.dfa.text:SetTextColor(0, 0.7, 0.85)	
+	MCL_mainFrame.dfa:SetScript("OnClick", function()core.Function:dfaLink()end)		
+
 
 	--MCL Frame settings
 	MCL_mainFrame:SetSize(main_frame_width, main_frame_height); -- width, height
@@ -69,6 +108,7 @@ function MCL_frames:CreateMainFrame()
 	MCL_mainFrame.ScrollFrame:SetPoint("BOTTOMRIGHT", MCL_mainFrame.Bg, "BOTTOMRIGHT", -3, 6);
 	MCL_mainFrame.ScrollFrame:SetClipsChildren(true);
 	MCL_mainFrame.ScrollFrame:SetScript("OnMouseWheel", ScrollFrame_OnMouseWheel);
+	MCL_mainFrame.ScrollFrame:EnableMouse(true)
     
 	MCL_mainFrame.ScrollFrame.ScrollBar:ClearAllPoints();
 	MCL_mainFrame.ScrollFrame.ScrollBar:SetPoint("TOPLEFT", MCL_mainFrame.ScrollFrame, "TOPRIGHT", -8, -19);
@@ -166,7 +206,7 @@ function MCL_frames:createNavFrame(relativeFrame, title)
 end
 
 
-function MCL_frames:progressBar(relativeFrame)
+function MCL_frames:progressBar(relativeFrame, top)
 	MyStatusBar = CreateFrame("StatusBar", nil, relativeFrame, "BackdropTemplate")
 	MyStatusBar:SetStatusBarTexture(core.media:Fetch("statusbar", MCL_SETTINGS.statusBarTexture))
 	MyStatusBar:GetStatusBarTexture():SetHorizTile(false)
@@ -174,7 +214,11 @@ function MCL_frames:progressBar(relativeFrame)
 	MyStatusBar:SetValue(0)
 	MyStatusBar:SetWidth(150)
 	MyStatusBar:SetHeight(15)
-	MyStatusBar:SetPoint("BOTTOMLEFT", relativeFrame, "BOTTOMLEFT", 0, 10)
+	if top then
+		MyStatusBar:SetPoint("BOTTOMLEFT", relativeFrame, "BOTTOMLEFT", 0, 10)
+	else
+		MyStatusBar:SetPoint("BOTTOMLEFT", relativeFrame, "BOTTOMLEFT", 0, 10)
+	end
 
 	MyStatusBar:SetStatusBarColor(0.1, 0.9, 0.1)
 
@@ -341,7 +385,7 @@ function MCL_frames:createCategoryFrame(set, relativeFrame)
 
         local pBar = core.Frames:progressBar(category) 
 		local overflow = core.Function:CreateMountsForCategory(v.mounts, category, frame_size, relativeFrame, category, false, false)
-	
+
             
         category:SetSize(((frame_size + 10) * 12),45)
 

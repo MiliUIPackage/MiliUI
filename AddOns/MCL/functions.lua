@@ -10,6 +10,7 @@ core.overviewFrames = {}
 core.mountFrames = {}
 core.mountCheck = {}
 core.addon_name = "Mount Collection Log | MCL"
+core.manuscripts = {}
 
 
 function MCL_functions:getFaction()
@@ -92,10 +93,114 @@ function MCL_functions:TableMounts(id, frame, section, category)
     table.insert(core.mounts, mount)
 end
 
+function MCL_functions:simplearmoryLink()
+    local region = GetCVar("portal")
+
+    local realmName = GetRealmName()
+
+    local playerName = UnitName("player")
+
+    local string = "https://simplearmory.com/#/"..region.."/"..realmName.."/"..playerName
+
+    KethoEditBox_Show(string)
+
+end
+
+function MCL_functions:dfaLink()
+    local region = GetCVar("portal")
+
+    local realmName = GetRealmName()
+
+    local playerName = UnitName("player")
+
+    local string = "https://www.dataforazeroth.com/characters/"..region.."/"..realmName.."/"..playerName
+
+    KethoEditBox_Show(string)
+
+end
+
+function MCL_functions:compareLink()
+    local region = GetCVar("portal")
+
+    local realmName = GetRealmName()
+
+    local playerName = UnitName("player")
+    local targetName, targetRealm
+    if UnitIsPlayer("target") then
+        targetName, targetRealm = UnitName("target")
+        if targetRealm == nil then
+            targetRealm = realmName
+        end
+    else
+        KethoEditBox_Show("Mount off需要一個目標")
+        return
+    end
+    
+    local string = "https://wow-mcl.herokuapp.com/?realma="..region.."."..realmName.."&charactera="..playerName.."&realmb="..region.."."..targetRealm.."&characterb="..targetName
+    
+    KethoEditBox_Show(string)
+end
+
+
+function KethoEditBox_Show(text)
+    if not KethoEditBox then
+        local f = CreateFrame("Frame", "KethoEditBox", UIParent, "DialogBoxFrame")
+        f:SetPoint("CENTER")
+        f:SetSize(700, 100)
+        
+        f:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\PVPFrame\\UI-Character-PVP-Highlight", -- this one is neat
+            edgeSize = 16,
+            insets = { left = 8, right = 6, top = 8, bottom = 8 },
+        })
+        f:SetBackdropBorderColor(0, .44, .87, 0.5) -- darkblue
+        
+        -- Movable
+        f:SetMovable(true)
+        f:SetClampedToScreen(true)
+        f:SetScript("OnMouseDown", function(self, button)
+            if button == "LeftButton" then
+                self:StartMoving()
+            end
+        end)
+        f:SetScript("OnMouseUp", f.StopMovingOrSizing)
+        
+        -- ScrollFrame
+        local sf = CreateFrame("ScrollFrame", "KethoEditBoxScrollFrame", KethoEditBox, "UIPanelScrollFrameTemplate")
+        sf:SetPoint("LEFT", 16, 0)
+        sf:SetPoint("RIGHT", -32, 0)
+        sf:SetPoint("TOP", 0, -16)
+        sf:SetPoint("BOTTOM", KethoEditBoxButton, "TOP", 0, 0)
+        
+        -- EditBox
+        local eb = CreateFrame("EditBox", "KethoEditBoxEditBox", KethoEditBoxScrollFrame)
+        eb:SetSize(sf:GetSize())
+        eb:SetMultiLine(true)
+        eb:SetAutoFocus(false) -- dont automatically focus
+        eb:SetFontObject("ChatFontNormal")
+        eb:SetScript("OnEscapePressed", function() f:Hide() end)
+        sf:SetScrollChild(eb)
+        
+        -- Resizable
+        f:SetResizable(true)
+        f:SetFrameStrata("HIGH")
+        
+        f:Show()
+    end
+    
+    if text then
+        KethoEditBoxEditBox:SetText(text)
+    end
+    KethoEditBox:Show()
+    core.MCL_MF:Hide()
+end
+
 function MCL_functions:initSections()
     -- * --------------------------------
     -- * Create variables and assign strings to each section.
     -- * --------------------------------
+
     local faction = MCL_functions:getFaction()
     core.sections = {}
 
@@ -233,7 +338,7 @@ function MCL_functions:getTableLength(set)
     return i
 end
 
-function MCL_functions:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink, spellID)
+function MCL_functions:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink, spellID, isDragonRidable)
     frame:SetScript("OnMouseDown", function(self, button)
         if IsControlKeyDown() then
             if button == 'LeftButton' then
@@ -282,7 +387,7 @@ function MCL_functions:SetMouseClickFunctionalityPin(frame, mountID, mountName, 
     end)
 end
 
-function MCL_functions:SetMouseClickFunctionality(frame, mountID, mountName, itemLink, spellID) -- * Mount Frames
+function MCL_functions:SetMouseClickFunctionality(frame, mountID, mountName, itemLink, spellID, isDragonRidable) -- * Mount Frames
     frame:SetScript("OnMouseDown", function(self, button)
         if IsControlKeyDown() then
             if button == 'LeftButton' then
@@ -336,10 +441,18 @@ function MCL_functions:SetMouseClickFunctionality(frame, mountID, mountName, ite
                 end
             end               
         elseif button=='LeftButton' then
-            if (itemLink) then
-                frame:SetScript("OnHyperlinkClick", ChatFrame_OnHyperlinkShow(_, itemLink, itemLink, _))
-            elseif (spellID) then
-                frame:SetScript("OnHyperlinkClick", ChatFrame_OnHyperlinkShow(_, GetSpellLink(spellID), GetSpellLink(spellID), _))
+            if isDragonRidable then
+                if frame.pop:IsShown() then
+                    frame.pop:Hide()
+                else
+                    frame.pop:Show()
+                end
+            else
+                if (itemLink) then
+                    frame:SetScript("OnHyperlinkClick", ChatFrame_OnHyperlinkShow(_, itemLink, itemLink, _))
+                elseif (spellID) then
+                    frame:SetScript("OnHyperlinkClick", ChatFrame_OnHyperlinkShow(_, GetSpellLink(spellID), GetSpellLink(spellID), _))
+                end
             end
         end
         if button == 'RightButton' then
@@ -348,11 +461,11 @@ function MCL_functions:SetMouseClickFunctionality(frame, mountID, mountName, ite
     end)
 end
 
-function MCL_functions:LinkMountItem(id, frame, pin)
+function MCL_functions:LinkMountItem(id, frame, pin, dragonriding)
 	--Adding a tooltip for mounts
     if string.sub(id, 1, 1) == "m" then
         id = string.sub(id, 2, -1)
-        local mountName, spellID, icon, _, _, _, _, isFactionSpecific, faction, _, isCollected, mountID = C_MountJournal.GetMountInfoByID(id)
+        local mountName, spellID, icon, _, _, _, _, isFactionSpecific, faction, _, isCollected, mountID, isDragonRidable = C_MountJournal.GetMountInfoByID(id)
 
         frame:HookScript("OnEnter", function()
             if (spellID) then
@@ -368,33 +481,49 @@ function MCL_functions:LinkMountItem(id, frame, pin)
             GameTooltip:Hide()
         end)
         if pin == true then
-            core.Function:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink, spellID)
+            core.Function:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink, spellID, isDragonRidable)
         else
-            core.Function:SetMouseClickFunctionality(frame, mountID, mountName, itemLink, spellID)
+            core.Function:SetMouseClickFunctionality(frame, mountID, mountName, itemLink, spellID, isDragonRidable)
         end  
     else
         local item, itemLink = GetItemInfo(id);
-        local mountID = C_MountJournal.GetMountFromItem(id)
-        local mountName, spellID, icon, _, _, _, _, isFactionSpecific, faction, _, isCollected, mountID = C_MountJournal.GetMountInfoByID(mountID)
-     
-        frame:HookScript("OnEnter", function()
-            if (itemLink) then
-                frame:SetHyperlinksEnabled(true)
-                _, description, source, _, mountTypeID, _, _, _, _ = C_MountJournal.GetMountInfoExtraByID(mountID)                     
-                GameTooltip:SetOwner(frame, "ANCHOR_TOP")
-                GameTooltip:SetHyperlink(itemLink)
-                GameTooltip:AddLine(source)   
-                GameTooltip:Show()
-            end
-        end)
-        frame:HookScript("OnLeave", function()
-            GameTooltip:Hide()
-        end)
-        if pin == true then
-            core.Function:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink)
+        if dragonriding then
+            frame:HookScript("OnEnter", function()
+                if (id) then
+                    GameTooltip:SetOwner(frame, "ANCHOR_TOPLEFT")
+                    GameTooltip:SetItemByID(id)
+                    GameTooltip:AddLine(frame.source)
+                    GameTooltip:Show()
+                    frame:SetHyperlinksEnabled(true)
+                end
+            end)
+            frame:HookScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+
         else
-            core.Function:SetMouseClickFunctionality(frame, mountID, mountName, itemLink)
-        end    
+            local mountID = C_MountJournal.GetMountFromItem(id)
+            local mountName, spellID, icon, _, _, _, _, isFactionSpecific, faction, _, isCollected, mountID, isDragonRidable = C_MountJournal.GetMountInfoByID(mountID)
+        
+            frame:HookScript("OnEnter", function()
+                if (itemLink) then
+                    frame:SetHyperlinksEnabled(true)
+                    _, description, source, _, mountTypeID, _, _, _, _ = C_MountJournal.GetMountInfoExtraByID(mountID)                     
+                    GameTooltip:SetOwner(frame, "ANCHOR_TOP")
+                    GameTooltip:SetHyperlink(itemLink)
+                    GameTooltip:AddLine(source)
+                    GameTooltip:Show()
+                end
+            end)
+            frame:HookScript("OnLeave", function()
+                GameTooltip:Hide()
+            end)
+            if pin == true then
+                core.Function:SetMouseClickFunctionalityPin(frame, mountID, mountName, itemLink, _, isDragonRidable)
+            else
+                core.Function:SetMouseClickFunctionality(frame, mountID, mountName, itemLink, _, isDragonRidable)
+            end
+        end
     end
      
 end
@@ -433,6 +562,86 @@ function MCL_functions:CheckIfPinned(mountID)
     return false, nil
 end
 
+function MCL_functions:CreateManuscriptForCategory(set, frame_size,mountName)
+    local count = 0
+    local overflow = 0
+    local pop = CreateFrame("Frame", nil, UIParent, "MCLFrameTemplateWithInset");
+    local first_frame = pop
+    local relativeFrame
+    pop:SetPoint("CENTER");
+    pop.Bg:SetVertexColor(0,0,0,MCL_SETTINGS.opacity)
+    pop.TitleBg:SetVertexColor(0.1,0.1,0.1,0.95)
+    pop:SetMovable(true)
+	pop:EnableMouse(true)
+
+	pop:RegisterForDrag("LeftButton")
+	pop:SetScript("OnDragStart", pop.StartMoving)
+	pop:SetScript("OnDragStop", MCL_mainFrame.StopMovingOrSizing)   
+
+	pop.title = pop:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+	pop.title:SetPoint("LEFT", pop.TitleBg, "LEFT", 5, 2);
+	pop.title:SetText(mountName);
+	pop.title:SetTextColor(0, 0.7, 0.85)
+
+    pop.stats = CreateFrame("Frame", nil, pop, "BackdropTemplate")
+	pop.stats:SetWidth(((frame_size+10)*12))
+    pop.stats:SetHeight(20)
+	pop.stats:SetPoint("TOPLEFT", pop, "TOPLEFT", 5, -35)
+    pop.stats.pBar = core.Frames:progressBar(pop.stats)
+    pop.stats.pBar:SetWidth(((frame_size+10)*12))
+
+
+    for k,v in pairs(set) do
+        if count == 12 then
+            overflow = overflow + frame_size + 10
+        end         
+        local itemTexture = GetItemIcon(v[1])
+        local frame = CreateFrame("Button", nil, first_frame, "BackdropTemplate");
+        frame:SetWidth(frame_size);
+        frame:SetHeight(frame_size);
+
+        frame.quest = v[2]
+
+        frame:SetBackdrop({
+            edgeFile = [[Interface\Buttons\WHITE8x8]],
+            edgeSize = frame_size + 2,
+            bgFile = [[Interface\Buttons\WHITE8x8]],              
+        })
+
+
+        frame:SetBackdropBorderColor(1, 0, 0, 0.03)
+        frame:SetBackdropColor(0, 0, 0, MCL_SETTINGS.opacity)
+
+        frame.source = v[3]
+
+
+        frame.tex = frame:CreateTexture()
+        frame.tex:SetSize(frame_size, frame_size)
+        frame.tex:SetPoint("LEFT")
+        frame.tex:SetTexture(itemTexture)
+    
+        frame.tex:SetVertexColor(0.75, 0.75, 0.75, 0.3);
+
+        if relativeFrame == nil then
+            frame:SetPoint("TOPLEFT", pop, "TOPLEFT", 10, -55);
+            first_frame = frame
+        elseif count == 12 then
+            frame:SetPoint("BOTTOMLEFT", first_frame, "BOTTOMLEFT", 0, -overflow);
+            count = 0
+        else
+            frame:SetPoint("RIGHT", relativeFrame, "RIGHT", frame_size+10, 0);
+        end 
+        count = count + 1
+        relativeFrame = frame
+        core.Function:LinkMountItem(v[1], frame, false, true)
+        table.insert(core.manuscripts, frame)       
+    end
+    pop:SetSize(((frame_size+10)*12) + 20, overflow+frame_size+70)
+    pop:SetFrameStrata("DIALOG")
+    pop:Hide()
+    return pop
+end
+
 
 function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, tab, skip_total, pin)
 
@@ -443,7 +652,7 @@ function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, t
     local overflow = 0
     local mountFrames = {}
     local val
-    local mountName, spellID, icon, _, _, sourceType, _, isFactionSpecific, faction, _, isCollected, mountID, sourceText
+    local mountName, spellID, icon, _, _, sourceType, _, isFactionSpecific, faction, _, isCollected, mountID, sourceText, isDragonRidable
 
     for kk,vv in pairs(set) do
         local mount_Id
@@ -454,10 +663,11 @@ function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, t
         end
         if string.sub(val, 1, 1) == "m" then
             mount_Id = string.sub(val, 2, -1)
-            mountName, spellID, icon, _, _, sourceType, _, isFactionSpecific, faction, _, isCollected, mountID, _ = C_MountJournal.GetMountInfoByID(mount_Id)
+            mountName, spellID, icon, _, _, sourceType, _, isFactionSpecific, faction, _, isCollected, mountID, isDragonRidable = C_MountJournal.GetMountInfoByID(mount_Id)
             _,_, sourceText =  C_MountJournal.GetMountInfoExtraByID(mount_Id)
         else
             mount_Id = C_MountJournal.GetMountFromItem(val)
+            mountName, spellID, icon, _, _, sourceType, _, isFactionSpecific, faction, _, isCollected, mountID, isDragonRidable = C_MountJournal.GetMountInfoByID(mount_Id)
         end        
         local faction, faction_specific = IsMountFactionSpecific(val)
         if faction then
@@ -490,6 +700,9 @@ function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, t
             frame.category = category.category
             frame.section = category.section
 
+            frame.dragonRidable = isDragonRidable
+
+
             frame:SetBackdropBorderColor(1, 0, 0, 0.03)
             frame:SetBackdropColor(0, 0, 0, MCL_SETTINGS.opacity)
 
@@ -506,7 +719,8 @@ function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, t
         
             frame.tex:SetVertexColor(0.75, 0.75, 0.75, 0.3);
 
-            frame.mountID = mount_Id            
+            frame.mountID = mount_Id
+            frame.itemID = val            
 
             local pin_check = core.Function:CheckIfPinned("m"..frame.mountID)
             if pin_check == true then
@@ -578,6 +792,26 @@ function MCL_functions:CreateMountsForCategory(set, relativeFrame, frame_size, t
             else
                 if tab then
                     MCL_functions:TableMounts(mount_Id, frame, tab, category)
+                end
+            end
+            if isDragonRidable then
+                for k,v in pairs(core.dragonRiding) do
+                    if k == val then
+                        frame.pop = core.Function:CreateManuscriptForCategory(v.manuscripts, frame_size, mountName)
+                        frame.mini_pBar = core.Frames:progressBar(frame)
+                        frame.mini_pBar:SetWidth(frame_size)
+                        frame.mini_pBar.Text:Hide()
+                        frame.mini_pBar:SetHeight(5)
+                        frame.mini_pBar:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 0,-10)
+                        frame.mini_pBar:HookScript("OnEnter", function()
+                            GameTooltip:SetOwner(frame, "ANCHOR_BOTTOMLEFT")
+                            GameTooltip:AddLine(string.format("%s/%s", frame.mini_pBar.collected, frame.mini_pBar.total))
+                            GameTooltip:Show()
+                        end)
+                        frame.mini_pBar:HookScript("OnLeave", function()
+                            GameTooltip:Hide()
+                        end)                                          
+                    end
                 end
             end
             table.insert(mountFrames, frame)
@@ -702,6 +936,8 @@ function UpdateProgressBar(frame, total, collected)
         if total == 0 then
             return
         end
+        frame.collected = collected
+        frame.total = total
         frame:SetValue((collected/total)*100)
         frame.Text:SetText(collected.."/"..total.." ("..math.floor(((collected/total)*100)).."%)")
         frame.val = (collected/total)*100
@@ -747,6 +983,7 @@ local function UpdatePin(frame)
     end
 end   
 
+
 function MCL_functions:UpdateCollection()
     clearOverviewStats()
     core.MCL_MF.Bg:SetVertexColor(0,0,0,MCL_SETTINGS.opacity)
@@ -787,6 +1024,28 @@ function MCL_functions:UpdateCollection()
 
         else
             UpdatePin(v.frame)
+        end
+        if v.frame.dragonRidable then
+            for key, m in pairs(core.dragonRiding) do
+                if key == v.frame.itemID then
+                    local count = 0
+                    local collected = 0
+                    for i,j in pairs(m.manuscripts) do
+                        count = count + 1
+                        if C_QuestLog.IsQuestFlaggedCompleted(j[2]) then
+                            collected = collected + 1
+                        end
+                    end
+                    UpdateProgressBar(v.frame.pop.stats.pBar, count, collected)
+                    UpdateProgressBar(v.frame.mini_pBar, count, collected)
+                end
+            end
+        end
+    end
+    for k,v in pairs(core.manuscripts) do
+        if C_QuestLog.IsQuestFlaggedCompleted(v.quest) then
+            v:SetBackdropBorderColor(0, 0.45, 0, 0.4)
+            v.tex:SetVertexColor(1, 1, 1, 1);
         end
     end
     for k,v in pairs(core.stats) do
