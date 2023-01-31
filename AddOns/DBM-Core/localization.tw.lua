@@ -511,7 +511,9 @@ L.AUTO_YELL_ANNOUNCE_TEXT.repeaticon		= "{rt%%1$d}"
 L.AUTO_YELL_CUSTOM_FADE					= "%s已消退"
 L.AUTO_HUD_OPTION_TEXT					= "為$spell:%s顯示HudMap(不再作用)"
 L.AUTO_HUD_OPTION_TEXT_MULTI			= "為不同的機制顯示HudMap(不再作用)"
-L.AUTO_NAMEPLATE_OPTION_TEXT			= "為$spell:%s顯示姓名版光環"
+L.AUTO_NAMEPLATE_OPTION_TEXT			= "為$spell:%s顯示姓名版光環，使用在相容的名條插件或DBM"
+L.AUTO_NAMEPLATE_OPTION_TEXT_FORCED		= "為$spell:%s顯示姓名版光環，使用在DBM"
+
 L.AUTO_RANGE_OPTION_TEXT				= "為$spell:%2$s顯示距離框架(%1$s碼)"
 L.AUTO_RANGE_OPTION_TEXT_SHORT			= "顯示距離框架(%s碼)"
 L.AUTO_RRANGE_OPTION_TEXT				= "為$spell:%2$s顯示反色距離框架(%1$s碼)"--Reverse range frame (green when players in range, red when not)

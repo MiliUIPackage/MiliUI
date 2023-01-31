@@ -291,6 +291,7 @@ L:SetMiscLocalization({
 	Book		= "書本 / book",
 	Pouch		= "腰袋 / pouch",
 
+	SpyFoundP 	= "我找到間諜了",
 	SpyFound 	= "間諜已經被 %s 找到"
 })
 
