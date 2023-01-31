@@ -1,19 +1,19 @@
-## Interface: 100002
+## Interface: 100005
 ## Title: TinyChat
 ## Notes: TinyChat
 ## Title-zhTW: |cffFF9999[社交]|r 聊天增強
 ## Notes-zhTW: TinyChat |n|n一個超輕量級的聊天視窗功能增強插件。提供切換頻道按鈕、複製聊天內容、表情圖案、開怪倒數、擲骰子、顯示物品等級和圖示...還有更多功能。|n|n|cffffd200使用方法: |r右鍵點頻道按鈕最左側的小圖示，開啟設定。
 ## X-Category-zhTW: 社交
 ## Author: M, 彩虹ui
-## Version: 10.0.4
+## Version: 10.0.5.4
 ## SavedVariables: TinyChatDB
 
 libs\LibStub\LibStub.lua
 libs\LibUIDropDownMenu\LibUIDropDownMenu.xml
 
-## ChatAtFriends.lua
 ChatEmote.lua
 ChatHistory.lua
+ChatFilter.lua
 ChatLinkIcon.lua
 ChatLinkLevel.lua
 ChatSimplify.lua
