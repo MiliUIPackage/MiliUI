@@ -1,4 +1,20 @@
 ﻿------------------------------------------------------
+11.1.11 (2023-01-25)
+------------------------------------------------------
+* Updated TOC version for WoW Patch 10.0.5.
+
+------------------------------------------------------
+11.1.10 (2023-01-24)
+------------------------------------------------------
+* Fixed a bug in the option dialog where unavailable options where shown in Classic WoW.
+* Updated TOC version for Wrath Classic Patch 3.4.1.
+
+------------------------------------------------------
+11.1.9 (2023-01-10)
+------------------------------------------------------
+* Fixed a Lua error in Combo Points widget for Deathknights that occured because of a typo [GH-379].
+
+------------------------------------------------------
 11.1.8 (2023-01-08)
 ------------------------------------------------------
 * Added Freeze (Mage Water Elemental) to Auras widget as CC aura for Wrath Classic.
