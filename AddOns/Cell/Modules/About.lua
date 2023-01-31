@@ -165,7 +165,7 @@ end
 local function CreatePatronsPane()
     -- pane
     local patronsPane = Cell:CreateTitledPane(aboutTab, "", 100, 100)
-    patronsPane:SetFrameStrata("LOW")
+    -- patronsPane:SetFrameStrata("LOW")
     patronsPane:SetPoint("TOPLEFT", aboutTab, "TOPRIGHT", 6, -5)
     patronsPane:SetPoint("BOTTOMLEFT", aboutTab, "BOTTOMRIGHT", 6, 5)
     patronsPane:Hide()
@@ -181,11 +181,7 @@ local function CreatePatronsPane()
     bgTex:SetPoint("TOPLEFT", -5, 5)
     bgTex:SetPoint("BOTTOMRIGHT", 5, -5)
     bgTex:SetTexture("Interface\\Buttons\\WHITE8x8")
-    if Cell.isRetail then
-        bgTex:SetGradient("HORIZONTAL", CreateColor(0.1, 0.1, 0.1, 1), CreateColor(0.1, 0.1, 0.1, 0.25))
-    else
-        bgTex:SetGradientAlpha("HORIZONTAL", 0.1, 0.1, 0.1, 1, 0.1, 0.1, 0.1, 0.25)
-    end
+    bgTex:SetGradient("HORIZONTAL", CreateColor(0.1, 0.1, 0.1, 1), CreateColor(0.1, 0.1, 0.1, 0.25))
 
     local patronsScroll = Cell:CreateScrollFrame(patronsPane, -27, 0)
     patronsScroll:SetScrollStep(27)

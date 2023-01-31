@@ -1576,11 +1576,25 @@ function F:Revise()
 
     -- r150-release
     if CellDB["revise"] and dbRevision < 150 then
+        local healthThresholds = Cell.defaults.indicatorIndices["healthThresholds"]
         local dispels = Cell.defaults.indicatorIndices["dispels"]
         local mitigation = Cell.defaults.indicatorIndices["tankActiveMitigation"]
         local aggroBar = Cell.defaults.indicatorIndices["aggroBar"]
 
         for _, layout in pairs(CellDB["layouts"]) do
+            --! check healthThresholds AGAIN
+            if layout["indicators"][healthThresholds]["indicatorName"] ~= "healthThresholds" then
+                tinsert(layout["indicators"], healthThresholds, {
+                    ["name"] = "Health Thresholds",
+                    ["indicatorName"] = "healthThresholds",
+                    ["type"] = "built-in",
+                    ["enabled"] = false,
+                    ["thickness"] = 1,
+                    ["thresholds"] = {
+                        {0.35, {1, 0, 0, 1}},
+                    },
+                })
+            end
             -- add orientation to Dispels
             if layout["indicators"][dispels] and not layout["indicators"][dispels]["orientation"] then
                 layout["indicators"][dispels]["orientation"] = "right-to-left"
@@ -1756,6 +1770,26 @@ function F:Revise()
             end
 
             Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
+        end
+    end
+
+    -- r154-release
+    if CellDB["revise"] and dbRevision < 154 then
+        if Cell.isRetail then
+            -- 诺库德阻击战
+            if not F:TContains(CellDB["targetedSpellsList"], 376644) then -- 钢铁之矛
+                tinsert(CellDB["targetedSpellsList"], 376644)
+            end
+            if not F:TContains(CellDB["targetedSpellsList"], 376865) then -- 静电之矛
+                tinsert(CellDB["targetedSpellsList"], 376865)
+            end
+            if not F:TContains(CellDB["targetedSpellsList"], 382836) then -- 残杀
+                tinsert(CellDB["targetedSpellsList"], 382836)
+            end
+            -- 英灵殿
+            if not F:TContains(CellDB["targetedSpellsList"], 196838) then -- 血之气息
+                tinsert(CellDB["targetedSpellsList"], 196838)
+            end
         end
     end
 
