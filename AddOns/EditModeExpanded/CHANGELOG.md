@@ -1,10 +1,7 @@
 # Edit Mode Expanded
 
-## [10.0-029](https://github.com/teelolws/EditModeExpanded/tree/10.0-029) (2022-11-23)
-[Full Changelog](https://github.com/teelolws/EditModeExpanded/compare/10.0-028...10.0-029) [Previous Releases](https://github.com/teelolws/EditModeExpanded/releases)
+## [10.0-046](https://github.com/teelolws/EditModeExpanded/tree/10.0-046) (2023-01-26)
+[Full Changelog](https://github.com/teelolws/EditModeExpanded/compare/10.0-045...10.0-046) [Previous Releases](https://github.com/teelolws/EditModeExpanded/releases)
 
-- Version 29  
-- Add subzone information support (the writing at the top of your screen, such as pvp objectives or portals in violet hold)  
-    Closes https://github.com/teelolws/EditModeExpanded/issues/47  
-- Add ability to resize minimap  
-- Fix bug causing Alerts system to move back to the default position at bottom middle of the screen  
+- Fix issue with reputation bar when being shown in the experience bar slot at max level  
+    Closes https://github.com/teelolws/EditModeExpanded/issues/71  
