@@ -23,6 +23,8 @@ L["|cffeda55fRight-Click|r to toggle performance profiling window."] = "|cffeda5
 L["|cffeda55fShift-Click|r to pause addon execution."] = "|cffeda55f쉬프트-클릭|r 으로 애드온 실행을 일시 중지합니다."
 L["|cFFFF0000Not|r Item Bonus Id Equipped"] = "|cFFFF0000착용하지 않은|r 아이템 보너스 ID"
 L["|cFFFF0000Not|r Player Name/Realm"] = "플레이어 이름/서버 |cFFFF0000불일치|r"
+--[[Translation missing --]]
+L["|cFFFF0000Not|r Spell Known"] = "|cFFFF0000Not|r Spell Known"
 L["|cFFffcc00Extra Options:|r %s"] = "|cFFffcc00추가 옵션:|r %s"
 L["|cFFffcc00Extra Options:|r None"] = "|cFFffcc00추가 옵션:|r 없음"
 L[ [=[• |cff00ff00Player|r, |cff00ff00Target|r, |cff00ff00Focus|r, and |cff00ff00Pet|r correspond directly to those individual unitIDs.
@@ -239,6 +241,8 @@ L["Buff/Debuff"] = "강화 효과/약화 효과"
 L["Buffed/Debuffed"] = "강화 효과/약화 효과"
 L["Burning Crusade"] = "불타는 성전"
 L["Buru the Gorger"] = "먹보 부루"
+--[[Translation missing --]]
+L["Callback function"] = "Callback function"
 L["Can be used for e.g. checking if \"boss1target\" is the same as \"player\"."] = "예를 들어 \"우두머리1대상\"이 \"플레이어\"와 같은지 확인하는데 사용할 수 있습니다."
 L["Cancel"] = "취소"
 --[[Translation missing --]]
@@ -573,6 +577,8 @@ L["Flex Raid"] = "탄력적 공격대"
 L["Flip"] = "휙 넘기기"
 L["Floor"] = "바닥"
 L["Focus"] = "주시 대상"
+--[[Translation missing --]]
+L["Font"] = "Font"
 L["Font Size"] = "글꼴 크기"
 L["Forbidden function or table: %s"] = "금지된 함수 또는 테이블: %s"
 L["Foreground"] = "전경"
@@ -864,8 +870,14 @@ Intermissions are .5
 E.g. 1;2;1;2;2.5;3]=] ] = "던전 도감의 단계 번호와 일치합니다. 사잇단계는 0.5 예를 들어 1;2;1;2;2.5;3"
 L["Max Char "] = "최대 글자수"
 L["Max Charges"] = "최대 충전량"
+--[[Translation missing --]]
+L["Max Health"] = "Max Health"
+--[[Translation missing --]]
+L["Max Power"] = "Max Power"
 L["Maximum"] = "최대"
 L["Maximum Estimate"] = "최대 예상치"
+--[[Translation missing --]]
+L["Media"] = "Media"
 L["Medium"] = "중간"
 --[[Translation missing --]]
 L["Melee Haste (%)"] = "Melee Haste (%)"
@@ -1304,6 +1316,8 @@ L["Standing"] = "Standing"
 L["Star Shake"] = "별모양 흔들림"
 L["Start Now"] = "지금 시작"
 L["Status"] = "상태"
+--[[Translation missing --]]
+L["Status Bar"] = "Status Bar"
 L["Stolen"] = "훔침"
 L["Stop"] = "중지"
 L["Strength"] = "힘"
@@ -1354,6 +1368,8 @@ L["Text-to-speech"] = "Text-to-speech"
 L["Texture Function"] = "Texture Function"
 --[[Translation missing --]]
 L["Texture Function (fallback state)"] = "Texture Function (fallback state)"
+--[[Translation missing --]]
+L["Texture Rotation"] = "Texture Rotation"
 L["Thaddius"] = "타디우스"
 L["The aura has overwritten the global '%s', this might affect other auras."] = "aura가 전역 '%s'|1을;를; 덮어썼습니다, 다른 aura도 영향을 받습니다."
 L["The Battle for Mount Hyjal"] = "하이잘 산 전투"

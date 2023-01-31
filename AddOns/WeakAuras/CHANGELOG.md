@@ -1,33 +1,32 @@
-# [5.3.4](https://github.com/WeakAuras/WeakAuras2/tree/5.3.4) (2022-12-27)
+# [5.3.7](https://github.com/WeakAuras/WeakAuras2/tree/5.3.7) (2023-01-24)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.3.3...5.3.4)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.3.6...5.3.7)
 
 ## Highlights
 
- - Bug fixes 
+ - Data updates for 10.0.5
+- Bug fixes 
 
 ## Commits
 
-InfusOnWoW (6):
+Håkon Solbjørg (1):
 
-- Progress Texture: Don't animate smoothly on show
-- Feral Templates: Fix missing/wrong buffs
-- Fix Dragonriding load option when transitioning from riding to taxi
-- Fix textreplacement for %% input
-- Prevent very old ZT trackers from breaking the options
-- Fix Spell Count difference tracking not being detected
+- chore(typo): Fix typo for example in enUS locale
 
-emptyrivers (2):
+InfusOnWoW (5):
 
-- bump widget version
-- reset font object on acquire
+- Fix pending update/install section being layouted wrongly
+- Fix talent load options regression for some spells
+- Fix customTextUpdate not being run in some circumstances
+- Fix lua error on creating a new cast bar that wants to watch latency
+- BuffTrigger2: Mention idTip in tooltip
+
+Stanzilla (1):
+
+- Update TOC for retail patch 10.0.5
 
 mrbuds (2):
 
-- Make WeakAuras.SpecRolePositionForUnit correctly return 3 values
-- Aurabar gradient: wotlk ptr switched to retail api, fixes #4148
-
-nullKomplex (1):
-
-- Fix power cost of abilities that change with certain auras.
+- update dragonflight talents tree for 10.0.5.47660
+- pixel glow: do not show border when option is nil
 
