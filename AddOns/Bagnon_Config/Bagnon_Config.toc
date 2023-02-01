@@ -7,4 +7,5 @@
 ## Dependencies: Bagnon
 ## LoadOnDemand: 1
 
-..\Bagnon\addons\config\config.xml
+..\Bagnon\src\config.lua
+..\BagBrother\addons\config\config.xml

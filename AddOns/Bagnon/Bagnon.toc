@@ -5,9 +5,10 @@
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合
 ## Notes-zhTW: Bagnon|n功能強大的整合背包。
 ## OptionalDeps: BagBrother, WoWUnit
+
 ## SavedVariables: Bagnon_Sets
 ## Dependencies: BagBrother
 ## OptionalDeps: WoWUnit
-## Version: 10.0.5
+## Version: 10.0.16
 
-addons\main\main.xml
+src\main.xml

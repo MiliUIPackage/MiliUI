@@ -7,4 +7,4 @@
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1
 
-..\Bagnon\addons\vault\vault.xml
+..\BagBrother\addons\vault\vault.xml

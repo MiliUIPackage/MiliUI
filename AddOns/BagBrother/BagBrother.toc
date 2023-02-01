@@ -6,5 +6,3 @@
 ## Author: Jaliborc (João Cardoso)
 ## SavedVariables: BrotherBags
 ## OptionalDeps: WoWUnit
-
-BagBrother.xml
