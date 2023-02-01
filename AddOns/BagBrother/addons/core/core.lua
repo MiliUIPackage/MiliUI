@@ -113,7 +113,7 @@ function Addon:OnEnable()
 		resetPlayer = true, flashFind = true, tipCount = true, serverSort = true,
 
 		glowAlpha = 0.8,
-		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
+		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true, glowPoor = true,
 
 		slotBackground = 3, colorSlots = true,
 		normalColor = {1, 1, 1},
