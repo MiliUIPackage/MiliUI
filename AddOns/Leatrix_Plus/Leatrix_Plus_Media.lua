@@ -420,6 +420,11 @@
 		"dragonflight/mus_100_valdrakken_1_a#218103",
 		"dragonflight/mus_100_thaldraszus_1_h#218035",
 	})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Azure Vault"]						, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Azure Vault"], prefol,
+		-- Azure Vault
+		"dragonflight/mus_100_azurespan_bluedragon_1#218019",
+		"dragonflight/mus_100_azurespan_bluedragon_2#218018",
+	})
 	Zn(L["Dungeons"], L["Dragonflight"], L["Brackenhide Hollow"]				, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Brackenhide Hollow"], prefol,
 		-- Brackenhide Hollow
 		"dragonflight/dgn_100_brackenhide_base_walk#218046",
@@ -429,7 +434,7 @@
 		"dragonflight/dgn_100_neltharus_djaradin_battle_a_01#218132",
 		"dragonflight/dgn_100_neltharus_djaradin_battle_b_01#218133",
 	})
-	Zn(L["Dungeons"], L["Dragonflight"], L["Nokhud Offensive"]				, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nokhud Offensive"], prefol,
+	Zn(L["Dungeons"], L["Dragonflight"], L["Nokhud Offensive"]					, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Nokhud Offensive"], prefol,
 		-- Nokhud Offensive
 		"dragonflight/dgn_100_nokhudoffensive_dungeon_cleared_01#218060",
 		"dragonflight/dgn_100_nokhudoffensive_battle_a_01#218059",
@@ -444,8 +449,15 @@
 	})
 	Zn(L["Dungeons"], L["Dragonflight"], L["Uldaman (Dragonflight)"]			, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Uldaman (Dragonflight)"], prefol,
 		-- Uldaman (Dragonflight)
-		"unknown/event_100_dgn_uldaman_lostdwarves_final_4879661#218071",
-		"Intro_100_DGN_Uldaman_FinalRoom#214302",
+		"dragonflight/unknown/event_100_dgn_uldaman_lostdwarves_final_4879661#218071",
+		"dragonflight/Intro_100_DGN_Uldaman_FinalRoom#214302",
+	})
+	Zn(L["Dungeons"], L["Dragonflight"], L["Vault of the Incarnates"]			, {	"|cffffd800" .. L["Dungeons"] .. ": " .. L["Vault of the Incarnates"], prefol,
+		-- Vault of the Incarnates
+		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_01#217857",
+		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_02#217863",
+		"dragonflight/mus_100_scene_vaultoftheincarnates_raszageth_03#217867",
+		"dragonflight/mus_100_scene_eranog_fire_transformation#217848",
 	})
 
 	----------------------------------------------------------------------
@@ -630,6 +642,7 @@
 		"|Cffffffff" .. L["Dragonflight Legacies (2)"] .. " |r#4687623#294", -- interface/cinematics/dragonflight_100_dw.mp3
 		"|Cffffffff" .. L["Dragonflight Legacies (3)"] .. " |r#4854572#350", -- interface/cinematics/dragonflight_100_dt.mp3
 		"|Cffffffff" .. L["The Ebon Scales"] .. " |r#4687624#23", -- interface/cinematics/shadowlands/dragonflight_1001_didc.mp3
+		"|Cffffffff" .. L["The Seed of Hope"] .. " |r#4687619#128", -- unknown
 	})
 
 	Zn(L["Various"], L["Various"], L["Class Trials"]							, {	"|cffffd800" .. L["Various"] .. ": " .. L["Class Trials"], prefol, "MUS_70_ClassTrial_Horde_BattleWalk#71954", "MUS_70_ClassTrial_Alliance_BattleWalk#71959",})
@@ -771,6 +784,7 @@
 		L["Dragonflight Legacies (2)"] .. " |r(967)",
 		L["Dragonflight Legacies (3)"] .. " |r(968)",
 		L["The Ebon Scales"] .. " |r(969)",
+		L["The Seed of Hope"] .. " |r(963)",
 	})
 
 	----------------------------------------------------------------------

@@ -70,6 +70,13 @@
 
 		},
 
+		-- Login
+		["MuteLogin"] = {
+
+			-- This is handled with the PLAYER_LOGOUT event
+
+		},
+
 		-- Ready (ready check) (sound/interface/)
 		["MuteReady"] = {
 
@@ -122,6 +129,11 @@
 			-- Mechanical guild vault idle sound (such as those found in Booty Bay and Winterspring)
 			"sound/doodad/guildvault_goblin_01stand.ogg#566289",
 
+		},
+
+		-- Vigor (sound/interface/)
+		["MuteVigor"] = {
+			"ui_70_artifact_forge_trait_goldtrait.ogg#1489541",
 		},
 
 		----------------------------------------------------------------------
@@ -519,9 +531,13 @@
 
 		},
 
-		-- Shouts (sound/interface/)
-		["MuteVigor"] = {
-			"ui_70_artifact_forge_trait_goldtrait.ogg#1489541",
+		----------------------------------------------------------------------
+		-- Misc
+		----------------------------------------------------------------------
+
+		-- Ducks (sound/creature/duck/duck_greetings_)
+		["MuteDucks"] = {
+			"4618261.ogg#4618261", "4618263.ogg#4618263", "4618265.ogg#4618265", "4618267.ogg#4618267", "4618269.ogg#4618269", "4618271.ogg#4618271", "4618273.ogg#4618273", "4618275.ogg#4618275", "4618277.ogg#4618277", "4618279.ogg#4618279", "4618281.ogg#4618281", "4618283.ogg#4618283", "4618285.ogg#4618285", "4618287.ogg#4618287", "4618289.ogg#4618289", "4618291.ogg#4618291", "4741268.ogg#4741268", "4741270.ogg#4741270", "4741272.ogg#4741272", "4741274.ogg#4741274", "4741276.ogg#4741276", "4741278.ogg#4741278", "4741280.ogg#4741280", "4741282.ogg#4741282", "4741284.ogg#4741284", "4741286.ogg#4741286", "4741288.ogg#4741288", "4741290.ogg#4741290", "4741292.ogg#4741292", "4741294.ogg#4741294", "4741296.ogg#4741296", "4741298.ogg#4741298",
 		},
 
 	}
@@ -652,7 +668,7 @@
 			-- Passive loops (not used because many are generic sounds used elsewhere in the game)
 
 			-- Highland Drake passive loop (SKIT:211567)
-			-- sound/doodad/go_ui_mainmenu_dragonisles_oneshot
+			-- sound/doodad/go_ui_mainmenu_dragonisles_oneshot (these are used in logout table for Login setting)
 			-- "4633292.ogg#4633292", "4633294.ogg#4633294", "4633296.ogg#4633296", "4633298.ogg#4633298", "4633300.ogg#4633300", "4633302.ogg#4633302",
 			-- sound/doodad/go_SoundID_oneshot_
 			-- "4633338.ogg#4633338", "4633340.ogg#4633340", "4633342.ogg#4633342", "4633344.ogg#4633344", "4633346.ogg#4633346", "4633348.ogg#4633348", "4633350.ogg#4633350", "4633352.ogg#4633352", "4633354.ogg#4633354", "4633356.ogg#4633356",
@@ -1020,9 +1036,43 @@
 
 	}
 
+	-- Create soundtable for PLAYER_LOGOUT (these sounds are only muted or unmuted when logging out
+	local muteLogoutTable = {
+
+			-- Entrance swoosh (sound/doodad/go_ui_mainmenu_dragonisles_oneshot_) (skit:217449)
+			"4674593", "4674595", "4674597", "4674599",
+
+			-- Landing (sound/creature/protodragonfire_boss/protodragonfire_boss_fidget_) (skit:218434)
+			"4543973", "4543975", "4543977", "4543979",
+
+			-- Growl (sound/doodad/go_ui_mainmenu_dragonisles_oneshot_) (skit:217454) (listed in Highland Drake passive loop for Mute Dragonriding but not used)
+			"4633292", "4633294", "4633296", "4633298", "4633300", "4633302",
+
+			-- Roar (sound/creature/) (skit:194097)
+			"4484447", "4484449", "4484451", "4484453", "4484455", "4484457",
+
+			-- Exit swoosh A (sound/ambience/zoneambience/amb_ardenweald_day_) (skit:169547)
+			"3780446", "3780448", "3780450", "3780452", "3780454", "3780456",
+
+			-- Exit swoosh B (sound/doodad/go_soundid_oneshot_) (skit:218821)
+			"4556822", "4556824", "4556826", "4556828", "4556830", "4556832", "4556834", "4556836", "4556838", "4556840",
+
+			-- Ambiance (skit:213962)
+			"4616268",
+
+			-- Game music (sound/music/dragonflight/)
+			"4880327", "4887931",
+
+			-- Exit swoosh C and D (Unknown)
+			-- "4573770", "4573772", "4573774", "4573776", "4573778", "4573780",
+			-- "4559426", "4559428", "4559430",
+
+	}
+
 	----------------------------------------------------------------------
 	-- End
 	----------------------------------------------------------------------
 
 	Leatrix_Plus["muteTable"] = muteTable
+	Leatrix_Plus["muteLogoutTable"] = muteLogoutTable
 	Leatrix_Plus["mountTable"] = mountTable
