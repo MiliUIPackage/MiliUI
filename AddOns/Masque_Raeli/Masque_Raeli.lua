@@ -138,8 +138,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		DrawLevel = 10,
 		Point = "BOTTOMRIGHT",
 		RelPoint = "BOTTOMRIGHT",
-		OffsetX = 1,
-		OffsetY = 1,
+		OffsetX = -1,
+		OffsetY = 2,
 	},
 	HotKey = {
 		JustifyH = "RIGHT",
