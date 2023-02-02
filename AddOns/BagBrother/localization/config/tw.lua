@@ -30,6 +30,7 @@ L.Broker = 'Databroker外掛'
 L.Sort = '排序按鈕'
 L.Search = '切換搜尋'
 L.Options = '設定按鈕'
+L.Currency = '通貨'
 
 
 L.Appearance = '外觀'
@@ -49,7 +50,7 @@ L.Spacing = '間距'
 L.Alpha = '透明度'
 
 -- auto display
-L.DisplayOptions = '自動顯示'
+L.DisplayOptions = '自動開關'
 L.DisplayOptionsDesc = '讓你設定在遊戲事件中背包自動開啟或關閉。'
 L.DisplayInventory = '顯示背包'
 L.CloseInventory = '關閉背包'
@@ -61,6 +62,7 @@ L.ScrappingMachine = '銷毀裝備'
 L.Crafting = '製造'
 L.MailInfo = '檢查信箱'
 L.GuildBanker = '訪問公會銀行'
+L.VoidStorageBanker = '訪問虛空銀行'
 L.PlayerFrame = '開啟角色資訊'
 L.Socketing = '鑲崁寶石'
 
@@ -78,6 +80,7 @@ L.GlowNew = '高亮新物品'
 L.GlowQuest = '高亮任務物品'
 L.GlowUnusable = '高亮無法使用的物品'
 L.GlowSets = '高亮裝備設定物品'
+L.GlowPoor = '標記垃圾物品'
 L.ColorSlots = '根據背包類型高亮空的槽'
 
 
@@ -95,3 +98,6 @@ L.ReagentColor = '材料銀行顏色'
 L.GlowAlpha = '高亮亮度'
 L.QuiverColor = '箭袋顏色'
 L.SoulColor = '靈魂碎片包顏色'
+L.FridgeColor = '烹飪包顏色'
+
+L.Artwork = '美術風格'
