@@ -3,7 +3,7 @@
 ## Notes: Raeli's skins for Masque.
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - Raeli
 ## Notes-zhTW: Masque |cffff8000Raeli|r|nMasque 的 Raeli樣式。
-## Version: 27.1.1
+## Version: 27.1.0
 ## Author: Raeli
 ## Dependencies: Masque
 
