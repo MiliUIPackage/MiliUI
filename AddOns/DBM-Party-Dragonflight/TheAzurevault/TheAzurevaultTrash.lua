@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheAzurevaultTrash", "DBM-Party-Dragonflight", 6)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230124013307")
+mod:SetRevision("20230124224352")
 --mod:SetModelID(47785)
 mod:SetZone(2515)
 
@@ -83,7 +83,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnMysticVapors:Show(args.sourceName)
 		specWarnMysticVapors:Play("kickcast")
 	elseif spellId == 386546 then
-		timerWakingBaneCD:Start(20, args.source.GUID)
+		timerWakingBaneCD:Start(20, args.sourceGUID)
 		if self.Options.SpecWarn386546interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 			specWarnWakingBane:Show(args.sourceName)
 			specWarnWakingBane:Play("kickcast")

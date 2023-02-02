@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("CoSTrash", "DBM-Party-Legion", 7)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230122045812")
+mod:SetRevision("20230128204907")
 --mod:SetModelID(47785)
 mod:SetOOCBWComms()
 mod:SetMinSyncRevision(20221228000000)
@@ -40,7 +40,7 @@ local warnEyeStorm					= mod:NewCastAnnounce(212784, 3)
 local warnHypnosisBat				= mod:NewTargetNoFilterAnnounce(373552, 3)
 
 local specWarnFortification			= mod:NewSpecialWarningDispel(209033, "MagicDispeller", nil, nil, 1, 2)
-local specWarnQuellingStrike		= mod:NewSpecialWarningDodge(209027, "Tank", nil, nil, 1, 2)
+local specWarnQuellingStrike		= mod:NewSpecialWarningDodge(209027, "Melee", nil, 2, 1, 2)
 local specWarnChargedBlast			= mod:NewSpecialWarningDodge(212031, "Tank", nil, nil, 1, 2)
 local specWarnChargedSmash			= mod:NewSpecialWarningDodge(209495, "Tank", nil, nil, 1, 2)
 local specWarnShockwave				= mod:NewSpecialWarningDodge(207979, nil, nil, nil, 2, 2)
