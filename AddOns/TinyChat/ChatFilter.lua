@@ -1,75 +1,1 @@
-
--------------------------------------
--- 過濾廣告
--- @Author: 彩虹ui
--------------------------------------
-
---廣告關鍵字
---每行一個關鍵字，用雙引號括起來，結尾加上逗號。
---最後一行結尾不要加逗號。
-local keywords = {
- "微信",
- "加徽",
- "手工",
- "满级",
- "站樁",
- "躺过",
- "躺全程",
- "可躺",
- "消费",
- "散賣",
- "自由挑选",
- "自由選本",
- "茼甲"
-}
-
-local locale = GetLocale()
-local L = {
-    Trade = { zhTW = "交易", zhCN = "交易" }
-}
-
---依照關鍵字來過濾訊息
-local function hasKeyword(msg)
-	for i = 1, #keywords do
-		if string.find(msg, keywords[i], 1, true) then
-			return true
-		end
-	end
-	return false
-end
-
---過濾器
-local function filter(self, event, msg, ...)
-    if (not TinyChatDB or not TinyChatDB.Spam) and hasKeyword(msg) then
-		return true
-	end
-	return false, msg, ...
-end
-
-local function filterChannel(self, event, msg, ...)
-local _, _, channelName = ...
-    if (not TinyChatDB or not TinyChatDB.Spam) and string.find(channelName, L["Trade"][locale] or "Trade", 1, true) and hasKeyword(msg) then
-		return true
-	end
-	return false, msg, ...
-end
-
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", filter)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_EMOTE", filter)
-ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", filterChannel)
-
-
--- 自動開關聊天泡泡
--- local function OnEvent(self, event, ...)
--- 	if (not TinyChatDB or not TinyChatDB.Spam) then
--- 		if IsInInstance() then
--- 			C_CVar.SetCVar("ChatBubbles", 1)
--- 		else
--- 			C_CVar.SetCVar("ChatBubbles", 0)
--- 		end
--- 	end
--- end
-
-local f = CreateFrame("Frame")
-f:RegisterEvent("ZONE_CHANGED_NEW_AREA")
-f:SetScript("OnEvent", OnEvent)
+--------------------------------------- 過濾廣告-- @Author: 彩虹ui---------------------------------------廣告關鍵字--每行一個關鍵字，用雙引號括起來，結尾加上逗號。--最後一行結尾不要加逗號。local defaultKeywords = { "微信", "加徽", "手工", "满级", "站樁", "躺过", "躺全程", "可躺", "消费", "来消費", "散賣", "自由挑选", "自由選本", "打擾見諒◆", "團本躺", "兩件全交", "装备全给", "茼甲", "包團"}local keywords = {}local isTinyChatEnabledlocal locale = GetLocale()local L = {	-- Trade = { zhTW = "交易", zhCN = "交易" }	TotalKeywords = { zhTW = "目前共有 ", zhCN = "目前共有" },	TotalKeywords2 = { zhTW = " 個過濾關鍵字:", zhCN = " 个过滤关键字:" },	NeedWord = { zhTW = "請輸入要新增的關鍵字。", zhCN = "请输入要新增的关键字。" },	NeedWordOrIndex = { zhTW = "請輸入要刪除的關鍵字或編號。", zhCN = "请输入要删除的关键字或编号。" },	WordAdded = { zhTW = "已新增關鍵字", zhCN = "已新增关键字" },	WordDeleted = { zhTW = "已刪除關鍵字", zhCN = "已删除关键字" },	InvalidIndex = { zhTW = "沒有這個編號!", zhCN = "没有这个编号!" },	InvalidWord = { zhTW = "沒有找到關鍵字", zhCN = "没有找到关键字" },	IndexChanged = { zhTW = "提醒: 編號已經變動。", zhCN = "提醒: 编号已经变动。" },	ResetDone = { zhTW = "已恢復成預設的過濾關鍵字。", zhCN = "已恢复成预设的过滤关键字。" },	HelpTitle = { zhTW = "TinyChat 聊天按鈕和功能增強|n過濾垃圾訊息 - 自訂關鍵字指令用法:", zhCN = "TinyChat 聊天按钮和功能增强|n过滤垃圾讯息 - 自订关键字指令用法:" },	HelpList = { zhTW = "  |cffFFFF00/tc 關鍵字|r - 列出所有過濾關鍵字。", zhCN = "/tc listwords - 列出所有过滤关键字。" },	HelpAdd = { zhTW = "  |cffFFFF00/tc 新增|r |cffFF0000文字|r - 新增過濾關鍵字，一次只能新增一個。", zhCN = "/tc addword 文字 - 新增过滤关键字，一次只能新增一个。" },	HelpDel = { zhTW = "  |cffFFFF00/tc 刪除|r |cffFF0000文字(或編號)|r - 刪除過濾關鍵字或用 '/tc 關鍵字' 指令列出的編號。", zhCN = "/tc delword 文字(或编号) - 删除过滤关键字或用 listwords 指令列出的编号。" },	HelpReset = { zhTW = "  |cffFFFF00/tc 重置關鍵字|r - 恢復成預設的過濾關鍵字。", zhCN = "/tc resetwords - 恢复成预设的过滤关键字。" }}--依照關鍵字來過濾訊息local function hasKeyword(msg)	for i = 1, #keywords do		if string.find(msg, keywords[i], 1, true) then			return true		end	end	return falseend--過濾器local function filter(self, event, msg, ...)    if (not TinyChatDB or not TinyChatDB.Spam) and hasKeyword(msg) then		return true	end	return false, msg, ...endlocal function filterChannel(self, event, msg, ...)	-- local _, _, channelName = ...    -- if (not TinyChatDB or not TinyChatDB.Spam) and string.find(channelName, L["Trade"][locale] or "Trade", 1, true) and hasKeyword(msg) then -- 篩選要過濾哪個頻道名稱    if (not TinyChatDB or not TinyChatDB.Spam) and hasKeyword(msg) then		return true	end	return false, msg, ...endChatFrame_AddMessageEventFilter("CHAT_MSG_SAY", filter)ChatFrame_AddMessageEventFilter("CHAT_MSG_YELL", filter)ChatFrame_AddMessageEventFilter("CHAT_MSG_EMOTE", filter)ChatFrame_AddMessageEventFilter("CHAT_MSG_CHANNEL", filterChannel)local function OnEvent(self, event, ...)	if event == "PLAYER_ENTERING_WORLD" then		isTinyChatEnabled = IsAddOnLoaded("TinyChat")		if not TinyChatDB then TinyChatDB = {} end		if not TinyChatDB.FilterKeywords or #TinyChatDB.FilterKeywords == 0 then 			-- 還沒有關鍵字時使用預設的			TinyChatDB.FilterKeywords = defaultKeywords		end		keywords = TinyChatDB.FilterKeywords	elseif not TinyChatDB.Spam then -- event == "ZONE_CHANGED_NEW_AREA"		-- 進出副本自動開關聊天泡泡		if IsInInstance() then			C_CVar.SetCVar("ChatBubbles", 1)			-- print("打開聊天泡泡")		else			C_CVar.SetCVar("ChatBubbles", 0)			-- print("關閉聊天泡泡")		end	endendlocal f = CreateFrame("Frame")f:RegisterEvent("PLAYER_ENTERING_WORLD")f:RegisterEvent("ZONE_CHANGED_NEW_AREA")f:SetScript("OnEvent", OnEvent)--------------------------自訂關鍵字相關功能------------------------local function listKeywords()	print((L["TotalKeywords"][locale] or "Total Keywords: ").. #keywords .. (L["TotalKeywords2"][locale] or ""))	for i = 1, #keywords do		print(i .. ". " .. keywords[i])	end	returnendlocal function addKeyword(key)	if not key then		print(L["NeedWord"][locale] or "Need a word.")		return	end	table.insert(keywords, key)	print((L["WordAdded"][locale] or "Keyword added") .. ": " .. key)endlocal isInt = function(n)  return (type(n) == "number") and (math.floor(n) == n)endlocal function delKeyword(key)	if not key then		print(L["NeedWordOrIndex"][locale] or "Need a word or index number.")		return	end	local j, n = 1, #keywords;	local isDeleted = false		-- 檢查是否是編號	if isInt(tonumber(key)) then		key = keywords[tonumber(key)]		if not key then			print(L["InvalidIndex"][locale] or "Invalid index number!")			return		end	end    for i=1,n do        if (keywords[i] ~= key) then            -- Move i's kept value to j's position, if it's not already there.            if (i ~= j) then                keywords[j] = keywords[i];                keywords[i] = nil;            end            j = j + 1; -- Increment position of where we'll place the next kept value.        else            keywords[i] = nil;			print((L["WordDeleted"][locale] or "Keyword deleted") .. ": " .. key)			print(L["IndexChanged"][locale] or "Index changed!")			isDeleted = true        end    end	if not isDeleted then		print((L["InvalidWord"][locale] or "Keyword not found") .. ": " .. key)	end	returnendSLASH_TinyChat1 = "/tinychat"SLASH_TinyChat2 = "/tc"function SlashCmdList.TinyChat(msg)    local cmd, cmdarg = strsplit(" ", msg, 2)	if (cmd == "關鍵字" or cmd == "listwords") then		listKeywords()	elseif (cmd == "新增" or cmd == "addword") then		addKeyword(cmdarg)	elseif (cmd == "刪除" or cmd == "delword") then		delKeyword(cmdarg)	elseif (cmd == "重置關鍵字" or cmd == "resetwords") then		TinyChatDB.FilterKeywords = defaultKeywords		keywords = TinyChatDB.FilterKeywords		print((L["ResetDone"][locale] or "All Keywords reseted."))	else		print(L["HelpTitle"][locale] or "TinyChat - Spam Filtering Keyword Command Usage:")		print(L["HelpList"][locale] or "  /tc listwords - List all filtering keywords.")		print(L["HelpAdd"][locale] or "  /tc addword [keyword] - Add keyword.")		print(L["HelpDel"][locale] or "  /tc delword [keyword|index] - Delete by keyword or by index number.")		print(L["HelpReset"][locale] or "  /tc resetwords - Reset to default keywords.")    endend
