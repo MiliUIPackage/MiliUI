@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AlgetharAcademyTrash", "DBM-Party-Dragonflight", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230110014321")
+mod:SetRevision("20230212000355")
 --mod:SetModelID(47785)
 mod:SetZone(2526)
 
@@ -54,6 +54,7 @@ end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
+	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 387910 and self:AntiSpam(4, 6) then
 		warnAstralWhirlwind:Show()
 	elseif spellId == 388863 and self:AntiSpam(4, 6) then

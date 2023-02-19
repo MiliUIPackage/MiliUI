@@ -15,9 +15,8 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: d98b338
+## Version: 48747a9
 ## X-Website: https://deadlybossmods.com
-## X-Category-zhTW: 團隊
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml

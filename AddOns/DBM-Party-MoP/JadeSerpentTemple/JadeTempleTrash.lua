@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("JadeTempleTrash", "DBM-Party-MoP", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230130211522")
+mod:SetRevision("20230212000355")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -38,6 +38,7 @@ local specWarnSleepySililoquy				= mod:NewSpecialWarningInterrupt(395872, "HasIn
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
+	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 398300 and self:AntiSpam(3, 2) then
 		specWarnFlamesofDoubt:Show()
 		specWarnFlamesofDoubt:Play("shockwave")

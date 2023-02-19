@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("HoVTrash", "DBM-Party-Legion", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230123024907")
+mod:SetRevision("20230212000355")
 --mod:SetModelID(47785)
 mod:SetZone(1477)
 
@@ -69,6 +69,7 @@ end
 
 function mod:SPELL_CAST_START(args)
 	if not self.Options.Enabled then return end
+	if not self:IsValidWarning(args.sourceGUID) then return end
 	local spellId = args.spellId
 	if spellId == 199805 then
 		self:BossTargetScanner(args.sourceGUID, "CrackleTarget", 0.1, 9)

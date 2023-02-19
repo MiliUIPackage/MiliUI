@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BrackenhideHollowTrash", "DBM-Party-Dragonflight", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20221205015333")
+mod:SetRevision("20230212000355")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -29,6 +29,7 @@ local specWarnHidiousCackle					= mod:NewSpecialWarningInterrupt(367500, "HasInt
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
+	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 382555 and self:AntiSpam(3, 1) then
 		specWarnRagestorm:Show()
 		specWarnRagestorm:Play("justrun")

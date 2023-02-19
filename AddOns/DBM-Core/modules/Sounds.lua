@@ -1,4 +1,5 @@
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
+local isWrath = WOW_PROJECT_ID == (WOW_PROJECT_WRATH_CLASSIC or 11)
 
 local tinsert, unpack = table.insert, unpack
 
@@ -83,6 +84,16 @@ do
 			{text = "瓦莉瑟瑞婭: 失敗者",value = 17067, length=4},--"Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg"
 			{text = "尤格-薩倫: 狂笑",value = 15757, length=4},--"Sound\\Creature\\YoggSaron\\UR_YoggSaron_Slay01.ogg"
 		}
+	elseif isWrath then
+		defeat = {
+			{text = CL.NONE,value  = "None"},
+			{text = CL.RANDOM,value  = "Random"},
+			{text = "柯洛剛恩: 你失敗了",value = 15588, length=4},--"Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg"
+			{text = "霍迪爾: 可悲",value = 15553, length=4},--"Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg"
+			{text = "索林姆: 失敗者",value = 15742, length=4},--"Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg"
+			{text = "瓦莉瑟瑞婭: 失敗者",value = 17067, length=4},--"Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg"
+			{text = "尤格-薩倫: 狂笑",value = 15757, length=4},--"Sound\\Creature\\YoggSaron\\UR_YoggSaron_Slay01.ogg"
+		}
 	else
 		defeat = {
 			{text = CL.NONE,value  = "None"},
@@ -121,7 +132,13 @@ do
 			{text = CL.RANDOM,value  = "Random"},
 			{text = "安度因第一部 B",value = 1417242, length=140},--"sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3" Soundkit: 68230
 			{text = "夜歌",value = 441705, length=160},--"Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3" Soundkit: 71181
-			{text = "奧杜爾: Titan Orchestra",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
+			{text = "奧杜爾: 泰坦樂團",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
+		}
+	elseif isWrath then
+		dungeonMusic = {
+			{text = CL.NONE,value  = "None"},
+			{text = CL.RANDOM,value  = "Random"},
+			{text = "奧杜爾: 泰坦樂團",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
 		}
 	else
 		dungeonMusic = {
@@ -163,13 +180,17 @@ do
 			{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
 			{text = "無敵",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536
 		}
+	elseif isWrath then
+		battleMusic = {
+			{text = CL.NONE,value  = "None"},
+			{text = CL.RANDOM,value  = "Random"},
+			{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
+--			{text = "Invincible",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536 (Double check this)
+		}
 	else
 		battleMusic = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
-			{text = "安度因第二部 B",value = 1417248, length=111},--"sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3" Soundkit: 68230
-			{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
-			{text = "無敵",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536
 		}
 	end
 

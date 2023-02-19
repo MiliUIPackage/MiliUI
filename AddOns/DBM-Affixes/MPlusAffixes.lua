@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230129054032")
+mod:SetRevision("20230218035515")
 --mod:SetModelID(47785)
 mod:SetZone(2516, 2526, 2515, 2521, 1477, 1571, 1176, 960)--All of the S1 DF M+ Dungeons
 
@@ -16,7 +16,6 @@ mod:RegisterEvents(
 	"SPELL_AURA_REMOVED 396369 396364 226510",
 	"SPELL_DAMAGE 209862",
 	"SPELL_MISSED 209862"
---	"UNIT_DIED"
 )
 
 --TODO, fine tune tank stacks/throttle?
@@ -42,7 +41,6 @@ mod:AddNamePlateOption("NPSanguine", 226510, "Tank", true)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 gtfo, 8 personal aggregated alert
 
-local thunderingTotal = 0
 local playerThundering = false
 
 local function yellRepeater(self, text, total)
@@ -91,11 +89,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnSpitefulFixate:Play("targetyou")
 	elseif spellId == 396369 or spellId == 396364 then
 		if self:AntiSpam(20, "affseasonal") then
-			thunderingTotal = 0
 			playerThundering = false
+			mod:RegisterShortTermEvents(
+				"UNIT_AURA_UNFILTERED"
+			)
 		end
-		thunderingTotal = thunderingTotal + 1
-		DBM:Debug("thundering Total added: "..thunderingTotal, 2)
 		if args:IsPlayer() then
 			playerThundering = true
 			self:Unschedule(yellRepeater)
@@ -124,11 +122,8 @@ function mod:SPELL_AURA_REMOVED(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if spellId == 396369 or spellId == 396364 then
-		thunderingTotal = thunderingTotal - 1
-		DBM:Debug("thundering Total removed: "..thunderingTotal, 2)
-		--Your debuff is gone, OR all debuffs but one are gone and you're the one with it
-		if args:IsPlayer() or (thunderingTotal == 1 and DBM:UnitDebuff("player", 396369, 396364)) then
-			if playerThundering then--To avoid double clear yells when player is last clear, cause we force clear at 1, but SPELL_AURA_REMOVED would also fire
+		if args:IsPlayer() then
+			if playerThundering then--Avoid double message from unit aura clear
 				warnThunderingFades:Show()
 				playerThundering = false
 				yellThundering:Yell(DBM_COMMON_L.CLEAR)
@@ -153,13 +148,23 @@ function mod:SPELL_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
 end
 mod.SPELL_MISSED = mod.SPELL_DAMAGE
 
---[[
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 190128 then
-
-	elseif cid == 189878 then
-
+function mod:UNIT_AURA_UNFILTERED()
+	local thunderingTotal = 0
+	for uId in DBM:GetGroupMembers() do
+		if DBM:UnitDebuff(uId, 396369, 396364) then
+			thunderingTotal = thunderingTotal + 1
+		end
+	end
+	if thunderingTotal == 1 then--One left, force clear them all
+		self:UnregisterShortTermEvents()
+		if playerThundering then--Avoid double message from SAR clear
+			warnThunderingFades:Show()
+			playerThundering = false
+			yellThundering:Yell(DBM_COMMON_L.CLEAR)
+		end
+		timerPositiveCharge:Stop()
+		timerNegativeCharge:Stop()
+		self:Unschedule(yellRepeater)
+		yellThunderingFades:Cancel()
 	end
 end
---]]

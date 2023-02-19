@@ -20,10 +20,9 @@
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r62
+## Version: r62-13-g167da83
 ## X-DBM-Mod-MinExpansion: 5
 ## X-Category-zhTW: 團隊
-
 localization.en.lua
 localization.tw.lua
 localization.cn.lua

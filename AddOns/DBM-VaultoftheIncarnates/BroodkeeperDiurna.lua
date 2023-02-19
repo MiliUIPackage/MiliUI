@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2493, "DBM-VaultoftheIncarnates", nil, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230202061417")
+mod:SetRevision("20230207075849")
 mod:SetCreatureID(190245)
 mod:SetEncounterID(2614)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -185,7 +185,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.wildFireCount = self.vb.wildFireCount + 1
 		specWarnWildfire:Show()
 		specWarnWildfire:Play("scatter")
-		specWarnWildfire:ScheduleVoice(1.5, "watchstep")
+		specWarnWildfire:ScheduleVoice(2, "watchstep")
 		timerWildfireCD:Start(self:IsMythic() and 23 or self:IsHeroic() and 21.4 or 25, self.vb.wildFireCount+1)
 	elseif spellId == 388716 then
 		self.vb.icyCount = self.vb.icyCount + 1

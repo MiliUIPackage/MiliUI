@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2512, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230104053027")
+mod:SetRevision("20230217054014")
 mod:SetCreatureID(186951)
 mod:SetEncounterID(2563)
 --mod:SetUsedIcons(1, 2, 3)
@@ -64,7 +64,7 @@ function mod:OnCombatStart(delay)
 	table.wipe(toxinStacks)
 	self.vb.germinateCount = 0
 	self.vb.barkCount = 0
-	timerBarkbreakerCD:Start(9.7-delay)
+	timerBarkbreakerCD:Start(9.7-delay, 1)
 	timerGerminateCD:Start(18.2-delay, 1)
 	timerBranchOutCD:Start(30-delay)
 	timerBurstForthCD:Start(56-delay)

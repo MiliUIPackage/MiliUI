@@ -573,6 +573,8 @@ L.DUR_HEADER					= ""..L.DEADLY_BOSS_MODS.." - 裝備耐久度結果"
 L.DUR_ENTRY						= "%s:耐久度[%d百分比]/裝備損壞[%s]"
 L.LAG_FOOTER					= "無回應:%s"
 
+L.OVERRIDE_ACTIVATED			= "領隊已啟用此首領的配置覆蓋"
+
 --LDB
 L.LDB_TOOLTIP_HELP1				= "點擊開啟" .. L.DBM
 L.LDB_TOOLTIP_HELP2				= "Alt+右鍵點擊切換到無聲模式"
