@@ -460,7 +460,8 @@ L["Vertical Gradient"] = "垂直渐变"
 L["Horizontal Gradient"] = "水平渐变"
 L["Debuff Type"] = "减益类型"
 L["Rotation"] = "旋转"
-L["Externals + Defensives, no need to enable all of them"] = "包含了来自他人与自身的减伤，不必将它们全都启用"
+L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"] = "即使被禁用，下列设置也会对“减伤 (全部)”指示器生效"
+L["Built-in Spells"] = "内置法术"
 L["Highlight Type"] = "高亮类型"
 
 L["Click to preview"] = "点击预览"
@@ -587,6 +588,7 @@ L["Patrons"] = "感谢发电"
 L["Translators"] = "翻译"
 L["Slash Commands"] = "斜杠命令"
 L["Bug Report & Suggestion"] = "问题报告与建议"
+L["Links"] = "链接"
 L["Import & Export All Settings"] = "导入导出所有设置"
 L["All Cell settings will be overwritten!"] = "所有 Cell 设置将被覆盖！"
 L["Autorun will be disabled for all code snippets"] = "将禁用所有代码片段的自动运行"
@@ -607,10 +609,15 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r156-release (Feb 10, 2023, 10:52 GMT+8)</h1>
+    <p>+ 为“减伤”指示器的内置法术添加了开关。</p>
+    <p>* 修复怀旧服的副本类型检查。</p>
+    <br/>
+
     <h1>r155-release (Jan 28, 2023, 10:30 GMT+8)</h1>
     <p>* 修复怀旧服的点击施法问题。</p>
     <p>* 修复怀旧服的增减益图标刷新动画的问题。</p>
-    <p>! 国服没了，本人也没计划玩外服，因此，之后的开发与测试均在PTR上完成，且并非所有场景都能测试到，有问题请在KOOK上反馈（在国服重开之前，NGA的发布帖都没有更新的计划）。</p>
+    <p>! 国服没了，本人也没计划玩外服，因此，之后的开发与测试均在PTR上完成，并非所有场景都能测试到，有问题请在KOOK上反馈（在国服重开之前，NGA的发布帖都没有维护的打算）。</p>
     <br/>
 
     <h1>r154-release (Jan 19, 2023, 12:34 GMT+8)</h1>

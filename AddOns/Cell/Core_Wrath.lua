@@ -377,11 +377,9 @@ function eventFrame:ADDON_LOADED(arg1)
         end
         Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
 
-        -- custom defensives/externals ------------------------------------------------------------
-        if type(CellDB["customDefensives"]) ~= "table" then CellDB["customDefensives"] = {} end
-        if type(CellDB["customExternals"]) ~= "table" then CellDB["customExternals"] = {} end
-        I:UpdateCustomDefensives(CellDB["customDefensives"])
-        I:UpdateCustomExternals(CellDB["customExternals"])
+        -- defensives/externals -------------------------------------------------------------------
+        if type(CellDB["defensives"]) ~= "table" then CellDB["defensives"] = {["disabled"]={}, ["custom"]={}} end
+        if type(CellDB["externals"]) ~= "table" then CellDB["externals"] = {["disabled"]={}, ["custom"]={}} end
         
         -- raid debuffs ---------------------------------------------------------------------------
         if type(CellDB["raidDebuffs"]) ~= "table" then CellDB["raidDebuffs"] = {} end
@@ -545,13 +543,19 @@ function eventFrame:PLAYER_ENTERING_WORLD()
         PreUpdateLayout()
         inInstance = true
 
-        -- NOTE: delayed check mythic raid
+        -- NOTE: delayed raid difficulty check
         if Cell.vars.groupType == "raid" and iType == "raid" then
             C_Timer.After(0.5, function()
-                local difficultyID, difficultyName = select(3, GetInstanceInfo()) --! can't get difficultyID, difficultyName immediately after entering an instance
-                if difficultyID == 3 or difficultyID == 5 then
+                --! can't get difficultyID, difficultyName immediately after entering an instance
+                local _, _, difficultyID, difficultyName, maxPlayers = GetInstanceInfo()
+                -- if difficultyID == 3 or difficultyID == 5 or difficultyID == 175 or difficultyID == 193 then
+                --     Cell.vars.raidType = "raid10"
+                -- elseif difficultyID == 4 or difficultyID == 6 or difficultyID == 176 or difficultyID == 194 then
+                --     Cell.vars.raidType = "raid25"
+                -- end
+                if maxPlayers == 10 then
                     Cell.vars.raidType = "raid10"
-                elseif difficultyID == 4 or difficultyID == 6 then
+                elseif maxPlayers == 25 then
                     Cell.vars.raidType = "raid25"
                 end
                 if Cell.vars.raidType then
@@ -641,6 +645,9 @@ function eventFrame:PLAYER_LOGIN()
     Cell:Fire("UpdatePixelPerfect")
     -- update CLEU
     Cell:Fire("UpdateCLEU")
+    -- update builtIns and customs
+    I:UpdateDefensives(CellDB["defensives"])
+    I:UpdateExternals(CellDB["externals"])
 end
 
 function eventFrame:UI_SCALE_CHANGED()
