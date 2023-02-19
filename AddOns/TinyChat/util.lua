@@ -25,11 +25,13 @@ local L = {
     ToggleHistory   = { zhTW = "上下鍵選擇輸入歷史", zhCN = "聊天历史上下箭頭選取" },
     ToggleHistoryNote   = { zhTW = "上下鍵選擇輸入歷史: 啟用時只要按方向鍵上/下便可選擇輸入過的字句，停用時需要按住 Alt+方向鍵上/下來選擇。", zhCN = "聊天历史上下箭頭選取: 启用时只要按方向键上/下便可选择输入过的字句，禁用时需要按住 Alt+方向键上/下来选择。" },
 	ToggleSpam   = { zhTW = "過濾垃圾訊息", zhCN = "过滤垃圾讯息" },
-	ToggleSpamNote   = { zhTW = "過濾垃圾訊息: 依據關鍵字過濾掉訊息內容，同時也會自動開/關對話泡泡 (副本內自動開啟對話泡泡、出副本自動關閉)。", zhCN = "过滤垃圾讯息: 依据关键字过滤掉讯息内容，同时也会自动开/关对话泡泡 (副本内自动开启对话泡泡、出副本自动关闭)。" },
+	ToggleSpamNote   = { zhTW = "過濾垃圾訊息: 依據關鍵字過濾掉訊息內容，輸入 /tc 查看自訂過濾關鍵字的說明。", zhCN = "过滤垃圾讯息: 依据关键字过滤掉讯息内容，输入 /tc 查看自订过滤关键字的说明。" },
 	ToggleLag   = { zhTW = "過濾發話延遲", zhCN = "过滤发话延迟" },
 	ToggleLagNote  = { zhTW = "過濾發話延遲: 離開副本自動時關閉說和大喊頻道，避免看到因為伺服器延遲的發話，進入副本會自動開啟說和大喊頻道，並且關閉對話泡泡。同時也會過濾掉你不在隊伍/團隊中的系統洗頻訊息。", zhCN = "过滤发话延迟: 离开副本自动时关闭说和大喊频道，避免看到因为伺服器延迟的发话，进入副本会自动开启说和大喊频道，并且关闭对话泡泡。同时也会过滤掉你不在队伍/团队中的系统洗频讯息。" },
-	ToggleLagTimer   = { zhTW = "定時開關", zhCN = "定时开关" },
+	ToggleLagTimer   = { zhTW = "晚上 9-12 點定時開關", zhCN = "晚上 9-12 点定时开关" },
 	ToggleLagTimerNote   = { zhTW = "定時開關: 晚上 9-12 點會自動開啟發話延遲過濾功能，其他時間會自動關閉。若想要手動開關發話延遲過濾功能，請停用此選項。", zhCN = "定时开关: 定时开关: 晚上 9-12 点会自动开启发话延迟过滤功能，其他时间会自动关闭。若想要手动开关发话延迟过滤功能，请停用此选项。" },
+	ToggleBubble   = { zhTW = "進出副本自動開關", zhCN = "进出副本自动开关" },
+	ToggleBubbleNote   = { zhTW = "進出副本自動開關: 進副本自動開啟對話泡泡，方便看見 DBM 喊話。出副本自動關閉，避免看到廣告。晚上 9-12 點 (或手動) 開啟發話延遲過濾功能時，副本內外都會關閉對話泡泡。若想要手動開關對話泡泡，請停用此選項。", zhCN = "进出副本自动开关: 进副本自动开启对话泡泡，方便看见 DBM 喊话。出副本自动关闭，避免看到广告。晚上 9-12 点 (或手动) 开启发话延迟过滤功能时，副本内外都会关闭对话泡泡。若想要手动开关对话泡泡，请停用此选项。" },
 	NeedReload = { zhTW = "(更改此設定需要重新載入介面)", zhCN = "(更改此设定需要重新载入介面)" },
 	Pull		= { zhTW = "開怪倒數", zhCN = "开怪倒数" },
 	PullYell	= { zhTW = "喊話", zhCN = "喊话" },
@@ -54,7 +56,8 @@ TinyChatDB = {
 	HistoryNeedAlt = false,
 	Spam = false,
 	LagFilter = true,
-	LagFilterManually = false
+	LagFilterManually = false,
+	BubbleManually = false
 }
 
 -------------------------------------
@@ -336,16 +339,26 @@ do
             info.checked = not TinyChatDB.Spam
             info.func = function(self)
                 TinyChatDB.Spam = not TinyChatDB.Spam
-				if TinyChatDB.Spam then
-					C_CVar.SetCVar("ChatBubbles", 1)
+				print(L["ToggleSpamNote"][locale] or "Toggle spam filter.")
+            end
+            LibDD:UIDropDownMenu_AddButton(info, level)
+			
+			-- 對話泡泡
+			info = LibDD:UIDropDownMenu_CreateInfo()
+            info.text = CHAT_BUBBLES_TEXT
+			info.value = "ToggleBubble"
+			-- info.arg1 = tonumber(C_CVar.GetCVar("ChatBubbles")
+			info.checked = (tonumber(C_CVar.GetCVar("ChatBubbles")) == 1 and true or false)
+			info.hasArrow = 1
+			info.keepShownOnClick = 1
+            info.func = function(self)
+                if tonumber(C_CVar.GetCVar("ChatBubbles")) == 1 then
+					C_CVar.SetCVar("ChatBubbles", 0)
+					print(DISABLE..CHAT_BUBBLES_TEXT)
 				else
-					if IsInInstance() then
-						C_CVar.SetCVar("ChatBubbles", 1)
-					else
-						C_CVar.SetCVar("ChatBubbles", 0)
-					end
+					C_CVar.SetCVar("ChatBubbles", 1)
+					print(ENABLE..CHAT_BUBBLES_TEXT)
 				end
-				print(L["ToggleSpamNote"][locale] or "Toggle spam filter and automatically enable/disable chat bubbles.")
             end
             LibDD:UIDropDownMenu_AddButton(info, level)
 			
@@ -373,6 +386,20 @@ do
             info.func = function(self) self:GetParent():Hide() end
             LibDD:UIDropDownMenu_AddButton(info)
         end
+
+		
+		-- 對話泡泡子選單
+		if (level == 2 and L_UIDROPDOWNMENU_MENU_VALUE == "ToggleBubble") then
+            -- 自動開關
+			info = LibDD:UIDropDownMenu_CreateInfo()
+            info.text = L["ToggleBubble"][locale] or "Auto Toggle Bubble"
+            info.checked = not TinyChatDB.BubbleManually
+            info.func = function(self)
+                TinyChatDB.BubbleManually = not TinyChatDB.BubbleManually
+				print(L["ToggleBubbleNote"][locale] or "Automatically enable/disable chat bubbles.")
+            end
+            LibDD:UIDropDownMenu_AddButton(info, level)
+		end
 
 		-- 開怪倒數設定
 		if (level == 2 and L_UIDROPDOWNMENU_MENU_VALUE == "Pull") then
