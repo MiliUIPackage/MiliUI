@@ -1,3 +1,3 @@
-# 11.1.11 (2023-01-25)
+# 11.1.13 (2023-01-29)
 
-* Updated TOC version for WoW Patch 10.0.5.
+* Fixed a bug were Threat Plates was shown as out-of-date because of wrong interface version used in TOC file for Retail [Comment #6858].

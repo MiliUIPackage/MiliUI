@@ -522,8 +522,8 @@ ThreatPlates.DEFAULT_SETTINGS = {
       FriendlyUnits = "NONE",
       EnemyUnits = "NONE",
       -- SmallPlatesInInstances = false, -- Removed in 10.1.7
-      HideFriendlyUnitsInInstances = true,
-	  ShowFriendlyUnitsInInstances = false,
+      HideFriendlyUnitsInInstances = false,
+	  ShowFriendlyUnitsInInstances = true,
     },
     Scale = {
       IgnoreUIScale = true,
@@ -653,9 +653,9 @@ ThreatPlates.DEFAULT_SETTINGS = {
       Classes = GetDefaultColorsForClasses()
     },
     text = {
-      amount = false, -- old default: true,
+      amount = true, -- old default: true,
       percent = true,
-      full = false,
+      full = true,
       max = false,
       deficit = false,
       truncate = true,
@@ -1551,8 +1551,9 @@ ThreatPlates.DEFAULT_SETTINGS = {
     },
     BlizzardSettings = {
       Names = {
-        Enabled = false,
-        ShowPlayersInInstances = false,
+        ShowOnlyNames = false,
+		    Enabled = false,
+        ShowPlayersInInstances = true,
         Font = {
           Typeface = Addon.DEFAULT_FONT,
           Size = 10,
