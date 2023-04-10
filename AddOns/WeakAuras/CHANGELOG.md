@@ -1,32 +1,28 @@
-# [5.3.7](https://github.com/WeakAuras/WeakAuras2/tree/5.3.7) (2023-01-24)
+# [5.4.4](https://github.com/WeakAuras/WeakAuras2/tree/5.4.4) (2023-03-29)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.3.6...5.3.7)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.4.3...5.4.4)
 
 ## Highlights
 
- - Data updates for 10.0.5
-- Bug fixes 
+ - Bug fixes 
 
 ## Commits
 
-Håkon Solbjørg (1):
-
-- chore(typo): Fix typo for example in enUS locale
-
 InfusOnWoW (5):
 
-- Fix pending update/install section being layouted wrongly
-- Fix talent load options regression for some spells
-- Fix customTextUpdate not being run in some circumstances
-- Fix lua error on creating a new cast bar that wants to watch latency
-- BuffTrigger2: Mention idTip in tooltip
+- Bufftrigger2: Explicitly scan boss units on INSTANCE_ENCOUNTER_ENGAGE_UNIT
+- Fix state.spec for various triggers
+- BuffTrigger2: Check that matchDataByTrigger contains what we expect
+- Fix updating edge case
+- Templates: Fix Rupture
 
-Stanzilla (1):
+mrbuds (7):
 
-- Update TOC for retail patch 10.0.5
-
-mrbuds (2):
-
-- update dragonflight talents tree for 10.0.5.47660
-- pixel glow: do not show border when option is nil
+- Spell Cast Succeeded trigger: fix "Delay" option, fixes #4382
+- update talents for 10.0.7
+- Dbm & BW triggers: make count field use cron-like pattern fixes #4368
+- Aura trigger: fix tooltip on mouseover, fixes #4372
+- Dbm & BW triggers: fix count parsing from message
+- Aura trigger: Fix Lua error in WeakAuras.GetAuraInstanceTooltipInfo for 10.1.0
+- re-add WeakAuras.IsClassic as an alias to WeakAuras.IsClassicEra
 

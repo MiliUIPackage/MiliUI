@@ -799,21 +799,24 @@ local function runDynamicConditionFunctions(funcs)
   end
 end
 
-local function handleDynamicConditions(self, event)
-  Private.StartProfileSystem("dynamic conditions")
+local function UpdateDynamicConditonsStates(self, event)
   if (globalDynamicConditionFuncs[event]) then
     for i, func in ipairs(globalDynamicConditionFuncs[event]) do
       func(globalConditionState);
     end
   end
+end
+
+local function handleDynamicConditions(self, event)
+  Private.StartProfileSystem("dynamic conditions")
+  UpdateDynamicConditonsStates(self, event)
   if (dynamicConditions[event]) then
     runDynamicConditionFunctions(dynamicConditions[event]);
   end
   Private.StopProfileSystem("dynamic conditions")
 end
 
-local function handleDynamicConditionsPerUnit(self, event, unit)
-  Private.StartProfileSystem("dynamic conditions")
+local function UpdateDynamicConditionsPerUnitState(self, event, unit)
   if unit then
     local unitEvent = event..":"..unit
     if globalDynamicConditionFuncs[unitEvent] then
@@ -821,6 +824,14 @@ local function handleDynamicConditionsPerUnit(self, event, unit)
         func(globalConditionState);
       end
     end
+  end
+end
+
+local function handleDynamicConditionsPerUnit(self, event, unit)
+  Private.StartProfileSystem("dynamic conditions")
+  if unit then
+    local unitEvent = event..":"..unit
+    UpdateDynamicConditionsPerUnitState(self, event, unit)
     if (dynamicConditions[unitEvent]) then
       runDynamicConditionFunctions(dynamicConditions[unitEvent]);
     end
@@ -920,8 +931,10 @@ function Private.RegisterForGlobalConditions(uid)
           dynamicConditionsFrame.units[unit]:SetScript("OnEvent", handleDynamicConditionsPerUnit);
         end
         pcall(dynamicConditionsFrame.units[unit].RegisterUnitEvent, dynamicConditionsFrame.units[unit], unitEvent, unit);
+        UpdateDynamicConditionsPerUnitState(dynamicConditionsFrame, event, unit)
       else
         pcall(dynamicConditionsFrame.RegisterEvent, dynamicConditionsFrame, event);
+        UpdateDynamicConditonsStates(dynamicConditionsFrame, event)
       end
     end
   end
