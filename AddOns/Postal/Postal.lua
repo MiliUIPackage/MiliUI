@@ -57,6 +57,7 @@ local defaults = {
 			EnableBag2 = true,
 			EnableBag3 = true,
 			EnableBag4 = true,
+			EnableBag5 = true,
 		},
 	},
 	global = {
@@ -142,7 +143,7 @@ function Postal:OnInitialize()
 	end
 
 	-- Register events
-	if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+	if Postal.WOWClassic or Postal.WOWBCClassic then
 		self:RegisterEvent("MAIL_CLOSED")
 	else
 		self:RegisterEvent("PLAYER_INTERACTION_MANAGER_FRAME_HIDE")
@@ -205,7 +206,7 @@ function Postal:MAIL_CLOSED()
 	if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
 		MiniMapMailFrame:Hide()
 	else
-		MinimapCluster.MailFrame:Hide()
+		MiniMapMailFrameMixin:OnLeave()
 	end
 end
 
