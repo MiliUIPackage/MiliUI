@@ -1,6 +1,6 @@
-## Interface: 100005
+## Interface: 100007
 ## Title: HandyNotes: Dragonflight
-## Version: 31
+## Version: 35
 ## Notes: Dragonflight Notes
 ## OptionalDeps: Ace3
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍群島

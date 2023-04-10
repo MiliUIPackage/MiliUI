@@ -7,7 +7,7 @@ if not L then return end
 -------------------------------------------------------------------------------
 
 L['elite_loot_higher_ilvl'] = '{note:這個稀有有機會掉落高裝等的拾取!}'
-L['gem_cluster_note'] = '需要的物品可以在 {faction:2507} 名望21後, 在 {object:遠征隊斥侯包} 和{object:挖過的土} 找到'
+L['gem_cluster_note'] = '需要的物品可以在 {faction:2507} 名望21後, 在 {object:遠征隊斥侯背包} 和{object:翻過的土} 找到。'
 
 L['options_icons_bonus_boss'] = '獎勵精英'
 L['options_icons_bonus_boss_desc'] = '顯示獎勵精英位置.'
@@ -17,7 +17,7 @@ L['options_icons_profession_treasures_desc'] = '顯示會給予專業技能知�
 
 L['dragon_glyph'] = '龍之雕紋'
 L['options_icons_dragon_glyph'] = '龍之雕紋'
-L['options_icons_dragon_glyph_desc'] = '顯示全部48個龍之雕紋的位置'
+L['options_icons_dragon_glyph_desc'] = '顯示全部56個龍之雕紋的位置。'
 
 L['dragonscale_expedition_flag'] = '龍鱗遠征隊'
 L['flags_placed'] = '旗幟已插上'
@@ -40,9 +40,9 @@ L['options_icons_fragment_desc'] = '顯示成就 {achievement:16323} 所需的�
 L['options_icons_kite'] = '{achievement:16584}'
 L['options_icons_kite_desc'] = '顯示成就 {achievement:16584} 所需的 {npc:198118} 位置.'
 
-L['disturbed_dirt'] = '挖過的土'
-L['options_icons_disturbed_dirt'] = '挖過的土'
-L['options_icons_disturbed_dirt_desc'] = '顯示 {object:挖過的土} 可能的位置'
+L['disturbed_dirt'] = '翻過的土'
+L['options_icons_disturbed_dirt'] = '翻過的土'
+L['options_icons_disturbed_dirt_desc'] = '顯示 {object:翻過的土} 可能的位置'
 
 L['scout_pack'] = '遠征隊斥侯背包'
 L['options_icons_scout_pack'] = '遠征隊斥侯背包'
@@ -51,6 +51,7 @@ L['options_icons_scout_pack_desc'] = '顯示 {object:遠征隊斥侯背包} 可�
 L['magicbound_chest'] = '縛法寶箱'
 L['options_icons_magicbound_chest'] = '縛法寶箱'
 L['options_icons_magicbound_chest_desc'] = '顯示 {object:縛法寶箱} 可能的位置'
+L['ice_bound_chest'] = '冰縛寶箱'
 
 L['tuskarr_tacklebox'] = '巨牙海民釣具箱'
 L['options_icons_tuskarr_tacklebox'] = '巨牙海民釣具箱'
@@ -90,7 +91,10 @@ L['signal_transmitter_note'] = '{note:需要點機械心靈 10點\n需要點新�
 L['options_icons_signal_transmitter'] = '龍洞產生器信號發送器'
 L['options_icons_signal_transmitter_desc'] = '顯示 {item:198156} 所需的 {object:未啟動的信號發送器} 位置.'
 
-L['spawns_periodically'] = '{note:每30分鐘可能重生, 全伺服器同步. (例如. 9:00, 17:30)}'
+L['rare_14h'] = '此稀有和其他稀有們共用一個14小時的循環, 每30分鐘會重生一隻稀有.\n\n下個可能的重生時間是: {note:%s}'
+L['time_format_12hrs'] = '%m/%d - %I:%M %p 本地時間'
+L['time_format_24hrs'] = '%m/%d - %H:%M 本地時間'
+L['now'] = '現在'
 L['spawns_at_night'] = '{note:僅在晚上重生 (伺服器時間 18:30 之後)}'
 
 L['elemental_storm'] = '元素風暴'
@@ -114,11 +118,38 @@ L['elemental_storm_tyrhold'] = '提爾堡'
 L['elemental_overflow_obtained_suffix'] = '元素溢流已取得'
 L['empowered_mobs_killed_suffix'] = '強化生物已擊殺'
 
-L['elemental_storm_mythressa_note_start'] = '使用 {currency:2118} 交換裝備, 寵物和1個座騎'
+L['elemental_storm_mythressa_note_start'] = '使用 {currency:2118} 交換裝備, 寵物和1個座騎。'
 L['elemental_storm_mythressa_note_end'] = '你現在有 %s 個 {currency:2118}.'
 
 L['options_icons_elemental_storm'] = '元素風暴'
 L['options_icons_elemental_storm_desc'] = '顯示元素風暴的獎勵.'
+
+L['elusive_creature_note'] = '在 {object:餌食工匠} 升級到 {object:專精等級 40/40} 可以讓你每天用所製造的 {item:193906} 召喚並剝皮獨特的難捉動物一次.'
+L['options_icons_elusive_creature'] = '{item:193906}'
+L['options_icons_elusive_creature_desc'] = '顯示 {item:193906} 所召喚出來的難捉的動物的位置.'
+
+L['grand_hunts_label'] = '大狩獵'
+L['longhunter_suffix'] = '狩獵階段完成'
+L['the_best_at_what_i_do_suffix'] = '首領已擊殺'
+
+L['options_icons_grand_hunts'] = '大狩獵'
+L['options_icons_grand_hunts_desc'] = '顯示 {object:大狩獵} 的位置和獎勵.'
+
+L['reed_chest'] = '蘆葦箱子'
+L['options_icons_reed_chest'] = '蘆葦箱子'
+L['options_icons_reed_chest_desc'] = '顯示 {object:蘆葦箱子} 可能的位置。'
+
+L['dracthyr_supply_chest'] = '半龍人補給箱'
+L['options_icons_dracthyr_supply_chest'] = '半龍人補給箱'
+L['options_icons_dracthyr_supply_chest_desc'] = '顯示 {object:半龍人補給箱} 可能的位置。'
+
+L['simmering_chest'] = '滾燙箱子'
+L['options_icons_simmering_chest'] = '滾燙箱子'
+L['options_icons_simmering_chest_desc'] = '顯示 {object:滾燙箱子} 可能的位置。'
+
+L['frostbound_chest'] = '霜縛寶箱'
+L['options_icons_frostbound_chest'] = '霜縛寶箱'
+L['options_icons_frostbound_chest_desc'] = '顯示 {object:霜縛寶箱} 可能的位置。'
 
 -------------------------------------------------------------------------------
 ------------------------------- THE AZURE SPAN --------------------------------
@@ -126,17 +157,17 @@ L['options_icons_elemental_storm_desc'] = '顯示元素風暴的獎勵.'
 
 L['bisquis_note'] = '在 {location:伊斯凱拉} 的集體盛宴煮出傳奇級後打敗 {npc:197557}.'
 L['blightfur_note'] = '和 {npc:193633} 交談來召喚稀有'
-L['brackenhide_rare_note'] = '這些稀有會有10分鐘的間隔以 {npc:197344} > {npc:197353} > {npc:197354} > {npc:197356} 的順序刷新'
+L['brackenhide_rare_note'] = '這些稀有會有10分鐘的間隔以 {npc:197344} > {npc:197353} > {npc:197354} > {npc:197356} 的順序刷新。'
 L['fisherman_tinnak_note'] = '收集{object:破損的釣魚竿}, {object:破損的捕漁網} 和 {object:舊魚叉}來召喚稀有.'
-L['frostpaw_note'] = '在取得 {object:木頭錘子} 後, 你有20秒可以在 {object:樹樁} 上打 {object:痛扁豺狼人}, 並刷新稀有'
+L['frostpaw_note'] = '在取得 {object:木頭錘子} 後, 你有20秒可以在 {object:樹樁} 上打 {object:痛扁豺狼人}, 並刷新稀有。'
 L['sharpfang_note'] = '幫助 {npc:192747} 打敗 {npc:192748} 來刷新稀有'
 L['spellwrought_snowman_note'] = '收集 10個 {npc:193424} 並且帶他們到 {npc:193242}。'
 L['trilvarus_loreweaver_note'] = '收集一個 {object:歌唱碎片} 來取得 {spell:382076} 接著點擊 {object:未充能法器} 來召喚稀有.'
 
-L['breezebiter_note'] = '在空中環繞飛行, 飛上天空來把他拉下來, 重生點在右側山洞'
+L['breezebiter_note'] = '在空中環繞飛行, 飛上天空來把他拉下來, 重生點在右側山洞。'
 
-L['forgotten_jewel_box_note'] = '{item:199065} 可以在 {object:遠征隊斥侯背包} 和 {object:挖過的土} 中找到.'
-L['gnoll_fiend_flail_note'] = '{item:199066} 可以在 {object:遠征隊斥侯背包} 和 {object:挖過的土} 中找到.'
+L['forgotten_jewel_box_note'] = '{item:199065} 可以在 {object:遠征隊斥侯背包} 和 {object:翻過的土} 中找到.'
+L['gnoll_fiend_flail_note'] = '{item:199066} 可以在 {object:遠征隊斥侯背包} 和 {object:翻過的土} 中找到.'
 L['pepper_hammer_note'] = '收集 {object:樹液} 然後點選 {object:棍子} 來引誘 {npc:195373}.\n\n{bug:(BUG: 要點選棍子可能需要你重載UI)}'
 L['snow_covered_scroll'] = '覆滿雪的卷軸'
 
@@ -171,7 +202,7 @@ L['snowclaw_cub_note_start'] = '你必須完成在 {location:沃卓肯} 的 {npc
 L['snowclaw_cub_note_item1'] = '從 {location:甦醒海岸} 的各種 {npc:182559} 拾取3個 {item:197744}.'
 L['snowclaw_cub_note_item2'] = '從 {location:甦醒海岸} 的 {npc:193310} 購買1個 {item:198356}'
 L['snowclaw_cub_note_end'] = [[
-{note:所有的物品都可以在拍賣場買到. 如果你沒有剛好擁有用來和 {npc:193310} 購買東西所需的 {item:199215} 時, 這會特別有幫助}
+{note:所有的物品都可以在拍賣場買到. 如果你沒有剛好擁有用來和 {npc:193310} 購買東西所需的 {item:199215} 時, 這會特別有幫助。}
 
 當你裝備上稱號{title:『榮譽林精』}後, 提供所需的4個物品給 {npc:196768} 來取得寵物.
 
@@ -190,7 +221,7 @@ L['artists_easel_note_step2'] = '{quest:70168}\n{npc:194425} 會請你從 {locat
 L['artists_easel_note_step3'] = '{quest:70170}\n{npc:194425} 會請你從 {location:灌注迴廊}, {location:阿爾蓋薩學院}, {location:蒼藍密庫}, 和 {location:奈薩魯斯堡} 收集畫作.'
 L['artists_easel_note_step4'] = '將最後的畫作交給 {npc:194323} 並取得你的玩具!\n\n{note:傳奇和傳奇鑰石地城不會掉落畫作.}'
 
-L['somewhat_stabilized_arcana_note'] = '位於塔頂。\n\n完成從 {npc:197100} 開始的小任務線獲得玩具。'
+L['somewhat_stabilized_arcana_note'] = '在塔的頂端.\n\n完成由 {npc:197100} 給予的任務線來取得玩具。'
 
 L['stranded_soul_note'] = [[
 在擊殺 {npc:196900} 後他會爆炸成4個 {npc:196901}.
@@ -199,8 +230,38 @@ L['stranded_soul_note'] = [[
 殺掉裡面的 {npc:197183}, 你會收到 {item:200528}.
 ]]
 
+L['gethdazr_note'] = [[
+作為在 {location:伊姆布} 發生的事件的一部分而重生. 首先在 ({dot:Blue}) 吹響 {object:伊姆布大號角}.
+號角只有在殺死 {npc:196155} 後才會變成可點擊的. 重生時間約需30~60分鐘.
+
+{npc:191143}({dot:Green}) 和其他NPC會從 {location:伊姆布} 東北方的入口開始嘗試清出一條路到 {npc:196165} 會刷新的峭壁.
+NPC在沒有獲得幫助情況下有可能會死,並且讓事件失敗.
+
+此事件可以單人解完,但是推薦2~3人進行.
+]]
+
+L['tuskarr_chest'] = '巨牙海民寶箱'
+L['options_icons_tuskarr_chest'] = '巨牙海民寶箱'
+L['options_icons_tuskarr_chest_desc'] = '顯示 {object:巨牙海民寶箱} 可能的位置.'
+
+L['community_feast_label'] = '{spell:388961}'
+L['options_icons_community_feast'] = '{spell:388961}'
+L['options_icons_community_feast_desc'] = '顯示 {spell:388961} 的位置和獎勵.'
+
+L['decay_covered_chest'] = '覆滿腐敗的箱子'
+L['options_icons_decay_covered_chest'] = '覆滿腐敗的箱子'
+L['options_icons_decay_covered_chest_desc'] = '顯示 {object:覆滿腐敗的箱子} 可能的位置。'
+
+L['icemaw_storage_cache'] = '冰喉儲藏所'
+L['options_icons_icemaw_storage_cache'] = '冰喉儲藏所'
+L['options_icons_icemaw_storage_cache_desc'] = '顯示 {object:冰喉儲藏所} 可能的位置。'
+
+L['kazzi_note_start'] = '使用 {item:202017} 和 {item:202018} 交換塑形, 飛龍自訂, 一隻寵物, 和更多.'
+L['kazzi_note_item'] = '你現在有 %s 個 {item:%s}.'
+L['kazzi_achievement_suffix'] = '東毛語等級'
+
 -------------------------------------------------------------------------------
-------------------------------- FORBIDDEN REACH -------------------------------
+------------------ FORBIDDEN REACH (DRACTHYR STARTING ZONE) -------------------
 -------------------------------------------------------------------------------
 
 L['bag_of_enchanted_wind'] = '一袋祕法之風'
@@ -210,6 +271,110 @@ L['lost_draconic_hourglass'] = '失落的龍沙漏'
 L['suspicious_bottle_treasure'] = '可疑的瓶子'
 L['mysterious_wand'] = '神秘魔杖'
 L['mysterious_wand_note'] = '撿起 {object:水晶鑰匙} 並把它放進 {object:水晶法器} 內.'
+
+-------------------------------------------------------------------------------
+------------------------- FORBIDDEN REACH (MAIN ZONE) -------------------------
+-------------------------------------------------------------------------------
+
+L['in_dragonskull_island'] = '在 {location:龍顱島}'
+L['in_froststone_vault'] = '在 {location:霜石密庫}'
+L['in_the_high_creche'] = '在 {location:至高育所}'
+L['in_the_lost_atheneum'] = '在 {location:失落圖書室}'
+L['in_the_siege_creche'] = '在 {location:圍城育所}'
+L['in_the_support_creche'] = '在 {location:支援育所}'
+L['in_the_war_creche'] = '在 {location:戰爭育所}'
+L['in_zskera_vaults'] = '在 {location:澤斯克拉密庫}'
+
+L['duzalgor_note'] = '收集一瓶 {spell:400751}({dot:Green}) 以用來治療 {location:支援育所} 內的毒氣。'
+L['mad_eye_carrey_note'] = '{npc:201181} 會和 {npc:201184} 以及 {npc:201182} 一起出現。'
+L['wymslayer_angvardi_note'] = '{npc:201013} 會和 {npc:201310} 一起出現。'
+L['loot_specialist_note'] = '{npc:203353} 刷新時有 {spell:406143} 和 {spell:132653} 並且當被攻擊時會逃跑.\n\n{note:在他完成施法 {spell:406141} 前快點殺掉他。}'
+
+L['profession_required'] = '{note:需要有 %s 專業技能的玩家}'
+L['pr_crafting_note'] = '使用 {item:%2$s} 製造 {item:%1$s} 並和 {object:%3$s} 互動來召喚稀有.'
+L['pr_gathering_note'] = '使用 {item:%s} 並和 {object:%s} 互動來召喚稀有.'
+L['pr_recipe_note'] = '配方 {item:%s} 可以從 {npc:202445} 處使用 10{item:190456} 購買.'
+L['pr_summoning_note'] = nil
+
+L['pr_awakened_soil'] = '覺醒土壤'
+L['pr_book_of_arcane_entities'] = '秘法生物之書'
+L['pr_damaged_buzzspire'] = '受損的嗡鳴尖塔505'
+L['pr_empty_crab_trap'] = '空的螃蟹陷阱'
+L['pr_farescale_shrine'] = '遠鱗聖壇'
+L['pr_raw_argali_pelts'] = '阿戈利羊生毛皮'
+L['pr_resonant_crystal'] = '共鳴水晶'
+L['pr_rumbling_deposit'] = '震地礦床'
+L['pr_spellsworn_ward'] = '誓法者結界'
+L['pr_spiceless_stew'] = '無調味燉肉'
+L['pr_tuskarr_kite_post'] = '巨牙海民風箏木樁'
+L['pr_tuskarr_tanning_rack'] = '巨牙海民製皮架'
+L['pr_volatile_brazier'] = '熾烈火盆'
+
+L['options_icons_profession_rares'] = '專業稀有'
+L['options_icons_profession_rares_desc'] = '顯示專業稀有的位置.'
+
+L['storm_bound_chest_label'] = '颶縛寶箱'
+
+L['hoarder_of_the_forbidden_reach_suffix'] = '小寶藏已開啟'
+L['forbidden_spoils_suffix'] = '禁忌之境寶箱已開啟'
+L['forbidden_hoard_label'] = '禁忌之境寶箱'
+
+L['options_icons_forbidden_hoard'] = '禁忌之境寶箱'
+L['options_icons_forbidden_hoard_desc'] = '顯示 {object:禁忌之境寶箱} 可能的位置。'
+
+L['froststone_vault_storm_label'] = '霜石密庫洪荒風暴'
+L['gooey_snailemental_note'] = '從 {object:霜石密庫洪荒風暴} 首領收集50個 {item:204352} 來合成 {item:192785}.'
+
+L['options_icons_froststone_vault_storm'] = '霜石密庫洪荒風暴'
+L['options_icons_froststone_vault_storm_desc'] = '顯示 {object:霜石密庫洪荒風暴} 的位置和獎勵.'
+
+L['small_treasures_label'] = '小寶藏'
+L['small_treasures_note'] = '小寶藏共享刷新點.\n\n在 {location:莫克特村} 處從 {npc:200566} 購買 {item:204558} 並使用來取得 {spell:405637} 增益讓你可以在小地圖上看到小寶藏60分鐘。'
+
+L['options_icons_small_treasures'] = '小寶藏'
+L['options_icons_small_treasures_desc'] = '顯示小寶藏可能的位置。'
+
+L['zskera_vaults_label'] = '澤斯克拉密庫'
+L['zskera_vaults_note'] = '從稀有和箱子收集 {item:202196} 來打開在 {location:澤斯克拉密庫} 裡的門.'
+L['door_buster_suffix'] = '扇門已使用澤斯克拉密庫鑰匙解鎖'
+
+L['recipe_rat_note_1'] = '在 {location:澤斯克拉密庫} 裡和  {npc:202982} 對話後, {item:202252} 會進入你的背包.'
+L['recipe_rat_note_2'] = '和 {item:202252} 互動取得 {item:204340}. {note:(5分鐘冷卻)}'
+L['recipe_rat_note_3'] = '當你有30個 {item:204340} 時,組合碎片取得食譜.'
+L['recipe_rat_note_4'] = '{note:這隻老鼠喜歡起司並且大約三分鐘會吃掉一個 {item:3927}. 好好規劃!}'
+
+L['mm_start_note'] = '收集和組合各種在 {location:澤斯克拉密庫} 內找到的物品.'
+L['mm_status_note'] = '組合下列物品:\n{item:%s}\n{item:%s}'
+
+L['options_icons_zskera_vaults'] = '澤斯克拉密庫'
+L['options_icons_zskera_vaults_desc'] = '顯示 {location:澤斯克拉密庫} 的獎勵。'
+
+L['confiscated_journal_label'] = '被沒收的日誌'
+L['farscale_manifesto_label'] = '遠鱗宣言'
+L['lost_expeditions_notes_label'] = '遠征隊筆記'
+L['pirate_proclamation_label'] = '海盜宣言'
+L['spellsworn_missive_label'] = '誓法者文件'
+L['vrykul_tome_label'] = '維酷秘典'
+
+L['library_note'] = '開啟 {object:%s} 並拾取 {item:%s}。'
+
+L['options_icons_librarian_of_the_reach'] = '{achievement:17530}'
+L['options_icons_librarian_of_the_reach_desc'] = '顯示成就 {achievement:17530} 所需的書本位置. {note:有些書在 {location:澤斯克拉密庫} 內}。'
+
+L['dracthyr_runestone_label'] = '半龍人符文石'
+L['scroll_hunter_suffix'] = '從封印的卷軸找到的寶藏'
+L['scroll_hunter_note'] = '從 {location:禁忌之境} 的稀有和寶藏收集封印的卷軸.\n\n打開 {item:%s} 會在地圖上標記一個 X. 可以找到 {item:%s} 可以提升 {faction:%s} 的聲望。'
+
+L['options_icons_scroll_hunter'] = '{achievement:17532}'
+L['options_icons_scroll_hunter_desc'] = '顯示成就 {achievement:17532} 所需的卷軸獎勵位置。'
+
+L['options_icons_scalecommander_item'] = '{achievement:17315}'
+L['options_icons_scalecommander_item_desc'] = '顯示成就 {achievement:17315} 所需的物品位置. {note:有些物品在 {location:澤斯克拉密庫} 內}。'
+
+L['spellsworn_gateway'] = '誓法者傳送門'
+L['gemstone_of_return'] = '回歸寶石'
+
+L['morqut_village_vendor_note'] = '使用 {currency:2118} 或金幣交換坐騎, 寵物, 塑型, 飛龍自訂, 配方'
 
 -------------------------------------------------------------------------------
 ------------------------------ OHN'AHRAN PLAINS -------------------------------
@@ -232,7 +397,7 @@ L['defend_clan_aylaag'] = '保護艾拉格氏族'
 L['defend_clan_aylaag_note'] = '{note:只在保護 {faction:艾拉格氏族} 營地遷徙事件時刷新, 沒有掉落物。}'
 
 L['gold_swong_coin_note'] = '和 {npc:191608} 一起在山洞內, 且在她的右側。'
-L['nokhud_warspear_note'] = '{item:194540} 可以在 {object:遠征隊斥侯背包} 和 {object:挖過的土} 中找到.'
+L['nokhud_warspear_note'] = '{item:194540} 可以在 {object:遠征隊斥侯背包} 和 {object:翻過的土} 中找到.'
 L['slightly_chewed_duck_egg_note'] = '找到並撫摸 {npc:192997} 來取得 {item:195453} 後再使用它. {item:199171} 將在3天後孵化成 {item:199172}.'
 L['yennus_boat'] = '巨牙海民玩具船'
 L['yennus_boat_note'] = '拾取 {object:巨牙海民玩具船} 來取得 {item:200876}, 其可以開始任務 {quest:72063}, 可以向 {npc:195252} 回報.'
@@ -241,7 +406,7 @@ L['forgotten_dragon_treasure_label'] = '失落巨龍寶藏'
 L['forgotten_dragon_treasure_step1'] = '1. 在 {location:雍亞拉平原} 的西邊從 {object:結晶花}({dot:Green}) 收集5個 {item:195884}.'
 L['forgotten_dragon_treasure_step2'] = '2. 組合花瓣來製造 {item:195542} 並拜訪 {object:遠古石頭}({dot:Yellow}).'
 L['forgotten_dragon_treasure_step3'] = '3. 在 {object:遠古石頭} 附近使用 {item:195542} 來獲得20秒的增益 {spell:378935} 讓你可以跟著花徑到達一個山洞 ({dot:Blue}). 在花上奔跑來增加增益的時間以讓你到達 {object:翡翠箱子}({dot:Blue}) 並拾取 {item:195041}.'
-L['forgotten_dragon_treasure_step4'] = '當你有鑰匙後, 前往 {object:失落巨龍寶藏} 來打開他並取得你的飛龍觀察者手稿'
+L['forgotten_dragon_treasure_step4'] = '當你有鑰匙後, 前往 {object:失落巨龍寶藏} 來打開他並取得你的飛龍觀察者手稿。'
 L['fdt_crystalline_flower'] = '結晶花'
 L['fdt_ancient_stone'] = '遠古石頭'
 L['fdt_emerald_chest'] = '翡翠箱子'
@@ -256,7 +421,7 @@ L['pt_jewel_lofty_malygite_note'] = '漂浮在一個洞穴的空中.'
 L['pt_leath_wind_blessed_hide_note'] = '在 {location:席卡高地} 內的半人馬營地.'
 L['pt_script_sign_language_reference_sheet_note'] = '掛在帳篷的入口.'
 L['pt_smith_ancient_spear_shards_note'] = '在{location:拉札薩爾之境}西側洞穴。'
-L['pt_smith_falconer_gauntlet_drawings_note'] = '海上的小島, 在一個小屋內.'
+L['pt_smith_falconer_gauntlet_drawings_note'] = '湖上的小島, 在一個小屋內.'
 L['pt_tailor_noteworthy_scrap_of_carpet_note'] = '坐落於一個小屋. {note:小屋內有三支菁英}.'
 L['pt_tailor_silky_surprise_note'] = '找到並拾取一個 {object:貓草嫩葉}.'
 
@@ -274,7 +439,7 @@ L['ohnahra_note_item3'] = '從拍賣場購買1個 {item:191507}. (煉金師名�
 L['ohnahra_note_end'] = '當你取得所有材料後, 和 {npc:194796} 回報任務並取得你的坐騎.'
 
 L['bakar_note'] = '撫摸那隻狗!'
-L['bakar_ellam_note'] = '如果足夠的人撫摸了這隻狗, 她會帶你去她的寶藏'
+L['bakar_ellam_note'] = '如果足夠的人撫摸了這隻狗, 她會帶你去她的寶藏。'
 L['bakar_hugo_note'] = '和艾拉格營地一起旅行。'
 L['options_icons_bakar'] = '{achievement:16424}'
 L['options_icons_bakar_desc'] = '顯示成就 {achievement:16424} 所需的所有巴卡犬的位置。'
@@ -302,7 +467,18 @@ L['options_icons_nokhud_do_it_desc'] = '顯示成就 {achievement:16583} 有用�
 
 L['chest_of_the_flood'] = '洪流寶箱'
 
-L['aylaag_camp_note'] = '{faction:艾拉格氏族} 每3天3小時（75）移動到另一個營地，跟隨並在途中保護他們。'
+L['aylaag_camp_note'] = '{faction:艾拉格氏族} 每3天又3小時 (75小時) 移動到另外一個營地, 跟著他們並在路上保護他們。'
+
+L['clan_chest'] = '氏族箱子'
+L['options_icons_clan_chest'] = '氏族箱子'
+L['options_icons_clan_chest_desc'] = '顯示 {object:氏族箱子} 可能的位置.'
+
+L['lightning_bound_chest'] = '雷縛寶箱'
+L['options_icons_lightning_bound_chest'] = '雷縛寶箱'
+L['options_icons_lightning_bound_chest_desc'] = '顯示 {object:雷縛寶箱} 可能的位置。'
+
+L['bloodgullet_note'] = '在 {location:木階哨站} 的一個帳篷裡的 {object:甦醒精華} 取得 {spell:369277} 增益(1小時) 來看到靈獸.\n\n{note:只有獸王獵看的到。}'
+
 -------------------------------------------------------------------------------
 --------------------------------- THALDRASZUS ---------------------------------
 -------------------------------------------------------------------------------
@@ -316,7 +492,7 @@ L['weeping_vilomah_note'] = '和 {npc:193206} 對話召喚稀有。'
 L['woofang_note'] = '撫摸 {npc:193156} 來召喚稀有.'
 
 L['acorn_harvester_note'] = '在附近的地上收集一個 {object:橡實} 來取得 {spell:388485} 之後再和 {npc:196172} 互動.\n\n{bug:(BUG: 要點選 {npc:196172} 可能需要重新載入)}.'
-L['cracked_hourglass_note'] = '{item:199068} 可以在 {object:遠征隊斥侯背包} 和 {object:挖過的土} 中找到.'
+L['cracked_hourglass_note'] = '{item:199068} 可以在 {object:遠征隊斥侯背包} 和 {object:翻過的土} 中找到.'
 L['sandy_wooden_duck_note'] = '收集 {item:199069} 並使用它.'
 
 L['tasty_hatchling_treat_note'] = '在書架後的一個桶子內'
@@ -325,11 +501,11 @@ L['pm_mining_bridgette_holdug'] = '在一個長草的石柱頂端'
 L['pm_tailor_elysa_raywinder'] = '在塔中間的平台上'
 L['pt_alch_contraband_concoction_note'] = '藏在樹叢內 {note:很難看到}.'
 L['pt_alch_furry_gloop_note'] = '各丟一個在附近的 {npc:194855} 到每個大鍋, 然後殺掉刷新出來的怪物'
-L['pt_ench_fractured_titanic_sphere_note'] = '{location:提爾堡} 南邊.'
-L['pt_jewel_alexstraszite_cluster_note'] = '{location:提爾堡} 內.'
+L['pt_ench_fractured_titanic_sphere_note'] = '{location:提爾堡}南邊。'
+L['pt_jewel_alexstraszite_cluster_note'] = '{location:提爾堡}內。'
 L['pt_jewel_painters_pretty_jewel_note'] = '在燈籠內'
 L['pt_leath_decayed_scales_note'] = '在籃子內'
-L['pt_script_counterfeit_darkmoon_deck_note'] = '和 {npc:194856} 講話並幫助她整理散落在他腳邊的 {object:暗月套卡}. 依照順序點選卡片 (A到8) 之後和她交談來取得套卡.'
+L['pt_script_counterfeit_darkmoon_deck_note'] = '和 {npc:194856} 講話並幫助她整理散落在他腳邊的 {object:暗月套卡}。 依照順序點選卡片 (A到8) 之後和她交談來取得套卡。'
 L['pt_script_forgetful_apprentices_tome_note'] = '在桌上一個大望遠鏡旁'
 L['pt_script_how_to_train_your_whelpling_note'] = '躺在沙盒內的一本小棕書'
 L['pt_smith_draconic_flux_note'] = '在一棟建築內'
@@ -358,12 +534,16 @@ L['lillian_brightmoon_note'] = '用{item:201412} 交換{faction:2507}名望'
 
 L['chest_of_the_elements'] = '元素寶箱'
 
-L['hoard_of_draconic_delicacies_note_start'] = '完成 {npc:189479} 提供的7個以下任務：'
-L['hoard_of_draconic_delicacies_note_end'] = '當所有任務都完成後, {npc:189479} 會給予 {quest:67071} 來收到你的食譜.\n\n{note:任務是根據來訪 {location:晶紅盛宴} 的客座主廚, 順序可能會和上表不同}'
+L['hoard_of_draconic_delicacies_note_start'] = '完成以下由 {npc:189479} 給予的7個任務：'
+L['hoard_of_draconic_delicacies_note_end'] = '當所有任務都完成後, {npc:189479} 會給予 {quest:67071} 來收到你的食譜.\n\n{note:任務是根據來訪 {location:晶紅盛宴} 的客座主廚, 順序可能會和上表不同。}'
 
 L['brendormi_note_start'] = '用 {item:202039} 和 {currency:2118} 交換裝備, 1個寵物, 1個玩具和1個坐騎.'
 L['brendormi_note_item'] = '你現在有 %s {item:202039}.'
 L['brendormi_note_currency'] = '你現在有 %s {currency:2118}.'
+
+L['titan_chest'] = '泰坦寶箱'
+L['options_icons_titan_chest'] = '泰坦寶箱'
+L['options_icons_titan_chest_desc'] = '顯示 {object:泰坦寶箱} 可能的位置.'
 
 -------------------------------------------------------------------------------
 ------------------------------ THE WAKING SHORE -------------------------------
@@ -371,15 +551,15 @@ L['brendormi_note_currency'] = '你現在有 %s {currency:2118}.'
 
 L['brundin_the_dragonbane_note'] = '喀拉希戰爭隊伍坐在他們的 {npc:192737} 往這座塔旅行.'
 L['captain_lancer_note'] = '在完成 {spell:388945} 事件後會立即重生'
-L['enkine_note'] = '殺掉沿著熔岩河的 {npc:193137}, {npc:193138} 或 {npc:193139} 取得 {item:201092}, 使用它並在 {npc:191866} 的附近熔岩中釣魚'
+L['enkine_note'] = '殺掉沿著熔岩河的 {npc:193137}, {npc:193138} 或 {npc:193139} 取得 {item:201092}, 使用它並在 {npc:191866} 的附近熔岩中釣魚。'
 L['lepidoralia_note'] = '在 {location:振翅洞穴}. 幫助 {npc:193342} 抓住 {npc:193274} 直到稀有刷新'
-L['obsidian_citadel_rare_note'] = '你或其他玩家必須要繳交總共 %d個 {item:191264} 給 %s. 要鑄造鑰匙你需要結合30個 {item:191251} 和3個 {item:193201}, 你可以在 {location:黑曜王座} 的怪物身上取得這些物品'
+L['obsidian_citadel_rare_note'] = '你或其他玩家必須要繳交總共 %d個 {item:191264} 給 %s. 要鑄造鑰匙你需要結合30個 {item:191251} 和3個 {item:193201}, 你可以在 {location:黑曜王座} 的怪物身上取得這些物品。'
 L['shadeslash_note'] = '依序點擊 {object:失竊的球體}, {object:失竊的望遠鏡} 和 {object:失竊的法器} 來召喚稀有'
 L['obsidian_throne_rare_note'] = '在 {location:黑曜王座} 內. '
 L['slurpo_snail_note'] = '在{location:蒼藍高地} 的山洞 (11, 41) 從 {object:鹽水晶} 上拾取 {item:201033} 並且在 {location:甦醒海岸} 的山洞使用來召喚他.'
 L['worldcarver_atir_note'] = '從附近的 {npc:187366} 收集3個 {item:191211}, 並且將他們放置在 {npc:197395} 來召喚稀有'
 
-L['bubble_drifter_note'] = '{item:199061} 可以在 {object:遠征隊斥侯包} 和 {object:挖過的土} 中找到.'
+L['bubble_drifter_note'] = '{item:199061} 可以在 {object:遠征隊斥侯包} 和 {object:翻過的土} 中找到.'
 L['dead_mans_chestplate_note'] = '在塔中間的樓層'
 L['fullsails_supply_chest_note'] = '鑰匙由 {location:翼息大使館} 南方的 {npc:187971} 和 {npc:187320} 掉落'
 L['golden_dragon_goblet_note'] = '從 {location:荒野海岸} 上的 {npc:190056} 拾取 {item:202081}並完成小任務線'
@@ -409,16 +589,16 @@ L['pt_alch_well_insulated_mug_note'] = '在 {location:龍禍要塞} 一些精英
 L['pt_ench_enchanted_debris_note'] = '使用並跟著 {npc:194872} 走到最後來拾取殘骸。'
 L['pt_ench_flashfrozen_scroll_note'] = '在 {location:閃霜營地} 的洞穴系統內'
 L['pt_ench_lava_infused_seed_note'] = '在 {location:碎鱗者要塞} 的一朵花內'
-L['pt_engi_boomthyr_rocket_note'] = '收集列在 {object:轟希爾火箭筆記} 內的物品:\n\n{item:198815}\n{item:198817}\n{item:198816}\n{item:198814}\n\n當你收集完後, 帶著它們回來到火箭以取得寶藏.'
-L['pt_engi_intact_coil_capacitor_note'] = '和三個 {object:裸露電線} 互動來修好並拾取 {object:超載的特斯拉線圈}.'
-L['pt_jewel_closely_guarded_shiny_note'] = '樹下巢邊的藍色寶石'
+L['pt_engi_boomthyr_rocket_note'] = '收集列在 {object:轟希爾火箭筆記} 內的物品:\n\n{item:198815}\n{item:198817}\n{item:198816}\n{item:198814}\n\n當你收集完後, 帶著它們回來到火箭旁以取得寶藏.'
+L['pt_engi_intact_coil_capacitor_note'] = '和三個 {object:外露的線} 互動來修好並拾取 {object:超載的特斯拉線圈}.'
+L['pt_jewel_closely_guarded_shiny_note'] = '巢邊樹下的藍色寶石.'
 L['pt_jewel_igneous_gem_note'] = '快速點選在岩漿內的小島上的三個水晶'
-L['pt_leath_poachers_pack_note'] = '在河床旁一個死掉的狐狸人旁邊'
-L['pt_leath_spare_djaradin_tools_note'] = '在死掉的紅龍旁邊'
+L['pt_leath_poachers_pack_note'] = '在河岸旁一個死掉的狐狸人旁邊.'
+L['pt_leath_spare_djaradin_tools_note'] = '在紅龍屍體旁邊.'
 L['pt_script_pulsing_earth_rune_note'] = '在倒塌建築內的桌子後方'
 L['pt_smith_ancient_monument_note'] = '擊敗在臺座上環繞著劍的4個 {npc:188648}.\n\n{bug:(BUG: 目前在點選劍後你不會取得物品, 取而代之的是它在過段時間後會寄到你的信箱.)}'
 L['pt_smith_curious_ingots_note'] = '在 {location:碎鱗者要塞} 內地上的小金屬錠'
-L['pt_smith_glimmer_of_blacksmithing_wisdom_note'] = '在 {object:黯淡的熔爐} 旁製造1個 {item:189541}, 然後在 {object:淬火盆} 裡的物品會變成可拾取的'
+L['pt_smith_glimmer_of_blacksmithing_wisdom_note'] = '在 {object:昏暗熔爐} 旁製造1個 {item:189541}, 然後在 {object:淬火盆} 裡的物品會變成可拾取的.'
 L['pt_smith_molten_ingot_note'] = '踢3個金屬錠到熔岩中來召喚怪物. 在擊敗怪物後拾取箱子.'
 L['pt_smith_qalashi_weapon_diagram_note'] = '在一個鐵砧上方'
 L['pt_tailor_itinerant_singed_fabric_note'] = '在最後首領刷新的山洞外面樹上掛著的一片織物. {note:需要精準的御龍術或是術士傳送門}.'
@@ -492,8 +672,12 @@ L['loyal_magmammoth_true_friend'] = '摯友'
 L['loyal_magmammoth_wrathion_quatermaster_note'] = '從 {npc:199020} 或 {npc:188625} 購買 {item:201840} ' .. ns.color.Gold('(800 金)')
 L['loyal_magmammoth_sabellian_quatermaster_note'] = '從 {npc:199020} 或 {npc:188625} 購買 {item:201839} ' .. ns.color.Gold('(800 金)')
 L['loyal_magmammoth_harness_note'] = '從 {npc:191135} 購買 {item:201837}.'
-L['loyal_magmammoth_taming_note'] = '當你騎著 {npc:198150} 時使用 {item:201837} 來取得你的座騎!\n\n{note:回報指出你只能在 {location:熾烈高地} 找到的 {npc:198150} 上使用}'
+L['loyal_magmammoth_taming_note'] = '當你騎著 {npc:198150} 時使用 {item:201837} 來取得你的座騎!\n\n{note:回報指出你只能在 {location:熾烈高地} 找到的 {npc:198150} 上使用。}'
 
 L['djaradin_cache'] = '加拉登貯物所'
 L['options_icons_djaradin_cache'] = '加拉登貯物所'
 L['options_icons_djaradin_cache_desc'] = '顯示 {object:加拉登貯物所} 可能的位置'
+
+L['dragonbane_siege_label'] = '{spell:388945}'
+L['options_icons_dragonbane_siege'] = '{spell:388945}'
+L['options_icons_dragonbane_siege_desc'] = '顯示 {spell:388945} 的位置和獎勵.'
