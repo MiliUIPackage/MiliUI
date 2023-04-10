@@ -8,7 +8,7 @@
 
 local VERSION
 if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-	VERSION = "10.0.00.0"
+	VERSION = "10.0.45"
 elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 	VERSION = "1.14.45.3"
 end
@@ -17,6 +17,7 @@ end
 -- Variables
 -------------------------------------------------------------------------------
 local _
+local _classicUI
 
 local ALGO_TRAP;
 
@@ -98,7 +99,7 @@ function FloTotemBar_OnLoad(self)
 	end
 
 	if SHOW_WELCOME then
-		DEFAULT_CHAT_FRAME:AddMessage( "FloTotemBar "..VERSION.." loaded." );
+		DEFAULT_CHAT_FRAME:AddMessage( "|cffd78900FloTotemBar v"..VERSION.."|r loaded." );
 		SHOW_WELCOME = nil;
 
 		SLASH_FLOTOTEMBAR1 = "/flototembar";
@@ -110,6 +111,11 @@ function FloTotemBar_OnLoad(self)
 			self:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED");
 		end
 		self:RegisterEvent("UNIT_SPELLCAST_INTERRUPTED");
+
+		_classicUI = _G["ClassicUI"]
+		if _classicUI then
+			DEFAULT_CHAT_FRAME:AddMessage( "FloTotemBar : |cffd78900ClassicUI v".._classicUI.VERSION.."|r detected." )
+		end
 	end
 	self:RegisterEvent("LEARNED_SPELL_IN_TAB");
 	self:RegisterEvent("CHARACTER_POINTS_CHANGED");
@@ -132,6 +138,7 @@ function FloTotemBar_OnLoad(self)
 end
 
 function FloTotemBar_OnEvent(self, event, arg1, ...)
+
 	if event == "LEARNED_SPELL_IN_TAB" or event == "CHARACTER_POINTS_CHANGED" or event == "SPELLS_CHANGED" then
 		if not changingSpec then
 			if GetSpecialization() ~= FLOTOTEMBAR_OPTIONS.active then
@@ -449,12 +456,6 @@ function FloTotemBar_SetupSpell(self, spell, pos)
 
 		button:SetAttribute("type", "spell");
 		button:SetAttribute("spell", spell.name);
-		button:RegisterForClicks("AnyDown","AnyUp");
-
-		button:SetScript("PostClick", function(self, btn, isDown)
-			self:SetChecked(false);
-			self.PushedTexture:SetAlpha(0);
-        end)
 
 		icon:SetTexture(spellTexture);
 	end
@@ -518,12 +519,21 @@ function FloTotemBar_UpdatePosition(self)
 		else
 			anchorFrame = MainMenuBar;
 
-			if SHOW_MULTI_ACTIONBAR_2 then
-				yOffset2 = yOffset2 + 45;
-			end
 
-			if SHOW_MULTI_ACTIONBAR_1 then
-				yOffset1 = yOffset1 + 45;
+			if _classicUI and _classicUI:IsEnabled() then
+				yOffset = yOffset + 6;
+				anchorFrame = CUI_MainMenuBar
+				if MultiBar1_IsVisible() then
+					yOffset = yOffset + 44;
+				end
+	
+			else
+				if MultiBar1_IsVisible() then
+					yOffset = yOffset + 50;
+				end
+				if MultiBar2_IsVisible() then
+					yOffset = yOffset + 50;
+				end
 			end
 		end
 
@@ -531,13 +541,13 @@ function FloTotemBar_UpdatePosition(self)
             if FloAspectBar ~= nil then
                 self:SetPoint("LEFT", FloAspectBar, "RIGHT", 10/ACTIVE_OPTIONS.scale, 0);
             else
-			    self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 512/ACTIVE_OPTIONS.scale, (yOffset + yOffset2)/ACTIVE_OPTIONS.scale);
+			    self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 326/ACTIVE_OPTIONS.scale, (yOffset + yOffset2)/ACTIVE_OPTIONS.scale);
             end
 		elseif FLO_CLASS_NAME == "PALADIN" then
-			self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 320/ACTIVE_OPTIONS.scale, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);
+			self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 326/ACTIVE_OPTIONS.scale, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);
 		else
 			if WOW_PROJECT_ID == WOW_PROJECT_MAINLINE then
-				self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 464, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);
+				self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 326, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale);
 			elseif WOW_PROJECT_ID == WOW_PROJECT_CLASSIC then
 				local finalOffset = layout.offset * self:GetHeight();
 				self:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 164, (yOffset + yOffset1)/ACTIVE_OPTIONS.scale + finalOffset);
