@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.8.13) add-on for World of Warcraft UI
+    Decursive (v 2.7.9) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY.
 
-    This file was last updated on 2019-11-18T13:42:00Z
+    This file was last updated on 2023-01-25T09:34:53Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -77,7 +77,7 @@ T._LoadedFiles["zhTW.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "zhTW");
 
 if not L then
-    T._LoadedFiles["zhTW.lua"] = "2.7.8.13";
+    T._LoadedFiles["zhTW.lua"] = "2.7.9";
     return;
 end;
 
@@ -326,12 +326,14 @@ L["OPT_FILTEROUTCLASSES_FOR_X"] = "在戰鬥中指定的職業%q將被忽略。"
 L["OPT_GENERAL"] = "一般選項"
 L["OPT_GROWDIRECTION"] = "反向顯示"
 L["OPT_GROWDIRECTION_DESC"] = "迷你單位格子會從尾端開始顯示。"
-L["OPT_HIDEMFS_GROUP"] = "單獨或小隊"
-L["OPT_HIDEMFS_GROUP_DESC"] = "當不在團隊中的時隱藏迷你單位格子。"
-L["OPT_HIDEMFS_NEVER"] = "從不自動隱藏"
+L["OPT_HIDEMFS_GROUP"] = "單人或小隊"
+L["OPT_HIDEMFS_GROUP_DESC"] = "不在團隊中時隱藏迷你單位格子。"
+L["OPT_HIDEMFS_NEVER"] = "永不自動隱藏"
 L["OPT_HIDEMFS_NEVER_DESC"] = "從不自動隱藏迷你單位格子。"
-L["OPT_HIDEMFS_SOLO"] = "單獨"
-L["OPT_HIDEMFS_SOLO_DESC"] = "當不在團隊中或隊伍中的時隱藏迷你單位格子。"
+L["OPT_HIDEMFS_RAID"] = "團隊"
+L["OPT_HIDEMFS_RAID_DESC"] = "在團隊中時隱藏迷你單位格子。"
+L["OPT_HIDEMFS_SOLO"] = "單人"
+L["OPT_HIDEMFS_SOLO_DESC"] = "不在團隊或隊伍中時隱藏迷你單位格子。"
 L["OPT_HIDEMUFSHANDLE"] = "隱藏迷你單位格子控制點"
 L["OPT_HIDEMUFSHANDLE_DESC"] = [=[隱藏迷你單位格子（MUF）的控制點並禁止移動。
 使用相同的指令恢復顯示。]=]
@@ -507,4 +509,4 @@ L["Decursive"] = "一鍵驅散"
 
 
 
-T._LoadedFiles["zhTW.lua"] = "2.7.8.13";
+T._LoadedFiles["zhTW.lua"] = "2.7.9";
