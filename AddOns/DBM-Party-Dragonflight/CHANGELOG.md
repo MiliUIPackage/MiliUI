@@ -1,6 +1,6 @@
 # <DBM> Dungeons (Dragonflight)
 
-## [r63-1-g262eb05](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/262eb057b5e8c39ee947cbfbb24e88d3a1cb5186) (2023-02-17)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r63...262eb057b5e8c39ee947cbfbb24e88d3a1cb5186) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r74-1-gd979850](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/d979850a2e428e0df3643621eb9889d034e52f89) (2023-03-25)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r74...d979850a2e428e0df3643621eb9889d034e52f89) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
-- Fixed bug where first barkbreaker was missing count  
+- Fixed bug with voice alert on vexamus using wrong scheduler  

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("RubyLifePoolsTrash", "DBM-Party-Dragonflight", 7)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230214213806")
+mod:SetRevision("20230314022917")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -25,7 +25,8 @@ local warnRollingThunder					= mod:NewTargetNoFilterAnnounce(392641, 3)
 local warnFireMaw							= mod:NewCastAnnounce(392394, 3, nil, nil, "Tank|Healer")
 local warnSteelBarrage						= mod:NewCastAnnounce(372047, 3, nil, nil, "Tank|Healer")
 local warnFlashfire							= mod:NewCastAnnounce(392451, 4)
-local warnFlameDance						= mod:NewCastAnnounce(385536, 4, 6)
+local warnFlameDance						= mod:NewCastAnnounce(385536, 4, 6, nil, nil, nil, nil, 3)
+local warnTectonicSlam						= mod:NewCastAnnounce(372735, 4, nil, nil, nil, nil, nil, 3)
 
 local specWarnLightningStorm				= mod:NewSpecialWarningSpell(392486, nil, nil, nil, 2, 2)
 local specWarnBlazeofGlory					= mod:NewSpecialWarningSpell(373972, nil, nil, nil, 2, 2)
@@ -39,7 +40,6 @@ local yellStormBreath						= mod:NewShortYell(391726)
 local specWarnFlameBreath					= mod:NewSpecialWarningDodge(391723, nil, nil, nil, 2, 2)
 local yellFlameBreath						= mod:NewShortYell(391723)
 local specWarnExcavatingBlast				= mod:NewSpecialWarningDodge(372696, nil, nil, nil, 2, 2)
-local specWarnTectonicSlam					= mod:NewSpecialWarningDodge(372735, nil, nil, nil, 2, 2)
 local specWarnBurnout						= mod:NewSpecialWarningRun(373614, "Melee", nil, nil, 4, 2)
 local specWarnThunderJaw					= mod:NewSpecialWarningDefensive(392395, nil, nil, nil, 1, 2)
 --local specWarnSharedSuffering				= mod:NewSpecialWarningYou(339607, nil, nil, nil, 1, 2)
@@ -51,7 +51,7 @@ local timerSteelBarrageCD					= mod:NewCDTimer(17, 372047, nil, "Tank", nil, 5, 
 local timerBlazingRushCD					= mod:NewCDTimer(17, 372087, nil, nil, nil, 3)
 local timerStormBreathCD					= mod:NewCDTimer(15.7, 391726, nil, nil, nil, 3)
 local timerRollingThunderCD					= mod:NewCDTimer(21.8, 392641, nil, nil, nil, 3)
-local timerThunderjawCD						= mod:NewCDTimer(19.4, 392395, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerThunderjawCD						= mod:NewCDTimer(19, 392395, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerLightningStormCD					= mod:NewCDTimer(20.6, 392486, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
 local timerFlashfireCD						= mod:NewCDTimer(12.1, 392451, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerTempestStormshieldCD				= mod:NewCDTimer(18.2, 391050, nil, nil, nil, 5, nil, DBM_COMMON_L.DAMAGE_ICON)
@@ -112,9 +112,10 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 372735 then
 		--TODO, Timer?
-		if self:AntiSpam(3, 2) then
-			specWarnTectonicSlam:Show()
-			specWarnTectonicSlam:Play("watchstep")
+		if self:AntiSpam(3, 6) then
+			warnTectonicSlam:Show()
+			warnTectonicSlam:Play("aesoon")
+			warnTectonicSlam:Schedule(1.5, "crowdcontrol")
 		end
 	elseif spellId == 392395 then
 		timerThunderjawCD:Start()
@@ -163,6 +164,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 385536 and self:AntiSpam(3, 6) then
 		warnFlameDance:Show()
+		warnFlameDance:Play("aesoon")
+		warnFlameDance:Schedule(1.5, "crowdcontrol")
 	end
 end
 

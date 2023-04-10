@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2486, "DBM-VaultoftheIncarnates", nil, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230215072037")
+mod:SetRevision("20230313234537")
 mod:SetCreatureID(187771, 187768, 187772, 187767)
 mod:SetEncounterID(2590)
 mod:SetUsedIcons(1, 2)
@@ -210,11 +210,7 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 373059 then
 		self.vb.blizzardCast = self.vb.blizzardCast + 1
 		specWarnPrimalBlizzard:Show(self.vb.blizzardCast)
-		if self:IsHard() then
-			specWarnPrimalBlizzard:Play("scatter")--Range 3
-		else
-			specWarnPrimalBlizzard:Play("aesoon")--Just aoe damage, spread mechanic disabled
-		end
+		specWarnPrimalBlizzard:Play("aesoon")
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.blizzardCast+1) or self:IsMythic() and 80 or self:IsHeroic() and 105.8 or self:IsEasy() and 133
 		timerPrimalBlizzardCD:Start(timer, self.vb.blizzardCast+1)
 	elseif spellId == 372315 and self:CheckInterruptFilter(args.sourceGUID, false, true) then

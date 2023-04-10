@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("NeltharusTrash", "DBM-Party-Dragonflight", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230212000355")
+mod:SetRevision("20230320021831")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -99,7 +99,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnScorchingFusillade:Play("scatter")
 			yellScorchingFusillade:Yell()
 		end
-	elseif spellId == 371875 and self:AntiSpam(3, 5) then
+	elseif spellId == 371875 and self:AntiSpam(3, 3) then
 		specWarnFiredUp:Show(args.destName)
 		specWarnFiredUp:Play("enrage")
 	end

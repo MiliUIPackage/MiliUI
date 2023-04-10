@@ -1,4 +1,4 @@
-## Interface: 100005
+## Interface: 100007
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeon and Raid Affixes|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0地下城以及團隊詞綴|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0副本词缀|r
@@ -12,7 +12,7 @@
 ## X-DBM-Mod-No-Statistics: 1
 ## X-DBM-Mod-Name: Affixes
 ## X-DBM-Mod-Name-zhTW: 副本詞綴
-## X-DBM-Mod-MapID: 2516, 2526, 2515, 2521, 1477, 1571, 1176, 960
+## X-DBM-Mod-MapID: 2296, 2450, 2481, 2516, 2526, 2515, 2521, 1477, 1571, 1176, 960, 657, 1841, 1754, 1458, 2527, 2519, 2451, 2520
 ## X-DBM-Mod-Sort: 205
 ## X-DBM-Mod-MinCoreRevision: 12473
 ## X-Category-zhTW: 團隊
