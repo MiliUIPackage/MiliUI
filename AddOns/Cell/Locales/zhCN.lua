@@ -35,7 +35,7 @@ L["%s lock %s on %s."] = "%s将%s锁定在%s。"
 L["%s unlock %s from %s."] = "%s将%s从%s解锁。"
 -- L["Raid Sort"] = "团队排序"
 -- L["Raid Roster"] = "团队名单"
-L["Alt+Right-Click to remove a player"] = "用 Alt+右键 将玩家从团队中移出"
+L["raidRosterTips"] = "[右键] 助理，[Alt+右键] 移除。"
 
 -------------------------------------------------
 -- status text
@@ -196,6 +196,11 @@ L["Shield Texture"] = "护盾材质"
 L["Overshield Texture"] = "超过血量上限的护盾材质"
 L["Reset All"] = "全部重置"
 L["[Ctrl+LeftClick] to reset these settings"] = "[Ctrl+左键] 点击此按钮来重置这些设置"
+L["Debuff Type Color"] = "减益类型颜色"
+L["Curse"] = "诅咒"
+L["Poison"] = "中毒"
+L["Disease"] = "疾病"
+L["Magic"] = "魔法"
 
 -------------------------------------------------
 -- click-castings
@@ -386,6 +391,7 @@ L["Targeted Spells"] = "被法术选中"
 L["Target Counter"] = "目标计数"
 L["Consumables"] = "消耗品"
 L["Health Thresholds"] = "血量阈值"
+L["Missing Buffs"] = "缺失增益"
 
 L["Create new indicator"] = "创建新指示器"
 L["Rename indicator"] = "重命名指示器"
@@ -498,7 +504,7 @@ L["The priority of spells decreases from top to bottom."] = "法术优先级从�
 L["With this indicator enabled, shield / overshield textures are disabled"] = "启用该指示器将会禁用血条上的护盾材质"
 L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
 L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
-L["raidRosterTips"] = "[右键] 助理，[Alt+右键] 移除。"
+L["%s in General must be enabled to make this indicator work"] = "要使用此指示器，必须先启用常规页面下的 %s 功能  "
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
 
@@ -609,6 +615,34 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r161-release (Apr 8, 2023, 20:00 GMT+8)</h1>
+    <p>* Fixed dispellable debuff type checker (retail).</p>
+    <p>* Updated zhTW.</p>
+    <br/>
+
+    <h1>r160-release (Apr 6, 2023, 21:00 GMT+8)</h1>
+    <p>* 移动“减益类型颜色”选项至外观页面。</p>
+    <p>* 修复了一个字体配置的异常。</p>
+    <p>* 提升正式服的版本到100007。</p>
+    <br/>
+
+    <h1>r159-release (Mar 28, 2023, 22:59 GMT+8)</h1>
+    <p>+ 为怀旧服版本添加了“自我施法快捷键”的冲突检查。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+        
+    <h1>r158-release (Mar 17, 2023, 20:17 GMT+8)</h1>
+    <p>+ 新指示器：缺失增益（仅正式服）。</p>
+    <p>+ 为“驱散”指示器添加了自定义驱散类型颜色的选项。</p>
+    <p>* 更新副本减益记录索引的方式，现在更加可靠。</p>
+    <p>* 对框架的 initialConfigFunction 进行了微调。</p>
+    <br/>
+
+    <h1>r157-release (Mar 7, 2023, 18:31 GMT+8)</h1>
+    <p>* 修复一些异常。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
     <h1>r156-release (Feb 10, 2023, 10:52 GMT+8)</h1>
     <p>+ 为“减伤”指示器的内置法术添加了开关。</p>
     <p>* 修复怀旧服的副本类型检查。</p>
@@ -653,6 +687,11 @@ L["CHANGELOGS"] = [[
     <p>* 修复几处bug。</p>
     <br/>
 
+    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
+    <br/>
+]]
+
+L["OLDER_CHANGELOGS"] = [[
     <h1>r149-release (Nov 29, 2022, 06:35 GMT+8)</h1>
     <p>* 添加 NPC 按钮尺寸选项。</p>
     <p>* 添加条方向选项“纵向 B”。</p>
@@ -892,12 +931,7 @@ L["CHANGELOGS"] = [[
     <h2>巫妖王之怒</h2>
     <p>* Cell 基本可以在巫妖王之怒怀旧服中使用了（但并非所有正式服的功能都可用，有些不想做，有些做不了）。</p>
     <br/>
-
-    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
-    <br/>
-]]
-
-L["OLDER_CHANGELOGS"] = [[
+    
     <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
     <p>* 更新当前赛季史诗钥石地下城的相关减益（感谢 夕曦@NGA 提供的列表）。</p>
     <p>* 修复了几处小问题。</p>

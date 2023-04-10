@@ -592,15 +592,7 @@ else
     eventFrame:RegisterEvent("TRAIT_CONFIG_UPDATED")
     -- eventFrame:RegisterEvent("ACTIVE_PLAYER_SPECIALIZATION_CHANGED")
 
-    local lock, timer
-
     local function UpdateDispellable()
-        if timer then timer:Cancel() end
-        timer = C_Timer.NewTimer(1, function() lock = nil end)
-
-        if lock then return end
-        lock = true
-
         -- update dispellable
         wipe(dispellable)
         local activeConfigID = C_ClassTalents.GetActiveConfigID()
@@ -620,14 +612,21 @@ else
         -- texplore(dispellable)
     end
 
+    local timer
+
     eventFrame:SetScript("OnEvent", function(self, event)
         if event == "PLAYER_ENTERING_WORLD" then
             eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
         end
-        UpdateDispellable()
+
+        if timer then timer:Cancel() end
+        timer = C_Timer.NewTimer(1, UpdateDispellable)
     end)
 
-    Cell:RegisterCallback("SpecChanged", "Dispellable_SpecChanged", UpdateDispellable)
+    Cell:RegisterCallback("SpecChanged", "Dispellable_SpecChanged", function()
+        if timer then timer:Cancel() end
+        timer = C_Timer.NewTimer(1, UpdateDispellable)
+    end)
 end
 
 -------------------------------------------------
@@ -679,7 +678,8 @@ local spells =  {
     367364, -- 逆转（回响）
     373862, -- 时空畸体
     378001, -- 梦境投影（pvp）
-    
+    373267, -- 缚誓生命
+
     -- monk
     119611, -- 复苏之雾
     124682, -- 氤氲之雾
@@ -712,6 +712,7 @@ local spells =  {
     
     -- shaman
     974, -- 大地之盾
+    383648, -- 大地之盾（天赋）
     61295, -- 激流
     382024, -- 大地生命武器
 }
@@ -747,7 +748,7 @@ function F:FirstRun()
             ["num"] = 5,
             ["orientation"] = "right-to-left",
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
-            ["showDuration"] = false,
+            ["showDuration"] = true,
             ["auraType"] = "buff",
             ["castByMe"] = true,
             ["auras"] = spells,
@@ -904,4 +905,30 @@ function I:ConvertConsumables(db)
         temp[t[1]] = t[2]
     end
     return temp
+end
+
+-------------------------------------------------
+-- missing buffs
+-------------------------------------------------
+local missingBuffs = {
+    21562, -- PWF
+    1126, -- MotW
+    1459, -- AB
+    6673, -- BS
+    364342, -- BotB
+}
+
+function I:GetDefaultMissingBuffs()
+    return missingBuffs
+end
+
+function I:GetMissingBuffsString()
+    local s = ""
+    for _, id in pairs(missingBuffs) do
+        local icon = select(3, GetSpellInfo(id))
+        if icon then
+            s = s .. "|T" .. icon .. ":14:14:0:0:14:14:1:13:1:13|t "
+        end
+    end
+    return s
 end

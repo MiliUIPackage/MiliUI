@@ -68,6 +68,34 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>r161-release (Apr 8, 2023, 20:00 GMT+8)</h1>
+        <p>* Fixed dispellable debuff type checker (retail).</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r160-release (Apr 6, 2023, 21:00 GMT+8)</h1>
+        <p>* Moved "Debuff Type Color" options to Appearance.</p>
+        <p>* Fixed a "font is nil" issue.</p>
+        <p>* Bumped retail toc to 100007.</p>
+        <br/>
+
+        <h1>r159-release (Mar 28, 2023, 22:59 GMT+8)</h1>
+        <p>+ Added Self Cast Key checker for Wrath.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r158-release (Mar 17, 2023, 20:17 GMT+8)</h1>
+        <p>+ New indicator: Missing Buffs (Retail only).</p>
+        <p>+ Added custom dispel type color options for Dispels indicator.</p>
+        <p>* Update raid debuffs checker.</p>
+        <p>* Update initialConfigFunction of each group header.</p>
+        <br/>
+
+        <h1>r157-release (Mar 7, 2023, 18:31 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
         <h1>r156-release (Feb 10, 2023, 10:52 GMT+8)</h1>
         <p>+ Add toggles for built-in spells (Defensives and Externals).</p>
         <p>* Fix raid type checker on Wrath.</p>
@@ -111,6 +139,11 @@ select(2, ...).L = setmetatable({
         <p>* Bug fixes.</p>
         <br/>
 
+        <p><a href="older">Click to view older changelogs</a></p>
+        <br/>
+    ]],
+
+    ["OLDER_CHANGELOGS"] = [[
         <h1>r149-release (Nov 29, 2022, 06:35 GMT+8)</h1>
         <p>* Added NPC button size options.</p>
         <p>* Added a bar orientation option "Vertical B".</p>
@@ -350,12 +383,7 @@ select(2, ...).L = setmetatable({
         <h2>Wrath Classic</h2>
         <p>* Cell should work on Wrath Classic now (not all Retail features are available).</p>
         <br/>
-
-        <p><a href="older">Click to view older changelogs</a></p>
-        <br/>
-    ]],
-
-    ["OLDER_CHANGELOGS"] = [[
+        
         <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
         <p>* Updated M+ debuffs.</p>
         <p>* Fixed several bugs.</p>

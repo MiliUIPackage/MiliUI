@@ -15,10 +15,10 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 138
-Cell.MIN_LAYOUTS_VERSION = 138
-Cell.MIN_INDICATORS_VERSION = 138
-Cell.MIN_DEBUFFS_VERSION = 138
+Cell.MIN_VERSION = 149
+Cell.MIN_LAYOUTS_VERSION = 149
+Cell.MIN_INDICATORS_VERSION = 149
+Cell.MIN_DEBUFFS_VERSION = 149
 
 --[==[@debug@
 -- local debugMode = true
@@ -392,6 +392,11 @@ function eventFrame:ADDON_LOADED(arg1)
             CellDB["bigDebuffs"] = I:GetDefaultBigDebuffs()
         end
         Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
+        
+        -- debuffTypeColor -----------------------------------------------------------------------------
+        if type(CellDB["debuffTypeColor"]) ~= "table" then
+            I:ResetDebuffTypeColor()
+        end
 
         -- defensives/externals -------------------------------------------------------------------
         if type(CellDB["defensives"]) ~= "table" then CellDB["defensives"] = {["disabled"]={}, ["custom"]={}} end

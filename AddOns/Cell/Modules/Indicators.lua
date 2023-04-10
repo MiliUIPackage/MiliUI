@@ -278,8 +278,51 @@ local function InitIndicator(indicatorName)
         
     elseif indicatorName == "dispels" then
         indicator.isDispels = true
-        local types = {["Curse"]=true, ["Disease"]=true, ["Magic"]=true, ["Poison"]=true}
-        indicator:SetDispels(types)
+
+        local debuffTypes = {
+            {["Curse"]=true},
+            {["Disease"]=true},
+            {["Magic"]=true},
+            {["Poison"]=true},
+        }
+
+        -- override
+        indicator.UpdateHighlight = function(self, highlightType)
+            indicator.highlightType = highlightType
+    
+            if highlightType == "none" then
+                indicator.highlight:Hide()
+            elseif highlightType == "gradient" then
+                indicator.highlight:ClearAllPoints()
+                indicator.highlight:SetAllPoints(previewButton.widget.healthBar)
+                indicator.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+                indicator.highlight:Show()
+            elseif highlightType == "entire" then
+                indicator.highlight:ClearAllPoints()
+                indicator.highlight:SetAllPoints(previewButton.widget.healthBar)
+                indicator.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+                indicator.highlight:Show()
+            elseif highlightType == "current" then
+                indicator.highlight:ClearAllPoints()
+                indicator.highlight:SetAllPoints(previewButton.widget.healthBar:GetStatusBarTexture())
+                indicator.highlight:SetTexture(Cell.vars.texture)
+                indicator.highlight:Show()
+            end
+
+            -- preview
+            indicator.elapsed = 0
+            indicator.current = 1
+            indicator:SetDispels(debuffTypes[indicator.current])
+            indicator:SetScript("OnUpdate", function(self, elapsed)
+                indicator.elapsed = indicator.elapsed + elapsed
+                if indicator.elapsed >= 1 then
+                    indicator.elapsed = 0
+                    indicator.current = indicator.current + 1
+                    if indicator.current == 5 then indicator.current = 1 end
+                    indicator:SetDispels(debuffTypes[indicator.current])
+                end
+            end)
+        end
 
     elseif indicatorName == "raidDebuffs" then
         indicator.isRaidDebuffs = true
@@ -327,6 +370,12 @@ local function InitIndicator(indicatorName)
         local icons = {135936, 136120, 135966, 132362, 237542}
         for i = 1, 5 do
             SetOnUpdate(indicator[i], nil, icons[i], 0)
+        end
+    elseif indicatorName == "missingBuffs" then
+        local buffs = I:GetDefaultMissingBuffs()
+        for i = 1, 5 do
+            local icon = select(3, GetSpellInfo(buffs[i]))
+            indicator[i]:SetCooldown(0, 0, nil, icon, 0)
         end
     elseif string.find(indicatorName, "indicator") then
         if indicator.indicatorType == "icons" then
@@ -829,7 +878,7 @@ local function UpdateSyncedLayouts()
     end
 end
 
-local function GetNotifiedLayoutName(layout)
+function F:GetNotifiedLayoutName(layout)
     -- if currentlyEnabled is a slave
     local masterOfCurrentlyEnabled = slaves[Cell.vars.currentLayout]
     if masterOfCurrentlyEnabled then
@@ -1167,7 +1216,7 @@ local function CreateListPane()
                 end
             end
 
-            Cell:Fire("UpdateIndicators", GetNotifiedLayoutName(currentLayout), indicatorName, "create", currentLayoutTable["indicators"][last+1])
+            Cell:Fire("UpdateIndicators", F:GetNotifiedLayoutName(currentLayout), indicatorName, "create", currentLayoutTable["indicators"][last+1])
             LoadIndicatorList()
             listButtons[last+1]:Click()
             -- check scroll
@@ -1208,7 +1257,7 @@ local function CreateListPane()
         local auraType = currentLayoutTable["indicators"][selected]["auraType"]
 
         local popup = Cell:CreateConfirmPopup(indicatorsTab, 200, L["Delete indicator"].."?\n"..name, function(self)
-            Cell:Fire("UpdateIndicators", GetNotifiedLayoutName(currentLayout), indicatorName, "remove", auraType)
+            Cell:Fire("UpdateIndicators", F:GetNotifiedLayoutName(currentLayout), indicatorName, "remove", auraType)
             tremove(currentLayoutTable["indicators"], selected)
             LoadIndicatorList()
             listButtons[1]:Click()
@@ -1295,6 +1344,7 @@ if Cell.isRetail then
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates. Battleground/Arena only."], "enabled", "color", "font-noOffset", "position", "frameLevel"},
         ["consumables"] = {"enabled", "consumablesPreview", "consumablesList"},
         ["healthThresholds"] = {"enabled", "thresholds", "thickness"},
+        ["missingBuffs"] = {I:GetMissingBuffsString().."|cffb7b7b7"..(L["%s in General must be enabled to make this indicator work"]:format(Cell:GetAccentColorString()..L["Buff Tracker"].."|r")), "enabled", "num:5", "orientation", "size-square", "position", "frameLevel"},
     }
 elseif Cell.isWrath then
     indicatorSettings = {
@@ -1317,6 +1367,7 @@ elseif Cell.isWrath then
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
         ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "color-alpha", "height", "position-noHCenter", "frameLevel"},
+        -- ["powerWordShield"] = {"enabled", "size-border", "position", "frameLevel"},
         ["aoeHealing"] = {"enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "num:5", "orientation", "size", "font", "position", "frameLevel"},
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "num:5", "orientation", "size", "font", "position", "frameLevel"},
@@ -1449,8 +1500,8 @@ local function ShowIndicatorSettings(id)
 
         -- update func
         w:SetFunc(function(value, customSetting)
-            -- print("NOTIFY:", GetNotifiedLayoutName())
-            local notifiedLayout = GetNotifiedLayoutName(currentLayout)
+            -- print("NOTIFY:", F:GetNotifiedLayoutName())
+            local notifiedLayout = F:GetNotifiedLayoutName(currentLayout)
 
             if value == nil and customSetting then --* NOTE: just Fire("UpdateIndicators") with customSetting
                 F:Debug("|cff77ff77SetFunc(Custom):|r ", notifiedLayout, indicatorName, customSetting)

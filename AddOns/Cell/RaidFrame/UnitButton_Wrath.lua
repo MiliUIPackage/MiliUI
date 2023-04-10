@@ -2,7 +2,7 @@
 -- File: UnitButton_Wrath.lua
 -- Author: enderneko (enderneko-dev@outlook.com)
 -- File Created: 2022/08/20 19:44:26 +0800
--- Last Modified: 2023/02/10 06:28:59 +0800
+-- Last Modified: 2023/04/06 19:09:01 +0800
 --]]
 
 local _, Cell = ...
@@ -163,6 +163,8 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     -- NOTE: debuffs: ["size"] = {{normalSize}, {bigSize}}
                     if t["indicatorName"] == "debuffs" then
                         indicator:SetSize(t["size"][1], t["size"][2])
+                    -- elseif t["indicatorName"] == "powerWordShield" then
+                    --     indicator:SetSize(t["size"][1], t["size"][2], t["size"][3])
                     else
                         P:Size(indicator, t["size"][1], t["size"][2])
                     end
@@ -274,12 +276,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     UpdateIndicatorParentVisibility(b, t["indicatorName"], t["enabled"])
                 end
             
-                --! update pixel perfect for built-in widgets
-                if t["type"] == "built-in" then
-                    if indicator.UpdatePixelPerfect then
-                        indicator:UpdatePixelPerfect() 
-                    end
-                end
+                -- update pixel perfect for built-in widgets
+                -- if t["type"] == "built-in" then
+                --     if indicator.UpdatePixelPerfect then
+                --         indicator:UpdatePixelPerfect()
+                --     end
+                -- end
             end
             
             --! update pixel perfect for widgets
@@ -584,7 +586,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" then
+        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -610,6 +612,7 @@ local debuffs_dispel = {}
 local debuffs_raid_indices = {} -- store matching raid debuffs indices
 local debuffs_raid_refreshing = {} -- store matching raid debuffs refreshing status ([index] = refreshing)
 local debuffs_raid_orders = {} -- store matching raid debuffs orders ([index] = order)
+local debuffs_raid_shown = {} -- store debuffs indices shown by raidDebuffs indicator
 local debuffs_glowing_current = {}
 local debuffs_glowing_cache = {}
 local function UnitButton_UpdateDebuffs(self)
@@ -624,6 +627,7 @@ local function UnitButton_UpdateDebuffs(self)
     if not debuffs_raid_indices[unit] then debuffs_raid_indices[unit] = {} end
     if not debuffs_raid_refreshing[unit] then debuffs_raid_refreshing[unit] = {} end
     if not debuffs_raid_orders[unit] then debuffs_raid_orders[unit] = {} end
+    if not debuffs_raid_shown[unit] then debuffs_raid_shown[unit] = {} end
     if not debuffs_glowing_current[unit] then debuffs_glowing_current[unit] = {} end
     if not debuffs_glowing_cache[unit] then debuffs_glowing_cache[unit] = {} end
     -- self.state.BGOrb = nil
@@ -738,7 +742,6 @@ local function UnitButton_UpdateDebuffs(self)
         table.sort(debuffs_raid_indices[unit], function(a, b)
             return debuffs_raid_orders[unit][a] < debuffs_raid_orders[unit][b]
         end)
-        wipe(debuffs_raid_orders[unit])
         
         -- show
         local topGlowType, topGlowOptions
@@ -749,8 +752,8 @@ local function UnitButton_UpdateDebuffs(self)
                     self.indicators.raidDebuffs[i]:SetCooldown(expirationTime - duration, duration, debuffType or "", icon, count, debuffs_raid_refreshing[unit][debuffs_raid_indices[unit][i]])
                     self.indicators.raidDebuffs[i].index = debuffs_raid_indices[unit][i] -- NOTE: for tooltip
                     startIndex = startIndex + 1
-                    -- use debuffs_raid_orders(wiped before) to store debuffs indices shown by raidDebuffs indicator
-                    debuffs_raid_orders[unit][debuffs_raid_indices[unit][i]] = true
+                    -- store debuffs indices shown by raidDebuffs indicator
+                    debuffs_raid_shown[unit][debuffs_raid_indices[unit][i]] = true
 
                     if i == 1 then -- top
                         topGlowType, topGlowOptions = I:GetDebuffGlow(name, spellId, count)
@@ -802,7 +805,7 @@ local function UnitButton_UpdateDebuffs(self)
         -- bigDebuffs first
         for debuffIndex, refreshing in pairs(debuffs_big[unit]) do
             local name, icon, count, debuffType, duration, expirationTime = UnitDebuff(unit, debuffIndex)
-            if name and not debuffs_raid_orders[unit][debuffIndex] and startIndex <= indicatorNums["debuffs"] then
+            if name and not debuffs_raid_shown[unit][debuffIndex] and startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count, refreshing
                 self.indicators.debuffs[startIndex]:SetCooldown(expirationTime - duration, duration, debuffType or "", icon, count, refreshing, true)
                 self.indicators.debuffs[startIndex].index = debuffIndex -- NOTE: for tooltip
@@ -812,7 +815,7 @@ local function UnitButton_UpdateDebuffs(self)
         -- then normal debuffs
         for debuffIndex, refreshing in pairs(debuffs_normal[unit]) do
             local name, icon, count, debuffType, duration, expirationTime = UnitDebuff(unit, debuffIndex)
-            if name and not debuffs_raid_orders[unit][debuffIndex] and startIndex <= indicatorNums["debuffs"] then
+            if name and not debuffs_raid_shown[unit][debuffIndex] and startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count, refreshing
                 self.indicators.debuffs[startIndex]:SetCooldown(expirationTime - duration, duration, debuffType or "", icon, count, refreshing)
                 self.indicators.debuffs[startIndex].index = debuffIndex -- NOTE: for tooltip
@@ -852,6 +855,7 @@ local function UnitButton_UpdateDebuffs(self)
     wipe(debuffs_raid_indices[unit])
     wipe(debuffs_raid_refreshing[unit])
     wipe(debuffs_raid_orders[unit])
+    wipe(debuffs_raid_shown[unit])
 end
 
 local buffs_current = {}
@@ -993,6 +997,7 @@ local function ResetAuraTables(unit)
     if debuffs_raid_indices[unit] then wipe(debuffs_raid_indices[unit]) end
     if debuffs_raid_refreshing[unit] then wipe(debuffs_raid_refreshing[unit]) end
     if debuffs_raid_orders[unit] then wipe(debuffs_raid_orders[unit]) end
+    if debuffs_raid_shown[unit] then wipe(debuffs_raid_shown[unit]) end
     -- reset buffs
     if buffs_current[unit] then wipe(buffs_current[unit]) end
     if buffs_cache[unit] then wipe(buffs_cache[unit]) end
@@ -1007,6 +1012,7 @@ local function UpdateUnitHealthState(self, diff)
 
     local health = UnitHealth(unit) + (diff or 0)
     local healthMax = UnitHealthMax(unit)
+    health = min(health, healthMax) --! diff
 
     self.state.health = health
     self.state.healthMax = healthMax
@@ -1157,6 +1163,31 @@ local function UnitButton_UpdateTarget(self)
     end
 end
 
+local function CheckVehicleRoot(petUnit)
+    if not petUnit then return end
+
+    local playerUnit
+    if petUnit == "pet" then
+        playerUnit = "player"
+    else
+        playerUnit = petUnit:gsub("pet", "")
+    end
+
+    local isRoot
+    for i = 1, UnitVehicleSeatCount(playerUnit) do
+        local controlType, occupantName, serverName, ejectable, canSwitchSeats = UnitVehicleSeatInfo(playerUnit, i)
+        if UnitName(playerUnit) == occupantName then
+            isRoot = controlType == "Root"
+            break
+        end
+    end
+
+    local b = F:GetUnitButtonByUnit(petUnit)
+    if b then
+        b.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
+    end
+end
+
 UnitButton_UpdateRole = function(self)
     local unit = self.state.unit
     if not unit then return end
@@ -1168,6 +1199,11 @@ UnitButton_UpdateRole = function(self)
         self.state.role = role
 
         roleIcon:SetRole(role)
+
+        --! check vehicle root
+        if self.state.guid and strfind(self.state.guid, "^Vehicle") then
+            CheckVehicleRoot(unit)
+        end
     else
         roleIcon:Hide()
     end
@@ -2940,6 +2976,7 @@ function F:UnitButton_OnLoad(button)
     I:CreateTargetedSpells(button)
     I:CreateConsumables(button)
     I:CreateHealthThresholds(button)
+    -- I:CreatePowerWordShield(button)
 
     -- events
     button:SetScript("OnAttributeChanged", UnitButton_OnAttributeChanged) -- init

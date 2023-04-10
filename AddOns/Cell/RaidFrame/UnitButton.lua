@@ -70,10 +70,15 @@ local indicatorsInitialized
 local enabledIndicators, indicatorNums, indicatorCustoms = {}, {}, {}
 
 local function UpdateIndicatorParentVisibility(b, indicatorName, enabled)
-    if not (indicatorName == "debuffs" or indicatorName == "defensiveCooldowns" or indicatorName == "externalCooldowns" or indicatorName == "allCooldowns" or indicatorName == "dispels") then
+    if not (indicatorName == "debuffs" or
+            indicatorName == "defensiveCooldowns" or
+            indicatorName == "externalCooldowns" or
+            indicatorName == "allCooldowns" or
+            indicatorName == "dispels" or
+            indicatorName == "missingBuffs") then
         return
     end
-
+    
     if enabled then
         b.indicators[indicatorName]:Show()
     else
@@ -121,6 +126,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             -- update healthThresholds
             if t["indicatorName"] == "healthThresholds" then
                 I:UpdateHealthThresholds()
+            end
+            -- update missingBuffs
+            if t["indicatorName"] == "missingBuffs" then
+                I:EnableMissingBuffs(t["enabled"])
+                I:UpdateMissingBuffsNum(t["num"])
             end
             -- update custom
             if t["dispellableByMe"] ~= nil then
@@ -274,12 +284,12 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                     UpdateIndicatorParentVisibility(b, t["indicatorName"], t["enabled"])
                 end
             
-                --! update pixel perfect for built-in widgets
-                if t["type"] == "built-in" then
-                    if indicator.UpdatePixelPerfect then
-                        indicator:UpdatePixelPerfect() 
-                    end
-                end
+                -- update pixel perfect for built-in widgets
+                -- if t["type"] == "built-in" then
+                --     if indicator.UpdatePixelPerfect then
+                --         indicator:UpdatePixelPerfect() 
+                --     end
+                -- end
             end
             
             --! update pixel perfect for widgets
@@ -341,6 +351,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 end
                 F:IterateAllUnitButtons(function(b)
                     B.UpdateHealth(b)
+                end, true)
+            elseif indicatorName == "missingBuffs" then
+                I:EnableMissingBuffs(value)
+                F:IterateAllUnitButtons(function(b)
+                    UpdateIndicatorParentVisibility(b, indicatorName, value)
                 end, true)
             else
                 -- refresh
@@ -446,10 +461,14 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             end, true)
         elseif setting == "num" then
             indicatorNums[indicatorName] = value
-            -- refresh
-            F:IterateAllUnitButtons(function(b)
-                UnitButton_UpdateAuras(b)
-            end, true)
+            if indicatorName == "missingBuffs" then
+                I:UpdateMissingBuffsNum(value)
+            else
+                -- refresh
+                F:IterateAllUnitButtons(function(b)
+                    UnitButton_UpdateAuras(b)
+                end, true)
+            end
         elseif setting == "roleTexture" then
             F:IterateAllUnitButtons(function(b)
                 local indicator = b.indicators[indicatorName]
@@ -585,7 +604,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" then
+        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -648,9 +667,10 @@ local debuffs_cache_count = {}
 local debuffs_normal = {}
 local debuffs_big = {}
 local debuffs_dispel = {}
-local debuffs_raid = {} -- store raid debuffs auraInstanceID
+local debuffs_raid = {} -- store raid debuffs auraInstanceIDs
 local debuffs_raid_refreshing = {} -- store raid debuffs refreshing status ([auraInstanceID] = refreshing)
 local debuffs_raid_orders = {} -- store raid debuffs orders ([auraInstanceID] = order)
+local debuffs_raid_shown = {} -- store debuffs auraInstanceIDs shown by raidDebuffs indicator
 local debuffs_glowing_current = {}
 local debuffs_glowing_cache = {}
 local function UnitButton_UpdateDebuffs(self)
@@ -666,6 +686,7 @@ local function UnitButton_UpdateDebuffs(self)
     if not debuffs_raid[unit] then debuffs_raid[unit] = {} end
     if not debuffs_raid_refreshing[unit] then debuffs_raid_refreshing[unit] = {} end
     if not debuffs_raid_orders[unit] then debuffs_raid_orders[unit] = {} end
+    if not debuffs_raid_shown[unit] then debuffs_raid_shown[unit] = {} end
     if not debuffs_glowing_current[unit] then debuffs_glowing_current[unit] = {} end
     if not debuffs_glowing_cache[unit] then debuffs_glowing_cache[unit] = {} end
     self.state.BGOrb = nil
@@ -792,7 +813,6 @@ local function UnitButton_UpdateDebuffs(self)
         table.sort(debuffs_raid[unit], function(a, b)
             return debuffs_raid_orders[unit][a] < debuffs_raid_orders[unit][b]
         end)
-        wipe(debuffs_raid_orders[unit])
         
         -- show
         local topGlowType, topGlowOptions
@@ -803,8 +823,8 @@ local function UnitButton_UpdateDebuffs(self)
                     self.indicators.raidDebuffs[i]:SetCooldown((auraInfo.expirationTime or 0) - auraInfo.duration, auraInfo.duration, auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, debuffs_raid_refreshing[unit][debuffs_raid[unit][i]])
                     self.indicators.raidDebuffs[i].index = debuffs_indices[unit][debuffs_raid[unit][i]] -- NOTE: for tooltip
                     startIndex = startIndex + 1
-                    -- use debuffs_raid_orders(wiped before) to store debuffs indices shown by raidDebuffs indicator
-                    debuffs_raid_orders[unit][debuffs_raid[unit][i]] = true
+                    -- store debuffs auraInstanceIDs shown by raidDebuffs indicator
+                    debuffs_raid_shown[unit][debuffs_raid[unit][i]] = true
 
                     if i == 1 then -- top
                         topGlowType, topGlowOptions = I:GetDebuffGlow(auraInfo.name, auraInfo.spellId, auraInfo.applications)
@@ -856,7 +876,7 @@ local function UnitButton_UpdateDebuffs(self)
         -- bigDebuffs first
         for auraInstanceID, refreshing in pairs(debuffs_big[unit]) do
             local auraInfo = GetAuraDataByAuraInstanceID(unit, auraInstanceID)
-            if auraInfo and not debuffs_raid_orders[unit][auraInstanceID] and startIndex <= indicatorNums["debuffs"] then
+            if auraInfo and not debuffs_raid_shown[unit][auraInstanceID] and startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count
                 self.indicators.debuffs[startIndex]:SetCooldown((auraInfo.expirationTime or 0) - auraInfo.duration, auraInfo.duration, auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, refreshing, true)
                 self.indicators.debuffs[startIndex].index = debuffs_indices[unit][auraInstanceID] -- NOTE: for tooltip
@@ -866,7 +886,7 @@ local function UnitButton_UpdateDebuffs(self)
         -- then normal debuffs
         for auraInstanceID, refreshing in pairs(debuffs_normal[unit]) do
             local auraInfo = GetAuraDataByAuraInstanceID(unit, auraInstanceID)
-            if auraInfo and not debuffs_raid_orders[unit][auraInstanceID] and startIndex <= indicatorNums["debuffs"] then
+            if auraInfo and not debuffs_raid_shown[unit][auraInstanceID] and startIndex <= indicatorNums["debuffs"] then
                 -- start, duration, debuffType, texture, count
                 self.indicators.debuffs[startIndex]:SetCooldown((auraInfo.expirationTime or 0) - auraInfo.duration, auraInfo.duration, auraInfo.dispelName or "", auraInfo.icon, auraInfo.applications, refreshing)
                 self.indicators.debuffs[startIndex].index = debuffs_indices[unit][auraInstanceID] -- NOTE: for tooltip
@@ -907,6 +927,7 @@ local function UnitButton_UpdateDebuffs(self)
     wipe(debuffs_raid[unit])
     wipe(debuffs_raid_refreshing[unit])
     wipe(debuffs_raid_orders[unit])
+    wipe(debuffs_raid_shown[unit])
 end
 
 local buffs_current = {}
@@ -1078,6 +1099,7 @@ local function ResetAuraTables(unit)
     if debuffs_raid[unit] then wipe(debuffs_raid[unit]) end
     if debuffs_raid_refreshing[unit] then wipe(debuffs_raid_refreshing[unit]) end
     if debuffs_raid_orders[unit] then wipe(debuffs_raid_orders[unit]) end
+    if debuffs_raid_shown[unit] then wipe(debuffs_raid_shown[unit]) end
     -- reset buffs
     if buffs_current[unit] then wipe(buffs_current[unit]) end
     if buffs_cache[unit] then wipe(buffs_cache[unit]) end
@@ -1177,6 +1199,7 @@ local function UpdateUnitHealthState(self, diff)
 
     local health = UnitHealth(unit) + (diff or 0)
     local healthMax = UnitHealthMax(unit)
+    health = min(health, healthMax) --! diff
 
     self.state.health = health
     self.state.healthMax = healthMax
@@ -1342,6 +1365,32 @@ local function UnitButton_UpdateTarget(self)
     end
 end
 
+
+local function CheckVehicleRoot(petUnit)
+    if not petUnit then return end
+
+    local playerUnit
+    if petUnit == "pet" then
+        playerUnit = "player"
+    else
+        playerUnit = petUnit:gsub("pet", "")
+    end
+
+    local isRoot
+    for i = 1, UnitVehicleSeatCount(playerUnit) do
+        local controlType, occupantName, serverName, ejectable, canSwitchSeats = UnitVehicleSeatInfo(playerUnit, i)
+        if UnitName(playerUnit) == occupantName then
+            isRoot = controlType == "Root"
+            break
+        end
+    end
+
+    local b = F:GetUnitButtonByUnit(petUnit)
+    if b then
+        b.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
+    end
+end
+
 UnitButton_UpdateRole = function(self)
     local unit = self.state.unit
     if not unit then return end
@@ -1353,6 +1402,11 @@ UnitButton_UpdateRole = function(self)
         self.state.role = role
 
         roleIcon:SetRole(role)
+
+        --! check vehicle root
+        if self.state.guid and strfind(self.state.guid, "^Vehicle") then
+            CheckVehicleRoot(unit)
+        end
     else
         roleIcon:Hide()
     end
@@ -3049,6 +3103,7 @@ function F:UnitButton_OnLoad(button)
     I:CreateTargetCounter(button)
     I:CreateConsumables(button)
     I:CreateHealthThresholds(button)
+    I:CreateMissingBuffs(button)
 
     -- events
     button:SetScript("OnAttributeChanged", UnitButton_OnAttributeChanged) -- init

@@ -991,6 +991,14 @@ function F:GetPetUnit(playerUnit)
     end
 end
 
+function F:GetPlayerUnit(petUnit)
+    if petUnit == "pet" then
+        return "player"
+    else
+        return petUnit:gsub("pet", "")
+    end
+end
+
 function F:IterateGroupMembers()
     local groupType = IsInRaid() and "raid" or "party"
     local numGroupMembers = GetNumGroupMembers()
@@ -1431,6 +1439,8 @@ local shapes = {
     "circle",
     "heart_filled",
     "heart",
+    "rhombus",
+    "rhombus_filled",
     "square_filled",
     "square",
     "star_filled",
@@ -1438,7 +1448,7 @@ local shapes = {
     "starburst_filled",
     "starburst",
     "triangle_filled",
-    "triangle"
+    "triangle",
 }
 
 -- weakauras

@@ -4,8 +4,6 @@ local F = Cell.funcs
 local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 
-local DebuffTypeColor = F:Copy(DebuffTypeColor)
-DebuffTypeColor.cleu = {r=0, g=1, b=1}
 -------------------------------------------------
 -- CreateAura_BorderIcon
 -------------------------------------------------
@@ -43,7 +41,7 @@ end
 local function BorderIcon_SetCooldown(frame, start, duration, debuffType, texture, count, refreshing)
     local r, g, b
     if debuffType then
-        r, g, b = DebuffTypeColor[debuffType].r, DebuffTypeColor[debuffType].g, DebuffTypeColor[debuffType].b
+        r, g, b = I:GetDebuffTypeColor(debuffType)
     else
         r, g, b = 0, 0, 0
     end
@@ -112,7 +110,7 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
     frame:Hide()
     -- frame:SetSize(11, 11)
     frame:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
-    frame:SetBackdropColor(0, 0, 0, 0.75)
+    frame:SetBackdropColor(0, 0, 0, 0.85)
     
     local border = frame:CreateTexture(name.."Border", "BORDER")
     frame.border = border
@@ -297,7 +295,7 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
 
     local r, g, b
     if debuffType then
-        r, g, b = DebuffTypeColor[debuffType].r, DebuffTypeColor[debuffType].g, DebuffTypeColor[debuffType].b
+        r, g, b = I:GetDebuffTypeColor(debuffType)
         frame.spark:SetColorTexture(r, g, b, 1)
     else
         r, g, b = 0, 0, 0
@@ -564,7 +562,7 @@ function I:CreateAura_Text(name, parent)
 
     frame.SetFont = Text_SetFont
 
-    frame.OriginalSetPoint = frame.SetPoint
+    frame._SetPoint = frame.SetPoint
     function frame:SetPoint(point, relativeTo, relativePoint, x, y)
         text:ClearAllPoints()
         if string.find(point, "LEFT") then
@@ -574,7 +572,7 @@ function I:CreateAura_Text(name, parent)
         else
             text:SetPoint("CENTER")
         end
-        frame:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
+        frame:_SetPoint(point, relativeTo, relativePoint, x, y)
     end
 
     frame.SetCooldown = Text_SetCooldown
@@ -780,7 +778,7 @@ function I:CreateAura_Color(name, parent)
 
     function color:SetCooldown(start, duration, debuffType, texture, count, refreshing)
         if color.type == "debuff-type" and debuffType then
-            solidTex:SetVertexColor(DebuffTypeColor[debuffType]["r"], DebuffTypeColor[debuffType]["g"], DebuffTypeColor[debuffType]["b"], color.alpha)
+            solidTex:SetVertexColor(CellDB["debuffTypeColor"][debuffType]["r"], CellDB["debuffTypeColor"][debuffType]["g"], CellDB["debuffTypeColor"][debuffType]["b"], color.alpha)
         end
         color:Show()
     end
@@ -862,23 +860,23 @@ function I:CreateAura_Icons(name, parent, num)
     icons:Hide()
     icons.indicatorType = "icons"
 
-    icons.OriginalSetSize = icons.SetSize
+    icons._SetSize = icons.SetSize
 
     function icons:UpdateSize(iconsShown)
         if not (icons.width and icons.height and icons.orientation) then return end -- not init
         if iconsShown then -- call from I:CheckCustomIndicators or preview
             if icons.orientation == "horizontal" then
-                icons:OriginalSetSize(icons.width*iconsShown, icons.height)
+                icons:_SetSize(icons.width*iconsShown, icons.height)
             else
-                icons:OriginalSetSize(icons.width, icons.height*iconsShown)
+                icons:_SetSize(icons.width, icons.height*iconsShown)
             end
         else
             for i = 1, num do
                 if icons[i]:IsShown() then
                     if icons.orientation == "horizontal" then
-                        icons:OriginalSetSize(icons.width*i, icons.height)
+                        icons:_SetSize(icons.width*i, icons.height)
                     else
-                        icons:OriginalSetSize(icons.width, icons.height*i)
+                        icons:_SetSize(icons.width, icons.height*i)
                     end
                 end
             end

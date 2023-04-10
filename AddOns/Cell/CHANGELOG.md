@@ -1,5 +1,4 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r155-release...6756e782ce23375c7885dc6e09cbfdc1a389a003)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r160-release...ea10b9f776ada3b6fdd348f8e9b8ee40d05f4fed)
 
-- Add toggles for built-in spells (defensives/externals)
-- Fix raid type checker on wrath
-- Update links
+- Fix dispelling checker (retail)
+- Update zhTW

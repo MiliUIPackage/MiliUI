@@ -136,7 +136,7 @@ function I:CreateTargetCounter(parent)
     text:SetPoint("CENTER", 1, 0)
 
     function targetCounter:SetFont(font, size, flags)
-        if not string.find(strlower(font), ".ttf") then font = F:GetFont(font) end
+        font = F:GetFont(font)
 
         if flags == "Shadow" then
             text:SetFont(font, size, "")
@@ -167,7 +167,7 @@ function I:CreateTargetCounter(parent)
         targetCounter:SetSize(size+3, size+3)
     end
 
-    targetCounter.OriginalSetPoint = targetCounter.SetPoint
+    targetCounter._SetPoint = targetCounter.SetPoint
     function targetCounter:SetPoint(point, relativeTo, relativePoint, x, y)
         text:ClearAllPoints()
         if string.find(point, "LEFT") then
@@ -177,7 +177,7 @@ function I:CreateTargetCounter(parent)
         else
             text:SetPoint("CENTER")
         end
-        targetCounter:OriginalSetPoint(point, relativeTo, relativePoint, x, y)
+        targetCounter:_SetPoint(point, relativeTo, relativePoint, x, y)
     end
 
     function targetCounter:SetCount(n)

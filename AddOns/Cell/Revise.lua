@@ -13,7 +13,7 @@ function F:Revise()
         F:Debug("CharaDBRevision:", charaDbRevision)
     end
 
-    if CellDB["revise"] and dbRevision < 100 then -- update from an unsupported version
+    if CellDB["revise"] and dbRevision < 149 then -- update from an unsupported version
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
@@ -1286,7 +1286,6 @@ function F:Revise()
             end
         end
     end
-    ]=]
 
     -- r103-release
     if CellDB["revise"] and dbRevision < 103 then
@@ -1573,6 +1572,7 @@ function F:Revise()
             end
         end
     end
+    ]=]
 
     -- r150-release
     if CellDB["revise"] and dbRevision < 150 then
@@ -1802,6 +1802,31 @@ function F:Revise()
         if CellDB["customExternals"] then
             CellDB["externals"]["custom"] = CellDB["customExternals"]
             CellDB["customExternals"] = nil
+        end
+    end
+
+    -- r158-release
+    if CellDB["revise"] and dbRevision < 158 then
+        --! Missing Buffs indicator only works on Retail
+        --! because it's difficult to check Blessings on Wrath
+        if Cell.isRetail then
+            local index = Cell.defaults.indicatorIndices.missingBuffs
+            for _, layout in pairs(CellDB["layouts"]) do
+                if not layout["indicators"][index] or layout["indicators"][index]["indicatorName"] ~= "missingBuffs" then
+                    tinsert(layout.indicators, index, {
+                        ["name"] = "Missing Buffs",
+                        ["indicatorName"] = "missingBuffs",
+                        ["type"] = "built-in",
+                        ["enabled"] = false,
+                        -- ["trackByName"] = Cell.isWrath,
+                        ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
+                        ["frameLevel"] = 10,
+                        ["size"] = {13, 13},
+                        ["num"] = 3,
+                        ["orientation"] = "right-to-left",
+                    })
+                end
+            end
         end
     end
 
