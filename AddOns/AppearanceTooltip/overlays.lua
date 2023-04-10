@@ -96,22 +96,26 @@ local function UpdateOverlay(button, link, ...)
     end
 end
 
-local function UpdateContainerButton(button, bag, slot)
+local function UpdateButtonFromItem(button, item)
     if button.appearancetooltipoverlay then button.appearancetooltipoverlay:Hide() end
     if not ns.db.bags then
         return
     end
-    slot = slot or button:GetID()
-    local item = Item:CreateFromBagAndSlot(bag, slot)
-    if item:IsItemEmpty() then
+    if (not item) or item:IsItemEmpty() then
         return
     end
     item:ContinueOnItemLoad(function()
         local link = item:GetItemLink()
-        if not ns.db.bags_unbound or not C_Item.IsBound(item:GetItemLocation()) then
+        local isBound = item:IsItemInPlayersControl() and C_Item.IsBound(item:GetItemLocation())
+        if not ns.db.bags_unbound or not isBound then
             UpdateOverlay(button, link)
         end
     end)
+end
+
+local function UpdateContainerButton(button, bag, slot)
+    local item = Item:CreateFromBagAndSlot(bag, slot or button:GetID())
+    UpdateButtonFromItem(button, item)
 end
 
 if _G.ContainerFrame_Update then
@@ -195,13 +199,29 @@ end
 -- Encounter Journal frame
 
 f:RegisterAddonHook("Blizzard_EncounterJournal", function()
+    local function handleSlot(frame)
+        if frame.appearancetooltipoverlay then frame.appearancetooltipoverlay:Hide() end
+        if not ns.db.encounterjournal then return end
+        if frame:IsShown() then
+            local data = frame:GetElementData()
+            local itemInfo = data.index and C_EncounterJournal.GetLootInfoByIndex(data.index)
+            -- DevTools_Dump(itemInfo)
+            if itemInfo then
+                UpdateOverlay(frame, itemInfo.link, "TOPLEFT", 5, -4)
+            end
+        end
+    end
+    EncounterJournal.encounter.info.LootContainer.ScrollBox:RegisterCallback("OnUpdate", function(...)
+        EncounterJournal.encounter.info.LootContainer.ScrollBox:ForEachFrame(handleSlot)
+    end)
+    -- initial load:
     hooksecurefunc("EncounterJournal_LootCallback", function(itemID)
         local scrollBox = EncounterJournal.encounter.info.LootContainer.ScrollBox
         local button = scrollBox:FindFrameByPredicate(function(button)
             return button.itemID == itemID
         end);
         if button then
-            UpdateOverlay(button, button.link, "TOPLEFT", 5, -4)
+            handleSlot(button)
         end
     end)
 end)
@@ -319,8 +339,10 @@ end)
 --Bagnon:
 f:RegisterAddonHook("Bagnon", function()
     hooksecurefunc(Bagnon.Item, "Update", function(frame)
-        local bag = frame:GetBag()
-        UpdateContainerButton(frame, bag)
+        local itemLink = frame:GetItem()
+        if itemLink then
+            UpdateButtonFromItem(frame, Item:CreateFromItemLink(itemLink))
+        end
     end)
 end)
 

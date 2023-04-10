@@ -433,7 +433,7 @@ function ns:ShowItem(link, for_tooltip)
             end
 
             tooltip:SetParent(for_tooltip)
-			tooltip:Show()
+            tooltip:Show()
             tooltip.owner = for_tooltip
 
             positioner:Show()
