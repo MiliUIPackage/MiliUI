@@ -1,9 +1,20 @@
 AuctionatorBagItemSelectedMixin = CreateFromMixins(AuctionatorBagItemMixin)
 
 function AuctionatorBagItemSelectedMixin:OnClick(button)
+  local wasCursorItem = C_Cursor.GetCursorItem()
   if not self:ProcessCursor() then
-    AuctionatorBagItemMixin.OnClick(self, button)
+    if button == "LeftButton" and not wasCursorItem and self.itemInfo ~= nil then
+      self:SearchInShoppingTab()
+    else
+      AuctionatorBagItemMixin.OnClick(self, button)
+    end
   end
+end
+
+function AuctionatorBagItemSelectedMixin:SearchInShoppingTab()
+  Auctionator.AH.GetItemKeyInfo(self.itemInfo.itemKey, function(itemInfo)
+    Auctionator.API.v1.MultiSearchExact(AUCTIONATOR_L_SELLING_TAB, { itemInfo.itemName })
+  end)
 end
 
 function AuctionatorBagItemSelectedMixin:OnReceiveDrag()

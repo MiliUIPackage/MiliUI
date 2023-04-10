@@ -12,10 +12,6 @@ function AuctionatorPanelConfigMixin:SetupPanel()
   InterfaceOptions_AddCategory(self, AUCTIONATOR_L_ADDONS_AUCTIONATOR)
 end
 
-function AuctionatorPanelConfigMixin:IndentationForSubSection()
-  return "   "
-end
-
 -- Derive
 function AuctionatorPanelConfigMixin:Cancel()
   Auctionator.Debug.Message("AuctionatorPanelConfigMixin:Cancel() Unimplemented")

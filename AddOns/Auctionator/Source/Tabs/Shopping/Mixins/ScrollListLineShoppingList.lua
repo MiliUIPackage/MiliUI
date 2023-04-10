@@ -6,37 +6,37 @@ function AuctionatorScrollListLineShoppingListMixin:InitLine(currentList)
   Auctionator.EventBus:RegisterSource(self, "Shopping List Line Item")
 
   Auctionator.EventBus:Register(self, {
-    Auctionator.Shopping.Events.ListSelected,
-    Auctionator.Shopping.Events.ListSearchStarted,
-    Auctionator.Shopping.Events.ListSearchEnded,
-    Auctionator.Shopping.Events.DialogOpened,
-    Auctionator.Shopping.Events.DialogClosed,
+    Auctionator.Shopping.Tab.Events.ListSelected,
+    Auctionator.Shopping.Tab.Events.ListSearchStarted,
+    Auctionator.Shopping.Tab.Events.ListSearchEnded,
+    Auctionator.Shopping.Tab.Events.DialogOpened,
+    Auctionator.Shopping.Tab.Events.DialogClosed,
   })
 
   self.currentList = currentList
 end
 
 function AuctionatorScrollListLineShoppingListMixin:ReceiveEvent(eventName, eventData, ...)
-  if eventName == Auctionator.Shopping.Events.ListSelected then
+  if eventName == Auctionator.Shopping.Tab.Events.ListSelected then
     self.currentList = eventData
     self.LastSearchedHighlight:Hide()
-  elseif eventName == Auctionator.Shopping.Events.ListSearchStarted then
+  elseif eventName == Auctionator.Shopping.Tab.Events.ListSearchStarted then
     if self.shouldRemoveHighlight then
       self.LastSearchedHighlight:Hide()
     end
     self:Disable()
-  elseif eventName == Auctionator.Shopping.Events.ListSearchEnded then
+  elseif eventName == Auctionator.Shopping.Tab.Events.ListSearchEnded then
     self.shouldRemoveHighlight = true
     self:Enable()
-  elseif eventName == Auctionator.Shopping.Events.DialogOpened then
+  elseif eventName == Auctionator.Shopping.Tab.Events.DialogOpened then
     self:Disable()
-  elseif eventName == Auctionator.Shopping.Events.DialogClosed then
+  elseif eventName == Auctionator.Shopping.Tab.Events.DialogClosed then
     self:Enable()
   end
 end
 
 function AuctionatorScrollListLineShoppingListMixin:GetListIndex()
-  return tIndexOf(self.currentList.items, self.searchTerm)
+  return self.currentList:GetIndexForItem(self.searchTerm)
 end
 
 function AuctionatorScrollListLineShoppingListMixin:DeleteItem()
@@ -44,10 +44,7 @@ function AuctionatorScrollListLineShoppingListMixin:DeleteItem()
     return
   end
 
-  local itemIndex = self:GetListIndex()
-
-  table.remove(self.currentList.items, itemIndex)
-  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.ListItemDeleted)
+  self.currentList:DeleteItem(self:GetListIndex())
 end
 
 function AuctionatorScrollListLineShoppingListMixin:EditItem()
@@ -55,50 +52,27 @@ function AuctionatorScrollListLineShoppingListMixin:EditItem()
     return
   end
 
-  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.EditListItem, self:GetListIndex())
+  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Tab.Events.EditListItem, self:GetListIndex())
 end
 
-function AuctionatorScrollListLineShoppingListMixin:ShiftItem(amount)
-  local index = self:GetListIndex()
-  local otherItem = self.currentList.items[index + amount]
-  if otherItem ~= nil then
-    self.currentList.items[index] = otherItem
-    self.currentList.items[index + amount] = self.searchTerm
-  end
-  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.ListOrderChanged)
+function AuctionatorScrollListLineShoppingListMixin:OnMouseDown()
+  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Tab.Events.DragItemStart, self:GetListIndex())
 end
 
-function AuctionatorScrollListLineShoppingListMixin:DetectDragStart()
-  --If the mouse leaves above this point, its been dragged up, and if dragged
-  --down, it has been dragged below this point
-  self.dragStartY = select(2, GetCursorPosition())
-end
-
-function AuctionatorScrollListLineShoppingListMixin:DetectDragEnd()
-  if self.dragStartY ~= nil and IsMouseButtonDown("LeftButton") then
-    local y = select(2, GetCursorPosition())
-    if y > self.dragStartY then
-      self:ShiftItem(-1)
-    elseif y < self.dragStartY then
-      self:ShiftItem(1)
-    end
-  end
+function AuctionatorScrollListLineShoppingListMixin:OnMouseUp()
+  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Tab.Events.DragItemStop)
 end
 
 function AuctionatorScrollListLineShoppingListMixin:OnEnter()
   AuctionatorScrollListLineMixin.OnEnter(self)
 
-  self:DetectDragStart()
-end
-
-function AuctionatorScrollListLineShoppingListMixin:OnLeave()
-  AuctionatorScrollListLineMixin.OnLeave(self)
-
-  self:DetectDragEnd()
+  if IsMouseButtonDown("LeftButton") then
+    Auctionator.EventBus:Fire(self, Auctionator.Shopping.Tab.Events.DragItemEnter, self:GetListIndex())
+  end
 end
 
 function AuctionatorScrollListLineShoppingListMixin:OnClick()
   self.LastSearchedHighlight:Show()
   self.shouldRemoveHighlight = false
-  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Events.ListItemSelected, self.searchTerm)
+  Auctionator.EventBus:Fire(self, Auctionator.Shopping.Tab.Events.ListItemSelected, self.searchTerm)
 end
