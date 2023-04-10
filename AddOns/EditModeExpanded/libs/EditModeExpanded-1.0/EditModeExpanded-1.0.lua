@@ -2,8 +2,8 @@
 -- Internal variables
 --
 
-local CURRENT_BUILD = "10.0.5"
-local MAJOR, MINOR = "EditModeExpanded-1.0", 44
+local CURRENT_BUILD = "10.0.7"
+local MAJOR, MINOR = "EditModeExpanded-1.0", 56
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -55,6 +55,7 @@ local getOffsetXY
 local registerFrameMovableWithArrowKeys
 
 local function getSystemID(frame)
+    if not frame.system then return false end
     if frame.system < STARTING_INDEX then
         return frame.EMESystemID
     end
@@ -238,6 +239,7 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint)
             self.Selection:ShowSelected();
             self.isSelected = true;
             if framesDialogs[self.system] then
+                EditModeManagerFrame:ClearSelectedSystem()  -- needs further taint testing; disable if there are issues
                 EditModeExpandedSystemSettingsDialog:AttachToSystemFrame(self)
             else
                 EditModeExpandedSystemSettingsDialog:Hide()
@@ -506,9 +508,9 @@ end
 -- a simple check of "has this frame been registered with EME" - maybe you want to test if another addon registered it already?
 function lib:IsRegistered(frame)
     local systemID = getSystemID(frame)
-    if not systemID then return false end
+    if not systemID or not framesDB[systemID] then return false end
     
-    if not framesDB[systemID] then return false end
+    return true
 end
 
 -- Is the Expanded frame checkbox checked for this frame?
@@ -564,6 +566,13 @@ if not (GetBuildInfo() == CURRENT_BUILD) then return end
 -- This is a frame that will show checkboxes, to turn on/off all custom frames during Edit Mode
 --
 
+local function clearSelectedSystem(index, systemFrame)
+	-- Only highlight a system if it was already highlighted
+	if systemFrame.isHighlighted then
+		systemFrame:HighlightSystem();
+	end
+end
+
 hooksecurefunc(f, "OnLoad", function()
     CreateFrame("Frame", "EditModeManagerExpandedFrame", nil, UIParent)
     EditModeManagerExpandedFrame:Hide();
@@ -591,7 +600,8 @@ hooksecurefunc(f, "OnLoad", function()
     end)
     
     function EditModeManagerExpandedFrame:ClearSelectedSystem()
-    	EditModeExpandedSystemSettingsDialog:Hide();
+    	secureexecuterange(frames, clearSelectedSystem)
+        EditModeExpandedSystemSettingsDialog:Hide()
     end
 end)
 
@@ -617,6 +627,16 @@ hooksecurefunc(EditModeManagerFrame, "EnterEditMode", function(self)
                 frame:SetSize(x, 40)
             else
                 frame:SetSize(40, 40)
+            end
+        end
+    end
+    
+    for frameName in pairs(existingFrames) do
+        local frame = _G[frameName]
+        local systemID = getSystemID(frame)
+        if framesDB[systemID] and framesDB[systemID].settings and (framesDB[systemID].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] ~= nil) then
+            if (framesDB[systemID].settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1) then
+                frame:Show()
             end
         end
     end
@@ -664,7 +684,7 @@ hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
 end)
 
 hooksecurefunc(EditModeManagerFrame, "SelectSystem", function(self, systemFrame)
-    if EditModeExpandedSystemSettingsDialog.attachedToSystem ~= systemFrame then
+    if EditModeExpandedSystemSettingsDialog and EditModeExpandedSystemSettingsDialog.attachedToSystem ~= systemFrame then
         EditModeExpandedSystemSettingsDialog:Hide()
     end
     
@@ -724,8 +744,8 @@ hooksecurefunc(f, "OnLoad", function()
     function frame:UpdateSizeAndAnchors(systemFrame)
     	if systemFrame == self.attachedToSystem then
             frame:ClearAllPoints()
-            frame:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", 400, 500);
-    		self:Layout();
+            frame:SetPoint("TOP", EditModeSystemSettingsDialog, "BOTTOM")
+    		self:Layout()
         else
             frame:Hide()
     	end
@@ -770,10 +790,6 @@ local function ConvertValueDefault(self, value, forDisplay)
 end
 
 hooksecurefunc(f, "OnLoad", function()
-    EditModeExpandedSystemSettingsDialog.CloseButton:SetScript("OnClick", function()                                                                 
-		EditModeManagerExpandedFrame:ClearSelectedSystem();
-	end)
-    
     function EditModeExpandedSystemSettingsDialog:UpdateSettings(systemFrame)
         if systemFrame == self.attachedToSystem then
     		self:ReleaseAllNonSliders();
@@ -918,14 +934,18 @@ hooksecurefunc(f, "OnLoad", function()
             db.settings[setting] = value
             if setting == Enum.EditModeUnitFrameSetting.FrameSize then
                 attachedToSystem:SetScaleOverride(value/100)
-                db.x, db.y = self:GetRect()
+                db.x, db.y = attachedToSystem:GetRect()
             end
     	end
     end
     
     function EditModeExpandedSystemSettingsDialog:OnLoad()
     	local function onCloseCallback()
-    		EditModeExpandedManagerFrame:ClearSelectedSystem();
+    		if not EditModeSystemSettingsDialog:IsShown() then
+                EditModeManagerExpandedFrame:ClearSelectedSystem()
+            else
+                EditModeExpandedSystemSettingsDialog:Hide()
+            end
     	end
     
     	self.Buttons.RevertChangesButton:SetOnClickHandler(GenerateClosure(self.RevertChanges, self));
@@ -1164,28 +1184,45 @@ end
 -- Handle frame being based on a frame other than UIParent
 --
 function getOffsetXY(frame, x, y)
-    if frame.EMEanchorTo == UIParent then
-        return x, y
-    end
-    
-    local scale = frame:GetScale()
-    
+    local scale = frame:GetEffectiveScale()
+    local parentscale = frame.EMEanchorTo:GetEffectiveScale()
+
     local anchorPoint = frame.EMEanchorPoint or "BOTTOMLEFT"
     if anchorPoint == "BOTTOMLEFT" then
         local targetX, targetY = frame.EMEanchorTo:GetRect()
-        return x - targetX, y - targetY
+        return x - ((targetX * parentscale) / scale), y - ((targetY * parentscale) / scale)
     elseif anchorPoint == "BOTTOMRIGHT" then
         local targetX, targetY, targetWidth = frame.EMEanchorTo:GetRect()
         local width = frame:GetSize()
-        return (x+width) - (targetX+targetWidth), y - targetY
+        return (x + width) - (((targetX + targetWidth) * parentscale) / scale), y - ((targetY * parentscale) / scale)
     elseif anchorPoint == "TOPLEFT" then
         local targetX, targetY, _, targetHeight = frame.EMEanchorTo:GetRect()
         local _, height = frame:GetSize()
-        return x - (targetX/scale), (y+height) - ((targetY+targetHeight)/scale)
-    else -- TOPRIGHT
+        return x - ((targetX * parentscale) / scale), (y + height) - (((targetY + targetHeight) * parentscale) / scale)
+    elseif anchorPoint == "TOPRIGHT" then
         local targetX, targetY, targetWidth, targetHeight = frame.EMEanchorTo:GetRect()
         local width, height = frame:GetSize()
-        return (x+width) - (targetX+targetWidth), (y+width) - (targetY+targetWidth)
+        return (x + width) - (((targetX + targetWidth) * parentscale) / scale), (y + height) - (((targetY + targetHeight) * parentscale) / scale)
+    elseif anchorPoint == "CENTER" then
+        local targetX, targetY, targetWidth, targetHeight = frame.EMEanchorTo:GetRect()
+        local width, height = frame:GetSize()
+        return (x + 0.5 * width) - (((targetX + 0.5 * targetWidth) * parentscale) / scale), (y + 0.5 * height) - (((targetY + 0.5 * targetHeight) * parentscale) / scale)
+    elseif anchorPoint == "TOP" then
+        local targetX, targetY, targetWidth, targetHeight = frame.EMEanchorTo:GetRect()
+        local width, height = frame:GetSize()
+        return (x + 0.5 * width) - (((targetX + 0.5 * targetWidth) * parentscale) / scale), (y + height) - (((targetY + targetHeight) * parentscale) / scale)
+    elseif anchorPoint == "BOTTOM" then
+        local targetX, targetY, targetWidth = frame.EMEanchorTo:GetRect()
+        local width = frame:GetSize()
+        return (x + 0.5 * width) - (((targetX + 0.5 * targetWidth) * parentscale) / scale), y - ((targetY * parentscale) / scale)
+    elseif anchorPoint == "LEFT" then
+        local targetX, targetY, _, targetHeight = frame.EMEanchorTo:GetRect()
+        local _, height = frame:GetSize()
+        return x - ((targetX * parentscale) / scale), (y + 0.5 * height) - (((targetY + 0.5 * targetHeight) * parentscale) / scale)
+    elseif anchorPoint == "RIGHT" then
+        local targetX, targetY, targetWidth, targetHeight = frame.EMEanchorTo:GetRect()
+        local width, height = frame:GetSize()
+        return (x + width) - (((targetX + targetWidth) * parentscale) / scale), (y + 0.5 * height) - (((targetY + 0.5 * targetHeight) * parentscale) / scale)
     end 
 end
 
