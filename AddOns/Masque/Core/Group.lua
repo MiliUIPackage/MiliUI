@@ -67,21 +67,6 @@ local C_Layers = {
 }
 
 ----------------------------------------
--- Functions
----
-
--- Fires the callback for the add-on or group.
-local function FireCB(self)
-	local db = self.db
-
-	if self.Callback then
-		Callback(self.Callback, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
-	elseif self.Addon then
-		Callback(self.Addon, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
-	end
-end
-
-----------------------------------------
 -- Group Metatable
 ---
 
@@ -204,6 +189,26 @@ function GMT:GetOptions(Order)
 	return Core.GetOptions(self, Order)
 end
 
+-- Registers a group-specific callback.
+function GMT:RegisterCallback(func, arg)
+	if self.ID == MASQUE then return end
+
+	if type(func) ~= "function" then
+		if Core.Debug then
+			error("Bad argument to Group method 'RegisterCallback'. 'func' must be a function.", 2)
+		end
+		return
+	elseif arg and type(arg) ~= "table" then
+		if Core.Debug then
+			error("Bad argument to Group method 'RegisterCallback'. 'arg' must be a table or nil.", 2)
+		end
+		return
+	end
+
+	self.__arg = arg
+	self.__func = func
+end
+
 -- Removes a button from the group and applies the default skin.
 function GMT:RemoveButton(Button)
 	if Button then
@@ -219,15 +224,15 @@ function GMT:RemoveButton(Button)
 end
 
 -- Reskins the group with its current settings.
-function GMT:ReSkin(arg)
+function GMT:ReSkin(Button)
 	local db = self.db
 
 	if not db.Disabled then
-		if type(arg) == "table" then
-			local Regions = self.Buttons[arg]
+		if type(Button) == "table" then
+			local Regions = self.Buttons[Button]
 
 			if Regions then
-				SkinButton(arg, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Scale, db.Pulse)
+				SkinButton(Button, Regions, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Scale, db.Pulse)
 			end
 		else
 			local SkinID, Backdrop, Shadow = db.SkinID, db.Backdrop, db.Shadow
@@ -235,10 +240,6 @@ function GMT:ReSkin(arg)
 
 			for Button, Regions in pairs(self.Buttons) do
 				SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Colors, db.Scale, Pulse)
-			end
-
-			if not arg then
-				FireCB(self)
 			end
 		end
 	end
@@ -260,8 +261,17 @@ function GMT:SetCallback(func, arg, selfCB)
 		return
 	end
 
-	Callback:Register(self.ID, func, arg or false)
-	self.Callback = (selfCB and self) or self.ID
+	self.__arg = arg
+	self.__carg = (selfCB and self) or self.ID
+	self.__func = func
+
+	local Warn = Core.db.profile.CB_Warn
+	local Addon = self.Addon
+
+	if Warn[Addon] then
+		print("|cffff8800Masque Warning:|r", Addon, "called the deprecated API method, |cff000099'SetCallback'|r.  Please notify the author or post in the relevant issue on the Masque project page.")
+		Warn[Addon] = false
+	end
 end
 
 -- Renames the group.
@@ -295,7 +305,7 @@ function GMT:__Disable(Silent)
 	end
 
 	if not Silent then
-		FireCB(self)
+		self:__FireCB("Disabled", true)
 	end
 
 	local Subs = self.SubList
@@ -312,6 +322,7 @@ end
 function GMT:__Enable()
 	self.db.Disabled = false
 	self:ReSkin()
+	self:__FireCB("Disabled", false)
 
 	local Subs = self.SubList
 
@@ -319,6 +330,40 @@ function GMT:__Enable()
 		for _, Sub in pairs(Subs) do
 			Sub:__Enable()
 		end
+	end
+end
+
+-- Fires the callback.
+-- * This methods is intended for internal use only.
+-- * Update this in 10.1.0 to remove deprecated callback logic.
+function GMT:__FireCB(Option, Value)
+	local ao = self.Addon or false -- Remove in 10.1.0
+	local arg = self.__arg
+	local carg = self.__carg -- Remove in 10.1.0
+	local func = self.__func
+
+	-- Deprecated Callback logic - Remove in 10.1.0
+	if carg then
+		local db = self.db
+
+		if arg then
+			func(arg, carg, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
+		else
+			func(carg, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
+		end
+
+	-- New Callback Logic
+	elseif func then
+		if arg then
+			func(arg, self, Option, Value)
+		else
+			func(self, Option, Value)
+		end
+
+	-- Deprecated Callback logic - Remove in 10.1.0
+	elseif ao then
+		local db = self.db
+		Callback(ao, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
 	end
 end
 
@@ -337,6 +382,7 @@ function GMT:__Reset()
 	end
 
 	self:ReSkin()
+	self:__FireCB("Reset", true)
 
 	local Subs = self.SubList
 
@@ -395,7 +441,8 @@ function GMT:__Set(Option, Value)
 		return
 	end
 
-	-- SubGroups
+	self:__FireCB(Option, Value)
+
 	local Subs = self.SubList
 
 	if Subs then
@@ -531,14 +578,6 @@ function GMT:__Update(IsNew)
 		end
 	end
 end
-
-----------------------------------------
--- Deprecated
----
-
-GMT.Disable = NoOp
-GMT.Enable = NoOp
-GMT.SetColor = NoOp
 
 ----------------------------------------
 -- Core

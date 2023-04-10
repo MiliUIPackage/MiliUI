@@ -1,14 +1,12 @@
 --[[
 
 	This file is part of 'AceGUI-3.0: SFX Widgets', an add-on for World of Warcraft. For bug reports,
-	documentation and license information, please visit https://github.com/SFX-WoW/AceGUI-3.0_SFX-Widgets.
+	documentation and license information, visit https://github.com/SFX-WoW/AceGUI-3.0_SFX-Widgets.
 
 	* File...: SFX-Header-II.lua
 	* Author.: StormFX
 
 ]]
-
--- GLOBALS: LibStub
 
 ----------------------------------------
 -- Locals
@@ -104,7 +102,10 @@ local Methods = {
 		Label:SetText(Text)
 
 		if Text == "" then
-			self.Border:ClearPointByName("TOP")
+			local Border = self.Border
+			local ClearPoint = Border.ClearPoint or Border.ClearPointByName
+
+			ClearPoint(Border, "TOP")
 		else
 			self.Border:SetPoint("TOP", Label, "BOTTOM", 0, 2)
 		end

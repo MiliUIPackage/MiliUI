@@ -25,6 +25,7 @@ local L = Core.Locale
 
 -- @ Skins\Skins
 local Hidden = Core.__Hidden
+local WOW_CLASSIC = not Core.WOW_RETAIL
 
 ----------------------------------------
 -- Blizzard Classic
@@ -35,6 +36,7 @@ local SkinID = "Blizzard Classic"
 local Skin = {
 	API_VERSION = Core.API_VERSION,
 	Shape = "Square",
+	SkinID = SkinID,
 
 	-- Info
 	Description = L["The default Classic button style."],
@@ -135,6 +137,7 @@ local Skin = {
 		OffsetY = -0.5,
 		-- SetAllPoints = nil,
 		UseStates = true,
+		Aura = Hidden,
 		Item = {
 			Texture = [[Interface\Buttons\UI-Quickslot2]],
 			-- EmptyTexture = "Interface\\Buttons\\UI-Quickslot2",
@@ -211,11 +214,21 @@ local Skin = {
 		DrawLayer = "OVERLAY",
 		Width = 36,
 		Height = 0,
-		Anchor = "Icon",
 		Point = "TOPRIGHT",
 		RelPoint = "TOPRIGHT",
 		OffsetX = -2,
-		OffsetY = -2,
+		OffsetY = -1,
+		Pet = {
+			JustifyH = "RIGHT",
+			JustifyV = "MIDDLE",
+			DrawLayer = "OVERLAY",
+			Width = 36,
+			Height = 0,
+			Point = "TOPRIGHT",
+			RelPoint = "TOPRIGHT",
+			OffsetX = 4,
+			OffsetY = -2,
+		},
 	},
 	Count = {
 		JustifyH = "RIGHT",
@@ -223,7 +236,6 @@ local Skin = {
 		DrawLayer = "OVERLAY",
 		Width = 0,
 		Height = 0,
-		Anchor = "Icon",
 		Point = "BOTTOMRIGHT",
 		RelPoint = "BOTTOMRIGHT",
 		OffsetX = -2,
@@ -234,11 +246,10 @@ local Skin = {
 			DrawLayer = "OVERLAY",
 			Width = 0,
 			Height = 0,
-			Anchor = "Icon",
 			Point = "BOTTOMRIGHT",
 			RelPoint = "BOTTOMRIGHT",
-			OffsetX = -2,
-			OffsetY = 1,
+			OffsetX = -5,
+			OffsetY = 2,
 		},
 	},
 	Duration = {
@@ -247,11 +258,10 @@ local Skin = {
 		DrawLayer = "OVERLAY",
 		Width = 36,
 		Height = 0,
-		Anchor = "Icon",
 		Point = "TOP",
 		RelPoint = "BOTTOM",
 		OffsetX = 0,
-		OffsetY = -2,
+		OffsetY = 0,
 	},
 	Checked = {
 		Texture = [[Interface\Buttons\CheckButtonHilight]],
@@ -289,7 +299,6 @@ local Skin = {
 		DrawLayer = "OVERLAY",
 		Width = 36,
 		Height = 0,
-		Anchor = "Icon",
 		Point = "BOTTOM",
 		RelPoint = "BOTTOM",
 		OffsetX = 0,
@@ -439,8 +448,8 @@ local Skin = {
 		BlendMode = "BLEND",
 		DrawLayer = "OVERLAY",
 		DrawLevel = 1,
-		Width = 58, -- 70
-		Height = 58, -- 70
+		Width = (WOW_CLASSIC and 58) or 62, -- 70
+		Height = (WOW_CLASSIC and 58) or 62, -- 70
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
@@ -586,11 +595,11 @@ local Skin = {
 		-- UseColor = nil,
 	},
 	AutoCastShine = {
-		Width = 28, -- 34
-		Height = 28, -- 34
+		Width = (WOW_CLASSIC and 34) or 30,
+		Height = (WOW_CLASSIC and 34) or 30,
 		Point = "CENTER",
 		RelPoint = "CENTER",
-		OffsetX = 0,
+		OffsetX = (WOW_CLASSIC and 0) or 1,
 		OffsetY = 0,
 		-- SetAllPoints = nil,
 	},

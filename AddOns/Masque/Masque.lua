@@ -34,11 +34,11 @@ local L = Core.Locale
 local Masque = LibStub("AceAddon-3.0"):NewAddon(MASQUE)
 
 -- API Version
-local API_VERSION = 100005
+local API_VERSION = 100007
 
 -- Client Version
 local WOW_VERSION = select(4, GetBuildInfo()) or 0
-local WOW_RETAIL = (WOW_VERSION >= 100000 and true) or nil
+local WOW_RETAIL = (WOW_VERSION > 100000 and true) or nil
 
 ----------------------------------------
 -- Utility
@@ -145,6 +145,9 @@ function Masque:OnInitialize()
 		profile = {
 			API_VERSION = 0,
 			AltSort = false,
+			CB_Warn = {
+				["*"] = true
+			},
 			Debug = false,
 			SkinInfo = true,
 			StandAlone = true,

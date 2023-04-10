@@ -3,7 +3,7 @@
 ## Author: StormFX
 ## OptionalDeps: Ace3
 ## Title: AceGUI-3.0: SFX Widgets
-## Version: 1.2.6
+## Version: 1.2.8
 
 ## Notes: Adds custom widgets to AceGUI-3.0 and AceConfigDialog-3.0.
 ## Notes-itIT: Aggiungi widgets personalizzati ad AceGUI-3.0 e AceConfigDialog-3.0.

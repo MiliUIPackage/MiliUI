@@ -1,11 +1,11 @@
-## Interface: 100005
+## Interface: 100007
 
 ## Author: StormFX, JJSheets
 ## OptionalDeps: Ace3, AceGUI-3.0_SFX-Widgets, LibDBIcon-1.0, LibDualSpec-1.0
 ## SavedVariables: MasqueDB
 ## Title: Masque
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式
-## Version: 10.0.5
+## Version: 10.0.7
 
 ## Notes: A skinning engine for button-based add-ons.
 ## Notes-deDE: Eine Engine, um das Erscheinungsbild von schaltflächenbasierte Add-ons anzupassen.
