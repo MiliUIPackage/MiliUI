@@ -64,7 +64,7 @@ local function Updater(event)
             t.currency,
             {
                name = name,
-               amount = currencyAmount[name],
+               amount = currencyAmount[name] or (v.id and C_CurrencyInfo.GetCurrencyInfo(v.id).quantity),
                texture = v.icon
             }
          )
@@ -91,7 +91,7 @@ AddRefreshOptions = function()
          hideCurrency = {
             type = "toggle",
             order = 1.04,
-            width = 2.15,
+            width = 1.5,
             name = L["Hide empty currencies"],
             desc = L["Hides currency if it's not present on character"],
             get = function()
@@ -121,6 +121,30 @@ AddRefreshOptions = function()
                   AddRefreshOptions()
                else
                   print(Exlist.debugString, L["Couldn't add item:"], v)
+               end
+            end,
+            width = 1
+         },
+         currencyInput = {
+            type = "input",
+            order = 1.07,
+            name = L[" Add Currency (|cffffffffInput currency ID|r)"],
+            get = function()
+               return ""
+            end,
+            set = function(self, v)
+               local currencyInfo = C_CurrencyInfo.GetCurrencyInfo(v)
+               if currencyInfo and currencyInfo.name then
+                  cur[currencyInfo.name] = {
+                     enabled = true,
+                     icon = currencyInfo.iconFileID,
+                     name = currencyInfo.name,
+                     id = v,
+                     type = "currency"
+                  }
+                  AddRefreshOptions()
+               else
+                  print(Exlist.debugString, L["Couldn't add currency:"], v)
                end
             end,
             width = 1
@@ -225,7 +249,7 @@ local function comma_value(amount)
   end
   return formatted
 end
-
+						
 local function Linegenerator(tooltip, data, character)
    if not data or not data.money then
       return

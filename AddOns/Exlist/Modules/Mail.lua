@@ -53,7 +53,6 @@ local data = {
    event = {"PLAYER_ENTERING_WORLD", "UPDATE_PENDING_MAIL"},
    weeklyReset = false,
    description = L["Tracks incoming mail"]
-   -- modernize = Modernize
 }
 
 Exlist.RegisterModule(data)

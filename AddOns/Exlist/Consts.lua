@@ -131,6 +131,13 @@ local Colors = {
          "fffaff00", -- +1
          "fffbdb00", -- +2
          "fffacd0c" -- +3
+      },
+      level = {
+         { level = 24, color = 'ffe6cc80' },
+         { level = 20, color = 'ffff8000' },
+         { level = 15, color = 'ff870af5' },
+         { level = 8, color = 'ff005dd6' },
+         { level = 0, color = 'ff19d600' }
       }
    },
    covenant = {
@@ -140,18 +147,18 @@ local Colors = {
       "ff00b837" -- Necrolord
    },
    ilvlColors = {
-      -- Shadowlands --
-      {ilvl = 200, str = "ff26ff3f"},
-      {ilvl = 210, str = "ff26ffba"},
-      {ilvl = 220, str = "ff26e2ff"},
-      {ilvl = 230, str = "ff26a0ff"},
-      {ilvl = 240, str = "ff2663ff"},
-      {ilvl = 250, str = "ff8e26ff"},
-      {ilvl = 260, str = "ffe226ff"},
-      {ilvl = 270, str = "ffff2696"},
-      {ilvl = 280, str = "ffff2634"},
-      {ilvl = 290, str = "ffff7526"},
-      {ilvl = 300, str = "ffffc526"}
+      -- Dragonflight --
+      {ilvl = 300, str = "ff26ff3f"},
+      {ilvl = 320, str = "ff26ffba"},
+      {ilvl = 340, str = "ff26e2ff"},
+      {ilvl = 360, str = "ff26a0ff"},
+      {ilvl = 380, str = "ff2663ff"},
+      {ilvl = 400, str = "ff8e26ff"},
+      {ilvl = 420, str = "ffe226ff"},
+      {ilvl = 440, str = "ffff2696"},
+      {ilvl = 460, str = "ffff2634"},
+      {ilvl = 480, str = "ffff7526"},
+      {ilvl = 500, str = "ffffc526"}
    },
    profColors = {
       {val = 20, color = "c6c3b4"},
@@ -185,6 +192,7 @@ local Colors = {
       [6] = "ffd220ff", -- Exiled
       [100] = "ffff20ca" -- Paragon
    },
+   majorFaction = "ff00bef2",
    paragonReward = "fff4f142"
 }
 Exlist.Colors = Colors
@@ -215,7 +223,8 @@ Exlist.Expansions = {
    L["Warlords of Draenor"],
    L["Legion"],
    L["Battle for Azeroth"],
-   L["Shadowlands"]
+   L["Shadowlands"],
+   L["Dragonflight"]
 }
 
 Exlist.OKMark = [[Interface/Addons/Exlist/Media/Icons/ok-icon]]

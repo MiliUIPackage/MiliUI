@@ -66,6 +66,11 @@ local zones = {
    1525, -- Revendreth
    1543, -- The Maw
    1970, -- Zereth Mortis
+   -- Dragonflight
+   2022, -- The Walking Shores
+   2025, -- Thaldraszus
+   2023, -- Ohn'ahran Plains
+   2023 -- The Azure Span
 }
 
 local rewardRules = {}
@@ -561,8 +566,8 @@ local function SetupWQConfig(refresh)
             StaticPopupDialogs["DeleteWQDataPopup_" .. questID] = {
                text = L["Do you really want to delete"] ..
                   " " .. WrapTextInColorCode(info.name, colors.questTitle) .. "?",
-               button1 = OKAY,
-               button3 = CANCEL,
+               button1 = "Ok",
+               button3 = "Cancel",
                hasEditBox = false,
                OnAccept = function(self)
                   StaticPopup_Hide("DeleteWQDataPopup_" .. questID)
@@ -776,8 +781,8 @@ local function SetupWQConfig(refresh)
             func = function()
                StaticPopupDialogs["DeleteWQRuleDataPopup_" .. rewardName] = {
                   text = L["Do you really want to delete this rule?"],
-                  button1 = OKAY,
-                  button3 = CANCEL,
+                  button1 = "Ok",
+                  button3 = "Cancel",
                   hasEditBox = false,
                   OnAccept = function(self)
                      StaticPopup_Hide("DeleteWQRuleDataPopup_" .. rewardName)
@@ -805,7 +810,7 @@ local function SetupWQConfig(refresh)
       Exlist.RefreshModuleOptions(key, options, L["World Quests"])
    end
 end
-Exlist.ModuleToBeAdded(SetupWQConfig)
+--Exlist.ModuleToBeAdded(SetupWQConfig)
 
 local function init()
    local gt = Exlist.GetCharacterTableKey("global", "global", key)
@@ -854,7 +859,7 @@ local function init()
                [124124] = Exlist.GetCachedItemInfo(124124).name, -- Blood of Sargeras
                [137642] = Exlist.GetCachedItemInfo(137642).name, -- Mark of Honor
                [151568] = Exlist.GetCachedItemInfo(151568).name, -- Primal Sargerite
-               [0] = L["Custom"]
+               [0] = "Custom"
             },
             defaultValue = 124124,
             disableItems = false,

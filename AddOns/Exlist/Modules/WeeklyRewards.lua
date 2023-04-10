@@ -55,9 +55,40 @@ local function getCurrentIlvl(id)
    return data
 end
 
-local function getActivityTooltip(id, type, progress, threshold)
+local function getBestMythicPlusRuns(threshold)
+   local history = C_MythicPlus.GetRunHistory(false, true)
+   table.sort(
+      history,
+      function(a, b)
+         if (a.level == b.level) then
+            return a.mapChallengeModeID < b.mapChallengeModeID
+         else
+            return a.level > b.level
+         end
+      end
+   )
+
+   local runs = {}
+
+   for i = 1, threshold do
+      if (history[i]) then
+         table.insert(
+            runs,
+            {
+               name = C_ChallengeMode.GetMapUIInfo(history[i].mapChallengeModeID),
+               level = history[i].level,
+               score = history[i].runScore
+            }
+         )
+      end
+   end
+
+   return runs
+end
+
+local function getActivityTooltip(activity)
    local sideTooltip = {body = {}}
-   local ilvls = getCurrentIlvl(id)
+   local ilvls = getCurrentIlvl(activity.id)
 
    if ilvls.ilvl then
       table.insert(sideTooltip.body, {L["Current"], string.format("%s %s", ilvls.ilvl, L["ilvl"])})
@@ -68,16 +99,41 @@ local function getActivityTooltip(id, type, progress, threshold)
 
    local typeName = ""
 
-   if type == Enum.WeeklyRewardChestThresholdType.MythicPlus then
+   if activity.type == Enum.WeeklyRewardChestThresholdType.MythicPlus then
       typeName = L["Mythic+"]
-   elseif type == Enum.WeeklyRewardChestThresholdType.Raid then
+
+      if (activity.runs) then
+         table.insert(sideTooltip.body, {})
+         table.insert(sideTooltip.body, {WrapTextInColorCode(L["Best Mythic+ Runs"], colors.sideTooltipTitle)})
+         table.insert(
+            sideTooltip.body,
+            {WrapTextInColorCode(L["Dungeon"], colors.faded), WrapTextInColorCode(L["Score"], colors.faded)}
+         )
+         for _, run in ipairs(activity.runs) do
+            table.insert(
+               sideTooltip.body,
+               {
+                  string.format(
+                     "[%s] %s",
+                     WrapTextInColorCode(run.level, Exlist.GetMythicPlusLevelColor(run.level)),
+                     run.name
+                  ),
+                  run.score
+               }
+            )
+         end
+      end
+   elseif activity.type == Enum.WeeklyRewardChestThresholdType.Raid then
       typeName = L["Raid"]
-   elseif type == Enum.WeeklyRewardChestThresholdType.RankedPvP then
+   elseif activity.type == Enum.WeeklyRewardChestThresholdType.RankedPvP then
       typeName = L["PvP"]
    end
 
    sideTooltip.title =
-      WrapTextInColorCode(string.format("%s %i/%i", typeName, progress, threshold), colors.sideTooltipTitle)
+      WrapTextInColorCode(
+      string.format("%s %i/%i", typeName, activity.progress, activity.threshold),
+      colors.sideTooltipTitle
+   )
 
    return sideTooltip
 end
@@ -92,6 +148,12 @@ local function Updater(event)
    end
 
    if (t.activities and #t.activities > 0) then
+      for _, activity in pairs(t.activities) do
+         if (activity.type == Enum.WeeklyRewardChestThresholdType.MythicPlus) then
+            activity.runs = getBestMythicPlusRuns(activity.threshold)
+         end
+      end
+
       Exlist.UpdateChar(key, t)
    end
 end
@@ -102,19 +164,6 @@ local function Linegenerator(tooltip, data, character)
    end
    local info = {
       character = character
-      -- priority = prio,
-      -- moduleName = key,
-      -- titleName = L["Weekly Rewards"],
-      -- data = "",
-      -- colOff = 0,
-      -- dontResize = false,
-      -- pulseAnim = false,
-      -- OnEnter = function() end,
-      -- OnEnterData = {},
-      -- OnLeave = function() end,
-      -- OnLeaveData = {},
-      -- OnClick = function() end,
-      -- OnClickData = {},
    }
    local infoTables = {}
    local priority = prio
@@ -142,11 +191,11 @@ local function Linegenerator(tooltip, data, character)
          ) .. (activity.level > 0 and string.format(" (%s)", formatLevel(activity.type, activity.level)) or "")
 
          if (activity.progress >= activity.threshold) then
-            info.data = Exlist.AddCheckmark(info.data, true);
+            info.data = Exlist.AddCheckmark(info.data, true)
          end
 
          info.OnEnter = Exlist.CreateSideTooltip()
-         info.OnEnterData = getActivityTooltip(activity.id, activity.type, activity.progress, activity.threshold)
+         info.OnEnterData = getActivityTooltip(activity)
          info.OnLeave = Exlist.DisposeSideTooltip()
          infoTables[info.moduleName] = infoTables[info.moduleName] or {}
          table.insert(infoTables[info.moduleName], Exlist.copyTable(info))

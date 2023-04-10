@@ -72,6 +72,11 @@ local worldBossIDs = {
    [61816] = {eid = 2431, expansion = 9, enabled = true, wq = true}, -- Mortanis
    [64531] = {eid = 2456, expansion = 9, enabled = true, wq = true}, -- Mor'geth
    [65143] = {eid = 2468, expansion = 9, enabled = true, wq = true}, -- Antros
+   -- Dragonflight
+   [69930] =  {eid = 2506, expansion = 10, enabled = true, wq = true},
+   [69929] =  {eid = 2515, expansion = 10, enabled = true, wq = true},
+   [69927] =  {eid = 2517, expansion = 10, enabled = true, wq = true},
+   [69928] =  {eid = 2518, expansion = 10, enabled = true, wq = true},
 
 }
 local lastUpdate = 0

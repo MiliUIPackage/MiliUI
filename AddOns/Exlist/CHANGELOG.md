@@ -1,14 +1,14 @@
-# [1.6.4](https://github.com/sragia/Exlist/tree/1.6.4) (2022-11-16)
+# [1.6.10](https://github.com/sragia/Exlist/tree/1.6.10) (2023-03-19)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.3...1.6.4)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.9...1.6.10)
 
 ## Highlights
 
- Small evoker spec icons 
+ Fix profession KP update timing 
 
 ## Commits
 
 Aigars Bedeicis (1):
 
-- Add evoker spec icons
+- Fix profession kp update timing
 

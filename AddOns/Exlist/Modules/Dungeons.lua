@@ -8,16 +8,17 @@ local pairs, table, ipairs = pairs, table, ipairs
 local Exlist = Exlist
 local colors = Exlist.Colors
 local dungeonNames = {}
--- Shadowlands
+
+-- Dragonflight
 local dungeons = {
-   2115, -- Theater of Pain
-   2114, -- The Necrotic Wake
-   2113, -- Spires of Ascension
-   2112, -- Sanguine Depths 2 ?? todo
-   2111, -- Plaguefall
-   2110, -- Mists of Tirna Scithe
-   2109, -- Halls of Atonement
-   2108 -- De Other Side
+   2334, -- The Azure Vault
+   2354, -- Uldaman: Legacy of Tyr
+   2358, -- Neltharus
+   2375, -- Ruby Life Pools
+   2377, -- The Nokhud Offensive
+   2379, -- Brackenhide Hollow
+   2381, -- Halls of Infusion
+   2383, -- Academy
 }
 
 local NUMBER_OF_DUNGEONS = #dungeons

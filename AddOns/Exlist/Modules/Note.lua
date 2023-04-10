@@ -3,7 +3,6 @@ local prio = 10000
 local Exlist = Exlist
 local L = Exlist.L
 local colors = Exlist.Colors
---local strings = Exlist.Strings
 
 local function Updater(event)
    local t = {}

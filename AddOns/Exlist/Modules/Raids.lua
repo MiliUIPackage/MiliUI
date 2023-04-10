@@ -325,10 +325,12 @@ end
 
 local function init()
    defaultSettings = {
+      -- Dragonflight
+      [GetLFGDungeonInfo(2388) or "Vault of the Incarnates"] = {enabled = true, expansion = 10, order = 10},
       -- Shadowlands
-      [GetLFGDungeonInfo(2288) or "Sepulcher of the First Ones"] = {enabled = true, expansion = 9, order = 8},
-      [GetLFGDungeonInfo(2226) or "Sanctum of Domination"] = {enabled = true, expansion = 9, order = 9},
-      [GetLFGDungeonInfo(2093) or "Castle Nathria"] = {enabled = true, expansion = 9, order = 10},
+      [GetLFGDungeonInfo(2288) or "Sepulcher of the First Ones"] = {enabled = false, expansion = 9, order = 8},
+      [GetLFGDungeonInfo(2226) or "Sanctum of Domination"] = {enabled = false, expansion = 9, order = 9},
+      [GetLFGDungeonInfo(2093) or "Castle Nathria"] = {enabled = false, expansion = 9, order = 10},
       -- BFA
       [GetLFGDungeonInfo(2033) or "Ny'alotha, the Waking City"] = {enabled = false, expansion = 8, order = 5},
       [GetLFGDungeonInfo(2014) or "The Eternal Palace"] = {enabled = false, expansion = 8, order = 6},
@@ -562,6 +564,11 @@ local function init()
          [2291] = {name = "Cornerstone of Creation", totalEncounters = 3, order = 2},
          [2293] = {name = "Domination's Grasp", totalEncounters = 3, order = 3},
          [2294] = {name = "The Grand Design", totalEncounters = 1, order = 4}
+      },
+      [GetLFGDungeonInfo(2388) or "Vault of the Incarnates"] = {
+         [2370] = {name = "Fury of the Storm", totalEncounters = 3, order = 1},
+         [2371] = {name = "Caverns of Infusion", totalEncounters = 3, order = 2},
+         [2372] = {name = "The Primal Bulwark", totalEncounters = 2, order = 3},
       }
    }
 

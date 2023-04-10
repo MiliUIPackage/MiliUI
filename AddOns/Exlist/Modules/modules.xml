@@ -17,8 +17,5 @@
   <Script file="Note.lua"/>
   <Script file="Reputation.lua"/>
   <Script file="WeeklyRewards.lua" />
-  <Script file="Callings.lua" />
-  <Script file="Maw.lua" />
-  <Script file="Covenant.lua" />
-
+  <Script file="Professions.lua" />
 </Ui>
