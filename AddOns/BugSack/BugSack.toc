@@ -1,4 +1,4 @@
-## Interface: 100005
+## Interface: 100007
 ## Version: v10.0.0
 ## Title: BugSack
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 錯誤訊息收集袋

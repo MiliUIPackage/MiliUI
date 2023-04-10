@@ -1,4 +1,4 @@
-﻿## Interface: 100005
+﻿## Interface: 100007
 ## Title: Enhanced Bloodlust
 ## Notes: Add a music in Bloodlust or Heroism!
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 嗜血音樂

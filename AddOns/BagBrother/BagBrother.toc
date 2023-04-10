@@ -2,7 +2,7 @@
 ## Notes: Stores data about your characters inventory, bank, vault and guild bank, so that you may view them from anywhere.
 ## Title-zhTW: |cFF2DA267[物品]|r 物品資訊
 ## Notes-zhTW: BagBrother 儲存角色背包和銀行的物品資訊。
-## Interface: 100005
+## Interface: 100007
 ## Author: Jaliborc (João Cardoso)
 ## SavedVariables: BrotherBags
 ## OptionalDeps: WoWUnit
