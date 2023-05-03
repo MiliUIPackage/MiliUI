@@ -93,7 +93,7 @@ local frameHeaderText = frame:CreateFontString("$parentHeaderText", "ARTWORK", "
 frameHeaderText:SetPoint("TOP", frameHeader, 0, -14)
 frameHeaderText:SetText(L.MainFrame)
 
-local frameRevision = frame:CreateFontString("$parentRevision", "ARTWORK", "GameFontDisable")
+local frameRevision = frame:CreateFontString("$parentRevision", "ARTWORK", "GameFontDisableSmall")
 frameRevision:SetPoint("BOTTOMLEFT", frame, "BOTTOMLEFT", 20, 18)
 if DBM.NewerVersion then
 	frameRevision:SetText(CL.DBM.. " " .. DBM.DisplayVersion.. " (" .. DBM:ShowRealDate(DBM.Revision) .. "). |cffff0000Version " .. DBM.NewerVersion .. " 已經可供下載。|r")
@@ -117,7 +117,7 @@ do
 	end)
 end
 
-local frameTranslation = frame:CreateFontString("$parentTranslation", "ARTWORK", "GameFontDisable")
+local frameTranslation = frame:CreateFontString("$parentTranslation", "ARTWORK", "GameFontDisableSmall")
 frameTranslation:SetPoint("LEFT", frameRevision, "RIGHT", 20, 0)
 if L.TranslationBy then
 	frameTranslation:SetText(L.TranslationByPrefix .. L.TranslationBy)
@@ -185,7 +185,7 @@ frameList.buttons = {}
 for i = 1, math.floor(UIParent:GetHeight() / 18) do
 	local button = CreateFrame("Button", "$parentButton" .. i, frameList)
 	button:SetHeight(18)
-	button.text = button:CreateFontString("$parentText", "ARTWORK", "GameFontNormal")
+	button.text = button:CreateFontString("$parentText", "ARTWORK", "GameFontNormalSmall")
 	button:RegisterForClicks("LeftButtonUp")
 	button:SetScript("OnClick", function(self)
 		frame:ClearSelection()

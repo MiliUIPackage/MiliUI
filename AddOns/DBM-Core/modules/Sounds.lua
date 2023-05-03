@@ -39,8 +39,8 @@ end
 
 do
 	local victory = {
-		{text = CL.NONE,value  = "None"},
-		{text = CL.RANDOM,value  = "Random"},
+		{text = CL.NONE,value  = "無"},
+		{text = CL.RANDOM,value  = "隨機"},
 		{text = "後院: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\bbvictory.ogg", length=4},
 		{text = "SMG: FF Fanfare",value = "Interface\\AddOns\\DBM-Core\\sounds\\Victory\\SmoothMcGroove_Fanfare.ogg", length=4},
 	}
@@ -70,8 +70,8 @@ do
 
 	if isRetail then
 		defeat = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "阿麗薩巴爾: 無能的突襲者",value = 25780, length=4},--"Sound\\Creature\\ALIZABAL\\VO_BH_ALIZABAL_RESET_01.ogg"
 			{text = "伯昂薩姆第: 在你的頭上",value = 109293, length=4},--"Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_35_m.ogg"
 			{text = "伯昂薩姆第: 可憐的小東西",value = 109295, length=4},--"Sound\\Creature\\bwonsamdi\\vo_801_bwonsamdi_37_m.ogg"
@@ -86,8 +86,8 @@ do
 		}
 	elseif isWrath then
 		defeat = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "柯洛剛恩: 你失敗了",value = 15588, length=4},--"Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg"
 			{text = "霍迪爾: 可悲",value = 15553, length=4},--"Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg"
 			{text = "索林姆: 失敗者",value = 15742, length=4},--"Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg"
@@ -96,8 +96,8 @@ do
 		}
 	else
 		defeat = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 		}
 	end
 
@@ -128,22 +128,22 @@ do
 
 	if isRetail then
 		dungeonMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "安度因第一部 B",value = 1417242, length=140},--"sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3" Soundkit: 68230
 			{text = "夜歌",value = 441705, length=160},--"Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3" Soundkit: 71181
 			{text = "奧杜爾: 泰坦樂團",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
 		}
 	elseif isWrath then
 		dungeonMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "奧杜爾: 泰坦樂團",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
 		}
 	else
 		dungeonMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 		}
 	end
 
@@ -174,23 +174,23 @@ do
 
 	if isRetail then
 		battleMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "安度因第二部 B",value = 1417248, length=111},--"sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3" Soundkit: 68230
 			{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
 			{text = "無敵",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536
 		}
 	elseif isWrath then
 		battleMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 			{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
 --			{text = "Invincible",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536 (Double check this)
 		}
 	else
 		battleMusic = {
-			{text = CL.NONE,value  = "None"},
-			{text = CL.RANDOM,value  = "Random"},
+			{text = CL.NONE,value  = "無"},
+			{text = CL.RANDOM,value  = "隨機"},
 		}
 	end
 
@@ -218,8 +218,8 @@ end
 do
 	-- Contains all music media, period
 	local music = {
-		{text = CL.NONE,value  = "None"},
-		{text = CL.RANDOM,value  = "Random"},
+		{text = CL.NONE,value  = "無"},
+		{text = CL.RANDOM,value  = "隨機"},
 		{text = "安度因第一部 B",value = 1417242, length=140},--"sound\\music\\Legion\\MUS_70_AnduinPt1_B.mp3" Soundkit: 68230
 		{text = "安度因第二部 B",value = 1417248, length=111},--"sound\\music\\Legion\\MUS_70_AnduinPt2_B.mp3" Soundkit: 68230
 		{text = "青銅困境",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800

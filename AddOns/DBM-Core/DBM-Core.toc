@@ -1,21 +1,22 @@
-## Interface: 100007
-## X-Min-Interface: 100007
+## Interface: 100100
+## X-Min-Interface: 100100
 ## X-Min-Interface-Classic: 11403
 ## X-Min-Interface-BCC: 20504
 ## X-Min-Interface-Wrath: 30401
 
-## Title:|cffffd200Deadly Boss Mods|r |cff69ccf0Core|r
-## Title-zhCN:|cffffd200Deadly Boss Mods|r |cff69ccf0核心|r
-## Title-zhTW:|cffffd200Deadly Boss Mods|r |cff69ccf0核心|r
+## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Core|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0核心|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0核心|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
 ## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization
 ## SavedVariables: DBM_AllSavedOptions, DBM_MinimapIcon
 ## SavedVariablesPerCharacter: DBM_UsedProfile, DBM_UseDualProfile, DBM_CharSavedRevision
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 49bb71f
+## Version: 35c800b
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

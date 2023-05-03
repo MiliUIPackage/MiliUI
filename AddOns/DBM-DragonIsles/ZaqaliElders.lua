@@ -1,8 +1,8 @@
-if DBM:GetTOC() < 101000 then return end
+if DBM:GetTOC() < 100100 then return end
 local mod	= DBM:NewMod(2531, "DBM-DragonIsles", nil, 1205)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230310040452")
+mod:SetRevision("20230423011049")
 mod:SetCreatureID(203220, 203219)--Vakan, Gholna
 mod:SetEncounterID(2696)
 mod:SetReCombatTime(20)

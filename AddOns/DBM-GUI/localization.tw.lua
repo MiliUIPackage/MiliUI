@@ -239,7 +239,6 @@ L.WorldBuffAlert			= "當你的伺服器的世界增益啟動時顯示警告訊�
 
 L.Area_BugAlerts			= "錯誤回報警報選項"
 L.BadTimerAlert				= "當DBM檢測到計時器錯誤且至少有1秒不正確時顯示聊天訊息"
-L.BadIDAlert				= "當DBM檢測到使用的是無效法術或紀錄ID時顯示聊天訊息"
 
 -- Panel: Spoken Alerts Frame
 L.Panel_SpokenAlerts		= "語音警告"
@@ -359,7 +358,6 @@ L.Highest					= "頂部最高"
 L.Lowest					= "頂部最低"
 L.NoBarFade					= "使用開始/結束顏色作為小型/大型顏色，而不是逐漸改變顏色"
 L.BarInlineIcons			= "顯示嵌入圖示"
-L.DisableRightClickBar		= "停用右鍵點擊來取消計時"
 L.ShortTimerText			= "使用較短的計時器文字(如果可用時)"
 L.KeepBar					= "保持計時器啟用直到技能施放"
 L.KeepBar2					= "(當有支援的模組時)"

@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (Cataclysm)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-浩劫與重生|r
@@ -8,14 +8,15 @@
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMPartyCataclysm_AllSavedVars
 ## SavedVariablesPerCharacter: DBMPartyCataclysm_SavedStats
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: CATA
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-StatTypes: normal,heroic
-## X-DBM-Mod-SubCategories: Blackrock Caverns, Deadmines, Grim Batol, Halls of Origination, Lost City of the Tol'vir, Shadowfang Keep, The Stonecore, The Vortex Pinnacle, Throne of Tides, Zul'Aman (Party), Zul'Gurub (Party), End Time, Well of Eternity, Hour of Twilight, World Bosses
-## X-DBM-Mod-SubCategories-zhTW: 黑石洞穴, 死亡礦坑, 格瑞姆巴托, 起源大廳, 托維爾的失落之城, 影牙城堡, 石岩之心, 旋渦尖塔, 海湖王座, 祖阿曼 (5人英雄), 祖爾格拉布 (5人英雄), 終焉之刻, 永恆之井, 暮光之時, 世界首領 (浩劫與重生)
-## X-DBM-Mod-SubCategories-zhCN: 黑石岩窟, 死亡矿井, 格瑞姆巴托, 起源大厅, 托维尔失落之城, 影牙城堡, 巨石之核, 旋云之巅, 潮汐王座, 祖阿曼（5人）, 祖尔格拉布（5人）, 时光之末, 永恒之井, 暮光审判, 世界首领
+## X-DBM-Mod-SubCategories: Blackrock Caverns, Deadmines, Grim Batol, Halls of Origination, Lost City of the Tol'vir, Shadowfang Keep, The Stonecore, The Vortex Pinnacle
+## X-DBM-Mod-SubCategories-zhTW: 黑石洞穴, 死亡礦坑, 格瑞姆巴托, 起源大廳, 托維爾的失落之城, 影牙城堡, 石岩之心, 旋渦尖塔
+## X-DBM-Mod-SubCategories-zhCN: 黑石岩窟, 死亡矿井, 格瑞姆巴托, 起源大厅, 托维尔失落之城, 影牙城堡, 巨石之核, 旋云之巅
 ## X-DBM-Mod-Name: Dungeons (Cataclysm)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (浩劫與重生)
 ## X-DBM-Mod-Name-zhCN: 5人小队（大地的裂变）
@@ -26,7 +27,7 @@
 ## X-DBM-Mod-MinExpansion: 3
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r72-6-g26871e5
+## Version: r76
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

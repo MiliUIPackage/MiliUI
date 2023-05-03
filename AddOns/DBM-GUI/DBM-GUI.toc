@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FFOptions GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF使用者介面|r
@@ -6,10 +6,11 @@
 ## Notes-zhCN: Deadly Boss Mods的设置界面
 ## Notes-zhTW: Deadly Boss Mods的使用者介面
 ## Dependencies: DBM-Core
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 49bb71f
+## Version: 2d970db
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FFStatus Bar Timers (REQUIRED)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF狀態條計時器|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF状态条计时器|r
@@ -6,10 +6,11 @@
 ## Notes-zhTW: DBM 狀態條計時器函式庫
 ## Notes-zhCN: DBM 状态条计时器函数库
 ## SavedVariables: DBT_AllPersistentOptions
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: c3985f6
+## Version: fb358e2
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

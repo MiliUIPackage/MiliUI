@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (Dragonflight)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf05人小队-巨龙时代|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-巨龍崛起|r
@@ -6,6 +6,7 @@
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMPartyDragonflight_AllSavedVars
 ## SavedVariablesPerCharacter: DBMPartyDragonflight_SavedStats
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: DRAGONFLIGHT
@@ -21,7 +22,7 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r74-1-gd979850
+## Version: r76
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

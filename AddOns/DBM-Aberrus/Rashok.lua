@@ -1,22 +1,23 @@
 local mod	= DBM:NewMod(2525, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230318022106")
+mod:SetRevision("20230423033247")
 mod:SetCreatureID(201320)
 mod:SetEncounterID(2680)
 mod:SetUsedIcons(1)
-mod:SetHotfixNoticeRev(20230317000000)
+mod:SetHotfixNoticeRev(20230408000000)
 --mod:SetMinSyncRevision(20221215000000)
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 405316 405821 406851 406333 406145 400777 407547 407597 406165",
+	"SPELL_CAST_START 405316 405821 406851 406333 406145 400777 407547 407597 406165 410070",
 --	"SPELL_CAST_SUCCESS 407641",
-	"SPELL_AURA_APPLIED 405819 407547 407597 401419 405091 407642",
-	"SPELL_AURA_APPLIED_DOSE 405091",
-	"SPELL_AURA_REMOVED 405819 401419 407642",
+	"SPELL_AURA_APPLIED 405819 407547 407597 401419 405091 407642 405827",
+	"SPELL_AURA_APPLIED_DOSE 405091 405827",
+	"SPELL_AURA_REMOVED 405819 401419 407642 405827",
+	"SPELL_AURA_REMOVED_DOSE 405827",
 	"SPELL_PERIODIC_DAMAGE 403543",
 	"SPELL_PERIODIC_MISSED 403543",
 --	"UNIT_DIED"
@@ -34,17 +35,18 @@ local warnSiphonEnergyRemoved						= mod:NewFadesAnnounce(401419, 2)
 local warnUnyieldingRage							= mod:NewCountAnnounce(405091, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(405091))
 
 local specWarnAncientFury							= mod:NewSpecialWarningCount(405316, nil, nil, nil, 2, 2)
-local specWarnSearingSlam							= mod:NewSpecialWarningYou(405821, nil, nil, nil, 3, 2)
+local specWarnSearingSlam							= mod:NewSpecialWarningYou(405821, nil, nil, nil, 2, 2)
 local yellSearingSlam								= mod:NewShortYell(405821)
 local yellSearingSlamFades							= mod:NewShortFadesYell(405821)
 local specWarnDoomFlame								= mod:NewSpecialWarningCount(406851, nil, nil, nil, 2, 2)
 local specWarnShadowlavaBlast						= mod:NewSpecialWarningDodgeCount(406333, nil, nil, nil, 2, 2)
-local specWarnChargedSmash							= mod:NewSpecialWarningDodgeCount(400777, nil, nil, nil, 2, 2)
+local specWarnChargedSmash							= mod:NewSpecialWarningCount(400777, nil, nil, nil, 2, 2)
 local specWarnFlamingUpsurge						= mod:NewSpecialWarningDefensive(407547, nil, nil, nil, 1, 2)
 local specWarnFlamingUpsurgeTaunt					= mod:NewSpecialWarningTaunt(407547, nil, nil, nil, 1, 2)
 local specWarnEarthenCrush							= mod:NewSpecialWarningDefensive(407597, nil, nil, nil, 1, 2)
 local specWarnEarthenCrushTaunt						= mod:NewSpecialWarningTaunt(407597, nil, nil, nil, 1, 2)
 local specWarnUnyieldingRage						= mod:NewSpecialWarningSpell(406165, nil, nil, nil, 1, 2)
+local specWarnUnleashedShadowflame					= mod:NewSpecialWarningCount(410070, nil, nil, nil, 2, 2, 4)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(403543, nil, nil, nil, 1, 8)
 
 local timerAncientFuryCD							= mod:NewCDTimer(29.9, 405316, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
@@ -53,9 +55,10 @@ local timerDoomFlameCD								= mod:NewCDCountTimer(28.9, 406851, nil, nil, nil,
 local timerShadowlavaBlastCD						= mod:NewCDCountTimer(28.9, 406333, nil, nil, nil, 3)
 local timerChargedSmashCD							= mod:NewCDCountTimer(40, 400777, nil, nil, nil, 3)
 local timerVolcanicComboCD							= mod:NewCDCountTimer(40, 407641, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerUnleashedShadowflameCD					= mod:NewCDCountTimer(40, 410070, nil, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)
 --local berserkTimer								= mod:NewBerserkTimer(600)
 
---mod:AddInfoFrameOption(361651, true)
+mod:AddInfoFrameOption(405827)
 --mod:AddRangeFrameOption(5, 390715)
 mod:AddSetIconOption("SetIconOnSearingSlam", 405821, false, 0, {1})
 --mod:AddNamePlateOption("NPAuraOnAscension", 385541)
@@ -69,44 +72,69 @@ mod.vb.blastCount = 0
 mod.vb.smashCount = 0
 mod.vb.tankCombo = 0--Cast
 mod.vb.comboCount = 0--Combos within cast
+mod.vb.shadowflameCount = 0
+local overchargedStacks = {}
 --local allTimers = {--Will only be used if not same on all difficulties, then it'll be cleaner than tons if conditionals
---	--Searing Slam
---	[405821] = {4.1, 40.0, 31.0},
---	--Charged Smash
---	[400777] = {15.1, 40.0},
---	--Volcanic Combo
---	[407641] = {24.1, 41.1}
+--	["heroic"] = {
+--		--Searing Slam
+--		[405821] = {4.1, 40.0, 31.0},
+--		--Charged Smash
+--		[400777] = {15.1, 40.0},
+--		--Volcanic Combo
+--		[407641] = {24.1, 41.1}
+--	},
+--	["mythic"] = {
+--		--Searing Slam
+--		[405821] = {9.2, 43.0, 33.0},
+--		--Charged Smash
+--		[400777] = {21.2, 43.0},
+--		--Volcanic Combo
+--		[407641] = {29.2, 45.0}
+--	},
 --}
 
 function mod:OnCombatStart(delay)
+	table.wipe(overchargedStacks)
 	self.vb.slamCount = 0
 	self.vb.doomCount = 0
 	self.vb.blastCount = 0
 	self.vb.smashCount = 0
 	self.vb.tankCombo = 0
 	self.vb.comboCount = 0
-	timerSearingSlamCD:Start(4.1-delay, 1)
-	timerChargedSmashCD:Start(15.1-delay, 1)
-	timerVolcanicComboCD:Start(24.1-delay, 1)
-	timerDoomFlameCD:Start(35.2-delay, 1)
-	timerShadowlavaBlastCD:Start(81.6-delay, 1)
+	self.vb.shadowflameCount = 0
+	timerSearingSlamCD:Start(9.2-delay, 1)
+	timerChargedSmashCD:Start(21.2-delay, 1)
+	timerVolcanicComboCD:Start(29.2-delay, 1)
+	timerDoomFlameCD:Start(39.2-delay, 1)
+	timerShadowlavaBlastCD:Start(92.7-delay, 1)
 	timerAncientFuryCD:Start(100-delay)
+	if self:IsMythic() then
+		timerUnleashedShadowflameCD:Start(4.2-delay, 1)
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(405827))
+			DBM.InfoFrame:Show(5, "table", overchargedStacks, 1)
+		end
+		self:RegisterShortTermEvents(
+			"SPELL_ENERGIZE 405825"
+		)
+	end
 --	if self.Options.NPAuraOnAscension then
 --		DBM:FireEvent("BossMod_EnableHostileNameplates")
 --	end
 end
 
---function mod:OnCombatEnd()
+function mod:OnCombatEnd()
+	self:UnregisterShortTermEvents()
 --	if self.Options.RangeFrame then
 --		DBM.RangeCheck:Hide()
 --	end
---	if self.Options.InfoFrame then
---		DBM.InfoFrame:Hide()
---	end
+	if self.Options.InfoFrame then
+		DBM.InfoFrame:Hide()
+	end
 --	if self.Options.NPAuraOnAscension then
 --		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
 --	end
---end
+end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
@@ -115,7 +143,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnAncientFury:Play("aesoon")
 	elseif spellId == 405821 then
 		self.vb.slamCount = self.vb.slamCount + 1
-		local timer = self.vb.slamCount == 1 and 40 or self.vb.slamCount == 2 and 31
+		local timer = self.vb.slamCount == 1 and 43 or self.vb.slamCount == 2 or 33
 		if timer then
 			timerSearingSlamCD:Start(nil, self.vb.slamCount+1)
 		end
@@ -130,16 +158,16 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 400777 then
 		self.vb.smashCount = self.vb.smashCount + 1
 		specWarnChargedSmash:Show(self.vb.smashCount)
-		specWarnChargedSmash:Play("watchstep")
+		specWarnChargedSmash:Play("helpsoak")
 		if self.vb.smashCount == 1 then
-			timerChargedSmashCD:Start(nil, self.vb.smashCount+1)
+			timerChargedSmashCD:Start(43, self.vb.smashCount+1)
 		end
 	elseif spellId == 407547 then
 		if self:AntiSpam(10, 1) then--In case the success/parent combo ID isn't detectable
 			self.vb.tankCombo = self.vb.tankCombo + 1
 			self.vb.comboCount = 0
 			if self.vb.tankCombo == 1 then
-				timerVolcanicComboCD:Start(nil, self.vb.tankCombo+1)
+				timerVolcanicComboCD:Start(45, self.vb.tankCombo+1)
 			end
 		end
 		self.vb.comboCount = self.vb.comboCount + 1
@@ -162,7 +190,7 @@ function mod:SPELL_CAST_START(args)
 			self.vb.tankCombo = self.vb.tankCombo + 1
 			self.vb.comboCount = 0
 			if self.vb.tankCombo == 1 then
-				timerVolcanicComboCD:Start(nil, self.vb.tankCombo+1)
+				timerVolcanicComboCD:Start(45, self.vb.tankCombo+1)
 			end
 		end
 		self.vb.comboCount = self.vb.comboCount + 1
@@ -183,6 +211,15 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 406165 then
 		specWarnUnyieldingRage:Show()
 		specWarnUnyieldingRage:Play("carefly")
+	elseif spellId == 410070 then
+		self.vb.shadowflameCount = self.vb.shadowflameCount + 1
+		specWarnUnleashedShadowflame:Show(self.vb.shadowflameCount)
+		specWarnUnleashedShadowflame:Play("specialsoon")--Better voice?
+		--4.2, 43.0, 33.0, 31.0"
+		local timer = self.vb.shadowflameCount == 1 and 43 or self.vb.shadowflameCount == 2 and 33 or self.vb.shadowflameCount == 3 and 31
+		if timer then
+			timerUnleashedShadowflameCD:Start(timer, self.vb.shadowflameCount+1)
+		end
 	end
 end
 
@@ -248,10 +285,17 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerDoomFlameCD:Stop()
 		timerShadowlavaBlastCD:Stop()
 		timerAncientFuryCD:Stop()
+		timerUnleashedShadowflameCD:Stop()
 	elseif spellId == 405091 then--Unyielding Rage (stack)
 		local amount = args.amount or 1
 		if amount == 1 or amount == 4 or amount >= 7 then
 			warnUnyieldingRage:Show(amount)
+		end
+	elseif spellId == 405827 then
+		local amount = args.amount or 1
+		overchargedStacks[args.destName] = amount
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(overchargedStacks)
 		end
 	end
 end
@@ -266,6 +310,11 @@ function mod:SPELL_AURA_REMOVED(args)
 		if self.Options.SetIconOnSearingSlam then
 			self:SetIcon(args.destName, 0)
 		end
+	elseif spellId == 405827 then
+		overchargedStacks[args.destName] = nil
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(overchargedStacks)
+		end
 	elseif spellId == 401419 then
 		warnSiphonEnergyRemoved:Show(args.destName)
 		self.vb.slamCount = 0
@@ -274,12 +323,26 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.smashCount = 0
 		self.vb.tankCombo = 0
 		self.vb.comboCount = 0
-		timerSearingSlamCD:Start(6.1, 1)
-		timerChargedSmashCD:Start(17.1, 1)
-		timerVolcanicComboCD:Start(26.1, 1)
-		timerDoomFlameCD:Start(37.1, 1)
-		timerShadowlavaBlastCD:Start(83.6, 1)
+		self.vb.shadowflameCount = 0
+		if self:IsMythic() then
+			timerUnleashedShadowflameCD:Start(6.2, 1)
+		end
+		timerSearingSlamCD:Start(11.2, 1)
+		timerChargedSmashCD:Start(23.2, 1)
+		timerVolcanicComboCD:Start(31.2, 1)
+		timerDoomFlameCD:Start(41.2, 1)
+		timerShadowlavaBlastCD:Start(94.7, 1)
 		timerAncientFuryCD:Start(102)
+	end
+end
+
+function mod:SPELL_AURA_REMOVED_DOSE(args)
+	local spellId = args.spellId
+	if spellId == 405827 then
+		overchargedStacks[args.destName] = args.amount or 1
+		if self.Options.InfoFrame then
+			DBM.InfoFrame:UpdateTable(overchargedStacks)
+		end
 	end
 end
 
@@ -290,6 +353,21 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 	end
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
+
+function mod:SPELL_ENERGIZE(_, _, _, _, destGUID, _, _, _, spellId, _, _, amount)
+	if spellId == 405825 and destGUID == UnitGUID("boss1") then
+		DBM:Debug("SPELL_ENERGIZE fired on Boss. Amount: "..amount)
+		local bossPower = UnitPower("boss1")
+--		bossPower = bossPower / 1--1 energy per second, making it every ~100 seconds
+		local remaining = 100-bossPower
+		if remaining > 0 then
+			local elapsedTimer = 100-remaining
+			timerAncientFuryCD:Update(elapsedTimer, 100)
+		else
+			timerAncientFuryCD:Stop()
+		end
+	end
+end
 
 --[[
 function mod:UNIT_DIED(args)
