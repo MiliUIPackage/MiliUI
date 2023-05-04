@@ -1,6 +1,6 @@
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-	local _detalhes = 		_G._detalhes
+	local _detalhes = 		_G.Details
 	local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
 	local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 	local _tempo = time()
@@ -42,6 +42,14 @@
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --details api functions
+	---for a number to the current selected abbreviation
+	---@param number number
+	---@return string
+	function Details:Format(number)
+		return Details.ToKFunctions[Details.ps_abbreviation](nil, number)
+	end
+
+
 
 	--try to find the opponent of last fight, can be called during a fight as well
 		function Details:FindEnemy()
@@ -628,9 +636,7 @@
 				--	Details:EqualizeActorsSchedule (Details.host_of)
 				end
 
-				--verifica memoria
 				Details:FlagActorsOnCommonFight() --fight_component
-				--Details:CheckMemoryAfterCombat() -- 7.2.5 is doing some weird errors even out of combat
 			else
 
 				--this segment is a boss fight
@@ -1785,98 +1791,109 @@
 		end
 
 	--call update functions
-		function Details:RefreshAllMainWindows (forcar)
-
-			local combatTable = self.showing
+		function Details:RefreshAllMainWindows(bForceRefresh)
+			local combatObject = self.showing
 
 			--the the segment does not have a valid combat, freeze the window
-			if (not combatTable) then
+			if (not combatObject) then
 				if (not self.freezed) then
 					return self:Freeze()
 				end
 				return
 			end
 
-			local need_refresh = combatTable[self.atributo].need_refresh
-			if (not need_refresh and not forcar) then
-				return --n�o precisa de refresh
-			--else
-				--combatTable[self.atributo].need_refresh = false
+			local needRefresh = combatObject[self.atributo].need_refresh
+			if (not needRefresh and not bForceRefresh) then
+				return
 			end
+
+			--measure the cpu time spent on this function
+			--local startTime = debugprofilestop()
 
 			if (self.atributo == 1) then --damage
-				return atributo_damage:RefreshWindow(self, combatTable, forcar, nil, need_refresh)
+				--[[return]] atributo_damage:RefreshWindow(self, combatObject, bForceRefresh, nil, needRefresh)
 
 			elseif (self.atributo == 2) then --heal
-				return atributo_heal:RefreshWindow(self, combatTable, forcar, nil, need_refresh)
+				--[[return]] atributo_heal:RefreshWindow(self, combatObject, bForceRefresh, nil, needRefresh)
 
 			elseif (self.atributo == 3) then --energy
-				return atributo_energy:RefreshWindow(self, combatTable, forcar, nil, need_refresh)
+				--[[return]] atributo_energy:RefreshWindow(self, combatObject, bForceRefresh, nil, needRefresh)
 
 			elseif (self.atributo == 4) then --outros
-				return atributo_misc:RefreshWindow(self, combatTable, forcar, nil, need_refresh)
+				--[[return]] atributo_misc:RefreshWindow(self, combatObject, bForceRefresh, nil, needRefresh)
 
 			elseif (self.atributo == 5) then --ocustom
-				return atributo_custom:RefreshWindow(self, combatTable, forcar, nil, need_refresh)
+				--[[return]] atributo_custom:RefreshWindow(self, combatObject, bForceRefresh, nil, needRefresh)
 			end
 
+			--[[if (Details222.Perf.WindowUpdateC) then
+				local elapsedTime = debugprofilestop() - startTime
+				if (Details222.Perf.WindowUpdate) then
+					Details222.Perf.WindowUpdate = Details222.Perf.WindowUpdate + elapsedTime
+				end
+			end--]]
+		end
+
+		--["1"] = "WindowUpdate",
+		--["2"] = 308.6662000129,
+		function Details:DumpPerf()
+			local t = {}
+			for name, value in pairs(Details222.Perf) do
+				t[#t+1] = {name, value}
+			end
+			dumpt(t)
 		end
 
 		function Details:ForceRefresh()
 			self:RefreshMainWindow(true)
 		end
 
-		function Details:RefreshMainWindow(instance, forceRefresh)
-			if (not instance or type(instance) == "boolean") then
-				forceRefresh = instance
-				instance = self
+		function Details:RefreshMainWindow(instanceObject, bForceRefresh)
+			if (not instanceObject or type(instanceObject) == "boolean") then
+				bForceRefresh = instanceObject
+				instanceObject = self
 			end
 
-			if (not forceRefresh) then
+			if (not bForceRefresh) then
 				Details.LastUpdateTick = Details._tempo
 			end
 
-			if (instance == -1) then
+			if (instanceObject == -1) then
 				--update
-				for index, instance in ipairs(Details.tabela_instancias) do
-					if (instance.ativa) then
-						if (instance.modo == modo_GROUP or instance.modo == modo_ALL) then
-							instance:RefreshAllMainWindows(forceRefresh)
-							--print("all instances got updates")
+				for index, thisInstance in ipairs(Details.tabela_instancias) do
+					if (thisInstance.ativa) then
+						if (thisInstance.modo == modo_GROUP or thisInstance.modo == modo_ALL) then
+							thisInstance:RefreshAllMainWindows(bForceRefresh)
 						end
 					end
 				end
 
 				--flag windows as no need update next tick
-				for index, instance in ipairs(Details.tabela_instancias) do
-					if (instance.ativa and instance.showing) then
-						if (instance.modo == modo_GROUP or instance.modo == modo_ALL) then
-							if (instance.atributo <= 4) then
-								instance.showing [instance.atributo].need_refresh = false
+				for index, thisInstance in ipairs(Details.tabela_instancias) do
+					if (thisInstance.ativa and thisInstance.showing) then
+						if (thisInstance.modo == modo_GROUP or thisInstance.modo == modo_ALL) then
+							if (thisInstance.atributo <= 4) then
+								thisInstance.showing[thisInstance.atributo].need_refresh = false
 							end
 						end
 					end
 				end
 
-				if (not forceRefresh) then --update player details window if opened
+				if (not bForceRefresh) then --update player details window if opened
 					if (info.ativo) then
-						--print("info.jogador:MontaInfo()")
 						return info.jogador:MontaInfo()
 					end
 				end
-
 				return
-
 			else
-				if (not instance.ativa) then
-					--print("instance not actived", instance.RefreshMainWindow, 1+nil)
+				if (not instanceObject.ativa) then
 					return
 				end
 			end
 
-			if (instance.modo == modo_ALL or instance.modo == modo_GROUP) then
-				--print("updating all instances...")
-				return instance:RefreshAllMainWindows (forceRefresh)
+			local currentMode = instanceObject:GetMode()
+			if (currentMode == DETAILS_MODE_ALL or currentMode == DETAILS_MODE_GROUP) then
+				return instanceObject:RefreshAllMainWindows(bForceRefresh)
 			end
 		end
 

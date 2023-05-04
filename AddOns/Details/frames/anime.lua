@@ -1,4 +1,4 @@
-local _detalhes = 		_G._detalhes
+local _detalhes = 		_G.Details
 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 --code from blizzard AlertFrames
@@ -235,7 +235,7 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	Portrait.scale:SetStartDelay (0)
 	Portrait.scale:SetEndDelay (0)
 
-	if (DetailsFramework.IsDragonflight()) then
+	if (DetailsFramework.IsDragonflight() or DetailsFramework.IsWotLKWowWithRetailAPI()) then
 		Portrait.scale:SetScaleFrom (0, 0)
 		Portrait.scale:SetScaleTo (1, 1)
 	else

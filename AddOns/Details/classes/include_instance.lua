@@ -6,7 +6,7 @@
 
 --values added into 'instance_skin_ignored_values' won't be passed when the user exports the profile or exports the skin individually.
 
-local _detalhes = 		_G._detalhes
+local _detalhes = 		_G.Details
 local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 local addonName, Details222 = ...
 local _ = nil
@@ -251,6 +251,10 @@ _detalhes.instance_defaults = {
 				textR_outline = false,
 				textR_outline_small = true,
 				textR_outline_small_color = {0, 0, 0, 1},
+        	-- left text offset
+				textL_offset = 0,
+		  	-- text y offset
+				text_yoffset = 0,
 			--bar height
 				height = 14,
 			--font size

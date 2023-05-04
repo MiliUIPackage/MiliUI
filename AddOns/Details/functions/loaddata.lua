@@ -1,7 +1,7 @@
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-	local _detalhes = 		_G._detalhes
+	local _detalhes = 		_G.Details
 	local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
 	local _
 	local addonName, Details222 = ...
@@ -430,7 +430,11 @@ function _detalhes:LoadConfig()
 
 		--custom
 			_detalhes.custom = _detalhes_global.custom
+			if (_detalhes_global.custom and _detalhes_global.custom[1] and _detalhes_global.custom[1].__index and _detalhes_global.custom[1].__index._InstanceLastCombatShown) then
+				C_Timer.After(5, function() print("|cFFFFAA00Details!|r error 0x8487, report on discord") end)
+			end
 			_detalhes.refresh:r_atributo_custom()
+			
 end
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------

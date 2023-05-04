@@ -1,7 +1,7 @@
 
 local Loc = LibStub("AceLocale-3.0"):GetLocale("Details")
 
-local Details = _G._detalhes
+local Details = _G.Details
 local gump = Details.gump
 local _
 
@@ -445,7 +445,7 @@ local createDropdown = function(thisFrame)
 		thisFrame.wisp_who:SetTextColor(1, 1, 1, 1)
 		thisFrame.wisp_who:SetPoint("topleft", thisFrame.select, "topleft", 14, -30)
 
-		Details:SetFontSize(thisFrame.wisp_who, 14)
+		Details:SetFontSize(thisFrame.wisp_who, 13)
 
 		--editbox
 		local editbox = CreateFrame("EditBox", nil, thisFrame, "BackdropTemplate")
@@ -576,7 +576,7 @@ local createDropdown = function(thisFrame)
 		end
 
 		window.last_reported_label:SetPoint("topleft", window, "topleft", 5, -28)
-		gump:SetFontSize(window.last_reported_label, 14)
+		gump:SetFontSize(window.last_reported_label, 13)
 
 		for i = 1, 9 do --window.max_last_buttons
 			local recentReportButton = window.recently_report_buttons[i]
@@ -965,7 +965,7 @@ local createDropdown = function(thisFrame)
 
 			local successful, errortext = pcall(skin)
 			if (not successful) then
-				Details:Msg(Loc ["error occurred on report window skin call():"], errortext)
+				Details:Msg("error occurred on report window skin call():", errortext)
 				pcall(DetailsReportWindow.skins["defaultSkin"])
 			end
 		end

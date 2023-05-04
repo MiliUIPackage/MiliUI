@@ -10,14 +10,14 @@ local pairs = pairs
 local _unpack = unpack
 local type = type
 --api locals
-local _GetSpellInfo = _detalhes.getspellinfo
+local _GetSpellInfo = Details.getspellinfo
 local GameTooltip = GameTooltip
 local IsInRaid = IsInRaid
 local IsInGroup = IsInGroup
 
-local _string_replace = _detalhes.string.replace --details api
+local _string_replace = Details.string.replace --details api
 
-local _detalhes = 		_G._detalhes
+local _detalhes = 		_G.Details
 local AceLocale = LibStub("AceLocale-3.0")
 local Loc = AceLocale:GetLocale ( "Details" )
 local _
@@ -267,6 +267,12 @@ function atributo_energy:AtualizarResources (whichRowLine, colocacao, instancia)
 	self:SetBarColors(esta_barra, instancia, actor_class_color_r, actor_class_color_g, actor_class_color_b)
 	--icon
 	self:SetClassIcon (esta_barra.icone_classe, instancia, self.classe)
+	if(esta_barra.mouse_over) then
+		local classIcon = esta_barra:GetClassIcon()
+		esta_barra.iconHighlight:SetTexture(classIcon:GetTexture())
+		esta_barra.iconHighlight:SetTexCoord(classIcon:GetTexCoord())
+		esta_barra.iconHighlight:SetVertexColor(classIcon:GetVertexColor())
+	end
 
 end
 
@@ -539,7 +545,7 @@ function atributo_energy:RefreshWindow (instancia, tabela_do_combate, forcar, ex
 			
 			Details.FadeHandler.Fader(row1, "out")
 			
-			if (following and myPos and myPos > instancia.rows_fit_in_window and instancia.barraS[2] < myPos) then
+			if (following and myPos and myPos+1 > instancia.rows_fit_in_window and instancia.barraS[2] < myPos+1) then
 				for i = instancia.barraS[1], iter_last-1, 1 do --vai atualizar s� o range que esta sendo mostrado
 					conteudo[i]:RefreshLine(instancia, barras_container, whichRowLine, i, total, sub_atributo, forcar, keyName, combat_time, percentage_type, use_animations, bars_show_data, bars_brackets, bars_separator) --inst�ncia, index, total, valor da 1� barra
 					whichRowLine = whichRowLine+1
@@ -600,7 +606,7 @@ function atributo_energy:RefreshWindow (instancia, tabela_do_combate, forcar, ex
 			
 			Details.FadeHandler.Fader(row1, "out")
 			
-			if (following and myPos and myPos > instancia.rows_fit_in_window and instancia.barraS[2] < myPos) then
+			if (following and myPos and myPos+1 > instancia.rows_fit_in_window and instancia.barraS[2] < myPos+1) then
 				conteudo[myPos]:RefreshLine(instancia, barras_container, whichRowLine, myPos, total, sub_atributo, forcar, keyName, combat_time, percentage_type, use_animations, bars_show_data, bars_brackets, bars_separator) --inst�ncia, index, total, valor da 1� barra
 				whichRowLine = whichRowLine+1
 				for i = iter_last-1, instancia.barraS[1], -1 do --vai atualizar s� o range que esta sendo mostrado
@@ -786,6 +792,13 @@ function atributo_energy:RefreshBarra(esta_barra, instancia, from_resize)
 	
 	--icon
 	self:SetClassIcon (esta_barra.icone_classe, instancia, class)
+
+	if(esta_barra.mouse_over) then
+		local classIcon = esta_barra:GetClassIcon()
+		esta_barra.iconHighlight:SetTexture(classIcon:GetTexture())
+		esta_barra.iconHighlight:SetTexCoord(classIcon:GetTexCoord())
+		esta_barra.iconHighlight:SetVertexColor(classIcon:GetVertexColor())
+	end
 	--texture color
 	self:SetBarColors(esta_barra, instancia, actor_class_color_r, actor_class_color_g, actor_class_color_b)
 	--left text
@@ -1211,10 +1224,6 @@ function atributo_energy:MontaInfoRegenRecebido()
 end
 
 function atributo_energy:MontaDetalhesRegenRecebido (nome, barra)
-
-	for _, barra in ipairs(info.barras3) do 
-		barra:Hide()
-	end
 	
 	reset_tooltips_table()
 	
@@ -1262,12 +1271,15 @@ function atributo_energy:MontaDetalhesRegenRecebido (nome, barra)
 
 	local max_ = energy_tooltips_table [1][2]
 	
+	local lastIndex = 1
 	local barra
 	for index, tabela in ipairs(from) do
 	
 		if (tabela [2] < 1) then
 			break
 		end
+
+		lastIndex = index
 	
 		barra = barras [index]
 
@@ -1275,6 +1287,8 @@ function atributo_energy:MontaDetalhesRegenRecebido (nome, barra)
 			barra = gump:CriaNovaBarraInfo3 (instancia, index)
 			barra.textura:SetStatusBarColor(1, 1, 1, 1)
 		end
+
+		barra.show = tabela[1]
 		
 		if (index == 1) then
 			barra.textura:SetValue(100)
@@ -1296,6 +1310,11 @@ function atributo_energy:MontaDetalhesRegenRecebido (nome, barra)
 			break
 		end
 	end
+
+	for i = lastIndex+1, #barras do
+		barras[i]:Hide()
+	end
+
 end
 
 function atributo_energy:MontaTooltipAlvos (esta_barra, index)
@@ -1516,10 +1535,6 @@ end
 
 			return shadow
 		end
-
-function atributo_energy:ColetarLixo (lastevent)
-	return _detalhes:ColetarLixo (class_type, lastevent)
-end
 
 function _detalhes.refresh:r_atributo_energy (este_jogador, shadow)
 	detailsFramework:Mixin(este_jogador, Details222.Mixins.ActorMixin)

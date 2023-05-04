@@ -2,32 +2,43 @@
 --global name declaration
 --local _StartDebugTime = debugprofilestop() print(debugprofilestop() - _StartDebugTime)
 --test if the packager will deploy to wago
+--https://github.com/LuaLS/lua-language-server/wiki/Annotations#documenting-types
+
+--make an option to show death in the order of newest to oldest
+
 		_ = nil
-		_G._detalhes = LibStub("AceAddon-3.0"):NewAddon("_detalhes", "AceTimer-3.0", "AceComm-3.0", "AceSerializer-3.0", "NickTag-1.0")
+		_G.Details = LibStub("AceAddon-3.0"):NewAddon("_detalhes", "AceTimer-3.0", "AceComm-3.0", "AceSerializer-3.0", "NickTag-1.0")
+
+		--add the original name to the global namespace
+		_detalhes = _G.Details --[[GLOBAL]]
+
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		_detalhes.build_counter = 10408
-		_detalhes.alpha_build_counter = 10408 --if this is higher than the regular counter, use it instead
-		_detalhes.dont_open_news = true
-		_detalhes.game_version = version
-		_detalhes.userversion = version .. " " .. _detalhes.build_counter
-		_detalhes.realversion = 148 --core version, this is used to check API version for scripts and plugins (see alias below)
-		_detalhes.APIVersion = _detalhes.realversion --core version
-		_detalhes.version = _detalhes.userversion .. " (core " .. _detalhes.realversion .. ")" --simple stirng to show to players
+		Details.build_counter = 10737
+		Details.alpha_build_counter = 10737 --if this is higher than the regular counter, use it instead
+		Details.dont_open_news = true
+		Details.game_version = version
+		Details.userversion = version .. " " .. Details.build_counter
+		Details.realversion = 150 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.APIVersion = Details.realversion --core version
+		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
 
-		_detalhes.acounter = 1 --in case of a second release with the same .build_counter
-		_detalhes.curseforgeVersion = GetAddOnMetadata("Details", "Version")
-
-		function _detalhes:GetCoreVersion()
-			return _detalhes.realversion
+		Details.acounter = 1 --in case of a second release with the same .build_counter
+		Details.curseforgeVersion = C_AddOns and C_AddOns.GetAddOnMetadata and C_AddOns.GetAddOnMetadata("Details", "Version")
+		if (not Details.curseforgeVersion and GetAddOnMetadata) then
+			Details.curseforgeVersion = GetAddOnMetadata("Details", "Version")
 		end
 
-		_detalhes.BFACORE = 131 --core version on BFA launch
-		_detalhes.SHADOWLANDSCORE = 143 --core version on Shadowlands launch
-		_detalhes.DRAGONFLIGHT = 147 --core version on Dragonflight launch
+		function Details:GetCoreVersion()
+			return Details.realversion
+		end
 
-		Details = _detalhes
+		Details.BFACORE = 131 --core version on BFA launch
+		Details.SHADOWLANDSCORE = 143 --core version on Shadowlands launch
+		Details.DRAGONFLIGHT = 147 --core version on Dragonflight launch
+
+		Details = Details
 
 		local gameVersionPrefix = "未知的遊戲版本 - 你可能正在使用與此遊戲版本不相容的Details！"
 		--these are the game versions currently compatible with this Details! versions
@@ -40,7 +51,7 @@
 		--WD 10288 RELEASE 10.0.2
 		--WD 10288 ALPHA 21 10.0.2
 		function Details.GetVersionString()
-			local curseforgeVersion = _detalhes.curseforgeVersion or ""
+			local curseforgeVersion = Details.curseforgeVersion or ""
 			local alphaId = curseforgeVersion:match("%-(%d+)%-")
 
 			if (not alphaId) then
@@ -71,34 +82,53 @@
 		Details222.Textures = {}
 		--namespace for pet
 		Details222.Pets = {}
+		Details222.Instances = {}
 		Details222.MythicPlus = {}
 		Details222.EJCache = {}
 		Details222.Segments = {}
 		Details222.Tables = {}
 		Details222.Mixins = {}
+		Details222.Cache = {}
+		Details222.Perf = {}
+		Details222.Cooldowns = {}
+		Details222.GarbageCollector = {}
+		Details222.BreakdownWindow = {}
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialization stuff
 local _
 
 do
-	local _detalhes = _G._detalhes
-
+	local _detalhes = _G.Details
 	_detalhes.resize_debug = {}
 
-	local Loc = _G.LibStub("AceLocale-3.0"):GetLocale( "Details" )
+	local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
+
+	--change logs
+	--[=[
 
 
-	--Fixed load errors on Wrath.
-	--Fixed enemy cast time in the death tooltip sometimes showing off time.
-	--Allow negative offsets on Aligned Text Columns (Flamanis).
-	--Remove multi-spec entries for shaman guessing (Flamanis).
-	--More Demon hunter abilities added to be merged (Flamanis).
-	--Added duck polymorph to Mage CCs (Flamanis).
-	--Fixed an issue with some options not updating when the window is selected at the bottom right corner of the options panel (Flamanis).
-
+	--]=]
 
 	local news = {
+		{"v10.0.5.10661.147", "3月 1日, 2023"},
+		"Major fixes and updates on the Event Tracker feature (for streamers).",
+		"When trying to import a profile with a name that already exists, it'll rename it and import (Flamanis).",
+		"Ignoring Fodder to the Flame npcs (Flamanis).",
+		"Mythic plus overall segments now have the list of player deaths.",
+
+		{"v10.0.2.10561.148", "2月 9日, 2023"},
+		"Fixed load errors on Wrath.",
+		"Fixed enemy cast time in the death tooltip sometimes showing off time.",
+		"Allow negative offsets on Aligned Text Columns (Flamanis).",
+		"Fixed Shaman and Warrior spec detection (Flamanis).",
+		"More Demon hunter abilities added to be merged (Flamanis).",
+		"Added duck polymorph to Mage CCs (Flamanis).",
+		"Fixed offline player showing as party members in the /keys panel and players from other realms not caching (Flamanis).",
+		"Fixed an issue with some options not updating when the window is selected at the bottom right corner of the options panel (Flamanis).",
+		"Fixed some issues with the breakdown window for 'Damage Taken' (Flamanis).",
+		"Fixed an issue where sometimes the 'Always Show Me' wouldn't show if the total bar is enabled (Ricodyn).",
+
 		{"v10.0.2.10401.148", "1月 5日, 2023"},
 		"Enemy Cast (non-interrupted) now is shown in the death log.",
 		"Damage Done by Blessing of Winter and Summer now counts torward the paladin.",
@@ -121,8 +151,9 @@ do
 		"Fixed spec detection for some specs on retail (Flamanis).",
 		"Fixed ToC for Compare2, how it also works on Wrath (Flamanis).",
 		"Fixed an issue with buff and debuff uptime sometimes not closing properly after the combat.",
-		
-		{"v10.0.2.10333.147", "Nov 18th, 2022"},
+
+
+		{"v10.0.2.10333.147", "11月 18日, 2022"},
 		"在“戰鬥分析”視窗上加入了兩個勾選框，用於合併寵物和玩家法術。",
 		"為獵人的寵物 Frenzy 增益增加了覆蓋時間，它現在在“ 光環”標籤中顯示在“戰鬥分析”視窗中。",
 		"/played 顯示一些新的東西！",
@@ -133,58 +164,62 @@ do
 		"新比較標籤: 從頭開始重新建立，這種新的比較沒有玩家限制，寵物合併，更大的線條。",
 		"新 <掛件: Cast Log>  show a time line of spells used by players in the group, Raid Leader: show all attack and defense cooldowns used by the raid.",
 		"Wago: Details! Standalone version is now hosted on addons.wago.io and WowUp.com.",
+		"",
+
 		"Added a little damage chart for your spells in the Player Breakdown Window.",
 		"Details! will count class play time, everyone using Details! from day 1 in Dragonflight should have an accurate play time in the class.",
-		"預設皮膚的外觀更新。",
-		"All panels from options to plugins received visual updates.",		"設定檔不會匯出自動隱藏自動化，以阻止問題，而玩家不知道為什麼視窗被隱藏。",
+		"Visual updates on default skin.",
+		"All panels from options to plugins received visual updates.",
+		"Profiles won't export Auto Hide automations to stop issues with players not knowing why the window is hidding.",
 		"Details! should decrease the amount of chat spam errors and instead show them in the bug report window like al the other addons.",
-		"Player Details! Breakdown window: player selection now uses the same font as the regular window.",		"死亡日誌工具提示改進，以更加清晰，以查看技能名稱和造成傷害。",
-		"巨龍崛起飾品的傷害將會在法術名稱之後顯示飾品名字。",
+		"Player Details! Breakdown window: player selection now uses the same font as the regular window.",
+		"Death log tooltip revamp for more clarity to see the ability name and the damage done.",
+		"Dragonflight Trinkets damage will show the trinket name after the spell name.",
 		"'/details scroll' feature: spell name and spell id can now be copied, the frame got a scale bar.",
-		"新增選項: '使用動態整體傷害', 如果啟用當戰鬥開始，在顯示總體傷害的同時切換到動態整體傷害。",
-		"修正 for most of the user having the problem of the encounter time not showing.",
-		"修正 most of the issues with the melee spell name being called 'Word of Recall'.",
-		"Details! 傷害統計, Deatails! 框架運作, LibOpenRaid都已成功更新支援巨龍崛起。",
-		"新的職業喚能師現在Details!完整支援。",
+		"Added option: 'Use Dynamic Overall Damage', if enabled swap to Dynamic Overall Damage when combat start while showing Overall Damage.",
+		"Fixed for most of the user having the problem of the encounter time not showing.",
+		"Fixed most of the issues with the melee spell name being called 'Word of Recall'.",
+		"Details! Damage Meter, Deatails! Framework, LibOpenRaid has been successfully updated to Dragonflight.",
+		"New class Evoker are now fully supported by Details!.",
 		"",
-		"修正 an issue where warlocks was entering in combat from a debug doing damage (Flamanis).",
-		"修正 'Auto of Range' problem in Wrath of the Lich King (Flamanis).",
-		"修正 a bug with custom displays when showing players outside the player group (Flamanis).",
-		"修正 an issue where specs wheren't sent on Wrath (Flamanis).",
-		"修正 Buff Uptime Tooltip where the buff had zero uptime (Flamanis)",
-		"修正 shield damage preventing rare error when the absorption was zero (Flamanis).",
-		"修正 chat embed system built in Details! from the Skins section (Flamanis).",
-		"修正 an issue where damage in battlegrounds was not being sync with battleground score board in Wrath (Flamanis).",
+		"Fixed an issue where warlocks was entering in combat from a debug doing damage (Flamanis).",
+		"Fixed 'Auto of Range' problem in Wrath of the Lich King (Flamanis).",
+		"Fixed a bug with custom displays when showing players outside the player group (Flamanis).",
+		"Fixed an issue where specs wheren't sent on Wrath (Flamanis).",
+		"Fixed Buff Uptime Tooltip where the buff had zero uptime (Flamanis)",
+		"Fixed shield damage preventing rare error when the absorption was zero (Flamanis).",
+		"Fixed chat embed system built in Details! from the Skins section (Flamanis).",
+		"Fixed an issue where damage in battlegrounds was not being sync with battleground score board in Wrath (Flamanis).",
 		"",
-		"新的指令:",
+		"New Slash Commands:",
 		"/playedclass: show how much time you have played this class on this expansion.",
 		"/dumpt <anything>: show the value of any table, global, spellId, etc.",
 		"/details auras: show a panel with your current auras, spell ids and spell payload.",
 		"/details perf: show performance issues when you get a warning about freezes due to UpdateAddOnMemoryUsage().",
 		"/details npcid: get the npc id of your target (a box is shown with the number ready to be copied).",
 
-		{"v9.2.0.10001.146", "8月 10日, 2022"},
-		"新功能: Arena DPS Bar, can be enabled at the Broadcaster Tools section, shows a bar in 'kamehameha' style showing which team is doing more damage in the latest 3 seconds.",
+		{"v9.2.0.10001.146", "Aug 10th, 2022"},
+		"New feature: Arena DPS Bar, can be enabled at the Broadcaster Tools section, shows a bar in 'kamehameha' style showing which team is doing more damage in the latest 3 seconds.",
 		"/keystone now has more space for the dungeon name.",
 		"Revamp on the options section for Broadcaster tools.",
-		"加入 'Icon Size Offset' 在此選項下 > 計量條：一般, this new option allow to adjust the size of the class/spec icon shown on each bar.",
-		"加入 'Show Faction Icon' 在此選項下 > 計量條：一般, with this new option, you can choose to not show the faction icon, this icon is usually shown during battlegrounds.",
-		"加入 'Faction Icon Size Offset' 在此選項下 > 計量條：一般, new option to adjust the size of the faction icon.",
-		"加入 'Show Arena Role Icon' 在此選項下 > 計量條：一般, new option to hide or show the role icon of players during an arena match.",
-		"加入 'Clear On Start PVP' overall data option (Flamanis).",
-		"加入 'Arena Role Icon Size Offset' 在此選項下 > 計量條：一般, new option which allow to control the size of the arena role icon.",
-		"加入 'Level' option to Wallpapers, the wallpaper can now be placed on different levels which solves issues where the wallpaper is too low of certain configuration.",
+		"Added 'Icon Size Offset' under Options > Bars: General, this new option allow to adjust the size of the class/spec icon shown on each bar.",
+		"Added 'Show Faction Icon' under Options > Bars: General, with this new option, you can choose to not show the faction icon, this icon is usually shown during battlegrounds.",
+		"Added 'Faction Icon Size Offset' under Options > Bars: General, new option to adjust the size of the faction icon.",
+		"Added 'Show Arena Role Icon' under Options > Bars: General, new option to hide or show the role icon of players during an arena match.",
+		"Added 'Clear On Start PVP' overall data option (Flamanis).",
+		"Added 'Arena Role Icon Size Offset' under Options > Bars: General, new option which allow to control the size of the arena role icon.",
+		"Added 'Level' option to Wallpapers, the wallpaper can now be placed on different levels which solves issues where the wallpaper is too low of certain configuration.",
 		"Streamer! plugin got updates, now it is more clear to pick which mode to use.",
-		"巫妖王之怒經典版相容 (Flamanis, Daniel Henry).",
-		"修正 Grimrail Depot cannon and granades damage be added to players (dios-david).",
-		"修正 the title bar text not showing when using the Custom Title Bar feature.",
-		"修正 an issue with Dynamic Overall Damage printing errors into the chat window (Flamanis).",
-		"角色類型偵測在經典版得到增強。",
+		"WotLK classic compatibility (Flamanis, Daniel Henry).",
+		"Fixed Grimrail Depot cannon and granades damage be added to players (dios-david).",
+		"Fixed the title bar text not showing when using the Custom Title Bar feature.",
+		"Fixed an issue with Dynamic Overall Damage printing errors into the chat window (Flamanis).",
+		"Role detection in classic versions got improvements.",
 		"New API: Details:GetTop5Actors(attributeId), return the top 5 actors from the selected attribute.",
 		"New API: Details:GetActorByRank(attributeId, rankIndex), return an actor from the selected attribute and rankIndex.",
 		"Major cleanup and code improvements on dropdowns for library Details! Framework.",
 		"Cleanup on NickTag library.",
-		"移除 LibGroupInSpecT, LibItemUpgradeInfo 以及 LibCompress。這些函數庫已經被 OpenRaidLib 與 LibDeflate 替代。",
+		"Removed LibGroupInSpecT, LibItemUpgradeInfo and LibCompress. These libraries got replaced by OpenRaidLib and LibDeflate.",
 	}
 
 	local newsString = "|cFFF1F1F1"
@@ -246,8 +281,9 @@ do
 				[2522] = true, --sepulcher of the first ones
 			}
 
-		--armazena os escudos - Shields information for absorbs
-			_detalhes.escudos = {}
+		--store shield information for absorbs
+			_detalhes.ShieldCache = {}
+
 		--armazena as fun��es dos frames - Frames functions
 			_detalhes.gump = _G ["DetailsFramework"]
 			function _detalhes:GetFramework()
@@ -747,8 +783,9 @@ do
 	local UIParent = UIParent --api locals
 
 	--Info Window
-		_detalhes.playerDetailWindow = CreateFrame("Frame", "DetailsPlayerDetailsWindow", UIParent, "BackdropTemplate")
+		_detalhes.playerDetailWindow = CreateFrame("Frame", "DetailsBreakdownWindow", UIParent, "BackdropTemplate")
 		_detalhes.PlayerDetailsWindow = _detalhes.playerDetailWindow
+		Details.BreakdownWindow = _detalhes.playerDetailWindow
 
 	--Event Frame
 		_detalhes.listener = CreateFrame("Frame", nil, UIParent)
@@ -1113,3 +1150,5 @@ function Details222.Tables.MakeWeakTable(mode)
 	setmetatable(newTable, {__mode = mode or "v"})
 	return newTable
 end
+
+--STRING_CUSTOM_POT_DEFAULT

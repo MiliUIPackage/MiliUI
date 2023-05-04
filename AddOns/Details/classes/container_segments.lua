@@ -5,7 +5,7 @@ local tremove = table.remove
 local tinsert = table.insert
 local wipe = table.wipe
 
-local Details = _G._detalhes
+local Details = _G.Details
 local _
 local addonName, Details222 = ...
 
@@ -31,6 +31,35 @@ function Details:GetCurrentCombat()
 	return Details.tabela_vigente
 end
 
+function Details:GetOverallCombat()
+	return Details.tabela_overall
+end
+
+function Details:GetCombat(combat)
+	if (not combat) then
+		return Details.tabela_vigente
+
+	elseif (type(combat) == "number") then
+		if (combat == -1) then --overall
+			return Details.tabela_overall
+
+		elseif (combat == 0) then --current
+			return Details.tabela_vigente
+		else
+			return Details.tabela_historico.tabelas[combat]
+		end
+
+	elseif (type(combat) == "string") then
+		if (combat == "overall") then
+			return Details.tabela_overall
+		elseif (combat == "current") then
+			return Details.tabela_vigente
+		end
+	end
+
+	return nil
+end
+
 --returns a private table containing all stored segments
 function Details:GetCombatSegments()
 	return Details.tabela_historico.tabelas
@@ -45,15 +74,15 @@ function segmentClass:NovoHistorico()
 	return esta_tabela
 end
 
-function segmentClass:adicionar_overall (tabela)
+function segmentClass:adicionar_overall (combatObject)
 	local zoneName, zoneType = GetInstanceInfo()
-	if (zoneType ~= "none" and tabela:GetCombatTime() <= Details.minimum_overall_combat_time) then
+	if (zoneType ~= "none" and combatObject:GetCombatTime() <= Details.minimum_overall_combat_time) then
 		return
 	end
 
 	if (Details.overall_clear_newboss) then
 		--only for raids
-		if (tabela.instance_type == "raid" and tabela.is_boss) then
+		if (combatObject.instance_type == "raid" and combatObject.is_boss) then
 			if (Details.last_encounter ~= Details.last_encounter2) then
 				if (Details.debug) then
 					Details:Msg("(debug) new boss detected 'overall_clear_newboss' is true, cleaning overall data.")
@@ -66,12 +95,12 @@ function segmentClass:adicionar_overall (tabela)
 		end
 	end
 
-	if (tabela.overall_added) then
+	if (combatObject.overall_added) then
 		Details:Msg("error > attempt to add a segment already added > func historico:adicionar_overall()")
 		return
 	end
 
-	local mythicInfo = tabela.is_mythic_dungeon
+	local mythicInfo = combatObject.is_mythic_dungeon
 	if (mythicInfo) then
 		--do not add overall mythic+ dungeon segments
 		if (mythicInfo.TrashOverallSegment) then
@@ -85,11 +114,11 @@ function segmentClass:adicionar_overall (tabela)
 
 	--store the segments added to the overall data
 	Details.tabela_overall.segments_added = Details.tabela_overall.segments_added or {}
-	local this_clock = tabela.data_inicio
+	local this_clock = combatObject.data_inicio
 
-	local combatName = tabela:GetCombatName(true)
-	local combatTime = tabela:GetCombatTime()
-	local combatType = tabela:GetCombatType()
+	local combatName = combatObject:GetCombatName(true)
+	local combatTime = combatObject:GetCombatTime()
+	local combatType = combatObject:GetCombatType()
 
 	tinsert(Details.tabela_overall.segments_added, 1, {name = combatName, elapsed = combatTime, clock = this_clock, type = combatType})
 
@@ -98,26 +127,26 @@ function segmentClass:adicionar_overall (tabela)
 	end
 
 	if (Details.debug) then
-		Details:Msg("(debug) adding the segment to overall data: " .. (tabela:GetCombatName(true) or "no name") .. " with time of: " .. (tabela:GetCombatTime() or "no time"))
+		Details:Msg("(debug) adding the segment to overall data: " .. (combatObject:GetCombatName(true) or "no name") .. " with time of: " .. (combatObject:GetCombatTime() or "no time"))
 	end
 
-	Details.tabela_overall = Details.tabela_overall + tabela
-	tabela.overall_added = true
+	Details.tabela_overall = Details.tabela_overall + combatObject
+	combatObject.overall_added = true
 
 	if (not Details.tabela_overall.overall_enemy_name) then
-		Details.tabela_overall.overall_enemy_name = tabela.is_boss and tabela.is_boss.name or tabela.enemy
+		Details.tabela_overall.overall_enemy_name = combatObject.is_boss and combatObject.is_boss.name or combatObject.enemy
 	else
-		if (Details.tabela_overall.overall_enemy_name ~= (tabela.is_boss and tabela.is_boss.name or tabela.enemy)) then
+		if (Details.tabela_overall.overall_enemy_name ~= (combatObject.is_boss and combatObject.is_boss.name or combatObject.enemy)) then
 			Details.tabela_overall.overall_enemy_name = "-- x -- x --"
 		end
 	end
 
 	if (Details.tabela_overall.start_time == 0) then
-		Details.tabela_overall:SetStartTime (tabela.start_time)
-		Details.tabela_overall:SetEndTime (tabela.end_time)
+		Details.tabela_overall:SetStartTime (combatObject.start_time)
+		Details.tabela_overall:SetEndTime (combatObject.end_time)
 	else
-		Details.tabela_overall:SetStartTime (tabela.start_time - Details.tabela_overall:GetCombatTime())
-		Details.tabela_overall:SetEndTime (tabela.end_time)
+		Details.tabela_overall:SetStartTime (combatObject.start_time - Details.tabela_overall:GetCombatTime())
+		Details.tabela_overall:SetEndTime (combatObject.end_time)
 	end
 
 	if (Details.tabela_overall.data_inicio == 0) then
@@ -215,7 +244,7 @@ function Details:CanAddCombatToOverall (tabela)
 end
 
 --sai do combate, chamou adicionar a tabela ao hist�rico
-function segmentClass:adicionar (tabela)
+function segmentClass:adicionar(tabela)
 
 	local tamanho = #self.tabelas
 
@@ -259,7 +288,7 @@ function segmentClass:adicionar (tabela)
 	end
 
 	--see if can add the encounter to overall data
-	local canAddToOverall = Details:CanAddCombatToOverall (tabela)
+	local canAddToOverall = Details:CanAddCombatToOverall(tabela)
 
 	if (canAddToOverall) then
 		--if (InCombatLockdown()) then
@@ -422,7 +451,7 @@ function segmentClass:resetar_overall()
 	--	_detalhes.schedule_remove_overall = true
 	--else
 		--fecha a janela de informa��es do jogador
-		Details:FechaJanelaInfo()
+		Details:CloseBreakdownWindow()
 
 		Details.tabela_overall = combatClass:NovaTabela()
 
@@ -469,7 +498,7 @@ function segmentClass:resetar()
 	--_detalhes.schedule_remove_overall = nil
 
 	--fecha a janela de informa��es do jogador
-	Details:FechaJanelaInfo()
+	Details:CloseBreakdownWindow()
 
 	--empty temporary tables
 	Details.atributo_damage:ClearTempTables()
@@ -485,7 +514,7 @@ function segmentClass:resetar()
 		wipe (Details.schedule_add_to_overall)
 	end
 
-	Details:LimparPets()
+	Details:PetContainerCleanup()
 	Details:ResetSpecCache (true) --for�ar
 
 	-- novo container de historico
@@ -507,8 +536,8 @@ function segmentClass:resetar()
 	--limpa o cache de magias
 	Details:ClearSpellCache()
 
-	--limpa a tabela de escudos
-	wipe(Details.escudos)
+	--limpa a tabela de ShieldCache
+	wipe(Details.ShieldCache)
 
 	--reinicia a time machine
 	timeMachine:Reiniciar()

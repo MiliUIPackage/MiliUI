@@ -7,7 +7,8 @@
 ## SavedVariables: _detalhes_global, __details_backup
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibGraph-2.0
-## Version: #Details.DF.Wrath.10408.148
+## Version: #Details.DF.Wrath.10.0.7.10737.148-53
+
 ## X-Curse-Project-ID: 61284
 ## X-Wago-ID: 25NRDlK3
 ## X-Category-zhTW: 戰鬥
@@ -19,6 +20,8 @@ Libs\libs.xml
 locales\Details-enUS.lua
 locales\Details-zhCN.lua
 locales\Details-zhTW.lua
+
+Definitions.lua
 
 boot.lua
 indent.lua
@@ -77,6 +80,11 @@ frames\window_api.lua
 frames\window_cdtracker.lua
 frames\window_playerbreakdown.lua
 frames\window_playerbreakdown_list.lua
+frames\window_playerbreakdown_compare.lua
+frames\window_playerbreakdown_avoidance.lua
+frames\window_playerbreakdown_auras.lua
+frames\window_playerbreakdown_spells.lua
+frames\window_playerbreakdown_spells_options.lua
 frames\window_report.lua
 frames\window_main.lua
 frames\window_custom.lua
@@ -103,6 +111,7 @@ frames\window_statistics.lua
 frames\window_aura_tracker.lua
 
 classes\class_error.lua
+classes\class_spelltable.lua
 classes\class_combat.lua
 classes\class_damage.lua
 classes\class_spelldamage.lua
@@ -137,7 +146,6 @@ core\meta.lua
 core\network.lua
 
 core\parser.lua
-#core\parser_timewalk.lua
 
 functions\loaddata.lua
 

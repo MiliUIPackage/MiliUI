@@ -8,10 +8,6 @@
 ## SavedVariablesPerCharacter: EncounterDetailsDB
 ## X-Category-zhTW: 戰鬥
 
-#@no-lib-strip@
-embeds.xml
-#@end-no-lib-strip@
-
 enUS.lua
 zhTW.lua
 frames.lua

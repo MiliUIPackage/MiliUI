@@ -2,7 +2,7 @@
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 	local Loc = LibStub("AceLocale-3.0"):GetLocale ( "Details" )
-	local _detalhes = _G._detalhes
+	local _detalhes = _G.Details
 	local PixelUtil = PixelUtil or DFPixelUtil
 
 	DETAILSPLUGIN_ALWAYSENABLED = 0x1
@@ -273,7 +273,7 @@
 	end
 
 	local register_event_func = function(self, event)
-		self.Frame:RegisterEvent (event)
+		self.Frame:RegisterEvent(event)
 	end
 	local unregister_event_func = function(self, event)
 		self.Frame:UnregisterEvent (event)
@@ -285,8 +285,8 @@
 		local NewPlugin = {__options = PluginOptions, __enabled = true, RegisterEvent = register_event_func, UnregisterEvent = unregister_event_func}
 		
 		local Frame = CreateFrame("Frame", FrameName, UIParent,"BackdropTemplate")
-		Frame:RegisterEvent ("PLAYER_LOGIN")
-		Frame:RegisterEvent ("PLAYER_LOGOUT")
+		Frame:RegisterEvent("PLAYER_LOGIN")
+		Frame:RegisterEvent("PLAYER_LOGOUT")
 		
 		Frame:SetScript("OnEvent", function(self, event, ...) 
 			if (NewPlugin.OnEvent) then
@@ -360,7 +360,7 @@
 			options_frame:SetMovable(true)
 			options_frame:EnableMouse(true)
 			options_frame:SetFrameStrata("DIALOG")
-			options_frame:SetToplevel (true)
+			options_frame:SetToplevel(true)
 			
 			options_frame:Hide()
 			
@@ -398,7 +398,7 @@
 			options_frame:SetMovable(true)
 			options_frame:EnableMouse(true)
 			options_frame:SetFrameStrata("DIALOG")
-			options_frame:SetToplevel (true)
+			options_frame:SetToplevel(true)
 			
 			options_frame:Hide()
 			
@@ -429,6 +429,8 @@
 		f:SetBackdrop(_detalhes.PluginDefaults and _detalhes.PluginDefaults.Backdrop or {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1})
 		f:SetBackdropColor(0, 0, 0, 0.3)
 		f:SetBackdropBorderColor(0, 0, 0, 1)
+		tinsert(UISpecialFrames, "DetailsPluginContainerWindow")
+
 
 		local scaleBar = DetailsFramework:CreateScaleBar(f, Details.options_window)
 		scaleBar:SetFrameStrata("fullscreen")
@@ -611,7 +613,13 @@
 
 			--show the container
 			f:Show()
-			
+
+			--check if the plugin has a callback for when showing the frame
+			if (pluginObject.__OnClickFromOptionsCallback) then
+				--safe run the plugin callback
+				DetailsFramework:QuickDispatch(pluginObject.__OnClickFromOptionsCallback)
+			end
+
 			return true
 		end
 		
@@ -639,21 +647,24 @@
 		local on_hide = function(self)
 			DetailsPluginContainerWindow.ClosePlugin()
 		end
-		
-		function f.RefreshFrame (frame)
-			frame:EnableMouse(false)
-			frame:SetSize(f.FrameWidth, f.FrameHeight)
+
+		local setup_frame_functions = function(frame)
 			frame:SetScript("OnMouseDown", nil)
 			frame:SetScript("OnMouseUp", nil)
 			--frame:SetScript("OnHide", on_hide)
 			frame:HookScript ("OnHide", on_hide)
+		end
+		
+		function f.RefreshFrame (frame)
+			frame:EnableMouse(false)
+			frame:SetSize(f.FrameWidth, f.FrameHeight)
 			frame:ClearAllPoints()
 			PixelUtil.SetPoint(frame, "topleft", f, "topleft", 0, 0)
 			frame:Show()
 		end
 
 		--a plugin request to be embed into the main plugin window
-		function f.EmbedPlugin(pluginObject, frame, isUtility)
+		function f.EmbedPlugin(pluginObject, frame, isUtility, callback)
 
 			--check if the plugin has a frame
 			if (not pluginObject.Frame) then
@@ -706,14 +717,19 @@
 			end
 
 			--format the plugin main frame
-			f.RefreshFrame (frame)
+			f.RefreshFrame(frame)
+			setup_frame_functions(frame)
+
+			--save the callback function for when clicking in the button from the options panel
+			pluginObject.__OnClickFromOptionsCallback = callback
+
 			--add the plugin to embed table
 			tinsert(f.EmbedPlugins, pluginObject)
 			frame:SetParent(f)
 
-			f.DebugMsg ("plugin added", pluginObject.__name)
+			f.DebugMsg("plugin added", pluginObject.__name)
 		end
-		
+
 		function f.OpenPlugin (pluginObject)
 			--just simulate a click on the menu button
 			f.OnMenuClick (_, _, pluginObject.real_name)

@@ -1,6 +1,6 @@
 do
 
-	local _detalhes = 		_G._detalhes
+	local _detalhes = 		_G.Details
 	local addonName, Details222 = ...
 
 	--import potion list from the framework
@@ -125,9 +125,7 @@ do
 
 			--Enhancement Shaman:
 			[333974] = 263, --Fire Nova
-			[117014] = 263, --Elemental Blast
 			[51533] = 263, --Feral Spirit
-			[378270] = 263, --Deeply Rooted Elements
 			[384352] = 263, --Doom Winds
 			[197214] = 263, --Sundering
 			[114051] = 263, --Ascendance
@@ -468,7 +466,6 @@ do
 			[871] = 73, --Shield Wall
 			[1161] = 73, --Challenging Shout
 			[394062] = 73, --Rend
-			[190456] = 73, --Ignore Pain
 			[385952] = 73, --Shield Charge
 			[392966] = 73, --Spell Block
 
@@ -3064,11 +3061,35 @@ do
 
 	}
 
+	local allowedCooldownTypes = { --LIB_OPEN_RAID_COOLDOWNS_INFO types
+		[1] = false, --attack
+		[2] = true, --defensive
+		[3] = true, --defensive
+		[4] = true, --defensive
+		[5] = false, --utility
+		[6] = false, --interrupt
+		[7] = false, --dispel
+		[8] = false, --crowd control
+		[9] = false, --racials
+		[10] = false, --item heal
+		[11] = false, --item power
+		[12] = false, --item utility
+	}
+
 	local getCooldownsForClass = function(class)
 		local result = {}
-		for spellId, spellInfo in pairs(_G.DetailsFramework.CooldownsInfo) do
-			if (class == spellInfo.class) then
-				result[#result+1] = spellId
+		--Use LibOpenRaid if possible. Otherwise fallback to DF.
+		if (LIB_OPEN_RAID_COOLDOWNS_INFO) then
+			for spellId, spellInfo in pairs(LIB_OPEN_RAID_COOLDOWNS_INFO) do
+				if (class == spellInfo.class and allowedCooldownTypes[spellInfo.type]) then
+					result[#result+1] = spellId
+				end
+			end
+		else
+			for spellId, spellInfo in pairs(_G.DetailsFramework.CooldownsInfo) do
+				if (class == spellInfo.class) then
+					result[#result+1] = spellId
+				end
 			end
 		end
 		return result
@@ -3076,7 +3097,9 @@ do
 
 	_detalhes.DefensiveCooldownSpells = {
 		["DEATHKNIGHT"] = getCooldownsForClass("DEATHKNIGHT"),
+		["DEMONHUNTER"] = getCooldownsForClass("DEMONHUNTER"),
 		["DRUID"] = getCooldownsForClass("DRUID"),
+		["EVOKER"] = getCooldownsForClass("EVOKER"),
 		["HUNTER"] = getCooldownsForClass("HUNTER"),
 		["MAGE"] = getCooldownsForClass("MAGE"),
 		["MONK"] = getCooldownsForClass("MONK"),
@@ -4090,40 +4113,44 @@ local SplitLoadFunc = function(self, deltaTime)
                     if (actorToIndex [containerName]) then
                         local spellList = actorToIndex [containerName]._ActorTable
                         if (spellList) then
-                        
-                            local SpellPool = Details.spell_pool
-                            local EncounterSpellPool = Details.encounter_spell_pool
+                            local spellPool = Details.spell_pool
+                            local encounterSpellPool = Details.encounter_spell_pool
                             
-                            for spellID, _ in pairs(spellList) do
-                                if (not SpellPool [spellID]) then
-                                    SpellPool [spellID] = source
+                            for spellId, _ in pairs(spellList) do
+                                if (not spellPool[spellId]) then
+                                    spellPool[spellId] = source
                                 end
-                                if (encounterID and not EncounterSpellPool [spellID]) then
+                                if (encounterID and not encounterSpellPool[spellId]) then
                                     if (actorToIndex:IsEnemy()) then
-                                        EncounterSpellPool [spellID] = {encounterID, source}
+                                        encounterSpellPool[spellId] = {encounterID, source}
                                     end
                                 end
                             end
                         end
                     end
                 end
-                
+
+				--[=[ .spell_cast is deprecated
                 --spells the actor casted
                 if (actorToIndex.spell_cast) then
-                    local SpellPool = Details.spell_pool
-                    local EncounterSpellPool = Details.encounter_spell_pool
-                    
-                    for spellID, _ in pairs(actorToIndex.spell_cast) do
-                        if (not SpellPool [spellID]) then
-                            SpellPool [spellID] = source
-                        end
-                        if (encounterID and not EncounterSpellPool [spellID]) then
-                            if (actorToIndex:IsEnemy()) then
-                                EncounterSpellPool [spellID] = {encounterID, source}
-                            end
-                        end
+                    local spellPool = Details.spell_pool
+                    local encounterSpellPool = Details.encounter_spell_pool
+
+                    for spellName, _ in pairs(actorToIndex.spell_cast) do
+						local _, _, _, _, _, _, spellId = GetSpellInfo(spellName)
+						if (spellId) then
+							if (not spellPool[spellId]) then
+								spellPool[spellId] = source
+							end
+							if (encounterID and not encounterSpellPool[spellId]) then
+								if (actorToIndex:IsEnemy()) then
+									encounterSpellPool[spellId] = {encounterID, source}
+								end
+							end
+						end
                     end
                 end
+				--]=]
             end
         end
     end
