@@ -1,6 +1,6 @@
 ## Interface: 100100
 ## Title: HandyNotes: Dragonflight
-## Version: 35
+## Version: 36
 ## Notes: Dragonflight Notes
 ## OptionalDeps: Ace3
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍群島
@@ -9,6 +9,7 @@
 ## RequiredDeps: HandyNotes
 ## X-Embeds: Ace3
 ## SavedVariables: HandyNotes_DragonflightDB
+## IconTexture: 4640486
 
 embeds.xml
 core\core.xml

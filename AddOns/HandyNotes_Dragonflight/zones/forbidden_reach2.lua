@@ -23,6 +23,7 @@ local Item = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
 local Recipe = ns.reward.Recipe
+local Section = ns.reward.Section
 local Spacer = ns.reward.Spacer
 local Toy = ns.reward.Toy
 local Transmog = ns.reward.Transmog
@@ -151,6 +152,7 @@ map.nodes[59695883] = Rare({
     location = L['in_small_cave'],
     rewards = {
         Achievement({id = 17525, criteria = 58466}), -- Champion of the Forbidden Reach
+        Mount({item = 192772, id = 1619}), -- Ancient Salamanther
         Item({item = 202196}), -- Zskera Vault Key
         Currency({id = 2118}) -- Elemental Overflow
     },
@@ -236,7 +238,7 @@ siegeCreche.nodes[58993931] = Rare({
     parent = {id = map.id, pois = {POI({74425466})}},
     rewards = {
         Achievement({id = 17525, criteria = 58473}), -- Champion of the Forbidden Reach
-        Item({item = 202196}), -- Zskera Vault Key
+        DC.WindborneVelocidrake.HeavyScales, Item({item = 202196}), -- Zskera Vault Key
         Currency({id = 2118}) -- Elemental Overflow
     }
 }) -- Volcanakk
@@ -245,12 +247,12 @@ siegeCreche.nodes[58993931] = Rare({
 
 local LootSpecialist = Class('LootSpecialist', Rare, {
     id = 203353,
-    quest = nil,
+    quest = 74936,
     note = L['loot_specialist_note'],
     fgroup = 'loot_specialist',
     rewards = {
         Achievement({id = 17525, criteria = 58830}), -- Champion of the Forbidden Reach
-        Item({item = 204276}), -- Untapped Forbidden Knowledge
+        DC.CliffsideWylderdrake.CoiledHorns, Item({item = 204276}), -- Untapped Forbidden Knowledge
         Item({item = 202196}), -- Zskera Vault Key
         Currency({id = 2118}) -- Elemental Overflow
     }
@@ -304,6 +306,7 @@ end
 
 local Tectonus = Class('Tectonus', ProfessionRare, {
     id = 200619,
+    quest = 74300,
     profession = ns.professions.MINING,
     summoningItem = 203418, -- Amplified Quaking Stone
     summoningObject = L['pr_rumbling_deposit'], -- Rumbling Deposit
@@ -331,6 +334,7 @@ dragonskullIsland.nodes[57157211] = Tectonus({
 
 local SirPinchalot = Class('SirPinchalot', ProfessionRare, {
     id = 200620,
+    quest = 74305,
     profession = ns.professions.FISHING,
     summoningItem = 203419, -- Elusive Croaking Crab
     summoningObject = L['pr_empty_crab_trap'], -- Empty Crab Trap
@@ -346,6 +350,7 @@ map.nodes[47789090] = SirPinchalot()
 
 local Manathema = Class('Manathema', ProfessionRare, {
     id = 200621,
+    quest = 74306,
     profession = ns.professions.ENCHANTING,
     summoningItem = 203410, -- Glowing Crystal Bookmark
     summoningObject = L['pr_book_of_arcane_entities'], -- Book of Arcane Entities
@@ -370,6 +375,7 @@ warCreche.nodes[43017871] = Manathema({location = L['in_the_war_creche']})
 
 local Snarfang = Class('Snarfang', ProfessionRare, {
     id = 200622,
+    quest = 74307,
     profession = ns.professions.LEATHERWORKING,
     summoningItem = 203414, -- Reinforced Pristine Leather
     summoningObject = L['pr_tuskarr_tanning_rack'], -- Tuskarr Tanning Rack
@@ -390,6 +396,7 @@ map.nodes[64967269] = Snarfang()
 
 local Gareed = Class('Gareed', ProfessionRare, {
     id = 200722,
+    quest = 74321,
     profession = ns.professions.TAILORING,
     summoningItem = 203415, -- Morqut Kite
     summoningObject = L['pr_tuskarr_kite_post'], -- Tuskarr Kite Post
@@ -407,6 +414,7 @@ map.nodes[60299154] = Gareed()
 
 local Faunos = Class('Faunos', ProfessionRare, {
     id = 200725,
+    quest = 74322,
     profession = ns.professions.SKINNING,
     summoningItem = 203417, -- Razor-Sharp Animal Bone
     summoningObject = L['pr_raw_argali_pelts'], -- Raw Argali Pelts
@@ -422,6 +430,7 @@ map.nodes[70664613] = Faunos()
 
 local TidesmithZarviss = Class('TidesmithZarviss', ProfessionRare, {
     id = 200730,
+    quest = 74325,
     profession = ns.professions.BLACKSMITHING,
     summoningItem = 203408, -- Ceremonial Trident
     summoningObject = L['pr_farescale_shrine'], -- Farscale Shrine
@@ -435,11 +444,15 @@ local TidesmithZarviss = Class('TidesmithZarviss', ProfessionRare, {
 
 map.nodes[67257598] = TidesmithZarviss()
 map.nodes[63096158] = TidesmithZarviss()
-map.nodes[80035881] = TidesmithZarviss()
+
+map.nodes[80035881] = TidesmithZarviss({
+    location = L['in_small_cave'],
+    pois = {POI({80546045})}
+})
 
 local Arcantrix = Class('Arcantrix', ProfessionRare, {
     id = 200737,
-    quest = 73163,
+    quest = 74328,
     profession = ns.professions.INSCRIPTION,
     summoningItem = 203412, -- Dispelling Rune
     summoningObject = L['pr_spellsworn_ward'], -- Spellsword Ward
@@ -463,6 +476,7 @@ warCreche.nodes[53105781] = Arcantrix({location = L['in_the_war_creche']})
 
 local Kangalo = Class('Kangalo', ProfessionRare, {
     id = 200738,
+    quest = 74329,
     profession = ns.professions.HERBALISM,
     summoningItem = 203416, -- Dormant Lifebloom Seeds
     summoningObject = L['pr_awakened_soil'], -- Awakened Soil
@@ -479,6 +493,7 @@ map.nodes[75143190] = Kangalo()
 
 local Fimbul = Class('Fimbul', ProfessionRare, {
     id = 200739,
+    quest = 74330,
     profession = ns.professions.ENGINEERING,
     summoningItem = 203411, -- Gnomish Voicebox
     summoningObject = L['pr_damaged_buzzspire'], -- Damaged Buzzspire 505
@@ -496,6 +511,7 @@ map.nodes[61172683] = Fimbul()
 
 local AgniBlazehoof = Class('AgniBlazehoof', ProfessionRare, {
     id = 200740,
+    quest = 74331,
     profession = ns.professions.ALCHEMY,
     summoningItem = 203407, -- Draconic Suppression Powder
     summoningObject = L['pr_volatile_brazier'], -- Volatile Brazier
@@ -513,6 +529,7 @@ map.nodes[69745464] = AgniBlazehoof()
 
 local Luttrok = Class('Luttrok', ProfessionRare, {
     id = 200742,
+    quest = 74332,
     profession = ns.professions.COOKING,
     summoningItem = 203409, -- Sparkling Spice Pouch
     summoningObject = L['pr_spiceless_stew'], -- Spiceless Stew
@@ -520,7 +537,8 @@ local Luttrok = Class('Luttrok', ProfessionRare, {
     summoningRecipe = 203422, -- Recipe: Sparkling Spice Pouch
     fgroup = 'fgroup_luttrok',
     rewards = {
-        Achievement({id = 17525, criteria = 58485}) -- Champion of the Forbidden Reach
+        Achievement({id = 17525, criteria = 58485}), -- Champion of the Forbidden Reach
+        Pet({item = 193235, id = 3285}) -- Luvvy
     }
 }) -- Luttrok
 
@@ -530,6 +548,7 @@ map.nodes[55695153] = Luttrok()
 
 local Amephyst = Class('Amephyst', ProfessionRare, {
     id = 200743,
+    quest = 74333,
     profession = ns.professions.JEWELCRAFTING,
     summoningItem = 203413, -- Tuning Fork
     summoningObject = L['pr_resonant_crystal'], -- Resonant Crystal
@@ -766,7 +785,7 @@ local ForbiddenHoard = Class('ForbiddenHoard', Collectible, {
                 suffix = L['forbidden_spoils_suffix']
             }
         }), -- Forbidden Spoils
-        Item({item = 202667}), -- Sealed Artifact Scroll
+        DC.CliffsideWylderdrake.CoiledHorns, Item({item = 202667}), -- Sealed Artifact Scroll
         Item({item = 202668}), -- Sealed Spirit Scroll
         Item({item = 202669}), -- Sealed Fish Scroll
         Item({item = 202670}), -- Sealed Knowledge Scroll
@@ -993,6 +1012,8 @@ local ZSKERA_VAULTS_REWARDS = {
         id = 17413,
         criteria = {id = 1, qty = true, suffix = L['door_buster_suffix']}
     }), -- Door Buster
+    DC.RenewedProtoDrake.Antlers, -- Renewed Proto-Drake: Antlers
+    Spacer(), -- Pets
     Pet({item = 193851, id = 3332}), -- Patos
     Pet({item = 193853, id = 3331}), -- Emmah
     Pet({item = 193908, id = 3338}), -- Kobaldt
@@ -1060,6 +1081,22 @@ hooksecurefunc(AreaPOIPinMixin, 'TryShowTooltip', function(self)
         end
     end
 end)
+
+------------------------ RENEWED PROTO-DRAKE: ANTLERS -------------------------
+
+map.nodes[28268000] = Collectible({
+    label = '{item:204278}',
+    icon = 1529267,
+    quest = 75047,
+    location = L['in_zskera_vaults'],
+    note = L['neltharions_toolkit_note'],
+    group = ns.groups.ZSKERA_VAULTS,
+    fgroup = 'zskera_vaults',
+    requires = ns.requirement.Quest(73159), -- Exploring Our Past
+    rewards = {
+        DC.RenewedProtoDrake.Antlers -- Renewed Proto-Drake: Antlers
+    }
+}) -- Neltharion's Toolkit
 
 ---------------------- RATCIPE: DEVIOUSLY DEVILVED EGGS -----------------------
 
@@ -1378,14 +1415,11 @@ warCreche.nodes[65376249] = GemstoneOfReturn({
 
 --------------------------- MORQUT VILLAGE VENDORS ----------------------------
 
-local MorqutVillageVendor = Class('MorqutVillageVendor', Collectible, {
+map.nodes[35615948] = Collectible({
+    id = 200559,
     icon = 'peg_bl',
     scale = 1.3,
-    note = L['morqut_village_vendor_note']
-}) -- Morqut Village Vendor
-
-map.nodes[35615948] = MorqutVillageVendor({
-    id = 200559,
+    note = L['treysh_note'],
     rewards = {
         Transmog({item = 204562, slot = L['2h_mace']}), -- Maruuk Maul
         Transmog({item = 204563, slot = L['1h_mace']}), -- Morqut Club
@@ -1405,30 +1439,28 @@ map.nodes[35615948] = MorqutVillageVendor({
     }
 }) -- Treysh <Quartermaster>
 
-map.nodes[34216002] = MorqutVillageVendor({
-    id = 200562,
+map.nodes[34325997] = Collectible({
+    label = L['renown_envoy_label'],
+    icon = 'peg_bl',
+    scale = 1.3,
+    note = L['renown_envoy_note'],
     rewards = {
-        Pet({item = 193850, id = 3330, note = 'x25000'}) -- Buckie
-    }
-}) -- Turik <Renown Envoy>
-
-map.nodes[34075997] = MorqutVillageVendor({
-    id = 200564,
-    rewards = {
-        Mount({item = 204382, id = 1467, note = 'x100000'}) -- Noble Bruffalon
-    }
-}) -- Storykeeper Ashekh <Renown Envoy>
-
-map.nodes[34015980] = MorqutVillageVendor({
-    id = 200563,
-    rewards = {
+        Section('{npc:200566}'), Pet({item = 191915, id = 3259}), -- Shaggy
+        Spacer(), Section('{npc:200562}'),
+        Pet({item = 193850, id = 3330, note = 'x25000'}), -- Buckie
+        Spacer(), Section('{npc:200564}'),
+        Mount({item = 204382, id = 1467, note = 'x100000'}), -- Noble Bruffalon
+        Spacer(), Section('{npc:200563}'),
         DC.SetNote(DC.WindborneVelocidrake.ExposedFinnedNeck, 'x2500'),
         DC.SetNote(DC.HighlandDrake.TaperedNose, 'x2500')
     }
-}) -- Kraxxus <Renown Envoy>
+}) -- Cataloger Daela, Turik, Storykeeper Ashekh, and Kraxxus <Renown Envoys>
 
-map.nodes[35905744] = MorqutVillageVendor({
+map.nodes[35905744] = Collectible({
     id = 202445,
+    icon = 'peg_bl',
+    scale = 1.3,
+    note = L['trader_hagarth_note'],
     rewards = {
         Recipe({item = 203420, profession = 171}), -- Recipe: Draconic Suppression Powder
         Recipe({item = 203421, profession = 164}), -- Plans: Ancient Ceremonial Trident
@@ -1441,5 +1473,3 @@ map.nodes[35905744] = MorqutVillageVendor({
         Recipe({item = 203428, profession = 197}) -- Pattern: Traditional Morqut Kite
     }
 }) -- Trader Hag'arth <Artisan's Consortium Quartermaster>
-
--- STOP: DO NOT ADD NEW NODES HERE UNLESS THEY BELONG IN MISCELLANEOUS

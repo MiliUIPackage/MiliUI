@@ -17,6 +17,7 @@ local Item = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
 local Recipe = ns.reward.Recipe
+local Section = ns.reward.Section
 local Spacer = ns.reward.Spacer
 local Transmog = ns.reward.Transmog
 
@@ -165,6 +166,11 @@ ns.groups.SMALL_TREASURES = Group('small_treasures', 'chest_rd', {
     type = ns.group_types.EXPANSION
 })
 
+ns.groups.SMELLY_TRASH_PILE = Group('smelly_trash_pile', 'chest_gn', {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.EXPANSION
+})
+
 ns.groups.TITAN_CHEST = Group('titan_chest', 'chest_rd', {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.EXPANSION
@@ -191,6 +197,12 @@ ns.groups.ANCESTOR = Group('ancestor', 135946, {
     defaults = ns.GROUP_HIDDEN,
     type = ns.group_types.ACHIEVEMENT,
     achievement = 16423
+})
+
+ns.groups.ANCIENT_STONES = Group('ancient_stones', 134461, {
+    defaults = ns.GROUP_HIDDEN,
+    type = ns.group_types.ACHIEVEMENT,
+    achievement = 17561
 })
 
 ns.groups.BAKAR = Group('bakar', 930453, {
@@ -410,6 +422,7 @@ ns.node.Dragonglyph = Dragonglyph
 
 ns.DRAGON_CUSTOMIZATIONS = {
     RenewedProtoDrake = {
+        Antlers = Item({item = 202278, quest = 73058}),
         Armor = Item({item = 197357, quest = 69558}),
         BeakedSnout = Item({item = 197401, quest = 69602}),
         BlackAndRedArmor = Item({item = 197348, quest = 69549}),
@@ -436,7 +449,7 @@ ns.DRAGON_CUSTOMIZATIONS = {
         GradientHorns = Item({item = 197381, quest = 69582}),
         GrayHair = Item({item = 197367, quest = 69568}),
         GreenHair = Item({item = 197371, quest = 69572}),
-        GreenScales = Item({item = 192523, quest = nil}), -- current not in game
+        GreenScales = Item({item = 192523, quest = 66720}),
         HairyBack = Item({item = 197356, quest = 69557}),
         HairyBrow = Item({item = 197359, quest = 69560}),
         HarrierPattern = Item({item = 197395, quest = 69596}),
@@ -666,6 +679,76 @@ ns.DRAGON_CUSTOMIZATIONS = {
         WhiteHair = Item({item = 196989, quest = 69189}),
         WhiteScales = Item({item = 197014, quest = 69214}),
         WideStripesPattern = Item({item = 197007, quest = 69207})
+    },
+    WindingSlitherdrake = {
+        AntlerHorns = Item({item = 203338, quest = 73829}),
+        Armor = Item({item = 203305, quest = 73793}),
+        BlondeHair = Item({item = 203322, quest = 73810}),
+        BlueAndSilverArmor = Item({item = 203300, quest = 73788}),
+        BlueScales = Item({item = 203350, quest = 73841}),
+        BronzeScales = Item({item = 203351, quest = 842}),
+        BrownHair = Item({item = 203323, quest = 73811}),
+        ClusterChinHorn = Item({item = 203312, quest = 73800}),
+        ClusterHorns = Item({item = 203331, quest = 73820}),
+        ClusterJawHorns = Item({item = 203340, quest = 73831}),
+        CurledCheekHorn = Item({item = 203321, quest = 73809}),
+        CurledHorns = Item({item = 203334, quest = 73824}),
+        CurledNose = Item({item = 203346, quest = 73837}),
+        CurvedChinHorn = Item({item = 203314, quest = 73802}),
+        CurvedHorns = Item({item = 203335, quest = 73825}),
+        CurvedNoseHorn = Item({item = 203349, quest = 73840}),
+        Ears = Item({item = 203320, quest = 73808}),
+        FinnedCheek = Item({item = 203319, quest = 73807}),
+        FinnedTipTail = Item({item = 203361, quest = 73853}),
+        GrandChinThorn = Item({item = 203310, quest = 73798}),
+        GreenAndBronzeArmor = Item({item = 203299, quest = 73787}),
+        GreenScales = Item({item = 203352, quest = 73843}),
+        HairyBrow = Item({item = 203308, quest = 73796}),
+        HairyChin = Item({item = 203311, quest = 73799}),
+        HairyCrest = Item({item = 203318, quest = 73806}),
+        HairyJaw = Item({item = 203343, quest = 73834}),
+        HairyTail = Item({item = 203362, quest = 73854}),
+        HairyThroat = Item({item = 203365, quest = 73857}),
+        HeavyHorns = Item({item = 203329, quest = 73817}),
+        HeavyScales = Item({item = 205341, quest = 75743}),
+        Helm = Item({item = 203326, quest = 73814}),
+        HornedBrow = Item({item = 203306, quest = 73794}),
+        ImpalerHorns = Item({item = 203339, quest = 73830}),
+        LargeFinnedCrest = Item({item = 203316, quest = 73804}),
+        LargeFinnedTail = Item({item = 203360, quest = 73852}),
+        LargeFinnedThroat = Item({item = 203363, quest = 73855}),
+        LargeSpikedNose = Item({item = 203347, quest = 73838}),
+        LightBlueAndCopperArmor = Item({item = 203301, quest = 73789}),
+        LongChinHorn = Item({item = 203309, quest = 73797}),
+        LongJawHorns = Item({item = 203341, quest = 73832}),
+        PairedHorns = Item({item = 203336, quest = 73826}),
+        PlatedBrow = Item({item = 203307, quest = 73795}),
+        PointedNose = Item({item = 203348, quest = 73839}),
+        PurpleAndSilverArmor = Item({item = 203302, quest = 73790}),
+        RedAndGoldArmor = Item({item = 203303, quest = 73791}),
+        RedHair = Item({item = 203325, quest = 73813}),
+        RedScales = Item({item = 203353, quest = 73844}),
+        SharkFinnedTail = Item({item = 203359, quest = 73851}),
+        ShortHorns = Item({item = 203333, quest = 73822}),
+        SingleJawHorn = Item({item = 203344, quest = 73835}),
+        SmallFinnedCrest = Item({item = 203317, quest = 73805}),
+        SmallFinnedTail = Item({item = 203358, quest = 73850}),
+        SmallFinnedThroat = Item({item = 203364, quest = 73856}),
+        SmallSpikedCrest = Item({item = 203315, quest = 73803}),
+        SpikedChin = Item({item = 203313, quest = 73801}),
+        SpikedHorns = Item({item = 203332, quest = 73821}),
+        SpikedTail = Item({item = 203357, quest = 73849}),
+        SplitJawHorns = Item({item = 203345, quest = 73836}),
+        SweptHorns = Item({item = 203330, quest = 73818}),
+        TanHorns = Item({item = 203327, quest = 73815}),
+        ThornHorns = Item({item = 203337, quest = 73827}),
+        TripleJawHorns = Item({item = 203342, quest = 73833}),
+        WhiteAndGoldArmor = Item({item = 203298, quest = 73786}),
+        WhiteHair = Item({item = 203324, quest = 73812}),
+        WhiteHorns = Item({item = 203328, quest = 73816}),
+        WhiteScales = Item({item = 203354, quest = 73845}),
+        YellowAndSilverArmor = Item({item = 203304, quest = 73792}),
+        YellowScales = Item({item = 203355, quest = 73846})
     }
 }
 
@@ -1082,6 +1165,18 @@ local LegendaryCharacter = Class('LegendaryCharacter', Collectible, {
 ns.node.LegendaryCharacter = LegendaryCharacter
 
 -------------------------------------------------------------------------------
+--------------------- ANCIENT STONES OF THE DRAGON ISLES ----------------------
+-------------------------------------------------------------------------------
+
+local AncientStone = Class('AncientStone', Collectible, {
+    label = L['ancient_stone_label'],
+    icon = 134461,
+    group = ns.groups.ANCIENT_STONES
+}) -- Ancient Stone
+
+ns.node.AncientStone = AncientStone
+
+-------------------------------------------------------------------------------
 ----------------------------- DRAGON ISLES SAFARI -----------------------------
 -------------------------------------------------------------------------------
 
@@ -1312,29 +1407,6 @@ local ELEMENTAL_STORM_MOB_ACHIVEMENTS = {
 }
 
 local ELEMENTAL_STORM_BOSS_ACHIEVEMENTS = {
-    ['all'] = Achievement({
-        id = 16461,
-        criteria = {
-            55461, -- Infernum
-            55462, -- Crystalus
-            55463, -- Bouldron
-            55464, -- Karantun
-            55465, -- Neela Firebane
-            55466, -- Rouen Icewind
-            55467, -- Zurgaz Corebreaker
-            55468, -- Pipspark Thundersnap
-            55469, -- Grizzlerock
-            55470, -- Voraazka
-            55471, -- Kain Firebrand
-            55472, -- Maeleera
-            55473, -- Fieraan
-            55474, -- Leerain
-            55475, -- Gaelzion
-            55476, -- Gravlion
-            55477, -- Emblazion
-            55478 -- Frozion
-        } -- Stormed Off
-    }),
     ['thunderstorm'] = Achievement({
         id = 16461,
         criteria = {55464, 55468, 55470, 55475}
@@ -1400,6 +1472,34 @@ local ELEMENTAL_STORM_FORMULA_REWARDS = {
     }) -- Formula: Illusion: Primal Frost
 }
 
+local function prepTransmog(item, slot, note)
+    ns.PrepareLinks(note)
+    return Transmog({item = item, slot = slot, note = note})
+end
+
+local ELEMENTAL_STORM_TRANSMOG_REWARDS = {
+    ['thunderstorm'] = {
+        prepTransmog(200180, L['staff'], '{npc:193653}'), -- Crystallized Lightning Staff
+        prepTransmog(200170, L['bow'], '{npc:193647}'), -- Stormbringer Bow
+        prepTransmog(200136, L['plate'], '{npc:193674}') -- Monsoonic Armguards
+    },
+    ['sandstorm'] = {
+        prepTransmog(200231, L['offhand'], '{npc:193644}'), -- Flaming Stonescale Bulwark
+        prepTransmog(200145, L['2h_sword'], '{npc:193652}') -- Hilted Monolith
+    },
+    ['firestorm'] = {
+        prepTransmog(200307, L['1h_axe'], '{npc:193650}'), -- Viciously Hooked Cleaver
+        prepTransmog(200150, L['1h_mace'], '{npc:193648}'), -- Infernum's Furnace
+        prepTransmog(200155, L['shield'], '{npc:193675}'), -- Haphazardly Welded Protector
+        prepTransmog(200181, L['1h_sword'], '{npc:193686}') -- Blade of Blazing Torment
+    },
+    ['snowstorm'] = {
+        prepTransmog(200301, L['polearm'], '{npc:193645}'), -- Reclaimed Tuskarr Harpoon
+        prepTransmog(200311, L['1h_mace'], '{npc:193655}'), -- Bonespike Mallet
+        prepTransmog(200250, L['warglaive'], '{npc:193677}') -- Frost Tipped Glaive
+    }
+}
+
 local ElementalStorm = Class('ElementalStorm', Collectible, {
     icon = 538566,
     group = ns.groups.ELEMENTAL_STORM,
@@ -1430,21 +1530,40 @@ function ElementalStorm.getters:rewards()
     end
 
     return {
-        ELEMENTAL_STORM_MOB_ACHIVEMENTS['all'], Spacer(),
+        ELEMENTAL_STORM_MOB_ACHIVEMENTS['all'],
+        Section(L['elemental_storm_thunderstorm']), -- Thunderstorm Rewards
         getStormAchievement(self.mapID, 'thunderstorm'),
-        getStormAchievement(self.mapID, 'sandstorm'),
-        getStormAchievement(self.mapID, 'firestorm'),
-        getStormAchievement(self.mapID, 'snowstorm'), Spacer(),
-        ELEMENTAL_STORM_BOSS_ACHIEVEMENTS['all'],
+        ELEMENTAL_STORM_BOSS_ACHIEVEMENTS['thunderstorm'],
         ELEMENTAL_STORM_PET_REWARDS['thunderstorm'],
-        ELEMENTAL_STORM_PET_REWARDS['sandstorm'],
-        ELEMENTAL_STORM_PET_REWARDS['firestorm'],
-        ELEMENTAL_STORM_PET_REWARDS['snowstorm'], Spacer(),
-        ELEMENTAL_STORM_FORMULA_REWARDS['all'],
         ELEMENTAL_STORM_FORMULA_REWARDS['thunderstorm'],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['thunderstorm'][1],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['thunderstorm'][2],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['thunderstorm'][3], Spacer(),
+        Section(L['elemental_storm_sandstorm']), -- Sandstorm Rewards
+        getStormAchievement(self.mapID, 'sandstorm'),
+        ELEMENTAL_STORM_BOSS_ACHIEVEMENTS['sandstorm'],
+        ELEMENTAL_STORM_PET_REWARDS['sandstorm'],
         ELEMENTAL_STORM_FORMULA_REWARDS['sandstorm'],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['sandstorm'][1],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['sandstorm'][2], Spacer(),
+        Section(L['elemental_storm_firestorm']), -- Firestorm Rewards
+        getStormAchievement(self.mapID, 'firestorm'),
+        ELEMENTAL_STORM_BOSS_ACHIEVEMENTS['firestorm'],
+        ELEMENTAL_STORM_PET_REWARDS['firestorm'],
         ELEMENTAL_STORM_FORMULA_REWARDS['firestorm'],
-        ELEMENTAL_STORM_FORMULA_REWARDS['snowstorm']
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['firestorm'][1],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['firestorm'][2],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['firestorm'][3],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['firestorm'][4], Spacer(),
+        Section(L['elemental_storm_snowstorm']), -- Snowstorm Rewards
+        getStormAchievement(self.mapID, 'snowstorm'),
+        ELEMENTAL_STORM_BOSS_ACHIEVEMENTS['snowstorm'],
+        ELEMENTAL_STORM_PET_REWARDS['snowstorm'],
+        ELEMENTAL_STORM_FORMULA_REWARDS['snowstorm'],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['snowstorm'][1],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['snowstorm'][2],
+        ELEMENTAL_STORM_TRANSMOG_REWARDS['snowstorm'][3], Spacer(),
+        ELEMENTAL_STORM_FORMULA_REWARDS['all']
     }
 end
 
@@ -1459,17 +1578,19 @@ hooksecurefunc(AreaPOIPinMixin, 'TryShowTooltip', function(self)
         if ELEMENTAL_STORM_MOB_ACHIVEMENTS[mapID] then -- check if current map has rewards
             if stormType and group:GetDisplay(mapID) then
                 local rewards = {
-                    ELEMENTAL_STORM_MOB_ACHIVEMENTS['all'], Achievement({
+                    ELEMENTAL_STORM_MOB_ACHIVEMENTS['all'], Spacer(),
+                    Achievement({
                         id = ELEMENTAL_STORM_MOB_ACHIVEMENTS[mapID][stormType],
                         criteria = {
                             id = 1,
                             qty = true,
                             suffix = L['empowered_mobs_killed_suffix']
                         }
-                    }), ELEMENTAL_STORM_BOSS_ACHIEVEMENTS[stormType], Spacer(),
+                    }), ELEMENTAL_STORM_BOSS_ACHIEVEMENTS[stormType],
                     ELEMENTAL_STORM_PET_REWARDS[stormType],
                     ELEMENTAL_STORM_FORMULA_REWARDS['all'],
-                    ELEMENTAL_STORM_FORMULA_REWARDS[stormType]
+                    ELEMENTAL_STORM_FORMULA_REWARDS[stormType],
+                    unpack(ELEMENTAL_STORM_TRANSMOG_REWARDS[stormType])
                 }
                 GameTooltip:AddLine(' ')
                 for i, reward in ipairs(rewards) do
