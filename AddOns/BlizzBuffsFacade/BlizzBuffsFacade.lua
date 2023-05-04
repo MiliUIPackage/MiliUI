@@ -30,12 +30,10 @@ if AuraButtonMixin then
 					frame.SkinnedIcon = skinWrapper:CreateTexture(nil, "BACKGROUND")
 					frame.SkinnedIcon:SetSize(30, 30)
 					frame.SkinnedIcon:SetPoint("CENTER")
-					if frame.Icon.GetTexture then -- 10.1 fix
-						frame.SkinnedIcon:SetTexture(frame.Icon:GetTexture())
-						hooksecurefunc(frame.Icon, "SetTexture", function(_, tex)
-							frame.SkinnedIcon:SetTexture(tex)
-						end)
-					end
+					frame.SkinnedIcon:SetTexture(frame.Icon:GetTexture())
+					hooksecurefunc(frame.Icon, "SetTexture", function(_, tex)
+						frame.SkinnedIcon:SetTexture(tex)
+					end)
 
 					if frame.Count then
 						-- edit mode versions don't have stack text
