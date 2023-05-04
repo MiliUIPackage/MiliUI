@@ -5,6 +5,8 @@
 ## Title-zhTW: |cff00CCFF[快捷列]|r 射程著色-主程式
 ## Notes-zhTW:  tullaRange |n|n超出射程時，快捷列圖示會顯示紅色。能量不足時顯示藍色，技能無法使用時顯示灰色。|n|n|cffffd200使用方法: |r從Esc>選項>插件>快捷列-著色，進行設定。
 ## X-Category-zhTW: 介面
-## Version: 10.0.9
+## Version: 10.1.0
 ## SavedVariables: TULLARANGE_COLORS
+## IconTexture: Interface/Icons/Inv_misc_punchcards_red
+## AddonCompartmentFunc: tullaRange_Launch
 tullaRange.lua
