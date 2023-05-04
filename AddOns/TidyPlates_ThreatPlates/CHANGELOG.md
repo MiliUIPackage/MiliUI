@@ -1,3 +1,3 @@
-# 11.1.17 (2023-03-22)
+# 11.1.19 (2023-05-03)
 
-* Updated TOC version for Patch 10.0.7 for WoW Mainline.
+* Updated TOC version and API for Patch 10.1 for WoW Mainline.

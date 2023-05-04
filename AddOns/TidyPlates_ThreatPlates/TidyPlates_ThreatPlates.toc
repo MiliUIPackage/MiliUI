@@ -1,7 +1,7 @@
-## Interface: 100007
+## Interface: 100100
 
 ## Title: Threat Plates
-## Version: 11.1.17
+## Version: 11.1.19
 ## Notes: Threat-reactive nameplates.
 ## Title-zhTW: |cff0099FF[介面]|r 威力血條
 ## Notes-zhTW: Threat Plates|r |n|n威力強大、能夠根據仇恨值變化血條、提供更多自訂選項的血條。還可以幫指定的怪自訂血條樣式，讓血條更清楚明顯。|n|n|cffffd200使用方法: |r輸入 /tptp 或從Esc>選項>插件>血條，進行設定。
