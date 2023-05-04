@@ -49,6 +49,8 @@ Cell.defaults.layout = {
     ["npc"] = {true, false, {}, false, {66, 46}}, -- npcEnabled, separateNpc, position, sizeEnabled, size
     ["pet"] = {true, false, {}, false, {66, 46}}, -- partyPetsEnabled, raidPetsEnabled, raidPetsPosition, sizeEnabled, size
     ["spotlight"] = {false, {}, {}, false, {66, 46}}, -- enabled, units, position, sizeEnabled, size
+    ["sortByRole"] = false,
+    ["hideSelf"] = false,
     ["powerFilters"] = {
         ["DEATHKNIGHT"] = {["TANK"] = true, ["DAMAGER"] = true},
         ["DEMONHUNTER"] = {["TANK"] = true, ["DAMAGER"] = true},
@@ -194,7 +196,7 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["position"] = {"BOTTOMLEFT", "TOPLEFT", 0, -1},
             ["frameLevel"] = 1,
-            ["size"] = {18, 2},
+            ["size"] = {20, 4},
         }, -- 12
         {
             ["name"] = "Aggro (border)",
@@ -219,7 +221,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "aoeHealing",
             ["type"] = "built-in",
             ["enabled"] = true,
-            ["height"] = 15,
+            ["height"] = 10,
             ["color"] = {1, 1, 0},
         }, -- 15
         {

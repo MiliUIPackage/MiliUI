@@ -88,7 +88,6 @@ L["Use CLEU events to increase health update rate"] = "使用战斗记录事件�
 L["Lock Cell Frame"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
-L["Sort Party By Role"] = "按职责排列小队"
 L["Menu Position"] = "菜单位置"
 
 L["Tools"] = "工具"
@@ -136,6 +135,7 @@ L["many"] = "很多"
 L["Use |cFFFFB5C5/cell buff X|r to set icon size"] = "用 |cFFFFB5C5/cell buff X|r 来设定图标尺寸"
 L["Buff Tracker icon size is set to %d."] = "将增益检查图标的尺寸设置为 %d。"
 L["A positive integer is required."] = "需要一个正整数。"
+L["Fade Out These Buttons"] = "淡出这些按钮"
 
 -------------------------------------------------
 -- nickname
@@ -153,14 +153,15 @@ L["Only visible to me"] = "仅对自己可见"
 -- appearance
 -------------------------------------------------
 L["Appearance"] = "外观"
-L["Texture"] = "材质"
 L["Scale"] = "缩放"
+L["Strata"] = "层级"
 L["Non-integer scaling may result in abnormal display of options UI"] = "非整数缩放可能导致选项界面显示不正常"
 L["A UI reload is required.\nDo it now?"] = "需要重载界面。\n现在重载么？"
 L["Pixel Perfect"] = "像素精确"
 L["Options UI Accent Color"] = "选项界面强调色"
 L["Options UI Font Size"] = "选项界面字体尺寸"
 L["Unit Button Style"] = "单位按钮样式"
+L["Texture"] = "材质"
 L["Power Color"] = "能量颜色"
 L["Class Color"] = "职业颜色"
 L["Class Color (dark)"] = "职业颜色 (暗)"
@@ -213,6 +214,9 @@ L["Always Targeting"] = "总是选中目标"
 L["Only available for Spells"] = "仅对法术有效"
 L["Left Spell"] = "左键法术"
 L["Any Spells"] = "所有法术"
+L["Smart Resurrection"] = "不智能复活"
+L["Normal + Combat Res"] = "通常 + 战复"
+L["Replace click-castings of Spell type with resurrection spells on dead units"] = "对于挂掉的家伙，将法术类型的点击施法替换为复活法术"
 L["Current Profile"] = "当前配置"
 L["Common"] = "通用"
 L["Primary Talents"] = "主天赋"
@@ -318,6 +322,8 @@ L["Unit"] = "目标单位"
 L["Unit's Pet"] = "目标单位的宠物"
 L["Clear"] = "清除"
 L["Invalid unit."] = "无效单位。"
+L["Sort By Role (Party Only)"] = "按职责排序（仅小队）"
+L["Hide Self (Party Only)"] = "隐藏自己（仅小队）"
 L["Tip: Every layout has its own position setting"] = "提示：每个布局都有其单独的位置设置"
 
 -------------------------------------------------
@@ -615,9 +621,33 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r165-release (May 1, 2023, 19:37 GMT+8)</h1>
+    <p>+ 为部分团队工具添加了鼠标指向时显示的选项。</p>
+    <p>* 尝试修复部分战斗中由宠物框体导致的问题。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r164-release (Apr 24, 2023, 05:55 GMT+8)</h1>
+    <p>+ 在点击施法下添加了“不智能复活”的选项。</p>
+    <p>* 修复菜单按钮的层级。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r163-release (Apr 22, 2023, 20:07 GMT+8)</h1>
+    <p>+ 更新 Cell 框体层级，并在外观下添加了“层级”选项。</p>
+    <p>* 修复一处 indicatorName 为空的问题。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r162-release (Apr 14, 2023, 19:00 GMT+8)</h1>
+    <p>* 移动“按职责排序”选项到布局页面。</p>
+    <p>* 在布局中添加了“隐藏自己”的选项。</p>
+    <p>* 修复怀旧服中自定义指示器的“匹配法术名称”功能。</p>
+    <br/>
+
     <h1>r161-release (Apr 8, 2023, 20:00 GMT+8)</h1>
-    <p>* Fixed dispellable debuff type checker (retail).</p>
-    <p>* Updated zhTW.</p>
+    <p>* 修复可驱散减益类型检查（正式服）。</p>
+    <p>* 更新繁中。</p>
     <br/>
 
     <h1>r160-release (Apr 6, 2023, 21:00 GMT+8)</h1>

@@ -68,6 +68,30 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>r165-release (May 1, 2023, 19:37 GMT+8)</h1>
+        <p>+ Added an option to make raid tools show on mouseover.</p>
+        <p>* Tried to fix raid pet frame issue during some encounters.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r164-release (Apr 24, 2023, 05:55 GMT+8)</h1>
+        <p>+ Added a "Smart Resurrection" option in Click-Castings.</p>
+        <p>* Fixed menu strata.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r163-release (Apr 22, 2023, 20:07 GMT+8)</h1>
+        <p>+ Updated Cell frame strata, added a "Strata" option in Appearance.</p>
+        <p>* Fixed a null indicatorName issue.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r162-release (Apr 14, 2023, 19:00 GMT+8)</h1>
+        <p>* Moved "Sort By Role" to Layouts.</p>
+        <p>* Added "Hide Self" in Layouts.</p>
+        <p>* Fixed "Track by name" for custom indicators (wrath).</p>
+        <br/>
+
         <h1>r161-release (Apr 8, 2023, 20:00 GMT+8)</h1>
         <p>* Fixed dispellable debuff type checker (retail).</p>
         <p>* Updated zhTW.</p>

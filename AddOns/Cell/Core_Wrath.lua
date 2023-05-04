@@ -158,7 +158,6 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["locked"] = false,
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
-                ["sortPartyByRole"] = false,
             }
         end
 
@@ -180,6 +179,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["deathReport"] = {false, 10},
                 ["readyAndPull"] = {false, {"default", 7}, {}},
                 ["marks"] = {false, "target_h", {}},
+                ["fadeOut"] = false,
             }
         end
 
@@ -292,6 +292,7 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
             CellDB["clickCastings"][Cell.vars.playerClass] = {
                 ["useCommon"] = true,
+                ["smartResurrection"] = "disabled",
                 ["alwaysTargeting"] = {
                     ["common"] = "disabled",
                     [1] = "disabled",
@@ -625,8 +626,6 @@ function eventFrame:PLAYER_LOGIN()
     eventFrame:GROUP_ROSTER_UPDATE()
     -- update visibility
     Cell:Fire("UpdateVisibility")
-    -- update sortMethod
-    Cell:Fire("UpdateSortMethod")
     -- update click-castings
     Cell:Fire("UpdateClickCastings")
     -- update indicators

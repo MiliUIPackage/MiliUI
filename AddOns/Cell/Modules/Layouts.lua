@@ -29,7 +29,6 @@ local function CreatePreviewButton()
     local previewButtonBG = Cell:CreateFrame("CellLayoutsPreviewButtonBG", layoutsTab)
     previewButtonBG:SetPoint("TOPLEFT", previewButton, 0, 20)
     previewButtonBG:SetPoint("BOTTOMRIGHT", previewButton, "TOPRIGHT")
-    previewButtonBG:SetFrameStrata("HIGH")
     Cell:StylizeFrame(previewButtonBG, {0.1, 0.1, 0.1, 0.77}, {0, 0, 0, 0})
     previewButtonBG:Show()
     
@@ -118,7 +117,7 @@ local layoutPreview, layoutPreviewAnchor, layoutPreviewName
 local function CreateLayoutPreview()
     layoutPreview = Cell:CreateFrame("CellLayoutPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     layoutPreview:EnableMouse(false)
-    layoutPreview:SetFrameStrata("MEDIUM")
+    layoutPreview:SetFrameStrata("HIGH")
     layoutPreview:SetToplevel(true)
     layoutPreview:Hide()
 
@@ -422,7 +421,7 @@ local npcPreview, npcPreviewAnchor, npcPreviewName
 local function CreateNPCPreview()
     npcPreview = Cell:CreateFrame("CellNPCPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     npcPreview:EnableMouse(false)
-    npcPreview:SetFrameStrata("MEDIUM")
+    npcPreview:SetFrameStrata("HIGH")
     npcPreview:SetToplevel(true)
     npcPreview:Hide()
 
@@ -667,7 +666,7 @@ local raidPetPreview, raidPetPreviewAnchor, raidPetPreviewName
 local function CreateRaidPetPreview()
     raidPetPreview = Cell:CreateFrame("CellRaidPetPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     raidPetPreview:EnableMouse(false)
-    raidPetPreview:SetFrameStrata("MEDIUM")
+    raidPetPreview:SetFrameStrata("HIGH")
     raidPetPreview:SetToplevel(true)
     raidPetPreview:Hide()
 
@@ -924,7 +923,7 @@ local spotlightPreview, spotlightPreviewAnchor, spotlightPreviewName
 local function CreateSpotlightPreview()
     spotlightPreview = Cell:CreateFrame("CellSpotlightPreviewFrame", Cell.frames.mainFrame, nil, nil, true)
     spotlightPreview:EnableMouse(false)
-    spotlightPreview:SetFrameStrata("MEDIUM")
+    spotlightPreview:SetFrameStrata("HIGH")
     spotlightPreview:SetToplevel(true)
     spotlightPreview:Hide()
 
@@ -2474,8 +2473,9 @@ end
 -------------------------------------------------
 -- misc
 -------------------------------------------------
+local sortByRoleCB, hideSelfCB
 local function CreateMiscPane()
-    local miscPane = Cell:CreateTitledPane(layoutsTab, L["Misc"], 205, 50)
+    local miscPane = Cell:CreateTitledPane(layoutsTab, L["Misc"], 205, 92)
     miscPane:SetPoint("TOPLEFT", 5, -390)
 
     local powerFilterBtn = Cell:CreateButton(miscPane, L["Power Bar Filters"], "accent-hover", {163, 20})
@@ -2486,6 +2486,18 @@ local function CreateMiscPane()
     end)
 
     Cell.frames.powerFilters:SetPoint("BOTTOMLEFT", powerFilterBtn, "TOPLEFT", 0, P:Scale(5))
+
+    sortByRoleCB = Cell:CreateCheckButton(miscPane, L["Sort By Role (Party Only)"], function(checked, self)
+        selectedLayoutTable["sortByRole"] = checked
+        Cell:Fire("UpdateLayout", selectedLayout, "sort")
+    end)
+    sortByRoleCB:SetPoint("TOPLEFT", powerFilterBtn, "BOTTOMLEFT", 0, -7)
+
+    hideSelfCB = Cell:CreateCheckButton(miscPane, L["Hide Self (Party Only)"], function(checked, self)
+        selectedLayoutTable["hideSelf"] = checked
+        Cell:Fire("UpdateLayout", selectedLayout, "hideSelf")
+    end)
+    hideSelfCB:SetPoint("TOPLEFT", sortByRoleCB, "BOTTOMLEFT", 0, -7)
 end
 
 -------------------------------------------------
@@ -2567,6 +2579,10 @@ LoadLayoutDB = function(layout)
     partyPetsCB:SetChecked(selectedLayoutTable["pet"][1])
     raidPetsCB:SetChecked(selectedLayoutTable["pet"][2])
     spotlightCB:SetChecked(selectedLayoutTable["spotlight"][1])
+
+    -- misc
+    sortByRoleCB:SetChecked(selectedLayoutTable["sortByRole"])
+    hideSelfCB:SetChecked(selectedLayoutTable["hideSelf"])
 
     UpdateGroupFilter()
     UpdatePreviewButton()

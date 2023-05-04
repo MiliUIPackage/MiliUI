@@ -30,7 +30,7 @@ local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 local cellMainFrame = CreateFrame("Frame", "CellMainFrame", UIParent, "SecureFrameTemplate")
 Cell.frames.mainFrame = cellMainFrame
 cellMainFrame:SetIgnoreParentScale(true)
-cellMainFrame:SetFrameStrata("LOW")
+-- cellMainFrame:SetFrameStrata("LOW")
 -- RegisterStateDriver(cellMainFrame, 'visibility', '[petbattle] hide; show')
 -- cellMainFrame:SetClampedToScreen(true)
 -- cellMainFrame:SetClampRectInsets(0, 0, 15, 0)
@@ -61,9 +61,13 @@ local function RegisterButtonEvents(frame)
 
     frame:HookScript("OnEnter", function()
         hoverFrame:GetScript("OnEnter")(hoverFrame)
+        Cell.frames.menuFrame:SetFrameStrata("HIGH")
+        Cell.frames.menuFrame:SetToplevel(true)
     end)
     frame:HookScript("OnLeave", function()
         hoverFrame:GetScript("OnLeave")(hoverFrame)
+        Cell.frames.menuFrame:SetFrameStrata(CellDB["appearance"]["strata"])
+        Cell.frames.menuFrame:SetToplevel(false)
     end)
 end
 
@@ -73,10 +77,10 @@ end
 local menuFrame = CreateFrame("Frame", "CellMenuFrame", cellMainFrame)
 Cell.frames.menuFrame = menuFrame
 menuFrame:SetAllPoints(anchorFrame)
+-- menuFrame:SetFrameStrata("MEDIUM")
 
 local options = Cell:CreateButton(menuFrame, "", "red", {20, 10}, false, true)
 P:Point(options, "TOPLEFT", menuFrame)
-options:SetFrameStrata("MEDIUM")
 RegisterButtonEvents(options)
 options:SetScript("OnClick", function()
     F:ShowOptionsFrame()
@@ -93,7 +97,6 @@ end)
 
 local raid = Cell:CreateButton(menuFrame, "", "blue", {20, 10}, false, true)
 P:Point(raid, "LEFT", options, "RIGHT", 1, 0)
-raid:SetFrameStrata("MEDIUM")
 RegisterButtonEvents(raid)
 raid:SetScript("OnClick", function()
     F:ShowRaidRosterFrame()

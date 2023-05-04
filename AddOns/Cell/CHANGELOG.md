@@ -1,4 +1,6 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r160-release...ea10b9f776ada3b6fdd348f8e9b8ee40d05f4fed)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r164-release...9dc241fd42092c0e47ca85fa4d4e7037d8e77e5b)
 
-- Fix dispelling checker (retail)
+- Implement fade in/out for raid tools
+- Fix raid pet frame
+- Add icon to CellSpellTooltip
 - Update zhTW

@@ -1,10 +1,3 @@
---[[
--- File: Custom_Wrath.lua
--- Author: enderneko (enderneko-dev@outlook.com)
--- File Created: 2022/08/26 03:04:05 +0800
--- Last Modified: 2022/12/25 05:27:33 +0800
---]]
-
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
@@ -144,6 +137,9 @@ function I:ResetCustomIndicators(unitButton, auraType)
     local unit = unitButton.state.displayedUnit
 
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
+        --? indicators removed
+        if not indicatorName then break end
+        
         if indicatorTable["isIcons"] then
             indicatorTable["found"][unit] = 0
 
@@ -193,16 +189,22 @@ function I:UpdateCustomIndicators(unitButton, auraType, spellId, spellName, star
     local unit = unitButton.state.displayedUnit
 
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
-            if indicatorTable["trackByName"] then spellId = spellName end --* wrath
-            if indicatorTable["auras"][spellId] or indicatorTable["auras"][0] then -- is in indicator spell list
+        if indicatorName and enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
+            local spell  --* trackByName
+            if indicatorTable["trackByName"] then
+                spell = spellName
+            else
+                spell = spellId
+            end
+            
+            if indicatorTable["auras"][spell] or indicatorTable["auras"][0] then -- is in indicator spell list
                 if auraType == "buff" then
                     -- check castByMe
                     if (indicatorTable["castByMe"] and castByMe) or (not indicatorTable["castByMe"]) then
-                        Update(unitButton.indicators[indicatorName], indicatorTable, unit, spellId, start, duration, debuffType, icon, count, refreshing)
+                        Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
                     end
                 else -- debuff
-                    Update(unitButton.indicators[indicatorName], indicatorTable, unit, spellId, start, duration, debuffType, icon, count, refreshing)
+                    Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
                 end
             end
         end
@@ -215,7 +217,7 @@ end
 function I:ShowCustomIndicators(unitButton, auraType)
     local unit = unitButton.state.displayedUnit
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
+        if indicatorName and enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
             if not indicatorTable["isIcons"] then
                 if indicatorTable["top"][unit]["start"] then
                     unitButton.indicators[indicatorName]:SetCooldown(
