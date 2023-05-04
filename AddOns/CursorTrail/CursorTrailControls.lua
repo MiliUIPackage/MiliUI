@@ -15,6 +15,7 @@ Credits: Based on code by Mikord (MSBT Options Controls).
         CreateListbox()         - Returns a Listbox object.
         CreateOptionsButton()   - Returns a standard button frame.
         CreateSlider()          - Returns a Slider object.
+        CreateColorSwatch()     - Returns a ColorSwatch object.
 
 ~~~~~~~~~~~~~~~
    Checkbox
@@ -58,7 +59,8 @@ Credits: Based on code by Mikord (MSBT Options Controls).
         SetListboxHeight()
         SetListboxWidth()
         SetSelectedID( id )
-        SetSelectedIndex( itemNum )
+        SetSelectedIndex( itemNum ) - itemNum starts at 1, not 0.
+        SetSelectedText()
         SetTooltip()
         Sort()
 
@@ -137,7 +139,25 @@ Credits: Based on code by Mikord (MSBT Options Controls).
         labelFontString
         labelText
 
+~~~~~~~~~~~~~~~~~~~
+    ColorSwatch
+~~~~~~~~~~~~~~~~~~~
+    * See AceGUIWidget-ColorPicker.lua for future enhancement ideas.
 
+    Functions:
+        Disable
+        Enable
+        GetColor
+        SetColor
+        SetColorChangedHandler
+        SetTooltip
+        CloseColorPicker
+
+    Variables:
+        borderTexture
+        oldDisableHandler
+        oldEnableHandler
+        
 =================================[ EXAMPLES ]==================================
 ~~~~~~~~~~~~~~~~~~
  Dropdown Example
@@ -164,6 +184,41 @@ Credits: Based on code by Mikord (MSBT Options Controls).
     dropdown:AddItem("Blue", 3)     -- or AddItem("Blue", "Blue") if not using ID#s.
 
     dropdown:SetSelectedID(2)  -- Selects white by ID.  Or SetSelectedID("White") if not using ID#s.
+    
+    dropdown:SetSelectedIndex(1)  -- Selects first item in the dropdown.
+    
+    -- Show a tooltip while hovering over any part of the dropdown.
+    local function myDropdown_OnEnter(self, motion)
+        GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")
+        GameTooltip:SetText("Some helpful info about this dropdown menu.")
+    end
+    local function myDropdown_OnLeave(self, motion)
+        GameTooltip:Hide()
+    end
+    
+    dropdown.fullWidthButton:SetScript("OnEnter", myDropdown_OnEnter)
+    dropdown.fullWidthButton:SetScript("OnLeave", myDropdown_OnLeave)
+    dropdown.buttonFrame:SetScript("OnEnter", myDropdown_OnEnter)
+    dropdown.buttonFrame:SetScript("OnLeave", myDropdown_OnLeave)
+
+    
+~~~~~~~~~~~~~~~~~~~~~
+ ColorSwatch Example
+~~~~~~~~~~~~~~~~~~~~~
+
+    -- Assume "MyObjectTexture" already exists and is the thing you want to change the color of.
+    -- Something like this ...
+    --    MyObjectFrame = CreateFrame("Frame", nil, UIParent)
+    --    MyObjectTexture = MyObjectFrame:CreateTexture()
+    
+    local colorswatch = _G.CursorTrailControls.CreateColorSwatch( MyOptionsFrame )
+    colorswatch:SetPoint("TOPLEFT", MyOptionsFrame, "TOPLEFT", 16, -16)
+    
+    colorswatch:SetColor(1,0,0)  -- RGB (No alpha value.  Opacity slider will be hidden in the color picker.)
+        - OR -
+    colorswatch:SetColor(1,0,0, 1)  -- RGBA (Alpha value specified.  Opacity slider will be shown in the color picker.)
+    
+    colorswatch:SetColorChangedHandler(function(self) MyObjectTexture:SetVertexColor(self.r, self.g, self.b, self.a) end)
 
 -------------------------------------------------------------------------------]]
 
@@ -193,6 +248,11 @@ local calcFontString
 
 -- Height of lines in listboxes and dropdown menus.
 local kListboxLineHeight = 17  --DJUadded  (and changed from 20)
+
+-- Color Palette Swatches Frame
+local colorPaletteFrame
+local kColorPickerDefaultHeight = 200
+
 
 -------------------------------------------------------------------------------
 -- Listbox functions.
@@ -1499,6 +1559,19 @@ local function Dropdown_GetSelectedText(this)
     return this.selectedFontString:GetText()
 end
 
+--~ >>> UNTESTED...
+--~ -- ****************************************************************************
+--~ -- Sets the selected item for the dropdown given the text shown in the menu.
+--~ -- ****************************************************************************
+--~ local function Dropdown_SetSelectedText(this, text)  --DJUadded
+--~     for itemNum, itemText in ipairs(this.items) do
+--~         if (itemText == text) then
+--~             Dropdown_SetSelectedIndex(this, itemNum)
+--~             return  -- Done, exit loop.
+--~         end
+--~     end
+--~ end
+
 
 -- ****************************************************************************
 -- Gets the selected index (item number) from the dropdown.
@@ -1509,7 +1582,7 @@ end
 
 
 -- ****************************************************************************
--- Sets the selected item for the dropdown given an item number (index).
+-- Sets the selected item for the dropdown given an item number (1-based index).
 -- ****************************************************************************
 local function Dropdown_SetSelectedIndex(this, itemNum)  --DJUadded
     this.selectedFontString:SetText(this.items[itemNum])
@@ -1534,7 +1607,8 @@ end
 local function Dropdown_SetSelectedID(this, id)
     for itemNum, itemID in ipairs(this.itemIDs) do
         if (itemID == id) then
-            return Dropdown_SetSelectedIndex(this, itemNum)  --DJUadded
+            Dropdown_SetSelectedIndex(this, itemNum)  --DJUadded
+            return  -- Done, exit loop.               --DJUadded
             --DJUremoved:  this.selectedFontString:SetText(this.items[itemNum])
             --DJUremoved:  this.selectedItem = itemNum
             --DJUremoved:  return
@@ -1603,7 +1677,7 @@ local function Dropdown_CreateListboxFrame(parent)
     dropdownListboxFrame:SetFrameStrata("FULLSCREEN_DIALOG")
     dropdownListboxFrame:SetBackdrop{
         ----bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background-Dark",  --DJUchanged
-        bgFile = "Interface\\Addons\\" .. CursorTrailControls.AddonName .. "\\Background-SolidBlack",
+        bgFile = "Interface\\Addons\\" .. CursorTrailControls.AddonName .. "\\Media\\Background-SolidBlack",
         edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
         ----insets = {left = 6, right = 6, top = 6, bottom = 6},
         ----insets = {left=2, right=4, top=4, bottom=4},  edgeSize=12,  --DJUadded
@@ -1720,6 +1794,7 @@ local function CreateDropdown(parent)
     dropdown.RemoveItem         = Dropdown_RemoveItem
     dropdown.Clear              = Dropdown_Clear
     dropdown.GetSelectedText    = Dropdown_GetSelectedText
+--~ UNTESTED...    dropdown.SetSelectedText    = Dropdown_SetSelectedText  --DJUadded
     dropdown.GetSelectedID      = Dropdown_GetSelectedID
     dropdown.SetSelectedID      = Dropdown_SetSelectedID
     dropdown.GetSelectedIndex   = Dropdown_GetSelectedIndex  --DJUadded
@@ -1736,6 +1811,7 @@ local function CreateDropdown(parent)
     dropdown.items = {}
     dropdown.itemIDs = {}
     dropdown.selectedItem = 0  -- index #
+    dropdown.fullWidthButton = fullWidthButton  --DJUadded
     return dropdown
 end
 
@@ -1970,162 +2046,353 @@ end
 ]]
 
 
---[[
 -------------------------------------------------------------------------------
--- Colorswatch functions.
+-- ColorSwatch functions.
 -------------------------------------------------------------------------------
 
 -- ****************************************************************************
--- Sets the color of the colorswatch.
+-- Sets the color of the color swatch.
 -- ****************************************************************************
-local function Colorswatch_SetColor(this, r, g, b)
-    this.r = r
-    this.g = g
-    this.b = b
-    this:GetNormalTexture():SetVertexColor(r, g, b)
+local function ColorSwatch_SetColor(swatchBtn, r, g, b, a)
+    -- Update our variables.
+    swatchBtn.r = r
+    swatchBtn.g = g
+    swatchBtn.b = b
+    swatchBtn.a = a
+    
+    -- Update swatch button's color.
+    swatchBtn:GetNormalTexture():SetVertexColor(r, g, b, a)
 end
 
 
 -- ****************************************************************************
--- Called when the color picker values change.
+-- Returns the color of the color swatch.
 -- ****************************************************************************
-local function Colorswatch_ColorPickerOnChange(this)
-    local colorswatch = ColorPickerFrame.associatedColorSwatch
-    if (not colorswatch) then return end
+local function ColorSwatch_GetColor(swatchBtn)
+    return swatchBtn.r, swatchBtn.g, swatchBtn.b, swatchBtn.a
+end
 
-    Colorswatch_SetColor(colorswatch, ColorPickerFrame:GetColorRGB())
-    if (colorswatch.colorChangedHandler) then colorswatch:colorChangedHandler() end
+    
+-- ****************************************************************************
+-- Called when the color picker values change, or the picker is canceled.
+-- ****************************************************************************
+local function ColorSwatch_Callback(previousValues)
+    local swatchBtn = ColorPickerFrame.associatedColorSwatch
+    if (not swatchBtn) then return end
+    
+    local r, g, b, a
+    if previousValues then
+        -- The user canceled.  Extract the old color from 'previousValues', initialized in ShowColorPicker().
+        r, g, b, a = previousValues.r, previousValues.g, previousValues.b, previousValues.a
+    else
+        -- Either color or opacity changed.  Check both.
+        r, g, b = ColorPickerFrame:GetColorRGB()
+        if ColorPickerFrame.hasOpacity then
+            a = 1 - OpacitySliderFrame:GetValue()
+        end
+    end
+
+    ColorSwatch_SetColor(swatchBtn, r, g, b, a)  -- Updates color of the swatch button.
+    if swatchBtn.colorChangedHandler then swatchBtn:colorChangedHandler() end  -- Updates color of caller's UI element(s).
 end
 
 
 -- ****************************************************************************
--- Called when the color picker values change.
+-- Creates a color palette frame (if necessary).  This palette is shown in the color picker.
 -- ****************************************************************************
-local function Colorswatch_ColorPickerOnCancel(previousValues)
-    local colorswatch = ColorPickerFrame.associatedColorSwatch
-    if (not colorswatch) then return end
+local function ColorSwatch_CreateColorPalette()
+    if not colorPaletteFrame then
+        local paletteColors = {
+                { r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, -- white
+                { r = 0.0, g = 0.0, b = 0.0, a = 1.0 }, -- black
+                { r = 1.0, g = 0.0, b = 0.0, a = 1.0 },	-- red
+                --{ r = 1.0, g = 0.0, b = 0.5, a = 1.0 }, -- rose
+                { r = 1.0, g = 0.0, b = 1.0, a = 1.0 },	-- magenta
+                { r = 0.5, g = 0.0, b = 1.0, a = 1.0 },	-- violet
+                { r = 0.0, g = 0.0, b = 1.0, a = 1.0 },	-- blue
+                { r = 0.0, g = 0.5, b = 1.0, a = 1.0 },	-- azure
+                { r = 0.0, g = 1.0, b = 1.0, a = 1.0 },	-- cyan
+                --{ r = 0.0, g = 1.0, b = 0.5, a = 1.0 }, -- aquamarine
+                { r = 0.0, g = 1.0, b = 0.0, a = 1.0 }, -- green
+                { r = 0.5, g = 1.0, b = 0.0, a = 1.0 }, -- chartreuse
+                { r = 1.0, g = 1.0, b = 0.0, a = 1.0 }, -- yellow
+                { r = 1.0, g = 0.5, b = 0.0, a = 1.0 }, -- orange
+                { r = 0.976, g = 0.549, b = 0.714, a = 1.0 }, -- Pastels ...
+                { r = 0.984, g = 0.714, b = 0.820, a = 1.0 },
+                { r = 0.647, g = 0.537, b = 0.757, a = 1.0 },
+                { r = 0.757, g = 0.702, b = 0.843, a = 1.0 },
+                { r = 0.459, g = 0.537, b = 0.749, a = 1.0 },
+                { r = 0.580, g = 0.659, b = 0.816, a = 1.0 },
+                { r = 0.604, g = 0.808, b = 0.874, a = 1.0 },
+                { r = 0.710, g = 0.882, b = 0.682, a = 1.0 },
+                { r = 0.749, g = 0.894, b = 0.462, a = 1.0 },
+                { r = 0.999, g = 0.980, b = 0.506, a = 1.0 },
+                { r = 0.992, g = 0.792, b = 0.635, a = 1.0 },
+                --{ r = 0.859, g = 0.835, b = 0.725, a = 1.0 },
+                --{ r = 0.0, g = 0.0, b = 0.0, a = 1.0 }, -- black
+                --{ r = 0.1, g = 0.1, b = 0.1, a = 1.0 }, -- shades of gray
+                --{ r = 0.2, g = 0.2, b = 0.2, a = 1.0 },
+                --{ r = 0.3, g = 0.3, b = 0.3, a = 1.0 },
+                --{ r = 0.4, g = 0.4, b = 0.4, a = 1.0 },
+                { r = 0.5, g = 0.5, b = 0.5, a = 1.0 }, -- gray
+                --{ r = 0.6, g = 0.6, b = 0.6, a = 1.0 },
+                --{ r = 0.7, g = 0.7, b = 0.7, a = 1.0 },
+                --{ r = 0.8, g = 0.8, b = 0.8, a = 1.0 },
+                --{ r = 0.9, g = 0.9, b = 0.9, a = 1.0 },
+                --{ r = 1.0, g = 1.0, b = 1.0, a = 1.0 }, -- white
+                --{ r = 0.7, g = 0.7, b = 0.7, a = 0.7 }, -- transparent gray
+            }
+        local rows = 2
+        local cols = 12
+        local spacer = 0
+        local margin = 0
+        local swatchSize = 20
+        local bgtable = {
+                bgFile = "Interface\\Buttons\\WHITE8X8",
+                edgeFile = "Interface\\Buttons\\WHITE8X8",
+                tile = false,
+                tileSize = 16,
+                edgeSize = 1,
+                insets = { 0, 0, 0, 0 },
+            }
+    
+        -- Create a frame for the palette squares.
+        colorPaletteFrame = CreateFrame("Frame", nil, ColorPickerFrame, BackdropTemplateMixin and "BackdropTemplate")
+        colorPaletteFrame:SetBackdrop(bgtable)
+        colorPaletteFrame:SetFrameLevel( OpacitySliderFrame:GetFrameLevel() )
+        colorPaletteFrame:SetSize((cols*swatchSize)+((cols-1)*spacer)+(2*margin),
+                                  (rows*swatchSize)+((rows-1)*spacer)+(2*margin))
+        colorPaletteFrame:ClearAllPoints()
+        colorPaletteFrame:SetPoint("CENTER", ColorPickerFrame, "CENTER", 0, 0)
+        colorPaletteFrame:SetPoint("BOTTOM", ColorPickerOkayButton, "TOP", 0, 8)
+        colorPaletteFrame:SetBackdropColor(0, 0, 0, 0)
+        colorPaletteFrame:SetBackdropBorderColor(0, 0, 0, 0)
+        colorPaletteFrame:Show()
+        
+        -- Create palette swatch squares.
+        local i, j, k = 0, 0, 0
+        for j = 1, rows do
+            for i = 1, cols do
+                k = k + 1
+                local color = paletteColors[k]
+                if not color then break end  -- Stop if no more colors in palette.
+                local f = CreateFrame("Button", nil, colorPaletteFrame, BackdropTemplateMixin and "BackdropTemplate")
+                f:SetBackdrop(bgtable)
+                f:SetBackdropColor(color.r, color.g, color.b, color.a)
+                f:SetBackdropBorderColor(0, 0, 0)  --(0, 0, 0, color.a)
+                f:SetSize(swatchSize, swatchSize)
+                ----createCheckerboardBG(f, false, swatchSize, swatchSize)
+                f:ClearAllPoints()
+                f:SetPoint("TOPLEFT", colorPaletteFrame, "TOPLEFT", 
+                              margin + (spacer*(i-1)) + ((i-1)*swatchSize), 
+                            -(margin + (spacer*(j-1)) + ((j-1)*swatchSize)))
+                            
+                f:SetScript("OnClick", function(self)  -- 'self' is one of the palette buttons.
+                            local r, g, b, a = self:GetBackdropColor()
+                            ColorPickerFrame:SetColorRGB(r, g, b)
+                            if ColorPickerFrame.hasOpacity then
+                                ColorPickerFrame.opacity = 1 - a
+                                OpacitySliderFrame:SetValue( ColorPickerFrame.opacity )
+                            end
+                        end)
+            end
+        end
+    end
 
-    Colorswatch_SetColor(colorswatch, previousValues.r, previousValues.g, previousValues.b)
-    if (colorswatch.colorChangedHandler) then colorswatch:colorChangedHandler() end
+    ColorPickerFrame:SetHeight( kColorPickerDefaultHeight + colorPaletteFrame:GetHeight() + 16 )
 end
 
 
 -- ****************************************************************************
--- Called when the colorswatch is clicked.
+-- Called when the color swatch is clicked.  Shows the color picker.
 -- ****************************************************************************
-local function Colorswatch_OnClick(this)
-    local tempR = this.r or 1
-    local tempG = this.g or 1
-    local tempB = this.b or 1
+local function ColorSwatch_ShowColorPicker(swatchBtn)
+    if ColorPickerFrame:IsShown() then return end
+    ----_G.ViragDevTool_AddData(swatchBtn, "swatchBtn in ColorSwatch_ShowColorPicker()")
+    ColorPickerFrame.associatedColorSwatch = swatchBtn
+    swatchBtn.r = swatchBtn.r or 1
+    swatchBtn.g = swatchBtn.g or 1
+    swatchBtn.b = swatchBtn.b or 1
+    ColorPickerFrame.previousValues = {r = swatchBtn.r, g = swatchBtn.g, b = swatchBtn.b, a = swatchBtn.a}
+    
+    if (swatchBtn.a ~= nil) then
+        ColorPickerFrame.hasOpacity = true
+        ColorPickerFrame.opacity = (1 - swatchBtn.a)
+    else
+        ColorPickerFrame.hasOpacity = false
+        ColorPickerFrame.opacity = nil
+    end
+    
+    ColorPickerFrame.func = ColorSwatch_Callback
+    ColorPickerFrame.opacityFunc = ColorSwatch_Callback
+    ColorPickerFrame.cancelFunc = ColorSwatch_Callback
+    
+    ColorPickerFrame:SetColorRGB(swatchBtn.r, swatchBtn.g, swatchBtn.b)
+    if (ColorPickerFrame.opacity) then 
+        OpacitySliderFrame:SetValue(ColorPickerFrame.opacity) 
+    end
 
-    ColorPickerFrame.associatedColorSwatch = this
-    ColorPickerFrame.hasOpacity = false
-    ColorPickerFrame.opacity = 1
-    ColorPickerFrame.previousValues = {r = tempR, g = tempG, b = tempB}
-    ColorPickerFrame.func = Colorswatch_ColorPickerOnChange
-    ColorPickerFrame.cancelFunc = Colorswatch_ColorPickerOnCancel
-    ColorPickerFrame:SetColorRGB(tempR, tempG, tempB)
+    -- Attach color picker to top-right corner of the parent frame.
     ColorPickerFrame:ClearAllPoints()
-    ColorPickerFrame:SetPoint("CENTER", this, "CENTER")
+    ----ColorPickerFrame:SetPoint("CENTER", swatchBtn, "CENTER")
+    ColorPickerFrame:SetPoint("TOPLEFT", swatchBtn:GetParent(), "TOPRIGHT", -12, -6)
+    ColorPickerFrame:SetClampedToScreen(true)  -- Keep color picker frame on screen.
+    ColorPickerFrame:SetClampRectInsets(12, -12, -12, 12) -- Allow for dragging partially off screen.
+    
+    --::::::::::::::::::[ CUSTOMIZE COLOR PICKER ]:::::::::::::::::::
+    
+    -- Verify no other addon customtized the color picker.  (Check its height.)
+    if (ColorPickerFrame:GetHeight() <  kColorPickerDefaultHeight+1) then
+        ----ColorPickerFrame.Header.Text:SetText(CursorTrailControls.AddonName .. " Color Picker")
+        ----local strWidth = ColorPickerFrame.Header.Text:GetStringWidth()
+        ----ColorPickerFrame.Header:SetWidth( strWidth+24 )
+        
+        -- Reposition the Color Picker's OK and CANCEL buttons (slightly).
+        ColorPickerOkayButton:SetWidth(138)  -- Was 144.
+        ColorPickerCancelButton:SetWidth(138)  -- Was 144.
+        ColorPickerCancelButton:ClearAllPoints()
+        ColorPickerCancelButton:SetPoint("BOTTOMRIGHT", ColorPickerFrame, "BOTTOMRIGHT", -14, 16)
+        ColorPickerOkayButton:ClearAllPoints()
+        ColorPickerOkayButton:SetPoint("RIGHT", ColorPickerCancelButton, "LEFT", -2, 0)
+
+        -- Add color palette swatches to the bottom of the standard color picker.
+        ColorSwatch_CreateColorPalette()
+    end
+    --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+    -- Finish.
+    ColorPickerFrame:EnableKeyboard(false)  -- Prevent color picker from intercepting keystrokes.
+    ColorPickerFrame:Hide()  -- Need to run the OnShow handler.
     ColorPickerFrame:Show()
 end
 
 
 -- ****************************************************************************
--- Called when the mouse enters the colorswatch.
+-- Closes the color picker (if it is open) by triggering its OK or CANCEL button
+-- depending on the bSaveChanges parameter passed in.
 -- ****************************************************************************
-local function Colorswatch_OnEnter(this)
-    if (this.tooltip) then
-        GameTooltip:SetOwner(this, this.tooltipAnchor or "ANCHOR_RIGHT")
-        GameTooltip:SetText(this.tooltip, nil, nil, nil, nil, 1)
+local function ColorSwatch_CloseColorPicker(bSaveChanges)
+    if ColorPickerFrame:IsShown() then
+        if bSaveChanges then
+            ColorPickerOkayButton:Click()
+        else
+            ColorPickerCancelButton:Click()
+        end
     end
-
-    this.borderTexture:SetVertexColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
 end
 
 
 -- ****************************************************************************
--- Called when the mouse leaves the colorswatch.
+-- Called when the mouse enters the color swatch.
 -- ****************************************************************************
-local function Colorswatch_OnLeave(this)
+local function ColorSwatch_OnEnter(swatchBtn)
+    if (swatchBtn.tooltip) then
+        GameTooltip:SetOwner(swatchBtn, swatchBtn.tooltipAnchor or "ANCHOR_RIGHT")
+        GameTooltip:SetText(swatchBtn.tooltip, nil, nil, nil, nil, 1)
+    end
+
+    ----swatchBtn.borderTexture:SetVertexColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+end
+
+
+-- ****************************************************************************
+-- Called when the mouse leaves the color swatch.
+-- ****************************************************************************
+local function ColorSwatch_OnLeave(swatchBtn)
     GameTooltip:Hide()
-    this.borderTexture:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+    ----swatchBtn.borderTexture:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
 end
 
 
 -- ****************************************************************************
 -- Sets the handler to be called when the color changes.
 -- ****************************************************************************
-local function Colorswatch_SetColorChangedHandler(this, handler)
-    this.colorChangedHandler = handler
+local function ColorSwatch_SetColorChangedHandler(swatchBtn, handler)
+    swatchBtn.colorChangedHandler = handler
 end
 
 
 -- ****************************************************************************
--- Sets the tooltip for the colorswatch.
+-- Sets the tooltip for the color swatch.
 -- ****************************************************************************
-local function Colorswatch_SetTooltip(this, tooltip)
-    this.tooltip = tooltip
+local function ColorSwatch_SetTooltip(swatchBtn, tooltip)
+    swatchBtn.tooltip = tooltip
 end
 
 
 -- ****************************************************************************
--- Disables the colorswatch.
+-- Disables the colors watch.
 -- ****************************************************************************
-local function Colorswatch_Disable(this)
-    this:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5)
-    this:oldDisableHandler()
+local function ColorSwatch_Disable(swatchBtn)
+    swatchBtn:GetNormalTexture():SetVertexColor(0.5, 0.5, 0.5) -- Dim the color swatch.
+    swatchBtn:SetAlpha(0.2)
+    swatchBtn:oldDisableHandler()
 end
 
 
 -- ****************************************************************************
--- Enables the colorswatch.
+-- Enables the color swatch.
 -- ****************************************************************************
-local function Colorswatch_Enable(this)
-    this:oldEnableHandler()
-    this:GetNormalTexture():SetVertexColor(this.r, this.g, this.b)
+local function ColorSwatch_Enable(swatchBtn)
+    swatchBtn:oldEnableHandler()
+    swatchBtn:GetNormalTexture():SetVertexColor(swatchBtn.r, swatchBtn.g, swatchBtn.b)  -- Undim the color swatch.
+    swatchBtn:SetAlpha(1.0)
 end
 
 
 -- ****************************************************************************
--- Creates and returns a colorswatch object ready to be configured.
+-- Creates and returns a color swatch object ready to be configured.
 -- ****************************************************************************
-local function CreateColorswatch(parent)
+local function CreateColorSwatch(parent, size)
+    size = size or 20
+    
     -- Create button frame.
     local colorswatch = CreateFrame("Button", nil, parent)
-    colorswatch:SetWidth(16)
-    colorswatch:SetHeight(16)
+    colorswatch:SetWidth(size)
+    colorswatch:SetHeight(size)
     colorswatch:SetNormalTexture("Interface\\ChatFrame\\ChatFrameColorSwatch")
-    colorswatch:SetScript("OnClick", Colorswatch_OnClick)
-    colorswatch:SetScript("OnEnter", Colorswatch_OnEnter)
-    colorswatch:SetScript("OnLeave", Colorswatch_OnLeave)
-
+    colorswatch:SetScript("OnClick", ColorSwatch_ShowColorPicker)
+    colorswatch:SetScript("OnEnter", ColorSwatch_OnEnter)
+    colorswatch:SetScript("OnLeave", ColorSwatch_OnLeave)
 
     -- Border texture.
-    local texture = colorswatch:CreateTexture(nil, "BACKGROUND")
-    texture:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
-    texture:SetWidth(14)
-    texture:SetHeight(14)
-    texture:SetPoint("CENTER")
-    texture:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+    colorswatch.borderTexture = colorswatch:CreateTexture(nil, "BACKGROUND")
+    colorswatch.borderTexture:SetTexture("Interface\\ChatFrame\\ChatFrameBackground")
+    ----colorswatch.borderTexture:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+    colorswatch.borderTexture:SetVertexColor(1, 1, 1)
+    ----colorswatch.borderTexture:SetColorTexture(1, 1, 1)
+    colorswatch.borderTexture:SetWidth(size-2)
+    colorswatch.borderTexture:SetHeight(size-2)
+    colorswatch.borderTexture:SetPoint("CENTER")
+
+    -- Checkerboard texture.  (Requires WoW version 10.0.2 or later to use texture 188523.)
+    if (select(4, GetBuildInfo()) >= 100002) then
+        colorswatch.checkers = colorswatch:CreateTexture(nil, "BACKGROUND")
+        colorswatch.checkers:SetWidth(size * 0.75)
+        colorswatch.checkers:SetHeight(size * 0.75)
+        colorswatch.checkers:SetTexture(188523) -- Tileset\\Generic\\Checkers
+        colorswatch.checkers:SetTexCoord(.25, 0, 0.5, .25)
+        colorswatch.checkers:SetDesaturated(true)
+        colorswatch.checkers:SetVertexColor(1, 1, 1, 0.75)
+        colorswatch.checkers:SetPoint("CENTER")
+    end
 
     -- Save old disable/enable handlers.
     colorswatch.oldDisableHandler = colorswatch.Disable
     colorswatch.oldEnableHandler = colorswatch.Enable
 
     -- Extension functions.
-    colorswatch.SetColorChangedHandler  = Colorswatch_SetColorChangedHandler
-    colorswatch.SetTooltip              = Colorswatch_SetTooltip
-    colorswatch.SetColor                = Colorswatch_SetColor
-    colorswatch.Disable                 = Colorswatch_Disable
-    colorswatch.Enable                  = Colorswatch_Enable
+    colorswatch.SetColor                = ColorSwatch_SetColor
+    colorswatch.GetColor                = ColorSwatch_GetColor
+    colorswatch.SetColorChangedHandler  = ColorSwatch_SetColorChangedHandler
+    colorswatch.SetTooltip              = ColorSwatch_SetTooltip
+    colorswatch.Disable                 = ColorSwatch_Disable
+    colorswatch.Enable                  = ColorSwatch_Enable
+    colorswatch.CloseColorPicker        = ColorSwatch_CloseColorPicker
 
-    -- Track internal values.
-    colorswatch.borderTexture = texture
+    -- Finish.
     return colorswatch
 end
-]]
-
 
 
 -------------------------------------------------------------------------------
@@ -2140,6 +2407,6 @@ CursorTrailControls.CreateSlider            = CreateSlider
 CursorTrailControls.CreateDropdown          = CreateDropdown
 CursorTrailControls.CreateEditbox           = CreateEditbox
 --~ CursorTrailControls.CreateOptionButton      = CreateOptionButton
---~ CursorTrailControls.CreateColorswatch       = CreateColorswatch
+CursorTrailControls.CreateColorSwatch       = CreateColorSwatch
 
 --- End of File ---

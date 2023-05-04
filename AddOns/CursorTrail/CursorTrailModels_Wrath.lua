@@ -49,6 +49,14 @@ kModelConstants =
     --   [] To find a model's ID, go to "https://wow.tools/files" and search for the model's 
     --      file name (excluding the path).  Choose M2 file types, not MDX.
     
+    [0] = {  -- "None.  (Don't show a model effect.)"
+        Name = kStr_None,
+        BaseScale = 1.0, BaseFacing = 0,
+        BaseOfsX = 0, BaseOfsY = 0,
+        BaseStepX = 0, BaseStepY = 0,
+        IsSkewed = false, HorizontalSlope = 0,
+    },
+    
     --~~~~~~~~~~~~~~~~~~~~~~~~
     --[[       Glows        ]]
     --~~~~~~~~~~~~~~~~~~~~~~~~
@@ -72,7 +80,7 @@ kModelConstants =
         BaseScale = 0.055, BaseFacing = 0,
         BaseOfsX = 0.06, BaseOfsY = 0.035,
         BaseStepX = 3430, BaseStepY = 3150,
-        IsSkewed = true, HorizontalSlope = 4.4,
+        IsSkewed = true, HorizontalSlope = 0,
     },
     [166028] = {  -- "spells/enchantments/spellsurgeglow_high.m2"
         Name = kCategory.Glow .. "Cloud, Blue",
@@ -181,14 +189,14 @@ kModelConstants =
     [165956] = {  -- "spells/dispel_low_recursive.m2"
         Name = kCategory.Spots .. "Sparkle, Yellow",
         BaseScale = 0.6, BaseFacing = 0,
-        BaseOfsX = -0.015, BaseOfsY = -0.025,
+        BaseOfsX = 0.03, BaseOfsY = -0.025,
         BaseStepX = 3430, BaseStepY = 3160,
         IsSkewed = true, HorizontalSlope = 0, 
     },
     [165943] = {  -- "spells/detectmagic_recursive.m2"
         Name = kCategory.Spots .. "Sparkle, Blue",
         BaseScale = 0.65, BaseFacing = 0,
-        BaseOfsX = -0.01, BaseOfsY = -0.025,
+        BaseOfsX = 0.03, BaseOfsY = -0.025,
         BaseStepX = 3430, BaseStepY = 3160,
         IsSkewed = true, HorizontalSlope = 0, 
     },
@@ -243,16 +251,16 @@ kModelConstants =
     [165648] = {  -- "spells/banish_chest.m2"
         Name = kCategory.Trail .. "Pulsing, Green",
         BaseScale = 0.025, BaseFacing = 0,
-        BaseOfsX = -0.3, BaseOfsY = 0.55,
+        BaseOfsX = -0.03, BaseOfsY = 0.58,
         BaseStepX = 3450, BaseStepY = 3180,
         IsSkewed = true, HorizontalSlope = -3,
     },
     [165653] = {  -- "spells/banish_chest_yellow.m2"
         Name = kCategory.Trail .. "Pulsing, Yellow",
         BaseScale = 0.02, BaseFacing = 0,
-        BaseOfsX = -0.3, BaseOfsY = 0.55,
+        BaseOfsX = -0.04, BaseOfsY = 0.58,
         BaseStepX = 3460, BaseStepY = 3210,
-        IsSkewed = true, HorizontalSlope = -4,
+        IsSkewed = true, HorizontalSlope = -3,
     },
     [166926] = {  -- "spells/soulshatter_missile.m2"
         Name = kCategory.Trail .. "Soul Skull",

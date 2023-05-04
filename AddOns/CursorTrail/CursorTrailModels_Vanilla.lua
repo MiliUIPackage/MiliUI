@@ -49,6 +49,14 @@ kModelConstants =
     --   [] To find a model's ID, go to "https://wow.tools/files" and search for the model's 
     --      file name (excluding the path).  Choose M2 file types, not MDX.
     
+    [0] = {  -- "None.  (Don't show a model effect.)"
+        Name = kStr_None,
+        BaseScale = 1.0, BaseFacing = 0,
+        BaseOfsX = 0, BaseOfsY = 0,
+        BaseStepX = 0, BaseStepY = 0,
+        IsSkewed = false, HorizontalSlope = 0,
+    },
+    
     --~~~~~~~~~~~~~~~~~~~~~~~~
     --[[       Glows        ]]
     --~~~~~~~~~~~~~~~~~~~~~~~~
@@ -129,14 +137,14 @@ kModelConstants =
     [165956] = {  -- "spells/dispel_low_recursive.m2"
         Name = kCategory.Spots .. "Sparkle, Yellow",
         BaseScale = 0.6, BaseFacing = 0,
-        BaseOfsX = -0.015, BaseOfsY = -0.025,
+        BaseOfsX = 0.03, BaseOfsY = -0.025,
         BaseStepX = 3430, BaseStepY = 3160,
         IsSkewed = true, HorizontalSlope = 0, 
     },
     [165943] = {  -- "spells/detectmagic_recursive.m2"
         Name = kCategory.Spots .. "Sparkle, Blue",
         BaseScale = 0.65, BaseFacing = 0,
-        BaseOfsX = -0.01, BaseOfsY = -0.025,
+        BaseOfsX = 0.03, BaseOfsY = -0.025,
         BaseStepX = 3430, BaseStepY = 3160,
         IsSkewed = true, HorizontalSlope = 0, 
     },
@@ -183,7 +191,7 @@ kModelConstants =
     [166952] = {  -- "spells/sprint_impact_chest.m2"
         Name = kCategory.Trail .. "Sparkling, Green",
         BaseScale = 0.08, BaseFacing = 0,
-        BaseOfsX = 0.05, BaseOfsY = -0.2,
+        BaseOfsX = -0.05, BaseOfsY = -0.2,
         BaseStepX = 3440, BaseStepY = 3140,
         IsSkewed = true, HorizontalSlope = 0,
     },

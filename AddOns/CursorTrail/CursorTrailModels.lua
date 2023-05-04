@@ -36,10 +36,10 @@ setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather t
 -- Model Constants:
 kBaseMult = 0.0001  -- A mulitplier applied to base values to reduce the # of decimal positions needed.
 kCategory = {
-    Glow    = "光暈 - ",    -- Effects that do not have any motion trail.
-    Object  = "物體 - ",  -- Effects that are shapes or images, and have no motion trail.
-    Spots   = "粒子 - ",   -- Effects that have an intermittent motion trail.
-    Trail   = "軌跡 - ",   -- Effects that have a continuous motion trail.
+    Glow    = "Glow - ",    -- Effects that do not have any motion trail.
+    Object  = "Object - ",  -- Effects that are shapes or images, and have no motion trail.
+    Spots   = "Spots - ",   -- Effects that have an intermittent motion trail.
+    Trail   = "Trail - ",   -- Effects that have a continuous motion trail.
 }
 kModelConstants = 
 {
@@ -49,33 +49,41 @@ kModelConstants =
     --   [] To find a model's ID, go to "https://wow.tools/files" and search for the model's 
     --      file name (excluding the path).  Choose M2 file types, not MDX.
     
+    [0] = {  -- "None.  (Don't show a model effect.)"
+        Name = kStr_None,
+        BaseScale = 1.0, BaseFacing = 0,
+        BaseOfsX = 0, BaseOfsY = 0,
+        BaseStepX = 0, BaseStepY = 0,
+        IsSkewed = false, HorizontalSlope = 0,
+    },
+    
     --~~~~~~~~~~~~~~~~~~~~~~~~
     --[[       Glows        ]]
     --~~~~~~~~~~~~~~~~~~~~~~~~
 
     [166538] = {  -- "spells/manafunnel_impact_chest.m2"
-        Name = kCategory.Glow .. "燃燒的雲, 藍",
+        Name = kCategory.Glow .. "Burning Cloud, Blue",
         BaseScale = 0.05, BaseFacing = 0,
         BaseOfsX = 0, BaseOfsY = 0,
-        BaseStepX = 3420, BaseStepY = 3156,
+        BaseStepX = 3430, BaseStepY = 3156,
         IsSkewed = true, HorizontalSlope = 0,
     },
     [166471] = {  -- "spells/lifetap_state_chest.m2"
-        Name = kCategory.Glow .. "燃燒的雲, 綠",
+        Name = kCategory.Glow .. "Burning Cloud, Green",
         BaseScale = 0.05, BaseFacing = 0,
         BaseOfsX = 0, BaseOfsY = -0.01,
         BaseStepX = 3428, BaseStepY = 3146,
         IsSkewed = true, HorizontalSlope = 0,
     },
     [166923] = {  -- "spells/soulfunnel_impact_chest.m2"
-        Name = kCategory.Glow .. "燃燒的雲, 紫",
+        Name = kCategory.Glow .. "Burning Cloud, Purple",
         BaseScale = 0.055, BaseFacing = 0,
         BaseOfsX = 0.46, BaseOfsY = 0.035,
         BaseStepX = 3430, BaseStepY = 3150,
-        IsSkewed = true, HorizontalSlope = 4.4,
+        IsSkewed = true, HorizontalSlope = 4,
     },
     [166028] = {  -- "spells/enchantments/spellsurgeglow_high.m2"
-        Name = kCategory.Glow .. "雲朵, 藍",
+        Name = kCategory.Glow .. "Cloud, Blue",
         BaseScale = 0.23, BaseFacing = 0,
         BaseOfsX = 0.22, BaseOfsY = 0.35,
         BaseStepX = 3430, BaseStepY = 3160,
@@ -92,14 +100,14 @@ kModelConstants =
         Name = kCategory.Glow .. "雲朵, 紫",
         BaseScale = 0.11, BaseFacing = 0,
         BaseOfsX = 0.025, BaseOfsY = -0.025,
-        BaseStepX = 3440, BaseStepY = 3150,
+        BaseStepX = 3430, BaseStepY = 3150,
         IsSkewed = true, HorizontalSlope = 0, 
     },
     [166991] = {  -- "spells/summon_precast_hand.m2"
         Name = kCategory.Glow .. "雲朵, 紫 (柔軟)",
         BaseScale = 0.18, BaseFacing = 0,
         BaseOfsX = 0.075, BaseOfsY = -0.15,
-        BaseStepX = 3438, BaseStepY = 3150,
+        BaseStepX = 3428, BaseStepY = 3150,
         IsSkewed = true, HorizontalSlope = 0, 
     },
 
@@ -135,7 +143,7 @@ kModelConstants =
         Name = kCategory.Object .. "骨頭之環",
         BaseScale = 0.05, BaseFacing = 0,
         BaseOfsX = 0, BaseOfsY = -1.15,
-        BaseStepX = 3350, BaseStepY = 3100,
+        BaseStepX = 3380, BaseStepY = 3080,
         IsSkewed = true, HorizontalSlope = 0, 
     },
     
@@ -182,7 +190,7 @@ kModelConstants =
     [166339] = {  -- "spells/holy_precast_uber_hand.m2"
         Name = kCategory.Spots .. "脈動, 聖光",
         BaseScale = 0.11, BaseFacing = 0,
-        BaseOfsX = 0.065, BaseOfsY = -0.033,
+        BaseOfsX = 0.061, BaseOfsY = -0.035,
         BaseStepX = 3430, BaseStepY = 3155,
         IsSkewed = true, HorizontalSlope = 0,
     },
@@ -201,6 +209,13 @@ kModelConstants =
         IsSkewed = true, HorizontalSlope = 0, 
     },
 
+--~     [530075] = {  -- "infinite_timebomb_reticule.m2"
+--~         Name = kCategory.Spots .. "Circle",
+--~         BaseScale = 0.004, BaseFacing = TODO,
+--~         BaseOfsX = 0, BaseOfsY = 1.75,
+--~         BaseStepX = 3350, BaseStepY = 3100,
+--~         IsSkewed = true, HorizontalSlope = 0, 
+--~     },    
 --~     [1685852] = {  -- "cfx_warlock_demonboltfel_missle.m2"
 --~         Name = kCategory.Spots .. "Swirling, Purple & Green",
 --~         BaseScale = 0.025, BaseFacing = 0,
@@ -270,6 +285,7 @@ kModelConstants =
         BaseOfsX = 0, BaseOfsY = -1.875,
         BaseStepX = 3380, BaseStepY = 3060,
         IsSkewed = true, HorizontalSlope = 0,
+        SkewTopMult = 0.98, SkewBottomMult = 1.115,  -- Has different side skewing.
     },
     [165653] = {  -- "spells/banish_chest_yellow.m2"
         Name = kCategory.Trail .. "脈動, 黃",
@@ -277,6 +293,7 @@ kModelConstants =
         BaseOfsX = 0, BaseOfsY = -1.875,
         BaseStepX = 3380, BaseStepY = 3050,
         IsSkewed = true, HorizontalSlope = 0,
+        SkewTopMult = 0.98, SkewBottomMult = 1.115,  -- Has different side skewing.
     },
     [166926] = {  -- "spells/soulshatter_missile.m2"
         Name = kCategory.Trail .. "靈魂頭骨",
@@ -331,8 +348,8 @@ kModelConstants =
     [240896] = {  -- "spells/firebomb_missle.m2"
         Name = kCategory.Trail .. "旋流, 橘",
         BaseScale = 0.01, BaseFacing = 0,
-        BaseOfsX = 0, BaseOfsY = 0.1,
-        BaseStepX = 3420, BaseStepY = 3150,
+        BaseOfsX = 0.007, BaseOfsY = 0.109,
+        BaseStepX = 3432, BaseStepY = 3155,
         IsSkewed = true, HorizontalSlope = 0, 
     },
     [1536474] = {  -- "cfx_monk_chiorbit_missile.m2"
