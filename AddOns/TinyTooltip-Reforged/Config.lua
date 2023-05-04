@@ -107,7 +107,7 @@ addon.db = {
     item = {
         coloredItemBorder = true,
         showItemIcon = true,    
-		showExtendedItemInformation = false,		
+		showExtendedItemInformation = true,		
 		showStackCount = false,
         showStackCountAlt = false,		
     },
