@@ -24,17 +24,19 @@ local function UpdateAzerothZones(newLevel)
 	wipe(worldTable);
 	
 	-- world map continents depending on expansion level
-	worldTable[113] = {["x"] = 0.49, ["y"] = 0.13} -- Northrend
-	worldTable[424] = {["x"] = 0.46, ["y"] = 0.92} -- Pandaria
-	worldTable[12] = {["x"] = 0.19, ["y"] = 0.5} -- Kalimdor
-	worldTable[13] = {["x"] = 0.88, ["y"] = 0.56} -- Eastern Kingdom
+	worldTable[113] = {["x"] = 0.49, ["y"] = 0.12} -- Northrend
+	worldTable[424] = {["x"] = 0.48, ["y"] = 0.82} -- Pandaria
+	worldTable[12] = {["x"] = 0.24, ["y"] = 0.55} -- Kalimdor
+	worldTable[13] = {["x"] = 0.89, ["y"] = 0.52} -- Eastern Kingdom
 	
-	-- Always take the highest expansion
-	if (expLevel >= LE_EXPANSION_BATTLE_FOR_AZEROTH and newLevel >= 50) then
-		worldTable[875] = {["x"] = 0.54, ["y"] = 0.61} -- Zandalar
-		worldTable[876] = {["x"] = 0.72, ["y"] = 0.49} -- Kul Tiras
-	elseif (expLevel >= LE_EXPANSION_LEGION and newLevel >= 50) then
-		worldTable[619] = {["x"] = 0.6, ["y"] = 0.41} -- Broken Isles
+	-- Always take the highest expansion 
+	if (expLevel >= LE_EXPANSION_DRAGONFLIGHT and newLevel >= 58) then
+		worldTable[1978] = {["x"] = 0.77, ["y"] = 0.22} -- Dragon Isles
+	elseif (expLevel >= LE_EXPANSION_BATTLE_FOR_AZEROTH and newLevel >= 50) then
+		worldTable[875] = {["x"] = 0.54, ["y"] = 0.63} -- Zandalar
+		worldTable[876] = {["x"] = 0.71, ["y"] = 0.50} -- Kul Tiras
+	elseif (expLevel >= LE_EXPANSION_LEGION and newLevel >= 45) then
+		worldTable[619] = {["x"] = 0.58, ["y"] = 0.39} -- Broken Isles
 	end
 end
 
@@ -245,9 +247,16 @@ function QuestInfoMixin:LoadRewards(force)
 			end
 		end
 		-- Spells
-		if (GetQuestLogRewardSpell(1, self.questId)) then
-			local texture, _, _, _, _, _, _, _, rewardId = GetQuestLogRewardSpell(1, self.questId);
-			self:AddReward(WQT_REWARDTYPE.spell, 1, texture, 1, WQT_Utils:GetColor(_V["COLOR_IDS"].rewardItem), rewardId);
+		if (C_QuestInfoSystem.HasQuestRewardSpells(self.questId)) then	
+			local spellRewards = C_QuestInfoSystem.GetQuestRewardSpells(self.questId);
+			for _, spellID in ipairs(spellRewards) do
+				local spellInfo = C_QuestInfoSystem.GetQuestRewardSpellInfo(self.questId, spellID);
+				local knownSpell = IsSpellKnownOrOverridesKnown(spellID);
+				-- only allow the spell reward if user can learn it
+				if spellInfo and spellInfo.texture and not knownSpell and (not spellInfo.isBoostSpell or IsCharacterNewlyBoosted()) and (not spellInfo.garrFollowerID or not C_Garrison.IsFollowerCollected(spellInfo.garrFollowerID)) then
+					self:AddReward(WQT_REWARDTYPE.spell, 1, spellInfo.texture, 1, WQT_Utils:GetColor(_V["COLOR_IDS"].rewardItem), spellInfo.spellID);
+				end
+			end
 		end
 		-- Honor
 		if (GetQuestLogRewardHonor(self.questId) > 0) then
@@ -682,6 +691,11 @@ function WQT_DataProvider:AddQuest(qInfo)
 	
 	local questInfo = self.pool:Acquire();
 	local alwaysHide = not MapUtil.ShouldShowTask(qInfo.mapID, qInfo);
+	
+	-- Dragonflight devs forgot to flagged some tech quests with "MapUtil.ShouldShowTask", and past it in Vol'dun location.
+	-- It make Vol'dun's map messy. This should fix it.
+	if (qInfo.questId > 60000) and (qInfo.mapID == 864) then alwaysHide = true; end
+	
 	local posX, posY = WQT_Utils:GetQuestMapLocation(qInfo.questId, qInfo.mapID);
 	local haveRewardData = questInfo:Init(qInfo.questId, qInfo.isDaily, qInfo.isCombatAllyQuest, alwaysHide, posX, posY);
 
