@@ -955,6 +955,7 @@ L.InspectViewerForce = "強制觀察"
 PH.InspectViewerHideInRaid = "隱藏不在團隊裡的玩家"
 L.InspectViewerColorizeNoValorUpgrade = "高亮未完成勇氣點數升級的裝備"
 PH.InspectViewerNoExRTAddon = "該玩家尚未安裝MRT"
+L.InspectViewerRefreshAll = "全部刷新"
 
 L.CoinsSpoilsOfPandariaWinTrigger = "系統重設中。請別關掉電源，否則事情可能會不可收拾。"
 PH.CoinsEmpty = "目前沒有資料"
