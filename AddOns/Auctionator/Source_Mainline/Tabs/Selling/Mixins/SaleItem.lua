@@ -326,7 +326,7 @@ function AuctionatorSaleItemMixin:DoSearch(itemInfo, ...)
     sortingOrder = {sortOrder = 4, reverseSort = false}
   end
 
-  if IsEquipment(itemInfo) and not Auctionator.Config.Get(Auctionator.Config.Options.SELLING_GEAR_USE_ILVL) then
+  if IsEquipment(itemInfo) and Auctionator.Config.Get(Auctionator.Config.Options.SELLING_ITEM_MATCHING) ~= Auctionator.Config.ItemMatching.ITEM_NAME_AND_LEVEL then
     -- Bug with PTR C_AuctionHouse.MakeItemKey(...), it always sets the
     -- itemLevel to a non-zero value, so we have to create the key directly
     self.expectedItemKey = {itemID = itemInfo.itemKey.itemID, itemLevel = 0, itemSuffix = 0, battlePetSpeciesID = 0}
@@ -335,7 +335,7 @@ function AuctionatorSaleItemMixin:DoSearch(itemInfo, ...)
     self.expectedItemKey = itemInfo.itemKey
     Auctionator.AH.SendSearchQueryByItemKey(self.expectedItemKey, {sortingOrder}, true)
   end
-  Auctionator.EventBus:Fire(self, Auctionator.Selling.Events.SellSearchStart, self.expectedItemKey)
+  Auctionator.EventBus:Fire(self, Auctionator.Selling.Events.SellSearchStart, self.expectedItemKey, itemInfo.itemKey, itemInfo.itemLink)
 end
 
 function AuctionatorSaleItemMixin:Reset()
@@ -446,26 +446,32 @@ function AuctionatorSaleItemMixin:ProcessCommodityResults(itemID, ...)
 end
 
 function AuctionatorSaleItemMixin:GetItemResult(itemKey)
-  if C_AuctionHouse.GetItemSearchResultsQuantity(itemKey) > 0 then
-    return C_AuctionHouse.GetItemSearchResultInfo(itemKey, 1)
-  else
-    return nil
+  local itemInfo = self.itemInfo or self.lastItemInfo
+  for i = 1, C_AuctionHouse.GetItemSearchResultsQuantity(itemKey) do
+    local resultInfo = C_AuctionHouse.GetItemSearchResultInfo(itemKey, i)
+    if Auctionator.Selling.DoesItemMatch(itemInfo.itemKey, itemInfo.itemLink, resultInfo.itemKey, resultInfo.itemLink) then
+      return resultInfo
+    end
   end
+  return nil
 end
 
 function AuctionatorSaleItemMixin:ProcessItemResults(itemKey)
   Auctionator.Debug.Message("AuctionatorSaleItemMixin:ProcessItemResults()")
 
-  local dbKeys = Auctionator.Utilities.DBKeyFromBrowseResult({ itemKey = itemKey })
-
-  local result = self:GetItemResult(itemKey)
-
-  -- Update DB with current lowest price
-  if result ~= nil then
+  -- Update DB with current lowest price (accomodating for itemKey variations
+  -- from the searched for itemKey)
+  if C_AuctionHouse.GetNumItemSearchResults(itemKey) > 0 then
+    local result = C_AuctionHouse.GetItemSearchResultInfo(itemKey, 1)
+    local dbKeys = Auctionator.Utilities.DBKeyFromBrowseResult({ itemKey = result.itemKey })
     for _, key in ipairs(dbKeys) do
       Auctionator.Database:SetPrice(key, result.buyoutAmount or result.bidAmount)
     end
   end
+
+  -- Get the first result that matches the price matching requirements
+  local result = self:GetItemResult(itemKey)
+
   if self.itemInfo ~= nil then
     self.itemInfo.existingValue = result and (result.buyoutAmount or result.bidAmount)
   end
@@ -475,6 +481,7 @@ function AuctionatorSaleItemMixin:ProcessItemResults(itemKey)
   local postingPrice = nil
 
   if result == nil then
+    local dbKeys = Auctionator.Utilities.DBKeyFromBrowseResult({ itemKey = itemKey })
     -- This item was not found in the AH, so use the lowest price from the dbKey
     postingPrice = Auctionator.Database:GetFirstPrice(dbKeys)
   elseif result ~= nil and result.containsOwnerItem then

@@ -525,6 +525,9 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_SELLING_AUTO_SELECT_NEXT_TOOLTIP_HEADER"] = "Automatic item selection"
   L["CONFIG_SELLING_AUTO_SELECT_NEXT_TOOLTIP_TEXT"] = "When posting automatically select the next item in the bag view."
   L["CONFIG_SELLING_MISSING_FAVOURITES"] = "Always show favourite items, including when not in your bag."
+  L["CONFIG_SELLING_AUTO_SELECT_STACK_REMAINDER"] = "Select any partial stacks that exist after posting all complete stacks."
+  L["CONFIG_SELLING_AUTO_SELECT_STACK_REMAINDER_TOOLTIP_HEADER"] = "Automatic partial stack selection"
+  L["CONFIG_SELLING_AUTO_SELECT_STACK_REMAINDER_TOOLTIP_TEXT"] = "When posting add the partial stack as the next item to post if it exists. This won't cause any further searches."
   L["CONFIG_SELLING_MISSING_FAVOURITES_TOOLTIP_HEADER"] = "Missing favourites visible"
   L["CONFIG_SELLING_MISSING_FAVOURITES_TOOLTIP_TEXT"] = "Show favourite items in the bag view even when they aren't in your bag."
   L["CONFIG_SELLING_POST_SHORTCUT"] = "A keyboard/mouse shortcut to post the current item is"
@@ -565,6 +568,11 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_SELLING_GEAR_USE_ILVL_VARIANTS"] = "For gear, use item level and title when selecting the price to compete with"
   L["CONFIG_SELLING_GEAR_USE_ILVL_VARIANTS_TOOLTIP_HEADER"] = "Use Item Level and Title"
   L["CONFIG_SELLING_GEAR_USE_ILVL_VARIANTS_TOOLTIP_TEXT"] = "Normally gear is compared with any other gear that is similar, but without taking item level and the \"of the\" titles into account. This will make them be taken into account."
+  L["CONFIG_MATCHING"] = "Choose how the item price is automatically selected"
+  L["CONFIG_MATCHING_ITEM_ID_AND_LEVEL"] = "Same item/pet level with the same item/pet id"
+  L["CONFIG_MATCHING_ITEM_ID"] = "Same item/pet id"
+  L["CONFIG_MATCHING_ITEM_NAME_AND_LEVEL"] = "Same item/pet id, title and level"
+  L["CONFIG_MATCHING_ITEM_NAME"] = "Same item/pet id and title (ignoring level)"
 
   L["DEFAULT_LIST_HEADER"] = "Default Shopping List"
 
