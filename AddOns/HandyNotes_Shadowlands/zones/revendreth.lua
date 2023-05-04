@@ -2,23 +2,26 @@
 ---------------------------------- NAMESPACE ----------------------------------
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
-local L = ns.locale
 local Class = ns.Class
+local L = ns.locale
 local Map = ns.Map
 
 local Collectible = ns.node.Collectible
-local NPC = ns.node.NPC
 local Node = ns.node.Node
+local NPC = ns.node.NPC
 local PetBattle = ns.node.PetBattle
 local Rare = ns.node.Rare
+local Safari = ns.node.Safari
+local Soulshape = ns.node.Soulshape
+local Squirrel = ns.node.Squirrel
 local Treasure = ns.node.Treasure
 
 local Achievement = ns.reward.Achievement
 local Item = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
-local Transmog = ns.reward.Transmog
 local Toy = ns.reward.Toy
+local Transmog = ns.reward.Transmog
 
 local Arrow = ns.poi.Arrow
 local Path = ns.poi.Path
@@ -28,6 +31,8 @@ local POI = ns.poi.POI
 
 local NECROLORD = ns.covenants.NEC
 local VENTHYR = ns.covenants.VEN
+local NIGHTFAE = ns.covenants.FAE
+
 local map = Map({id = 1525, settings = true})
 
 -------------------------------------------------------------------------------
@@ -98,8 +103,7 @@ map.nodes[66555946] = Rare({
     note = L['endlurker_note'],
     rewards = {
         Achievement({id = 14310, criteria = 48810}),
-        Achievement({id = 14833, criteria = 49869, covenant = NECROLORD}),
-        Item({item = 179927, note = L['trinket']}) -- Glowing Endmire Stinger
+        Achievement({id = 14833, criteria = 49869, covenant = NECROLORD})
     }
 }) -- Endlurker
 
@@ -1001,6 +1005,132 @@ map.nodes[64485273] = Inquisitor({
 }) -- Grand Inquisitor Nicu
 
 -------------------------------------------------------------------------------
+--------------------------------- CRYPT KICKER --------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[72384967] = NPC({
+    id = 176056,
+    icon = 133706,
+    group = ns.groups.CRYPT_KICKER,
+    note = L['bell_of_shame_note'],
+    requires = ns.requirement.Quest(57928), -- Atonement Crypt Key
+    rewards = {
+        Achievement({
+            id = 14273,
+            criteria = ({
+                id = 1,
+                qty = true,
+                suffix = L['atonement_crypts_opened']
+            })
+        })
+    }
+}) -- Bell of Shame (Gahiji the Tomb Raider)
+
+local AtonementCrypt = Node({
+    label = L['atonement_crypt_label'],
+    icon = 'peg_gn',
+    scale = 1.2,
+    group = ns.groups.CRYPT_KICKER,
+    note = L['atonement_crypt_note'],
+    requires = ns.requirement.Quest(57928), -- Atonement Crypt Key
+    rewards = {
+        Achievement({
+            id = 14273,
+            criteria = ({
+                id = 1,
+                qty = true,
+                suffix = L['atonement_crypts_opened']
+            })
+        })
+    }
+}) -- Atonement Crypt
+
+map.nodes[68615334] = AtonementCrypt
+map.nodes[68925414] = AtonementCrypt
+map.nodes[68985535] = AtonementCrypt
+map.nodes[69065330] = AtonementCrypt
+map.nodes[69645376] = AtonementCrypt
+map.nodes[69815460] = AtonementCrypt
+map.nodes[69815523] = AtonementCrypt
+map.nodes[70235457] = AtonementCrypt
+map.nodes[70245522] = AtonementCrypt
+map.nodes[70405378] = AtonementCrypt
+map.nodes[70885403] = AtonementCrypt
+map.nodes[70915574] = AtonementCrypt
+map.nodes[70945491] = AtonementCrypt
+
+local AtonementCryptKey = Node({
+    label = L['atonement_crypt_key_label'],
+    icon = 'peg_bl',
+    scale = 1.0,
+    group = ns.groups.CRYPT_KICKER,
+    note = L['atonement_crypt_key_note'],
+    requires = ns.requirement.Quest(57928), -- Atonement Crypt Key
+    rewards = {
+        Achievement({
+            id = 14273,
+            criteria = ({
+                id = 1,
+                qty = true,
+                suffix = L['atonement_crypts_opened']
+            })
+        })
+    }
+}) -- Atonement Crypt Key
+
+map.nodes[67024378] = AtonementCryptKey
+map.nodes[69664544] = AtonementCryptKey
+map.nodes[70875231] = AtonementCryptKey
+map.nodes[71314407] = AtonementCryptKey
+map.nodes[71444970] = AtonementCryptKey
+map.nodes[72544471] = AtonementCryptKey
+map.nodes[72714666] = AtonementCryptKey
+map.nodes[73064493] = AtonementCryptKey
+map.nodes[73344700] = AtonementCryptKey
+map.nodes[73554968] = AtonementCryptKey
+map.nodes[74454970] = AtonementCryptKey
+map.nodes[75104712] = AtonementCryptKey
+
+-------------------------------------------------------------------------------
+------------------ TO ALL THE SQUIRRELS I'VE LOVED AND LOST -------------------
+-------------------------------------------------------------------------------
+
+map.nodes[70907650] = Squirrel({
+    id = 174844,
+    rewards = {Achievement({id = 14731, criteria = 50264})},
+    pois = {
+        POI({
+            700407640, 700407660, 700807660, 710007640, 720407740, 720607860,
+            720807800
+        })
+    }
+}) -- Shardling
+
+map.nodes[39004930] = Squirrel({
+    id = 165767,
+    rewards = {Achievement({id = 14731, criteria = 50265})},
+    pois = {
+        POI({
+            27204460, 27404240, 28004420, 28404320, 28804500, 29203940,
+            29404440, 30003780, 30203980, 30403880, 31403940, 31404040,
+            31604060, 33404140, 38404920, 38404960, 38804900, 38805140,
+            39204980, 39405220, 39405400, 39605200, 39805360, 39805540,
+            40004960, 40005280, 40005560, 40404900, 40604920, 40605480,
+            58207660, 58607620, 59206820, 59206880, 59207320, 59406960,
+            59407660, 59408000, 59606780, 59806700, 59806940, 59806960,
+            60006620, 60007120, 60007340, 60007660, 60007840, 60207220,
+            60207600, 60207900, 60807720, 61006680, 61006780, 61407620, 61807900
+        })
+    }
+}) -- Emaciated Bat
+
+map.nodes[56005800] = Squirrel({
+    id = 174646,
+    rewards = {Achievement({id = 14731, criteria = 50266})},
+    pois = {POI({56005820, 56205880})}
+}) -- Murky Creeper
+
+-------------------------------------------------------------------------------
 -------------------------------- BROKEN MIRRORS -------------------------------
 -------------------------------------------------------------------------------
 
@@ -1175,3 +1305,115 @@ function Blanchy.getters:note()
 end
 
 map.nodes[62874341] = Blanchy()
+
+-------------------------------------------------------------------------------
+--------------------------------- SOULSHAPES ----------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[63184276] = Soulshape({
+    id = 181660,
+    icon = 2027864,
+    note = L['soulshape_chicken_note'],
+    rewards = {
+        Item({item = 187813, quest = 64941, covenant = NIGHTFAE}) -- Chicken Soul
+    }
+}) -- Chicken Soul
+
+map.nodes[63756169] = Node({
+    label = L['spectral_feed_label'],
+    icon = 134058,
+    covenant = NIGHTFAE,
+    note = L['spectral_feed_note']
+}) -- Spectral Feed
+
+-------------------------------------------------------------------------------
+----------------------------- SHADOWLANDS SAFARI ------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[39005000] = Safari.DuskyDredwingPup({
+    pois = {
+        POI({
+            25604340, 26004420, 26404560, 26604540, 27004440, 27404300,
+            28004420, 28204100, 28404500, 28803980, 28804300, 29004200,
+            29404520, 29404580, 29604100, 30003740, 30004420, 30004460,
+            30403840, 30403880, 30403960, 30404180, 30803880, 30804160,
+            31603880, 31604060, 31604360, 31803980, 32004320, 32804180,
+            33004000, 33403640, 33403660, 33603600, 34004140, 34203500,
+            34403680, 34403780, 34603560, 34803700, 34803860, 35004000,
+            35203800, 35404060, 35804160, 36004140, 36804160, 37204080,
+            37404320, 37604180, 37604260, 37803720, 38003860, 38403980,
+            38404880, 38404980, 38603720, 38805120, 38805180, 39003800,
+            39003960, 39004060, 39004920, 39005000, 39005300, 39203860,
+            39204840, 39403640, 39405380, 39405520, 39603620, 39603820,
+            39605360, 39803720, 39804020, 39804860, 39805060, 39805340,
+            40003900, 40005000, 40204820, 40205220, 40403360, 40405540,
+            40405560, 40603640, 40604880, 40604960, 40605380, 40605520,
+            40803360, 41203840, 57407640, 57407660, 58207520, 58407560,
+            58407720, 59206880, 59207840, 59406720, 59406800, 59407380,
+            59407640, 59407680, 59606780, 59606940, 59806620, 59806960,
+            59807240, 60007100, 60007320, 60007520, 60007640, 60007660,
+            60207920, 60208020, 60406660, 60606940, 60606960, 60607060,
+            60607900, 61006700, 61007740, 61207180, 61407500, 61407560,
+            61407780, 61807900, 61807960, 62807540, 63407320, 63607320,
+            64003740, 64003780, 64803800, 65403860, 66003920, 66403960,
+            67003940, 67403960
+        })
+    }
+}) -- Dusky Dredwing Pup
+
+map.nodes[49407900] = Safari.LostSoul({
+    pois = {
+        POI({
+            46807520, 47607840, 47807920, 48203180, 48407520, 48607500,
+            48807620, 49203400, 49407900, 49807140, 49807160, 49807320,
+            50007680, 50007840, 50007860, 50607300, 50803080, 50807140,
+            50807160, 51007800, 51603100, 51607080, 51607320, 51807580,
+            52003040, 52207180, 52607660, 78604760
+        })
+    }
+}) -- Lost Soul
+
+map.nodes[55805960] = Safari.MireCreeper({pois = {POI({55805960, 56005920})}}) -- MireCreeper
+
+map.nodes[55407740] = Safari.RosetippedSpiderling({
+    pois = {
+        POI({
+            46003340, 46007520, 46207400, 46403420, 46407560, 46607600,
+            46807340, 47003040, 47003400, 47007520, 47203180, 47207800,
+            47407380, 47408000, 47607680, 47607800, 47608000, 47803360,
+            47807560, 48003600, 48007880, 48207400, 48207520, 48407320,
+            48607620, 49007420, 49007540, 49207660, 49207760, 49207860,
+            49603160, 49607680, 49607780, 49807320, 50007420, 50007500,
+            50007600, 50207920, 50607460, 50806840, 50806860, 51207240,
+            51407380, 51407700, 51807180, 51807420, 52005480, 52006920,
+            52007340, 52205600, 52207720, 52407040, 52407060, 52407820,
+            52607040, 52607060, 52607880, 53007180, 53207640, 53607680,
+            54407640, 55405380, 55407740, 55407760, 56005500, 56205060,
+            56205220, 56405380, 56605380, 56605480, 57804620, 58004800,
+            58005160, 58005360, 58204340, 58204360, 58404540, 58405140,
+            58604220, 58604560, 58804380, 59204480, 59204680, 59404320,
+            59404800, 65007380, 65207280, 65807040, 66207520, 66406700,
+            66406940, 66407720, 66606700, 66607740, 67206860, 67407860,
+            67607860, 71205760, 71805780, 72605880, 73805780, 74205700,
+            74805740, 75404480, 75404560, 76005300, 76005360, 76204540,
+            76205480, 76404440, 77405240, 77604840, 77804700, 77804980
+        })
+    }
+}) -- Rosetipped Spiderling
+
+map.nodes[64205440] = Safari.WitheringCreeper({
+    pois = {
+        POI({
+            40207220, 42007100, 42607000, 45006760, 45606820, 47207340,
+            47207360, 47407540, 47407560, 47607560, 49206400, 51006420,
+            55405980, 56206000, 56405880, 59605680, 60805460, 61005440,
+            61404740, 61404760, 61604760, 61605440, 62004940, 62004980,
+            62404640, 62404660, 62805520, 62806920, 63404140, 63404160,
+            63404420, 64006580, 64205440, 64205460, 64405660, 64605680,
+            64805580, 65605620, 66203440, 66203460, 67003300, 67603620,
+            71006220, 71606020, 71806440, 72606080, 73406180, 73605940,
+            73605960, 73606180, 75003920, 75004220, 75205880, 76005780,
+            76204200, 76605680
+        })
+    }
+}) -- Withering Creeper

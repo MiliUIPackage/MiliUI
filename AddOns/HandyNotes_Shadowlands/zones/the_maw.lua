@@ -17,6 +17,7 @@ local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
 local Quest = ns.reward.Quest
 local Section = ns.reward.Section
+local Spacer = ns.reward.Spacer
 local Toy = ns.reward.Toy
 local Transmog = ns.reward.Transmog
 
@@ -116,9 +117,7 @@ map.nodes[19324172] = Rare({
     note = L['apholeias_note'],
     rlabel = ns.status.LightBlue('+100 ' .. L['rep']),
     rewards = {
-        Achievement({id = 14744, criteria = 49842}),
-        Item({item = 184106, note = L['ring']}), -- Gimble
-        Item({item = 182327}) -- Dominion Etching: Loss
+        Achievement({id = 14744, criteria = 49842}), Item({item = 182327}) -- Dominion Etching: Loss
     }
 }) -- Apholeias, Herald of Loss
 
@@ -211,9 +210,7 @@ map.nodes[42342108] = Rare({
     note = L['ekphoras_note'],
     rlabel = ns.status.LightBlue('+100 ' .. L['rep']),
     rewards = {
-        Achievement({id = 14744, criteria = 49849}),
-        Item({item = 184105, note = L['ring']}), -- Gyre
-        Item({item = 182328}) -- Dominion Etching: Grief
+        Achievement({id = 14744, criteria = 49849}), Item({item = 182328}) -- Dominion Etching: Grief
     }
 }) -- Ekphoras, Herald of Grief
 
@@ -237,7 +234,6 @@ map.nodes[20586935] = Rare({
     fgroup = 'nilganihmaht_group',
     rewards = {
         Achievement({id = 14744, criteria = 49851}),
-        Item({item = 184108, note = L['neck']}), -- Vorpal Amulet
         Item({item = 183066, quest = 63160}), -- Korrath's Grimoire: Aleketh
         Item({item = 183067, quest = 63161}), -- Korrath's Grimoire: Belidir
         Item({item = 183068, quest = 63162}), -- Korrath's Grimoire: Gyadrek
@@ -438,7 +434,6 @@ map.nodes[36034433] = Rare({
     rift = 2,
     rewards = {
         Achievement({id = 15107, criteria = 52297}),
-        Item({item = 187406, note = L['ring']}), -- Band of Blinding Shadows
         Transmog({item = 187361, slot = L['bow']}) -- Rift-Bound Shadow Piercer
     }
 }) -- Blinding Shadow
@@ -493,12 +488,10 @@ map.nodes[69214521] = Treasure({
     quest = 64256,
     rlabel = ns.status.LightBlue(L['plus_research']),
     rewards = {
-        Achievement({id = 15099, criteria = 52243}),
-        Item({item = 185902, note = L['trinket']}), -- Iron Maiden's Toolkit
-        --[[
-        Transmog({item=187014, slot=L["cosmetic"]}), -- Shackler's Spiked Shoulders
-        Transmog({item=187018, slot=L["cosmetic"]}), -- Ritualist's Shoulder Scythes
-        Transmog({item=187019, slot=L["cosmetic"]}), -- Infiltrator's Shoulderguards
+        Achievement({id = 15099, criteria = 52243}), --[[
+        Transmog({item=187014, slot=L['cosmetic']}), -- Shackler's Spiked Shoulders
+        Transmog({item=187018, slot=L['cosmetic']}), -- Ritualist's Shoulder Scythes
+        Transmog({item=187019, slot=L['cosmetic']}), -- Infiltrator's Shoulderguards
         ]] Transmog({item = 187026, slot = L['cosmetic']}), -- Field Warden's Torture Kit
         Transmog({item = 187240, slot = L['cosmetic']}) -- Field Warden's Watchful Eye
     }
@@ -716,7 +709,6 @@ map.nodes[55626318] = BonusBoss({
     note = L['in_cave'] .. ' ' .. L['sanngror_note'],
     rewards = {
         Achievement({id = 14660, criteria = 49489}),
-        Item({item = 186629, note = L['ring']}), -- Sanngors Spiked Band
         Pet({item = 183410, id = 3040}) -- Sharpclaw
     },
     pois = {
@@ -749,10 +741,7 @@ map.nodes[36844480] = BonusBoss({
     id = 156203,
     quest = 62539,
     noassault = KYRIAN,
-    rewards = {
-        Achievement({id = 14660, criteria = 50409}),
-        Item({item = 186631, note = L['ring']}) -- Emberfused Band
-    }
+    rewards = {Achievement({id = 14660, criteria = 50409})}
 }) -- Stygian Incinerator
 
 map.nodes[40705959] = BonusBoss({
@@ -912,12 +901,6 @@ pitl.nodes[46896760] = Cache({parent = map.id})
 --------------------------------- STYGIA NEXUS --------------------------------
 -------------------------------------------------------------------------------
 
--- local STYGIA_NEXUS = {
---     17005000, 19003400, 21003900, 23007000, 24006800, 25006800, 28004500,
---     29006500, 30002800, 36004200, 38001900, 44005800, 45006600, 45006700,
---     52006700, 52006800, 53006600, 57006000
--- }
-
 local Nexus = Class('StygiaNexus', NPC, {
     group = ns.groups.STYGIA_NEXUS,
     icon = 'peg_gn',
@@ -931,6 +914,7 @@ map.nodes[16015170] = Nexus({note = L['nexus_npc_portal']})
 map.nodes[16875503] = Nexus({note = L['nexus_area_gorgoa_mouth']})
 map.nodes[17745311] = Nexus({note = L['nexus_area_gorgoa_mouth']})
 map.nodes[18285458] = Nexus({note = L['nexus_area_gorgoa_mouth']})
+map.nodes[18924633] = Nexus({note = L['nexus_npc_eternas']})
 map.nodes[19206731] = Nexus({note = L['nexus_area_domination_edge']})
 map.nodes[19433790] = Nexus({note = L['nexus_area_calcis_crystals']})
 map.nodes[19643533] = Nexus({note = L['nexus_area_calcis_crystals']})
@@ -943,6 +927,7 @@ map.nodes[22515477] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[22922234] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[22926805] = Nexus({note = L['nexus_misc_grapple_ramparts']})
 map.nodes[23044444] = Nexus({note = L['nexus_misc_grapple_ramparts']})
+map.nodes[23196996] = Nexus({note = L['nexus_misc_grapple_ramparts']})
 map.nodes[23252132] = Nexus({note = L['nexus_npc_orophea']})
 map.nodes[23277382] = Nexus({note = L['nexus_area_domination_bridge']})
 map.nodes[23493460] = Nexus({note = L['nexus_area_calcis_crystals']})
@@ -958,6 +943,7 @@ map.nodes[25623699] = Nexus({note = L['nexus_cave_forlorn']})
 map.nodes[26004499] = Nexus({note = L['nexus_misc_crystal_ledge']})
 map.nodes[26153094] = Nexus({note = L['nexus_npc_dekaris']})
 map.nodes[26336859] = Nexus({note = L['nexus_misc_grapple_ramparts']})
+map.nodes[26744496] = Nexus({note = L['nexus_area_gorgoa_bank']})
 map.nodes[26842748] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[27392598] = Nexus({note = L['nexus_misc_floating_cage']})
 map.nodes[27427226] = Nexus({note = L['nexus_npc_thanassos']})
@@ -965,9 +951,12 @@ map.nodes[27541273] = Nexus({note = L['nexus_npc_talaporas']})
 map.nodes[27906041] = Nexus({note = L['nexus_npc_dolos']})
 map.nodes[28573090] = Nexus({note = L['nexus_area_torment_rock']})
 map.nodes[28674931] = Nexus({note = L['nexus_misc_grapple_rock']})
+map.nodes[30056578] = Nexus({note = L['nexus_misc_below_ramparts']})
+map.nodes[30092827] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[32266739] = Nexus({note = L['nexus_misc_grapple_ramparts']})
 map.nodes[32506541] = Nexus({note = L['nexus_room_ramparts']})
 map.nodes[33064239] = Nexus({note = L['nexus_area_zovaal_wall']})
+map.nodes[33182058] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[33156479] = Nexus({note = L['nexus_area_perdition_wall']})
 map.nodes[33647481] = Nexus({note = L['nexus_npc_akros']})
 map.nodes[33977033] = Nexus({note = L['nexus_misc_grapple_ramparts']})
@@ -982,6 +971,8 @@ map.nodes[41234967] = Nexus({note = L['nexus_misc_floating_cage']})
 map.nodes[41314784] = Nexus({note = L['nexus_misc_floating_cage']})
 map.nodes[42412320] = Nexus({note = L['nexus_npc_ekphoras']})
 map.nodes[43816887] = Nexus({note = L['nexus_area_zone_edge']})
+map.nodes[45126671] = Nexus({note = L['nexus_misc_grapple_rock']})
+map.nodes[46198136] = Nexus({note = L['nexus_cave_roar_outside']})
 map.nodes[47166238] = Nexus({note = L['nexus_road_below']})
 map.nodes[48078370] = Nexus({note = L['nexus_cave_howl_outside']})
 map.nodes[48327061] = Nexus({note = L['nexus_misc_floating_cage']})
@@ -994,6 +985,7 @@ map.nodes[51627864] = Nexus({note = L['nexus_misc_three_chains']})
 map.nodes[51907098] = Nexus({note = L['nexus_cave_ledge']})
 map.nodes[52018189] = Nexus({note = L['nexus_misc_ledge_below']})
 map.nodes[52167619] = Nexus({note = L['nexus_misc_floating_cage']})
+map.nodes[52907027] = Nexus({note = L['nexus_misc_grapple_rock']})
 map.nodes[53167848] = Nexus({note = L['nexus_misc_floating_cage']})
 map.nodes[53338024] = Nexus({note = L['nexus_cave_anguish_outside']})
 map.nodes[53877701] = Nexus({note = L['nexus_misc_floating_cage']})
@@ -1009,6 +1001,7 @@ map.nodes[59007837] = Nexus({note = L['nexus_road_next']})
 map.nodes[59056108] = Nexus({note = L['nexus_cave_desmotaeron']})
 map.nodes[60866755] = Nexus({note = L['nexus_road_next']})
 map.nodes[60927687] = Nexus({note = L['nexus_area_zone_edge']})
+map.nodes[61096917] = Nexus({note = L['nexus_cave_desmotaeron']})
 
 pitu.nodes[53376624] = Nexus({
     note = L['nexus_cave_anguish_upper'],
@@ -1371,6 +1364,264 @@ map.nodes[62176427] = Vault({pois = {Arrow({62176427, 44545150})}})
 map.nodes[66405820] = Vault({pois = {Arrow({66405820, 44545150})}})
 
 -------------------------------------------------------------------------------
+------------------------------ COVENANT ASSAULTS ------------------------------
+-------------------------------------------------------------------------------
+
+local NECROLORD_ASSAULT_REWARDS = {
+    Achievement({id = 15000, criteria = 51720}), -- United Front
+    Spacer(), Achievement({
+        id = 15032,
+        criteria = {
+            52000, -- Dead On Their Feet
+            52001, -- Here's an Axe, Get to Work!
+            52002, -- You and What Army
+            52003, -- An Embarrassment of Corpses
+            52004, -- Putting a Plan Together
+            52005, -- Centurions March!
+            52006, -- Pulling His Chain
+            52007, -- Splash Damage
+            52008, -- Get to the Point
+            52009 -- Somebody Feed Kevin
+        }
+    }), -- Breaking Their Hold
+    Spacer(), Achievement({
+        id = 15037,
+        criteria = {
+            52044, -- Cutter Fin
+            52045, -- Kearnen the Blade
+            52046, -- Winslow Swan
+            52047, -- Boil Master Yetch
+            52048 -- Flytrap
+        }
+    }), -- This Army
+    Spacer(), Achievement({
+        id = 15039,
+        criteria = ({
+            id = 1,
+            qty = true,
+            suffix = L['necrolord_assault_quantity_note']
+        })
+    }), -- Up For Grabs
+    Spacer(), Section('{item:185992}'), Mount({item = 186103, id = 1477}), -- Undying Darkhound
+    Pet({item = 186557, id = 3114}) -- Fodder
+}
+
+local VENTHYR_ASSAULT_REWARDS = {
+    Achievement({id = 15000, criteria = 51721}), -- United Front
+    Spacer(), Achievement({
+        id = 15033,
+        criteria = {
+            52017, -- Terrorizing the Tremaculum
+            52018, -- Weapons of the Tremaculum
+            52019, -- That's a Good Trick
+            52020, -- Fangcrack's Fan Club
+            52021, -- A Tea for Every Occasion
+            52022, -- Duelist's Challenge
+            52023, -- If Even One is Worthy
+            52024, -- They Grow Up So Quickly
+            52025, -- The Skyhunt
+            52026 -- Wrath of the Party Hearld
+        }
+    }), -- Taking the Tremaculum
+    Spacer(), Achievement({
+        id = 15042,
+        criteria = {
+            52065, -- Simone
+            52066, -- Laurent
+            52067, -- Archivist Fane
+            52068, -- The Countess
+            52069, -- Kael'thas Sunstrider
+            52070, -- Lost Sybille
+            52071, -- Vulca
+            52072 -- Iven
+        }
+    }), -- Tea for the Troubled
+    Spacer(), Achievement({
+        id = 15043,
+        criteria = ({
+            id = 1,
+            qty = true,
+            suffix = L['venthyr_assault_quantity_note']
+        })
+    }), -- Hoarder of Torghast
+    Spacer(), Section('{item:185990}'), Mount({item = 185996, id = 1378}) -- Harvester's Dreadwing
+}
+
+local NIGHT_FAE_ASSAULT_REWARDS = {
+    Achievement({id = 15000, criteria = 51722}), -- United Front
+    Spacer(), Achievement({
+        id = 15001,
+        criteria = ({
+            id = 1,
+            qty = true,
+            suffix = L['night_fae_assault_quantity_note']
+        })
+    }), -- Jailer's Personal Stash
+    Spacer(), Achievement({
+        id = 15036,
+        criteria = {
+            52031, -- Clean Out the Crucible
+            52032, -- Looming Darkness
+            52033, -- No Soul Left Behind
+            52034, -- Snail Stomping
+            52035, -- Just Don't Ask Me to Spell It
+            52036, -- Double Dromans
+            52037, -- That's Going to Sting
+            52038, -- The Soul Blade
+            52039, -- A Shady Place
+            52040 -- Heavy Handed Tactics
+        }
+    }), -- Rooting Out the Evil
+    Spacer(), Achievement({
+        id = 15044,
+        criteria = {
+            52078, -- Elder Gwenna
+            52079, -- Foreman Thorodir
+            52080, -- Te'zan
+            52081, -- Warden Casad
+            52082, -- Kivarr
+            52083 -- Guardian Kota
+        }
+    }), -- Krrprripripkraak's Heroes
+    Spacer(), Section('{item:185991}'), Mount({item = 186000, id = 1476}), -- Wild Hunt Legsplitter
+    Pet({item = 186547, id = 3116}), -- Invasive Buzzer
+    Item({item = 185052, quest = 63608, covenant = NIGHTFAE}) -- Hippo Soul
+}
+
+local KYRIAN_ASSAULT_REWARDS = {
+    Achievement({id = 15000, criteria = 51723}), -- United Front
+    Spacer(), Achievement({
+        id = 15004,
+        criteria = ({
+            id = 1,
+            qty = true,
+            suffix = L['kyrian_assault_quantity_note1']
+        })
+    }), -- A Sly Fox
+    Spacer(), Achievement({
+        id = 15034,
+        criteria = {
+            52010, -- Mine's Bigger
+            52011, -- Heart and Soul,
+            52012, -- No One Floats Down Here
+            52013, -- Encouraging Words
+            52014, -- Courage of the Soul
+            52015, -- Saved By The Bells
+            52016, -- United In Pride
+            52041, -- The Ember Count
+            52042, -- Kill The Flame
+            52043 -- The Dreadful Blend
+        }
+    }), -- Wings Against the Flames
+    Spacer(), Achievement({
+        id = 15041,
+        criteria = ({
+            id = 1,
+            qty = true,
+            suffix = L['kyrian_assault_quantity_note2']
+        })
+    }), -- The Zovaal Shuffle
+    Spacer(), Section('{item:185993}'), Pet({item = 186546, id = 3103}), -- Copperback Etherwyrm
+    Toy({item = 187185}) -- Vesper of Faith
+}
+
+-------------------------------------------------------------------------------
+
+local ASSAULTS = {
+    [NECROLORD.assault] = NECROLORD_ASSAULT_REWARDS,
+    [VENTHYR.assault] = VENTHYR_ASSAULT_REWARDS,
+    [NIGHTFAE.assault] = NIGHT_FAE_ASSAULT_REWARDS,
+    [KYRIAN.assault] = KYRIAN_ASSAULT_REWARDS
+}
+
+local assaultHandled = false
+
+hooksecurefunc(GameTooltip, 'Show', function(self)
+    if assaultHandled then return end
+    local owner = self:GetOwner()
+    if owner and owner.questID then
+        local rewards = ASSAULTS[owner.questID]
+        if rewards and #rewards > 0 then
+            for i, reward in ipairs(rewards) do
+                if reward:IsEnabled() then reward:Render(self) end
+            end
+            assaultHandled = true
+            self:AddLine(' ') -- add blank line after rewards
+            self:Show()
+        end
+    end
+end)
+
+hooksecurefunc(GameTooltip, 'ClearLines',
+    function(self) assaultHandled = false end)
+
+-------------------------------------------------------------------------------
+
+local Assault = Class('Assault', ns.node.Node, {
+    scale = 1.5,
+    group = ns.groups.COVENANT_ASSAULTS,
+    IsEnabled = function(self)
+        return not C_QuestLog.IsOnMap(self.assault_quest)
+    end,
+    getters = {
+        sublabel = function(self)
+            local sublabel
+            local region = GetCVar('portal')
+            if region == 'US' then
+                sublabel = L['assault_sublabel_US']
+            elseif region == 'EU' then
+                sublabel = L['assault_sublabel_EU']
+            elseif region == 'CN' then
+                sublabel = L['assault_sublabel_CN']
+            elseif region == 'KR' then
+                sublabel = L['assault_sublabel_AS']
+            else
+                sublabel = ''
+            end
+            return sublabel
+        end,
+        rlabel = function(self)
+            local completed = C_QuestLog.IsQuestFlaggedCompleted(
+                self.assault_quest)
+            local color = completed and ns.status.Green or ns.status.Gray
+            return color(L['weekly'])
+        end
+    }
+})
+
+map.nodes[33865473] = Assault({
+    label = L['necrolord_assault'],
+    icon = 3257749,
+    assault_quest = NECROLORD.assault,
+    note = L['necrolord_assault_note'],
+    rewards = NECROLORD_ASSAULT_REWARDS
+}) -- Necrolord Assault
+
+map.nodes[29461808] = Assault({
+    label = L['venthyr_assault'],
+    icon = 3257751,
+    assault_quest = VENTHYR.assault,
+    note = L['venthyr_assault_note'],
+    rewards = VENTHYR_ASSAULT_REWARDS
+}) -- Venthyr Assault
+
+map.nodes[22004412] = Assault({
+    label = L['night_fae_assault'],
+    icon = 3257750,
+    assault_quest = NIGHTFAE.assault,
+    note = L['night_fae_assault_note'],
+    rewards = NIGHT_FAE_ASSAULT_REWARDS
+}) -- Night Fae Assault
+
+map.nodes[41134541] = Assault({
+    label = L['kyrian_assault'],
+    icon = 3257748,
+    assault_quest = KYRIAN.assault,
+    note = L['kyrian_assault_note'],
+    rewards = KYRIAN_ASSAULT_REWARDS
+}) -- Kryian Assault
+
+-------------------------------------------------------------------------------
 -------------------------------- NILGANIHMAHT ---------------------------------
 -------------------------------------------------------------------------------
 
@@ -1566,7 +1817,7 @@ map.nodes[85375524] = Class('Tormentor', ns.node.Node, {
         Transmog({item = 186235, slot = L['plate'], note = '{npc:178886}'}), -- Shadow-Wreathed Vambraces
         Transmog({item = 186233, slot = L['plate'], note = '{npc:177981}'}), -- Spaulders of the Skyborn Damned
         Pet({item = 186449, id = 3117, note = '{npc:177979}'}), -- Amaranthine Stinger
-        ns.reward.Spacer(), ns.reward.Section('{item:185972}'), -- Tormentor's Cache
+        Spacer(), ns.reward.Section('{item:185972}'), -- Tormentor's Cache
         Transmog({item = 186977, slot = L['cosmetic'], indent = true}), -- Beastcaller's Skull Crescent
         Transmog({item = 186978, slot = L['cosmetic'], indent = true}), -- Borrowed Eye Crescent
         Transmog({item = 186562, slot = L['cosmetic'], indent = true}), -- Tormentor's Manacled Backplate
@@ -1651,14 +1902,14 @@ map.nodes[46914169] = NPC({
     note = L['venari_note'],
     rewards = {
         Achievement({id = 14895, oneline = true}), -- 'Ghast Five
-        Section(C_Map.GetMapInfo(1543).name), ns.reward.Spacer(),
+        Section(C_Map.GetMapInfo(1543).name), Spacer(),
         Item({item = 184613, quest = 63177, note = L['Apprehensive']}), -- Encased Riftwalker Essence
         Item({item = 184653, quest = 63217, note = L['Tentative']}), -- Animated Levitating Chain
         Item({item = 180949, quest = 61600, note = L['Tentative']}), -- Animaflow Stabilizer
         Item({item = 184605, quest = 63092, note = L['Tentative']}), -- Sigil of the Unseen
         Item({item = 184588, quest = 63091, note = L['Ambivalent']}), -- Soul-Stabilizing Talisman
         Item({item = 184870, note = L['Appreciative']}), -- Stygia Dowser
-        ns.reward.Spacer(), Section(L['torghast']), ns.reward.Spacer(),
+        Spacer(), Section(L['torghast']), Spacer(),
         Item({item = 184620, quest = 63202, note = L['Apprehensive']}), -- Vessel of Unforunate Spirits
         Item({item = 184615, quest = 63183, note = L['Apprehensive']}), -- Extradimensional Pockets
         Item({item = 184901, quest = 63523, note = L['Apprehensive']}), -- Broker Traversal Enhancer

@@ -3,20 +3,25 @@
 -------------------------------------------------------------------------------
 local ADDON_NAME, ns = ...
 local Class = ns.Class
-local Map = ns.Map
 local L = ns.locale
+local Map = ns.Map
 
 local Collectible = ns.node.Collectible
+local Node = ns.node.Node
 local PetBattle = ns.node.PetBattle
 local Rare = ns.node.Rare
+local Safari = ns.node.Safari
+local Soulshape = ns.node.Soulshape
+local Squirrel = ns.node.Squirrel
 local Treasure = ns.node.Treasure
 
 local Achievement = ns.reward.Achievement
 local Item = ns.reward.Item
 local Mount = ns.reward.Mount
 local Pet = ns.reward.Pet
-local Transmog = ns.reward.Transmog
+local Section = ns.reward.Section
 local Toy = ns.reward.Toy
+local Transmog = ns.reward.Transmog
 
 local Path = ns.poi.Path
 local POI = ns.poi.POI
@@ -25,7 +30,11 @@ local POI = ns.poi.POI
 
 local NECROLORD = ns.covenants.NEC
 local NIGHTFAE = ns.covenants.FAE
+
 local map = Map({id = 1565, settings = true})
+local tqc = Map({id = 1662}) -- The Queen's Conservatory
+local hft = Map({id = 1701}) -- Heart of the Forest - The Trunk
+local hfr = Map({id = 1702}) -- Heart of the Forest - The Roots
 
 -------------------------------------------------------------------------------
 ------------------------------------ RARES ------------------------------------
@@ -263,10 +272,7 @@ map.nodes[65702430] = Rare({
     id = 167724,
     quest = 60258,
     note = L['rotbriar_note'],
-    rewards = {
-        Achievement({id = 14309, criteria = 48789}),
-        Item({item = 175729, note = L['trinket']}) -- Rotbriar Sprout
-    }
+    rewards = {Achievement({id = 14309, criteria = 48789})}
 }) -- Rotbriar Boggart
 
 map.nodes[72425175] = Rare({
@@ -296,8 +302,7 @@ map.nodes[59304660] = Rare({
     note = L['slumbering_note'],
     rewards = {
         Achievement({id = 14309, criteria = 48792}),
-        Achievement({id = 14833, criteria = 49923, covenant = NECROLORD}),
-        Item({item = 175711, note = L['ring']}) -- Slumberwood Band
+        Achievement({id = 14833, criteria = 49923, covenant = NECROLORD})
     }
 }) -- The Slumbering Emperor
 
@@ -349,10 +354,6 @@ map.nodes[41254443] = Rare({
             }
         }), Transmog({item = 179518, type = L['staff'], note = '{npc:166135}'}), -- Glimmerlight Staff
         Transmog({item = 179534, type = L['polearm'], note = '{npc:166138}'}) -- Mi'kai's Deathscythe
-        -- Item({item=182455, type=L["trinket"], note='{npc:166146}'}), -- Dreamer's Mending
-        -- Item({item=182452, type=L["trinket"], note='{npc:166142}'}), -- Everchill Brambles
-        -- Item({item=182451, type=L["trinket"], note='{npc:166139}'}), -- Glimmerdust's Grand Design
-        -- Item({item=182454, type=L["trinket"], note='{npc:166140}'}), -- Murmurs in the Dark
     }
 })
 
@@ -704,3 +705,422 @@ map.nodes[24755197] = NAUGHTY
 map.nodes[33605740] = NAUGHTY
 map.nodes[39806560] = NAUGHTY
 map.nodes[51005480] = NAUGHTY
+
+-------------------------------------------------------------------------------
+-------------------------------- WILD HUNTING ---------------------------------
+-------------------------------------------------------------------------------
+
+local Beast = Class('Beast', Collectible,
+    {group = ns.groups.WILD_HUNTING, icon = 1604164})
+
+map.nodes[37695691] = Beast({
+    id = 161889,
+    rewards = {Achievement({id = 14779, criteria = 1})},
+    pois = {POI({39005420, 37805620})}
+}) -- Nightsong Wader
+
+map.nodes[64532423] = Beast({
+    id = 170734,
+    rewards = {Achievement({id = 14779, criteria = 2})},
+    pois = {POI({62402560, 58003260, 58403100})}
+}) -- Decayfly
+
+map.nodes[61515031] = Beast({
+    id = 163093,
+    rewards = {Achievement({id = 14779, criteria = 3})},
+    pois = {POI({61405540, 56205260, 57005440})}
+}) -- Basin Vulpin
+
+map.nodes[60513860] = Beast({
+    id = 166073,
+    rewards = {Achievement({id = 14779, criteria = 4})},
+    pois = {POI({58604620, 55804540, 56804280})}
+}) -- Greater Ardenmoth
+
+map.nodes[42685872] = Beast({
+    id = 161917,
+    rewards = {Achievement({id = 14779, criteria = 5})},
+    pois = {POI({39005540, 38205700, 38405340})}
+}) -- Verdant Prowler
+
+map.nodes[47644329] = Beast({
+    id = 167503,
+    rewards = {Achievement({id = 14779, criteria = 6})},
+    pois = {POI({50004160, 45404860, 45804640})}
+}) -- Veilwing Guardian
+
+map.nodes[58075778] = Beast({
+    id = 170856,
+    rewards = {Achievement({id = 14779, criteria = 7})},
+    pois = {POI({58005660, 55606520, 56206080})}
+}) -- Highland Runestag
+
+map.nodes[39693429] = Beast({
+    id = 169750,
+    rewards = {Achievement({id = 14779, criteria = 8})},
+    pois = {POI({39603420, 35203340, 35403520})}
+}) -- Wild Gloomrunner
+
+map.nodes[35463705] = Beast({
+    id = 169819,
+    rewards = {Achievement({id = 14779, criteria = 9})},
+    pois = {POI({32403020, 32603180, 33203640})}
+}) -- Voracious Lasher
+
+map.nodes[36033849] = Beast({
+    id = 169768,
+    rewards = {Achievement({id = 14779, criteria = 10})},
+    pois = {POI({36003860, 35803500, 37004000})}
+}) -- Mystic Gulper
+
+map.nodes[66075119] = Beast({
+    id = 165912,
+    rewards = {Achievement({id = 14779, criteria = 11})},
+    pois = {POI({65205640, 65005280, 65205860})}
+}) -- Roving Gladechewer
+
+map.nodes[65205280] = Beast({
+    id = 158946,
+    rewards = {Achievement({id = 14779, criteria = 12})},
+    pois = {POI({67403240, 65855157, 65405080})}
+}) -- Wild Gormling
+
+-------------------------------------------------------------------------------
+------------------ TO ALL THE SQUIRRELS I'VE LOVED AND LOST -------------------
+-------------------------------------------------------------------------------
+
+map.nodes[51906120] = Squirrel({
+    id = 169979,
+    rewards = {Achievement({id = 14731, criteria = 50254})},
+    pois = {
+        POI({
+            56604600, 57204680, 58404640, 58404660, 58604640, 58604660,
+            59003720, 60203740, 60403840, 60403860, 60404040, 60404060,
+            60603840, 60603960, 60604060, 61004600, 61204180, 61403620,
+            61403680, 61403940, 61404280, 61603620, 61603940, 61603960,
+            61604280, 62204560, 62404480, 62604460, 62804220, 63004360,
+            63004800, 63204660, 63404280, 63404600, 63404860, 63604600,
+            63604780, 63804140, 63804260, 63804700, 64204220, 64204880,
+            64604220, 64604700, 64604940, 64605520, 64804820, 64805140,
+            65004140, 65405300, 65604220, 65605200, 65804820, 66004920,
+            66005000, 66203720, 66204120, 66404020, 66803720, 67003940,
+            67004080, 67203840, 67403980, 67603980, 67803760, 68003720, 69203780
+        })
+    }
+}) -- Starmoth
+
+map.nodes[40802810] = Squirrel({
+    id = 166973,
+    rewards = {Achievement({id = 14731, criteria = 50255})},
+    pois = {POI({40202880, 40602740, 40802760, 42002740})}
+}) -- Timber Kit
+
+map.nodes[35205750] = Squirrel({
+    id = 174837,
+    rewards = {Achievement({id = 14731, criteria = 50256})},
+    pois = {
+        POI({
+            32405300, 33405700, 33605200, 33605320, 34405540, 35205740,
+            35205760, 58404720, 58604720
+        })
+    }
+}) -- Runewood Hoarder
+
+-------------------------------------------------------------------------------
+------------------------------- WILDSEED SPIRIT -------------------------------
+-------------------------------------------------------------------------------
+
+local WildseedSpirit = Class('WildseedSpirit', Node,
+    {scale = 1.5, group = ns.groups.WILDSEED_SPIRITS})
+
+tqc.nodes[26504100] = WildseedSpirit({
+    label = L['martial_spirit_label'],
+    icon = 3528296,
+    rewards = ({
+        Section(L['0x_wildseed_root_grain']), Item({item = 180974}), -- Novice's Satchel
+        ns.reward.Spacer(), Section(L['1x_wildseed_root_grain']),
+        Transmog({item = 181321, slot = L['wand']}), -- Gem-Crowned Wand
+        Transmog({item = 181327, slot = L['1h_mace']}), -- Spineforged Tenderizer
+        Transmog({item = 181329, slot = L['2h_sword']}), -- Marrowfused Claymore
+        Item({item = 180975}), -- Journeyman's Satchel
+        ns.reward.Spacer(), Section(L['2x_wildseed_root_grain']),
+        Transmog({item = 181323, slot = L['staff']}), -- Blightclutched Greatstaff
+        Transmog({item = 181325, slot = L['dagger']}), -- Marrowfused Dagger
+        Transmog({item = 181326, slot = L['dagger']}), -- Bloodstained Hacksaw
+        Transmog({item = 181328, slot = L['1h_sword']}), -- Marrowfused Sword
+        Transmog({item = 181330, slot = L['warglaive']}), -- Marrowfused Warglaive
+        Transmog({item = 181331, slot = L['shield']}), -- Marrowfused Shield
+        Pet({item = 181264, id = 2954}), -- Plaguelouse Larva
+        Pet({item = 181168, id = 2945}), -- Corpulent Bonetusk
+        Item({item = 180976}), -- Artisan's Satchel
+        ns.reward.Spacer(), Section(L['4x_wildseed_root_grain']),
+        Transmog({item = 181320, slot = L['crossbow']}), -- Bonejowl Ballista
+        Transmog({item = 181322, slot = L['offhand']}), -- Bonebound Tome
+        Transmog({item = 181310, slot = L['cloak']}), -- Spirit Tender's Pack
+        Mount({item = 181300, id = 1408}), -- Gruesome Flayedwing
+        Item({item = 180977}), -- Spirit-Tender's Satchel
+        Achievement({
+            id = 14676,
+            criteria = ({
+                id = 51504,
+                qty = true,
+                suffix = L['divine_martial_spirit']
+            })
+        })
+    })
+}) -- Maldraxxi (Martial Spirit)
+
+tqc.nodes[29504100] = WildseedSpirit({
+    label = L['dutiful_spirit_label'],
+    icon = 3528288,
+    rewards = ({
+        Section(L['0x_wildseed_root_grain']), Item({item = 180974}), -- Novice's Satchel
+        ns.reward.Spacer(), Section(L['1x_wildseed_root_grain']),
+        Transmog({item = 181225, slot = L['crossbow']}), -- Crossbow of Contemplative Calm
+        Transmog({item = 181226, slot = L['warglaive']}), -- Bronze Dual-Bladed Glaive
+        Transmog({item = 181232, slot = L['2h_sword']}), -- Cupbearer's Claymore
+        Transmog({item = 181234, slot = L['dagger']}), -- Dutybound Spellblade
+        Item({item = 180975}), -- Journeyman's Satchel
+        ns.reward.Spacer(), Section(L['2x_wildseed_root_grain']),
+        Transmog({item = 181228, slot = L['polearm']}), -- Temple Guard's Partisan
+        Transmog({item = 181229, slot = L['offhand']}), -- Tranquil's Censer
+        Transmog({item = 181230, slot = L['fist']}), -- Pugilist's Chakram
+        Transmog({item = 181233, slot = L['1h_mace']}), -- Bellringer's Hammer
+        Pet({item = 180814, id = 2933}), -- Sable
+        Pet({item = 180815, id = 2931}), -- Brightscale Hatchling
+        Item({item = 180976}), -- Artisan's Satchel
+        ns.reward.Spacer(), Section(L['4x_wildseed_root_grain']),
+        Transmog({item = 181227, slot = L['shield']}), -- Bronze Ceremonial Targe
+        Transmog({item = 181231, slot = L['dagger']}), -- Broadbladed Severer
+        Transmog({item = 181235, slot = L['1h_mace']}), -- Final Arbiter's Gavel
+        Transmog({item = 181310, slot = L['cloak']}), -- Spirit Tender's Pack
+        Mount({item = 181317, id = 1413}), -- Dauntless Duskrunner
+        Item({item = 180977}), -- Spirit-Tender's Satchel
+        Achievement({
+            id = 14676,
+            criteria = ({
+                id = 51505,
+                qty = true,
+                suffix = L['divine_dutiful_spirit']
+            })
+        })
+    })
+}) -- Kyrian (Dutiful Spirit)
+
+tqc.nodes[26504550] = WildseedSpirit({
+    label = L['prideful_spirit_label'],
+    icon = 3528312,
+    rewards = ({
+        Section(L['0x_wildseed_root_grain']), Item({item = 180974}), -- Novice's Satchel
+        ns.reward.Spacer(), Section(L['1x_wildseed_root_grain']),
+        Transmog({item = 180955, slot = L['polearm']}), -- Stonewing Halberd
+        Transmog({item = 180956, slot = L['gun']}), -- Axeblade Blunderbuss
+        Transmog({item = 180957, slot = L['warglaive']}), -- Batwing Glaive
+        Transmog({item = 180963, slot = L['offhand']}), -- Crypt Keeper's Vessel
+        Item({item = 180975}), -- Journeyman's Satchel
+        ns.reward.Spacer(), Section(L['2x_wildseed_root_grain']),
+        Transmog({item = 180954, slot = L['staff']}), -- Crypt Watcher's Spire
+        Transmog({item = 180959, slot = L['dagger']}), -- Dredger Anklebiter
+        Transmog({item = 180960, slot = L['2h_mace']}), -- Shiny-Metal Topped Basher
+        Transmog({item = 180964, slot = L['shield']}), -- Ember Court Barrier
+        Pet({item = 180603, id = 2904}), -- Violet Dredwing Pup
+        Pet({item = 181315, id = 2965}), -- Bloodfeaster Spiderling
+        Item({item = 180976}), -- Artisan's Satchel
+        ns.reward.Spacer(), Section(L['4x_wildseed_root_grain']),
+        Transmog({item = 180958, slot = L['1h_sword']}), -- Redelev House Foil
+        Transmog({item = 180961, slot = L['dagger']}), -- Silver-Bladed Ritual Dagger
+        Transmog({item = 180962, slot = L['1h_mace']}), -- Sterling-Silver Cudgel
+        Transmog({item = 181310, slot = L['cloak']}), -- Spirit Tender's Pack
+        Mount({item = 181316, id = 1376}), -- Silvertip Dredwing
+        Item({item = 180977}), -- Spirit-Tender's Satchel
+        Achievement({
+            id = 14676,
+            criteria = ({
+                id = 51506,
+                qty = true,
+                suffix = L['divine_prideful_spirit']
+            })
+        })
+    })
+}) -- Venthyr (Prideful Spirit)
+
+tqc.nodes[29504550] = WildseedSpirit({
+    label = L['untamed_spirit_label'],
+    icon = 3528280,
+    rewards = ({
+        Section(L['0x_wildseed_root_grain']), Item({item = 180974}), -- Novice's Satchel
+        ns.reward.Spacer(), Section(L['1x_wildseed_root_grain']),
+        Transmog({item = 179548, slot = L['1h_mace']}), -- Elderwood Gavel
+        Transmog({item = 179563, slot = L['offhand']}), -- Heartwood Stem
+        Item({item = 181313, quest = 62420}), -- Snapper Soul
+        Item({item = 181314, quest = 62421}), -- Gulper Soul
+        Item({item = 180975}), -- Journeyman's Satchel
+        ns.reward.Spacer(), Section(L['2x_wildseed_root_grain']),
+        Transmog({item = 179499, slot = L['dagger']}), -- Nightwillow Barb
+        Transmog({item = 179514, slot = L['1h_sword']}), -- Ripvine Saber
+        Transmog({item = 179538, slot = L['2h_mace']}), -- Grove Warden's Maul
+        Transmog({item = 179585, slot = L['bow']}), -- Nightwillow Shortbow
+        Transmog({item = 179605, slot = L['shield']}), -- Elderwood Barrier
+        Transmog({item = 181306, slot = L['cloak']}), -- Spirit Tender's Bulb
+        Pet({item = 180628, id = 2923}), -- Pearlwing Heron
+        Pet({item = 180639, id = 2912}), -- Dusty Sporeflutterer
+        Mount({item = 180414, id = 1355}), -- Wakener's Runestag
+        Item({item = 180976}), -- Artisan's Satchel
+        ns.reward.Spacer(), Section(L['4x_wildseed_root_grain']),
+        Transmog({item = 179509, slot = L['warglaive']}), -- Grove Warden's Edge
+        Transmog({item = 179516, slot = L['staff']}), -- Songwood Staff
+        Transmog({item = 179533, slot = L['polearm']}), -- Grove Warden's Harvester
+        Mount({item = 180726, id = 1392}), -- Pale Acidmaw
+        Mount({item = 180723, id = 1358}), -- Enchanted Wakener's Runestag
+        Transmog({item = 181310, slot = L['cloak']}), -- Spirit Tender's Pack
+        Item({item = 180977}), -- Spirit-Tender's Satchel
+        Achievement({
+            id = 14676,
+            criteria = ({
+                id = 51507,
+                qty = true,
+                suffix = L['divine_untamed_spirit']
+            })
+        })
+    })
+}) -- Night Fae (Untamed Spirit)
+
+-------------------------------------------------------------------------------
+--------------------------------- SOULSHAPES ----------------------------------
+-------------------------------------------------------------------------------
+
+local CatSoul = Soulshape({
+    id = 181694,
+    icon = 656574,
+    note = L['soulshape_cat_note'],
+    rewards = {
+        Item({item = 187819, quest = 64961, covenant = NIGHTFAE}) -- Cat Soul
+    }
+}) -- Cat Soul
+
+map.nodes[65083646] = CatSoul
+map.nodes[51836923] = CatSoul
+map.nodes[60005513] = CatSoul
+map.nodes[51213104] = CatSoul
+map.nodes[37593625] = CatSoul
+map.nodes[69852732] = CatSoul
+
+hft.nodes[53474971] = Collectible({
+    id = 174608,
+    icon = 1339013,
+    quest = 64938,
+    covenant = NIGHTFAE,
+    note = L['soulshape_corgi_note']
+}) -- Corgi Soul
+
+hfr.nodes[58006900] = Collectible({
+    id = 182093,
+    icon = 656577,
+    quest = 64982,
+    covenant = NIGHTFAE,
+    note = L['soulshape_well_fed_cat_note']
+}) -- Well Fed Cat Soul
+
+-------------------------------------------------------------------------------
+----------------------------- SHADOWLANDS SAFARI ------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[64202360] = Safari.DecayGrub({
+    pois = {
+        POI({
+            57603360, 58003480, 58203180, 58203260, 58403080, 58803000,
+            58803600, 58803660, 59003200, 59402880, 59403100, 59603100,
+            59603620, 59802980, 59803260, 60202820, 60203500, 60802580,
+            60802780, 60803480, 61003040, 61203180, 61402880, 61403280,
+            61602360, 61803020, 62202500, 62202740, 62202900, 62402300,
+            62602240, 62802540, 62802700, 63202620, 63202860, 63203060,
+            63402340, 63402360, 63402840, 63602940, 63802180, 63802640,
+            63802660, 63802820, 64202340, 64202360, 64602420, 65402340,
+            65602280, 65602480, 65602600, 66002200, 66202700, 67002820,
+            67002920, 67202360, 67402260, 68202280, 68803880, 69403020,
+            69403120, 69603740, 69603760, 69603920, 70002980, 70003200,
+            70203140, 70602620, 70803060, 71002920, 71003660, 71803120,
+            72002580, 72202780, 72203700, 72203820, 72602760, 72803380,
+            73802780, 74402660, 74602920, 75203000, 75403280, 75803360
+        })
+    }
+}) -- Decay Grub
+
+map.nodes[37805200] = Safari.DeepwoodLeaper({
+    pois = {
+        POI({
+            24805300, 25205480, 25805640, 25805780, 26006120, 26006200,
+            26605620, 26606140, 27205980, 27405840, 27405940, 27606160,
+            27606500, 28405260, 28405640, 28405880, 28605640, 28605720,
+            28605840, 28605860, 28606400, 29005400, 29605680, 29806400,
+            30006000, 30205920, 30405540, 30405560, 30406200, 30406340,
+            31606240, 31606260, 34205780, 34206200, 34206280, 35006120,
+            35205480, 35605920, 35805380, 36806220, 37005320, 37405200,
+            37605040, 37605060, 37805200, 38006260, 38406380, 38605040,
+            38606380, 38806460, 38806560, 39406120, 39406280, 39606280,
+            39805040, 40006140, 40006380, 40006460, 40404800, 41406440,
+            41406460, 41804980, 41806920, 47806900, 48605720, 48806040,
+            49005840, 49005860, 49206840, 49406940, 49406960, 49606940,
+            49606960, 50205600, 50205840, 50205860, 50405500, 50605520,
+            50806820, 51005360, 51205560, 51605800, 52005200, 52005540,
+            52005560, 52405300, 53205080, 53605140, 53606700
+        })
+    }
+}) -- Deepwood Leaper
+
+map.nodes[30804980] = Safari.GormRootstinger({
+    pois = {
+        POI({
+            24404800, 24604880, 25405160, 25405300, 25605160, 26805240,
+            27204880, 27605160, 28405020, 28405100, 29205040, 29205060,
+            29404620, 29604840, 29604900, 29804640, 30004720, 30005040,
+            30005060, 30404420, 30804980, 31204540, 31204560, 31204840,
+            31204860, 31604640, 31604660, 32005080, 32204940, 32405000,
+            33004980, 65405600, 65405740, 65605520, 66005340, 66005640,
+            66005740, 66205400, 66605220, 66605520, 66605600, 67005660,
+            67205820, 67405120, 67405300, 67605260, 67805800, 68005600,
+            68005740, 68005880, 68205400, 68805640, 68805660, 69205340,
+            69205420, 69605380, 69605640, 69805720, 70005280, 70205480,
+            70605740, 71205360, 71405120, 71405600, 71605320, 71605600,
+            71805240, 72205080, 72805220
+        })
+    }
+}) -- Gorm Rootstinger
+
+map.nodes[53203220] = Safari.Starmoth({
+    pois = {
+        POI({
+            47803840, 48003920, 49203480, 49403700, 49803180, 50003740,
+            50203500, 50403140, 50403260, 50403580, 50403880, 50603880,
+            50803380, 51003540, 51003600, 51003820, 51203260, 51403700,
+            51603200, 51803500, 51803940, 52203720, 52403360, 53002900,
+            53003000, 53003440, 53203220, 53203340, 53403460, 53603040,
+            53603060, 53603380, 53603460, 54003740, 54003840, 54003940,
+            54203200, 54803440, 54803500, 54803680, 55003060, 55203820,
+            55403860, 55603600, 55803320, 55803380, 56003900, 56203700,
+            56803840, 57003740, 57203880
+        })
+    }
+}) -- Starmoth
+
+map.nodes[52606180] = Safari.TranquilWader({
+    pois = {
+        POI({
+            49805960, 50005680, 50005780, 50405200, 50405940, 50605200,
+            50605280, 50606020, 51606000, 51805340, 52005440, 52405460,
+            52406140, 52406160, 52606180, 52805540, 52805580, 53005940,
+            53005980, 53405420, 53805440, 54005700, 54005760, 54006000,
+            54205520, 54405940, 54406060, 54805440, 54805540, 54805560,
+            54805840, 54805860, 55005680, 55206000, 55206080, 55605720
+        })
+    }
+}) -- Tranquil Wader
+
+map.nodes[40005900] = Safari.VerdantKit({
+    pois = {
+        POI({
+            37405540, 38405340, 40005900, 40805140, 41204980, 42405640,
+            42405660, 42605300, 42605360, 42605460
+        })
+    }
+}) -- Verdant Kit

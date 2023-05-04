@@ -43,6 +43,7 @@ L['trinket'] = '장신구'
 L['activation_unknown'] = '활성화 방법 알려지지 않음!'
 L['requirement_not_found'] = '요구사항 위치 불명!'
 L['multiple_spawns'] = '생성 위치가 여러 곳입니다.'
+L['shared_drops'] = nil
 
 L['Requires'] = '요구사항'
 L['ranked_research'] = '%s (연구단계 %d/%d)'
@@ -59,10 +60,12 @@ L['daily'] = '일간'
 L['weekly'] = '주간'
 L['normal'] = '보통'
 L['hard'] = '어려움'
+L['heirloom'] = '유산'
 L['mount'] = '탈것'
 L['pet'] = '애완동물'
+L['recipe'] = nil
 L['spell'] = '주문'
-L['title'] = nil
+L['title'] = '칭호'
 L['toy'] = '장난감'
 L['rep'] = '평판'
 L['completed'] = '완료'
@@ -73,10 +76,15 @@ L['unobtainable'] = '획득불가'
 L['unlearnable'] = '습득불가'
 L['defeated'] = '처치함'
 L['undefeated'] = '처치하지 않음'
+L['elite'] = '정예'
 
-L['follower_type_follower'] = nil
-L['follower_type_champion'] = nil
-L['follower_type_companion'] = nil
+L['follower_type_follower'] = '추종자'
+L['follower_type_champion'] = '영웅'
+L['follower_type_companion'] = '동료'
+
+L['rep_honored'] = nil
+L['rep_revered'] = nil
+L['rep_exalted'] = nil
 
 -------------------------------------------------------------------------------
 --------------------------------- CONTEXT MENU --------------------------------
@@ -84,6 +92,8 @@ L['follower_type_companion'] = nil
 
 L['context_menu_set_waypoint'] = '지도 비행경로 설정'
 L['context_menu_add_tomtom'] = 'TomTom에 추가'
+L['context_menu_add_group_tomtom'] = nil
+L['context_menu_add_focus_group_tomtom'] = nil
 L['context_menu_hide_node'] = '이 지점 숨김'
 L['context_menu_restore_hidden_nodes'] = '모든 숨긴 지점 복구'
 
@@ -140,6 +150,8 @@ L['options_mount_rewards'] = '탈것 보상 표시'
 L['options_mount_rewards_desc'] = '탈것 보상을 툴팁에 표시하고 수집 진행상황을 추적합니다'
 L['options_pet_rewards'] = '애완동물 보상 표시'
 L['options_pet_rewards_desc'] = '애완동물 보상을 툴팁에 표시하고 수집 진행상황을 추적합니다'
+L['options_recipe_rewards'] = nil
+L['options_recipe_rewards_desc'] = nil
 L['options_toy_rewards'] = '장난감 보상 표시'
 L['options_toy_rewards_desc'] = '장난감 보상을 툴팁에 표시하고 수집 진행상황을 추적합니다'
 L['options_transmog_rewards'] = '형상변환 보상 표시'
@@ -173,10 +185,14 @@ L['options_toggle_show_loot'] = '드랍템 표시'
 L['options_toggle_show_loot_desc'] = '드랍템 정보를 툴팁에 표시합니다'
 L['options_toggle_show_notes'] = '가이드 표시'
 L['options_toggle_show_notes_desc'] = '가이드가 있으면 툴팁에 표시합니다'
+L['options_toggle_use_standard_time'] = nil
+L['options_toggle_use_standard_time_desc'] = nil
 
 --------------------------------- DEVELOPMENT ---------------------------------
 
 L['options_dev_settings'] = '개발도구'
+L['options_toggle_show_debug_currency'] = nil
+L['options_toggle_show_debug_currency_desc'] = nil
 L['options_toggle_show_debug_map'] = nil
 L['options_toggle_show_debug_map_desc'] = nil
 L['options_toggle_show_debug_quest'] = nil

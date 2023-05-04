@@ -97,9 +97,19 @@ end
 
 local Item = Class('Item', Requirement)
 
-function Item:Initialize(id, count)
-    self.id, self.count = id, count
+-- Quality (optional - added in Dragnflight):
+-- 1 = Bronze 1 diamond
+-- 2 = Silver 2 diamonds
+-- 3 = Gold 3 diamonds
+-- 4 = Diamond 4 diamonds
+-- 5 = Orange 1 large diamond
+function Item:Initialize(id, count, quality)
+    self.id, self.count, self.quality = id, count, quality
     self.text = string.format('{item:%d}', self.id)
+    if self.quality ~= nil then
+        self.text = self.text ..
+                        C_Texture.GetCraftingReagentQualityChatIcon(self.quality)
+    end
     if self.count and self.count > 1 then
         self.text = self.text .. ' x' .. self.count
     end
@@ -113,21 +123,16 @@ function Item:IsMet() return ns.PlayerHasItem(self.id, self.count) end
 
 local Profession = Class('Profession', Requirement)
 
-function Profession:Initialize(profession, skillID)
-    self.profession = profession
-    self.text = C_TradeSkillUI.GetTradeSkillDisplayName(skillID)
+function Profession:Initialize(skillID, variantID, level)
+    self.skillID = skillID
+    self.variantID = variantID
+    self.level = level
+    self.text = C_TradeSkillUI.GetTradeSkillDisplayName(variantID or skillID)
+
+    if level then self.text = self.text .. ' (' .. level .. ')' end
 end
 
-function Profession:IsMet()
-    local prof1, prof2, archaeology, fishing, cooking = GetProfessions()
-    local professions = {prof1, prof2, archaeology, fishing, cooking}
-    for i = 1, #professions do
-        if professions[i] ~= nil then
-            if self.profession == professions[i] then return true end
-        end
-    end
-    return false
-end
+function Profession:IsMet() return ns.PlayerHasProfession(self.skillID) end
 
 -------------------------------------------------------------------------------
 ------------------------------------ QUEST ------------------------------------
@@ -135,9 +140,16 @@ end
 
 local Quest = Class('Quest', Requirement)
 
-function Quest:Initialize(id) self.id = id end
+function Quest:Initialize(id, text, daily)
+    self.id, self.text, self.daily = id, text, daily
+end
 
-function Quest:GetText() return C_QuestLog.GetTitleForQuestID(self.id) end
+function Quest:GetText()
+    local icon = self.daily and ns.GetIconLink('quest_ab') or
+                     ns.GetIconLink('quest_ay')
+    local text = C_QuestLog.GetTitleForQuestID(self.id) or self.text or UNKNOWN
+    return icon .. text
+end
 
 function Quest:IsMet() return C_QuestLog.IsQuestFlaggedCompleted(self.id) end
 
@@ -148,17 +160,22 @@ function Quest:IsMet() return C_QuestLog.IsQuestFlaggedCompleted(self.id) end
 local Reputation = Class('Reputation', Requirement)
 
 -- @todo will cause problems when requiring lower / negative reputations. Maybe add comparison as optional parameter with default value '>='.
-function Reputation:Initialize(id, level) self.id, self.level = id, level end
+function Reputation:Initialize(id, level, isRenown)
+    self.id, self.level, self.isRenown = id, level, isRenown
+end
 
 function Reputation:GetText()
     local name = GetFactionInfoByID(self.id)
-    local level = GetText('FACTION_STANDING_LABEL' .. self.level)
+    local level = self.isRenown and self.level or
+                      GetText('FACTION_STANDING_LABEL' .. self.level)
+
     return string.format(name .. ' (' .. level .. ')')
 end
 
 function Reputation:IsMet()
-    local _, _, standingID = GetFactionInfoByID(self.id)
-
+    local standingID = self.isRenown and
+                           C_MajorFactions.GetCurrentRenownLevel(self.id) or
+                           select(3, GetFactionInfoByID(self.id))
     return standingID >= self.level
 end
 
@@ -181,6 +198,14 @@ function Spell:IsMet()
     end
     return false
 end
+
+-------------------------------------------------------------------------------
+------------------------------------- TOY -------------------------------------
+-------------------------------------------------------------------------------
+
+local Toy = Class('Toy', Item)
+
+function Toy:IsMet() return PlayerHasToy(self.id) end
 
 -------------------------------------------------------------------------------
 ----------------------------------- WAR MODE ----------------------------------
@@ -206,5 +231,6 @@ ns.requirement = {
     Reputation = Reputation,
     Requirement = Requirement,
     Spell = Spell,
+    Toy = Toy,
     WarMode = WarMode
 }

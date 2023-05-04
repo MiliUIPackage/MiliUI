@@ -71,6 +71,9 @@ ns.icons = { -- name => path
     star_chest_p = {Icon('star_chest_pink'), Glow('star_chest')},
     star_chest_y = {Icon('star_chest_yellow'), Glow('star_chest')},
 
+    star_skull_b = {Icon('star_skull_blue'), Glow('star_skull')},
+    star_skull_w = {Icon('star_skull_white'), Glow('star_skull')},
+
     war_mode_flags = {Icon('war_mode_flags'), nil},
     war_mode_swords = {Icon('war_mode_swords'), nil},
 
@@ -84,8 +87,12 @@ ns.icons = { -- name => path
     envelope = {Icon('envelope'), Glow('envelope')},
     left_mouse = {Icon('left_mouse'), nil},
     scroll = {Icon('scroll'), Glow('scroll')},
-    world_quest = {Icon('world_quest'), Glow('world_quest')}
+    world_quest = {Icon('world_quest'), Glow('world_quest')},
 
+    check_bl = {Icon('check_blue'), nil},
+    check_gn = {Icon('check_green'), nil},
+    check_gy = {Icon('check_gray'), nil},
+    check_yw = {Icon('check_yellow'), nil}
 }
 
 -------------------------------------------------------------------------------
@@ -99,7 +106,8 @@ local function GetIconPath(name)
 end
 
 local function GetIconLink(name, size, offsetX, offsetY)
-    local link = '|T' .. GetIconPath(name) .. ':' .. size .. ':' .. size
+    local link = '|T' .. GetIconPath(name) .. ':' .. (size or 0) .. ':' ..
+                     (size or 0) -- if size is nil icon will be textHeight
     if offsetX and offsetY then
         link = link .. ':' .. offsetX .. ':' .. offsetY
     end

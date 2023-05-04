@@ -146,7 +146,11 @@ end
 
 function Achievement:GetText()
     local _, name, _, _, _, _, _, _, _, icon = GetAchievementInfo(self.id)
-    return Icon(icon) .. ACHIEVEMENT_COLOR_CODE .. '[' .. name .. ']|r'
+    local text = Icon(icon) .. ACHIEVEMENT_COLOR_CODE .. '[' .. name .. ']|r'
+    if self.note then
+        text = text .. ns.color.White('\n(' .. self.note .. ')')
+    end
+    return text
 end
 
 function Achievement:GetStatus()
@@ -246,7 +250,7 @@ end
 
 function Follower:IsObtained()
     local followers = C_Garrison.GetFollowers(self:GetType('enum'))
-    for i = 1, #followers do
+    for i = 1, followers and #followers or 0 do
         local followerID = followers[i].followerID
         if (self.id == followerID) then return false end
     end
@@ -315,6 +319,19 @@ function Item:GetStatus()
 end
 
 -------------------------------------------------------------------------------
+----------------------------------- HEIRLOOM ----------------------------------
+-------------------------------------------------------------------------------
+
+local Heirloom = Class('Heirloom', Item, {type = L['heirloom']})
+
+function Heirloom:IsObtained() return C_Heirloom.PlayerHasHeirloom(self.item) end
+
+function Heirloom:GetStatus()
+    local collected = C_Heirloom.PlayerHasHeirloom(self.item)
+    return collected and Green(L['known']) or Red(L['missing'])
+end
+
+-------------------------------------------------------------------------------
 ------------------------------------ MOUNT ------------------------------------
 -------------------------------------------------------------------------------
 
@@ -344,7 +361,7 @@ function Pet:Initialize(attrs)
         Reward.Initialize(self, attrs)
         local name, icon = C_PetJournal.GetPetInfoBySpeciesID(self.id)
         self.itemIcon = icon
-        self.itemLink = '|cff1eff00[' .. name .. ']|r'
+        self.itemLink = ns.color.Green(name)
     end
 end
 
@@ -393,6 +410,47 @@ function Quest:GetStatus()
         local status = count .. '/' .. #self.id
         return (count == #self.id) and Green(status) or Red(status)
     end
+end
+
+-------------------------------------------------------------------------------
+------------------------------------ RECIPE -----------------------------------
+-------------------------------------------------------------------------------
+
+local Recipe = Class('Recipe', Item, {
+    display_option = 'show_recipe_rewards',
+    type = L['recipe']
+})
+
+function Recipe:Initialize(attrs)
+    Item.Initialize(self, attrs)
+
+    if not self.profession then
+        error('Recipe() reward requires a profession id to be set')
+    end
+end
+
+-- Tooltip Documentation:
+-- https://wowpedia.fandom.com/wiki/Patch_10.0.2/API_changes
+-- https://wowpedia.fandom.com/wiki/Patch_10.1.0/API_changes
+function Recipe:IsObtained()
+    local info = C_TooltipInfo.GetItemByID(self.item)
+    if info then
+        for _, line in ipairs(info.lines) do
+            if line.leftText and line.leftText == _G.ITEM_SPELL_KNOWN then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+function Recipe:GetStatus()
+    return self:IsObtained() and Green(L['known']) or Red(L['missing'])
+end
+
+function Recipe:IsEnabled()
+    if not Item.IsEnabled(self) then return false end
+    return ns.PlayerHasProfession(self.profession)
 end
 
 -------------------------------------------------------------------------------
@@ -552,9 +610,11 @@ ns.reward = {
     Currency = Currency,
     Follower = Follower,
     Item = Item,
+    Heirloom = Heirloom,
     Mount = Mount,
     Pet = Pet,
     Quest = Quest,
+    Recipe = Recipe,
     Spell = Spell,
     Title = Title,
     Toy = Toy,
