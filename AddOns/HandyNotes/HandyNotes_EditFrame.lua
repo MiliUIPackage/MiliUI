@@ -4,7 +4,7 @@ local HandyNotes = LibStub("AceAddon-3.0"):GetAddon("HandyNotes")
 local HN = HandyNotes:GetModule("HandyNotes")
 local L = LibStub("AceLocale-3.0"):GetLocale("HandyNotes", false)
 
-local WoW10 = select(4, GetBuildInfo()) >= 100002
+local WoW10 = select(4, GetBuildInfo()) >= 100000
 
 local info = {}
 local backdrop2 = {

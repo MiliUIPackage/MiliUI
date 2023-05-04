@@ -4,14 +4,14 @@
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-主程式
 ## Notes-zhTW: HandyNotes |n在地圖上提供方便的標註功能，搭配相關模組一起使用，可以在地圖上顯示寶箱、稀有怪...的位置。|n|cffffd200使用方法：|r從Esc>介面>插件>地圖標記，進行設定。
 ## Author: Xinhuan
-## Version: v1.6.13
+## Version: v1.6.15
 ## DefaultState: enabled
 ## X-Category: Map
 ## X-eMail: xinhuan @ gmail DOT com
 ## OptionalDeps: Ace3, TomTom, HereBeDragons
 ## X-Curse-Project-ID: 14154
 ## X-WoWI-ID: 15716
-
+## X-Category-zhTW: 地圖
 ## LoadManagers: AddonLoader
 ## X-LoadOn-Always: delayed
 
