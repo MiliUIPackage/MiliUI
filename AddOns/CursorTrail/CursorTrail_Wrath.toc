@@ -1,0 +1,13 @@
+## Interface: 30400
+## Title: CursorTrail
+## Notes: Adds a glowing trail effect to your mouse cursor.
+## Author: UppyDan (DJU)
+## Version: 3.4.0.1
+## SavedVariables: CursorTrail_Config
+## SavedVariablesPerCharacter: CursorTrail_PlayerConfig
+
+CursorTrail.lua
+CursorTrailConfig.lua
+CursorTrailTools.lua
+CursorTrailModels_Wrath.lua
+CursorTrailControls.lua

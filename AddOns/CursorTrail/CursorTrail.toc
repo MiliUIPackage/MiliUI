@@ -1,0 +1,16 @@
+## Interface: 100100
+## Title: CursorTrail
+## Notes: Adds a glowing trail effect to your mouse cursor.
+## Title-zhTW: |cff0099FF[介面]|r 滑鼠軌跡
+## Notes-zhTW: CursorTrail |n|n 為你的滑鼠游標加入發亮的軌跡特效。
+## DefaultState: Disabled
+## Author: UppyDan (DJU)
+## Version: 10.0.0.1
+## SavedVariables: CursorTrail_Config
+## SavedVariablesPerCharacter: CursorTrail_PlayerConfig
+
+CursorTrail.lua
+CursorTrailConfig.lua
+CursorTrailTools.lua
+CursorTrailModels.lua
+CursorTrailControls.lua
