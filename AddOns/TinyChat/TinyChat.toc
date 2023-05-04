@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title: TinyChat
 ## Notes: TinyChat
 ## Title-zhTW: |cffFF9999[社交]|r 聊天增強

@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title: Drift
 ## Notes: Modifies default UI frames so you can click and drag to move and scale.
 ## Title-zhTW: |cff0099FF[介面]|r 移動和縮放視窗

@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title: HandyNotes_WorldMapButton
 ## Version: 100005.02-Release
 ## Notes: Adds a Button to the Worldmap that can toggle HandyNotes Icons

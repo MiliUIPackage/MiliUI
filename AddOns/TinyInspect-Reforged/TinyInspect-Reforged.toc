@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title:  TinyInspect-Reforged |cFF69CCF0by Beezer|r
 ## Version: 9.1
 ## Notes: Show ItemLevel For Inspect & Party & Raid & Mouse & Bag & Bank ...

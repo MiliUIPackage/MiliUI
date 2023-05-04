@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 
 ## Author: StormFX, JJSheets
 ## OptionalDeps: Ace3, AceGUI-3.0_SFX-Widgets, LibDBIcon-1.0, LibDualSpec-1.0

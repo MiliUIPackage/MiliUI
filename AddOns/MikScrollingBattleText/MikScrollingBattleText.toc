@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Version: 5.8.1
 ## Title: Mik's Scrolling Battle Text
 ## Author: Mikord

@@ -1,4 +1,4 @@
-## Interface: 100007
+## Interface: 100100
 ## Title: Stuf Unit Frames
 ## Author: TotalPackage
 ## Notes: Main unitframes replacement. Assembly optional.
