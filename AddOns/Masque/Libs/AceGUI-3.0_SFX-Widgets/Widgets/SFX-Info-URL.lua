@@ -57,7 +57,14 @@ if Locale == "itIT" then
 	L["Press %s to cancel."] = "Premi %s per cancellare."
 	L["Press %s to copy."] = "Premi %s per copiare."
 	L["Select"] = "Seleziona"
---elseif Locale == "koKR" then
+elseif Locale == "koKR" then
+	L["Click to select this text."] = "이 텍스트를 선택하려면 클릭하세요."
+	L["Copy"] = "복사"
+	L["CTRL+C"] = "CTRL+C"
+	L["ESC"] = "ESC"
+	L["Press %s to cancel."] = "취소하려면 %s 키를 누르세요."
+	L["Press %s to copy."] = "복사하려면 %s 키를 누르세요."
+	L["Select"] = "선택"
 --elseif Locale == "ptBR" then
 elseif Locale == "ruRU" then
 	L["Click to select this text."] = "Щелкните, чтобы выделить этот текст."

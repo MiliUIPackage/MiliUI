@@ -16,7 +16,7 @@ local MASQUE, Core = ...
 -- Lua API
 ---
 
-local error, pairs, type = error, pairs, type
+local error, pairs, select, type = error, pairs, select, type
 
 ----------------------------------------
 -- Internal
@@ -190,7 +190,7 @@ function GMT:GetOptions(Order)
 end
 
 -- Registers a group-specific callback.
-function GMT:RegisterCallback(func, arg)
+function GMT:RegisterCallback(func, ...)
 	if self.ID == MASQUE then return end
 
 	if type(func) ~= "function" then
@@ -198,15 +198,29 @@ function GMT:RegisterCallback(func, arg)
 			error("Bad argument to Group method 'RegisterCallback'. 'func' must be a function.", 2)
 		end
 		return
-	elseif arg and type(arg) ~= "table" then
-		if Core.Debug then
-			error("Bad argument to Group method 'RegisterCallback'. 'arg' must be a table or nil.", 2)
-		end
-		return
 	end
 
-	self.__arg = arg
-	self.__func = func
+	local Count = select("#", ...)
+
+	if Count > 0 then
+		local cbs = self.Callbacks
+
+		for i = 1, Count do
+			local arg = select(i, ...)
+
+			if i == 1 and type(arg) == "table" then
+				self.__arg = arg
+
+				if Count == 1 then
+					self.__func = func
+				end
+			elseif type(arg) == "string" then
+				cbs[arg] = func
+			end
+		end
+	else
+		self.__func = func
+	end
 end
 
 -- Removes a button from the group and applies the default skin.
@@ -242,35 +256,6 @@ function GMT:ReSkin(Button)
 				SkinButton(Button, Regions, SkinID, Backdrop, Shadow, Gloss, Colors, db.Scale, Pulse)
 			end
 		end
-	end
-end
-
--- Registers a group-specific callback.
-function GMT:SetCallback(func, arg, selfCB)
-	if self.ID == MASQUE then return end
-
-	if type(func) ~= "function" then
-		if Core.Debug then
-			error("Bad argument to Group method 'SetCallback'. 'func' must be a function.", 2)
-		end
-		return
-	elseif arg and type(arg) ~= "table" then
-		if Core.Debug then
-			error("Bad argument to Group method 'SetCallback'. 'arg' must be a table or nil.", 2)
-		end
-		return
-	end
-
-	self.__arg = arg
-	self.__carg = (selfCB and self) or self.ID
-	self.__func = func
-
-	local Warn = Core.db.profile.CB_Warn
-	local Addon = self.Addon
-
-	if Warn[Addon] then
-		print("|cffff8800Masque Warning:|r", Addon, "called the deprecated API method, |cff000099'SetCallback'|r.  Please notify the author or post in the relevant issue on the Masque project page.")
-		Warn[Addon] = false
 	end
 end
 
@@ -335,35 +320,16 @@ end
 
 -- Fires the callback.
 -- * This methods is intended for internal use only.
--- * Update this in 10.1.0 to remove deprecated callback logic.
 function GMT:__FireCB(Option, Value)
-	local ao = self.Addon or false -- Remove in 10.1.0
 	local arg = self.__arg
-	local carg = self.__carg -- Remove in 10.1.0
-	local func = self.__func
+	local func = self.Callbacks[Option] or self.__func
 
-	-- Deprecated Callback logic - Remove in 10.1.0
-	if carg then
-		local db = self.db
-
-		if arg then
-			func(arg, carg, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
-		else
-			func(carg, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
-		end
-
-	-- New Callback Logic
-	elseif func then
+	if func then
 		if arg then
 			func(arg, self, Option, Value)
 		else
 			func(self, Option, Value)
 		end
-
-	-- Deprecated Callback logic - Remove in 10.1.0
-	elseif ao then
-		local db = self.db
-		Callback(ao, self.Group, db.SkinID, db.Backdrop, db.Shadow, db.Gloss, db.Colors, db.Disabled)
 	end
 end
 
@@ -576,6 +542,23 @@ function GMT:__Update(IsNew)
 				Sub:__Update()
 			end
 		end
+	end
+end
+
+----------------------------------------
+-- Deprecated
+---
+
+-- Temporary function to catch add-ons using deprecated API.
+function GMT:SetCallback(...)
+	if self.ID == MASQUE then return end
+
+	local Warn = Core.db.profile.CB_Warn
+	local Addon = self.Addon
+
+	if Addon and Warn[Addon] then
+		print("|cffff8800Masque Warning:|r", Addon, "called the deprecated API method, |cff000099'SetCallback'|r.  Please notify the author or post in the relevant issue on the Masque project page.")
+		Warn[Addon] = false
 	end
 end
 
