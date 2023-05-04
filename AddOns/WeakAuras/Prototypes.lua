@@ -748,7 +748,14 @@ if WeakAuras.IsRetail() then
     WeakAuras.ScanEvents("WA_TALENT_UPDATE")
 
     if (event == "WA_DELAYED_PLAYER_ENTERING_WORLD" or event == "PLAYER_TALENT_UPDATE") then
-      C_Timer.After(1, Private.UpdateTalentInfo)
+      C_Timer.After(1, function()
+        local spec = GetSpecialization()
+        if type(spec) == "number" and spec > 0 then
+          local specId = GetSpecializationInfo(spec)
+          Private.talentInfo[specId] = nil
+          Private.GetTalentData(specId)
+        end
+      end)
     end
 
     Private.StopProfileSystem("talent")
@@ -1049,7 +1056,7 @@ local function valuesForTalentFunction(trigger)
     if WeakAuras.IsRetail() then
       local single_class_and_spec = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
       if single_class_and_spec then
-        return Private.talentInfo[single_class_and_spec]
+        return Private.GetTalentData(single_class_and_spec)
       else
         -- this should never happen
         return {}
@@ -1267,10 +1274,13 @@ Private.load_prototype = {
       enableTest = function(trigger, talent, arg)
         if WeakAuras.IsRetail() then
           local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-          if specId and type(Private.talentInfo[specId]) == "table" then
-            for _, v in ipairs(Private.talentInfo[specId]) do
-              if talent == v[2] then
-                return true
+          if specId then
+            local talentData = Private.GetTalentData(specId)
+            if type(talentData) == "table" then
+              for _, v in ipairs(talentData) do
+                if talent == v[2] then
+                  return true
+                end
               end
             end
           end
@@ -1280,8 +1290,11 @@ Private.load_prototype = {
       end,
       multiConvertKey = WeakAuras.IsRetail() and function(trigger, key)
         local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-        if specId and type(Private.talentInfo[specId]) == "table" and Private.talentInfo[specId][key] then
-          return Private.talentInfo[specId][key][2]
+        if specId then
+          local talentData = Private.GetTalentData(specId)
+          if type(talentData) == "table" and talentData[key] then
+            return talentData[key][2]
+          end
         end
       end or nil,
       events = (WeakAuras.IsClassicEra() and {"CHARACTER_POINTS_CHANGED"})
@@ -1324,10 +1337,13 @@ Private.load_prototype = {
       enableTest = function(trigger, talent, arg)
         if WeakAuras.IsRetail() then
           local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-          if specId and type(Private.talentInfo[specId]) == "table" then
-            for _, v in ipairs(Private.talentInfo[specId]) do
-              if talent == v[2] then
-                return true
+          if specId then
+            local talentData = Private.GetTalentData(specId)
+            if type(talentData) == "table" then
+              for _, v in ipairs(talentData) do
+                if talent == v[2] then
+                  return true
+                end
               end
             end
           end
@@ -1337,8 +1353,11 @@ Private.load_prototype = {
       end,
       multiConvertKey = WeakAuras.IsRetail() and function(trigger, key)
         local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-        if specId and type(Private.talentInfo[specId]) == "table" and Private.talentInfo[specId][key] then
-          return Private.talentInfo[specId][key][2]
+        if specId then
+          local talentData = Private.GetTalentData(specId)
+          if type(talentData) == "table" and talentData[key] then
+            return talentData[key][2]
+          end
         end
       end or nil,
       events = (WeakAuras.IsClassicEra() and {"CHARACTER_POINTS_CHANGED"})
@@ -1383,10 +1402,13 @@ Private.load_prototype = {
       enableTest = function(trigger, talent, arg)
         if WeakAuras.IsRetail() then
           local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-          if specId and type(Private.talentInfo[specId]) == "table" then
-            for _, v in ipairs(Private.talentInfo[specId]) do
-              if talent == v[2] then
-                return true
+          if specId then
+            local talentData = Private.GetTalentData(specId)
+            if type(talentData) == "table" then
+              for _, v in ipairs(talentData) do
+                if talent == v[2] then
+                  return true
+                end
               end
             end
           end
@@ -1396,8 +1418,11 @@ Private.load_prototype = {
       end,
       multiConvertKey = WeakAuras.IsRetail() and function(trigger, key)
         local specId = Private.checkForSingleLoadCondition(trigger, "class_and_spec")
-        if specId and type(Private.talentInfo[specId]) == "table" and Private.talentInfo[specId][key] then
-          return Private.talentInfo[specId][key][2]
+        if specId then
+          local talentData = Private.GetTalentData(specId)
+          if type(talentData) == "table" and talentData[key] then
+            return talentData[key][2]
+          end
         end
       end or nil,
       events = (WeakAuras.IsClassicEra() and {"CHARACTER_POINTS_CHANGED"})
@@ -5480,7 +5505,7 @@ Private.event_prototypes = {
       {
         name = "count",
         display = L["Count"],
-        desc = L["Only if DBM shows it on it's bar"],
+        desc = L["Occurence of the event, reset when aura is unloaded\nCan be a range of values\nCan have multiple values separated by a comma or a space\n\nExamples:\n2nd 5th and 6th events: 2, 5, 6\n2nd to 6th: 2-6\nevery 2 events: /2\nevery 3 events starting from 2nd: 2/3\nevery 3 events starting from 2nd and ending at 11th: 2-11/3\n\nOnly if DBM shows it on it's bar"],
         type = "string",
         conditionType = "string",
       },
@@ -5745,7 +5770,7 @@ Private.event_prototypes = {
       {
         name = "count",
         display = L["Count"],
-        desc = L["Only if BigWigs shows it on it's bar"],
+        desc = L["Occurence of the event, reset when aura is unloaded\nCan be a range of values\nCan have multiple values separated by a comma or a space\n\nExamples:\n2nd 5th and 6th events: 2, 5, 6\n2nd to 6th: 2-6\nevery 2 events: /2\nevery 3 events starting from 2nd: 2/3\nevery 3 events starting from 2nd and ending at 11th: 2-11/3\n\nOnly if BigWigs shows it on it's bar"],
         type = "string",
         store = true,
         conditionType = "string",
@@ -6302,8 +6327,11 @@ Private.event_prototypes = {
             end
             if classId and trigger.spec then
               local specId = GetSpecializationInfoForClassID(classId, trigger.spec)
-              if specId and Private.talentInfo[specId] then
-                return Private.talentInfo[specId]
+              if specId then
+                local talentData = Private.GetTalentData(specId)
+                if talentData then
+                  return talentData
+                end
               end
             end
             return {}
@@ -6329,8 +6357,11 @@ Private.event_prototypes = {
           end
           if classId and trigger.spec then
             local specId = GetSpecializationInfoForClassID(classId, trigger.spec)
-            if specId and Private.talentInfo[specId] and Private.talentInfo[specId][key] then
-              return Private.talentInfo[specId][key][2]
+            if specId then
+              local talentData = Private.GetTalentData(specId)
+              if type(talentData) == "table" and talentData[key] then
+                return talentData[key][2]
+              end
             end
           end
         end or nil,
@@ -7307,6 +7338,218 @@ Private.event_prototypes = {
     countEvents = true,
     delayEvents = true,
     timedrequired = true
+  },
+  ["Encounter Events"] = {
+    type = "event",
+    events = {
+      ["events"] = {
+        "ENCOUNTER_START",
+        "ENCOUNTER_END"
+      }
+    },
+    name = L["Entering/Leaving Encounter"],
+    args = {
+      {
+        name = "eventtype",
+        required = true,
+        display = L["Type"],
+        type = "select",
+        values = "encounter_event_type",
+        test = "event == %q",
+        reloadOptions = true
+      },
+      {
+        name = "encounterId",
+        display = L["Id"],
+        type = "string",
+        validate = WeakAuras.ValidateNumeric,
+        conditionType = "number",
+        store = true,
+        init = "arg"
+      },
+      {
+        name = "encounterName",
+        display = L["Name"],
+        type = "string",
+        conditionType = "string",
+        store = true,
+        init = "arg"
+      },
+      {
+        name = "difficulty",
+        display = L["Difficulty"],
+        type = "select",
+        values = "difficulty_types",
+        test = "%q == WeakAuras.InstanceDifficulty()",
+        conditionType = "select",
+        conditionTest = function(state, needle)
+          return WeakAuras.InstanceDifficulty() == needle
+        end,
+        store = true,
+        init = "arg"
+      },
+      {},
+      {
+        name = "success",
+        display = L["Success"],
+        type = "toggle",
+        conditionType = "bool",
+        enable = function(trigger)
+          return trigger.eventtype == "ENCOUNTER_END"
+        end,
+        store = true,
+        test = "success == 1",
+        conditionTest = function(state, needle)
+          return state and (state.success == needle)
+        end,
+        init = "arg"
+      }
+    },
+    statesParameter = "one",
+    countEvents = true,
+    delayEvents = true,
+    timedrequired = true
+  },
+  ["Evoker Essence"] = {
+    type = "unit",
+    events = {},
+    internal_events = {
+      "ESSENCE_UPDATE"
+    },
+    force_events = "ESSENCE_UPDATE",
+    name = L["Evoker Essence"],
+    loadFunc = function()
+      WeakAuras.InitEssenceCooldown()
+    end,
+    statesParameter = "one",
+    init = function(trigger)
+      trigger.essence = trigger.essence or 0
+      local ret = [[
+        local triggerEssence = %s
+        local genericShowOn = %s
+        local duration, expirationTime, remaining, paused, essence, total = WeakAuras.GetEssenceCooldown(triggerEssence)
+        local ready = paused
+        local onCooldown = paused == false
+      ]]
+      return ret:format(
+        trigger.use_essence and trigger.essence or "nil",
+        trigger.use_essence and trigger.essence and ("[[" .. (trigger.genericShowOn or "") .. "]]") or "[[showAlways]]"
+      );
+    end,
+    args = {
+      {
+        name = "note",
+        type = "description",
+        display = "",
+        text = function()
+          return L["Note: This trigger relies on the WoW API, which returns incorrect information in some cases."]
+        end
+      },
+      {
+        name = "essence",
+        display = L["Essence"],
+        type = "select",
+        values = "essence_specific_types",
+        test = "(genericShowOn == \"showOnReady\" and ready) " ..
+        "or (genericShowOn == \"showOnCooldown\" and onCooldown) " ..
+        "or (genericShowOn == \"showAlways\" and paused ~= nil)",
+        reloadOptions = true
+      },
+      {
+        name = "genericShowOn",
+        display =  L["Show"],
+        type = "select",
+        values = "cooldown_progress_behavior_types",
+        test = "true",
+        enable = function(trigger) return trigger.use_essence end,
+        required = true
+      },
+      {
+        hidden = true,
+        name = "onCooldown",
+        test = "true",
+        display = L["On Cooldown"],
+        conditionType = "bool",
+        conditionTest = function(state, needle)
+          return state and state.show and state.expirationTime and (state.expirationTime == math.huge) == (needle == 0)
+        end,
+        enable = function(trigger)
+          return trigger.use_essence and type(trigger.essence) == "number" and trigger.essence > 0
+        end
+      },
+      {
+        hidden = true,
+        name = "charging",
+        test = "true",
+        display = L["Charging"],
+        conditionType = "bool",
+        conditionTest = function(state, needle)
+          return state and state.show and (state.essence == state.triggerEssence - 1) == (needle == 1)
+        end,
+        enable = function(trigger)
+          return trigger.use_essence and type(trigger.essence) == "number" and trigger.essence > 0
+        end
+      },
+      {
+        name = "progressType",
+        hidden = true,
+        init = "'timed'",
+        store = true,
+        test = "true"
+      },
+      {
+        name = "duration",
+        hidden = true,
+        init = "duration",
+        test = "true",
+        store = true
+      },
+      {
+        name = "expirationTime",
+        init = "expirationTime",
+        hidden = true,
+        test = "true",
+        store = true
+      },
+      {
+        name = "remaining",
+        init = "remaining",
+        hidden = true,
+        test = "true",
+        store = true
+      },
+      {
+        name = "paused",
+        init = "paused",
+        hidden = true,
+        test = "true",
+        store = true
+      },
+      {
+        name = "triggerEssence",
+        hidden = true,
+        init = "triggerEssence",
+        test = "true",
+        store = true
+      },
+      {
+        name = "essence",
+        display = L["Current Essence"],
+        hidden = true,
+        init = "essence",
+        test = "true",
+        store = true
+      },
+      {
+        name = "total",
+        display = L["Total Essence"],
+        hidden = true,
+        init = "total",
+        test = "true",
+        store = true
+      },
+    },
+    automaticrequired = true,
   },
   ["Death Knight Rune"] = {
     type = "unit",

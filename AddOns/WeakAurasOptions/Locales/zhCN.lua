@@ -301,7 +301,8 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Custom Untrigger"] = "自定义取消触发器"
 	L["Custom Variables"] = "自定义变量"
 	L["Debuff Type"] = "减益类型"
-	L["Debug Console"] = "调试控制台"
+	--[[Translation missing --]]
+	L["Debug Log"] = "Debug Log"
 	L["Debug Log:"] = "调试日志："
 	L["Default"] = "默认"
 	L["Default Color"] = "默认颜色"
@@ -438,7 +439,6 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Frame Width"] = "帧宽度"
 	L["Frequency"] = "频率"
 	L["Full Circle"] = "完整圆形"
-	L["Get Help"] = "寻求帮助"
 	L["Global Conditions"] = "全局条件"
 	L["Glow %s"] = "发光 %s"
 	L["Glow Action"] = "发光动作"
@@ -501,6 +501,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Icon"] = "图标"
 	L["Icon Info"] = "图标信息"
 	L["Icon Inset"] = "图标内嵌"
+	--[[Translation missing --]]
+	L["Icon Picker"] = "Icon Picker"
 	L["Icon Position"] = "图标位置"
 	L["Icon Settings"] = "图标设置"
 	L["Icon Source"] = "图标来源"
@@ -526,6 +528,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Ignored Name(s)"] = "忽略名称"
 	L["Ignored Spell ID"] = "忽略法术 ID"
 	L["Import"] = "导入"
+	--[[Translation missing --]]
+	L["Import / Export"] = "Import / Export"
 	L["Import a display from an encoded string"] = "从字串导入一个图示"
 	L["Import as Copy"] = "以副本导入"
 	L["Import has no UID, cannot be matched to existing auras."] = "导入没有UID，无法与现有光环匹配。"
@@ -553,6 +557,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Is Boss Debuff"] = "首领施放的减益效果"
 	L["Is Stealable"] = "可偷取"
 	L["Is Unit"] = "是单位"
+	--[[Translation missing --]]
+	L["Join Discord"] = "Join Discord"
 	L["Justify"] = "对齐"
 	L["Keep Aspect Ratio"] = "保持比例不变"
 	L["Keep your Wago imports up to date with the Companion App."] = "利用Companion应用程序保持你的Wago导入最新。"
@@ -564,6 +570,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Length"] = "长度"
 	L["Length of |cFFFF0000%s|r"] = "长度|cFFFF0000%s|r"
 	L["Limit"] = "限制"
+	--[[Translation missing --]]
+	L["Line"] = "Line"
 	L["Lines & Particles"] = "线条和粒子"
 	L["Linked aura: "] = "关联光环："
 	L["Load"] = "载入"
@@ -588,6 +596,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Mirror"] = "镜像"
 	L["Model"] = "模型"
 	L["Model %s"] = "模型 %s"
+	--[[Translation missing --]]
+	L["Model Picker"] = "Model Picker"
 	L["Model Settings"] = "模型设置"
 	L["ModelPaths could not be loaded, the addon is %s"] = "无法载入Model Paths：%s"
 	L["Move Above Group"] = "移动上方的组"
@@ -616,6 +626,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Nameplates"] = "姓名板"
 	L["Negator"] = "不"
 	L["New Aura"] = "新建"
+	--[[Translation missing --]]
+	L["New Template"] = "New Template"
 	L["New Value"] = "新值"
 	L["No Children"] = "没有子项目"
 	L["No Logs saved."] = "没有已保存的调试日志。"
@@ -740,7 +752,6 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Same texture as Foreground"] = "与前景材质相同"
 	L["Saved Data"] = "已储存数据"
 	L["Scale"] = "缩放"
-	L["Search"] = "搜索"
 	L["Select Talent"] = "选择天赋"
 	L["Select the auras you always want to be listed first"] = "选择优先列出的光环"
 	L["Selected Frame"] = "已选择帧"
@@ -835,6 +846,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Text Settings"] = "文本设置"
 	L["Texture"] = "材质"
 	L["Texture Info"] = "材质信息"
+	--[[Translation missing --]]
+	L["Texture Picker"] = "Texture Picker"
 	L["Texture Rotation"] = "材质旋转"
 	L["Texture Settings"] = "材质设置"
 	L["Texture Wrap"] = "材质折叠"

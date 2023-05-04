@@ -279,6 +279,8 @@ L["Charged Combo Point 4"] = "Punto de combo cargado 4"
 L["Charges"] = "Cargas"
 --[[Translation missing --]]
 L["Charges Changed Event"] = "Charges Changed Event"
+--[[Translation missing --]]
+L["Charging"] = "Charging"
 L["Chat Frame"] = "Pantalla de Chat"
 L["Chat Message"] = "Mensaje de Chat"
 L["Check if a single talent match a Rank"] = "Comprobar si un talento coincide con un rango"
@@ -324,6 +326,8 @@ L["Critical Rating"] = "Índice de crítico"
 L["Crowd Controlled"] = "Bajo Control"
 L["Crushing"] = "Golpe Aplastador"
 L["C'thun"] = "C'thun"
+--[[Translation missing --]]
+L["Current Essence"] = "Current Essence"
 L["Current Experience"] = "Experiencia actual"
 L["Current Movement Speed (%)"] = "Velocidad de movimiento actual (%)"
 L["Current Stage"] = "Fase actual"
@@ -392,6 +396,8 @@ L["Destination Unit"] = "Unidad de Destino"
 L["Destination unit's raid mark index"] = "Destination unit's raid mark index"
 --[[Translation missing --]]
 L["Destination unit's raid mark texture"] = "Destination unit's raid mark texture"
+--[[Translation missing --]]
+L["Difficulty"] = "Difficulty"
 L["Disable Spell Known Check"] = "Desactivar comprobación de hechizo conocido"
 L["Disabled Spell Known Check"] = "Desactivar comprobación de hechizo conocido"
 L["Disease"] = "Enfermedad"
@@ -480,6 +486,8 @@ L["Enter static or relative values with %"] = "Introduce valores estáticos o re
 L["Entering"] = "Accediendo"
 L["Entering/Leaving Combat"] = "Entrar/Salir de combate"
 --[[Translation missing --]]
+L["Entering/Leaving Encounter"] = "Entering/Leaving Encounter"
+--[[Translation missing --]]
 L["Entry Order"] = "Entry Order"
 L["Environment Type"] = "Tipo de Entorno"
 L["Environmental"] = "Ambiental"
@@ -498,11 +506,27 @@ L["Error deserializing"] = "Error de deserialización"
 L["Error Frame"] = "Error Frame"
 L["ERROR in '%s' unknown or incompatible sub element type '%s'"] = "ERROR en '%s' tipo de subelemento '%s' desconocido o incompatible"
 L["Error not receiving display information from %s"] = "Error al no recibir información de pantalla de %s"
+--[[Translation missing --]]
+L["Essence"] = "Essence"
+--[[Translation missing --]]
+L["Essence #1"] = "Essence #1"
+--[[Translation missing --]]
+L["Essence #2"] = "Essence #2"
+--[[Translation missing --]]
+L["Essence #3"] = "Essence #3"
+--[[Translation missing --]]
+L["Essence #4"] = "Essence #4"
+--[[Translation missing --]]
+L["Essence #5"] = "Essence #5"
+--[[Translation missing --]]
+L["Essence #6"] = "Essence #6"
 L["Evade"] = "Evadir"
 L["Event"] = "Evento"
 L["Event(s)"] = "Evento(s)"
 L["Every Frame"] = "Cada Uno de los Marcos"
 L["Every Frame (High CPU usage)"] = "Cada fotograma (uso elevado de CPU)"
+--[[Translation missing --]]
+L["Evoker Essence"] = "Evoker Essence"
 L["Experience (%)"] = "Experiencia (%)"
 --[[Translation missing --]]
 L["Expertise Bonus"] = "Expertise Bonus"
@@ -702,6 +726,8 @@ L["Icon"] = "Icono"
 L["Icon Function"] = "Icon Function"
 --[[Translation missing --]]
 L["Icon Function (fallback state)"] = "Icon Function (fallback state)"
+--[[Translation missing --]]
+L["Id"] = "Id"
 L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/weakauras!"] = "Si necesitas más ayuda, abre un ticket en GitHub o visita nuestro Discord en https://discord.gg/weakauras."
 L["Ignis the Furnace Master"] = "Ignis, el Maestro de la Caldera"
 L["Ignore Dead"] = "Ignorar muertos"
@@ -960,6 +986,8 @@ L["Note: Due to how complicated the swing timer behavior is and the lack of APIs
 --[[Translation missing --]]
 L["Note: 'Hide Alone' is not available in the new aura tracking system. A load option can be used instead."] = "Note: 'Hide Alone' is not available in the new aura tracking system. A load option can be used instead."
 L["Note: The available text replacements for multi triggers match the normal triggers now."] = "Nota: las sustituciones de texto disponibles para los multiactivadores coinciden ahora con las de los activadores normales."
+--[[Translation missing --]]
+L["Note: This trigger relies on the WoW API, which returns incorrect information in some cases."] = "Note: This trigger relies on the WoW API, which returns incorrect information in some cases."
 L["Note: This trigger type estimates the range to the hitbox of a unit. The actual range of friendly players is usually 3 yards more than the estimate. Range checking capabilities depend on your current class and known abilities as well as the type of unit being checked. Some of the ranges may also not work with certain NPCs.|n|n|cFFAAFFAAFriendly Units:|r %s|n|cFFFFAAAAHarmful Units:|r %s|n|cFFAAAAFFMiscellanous Units:|r %s"] = "Nota: este tipo de activador estima el alcance a la hitbox de una unidad. El alcance real de los jugadores aliados suele ser 3 metros más que la estimación. Las capacidades de comprobación del alcance dependen de tu clase actual y de tus habilidades conocidas, así como del tipo de unidad que se esté comprobando. Algunos de los rangos pueden no funcionar con ciertos NPCs.|n|n|cFFAAFFAAUnidades amistosas:|r %s|n|cFFFFAAAAUnidades dañinas:|r %s|n|cFFAAAAFFUnidades diversas:|r %s"
 L["Noth the Plaguebringer"] = "Noth el Pesteador"
 L["NPC"] = "PNJ"
@@ -967,6 +995,54 @@ L["Npc ID"] = "ID de pnj"
 L["Number"] = "Número"
 L["Number Affected"] = "Dependiente de números"
 L["Object"] = "Objeto"
+--[[Translation missing --]]
+L[ [=[Occurence of the event, reset when aura is unloaded
+Can be a range of values
+Can have multiple values separated by a comma or a space
+
+Examples:
+2nd 5th and 6th events: 2, 5, 6
+2nd to 6th: 2-6
+every 2 events: /2
+every 3 events starting from 2nd: 2/3
+every 3 events starting from 2nd and ending at 11th: 2-11/3
+
+Only if BigWigs shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Can be a range of values
+Can have multiple values separated by a comma or a space
+
+Examples:
+2nd 5th and 6th events: 2, 5, 6
+2nd to 6th: 2-6
+every 2 events: /2
+every 3 events starting from 2nd: 2/3
+every 3 events starting from 2nd and ending at 11th: 2-11/3
+
+Only if BigWigs shows it on it's bar]=]
+--[[Translation missing --]]
+L[ [=[Occurence of the event, reset when aura is unloaded
+Can be a range of values
+Can have multiple values separated by a comma or a space
+
+Examples:
+2nd 5th and 6th events: 2, 5, 6
+2nd to 6th: 2-6
+every 2 events: /2
+every 3 events starting from 2nd: 2/3
+every 3 events starting from 2nd and ending at 11th: 2-11/3
+
+Only if DBM shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Can be a range of values
+Can have multiple values separated by a comma or a space
+
+Examples:
+2nd 5th and 6th events: 2, 5, 6
+2nd to 6th: 2-6
+every 2 events: /2
+every 3 events starting from 2nd: 2/3
+every 3 events starting from 2nd and ending at 11th: 2-11/3
+
+Only if DBM shows it on it's bar]=]
 L["Officer"] = "Oficial"
 --[[Translation missing --]]
 L["Offset from progress"] = "Offset from progress"
@@ -976,8 +1052,6 @@ L["Old Blizzard (2h | 3m | 10s | 2.4)"] = "Antiguo de Blizzard (2h | 3m | 10s | 
 L["On Cooldown"] = "En reutilización"
 --[[Translation missing --]]
 L["On Taxi"] = "On Taxi"
-L["Only if BigWigs shows it on it's bar"] = "Solo si BigWigs lo muestra en su barra"
-L["Only if DBM shows it on it's bar"] = "Solo si DBM lo muestra en su barra"
 L["Only if on a different realm"] = "Solo si está en otro reino"
 L["Only if Primary"] = "Solo si es primario"
 L["Onyxia"] = "Onyxia"
@@ -1448,6 +1522,8 @@ L["Subtract Channel"] = "Subtract Channel"
 --[[Translation missing --]]
 L["Subtract GCD"] = "Subtract GCD"
 --[[Translation missing --]]
+L["Success"] = "Success"
+--[[Translation missing --]]
 L["Sulfuron Harbinger"] = "Sulfuron Harbinger"
 L["Summon"] = "Invocar"
 --[[Translation missing --]]
@@ -1580,6 +1656,8 @@ L["Torghast"] = "Torghast"
 --[[Translation missing --]]
 L["Total"] = "Total"
 L["Total Duration"] = "Duración total"
+--[[Translation missing --]]
+L["Total Essence"] = "Total Essence"
 --[[Translation missing --]]
 L["Total Experience"] = "Total Experience"
 --[[Translation missing --]]

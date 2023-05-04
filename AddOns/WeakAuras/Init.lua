@@ -296,10 +296,9 @@ Private.frames = {}
 WeakAuras.normalWidth = 1.3
 WeakAuras.halfWidth = WeakAuras.normalWidth / 2
 WeakAuras.doubleWidth = WeakAuras.normalWidth * 2
-
 local versionStringFromToc = GetAddOnMetadata("WeakAuras", "Version")
-local versionString = "5.4.4"
-local buildTime = "20230329172446"
+local versionString = "5.5.1"
+local buildTime = "20230502154827"
 
 local flavorFromToc = GetAddOnMetadata("WeakAuras", "X-Flavor")
 local flavorFromTocToNumber = {
@@ -311,7 +310,7 @@ local flavorFromTocToNumber = {
 local flavor = flavorFromTocToNumber[flavorFromToc]
 
 --[==[@debug@
-if versionStringFromToc == "5.4.4" then
+if versionStringFromToc == "5.5.1" then
   versionStringFromToc = "Dev"
   buildTime = "Dev"
 end
@@ -343,7 +342,6 @@ end
 function WeakAuras.IsWrathOrRetail()
   return WeakAuras.IsRetail() or WeakAuras.IsWrathClassic()
 end
-
 
 WeakAuras.prettyPrint = function(...)
   print("|cff9900ffWeakAuras:|r ", ...)
@@ -386,6 +384,33 @@ do
   end
   if WeakAuras.IsRetail() then
     tinsert(LibStubLibs, "LibSpecialization")
+    AddonCompartmentFrame:RegisterAddon({
+      text = AddonName,
+      icon = "Interface\\AddOns\\WeakAuras\\Media\\Textures\\icon.blp",
+      registerForAnyClick = true,
+      func = function(btn, arg1, arg2, checked, mouseButton)
+        if mouseButton == "LeftButton" then
+          if IsShiftKeyDown() then
+            if not (WeakAuras.IsOptionsOpen()) then
+              WeakAuras.Toggle()
+            end
+          else
+            WeakAuras.OpenOptions()
+          end
+        elseif mouseButton == "MiddleButton" then
+          WeakAuras.ToggleMinimap()
+        else
+          WeakAuras.RealTimeProfilingWindow:Toggle()
+        end
+      end,
+      funcOnEnter = function()
+        GameTooltip:SetOwner(AddonCompartmentFrame, "ANCHOR_TOPRIGHT")
+        GameTooltip:SetText(AddonName)
+        GameTooltip:AddLine(WeakAuras.L["|cffeda55fLeft-Click|r to toggle showing the main window."], 1, 1, 1, true)
+        GameTooltip:Show()
+        WeakAuras.GenerateTooltip(true)
+      end,
+    })
   end
   for _, lib in ipairs(StandAloneLibs) do
     if not lib then
