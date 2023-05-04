@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2524, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230422052458")
+mod:SetRevision("20230504012735")
 mod:SetCreatureID(199659)--Warlord Kagni
 mod:SetEncounterID(2682)
 --mod:SetUsedIcons(1, 2, 3)
@@ -179,7 +179,7 @@ function mod:OnCombatStart(delay)
 	timerWallClimberCD:Start(30, 1)
 	self:Schedule(30, climberLoop, self)
 	timerGuardsandHuntsmanCD:Start(40-delay, 1 .. "-" .. DBM_COMMON_L.SOUTH)
-	timerDevastatingLeapCD:Start(98.4-delay, 1)
+	timerDevastatingLeapCD:Start(98.3-delay, 1)
 	if self:IsMythic() then
 		timerVigorousGaleCD:Start(71.9, 1)--71-75
 		timerPhoenixRushCD:Start(90.1, 1)--90-94

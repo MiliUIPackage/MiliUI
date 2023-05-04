@@ -73,7 +73,7 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20230502091838"),
+	Revision = parseCurseDate("20230504064648"),
 }
 
 local fakeBWVersion, fakeBWHash
@@ -81,8 +81,8 @@ local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
 if isRetail then
-	DBM.DisplayVersion = "10.1.0"
-	DBM.ReleaseRevision = releaseDate(2023, 5, 2) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "10.1.1"
+	DBM.ReleaseRevision = releaseDate(2023, 5, 4) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 3--When this is incremented, trigger force disable regardless of major patch
 	fakeBWVersion, fakeBWHash = 270, "48070b1"
 elseif isClassic then
@@ -4102,7 +4102,7 @@ do
 						-- Start days check
 						local curseDate = tostring(version)
 						local daysPerMonth = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-						local year, month, day = curseDate:sub(1, 4), curseDate:sub(5, 6), curseDate:sub(7, 8)
+						local year, month, day = tonumber(curseDate:sub(1, 4)), tonumber(curseDate:sub(5, 6)), tonumber(curseDate:sub(7, 8))
 						if day + 2 > daysPerMonth[month] then
 							day = day + 2 - daysPerMonth[month]
 							month = month + 1
