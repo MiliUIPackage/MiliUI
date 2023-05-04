@@ -10,7 +10,6 @@ local defaults = {
             holyPower = true,
             totem = true,
             soulShards = true,
-            pet = true,
             achievementAlert = true,
             targetOfTarget = true,
             targetCast = true,
@@ -34,10 +33,11 @@ local defaults = {
             bags = true,
             bagsResizable = false,
             comboPoints = true,
+            bonusRoll = true,
+            actionBars = false,
         },
         QueueStatusButton = {},
         TotemFrame = {},
-        PetFrame = {},
         VehicleSeatIndicator = {},
         HolyPower = {},
         Achievements = {},
@@ -57,6 +57,15 @@ local defaults = {
         SecondaryStatusTrackingBarContainer = {},
         MicroMenu = {},
         ComboPoints = {},
+        BonusRoll = {},
+        MainMenuBar = {},
+        MultiBarBottomLeft = {},
+        MultiBarBottomRight = {},
+        MultiBarRight = {},
+        MultiBarLeft = {},
+        MultiBar5 = {},
+        MultiBar6 = {},
+        MultiBar7 = {},
     }
 }
 
@@ -97,11 +106,6 @@ local options = {
         soulShards = {
             name = "靈魂裂片",
             desc = "啟用/停用支援術士的靈魂裂片",
-            type = "toggle",
-        },
-        pet = {
-            name = "寵物框架",
-            desc = "啟用/停用支援寵物頭像框架",
             type = "toggle",
         },
         achievementAlert = {
@@ -219,11 +223,20 @@ local options = {
             desc = "啟用/停用支援連擊點數",
             type = "toggle",
         },
+        bonusRoll = {
+            name = "骰子面板",
+            desc = "啟用/停用支援骰子面板",
+            type = "toggle",
+        },
+        actionBars = {
+            name = "快捷列",
+            desc = "允許快捷列的間距為零。警告: 所有快捷列都一定要至少移動過一次，不能完全不動，否則會發生錯誤。就算是移動後再移回原本的位置也可以!",
+            type = "toggle",
+        },
     },
 }
 
 local achievementFrameLoaded
-local petFrameLoaded
 local addonLoaded
 local totemFrameLoaded
 
@@ -249,6 +262,12 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         for _, frame in ipairs(EditModeManagerFrame.registeredSystemFrames) do
             local name = frame:GetName()
+            
+            -- was changed from MicroMenu to MicroMenuContainer in 10.1
+            if name == "MicroMenuContainer" then
+                name = "MicroMenu"
+            end
+            
             if not db[name] then db[name] = {} end
             lib:RegisterFrame(frame, "", db[name])
         end
@@ -301,31 +320,6 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end)
         end
         
-        
-    elseif (event == "UNIT_PET") and (not petFrameLoaded) and (addonLoaded) then
-        f:UnregisterEvent("UNIT_PET")
-        if f.db.global.EMEOptions.pet then
-            local function init()
-                PetFrame:SetParent(UIParent)
-                lib:RegisterFrame(PetFrame, "寵物框架", f.db.global.PetFrame)
-            end
-            
-            if InCombatLockdown() then
-                -- delay registering until combat ends
-                local tempFrame = CreateFrame("Frame")
-                tempFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
-                local doOnce
-                tempFrame:SetScript("OnEvent", function()
-                    if doOnce then return end
-                    doOnce = true
-                    init()
-                    tempFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
-                    lib:RepositionFrame(PetFrame)
-                end)
-            else
-                init()
-            end
-        end
     elseif (event == "PLAYER_ENTERING_WORLD") and (not achievementFrameLoaded) and (addonLoaded) then
         f:UnregisterEvent("PLAYER_ENTERING_WORLD")
         achievementFrameLoaded = true
@@ -371,10 +365,17 @@ f:SetScript("OnEvent", function(__, event, arg1)
         end
         
         if db.EMEOptions.focusTargetOfTarget then
-            lib:RegisterFrame(FocusFrameToT, "專注目標的目標", f.db.global.FocusToT)
+            FocusFrameToT:SetUserPlaced(false) -- bug with frame being saved in layout cache leading to errors in TargetFrame.lua
+            lib:RegisterFrame(FocusFrameToT, "專注目標的目標", f.db.global.FocusToT, FocusFrame, "TOPRIGHT")
+            lib:RegisterResizable(FocusFrameToT)
             FocusFrameToT:HookScript("OnHide", function()
                 if (not InCombatLockdown()) and EditModeManagerFrame.editModeActive and lib:IsFrameEnabled(FocusFrameToT) then
                     FocusFrameToT:Show()
+                end
+            end)
+            hooksecurefunc(FocusFrameToT, "SetPoint", function()
+                if FocusFrameToT:IsUserPlaced() then
+                    FocusFrameToT:SetUserPlaced(false)
                 end
             end)
         end
@@ -398,6 +399,12 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterFrame(QueueStatusButton, "排隊資訊", db.QueueStatusButton)
             lib:RegisterResizable(QueueStatusButton)
             lib:RegisterMinimapPinnable(QueueStatusButton)
+            hooksecurefunc(MicroMenu, "UpdateQueueStatusAnchors", function()
+                lib:RepositionFrame(QueueStatusButton)
+            end)
+            hooksecurefunc(MicroMenuContainer, "Layout", function()
+                MicroMenuContainer:SetWidth(MicroMenu:GetWidth()*MicroMenu:GetScale())
+            end)
         end
         
         if db.EMEOptions.minimap then
@@ -432,10 +439,10 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.showCoordinates then 
             hooksecurefunc(EditModeExpandedSystemSettingsDialog, "AttachToSystemFrame", function(self, frame)
-                self.Title:SetText(frame.systemName.." ("..math.floor(frame:GetLeft())..","..math.floor(frame:GetBottom())..")")
+                self.Title:SetText(frame:GetSystemName().." ("..math.floor(frame:GetLeft())..","..math.floor(frame:GetBottom())..")")
             end)
             hooksecurefunc(EditModeExpandedSystemSettingsDialog, "UpdateSettings", function(self, frame)
-                self.Title:SetText(frame.systemName.." ("..math.floor(frame:GetLeft())..","..math.floor(frame:GetBottom())..")")
+                self.Title:SetText(frame:GetSystemName().." ("..math.floor(frame:GetLeft())..","..math.floor(frame:GetBottom())..")")
             end)
         end
         
@@ -474,24 +481,33 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterResizable(VehicleSeatIndicator)
         end
         
-        -- in StatusTrackingBarManager.bars, [1] is the reputation bar, and [4] is experience.
-        -- Blizzard handles it weirdly, if you're max level they merge the reputation bar into the XP bar
         if db.EMEOptions.mainStatusTrackingBarContainer then
             lib:RegisterResizable(MainStatusTrackingBarContainer)
             lib:RegisterHideable(MainStatusTrackingBarContainer)
             C_Timer.After(1, function() lib:UpdateFrameResize(MainStatusTrackingBarContainer) end)
             hooksecurefunc(MainStatusTrackingBarContainer, "SetScale", function(frame, scale)
-                if UnitLevel("player") < GetMaxLevelForLatestExpansion() then
-                    StatusTrackingBarManager.bars[4]:SetScale(scale)
-                else
-                    StatusTrackingBarManager.bars[1]:SetScale(scale)
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == MainStatusTrackingBarContainer then
+                        bar:SetScale(scale) 
+                    end
                 end
             end)
             hooksecurefunc(MainStatusTrackingBarContainer, "SetScaleOverride", function(frame, scale)
-                if UnitLevel("player") < GetMaxLevelForLatestExpansion() then
-                    StatusTrackingBarManager.bars[4]:SetScale(scale)
-                else
-                    StatusTrackingBarManager.bars[1]:SetScale(scale)
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == MainStatusTrackingBarContainer then
+                        bar:SetScale(scale) 
+                    end
+                end
+            end)
+            
+            hooksecurefunc(StatusTrackingBarManager, "UpdateBarsShown", function()
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == MainStatusTrackingBarContainer then
+                        bar:SetScale(MainStatusTrackingBarContainer:GetScale()) 
+                    end
                 end
             end)
         end
@@ -501,35 +517,97 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterHideable(SecondaryStatusTrackingBarContainer)
             C_Timer.After(1, function() lib:UpdateFrameResize(SecondaryStatusTrackingBarContainer) end)
             hooksecurefunc(SecondaryStatusTrackingBarContainer, "SetScale", function(frame, scale)
-                if UnitLevel("player") < GetMaxLevelForLatestExpansion() then
-                    StatusTrackingBarManager.bars[1]:SetScale(scale)
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == SecondaryStatusTrackingBarContainer then
+                        bar:SetScale(scale) 
+                    end
                 end
             end)
-            hooksecurefunc(MainStatusTrackingBarContainer, "SetScaleOverride", function(frame, scale)
-                if UnitLevel("player") < GetMaxLevelForLatestExpansion() then
-                    StatusTrackingBarManager.bars[1]:SetScale(scale)
+            hooksecurefunc(SecondaryStatusTrackingBarContainer, "SetScaleOverride", function(frame, scale)
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == SecondaryStatusTrackingBarContainer then
+                        bar:SetScale(scale) 
+                    end
+                end
+            end)
+            
+            hooksecurefunc(StatusTrackingBarManager, "UpdateBarsShown", function()
+                for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
+                    local _, anchor = bar:GetPoint(1)
+                    if anchor == SecondaryStatusTrackingBarContainer then
+                        bar:SetScale(SecondaryStatusTrackingBarContainer:GetScale()) 
+                    end
                 end
             end)
         end
         
         if db.EMEOptions.menu then
-            lib:RegisterHideable(MicroMenu)
+            lib:RegisterHideable(MicroMenuContainer)
             C_Timer.After(1, function()
-                if lib:IsFrameMarkedHidden(MicroMenu) then
-                    MicroMenu:Hide()
+                if lib:IsFrameMarkedHidden(MicroMenuContainer) then
+                    MicroMenuContainer:Hide()
+                end
+            end)
+            local enabled = false
+            local padding
+            lib:RegisterCustomCheckbox(MicroMenuContainer, "Set padding to zero",
+                function()
+                    enabled = true
+                    for key, button in ipairs(MicroMenu:GetLayoutChildren()) do
+                        if key ~= 1 then
+                            local a, b, c, d, e = button:GetPoint(1)
+                            if (key == 2) and (not padding) then
+                                padding = d
+                            end
+                            button:ClearAllPoints()
+                            button:SetPoint(a, b, c, d-(3*(key-1)), e)
+                        end
+                    end
+                    MicroMenu:SetWidth(MicroMenu:GetWidth() - 30)
+                end,
+                
+                function(init)
+                    if not init then
+                        enabled = false
+                        for key, button in ipairs(MicroMenu:GetLayoutChildren()) do
+                            if key ~= 1 then
+                                local a, b, c, d, e = button:GetPoint(1)
+                                button:ClearAllPoints()
+                                button:SetPoint(a, b, c, d+(3*(key-1)), e)
+                            end
+                        end
+                        MicroMenu:SetWidth(MicroMenu:GetWidth() + 30)
+                    end
+                end
+            )
+            hooksecurefunc(MicroMenuContainer, "Layout", function(...)
+                if OverrideActionBar.isShown then return end
+                if PetBattleFrame and PetBattleFrame:IsShown() then return end
+
+                if enabled and padding and ((math.floor((select(4, MicroMenu:GetLayoutChildren()[2]:GetPoint(1))*100) + 0.5)/100) == (math.floor((padding*100) + 0.5)/100)) then
+                    for key, button in ipairs(MicroMenu:GetLayoutChildren()) do
+                        if key ~= 1 then
+                            local a, b, c, d, e = button:GetPoint(1)
+                            button:ClearAllPoints()
+                            button:SetPoint(a, b, c, d-(3*(key-1)), e)
+                        end
+                    end
+                    MicroMenu:SetWidth(MicroMenu:GetWidth() - 30)
                 end
             end)
         end
         
         if db.EMEOptions.menuResizable then
-            lib:RegisterResizable(MicroMenu)
+            lib:RegisterResizable(MicroMenuContainer)
             C_Timer.After(1, function()
-                lib:UpdateFrameResize(MicroMenu)
+                lib:UpdateFrameResize(MicroMenuContainer)
             end)
             
             -- triggers when player leaves a vehicle or pet battle
             hooksecurefunc("ResetMicroMenuPosition", function(...)
-                lib:UpdateFrameResize(MicroMenu)
+                lib:UpdateFrameResize(MicroMenuContainer)
             end)
         end
         
@@ -549,7 +627,49 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end)
         end
         
-                local class = UnitClassBase("player")
+        if db.EMEOptions.bonusRoll then
+            local alreadyInitialized
+            
+            BonusRollFrame:HookScript("OnShow", function()
+                if alreadyInitialized then
+                    lib:RepositionFrame(BonusRollFrame)
+                    return
+                end
+                alreadyInitialized = true
+                lib:RegisterFrame(BonusRollFrame, "骰子面板", db.BonusRoll)
+                lib:HideByDefault(BonusRollFrame)
+                BonusRollFrame.Selection:SetFrameStrata("TOOLTIP")
+            end)
+        end
+        
+        if db.EMEOptions.actionBars then
+            C_Timer.After(10, function()
+                if InCombatLockdown() then return end 
+                local bars = {MainMenuBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarRight, MultiBarLeft, MultiBar5, MultiBar6, MultiBar7}
+
+                for _, bar in ipairs(bars) do
+                    lib:RegisterCustomCheckbox(bar, "圖示內間距設為零", 
+                        -- on checked
+                        function()
+                            bar.minButtonPadding = 0
+                            bar.buttonPadding = 0
+                            bar:UpdateGridLayout()
+                        end,
+                        
+                        -- on unchecked
+                        function()
+                            bar.minButtonPadding = 2
+                            bar.buttonPadding = 2
+                            bar:UpdateGridLayout()
+                        end,
+                        
+                        "OverrideIconPadding"
+                    )
+                end
+            end)
+        end
+        
+        local class = UnitClassBase("player")
         
         if class == "PALADIN" then
             if db.EMEOptions.holyPower then
@@ -649,26 +769,35 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end
         elseif class == "EVOKER" then
             if db.EMEOptions.evokerEssences then
+                local a = 0
                 lib:RegisterFrame(EssencePlayerFrame, "龍能", db.EvokerEssences)
                 lib:SetDontResize(EssencePlayerFrame)
                 lib:RegisterHideable(EssencePlayerFrame)
                 lib:RegisterResizable(EssencePlayerFrame)
-                hooksecurefunc(EssencePowerBar, "UpdatePower", function()
+                hooksecurefunc(EssencePlayerFrame, "UpdatePower", function()
                     if not EditModeManagerFrame.editModeActive then
+                        a = a + 1
                         lib:RepositionFrame(EssencePlayerFrame)
+                        a = a - 1
                     end
+                end)
+                hooksecurefunc(EssencePlayerFrame, "SetPoint", function()
+                    if a > 0 then return end
+                    a = a + 1
+                    lib:RepositionFrame(EssencePlayerFrame)
+                    a = a - 1
                 end)
             end
             
         elseif class == "ROGUE" then
             if db.EMEOptions.comboPoints then
-                lib:RegisterFrame(ComboPointPlayerFrame, "連擊點數", db.ComboPoints)
-                lib:SetDontResize(ComboPointPlayerFrame)
-                lib:RegisterHideable(ComboPointPlayerFrame)
-                lib:RegisterResizable(ComboPointPlayerFrame)
+                lib:RegisterFrame(RogueComboPointBarFrame, "連擊點數", db.ComboPoints)
+                lib:SetDontResize(RogueComboPointBarFrame)
+                lib:RegisterHideable(RogueComboPointBarFrame)
+                lib:RegisterResizable(RogueComboPointBarFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
-                        lib:RepositionFrame(ComboPointPlayerFrame)
+                        lib:RepositionFrame(RogueComboPointBarFrame)
                     end
                 end)
             end
@@ -677,8 +806,20 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if db.EMEOptions.totem then
                 registerTotemFrame(db)
             end
+        elseif class == "DRUID" then
+            if db.EMEOptions.comboPoints then
+                lib:RegisterFrame(DruidComboPointBarFrame, "連擊點數", db.ComboPoints)
+                lib:SetDontResize(DruidComboPointBarFrame)
+                lib:RegisterHideable(DruidComboPointBarFrame)
+                lib:RegisterResizable(DruidComboPointBarFrame)
+                hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
+                    if not EditModeManagerFrame.editModeActive then
+                        lib:RepositionFrame(DruidComboPointBarFrame)
+                    end
+                end)
+            end
         end
-    elseif (event == "PLAYER_TOTEM_UPDATE") then
+    elseif (event == "PLAYER_TOTEM_UPDATE") and addonLoaded then
         if totemFrameLoaded then
             lib:RepositionFrame(TotemFrame)
         end
@@ -686,6 +827,5 @@ f:SetScript("OnEvent", function(__, event, arg1)
 end)
 
 f:RegisterEvent("ADDON_LOADED")
-f:RegisterEvent("UNIT_PET")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_TOTEM_UPDATE")

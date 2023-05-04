@@ -1,6 +1,6 @@
-## Interface: 100007
+## Interface: 100100
 ## Title: Edit Mode Expanded
-## Version: 10.0-056
+## Version: 10.1-004
 ## Notes: Expands Edit Mode to apply to other frames
 ## Title-zhTW: |cff0099FF[介面]|r 編輯模式擴充包
 ## Notes-zhTW: Edit Mode Expanded |n|n讓編輯模式可以調整更多介面框架。|n|n|cffffd200使用方法: |r在編輯模式中調整框架。|n從Esc>選項>插件>編輯模式，停用不需要調整的框架。
@@ -8,6 +8,7 @@
 ## Author: Teelo
 ## SavedVariables: EditModeExpandedADB
 ## X-Curse-Project-ID: 695703
+## IconTexture: 4555600
 
 libs\LibStub.lua
 libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
