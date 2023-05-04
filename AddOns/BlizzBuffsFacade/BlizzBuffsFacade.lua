@@ -13,7 +13,7 @@ if AuraButtonMixin then
 		local function updateFrames(frames)
 			for i = 1, #frames do
 				local frame = frames[i]
-				if not skinned[frame] then
+				if not skinned[frame] and frame.Icon.GetTexture then
 					skinned[frame] = 1
 
 					-- We have to make a wrapper to hold the skinnable components of the Icon
@@ -30,13 +30,10 @@ if AuraButtonMixin then
 					frame.SkinnedIcon = skinWrapper:CreateTexture(nil, "BACKGROUND")
 					frame.SkinnedIcon:SetSize(30, 30)
 					frame.SkinnedIcon:SetPoint("CENTER")
-
-					if frame.Icon.GetTexture then
-						frame.SkinnedIcon:SetTexture(frame.Icon:GetTexture())
-						hooksecurefunc(frame.Icon, "SetTexture", function(_, tex)
-							frame.SkinnedIcon:SetTexture(tex)
-						end)
-					end
+					frame.SkinnedIcon:SetTexture(frame.Icon:GetTexture())
+					hooksecurefunc(frame.Icon, "SetTexture", function(_, tex)
+						frame.SkinnedIcon:SetTexture(tex)
+					end)
 
 					if frame.Count then
 						-- edit mode versions don't have stack text
@@ -60,15 +57,14 @@ if AuraButtonMixin then
 						bType = "Debuff"
 					end
 
-					if frame.Icon.GetTexture then
-						group:AddButton(skinWrapper, {
-							Icon = frame.SkinnedIcon,
-							DebuffBorder = frame.DebuffBorder,
-							EnchantBorder = frame.TempEnchantBorder,
-							Count = frame.Count,
-							HotKey = frame.Symbol
-						}, bType)
-					end
+					group:AddButton(skinWrapper, {
+						Icon = frame.SkinnedIcon,
+						DebuffBorder = frame.DebuffBorder,
+						EnchantBorder = frame.TempEnchantBorder,
+						Count = frame.Count,
+						HotKey = frame.Symbol
+					}, bType)
+
 				end
 			end
 		end
