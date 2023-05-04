@@ -49,12 +49,12 @@ function Lib:IsUnusable(id)
 	elseif Lib.Unusable[id] == nil and IsEquippableItem(id) then
 		Lib.Unusable[id] = (function()
 			local lines = C.TooltipInfo.GetItemByID(id).lines
-			for i = #lines-1, 5, -1 do
-				local class = lines[i].args[2].stringVal:match(L.CLASS_REQUIREMENT)
-				if class then
-					return not class:find(L.PLAYER_CLASS)
-				end
-			end
+			-- for i = #lines-1, 5, -1 do
+			-- 	local class = lines[i].args[2].stringVal:match(L.CLASS_REQUIREMENT)
+			-- 	if class then
+			-- 		return not class:find(L.PLAYER_CLASS)
+			-- 	end
+			-- end
 		end)() or false
     end
 	return Lib.Unusable[id]
