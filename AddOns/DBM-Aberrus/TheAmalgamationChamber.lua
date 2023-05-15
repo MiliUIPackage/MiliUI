@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2529, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230504064209")
+mod:SetRevision("20230511053240")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
 mod:SetBossHPInfoToHighest()
-mod:SetHotfixNoticeRev(20230504000000)
---mod:SetMinSyncRevision(20221215000000)
+mod:SetHotfixNoticeRev(20230510000000)
+mod:SetMinSyncRevision(20230510000000)
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -23,13 +23,12 @@ mod:RegisterEventsInCombat(
 )
 
 --[[
-(ability.id = 403459 or ability.id = 405016 or ability.id = 407640 or ability.id = 403699 or ability.id = 404732 or ability.id = 403101 or ability.id = 404896 or ability.id = 403203 or ability.id = 405437 or ability.id = 405641 or ability.id = 408193 or ability.id = 405914 or ability.id = 406783) and type = "begincast"
+(ability.id = 409385 or ability.id = 403459 or ability.id = 405016 or ability.id = 407640 or ability.id = 403699 or ability.id = 404732 or ability.id = 403101 or ability.id = 404896 or ability.id = 403203 or ability.id = 405437 or ability.id = 405641 or ability.id = 408193 or ability.id = 405914 or ability.id = 406783) and type = "begincast"
  or (ability.id = 406730 or ability.id = 406780) and type = "cast"
 --]]
 --TODO, also target scan Swirling Flame?
 --TODO, secondary alert for Swirling Shadowflame ?
 --TODO, if both tank abilities in P2 are a combo, just use generic tank combo timer
---TODO, see what version of timers all modes use, probably the final normal/LFR ones
 --General
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(405084, nil, nil, nil, 1, 8)
 
@@ -82,9 +81,11 @@ local specWarnBlisteringTwilight				= mod:NewSpecialWarningYou(405641, nil, nil,
 local yellBlisteringTwilight					= mod:NewShortYell(405641)
 local yellBlisteringTwilightFades				= mod:NewShortFadesYell(405641)
 local specWarnConvergentEruption				= mod:NewSpecialWarningCount(408193, nil, nil, nil, 2, 2)
-local specWarnWitheringVulnerability				= mod:NewSpecialWarningDefensive(405914, nil, nil, nil, 1, 2)
+local specWarnWitheringVulnerability			= mod:NewSpecialWarningDefensive(405914, nil, nil, nil, 1, 2)
 local specWarnWitheringVulnerabilityTaunt		= mod:NewSpecialWarningTaunt(405914, nil, nil, nil, 1, 2)
+local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell)
 
+local timerPhaseCD								= mod:NewPhaseTimer(30)
 local timerShadowandFlameCD						= mod:NewCDCountTimer(47.4, 409385, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerGloomConflagCD						= mod:NewCDCountTimer(40, 405437, nil, nil, nil, 3)
 local timerBlisteringTwilightCD					= mod:NewCDCountTimer(40, 405641, nil, nil, nil, 3)
@@ -113,7 +114,7 @@ mod.vb.SandFCount = 0
 
 local difficultyName = "easy"
 local altTimers = {--Table of lowest averages for timers that are at least somewhat consistent
-	["mythic"] = {
+	["hard"] = {
 		----Fire Duder
 		--Flame Slash
 		[403203] = false,--Too variable
@@ -122,7 +123,7 @@ local altTimers = {--Table of lowest averages for timers that are at least somew
 		--Fiery Meteor
 		[404732] = 35.3,
 		--Molten Eruption
-		[403101] = 34.5,
+		[403101] = 34,
 		----Shadow Duder
 		--Shadow Spike
 		[403699] = false,--Too variable
@@ -134,50 +135,17 @@ local altTimers = {--Table of lowest averages for timers that are at least somew
 		[407640] = 35.3,
 		----Phase 2
 		--Shadow and Flame (mythic Only)
-		[409385] = 47.4,
+		[409385] = 47.3,
 		--Gloom Conflag
 		[405437] = 47.4,
 		--Blistering Twilight
 		[405641] = 47.4,
 		--Convergent Eruption (Heroic+)
-		[408193] = 47.4,
+		[408193] = 47.3,
 		--Withering Vulnerability
 		[405914] = 23.1,
 		--Shadowflame Burst
 		[406783] = 23.1,
-	},
-	["heroic"] = {--Heroic might be same as other difficulties now, unknown
-		----Fire Duder
-		--Flame Slash
-		[403203] = 10.9,
-		--Swirling Flame
-		[404896] = 20.7,
-		--Fiery Meteor
-		[404732] = 31.7,
-		--Molten Eruption
-		[403101] = 23.1,
-		----Shadow Duder
-		--Shadow Spike
-		[403699] = 10.9,
-		--Umbral Detonation
-		[405016] = 21.9,
-		--Coalescing Void
-		[403459] = 21.9,
-		--Shadows Convergence
-		[407640] = 20.7,
-		----Phase 2
-		--Shadow and Flame (mythic Only)
---		[409385] = {},
-		--Gloom Conflag
-		[405437] = 40,
-		--Blistering Twilight
-		[405641] = 40.1,
-		--Convergent Eruption (Heroic+)
-		[408193] = 40.1,
-		--Withering Vulnerability
-		[405914] = 35.3,
-		--Shadowflame Burst
-		[406783] = 35.3,
 	},
 	["easy"] = {
 		----Fire Duder
@@ -204,88 +172,55 @@ local altTimers = {--Table of lowest averages for timers that are at least somew
 		--Gloom Conflag
 		[405437] = 44.9,
 		--Blistering Twilight
-		[405641] = 40,--IFFY
+		[405641] = false,--Too variable
 		--Convergent Eruption (Heroic+)
 --		[408193] = {},
 		--Withering Vulnerability
-		[405914] = false,--Too variable
+		[405914] = 23.1,
 		--Shadowflame Burst
-		[406783] = false,--Too variable
+		[406783] = 23.1,
 	},
 }
 local allTimers = {
-	["mythic"] = {
+	["hard"] = {
 		----Fire Duder
 		--Flame Slash
-		[403203] = {7, 15.7, 26.8, 15.8, 19.5, 15.8, 19.5, 15.8, 19.5},
+		[403203] = {7, 15.7, 26.7, 15.3, 19.4, 15.8, 18.2, 15.7, 18.6},
 		--Swirling Flame
-		[404896] = {10.6, 14.6, 26.7, 14.5, 20.6, 14.6, 20.7, 14.6, 20.7},
+		[404896] = {10.6, 14.5, 25.8, 14.1, 20.3, 14.6, 18.2, 14.6, 20.7},
 		--Fiery Meteor
 		[404732] = {35.2, 35.2, 35.3, 35.3},
 		--Molten Eruption
-		[403101] = {16.7, 41.6, 34.5, 36.1},
+		[403101] = {16.7, 40.5, 34.5, 34},
 		----Shadow Duder
 		--Shadow Spike
-		[403699] = {9.5, 15.8, 15.8, 10.9, 15.8, 19.5, 15.8, 19.5, 15.9, 19.4},
+		[403699] = {9.5, 15.8, 15.8, 10.1, 15.8, 19.5, 15.7, 19.4, 15.8, 19.4},
 		--Umbral Detonation
-		[405016] = {14.2, 42.8, 34.5, 36.1},
+		[405016] = {14.2, 41.7, 34.5, 35.2},
 		--Coalescing Void
 		[403459] = {35.2, 35.2, 35.3, 35.3},
 		--Shadows Convergence
-		[407640] = {22.7, 41.6, 35.3, 35.3},
+		[407640] = {22.7, 41.3, 35.3, 35.2},
 		----Phase 2
 		--Shadow and Flame (mythic Only)
-		[409385] = {29.6, 51.3, 47.5, 47.6, 47.5, 47.4},
+		[409385] = {29.5, 51, 47.4, 47.3, 47.3, 47.3},
 		--Gloom Conflag
 		[405437] = {50.4, 47.5, 47.6, 47.5, 47.4, 47.4},
 		--Blistering Twilight
-		[405641] = {22.3, 51.3, 47.5, 47.6, 47.5, 47.4},
+		[405641] = {21.4, 51.3, 47.5, 47.6, 47.5, 47.4},
 		--Convergent Eruption (Heroic+)
-		[408193] = {35.7, 51.2, 47.5, 47.5, 47.5, 47.4},
+		[408193] = {33.6, 51, 47.4, 47.3, 47.5, 47.4},
 		--Withering Vulnerability
-		[405914] = {17.4, 24.4, 26.8, 24.3, 23.2, 24.3, 23.2, 24.3, 23.1, 24.3, 23.1, 24.3},
+		[405914] = {16.6, 24.3, 26.8, 24.3, 23.1, 24.2, 23.1, 24.2, 23.1, 24.3, 23.1, 24.3},
 		--Shadowflame Burst
 		[406783] = {19.4, 24.4, 26.8, 24.3, 23.2, 24.3, 23.2, 24.3, 23.1, 24.3, 23.1, 24.3},
-	},
-	["heroic"] = {--Heroic might be same as other difficulties now, unknown
-		----Fire Duder
-		--Flame Slash
-		[403203] = {5, 10.6, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9},
-		--Swirling Flame
-		[404896] = {9.7, 20.7, 22.0, 21.9, 20.7, 23.1},
-		--Fiery Meteor
-		[404732] = {32.8, 31.7, 34.0},
-		--Molten Eruption
-		[403101] = {23.1, 23.1, 24.4, 34.0},
-		----Shadow Duder
-		--Shadow Spike
-		[403699] = {5, 10.6, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9, 10.9},
-		--Umbral Detonation
-		[405016] = {19.5, 21.9, 21.9, 21.8, 21.9},
-		--Coalescing Void
-		[403459] = {30.4, 22.0, 21.9, 21.9, 21.9},
-		--Shadows Convergence
-		[407640] = {23.1, 20.7, 22.0, 21.9, 21.9},
-		----Phase 2
-		--Shadow and Flame (mythic Only)
---		[409385] = {},
-		--Gloom Conflag
-		[405437] = {31.6, 40.3, 40.2, 40.2, 40.1, 40.1, 40.0},
-		--Blistering Twilight
-		[405641] = {21.8, 40.2, 40.2, 40.2, 40.1, 40.2, 40.1},
-		--Convergent Eruption (Heroic+)
-		[408193] = {46.1, 40.1, 40.2, 40.1, 40.2, 40.1},
-		--Withering Vulnerability
-		[405914] = {17, 35.3, 35.2, 35.3, 36.5, 40.2, 40.1, 42.5},
-		--Shadowflame Burst
-		[406783] = {19, 35.3, 35.3, 35.3, 36.5, 40.1, 40.1, 42.5},
 	},
 	["easy"] = {
 		----Fire Duder
 		--Flame Slash
-		[403203] = {9.3, 15.7, 25.4, 15.7, 19.1, 15.8, 19.4, 16.2, 19.5, 15.8},
+		[403203] = {9.3, 15.7, 25.4, 15.7, 18.3, 15.8, 19.4, 16.2, 19.5, 15.8},
 		--Swirling Flame
-		[404896] = {12.1, 15.7, 25.5, 15.7, 19.5, 15.8, 19.4, 15.8, 20.4, 15.0},
+		[404896] = {10.9, 14.6, 25.5, 15.7, 18.3, 15.8, 19.4, 15.8, 20.4, 15.0},
 		--Fiery Meteor
 		[404732] = {35.2, 35.1, 35.2, 35.2, 35.4},
 		--Molten Eruption (Heroic+)
@@ -305,14 +240,13 @@ local allTimers = {
 		--Gloom Conflag
 		[405437] = {50.3, 44.9, 45.2, 44.9, 46.2},
 		--Blistering Twilight
-		[405641] = {21.4, 40, 12.1, 43.1, 45.3, 46.3, 46.3},
-				  --22.3, 	  51.1, 47.4, 45.0, 47.4, 46.3--if he decides to skip the bonus cast
+		[405641] = {20.2, 15.7, 37.5, 15.7, 31.6},
 		--Convergent Eruption (Heroic+)
 --		[408193] = {},
 		--Withering Vulnerability
-		[405914] = {16.5, 38.9, 12.1, 35.2, 7.3, 35.2, 9.7, 35.3, 12.2, 35.2, 11.0},
+		[405914] = {15.8, 24.2, 28.1, 24.2, 23.1},
 		--Shadowflame Burst
-		[406783] = {18.5, 38.9, 12.1, 35.2, 7.3, 35.2, 9.7, 35.3, 12.2, 35.2, 11.0},
+		[406783] = {18.5, 24.2, 28.1, 24.2, 23.1},
 	},
 }
 
@@ -359,6 +293,11 @@ local function updateBossDistance(self)
 	self:Schedule(2, updateBossDistance, self)
 end
 
+local function yellRepeater(self, text)
+	yellShadowandFlameRepeat:Yell(text)
+	self:Schedule(1.5, yellRepeater, self, text)
+end
+
 function mod:OnCombatStart(delay)
 	nearKroz, nearMolt = true, true
 	self:SetStage(1)
@@ -368,19 +307,12 @@ function mod:OnCombatStart(delay)
 	self.vb.umbralIcon = 1
 	self.vb.shadowConvergeCount = 0
 	self.vb.shadowStrikeCount = 0
-	if self:IsMythic() then
-		difficultyName = "mythic"
+	if self:IsHard() then
+		difficultyName = "hard"
 		timerShadowSpikeCD:Start(9.3-delay, 1)
 		timerUmbralDetonationCD:Start(14.2-delay, 1)
 		timerShadowsConvergenceCD:Start(22.7-delay, 1)
 		timerCoalescingVoidCD:Start(35.2-delay, 1)
-	elseif self:IsHeroic() then
-		difficultyName = "heroic"
-		timerShadowSpikeCD:Start(5.9-delay, 1)
-		timerUmbralDetonationCD:Start(19.3-delay, 1)
-		timerShadowsConvergenceCD:Start(22.8-delay, 1)
-		timerCoalescingVoidCD:Start(30.3-delay, 1)
-		DBM:AddMsg("Very high chance of timers being wrong on this mode. Blizz didn't retest it after changing a lot of things. Will be fixed ASAP")
 	else--LFR and normal confirmed same, and heroic and mythic posibly also same
 		difficultyName = "easy"
 		timerShadowSpikeCD:Start(9.3-delay, 1)
@@ -399,16 +331,11 @@ function mod:OnCombatStart(delay)
 	self.vb.swirlingCount = 0
 	self.vb.SandFCount = 0
 	self.vb.flameSlashCast = 0
-	if self:IsMythic() then
+	if self:IsHard() then
 		timerFlameSlashCD:Start(7-delay, 1)
 		timerSwirlingFlameCD:Start(10.7-delay, 1)
 		timerMoltenEruptionCD:Start(16.7-delay, 1)
 		timerFieryMeteorCD:Start(35.2-delay, 1)
-	elseif self:IsHeroic() then
-		timerFlameSlashCD:Start(5.9-delay, 1)
-		timerSwirlingFlameCD:Start(9.5-delay, 1)
-		timerMoltenEruptionCD:Start(23-delay, 1)
-		timerFieryMeteorCD:Start(32.7-delay, 1)
 	else--Normal and LFR confirmed
 		timerFlameSlashCD:Start(9.3-delay, 1)
 		timerSwirlingFlameCD:Start(12.2-delay, 1)
@@ -427,10 +354,8 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnTimerRecovery()
-	if self:IsMythic() then
-		difficultyName = "mythic"
-	elseif self:IsHeroic() then
-		difficultyName = "heroic"
+	if self:IsHard() then
+		difficultyName = "hard"
 	else
 		difficultyName = "easy"
 	end
@@ -462,7 +387,7 @@ function mod:SPELL_CAST_START(args)
 			timerCoalescingVoidCD:Start(timer, self.vb.coalescingCount+1)
 		end
 	elseif spellId == 405016 then
-		self.vb.umbralCount = 0
+		self.vb.umbralCount = self.vb.umbralCount + 1
 		self.vb.umbralIcon = 1
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.umbralCount+1) or altTimers[difficultyName][spellId]
 		if timer then
@@ -471,7 +396,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 407640 then
 		self.vb.shadowConvergeCount = self.vb.shadowConvergeCount + 1
 		if nearKroz then
-			specWarnShadowsConvergence:Show()
+			specWarnShadowsConvergence:Show(self.vb.shadowConvergeCount)
 			specWarnShadowsConvergence:Play("watchstep")
 		end
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.shadowConvergeCount+1) or altTimers[difficultyName][spellId]
@@ -511,7 +436,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 404896 then
 		self.vb.swirlingCount = self.vb.swirlingCount + 1
 		if nearMolt then
-			specWarnSwirlingFlame:Show()
+			specWarnSwirlingFlame:Show(self.vb.swirlingCount)
 			specWarnSwirlingFlame:Play("watchwave")
 		end
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.swirlingCount+1) or altTimers[difficultyName][spellId]
@@ -545,7 +470,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 408193 then
 		self.vb.moltenEruptionCast = self.vb.moltenEruptionCast + 1
-		specWarnConvergentEruption:Show()
+		specWarnConvergentEruption:Show(self.vb.moltenEruptionCast)
 		specWarnConvergentEruption:Play("helpsoak")
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.moltenEruptionCast+1) or altTimers[difficultyName][spellId]
 		if timer then
@@ -597,25 +522,18 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerMoltenEruptionCD:Stop()
 		timerSwirlingFlameCD:Stop()
 		timerFlameSlashCD:Stop()
+		timerPhaseCD:Start(11.7)
 		if self:IsMythic() then
-			timerWitheringVulnerabilityCD:Start(17.3, 1)
-			timerShadowflameBurstCD:Start(19.4, 1)
-			timerBlisteringTwilightCD:Start(22.2, 1)
 			timerShadowandFlameCD:Start(29.6, 1)
 			timerConvergentEruptionCD:Start(35.7, 1)
-			timerGloomConflagCD:Start(50, 1)
 		elseif self:IsHeroic() then
-			timerWitheringVulnerabilityCD:Start(17, 1)
-			timerShadowflameBurstCD:Start(19, 1)
-			timerBlisteringTwilightCD:Start(21.8, 1)
-			timerGloomConflagCD:Start(31.6, 1)
-			timerConvergentEruptionCD:Start(46.1, 1)
-		else
-			timerWitheringVulnerabilityCD:Start(16.5, 1)
-			timerShadowflameBurstCD:Start(18.5, 1)
-			timerBlisteringTwilightCD:Start(21.4, 1)
-			timerGloomConflagCD:Start(50, 1)
+			timerConvergentEruptionCD:Start(33.6, 1)
 		end
+		--Same in all
+		timerWitheringVulnerabilityCD:Start(15.8, 1)
+		timerShadowflameBurstCD:Start(18.5, 1)
+		timerBlisteringTwilightCD:Start(20.2, 1)
+		timerGloomConflagCD:Start(50, 1)
 	elseif spellId == 409385 then
 		if self.Options.RangeFrame then
 			DBM.RangeCheck:Hide()
@@ -630,10 +548,18 @@ function mod:SPELL_AURA_APPLIED(args)
 		if (amount % 3 == 0) and amount >= 18 then--Adjust as needed
 			warnCorruptingShadow:Show(amount)
 		end
+		if self:IsMythic() and self:GetStage(2) and amount == 1 then
+			self:Unschedule(yellRepeater)
+			yellRepeater(self, 3)
+		end
 	elseif spellId == 402617 and args:IsPlayer() then
 		local amount = args.amount or 1
 		if (amount % 3 == 0) and amount >= 18 then--Adjust as needed
 			warnBlazingHeat:Show(amount)
+		end
+		if self:IsMythic() and self:GetStage(2) and amount == 1 then
+			self:Unschedule(yellRepeater)
+			yellRepeater(self, 7)
 		end
 	elseif spellId == 405394 and args:IsPlayer() then
 		local amount = args.amount or 1
@@ -666,9 +592,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			yellBlisteringTwilight:Yell()
 			yellBlisteringTwilightFades:Countdown(spellId)
 		end
-		if nearKroz then
-			warnBlisteringTwilight:CombinedShow(0.5, self.vb.umbralCount, args.destName)
-		end
+		warnBlisteringTwilight:CombinedShow(0.5, self.vb.umbralCount, args.destName)
 		self.vb.umbralIcon = self.vb.umbralIcon + 1
 	elseif spellId == 405914 and not args:IsPlayer() then
 		specWarnWitheringVulnerabilityTaunt:Show(args.destName)
@@ -681,8 +605,14 @@ function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
 	if spellId == 401809 and args:IsPlayer() then
 		warnCorruptingShadowFades:Show()
+		if self:IsMythic() then
+			self:Unschedule(yellRepeater)
+		end
 	elseif spellId == 402617 and args:IsPlayer() then
 		warnBlazingHeatFades:Show()
+		if self:IsMythic() then
+			self:Unschedule(yellRepeater)
+		end
 	elseif spellId == 405036 then
 		if self.Options.SetIconOnUmbral then
 			self:SetIcon(args.destName, 0)

@@ -1,52 +1,22 @@
 # <DBM> Dungeons (Dragonflight)
 
-## [r76](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r76) (2023-05-02)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r75...r76) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r79](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r79) (2023-05-11)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r78...r79) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
-- bump tocs  
-- fixed a missed rename  
-- Another underrot pass with some stuff I missed in last pass that wowhead article brought to attention. a few things were wrong in WH articile too (like timers) but the added spells were definitely useful. :D  
-- better late than never, but add timers to flame dance and tectonic Slam to ruby life pools trash, to help pre season 2 testing of nameplate timers, plus these are two pretty important timer abilities that shouldn't have been omitted in first place.  
-- Add timers and minor fixes to Underrot trash  
-- another fix  
-- fix missing ,  
-- Work in progress tweaks/additions to underrot, timers will be done soon but being dragged into m+ so pushing this part for now  
-- Tweaks  
-- Lightning lash can no longer be interrupted, so now warnings will say to get grounding field  
-    Also added alerts for overload grounding field as well, and itll be emphasized if you're actually in it.  
-    Added timers for both of the above  
-- Several bugfixes and timer tweaks to freehold, Uldaman, Neltharius, and VP  
-- Add eng/herb buff gossipID  
-- reclassify painful motivation timer type for same reason warning is off by default. this is more of a tank role/decision to make and not just something to be callusly interrupted.  
-    Also fixed stats for vortex Pinnacle to now show Mythic+ difficulty  
-- fix missing ID  
-- Fix duplicate object  
-- Supercharge freehold with few new alerts and a crap ton of timers  
-- Update koKR (#117)  
-    Co-authored-by: Artemis <QartemisT@gmail.com>  
-- Fix missing spellId  
-- Supercharge Legacy of Tyr trash module with many new alerts and a buttload ton of timers  
-- fix missing ,  
-- VP boss updates for 10.1  
-- Update localization.ru.lua (#116)  
-- Update zhTW (#115)  
-- Fix missing closing statement  
-- Supercharge Neltharius mod with many new warnings and timers  
-- fix typo/error  
-- Add timers to all supported abilities that had consistent timings to Halls of infusion  
-- add several more warnings to Halls of infusion. will do notable timers tomorrow  
-- Move all dungeon phase calls to self:GetStage() api  
-- Add lethal current to VP trash mod  
-    Added many missing abilities to Brackenhide Hollow trash mod  
-    Added first pass on timers to Brackenhide Hollow trash mod as well  
-- Fix table  
-- Upgrade all trash timers for unique mobs to still send GUID so callbacks can grab GUID and assign ability timers to specific 3rd party nameplates  
-    Also finally added some missing SMBG stuff (better late than never, instance was so easy it didn't need a trash mod, but when working on timer updates i figured might as well finish populationg SMBG)  
-- fix typo  
-- Minor drycode for harlan sweete changes  
-- Add RP timer for Magmatusk activation  
-- modernize quills call with clearer instructions that are now available  
-- Add IconTexture  
-- Fix object name between merge  
-- Merge original wise mari with new one, since BOTH are actually still avaialble on classic (timewalking uses original version of fight, not rework). this hybrid mod will support both automatically  
-- Code a silly work around to an impossible problem  
+- Freehold  
+     - Fixed a bug where shattering Bellow had an interrupt warning. it can no longer be interrupted  
+     - Changed warning aggregation for Brutal Backhand and Blade barrage from 3 seconds to 2 seconds. 3 seconds is too big of a window and can result in a tank missing a critical avoid warning if pulling large groups of these mobs  
+     - Fixed bug where Harlan would report bad debug information on timers. It didn't cause any actual timer issues but it created invalid debug logs  
+    Underrot  
+     - Fixed bug where underrot trash gave a CC warning for Dark omen. This mob is now immune to CCs  
+     - Removed void spit CD timer. the recast time of it seems to now be much much lower  
+    Vortex Pinnacle  
+     - Updated Asaad timers with new timers fight is showing on live. It seems this fight was changed after latest PTR round of testing.  
+    Halls of Infusion  
+     - tweaked Belly Slam and Croak timers on Goliath to be 1 second shorter  
+     - Tweaked Dazzle and Whirling Fury timers to be slightly shorter  
+    Uldaman  
+     - Updated Chrono Lord Deios timers back to their pre nerf state. At some point on PTR the boss was nerfed to have faster phases so you got more timer eversals. on live it seems this nerf was reversed and he once again has his longer and more difficult phases  
+     - Fixed bug where Lost dwarves mod gave invalid target scans for SKullcracker and heavy arrow. These abilities have no target scan and are now generic alerts to watch your surroundings  
+     - Fixed a bug on Emberon where he wasn't showing nameplate timers on Plater nameplates when feature in Plater was enabled.  
+     - Fixed a bug where Jagged Bite and Bulwark Slam would show invalid CD timers if the cast didn't finish. These abiliteis don't go on cooldown until cast finishes and this is now how timers will behave in DBM and on Plater nameplates  

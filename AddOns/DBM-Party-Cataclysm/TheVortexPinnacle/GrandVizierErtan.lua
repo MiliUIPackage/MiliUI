@@ -4,11 +4,12 @@ local L		= mod:GetLocalizedStrings()
 mod.statTypes = "normal,heroic,challenge,timewalker"
 mod.upgradedMPlus = true
 
-mod:SetRevision("20230503215520")
+mod:SetRevision("20230504231118")
 mod:SetCreatureID(43878)
 mod:SetEncounterID(1043)
 mod:SetHotfixNoticeRev(20230427000000)
 --mod:SetMinSyncRevision(20230226000000)
+mod.sendMainBossGUID = true
 
 mod:RegisterCombat("combat")
 

@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2525, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230504012735")
+mod:SetRevision("20230511053240")
 mod:SetCreatureID(201320)
 mod:SetEncounterID(2680)
 mod:SetUsedIcons(1)
-mod:SetHotfixNoticeRev(20230503000000)
+mod:SetHotfixNoticeRev(20230509000000)
 --mod:SetMinSyncRevision(20221215000000)
 --mod.respawnTime = 29
 
@@ -14,8 +14,8 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 405316 405821 406851 406333 406145 400777 407547 407597 406165 410070 407596 407544",
 --	"SPELL_CAST_SUCCESS 407641",
-	"SPELL_AURA_APPLIED 405819 407547 407597 401419 405091 407642 405827",
-	"SPELL_AURA_APPLIED_DOSE 405091 405827",
+	"SPELL_AURA_APPLIED 405819 407547 407597 401419 407642 405827",
+	"SPELL_AURA_APPLIED_DOSE 405827",
 	"SPELL_AURA_REMOVED 405819 401419 407642 405827",
 	"SPELL_AURA_REMOVED_DOSE 405827",
 	"SPELL_PERIODIC_DAMAGE 403543",
@@ -33,7 +33,7 @@ mod:RegisterEventsInCombat(
 local warnSearingSlam								= mod:NewTargetNoFilterAnnounce(405821, 4)
 local warnSiphonEnergyApplied						= mod:NewTargetNoFilterAnnounce(401419, 2)
 local warnSiphonEnergyRemoved						= mod:NewFadesAnnounce(401419, 2)
-local warnUnyieldingRage							= mod:NewCountAnnounce(405091, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(405091))
+local warnUnyieldingRage							= mod:NewSpellAnnounce(406165, 3)
 
 local specWarnAncientFury							= mod:NewSpecialWarningCount(405316, nil, nil, nil, 2, 2)
 local specWarnSearingSlam							= mod:NewSpecialWarningYou(405821, nil, nil, nil, 2, 2)
@@ -46,7 +46,7 @@ local specWarnFlamingSlash							= mod:NewSpecialWarningDefensive(407547, nil, n
 local specWarnFlamingSlashTaunt						= mod:NewSpecialWarningTaunt(407547, nil, nil, nil, 1, 2)
 local specWarnEarthenCrush							= mod:NewSpecialWarningDefensive(407597, nil, nil, nil, 1, 2)
 local specWarnEarthenCrushTaunt						= mod:NewSpecialWarningTaunt(407597, nil, nil, nil, 1, 2)
-local specWarnUnyieldingRage						= mod:NewSpecialWarningSpell(406165, nil, nil, nil, 1, 2)
+
 local specWarnUnleashedShadowflame					= mod:NewSpecialWarningCount(410070, nil, nil, nil, 2, 2, 4)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(403543, nil, nil, nil, 1, 8)
 
@@ -113,9 +113,9 @@ function mod:OnCombatStart(delay)
 	self.vb.shadowflameCount = 0
 	timerSearingSlamCD:Start(9.2-delay, 1)
 	timerChargedSmashCD:Start(21.1-delay, 1)
-	timerVolcanicComboCD:Start(29.2-delay, 1)
+	timerVolcanicComboCD:Start(29.1-delay, 1)
 	timerDoomFlameCD:Start(39.2-delay, 1)
-	timerShadowlavaBlastCD:Start(92.7-delay, 1)
+	timerShadowlavaBlastCD:Start(95-delay, 1)
 	timerAncientFuryCD:Start(100-delay)
 	if self:IsMythic() then
 		timerUnleashedShadowflameCD:Start(4.2-delay, 1)
@@ -152,7 +152,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnAncientFury:Play("aesoon")
 	elseif spellId == 405821 then
 		self.vb.slamCount = self.vb.slamCount + 1
-		local timer = self.vb.slamCount == 1 and 42.8 or self.vb.slamCount == 2 or 33
+		local timer = self.vb.slamCount == 1 and 46 or self.vb.slamCount == 2 or 33
 		if timer then
 			timerSearingSlamCD:Start(nil, self.vb.slamCount+1)
 		end
@@ -169,14 +169,16 @@ function mod:SPELL_CAST_START(args)
 		specWarnChargedSmash:Show(self.vb.smashCount)
 		specWarnChargedSmash:Play("helpsoak")
 		if self.vb.smashCount == 1 then
-			timerChargedSmashCD:Start(43, self.vb.smashCount+1)
+			timerChargedSmashCD:Start(45.9, self.vb.smashCount+1)
 		end
 	elseif spellId == 407547 or spellId == 407544 then--Hard, Easy
 		if self:AntiSpam(10, 1) then--In case the success/parent combo ID isn't detectable
 			self.vb.tankCombo = self.vb.tankCombo + 1
 			self.vb.comboCount = 0
 			if self.vb.tankCombo == 1 then
-				timerVolcanicComboCD:Start(45, self.vb.tankCombo+1)
+				timerVolcanicComboCD:Start(14.9, 2)
+			elseif self.vb.tankCombo == 2 then
+				timerVolcanicComboCD:Start(31.4, 3)
 			end
 		end
 		self.vb.comboCount = self.vb.comboCount + 1
@@ -199,7 +201,9 @@ function mod:SPELL_CAST_START(args)
 			self.vb.tankCombo = self.vb.tankCombo + 1
 			self.vb.comboCount = 0
 			if self.vb.tankCombo == 1 then
-				timerVolcanicComboCD:Start(45, self.vb.tankCombo+1)
+				timerVolcanicComboCD:Start(14.9, 2)
+			elseif self.vb.tankCombo == 2 then
+				timerVolcanicComboCD:Start(31.4, 3)
 			end
 		end
 		self.vb.comboCount = self.vb.comboCount + 1
@@ -218,8 +222,7 @@ function mod:SPELL_CAST_START(args)
 			end
 		end
 	elseif spellId == 406165 then
-		specWarnUnyieldingRage:Show()
-		specWarnUnyieldingRage:Play("carefly")
+		warnUnyieldingRage:Show()
 	elseif spellId == 410070 then
 		self.vb.shadowflameCount = self.vb.shadowflameCount + 1
 		specWarnUnleashedShadowflame:Show(self.vb.shadowflameCount)
@@ -246,7 +249,7 @@ end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
-	if spellId == 405819 or spellId == 407642 then--405819 confirmed on heroic, 407642 for lfr/normal maybe?
+	if (spellId == 405819 or spellId == 407642) and self:AntiSpam(5, 3) then--405819 confirmed on heroic, 407642 for lfr/normal maybe?
 		if args:IsPlayer() then
 			specWarnSearingSlam:Show()
 			specWarnSearingSlam:Play("targetyou")
@@ -295,11 +298,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerShadowlavaBlastCD:Stop()
 		timerAncientFuryCD:Stop()
 		timerUnleashedShadowflameCD:Stop()
-	elseif spellId == 405091 then--Unyielding Rage (stack)
-		local amount = args.amount or 1
-		if amount == 1 or amount == 4 or amount >= 7 then
-			warnUnyieldingRage:Show(amount)
-		end
 	elseif spellId == 405827 then
 		local amount = args.amount or 1
 		overchargedStacks[args.destName] = amount
@@ -340,7 +338,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerChargedSmashCD:Start(23.2, 1)
 		timerVolcanicComboCD:Start(31.2, 1)
 		timerDoomFlameCD:Start(41.2, 1)
-		timerShadowlavaBlastCD:Start(94.7, 1)
+		timerShadowlavaBlastCD:Start(97, 1)
 		timerAncientFuryCD:Start(102)
 	end
 end
@@ -374,6 +372,23 @@ function mod:SPELL_ENERGIZE(_, _, _, _, destGUID, _, _, _, spellId, _, _, amount
 			timerAncientFuryCD:Update(elapsedTimer, 100)
 		else
 			timerAncientFuryCD:Stop()
+		end
+	end
+end
+
+--Temp workaround, won't work if target has no boss mod
+function mod:OnTranscriptorSync(msg, targetName)
+	if msg:find("405821") and targetName and self:AntiSpam(5, 3) then--Eruption Backup (if scan fails)
+		if targetName == UnitName("player") then
+			specWarnSearingSlam:Show()
+			specWarnSearingSlam:Play("targetyou")
+			yellSearingSlam:Yell()
+--			yellSearingSlamFades:Countdown(5)
+		else
+			warnSearingSlam:Show(targetName)
+		end
+		if self.Options.SetIconOnSearingSlam then
+			self:SetIcon(targetName, 1)
 		end
 	end
 end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("HallsofInfusionTrash", "DBM-Party-Dragonflight", 8)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230429094135")
+mod:SetRevision("20230511021050")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -62,9 +62,9 @@ local specWarnTidalDivergence				= mod:NewSpecialWarningInterrupt(377341, "HasIn
 local specWarnAqueousBarrier				= mod:NewSpecialWarningInterrupt(377402, "HasInterrupt", nil, nil, 1, 2)
 
 local timerDemoShoutCD						= mod:NewCDTimer(30, 374339, nil, nil, nil, 2)
-local timerDazzleCD							= mod:NewCDTimer(18.1, 374563, nil, nil, nil, 3)
+local timerDazzleCD							= mod:NewCDTimer(17, 374563, nil, nil, nil, 3)
 local timerZephyrsCallCD					= mod:NewCDTimer(23.1, 374823, nil, nil, nil, 1)
-local timerWhirlingFuryCD					= mod:NewCDTimer(19, 375079, nil, nil, nil, 2)
+local timerWhirlingFuryCD					= mod:NewCDTimer(18.7, 375079, nil, nil, nil, 2)
 local timerMoltenSubductionCD				= mod:NewCDTimer(25, 374724, nil, nil, nil, 3)
 local timerOceanicBreathCD					= mod:NewCDTimer(18.1, 375351, nil, nil, nil, 3)
 local timerGustingBreathCD					= mod:NewCDTimer(19.3, 375348, nil, nil, nil, 3)--Could also be 18.1, but need bigger sample
@@ -277,12 +277,11 @@ function mod:UNIT_DIED(args)
 	end
 end
 
---TODO, actually get correct IDs, these are in guide but haven't collected Ids yet
 function mod:GOSSIP_SHOW()
---	local gossipOptionID = self:GetGossipID()
---	if gossipOptionID then
---		if self.Options.AGBuffs and (gossipOptionID == 107192 or gossipOptionID == 107205) then -- Engineer/Herb Buff
---			self:SelectGossip(gossipOptionID)
---		end
---	end
+	local gossipOptionID = self:GetGossipID()
+	if gossipOptionID then
+		if self.Options.AGBuffs and (gossipOptionID == 107192 or gossipOptionID == 107206) then -- Engineer/Herb Buff
+			self:SelectGossip(gossipOptionID)
+		end
+	end
 end
