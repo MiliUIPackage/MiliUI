@@ -55,8 +55,8 @@ TinyChatDB = {
     FirstWord = true,
 	HistoryNeedAlt = false,
 	Spam = false,
-	LagFilter = true,
-	LagFilterManually = false,
+	LagFilter = false,
+	LagFilterAuto = false,
 	BubbleManually = false
 }
 
@@ -209,8 +209,11 @@ do
 				-- 調整文字輸入框的文字大小，和聊天內容一致
 				_, fontSize = GetChatWindowInfo(i);
 				if (fontSize and fontSize > 18) then
-					fontSize = fontSize - 2 
-					editbox:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize, "")
+					editbox:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize-2, "")
+					editbox.header:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize-2, "")
+					editbox.headerSuffix:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize-2, "")
+					editbox.NewcomerHint:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize-2, "")
+					editbox.prompt:SetFont("Fonts\\arheiuhk_bd.ttf", fontSize-2, "")
 				end
             end
         end
@@ -343,25 +346,6 @@ do
             end
             LibDD:UIDropDownMenu_AddButton(info, level)
 			
-			-- 對話泡泡
-			info = LibDD:UIDropDownMenu_CreateInfo()
-            info.text = CHAT_BUBBLES_TEXT
-			info.value = "ToggleBubble"
-			-- info.arg1 = tonumber(C_CVar.GetCVar("ChatBubbles")
-			info.checked = (tonumber(C_CVar.GetCVar("ChatBubbles")) == 1 and true or false)
-			info.hasArrow = 1
-			info.keepShownOnClick = 1
-            info.func = function(self)
-                if tonumber(C_CVar.GetCVar("ChatBubbles")) == 1 then
-					C_CVar.SetCVar("ChatBubbles", 0)
-					print(DISABLE..CHAT_BUBBLES_TEXT)
-				else
-					C_CVar.SetCVar("ChatBubbles", 1)
-					print(ENABLE..CHAT_BUBBLES_TEXT)
-				end
-            end
-            LibDD:UIDropDownMenu_AddButton(info, level)
-			
 			-- 開怪倒數秒數設定選單
 			info = LibDD:UIDropDownMenu_CreateInfo()
             info.text  = L["Pull"][locale] or "Pull"
@@ -386,20 +370,6 @@ do
             info.func = function(self) self:GetParent():Hide() end
             LibDD:UIDropDownMenu_AddButton(info)
         end
-
-		
-		-- 對話泡泡子選單
-		if (level == 2 and L_UIDROPDOWNMENU_MENU_VALUE == "ToggleBubble") then
-            -- 自動開關
-			info = LibDD:UIDropDownMenu_CreateInfo()
-            info.text = L["ToggleBubble"][locale] or "Auto Toggle Bubble"
-            info.checked = not TinyChatDB.BubbleManually
-            info.func = function(self)
-                TinyChatDB.BubbleManually = not TinyChatDB.BubbleManually
-				print(L["ToggleBubbleNote"][locale] or "Automatically enable/disable chat bubbles.")
-            end
-            LibDD:UIDropDownMenu_AddButton(info, level)
-		end
 
 		-- 開怪倒數設定
 		if (level == 2 and L_UIDROPDOWNMENU_MENU_VALUE == "Pull") then
