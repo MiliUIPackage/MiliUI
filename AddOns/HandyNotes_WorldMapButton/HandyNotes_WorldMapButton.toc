@@ -1,10 +1,11 @@
 ## Interface: 100100
 ## Title: HandyNotes_WorldMapButton
-## Version: 100005.02-Release
+## Version: 100100.03-Release
 ## Notes: Adds a Button to the Worldmap that can toggle HandyNotes Icons
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-世界地圖按鈕切換
 ## Notes-zhTW: HandyNotes_WorldMapButton |n快速顯示或隱藏HandyNote的圖示
 ## Author: fuba
+## IconTexture: Interface\AddOns\HandyNotes_WorldMapButton\fubaLogo
 ## OptionalDeps: Ace3
 ## RequiredDeps: HandyNotes
 ## X-Category-zhTW: 地圖

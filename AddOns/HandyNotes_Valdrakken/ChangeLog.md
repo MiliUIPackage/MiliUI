@@ -1,5 +1,19 @@
 ## Revision History:
 
+#### v4 (May 05, 2023)
+-------------------------------
+* Add IconTexture to .toc
+* Bump .toc to 100100
+
+#### v3 (March 22, 2023)
+-------------------------------
+* Bump .toc to 100007
+
+#### v2 (January 25, 2023)
+-------------------------------
+* Updated zhCN by [nanjuekaien1](https://github.com/Dathwada/handynotes-valdrakken/pull/2)
+* Bump .toc to 100005
+
 #### v1 (November 28, 2022)
 -------------------------------
 * Added new NPC

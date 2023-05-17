@@ -1,8 +1,6 @@
 # HandyNotes_WorldMapButton
 
-## [100005.02-Release](https://github.com/fubaWoW/HandyNotes_WorldMapButton/tree/100005.02-Release) (2023-02-05)
-[Full Changelog](https://github.com/fubaWoW/HandyNotes_WorldMapButton/compare/100005.01-Release...100005.02-Release) [Previous Releases](https://github.com/fubaWoW/HandyNotes_WorldMapButton/releases)
+## [100100.03-Release](https://github.com/fubaWoW/HandyNotes_WorldMapButton/tree/100100.03-Release) (2023-05-05)
+[Full Changelog](https://github.com/fubaWoW/HandyNotes_WorldMapButton/compare/100100.02-Release...100100.03-Release) [Previous Releases](https://github.com/fubaWoW/HandyNotes_WorldMapButton/releases)
 
-- forgot to add "RightButton" check to prevent errors  
-- Right-Click the "AddOn Button" now open HandyNotes Options (feature Request)  
-    Left-Click still Toggle HandyNote as usual  
+- fixed Addon Icon path...  

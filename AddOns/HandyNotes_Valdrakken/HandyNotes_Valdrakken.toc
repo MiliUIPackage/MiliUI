@@ -2,11 +2,12 @@
 ## Title: HandyNotes: Valdrakken
 ## Notes: Shows the NPC and POI locations in Valdrakken.
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v1
+## Version: v4
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_ValdrakkenDB
-## X-Date: 2022-11-28
+## IconTexture: 4661644
+## X-Date: 2023-05-05
 ## X-Category: Map
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-沃卓肯
 ## Notes-zhTW: HandyNotes: Dragonflight Treasures |n在地圖上顯示沃卓肯各種NPC的位置。
