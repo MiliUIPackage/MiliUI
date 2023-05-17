@@ -610,11 +610,15 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     addon:SetTooltips(b, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     -- texture
-    function b:SetTexture(tex, texSize, point)
+    function b:SetTexture(tex, texSize, point, isAtlas)
         b.tex = b:CreateTexture(nil, "ARTWORK")
         b.tex:SetPoint(unpack(point))
         b.tex:SetSize(unpack(texSize))
-        b.tex:SetTexture(tex)
+        if isAtlas then
+            b.tex:SetAtlas(tex)
+        else
+            b.tex:SetTexture(tex)
+        end
         -- update fontstring point
         if s then
             s:ClearAllPoints()
@@ -3054,8 +3058,8 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
     spellIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     spellIcon:Hide()
 
-    function b:ShowSpellIcon(spellName)
-        spellIcon:SetTexture(GetSpellTexture(spellName) or 134400)
+    function b:ShowSpellIcon(spell)
+        spellIcon:SetTexture(GetSpellTexture(spell) or 134400)
         spellIconBg:Show()
         spellIcon:Show()
         -- actionGrid.text:ClearAllPoints()

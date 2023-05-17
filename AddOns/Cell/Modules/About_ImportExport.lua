@@ -83,7 +83,7 @@ local function DoImport()
         for class, t in pairs(imported["clickCastings"]) do
             -- remove
             for k in pairs(t) do
-                if k ~= "useCommon" and k ~= "alwaysTargeting" and k ~= "common" and k ~= 1 and k ~= 2 then
+                if k ~= "useCommon" and k ~= "alwaysTargeting" and k ~= "smartResurrection" and k ~= "common" and k ~= 1 and k ~= 2 then
                     t[k] = nil
                 end
             end
@@ -187,6 +187,8 @@ local function CreateImportExportFrame()
             importExportFrame:Hide()
         end, true)
         popup:SetPoint("TOPLEFT", importExportFrame, 117, -20)
+
+        textArea.eb:ClearFocus()
     end)
     
     -- title

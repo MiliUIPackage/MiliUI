@@ -1,6 +1,6 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r164-release...9dc241fd42092c0e47ca85fa4d4e7037d8e77e5b)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r167-release...6bd7091f47e6c7590beaceaf1155a2069dfad743)
 
-- Implement fade in/out for raid tools
-- Fix raid pet frame
-- Add icon to CellSpellTooltip
-- Update zhTW
+- Update Aberrus debuffs
+- Fix the list of Mythic+ Dungeon
+- Update click-castings
+- Fix "Hide Damager" for Role Icon indicator on wrath
