@@ -15,7 +15,7 @@ GNU General Public License for more details.
 This file is part of C_Everywhere.
 --]]
 
-local C = LibStub:NewLibrary('C_Everywhere', 4)
+local C = LibStub:NewLibrary('C_Everywhere', 5)
 if C then
   wipe(C)
 else
@@ -94,7 +94,7 @@ if not C_TooltipInfo then
 
       local data = {lines={}}
       for i = 1, tip:NumLines() do
-        data.lines[i] = {args = {nil, {stringVal = _G['C_EverywhereTipTextLeft' .. i]:GetText()}}}
+        data.lines[i] = {leftText = _G['C_EverywhereTipTextLeft' .. i]:GetText()}
       end
       return data
     end

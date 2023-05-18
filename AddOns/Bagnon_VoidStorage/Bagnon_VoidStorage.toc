@@ -1,10 +1,10 @@
 ## Interface: 100100
 ## Title: |TInterface/Addons/BagBrother/Art/Bagnon-Small:16:16|t Bagnon |cffffffffVoid Storage|r
 ## Author: Jaliborc (João Cardoso)
-## Notes: Load on demand void storage display.|n|cffbbbbbbBy João Cardoso|r|n|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Patreon:12:12:0:-4|t |cff82c5ffpatreon.com/jaliborc|r|n|n
+## Notes: Load on demand void storage display.|n|cffbbbbbbBy João Cardoso|r|n|n|TInterface/Addons/BagBrother/Art/Patreon:12:12|t |cff82c5ffpatreon.com/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Discord:12:12:0:-2|t |cff82c5ffbit.ly/discord-jaliborc|r|n|n
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合-虛空銀行
 ## Notes-zhTW: Bagnon Void Storage|n功能強大的整合背包。
 ## RequiredDeps: Bagnon
 ## LoadOnDemand: 1
 
-..\BagBrother\addons\vault\vault.xml
+..\BagBrother\frames\vault\vault.xml

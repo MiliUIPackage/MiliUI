@@ -1,11 +1,12 @@
-## Title: Bagnon Config
-## Author: Tuller and Jaliborc (João Cardoso)
-## Notes: An options menu for Bagnon
+## Interface: 100100
+## Title: |TInterface/Addons/BagBrother/Art/Bagnon-Small:16:16|t Bagnon |cffffffffConfig|r
+## Author: Tuller & Jaliborc
+## Notes: Load on demand configuration menus.|n|cffbbbbbbBy João Cardoso|r|n|n|TInterface/Addons/BagBrother/Art/Patreon:12:12|t |cff82c5ffpatreon.com/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Paypal:12:12|t |cff82c5ffpaypal.me/jaliborc|r|n|TInterface/Addons/BagBrother/Art/Discord:12:12:0:-2|t |cff82c5ffbit.ly/discord-jaliborc|r|n|n
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合設定介面
 ## Notes-zhTW: Bagnon Config|n背包整合設定介面。
-## Interface: 100100
+
 ## Dependencies: Bagnon
 ## LoadOnDemand: 1
 
 ..\Bagnon\src\config.lua
-..\BagBrother\addons\config\config.xml
+..\BagBrother\config\config.xml
