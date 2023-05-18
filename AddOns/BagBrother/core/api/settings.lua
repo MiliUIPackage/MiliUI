@@ -30,12 +30,12 @@ end
 
 local FrameDefaults = {
 	enabled = true,
-	money = true, broker = true,
+	money = true, broker = false,
 	bagToggle = true, sort = true, search = true, options = true,
 
 	strata = 'HIGH', alpha = 1,
 	scale = Addon.FrameScale or 1,
-	color = {0, 0, 0, 0.5},
+	color = {0.1098039299249649, 0.1098039299249649, 0.1098039299249649, 1},
 	x = 0, y = 0,
 
 	itemScale = Addon.ItemScale or 1,
@@ -57,8 +57,8 @@ local FrameDefaults = {
 local ProfileDefaults = {
 	inventory = SetDefaults({
 		reversedTabs = true,
-		borderColor = {1, 1, 1, 1},
-		currency = true, broker = Addon.IsClassic,
+		borderColor = {0.1098039299249649, 0.1098039299249649, 0.1098039299249649, 1},
+		currency = true, broker = false,
 		point = 'BOTTOMRIGHT',
 		x = -50, y = 100,
 		columns = 10,
@@ -70,7 +70,7 @@ local ProfileDefaults = {
 		borderColor = {1, 1, 0, 1},
 		currency = true,
 		point = 'LEFT',
-		columns = 14,
+		columns = 20,
 		width = 600,
 		height = 500,
 		x = 95
@@ -103,10 +103,10 @@ function Settings:OnEnable()
 		display = {banker = true, guildBanker = true, voidStorageBanker = true, crafting = true, tradePartner = true, socketing = true, auctioneer = true, merchant = true, mailInfo = true, scrappingMachine = true},
 		resetPlayer = true, flashFind = true, tipCount = true, serverSort = true,
 
-		glowAlpha = 0.5,
-		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true,
+		glowAlpha = 0.8,
+		glowQuality = true, glowNew = true, glowQuest = true, glowSets = true, glowUnusable = true, glowPoor = true,
 
-		slotBackground = 2, colorSlots = true,
+		slotBackground = 3, colorSlots = true,
 		normalColor = {1, 1, 1},
 		keyColor = {1, .9, .19},
 		quiverColor = {1, .87, .68},

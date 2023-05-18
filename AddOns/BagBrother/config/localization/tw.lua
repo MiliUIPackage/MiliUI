@@ -30,6 +30,7 @@ L.Broker = 'Databroker外掛'
 L.Sort = '排序按鈕'
 L.Search = '切換搜尋'
 L.Options = '設定按鈕'
+L.Currency = '通貨'
 
 
 L.Appearance = '外觀'
@@ -49,7 +50,7 @@ L.Spacing = '間距'
 L.Alpha = '透明度'
 
 -- auto display
-L.DisplayOptions = '自動顯示'
+L.DisplayOptions = '自動開關'
 L.DisplayOptionsDesc = '讓你設定在遊戲事件中背包自動開啟或關閉。'
 L.DisplayInventory = '顯示背包'
 L.CloseInventory = '關閉背包'
