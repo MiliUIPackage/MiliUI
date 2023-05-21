@@ -1,10 +1,10 @@
 local mod	= DBM:NewMod(2532, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230511053240")
+mod:SetRevision("20230514171922")
 mod:SetCreatureID(202375)
 mod:SetEncounterID(2689)
-mod:SetUsedIcons(8, 7, 6, 4, 3, 2, 1)
+mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
 mod:SetHotfixNoticeRev(20230509000000)
 --mod:SetMinSyncRevision(20221215000000)
 --mod.respawnTime = 29
@@ -13,7 +13,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 406678 405812 405919 403978 405886",
-	"SPELL_CAST_SUCCESS 404007 406725 405736",
+	"SPELL_CAST_SUCCESS 404007 406725 405736 181113",
 	"SPELL_AURA_APPLIED 405592 404010 404942",
 	"SPELL_AURA_APPLIED_DOSE 404942",
 	"SPELL_AURA_REMOVED 404010",
@@ -39,23 +39,24 @@ local specWarnTacticalDestruction				= mod:NewSpecialWarningDodgeCount(406678, n
 local specWarnDragonDeezTraps					= mod:NewSpecialWarningDodgeCount(405736, nil, nil, nil, 1, 2)
 local specWarnAnimateGolems						= mod:NewSpecialWarningSwitchCount(405812, nil, nil, nil, 1, 2)
 local specWarnActivateTrap						= mod:NewSpecialWarningInterruptCount(405919, "HasInterrupt", nil, nil, 1, 2)
-local specWarnBlastWave							= mod:NewSpecialWarningCount(403978, nil, nil, nil, 2, 2)
+local specWarnBlastWave							= mod:NewSpecialWarningCount(403978, nil, 149213, nil, 2, 2)
 local specWarnUnstableEmbers					= mod:NewSpecialWarningMoveAway(404007, nil, nil, nil, 1, 2)
 local yellUnstableEmbers						= mod:NewShortYell(404007)
 local specWarnSearingClawsTaunt					= mod:NewSpecialWarningTaunt(404942, nil, nil, nil, 1, 2)
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(370648, nil, nil, nil, 1, 8)
 
 local timerTacticalDestructionCD				= mod:NewCDCountTimer(61.5, 406678, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerShrapnalBombCD						= mod:NewCDCountTimer(42.5, 406725, nil, nil, nil, 3)
-local timerShrapnalBomb							= mod:NewCastTimer(30, 406725, nil, nil, nil, 2)
+local timerShrapnalBombCD						= mod:NewCDCountTimer(42.5, 406725, 167180, nil, nil, 3)--"Bombs"
+local timerShrapnalBomb							= mod:NewCastTimer(30, 406725, 185824, nil, nil, 2)--"Detonate"
 local timerAnimateGolemsCD						= mod:NewCDCountTimer(60.2, 405812, nil, nil, nil, 1)
-local timerBlastWaveCD							= mod:NewCDCountTimer(34, 403978, nil, nil, nil, 2)
-local timerUnstableEmbersCD						= mod:NewCDCountTimer(20.7, 404007, nil, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
+local timerBlastWaveCD							= mod:NewCDCountTimer(34, 403978, 149213, nil, nil, 2)--"Knockback"
+local timerUnstableEmbersCD						= mod:NewCDCountTimer(20.7, 404007, 264364, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)--"Embers"
+local timerEliminationProtocol					= mod:NewCastTimer(10, 409942, 207544, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)--"Beams"
 local timerDragonDeezTrapsCD					= mod:NewCDCountTimer(32.2, 405736, nil, nil, nil, 3)
 --local berserkTimer							= mod:NewBerserkTimer(600)
 
 mod:AddRangeFrameOption(5, 404007)
-mod:AddSetIconOption("SetIconOnGolems", 405812, true, 5, {8, 7, 6})
+mod:AddSetIconOption("SetIconOnGolems", 405812, true, 5, {8, 7, 6, 5})
 mod:AddSetIconOption("SetIconOnEmbers", 404007, false, 0, {1, 2, 3, 4})
 
 local castsPerGUID = {}
@@ -67,6 +68,7 @@ mod.vb.blastWaveCount = 0
 mod.vb.embersCount = 0
 mod.vb.dragonCount = 0
 mod.vb.expectedBombs = 3
+mod.vb.addIcon = 8
 
 function mod:OnCombatStart(delay)
 	table.wipe(castsPerGUID)
@@ -80,11 +82,11 @@ function mod:OnCombatStart(delay)
 	timerBlastWaveCD:Start(10.7-delay, 1)--Same in All
 	if self:IsMythic() then--Recheck
 		self.vb.expectedBombs = 4
-		timerUnstableEmbersCD:Start(7-delay, 1)
+		timerUnstableEmbersCD:Start(9.1-delay, 1)
 		timerDragonDeezTrapsCD:Start(19.2-delay, 1)
-		timerAnimateGolemsCD:Start(26.4-delay, 1)
-		timerTacticalDestructionCD:Start(31.3-delay, 1)
-		timerShrapnalBombCD:Start(36.4-delay, 1)
+		timerAnimateGolemsCD:Start(26.2-delay, 1)
+		timerTacticalDestructionCD:Start(31-delay, 1)
+		timerShrapnalBombCD:Start(35.9-delay, 1)
 	elseif self:IsHeroic() then--Validated
 		self.vb.expectedBombs = 3
 		timerUnstableEmbersCD:Start(7-delay, 1)
@@ -114,13 +116,11 @@ function mod:SPELL_CAST_START(args)
 		specWarnTacticalDestruction:Play("watchstep")
 		timerTacticalDestructionCD:Start(71.6, self.vb.destructionCount+1)
 	elseif spellId == 405812 then
+		self.vb.addIcon = 8
 		self.vb.golemsCount = self.vb.golemsCount + 1
 		specWarnAnimateGolems:Show(self.vb.golemsCount)
 		specWarnAnimateGolems:Play("killmobs")
-		timerAnimateGolemsCD:Start(73, self.vb.golemsCount+1)
-		if self.Options.SetIconOnGolems  then
-			self:ScanForMobs(203230, 0, 8, 3, nil, 12, "SetIconOnGolems")
-		end
+		timerAnimateGolemsCD:Start(73, self.vb.golemsCount+1)--Can get spell queued up to 78
 	elseif spellId == 405919 or spellId == 405886 then
 		if not castsPerGUID[args.sourceGUID] then
 			castsPerGUID[args.sourceGUID] = 0
@@ -139,7 +139,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.blastWaveCount = self.vb.blastWaveCount + 1
 		specWarnBlastWave:Show(self.vb.blastWaveCount)
 		specWarnBlastWave:Play("carefly")
-		timerBlastWaveCD:Start(self:IsEasy() and 38 or 34, self.vb.blastWaveCount+1)
+		timerBlastWaveCD:Start(self:IsEasy() and 38 or 33.2, self.vb.blastWaveCount+1)
 	end
 end
 
@@ -148,6 +148,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if spellId == 404007 then
 		self.vb.embersCount = self.vb.embersCount + 1
 		timerUnstableEmbersCD:Start(15.7, self.vb.embersCount+1)
+		if self:IsMythic() then
+			timerEliminationProtocol:Start()
+		end
 	elseif spellId == 406725 then
 		self.vb.shrapnalSoakCount = 0
 		self.vb.trapCastCount = self.vb.trapCastCount + 1
@@ -159,6 +162,11 @@ function mod:SPELL_CAST_SUCCESS(args)
 		specWarnDragonDeezTraps:Show(self.vb.dragonCount)
 		specWarnDragonDeezTraps:Play("watchstep")
 		timerDragonDeezTrapsCD:Start(self:IsEasy() and 35 or 30.4, self.vb.dragonCount)
+	elseif spellId == 181113 then--Encounter Spawn
+		if self.Options.SetIconOnGolems then
+			self:ScanForMobs(args.sourceGUID, 2, self.vb.addIcon, 1, nil, 12, "SetIconOnGolems")
+		end
+		self.vb.addIcon = self.vb.addIcon - 1
 	end
 end
 

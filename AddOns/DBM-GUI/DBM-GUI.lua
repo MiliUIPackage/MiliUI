@@ -14,8 +14,8 @@ local LibStub, DBM, DBM_GUI, DBM_OPTION_SPACER = _G["LibStub"], DBM, DBM_GUI, DB
 local playerName, realmName, playerLevel = UnitName("player"), GetRealmName(), UnitLevel("player")
 
 StaticPopupDialogs["IMPORTPROFILE_ERROR"] = {
-	text = "匯入此設定檔有一個或多個錯誤。 請參閱聊天以獲取更多訊息。 您想繼續並重置錯誤回復預設嗎？",
-	button1 = "匯入與修正",
+	text = "There are one or more errors importing this profile. Please see the chat for more information. Would you like to continue and reset found errors to default?",
+	button1 = "Import and fix",
 	button2 = "No",
 	OnAccept = function(self)
 		self.importFunc()

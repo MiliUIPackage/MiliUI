@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2527, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230510215538")
+mod:SetRevision("20230514171922")
 mod:SetCreatureID(201579)
 mod:SetEncounterID(2683)
 mod:SetUsedIcons(1, 2, 3, 8)
-mod:SetHotfixNoticeRev(20230509000000)
+mod:SetHotfixNoticeRev(20230513000000)
 --mod:SetMinSyncRevision(20221215000000)
 --mod.respawnTime = 29
 
@@ -30,27 +30,27 @@ mod:RegisterEventsInCombat(
 --However, doing timers the way they are done is most accurate if people don't do fight wrong., so may just tell users "do fight correctly 5head" that complain instead of using complicated updateAllTimers methods just to work around player mistakes
 --TODO, fine tune personal stack alerts
 local warnHeatStacks								= mod:NewCountAnnounce(408839, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(408839))
-local warnMoltenSpittle								= mod:NewTargetCountAnnounce(402989, 2)
+local warnMoltenSpittle								= mod:NewTargetCountAnnounce(402989, 2, nil, nil, 307031)
 local warnIncineratingMaws							= mod:NewStackAnnounce(404846, 2, nil, "Tank|Healer")
 
 local specWarnCatastrophicEruption					= mod:NewSpecialWarningSpell(408358, nil, nil, nil, 3, 2)
-local specWarnHeatStacks							= mod:NewSpecialWarningStack(408839, nil, 12, nil, nil, 1, 6)
+local specWarnHeatStacks							= mod:NewSpecialWarningStack(408839, nil, 35, nil, nil, 1, 6)
 local specWarnBlazingTantrum						= mod:NewSpecialWarningMove(407879, "Tank", nil, nil, 1, 2)
-local specWarnIgnitingRoar							= mod:NewSpecialWarningCount(403740, nil, nil, nil, 2, 2)
-local specWarnOverpoweringStomp						= mod:NewSpecialWarningCount(403671, nil, nil, nil, 2, 2)
-local specWarnMoltenSpittle							= mod:NewSpecialWarningYou(402989, nil, nil, nil, 1, 2)
+local specWarnIgnitingRoar							= mod:NewSpecialWarningCount(403740, nil, 188832, nil, 2, 2)
+local specWarnOverpoweringStomp						= mod:NewSpecialWarningCount(403671, nil, 149213, nil, 2, 2)
+local specWarnMoltenSpittle							= mod:NewSpecialWarningYou(402989, nil, 80801, nil, 1, 2)
 local yellMoltenSpittle								= mod:NewShortPosYell(402989, "%s", nil, nil, "YELL")
 local yellMoltenSpittleFades						= mod:NewIconFadesYell(402989, nil, nil, nil, "YELL")
-local specWarnBlazingBreath							= mod:NewSpecialWarningDodge(409238, nil, nil, nil, 2, 2)
+local specWarnBlazingBreath							= mod:NewSpecialWarningDodge(409238, nil, 18357, nil, 2, 2)
 local specWarnIncineratingMaws						= mod:NewSpecialWarningStack(404846, nil, 2, nil, nil, 1, 6)
 local specWarnIncineratingMawsSwap					= mod:NewSpecialWarningTaunt(404846, nil, nil, nil, 1, 2)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(411633, nil, nil, nil, 1, 8)
 
 local timerCatastrophicCD							= mod:NewCDTimer(28.9, 408358, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerMoltenSpittleCD							= mod:NewCDCountTimer(29.9, 402989, nil, nil, nil, 3)
-local timerIngitingRoarCD							= mod:NewCDCountTimer(28.9, 403740, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
-local timerOverpoweringStompCD						= mod:NewCDCountTimer(101.7, 403671, nil, nil, nil, 2)
-local timerBlazingBreathCD							= mod:NewCDCountTimer(29.9, 409238, nil, nil, nil, 3)
+local timerMoltenSpittleCD							= mod:NewCDCountTimer(29.9, 402989, 307031, nil, nil, 3)--"Lava Pools"
+local timerIngitingRoarCD							= mod:NewCDCountTimer(28.9, 403740, 188832, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)--"Roar"
+local timerOverpoweringStompCD						= mod:NewCDCountTimer(101.7, 403671, 149213, nil, nil, 2)--"Knockback"
+local timerBlazingBreathCD							= mod:NewCDCountTimer(29.9, 409238, 18357, nil, nil, 3)
 local timerIncineratingMawsCD						= mod:NewCDCountTimer(20, 404846, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 --local berserkTimer								= mod:NewBerserkTimer(600)
@@ -89,13 +89,13 @@ function mod:OnCombatStart(delay)
 		timerBlazingBreathCD:Start(31.2-delay, 1)
 		timerOverpoweringStompCD:Start(89.9-delay, 1)
 	else--Mythic
-		timerIngitingRoarCD:Start(4.9-delay, 1)
-		timerMoltenSpittleCD:Start(12.9-delay, 1)
-		timerIncineratingMawsCD:Start(19.9-delay, 1)
-		timerBlazingBreathCD:Start(25-delay, 1)
-		timerOverpoweringStompCD:Start(68.9-delay, 1)
+		timerIngitingRoarCD:Start(5.5-delay, 1)
+		timerMoltenSpittleCD:Start(14.4-delay, 1)
+		timerIncineratingMawsCD:Start(22.2-delay, 1)
+		timerBlazingBreathCD:Start(28-delay, 1)
+		timerOverpoweringStompCD:Start(43-delay, 1)
 	end
-	timerCatastrophicCD:Start(340-delay)
+	timerCatastrophicCD:Start(335-delay)
 	if self.Options.NPAuraOnTantrum then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end
@@ -123,6 +123,11 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 408358 then
 		specWarnCatastrophicEruption:Show()
 		specWarnCatastrophicEruption:Play("stilldanger")
+		timerIngitingRoarCD:Stop()
+		timerMoltenSpittleCD:Stop()
+		timerIncineratingMawsCD:Stop()
+		timerBlazingBreathCD:Stop()
+		timerOverpoweringStompCD:Stop()
 	elseif spellId == 402989 then
 		self.vb.spitCount = self.vb.spitCount + 1
 		self.vb.spitIcon = 1
@@ -145,15 +150,11 @@ function mod:SPELL_CAST_START(args)
 				timerMoltenSpittleCD:Start(32.4, self.vb.spitCount+1)
 			end
 		else--Mythic
-			--13.0, 24.0, 26.0, 25.0, 27.0, 24.0, 26.0, 25.0, 27.0, 24.0, 26.0, 25.0, 27.0
-			if self.vb.spitCount % 4 == 0 then
-				timerMoltenSpittleCD:Start(26.9, self.vb.spitCount+1)
-			elseif self.vb.spitCount % 4 == 3 then
-				timerMoltenSpittleCD:Start(25, self.vb.spitCount+1)
-			elseif self.vb.spitCount % 4 == 2 then
-				timerMoltenSpittleCD:Start(25.9, self.vb.spitCount+1)
+			--14.4, 40.0, 26.6, 40.0, 26.6, 40, 26.7
+			if self.vb.spitCount % 2 == 0 then
+				timerMoltenSpittleCD:Start(26.6, self.vb.spitCount+1)
 			else
-				timerMoltenSpittleCD:Start(24, self.vb.spitCount+1)
+				timerMoltenSpittleCD:Start(40, self.vb.spitCount+1)
 			end
 		end
 	elseif spellId == 403740 then
@@ -173,20 +174,18 @@ function mod:SPELL_CAST_START(args)
 			--6.2, 49.9, 49.9, 49.9, 49.9, 49.9, 49.9, 49.9
 			timerIngitingRoarCD:Start(49.9, self.vb.roarCount+1)
 		else--Mythic
-			--5.0, 40.0, 39.0, 23.0, 40.0, 39.0, 23.0, 40.0, 39.0, 23.0
-			if self.vb.roarCount % 3 == 0 then
-				timerIngitingRoarCD:Start(23, self.vb.roarCount+1)
-			elseif self.vb.roarCount % 2 == 0 then
-				timerIngitingRoarCD:Start(39, self.vb.roarCount+1)
+			--5.0, 41.8, 24.8, 41.8, 24.8, 41.8, ...
+			if self.vb.roarCount % 2 == 0 then
+				timerIngitingRoarCD:Start(24.8, self.vb.roarCount+1)
 			else
-				timerIngitingRoarCD:Start(40, self.vb.roarCount+1)
+				timerIngitingRoarCD:Start(41.8, self.vb.roarCount+1)
 			end
 		end
 	elseif spellId == 403671 then
 		self.vb.stompCount = self.vb.stompCount + 1
 		specWarnOverpoweringStomp:Show(self.vb.stompCount)
 		specWarnOverpoweringStomp:Play("carefly")
-		timerOverpoweringStompCD:Start(self:IsEasy() and 113.3 or 100, self.vb.stompCount+1)
+		timerOverpoweringStompCD:Start(self:IsMythic() and 66.6 or self:IsEasy() and 113.3 or 100, self.vb.stompCount+1)
 	elseif spellId == 409093 or spellId == 402344 then--409093 confirmed for heroic/normal, 402344 unknown
 		self.vb.breathCount = self.vb.breathCount + 1
 		specWarnBlazingBreath:Show(self.vb.breathCount)
@@ -209,13 +208,11 @@ function mod:SPELL_CAST_START(args)
 				timerBlazingBreathCD:Start(34.9, self.vb.breathCount+1)
 			end
 		else
-			--25.0, 28.0, 41.0, 33.0, 28.0, 41.0, 33.0, 28.0, 41.0
-			if self.vb.breathCount % 3 == 0 then
-				timerBlazingBreathCD:Start(33, self.vb.breathCount+1)
-			elseif self.vb.breathCount % 3 == 2 then
-				timerBlazingBreathCD:Start(41, self.vb.breathCount+1)
+			--28.8, 35.5, 31, 35.5, 31.1, ...
+			if self.vb.breathCount % 2 == 0 then
+				timerBlazingBreathCD:Start(31, self.vb.breathCount+1)
 			else
-				timerBlazingBreathCD:Start(28, self.vb.breathCount+1)
+				timerBlazingBreathCD:Start(35.5, self.vb.breathCount+1)
 			end
 		end
 	elseif spellId == 404846 then
@@ -227,8 +224,17 @@ function mod:SPELL_CAST_START(args)
 			else
 				timerIncineratingMawsCD:Start(22.2, self.vb.mawCount+1)
 			end
+		elseif self:IsMythic() then
+			--22.2, 14.4, 24.4, 27.8, 14.4, 24.4, 27.7, 14.4
+			if self.vb.mawCount % 3 == 0 then
+				timerIncineratingMawsCD:Start(27.8, self.vb.breathCount+1)
+			elseif self.vb.mawCount % 3 == 2 then
+				timerIncineratingMawsCD:Start(24.4, self.vb.breathCount+1)
+			else
+				timerIncineratingMawsCD:Start(14.4, self.vb.breathCount+1)
+			end
 		else
-			timerIncineratingMawsCD:Start(self:IsMythic() and 20 or 25, self.vb.mawCount+1)
+			timerIncineratingMawsCD:Start(25, self.vb.mawCount+1)
 		end
 	end
 end
@@ -239,10 +245,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		local amount = args.amount or 1
 		heatStacks[args.destName] = amount
 		if args:IsPlayer() then
-			if amount >= 16 then--Emphasize at higher stacks
+			if amount >= 35 then--Emphasize at higher stacks
 				specWarnHeatStacks:Show(amount)
 				specWarnHeatStacks:Play("stackhigh")
-			elseif amount % 4 == 3 then--(3, 7, 11, 15) Otherwise, don't spam elevated warning
+			elseif amount % 4 == 0 then--(4, 8, 12, 16) Otherwise, don't spam elevated warning
 				warnHeatStacks:Show(amount)
 			end
 		end

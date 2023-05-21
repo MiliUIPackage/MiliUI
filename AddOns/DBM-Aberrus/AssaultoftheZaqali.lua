@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2524, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230511053240")
+mod:SetRevision("20230517021217")
 mod:SetCreatureID(199659)--Warlord Kagni
 mod:SetEncounterID(2682)
 --mod:SetUsedIcons(1, 2, 3)
@@ -46,7 +46,7 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(26604))
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26737))
 local warnPhoenixRush								= mod:NewCountAnnounce(401108, 3)
 
-local specWarnAwakenedFocus							= mod:NewSpecialWarningRun(401381, nil, nil, nil, 4, 2, 4)
+local specWarnAwakenedFocus							= mod:NewSpecialWarningRun(401381, nil, 374610, nil, 4, 2, 4)--"Fixate"
 local specWarnVigorousGale							= mod:NewSpecialWarningCount(407009, nil, nil, nil, 2, 13, 4)
 
 local timerPhoenixRushCD							= mod:NewAITimer(29.9, 401108, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
@@ -60,11 +60,11 @@ local warnWallClimber								= mod:NewCountAnnounce("ej26221", 2, 163789, false,
 local specWarnHeavyCudgel							= mod:NewSpecialWarningDefensive(401258, nil, nil, nil, 1, 2)
 local specWarnHeavyCudgelStack						= mod:NewSpecialWarningStack(401258, nil, 2, nil, nil, 1, 6)
 local specWarnHeavyCudgelSwap						= mod:NewSpecialWarningTaunt(401258, nil, nil, nil, 1, 2)
-local specWarnDevastatingLeap						= mod:NewSpecialWarningDodgeCount(408959, nil, nil, nil, 2, 2)
+local specWarnDevastatingLeap						= mod:NewSpecialWarningDodgeCount(408959, nil, 67382, nil, 2, 2)
 local specWarnAdds									= mod:NewSpecialWarningAddsCustom(285849, "-Healer", nil, nil, 1, 2)
 
 local timerHeavyCudgelCD							= mod:NewCDCountTimer(21.0, 401258, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerDevastatingLeapCD						= mod:NewCDCountTimer(29.9, 408959, nil, nil, nil, 3)
+local timerDevastatingLeapCD						= mod:NewCDCountTimer(29.9, 408959, 67382, nil, nil, 3)--"Leap"
 local timerMagmaMysticCD							= mod:NewCDCountTimer(29.9, "ej26217", nil, nil, nil, 1, 397383)--Molten Barrier Icon
 local timerWallClimberCD							= mod:NewCDCountTimer(29.9, "ej26221", nil, false, 2, 1, 163789)--Ladder Icon
 local timerGuardsandHuntsmanCD						= mod:NewTimer(30, "timerGuardsandHuntsmanCD", 285849, nil, nil, 1)--Random guard banner
@@ -341,21 +341,24 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 409275 then
 		warnMagmaFlow:CombinedShow(0.3, args.destName)
 	elseif spellId == 408873 then
-		local amount = args.amount or 1
-		if amount >= 2 then--And you pretty much swap every other cast
-			if args:IsPlayer() then
-				specWarnHeavyCudgelStack:Show(amount)
-				specWarnHeavyCudgelStack:Play("stackhigh")
-			else
-				if not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
-					specWarnHeavyCudgelSwap:Show(args.destName)
-					specWarnHeavyCudgelSwap:Play("tauntboss")
+		local uId = DBM:GetRaidUnitId(args.destName)
+		if self:IsTanking(uId) then
+			local amount = args.amount or 1
+			if amount >= 2 then--And you pretty much swap every other cast
+				if args:IsPlayer() then
+					specWarnHeavyCudgelStack:Show(amount)
+					specWarnHeavyCudgelStack:Play("stackhigh")
 				else
-					warnHeavyCudgel:Show(args.destName, amount)
+					if not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+						specWarnHeavyCudgelSwap:Show(args.destName)
+						specWarnHeavyCudgelSwap:Play("tauntboss")
+					else
+						warnHeavyCudgel:Show(args.destName, amount)
+					end
 				end
+			else
+				warnHeavyCudgel:Show(args.destName, amount)
 			end
-		else
-			warnHeavyCudgel:Show(args.destName, amount)
 		end
 	elseif spellId == 410353 then
 		local amount = args.amount or 1

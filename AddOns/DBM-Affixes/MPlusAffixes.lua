@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230504042645")
+mod:SetRevision("20230516231722")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--All of the S1 DF M+ Dungeons (2516, 2526, 2515, 2521, 1477, 1571, 1176, 960)
 
@@ -104,7 +104,7 @@ local function checkEntangled(self)
 		return
 	end
 	timerEntangledCD:Start(25)
-	self:Schedule(checkEntangled, 30)
+	self:Schedule(30, checkEntangled, self)
 end
 
 do
