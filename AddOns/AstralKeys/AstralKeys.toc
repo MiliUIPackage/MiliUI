@@ -1,0 +1,44 @@
+## Interface: 100100
+## Title: Astral |cffff8000Keys|r
+## Notes: Keystone Manager for Guilds and Friends
+## Title-zhTW: |cffFF7F00[M+]|r 鑰石名單
+## Notes-zhTW: Astral |cffff8000Keys|r |n|n列出你的每個角色、公會成員和好友的鑰石，也會顯示保底打了沒，一起揪揪 M+！！|n|n|cffffd200使用方法: |r點小地圖按鈕。|n|n|cffFF2D2D特別注意: |r每週登入過的角色才會有記錄。|n|n需要安裝並載入這個插件的公會成員和好友，才能看到彼此的鑰石。
+## X-Category-zhTW: 團隊
+## Author: Astral
+## Version: 3.84
+## SavedVariables: AstralKeys, AstralCharacters, AstralKeysSettings, AstralMinimap, AstralAffixes, AstralLists, AstralUnits
+## X-Wago-ID: baNDZoKo
+## X-Curse-Project-ID: 265199
+## IconTexture: Interface\AddOns\AstralKeys\Media\Texture\Logo@2x
+## AddonCompartmentFunc: OpenAstralKeysWindow
+
+Init.lua
+Localization\Localization.lua
+Localization\enUS.lua
+Localization\zhCN.lua
+Localization\zhTW.lua
+
+embeds.xml
+fonts.xml
+Events.lua
+Tables.lua
+Settings.lua
+Dialog.lua
+Communications.lua
+
+Lists.lua
+Lists\Lists.lua
+Lists\Friends.lua
+Lists\Guild.lua
+
+Affixes.lua
+Unit Information.lua
+Character Info.lua
+Dungeons.lua
+Key Information.lua
+
+AstralKeys.lua
+Frame Functions.lua
+Frame.xml
+MinimapButton.lua
+Options.lua
