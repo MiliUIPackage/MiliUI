@@ -1,10 +1,10 @@
 ## Interface: 100100
 ## Title: NeedToKnow
-## Title-zhTW: |cFF00FFFF[戰鬥]|r 增益、減益監控
-## Notes-zhTW: NeedToKnow|n以時間條監控 buffs、debuffs、技能冷卻....等。|n|cffffd200使用方法：|r輸入 /ntk 進行設置。
 ## Author: NephMakes, lieandswell
 ## Version: 4.6.2
 ## Notes: Simple, effective timer bars
+## Title-zhTW: |cFF00FFFF[戰鬥]|r 增益、減益監控
+## Notes-zhTW: NeedToKnow|n以簡潔、高效率的計時條樣式來監控增益、減益、技能冷卻....等。|n|cffffd200使用方法：|r輸入 /ntk 進行設置。
 ## X-Category: Buffs, Combat
 ## DefaultState: Disabled
 ## X-FormerAuthor: Kitjan
