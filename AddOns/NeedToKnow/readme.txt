@@ -1,18 +1,26 @@
-
-----------------------
+--------------------------------
 NeedToKnow
-by Kitjan, lieandswell
-----------------------
+by NephMakes/lieandswell, Kitjan
+--------------------------------
 
+NeedToKnow lets you track specific buffs, debuffs, and cooldowns as timer bars that always appear in the same place in the same color. 
 
-NeedToKnow allows you to monitor specific buffs and debuffs of your choosing as timer bars that always appear in a consistent place on your screen in a consistent color.  It's especially useful for monitoring frequently used short-duration buffs and debuffs.  For example, a rogue could configure NeedToKnow to show timer bars for Slice and Dice, Rupture, and their own stack of Deadly Poison VII.  A death knight could use it to track their own diseases on a mob.  NeedToKnow also works with procs and on-use trinkets.  The number, size, position, and appearance of timer bars are all customizable.  
+NeedToKnow is very useful for frequently used short-duration buffs and debuffs. 
+-- For example, a rogue could configure NeedToKnow to show timer bars for Slice and Dice, Rupture, and their own stack of Deadly Poison VII. A death knight could use it to track their own diseases on a mob
+
+Features
+* Easy to set up and customize. Easy on your computer. 
+* Works with procs, on-use equipment, and totems
+* Different setups for different specializations
+* Track by SpellID
+* Track more than one buff or debuff with one bar
 
 
 ------------
 Instructions
 ------------
 
-General options are available in the Blizzard interface options menu.  You can type "/needtoknow" or "/ntk" to lock/unlock the addon.  To configure individual bars, right click them while unlocked.  Bars work while locked.  (The bars should be unlocked the first time you log in with NTK.)
+General options are available in the Blizzard interface options menu.  You can type "/needtoknow" or "/ntk" to lock/unlock the addon.  To configure individual bars, right click them while unlocked.  Bars work while locked. 
 
 When entering your settings, be careful with your spelling and capitalization.  Also remember that buffs and debuffs sometimes have different names than the items and abilities that apply them.  The Death Knight ability Icy Touch, for example, applies a DoT called Frost Fever.   
 
@@ -20,6 +28,12 @@ When entering your settings, be careful with your spelling and capitalization.  
 ----------
 Change log
 ----------
+
+v4.0.30
+* Fixed moving/sizing bug caused by anchor API change
+
+v4.0.29
+* Updated for patch 8.3
 
 v4.0.28
 * More fixes for UNIT_SPELLCAST event changes
@@ -232,12 +246,10 @@ v4.0.27 (beta)
 -Optimized performance slightly
 
 2.4.1 
-
--Fixed character restriction on buff names, no accepts up to 255 characters.
+-Fixed character restriction on buff names, now accepts up to 255 characters.
 -Added Russian localization
 
 2.4
-
 -Brought up to 3.2 API standards
 -Added multiple buffs/debuffs per bar
 -Dual-Specialization support

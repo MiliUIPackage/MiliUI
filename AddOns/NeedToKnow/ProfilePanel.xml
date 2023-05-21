@@ -1,0 +1,141 @@
+﻿<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\Blizza~1\FrameXML\UI.xsd">
+
+    <!-- Load before ProfilePanel.lua -->
+
+	<Button name="NeedToKnowProfileButtonTemplate" virtual="true">
+		<Size x="169" y="22"/>
+		<Anchors>
+			<Anchor point="RIGHT"/>
+		</Anchors>
+		<Layers>
+			<Layer level="BACKGROUND" >
+				<Texture parentKey="highlight" name="$parentHighlight" file="Interface\FriendsFrame\UI-FriendsFrame-HighlightBar-Blue" alphaMode="ADD">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="1" y="-1"/>
+						<Anchor point="BOTTOMRIGHT" x="-1" y="1"/>
+					</Anchors>
+				</Texture>
+			</Layer>
+			<Layer level="BORDER">
+				<Texture parentKey="Check" name="$parentCheck" file="Interface\Buttons\UI-CheckBox-Check" hidden="true">
+					<Size x="16" y="16"/>
+					<Anchors>
+						<Anchor point="LEFT" x="0"/>
+					</Anchors>
+				</Texture>
+				<FontString parentKey="typeText" name="$parentTypeText" text="??" inherits="GameFontHighlight" justifyH="CENTER">
+					<Anchors>
+						<Anchor point="CENTER" relativePoint="RIGHT" x="-48"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<ButtonText parentKey="nameText" name="$parentNameText" inherits="GameFontHighlight" justifyH="LEFT">
+			<Anchors>
+				<Anchor point="LEFT" relativeTo="$parentCheck" relativePoint="RIGHT" x="4" y="0"/>
+				<Anchor point="RIGHT" x="-96" y="0"/>
+			</Anchors>
+		</ButtonText>
+		<HighlightTexture file="Interface\FriendsFrame\UI-FriendsFrame-HighlightBar-Blue" alphaMode="ADD"/>
+	</Button>
+
+	<Frame name="InterfaceOptionsNeedToKnowProfilePanel" hidden="true">
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="title" name="$parentTitle" text="NeedToKnow" inherits="GameFontNormalLarge" justifyH="LEFT" justifyV="TOP">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="16" y="-16"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="subText" name="$parentSubText" inherits="GameFontHighlightSmall" nonspacewrap="true" maxLines="5" justifyH="LEFT" justifyV="TOP">
+					<Size>
+						<AbsDimension y="32" x="0"/>
+					</Size>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+						<Anchor point="RIGHT" x="-24" y="0"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="activateButton" name="$parentActivateButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentSubText" relativePoint="BOTTOM" y="-32"/>
+					<Anchor point="RIGHT" x="-16"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="copyButton" name="$parentCopyButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentActivateButton" relativePoint="BOTTOM" y="-16"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="renameButton" name="$parentRenameButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentCopyButton" relativePoint="BOTTOM" y="-16"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="toAccountButton" name="$parentToAccountButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentRenameButton" relativePoint="BOTTOM" y="-16"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="toCharacterButton" name="$parentToCharacterButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentRenameButton" relativePoint="BOTTOM" y="-16"/>
+				</Anchors>
+			</Button>
+			<Button parentKey="deleteButton" name="$parentDeleteButton" inherits="UIPanelButtonTemplate">
+				<Size>
+					<AbsDimension x="128" y="22"/>
+				</Size>
+				<Anchors>
+					<Anchor point="TOP" relativeTo="$parentToAccountButton" relativePoint="BOTTOM" y="-16"/>
+				</Anchors>
+			</Button>
+			<ScrollFrame parentKey="profileScrollFrame" name="$parentProfileScrollFrame" inherits="BasicHybridScrollFrameTemplate">					
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentSubText" relativePoint="BOTTOMLEFT" y="-48"/>
+					<Anchor point="BOTTOM" y="20"/>
+					<Anchor point="RIGHT" relativeTo="$parentActivateButton" relativePoint="LEFT" x="-40"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<FontString parentKey="label" name="$parentLabel" text="[Profiles]" inherits="GameFontNormal" justifyH="LEFT" justifyV="TOP">
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" y="28"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="nameLabel" name="$parentNameLabel" text="[Name]" inherits="GameFontNormalSmall" justifyH="LEFT" justifyV="BOTTOM">
+							<Anchors>
+								<Anchor point="BOTTOMLEFT" relativePoint="TOPLEFT" x="20" y="4"/>
+							</Anchors>
+						</FontString>
+						<FontString parentKey="typeLabel" name="$parentTypeLabel" text="[Type]" inherits="GameFontNormalSmall" justifyH="CENTER" justifyV="BOTTOM">
+							<Anchors>
+								<Anchor point="BOTTOM" relativePoint="TOPRIGHT" x="-48" y="4"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</ScrollFrame>
+		</Frames>
+	</Frame>
+
+</Ui>

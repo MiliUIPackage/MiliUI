@@ -1,0 +1,207 @@
+﻿<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\..\..\Blizza~1\FrameXML\UI.xsd">
+
+	<!-- Load before OptionsPanel.lua -->
+
+	<Frame name="NeedToKnow_GroupOptionsTemplate" virtual="true">
+		<Size x="128" y="26"/>
+		<Frames>
+			<CheckButton parentKey="enableButton" name="$parentEnableButton" inherits="InterfaceOptionsCheckButtonTemplate">
+				<Anchors>
+					<Anchor point="LEFT"/>
+				</Anchors>
+				<HitRectInsets right="-60"/>
+				<Scripts>
+					<OnLeave function="GameTooltip_Hide"/>
+				</Scripts>
+			</CheckButton>
+			<Frame parentKey="numberBarsWidget" name="$parentNumberbarsWidget">
+				<Size x="64" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="$parent" relativePoint="LEFT" x="150"/>
+				</Anchors>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<FontString parentKey="text" name="$parentText" inherits="GameFontHighlight" justifyH="CENTER" text="?">
+							<Anchors>
+								<Anchor point="CENTER"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+				<Frames>
+					<Button parentKey="leftButton" name="$parentLeftButton">
+						<Size x="20" y="20"/>
+						<Anchors>
+							<Anchor point="RIGHT" relativeTo="$parent" relativePoint="CENTER" x="-8"/>
+						</Anchors>
+						<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Up"/>
+						<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Down"/>
+						<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-PrevPage-Disabled"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+					</Button>
+					<Button parentKey="rightButton" name="$parentRightButton">
+						<Size x="20" y="20"/>
+						<Anchors>
+							<Anchor point="LEFT" relativeTo="$parent" relativePoint="CENTER" x="8"/>
+						</Anchors>
+						<NormalTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Up"/>
+						<PushedTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Down"/>
+						<DisabledTexture file="Interface\Buttons\UI-SpellbookIcon-NextPage-Disabled"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+					</Button>
+				</Frames>
+			</Frame>
+			<Frame parentKey="directionWidget" name="$parentDirectionWidget">
+				<Size x="64" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="$parentNumberbarsWidget" x="70"/>
+				</Anchors>
+				<Frames>
+					<Button parentKey="upButton" name="$parentUpButton">
+						<Size x="34" y="34"/>
+						<HitRectInsets>
+							<AbsInset left="6" right="6" top="7" bottom="7"/>
+						</HitRectInsets>
+						<Anchors>
+							<Anchor point="RIGHT" relativeTo="$parent" relativePoint="CENTER" x="5"/>
+						</Anchors>
+						<NormalTexture file="Interface\MainMenuBar\UI-MainMenu-ScrollUpButton-Up"/>
+						<PushedTexture file="Interface\MainMenuBar\UI-MainMenu-ScrollUpButton-Down"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+						<Scripts>
+							<OnLeave function="GameTooltip_Hide"/>
+						</Scripts>
+					</Button>
+					<Button parentKey="downButton" name="$parentDownButton">
+						<Size x="34" y="34"/>
+						<HitRectInsets>
+							<AbsInset left="6" right="6" top="7" bottom="7"/>
+						</HitRectInsets>
+						<Anchors>
+							<Anchor point="LEFT" relativeTo="$parent" relativePoint="CENTER" x="-5"/>
+						</Anchors>
+						<NormalTexture file="Interface\MainMenuBar\UI-MainMenu-ScrollDownButton-Up"/>
+						<PushedTexture file="Interface\MainMenuBar\UI-MainMenu-ScrollDownButton-Down"/>
+						<HighlightTexture file="Interface\Buttons\UI-Common-MouseHilight" alphaMode="ADD"/>
+						<Scripts>
+							<OnLeave function="GameTooltip_Hide"/>
+						</Scripts>
+					</Button>
+				</Frames>
+			</Frame>
+			<CheckButton parentKey="condenseGroupButton" name="$parentCondenseGroupButton" inherits="InterfaceOptionsCheckButtonTemplate">
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="$parentDirectionWidget" x="66"/>
+				</Anchors>
+				<HitRectInsets right="0"/>
+				<Scripts>
+					<OnLeave function="GameTooltip_Hide"/>
+				</Scripts>
+			</CheckButton>
+			<EditBox parentKey="fixedDurationBox" name="$parentFixedDurationBox" inherits="InputBoxTemplate" numeric="true" letters="3" autoFocus="false">
+				<Size x="30" y="20"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeTo="$parentCondenseGroupButton" x="69" y="1"/>
+				</Anchors>
+				<Scripts>
+					<OnLeave function="GameTooltip_Hide"/>
+					<OnEnterPressed function="EditBox_ClearFocus"/>
+				</Scripts>
+			</EditBox>
+		</Frames>
+	</Frame>
+
+	<Frame name="InterfaceOptionsNeedToKnowPanel" hidden="true">
+		<Layers>
+			<Layer level="ARTWORK">
+				<FontString parentKey="title" name="$parentTitle" text="NeedToKnow" inherits="GameFontNormalLarge" justifyH="LEFT" justifyV="BOTTOM">
+					<Anchors>
+						<Anchor point="TOPLEFT" x="16" y="-16"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="subText1" name="$parentSubText1" inherits="GameFontHighlightSmall" nonspacewrap="true" maxLines="3" justifyH="LEFT" justifyV="TOP">
+					<Size x="0" y="24"/>
+					<Anchors>
+						<Anchor point="TOPLEFT" relativeTo="$parentTitle" relativePoint="BOTTOMLEFT" y="-8"/>
+						<Anchor point="RIGHT" x="-24"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="barGroupsTitle" name="$parentBarGroupsTitle" inherits="GameFontNormal" text="Bar groups">
+					<Anchors>
+						<Anchor point="LEFT" relativeTo="$parentSubText1" relativePoint="BOTTOMLEFT" x="0" y="-22"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="numberBarsLabel" name="$parentNumberbarsLabel" inherits="GameFontHighlightSmall">
+					<Size x="55"/>
+					<Anchors>
+						<!-- <Anchor point="BOTTOM" relativeTo="$parentSubText1" relativePoint="BOTTOMLEFT" x="150" y="-28"/> -->
+						<Anchor point="BOTTOM" relativeTo="$parentBarGroupsTitle" relativePoint="BOTTOMLEFT" x="158" y="-10"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="directionLabel" name="$parentDirectionLabel" inherits="GameFontHighlightSmall">
+					<Size x="55"/>
+					<Anchors>
+						<Anchor point="BOTTOM" relativeTo="$parentNumberbarsLabel" x="70"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="condenseGroupLabel" name="$parentCondenseGroupLabel" inherits="GameFontHighlightSmall">
+					<Size x="55"/>
+					<Anchors>
+						<Anchor point="BOTTOM" relativeTo="$parentDirectionLabel" x="66"/>
+					</Anchors>
+				</FontString>
+				<FontString parentKey="fixedDurationLabel" name="$parentFixedDurationLabel" inherits="GameFontHighlightSmall">
+					<Size x="55"/>
+                    <Anchors>
+						<Anchor point="BOTTOM" relativeTo="$parentCondenseGroupLabel" x="66"/>
+					</Anchors>
+				</FontString>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Frame parentKey="group1" name="$parentGroup1" inherits="NeedToKnow_GroupOptionsTemplate" id="1">
+				<Anchors>
+					<!-- <Anchor point="TOPLEFT" relativeTo="$parentSubText1" relativePoint="BOTTOMLEFT" x="0" y="-40"/> -->
+					<!-- <Anchor point="LEFT" x="16"/> -->
+					<Anchor point="TOP" relativeTo="$parentBarGroupsTitle" relativePoint="BOTTOM" y="-16"/>
+					<Anchor point="LEFT" x="24"/>
+				</Anchors>
+			</Frame>
+			<Frame parentKey="group2" name="$parentGroup2" inherits="NeedToKnow_GroupOptionsTemplate" id="2">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentGroup1" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame parentKey="group3" name="$parentGroup3" inherits="NeedToKnow_GroupOptionsTemplate" id="3">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentGroup2" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Frame parentKey="group4" name="$parentGroup4" inherits="NeedToKnow_GroupOptionsTemplate" id="4">
+				<Anchors>
+					<Anchor point="TOPLEFT" relativeTo="$parentGroup3" relativePoint="BOTTOMLEFT" x="0" y="-8"/>
+				</Anchors>
+			</Frame>
+			<Button parentKey="editModeButton" name="$parentEditModeButton" inherits="UIPanelButtonTemplate">
+				<Size x="128" y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMRIGHT" relativeTo="$parent" relativePoint="BOTTOM" x="-12" y="24"/>
+				</Anchors>
+				<Scripts>
+					<OnLeave function="GameTooltip_Hide"/>
+				</Scripts>
+			</Button>
+			<Button parentKey="playModeButton" name="$parentPlayModeButton" inherits="UIPanelButtonTemplate">
+				<Size x="128" y="22"/>
+				<Anchors>
+					<Anchor point="BOTTOMLEFT" relativeTo="$parent" relativePoint="BOTTOM" x="12" y="24"/>
+				</Anchors>
+				<Scripts>
+					<OnLeave function="GameTooltip_Hide"/>
+				</Scripts>
+			</Button>
+		</Frames>
+	</Frame>
+
+</Ui>
