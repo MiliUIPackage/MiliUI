@@ -1870,6 +1870,62 @@ function F:Revise()
         end
     end
 
+    -- r169-release
+    if CellDB["revise"] and dbRevision < 169 then
+        if Cell.isRetail then
+            local privateAuras = Cell.defaults.indicatorIndices["privateAuras"]
+    
+            for _, layout in pairs(CellDB["layouts"]) do
+                if layout["indicators"][privateAuras]["indicatorName"] ~= "privateAuras" then
+                    tinsert(layout["indicators"], privateAuras, {
+                        ["name"] = "Private Auras",
+                        ["indicatorName"] = "privateAuras",
+                        ["type"] = "built-in",
+                        ["enabled"] = true,
+                        ["position"] = {"TOP", "TOP", 0, 3},
+                        ["frameLevel"] = 25,
+                        ["size"] = {18, 18},
+                        ["privateAuraOptions"] = {true, false},
+                    })
+                end
+            end
+        end
+    end
+
+    -- r170-release
+    if CellDB["revise"] and dbRevision < 170 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_NICKTAG_ENABLED") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Use nicknames from Details! Damage Meter (NickTag-1.0 library)\nCELL_NICKTAG_ENABLED = false"
+        end
+
+        if Cell.isWrath then
+            local index = Cell.defaults.indicatorIndices.missingBuffs
+            for _, layout in pairs(CellDB["layouts"]) do
+                if not layout["indicators"][index] or layout["indicators"][index]["indicatorName"] ~= "missingBuffs" then
+                    tinsert(layout.indicators, index, {
+                        ["name"] = "Missing Buffs",
+                        ["indicatorName"] = "missingBuffs",
+                        ["type"] = "built-in",
+                        ["enabled"] = false,
+                        ["buffByMe"] = false,
+                        ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
+                        ["frameLevel"] = 10,
+                        ["size"] = {13, 13},
+                        ["num"] = 3,
+                        ["orientation"] = "right-to-left",
+                    })
+                end
+            end
+        end
+    end
+
+    -- r171-release
+    if CellDB["revise"] and dbRevision < 171 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_DISPEL_EVOKER_CAUTERIZING_FLAME") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Add Evoker spell Cauterizing Flame into dispel checker\nCELL_DISPEL_EVOKER_CAUTERIZING_FLAME = false"
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if Cell.isWrath then
         CellCharacterDB["revise"] = Cell.version

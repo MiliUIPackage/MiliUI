@@ -823,6 +823,72 @@ function I:CreateRaidDebuffs(parent)
 end
 
 -------------------------------------------------
+-- private auras
+-------------------------------------------------
+local function PrivateAuras_UpdatePrivateAuraAnchor(self, unit)
+    -- remove old
+    if self.auraAnchorID then
+        C_UnitAuras.RemovePrivateAuraAnchor(self.auraAnchorID)
+        self.unit = nil
+        self.auraAnchorID = nil
+    end
+
+    -- add new
+    if unit then
+        local _showCountdownFrame, _showCountdownNumbers = true, false
+        if type(self.showCountdownFrame) == "boolean" then _showCountdownFrame = self.showCountdownFrame end
+        if type(self.showCountdownNumbers) == "boolean" then _showCountdownNumbers = self.showCountdownNumbers end
+
+        self.unit = unit
+        self.auraAnchorID = C_UnitAuras.AddPrivateAuraAnchor({
+            unitToken = unit,
+            auraIndex = 2,
+            parent = self,
+            showCountdownFrame = _showCountdownFrame,
+            showCountdownNumbers = _showCountdownNumbers,
+            iconInfo = {
+                iconWidth = self:GetWidth(),
+                iconHeight = self:GetHeight(),
+                iconAnchor = {
+                    point = "CENTER",
+                    relativeTo = self,
+                    relativePoint = "CENTER",
+                    offsetX = 0,
+                    offsetY = 0,
+                },
+            },
+            -- durationAnchor = {
+            --     point = "BOTTOMRIGHT",
+            --     relativeTo = self,
+            --     relativePoint = "BOTTOMRIGHT",
+            --     offsetX = 0,
+            --     offsetY = 0,
+            -- },
+        })
+    end
+end
+
+function I:CreatePrivateAuras(parent)
+    local privateAuras = CreateFrame("Frame", parent:GetName().."PrivateAuraParent", parent.widget.overlayFrame)
+    parent.indicators.privateAuras = privateAuras
+    privateAuras:Hide()
+
+    privateAuras.UpdatePrivateAuraAnchor = PrivateAuras_UpdatePrivateAuraAnchor
+    privateAuras._SetSize = privateAuras.SetSize
+
+    function privateAuras:SetSize(width, height)
+        privateAuras:_SetSize(width, height)
+        privateAuras:UpdatePrivateAuraAnchor(privateAuras.unit)
+    end
+
+    function privateAuras:UpdateOptions(t)
+        self.showCountdownFrame = t[1]
+        self.showCountdownNumbers = t[2]
+        privateAuras:UpdatePrivateAuraAnchor(privateAuras.unit)
+    end
+end
+
+-------------------------------------------------
 -- player raid icon
 -------------------------------------------------
 function I:CreatePlayerRaidIcon(parent)
@@ -879,6 +945,7 @@ function I:CreateNameText(parent)
     end)
 
     function nameText:SetFont(font, size, flags)
+        nameText.flags = flags
         font = F:GetFont(font)
 
         if flags == "Shadow" then
@@ -903,6 +970,7 @@ function I:CreateNameText(parent)
             nameText.vehicle:SetShadowOffset(0, 0)
             nameText.vehicle:SetShadowColor(0, 0, 0, 0)
         end
+
         nameText:UpdateName()
         if parent.state.inVehicle or nameText.isPreview then
             nameText:UpdateVehicleName()
@@ -952,10 +1020,22 @@ function I:CreateNameText(parent)
         
         -- only check nickname for players
         if parent.state.isPlayer then
+            if CELL_NICKTAG_ENABLED and Cell.NickTag then
+                name = Cell.NickTag:GetNickname(parent.state.name, nil, true)
+            end
+
             if Cell.vars.nicknameCustomEnabled then
-                name = Cell.vars.nicknameCustoms[parent.state.fullName] or Cell.vars.nicknameCustoms[parent.state.name] or Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+                name = name or
+                       Cell.vars.nicknameCustoms[parent.state.fullName] or
+                       Cell.vars.nicknameCustoms[parent.state.name] or
+                       Cell.vars.nicknames[parent.state.fullName] or
+                       Cell.vars.nicknames[parent.state.name] or
+                       parent.state.name
             else
-                name = Cell.vars.nicknames[parent.state.fullName] or Cell.vars.nicknames[parent.state.name] or parent.state.name
+                name = name or
+                       Cell.vars.nicknames[parent.state.fullName] or
+                       Cell.vars.nicknames[parent.state.name] or
+                       parent.state.name
             end
         else
             name = parent.state.name
@@ -1048,6 +1128,19 @@ function I:CreateNameText(parent)
             end
         end
     end)
+
+    function nameText:UpdatePixelPerfect()
+        if nameText.flags == "Shadow" then
+            -- NOTE: remove then add shadows back
+            nameText.name:SetShadowOffset(0, 0)
+            nameText.vehicle:SetShadowOffset(0, 0)
+
+            nameText.name:SetShadowOffset(1, -1)
+            nameText.name:SetShadowColor(0, 0, 0, 1)
+            nameText.vehicle:SetShadowOffset(1, -1)
+            nameText.vehicle:SetShadowColor(0, 0, 0, 1)
+        end
+    end
 end
 
 -------------------------------------------------
@@ -1103,6 +1196,7 @@ function I:CreateStatusText(parent)
     end
     
     function statusText:SetFont(font, size, flags)
+        statusText.flags = flags
         font = F:GetFont(font)
 
         if flags == "Shadow" then
@@ -1151,6 +1245,19 @@ function I:CreateStatusText(parent)
         if reset then
             if statusText.ticker then statusText.ticker:Cancel() end
             startTimeCache[parent.state.guid] = nil
+        end
+    end
+
+    function statusText:UpdatePixelPerfect()
+        if statusText.flags == "Shadow" then
+            -- NOTE: remove then add shadows back
+            text:SetShadowOffset(0, 0)
+            timer:SetShadowOffset(0, 0)
+
+            text:SetShadowOffset(1, -1)
+            text:SetShadowColor(0, 0, 0, 1)
+            timer:SetShadowOffset(1, -1)
+            timer:SetShadowColor(0, 0, 0, 1)
         end
     end
 end
@@ -1590,7 +1697,7 @@ function I:CreateMissingBuffs(parent)
     end
 end
 
-local missingBuffsEnabled, missingBuffsNum = false, 0
+local missingBuffsEnabled, missingBuffsNum, missingBuffsOnlyMine = false, 0, false
 function I:EnableMissingBuffs(enabled)
     missingBuffsEnabled = enabled
 
@@ -1599,10 +1706,18 @@ function I:EnableMissingBuffs(enabled)
     end
 end
 
-function I:UpdateMissingBuffsNum(num)
+function I:UpdateMissingBuffsNum(num, noUpdate)
     missingBuffsNum = num
 
-    if missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
+    if not noUpdate and missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
+        CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
+    end
+end
+
+function I:UpdateMissingBuffsFilter(buffByMe, noUpdate)
+    missingBuffsOnlyMine = buffByMe
+
+    if not noUpdate and missingBuffsEnabled and CellDB["tools"]["buffTracker"][1] then
         CellBuffTrackerFrame:GROUP_ROSTER_UPDATE(true)
     end
 end
@@ -1626,14 +1741,14 @@ function I:HideMissingBuffs(unit, force)
     end
 end
 
-local function ShowMissingBuff(b, index, icon, glow)
+local function ShowMissingBuff(b, index, icon, buffByMe)
     b.indicators.missingBuffs:UpdateSize(index)
     
     local f = b.indicators.missingBuffs[index]
     
     f:SetCooldown(0, 0, nil, icon, 0)
 
-    if glow then
+    if buffByMe then
         LCG.ButtonGlow_Start(f)
         f.glow = true
     else
@@ -1642,16 +1757,17 @@ local function ShowMissingBuff(b, index, icon, glow)
     end
 end
 
-function I:ShowMissingBuff(unit, icon, canProvide)
+function I:ShowMissingBuff(unit, icon, buffByMe)
     if not missingBuffsEnabled then return end
+    if missingBuffsOnlyMine and not buffByMe then return end
     
     missingBuffsCounter[unit] = (missingBuffsCounter[unit] or 0) + 1
 
     if missingBuffsCounter[unit] > missingBuffsNum then return end
 
     local b1, b2 = F:GetUnitButtonByUnit(unit)
-    if b1 then ShowMissingBuff(b1, missingBuffsCounter[unit], icon, canProvide)end
-    if b2 then ShowMissingBuff(b2, missingBuffsCounter[unit], icon, canProvide)end
+    if b1 then ShowMissingBuff(b1, missingBuffsCounter[unit], icon, buffByMe)end
+    if b2 then ShowMissingBuff(b2, missingBuffsCounter[unit], icon, buffByMe)end
 end
 
 -------------------------------------------------

@@ -6,7 +6,7 @@ local addonName, ns = ...
 local patrons = {
     -- {"nameInPatronList", "sortKey", "wowIDs"...}
     {"小兔姬-影之哀伤 (CN)", "xiaotuji", "渺渺-影之哀伤"},
-    {"夕曦 (NGA)", "xixi"},
+    {"钛锬 (NGA)", "taitan"},
     {"黑色之城 (NGA)", "heisezhicheng"},
     {"夏木沐-伊森利恩 (CN)", "xiamumu"},
     {"flappysmurf (爱发电)", "flappysmurf"},
@@ -37,6 +37,8 @@ local patrons = {
     {"Si (爱发电)", "si"},
     {"晓文 (爱发电)", "xiaowen"},
     {"Hardpp-Illidan (US)", "hardpp", "六月的奶德-艾露恩"},
+    {"握握-暗影之月 (TW)", "wowo"},
+    {"千雪之心 (爱发电)", "qianxuezhixin"},
 }
 
 -- sort

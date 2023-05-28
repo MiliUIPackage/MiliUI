@@ -393,6 +393,7 @@ L["Externals + Defensives"] = "减伤 (全部)"
 L["Tank Active Mitigation"] = "坦克主动减伤"
 L["Dispels"] = "驱散"
 L["Debuffs"] = "减益"
+L["Private Auras"] = "个人光环" -- 私有光环？
 L["Targeted Spells"] = "被法术选中"
 L["Target Counter"] = "目标计数"
 L["Consumables"] = "消耗品"
@@ -483,6 +484,7 @@ L["showGroupNumber"] = "显示队伍编号"
 L["dispellableByMe"] = "只显示我能驱散的减益"
 L["showDispelTypeIcons"] = "显示驱散类型图标"
 L["castByMe"] = "只显示我施放的增益"
+L["buffByMe"] = "只显示我能施放的增益"
 L["trackByName"] = "匹配法术名称"
 L["showDuration"] = "显示持续时间文本"
 L["showStack"] = "显示层数文本"
@@ -502,15 +504,19 @@ L["right-to-left"] = "从右到左"
 L["top-to-bottom"] = "从上到下"
 L["bottom-to-top"] = "从下到上"
 
+L["Show countdown swipe"] = "显示倒计时动画"
+L["Show countdown number"] = "显示倒计时文本"
+L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."] = "由于个人光环系统的限制，该指示器只能使用暴雪样式。"
+
 L["Leader Icons will hide while in combat"] = "战斗时队长图标将会隐藏"
 L["You can config debuffs in %s"] = "你可以在 %s 里设置减益"
 L["Indicator settings are part of Layout settings which are account-wide."] = "指示器设置是布局设置的一部分，它们是账号配置而非角色。"
 L["The spells list of a icons indicator is unordered (no priority)."] = "图标组指示器的法术列表是无序的（无优先级）。"
 L["The priority of spells decreases from top to bottom."] = "法术优先级从上到下递减。"
-L["With this indicator enabled, shield / overshield textures are disabled"] = "启用该指示器将会禁用血条上的护盾材质"
 L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
 L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
-L["%s in General must be enabled to make this indicator work"] = "要使用此指示器，必须先启用常规页面下的 %s 功能  "
+L["%s in General must be enabled to make this indicator work."] = "要使用此指示器，必须先启用常规页面下的 %s 功能。"
+L["If you are a paladin or warrior, and the unit has no buffs from you, a %s icon will be displayed."] = "如果你是圣骑士或战士，且该单位没有来自你的增益时，将会显示一个%s图标。"
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
 
@@ -621,6 +627,25 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>r171-release (May 26, 2023, 19:27 GMT+8)</h1>
+    <p>* 将唤魔师的“灼烧之焰”从驱散检查器中移除。将代码片段中的 CELL_DISPEL_EVOKER_CAUTERIZING_FLAME 设置为 true，可使该法术加入驱散检查。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r170-release (May 26, 2023, 00:21 GMT+8)</h1>
+    <p>* 更新副本减益：亚贝鲁斯 和 史诗钥石地下城。（感谢钛锬）</p>
+    <p>* 更新副本减益：十字军的试炼。（感谢橘子味橙汁）</p>
+    <p>* 添加对 NickTag 的支持。要显示 Details! 中设置的昵称，将代码片段中的 CELL_NICKTAG_ENABLED 设置为 true 即可。</p>
+    <p>* 更新“缺失增益”指示器，并且在巫妖王之怒怀旧服也可以用了。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
+    <h2>正式服</h2>
+    <p>+ 新指示器：个人光环。</p>
+    <p>* 更新驱散检查。</p>
+    <br/>
+
     <h1>r168-release (May 13, 2023, 19:23 GMT+8)</h1>
     <p>! 点击施法的底层存储现在使用法术ID（之前是本地化的法术名）。这意味着在不修改配置的情况下可以兼容不同语言的客户端了（但要重新配置点击施法才能更新存储的配置文件，并使之生效）。</p>
     <p>* 更新副本减益：亚贝鲁斯，焰影熔炉。</p>

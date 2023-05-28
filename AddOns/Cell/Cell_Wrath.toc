@@ -1,6 +1,6 @@
 ## Interface: 30401
 ## Title: Cell
-## Version: r168-release
+## Version: r171-release
 ## Author: 篠崎
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
@@ -20,7 +20,7 @@ Libs\LoadLibs_Wrath.xml
 Core_Wrath.lua
 Utils.lua
 Revise.lua
-Comm.lua
+Comm\LoadComm.xml
 Widgets\LoadWidgets_Wrath.xml
 Defaults\LoadDefaults_Wrath.xml
 

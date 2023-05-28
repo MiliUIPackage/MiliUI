@@ -396,7 +396,7 @@ function F:RunSnippets()
         if t["autorun"] then
             local errorMsg = RunSnippet(t["code"])
             if errorMsg then
-                F:Print("|cFFFF3030Snippet Error ("..i.."."..t["name"].."):|r "..errorMsg)
+                F:Print("|cFFFF3030Snippet Error ("..i.."."..(t["name"] or "Cell").."):|r "..errorMsg)
             end
         end
     end
@@ -412,6 +412,10 @@ function F:GetDefaultSnippet()
             "-- add summon icons to Status Icon indicator (boolean, retail only)\n"..
             "CELL_SUMMON_ICONS_ENABLED = false\n\n"..
             "-- use separate width and height for custom indicator icons (boolean)\n"..
-            "CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS = false",
+            "CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS = false\n\n"..
+            "-- Use nicknames from Details! Damage Meter (NickTag-1.0 library)\n"..
+            "CELL_NICKTAG_ENABLED = false\n\n"..
+            "-- Add Evoker spell Cauterizing Flame into dispel checker\n"..
+            "CELL_DISPEL_EVOKER_CAUTERIZING_FLAME = false",
     }
 end

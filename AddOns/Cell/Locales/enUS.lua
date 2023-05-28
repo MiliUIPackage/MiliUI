@@ -23,6 +23,7 @@ select(2, ...).L = setmetatable({
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
     ["showDispelTypeIcons"] = "Show dispel type icons",
     ["castByMe"] = "Only show buffs cast by me",
+    ["buffByMe"] = "Only show buffs I can apply",
     ["trackByName"] = "Track by name",
     ["showDuration"] = "Show duration text",
     ["showStack"] = "Show stack text",
@@ -68,6 +69,25 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>r171-release (May 26, 2023, 19:27 GMT+8)</h1>
+        <p>* Removed Cauterizing Flame (Evoker) from dispel checker. You can add it back by setting CELL_DISPEL_EVOKER_CAUTERIZING_FLAME to true in Code Snippets.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r170-release (May 26, 2023, 00:21 GMT+8)</h1>
+        <p>* Updated raid debuffs: Aberrus and M+. (Thanks to 钛锬)</p>
+        <p>* Updated raid debuffs: ToC. (Thanks to 橘子味橙汁)</p>
+        <p>* Added support for NickTag. To display nicknames from Details!, set CELL_NICKTAG_ENABLED to true in Code Snippets.</p>
+        <p>* Updated Missing Buffs indicator and brought it to Wrath.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
+        <h2>Retail</h2>
+        <p>+ New indicator: Private Auras.</p>
+        <p>* Updated dispel checker.</p>
+        <br/>
+
         <h1>r168-release (May 13, 2023, 19:23 GMT+8)</h1>
         <p>! Click-castings are now saved as spell id instead of name. This can make click-casting profiles work on clients in various languages (reconfiguration of click-casting spells is required).</p>
         <p>* Update Aberrus debuffs.</p>
