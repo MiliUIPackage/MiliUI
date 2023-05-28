@@ -40,7 +40,6 @@ localization.tw.lua
 commonlocal.en.lua
 commonlocal.tw.lua
 commonlocal.cn.lua
-commonlocal.ru.lua
 
 # Pre-core modules
 modules\Modules.lua
