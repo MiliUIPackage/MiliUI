@@ -30,6 +30,8 @@
 
 	local pet_tooltip_frame = _G.DetailsPetOwnerFinder
 
+	local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0", true)
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --constants
 
@@ -340,7 +342,7 @@ end
 								local pName = playerName
 								playerName = playerName:gsub("%-.*", "") --remove realm name
 								if (find_name_declension(actorName, playerName)) then
-									ownerGUID = unitGUID(pName)
+									ownerGUID = UnitGUID(pName)
 									ownerName = pName
 									ownerFlags = 0x514
 									break
@@ -367,6 +369,13 @@ end
 		if (ownerGUID) then
 			return ownerName, ownerGUID, ownerFlags
 		end
+	end
+
+	---return the actor type which is containing on this container
+	---@self actorcontainer
+	---@return number
+	function actorContainer:GetType()
+		return self.tipo
 	end
 
 	---return the actor object for a given actor name
@@ -457,7 +466,9 @@ end
 			funcao_de_criacao = actorContainer:FuncaoDeCriacao(containerType),
 			tipo = containerType,
 			combatId = combatId,
+			---@type actor[]
 			_ActorTable = {},
+			---@type table<string, number>
 			_NameIndexTable = {}
 		}
 
@@ -469,26 +480,17 @@ end
 	--try to get the actor class from name
 	local getActorClass = function(actorObject, actorName, actorFlags, actorSerial)
 		--get spec
-		if (Details.track_specs) then
-			local specId = Details.cached_specs[actorSerial]
-			if (specId) then
-				actorObject:SetSpecId(specId)
-				--check is didn't changed the spec:
-				if (Details.streamer_config.quick_detection) then
-					--validate the spec more times if on quick detection
-					Details:ScheduleTimer("ReGuessSpec", 2, {actorObject})
-					Details:ScheduleTimer("ReGuessSpec", 4, {actorObject})
-					Details:ScheduleTimer("ReGuessSpec", 6, {actorObject})
-				end
-				Details:ScheduleTimer("ReGuessSpec", 15, {actorObject})
-			else
-				if (Details.streamer_config.quick_detection) then
-					--shoot detection early if in quick detection
-					Details:ScheduleTimer("GuessSpec", 1, {actorObject, nil, 1})
-				else
-					Details:ScheduleTimer("GuessSpec", 3, {actorObject, nil, 1})
-				end
-			end
+		local specId = Details.cached_specs[actorSerial]
+		if (specId) then
+			actorObject:SetSpecId(specId)
+		end
+
+		if (not specId and Details.track_specs) then
+			Details:ScheduleTimer("GuessSpec", 2, {actorObject, nil, 1})
+--			if (Details.streamer_config.quick_detection) then
+--			else
+--				Details:ScheduleTimer("GuessSpec", 3, {actorObject, nil, 1})
+--			end
 		end
 
 		local _, engClass = UnitClass(actorName or "")
@@ -532,6 +534,8 @@ end
 	--read the actor flag
 	local readActorFlag = function(actorObject, ownerActorObject, actorSerial, actorFlags, actorName)
 		if (actorFlags) then
+			local _, zoneType = GetInstanceInfo()
+
 			--this is player actor
 			if (bitBand(actorFlags, OBJECT_TYPE_PLAYER) ~= 0) then
 				if (not Details.ignore_nicktag) then
@@ -549,7 +553,7 @@ end
 					end
 				end
 
-				if (Details.all_players_are_group or Details.immersion_enabled) then
+				if (zoneType ~= "arena" and (Details.all_players_are_group or Details.immersion_enabled)) then
 					actorObject.grupo = true
 				end
 
@@ -583,7 +587,7 @@ end
 					end
 				end
 
-				if (Details.is_in_arena) then
+				if (zoneType == "arena") then
 					--local my_team_color = GetBattlefieldArenaFaction and GetBattlefieldArenaFaction() or 0
 
 					--my team
@@ -958,7 +962,7 @@ end
 
 				if (novo_objeto.classe == "UNGROUPPLAYER") then --is a player
 					if (bitBand (actorFlags, REACTION_HOSTILE ) ~= 0) then --is hostile
-						novo_objeto.enemy = true --print(nome.." EH UM INIMIGO -> " .. engRace)
+						novo_objeto.enemy = true
 					end
 
 					--try to guess his class
@@ -1090,7 +1094,7 @@ end
 		Details:UpdatePetsOnParser()
 	end
 	function Details:ClearCCPetsBlackList()
-		table.wipe(petBlackList)
+		Details:Destroy(petBlackList)
 	end
 
 	function actorContainer:FuncaoDeCriacao (tipo)
@@ -1145,6 +1149,17 @@ end
 
 	function actorContainer:Remap()
 		return self:remapear()
+	end
+
+	---remove an actor from the container, by removing this way, the container does not need to be remapped
+	---@param self actorcontainer
+	---@param actorObject actor
+	function actorContainer:RemoveActor(actorObject)
+		local nameMap = self._NameIndexTable
+		local actorList = self._ActorTable
+		local actorIndex = nameMap[actorObject.nome]
+		nameMap[actorObject.nome] = nil --actorObject.nome a nil value | Details/boot.lua"]:1374: in function `DestroyActor' | meta.lua"]:590: in function `PrepareTablesForSave' | savedata.lua"]:86
+		table.remove(actorList, actorIndex)
 	end
 
 	function actorContainer:remapear()

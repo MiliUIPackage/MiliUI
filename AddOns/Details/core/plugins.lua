@@ -115,10 +115,6 @@
 			return _detalhes:NewError ("Details version is out of date.")
 		end
 		
-		if (_detalhes.FILEBROKEN) then
-			return _detalhes:NewError ("Game client needs to be restarted in order to finish Details! update.")
-		end
-		
 		if (PluginType == "TANK") then
 			PluginType = "RAID"
 		end
@@ -789,7 +785,7 @@
 				end
 			end
 			
-			Details:Msg("|cFFFF7700掛件未找到|r:|cFFFFFF00", (originalName or wildcard), "|r檢查是否在插件控制面板中啟用了它。") --localize-me
+			Details:Msg("|cFFFF7700plugin not found|r:|cFFFFFF00", (originalName or wildcard), "|rcheck if it is enabled in the addons control panel.") --localize-me
 		end
 		
 		

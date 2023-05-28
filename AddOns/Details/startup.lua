@@ -27,6 +27,11 @@ function Details:StartMeUp()
 		return Details.AddOnStartTime or GetTime()
 	end
 
+	C_Timer.After(3, function()
+		--load custom spells on login
+		Details:FillUserCustomSpells()
+	end)
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --row single click, this determines what happen when the user click on a bar
 
@@ -78,8 +83,6 @@ function Details:StartMeUp()
 	Details:InitializeRunCodeWindow()
 	Details:InitializePlaterIntegrationWindow()
 	Details:InitializeMacrosWindow()
-
-	Details.InitializeSpellBreakdownTab()
 
 	if (Details.ocd_tracker.show_options) then
 		Details:InitializeCDTrackerWindow()
@@ -345,6 +348,25 @@ function Details:StartMeUp()
 
 	--check is this is the first run of this version
 	if (Details.is_version_first_run) then
+		local breakdownData = Details.breakdown_spell_tab
+		if (breakdownData) then
+			local spellContainerHeaders = breakdownData.spellcontainer_headers
+			if (spellContainerHeaders) then
+				if (spellContainerHeaders.overheal) then
+					spellContainerHeaders.overheal.enabled = true
+					spellContainerHeaders.overheal.width = 70
+				end
+			end
+
+			local targetContainerHeaders = breakdownData.targetcontainer_headers
+			if (targetContainerHeaders) then
+				if (targetContainerHeaders.overheal) then
+					targetContainerHeaders.overheal.enabled = true
+					targetContainerHeaders.overheal.width = 70
+				end
+			end
+		end
+
 		local lowerInstanceId = Details:GetLowerInstanceNumber()
 		if (lowerInstanceId) then
 			lowerInstanceId = Details:GetInstance(lowerInstanceId)
@@ -416,7 +438,6 @@ function Details:StartMeUp()
 		--Details:OpenCustomDisplayWindow()
 		--Details:OpenWelcomeWindow()
 	end
-
 	Details.Schedules.NewTimer(2, Details.OpenOptionsWindowAtStart, Details)
 	--Details:OpenCustomDisplayWindow()
 
@@ -452,7 +473,7 @@ function Details:StartMeUp()
 		return Details.trinket_data
 	end
 
-	local customSpellList = Details:GetDefaultCustomSpellsList()
+	local customSpellList = Details:GetDefaultCustomItemList()
 	local trinketData = Details:GetTrinketData()
 	for spellId, trinketTable in pairs(customSpellList) do
 		if (trinketTable.isPassive) then
@@ -489,8 +510,8 @@ function Details:StartMeUp()
 	--dailly reset of the cache for talents and specs
 	local today = date("%d")
 	if (Details.last_day ~= today) then
-		wipe(Details.cached_specs)
-		wipe(Details.cached_talents)
+		Details:Destroy(Details.cached_specs)
+		Details:Destroy(Details.cached_talents)
 	end
 
 	--get the player spec
@@ -530,7 +551,7 @@ function Details:StartMeUp()
 	if (not DetailsFramework.IsClassicWow()) then
 		--i'm not in classc wow
 	else
-		print(Loc ["|CFFFFFF00[Details!]: you're using Details! for RETAIL on Classic WOW, please get the classic version (Details! Damage Meter Classic WoW), if you need help see our Discord (/details discord)."])
+		--print(Loc ["|CFFFFFF00[Details!]: you're using Details! for RETAIL on Classic WOW, please get the classic version (Details! Damage Meter Classic WoW), if you need help see our Discord (/details discord)."])
 	end
 
 	Details:InstallHook("HOOK_DEATH", Details.Coach.Client.SendMyDeath)
@@ -547,12 +568,12 @@ function Details:StartMeUp()
 
 	if (GetExpansionLevel() == 9) then
 		if (not Details.data_wipes_exp["10"]) then
-			wipe(Details.encounter_spell_pool or {})
-			wipe(Details.boss_mods_timers or {})
-			wipe(Details.spell_school_cache or {})
-			wipe(Details.spell_pool or {})
-			wipe(Details.npcid_pool or {})
-			wipe(Details.current_exp_raid_encounters or {})
+			Details:Destroy(Details.encounter_spell_pool or {})
+			Details:Destroy(Details.boss_mods_timers or {})
+			Details:Destroy(Details.spell_school_cache or {})
+			Details:Destroy(Details.spell_pool or {})
+			Details:Destroy(Details.npcid_pool or {})
+			Details:Destroy(Details.current_exp_raid_encounters or {})
 			Details.data_wipes_exp["10"] = true
 		end
 	end
@@ -561,9 +582,9 @@ function Details:StartMeUp()
 	Details.boss_mods_timers.encounter_timers_bw = Details.boss_mods_timers.encounter_timers_bw or {}
 
 	--clear overall data on new session
-	if (Details.overall_clear_logout) then
-		Details.tabela_overall = Details.combate:NovaTabela()
-	end
+	--if (Details.overall_clear_logout) then --this is suppose to be in the load data file
+	--	Details.tabela_overall = Details.combate:NovaTabela()
+	--end
 
 	if (not DetailsFramework.IsTimewalkWoW()) then
 		--wipe overall on torghast - REMOVE ON 10.0
@@ -591,6 +612,8 @@ function Details:StartMeUp()
 	if (Details.check_stuttering) then
 		_G["UpdateAddOnMemoryUsage"] = Details.UpdateAddOnMemoryUsage_Custom
 	end
+
+	Details.InitializeSpellBreakdownTab()
 
 	pcall(Details222.EJCache.MakeCache)
 

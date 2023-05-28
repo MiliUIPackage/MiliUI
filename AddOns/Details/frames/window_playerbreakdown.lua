@@ -15,7 +15,6 @@ local type = type
 local unpack = _G.unpack
 local PixelUtil = PixelUtil
 local UISpecialFrames = UISpecialFrames
-local wipe = wipe
 local CreateFrame = _G.CreateFrame
 local detailsFramework = DetailsFramework
 
@@ -32,6 +31,12 @@ local PLAYER_DETAILS_STATUSBAR_ALPHA = 1
 
 Details.player_details_tabs = {}
 breakdownWindow.currentTabsInUse =  {}
+
+Details222.BreakdownWindow.BackdropSettings = {
+	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
+	backdropcolor = {DetailsFramework:GetDefaultBackdropColor()},
+	backdropbordercolor = {0, 0, 0, 0.7},
+}
 
 ------------------------------------------------------------------------------------------------------------------------------
 --self = instancia
@@ -94,6 +99,7 @@ function Details:OpenBreakdownWindow(instanceObject, actorObject, bFromAttribute
 
 	--create the player list frame in the left side of the window
 	Details.PlayerBreakdown.CreatePlayerListFrame()
+	Details.PlayerBreakdown.CreateDumpDataFrame()
 
 	if (not Details.row_singleclick_overwrite[mainAttribute] or not Details.row_singleclick_overwrite[mainAttribute][subAttribute]) then
 		Details:CloseBreakdownWindow()
@@ -104,7 +110,8 @@ function Details:OpenBreakdownWindow(instanceObject, actorObject, bFromAttribute
 			Details:CloseBreakdownWindow()
 			return
 		end
-		return Details.row_singleclick_overwrite[mainAttribute][subAttribute](_, actorObject, instanceObject, bIsShiftKeyDown, bIsControlKeyDown)
+		Details.row_singleclick_overwrite[mainAttribute][subAttribute](_, actorObject, instanceObject, bIsShiftKeyDown, bIsControlKeyDown)
+		return
 	end
 
 	if (instanceObject:GetMode() == DETAILS_MODE_RAID) then
@@ -240,7 +247,7 @@ function Details:OpenBreakdownWindow(instanceObject, actorObject, bFromAttribute
 	local tabsReplaced = {}
 	local tabReplacedAmount = 0
 
-	wipe(breakdownWindow.currentTabsInUse)
+	Details:Destroy(breakdownWindow.currentTabsInUse)
 
 	for index = 1, #Details.player_details_tabs do
 		local tab = Details.player_details_tabs[index]
@@ -337,6 +344,25 @@ function Details:CloseBreakdownWindow()
 	end
 end
 
+function Details.PlayerBreakdown.CreateDumpDataFrame()
+	breakdownWindow.dumpDataFrame = CreateFrame("frame", "$parentDumpTableFrame", DetailsBreakdownWindowPlayerScrollBox, "BackdropTemplate")
+	breakdownWindow.dumpDataFrame:SetPoint("topleft", DetailsBreakdownWindowPlayerScrollBox, "topleft", 0, 0)
+	breakdownWindow.dumpDataFrame:SetPoint("bottomright", DetailsBreakdownWindowPlayerScrollBox, "bottomright", 0, 0)
+	breakdownWindow.dumpDataFrame:SetFrameLevel(DetailsBreakdownWindowPlayerScrollBox:GetFrameLevel() + 10)
+	detailsFramework:ApplyStandardBackdrop(breakdownWindow.dumpDataFrame, true)
+	breakdownWindow.dumpDataFrame:Hide()
+
+	--create a details framework special lua editor
+	breakdownWindow.dumpDataFrame.luaEditor = detailsFramework:NewSpecialLuaEditorEntry(breakdownWindow.dumpDataFrame, 1, 1, "text", "$parentCodeEditorWindow")
+	breakdownWindow.dumpDataFrame.luaEditor:SetPoint("topleft", breakdownWindow.dumpDataFrame, "topleft", 2, -2)
+	breakdownWindow.dumpDataFrame.luaEditor:SetPoint("bottomright", breakdownWindow.dumpDataFrame, "bottomright", -2, 2)
+	breakdownWindow.dumpDataFrame.luaEditor:SetFrameLevel(breakdownWindow.dumpDataFrame:GetFrameLevel()+1)
+	breakdownWindow.dumpDataFrame.luaEditor:SetBackdrop({})
+
+	--hide the scroll bar
+	DetailsBreakdownWindowPlayerScrollBoxDumpTableFrameCodeEditorWindowScrollBar:Hide()
+end
+
 function breakdownWindow:CreateRightSideBar() --not enabled
 	breakdownWindow.RightSideBar = CreateFrame("frame", nil, breakdownWindow, "BackdropTemplate")
 	breakdownWindow.RightSideBar:SetWidth(20)
@@ -391,17 +417,17 @@ end
 Details222.BreakdownWindow.ExpandedSpells = {}
 
 ---set a spell as expanded or not in the breakdown window
----@param spellID number
+---@param key any
 ---@param bIsExpanded boolean
-function Details222.BreakdownWindow.SetSpellAsExpanded(spellID, bIsExpanded)
-	Details222.BreakdownWindow.ExpandedSpells[spellID] = bIsExpanded
+function Details222.BreakdownWindow.SetSpellAsExpanded(key, bIsExpanded)
+	Details222.BreakdownWindow.ExpandedSpells[key] = bIsExpanded
 end
 
 ---get the state of the expanded for a spell
----@param spellID number
+---@param key any
 ---@return boolean
-function Details222.BreakdownWindow.IsSpellExpanded(spellID)
-	return Details222.BreakdownWindow.ExpandedSpells[spellID]
+function Details222.BreakdownWindow.IsSpellExpanded(key)
+	return Details222.BreakdownWindow.ExpandedSpells[key]
 end
 
 ---receives spell data to show in the summary tab
@@ -411,22 +437,29 @@ end
 ---@param instance instance
 function Details222.BreakdownWindow.SendSpellData(data, actorObject, combatObject, instance)
 	--need to get the tab showing the summary and transmit the data to it
-	local tab = Details222.BreakdownWindow.CurrentDefaultTab
-	if (tab) then
+	local tabButton = Details222.BreakdownWindow.CurrentDefaultTab
+	if (tabButton) then
 		--tab is the tab button
-		if (tab.OnReceiveSpellData) then
-			tab.OnReceiveSpellData(data, actorObject, combatObject, instance)
+		if (tabButton.OnReceiveSpellData) then
+			tabButton.OnReceiveSpellData(data, actorObject, combatObject, instance)
 		end
 	end
 end
 
 function Details222.BreakdownWindow.SendTargetData(targetList, actorObject, combatObject, instance)
-	--need to get the tab showing the summary and transmit the data to it
-	local tab = Details222.BreakdownWindow.CurrentDefaultTab
-	if (tab) then
-		--tab is the tab button
-		if (tab.OnReceiveTargetData) then
-			tab.OnReceiveTargetData(targetList, actorObject, combatObject, instance)
+	local tabButton = Details222.BreakdownWindow.CurrentDefaultTab
+	if (tabButton) then
+		if (tabButton.OnReceiveTargetData) then
+			tabButton.OnReceiveTargetData(targetList, actorObject, combatObject, instance)
+		end
+	end
+end
+
+function Details222.BreakdownWindow.SendGenericData(resultTable, actorObject, combatObject, instance)
+	local tabButton = Details222.BreakdownWindow.CurrentDefaultTab
+	if (tabButton) then
+		if (tabButton.OnReceiveGenericData) then
+			tabButton.OnReceiveGenericData(resultTable, actorObject, combatObject, instance)
 		end
 	end
 end
@@ -474,6 +507,7 @@ function Details:CreateBreakdownWindow()
 	breakdownWindow:EnableMouse(true)
 	breakdownWindow:SetResizable(true)
 	breakdownWindow:SetMovable(true)
+	breakdownWindow:SetClampedToScreen(true)
 
 	--make the window movable
 	if (not breakdownWindow.registeredLibWindow) then
@@ -485,6 +519,12 @@ function Details:CreateBreakdownWindow()
 			LibWindow.RestorePosition(breakdownWindow)
 			LibWindow.MakeDraggable(breakdownWindow)
 			LibWindow.SavePosition(breakdownWindow)
+
+			breakdownWindow:SetScript("OnMouseDown", function(self, button)
+				if (button == "RightButton") then
+					Details:CloseBreakdownWindow()
+				end
+			end)
 		end
 	end
 
@@ -524,7 +564,7 @@ function Details:CreateBreakdownWindow()
     end)
 
 	--title
-	detailsFramework:NewLabel(breakdownWindow, breakdownWindow, nil, "titleText", Loc ["STRING_PLAYER_DETAILS"] .. " (|cFFFF8811Under Maintenance|r) - Report Bugs At Discord", "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
+	detailsFramework:NewLabel(breakdownWindow, breakdownWindow, nil, "titleText", Loc ["STRING_PLAYER_DETAILS"], "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
 	breakdownWindow.titleText:SetPoint("center", breakdownWindow, "center")
 	breakdownWindow.titleText:SetPoint("top", breakdownWindow, "top", 0, -6)
 

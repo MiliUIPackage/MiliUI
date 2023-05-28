@@ -15,12 +15,12 @@
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 10737
-		Details.alpha_build_counter = 10737 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 11023
+		Details.alpha_build_counter = 11023 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 150 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 152 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
 
@@ -40,13 +40,11 @@
 
 		Details = Details
 
-		local gameVersionPrefix = "未知的遊戲版本 - 你可能正在使用與此遊戲版本不相容的Details！"
-		--these are the game versions currently compatible with this Details! versions
-		if (DetailsFramework.IsWotLKWow() or DetailsFramework.IsShadowlandsWow() or DetailsFramework.IsDragonflight()) then
-			gameVersionPrefix = "WD"
-		end
+		local gameVersionPrefix = "VWD" --vanilla, wrath, dragonflight
 
 		Details.gameVersionPrefix = gameVersionPrefix
+
+		pcall(function() Details.version_alpha_id = tonumber(Details.curseforgeVersion:match("%-(%d+)%-")) end)
 
 		--WD 10288 RELEASE 10.0.2
 		--WD 10288 ALPHA 21 10.0.2
@@ -93,6 +91,8 @@
 		Details222.Cooldowns = {}
 		Details222.GarbageCollector = {}
 		Details222.BreakdownWindow = {}
+		Details222.PlayerStats = {}
+		Details222.LoadSavedVariables = {}
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialization stuff
@@ -111,6 +111,50 @@ do
 	--]=]
 
 	local news = {
+		{"v10.1.0.11022.151", "5月 20日, 2023"},
+		"Breakdown pet options has changed to: 'Group Pets by Their Names' or 'Group Pets by Their Spells'.",
+		"Evoker empowered level now ocupies less space on the rectangle showing the damage by empower level.",
+		"Another Framework update.",
+		"Fixed an issue where some pet bars still showing the owner name.",
+		"Fixed an issue with the player selector on Breakdown window causing an error when selecting some players.",
+		"Fixed an issue caused by opening the breakdown window while seeing healing overall.",
+		"Fixed an issue with the min and max damage of a spell when viewing the 'merged' damage of two or more spells.",
+		"Fixed an issue with the Raid Check plugin throwing an error on Shuffle Arenas.",
+		"Fixed shields for Classic versions (Flamanis).",
+
+		{"v10.1.0.11011.151", "5月 13日, 2023"},
+		"Added options: 'Group Player Spells With Same Name' and 'Group Pets By Spell' on the breakdown options.",
+		"Added combat log options for 'Calculate Shield Wasted Amount' and 'Calculate Energy Wasted Amount' under the options > Combat Log.",
+		"Framework and OpenRaid Updated.",
+		"Breakdown window won't go off screen anymore.",
+		"Breakdown now shows damage per phase if the segment has more than one phase.",
+		"Overhealing can now be seen within the Healing Done breakdown. This removes the necessity of having to go back and forward between healing done and overhealing.",
+		"Friendly Fire can now be seen in the breakdown window by clicking on the player bar (before the click on the player bar opened the report screen).",
+		"Healing Taken can also be seen on the breakdown window.",
+		"Some options from the Breakdown options got removed, most of them are now auto calculated by the system.",
+		"Fixed an issue where the Frags display was showinig death of friendly objects like Efflorescense.",
+		"Fixed an issue where item damage was showing 'Unknown Item' on cold logins.",
+		"Fixed defenses gauge (miss, dodge, parry) not showing in the spell details on the breakdown window.",
+
+		{"v10.1.0.10985.147", "五月 4日, 2023"},
+		"戰鬥分析視窗已經從頭開始完全地重建，現在包括對幾個新功能的支持。",
+		"後端代碼的很大一部分已經進行了修改，從而提高了性能和穩定性。",
+		"戰鬥紀錄現在支持選項，請在選項面板中的“戰鬥紀錄”部分中勾選它們。",
+		"大型掛件更新具有改進的施法紀錄和進階死亡紀錄的新功能。",
+		"Added Real-time dps bar for arena streamers.",
+		"Flamanis:",
+		"更改了寵物所有權檢測，希望將來的更新版本更加健全。",
+		"在戰鬥紀錄部分中，添加了合併Atonement, Contrition, Ancient Teachings, and Awakened Faeline以及致命一擊的的選項。",
+		"加入惡魔獵人與喚能師的減傷冷卻。",
+		"在傳奇+整體分段中重新加入只含首領選項。",
+		"已修正 issue with swapping to/from Tiny Threat and other plugins using bookmarks.",
+		"已修正 position persistency for Statusbar elements.",
+		"已修正 alpha channel persistency for certain color options.",
+		"已修正 stack overflow related to changing option tabs or profiles too many times.",
+		"已修正 the highlight image of a bar icon not swapping to the new icon upon scrolling.",
+		"已修正 issues related to the new Left Text Offset position.",
+		"已修正 the wrong options being unusable with Aligned Text Columns enabled.",
+
 		{"v10.0.5.10661.147", "3月 1日, 2023"},
 		"Major fixes and updates on the Event Tracker feature (for streamers).",
 		"When trying to import a profile with a name that already exists, it'll rename it and import (Flamanis).",
@@ -1152,3 +1196,161 @@ function Details222.Tables.MakeWeakTable(mode)
 end
 
 --STRING_CUSTOM_POT_DEFAULT
+
+---add a statistic, log, or any other data to the player stat table
+---@param statName string
+---@param value number
+function Details222.PlayerStats:AddStat(statName, value)
+	Details.player_stats[statName] = (Details.player_stats[statName] or 0) + value
+end
+
+---get the value of a saved stat
+---@param statName string
+---@return any
+function Details222.PlayerStats:GetStat(statName)
+	return Details.player_stats[statName]
+end
+
+---same thing as above but set the value instead of adding
+---@param statName string
+---@param value number
+function Details222.PlayerStats:SetStat(statName, value)
+	Details.player_stats[statName] = value
+end
+
+---destroy a table and remove it from the object, if the key isn't passed, the object itself is destroyed
+---@param object any
+---@param key string|nil
+function Details:Destroy(object, key)
+	if (key) then
+		if (getmetatable(object[key])) then
+			setmetatable(object[key], nil)
+		end
+		object[key].__index = nil
+		table.wipe(object[key])
+		object[key] = nil
+	else
+		if (getmetatable(object)) then
+			setmetatable(object, nil)
+		end
+		object.__index = nil
+		table.wipe(object)
+	end
+end
+
+---destroy the actor, also calls container:RemoveActor(actor)
+---@param self details
+---@param actorObject actor
+---@param actorContainer actorcontainer
+---@param combatObject combat
+function Details:DestroyActor(actorObject, actorContainer, combatObject)
+	local containerType = actorContainer:GetType()
+	local combatTotalsTable = combatObject.totals[containerType] --without group
+	local combatTotalsTableInGroup = combatObject.totals_grupo[containerType] --with group
+
+	if (containerType == 1 or containerType == 2) then --damage|healing done
+		combatTotalsTable = combatTotalsTable - actorObject.total
+		if (actorObject.grupo) then
+			combatTotalsTableInGroup = combatTotalsTableInGroup - actorObject.total
+		end
+
+	elseif (containerType == 3) then
+		if (actorObject.total and actorObject.total > 0) then
+			if (actorObject.powertype) then
+				combatTotalsTable[actorObject.powertype] = combatTotalsTable[actorObject.powertype] - actorObject.total
+				combatTotalsTableInGroup[actorObject.powertype] = combatTotalsTableInGroup[actorObject.powertype] - actorObject.total
+			end
+		end
+		if (actorObject.alternatepower and actorObject.alternatepower > 0) then
+			combatTotalsTable.alternatepower = combatTotalsTable.alternatepower - actorObject.alternatepower
+			combatTotalsTableInGroup.alternatepower = combatTotalsTableInGroup.alternatepower - actorObject.alternatepower
+		end
+
+	elseif (containerType == 4) then
+		--decrease the amount of CC break from the combat totals
+		if (actorObject.cc_break and actorObject.cc_break > 0) then
+			if (combatTotalsTable.cc_break) then
+				combatTotalsTable.cc_break = combatTotalsTable.cc_break - actorObject.cc_break
+			end
+			if (combatTotalsTableInGroup.cc_break) then
+				combatTotalsTableInGroup.cc_break = combatTotalsTableInGroup.cc_break - actorObject.cc_break
+			end
+		end
+
+		--decrease the amount of dispell from the combat totals
+		if (actorObject.dispell and actorObject.dispell > 0) then
+			if (combatTotalsTable.dispell) then
+				combatTotalsTable.dispell = combatTotalsTable.dispell - actorObject.dispell
+			end
+			if (combatTotalsTableInGroup.dispell) then
+				combatTotalsTableInGroup.dispell = combatTotalsTableInGroup.dispell - actorObject.dispell
+			end
+		end
+
+		--decrease the amount of interrupt from the combat totals
+		if (actorObject.interrupt and actorObject.interrupt > 0) then
+			if (combatTotalsTable.interrupt) then
+				combatTotalsTable.interrupt = combatTotalsTable.interrupt - actorObject.interrupt
+			end
+			if (combatTotalsTableInGroup.interrupt) then
+				combatTotalsTableInGroup.interrupt = combatTotalsTableInGroup.interrupt - actorObject.interrupt
+			end
+		end
+
+		--decrease the amount of ress from the combat totals
+		if (actorObject.ress and actorObject.ress > 0) then
+			if (combatTotalsTable.ress) then
+				combatTotalsTable.ress = combatTotalsTable.ress - actorObject.ress
+			end
+			if (combatTotalsTableInGroup.ress) then
+				combatTotalsTableInGroup.ress = combatTotalsTableInGroup.ress - actorObject.ress
+			end
+		end
+
+		--decrease the amount of dead from the combat totals
+		if (actorObject.dead and actorObject.dead > 0) then
+			if (combatTotalsTable.dead) then
+				combatTotalsTable.dead = combatTotalsTable.dead - actorObject.dead
+			end
+			if (combatTotalsTableInGroup.dead) then
+				combatTotalsTableInGroup.dead = combatTotalsTableInGroup.dead - actorObject.dead
+			end
+		end
+
+		--decreate the amount of cooldowns used from the combat totals
+		if (actorObject.cooldowns_defensive and actorObject.cooldowns_defensive > 0) then
+			if (combatTotalsTable.cooldowns_defensive) then
+				combatTotalsTable.cooldowns_defensive = combatTotalsTable.cooldowns_defensive - actorObject.cooldowns_defensive
+			end
+			if (combatTotalsTableInGroup.cooldowns_defensive) then
+				combatTotalsTableInGroup.cooldowns_defensive = combatTotalsTableInGroup.cooldowns_defensive - actorObject.cooldowns_defensive
+			end
+		end
+
+		--decrease the amount of buff uptime from the combat totals
+		if (actorObject.buff_uptime and actorObject.buff_uptime > 0) then
+			if (combatTotalsTable.buff_uptime) then
+				combatTotalsTable.buff_uptime = combatTotalsTable.buff_uptime - actorObject.buff_uptime
+			end
+			if (combatTotalsTableInGroup.buff_uptime) then
+				combatTotalsTableInGroup.buff_uptime = combatTotalsTableInGroup.buff_uptime - actorObject.buff_uptime
+			end
+		end
+
+		--decrease the amount of debuff uptime from the combat totals
+		if (actorObject.debuff_uptime and actorObject.debuff_uptime > 0) then
+			if (combatTotalsTable.debuff_uptime) then
+				combatTotalsTable.debuff_uptime = combatTotalsTable.debuff_uptime - actorObject.debuff_uptime
+			end
+			if (combatTotalsTableInGroup.debuff_uptime) then
+				combatTotalsTableInGroup.debuff_uptime = combatTotalsTableInGroup.debuff_uptime - actorObject.debuff_uptime
+			end
+		end
+	end
+
+	setmetatable(actorObject, nil)
+	actorObject.__index = nil
+	actorObject.__newindex = nil
+	actorContainer:RemoveActor(actorObject)
+	Details:Destroy(actorObject)
+end

@@ -8,5 +8,5 @@
 ## Dependencies: Details
 ## SavedVariables: DetailsDataStorage
 ## X-Category-zhTW: 戰鬥
-
+## IconTexture: Interface\Icons\PetBattle_Attack
 Details_DataStorage.lua

@@ -48,6 +48,29 @@ local Spells = {
     [162065] = 20, -- Freezing Snare (Skylord Tovra)
     [162057] = 20, -- Spinning Spear (Skylord Tovra)
     [161588] = 20, -- Diffused Energy (Skylord Tovra)
+
+
+    -- Shadowmoon Burial Grounds
+    [152688] = 20, -- Shadow Rune (Environment)
+    [152690] = 20, -- Shadow Rune (Environment)
+    [152696] = 20, -- Shadow Rune (Environment)
+    [152854] = 20, -- Void Sphere (Shadowmoon Loyalist) - TODO which is correct?
+    [152855] = 20, -- Void Sphere (Shadowmoon Loyalist) - TODO which is correct?
+    [398154] = 20, -- Cry of Anguish (Defiled Spirit)
+    [394524] = 20, -- Void Eruptions (Void Spawn)
+    [153395] = 20, -- Body Slam (Carrion Worm)
+
+    [153232] = 20, -- Daggerfall (Sadana Bloodfury)
+    [153373] = 20, -- Daggerfall (Sadana Bloodfury) - TODO is this relevant?
+    [153224] = 20, -- Shadow Burn (Sadana Bloodfury)
+    [152800] = 20, -- Void Vortex (Nhallish)
+    [153070] = 20, -- Void Devastation (Nhallish)
+    [153908] = 20, -- Inhale (Bonemaw)
+    [153686] = 20, -- Body Slam (Bonemaw)
+    --[153692] = 20, -- Necrotic Pitch (Bonemaw) - can be used to avoid Inhale
+    [154442] = 20, -- Malevolence (Ner'zhul)
+    [154468] = 20, -- Ritual of Bones, Area (Ner'zhul)
+    [154469] = 20, -- Ritual of Bones, Debuff (Ner'zhul)
 }
 
 
@@ -63,6 +86,9 @@ local SpellsNoTank = {
     [161089] = 20, -- Mad Dash (Borka the Brute)
     [164170] = 20, -- Dash (Grimrail Overseer) - always targets tank despite marker?
     [164163] = 20, -- Hewing Swipe (Grimrail Overseer)
+
+    -- Shadowmoon Burial Grounds
+    [153501] = 20, -- Void Blast (Nhallish)
 }
 
 

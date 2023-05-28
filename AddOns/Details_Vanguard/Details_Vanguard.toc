@@ -7,5 +7,6 @@
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
 ## X-Category-zhTW: 戰鬥
+## IconTexture: Interface\Icons\PetBattle_Attack
 
 Details_Vanguard.lua

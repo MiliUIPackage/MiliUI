@@ -1,0 +1,27 @@
+local Spells = {
+    -- Temple of the Jade Serpent
+    [397881] = 20, -- Surging Deluge (Corrupt Living Water)
+    [396003] = 20, -- Territorial Display (The Songbird Queen)
+    [396010] = 20, -- Tears of Pain (The Crybaby Hozen)
+    [398301] = 20, -- Flames of Doubt (Shambling Infester)
+    [397899] = 20, -- Leg Sweep (Sha-Touched Guardian)
+    [110125] = 20, -- Shattered Resolve (Minion of Doubt)
+
+    [397785] = 20, -- Wash Away (Wise Mari)
+    [397793] = 20, -- Corrupted Geyser (Wise Mari)
+    [106856] = 20, -- Serpent Kick (Liu Flameheart)
+    [106938] = 20, -- Serpent Wave (Liu Flameheart)
+    [106864] = 20, -- Jade Serpent Kick (Liu Flameheart)
+    [107053] = 20, -- Jade Serpent Wave, Projectile (Liu Flameheart)
+    [118540] = 20, -- Jade Serpent Wave, Area (Liu Flameheart)
+    [396907] = 20, -- Jade Fire Breath (Yu'lon, Liu Flameheart)
+    [107103] = 20, -- Jade Fire, Impact (Yu'lon, Liu Flameheart)
+    [107110] = 20, -- Jade Fire, Area (Yu'lon, Liu Flameheart)
+}
+
+
+local SpellsNoTank = {}
+
+local Auras = {}
+
+local AurasNoTank = {}

@@ -263,7 +263,7 @@
 
 		--check if is a spell target custom
 		if (custom_object:IsSpellTarget()) then
-			table.wipe(classCustom._TargetActorsProcessed)
+			Details:Destroy(classCustom._TargetActorsProcessed)
 			classCustom._TargetActorsProcessedAmt = 0
 			classCustom._TargetActorsProcessedTotal = 0
 			classCustom._TargetActorsProcessedTop = 0
@@ -552,22 +552,22 @@
 		-- update tooltip function --
 
 		if (self.id) then
-			local school = _detalhes.spell_school_cache [self.nome]
+			local school = _detalhes.spell_school_cache[self.nome]
 			if (school) then
-				local school_color = _detalhes.school_colors [school]
-				if (not school_color) then
-					school_color = _detalhes.school_colors ["unknown"]
+				local schoolColor = Details.spells_school[school]
+				if (not schoolColor) then
+					schoolColor = Details.spells_school[1]
 				end
-				actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(school_color)
+				actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(schoolColor.decimals)
 			else
-				local color = _detalhes.school_colors ["unknown"]
-				actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(color)
+				local schoolColor = Details.spells_school[1]
+				actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(schoolColor.decimals)
 			end
 		else
 			actor_class_color_r, actor_class_color_g, actor_class_color_b = self:GetBarColor()
 		end
 
-		self:RefreshBarra2 (row, instance, previous_table, is_forced, row_value, index, row_container)
+		self:RefreshBarra2(row, instance, previous_table, is_forced, row_value, index, row_container)
 
 	end
 
@@ -644,16 +644,16 @@
 
 		if (from_resize) then
 			if (self.id) then
-				local school = _detalhes.spell_school_cache [self.nome]
+				local school = _detalhes.spell_school_cache[self.nome]
 				if (school) then
-					local school_color = _detalhes.school_colors [school]
-					if (not school_color) then
-						school_color = _detalhes.school_colors ["unknown"]
+					local schoolColor = Details.spells_school[school]
+					if (not schoolColor) then
+						schoolColor = Details.spells_school[1]
 					end
-					actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(school_color)
+					actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(schoolColor.decimals)
 				else
-					local color = _detalhes.school_colors ["unknown"]
-					actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(color)
+					local schoolColor = Details.spells_school[1]
+					actor_class_color_r, actor_class_color_g, actor_class_color_b = unpack(schoolColor.decimals)
 				end
 			else
 				actor_class_color_r, actor_class_color_g, actor_class_color_b = self:GetBarColor()
@@ -736,8 +736,8 @@
 	end
 
 	function classCustom:WipeCustomActorContainer()
-		table.wipe(self._ActorTable)
-		table.wipe(self._NameIndexTable)
+		Details:Destroy(self._ActorTable)
+		Details:Destroy(self._NameIndexTable)
 	end
 
 	function classCustom:GetValue (actor)
@@ -1071,7 +1071,7 @@
 	end
 
 	function _detalhes:ResetCustomFunctionsCache()
-		table.wipe(_detalhes.custom_function_cache)
+		Details:Destroy(_detalhes.custom_function_cache)
 	end
 
 	function _detalhes.refresh:r_atributo_custom()

@@ -6,6 +6,7 @@
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
 ## X-Category-zhTW: 戰鬥
+## IconTexture: Interface\Icons\PetBattle_Attack
 
 enUS.lua
 zhTW.lua
