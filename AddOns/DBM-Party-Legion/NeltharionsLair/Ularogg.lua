@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1665, "DBM-Party-Legion", 5, 767)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230504231118")
+mod:SetRevision("20230519061637")
 mod:SetCreatureID(91004)
 mod:SetEncounterID(1791)
 mod:SetHotfixNoticeRev(15186)
@@ -16,6 +16,11 @@ mod:RegisterEventsInCombat(
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
+--[[
+(ability.id = 198496 or ability.id = 216290 or ability.id = 193375) and type = "begincast"
+ or ability.id = 216290 and type = "cast"
+ or type = "dungeonencounterstart" or type = "dungeonencounterend"
+--]]
 local warnStrikeofMountain			= mod:NewTargetAnnounce(216290, 2)
 local warnBellowofDeeps				= mod:NewSpellAnnounce(193375, 2)--Change to special warning if they become important enough to switch to
 local warnStanceofMountain			= mod:NewSpellAnnounce(216249, 2)

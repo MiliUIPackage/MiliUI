@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2520, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230517205044")
+mod:SetRevision("20230525044020")
 mod:SetCreatureID(201754)
 mod:SetEncounterID(2685)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
 mod:SetHotfixNoticeRev(20230515000000)
 --mod:SetMinSyncRevision(20221215000000)
---mod.respawnTime = 29
+mod.respawnTime = 30
 
 mod:RegisterCombat("combat")
 
@@ -15,9 +15,9 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 401383 401810 401500 401642 402050 401325 404027 404456 404769 411302 404754 404403 411030 407496 404288 411236 403741 405022 403625 403517 408422 401704",
 --	"SPELL_CAST_SUCCESS",
 	"SPELL_SUMMON 404505 404507",
-	"SPELL_AURA_APPLIED 401951 401215 403997 407576 401905 401680 401330 404218 410642 404705 407496 404288 411241 405486 403520 408429 403284 410654 410625",
+	"SPELL_AURA_APPLIED 401951 401215 403997 407576 401905 401680 401330 404218 404705 407496 404288 411241 405486 403520 408429 403284 410654 410625",
 	"SPELL_AURA_APPLIED_DOSE 401951 403997 407576 401330 404269 411241 408429",
-	"SPELL_AURA_REMOVED 401951 401680 401330 404218 410642 404705 407496 404288 404269 411241 403520 408429 401215 405486 410654 410625",
+	"SPELL_AURA_REMOVED 401951 401680 401330 404218 404705 407496 404288 404269 411241 403520 408429 401215 405486 410654 410625",
 	"SPELL_AURA_REMOVED_DOSE 401951",
 	"SPELL_DAMAGE 401621 402746 403524 404062 406428",
 	"SPELL_MISSED 401621 402746 403524 404062 406428",
@@ -114,7 +114,7 @@ local timerVoidBombCD							= mod:NewCDCountTimer(29.9, 404027, 167180, nil, nil
 local timerAbyssalBreathCD						= mod:NewCDCountTimer(29.9, 404456, 18357, nil, nil, 1)
 local timerEmptyStrikeCD						= mod:NewCDTimer(12.2, 404769, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Mythic Add
 --local timerCosmicVolleyCD						= mod:NewCDTimer(4.8, 411302, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Mythic Add
-local timerBlastingScreamCD						= mod:NewCDTimer(8.5, 404754, 31295, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerBlastingScreamCD						= mod:NewCDTimer(7.3, 404754, 31295, false, 2, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Spammy so off by default
 local timerDesolateBlossomCD					= mod:NewCDCountTimer(29.9, 404403, nil, nil, nil, 3)
 local timerInfiniteDuressCD		 				= mod:NewCDCountTimer(29.9, 404288, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON..DBM_COMMON_L.MAGIC_ICON)
 local timerVoidClawsCD							= mod:NewCDCountTimer(29.9, 411236, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -148,8 +148,9 @@ local yellVoidSlashFades						= mod:NewShortFadesYell(408422)
 local specWarnVoidSlashTaunt					= mod:NewSpecialWarningTaunt(408422, nil, nil, nil, 1, 2)
 
 local timerCosmicAscensionCD					= mod:NewCDCountTimer(29.9, 403741, 161862, nil, nil, 1)
+local timerAstralFormation						= mod:NewCDCountTimer(29.9, 403510, 370470, nil, nil, 5)--Shorttext Pillar
 local timerHurtlingBarrageCD					= mod:NewCDCountTimer(29.9, 405022, nil, nil, nil, 3)
-local timerScouringEternityCD					= mod:NewCDCountTimer(29.9, 403625, 123244, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerScouringEternityCD					= mod:NewCDCountTimer(29.9, 403625, 123244, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)--Shortname "Hide"
 local timerEmbraceofNothingnessCD				= mod:NewCDCountTimer(29.9, 403517, 229042, nil, nil, 3)--"Black Hole"
 --local timerMotesofOblivionCD					= mod:NewAITimer(29.9, 406428, nil, nil, nil, 3)
 local timerVoidSlashCD							= mod:NewCDCountTimer(29.9, 408422, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -529,6 +530,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.breathCount = self.vb.breathCount + 1
 		specWarnCosmicAscension:Show(self.vb.breathCount)
 		specWarnCosmicAscension:Play("watchstep")
+		timerAstralFormation:Start(9.5)
 		local timer = self:GetFromTimersTable(allTimers, difficultyName, self.vb.phase, spellId, self.vb.breathCount+1)
 		if timer then
 			timerCosmicAscensionCD:Start(timer, self.vb.breathCount+1)
@@ -734,7 +736,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			end
 		end
 		timerVoidSlash:Restart(21, args.destName)--Needs to show for even non tanks getting hit though
-	elseif spellId == 404218 or spellId == 410642 then
+	elseif spellId == 404218 then
 		if args:IsPlayer() then
 			playerVoidFracture = true
 			specWarnVoidFracture:Show()
@@ -837,7 +839,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			yellVoidClawsFades:Cancel()
 		end
 		timerVoidSlash:Stop(args.destName)--Needs to show for even non tanks getting hit though
-	elseif spellId == 404218 or spellId == 410642 then
+	elseif spellId == 404218 then
 		if args:IsPlayer() then
 			playerVoidFracture = false
 			yellVoidFractureFades:Cancel()
@@ -894,9 +896,9 @@ function mod:SPELL_AURA_REMOVED(args)
 			timerCosmicAscensionCD:Start(7.7, 1)
 			timerHurtlingBarrageCD:Start(21, 1)
 			timerVoidSlashCD:Start(22.3, 1)
-			timerVoidBombCD:Start(30.3, 1)
-			timerScouringEternityCD:Start(49.7, 1)
 			timerEmbraceofNothingnessCD:Start(26.3, 1)
+			timerVoidBombCD:Start(30.3, 1)
+			timerScouringEternityCD:Start(48.6, 1)
 			--timerMotesofOblivionCD:Start(3)
 		end
 	elseif spellId == 410625 then

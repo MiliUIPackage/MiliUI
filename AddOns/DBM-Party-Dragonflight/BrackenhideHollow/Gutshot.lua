@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2472, "DBM-Party-Dragonflight", 1, 1196)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230507231717")
+mod:SetRevision("20230519061637")
 mod:SetCreatureID(186116)--194745 for Rotfang Hyena
 mod:SetEncounterID(2567)
 --mod:SetUsedIcons(1, 2, 3)
@@ -106,7 +106,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 384353 then
 		if self:IsTanking("player", "boss1", nil, true) then
 			specWarnGutShot:Show()
-			specWarnGutShot:Play("defensive")
+			specWarnGutShot:Play("carefly")
 		end
 		timerGutShotCD:Start()
 	end

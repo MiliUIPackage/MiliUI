@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1687, "DBM-Party-Legion", 5, 767)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230504231118")
+mod:SetRevision("20230521191921")
 mod:SetCreatureID(91007)
 mod:SetEncounterID(1793)
 mod.sendMainBossGUID = true
@@ -56,7 +56,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnLandSlide:Show()
 		specWarnLandSlide:Play("shockwave")
 		timerLandSlideCD:Start()
-	elseif spellId == 200404 and self:AntiSpam(3, 1) then
+	elseif spellId == 200404 and self:AntiSpam(8, 1) then
 		specWarnMagmaWave:Show(shelterName)
 		specWarnMagmaWave:Play("findshelter")
 		timerMagmaWaveCD:Start()
@@ -77,7 +77,7 @@ end
 
 --1 second faster than combat log. 1 second slower than Unit event callout but that's no longer reliable.
 function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg)
-	if msg:find("spell:200404") and self:AntiSpam(3, 1) then
+	if msg:find("spell:200404") and self:AntiSpam(8, 1) then
 		specWarnMagmaWave:Show(shelterName)
 		specWarnMagmaWave:Play("findshelter")
 		timerMagmaWaveCD:Start()

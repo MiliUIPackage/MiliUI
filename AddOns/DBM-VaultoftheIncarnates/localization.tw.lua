@@ -79,10 +79,14 @@ L:SetMiscLocalization({
 ---------------------------
 L= DBM:GetModLocalization(2499)
 
+L:SetOptionLocalization({
+	SetBreathToBait = "根據誘餌時間而不是施法時間調整轉階段的吐息計時器（警報仍會在吐息施放時觸發）"
+})
+
 L:SetMiscLocalization({
 	negative = "負極",
-	positive = "正極"
-	--BreathEmote	= "菈薩葛絲開始深呼吸..."
+	positive = "正極",
+	BreathEmote	= "深吸"
 })
 
 -------------

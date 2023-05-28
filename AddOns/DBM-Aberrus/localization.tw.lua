@@ -63,6 +63,11 @@ L:SetOptionLocalization({
 	DoubleSoak			= "僅當第一次連續攻擊結束以後，或其他坦克即將被不安全的擊中時，才顯示嘲諷警告"--Default
 })
 
+L:SetMiscLocalization({
+	pool		= "{rt%d}池 %d",--<icon> Pool 1,2,3
+	soakpool	= "吸收池"
+})
+
 ---------------------------
 --  The Vigilant Steward, Zskarn --
 ---------------------------

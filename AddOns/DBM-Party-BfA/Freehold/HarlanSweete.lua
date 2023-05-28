@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2095, "DBM-Party-BfA", 2, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230511021050")
+mod:SetRevision("20230512115118")
 mod:SetCreatureID(126983)
 mod:SetEncounterID(2096)
 mod:SetHotfixNoticeRev(20230505000000)
@@ -22,7 +22,7 @@ mod:RegisterEventsInCombat(
  or (ability.id = 257305 or ability.id = 257314) and type = "applydebuff"
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
  --]]
- local warnPhase					= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil, nil, 2)
+local warnPhase						= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil, nil, 2)
 local warnBlackPowder				= mod:NewTargetAnnounce(257314, 4)
 local warnCannonBarrage				= mod:NewTargetAnnounce(257305, 3)
 local warnWhirlingDagger			= mod:NewCountAnnounce(413131, 3)

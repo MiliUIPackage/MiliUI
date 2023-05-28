@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2530, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230516042654")
+mod:SetRevision("20230524031058")
 mod:SetCreatureID(200912, 200913, 200918)
 mod:SetEncounterID(2693)
 mod:SetUsedIcons(1, 2, 3)
@@ -260,6 +260,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 405492 then
 		self.vb.volatileSpewCount = self.vb.volatileSpewCount + 1
 		specWarnVolatileSpew:Show(self.vb.volatileSpewCount)
+		specWarnVolatileSpew:Play("watchstep")
 		local timer
 		if self:IsMythic() then
 			local unit = self:GetUnitIdFromGUID(args.sourceGUID)
@@ -313,7 +314,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 407327 then
 		local amount = args.amount or 1
 		if amount == 1 then
-			warnUnstableEssenceTargets:CombinedShow(0.3, args.destName)
+			warnUnstableEssenceTargets:CombinedShow(1, args.destName)
 			if args:IsPlayer() then
 				specWarnUnstableEssence:Show()
 				specWarnUnstableEssence:Play("targetyou")

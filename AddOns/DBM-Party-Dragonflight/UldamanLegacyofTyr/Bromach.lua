@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2487, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230509011041")
+mod:SetRevision("20230513182720")
 mod:SetCreatureID(184018)
 mod:SetEncounterID(2556)
 mod:SetUsedIcons(8)
@@ -86,7 +86,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 369703 then
 		self.vb.thunderingCount = self.vb.thunderingCount + 1
 		specWarnThunderingSlam:Show(self.vb.thunderingCount)
-		specWarnThunderingSlam:Play("shockwave")
+		specWarnThunderingSlam:Play("watchstep")
 		timerThunderingSlamCD:Start(nil, self.vb.thunderingCount+1)
 	elseif spellId == 382303 then
 		specWarnQuakingTotem:Show()

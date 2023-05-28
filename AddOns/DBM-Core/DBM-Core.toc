@@ -6,13 +6,7 @@
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Core|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 核心|r
-## Title-ruRU:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Ядро|r
-## Title-itIT:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Base|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 核心|r
-## Title-koKR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 핵심 모듈|r
-## Title-esES:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Núcleo|r
-## Title-esMX:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Núcleo|r
-## Title-frFR:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Noyau|r
 ## Notes: Deadly Boss Mods
 ## Dependencies: DBM-StatusBarTimers
 ## OptionalDependencies: LibStub, CallbackHandler-1.0, LibSharedMedia-3.0, LibChatAnims, LibDBIcon-1.0, LibDeflate, LibSerialize, LibSpecialization
@@ -22,8 +16,9 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 96c6839
+## Version: 8a58f32
 ## X-Website: https://deadlybossmods.com
+## X-Category-zhTW: 團隊
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -39,25 +34,12 @@ Libs\LibSpecialization\LibSpecialization.xml
 Libs\LibDropDownMenu\LibDropDownMenu.xml
 
 localization.en.lua
-localization.br.lua
 localization.cn.lua
-localization.de.lua
-localization.es.lua
-localization.fr.lua
-localization.it.lua
-localization.kr.lua
-localization.ru.lua
 localization.tw.lua
 
 commonlocal.en.lua
 commonlocal.tw.lua
-commonlocal.br.lua
 commonlocal.cn.lua
-commonlocal.de.lua
-commonlocal.es.lua
-commonlocal.fr.lua
-commonlocal.it.lua
-commonlocal.kr.lua
 commonlocal.ru.lua
 
 # Pre-core modules
