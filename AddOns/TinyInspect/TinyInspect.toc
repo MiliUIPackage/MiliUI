@@ -1,9 +1,10 @@
-## Interface: 100002
+## Interface: 100100
 ## Title: TinyInspect
 ## Version: 10.0.2
 ## Notes: Show ItemLevel For Inspect & Party & Raid & Mouse & Bag & Bank ...
 ## Notes-zhCN: 装等观察,装等显示
-## Notes-zhTW: 裝等觀察,裝等顯示
+## Title-zhTW: |cff0099FF[介面]|r 裝備觀察
+## Notes-zhTW: TinyInspect |n|n觀察其他玩家和自己時會在角色資訊視窗右方列出裝備清單和物品等級，方便查看裝備。|n|n還包含備欄物品等級、背包中物品等級，和滑鼠提示中顯示玩家專精和裝等的功能。|n|n|cffffd200使用方法: |r從Esc>選項>插件>裝備-觀察，進行設定。
 ## Author: M
 ## SavedVariables: TinyInspectDB
 
