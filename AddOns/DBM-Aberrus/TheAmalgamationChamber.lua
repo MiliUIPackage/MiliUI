@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2529, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230515080130")
+mod:SetRevision("20230527181301")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -83,7 +83,7 @@ local yellBlisteringTwilightFades				= mod:NewShortFadesYell(405641)
 local specWarnConvergentEruption				= mod:NewSpecialWarningCount(408193, nil, nil, nil, 2, 2)
 local specWarnWitheringVulnerability			= mod:NewSpecialWarningDefensive(405914, nil, nil, nil, 1, 2)
 local specWarnWitheringVulnerabilityTaunt		= mod:NewSpecialWarningTaunt(405914, nil, nil, nil, 1, 2)
-local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell)
+local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell, false, 2)
 
 local timerPhaseCD								= mod:NewPhaseTimer(30)
 local timerShadowandFlameCD						= mod:NewCDCountTimer(47.4, 409385, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)

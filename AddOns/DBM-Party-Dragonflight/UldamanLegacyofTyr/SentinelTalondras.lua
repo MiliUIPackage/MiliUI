@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2484, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230509011041")
+mod:SetRevision("20230527023839")
 mod:SetCreatureID(184124)
 mod:SetEncounterID(2557)
 mod:SetUsedIcons(1, 2, 3)
@@ -46,7 +46,7 @@ local specWarnCrushingStomp						= mod:NewSpecialWarningSpell(372701, nil, nil, 
 local timerTitanicEmpowermentCD					= mod:NewCDTimer(35, 372719, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerResonatingOrbCD						= mod:NewCDTimer(26.4, 382071, nil, nil, nil, 3, nil, nil, true)--25-30ish
 local timerCrushingStompCD						= mod:NewCDTimer(12.1, 372701, nil, nil, nil, 2, nil, nil, true)
-local timerEarthenShardsCD						= mod:NewCDTimer(9.3, 372718, nil, nil, nil, 3, nil, DBM_COMMON_L.BLEED_ICON, true)
+local timerEarthenShardsCD						= mod:NewCDTimer(6, 372718, nil, nil, nil, 3, nil, DBM_COMMON_L.BLEED_ICON, true)
 
 --local berserkTimer							= mod:NewBerserkTimer(600)
 

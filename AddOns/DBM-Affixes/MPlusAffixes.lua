@@ -1,9 +1,9 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230525065833")
+mod:SetRevision("20230530001913")
 --mod:SetModelID(47785)
-mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--All of the S1 DF M+ Dungeons (2516, 2526, 2515, 2521, 1477, 1571, 1176, 960)
+mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -23,10 +23,11 @@ local warnExplosion							= mod:NewCastAnnounce(240446, 4)
 local warnIncorporeal						= mod:NewCastAnnounce(408801, 4)
 local warnAfflictedCry						= mod:NewSpellAnnounce(409492, 4)
 local warnDestabalize						= mod:NewCastAnnounce(408805, 4, nil, nil, false)
-local warnThunderingFades					= mod:NewFadesAnnounce(396363, 1, 396347)
+--local warnThunderingFades					= mod:NewFadesAnnounce(396363, 1, 396347)
+local warnSpitefulFixate					= mod:NewYouAnnounce(350209, 4)
 
 local specWarnQuake							= mod:NewSpecialWarningMoveAway(240447, nil, nil, nil, 1, 2)
-local specWarnSpitefulFixate				= mod:NewSpecialWarningYou(350209, nil, nil, nil, 1, 2)
+local specWarnSpitefulFixate				= mod:NewSpecialWarningYou(350209, false, nil, 2, 1, 2)
 local specWarnEntangled						= mod:NewSpecialWarningYou(408556, nil, nil, nil, 1, 14)
 
 --local specWarnPositiveCharge				= mod:NewSpecialWarningYou(396369, nil, 391990, nil, 1, 13)--Short name is using Positive Charge instead of Mark of Lightning
@@ -38,7 +39,7 @@ local specWarnGTFO							= mod:NewSpecialWarningGTFO(209862, nil, nil, nil, 1, 8
 local timerQuakingCD						= mod:NewNextTimer(20, 240447, nil, nil, nil, 3)
 local timerEntangledCD						= mod:NewCDTimer(30, 408556, nil, nil, nil, 3, 396347, nil, nil, 2, 3, nil, nil, nil, true)
 local timerAfflictedCD						= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, nil, nil, DBM_COMMON_L.HEALER_ICON, 3, 3)
-local timerIncorporealCD					= mod:NewCDTimer(45, 408801, nil, nil, nil, 5, nil, nil, nil, 3, 3, nil, nil, nil, true)
+local timerIncorporealCD					= mod:NewCDTimer(45, 408801, nil, nil, nil, 5, nil, nil, nil, 3, 3)
 --local timerThunderingCD						= mod:NewNextTimer(66, 396363, nil, nil, nil, 3, 396347, nil, nil, 2, 4)
 --local timerPositiveCharge					= mod:NewBuffFadesTimer(15, 396369, 391990, nil, 2, 5, nil, nil, nil, 1, 5)
 --local timerNegativeCharge					= mod:NewBuffFadesTimer(15, 396364, 391991, nil, 2, 5, nil, nil, nil, 1, 5)
@@ -88,6 +89,24 @@ local function checkThunderin(self)
 end
 --]]
 
+local function checkEntangled(self)
+	if timerEntangledCD:GetRemaining() > 0 then
+		--Timer exists, do nothing
+		return
+	end
+	timerEntangledCD:Start(25)
+	self:Schedule(30, checkEntangled, self)
+end
+
+local function checkIncorp(self)
+	if timerIncorporealCD:GetRemaining() > 0 then
+		--Timer exists, do nothing
+		return
+	end
+	timerIncorporealCD:Start(40)
+	self:Schedule(45, checkIncorp, self)
+end
+
 --UGLY function to detect this because there isn't a good API for this.
 --player regen was very unreliable due to fact it only fires for self
 --This wastes cpu time being an infinite loop though but probably no more so than any WA doing this
@@ -99,17 +118,9 @@ local function checkForCombat(self)
 	elseif not combatFound and incorporealCounting then
 		incorporealCounting = false
 		timerIncorporealCD:Pause()
+		self:Unschedule(checkIncorp)--Soon as a pause happens this can no longer be trusted
 	end
 	self:Schedule(0.25, checkForCombat, self)
-end
-
-local function checkEntangled(self)
-	if timerEntangledCD:GetRemaining() > 0 then
-		--Timer exists, do nothing
-		return
-	end
-	timerEntangledCD:Start(25)
-	self:Schedule(30, checkEntangled, self)
 end
 
 do
@@ -162,6 +173,7 @@ end
 function mod:CHALLENGE_MODE_COMPLETED()
 	self:Unschedule(checkForCombat)
 	self:Unschedule(checkEntangled)
+	self:Unschedule(checkIncorp)
 	self:Stop()--Stop M+ timers on completion as well
 end
 
@@ -207,8 +219,12 @@ function mod:SPELL_AURA_APPLIED(args)
 			DBM.Nameplate:Show(true, args.destGUID, spellId)
 		end
 	elseif spellId == 350209 and args:IsPlayer() and self:AntiSpam(3, "aff5") then
-		specWarnSpitefulFixate:Show()
-		specWarnSpitefulFixate:Play("targetyou")
+		if self.Options.Specwarn350209you then
+			specWarnSpitefulFixate:Show()
+			specWarnSpitefulFixate:Play("targetyou")
+		else
+			warnSpitefulFixate:Show()
+		end
 	--elseif spellId == 396369 or spellId == 396364 then
 	--	if self:AntiSpam(20, "affseasonal") then
 	--		playerThundering = false
@@ -255,7 +271,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		incorporealCounting = true
 		timerIncorporealCD:Start()
 		self:Unschedule(checkForCombat)
+		self:Unschedule(checkIncorp)
 		checkForCombat(self)
+		self:Schedule(50, checkIncorp, self)
 	end
 end
 --mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED

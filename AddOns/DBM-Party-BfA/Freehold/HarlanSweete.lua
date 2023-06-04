@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2095, "DBM-Party-BfA", 2, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230512115118")
+mod:SetRevision("20230530082438")
 mod:SetCreatureID(126983)
 mod:SetEncounterID(2096)
 mod:SetHotfixNoticeRev(20230505000000)
@@ -69,7 +69,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 257458 then--ManOWar
 		self:SetStage(3)
-		warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(2))
+		warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(3))
 		warnPhase:Play("pthree")
 		timerSwiftwindSaberCD:Stop()
 		timerAvastyeCD:Stop()

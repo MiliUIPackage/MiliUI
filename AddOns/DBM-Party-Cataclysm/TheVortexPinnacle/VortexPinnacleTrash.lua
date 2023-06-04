@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("VortexPinnacleTrash", "DBM-Party-Cataclysm", 8)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230430050733")
+mod:SetRevision("20230528023044")
 --mod:SetModelID(47785)
 mod:SetZone(657)
 
@@ -60,7 +60,7 @@ local specWarnGTFO								= mod:NewSpecialWarningGTFO(88171, nil, nil, nil, 1, 8
 local timerCycloneCD							= mod:NewCDTimer(19.4, 88010, nil, nil, nil, 3)--19.4-21
 local timerStormSurgeCD							= mod:NewCDTimer(16.1, 88055, nil, nil, nil, 2)
 local timerGaleStrikeCD							= mod:NewCDTimer(17, 88061, nil, "Tank|Healer|MagicDispeller", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--Retail 10.0 value
-local timerRallyCD								= mod:NewCDTimer(27.8, 87761, nil, nil, nil, 5)
+local timerRallyCD								= mod:NewCDTimer(26.7, 87761, nil, nil, nil, 5)
 local timerShockwaveCD							= mod:NewCDTimer(20.2, 87759, nil, "Tank|Healer", nil, 3)
 local timerIcyBuffetCD							= mod:NewCDTimer(22.6, 88194, nil, "Tank|Healer", nil, 3)
 local timerWindBlastCD							= mod:NewCDTimer(10.1, 87923, nil, "Tank|MagicDispeller", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--Retail 10.0 value
@@ -105,7 +105,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 87762 then
 		timerLightningLashCD:Start(nil, args.sourceGUID)
-		self:ScheduleMethod(0.2, "BossTargetScanner", args.sourceGUID, "LitTarget", 0.1, 8, true)
+		self:ScheduleMethod(0.2, "BossTargetScanner", args.sourceGUID, "LitTarget", 0.1, 8)
 	elseif spellId == 87779 and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 		specWarnGreaterHeal:Show()
 		specWarnGreaterHeal:Play("kickcast")

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2532, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230526024020")
+mod:SetRevision("20230528031437")
 mod:SetCreatureID(202375)
 mod:SetEncounterID(2689)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -87,7 +87,6 @@ function mod:OnCombatStart(delay)
 		timerAnimateGolemsCD:Start(26.2-delay, 1)
 		timerTacticalDestructionCD:Start(31-delay, 1)
 		timerShrapnalBombCD:Start(35.9-delay, 1)
-		berserkTimer:Start(510-delay)
 	elseif self:IsHeroic() then--Validated
 		self.vb.expectedBombs = 3
 		timerUnstableEmbersCD:Start(7-delay, 1)
@@ -107,6 +106,7 @@ function mod:OnCombatStart(delay)
 		timerAnimateGolemsCD:Start(35-delay, 1)
 		timerTacticalDestructionCD:Start(70-delay, 1)
 	end
+	berserkTimer:Start(510-delay)--Confirm in LFR
 end
 
 function mod:SPELL_CAST_START(args)
