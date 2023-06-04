@@ -1,5 +1,4 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r170-release...9b8c3413e247712eeb02b100a8d0525ad87d9521)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r172-release...764ad4a8f4698dd3f8858b33396369b5c472beda)
 
-- Remove Cauterizing Flame from dispel checker
-- Update missing buffs preview
+- Add a hideInCombat option for Leader Icon
 - Update zhTW

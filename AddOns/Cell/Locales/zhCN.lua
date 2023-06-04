@@ -498,6 +498,7 @@ L["This will make these icons not click-through-able"] = "将会使这些图标�
 L["Tooltips need to be enabled in General tab"] = "需要先启用常规页面中的鼠标提示功能"
 L["Only one threshold is displayed at a time"] = "同一时间只显示一个阈值"
 L["hideDamager"] = "隐藏伤害输出"
+L["hideInCombat"] = "战斗中隐藏"
 
 L["left-to-right"] = "从左到右"
 L["right-to-left"] = "从右到左"
@@ -508,7 +509,6 @@ L["Show countdown swipe"] = "显示倒计时动画"
 L["Show countdown number"] = "显示倒计时文本"
 L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."] = "由于个人光环系统的限制，该指示器只能使用暴雪样式。"
 
-L["Leader Icons will hide while in combat"] = "战斗时队长图标将会隐藏"
 L["You can config debuffs in %s"] = "你可以在 %s 里设置减益"
 L["Indicator settings are part of Layout settings which are account-wide."] = "指示器设置是布局设置的一部分，它们是账号配置而非角色。"
 L["The spells list of a icons indicator is unordered (no priority)."] = "图标组指示器的法术列表是无序的（无优先级）。"
@@ -556,6 +556,9 @@ L["This will overwrite your debuffs"] = "这将覆盖你的副本减益"
 L["Raid Debuffs updated: %s."] = "已更新副本减益：%s。"
 L["Reset debuffs?"] = "重置减益？"
 L["Current Season"] = "当前赛季"
+L["Want to help improve Raid Debuffs?"] = "想要帮忙完善副本减益嘛？"
+L["Use %s addon"] = "用这个插件 %s"
+L["Then create a PR or submit a ticket on GitHub"] = "然后在GitHub上提交PR或Issue就可以啦"
 
 -------------------------------------------------
 -- glows
@@ -627,6 +630,19 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>关于受难之魂</h1>
+    <p>最近收到些“让Cell显示受难之魂”的请求。简单地说就是，由于插件API的限制，做不了。让Cell“显示”它们是可行的，但这些按钮是不可交互的，因此没有必要做，不如用WA。</p>
+    <br/>
+
+    <h1>r173-release (Jun 2, 2023, 18:36 GMT+8)</h1>
+    <p>* 为队长图标指示器添加了“战斗中隐藏”的选项。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r172-release (May 31, 2023, 16:46 GMT+8)</h1>
+    <p>* 修复点击施法。如果你绑定的快捷键不起作用（尤其是常规类型的），删掉然后重新添加。</p>
+    <br/>
+
     <h1>r171-release (May 26, 2023, 19:27 GMT+8)</h1>
     <p>* 将唤魔师的“灼烧之焰”从驱散检查器中移除。将代码片段中的 CELL_DISPEL_EVOKER_CAUTERIZING_FLAME 设置为 true，可使该法术加入驱散检查。</p>
     <p>* 更新繁中。</p>
