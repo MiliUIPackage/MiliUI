@@ -62,7 +62,7 @@ local libwindow = LibStub("LibWindow-1.1")
             f.Title:SetTextColor(.8, .8, .8, 1)
             f.Title:SetText(Loc ["Details! Benchmark"])
             
-            DF:InstallTemplate("font", "DETAILS_BENCHMARK_NORMAL", {color = "white", size = 14, font = "Friz Quadrata TT"})
+            DF:InstallTemplate("font", "DETAILS_BENCHMARK_NORMAL", {color = "white", size = 13, font = "Friz Quadrata TT"})
             
             function f.CreateCombatObject()
                 local t = {}

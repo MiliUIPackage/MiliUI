@@ -43,7 +43,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 		statusBar.text = statusBar:CreateFontString(nil, "overlay", "GameFontNormal")
 		statusBar.text:SetPoint("left", statusBar, "left", 5, 0)
 		statusBar.text:SetText("By Terciob | Part of Details! Damage Meter | Built with Details! Framework")
-		DF:SetFontSize(statusBar.text, 13)
+		DF:SetFontSize(statusBar.text, 14)
 		DF:SetFontColor(statusBar.text, "gray")
 
 		--add an extra background
@@ -478,7 +478,7 @@ function Details:CreateCurrentDpsFrame(parent, name)
 		local TitleString = f:CreateFontString(nil, "overlay", "GameFontNormal")
 		TitleString:SetPoint("top", f, "top", 0, -5)
 		TitleString:SetText("Details! 競技場實時DPS追蹤器")
-		DF:SetFontSize(TitleString, 13)
+		DF:SetFontSize(TitleString, 12)
 		local TitleBackground = f:CreateTexture(nil, "artwork")
 		TitleBackground:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
 		TitleBackground:SetVertexColor(.1, .1, .1, .9)
@@ -584,8 +584,8 @@ function Details:CreateCurrentDpsFrame(parent, name)
 				DF:SetFontOutline (labelYellowTeam_DPS, Details.realtime_dps_meter.font_shadow)
 
 				--wipe current data for arena
-				Details:Destroy (f.PlayerTeamBuffer)
-				Details:Destroy (f.YellowTeamBuffer)
+				Details:Destroy(f.PlayerTeamBuffer)
+				Details:Destroy(f.YellowTeamBuffer)
 
 				--reset damage
 				f.PlayerTeamDamage = 0
@@ -903,9 +903,9 @@ function Details:CreateCurrentDpsFrame(parent, name)
 		
 		function eventListener:ResetBuffer()
 			if (f:IsShown()) then
-				Details:Destroy (f.PlayerTeamBuffer)
-				Details:Destroy (f.YellowTeamBuffer)
-				Details:Destroy (f.GroupBuffer)
+				Details:Destroy(f.PlayerTeamBuffer)
+				Details:Destroy(f.YellowTeamBuffer)
+				Details:Destroy(f.GroupBuffer)
 				f.GroupTotalDamage = 0
 				f.PlayerTeamDamage = 0
 				f.YellowDamage = 0

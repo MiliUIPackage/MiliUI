@@ -105,6 +105,7 @@ end
 
 --load previous saved combat data
 function Details222.LoadSavedVariables.CombatSegments()
+	--this is the table where the character data is saved as well the combat data
 	local currentCharacterData = _G["_detalhes_database"] --no need to check if it exists, it's already checked
 	if (currentCharacterData == nil) then
 		currentCharacterData = {}
@@ -132,11 +133,11 @@ function Details222.LoadSavedVariables.CombatSegments()
 
 	--if can just clear all data and exit
 	if (bShouldClearAndExit) then
-		Details.tabela_historico = Details.historico:NovoHistorico()
+		Details.tabela_historico = Details.historico:CreateNewSegmentDatabase()
 		Details.tabela_overall = Details.combate:NovaTabela()
 		Details.tabela_vigente = Details.combate:NovaTabela(_, Details.tabela_overall)
 		Details.tabela_pets = Details.container_pets:NovoContainer()
-		Details:UpdateContainerCombatentes()
+		Details:UpdatePetCache()
 
 		if (currentCharacterData.tabela_pets) then
 			Details:Destroy(currentCharacterData.tabela_pets) --saved pet data
@@ -166,18 +167,12 @@ function Details222.LoadSavedVariables.CombatSegments()
 
 		--restore saved overall data
 		do
-			if (not Details.overall_clear_logout) then
-				if (currentCharacterData.tabela_overall) then
-					Details.tabela_overall = Details.CopyTable(currentCharacterData.tabela_overall)
-					Details:RestoreOverallMetatables()
-				end
+			if (currentCharacterData.tabela_overall) then
+				Details.tabela_overall = Details.CopyTable(currentCharacterData.tabela_overall)
+				Details:RestoreOverallMetatables()
 			else
 				Details.tabela_overall = Details.combate:NovaTabela()
-			end
-
-			if (currentCharacterData.tabela_overall) then
-				Details:Destroy(currentCharacterData.tabela_overall)
-				currentCharacterData.tabela_overall = nil
+				Details.tabela_overall.overall_refreshed = true
 			end
 		end
 
@@ -189,7 +184,7 @@ function Details222.LoadSavedVariables.CombatSegments()
 		end
 
 		--get the first segment saved and use it as current segment
-		Details.tabela_vigente = Details.tabela_historico.tabelas[1]
+		Details.tabela_vigente = Details.tabela_historico.tabelas[1] --only low level access to this table allowed
 
 		--need refresh for all containers
 		for _, actorContainer in ipairs(Details.tabela_overall) do
@@ -199,7 +194,7 @@ function Details222.LoadSavedVariables.CombatSegments()
 			actorContainer.need_refresh = true
 		end
 
-		Details:UpdateContainerCombatentes()
+		Details:UpdatePetCache()
 		Details:RestoreMetatables()
 	end
 end

@@ -202,7 +202,7 @@ function Details:OpenClassColorsConfig()
 
         DetailsFramework:BuildMenu(panel, deathLogOptions, 5, -315, 700, true, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template)
 
-        local deathLogColorsLabel = DF:CreateLabel(panel, "死亡日誌顏色:", 12, "yellow")
+        local deathLogColorsLabel = DF:CreateLabel(panel, "死亡日誌顏色:", 14,"yellow")
         deathLogColorsLabel:SetPoint("topleft", panel, "topleft", 5, -295)
     end
 

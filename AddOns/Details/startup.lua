@@ -41,7 +41,7 @@ function Details:StartMeUp()
 		--healing, hps, overheal, healing taken
 			Details.row_singleclick_overwrite[2] = {true, true, true, true, false, Details.atributo_heal.ReportSingleDamagePreventedLine}
 		--mana, rage, energy, runepower
-			Details.row_singleclick_overwrite[3] = {true, true, true, true}
+			Details.row_singleclick_overwrite[3] = {true, true, true, true} --missing other resources and alternate power
 		--cc breaks, ress, interrupts, dispells, deaths
 			Details.row_singleclick_overwrite[4] = {true, true, true, true, Details.atributo_misc.ReportSingleDeadLine, Details.atributo_misc.ReportSingleCooldownLine, Details.atributo_misc.ReportSingleBuffUptimeLine, Details.atributo_misc.ReportSingleDebuffUptimeLine}
 
@@ -99,8 +99,8 @@ function Details:StartMeUp()
 	Details.MicroButtonAlert:Hide()
 
 	--actor details window
-	Details.playerDetailWindow = Details:CreateBreakdownWindow()
-	Details.FadeHandler.Fader(Details.playerDetailWindow, 1)
+	Details.BreakdownWindowFrame = Details:CreateBreakdownWindow()
+	Details.FadeHandler.Fader(Details.BreakdownWindowFrame, 1)
 
 	--copy and paste window
 	Details:CreateCopyPasteWindow()
@@ -113,7 +113,7 @@ function Details:StartMeUp()
 	Details:GetLowerInstanceNumber()
 
 	--start time machine
-	Details.timeMachine:TurnOn()
+	Details222.TimeMachine.Start()
 
 	--update abbreviation shortcut
 	Details.atributo_damage:UpdateSelectedToKFunction()
@@ -316,7 +316,7 @@ function Details:StartMeUp()
 		Details.AnnounceStartup = nil
 	end
 
-	Details.Schedules.NewTimer(5, Details.AnnounceStartup, Details)
+	Details.Schedules.NewTimer(4, Details.AnnounceStartup, Details)
 
 	if (Details.failed_to_load) then
 		Details.failed_to_load:Cancel()
@@ -520,7 +520,7 @@ function Details:StartMeUp()
 	--embed windows on the chat window
 	Details.chat_embed:CheckChatEmbed(true)
 
-	if (Details.player_details_window.skin ~= "ElvUI") then
+	if (Details.player_details_window.skin ~= "ElvUI") then --obsolete
 		local setDefaultSkinOnPlayerBreakdownWindow = function()
 			Details:ApplyPDWSkin("ElvUI")
 		end
@@ -593,7 +593,7 @@ function Details:StartMeUp()
 		torghastTracker:SetScript("OnEvent", function(self, event, level, towerType)
 			if (level == 1) then
 				if (Details.overall_clear_newtorghast) then
-					Details.historico:resetar_overall()
+					Details.historico:ResetOverallData()
 					Details:Msg("總體數據現已重置。") --localize-me
 				end
 			end

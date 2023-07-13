@@ -47,7 +47,7 @@ local UsingCustomRightText = false
 
 local TooltipMaximizedMethod = 1
 
-local info = _detalhes.playerDetailWindow
+local breakdownWindowFrame = Details.BreakdownWindowFrame
 local keyName
 
 local headerColor = "yellow"
@@ -417,7 +417,7 @@ function atributo_misc:ReportSingleDeadLine (morte, instancia)
 	end
 	local default_len = _detalhes.fontstring_len:GetStringWidth()
 
-	Details:Destroy (report_table)
+	Details:Destroy(report_table)
 	local report_array = report_table
 	report_array[1] = {"Details! " .. Loc ["STRING_REPORT_SINGLE_DEATH"] .. " " .. morte [3] .. " " .. Loc ["STRING_ACTORFRAME_REPORTAT"] .. " " .. morte [6], "", "", ""}
 
@@ -1156,41 +1156,42 @@ function atributo_misc:ToolTipCC (instancia, numero, barra)
 	return true
 end
 
-function atributo_misc:ToolTipDispell (instancia, numero, barra)
-
+function atributo_misc:ToolTipDispell(instancia, numero, barra)
 	local owner = self.owner
 	if (owner and owner.classe) then
-		r, g, b = unpack(_detalhes.class_colors [owner.classe])
+		r, g, b = unpack(_detalhes.class_colors[owner.classe])
 	else
-		r, g, b = unpack(_detalhes.class_colors [self.classe])
+		r, g, b = unpack(_detalhes.class_colors[self.classe])
 	end
 
-	local meu_total = _math_floor(self ["dispell"])
+	local totalDispels = math.floor(self["dispell"])
 	local habilidades = self.dispell_spells._ActorTable
 
---habilidade usada para dispelar
-	local meus_dispells = {}
-	for _spellid, _tabela in pairs(habilidades) do
-		if (_tabela.dispell) then
-			meus_dispells [#meus_dispells+1] = {_spellid, _math_floor(_tabela.dispell)} --_math_floor valor é nil, uma magia na tabela de dispel, sem dispel?
+	--habilidade usada para dispelar
+	local spellsUsedToDispel = {}
+	for spellId, spellTable in pairs(habilidades) do
+		if (spellTable.dispell) then
+			spellsUsedToDispel[#spellsUsedToDispel+1] = {spellId, math.floor(spellTable.dispell)}
 		else
-			Details:Msg("D! table.dispell is invalid. spellId:", _spellid)
+			Details:Msg("D! table.dispell is invalid. spellId:", spellId)
 		end
 	end
-	table.sort (meus_dispells, _detalhes.Sort2)
+	table.sort (spellsUsedToDispel, _detalhes.Sort2)
 
-	_detalhes:AddTooltipSpellHeaderText (Loc ["STRING_SPELLS"], headerColor, #meus_dispells, [[Interface\ICONS\Spell_Arcane_ArcaneTorrent]], 0.078125, 0.9375, 0.078125, 0.953125)
-	_detalhes:AddTooltipHeaderStatusbar (r, g, b, barAlha)
+	_detalhes:AddTooltipSpellHeaderText(Loc ["STRING_SPELLS"], headerColor, #spellsUsedToDispel, [[Interface\ICONS\Spell_Arcane_ArcaneTorrent]], 0.078125, 0.9375, 0.078125, 0.953125)
+	_detalhes:AddTooltipHeaderStatusbar(r, g, b, barAlha)
 
 	local icon_size = _detalhes.tooltip.icon_size
 	local icon_border = _detalhes.tooltip.icon_border_texcoord
 
-	if (#meus_dispells > 0) then
-		for i = 1, min (25, #meus_dispells) do
-			local esta_habilidade = meus_dispells[i]
-			local nome_magia, _, icone_magia = _GetSpellInfo(esta_habilidade[1])
-			GameCooltip:AddLine(nome_magia, esta_habilidade[2].." (".._cstr("%.1f", esta_habilidade[2]/meu_total*100).."%)")
-			GameCooltip:AddIcon (icone_magia, nil, nil, icon_size.W, icon_size.H, icon_border.L, icon_border.R, icon_border.T, icon_border.B)
+	if (#spellsUsedToDispel > 0) then
+		for i = 1, math.min(25, #spellsUsedToDispel) do
+			local spellInfo = spellsUsedToDispel[i]
+			local spellId = spellInfo[1]
+			local amountDispels = spellInfo[2]
+			local spellName, _, spellicon = _GetSpellInfo(spellId)
+			GameCooltip:AddLine(spellName, amountDispels .. " (" .. string.format("%.1f", amountDispels / totalDispels * 100) .. "%)")
+			GameCooltip:AddIcon(spellicon, nil, nil, icon_size.W, icon_size.H, icon_border.L, icon_border.R, icon_border.T, icon_border.B)
 			_detalhes:AddTooltipBackgroundStatusbar()
 		end
 	else
@@ -1198,21 +1199,23 @@ function atributo_misc:ToolTipDispell (instancia, numero, barra)
 	end
 
 --quais habilidades foram dispaladas
-	local buffs_dispelados = {}
-	for _spellid, amt in pairs(self.dispell_oque) do
-		buffs_dispelados [#buffs_dispelados+1] = {_spellid, amt}
+	local dispelledSpells = {}
+	for spellId, amount in pairs(self.dispell_oque) do
+		dispelledSpells[#dispelledSpells+1] = {spellId, amount}
 	end
-	table.sort (buffs_dispelados, _detalhes.Sort2)
+	table.sort(dispelledSpells, _detalhes.Sort2)
 
-	_detalhes:AddTooltipSpellHeaderText (Loc ["STRING_DISPELLED"], headerColor, #buffs_dispelados, [[Interface\ICONS\Spell_Arcane_ManaTap]], 0.078125, 0.9375, 0.078125, 0.953125)
-	_detalhes:AddTooltipHeaderStatusbar (r, g, b, barAlha)
+	_detalhes:AddTooltipSpellHeaderText(Loc ["STRING_DISPELLED"], headerColor, #dispelledSpells, [[Interface\ICONS\Spell_Arcane_ManaTap]], 0.078125, 0.9375, 0.078125, 0.953125)
+	_detalhes:AddTooltipHeaderStatusbar(r, g, b, barAlha)
 
-	if (#buffs_dispelados > 0) then
-		for i = 1, min (25, #buffs_dispelados) do
-			local esta_habilidade = buffs_dispelados[i]
-			local nome_magia, _, icone_magia = _GetSpellInfo(esta_habilidade[1])
-			GameCooltip:AddLine(nome_magia, esta_habilidade[2].." (".._cstr("%.1f", esta_habilidade[2]/meu_total*100).."%)")
-			GameCooltip:AddIcon (icone_magia, nil, nil, icon_size.W, icon_size.H, icon_border.L, icon_border.R, icon_border.T, icon_border.B)
+	if (#dispelledSpells > 0) then
+		for i = 1, math.min(25, #dispelledSpells) do
+			local spellInfo = dispelledSpells[i]
+			local spellId = spellInfo[1]
+			local amountDispels = spellInfo[2]
+			local spellName, _, spellIcon = _GetSpellInfo(spellId)
+			GameCooltip:AddLine(spellName, amountDispels .. " (" .. string.format("%.1f", amountDispels / totalDispels * 100) .. "%)")
+			GameCooltip:AddIcon (spellIcon, nil, nil, icon_size.W, icon_size.H, icon_border.L, icon_border.R, icon_border.T, icon_border.B)
 			_detalhes:AddTooltipBackgroundStatusbar()
 		end
 	end
@@ -1221,7 +1224,7 @@ function atributo_misc:ToolTipDispell (instancia, numero, barra)
 
 	local alvos_dispelados = {}
 	for target_name, amount in pairs(self.dispell_targets) do
-		alvos_dispelados [#alvos_dispelados + 1] = {target_name, _math_floor(amount), amount / meu_total * 100}
+		alvos_dispelados [#alvos_dispelados + 1] = {target_name, _math_floor(amount), amount / totalDispels * 100}
 	end
 	table.sort (alvos_dispelados, _detalhes.Sort2)
 
@@ -1333,7 +1336,7 @@ function _detalhes:CatchRaidDebuffUptime (in_or_out) -- "DEBUFF_UPTIME_IN"
 
 	if (in_or_out == "DEBUFF_UPTIME_OUT") then
 		local combat = _detalhes.tabela_vigente
-		local misc_container = combat [4]._ActorTable
+		local misc_container = combat [4]._ActorTable --error attempt to index a new value
 
 		for _, actor in ipairs(misc_container) do
 			if (actor.debuff_uptime) then
@@ -2042,14 +2045,14 @@ end
 
 ---------DETALHES BIFURCA��O
 function atributo_misc:MontaInfo()
-	if (info.sub_atributo == 3) then --interrupt
+	if (breakdownWindowFrame.sub_atributo == 3) then --interrupt
 		return self:MontaInfoInterrupt()
 	end
 end
 
 ---------DETALHES bloco da direita BIFURCA��O
 function atributo_misc:MontaDetalhes (spellid, barra)
-	if (info.sub_atributo == 3) then --interrupt
+	if (breakdownWindowFrame.sub_atributo == 3) then --interrupt
 		return self:MontaDetalhesInterrupt (spellid, barra)
 	end
 end
@@ -2065,8 +2068,8 @@ function atributo_misc:MontaInfoInterrupt()
 
 	local minha_tabela = self.interrupt_spells._ActorTable
 
-	local barras = info.barras1
-	local instancia = info.instancia
+	local barras = breakdownWindowFrame.barras1
+	local instancia = breakdownWindowFrame.instancia
 
 	local meus_interrupts = {}
 
@@ -2110,13 +2113,13 @@ function atributo_misc:MontaInfoInterrupt()
 
 		--isso aqui � tudo da sele��o e descele��o das barras
 
-		if (not info.mostrando_mouse_over) then
+		if (not breakdownWindowFrame.mostrando_mouse_over) then
 			if (tabela[1] == self.detalhes) then --tabela [1] = spellid = spellid que esta na caixa da direita
 				if (not barra.on_focus) then --se a barra n�o tiver no foco
 					barra.textura:SetStatusBarColor(129/255, 125/255, 69/255, 1)
 					barra.on_focus = true
-					if (not info.mostrando) then
-						info.mostrando = barra
+					if (not breakdownWindowFrame.mostrando) then
+						breakdownWindowFrame.mostrando = barra
 					end
 				end
 			else
@@ -2166,7 +2169,7 @@ function atributo_misc:MontaInfoInterrupt()
 	local barra
 	for index, tabela in ipairs(meus_alvos) do
 
-		barra = info.barras2 [index]
+		barra = breakdownWindowFrame.barras2 [index]
 
 		if (not barra) then
 			barra = gump:CriaNovaBarraInfo2 (instancia, index)
@@ -2214,7 +2217,7 @@ function atributo_misc:MontaDetalhesInterrupt (spellid, barra)
 	local nome, _, icone = _GetSpellInfo(spellid)
 	local infospell = {nome, nil, icone}
 
-	_detalhes.playerDetailWindow.spell_icone:SetTexture(infospell[3])
+	Details.BreakdownWindowFrame.spell_icone:SetTexture(infospell[3])
 
 	local total = self.interrupt
 	local meu_total = esta_magia.counter
@@ -2223,8 +2226,8 @@ function atributo_misc:MontaDetalhesInterrupt (spellid, barra)
 
 	local data = {}
 
-	local barras = info.barras3
-	local instancia = info.instancia
+	local barras = breakdownWindowFrame.barras3
+	local instancia = breakdownWindowFrame.instancia
 
 	local habilidades_alvos = {}
 	for spellid, amt in pairs(esta_magia.interrompeu_oque) do
@@ -2278,7 +2281,7 @@ function atributo_misc:MontaTooltipAlvos (esta_barra, index)
 	local inimigo = esta_barra.nome_inimigo
 
 	local container
-	if (info.instancia.sub_atributo == 3) then --interrupt
+	if (breakdownWindowFrame.instancia.sub_atributo == 3) then --interrupt
 		container = self.interrupt_spells._ActorTable
 	end
 
@@ -2316,7 +2319,7 @@ function atributo_misc:MontaTooltipAlvos (esta_barra, index)
 end
 
 --controla se o dps do jogador esta travado ou destravado
-function atributo_misc:Iniciar (iniciar)
+function atributo_misc:GetOrChangeActivityStatus (iniciar)
 	return false --retorna se o dps esta aberto ou fechado para este jogador
 end
 
@@ -2814,9 +2817,7 @@ function _detalhes.refresh:r_atributo_misc(thisActor, shadow)
 end
 
 function _detalhes.clear:c_atributo_misc (este_jogador)
-
 	este_jogador.__index = nil
-	este_jogador.shadow = nil
 	este_jogador.links = nil
 	este_jogador.minha_barra = nil
 

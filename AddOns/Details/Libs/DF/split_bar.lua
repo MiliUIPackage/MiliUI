@@ -697,12 +697,12 @@ local build_statusbar = function(self)
 	self.spark:SetPoint("LEFT", self, "RIGHT", -17, -1)
 	
 	self.lefttext = self:CreateFontString("$parent_TextLeft", "OVERLAY", "GameFontHighlight")
-	DF:SetFontSize(self.lefttext, 14)
+	DF:SetFontSize(self.lefttext, 13)
 	self.lefttext:SetJustifyH("left")
 	self.lefttext:SetPoint("LEFT", self.lefticon, "RIGHT", 3, 0)
 	
 	self.righttext = self:CreateFontString("$parent_TextRight", "OVERLAY", "GameFontHighlight")
-	DF:SetFontSize(self.righttext, 14)
+	DF:SetFontSize(self.righttext, 13)
 	self.righttext:SetJustifyH("right")
 	self.righttext:SetPoint("RIGHT", self.righticon, "LEFT", -3, 0)
 

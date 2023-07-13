@@ -6,11 +6,18 @@
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
 ## SavedVariablesPerCharacter: EncounterDetailsDB
-## X-Category-zhTW: 戰鬥
-## IconTexture: Interface\Icons\PetBattle_Attack
+## IconTexture: Interface\AddOns\Details\images\minimap
+
+## X-Wago-ID: 7nGvv0Gx
 
 enUS.lua
 zhTW.lua
-frames.lua
 
 Details_EncounterDetails.lua
+frames_chart.lua
+frames_emote.lua
+frames_phases.lua
+frames_summary.lua
+frames.lua
+
+

@@ -722,7 +722,7 @@ function DE:OnDetailsEvent(event, combat)
 end
 
 function DE:ResetOverall()
-    self:Debug("on Details Reset Overall (Details.historico.resetar_overall)")
+    self:Debug("on Details Reset Overall (Details.historico.ResetOverallData)")
     DE:UpdateOverall()
 end
 
@@ -740,7 +740,11 @@ function DE:LoadHooks()
     self:SecureHook(_G.DetailsMythicPlusFrame, 'MergeTrashCleanup') ---@diagnostic disable-line: undefined-field
     self:SecureHook(_G.DetailsMythicPlusFrame, 'MergeRemainingTrashAfterAllBossesDone') ---@diagnostic disable-line: undefined-field
 
-    self:SecureHook(Details.historico, 'resetar_overall', 'ResetOverall') ---@diagnostic disable-line: undefined-field
+    if Details.historico.ResetOverallData then
+        self:SecureHook(Details.historico, 'ResetOverallData', 'ResetOverall') ---@diagnostic disable-line: undefined-field
+    else
+        self:SecureHook(Details.historico, 'resetar_overall', 'ResetOverall') ---@diagnostic disable-line: undefined-field
+    end
     self.overall = Details:GetCombat(-1):GetCombatNumber()
 
     self.EventListener = Details:CreateEventListener()

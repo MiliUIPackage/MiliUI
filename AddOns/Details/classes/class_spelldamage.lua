@@ -14,6 +14,7 @@ function Details.CreateSpellTable(spellId, cleuToken)
 end
 
 ---create a spelltable to store the damage of a spell
+---@param self any
 ---@param spellId number
 ---@param link nil
 ---@param token string
@@ -62,7 +63,7 @@ function classDamageSpellTable:NovaTabela(spellId, link, token)
 	}
 
 	if (token == "SPELL_PERIODIC_DAMAGE") then
-		Details:SpellIsDot(spellId)
+		Details:SetAsDotSpell(spellId)
 	end
 
 	return spellTable

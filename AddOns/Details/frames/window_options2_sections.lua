@@ -37,13 +37,11 @@ local LDBIcon = LDB and _G.LibStub("LibDBIcon-1.0", true)
 local addonName, Details222 = ...
 local _ = nil
 local unpack = _G.unpack
-local tinsert = _G.tinsert
+local tinsert = table.insert
 
 local startX = 200
 local startY = -40
 local heightSize = 540
-local optionsWidth, optionsHeight = 1100, 650
-local mainHeightSize = 800
 local presetVersion = 3
 
 --templates
@@ -56,30 +54,29 @@ local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLAT
 local subSectionTitleTextTemplate = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
 
 local font_select_icon, font_select_texcoord = [[Interface\AddOns\Details\images\icons]], {472/512, 513/512, 186/512, 230/512}
-local texture_select_icon, texture_select_texcoord = [[Interface\AddOns\Details\images\icons]], {472/512, 513/512, 186/512, 230/512}
 
 --store the current instance being edited
 local currentInstance
 
-function Details.options.SetCurrentInstance(instance)
+function Details222.OptionsPanel.SetCurrentInstance(instance)
     currentInstance = instance
 end
 
-function Details.options.SetCurrentInstanceAndRefresh(instance)
+function Details222.OptionsPanel.SetCurrentInstanceAndRefresh(instance)
     currentInstance = instance
     _G.DetailsOptionsWindow.instance = instance
 
     --get all the frames created and update the options
-    for i = 1, Details.options.maxSectionIds do
-        local sectionFrame = Details.options.GetOptionsSection(i)
+    for i = 1, Details222.OptionsPanel.maxSectionIds do
+        local sectionFrame = Details222.OptionsPanel.GetOptionsSection(i)
         if (sectionFrame.RefreshOptions) then
             sectionFrame:RefreshOptions()
         end
     end
-    Details.options.UpdateAutoHideSettings(instance)
+    Details222.OptionsPanel.UpdateAutoHideSettings(instance)
 end
 
-function Details.options.UpdateAutoHideSettings(instance)
+function Details222.OptionsPanel.UpdateAutoHideSettings(instance)
     for contextId, line in ipairs(_G.DetailsOptionsWindowTab13.AutoHideOptions) do --tab13 = automation settings
         line.enabledCheckbox:SetValue(instance.hide_on_context[contextId].enabled)
         line.reverseCheckbox:SetValue(instance.hide_on_context[contextId].inverse)
@@ -87,7 +84,7 @@ function Details.options.UpdateAutoHideSettings(instance)
     end
 end
 
-function Details.options.RefreshInstances(instance)
+function Details222.OptionsPanel.RefreshInstances(instance)
     if (instance) then
         Details:InstanceGroupCall(instance, "InstanceRefreshRows")
         instance:InstanceReset()
@@ -97,7 +94,7 @@ function Details.options.RefreshInstances(instance)
     end
 end
 
-function Details.options.GetCurrentInstanceInOptionsPanel()
+function Details222.OptionsPanel.GetCurrentInstanceInOptionsPanel()
     return currentInstance
 end
 
@@ -207,6 +204,7 @@ do
                 --localize-me
                 {value = 1, label = Loc ["Activity Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_Daily_08", iconcolor = {1, .9, .9}, texcoord = {0.078125, 0.921875, 0.078125, 0.921875}},
                 {value = 2, label = Loc ["Effective Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_08"},
+                {value = 3, label = "實時", onclick = onSelectTimeType, icon = "Interface\\Icons\\Ability_Evoker_TipTheScales"},
             }
             local buildTimeTypeMenu = function()
                 return timetypeOptions
@@ -448,8 +446,8 @@ do
                     Details:SetOverallResetOptions(nil, nil, nil, value)
                     afterUpdate()
                 end,
-                name = "Clear On Start PVP", --localize-me
-                desc = "When enabled, overall data is automatically wiped when a new arena or battleground starts.", --localize-me
+                name = "開始PVP時清除", --localize-me
+                desc = "啟用後，當新的競技場或戰場開始時，將自動擦除總體數據。", --localize-me
                 boxfirst = true,
             },
             {--erase overall data on logout
@@ -470,8 +468,8 @@ do
                     Details.auto_swap_to_dynamic_overall = value
                     afterUpdate()
                 end,
-                name = "Use Dynamic Overall Damage",
-                desc = "When showing Damage Done Overall, swap to Dynamic Overall Damage on entering combat.",
+                name = "使用動態整體傷害",
+                desc = "當顯示整體傷害時，進入戰鬥時交換為動態總體傷害。",
                 boxfirst = true,
             },
 
@@ -580,7 +578,7 @@ do
                     local accepted, errortext = Details:SetNickname(text)
                     if (not accepted) then
                         Details:ResetPlayerPersona()
-                        Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                        Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     end
                     afterUpdate()
                 end,
@@ -591,7 +589,7 @@ do
                 type = "execute",
                 func = function(self)
                     Details:ResetPlayerPersona()
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                 end,
                 icontexture = [[Interface\GLUES\LOGIN\Glues-CheckBox-Check]],
                 --icontexcoords = {160/512, 179/512, 142/512, 162/512},
@@ -772,7 +770,7 @@ do
                         --add the new skin
                         Details.savedStyles [#Details.savedStyles+1] = dataTable
                         Details:Msg(Loc ["STRING_OPTIONS_SAVELOAD_IMPORT_OKEY"])
-                        Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                        Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                         afterUpdate()
                     else
                         Details:Msg(Loc ["STRING_CUSTOM_IMPORT_ERROR"])
@@ -810,7 +808,7 @@ do
                 type = "execute",
                 func = function(self)
                     Details:InstanceGroupCall(currentInstance, "SetUserCustomSkinFile", "")
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                 end,
                 icontexture = [[Interface\GLUES\LOGIN\Glues-CheckBox-Check]],
@@ -824,7 +822,7 @@ do
                 get = function() return "" end,
                 set = function(self, _, text)
                     saveAsSkin(text)
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     Details:Msg(Loc ["STRING_OPTIONS_SAVELOAD_SKINCREATED"])
                     afterUpdate()
                 end,
@@ -851,7 +849,7 @@ do
                     end
                     
                     Details:Msg(Loc ["STRING_OPTIONS_SAVELOAD_APPLYALL"])
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                 end,
                 icontexture = [[Interface\Buttons\UI-HomeButton]],
@@ -890,7 +888,7 @@ do
                     for index, _table in ipairs(Details.savedStyles) do
                         tinsert(loadtable, {value = index, label = _table.name, onclick = function(_, _, index)
                             table.remove (Details.savedStyles, index)
-                            Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                            Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                             afterUpdate()
                             Details:Msg(Loc ["STRING_OPTIONS_SKIN_REMOVED"])
                         end,
@@ -917,7 +915,7 @@ do
                             else
                                 Details:Msg (Loc ["failed to export skin."]) --localize-me
                             end
-                            Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                            Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                             afterUpdate()
                         end,
                         icon = [[Interface\Buttons\UI-GuildButton-MOTD-Up]], color = {1, 1, 1}, iconcolor = {1, .9, .9, 0.8}, texcoord = {1, 0, 0, 1}})
@@ -947,7 +945,7 @@ do
                 get = function() return Details.chat_tab_embed.enabled end,
                 set = function(self, fixedparam, value)
                     Details.chat_embed:SetTabSettings(nil, value)
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                 end,
                 name = Loc ["STRING_ENABLED"],
@@ -969,7 +967,7 @@ do
                 get = function() return Details.chat_tab_embed.single_window end,
                 set = function(self, fixedparam, value)
                     Details.chat_embed:SetTabSettings (nil, nil, value)
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                 end,
                 name = Loc ["STRING_OPTIONS_TABEMB_SINGLE"],
@@ -1412,7 +1410,7 @@ do
                         editInstanceSetting(currentInstance, "SetBarSettings", nil, nil, nil, nil, nil, nil, nil, nil, text)
                     end
 
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                 end,
                 name = Loc ["STRING_OPTIONS_BARS_CUSTOM_TEXTURE"],
@@ -1542,7 +1540,7 @@ do
                 set = function(self, fixedparam, value)
                     editInstanceSetting(currentInstance, "fontstrings_text_limit_offset", value)
                     editInstanceSetting(currentInstance, "InstanceRefreshRows")
-                    Details.options.RefreshInstances(currentInstance)
+                    Details222.OptionsPanel.RefreshInstances(currentInstance)
                     afterUpdate()
                 end,
                 min = -30,
@@ -1607,7 +1605,7 @@ do
                 set = function(self, fixedparam, value)
                     editInstanceSetting(currentInstance, "total_bar", "enabled", value)
                     afterUpdate()
-                    Details.options.RefreshInstances(currentInstance)
+                    Details222.OptionsPanel.RefreshInstances(currentInstance)
                 end,
                 name = Loc ["STRING_ENABLED"],
                 desc = Loc ["STRING_OPTIONS_SHOW_TOTALBAR_DESC"],
@@ -2119,8 +2117,8 @@ do
         local separatorOption = sectionFrame.widget_list[25]
         local bracketOption = sectionFrame.widget_list[26]
         local warningLabel = sectionFrame.widget_list[27]
-        Details.options.textSeparatorOption = separatorOption
-        Details.options.textbracketOption = bracketOption
+        Details222.OptionsPanel.textSeparatorOption = separatorOption
+        Details222.OptionsPanel.textbracketOption = bracketOption
 
         sectionFrame:SetScript("OnShow", function()
             if (currentInstance.use_multi_fontstrings) then
@@ -3857,7 +3855,7 @@ do
         local selectProfile = function(_, _, profileName)
             Details:ApplyProfile(profileName)
             Details:Msg(Loc ["STRING_OPTIONS_PROFILE_LOADED"], profileName)
-            --Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+            --Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
             --afterUpdate()
             _G.DetailsOptionsWindow:Hide()
             Details:OpenOptionsWindow(currentInstance, false, 9)
@@ -3933,7 +3931,7 @@ do
                     if (new_profile) then
                         Details:ApplyProfile(profileName)
                         afterUpdate()
-                        Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                        Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     else
                         return Details:Msg(Loc ["STRING_OPTIONS_PROFILE_NOTCREATED"])
                     end
@@ -3973,7 +3971,7 @@ do
 
                     Details:EraseProfile(profileName)
 
-                    Details.options.SetCurrentInstanceAndRefresh(currentInstance)
+                    Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                     afterUpdate()
                     Details:Msg(Loc ["STRING_OPTIONS_PROFILE_REMOVEOKEY"])
                 end,
@@ -5499,7 +5497,7 @@ do
 			sectionFrame.AutoHideOptions[i] = line
         end
 
-        Details.options.UpdateAutoHideSettings(currentInstance)
+        Details222.OptionsPanel.UpdateAutoHideSettings(currentInstance)
 
         --profile by spec
         
@@ -7045,9 +7043,9 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Class Options:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return "職業選項:" end, text_template = subSectionTitleTextTemplate},
 
-            {--damage taken everything
+            {--hunter track pet frenzy
                 type = "toggle",
                 get = function() return Details.combat_log.track_hunter_frenzy end,
                 set = function(self, fixedparam, value)
@@ -7055,13 +7053,39 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = DF:AddClassIconToText("Hunter Track Pet Frenzy", false, "HUNTER"),
-                desc = "Hunter Track Pet Frenzy",
+                name = DF:AddClassIconToText("獵人追蹤寵物狂熱", false, "HUNTER"),
+                desc = "獵人追蹤寵物狂熱",
+                boxfirst = true,
+            },
+
+            {--show evoker bar
+                type = "toggle",
+                get = function() return Details.combat_log.evoker_calc_damage end,
+                set = function(self, fixedparam, value)
+                    Details.combat_log.evoker_calc_damage = value
+                    afterUpdate()
+                    Details:ClearParserCache()
+                end,
+                name = DF:AddClassIconToText("預測強化傷害", false, "EVOKER"),
+                desc = "預測強化傷害",
+                boxfirst = true,
+            },
+
+            {--use realtime dps for evoker augmentataion
+                type = "toggle",
+                get = function() return Details.combat_log.evoker_show_realtimedps end,
+                set = function(self, fixedparam, value)
+                    Details.combat_log.evoker_show_realtimedps = value
+                    afterUpdate()
+                    Details:ClearParserCache()
+                end,
+                name = DF:AddClassIconToText("在強化喚能師使用實時每秒傷害", false, "EVOKER"),
+                desc = "Use Real Time Dps for Augmentation Evoker",
                 boxfirst = true,
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Parser Options:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return "解析選項:" end, text_template = subSectionTitleTextTemplate},
 
             {--overheal shields
                 type = "toggle",

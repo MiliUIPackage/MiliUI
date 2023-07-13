@@ -20,7 +20,7 @@
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 152 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 153 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
 
@@ -67,6 +67,7 @@
 		Details222.PlayerBreakdown = {
 			DamageSpellsCache = {}
 		}
+
 		--namespace color
 		Details222.ColorScheme = {
 			["gradient-background"] = {0.1215, 0.1176, 0.1294, 0.8},
@@ -74,13 +75,19 @@
 		function Details222.ColorScheme.GetColorFor(colorScheme)
 			return Details222.ColorScheme[colorScheme]
 		end
+
 		--namespace for damage spells (spellTable)
 		Details222.DamageSpells = {}
 		--namespace for texture
 		Details222.Textures = {}
 		--namespace for pet
 		Details222.Pets = {}
+		--auto run code
+		Details222.AutoRunCode = {}
+		--options panel
+		Details222.OptionsPanel = {}
 		Details222.Instances = {}
+		Details222.Combat = {}
 		Details222.MythicPlus = {}
 		Details222.EJCache = {}
 		Details222.Segments = {}
@@ -93,6 +100,25 @@
 		Details222.BreakdownWindow = {}
 		Details222.PlayerStats = {}
 		Details222.LoadSavedVariables = {}
+		Details222.SaveVariables = {}
+		Details222.GuessSpecSchedules = {
+			Schedules = {},
+		}
+		Details222.TimeMachine = {}
+
+		Details222.Date = {
+			GetDateForLogs = function()
+				return _G.date("%Y-%m-%d %H:%M:%S")
+			end,
+		}
+
+		Details222.ClassCache = {}
+		Details222.ClassCache.ByName = {}
+		Details222.ClassCache.ByGUID = {}
+		Details222.UnitIdCache = {}
+		Details222.Roskash = {}
+
+		Details222.Actors = {}
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialization stuff
@@ -406,6 +432,13 @@ do
 				--"LoadScreenOrgrimmarArena", --Ring of Valor
 			}
 
+			Details.IgnoredEnemyNpcsTable = {
+				[31216] = true, --mirror image
+				[53006] = true, --spirit link totem
+				[63508] = true, --xuen
+				[73967] = true, --xuen
+			}
+
 			function _detalhes:GetArenaInfo (mapid)
 				local t = _detalhes.arena_info [mapid]
 				if (t) then
@@ -471,6 +504,22 @@ do
 				["UNIT_DIED"] = 33,
 				["UNIT_DESTROYED"] = 34,
 			}
+
+		---@type table<npcid, textureid>
+		local npcIdToIcon = {
+			[98035] = 1378282, --dreadstalker
+			[17252] = 136216, --felguard
+			[136404] = 132182, --bilescourge
+			[136398] = 626007, --illidari satyr
+			[136403] = 1100177, --void terror
+			[136402] = 1581747, --ur'zyk
+			[136399] = 1709931, --visious hellhound
+			[136406] = 615148, --shivarra
+			[136407] = 615025, --wrathguard
+			[136408] = 1709932, --darkhound
+
+		}
+		_detalhes.NpcIdToIcon = npcIdToIcon
 
 		--armazena instancias inativas
 			_detalhes.unused_instances = {}
@@ -642,6 +691,7 @@ do
 				_detalhes.StatusBar.NameTable = {}
 
 		--constants
+
 		if(DetailsFramework.IsWotLKWow()) then
 			--[[global]] DETAILS_HEALTH_POTION_ID = 33447 -- Runic Healing Potion
 			--[[global]] DETAILS_HEALTH_POTION2_ID = 41166 -- Runic Healing Injector
@@ -826,38 +876,39 @@ do
 	local CreateFrame = CreateFrame --api locals
 	local UIParent = UIParent --api locals
 
-	--Info Window
-		_detalhes.playerDetailWindow = CreateFrame("Frame", "DetailsBreakdownWindow", UIParent, "BackdropTemplate")
-		_detalhes.PlayerDetailsWindow = _detalhes.playerDetailWindow
-		Details.BreakdownWindow = _detalhes.playerDetailWindow
+	--create the breakdown window frame
+	---@type breakdownwindow
+	Details.BreakdownWindowFrame = CreateFrame("Frame", "DetailsBreakdownWindow", UIParent, "BackdropTemplate")
+	Details.PlayerDetailsWindow = Details.BreakdownWindowFrame
+	Details.BreakdownWindow = Details.BreakdownWindowFrame
 
 	--Event Frame
-		_detalhes.listener = CreateFrame("Frame", nil, UIParent)
-		_detalhes.listener:RegisterEvent("ADDON_LOADED")
-		_detalhes.listener:SetFrameStrata("LOW")
-		_detalhes.listener:SetFrameLevel(9)
-		_detalhes.listener.FrameTime = 0
+	Details.listener = CreateFrame("Frame", nil, UIParent)
+	Details.listener:RegisterEvent("ADDON_LOADED")
+	Details.listener:SetFrameStrata("LOW")
+	Details.listener:SetFrameLevel(9)
+	Details.listener.FrameTime = 0
 
-		_detalhes.overlay_frame = CreateFrame("Frame", nil, UIParent)
-		_detalhes.overlay_frame:SetFrameStrata("TOOLTIP")
+	Details.overlay_frame = CreateFrame("Frame", nil, UIParent)
+	Details.overlay_frame:SetFrameStrata("TOOLTIP")
 
 	--Pet Owner Finder
-		CreateFrame("GameTooltip", "DetailsPetOwnerFinder", nil, "GameTooltipTemplate")
+	CreateFrame("GameTooltip", "DetailsPetOwnerFinder", nil, "GameTooltipTemplate")
 
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --plugin defaults
 	--backdrop
-	_detalhes.PluginDefaults = {}
+	Details.PluginDefaults = {}
 
-	_detalhes.PluginDefaults.Backdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16,
+	Details.PluginDefaults.Backdrop = {bgFile = "Interface\\Tooltips\\UI-Tooltip-Background", tile = true, tileSize = 16,
 	edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1,
 	insets = {left = 1, right = 1, top = 1, bottom = 1}}
-	_detalhes.PluginDefaults.BackdropColor = {0, 0, 0, .6}
-	_detalhes.PluginDefaults.BackdropBorderColor = {0, 0, 0, 1}
+	Details.PluginDefaults.BackdropColor = {0, 0, 0, .6}
+	Details.PluginDefaults.BackdropBorderColor = {0, 0, 0, 1}
 
-	function _detalhes.GetPluginDefaultBackdrop()
-		return _detalhes.PluginDefaults.Backdrop, _detalhes.PluginDefaults.BackdropColor, _detalhes.PluginDefaults.BackdropBorderColor
+	function Details.GetPluginDefaultBackdrop()
+		return Details.PluginDefaults.Backdrop, Details.PluginDefaults.BackdropColor, Details.PluginDefaults.BackdropBorderColor
 	end
 
 
@@ -1039,11 +1090,11 @@ do
 			_detalhes:Msg("you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated.")
 
 			function _detalhes:wipe_combat_after_failed_load()
-				_detalhes.tabela_historico = _detalhes.historico:NovoHistorico()
+				_detalhes.tabela_historico = _detalhes.historico:CreateNewSegmentDatabase()
 				_detalhes.tabela_overall = _detalhes.combate:NovaTabela()
 				_detalhes.tabela_vigente = _detalhes.combate:NovaTabela (_, _detalhes.tabela_overall)
 				_detalhes.tabela_pets = _detalhes.container_pets:NovoContainer()
-				_detalhes:UpdateContainerCombatentes()
+				_detalhes:UpdatePetCache()
 
 				_detalhes_database.tabela_overall = nil
 				_detalhes_database.tabela_historico = nil
@@ -1074,27 +1125,26 @@ do
 			_G ["BINDING_NAME_DETAILS_SCROLL_UP"] = Loc ["STRING_KEYBIND_SCROLL_UP"]
 			_G ["BINDING_NAME_DETAILS_SCROLL_DOWN"] = Loc ["STRING_KEYBIND_SCROLL_DOWN"]
 
-			_G ["BINDING_NAME_DETAILS_REPORT_WINDOW1"] = format(Loc ["STRING_KEYBIND_WINDOW_REPORT"], 1)
-			_G ["BINDING_NAME_DETAILS_REPORT_WINDOW2"] = format(Loc ["STRING_KEYBIND_WINDOW_REPORT"], 2)
+			_G ["BINDING_NAME_DETAILS_REPORT_WINDOW1"] = string.format(Loc ["STRING_KEYBIND_WINDOW_REPORT"], 1)
+			_G ["BINDING_NAME_DETAILS_REPORT_WINDOW2"] = string.format(Loc ["STRING_KEYBIND_WINDOW_REPORT"], 2)
 
-			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW1"] = format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 1)
-			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW2"] = format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 2)
-			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW3"] = format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 3)
-			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW4"] = format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 4)
-			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW5"] = format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 5)
+			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW1"] = string.format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 1)
+			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW2"] = string.format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 2)
+			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW3"] = string.format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 3)
+			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW4"] = string.format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 4)
+			_G ["BINDING_NAME_DETAILS_TOOGGLE_WINDOW5"] = string.format(Loc ["STRING_KEYBIND_TOGGLE_WINDOW"], 5)
 
-			_G ["BINDING_NAME_DETAILS_BOOKMARK1"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 1)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK2"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 2)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK3"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 3)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK4"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 4)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK5"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 5)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK6"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 6)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK7"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 7)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK8"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 8)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK9"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 9)
-			_G ["BINDING_NAME_DETAILS_BOOKMARK10"] = format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 10)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK1"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 1)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK2"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 2)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK3"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 3)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK4"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 4)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK5"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 5)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK6"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 6)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK7"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 7)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK8"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 8)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK9"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 9)
+			_G ["BINDING_NAME_DETAILS_BOOKMARK10"] = string.format(Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 10)
 	--]=]
-
 end
 
 if (select(4, GetBuildInfo()) >= 100000) then
@@ -1109,10 +1159,6 @@ if (select(4, GetBuildInfo()) >= 100000) then
 	end)
 end
 
-Details222.ClassCache = {}
-Details222.ClassCache.ByName = {}
-Details222.ClassCache.ByGUID = {}
-
 function Details222.ClassCache.GetClass(value)
 	local className = Details222.ClassCache.ByName[value] or Details222.ClassCache.ByGUID[value]
 	if (className) then
@@ -1125,7 +1171,8 @@ end
 
 function Details222.ClassCache.MakeCache()
 	--iterage among all segments in the container history, get the damage container and get the actor list, check if the actor is a player and if it is, get the class and store it in the cache
-	for _, combatObject in ipairs(Details.tabela_historico.tabelas) do
+	local segmentsTable = Details:GetCombatSegments()
+	for _, combatObject in ipairs(segmentsTable) do
 		for _, actorObject in combatObject:GetContainer(DETAILS_ATTRIBUTE_DAMAGE):ListActors() do
 			if (actorObject:IsPlayer()) then
 				local actorName = actorObject.nome
@@ -1138,7 +1185,6 @@ function Details222.ClassCache.MakeCache()
 	end
 end
 
-Details222.UnitIdCache = {}
 Details222.UnitIdCache.Raid = {
 	[1] = "raid1",
 	[2] = "raid2",
@@ -1238,119 +1284,157 @@ function Details:Destroy(object, key)
 	end
 end
 
+function Details:DestroyCombat(combatObject)
+	--destroy each individual actor, hence more cleanups are done
+	for i = 1, DETAILS_COMBAT_AMOUNT_CONTAINERS do
+		local actorContainer = combatObject:GetContainer(i)
+		for index, actorObject in actorContainer:ListActors() do
+			Details:DestroyActor(actorObject, actorContainer, combatObject, 3)
+		end
+	end
+
+	setmetatable(combatObject, nil)
+	combatObject.__index = nil
+	combatObject.__newindex = nil
+	combatObject.__call = nil
+	Details:Destroy(combatObject)
+	--leave a trace that the actor has been deleted
+	combatObject.__destroyed = true
+	combatObject.__destroyedBy = debugstack(2, 1, 0)
+end
+
 ---destroy the actor, also calls container:RemoveActor(actor)
 ---@param self details
 ---@param actorObject actor
 ---@param actorContainer actorcontainer
 ---@param combatObject combat
-function Details:DestroyActor(actorObject, actorContainer, combatObject)
+function Details:DestroyActor(actorObject, actorContainer, combatObject, callStackDepth)
 	local containerType = actorContainer:GetType()
 	local combatTotalsTable = combatObject.totals[containerType] --without group
 	local combatTotalsTableInGroup = combatObject.totals_grupo[containerType] --with group
 
-	if (containerType == 1 or containerType == 2) then --damage|healing done
-		combatTotalsTable = combatTotalsTable - actorObject.total
-		if (actorObject.grupo) then
-			combatTotalsTableInGroup = combatTotalsTableInGroup - actorObject.total
-		end
+	--remove the actor from the parser cache
+	local c1, c2, c3, c4 = Details222.Cache.GetParserCacheTables()
+	c1[actorObject.serial] = nil
+	c2[actorObject.serial] = nil
+	c3[actorObject.serial] = nil
+	c4[actorObject.serial] = nil
 
-	elseif (containerType == 3) then
-		if (actorObject.total and actorObject.total > 0) then
-			if (actorObject.powertype) then
-				combatTotalsTable[actorObject.powertype] = combatTotalsTable[actorObject.powertype] - actorObject.total
-				combatTotalsTableInGroup[actorObject.powertype] = combatTotalsTableInGroup[actorObject.powertype] - actorObject.total
+	if (not actorObject.ownerName) then --not a pet
+		if (containerType == 1 or containerType == 2) then --damage|healing done
+			combatTotalsTable = combatTotalsTable - actorObject.total
+			if (actorObject.grupo) then
+				combatTotalsTableInGroup = combatTotalsTableInGroup - actorObject.total
 			end
-		end
-		if (actorObject.alternatepower and actorObject.alternatepower > 0) then
-			combatTotalsTable.alternatepower = combatTotalsTable.alternatepower - actorObject.alternatepower
-			combatTotalsTableInGroup.alternatepower = combatTotalsTableInGroup.alternatepower - actorObject.alternatepower
-		end
 
-	elseif (containerType == 4) then
-		--decrease the amount of CC break from the combat totals
-		if (actorObject.cc_break and actorObject.cc_break > 0) then
-			if (combatTotalsTable.cc_break) then
-				combatTotalsTable.cc_break = combatTotalsTable.cc_break - actorObject.cc_break
+		elseif (containerType == 3) then
+			---@cast actorObject actorresource
+			if (actorObject.total and actorObject.total > 0) then
+				if (actorObject.powertype) then
+					combatTotalsTable[actorObject.powertype] = combatTotalsTable[actorObject.powertype] - actorObject.total
+					combatTotalsTableInGroup[actorObject.powertype] = combatTotalsTableInGroup[actorObject.powertype] - actorObject.total
+				end
 			end
-			if (combatTotalsTableInGroup.cc_break) then
-				combatTotalsTableInGroup.cc_break = combatTotalsTableInGroup.cc_break - actorObject.cc_break
+			if (actorObject.alternatepower and actorObject.alternatepower > 0) then
+				combatTotalsTable.alternatepower = combatTotalsTable.alternatepower - actorObject.alternatepower
+				combatTotalsTableInGroup.alternatepower = combatTotalsTableInGroup.alternatepower - actorObject.alternatepower
 			end
-		end
 
-		--decrease the amount of dispell from the combat totals
-		if (actorObject.dispell and actorObject.dispell > 0) then
-			if (combatTotalsTable.dispell) then
-				combatTotalsTable.dispell = combatTotalsTable.dispell - actorObject.dispell
+		elseif (containerType == 4) then
+			---@cast actorObject actorutility
+			--decrease the amount of CC break from the combat totals
+			if (actorObject.cc_break and actorObject.cc_break > 0) then
+				if (combatTotalsTable.cc_break) then
+					combatTotalsTable.cc_break = combatTotalsTable.cc_break - actorObject.cc_break
+				end
+				if (combatTotalsTableInGroup.cc_break) then
+					combatTotalsTableInGroup.cc_break = combatTotalsTableInGroup.cc_break - actorObject.cc_break
+				end
 			end
-			if (combatTotalsTableInGroup.dispell) then
-				combatTotalsTableInGroup.dispell = combatTotalsTableInGroup.dispell - actorObject.dispell
-			end
-		end
 
-		--decrease the amount of interrupt from the combat totals
-		if (actorObject.interrupt and actorObject.interrupt > 0) then
-			if (combatTotalsTable.interrupt) then
-				combatTotalsTable.interrupt = combatTotalsTable.interrupt - actorObject.interrupt
+			--decrease the amount of dispell from the combat totals
+			if (actorObject.dispell and actorObject.dispell > 0) then
+				if (combatTotalsTable.dispell) then
+					combatTotalsTable.dispell = combatTotalsTable.dispell - actorObject.dispell
+				end
+				if (combatTotalsTableInGroup.dispell) then
+					combatTotalsTableInGroup.dispell = combatTotalsTableInGroup.dispell - actorObject.dispell
+				end
 			end
-			if (combatTotalsTableInGroup.interrupt) then
-				combatTotalsTableInGroup.interrupt = combatTotalsTableInGroup.interrupt - actorObject.interrupt
-			end
-		end
 
-		--decrease the amount of ress from the combat totals
-		if (actorObject.ress and actorObject.ress > 0) then
-			if (combatTotalsTable.ress) then
-				combatTotalsTable.ress = combatTotalsTable.ress - actorObject.ress
+			--decrease the amount of interrupt from the combat totals
+			if (actorObject.interrupt and actorObject.interrupt > 0) then
+				if (combatTotalsTable.interrupt) then
+					combatTotalsTable.interrupt = combatTotalsTable.interrupt - actorObject.interrupt
+				end
+				if (combatTotalsTableInGroup.interrupt) then
+					combatTotalsTableInGroup.interrupt = combatTotalsTableInGroup.interrupt - actorObject.interrupt
+				end
 			end
-			if (combatTotalsTableInGroup.ress) then
-				combatTotalsTableInGroup.ress = combatTotalsTableInGroup.ress - actorObject.ress
-			end
-		end
 
-		--decrease the amount of dead from the combat totals
-		if (actorObject.dead and actorObject.dead > 0) then
-			if (combatTotalsTable.dead) then
-				combatTotalsTable.dead = combatTotalsTable.dead - actorObject.dead
+			--decrease the amount of ress from the combat totals
+			if (actorObject.ress and actorObject.ress > 0) then
+				if (combatTotalsTable.ress) then
+					combatTotalsTable.ress = combatTotalsTable.ress - actorObject.ress
+				end
+				if (combatTotalsTableInGroup.ress) then
+					combatTotalsTableInGroup.ress = combatTotalsTableInGroup.ress - actorObject.ress
+				end
 			end
-			if (combatTotalsTableInGroup.dead) then
-				combatTotalsTableInGroup.dead = combatTotalsTableInGroup.dead - actorObject.dead
-			end
-		end
 
-		--decreate the amount of cooldowns used from the combat totals
-		if (actorObject.cooldowns_defensive and actorObject.cooldowns_defensive > 0) then
-			if (combatTotalsTable.cooldowns_defensive) then
-				combatTotalsTable.cooldowns_defensive = combatTotalsTable.cooldowns_defensive - actorObject.cooldowns_defensive
+			--decrease the amount of dead from the combat totals
+			if (actorObject.dead and actorObject.dead > 0) then
+				if (combatTotalsTable.dead) then
+					combatTotalsTable.dead = combatTotalsTable.dead - actorObject.dead
+				end
+				if (combatTotalsTableInGroup.dead) then
+					combatTotalsTableInGroup.dead = combatTotalsTableInGroup.dead - actorObject.dead
+				end
 			end
-			if (combatTotalsTableInGroup.cooldowns_defensive) then
-				combatTotalsTableInGroup.cooldowns_defensive = combatTotalsTableInGroup.cooldowns_defensive - actorObject.cooldowns_defensive
-			end
-		end
 
-		--decrease the amount of buff uptime from the combat totals
-		if (actorObject.buff_uptime and actorObject.buff_uptime > 0) then
-			if (combatTotalsTable.buff_uptime) then
-				combatTotalsTable.buff_uptime = combatTotalsTable.buff_uptime - actorObject.buff_uptime
+			--decreate the amount of cooldowns used from the combat totals
+			if (actorObject.cooldowns_defensive and actorObject.cooldowns_defensive > 0) then
+				if (combatTotalsTable.cooldowns_defensive) then
+					combatTotalsTable.cooldowns_defensive = combatTotalsTable.cooldowns_defensive - actorObject.cooldowns_defensive
+				end
+				if (combatTotalsTableInGroup.cooldowns_defensive) then
+					combatTotalsTableInGroup.cooldowns_defensive = combatTotalsTableInGroup.cooldowns_defensive - actorObject.cooldowns_defensive
+				end
 			end
-			if (combatTotalsTableInGroup.buff_uptime) then
-				combatTotalsTableInGroup.buff_uptime = combatTotalsTableInGroup.buff_uptime - actorObject.buff_uptime
-			end
-		end
 
-		--decrease the amount of debuff uptime from the combat totals
-		if (actorObject.debuff_uptime and actorObject.debuff_uptime > 0) then
-			if (combatTotalsTable.debuff_uptime) then
-				combatTotalsTable.debuff_uptime = combatTotalsTable.debuff_uptime - actorObject.debuff_uptime
+			--decrease the amount of buff uptime from the combat totals
+			if (actorObject.buff_uptime and actorObject.buff_uptime > 0) then
+				if (combatTotalsTable.buff_uptime) then
+					combatTotalsTable.buff_uptime = combatTotalsTable.buff_uptime - actorObject.buff_uptime
+				end
+				if (combatTotalsTableInGroup.buff_uptime) then
+					combatTotalsTableInGroup.buff_uptime = combatTotalsTableInGroup.buff_uptime - actorObject.buff_uptime
+				end
 			end
-			if (combatTotalsTableInGroup.debuff_uptime) then
-				combatTotalsTableInGroup.debuff_uptime = combatTotalsTableInGroup.debuff_uptime - actorObject.debuff_uptime
+
+			--decrease the amount of debuff uptime from the combat totals
+			if (actorObject.debuff_uptime and actorObject.debuff_uptime > 0) then
+				if (combatTotalsTable.debuff_uptime) then
+					combatTotalsTable.debuff_uptime = combatTotalsTable.debuff_uptime - actorObject.debuff_uptime
+				end
+				if (combatTotalsTableInGroup.debuff_uptime) then
+					combatTotalsTableInGroup.debuff_uptime = combatTotalsTableInGroup.debuff_uptime - actorObject.debuff_uptime
+				end
 			end
 		end
 	end
 
+	Details222.TimeMachine.RemoveActor(actorObject)
+
+	local actorName = actorObject:Name()
+	combatObject:RemoveActorFromSpellCastTable(actorName)
+
 	setmetatable(actorObject, nil)
 	actorObject.__index = nil
 	actorObject.__newindex = nil
-	actorContainer:RemoveActor(actorObject)
 	Details:Destroy(actorObject)
+
+	--leave a trace that the actor has been deleted
+	actorObject.__destroyed = true
+	actorObject.__destroyedBy = debugstack(callStackDepth or 2, 1, 0)
 end

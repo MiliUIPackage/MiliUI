@@ -600,6 +600,7 @@ local default_profile = {
 
 		[1467] = {256/512, 320/512, 256/512, 320/512}, -- Devastation
 		[1468] = {320/512, 384/512, 256/512, 320/512}, -- Preservation
+		[1473] = {384/512, 448/512, 256/512, 320/512}, -- Augmentation
 	},
 
 	--class icons and colors
@@ -1029,7 +1030,7 @@ local default_profile = {
 			},
 			options_frame = {},
 			enabled = false,
-			font_size = 14,
+			font_size = 13,
 			font_color = {1, 1, 1, 1},
 			font_shadow = "NONE",
 			font_face = "Friz Quadrata TT",
@@ -1083,8 +1084,8 @@ local default_profile = {
 	--tooltip
 		tooltip = {
 			fontface = "Friz Quadrata TT",
-			fontsize = 14,
-			fontsize_title = 14,
+			fontsize = 13,
+			fontsize_title = 13,
 			fontcolor = {1, 1, 1, 1},
 			fontcolor_right = {1, 0.7, 0, 1}, --{1, 0.9254, 0.6078, 1}
 			fontshadow = false,
@@ -1151,6 +1152,8 @@ local default_player_data = {
 			track_hunter_frenzy = false,
 			merge_gemstones_1007 = false,
 			merge_critical_heals = false,
+			evoker_calc_damage = false,
+			evoker_show_realtimedps = true,
 		},
 
 		--this is used by the new data capture for charts
@@ -1376,6 +1379,9 @@ local default_global_data = {
 		played_class_time = true,
 		check_stuttering = true,
 
+		--[bossname] = texture
+		boss_icon_cache = {},
+
 	--spell category feedback
 		spell_category_savedtable = {},
 		spell_category_latest_query = 0,
@@ -1408,7 +1414,7 @@ local default_global_data = {
 			},
 		},
 
---/run Details.breakdown_spell_tab.statusbar_alpha = 0.823
+--/run Details.breakdown_spell_tab.spellcontainer_height = 311 --352
 	--breakdown spell tab
 	breakdown_spell_tab = {
 		--player spells
@@ -1454,12 +1460,16 @@ local default_global_data = {
 		genericcontainer_height = 311 + 140 + 30,
 		genericcontainer_islocked = true,
 
+		genericcontainer_right_width = 403,
+		genericcontainer_right_height = 460,
+
 		spellbar_background_alpha = 0.92,
 
 		spellcontainer_headers = {}, --store information about active headers and their sizes (spells)
 		targetcontainer_headers = {}, --store information about active headers and their sizes (target)
 		phasecontainer_headers = {}, --store information about active headers and their sizes (phases)
-		genericcontainer_headers = {}, --store information about active headers and their sizes (generic)
+		genericcontainer_headers = {}, --store information about active headers and their sizes (generic left)
+		genericcontainer_headers_right = {}, --store information about active headers and their sizes (generic right)
 
 		spellcontainer_header_height = 20,
 		spellcontainer_header_fontsize = 10,
@@ -2009,7 +2019,7 @@ function Details.ShowImportProfileConfirmation(message, callback)
 		promptFrame:SetScript("OnDragStart", function() promptFrame:StartMoving() end)
 		promptFrame:SetScript("OnDragStop", function() promptFrame:StopMovingOrSizing() end)
 		promptFrame:SetScript("OnMouseDown", function(self, button) if (button == "RightButton") then promptFrame.EntryBox:ClearFocus() promptFrame:Hide() end end)
-		tinsert(UISpecialFrames, "DetailsImportProfileDialog")
+		table.insert(UISpecialFrames, "DetailsImportProfileDialog")
 
 		detailsFramework:CreateTitleBar(promptFrame, "Import Profile Confirmation")
 		detailsFramework:ApplyStandardBackdrop(promptFrame)

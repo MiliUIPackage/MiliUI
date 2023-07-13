@@ -1378,7 +1378,7 @@
 			desc = Loc ["STRING_CUSTOM_ACTIVITY_DPS_DESC"],
 			source = false,
 			target = false,
-			script_version = 3,
+			script_version = 4,
 			total_script = [[
 				local value, top, total, combat, instance = ...
 				local minutos, segundos = math.floor(value/60), math.floor(value%60)
@@ -1389,26 +1389,24 @@
 				return string.format("%.1f", value/top*100)
 			]],
 			script = [[
-				--init:
-				local combat, instance_container, instance = ...
+				local combatObject, instanceContainer, instanceObject = ...
 				local total, amount = 0, 0
 
-				--get the misc actor container
-				local damage_container = combat:GetActorList ( DETAILS_ATTRIBUTE_DAMAGE )
+				--get the damager actors
+				local listOfDamageActors = combatObject:GetActorList(DETAILS_ATTRIBUTE_DAMAGE)
 
-				--do the loop:
-				for _, player in ipairs( damage_container ) do
-					if (player.grupo) then
-						local activity = player:Tempo()
+				for _, actorObject in ipairs(listOfDamageActors) do
+					if (actorObject:IsGroupPlayer()) then
+						local activity = actorObject:Tempo()
 						total = total + activity
 						amount = amount + 1
 						--add amount to the player
-						instance_container:AddValue (player, activity)
+						instanceContainer:AddValue(actorObject, activity)
 					end
 				end
 
 				--return:
-				return total, combat:GetCombatTime(), amount
+				return total, combatObject:GetCombatTime(), amount
 			]],
 			tooltip = [[
 
@@ -1442,7 +1440,7 @@
 			desc = Loc ["STRING_CUSTOM_ACTIVITY_HPS_DESC"],
 			source = false,
 			target = false,
-			script_version = 2,
+			script_version = 3,
 			total_script = [[
 				local value, top, total, combat, instance = ...
 				local minutos, segundos = math.floor(value/60), math.floor(value%60)
@@ -1453,26 +1451,24 @@
 				return string.format("%.1f", value/top*100)
 			]],
 			script = [[
-				--init:
-				local combat, instance_container, instance = ...
-				local total, top, amount = 0, 0, 0
+				local combatObject, instanceContainer, instanceObject = ...
+				local total, amount = 0, 0
 
-				--get the misc actor container
-				local damage_container = combat:GetActorList ( DETAILS_ATTRIBUTE_HEAL )
+				--get the healing actors
+				local listOfHealingActors = combatObject:GetActorList(DETAILS_ATTRIBUTE_HEAL)
 
-				--do the loop:
-				for _, player in ipairs( damage_container ) do
-					if (player.grupo) then
-						local activity = player:Tempo()
+				for _, actorObject in ipairs(listOfHealingActors) do
+					if (actorObject:IsGroupPlayer()) then
+						local activity = actorObject:Tempo()
 						total = total + activity
 						amount = amount + 1
 						--add amount to the player
-						instance_container:AddValue (player, activity)
+						instanceContainer:AddValue (actorObject, activity)
 					end
 				end
 
 				--return:
-				return total, combat:GetCombatTime(), amount
+				return total, combatObject:GetCombatTime(), amount
 			]],
 			tooltip = [[
 
@@ -1882,7 +1878,7 @@
 			    local P = average/n_average*100
 			    T = P*T/100
 
-			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_dmg / T ))
+			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")
@@ -1942,7 +1938,7 @@
 			    local P = average/n_average*100
 			    T = P*T/100
 
-			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_curado / T ))
+			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")

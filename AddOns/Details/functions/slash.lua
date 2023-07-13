@@ -180,7 +180,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		Details:WipeConfig()
 
 	elseif (command == Loc ["STRING_SLASH_RESET"] or command == Loc ["STRING_SLASH_RESET_ALIAS1"] or command == "reset") then
-		Details.tabela_historico:resetar()
+		Details.tabela_historico:ResetAllCombatData()
 
 	elseif (command == Loc ["STRING_SLASH_DISABLE"] or command == "disable") then
 		Details:CaptureSet(false, "damage", true)
@@ -261,6 +261,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 		resultLog[#resultLog+1] = ""
 
+		--from backup
 		if (__details_backup._exit_error) then
 			for _, str in ipairs(__details_backup._exit_error) do
 				resultLog[#resultLog+1] = str
@@ -273,16 +274,18 @@ function SlashCmdList.DETAILS (msg, editbox)
 		local segmentId = rest and tonumber(rest)
 		if (segmentId and segmentId ~= 1) then
 			local segmentToErase = tonumber(segmentId)
-			local combatObject = tremove(Details.tabela_historico.tabelas, segmentToErase)
+			local combatObject = table.remove(Details:GetCombatSegments(), segmentToErase)
+
 			if (combatObject) then
-				Details:Destroy(combatObject)
-				Details:Msg("片段已移除。")
+				Details:DestroyCombat(combatObject)
+				Details:SendEvent("DETAILS_DATA_SEGMENTREMOVED")
+				Details:Msg("片段已移除。")								   
 				collectgarbage()
 			else
 				Details:Msg("片段未找到。")
 			end
 		else
-			Details:Msg(Loc ["Window 1 not found."])
+			Details:Msg("片段ID無效。")
 		end
 		return
 
@@ -1361,7 +1364,9 @@ function SlashCmdList.DETAILS (msg, editbox)
 		for i = 25, 1, -1 do
 			local pastCombat = segmentHistory [i]
 			if (pastCombat and pastCombat ~= newCombat) then
-				Details:Destroy(pastCombat)
+				Details:DestroyCombat(pastCombat)
+				--send the event segment removed
+				Details:SendEvent("DETAILS_DATA_SEGMENTREMOVED")
 				segmentHistory [i] = nil
 			end
 		end
@@ -1370,7 +1375,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		collectgarbage()
 
 		Details:InstanciaCallFunction(Details.FadeHandler.Fader, "in", nil, "barras")
-		Details:InstanciaCallFunction(Details.AtualizaSegmentos)
+		Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse)
 		Details:InstanciaCallFunction(Details.AtualizaSoloMode_AfertReset)
 		Details:InstanciaCallFunction(Details.ResetaGump)
 		Details:RefreshMainWindow(-1, true)
@@ -1575,64 +1580,6 @@ function SlashCmdList.DETAILS (msg, editbox)
 	elseif (msg == "survey") then
 		Details.Survey.OpenSurveyPanel()
 
-	elseif (msg == "share") then
-
-		local f = {}
-
-		local elapsed = GetTime()
-
-		local ignoredKeys = {
-			minha_barra = true,
-			__index = true,
-			shadow = true,
-			links = true,
-			__call = true,
-			_combat_table = true,
-			previous_combat = true,
-			owner = true,
-		}
-
-		local keys = {}
-
-		--copy from table2 to table1 overwriting values
-		function f.copy(t1, t2)
-			if (t1.Timer) then
-				t1, t2 = t1.t1, t1.t2
-			end
-			for key, value in pairs(t2) do
-				if (not ignoredKeys [key] and type(value) ~= "function") then
-					if (key == "targets") then
-						t1 [key] = {}
-
-					elseif (type(value) == "table") then
-						t1 [key] = t1 [key] or {}
-
-						--print(key, value)
-						--local d = C_Timer.NewTimer(1, f.copy)
-						--d.t1 = t1 [key]
-						--d.t2 = t2 [key]
-						--d.Timer = true
-
-						keys [key] = true
-
-						f.copy(t1 [key], t2 [key])
-					else
-						t1 [key] = value
-					end
-				end
-			end
-			return t1
-		end
-
-		--local copySegment = f.copy({}, _detalhes.tabela_vigente)
-		local copySegment = f.copy({}, Details.tabela_historico.tabelas [2])
-
-		--the segment received is raw and does not have metatables, need to refresh them
-		local zipData = Details:CompressData (copySegment, "print")
-
-		--print(zipData)
-		--Details:Dump (keys)
-		Details:Dump ({zipData})
 	else
 
 		--if (_detalhes.opened_windows < 1) then
@@ -1743,7 +1690,7 @@ function Details:UpdateUserPanel(usersTable)
 		local frameWidth, frameHeight = 470, 605
 		DetailsUserPanel = DetailsFramework:CreateSimplePanel(UIParent)
 		DetailsUserPanel:SetSize(frameWidth, frameHeight)
-		DetailsUserPanel:SetTitle("Details! Version Check")
+		DetailsUserPanel:SetTitle("Details! 版本檢查")
 		DetailsUserPanel.Data = {}
 		DetailsUserPanel:ClearAllPoints()
 		DetailsUserPanel:SetPoint("left", UIParent, "left", 5, 100)
@@ -2062,12 +2009,12 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 
 				--header
 				local headerTable = {
-					{text = "Class", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
-					{text = "Player Name", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "Level", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
-					{text = "Dungeon", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = "職業", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = "玩家名字", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = "層級", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
+					{text = "地下城", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
 					--{text = "Classic Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "Mythic+ Rating", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = "傳奇+ 評分", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
 				}
 
 				local headerOnClickCallback = function(headerFrame, columnHeader)

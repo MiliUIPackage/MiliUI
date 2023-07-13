@@ -5,5 +5,5 @@
 ## Notes-zhTW: Details!: Compare 2.0 |n替換玩家戰鬥分析視窗中的比較標籤
 ## RequiredDeps: Details
 ## X-Category-zhTW: 戰鬥
-## IconTexture: Interface\Icons\PetBattle_Attack
+## IconTexture: Interface\AddOns\Details\images\minimap
 Details_Compare2.lua

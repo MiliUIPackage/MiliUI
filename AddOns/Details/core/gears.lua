@@ -401,7 +401,8 @@ function _detalhes:TrackSpecsNow (track_everything)
 		end
 	else
 		local combatlist = {}
-		for _, combat in ipairs(_detalhes.tabela_historico.tabelas) do
+		local segmentsTable = Details:GetCombatSegments()
+		for _, combat in ipairs(segmentsTable) do
 			tinsert(combatlist, combat)
 		end
 		tinsert(combatlist, _detalhes.tabela_vigente)
@@ -2175,7 +2176,7 @@ function ilvl_core:QueryInspect (unitName, callback, param1)
 end
 
 function ilvl_core:ClearQueryInspectQueue()
-	Details:Destroy (ilvl_core.forced_inspects)
+	Details:Destroy(ilvl_core.forced_inspects)
 	ilvl_core.clear_queued_list = nil
 end
 
@@ -3202,7 +3203,7 @@ Details.UpdateAddOnMemoryUsage_Custom = function()
 			deltaTime = deltaTime,
 			callStack = callStack,
 			culpritFunc = "_G.UpdateAddOnMemoryUsage()",
-			culpritDesc = "計算插件記憶體的使用量",
+			culpritDesc = "Calculates memory usage of addons",
 		}
 	end
 end

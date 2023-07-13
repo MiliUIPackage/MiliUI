@@ -734,11 +734,11 @@ local build_statusbar = function(self)
 	self.lefttext = self:CreateFontString("$parent_TextLeft", "OVERLAY", "GameFontHighlight")
 	self.lefttext:SetJustifyH("LEFT")
 	self.lefttext:SetPoint("LEFT", self.icontexture, "RIGHT", 3, 0)
-	DF:SetFontSize(self.lefttext, 14)
+	DF:SetFontSize(self.lefttext, 13)
 
 	self.righttext = self:CreateFontString("$parent_TextRight", "OVERLAY", "GameFontHighlight")
 	self.righttext:SetJustifyH("LEFT")
-	DF:SetFontSize(self.righttext, 14)
+	DF:SetFontSize(self.righttext, 13)
 	self.righttext:SetPoint("RIGHT", self, "RIGHT", -3, 0)
 	
 	DetailsFrameworkNormalBar_OnCreate (self)
