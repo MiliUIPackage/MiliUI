@@ -1,3 +1,4 @@
-# 11.1.19 (2023-05-03)
+# 11.1.24 (2023-07-12)
 
-* Updated TOC version and API for Patch 10.1 for WoW Mainline.
+* Updated for Patch 10.1.5 for WoW Mainline.
+* Upgrade integrated libraries (Ace3 r1309).

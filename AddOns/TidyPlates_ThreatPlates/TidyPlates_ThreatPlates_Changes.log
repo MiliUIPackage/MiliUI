@@ -1,4 +1,31 @@
 ﻿------------------------------------------------------
+11.1.24 (2023-06-24)
+------------------------------------------------------
+* Updated for Patch 10.1.5 for WoW Mainline.
+* Upgrade integrated libraries (Ace3 r1309).
+
+------------------------------------------------------
+11.1.23 (2023-06-24)
+------------------------------------------------------
+* Fixed a Lua error that occured when guide/newcomer icons were shown after enabling the guide mentoring system [GH-457].
+
+------------------------------------------------------
+11.1.22 (2023-05-21)
+------------------------------------------------------
+* Added Axe Toss (Warlock) to Auras widget as CC aura [GH-456].
+* Fixed a Lua error related to nameplate visibility introduced with the bugfix for mind-control of Priests [GH-455].
+
+------------------------------------------------------
+11.1.21 (2023-05-19)
+------------------------------------------------------
+* Fixed a Lua error that occurred in solo shuffle when a new round was started and pets were present in the arena [GH-454].
+
+------------------------------------------------------
+11.1.20 (2023-05-18)
+------------------------------------------------------
+* Fixed a bug where nameplates were not shown correctly as Threat Plates or Blizzard default nameplates when the player or other units were mind-controlled by a Priest [GH-402, Issue #610, #597].
+
+------------------------------------------------------
 11.1.19 (2023-05-03)
 ------------------------------------------------------
 * Updated TOC version and API for Patch 10.1 for WoW Mainline.
