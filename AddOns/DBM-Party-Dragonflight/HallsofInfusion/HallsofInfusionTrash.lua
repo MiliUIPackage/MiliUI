@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("HallsofInfusionTrash", "DBM-Party-Dragonflight", 8)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230516042110")
+mod:SetRevision("20230617204541")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -65,8 +65,8 @@ local specWarnRefreshingTides				= mod:NewSpecialWarningInterrupt(376171, "HasIn
 local timerDemoShoutCD						= mod:NewCDTimer(30, 374339, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerDazzleCD							= mod:NewCDTimer(17, 374563, nil, nil, nil, 3)
 local timerZephyrsCallCD					= mod:NewCDTimer(23.1, 374823, nil, nil, nil, 1)
-local timerWhirlingFuryCD					= mod:NewCDTimer(18.7, 375079, nil, nil, nil, 2)
-local timerMoltenSubductionCD				= mod:NewCDTimer(25, 374724, nil, nil, nil, 3)
+local timerWhirlingFuryCD					= mod:NewCDTimer(16.2, 375079, nil, nil, nil, 2)
+local timerMoltenSubductionCD				= mod:NewCDTimer(20.6, 374724, nil, nil, nil, 3)
 local timerOceanicBreathCD					= mod:NewCDTimer(18.1, 375351, nil, nil, nil, 3)
 local timerGustingBreathCD					= mod:NewCDTimer(19.3, 375348, nil, nil, nil, 3)--Could also be 18.1, but need bigger sample
 local timerTectonicBreathCD					= mod:NewCDTimer(18.1, 375327, nil, nil, nil, 3)

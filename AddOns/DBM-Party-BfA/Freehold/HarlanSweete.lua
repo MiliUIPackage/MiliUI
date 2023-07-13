@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2095, "DBM-Party-BfA", 2, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230530082438")
+mod:SetRevision("20230621232728")
 mod:SetCreatureID(126983)
 mod:SetEncounterID(2096)
 mod:SetHotfixNoticeRev(20230505000000)
@@ -65,7 +65,7 @@ function mod:SPELL_CAST_START(args)
 		timerCannonBarrageCD:Start(15.7)
 		timerAvastyeCD:Start(21.8)
 		if self:IsMythicPlus() then
-			timerWhirlingDaggerCD:Start(14.5, self.vb.daggerCount+1)
+			timerWhirlingDaggerCD:Start(13.3, self.vb.daggerCount+1)
 		end
 	elseif spellId == 257458 then--ManOWar
 		self:SetStage(3)

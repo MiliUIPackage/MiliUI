@@ -1,8 +1,8 @@
 ## Interface: 100105
-## X-Min-Interface: 100100
+## X-Min-Interface: 100105
 ## X-Min-Interface-Classic: 11403
 ## X-Min-Interface-BCC: 20504
-## X-Min-Interface-Wrath: 30401
+## X-Min-Interface-Wrath: 30402
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Core|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 核心|r
@@ -16,18 +16,13 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 29b701b
+## Version: 7ed966b
 ## X-Website: https://deadlybossmods.com
+## X-Category-zhTW: 團隊
 
-Libs\LibStub\LibStub.lua
-Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
 Libs\LibChatAnims\LibChatAnims.xml
-Libs\LibSharedMedia-3.0\lib.xml
 Libs\LibLatency\LibLatency.xml
 Libs\LibDurability\LibDurability.xml
-Libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
-Libs\LibDBIcon-1.0\lib.xml
-Libs\LibDeflate\LibDeflate.lua
 Libs\LibSerialize\lib.xml
 Libs\LibSpecialization\LibSpecialization.xml
 Libs\LibDropDownMenu\LibDropDownMenu.xml

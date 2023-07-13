@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2525, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230523221421")
+mod:SetRevision("20230620070249")
 mod:SetCreatureID(201320)
 mod:SetEncounterID(2680)
 mod:SetUsedIcons(1)
@@ -20,7 +20,6 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_REMOVED_DOSE 405827",
 	"SPELL_PERIODIC_DAMAGE 403543",
 	"SPELL_PERIODIC_MISSED 403543",
---	"UNIT_DIED"
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
@@ -73,10 +72,12 @@ mod.vb.blastCount = 0
 mod.vb.smashCount = 0
 mod.vb.tankCombo = 0--Cast
 mod.vb.comboCount = 0--Combos within cast
+mod.vb.firstHitTank = ""
 mod.vb.shadowflameCount = 0
 local overchargedStacks = {}
 
 function mod:OnCombatStart(delay)
+	self:SetStage(1)
 	table.wipe(overchargedStacks)
 	self.vb.slamCount = 0
 	self.vb.doomCount = 0
@@ -84,6 +85,7 @@ function mod:OnCombatStart(delay)
 	self.vb.smashCount = 0
 	self.vb.tankCombo = 0
 	self.vb.comboCount = 0
+	self.vb.firstHitTank = ""
 	self.vb.shadowflameCount = 0
 	timerSearingSlamCD:Start(9.1-delay, 1)
 	timerChargedSmashCD:Start(21.1-delay, 1)
@@ -146,7 +148,7 @@ function mod:SPELL_CAST_START(args)
 			--This doesn't check TankSwapBehavior dropdown because this always validates that the player about to get hit by this, shouldn't be hit by it
 			if UnitExists("boss1target") and not UnitIsUnit("player", "boss1target") then
 				local _, _, _, _, _, expireTimeTarget = DBM:UnitDebuff("boss1target", 407547)
-				if expireTimeTarget and expireTimeTarget-GetTime() >= 2 then
+				if (expireTimeTarget and expireTimeTarget-GetTime() >= 2) and self:AntiSpam(1, 1) then
 					specWarnFlamingSlashTaunt:Show(UnitName("boss1target"))
 					specWarnFlamingSlashTaunt:Play("tauntboss")
 				end
@@ -162,7 +164,7 @@ function mod:SPELL_CAST_START(args)
 			--This doesn't check TankSwapBehavior dropdown because this always validates that the player about to get hit by this, shouldn't be hit by it
 			if UnitExists("boss1target") and not UnitIsUnit("player", "boss1target") then
 				local _, _, _, _, _, expireTimeTarget = DBM:UnitDebuff("boss1target", 407597)
-				if expireTimeTarget and expireTimeTarget-GetTime() >= 2 then
+				if (expireTimeTarget and expireTimeTarget-GetTime() >= 2) and self:AntiSpam(1, 1) then
 					specWarnEarthenCrushTaunt:Show(UnitName("boss1target"))
 					specWarnEarthenCrushTaunt:Play("tauntboss")
 				end
@@ -183,6 +185,7 @@ end
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 407641 then
+		self.vb.firstHitTank = ""
 		self.vb.tankCombo = self.vb.tankCombo + 1
 		self.vb.comboCount = 0
 		local timer = (self.vb.tankCombo == 1) and 14.9 or (self.vb.tankCombo == 2) and 32.9
@@ -208,13 +211,15 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif (spellId == 407597 or spellId == 407547) and not args:IsPlayer() then
 		local alertTaunt
+		if self.vb.comboCount == 1 then
+			self.vb.firstHitTank = args.destName
+		end
 		if self.Options.TankSwapBehavior == "OnlyIfDanger" then
 			--This means there are 0 preemtive taunts at all and you only taunt when a combo hit starts and it's not safe for the current target to take
 			--This uses minimum amount of taunts but poses greater risk of messup since it's reactiev only and not proactive
 			return
-		elseif self.Options.TankSwapBehavior == "DoubleSoak" and self.vb.comboCount == 2 then
-			--This basically means the only strategy here is each tank just eats both hits and calls it a day
-			--Then next tank takes the next combo.
+		elseif self.Options.TankSwapBehavior == "DoubleSoak" and self.vb.comboCount == 2 and args.destName == self.vb.firstHitTank then
+			--This basically means the first tank took first 2 hits then 2nd tank taunts 3rd
 			alertTaunt = true
 		elseif self.Options.TankSwapBehavior == "MinMaxSoak" and self.vb.comboCount == 1 then
 			--Min Max soaking to spread combo across both tanks to mitigate having one tank eat all the damage
@@ -230,7 +235,7 @@ function mod:SPELL_AURA_APPLIED(args)
 				alertTaunt = true
 			end
 		end
-		if alertTaunt then
+		if alertTaunt and self:AntiSpam(1, 1) then
 			specWarnFlamingSlashTaunt:Show(args.destName)
 			specWarnFlamingSlashTaunt:Play("tauntboss")
 		end
@@ -268,6 +273,7 @@ function mod:SPELL_AURA_REMOVED(args)
 			DBM.InfoFrame:UpdateTable(overchargedStacks)
 		end
 	elseif spellId == 401419 then
+		self:SetStage(0)--I don't nessesarily agree with this, but needed for WA compatability.
 		warnSiphonEnergyRemoved:Show(args.destName)
 		self.vb.slamCount = 0
 		self.vb.doomCount = 0
@@ -322,12 +328,3 @@ function mod:SPELL_ENERGIZE(_, _, _, _, destGUID, _, _, _, spellId, _, _, amount
 		end
 	end
 end
-
---[[
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 199233 then
-
-	end
-end
---]]

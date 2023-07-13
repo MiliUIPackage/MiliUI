@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2529, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230527181301")
+mod:SetRevision("20230708213413")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
 mod:SetBossHPInfoToHighest()
-mod:SetHotfixNoticeRev(20230510000000)
-mod:SetMinSyncRevision(20230510000000)
+mod:SetHotfixNoticeRev(20230626000000)
+mod:SetMinSyncRevision(20230626000000)
 --mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -25,6 +25,7 @@ mod:RegisterEventsInCombat(
 --[[
 (ability.id = 409385 or ability.id = 403459 or ability.id = 405016 or ability.id = 407640 or ability.id = 403699 or ability.id = 404732 or ability.id = 403101 or ability.id = 404896 or ability.id = 403203 or ability.id = 405437 or ability.id = 405641 or ability.id = 408193 or ability.id = 405914 or ability.id = 406783) and type = "begincast"
  or (ability.id = 406730 or ability.id = 406780) and type = "cast"
+ or (target.id = 201774 or target.id = 201773) and type = "death"
 --]]
 --TODO, also target scan Swirling Flame?
 --TODO, secondary alert for Swirling Shadowflame ?
@@ -37,25 +38,21 @@ mod:AddBoolOption("AdvancedBossFiltering", true, "misc")--May be default to off 
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26336))
 local warnCorruptingShadow						= mod:NewCountAnnounce(401809, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(401809))
 local warnCorruptingShadowFades					= mod:NewFadesAnnounce(401809, 1)
-local warnUmbralDetonation						= mod:NewTargetCountAnnounce(405016, 3, nil, nil, 167180, nil, nil, nil, true)
+local warnUmbralDetonation						= mod:NewTargetCountAnnounce(405036, 3, nil, nil, 167180, nil, nil, nil, true)
 
 local specWarnCoalescingVoid					= mod:NewSpecialWarningCount(403459, nil, nil, nil, 2, 2)--Possibly use a run away warning if idea is to actualy move away? Something tells me falloff is just designed to scope damage to players on THIS boss only
-local specWarnUmbralDetonation					= mod:NewSpecialWarningYou(405016, nil, 49685, nil, 1, 2)
-local yellUmbralDetonation						= mod:NewShortYell(405016, 49685)--"Bomb"
-local yellUmbralDetonationFades					= mod:NewShortFadesYell(405016)
+local specWarnUmbralDetonation					= mod:NewSpecialWarningYou(405036, nil, 49685, nil, 1, 2)
+local yellUmbralDetonation						= mod:NewShortYell(405036, 49685)--"Bomb"
+local yellUmbralDetonationFades					= mod:NewShortFadesYell(405036)
 local specWarnShadowsConvergence				= mod:NewSpecialWarningDodgeCount(407640, nil, nil, nil, 2, 2, 3)
---local specWarnPyroBlast							= mod:NewSpecialWarningInterrupt(396040, "HasInterrupt", nil, nil, 1, 2)
 
 local timerCoalescingVoidCD						= mod:NewCDCountTimer(21.9, 403459, nil, nil, nil, 2)
-local timerUmbralDetonationCD					= mod:NewCDCountTimer(21.9, 405016, 167180, nil, nil, 3)--"Bombs"
+local timerUmbralDetonationCD					= mod:NewCDCountTimer(21.9, 405036, 167180, nil, nil, 3)--"Bombs"
 local timerShadowsConvergenceCD					= mod:NewCDCountTimer(20.7, 407640, nil, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON)
 local timerShadowSpikeCD						= mod:NewCDCountTimer(11, 403699, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --local berserkTimer							= mod:NewBerserkTimer(600)
 
---mod:AddInfoFrameOption(361651, true)
-mod:AddSetIconOption("SetIconOnUmbral", 405016, false, 0, {1, 2, 3})
---mod:AddNamePlateOption("NPAuraOnAscension", 385541)
---mod:GroupSpells(390715, 396094)
+mod:AddSetIconOption("SetIconOnUmbral", 405036, false, 0, {1, 2, 3})
 --Moltannia
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26337))
 local warnBlazingHeat							= mod:NewCountAnnounce(402617, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(402617))
@@ -77,23 +74,23 @@ local warnBlisteringTwilight					= mod:NewTargetCountAnnounce(405641, 3, nil, ni
 local warnShadowflameBurst						= mod:NewCountAnnounce(406783, 3)
 
 local specWarnGloomConflag						= mod:NewSpecialWarningCount(405437, nil, nil, nil, 2, 2)
-local specWarnBlisteringTwilight				= mod:NewSpecialWarningYou(405641, nil, 49685, nil, 1, 2)
-local yellBlisteringTwilight					= mod:NewShortYell(405641, 49685)
-local yellBlisteringTwilightFades				= mod:NewShortFadesYell(405641)
+local specWarnBlisteringTwilight				= mod:NewSpecialWarningYou(405642, nil, 49685, nil, 1, 2)
+local yellBlisteringTwilight					= mod:NewShortYell(405642, 49685)
+local yellBlisteringTwilightFades				= mod:NewShortFadesYell(405642)
 local specWarnConvergentEruption				= mod:NewSpecialWarningCount(408193, nil, nil, nil, 2, 2)
 local specWarnWitheringVulnerability			= mod:NewSpecialWarningDefensive(405914, nil, nil, nil, 1, 2)
 local specWarnWitheringVulnerabilityTaunt		= mod:NewSpecialWarningTaunt(405914, nil, nil, nil, 1, 2)
-local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, DBM_CORE_L.AUTO_YELL_ANNOUNCE_TEXT.shortyell, false, 2)
+local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, nil, false, 2)
 
 local timerPhaseCD								= mod:NewPhaseTimer(30)
 local timerShadowandFlameCD						= mod:NewCDCountTimer(47.4, 409385, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerGloomConflagCD						= mod:NewCDCountTimer(40, 405437, nil, nil, nil, 3)
-local timerBlisteringTwilightCD					= mod:NewCDCountTimer(40, 405641, 167180, nil, nil, 3)--"Bombs"
+local timerBlisteringTwilightCD					= mod:NewCDCountTimer(40, 405642, 167180, nil, nil, 3)--"Bombs"
 local timerConvergentEruptionCD					= mod:NewCDCountTimer(40, 408193, nil, nil, nil, 5)
 local timerWitheringVulnerabilityCD				= mod:NewCDCountTimer(35.3, 405914, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--35-40
 local timerShadowflameBurstCD					= mod:NewCDCountTimer(35.3, 406783, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Might be redundant if always after crushing
 
-mod:AddSetIconOption("SetIconOnBlistering", 405641, false, 0, {1, 2, 3, 4})
+mod:AddSetIconOption("SetIconOnBlistering", 405642, false, 0, {1, 2, 3, 4})
 mod:AddRangeFrameOption(6, 409385)
 
 local nearKroz, nearMolt = true, true
@@ -347,9 +344,6 @@ function mod:OnCombatStart(delay)
 	timerMoltenEruptionCD:SetFade(false, 1)
 	timerSwirlingFlameCD:SetFade(false, 1)
 	timerFlameSlashCD:SetFade(false, 1)
---	if self.Options.NPAuraOnAscension then
---		DBM:FireEvent("BossMod_EnableHostileNameplates")
---	end
 	self:Schedule(2, updateBossDistance, self)
 end
 
@@ -365,12 +359,6 @@ function mod:OnCombatEnd()
 	if self.Options.RangeFrame then
 		DBM.RangeCheck:Hide()
 	end
---	if self.Options.InfoFrame then
---		DBM.InfoFrame:Hide()
---	end
---	if self.Options.NPAuraOnAscension then
---		DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
---	end
 end
 
 function mod:SPELL_CAST_START(args)
@@ -507,7 +495,6 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 406730 and self:GetStage(2, 1) then--Crucible Instability
 		self:SetStage(2)
-		self.vb.bossLeft = self.vb.bossLeft - 2--Stage 1 bosses don't actually die, they fuse. This just updates mods internal count
 		self.vb.meteorCast = 0--Reused for Gloom Conflagration
 		self.vb.umbralCount = 0--Reused for Blistering Twilight
 		self.vb.moltenEruptionCast = 0--Reused for Converging Eruption
@@ -527,7 +514,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 			timerShadowandFlameCD:Start(29.6, 1)
 			timerConvergentEruptionCD:Start(35.7, 1)
 		elseif self:IsHeroic() then
-			timerConvergentEruptionCD:Start(33.6, 1)
+			timerConvergentEruptionCD:Start(32.4, 1)
 		end
 		--Same in all
 		timerWitheringVulnerabilityCD:Start(15.8, 1)
@@ -559,7 +546,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 		if self:IsMythic() and self:GetStage(2) and amount == 1 then
 			self:Unschedule(yellRepeater)
-			yellRepeater(self, 7)
+			yellRepeater(self, 2)
 		end
 	elseif spellId == 405394 and args:IsPlayer() then
 		local amount = args.amount or 1

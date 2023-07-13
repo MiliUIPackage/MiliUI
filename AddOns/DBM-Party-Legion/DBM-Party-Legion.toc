@@ -17,13 +17,13 @@
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (軍臨天下)
 ## X-DBM-Mod-Name-zhCN: 队伍首领(军团再临)
 ## X-DBM-Mod-Name-koKR: 던전 (군단)
-## X-DBM-Mod-Sort: 515
+## X-DBM-Mod-Sort: 502
 ## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r84
+## Version: r90
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

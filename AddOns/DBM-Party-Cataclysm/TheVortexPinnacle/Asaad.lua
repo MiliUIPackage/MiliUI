@@ -5,7 +5,7 @@ local L		= mod:GetLocalizedStrings()
 mod.statTypes = "normal,heroic,challenge,timewalker"
 mod.upgradedMPlus = true
 
-mod:SetRevision("20230528025831")
+mod:SetRevision("20230621232728")
 mod:SetCreatureID(43875)
 mod:SetEncounterID(1042)
 mod:SetHotfixNoticeRev(20230526000000)
@@ -91,7 +91,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif args.spellId == 87622 then
 		self:ScheduleMethod(0.2, "BossTargetScanner", args.sourceGUID, "LitTarget", 0.1, 8, true)
-		local expectedTimer = self:IsMythicPlus() and 18.2 or 13.4
+		local expectedTimer = self:IsMythicPlus() and 18.1 or 13.4
 		if timerGroundingFieldCD:GetRemaining() < expectedTimer then
 			timerChainLightningCD:Start(expectedTimer)
 		end
@@ -121,8 +121,8 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnGroundingField:Play("findshelter")
 		timerStorm:Start()
 		if self:IsMythicPlus() then
-			timerChainLightningCD:Restart(18.1)--First cast can be delayed or skipped entirely
-			timerNovaCD:Restart(26.5, self.vb.novaCount+1)
+			timerChainLightningCD:Restart(16.9)--First cast can be delayed or skipped entirely
+			timerNovaCD:Restart(25.4, self.vb.novaCount+1)
 			timerStaticClingCD:Restart(33.7)
 			timerGroundingFieldCD:Start(65.5, self.vb.groundingCount+1)
 		else

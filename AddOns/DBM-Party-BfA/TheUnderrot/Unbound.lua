@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2158, "DBM-Party-BfA", 8, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230529072513")
+mod:SetRevision("20230708234551")
 mod:SetCreatureID(133007)
 mod:SetEncounterID(2123)
 mod.sendMainBossGUID = true
@@ -23,16 +23,16 @@ mod:RegisterEventsInCombat(
 (ability.id = 269843 or ability.id = 269310) and type = "begincast"
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
 --]]
-local warnVisage					= mod:NewAddsLeftAnnounce("ej18312", 2, 269692)
+local warnVisage					= mod:NewAddsLeftAnnounce(-18312, 2, 269692)
 
-local specWarnBloodVisage			= mod:NewSpecialWarningSwitch("ej18312", "-Healer", nil, nil, 1, 2)
+local specWarnBloodVisage			= mod:NewSpecialWarningSwitch(-18312, "-Healer", nil, nil, 1, 2)
 local specWarnVileExpulsion			= mod:NewSpecialWarningDodge(269843, nil, nil, nil, 2, 2)
 local specWarnCleansingLight		= mod:NewSpecialWarningSpell(269310, nil, nil, nil, 1, 2)
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(269838, nil, nil, nil, 1, 8)
 
-local timerBloodVisageCD			= mod:NewCDTimer(15.7, "ej18312", nil, nil, nil, 1, 269692)
+local timerBloodVisageCD			= mod:NewCDTimer(15.7, -18312, nil, nil, nil, 1, 269692)
 local timerVileExpulsionCD			= mod:NewNextTimer(15.7, 269843, nil, nil, nil, 3)
-local timerCleansingLightCD			= mod:NewCDTimer(16.9, 269310, nil, nil, nil, 5)--21.8-37 pre 10.1, 16.9-18 now
+local timerCleansingLightCD			= mod:NewCDTimer(15.7, 269310, nil, nil, nil, 5)--21.8-37 pre 10.1, 15.7-18 now
 
 mod:AddInfoFrameOption(269301, "Healer")
 

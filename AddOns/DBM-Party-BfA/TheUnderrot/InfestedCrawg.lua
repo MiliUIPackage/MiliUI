@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2131, "DBM-Party-BfA", 8, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230530003446")
+mod:SetRevision("20230617005839")
 mod:SetCreatureID(131817)
 mod:SetEncounterID(2118)
 mod.sendMainBossGUID = true
@@ -34,7 +34,7 @@ local specWarnTantrum				= mod:NewSpecialWarningCount(260333, nil, nil, nil, 2, 
 
 local timerIndigestionCD			= mod:NewCDTimer(49.7, 260793, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerChargeCD					= mod:NewCDTimer(20.7, 260292, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerTantrumCD				= mod:NewCDTimer(44.9, 260333, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+local timerTantrumCD				= mod:NewCDCountTimer(44.9, 260333, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
 
 mod:AddNamePlateOption("NPAuraMetamorphosis", 260416)
 
@@ -43,11 +43,11 @@ mod.vb.tantrumCast = 0
 
 local function updateAllTimers(self, ICD)
 	DBM:Debug("updateAllTimers running", 3)
-	if timerTantrumCD:GetRemaining() < ICD then
-		local elapsed, total = timerTantrumCD:GetTime()
+	if timerTantrumCD:GetRemaining(self.vb.tantrumCast+1) < ICD then
+		local elapsed, total = timerTantrumCD:GetTime(self.vb.tantrumCast+1)
 		local extend = ICD - (total-elapsed)
 		DBM:Debug("timerTantrumCD extended by: "..extend, 2)
-		timerTantrumCD:Update(elapsed, total+extend)
+		timerTantrumCD:Update(elapsed, total+extend, self.vb.tantrumCast+1)
 	end
 	if timerChargeCD:GetRemaining() < ICD then
 		local elapsed, total = timerChargeCD:GetTime()
@@ -72,7 +72,7 @@ function mod:OnCombatStart(delay)
 	--he casts random ability first, it's charge like 95% of time though
 	timerIndigestionCD:Start(8.3-delay)
 	timerChargeCD:Start(8.3-delay)
-	timerTantrumCD:Start(45)
+	timerTantrumCD:Start(45, 1)
 end
 
 function mod:OnCombatEnd()
@@ -123,7 +123,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerChargeCD:AddTime(6.1)--Seems to add 7 seconds static to charge timer, period. charge CD is either 20, or 27 if a tantrum was in between charges, (Unless spell queued but that is handled by auto correct)
 		specWarnTantrum:Show(self.vb.tantrumCast)
 		specWarnTantrum:Play("aesoon")
-		timerTantrumCD:Start()
+		timerTantrumCD:Start(nil, self.vb.tantrumCast+1)
 --		updateAllTimers(self, 13.4)--Unknown but I imagine it's like 5 sec at most, some logs make it appear 6 13 or 18, but all are incorrect assumptions
 	end
 end

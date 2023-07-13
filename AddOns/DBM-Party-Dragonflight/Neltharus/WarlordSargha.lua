@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2501, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230529054318")
+mod:SetRevision("20230613091738")
 mod:SetCreatureID(189901)
 mod:SetEncounterID(2611)
 --mod:SetUsedIcons(1, 2, 3)
@@ -14,7 +14,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 376780 377017 377204 377473",
---	"SPELL_CAST_SUCCESS",
+	"SPELL_CAST_SUCCESS 377017",
 	"SPELL_AURA_APPLIED 376780 377018 377022 377522 377014",
 --	"SPELL_AURA_APPLIED_DOSE",
 	"SPELL_AURA_REMOVED 376780",
@@ -58,6 +58,7 @@ mod:AddInfoFrameOption(376780, true)
 --mod:AddSetIconOption("SetIconOnStaggeringBarrage", 361018, true, false, {1, 2, 3})
 
 mod.vb.shieldCount = 0
+local goldStarted = false
 
 local function updateAllTimers(self, ICD)
 	DBM:Debug("updateAllTimers running", 3)
@@ -82,6 +83,7 @@ local function updateAllTimers(self, ICD)
 end
 
 function mod:OnCombatStart(delay)
+	goldStarted = false
 	self.vb.shieldCount = 0
 	timerDragonsKilnCD:Start(7-delay)
 	timerMoltenGoldCD:Start(14.3-delay)
@@ -105,7 +107,12 @@ function mod:SPELL_CAST_START(args)
 		timerMoltenGoldCD:Pause()
 		timerBurningEmberCD:Pause()
 	elseif spellId == 377017 then
-		timerMoltenGoldCD:Start()
+		if goldStarted then--It's a bugged recast
+			timerMoltenGoldCD:Restart()--Avoid false debug reporting
+		else
+			goldStarted = true
+			timerMoltenGoldCD:Start()
+		end
 		updateAllTimers(self, 4.8)
 	elseif spellId == 377204 then
 		specWarnDragonsKiln:Show()
@@ -120,14 +127,20 @@ function mod:SPELL_CAST_START(args)
 	end
 end
 
---[[
+
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
-	if spellId == 362805 then
-
+	if spellId == 377017 then
+		goldStarted = false
 	end
 end
---]]
+
+local function pointlessDelay(self)
+	timerDragonsKilnCD:AddTime(9)
+	timerMoltenGoldCD:AddTime(9)
+	timerBurningEmberCD:AddTime(9)
+	timerMagmaShieldCD:AddTime(9, self.vb.shieldCount+1)
+end
 
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
@@ -150,17 +163,14 @@ function mod:SPELL_AURA_APPLIED(args)
 			warnBurningPursuit:Show(args.destName)
 		end
 	elseif spellId == 377014 then--Backdraft
-		timerDragonsKilnCD:AddTime(10)
-		timerMoltenGoldCD:AddTime(10)
-		timerBurningEmberCD:AddTime(10)
-		timerMagmaShieldCD:AddTime(10, self.vb.shieldCount+1)
+		self:Schedule(1, pointlessDelay, self)
 	end
 end
 --mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
-	if spellId == 376780 then
+	if spellId == 376780 and self:IsInCombat() then
 		warnMagmaShieldOver:Show()
 		if self.Options.InfoFrame then
 			DBM.InfoFrame:Hide()

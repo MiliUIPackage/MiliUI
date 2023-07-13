@@ -22,14 +22,12 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r86
+## Version: r91-6-g3dc38e3
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
-
-# Commented lines aren't in dungeon journal yet
 
 BrackenhideHollow\HackclawsWarBand.lua
 BrackenhideHollow\Treemouth.lua
