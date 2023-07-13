@@ -6,7 +6,6 @@ local defaults = {
     global = {
         EMEOptions = {
             lfg = true,
-            vehicle = true,
             holyPower = true,
             totem = true,
             soulShards = true,
@@ -31,14 +30,16 @@ local defaults = {
             menu = true,
             menuResizable = false,
             bags = true,
-            bagsResizable = false,
             comboPoints = true,
             bonusRoll = true,
             actionBars = false,
+            groupLootContainer = true,
+            auctionMultisell = true,
+            chatButtons = true,
+            backpack = true,
         },
         QueueStatusButton = {},
         TotemFrame = {},
-        VehicleSeatIndicator = {},
         HolyPower = {},
         Achievements = {},
         SoulShards = {},
@@ -66,6 +67,15 @@ local defaults = {
         MultiBar5 = {},
         MultiBar6 = {},
         MultiBar7 = {},
+        CompactRaidFrameManager = {},
+        ExpansionLandingPageMinimapButton = {},
+        GroupLootContainer = {},
+        AuctionHouseMultisellProgressFrame = {},
+        QuickJoinToastButton = {},
+        ChatFrameChannelButton = {},
+        ChatFrameMenuButton = {},
+        ContainerFrame1 = {},
+        ContainerFrameCombinedBags = {},
     }
 }
 
@@ -87,11 +97,6 @@ local options = {
             name = "排隊資訊",
             desc = "啟用/停用支援排隊資訊",
             type = "toggle", 
-        },
-        vehicle = {
-            name = "坐騎座位",
-            desc = "啟用/停用支援坐騎座位",
-            type = "toggle",
         },
         holyPower = {
             name = "聖能",
@@ -213,11 +218,6 @@ local options = {
             desc = "讓微型選單可以調整大小，比預設的選項了一些選項。警告: 這會覆蓋遊戲內建的調整大小滑桿，如果你兩種滑桿都使用，可能會發生不可預期的結果!",
             type = "toggle",
         },
-        bagsResizable = {
-            name = "調整背包列大小",
-            desc = "讓背包列可以調整大小，比預設的選項了一些選項。警告: 這會覆蓋遊戲內建的調整大小滑桿，如果你兩種滑桿都使用，可能會發生不可預期的結果!",
-            type = "toggle",
-        },
         comboPoints = {
             name = "連擊點數",
             desc = "啟用/停用支援連擊點數",
@@ -233,25 +233,46 @@ local options = {
             desc = "允許快捷列的間距為零。警告: 所有快捷列都一定要至少移動過一次，不能完全不動，否則會發生錯誤。就算是移動後再移回原本的位置也可以!",
             type = "toggle",
         },
+        groupLootContainer = {
+            name = "獲得物品通知",
+            desc = "啟用/停用獲得物品通知",
+            type = "toggle",
+        },
+        auctionMultisell = {
+            name = "拍賣場批次賣出",
+            desc = "啟用/停用支援拍賣場批次賣出",
+            type = "toggle",
+        },
+        chatButtons = {
+            name = "聊天按鈕",
+            desc = "啟用/停用支援聊天按鈕",
+            type = "toggle",
+        },
+        backpack = {
+            name = "背包",
+            desc = "啟用/停用支援骰子面板",
+            type = "toggle",
+        },
     },
 }
 
 local achievementFrameLoaded
 local addonLoaded
 local totemFrameLoaded
+local ahLoaded
 
 local function registerTotemFrame(db)
     TotemFrame:SetParent(UIParent)
     lib:RegisterFrame(TotemFrame, "圖騰", db.TotemFrame)
     lib:SetDefaultSize(TotemFrame, 100, 40)
     lib:RegisterHideable(TotemFrame)
+    lib:RegisterToggleInCombat(TotemFrame)
     lib:RegisterResizable(TotemFrame)
     totemFrameLoaded = true
 end
 
 f:SetScript("OnEvent", function(__, event, arg1)
     if (event == "ADDON_LOADED") and (arg1 == "EditModeExpanded") and (not addonLoaded) then
-        f:UnregisterEvent("ADDON_LOADED")
         addonLoaded = true
         f.db = LibStub("AceDB-3.0"):New("EditModeExpandedADB", defaults)
         
@@ -272,41 +293,9 @@ f:SetScript("OnEvent", function(__, event, arg1)
             lib:RegisterFrame(frame, "", db[name])
         end
         
-        if db.EMEOptions.compactRaidFrameContainer then
-            local originalFrameManagerX, originalFrameManagerY = CompactRaidFrameManager:GetRect()
-            local wasMoved = false
-            lib:RegisterCustomCheckbox(CompactRaidFrameContainer, "隱藏團隊框架管理員", 
-                -- on checked
-                function()
-                    if wasMoved then return end
-                    wasMoved = true
-                    
-                    -- this frame cannot be :Hide() hidden, as other frames are parented to it. Cannot change the parenting either, without causing other problems.
-                    -- So, instead, lets shove it off the screen.
-                    --local x, y = CompactRaidFrameContainer:GetRect()
-                    originalFrameManagerX, originalFrameManagerY = CompactRaidFrameManager:GetRect()
-                    CompactRaidFrameManager:ClearAllPoints()
-                    CompactRaidFrameManager:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", 0, 0)
-                    --CompactRaidFrameContainer:ClearAllPoints()
-                    --CompactRaidFrameContainer:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-                end,
-                
-                -- on unchecked
-                function()
-                    if not wasMoved then return end
-                    wasMoved = false
-                    
-                    local x, y = CompactRaidFrameContainer:GetRect()
-                    CompactRaidFrameManager:ClearAllPoints()
-                    CompactRaidFrameManager:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", originalFrameManagerX, originalFrameManagerY)
-                    CompactRaidFrameContainer:ClearAllPoints()
-                    CompactRaidFrameContainer:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-                end
-            )
-        end
-        
         if db.EMEOptions.talkingHead then
             lib:RegisterHideable(TalkingHeadFrame)
+            lib:RegisterToggleInCombat(TalkingHeadFrame)
             TalkingHeadFrame:HookScript("OnEvent", function(...)
                 if lib:IsFrameMarkedHidden(TalkingHeadFrame) then
                     TalkingHeadFrame:Close()
@@ -397,19 +386,47 @@ f:SetScript("OnEvent", function(__, event, arg1)
         if db.EMEOptions.lfg then
             QueueStatusButton:SetParent(UIParent)
             lib:RegisterFrame(QueueStatusButton, "排隊資訊", db.QueueStatusButton)
-            lib:RegisterResizable(QueueStatusButton)
-            lib:RegisterMinimapPinnable(QueueStatusButton)
             hooksecurefunc(MicroMenu, "UpdateQueueStatusAnchors", function()
                 lib:RepositionFrame(QueueStatusButton)
             end)
             hooksecurefunc(MicroMenuContainer, "Layout", function()
                 MicroMenuContainer:SetWidth(MicroMenu:GetWidth()*MicroMenu:GetScale())
             end)
+            MicroMenuContainer:SetWidth(MicroMenu:GetWidth()*MicroMenu:GetScale())
+            
+            -- the wasVisible saved in the library when entering Edit Mode cannot be relied upon, as entering Edit Mode shows the queue status button even if its hidden
+            hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
+                if InCombatLockdown() then return end
+                QueueStatusFrame:Update()
+            end)
         end
         
         if db.EMEOptions.minimap then
-            lib:RegisterResizable(MinimapCluster)
-            C_Timer.After(1, function() lib:UpdateFrameResize(MinimapCluster) end)
+            local isDefault = true
+            lib:RegisterCustomCheckbox(MinimapCluster, "Square",
+                function()
+                    isDefault = false
+                    Minimap:SetMaskTexture("Interface\\BUTTONS\\WHITE8X8")
+                    MinimapBackdrop:Hide()
+                end,
+                
+                function()
+                    -- don't change it to circle if it is already a circle from the last login
+                    if isDefault then return end
+                    Minimap:SetMaskTexture("Interface\\Masks\\CircleMask")
+                    MinimapBackdrop:Show()
+                end
+            )
+            
+            if ExpansionLandingPageMinimapButton then
+                ExpansionLandingPageMinimapButton:SetParent(UIParent)
+                ExpansionLandingPageMinimapButton:SetFrameStrata("MEDIUM")
+                lib:RegisterFrame(ExpansionLandingPageMinimapButton, "資料片功能按鈕", db.ExpansionLandingPageMinimapButton)
+                lib:RegisterResizable(ExpansionLandingPageMinimapButton)
+                hooksecurefunc(ExpansionLandingPageMinimapButton, "UpdateIcon", function()
+                    lib:RepositionFrame(ExpansionLandingPageMinimapButton)
+                end)
+            end
         end
         
         if db.EMEOptions.uiWidgetTopCenterContainerFrame then
@@ -419,6 +436,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.stanceBar then
             lib:RegisterHideable(StanceBar)
+            lib:RegisterToggleInCombat(StanceBar)
             hooksecurefunc(StanceBar, "Show", function()
                 if lib:IsFrameMarkedHidden(StanceBar) then
                     StanceBar:Hide()
@@ -448,6 +466,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.playerFrame then
             lib:RegisterHideable(PlayerFrame)
+            lib:RegisterToggleInCombat(PlayerFrame)
             C_Timer.After(4, function()
                 if lib:IsFrameMarkedHidden(PlayerFrame) then
                     PlayerFrame:Hide()
@@ -475,15 +494,10 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end)
         end
         
-        if db.EMEOptions.vehicle then
-            VehicleSeatIndicator:SetPoint("TOPLEFT", DurabilityFrame, "TOPLEFT")
-            lib:RegisterFrame(VehicleSeatIndicator, "坐騎座位", db.VehicleSeatIndicator)
-            lib:RegisterResizable(VehicleSeatIndicator)
-        end
-        
         if db.EMEOptions.mainStatusTrackingBarContainer then
             lib:RegisterResizable(MainStatusTrackingBarContainer)
             lib:RegisterHideable(MainStatusTrackingBarContainer)
+            lib:RegisterToggleInCombat(MainStatusTrackingBarContainer)
             C_Timer.After(1, function() lib:UpdateFrameResize(MainStatusTrackingBarContainer) end)
             hooksecurefunc(MainStatusTrackingBarContainer, "SetScale", function(frame, scale)
                 for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
@@ -515,6 +529,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         if db.EMEOptions.secondaryStatusTrackingBarContainer then
             lib:RegisterResizable(SecondaryStatusTrackingBarContainer)
             lib:RegisterHideable(SecondaryStatusTrackingBarContainer)
+            lib:RegisterToggleInCombat(SecondaryStatusTrackingBarContainer)
             C_Timer.After(1, function() lib:UpdateFrameResize(SecondaryStatusTrackingBarContainer) end)
             hooksecurefunc(SecondaryStatusTrackingBarContainer, "SetScale", function(frame, scale)
                 for _, bar in ipairs(StatusTrackingBarManager.barContainers) do
@@ -545,6 +560,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.menu then
             lib:RegisterHideable(MicroMenuContainer)
+            lib:RegisterToggleInCombat(MicroMenuContainer)
             C_Timer.After(1, function()
                 if lib:IsFrameMarkedHidden(MicroMenuContainer) then
                     MicroMenuContainer:Hide()
@@ -566,6 +582,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         end
                     end
                     MicroMenu:SetWidth(MicroMenu:GetWidth() - 30)
+                    MicroMenuContainer:SetWidth(MicroMenu:GetWidth()*MicroMenu:GetScale())
                 end,
                 
                 function(init)
@@ -579,6 +596,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                             end
                         end
                         MicroMenu:SetWidth(MicroMenu:GetWidth() + 30)
+                        MicroMenuContainer:SetWidth(MicroMenu:GetWidth()*MicroMenu:GetScale())
                     end
                 end
             )
@@ -613,17 +631,11 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.bags then
             lib:RegisterHideable(BagsBar)
+            lib:RegisterToggleInCombat(BagsBar)
             C_Timer.After(1, function()
                 if lib:IsFrameMarkedHidden(BagsBar) then
                     BagsBar:Hide()
                 end
-            end)
-        end
-        
-        if db.EMEOptions.bagsResizable then
-            lib:RegisterResizable(BagsBar)
-            C_Timer.After(1, function()
-                lib:UpdateFrameResize(BagsBar)
             end)
         end
         
@@ -639,6 +651,31 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(BonusRollFrame, "骰子面板", db.BonusRoll)
                 lib:HideByDefault(BonusRollFrame)
                 BonusRollFrame.Selection:SetFrameStrata("TOOLTIP")
+            end)
+        end
+        
+        if db.EMEOptions.groupLootContainer then
+            local alreadyInitialized
+            GroupLootContainer:HookScript("OnShow", function()
+                if alreadyInitialized then
+                    lib:RepositionFrame(GroupLootContainer)
+                    return
+                end
+                alreadyInitialized = true
+                lib:RegisterFrame(GroupLootContainer, "獲得物品通知", db.GroupLootContainer)
+                local noInfinite
+                hooksecurefunc(GroupLootContainer, "SetPoint", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(GroupLootContainer)
+                    noFinite = nil
+                end)
+                hooksecurefunc("GroupLootContainer_Update", function()
+                    lib:RepositionFrame(GroupLootContainer)
+                end)
+                hooksecurefunc(UIParentBottomManagedFrameContainer, "Layout", function()
+                    lib:RepositionFrame(GroupLootContainer)
+                end)
             end)
         end
         
@@ -669,6 +706,54 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end)
         end
         
+        if db.EMEOptions.chatButtons then
+            lib:RegisterFrame(QuickJoinToastButton, "社交", db.QuickJoinToastButton)
+            lib:SetDontResize(QuickJoinToastButton)
+            lib:RegisterHideable(QuickJoinToastButton)
+            
+            lib:RegisterFrame(ChatFrameChannelButton, "頻道", db.ChatFrameChannelButton)
+            lib:SetDontResize(ChatFrameChannelButton)
+            lib:RegisterHideable(ChatFrameChannelButton)
+            
+            lib:RegisterFrame(ChatFrameMenuButton, "聊天選單", db.ChatFrameMenuButton)
+            lib:SetDontResize(ChatFrameMenuButton)
+            lib:RegisterHideable(ChatFrameMenuButton)
+            
+            lib:GroupOptions({QuickJoinToastButton, ChatFrameChannelButton, ChatFrameMenuButton}, "聊天按鈕")
+        end
+        
+        do
+            local alreadyInit, noInfinite
+            ContainerFrame1:HookScript("OnShow", function()
+                if alreadyInit then return end
+                alreadyInit = true
+                lib:RegisterFrame(ContainerFrame1, "主背包", db.ContainerFrame1)
+                hooksecurefunc("UpdateContainerFrameAnchors", function()
+                    if noInfinite then return end
+                    if InCombatLockdown() then return end
+                    noInfinite = true
+                    lib:RepositionFrame(ContainerFrame1)
+                    noInfinite = false
+                end)
+            end)
+        end
+        
+        do
+            local alreadyInit, noInfinite
+            ContainerFrameCombinedBags:HookScript("OnShow", function()
+                if alreadyInit then return end
+                alreadyInit = true
+                lib:RegisterFrame(ContainerFrameCombinedBags, "合併背包", db.ContainerFrameCombinedBags)
+                hooksecurefunc("UpdateContainerFrameAnchors", function()
+                    if noInfinite then return end
+                    if InCombatLockdown() then return end
+                    noInfinite = true
+                    lib:RepositionFrame(ContainerFrameCombinedBags)
+                    noInfinite = false
+                end)
+            end)
+        end
+        
         local class = UnitClassBase("player")
         
         if class == "PALADIN" then
@@ -676,6 +761,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(PaladinPowerBarFrame, "聖能", db.HolyPower)
                 C_Timer.After(4, function() lib:RepositionFrame(PaladinPowerBarFrame) end)
                 lib:RegisterHideable(PaladinPowerBarFrame)
+                lib:RegisterToggleInCombat(PaladinPowerBarFrame)
                 hooksecurefunc(PaladinPowerBarFrame, "Setup", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(PaladinPowerBarFrame)
@@ -694,6 +780,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if db.EMEOptions.soulShards then
                 lib:RegisterFrame(WarlockPowerFrame, "靈魂裂片", db.SoulShards)
                 lib:RegisterHideable(WarlockPowerFrame)
+                lib:RegisterToggleInCombat(WarlockPowerFrame)
                 lib:SetDontResize(WarlockPowerFrame)
                 hooksecurefunc(WarlockPowerFrame, "IsDirty", function()
                     if not EditModeManagerFrame.editModeActive then
@@ -721,6 +808,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(MonkHarmonyBarFrame, "真氣", db.Chi)
                 lib:SetDontResize(MonkHarmonyBarFrame)
                 lib:RegisterHideable(MonkHarmonyBarFrame)
+                lib:RegisterToggleInCombat(MonkHarmonyBarFrame)
                 lib:RegisterResizable(MonkHarmonyBarFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
@@ -732,6 +820,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if db.EMEOptions.runes then
                 lib:RegisterFrame(RuneFrame, "符文", db.Runes)
                 lib:RegisterHideable(RuneFrame)
+                lib:RegisterToggleInCombat(RuneFrame)
                 lib:SetDontResize(RuneFrame)
                 lib:RegisterResizable(RuneFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
@@ -754,6 +843,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if db.EMEOptions.arcaneCharges then
                 lib:RegisterFrame(MageArcaneChargesFrame, "祕法充能", db.ArcaneCharges)
                 lib:RegisterHideable(MageArcaneChargesFrame)
+                lib:RegisterToggleInCombat(MageArcaneChargesFrame)
                 lib:SetDontResize(MageArcaneChargesFrame)
                 lib:RegisterResizable(MageArcaneChargesFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
@@ -773,6 +863,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(EssencePlayerFrame, "龍能", db.EvokerEssences)
                 lib:SetDontResize(EssencePlayerFrame)
                 lib:RegisterHideable(EssencePlayerFrame)
+                lib:RegisterToggleInCombat(EssencePlayerFrame)
                 lib:RegisterResizable(EssencePlayerFrame)
                 hooksecurefunc(EssencePlayerFrame, "UpdatePower", function()
                     if not EditModeManagerFrame.editModeActive then
@@ -794,11 +885,19 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(RogueComboPointBarFrame, "連擊點數", db.ComboPoints)
                 lib:SetDontResize(RogueComboPointBarFrame)
                 lib:RegisterHideable(RogueComboPointBarFrame)
+                lib:RegisterToggleInCombat(RogueComboPointBarFrame)
                 lib:RegisterResizable(RogueComboPointBarFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(RogueComboPointBarFrame)
                     end
+                end)
+                local noInfinite
+                hooksecurefunc(RogueComboPointBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(RogueComboPointBarFrame)
+                    noInfinite = false
                 end)
             end
         elseif class == "PRIEST" then
@@ -811,11 +910,18 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterFrame(DruidComboPointBarFrame, "連擊點數", db.ComboPoints)
                 lib:SetDontResize(DruidComboPointBarFrame)
                 lib:RegisterHideable(DruidComboPointBarFrame)
+                lib:RegisterToggleInCombat(DruidComboPointBarFrame)
                 lib:RegisterResizable(DruidComboPointBarFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(DruidComboPointBarFrame)
                     end
+                end)
+                hooksecurefunc(DruidComboPointBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(DruidComboPointBarFrame)
+                    noInfinite = false
                 end)
             end
         end
@@ -823,9 +929,96 @@ f:SetScript("OnEvent", function(__, event, arg1)
         if totemFrameLoaded then
             lib:RepositionFrame(TotemFrame)
         end
+    elseif event == "EDIT_MODE_LAYOUTS_UPDATED" then
+        local db = f.db.global
+        if db.EMEOptions.compactRaidFrameContainer then
+            local layoutInfo = EditModeManagerFrame:GetActiveLayoutInfo()
+            if layoutInfo.layoutType == 0 then return end
+            f:UnregisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+            
+            lib:RegisterFrame(CompactRaidFrameManager, "團隊管理員", db.CompactRaidFrameManager)
+            local expanded
+            hooksecurefunc("CompactRaidFrameManager_Expand", function()
+                if InCombatLockdown() then return end
+                if expanded then return end
+                expanded = true
+                CompactRaidFrameManager:ClearPoint("TOPLEFT")
+                lib:RepositionFrame(CompactRaidFrameManager)
+                for i = 1, CompactRaidFrameManager:GetNumPoints() do
+                    local a, b, c, x, e = CompactRaidFrameManager:GetPoint(i)
+                    x = x + 175
+                    CompactRaidFrameManager:SetPoint(a,b,c,x,e)
+                end
+            end)
+            hooksecurefunc("CompactRaidFrameManager_Collapse", function()
+                if InCombatLockdown() then return end
+                if not expanded then return end
+                expanded = false
+                CompactRaidFrameManager:ClearPoint("TOPLEFT")
+                lib:RepositionFrame(CompactRaidFrameManager)
+            end)
+            lib:RegisterHideable(CompactRaidFrameManager)
+            lib:RegisterToggleInCombat(CompactRaidFrameManager)
+            
+            -- the wasVisible saved in the library when entering Edit Mode cannot be relied upon, as entering Edit Mode shows the raid manager in some situations, before we can detect if it was already visible
+            hooksecurefunc(EditModeManagerFrame, "ExitEditMode", function()
+                if InCombatLockdown() then return end
+                CompactRaidFrameManager:SetShown(IsInGroup() or IsInRaid())
+            end)
+            
+            do
+                local noInfinite
+                hooksecurefunc(CompactRaidFrameManager, "SetShown", function()
+                    if noInfinite then return end
+                    if InCombatLockdown() then return end
+                    if EditModeManagerFrame.editModeActive then
+                        CompactRaidFrameManager:Show()
+                    else
+                        noInfinite = true
+                        lib:RepositionFrame(CompactRaidFrameManager)
+                        if not (IsInGroup() or IsInRaid()) then
+                            CompactRaidFrameManager:Hide()
+                        end
+                        noInfinite = false
+                    end
+                end)
+                hooksecurefunc(CompactRaidFrameManager, "Show", function()
+                    if noInfinite then return end
+                    if InCombatLockdown() then return end
+                    if not EditModeManagerFrame.editModeActive then
+                        noInfinite = true
+                        lib:RepositionFrame(CompactRaidFrameManager)
+                        if not (IsInGroup() or IsInRaid()) then
+                            CompactRaidFrameManager:Hide()
+                        end
+                        noInfinite = false
+                    end
+                end)
+                
+            end
+        end
+    elseif (event == "ADDON_LOADED") and (arg1 == "Blizzard_AuctionHouseUI") and (not ahLoaded) then
+        ahLoaded = true
+        local db = f.db.global
+        
+        if db.EMEOptions.auctionMultisell then
+            local alreadyInitialized
+            AuctionHouseMultisellProgressFrame:HookScript("OnShow", function()
+                if alreadyInitialized then
+                    lib:RepositionFrame(AuctionHouseMultisellProgressFrame)
+                    return
+                end
+                alreadyInitialized = true
+                lib:RegisterFrame(AuctionHouseMultisellProgressFrame, "拍賣場批次賣出", db.AuctionHouseMultisellProgressFrame)
+                hooksecurefunc(UIParentBottomManagedFrameContainer, "Layout", function()
+                    lib:RepositionFrame(AuctionHouseMultisellProgressFrame)
+                end)
+            end)
+        end
     end
 end)
 
 f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_TOTEM_UPDATE")
+f:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
