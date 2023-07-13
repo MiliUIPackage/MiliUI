@@ -2,7 +2,7 @@
 ## Title: tullaRange Config
 ## Notes: GUI based configuration for tullaRange
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷列著色 (設置)
-## Notes-zhTW: tullaRange|n快捷列著色設定介面
+## Notes-zhTW:  tullaRange Config |n|n提供射程著色圖形介面的設定選項功能。|n|n|cffffd200使用方法: |r從Esc>選項>插件>快捷列-著色，進行設定。
 ## X-Category-zhTW: 介面
 ## Author: Tuller
 ## Dependencies: tullaRange

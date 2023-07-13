@@ -3,10 +3,14 @@
 ## Author: Tuller
 ## Notes: Out of range coloring based on RedRange
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷列著色
-## Notes-zhTW: tullaRange|n將超出範圍、法力、能量、集中值不足的按鍵著色。
+## Notes-zhTW:  tullaRange |n|n超出射程時，快捷列圖示會顯示紅色。能量不足時顯示藍色，技能無法使用時顯示灰色。|n|n|cffffd200使用方法: |r從Esc>選項>插件>快捷列-著色，進行設定。
 ## X-Category-zhTW: 介面
-## Version: 10.1.0
+## Version: 10.1.5
 ## SavedVariables: TULLARANGE_COLORS
 ## IconTexture: Interface/Icons/Inv_misc_punchcards_red
 ## AddonCompartmentFunc: tullaRange_Launch
+attackFlash.lua
+actionState.lua
+updater.modern.lua
+updater.classic.lua
 tullaRange.lua
