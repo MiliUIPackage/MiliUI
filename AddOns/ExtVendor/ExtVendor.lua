@@ -205,8 +205,8 @@ function ExtVendor_OnUpdate(self, elapsed)
         ExtVendor_UpdateDisplay();
         ONSHOW_QUEUE_STATE = 2;
     elseif (ONSHOW_QUEUE_STATE == 2) then
-        OpenAllBags(self);
-        ContainerFrame_UpdateAll();
+        -- OpenAllBags(self); -- 汙染問題
+        -- ContainerFrame_UpdateAll(); -- 汙染問題
         ONSHOW_QUEUE_STATE = 3;
     elseif (ONSHOW_QUEUE_STATE == 3) then
         ExtVendor_StartQuickVendorRefresh();
@@ -265,7 +265,7 @@ function ExtVendor_Setup()
     ExtVendor_CheckSetting("hide_known_recipes", true);
     ExtVendor_CheckSetting("stockfilter_defall", false);
     ExtVendor_CheckSetting("show_load_message", false);
-    ExtVendor_CheckSetting("enable_quickvendor", true);
+    ExtVendor_CheckSetting("enable_quickvendor", false); -- 顯示快速賣出按鈕
     ExtVendor_CheckSetting("filter_purchased_recipes", true);
     ExtVendor_CheckSetting("high_performance", false);
     ExtVendor_CheckSetting("hide_known_heirlooms", true);
@@ -721,7 +721,7 @@ function ExtVendor_UpdateMerchantInfo(isPageScroll)
 	-- Show all merchant related items
 	MerchantBuyBackItem:Show();
 	MerchantFrameBottomLeftBorder:Show();
-	MerchantFrameBottomRightBorder:Show();
+	-- MerchantFrameBottomRightBorder:Show();
 
 	-- Hide buyback related items
     for i = 13, MERCHANT_ITEMS_PER_PAGE, 1 do
@@ -778,12 +778,15 @@ function ExtVendor_RebuildMerchantFrame()
     -- Thank you Blizzard for making the frame dynamically resizable for me. :D
 
     -- retexture the border element around the repair/buyback spots on the merchant tab
-    MerchantFrameBottomLeftBorder:SetTexture("Interface\\AddOns\\ExtVendor\\textures\\bottomborder");
-    MerchantFrameBottomRightBorder:SetTexture("Interface\\AddOns\\ExtVendor\\textures\\bottomborder");
+    -- MerchantFrameBottomLeftBorder:SetTexture("Interface\\AddOns\\ExtVendor\\textures\\bottomborder"); -- 10.1.5 fix
+    -- MerchantFrameBottomRightBorder:SetTexture("Interface\\AddOns\\ExtVendor\\textures\\bottomborder");
 
     -- alter the position of the buyback item slot on the merchant tab
     MerchantBuyBackItem:ClearAllPoints();
-    MerchantBuyBackItem:SetPoint("TOPLEFT", MerchantItem10, "BOTTOMLEFT", -14, -20);
+    MerchantBuyBackItem:SetPoint("TOPLEFT", MerchantItem10, "BOTTOMLEFT", 18, -20); -- 10.1.5 fix
+	
+	MerchantBuyBackItemMoneyFrame:ClearAllPoints();
+    MerchantBuyBackItemMoneyFrame:SetPoint("TOPLEFT", MerchantBuyBackItem, "BOTTOMLEFT", 2, -12); 
 
     -- move the next/previous page buttons
     MerchantPrevPageButton:ClearAllPoints();

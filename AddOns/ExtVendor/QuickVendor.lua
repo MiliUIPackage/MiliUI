@@ -43,11 +43,14 @@ end
 
 function ExtVendor_DoQuickVendorRefresh()
     local processed = 0;
-    local __, count, isJunk, junkInfo, detail;
+    local __, count, isJunk, junkInfo, detail, cInfo;
     while true do
         if (processed >= 20) then break; end
         if (REFRESH_CURRENT_SLOT <= REFRESH_SLOTS_IN_BAG) then
-            __, count = C_Container.GetContainerItemInfo(REFRESH_CURRENT_BAG, REFRESH_CURRENT_SLOT);
+			-- __, count = C_Container.GetContainerItemInfo(REFRESH_CURRENT_BAG, REFRESH_CURRENT_SLOT);
+			cInfo = C_Container.GetContainerItemInfo(REFRESH_CURRENT_BAG, REFRESH_CURRENT_SLOT); -- 10.0.2 fix
+            count = (cInfo and cInfo.stackCount) or 0;
+			
             if (count) then
                 isJunk, junkInfo, isBlacklisted, detail = ExtVendor_IsContainerItemJunk(REFRESH_CURRENT_BAG, REFRESH_CURRENT_SLOT);
                 if (isJunk) then
@@ -101,18 +104,20 @@ function ExtVendor_StartQuickVendor(self)
 end
 
 function ExtVendor_IsContainerItemJunk(bag, slot)
-    local __, count = C_Container.GetContainerItemInfo(bag, slot);
+    -- local __, count = C_Container.GetContainerItemInfo(bag, slot);
+	local cInfo = C_Container.GetContainerItemInfo(bag, slot);
+	local count = (cInfo and cInfo.stackCount) or 0;
     local iDetail;
     if (count) then
         local link = C_Container.GetContainerItemLink(bag, slot);
         if (link) then
-            local isKnown, reqClasses, itemId, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
-			local itemName, __, itemQuality, itemLevel, itemReqLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expacID, setID, isCraftingReagent = GetItemInfo(item) 
-            --local name, __, itemQuality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassId, itemSubClassId, bindType, expacID = GetItemInfo(link);
+            local isKnown, reqClasses, itemID, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
+			local itemName, __, itemQuality, itemLevel, itemReqLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expacID, setID, isCraftingReagent = GetItemInfo(link) 
+            --local name, __, itemQuality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassID, itemSubClassID, bindType, expacID = GetItemInfo(link);
             
             -- make sure the item has a vendor price
             if ((price or 0) > 0) then
-                local isJunk, reason, detail = ExtVendor_IsItemQuickVendor(bag, slot, link, itemQuality, itemLevel, itemReqLevel, bindType, isKnown, classId, subClassId, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink);
+                local isJunk, reason, detail = ExtVendor_IsItemQuickVendor(bag, slot, link, itemQuality, itemLevel, itemReqLevel, bindType, isKnown, classID, subClassID, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink);
                 
                 if (detail) then
                     iDetail = { link = link, isJunk = isJunk, reason = detail };
@@ -126,7 +131,7 @@ function ExtVendor_IsContainerItemJunk(bag, slot)
 
                 -- if the item meets requirements, add it to the list
                 if (isJunk) then
-                    return isJunk, {id = itemId, name = name, quality = quality, count = count, maxStack = maxStack, stackPrice = count * price, reason = reason}, false, iDetail;
+                    return isJunk, {id = itemID, name = name, quality = quality, count = count, maxStack = maxStack, stackPrice = count * price, reason = reason}, false, iDetail;
                 end
                 return false, nil, false, iDetail;
             else
@@ -142,7 +147,7 @@ end
 -- quick-vendor based on quality, type,
 -- if it is already known, soulbound
 --========================================
-function ExtVendor_IsItemQuickVendor(bag, bagSlot, link, quality, itemLevel, itemReqLevel, bindType, alreadyKnown, itemClassId, itemSubClassId, equipSlot, requiredClasses, isAccountBound, expacID, isFoodOrDrink)
+function ExtVendor_IsItemQuickVendor(bag, bagSlot, link, quality, itemLevel, itemReqLevel, bindType, alreadyKnown, itemClassID, itemSubClassID, equipSlot, requiredClasses, isAccountBound, expacID, isFoodOrDrink)
     local itemID = ExtVendor_GetItemID(link);
     local idx, id;
 
@@ -171,7 +176,7 @@ function ExtVendor_IsItemQuickVendor(bag, bagSlot, link, quality, itemLevel, ite
         return false, nil, "Quality too high";
     end
     -- don't vendor equipment if it's part of an equipment set
-    if ((itemClassId == Enum.ItemClass.Armor) or (itemClassId == Enum.ItemClass.Weapon)) then
+    if ((itemClassID == Enum.ItemClass.Armor) or (itemClassID == Enum.ItemClass.Weapon)) then
         if (ExtVendor_IsItemInEquipmentSet(bag, bagSlot)) then return false, nil, "Part of equipment set"; end
     end
     -- *** Poor (grey) items ***
@@ -181,14 +186,14 @@ function ExtVendor_IsItemQuickVendor(bag, bagSlot, link, quality, itemLevel, ite
     -- *** Common (white) gear ***
     if (EXTVENDOR_DATA['config']['quickvendor_whitegear']) then
         if (quality == 1) then
-            if (itemClassId == Enum.ItemClass.Armor) then
-                if ((itemSubClassId == Enum.ItemArmorSubclass.Cloth) or (itemSubClassId == Enum.ItemArmorSubclass.Leather) or (itemSubClassId == Enum.ItemArmorSubclass.Mail) or (itemSubClassId == Enum.ItemArmorSubclass.Plate)) then
+            if (itemClassID == Enum.ItemClass.Armor) then
+                if ((itemSubClassID == Enum.ItemArmorSubclass.Cloth) or (itemSubClassID == Enum.ItemArmorSubclass.Leather) or (itemSubClassID == Enum.ItemArmorSubclass.Mail) or (itemSubClassID == Enum.ItemArmorSubclass.Plate)) then
                     if ((equipSlot ~= "INVTYPE_TABARD") and (equipSlot ~= "INVTYPE_SHIRT")) then
                         return true, L["QUICKVENDOR_REASON_WHITEGEAR"], "Common (white) armor";
                     end
                 end
-            elseif (itemClassId == Enum.ItemClass.Weapon) then
-                if ((itemSubClassId ~= Enum.ItemWeaponSubclass.Generic) and (itemSubClassId ~= Enum.ItemWeaponSubclass.Fishingpole)) then
+            elseif (itemClassID == Enum.ItemClass.Weapon) then
+                if ((itemSubClassID ~= Enum.ItemWeaponSubclass.Generic) and (itemSubClassID ~= Enum.ItemWeaponSubclass.Fishingpole)) then
                     return true, L["QUICKVENDOR_REASON_WHITEGEAR"], "Common (white) weapon";
                 end
             end
@@ -214,21 +219,21 @@ function ExtVendor_IsItemQuickVendor(bag, bagSlot, link, quality, itemLevel, ite
             if (not ExtVendor_ClassIsAllowed(UnitClass("player"), requiredClasses)) then
                 return true, L["QUICKVENDOR_REASON_CLASSRESTRICTED"], "Class restricted";
             end
-            if (not ExtVendor_IsUsableArmorType(itemClassId, itemSubClassId, equipSlot)) then
+            if (not ExtVendor_IsUsableArmorType(itemClassID, itemSubClassID, equipSlot)) then
                 return true, L["QUICKVENDOR_REASON_UNUSABLEARMOR"], "Unusable armor";
             end
-            if (not ExtVendor_IsUsableWeaponType(itemClassId, itemSubClassId, equipSlot)) then
+            if (not ExtVendor_IsUsableWeaponType(itemClassID, itemSubClassID, equipSlot)) then
                 return true, L["QUICKVENDOR_REASON_UNUSABLEWEAPON"], "Unusable weapon";
             end
         end
         -- *** Sub-optimal armor ***
         if (EXTVENDOR_DATA['config']['quickvendor_suboptimal']) then
-            if (not ExtVendor_IsOptimalArmor(itemClassId, itemSubClassId, equipSlot)) then
+            if (not ExtVendor_IsOptimalArmor(itemClassID, itemSubClassID, equipSlot)) then
                 return true, L["QUICKVENDOR_REASON_SUBOPTIMAL"], "Sub-optimal armor";
             end
         end
         -- *** Outdated gear ***
-        if (((quality == 3) or (quality == 4)) and ((itemClassId == Enum.ItemClass.Armor) or (itemClassId == Enum.ItemClass.Weapon)) and (equipSlot ~= "")) then
+        if (((quality == 3) or (quality == 4)) and ((itemClassID == Enum.ItemClass.Armor) or (itemClassID == Enum.ItemClass.Weapon)) and (equipSlot ~= "")) then
             if (EXTVENDOR_DATA['config']['quickvendor_oldgear']) then
                 -- always ignore items from the account's expansion level (or higher)
                 if (expacID < GetAccountExpansionLevel()) then
@@ -250,8 +255,8 @@ end
 -- Performs quick-vendor
 --========================================
 function ExtVendor_ConfirmQuickVendor()
-    local link, count, itemName, color, itemQuality, itemLevel, itemMinLevel, sellPrice, itemStackCount, quantity, bindType, expacID, itemType, itemSubType, classId, subClassId, itemEquipLoc, itemTexture, setID, isCraftingReagent, __;
-    local isKnown, reqClasses, itemId, isAccountBound, isFoodOrDrink;
+    local cInfo, link, count, itemName, color, itemQuality, itemLevel, itemMinLevel, sellPrice, itemStackCount, quantity, bindType, expacID, itemType, itemSubType, classID, subClassID, itemEquipLoc, itemTexture, setID, isCraftingReagent, __;
+    local isKnown, reqClasses, itemID, isAccountBound, isFoodOrDrink;
     local bag, slot;
     local totalPrice = 0;
     local itemsOnLine = 0;
@@ -273,19 +278,21 @@ function ExtVendor_ConfirmQuickVendor()
 
     -- otherwise just do it the old way
     for bag = 0, 4, 1 do
-        if (GetContainerNumSlots(bag)) then
+        if (C_Container.GetContainerNumSlots(bag)) then
             for slot = 1, C_Container.GetContainerNumSlots(bag), 1 do
-                __, count = C_Container.GetContainerItemInfo(bag, slot);
+                -- __, count = C_Container.GetContainerItemInfo(bag, slot);
+				cInfo = C_Container.GetContainerItemInfo(bag, slot);
+				count = (cInfo and cInfo.stackCount) or 0;
                 link = C_Container.GetContainerItemLink(bag, slot);
                 if (link and count) then
 					itemName, __, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expacID, setID, isCraftingReagent = GetItemInfo(item) 
-                    --name, __, quality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassId, subClassId, bindType, expacID = GetItemInfo(link) 
-                    isKnown, reqClasses, itemId, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
+                    --name, __, quality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassID, subClassID, bindType, expacID = GetItemInfo(link) 
+                    isKnown, reqClasses, itemID, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
 
                     if ((sellPrice or 0) > 0) then
-                        if (ExtVendor_IsItemQuickVendor(bag, slot, link, itemQ, itemLevel, itemMinLevel, bindType, isKnown, classId, subClassId, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink)) then
+                        if (ExtVendor_IsItemQuickVendor(bag, slot, link, itemQ, itemLevel, itemMinLevel, bindType, isKnown, classID, subClassID, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink)) then
                             C_Container.PickupContainerItem(bag, slot);
-                            C_Container.PickupMerchantItem(0);
+                            PickupMerchantItem(0);
                             __, __, __, color = GetItemQualityColor(itemQ);
                             if (itemsOnLine > 0) then
                                 itemsSold = itemsSold .. ", ";
@@ -336,8 +343,8 @@ function ExtVendor_ProgressQuickVendor()
         return nil;
     end
     
-    local link, count, itemName, color, itemQuality, itemLevel, itemMinLevel, sellPrice, itemStackCount, quantity, bindType, expacID, itemType, itemSubType, itemEquipLoc, classId, subClassId, itemTexture, setID, isCraftingReagent, __;
-    local isKnown, reqClasses, itemId, isAccountBound, isFoodOrDrink;
+    local Info, locked, link, count, itemName, color, itemQuality, itemLevel, itemMinLevel, sellPrice, itemStackCount, quantity, bindType, expacID, itemType, itemSubType, itemEquipLoc, classID, subClassID, itemTexture, setID, isCraftingReagent, __;
+    local isKnown, reqClasses, itemID, isAccountBound, isFoodOrDrink;
     local bag, slot;
     local totalPrice = 0;
     local itemsOnLine = 0;
@@ -353,16 +360,19 @@ function ExtVendor_ProgressQuickVendor()
             
                 if (not CANCEL) then
 
-                    __, itemCount, locked = C_Container.GetContainerItemInfo(bag, slot);
+                    -- __, itemCount, locked = C_Container.GetContainerItemInfo(bag, slot);
+                    cInfo = C_Container.GetContainerItemInfo(bag, slot);
+					count = cInfo and cInfo.stackCount;
+                    locked = cInfo and cInfo.isLocked;
                     if (not locked) then
-                        link = GetContainerItemLink(bag, slot);
+                        link = C_Container.GetContainerItemLink(bag, slot);
                         if (link and count) then
 							itemName, __, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expacID, setID, isCraftingReagent = GetItemInfo(item) 
-                            --name, __, quality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassId, itemSubClassId, bindType, expacID = C_Container.GetItemInfo(link);
-                            isKnown, reqClasses, itemId, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
+                            --name, __, quality, itemLevel, itemReqLevel, itemType, itemSubType, maxStack, itemEquipLoc, __, price, itemClassID, itemSubClassID, bindType, expacID = C_Container.GetItemInfo(link);
+                            isKnown, reqClasses, itemID, isAccountBound, isFoodOrDrink = ExtVendor_GetExtendedItemInfo(link);
 
                             if ((sellPrice or 0) > 0) then
-                                if (ExtVendor_IsItemQuickVendor(bag, slot, link, itemQuality, itemLevel, itemMinLevel, bindType, isKnown, classId, subClassId, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink)) then
+                                if (ExtVendor_IsItemQuickVendor(bag, slot, link, itemQuality, itemLevel, itemMinLevel, bindType, isKnown, classID, subClassID, itemEquipLoc, reqClasses, isAccountBound, expacID, isFoodOrDrink)) then
                                     C_Container.PickupContainerItem(bag, slot);
                                     PickupMerchantItem(0);
                                     __, __, __, color = GetItemQualityColor(itemQuality);
@@ -418,10 +428,10 @@ end
 -- Returns whether or not the specified
 -- item ID is blacklisted
 --========================================
-function ExtVendor_IsBlacklisted(itemId)
+function ExtVendor_IsBlacklisted(itemID)
 
     for idx, id in pairs(EXTVENDOR_DATA['quickvendor_blacklist']) do
-        if (id == itemId) then
+        if (id == itemID) then
             return true;
         end
     end
@@ -434,15 +444,15 @@ end
 -- Returns whether or not the specified
 -- item ID is whitelisted
 --========================================
-function ExtVendor_IsWhitelisted(itemId, globalOnly)
+function ExtVendor_IsWhitelisted(itemID, globalOnly)
     for idx, id in pairs(EXTVENDOR_DATA['quickvendor_whitelist']) do
-        if (id == itemId) then
+        if (id == itemID) then
             return true;
         end
     end
     if (not globalOnly) then
         for idx, id in pairs(EXTVENDOR_DATA[EXTVENDOR.Profile]['quickvendor_whitelist']) do
-            if (id == itemId) then
+            if (id == itemID) then
                 return true;
             end
         end
@@ -455,9 +465,10 @@ end
 -- depending on configuration
 --========================================
 function ExtVendor_UpdateQuickVendorButtonVisibility()
-    if (EXTVENDOR_DATA['config']['enable_quickvendor']) then
-        MerchantFrameSellJunkButton:Show();
-    else
+	-- 快速賣出按鈕目前沒有功能，一律隱藏
+    -- if (EXTVENDOR_DATA['config']['enable_quickvendor']) then
+    --    MerchantFrameSellJunkButton:Show();
+    -- else
         MerchantFrameSellJunkButton:Hide();
-    end
+    -- end
 end
