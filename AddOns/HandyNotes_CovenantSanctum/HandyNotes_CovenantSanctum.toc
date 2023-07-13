@@ -1,4 +1,4 @@
-## Interface: 100100
+## Interface: 100105
 ## Title: HandyNotes: CovenantSanctum
 ## Notes: Shows the NPC and POI locations in your covenant sanctum.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-誓盟聖所

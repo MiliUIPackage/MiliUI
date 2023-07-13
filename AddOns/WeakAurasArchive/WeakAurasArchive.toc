@@ -1,4 +1,4 @@
-## Interface: 100100
+## Interface: 100105
 ## Title: WeakAuras Archive
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r WeakAuras Archive
 ## Notes-zhTW: WeakAuras Archive |nWA技能提醒的資料記錄

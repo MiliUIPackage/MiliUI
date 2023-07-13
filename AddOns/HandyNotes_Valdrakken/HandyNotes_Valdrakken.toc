@@ -1,4 +1,4 @@
-## Interface: 100100
+## Interface: 100105
 ## Title: HandyNotes: Valdrakken
 ## Notes: Shows the NPC and POI locations in Valdrakken.
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r

@@ -1,4 +1,4 @@
-## Interface: 100100
+## Interface: 100105
 ## Title: Mythic+ Gearing Conveniences
 ## Author: Teelo - Jubei'thos (US)
 ## Version: 10.1-004
