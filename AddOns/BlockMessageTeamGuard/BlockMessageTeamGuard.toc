@@ -1,0 +1,13 @@
+## Interface: 100105
+## Version: v1.4
+## IconTexture: Interface\Icons\inv_misc_bomb_04
+## Title: BlockMessageTeamGuard
+## Notes: BlockMessageTeamGuard V1.4
+## Title-zhTW: |r|cFFFFFFFF[其他]|r 工作室過濾
+## Notes-zhTW: BlockMessageTeamGuard |n過濾陌生人組隊與工作室訊息。
+## SavedVariables: LP_DB
+## X-Curse-Project-ID: 831610
+
+enUS.lua
+zhTW.lua
+zhCN.lua
