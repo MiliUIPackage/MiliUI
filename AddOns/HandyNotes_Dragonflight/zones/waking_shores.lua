@@ -14,7 +14,6 @@ local Treasure = ns.node.Treasure
 local AncientStone = ns.node.AncientStone
 local Disturbeddirt = ns.node.Disturbeddirt
 local Dragonglyph = ns.node.Dragonglyph
-local Dragonrace = ns.node.Dragonrace
 local ElementalStorm = ns.node.ElementalStorm
 local ElusiveCreature = ns.node.ElusiveCreature
 local Flag = ns.node.Flag
@@ -123,7 +122,8 @@ map.nodes[52916529] = Rare({
     rewards = {
         Achievement({id = 16676, criteria = 56038}),
         Transmog({item = 200133, slot = L['fist']}), -- Volcanic Chakram
-        DC.RenewedProtoDrake.ImpalerHorns
+        DC.RenewedProtoDrake.ImpalerHorns, DC.HighlandDrake.ToothyMouth,
+        DC.CliffsideWylderdrake.HeadMane, DC.HighlandDrake.ManedHead
     },
     pois = {
         Path({
@@ -529,7 +529,8 @@ map.nodes[34578950] = Rare({
         Achievement({id = 16676, criteria = 57003}),
         Transmog({item = 200189, slot = L['plate']}), -- Hydroforged Shell Helm
         Transmog({item = 200245, slot = L['2h_mace']}), -- Leviathan Lure
-        Transmog({item = 200187, slot = L['staff']}) -- Rod of Glacial Force
+        Transmog({item = 200187, slot = L['staff']}), -- Rod of Glacial Force
+        DC.HighlandDrake.FinnedBack
     },
     pois = {POI({36028984})} -- Entrance
 }) -- Slurpo, the Incredible Snail
@@ -1340,7 +1341,10 @@ map.nodes[26628764] = Scoutpack()
 map.nodes[28868321] = Scoutpack()
 map.nodes[29715467] = Scoutpack()
 map.nodes[30468098] = Scoutpack()
+map.nodes[32455283] = Scoutpack()
 map.nodes[32465665] = Scoutpack()
+map.nodes[34955089] = Scoutpack({location = cave})
+map.nodes[35015079] = Scoutpack({location = cave})
 map.nodes[37859241] = Scoutpack()
 map.nodes[38139017] = Scoutpack()
 map.nodes[41256689] = Scoutpack()
@@ -1348,7 +1352,9 @@ map.nodes[43345237] = Scoutpack()
 map.nodes[43506130] = Scoutpack({location = cave})
 map.nodes[44448825] = Scoutpack()
 map.nodes[44495926] = Scoutpack()
+map.nodes[32425431] = Scoutpack()
 map.nodes[45663986] = Scoutpack()
+map.nodes[45813518] = Scoutpack({location = cave})
 map.nodes[45985884] = Scoutpack()
 map.nodes[46244006] = Scoutpack()
 map.nodes[47164139] = Scoutpack()
@@ -1386,7 +1392,6 @@ local DjaradinCache = Class('DjaradinCache', ns.node.Node, {
     group = ns.groups.DJARADIN_CACHE,
     rewards = {
         Item({item = 191784}), -- Dragon Shard of Knowledge
-        Item({item = 190454}), -- Primal Chaos
         Transmog({item = 201035, slot = L['cosmetic']}), -- Citadel Crushers Pauldrons
         Transmog({item = 201036, slot = L['cosmetic']}), -- Citadel Crushers Chestplate
         Transmog({item = 201037, slot = L['cosmetic']}), -- Citadel Crushers Legguards
@@ -1524,154 +1529,6 @@ map.nodes[69606550] = ns.node.SimmeringChest()
 map.nodes[54808020] = ns.node.FrostboundChest()
 map.nodes[55208110] = ns.node.FrostboundChest()
 map.nodes[55608340] = ns.node.FrostboundChest()
-
--------------------------------------------------------------------------------
---------------------------------- DRAGONRACES ---------------------------------
--------------------------------------------------------------------------------
-
-map.nodes[63327090] = Dragonrace({
-    label = '{quest:66679}',
-    normal = {2042, 66, 64},
-    advanced = {2044, 57, 52},
-    reverse = {2154, 55, 50},
-    rewards = {
-        Achievement({id = 15915, criteria = 1, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 1, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 1, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 1, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 1, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 1, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 1, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 1, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 1, oneline = true}) -- reverse gold
-    }
-}) -- Ruby Lifeshrine Loop
-
-map.nodes[47018558] = Dragonrace({
-    label = '{quest:66721}',
-    normal = {2048, 45, 43},
-    advanced = {2049, 45, 40},
-    reverse = {2176, 46, 41},
-    rewards = {
-        Achievement({id = 15915, criteria = 2, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 2, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 2, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 2, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 2, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 2, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 2, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 2, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 2, oneline = true}) -- reverse gold
-    }
-}) -- Wild Preserve Slalom
-
-map.nodes[41976730] = Dragonrace({
-    label = '{quest:66727}',
-    normal = {2052, 53, 47},
-    advanced = {2053, 49, 44},
-    reverse = {2177, 50, 45},
-    rewards = {
-        Achievement({id = 15915, criteria = 3, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 3, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 3, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 3, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 3, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 3, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 3, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 3, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 3, oneline = true}) -- reverse gold
-    }
-}) -- Emberflow Flight
-
-map.nodes[23268430] = Dragonrace({
-    label = '{quest:66732}',
-    normal = {2054, 56, 48},
-    advanced = {2055, 50, 45},
-    reverse = {2178, 53, 48},
-    rewards = {
-        Achievement({id = 15915, criteria = 4, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 4, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 4, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 4, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 4, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 4, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 4, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 4, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 4, oneline = true}) -- reverse gold
-    }
-}) -- Apex Canopy River Run
-
-map.nodes[55454113] = Dragonrace({
-    label = '{quest:66777}',
-    normal = {2056, 48, 43},
-    advanced = {2057, 45, 40},
-    reverse = {2179, 48, 43},
-    rewards = {
-        Achievement({id = 15915, criteria = 5, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 5, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 5, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 5, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 5, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 5, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 5, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 5, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 5, oneline = true}) -- reverse gold
-    }
-}) -- Uktulut Coaster
-
-map.nodes[73203393] = Dragonrace({
-    label = '{quest:66786}',
-    normal = {2058, 56, 53},
-    advanced = {2059, 58, 53},
-    reverse = {2180, 61, 56},
-    rewards = {
-        Achievement({id = 15915, criteria = 6, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 6, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 6, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 6, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 6, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 6, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 6, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 6, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 6, oneline = true}) -- reverse gold
-    }
-}) -- Wingrest Roundabout
-
-map.nodes[62777400] = Dragonrace({
-    label = '{quest:66710}',
-    normal = {2046, 66, 63},
-    advanced = {2047, 66, 61},
-    reverse = {2181, 65, 60},
-    rewards = {
-        Achievement({id = 15915, criteria = 7, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 7, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 7, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 7, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 7, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 7, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 7, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 7, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 7, oneline = true}) -- reverse gold
-    }
-}) -- Flashfrost Flyover
-
-map.nodes[42599443] = Dragonrace({
-    label = '{quest:66725}',
-    normal = {2050, 43, 41},
-    advanced = {2051, 43, 38},
-    reverse = {2182, 46, 41},
-    rewards = {
-        Achievement({id = 15915, criteria = 8, oneline = true}), -- normal bronze
-        Achievement({id = 15916, criteria = 8, oneline = true}), -- normal silver
-        Achievement({id = 15917, criteria = 8, oneline = true}), -- normal gold
-        Achievement({id = 15927, criteria = 8, oneline = true}), -- advanced bronze
-        Achievement({id = 15928, criteria = 8, oneline = true}), -- advanced silver
-        Achievement({id = 15929, criteria = 8, oneline = true}), -- advanced gold
-        Achievement({id = 17195, criteria = 8, oneline = true}), -- reverse bronze
-        Achievement({id = 17196, criteria = 8, oneline = true}), -- reverse silver
-        Achievement({id = 17197, criteria = 8, oneline = true}) -- reverse gold
-    }
-}) -- Wild Preserve Circuit
 
 -------------------------------------------------------------------------------
 --------------------- TO ALL THE SQUIRRELS HIDDEN TIL NOW ---------------------
@@ -2675,6 +2532,25 @@ map.nodes[22809500] = Collectible({
         -- LuaFormatter on
     }
 }) -- Pet: Bugbiter Tortoise
+
+---------------------------- PET: MOTE OF NASZ'URO ----------------------------
+
+map.nodes[22848841] = ns.node.MoteOfNaszuro({
+    quest = 76184,
+    note = L['naszuro_apex_canopy']
+}) -- Apex Canopy
+map.nodes[24155556] = ns.node.MoteOfNaszuro({
+    quest = 76185,
+    note = L['naszuro_obsidian_throne']
+}) -- Obsidian Throne
+map.nodes[58506765] = ns.node.MoteOfNaszuro({
+    quest = 76186,
+    note = L['naszuro_ruby_lifeshrine']
+}) -- Ruby Lifeshrine
+map.nodes[63894481] = ns.node.MoteOfNaszuro({
+    quest = 76187,
+    note = L['naszuro_dragonheart_outpost']
+}) -- Dragonheart Outpost
 
 ----------------------------- MISCELLANEOUS NPCs ------------------------------
 

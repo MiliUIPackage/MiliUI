@@ -1,15 +1,15 @@
 ## Interface: 100105
 ## Title: HandyNotes: Dragonflight
-## Version: 37a
+## Version: 40
 ## Notes: Dragonflight Notes
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍崛起
+## Notes-zhTW: HandyNotes: Dragonflight |n巨龍崛起的各種地圖標記
 ## OptionalDeps: Ace3
-## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍群島
-## Notes-zhTW: HandyNotes: Dragonflight |n在地圖上顯示巨龍群島的寶藏和稀有怪位置。
-## X-Category-zhTW: 地圖
 ## RequiredDeps: HandyNotes
 ## X-Embeds: Ace3
 ## SavedVariables: HandyNotes_DragonflightDB
 ## IconTexture: 4640486
+## X-Category: 地圖
 
 embeds.xml
 core\core.xml

@@ -57,14 +57,6 @@ L['tuskarr_tacklebox'] = '巨牙海民釣具箱'
 L['options_icons_tuskarr_tacklebox'] = '巨牙海民釣具箱'
 L['options_icons_tuskarr_tacklebox_desc'] = '顯示 {object:巨牙海民釣具箱} 可能的位置'
 
-L['dr_best'] = '你的最快時間:\n - 普通: %.3fs\n - 進階: %.3fs\n - 反向: %.3fs'
-L['dr_best_dash'] = '你的最佳時間:\n - %.3fs'
-L['dr_note'] = '目標時間:\n - 普通: %ss / %ss\n - 進階: %ss / %ss\n - 反向: %ss / %ss'
-L['dr_note_dash'] = '目標時間:\n - %ss / %ss'
-L['dr_bronze'] = '\n\n完成賽事來取得 ' .. ns.color.Bronze('銅牌') .. '.'
-L['options_icons_dragonrace'] = '飛龍競速'
-L['options_icons_dragonrace_desc'] = '顯示區域內所有飛龍競速的位置.'
-
 L['squirrels_note'] = '你必須對小動物而不是戰寵使用表情 {emote:/love}'
 L['options_icons_squirrels'] = '{achievement:16729}'
 L['options_icons_squirrels_desc'] = '顯示 {achievement:16729} 成就中小動物的位置。'
@@ -133,9 +125,9 @@ L['the_best_at_what_i_do_suffix'] = '首領已擊殺'
 L['options_icons_grand_hunts'] = '大狩獵'
 L['options_icons_grand_hunts_desc'] = '顯示 {object:大狩獵} 的位置和獎勵.'
 
-L['ancient_stone_label'] = nil
+L['ancient_stone_label'] = '遠古之石'
 L['options_icons_ancient_stones'] = '{achievement:17560}'
-L['options_icons_ancient_stones_desc'] = nil
+L['options_icons_ancient_stones_desc'] = '顯示 {achievement:17560} 成就中 {object:遠古之石} 的位置。'
 
 L['reed_chest'] = '蘆葦箱子'
 L['options_icons_reed_chest'] = '蘆葦箱子'
@@ -157,7 +149,7 @@ L['options_icons_frostbound_chest_desc'] = '顯示 {object:霜縛寶箱} 可能�
 ------------------------------- THE AZURE SPAN --------------------------------
 -------------------------------------------------------------------------------
 
-L['bisquis_note'] = '在 {location:伊斯凱拉} 的集體盛宴煮出傳奇級後打敗 {npc:197557}.'
+L['bisquis_note'] = '在 {location:伊斯凱拉} 的集體盛宴煮出傳奇級後打敗 {npc:197557}。'
 L['blightfur_note'] = '和 {npc:193633} 交談來召喚稀有'
 L['brackenhide_rare_note'] = '這些稀有會有10分鐘的間隔以 {npc:197344} > {npc:197353} > {npc:197354} > {npc:197356} 的順序刷新。'
 L['fisherman_tinnak_note'] = '收集{object:破損的釣魚竿}, {object:破損的捕漁網} 和 {object:舊魚叉}來召喚稀有.'
@@ -247,8 +239,9 @@ L['options_icons_tuskarr_chest'] = '巨牙海民寶箱'
 L['options_icons_tuskarr_chest_desc'] = '顯示 {object:巨牙海民寶箱} 可能的位置.'
 
 L['community_feast_label'] = '{spell:388961}'
+L['tasks_completed_suffix'] = '烹飪任務已完成'
 L['options_icons_community_feast'] = '{spell:388961}'
-L['options_icons_community_feast_desc'] = '顯示 {spell:388961} 的位置和獎勵.'
+L['options_icons_community_feast_desc'] = '顯示 {spell:388961} 的位置和獎勵。'
 
 L['decay_covered_chest'] = '覆滿腐敗的箱子'
 L['options_icons_decay_covered_chest'] = '覆滿腐敗的箱子'
@@ -261,6 +254,13 @@ L['options_icons_icemaw_storage_cache_desc'] = '顯示 {object:冰喉儲藏所} 
 L['kazzi_note_start'] = '使用 {item:202017} 和 {item:202018} 交換塑形, 飛龍自訂, 一隻寵物, 和更多.'
 L['kazzi_note_item'] = '你現在有 %s 個 {item:%s}.'
 L['kazzi_achievement_suffix'] = '東毛語等級'
+
+L['naszuro_vakthros'] = '在塔的頂端.'
+L['naszuro_imbu'] = '在樹樁上.'
+L['naszuro_azure_archives'] = '在山的側邊一個小石頭上.'
+L['naszuro_hudsons_rock'] = '在小石丘的頂端.'
+
+L['ferry_to_iskaara'] = '乘船前往伊斯凱拉'
 
 -------------------------------------------------------------------------------
 ------------------ FORBIDDEN REACH (DRACTHYR STARTING ZONE) -------------------
@@ -392,6 +392,8 @@ L['renown_envoy_label'] = '名望特使'
 L['renown_envoy_note'] = '使用 {currency:2118} 或金幣交換坐騎, 寵物, 塑型, 飛龍自訂, 配方和其他有用物品.\n\n從 {npc:200566} 處用 2000個 {currency:2118} 購買 {item:204383} 有機率開到 {item:191915}.'
 L['trader_hagarth_note'] = '使用 {item:190456} 交換工匠珍品設計圖.'
 
+L['naszuro_caldera_of_the_menders'] = '在塔的頂端.'
+
 -------------------------------------------------------------------------------
 ------------------------------ OHN'AHRAN PLAINS -------------------------------
 -------------------------------------------------------------------------------
@@ -495,6 +497,9 @@ L['options_icons_lightning_bound_chest_desc'] = '顯示 {object:雷縛寶箱} �
 
 L['bloodgullet_note'] = '在 {location:木階哨站} 的一個帳篷裡的 {object:甦醒精華} 取得 {spell:369277} 增益(1小時) 來看到靈獸.\n\n{note:只有獸王獵看的到。}'
 
+L['naszuro_windsong_rise'] = '在岩石柱子頂端.'
+L['naszuro_emerald_gardens'] = '在瀑布旁邊的草地.'
+
 -------------------------------------------------------------------------------
 --------------------------------- THALDRASZUS ---------------------------------
 -------------------------------------------------------------------------------
@@ -573,6 +578,13 @@ L['living_mud_mask_note'] = [[
 回到坐在長凳上的 {npc:197232} 處, 並回報任務來取得 {item:200872}.
 ]]
 
+L['little_scales_daycare_note'] = '必須在多天內完成任務線，從 {npc:197478} 的 {quest:72664} 開始，才能獲得此成就和寵物。'
+L['naszuro_veiled_ossuary'] = '在小祭壇旁邊.'
+L['naszuro_algethar_academy'] = '在塔頂的邊柱旁.'
+L['naszuro_vault_of_the_incarnates'] = '在雕像的腳邊.'
+L['naszuro_thaldraszus_peak'] = '在山的第二高峰上.'
+L['naszuro_temporal_conflux'] = '在龍雕像的頭上.'
+
 -------------------------------------------------------------------------------
 ------------------------------ THE WAKING SHORE -------------------------------
 -------------------------------------------------------------------------------
@@ -604,9 +616,9 @@ L['fullsails_supply_chest'] = '滿帆補給箱'
 L['hidden_hornswog_hoard_note'] = [[
 收集三個不同物品並且在靠近 {npc:192362} 附近的 {object:"觀察謎題: 田野指南"} 來組合以取得 {item:200063} 並且餵給牠. 接著牠會讓開路讓你拾取牠的寶藏.
 
-{item:200064}{dot:Yellow}
-{item:200065}{dot:Blue}
-{item:200066}{dot:White}
+{item:200064} {dot:Yellow}
+{item:200065} {dot:Blue}
+{item:200066} {dot:White}
 ]]
 
 L['pm_alch_grigori_vialtry'] = '在一個平台上俯瞰 {location:閃霜進攻地}.'
@@ -711,8 +723,8 @@ L['options_icons_dragonbane_siege'] = '{spell:388945}'
 L['options_icons_dragonbane_siege_desc'] = '顯示 {spell:388945} 的位置和獎勵.'
 
 L['phoenix_wishwing_note'] = [[
-在獲得 {item:199203} 後，{npc:196214} 將提供一個上繳任務，獎勵 {item:193373}。
-要完成任務，將需要以下物品（可以按任何順序獲得這些物品）：
+在取得 {item:199203} 後, {npc:196214} 會提供一個獎勵 {item:193373} 的可回報任務.
+要完成這個任務, 你需要下列的東西 (你可以以任意順序取得):
 ]]
 L['phoenix_wishwing_talisman'] = [[
 %s {item:199203}
@@ -731,11 +743,17 @@ L['phoenix_wishwing_smoldering_ash'] = [[
 L['phoenix_wishwing_ash_feather'] = [[
 %s {item:202062}
 
-要查看 {object:羽毛}，需要從 {location:覺醒海岸} 的 {location:黑曜王座} 的 {npc:189207} {dot:Green} 處購買 {item:199177}。
+要看到 {object:羽毛} 你需要從 {location:甦醒海岸} 的 {location:黑曜王座} 裡的 {npc:189207} {dot:Green} 購買 {item:199177}.
 使用項鍊並撿起在 {location:黑曜龍堡} 附近的 {location:熾烈高地} 和 {location:熔渣泥沼} 可以找到的 {item:202062} {dot:Red}。
 ]]
 L['phoenix_wishwing_info'] = '這是位於 {location:巨龍群島} 上 {location:甦醒海岸} 的收藏品 {item:193373} 的一部分。'
+
 L['bugbiter_tortoise_note'] = '收集 {item:202082}({dot:Red}) 和 {item:202084}({dot:Green}) 來和 {npc:187077} 交換你的 {item:202085}.\n\n{npc:187077} 需要在有世界任務 {quest:66070} 時.'
+
+L['naszuro_apex_canopy'] = '在樓梯的小柱子上.'
+L['naszuro_obsidian_throne'] = '在 {npc:185894} 和 {npc:187495} 所在的王座左邊.'
+L['naszuro_ruby_lifeshrine'] = '在龍雕像爪子之下.'
+L['naszuro_dragonheart_outpost'] = '在樹的枝幹間.'
 
 -------------------------------------------------------------------------------
 ------------------------------- Zaralek Cavern --------------------------------
@@ -771,6 +789,7 @@ L['molten_scoutbot_note'] = '開啟 {object:熔火偵查機器人} 並拾取 {it
 L['bolts_and_brass_note'] = '開啟 {object:螺栓與黃銅} 並拾取 {item:204850}.'
 
 L['sniffen_sage_suffix'] = '特殊物品已發現'
+L['sniffen_digs_suffix'] = '嗅味探尋已完成'
 
 L['big_slick_note'] = '從 {npc:201752} 完成他的每日任務並達到 {faction:2568} 聲望 "專業" 可以取得坐騎.\n\n 展示以下達到25級的蝸牛 (戰寵) 每隻也可獲得100聲望:'
 L['grogul_note'] = '和 {npc:204672} 交談並選擇一種零食可以鼓勵那種蝸牛跑得更快.\n{note:此成就可以在名望7之前獲得.}'
@@ -786,5 +805,10 @@ L['seething_cache_treasure_note'] = '要能夠看到 {object:沸騰貯藏箱} �
 L['chest_of_the_flights_treasure_note'] = '要開啟寶箱你必須按照順序點選 {object:Empowered Gems} {note:紅> 黑 > 藍 > 黃 > 綠}.'
 L['curious_top_hat_note'] = '當你有 {spell:410288} 增益時和 {npc:205010} 互動來拿到 {item:205021}. 如果你沒有增益的時候靠近他他會跑掉.'
 
-L['zaralek_rotation_active'] = ns.color.Blue('此稀有今日可能出現。')
-L['zaralek_rotation_inactive'] = ns.color.Orange('此稀有今日不出現，明日再來。')
+L['zaralek_rare_active'] = ns.color.Blue('此稀有今日會刷新.')
+L['zaralek_rare_inactive'] = ns.color.Orange('此稀有今日不會刷新, 明日再來.')
+L['zaralek_event_active'] = ns.color.Blue('此區域事件今日會開始.')
+L['zaralek_event_inactive'] = ns.color.Orange('此區域事件今日不會開始, 明日再來.')
+
+L['options_icons_zone_event'] = '區域事件'
+L['options_icons_zone_event_desc'] = '顯示區域事件的位置.'

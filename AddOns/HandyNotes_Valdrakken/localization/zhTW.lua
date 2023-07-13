@@ -30,11 +30,11 @@ L["config_innkeeper_desc"] = "顯示旅店的位置。"
 L["config_mail"] = "郵箱"
 L["config_mail_desc"] = "顯示郵箱的位置。"
 L["config_onlymytrainers"] = "只顯示我的專業相關的訓練師和商人"
-L["config_onlymytrainers_desc"] = [=[
+L["config_onlymytrainers_desc"] = [[
 只會影響主要專業的訓練師和商人。
 
 |cFFFF0000注意: 只有兩個主要專業都學會了以後才有效果。|r
-]=]
+]]
 L["config_others"] = "其他"
 L["config_others_desc"] = "顯示其他所有的地圖探索點。"
 L["config_picons"] = "顯示專業圖示:"
@@ -82,21 +82,24 @@ L["dev_config_show_prints_desc"] = "在聊天視窗中顯示 print() 的訊息�
 L["dev_config_tab"] = "開發"
 L["handler_context_menu_add_map_pin"] = "設定地圖導航點"
 L["handler_context_menu_add_tomtom"] = "加入 TomTom"
-L["handler_context_menu_addon_name"] = "HandyNotes: 沃卓肯"
+L["handler_context_menu_addon_name"] = "HandyNotes: Valdrakken"
 L["handler_context_menu_hide_node"] = "隱藏這個地圖點"
 L["handler_tooltip_data"] = "正在取得資料..."
 L["handler_tooltip_quest"] = "解鎖任務"
 L["handler_tooltip_requires"] = "需要"
 L["handler_tooltip_requires_level"] = "需要玩家等級"
 L["Mailbox"] = "郵箱"
-L["Portal to Dalaran"] = "到達拉然的傳送門"
-L["Portal to Jade Forest"] = "到翠玉林的傳送門"
+L["Portal to Badlands"] = "到荒蕪之地的傳送門"
+-- L["Portal to Dalaran"] = "到達拉然的傳送門"
+-- L["Portal to Jade Forest"] = "到翠玉林的傳送門"
+L["Portal to Nazmir"] = "到納茲米爾的傳送門"
 L["Portal to Orgrimmar"] = "奧格瑪傳送門"
-L["Portal to Shadowmoon Valley"] = "到影月谷的傳送門"
+-- L["Portal to Shadowmoon Valley"] = "到影月谷的傳送門"
 L["Portal to Stormwind"] = "暴風城傳送門"
+L["Portal to Tiragarde Sound"] = "到提拉加德海灣的傳送門"
+L["Portal to Uldum"] = "奧丹姆傳送門"
 L["Rostrum of Transformation"] = "生化轉化台"
 L["Teleport to Seat of the Aspects"] = "傳送到巨龍之座"
-L["TomTom"] = "TomTom"
+L["TomTom"] = true
 L["Visage of True Self"] = "真實自我的面貌"
-
 end

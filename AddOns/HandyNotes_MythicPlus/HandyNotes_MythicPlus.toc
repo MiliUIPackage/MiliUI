@@ -1,0 +1,23 @@
+## Interface: 100105
+## Title: HandyNotes: MythicPlus
+## Version: V100100-11
+## Notes: Dragonflight MythicPlus Notes
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-傳奇+
+## Notes-zhTW: HandyNotes: MythicPlus |n在傳奇鑰石地下城地圖中，添加各種標記與提示。
+## OptionalDeps: Ace3
+## RequiredDeps: HandyNotes
+## SavedVariables: HandyNotes_MythicPlusDB
+## X-Curse-Project-ID: 785031
+## X-Wago-ID: 5NRe8wG3
+## X-WoWI-ID: 26604
+## IconTexture: 525134
+## X-Category-zhTW: 地圖
+
+# Locale files
+Locales\enUS.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+
+core.lua
+config.lua
+nodes.lua

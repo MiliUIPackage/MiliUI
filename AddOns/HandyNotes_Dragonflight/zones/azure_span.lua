@@ -16,7 +16,6 @@ local Treasure = ns.node.Treasure
 local AncientStone = ns.node.AncientStone
 local Disturbeddirt = ns.node.Disturbeddirt
 local Dragonglyph = ns.node.Dragonglyph
-local Dragonrace = ns.node.Dragonrace
 local ElementalStorm = ns.node.ElementalStorm
 local ElusiveCreature = ns.node.ElusiveCreature
 local Flag = ns.node.Flag
@@ -1094,8 +1093,11 @@ map.nodes[65732814] = LeyLine({
 -------------------------------------------------------------------------------
 
 map.nodes[13503833] = Disturbeddirt({location = L['in_small_cave']})
+map.nodes[14182155] = Disturbeddirt()
+map.nodes[15432158] = Disturbeddirt()
 map.nodes[19214047] = Disturbeddirt()
 map.nodes[19225097] = Disturbeddirt()
+map.nodes[20052526] = Disturbeddirt()
 map.nodes[23716772] = Disturbeddirt()
 map.nodes[29872621] = Disturbeddirt()
 map.nodes[33704685] = Disturbeddirt()
@@ -1116,18 +1118,21 @@ map.nodes[78903087] = Disturbeddirt()
 -------------------------- EXPEDITION SCOUT'S PACKS ---------------------------
 -------------------------------------------------------------------------------
 
-map.nodes[14143645] = Scoutpack()
-map.nodes[14943299] = Scoutpack()
-map.nodes[15183187] = Scoutpack()
-map.nodes[12944165] = Scoutpack()
-map.nodes[13054278] = Scoutpack()
 map.nodes[10974204] = Scoutpack()
 map.nodes[12253541] = Scoutpack()
+map.nodes[12944165] = Scoutpack()
+map.nodes[13054278] = Scoutpack()
+map.nodes[14143645] = Scoutpack()
 map.nodes[14303978] = Scoutpack()
-map.nodes[57632101] = Scoutpack()
+map.nodes[14943299] = Scoutpack()
+map.nodes[15183187] = Scoutpack()
 map.nodes[33864679] = Scoutpack()
 map.nodes[34334607] = Scoutpack()
 map.nodes[43005294] = Scoutpack()
+map.nodes[46892208] = Scoutpack()
+map.nodes[47253630] = Scoutpack()
+map.nodes[49052541] = Scoutpack()
+map.nodes[57632101] = Scoutpack()
 map.nodes[58115454] = Scoutpack()
 map.nodes[58145373] = Scoutpack()
 map.nodes[65702841] = Scoutpack({location = L['in_small_cave']})
@@ -1138,8 +1143,6 @@ map.nodes[72154242] = Scoutpack({location = L['in_cave']})
 map.nodes[72604263] = Scoutpack({location = L['in_cave']})
 map.nodes[78953094] = Scoutpack()
 map.nodes[79823175] = Scoutpack()
-map.nodes[46892208] = Scoutpack()
-map.nodes[49052541] = Scoutpack()
 
 -------------------------------------------------------------------------------
 ------------------------------ MAGIC-BOUND CHEST ------------------------------
@@ -1184,7 +1187,6 @@ local TuskarrChest = Class('TuskarrChest', ns.node.Node, {
     group = ns.groups.TUSKARR_CHEST,
     rewards = {
         Item({item = 191784}), -- Dragon Shard of Knowledge
-        Item({item = 190454}), -- Primal Chaos
         Transmog({item = 201372, slot = L['cosmetic']}), -- Imbu Tuskarr Axe
         Transmog({item = 201373, slot = L['cosmetic']}), -- Imbu Net Cutter
         Transmog({item = 201374, slot = L['cosmetic']}), -- Tuskarr Fishing Pike
@@ -1224,7 +1226,6 @@ local DecayCoveredChest = Class('DecayCoveredChest', ns.node.Node, {
     group = ns.groups.DECAY_COVERED_CHEST,
     rewards = {
         Item({item = 191784}), -- Dragon Shard of Knowledge
-        Item({item = 190454}), -- Primal Chaos
         Transmog({item = 201365, slot = L['cosmetic']}), -- Brackenhide Gnoll Guard
         Transmog({item = 201370, slot = L['cosmetic']}), -- Brackenhide Skullcracker
         Transmog({item = 201369, slot = L['cosmetic']}), -- Hollow Greatwood Pestilence
@@ -1342,7 +1343,6 @@ local IcemawStorageCache = Class('IcemawStorageCache', ns.node.Node, {
     group = ns.groups.ICEMAW_STORAGE_CACHE,
     rewards = {
         Item({item = 191784}), -- Dragon Shard of Knowledge
-        Item({item = 190454}), -- Primal Chaos
         Item({item = 194540, quest = 67046}), -- Nokhud Armorer's Notes
         Item({item = 199068, quest = 70537}), -- Time-Lost Memo
         Item({item = 199065, quest = 70534}), -- Sorrowful Letter
@@ -1366,118 +1366,6 @@ map.nodes[67101270] = IcemawStorageCache()
 map.nodes[48406380] = ns.node.FrostboundChest()
 map.nodes[49706390] = ns.node.FrostboundChest()
 map.nodes[51306080] = ns.node.FrostboundChest()
-
--------------------------------------------------------------------------------
---------------------------------- DRAGONRACES ---------------------------------
--------------------------------------------------------------------------------
-
-map.nodes[47914078] = Dragonrace({
-    label = '{quest:66946}',
-    normal = {2074, 66, 63},
-    advanced = {2075, 63, 58},
-    reverse = {2188, 65, 60},
-    rewards = {
-        Achievement({id = 15921, criteria = 1, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 1, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 1, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 1, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 1, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 1, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 1, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 1, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 1, oneline = true}) -- reverse gold
-    }
-}) -- Azure Span Sprint
-
-map.nodes[20952262] = Dragonrace({
-    label = '{quest:67002}',
-    normal = {2076, 61, 58},
-    advanced = {2077, 61, 56},
-    reverse = {2189, 58, 53},
-    rewards = {
-        Achievement({id = 15921, criteria = 2, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 2, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 2, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 2, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 2, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 2, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 2, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 2, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 2, oneline = true}) -- reverse gold
-    }
-}) -- Azure Span Slalom
-
-map.nodes[71292464] = Dragonrace({
-    label = '{quest:67031}',
-    normal = {2078, 61, 58},
-    advanced = {2079, 61, 56},
-    reverse = {2190, 61, 56},
-    rewards = {
-        Achievement({id = 15921, criteria = 3, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 3, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 3, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 3, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 3, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 3, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 3, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 3, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 3, oneline = true}) -- reverse gold
-    }
-}) -- Vakthros Ascent
-
-map.nodes[16584937] = Dragonrace({
-    label = '{quest:67296}',
-    normal = {2083, 78, 75},
-    advanced = {2084, 75, 70},
-    reverse = {2191, 72, 67},
-    rewards = {
-        Achievement({id = 15921, criteria = 4, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 4, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 4, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 4, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 4, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 4, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 4, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 4, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 4, oneline = true}) -- reverse gold
-    }
-}) -- Iskaara Tour
-
-map.nodes[48473579] = Dragonrace({
-    label = '{quest:67565}',
-    normal = {2085, 79, 76},
-    advanced = {2086, 77, 72},
-    reverse = {2192, 74, 69},
-    rewards = {
-        Achievement({id = 15921, criteria = 5, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 5, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 5, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 5, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 5, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 5, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 5, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 5, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 5, oneline = true}) -- reverse gold
-    }
-}) -- Frostland Flyover
-
-map.nodes[42275677] = Dragonrace({
-    label = '{quest:67741}',
-    normal = {2089, 94, 91},
-    advanced = {2090, 86, 81},
-    reverse = {2193, 81, 76},
-    rewards = {
-        Achievement({id = 15921, criteria = 6, oneline = true}), -- normal bronze
-        Achievement({id = 15922, criteria = 6, oneline = true}), -- normal silver
-        Achievement({id = 15923, criteria = 6, oneline = true}), -- normal gold
-        Achievement({id = 15933, criteria = 6, oneline = true}), -- advanced bronze
-        Achievement({id = 15934, criteria = 6, oneline = true}), -- advanced silver
-        Achievement({id = 15935, criteria = 6, oneline = true}), -- advanced gold
-        Achievement({id = 17201, criteria = 6, oneline = true}), -- reverse bronze
-        Achievement({id = 17202, criteria = 6, oneline = true}), -- reverse silver
-        Achievement({id = 17203, criteria = 6, oneline = true}) -- reverse gold
-    }
-}) -- Archive Ambit
 
 -------------------------------------------------------------------------------
 --------------------- TO ALL THE SQUIRRELS HIDDEN TIL NOW ---------------------
@@ -1785,12 +1673,15 @@ local COMMUNITY_FEAST_AREA_POIS = {
 
 local COMMUNITY_FEAST_REWARDS = {
     Achievement({id = 16444}), -- Leftovers Revenge
+    Achievement({
+        id = 16443,
+        criteria = {id = 1, qty = true, suffix = L['tasks_completed_suffix']}
+    }), -- Soupervisor
     Recipe({item = 198131, profession = 185}), -- Recipe: Gral's Devotion
     Recipe({item = 198129, profession = 185}), -- Recipe: Gral's Reverence
     Recipe({item = 198130, profession = 185}), -- Recipe: Gral's Veneration
     Transmog({item = 200882, slot = L['cosmetic']}), -- Big Kinook's Spare Ladle
     ns.reward.Spacer(), Item({item = 200652}), -- Alchemical Flavor Pocket
-    Item({item = 190454}), -- Primal Chaos
     Item({item = 192055}), -- Dragon Isles Artifact
     Item({item = 200071}) -- Sacred Tuskarr Totem
 }
@@ -2042,6 +1933,34 @@ map.nodes[46202580] = Collectible({
         Toy({item = 200628}) -- Somewhat-Stabilized Arcana
     }
 })
+
+---------------------------- PET: MOTE OF NASZ'URO ----------------------------
+
+map.nodes[78843413] = ns.node.MoteOfNaszuro({
+    quest = 76178,
+    note = L['naszuro_vakthros']
+}) -- Vakthros
+map.nodes[61577143] = ns.node.MoteOfNaszuro({
+    quest = 76179,
+    note = L['naszuro_imbu']
+}) -- Imbu
+map.nodes[36405646] = ns.node.MoteOfNaszuro({
+    quest = 76180,
+    note = L['naszuro_azure_archives']
+}) -- Azure Archives
+map.nodes[08235308] = ns.node.MoteOfNaszuro({
+    quest = 76181,
+    note = L['naszuro_hudsons_rock']
+}) -- Hudson's Rock
+
+------------------------------- BOAT TO ISKAARA -------------------------------
+
+map.nodes[73677052] = Node({
+    icon = 'ferry',
+    scale = 1.5,
+    label = L['ferry_to_iskaara'],
+    pois = {ns.poi.Arrow({73677052, 13845047})}
+}) -- Boat to Iskaara
 
 ----------------------------- MISCELLANEOUS NPCs ------------------------------
 
