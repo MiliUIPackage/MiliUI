@@ -46,6 +46,10 @@ local function Cooldowns_SetFont(self, ...)
     end
 end
 
+-- local function DurationText_SetFont(self, ...)
+--     I:SetFont(self.duration, self.textFrame, ...)
+-- end
+
 local function Cooldowns_ShowDuration(self, show)
     for i = 1, 5 do
         self[i]:ShowDuration(show)
@@ -120,12 +124,6 @@ function I:CreateDefensiveCooldowns(parent)
         local name = parent:GetName().."DefensiveCooldown"..i
         local frame = I:CreateAura_BarIcon(name, defensiveCooldowns)
         tinsert(defensiveCooldowns, frame)
-
-        -- if i == 1 then
-        --     P:Point(frame, "TOPLEFT")
-        -- else
-        --     P:Point(frame, "LEFT", defensiveCooldowns[i-1], "RIGHT", -1, 0)
-        -- end
     end
 end
 
@@ -453,7 +451,7 @@ local function Dispels_SetDispels(self, dispelTypes)
         self.highlight:SetVertexColor(r, g, b, a ~= 0 and 0.5 or 0)
     elseif self.highlightType == "current" then
         self.highlight:SetVertexColor(r, g, b, a)
-    else
+    else -- gradient and gradient-half
         self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, a), CreateColor(r, g, b, 0))
     end
 end
@@ -530,6 +528,12 @@ function I:CreateDispels(parent)
         elseif highlightType == "gradient" then
             dispels.highlight:ClearAllPoints()
             dispels.highlight:SetAllPoints(parent.widget.healthBar)
+            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+            dispels.highlight:Show()
+        elseif highlightType == "gradient-half" then
+            dispels.highlight:ClearAllPoints()
+            dispels.highlight:SetPoint("BOTTOMLEFT", parent.widget.healthBar)
+            dispels.highlight:SetPoint("TOPRIGHT", parent.widget.healthBar, "RIGHT")
             dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
             dispels.highlight:Show()
         elseif highlightType == "entire" then
@@ -842,7 +846,7 @@ local function PrivateAuras_UpdatePrivateAuraAnchor(self, unit)
         self.unit = unit
         self.auraAnchorID = C_UnitAuras.AddPrivateAuraAnchor({
             unitToken = unit,
-            auraIndex = 2,
+            auraIndex = 1,
             parent = self,
             showCountdownFrame = _showCountdownFrame,
             showCountdownNumbers = _showCountdownNumbers,
@@ -1316,15 +1320,31 @@ function I:CreateHealthText(parent)
         text:SetTextColor(r, g, b)
     end
 
-    function healthText:SetHealth(current, max)
+    function healthText:SetHealth(current, max, totalAbsorbs)
         if healthText.format == "percentage" then
             text:SetText(string.format("%d%%", current/max*100))
+        elseif healthText.format == "percentage-absorbs" then
+            if totalAbsorbs == 0 then
+                text:SetText(string.format("%d%%", current/max*100))
+            else
+                text:SetText(string.format("%d%%+%d%%", current/max*100, totalAbsorbs/max*100))
+            end
+        elseif healthText.format == "percentage-absorbs-merged" then
+            text:SetText(string.format("%d%%", (current+totalAbsorbs)/max*100))
         elseif healthText.format == "percentage-deficit" then
             text:SetText(string.format("%d%%", (current-max)/max*100))
         elseif healthText.format == "number" then
             text:SetText(current)
         elseif healthText.format == "number-short" then
             text:SetText(F:FormatNumber(current))
+        elseif healthText.format == "number-absorbs-short" then
+            if totalAbsorbs == 0 then
+                text:SetText(F:FormatNumber(current))
+            else
+                text:SetText(F:FormatNumber(current).."+"..F:FormatNumber(totalAbsorbs))
+            end
+        elseif healthText.format == "number-absorbs-merged-short" then
+            text:SetText(F:FormatNumber(current+totalAbsorbs))
         elseif healthText.format == "number-deficit" then
             text:SetText(current-max)
         elseif healthText.format == "number-deficit-short" then
@@ -1771,94 +1791,131 @@ function I:ShowMissingBuff(unit, icon, buffByMe)
 end
 
 -------------------------------------------------
--- power word : shield 怀旧服API太落后，不想做了！
+-- power word : shield 怀旧服API太落后，蛋疼！
 -------------------------------------------------
--- function I:CreatePowerWordShield(parent)
---     local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widget.overlayFrame, "BackdropTemplate")
---     parent.indicators.powerWordShield = powerWordShield
---     powerWordShield:Hide()
+function I:CreatePowerWordShield(parent)
+    local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widget.overlayFrame, "BackdropTemplate")
+    parent.indicators.powerWordShield = powerWordShield
+    powerWordShield:Hide()
 
---     powerWordShield:SetBackdrop({bgFile = [[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]]})
---     powerWordShield:SetBackdropColor(0, 0, 0, 0.5)
+    powerWordShield:SetBackdrop({bgFile = [[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]]})
+    powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
 
---     powerWordShield._SetSize = powerWordShield.SetSize
+    --! shield amount
+    local shieldAmount = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldAmount", powerWordShield)
+    -- shieldAmount:SetAllPoints(powerWordShield)
+    shieldAmount:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
+    -- shieldAmount:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
+    shieldAmount:SetSwipeColor(1, 1, 0)
+    shieldAmount.noCooldownCount = true -- disable omnicc
+    shieldAmount:SetHideCountdownNumbers(true)
 
---     --! shield amount
---     local cooldown = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldAmount", powerWordShield)
---     powerWordShield.cooldown = cooldown
---     cooldown:SetAllPoints(powerWordShield)
---     cooldown:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
---     -- cooldown:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
---     cooldown:SetSwipeColor(1, 1, 0)
---     cooldown.noCooldownCount = true -- disable omnicc
---     cooldown:SetHideCountdownNumbers(true)
+    --! innerBG
+    local innerBG = shieldAmount:CreateTexture(nil, "OVERLAY")
+    innerBG:SetPoint("CENTER")
+    innerBG:SetTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
+    innerBG:SetVertexColor(0, 0, 0, 1)
 
---     --! innerBG
---     local innerBG = cooldown:CreateTexture(nil, "OVERLAY")
---     innerBG:SetPoint("CENTER")
---     innerBG:SetTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
---     innerBG:SetVertexColor(0, 0, 0, 1)
+    --! shield duration
+    local shieldCooldown = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldDuration", powerWordShield)
+    shieldCooldown:SetFrameLevel(shieldAmount:GetFrameLevel() + 1)
+    -- shieldCooldown:SetPoint("CENTER")
+    shieldCooldown:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+    shieldCooldown:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    shieldCooldown:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
+    shieldCooldown:SetSwipeColor(0, 1, 0)
+    shieldCooldown.noCooldownCount = true -- disable omnicc
+    shieldCooldown:SetHideCountdownNumbers(true)
+    shieldCooldown:Hide()
+    shieldCooldown:SetScript("OnCooldownDone", function()
+        shieldCooldown:Hide()
+    end)
 
---     --! shield duration bar
---     local shieldDurationBar = CreateFrame("StatusBar", parent:GetName().."PowerWordShieldDuration", cooldown)
---     shieldDurationBar:SetMinMaxValues(0, 100)
---     shieldDurationBar:SetValue(70)
---     shieldDurationBar:SetOrientation("VERTICAL")
---     shieldDurationBar:SetPoint("CENTER")
+    --! weakened soul duration
+    local weakendedSoulCooldown = CreateFrame("Cooldown", parent:GetName().."WeakenedSoulDuration", powerWordShield)
+    weakendedSoulCooldown:SetFrameLevel(shieldAmount:GetFrameLevel() + 2)
+    -- weakendedSoulCooldown:SetPoint("CENTER")
+    weakendedSoulCooldown:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+    weakendedSoulCooldown:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    weakendedSoulCooldown:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
+    weakendedSoulCooldown:SetSwipeColor(1, 0, 0)
+    weakendedSoulCooldown.noCooldownCount = true -- disable omnicc
+    weakendedSoulCooldown:SetHideCountdownNumbers(true)
+    weakendedSoulCooldown:Hide()
+    weakendedSoulCooldown:SetScript("OnCooldownDone", function()
+        weakendedSoulCooldown:Hide()
+    end)
 
---     shieldDurationBar.tex = shieldDurationBar:CreateTexture(nil, "OVERLAY")
---     shieldDurationBar.tex:SetTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]], "CLAMP", "CLAMP", "TRILINEAR")
---     shieldDurationBar.tex:SetVertexColor(0, 1, 0, 1)
---     shieldDurationBar:SetStatusBarTexture(shieldDurationBar.tex)
-    
---     --! weakened soul duration bar
---     local weakenedSoulDurationBar = CreateFrame("StatusBar", parent:GetName().."WeakenedSoulDuration", cooldown)
---     weakenedSoulDurationBar:SetMinMaxValues(0, 100)
---     weakenedSoulDurationBar:SetValue(70)
---     weakenedSoulDurationBar:SetOrientation("VERTICAL")
---     weakenedSoulDurationBar:SetPoint("CENTER")
---     weakenedSoulDurationBar:SetFrameLevel(shieldDurationBar:GetFrameLevel() + 1)
+    powerWordShield._SetSize = powerWordShield.SetSize
+    function powerWordShield:SetSize(width, height)
+        powerWordShield.size = width
+        powerWordShield:UpdatePixelPerfect()
+    end
 
---     weakenedSoulDurationBar.tex = weakenedSoulDurationBar:CreateTexture(nil, "OVERLAY")
---     weakenedSoulDurationBar.tex:SetTexture([[Interface\AddOns\Cell\Media\Shapes\semicircle.tga]], "CLAMP", "CLAMP", "TRILINEAR")
---     weakenedSoulDurationBar.tex:SetVertexColor(1, 0, 0, 1)
---     weakenedSoulDurationBar:SetStatusBarTexture(weakenedSoulDurationBar.tex)
+    function powerWordShield:UpdatePixelPerfect()
+        local size = powerWordShield.size
 
---     function powerWordShield:SetSize(width, height, shieldThickness)
---         powerWordShield.width = width
---         powerWordShield.height = height
---         powerWordShield.shieldThickness = shieldThickness
-
---         powerWordShield:UpdatePixelPerfect()
---     end
-
---     function powerWordShield:UpdatePixelPerfect()
---         local width = powerWordShield.width
---         local height = powerWordShield.height
-
---         powerWordShield:_SetSize(width, height)
---         innerBG:SetSize(width-P:Scale(powerWordShield.shieldThickness+2), height-P:Scale(powerWordShield.shieldThickness+2))
+        powerWordShield:_SetSize(P:Scale(size), P:Scale(size))
+        innerBG:SetSize(P:Scale(ceil(size/2)+2), P:Scale(ceil(size/2)+2))
         
---         local offset = P:Scale(powerWordShield.shieldThickness+2+1)
---         shieldDurationBar:SetSize(width-offset, height-offset)
---         weakenedSoulDurationBar:SetSize(width-offset, height-offset)
---     end
+        shieldCooldown:SetSize(P:Scale(ceil(size/2)), P:Scale(ceil(size/2)))
+        weakendedSoulCooldown:SetSize(P:Scale(ceil(size/2)), P:Scale(ceil(size/2)))
 
---     function powerWordShield:UpdateShieldValue(value)
---         cooldown:SetCooldown(GetTime()-(powerWordShield.max-value), powerWordShield.max)
---         if value ~= 0 then
---             powerWordShield:Show()
---             cooldown:Pause()
---         else
---             powerWordShield:Hide()
---         end
---     end
+        shieldAmount:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+        shieldAmount:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    end
 
---     function powerWordShield:SetShieldCooldown(start, duration, maxValue)
---         powerWordShield.max = maxValue
---     end
+    function powerWordShield:UpdateShield(value, max, resetMax)
+        -- print("UpdateShield:", value, max, resetMax)
 
---     function powerWordShield:SetWeakenedSoulCooldown(start, duration)
+        if resetMax then
+            powerWordShield.max = nil
+        elseif max then
+            powerWordShield.max = max
+        end
 
---     end
--- end
+        shieldCooldown:ClearAllPoints()
+        weakendedSoulCooldown:ClearAllPoints()
+
+        if value ~= 0 and powerWordShield.max then
+            shieldAmount:SetCooldown(GetTime()-(powerWordShield.max-value), powerWordShield.max)
+            shieldAmount:Pause()
+            shieldCooldown:SetPoint("CENTER")
+            weakendedSoulCooldown:SetPoint("CENTER")
+        else
+            shieldCooldown:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+            shieldCooldown:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+            weakendedSoulCooldown:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+            weakendedSoulCooldown:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+        end
+    end
+
+    local function Update()
+        if not (shieldCooldown:IsShown() or weakendedSoulCooldown:IsShown()) then
+            powerWordShield:Hide()
+        end
+    end
+
+    function powerWordShield:SetShieldCooldown(start, duration)
+        if start and duration then
+            powerWordShield:Show()
+            shieldCooldown:Show()
+            shieldCooldown:SetCooldown(start, duration)
+        else
+            shieldCooldown:Hide()
+            shieldAmount:Hide()
+            Update()
+        end
+    end
+    
+    function powerWordShield:SetWeakenedSoulCooldown(start, duration, isMine)
+        if start and duration then
+            powerWordShield:Show()
+            weakendedSoulCooldown:Show()
+            weakendedSoulCooldown:SetCooldown(start, duration)
+        else
+            weakendedSoulCooldown:Hide()
+            Update()
+        end
+    end
+end

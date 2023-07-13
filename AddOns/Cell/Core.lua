@@ -160,6 +160,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["showParty"] = true,
                 ["hideBlizzardParty"] = true,
                 ["hideBlizzardRaid"] = true,
+                ["translit"] = false,
                 ["useCleuHealthUpdater"] = false,
                 ["locked"] = false,
                 ["fadeOut"] = false,
@@ -292,7 +293,7 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- click-casting --------------------------------------------------------------------------
         if type(CellDB["clickCastings"]) ~= "table" then CellDB["clickCastings"] = {} end
-        Cell.vars.playerClass, Cell.vars.playerClassID = select(2, UnitClass("player"))
+        Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
 
         if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
             CellDB["clickCastings"][Cell.vars.playerClass] = {
@@ -306,27 +307,28 @@ function eventFrame:ADDON_LOADED(arg1)
                     {"type2", "togglemenu"},
                 },
             }
+            
+            -- add resurrections for "common"
+            for _, t in pairs(F:GetResurrectionClickCastings(Cell.vars.playerClass)) do
+                tinsert(CellDB["clickCastings"][Cell.vars.playerClass]["common"], t)
+            end
+
             -- https://wow.gamepedia.com/SpecializationID
-            for sepcIndex = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
+            local indices = {}
+            for i = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
+                tinsert(indices, i)
+            end
+            tinsert(indices, 5) -- "Initials" (no spec)
+            
+            for _, sepcIndex in pairs(indices) do
                 local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, sepcIndex)
                 CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
                 CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
                     {"type1", "target"},
                     {"type2", "togglemenu"},
-                } 
-            end
-            -- add "Initials" (no spec)
-            local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, 5)
-            CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
-            CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
-                {"type1", "target"},
-                {"type2", "togglemenu"},
-            }
-            -- add resurrections
-            for _, t in pairs(F:GetResurrectionClickCastings(Cell.vars.playerClass)) do
-                tinsert(CellDB["clickCastings"][Cell.vars.playerClass]["common"], t)
-                for sepcIndex = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
-                    local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, sepcIndex)
+                }
+                -- add resurrections for each spec
+                for _, t in pairs(F:GetResurrectionClickCastings(Cell.vars.playerClass)) do
                     tinsert(CellDB["clickCastings"][Cell.vars.playerClass][specID], t)
                 end
             end
@@ -418,12 +420,12 @@ function eventFrame:ADDON_LOADED(arg1)
         --     }
         -- }
 
-        if type(CellDB["cleuAuras"]) ~= "table" then CellDB["cleuAuras"] = {} end
-        I:UpdateCleuAuras(CellDB["cleuAuras"])
+        -- if type(CellDB["cleuAuras"]) ~= "table" then CellDB["cleuAuras"] = {} end
+        -- I:UpdateCleuAuras(CellDB["cleuAuras"])
 
-        if type(CellDB["cleuGlow"]) ~= "table" then
-            CellDB["cleuGlow"] = {"Pixel", {{0, 1, 1, 1}, 9, 0.25, 8, 2}}
-        end
+        -- if type(CellDB["cleuGlow"]) ~= "table" then
+        --     CellDB["cleuGlow"] = {"Pixel", {{0, 1, 1, 1}, 9, 0.25, 8, 2}}
+        -- end
         
         -- targetedSpells -------------------------------------------------------------------------
         if type(CellDB["targetedSpellsList"]) ~= "table" then
@@ -684,7 +686,7 @@ function eventFrame:PLAYER_LOGIN()
     Cell:Fire("UpdateMenu")
     -- update pixel perfect
     Cell:Fire("UpdatePixelPerfect")
-    -- update CLEU
+    -- update CLEU health
     Cell:Fire("UpdateCLEU")
     -- update builtIns and customs
     I:UpdateDefensives(CellDB["defensives"])

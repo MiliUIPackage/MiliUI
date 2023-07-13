@@ -6,6 +6,7 @@ local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 local A = Cell.animations
 local LGI = LibStub:GetLibrary("LibGroupInfo")
+local LibTranslit = LibStub("LibTranslit-1.0")
 
 CELL_FADE_OUT_HEALTH_PERCENT = nil
 
@@ -275,6 +276,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- privateAuraOptions
                 if t["privateAuraOptions"] then
                     indicator:UpdateOptions(t["privateAuraOptions"])
+                end
+                -- update fadeOut
+                if type(t["fadeOut"]) == "boolean" then
+                    indicator:SetFadeOut(t["fadeOut"])
                 end
 
                 -- init
@@ -554,6 +559,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 end, true)
             elseif value == "buffByMe" then
                 I:UpdateMissingBuffsFilter(value2)
+            elseif value == "fadeOut" then
+                F:IterateAllUnitButtons(function(b)
+                    b.indicators[indicatorName]:SetFadeOut(value2)
+                    UnitButton_UpdateAuras(b)
+                end, true)
             else
                 indicatorCustoms[indicatorName] = value2
             end
@@ -608,6 +618,14 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update duration
                 if value["duration"] then
                     indicator:SetDuration(value["duration"])
+                end
+                -- update circled nums
+                if type(value["circledStackNums"]) == "boolean" then
+                    indicator:SetCircledStackNums(value["circledStackNums"])
+                end
+                -- update fadeOut
+                if type(value["fadeOut"]) == "boolean" then
+                    indicator:SetFadeOut(value["fadeOut"])
                 end
                 -- FirstRun: Healers
                 if value["auras"] and #value["auras"] ~= 0 then
@@ -678,7 +696,7 @@ unitButton = {
 -- end
 
 -- cleuAuras
-local cleuUnits = {}
+-- local cleuUnits = {}
 
 local debuffs_indices = {} -- tooltips
 local debuffs_current = {}
@@ -817,16 +835,17 @@ local function UnitButton_UpdateDebuffs(self)
     end
 
     -- update raid debuffs
-    if raidDebuffsFound or cleuUnits[unit] then
+    -- if raidDebuffsFound or cleuUnits[unit] then
+    if raidDebuffsFound then
         startIndex = 1
         self.indicators.raidDebuffs:Show()
 
         -- cleuAuras
-        local offset = 0
-        if cleuUnits[unit] then
-            offset = 1
-            startIndex = startIndex + 1
-        end
+        -- local offset = 0
+        -- if cleuUnits[unit] then
+        --     offset = 1
+        --     startIndex = startIndex + 1
+        -- end
 
         -- sort indices
         -- NOTE: debuffs_raid_orders[unit] = { [auraInstanceID] = debuffOrder } used for sorting
@@ -836,7 +855,8 @@ local function UnitButton_UpdateDebuffs(self)
         
         -- show
         local topGlowType, topGlowOptions
-        for i = 1+offset, indicatorNums["raidDebuffs"] do
+        -- for i = 1+offset, indicatorNums["raidDebuffs"] do
+        for i = 1, indicatorNums["raidDebuffs"] do
             if debuffs_raid[unit][i] then -- debuffs_raid[unit][i] -> auraInstanceID
                 local auraInfo = GetAuraDataByAuraInstanceID(unit, debuffs_raid[unit][i])
                 if auraInfo then
@@ -853,10 +873,10 @@ local function UnitButton_UpdateDebuffs(self)
             end
         end
 
-        if cleuUnits[unit] then
-            self.indicators.raidDebuffs[1]:SetCooldown(cleuUnits[unit][1], cleuUnits[unit][2], "cleu", cleuUnits[unit][3], 1)
-            topGlowType, topGlowOptions = unpack(CellDB["cleuGlow"])
-        end
+        -- if cleuUnits[unit] then
+        --     self.indicators.raidDebuffs[1]:SetCooldown(cleuUnits[unit][1], cleuUnits[unit][2], "cleu", cleuUnits[unit][3], 1)
+        --     topGlowType, topGlowOptions = unpack(CellDB["cleuGlow"])
+        -- end
 
         -- update raidDebuffs
         if startIndex > 1 then
@@ -1126,7 +1146,7 @@ local function ResetAuraTables(unit)
     if buffs_cache_count[unit] then wipe(buffs_cache_count[unit]) end
     -- reset
     buffs_mirror_image[unit] = nil
-    cleuUnits[unit] = nil
+    -- cleuUnits[unit] = nil
 end
 
 -------------------------------------------------
@@ -1156,28 +1176,28 @@ cleu:SetScript("OnEvent", function()
         end
     end
     -- CLEU auras
-    if I:CheckCleuAura(spellId) and F:IsFriend(destFlags) then
-        local b1, b2 = F:GetUnitButtonByGUID(sourceGUID)
-        if subEvent == "SPELL_AURA_APPLIED" then
-            if b1 and b1.state.unit then
-                cleuUnits[b1.state.unit] = {GetTime(), unpack(I:CheckCleuAura(spellId))}
-                UnitButton_UpdateDebuffs(b1)
-            end
-            if b2 and b2.state.unit then
-                cleuUnits[b2.state.unit] = {GetTime(), unpack(I:CheckCleuAura(spellId))}
-                UnitButton_UpdateDebuffs(b2)
-            end
-        elseif subEvent == "SPELL_AURA_REMOVED" then
-            if b1 and b1.state.unit then
-                cleuUnits[b1.state.unit] = nil
-                UnitButton_UpdateDebuffs(b1)
-            end
-            if b2 and b2.state.unit then
-                cleuUnits[b2.state.unit] = nil
-                UnitButton_UpdateDebuffs(b2)
-            end
-        end
-    end
+    -- if I:CheckCleuAura(spellId) and F:IsFriend(destFlags) then
+    --     local b1, b2 = F:GetUnitButtonByGUID(sourceGUID)
+    --     if subEvent == "SPELL_AURA_APPLIED" then
+    --         if b1 and b1.state.unit then
+    --             cleuUnits[b1.state.unit] = {GetTime(), unpack(I:CheckCleuAura(spellId))}
+    --             UnitButton_UpdateDebuffs(b1)
+    --         end
+    --         if b2 and b2.state.unit then
+    --             cleuUnits[b2.state.unit] = {GetTime(), unpack(I:CheckCleuAura(spellId))}
+    --             UnitButton_UpdateDebuffs(b2)
+    --         end
+    --     elseif subEvent == "SPELL_AURA_REMOVED" then
+    --         if b1 and b1.state.unit then
+    --             cleuUnits[b1.state.unit] = nil
+    --             UnitButton_UpdateDebuffs(b1)
+    --         end
+    --         if b2 and b2.state.unit then
+    --             cleuUnits[b2.state.unit] = nil
+    --             UnitButton_UpdateDebuffs(b2)
+    --         end
+    --     end
+    -- end
 end)
 
 -------------------------------------------------
@@ -1223,6 +1243,7 @@ local function UpdateUnitHealthState(self, diff)
 
     self.state.health = health
     self.state.healthMax = healthMax
+    self.state.totalAbsorbs = UnitGetTotalAbsorbs(unit)
 
     if healthMax == 0 then
         self.state.healthPercent = 0
@@ -1251,13 +1272,13 @@ local function UpdateUnitHealthState(self, diff)
     if enabledIndicators["healthText"] and healthMax ~= 0 then
         if health == healthMax or self.state.isDeadOrGhost then
             if not indicatorCustoms["healthText"] then
-                self.indicators.healthText:SetHealth(health, healthMax)
+                self.indicators.healthText:SetHealth(health, healthMax, self.state.totalAbsorbs)
                 self.indicators.healthText:Show()
             else
                 self.indicators.healthText:Hide()
             end
         else
-            self.indicators.healthText:SetHealth(health, healthMax)
+            self.indicators.healthText:SetHealth(health, healthMax, self.state.totalAbsorbs)
             self.indicators.healthText:Show()
         end
     else
@@ -1416,11 +1437,11 @@ UnitButton_UpdateRole = function(self)
     local unit = self.state.unit
     if not unit then return end
 
+    local role = UnitGroupRolesAssigned(unit)
+    self.state.role = role
+    
     local roleIcon = self.indicators.roleIcon
-
     if enabledIndicators["roleIcon"] then
-        local role = UnitGroupRolesAssigned(unit)
-        self.state.role = role
 
         roleIcon:SetRole(role)
 
@@ -1661,10 +1682,10 @@ local function UnitButton_UpdateShieldAbsorbs(self)
     local unit = self.state.displayedUnit
     if not unit then return end
     
-    local value = UnitGetTotalAbsorbs(unit)
-    if value > 0 then
-        UpdateUnitHealthState(self)
-        local shieldPercent = value / self.state.healthMax
+    UpdateUnitHealthState(self)
+
+    if self.state.totalAbsorbs > 0 then
+        local shieldPercent = self.state.totalAbsorbs / self.state.healthMax
 
         if enabledIndicators["shieldBar"] then
             self.indicators.shieldBar:Show()
@@ -1896,6 +1917,11 @@ local function UnitButton_UpdateName(self)
     self.state.class = UnitClassBase(unit)
     self.state.guid = UnitGUID(unit)
     self.state.isPlayer = UnitIsPlayer(unit)
+
+    if Cell.loaded and CellDB["general"]["translit"] then
+        self.state.name = LibTranslit:Transliterate(self.state.name)
+        self.state.fullName = LibTranslit:Transliterate(self.state.fullName)
+    end
 
     self.indicators.nameText:UpdateName()
 end
@@ -2862,6 +2888,7 @@ B.UpdateAll = UnitButton_UpdateAll
 B.UpdateHealth = UnitButton_UpdateHealth
 B.UpdateHealthMax = UnitButton_UpdateHealthMax
 B.UpdateAuras = UnitButton_UpdateAuras
+B.UpdateName = UnitButton_UpdateName
 
 -------------------------------------------------
 -- unit button init

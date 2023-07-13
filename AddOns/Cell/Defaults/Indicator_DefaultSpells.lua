@@ -685,6 +685,12 @@ local spells =  {
     373862, -- 时空畸体
     378001, -- 梦境投影（pvp）
     373267, -- 缚誓生命
+    395296, -- 黑檀之力 (self)
+    395152, -- 黑檀之力
+    360827, -- 炽火龙鳞
+    410089, -- 先知先觉
+    406732, -- 空间悖论 (self)
+    406789, -- 空间悖论
 
     -- monk
     119611, -- 复苏之雾
@@ -753,8 +759,11 @@ function F:FirstRun()
             ["size"] = {13, 13},
             ["num"] = 5,
             ["orientation"] = "right-to-left",
-            ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
             ["showDuration"] = true,
+            ["font"] = {
+                {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
+                {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+            },
             ["auraType"] = "buff",
             ["castByMe"] = true,
             ["auras"] = spells,
@@ -772,29 +781,21 @@ end
 -------------------------------------------------
 -- cleuAuras
 -------------------------------------------------
-local cleuAuras = {}
+-- local cleuAuras = {}
 
--- local cleus = {}
--- for _, t in pairs(cleuAuras) do
---     local icon = select(3, GetSpellInfo(t[1]))
---     cleus[t[1]] = {t[2], icon}
+-- function I:UpdateCleuAuras(t)
+--     -- reset
+--     wipe(cleuAuras)
+--     -- insert
+--     for _, c in pairs(t) do
+--         local icon = select(3, GetSpellInfo(c[1]))
+--         cleuAuras[c[1]] = {c[2], icon}
+--     end
 -- end
--- cleuAuras = F:Copy(cleus)
-
-function I:UpdateCleuAuras(t)
-    -- reset
-    wipe(cleuAuras)
-    -- cleuAuras = F:Copy(cleus)
-    -- insert
-    for _, c in pairs(t) do
-        local icon = select(3, GetSpellInfo(c[1]))
-        cleuAuras[c[1]] = {c[2], icon}
-    end
-end
     
-function I:CheckCleuAura(id)
-    return cleuAuras[id]
-end
+-- function I:CheckCleuAura(id)
+--     return cleuAuras[id]
+-- end
 
 -------------------------------------------------
 -- targetedSpells

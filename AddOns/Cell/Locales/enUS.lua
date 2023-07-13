@@ -34,6 +34,10 @@ select(2, ...).L = setmetatable({
     ["circledStackNums"] = "Circled stack numbers",
     ["hideDamager"] = "Hide Damager",
     ["hideInCombat"] = "Hide in combat",
+    ["stackFont"] = "Stack Font",
+    ["durationFont"] = "Duration Font",
+    ["fadeOut"] = "Fade out over time",
+    ["shieldByMe"] = "Only show PW:S cast by me",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -70,10 +74,50 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
+        <h1>Try disabling code snippets, if Cell doesn't work after update.</h1>
+        <br/>
+        
         <h1>About the M+ Afflicted Souls</h1>
         <p>I've received some requests about showing Afflicted Souls on Cell. Simply put, due to the limitation of the plugin API, it is not possible. I can make them display on Cell, but these buttons will not be clickable, so there is no need. It is better to use WA.</p>
         <br/>
 
+        <h1>r179-release (Jul 13, 2023, 12:38 GMT+8)</h1>
+        <p>* Updated PW:S indicator.</p>
+        <p>+ Added a "Translit Cyrillic to Latin" option in General tab.</p>
+        <br/>
+
+        <h1>r178-release (Jul 13, 2023, 02:08 GMT+8)</h1>
+        <p>+ New indicator: "PW:S" (Wrath).</p>
+        <p>* Bumped up toc.</p>
+        <br/>
+
+        <h1>r177-release (Jul 10, 2023, 16:41 GMT+8)</h1>
+        <p>+ Updated for Augmentation Evokers.</p>
+        <p>+ Added a "Fade out over time" option for custom texture indicators.</p>
+        <p>+ Added "Unit's Target" to spotlight frame.</p>
+        <p>- Removed "CLEU auras" from Raid Debuffs indicator.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r176-release (Jul 6, 2023, 14:34 GMT+8)</h1>
+        <p>+ Added full health color options in Appearance.</p>
+        <p>* Updated zhTW.</p>
+        <p>* Updated Cell discord link.</p>
+        <br/>
+
+        <h1>r175-release (Jun 20, 2023, 11:22 GMT+8)</h1>
+        <p>* Fixed Power Bar Filters.</p>
+        <p>* Fixed animation Type A of Consumables indicator (Wrath).</p>
+        <br/>
+        
+        <h1>r174-release (Jun 18, 2023, 17:25 GMT+8)</h1>
+        <p>* Updated font options for some indicators. The stack font and duration font can be set separately. And if you use CooldownIcons_BlizzardStyle snippet, an update is required.</p>
+        <p>* Health Text indicator: added options to show shield value.</p>
+        <p>* Dispels indicator: updated Highlight Type option.</p>
+        <p>* Fixed Private Auras indicator.</p>
+        <p>* Updated raid debuffs.</p>
+        <br/>
+        
         <h1>r173-release (Jun 2, 2023, 18:36 GMT+8)</h1>
         <p>* Added a "Hide in combat" option for Leader Icon indicator.</p>
         <p>* Updated zhTW.</p>

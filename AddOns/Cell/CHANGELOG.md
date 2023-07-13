@@ -1,4 +1,4 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r172-release...764ad4a8f4698dd3f8858b33396369b5c472beda)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r178-release...d7a8b1877feddb565b97d3d146c51dad5e0805ed)
 
-- Add a hideInCombat option for Leader Icon
-- Update zhTW
+- Implement translit
+- Update PW:S indicator

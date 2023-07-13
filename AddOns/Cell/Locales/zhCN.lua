@@ -83,6 +83,7 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
+L["Translit Cyrillic to Latin"] = "转写俄文为英文"
 L["Increase Health Update Rate"] = "增加血条刷新速率"
 L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Lock Cell Frame"] = "把它给我锁死"
@@ -171,6 +172,7 @@ L["Health Bar Color"] = "血条颜色"
 L["Health Loss Color"] = "损失血量颜色"
 L["Health Bar Alpha"] = "血条透明度"
 L["Health Loss Alpha"] = "损失血量透明度"
+L["Enable Full Health Color"] = "启用满血颜色"
 L["Enable Death Color"] = "启用死亡颜色"
 L["Power Color"] = "能量颜色"
 L["Power Color (dark)"] = "能量颜色 (暗)"
@@ -318,8 +320,9 @@ L["Spotlight Frame"] = "特别关注框体"
 L["spotlightTips"] = "左键：|cffffffff菜单|r\n右键：|cffffffff清除|r\n左键拖动：|cffffffff设置为目标单位（非战斗中）|r\n右键拖动：|cffffffff设置为目标单位的宠物（非战斗中）|r"
 L["Show units you care about more in a separate frame"] = "将你特别关注的单位显示在一个单独的框体中"
 L["Target of Target"] = "目标的目标"
-L["Unit"] = "目标单位"
-L["Unit's Pet"] = "目标单位的宠物"
+L["Unit"] = "指定单位"
+L["Unit's Target"] = "指定单位的目标"
+L["Unit's Pet"] = "指定单位的宠物"
 L["Clear"] = "清除"
 L["Invalid unit."] = "无效单位。"
 L["Sort By Role (Party Only)"] = "按职责排序（仅小队）"
@@ -386,6 +389,7 @@ L["Aggro (blink)"] = "仇恨 (闪烁)"
 L["Aggro (bar)"] = "仇恨 (条)"
 L["Aggro (border)"] = "仇恨 (边框)"
 L["Shield Bar"] = "护盾条"
+L["PW:S"] = "真言术：盾"
 L["AoE Healing"] = "AoE 治疗"
 L["External Cooldowns"] = "减伤 (来自他人)"
 L["Defensive Cooldowns"] = "减伤 (自身)"
@@ -439,6 +443,9 @@ L["Font Size"] = "字体尺寸"
 L["Shadow"] = "阴影"
 L["Outline"] = "轮廓"
 L["Monochrome Outline"] = "单色轮廓"
+L["stackFont"] = "层数字体"
+L["durationFont"] = "持续时间字体"
+L["This setting will be ignored, if the %1$s option in %2$s tab is enabled"] = "如果启用了%2$s页面下的%1$s选项，此设置将被忽略"
 L["Name Color"] = "名字颜色"
 L["Use Custom Textures"] = "使用自定义材质"
 L["BOTTOM"] = "下"
@@ -459,6 +466,7 @@ L["Border"] = "边框"
 L["Alpha"] = "透明度"
 L["Max Icons"] = "最大显示数量"
 L["Format"] = "格式"
+L["shields"] = "护盾"
 L["hideIfEmptyOrFull"] = "当死亡或血量满时隐藏"
 L["Color"] = "颜色"
 L["Remaining Time <"] = "剩余时间 <"
@@ -468,6 +476,7 @@ L["hide icon animation"] = "隐藏图标动画"
 L["Anchor To"] = "定位到"
 L["Health Bar"] = "血条"
 L["Entire"] = "整体"
+L["Half"] = "半高"
 L["Solid"] = "纯色"
 L["Vertical Gradient"] = "垂直渐变"
 L["Horizontal Gradient"] = "水平渐变"
@@ -476,6 +485,7 @@ L["Rotation"] = "旋转"
 L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"] = "即使被禁用，下列设置也会对“减伤 (全部)”指示器生效"
 L["Built-in Spells"] = "内置法术"
 L["Highlight Type"] = "高亮类型"
+L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"] = "需要有|cffff2727真言术：盾雕文|r才能显示盾值"
 
 L["Click to preview"] = "点击预览"
 L["Debug Mode"] = "调试模式"
@@ -499,6 +509,8 @@ L["Tooltips need to be enabled in General tab"] = "需要先启用常规页面�
 L["Only one threshold is displayed at a time"] = "同一时间只显示一个阈值"
 L["hideDamager"] = "隐藏伤害输出"
 L["hideInCombat"] = "战斗中隐藏"
+L["fadeOut"] = "随时间淡出"
+L["shieldByMe"] = "只显示我施放的真言术：盾"
 
 L["left-to-right"] = "从左到右"
 L["right-to-left"] = "从右到左"
@@ -630,8 +642,48 @@ L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
+    <h1>如果更新后发现Cell不能正常工作，尝试禁用代码片段。</h1>
+    <br/>
+    
     <h1>关于受难之魂</h1>
     <p>最近收到些“让Cell显示受难之魂”的请求。简单地说就是，由于插件API的限制，做不了。让Cell“显示”它们是可行的，但这些按钮是不可交互的，因此没有必要做，不如用WA。</p>
+    <br/>
+
+    <h1>r179-release (Jul 13, 2023, 12:38 GMT+8)</h1>
+    <p>* 更新真言术：盾指示器。</p>
+    <p>+ 在常规页面下添加了“转写俄文为英文”的选项。</p>
+    <br/>
+
+    <h1>r178-release (Jul 13, 2023, 02:08 GMT+8)</h1>
+    <p>+ 新指示器：“真言术：盾”（怀旧服）。</p>
+    <p>* 提升版本号。</p>
+    <br/>
+
+    <h1>r177-release (Jul 10, 2023, 16:41 GMT+8)</h1>
+    <p>+ 适配“增辉”唤魔师。</p>
+    <p>+ 为材质类型的自定义指示器添加了“随时间淡出”的选项。</p>
+    <p>+ 为特别关注框体添加了“指定单位的目标”的选项。</p>
+    <p>- 移除副本减益指示器通过CLEU匹配法术的功能。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r176-release (Jul 6, 2023, 14:34 GMT+8)</h1>
+    <p>+ 在外观下添加了满血颜色的选项。</p>
+    <p>* 更新繁中。</p>
+    <p>* 更新Cell的discord链接。</p>
+    <br/>
+
+    <h1>r175-release (Jun 20, 2023, 11:22 GMT+8)</h1>
+    <p>* 修复“能量条过滤”。</p>
+    <p>* 修复“消耗品”指示器的A类型动画（怀旧服）。</p>
+    <br/>
+
+    <h1>r174-release (Jun 18, 2023, 17:25 GMT+8)</h1>
+    <p>* 更新部分指示器的字体选项。现在层数和持续时间的字体可以分别设置了。如果你使用了“暴雪样式图标”的代码片段，需要在Cell仓库里/KOOK的代码片段频道更新（还是那个地址），否则报错。</p>
+    <p>* 为“血量文字”指示器添加了可以显示盾值的选项。</p>
+    <p>* 更新“驱散”指示器的高亮类型选项。</p>
+    <p>* 修复“个人光环”指示器。</p>
+    <p>* 更新副本减益。</p>
     <br/>
 
     <h1>r173-release (Jun 2, 2023, 18:36 GMT+8)</h1>

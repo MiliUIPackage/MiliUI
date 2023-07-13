@@ -232,7 +232,12 @@ function I:UpdateDefensives(t)
     end
 end
 
+local defensiveBlacklist = {
+    [67378] = true
+}
+
 function I:IsDefensiveCooldown(name, id)
+    if defensiveBlacklist[id] then return end
     return builtInDefensives[name] or builtInDefensives[id] or customDefensives[name]
 end
 
@@ -342,7 +347,10 @@ function F:FirstRun()
             ["size"] = {13, 13},
             ["num"] = 5,
             ["orientation"] = "right-to-left",
-            ["font"] = {"Cell ".._G.DEFAULT, 11, "Outline", 2, 1},
+            ["font"] = {
+                {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
+                {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+            },
             ["showDuration"] = false,
             ["auraType"] = "buff",
             ["castByMe"] = true,
