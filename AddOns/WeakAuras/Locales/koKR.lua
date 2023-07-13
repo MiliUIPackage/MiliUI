@@ -456,6 +456,8 @@ L["Dungeons"] = "던전"
 L["Durability Damage"] = "내구도 손상"
 L["Durability Damage All"] = "모든 내구도 손상"
 --[[Translation missing --]]
+L["Duration"] = "Duration"
+--[[Translation missing --]]
 L["Duration Function"] = "Duration Function"
 --[[Translation missing --]]
 L["Duration Function (fallback state)"] = "Duration Function (fallback state)"
@@ -613,6 +615,8 @@ L["Formats Player's |cFFFF0000%guid|r"] = "플레이어의 |cFFFF0000%GUID|r 형
 L["Forward"] = "Forward"
 --[[Translation missing --]]
 L["Forward, Reverse Loop"] = "Forward, Reverse Loop"
+--[[Translation missing --]]
+L["Fourth Value of Tooltip Text"] = "Fourth Value of Tooltip Text"
 --[[Translation missing --]]
 L["Frame Selector"] = "Frame Selector"
 L["Frequency"] = "빈도"
@@ -806,6 +810,8 @@ L["Jin'do the Hexxer"] = "주술사 진도"
 L["Journal Stage"] = "도감 단계"
 L["Keep Inside"] = "내부에 보관"
 L["Kel'Thuzad"] = "켈투자드"
+--[[Translation missing --]]
+L["Key"] = "Key"
 L["Kologarn"] = "콜로간"
 L["Koralon the Flame Watcher"] = "화염 감시자 코랄론"
 L["Kurinnaxx"] = "쿠린낙스"
@@ -971,7 +977,7 @@ L["Number"] = "횟수"
 L["Number Affected"] = "영향 받은 횟수"
 L["Object"] = "객체"
 --[[Translation missing --]]
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -982,7 +988,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if BigWigs shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if BigWigs shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -995,7 +1001,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3
 
 Only if BigWigs shows it on it's bar]=]
 --[[Translation missing --]]
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -1006,7 +1012,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if DBM shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if DBM shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -1106,6 +1112,8 @@ L["Precision"] = "정밀도"
 L["Preset"] = "프리셋"
 L["Princess Huhuran"] = "공주 후후란"
 L["Print Profiling Results"] = "프로파일링 결과 출력"
+--[[Translation missing --]]
+L["Proc Glow"] = "Proc Glow"
 L["Professor Putricide"] = "교수 퓨트리사이드"
 L["Profiling already started."] = "프로파일링이 이미 시작되었습니다."
 L["Profiling automatically started."] = "프로파일링이 자동으로 시작되었습니다."
@@ -1268,6 +1276,10 @@ L["Show Loss of Control"] = "제어 상실 표시"
 --[[Translation missing --]]
 L["Show On"] = "Show On"
 --[[Translation missing --]]
+L["Show Override"] = "Show Override"
+--[[Translation missing --]]
+L["Show Override Spell"] = "Show Override Spell"
+--[[Translation missing --]]
 L["Show Rested Overlay"] = "Show Rested Overlay"
 L["Shrink"] = "축소"
 L["Silithid Royalty"] = "실리시드 왕실"
@@ -1371,6 +1383,8 @@ L["Stance/Form/Aura"] = "태세/변신/효과"
 --[[Translation missing --]]
 L["Standing"] = "Standing"
 L["Star Shake"] = "별모양 흔들림"
+--[[Translation missing --]]
+L["Start Animation"] = "Start Animation"
 L["Start Now"] = "지금 시작"
 L["Status"] = "상태"
 --[[Translation missing --]]
@@ -1430,6 +1444,8 @@ L["The aura has overwritten the global '%s', this might affect other auras."] = 
 L["The effective level differs from the level in e.g. Time Walking dungeons."] = "실제 레벨은 예를 들어 시간여행 던전의 레벨과는 다릅니다."
 L["The Eye of Eternity"] = "영원의 눈"
 L["The Four Horsemen"] = "4기사단"
+--[[Translation missing --]]
+L["The 'Key' value can be found in the BigWigs options of a specific spell"] = "The 'Key' value can be found in the BigWigs options of a specific spell"
 L["The Lich King"] = "리치 왕"
 L["The Obsidian Sanctum"] = "흑요석 성소"
 L["The Prophet Skeram"] = "예언자 스케람"
@@ -1465,6 +1481,8 @@ L["Tooltip"] = "툴팁"
 L["Tooltip Value 1"] = "툴팁 값 1"
 L["Tooltip Value 2"] = "툴팁 값 2"
 L["Tooltip Value 3"] = "툴팁 값 3"
+--[[Translation missing --]]
+L["Tooltip Value 4"] = "Tooltip Value 4"
 L["Top"] = "위"
 L["Top Left"] = "왼쪽 위"
 L["Top Right"] = "오른쪽 위"

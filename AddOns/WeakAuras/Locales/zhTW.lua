@@ -80,7 +80,7 @@ L["Alert Type"] = "通知類型"
 L["Algalon the Observer"] = "『觀察者』艾爾加隆"
 L["Alive"] = "存活"
 L["All"] = "全部"
-L["All States table contains a non table at key: '%s'."] = "所有狀態表格包含一個非表格在鍵值：'%s'。"
+L["All States table contains a non table at key: '%s'."] = "所有狀態表格包含一個非表格在 key 值: '%s'。"
 L["All Triggers"] = "全部的觸發"
 L["Alliance"] = "聯盟"
 L["Allow partial matches"] = "允許部分符合"
@@ -384,6 +384,7 @@ L["Dungeon (Timewalking)"] = "地城 (時光漫遊)"
 L["Dungeons"] = "地城"
 L["Durability Damage"] = "耐久度傷害"
 L["Durability Damage All"] = "耐久性傷害所有"
+L["Duration"] = "持續時間"
 L["Duration Function"] = "持續時間功能"
 L["Duration Function (fallback state)"] = "持續時間功能（後備狀態）"
 L["Dynamic Information"] = "動態資訊"
@@ -480,7 +481,7 @@ L["Filter messages with format <message>"] = "使用 <訊息內容> 的格式來
 L["Fire Resistance"] = "火焰抗性"
 L["Firemaw"] = "費爾默"
 L["First"] = "第一個"
-L["First Value of Tooltip Text"] = "滑鼠提示文字中的第一個值"
+L["First Value of Tooltip Text"] = "浮動提示資訊文字中的第一個值"
 L["Fixed"] = "固定"
 L["Fixed Names"] = "固定名稱"
 L["Fixed Size"] = "固定大小"
@@ -502,6 +503,7 @@ L["Formats |cFFFF0000%unit|r"] = "格式化 |cFFFF0000%unit|r"
 L["Formats Player's |cFFFF0000%guid|r"] = "格式化玩家的 |cFFFF0000%guid|r"
 L["Forward"] = "前進"
 L["Forward, Reverse Loop"] = "前進，反向循環"
+L["Fourth Value of Tooltip Text"] = "浮動提示資訊文字中的第四個值"
 L["Frame Selector"] = "框架選擇器"
 L["Frequency"] = "頻率"
 L["Freya"] = "芙蕾雅"
@@ -666,6 +668,7 @@ L["Jin'do the Hexxer"] = "『妖術師』金度"
 L["Journal Stage"] = "日誌階段"
 L["Keep Inside"] = "保持在內"
 L["Kel'Thuzad"] = "克爾蘇加德"
+L["Key"] = "Key 值"
 L["Kologarn"] = "柯洛剛恩"
 L["Koralon the Flame Watcher"] = "『烈焰看守者』寇拉隆"
 L["Kurinnaxx"] = "庫林納克斯"
@@ -809,7 +812,7 @@ L["Npc ID"] = "NPC ID"
 L["Number"] = "數字"
 L["Number Affected"] = "被影響的數量"
 L["Object"] = "物件"
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -820,8 +823,19 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if BigWigs shows it on it's bar]=] ] = "事件的發生，當光環未載入時重置可以是一系列值可以有多個值，用逗號或空格分隔示例：第2第5以及第6事件：2, 5, 6 第2到第6: 2-6 每2個事件: /2 every 3 events starting from 2nd: 2/3 every 3 events starting from 2nd and ending at 11th: 2-11/3 Only if BigWigs shows it on it's bar"
-L[ [=[Occurence of the event, reset when aura is unloaded
+Only if BigWigs shows it on it's bar]=] ] = [=[發生的事件，提醒效果卸載時會重置
+可以是一個範圍的值
+可以有多個值，用逗號或空白分隔
+
+範例:
+第2、第5和第6個事件: 2, 5, 6
+第2到第6個事件: 2-6
+每2個事件: /2
+從第2個開始，每3個事件: 2/3
+從第2個開始到第11個結束，每3個事件: 2-11/3
+
+只有 BigWigs 在它的計時條上面顯示時]=]
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -832,7 +846,18 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if DBM shows it on it's bar]=] ] = "事件的發生，當光環未載入時重置可以是一系列值可以有多個值，用逗號或空格分隔示例：2nd 5th and 6th events: 2, 5, 6 2nd to 6th: 2-6 every 2 events: /2 every 3 events starting from 2nd: 2/3 every 3 events starting from 2nd and ending at 11th: 2-11/3 Only if DBM shows it on it's bar"
+Only if DBM shows it on it's bar]=] ] = [=[發生的事件，提醒效果卸載時會重置
+可以是一個範圍的值
+可以有多個值，用逗號或空白分隔
+
+範例:
+第2、第5和第6個事件: 2, 5, 6
+第2到第6個事件: 2-6
+每2個事件: /2
+從第2個開始，每3個事件: 2/3
+從第2個開始到第11個結束，每3個事件: 2-11/3
+
+只有 DBM 在它的計時條上面顯示時]=]
 L["Officer"] = "幹部"
 L["Offset from progress"] = "進度偏移"
 L["Offset Timer"] = "移動時間數字"
@@ -909,6 +934,7 @@ L["Precision"] = "精確度"
 L["Preset"] = "預設"
 L["Princess Huhuran"] = "哈霍蘭公主"
 L["Print Profiling Results"] = "顯示分析結果"
+L["Proc Glow"] = "觸發光暈"
 L["Professor Putricide"] = "普崔希德教授"
 L["Profiling already started."] = "分析早已開始了。"
 L["Profiling automatically started."] = "分析已自動開始。"
@@ -1019,7 +1045,7 @@ L["Scenario (Normal)"] = "事件 (普通)"
 L["Screen"] = "螢幕"
 L["Screen/Parent Group"] = "螢幕/所屬群組"
 L["Second"] = "第二個"
-L["Second Value of Tooltip Text"] = "滑鼠提示文字中的第二個值"
+L["Second Value of Tooltip Text"] = "浮動提示資訊文字中的第二個值"
 L["Seconds"] = "秒數"
 L[ [=[Secure frame detected. Find more information:
 https://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames]=] ] = "檢測到安全框架。查詢更多訊息：https://github.com/WeakAuras/WeakAuras2/wiki/Protected-Frames"
@@ -1046,6 +1072,8 @@ L["Show Heal Absorb"] = "顯示治療吸收"
 L["Show Incoming Heal"] = "顯示即將獲得的治療"
 L["Show Loss of Control"] = "顯示被控制"
 L["Show On"] = "顯示於"
+L["Show Override"] = "顯示覆蓋"
+L["Show Override Spell"] = "顯示覆蓋法術"
 L["Show Rested Overlay"] = "顯示休息加成的疊加圖層"
 L["Shrink"] = "收縮"
 L["Silithid Royalty"] = "異種蠍皇族"
@@ -1128,6 +1156,7 @@ L["Stamina"] = "耐力"
 L["Stance/Form/Aura"] = "姿態/形態/光環"
 L["Standing"] = "站立"
 L["Star Shake"] = "搖光"
+L["Start Animation"] = "開始動畫"
 L["Start Now"] = "現在開始"
 L["Status"] = "狀態"
 L["Status Bar"] = "狀態條"
@@ -1166,7 +1195,7 @@ L["Target"] = "目標"
 L["Targeted"] = "當前目標"
 L["Tenebron"] = "坦納伯朗"
 L["Text"] = "文字"
-L["Text-to-speech"] = "唸出聊天文字"
+L["Text-to-speech"] = "文字轉語音"
 L["Texture Function"] = "材質功能"
 L["Texture Function (fallback state)"] = "材質功能（後備狀態）"
 L["Texture Rotation"] = "材質旋轉"
@@ -1175,6 +1204,7 @@ L["The aura has overwritten the global '%s', this might affect other auras."] = 
 L["The effective level differs from the level in e.g. Time Walking dungeons."] = "真實等級和等級 (例如: 時光漫遊的) 不同。"
 L["The Eye of Eternity"] = "永恆之眼"
 L["The Four Horsemen"] = "四騎士"
+L["The 'Key' value can be found in the BigWigs options of a specific spell"] = "'Key' 值可以在 BigWigs 選項中的特定法術中找到"
 L["The Lich King"] = "巫妖王"
 L["The Obsidian Sanctum"] = "黑曜聖所"
 L["The Prophet Skeram"] = "預言者斯克拉姆"
@@ -1184,7 +1214,7 @@ L["There are %i updates to your auras ready to be installed!"] = "有 %i 個提�
 L["Thick Outline"] = "粗外框"
 L["Thickness"] = "粗細"
 L["Third"] = "第三個"
-L["Third Value of Tooltip Text"] = "滑鼠提示文字中的第三個值"
+L["Third Value of Tooltip Text"] = "浮動提示資訊文字中的第三個值"
 L["This aura calls GetData a lot, which is a slow function."] = "這個提醒效果大量呼叫了一個很慢的功能 GetData。"
 L["This aura has caused a Lua error."] = "這個提醒效果造成了 Lua 錯誤。"
 L["This aura is saving %s KB of data"] = "這個提醒效果儲存了 %s KB 的資料"
@@ -1203,10 +1233,11 @@ L["Toggle"] = "勾選方塊"
 L["Toggle List"] = "勾選方塊清單"
 L["Toggle Options Window"] = "切換顯示設定選項視窗"
 L["Toggle Performance Profiling Window"] = "切換顯示效能分析視窗"
-L["Tooltip"] = "滑鼠提示"
-L["Tooltip Value 1"] = "滑鼠提示值 1"
-L["Tooltip Value 2"] = "滑鼠提示值 2"
-L["Tooltip Value 3"] = "滑鼠提示值 3"
+L["Tooltip"] = "浮動提示資訊"
+L["Tooltip Value 1"] = "浮動提示資訊值 1"
+L["Tooltip Value 2"] = "浮動提示資訊值 2"
+L["Tooltip Value 3"] = "浮動提示資訊值 3"
+L["Tooltip Value 4"] = "浮動提示資訊值 4"
 L["Top"] = "上"
 L["Top Left"] = "左上"
 L["Top Right"] = "右上"
@@ -1301,7 +1332,7 @@ L["Warning for unknown aura:"] = "未知的提醒效果警告:"
 L["Warning: Anchoring to your own child '%s' in aura '%s' is imposssible."] = "警告: 不能對齊到自己的子項目 '%s' (屬於提醒效果 '%s')。"
 L["Warning: Full Scan auras checking for both name and spell id can't be converted."] = "警告: 完整掃描光環會同時檢查名稱和法術 ID，無法轉換。"
 L["Warning: Name info is now available via %affected, %unaffected. Number of affected group members via %unitCount. Some options behave differently now. This is not automatically adjusted."] = "警告: 現在改為使用 %affected, %unaffected 來取得名字資訊，使用 %unitCount 取得受影響的隊友數量。一些選項的行為已經和以往不同了，並且不會自動調整。"
-L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "警告: 現在改為使用 %tooltip1, %tooltip2, %tooltip3 來取得滑鼠提示中的值，而不是 %s。並且不會自動調整。"
+L["Warning: Tooltip values are now available via %tooltip1, %tooltip2, %tooltip3 instead of %s. This is not automatically adjusted."] = "警告: 現在改為使用 %tooltip1, %tooltip2, %tooltip3 來取得浮動提示資訊中的值，而不是 %s。這不會自動調整。"
 L["WeakAuras Built-In (63:42 | 3:07 | 10 | 2.4)"] = "WeakAuras 內建的 (63:42 | 3:07 | 10 | 2.4)"
 L[ [=[WeakAuras has detected that it has been downgraded.
 Your saved auras may no longer work properly.

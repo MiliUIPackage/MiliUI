@@ -361,8 +361,7 @@ L["Custom Sort"] = "Свой критерий сортировки"
 --[[Translation missing --]]
 L["Custom Text Function"] = "Custom Text Function"
 L["Custom Trigger Combination"] = "Комбинация триггеров"
---[[Translation missing --]]
-L["Custom Variables"] = "Custom Variables"
+L["Custom Variables"] = "Пользовательские переменные"
 L["Damage"] = "Урон"
 L["Damage Shield"] = "Урон от щита"
 L["Damage Shield Missed"] = "Урон от щита (промах)"
@@ -397,8 +396,7 @@ L["Destination Reaction"] = "Реакция получателя"
 L["Destination Unit"] = "Получатель"
 L["Destination unit's raid mark index"] = "Метка получателя (индекс)"
 L["Destination unit's raid mark texture"] = "Метка получателя (иконка)"
---[[Translation missing --]]
-L["Difficulty"] = "Difficulty"
+L["Difficulty"] = "Сложность"
 L["Disable Spell Known Check"] = "Отключить проверку, известно ли заклинание"
 L["Disabled Spell Known Check"] = "Проверка, известно ли заклинание, отключена"
 L["Disease"] = "Болезнь"
@@ -427,6 +425,8 @@ L["Dungeon (Timewalking)"] = "Подземелье (путешествие во 
 L["Dungeons"] = "Подземелья"
 L["Durability Damage"] = "Повреждение экипировки"
 L["Durability Damage All"] = "Повреждение всей экипировки"
+--[[Translation missing --]]
+L["Duration"] = "Duration"
 L["Duration Function"] = "Функция длительности"
 L["Duration Function (fallback state)"] = "Функция длительности (резервное состояние)"
 L["Dynamic Information"] = "Динамическая информация"
@@ -555,6 +555,8 @@ L["Formats |cFFFF0000%unit|r"] = "Формат |cFFFF0000%unit|r для игро
 L["Formats Player's |cFFFF0000%guid|r"] = "Формат |cFFFF0000%GUID|r для игрока"
 L["Forward"] = "Воспроизвести"
 L["Forward, Reverse Loop"] = "Повторять (в прям. и обр. порядке)"
+--[[Translation missing --]]
+L["Fourth Value of Tooltip Text"] = "Fourth Value of Tooltip Text"
 L["Frame Selector"] = "Выбор кадра"
 L["Frequency"] = "Частота"
 L["Freya"] = "Фрейя"
@@ -586,8 +588,7 @@ L["Gothik the Harvester"] = "Готик Жнец"
 L["Gradient"] = "Градиент HSV"
 L["Gradient Color"] = "Цвет градиента"
 L["Gradient Enabled"] = "Градиент включен"
---[[Translation missing --]]
-L["Gradient Orientation"] = "Gradient Orientation"
+L["Gradient Orientation"] = "Ориентация градиента"
 L["Gradient Pulse"] = "Градиентная пульсация HSV"
 L["Grand Widow Faerlina"] = "Великая вдова Фарлина"
 L["Grid"] = "Сетка"
@@ -729,6 +730,8 @@ L["Jin'do the Hexxer"] = "Джин'до Проклинатель"
 L["Journal Stage"] = "Фаза"
 L["Keep Inside"] = "Только внутри"
 L["Kel'Thuzad"] = "Кел'Тузад"
+--[[Translation missing --]]
+L["Key"] = "Key"
 L["Kologarn"] = "Кологарн"
 L["Koralon the Flame Watcher"] = "Коралон Страж Огня"
 L["Kurinnaxx"] = "Куриннакс"
@@ -798,8 +801,7 @@ L["Maximum Estimate"] = "Макс. оценка"
 --[[Translation missing --]]
 L["Media"] = "Media"
 L["Medium"] = "Средний"
---[[Translation missing --]]
-L["Melee"] = "Melee"
+L["Melee"] = "Ближний бой"
 --[[Translation missing --]]
 L["Melee Haste (%)"] = "Melee Haste (%)"
 L["Message"] = "Сообщение"
@@ -880,7 +882,7 @@ L["Number"] = "Число"
 L["Number Affected"] = "Количество задействованных"
 L["Object"] = "Объект"
 --[[Translation missing --]]
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -891,7 +893,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if BigWigs shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if BigWigs shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -904,7 +906,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3
 
 Only if BigWigs shows it on it's bar]=]
 --[[Translation missing --]]
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -915,7 +917,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if DBM shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if DBM shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -1004,6 +1006,8 @@ L["Precision"] = "Точность"
 L["Preset"] = "Набор эффектов"
 L["Princess Huhuran"] = "Принцесса Хухуран"
 L["Print Profiling Results"] = "Вывести результаты профилирования"
+--[[Translation missing --]]
+L["Proc Glow"] = "Proc Glow"
 L["Professor Putricide"] = "Профессор Мерзоцид"
 L["Profiling already started."] = "Профилирование уже запущено."
 L["Profiling automatically started."] = "Профилирование автоматически запущено."
@@ -1148,6 +1152,10 @@ L["Show Heal Absorb"] = "Показать поглощение исцелени�
 L["Show Incoming Heal"] = "Показать поступающее исцеление (наложение)"
 L["Show Loss of Control"] = "Показать потерю контроля над персонажем"
 L["Show On"] = "Показать"
+--[[Translation missing --]]
+L["Show Override"] = "Show Override"
+--[[Translation missing --]]
+L["Show Override Spell"] = "Show Override Spell"
 L["Show Rested Overlay"] = "Показать дополнительный опыт после отдыха (наложение)"
 L["Shrink"] = "Сжатие"
 L["Silithid Royalty"] = "Силитидская знать"
@@ -1172,7 +1180,8 @@ L["Slide to Right"] = "Сдвиг вправо"
 L["Slide to Top"] = "Сдвиг вверх"
 L["Slider"] = "Ползунок"
 L["Small"] = "Мелкий"
-L["Smart Group"] = "Рейд > Группа > Игрок"
+--[[Translation missing --]]
+L["Smart Group"] = "Smart Group"
 --[[Translation missing --]]
 L["Soft Enemy"] = "Soft Enemy"
 --[[Translation missing --]]
@@ -1235,6 +1244,8 @@ L["Stamina"] = "Выносливость"
 L["Stance/Form/Aura"] = "Стойка / Облик / Аура"
 L["Standing"] = "Отношение"
 L["Star Shake"] = "Дрожь в виде звезды"
+--[[Translation missing --]]
+L["Start Animation"] = "Start Animation"
 L["Start Now"] = "Начать сейчас"
 L["Status"] = "Статус"
 --[[Translation missing --]]
@@ -1280,13 +1291,14 @@ L["Text"] = "Текст"
 L["Text-to-speech"] = "Текст в речь"
 L["Texture Function"] = "Функция текстуры"
 L["Texture Function (fallback state)"] = "Функция текстуры (резервное состояние)"
---[[Translation missing --]]
-L["Texture Rotation"] = "Texture Rotation"
+L["Texture Rotation"] = "Поворот текстуры"
 L["Thaddius"] = "Таддиус"
 L["The aura has overwritten the global '%s', this might affect other auras."] = "Индикация перезаписала значение глобальной переменной %s. Это может повлиять как на другие индикации, так и на ваш интерфейс!"
 L["The effective level differs from the level in e.g. Time Walking dungeons."] = "Масштабированное значение уровня игрока в ходе события (Путешествие во времени) или использования функции (Синхронизация групп)"
 L["The Eye of Eternity"] = "Око Вечности"
 L["The Four Horsemen"] = "Четыре всадника"
+--[[Translation missing --]]
+L["The 'Key' value can be found in the BigWigs options of a specific spell"] = "The 'Key' value can be found in the BigWigs options of a specific spell"
 L["The Lich King"] = "Король-лич"
 L["The Obsidian Sanctum"] = "Обсидиановое святилище"
 L["The Prophet Skeram"] = "Пророк Скерам"
@@ -1319,6 +1331,8 @@ L["Tooltip"] = "Подсказка"
 L["Tooltip Value 1"] = "1 значение из подсказки"
 L["Tooltip Value 2"] = "2 значение из подсказки"
 L["Tooltip Value 3"] = "3 значение из подсказки"
+--[[Translation missing --]]
+L["Tooltip Value 4"] = "Tooltip Value 4"
 L["Top"] = "Сверху"
 L["Top Left"] = "Сверху слева"
 L["Top Right"] = "Сверху справа"
@@ -1400,8 +1414,7 @@ L["Values/Remaining Time below this value are displayed as no progress."] = "З�
 L["Vault of Archavon"] = "Склеп Аркавона"
 L["Versatility (%)"] = "Универсальность"
 L["Versatility Rating"] = "Показатель универсальности"
---[[Translation missing --]]
-L["Vertical"] = "Vertical"
+L["Vertical"] = "Вертикальная"
 L["Vesperon"] = "Весперон"
 L["Viscidus"] = "Нечистотон"
 L["Visibility"] = "Видимость"

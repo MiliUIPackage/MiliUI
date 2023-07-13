@@ -448,7 +448,7 @@ local function MirrorSide(side)
   end
 end
 
---- @type fun(side: "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"): "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"
+--- @type fun(side: "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"): "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"|nil
 local function Pos1Side(side)
   if side == "LEFT" or side == "RIGHT" or side == "CENTERX" then
     return "BOTTOM"
@@ -457,7 +457,7 @@ local function Pos1Side(side)
   end
 end
 
---- @type fun(side: "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"): "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"
+--- @type fun(side: "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"): "LEFT"|"RIGHT"|"BOTTOM"|"TOP"|"CENTERX"|"CENTERY"|nil
 local function Pos2Side(side)
   if side == "LEFT" or side == "RIGHT" or side == "CENTERX" then
     return "TOP"
@@ -583,7 +583,7 @@ local LineInformationFuncs = {
         if auraPos then
           local dist = distance(auraPos, self.position)
           if dist < MAGNETIC_ALIGNMENT then
-            -- Same side: 100 as a base, meaning these lines are heavly preferred to lines
+            -- Same side: 100 as a base, meaning these lines are heavily preferred to lines
             -- for other sides
             score = max(score, 100 + (MAGNETIC_ALIGNMENT - dist))
           elseif mirrorPos then

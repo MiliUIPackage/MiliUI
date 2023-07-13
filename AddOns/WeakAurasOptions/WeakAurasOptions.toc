@@ -1,7 +1,7 @@
 ## Interface: 100105
 ## Title: WeakAuras Options
 ## Author: The WeakAuras Team
-## Version: 5.5.1
+## Version: 5.6.0
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## Notes: Options for WeakAuras
 ## Notes-esES: Opciones para WeakAuras

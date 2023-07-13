@@ -15,6 +15,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; deleted"] = "已删除%d个光环"
 	L["%d |4aura:auras; modified"] = "已修改%d个光环"
 	L["%i auras selected"] = "已选中%i个光环"
+	L["%i."] = "%i"
+	L["%i. %s"] = "%i. %s"
 	L["%s - %i. Trigger"] = "%s - %i. 触发器"
 	L["%s - Alpha Animation"] = "%s - 透明度动画"
 	L["%s - Color Animation"] = "%s - 颜色动画"
@@ -64,6 +66,7 @@ local L = WeakAuras.L
 	L["%s, Border"] = "%s，边框"
 	L["%s, Offset: %0.2f;%0.2f"] = "%s，偏移：%0.2f; %0.2f"
 	L["%s, offset: %0.2f;%0.2f"] = "%s，偏移：%0.2f; %0.2f"
+	L["%s, Start Animation"] = "%s，开始动画"
 	L["%s|cFFFF0000custom|r texture with |cFFFF0000%s|r blend mode%s%s"] = "%s|cFFFF0000自定义|r材质，|cFFFF0000%s|r混合模式%s%s"
 	L["(Right click to rename)"] = "（右键点击以重命名）"
 	L["|c%02x%02x%02x%02xCustom Color|r"] = "|c%02x%02x%02x%02x自定义颜色|r"
@@ -142,11 +145,11 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	L["Anchored To"] = "对齐到"
 	L["And "] = "和"
 	L["and"] = "和"
+	L["and %s"] = "并且 %s"
 	L["and aligned left"] = "并且左对齐"
 	L["and aligned right"] = "并且右对齐"
 	L["and rotated left"] = "并且向左旋转"
 	L["and rotated right"] = "并且向右旋转"
-	L["and Trigger %s"] = "和触发器 %s"
 	L["and with width |cFFFF0000%s|r and %s"] = "并且宽度|cFFFF0000%s|r 并且%s"
 	L["Angle"] = "角度"
 	L["Animate"] = "动画"
@@ -168,6 +171,7 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	L["At a position a bit left of Left HUD position."] = "在左侧HUD偏左一点的位置。"
 	L["At a position a bit left of Right HUD position"] = "在右侧HUD偏左一点的位置。"
 	L["At the same position as Blizzard's spell alert"] = "与暴雪的法术警报在同一位置"
+	L["Aura"] = "光环"
 	L[ [=[Aura is
 Off Screen]=] ] = "光环在屏幕外"
 	L["Aura Name"] = "光环名称"
@@ -251,7 +255,6 @@ Off Screen]=] ] = "光环在屏幕外"
 	L["Compare against the number of units affected."] = "比较受影响的单位数量"
 	L["Compatibility Options"] = "兼容性选项"
 	L["Compress"] = "压缩"
-	L["Condition %i"] = "条件 %i"
 	L["Conditions"] = "条件"
 	L["Configure what options appear on this panel."] = "配置哪些选项出现在此面板中"
 	L["Constant Factor"] = "常数因子"
@@ -301,8 +304,7 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Custom Untrigger"] = "自定义取消触发器"
 	L["Custom Variables"] = "自定义变量"
 	L["Debuff Type"] = "减益类型"
-	--[[Translation missing --]]
-	L["Debug Log"] = "Debug Log"
+	L["Debug Log"] = "调试日志"
 	L["Debug Log:"] = "调试日志："
 	L["Default"] = "默认"
 	L["Default Color"] = "默认颜色"
@@ -325,12 +327,14 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Distribute Horizontally"] = "横向分布"
 	L["Distribute Vertically"] = "纵向分布"
 	L["Do not group this display"] = "不要将此图示编组"
-	L["Do you want to ignore all future updates for this aura"] = "你想忽略此光环未来的所有更新吗"
+	L["Do you want to enable updates for this aura"] = "你想启用这个光环的更新吗"
+	L["Do you want to ignore updates for this aura"] = "你想忽略这个光环的更新吗"
 	L["Documentation"] = "文档"
 	L["Done"] = "完成"
 	L["Drag to move"] = "拖拽来移动"
 	L["Duplicate"] = "复制"
 	L["Duplicate All"] = "复制所有"
+	L["Duration"] = "持续时间"
 	L["Duration (s)"] = "持续时间"
 	L["Duration Info"] = "持续时间讯息"
 	L["Dynamic Duration"] = "动态时长"
@@ -352,7 +356,7 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Edge"] = "边缘"
 	L["eliding"] = "省略"
 	L["Else If"] = "否则如果"
-	L["Else If Trigger %s"] = "否则如果触发器%s"
+	L["Else If %s"] = "否则如果 %s"
 	L["Enable \"Edge\" part of the overlay"] = "显示覆盖层的\"边缘\""
 	L["Enable \"swipe\" part of the overlay"] = "启用覆盖层的\"刷\""
 	L["Enable Debug Log"] = "启用调试日志"
@@ -501,12 +505,12 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Icon"] = "图标"
 	L["Icon Info"] = "图标信息"
 	L["Icon Inset"] = "图标内嵌"
-	--[[Translation missing --]]
-	L["Icon Picker"] = "Icon Picker"
+	L["Icon Picker"] = "图标选择器"
 	L["Icon Position"] = "图标位置"
 	L["Icon Settings"] = "图标设置"
 	L["Icon Source"] = "图标来源"
 	L["If"] = "如果"
+	L["If %s"] = "如果 %s"
 	L["If checked, then the user will see a multi line edit box. This is useful for inputting large amounts of text."] = "勾选后，用户可以看见一个多行的输入框，在输入大量文本时很有用。"
 	L["If checked, then this group will not merge with other group when selecting multiple auras."] = "勾选后，在选中多个光环的情况下，此组将不会和其他组合并。"
 	L["If checked, then this option group can be temporarily collapsed by the user."] = "勾选后，选项组可以临时被用户折叠"
@@ -514,7 +518,6 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["If checked, then this separator will include text. Otherwise, it will be just a horizontal line."] = "勾选后，则此分隔符将会包含文本，否则就只是一条横线。"
 	L["If checked, then this separator will not merge with other separators when selecting multiple auras."] = "勾选后，此分隔符不会在选中多个光环时与其他分隔符合并。"
 	L["If checked, then this space will span across multiple lines."] = "勾选后，此空白区域将横跨多行。"
-	L["If Trigger %s"] = "如果触发器 %s"
 	L["If unchecked, then a default color will be used (usually yellow)"] = "如果不勾选，则使用默认颜色（通常是黄色）"
 	L["If unchecked, then this space will fill the entire line it is on in User Mode."] = "如果不勾选，则在用户模式下此空白区域将填充一整行。"
 	L["Ignore Dead"] = "忽略已死亡"
@@ -522,14 +525,14 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Ignore out of checking range"] = "忽略超出检查范围"
 	L["Ignore Self"] = "忽略自身"
 	L["Ignore updates"] = "忽略更新"
+	L["Ignore Wago updates"] = "忽略Wago更新"
 	L["Ignored"] = "被忽略"
 	L["Ignored Aura Name"] = "忽略光环名称"
 	L["Ignored Exact Spell ID(s)"] = "忽略精确法术 ID"
 	L["Ignored Name(s)"] = "忽略名称"
 	L["Ignored Spell ID"] = "忽略法术 ID"
 	L["Import"] = "导入"
-	--[[Translation missing --]]
-	L["Import / Export"] = "Import / Export"
+	L["Import / Export"] = "导入 / 导出"
 	L["Import a display from an encoded string"] = "从字串导入一个图示"
 	L["Import as Copy"] = "以副本导入"
 	L["Import has no UID, cannot be matched to existing auras."] = "导入没有UID，无法与现有光环匹配。"
@@ -557,8 +560,7 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Is Boss Debuff"] = "首领施放的减益效果"
 	L["Is Stealable"] = "可偷取"
 	L["Is Unit"] = "是单位"
-	--[[Translation missing --]]
-	L["Join Discord"] = "Join Discord"
+	L["Join Discord"] = "加入 Discord"
 	L["Justify"] = "对齐"
 	L["Keep Aspect Ratio"] = "保持比例不变"
 	L["Keep your Wago imports up to date with the Companion App."] = "利用Companion应用程序保持你的Wago导入最新。"
@@ -570,8 +572,7 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Length"] = "长度"
 	L["Length of |cFFFF0000%s|r"] = "长度|cFFFF0000%s|r"
 	L["Limit"] = "限制"
-	--[[Translation missing --]]
-	L["Line"] = "Line"
+	L["Line"] = "行"
 	L["Lines & Particles"] = "线条和粒子"
 	L["Linked aura: "] = "关联光环："
 	L["Load"] = "载入"
@@ -596,8 +597,7 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Mirror"] = "镜像"
 	L["Model"] = "模型"
 	L["Model %s"] = "模型 %s"
-	--[[Translation missing --]]
-	L["Model Picker"] = "Model Picker"
+	L["Model Picker"] = "模型选择器"
 	L["Model Settings"] = "模型设置"
 	L["ModelPaths could not be loaded, the addon is %s"] = "无法载入Model Paths：%s"
 	L["Move Above Group"] = "移动上方的组"
@@ -626,8 +626,7 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Nameplates"] = "姓名板"
 	L["Negator"] = "不"
 	L["New Aura"] = "新建"
-	--[[Translation missing --]]
-	L["New Template"] = "New Template"
+	L["New Template"] = "新模版"
 	L["New Value"] = "新值"
 	L["No Children"] = "没有子项目"
 	L["No Logs saved."] = "没有已保存的调试日志。"
@@ -638,7 +637,7 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Note: Automated Messages to SAY and YELL are blocked outside of Instances."] = "注意：无法在副本外自动发送“说”与“大喊”信息。"
 	L["Npc ID"] = "NPC ID"
 	L["Number of Entries"] = "条目数"
-	L[ [=[Occurence of the event, reset when aura is unloaded
+	L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -657,10 +656,12 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 每两次事件：/2
 从第二次开始每三次事件：2/3
 从第二到第十一次事件开始每三次事件：2-11/3]=]
+	L["OFF"] = "关闭"
 	L["Offer a guided way to create auras for your character"] = "提供为角色创建光环的指导"
 	L["Offset by |cFFFF0000%s|r/|cFFFF0000%s|r"] = "偏移|cFFFF0000%s|r/|cFFFF0000%s|r"
 	L["Offset by 1px"] = "偏移1px"
 	L["Okay"] = "好"
+	L["ON"] = "开启"
 	L["On Hide"] = "图示隐藏时"
 	L["On Init"] = "初始化时"
 	L["On Show"] = "图示显示时"
@@ -673,7 +674,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Option Type"] = "选项类型"
 	L["Options will open after combat ends."] = "选项面板将在战斗结束后打开"
 	L["or"] = "或"
-	L["or Trigger %s"] = "或触发器 %s"
+	L["or %s"] = "或者 %s"
 	L["Orange Rune"] = "橙色符文"
 	L["Orientation"] = "方向"
 	L["Outer"] = "外部"
@@ -829,6 +830,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Star"] = "星星"
 	L["Start"] = "开始"
 	L["Start Angle"] = "起始角度"
+	L["Start Animation"] = "开始动画"
 	L["Start Collapsed"] = "打开时折叠"
 	L["Start of %s"] = "%s 的开始"
 	L["Step Size"] = "步进尺寸"
@@ -846,8 +848,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Text Settings"] = "文本设置"
 	L["Texture"] = "材质"
 	L["Texture Info"] = "材质信息"
-	--[[Translation missing --]]
-	L["Texture Picker"] = "Texture Picker"
+	L["Texture Picker"] = "材质选择器"
 	L["Texture Rotation"] = "材质旋转"
 	L["Texture Settings"] = "材质设置"
 	L["Texture Wrap"] = "材质折叠"
@@ -862,7 +863,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Thickness"] = "粗细"
 	L["This adds %raidMark as text replacements."] = "这将添加 %raidMark 作为文本替换。"
 	L["This adds %role, %roleIcon as text replacements. Does nothing if the unit is not a group member."] = "这将添加 %role, %roleIcon 作为文本替换。如果单位不是队伍成员，则不产生效果。"
-	L["This adds %tooltip, %tooltip1, %tooltip2, %tooltip3 as text replacements and also allows filtering based on the tooltip content/values."] = "这将添加 %tooltip, %tooltip1, %tooltip2, %tooltip3 作为文本替换，同时允许根据这些内容/值进行过滤。"
+	L["This adds %tooltip, %tooltip1, %tooltip2, %tooltip3 and %tooltip4 as text replacements and also allows filtering based on the tooltip content/values."] = "这将添加 %tooltip, %tooltip1, %tooltip2, %tooltip3, %tooltip4 作为文本替换，同时允许根据这些内容/值进行过滤。"
 	L[ [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=] ] = "此光环包含自定义Lua代码。请确认你可以信任发送它的人！"
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
@@ -902,8 +903,8 @@ It might not work correctly with your version!]=] ] = "此光环由更新版本�
 	L["Total Angle"] = "最大角度"
 	L["Total Time"] = "总时间"
 	L["Trigger"] = "触发"
-	L["Trigger %d"] = "触发器 %d"
-	L["Trigger %s"] = "触发器 %s"
+	L["Trigger %i"] = "触发器%i"
+	L["Trigger %i: %s"] = "触发器%i: %s"
 	L["Trigger Combination"] = "触发器组合"
 	L["True"] = "真"
 	L["Type"] = "类型"
@@ -953,16 +954,24 @@ It might not work correctly with your version!]=] ] = "此光环由更新版本�
 	L["Y Rotation"] = "Y轴旋转"
 	L["Y Scale"] = "长度比例"
 	L["Yellow Rune"] = "黄色符文"
-	L["Yes"] = "是"
-	L["y-Offset"] = "Y偏移"
 	L["Y-Offset"] = "Y 偏移"
+	L["y-Offset"] = "Y偏移"
 	L["You already have this group/aura. Importing will create a duplicate."] = "此组/光环已经存在，继续导入将会创建副本。"
 	L["You are about to delete %d aura(s). |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "正在删除 %d 个光环，|cFFFF0000此操作无法被撤销！|r真的要删除吗?"
 	L["You are about to delete a trigger. |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "你正在删除一个触发器。|cFFFF0000这个操作无法撤销！|r你要继续吗？"
+	L[ [=[You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the Anchor Code on.
+
+WeakAuras will always run custom anchor code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = [=[你可以添加一个由英文逗号分隔的状态键列表，当它对应的值被改变时，WeakAuras将运行自定义锚点代码。
+
+WeakAuras总是在状态被标记为已改变，或者一个框体被添加、删除、重新排序时运行自定义发光代码。]=]
 	L[ [=[You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the Grow Code on.
 
-WeakAuras will always run custom grow code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "你可以添加一个由英文逗号分隔的状态键列表，当它对应的值被改变时，WeakAuras将运行自定义发光代码。WeakAuras总是在状态被标记为已改变，或者一个框体被添加、删除、重新排序时运行自定义发光代码。"
-	L["You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the sort code on.WeakAuras will always run custom sort code if you include 'changed' in this list, or when a region is added, removed."] = "你可以添加一个由英文逗号分隔的状态键列表，当它对应的值被改变时，WeakAuras将运行自定义排序代码。WeakAuras总是在状态被标记为已改变，或者一个框体被添加、删除时运行自定义排序代码。"
+WeakAuras will always run custom grow code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = [=[你可以添加一个由英文逗号分隔的状态键列表，当它对应的值被改变时，WeakAuras将运行自定义发光代码。
+
+WeakAuras总是在状态被标记为已改变，或者一个框体被添加、删除、重新排序时运行自定义发光代码。]=]
+	L["You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the sort code on.WeakAuras will always run custom sort code if you include 'changed' in this list, or when a region is added, removed."] = [=[你可以添加一个由英文逗号分隔的状态键列表，当它对应的值被改变时，WeakAuras将运行自定义排序代码。
+
+WeakAuras总是在状态被标记为已改变，或者一个框体被添加、删除时运行自定义排序代码。]=]
 	L["Your Saved Snippets"] = "已保存片段"
 	L["Z Offset"] = "Z 偏移"
 	L["Z Rotation"] = "Z轴旋转"

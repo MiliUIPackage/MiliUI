@@ -395,6 +395,7 @@ L["Dungeon (Timewalking)"] = "Dungeon (Timewalking)"
 L["Dungeons"] = "Dungeons"
 L["Durability Damage"] = "Durability Damage"
 L["Durability Damage All"] = "Durability Damage All"
+L["Duration"] = "Duration"
 L["Duration Function"] = "Duration Function"
 L["Duration Function (fallback state)"] = "Duration Function (fallback state)"
 L["Dynamic Information"] = "Dynamic Information"
@@ -514,6 +515,7 @@ L["Formats |cFFFF0000%unit|r"] = "Formats |cFFFF0000%unit|r"
 L["Formats Player's |cFFFF0000%guid|r"] = "Formats Player's |cFFFF0000%guid|r"
 L["Forward"] = "Forward"
 L["Forward, Reverse Loop"] = "Forward, Reverse Loop"
+L["Fourth Value of Tooltip Text"] = "Fourth Value of Tooltip Text"
 L["Frame Selector"] = "Frame Selector"
 L["Frequency"] = "Frequency"
 L["Freya"] = "Freya"
@@ -678,6 +680,7 @@ L["Jin'do the Hexxer"] = "Jin'do the Hexxer"
 L["Journal Stage"] = "Journal Stage"
 L["Keep Inside"] = "Keep Inside"
 L["Kel'Thuzad"] = "Kel'Thuzad"
+L["Key"] = "Key"
 L["Kologarn"] = "Kologarn"
 L["Koralon the Flame Watcher"] = "Koralon the Flame Watcher"
 L["Kurinnaxx"] = "Kurinnaxx"
@@ -823,7 +826,7 @@ L["Npc ID"] = "Npc ID"
 L["Number"] = "Number"
 L["Number Affected"] = "Number Affected"
 L["Object"] = "Object"
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -834,7 +837,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if BigWigs shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if BigWigs shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -846,7 +849,7 @@ every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
 Only if BigWigs shows it on it's bar]=]
-L[ [=[Occurence of the event, reset when aura is unloaded
+L[ [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -857,7 +860,7 @@ every 2 events: /2
 every 3 events starting from 2nd: 2/3
 every 3 events starting from 2nd and ending at 11th: 2-11/3
 
-Only if DBM shows it on it's bar]=] ] = [=[Occurence of the event, reset when aura is unloaded
+Only if DBM shows it on it's bar]=] ] = [=[Occurrence of the event, reset when aura is unloaded
 Can be a range of values
 Can have multiple values separated by a comma or a space
 
@@ -945,6 +948,7 @@ L["Precision"] = "Precision"
 L["Preset"] = "Preset"
 L["Princess Huhuran"] = "Princess Huhuran"
 L["Print Profiling Results"] = "Print Profiling Results"
+L["Proc Glow"] = "Proc Glow"
 L["Professor Putricide"] = "Professor Putricide"
 L["Profiling already started."] = "Profiling already started."
 L["Profiling automatically started."] = "Profiling automatically started."
@@ -1083,6 +1087,8 @@ L["Show Heal Absorb"] = "Show Heal Absorb"
 L["Show Incoming Heal"] = "Show Incoming Heal"
 L["Show Loss of Control"] = "Show Loss of Control"
 L["Show On"] = "Show On"
+L["Show Override"] = "Show Override"
+L["Show Override Spell"] = "Show Override Spell"
 L["Show Rested Overlay"] = "Show Rested Overlay"
 L["Shrink"] = "Shrink"
 L["Silithid Royalty"] = "Silithid Royalty"
@@ -1165,6 +1171,7 @@ L["Stamina"] = "Stamina"
 L["Stance/Form/Aura"] = "Stance/Form/Aura"
 L["Standing"] = "Standing"
 L["Star Shake"] = "Star Shake"
+L["Start Animation"] = "Start Animation"
 L["Start Now"] = "Start Now"
 L["Status"] = "Status"
 L["Status Bar"] = "Status Bar"
@@ -1212,6 +1219,7 @@ L["The aura has overwritten the global '%s', this might affect other auras."] = 
 L["The effective level differs from the level in e.g. Time Walking dungeons."] = "The effective level differs from the level in e.g. Time Walking dungeons."
 L["The Eye of Eternity"] = "The Eye of Eternity"
 L["The Four Horsemen"] = "The Four Horsemen"
+L["The 'Key' value can be found in the BigWigs options of a specific spell"] = "The 'Key' value can be found in the BigWigs options of a specific spell"
 L["The Lich King"] = "The Lich King"
 L["The Obsidian Sanctum"] = "The Obsidian Sanctum"
 L["The Prophet Skeram"] = "The Prophet Skeram"
@@ -1244,6 +1252,7 @@ L["Tooltip"] = "Tooltip"
 L["Tooltip Value 1"] = "Tooltip Value 1"
 L["Tooltip Value 2"] = "Tooltip Value 2"
 L["Tooltip Value 3"] = "Tooltip Value 3"
+L["Tooltip Value 4"] = "Tooltip Value 4"
 L["Top"] = "Top"
 L["Top Left"] = "Top Left"
 L["Top Right"] = "Top Right"
