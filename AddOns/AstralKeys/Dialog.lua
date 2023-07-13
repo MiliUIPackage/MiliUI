@@ -24,7 +24,7 @@ StaticPopupDialogs['ASTRAL_KEYS_REFRESH_CONFIRM_DIALOG'] = {
 
 StaticPopupDialogs['ASTRAL_KEYS_REFRESH_SUCCESS_DIALOG'] = {
   text = L["Refreshed key data."],
-  button1 = OKEY,
+  button1 = OKAY,
   OnAccept = function()
   end,
   timeout = 0,
@@ -35,7 +35,7 @@ StaticPopupDialogs['ASTRAL_KEYS_REFRESH_SUCCESS_DIALOG'] = {
 
 StaticPopupDialogs['ASTRAL_KEYS_REFRESH_FAILURE_DIALOG'] = {
   text = L["You need to wait more than 30 seconds before refreshing again."],
-  button1 = OKEY,
+  button1 = OKAY,
   OnAccept = function()
   end,
   timeout = 0,

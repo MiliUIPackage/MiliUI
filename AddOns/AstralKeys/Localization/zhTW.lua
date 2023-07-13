@@ -46,7 +46,8 @@ L['OKAY'] = OKAY
 -- Announce messages
 L['ANNOUNCE_NEW_KEY'] = 'Astral Keys: 新的鑰石是 %s'
 L['NO_KEY'] = '沒有鑰石'
-L['KEYS_RESPOND_ON_NO_KEY'] = '即使沒有鑰石也要回應'
+L['KEYS_RESPOND_ON_NO_KEY'] = '沒有鑰石也要回應'
+L['KEYS_RESPOND_WITH_ALL_CHARACTERS'] = '報上所有角色的鑰石'
 
 
 -- Search field texts

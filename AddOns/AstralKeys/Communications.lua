@@ -4,6 +4,8 @@ local L = addon.L
 local strformat = string.format
 local BNSendGameData, SendAddonMessage, SendChatMessage = BNSendGameData, C_ChatInfo.SendAddonMessage, SendChatMessage
 
+addon.KEYS_TEXT_COMMAND = '!keys'
+
 -- Variables for syncing information
 -- Will only accept information from other clients with same version settings
 addon.UPDATE_VERSION = 'updateV8'
@@ -76,7 +78,7 @@ function AstralComs:OnEvent(event, prefix, msg, channel, sender)
 	local arg, content = msg:match("^(%S*)%s*(.-)$")
 
 	for _, obj in pairs(objs) do
-		if obj.prefix == arg then
+		if (obj.prefix == arg) and obj.method then -- 暫時修正
 			obj.method(content, sender, msg)
 		end
 	end
@@ -268,36 +270,44 @@ CheckInstanceType = function()
 end
 AstralEvents:Register('PLAYER_ENTERING_WORLD', CheckInstanceType, 'entering_world')
 
-function addon.AnnounceCharacterKeys(channel)
+function addon.AnnounceCharacterKeys(channel, prefix)
 	for i = 1, #AstralCharacters do
 		local id = addon.UnitID(strformat('%s-%s', addon.CharacterName(i), addon.CharacterRealm(i)))
 
 		if id then
 			local link = addon.CreateKeyLink(addon.UnitMapID(id), addon.UnitKeyLevel(id))
 			if channel == 'PARTY' and not IsInGroup() then return end
-			SendChatMessage(strformat('%s %s', addon.CharacterName(i), link), channel)
+			if prefix then
+				SendChatMessage(strformat('Astral Keys: %s %s', addon.CharacterName(i), link), channel)
+			else
+				SendChatMessage(strformat('%s %s', addon.CharacterName(i), link), channel)
+			end
 		end
 	end
 end
 
-function addon.AnnounceNewKey(keyLink)
+function addon.AnnounceKey()
+	local link = addon.CreateKeyLink(addon.keystone.id, addon.keystone.level)
+	if not link then return end
+	local msg = strformat(L['ANNOUNCE_NEW_KEY'], link)
 	if AstralKeysSettings.general.announce_party.isEnabled and IsInGroup() then
-		SendChatMessage(strformat(L['ANNOUNCE_NEW_KEY'], keyLink), 'PARTY')
+		SendChatMessage(msg, 'PARTY')
 	end
 	if AstralKeysSettings.general.announce_guild.isEnabled and IsInGuild() then
-		SendChatMessage(strformat(L['ANNOUNCE_NEW_KEY'], keyLink), 'GUILD')
+		SendChatMessage(msg, 'GUILD')
 	end
 end
 
 local function ParseGuildChatCommands(text)
 	if UnitLevel('player') ~= addon.EXPANSION_LEVEL then return end -- Don't bother checking anything if the unit is unable to acquire a key
 	text = gsub(text, "^%[%a+%] ", "") -- Strip off [SomeName] from message from using Identity-2
-	if text:lower() == '!keys' then
+	if text:lower() == addon.KEYS_TEXT_COMMAND then
 		local guild = GetGuildInfo('player')
-		if AstralKeysSettings.general.report_on_message['guild'] or (guild == 'Astral' and addon.PlayerRealm() == 'Area 52') then -- Guild leader for Astral desires this setting to be foreced on for members.
-			local unitID = addon.UnitID(addon.Player())
-			if unitID then
-				local keyLink = addon.CreateKeyLink(addon.UnitMapID(unitID), addon.UnitKeyLevel(unitID))
+		if AstralKeysSettings.general.report_on_message['guild'] or (guild == 'Astral' and addon.PlayerRealm() == 'Area52') then -- Guild leader for Astral desires this setting to be foreced on for members.
+			if AstralKeysSettings.general.report_on_message['all_characters'] then
+				addon.AnnounceCharacterKeys('GUILD', true)
+			elseif addon.keystone.id then
+				local keyLink = addon.CreateKeyLink(addon.keystone.id, addon.keystone.level)
 				if not keyLink then return end -- Something went wrong
 				SendChatMessage(string.format('Astral Keys: %s', keyLink), 'GUILD')
 				ReportTimewalkingKey('GUILD')
@@ -314,14 +324,15 @@ AstralEvents:Register('CHAT_MSG_GUILD', ParseGuildChatCommands, 'parseguildchat'
 local function ParsePartyChatCommands(text)
 	if UnitLevel('player') ~= addon.EXPANSION_LEVEL then return end -- Don't bother checking anything if the unit is unable to acquire a key
 	text = gsub(text, "^%[%a+%] ", "") -- Strip off [SomeName] from message from using Identity-2
-	if text:lower() == '!keys' then
+	if text:lower() == addon.KEYS_TEXT_COMMAND then
 		if AstralKeysSettings.general.report_on_message['party'] then
-			local unitID = addon.UnitID(addon.Player())
-			if unitID then
-				local keyLink = addon.CreateKeyLink(addon.UnitMapID(unitID), addon.UnitKeyLevel(unitID))
+			if AstralKeysSettings.general.report_on_message['all_characters'] then
+				addon.AnnounceCharacterKeys('PARTY', true)
+			elseif addon.keystone.id then
+				local keyLink = addon.CreateKeyLink(addon.keystone.id, addon.keystone.level)
 				if not keyLink then return end -- Something went wrong
 				SendChatMessage(string.format('Astral Keys: %s', keyLink), 'PARTY')
-				ReportTimewalkingKey('PARTY')	
+				ReportTimewalkingKey('PARTY')
 			else
 				if AstralKeysSettings.general.report_on_message.no_key then
 					SendChatMessage(strformat('%s: %s', 'Astral Keys', L['NO_KEY']), 'PARTY')
@@ -333,8 +344,8 @@ end
 AstralEvents:Register('CHAT_MSG_PARTY', ParsePartyChatCommands, 'parsepartychat')
 AstralEvents:Register('CHAT_MSG_PARTY_LEADER', ParsePartyChatCommands, 'parsepartychat')
 
-function ReportTimewalkingKey(reportType) 
-	local timeWalkingLink 
+function ReportTimewalkingKey(reportType)
+	local timeWalkingLink
 	for bag = 0, 4 do
 		local numSlots = C_Container.GetContainerNumSlots(bag)
 		for slot = 1, numSlots do
@@ -354,22 +365,14 @@ end
 local function ParseRaidChatCommands(text)
 	if UnitLevel('player') ~= addon.EXPANSION_LEVEL then return end -- Don't bother checking anything if the unit is unable to acquire a key
 	text = gsub(text, "^%[%a+%] ", "") -- Strip off [SomeName] from message from using Identity-2
-	if text:lower() == '!keys' then
+	if text:lower() == addon.KEYS_TEXT_COMMAND then
 		if AstralKeysSettings.general.report_on_message['raid'] then
-			local unitID = addon.UnitID(addon.Player())
-			if unitID then
-				local link
-				for bag = 0, 4 do
-					local numSlots = C_Container.GetContainerNumSlots(bag)
-					for slot = 1, numSlots do
-						if (C_Container.GetContainerItemID(bag, slot) == addon.MYTHICKEY_ITEMID) then
-							link = C_Container.GetContainerItemLink(bag, slot)
-							break
-						end
-					end
-				end
-				if not link then return end -- something went wrong
-				SendChatMessage(string.format('Astral Keys: %s', link), 'RAID')	
+			if AstralKeysSettings.general.report_on_message['all_characters'] then
+				addon.AnnounceCharacterKeys('RAID', true)
+			elseif addon.keystone.id then
+				local keyLink = addon.CreateKeyLink(addon.keystone.id, addon.keystone.level)
+				if not keyLink then return end -- Something went wrong
+				SendChatMessage(string.format('Astral Keys: %s', keyLink), 'RAID')
 				ReportTimewalkingKey('RAID')
 			else
 				if AstralKeysSettings.general.report_on_message.no_key then
