@@ -3,7 +3,7 @@
 ## Notes: Library providing downdown menu like blizzards DropDownMenu
 ## Author: Hizuro
 ## IconTexture: 986485
-## Version: r32
+## Version: r33
 ## OptionalDeps: LibStub, CallbackHandler-1.0
 
 ## X-Curse-Project-ID: 298617

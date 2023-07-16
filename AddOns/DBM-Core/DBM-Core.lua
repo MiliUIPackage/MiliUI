@@ -73,7 +73,7 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20230712023914"),
+	Revision = parseCurseDate("20230715020339"),
 }
 
 local fakeBWVersion, fakeBWHash
@@ -81,8 +81,8 @@ local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
 if isRetail then
-	DBM.DisplayVersion = "10.1.15"
-	DBM.ReleaseRevision = releaseDate(2023, 7, 11) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "10.1.16"
+	DBM.ReleaseRevision = releaseDate(2023, 7, 14) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 5--When this is incremented, trigger force disable regardless of major patch
 	fakeBWVersion, fakeBWHash = 278, "6d6db52"
 elseif isClassic then
@@ -1133,12 +1133,12 @@ do
 
 		function registerSpellId(event, spellId)
 			if type(spellId) == "string" then--Something is screwed up, like SPELL_AURA_APPLIED DOSE
-				DBM:Debug("DBM RegisterEvents 警告: "..spellId.." 不是一個數字！")
+				DBM:Debug("DBM RegisterEvents Warning: "..spellId.." is not a number!")
 				return
 			end
 			local spellName = DBM:GetSpellInfo(spellId)
 			if spellId and not spellName then
-				DBM:Debug("DBM RegisterEvents 警告: "..spellId.." 法術id不存在！")
+				DBM:Debug("DBM RegisterEvents Warning: "..spellId.." spell id does not exist!")
 				return
 			end
 			if not registeredSpellIds[event] then
@@ -1157,7 +1157,7 @@ do
 			if not registeredSpellIds[event] then return end
 			local spellName = DBM:GetSpellInfo(spellId)
 			if spellId and not spellName then
-				DBM:Debug("DBM unregisterSpellId 警告: "..spellId.." 法術id不存在！")
+				DBM:Debug("DBM unregisterSpellId Warning: "..spellId.." spell id does not exist!")
 				return
 			end
 			local regName = isClassic and spellName or spellId
@@ -2942,7 +2942,7 @@ function DBM:LoadModOptions(modId, inCombat, first)
 			if not inCombat then
 				for option, _ in pairs(savedOptions[id][profileNum]) do
 					if type(option) == "number" then
-						self:Debug("|cffff0000無效的選項類型: |r"..option)
+						self:Debug("|cffff0000Option type invalid: |r"..option)
 					end
 					if (mod.DefaultOptions[option] == nil) and (type(option) == "number" or not (option:find("talent") or option:find("FastestClear") or option:find("CVAR") or option:find("RestoreSetting"))) then
 						savedOptions[id][profileNum][option] = nil
@@ -4323,7 +4323,7 @@ do
 	guildSyncHandlers["GV"] = function(sender, _, revision, version, displayVersion, forceDisable)
 		revision, version, forceDisable = tonumber(revision), tonumber(version), tonumber(forceDisable) or 0
 		if revision and version and displayVersion then
-			DBM:Debug("已接受 G 版本資訊來自 "..sender.." : Rev - "..revision..", Ver - "..version..", 版本差異 - "..(revision - DBM.Revision)..", 顯示版本 "..displayVersion, 3)
+			DBM:Debug("Received G version info from "..sender.." : Rev - "..revision..", Ver - "..version..", Rev Diff - "..(revision - DBM.Revision)..", Display Version "..displayVersion, 3)
 			HandleVersion(revision, version, displayVersion, forceDisable, sender)
 		end
 	end
@@ -5078,7 +5078,7 @@ function checkWipe(self, confirm)
 			for i = #inCombat, 1, -1 do
 				local mod = inCombat[i]
 				if not mod.noStatistics then
-					self:Debug("你已清除。原因 : " .. (wipe == 1 and "在你的隊伍找不到戰鬥中單位。" or "沒找到首領 : "..(wipe or "nil")))
+					self:Debug("You wiped. Reason : " .. (wipe == 1 and "No combat unit found in your party." or "No boss found : "..(wipe or "nil")))
 				end
 				self:EndCombat(mod, true, nil, "checkWipe")
 			end
@@ -6183,11 +6183,11 @@ end
 --Future proofing EJ_GetSectionInfo compat layer to make it easier updatable.
 function DBM:EJ_GetSectionInfo(sectionID)
 	if not isRetail then
-		return "EJ_GetSectionInfo 不支援經典版，請回報此訊息以及首領"
+		return "EJ_GetSectionInfo not supported on Classic, please report this message and boss"
 	end
 	local info = EJ_GetSectionInfo(sectionID)
 	if not info then
-		self:Debug("|cffff0000無效的調用在EJ_GetSectionInfo於此sectionID: |r"..sectionID)
+		self:Debug("|cffff0000Invalid call to EJ_GetSectionInfo for sectionID: |r"..sectionID)
 		return
 	end
 	local flag1, flag2, flag3, flag4
@@ -6208,16 +6208,16 @@ end
 function DBM:GetSpellInfo(spellId)
 	--I want this to fail, and fail loudly (ie get reported when mods are completely missing the spellId)
 	if not spellId or spellId == "" then
-		error("|cffff0000對法術id的getspellinfo調用無效。缺少法術Id！ |r")
+		error("|cffff0000Invalid call to GetSpellInfo for spellId. spellId is missing! |r")
 	end
 	local name, rank, icon, castingTime, minRange, maxRange, returnedSpellId = GetSpellInfo(spellId)
 	--I want this for debug purposes to catch spellids that are removed from game/changed, but quietly to end user
 	if not returnedSpellId then--Bad request all together
 		if type(spellId) == "string" then
-			self:Debug("|cffff0000對法術id的getspellinfo調用無效: |r"..spellId.." 作為一個字符串！ ")
+			self:Debug("|cffff0000Invalid call to GetSpellInfo for spellId: |r"..spellId.." as a string!")
 		else
 			if spellId > 4 then
-				self:Debug("|cffff0000對法術id的getspellinfo調用無效: |r"..spellId)
+				self:Debug("|cffff0000Invalid call to GetSpellInfo for spellId: |r"..spellId)
 			end
 		end
 		return
@@ -6746,7 +6746,7 @@ do
 	function DBM:DemoMode()
 		if not testMod then
 			testMod = self:NewMod("TestMod")
-			self:GetModLocalization("TestMod"):SetGeneralLocalization{ name = "測試模式" }
+			self:GetModLocalization("TestMod"):SetGeneralLocalization{ name = "Test Mod" }
 			testWarning1 = testMod:NewAnnounce("%s", 1, "136116")--Interface\\Icons\\Spell_Nature_WispSplode
 			testWarning2 = testMod:NewAnnounce("%s", 2, isRetail and "136194" or "136221")
 			testWarning3 = testMod:NewAnnounce("%s", 3, "135826")
@@ -6762,22 +6762,22 @@ do
 			testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 			testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 		end
-		testTimer1:Stop("測試條")
-		testTimer2:Stop("小怪")
-		testTimer3:Stop("惡魔減益")
-		testTimer4:Stop("重要的打斷")
-		testTimer5:Stop("蹦!")
-		testTimer6:Stop("掌握你的職責")
-		testTimer7:Stop("下一階段")
-		testTimer8:Stop("用戶自訂義條")
-		testTimer1:Start(10, "測試條")
-		testTimer2:Start(30, "小怪")
-		testTimer3:Start(43, "惡魔減益")
-		testTimer4:Start(20, "重要的打斷")
-		testTimer5:Start(60, "蹦!")
-		testTimer6:Start(35, "掌握你的職責")
-		testTimer7:Start(50, "下一階段")
-		testTimer8:Start(55, "用戶自訂義條")
+		testTimer1:Stop("Test Bar")
+		testTimer2:Stop("Adds")
+		testTimer3:Stop("Evil Debuff")
+		testTimer4:Stop("Important Interrupt")
+		testTimer5:Stop("Boom!")
+		testTimer6:Stop("Handle your Role")
+		testTimer7:Stop("Next Stage")
+		testTimer8:Stop("Custom User Bar")
+		testTimer1:Start(10, "Test Bar")
+		testTimer2:Start(30, "Adds")
+		testTimer3:Start(43, "Evil Debuff")
+		testTimer4:Start(20, "Important Interrupt")
+		testTimer5:Start(60, "Boom!")
+		testTimer6:Start(35, "Handle your Role")
+		testTimer7:Start(50, "Next Stage")
+		testTimer8:Start(55, "Custom User Bar")
 		testWarning1:Cancel()
 		testWarning2:Cancel()
 		testWarning3:Cancel()
@@ -6787,19 +6787,19 @@ do
 		testSpecialWarning2:CancelVoice()
 		testSpecialWarning3:Cancel()
 		testSpecialWarning3:CancelVoice()
-		testWarning1:Show("測試模式開始...")
-		testWarning1:Schedule(62, "測試模式已結束!")
-		testWarning3:Schedule(50, "10秒後爆炸!")
-		testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
-		testWarning2:Schedule(38, "惡魔法術5秒後!")
-		testWarning2:Schedule(43, "惡魔法術!")
-		testWarning1:Schedule(10, "測試條已過期!")
-		testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
-		testSpecialWarning1:ScheduleVoice(20, "跑開人群")
-		testSpecialWarning2:Schedule(43, "恐懼!")
-		testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
-		testSpecialWarning3:Schedule(60, "蹦!")
-		testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
+		testWarning1:Show("Test-mode started...")
+		testWarning1:Schedule(62, "Test-mode finished!")
+		testWarning3:Schedule(50, "Boom in 10 sec!")
+		testWarning3:Schedule(20, "Pew Pew Laser Owl!")
+		testWarning2:Schedule(38, "Evil Spell in 5 sec!")
+		testWarning2:Schedule(43, "Evil Spell!")
+		testWarning1:Schedule(10, "Test bar expired!")
+		testSpecialWarning1:Schedule(20, "Pew Pew Laser Owl")
+		testSpecialWarning1:ScheduleVoice(20, "runaway")
+		testSpecialWarning2:Schedule(43, "Fear!")
+		testSpecialWarning2:ScheduleVoice(43, "fearsoon")
+		testSpecialWarning3:Schedule(60, "Boom!")
+		testSpecialWarning3:ScheduleVoice(60, "defensive")
 	end
 end
 
@@ -8527,6 +8527,15 @@ do
 		self.spellName = spellName
 	end
 
+	--Not to be confused with SetText, which only sets the text of object.
+	--This changes actual ID so announce callback also swaps ID for WAs
+	function announcePrototype:SetKey(altSpellId)
+		self.spellId = altSpellId
+		local text, spellName = setText(self.announceType, self.spellId, self.castTime, self.preWarnTime)
+		self.text = text
+		self.spellName = spellName
+	end
+
 	-- TODO: this function is an abomination, it needs to be rewritten. Also: check if these work-arounds are still necessary
 	function announcePrototype:Show(...) -- todo: reduce amount of unneeded strings
 		if not self.option or self.mod.Options[self.option] then
@@ -8692,14 +8701,14 @@ do
 	-- old constructor (no auto-localize)
 	function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionName, soundOption, spellID, noSpellGroup)
 		if not text then
-			error("新提醒: 您必須提供提醒文字", 2)
+			error("NewAnnounce: you must provide announce text", 2)
 			return
 		end
 		if type(text) == "number" then
-			DBM:Debug("|cffff0000新提醒: Non auto localized text cannot be numbers, fix this for |r"..text)
+			DBM:Debug("|cffff0000NewAnnounce: Non auto localized text cannot be numbers, fix this for |r"..text)
 		end
 		if type(optionName) == "number" then
-			DBM:Debug("|cffff0000新提醒: Non auto localized optionNames cannot be numbers, fix this for |r"..text)
+			DBM:Debug("|cffff0000NewAnnounce: Non auto localized optionNames cannot be numbers, fix this for |r"..text)
 			optionName = nil
 		end
 		if soundOption and type(soundOption) == "boolean" then
@@ -8733,7 +8742,7 @@ do
 	-- new constructor (partially auto-localized warnings and options, yay!)
 	local function newAnnounce(self, announceType, spellId, color, icon, optionDefault, optionName, castTime, preWarnTime, soundOption, noFilter)
 		if not spellId then
-			error("newAnnounce: 您必須提供法術ID", 2)
+			error("newAnnounce: you must provide spellId", 2)
 			return
 		end
 		local optionVersion, alternateSpellId
@@ -9313,6 +9322,13 @@ do
 		self.spellName = spellName
 	end
 
+	function specialWarningPrototype:SetKey(altSpellId)
+		self.spellId = altSpellId
+		local text, spellName = setText(self.announceType, self.spellId, self.stacks)
+		self.text = text
+		self.spellName = spellName
+	end
+
 	local function canVoiceReplace(self, soundId)
 		if voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" then
 			return false
@@ -9619,11 +9635,11 @@ do
 
 	function bossModPrototype:NewSpecialWarning(text, optionDefault, optionName, optionVersion, runSound, hasVoice, difficulty, icon, spellID, noSpellGroup)
 		if not text then
-			error("新特別警告: 您必須提供特殊警告文字", 2)
+			error("NewSpecialWarning: you must provide special warning text", 2)
 			return
 		end
 		if type(text) == "string" and text:match("OptionVersion") then
-			error("新特別警告: you must provide remove optionversion hack for "..optionDefault)
+			error("NewSpecialWarning: you must provide remove optionversion hack for "..optionDefault)
 			return
 		end
 		if runSound == true then
@@ -9662,7 +9678,7 @@ do
 
 	local function newSpecialWarning(self, announceType, spellId, stacks, optionDefault, optionName, optionVersion, runSound, hasVoice, difficulty)
 		if not spellId then
-			error("新特別警告: 您必須提供法術ID", 2)
+			error("newSpecialWarning: you must provide spellId", 2)
 			return
 		end
 		if runSound == true then
@@ -10631,6 +10647,25 @@ do
 		end
 	end
 
+	--This function changes the spellname and callback key (but not option key) of timer object
+	--This is needed for faction bosses where we need to swap out a spell key/name on fly after a boss is engaged
+	function timerPrototype:UpdateKey(altSpellId, ...)
+		--Check if existing bar first,
+		local id = self.id..pformat((("\t%s"):rep(select("#", ...))), ...)
+		local bar = DBT:GetBar(id)
+		self.spellId = altSpellId
+		self.name = nil--By wiping name, it becomes uncached and can get replaced by GetLocalizedTimerText in :Start
+		if bar then
+			--If a bar exists while updating key we"
+			--Get remainig, kill old timer, start new one with ID/name replacement applied
+			local remaining = bar.timer
+			self:Stop(...)
+			self:Unschedule(...)
+			DBM:Unschedule(playCountSound, id)
+			self:Start(remaining, ...)--Restart it
+		end
+	end
+
 	function timerPrototype:UpdateInline(newInline, ...)
 		local id = self.id..pformat((("\t%s"):rep(select("#", ...))), ...)
 		local bar = DBT:GetBar(id)
@@ -11017,7 +11052,7 @@ end
 ---------------
 function bossModPrototype:AddBoolOption(name, default, cat, func, extraOption, extraOptionTwo, spellId, optionType, noSpellGroup)
 	if checkDuplicateObjects[name] and name ~= "timer_berserk" then
-		DBM:Debug("|cffff0000選項已經存在於: |r"..name)
+		DBM:Debug("|cffff0000Option already exists for: |r"..name)
 	else
 		checkDuplicateObjects[name] = true
 	end
@@ -11050,7 +11085,7 @@ end
 
 function bossModPrototype:AddSpecialWarningOption(name, default, defaultSound, cat, spellId, optionType, noSpellGroup)
 	if checkDuplicateObjects[name] then
-		DBM:Debug("|cffff0000選項已經存在於: |r"..name)
+		DBM:Debug("|cffff0000Option already exists for: |r"..name)
 	else
 		checkDuplicateObjects[name] = true
 	end
@@ -11540,7 +11575,7 @@ end
 
 function bossModPrototype:SetDetectCombatInVehicle(flag)
 	if not self.combatInfo then
-		error("mod.combatInfo 尚未初始化，在使用此模式前請用mod:RegisterCombat", 2)
+		error("mod.combatInfo not yet initialized, use mod:RegisterCombat before using this method", 2)
 	end
 	self.combatInfo.noCombatInVehicle = not flag
 end
@@ -11677,7 +11712,7 @@ end
 -- needs to be called after RegisterCombat
 function bossModPrototype:SetWipeTime(t)
 	if not self.combatInfo then
-		error("mod.combatInfo 尚未初始化，在使用此模式前請用mod:RegisterCombat", 2)
+		error("mod.combatInfo not yet initialized, use mod:RegisterCombat before using this method", 2)
 	end
 	self.combatInfo.wipeTimer = t
 end
@@ -11771,7 +11806,7 @@ end
 
 function bossModPrototype:ScheduleMethod(t, method, ...)
 	if not self[method] then
-		error(("模式 %s 並不存在"):format(tostring(method)), 2)
+		error(("Method %s does not exist"):format(tostring(method)), 2)
 	end
 	return self:Schedule(t, self[method], self, ...)
 end
@@ -11779,7 +11814,7 @@ bossModPrototype.ScheduleEvent = bossModPrototype.ScheduleMethod
 
 function bossModPrototype:UnscheduleMethod(method, ...)
 	if not self[method] then
-		error(("模式 %s 並不存在"):format(tostring(method)), 2)
+		error(("Method %s does not exist"):format(tostring(method)), 2)
 	end
 	return self:Unschedule(self[method], self, ...)
 end

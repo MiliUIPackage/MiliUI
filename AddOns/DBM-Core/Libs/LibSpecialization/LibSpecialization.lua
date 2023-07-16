@@ -1,11 +1,14 @@
 --@curseforge-project-slug: libspecialization@
 if WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE then return end
 
-local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 5)
+local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 6)
 if not LS then return end -- No upgrade needed
 
+LS.callbackMap = LS.callbackMap or {}
+LS.frame = LS.frame or CreateFrame("Frame")
+
 -- Positions of roles
-LS.positionTable = LS.positionTable or {
+local positionTable = {
 	-- Death Knight
 	[250] = "MELEE", -- Blood (Tank)
 	[251] = "MELEE", -- Frost (DPS)
@@ -60,7 +63,7 @@ LS.positionTable = LS.positionTable or {
 	[73] = "MELEE", -- Protection (Tank)
 }
 -- Player roles
-LS.roleTable = LS.roleTable or {
+local roleTable = {
 	-- Death Knight
 	[250] = "TANK", -- Blood (Tank)
 	[251] = "DAMAGER", -- Frost (DPS)
@@ -114,14 +117,7 @@ LS.roleTable = LS.roleTable or {
 	[72] = "DAMAGER", -- Fury (DPS)
 	[73] = "TANK", -- Protection (Tank)
 }
-LS.callbackMap = LS.callbackMap or {}
-LS.frame = LS.frame or CreateFrame("Frame")
-
-local callbackMap = LS.callbackMap
-local positionTable = LS.positionTable
-local roleTable = LS.roleTable
-local frame = LS.frame
-
+-- Starter specs
 local starterSpecs = {
 	[1444] = true, -- Shaman
 	[1446] = true, -- Warrior
@@ -137,6 +133,9 @@ local starterSpecs = {
 	[1456] = true, -- Demon Hunter
 	[1465] = true, -- Evoker
 }
+
+local callbackMap = LS.callbackMap
+local frame = LS.frame
 
 local next, type, error, tonumber, format = next, type, error, tonumber, string.format
 local Ambiguate, GetTime, IsInGroup = Ambiguate, GetTime, IsInGroup

@@ -10,7 +10,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 7ed966b
+## Version: 8fe5df9
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

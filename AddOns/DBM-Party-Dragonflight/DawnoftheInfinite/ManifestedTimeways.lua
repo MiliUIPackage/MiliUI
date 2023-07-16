@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2528, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230711231711")
+mod:SetRevision("20230712232257")
 mod:SetCreatureID(198996)
 mod:SetEncounterID(2667)
 mod:SetUsedIcons(1, 2)
@@ -118,7 +118,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			yellChronofaded:Yell(icon, icon)
 			yellChronofadedFades:Countdown(spellId, nil, icon)
 		end
-		warnChronoFaded:CombinedShow(0.5, args.destName)
+		warnChronoFaded:CombinedShow(0.5, self.vb.fadedCount, args.destName)
 		self.vb.DebuffIcon = self.vb.DebuffIcon + 1
 	end
 end
