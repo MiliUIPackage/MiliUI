@@ -10,7 +10,6 @@ DriftOptionsPanel.config = {}
 -- Variables for WoW version 
 local isRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
 local isClassic = (WOW_PROJECT_ID == WOW_PROJECT_CLASSIC)
-local isBCC = (WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC)
 local isWC = (WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC)
 
 -- Variables for slash commands
@@ -62,16 +61,25 @@ end
 function DriftHelpers:SetupConfig()
 	-- Initialize config options
 	if DriftOptions.frameDragIsLocked == nil then
-		DriftOptions.frameDragIsLocked = DriftOptions.framesAreLocked
+		DriftOptions.frameDragIsLocked = false
 	end
 	if DriftOptions.frameScaleIsLocked == nil then
-		DriftOptions.frameScaleIsLocked = DriftOptions.framesAreLocked
+		DriftOptions.frameScaleIsLocked = false
 	end
 	if DriftOptions.windowsDisabled == nil then
 		DriftOptions.windowsDisabled = false
 	end
+	if DriftOptions.bagsDisabled == nil then
+		DriftOptions.bagsDisabled = true
+	end
 	if DriftOptions.buttonsDisabled == nil then
 		DriftOptions.buttonsDisabled = true
+	end
+	if DriftOptions.minimapDisabled == nil then
+		DriftOptions.minimapDisabled = true
+	end
+	if DriftOptions.objectivesDisabled == nil then
+		DriftOptions.objectivesDisabled = true
 	end
 	if DriftOptions.miscellaneousDisabled == nil then
 		DriftOptions.miscellaneousDisabled = true
@@ -102,7 +110,7 @@ function DriftHelpers:SetupConfig()
 		190,
 		yOffset,
 		" 鎖定拖曳視窗",
-        "鎖定拖曳視窗時，必須按住指定的按鍵才能拖曳移動視窗。"
+		"鎖定拖曳視窗時，必須按住指定的按鍵才能拖曳移動視窗。"
 	)
 	DriftOptionsPanel.config.frameMoveLockedCheckbox:SetChecked(DriftOptions.frameDragIsLocked)
 	yOffset = yOffset - 30
@@ -115,7 +123,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 ALT 拖曳",
-        "鎖定拖曳視窗時，必須按住 ALT 鍵才能拖曳移動視窗。"
+		"鎖定拖曳視窗時，必須按住 ALT 鍵才能拖曳移動視窗。"
 	)
 	DriftOptionsPanel.config.dragAltKeyEnabledCheckbox:SetChecked(DriftOptions.dragAltKeyEnabled)
 	yOffset = yOffset - 30
@@ -128,7 +136,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 CTRL 拖曳",
-        "鎖定拖曳視窗時，必須按住 CTRL 鍵才能拖曳移動視窗。"
+		"鎖定拖曳視窗時，必須按住 CTRL 鍵才能拖曳移動視窗。"
 	)
 	DriftOptionsPanel.config.dragCtrlKeyEnabledCheckbox:SetChecked(DriftOptions.dragCtrlKeyEnabled)
 	yOffset = yOffset - 30
@@ -141,7 +149,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 SHIFT 拖曳",
-        "鎖定拖曳視窗時，必須按住 SHIFT 鍵才能拖曳移動視窗。"
+		"鎖定拖曳視窗時，必須按住 SHIFT 鍵才能拖曳移動視窗。"
 	)
 	DriftOptionsPanel.config.dragShiftKeyEnabledCheckbox:SetChecked(DriftOptions.dragShiftKeyEnabled)
 	yOffset = yOffset - 40
@@ -161,7 +169,7 @@ function DriftHelpers:SetupConfig()
 		190,
 		yOffset,
 		" 鎖定縮放視窗",
-        "鎖定縮放視窗時，必須按住指定的按鍵才能縮放視窗大小。"
+		"鎖定縮放視窗時，必須按住指定的按鍵才能縮放視窗大小。"
 	)
 	DriftOptionsPanel.config.frameScaleLockedCheckbox:SetChecked(DriftOptions.frameScaleIsLocked)
 	yOffset = yOffset - 30
@@ -174,7 +182,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 ALT 縮放",
-        "鎖定縮放視窗時，必須按住 ALT 鍵才能縮放視窗大小。"
+		"鎖定縮放視窗時，必須按住 ALT 鍵才能縮放視窗大小。"
 	)
 	DriftOptionsPanel.config.scaleAltKeyEnabledCheckbox:SetChecked(DriftOptions.scaleAltKeyEnabled)
 	yOffset = yOffset - 30
@@ -187,7 +195,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 CTRL 縮放",
-        "鎖定縮放視窗時，必須按住 CTRL 鍵才能縮放視窗大小。"
+		"鎖定縮放視窗時，必須按住 CTRL 鍵才能縮放視窗大小。"
 	)
 	DriftOptionsPanel.config.scaleCtrlKeyEnabledCheckbox:SetChecked(DriftOptions.scaleCtrlKeyEnabled)
 	yOffset = yOffset - 30
@@ -200,7 +208,7 @@ function DriftHelpers:SetupConfig()
 		205,
 		yOffset,
 		" 按住 SHIFT 縮放",
-        "鎖定縮放視窗時，必須按住 SHIFT 鍵才能縮放視窗大小。"
+		"鎖定縮放視窗時，必須按住 SHIFT 鍵才能縮放視窗大小。"
 	)
 	DriftOptionsPanel.config.scaleShiftKeyEnabledCheckbox:SetChecked(DriftOptions.scaleShiftKeyEnabled)
 
@@ -212,6 +220,7 @@ function DriftHelpers:SetupConfig()
 
 	yOffset = -110
 
+	-- Windows
 	DriftOptionsPanel.config.windowsEnabledCheckbox = createCheckbox(
 		"WindowsEnabledCheckbox",
 		"TOPLEFT",
@@ -220,11 +229,26 @@ function DriftHelpers:SetupConfig()
 		15,
 		yOffset,
 		" 視窗",
-        "是否需要移動或縮放遊戲內建的視窗和框架 (例如: 天賦視窗)。"
+		"是否需要移動或縮放遊戲內建的視窗和框架 (例如: 天賦視窗)。"
 	)
 	DriftOptionsPanel.config.windowsEnabledCheckbox:SetChecked(not DriftOptions.windowsDisabled)
 	yOffset = yOffset - 30
 
+	-- Bags
+	DriftOptionsPanel.config.bagsEnabledCheckbox = createCheckbox(
+		"BagsEnabledCheckbox",
+		"TOPLEFT",
+		DriftOptionsPanel.optionspanel,
+		"TOPLEFT",
+		15,
+		yOffset,
+		" 背包",
+		"是否需要移動或縮放遊戲內建的背包。"
+	)
+	DriftOptionsPanel.config.bagsEnabledCheckbox:SetChecked(not DriftOptions.bagsDisabled)
+	yOffset = yOffset - 30
+
+	-- Buttons
 	DriftOptionsPanel.config.buttonsEnabledCheckbox = createCheckbox(
 		"ButtonsEnabledCheckbox",
 		"TOPLEFT",
@@ -233,11 +257,42 @@ function DriftHelpers:SetupConfig()
 		15,
 		yOffset,
 		" 按鈕",
-        "是否要移動或縮放按鈕 (例如: 打開回報單)。"
+		"是否要移動或縮放按鈕 (例如: 打開回報單)。"
 	)
 	DriftOptionsPanel.config.buttonsEnabledCheckbox:SetChecked(not DriftOptions.buttonsDisabled)
 	yOffset = yOffset - 30
 
+	if (not isRetail) then
+		-- Minimap
+		DriftOptionsPanel.config.minimapEnabledCheckbox = createCheckbox(
+			"MinimapEnabledCheckbox",
+			"TOPLEFT",
+			DriftOptionsPanel.optionspanel,
+			"TOPLEFT",
+			15,
+			yOffset,
+			" 小地圖",
+			"是否要移動或縮放小地圖。"
+		)
+		DriftOptionsPanel.config.minimapEnabledCheckbox:SetChecked(not DriftOptions.minimapDisabled)
+		yOffset = yOffset - 30
+	end
+
+	-- Objectives
+	DriftOptionsPanel.config.objectivesEnabledCheckbox = createCheckbox(
+		"ObjectivesEnabledCheckbox",
+		"TOPLEFT",
+		DriftOptionsPanel.optionspanel,
+		"TOPLEFT",
+		15,
+		yOffset,
+		" 任務追蹤清單",
+		"是否需要移動或縮放遊戲內建的任務追蹤清單。注意: 使用任務追蹤清單增強插件時請不要啟用此選項。"
+	)
+	DriftOptionsPanel.config.objectivesEnabledCheckbox:SetChecked(not DriftOptions.objectivesDisabled)
+	yOffset = yOffset - 30
+
+	-- Miscellaneous
 	DriftOptionsPanel.config.miscellaneousEnabledCheckbox = createCheckbox(
 		"MiscellaneousEnabledCheckbox",
 		"TOPLEFT",
@@ -246,15 +301,15 @@ function DriftHelpers:SetupConfig()
 		15,
 		yOffset,
 		" 其他",
-        "是否需要移動或縮放其他框架 (例如: 戰網通知)。"
+		"是否需要移動或縮放其他框架 (例如: 戰網通知)。"
 	)
 	DriftOptionsPanel.config.miscellaneousEnabledCheckbox:SetChecked(not DriftOptions.miscellaneousDisabled)
 
 	-- Reset button
 	StaticPopupDialogs["DRIFT_RESET_POSITIONS"] = {
 		text = "是否確定要將所有視窗都重置\n恢復成預設的位置和大小?",
-        button1 = "是",
-        button2 = "否",
+		button1 = YES,
+		button2 = NO,
 		OnAccept = DriftHelpers.DeleteDriftState,
 		timeout = 0,
 		whileDead = true,
@@ -271,7 +326,7 @@ function DriftHelpers:SetupConfig()
 		132,
 		25,
 		"重置視窗",
-        "重置所有視窗的位置與大小。",
+		"重置所有視窗的位置與大小。",
 		function (self, button, down)
 			StaticPopup_Show("DRIFT_RESET_POSITIONS")
 		end
@@ -302,8 +357,8 @@ function DriftHelpers:SetupConfig()
 	driftOptionsAuthorContent:SetJustifyH("LEFT")
 	driftOptionsAuthorContent:SetPoint("BOTTOMLEFT", DriftOptionsPanel.optionspanel, "BOTTOMLEFT", 70, 15)
 
-	-- Update logic
-	DriftOptionsPanel.optionspanel:SetScript("OnHide", function()
+	-- Update function
+	local updateFunction = function()
 		local shouldReloadUI = false
 
 		-- Dragging
@@ -325,9 +380,29 @@ function DriftHelpers:SetupConfig()
 			shouldReloadUI = true
 		end
 
+		local oldBagsDisabled = DriftOptions.bagsDisabled
+		DriftOptions.bagsDisabled = not DriftOptionsPanel.config.bagsEnabledCheckbox:GetChecked()
+		if oldBagsDisabled ~= DriftOptions.bagsDisabled then
+			shouldReloadUI = true
+		end
+
 		local oldButtonsDisabled = DriftOptions.buttonsDisabled
 		DriftOptions.buttonsDisabled = not DriftOptionsPanel.config.buttonsEnabledCheckbox:GetChecked()
 		if oldButtonsDisabled ~= DriftOptions.buttonsDisabled then
+			shouldReloadUI = true
+		end
+
+		if (not isRetail) then
+			local oldMinimapDisabled = DriftOptions.minimapDisabled
+			DriftOptions.minimapDisabled = not DriftOptionsPanel.config.minimapEnabledCheckbox:GetChecked()
+			if oldMinimapDisabled ~= DriftOptions.minimapDisabled then
+				shouldReloadUI = true
+			end
+		end
+
+		local oldObjectivesDisabled = DriftOptions.objectivesDisabled
+		DriftOptions.objectivesDisabled = not DriftOptionsPanel.config.objectivesEnabledCheckbox:GetChecked()
+		if oldObjectivesDisabled ~= DriftOptions.objectivesDisabled then
 			shouldReloadUI = true
 		end
 
@@ -341,7 +416,42 @@ function DriftHelpers:SetupConfig()
 		if shouldReloadUI then
 			ReloadUI()
 		end
-	end)
+	end
+
+	-- Cancel function
+	local cancelFunction = function()
+		-- Dragging
+		DriftOptionsPanel.config.frameMoveLockedCheckbox:SetChecked(DriftOptions.frameDragIsLocked)
+		DriftOptionsPanel.config.dragAltKeyEnabledCheckbox:SetChecked(DriftOptions.dragAltKeyEnabled)
+		DriftOptionsPanel.config.dragCtrlKeyEnabledCheckbox:SetChecked(DriftOptions.dragCtrlKeyEnabled)
+		DriftOptionsPanel.config.dragShiftKeyEnabledCheckbox:SetChecked(DriftOptions.dragShiftKeyEnabled)
+
+		-- Scaling
+		DriftOptionsPanel.config.frameScaleLockedCheckbox:SetChecked(DriftOptions.frameScaleIsLocked)
+		DriftOptionsPanel.config.scaleAltKeyEnabledCheckbox:SetChecked(DriftOptions.scaleAltKeyEnabled)
+		DriftOptionsPanel.config.scaleCtrlKeyEnabledCheckbox:SetChecked(DriftOptions.scaleCtrlKeyEnabled)
+		DriftOptionsPanel.config.scaleShiftKeyEnabledCheckbox:SetChecked(DriftOptions.scaleShiftKeyEnabled)
+
+		-- Optional Frames
+		DriftOptionsPanel.config.windowsEnabledCheckbox:SetChecked(not DriftOptions.windowsDisabled)
+		DriftOptionsPanel.config.bagsEnabledCheckbox:SetChecked(not DriftOptions.bagsDisabled)
+		DriftOptionsPanel.config.buttonsEnabledCheckbox:SetChecked(not DriftOptions.buttonsDisabled)
+
+		if (not isRetail) then
+			DriftOptionsPanel.config.minimapEnabledCheckbox:SetChecked(not DriftOptions.minimapDisabled)
+		end
+
+		DriftOptionsPanel.config.objectivesEnabledCheckbox:SetChecked(not DriftOptions.objectivesDisabled)
+		DriftOptionsPanel.config.miscellaneousEnabledCheckbox:SetChecked(not DriftOptions.miscellaneousDisabled)
+	end
+
+	-- Retail has different options behavior
+	if (isRetail) then
+		DriftOptionsPanel.optionspanel:SetScript("OnHide", updateFunction)
+	else
+		DriftOptionsPanel.optionspanel.okay = updateFunction
+		DriftOptionsPanel.optionspanel.cancel = cancelFunction
+	end
 end
 
 

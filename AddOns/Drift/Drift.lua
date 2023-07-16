@@ -1,11 +1,110 @@
 local frames = {
+	["ContainerFrame1"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame1.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame1",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame2"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame2.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame2",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame3"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame3.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame3",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame4"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame4.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame4",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame5"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame5.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame5",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame6"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame6.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame6",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame7"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame7.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame7",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame8"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame8.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame8",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame9"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame9.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame9",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame10"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame10.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame10",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame11"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame11.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame11",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame12"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame12.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame12",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame13"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrame13.ClickableTitleFrame"] = {
+		DriftDelegate = "ContainerFrame13",
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrameCombinedBags"] = {
+		DriftDisabledBy = "bagsDisabled"
+	},
+	["ContainerFrameCombinedBags.TitleContainer"] = {
+		DriftDelegate = "ContainerFrameCombinedBags",
+		DriftDisabledBy = "bagsDisabled"
+	},
 	["CharacterFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
-		DriftTabs = {
-			"CharacterFrameTab1",
-			"CharacterFrameTab2",
-			"CharacterFrameTab3"
-		}
+	},
+	["GearManagerPopupFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
+	["TokenFramePopup"] = {
+		DriftDisabledBy = "windowsDisabled",
 	},
 	["TradeSkillFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
@@ -42,18 +141,19 @@ local frames = {
 	},
 	["CollectionsJournal"] = {
 		DriftDisabledBy = "windowsDisabled",
-		DriftDelegate = "CollectionsJournalMover" -- This frame is created inside Drift code
+		DriftDelegate = "CollectionsJournalMover",
+		DriftHasMover = true,
 	},
 	["CommunitiesFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
-		DriftDelegate = "CommunitiesMover", -- This frame is created inside Drift code
-		DriftTabs = {
-			"CommunitiesFrame.MaximizeMinimizeFrame.MaximizeButton",
-			"CommunitiesFrame.MaximizeMinimizeFrame.MinimizeButton",
-			"CommunitiesFrame.ChatTab",
-			"CommunitiesFrame.RosterTab",
-			"ClubFinderCommunityAndGuildFinderFrame.ClubFinderPendingTab",
-		}
+		DriftDelegate = "CommunitiesMover",
+		DriftHasMover = true,
+	},
+	["CommunitiesFrame.GuildMemberDetailFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
+	["CommunitiesGuildLogFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
 	},
 	["SpellBookFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
@@ -73,7 +173,6 @@ local frames = {
 	},
 	["WorldMapFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
-		-- TODO: Add scaling support for WorldMapFrame
 		DriftUnscalable = true
 	},
 	["QuestScrollFrame"] = {
@@ -85,14 +184,6 @@ local frames = {
 	},
 	["PVEFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
-		DriftTabs = {
-			"PVEFrameTab1",
-			"PVEFrameTab2",
-			"PVEFrameTab3",
-			"PVPQueueFrameCategoryButton1",
-			"PVPQueueFrameCategoryButton2",
-			"PVPQueueFrameCategoryButton3"
-		}
 	},
 	["EncounterJournal"] = {
 		DriftDisabledBy = "windowsDisabled",
@@ -126,11 +217,6 @@ local frames = {
 	},
 	["DressUpFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
-		DriftTabs = {
-			"DressUpFrame.ToggleOutfitDetailsButton",
-			"DressUpFrame.MaximizeMinimizeFrame.MinimizeButton",
-			"DressUpFrame.MaximizeMinimizeFrame.MaximizeButton"
-		}
 	},
 	["SideDressUpFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
@@ -185,9 +271,6 @@ local frames = {
 		DriftDisabledBy = "windowsDisabled",
 	},
 	["TradeFrame"] = {
-		DriftDisabledBy = "windowsDisabled",
-	},
-	["SUFWrapperFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
 	},
 	["TimeManagerFrame"] = {
@@ -275,6 +358,12 @@ local frames = {
 		DriftDisabledBy = "windowsDisabled",
 	},
 	["ReforgingFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
+	["ExpansionLandingPage"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
+	["MajorFactionRenownFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
 	},
 	["GarrisonBuildingFrame"] = {
@@ -412,15 +501,26 @@ local frames = {
 	["ContributionCollectionFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
 	},
+	["DurabilityFrame"] = {
+		DriftDisabledBy = "miscellaneousDisabled",
+	},
+	["GenericTraitFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
+	["ObjectiveTrackerFrame"] = {
+		DriftDisabledBy = "objectivesDisabled",
+		DriftUnmovable = true
+	},
+	["ProfessionsCustomerOrdersFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
 }
 
 -- Frame for handling events
 local Drift = CreateFrame("Frame")
 
 local function eventHandler(self, event, ...)
-	if event == "ADDON_LOADED" then
-		DriftHelpers:ModifyFrames(frames)
-	elseif event == "PLAYER_REGEN_ENABLED" then
+	if event == "ADDON_LOADED" or event == "PLAYER_REGEN_ENABLED" then
 		DriftHelpers:ModifyFrames(frames)
 	elseif event == "VARIABLES_LOADED" then
 		-- Config
@@ -437,35 +537,11 @@ local function eventHandler(self, event, ...)
 		-- Modify pre-loaded frames
 		DriftHelpers:ModifyFrames(frames)
 
-		-- Talents
-		Drift:RegisterEvent("PLAYER_TALENT_UPDATE")
-		Drift:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
-		Drift:RegisterEvent("PET_SPECIALIZATION_CHANGED")
-
-		-- Azerite
-		Drift:RegisterEvent("ITEM_LOCKED")
-		Drift:RegisterEvent("ITEM_DATA_LOAD_RESULT")
-
-		-- TODO: Remove LFG events once a better solution exists
-		-- LFG
-		Drift:RegisterEvent("LFG_LIST_SEARCH_RESULTS_RECEIVED")
-		Drift:RegisterEvent("LFG_LIST_SEARCH_FAILED")
-		Drift:RegisterEvent("LFG_LIST_SEARCH_RESULT_UPDATED")
-
-		-- Communities
-		Drift:RegisterEvent("CLUB_FINDER_RECRUITMENT_POST_RETURNED")
-		Drift:RegisterEvent("CVAR_UPDATE")
-
-		-- Professions
-		Drift:RegisterEvent("TRADE_SKILL_LIST_UPDATE")
-
 		-- Modify frames after an addon loads
-		DriftHelpers:Wait(1, Drift.RegisterEvent, Drift, "ADDON_LOADED")
+		Drift:RegisterEvent("ADDON_LOADED")
 
 		-- Modify frames after combat ends
 		Drift:RegisterEvent("PLAYER_REGEN_ENABLED")
-	else
-		DriftHelpers:BroadcastReset(frames)
 	end
 end
 
