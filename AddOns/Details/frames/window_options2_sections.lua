@@ -7066,8 +7066,8 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = DF:AddClassIconToText("預測強化傷害", false, "EVOKER"),
-                desc = "預測強化傷害",
+                name = DF:AddClassIconToText("預測強化增益", false, "EVOKER"),
+                desc = "計算強化喚能師增益其他玩家的效果",
                 boxfirst = true,
             },
 
