@@ -59,7 +59,7 @@ local DefaultDB = {
             false,
             {true, "CHESTSLOT", },
             {false, "WAISTSLOT", },
-            {false, "LEGSSLOT", },
+            {true, "LEGSSLOT", },
             {true, "FEETSLOT", },
             {false, "WRISTSLOT", },
             {false, "HANDSSLOT", },
