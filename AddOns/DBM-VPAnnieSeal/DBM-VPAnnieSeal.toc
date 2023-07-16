@@ -5,7 +5,7 @@
 ## DefaultState: enabled
 ## RequiredDeps: DBM-Core
 ## Author: Annie
-## Version: DBM-VPAnnieSeal-V4
+## Version: DBM-VPAnnieSeal-V4.1
 ## IconTexture: Interface\AddOns\DBM-VPAnnieSeal\logo.tga
 ## X-Curse-Project-ID: 87828
 ## X-DBM-Voice: 1
