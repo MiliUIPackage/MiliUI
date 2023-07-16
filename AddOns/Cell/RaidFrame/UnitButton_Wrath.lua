@@ -280,6 +280,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if type(t["fadeOut"]) == "boolean" then
                     indicator:SetFadeOut(t["fadeOut"])
                 end
+                -- update shape
+                if t["shape"] then
+                    indicator:SetShape(t["shape"])
+                end
 
                 -- init
                 -- update name visibility
@@ -643,7 +647,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
+        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -651,6 +655,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             -- only Consumables indicator has this option for now
             F:IterateAllUnitButtons(function(b)
                 b.indicators[indicatorName]:SetSpeed(value)
+            end, true)
+        elseif setting == "shape" then
+            F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:SetShape(value)
             end, true)
         end
     end
@@ -766,10 +774,14 @@ local function UnitButton_UpdateDebuffs(self)
             debuffs_current[unit][auraInstanceID] = i
 
             if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
-                if indicatorCustoms["dispels"] then -- dispellableByMe
-                    if I:CanDispel(debuffType) then debuffs_dispel[unit][debuffType] = true end
-                else
-                    debuffs_dispel[unit][debuffType] = true
+                -- all dispels / only dispellableByMe
+                if not indicatorCustoms["dispels"] or I:CanDispel(debuffType) then
+                    if Cell.vars.dispelBlacklist[spellId] then
+                        -- no highlight
+                        debuffs_dispel[unit][debuffType] = false
+                    else
+                        debuffs_dispel[unit][debuffType] = true
+                    end
                 end
             end
 
@@ -1365,11 +1377,6 @@ local function UnitButton_UpdateTargetRaidIcon(self)
     end
 end
 
-local READYCHECK_STATUS = {
-    ready = {t = READY_CHECK_READY_TEXTURE, c = {0, 1, 0, 1}},
-    waiting = {t = READY_CHECK_WAITING_TEXTURE, c = {1, 1, 0, 1}},
-    notready = {t = READY_CHECK_NOT_READY_TEXTURE, c = {1, 0, 0, 1}},
-}
 local function UnitButton_UpdateReadyCheck(self)
     local unit = self.state.unit
     if not unit then return end
@@ -1380,8 +1387,7 @@ local function UnitButton_UpdateReadyCheck(self)
     if status then
         -- self.widget.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS[status].c))
         -- self.widget.readyCheckHighlight:Show()
-        self.indicators.readyCheckIcon:SetTexture(READYCHECK_STATUS[status].t)
-        self.indicators.readyCheckIcon:Show()
+        self.indicators.readyCheckIcon:SetStatus(status)
     else
         -- self.widget.readyCheckHighlight:Hide()
         self.indicators.readyCheckIcon:Hide()
@@ -1391,7 +1397,7 @@ end
 local function UnitButton_FinishReadyCheck(self)
     if self.state.readyCheckStatus == "waiting" then
         -- self.widget.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS.notready.c))
-        self.indicators.readyCheckIcon:SetTexture(READYCHECK_STATUS.notready.t)
+        self.indicators.readyCheckIcon:SetStatus("notready")
     end
     C_Timer.After(6, function()
         -- self.widget.readyCheckHighlight:Hide()

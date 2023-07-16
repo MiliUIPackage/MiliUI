@@ -230,7 +230,21 @@ local function InitIndicator(indicatorName)
         indicator.preview:SetAllPoints(indicator)
         
     elseif indicatorName == "readyCheckIcon" then
-        indicator:SetTexture(READY_CHECK_READY_TEXTURE)
+        local status = {"ready", "notready", "waiting"}
+        indicator:SetScript("OnShow", function()
+            indicator.elapsed = 0
+            indicator.current = 1
+            indicator:SetStatus("ready")
+        end)
+        indicator:SetScript("OnUpdate", function(self, elapsed)
+            indicator.elapsed = (indicator.elapsed or 0) + elapsed
+            if indicator.elapsed >= 2 then
+                indicator.elapsed = 0
+                indicator.current = indicator.current + 1
+                if indicator.current > 3 then indicator.current = 1 end
+                indicator:SetStatus(status[indicator.current])
+            end
+        end)
 
     elseif indicatorName == "aggroBlink" then
         indicator.isAggroBlink = true
@@ -619,6 +633,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 if type(t["fadeOut"]) == "boolean" then
                     indicator:SetFadeOut(t["fadeOut"])
                 end
+                -- update shape
+                if t["shape"] then
+                    indicator:SetShape(t["shape"])
+                end
+
                 -- after init
                 if t["enabled"] then
                     indicator.enabled = true
@@ -736,6 +755,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
         elseif setting == "privateAuraOptions" then
             indicator.cooldown:SetDrawSwipe(value[1])
             indicator.cooldown:SetHideCountdownNumbers(not (value[1] and value[2]))
+        elseif setting == "speed" then
+            indicator:SetSpeed(value)
+        elseif setting == "shape" then
+            indicator:SetShape(value)
         elseif setting == "checkbutton" then
             if value == "showGroupNumber" then
                 indicator:ShowGroupNumber(value2)
@@ -835,8 +858,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicator.preview = nil
             end
             I:RemoveIndicator(previewButton, indicatorName, value)
-        elseif setting == "speed" then
-            indicator:SetSpeed(value)
         end
     end
 end
@@ -1427,8 +1448,8 @@ if Cell.isRetail then
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["allCooldowns"] = {"enabled", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["tankActiveMitigation"] = {"|cffb7b7b7"..I:GetTankActiveMitigationString(), "enabled", "size-bar", "position", "frameLevel"},
-        ["dispels"] = {"enabled", "checkbutton:dispellableByMe", "highlightType", "checkbutton2:showDispelTypeIcons", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "blacklist", "bigDebuffs", "durationVisibility", "checkbutton3:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:10", "orientation", "size-normal-big", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
+        ["dispels"] = {"enabled", "checkbutton:dispellableByMe", "highlightType", "dispelBlacklist", "checkbutton2:showDispelTypeIcons", "orientation", "size-square", "position", "frameLevel"},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton3:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:10", "orientation", "size-normal-big", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell:GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:3", "orientation", "size-border", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["privateAuras"] = {"|cffb7b7b7"..L["Due to restrictions of the private aura system, this indicator can only use Blizzard style."], "enabled", "privateAuraOptions", "size-square", "position", "frameLevel"},
         ["targetedSpells"] = {"enabled", "targetedSpellsList", "targetedSpellsGlow", "size-border", "position", "frameLevel", "font"},
@@ -1458,13 +1479,13 @@ elseif Cell.isWrath then
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
         ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "color-alpha", "height", "position-noHCenter", "frameLevel"},
-        ["powerWordShield"] = {L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"], "enabled", "checkbutton:shieldByMe", "size-square", "position", "frameLevel"},
+        ["powerWordShield"] = {L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"], "enabled", "checkbutton:shieldByMe", "shape", "size-square", "position", "frameLevel"},
         ["aoeHealing"] = {"enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["allCooldowns"] = {"enabled", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["dispels"] = {"enabled", "checkbutton:dispellableByMe", "highlightType", "checkbutton2:showDispelTypeIcons", "orientation", "size-square", "position", "frameLevel"},
-        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "blacklist", "bigDebuffs", "durationVisibility", "checkbutton3:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:10", "orientation", "size-normal-big", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
+        ["dispels"] = {"enabled", "checkbutton:dispellableByMe", "highlightType", "dispelBlacklist", "checkbutton2:showDispelTypeIcons", "orientation", "size-square", "position", "frameLevel"},
+        ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton3:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:10", "orientation", "size-normal-big", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell:GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "checkbutton2:showTooltip:"..L["This will make these icons not click-through-able"].."|"..L["Tooltips need to be enabled in General tab"], "num:3", "orientation", "size-border", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["targetedSpells"] = {"enabled", "targetedSpellsList", "targetedSpellsGlow", "size-border", "position", "frameLevel", "font"},
         ["targetCounter"] = {"|cffff2727"..L["HIGH CPU USAGE"].."!|r |cffb7b7b7"..L["Check all visible enemy nameplates. Battleground/Arena only."], "enabled", "color", "position", "frameLevel", "font-noOffset"},
@@ -1559,8 +1580,10 @@ local function ShowIndicatorSettings(id)
         elseif currentSetting == "auras" then
             -- TODO: indicatorType == "bars"
             w:SetDBValue(L[F:UpperFirst(currentLayoutTable["indicators"][id]["auraType"]).." List"], currentLayoutTable["indicators"][id]["auras"], indicatorType == "icons", indicatorType == "icons")
-        elseif currentSetting == "blacklist" then
+        elseif currentSetting == "debuffBlacklist" then
             w:SetDBValue(L["Debuff Filter (blacklist)"], CellDB["debuffBlacklist"], true)
+        elseif currentSetting == "dispelBlacklist" then
+            w:SetDBValue(L["Highlight Filter (blacklist)"], CellDB["dispelBlacklist"], true)
         elseif currentSetting == "builtInDefensives" then
             w:SetDBValue(I:GetDefensives(), CellDB["defensives"]["disabled"])
         elseif currentSetting == "customDefensives" then
@@ -1613,10 +1636,14 @@ local function ShowIndicatorSettings(id)
                 elseif currentSetting == "auras" then
                     -- currentLayoutTable["indicators"][id][currentSetting] = value -- NOTE: already changed in widget
                     Cell:Fire("UpdateIndicators", notifiedLayout, indicatorName, currentSetting, currentLayoutTable["indicators"][id]["auraType"], value)
-                elseif currentSetting == "blacklist" then
+                elseif currentSetting == "debuffBlacklist" then
                     CellDB["debuffBlacklist"] = value
                     Cell.vars.debuffBlacklist = F:ConvertTable(CellDB["debuffBlacklist"])
-                    Cell:Fire("UpdateIndicators", notifiedLayout, "", "blacklist")
+                    Cell:Fire("UpdateIndicators", notifiedLayout, "", "debuffBlacklist")
+                elseif currentSetting == "dispelBlacklist" then
+                    CellDB["dispelBlacklist"] = value
+                    Cell.vars.dispelBlacklist = F:ConvertTable(CellDB["dispelBlacklist"])
+                    Cell:Fire("UpdateIndicators", notifiedLayout, "", "dispelBlacklist")
                 elseif currentSetting == "bigDebuffs" then
                     CellDB["bigDebuffs"] = value
                     Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])

@@ -642,7 +642,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "blacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
+        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -806,7 +806,12 @@ local function UnitButton_UpdateDebuffs(self)
             if enabledIndicators["dispels"] and debuffType and debuffType ~= "" then
                 -- all dispels / only dispellableByMe
                 if not indicatorCustoms["dispels"] or I:CanDispel(debuffType) then
-                    debuffs_dispel[unit][debuffType] = true
+                    if Cell.vars.dispelBlacklist[spellId] then
+                        -- no highlight
+                        debuffs_dispel[unit][debuffType] = false
+                    else
+                        debuffs_dispel[unit][debuffType] = true
+                    end
                 end
             end
 
@@ -1517,11 +1522,6 @@ local function UnitButton_UpdateTargetRaidIcon(self)
     end
 end
 
-local READYCHECK_STATUS = {
-    ready = {t = READY_CHECK_READY_TEXTURE, c = {0, 1, 0, 1}},
-    waiting = {t = READY_CHECK_WAITING_TEXTURE, c = {1, 1, 0, 1}},
-    notready = {t = READY_CHECK_NOT_READY_TEXTURE, c = {1, 0, 0, 1}},
-}
 local function UnitButton_UpdateReadyCheck(self)
     local unit = self.state.unit
     if not unit then return end
@@ -1532,8 +1532,7 @@ local function UnitButton_UpdateReadyCheck(self)
     if status then
         -- self.widget.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS[status].c))
         -- self.widget.readyCheckHighlight:Show()
-        self.indicators.readyCheckIcon:SetTexture(READYCHECK_STATUS[status].t)
-        self.indicators.readyCheckIcon:Show()
+        self.indicators.readyCheckIcon:SetStatus(status)
     else
         -- self.widget.readyCheckHighlight:Hide()
         self.indicators.readyCheckIcon:Hide()
@@ -1543,7 +1542,7 @@ end
 local function UnitButton_FinishReadyCheck(self)
     if self.state.readyCheckStatus == "waiting" then
         -- self.widget.readyCheckHighlight:SetVertexColor(unpack(READYCHECK_STATUS.notready.c))
-        self.indicators.readyCheckIcon:SetTexture(READYCHECK_STATUS.notready.t)
+        self.indicators.readyCheckIcon:SetStatus("notready")
     end
     C_Timer.After(6, function()
         -- self.widget.readyCheckHighlight:Hide()
@@ -1793,7 +1792,8 @@ else
 end
 ]]
 
-local function UnitButton_UpdateInRange(self)
+-- UNIT_IN_RANGE_UPDATE: unit, inRange
+local function UnitButton_UpdateInRange(self, ir)
     local unit = self.state.displayedUnit
     if not unit then return end
 
@@ -2229,7 +2229,10 @@ local function UnitButton_OnEvent(self, event, unit, arg)
     
         elseif event == "UNIT_AURA" then
             UnitButton_UpdateAuras(self, arg)
-    
+
+        -- elseif event == "UNIT_IN_RANGE_UPDATE" then
+        --     UnitButton_UpdateInRange(self, arg)
+
         elseif event == "UNIT_TARGET" then
             UnitButton_UpdateTargetRaidIcon(self)
             
@@ -2315,7 +2318,12 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             self.state.unit = value
             self.state.displayedUnit = value
             if string.find(value, "^raid%d+$") then Cell.unitButtons.raid.units[value] = self end
-           
+
+            -- range
+            -- if value ~= "focus" and not strfind(value, "target$") then
+            --     self:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", value)
+            -- end
+            
             -- for omnicd
             if string.match(value, "raid%d") then
                 local i = string.match(value, "%d")
@@ -2324,6 +2332,8 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             end
 
             ResetAuraTables(value)
+        -- else
+        --     self:UnregisterEvent("UNIT_IN_RANGE_UPDATE")
         end
     end
 end
@@ -2439,7 +2449,9 @@ local function UnitButton_OnTick(self)
     self.__tickCount = e
 
     -- !TODO: use UNIT_DISTANCE_CHECK_UPDATE and UNIT_IN_RANGE_UPDATE events in 10.1.5
-    UnitButton_UpdateInRange(self)
+    -- if self.state.displayedUnit == "target" or self.state.displayedUnit == "focus" then
+        UnitButton_UpdateInRange(self)
+    -- end
     
     if self.updateRequired then
         self.updateRequired = nil

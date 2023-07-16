@@ -428,8 +428,8 @@ local function Dispels_SetDispels(self, dispelTypes)
     local r, g, b, a = 0, 0, 0, 0
 
     local i = 1
-    for dispelType, _ in pairs(dispelTypes) do
-        if a == 0 and dispelType then
+    for dispelType, showHighlight in pairs(dispelTypes) do
+        if a == 0 and dispelType and showHighlight then
             r, g, b = I:GetDebuffTypeColor(dispelType)
             a = 1
         end
@@ -1443,6 +1443,22 @@ end
 -------------------------------------------------
 -- ready check icon
 -------------------------------------------------
+-- READY_CHECK_WAITING_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Waiting";
+-- READY_CHECK_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Ready";
+-- READY_CHECK_NOT_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady";
+-- READY_CHECK_AFK_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady";
+-- ↓↓↓ since 10.1.5
+-- READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark";
+-- READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark";
+-- READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark";
+-- READY_CHECK_AFK_TEXTURE = "UI-LFG-DeclineMark";
+
+local READY_CHECK_STATUS = {
+    ready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
+    waiting = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-waiting", c = {1, 1, 0, 1}},
+    notready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-notready", c = {1, 0, 0, 1}},
+}
+
 function I:CreateReadyCheckIcon(parent)
     local readyCheckIcon = CreateFrame("Frame", parent:GetName().."ReadyCheckIcon", parent.widget.overlayFrame)
     parent.indicators.readyCheckIcon = readyCheckIcon
@@ -1454,8 +1470,11 @@ function I:CreateReadyCheckIcon(parent)
     readyCheckIcon.tex = readyCheckIcon:CreateTexture(nil, "ARTWORK")
     readyCheckIcon.tex:SetAllPoints(readyCheckIcon)
     
-    function readyCheckIcon:SetTexture(tex)
-        readyCheckIcon.tex:SetTexture(tex)
+    function readyCheckIcon:SetStatus(status)
+        readyCheckIcon.tex:SetTexture(READY_CHECK_STATUS[status].t)
+        -- readyCheckIcon.tex:SetAtlas(READY_CHECK_STATUS[status].t)
+        readyCheckIcon:Show()
+
     end
 end
 
@@ -1863,6 +1882,16 @@ function I:CreatePowerWordShield(parent)
 
         shieldAmount:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
         shieldAmount:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    end
+
+    function powerWordShield:SetShape(shape)
+        local tex = "Interface\\AddOns\\Cell\\Media\\Shapes\\"..shape.."_filled.tga"
+        powerWordShield:SetBackdrop({bgFile = tex})
+        powerWordShield:SetBackdropColor(0, 0, 0, 0.75)
+        shieldAmount:SetSwipeTexture(tex)
+        innerBG:SetTexture(tex, "CLAMP", "CLAMP", "TRILINEAR")
+        shieldCooldown:SetSwipeTexture(tex)
+        weakendedSoulCooldown:SetSwipeTexture(tex)
     end
 
     function powerWordShield:UpdateShield(value, max, resetMax)

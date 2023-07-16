@@ -4,6 +4,16 @@ local I = Cell.iFuncs
 local F = Cell.funcs
 
 -------------------------------------------------
+-- dispelBlacklist
+-------------------------------------------------
+-- supress dispel highlight
+local dispelBlacklist = {}
+
+function I:GetDefaultDispelBlacklist()
+    return dispelBlacklist
+end
+
+-------------------------------------------------
 -- debuffBlacklist
 -------------------------------------------------
 local debuffBlacklist = {
@@ -507,9 +517,11 @@ local dispelNodeIDs = {
     
     -- EVOKER ---------------
         -- 1467 - Devastation
-        [1467] = {["Poison"] = 68689},
+        [1467] = {["Poison"] = 93306},
         -- 1468	- Preservation
         [1468] = {["Magic"] = true, ["Poison"] = true},
+        -- 1473 - Augmentation
+        [1473] = {["Poison"] = 93306},
     -------------------------
         
     -- MAGE -----------------
@@ -619,9 +631,11 @@ else
             eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
             if Cell.vars.playerClass == "EVOKER" and CELL_DISPEL_EVOKER_CAUTERIZING_FLAME then
                 -- 1467 - Devastation
-                dispelNodeIDs[1467] = {["Curse"] = 68673, ["Disease"] = 68673, ["Poison"] = 68689}
+                dispelNodeIDs[1467] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = 93306}
                 -- 1468	- Preservation
-                dispelNodeIDs[1468] = {["Curse"] = 68673, ["Disease"] = 68673, ["Magic"] = true, ["Poison"] = true}
+                dispelNodeIDs[1468] = {["Curse"] = 93294, ["Disease"] = 93294, ["Magic"] = true, ["Poison"] = true}
+                -- 1473 - Augmentation
+                dispelNodeIDs[1473] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = 93306}
             end
         end
 
@@ -764,6 +778,7 @@ function F:FirstRun()
                 {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
+            ["showDuration"] = true,
             ["auraType"] = "buff",
             ["castByMe"] = true,
             ["auras"] = spells,

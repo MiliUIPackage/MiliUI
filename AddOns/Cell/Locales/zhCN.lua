@@ -83,7 +83,7 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
-L["Translit Cyrillic to Latin"] = "转写俄文为英文"
+L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
 L["Increase Health Update Rate"] = "增加血条刷新速率"
 L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Lock Cell Frame"] = "把它给我锁死"
@@ -414,6 +414,7 @@ L["Debuff List"] = "减益列表"
 L["Spell List"] = "法术列表"
 L["Input spell id"] = "输入法术ID"
 L["Invalid"] = "无效"
+L["Highlight Filter (blacklist)"] = "高亮过滤器 (黑名单)"
 L["Debuff Filter (blacklist)"] = "减益过滤器 (黑名单)"
 L["Big Debuffs"] = "放大显示的减益"
 L["Icon"] = "图标"
@@ -485,6 +486,7 @@ L["Rotation"] = "旋转"
 L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"] = "即使被禁用，下列设置也会对“减伤 (全部)”指示器生效"
 L["Built-in Spells"] = "内置法术"
 L["Highlight Type"] = "高亮类型"
+L["Shape"] = "形状"
 L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"] = "需要有|cffff2727真言术：盾雕文|r才能显示盾值"
 
 L["Click to preview"] = "点击预览"
@@ -647,6 +649,18 @@ L["CHANGELOGS"] = [[
     
     <h1>关于受难之魂</h1>
     <p>最近收到些“让Cell显示受难之魂”的请求。简单地说就是，由于插件API的限制，做不了。让Cell“显示”它们是可行的，但这些按钮是不可交互的，因此没有必要做，不如用WA。</p>
+    <br/>
+
+    <h1>r181-release (Jul 15, 2023, 03:12 GMT+8)</h1>
+    <p>+ 为真言术：盾指示器添加了“形状”选项。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r180-release (Jul 14, 2023, 05:48 GMT+8)</h1>
+    <p>+ 为驱散指示器添加了“高亮过滤器 (黑名单)”。</p>
+    <p>* 修复唤魔师的驱散检查器。</p>
+    <p>* 修复就位确认图标。</p>
+    <p>* 更新繁中。</p>
     <br/>
 
     <h1>r179-release (Jul 13, 2023, 12:38 GMT+8)</h1>
