@@ -1,3 +1,5 @@
+local addonName, addon = ...
+
 local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
@@ -762,7 +764,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 C_Timer.After(4, function() lib:RepositionFrame(PaladinPowerBarFrame) end)
                 lib:RegisterHideable(PaladinPowerBarFrame)
                 lib:RegisterToggleInCombat(PaladinPowerBarFrame)
-                hooksecurefunc(PaladinPowerBarFrame, "Setup", function()
+                hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(PaladinPowerBarFrame)
                         if lib:IsFrameMarkedHidden(PaladinPowerBarFrame) then
@@ -782,7 +784,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterHideable(WarlockPowerFrame)
                 lib:RegisterToggleInCombat(WarlockPowerFrame)
                 lib:SetDontResize(WarlockPowerFrame)
-                hooksecurefunc(WarlockPowerFrame, "IsDirty", function()
+                hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(WarlockPowerFrame)
                     end
@@ -859,24 +861,15 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end
         elseif class == "EVOKER" then
             if db.EMEOptions.evokerEssences then
-                local a = 0
                 lib:RegisterFrame(EssencePlayerFrame, "龍能", db.EvokerEssences)
                 lib:SetDontResize(EssencePlayerFrame)
                 lib:RegisterHideable(EssencePlayerFrame)
                 lib:RegisterToggleInCombat(EssencePlayerFrame)
                 lib:RegisterResizable(EssencePlayerFrame)
-                hooksecurefunc(EssencePlayerFrame, "UpdatePower", function()
+                hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
-                        a = a + 1
                         lib:RepositionFrame(EssencePlayerFrame)
-                        a = a - 1
                     end
-                end)
-                hooksecurefunc(EssencePlayerFrame, "SetPoint", function()
-                    if a > 0 then return end
-                    a = a + 1
-                    lib:RepositionFrame(EssencePlayerFrame)
-                    a = a - 1
                 end)
             end
             
@@ -891,13 +884,6 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(RogueComboPointBarFrame)
                     end
-                end)
-                local noInfinite
-                hooksecurefunc(RogueComboPointBarFrame, "Show", function()
-                    if noInfinite then return end
-                    noInfinite = true
-                    lib:RepositionFrame(RogueComboPointBarFrame)
-                    noInfinite = false
                 end)
             end
         elseif class == "PRIEST" then
@@ -917,12 +903,6 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         lib:RepositionFrame(DruidComboPointBarFrame)
                     end
                 end)
-                hooksecurefunc(DruidComboPointBarFrame, "Show", function()
-                    if noInfinite then return end
-                    noInfinite = true
-                    lib:RepositionFrame(DruidComboPointBarFrame)
-                    noInfinite = false
-                end)
             end
         end
     elseif (event == "PLAYER_TOTEM_UPDATE") and addonLoaded then
@@ -936,7 +916,8 @@ f:SetScript("OnEvent", function(__, event, arg1)
             if layoutInfo.layoutType == 0 then return end
             f:UnregisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
             
-            lib:RegisterFrame(CompactRaidFrameManager, "團隊管理員", db.CompactRaidFrameManager)
+            lib:RegisterFrame(CompactRaidFrameManager, "團隊管理員", db.CompactRaidFrameManager, nil, nil, false)
+            
             local expanded
             hooksecurefunc("CompactRaidFrameManager_Expand", function()
                 if InCombatLockdown() then return end
