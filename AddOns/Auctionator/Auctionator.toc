@@ -1,6 +1,6 @@
 ## Interface: 100105
 ## Title: Auctionator
-## Version: 10.1.1
+## Version: 10.1.14
 ## Author: Borjamacare, plusmouse
 ## X-Website: https://www.curseforge.com/wow/addons/auctionator
 ## X-Category: Auction/Economy
@@ -8,11 +8,11 @@
 ## Notes: A lightweight addon that makes it easy and fast to buy, sell and manage auctions
 ## Title-zhTW: |cFF77FFBB[交易]|r 拍賣小幫手
 ## Notes-zhTW: Auctionator |n一個輕量級的插件，增強拍賣場的功能，方便快速的購買、銷售和管理拍賣。|n|cffffd200使用方法：|r開啟拍賣場時會自動顯示，從Esc>介面>插件>拍賣，進行設定。
-## X-Category-zhTW: 交易
+## X-Category-zhTW: 交易						  
 ## SavedVariables: AUCTIONATOR_CONFIG, AUCTIONATOR_SAVEDVARS, AUCTIONATOR_SHOPPING_LISTS, AUCTIONATOR_PRICE_DATABASE, AUCTIONATOR_POSTING_HISTORY, AUCTIONATOR_VENDOR_PRICE_CACHE, AUCTIONATOR_RECENT_SEARCHES
 ## SavedVariablesPerCharacter: AUCTIONATOR_CHARACTER_CONFIG
 ## OptionalDeps: LibAHTab
-## IconTexture: Interface\AddOns\Auctionator\Images\logo
+## IconTexture: Interface\AddOns\Auctionator\Images\Logo
 
 Libs\Manifest.xml
 Libs_Mainline\Manifest.xml

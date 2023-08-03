@@ -4,6 +4,9 @@ Auctionator.Config.Options = {
   MAILBOX_TOOLTIPS = "mailbox_tooltips",
   VENDOR_TOOLTIPS = "vendor_tooltips",
   AUCTION_TOOLTIPS = "auction_tooltips",
+  AUCTION_AGE_TOOLTIPS = "auction_age_tooltips",
+  AUCTION_MEAN_TOOLTIPS = "auction_mean_tooltips",
+  AUCTION_MEAN_DAYS_LIMIT = "auction_mean_days_limit",
   SHIFT_STACK_TOOLTIPS = "shift_stack_tooltips",
   ENCHANT_TOOLTIPS = "enchant_tooltips",
   REPLICATE_SCAN = "replicate_scan_3",
@@ -21,8 +24,10 @@ Auctionator.Config.Options = {
   SELLING_FAVOURITE_KEYS = "selling_favourite_keys_2",
   SELLING_AUTO_SELECT_NEXT = "selling_auto_select_next",
   SELLING_MISSING_FAVOURITES = "selling_missing_favourites",
+  SELLING_FAVOURITES_SORT_OWNED = "selling_favourites_sort_owned",
   SELLING_POST_SHORTCUT = "selling_post_shortcut",
   SELLING_SKIP_SHORTCUT = "selling_skip_shortcut",
+  SELLING_PREV_SHORTCUT = "selling_prev_shortcut",
   SHOW_SELLING_BID_PRICE = "show_selling_bid_price",
   SELLING_CONFIRM_LOW_PRICE = "selling_confirm_low_price",
   SAVE_LAST_DURATION_AS_DEFAULT = "save_last_duration_as_default",
@@ -36,6 +41,7 @@ Auctionator.Config.Options = {
   HIDE_SPLASH_SCREEN = "hide_splash_screen",
 
   CANCEL_UNDERCUT_SHORTCUT = "cancel_undercut_shortcut",
+  UNDERCUT_ITEMS_AHEAD = "undercut_items_ahead",
 
   COLUMNS_SHOPPING = "columns_shopping",
   COLUMNS_SHOPPING_HISTORICAL_PRICES = "columns_shopping_historical_prices",
@@ -49,6 +55,7 @@ Auctionator.Config.Options = {
   CRAFTING_INFO_SHOW_COST = "crafting_info_show_cost",
 
   SHOPPING_LIST_MISSING_TERMS = "shopping_list_missing_terms",
+  SHOPPING_LAST_CONTAINER_VIEW = "shopping_last_container_view",
 }
 
 Auctionator.Config.SalesTypes = {
@@ -72,6 +79,9 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.MAILBOX_TOOLTIPS] = true,
   [Auctionator.Config.Options.VENDOR_TOOLTIPS] = true,
   [Auctionator.Config.Options.AUCTION_TOOLTIPS] = true,
+  [Auctionator.Config.Options.AUCTION_AGE_TOOLTIPS] = false,
+  [Auctionator.Config.Options.AUCTION_MEAN_TOOLTIPS] = false,
+  [Auctionator.Config.Options.AUCTION_MEAN_DAYS_LIMIT] = 21,
   [Auctionator.Config.Options.SHIFT_STACK_TOOLTIPS] = true,
   [Auctionator.Config.Options.ENCHANT_TOOLTIPS] = false,
   [Auctionator.Config.Options.REPLICATE_SCAN] = false,
@@ -86,8 +96,10 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.SELLING_FAVOURITE_KEYS] = {},
   [Auctionator.Config.Options.SELLING_AUTO_SELECT_NEXT] = false,
   [Auctionator.Config.Options.SELLING_MISSING_FAVOURITES] = true,
+  [Auctionator.Config.Options.SELLING_FAVOURITES_SORT_OWNED] = false,
   [Auctionator.Config.Options.SELLING_POST_SHORTCUT] = "SPACE",
   [Auctionator.Config.Options.SELLING_SKIP_SHORTCUT] = "SHIFT-SPACE",
+  [Auctionator.Config.Options.SELLING_PREV_SHORTCUT] = "BACKSPACE",
   [Auctionator.Config.Options.SHOW_SELLING_BID_PRICE] = false,
   [Auctionator.Config.Options.SELLING_CONFIRM_LOW_PRICE] = true,
   [Auctionator.Config.Options.SAVE_LAST_DURATION_AS_DEFAULT] = false,
@@ -101,6 +113,7 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.HIDE_SPLASH_SCREEN] = false,
 
   [Auctionator.Config.Options.CANCEL_UNDERCUT_SHORTCUT] = "SPACE",
+  [Auctionator.Config.Options.UNDERCUT_ITEMS_AHEAD] = 0,
 
   [Auctionator.Config.Options.DEFAULT_TAB] = 0,
 
@@ -116,6 +129,7 @@ Auctionator.Config.Defaults = {
   [Auctionator.Config.Options.CRAFTING_INFO_SHOW_COST] = true,
 
   [Auctionator.Config.Options.SHOPPING_LIST_MISSING_TERMS] = false,
+  [Auctionator.Config.Options.SHOPPING_LAST_CONTAINER_VIEW] = Auctionator.Constants.ShoppingListViews.Lists,
 }
 
 function Auctionator.Config.IsValidOption(name)

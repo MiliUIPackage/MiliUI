@@ -4,7 +4,7 @@ function AuctionatorConfigBasicOptionsFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigBasicOptionsFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_BASIC_OPTIONS_CATEGORY
-  self.parent = AUCTIONATOR_L_ADDONS_AUCTIONATOR
+  self.parent = "Auctionator"
 
   self:SetupPanel()
 end
@@ -17,6 +17,7 @@ function AuctionatorConfigBasicOptionsFrameMixin:OnShow()
   self.ShowCraftingInfo:SetChecked(Auctionator.Config.Get(Auctionator.Config.Options.CRAFTING_INFO_SHOW))
   self.ShowCraftingCost:SetChecked(Auctionator.Config.Get(Auctionator.Config.Options.CRAFTING_INFO_SHOW_COST))
   self.ShowCraftingProfit:SetChecked(Auctionator.Config.Get(Auctionator.Config.Options.CRAFTING_INFO_SHOW_PROFIT))
+  self.ShowCraftingCheapestQualitiesCost:SetChecked(Auctionator.Config.Get(Auctionator.Config.Options.CRAFTING_INFO_SHOW_CHEAPEST_QUALITIES_COST))
 end
 
 function AuctionatorConfigBasicOptionsFrameMixin:Save()
@@ -29,6 +30,7 @@ function AuctionatorConfigBasicOptionsFrameMixin:Save()
   Auctionator.Config.Set(Auctionator.Config.Options.CRAFTING_INFO_SHOW, self.ShowCraftingInfo:GetChecked())
   Auctionator.Config.Set(Auctionator.Config.Options.CRAFTING_INFO_SHOW_COST, self.ShowCraftingCost:GetChecked())
   Auctionator.Config.Set(Auctionator.Config.Options.CRAFTING_INFO_SHOW_PROFIT, self.ShowCraftingProfit:GetChecked())
+  Auctionator.Config.Set(Auctionator.Config.Options.CRAFTING_INFO_SHOW_CHEAPEST_QUALITIES_COST, self.ShowCraftingCheapestQualitiesCost:GetChecked())
 end
 
 function AuctionatorConfigBasicOptionsFrameMixin:Cancel()

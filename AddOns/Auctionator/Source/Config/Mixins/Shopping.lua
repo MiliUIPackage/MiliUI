@@ -4,7 +4,7 @@ function AuctionatorConfigShoppingFrameMixin:OnLoad()
   Auctionator.Debug.Message("AuctionatorConfigShoppingFrameMixin:OnLoad()")
 
   self.name = AUCTIONATOR_L_CONFIG_SHOPPING_CATEGORY
-  self.parent = AUCTIONATOR_L_ADDONS_AUCTIONATOR
+  self.parent = "Auctionator"
 
   self:SetupPanel()
 end

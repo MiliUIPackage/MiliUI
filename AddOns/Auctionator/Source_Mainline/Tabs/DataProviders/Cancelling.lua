@@ -54,11 +54,29 @@ local CANCELLING_TABLE_LAYOUT = {
     cellParameters = { "undercut" },
     width = 90,
   },
+  {
+    headerTemplate = "AuctionatorStringColumnHeaderTemplate",
+    headerText = AUCTIONATOR_L_UNDERCUT_PRICE,
+    headerParameters = { "undercutPrice" },
+    cellTemplate = "AuctionatorPriceCellTemplate",
+    cellParameters = { "undercutPrice" },
+    width = 150,
+    defaultHide = true,
+  },
+  {
+    headerTemplate = "AuctionatorStringColumnHeaderTemplate",
+    headerText = AUCTIONATOR_L_ITEMS_AHEAD,
+    headerParameters = { "itemsAhead" },
+    cellTemplate = "AuctionatorStringCellTemplate",
+    cellParameters = { "itemsAheadPretty" },
+    width = 90,
+  },
 }
 
 local DATA_EVENTS = {
   "OWNED_AUCTIONS_UPDATED",
-  "AUCTION_CANCELED"
+  "AUCTION_CANCELED",
+  "AUCTION_HOUSE_NEW_BID_RECEIVED",
 }
 
 local EVENT_BUS_EVENTS = {
@@ -140,6 +158,8 @@ local COMPARATORS = {
   quantity = Auctionator.Utilities.NumberComparator,
   timeLeft = Auctionator.Utilities.NumberComparator,
   undercut = Auctionator.Utilities.StringComparator,
+  undercutPrice = Auctionator.Utilities.NumberComparator,
+  itemsAhead = Auctionator.Utilities.NumberComparator,
 }
 
 function AuctionatorCancellingDataProviderMixin:Sort(fieldName, sortDirection)
@@ -166,6 +186,8 @@ function AuctionatorCancellingDataProviderMixin:OnEvent(eventName, auctionID, ..
     DumpOwnedAuctions(function(auctions)
       self:PopulateAuctions(auctions)
     end)
+  elseif eventName == "AUCTION_HOUSE_NEW_BID_RECEIVED" then
+    self:QueryAuctions()
   end
 end
 
@@ -179,11 +201,11 @@ function AuctionatorCancellingDataProviderMixin:ReceiveEvent(eventName, eventDat
     self:NoQueryRefresh()
 
   elseif eventName == Auctionator.Cancelling.Events.UndercutStatus then
-    local isUndercut = ...
+    local isUndercut, minPrice, itemsAhead = ...
     if isUndercut then
-      self.undercutInfo[eventData] = AUCTIONATOR_L_UNDERCUT_YES
+      self.undercutInfo[eventData] = {state = AUCTIONATOR_L_UNDERCUT_YES, minPrice = minPrice, itemsAhead = itemsAhead}
     else
-      self.undercutInfo[eventData] = AUCTIONATOR_L_UNDERCUT_NO
+      self.undercutInfo[eventData] = {state = AUCTIONATOR_L_UNDERCUT_NO, minPrice = nil, itemsAhead = itemsAhead}
     end
 
     self:NoQueryRefresh()
@@ -205,12 +227,7 @@ function AuctionatorCancellingDataProviderMixin:IsSoldAuction(auctionInfo)
 end
 
 function AuctionatorCancellingDataProviderMixin:FilterAuction(auctionInfo)
-  local searchString = self:GetParent().SearchFilter:GetText()
-  if searchString ~= "" then
-    return string.find(string.lower(auctionInfo.searchName), string.lower(searchString), 1, true)
-  else
-    return true
-  end
+  return self:GetParent():IsAuctionShown(auctionInfo)
 end
 
 function AuctionatorCancellingDataProviderMixin:PopulateAuctions(auctions)
@@ -226,6 +243,7 @@ function AuctionatorCancellingDataProviderMixin:PopulateAuctions(auctions)
     if self:IsValidAuction(info) then
       totalOnSale = totalOnSale + price * info.quantity
       if self:FilterAuction(info) then
+        local undercutInfo = self.undercutInfo[info.auctionID]
         local entry = {
           id = info.auctionID,
           quantity = info.quantity,
@@ -237,7 +255,10 @@ function AuctionatorCancellingDataProviderMixin:PopulateAuctions(auctions)
           timeLeft = info.timeLeftSeconds,
           timeLeftPretty = Auctionator.Utilities.FormatTimeLeft(info.timeLeftSeconds),
           cancelled = (tIndexOf(self.waitingforCancellation, info.auctionID) ~= nil),
-          undercut = self.undercutInfo[info.auctionID] or AUCTIONATOR_L_UNDERCUT_UNKNOWN,
+          undercut = undercutInfo and undercutInfo.state or AUCTIONATOR_L_UNDERCUT_UNKNOWN,
+          undercutPrice = undercutInfo and undercutInfo.minPrice,
+          itemsAhead = undercutInfo and undercutInfo.itemsAhead,
+          itemsAheadPretty = undercutInfo and FormatLargeNumber(undercutInfo.itemsAhead),
           searchName = info.searchName,
         }
         if info.bidder ~= nil then

@@ -1,6 +1,8 @@
 # Auctionator
 
-## [10.1.1](https://github.com/Auctionator/Auctionator/tree/10.1.1) (2023-05-03)
-[Full Changelog](https://github.com/Auctionator/Auctionator/compare/10.1.0...10.1.1) 
+## [10.1.14](https://github.com/Auctionator/Auctionator/tree/10.1.14) (2023-07-22)
+[Full Changelog](https://github.com/Auctionator/Auctionator/compare/1.1.13...10.1.14) 
 
-- [Fixes #1382] Mainline: Fix tooltips not showing  
+- CraftingInfo: Mainline: Dialog on right-click search to set search quantity  
+- Selling: Hidden option to revert favourites sort algorithm change  
+- [Fixes #1414] Tooltip: Error in crafting orders placing UI for some reagents  

@@ -66,6 +66,28 @@ local function InitializeSplashScreen()
   end
 end
 
+local function InitializeBuyItemFrame()
+  if Auctionator.State.BuyItemFrameRef == nil then
+    Auctionator.State.BuyItemFrameRef = CreateFrame(
+      "Frame",
+      "AuctionatorBuyItemFrame",
+      AuctionatorShoppingFrame,
+      "AuctionatorBuyItemFrameTemplate"
+    )
+  end
+end
+
+local function InitializeBuyCommodityFrame()
+  if Auctionator.State.BuyCommodityFrameRef == nil then
+    Auctionator.State.BuyCommodityFrameRef = CreateFrame(
+      "Frame",
+      "AuctionatorBuyCommodityFrame",
+      AuctionatorShoppingFrame,
+      "AuctionatorBuyCommodityFrameTemplate"
+    )
+  end
+end
+
 local setupSearchCategories = false
 local function InitializeSearchCategories()
   if setupSearchCategories then
@@ -95,14 +117,27 @@ function AuctionatorAHFrameMixin:OnLoad()
 end
 
 function AuctionatorAHFrameMixin:OnShow()
-  Auctionator.Debug.Message("AuctionatorAHFrameMixin:OnShow()")
-
   InitializeIncrementalScanFrame()
   InitializeFullScanFrame()
   InitializeSearchCategories()
 
+  -- Workaround for TSM breaking the frame positioning when they "hide" the AH
+  -- window by scaling it to be really small
+  -- This way we only initialize our frames, and all the button positions when
+  -- the UI is visible and positioned as expected.
+  if AuctionHouseFrame:GetScale() < 0.5 then
+    self:SetScript("OnUpdate", self.OnShow)
+    return
+  else
+    self:SetScript("OnUpdate", nil)
+  end
+
+  Auctionator.Debug.Message("AuctionatorAHFrameMixin:OnShow()")
+
   InitializeAuctionHouseTabs()
   InitializeSplashScreen()
+  InitializeBuyItemFrame()
+  InitializeBuyCommodityFrame()
 
   ShowDefaultTab()
 end

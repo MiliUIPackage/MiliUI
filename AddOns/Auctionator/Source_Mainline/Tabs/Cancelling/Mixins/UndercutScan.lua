@@ -23,6 +23,7 @@ function AuctionatorUndercutScanMixin:OnLoad()
 
   self.undercutAuctions = {}
   self.seenAuctionResults = {}
+  self.seenItemMinPrice = {}
 
   self:SetCancel()
 end
@@ -42,6 +43,7 @@ function AuctionatorUndercutScanMixin:StartScan()
   self.currentAuction = nil
   self.undercutAuctions = {}
   self.seenAuctionResults = {}
+  self.seenItemMinPrice = {}
 
   Auctionator.EventBus:Fire(self, Auctionator.Cancelling.Events.UndercutScanStart)
 
@@ -89,30 +91,37 @@ function AuctionatorUndercutScanMixin:NextStep()
   end
 
   self.currentAuction = C_AuctionHouse.GetOwnedAuctionInfo(self.scanIndex)
-  local itemKeyString = Auctionator.Utilities.ItemKeyString(self.currentAuction.itemKey)
+  Auctionator.AH.GetItemKeyInfo(self.currentAuction.itemKey, function(itemKeyInfo)
+    self.currentAuction.searchName = itemKeyInfo.itemName
 
-  if (self.currentAuction.status == 1 or
-      self.currentAuction.buyoutAmount == nil or
-      self.currentAuction.bidder ~= nil or
-      self.currentAuction.itemKey.itemID == Auctionator.Constants.WOW_TOKEN_ID or
-      not ShouldInclude(self.currentAuction.itemKey)) then
-    Auctionator.Debug.Message("undercut scan skip")
+    local itemKeyString = Auctionator.Utilities.ItemKeyString(self.currentAuction.itemKey)
 
-    self:NextStep()
-  elseif self.seenAuctionResults[itemKeyString] ~= nil then
-    Auctionator.Debug.Message("undercut scan already seen")
+    if (self.currentAuction.status == 1 or
+        self.currentAuction.buyoutAmount == nil or
+        self.currentAuction.bidder ~= nil or
+        self.currentAuction.itemKey.itemID == Auctionator.Constants.WOW_TOKEN_ID or
+        not ShouldInclude(self.currentAuction.itemKey) or
+        not self:GetParent():IsAuctionShown(self.currentAuction)
+      ) then
+      Auctionator.Debug.Message("undercut scan skip")
 
-    self:ProcessUndercutResult(
-      self.currentAuction,
-      self.seenAuctionResults[itemKeyString]
-    )
+      self:NextStep()
+    elseif self.seenAuctionResults[itemKeyString] ~= nil then
+      Auctionator.Debug.Message("undercut scan already seen")
 
-    self:NextStep()
-  else
-    Auctionator.Debug.Message("undercut scan searching for undercuts", self.currentAuction.auctionID)
+      self:ProcessUndercutResult(
+        self.currentAuction,
+        self.seenAuctionResults[itemKeyString],
+        self.seenItemMinPrice[itemKeyString]
+      )
 
-    self:SearchForUndercuts(self.currentAuction)
-  end
+      self:NextStep()
+    else
+      Auctionator.Debug.Message("undercut scan searching for undercuts", self.currentAuction.auctionID)
+
+      self:SearchForUndercuts(self.currentAuction)
+    end
+  end)
 end
 
 function AuctionatorUndercutScanMixin:OnEvent(eventName, ...)
@@ -182,7 +191,7 @@ end
 
 function AuctionatorUndercutScanMixin:ProcessSearchResults(auctionInfo, ...)
   Auctionator.AH.GetItemKeyInfo(auctionInfo.itemKey, function(itemKeyInfo)
-    local notUndercutIDs = {}
+    local ownedAuctionIDs = {}
     local resultCount = 0
 
     if itemKeyInfo.isCommodity then
@@ -191,46 +200,66 @@ function AuctionatorUndercutScanMixin:ProcessSearchResults(auctionInfo, ...)
       resultCount = C_AuctionHouse.GetNumItemSearchResults(self.expectedItemKey)
     end
 
+    local minPrice
+    local itemsAhead = 0
+    local onlyOwned = true
+
     -- Identify all auctions which aren't undercut
     for index = 1, resultCount do
       local resultInfo
       if itemKeyInfo.isCommodity then
         resultInfo = C_AuctionHouse.GetCommoditySearchResultInfo(self.expectedItemKey.itemID, index)
+        if minPrice == nil then
+          minPrice = resultInfo.unitPrice
+        end
       else
         resultInfo = C_AuctionHouse.GetItemSearchResultInfo(self.expectedItemKey, index)
+        if minPrice == nil then
+          minPrice = resultInfo.buyoutAmount
+        end
       end
 
-      if resultInfo.owners[1] ~= "player" then
-        break
+      if onlyOwned and resultInfo.owners[1] == "player" then
+        ownedAuctionIDs[resultInfo.auctionID] = 0
+      elseif not onlyOwned and resultInfo.owners[1] == "player" then
+        ownedAuctionIDs[resultInfo.auctionID] = itemsAhead
       else
-        table.insert(notUndercutIDs, resultInfo.auctionID)
+        onlyOwned = false
       end
+
+      itemsAhead = itemsAhead + resultInfo.quantity
     end
 
     if resultCount == 0 then
       return
     end
 
-    self:ProcessUndercutResult(auctionInfo, notUndercutIDs)
+    self:ProcessUndercutResult(auctionInfo, ownedAuctionIDs, minPrice)
 
     self:NextStep()
   end)
 end
 
-function AuctionatorUndercutScanMixin:ProcessUndercutResult(auctionInfo, notUndercutIDs)
-  local isUndercut = tIndexOf(notUndercutIDs, auctionInfo.auctionID) == nil
+function AuctionatorUndercutScanMixin:ProcessUndercutResult(auctionInfo, ownedAuctionIDs, minPrice)
+  local itemsAhead = ownedAuctionIDs[auctionInfo.auctionID]
+
+  local isUndercut = itemsAhead and itemsAhead > Auctionator.Config.Get(Auctionator.Config.Options.UNDERCUT_ITEMS_AHEAD)
+
   if isUndercut then
     table.insert(self.undercutAuctions, auctionInfo)
   end
 
   local itemKeyString = Auctionator.Utilities.ItemKeyString(self.currentAuction.itemKey)
-  self.seenAuctionResults[itemKeyString] = notUndercutIDs
+  self.seenAuctionResults[itemKeyString] = ownedAuctionIDs
+  self.seenItemMinPrice[itemKeyString] = minPrice
 
   Auctionator.EventBus:Fire(
     self,
     Auctionator.Cancelling.Events.UndercutStatus,
     auctionInfo.auctionID,
-    isUndercut
+    isUndercut,
+    minPrice,
+    itemsAhead
   )
 end
 
