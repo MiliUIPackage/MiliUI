@@ -205,8 +205,8 @@ function ExtVendor_OnUpdate(self, elapsed)
         ExtVendor_UpdateDisplay();
         ONSHOW_QUEUE_STATE = 2;
     elseif (ONSHOW_QUEUE_STATE == 2) then
-        -- OpenAllBags(self); -- 汙染問題
-        -- ContainerFrame_UpdateAll(); -- 汙染問題
+        OpenAllBags(self); -- 汙染問題
+        ContainerFrame_UpdateAll(); -- 汙染問題
         ONSHOW_QUEUE_STATE = 3;
     elseif (ONSHOW_QUEUE_STATE == 3) then
         ExtVendor_StartQuickVendorRefresh();
