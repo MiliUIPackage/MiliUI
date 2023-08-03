@@ -772,6 +772,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         end
                     end
                 end)
+                local noInfinite
+                hooksecurefunc(PaladinPowerBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(PaladinPowerBarFrame)
+                    noInfinite = false
+                end)
             end
             
             -- Totem Frame is used for Consecration
@@ -784,12 +791,19 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 lib:RegisterHideable(WarlockPowerFrame)
                 lib:RegisterToggleInCombat(WarlockPowerFrame)
                 lib:SetDontResize(WarlockPowerFrame)
+                lib:RegisterResizable(WarlockPowerFrame)
                 hooksecurefunc(PlayerFrameBottomManagedFramesContainer, "Layout", function()
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(WarlockPowerFrame)
                     end
                 end)
-                lib:RegisterResizable(WarlockPowerFrame)
+                local noInfinite
+                hooksecurefunc(WarlockPowerFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(WarlockPowerFrame)
+                    noInfinite = false
+                end)
             end
             
             -- Totem Frame is used for Summon Darkglare
@@ -817,6 +831,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         lib:RepositionFrame(MonkHarmonyBarFrame)
                     end
                 end)
+                local noInfinite
+                hooksecurefunc(MonkHarmonyBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(MonkHarmonyBarFrame)
+                    noInfinite = false
+                end)
             end
         elseif class == "DEATHKNIGHT" then
             if db.EMEOptions.runes then
@@ -829,6 +850,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(RuneFrame)
                     end
+                end)
+                local noInfinite
+                hooksecurefunc(RuneFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(RuneFrame)
+                    noInfinite = false
                 end)
                 lib:RegisterCustomCheckbox(RuneFrame, "取消和玩家框架的連結 (需要重新載入)", 
                     --onChecked
@@ -858,6 +886,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         lib:RepositionFrame(MageArcaneChargesFrame)
                     end
                 end)
+                local noInfinite
+                hooksecurefunc(MageArcaneChargesFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(MageArcaneChargesFrame)
+                    noInfinite = false
+                end)
             end
         elseif class == "EVOKER" then
             if db.EMEOptions.evokerEssences then
@@ -870,6 +905,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(EssencePlayerFrame)
                     end
+                end)
+                local noInfinite
+                hooksecurefunc(EssencePlayerFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(EssencePlayerFrame)
+                    noInfinite = false
                 end)
             end
             
@@ -884,6 +926,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(RogueComboPointBarFrame)
                     end
+                end)
+                local noInfinite
+                hooksecurefunc(RogueComboPointBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(RogueComboPointBarFrame)
+                    noInfinite = false
                 end)
             end
         elseif class == "PRIEST" then
@@ -902,6 +951,13 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     if not EditModeManagerFrame.editModeActive then
                         lib:RepositionFrame(DruidComboPointBarFrame)
                     end
+                end)
+                local noInfinite
+                hooksecurefunc(DruidComboPointBarFrame, "Show", function()
+                    if noInfinite then return end
+                    noInfinite = true
+                    lib:RepositionFrame(DruidComboPointBarFrame)
+                    noInfinite = false
                 end)
             end
         end
