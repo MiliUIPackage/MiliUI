@@ -466,7 +466,7 @@ function HN:OnInitialize()
 	HNData = dbdata
 
 	-- Initialize our database with HandyNotes
-	HandyNotes:RegisterPluginDB(L["HandyNotes"], HNHandler, options)
+	HandyNotes:RegisterPluginDB("HandyNotes", HNHandler, options)
 
 	--WorldMapMagnifyingGlassButton:SetText(WorldMapMagnifyingGlassButton:GetText() .. L["\nAlt+Right Click To Add a HandyNote"])
 
