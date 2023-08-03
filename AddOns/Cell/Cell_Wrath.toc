@@ -1,6 +1,6 @@
 ## Interface: 30402
 ## Title: Cell
-## Version: r181-release
+## Version: r186-release
 ## Author: 篠崎
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
@@ -35,18 +35,20 @@ Indicators\TargetedSpells.lua
 Indicators\Consumables.lua
 Indicators\Custom_Wrath.lua
 
-RaidFrame\MainFrame.lua
-RaidFrame\UnitButton_Wrath.lua
-RaidFrame\UnitButton.xml
-RaidFrame\Groups\SoloFrame.lua
-RaidFrame\Groups\PartyFrame.lua
-RaidFrame\Groups\RaidFrame.lua
-RaidFrame\Groups\RaidPetFrame.lua
-RaidFrame\Groups\NPCFrame.lua
-RaidFrame\Groups\SpotlightFrame.lua
+RaidFrames\MainFrame.lua
 
-Tools\LoadTools_Wrath.xml
 RaidDebuffs\ExpansionData.lua
-Patrons.lua
 Modules\LoadModules_Wrath.xml
+Utilities\LoadUtilities_Wrath.xml
 RaidDebuffs\LoadRaidDebuffs_Wrath.xml
+
+RaidFrames\UnitButton_Wrath.lua
+RaidFrames\UnitButton.xml
+RaidFrames\Groups\SoloFrame.lua
+RaidFrames\Groups\PartyFrame.lua
+RaidFrames\Groups\RaidFrame.lua
+RaidFrames\Groups\RaidPetFrame.lua
+RaidFrames\Groups\NPCFrame.lua
+RaidFrames\Groups\SpotlightFrame.lua
+
+Patrons.lua

@@ -23,6 +23,7 @@ local previewButton, previewButtonBG, previewAlphaSlider, previewScaleSlider
 
 local function CreatePreviewButton()
     previewButton = CreateFrame("Button", "CellIndicatorsPreviewButton", indicatorsTab, "CellPreviewButtonTemplate")
+    -- previewButton.type = "main" -- layout setup
     -- previewButton:SetPoint("TOPLEFT", indicatorsTab, "TOPRIGHT", 10, -55)
     previewButton:UnregisterAllEvents()
     previewButton:SetScript("OnEnter", nil)
@@ -94,9 +95,9 @@ local function CreatePreviewButton()
 end
 
 local function UpdatePreviewButton()
-    P:Size(previewButton, currentLayoutTable["size"][1], currentLayoutTable["size"][2])
+    P:Size(previewButton, currentLayoutTable["main"]["size"][1], currentLayoutTable["main"]["size"][2])
     B:SetOrientation(previewButton, currentLayoutTable["barOrientation"][1], currentLayoutTable["barOrientation"][2])
-    B:SetPowerSize(previewButton, currentLayoutTable["powerSize"])
+    B:SetPowerSize(previewButton, currentLayoutTable["main"]["powerSize"])
 
     previewButton:UpdatePoint()
     
@@ -1442,7 +1443,7 @@ if Cell.isRetail then
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
         ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
-        ["shieldBar"] = {"enabled", "color-alpha", "height", "position-noHCenter", "frameLevel"},
+        ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "position-noHCenter", "frameLevel"},
         ["aoeHealing"] = {"enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
@@ -1478,7 +1479,7 @@ elseif Cell.isWrath then
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
         ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
-        ["shieldBar"] = {"enabled", "color-alpha", "height", "position-noHCenter", "frameLevel"},
+        ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "position-noHCenter", "frameLevel"},
         ["powerWordShield"] = {L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"], "enabled", "checkbutton:shieldByMe", "shape", "size-square", "position", "frameLevel"},
         ["aoeHealing"] = {"enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "num:5", "orientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},

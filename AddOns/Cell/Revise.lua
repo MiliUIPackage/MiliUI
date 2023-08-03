@@ -13,13 +13,28 @@ function F:Revise()
         F:Debug("CharaDBRevision:", charaDbRevision)
     end
 
-    if CellDB["revise"] and dbRevision < 149 then -- update from an unsupported version
+    if CellDB["revise"] and dbRevision < Cell.MIN_VERSION then -- update from an unsupported version
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
         f:SetScript("OnEvent", function()
             f:UnregisterAllEvents()
-            local popup = Cell:CreateConfirmPopup(CellAnchorFrame, 260, L["RESET"], function()
+            local popup = Cell:CreateConfirmPopup(CellAnchorFrame, 260, L["RESET"].."\n"..L["RESET_YES_NO"], function()
                 CellDB = nil
+                CellCharacterDB = nil
+                ReloadUI()
+            end)
+            popup:SetPoint("TOPLEFT")
+        end)
+        return
+    end
+    
+    if CellCharacterDB and CellCharacterDB["revise"] and charaDbRevision < Cell.MIN_VERSION then -- update from an unsupported version
+        local f = CreateFrame("Frame")
+        f:RegisterEvent("PLAYER_ENTERING_WORLD")
+        f:SetScript("OnEvent", function()
+            f:UnregisterAllEvents()
+            local popup = Cell:CreateConfirmPopup(CellAnchorFrame, 260, L["RESET_CHARACTER"].."\n|cFFB7B7B7"..L["RESET_INCLUDES"].."|r\n"..L["RESET_YES_NO"], function()
+                CellCharacterDB = nil
                 ReloadUI()
             end)
             popup:SetPoint("TOPLEFT")
@@ -1973,15 +1988,17 @@ function F:Revise()
 
     -- r177-release
     if CellDB["revise"] and dbRevision < 177 then
-        --! evoker Augmentation 1473
-        if CellDB["clickCastings"]["EVOKER"] then
-            if not CellDB["clickCastings"]["EVOKER"][1473] then
-                CellDB["clickCastings"]["EVOKER"]["alwaysTargeting"][1473] = "disabled"
-                CellDB["clickCastings"]["EVOKER"][1473] = {
-                    {"type1", "target"},
-                    {"type2", "togglemenu"},
-                    {"type-shiftR", "spell", 361227},
-                }
+        if Cell.isRetail then
+            --! evoker Augmentation 1473
+            if CellDB["clickCastings"]["EVOKER"] then
+                if not CellDB["clickCastings"]["EVOKER"][1473] then
+                    CellDB["clickCastings"]["EVOKER"]["alwaysTargeting"][1473] = "disabled"
+                    CellDB["clickCastings"]["EVOKER"][1473] = {
+                        {"type1", "target"},
+                        {"type2", "togglemenu"},
+                        {"type-shiftR", "spell", 361227},
+                    }
+                end
             end
         end
     end
@@ -2016,6 +2033,134 @@ function F:Revise()
                     layout["indicators"][index]["shape"] = "circle"
                 end
             end
+        end
+    end
+
+    -- r182-release
+    if CellDB["revise"] and dbRevision < 182 then
+        if Cell.isWrath then
+            if CellDB["clickCastings"] and CellDB["clickCastings"][Cell.vars.playerClass] then
+                if not CellCharacterDB["clickCastings"]["processed"] then
+                    CellCharacterDB["clickCastings"] = CellDB["clickCastings"][Cell.vars.playerClass]
+                    Cell.vars.clickCastingTable = CellCharacterDB["clickCastings"]
+                    -- flag as processed
+                    CellCharacterDB["clickCastings"]["processed"] = true
+                end
+            end
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            if not layout["main"] then
+                layout["main"] = {
+                    ["sortByRole"] = layout["sortByRole"],
+                    ["hideSelf"] = layout["hideSelf"],
+                    ["size"] = layout["size"],
+                    ["position"] = layout["position"],
+                    ["powerSize"] = layout["powerSize"],
+                    ["orientation"] = layout["orientation"],
+                    ["anchor"] = layout["anchor"],
+                    ["spacingX"] = layout["spacingX"],
+                    ["spacingY"] = layout["spacingY"],
+                    ["columns"] = layout["columns"],
+                    ["rows"] = layout["rows"],
+                    ["groupSpacing"] = layout["groupSpacing"],
+                }
+                
+                layout["pet"] = {
+                    ["partyEnabled"] = layout["pet"][1],
+                    ["raidEnabled"] = layout["pet"][2],
+                    ["sameSizeAsMain"] = not layout["pet"][4],
+                    ["sameArrangementAsMain"] = true,
+                    ["size"] = layout["pet"][5],
+                    ["position"] = layout["pet"][3],
+                    ["powerSize"] = layout["powerSize"],
+                    ["orientation"] = layout["orientation"],
+                    ["anchor"] = layout["anchor"],
+                    ["spacingX"] = layout["spacingX"],
+                    ["spacingY"] = layout["spacingY"],
+                }
+
+                layout["npc"] = {
+                    ["enabled"] = layout["npc"][1],
+                    ["separate"] = layout["npc"][2],
+                    ["sameSizeAsMain"] = not layout["npc"][4],
+                    ["sameArrangementAsMain"] = true,
+                    ["size"] = layout["npc"][5],
+                    ["position"] = layout["npc"][3],
+                    ["powerSize"] = layout["powerSize"],
+                    ["orientation"] = layout["orientation"],
+                    ["anchor"] = layout["anchor"],
+                    ["spacingX"] = layout["spacingX"],
+                    ["spacingY"] = layout["spacingY"],
+                }
+
+                layout["spotlight"] = {
+                    ["enabled"] = layout["spotlight"][1],
+                    ["units"] = layout["spotlight"][2],
+                    ["sameSizeAsMain"] = not layout["spotlight"][4],
+                    ["sameArrangementAsMain"] = true,
+                    ["size"] = layout["spotlight"][5],
+                    ["position"] = layout["spotlight"][3],
+                    ["powerSize"] = layout["powerSize"],
+                    ["orientation"] = layout["orientation"],
+                    ["anchor"] = layout["anchor"],
+                    ["spacingX"] = layout["spacingX"],
+                    ["spacingY"] = layout["spacingY"],
+                }
+            end
+
+            layout["size"] = nil
+            layout["position"] = nil
+            layout["powerSize"] = nil
+            layout["spacingX"] = nil
+            layout["spacingY"] = nil
+            layout["orientation"] = nil
+            layout["anchor"] = nil
+            layout["columns"] = nil
+            layout["rows"] = nil
+            layout["groupSpacing"] = nil
+            layout["sortByRole"] = nil
+            layout["hideSelf"] = nil
+        end
+    end
+
+    -- r186-release
+    if CellDB["revise"] and dbRevision < 186 then
+        if CellDB["glows"] then
+            CellDB["spellRequest"] = CellDB["glows"]["spellRequest"]
+            CellDB["dispelRequest"] = CellDB["glows"]["dispelRequest"]
+            CellDB["glows"] = nil
+
+            CellDB["spellRequest"]["sharedIconOptions"] = {
+                "beat", -- [1] animation
+                27, -- [2] size
+                "BOTTOMRIGHT", -- [3] anchor
+                "BOTTOMRIGHT", -- [4] anchorTo
+                0, -- [5] x
+                0, -- [6] y
+            }
+    
+            for _, t in pairs(CellDB["spellRequest"]["spells"]) do
+                t["type"] = "icon"
+                t["icon"] = select(3, GetSpellInfo(t["spellId"]))
+                t["iconColor"] = t["glowOptions"][2][1]
+            end
+            
+            CellDB["dispelRequest"]["textOptions"] = {
+                "A",
+                {1, 0, 0, 1}, -- [1] color 
+                32, -- [2] size
+                "TOPLEFT", -- [3] anchor
+                "TOPLEFT", -- [4] anchorTo
+                -1, -- [5] x
+                5, -- [6] y
+            }
+            
+            CellDB["dispelRequest"]["type"] = "text"
+        end
+
+        if Cell.isWrath then
+            CellCharacterDB["clickCastings"]["class"] = Cell.vars.playerClass
         end
     end
 

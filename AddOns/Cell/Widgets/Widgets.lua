@@ -779,7 +779,7 @@ function addon:CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeav
                 end)
                 b:SetScript("OnLeave", function()
                     if b.HideTooltip then b.HideTooltip() end
-                    if onLeave then onLeave() end
+                    if onLeave then onLeave(b) end
                 end)
                 if func1 then func1(b.id) end
             else
@@ -792,7 +792,7 @@ function addon:CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeav
                 b:SetScript("OnLeave", function() 
                     if b.HideTooltip then b.HideTooltip() end
                     b:SetBackdropColor(unpack(b.color))
-                    if onLeave then onLeave() end
+                    if onLeave then onLeave(b) end
                 end)
                 if func2 then func2(b.id) end
             end
@@ -1739,6 +1739,7 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
         parent.confirmPopup:SetSize(width, 100)
         addon:StylizeFrame(parent.confirmPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
         parent.confirmPopup:EnableMouse(true)
+        parent.confirmPopup:SetClampedToScreen(true)
         parent.confirmPopup:Hide()
         
         parent.confirmPopup:SetScript("OnHide", function()
@@ -2660,7 +2661,14 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini)
         if not valid then
             menu.selected = nil
             menu.text:SetText("")
+            SetHighlightItem()
         end
+    end
+
+    function menu:ClearSelected()
+        menu.selected = nil
+        menu.text:SetText("")
+        SetHighlightItem()
     end
 
     function menu:SetSelectedValue(value)
@@ -2713,6 +2721,7 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini)
         wipe(menu.items)
         menu.selected = nil
         menu.text:SetText("")
+        SetHighlightItem()
     end
 
     function menu:SetCurrentItem(item)

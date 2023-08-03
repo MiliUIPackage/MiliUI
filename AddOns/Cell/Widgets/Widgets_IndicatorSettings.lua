@@ -892,6 +892,13 @@ local function CreateSetting_Format(parent)
                     widget.func("number-deficit-short")
                 end,
             },
+            {
+                ["text"] = F:FormatNumber(21377).." 32%",
+                ["value"] = "current-short-percentage",
+                ["onClick"] = function()
+                    widget.func("current-short-percentage")
+                end,
+            },
         })
 
         widget.formatText = widget:CreateFontString(nil, "OVERLAY", font_name)
@@ -922,7 +929,7 @@ local function CreateSetting_DurationVisibility(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_DurationVisibility", parent, 240, 50)
         settingWidgets["durationVisibility"] = widget
 
-        widget.durationVisibility = addon:CreateDropdown(widget, 200)
+        widget.durationVisibility = addon:CreateDropdown(widget, 245)
         widget.durationVisibility:SetPoint("TOPLEFT", 5, -20)
         widget.durationVisibility:SetItems({
             {
@@ -990,9 +997,9 @@ local function CreateSetting_DurationVisibility(parent)
             },
         })
 
-        widget.orientationText = widget:CreateFontString(nil, "OVERLAY", font_name)
-        widget.orientationText:SetText(L["showDuration"])
-        widget.orientationText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
+        widget.durationVisibilityText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.durationVisibilityText:SetText(L["showDuration"])
+        widget.durationVisibilityText:SetPoint("BOTTOMLEFT", widget.durationVisibility, "TOPLEFT", 0, 1)
 
         -- associate db
         function widget:SetFunc(func)
@@ -1018,7 +1025,7 @@ local function CreateSetting_Orientation(parent)
         widget = addon:CreateFrame("CellIndicatorSettings_Orientation", parent, 240, 50)
         settingWidgets["orientation"] = widget
 
-        widget.orientation = addon:CreateDropdown(widget, 153)
+        widget.orientation = addon:CreateDropdown(widget, 245)
         widget.orientation:SetPoint("TOPLEFT", 5, -20)
         widget.orientation:SetItems({
             {
@@ -3635,9 +3642,9 @@ local function CreateConsumablePreview(parent, style)
 
     function f:UpdateTicker(speed)
         f:SetScript("OnShow", function()
-            f.consumables:ShowUp(style, {1, 1, 1})
+            f.consumables:Display(style, {1, 1, 1})
             f.ticker = C_Timer.NewTicker(2/speed, function()
-                f.consumables:ShowUp(style, {1, 1, 1})
+                f.consumables:Display(style, {1, 1, 1})
             end)
         end)
     
@@ -3845,7 +3852,7 @@ local function CreateConsumableButtons(parent, spellTable, updateHeightFunc)
                 tinsert(items, {
                     ["text"] = style,
                     ["onClick"] = function()
-                        CellIndicatorsPreviewButton.indicators.consumables:ShowUp(style, consumableButtons[i].animationColor)
+                        CellIndicatorsPreviewButton.indicators.consumables:Display(style, consumableButtons[i].animationColor)
                         consumableButtons[i].animationType = style
                         -- update db
                         spellTable[i][2][1] = style
@@ -3862,7 +3869,7 @@ local function CreateConsumableButtons(parent, spellTable, updateHeightFunc)
                 spellTable[i][2][2][3] = b
                 parent.func(spellTable)
                 consumableButtons[i].animationColor = {r, g, b}
-                CellIndicatorsPreviewButton.indicators.consumables:ShowUp(consumableButtons[i].animationType, consumableButtons[i].animationColor)
+                CellIndicatorsPreviewButton.indicators.consumables:Display(consumableButtons[i].animationType, consumableButtons[i].animationColor)
             end)
             consumableButtons[i].colorPicker:SetPoint("TOPLEFT", consumableButtons[i].styleDropdown, "TOPRIGHT", 2, -1)
             consumableButtons[i].colorPicker:HookScript("OnEnter", function()
@@ -3902,7 +3909,7 @@ local function CreateConsumableButtons(parent, spellTable, updateHeightFunc)
 
             -- preview
             consumableButtons[i]:SetScript("OnClick", function(self, button)
-                CellIndicatorsPreviewButton.indicators.consumables:ShowUp(consumableButtons[i].animationType, consumableButtons[i].animationColor)
+                CellIndicatorsPreviewButton.indicators.consumables:Display(consumableButtons[i].animationType, consumableButtons[i].animationColor)
             end)
         end
         

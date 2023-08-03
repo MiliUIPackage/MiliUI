@@ -38,6 +38,7 @@ select(2, ...).L = setmetatable({
     ["durationFont"] = "Duration Font",
     ["fadeOut"] = "Fade out over time",
     ["shieldByMe"] = "Only show PW:S cast by me",
+    ["onlyShowOvershields"] = "Only show overshields",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -59,7 +60,10 @@ select(2, ...).L = setmetatable({
     ["Default"] = _G.DEFAULT,
 
     ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2 and VuhDo.\nCell is not meant to be a lightweight or powerful raid frame addon. It's easy to use and good enough for you (hope so).",
-    ["RESET"] = "Cell requires a full reset after updating from a very old version.\n|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
+    ["RESET"] = "Cell requires a full reset after updating from a very old version",
+    ["RESET_CHARACTER"] = "Cell requires a character profile reset after updating from a very old version",
+    ["RESET_INCLUDES"] = "Only Click-Castings and Layout Auto Switch are included",
+    ["RESET_YES_NO"] = "|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
 
     ["clickcastingsHints"] = "Left-Click: edit\nRight-Click: delete",
     ["syncTips"] = "Set the master layout here\nAll indicators of slave layout are fully in-sync with the master\nIt's a two-way sync, but all indicators of slave layout will be lost when set a master",
@@ -77,8 +81,35 @@ select(2, ...).L = setmetatable({
         <h1>Try disabling code snippets, if Cell doesn't work after update.</h1>
         <br/>
         
-        <h1>About the M+ Afflicted Souls</h1>
-        <p>I've received some requests about showing Afflicted Souls on Cell. Simply put, due to the limitation of the plugin API, it is not possible. I can make them display on Cell, but these buttons will not be clickable, so there is no need. It is better to use WA.</p>
+        <h1>r186-release (Jul 24, 2023, 21:06 GMT+8)</h1>
+        <p>* Fixed import &amp; export.</p>
+        <p>* Updated Dispel/Spell Request.</p>
+        <p>* Updated Health Text indicator.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+        
+        <h1>r185-release (Jul 21, 2023, 20:57 GMT+8)</h1>
+        <p>* Updated Options UI (wip).</p>
+        <p>+ Added "Only show overshields" to Shield Bar indicator.</p>
+        <p>+ Added "Focus Target" to spotlight frame.</p>
+        <p>* Fixed Raid Debuffs tab on Wrath.</p>
+        <br/>
+
+        <h1>r184-release (Jul 19, 2023, 23:12 GMT+8)</h1>
+        <p>* Fixed range checker for Evokers.</p>
+        <p>* Fixed several layout issues.</p>
+        <p>+ Added "Boss1 Target" to spotlight frame.</p>
+        <br/>
+
+        <h1>r183-release (Jul 18, 2023, 15:09 GMT+8)</h1>
+        <p>* Fixed layout: sort by role, hide self.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r182-release (Jul 18, 2023, 05:07 GMT+8)</h1>
+        <p>* Refactored Layouts.</p>
+        <p>* Updated debuffs for Dawn of the Infinite, thanks to 钛锬(NGA).</p>
+        <p>+ Implemented import &amp; export for Click-Castings.</p>
         <br/>
 
         <h1>r181-release (Jul 15, 2023, 03:12 GMT+8)</h1>

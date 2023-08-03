@@ -59,9 +59,9 @@ end
 
 function F:GetLocalizedClassName(classFileOrID)
     if type(classFileOrID) == "string" then
-        return localizedClass[classFileOrID]
+        return localizedClass[classFileOrID] or classFileOrID
     elseif type(classFileOrID) == "number" and classIDToFile[classFileOrID] then
-        return localizedClass[classIDToFile[classFileOrID]]
+        return localizedClass[classIDToFile[classFileOrID]] or classFileOrID
     end
     return ""
 end
@@ -833,7 +833,7 @@ end
 -------------------------------------------------
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
 function F:GetClassColor(class)
-    if class and class ~= "" then
+    if class and class ~= "" and RAID_CLASS_COLORS[class] then
         if CUSTOM_CLASS_COLORS then
             return CUSTOM_CLASS_COLORS[class].r, CUSTOM_CLASS_COLORS[class].g, CUSTOM_CLASS_COLORS[class].b
         else
@@ -845,7 +845,7 @@ function F:GetClassColor(class)
 end
 
 function F:GetClassColorStr(class)
-    if class and class ~= "" then
+    if class and class ~= "" and RAID_CLASS_COLORS[class] then
         return "|c"..RAID_CLASS_COLORS[class].colorStr
     else
         return "|cffffffff"
@@ -1017,11 +1017,18 @@ end
 function F:IterateGroupMembers()
     local groupType = IsInRaid() and "raid" or "party"
     local numGroupMembers = GetNumGroupMembers()
-    local i = groupType == "party" and 0 or 1
+    local i
+
+    if groupType == "party" then
+        i = 0
+        numGroupMembers = numGroupMembers - 1
+    else
+        i = 1
+    end
 
     return function()
         local ret
-        if i == 0 and groupType == "party" then
+        if i == 0 then
             ret = "player"
         elseif i <= numGroupMembers and i > 0 then
             ret = groupType .. i
@@ -1158,6 +1165,7 @@ local UnitIsVisible = UnitIsVisible
 local UnitInRange = UnitInRange
 local UnitCanAssist = UnitCanAssist
 local UnitCanAttack = UnitCanAttack
+local UnitCanCooperate = UnitCanCooperate
 local IsSpellInRange = IsSpellInRange
 local IsItemInRange = IsItemInRange
 local CheckInteractDistance = CheckInteractDistance
@@ -1242,15 +1250,24 @@ if playerClass == "EVOKER" then
     local spellAlive = GetSpellInfo(361469)
 
     -- NOTE: UnitInRange for evoker is around 50y
-    function F:IsInRange(unit)
+    function F:IsInRange(unit, check)
         if not UnitIsVisible(unit) then
             return false
         end
     
         if UnitIsUnit("player", unit) then
             return true
+        -- elseif not check and F:UnitInGroup(unit) then
+        --     -- NOTE: UnitInRange only works with group players/pets
+        --     local checked
+        --     inRange, checked = UnitInRange(unit)
+        --     if not checked then
+        --         return F:IsInRange(unit, true)
+        --     end
+        --     return inRange
         else
-            if UnitCanAssist("player", unit) then
+            -- UnitCanCooperate works with cross-faction, UnitCanAssist does not
+            if UnitCanAssist("player", unit) or UnitCanCooperate("player", unit) then
                 -- print("CanAssist", unit)
                 if UnitIsDead(unit) then
                     return IsSpellInRange(spellDead, unit) == 1 -- 40y
@@ -1266,7 +1283,7 @@ if playerClass == "EVOKER" then
                 end
             else
                 -- print("CheckInteractDistance", unit)
-                return CheckInteractDistance("unit", 4) -- 28 yards
+                return CheckInteractDistance(unit, 4) -- 28 yards
             end
         end
     end

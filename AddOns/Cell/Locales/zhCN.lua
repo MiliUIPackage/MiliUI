@@ -4,7 +4,10 @@ local L = select( 2, ...).L
 
 L["New version found (%s). Please visit %s to get the latest version."] = "发现新版本 (%s)。 请访问 %s 下载最新版本。"
 L["ABOUT"] = "Cell 受启发于 CompactRaid，但并非其修改版或增强版，而是一个全新的团队框架。\n我个人很喜欢 CompactRaid，并常年使用它，但其作者似乎已经不再更新了。因此我写了 Cell，希望你能喜欢。\n另外，我也参考了一些很棒的团队框架，比如 Aptechka、Grid2 和 VuhDo。\nCell 并不打算成为一个轻量或强大的团队框架插件。设置简单，功能足够，就行了。"
-L["RESET"] = "从过旧的版本更新，需要重置Cell。\n|cff22ff22是|r - 重置Cell\n|cffff2222否|r - 我自己搞定"
+L["RESET"] = "从过旧的版本更新，需要重置Cell"
+L["RESET_CHARACTER"] = "从过旧的版本更新，需要重置Cell的角色配置"
+L["RESET_INCLUDES"] = "这仅包括点击施法与布局自动切换"
+L["RESET_YES_NO"] = "|cff22ff22是|r - 重置Cell\n|cffff2222否|r - 我自己搞定"
 
 -------------------------------------------------
 -- slash command
@@ -86,57 +89,11 @@ L["Show while in a party"] = "当在小队时显示"
 L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
 L["Increase Health Update Rate"] = "增加血条刷新速率"
 L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
-L["Lock Cell Frame"] = "把它给我锁死"
+L["Position"] = "位置"
+L["Lock Cell Frames"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
 L["Menu Position"] = "菜单位置"
-
-L["Tools"] = "工具"
-L["Raid Tools"] = "团队工具"
-L["only in group"] = "仅在队伍中"
-L["Only show when you have permission to do this"] = "仅在你有权限这样做时显示"
-L["ReadyCheck and PullTimer buttons"] = "就位确认 与 开怪倒数 按钮"
-L["pullTimerTips"] = "\n|r开怪倒数\n左键单击: |cffffffff开始倒计时|r\n右键单击: |cffffffff取消倒计时|r"
-L["readyCheckTips"] = "\n|r就位确认\n左键单击: |cffffffff就位确认|r\n右键单击: |cffffffff职责确认|r"
-L["Ready"] = "就位"
-L["Pull"] = "倒数"
-L["Pull in %d sec"] = "%d秒后开怪"
-L["Pull timer cancelled"] = "取消开怪"
-L["Marks Bar"] = "标记工具条"
-L["Target Marks"] = "目标标记"
-L["World Marks"] = "世界标记"
-L["Both"] = "全部"
-L["marksTips"] = "\n|r目标标记\n左键单击: |cffffffff在目标上设置标记|r\n右键单击: |cffffffff将标记锁定在目标上 (在你的队伍中)|r"
-L["Mover"] = "移动框"
-L["Unlock"] = "解锁"
-L["Lock"] = "锁定"
-L["Battle Res Timer"] = "战复计时器"
-L["Only show during encounter or in mythic+"] = "仅在首领战或者史诗钥石地下城中显示"
-L["BR"] = "战复"
-L["HIGH CPU USAGE"] = "高CPU占用"
-L["MODERATE CPU USAGE"] = "中等CPU占用"
-L["Death Report"] = "死亡通报"
-L["Disabled in battlegrounds and arenas"] = "战场与竞技场中将禁用"
-L["Report deaths to group"] = "向队伍通报死亡信息"
-L["Use |cFFFFB5C5/cell report X|r to set the number of reports during a raid encounter"] = "用 |cFFFFB5C5/cell report X|r 来设定团队战中的通报个数"
-L["Current"] = "当前"
-L["all"] = "全部"
-L["first %d"] = "前 %d 个"
-L["Cell will report all deaths during a raid encounter."] = "Cell 将会通报团队战中的全部死亡信息。"
-L["Cell will report first %d deaths during a raid encounter."] = "Cell 将会通报团队战中的前 %d 个死亡信息。"
-L["A 0-40 integer is required."] = "需要一个0到40的整数。"
-L["instakill"] = "秒杀"
-L["Buff Tracker"] = "增益检查"
-L["Check if your group members need some raid buffs"] = "检查队伍成员是否需要某些团队增益"
-L["|cffffb5c5Left-Click:|r cast the spell"] = "|cffffb5c5左键：|r施放技能"
-L["|cffffb5c5Right-Click:|r report unaffected"] = "|cffffb5c5右键：|r报告缺少该增益的玩家"
-L["Unaffected"] = "未获得此增益"
-L["Missing Buff"] = "缺少增益"
-L["many"] = "很多"
-L["Use |cFFFFB5C5/cell buff X|r to set icon size"] = "用 |cFFFFB5C5/cell buff X|r 来设定图标尺寸"
-L["Buff Tracker icon size is set to %d."] = "将增益检查图标的尺寸设置为 %d。"
-L["A positive integer is required."] = "需要一个正整数。"
-L["Fade Out These Buttons"] = "淡出这些按钮"
 
 -------------------------------------------------
 -- nickname
@@ -278,56 +235,83 @@ L["Create new layout"] = "新建布局"
 L["Delete layout"] = "删除布局"
 L["Default layout"] = "默认布局"
 L["Inherit: "] = "继承："
+L["Tip: Every layout has its own position setting"] = "提示：每个布局都有其单独的位置设置"
+
+-- layout preview
+L["Party"] = "小队"
+L["Raid Pets"] = "团队宠物"
+L["Friendly NPC Frame"] = "友方 NPC 框体"
+
+-- layout auto switch
 L["Layout Auto Switch"] = "布局自动切换"
 L["Solo/Party"] = "单人/小队"
 L["Outdoor"] = "野外"
 L["Arena"] = "竞技场"
 L["BG 1-15"] = "战场 1-15"
 L["BG 16-40"] = "战场 16-40"
-L["Group Filter"] = "队伍过滤"
-L["Group Arrangement"] = "队伍排列"
-L["Orientation"] = "方向"
-L["Vertical"] = "纵向"
-L["Horizontal"] = "横向"
-L["Party"] = "小队"
-L["Button Size"] = "按钮尺寸"
-L["Pet Button"] = "宠物按钮"
-L["Spotlight Button"] = "特别关注按钮"
-L["NPC Button"] = "NPC 按钮"
+
+-- group filters
+L["Group Filters"] = "队伍过滤"
+
+-- layout setup
+L["Layout Setup"] = "布局设置"
+L["Main"] = "主框体"
+L["Pet"] = "宠物"
+L["Spotlight"] = "特别关注"
 L["Width"] = "宽"
 L["Height"] = "高"
 L["Power Size"] = "能量条尺寸"
-L["Misc"] = "其他"
+L["Orientation"] = "方向"
+L["Vertical"] = "纵向"
+L["Horizontal"] = "横向"
 L["Unit Spacing"] = "单位间距"
 L["Group Columns"] = "队伍列数"
 L["Group Rows"] = "队伍行数"
 L["Group Spacing"] = "队伍间距"
-L["Bar Orientation"] = "条方向"
-L["Rotate Texture"] = "旋转材质"
-L["Friendly NPC Frame"] = "友方 NPC 框体"
-L["Other Frames"] = "其他框体"
+
+L["Sort By Role (Party Only)"] = "按职责排序（仅小队）"
+L["Hide Self (Party Only)"] = "隐藏自己（仅小队）"
+
+L["Use Same Size As Main"] = "使用与主框体相同的尺寸"
+L["Use Same Arrangement As Main"] = "使用与主框体相同的排列"
+
+L["Show Party/Arena Pets"] = "显示小队/竞技场宠物"
+L["Show Raid Pets"] = "显示团队宠物"
+
 L["Show NPC Frame"] = "显示 NPC 框体"
 L["Separate NPC Frame"] = "分离 NPC 框体"
 L["Show friendly NPCs in a separate frame"] = "将友方 NPC 显示在一个单独的框体中"
 L["You can move it in Preview mode"] = "你可以在“预览”模式中移动它"
-L["Power Bar Filters"] = "能量条过滤"
-L["PET"] = "宠物"
-L["VEHICLE"] = "载具"
-L["Show Party/Arena Pets"] = "显示小队/竞技场宠物"
-L["Show Raid Pets"] = "显示团队宠物"
-L["Raid Pets"] = "团队宠物"
+
+L["Enable Spotlight Frame"] = "启用特别关注框体"
 L["Spotlight Frame"] = "特别关注框体"
 L["spotlightTips"] = "左键：|cffffffff菜单|r\n右键：|cffffffff清除|r\n左键拖动：|cffffffff设置为目标单位（非战斗中）|r\n右键拖动：|cffffffff设置为目标单位的宠物（非战斗中）|r"
 L["Show units you care about more in a separate frame"] = "将你特别关注的单位显示在一个单独的框体中"
 L["Target of Target"] = "目标的目标"
+L["Focus Target"] = "焦点的目标"
 L["Unit"] = "指定单位"
-L["Unit's Target"] = "指定单位的目标"
 L["Unit's Pet"] = "指定单位的宠物"
+L["Unit's Target"] = "指定单位的目标"
+L["Boss1 Target"] = "Boss1的目标"
 L["Clear"] = "清除"
 L["Invalid unit."] = "无效单位。"
-L["Sort By Role (Party Only)"] = "按职责排序（仅小队）"
-L["Hide Self (Party Only)"] = "隐藏自己（仅小队）"
-L["Tip: Every layout has its own position setting"] = "提示：每个布局都有其单独的位置设置"
+
+-- L["Group Arrangement"] = "队伍排列"
+-- L["Button Size"] = "按钮尺寸"
+-- L["Pet Button"] = "宠物按钮"
+-- L["Spotlight Button"] = "特别关注按钮"
+-- L["NPC Button"] = "NPC 按钮"
+-- L["Other Frames"] = "其他框体"
+
+-- bar orientation
+L["Bar Orientation"] = "条方向"
+L["Rotate Texture"] = "旋转材质"
+
+-- misc
+L["Misc"] = "其他"
+L["Power Bar Filters"] = "能量条过滤"
+L["PET"] = "宠物"
+L["VEHICLE"] = "载具"
 
 -------------------------------------------------
 -- send/receive
@@ -349,6 +333,7 @@ L["Cancel"] = "取消"
 L["Import"] = "导入"
 L["Export"] = "导出"
 L["Overwrite Layout"] = "覆盖布局"
+L["Overwrite Click-Casting"] = "覆盖点击施法"
 L["|cff1Aff1AYes|r - Overwrite"] = "|cff1Aff1A是|r - 覆盖"
 L["|cffff1A1ANo|r - Create New"] = "|cffff1A1A否|r - 新建"
 L["Error"] = "错误"
@@ -513,6 +498,7 @@ L["hideDamager"] = "隐藏伤害输出"
 L["hideInCombat"] = "战斗中隐藏"
 L["fadeOut"] = "随时间淡出"
 L["shieldByMe"] = "只显示我施放的真言术：盾"
+L["onlyShowOvershields"] = "只显示超过血量上限的护盾"
 
 L["left-to-right"] = "从左到右"
 L["right-to-left"] = "从右到左"
@@ -575,14 +561,74 @@ L["Use %s addon"] = "用这个插件 %s"
 L["Then create a PR or submit a ticket on GitHub"] = "然后在GitHub上提交PR或Issue就可以啦"
 
 -------------------------------------------------
--- glows
+-- utilities
+-------------------------------------------------
+L["Utilities"] = "工具"
+
+-------------------------------------------------
+-- raid tools
+-------------------------------------------------
+L["Tools"] = "工具"
+L["Raid Tools"] = "团队工具"
+L["only in group"] = "仅在队伍中"
+L["Only show when you have permission to do this"] = "仅在你有权限这样做时显示"
+L["ReadyCheck and PullTimer buttons"] = "就位确认 与 开怪倒数 按钮"
+L["pullTimerTips"] = "\n|r开怪倒数\n左键单击: |cffffffff开始倒计时|r\n右键单击: |cffffffff取消倒计时|r"
+L["readyCheckTips"] = "\n|r就位确认\n左键单击: |cffffffff就位确认|r\n右键单击: |cffffffff职责确认|r"
+L["Ready"] = "就位"
+L["Pull"] = "倒数"
+L["Pull in %d sec"] = "%d秒后开怪"
+L["Pull timer cancelled"] = "取消开怪"
+L["Marks Bar"] = "标记工具条"
+L["Target Marks"] = "目标标记"
+L["World Marks"] = "世界标记"
+L["Both"] = "全部"
+L["marksTips"] = "\n|r目标标记\n左键单击: |cffffffff在目标上设置标记|r\n右键单击: |cffffffff将标记锁定在目标上 (在你的队伍中)|r"
+L["Mover"] = "移动框"
+L["Unlock"] = "解锁"
+L["Lock"] = "锁定"
+L["Battle Res Timer"] = "战复计时器"
+L["Only show during encounter or in mythic+"] = "仅在首领战或者史诗钥石地下城中显示"
+L["BR"] = "战复"
+L["HIGH CPU USAGE"] = "高CPU占用"
+L["MODERATE CPU USAGE"] = "中等CPU占用"
+L["Death Report"] = "死亡通报"
+L["Disabled in battlegrounds and arenas"] = "战场与竞技场中将禁用"
+L["Report deaths to group"] = "向队伍通报死亡信息"
+L["Use |cFFFFB5C5/cell report X|r to set the number of reports during a raid encounter"] = "用 |cFFFFB5C5/cell report X|r 来设定团队战中的通报个数"
+L["Current"] = "当前"
+L["all"] = "全部"
+L["first %d"] = "前 %d 个"
+L["Cell will report all deaths during a raid encounter."] = "Cell 将会通报团队战中的全部死亡信息。"
+L["Cell will report first %d deaths during a raid encounter."] = "Cell 将会通报团队战中的前 %d 个死亡信息。"
+L["A 0-40 integer is required."] = "需要一个0到40的整数。"
+L["instakill"] = "秒杀"
+L["Buff Tracker"] = "增益检查"
+L["Check if your group members need some raid buffs"] = "检查队伍成员是否需要某些团队增益"
+L["|cffffb5c5Left-Click:|r cast the spell"] = "|cffffb5c5左键：|r施放技能"
+L["|cffffb5c5Right-Click:|r report unaffected"] = "|cffffb5c5右键：|r报告缺少该增益的玩家"
+L["Unaffected"] = "未获得此增益"
+L["Missing Buff"] = "缺少增益"
+L["many"] = "很多"
+L["Use |cFFFFB5C5/cell buff X|r to set icon size"] = "用 |cFFFFB5C5/cell buff X|r 来设定图标尺寸"
+L["Buff Tracker icon size is set to %d."] = "将增益检查图标的尺寸设置为 %d。"
+L["A positive integer is required."] = "需要一个正整数。"
+L["Fade Out These Buttons"] = "淡出这些按钮"
+
+-------------------------------------------------
+-- spell request
 -------------------------------------------------
 L["Glows"] = "亮闪闪"
+L["Type"] = "类型"
 L["Glow"] = "发光"
 L["Glow Options"] = "发光选项"
-L["Spell Request"] = "让我康康哪个家伙想吃宝宝的大宝剑"
+L["Icon Options"] = "图标选项"
+L["Animation"] = "动画"
+L["Beat"] = "跳动"
+L["Blink"] = "闪烁"
+L["Spell Request"] = "法术请求"
 L["Glow unit button when a group member sends a %s request"] = "当队内成员请求%s时高亮其单位按钮"
-L["Shows only one spell glow on a unit button at a time"] = "每个单位按钮上同一时间只能显示一个法术高亮"
+L["Shows only one spell request on a unit button at a time"] = "每个单位按钮上同一时间只能显示一个法术请求"
 L["Check If Exists"] = "检查增益是否存在"
 L["Do nothing if requested spell/buff already exists on requester"] = "若增益已存在于请求者身上，则不发光"
 L["Free Cooldown Only"] = "仅当法术不在冷却时"
@@ -606,12 +652,17 @@ L["SpellId and BuffId are the same in most cases"] = "大部分情况下法术ID
 L["The spell is required to apply a buff on the target"] = "要求添加的法术能够在目标上施加增益效果"
 L["Spell already exists."] = "法术已存在。"
 L["Delete spell?"] = "删除法术？"
-L["Dispel Request"] = "请求驱散"
+
+-------------------------------------------------
+-- dispel request
+-------------------------------------------------
+L["Dispel Request"] = "驱散请求"
 L["DISPEL"] = "驱散"
 L["Dispellable By Me"] = "仅当我能驱散时"
 L["Respond to all dispellable debuffs"] = "响应所有的可驱散减益"
 L["Respond to specific dispellable debuffs"] = "仅响应指定的可驱散减益"
 L["IDs separated by whitespaces"] = "用空格分隔多个法术ID"
+L["Text Options"] = "文本选项"
 
 -------------------------------------------------
 -- about
@@ -628,6 +679,7 @@ L["Import & Export All Settings"] = "导入导出所有设置"
 L["All Cell settings will be overwritten!"] = "所有 Cell 设置将被覆盖！"
 L["Autorun will be disabled for all code snippets"] = "将禁用所有代码片段的自动运行"
 L["Include Nickname Settings"] = "包含昵称设置"
+L["Include Character Settings"] = "包含角色设置"
 
 -------------------------------------------------
 -- code snippets
@@ -643,12 +695,47 @@ L["unnamed"] = "未命名"
 L["Changelogs"] = "更新记录"
 L["Click to view recent changelogs"] = "点击查看近期更新记录"
 L["Click to view older changelogs"] = "点击查看远古更新记录"
+
+-- <h1>About the M+ Afflicted Souls</h1>
+-- <p>I've received some requests about showing Afflicted Souls on Cell. Simply put, due to the limitation of the plugin API, it is not possible. I can make them display on Cell, but these buttons will not be clickable, so there is no need. It is better to use WA.</p>
+-- <br/>
+-- <h1>关于受难之魂</h1>
+-- <p>最近收到些“让Cell显示受难之魂”的请求。简单地说就是，由于插件API的限制，做不了。让Cell“显示”它们是可行的，但这些按钮是不可交互的，因此没有必要做，不如用WA。</p>
+-- <br/>
+
 L["CHANGELOGS"] = [[
     <h1>如果更新后发现Cell不能正常工作，尝试禁用代码片段。</h1>
     <br/>
+
+    <h1>r186-release (Jul 24, 2023, 21:06 GMT+8)</h1>
+    <p>* 修复导入导出。</p>
+    <p>* 更新法术请求、驱散请求。</p>
+    <p>* 更新血量文字指示器。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r185-release (Jul 21, 2023, 20:57 GMT+8)</h1>
+    <p>* 更新部分选项界面（待完善）。</p>
+    <p>+ 为护盾条指示器添加了“只显示超出血量上限的护盾”。</p>
+    <p>+ 为特别关注框体添加了“焦点的目标”。</p>
+    <p>* 修复怀旧服副本减益页面的问题。</p>
+    <br/>
+
+    <h1>r184-release (Jul 19, 2023, 23:12 GMT+8)</h1>
+    <p>* 修复唤魔师的距离检查器。</p>
+    <p>* 修复布局。</p>
+    <p>+ 为特别关注框体添加了“Boss1的目标”选项。</p>
+    <br/>
+
+    <h1>r183-release (Jul 18, 2023, 15:09 GMT+8)</h1>
+    <p>* 修复布局：按职责排序，隐藏自己。</p>
+    <p>* 更新繁中。</p>
+    <br/>
     
-    <h1>关于受难之魂</h1>
-    <p>最近收到些“让Cell显示受难之魂”的请求。简单地说就是，由于插件API的限制，做不了。让Cell“显示”它们是可行的，但这些按钮是不可交互的，因此没有必要做，不如用WA。</p>
+    <h1>r182-release (Jul 18, 2023, 05:07 GMT+8)</h1>
+    <p>* 重构布局模块。</p>
+    <p>* 更新永恒黎明的副本减益列表，感谢钛锬(NGA)收集并提供已排序的副本减益。</p>
+    <p>+ 为点击施法添加了导入导出功能。</p>
     <br/>
 
     <h1>r181-release (Jul 15, 2023, 03:12 GMT+8)</h1>

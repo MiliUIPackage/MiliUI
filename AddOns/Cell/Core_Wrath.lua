@@ -7,6 +7,7 @@ Cell.snippetVars = {}
 Cell.funcs = {}
 Cell.iFuncs = {}
 Cell.bFuncs = {}
+Cell.uFuncs = {}
 Cell.animations = {}
 
 local F = Cell.funcs
@@ -16,6 +17,7 @@ local L = Cell.L
 
 -- sharing version check
 Cell.MIN_VERSION = 149
+Cell.MIN_CLICKCASTINGS_VERSION = 181
 Cell.MIN_LAYOUTS_VERSION = 149
 Cell.MIN_INDICATORS_VERSION = 149
 Cell.MIN_DEBUFFS_VERSION = 149
@@ -121,6 +123,14 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("VARIABLES_LOADED")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
+eventFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+
+function eventFrame:LOADING_SCREEN_ENABLED()
+    if not InCombatLockdown() and not UnitAffectingCombat("player") then
+        F:Debug("|cffff7777collectgarbage")
+        collectgarbage("collect")
+    end
+end
 
 function eventFrame:VARIABLES_LOADED()
     SetCVar("predictedHealth", 1)
@@ -135,6 +145,7 @@ function eventFrame:ADDON_LOADED(arg1)
         eventFrame:UnregisterEvent("ADDON_LOADED")
         
         if type(CellDB) ~= "table" then CellDB = {} end
+        if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
 
@@ -185,78 +196,103 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
-        -- glows ----------------------------------------------------------------------------------
-        if type(CellDB["glows"]) ~= "table" then
-            local POWER_INFUSION = GetSpellInfo(10060)
-            local INNERVATE = GetSpellInfo(29166)
+        -- spellRequest ---------------------------------------------------------------------------
+        if type(CellDB["spellRequest"]) ~= "table" then
+            local POWER_INFUSION, _, POWER_INFUSION_ICON = GetSpellInfo(10060)
+            local INNERVATE, _, INNERVATE_ICON = GetSpellInfo(29166)
+            
+            CellDB["spellRequest"] = {
+                ["enabled"] = false,
+                ["checkIfExists"] = true,
+                ["knownSpellsOnly"] = true,
+                ["freeCooldownOnly"] = true,
+                ["replyCooldown"] = true,
+                ["responseType"] = "me",
+                ["timeout"] = 10,
+                -- ["replyAfterCast"] = nil,
+                ["sharedIconOptions"] = {
+                    "beat", -- [1] animation
+                    27, -- [2] size
+                    "BOTTOMRIGHT", -- [3] anchor
+                    "BOTTOMRIGHT", -- [4] anchorTo
+                    0, -- [5] x
+                    0, -- [6] y
+                },
+                ["spells"] = {
+                    { 
+                        ["spellId"] = 10060,
+                        ["buffId"] = 10060,
+                        ["keywords"] = POWER_INFUSION,
+                        ["icon"] = POWER_INFUSION_ICON,
+                        ["type"] = "icon",
+                        ["iconColor"] = {1, 1, 0, 1},
+                        ["glowOptions"] = {
+                            "pixel", -- [1] glow type
+                            {
+                                {1,1,0,1}, -- [1] color
+                                0, -- [2] x
+                                0, -- [3] y
+                                9, -- [4] N
+                                0.25, -- [5] frequency
+                                8, -- [6] length
+                                2 -- [7] thickness
+                            } -- [2] glowOptions
+                        },
+                        ["isBuiltIn"] = true
+                    },
+                    { 
+                        ["spellId"] = 29166,
+                        ["buffId"] = 29166,
+                        ["keywords"] = INNERVATE,
+                        ["icon"] = INNERVATE_ICON,
+                        ["type"] = "icon",
+                        ["iconColor"] = {0, 1, 1, 1},
+                        ["glowOptions"] = {
+                            "pixel", -- [1] glow type
+                            {
+                                {0, 1, 1, 1}, -- [1] color
+                                0, -- [2] x
+                                0, -- [3] y
+                                9, -- [4] N
+                                0.25, -- [5] frequency
+                                8, -- [6] length
+                                2 -- [7] thickness
+                            } -- [2] glowOptions
+                        },
+                        ["isBuiltIn"] = true
+                    },
+                },
+            }
+        end
 
-            CellDB["glows"] = {
-                ["spellRequest"] = {
-                    ["enabled"] = false,
-                    ["checkIfExists"] = true,
-                    ["knownSpellsOnly"] = true,
-                    ["freeCooldownOnly"] = true,
-                    ["replyCooldown"] = true,
-                    ["responseType"] = "me",
-                    ["timeout"] = 10,
-                    -- ["replyAfterCast"] = nil,
-                    ["spells"] = {
-                        { 
-                            ["spellId"] = 10060,
-                            ["buffId"] = 10060,
-                            ["keywords"] = POWER_INFUSION,
-                            ["glowOptions"] = {
-                                "pixel", -- [1] glow type
-                                {
-                                    {1,1,0,1}, -- [1] color
-                                    0, -- [2] x
-                                    0, -- [3] y
-                                    9, -- [4] N
-                                    0.25, -- [5] frequency
-                                    8, -- [6] length
-                                    2 -- [7] thickness
-                                } -- [2] glowOptions
-                            },
-                            ["isBuiltIn"] = true
-                        },
-                        { 
-                            ["spellId"] = 29166,
-                            ["buffId"] = 29166,
-                            ["keywords"] = INNERVATE,
-                            ["glowOptions"] = {
-                                "pixel", -- [1] glow type
-                                {
-                                    {0,1,1,1}, -- [1] color
-                                    0, -- [2] x
-                                    0, -- [3] y
-                                    9, -- [4] N
-                                    0.25, -- [5] frequency
-                                    8, -- [6] length
-                                    2 -- [7] thickness
-                                } -- [2] glowOptions
-                            },
-                            ["isBuiltIn"] = true
-                        },
-                    }, -- [8] spells
+        -- dispelRequest --------------------------------------------------------------------------
+        if type(CellDB["dispelRequest"]) ~= "table" then
+            CellDB["dispelRequest"] = {
+                ["enabled"] = false,
+                ["dispellableByMe"] = true,
+                ["responseType"] = "all",
+                ["timeout"] = 10,
+                ["debuffs"] = {},
+                ["type"] = "text",
+                ["textOptions"] = {
+                    {1, 0, 0, 1}, -- [1] color 
+                    32, -- [2] size
+                    "TOPLEFT", -- [3] anchor
+                    "TOPLEFT", -- [4] anchorTo
+                    -1, -- [5] x
+                    5, -- [6] y
                 },
-                ["dispelRequest"] = {
-                    ["enabled"] = false,
-                    ["dispellableByMe"] = true,
-                    ["responseType"] = "all",
-                    ["timeout"] = 10,
-                    ["debuffs"] = {},
-                    ["glowOptions"] = {
-                        "shine", -- [1] glow type
-                        {
-                            {1,0,0.4,1}, -- [1] color
-                            0, -- [2] x
-                            0, -- [3] y
-                            9, -- [4] N
-                            0.5, -- [5] frequency
-                            2, -- [6] scale
-                        } -- [2] glowOptions
-                    }
-                },
+                ["glowOptions"] = {
+                    "shine", -- [1] glow type
+                    {
+                        {1, 0, 0.4, 1}, -- [1] color
+                        0, -- [2] x
+                        0, -- [3] y
+                        9, -- [4] N
+                        0.5, -- [5] frequency
+                        2, -- [6] scale
+                    } -- [2] glowOptions
+                }
             }
         end
 
@@ -288,11 +324,11 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         -- click-casting --------------------------------------------------------------------------
-        if type(CellDB["clickCastings"]) ~= "table" then CellDB["clickCastings"] = {} end
-        Cell.vars.playerClass, Cell.vars.playerClassID = select(2, UnitClass("player"))
+        Cell.vars.playerClass, Cell.vars.playerClassID = UnitClassBase("player")
 
-        if type(CellDB["clickCastings"][Cell.vars.playerClass]) ~= "table" then
-            CellDB["clickCastings"][Cell.vars.playerClass] = {
+        if type(CellCharacterDB["clickCastings"]) ~= "table" then
+            CellCharacterDB["clickCastings"] = {
+                ["class"] = Cell.vars.playerClass, -- validate on import
                 ["useCommon"] = true,
                 ["smartResurrection"] = "disabled",
                 ["alwaysTargeting"] = {
@@ -316,13 +352,13 @@ function eventFrame:ADDON_LOADED(arg1)
 
             -- add resurrections
             for _, t in pairs(F:GetResurrectionClickCastings(Cell.vars.playerClass)) do
-                tinsert(CellDB["clickCastings"][Cell.vars.playerClass]["common"], t)
+                tinsert(CellCharacterDB["clickCastings"]["common"], t)
                 for i = 1, 2 do
-                    tinsert(CellDB["clickCastings"][Cell.vars.playerClass][i], t)
+                    tinsert(CellCharacterDB["clickCastings"][i], t)
                 end
             end
         end
-        Cell.vars.clickCastingTable = CellDB["clickCastings"][Cell.vars.playerClass]
+        Cell.vars.clickCastingTable = CellCharacterDB["clickCastings"]
 
         -- layouts --------------------------------------------------------------------------------
         if type(CellDB["layouts"]) ~= "table" then
@@ -332,8 +368,6 @@ function eventFrame:ADDON_LOADED(arg1)
         end
 
         -- init enabled layout
-        if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
-
         if type(CellCharacterDB["layoutAutoSwitch"]) ~= "table" then
             CellCharacterDB["layoutAutoSwitch"] = {
                 [1] = {
@@ -644,8 +678,8 @@ function eventFrame:PLAYER_LOGIN()
     Cell:UpdateAboutFont(CellDB["appearance"]["optionsFontSizeOffset"])
     -- update tools
     Cell:Fire("UpdateTools")
-    -- update glows
-    Cell:Fire("UpdateGlows")
+    -- update requests
+    Cell:Fire("UpdateRequests")
     -- update raid debuff list
     Cell:Fire("UpdateRaidDebuffs")
     -- hide blizzard
@@ -738,7 +772,7 @@ function SlashCmdList.CELL(msg, editbox)
             ReloadUI()
             
         elseif rest == "clickcastings" then
-            CellDB["clickCastings"] = nil
+            CellCharacterDB["clickCastings"] = nil
             ReloadUI()
         end
 
