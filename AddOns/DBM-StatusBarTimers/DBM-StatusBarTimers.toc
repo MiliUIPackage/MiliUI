@@ -1,7 +1,7 @@
 ## Interface: 100105
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Status Bar Timers|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 狀態條計時器|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 状态条计时器|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Status Bar Timers|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0狀態條計時器|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0状态条计时器|r
 ## Notes: DBM - status bar timer library
 ## Notes-zhTW: DBM 狀態條計時器函式庫
 ## Notes-zhCN: DBM 状态条计时器函数库
@@ -10,7 +10,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: cf1d2d4
+## Version: b25e814
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

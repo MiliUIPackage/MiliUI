@@ -1,7 +1,8 @@
 ## Interface: 100105
-## Version: 10.1.4
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0World Bosses (Dragonflight)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0世界首領 (巨龍崛起)|r
+## Version: 10.1.19-4-ga886492
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (DF)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (巨龍崛起)|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首领 (巨龙时代)|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -14,6 +15,7 @@
 ## X-DBM-StatTypes: normal
 ## X-DBM-Mod-Name: World Bosses (DF)
 ## X-DBM-Mod-Name-zhTW: 世界首領 (巨龍崛起)
+## X-DBM-Mod-Name-zhCN: 世界首领 (巨龙时代)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 210
 ## X-DBM-Mod-MapID: 2574, 2444, 2512, 2454

@@ -1,8 +1,8 @@
 ## Interface: 100105
 ## X-Min-Interface: 80000
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (Cataclysm)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-浩劫與重生|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf05人小队-大地的裂变|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Cata)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-浩劫與重生|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (大地的裂变)|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -19,7 +19,7 @@
 ## X-DBM-Mod-SubCategories-zhCN: 黑石岩窟, 死亡矿井, 格瑞姆巴托, 起源大厅, 托维尔失落之城, 影牙城堡, 巨石之核, 旋云之巅
 ## X-DBM-Mod-Name: Dungeons (Cataclysm)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (浩劫與重生)
-## X-DBM-Mod-Name-zhCN: 5人小队（大地的裂变）
+## X-DBM-Mod-Name-zhCN: 队伍首领 (大地的裂变)
 ## X-DBM-Mod-Sort: 802
 ## X-DBM-Mod-MapID: 755,645,36,670,644,33,643,725,657,309,859,568,938,940,939,1,0,646
 ## X-DBM-Mod-LoadCID: 50063,50056,50089,50009,50061
@@ -27,7 +27,7 @@
 ## X-DBM-Mod-MinExpansion: 3
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r94
+## Version: r97-7-gfec4ab7
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

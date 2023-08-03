@@ -386,7 +386,7 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 	elseif cmd:sub(1, 10) == "debuglevel" then
 		local level = tonumber(cmd:sub(11)) or 1
 		if level < 1 or level > 3 then
-			DBM:AddMsg("無效的數值。偵錯等級必須在 1 到 3 之間。")
+			DBM:AddMsg("Invalid Value. Debug Level must be between 1 and 3.")
 			return
 		end
 		DBM.Options.DebugLevel = level
@@ -401,10 +401,10 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 		local x, y, _, map = UnitPosition("player")
 		local mapID = C_Map.GetBestMapForUnit("player") or "nil"
 		if DBM:HasMapRestrictions() then
-			DBM:AddMsg(("位置資訊\n你正處於區域 %u (%s).\n本地地圖 ID %u (%s)"):format(map, GetRealZoneText(map), mapID, GetZoneText()))
+			DBM:AddMsg(("Location Information\nYou are at zone %u (%s).\nLocal Map ID %u (%s)"):format(map, GetRealZoneText(map), mapID, GetZoneText()))
 		else
 			local pos = C_Map.GetPlayerMapPosition(mapID, "player")
-			DBM:AddMsg(("位置資訊\n你正處於區域 %u (%s): x=%f, y=%f.\n本地地圖 ID %u (%s): x=%f, y=%f"):format(map, GetRealZoneText(map), x, y, mapID, GetZoneText(), pos.x, pos.y))
+			DBM:AddMsg(("Location Information\nYou are at zone %u (%s): x=%f, y=%f.\nLocal Map ID %u (%s): x=%f, y=%f"):format(map, GetRealZoneText(map), x, y, mapID, GetZoneText(), pos.x, pos.y))
 		end
 	elseif cmd:sub(1, 7) == "request" then
 		DBM:Unschedule(DBM.RequestTimers)

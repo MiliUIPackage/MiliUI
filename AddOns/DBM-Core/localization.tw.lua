@@ -174,6 +174,7 @@ L.VOICE_MISSING					= ""..L.DBM.."找不到你所選取的語音包。請確定�
 L.VOICE_DISABLED				= "你的語音包已安裝但是尚未啟用。如果你想使用語音包，請確定語言包已在語音警告中被選取，或是刪除不使用的語音包去隱藏此訊息。"
 L.VOICE_COUNT_MISSING			= "所選取的語音/倒數語音包%d找不到倒數語音。設定已被重置回預設值：%s。"
 L.BIG_WIGS						= "BigWigs"
+L.WEAKAURA_KEY					= " (|cff308530WA鍵:|r %s)"
 
 L.UPDATEREMINDER_HEADER				= "你的Deadly Boss Mod已經過期。\n你可以在Curse網站或是WOWI網站以及GitHub專案網頁下載到新版本%s (%s)"
 L.UPDATEREMINDER_FOOTER				= "按下" .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  "：複製下載網址到剪貼簿。"

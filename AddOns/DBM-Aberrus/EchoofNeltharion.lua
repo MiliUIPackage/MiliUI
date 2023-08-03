@@ -1,11 +1,11 @@
 local mod	= DBM:NewMod(2523, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230706053014")
+mod:SetRevision("20230801185029")
 mod:SetCreatureID(201668)
 mod:SetEncounterID(2684)
 mod:SetUsedIcons(6)
-mod:SetHotfixNoticeRev(20230619000000)
+mod:SetHotfixNoticeRev(20230801000000)
 mod:SetMinSyncRevision(20230614000000)
 --mod.respawnTime = 29
 
@@ -40,7 +40,6 @@ local warnPhase									= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil,
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26192))
 local warnTwistedEarth							= mod:NewCountAnnounce(402902, 2)
 --local warnVolcanicHeart						= mod:NewTargetCountAnnounce(410953, 2, nil, nil, nil, nil, nil, nil, true)
-local warnRushingDarkness						= mod:NewIncomingCountAnnounce(407221, 2)
 local warnRushingDarknessWallTarget				= mod:NewTargetCountAnnounce(407221, 2, nil, nil, nil, nil, nil, nil, true)
 local warnVolcanicHeart							= mod:NewCountAnnounce(410953, 3, nil, nil, 167180)--This is using count object instead of incoming count because weak auras are scanning for "Bombs (number")
 
@@ -241,7 +240,6 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 407207 then
 		self:Unschedule(checkForSkippedDarkness)
 		self.vb.RushingDarknessCount = self.vb.RushingDarknessCount + 1
-		warnRushingDarkness:Show(self.vb.RushingDarknessCount)
 --		self.vb.rushingIcon = 4
 		--As of May 23rd reset, stage 3 has a new darkness cast that causes the 17 second time between darkness 1 and 2 in stage 3
 		--As of May 30th reset, stage 3 no longer has new darkness that causes the 17 second time between darkness 1 and 2 in stage 3
@@ -249,7 +247,7 @@ function mod:SPELL_CAST_START(args)
 		if self:GetStage(3) and (self.vb.RushingDarknessCount == 1) and not self.vb.skippedDarkness then
 			timerRushingDarknessCD:Start(17, self.vb.RushingDarknessCount+1)
 		else
-			timerRushingDarknessCD:Start(self:GetStage(1) and 35.9 or 29, self.vb.RushingDarknessCount+1)
+			timerRushingDarknessCD:Start(self:GetStage(1) and 35.9 or 27.9, self.vb.RushingDarknessCount+1)--27.9-29.2, almost always 29 but sometimes 28 :\
 		end
 		if self:IsMythic() and self:GetStage(1) then--Mythic P1 only wall breaker strat used by all top guilds (which means everyone else will use it too and expect it in DBM)
 			self:BossTargetScanner(args.sourceGUID, "RushingDarknessTarget", 0.2, 8, true, nil, nil, nil, true)
@@ -291,7 +289,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.volcanicCount = self.vb.volcanicCount + 1
 		warnVolcanicHeart:Show(self.vb.volcanicCount)
 		if self:GetStage(1) then
-			timerVolcanicHeartCD:Start(17, self.vb.volcanicCount+1)
+			timerVolcanicHeartCD:Start(36.4, self.vb.volcanicCount+1)
 		else
 			--21.3, 15.7, 17.0, 17.0, 17.3, 16.7, 19.4, 14.5
 			self:Unschedule(fixBrokenHeartTimer)
@@ -416,7 +414,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		self:Schedule(15.8, checkForSkippedDarkness, self)--Schedule checker to see if the normally skipped cast happened, and if not, start backup timer for second cast
 		timerSunderRealityCD:Start(19.5, 1)
 --		timerRushingDarknessCD:Start(27, 1)
-		timerCalamitousStrikeCD:Start(36, 1)
+		timerCalamitousStrikeCD:Start(35.9, 1)
 		timerEbonDestructionCD:Start(40.2, 1)
 	--elseif spellId == 407182 then
 	--	if self.Options.SetIconOnRushingDarkness then

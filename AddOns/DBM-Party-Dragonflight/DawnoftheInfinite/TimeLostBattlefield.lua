@@ -10,12 +10,12 @@ end
 local mod	= DBM:NewMod(2533, "DBM-Party-Dragonflight", 9, 1209)--Alliance ID used, horde is 2534
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230713050730")
+mod:SetRevision("20230725115533")
 mod:SetCreatureID(creatureID)
 mod:SetEncounterID(2672)
 --mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20230711000000)
---mod:SetMinSyncRevision(20221015000000)
+mod:SetHotfixNoticeRev(20230716000000)
+mod:SetMinSyncRevision(20230716000000)
 --mod.respawnTime = 29
 mod.sendMainBossGUID = true
 
@@ -73,6 +73,12 @@ local timerShockwaveCD								= mod:NewCDCountTimer(29, shockwaveSpellId, nil, n
 local timerRallyCD									= mod:NewCDCountTimer(21.2, rallySpellId, nil, nil, nil, 5)
 local timerCryCD									= mod:NewCDCountTimer(10, crySpellId, nil, nil, nil, 2)
 
+--Write the custom WA keys into the spell headers
+mod:JustSetCustomKeys(rallySpellId, L.customWAMessage:format(418047, 418046))
+mod:JustSetCustomKeys(crySpellId, L.customWAMessage:format(418062, 410496))
+mod:JustSetCustomKeys(shockwaveSpellId, L.customWAMessage:format(418054, 408227))
+mod:JustSetCustomKeys(tankSpellId, L.customWAMessage:format(418059, 410254))
+
 mod.vb.bladestormCount = 0
 mod.vb.shockwaveSet = 0
 mod.vb.shockwaveCount = 0
@@ -95,17 +101,17 @@ local function checkWhichBoss(self)
 			else--Grommash Hellscream
 				addAOESpellId, addDebuffSpellId, tankSpellId, shockwaveSpellId, rallySpellId, crySpellId = 407122, 407121, 410254, 408227, 418046, 410496
 			end
-			warnRally:SetKey(rallySpellId)
-			warnCry:SetKey(crySpellId)
-			warnShockwave:SetKey(shockwaveSpellId)
+			warnRally:UpdateKey(rallySpellId)
+			warnCry:UpdateKey(crySpellId)
+			warnShockwave:UpdateKey(shockwaveSpellId)
 
-			specWarnTankBuster:SetKey(tankSpellId)
-			specWarnShockwave:SetKey(shockwaveSpellId)
+			specWarnTankBuster:UpdateKey(tankSpellId)
+			specWarnShockwave:UpdateKey(shockwaveSpellId)
 
-			timerTankBusterCD:SetKey(tankSpellId, 1)
-			timerShockwaveCD:SetKey(shockwaveSpellId, 1)
-			timerRallyCD:SetKey(rallySpellId, 1)
-			timerCryCD:SetKey(crySpellId, 1)
+			timerTankBusterCD:UpdateKey(tankSpellId, 1)
+			timerShockwaveCD:UpdateKey(shockwaveSpellId, 1)
+			timerRallyCD:UpdateKey(rallySpellId, 1)
+			timerCryCD:UpdateKey(crySpellId, 1)
 		end
 	end
 end

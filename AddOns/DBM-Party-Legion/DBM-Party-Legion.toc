@@ -1,8 +1,8 @@
 ## Interface: 100105
 ## X-Min-Interface: 80000
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (Legion)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-軍臨天下|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0队伍首领(军团再临)|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Legion)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-軍臨天下|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (军团再临)|r
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMPartyLegion_AllSavedVars
@@ -15,7 +15,7 @@
 ## X-DBM-Mod-SubCategoriesID: 1501, 1466, 1456, 1477, 1458
 ## X-DBM-Mod-Name: Dungeons (Legion)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (軍臨天下)
-## X-DBM-Mod-Name-zhCN: 队伍首领(军团再临)
+## X-DBM-Mod-Name-zhCN: 队伍首领 (军团再临)
 ## X-DBM-Mod-Name-koKR: 던전 (군단)
 ## X-DBM-Mod-Sort: 502
 ## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458
@@ -23,7 +23,7 @@
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r94
+## Version: r97-7-gfec4ab7
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

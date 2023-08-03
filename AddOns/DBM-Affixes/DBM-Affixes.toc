@@ -1,7 +1,7 @@
 ## Interface: 100105
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeon and Raid Affixes|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0地下城以及團隊詞綴|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0副本词缀|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raid/M+ Affixes|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010地下城以及團隊詞綴|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010副本词缀|r
 ## Author: MysticalOS
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
@@ -14,7 +14,7 @@
 ## X-DBM-Mod-Name: Affixes
 ## X-DBM-Mod-Name-zhTW: 副本詞綴
 ## X-DBM-Mod-MapID: 2296, 2450, 2481, 657, 1841, 1754, 1458, 2527, 2519, 2451, 2520
-## X-DBM-Mod-Sort: 205
+## X-DBM-Mod-Sort: 211
 ## X-DBM-Mod-MinCoreRevision: 12473
 ## X-Category-zhTW: 團隊
 

@@ -1,7 +1,7 @@
 ## Interface: 100105
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF Options GUI|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 设置界面|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff0055FF 使用者介面|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r
 ## Notes: GUI for Deadly Boss Mods
 ## Notes-zhCN: Deadly Boss Mods的设置界面
 ## Notes-zhTW: Deadly Boss Mods的使用者介面
@@ -10,7 +10,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 8fe5df9
+## Version: 576aa3d
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

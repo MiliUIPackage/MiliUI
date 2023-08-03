@@ -305,14 +305,15 @@ do
 	end
 
 	local tcolors = {
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorR or 1, DBT.Options.StartColorG or 1, DBT.Options.StartColorB or 1)..L.CBTGeneric.."|r", value = 0 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorAR or 1, DBT.Options.StartColorAG or 1, DBT.Options.StartColorAB or 1)..L.CBTAdd.."|r", value = 1 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorAER or 1, DBT.Options.StartColorAEG or 1, DBT.Options.StartColorAEB or 1)..L.CBTAOE.."|r", value = 2 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorDR or 1, DBT.Options.StartColorDG or 1, DBT.Options.StartColorDB or 1)..L.CBTTargeted.."|r", value = 3 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorIR or 1, DBT.Options.StartColorIG or 1, DBT.Options.StartColorIB or 1)..L.CBTInterrupt.."|r", value = 4 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorRR or 1, DBT.Options.StartColorRG or 1, DBT.Options.StartColorRB or 1)..L.CBTRole.."|r", value = 5 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorPR or 1, DBT.Options.StartColorPG or 1, DBT.Options.StartColorPB or 1)..L.CBTPhase.."|r", value = 6 },
-		{ text = "|cff"..RGBPercToHex(DBT.Options.StartColorUIR or 1, DBT.Options.StartColorUIG or 1, DBT.Options.StartColorUIB or 1)..L.CBTImportant.."|r", value = 7 }
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorR or 1, DBT.Options.StartColorG or 1, DBT.Options.StartColorB or 1)..L.ColorDropGeneric.."|r", value = 0 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorAR or 1, DBT.Options.EndColorAG or 1, DBT.Options.EndColorAB or 1)..L.ColorDrop1.."|r", value = 1 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorAER or 1, DBT.Options.EndColorAEG or 1, DBT.Options.StartColorAEB or 1)..L.ColorDrop2.."|r", value = 2 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorDR or 1, DBT.Options.EndColorDG or 1, DBT.Options.EndColorDB or 1)..L.ColorDrop3.."|r", value = 3 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorIR or 1, DBT.Options.EndColorIG or 1, DBT.Options.EndColorIB or 1)..L.ColorDrop4.."|r", value = 4 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorRR or 1, DBT.Options.EndColorRG or 1, DBT.Options.EndColorRB or 1)..L.ColorDrop5.."|r", value = 5 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorPR or 1, DBT.Options.EndColorPG or 1, DBT.Options.EndColorPB or 1)..L.ColorDrop6.."|r", value = 6 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorUIR or 1, DBT.Options.EndColorUIG or 1, DBT.Options.EndColorUIB or 1)..L.CDDImportant1.."|r", value = 7 },
+		{ text = "|cff"..RGBPercToHex(DBT.Options.EndColorI2R or 1, DBT.Options.EndColorI2G or 1, DBT.Options.EndColorI2B or 1)..L.CDDImportant2.."|r", value = 8 }
 	}
 	local cvoice = MixinCountTable({
 		{ text = L.None, value = 0 },
@@ -516,7 +517,7 @@ function PanelPrototype:CreateArea(name)
 	})
 end
 
-function PanelPrototype:CreateAbility(titleText, icon)
+function PanelPrototype:CreateAbility(titleText, icon, spellID)
 	local area = CreateFrame("Frame", "DBM_GUI_Option_" .. self:GetNewID(), self.frame, "TooltipBorderBackdropTemplate")
 	area.mytype = "ability"
 	area.hidden = not DBM.Options.AutoExpandSpellGroups
@@ -528,11 +529,15 @@ function PanelPrototype:CreateAbility(titleText, icon)
 		area:SetPoint("TOPLEFT", select(-2, self.frame:GetChildren()) or self.frame, "BOTTOMLEFT", 0, -20)
 	end
 	local title = area:CreateFontString("$parentTitle", "BACKGROUND", "GameFontHighlightSmall")
+	local key = ""
+	if DBM.Options.ShowWAKeys and spellID then
+		key = DBM_CORE_L.WEAKAURA_KEY:format(spellID)
+	end
 	if icon then
 		local markup = CreateTextureMarkup(icon, 0, 0, 16, 16, 0, 0, 0, 0, 0, 0)
-		title:SetText(markup .. titleText)
+		title:SetText(markup .. titleText .. key)
 	else
-		title:SetText(titleText)
+		title:SetText(titleText .. key)
 	end
 	title:ClearAllPoints()
 	title:SetPoint("BOTTOMLEFT", area, "TOPLEFT", 20, 0)

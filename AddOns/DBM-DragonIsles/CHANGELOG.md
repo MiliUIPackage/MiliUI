@@ -1,31 +1,9 @@
-# <DBM> World Bosses (Dragonflight)
+# <DBM Mod> World Bosses (DF)
 
-## [10.1.11-17-gc7ab13c](https://github.com/DeadlyBossMods/DBM-Retail/tree/c7ab13c35d03fc98291088487c9e789fccca0c38) (2023-06-03)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Retail/compare/10.1.11...c7ab13c35d03fc98291088487c9e789fccca0c38) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Retail/releases)
+## [10.1.19-4-ga886492](https://github.com/DeadlyBossMods/DBM-Retail/tree/a8864928dc15aed29a2b104f0e6e260a757b9779) (2023-07-29)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Retail/compare/10.1.19...a8864928dc15aed29a2b104f0e6e260a757b9779) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Retail/releases)
 
-- timer option too  
-- disable trash timer for now, something is wrong with it and needs more investigating  
-    tweak a basrikron timer too  
-- Fix at least one case that'd cause private aura sound not to play  
-- Update localization.ru.lua (#227)  
-- Update localization.cn.lua (#904)  
-- honor voice pack global disables by sound ID in the private aura object  
-- Cleanup some minor warnings on namings  
-- change option text since sound now configurable  
-- fix alignment.  
-- fix lua errors but not actual alignment issues  
-- add some default sound Ids  
-- Completely switch over to file data Id from soundkit. There may be bugs.  
-- A little post tier cleanup  
-- Improve taunt tech on rashok to not show two taunt warnings at same time if two conditions are met within 1 second of one another (ie spell aura applied event and spell cast start event 0.01ms apart). both conditional checks still run, but if both pass "this is a taunt" only one of them will be shown.  
-- Just some tuesday reset Aberrus updates  
-     - Fixed bug causing infused stacks to not alert on Experiments  
-     - Increased aggregation window for rays of anguish to 1.1 seconds to try to get all targets bundled together  
-     - Added knockback voice pack alert to Opressing Howl on Scale commander  
-     - Changed tank voice pack sound on Echo of Nelth from "defensive" to "knockback" alert  
-     - Refixed P3 timers again for echo, which seem to have reverted whatever they did last week. Plus they tweaked some other timers to reduce spell queues slightly.  
-     - Added Dark binding personal alerts and chat bubbles to Trash mod  
-     - Added Brutal Cauterization interrupt warning to trash mod  
-     - Added Brutal cauterization CD timer (with plater nameplate aura support) to trash mod.  
-- Fix bug causing afflicted timer to get stuck due to args in wrong order in timer object  
-- bump alpha  
+- Some basrikron fixes while at it since I had to solo it earlier and had about 15 minutes worth of data to look at.  
+- Removed redundant alert  
+- I thought I pushed this, guess I did'n't. Small nelth timer tweak. sadly the remaining timer issues can't be fixed (initial p3 ones) cause that issue is actually a bug with way blizzard coded the transition.  
+- bump alpha revisions  

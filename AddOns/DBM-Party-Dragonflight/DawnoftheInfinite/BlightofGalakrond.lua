@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2535, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230712012906")
+mod:SetRevision("20230729002808")
 mod.multiIDSingleBoss = true
 mod:SetCreatureID(198997, 201792, 201788, 201790)--It's technically just one creature animated 3 others, but checkbossHp will query all and return highest health for boss health percent
 mod:SetEncounterID(2668)
@@ -52,7 +52,7 @@ local yellNecrofrost						= mod:NewYell(408029, nil, nil, nil, "YELL")
 local specWarnIncinBlightBreath				= mod:NewSpecialWarningDodgeCount(408141, nil, nil, nil, 1, 2)
 local specWarnGTFO							= mod:NewSpecialWarningGTFO(407147, nil, nil, nil, 1, 8)
 
-local timerCorrosiveInfusionCD				= mod:NewCDCountTimer(19.4, 386173, nil, nil, nil, 3)
+local timerCorrosiveInfusionCD				= mod:NewCDCountTimer(19.4, 406886, nil, nil, nil, 3)
 local timerBlightReclamationCD				= mod:NewCDCountTimer(19.4, 407159, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerNecroticWindsCD					= mod:NewCDCountTimer(19.4, 407978, nil, nil, nil, 2)
 local timerNecrofrostCD						= mod:NewCDCountTimer(19.4, 408029, nil, nil, nil, 3, nil, DBM_COMMON_L.DAMAGE_ICON)
@@ -146,11 +146,11 @@ function mod:SPELL_CAST_START(args)
 			end
 		else
 			timer = 63.1--Not verfied yet, assumed cause it looks same as corrosive
+			if self.vb.reclaimCount == 2 then--To verify the 63.1
+				DBM:AddMsg("If you are logging this fight, please share log on DBM discord because you saw at least 2 reclamation casts in stage 3")
+			end
 		end
 		timerBlightReclamationCD:Start(timer, self.vb.reclaimCount+1)
-		if self.vb.reclaimCount == 2 then--To verify the 63.1
-			DBM:AddMsg("If you are logging this fight, please share log on DBM discord because you saw at least 2 reclamation casts in stage 3")
-		end
 	elseif spellId == 408029 then
 		self.vb.windsCount = self.vb.windsCount + 1
 		--The timers that are delayed will be auto corrected by Corrosive cast
@@ -209,7 +209,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerCorrosiveInfusionCD:Start(17.8, 1)
 		timerIncineratingBlightbreathCD:Start(26.8, 1)
 		timerNecrofrostCD:Start(34.7, 1)
-		timerBlightReclamationCD:Start(67.5, 1)
+		timerBlightReclamationCD:Start(67.2, 1)
 	elseif spellId == 407406 then
 		if args:IsPlayer() then
 			specWarnCorrosion:Show()
