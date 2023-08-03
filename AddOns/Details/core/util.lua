@@ -21,6 +21,9 @@
 	local strsplit = strsplit
 	local _pcall = pcall
 	local GetTime = GetTime
+	local GetUnitName = _G.GetUnitName
+	local UnitExists = UnitExists
+	local UnitGUID = UnitGUID
 
 	local IsInRaid = IsInRaid --wow api local
 	local IsInGroup = IsInGroup --wow api local
@@ -29,6 +32,103 @@
 	local _InCombatLockdown = InCombatLockdown --wow api local
 
 	local gump = Details.gump --details local
+
+
+	local predicateFunc = function(spellIdToFind, casterName, _, name, icon, applications, dispelName, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, applications)
+		--print(name, texture, count, debuffType, duration, expirationTime, spellID)
+		if (spellIdToFind == spellId and UnitExists(sourceUnit)) then
+			local spellname = GetSpellInfo(spellId)
+			if (casterName == GetUnitName(sourceUnit, true)) then
+				return true
+			end
+		end
+	end
+
+	---find the duration of a debuff by passing the spellId and the caster name
+	---@param unitId unit
+	---@param spellId spellid
+	---@param casterName actorname
+	---@return auraduration|nil auraDuration
+	---@return number|nil expirationTime
+	function Details:FindDebuffDuration(unitId, spellId, casterName)
+		local name, texture, count, debuffType, duration, expirationTime = AuraUtil.FindAura(predicateFunc, unitId, "HARMFUL", spellId, casterName)
+		if (name) then
+			return duration, expirationTime
+		end
+	end
+
+	---find the duration of a buff by passing the spellId and the caster name
+	---@param unitId unit
+	---@param spellId spellid
+	---@param casterName actorname
+	---@return auraduration|nil auraDuration
+	---@return number|nil expirationTime
+	function Details:FindBuffDuration(unitId, spellId, casterName)
+		local name, texture, count, debuffType, duration, expirationTime = AuraUtil.FindAura(predicateFunc, unitId, "HELPFUL", spellId, casterName)
+		if (name) then
+			return duration, expirationTime
+		end
+	end
+
+	function Details:FindBuffCastedBy(unitId, buffSpellId, casterName)
+		local auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5 = AuraUtil.FindAura(predicateFunc, unitId, "HELPFUL", buffSpellId, casterName)
+		if (auraName) then
+			return auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5
+		end
+	end
+
+	---return the unitId by passing a unit serial (guid)
+	---@param unitSerial serial
+	---@return unit|nil unitId
+	function Details:FindUnitIDByUnitSerial(unitSerial)
+		--target
+		if (UnitExists("target")) then
+			if (UnitGUID("target") == unitSerial) then
+				return "target"
+			end
+		end
+
+		--focus
+		if (UnitExists("focus")) then
+			if (UnitGUID("focus") == unitSerial) then
+				return "focus"
+			end
+		end
+
+		--boss
+		for i = 1, 9 do
+			local unitId = Details222.UnitIdCache.Boss[i]
+			if (UnitExists(unitId)) then
+				if (UnitGUID(unitId) == unitSerial) then
+					return unitId
+				end
+			else
+				break
+			end
+		end
+
+		--nameplate
+		for i = 1, 40 do
+			local unitId = Details222.UnitIdCache.Nameplate[i]
+			if (UnitExists(unitId)) then
+				if (UnitGUID(unitId) == unitSerial) then
+					return unitId
+				end
+			end
+		end
+
+		--arena enemies
+		for i = 1, #Details222.UnitIdCache.Arena do
+			local unitId = Details222.UnitIdCache.Arena[i]
+			if (UnitExists(unitId)) then
+				if (UnitGUID(unitId) == unitSerial) then
+					return unitId
+				end
+			else
+				break
+			end
+		end
+	end
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --fade handler

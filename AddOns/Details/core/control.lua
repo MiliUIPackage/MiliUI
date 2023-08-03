@@ -360,9 +360,9 @@
 		--check if there's a 'current segment in place', if not, re-create the overall data before creating the new segment
 		if (not segmentsTable[1]) then
 			Details.tabela_overall = Details.combate:NovaTabela()
-			Details:InstanciaCallFunction(Details.ResetaGump, nil, -1) --reseta scrollbar, iterators, rodap�, etc
-			Details:InstanciaCallFunction(Details.InstanciaFadeBarras, -1) --esconde todas as barras
-			Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse) --atualiza o showing
+			Details:InstanceCallDetailsFunc(Details.ResetaGump, nil, -1) --reseta scrollbar, iterators, rodap�, etc
+			Details:InstanceCallDetailsFunc(Details.InstanciaFadeBarras, -1) --esconde todas as barras
+			Details:InstanceCallDetailsFunc(Details.UpdateCombatObjectInUse) --atualiza o showing
 		end
 
 		--get the yet 'current' combat and lock the activity time on all actors
@@ -406,7 +406,9 @@
 
 		Details:Destroy(Details.cache_damage_group)
 		Details:Destroy(Details.cache_healing_group)
-		Details:UpdateParserGears()
+
+		local bFromCombatStart = true
+		Details:UpdateParserGears(bFromCombatStart)
 
 		--get all buff already applied before the combat start
 		Details:CatchRaidBuffUptime("BUFF_UPTIME_IN")
@@ -430,7 +432,7 @@
 
 		--if the window is showing current segment, switch it for the new combat
 		--also if the window has auto current, jump to current segment
-		Details:InstanciaCallFunction(Details.TrocaSegmentoAtual, Details.tabela_vigente.is_boss and true)
+		Details:InstanceCallDetailsFunc(Details.TrocaSegmentoAtual, Details.tabela_vigente.is_boss and true)
 
 		--clear hosts and make the cloud capture stuff
 		Details.host_of = nil
@@ -872,7 +874,7 @@
 			end
 
 			Details.tabela_vigente.resincked = true
-			Details:InstanciaCallFunction(Details.AtualizarJanela)
+			Details:InstanceCallDetailsFunc(Details.AtualizarJanela)
 
 			if (Details.solo) then --code to update "solo" plugins, there's no solo plugins for details! at the moment
 				if (Details.SoloTables.CombatID == Details:GetOrSetCombatId()) then --significa que o solo mode validou o combate, como matar um bixo muito low level com uma s� porrada
@@ -1732,39 +1734,48 @@
 	end
 
 	function Details:MontaTooltip(frame, whichRowLine, keydown)
-
-		self:BuildInstanceBarTooltip (frame)
+		self:BuildInstanceBarTooltip(frame)
 
 		local GameCooltip = GameCooltip
 
-		local esta_barra = self.barras [whichRowLine] --barra que o mouse passou em cima e ir� mostrar o tooltip
-		local objeto = esta_barra.minha_tabela --pega a referencia da tabela --retorna a classe_damage ou classe_heal
-		if (not objeto) then --a barra n�o possui um objeto
+		local thisLine = self.barras[whichRowLine] --hoverovered line
+		local object = thisLine.minha_tabela --the object the line is showing
+
+		--check if the object is valid
+		if (not object) then
 			return false
 		end
 
-		--verifica por tooltips especiais:
-		if (objeto.dead) then --� uma barra de dead
-			return Details:ToolTipDead (self, objeto, esta_barra, keydown) --inst�ncia, [morte], barra
-		elseif (objeto.byspell) then
-			return Details:ToolTipBySpell (self, objeto, esta_barra, keydown)
-		elseif (objeto.frags) then
-			return Details:ToolTipFrags (self, objeto, esta_barra, keydown)
-		elseif (objeto.boss_debuff) then
-			return Details:ToolTipVoidZones (self, objeto, esta_barra, keydown)
+		--check for special tooltips
+		if (object.dead) then --� uma barra de dead
+			return Details:ToolTipDead(self, object, thisLine, keydown) --inst�ncia, [morte], barra
+
+		elseif (object.byspell) then
+			return Details:ToolTipBySpell(self, object, thisLine, keydown)
+
+		elseif (object.frags) then
+			return Details:ToolTipFrags(self, object, thisLine, keydown)
+
+		elseif (object.boss_debuff) then
+			return Details:ToolTipVoidZones(self, object, thisLine, keydown)
 		end
 
-		local t = objeto:ToolTip (self, whichRowLine, esta_barra, keydown) --inst�ncia, n� barra, objeto barra, keydown
+		if (not object.ToolTip) then
+			if (object.__destroyed) then
+				Details:Msg("object:ToolTip() is invalid.", object.__destroyedBy)
+			end
+		end
 
-		if (t) then
+		local bTooltipBuilt = object:ToolTip(self, whichRowLine, thisLine, keydown) --instance, lineId, lineObject, keydown
 
-			if (objeto.serial and objeto.serial ~= "") then
-				local avatar = NickTag:GetNicknameTable (objeto.serial, true)
+		if (bTooltipBuilt) then
+			if (object.serial and object.serial ~= "") then
+				local avatar = NickTag:GetNicknameTable(object.serial, true)
 				if (avatar and not Details.ignore_nicktag) then
-					if (avatar [2] and avatar [4] and avatar [1]) then
-						GameCooltip:SetBannerImage (1, 1, avatar [2], 80, 40, avatarPoint, avatarTexCoord, nil) --overlay [2] avatar path
-						GameCooltip:SetBannerImage (1, 2, avatar [4], 200, 55, backgroundPoint, avatar [5], avatar [6]) --background
-						GameCooltip:SetBannerText (1, 1, (not Details.ignore_nicktag and avatar [1]) or objeto.nome, textPoint, avatarTextColor, 14, SharedMedia:Fetch ("font", Details.tooltip.fontface)) --text [1] nickname
+					if (avatar[2] and avatar[4] and avatar[1]) then
+						GameCooltip:SetBannerImage(1, 1, avatar [2], 80, 40, avatarPoint, avatarTexCoord, nil) --overlay [2] avatar path
+						GameCooltip:SetBannerImage(1, 2, avatar [4], 200, 55, backgroundPoint, avatar [5], avatar [6]) --background
+						GameCooltip:SetBannerText(1, 1, (not Details.ignore_nicktag and avatar[1]) or object.nome, textPoint, avatarTextColor, 14, SharedMedia:Fetch("font", Details.tooltip.fontface)) --text [1] nickname
 					end
 				end
 			end
@@ -1786,10 +1797,10 @@
 	end
 
 	function Details:EndRefresh (instancia, total, combatTable, showing)
-		Details:EsconderBarrasNaoUsadas (instancia, showing)
+		Details:HideBarsNotInUse(instancia, showing)
 	end
 
-	function Details:EsconderBarrasNaoUsadas (instancia, showing)
+	function Details:HideBarsNotInUse(instancia, showing)
 		--primeira atualiza��o ap�s uma mudan�a de segmento -- verifica se h� mais barras sendo mostradas do que o necess�rio
 		--------------------
 			if (instancia.v_barras) then
@@ -1908,8 +1919,17 @@
 			end
 
 			if (not bForceRefresh) then --update player details window if opened
-				if (breakdownWindowFrame.ativo) then
-					return breakdownWindowFrame.jogador:MontaInfo()
+				if (Details.BreakdownWindowFrame:IsShown()) then
+					---@type actor
+					local actorObject = Details:GetActorObjectFromBreakdownWindow()
+					if (actorObject and not actorObject.__destroyed) then
+						return actorObject:MontaInfo() --MontaInfo a nil value
+					else
+						Details:Msg("Invalid actor object on breakdown window.")
+						if (actorObject.__destroyed) then
+							Details:Msg("Invalidation Reason:", actorObject.__destroyedBy)
+						end
+					end
 				end
 			end
 			return
@@ -1974,9 +1994,9 @@
 		if (Details.last_instance_id ~= mapid) then
 			Details.tabela_historico:ResetOverallData()
 
-			if (Details.segments_auto_erase == 2) then
-				--ask
+			if (Details.segments_auto_erase == 2) then --ask to erase
 				Details:ScheduleTimer("AutoEraseConfirm", 1)
+
 			elseif (Details.segments_auto_erase == 3) then
 				--erase
 				Details.tabela_historico:ResetAllCombatData()

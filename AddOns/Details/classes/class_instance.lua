@@ -99,11 +99,11 @@ end
 ---run a function on all enabled instances
 ---@param func function
 ---@vararg any
-function Details:InstanciaCallFunction(func, ...)
+function Details:InstanceCallDetailsFunc(func, ...)
 	for index, instance in ipairs(Details.tabela_instancias) do
 		---@cast instance instance
 		if (instance:IsEnabled()) then
-			func(_, instance, ...)
+			func(nil, instance, ...)
 		end
 	end
 end
@@ -113,7 +113,7 @@ end
 ---@vararg any
 function Details:InstanciaCallFunctionOffline(func, ...)
 	for index, instancia in ipairs(Details.tabela_instancias) do
-		func(_, instancia, ...)
+		func(nil, instancia, ...)
 	end
 end
 
@@ -2512,7 +2512,7 @@ end
 --handle internal details! events
 local eventListener = Details:CreateEventListener()
 eventListener:RegisterEvent("DETAILS_DATA_SEGMENTREMOVED", function()
-	Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse)
+	Details:InstanceCallDetailsFunc(Details.UpdateCombatObjectInUse)
 end)
 
 function Details:UpdateCombatObjectInUse(instance)
@@ -3273,7 +3273,7 @@ local function GetDpsHps (_thisActor, key)
 	if (_thisActor [keyname]) then
 		return _thisActor [keyname]
 	else
-		if ((Details.time_type == 2 and _thisActor.grupo) or not Details:CaptureGet("damage") or Details.time_type == 3) then
+		if ((Details.time_type == 2 and _thisActor.grupo) or not Details:CaptureGet("damage") or Details.use_realtimedps) then
 			local dps = _thisActor.total / _thisActor:GetCombatTime()
 			_thisActor [keyname] = dps
 			return dps
@@ -3315,7 +3315,7 @@ function Details:FormatReportLines (report_table, data, f1, f2, f3)
 	end
 	local _, fontSize = FCF_GetChatWindowInfo (1)
 	if (fontSize < 1) then
-		fontSize = 10
+		fontSize = 12
 	end
 	local fonte, _, flags = Details.fontstring_len:GetFont()
 	Details.fontstring_len:SetFont(fonte, fontSize, flags)
@@ -3788,7 +3788,7 @@ function Details:envia_relatorio (linhas, custom)
 	end
 
 	--effective ou active time
-	if (Details.time_type == 2 or Details.time_type == 3) then
+	if (Details.time_type == 2 or Details.use_realtimedps) then
 		linhas[1] = linhas[1] .. " [" .. segmentTime .. " EF]"
 	else
 		linhas[1] = linhas[1] .. " [" .. segmentTime .. " AC]"

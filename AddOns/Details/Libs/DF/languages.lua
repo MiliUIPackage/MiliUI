@@ -198,7 +198,7 @@ local fontLanguageCompatibility = {
 --new non-native game languages registered with DetailsFramework.Language.RegisterLanguage() will be added to this table
 local languagesAvailable = {
     deDE = {text = "Deutsch", font = "Fonts\\FRIZQT__.TTF"},
-    enUS = {text = "English (US)", font = "Fonts\\FRIZQT__.TTF"},
+    enUS = {text = "English (US)", font = STANDARD_TEXT_FONT},
     esES = {text = "Español (ES)", font = "Fonts\\FRIZQT__.TTF"},
     esMX = {text = "Español (MX)", font = "Fonts\\FRIZQT__.TTF"},
     frFR = {text = "Français", font = "Fonts\\FRIZQT__.TTF"},

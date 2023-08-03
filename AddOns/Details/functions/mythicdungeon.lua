@@ -52,7 +52,7 @@ end
 --precisa converter um wipe em um trash segment? provavel que sim
 
 -- at the end of a mythic run, if enable on settings, merge all the segments from the mythic run into only one
-function DetailsMythicPlusFrame.MergeSegmentsOnEnd()
+function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
         print("Details!", "MergeSegmentsOnEnd() > starting to merge mythic segments.", "InCombatLockdown():", InCombatLockdown())
     end
@@ -158,10 +158,10 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd()
     Details:SairDoCombate()
 
     --update all windows
-    Details:InstanciaCallFunction(Details.FadeHandler.Fader, "IN", nil, "barras")
-    Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse)
-    Details:InstanciaCallFunction(Details.AtualizaSoloMode_AfertReset)
-    Details:InstanciaCallFunction(Details.ResetaGump)
+    Details:InstanceCallDetailsFunc(Details.FadeHandler.Fader, "IN", nil, "barras")
+    Details:InstanceCallDetailsFunc(Details.UpdateCombatObjectInUse)
+    Details:InstanceCallDetailsFunc(Details.AtualizaSoloMode_AfertReset)
+    Details:InstanceCallDetailsFunc(Details.ResetaGump)
     Details:RefreshMainWindow(-1, true)
 
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
@@ -271,10 +271,10 @@ function DetailsMythicPlusFrame.MergeTrashCleanup (isFromSchedule)
         Details:SendEvent("DETAILS_DATA_SEGMENTREMOVED")
 
         --update all windows
-        Details:InstanciaCallFunction(Details.FadeHandler.Fader, "IN", nil, "barras")
-        Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse)
-        Details:InstanciaCallFunction(Details.AtualizaSoloMode_AfertReset)
-        Details:InstanciaCallFunction(Details.ResetaGump)
+        Details:InstanceCallDetailsFunc(Details.FadeHandler.Fader, "IN", nil, "barras")
+        Details:InstanceCallDetailsFunc(Details.UpdateCombatObjectInUse)
+        Details:InstanceCallDetailsFunc(Details.AtualizaSoloMode_AfertReset)
+        Details:InstanceCallDetailsFunc(Details.ResetaGump)
         Details:RefreshMainWindow(-1, true)
     else
         Details222.MythicPlus.LogStep("MergeTrashCleanup | no segments to merge.")
@@ -373,10 +373,10 @@ function DetailsMythicPlusFrame.MergeRemainingTrashAfterAllBossesDone()
         end
 
         --update all windows
-        Details:InstanciaCallFunction(Details.FadeHandler.Fader, "IN", nil, "barras")
-        Details:InstanciaCallFunction(Details.UpdateCombatObjectInUse)
-        Details:InstanciaCallFunction(Details.AtualizaSoloMode_AfertReset)
-        Details:InstanciaCallFunction(Details.ResetaGump)
+        Details:InstanceCallDetailsFunc(Details.FadeHandler.Fader, "IN", nil, "barras")
+        Details:InstanceCallDetailsFunc(Details.UpdateCombatObjectInUse)
+        Details:InstanceCallDetailsFunc(Details.AtualizaSoloMode_AfertReset)
+        Details:InstanceCallDetailsFunc(Details.ResetaGump)
         Details:RefreshMainWindow(-1, true)
     end
 
@@ -677,7 +677,7 @@ function DetailsMythicPlusFrame.MythicDungeonStarted()
         Details:Msg("整體數據現已重置。")
 
         if (Details.debug) then
-            Details:Msg("(debug) timer is for a mythic+ dungeon, 整體數據已重置。")
+            Details:Msg("(debug) timer is for a mythic+ dungeon, overall has been reseted.")
         end
     end
 

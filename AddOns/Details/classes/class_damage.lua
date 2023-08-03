@@ -156,12 +156,20 @@ function Details.SortKeyGroup (table1, table2) --[[exported]]
 end
 
 
-function Details.SortKeySimple(table1, table2) --[[exported]] 	
+function Details.SortKeySimple(table1, table2) --[[exported]]
 	return table1[keyName] > table2[keyName]
 end
 
+---sort by real time dps
+---@param actor1 actor
+---@param actor2 actor
+---@return boolean
+function Details.SortByRealTimeDps(actor1, actor2)
+	return (actor1.last_dps_realtime or 0) > (actor2.last_dps_realtime or 0)
+end
 
-function Details:ContainerSort (container, amount, keyName2) --[[exported]] 	
+
+function Details:ContainerSort (container, amount, keyName2) --[[exported]]
 	keyName = keyName2
 	_table_sort(container,  Details.SortKeySimple)
 
@@ -194,7 +202,7 @@ function Details:IsFriendlyNpc() --[[exported]]
 	return false
 end
 
-function Details:IsEnemy() --[[exported]]	
+function Details:IsEnemy() --[[exported]]
 	if (self.flag_original) then
 		if (bitBand(self.flag_original, 0x00000060) ~= 0) then
 			local npcId = Details:GetNpcIdFromGuid(self.serial)
@@ -206,8 +214,8 @@ function Details:IsEnemy() --[[exported]]
 	end
 	return false
 end
-	
-function Details:GetSpellList() --[[ exported]]
+
+function Details:GetSpellList() --[[exported]]
 	return self.spells._ActorTable
 end
 
@@ -216,13 +224,13 @@ function Details:GetTimeInCombat(petOwner) --[[exported]]
 	if (petOwner) then
 		if (Details.time_type == 1 or not petOwner.grupo) then
 			return self:Tempo()
-		elseif (Details.time_type == 2 or Details.time_type == 3) then
+		elseif (Details.time_type == 2 or Details.use_realtimedps) then
 			return self:GetCombatTime()
 		end
 	else
 		if (Details.time_type == 1) then
 			return self:Tempo()
-		elseif (Details.time_type == 2 or Details.time_type == 3) then
+		elseif (Details.time_type == 2 or Details.use_realtimedps) then
 			return self:GetCombatTime()
 		end
 	end
@@ -405,7 +413,7 @@ end
 
 			--total: amount of damage done
 			total = alphabetical,
-			extra_bar = 0,
+			total_extra = 0,
 			--totalabsorbed: amount of damage done absorbed by shields
 			totalabsorbed = alphabetical,
 			--total_without_pet: amount of damage done without pet damage
@@ -429,6 +437,7 @@ end
 			--caches
 			last_value = nil,
 			last_dps = 0, --cache of the latest dps value calculated for this actor
+			last_dps_realtime = 0, --cache of the latest real time dps value calculated for this actor
 			--start_time: the time when the actor started to do damage
 			start_time = 0,
 			--end_time: the time when the actor stopped to do damage
@@ -461,27 +470,77 @@ end
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --special cases
 
-	-- dps (calculate dps for actors)
-	function damageClass:ContainerRefreshDps (container, combat_time)
-		local total = 0
+	--todo: Details.use_realtimedps "realtimedps_order_bars" need to come from the sorter function.
+	--todo: "realtimedps_always_arena" need to come from the sorter function because it'll have "realtimedps_order_bars" always on.
 
-		if (Details.time_type == 2 or not Details:CaptureGet("damage") or Details.time_type == 3) then
-			for _, actor in ipairs(container) do
-				if (actor.grupo) then
-					actor.last_dps = actor.total / combat_time
-				else
-					actor.last_dps = actor.total / actor:Tempo()
-				end
-				total = total + actor.last_dps
-			end
-		else
-			for _, actor in ipairs(container) do
-				actor.last_dps = actor.total / actor:Tempo()
-				total = total + actor.last_dps
+	---calculate real time dps for each actor within the passed table
+	---@param tableWithActors actor[]
+	---@return number
+	function damageClass:RefreshDpsRealTime(tableWithActors)
+		local totalRealTime = 0
+		local timeSample = Details222.CurrentDPS.GetTimeSample()
+
+		for _, actorObject in ipairs(tableWithActors) do
+			---@cast actorObject actordamage
+			---@type details_currentdps_actorcache
+			local realTimeDPS = Details222.CurrentDPS.Cache[actorObject.serial]
+			if (realTimeDPS) then
+				realTimeDPS = realTimeDPS.totalDamage / timeSample
+				actorObject.last_dps_realtime = realTimeDPS
+				totalRealTime = totalRealTime + realTimeDPS
 			end
 		end
 
-		return total
+		return totalRealTime
+	end
+
+	--dps (calculate dps for actors)
+	---@param tableWithActors table
+	---@param combatTime combattime
+	---@return number, number
+	function damageClass:ContainerRefreshDps(tableWithActors, combatTime)
+		local total = 0
+		local totalRealTime = 0
+
+		local bIsEffectiveTime = Details.time_type == 2
+		local bOrderDpsByRealTime = Details.CurrentDps.CanSortByRealTimeDps()
+		local timeSample = Details222.CurrentDPS.GetTimeSample()
+
+		if (bIsEffectiveTime or not Details:CaptureGet("damage")) then
+			for _, actorObject in ipairs(tableWithActors) do
+				---@cast actorObject actordamage
+				if (actorObject.grupo) then
+					actorObject.last_dps = actorObject.total / combatTime
+				else
+					actorObject.last_dps = actorObject.total / actorObject:Tempo()
+				end
+
+				if (bOrderDpsByRealTime) then
+					---@type details_currentdps_actorcache
+					local realTimeDPS = Details222.CurrentDPS.Cache[actorObject.serial]
+					if (realTimeDPS) then
+						realTimeDPS = realTimeDPS.totalDamage / timeSample
+						actorObject.last_dps_realtime = realTimeDPS
+						totalRealTime = totalRealTime + realTimeDPS
+					end
+				end
+
+				total = total + actorObject.last_dps
+			end
+		else
+			for _, actorObject in ipairs(tableWithActors) do
+				actorObject.last_dps = actorObject.total / actorObject:Tempo()
+				total = total + actorObject.last_dps
+
+				if (bOrderDpsByRealTime) then
+					local realTimeDPS = Details222.CurrentDPS.Cache[actorObject.serial] or 0
+					actorObject.last_dps_realtime = realTimeDPS
+					totalRealTime = totalRealTime + realTimeDPS
+				end
+			end
+		end
+
+		return total, totalRealTime
 	end
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -713,34 +772,34 @@ end
 	local DTBS_search_code = [[
 		---@type combat, table, instance
 		local combatObject, instanceContainer, instanceObject = ...
-		
+
 		--declade the values to return
 		local totalDamage, topDamage, amount = 0, 0, 0
-		
+
 		---@type {key1: actorname, key2: number, key3: actor}[]
 		local damageTakenFrom = {}
-		
+
 		local spellId = @SPELLID@
 		local spellName
 		if (spellId) then
 			spellName = select(1, GetSpellInfo(spellId))
 		end
-		
+
 		---@type actorcontainer
 		local damageContainer = combatObject:GetContainer(DETAILS_ATTRIBUTE_DAMAGE)
 		---@type actorcontainer
 		local healContainer = combatObject:GetContainer(DETAILS_ATTRIBUTE_HEAL)
-		
+
 		local bIsCustomSpell = false
 		for _, customSpellObject in ipairs(Details.savedCustomSpells) do
 			if (customSpellObject[1] == spellId) then
 				bIsCustomSpell = true
 			end
 		end
-		
+
 		for index, actorObject in damageContainer:ListActors() do
 			---@cast actorObject actordamage
-		
+
 			--> handle friendly fire spell damage taken
 			if (actorObject:IsPlayer()) then
 				if (bIsCustomSpell) then --if the spell has been modified, check only by its spellId, as it can't get other spells with the same name
@@ -751,10 +810,10 @@ end
 							local damageActor = damageContainer:GetActor(playerName)
 							---@type actorheal
 							local healingActor = healContainer:GetActor(playerName)
-		
+
 							if ((damageActor and damageActor:IsPlayer()) or (healingActor and healingActor:IsPlayer())) then
 								local got
-		
+
 								for index, damageTakenTable in ipairs(damageTakenFrom) do
 									if (damageTakenTable[1] == playerName) then
 										damageTakenTable[2] = damageTakenTable[2] + friendlyFireTable.spells[spellId]
@@ -765,7 +824,7 @@ end
 										break
 									end
 								end
-		
+
 								if (not got) then
 									---@type {key1: actorname, key2: number, key3: actor}
 									local damageTakenTable = {playerName, friendlyFireTable.spells[spellId], damageActor or healingActor}
@@ -787,7 +846,7 @@ end
 								local damageActor = damageContainer:GetActor(playerName)
 								---@type actorheal
 								local healingActor = healContainer:GetActor(playerName)
-		
+
 								if ((damageActor and damageActor:IsPlayer()) or (healingActor and healingActor:IsPlayer())) then
 									local got
 									for index, damageTakenTable in ipairs(damageTakenFrom) do
@@ -800,7 +859,7 @@ end
 											break
 										end
 									end
-		
+
 									if (not got) then
 										---@type {key1: actorname, key2: number, key3: actor}
 										local damageTakenTable = {playerName, damageAmount, damageActor or healingActor}
@@ -815,20 +874,20 @@ end
 					end
 				end
 			end
-		
+
 			--> handle regular damage taken from spells
 			---@type spelltable
 			local spellTable = actorObject:GetSpell(spellId)
-		
+
 			if (spellTable) then
 				for targetName, damageAmount in pairs(spellTable.targets) do
 					local got = false
-		
+
 					---@type actordamage
 					local damageActor = damageContainer:GetActor(targetName)
 					---@type actorheal
 					local healingActor = healContainer:GetActor(targetName)
-		
+
 					if ((damageActor and damageActor:IsPlayer()) or (healingActor and healingActor:IsPlayer())) then
 						for index, damageTakenTable in ipairs(damageTakenFrom) do
 							if (damageTakenTable[1] == targetName) then
@@ -840,7 +899,7 @@ end
 								break
 							end
 						end
-		
+
 						if (not got) then
 							---@type {key1: actorname, key2: number, key3: actor}
 							local damageTakenTable = {targetName, damageAmount, damageActor or healingActor}
@@ -852,7 +911,7 @@ end
 					end
 				end
 			end
-		
+
 			if (not bIsCustomSpell) then
 				for thisSpellId, spellTable in pairs(actorObject.spells._ActorTable) do
 					if (thisSpellId ~= spellId) then --this is invalid
@@ -860,12 +919,12 @@ end
 						if (spellname == spellName) then
 							for targetName, damageAmount in pairs(spellTable.targets) do
 								local got = false
-		
+
 								---@type actordamage
 								local damageActor = damageContainer:GetActor(targetName)
 								---@type actorheal
 								local healingActor = healContainer:GetActor(targetName)
-		
+
 								if ((damageActor and damageActor:IsPlayer()) or (healingActor and healingActor:IsPlayer())) then
 									for index, damageTakenTable in ipairs(damageTakenFrom) do
 										if (damageTakenTable[1] == targetName) then
@@ -877,7 +936,7 @@ end
 											break
 										end
 									end
-		
+
 									if (not got) then
 										---@type {key1: actorname, key2: number, key3: actor}
 										local damageTakenTable = {targetName, damageAmount, damageActor or healingActor}
@@ -893,15 +952,15 @@ end
 				end
 			end
 		end
-		
+
 		table.sort(damageTakenFrom, Details.Sort2)
-		
+
 		for index, damageTakenTable in ipairs(damageTakenFrom) do
 			instanceContainer:AddValue(damageTakenTable[3], damageTakenTable[2]) --actorObject, amountDamage
 			totalDamage = totalDamage + damageTakenTable[2] --amountDamage
 			amount = amount + 1
 		end
-		
+
 		return totalDamage, topDamage, amount
 	]]
 
@@ -1057,7 +1116,7 @@ end
 			thisLine.iconHighlight:SetTexCoord(classIcon:GetTexCoord())
 			thisLine.iconHighlight:SetVertexColor(classIcon:GetVertexColor())
 		end
-		
+
 	end
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1679,11 +1738,16 @@ end
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --main refresh function
 
-function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, refreshRequired)
-	local showing = combatObject[class_type] --o que esta sendo mostrado -> [1] - dano [2] - cura --pega o container com ._NameIndexTable ._ActorTable
+---@param instanceObject instance
+---@param combatObject combat
+---@param bForceUpdate boolean
+---@param bExportData boolean
+function damageClass:RefreshWindow(instanceObject, combatObject, bForceUpdate, bExportData)
+	---@type actorcontainer
+	local damageContainer = combatObject[class_type] --o que esta sendo mostrado -> [1] - dano [2] - cura --pega o container com ._NameIndexTable ._ActorTable
 
 	--not have something to show
-	if (#showing._ActorTable < 1) then
+	if (#damageContainer._ActorTable < 1) then
 		if (Details.debug and false) then
 			Details.showing_ActorTable_Timer = Details.showing_ActorTable_Timer or 0
 			if (time() > Details.showing_ActorTable_Timer) then
@@ -1693,23 +1757,23 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 		end
 
 		--colocado isso recentemente para fazer as barras de dano sumirem na troca de atributo
-		return Details:EsconderBarrasNaoUsadas(instancia, showing), "", 0, 0
+		return Details:HideBarsNotInUse(instanceObject, damageContainer), "", 0, 0
 	end
 
 	--total
 	local total = 0
 	--top actor #1
-	instancia.top = 0
+	instanceObject.top = 0
 
 	local isUsingCache = false
-	local subAttribute = instancia.sub_atributo
-	local actorTableContent = showing._ActorTable
+	local subAttribute = instanceObject.sub_atributo
+	local actorTableContent = damageContainer._ActorTable
 	local amount = #actorTableContent
-	local windowMode = instancia.modo
+	local windowMode = instanceObject.modo
 
 	--pega qual a sub key que ser� usada --sub keys
-	if (exportar) then
-		if (type(exportar) == "boolean") then
+	if (bExportData) then
+		if (type(bExportData) == "boolean") then
 			if (subAttribute == 1) then --DAMAGE DONE
 				keyName = "total"
 
@@ -1738,13 +1802,13 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 				keyName = "damage_taken_by_spells"
 			end
 		else
-			keyName = exportar.key
-			windowMode = exportar.modo
+			keyName = bExportData.key
+			windowMode = bExportData.modo
 		end
 
-	elseif (instancia.atributo == 5) then --custom
+	elseif (instanceObject.atributo == 5) then --custom
 		keyName = "custom"
-		total = combatObject.totals [instancia.customName]
+		total = combatObject.totals [instanceObject.customName]
 
 	else
 		if (subAttribute == 1) then --DAMAGE DONE
@@ -1777,14 +1841,14 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 	end
 
 	if (keyName == "frags") then
-		local frags = instancia.showing.frags
+		local frags = instanceObject.showing.frags
 		local frags_total_kills = 0
 		local index = 0
 
 		for fragName, fragAmount in pairs(frags) do
-			local fragged_actor = showing._NameIndexTable [fragName] --get index
+			local fragged_actor = damageContainer._NameIndexTable [fragName] --get index
 			if (fragged_actor) then
-				fragged_actor = showing._ActorTable [fragged_actor] --get object
+				fragged_actor = damageContainer._ActorTable [fragged_actor] --get object
 				if (fragged_actor) then
 					index = index + 1
 					local actor_classe = fragged_actor.classe
@@ -1815,15 +1879,15 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			end
 		end
 
-		instancia.top = 0
+		instanceObject.top = 0
 		if (tsize > 0) then
 			_table_sort(ntable, Details.Sort2)
-			instancia.top = ntable [1][2]
+			instanceObject.top = ntable [1][2]
 		end
 
 		total = index
 
-		if (exportar) then
+		if (bExportData) then
 			local export = {}
 			for i = 1, index do
 				export [i] = {ntable[i][1], ntable[i][2], ntable[i][3]}
@@ -1832,26 +1896,25 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 		end
 
 		if (total < 1) then
-			instancia:EsconderScrollBar()
-			return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+			instanceObject:EsconderScrollBar()
+			return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 		end
 
 		combatObject.totals.frags_total = frags_total_kills
 
-		instancia:RefreshScrollBar(total)
+		instanceObject:RefreshScrollBar(total)
 
 		local whichRowLine = 1
-		local lineContainer = instancia.barras
+		local lineContainer = instanceObject.barras
 
-		for i = instancia.barraS[1], instancia.barraS[2], 1 do
-			damageClass:AtualizarFrags(ntable[i], whichRowLine, i, instancia)
+		for i = instanceObject.barraS[1], instanceObject.barraS[2], 1 do
+			damageClass:AtualizarFrags(ntable[i], whichRowLine, i, instanceObject)
 			whichRowLine = whichRowLine+1
 		end
 
-		return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+		return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 
 	elseif (keyName == "damage_taken_by_spells") then
-
 		local bs_index, total = 0, 0
 		Details:Destroy(bs_index_table)
 
@@ -1954,46 +2017,43 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			end
 		end
 
-		instancia.top = 0
+		instanceObject.top = 0
 		if (tsize > 0) then
 			_table_sort(bs_table, Details.Sort2)
-			instancia.top = bs_table [1][2]
+			instanceObject.top = bs_table [1][2]
 		end
 
 		local total2 = bs_index
 
-		if (exportar) then
+		if (bExportData) then
 			local export = {}
 			for i = 1, bs_index do
 				-- spellid, total, spellschool
 				export [i] = {spellid = bs_table[i][1], damage = bs_table[i][2], spellschool = bs_table[i][3]}
 			end
-			return total, "damage", instancia.top, bs_index, export
+			return total, "damage", instanceObject.top, bs_index, export
 		end
 
 		if (bs_index < 1) then
-			instancia:EsconderScrollBar()
-			return Details:EndRefresh(instancia, bs_index, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+			instanceObject:EsconderScrollBar()
+			return Details:EndRefresh(instanceObject, bs_index, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 		end
 
 		combatObject.totals.by_spell = total
 
-		instancia:RefreshScrollBar(bs_index)
+		instanceObject:RefreshScrollBar(bs_index)
 
 		local whichRowLine = 1
-		local lineContainer = instancia.barras
+		local lineContainer = instanceObject.barras
 
-		--print(bs_index, #bs_table, instancia.barraS[1], instancia.barraS[2])
-
-		for i = instancia.barraS[1], instancia.barraS[2], 1 do
-			damageClass:AtualizarBySpell (bs_table[i], whichRowLine, i, instancia)
+		for i = instanceObject.barraS[1], instanceObject.barraS[2], 1 do
+			damageClass:AtualizarBySpell (bs_table[i], whichRowLine, i, instanceObject)
 			whichRowLine = whichRowLine+1
 		end
 
-		return Details:EndRefresh(instancia, bs_index, combatObject, showing)
+		return Details:EndRefresh(instanceObject, bs_index, combatObject, damageContainer)
 
 	elseif (keyName == "voidzones") then
-
 		local index = 0
 		local misc_container = combatObject [4]
 		local voidzone_damage_total = 0
@@ -2003,11 +2063,11 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 				index = index + 1
 
 				--pega no container de dano o actor respons�vel por aplicar o debuff
-				local twin_damage_actor = showing._NameIndexTable [actor.damage_twin] or showing._NameIndexTable ["[*] " .. actor.damage_twin]
+				local twin_damage_actor = damageContainer._NameIndexTable [actor.damage_twin] or damageContainer._NameIndexTable ["[*] " .. actor.damage_twin]
 
 				if (twin_damage_actor) then
 					local index = twin_damage_actor
-					twin_damage_actor = showing._ActorTable [twin_damage_actor]
+					twin_damage_actor = damageContainer._ActorTable [twin_damage_actor]
 
 					local spell = twin_damage_actor.spells._ActorTable [actor.damage_spellid]
 
@@ -2069,35 +2129,35 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 
 		if (tsize > 0 and vtable[1]) then
 			_table_sort(vtable, void_zone_sort)
-			instancia.top = vtable [1].damage
+			instanceObject.top = vtable [1].damage
 		end
 		total = index
 
-		if (exportar) then
+		if (bExportData) then
 			for _, t in ipairs(vtable) do
 				t.report_name = Details:GetSpellLink(t.damage_spellid)
 			end
-			return voidzone_damage_total, "damage", instancia.top, total, vtable, "report_name"
+			return voidzone_damage_total, "damage", instanceObject.top, total, vtable, "report_name"
 		end
 
 		if (total < 1) then
-			instancia:EsconderScrollBar()
-			return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+			instanceObject:EsconderScrollBar()
+			return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 		end
 
 		combatObject.totals.voidzone_damage = voidzone_damage_total
 
-		instancia:RefreshScrollBar(total)
+		instanceObject:RefreshScrollBar(total)
 
 		local whichRowLine = 1
-		local lineContainer = instancia.barras
+		local lineContainer = instanceObject.barras
 
-		for i = instancia.barraS[1], instancia.barraS[2], 1 do
-			vtable[i]:AtualizarVoidZone (whichRowLine, i, instancia)
+		for i = instanceObject.barraS[1], instanceObject.barraS[2], 1 do
+			vtable[i]:AtualizarVoidZone (whichRowLine, i, instanceObject)
 			whichRowLine = whichRowLine+1
 		end
 
-		return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+		return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 
 	else
 	--/run Details:Dump(Details:GetCurrentCombat():GetActor(1, "Injured Steelspine 1"))
@@ -2122,13 +2182,12 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 
 			--keyName = "damage_taken"
 			--result of the first actor
-			instancia.top = actorTableContent[1] and actorTableContent[1][keyName]
+			instanceObject.top = actorTableContent[1] and actorTableContent[1][keyName]
 
-		elseif (windowMode == modo_ALL) then --mostrando ALL
+		elseif (windowMode == DETAILS_MODE_ALL) then --mostrando ALL
 			--faz o sort da categoria e retorna o amount corrigido
-			--print(keyName)
 			if (subAttribute == 2) then
-				local combat_time = instancia.showing:GetCombatTime()
+				local combat_time = instanceObject.showing:GetCombatTime()
 				total = damageClass:ContainerRefreshDps(actorTableContent, combat_time)
 			else
 				--pega o total ja aplicado na tabela do combate
@@ -2138,24 +2197,15 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			amount = Details:ContainerSort(actorTableContent, amount, keyName)
 
 			--grava o total
-			instancia.top = actorTableContent[1][keyName]
+			instanceObject.top = actorTableContent[1][keyName]
 
-		elseif (windowMode == modo_GROUP) then --mostrando GROUP
-
-			--organiza as tabelas
-
-			if (Details.in_combat and instancia.segmento == 0 and not exportar) then
+		elseif (windowMode == DETAILS_MODE_GROUP) then --mostrando GROUP
+			if (Details.in_combat and instanceObject.segmento == 0 and not bExportData) then
 				isUsingCache = true
 			end
 
 			if (isUsingCache) then
-
 				actorTableContent = Details.cache_damage_group
-
-				if (subAttribute == 2) then --dps
-					local combat_time = instancia.showing:GetCombatTime()
-					damageClass:ContainerRefreshDps (actorTableContent, combat_time)
-				end
 
 				if (#actorTableContent < 1) then
 					if (Details.debug and false) then
@@ -2166,29 +2216,58 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 						end
 					end
 
-					return Details:EsconderBarrasNaoUsadas (instancia, showing), "", 0, 0
+					return Details:HideBarsNotInUse(instanceObject, damageContainer), "", 0, 0
 				end
 
-				_table_sort(actorTableContent, Details.SortKeySimple)
+				local bOrderDpsByRealTime = Details.CurrentDps.CanSortByRealTimeDps()
 
-				if (actorTableContent[1][keyName] < 1) then
-					amount = 0
+				if (subAttribute == 2) then --dps
+					local combatTime = combatObject:GetCombatTime()
+					local realTimeTotal = 0
+					total, realTimeTotal = damageClass:ContainerRefreshDps(actorTableContent, combatTime)
+
+					if (bOrderDpsByRealTime) then
+						total = realTimeTotal
+					end
+
+				elseif (subAttribute == 1) then --damage done
+					if (bOrderDpsByRealTime) then
+						total = damageClass:RefreshDpsRealTime(actorTableContent)
+					end
+				end
+
+				if (bOrderDpsByRealTime) then
+					_table_sort(actorTableContent, Details.SortByRealTimeDps)
+
+					if (actorTableContent[1]["last_dps_realtime"] < 1) then
+						amount = 0
+					else
+						instanceObject.top = actorTableContent[1].last_dps_realtime
+						amount = #actorTableContent
+					end
 				else
-					instancia.top = actorTableContent[1][keyName]
-					amount = #actorTableContent
-				end
+					_table_sort(actorTableContent, Details.SortKeySimple)
+					if (actorTableContent[1][keyName] < 1) then
+						amount = 0
+					else
+						instanceObject.top = actorTableContent[1][keyName]
+						amount = #actorTableContent
+					end
 
-				for i = 1, amount do
-					total = total + actorTableContent[i][keyName]
+					if (subAttribute ~= 2) then --other than dps because dps already did the iteration and the total is already calculated
+						for i = 1, amount do
+							total = total + actorTableContent[i][keyName]
+						end
+					end
 				end
 			else
 				if (subAttribute == 2) then --dps
-					local combat_time = instancia.showing:GetCombatTime()
-					damageClass:ContainerRefreshDps (actorTableContent, combat_time)
+					local combatTime = combatObject:GetCombatTime()
+					damageClass:ContainerRefreshDps(actorTableContent, combatTime)
 				end
-
 				_table_sort(actorTableContent, Details.SortKeyGroup)
 			end
+
 			--
 			if (not isUsingCache) then
 				for index, player in ipairs(actorTableContent) do
@@ -2205,7 +2284,7 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 					end
 				end
 
-				instancia.top = actorTableContent[1] and actorTableContent[1][keyName]
+				instanceObject.top = actorTableContent[1] and actorTableContent[1][keyName]
 			end
 
 		end
@@ -2213,22 +2292,22 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 
 	--refaz o mapa do container
 	if (not isUsingCache) then
-		showing:remapear()
+		damageContainer:remapear()
 	end
 
-	if (exportar) then
-		return total, keyName, instancia.top, amount
+	if (bExportData) then
+		return total, keyName, instanceObject.top, amount
 	end
 
 	if (amount < 1) then --n�o h� barras para mostrar
-		if (forcar) then
-			if (instancia.modo == 2) then --group
-				for i = 1, instancia.rows_fit_in_window  do
-					Details.FadeHandler.Fader(instancia.barras [i], "in", Details.fade_speed)
+		if (bForceUpdate) then
+			if (instanceObject.modo == 2) then --group
+				for i = 1, instanceObject.rows_fit_in_window  do
+					Details.FadeHandler.Fader(instanceObject.barras [i], "in", Details.fade_speed)
 				end
 			end
 		end
-		instancia:EsconderScrollBar() --precisaria esconder a scroll bar
+		instanceObject:EsconderScrollBar() --precisaria esconder a scroll bar
 
 		if (Details.debug and false) then
 			Details.showing_ActorTable_Timer2 = Details.showing_ActorTable_Timer2 or 0
@@ -2238,26 +2317,26 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			end
 		end
 
-		return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+		return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 	end
 
-	instancia:RefreshScrollBar(amount)
+	instanceObject:RefreshScrollBar(amount)
 
 	local whichRowLine = 1
-	local lineContainer = instancia.barras
-	local percentageType = instancia.row_info.percent_type
-	local barsShowData = instancia.row_info.textR_show_data
-	local barsBrackets = instancia:GetBarBracket()
-	local barsSeparator = instancia:GetBarSeparator()
-	local baseframe = instancia.baseframe
-	local useAnimations = Details.is_using_row_animations and (not baseframe.isStretching and not forcar and not baseframe.isResizing)
+	local lineContainer = instanceObject.barras
+	local percentageType = instanceObject.row_info.percent_type
+	local barsShowData = instanceObject.row_info.textR_show_data
+	local barsBrackets = instanceObject:GetBarBracket()
+	local barsSeparator = instanceObject:GetBarSeparator()
+	local baseframe = instanceObject.baseframe
+	local useAnimations = Details.is_using_row_animations and (not baseframe.isStretching and not bForceUpdate and not baseframe.isResizing)
 
 	if (total == 0) then
 		total = 0.00000001
 	end
 
 	local myPos
-	local following = instancia.following.enabled and subAttribute ~= 6
+	local following = instanceObject.following.enabled and subAttribute ~= 6
 
 	if (following) then
 		if (isUsingCache) then
@@ -2269,19 +2348,19 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 				end
 			end
 		else
-			myPos = showing._NameIndexTable [Details.playername]
+			myPos = damageContainer._NameIndexTable [Details.playername]
 		end
 	end
 
-	local combatTime = instancia.showing:GetCombatTime()
-	UsingCustomLeftText = instancia.row_info.textL_enable_custom_text
-	UsingCustomRightText = instancia.row_info.textR_enable_custom_text
+	local combatTime = instanceObject.showing:GetCombatTime()
+	UsingCustomLeftText = instanceObject.row_info.textL_enable_custom_text
+	UsingCustomRightText = instanceObject.row_info.textR_enable_custom_text
 
 	local useTotalBar = false
-	if (instancia.total_bar.enabled) then
+	if (instanceObject.total_bar.enabled) then
 		useTotalBar = true
 
-		if (instancia.total_bar.only_in_group and (not IsInGroup() and not IsInRaid())) then
+		if (instanceObject.total_bar.only_in_group and (not IsInGroup() and not IsInRaid())) then
 			useTotalBar = false
 		end
 
@@ -2291,17 +2370,17 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 	end
 
 	if (subAttribute == 2) then --dps
-		instancia.player_top_dps = actorTableContent [1].last_dps
-		instancia.player_top_dps_threshold = instancia.player_top_dps - (instancia.player_top_dps * 0.65)
+		instanceObject.player_top_dps = actorTableContent [1].last_dps
+		instanceObject.player_top_dps_threshold = instanceObject.player_top_dps - (instanceObject.player_top_dps * 0.65)
 	end
 
 	local totalBarIsShown
 
-	if (instancia.bars_sort_direction == 1) then --top to bottom
-		if (useTotalBar and instancia.barraS[1] == 1) then
+	if (instanceObject.bars_sort_direction == 1) then --top to bottom
+		if (useTotalBar and instanceObject.barraS[1] == 1) then
 			whichRowLine = 2
-			local iterLast = instancia.barraS[2]
-			if (iterLast == instancia.rows_fit_in_window) then
+			local iterLast = instanceObject.barraS[2]
+			if (iterLast == instanceObject.rows_fit_in_window) then
 				iterLast = iterLast - 1
 			end
 
@@ -2309,7 +2388,7 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			row1.minha_tabela = nil
 			row1.lineText1:SetText(Loc ["STRING_TOTAL"])
 
-			if (instancia.use_multi_fontstrings) then
+			if (instanceObject.use_multi_fontstrings) then
 				row1.lineText2:SetText("")
 				row1.lineText3:SetText(Details:ToK2(total))
 				row1.lineText4:SetText(Details:ToK(total / combatTime))
@@ -2318,59 +2397,59 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			end
 
 			row1:SetValue(100)
-			local r, g, b = unpack(instancia.total_bar.color)
+			local r, g, b = unpack(instanceObject.total_bar.color)
 			row1.textura:SetVertexColor(r, g, b)
-			row1.icone_classe:SetTexture(instancia.total_bar.icon)
+			row1.icone_classe:SetTexture(instanceObject.total_bar.icon)
 			row1.icone_classe:SetTexCoord(0.0625, 0.9375, 0.0625, 0.9375)
 
 			Details.FadeHandler.Fader(row1, "out")
 			totalBarIsShown = true
 
-			if (following and myPos and myPos+1 > instancia.rows_fit_in_window and instancia.barraS[2] < myPos+1) then
-				for i = instancia.barraS[1], iterLast-1, 1 do
+			if (following and myPos and myPos+1 > instanceObject.rows_fit_in_window and instanceObject.barraS[2] < myPos+1) then
+				for i = instanceObject.barraS[1], iterLast-1, 1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
-				actorTableContent[myPos]:RefreshLine(instancia, lineContainer, whichRowLine, myPos, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+				actorTableContent[myPos]:RefreshLine(instanceObject, lineContainer, whichRowLine, myPos, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 				whichRowLine = whichRowLine+1
 			else
-				for i = instancia.barraS[1], iterLast, 1 do
+				for i = instanceObject.barraS[1], iterLast, 1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 			end
 
 		else
-			if (following and myPos and myPos > instancia.rows_fit_in_window and instancia.barraS[2] < myPos) then
-				for i = instancia.barraS[1], instancia.barraS[2]-1, 1 do
+			if (following and myPos and myPos > instanceObject.rows_fit_in_window and instanceObject.barraS[2] < myPos) then
+				for i = instanceObject.barraS[1], instanceObject.barraS[2]-1, 1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 
-				actorTableContent[myPos]:RefreshLine(instancia, lineContainer, whichRowLine, myPos, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+				actorTableContent[myPos]:RefreshLine(instanceObject, lineContainer, whichRowLine, myPos, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 				whichRowLine = whichRowLine+1
 			else
-				for i = instancia.barraS[1], instancia.barraS[2], 1 do
+				for i = instanceObject.barraS[1], instanceObject.barraS[2], 1 do
 					if (actorTableContent[i]) then
 
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 			end
 		end
 
-	elseif (instancia.bars_sort_direction == 2) then --bottom to top
-		if (useTotalBar and instancia.barraS[1] == 1) then
+	elseif (instanceObject.bars_sort_direction == 2) then --bottom to top
+		if (useTotalBar and instanceObject.barraS[1] == 1) then
 			whichRowLine = 2
-			local iter_last = instancia.barraS[2]
-			if (iter_last == instancia.rows_fit_in_window) then
+			local iter_last = instanceObject.barraS[2]
+			if (iter_last == instanceObject.rows_fit_in_window) then
 				iter_last = iter_last - 1
 			end
 
@@ -2378,7 +2457,7 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			row1.minha_tabela = nil
 			row1.lineText1:SetText(Loc ["STRING_TOTAL"])
 
-			if (instancia.use_multi_fontstrings) then
+			if (instanceObject.use_multi_fontstrings) then
 				row1.lineText2:SetText("")
 				row1.lineText3:SetText(Details:ToK2(total))
 				row1.lineText4:SetText(Details:ToK(total / combatTime))
@@ -2387,47 +2466,46 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 			end
 
 			row1:SetValue(100)
-			local r, g, b = unpack(instancia.total_bar.color)
+			local r, g, b = unpack(instanceObject.total_bar.color)
 			row1.textura:SetVertexColor(r, g, b)
 
-			row1.icone_classe:SetTexture(instancia.total_bar.icon)
+			row1.icone_classe:SetTexture(instanceObject.total_bar.icon)
 			row1.icone_classe:SetTexCoord(0.0625, 0.9375, 0.0625, 0.9375)
 
 			Details.FadeHandler.Fader(row1, "out")
 			totalBarIsShown = true
 
-			if (following and myPos and myPos+1 > instancia.rows_fit_in_window and instancia.barraS[2] < myPos+1) then
-				actorTableContent[myPos]:RefreshLine(instancia, lineContainer, whichRowLine, myPos, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+			if (following and myPos and myPos+1 > instanceObject.rows_fit_in_window and instanceObject.barraS[2] < myPos+1) then
+				actorTableContent[myPos]:RefreshLine(instanceObject, lineContainer, whichRowLine, myPos, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 				whichRowLine = whichRowLine+1
-				for i = iter_last-1, instancia.barraS[1], -1 do
+				for i = iter_last-1, instanceObject.barraS[1], -1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 			else
-				for i = iter_last, instancia.barraS[1], -1 do
+				for i = iter_last, instanceObject.barraS[1], -1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 			end
 		else
-			if (following and myPos and myPos > instancia.rows_fit_in_window and instancia.barraS[2] < myPos) then
-				actorTableContent[myPos]:RefreshLine(instancia, lineContainer, whichRowLine, myPos, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+			if (following and myPos and myPos > instanceObject.rows_fit_in_window and instanceObject.barraS[2] < myPos) then
+				actorTableContent[myPos]:RefreshLine(instanceObject, lineContainer, whichRowLine, myPos, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 				whichRowLine = whichRowLine+1
-				for i = instancia.barraS[2]-1, instancia.barraS[1], -1 do
+				for i = instanceObject.barraS[2]-1, instanceObject.barraS[1], -1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
 			else
-				-- /run print(Details:GetInstance(1).barraS[2]) -- vai do 5 ao 1 -- qual barra come�a no 1 -- i = 5 at� 1 -- player 5 atualiza na barra 1 / player 1 atualiza na barra 5
-				for i = instancia.barraS[2], instancia.barraS[1], -1 do
+				for i = instanceObject.barraS[2], instanceObject.barraS[1], -1 do
 					if (actorTableContent[i]) then
-						actorTableContent[i]:RefreshLine(instancia, lineContainer, whichRowLine, i, total, subAttribute, forcar, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
+						actorTableContent[i]:RefreshLine(instanceObject, lineContainer, whichRowLine, i, total, subAttribute, bForceUpdate, keyName, combatTime, percentageType, useAnimations, barsShowData, barsBrackets, barsSeparator)
 						whichRowLine = whichRowLine+1
 					end
 				end
@@ -2437,29 +2515,29 @@ function damageClass:RefreshWindow(instancia, combatObject, forcar, exportar, re
 	end
 
 	if (totalBarIsShown) then
-		instancia:RefreshScrollBar(amount + 1)
+		instanceObject:RefreshScrollBar(amount + 1)
 	else
-		instancia:RefreshScrollBar(amount)
+		instanceObject:RefreshScrollBar(amount)
 	end
 
 	if (useAnimations) then
-		instancia:PerformAnimations(whichRowLine - 1)
+		instanceObject:PerformAnimations(whichRowLine - 1)
 	end
 
 	--beta, hidar barras n�o usadas durante um refresh for�ado
-	if (forcar) then
-		if (instancia.modo == 2) then --group
-			for i = whichRowLine, instancia.rows_fit_in_window  do
-				Details.FadeHandler.Fader(instancia.barras [i], "in", Details.fade_speed)
+	if (bForceUpdate) then
+		if (instanceObject.modo == 2) then --group
+			for i = whichRowLine, instanceObject.rows_fit_in_window  do
+				Details.FadeHandler.Fader(instanceObject.barras [i], "in", Details.fade_speed)
 			end
 		end
 	end
 
 	Details.LastFullDamageUpdate = Details._tempo
 
-	instancia:AutoAlignInLineFontStrings()
+	instanceObject:AutoAlignInLineFontStrings()
 
-	return Details:EndRefresh(instancia, total, combatObject, showing) --retorna a tabela que precisa ganhar o refresh
+	return Details:EndRefresh(instanceObject, total, combatObject, damageContainer) --retorna a tabela que precisa ganhar o refresh
 end
 
 --[[exported]] function Details:AutoAlignInLineFontStrings()
@@ -2588,13 +2666,15 @@ local actor_class_color_r, actor_class_color_g, actor_class_color_b
 	perSecondText = perSecondText or ""
 	percentText = percentText or ""
 
-	if ((Details.time_type == 3 or (Details.combat_log.evoker_show_realtimedps and Details.playerspecid == 1473)) and Details.in_combat) then --real time
-		local actorSerial = thisLine:GetActor().serial
-		local currentDps = Details.CurrentDps.GetCurrentDps(actorSerial)
-		if (currentDps and currentDps > 0) then
-			currentDps = Details:ToK2(currentDps)
+	if ((Details.use_realtimedps or (Details.combat_log.evoker_show_realtimedps and Details.playerspecid == 1473)) and Details.in_combat) then --real time
+		if (thisLine:GetActor()) then
+			local actorSerial = thisLine:GetActor().serial
+			local currentDps = Details.CurrentDps.GetCurrentDps(actorSerial)
+			if (currentDps and currentDps > 0) then
+				currentDps = Details:ToK2(currentDps)
+			end
+			perSecondText = currentDps
 		end
-		perSecondText = currentDps
 	end
 
 	--check if the instance is showing total, dps and percent
@@ -2631,7 +2711,7 @@ local actor_class_color_r, actor_class_color_g, actor_class_color_b
 end
 
 -- ~atualizar ~barra ~update
-function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, total, sub_atributo, forcar, keyName, combat_time, percentage_type, bUseAnimations, bars_show_data, bars_brackets, bars_separator)
+function damageClass:RefreshLine(instanceObject, lineContainer, whichRowLine, rank, total, subAttribute, bForceRefresh, keyName, combatTime, percentageType, bUseAnimations, bars_show_data, bars_brackets, bars_separator)
 	local thisLine = lineContainer[whichRowLine]
 
 	if (not thisLine) then
@@ -2652,37 +2732,37 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 	local percentNumber
 
 	--calc the percent amount base on the percent type
-	if (percentage_type == 1) then
+	if (percentageType == 1) then
 		percentString = format("%.1f", self[keyName] / total * 100)
 
-	elseif (percentage_type == 2) then
-		percentString = format("%.1f", self[keyName] / instance.top * 100)
+	elseif (percentageType == 2) then
+		percentString = format("%.1f", self[keyName] / instanceObject.top * 100)
 	end
 
 	local currentCombat = Details:GetCurrentCombat()
 
 	--calculate the actor dps
-	if ((Details.time_type == 2 and self.grupo) or not Details:CaptureGet("damage") or instance.segmento == -1 or Details.time_type == 3) then
-		if (Details.time_type == 3 and Details.in_combat) then
-			local currentDps = Details.CurrentDps.GetCurrentDps(self.serial)
+	if ((Details.time_type == 2 and self.grupo) or not Details:CaptureGet("damage") or instanceObject.segmento == -1 or Details.use_realtimedps) then
+		if (Details.use_realtimedps and Details.in_combat) then
+			local currentDps = self.last_dps_realtime
 			if (currentDps) then
 				dps = currentDps
 			end
 		end
 
 		if (not dps) then
-			if (instance.segmento == -1 and combat_time == 0) then
+			if (instanceObject.segmento == -1 and combatTime == 0) then
 				local actor = currentCombat(1, self.nome)
 				if (actor) then
 					local combatTime = actor:Tempo()
 					dps = damageTotal / combatTime
 					self.last_dps = dps
 				else
-					dps = damageTotal / combat_time
+					dps = damageTotal / combatTime
 					self.last_dps = dps
 				end
 			else
-				dps = damageTotal / combat_time
+				dps = damageTotal / combatTime
 				self.last_dps = dps
 			end
 		end
@@ -2701,41 +2781,45 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 	end
 
 	--right text
-	if (sub_atributo == 1) then --damage done
+	if (subAttribute == 1) then --damage done
 		dps = _math_floor(dps)
-		local formated_damage = SelectedToKFunction(_, damageTotal)
-		local formated_dps = SelectedToKFunction(_, dps)
-		thisLine.ps_text = formated_dps
+		local formatedDamage = SelectedToKFunction(_, damageTotal)
+		local formatedDps = SelectedToKFunction(_, dps)
+		thisLine.ps_text = formatedDps
 
-		if (not bars_show_data [1]) then
-			formated_damage = ""
+		if (not bars_show_data[1]) then
+			formatedDamage = ""
 		end
 
-		if (not bars_show_data [2]) then
-			formated_dps = ""
+		if (not bars_show_data[2]) then
+			formatedDps = ""
 		end
 
-		if (not bars_show_data [3]) then
+		if (not bars_show_data[3]) then
 			percentString = ""
 		else
 			percentString = percentString .. "%"
 		end
 
-		local rightText = formated_damage .. bars_brackets[1] .. formated_dps .. bars_separator .. percentString .. bars_brackets[2]
+		local rightText = formatedDamage .. bars_brackets[1] .. formatedDps .. bars_separator .. percentString .. bars_brackets[2]
 
 		if (UsingCustomRightText) then
-			thisLine.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formated_damage, formated_dps, percentString, self, instance.showing, instance, rightText))
+			thisLine.lineText4:SetText(stringReplace(instanceObject.row_info.textR_custom_text, formatedDamage, formatedDps, percentString, self, instanceObject.showing, instanceObject, rightText))
 		else
-			if (instance.use_multi_fontstrings) then
-				instance:SetInLineTexts(thisLine, formated_damage, formated_dps, percentString)
+			if (instanceObject.use_multi_fontstrings) then
+				instanceObject:SetInLineTexts(thisLine, formatedDamage, formatedDps, percentString)
 			else
 				thisLine.lineText4:SetText(rightText)
 			end
 		end
 
-		percentNumber = _math_floor((damageTotal/instance.top) * 100)
+		if (Details.CurrentDps.CanSortByRealTimeDps()) then
+			percentNumber = _math_floor((self.last_dps_realtime / instanceObject.top) * 100)
+		else
+			percentNumber = _math_floor((damageTotal/instanceObject.top) * 100)
+		end
 
-	elseif (sub_atributo == 2) then --dps
+	elseif (subAttribute == 2) then --dps
 		local raw_dps = dps
 		dps = _math_floor(dps)
 
@@ -2746,12 +2830,12 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 		local diff_from_topdps
 
 		if (rank > 1) then
-			diff_from_topdps = instance.player_top_dps - raw_dps
+			diff_from_topdps = instanceObject.player_top_dps - raw_dps
 		end
 
 		local rightText
 		if (diff_from_topdps) then
-			local threshold = diff_from_topdps / instance.player_top_dps_threshold * 100
+			local threshold = diff_from_topdps / instanceObject.player_top_dps_threshold * 100
 			if (threshold < 100) then
 				threshold = abs(threshold - 100)
 			else
@@ -2787,20 +2871,20 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 		end
 
 		if (UsingCustomRightText) then
-			thisLine.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formated_dps, formated_damage, percentString, self, instance.showing, instance, rightText))
+			thisLine.lineText4:SetText(stringReplace(instanceObject.row_info.textR_custom_text, formated_dps, formated_damage, percentString, self, instanceObject.showing, instanceObject, rightText))
 		else
-			if (instance.use_multi_fontstrings) then
+			if (instanceObject.use_multi_fontstrings) then
 				--instance:SetInLineTexts(thisLine, formated_damage, formated_dps, porcentagem)
-				instance:SetInLineTexts(thisLine, rightText)
+				instanceObject:SetInLineTexts(thisLine, rightText)
 			else
 				thisLine.lineText4:SetText(rightText)
 			end
 		end
 
-		percentNumber = _math_floor((dps/instance.top) * 100)
+		percentNumber = _math_floor((dps/instanceObject.top) * 100)
 
-	elseif (sub_atributo == 3) then --damage taken
-		local dtps = self.damage_taken / combat_time
+	elseif (subAttribute == 3) then --damage taken
+		local dtps = self.damage_taken / combatTime
 
 		local formated_damage_taken = SelectedToKFunction(_, self.damage_taken)
 		local formated_dtps = SelectedToKFunction(_, dtps)
@@ -2820,18 +2904,18 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 
 		local rightText = formated_damage_taken .. bars_brackets[1] .. formated_dtps .. bars_separator .. percentString .. bars_brackets[2]
 		if (UsingCustomRightText) then
-			thisLine.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formated_damage_taken, formated_dtps, percentString, self, instance.showing, instance, rightText))
+			thisLine.lineText4:SetText(stringReplace(instanceObject.row_info.textR_custom_text, formated_damage_taken, formated_dtps, percentString, self, instanceObject.showing, instanceObject, rightText))
 		else
-			if (instance.use_multi_fontstrings) then
-				instance:SetInLineTexts(thisLine, formated_damage_taken, formated_dtps, percentString)
+			if (instanceObject.use_multi_fontstrings) then
+				instanceObject:SetInLineTexts(thisLine, formated_damage_taken, formated_dtps, percentString)
 			else
 				thisLine.lineText4:SetText(rightText)
 			end
 		end
 
-		percentNumber = _math_floor((self.damage_taken/instance.top) * 100)
+		percentNumber = _math_floor((self.damage_taken/instanceObject.top) * 100)
 
-	elseif (sub_atributo == 4) then --friendly fire
+	elseif (subAttribute == 4) then --friendly fire
 		local formated_friendly_fire = SelectedToKFunction(_, self.friendlyfire_total)
 
 		if (not bars_show_data [1]) then
@@ -2845,18 +2929,18 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 
 		local rightText = formated_friendly_fire .. bars_brackets[1] .. percentString ..  bars_brackets[2]
 		if (UsingCustomRightText) then
-			thisLine.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formated_friendly_fire, "", percentString, self, instance.showing, instance, rightText))
+			thisLine.lineText4:SetText(stringReplace(instanceObject.row_info.textR_custom_text, formated_friendly_fire, "", percentString, self, instanceObject.showing, instanceObject, rightText))
 		else
-			if (instance.use_multi_fontstrings) then
-				instance:SetInLineTexts(thisLine, "", formated_friendly_fire, percentString)
+			if (instanceObject.use_multi_fontstrings) then
+				instanceObject:SetInLineTexts(thisLine, "", formated_friendly_fire, percentString)
 			else
 				thisLine.lineText4:SetText(rightText)
 			end
 		end
-		percentNumber = _math_floor((self.friendlyfire_total/instance.top) * 100)
+		percentNumber = _math_floor((self.friendlyfire_total/instanceObject.top) * 100)
 
-	elseif (sub_atributo == 6) then --enemies
-		local dtps = self.damage_taken / combat_time
+	elseif (subAttribute == 6) then --enemies
+		local dtps = self.damage_taken / combatTime
 
 		local formatedDamageTaken = SelectedToKFunction(_, self.damage_taken)
 		local formatedDtps = SelectedToKFunction(_, dtps)
@@ -2876,57 +2960,95 @@ function damageClass:RefreshLine(instance, lineContainer, whichRowLine, rank, to
 
 		local rightText = formatedDamageTaken .. bars_brackets[1] .. formatedDtps .. bars_separator .. percentString .. bars_brackets[2]
 		if (UsingCustomRightText) then
-			thisLine.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formatedDamageTaken, formatedDtps, percentString, self, instance.showing, instance, rightText))
+			thisLine.lineText4:SetText(stringReplace(instanceObject.row_info.textR_custom_text, formatedDamageTaken, formatedDtps, percentString, self, instanceObject.showing, instanceObject, rightText))
 		else
-			if (instance.use_multi_fontstrings) then
-				instance:SetInLineTexts(thisLine, formatedDamageTaken, formatedDtps, percentString)
+			if (instanceObject.use_multi_fontstrings) then
+				instanceObject:SetInLineTexts(thisLine, formatedDamageTaken, formatedDtps, percentString)
 			else
 				thisLine.lineText4:SetText(rightText)
 			end
 		end
 
-		percentNumber = _math_floor((self.damage_taken/instance.top) * 100)
+		percentNumber = _math_floor((self.damage_taken/instanceObject.top) * 100)
 	end
 
 	--need tooltip update?
-	if (thisLine.mouse_over and not instance.baseframe.isMoving) then
-		gump:UpdateTooltip(whichRowLine, thisLine, instance)
+	if (thisLine.mouse_over and not instanceObject.baseframe.isMoving) then
+		gump:UpdateTooltip(whichRowLine, thisLine, instanceObject)
 	end
 
 	if (self.need_refresh) then
 		self.need_refresh = false
-		forcar = true
+		bForceRefresh = true
 	end
 
 	actor_class_color_r, actor_class_color_g, actor_class_color_b = self:GetBarColor()
 
-	return self:RefreshLineValue(thisLine, instance, previousData, forcar, percentNumber, whichRowLine, lineContainer, bUseAnimations)
+	return self:RefreshLineValue(thisLine, instanceObject, previousData, bForceRefresh, percentNumber, bUseAnimations, total, instanceObject.top)
 end
 
-local alignExtraBar = function(thisLine, actorObject, instanceObject, percentAmount)
-	local extraAmount = actorObject.extra_bar
-	if (extraAmount > 0 and Details.combat_log.evoker_calc_damage) then
-		local bIsUsingBarStartAfterIcon = instanceObject.row_info.start_after_icon
+---show an extra statusbar on the line, after the main statusbar
+---@param thisLine table
+---@param amount valueamount
+---@param extraAmount valueamount
+---@param totalAmount valueamount
+---@param topAmount valueamount
+---@param instanceObject instance
+---@param onEnterFunc function|nil
+---@param onLeaveFunc function|nil
+function Details:ShowExtraStatusbar(thisLine, amount, extraAmount, totalAmount, topAmount, instanceObject, onEnterFunc, onLeaveFunc)
+	if (extraAmount and extraAmount > 0 and Details.combat_log.evoker_calc_damage) then
+		local extraStatusbar = thisLine.extraStatusbar
 		local initialOffset = 0
+		local icon_offset_x, icon_offset_y = unpack(instanceObject.row_info.icon_offset)
+
+		local bIsUsingBarStartAfterIcon = instanceObject.row_info.start_after_icon
 		if (bIsUsingBarStartAfterIcon) then
-			initialOffset = thisLine.icone_classe:GetWidth()
+			initialOffset = thisLine.icone_classe:GetWidth() + icon_offset_x
 		end
 
-		local whiteBarStartOffset = initialOffset + thisLine:GetWidth() * percentAmount / 100
-		local whiteBarWidth = (extraAmount / actorObject.total) * (percentAmount / 100) * thisLine:GetWidth()
+		local statusBarWidth = thisLine.statusbar:GetWidth()
+		local percent = amount / topAmount
+		local fillTheGapWidth = percent * 4
 
-		thisLine.extraTexture:SetPoint("left", thisLine, "left", whiteBarStartOffset - 7, 0)
-		thisLine.extraTexture:SetWidth(whiteBarWidth)
+		local startExtraStatusbarOffset = percent * statusBarWidth
+		local extraStatusbarWidth = statusBarWidth * (extraAmount / topAmount)
 
-		thisLine.extraTexture:SetHeight(thisLine:GetHeight())
-		thisLine.extraTexture:Show()
+		extraStatusbar:ClearAllPoints()
+		extraStatusbar:SetHeight(thisLine:GetHeight())
+
+		if (bIsUsingBarStartAfterIcon) then
+			extraStatusbar:SetPoint("topleft", thisLine.icone_classe, "topright", startExtraStatusbarOffset - fillTheGapWidth, 0)
+		else
+			extraStatusbar:SetPoint("topleft", thisLine, "topleft", (statusBarWidth * percent) - fillTheGapWidth, 0)
+		end
+
+		extraStatusbar:SetWidth(extraStatusbarWidth)
+
+		--extraStatusbar:SetFrameStrata("TOOLTIP")
+		extraStatusbar:SetFrameLevel(thisLine:GetFrameLevel() + 1)
+
+		extraStatusbar.OnEnterCallback = onEnterFunc
+		extraStatusbar.OnLeaveCallback = onLeaveFunc
+
+		extraStatusbar:Show()
 	end
 end
 
-function Details:RefreshLineValue(thisLine, instance, previousData, isForceRefresh, percent, whichRowLine, lineContainer, bUseAnimations) --[[ exported]]
-	if (self.spec ~= 1473) then
-		thisLine.extraTexture:Hide()
+--when the script detect the extrastatusbar need to be show, it will call this function
+local handleShowExtraStatusbar = function(thisLine, self, instance, previousData, isForceRefresh, percent, bUseAnimations, totalValue, topValue)
+	if (self.spec == 1473 and self.augmentedSpellsContainer) then
+		--prepare the extra bar to show the damage prediction to augmented evoker
+		Details:ShowExtraStatusbar(thisLine, self.total, self.total_extra, totalValue, topValue, instance, damageClass.PredictedAugSpellsOnEnter, damageClass.PredictedAugSpellsOnLeave)
+		thisLine.extraStatusbar.augmentedSpellsContainer = self.augmentedSpellsContainer
+		thisLine.extraStatusbar.instance = instance
+	else
+		Details:ShowExtraStatusbar(thisLine, self.total, self.total_extra, totalValue, topValue, instance)
 	end
+end
+
+function Details:RefreshLineValue(thisLine, instance, previousData, isForceRefresh, percent, bUseAnimations, totalValue, topValue) --[[exported]]
+	thisLine.extraStatusbar:Hide()
 
 	if (thisLine.colocacao == 1) then
 		thisLine.animacao_ignorar = true
@@ -2955,8 +3077,8 @@ function Details:RefreshLineValue(thisLine, instance, previousData, isForceRefre
 
 			Details.FadeHandler.Fader(thisLine, "out")
 
-			if (self.spec == 1473) then
-				alignExtraBar(thisLine, self, instance, percent)
+			if (self.total_extra and self.total_extra > 0) then
+				handleShowExtraStatusbar(thisLine, self, instance, previousData, isForceRefresh, percent, bUseAnimations, totalValue, topValue)
 			end
 
 			return self:RefreshBarra(thisLine, instance)
@@ -2972,8 +3094,8 @@ function Details:RefreshLineValue(thisLine, instance, previousData, isForceRefre
 
 				thisLine.last_value = percent --reseta o ultimo valor da barra
 
-				if (self.spec == 1473) then
-					alignExtraBar(thisLine, self, instance, percent)
+				if (self.total_extra and self.total_extra > 0) then
+					handleShowExtraStatusbar(thisLine, self, instance, previousData, isForceRefresh, percent, bUseAnimations, totalValue, topValue)
 				end
 
 				return self:RefreshBarra(thisLine, instance)
@@ -2987,11 +3109,15 @@ function Details:RefreshLineValue(thisLine, instance, previousData, isForceRefre
 				end
 				thisLine.last_value = percent
 
-				if (self.spec == 1473) then
-					alignExtraBar(thisLine, self, instance, percent)
+				if (self.total_extra and self.total_extra > 0) then
+					Details:ShowExtraStatusbar(thisLine, self.total, self.total_extra, totalValue, topValue, instance)
 				end
 
 				return self:RefreshBarra(thisLine, instance)
+			else
+				if (self.total_extra and self.total_extra > 0) then
+					handleShowExtraStatusbar(thisLine, self, instance, previousData, isForceRefresh, percent, bUseAnimations, totalValue, topValue)
+				end
 			end
 		end
 	end
@@ -3006,7 +3132,7 @@ local setLineTextSize = function(line, instance)
 end
 
 
-function Details:SetBarLeftText(bar, instance, enemy, arenaEnemy, arenaAlly, usingCustomLeftText) --[[ exported]]
+function Details:SetBarLeftText(bar, instance, enemy, arenaEnemy, arenaAlly, usingCustomLeftText) --[[exported]]
 	local barNumber = ""
 	if (instance.row_info.textL_show_number) then
 		barNumber = bar.colocacao .. ". "
@@ -3087,7 +3213,7 @@ function Details:SetBarLeftText(bar, instance, enemy, arenaEnemy, arenaAlly, usi
 	setLineTextSize (bar, instance)
 end
 
-function Details:SetBarColors(bar, instance, r, g, b, a) --[[exported]]
+function Details:SetBarColors(bar, instance, r, g, b, a) --[[exported]] --~colors
 	a = a or 1
 
 	if (instance.row_info.texture_class_colors) then
@@ -3128,7 +3254,7 @@ end
 ---@param texture texture
 ---@param instance instance
 ---@param class string
-function Details:SetClassIcon(texture, instance, class) --[[ exported]]
+function Details:SetClassIcon(texture, instance, class) --[[exported]] --~icons
 	local customIcon
 	if (Details.immersion_unit_special_icons) then
 		customIcon = Details.Immersion.GetIcon(self.aID)
@@ -3224,7 +3350,7 @@ function Details:SetClassIcon(texture, instance, class) --[[ exported]]
 end
 
 
-function Details:RefreshBarra(thisLine, instance, fromResize) --[[ exported]]
+function Details:RefreshBarra(thisLine, instance, fromResize) --[[exported]]
 	local class, enemy, arenaEnemy, arenaAlly = self.classe, self.enemy, self.arena_enemy, self.arena_ally
 
 	if (not class) then
@@ -3252,6 +3378,60 @@ function Details:RefreshBarra(thisLine, instance, fromResize) --[[ exported]]
 
 	--left text
 	self:SetBarLeftText(thisLine, instance, enemy, arenaEnemy, arenaAlly, UsingCustomLeftText)
+end
+
+
+function damageClass.PredictedAugSpellsOnEnter(self)
+	if (not Details.show_aug_predicted_spell_damage) then
+		return
+	end
+
+	---@type spellcontainer
+	local spellContainer = self.augmentedSpellsContainer
+
+	GameCooltip:Preset(2)
+	---@type instance
+	local instance = self.instance
+
+	local combatObject = instance:GetCombat()
+	for spellId, spellTable in spellContainer:ListSpells() do
+		local spellName, _, spellTexture = GetSpellInfo(spellId)
+		if (spellName) then
+			GameCooltip:AddLine(spellName, Details:Format(spellTable.total))
+			GameCooltip:AddIcon(spellTexture, 1, 1, 14, 14)
+
+			local spellsAugmented = {}
+
+			--the damage sources are added into the targets table for recycling
+			---@type table<actorname, valueamount>
+			local sources = spellTable.targets
+			for sourceName, sourceAmount in pairs(sources) do
+				spellsAugmented[#spellsAugmented+1] = {sourceName, sourceAmount}
+			end
+
+			table.sort(spellsAugmented, Details.Sort2)
+
+			for i = 1, #spellsAugmented do
+				local sourceName, sourceAmount = unpack(spellsAugmented[i])
+				GameCooltip:AddLine(sourceName, Details:Format(sourceAmount), 1, "yellow", "yellow", 10)
+				local actorObject = combatObject:GetActor(1, sourceName)
+				if (actorObject) then
+					local actorIcon = Details:GetActorIcon(actorObject)
+					if (actorIcon) then
+						GameCooltip:AddIcon(actorIcon.texture, 1, 1, 14, 14, actorIcon.coords.left, actorIcon.coords.right, actorIcon.coords.top, actorIcon.coords.bottom)
+					else
+						GameCooltip:AddIcon([[Interface\COMMON\Indicator-Gray]], 1, 1, 14, 14)
+					end
+				end
+			end
+		end
+	end
+
+	GameCooltip:ShowCooltip(self, "tooltip")
+end
+
+function damageClass.PredictedAugSpellsOnLeave(self)
+	GameCooltip:Hide()
 end
 
 --------------------------------------------- // TOOLTIPS // ---------------------------------------------
@@ -3321,7 +3501,7 @@ function damageClass:ToolTip_DamageDone (instancia, numero, barra, keydown)
 			local meu_tempo
 			if (Details.time_type == 1 or not self.grupo) then
 				meu_tempo = self:Tempo()
-			elseif (Details.time_type == 2 or Details.time_type == 3) then
+			elseif (Details.time_type == 2 or Details.use_realtimedps) then
 				meu_tempo = instancia.showing:GetCombatTime()
 			end
 
@@ -3469,7 +3649,7 @@ function damageClass:ToolTip_DamageDone (instancia, numero, barra, keydown)
 				for i = 1, math.min(max_targets, #ActorTargetsSortTable) do
 					local enemyTable = ActorTargetsSortTable[i]
 					GameCooltip:AddLine(enemyTable[1], FormatTooltipNumber(_, enemyTable[2]) .." ("..format("%.1f", enemyTable[2] / ActorDamageWithPet * 100).."%)")
-					
+
 					local portraitTexture-- = Details222.Textures.GetPortraitTextureForNpcID(enemyTable[3]) --disabled atm
 					if (portraitTexture) then
 						GameCooltip:AddIcon(portraitTexture, 1, 1, icon_size.W, icon_size.H)
@@ -3509,7 +3689,7 @@ function damageClass:ToolTip_DamageDone (instancia, numero, barra, keydown)
 					local timeInCombat = 0
 					if (Details.time_type == 1 or not self.grupo) then
 						timeInCombat = petActorObject:Tempo()
-					elseif (Details.time_type == 2 or Details.time_type == 3) then
+					elseif (Details.time_type == 2 or Details.use_realtimedps) then
 						timeInCombat = petActorObject:GetCombatTime()
 					end
 
@@ -4671,7 +4851,7 @@ end
 
 	não passar nada e deixar o sistema aprender sozinho, como o sistema vai saber que precisa por uma arrow na linha? (para expandi-la)
 
-	
+
 --]=]
 
 ------ Damage Done & Dps
@@ -4730,7 +4910,7 @@ function damageClass:MontaInfoDamageDone() --I guess this fills the list of spel
 	local actorCombatTime
 	if (Details.time_type == 1 or not actorObject.grupo) then
 		actorCombatTime = actorObject:Tempo()
-	elseif (Details.time_type == 2 or Details.time_type == 3) then
+	elseif (Details.time_type == 2 or Details.use_realtimedps) then
 		actorCombatTime = breakdownWindowFrame.instancia.showing:GetCombatTime()
 	end
 
@@ -4809,7 +4989,7 @@ function damageClass:MontaInfoDamageDone() --I guess this fills the list of spel
 				--output
 				breakdownSpellDataList[#breakdownSpellDataList+1] = bkSpellData
 
-				--fill here the spellTables using the actor abilities 
+				--fill here the spellTables using the actor abilities
 				--all these spells belong to the current actor in the loop
 				for spellId, spellTable in petSpellContainer:ListSpells() do
 					local spellName, _, spellIcon = GetSpellInfo(spellId)
@@ -5709,7 +5889,7 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 	if (Details.time_type == 1 or not self.grupo) then
 		meu_tempo = self:Tempo()
 
-	elseif (Details.time_type == 2 or Details.time_type == 3) then
+	elseif (Details.time_type == 2 or Details.use_realtimedps) then
 		meu_tempo = breakdownWindowFrame.instancia.showing:GetCombatTime()
 	end
 
@@ -5946,7 +6126,7 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 				for i = 1, amountOfTimeStamps do
 					thatRectangle66.timeStamps[i] = thatRectangle66:CreateFontString(nil, "overlay", "GameFontNormal")
 					thatRectangle66.timeStamps[i]:SetPoint("topleft", thatRectangle66, "topleft", 2 + (i - 1) * (width / amountOfTimeStamps), -2)
-					DetailsFramework:SetFontSize(thatRectangle66.timeStamps[i], 9)
+					DetailsFramework:SetFontSize(thatRectangle66.timeStamps[i], 12)
 				end
 			end
 
@@ -6045,8 +6225,6 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 				local percentFromPeak = damageDone / maxValue --normalized
 				thisTexture:SetHeight(math.min(percentFromPeak * height, height - 15))
 				thisTexture:Show()
-
-				--print("DEBUG", 7 , "Peak:", percentFromPeak, "position:", texturePosition, "damage done:", damageDone) --debug
 			end
 
 			--show bloodlust indicators, member .bloodlust is not guarantted
@@ -6275,7 +6453,7 @@ function damageClass:MontaTooltipAlvos (thisLine, index, instancia) --~deprecate
 	local meu_tempo
 	if (Details.time_type == 1 or not self.grupo) then
 		meu_tempo = self:Tempo()
-	elseif (Details.time_type == 2 or Details.time_type == 3) then
+	elseif (Details.time_type == 2 or Details.use_realtimedps) then
 		meu_tempo = breakdownWindowFrame.instancia.showing:GetCombatTime()
 	end
 
@@ -6441,6 +6619,7 @@ end
 
 		--sum total damage
 		overallActor.total = overallActor.total + actorObject.total
+		overallActor.total_extra = overallActor.total_extra + actorObject.total_extra
 		overallActor.totalabsorbed = overallActor.totalabsorbed + actorObject.totalabsorbed
 
 		--sum total damage without pet
@@ -6715,7 +6894,7 @@ damageClass.__add = function(tabela1, tabela2)
 					if (not habilidade_tabela1[key]) then
 						habilidade_tabela1[key] = {}
 					end
-					for empowermentLevel, empowermentValue in pairs(habilidade[key]) do 
+					for empowermentLevel, empowermentValue in pairs(habilidade[key]) do
 						habilidade_tabela1[key][empowermentLevel] = habilidade_tabela1[key][empowermentValue] or 0 + empowermentValue
 					end
 				end
@@ -6840,6 +7019,9 @@ function Details.refresh:r_atributo_damage(actorObject)
 
 	--restore metatable for the spell container
 	Details.refresh:r_container_habilidades(actorObject.spells)
+	if (actorObject.augmentedSpellsContainer) then
+		Details.refresh:r_container_habilidades(actorObject.augmentedSpellsContainer)
+	end
 end
 
 function Details.clear:c_atributo_damage (este_jogador)

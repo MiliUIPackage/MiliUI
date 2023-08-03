@@ -7,7 +7,7 @@
 ## OptionalDeps: Ace3
 ## SavedVariablesPerCharacter: EncounterDetailsDB
 ## IconTexture: Interface\AddOns\Details\images\minimap
-
+## X-Category-zhTW: 戰鬥
 ## X-Wago-ID: 7nGvv0Gx
 
 enUS.lua

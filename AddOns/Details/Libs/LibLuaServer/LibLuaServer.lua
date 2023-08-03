@@ -29,6 +29,16 @@
 ---| "right"
 ---| "center"
 
+---@alias edgenames
+---| "topleft"
+---| "topright"
+---| "bottomleft"
+---| "bottomright"
+---| "TopLeft"
+---| "TopRight"
+---| "BottomLeft"
+---| "BottomRight"
+
 ---@alias framestrata
 ---| "background"
 ---| "low"
@@ -88,6 +98,12 @@
 ---| "bottom"
 ---| "middle"
 
+---@alias fontflags
+---| "none"
+---| "outline"
+---| "thickoutline"
+---| "monochrome"
+
 ---@alias orientation
 ---| "HORIZONTAL"
 ---| "VERTICAL"
@@ -114,6 +130,56 @@
 ---| "arena"
 ---| "pvp"
 ---| "scenario"
+
+---@alias texturefilter
+---| "LINEAR"
+---| "TRILINEAR"
+---| "NEAREST"
+
+---@alias texturewrap
+---| "CLAMP"
+---| "CLAMPTOBLACKADDITIVE"
+---| "CLAMPTOBLACK"
+---| "CLAMPTOWHITEADDITIVE"
+---| "CLAMPTOWHITE"
+---| "MIRROR"
+---| "REPEAT"
+---| "MIRRORONCE"
+
+---@alias blendmode
+---| "ADD"
+---| "BLEND"
+---| "DISABLE"
+---| "MOD"
+---| "MOD2X"
+---| "OVERLAY"
+---| "ALPHAKEY"
+---| "REPLACE"
+---| "SUBTRACT"
+
+---@alias objecttype
+---| "Frame"
+---| "Button"
+---| "FontString"
+---| "Texture"
+---| "StatusBar"
+---| "Font"
+---| "EditBox"
+---| "CheckButton"
+---| "Slider"
+---| "Model"
+---| "PlayerModel"
+---| "DressUpModel"
+---| "TabardModel"
+---| "Cooldown"
+---| "ScrollingMessageFrame"
+---| "ScrollFrame"
+---| "SimpleHTML"
+---| "AnimationGroup"
+---| "Animation"
+---| "MessageFrame"
+---| "Minimap"
+---| "GameTooltip"
 
 ---@alias width number property that represents the horizontal size of a UI element, such as a frame or a texture. Gotten from the first result of GetWidth() or from the first result of GetSize(). It is expected a GetWidth() or GetSize() when the type 'height' is used.
 ---@alias height number property that represents the vertical size of a UI element, such as a frame or a texture. Gotten from the first result of GetHeight() or from the second result of GetSize(). It is expected a GetHeight() or GetSize() when the type 'height' is used.
@@ -145,10 +211,12 @@
 ---@alias npcid number a number that identifies a specific npc in the game.
 ---@alias textureid number each texture from the game client has an id.
 ---@alias texturepath string access textures from addons.
----@alias unixtime number
 ---@alias valueamount number used to represent a value, such as a damage amount, a healing amount, or a resource amount.
+---@alias unixtime number a number that represents the number of seconds that have elapsed since 00:00:00 Coordinated Universal Time (UTC), Thursday, 1 January 1970, not counting leap seconds.
 ---@alias timestring string refers to a string showing a time value, such as "1:23" or "1:23:45".
 ---@alias combattime number elapsed time of a combat or time in seconds that a unit has been in combat.
+---@alias auraduration number
+---@alias gametime number number of seconds that have elapsed since the start of the game session.
 ---@alias coordleft number
 ---@alias coordright number
 ---@alias coordtop number
@@ -181,7 +249,8 @@
 ---@class texturetable : {texture: string, coords: texturecoords, size: objectsize}
 
 ---@class uiobject
----@field GetObjectType fun(self: uiobject) : string
+---@field GetObjectType fun(self: uiobject) : objecttype
+---@field IsObjectType fun(self: uiobject, objectType: string) : boolean
 ---@field Show fun(self: uiobject) make the object be shown on the user screen
 ---@field Hide fun(self: uiobject) make the object be hidden from the user screen
 ---@field SetShown fun(self: uiobject, state: boolean) show or hide the object
@@ -270,6 +339,9 @@
 ---@field SetBackdrop fun(self: frame, backdrop: backdrop|table)
 ---@field SetBackdropColor fun(self: frame, red: red|number, green: green|number, blue: blue|number, alpha: alpha|number)
 ---@field SetBackdropBorderColor fun(self: frame, red: red|number, green: green|number, blue: blue|number, alpha: alpha|number)
+---@field GetBackdrop fun(self: frame) : backdrop
+---@field GetBackdropColor fun(self: frame) : red|number, green|number, blue|number, alpha|number
+---@field GetBackdropBorderColor fun(self: frame) : red|number, green|number, blue|number, alpha|number
 ---@field SetHitRectInsets fun(self: frame, left: number, right: number, top: number, bottom: number)
 ---@field SetToplevel fun(self: frame, toplevel: boolean)
 ---@field SetPropagateKeyboardInput fun(self: frame, propagate: boolean)
@@ -288,6 +360,7 @@
 ---@field GetChildren fun(self: frame) : frame[]
 ---@field GetRegions fun(self: frame) : region[]
 ---@field CreateTexture fun(self: frame, name: string|nil, layer: drawlayer, inherits: string|nil, subLayer: number|nil) : texture
+---@field CreateMaskTexture fun(self: frame, name: string|nil, layer: drawlayer, inherits: string|nil, subLayer: number|nil) : texture
 ---@field CreateFontString fun(self: frame, name: string|nil, layer: drawlayer, inherits: string|nil, subLayer: number|nil) : fontstring
 ---@field EnableMouse fun(self: frame, enable: boolean) enable mouse interaction
 ---@field SetResizable fun(self: frame, enable: boolean) enable resizing of the frame
@@ -399,11 +472,11 @@
 
 ---@class texture : region
 ---@field SetDrawLayer fun(self: texture, layer: drawlayer, subLayer: number|nil)
----@field SetTexture fun(self: texture, path: string)
+---@field SetTexture fun(self: texture, path: textureid|texturepath, horizontalWrap: texturewrap|nil, verticalWrap: texturewrap|nil, filter: texturefilter|nil)
 ---@field SetAtlas fun(self: texture, atlas: string)
 ---@field SetColorTexture fun(self: texture, r: red|number, g: green|number, b: blue|number, a: alpha|number|nil)
 ---@field SetDesaturated fun(self: texture, desaturate: boolean)
----@field SetBlendMode fun(self: texture, mode: "ADD"|"BLEND"|"DISABLE"|"MOD"|"MOD2X"|"OVERLAY"|"REPLACE"|"SUBTRACT")
+---@field SetBlendMode fun(self: texture, mode: blendmode)
 ---@field SetVertexColor fun(self: texture, r: red|number, g: green|number, b: blue|number, a: alpha|number|nil)
 ---@field GetPoint fun(self: texture, index: number) : string, table, string, number, number
 ---@field SetShown fun(self: texture, state: boolean)

@@ -200,11 +200,12 @@ do
                 Details:RefreshMainWindow(-1, true)
                 afterUpdate()
             end
+
             local timetypeOptions = {
                 --localize-me
                 {value = 1, label = Loc ["Activity Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_Daily_08", iconcolor = {1, .9, .9}, texcoord = {0.078125, 0.921875, 0.078125, 0.921875}},
                 {value = 2, label = Loc ["Effective Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_08"},
-                {value = 3, label = "實時", onclick = onSelectTimeType, icon = "Interface\\Icons\\Ability_Evoker_TipTheScales"},
+                --{value = 3, label = "實時", onclick = onSelectTimeType, icon = "Interface\\Icons\\Ability_Evoker_TipTheScales"},
             }
             local buildTimeTypeMenu = function()
                 return timetypeOptions
@@ -304,8 +305,41 @@ do
                 desc = Loc ["STRING_OPTIONS_TIMEMEASURE_DESC"],
             },
 
+            {--use real time
+                type = "toggle",
+                get = function() return Details.use_realtimedps end,
+                set = function(self, fixedparam, value)
+                    Details.use_realtimedps = value
+                end,
+                name = "顯示'實時'DPS",
+                desc = "如果啟用並在戰鬥中，顯示最新5秒除以5的傷害。",
+                boxfirst = true,
+            },
+
+            {--real time dps order bars
+                type = "toggle",
+                get = function() return Details.realtimedps_order_bars end,
+                set = function(self, fixedparam, value)
+                    Details.realtimedps_order_bars = value
+                end,
+                name = "根據實時DPS排序條列",
+                desc = "如果啟用，視窗中造成更多實時DPS的玩家排列在其他玩家之上。",
+                boxfirst = true,
+            },
+
+            {--always use real time in arenas
+                type = "toggle",
+                get = function() return Details.realtimedps_always_arena end,
+                set = function(self, fixedparam, value)
+                    Details.realtimedps_always_arena = value
+                end,
+                name = "在競技場永遠使用實時",
+                desc = "如果啟用，競技場中永遠使用實時DPS，即使上述選項已禁用。",
+                boxfirst = true,
+            },
+
             {type = "blank"},
-            {type = "label", get = function() return "Segments:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return "片段:" end, text_template = subSectionTitleTextTemplate},
 
             {--segments locked
                 type = "toggle",
@@ -368,7 +402,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Auto Erase:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return "自動清除:" end, text_template = subSectionTitleTextTemplate},
 
             {--auto erase settings | erase data
                 type = "select",
@@ -543,7 +577,7 @@ do
 
             {type = "blank"},
 
-            {type = "label", get = function() return "Immersion" end, text_template = subSectionTitleTextTemplate}, --localize-me
+            {type = "label", get = function() return "專注" end, text_template = subSectionTitleTextTemplate}, --localize-me
             {--show pets when solo
                 type = "toggle",
                 get = function() return Details.immersion_pets_on_solo_play end,
@@ -621,7 +655,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Your Self" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return "你自己" end, text_template = subSectionTitleTextTemplate},
 
             {--player bar color toggle
                 type = "toggle",
@@ -2419,7 +2453,7 @@ do
 
             {--title bar icons position X
                 type = "range",
-                get = function() return currentInstance.menu_anchor[1] end,
+                get = function() return currentInstance.toolbar_side == 1 and currentInstance.menu_anchor[1] or currentInstance.menu_anchor_down[1] end,
                 set = function(self, fixedparam, value)
                     editInstanceSetting(currentInstance, "MenuAnchor", value)
                     afterUpdate()
@@ -2433,7 +2467,7 @@ do
 
             {--title bar icons position Y
                 type = "range",
-                get = function() return currentInstance.menu_anchor[2] end,
+                get = function() return currentInstance.toolbar_side == 1 and currentInstance.menu_anchor[2] or currentInstance.menu_anchor_down[2] end,
                 set = function(self, fixedparam, value)
                     editInstanceSetting(currentInstance, "MenuAnchor", nil, value)
                     afterUpdate()
@@ -3448,15 +3482,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
             DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 12)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -3607,15 +3641,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel2", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel2", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel2", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel2", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel2", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel2", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel2", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel2", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 14)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel2", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel2", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -3745,15 +3779,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel3", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel3", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel3", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel3", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel3", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel3", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel3", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel3", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 14)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel3", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel3", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -5464,7 +5498,7 @@ do
 
 			local contextLabel = DetailsFramework:CreateLabel(line, typeCombatAlpha[i])
 			contextLabel:SetPoint("left", line, "left", 2, 0)
-            contextLabel.textsize = 10
+            contextLabel.textsize = 13
 
 			local enabledCheckbox = DetailsFramework:NewSwitch(line, nil, nil, nil, 20, 20, nil, nil, false, nil, nil, nil, nil, options_switch_template)
 			enabledCheckbox:SetPoint("left", line, "left", 140, 0)
@@ -5653,7 +5687,7 @@ do --raid tools
 				function f:CreateLabel()
 					local L = {
 						icon = DF:CreateImage(f, nil, 16, 16, "overlay", {0.1, 0.9, 0.1, 0.9}),
-						text = DF:CreateLabel(f, "", 13, "white", "GameFontHighlight"),
+						text = DF:CreateLabel(f, "", 14, "white", "GameFontHighlight"),
                     }
 
                     L.switch = DF:CreateSwitch(f, on_switch_func, false)
@@ -6088,7 +6122,7 @@ do
             DF:NewLabel(sectionFrame, _, "$parentEventTrackerAnchor", "eventTrackerAnchor", "Event Tracker", "GameFontNormal")
             sectionFrame.eventTrackerAnchor:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 180)
 
-			local eventTrackerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentEventTrackerTitleDescText", "EventTrackerTitleDescTextLabel", "Show what's happening near you so the viewer can follow what's going on. Show cooldowns, CC, spell interruption. Useful on any group content.", "GameFontNormal", 10, "white")
+			local eventTrackerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentEventTrackerTitleDescText", "EventTrackerTitleDescTextLabel", "Show what's happening near you so the viewer can follow what's going on. Show cooldowns, CC, spell interruption. Useful on any group content.", "GameFontNormal", 13, "white")
 			eventTrackerTitleDesc:SetJustifyV ("top")
 			eventTrackerTitleDesc:SetSize(270, 40)
 			eventTrackerTitleDesc:SetPoint("topleft", sectionFrame.eventTrackerAnchor, "bottomleft", 0, -4)
@@ -6130,7 +6164,7 @@ do
             DF:NewLabel(sectionFrame, _, "$parentCurrentDPSAnchor", "currentDPSAnchor", "Arena DPS Bar", "GameFontNormal")
             sectionFrame.currentDPSAnchor:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 340)
 
-			local currentDPSTitleDesc = DF:NewLabel(sectionFrame, _, "$parentCurrentDPSTitleDescText", "CurrentDPSTitleDescTextLabel", "Show a bar which grows to the side of the team doing most damage in the last 5 seconds.", "GameFontNormal", 10, "white")
+			local currentDPSTitleDesc = DF:NewLabel(sectionFrame, _, "$parentCurrentDPSTitleDescText", "CurrentDPSTitleDescTextLabel", "Show a bar which grows to the side of the team doing most damage in the last 5 seconds.", "GameFontNormal", 13, "white")
 			currentDPSTitleDesc:SetJustifyV ("top")
 			currentDPSTitleDesc:SetSize(270, 40)
 			currentDPSTitleDesc:SetPoint("topleft", sectionFrame.currentDPSAnchor, "bottomleft", 0, -4)
@@ -6435,7 +6469,7 @@ do
 
 	--title
     local titulo_datacharts = DF:NewLabel(sectionFrame, _, "$parentTituloDataChartsText", "DataChartsLabel", Loc ["STRING_OPTIONS_DATACHARTTITLE"], "GameFontNormal", 16)
-    local titulo_datacharts_desc = DF:NewLabel(sectionFrame, _, "$parentDataChartsText2", "DataCharts2Label", Loc ["STRING_OPTIONS_DATACHARTTITLE_DESC"], "GameFontNormal", 10, "white")
+    local titulo_datacharts_desc = DF:NewLabel(sectionFrame, _, "$parentDataChartsText2", "DataCharts2Label", Loc ["STRING_OPTIONS_DATACHARTTITLE_DESC"], "GameFontNormal", 13, "white")
     titulo_datacharts_desc.width = 350
 
 --warning

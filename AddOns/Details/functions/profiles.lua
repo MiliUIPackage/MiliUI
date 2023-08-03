@@ -937,6 +937,11 @@ local default_profile = {
 		update_speed = 0.20,
 		time_type = 2,
 		time_type_original = 2,
+
+		use_realtimedps = false,
+		realtimedps_order_bars = false,
+		realtimedps_always_arena = false,
+
 		memory_threshold = 3,
 		memory_ram = 64,
 		remove_realm_from_name = true,
@@ -1365,6 +1370,8 @@ local default_global_data = {
 		current_exp_raid_encounters = {},
 		installed_skins_cache = {},
 
+		show_aug_predicted_spell_damage = false,
+
 		show_warning_id1 = true,
 		show_warning_id1_amount = 0,
 
@@ -1472,7 +1479,7 @@ local default_global_data = {
 		genericcontainer_headers_right = {}, --store information about active headers and their sizes (generic right)
 
 		spellcontainer_header_height = 20,
-		spellcontainer_header_fontsize = 10,
+		spellcontainer_header_fontsize = 12,
 		spellcontainer_header_fontcolor = {1, 1, 1, 1},
 	},
 

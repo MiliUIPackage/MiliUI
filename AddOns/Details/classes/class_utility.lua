@@ -409,7 +409,7 @@ function atributo_misc:ReportSingleDeadLine (morte, instancia)
 		end
 		local _, fontSize = FCF_GetChatWindowInfo (1)
 		if (fontSize < 1) then
-			fontSize = 10
+			fontSize = 12
 		end
 		local fonte, _, flags = _detalhes.fontstring_len:GetFont()
 		_detalhes.fontstring_len:SetFont(fonte, fontSize, flags)
@@ -652,7 +652,7 @@ function atributo_misc:RefreshWindow(instance, combatObject, bIsForceRefresh, bI
 	local utilityActorContainer = combatObject[class_type]
 
 	if (#utilityActorContainer._ActorTable < 1) then --n�o h� barras para mostrar
-		return _detalhes:EsconderBarrasNaoUsadas (instance, utilityActorContainer), "", 0, 0
+		return _detalhes:HideBarsNotInUse(instance, utilityActorContainer), "", 0, 0
 	end
 
 	local total = 0

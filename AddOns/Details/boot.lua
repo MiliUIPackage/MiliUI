@@ -13,12 +13,12 @@
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 11701
-		Details.alpha_build_counter = 11701 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 11773
+		Details.alpha_build_counter = 11773 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 154 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 155 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
 
@@ -115,8 +115,15 @@
 		Details222.ClassCache.ByGUID = {}
 		Details222.UnitIdCache = {}
 		Details222.Roskash = {}
+		Details222.SpecHelpers = {
+			[1473] = {},
+		}
 
 		Details222.Actors = {}
+
+		Details222.CurrentDPS = {
+			Cache = {}
+		}
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialization stuff
@@ -160,7 +167,7 @@ do
 		"Fixed an issue where item damage was showing 'Unknown Item' on cold logins.",
 		"Fixed defenses gauge (miss, dodge, parry) not showing in the spell details on the breakdown window.",
 
-		{"v10.1.0.10985.147", "五月 4日, 2023"},
+		{"v10.1.0.10985.151", "五月 4日, 2023"},
 		"戰鬥分析視窗已經從頭開始完全地重建，現在包括對幾個新功能的支持。",
 		"後端代碼的很大一部分已經進行了修改，從而提高了性能和穩定性。",
 		"戰鬥紀錄現在支持選項，請在選項面板中的“戰鬥紀錄”部分中勾選它們。",
@@ -1231,6 +1238,69 @@ Details222.UnitIdCache.Party = {
 	[2] = "party2",
 	[3] = "party3",
 	[4] = "party4",
+}
+
+Details222.UnitIdCache.Boss = {
+	[1] = "boss1",
+	[2] = "boss2",
+	[3] = "boss3",
+	[4] = "boss4",
+	[5] = "boss5",
+	[6] = "boss6",
+	[7] = "boss7",
+	[8] = "boss8",
+	[9] = "boss9",
+}
+
+Details222.UnitIdCache.Nameplate = {
+	[1] = "nameplate1",
+	[2] = "nameplate2",
+	[3] = "nameplate3",
+	[4] = "nameplate4",
+	[5] = "nameplate5",
+	[6] = "nameplate6",
+	[7] = "nameplate7",
+	[8] = "nameplate8",
+	[9] = "nameplate9",
+	[10] = "nameplate10",
+	[11] = "nameplate11",
+	[12] = "nameplate12",
+	[13] = "nameplate13",
+	[14] = "nameplate14",
+	[15] = "nameplate15",
+	[16] = "nameplate16",
+	[17] = "nameplate17",
+	[18] = "nameplate18",
+	[19] = "nameplate19",
+	[20] = "nameplate20",
+	[21] = "nameplate21",
+	[22] = "nameplate22",
+	[23] = "nameplate23",
+	[24] = "nameplate24",
+	[25] = "nameplate25",
+	[26] = "nameplate26",
+	[27] = "nameplate27",
+	[28] = "nameplate28",
+	[29] = "nameplate29",
+	[30] = "nameplate30",
+	[31] = "nameplate31",
+	[32] = "nameplate32",
+	[33] = "nameplate33",
+	[34] = "nameplate34",
+	[35] = "nameplate35",
+	[36] = "nameplate36",
+	[37] = "nameplate37",
+	[38] = "nameplate38",
+	[39] = "nameplate39",
+	[40] = "nameplate40",
+}
+
+Details222.UnitIdCache.Arena = {
+	[1] = "arena1",
+	[2] = "arena2",
+	[3] = "arena3",
+	[4] = "arena4",
+	[5] = "arena5",
 }
 
 function Details222.Tables.MakeWeakTable(mode)

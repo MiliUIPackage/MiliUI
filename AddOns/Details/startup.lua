@@ -87,7 +87,7 @@ function Details:StartMeUp()
 	if (Details.ocd_tracker.show_options) then
 		Details:InitializeCDTrackerWindow()
 	end
-
+	--/run Details.ocd_tracker.show_options = true; ReloadUI()
 	--custom window
 	Details.custom = Details.custom or {}
 
@@ -581,6 +581,10 @@ function Details:StartMeUp()
 	Details.boss_mods_timers.encounter_timers_dbm = Details.boss_mods_timers.encounter_timers_dbm or {}
 	Details.boss_mods_timers.encounter_timers_bw = Details.boss_mods_timers.encounter_timers_bw or {}
 
+	if (Details.time_type == 3 or not Details.time_type) then
+		Details.time_type = 2
+	end
+
 	--clear overall data on new session
 	--if (Details.overall_clear_logout) then --this is suppose to be in the load data file
 	--	Details.tabela_overall = Details.combate:NovaTabela()
@@ -618,6 +622,8 @@ function Details:StartMeUp()
 	pcall(Details222.EJCache.MakeCache)
 
 	pcall(Details222.ClassCache.MakeCache)
+
+	Details:BuildSpecsNameCache()
 
 	Details222.Cache.DoMaintenance()
 

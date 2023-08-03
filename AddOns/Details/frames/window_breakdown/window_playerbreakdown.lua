@@ -55,6 +55,24 @@ function breakdownWindowFrame.ShowPluginOnBreakdown(pluginObject, button)
 		thisPluginObject.Frame:Hide()
 	end
 
+	--check if the breakdown window is closed
+	if (not breakdownWindowFrame:IsShown()) then
+		--as the breakdown require an actor and an instance, get a random one
+		local currentCombat = Details:GetCurrentCombat()
+		local damageContainer = currentCombat:GetContainer(DETAILS_ATTRIBUTE_DAMAGE)
+		local actorObject = damageContainer._ActorTable[1]
+		if (actorObject) then
+			local instanceObject = Details:GetInstance(1)
+			if (instanceObject) then
+				Details:OpenBreakdownWindow(instanceObject, actorObject)
+			end
+		end
+	end
+
+	if (not breakdownWindowFrame:IsShown()) then
+		return
+	end
+
 	--reset the template on all plugin buttons
 	for _, thisPluginButton in ipairs(breakdownWindowFrame.RegisteredPluginButtons) do
 		---@cast thisPluginButton df_button
@@ -205,7 +223,8 @@ function Details:GetDisplayTypeFromBreakdownWindow()
 	return breakdownWindowFrame.atributo, breakdownWindowFrame.sub_atributo
 end
 
---return the actor object in use by the breakdown window
+---return the actor object in use by the breakdown window
+---@return actor actorObject
 function Details:GetActorObjectFromBreakdownWindow()
 	return breakdownWindowFrame.jogador
 end
@@ -218,6 +237,18 @@ function Details:IsBreakdownWindowOpen()
 	return breakdownWindowFrame.ativo
 end
 
+function Details222.BreakdownWindow.RefreshPlayerScroll()
+	if (breakdownWindowFrame.playerScrollBox) then
+		breakdownWindowFrame.playerScrollBox:Refresh()
+	end
+end
+
+Details.PlayerBreakdown.RoundedCornerPreset = {
+	roundness = 6,
+	color = {.1, .1, .1, 0.98},
+	border_color = {.05, .05, .05, 0.834},
+}
+
 ---open the breakdown window
 ---@param self details
 ---@param instanceObject instance
@@ -229,6 +260,13 @@ end
 function Details:OpenBreakdownWindow(instanceObject, actorObject, bFromAttributeChange, bIsRefresh, bIsShiftKeyDown, bIsControlKeyDown)
 	---@type number, number
 	local mainAttribute, subAttribute = instanceObject:GetDisplay()
+
+	if (not breakdownWindowFrame.__rcorners) then
+		breakdownWindowFrame:SetBackdropColor(.1, .1, .1, 0)
+		breakdownWindowFrame:SetBackdropBorderColor(.1, .1, .1, 0)
+		breakdownWindowFrame.__background:Hide()
+		detailsFramework:AddRoundedCornersToFrame(breakdownWindowFrame, Details.PlayerBreakdown.RoundedCornerPreset)
+	end
 
 	if (not Details.row_singleclick_overwrite[mainAttribute] or not Details.row_singleclick_overwrite[mainAttribute][subAttribute]) then
 		Details:CloseBreakdownWindow()
@@ -686,7 +724,8 @@ function Details:CreateBreakdownWindow()
 	table.insert(summaryWidgets, SWW) --where SummaryWidgets is declared: at the header of the file, what is the purpose of this table?
 	breakdownWindowFrame.SummaryWindowWidgets:Hide()
 
-	detailsFramework:CreateScaleBar(breakdownWindowFrame, Details.player_details_window)
+	local scaleBar = detailsFramework:CreateScaleBar(breakdownWindowFrame, Details.player_details_window)
+	scaleBar.label:AdjustPointsOffset(-6, 3)
 	breakdownWindowFrame:SetScale(Details.player_details_window.scale)
 
 	--class icon
@@ -695,21 +734,17 @@ function Details:CreateBreakdownWindow()
 	breakdownWindowFrame.classIcon:SetSize(54, 54)
 	breakdownWindowFrame.classIcon:SetAlpha(0.7)
 
-	--close button
-	breakdownWindowFrame.closeButton = CreateFrame("Button", nil, breakdownWindowFrame, "UIPanelCloseButton")
-	breakdownWindowFrame.closeButton:SetSize(20, 20)
-	breakdownWindowFrame.closeButton:SetPoint("TOPRIGHT", breakdownWindowFrame, "TOPRIGHT", -5, -4)
-	breakdownWindowFrame.closeButton:SetFrameLevel(breakdownWindowFrame:GetFrameLevel()+5)
-	breakdownWindowFrame.closeButton:GetNormalTexture():SetDesaturated(true)
-	breakdownWindowFrame.closeButton:GetNormalTexture():SetVertexColor(.6, .6, .6)
-    breakdownWindowFrame.closeButton:SetScript("OnClick", function(self)
+	local closeButton = detailsFramework:CreateCloseButton(breakdownWindowFrame)
+	closeButton:SetPoint("topright", breakdownWindowFrame, "topright", -2, -2)
+    closeButton:SetScript("OnClick", function(self)
         Details:CloseBreakdownWindow()
     end)
+	breakdownWindowFrame.closeButton = closeButton
 
 	--title
 	detailsFramework:NewLabel(breakdownWindowFrame, breakdownWindowFrame, nil, "titleText", Loc ["STRING_PLAYER_DETAILS"], "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
 	breakdownWindowFrame.titleText:SetPoint("center", breakdownWindowFrame, "center")
-	breakdownWindowFrame.titleText:SetPoint("top", breakdownWindowFrame, "top", 0, -6)
+	breakdownWindowFrame.titleText:SetPoint("top", breakdownWindowFrame, "top", 0, -3)
 
 	--create the texts shown on the window
 	do
@@ -741,17 +776,18 @@ function Details:CreateBreakdownWindow()
 	statusBar:SetPoint("bottomleft", breakdownWindowFrame, "bottomleft")
 	statusBar:SetPoint("bottomright", breakdownWindowFrame, "bottomright")
 	statusBar:SetHeight(PLAYER_DETAILS_STATUSBAR_HEIGHT)
-	detailsFramework:ApplyStandardBackdrop(statusBar)
+	--detailsFramework:ApplyStandardBackdrop(statusBar)
 	statusBar:SetAlpha(PLAYER_DETAILS_STATUSBAR_ALPHA)
 	breakdownWindowFrame.statusBar = statusBar
 
 	statusBar.Text = detailsFramework:CreateLabel(statusBar)
-	statusBar.Text:SetPoint("left", 2, 0)
+	statusBar.Text:SetPoint("left", 12, 0)
 
 	--create the gradients in the top and bottom side of the breakdown window
 	local gradientStartColor = Details222.ColorScheme.GetColorFor("gradient-background")
 	local gradientUp = detailsFramework:CreateTexture(breakdownWindowFrame, {gradient = "vertical", fromColor = gradientStartColor, toColor = {0, 0, 0, 0.2}}, 1, 68, "artwork", {0, 1, 0, 1})
-	gradientUp:SetPoint("tops", 1, 1)
+	gradientUp:SetPoint("tops", 1, 18)
+	--gradientUp:Hide()
 
 	local gradientHeight = 481
 	local gradientDown = detailsFramework:CreateTexture(breakdownWindowFrame, {gradient = "vertical", fromColor = "transparent", toColor = {0, 0, 0, 0.7}}, 1, gradientHeight, "border", {0, 1, 0, 1})
