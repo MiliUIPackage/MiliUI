@@ -17,7 +17,10 @@ end
 SLASH_ENHBLOODLUST1 = '/enhbl';
 SLASH_ENHBLOODLUST2 = '/測試音樂';
 function SlashCmdList.ENHBLOODLUST(args)
-    EnhBloodlust:BLOODLUST();
+    if args and args == "" then
+		args = nil
+	end
+	EnhBloodlust:BLOODLUST(args);
 end
 
 function EnhBloodlust:PLAYER_REGEN_DISABLED()
@@ -30,7 +33,8 @@ function EnhBloodlust:COMBAT_LOG_EVENT_UNFILTERED()
 		for _,v in pairs(config.spells) do
             if v == spellID then
                 if spellID == 390386 and C_UnitAuras.GetPlayerAuraBySpellID(spellID).duration < 40 then -- 檢查龍人套裝嗜血，播放短音效。
-						PlaySoundFile(config.soundShort[ math.random( #config.soundShort ) ], config.channel);
+						-- PlaySoundFile(config.soundShort[ math.random( #config.soundShort ) ], config.channel);
+						EnhBloodlust:BLOODLUST(true);
 				else
 					EnhBloodlust:BLOODLUST();
 				end
@@ -44,7 +48,7 @@ function EnhBloodlust:PLAYER_REGEN_ENABLED()
 	EnhBloodlust:UnregisterEvent("COMBAT_LOG_EVENT_UNFILTERED");
 end
 
-function EnhBloodlust:BLOODLUST()
+function EnhBloodlust:BLOODLUST(short)
 	-- 檢查是否已經播放音樂
 	if playing then return end
 	
@@ -58,9 +62,13 @@ function EnhBloodlust:BLOODLUST()
     end
 
 	-- 隨機播放一首歌曲
-	playing = PlaySoundFile(config.sound[ math.random( #config.sound ) ], config.channel);
+	if short then 
+		playing = PlaySoundFile(config.soundShort[ math.random( #config.soundShort ) ], config.channel);
+	else
+		playing = PlaySoundFile(config.sound[ math.random( #config.sound ) ], config.channel);
+	end
 	
-    C_Timer.After(config.length, function()
+    C_Timer.After(short and config.lengthShort or config.length, function()
 		SetCVar("Sound_MusicVolume", Volume)
 		SetCVar("Sound_AmbienceVolume", AmbienceVolume)
 		playing = false

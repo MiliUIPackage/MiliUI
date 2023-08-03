@@ -24,11 +24,14 @@ config.sound = {
 config.soundShort = {
 	-- 喚能師套裝觸發6秒嗜血的短音效，寫法和上述相同。
 	-- 不要播放的話，將下面這一行改為 "" 即可。
-	"Interface\\AddOns\\EnhBloodlust\\Trailer_Mega_Horn_4.mp3"
+	"Interface/AddOns/EnhBloodlust/超棒der哭哭睡_short_15s.mp3"
 }
 
 -- 音樂長度建議40秒，剛好是嗜血的時間。
 config.length = 40;
+
+-- 短音效長度建議15秒，剛好是嗜血的時間。
+config.lengthShort = 15;
 
 -- 嗜血音樂所使用的聲音頻道，可以使用的值有主音量 "Master" 和法術音效 "SFX"。
 config.channel = "Master";
