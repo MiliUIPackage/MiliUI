@@ -7,12 +7,13 @@
 ## Notes-zhCN: 当单独、小队和团队时清除有害状态，并可使用高级过滤和优先等级系统。
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 一鍵驅散 |cff7fff7f -Ace3-|r
 ## Notes-zhTW: Decursive|cffff00ff-Ace3-|r |n清除單人、小隊和團隊的有害狀態，並可設定進階過濾和優先權。 (內含 Ace3 程式庫) |n|cffffd200使用方法：|r點一下亮起來的小方格，可以驅散該隊友身上DEBUFF。|n滑鼠滑到第一個小方格的上方，出現一個小亮點時，按住 Alt 不放來拖曳可以移動位置。|n輸入 /decursive 開啟設定。
+## X-Category-zhTW: 職業
 ## DefaultState: disabled
 ## IconTexture: Interface/AddOns/Decursive/iconON.tga
 
 ## SavedVariables: DecursiveDB
 
-## Version: 2.7.9.2
+## Version: 2.7.9.3
 ## Author: John Wellesz
 
 ## X-License: GNU GPL V3
@@ -26,9 +27,8 @@
 
 ## X-Embeds: Ace3, LibQTip-1.0, LibDataBroker-1.1, LibDBIcon-1.0, !BugGrabber, LibDualSpec-1.0
 
-## X-ReleaseDate: "2023-05-30T10:26:50Z"
+## X-ReleaseDate: "2023-07-16T11:30:22Z"
 ## X-Category: Combat
-## X-Category-zhTW: 職業
 ## X-Website: http://www.2072productions.com/to/decursive.php
 ## X-Credits: Sylvin (Full french translation), Peter Sun, Ananhaid (ZhTW and zhCN translation), Fenlis, Chkid (koKR translation), Hemathio, Swix, Athariel, StingerSoft (Russian Translation), Freydis88, Floyddotnet, Vilogity, Dessa, Farook (German translation)
 
