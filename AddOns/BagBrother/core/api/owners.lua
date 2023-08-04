@@ -11,7 +11,6 @@ local CLASS_COLOR = '|cff%02x%02x%02x'
 local ALLIANCE_BANNER = 'Interface/Icons/Inv_BannerPvP_02'
 local HORDE_BANNER = 'Interface/Icons/Inv_BannerPvP_01'
 local RACE_TEXTURE, RACE_TABLE
-local owner
 
 if Addon.IsClassic then
 	RACE_TEXTURE = 'Interface/Glues/CharacterCreate/UI-CharacterCreate-Races'

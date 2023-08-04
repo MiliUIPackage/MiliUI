@@ -13,10 +13,7 @@ Unfortunately, it also came to my attention that |cffcc9933you have been pronoun
 
 local Letter2 = [[One thing that could help mod developers having things ready on time of release is to give them access to the closed alphas/betas that streamers/media people sometimes do. I've gotten used at this point to start updating the mods on the day of release, 2 weeks before at best. Blizzard can also change a lot of stuff between open beta and actual release day, |cffcc9933which does us devs and players dirty, so you better wash your hands Asmon|r.
 
-However, please also keep in mind that most addons are developed by one person and it isn't even a part-time job. So we shouldn't expect the same level of support as from a small indie game company like Blizzard. I myself started developing these mods on my free time when I was 10 and has been a one-man hobby since.
-    
-Anyway, happy gaming to you! Don't worry, I won't be sending ingame messages in the future, it was a one-time joke.
-You can add me on discord |cffcc9933Jaliborc#1518|r if you ever wanna chat or have questions.]]
+However, please also keep in mind that most addons are developed by one person and it isn't even a part-time job. So we shouldn't expect the same level of support as from a small indie game company like Blizzard. I myself started developing these mods on my free time when I was 10 and has been a one-man hobby since.]]
 
 function Asmon:Go()
     local bg = CreateFrame('Frame', 'AsmonLetter', UIParent, BackdropTemplateMixin and 'BackdropTemplate')

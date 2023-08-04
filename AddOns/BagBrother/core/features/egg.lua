@@ -12,6 +12,8 @@ local Characters = {
     'Trolliborc',
 }
 
+-- type in chat "/run Bagnon.sets.asmon = true" and then reload
+
 function Asmon:OnEnable()
     local name, realm = UnitFullName('player')
     if Addon.sets.asmon or (GetCurrentRegion() == 1 and realm == "Kel'Thuzad" and tContains(Characters, name)) then

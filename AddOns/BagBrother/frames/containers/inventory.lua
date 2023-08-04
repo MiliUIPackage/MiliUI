@@ -9,6 +9,7 @@ local Frame = Addon.Frame:NewClass('Inventory')
 Frame.Title = LibStub('AceLocale-3.0'):GetLocale(ADDON).TitleBags
 Frame.ItemGroup = Addon.ContainerItemGroup
 Frame.Bags = Addon.InventoryBags
+Frame.PickupItem = C.PickupContainerItem
 Frame.MainMenuButtons = {
 	MainMenuBarBackpackButton,
 	CharacterBag0Slot, CharacterBag1Slot, CharacterBag2Slot, CharacterBag3Slot
@@ -61,8 +62,43 @@ function Frame:GetItemInfo(bag, slot)
 	end
 end
 
+function Frame:GetBagFamily(bag)
+	if bag > NUM_BAG_SLOTS and bag <= Addon.NumBags or bag == REAGENTBANK_CONTAINER then
+		return REAGENTBANK_CONTAINER
+	elseif bag == KEYRING_CONTAINER then
+		return 9
+	elseif bag > BACKPACK_CONTAINER then
+		if self:IsCached() then
+			local data = self:GetOwner()[bag]
+			if data and data.link then
+				return GetItemFamily('item:' .. data.link)
+			end
+		else
+			return select(2, C.GetContainerNumFreeSlots(bag))
+		end
+	end
+	return 0
+end
+
+function Frame:NumSlots(bag)
+	local size
+	if bag <= BACKPACK_CONTAINER and bag ~= KEYRING_CONTAINER then
+		size = C.GetContainerNumSlots(bag)
+	elseif self:IsCached() then
+		local data = self:GetOwner()[bag]
+		if data then
+			size = data.size
+		end
+	elseif bag == KEYRING_CONTAINER then
+		size = HasKey and HasKey() and C.GetContainerNumSlots(bag)
+	else
+		size = C.GetContainerNumSlots(bag)
+	end
+	return size or 0
+end
+
 function Frame:SortItems()
-	if Addon.sets.serverSort then
+	if Addon.sets.serverSort and C.SortBags then
 		C.SortBags()
 		self:SendSignal('SORTING_STATUS')
 	else
