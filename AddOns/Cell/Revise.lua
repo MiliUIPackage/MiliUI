@@ -2164,6 +2164,41 @@ function F:Revise()
         end
     end
 
+    -- r187-release
+    if CellDB["revise"] and dbRevision < 187 then
+        if type(CellDB["dispelRequest"]["textOptions"][1]) ~= "string" then
+            tinsert(CellDB["dispelRequest"]["textOptions"][1], 1, "A")
+        end
+
+        if Cell.isRetail and type(CellDB["quickCast"]) == "table" then
+            for class, classTbl in pairs(CellDB["quickCast"]) do
+                for spec, specTbl in pairs(classTbl) do
+                    if not specTbl["glowBuffsColor"] then
+                        specTbl["glowBuffsColor"] = {1, 1, 0, 1}
+                    end
+                    if not specTbl["glowCasts"] then
+                        specTbl["glowCasts"] = {}
+                        specTbl["glowCastsColor"] = {1, 0, 1, 1}
+                    end
+                end
+            end
+        end
+    end
+    
+    -- r188-release
+    if CellDB["revise"] and dbRevision < 188 then
+        if Cell.isRetail and type(CellDB["quickCast"]) == "table" then
+            for class, classTbl in pairs(CellDB["quickCast"]) do
+                for spec, specTbl in pairs(classTbl) do
+                    if strfind(specTbl["orientation"], "^vertical") or strfind(specTbl["orientation"], "^horizontal") then
+                        specTbl["orientation"] = specTbl["orientation"]:gsub("^vertical%-", "")
+                        specTbl["orientation"] = specTbl["orientation"]:gsub("^horizontal%-", "")
+                    end
+                end
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
     if Cell.isWrath then
         CellCharacterDB["revise"] = Cell.version

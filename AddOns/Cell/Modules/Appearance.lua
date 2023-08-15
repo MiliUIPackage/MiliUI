@@ -22,7 +22,7 @@ local function CreateCellPane()
     cellPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -5)
     
     -- global scale
-    scaleSlider = Cell:CreateSlider(L["Scale"], cellPane, 0.5, 4, 141, 0.05, nil, nil, nil, L["Scale"], L["Non-integer scaling may result in abnormal display of options UI"])
+    scaleSlider = Cell:CreateSlider(L["Scale"], cellPane, 0.5, 4, 141, 0.01, nil, nil, nil, L["Scale"], L["Non-integer scaling may result in abnormal display of options UI"])
     scaleSlider:SetPoint("TOPLEFT", cellPane, "TOPLEFT", 5, -40)
     scaleSlider.afterValueChangedFn = function(value)
         CellDB["appearance"]["scale"] = value
@@ -1330,8 +1330,8 @@ local function ShowTab(tab)
             CreateUnitButtonStylePane()
             CreateIconOptionsFrame()
             CreateDebuffTypeColorPane()
-            F:ApplyCombatFunctionToWidget(scaleSlider)
-            F:ApplyCombatFunctionToWidget(strataDropdown)
+            F:ApplyCombatProtectionToWidget(scaleSlider)
+            F:ApplyCombatProtectionToWidget(strataDropdown)
         end
 
         appearanceTab:Show()

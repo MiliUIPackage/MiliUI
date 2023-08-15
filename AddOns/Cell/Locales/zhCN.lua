@@ -29,16 +29,25 @@ L["Options"] = "选项"
 L["Raid"] = "团队"
 
 -------------------------------------------------
--- tools
+-- mouse
 -------------------------------------------------
-L["Pull Timer"] = "开怪倒数"
-L["You don't have permission to do this"] = "你没有权限这样做"
-L["You"] = "你"
-L["%s lock %s on %s."] = "%s将%s锁定在%s。"
-L["%s unlock %s from %s."] = "%s将%s从%s解锁。"
--- L["Raid Sort"] = "团队排序"
--- L["Raid Roster"] = "团队名单"
+L["Left-Click"] = "左键"
+L["Right-Click"] = "右键"
+L["Left-Drag"] = "左键拖动"
+L["Right-Drag"] = "右键拖动"
+
+-------------------------------------------------
+-- raid roster
+-------------------------------------------------
+L["Instant Mode"] = "即时模式"
+L["Premade Mode"] = "预编排模式"
+L["Waiting for combat to end..."] = "等待战斗结束…"
+L["No support for rearrangement of members within a same subgroup"] = "不支持重排序同小队内的成员"
+L["No guarantee of the order of members in each subgroup"] = "不保证每个小队成员的顺序"
+L["change mode / apply changes"] = "切换模式 / 应用改动"
+L["discard changes"] = "放弃改动"
 L["raidRosterTips"] = "[右键] 助理，[Alt+右键] 移除。"
+L["You don't have permission to do this"] = "你没有权限这样做"
 
 -------------------------------------------------
 -- status text
@@ -155,7 +164,7 @@ L["Heal Absorb"] = "治疗吸收"
 L["Shield Texture"] = "护盾材质"
 L["Overshield Texture"] = "超过血量上限的护盾材质"
 L["Reset All"] = "全部重置"
-L["[Ctrl+LeftClick] to reset these settings"] = "[Ctrl+左键] 点击此按钮来重置这些设置"
+L["[Ctrl+Left-Click] to reset these settings"] = "[Ctrl+左键] 点击此按钮来重置这些设置"
 L["Debuff Type Color"] = "减益类型颜色"
 L["Curse"] = "诅咒"
 L["Poison"] = "中毒"
@@ -515,7 +524,7 @@ L["The spells list of a icons indicator is unordered (no priority)."] = "图标�
 L["The priority of spells decreases from top to bottom."] = "法术优先级从上到下递减。"
 L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
 L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
-L["%s in General must be enabled to make this indicator work."] = "要使用此指示器，必须先启用常规页面下的 %s 功能。"
+L["%s in Utilities must be enabled to make this indicator work."] = "要使用此指示器，必须先启用工具页面下的%s功能。"
 L["If you are a paladin or warrior, and the unit has no buffs from you, a %s icon will be displayed."] = "如果你是圣骑士或战士，且该单位没有来自你的增益时，将会显示一个%s图标。"
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
@@ -536,10 +545,12 @@ L["None"] = "无"
 L["Normal"] = "通常"
 L["Pixel"] = "像素"
 L["Shine"] = "闪耀"
+L["Proc"] = "触发"
 L["Glow Condition"] = "发光条件"
 L["Stack"] = "层数"
 L["Lines"] = "线条数"
 L["Particles"] = "粒子数"
+L["Duration"] = "持续时间"
 L["Frequency"] = "速度"
 L["Length"] = "长度"
 L["Thickness"] = "粗细"
@@ -573,8 +584,8 @@ L["Raid Tools"] = "团队工具"
 L["only in group"] = "仅在队伍中"
 L["Only show when you have permission to do this"] = "仅在你有权限这样做时显示"
 L["ReadyCheck and PullTimer buttons"] = "就位确认 与 开怪倒数 按钮"
-L["pullTimerTips"] = "\n|r开怪倒数\n左键单击: |cffffffff开始倒计时|r\n右键单击: |cffffffff取消倒计时|r"
-L["readyCheckTips"] = "\n|r就位确认\n左键单击: |cffffffff就位确认|r\n右键单击: |cffffffff职责确认|r"
+L["pullTimerTips"] = "\n|r开怪倒数\n左键: |cffffffff开始倒计时|r\n右键: |cffffffff取消倒计时|r"
+L["readyCheckTips"] = "\n|r就位确认\n左键: |cffffffff就位确认|r\n右键: |cffffffff职责确认|r"
 L["Ready"] = "就位"
 L["Pull"] = "倒数"
 L["Pull in %d sec"] = "%d秒后开怪"
@@ -583,7 +594,7 @@ L["Marks Bar"] = "标记工具条"
 L["Target Marks"] = "目标标记"
 L["World Marks"] = "世界标记"
 L["Both"] = "全部"
-L["marksTips"] = "\n|r目标标记\n左键单击: |cffffffff在目标上设置标记|r\n右键单击: |cffffffff将标记锁定在目标上 (在你的队伍中)|r"
+L["marksTips"] = "\n|r目标标记\n左键: |cffffffff在目标上设置标记|r\n右键: |cffffffff将标记锁定在目标上 (在你的队伍中)|r"
 L["Mover"] = "移动框"
 L["Unlock"] = "解锁"
 L["Lock"] = "锁定"
@@ -614,6 +625,10 @@ L["Use |cFFFFB5C5/cell buff X|r to set icon size"] = "用 |cFFFFB5C5/cell buff X
 L["Buff Tracker icon size is set to %d."] = "将增益检查图标的尺寸设置为 %d。"
 L["A positive integer is required."] = "需要一个正整数。"
 L["Fade Out These Buttons"] = "淡出这些按钮"
+L["%s lock %s on %s."] = "%s将%s锁定在%s。"
+L["%s unlock %s from %s."] = "%s将%s从%s解锁。"
+L["You"] = "你"
+-- L["Pull Timer"] = "开怪倒数"
 
 -------------------------------------------------
 -- spell request
@@ -645,7 +660,7 @@ L["Contains"] = "包含"
 L["Spells"] = "法术"
 L["SPELL"] = "大宝剑"
 L["Add"] = "添加"
-L["[Alt+LeftClick] to edit"] = "[Alt+左键] 修改"
+L["[Alt+Left-Click] to edit"] = "[Alt+左键] 修改"
 L["Add new spell"] = "添加新法术"
 L["Edit spell"] = "修改法术"
 L["SpellId and BuffId are the same in most cases"] = "大部分情况下法术ID与增益ID是相同的"
@@ -663,6 +678,26 @@ L["Respond to all dispellable debuffs"] = "响应所有的可驱散减益"
 L["Respond to specific dispellable debuffs"] = "仅响应指定的可驱散减益"
 L["IDs separated by whitespaces"] = "用空格分隔多个法术ID"
 L["Text Options"] = "文本选项"
+
+-------------------------------------------------
+-- quick cast
+-------------------------------------------------
+L["Quick Cast"] = "快捷施法"
+L["Create several buttons for quick casting and buff monitoring"] = "创建几个快捷施法按钮，并具有简单的增益监控功能"
+L["These settings are spec-specific"] = "这些设置是每个专精独立的"
+L["Max Buttons"] = "按钮数量"
+L["Spacing"] = "间距"
+L["cast Outer spell"] = "施放外圈法术"
+L["cast Inner spell"] = "施放内圈法术"
+L["set unit"] = "设置单位"
+L["clear unit"] = "清空单位"
+L["move"] = "移动"
+L["Outer Buff"] = "外圈增益"
+L["Inner Buff"] = "内圈增益"
+L["Glow Buffs"] = "增益发光"
+L["Glow Casts"] = "施法发光"
+L["Tip: right-click to delete"] = "提示：右键删除"
+L["You can't do that while in combat."] = "你不可以在战斗中这么做。"
 
 -------------------------------------------------
 -- about
@@ -705,6 +740,22 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 
 L["CHANGELOGS"] = [[
     <h1>如果更新后发现Cell不能正常工作，尝试禁用代码片段。</h1>
+    <br/>
+
+    <h1>r189-release (Aug 9, 2023, 08:27 GMT+8)</h1>
+    <p>* 修复“颜色”和“材质”类型的自定义指示器。</p>
+    <br/>
+
+    <h1>r188-release (Aug 7, 2023, 19:42 GMT+8)</h1>
+    <p>* 修复怀旧服的“团队构成”鼠标提示。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r187-release (Aug 5, 2023, 06:25 GMT+8)</h1>
+    <p>+ 新玩意儿：快捷施法（仅正式服）。</p>
+    <p>+ 添加“触发”类型的发光效果。</p>
+    <p>+ 为团队列表添加了“预编排模式”（不一定好使，用力过猛的话，可能会爆炸）。</p>
+    <p>* 修复怀旧服的“法术请求”。</p>
     <br/>
 
     <h1>r186-release (Jul 24, 2023, 21:06 GMT+8)</h1>

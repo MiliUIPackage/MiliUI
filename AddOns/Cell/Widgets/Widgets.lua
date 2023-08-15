@@ -311,8 +311,8 @@ function addon:StylizeFrame(frame, color, borderColor)
     frame:SetBackdropBorderColor(unpack(borderColor))
 end
 
-function addon:CreateFrame(name, parent, width, height, isTransparent)
-    local f = CreateFrame("Frame", name, parent, "BackdropTemplate")
+function addon:CreateFrame(name, parent, width, height, isTransparent, template)
+    local f = CreateFrame("Frame", name, parent, template and template..",BackdropTemplate" or "BackdropTemplate")
     f:Hide()
     if not isTransparent then addon:StylizeFrame(f) end
     f:EnableMouse(true)
@@ -807,6 +807,50 @@ function addon:CreateButtonGroup(buttons, onClick, func1, func2, onEnter, onLeav
     end
 
     return HighlightButton
+end
+
+-----------------------------------------
+-- tips button
+-----------------------------------------
+function addon:CreateTipsButton(parent, size, points, ...)
+    -- tips
+    local tips = Cell:CreateButton(parent, nil, "accent-hover", {size, size})
+    tips:SetPoint("TOPRIGHT")
+    tips.tex = tips:CreateTexture(nil, "ARTWORK")
+    tips.tex:SetAllPoints(tips)
+    tips.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\info2.tga")
+
+    local lines = {...}
+
+    tips:HookScript("OnEnter", function()
+        CellTooltip:SetOwner(tips, "ANCHOR_NONE")
+
+        for i, line in pairs(lines) do
+            if i == 1 then
+                CellTooltip:AddLine(line)
+            else
+                if type(line) == "string" then
+                    CellTooltip:AddLine("|cffffffff"..line)
+                elseif type(line) == "table" then
+                    CellTooltip:AddDoubleLine("|cffffffff"..line[1], "|cffffffff"..line[2])
+                end
+            end
+        end
+
+        if points == "BOTTOMLEFT" then
+            CellTooltip:SetPoint("BOTTOMLEFT", tips, "TOPLEFT", 0, 3)
+        elseif points == "BOTTOMRIGHT" then
+            CellTooltip:SetPoint("BOTTOMRIGHT", tips, "TOPRIGHT", 0, 3)
+        else
+            CellTooltip:SetPoint(unpack(points))
+        end
+
+        CellTooltip:Show()
+    end)
+
+    tips:HookScript("OnLeave", function()
+        CellTooltip:Hide()
+    end)
 end
 
 -----------------------------------------
@@ -1584,7 +1628,7 @@ function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, fu
             bar.text:SetText(format("%d%%", value / maxValue * 100))
         end
         
-        if func then func() end
+        if func then func(value) end
     end)
 
     bar:SetScript("OnHide", function()
@@ -1866,7 +1910,7 @@ end
 -----------------------------------------
 function addon:CreatePopupEditBox(parent, func, multiLine)
     if not parent.popupEditBox then
-        local eb = CreateFrame("EditBox", addonName.."PopupEditBox", parent, "BackdropTemplate")
+        local eb = CreateFrame("EditBox", nil, parent, "BackdropTemplate")
         parent.popupEditBox = eb
         eb:Hide()
         eb:SetAutoFocus(true)
@@ -1928,6 +1972,129 @@ function addon:CreatePopupEditBox(parent, func, multiLine)
     parent.popupEditBox:SetFrameLevel(parent:GetFrameLevel() + 50)
 
     return parent.popupEditBox
+end
+
+-----------------------------------------
+-- dual popup edit box
+-----------------------------------------
+function addon:CreateDualPopupEditBox(parent, leftTip, rightTip, isNumeric, func)
+    if not parent.dualPopupEditBox then
+        local f = CreateFrame("Frame", nil, parent)
+        parent.dualPopupEditBox = f
+        P:Size(f, 230, 20)
+        f:Hide()
+
+        -- ok
+        local ok = addon:CreateButton(f, "OK", "accent", {30, 20})
+        f.ok = ok
+        ok:SetPoint("TOPRIGHT")
+
+        -- left
+        local left = CreateFrame("EditBox", nil, f, "BackdropTemplate")
+        f.left = left
+        left:SetPoint("TOPLEFT")
+        P:Size(left, 100, 20)
+        left:SetAutoFocus(false)
+        left:SetFontObject(font)
+        left:SetJustifyH("LEFT")
+        left:SetMultiLine(false)
+        left:SetMaxLetters(255)
+        left:SetNumeric(isNumeric)
+        left:SetTextInsets(5, 5, 3, 4)
+        addon:StylizeFrame(left, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        
+        left:SetScript("OnEditFocusGained", function() left:HighlightText() end)
+        left:SetScript("OnEditFocusLost", function() left:HighlightText(0, 0) end)
+        left:SetScript("OnEscapePressed", function() f:Hide() end)
+
+        left:SetScript("OnTextChanged", function()
+            if not left:GetText() or strtrim(left:GetText()) == "" then
+                left.tip:Show()
+            else
+                left.tip:Hide()
+            end
+        end)
+
+        left:SetScript("OnTabPressed", function()
+            left:ClearFocus()
+            f.right:SetFocus(true)
+        end)
+
+        left.tip = left:CreateFontString(nil, "OVERLAY", font_name)
+        left.tip:SetPoint("LEFT", 5, 0)
+        
+        -- right
+        local right = CreateFrame("EditBox", nil, f, "BackdropTemplate")
+        f.right = right
+        right:SetPoint("TOPLEFT", left, "TOPRIGHT", P:Scale(1), 0)
+        right:SetPoint("TOPRIGHT", ok, "TOPLEFT", P:Scale(-1), 0)
+        P:Size(right, 100, 20)
+        right:SetAutoFocus(false)
+        right:SetFontObject(font)
+        right:SetJustifyH("LEFT")
+        right:SetMultiLine(false)
+        right:SetMaxLetters(255)
+        right:SetNumeric(isNumeric)
+        right:SetTextInsets(5, 5, 3, 4)
+        addon:StylizeFrame(right, {0.115, 0.115, 0.115, 1}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+
+        right:SetScript("OnEditFocusGained", function() right:HighlightText() end)
+        right:SetScript("OnEditFocusLost", function() right:HighlightText(0, 0) end)
+        right:SetScript("OnEscapePressed", function() f:Hide() end)
+
+        right:SetScript("OnTextChanged", function()
+            if not right:GetText() or strtrim(right:GetText()) == "" then
+                right.tip:Show()
+            else
+                right.tip:Hide()
+            end
+        end)
+
+        right:SetScript("OnTabPressed", function()
+            right:ClearFocus()
+            f.left:SetFocus(true)
+        end)
+
+        right.tip = right:CreateFontString(nil, "OVERLAY", font_name)
+        right.tip:SetPoint("LEFT", 5, 0)
+
+        f:SetScript("OnShow", function()
+            left.tip:Show()
+            right.tip:Show()
+        end)
+
+        f:SetScript("OnHide", function()
+            f:Hide()
+            left:SetText("")
+            right:SetText("")
+            left:ClearFocus()
+            right:ClearFocus()
+        end)
+
+        function f:ShowEditBox(l, r)
+            f:Show()
+            left:SetText(l or "")
+            right:SetText(r or "")
+            left:SetFocus(true)
+        end
+    end
+    
+    parent.dualPopupEditBox.left.tip:SetText("|cffababab"..leftTip)
+    parent.dualPopupEditBox.right.tip:SetText("|cffababab"..rightTip)
+
+    parent.dualPopupEditBox.ok:SetScript("OnClick", function()
+        if isNumeric then
+            func(tonumber(parent.dualPopupEditBox.left:GetText()), tonumber(parent.dualPopupEditBox.right:GetText()))
+        else
+            func(parent.dualPopupEditBox.left:GetText(), parent.dualPopupEditBox.right:GetText())
+        end
+        parent.dualPopupEditBox:Hide()
+    end)
+
+    parent.dualPopupEditBox:ClearAllPoints()
+    parent.dualPopupEditBox:SetFrameLevel(parent:GetFrameLevel() + 50)
+
+    return parent.dualPopupEditBox
 end
 
 -----------------------------------------
@@ -2560,7 +2727,7 @@ highlightTexture:Hide()
 list:SetScript("OnShow", function()
     list:SetScale(list.menu:GetEffectiveScale())
     list:SetFrameStrata(list.menu:GetFrameStrata())
-    list:SetFrameLevel(100) -- top
+    list:SetFrameLevel(list.menu:GetFrameLevel() + 20) -- top
 end)
 list:SetScript("OnHide", function() list:Hide() end)
 
