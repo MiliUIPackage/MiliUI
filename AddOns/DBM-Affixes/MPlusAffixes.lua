@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230624050639")
+mod:SetRevision("20230808042316")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -60,7 +60,7 @@ local function checkAfflicted(self)
 		--Timer exists, do nothing
 		return
 	end
-	timerAfflictedCD:Start(25)
+	timerAfflictedCD:Start(20)
 	self:Schedule(30, checkAfflicted, self)
 end
 
@@ -69,7 +69,7 @@ local function checkIncorp(self)
 		--Timer exists, do nothing
 		return
 	end
-	timerIncorporealCD:Start(40)
+	timerIncorporealCD:Start(35)
 	self:Schedule(45, checkIncorp, self)
 end
 
@@ -83,10 +83,9 @@ local function checkForCombat(self)
 			incorporealCounting = true
 			timerIncorporealCD:Resume()
 			local incorpRemaining = timerIncorporealCD:GetRemaining()
-			local afflictRemaining = timerAfflictedCD:GetRemaining()
 			if incorpRemaining and incorpRemaining > 0 then--Shouldn't be 0, unless a player clicked it off, in which case we can't reschedule
 				self:Unschedule(checkIncorp)
-				self:Schedule(incorpRemaining+5, checkIncorp, self)
+				self:Schedule(incorpRemaining+10, checkIncorp, self)
 				DBM:Debug("Experimental reschedule of checkIncorp running because you're in debug mode")
 			end
 		elseif not combatFound and incorporealCounting then
@@ -102,7 +101,7 @@ local function checkForCombat(self)
 			local afflictRemaining = timerAfflictedCD:GetRemaining()
 			if afflictRemaining and afflictRemaining > 0 then--Shouldn't be 0, unless a player clicked it off, in which case we can't reschedule
 				self:Unschedule(checkAfflicted)
-				self:Schedule(afflictRemaining+5, checkAfflicted, self)
+				self:Schedule(afflictRemaining+10, checkAfflicted, self)
 				DBM:Debug("Experimental reschedule of checkAfflicted running because you're in debug mode")
 			end
 		elseif not combatFound and afflictedCounting then
@@ -248,7 +247,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnEntangled:Show()
 			specWarnEntangled:Play("breakvine")--breakvine
 		end
-	elseif spellId == 408801 and self:AntiSpam(20, "aff7") then
+	elseif spellId == 408801 and self:AntiSpam(25, "aff7") then
 		if not incorpDetected then
 			incorpDetected = true
 		end

@@ -1,8 +1,13 @@
 # <DBM Mod> Dungeons (DF)
 
-## [r97-7-gfec4ab7](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/fec4ab79c570815707a62371734a6f4987394357) (2023-08-01)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r97...fec4ab79c570815707a62371734a6f4987394357) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r98](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r98) (2023-08-11)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r97...r98) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
+- and fix another weird bug  
+- tweak last  
+- Update Emberon timers to reflext August 10th 2023 hotfixes  
+- minor timer tweaks  
+- minor timer fixes to shrine of the storms  
 - Update .toc files and RU locale (#129)  
 - Update localization.tw.lua (#130)  
 -  - Moved Heartsbane triad to newer icon object so it works in solo groups, as well as just works more efficiently overall.  

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2102, "DBM-Party-BfA", 2, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230506080330")
+mod:SetRevision("20230804233648")
 mod:SetCreatureID(126832)
 mod:SetEncounterID(2093)
 mod:SetHotfixNoticeRev(20230506000000)
@@ -89,10 +89,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnPhase2:Show()
 		warnPhase2:Play("ptwo")
 		timerVilebombardmentCD:Start(2.2)
-		timerPowderShotCD:Start(6)
+		timerPowderShotCD:Start(5.6)
 --		timerBrewCD:Start(9.7)--No initial timer because he just doesn't activate ability utnil below x health, once activated THEN it has a CD
 		if not self:IsNormal() then
-			timerDiveBombCD:Start(13.8)
+			timerDiveBombCD:Start(12.8)
 		end
 	end
 end

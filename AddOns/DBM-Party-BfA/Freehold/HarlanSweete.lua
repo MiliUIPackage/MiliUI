@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2095, "DBM-Party-BfA", 2, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230621232728")
+mod:SetRevision("20230804233648")
 mod:SetCreatureID(126983)
 mod:SetEncounterID(2096)
 mod:SetHotfixNoticeRev(20230505000000)
@@ -75,11 +75,11 @@ function mod:SPELL_CAST_START(args)
 		timerAvastyeCD:Stop()
 		timerCannonBarrageCD:Stop()
 		timerWhirlingDaggerCD:Stop()
-		timerSwiftwindSaberCD:Start(10.9)
+		timerSwiftwindSaberCD:Start(10.5)
 		timerCannonBarrageCD:Start(15.7)
 		timerAvastyeCD:Start(21.8)
 		if self:IsMythicPlus() then
-			timerWhirlingDaggerCD:Start(14.5, self.vb.daggerCount+1)
+			timerWhirlingDaggerCD:Start(13.3, self.vb.daggerCount+1)
 		end
 	elseif spellId == 413145 or spellId == 413147 then--Shadowlands S2 version
 		specWarnSwiftwindSaber:Show()
@@ -95,7 +95,7 @@ function mod:SPELL_CAST_START(args)
 		if self:GetStage(3) then
 			timerWhirlingDaggerCD:Start(11.7, self.vb.daggerCount+1)--11.7-15
 		else
-			timerWhirlingDaggerCD:Start(18.2, self.vb.daggerCount+1)
+			timerWhirlingDaggerCD:Start(17.6, self.vb.daggerCount+1)
 		end
 	end
 end
@@ -146,7 +146,7 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 		if self:GetStage(3) then
 			timerCannonBarrageCD:Start(15.5)
 		else
-			timerCannonBarrageCD:Start(25.5)
+			timerCannonBarrageCD:Start(25)
 		end
 	end
 end

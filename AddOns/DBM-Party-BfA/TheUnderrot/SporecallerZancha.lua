@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2130, "DBM-Party-BfA", 8, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230617205658")
+mod:SetRevision("20230804233648")
 mod:SetCreatureID(131383)
 mod:SetEncounterID(2112)
 mod:SetHotfixNoticeRev(20230520000000)
@@ -75,7 +75,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	if spellId == 259830 then
 		--timerBoundlessRotCD:Start()
 	elseif spellId == 259718 and self:AntiSpam(3, 1) then
-		timerUpheavalCD:Start(20.6)
+		timerUpheavalCD:Start(self:IsMythicPlus() and 20.6 or 15.7)
 		if timerShockwaveCD:GetRemaining() < 8.5 then
 			local elapsed, total = timerShockwaveCD:GetTime()
 			local extend = 8.5 - (total-elapsed)

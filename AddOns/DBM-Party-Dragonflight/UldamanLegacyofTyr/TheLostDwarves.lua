@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2475, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230710194051")
+mod:SetRevision("20230814062205")
 mod:SetCreatureID(184580, 184581, 184582)
 mod:SetEncounterID(2555)
 --mod:SetUsedIcons(1, 2, 3)
@@ -134,14 +134,14 @@ function mod:SPELL_CAST_START(args)
 		local bossUid = DBM:GetUnitIdFromGUID(args.sourceGUID)
 		local bossPower = UnitPower(bossUid)--If boss power is ever less than 100 when this is cast, they're defeated
 		if bossPower == 100 and self:AntiSpam(8, 1) then--at least one caster is alive, start next timer
-			timerLongboatRaidCD:Start(79)
+			timerLongboatRaidCD:Start(77.7)
 		end
 		local cid = self:GetCIDFromGUID(args.sourceGUID)
 		if cid == 184581 then--Baelog
 			timerHeavyArrowCD:Stop(args.sourceGUID)
 			timerWildCleaveCD:Stop(args.sourceGUID)
 			if bossPower == 100 then--Alive, restart timers
-				timerWildCleaveCD:Start(24.9, args.sourceGUID)
+				timerWildCleaveCD:Start(23.8, args.sourceGUID)
 				timerHeavyArrowCD:Start(35, args.sourceGUID)
 			end
 		elseif cid == 184580 then--Olaf

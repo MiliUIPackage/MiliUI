@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2487, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230614234505")
+mod:SetRevision("20230814062205")
 mod:SetCreatureID(184018)
 mod:SetEncounterID(2556)
 mod:SetUsedIcons(8)
@@ -65,7 +65,7 @@ function mod:OnCombatStart(delay)
 	timerCalloftheDeepCD:Start(5-delay, 1)
 	timerThunderingSlamCD:Start(12.1-delay, 1)
 	timerQuakingTotemCD:Start(20.4-delay, 1)
-	timerBloodlustCD:Start(27.6-delay)
+	timerBloodlustCD:Start(27-delay)
 end
 
 --function mod:OnCombatEnd()
