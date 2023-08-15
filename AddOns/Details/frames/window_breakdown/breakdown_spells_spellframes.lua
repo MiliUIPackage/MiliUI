@@ -189,7 +189,7 @@ local onEnterSpellBar = function(spellBar, motion) --parei aqui: precisa por nom
 	local elapsedTime = spellBar.combatTime --this should be actorObject:Tempo()
 
 	---@type string
-	local actorName = spellsTab.GetActor():Name()
+	local actorName = spellsTab.GetActor():Name() --attempt to index a nil value
 
 	---@type spelltable
 	local spellTable = spellBar.spellTable
@@ -1512,7 +1512,7 @@ function spellsTab.CreateSpellBar(self, index) --~spellbar ~spellline ~spell ~cr
 
 	for i = 1, 16 do
 		---@type fontstring
-		local fontString = spellBar:CreateFontString("$parentFontString" .. i, "overlay", "GameFontHighlight")
+		local fontString = spellBar:CreateFontString("$parentFontString" .. i, "overlay", "GameFontHighlightSmall")
 		fontString:SetJustifyH("left")
 		fontString:SetTextColor(1, 1, 1, 1)
 		fontString:SetNonSpaceWrap(true)

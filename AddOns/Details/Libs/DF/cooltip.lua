@@ -50,6 +50,10 @@ function DF:CreateCoolTip()
 		end
 	end
 
+	function gameCooltip:Msg(...)
+		print("|cFFFFFF00Cooltip|r:", ...)
+	end
+
 	function gameCooltip:SetDebug(bDebugState)
 		gameCooltip.debug = bDebugState
 	end
@@ -308,7 +312,7 @@ function DF:CreateCoolTip()
 		end
 
 		if (not self.titleText) then
-			self.titleText = self:CreateFontString("$parent_TitleText", "OVERLAY", "GameFontHighlight")
+			self.titleText = self:CreateFontString("$parent_TitleText", "OVERLAY", "GameFontNormal")
 			self.titleText:SetJustifyH("LEFT")
 			DF:SetFontSize(self.titleText, 10)
 			self.titleText:SetPoint("CENTER", self.titleIcon, "CENTER", 0, 6)
@@ -3459,7 +3463,7 @@ function DF:CreateCoolTip()
 
 		local okay, errortext = pcall(host.CoolTip.BuildFunc, host, host.CoolTip and host.CoolTip.FixedValue)
 		if (not okay) then
-			gameCooltip:PrintDebug("ExecFunc() injected function error:", errortext)
+			gameCooltip:Msg("ExecFunc() injected function error:", errortext)
 		end
 
 		gameCooltip:SetOwner(host, host.CoolTip.MyAnchor, host.CoolTip.HisAnchor, host.CoolTip.X, host.CoolTip.Y)
