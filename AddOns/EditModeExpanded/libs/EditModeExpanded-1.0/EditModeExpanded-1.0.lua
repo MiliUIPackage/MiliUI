@@ -1476,7 +1476,7 @@ function lib:RegisterToggleInCombat(frame)
     table.insert(framesDialogs[systemID],
         {
             setting = ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT,
-            name = "Toggle Visibility in Combat",
+            name = "戰鬥中隱藏",
             type = Enum.EditModeSettingDisplayType.Checkbox,
     })
 end

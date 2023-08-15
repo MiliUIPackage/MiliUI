@@ -1,6 +1,6 @@
 ## Interface: 100105
 ## Title: Edit Mode Expanded
-## Version: 10.1-025
+## Version: 10.1-027
 ## Notes: Expands Edit Mode to apply to other frames
 ## Title-zhTW: |cff0099FF[介面]|r 編輯模式擴充包
 ## Notes-zhTW: Edit Mode Expanded |n|n讓編輯模式可以調整更多介面框架。|n|n|cffffd200使用方法: |r在編輯模式中調整框架。|n從Esc>選項>插件>編輯模式，停用不需要調整的框架。
@@ -18,4 +18,5 @@ libs\AceConfig-3.0\AceConfig-3.0.xml
 libs\LibDataBroker-1.1\LibDataBroker-1.1.lua
 libs\LibDBIcon-1.0\LibDBIcon-1.0.lua
 libs\EditModeExpanded-1.0\EditModeExpanded-1.0.xml
+MicroMenu.lua
 EditModeExpanded.lua

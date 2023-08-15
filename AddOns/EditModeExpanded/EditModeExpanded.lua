@@ -273,6 +273,46 @@ local function registerTotemFrame(db)
     totemFrameLoaded = true
 end
 
+local continueAfterCombatEndsHandlers = {}
+local function continueAfterCombatEnds(handler)
+    if InCombatLockdown() then
+        table.insert(continueAfterCombatEndsHandlers, handler)
+    else
+        handler()
+    end
+end
+
+local function registerGroupLootContainer()
+    local db = f.db.global
+    
+    local alreadyInitialized
+    GroupLootContainer:HookScript("OnShow", function()
+        continueAfterCombatEnds(function()
+            if alreadyInitialized then
+                if GroupLootContainer.system then
+                    lib:RepositionFrame(GroupLootContainer)
+                end
+                return
+            end
+            alreadyInitialized = true
+            lib:RegisterFrame(GroupLootContainer, "獲得物品通知", db.GroupLootContainer)
+            local noInfinite
+            hooksecurefunc(GroupLootContainer, "SetPoint", function()
+                if noInfinite then return end
+                noInfinite = true
+                lib:RepositionFrame(GroupLootContainer)
+                noFinite = nil
+            end)
+            hooksecurefunc("GroupLootContainer_Update", function()
+                lib:RepositionFrame(GroupLootContainer)
+            end)
+            hooksecurefunc(UIParentBottomManagedFrameContainer, "Layout", function()
+                lib:RepositionFrame(GroupLootContainer)
+            end)
+        end)
+    end)
+end
+
 f:SetScript("OnEvent", function(__, event, arg1)
     if (event == "ADDON_LOADED") and (arg1 == "EditModeExpanded") and (not addonLoaded) then
         addonLoaded = true
@@ -405,7 +445,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
         
         if db.EMEOptions.minimap then
             local isDefault = true
-            lib:RegisterCustomCheckbox(MinimapCluster, "Square",
+            lib:RegisterCustomCheckbox(MinimapCluster, "正方形",
                 function()
                     isDefault = false
                     Minimap:SetMaskTexture("Interface\\BUTTONS\\WHITE8X8")
@@ -570,7 +610,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
             end)
             local enabled = false
             local padding
-            lib:RegisterCustomCheckbox(MicroMenuContainer, "Set padding to zero",
+            lib:RegisterCustomCheckbox(MicroMenuContainer, "間距為零",
                 function()
                     enabled = true
                     for key, button in ipairs(MicroMenu:GetLayoutChildren()) do
@@ -602,6 +642,7 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     end
                 end
             )
+            
             hooksecurefunc(MicroMenuContainer, "Layout", function(...)
                 if OverrideActionBar.isShown then return end
                 if PetBattleFrame and PetBattleFrame:IsShown() then return end
@@ -617,6 +658,9 @@ f:SetScript("OnEvent", function(__, event, arg1)
                     MicroMenu:SetWidth(MicroMenu:GetWidth() - 30)
                 end
             end)
+            
+            lib:RegisterCustomCheckbox(MicroMenuContainer, "使用 10.0 的按鈕風格 (需要重新載入)", addon.EnableSkinMicroMenuBW, addon.DisableSkinMicroMenuBW, "10.0Style")
+            lib:RegisterCustomCheckbox(MicroMenuContainer, "使用暗影之境的按鈕風格 (需要重新載入)", addon.EnableSkinMicroMenuSL, addon.DisableSkinMicroMenuSL, "SLStyle")
         end
         
         if db.EMEOptions.menuResizable then
@@ -642,43 +686,26 @@ f:SetScript("OnEvent", function(__, event, arg1)
         end
         
         if db.EMEOptions.bonusRoll then
-            local alreadyInitialized
+            local alreadyInitialized = false
             
             BonusRollFrame:HookScript("OnShow", function()
                 if alreadyInitialized then
-                    lib:RepositionFrame(BonusRollFrame)
+                    if BonusRollFrame.system then
+                        lib:RepositionFrame(BonusRollFrame)
+                    end
                     return
                 end
                 alreadyInitialized = true
-                lib:RegisterFrame(BonusRollFrame, "骰子面板", db.BonusRoll)
-                lib:HideByDefault(BonusRollFrame)
-                BonusRollFrame.Selection:SetFrameStrata("TOOLTIP")
+                continueAfterCombatEnds(function()
+                    lib:RegisterFrame(BonusRollFrame, "骰子面板", db.BonusRoll)
+                    lib:HideByDefault(BonusRollFrame)
+                    BonusRollFrame.Selection:SetFrameStrata("TOOLTIP")
+                end)
             end)
         end
         
         if db.EMEOptions.groupLootContainer then
-            local alreadyInitialized
-            GroupLootContainer:HookScript("OnShow", function()
-                if alreadyInitialized then
-                    lib:RepositionFrame(GroupLootContainer)
-                    return
-                end
-                alreadyInitialized = true
-                lib:RegisterFrame(GroupLootContainer, "獲得物品通知", db.GroupLootContainer)
-                local noInfinite
-                hooksecurefunc(GroupLootContainer, "SetPoint", function()
-                    if noInfinite then return end
-                    noInfinite = true
-                    lib:RepositionFrame(GroupLootContainer)
-                    noFinite = nil
-                end)
-                hooksecurefunc("GroupLootContainer_Update", function()
-                    lib:RepositionFrame(GroupLootContainer)
-                end)
-                hooksecurefunc(UIParentBottomManagedFrameContainer, "Layout", function()
-                    lib:RepositionFrame(GroupLootContainer)
-                end)
-            end)
+            registerGroupLootContainer()
         end
         
         if db.EMEOptions.actionBars then
@@ -729,13 +756,15 @@ f:SetScript("OnEvent", function(__, event, arg1)
             ContainerFrame1:HookScript("OnShow", function()
                 if alreadyInit then return end
                 alreadyInit = true
-                lib:RegisterFrame(ContainerFrame1, "主背包", db.ContainerFrame1)
-                hooksecurefunc("UpdateContainerFrameAnchors", function()
-                    if noInfinite then return end
-                    if InCombatLockdown() then return end
-                    noInfinite = true
-                    lib:RepositionFrame(ContainerFrame1)
-                    noInfinite = false
+                continueAfterCombatEnds(function()
+                    lib:RegisterFrame(ContainerFrame1, "主背包", db.ContainerFrame1)
+                    hooksecurefunc("UpdateContainerFrameAnchors", function()
+                        if noInfinite then return end
+                        if InCombatLockdown() then return end
+                        noInfinite = true
+                        lib:RepositionFrame(ContainerFrame1)
+                        noInfinite = false
+                    end)
                 end)
             end)
         end
@@ -745,13 +774,15 @@ f:SetScript("OnEvent", function(__, event, arg1)
             ContainerFrameCombinedBags:HookScript("OnShow", function()
                 if alreadyInit then return end
                 alreadyInit = true
-                lib:RegisterFrame(ContainerFrameCombinedBags, "合併背包", db.ContainerFrameCombinedBags)
-                hooksecurefunc("UpdateContainerFrameAnchors", function()
-                    if noInfinite then return end
-                    if InCombatLockdown() then return end
-                    noInfinite = true
-                    lib:RepositionFrame(ContainerFrameCombinedBags)
-                    noInfinite = false
+                continueAfterCombatEnds(function()
+                    lib:RegisterFrame(ContainerFrameCombinedBags, "合併背包", db.ContainerFrameCombinedBags)
+                    hooksecurefunc("UpdateContainerFrameAnchors", function()
+                        if noInfinite then return end
+                        if InCombatLockdown() then return end
+                        noInfinite = true
+                        lib:RepositionFrame(ContainerFrameCombinedBags)
+                        noInfinite = false
+                    end)
                 end)
             end)
         end
@@ -868,6 +899,11 @@ f:SetScript("OnEvent", function(__, event, arg1)
                         RuneFrame:SetParent(PlayerFrameBottomManagedFramesContainer)
                     end
                 )
+            end
+            
+            if db.EMEOptions.totem then
+                -- Ghoul
+                registerTotemFrame(db)
             end
         elseif class == "MAGE" then
             if db.EMEOptions.arcaneCharges then
@@ -1052,6 +1088,11 @@ f:SetScript("OnEvent", function(__, event, arg1)
                 end)
             end)
         end
+    elseif event == "PLAYER_REGEN_ENABLED" then
+        for _, handler in ipairs(continueAfterCombatEndsHandlers) do
+            handler()
+        end
+        wipe(continueAfterCombatEndsHandlers)
     end
 end)
 
@@ -1059,3 +1100,4 @@ f:RegisterEvent("ADDON_LOADED")
 f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_TOTEM_UPDATE")
 f:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
+f:RegisterEvent("PLAYER_REGEN_ENABLED")
