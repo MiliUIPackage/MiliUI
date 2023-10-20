@@ -91,12 +91,14 @@ for i, playerButton in ipairs({header:GetChildren()}) do
     -- playerButton.unitid = playerUnit
 end
 
-local init
+local init, previousLayout
 local function PartyFrame_UpdateLayout(layout, which)
-    -- if layout ~= Cell.vars.currentLayout then return end
     if Cell.vars.groupType ~= "party" and init then return end
     init = true
-    layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["party"]
+
+    if previousLayout == layout and not which then return end
+    previousLayout = layout
+
     layout = CellDB["layouts"][layout]
 
     -- anchor

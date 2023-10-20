@@ -8,7 +8,7 @@ Cell.frames.aboutTab = aboutTab
 aboutTab:SetAllPoints(Cell.frames.optionsFrame)
 aboutTab:Hide()
 
-local authorText, translatorsText, specialThanksText, patronsText
+local authorText, translatorsTextCN, translatorsTextKR, specialThanksText, patronsText
 local UpdateFont
 
 -------------------------------------------------
@@ -16,7 +16,7 @@ local UpdateFont
 -------------------------------------------------
 local descriptionPane
 local function CreateDescriptionPane()
-    descriptionPane = Cell:CreateTitledPane(aboutTab, "Cell", 422, 170)
+    descriptionPane = Cell:CreateTitledPane(aboutTab, "Cell", 422, 140)
     descriptionPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -5)
 
     local changelogsBtn = Cell:CreateButton(descriptionPane, L["Changelogs"], "accent", {100, 17})
@@ -46,7 +46,7 @@ end
 -------------------------------------------------
 local function CreateAuthorPane()
     local authorPane = Cell:CreateTitledPane(aboutTab, L["Author"], 205, 50)
-    authorPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -190)
+    authorPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -165)
     
     authorText = authorPane:CreateFontString(nil, "OVERLAY")
     authorText:SetPoint("TOPLEFT", 5, -27)
@@ -62,7 +62,7 @@ end
 -------------------------------------------------
 local function CreateSlashPane()
     local slashPane = Cell:CreateTitledPane(aboutTab, L["Slash Commands"], 205, 50)
-    slashPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 222, -190)
+    slashPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 222, -165)
     
     local commandText = slashPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     commandText:SetPoint("TOPLEFT", 5, -27)
@@ -73,34 +73,46 @@ end
 -- translators
 -------------------------------------------------
 local function CreateTranslatorsPane()
-    local translatorsPane = Cell:CreateTitledPane(aboutTab, L["Translators"], 205, 112)
-    translatorsPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -255)
+    local translatorsPane = Cell:CreateTitledPane(aboutTab, L["Translators"], 205, 120)
+    translatorsPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -235)
 
-    translatorsText = translatorsPane:CreateFontString(nil, "OVERLAY")
-    translatorsText.font = UNIT_NAME_FONT_KOREAN
-    translatorsText.size = 12
-    UpdateFont(translatorsText)
+    translatorsTextCN = translatorsPane:CreateFontString(nil, "OVERLAY")
+    translatorsTextCN.font = UNIT_NAME_FONT_CHINESE
+    translatorsTextCN.size = 13
+    UpdateFont(translatorsTextCN)
 
-    translatorsText:SetPoint("TOPLEFT", 5, -27)
-    translatorsText:SetPoint("TOPRIGHT", -5, -27)
-    translatorsText:SetSpacing(5)
-    translatorsText:SetJustifyH("LEFT")
-    translatorsText:SetText("zhTW: RainbowUI, BNS333\nkoKR: naragok79, netaras, 부패질")
+    translatorsTextCN:SetPoint("TOPLEFT", 5, -27)
+    translatorsTextCN:SetPoint("TOPRIGHT", -5, -27)
+    translatorsTextCN:SetSpacing(5)
+    translatorsTextCN:SetJustifyH("LEFT")
+    translatorsTextCN:SetText("zhTW: RainbowUI, BNS333, 米利")
+
+    translatorsTextKR = translatorsPane:CreateFontString(nil, "OVERLAY")
+    translatorsTextKR.font = UNIT_NAME_FONT_KOREAN
+    translatorsTextKR.size = 12
+    UpdateFont(translatorsTextKR)
+
+    if translatorsTextCN:GetNumLines() == 1 then
+        translatorsTextKR:SetPoint("TOPLEFT", 5, -45)
+        translatorsTextKR:SetPoint("TOPRIGHT", -5, -45)
+    else
+        translatorsTextKR:SetPoint("TOPLEFT", 5, -73)
+        translatorsTextKR:SetPoint("TOPRIGHT", -5, -73)
+    end
+    translatorsTextKR:SetSpacing(5)
+    translatorsTextKR:SetJustifyH("LEFT")
+    translatorsTextKR:SetText("koKR: naragok79, netaras, 부패질")
 end
 
 -------------------------------------------------
 -- special thanks
 -------------------------------------------------
 local function CreateSpecialThanksPane()
-    local specialThanksPane = Cell:CreateTitledPane(aboutTab, L["Special Thanks"], 205, 112)
-    specialThanksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 222, -255)
+    local specialThanksPane = Cell:CreateTitledPane(aboutTab, L["Special Thanks"], 205, 120)
+    specialThanksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 222, -235)
 
     specialThanksText = specialThanksPane:CreateFontString(nil, "OVERLAY")
-    if LOCALE_zhCN then
-        specialThanksText.font = GameFontNormal:GetFont()
-    else
-        specialThanksText.font = UNIT_NAME_FONT_CHINESE
-    end
+    specialThanksText.font = UNIT_NAME_FONT_CHINESE
     specialThanksText.size = 13
     UpdateFont(specialThanksText)
 
@@ -113,6 +125,18 @@ end
 -------------------------------------------------
 -- patrons
 -------------------------------------------------
+local function GetPatrons()
+    local str = ""
+    local n = #Cell.patrons
+    for i = 1, n do
+        str = str .. Cell.patrons[i][1]
+        if i ~= n then
+            str = str .. "\n"
+        end
+    end
+    return str
+end
+
 local function CreateAnimation(frame)
     local fadeOut = frame:CreateAnimationGroup()
     frame.fadeOut = fadeOut
@@ -180,24 +204,20 @@ local function CreatePatronsPane()
     bgTex:SetPoint("TOPLEFT", -5, 5)
     bgTex:SetPoint("BOTTOMRIGHT", 5, -5)
     bgTex:SetTexture("Interface\\Buttons\\WHITE8x8")
-    bgTex:SetGradient("HORIZONTAL", CreateColor(0.1, 0.1, 0.1, 1), CreateColor(0.1, 0.1, 0.1, 0.25))
+    bgTex:SetGradient("HORIZONTAL", CreateColor(0.1, 0.1, 0.1, 1), CreateColor(0.1, 0.1, 0.1, 0.3))
 
     local patronsScroll = Cell:CreateScrollFrame(patronsPane, -27, 0)
     patronsScroll:SetScrollStep(27)
 
     patronsText = patronsScroll.content:CreateFontString(nil, "OVERLAY")
-    if LOCALE_zhCN then
-        patronsText.font = GameFontNormal:GetFont()
-    else
-        patronsText.font = UNIT_NAME_FONT_CHINESE
-    end
+    patronsText.font = UNIT_NAME_FONT_CHINESE
     patronsText.size = 12
     UpdateFont(patronsText)
 
     patronsText:SetPoint("TOPLEFT")
     patronsText:SetSpacing(5)
     patronsText:SetJustifyH("LEFT")
-    patronsText:SetText(F:GetPatrons())
+    patronsText:SetText(GetPatrons())
 
     -- update width
     local elapsedTime = 0
@@ -290,14 +310,14 @@ end
 
 local function CreateLinksPane()
     local linksPane = Cell:CreateTitledPane(aboutTab, L["Links"], 422, 100)
-    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -385)
+    linksPane:SetPoint("TOPLEFT", aboutTab, "TOPLEFT", 5, -370)
 
     local linksEB = Cell:CreateEditBox(linksPane, 412, 20)
     linksEB:SetPoint("TOPLEFT", 5, -27)
-    linksEB:SetText("https://github.com/enderneko/Cell/issues")
+    linksEB:SetText("https://github.com/enderneko/Cell")
     linksEB:SetScript("OnTextChanged", function(self, userChanged)
         if userChanged then
-            linksEB:SetText("https://github.com/enderneko/Cell/issues")
+            linksEB:SetText("https://github.com/enderneko/Cell")
             linksEB:HighlightText()
         else
             linksEB:ClearFocus()
@@ -305,7 +325,7 @@ local function CreateLinksPane()
         linksEB:SetCursorPosition(0)
     end)
     linksEB:SetScript("OnHide", function()
-        linksEB:SetText("https://github.com/enderneko/Cell/issues")
+        linksEB:SetText("https://github.com/enderneko/Cell")
     end)
 
     --! github
@@ -358,7 +378,7 @@ end
 -------------------------------------------------
 local function CreateImportExportPane()
     local iePane = Cell:CreateTitledPane(aboutTab, L["Import & Export All Settings"], 422, 50)
-    iePane:SetPoint("TOPLEFT", 5, -500)
+    iePane:SetPoint("TOPLEFT", 5, -485)
 
     local importBtn = Cell:CreateButton(iePane, L["Import"], "accent-hover", {200, 20})
     importBtn:SetPoint("TOPLEFT", 5, -27)
@@ -396,7 +416,7 @@ Cell:RegisterCallback("ShowOptionsTab", "AboutTab_ShowTab", ShowTab)
 
 UpdateFont = function(fs)
     if not fs then return end
-    
+
     fs:SetFont(fs.font, fs.size + CellDB["appearance"]["optionsFontSizeOffset"], "")
     fs:SetTextColor(1, 1, 1, 1)
     fs:SetShadowColor(0, 0, 0)
@@ -405,7 +425,8 @@ end
 
 function Cell:UpdateAboutFont()
     UpdateFont(authorText)
-    UpdateFont(translatorsText)
+    UpdateFont(translatorsTextCN)
+    UpdateFont(translatorsTextKR)
     UpdateFont(specialThanksText)
     UpdateFont(patronsText)
 end

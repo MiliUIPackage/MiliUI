@@ -916,7 +916,7 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
         end
     end
 
-    addon:SetTooltips(cb, "ANCHOR_TOPLEFT", 0, 2, ...)
+    addon:SetTooltips(cb, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     return cb
 end
@@ -1752,12 +1752,12 @@ function addon:CreateMask(parent, text, points) -- points = {topleftX, topleftY,
     parent.mask:Show()
 end
 
-function addon:CreateCombatMask(parent)
+function addon:CreateCombatMask(parent, x1, y1, x2, y2)
     local mask = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     parent.combatMask = mask
 
-    mask:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-    mask:SetPoint("BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+    mask:SetPoint("TOPLEFT", P:Scale(x1 or 1), P:Scale(y1 or -1))
+    mask:SetPoint("BOTTOMRIGHT", P:Scale(x2 or -1), P:Scale(y2 or 1))
 
     addon:StylizeFrame(mask, {0.17, 0.15, 0.15, 0.8}, {0, 0, 0, 0})
     -- mask:SetFrameStrata("DIALOG")
@@ -2381,7 +2381,7 @@ end
 -----------------------------------------
 function addon:CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delayTime, noFadeIn)
     if not delayTime then delayTime = 3 end
-    if not timePerScroll then timePerScroll = 0.025 end
+    if not timePerScroll then timePerScroll = 0.02 end
     if not scrollStep then scrollStep = 1 end
 
     local frame = CreateFrame("ScrollFrame", nil, parent)
@@ -2420,7 +2420,7 @@ function addon:CreateScrollTextFrame(parent, s, timePerScroll, scrollStep, delay
 
     local maxHScrollRange
     local elapsedTime, delay, scroll = 0, 0, 0
-    local nextRound
+    local wait, nextRound
     
     alpha1:SetScript("OnFinished", function()
         frame:SetHorizontalScroll(0)

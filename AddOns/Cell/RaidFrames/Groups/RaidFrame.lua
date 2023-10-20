@@ -161,25 +161,13 @@ for i = 1, (Cell.isRetail and 3 or 5) do
     Cell.unitButtons.arena["raidpet"..i] = arenaPetButtons[i]
 end
 
-local init
+local init, previousLayout
 local function RaidFrame_UpdateLayout(layout, which)
-    -- if layout ~= Cell.vars.currentLayout then return end
     if Cell.vars.groupType ~= "raid" and init then return end
     init = true
 
-    if Cell.vars.inBattleground == 5 then
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["arena"]
-    elseif Cell.vars.inBattleground == 15 or Cell.vars.inBattleground == 40 then
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["battleground"..Cell.vars.inBattleground]
-    elseif Cell.vars.inMythic then -- retail
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["raid_mythic"]
-    elseif Cell.vars.inInstance then -- retail
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["raid_instance"]
-    elseif Cell.vars.raidType then -- wrath
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole][Cell.vars.raidType]
-    else
-        layout = CellLayoutAutoSwitchTable[Cell.vars.playerSpecRole]["raid_outdoor"]
-    end
+    if previousLayout == layout and not which then return end
+    previousLayout = layout
 
     layout = CellDB["layouts"][layout]
 

@@ -39,6 +39,7 @@ select(2, ...).L = setmetatable({
     ["fadeOut"] = "Fade out over time",
     ["shieldByMe"] = "Only show PW:S cast by me",
     ["onlyShowOvershields"] = "Only show overshields",
+    ["showAllSpells"] = "Show all spells",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -59,7 +60,7 @@ select(2, ...).L = setmetatable({
     ["INVERT"] = "Invert",
     ["Default"] = _G.DEFAULT,
 
-    ["ABOUT"] = "Cell is a unique raid frame addon inspired by CompactRaid.\nI love CompactRaid so much, but it seems to be abandoned. And I made Cell, hope you enjoy.\nSome ideas are from other great raid frame addons, such as Aptechka, Grid2 and VuhDo.\nCell is not meant to be a lightweight or powerful raid frame addon. It's easy to use and good enough for you (hope so).",
+    ["ABOUT"] = "Cell is a nice raid frame addon inspired by several great addons, such as CompactRaid, Grid2, Aptechka and VuhDo.\nWith a more human-friendly interface, Cell can provide a better user experience, better than ever.\nHope you enjoy.",
     ["RESET"] = "Cell requires a full reset after updating from a very old version",
     ["RESET_CHARACTER"] = "Cell requires a character profile reset after updating from a very old version",
     ["RESET_INCLUDES"] = "Only Click-Castings and Layout Auto Switch are included",
@@ -78,7 +79,58 @@ select(2, ...).L = setmetatable({
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
-        <h1>Try disabling code snippets, if Cell doesn't work after update.</h1>
+        <h1>r198-release (Oct 7, 2023, 06:54 GMT+8)</h1>
+        <p>* Updated indicators: Target Counter, Shield Bar.</p>
+        <br/>
+
+        <h1>r197-release (Sep 20, 2023, 08:08 GMT+8)</h1>
+        <p>* Added a "Show Solo" option for Marks Bar.</p>
+        <p>* Added Ice Cold to Defensive CDs indicator.</p>
+        <p>* Updated ICC debuffs, thanks to 大胖宝.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r196-release (Sep 16, 2023, 09:32 GMT+8)</h1>
+        <p>* Updated Quick Cast and Spell Request.</p>
+        <p>* Fix Status Text indicator.</p>
+        <p>+ Code Snippets vars: CELL_BORDER_SIZE, CELL_BORDER_COLOR.</p>
+        <br/>
+
+        <h1>r195-release (Sep 12, 2023, 06:52 GMT+8)</h1>
+        <p>* Updated Missing Buffs indicator.</p>
+        <br/>
+
+        <h1>r194-release (Sep 3, 2023, 20:41 GMT+8)</h1>
+        <p>* Updated expansion data, which is used to match Raid Debuffs based on the instance you are in on Wrath. Currently, deDE, frFR, koKR, zhCN and zhTW are supported.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r193-release (Sep 1, 2023, 05:57 GMT+8)</h1>
+        <p>* Fixed layout switch.</p>
+        <p>* Fixed Defensive Cooldowns indicator (Mirror Image).</p>
+        <p>* Fixed issues with CVar "ActionButtonUseKeyDown" on Wrath.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r192-release (Aug 25, 2023, 20:41 GMT+8)</h1>
+        <p>* Added indicator validator to ensure all indicators are in the right order.</p>
+        <p>* Fixed expansion data for frFR.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+        
+        <h1>r191-release (Aug 22, 2023, 09:50 GMT+8)</h1>
+        <p>* Updated expansion data for frFR (Thanks to Zuvila).</p>
+        <p>* Updated Targeted Spells, Quick Cast.</p>
+        <br/>
+
+        <h1>r190-beta (Aug 18, 2023, 21:30 GMT+8)</h1>
+        <p>+ New indicator: Crowd Controls (Retail).</p>
+        <p>* Updated Layout Auto Switch, now support spec profile (Retail).</p>
+        <p>* Optimized UNIT_AURA related functions.</p>
+        <p>* Fixed indicators issues with Spotlight frames.</p>
+        <p>* Updated Quick Cast, Spell Request.</p>
+        <p>* Updated raid setup tooltip.</p>
+        <p>* Updated zhTW.</p>
         <br/>
 
         <h1>r189-release (Aug 9, 2023, 08:27 GMT+8)</h1>
@@ -199,6 +251,11 @@ select(2, ...).L = setmetatable({
         <p>* Updated zhTW.</p>
         <br/>
 
+        <p><a href="older">Click to view older changelogs</a></p>
+        <br/>
+    ]],
+
+    ["OLDER_CHANGELOGS"] = [[
         <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
         <h2>Retail</h2>
         <p>+ New indicator: Private Auras.</p>
@@ -316,11 +373,6 @@ select(2, ...).L = setmetatable({
         <p>* Bug fixes.</p>
         <br/>
 
-        <p><a href="older">Click to view older changelogs</a></p>
-        <br/>
-    ]],
-
-    ["OLDER_CHANGELOGS"] = [[
         <h1>r149-release (Nov 29, 2022, 06:35 GMT+8)</h1>
         <p>* Added NPC button size options.</p>
         <p>* Added a bar orientation option "Vertical B".</p>

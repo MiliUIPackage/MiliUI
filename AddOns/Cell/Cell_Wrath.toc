@@ -1,7 +1,7 @@
 ## Interface: 30402
 ## Title: Cell
-## Version: r189-release
-## Author: 篠崎
+## Version: r198-release
+## Author: enderneko
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
 ## SavedVariablesPerCharacter: CellCharacterDB
@@ -34,10 +34,11 @@ Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
 Indicators\Consumables.lua
 Indicators\Custom_Wrath.lua
+Indicators\PatronIcon.lua
 
 RaidFrames\MainFrame.lua
 
-RaidDebuffs\ExpansionData.lua
+RaidDebuffs\ExpansionData\LoadExpansionData.xml
 Modules\LoadModules_Wrath.xml
 Utilities\LoadUtilities_Wrath.xml
 RaidDebuffs\LoadRaidDebuffs_Wrath.xml

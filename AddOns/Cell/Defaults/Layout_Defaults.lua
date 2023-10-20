@@ -1,7 +1,7 @@
 local addonName, Cell = ...
 
 -- number of built-in indicators
-Cell.defaults.builtIns = 27
+Cell.defaults.builtIns = 28
 
 Cell.defaults.indicatorIndices = {
     ["nameText"] = 1,
@@ -29,8 +29,9 @@ Cell.defaults.indicatorIndices = {
     ["privateAuras"] = 23,
     ["targetedSpells"] = 24,
     ["targetCounter"] = 25,
-    ["consumables"] = 26,
-    ["missingBuffs"] = 27,
+    ["crowdControls"] = 26,
+    ["consumables"] = 27,
+    ["missingBuffs"] = 28,
 }
 
 Cell.defaults.layout = {
@@ -389,11 +390,11 @@ Cell.defaults.layout = {
             ["indicatorName"] = "targetedSpells",
             ["type"] = "built-in",
             ["enabled"] = true,
+            ["showAllSpells"] = false,
             ["position"] = {"CENTER", "TOPLEFT", 7, -7},
             ["frameLevel"] = 50,
             ["size"] = {20, 20},
             ["border"] = 2,
-            -- ["glow"] = {"Pixel", {0.95,0.95,0.32,1}, 9, 0.25, 8, 2},
             ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
         }, -- 24
         {
@@ -407,23 +408,47 @@ Cell.defaults.layout = {
             ["color"] = {1, 0.1, 0.1},
         }, -- 25
         {
+            ["name"] = "Crowd Controls",
+            ["indicatorName"] = "crowdControls",
+            ["type"] = "built-in",
+            ["enabled"] = false,
+            ["position"] = {"CENTER", "CENTER", 0, 0},
+            ["frameLevel"] = 20,
+            ["size"] = {22, 22},
+            ["border"] = 2,
+            ["num"] = 3,
+            ["font"] = {
+                {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
+                {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+            },
+            ["dispellableByMe"] = false,
+            ["orientation"] = "left-to-right",
+        }, -- 26
+        {
             ["name"] = "Consumables",
             ["indicatorName"] = "consumables",
             ["type"] = "built-in",
             ["enabled"] = true,
             ["speed"] = 1,
-        }, -- 26
+        }, -- 27
         {
             ["name"] = "Missing Buffs",
             ["indicatorName"] = "missingBuffs",
             ["type"] = "built-in",
             ["enabled"] = false,
-            ["buffByMe"] = false,
+            ["filters"] = {
+                ["buffByMe"] = true,
+                ["PWF"] = true,
+                ["MotW"] = true,
+                ["AB"] = true,
+                ["BS"] = true,
+                ["BotB"] = true,
+            },
             ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
             ["frameLevel"] = 10,
             ["size"] = {13, 13},
             ["num"] = 3,
             ["orientation"] = "right-to-left",
-        }, -- 27
+        }, -- 28
     },
 }

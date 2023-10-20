@@ -21,37 +21,34 @@ Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 local localizedClass = {}
 FillLocalizedClassList(localizedClass)
 
-local classFileToID = {
-    WARRIOR = 1,
-    PALADIN = 2,
-    HUNTER = 3,
-    ROGUE = 4,
-    PRIEST = 5,
-    DEATHKNIGHT = 6,
-    SHAMAN = 7,
-    MAGE = 8,
-    WARLOCK = 9,
-    MONK = 10,
-    DRUID = 11,
-    DEMONHUNTER = 12,
-    EVOKER = 13,
-}
+local sortedClasses = {}
+local classFileToID = {}
+local classIDToFile = {}
 
-local classIDToFile = {
-    [1] = "WARRIOR",
-    [2] = "PALADIN",
-    [3] = "HUNTER",
-    [4] = "ROGUE",
-    [5] = "PRIEST",
-    [6] = "DEATHKNIGHT",
-    [7] = "SHAMAN",
-    [8] = "MAGE",
-    [9] = "WARLOCK",
-    [10] = "MONK",
-    [11] = "DRUID",
-    [12] = "DEMONHUNTER",
-    [13] = "EVOKER",
-}
+do
+    -- WARRIOR = 1,
+    -- PALADIN = 2,
+    -- HUNTER = 3,
+    -- ROGUE = 4,
+    -- PRIEST = 5,
+    -- DEATHKNIGHT = 6,
+    -- SHAMAN = 7,
+    -- MAGE = 8,
+    -- WARLOCK = 9,
+    -- MONK = 10,
+    -- DRUID = 11,
+    -- DEMONHUNTER = 12,
+    -- EVOKER = 13,
+    for i = 1, GetNumClasses() do --! returns the highest class ID
+        local classFile = select(2, GetClassInfo(i))
+        if classFile then --! returns nil for classes that don't exist in Classic.
+            tinsert(sortedClasses, classFile)
+            classFileToID[classFile] = i
+            classIDToFile[i] = classFile
+        end
+    end
+    sort(sortedClasses)
+end
 
 function F:GetClassID(classFile)
     return classFileToID[classFile]
@@ -71,7 +68,7 @@ function F:IterateClasses()
     return function()
         i = i + 1
         if i <= GetNumClasses() then
-            return GetClassInfo(i)
+            return sortedClasses[i], classFileToID[sortedClasses[i]]
         end
     end
 end
@@ -157,7 +154,7 @@ function F:ConvertRGB(r, g, b, desaturation)
 end
 
 function F:ConvertRGB_256(r, g, b)
-    return r * 255, g * 255, b * 255
+    return floor(r * 255), floor(g * 255), floor(b * 255)
 end
 
 function F:ConvertRGBToHEX(r, g, b)
@@ -771,16 +768,22 @@ function F:IterateAllUnitButtons(func, updateCurrentGroupOnly)
     end
 end
 
+function F:IterateSharedUnitButtons(func)
+    -- npc
+    for _, b in ipairs(Cell.unitButtons.npc) do
+        func(b)
+    end
+
+    -- spotlight
+    for _, b in pairs(Cell.unitButtons.spotlight) do
+        func(b)
+    end
+end
+
 function F:GetUnitButtonByUnit(unit)
     if not unit then return end
 
-    local normal, spotlight
-    for _, b in pairs(Cell.unitButtons.spotlight) do
-        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
-            spotlight = b
-            break
-        end
-    end
+    local normal, spotlight1, spotlight2, spotlight3, spotlight4, spotlight5
 
     if Cell.vars.groupType == "raid" then
         if Cell.vars.inBattleground == 5 then
@@ -794,7 +797,23 @@ function F:GetUnitButtonByUnit(unit)
         normal = Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
     end
 
-    return normal, spotlight
+    for _, b in pairs(Cell.unitButtons.spotlight) do
+        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+            if not spotlight1 then
+                spotlight1 = b
+            elseif not spotlight2 then
+                spotlight2 = b
+            elseif not spotlight3 then
+                spotlight3 = b
+            elseif not spotlight4 then
+                spotlight4 = b
+            elseif not spotlight5 then
+                spotlight5 = b
+            end
+        end
+    end
+
+    return normal, spotlight1, spotlight2, spotlight3, spotlight4, spotlight5
 end
 
 function F:GetUnitButtonByGUID(guid)
@@ -803,6 +822,46 @@ end
 
 function F:GetUnitButtonByName(name)
     return F:GetUnitButtonByUnit(Cell.vars.names[name])
+end
+
+function F:HandleUnitButton(type, unit, func, ...)
+    if not unit then return end
+
+    if type == "guid" then
+        unit = Cell.vars.guids[unit]
+    elseif type == "name" then
+        unit = Cell.vars.names[unit]
+    end
+
+    if not unit then return end
+
+    local handled, normal
+
+    if Cell.vars.groupType == "raid" then
+        if Cell.vars.inBattleground == 5 then
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.arena[unit]
+        else
+            normal = Cell.unitButtons.raid.units[unit] or Cell.unitButtons.npc.units[unit] or Cell.unitButtons.raidpet.units[unit]
+        end
+    elseif Cell.vars.groupType == "party" then
+        normal = Cell.unitButtons.party.units[unit] or Cell.unitButtons.npc.units[unit]
+    else -- solo
+        normal = Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
+    end
+
+    if normal then
+        func(normal, ...)
+        handled = true
+    end
+    
+    for _, b in pairs(Cell.unitButtons.spotlight) do
+        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+            func(b, ...)
+            handled = true
+        end
+    end
+
+    return handled
 end
 
 function F:UpdateTextWidth(fs, text, width, relativeTo)

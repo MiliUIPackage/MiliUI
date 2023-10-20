@@ -12,9 +12,28 @@ local UnitCastingInfo = UnitCastingInfo
 local UnitChannelInfo = UnitChannelInfo
 
 -------------------------------------------------
+-- show / hide
+-------------------------------------------------
+local function HideCasts(b)
+    b.indicators.targetedSpells:Hide()
+end
+
+local function ShowCasts(b, inListFound, start, duration, icon, isChanneling, num)
+    b.indicators.targetedSpells.cooldown:SetReverse(not isChanneling)
+    b.indicators.targetedSpells:SetCooldown(start, duration, icon, num)
+    -- glow if not 0
+    if inListFound then
+        b.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
+    else
+        b.indicators.targetedSpells:ShowGlow()
+    end
+end
+
+-------------------------------------------------
 -- targeted spells
 -------------------------------------------------
 local casts, castsOnUnit = {}, {}
+local showAllSpells
 
 local function GetCastsOnUnit(guid)
     if castsOnUnit[guid] then
@@ -37,56 +56,35 @@ local function GetCastsOnUnit(guid)
 end
 
 local function UpdateCastsOnUnit(guid)
-    local b1, b2 = F:GetUnitButtonByGUID(guid)
-    if not (b1 or b2) then return end
-
     local allCasts = 0
-    local startTime, endTime, spellId, icon
-    local noneZeroFound
+    local startTime, endTime, spellId, icon, isChanneling
+    local inListFound
 
     for _, castInfo in pairs(GetCastsOnUnit(guid)) do
         allCasts = allCasts + 1
 
         if not endTime then --! init
-            startTime, endTime, spellId, icon = castInfo["startTime"], castInfo["endTime"], castInfo["spellId"], castInfo["icon"]
+            startTime, endTime, spellId, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["spellId"], castInfo["icon"], castInfo["isChanneling"]
         else
             spellId = castInfo["spellId"]
-            if Cell.vars.targetedSpellsList[spellId] then --! [NONE ZERO]
-                if not noneZeroFound or endTime > castInfo["endTime"] then --! NOT FOUND BEFORE or SHORTER DURATION
-                    startTime, endTime, icon = castInfo["startTime"], castInfo["endTime"], castInfo["icon"]
+            if Cell.vars.targetedSpellsList[spellId] then --! [IN LIST]
+                if not inListFound or endTime > castInfo["endTime"] then --! NOT FOUND BEFORE or SHORTER DURATION
+                    startTime, endTime, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["icon"], castInfo["isChanneling"]
                 end
-            elseif not noneZeroFound and endTime > castInfo["endTime"] then --! [ZERO] NOT FOUND BEFORE and SHORTER DURATION
-                startTime, endTime, icon = castInfo["startTime"], castInfo["endTime"], castInfo["icon"]
+            elseif not inListFound and endTime > castInfo["endTime"] then --! [NOT IN LIST] NOT FOUND BEFORE and SHORTER DURATION
+                startTime, endTime, icon, isChanneling = castInfo["startTime"], castInfo["endTime"], castInfo["icon"], castInfo["isChanneling"]
             end
         end
 
         if Cell.vars.targetedSpellsList[spellId] then
-            noneZeroFound = true
+            inListFound = true
         end
     end
 
     if allCasts == 0 then
-        if b1 then b1.indicators.targetedSpells:Hide() end
-        if b2 then b2.indicators.targetedSpells:Hide() end
+        F:HandleUnitButton("guid", guid, HideCasts)
     else
-        if b1 then
-            b1.indicators.targetedSpells:SetCooldown(startTime, endTime-startTime, icon, allCasts)
-            -- glow if not 0
-            if noneZeroFound then
-                b1.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
-            else
-                b1.indicators.targetedSpells:ShowGlow()
-            end
-        end
-        if b2 then
-            b2.indicators.targetedSpells:SetCooldown(startTime, endTime-startTime, icon, allCasts)
-            -- glow if not 0
-            if noneZeroFound then
-                b2.indicators.targetedSpells:ShowGlow(unpack(Cell.vars.targetedSpellsGlow))
-            else
-                b2.indicators.targetedSpells:ShowGlow()
-            end
-        end
+        F:HandleUnitButton("guid", guid, ShowCasts, inListFound, startTime, endTime-startTime, icon, isChanneling, allCasts)
     end
 end
 
@@ -97,58 +95,82 @@ eventFrame:SetScript("OnEvent", function(_, event, sourceUnit)
         wipe(castsOnUnit)
         F:IterateAllUnitButtons(function(b)
             b.indicators.targetedSpells:Hide()
-        end)
+        end, true)
         return
     end
 
     if sourceUnit and UnitIsEnemy(sourceUnit, "player") then
         local sourceGUID = UnitGUID(sourceUnit)
-        local cast = casts[sourceGUID]
         local previousTarget
 
         -- check if expired
-        if cast and cast["endTime"] <= GetTime() then
-            previousTarget = cast["targetGUID"]
+        if casts[sourceGUID] and casts[sourceGUID]["endTime"] <= GetTime() then
+            previousTarget = casts[sourceGUID]["targetGUID"]
             casts[sourceGUID] = nil
             UpdateCastsOnUnit(previousTarget)
         end
 
-        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED"  or event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE" or event == "UNIT_TARGET" or event == "NAME_PLATE_UNIT_ADDED" then
+        if event == "UNIT_SPELLCAST_START" or event == "UNIT_SPELLCAST_DELAYED"  or event == "UNIT_SPELLCAST_CHANNEL_START" or event == "UNIT_SPELLCAST_CHANNEL_UPDATE"
+            or event == "UNIT_TARGET" or event == "NAME_PLATE_UNIT_ADDED" then
+            local isChanneling
             -- name, text, texture, startTimeMS, endTimeMS, isTradeSkill, castID, notInterruptible, spellId
             local name, _, texture, startTimeMS, endTimeMS, _, _, notInterruptible, spellId = UnitCastingInfo(sourceUnit)
             if not name then
                 -- name, text, texture, startTimeMS, endTimeMS, isTradeSkill, notInterruptible, spellId
                 name, _, texture, startTimeMS, endTimeMS, _, notInterruptible, spellId = UnitChannelInfo(sourceUnit)
+                isChanneling = true
             end
 
             -- print(name, spellId)
 
-            if cast then previousTarget = cast["targetGUID"] end
+            if casts[sourceGUID] then previousTarget = casts[sourceGUID]["targetGUID"] end
 
-            if spellId and (Cell.vars.targetedSpellsList[spellId] or Cell.vars.targetedSpellsList[0]) then
+            if spellId and (Cell.vars.targetedSpellsList[spellId] or showAllSpells) then
                 local targetUnit = sourceUnit.."target"
-                if UnitIsVisible(targetUnit) then
-                    for member in F:IterateGroupMembers() do
-                        if UnitIsUnit(targetUnit, member) then
-                            local targetGUID = UnitGUID(member)
-                            casts[sourceGUID] = {
-                                ["startTime"] = startTimeMS/1000,
-                                ["endTime"] = endTimeMS/1000,
-                                ["spellId"] = spellId,
-                                ["icon"] = texture,
-                                ["targetGUID"] = targetGUID,
-                            }
-                            UpdateCastsOnUnit(targetGUID)
-                            break
+                targetUnit = F:GetTargetUnitID(targetUnit) -- units in group (players/pets), no npcs
+                if targetUnit and UnitIsVisible(targetUnit) then
+                    local targetGUID = UnitGUID(targetUnit)
+                    casts[sourceGUID] = {
+                        ["startTime"] = startTimeMS/1000,
+                        ["endTime"] = endTimeMS/1000,
+                        ["spellId"] = spellId,
+                        ["icon"] = texture,
+                        ["targetGUID"] = targetGUID,
+                        ["isChanneling"] = isChanneling,
+                        -- ["sourceUnit"] = sourceUnit,
+                        -- ["targetUnit"] = targetUnit,
+                    }
+                    UpdateCastsOnUnit(targetGUID)
+                    
+                    -- NOTE: double check
+                    C_Timer.After(0.1, function()
+                        local newSourceGUID = UnitGUID(sourceUnit) -- NOTE: if sourceUnit == "target", it can change
+                        if newSourceGUID == sourceGUID and not UnitIsUnit(sourceUnit.."target", targetUnit) then
+                            -- print("old:", sourceUnit, targetUnit)
+                            if casts[sourceGUID] then
+                                -- update new
+                                local newTarget = F:GetTargetUnitID(sourceUnit.."target")
+                                if newTarget and UnitIsVisible(newTarget) then
+                                    -- print("new:", sourceUnit, newTarget)
+                                    newTarget = UnitGUID(newTarget)
+                                    casts[sourceGUID]["targetGUID"] = newTarget
+                                    UpdateCastsOnUnit(newTarget)
+                                else
+                                    casts[sourceGUID] = nil
+                                end
+                                -- update old
+                                UpdateCastsOnUnit(targetGUID)
+                            end
                         end
-                    end
+                    end)
                 end
             end
             if previousTarget then UpdateCastsOnUnit(previousTarget) end
 
-        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_FAILED_QUIET" or event == "UNIT_SPELLCAST_CHANNEL_STOP" or event == "NAME_PLATE_UNIT_REMOVED" then
-            if cast then
-                previousTarget = cast["targetGUID"]
+        elseif event == "UNIT_SPELLCAST_STOP" or event == "UNIT_SPELLCAST_INTERRUPTED" or event == "UNIT_SPELLCAST_FAILED" or event == "UNIT_SPELLCAST_FAILED_QUIET" or event == "UNIT_SPELLCAST_CHANNEL_STOP"
+            or event == "NAME_PLATE_UNIT_REMOVED" then
+            if casts[sourceGUID] then
+                previousTarget = casts[sourceGUID]["targetGUID"]
                 casts[sourceGUID] = nil
                 UpdateCastsOnUnit(previousTarget)
             end
@@ -161,8 +183,9 @@ function I:CreateTargetedSpells(parent)
     parent.indicators.targetedSpells = frame
     frame:Hide()
 
-    -- frame.spellId
-    -- frame.spellCount
+    frame.cooldown:SetScript("OnCooldownDone", function()
+        frame:Hide()
+    end)
 
     function frame:SetCooldown(start, duration, icon, count)
         frame.duration:Hide()
@@ -241,7 +264,7 @@ end
 local function EnterLeaveInstance()
     F:IterateAllUnitButtons(function(b)
         b.indicators.targetedSpells:Hide()
-    end, true)
+    end)
 end
 
 function I:EnableTargetedSpells(enabled)
@@ -249,7 +272,7 @@ function I:EnableTargetedSpells(enabled)
         -- UNIT_SPELLCAST_DELAYED UNIT_SPELLCAST_FAILED UNIT_SPELLCAST_FAILED_QUIET UNIT_SPELLCAST_INTERRUPTED UNIT_SPELLCAST_START UNIT_SPELLCAST_STOP
         -- UNIT_SPELLCAST_CHANNEL_START UNIT_SPELLCAST_CHANNEL_STOP UNIT_SPELLCAST_CHANNEL_UPDATE
         -- UNIT_TARGET ENCOUNTER_END
-
+        
         eventFrame:RegisterEvent("UNIT_SPELLCAST_START")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_STOP")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_DELAYED")
@@ -259,13 +282,13 @@ function I:EnableTargetedSpells(enabled)
         eventFrame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_START")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_STOP")
         eventFrame:RegisterEvent("UNIT_SPELLCAST_CHANNEL_UPDATE")
-
-        eventFrame:RegisterEvent("UNIT_TARGET")
+        
+        -- eventFrame:RegisterEvent("UNIT_TARGET") --! Fired when the target of yourself, raid, and party members change, Should also work for 'pet' and 'focus'.
         eventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
         eventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
         
         eventFrame:RegisterEvent("ENCOUNTER_END")
-
+        
         Cell:RegisterCallback("EnterInstance", "TargetedSpells_EnterInstance", EnterLeaveInstance)
         Cell:RegisterCallback("LeaveInstance", "TargetedSpells_LeaveInstance", EnterLeaveInstance)
     else
@@ -273,9 +296,13 @@ function I:EnableTargetedSpells(enabled)
         
         Cell:UnregisterCallback("EnterInstance", "TargetedSpells_EnterInstance")
         Cell:UnregisterCallback("LeaveInstance", "TargetedSpells_LeaveInstance")
-
+        
         F:IterateAllUnitButtons(function(b)
             b.indicators.targetedSpells:Hide()
         end)
     end
+end
+
+function I:ShowAllTargetedSpells(showAll)
+    showAllSpells = showAll
 end

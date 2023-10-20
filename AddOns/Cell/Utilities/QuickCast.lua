@@ -10,13 +10,35 @@ local LCG = LibStub("LibCustomGlow-1.0")
 --                                quick cast                               --
 -- ----------------------------------------------------------------------- --
 local quickCastTable
+local previewButtons = {}
 local UpdatePreview, CreateQuickCastButton
+
+local defaultQuickCastTable = {
+    ["enabled"] = false,
+    ["namePosition"] = "RIGHT",
+    ["num"] = 4,
+    ["orientation"] = "top-to-bottom",
+    ["size"] = 25,
+    ["lines"] = 6,
+    ["spacingX"] = 3,
+    ["spacingY"] = 3,
+    ["glowBuffsColor"] = {1, 1, 0, 1},
+    ["glowBuffs"] = {},
+    ["glowCastsColor"] = {1, 0, 1, 1},
+    ["glowCasts"] = {},
+    ["outerColor"] = {0.11, 0.74, 0.9},
+    ["outerBuff"] = 0,
+    ["innerColor"] = {0.95, 0.32, 0.37},
+    ["innerBuff"] = 0,
+    ["units"] = {},
+    ["position"] = {},
+}
 
 -- ----------------------------------------------------------------------- --
 --                              option widgets                             --
 -- ----------------------------------------------------------------------- --
 local qcPane, qcAddEB
-local qcEnabledCB, qcNameDD, qcNameText, qcButtonsSlider, qcSizeSlider, qcOrientationDD, qcOrientationText, qcSpacingSlider
+local qcEnabledCB, qcNameDD, qcNameText, qcButtonsSlider, qcSizeSlider, qcOrientationDD, qcOrientationText, qcSpacingXSlider, qcSpacingYSlider, qcLinesSlider
 local qcOuterCP, qcOuterBtn
 local qcInnerCP, qcInnerBtn
 
@@ -27,7 +49,7 @@ local qcGlowCastsButtons = {}
 local qcGlowCastsPane, qcGlowCastsCP, qcGlowCastsAddBtn
 
 local function UpdateWidgets()
-    Cell:SetEnabled(quickCastTable["enabled"], qcNameDD, qcNameText, qcButtonsSlider, qcSizeSlider, qcOrientationDD, qcOrientationText, qcSpacingSlider)
+    Cell:SetEnabled(quickCastTable["enabled"], qcNameDD, qcNameText, qcButtonsSlider, qcSizeSlider, qcOrientationDD, qcOrientationText, qcSpacingXSlider, qcSpacingYSlider, qcLinesSlider)
     Cell:SetEnabled(quickCastTable["enabled"], qcOuterCP, qcOuterBtn, qcInnerCP, qcInnerBtn, qcGlowBuffsCP, qcGlowBuffsAddBtn, qcGlowCastsCP, qcGlowCastsAddBtn)
     
     for _, b in pairs(qcGlowBuffsButtons) do
@@ -46,6 +68,7 @@ local function CreateQCPane()
     qcPane = Cell:CreateTitledPane(Cell.frames.utilitiesTab, L["Quick Cast"].." |cFF777777"..L["only in group"], 422, 250)
     qcPane:SetPoint("TOPLEFT", 5, -5)
     qcPane:SetPoint("BOTTOMRIGHT", -5, 5)
+    qcPane:Hide()
 
     local qcTips = qcPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     qcTips:SetPoint("TOPLEFT", 5, -25)
@@ -55,18 +78,37 @@ local function CreateQCPane()
 
     -- enabled ----------------------------------------------------------------------
     qcEnabledCB = Cell:CreateCheckButton(qcPane, L["Enabled"], function(checked, self)
-        quickCastTable["enabled"] = checked
-        UpdateWidgets()
+        if not CellDB["quickCast"][Cell.vars.playerClass] then
+            CellDB["quickCast"][Cell.vars.playerClass] = {}
+        end
+        
+        if not CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
+            CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID] = F:Copy(defaultQuickCastTable)
+        end
+
+        CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID]["enabled"] = checked
+
         Cell:Fire("UpdateQuickCast")
+        UpdateWidgets()
+        UpdatePreview()
     end)
-    qcEnabledCB:SetPoint("TOPLEFT", qcPane, 5, -85)
+    qcEnabledCB:SetPoint("TOPLEFT", qcPane, 5, -75)
 
     -- name -------------------------------------------------------------------------
     qcNameDD = Cell:CreateDropdown(qcPane, 120)
-    qcNameDD:SetPoint("TOPLEFT", qcPane, 151, -85)
+    qcNameDD:SetPoint("TOPLEFT", qcPane, 297, -75)
     
     local anchorPoints = {"LEFT", "RIGHT", "TOP", "BOTTOM"}
     local items = {}
+    tinsert(items, {
+        ["text"] = L["None"],
+        ["value"] = "none",
+        ["onClick"] = function()
+            quickCastTable["namePosition"] = "none"
+            UpdatePreview()
+            Cell:Fire("UpdateQuickCast")
+        end
+    })
     for _, point in pairs(anchorPoints) do
         tinsert(items, {
             ["text"] = L[point],
@@ -78,15 +120,6 @@ local function CreateQCPane()
             end
         })
     end
-    tinsert(items, {
-        ["text"] = L["None"],
-        ["value"] = "none",
-        ["onClick"] = function()
-            quickCastTable["namePosition"] = "none"
-            UpdatePreview()
-            Cell:Fire("UpdateQuickCast")
-        end
-    })
     qcNameDD:SetItems(items)
 
     qcNameText = qcPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
@@ -94,28 +127,22 @@ local function CreateQCPane()
     qcNameText:SetPoint("BOTTOMLEFT", qcNameDD, "TOPLEFT", 0, 1)
 
     -- buttons ----------------------------------------------------------------------
-    qcButtonsSlider = Cell:CreateSlider(L["Max Buttons"], qcPane, 1, 5, 120, 1, function(value)
+    qcButtonsSlider = Cell:CreateSlider(L["Max Buttons"], qcPane, 1, 6, 120, 1, function(value)
         quickCastTable["num"] = value
-        Cell:Fire("UpdateQuickCast")
-    end)
-    qcButtonsSlider:SetPoint("TOPLEFT", qcEnabledCB, 0, -50)
-    
-    -- size -------------------------------------------------------------------------
-    qcSizeSlider = Cell:CreateSlider(L["Size"], qcPane, 16, 64, 120, 1, function(value)
-        quickCastTable["size"] = value
         UpdatePreview()
         Cell:Fire("UpdateQuickCast")
     end)
-    qcSizeSlider:SetPoint("TOPLEFT", qcButtonsSlider, 0, -55)
-
+    qcButtonsSlider:SetPoint("TOPLEFT", qcEnabledCB, 0, -55)
+    
     -- orientation ------------------------------------------------------------------
     qcOrientationDD = Cell:CreateDropdown(qcPane, 120)
-    qcOrientationDD:SetPoint("TOPLEFT", qcNameDD, 0, -50)
+    qcOrientationDD:SetPoint("TOPLEFT", qcButtonsSlider, 146, 0)
     qcOrientationDD:SetItems({
         {
             ["text"] = L["left-to-right"],
             ["value"] = "left-to-right",
             ["onClick"] = function()
+                qcLinesSlider:SetName(L["Columns"])
                 quickCastTable["orientation"] = "left-to-right"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -124,6 +151,7 @@ local function CreateQCPane()
             ["text"] = L["right-to-left"],
             ["value"] = "right-to-left",
             ["onClick"] = function()
+                qcLinesSlider:SetName(L["Columns"])
                 quickCastTable["orientation"] = "right-to-left"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -132,6 +160,7 @@ local function CreateQCPane()
             ["text"] = L["top-to-bottom"],
             ["value"] = "top-to-bottom",
             ["onClick"] = function()
+                qcLinesSlider:SetName(L["Rows"])
                 quickCastTable["orientation"] = "top-to-bottom"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -140,6 +169,7 @@ local function CreateQCPane()
             ["text"] = L["bottom-to-top"],
             ["value"] = "bottom-to-top",
             ["onClick"] = function()
+                qcLinesSlider:SetName(L["Rows"])
                 quickCastTable["orientation"] = "bottom-to-top"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -150,12 +180,34 @@ local function CreateQCPane()
     qcOrientationText:SetText(L["Orientation"])
     qcOrientationText:SetPoint("BOTTOMLEFT", qcOrientationDD, "TOPLEFT", 0, 1)
 
-    -- spacing ----------------------------------------------------------------------
-    qcSpacingSlider = Cell:CreateSlider(L["Spacing"], qcPane, 0, 16, 120, 1, function(value)
-        quickCastTable["spacing"] = value
+    -- row/column -------------------------------------------------------------------
+    qcLinesSlider = Cell:CreateSlider(L["Columns"], qcPane, 1, 6, 120, 1, function(value)
+        quickCastTable["lines"] = value
         Cell:Fire("UpdateQuickCast")
     end)
-    qcSpacingSlider:SetPoint("TOPLEFT", qcOrientationDD, 0, -55)
+    qcLinesSlider:SetPoint("TOPLEFT", qcOrientationDD, 146, 0)
+
+    -- size -------------------------------------------------------------------------
+    qcSizeSlider = Cell:CreateSlider(L["Size"], qcPane, 16, 64, 120, 1, function(value)
+        quickCastTable["size"] = value
+        UpdatePreview()
+        Cell:Fire("UpdateQuickCast")
+    end)
+    qcSizeSlider:SetPoint("TOPLEFT", qcButtonsSlider, 0, -55)
+
+    -- spacingX ---------------------------------------------------------------------
+    qcSpacingXSlider = Cell:CreateSlider(L["Spacing"].." X", qcPane, 0, 64, 120, 1, function(value)
+        quickCastTable["spacingX"] = value
+        Cell:Fire("UpdateQuickCast")
+    end)
+    qcSpacingXSlider:SetPoint("TOPLEFT", qcSizeSlider, 146, 0)
+    
+    -- spacingY ---------------------------------------------------------------------
+    qcSpacingYSlider = Cell:CreateSlider(L["Spacing"].." Y", qcPane, 0, 64, 120, 1, function(value)
+        quickCastTable["spacingY"] = value
+        Cell:Fire("UpdateQuickCast")
+    end)
+    qcSpacingYSlider:SetPoint("TOPLEFT", qcSpacingXSlider, 146, 0)
 
     -- input ------------------------------------------------------------------------
     qcAddEB = Cell:CreatePopupEditBox(qcPane)
@@ -198,7 +250,7 @@ end
 -- ----------------------------------------------------------------------- --
 --                                 preview                                 --
 -- ----------------------------------------------------------------------- --
-local previewPane, previewButton
+local previewFrame, previewPane, previewButton
 UpdatePreview = function()
     if not previewButton then
         previewButton = CreateQuickCastButton(previewPane, "CellQuickCastPreviewButton", true)
@@ -266,11 +318,26 @@ UpdatePreview = function()
     previewButton:SetNamePosition(quickCastTable["namePosition"])
     previewButton:SetColor(quickCastTable["glowBuffsColor"],  quickCastTable["glowCastsColor"], quickCastTable["outerColor"], quickCastTable["innerColor"])
     previewButton:Show()
+
+    P:Size(previewFrame, 100+quickCastTable["size"], 100+quickCastTable["size"])
+
+    for i, p in pairs(previewButtons) do
+        if quickCastTable["enabled"] and i <= quickCastTable["num"] then
+            p:Show()
+        else
+            p:Hide()
+        end
+    end
 end
 
-local function CreatePreviewPane()
-    previewPane = Cell:CreateTitledPane(qcPane, L["Preview"], 130, 155)
-    previewPane:SetPoint("TOPRIGHT", 0, -85)
+local function CreatePreviewFrame()
+    previewFrame = Cell:CreateFrame(nil, qcPane, 130, 130)
+    previewFrame:SetPoint("TOPLEFT", CellOptionsFrame, "TOPRIGHT", 5, -80)
+    previewFrame:Show()
+    
+    previewPane = Cell:CreateTitledPane(previewFrame, L["Preview"], 130, 130)
+    previewPane:SetPoint("TOPLEFT", 5, -5)
+    previewPane:SetPoint("BOTTOMRIGHT", -5, 5)
 
     -- tips
     local tips = Cell:CreateTipsButton(previewPane, 17, {"TOPLEFT", previewPane, "TOPRIGHT", 10, 0},
@@ -626,8 +693,15 @@ local function LoadDB()
     qcNameDD:SetSelectedValue(quickCastTable["namePosition"])
     qcButtonsSlider:SetValue(quickCastTable["num"])
     qcOrientationDD:SetSelectedValue(quickCastTable["orientation"])
+    if strfind(quickCastTable["orientation"], "top") then
+        qcLinesSlider:SetName(L["Rows"])
+    else
+        qcLinesSlider:SetName(L["Columns"])
+    end
+    qcLinesSlider:SetValue(quickCastTable["lines"])
     qcSizeSlider:SetValue(quickCastTable["size"])
-    qcSpacingSlider:SetValue(quickCastTable["spacing"])
+    qcSpacingXSlider:SetValue(quickCastTable["spacingX"])
+    qcSpacingYSlider:SetValue(quickCastTable["spacingY"])
     
     UpdatePreview()
 
@@ -657,13 +731,31 @@ local function ShowUtilitySettings(which)
         if not init then
             init = true
             CreateQCPane()
-            CreatePreviewPane()
+            CreatePreviewFrame()
             CreateOuterPane()
             CreateInnerPane()
             CreateGlowBuffsPane()
             CreateGlowCastsPane()
 
-            F:ApplyCombatProtectionToFrame(qcPane)
+            F:ApplyCombatProtectionToFrame(qcPane, -4, 4, 4, -4)
+
+            qcPane:SetScript("OnShow", function()
+                for i, p in pairs(previewButtons) do
+                    if quickCastTable and i <= quickCastTable["num"] then
+                        p.fadeOut:Stop()
+                        p:FadeIn()
+                    end
+                end
+            end)
+
+            qcPane:SetScript("OnHide", function()
+                for i, p in pairs(previewButtons) do
+                    if quickCastTable and i <= quickCastTable["num"] then
+                        p.fadeIn:Stop()
+                        p:FadeOut()
+                    end
+                end
+            end)
         end
 
         LoadDB()
@@ -702,7 +794,7 @@ local glowBuffs, glowCasts = {}, {}
 local outerBuff, innerBuff
 local borderSize, glowBuffsColor, glowCastsColor
 
-local quickCastFrame = CreateFrame("Frame", "CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
+local quickCastFrame = CreateFrame("Frame", "_CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate") -- TODO: rename
 quickCastFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
 quickCastFrame:SetSize(16, 16)
 quickCastFrame:SetClampedToScreen(true)
@@ -835,7 +927,15 @@ local function QuickCast_UpdateInRange(self, ir)
     if ir then
         A:FrameFadeIn(self, 0.25, self:GetAlpha(), 1)
     else
-        A:FrameFadeOut(self, 0.25, self:GetAlpha(), 0.5)
+        A:FrameFadeOut(self, 0.25, self:GetAlpha(), 0.25)
+    end
+end
+
+local function QuickCast_UpdateStatus(self)
+    if UnitIsDeadOrGhost(self.unit) or not UnitIsConnected(self.unit) then
+        self.invalidTex:Show()
+    else
+        self.invalidTex:Hide()
     end
 end
 
@@ -847,6 +947,8 @@ local function QuickCast_OnEvent(self, event, unit, arg1, arg2)
             QuickCast_UpdateCasts(self, arg2)
         elseif event == "UNIT_IN_RANGE_UPDATE" then
             QuickCast_UpdateInRange(self, arg1)
+        elseif event == "UNIT_FLAGS" then
+            QuickCast_UpdateStatus(self)
         end
     else
         if event == "GROUP_ROSTER_UPDATE" or event == "PLAYER_ENTERING_WORLD" then
@@ -869,12 +971,44 @@ end
 -- ----------------------------------------------------------------------- --
 --                            create quick cast                            --
 -- ----------------------------------------------------------------------- --
+local function CreatePreviewButton(b)
+    local p = CreateFrame("Frame", nil, CellMainFrame, "BackdropTemplate")
+    p:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
+    p:SetBackdropColor(0.5, 0.5, 0.5, 0.7)
+    p:SetAllPoints(b)
+    p:SetFrameStrata("LOW")
+    p:Hide()
+    tinsert(previewButtons, p)
+
+    p.s = p:CreateFontString(nil, "OVERLAY", "CELL_FONT_CLASS_TITLE")
+    p.s:SetPoint("CENTER")
+    p.s:SetText(#previewButtons)
+
+    A:CreateFadeIn(p, 0, 1, 0.5)
+    A:CreateFadeOut(p, 1, 0, 0.5)
+
+    p:RegisterForDrag("LeftButton")
+    p:EnableMouse(true)
+
+    p:SetScript("OnDragStart", function()
+        quickCastFrame:StartMoving()
+        quickCastFrame:SetUserPlaced(false)
+    end)
+
+    p:SetScript("OnDragStop", function()
+        quickCastFrame:StopMovingOrSizing()
+        if not InCombatLockdown() then P:PixelPerfectPoint(quickCastFrame) end
+        P:SavePosition(quickCastFrame, quickCastTable["position"])
+    end)
+end
+
 CreateQuickCastButton = function(parent, name, isPreview)
     local b
     if isPreview then
         b = CreateFrame("Button", name, parent, "BackdropTemplate")
     else
         b = CreateFrame("Button", name, parent, "BackdropTemplate,SecureUnitButtonTemplate")
+        CreatePreviewButton(b)
     end
     b:RegisterForClicks("AnyDown")
     b:Hide()
@@ -886,6 +1020,13 @@ CreateQuickCastButton = function(parent, name, isPreview)
     nameText:Hide()
     nameText:SetFont(GameFontNormal:GetFont(), 13, "Outline")
     
+    -- invalid ----------------------------------------------------------------------
+    local invalidTex = b:CreateTexture(nil, "ARTWORK")
+    b.invalidTex = invalidTex
+    invalidTex:Hide()
+    invalidTex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\close")
+    invalidTex:SetVertexColor(0.7, 0.7, 0.7, 1)
+
     -- glow buff --------------------------------------------------------------------
     local glowBuffCD = CreateFrame("Frame", name.."GlowBuffCD", b)
     b.glowBuffCD = glowBuffCD
@@ -998,8 +1139,8 @@ CreateQuickCastButton = function(parent, name, isPreview)
         if outerCD:IsShown() then
             P:Point(innerCD, "CENTER")
         else
-            P:Point(innerCD, "TOPLEFT", borderSize, -borderSize)
-            P:Point(innerCD, "BOTTOMRIGHT", -borderSize, borderSize)
+            P:Point(innerCD, "TOPLEFT", borderSize+1, -borderSize-1)
+            P:Point(innerCD, "BOTTOMRIGHT", -borderSize-1, borderSize+1)
         end
     end
 
@@ -1032,11 +1173,14 @@ CreateQuickCastButton = function(parent, name, isPreview)
         b:SetBackdropColor(b._r*0.2, b._g*0.2, b._b*0.2, 0.7)
         b:SetBackdropBorderColor(b._r, b._g, b._b, 0.9)
 
+        P:ClearPoints(invalidTex)
+        P:Point(invalidTex, "TOPLEFT", borderSize, -borderSize)
+        P:Point(invalidTex, "BOTTOMRIGHT", -borderSize, borderSize)
+
         P:ClearPoints(outerCD)
-        P:Point(outerCD, "TOPLEFT", borderSize, -borderSize)
-        P:Point(outerCD, "BOTTOMRIGHT", -borderSize, borderSize)
-        -- P:Size(outerCD, size-borderSize*2, size-borderSize*2)
-        P:Size(innerCD, ceil(size-borderSize*4), ceil(size-borderSize*4))
+        outerCD:SetPoint("TOPLEFT", P:Scale(borderSize)+P:Scale(1), -P:Scale(borderSize)-P:Scale(1))
+        outerCD:SetPoint("BOTTOMRIGHT", -P:Scale(borderSize)-P:Scale(1), P:Scale(borderSize)+P:Scale(1))
+        P:Size(innerCD, floor(size-borderSize*4-2), floor(size-borderSize*4-2))
 
         P:ClearPoints(glowBuffCD)
         P:Point(glowBuffCD, "TOPLEFT", -borderSize, borderSize)
@@ -1084,17 +1228,20 @@ CreateQuickCastButton = function(parent, name, isPreview)
     --! NOTE: GROUP_ROSTER_UPDATE or PLAYER_LOGIN or MANUALLY CALLED
     function b:CheckUnit()
         local unit = b.unit
-        
+
         if unit and UnitExists(unit) then
             b:SetAlpha(1)
 
-            local _r, _g, _b
-            if UnitIsConnected(unit) then
-                local class = UnitClassBase(unit)
-                _r, _g, _b = F:GetClassColor(class)
-            else
-                _r, _g, _b = 0.4, 0.4, 0.4
-            end
+            -- local _r, _g, _b
+            -- if UnitIsConnected(unit) then
+            --     local class = UnitClassBase(unit)
+            --     _r, _g, _b = F:GetClassColor(class)
+            -- else
+            --     _r, _g, _b = 0.4, 0.4, 0.4
+            -- end
+
+            local class = UnitClassBase(unit)
+            local _r, _g, _b = F:GetClassColor(class)
             b._r, b._g, b._b = _r, _g, _b
             b:SetBackdropColor(_r*0.2, _g*0.2, _b*0.2, 0.7)
             b:SetBackdropBorderColor(_r, _g, _b, 0.9)
@@ -1119,12 +1266,18 @@ CreateQuickCastButton = function(parent, name, isPreview)
             --! casts glow
             b:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
             b:SetGlowCastCooldown()
+
+            --! check dead / offline
+            b:RegisterEvent("UNIT_FLAGS")
+            QuickCast_UpdateStatus(b)
         else
-            b:SetAlpha(0.5)
+            b:SetAlpha(0.4)
             b:SetBackdropColor(0, 0, 0, 0.7)
             b:SetBackdropBorderColor(0, 0, 0, 0.9)
+            nameText:SetTextColor(0.7, 0.7, 0.7)
             nameText:SetText(unit)
 
+            invalidTex:Hide()
             glowBuffCD:Hide()
             glowCastCD:Hide()
             outerCD:Hide()
@@ -1140,18 +1293,22 @@ CreateQuickCastButton = function(parent, name, isPreview)
 
         if unit then
             b:SetAttribute("unit", unit)
-            b:SetAttribute("type1", "spell")
-            b:SetAttribute("spell1", leftCast)
-            b:SetAttribute("type2", "spell")
-            b:SetAttribute("spell2", rightCast)
+            if leftCast then
+                b:SetAttribute("type1", "macro")
+                b:SetAttribute("macrotext1", "/cast [@"..unit..",nodead] "..leftCast)
+            end
+            if rightCast then
+                b:SetAttribute("type2", "macro")
+                b:SetAttribute("macrotext2", "/cast [@"..unit..",nodead] "..rightCast)
+            end
 
             -- RegisterAttributeDriver(b, "state-visibility", "[@"..unit..",exists] show; hide")
         else
             b:SetAttribute("unit", nil)
             b:SetAttribute("type1", nil)
-            b:SetAttribute("spell1", nil)
+            b:SetAttribute("macrotext1", nil)
             b:SetAttribute("type2", nil)
-            b:SetAttribute("spell2", nil)
+            b:SetAttribute("macrotext2", nil)
 
             -- UnregisterAttributeDriver(b, "state-visibility")
             -- b:Hide()
@@ -1161,23 +1318,44 @@ CreateQuickCastButton = function(parent, name, isPreview)
     end
 
     --! shift right-click to clear unit
-    b:SetAttribute("shift-type2", "clear")
-    b:SetAttribute("_clear", function()
-        if InCombatLockdown() then
-            F:Print(L["You can't do that while in combat."])
-            return
+    -- NOTE: if unit and unit ~= "none" and not UnitExists(unit) then THESE CODE WILL NOT RUN
+    -- b:SetAttribute("shift-type2", "clearunit")
+    -- b:SetAttribute("_clearunit", function()
+    --     if InCombatLockdown() then
+    --         F:Print(L["You can't do that while in combat."])
+    --         return
+    --     end
+
+    --     b.unit = nil
+    --     b:CheckUnit()
+
+    --     b:SetAttribute("unit", nil)
+    --     b:SetAttribute("type1", nil)
+    --     b:SetAttribute("spell1", nil)
+    --     b:SetAttribute("type2", nil)
+    --     b:SetAttribute("spell2", nil)
+
+    --     quickCastTable["units"][b.index] = nil
+    -- end)
+
+    b:SetScript("PostClick", function(self, button, down)
+        if button == "RightButton" and IsShiftKeyDown() then
+            if InCombatLockdown() then
+                F:Print(L["You can't do that while in combat."])
+                return
+            end
+    
+            b.unit = nil
+            b:CheckUnit()
+    
+            b:SetAttribute("unit", nil)
+            b:SetAttribute("type1", nil)
+            b:SetAttribute("spell1", nil)
+            b:SetAttribute("type2", nil)
+            b:SetAttribute("spell2", nil)
+    
+            quickCastTable["units"][b.index] = nil
         end
-
-        b.unit = nil
-        b:CheckUnit()
-
-        b:SetAttribute("unit", nil)
-        b:SetAttribute("type1", nil)
-        b:SetAttribute("spell1", nil)
-        b:SetAttribute("type2", nil)
-        b:SetAttribute("spell2", nil)
-
-        quickCastTable["units"][b.index] = nil
     end)
 
     b:SetScript("OnShow", QuickCast_OnShow)
@@ -1191,8 +1369,10 @@ end
 --                                callbacks                                --
 -- ----------------------------------------------------------------------- --
 local function UpdateQuickCast()
-    if not quickCastTable then
+    if CellDB["quickCast"][Cell.vars.playerClass] and CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
         quickCastTable = CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID]
+    else
+        quickCastTable = defaultQuickCastTable
     end
 
     -- prepare others
@@ -1207,11 +1387,12 @@ local function UpdateQuickCast()
         -- quickCastFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
 
         -- update parent size
-        if strfind(quickCastTable["orientation"], "top") then
-            P:Size(quickCastFrame, quickCastTable["size"], quickCastTable["size"] * quickCastTable["num"] + quickCastTable["spacing"] * (quickCastTable["num"] - 1))
-        else
-            P:Size(quickCastFrame, quickCastTable["size"] * quickCastTable["num"] + quickCastTable["spacing"] * (quickCastTable["num"] - 1), quickCastTable["size"])
-        end
+        P:Size(quickCastFrame, quickCastTable["size"], quickCastTable["size"])
+        -- if strfind(quickCastTable["orientation"], "top") then
+        --     P:Size(quickCastFrame, quickCastTable["size"], quickCastTable["size"] * quickCastTable["num"] + quickCastTable["spacing"] * (quickCastTable["num"] - 1))
+        -- else
+        --     P:Size(quickCastFrame, quickCastTable["size"] * quickCastTable["num"] + quickCastTable["spacing"] * (quickCastTable["num"] - 1), quickCastTable["size"])
+        -- end
 
         -- position
         P:LoadPosition(quickCastFrame, quickCastTable["position"])
@@ -1225,7 +1406,7 @@ local function UpdateQuickCast()
         -- create
         if not quickCastButtons then
             quickCastButtons = {}
-            for i = 1, 5 do
+            for i = 1, 6 do
                 quickCastButtons[i] = CreateQuickCastButton(quickCastFrame, "CellQuickCastButton"..i)
                 quickCastButtons[i].index = i -- for save
                 RegisterDrag(quickCastButtons[i])
@@ -1245,31 +1426,63 @@ local function UpdateQuickCast()
                 if i == 1 then
                     P:Point(quickCastButtons[i], "TOPLEFT")
                 else
-                    P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "TOPRIGHT", quickCastTable["spacing"], 0)
+                    if quickCastTable["lines"] == 6 then
+                        P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "TOPRIGHT", quickCastTable["spacingX"], 0)
+                    else
+                        if (i-1) % quickCastTable["lines"] == 0 then
+                            P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-quickCastTable["lines"]], "BOTTOMLEFT", 0, -quickCastTable["spacingY"])
+                        else
+                            P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "TOPRIGHT", quickCastTable["spacingX"], 0)
+                        end
+                    end
                 end
             elseif quickCastTable["orientation"] == "right-to-left" then
                 if i == 1 then
                     P:Point(quickCastButtons[i], "TOPRIGHT")
                 else
-                    P:Point(quickCastButtons[i], "TOPRIGHT", quickCastButtons[i-1], "TOPLEFT", -quickCastTable["spacing"], 0)
+                    if quickCastTable["lines"] == 6 then
+                        P:Point(quickCastButtons[i], "TOPRIGHT", quickCastButtons[i-1], "TOPLEFT", -quickCastTable["spacingX"], 0)
+                    else
+                        if (i-1) % quickCastTable["lines"] == 0 then
+                            P:Point(quickCastButtons[i], "TOPRIGHT", quickCastButtons[i-quickCastTable["lines"]], "BOTTOMRIGHT", 0, -quickCastTable["spacingY"])
+                        else
+                            P:Point(quickCastButtons[i], "TOPRIGHT", quickCastButtons[i-1], "TOPLEFT", -quickCastTable["spacingX"], 0)
+                        end
+                    end
                 end
             elseif quickCastTable["orientation"] == "top-to-bottom" then
                 if i == 1 then
                     P:Point(quickCastButtons[i], "TOPLEFT")
                 else
-                    P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "BOTTOMLEFT", 0, -quickCastTable["spacing"])
+                    if quickCastTable["lines"] == 6 then
+                        P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "BOTTOMLEFT", 0, -quickCastTable["spacingY"])
+                    else
+                        if (i-1) % quickCastTable["lines"] == 0 then
+                            P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-quickCastTable["lines"]], "TOPRIGHT", quickCastTable["spacingX"], 0)
+                        else
+                            P:Point(quickCastButtons[i], "TOPLEFT", quickCastButtons[i-1], "BOTTOMLEFT", 0, -quickCastTable["spacingY"])
+                        end
+                    end
                 end
             elseif quickCastTable["orientation"] == "bottom-to-top" then
                 if i == 1 then
                     P:Point(quickCastButtons[i], "BOTTOMLEFT")
                 else
-                    P:Point(quickCastButtons[i], "BOTTOMLEFT", quickCastButtons[i-1], "TOPLEFT", 0, quickCastTable["spacing"])
+                    if quickCastTable["lines"] == 6 then
+                        P:Point(quickCastButtons[i], "BOTTOMLEFT", quickCastButtons[i-1], "TOPLEFT", 0, quickCastTable["spacingY"])
+                    else
+                        if (i-1) % quickCastTable["lines"] == 0 then
+                            P:Point(quickCastButtons[i], "BOTTOMLEFT", quickCastButtons[i-quickCastTable["lines"]], "BOTTOMRIGHT", quickCastTable["spacingX"], 0)
+                        else
+                            P:Point(quickCastButtons[i], "BOTTOMLEFT", quickCastButtons[i-1], "TOPLEFT", 0, quickCastTable["spacingY"])
+                        end
+                    end
                 end
             end
         end
     
         -- hide
-        for i = quickCastTable["num"] + 1, 5 do
+        for i = quickCastTable["num"] + 1, 6 do
             quickCastButtons[i]:Hide()
         end
     else
@@ -1285,10 +1498,9 @@ end
 Cell:RegisterCallback("UpdateQuickCast", "QuickCast_UpdateQuickCast", UpdateQuickCast)
 
 local function SpecChanged()
-    quickCastTable = CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID]
+    UpdateQuickCast()
     if init and qcPane:IsShown() then
         LoadDB()
     end
-    UpdateQuickCast()
 end
 Cell:RegisterCallback("SpecChanged", "QuickCast_SpecChanged", SpecChanged)

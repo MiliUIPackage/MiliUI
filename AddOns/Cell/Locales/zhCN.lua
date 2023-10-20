@@ -3,7 +3,7 @@ if not LOCALE_zhCN then return end
 local L = select( 2, ...).L
 
 L["New version found (%s). Please visit %s to get the latest version."] = "发现新版本 (%s)。 请访问 %s 下载最新版本。"
-L["ABOUT"] = "Cell 受启发于 CompactRaid，但并非其修改版或增强版，而是一个全新的团队框架。\n我个人很喜欢 CompactRaid，并常年使用它，但其作者似乎已经不再更新了。因此我写了 Cell，希望你能喜欢。\n另外，我也参考了一些很棒的团队框架，比如 Aptechka、Grid2 和 VuhDo。\nCell 并不打算成为一个轻量或强大的团队框架插件。设置简单，功能足够，就行了。"
+L["ABOUT"] = "Cell 团队框架的灵感来主要来自 CompactRaid 与 Grid2，同时也稍微参考了 Aptechka 和 VuhDo。\nCell 不轻量，也并非全能，其目标是提供良好的用户体验。\n希望你能喜欢。"
 L["RESET"] = "从过旧的版本更新，需要重置Cell"
 L["RESET_CHARACTER"] = "从过旧的版本更新，需要重置Cell的角色配置"
 L["RESET_INCLUDES"] = "这仅包括点击施法与布局自动切换"
@@ -20,6 +20,7 @@ L["These \"reset\" commands below affect all your characters in this account"] =
 L["reset all Layouts and Indicators"] = "重置所有布局与指示器"
 L["reset all Click-Castings"] = "重置所有点击施法"
 L["reset all Raid Debuffs"] = "重置所有副本减益"
+L["reset all Code Snippets"] = "重置所有代码片段"
 L["reset all Cell settings"] = "重置所有Cell设置"
 
 -------------------------------------------------
@@ -177,7 +178,7 @@ L["Magic"] = "魔法"
 L["Click-Castings"] = "点击施法"
 L["Profiles"] = "配置"
 L["Use common profile"] = "使用通用配置"
-L["Use separate profile for each spec"] = "为每个天赋使用独立配置"
+L["Use separate profile for each spec"] = "为每个专精使用独立配置"
 L["Always Targeting"] = "总是选中目标"
 L["Only available for Spells"] = "仅对法术有效"
 L["Left Spell"] = "左键法术"
@@ -253,6 +254,9 @@ L["Friendly NPC Frame"] = "友方 NPC 框体"
 
 -- layout auto switch
 L["Layout Auto Switch"] = "布局自动切换"
+L["Role"] = "职责"
+L["Spec"] = "专精"
+L["use separate profile for current spec"] = "为当前专精使用独立配置"
 L["Solo/Party"] = "单人/小队"
 L["Outdoor"] = "野外"
 L["Arena"] = "竞技场"
@@ -394,6 +398,7 @@ L["Debuffs"] = "减益"
 L["Private Auras"] = "个人光环" -- 私有光环？
 L["Targeted Spells"] = "被法术选中"
 L["Target Counter"] = "目标计数"
+L["Crowd Controls"] = "群体控制"
 L["Consumables"] = "消耗品"
 L["Health Thresholds"] = "血量阈值"
 L["Missing Buffs"] = "缺失增益"
@@ -508,6 +513,9 @@ L["hideInCombat"] = "战斗中隐藏"
 L["fadeOut"] = "随时间淡出"
 L["shieldByMe"] = "只显示我施放的真言术：盾"
 L["onlyShowOvershields"] = "只显示超过血量上限的护盾"
+L["showAllSpells"] = "显示所有法术"
+L["Glow is only available to the spells in the list below"] = "发光仅对列表的中的法术有效"
+L["Uncategorized"] = "未分类"
 
 L["left-to-right"] = "从左到右"
 L["right-to-left"] = "从右到左"
@@ -522,7 +530,7 @@ L["You can config debuffs in %s"] = "你可以在 %s 里设置减益"
 L["Indicator settings are part of Layout settings which are account-wide."] = "指示器设置是布局设置的一部分，它们是账号配置而非角色。"
 L["The spells list of a icons indicator is unordered (no priority)."] = "图标组指示器的法术列表是无序的（无优先级）。"
 L["The priority of spells decreases from top to bottom."] = "法术优先级从上到下递减。"
-L["Check all visible enemy nameplates. Battleground/Arena only."] = "检查所有可见的敌方姓名板。仅在战场、竞技场有效。"
+L["Check all visible enemy nameplates."] = "检查所有可见的敌方姓名板。"
 L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
 L["%s in Utilities must be enabled to make this indicator work."] = "要使用此指示器，必须先启用工具页面下的%s功能。"
 L["If you are a paladin or warrior, and the unit has no buffs from you, a %s icon will be displayed."] = "如果你是圣骑士或战士，且该单位没有来自你的增益时，将会显示一个%s图标。"
@@ -575,6 +583,7 @@ L["Then create a PR or submit a ticket on GitHub"] = "然后在GitHub上提交PR
 -- utilities
 -------------------------------------------------
 L["Utilities"] = "工具"
+L["Spotlight frames are not supported"] = "不支持特别关注框体"
 
 -------------------------------------------------
 -- raid tools
@@ -640,6 +649,7 @@ L["Glow Options"] = "发光选项"
 L["Icon Options"] = "图标选项"
 L["Animation"] = "动画"
 L["Beat"] = "跳动"
+L["Bounce"] = "弹跳"
 L["Blink"] = "闪烁"
 L["Spell Request"] = "法术请求"
 L["Glow unit button when a group member sends a %s request"] = "当队内成员请求%s时高亮其单位按钮"
@@ -687,6 +697,8 @@ L["Create several buttons for quick casting and buff monitoring"] = "创建几�
 L["These settings are spec-specific"] = "这些设置是每个专精独立的"
 L["Max Buttons"] = "按钮数量"
 L["Spacing"] = "间距"
+L["Rows"] = "行数"
+L["Columns"] = "列数"
 L["cast Outer spell"] = "施放外圈法术"
 L["cast Inner spell"] = "施放内圈法术"
 L["set unit"] = "设置单位"
@@ -739,7 +751,58 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 -- <br/>
 
 L["CHANGELOGS"] = [[
-    <h1>如果更新后发现Cell不能正常工作，尝试禁用代码片段。</h1>
+    <h1>r198-release (Oct 7, 2023, 06:54 GMT+8)</h1>
+    <p>* 更新指示器：目标计数，护盾条。</p>
+    <br/>
+
+    <h1>r197-release (Sep 20, 2023, 08:08 GMT+8)</h1>
+    <p>* 为标记工具条添加了“单人时显示”的选项。</p>
+    <p>* 将“深寒凝冰”添加至减伤指示器。</p>
+    <p>* 更新冰冠堡垒减益，感谢大胖宝。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r196-release (Sep 16, 2023, 09:32 GMT+8)</h1>
+    <p>* 更新“快捷施法”与“法术请求”。</p>
+    <p>* 修复“状态文字”指示器。</p>
+    <p>+ 代码片段变量：CELL_BORDER_SIZE，CELL_BORDER_COLOR。</p>
+    <br/>
+
+    <h1>r195-release (Sep 12, 2023, 06:52 GMT+8)</h1>
+    <p>* 更新“缺失增益”指示器。</p>
+    <br/>
+
+    <h1>r194-release (Sep 3, 2023, 20:41 GMT+8)</h1>
+    <p>* 更新副本与首领列表，这玩意儿用于获取当前所在地的副本减益，但仅用于怀旧服。目前仅支持 deDE、frFR、koKR、zhCN、zhTW。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r193-release (Sep 1, 2023, 05:57 GMT+8)</h1>
+    <p>* 修复布局切换时可能存在的问题。</p>
+    <p>* 修复减伤指示器（镜像）。</p>
+    <p>* 修复怀旧服上由 CVar “ActionButtonUseKeyDown” 引起的部分工具按钮点击没有反应的问题。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r192-release (Aug 25, 2023, 20:41 GMT+8)</h1>
+    <p>* 添加指示器验证，用以确保所有指示器的顺序正确。</p>
+    <p>* 修复法语客户端的副本与首领列表。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r191-release (Aug 22, 2023, 09:50 GMT+8)</h1>
+    <p>* 更新法语客户端的副本与首领列表 (感谢Zuvila)。</p>
+    <p>* 更新“被法术选中”与“快捷施法”。</p>
+    <br/>
+
+    <h1>r190-beta (Aug 18, 2023, 21:30 GMT+8)</h1>
+    <p>+ 新指示器：群体控制（正式服）。</p>
+    <p>* 更新布局自动切换，现在支持专精配置（正式服）。</p>
+    <p>* 更新 UNIT_AURA 相关函数，减少 CPU 占用，但并不会减少内存占用，反倒会增多。</p>
+    <p>* 修复部分指示器在特别关注框体启用时工作不正常的问题。</p>
+    <p>* 更新快捷施法、法术请求。</p>
+    <p>* 更新团队构成的鼠标提示。</p>
+    <p>* 更新繁中。</p>
     <br/>
 
     <h1>r189-release (Aug 9, 2023, 08:27 GMT+8)</h1>
@@ -860,6 +923,11 @@ L["CHANGELOGS"] = [[
     <p>* 更新繁中。</p>
     <br/>
 
+    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
+    <br/>
+]]
+
+L["OLDER_CHANGELOGS"] = [[
     <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
     <h2>正式服</h2>
     <p>+ 新指示器：个人光环。</p>
@@ -978,11 +1046,6 @@ L["CHANGELOGS"] = [[
     <p>* 修复几处bug。</p>
     <br/>
 
-    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
-    <br/>
-]]
-
-L["OLDER_CHANGELOGS"] = [[
     <h1>r149-release (Nov 29, 2022, 06:35 GMT+8)</h1>
     <p>* 添加 NPC 按钮尺寸选项。</p>
     <p>* 添加条方向选项“纵向 B”。</p>

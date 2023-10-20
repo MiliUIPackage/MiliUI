@@ -1587,7 +1587,6 @@ function F:Revise()
             end
         end
     end
-    ]=]
 
     -- r150-release
     if CellDB["revise"] and dbRevision < 150 then
@@ -1910,7 +1909,7 @@ function F:Revise()
     -- r170-release
     if CellDB["revise"] and dbRevision < 170 then
         if not strfind(CellDB["snippets"][0]["code"], "CELL_NICKTAG_ENABLED") then
-            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Use nicknames from Details! Damage Meter (NickTag-1.0 library)\nCELL_NICKTAG_ENABLED = false"
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Use nicknames from Details! Damage Meter (boolean, NickTag-1.0 library)\nCELL_NICKTAG_ENABLED = false"
         end
 
         if Cell.isWrath then
@@ -1937,7 +1936,7 @@ function F:Revise()
     -- r171-release
     if CellDB["revise"] and dbRevision < 171 then
         if not strfind(CellDB["snippets"][0]["code"], "CELL_DISPEL_EVOKER_CAUTERIZING_FLAME") then
-            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Add Evoker spell Cauterizing Flame into dispel checker\nCELL_DISPEL_EVOKER_CAUTERIZING_FLAME = false"
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- Add Evoker spell Cauterizing Flame into dispel checker (boolean)\nCELL_DISPEL_EVOKER_CAUTERIZING_FLAME = false"
         end
     end
 
@@ -2042,7 +2041,7 @@ function F:Revise()
             if CellDB["clickCastings"] and CellDB["clickCastings"][Cell.vars.playerClass] then
                 if not CellCharacterDB["clickCastings"]["processed"] then
                     CellCharacterDB["clickCastings"] = CellDB["clickCastings"][Cell.vars.playerClass]
-                    Cell.vars.clickCastingTable = CellCharacterDB["clickCastings"]
+                    Cell.vars.clickCastings = CellCharacterDB["clickCastings"]
                     -- flag as processed
                     CellCharacterDB["clickCastings"]["processed"] = true
                 end
@@ -2196,6 +2195,169 @@ function F:Revise()
                     end
                 end
             end
+        end
+    end
+    ]=]
+
+    -- r190-beta
+    if CellDB["revise"] and dbRevision < 190 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_TOOLTIP_REMOVE_RAID_SETUP_DETAILS") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- remove raid setup details from the tooltip of the Raid button (boolean)\nCELL_TOOLTIP_REMOVE_RAID_SETUP_DETAILS = false"
+        end
+
+        if Cell.isRetail then
+            for _, layout in pairs(CellDB["layouts"]) do
+                local index = Cell.defaults.indicatorIndices.crowdControls
+                if layout["indicators"][index]["indicatorName"] ~= "crowdControls" then
+                    tinsert(layout["indicators"], index, {
+                        ["name"] = "Crowd Controls",
+                        ["indicatorName"] = "crowdControls",
+                        ["type"] = "built-in",
+                        ["enabled"] = false,
+                        ["position"] = {"CENTER", "CENTER", 0, 0},
+                        ["frameLevel"] = 20,
+                        ["size"] = {22, 22},
+                        ["border"] = 2,
+                        ["num"] = 3,
+                        ["font"] = {
+                            {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
+                            {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
+                        },
+                        ["orientation"] = "left-to-right",
+                    })
+                end
+            end
+        end
+    end
+
+    -- r195-release
+    if CellDB["revise"] and dbRevision < 195 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_BORDER_SIZE") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- border thickness: unit button and icon (number)\nCELL_BORDER_SIZE = 1"
+        end
+
+        local filters
+        
+        if Cell.isRetail then
+            filters = {
+                ["PWF"] = true,
+                ["MotW"] = true,
+                ["AB"] = true,
+                ["BS"] = true,
+                ["BotB"] = true,
+            }
+        else
+            filters = {
+                ["PWF"] = true,
+                ["DS"] = true,
+                ["SP"] = true,
+                ["AB"] = true,
+                ["MotW"] = true,
+                ["PALADIN"] = true,
+                ["WARRIOR"] = true,
+            }
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            local index = Cell.defaults.indicatorIndices.missingBuffs
+            if type(layout["indicators"][index]["filters"]) ~= "table" then
+                layout["indicators"][index]["filters"] = F:Copy(filters)
+                layout["indicators"][index]["filters"]["buffByMe"] = layout["indicators"][index]["buffByMe"]
+                layout["indicators"][index]["buffByMe"] = nil
+            end
+        end
+    end
+
+    -- r196-release
+    if CellDB["revise"] and dbRevision < 196 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_BORDER_COLOR") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- unit button border color ({r, g, b, a}, number: 0-1)\nCELL_BORDER_COLOR = {0, 0, 0, 1}"
+        end
+    end
+
+    -- r197-release
+    if CellDB["revise"] and dbRevision < 197 then
+        if Cell.isRetail then
+            for c, ct in pairs(CellDB["quickCast"]) do
+                for s, st in pairs(ct) do
+                    if type(st["spacing"]) == "number" then
+                        st["spacingX"] = st["spacing"]
+                        st["spacingY"] = st["spacing"]
+                        st["spacing"] = nil
+                        st["lines"] = 6
+                    end
+                end
+            end
+        end
+
+        if type(CellDB["tools"]["marks"][2]) ~= "boolean" then
+            tinsert(CellDB["tools"]["marks"], 2, false)
+        end
+    end
+
+    -- r198-release
+    if CellDB["revise"] and dbRevision < 198 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            local index = Cell.defaults.indicatorIndices.targetCounter
+            if type(layout["indicators"][index]["filters"]) ~= "table" then
+                layout["indicators"][index]["filters"] = {
+                    ["outdoor"] = false,
+                    ["pve"] = false,
+                    ["pvp"] = true,
+                }
+            end
+        end
+    end
+
+    -- ----------------------------------------------------------------------- --
+    --            update from old versions, validate all indicators            --
+    -- ----------------------------------------------------------------------- --
+    if CellDB["revise"] and CellDB["revise"] ~=  Cell.version then
+        for layoutName, layout in pairs(CellDB["layouts"]) do
+            local toValidate = F:Copy(Cell.defaults.indicatorIndices)
+            local temp = {}
+            
+            -- built-ins
+            for i, t in ipairs(layout["indicators"]) do
+                local name = t["indicatorName"]
+                if t["type"] == "built-in" and toValidate[name] then
+                    if i == toValidate[name] then
+                        -- copy valid indicator
+                        -- print(layoutName, "RIGHT", i, name)
+                        tinsert(temp, t)
+                    else
+                        -- search for correct indicator
+                        local found
+                        for j = i, #layout["indicators"] do
+                            if name == layout["indicators"][j]["indicatorName"] then
+                                -- print(layoutName, "WRONG_FOUND", j, "->", toValidate[name], name)
+                                found = true
+                                tinsert(temp, layout["indicators"][j])
+                                break
+                            end
+                        end
+                        -- not found, copy from Defaults
+                        if not found then
+                            -- print(layoutName, "WRONG_NOT_FOUND", i, name)
+                            tinsert(temp, Cell.defaults.layout.indicators[toValidate[name]])
+                        end
+                    end
+                    -- remove validated
+                    toValidate[name] = nil
+                end
+            end
+            
+            -- customs
+            local index = 1
+            for i, t in ipairs(layout["indicators"]) do
+                if t["type"] ~= "built-in" then
+                    t["indicatorName"] = "indicator"..index
+                    tinsert(temp, t)
+                    index = index + 1
+                end
+            end
+
+            layout["indicators"] = temp
         end
     end
 

@@ -3,6 +3,10 @@ local L = Cell.L
 local F = Cell.funcs
 local I = Cell.iFuncs
 
+local UnitGUID = UnitGUID
+local UnitCanAttack = UnitCanAttack
+local UnitIsOtherPlayersPet = UnitIsOtherPlayersPet
+
 -------------------------------------------------
 -- events
 -------------------------------------------------
@@ -30,8 +34,18 @@ function eventFrame:NAME_PLATE_UNIT_REMOVED(unit)
 end
 
 function eventFrame:NAME_PLATE_UNIT_ADDED(unit)
-    if not (UnitIsPlayer(unit) and UnitIsEnemy(unit, "player")) then return end
+    if not unit or not UnitCanAttack(unit, "player") or UnitIsOtherPlayersPet(unit) then return end
     nameplates[unit] = true
+end
+
+local function ScanNameplates()
+    for _, nameplate in pairs(C_NamePlate.GetNamePlates()) do
+        eventFrame:NAME_PLATE_UNIT_ADDED(nameplate.namePlateUnitToken)
+    end
+end
+
+local function SetCount(b, count)
+    b.indicators.targetCounter:SetCount(count)
 end
 
 local ticker
@@ -65,21 +79,7 @@ local function StartTicker()
 
         -- update indicator
         for guid in pairs(Cell.vars.guids) do
-            local b1, b2 = F:GetUnitButtonByGUID(guid)
-            if b1 then
-                if counter[guid] then
-                    b1.indicators.targetCounter:SetCount(F:Getn(counter[guid]))
-                else
-                    b1.indicators.targetCounter:SetCount(0)
-                end
-            end
-            if b2 then
-                if counter[guid] then
-                    b2.indicators.targetCounter:SetCount(F:Getn(counter[guid]))
-                else
-                    b2.indicators.targetCounter:SetCount(0)
-                end
-            end
+            F:HandleUnitButton("guid", guid, SetCount, counter[guid] and F:Getn(counter[guid]) or 0)
         end
     end)
 end
@@ -89,7 +89,7 @@ local function StopTicker()
     ticker = nil
 end
 
-local counterEnabled
+local counterEnabled, zoneFilters = false, {}
 function eventFrame:PLAYER_ENTERING_WORLD()
     -- reset
     wipe(nameplates)
@@ -99,9 +99,20 @@ function eventFrame:PLAYER_ENTERING_WORLD()
     end, true)
 
     local isIn, iType = IsInInstance()
-    if counterEnabled and (iType == "pvp" or iType == "arena") then
+    
+    local isValidZone
+    if not isIn or iType == "none" then
+        isValidZone = zoneFilters["outdoor"]
+    elseif iType == "pvp" or iType == "arena" then
+        isValidZone = zoneFilters["pvp"]
+    else -- party, raid, scenario
+        isValidZone = zoneFilters["pve"]
+    end
+    
+    if counterEnabled and isValidZone then
         eventFrame:RegisterEvent("NAME_PLATE_UNIT_ADDED")
         eventFrame:RegisterEvent("NAME_PLATE_UNIT_REMOVED")
+        ScanNameplates()
         StartTicker()
     else
         eventFrame:UnregisterEvent("NAME_PLATE_UNIT_ADDED")
@@ -120,6 +131,13 @@ function I:EnableTargetCounter(enabled)
     end
     eventFrame:PLAYER_ENTERING_WORLD() -- check now
     -- texplore(nameplateTargets)
+end
+
+function I:UpdateTargetCounterFilters(filters, noUpdate)
+    if filters then zoneFilters = filters end
+    if not noUpdate and counterEnabled then
+        eventFrame:PLAYER_ENTERING_WORLD()
+    end
 end
 
 -------------------------------------------------

@@ -16,11 +16,11 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 149
-Cell.MIN_CLICKCASTINGS_VERSION = 181
-Cell.MIN_LAYOUTS_VERSION = 149
-Cell.MIN_INDICATORS_VERSION = 149
-Cell.MIN_DEBUFFS_VERSION = 149
+Cell.MIN_VERSION = 189
+Cell.MIN_CLICKCASTINGS_VERSION = 189
+Cell.MIN_LAYOUTS_VERSION = 189
+Cell.MIN_INDICATORS_VERSION = 198
+Cell.MIN_DEBUFFS_VERSION = 189
 
 --[==[@debug@
 -- local debugMode = true
@@ -65,10 +65,10 @@ function F:UpdateLayout(layoutGroupType, updateIndicators)
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
-        -- Cell.vars.layoutGroupType = layoutGroupType
-        local layout = CellLayoutAutoSwitchTable[Cell.vars.activeTalentGroup][layoutGroupType]
+        local layout = Cell.vars.layoutAutoSwitch[Cell.vars.activeTalentGroup][layoutGroupType]
         Cell.vars.currentLayout = layout
         Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
+        Cell.vars.layoutGroupType = layoutGroupType
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
         if updateIndicators then
             Cell:Fire("UpdateIndicators")
@@ -191,7 +191,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["buffTracker"] = {false, {}, 27},
                 ["deathReport"] = {false, 10},
                 ["readyAndPull"] = {false, {"default", 7}, {}},
-                ["marks"] = {false, "target_h", {}},
+                ["marks"] = {false, false, "target_h", {}},
                 ["fadeOut"] = false,
             }
         end
@@ -359,7 +359,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 end
             end
         end
-        Cell.vars.clickCastingTable = CellCharacterDB["clickCastings"]
+        Cell.vars.clickCastings = CellCharacterDB["clickCastings"]
 
         -- layouts --------------------------------------------------------------------------------
         if type(CellDB["layouts"]) ~= "table" then
@@ -401,7 +401,7 @@ function eventFrame:ADDON_LOADED(arg1)
             end
         end
 
-        CellLayoutAutoSwitchTable = CellCharacterDB["layoutAutoSwitch"]
+        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"]
 
         -- dispelBlacklist ------------------------------------------------------------------------
         if type(CellDB["dispelBlacklist"]) ~= "table" then
@@ -500,7 +500,12 @@ function eventFrame:ADDON_LOADED(arg1)
     -- end
 end
 
-Cell.vars.role = {["TANK"]=0, ["HEALER"]=0, ["DAMAGER"]=0}
+Cell.vars.raidSetup = {
+    ["TANK"]={["ALL"]=0},
+    ["HEALER"]={["ALL"]=0},
+    ["DAMAGER"]={["ALL"]=0},
+}
+
 function eventFrame:GROUP_ROSTER_UPDATE()
     if IsInRaid() then
         if Cell.vars.groupType ~= "raid" then
@@ -508,24 +513,42 @@ function eventFrame:GROUP_ROSTER_UPDATE()
             F:Debug("|cffffbb77GroupTypeChanged:|r raid")
             Cell:Fire("GroupTypeChanged", "raid")
         end
+
         -- reset raid setup
-        Cell.vars.role["TANK"] = 0
-        Cell.vars.role["HEALER"] = 0
-        Cell.vars.role["DAMAGER"] = 0
+        for _, t in pairs(Cell.vars.raidSetup) do
+            for class in pairs(t) do
+                if class == "ALL" then
+                    t["ALL"] = 0
+                else
+                    t[class] = nil
+                end
+            end
+        end
+
         -- update guid & raid setup
         for i = 1, GetNumGroupMembers() do
             -- update raid setup
-            local role = select(12, GetRaidRosterInfo(i))
-            if role and Cell.vars.role[role] then
-                Cell.vars.role[role] = Cell.vars.role[role] + 1
+            local _, _, _, _, _, class, _, _, _, _, _, role = GetRaidRosterInfo(i)
+            if not role or role == "NONE" then role = "DAMAGER" end
+            -- update ALL
+            Cell.vars.raidSetup[role]["ALL"] = Cell.vars.raidSetup[role]["ALL"] + 1
+            -- update for each class
+            if class then
+                if not Cell.vars.raidSetup[role][class] then
+                    Cell.vars.raidSetup[role][class] = 1
+                else
+                    Cell.vars.raidSetup[role][class] = Cell.vars.raidSetup[role][class] + 1
+                end
             end
         end
+
         -- update Cell.unitButtons.raid.units
         for i = GetNumGroupMembers()+1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
         end
         F:UpdateRaidSetup()
+
         -- update Cell.unitButtons.party.units
         Cell.unitButtons.party.units["player"] = nil
         Cell.unitButtons.party.units["pet"] = nil
@@ -540,11 +563,13 @@ function eventFrame:GROUP_ROSTER_UPDATE()
             F:Debug("|cffffbb77GroupTypeChanged:|r party")
             Cell:Fire("GroupTypeChanged", "party")
         end
+
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
         end
+
         -- update Cell.unitButtons.party.units
         for i = GetNumGroupMembers(), 4 do
             Cell.unitButtons.party.units["party"..i] = nil
@@ -557,11 +582,13 @@ function eventFrame:GROUP_ROSTER_UPDATE()
             F:Debug("|cffffbb77GroupTypeChanged:|r solo")
             Cell:Fire("GroupTypeChanged", "solo")
         end
+
         -- update Cell.unitButtons.raid.units
         for i = 1, 40 do
             Cell.unitButtons.raid.units["raid"..i] = nil
             _G["CellRaidFrameMember"..i] = nil
         end
+
         -- update Cell.unitButtons.party.units
         Cell.unitButtons.party.units["player"] = nil
         Cell.unitButtons.party.units["pet"] = nil
@@ -751,7 +778,7 @@ function SlashCmdList.CELL(msg, editbox)
             CellDB["tools"]["readyAndPull"][3] = {}
             Cell.frames.raidMarksFrame:ClearAllPoints()
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
-            CellDB["tools"]["marks"][3] = {}
+            CellDB["tools"]["marks"][4] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
@@ -768,12 +795,17 @@ function SlashCmdList.CELL(msg, editbox)
             CellDB["layouts"] = nil
             ReloadUI()
 
+        elseif rest == "clickcastings" then
+            CellCharacterDB["clickCastings"] = nil
+            ReloadUI()
+        
         elseif rest == "raiddebuffs" then
             CellDB["raidDebuffs"] = nil
             ReloadUI()
-            
-        elseif rest == "clickcastings" then
-            CellCharacterDB["clickCastings"] = nil
+        
+        elseif rest == "snippets" then
+            CellDB["snippets"] = {}
+            CellDB["snippets"][0] = F:GetDefaultSnippet()
             ReloadUI()
         end
 
@@ -810,6 +842,7 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/cell reset layouts|r: "..L["reset all Layouts and Indicators"]..".\n"..
             "|cFFFFB5C5/cell reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
             "|cFFFFB5C5/cell reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
+            "|cFFFFB5C5/cell reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
             "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
         )
     end

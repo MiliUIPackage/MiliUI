@@ -87,7 +87,7 @@ local function CreateTabButtons()
         ["indicators"] = 512,
         ["debuffs"] = 521,
         ["utilities"] = 400,
-        ["about"] = 555,
+        ["about"] = 540,
     }
     
     local function ShowTab(tab)
@@ -182,9 +182,9 @@ end
 -- InCombatLockdown
 -------------------------------------------------
 local protectedFrames = {}
-function F:ApplyCombatProtectionToFrame(f)
+function F:ApplyCombatProtectionToFrame(f, x1, y1, x2, y2)
     tinsert(protectedFrames, f)
-    Cell:CreateCombatMask(f)
+    Cell:CreateCombatMask(f, x1, y1, x2, y2)
     
     if InCombatLockdown() then
         f.combatMask:Show()
