@@ -391,7 +391,8 @@ function PGF.DoFilterSearchResults(results)
         --             normal         heroic         mythic
         env.voti     = aID == 1189 or aID == 1190 or aID == 1191 -- Vault of the Incarnates
         env.asc      = aID == 1235 or aID == 1236 or aID == 1237 -- Aberrus, the Shadowed Crucible
-        local dfraid = env.voti or env.asc -- all Dragonflight raids
+        env.atdh     = aID == 1251 or aID == 1252 or aID == 1253 -- Amirdrassil, the Dream's Hope
+        local dfraid = env.voti or env.asc or env.atdh -- all Dragonflight raids
 
         -- Legion dungeons
         --                    normal        heroic        mythic        mythic+
@@ -456,20 +457,26 @@ function PGF.DoFilterSearchResults(results)
         env.no          = aID == 1181 or aID == 1182 or aID == 1183 or aID == 1184 -- The Nokhud Offensive
         env.lot         = aID == 1185 or aID == 1186 or aID == 1187 or aID == 1188 or aID == 1194 -- Uldaman: Legacy of Tyr
         env.doti        = aID == 1244 or aID == 1245 or aID == 1246 or aID == 1247 or aID == 1248 -- Dawn of the Infinite
-        env.gala        =                aID == 1245                or aID == 1247  -- Dawn of the Infinite: Galakrond's Fall
-        env.muro        =                aID == 1246                or aID == 1248  -- Dawn of the Infinite: Murozond's Rise
+        env.fall        =                aID == 1245                or aID == 1247  -- Dawn of the Infinite: Galakrond's Fall
+        env.rise        =                aID == 1246                or aID == 1248  -- Dawn of the Infinite: Murozond's Rise
         local dfdungeon = env.aa or env.bh or env.hoi or env.nt or env.rlp or env.av or env.no or env.lot or env.doti -- all Dragonflight dungeons
 
         -- Dragonflight Season 1 dungeons
-        env.sbg = aID == 1193 -- Shadowmoon Burial Grounds (Warlords)
-        env.tjs = aID == 1192 -- Temple of the Jade Serpent (Warlords)
-        env.hov = aID == 461 -- Halls of Valor (Legion)
-        env.cos = aID == 466 -- Court of Stars (Legion)
-        env.vp = aID == 1195 -- Vortex Pinnacle (Cataclysm)
+        env.tjs  = aID == 1192 -- Temple of the Jade Serpent (Mists of Pandaria)
+        env.sbg  = aID == 1193 -- Shadowmoon Burial Grounds (Warlords of Draenor)
+        env.hov  = aID == 461  -- Halls of Valor (Legion)
+        env.cos  = aID == 466  -- Court of Stars (Legion)
         env.dfs1 = env.rlp or env.no or env.av or env.aa or env.hov or env.cos or env.sbg or env.tjs
+        -- Dragonflight Season 2 dungeons
+        env.vp   = aID == 1195 -- Vortex Pinnacle (Cataclysm)
         env.dfs2 = env.bh or env.hoi or env.lot or env.nt or env.fh or env.tur or env.nl or env.vp
+        -- Dragonflight Season 3 dungeons
+        env.tott = aID == 1274 -- Throne of the Tides (Cataclysm)
+        env.teb  = aID == 184  -- The Everbloom (Warlords of Draenor)
+        env.dfs2 = env.fall or env.rise or env.wm or env.ad or env.dht or env.brh or env.tott or env.teb
 
         -- find more IDs: /run for i=1146,2000 do local info = C_LFGList.GetActivityInfoTable(i); if info then print(i, info.fullName) end end
+        -- or simply here: https://wago.tools/db2/GroupFinderActivity?sort[ID]=desc
 
         -- Addon filters
         --
@@ -481,7 +488,7 @@ function PGF.DoFilterSearchResults(results)
 
         PGF.PutRaiderIOAliases(env)
         if PGF.PutRaiderIOMetrics then
-            PGF.PutRaiderIOMetrics(env, searchResultInfo.leaderName)
+            PGF.PutRaiderIOMetrics(env, searchResultInfo.leaderName, searchResultInfo.activityID)
         end
         if PGF.PutPremadeRegionInfo then
             PGF.PutPremadeRegionInfo(env, searchResultInfo.leaderName)

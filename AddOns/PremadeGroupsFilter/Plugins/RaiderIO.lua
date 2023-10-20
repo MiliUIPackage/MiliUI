@@ -22,6 +22,19 @@ local PGF = select(2, ...)
 local L = PGF.L
 local C = PGF.C
 
+-- maps from ActivityID to MapID (not MapChallengeModeID!)
+local ACTIVITY_TO_MAP_ID = {
+    [1189] = 2522, -- Vault of the Incarnates (Normal)
+    [1190] = 2522, -- Vault of the Incarnates (Heroic)
+    [1191] = 2522, -- Vault of the Incarnates (Mythic)
+    [1235] = 2569, -- Aberrus, the Shadowed Crucible (Normal)
+    [1236] = 2569, -- Aberrus, the Shadowed Crucible (Heroic)
+    [1237] = 2569, -- Aberrus, the Shadowed Crucible (Mythic)
+    [1251] = 2549, -- Amirdrassil, the Dream's Hope (Normal)
+    [1252] = 2549, -- Amirdrassil, the Dream's Hope (Heroic)
+    [1253] = 2549, -- Amirdrassil, the Dream's Hope (Mythic)
+}
+
 function PGF.GetNameRealmFaction(leaderName)
     local name, realm, faction
     local factionMapping = {
@@ -47,7 +60,7 @@ end
 --- @generic V
 --- @param env table<string, V> environment to be prepared
 --- @param leaderName string name of the group leader
-function PGF.PutRaiderIOMetrics(env, leaderName)
+function PGF.PutRaiderIOMetrics(env, leaderName, activityID)
     env.hasrio            = false
     env.norio             = true
     env.rio               = 0
@@ -71,90 +84,66 @@ function PGF.PutRaiderIOMetrics(env, leaderName)
     setmetatable(env.rioheroickills, { __index = function() return 0 end })
     setmetatable(env.riomythickills, { __index = function() return 0 end })
     if leaderName and RaiderIO and RaiderIO.GetProfile then
-        if RaiderIO.GetProfile then
-            -- new API
-            local name, realm = PGF.GetNameRealmFaction(leaderName)
-            local result = RaiderIO.GetProfile(name, realm)
-            if not result and type(result) ~= "table" then
-                return
+        -- new API
+        local name, realm = PGF.GetNameRealmFaction(leaderName)
+        local result = RaiderIO.GetProfile(name, realm)
+        if not result and type(result) ~= "table" then
+            return
+        end
+        env.hasrio = true
+        env.norio = false
+        if result.mythicKeystoneProfile then
+            local p = result.mythicKeystoneProfile
+            env.rio          = p.mplusCurrent and p.mplusCurrent.score or 0
+            env.rioprev      = p.mplusPrevious and p.mplusPrevious.score or 0
+            env.riomain      = p.mplusMainCurrent and p.mplusMainCurrent.score or 0
+            env.riomainprev  = p.mplusMainPrevious and p.mplusMainPrevious.score or 0
+            env.riokey5plus  = p.keystoneFivePlus or 0
+            env.riokey10plus = p.keystoneTenPlus or 0
+            env.riokey15plus = p.keystoneFifteenPlus or 0
+            env.riokey20plus = p.keystoneTwentyPlus or 0
+            env.riokeymax    = p.maxDungeonLevel or 0
+        end
+        if result.raidProfile then
+            if result.raidProfile.currentRaid then
+                env.rioraidbosscount = result.raidProfile.currentRaid.bossCount
             end
-            env.hasrio = true
-            env.norio = false
-            if result.mythicKeystoneProfile then
-                local p = result.mythicKeystoneProfile
-                env.rio          = p.mplusCurrent and p.mplusCurrent.score or 0
-                env.rioprev      = p.mplusPrevious and p.mplusPrevious.score or 0
-                env.riomain      = p.mplusMainCurrent and p.mplusMainCurrent.score or 0
-                env.riomainprev  = p.mplusMainPrevious and p.mplusMainPrevious.score or 0
-                env.riokey5plus  = p.keystoneFivePlus or 0
-                env.riokey10plus = p.keystoneTenPlus or 0
-                env.riokey15plus = p.keystoneFifteenPlus or 0
-                env.riokey20plus = p.keystoneTwentyPlus or 0
-                env.riokeymax    = p.maxDungeonLevel or 0
+            if result.raidProfile.mainProgress and type(result.raidProfile.mainProgress) == "table" then
+                for _, mainProgress in pairs(result.raidProfile.mainProgress) do
+                    env.riomainprogress = math.max(env.riomainprogress, mainProgress.progressCount)
+                end
             end
-            if result.raidProfile then
-                if result.raidProfile.currentRaid then
-                    env.rioraidbosscount = result.raidProfile.currentRaid.bossCount
-                end
-                if result.raidProfile.mainProgress and type(result.raidProfile.mainProgress) == "table" then
-                    for _, mainProgress in pairs(result.raidProfile.mainProgress) do
-                        env.riomainprogress = math.max(env.riomainprogress, mainProgress.progressCount)
-                    end
-                end
-                if result.raidProfile.progress and type(result.raidProfile.progress) == "table" then
-                    for _, progress in pairs(result.raidProfile.progress) do
+
+            --DevTools_Dump(result.raidProfile.progress)
+            -- result.raidProfile.progress[i].difficulty     -- int
+            -- result.raidProfile.progress[i].progressCount  -- itable<int, int>
+            -- result.raidProfile.progress[i].killsPerBoss   -- int
+            -- result.raidProfile.progress[i].raid           -- table<string, ?>
+            -- result.raidProfile.progress[i].raid.mapId     -- int                 -- 2522 2569
+            -- result.raidProfile.progress[i].raid.shortName -- string              -- VOTI ATSC
+            -- result.raidProfile.progress[i].raid.name      -- string
+            -- result.raidProfile.progress[i].raid.bossCount -- int
+            -- result.raidProfile.progress[i].raid.id        -- int
+            -- result.raidProfile.progress[i].raid.ordinal   -- int
+
+            local mapID = ACTIVITY_TO_MAP_ID[activityID]
+            if result.raidProfile.progress and type(result.raidProfile.progress) == "table" then
+                for _, progress in pairs(result.raidProfile.progress) do
+                    if mapID and progress.raid and mapID == progress.raid.mapId then
                         if progress.difficulty == 1 then
                             env.rionormalprogress = progress.progressCount
-                            env.rionormalkills = progress.killsPerBoss
+                            for i, k in ipairs(progress.killsPerBoss) do
+                                env.rionormalkills[i] = k
+                            end
                         elseif progress.difficulty == 2 then
                             env.rioheroicprogress = progress.progressCount
-                            env.rioheroickills = progress.killsPerBoss
+                            for i, k in ipairs(progress.killsPerBoss) do
+                                env.rioheroickills[i] = k
+                            end
                         elseif progress.difficulty == 3 then
                             env.riomythicprogress = progress.progressCount
-                            env.riomythickills = progress.killsPerBoss
-                        end
-                    end
-                end
-            end
-        elseif RaiderIO.GetPlayerProfile then
-            -- old API
-            local result = RaiderIO.GetPlayerProfile(RaiderIO.ProfileOutput.DATA, leaderName)
-            if result and type(result) == "table" then
-                for _, data in pairs(result) do
-                    if data and data.dataType == RaiderIO.DataProvider.MYTHICPLUS and data.profile then
-                        env.hasrio       = true
-                        env.norio        = false
-                        env.rio          = data.profile.mplusCurrent and data.profile.mplusCurrent.score or 0
-                        env.rioprev      = data.profile.mplusPrevious and data.profile.mplusPrevious.score or 0
-                        env.riomain      = data.profile.mplusMainCurrent and data.profile.mplusMainCurrent.score or 0
-                        env.riomainprev  = data.profile.mplusMainPrevious and data.profile.mplusMainPrevious.score or 0
-                        env.riokey5plus  = data.profile.keystoneFivePlus or 0
-                        env.riokey10plus = data.profile.keystoneTenPlus or 0
-                        env.riokey15plus = data.profile.keystoneFifteenPlus or 0
-                        env.riokey20plus = data.profile.keystoneTwentyPlus or 0
-                        env.riokeymax    = data.profile.maxDungeonLevel or 0
-                    end
-                    if data and data.dataType == RaiderIO.DataProvider.RAIDING and data.profile then
-                        if data.profile.currentRaid then
-                            env.rioraidbosscount = data.profile.currentRaid.bossCount
-                        end
-                        if data.profile.mainProgress and type(data.profile.mainProgress) == "table" then
-                            for _, mainProgress in pairs(data.profile.mainProgress) do
-                                env.riomainprogress = math.max(env.riomainprogress, mainProgress.progressCount)
-                            end
-                        end
-                        if data.profile.progress and type(data.profile.progress) == "table" then
-                            for _, progress in pairs(data.profile.progress) do
-                                if progress.difficulty == 1 then
-                                    env.rionormalprogress = progress.progressCount
-                                    env.rionormalkills = progress.killsPerBoss
-                                elseif progress.difficulty == 2 then
-                                    env.rioheroicprogress = progress.progressCount
-                                    env.rioheroickills = progress.killsPerBoss
-                                elseif progress.difficulty == 3 then
-                                    env.riomythicprogress = progress.progressCount
-                                    env.riomythickills = progress.killsPerBoss
-                                end
+                            for i, k in ipairs(progress.killsPerBoss) do
+                                env.riomythickills[i] = k
                             end
                         end
                     end
