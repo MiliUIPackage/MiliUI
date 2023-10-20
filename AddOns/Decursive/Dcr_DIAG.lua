@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.9.3) add-on for World of Warcraft UI
+    Decursive (v 2.7.10) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2023-07-10T10:43:57Z
+    This file was last updated on 2023-09-03T19:15:35Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -110,7 +110,7 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.9.3";
+local VERSION = "2.7.10";
 
 T._LoadedFiles = {};
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
@@ -321,7 +321,7 @@ do
         _Debug(unpack(TIandBI));
 
 
-        DebugHeader = ("%s\n2.7.9.3  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        DebugHeader = ("%s\n2.7.10  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
         tostring(T._BDT_HotFix1_applyed), -- BDTHFAd: %s
@@ -356,11 +356,34 @@ do
 
         local ACsuccess, actionsConfiguration = pcall(T._ExportActionsConfiguration);
 
+        local BCsuccess, bleedConfiguration = pcall(function ()
+            local D = T.Dcr;
+            local knownBleedEffectsCount = 0;
+
+            for _ in pairs(D.Status.t_CheckBleedDebuffsActiveIDs) do
+               knownBleedEffectsCount = knownBleedEffectsCount + 1;
+           end
+
+            return ([=[%d Bleed Effects registered.
+Bleed keywords:
+---
+%s
+---
+Active no case version:
+---
+%s
+---]=]):format(
+                knownBleedEffectsCount,
+                tostring(D.db.locale.BleedEffectsKeywords),
+                tostring(D.Status.P_BleedEffectsKeywords_noCase)
+            )
+        end);
+
         local CSCsuccess, customSpellConfiguration = pcall(T._ExportCustomSpellConfiguration);
         local STPsuccess, spellTable = pcall(T._PrintSpellTable);
 
         local SRTOLEsuccess, SRTOLErrors =
-            pcall(function() return "Script ran too long errors:\n" .. T.Dcr:tAsString(T.Dcr.db.global.SRTLerrors) end);
+            pcall(function() return T.Dcr:tAsString(T.Dcr.db.global.SRTLerrors) end);
 
         local headerSucess, headerGenErrorm;
         if not DebugHeader then
@@ -369,14 +392,17 @@ do
             headerSucess = true;
         end
 
+        local SEP = "\n\n-- --\n\n";
+
 
         T._DebugText = (headerSucess and DebugHeader or (HeaderFailOver .. 'Report header gen failed: ' .. (headerGenErrorm and headerGenErrorm or "")))
         .. table.concat(T._DebugTextTable, "")
-        .. "\n\n-- --\n" .. actionsConfiguration .. "\n-- --" -- (Spells assignments:)
-        .. customSpellConfiguration .. "\n-- --"
-        .. spellTable .. "\n-- --" -- (Decursive known spells:)
-        .. SRTOLErrors .. "\n-- --"
-        .. "\n\nLoaded Addons:\n\n" .. loadedAddonList .. "\n-- --";
+        .. SEP .. "Bleed Conf:\n" .. bleedConfiguration .. SEP
+        .. "Action Conf:\n" .. actionsConfiguration .. SEP -- (Spells assignments:)
+        .. "Custom Spell Conf:\n" .. customSpellConfiguration .. SEP
+        .. "Decursive known spells:\n" .. spellTable .. SEP
+        .. "Script ran too long errors:\n" .. SRTOLErrors .. SEP
+        .. "\n\nLoaded Addons:\n\n" .. loadedAddonList .. SEP;
 
         if _G.DecursiveDebuggingFrameText then
             _G.DecursiveDebuggingFrameText:SetText(T._DebugText);
@@ -819,8 +845,6 @@ do
             return errorPrefix("D.classprofile.UserSpells not available");
         end
 
-        customSpellConfText[1] = "\nCustom spells configuration:\n";
-
         for spellID, spellData in pairs(D.classprofile.UserSpells) do
             if not spellData.IsDefault then
                  customSpellConfText[#customSpellConfText + 1] = ("    %s (id: %s) - %s - %s - %s - B: %d - Ts: %s - UF: %s - Macro: %s\n"):format(
@@ -852,7 +876,7 @@ do
             return errorPrefix("T._C.DSI not available");
         end
 
-        return "\nDecursive known spells:\n(left and right side should be 'matching')\n" .. D:tAsString(D:tMap(T._C.DSI, GetSpellInfo));
+        return "\n(left and right side should be 'matching')\n" .. D:tAsString(D:tMap(T._C.DSI, GetSpellInfo));
     end
     function T._ExportActionsConfiguration () -- (use pcall with this) -- {{{
 
@@ -1127,4 +1151,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.9.3";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.10";
