@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2525, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230620070249")
+mod:SetRevision("20231007061806")
 mod:SetCreatureID(201320)
 mod:SetEncounterID(2680)
 mod:SetUsedIcons(1)
@@ -19,8 +19,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_REMOVED 405819 401419 405827 405091",
 	"SPELL_AURA_REMOVED_DOSE 405827",
 	"SPELL_PERIODIC_DAMAGE 403543",
-	"SPELL_PERIODIC_MISSED 403543",
-	"UNIT_SPELLCAST_SUCCEEDED boss1"
+	"SPELL_PERIODIC_MISSED 403543"
 )
 
 --NOTE, in LFR (and maybe normal), tank combo is not in random order so might be able to clean up tank code there
@@ -54,7 +53,7 @@ local timerSearingSlamCD							= mod:NewCDCountTimer(40, 405821, nil, nil, nil, 
 local timerDoomFlameCD								= mod:NewCDCountTimer(28.9, 406851, nil, nil, nil, 5)
 local timerShadowlavaBlastCD						= mod:NewCDCountTimer(28.9, 406333, nil, nil, nil, 3)
 local timerChargedSmashCD							= mod:NewCDCountTimer(40, 400777, nil, nil, nil, 3)
-local timerVolcanicComboCD							= mod:NewCDCountTimer(40, 407641, DBM_COMMON_L.TANKCOMBOC, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerVolcanicComboCD							= mod:NewCDCountTimer(40, 407641, DBM_COMMON_L.TANKCOMBO.." (%s)", "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerUnleashedShadowflameCD					= mod:NewCDCountTimer(40, 410070, 98565, nil, nil, 2, nil, DBM_COMMON_L.MYTHIC_ICON)--"Burning Orbs"
 --local berserkTimer								= mod:NewBerserkTimer(600)
 

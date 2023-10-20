@@ -24,12 +24,7 @@ frame:SetClampedToScreen(true)
 frame:SetUserPlaced(true)
 frame:RegisterForDrag("LeftButton")
 frame:SetFrameLevel(frame:GetFrameLevel() + 4)
-if DBM:GetTOC() < 11404 then -- Legacy API
-	frame:SetMinResize(800, 400)
-	frame:SetMaxResize(UIParent:GetWidth(), UIParent:GetHeight())
-else -- Is Modern API
-	frame:SetResizeBounds(800, 400, UIParent:GetWidth(), UIParent:GetHeight())
-end
+frame:SetResizeBounds(800, 400, UIParent:GetWidth(), UIParent:GetHeight())
 frame:Hide()
 frame.backdropInfo = {
 	bgFile		= "Interface\\DialogFrame\\UI-DialogBox-Background-Dark", -- 131071
@@ -190,6 +185,15 @@ for i = 1, math.floor(UIParent:GetHeight() / 18) do
 	button:SetScript("OnClick", function(self)
 		frame:ClearSelection()
 		frame.tabs[frame.tab].selection = self.element
+		if frame.tab == 1 and not self.element.hasInit then
+			for _, mod in ipairs(DBM.Mods) do
+				if mod.id == self.element.modid then
+					DBM_GUI:CreateBossModPanel(mod)
+					self.element.hasInit = true
+					break
+				end
+			end
+		end
 		self:LockHighlight()
 		frame:DisplayFrame(self.element)
 	end)

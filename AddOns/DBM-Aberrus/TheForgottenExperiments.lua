@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2530, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230809071809")
+mod:SetRevision("20230815013239")
 mod:SetCreatureID(200912, 200913, 200918)
 mod:SetEncounterID(2693)
 mod:SetUsedIcons(1, 2, 3)
@@ -165,7 +165,7 @@ function mod:OnCombatStart(delay)
 	self:EnablePrivateAuraSound(406317, "targetyou", 2)--Rending Charge
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(406313))
-		DBM.InfoFrame:Show(5, "function", updateInfoFrame, true)
+		DBM.InfoFrame:Show(5, "function", updateInfoFrame, false, true)
 	end
 end
 

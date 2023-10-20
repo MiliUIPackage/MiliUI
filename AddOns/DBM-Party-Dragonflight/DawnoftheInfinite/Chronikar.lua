@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2521, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230711230315")
+mod:SetRevision("20230818041911")
 mod:SetCreatureID(198995)
 mod:SetEncounterID(2666)
 --mod:SetUsedIcons(1, 2, 3)
@@ -54,7 +54,7 @@ function mod:OnCombatStart(delay)
 	self.vb.stompCount = 0
 	timerSandStompCD:Start(7.4-delay, 1)
 	timerEonShatterCD:Start(19.5-delay)
-	timerChronoShearCD:Start(48.5, 1)
+	timerChronoShearCD:Start(48.2, 1)
 end
 
 --function mod:OnCombatEnd()
@@ -100,7 +100,7 @@ function mod:SPELL_CAST_START(args)
 		if self.vb.stompCount % 2 == 0 then
 			timerSandStompCD:Start(17, self.vb.stompCount+1)
 		else--Eon Shatter causes delay
-			timerSandStompCD:Start(35.2, self.vb.stompCount+1)
+			timerSandStompCD:Start(34.8, self.vb.stompCount+1)
 		end
 	end
 end

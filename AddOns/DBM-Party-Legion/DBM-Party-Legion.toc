@@ -16,19 +16,28 @@
 ## X-DBM-Mod-Name: Dungeons (Legion)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (軍臨天下)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (军团再临)
-## X-DBM-Mod-Name-koKR: 던전 (군단)
 ## X-DBM-Mod-Sort: 502
 ## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r97-7-gfec4ab7
+## Version: r101
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
+BlackRookHold\AmalgamSouls.lua
+BlackRookHold\Illysanna.lua
+BlackRookHold\Smashspite.lua
+BlackRookHold\Kurtalos.lua
+BlackRookHold\BRHTrash.lua
+DarkheartThicket\Glaidalis.lua
+DarkheartThicket\Oakheart.lua
+DarkheartThicket\Dresaron.lua
+DarkheartThicket\ShadeofXavius.lua
+DarkheartThicket\DHTTrash.lua
 NeltharionsLair\Rokmora.lua
 NeltharionsLair\Ularogg.lua
 NeltharionsLair\Naraxas.lua

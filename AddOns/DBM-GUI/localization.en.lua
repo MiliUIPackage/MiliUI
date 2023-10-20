@@ -85,10 +85,9 @@ L.Editbox_WindowWidth				= "GUI window width"
 L.Editbox_WindowHeight				= "GUI window height"
 
 L.UIGroupingOptions					= "UI Grouping Options (changing these require UI reload for any mod that's already loaded)"
-L.GroupOptionsBySpell				= "Group mod options by spell (for mods that support it)"
 L.GroupOptionsExcludeIcon			= "Exclude 'Set Icon on' options from getting grouped by spell (they will be grouped together in 'icons' category like before)"
 L.AutoExpandSpellGroups				= "Auto expand options that are grouped by spell"
-L.ShowWAKeys						= "Show WeakAuras keys next to spell names to assist in writing WeakAuras using Boss Mod triggers. Caveat is that this will not show correct key on faction fights who's IDs can change on pull based on faction of party leader"
+L.ShowWAKeys						= "Show WeakAuras keys next to spell names to assist in writing WeakAuras using Boss Mod triggers."
 --L.ShowSpellDescWhenExpanded	= "Continue showing spell description when groups are expanded"--Might not be used
 L.NoDescription						= "This ability has no description"
 L.CustomOptions						= "This category contains custom options for an ability or event that has no spell or journal ID of it's own. These options have been grouped together using a custom manual ID for the ease of creating WeakAuras"
@@ -403,10 +402,10 @@ L.SpamBlockNoShowUTimers			= "Do not show user sent timers (Custom/Pull/Break)"
 L.SpamBlockNoCountdowns				= "Do not play countdown sounds"
 
 L.Area_SpamFilter_Nameplates		= "Nameplate Global Disable & Filter Options"
-L.SpamBlockNoNameplate				= "Do not show Nameplate Auras"
-L.SpamBlockNoBossGUIDs				= "Do not show main boss (boss1) timers on Plater nameplates as Nameplate Auras\n(you will still see trash/boss adds timers if feature is enabled in Plater)"
-L.SpamBlockTimersWithNameplates		= "Do not show timer bars for trash mods if Plater Nameplate Aura CDs are enabled in Plater options (does not apply to boss fights, which will always show timer bars)"
-L.NameplateFooter					= "Additional features available here if Plater Nameplates is enabled"
+L.SpamBlockNoNameplate				= "Do not show nameplate icons for special boss mechanics"
+L.SpamBlockNoNameplateCD			= "Do not show nameplate icons for ability cooldown timers"
+L.SpamBlockNoBossGUIDs				= "Do not show nameplate icons for ability cooldowns for one enemy bosses\n(you will still see icons for trash or multi target bosses if feature is enabled)"
+L.SpamBlockTimersWithNameplates		= "Do not show timer bars for trash mods if 'nameplate icons for ability cooldowns' is enabled (does not apply to boss fights, which will always show timer bars)"
 
 L.Area_SpamFilter_Misc				= "Misc Global Disable & Filter Options"
 L.SpamBlockNoSetIcon				= "Do not set icons on targets"
@@ -536,9 +535,11 @@ L.Panel_Range						= "Rangeframe"
 
 -- Panel: Nameplate
 L.Panel_Nameplates					= "Nameplates"
-L.UseNameplateHandoff				= "Hand off nameplate aura requests to supported nameplate addons (KuiNameplates, Threat Plates, Plater) instead of handling internally. This is recommended option as it allows more advanced features and configuration to be done via nameplate addon"
 L.Area_NPStyle						= "Style (Note: Only configures style when DBM is handling nameplates.)"
-L.NPAuraSize						= "Aura Pixel size (squared): %d"
+L.NPAuraText						= "Show timer text on nameplate icons"
+L.NPAuraSize						= "Icon Pixel size (squared): %d"
+L.NPIcon_BarOffSetX 				= "Icon Offset X: %d"
+L.NPIcon_BarOffSetY 				= "Icon Offset Y: %d"
 
 -- Misc
 L.Area_General						= "General"

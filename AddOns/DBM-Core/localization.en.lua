@@ -74,6 +74,7 @@ L.TRANSCRIPTOR_LOG_START				= "Transcriptor logging started."
 L.TRANSCRIPTOR_LOG_END					= "Transcriptor logging ended."
 
 L.MOVIE_SKIPPED							= L.DBM .. " has attempted to skip a cut scene automatically."
+L.MOVIE_NOTSKIPPED							= L.DBM .. " has detected a skipable cut scene but has NOT skipped it due to a blizzard bug. When this bug is fixed, skipping will be re-enabled"
 L.BONUS_SKIPPED							= L.DBM .. " has automatically closed bonus loot frame. If you need to get this frame back, type /dbmbonusroll within 3 minutes"
 
 L.AFK_WARNING							= "You are AFK and in combat (%d percent health remaining), firing sound alert. If you are not AFK, clear your AFK flag or disable this option in 'extra features'."
@@ -203,6 +204,7 @@ L.DBMLDB								= "WARNING: DBM-LDB is now built into DBM-Core. While it won't d
 L.DBMLOOTREMINDER						= "WARNING: 3rd party mod DBM-LootReminder is installed. This addon is no longer compatible with Retail WoW client and will cause " .. L.DBM .. " to break and not be able to send pull timers. Uninstall of this addon recommended"
 L.UPDATE_REQUIRES_RELAUNCH				= "WARNING: This " .. L.DBM .. " update will not work correctly if you don't fully restart your game client. This update contains new files or .toc file changes that cannot be loaded via ReloadUI. You may encounter broken functionality or errors if you continue without a client restart."
 L.OUT_OF_DATE_NAG						= "Your version of " .. L.DBM.. " is out-of-date and this specific fight mod has newer features or bug fixes. It is recommended you update for this fight to improve your experience."
+L.PLATER_NP_AURAS_MSG					= "DBM includes an advanced feature to show enemy cooldown timers using icons on nameplates. This is on by default for most users, but for Plater users it is off by default in Plater options unless you enable it. To get the most out of DBM (and Plater) it's recommended you enable this feature in Plater under 'Buff Special' section. If you don't want to see this message again, you can also just entirely disable 'Cooldown icons on nameplates' option in DBM global disable or nameplate options panels"
 
 L.MOVABLE_BAR							= "Drag me!"
 
@@ -464,16 +466,23 @@ L.AUTO_TIMER_TEXTS = {
 	active								= "%s ends",--Buff/Debuff/event on boss
 	fades								= "%s fades",--Buff/Debuff on players
 	ai									= "%s AI",
-	cd									= "~%s",
-	cdcount								= "~%s (%%s)",
-	cdsource							= "~%s: >%%s<",
-	cdspecial							= "~Special",
+
+	cd									= "%s",--Now same as next, as the ~ was moved to timer number
+	cdcount								= "%s (%%s)",--Now same as next, as the ~ was moved to timer number
+	cdsource							= "%s: >%%s<",--Now same as next, as the ~ was moved to timer number
+	cdspecial							= "Special",--Now same as next, as the ~ was moved to timer number
+
 	next								= "%s",
 	nextcount							= "%s (%%s)",
-	nextsource							= "%s: %%s",
+	nextsource							= "%s: >%%s<",
 	nextspecial							= "Special",
+
 	achievement							= "%s",
 	stage								= "Stage",
+	stagecount							= "Stage %%s",
+	stagecountcycle						= "Stage %%s (%%s)",--Example: Stage 2 (3) for a fight that alternates stage 1 and stage 2, but also tracks total cycles
+	Intermission						= "Intermission",
+	Intermissioncount					= "Intermission %%s",
 	adds								= "Adds",
 	addscustom							= "Adds (%%s)",
 	roleplay							= GUILD_INTEREST_RP or "Roleplay"
@@ -508,6 +517,10 @@ L.AUTO_TIMER_OPTIONS = {
 	nextspecial							= "Show timer for next special ability",
 	achievement							= "Show timer for %s",
 	stage								= "Show timer for next stage",
+	stagecount							= "Show timer (with count) for next stage",
+	stagecountcycle						= "Show timer (with stage count and cycle count) for next stage",
+	intermission						= "Show timer for next intermission",
+	intermissioncount					= "Show timer (with count) for next intermission",
 	adds								= "Show timer for incoming adds",
 	addscustom							= "Show timer for incoming adds",
 	roleplay							= "Show timer for roleplay duration"--This does need localizing though.

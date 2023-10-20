@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1673, "DBM-Party-Legion", 5, 767)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230614234505")
+mod:SetRevision("20230829081105")
 mod:SetCreatureID(91005)
 mod:SetEncounterID(1792)
 mod.sendMainBossGUID = true
@@ -25,7 +25,7 @@ mod:RegisterEventsInCombat(
 local warnFixate					= mod:NewTargetAnnounce(209906, 2, nil, false)--Could be spammy, optional
 local warnSpikedTongueOver			= mod:NewEndAnnounce(199176, 1)
 
-local specWarnAdds					= mod:NewSpecialWarningSwitchCount(199817, "Dps", nil, nil, 1, 2)
+local specWarnAdds					= mod:NewSpecialWarningSwitchCount(199817, "-Healer", nil, 2, 1, 2)
 local specWarnFixate				= mod:NewSpecialWarningYou(209906, nil, nil, nil, 1, 2)
 local specWarnSpikedTongue			= mod:NewSpecialWarningRunCount(199176, nil, nil, nil, 4, 2)
 local specWarnRancidMaw				= mod:NewSpecialWarningGTFO(188494, nil, nil, nil, 1, 8)
@@ -47,7 +47,7 @@ function mod:OnCombatStart(delay)
 	self.vb.mawCount = 0
 	timerAddsCD:Start(5.2-delay, 1)
 	timerRancidMawCD:Start(7.3-delay, 1)
-	timerToxicRetchCD:Start(12.4-delay, 1)
+	timerToxicRetchCD:Start(12.2-delay, 1)
 	timerSpikedTongueCD:Start(50.5-delay, 1)
 end
 

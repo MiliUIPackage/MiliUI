@@ -11,12 +11,12 @@
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: BFA
 ## X-DBM-StatTypes: normal,heroic,mythic,challenge
-## X-DBM-Mod-SubCategoriesID: 1763, 1754, 1762, 1864, 1822, 1877, 1594, 1841
+## X-DBM-Mod-SubCategoriesID: 1763, 1754, 1762, 1864, 1822, 1877, 1594, 1841, 1771, 1862
 ## X-DBM-Mod-Name: Dungeons (BfA)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (決戰艾澤拉斯)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (争霸艾泽拉斯)
 ## X-DBM-Mod-Sort: 402
-## X-DBM-Mod-MapID: 1763, 1754, 1762, 1864, 1822, 1877, 1594, 1841
+## X-DBM-Mod-MapID: 1763, 1754, 1762, 1864, 1822, 1877, 1594, 1841, 1771, 1862
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 7
 ## X-Category-zhTW: 團隊
@@ -24,6 +24,11 @@
 localization.en.lua
 localization.cn.lua
 localization.tw.lua
+AtalDazar\Alunza.lua
+AtalDazar\Volkaal.lua
+AtalDazar\Rezan.lua
+AtalDazar\Yazma.lua
+AtalDazar\AtalDazarTrash.lua
 Freehold\SkycapnKragg.lua
 Freehold\CounciloCaptains.lua
 Freehold\RingofBooty.lua
@@ -34,3 +39,9 @@ TheUnderrot\InfestedCrawg.lua
 TheUnderrot\SporecallerZancha.lua
 TheUnderrot\Unbound.lua
 TheUnderrot\UnderrotTrash.lua
+WaycrestManor\HeartsbaneTriad.lua
+WaycrestManor\SoulboundGoliath.lua
+WaycrestManor\RaaltheGlut.lua
+WaycrestManor\Waycrests.lua
+WaycrestManor\GorakTul.lua
+WaycrestManor\WaycrestTrash.lua

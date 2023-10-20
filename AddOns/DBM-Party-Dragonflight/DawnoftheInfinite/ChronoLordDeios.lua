@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2538, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230712215349")
+mod:SetRevision("20230818041911")
 mod:SetCreatureID(199000)
 mod:SetEncounterID(2673)
 --mod:SetUsedIcons(1, 2, 3)
@@ -73,9 +73,9 @@ function mod:OnCombatStart(delay)
 	self.vb.orbCount = 0
 	self.vb.breathCount = 0
 	self.vb.addsLeft = 4
-	timerInfinityOrbCD:Start(10.7-delay, 1)
+	timerInfinityOrbCD:Start(9.5-delay, 1)
 	timerSummonInfiniteKeeperCD:Start(15-delay, 1)
-	timerTemporalBreathCD:Start(20.4-delay, 1)
+	timerTemporalBreathCD:Start(19.3-delay, 1)
 end
 
 --function mod:OnCombatEnd()

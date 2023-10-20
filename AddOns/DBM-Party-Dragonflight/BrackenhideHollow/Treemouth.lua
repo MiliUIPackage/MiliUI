@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2473, "DBM-Party-Dragonflight", 1, 1196)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230517012143")
+mod:SetRevision("20230829081105")
 mod:SetCreatureID(186120)
 mod:SetEncounterID(2568)
 mod:SetUsedIcons(8, 7, 6, 5)
@@ -62,7 +62,7 @@ mod.vb.addIcon = 8
 
 function mod:OnCombatStart(delay)
 	timerVineWhipCD:Start(6-delay)
-	timerDecaySprayCD:Start(16-delay)
+	timerDecaySprayCD:Start(15.7-delay)
 	timerGraspingVinesCD:Start(23.2-delay)
 --	timerInfectiousSpitCD:Start(25.9-delay)--Restarted by vines anyways
 end

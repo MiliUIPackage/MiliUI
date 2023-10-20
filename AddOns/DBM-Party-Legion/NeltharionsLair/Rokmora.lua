@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1662, "DBM-Party-Legion", 5, 767)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230614234505")
+mod:SetRevision("20230916034331")
 mod:SetCreatureID(91003)
 mod:SetEncounterID(1790)
 mod.sendMainBossGUID = true
@@ -21,7 +21,7 @@ local specWarnRazorShards			= mod:NewSpecialWarningSpell(188169, "Tank", nil, ni
 local specWarnGas					= mod:NewSpecialWarningGTFO(192800, nil, nil, nil, 1, 8)
 
 local timerShatterCD				= mod:NewCDTimer(24.2, 188114, nil, nil, nil, 2)
-local timerRazorShardsCD			= mod:NewCDTimer(25, 188169, nil, "Tank", nil, 5)--29?
+local timerRazorShardsCD			= mod:NewCDTimer(29, 188169, nil, "Tank", nil, 5)
 
 mod.vb.shatterCount = 0
 

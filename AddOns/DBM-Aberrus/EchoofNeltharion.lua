@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2523, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230801185029")
+mod:SetRevision("20230823061755")
 mod:SetCreatureID(201668)
 mod:SetEncounterID(2684)
 mod:SetUsedIcons(6)
@@ -40,6 +40,7 @@ local warnPhase									= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil,
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26192))
 local warnTwistedEarth							= mod:NewCountAnnounce(402902, 2)
 --local warnVolcanicHeart						= mod:NewTargetCountAnnounce(410953, 2, nil, nil, nil, nil, nil, nil, true)
+local warnRushingDarkness						= mod:NewIncomingCountAnnounce(407221, 2)
 local warnRushingDarknessWallTarget				= mod:NewTargetCountAnnounce(407221, 2, nil, nil, nil, nil, nil, nil, true)
 local warnVolcanicHeart							= mod:NewCountAnnounce(410953, 3, nil, nil, 167180)--This is using count object instead of incoming count because weak auras are scanning for "Bombs (number")
 
@@ -146,7 +147,7 @@ local function checkForSkippedDarkness(self)
 	if self.vb.RushingDarknessCount == 0 then--first one skipped (which is like 95% of pulls)
 		self.vb.RushingDarknessCount = self.vb.RushingDarknessCount + 1
 		self.vb.skippedDarkness = true
-		timerRushingDarknessCD:Start(12, 2)
+		timerRushingDarknessCD:Start(10.2, 2)
 	end
 end
 
@@ -251,6 +252,8 @@ function mod:SPELL_CAST_START(args)
 		end
 		if self:IsMythic() and self:GetStage(1) then--Mythic P1 only wall breaker strat used by all top guilds (which means everyone else will use it too and expect it in DBM)
 			self:BossTargetScanner(args.sourceGUID, "RushingDarknessTarget", 0.2, 8, true, nil, nil, nil, true)
+		else
+			warnRushingDarkness:Show(self.vb.RushingDarknessCount)
 		end
 	elseif spellId == 409313 then--Intermission 1.5
 		specWarnRazetheEarth:Show()
@@ -414,7 +417,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		self:Schedule(15.8, checkForSkippedDarkness, self)--Schedule checker to see if the normally skipped cast happened, and if not, start backup timer for second cast
 		timerSunderRealityCD:Start(19.5, 1)
 --		timerRushingDarknessCD:Start(27, 1)
-		timerCalamitousStrikeCD:Start(35.9, 1)
+		timerCalamitousStrikeCD:Start(34.4, 1)
 		timerEbonDestructionCD:Start(40.2, 1)
 	--elseif spellId == 407182 then
 	--	if self.Options.SetIconOnRushingDarkness then

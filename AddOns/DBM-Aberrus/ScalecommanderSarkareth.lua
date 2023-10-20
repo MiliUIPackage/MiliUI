@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2520, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230707103717")
+mod:SetRevision("20230822034157")
 mod:SetCreatureID(201754)
 mod:SetEncounterID(2685)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -358,7 +358,7 @@ function mod:OnCombatStart(delay)
 		timerMassDisintegrateCD:Start(20.8-delay, 1)
 		timerSearingBreathCD:Start(25.4-delay, 1)
 		timerPhaseCD:Start(101.9, 2)--Mythic Confirmed
-		berserkTimer:Start(450)--Might not actually start here but phase 3
+		berserkTimer:Start(480)
 	else
 		if self:IsLFR() then
 			difficultyName = "lfr"

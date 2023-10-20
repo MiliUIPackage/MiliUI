@@ -1,20 +1,24 @@
 # <DBM Mod> Dungeons (DF)
 
-## [r98](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/r98) (2023-08-11)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r97...r98) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r100-19-g28b4196](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/28b4196cf2142bcf5b0e4bcdb0a791a50f667a9c) (2023-10-02)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r100...28b4196cf2142bcf5b0e4bcdb0a791a50f667a9c) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
-- and fix another weird bug  
-- tweak last  
-- Update Emberon timers to reflext August 10th 2023 hotfixes  
-- minor timer tweaks  
-- minor timer fixes to shrine of the storms  
-- Update .toc files and RU locale (#129)  
-- Update localization.tw.lua (#130)  
--  - Moved Heartsbane triad to newer icon object so it works in solo groups, as well as just works more efficiently overall.  
-     - Worked around timer issue on Crowd Pummeler if boss stutter/recasts an ability  
-     - Couple other micro timer adjustments  
-- Fixed a bug where stage 3 debug was actually also showing in stage 1 and 2  
-- Update DBM-Party-BC.toc (#126)  
-- Update localization.cn.lua (#128)  
-- Update koKR (#127)  
-    Co-authored-by: Artemis <QartemisT@gmail.com>  
+- Scope Season 3 dungeon trash mods with zone checks  
+- fixes and cleanups, closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/141  
+- Disable flarecore cd timer, it's not accurate (maybe health based?) Closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/140  
+- Update crystalize timer, closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/137  
+- Fix lua error, closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/138  
+- Add a stonecore trash module with prio interrupt/announce for force of earth, since it's still a sore spot of timewalking dungeons. Still need to remmeber to log the imp portal, the other fail point.  
+- downgrade alerts on morchie to lower emphasis  
+- Attempt to fix council of captains re-engaging due to friendly captain being dragged into combat with trash after boss is defeated  
+- enable backup event  
+- note confirmed, closes https://github.com/DeadlyBossMods/DBM-Dungeons/issues/139  
+- Update localization.tw.lua (#136)  
+- update localization.cn (#132)  
+- Update koKR (Dungeon) (#135)  
+- Update localization.ru.lua (#134)  
+- Update localization.ru.lua (#133)  
+- Some more tech updates for S3 dungeons, including support for nameplate aura timers, trash filters, and another blank trash mod for everbloom  
+- Also upgrade throne of tides to modern mythic+ stats type  
+- Also stub in throne of tides trash module for localizers to get started  
+- Some technical updates to throne of the tides  

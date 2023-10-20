@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2536, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230714064024")
+mod:SetRevision("20230926185230")
 mod:SetCreatureID(198999)
 mod:SetEncounterID(2671)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
@@ -38,12 +38,12 @@ local warnFamiliarFaces								= mod:NewCountAnnounce(405279, 3)
 local warnTimeStasis								= mod:NewTargetNoFilterAnnounce(401667, 4)
 
 local specWarnSandBlast								= mod:NewSpecialWarningCount(404916, nil, nil, nil, 2, 2)
-local specWarnDragonBreath							= mod:NewSpecialWarningDodge(404364, nil, nil, nil, 3, 2)
-local specWarnTimeTraps								= mod:NewSpecialWarningDodgeCount(406481, nil, nil, nil, 3, 2)
+local specWarnDragonBreath							= mod:NewSpecialWarningDodge(404364, nil, nil, nil, 2, 2)
+local specWarnTimeTraps								= mod:NewSpecialWarningDodgeCount(406481, nil, nil, nil, 2, 2)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(412769, nil, nil, nil, 1, 8)
 
 local timerSandBlastCD								= mod:NewCDCountTimer(21.8, 404916, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--21.8-38.8
-local timerMoreProblemsCD							= mod:NewCDCountTimer(40, 403891, nil, nil, nil, 6)--40-52
+local timerMoreProblemsCD							= mod:NewCDCountTimer(39.7, 403891, nil, nil, nil, 6)--40-52
 local timerFamiliarFacesCD							= mod:NewCDCountTimer(23, 405279, nil, nil, nil, 5)--Only cast once
 local timerTimeTrapsCD								= mod:NewCDCountTimer(50.9, 406481, nil, nil, nil, 3)
 
@@ -62,7 +62,7 @@ local allTimers = {--Timers up to 6:09
 	--Sand Blast
 	[404916] = {4.6, 38.8, 29.1, 20.6, 29.1, 21.8, 29.1, 21.8, 29.1, 21.8, 29.1, 21.8, 29.1, 21.8},
 	--More Problems
-	[403891] = {10.6, 40, 48.5, 49.8, 50.9, 51, 51, 52.2},
+	[403891] = {10.6, 39.7, 48.5, 49.8, 50.9, 51, 51, 52.2},
 	--Time Traps
 	[406481] = {30.1, 50.5, 51, 51, 51, 51, 51},
 }
@@ -125,7 +125,6 @@ function mod:SPELL_CAST_START(args)
 		self.vb.blastCount = self.vb.blastCount + 1
 		specWarnSandBlast:Show(self.vb.blastCount)
 		specWarnSandBlast:Play("shockwave")
-		timerSandBlastCD:Start(nil, self.vb.blastCount+1)
 		local timer
 		if self.vb.blastCount == 1 then--One off
 			timer = 38.8

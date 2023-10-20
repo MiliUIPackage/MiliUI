@@ -1,5 +1,5 @@
 ## Interface: 100107
-## Version: 10.1.19-4-ga886492
+## Version: 10.1.26-11
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (DF)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (巨龍崛起)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首领 (巨龙时代)|r
@@ -18,14 +18,12 @@
 ## X-DBM-Mod-Name-zhCN: 世界首领 (巨龙时代)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 210
-## X-DBM-Mod-MapID: 2574, 2444, 2512, 2454
-## X-DBM-Mod-LoadCID: 193534, 193535, 193532, 193533, 199855, 199853
+## X-DBM-Mod-MapID: 2574, 2444, 2512, 2454, 2548
+## X-DBM-Mod-LoadCID: 193534, 193535, 193532, 193533, 199855, 199853, 209574
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 9
-## X-Curse-Project-ID: 3358
-## X-WoWI-ID: 8814
-## X-Wago-ID: qv633o6b
 ## X-Category-zhTW: 團隊
+
 
 localization.en.lua
 Strunraan.lua
@@ -33,3 +31,4 @@ Liskanoth.lua
 Bazual.lua
 Basrikron.lua
 ZaqaliElders.lua
+Aurostor.lua

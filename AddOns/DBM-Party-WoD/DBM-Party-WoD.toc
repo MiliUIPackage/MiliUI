@@ -1,33 +1,34 @@
 ## Interface: 100107
 ## X-Min-Interface: 80000
-## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Dungeons (WoD)|r
-## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0隊伍首領-德拉諾之霸|r
-## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0队伍首领(德拉诺之王)|r
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WoD)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-德拉諾之霸|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (德拉诺之王)|r
 ## LoadOnDemand: 1
 ## RequiredDeps: DBM-Core
 ## SavedVariables: DBMPartyWoD_AllSavedVars
 ## SavedVariablesPerCharacter: DBMPartyWoD_SavedStats
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: WOD
 ## X-DBM-StatTypes: normal,heroic,mythic,challenge
-## X-DBM-Mod-SubCategoriesID: 1182, 1175, 1208, 1195, 1279, 1176, 1209, 1358
+## X-DBM-Mod-SubCategoriesID: 1182, 1175, 1208, 1195, 1279
 ## X-DBM-Mod-Name: Dungeons (WoD)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (德拉諾之霸)
-## X-DBM-Mod-Name-zhCN: 队伍首领(德拉诺之王)
-## X-DBM-Mod-Sort: 615
-## X-DBM-Mod-MapID: 1182, 1175, 1208, 1195, 1279, 1176, 1209, 1358
-## X-DBM-Mod-MinCoreRevision: 20200524142133
+## X-DBM-Mod-Name-zhCN: 队伍首领 (德拉诺之王)
+## X-DBM-Mod-Sort: 602
+## X-DBM-Mod-MapID: 1182, 1175, 1208, 1195, 1279
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r72
+## Version: r102-6-g10e29c4
 ## X-DBM-Mod-MinExpansion: 5
 ## X-Category-zhTW: 團隊
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
-SMBurialGrounds\SadanaBloodfury.lua
-SMBurialGrounds\Nhallish.lua
-SMBurialGrounds\Bonemaw.lua
-SMBurialGrounds\Nerzhul.lua
-SMBurialGrounds\SMBGTrash.lua
+EverBloom\Witherbark.lua
+EverBloom\AncientProtectors.lua
+EverBloom\ArchmageSol.lua
+EverBloom\Xeritac.lua
+EverBloom\Yalnu.lua
+EverBloom\EverBloomTrash.lua

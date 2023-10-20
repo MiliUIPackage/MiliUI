@@ -10,7 +10,7 @@ end
 local mod	= DBM:NewMod(2533, "DBM-Party-Dragonflight", 9, 1209)--Alliance ID used, horde is 2534
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230725115533")
+mod:SetRevision("20230814061315")
 mod:SetCreatureID(creatureID)
 mod:SetEncounterID(2672)
 --mod:SetUsedIcons(1, 2, 3)
@@ -59,7 +59,7 @@ local timerAddAoECD									= mod:NewCDTimer(12.1, addAOESpellId, nil, nil, nil,
 --mod:AddInfoFrameOption(391977, true)
 --Boss (Anduin Lothar / Grommash Hellscream
 mod:AddTimerLine(DBM_COMMON_L.BOSS)
-local warnBladestorm								= mod:NewCountAnnounce(410234, 3)
+local warnBladestorm								= mod:NewCountAnnounce(410235, 3)
 local warnRally										= mod:NewCountAnnounce(rallySpellId, 2)
 local warnCry										= mod:NewCountAnnounce(crySpellId, 2)
 local warnShockwave									= mod:NewCountAnnounce(shockwaveSpellId, 3)--2nd and 3rd cast
@@ -67,7 +67,7 @@ local warnShockwave									= mod:NewCountAnnounce(shockwaveSpellId, 3)--2nd and
 local specWarnTankBuster							= mod:NewSpecialWarningDefensive(tankSpellId, nil, nil, nil, 1, 2)
 local specWarnShockwave								= mod:NewSpecialWarningDodge(shockwaveSpellId, nil, nil, nil, 2, 2)--First cast in set
 
-local timerBladestormCD								= mod:NewCDCountTimer(35.2, 410234, nil, nil, nil, 3)
+local timerBladestormCD								= mod:NewCDCountTimer(35.2, 410235, nil, nil, nil, 3)
 local timerTankBusterCD								= mod:NewCDCountTimer(19.6, tankSpellId, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerShockwaveCD								= mod:NewCDCountTimer(29, shockwaveSpellId, nil, nil, nil, 3)
 local timerRallyCD									= mod:NewCDCountTimer(21.2, rallySpellId, nil, nil, nil, 5)

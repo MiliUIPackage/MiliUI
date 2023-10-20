@@ -101,7 +101,9 @@ L:SetWarningLocalization({
 L:SetOptionLocalization({
 	WarnPhase				= "為每個階段改變顯示警告",
 	warnHorsemanSoldiers	= "為跳動的南瓜出現顯示警告",
-	warnHorsemanHead		= "為旋風斬顯示特別警告 (第二次及最後的頭顱出現)"
+	warnHorsemanHead		= "為旋風斬顯示特別警告 (第二次及最後的頭顱出現)",
+	AGCurses				= "自動選擇對話以啟動無頭騎士的詛咒",
+	AGBoss					= "自動選擇對話以召喚無頭騎士"
 })
 
 L:SetMiscLocalization({

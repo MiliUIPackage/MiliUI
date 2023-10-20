@@ -1,7 +1,7 @@
 local L = DBM_GUI_L
 
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
-local isModernAPI = DBM:GetTOC() > 100000--Purposely left this way, wrath 3.4.1 doesn't like changes in THIS file
+local isModernAPI = DBM:GetTOC() > 100000--Purposely left this way, wrath 3.4.1 doesn't like changes in THIS file (TODO, see if same problem exists in 1.14.4)
 
 local DDM = _G["LibStub"]:GetLibrary("LibDropDownMenu")
 
@@ -100,7 +100,7 @@ local function resize(targetFrame, first)
 								_G[child2:GetName() .. "Text"]:SetWidth(width - 30)
 								child2:SetSize(width, text:GetStringHeight())
 							end
-							if not child2.myheight then
+							if not child2.myheight or child2.mytype == "spelldesc" then
 								child2.myheight = text:GetStringHeight() + 20 -- + padding
 							end
 						elseif child2.mytype == "checkbutton" then
@@ -228,6 +228,7 @@ function frame:DisplayFrame(targetFrame)
 				elseif mod.modelSoundLong and DBM.Options.ModelSoundValue == "Long" then
 					DBM:PlaySoundFile(mod.modelSoundLong)
 				end
+				break
 			end
 		end
 	end

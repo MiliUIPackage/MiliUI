@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2524, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230713231620")
+mod:SetRevision("20230830054216")
 mod:SetCreatureID(199659)--Warlord Kagni
 mod:SetEncounterID(2682)
 mod:SetHotfixNoticeRev(20230619000000)
@@ -97,7 +97,7 @@ local yellBlazingSpearFades							= mod:NewShortFadesYell(401401)
 --local timerBlazingSpearCD							= mod:NewAITimer(29.9, 401401, nil, nil, nil, 3)
 --Stage Two: Warlord's Will
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26683))
-local warnDesperateImmo								= mod:NewSpellAnnounce(409359, 3)
+local warnDesperateImmo								= mod:NewSpellAnnounce(409359, 3, nil, nil, nil, nil, nil, 2)
 local warnFlamingCudgel								= mod:NewStackAnnounce(410351, 2, nil, "Tank|Healer")
 
 local specWarnCatastrophicSlam						= mod:NewSpecialWarningCount(410516, nil, nil, nil, 2, 2)
@@ -302,6 +302,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.leapCount = 0--Reused with demo slam
 		self:SetStage(2)
 		warnDesperateImmo:Show()
+		warnDesperateImmo:Play("ptwo")
 		timerHeavyCudgelCD:Stop()
 		timerDevastatingLeapCD:Stop()
 		timerPhoenixRushCD:Stop()

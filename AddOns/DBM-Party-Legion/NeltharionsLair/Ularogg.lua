@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1665, "DBM-Party-Legion", 5, 767)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230614234505")
+mod:SetRevision("20230829081105")
 mod:SetCreatureID(91004)
 mod:SetEncounterID(1791)
 mod:SetHotfixNoticeRev(20230529000000)
@@ -32,8 +32,8 @@ local specWarnStrikeofMountain		= mod:NewSpecialWarningDodge(216290, nil, nil, n
 --local yellStrikeofMountain			= mod:NewYell(216290)
 
 local timerSunderCD					= mod:NewCDTimer(7.5, 198496, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerStrikeCD					= mod:NewCDTimer(15, 216290, nil, nil, nil, 3)
-local timerBelowofDeepsCD			= mod:NewCDTimer(33.9, 193375, nil, nil, nil, 1)
+local timerStrikeCD					= mod:NewCDTimer(14.6, 216290, nil, nil, nil, 3)
+local timerBelowofDeepsCD			= mod:NewCDTimer(33.6, 193375, nil, nil, nil, 1)
 
 mod.vb.stanceCount = 0
 

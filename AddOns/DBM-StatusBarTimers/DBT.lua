@@ -253,7 +253,7 @@ do
 
 	local mt = {__index = barPrototype}
 
-	function DBT:CreateBar(timer, id, icon, huge, small, color, isDummy, colorType, inlineIcon, keep, fade, countdown, countdownMax)
+	function DBT:CreateBar(timer, id, icon, huge, small, color, isDummy, colorType, inlineIcon, keep, fade, countdown, countdownMax, isCooldown)
 		if (not timer or type(timer) == "string" or timer <= 0) or (self.numBars >= 15 and not isDummy) then
 			return
 		end
@@ -298,6 +298,7 @@ do
 				newBar.fade = fade
 				newBar.countdown = countdown
 				newBar.countdownMax = countdownMax
+				newBar.isCooldown = isCooldown
 			else -- Duplicate code ;(
 				local newFrame = createBarFrame(self)
 				newBar = setmetatable({
@@ -318,6 +319,7 @@ do
 					fade = fade,
 					countdown = countdown,
 					countdownMax = countdownMax,
+					isCooldown = isCooldown,
 					lastUpdate = GetTime()
 				}, mt)
 				newFrame.obj = newBar
@@ -542,9 +544,7 @@ do
 	local dummyBars = 0
 	local function dummyCancel(self)
 		self.timer = self.totalTime
-		self.flashing = nil
 		self:Update(0)
-		self.flashing = nil
 		_G[self.frame:GetName() .. "BarSpark"]:SetAlpha(1)
 	end
 
@@ -785,8 +785,8 @@ function barPrototype:Update(elapsed)
 	local isEnlarged = self.enlarged and not paused
 	local fillUpBars = isEnlarged and barOptions.FillUpLargeBars or not isEnlarged and barOptions.FillUpBars
 	local ExpandUpwards = isEnlarged and barOptions.ExpandUpwardsLarge or not isEnlarged and barOptions.ExpandUpwards
+	local r, g, b
 	if barOptions.DynamicColor and not self.color then
-		local r, g, b
 		local colorVar = colorVariables[colorCount]
 		if barOptions.NoBarFade then
 			r = isEnlarged and barOptions["EndColor"..colorVar.."R"] or barOptions["StartColor"..colorVar.."R"]
@@ -823,7 +823,11 @@ function barPrototype:Update(elapsed)
 				bar:SetValue(timerValue/totaltimeValue)
 			end
 		end
-		timer:SetText(stringFromTimer(timerValue))
+		if self.isCooldown then--inprecise CD bar, signify it with ~ in timer
+			timer:SetText("~" .. stringFromTimer(timerValue))
+		else
+			timer:SetText(stringFromTimer(timerValue))
+		end
 	end
 	if isFadingIn and isFadingIn < 0.5 and currentStyle ~= "NoAnim" then
 		self.fadingIn = isFadingIn + elapsed
@@ -839,6 +843,10 @@ function barPrototype:Update(elapsed)
 	elseif self.flashing and timerValue > 7.75 then
 		self.flashing = nil
 		self.ftimer = nil
+		bar:SetStatusBarColor(r, g, b, 1)
+		if sparkEnabled then
+			spark:SetAlpha(1)
+		end
 	end
 	if sparkEnabled then
 		spark:ClearAllPoints()
@@ -848,7 +856,6 @@ function barPrototype:Update(elapsed)
 		spark:SetAlpha(0)
 	end
 	if self.flashing then
-		local r, g, b = bar:GetStatusBarColor()
 		local ftime = self.ftimer % 1.25
 		if ftime >= 0.5 then
 			bar:SetStatusBarColor(r, g, b, 1)

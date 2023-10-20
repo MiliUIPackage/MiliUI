@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2529, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230809041931")
+mod:SetRevision("20230901191124")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -68,6 +68,7 @@ local timerSwirlingFlameCD						= mod:NewCDCountTimer(20.7, 404896, 86189, nil, 
 local timerFlameSlashCD							= mod:NewCDCountTimer(11, 403203, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --Molgoth
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26338))
+local warnPhase2								= mod:NewPhaseAnnounce(2, 2, nil, nil, nil, nil, nil, 2)
 local warnShadowandFlame						= mod:NewCastAnnounce(409385, 4)
 local warnShadowflame							= mod:NewCountAnnounce(405394, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(405394))
 local warnBlisteringTwilight					= mod:NewTargetCountAnnounce(405641, 3, nil, nil, 167180, nil, nil, nil, true)
@@ -217,7 +218,7 @@ local allTimers = {
 		--Flame Slash
 		[403203] = {9.3, 15.7, 25.4, 15.7, 18.3, 15.8, 19.4, 16.2, 19.5, 15.8},
 		--Swirling Flame
-		[404896] = {10.9, 14.6, 25.5, 15.7, 18.3, 15.8, 19.4, 15.8, 20.4, 15.0},
+		[404896] = {10.9, 14.6, 25.5, 14.5, 18.3, 15.8, 19.4, 15.8, 20.4, 15.0},
 		--Fiery Meteor
 		[404732] = {35.2, 35.1, 35.2, 35.2, 35.4},
 		--Molten Eruption (Heroic+)
@@ -226,7 +227,7 @@ local allTimers = {
 		--Shadow Spike
 		[403699] = {9.3, 15.7, 15.7, 10.9, 15.7, 19.5, 16.2, 19.4, 15.8, 19.5, 15.9},
 		--Umbral Detonation
-		[405016] = {16.6, 21.9, 19.4, 36.9, 34.0, 35.3},
+		[405016] = {16.6, 21.9, 18.3, 36.9, 34.0, 35.3},
 		--Coalescing Void
 		[403459] = {35.2, 35.1, 35.3, 35.2, 35.4},
 		--Shadows Convergence (Heroic+)
@@ -313,7 +314,7 @@ function mod:OnCombatStart(delay)
 	else--LFR and normal confirmed same, and heroic and mythic posibly also same
 		difficultyName = "easy"
 		timerShadowSpikeCD:Start(9.3-delay, 1)
-		timerUmbralDetonationCD:Start(16.6-delay, 1)
+		timerUmbralDetonationCD:Start(14.2-delay, 1)
 		--timerShadowsConvergenceCD:Start(22.8-delay, 1)
 		timerCoalescingVoidCD:Start(35.2-delay, 1)
 	end
@@ -335,7 +336,7 @@ function mod:OnCombatStart(delay)
 		timerFieryMeteorCD:Start(35.2-delay, 1)
 	else--Normal and LFR confirmed
 		timerFlameSlashCD:Start(9.3-delay, 1)
-		timerSwirlingFlameCD:Start(12.2-delay, 1)
+		timerSwirlingFlameCD:Start(10.5-delay, 1)
 		--timerMoltenEruptionCD:Start(23-delay, 1)
 		timerFieryMeteorCD:Start(35.2-delay, 1)
 	end
@@ -495,6 +496,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 406730 and self:GetStage(2, 1) then--Crucible Instability
 		self:SetStage(2)
+		warnPhase2:Show()
+		warnPhase2:Play("ptwo")
 		self.vb.meteorCast = 0--Reused for Gloom Conflagration
 		self.vb.umbralCount = 0--Reused for Blistering Twilight
 		self.vb.moltenEruptionCast = 0--Reused for Converging Eruption
