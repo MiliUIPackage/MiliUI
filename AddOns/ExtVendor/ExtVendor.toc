@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## IconTexture: 982414
 ## Title: Extended Vendor UI for DragonFlight |cffffffffv1.8.8
 ## Notes: Extends the merchant interface for easier browsing.

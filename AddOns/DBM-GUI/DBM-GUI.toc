@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r

@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raid/M+ Affixes|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010地下城以及團隊詞綴|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010副本词缀|r

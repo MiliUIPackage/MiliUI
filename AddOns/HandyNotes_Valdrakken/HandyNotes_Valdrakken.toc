@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## Title: HandyNotes: Valdrakken
 ## Notes: Shows the NPC and POI locations in Valdrakken.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-沃卓肯

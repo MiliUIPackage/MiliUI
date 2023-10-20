@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## Title: LuaServerDefinitions
 ## Notes: Development Tools
 ## Version: #Details.20230813.11856.155

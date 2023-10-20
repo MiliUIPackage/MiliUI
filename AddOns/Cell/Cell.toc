@@ -1,4 +1,4 @@
-## Interface: 100105
+## Interface: 100107
 ## Title: Cell
 ## Title-zhTW: |cFF00CCFF[團隊]|r Cell 團隊框架
 ## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
