@@ -1,4 +1,4 @@
-## Interface: 100107
+## Interface: 100200
 ## Title: MSBT [|cffffff80Options|r]
 ## Author: Mikord
 ## Notes: Load on demand options for Mik's Scrolling Battle Text.

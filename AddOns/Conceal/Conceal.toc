@@ -1,4 +1,4 @@
-## Interface: 100107
+## Interface: 100200
 ## Title: Conceal
 ## Author: Keirmot
 ## Notes: Hide the player frame, and action bars when not in use!

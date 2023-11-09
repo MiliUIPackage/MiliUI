@@ -1,4 +1,4 @@
-﻿## Interface: 100107
+﻿## Interface: 100200
 ## IconTexture: 982414
 ## Title: Enhanced Bloodlust
 ## Notes: Add a music in Bloodlust or Heroism!

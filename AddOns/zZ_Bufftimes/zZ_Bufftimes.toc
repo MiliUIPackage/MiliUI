@@ -1,4 +1,4 @@
-﻿## Interface: 100107
+﻿## Interface: 100200
 ## Title: zZ_Bufftimes
 ## Notes: zZ_Bufftimes
 ## Title-zhCN: |c0066ffffzZ_Bufftimes不会导致游戏卡顿的Buff时间显示插件|r
