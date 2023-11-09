@@ -2309,6 +2309,46 @@ function F:Revise()
         end
     end
 
+    -- r199-release
+    if CellDB["revise"] and dbRevision < 199 then
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_SHOW_RAID_PET_OWNER_NAME") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- show raid pet owner name (\"VEHICLE\", \"NAME\", nil)\nCELL_SHOW_RAID_PET_OWNER_NAME = nil"
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            for i, t in ipairs(layout["indicators"]) do
+                if type(t["castByMe"]) == "boolean" then
+                    t["castBy"] = t["castByMe"] and "me" or "anyone"
+                    t["castByMe"] = nil
+                end
+            end
+        end
+    end
+
+    -- r200-release
+    if CellDB["revise"] and dbRevision < 200 then
+        if #CellDB["tools"]["buffTracker"] ~= 4 then
+            -- move position from 2 to 4
+            CellDB["tools"]["buffTracker"][4] = CellDB["tools"]["buffTracker"][2]
+            -- add orientation
+            CellDB["tools"]["buffTracker"][2] = "left-to-right"
+        end
+        if #CellDB["tools"]["readyAndPull"] ~= 4 then
+            -- add style
+            tinsert(CellDB["tools"]["readyAndPull"], 2, "text_button")
+        end
+    end
+
+    -- r201-release
+    if CellDB["revise"] and dbRevision < 201 then
+        if Cell.isRetail then
+            -- 阿梅达希尔，梦境之愿
+            if not F:TContains(CellDB["targetedSpellsList"], 418637) then -- 狂怒冲锋
+                tinsert(CellDB["targetedSpellsList"], 418637)
+            end
+        end
+    end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --

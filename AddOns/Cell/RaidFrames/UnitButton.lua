@@ -141,9 +141,6 @@ local function ResetIndicators()
         if t["dispellableByMe"] ~= nil then
             indicatorCustoms[t["indicatorName"]] = t["dispellableByMe"]
         end
-        -- if t["castByMe"] ~= nil then
-        --     indicatorCustoms[t["indicatorName"]] = t["castByMe"]
-        -- end
         if t["hideIfEmptyOrFull"] ~= nil then
             indicatorCustoms[t["indicatorName"]] = t["hideIfEmptyOrFull"]
         end
@@ -696,7 +693,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:Hide()
                 UnitButton_UpdateAuras(b)
             end, true)
-        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" then
+        elseif setting == "debuffBlacklist" or setting == "dispelBlacklist" or setting == "defensives" or setting == "externals" or setting == "crowdControls" or setting == "bigDebuffs" or setting == "debuffTypeColor" or setting == "castBy" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -820,7 +817,7 @@ local function HandleDebuffs(self, auraInfo, index)
         self._debuffs_cache[auraInstanceID] = expirationTime
         self._debuffs_count_cache[auraInstanceID] = count
 
-        if enabledIndicators["debuffs"] and duration <= 600 and not Cell.vars.debuffBlacklist[spellId] then
+        if enabledIndicators["debuffs"] and not Cell.vars.debuffBlacklist[spellId] then
             -- all debuffs / only dispellableByMe
             if not indicatorCustoms["debuffs"] or I:CanDispel(debuffType) then 
                 -- debuffs, may contain topDebuff and cc
@@ -1158,6 +1155,18 @@ local function UnitButton_UpdateBuffs(self)
         end
     end
     
+    -- check Mass Barrier (self)
+    if self._mass_barrier and I:IsExternalCooldown(414660) then -- exists and enabled
+        if self._buffs.externalFound < indicatorNums["externalCooldowns"] then
+            self._buffs.externalFound = self._buffs.externalFound + 1
+            self.indicators.externalCooldowns[self._buffs.externalFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
+        end
+        if self._buffs.allFound < indicatorNums["allCooldowns"] then
+            self._buffs.allFound = self._buffs.allFound + 1
+            self.indicators.allCooldowns[self._buffs.allFound]:SetCooldown(self._mass_barrier, 60, nil, self._mass_barrier_icon, 0)
+        end
+    end
+    
     -- update defensiveCooldowns
     if self._buffs.defensiveFound > 0 then
         self.indicators.defensiveCooldowns:UpdateSize(self._buffs.defensiveFound)
@@ -1250,6 +1259,8 @@ local function ResetAuraTables(self)
     end
 
     self._mirror_image = nil
+    self._mass_barrier = nil
+    self._mass_barrier_icon = nil
 end
 
 -------------------------------------------------
@@ -1267,12 +1278,50 @@ local function UpdateMirrorImage(b, event)
     UnitButton_UpdateBuffs(b)
 end
 
+local SelfBarriers = {
+    [11426] = true, -- 寒冰护体 (self)
+    [235313] = true, -- 烈焰护体 (self)
+    [235450] = true, -- 棱光护体 (self)
+}
+
+local function UpdateMassBarrier(b, event)
+    if event == "SPELL_CAST_SUCCESS" then
+        b._mass_barrier = GetTime()
+        local info = LGI:GetCachedInfo(b.state.guid)
+        if info then
+            if info.specId == 62 then -- Arcane
+                b._mass_barrier_icon = 135991
+            elseif info.specId == 63 then -- Fire
+                b._mass_barrier_icon = 132221
+            elseif info.specId == 64 then -- Frost
+                b._mass_barrier_icon = 135988
+            else
+                b._mass_barrier_icon = 1723997
+            end
+        end
+    elseif event == "SPELL_AURA_REMOVED" then
+        b._mass_barrier = nil
+        b._mass_barrier_icon = nil
+    end
+    UnitButton_UpdateBuffs(b)
+end
+
 cleu:SetScript("OnEvent", function()
     local _, subEvent, _, sourceGUID, sourceName, sourceFlags, sourceRaidFlags, destGUID, destName, destFlags, destRaidFlags, spellId, spellName = CombatLogGetCurrentEventInfo()
+    
     -- mirror image
     if spellId == 55342 and F:IsFriend(sourceFlags) then
         F:HandleUnitButton("guid", sourceGUID, UpdateMirrorImage, subEvent)
     end
+
+    -- mass barrier (self), SPELL_CAST_SUCCESS
+    if spellId == 414660 and F:IsFriend(sourceFlags) then
+        F:HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_CAST_SUCCESS")
+    end
+    if (subEvent == "SPELL_AURA_REMOVED" or subEvent == "SPELL_AURA_REFRESH") and SelfBarriers[spellId] and F:IsFriend(sourceFlags) then
+        F:HandleUnitButton("guid", sourceGUID, UpdateMassBarrier, "SPELL_AURA_REMOVED")
+    end
+
     -- CLEU auras
     -- if I:CheckCleuAura(spellId) and F:IsFriend(destFlags) then
     --     local b1, b2 = F:GetUnitButtonByGUID(sourceGUID)

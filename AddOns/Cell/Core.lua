@@ -19,7 +19,7 @@ local L = Cell.L
 Cell.MIN_VERSION = 189
 Cell.MIN_CLICKCASTINGS_VERSION = 189
 Cell.MIN_LAYOUTS_VERSION = 189
-Cell.MIN_INDICATORS_VERSION = 198
+Cell.MIN_INDICATORS_VERSION = 199
 Cell.MIN_DEBUFFS_VERSION = 189
 
 --[==[@debug@
@@ -200,9 +200,9 @@ function eventFrame:ADDON_LOADED(arg1)
         if type(CellDB["tools"]) ~= "table" then
             CellDB["tools"] = {
                 ["showBattleRes"] = true,
-                ["buffTracker"] = {false, {}, 32},
+                ["buffTracker"] = {false, "left-to-right", 32, {}},
                 ["deathReport"] = {false, 10},
-                ["readyAndPull"] = {false, {"default", 7}, {}},
+                ["readyAndPull"] = {false, "text_button", {"default", 7}, {}},
                 ["marks"] = {false, false, "both_h", {}},
                 ["fadeOut"] = false,
             }
@@ -741,14 +741,17 @@ function eventFrame:PLAYER_LOGIN()
     if CellDB["general"]["hideBlizzardRaid"] then F:HideBlizzardRaid() end
     -- lock & menu
     Cell:Fire("UpdateMenu")
-    -- update pixel perfect
-    Cell:Fire("UpdatePixelPerfect")
     -- update CLEU health
     Cell:Fire("UpdateCLEU")
     -- update builtIns and customs
     I:UpdateDefensives(CellDB["defensives"])
     I:UpdateExternals(CellDB["externals"])
     I:UpdateCrowdControls(CellDB["crowdControls"])
+    
+    -- update pixel perfect
+    C_Timer.After(1, function()
+        Cell:Fire("UpdatePixelPerfect")
+    end)
 end
 
 function eventFrame:UI_SCALE_CHANGED()
@@ -809,12 +812,15 @@ function SlashCmdList.CELL(msg, editbox)
             Cell.frames.anchorFrame:ClearAllPoints()
             Cell.frames.anchorFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
             Cell.vars.currentLayoutTable["position"] = {}
-            Cell.frames.readyAndPullFrame:ClearAllPoints()
+            P:ClearPoints(Cell.frames.readyAndPullFrame)
             Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
-            CellDB["tools"]["readyAndPull"][3] = {}
-            Cell.frames.raidMarksFrame:ClearAllPoints()
+            CellDB["tools"]["readyAndPull"][4] = {}
+            P:ClearPoints(Cell.frames.raidMarksFrame)
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
             CellDB["tools"]["marks"][4] = {}
+            P:ClearPoints(Cell.frames.buffTrackerFrame)
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", UIParent, "CENTER")
+            CellDB["tools"]["buffTracker"][4] = {}
 
         elseif rest == "all" then
             Cell.frames.anchorFrame:ClearAllPoints()
@@ -823,6 +829,8 @@ function SlashCmdList.CELL(msg, editbox)
             Cell.frames.readyAndPullFrame:SetPoint("TOPRIGHT", UIParent, "CENTER")
             Cell.frames.raidMarksFrame:ClearAllPoints()
             Cell.frames.raidMarksFrame:SetPoint("BOTTOMRIGHT", UIParent, "CENTER")
+            Cell.frames.buffTrackerFrame:ClearAllPoints()
+            Cell.frames.buffTrackerFrame:SetPoint("BOTTOMLEFT", UIParent, "CENTER")
             CellDB = nil
             ReloadUI()
 
@@ -858,15 +866,15 @@ function SlashCmdList.CELL(msg, editbox)
             F:Print(L["A 0-40 integer is required."])
         end
 
-    elseif command == "buff" then
-        rest = tonumber(rest:format("%d"))
-        if rest and rest > 0 then
-            CellDB["tools"]["buffTracker"][3] = rest
-            F:Print(string.format(L["Buff Tracker icon size is set to %d."], rest))
-            Cell:Fire("UpdateTools", "buffTracker")
-        else
-            F:Print(L["A positive integer is required."])
-        end
+    -- elseif command == "buff" then
+    --     rest = tonumber(rest:format("%d"))
+    --     if rest and rest > 0 then
+    --         CellDB["tools"]["buffTracker"][3] = rest
+    --         F:Print(string.format(L["Buff Tracker icon size is set to %d."], rest))
+    --         Cell:Fire("UpdateTools", "buffTracker")
+    --     else
+    --         F:Print(L["A positive integer is required."])
+    --     end
 
     else
         F:Print(L["Available slash commands"]..":\n"..
