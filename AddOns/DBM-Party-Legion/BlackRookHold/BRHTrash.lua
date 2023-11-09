@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BRHTrash", "DBM-Party-Legion", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231002213503")
+mod:SetRevision("20231028095316")
 --mod:SetModelID(47785)
 mod:SetZone(1501)
 
@@ -9,8 +9,8 @@ mod.isTrashMod = true
 
 mod:RegisterEvents(
 	"SPELL_CAST_START 200261 221634 221688 225573 214003",
-	"SPELL_AURA_APPLIED 194966",
-	"SPELL_CAST_SUCCESS 200343 200345"
+	"SPELL_CAST_SUCCESS 200343 200345",
+	"SPELL_AURA_APPLIED 194966"
 )
 
 --TODO, add Etch? http://www.wowhead.com/spell=198959/etch

@@ -3,14 +3,14 @@ if (wowToc < 100200) and not testBuild then return end
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231008034036")
+mod:SetRevision("20231107021301")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
 mod:SetBossHPInfoToHighest()
 mod:SetHotfixNoticeRev(20230923000000)
 mod:SetMinSyncRevision(20230923000000)
---mod.respawnTime = 29
+mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
@@ -20,11 +20,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 420948 423420 421022 425114 421298 418755 420858 421236 418720 421032",
 	"SPELL_AURA_APPLIED_DOSE 421022 420858",
 	"SPELL_AURA_REMOVED 420948 421298 418755 420858 421236 418720 421292 421029 420525",
---	"SPELL_AURA_REMOVED_DOSE",
 	"SPELL_PERIODIC_DAMAGE 426390",
 	"SPELL_PERIODIC_MISSED 426390"
---	"UNIT_DIED",
---	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
 --[[
@@ -62,7 +59,7 @@ local timerAgonizingClawsCD							= mod:NewCDCountTimer(6, 421022, nil, "Tank|He
 --Aerwynn
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(27301))
 local warnRelentlessBarrage							= mod:NewSpellAnnounce(420937, 4)--You done fucked up
-local warnNoxiousBlossom							= mod:NewCountAnnounce(420937, 3)
+local warnNoxiousBlossom							= mod:NewCountAnnounce(420671, 3)
 local warnPoisonousJavelin							= mod:NewTargetCountAnnounce(420858, 3, nil, nil, 298110)--, nil, nil, nil, nil, nil, nil, true
 
 local specWarnConstrictingThicket					= mod:NewSpecialWarningCount(421292, nil, nil, nil, 2, 2)
@@ -420,18 +417,3 @@ function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spell
 	end
 end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
-
---[[
-function mod:UNIT_DIED(args)
-	local cid = self:GetCIDFromGUID(args.destGUID)
-	if cid == 165067 then
-
-	end
-end
-
-function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 405814 then
-
-	end
-end
---]]

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheAzurevaultTrash", "DBM-Party-Dragonflight", 6)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230405024520")
+mod:SetRevision("20231026112110")
 --mod:SetModelID(47785)
 mod:SetZone(2515)
 
@@ -45,11 +45,11 @@ local specWarnMysticVapors					= mod:NewSpecialWarningInterrupt(387564, "HasInte
 local specWarnWakingBane					= mod:NewSpecialWarningInterrupt(386546, "HasInterrupt", nil, nil, 1, 2)
 local specWarnBrilliantScales				= mod:NewSpecialWarningDispel(374778, "MagicDispeller", nil, nil, 1, 2)
 
-local timerIcyBindingsCD					= mod:NewCDTimer(14, 377488, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerWakingBaneCD						= mod:NewCDTimer(20.5, 386546, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerErraticGrowthCD					= mod:NewCDTimer(21.5, 375596, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerShoulderSlamCD					= mod:NewCDTimer(10.9, 391136, nil, nil, nil, 3)
-local timerArcaneBashCD						= mod:NewCDTimer(18.2, 387067, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerIcyBindingsCD					= mod:NewCDNPTimer(14, 377488, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerWakingBaneCD						= mod:NewCDNPTimer(20.5, 386546, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerErraticGrowthCD					= mod:NewCDNPTimer(21.5, 375596, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
+local timerShoulderSlamCD					= mod:NewCDNPTimer(10.9, 391136, nil, nil, nil, 3)
+local timerArcaneBashCD						= mod:NewCDNPTimer(18.2, 387067, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 mod:AddBoolOption("AGBook", true)
 

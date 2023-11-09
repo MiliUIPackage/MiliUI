@@ -9,7 +9,7 @@ else--TODO, refine for cata classic since no timewalker there
 	mod.statTypes = "normal,heroic,timewalker"
 end
 
-mod:SetRevision("20231018005636")
+mod:SetRevision("20231022202350")
 mod:SetCreatureID(40825, 40788)
 mod:SetMainBossID(40788)-- 40788 = Mindbender Ghur'sha
 mod:SetEncounterID(1046)
@@ -51,7 +51,7 @@ if (wowToc >= 100200) then
 
 	local specWarnTerrifyingVision						= mod:NewSpecialWarningMoveTo(429172, nil, nil, nil, 2, 2)
 
-	local timerTerrifyingVisionCD						= mod:NewCDTimer(100, 429051, nil, nil, nil, 2)
+	local timerTerrifyingVisionCD						= mod:NewCDTimer(100, 429172, nil, nil, nil, 2)
 
 	function mod:OnCombatStart(delay)
 		self:SetStage(1)

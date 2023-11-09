@@ -1,5 +1,5 @@
-## Interface: 100107
-## X-Min-Interface: 100107
+## Interface: 100200
+## X-Min-Interface: 100200
 ## X-Min-Interface-Classic: 11404
 ## X-Min-Interface-BCC: 20504
 ## X-Min-Interface-Wrath: 30403
@@ -16,9 +16,8 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 0ded5a3
+## Version: d1cb898
 ## X-Website: https://deadlybossmods.com
-## X-Category-zhTW: 團隊
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml

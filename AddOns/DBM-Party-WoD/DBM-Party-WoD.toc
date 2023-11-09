@@ -1,4 +1,4 @@
-## Interface: 100107
+## Interface: 100200
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WoD)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-德拉諾之霸|r
@@ -13,16 +13,17 @@
 ## X-DBM-Mod-Category: WOD
 ## X-DBM-StatTypes: normal,heroic,mythic,challenge
 ## X-DBM-Mod-SubCategoriesID: 1182, 1175, 1208, 1195, 1279
-## X-DBM-Mod-Name: Dungeons (WoD)
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (德拉諾之霸)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (德拉诺之王)
 ## X-DBM-Mod-Sort: 602
 ## X-DBM-Mod-MapID: 1182, 1175, 1208, 1195, 1279
+## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r102-6-g10e29c4
+## Version: r102-45-gb0b9602
 ## X-DBM-Mod-MinExpansion: 5
 ## X-Category-zhTW: 團隊
+
 localization.en.lua
 localization.tw.lua
 localization.cn.lua

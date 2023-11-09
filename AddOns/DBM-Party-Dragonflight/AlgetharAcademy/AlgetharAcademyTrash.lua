@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AlgetharAcademyTrash", "DBM-Party-Dragonflight", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230422022609")
+mod:SetRevision("20231029212301")
 --mod:SetModelID(47785)
 mod:SetZone(2526)
 
@@ -11,7 +11,6 @@ mod:RegisterEvents(
 	"SPELL_CAST_START 387910 377383 378003 388976 388863 377912 387843 388392 377389 396812",
 	"SPELL_CAST_SUCCESS 390915 388984",
 	"SPELL_AURA_APPLIED 388984 387843",
---	"SPELL_AURA_APPLIED_DOSE 339528",
 	"SPELL_AURA_REMOVED 387843",
 	"UNIT_DIED",
 	"GOSSIP_SHOW"
@@ -46,14 +45,14 @@ local specWarnMonotonousLecture					= mod:NewSpecialWarningInterrupt(388392, "Ha
 local specWarnMysticBlast						= mod:NewSpecialWarningInterrupt(396812, "HasInterrupt", nil, nil, 1, 2)
 local specWarnCalloftheFlock					= mod:NewSpecialWarningInterrupt(377389, "HasInterrupt", nil, nil, 1, 2)
 
-local timerMonotonousLectureCD					= mod:NewCDTimer(15.8, 388392, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerMysticBlastCD						= mod:NewCDTimer(20.6, 396812, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerCalloftheFlockCD						= mod:NewCDTimer(36, 377389, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerDeadlyWindsCD						= mod:NewCDTimer(10.9, 378003, nil, nil, nil, 3)
-local timerExpelIntrudersCD						= mod:NewCDTimer(26.6, 377912, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerViciousAmbushCD						= mod:NewCDTimer(14.5, 388984, nil, nil, nil, 3)
-local timerAstralWhirlwindCD					= mod:NewCDTimer(18.2, 387910, nil, "Melee", nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
-local timerAstralBombCD							= mod:NewCDTimer(18.2, 387843, nil, nil, nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
+local timerMonotonousLectureCD					= mod:NewCDNPTimer(15.8, 388392, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerMysticBlastCD						= mod:NewCDNPTimer(20.6, 396812, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerCalloftheFlockCD						= mod:NewCDNPTimer(36, 377389, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerDeadlyWindsCD						= mod:NewCDNPTimer(10.9, 378003, nil, nil, nil, 3)
+local timerExpelIntrudersCD						= mod:NewCDNPTimer(26.6, 377912, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerViciousAmbushCD						= mod:NewCDNPTimer(14.5, 388984, nil, nil, nil, 3)
+local timerAstralWhirlwindCD					= mod:NewCDNPTimer(18.2, 387910, nil, "Melee", nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
+local timerAstralBombCD							= mod:NewCDNPTimer(18.2, 387843, nil, nil, nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
 
 mod:AddBoolOption("AGBuffs", true)
 

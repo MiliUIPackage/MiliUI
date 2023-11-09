@@ -1,4 +1,4 @@
-## Interface: 100107
+## Interface: 100200
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Status Bar Timers|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0狀態條計時器|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0状态条计时器|r
@@ -10,7 +10,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: cf52fd3
+## Version: cabbab9
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

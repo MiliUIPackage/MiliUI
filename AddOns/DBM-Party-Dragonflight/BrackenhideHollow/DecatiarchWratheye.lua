@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2474, "DBM-Party-Dragonflight", 1, 1196)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230628060753")
+mod:SetRevision("20231029212301")
 mod:SetCreatureID(186121)
 mod:SetEncounterID(2569)
 mod:SetUsedIcons(8)
@@ -19,8 +19,6 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED_DOSE 373896",
 	"SPELL_AURA_REMOVED 373896",
 	"SPELL_AURA_REMOVED_DOSE 373896"
---	"SPELL_PERIODIC_DAMAGE",
---	"SPELL_PERIODIC_MISSED",
 )
 
 --[[
@@ -35,14 +33,11 @@ local warnDecayigStrength						= mod:NewSpellAnnounce(373960, 3)
 local specWarnRotburstTotem						= mod:NewSpecialWarningSwitch(373944, "-Healer", nil, 2, 1, 2)
 local specWarnChokingRotcloud					= mod:NewSpecialWarningDodge(376170, nil, nil, nil, 2, 2, 4)
 local specWarnDecaystrike						= mod:NewSpecialWarningDefensive(373917, nil, nil, nil, 1, 2)
---local specWarnGTFO							= mod:NewSpecialWarningGTFO(340324, nil, nil, nil, 1, 8)
 
 local timerDecayingStrengthCD					= mod:NewCDTimer(40.5, 373960, nil, nil, nil, 2)
 local timerRotburstTotemCD						= mod:NewCDTimer(17, 373944, nil, nil, nil, 1, nil, DBM_COMMON_L.DAMAGE_ICON)--18-21
 local timerChokingRotcloutCD					= mod:NewCDTimer(42.5, 376170, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerDecayStrikeCD						= mod:NewCDCountTimer(19.4, 373917, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-
---local berserkTimer							= mod:NewBerserkTimer(600)
 
 mod:AddRangeFrameOption(5, 373941)
 mod:AddInfoFrameOption(373896, true)
@@ -144,13 +139,3 @@ function mod:SPELL_AURA_REMOVED_DOSE(args)
 		end
 	end
 end
-
---[[
-function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
-	if spellId == 340324 and destGUID == UnitGUID("player") and not playerDebuff and self:AntiSpam(2, 4) then
-		specWarnGTFO:Show(spellName)
-		specWarnGTFO:Play("watchfeet")
-	end
-end
-mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
---]]

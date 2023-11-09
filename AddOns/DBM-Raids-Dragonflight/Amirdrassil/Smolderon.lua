@@ -3,13 +3,13 @@ if (wowToc < 100200) and not testBuild then return end
 local mod	= DBM:NewMod(2563, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231008034036")
+mod:SetRevision("20231107021301")
 mod:SetCreatureID(200927)
 mod:SetEncounterID(2824)
 --mod:SetUsedIcons(1, 2, 3)
 mod:SetHotfixNoticeRev(20230929000000)
 mod:SetMinSyncRevision(20230929000000)
---mod.respawnTime = 29
+mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
@@ -36,7 +36,7 @@ local warnPhase										= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil
 
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(421532, nil, nil, nil, 1, 8)
 
-local timerPhaseCD									= mod:NewStageTimer(60)
+local timerPhaseCD									= mod:NewStageTimer(60, 422172)
 --local berserkTimer								= mod:NewBerserkTimer(600)
 --Stage One: The Firelord's Fury
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(27637))

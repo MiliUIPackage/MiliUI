@@ -9,7 +9,7 @@ else--TODO, refine for cata classic since no timewalker there
 	mod.statTypes = "normal,heroic,timewalker"
 end
 
-mod:SetRevision("20231018005807")
+mod:SetRevision("20231022202350")
 mod:SetCreatureID(40792)
 mod:SetEncounterID(1047)
 mod:SetMainBossID(42172)--42172 is Ozumat, but we need Neptulon for engage trigger.
@@ -23,6 +23,9 @@ if (wowToc >= 100200) then
 		"SPELL_CAST_SUCCESS 428674 428594",
 		"SPELL_AURA_APPLIED 428407 428668",
 		"UNIT_DIED"
+	)
+	mod:RegisterEvents(
+		"CHAT_MSG_MONSTER_SAY"
 	)
 
 	--[[

@@ -9,11 +9,11 @@ L.TranslationBy 			= "三皈依@暗影之月 & Imbav@聖光之願"
 L.Website					= "拜訪討論/支援論壇:|cFF73C2Fhttps://discord.gg/deadlybossmods|r. 請在推特上關注@deadlybossmods或@MysticalOS"
 L.WebsiteButton				= "論壇"
 
-L.OTabBosses				= "模組"
+L.OTabBosses				= "首領選項"
 L.OTabRaids					= "團隊"
 L.OTabDungeons				= "隊伍/單獨"
 L.OTabPlugins				= "核心插件"
-L.OTabOptions				= "選項"
+L.OTabOptions				= "核心選項"
 L.OTabAbout					= "關於"
 
 L.TabCategory_OTHER			= "其它模組"
@@ -85,11 +85,12 @@ L.Editbox_WindowWidth		= "GUI視窗寬度"
 L.Editbox_WindowHeight		= "GUI視窗高度"
 
 L.UIGroupingOptions			= "界面分組選項 (更改這些需要輸入 /reload 來重載界面)"
-L.GroupOptionsExcludeIcon	= "按照技能分組排除“設置標記圖示”選項 (它們將像以前一樣在“圖示”類中顯示)"
+L.GroupOptionsExcludeIcon	= "按照技能分組排除“設置標記圖示”選項 (它們將一起分類為為自己的“圖示”類別)"
 L.AutoExpandSpellGroups		= "按照技能分組自動擴展選項"
 L.ShowWAKeys				= "在法術名稱旁顯示WeakAuras鍵來使用首領模組觸發器協助編寫WeakAuras。"
 --L.ShowSpellDescWhenExpanded	= "分組擴展時繼續顯示技能描述"
 L.NoDescription				= "此技能無描述說明"
+L.CustomOptions				= "此類別包含一個技能或事件本身不具有法術或冒險指南ID的自定義選項。 這些選項已使用自定義手動ID組合在一起，以便於創建WA。"
 
 -- Panel: Extra Features
 L.Panel_ExtraFeatures		= "額外功能"
@@ -105,6 +106,7 @@ L.TimerGeneral 				= "計時器選項"
 L.SKT_Enabled				= "顯示目前戰鬥的最佳紀錄勝利計時器"
 L.ShowRespawn				= "顯示下一次首領重生計時器"
 L.ShowQueuePop				= "顯示接受彈出佇列的剩餘時間(尋求組隊、戰場..等)"
+L.ShowBerserkWarnings		= "在10/5/3/1分鐘顯示通告並且在 $spell:26662 計時器剩餘30/10秒時"
 --
 --Auto Logging: Logging toggles/types
 L.Area_AutoLogging			= "自動記錄切換"
@@ -392,6 +394,7 @@ L.SpamBlockNoSpecWarnText			= "不顯示特別提示文字"
 L.SpamBlockNoSpecWarnFlash			= "特別提示時不閃爍螢幕"
 L.SpamBlockNoSpecWarnVibrate		= "特別提示時不震動控制器"
 L.SpamBlockNoSpecWarnSound			= "不播放特別提示音效 (如果在“語音警告”面板中啟用了語音包，則仍允許語音包)"
+L.SpamBlockNoPrivateAuraSound		= "Do not register private aura sounds"
 
 L.Area_SpamFilter_Timers			= "全局計時禁用及過濾選項"
 L.SpamBlockNoShowBossTimers			= "不顯示地城/團隊首領的計時器"
@@ -402,8 +405,8 @@ L.SpamBlockNoCountdowns				= "不播放倒數音效"
 
 L.Area_SpamFilter_Nameplates		= "名條通用禁止 & 過濾選項"
 L.SpamBlockNoNameplate				= "不要顯示名條光環"
+L.SpamBlockNoNameplateCD			= "不要顯示技能冷卻計時的名條圖示"
 L.SpamBlockNoBossGUIDs				= "不要在plater名條上顯示主要首領(首領1)計時器作為名條光環\n(如果在Plater中啟用了功能，您仍然會看到小怪/首領計時器）"
-L.SpamBlockTimersWithNameplates		= "如果在Plater選項中啟用了Plaster名條光環 CD，不要顯示小怪的計時條(不適用於首領戰，這將始終顯示計時條）"
 
 L.Area_SpamFilter_Misc				= "全局其他禁用及過濾選項"
 L.SpamBlockNoSetIcon				= "不設置標記在目標上"
@@ -533,10 +536,12 @@ L.Panel_Range				= "距離框架"
 
 -- Panel: Nameplate
 L.Panel_Nameplates			= "名條"
-L.UseNameplateHandoff		= "將名條光環請求移交給支持的名條插件 (KuiNameplates, Threat Plates, Plater) 而不是內部處理。 推薦使用此選項，因為它允許通過名條插件完成更高級的功能和配置"
 L.Area_NPStyle				= "風格 (注意：僅在DBM處理名條時配置風格。)"
 L.NPAuraText				= "在名條圖示上顯示計時文字"
 L.NPAuraSize				= "光環像素大小 (平方): %d"
+L.NPIcon_BarOffSetX 		= "圖示水平偏移：%d"
+L.NPIcon_BarOffSetY 		= "圖示垂直偏移：%d"
+L.NPIcon_GrowthDirection 	= "圖示增長方向"
 
 -- Misc
 L.Area_General				= "一般"
