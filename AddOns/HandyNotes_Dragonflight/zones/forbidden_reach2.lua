@@ -13,6 +13,7 @@ local PetBattle = ns.node.PetBattle
 local Rare = ns.node.Rare
 
 local Dragonglyph = ns.node.Dragonglyph
+local ElusiveCreature = ns.node.ElusiveCreature
 local Flag = ns.node.Flag
 local SignalTransmitter = ns.node.SignalTransmitter
 
@@ -920,6 +921,33 @@ map.nodes[39988182] = SignalTransmitter({quest = 73145}) -- Sharpscale Coast
 map.nodes[78035110] = SignalTransmitter({quest = 73144}) -- Stormsunder Mountain
 
 -------------------------------------------------------------------------------
+------------------------------ ELUSIVE CREATURES ------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[41905742] = ElusiveCreature({
+    label = '{npc:202436}',
+    quest = 74232,
+    rewards = {
+        Item({item = 193218}), -- Dense Hide
+        Item({item = 193211}), -- Resilient Leather
+        Achievement({id = 18833, criteria = 61481}) -- Elusive Legends of the Dragon Isles
+    },
+    pois = {Path({ns.poi.Circle({origin = 41905742, radius = 4})})}
+}) -- Elusive Frienzied Amberfir
+
+map.nodes[45804040] = ElusiveCreature({
+    label = '{npc:202441}',
+    quest = 74233,
+    rewards = {
+        Item({item = 193218}), -- Dense Hide
+        Item({item = 193211}), -- Resilient Leather
+        Item({item = 204092}), -- Auric Fleece
+        Achievement({id = 18833, criteria = 61482}) -- Elusive Legends of the Dragon Isles
+    },
+    pois = {Path({ns.poi.Circle({origin = 45804040, radius = 2})})}
+}) -- Elusive Auric Argali
+
+-------------------------------------------------------------------------------
 -------------------------------- ZSKERA VAULTS --------------------------------
 -------------------------------------------------------------------------------
 
@@ -1384,14 +1412,15 @@ map.nodes[34325997] = Collectible({
     scale = 1.3,
     note = L['renown_envoy_note'],
     rewards = {
-        Section('{npc:200566}'), Pet({item = 191915, id = 3259}), -- Shaggy
-        Spacer(), Section('{npc:200562}'),
-        Pet({item = 193850, id = 3330, note = 'x25000'}), -- Buckie
-        Spacer(), Section('{npc:200564}'),
-        Mount({item = 204382, id = 1467, note = 'x100000'}), -- Noble Bruffalon
-        Spacer(), Section('{npc:200563}'),
-        DC.SetNote(DC.WindborneVelocidrake.ExposedFinnedNeck, 'x2500'),
-        DC.SetNote(DC.HighlandDrake.TaperedNose, 'x2500')
+        Section('{npc:200566}'), -- Cataloger Daela
+        Pet({item = 191915, id = 3259, count = 2000}), -- Shaggy
+        Spacer(), Section('{npc:200562}'), -- Turik
+        Pet({item = 193850, id = 3330, count = 25000}), -- Buckie
+        Spacer(), Section('{npc:200564}'), -- Storykeepe Ashekh
+        Mount({item = 204382, id = 1467, count = 100000}), -- Noble Bruffalon
+        Spacer(), Section('{npc:200563}'), -- Kraxxus
+        DC.SetCount(DC.WindborneVelocidrake.ExposedFinnedNeck, 2500),
+        DC.SetCount(DC.HighlandDrake.TaperedNose, 2500)
     }
 }) -- Cataloger Daela, Turik, Storykeeper Ashekh, and Kraxxus <Renown Envoys>
 
@@ -1401,14 +1430,14 @@ map.nodes[35905744] = Collectible({
     scale = 1.3,
     note = L['trader_hagarth_note'],
     rewards = {
-        Recipe({item = 203420, profession = 171}), -- Recipe: Draconic Suppression Powder
-        Recipe({item = 203421, profession = 164}), -- Plans: Ancient Ceremonial Trident
-        Recipe({item = 203422, profession = 185}), -- Recipe: Sparkling Spice Pouch
-        Recipe({item = 203423, profession = 333}), -- Formula: Glowing Crystal Bookmark
-        Recipe({item = 203424, profession = 202}), -- Schematic: Gnomish Voicebox
-        Recipe({item = 203425, profession = 773}), -- Technique: Arcane Dispelling Rune
-        Recipe({item = 203426, profession = 755}), -- Design: Crystal Tuning Fork
-        Recipe({item = 203427, profession = 165}), -- Pattern: Reinforced Pristine Leather
-        Recipe({item = 203428, profession = 197}) -- Pattern: Traditional Morqut Kite
+        Recipe({item = 203420, profession = 171, count = 10}), -- Recipe: Draconic Suppression Powder
+        Recipe({item = 203421, profession = 164, count = 10}), -- Plans: Ancient Ceremonial Trident
+        Recipe({item = 203422, profession = 185, count = 10}), -- Recipe: Sparkling Spice Pouch
+        Recipe({item = 203423, profession = 333, count = 10}), -- Formula: Glowing Crystal Bookmark
+        Recipe({item = 203424, profession = 202, count = 10}), -- Schematic: Gnomish Voicebox
+        Recipe({item = 203425, profession = 773, count = 10}), -- Technique: Arcane Dispelling Rune
+        Recipe({item = 203426, profession = 755, count = 10}), -- Design: Crystal Tuning Fork
+        Recipe({item = 203427, profession = 165, count = 10}), -- Pattern: Reinforced Pristine Leather
+        Recipe({item = 203428, profession = 197, count = 10}) -- Pattern: Traditional Morqut Kite
     }
 }) -- Trader Hag'arth <Artisan's Consortium Quartermaster>

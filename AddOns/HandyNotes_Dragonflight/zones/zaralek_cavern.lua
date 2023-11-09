@@ -14,6 +14,7 @@ local Treasure = ns.node.Treasure
 local AncientStone = ns.node.AncientStone
 local Dragonglyph = ns.node.Dragonglyph
 local PT = ns.node.ProfessionTreasures
+local ElusiveCreature = ns.node.ElusiveCreature
 
 local Achievement = ns.reward.Achievement
 local Currency = ns.reward.Currency
@@ -46,30 +47,30 @@ local deepflayerNest = Map({id = 2184, settings = false}) -- Deepflayer Nest
 -- Interval ID 3 -> Loamm Zone
 -- Interval ID 4 -> Aberrus Zone
 
-local ZaralekRotation = Class('ZaralekRotation', ns.Interval, {
-    initial = {eu = 1683259200, us = 1683298800, tw = 1683414000},
-    offset = 86400,
-    interval = 86400
-})
+-- local ZaralekRotation = Class('ZaralekRotation', ns.Interval, {
+--     initial = {eu = 1683259200, us = 1683298800, tw = 1683414000},
+--     offset = 86400,
+--     interval = 86400
+-- })
 
-function ZaralekRotation:GetText()
-    local isInactive = math.floor(self:Next() / self.interval) % 4 + 1
-    local text = self.event and L['zaralek_event_active'] or
-                     L['zaralek_rare_active']
-    if self.id == isInactive then
-        text = self.event and L['zaralek_event_inactive'] or
-                   L['zaralek_rare_inactive']
-    end
-    ns.PrepareLinks(text)
-    return text
-end
+-- function ZaralekRotation:GetText()
+--     local isInactive = math.floor(self:Next() / self.interval) % 4 + 1
+--     local text = self.event and L['zaralek_event_active'] or
+--                      L['zaralek_rare_active']
+--     if self.id == isInactive then
+--         text = self.event and L['zaralek_event_inactive'] or
+--                    L['zaralek_rare_inactive']
+--     end
+--     ns.PrepareLinks(text)
+--     return text
+-- end
 
 map.nodes[56247389] = Rare({
     id = 203515,
     vignette = 5643,
     quest = 75284,
     location = L['in_small_cave'],
-    interval = ZaralekRotation({id = 2}),
+    -- interval = ZaralekRotation({id = 2}),
     rewards = {
         Achievement({id = 17783, criteria = 59188}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59491}), -- Cavern Clawbbering
@@ -85,7 +86,7 @@ map.nodes[48367509] = Rare({
     id = 203468,
     vignette = 5640,
     quest = 75270,
-    interval = ZaralekRotation({id = 1}),
+    -- interval = ZaralekRotation({id = 1}),
     rewards = {
         Achievement({id = 17783, criteria = 59185}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59492}), -- Cavern Clawbbering
@@ -101,7 +102,7 @@ map.nodes[41518613] = Rare({
     vignette = 5652,
     quest = 75325,
     note = L['brulsef_the_stronk_note'],
-    interval = ZaralekRotation({id = 1}),
+    -- interval = ZaralekRotation({id = 1}),
     rewards = {
         Achievement({id = 17783, criteria = 59202}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59493}), -- Cavern Clawbbering
@@ -115,13 +116,13 @@ map.nodes[48372384] = Rare({
     id = 204093,
     vignette = 5674,
     quest = 75475,
-    interval = ZaralekRotation({id = 4}),
+    -- interval = ZaralekRotation({id = 4}),
     rewards = {
         Achievement({id = 17783, criteria = 59212}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59494}), -- Cavern Clawbbering
         Transmog({item = 205332, slot = L['1h_mace']}), -- Fist of the Demolisher
         Transmog({item = 205315, slot = L['plate']}), -- Colossian Cuirass
-        DC.WindingSlitherdrake.ShortSpikedCrest, --
+        DC.RenewedProtoDrake.ShortSpikedCrest, --
         Item({item = 200071}) -- Sacred Tuskarr Totem
     }
 }) -- Colossian
@@ -130,7 +131,7 @@ map.nodes[31805061] = Rare({
     id = 203664,
     vignette = 5663,
     quest = 75361,
-    interval = ZaralekRotation({id = 0}),
+    -- interval = ZaralekRotation({id = 0}),
     rewards = {
         Achievement({id = 17783, criteria = 59209}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59495}), -- Cavern Clawbbering
@@ -144,7 +145,7 @@ map.nodes[36324481] = Rare({
     vignette = 5661,
     quest = 75357,
     location = L['in_small_cave'],
-    interval = ZaralekRotation({id = 0}),
+    -- interval = ZaralekRotation({id = 0}),
     rewards = {
         Achievement({id = 17783, criteria = 59207}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59496}), -- Cavern Clawbbering
@@ -158,7 +159,7 @@ map.nodes[41921857] = Rare({
     id = 203592,
     vignette = 5645,
     quest = 75295,
-    interval = ZaralekRotation({id = 4}),
+    -- interval = ZaralekRotation({id = 4}),
     rewards = {
         Achievement({id = 17783, criteria = 59190}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59497}), -- Cavern Clawbbering
@@ -175,7 +176,7 @@ map.nodes[68734593] = Rare({
     id = 203477,
     vignette = 5641,
     quest = 75273,
-    interval = ZaralekRotation({id = 3}),
+    -- interval = ZaralekRotation({id = 3}),
     rewards = {
         Achievement({id = 17783, criteria = 59186}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59498}), -- Cavern Clawbbering
@@ -189,7 +190,7 @@ map.nodes[45673327] = Rare({
     id = 203627,
     vignette = 5654,
     quest = 75335,
-    interval = ZaralekRotation({id = 4}),
+    -- interval = ZaralekRotation({id = 4}),
     rewards = {
         Achievement({id = 17783, criteria = 59200}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59499}), -- Cavern Clawbbering
@@ -203,7 +204,7 @@ map.nodes[28515115] = Rare({
     id = 203646,
     vignette = 5660,
     quest = 75352,
-    interval = ZaralekRotation({id = 0}),
+    -- interval = ZaralekRotation({id = 0}),
     rewards = {
         Achievement({id = 17783, criteria = 59206}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59500}), -- Cavern Clawbbering
@@ -219,7 +220,7 @@ map.nodes[42226524] = Rare({
     id = 203625,
     vignette = 5653,
     quest = 75333,
-    interval = ZaralekRotation({id = 1}),
+    -- interval = ZaralekRotation({id = 1}),
     rewards = {
         Achievement({id = 17783, criteria = 59199}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59501}), -- Cavern Clawbbering
@@ -228,7 +229,6 @@ map.nodes[42226524] = Rare({
         Transmog({item = 205292, slot = L['cloak']}), -- Kairoktra's Mane
         DC.WindingSlitherdrake.SmallFinnedTail, --
         Pet({item = 205147, id = 3541}), -- Ridged Shalewing
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}) -- Flightstones
     }
 }) -- Karokta
@@ -237,7 +237,7 @@ map.nodes[59593949] = Rare({
     id = 203466,
     vignette = 5639,
     quest = 75268,
-    interval = ZaralekRotation({id = 3}),
+    -- interval = ZaralekRotation({id = 3}),
     rewards = {
         Achievement({id = 17783, criteria = 59184}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59502}), -- Cavern Clawbbering
@@ -252,7 +252,7 @@ map.nodes[54074162] = Rare({
     id = 203618,
     vignette = 5651,
     quest = 75321,
-    interval = ZaralekRotation({id = 3}),
+    -- interval = ZaralekRotation({id = 3}),
     rewards = {
         Achievement({id = 17783, criteria = 59198}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59503}), -- Cavern Clawbbering
@@ -266,7 +266,7 @@ map.nodes[65435587] = Rare({
     vignette = 5638,
     quest = 75266,
     location = L['in_small_cave'],
-    interval = ZaralekRotation({id = 3}),
+    -- interval = ZaralekRotation({id = 3}),
     rewards = {
         Achievement({id = 17783, criteria = 59183}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59504}), -- Cavern Clawbbering
@@ -283,14 +283,13 @@ map.nodes[40753817] = Rare({
     id = 200111,
     vignette = 5656,
     quest = 75339,
-    interval = ZaralekRotation({id = 4}),
+    -- interval = ZaralekRotation({id = 4}),
     rewards = {
         Achievement({id = 17783, criteria = 59203}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59505}), -- Cavern Clawbbering
         Transmog({item = 205311, slot = L['mail']}), -- Magmascale Pauldrons
         Transmog({item = 205300, slot = L['leather']}), -- Magma Waders
         DC.WindingSlitherdrake.ImpalerHorns, --
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Item({item = 192055}), -- Dragon Isle Artifact
         Currency({id = 2245}) -- Flightstones
     }
@@ -301,7 +300,7 @@ map.nodes[55841899] = Rare({
     vignette = 5644,
     quest = 75291,
     location = L['in_cave'],
-    interval = ZaralekRotation({id = 4}),
+    -- interval = ZaralekRotation({id = 4}),
     rewards = {
         Achievement({id = 17783, criteria = 59189}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59506}), -- Cavern Clawbbering
@@ -316,14 +315,13 @@ map.nodes[36205300] = Rare({
     id = 203643,
     vignette = 5659,
     quest = 75348,
-    interval = ZaralekRotation({id = 0}),
+    -- interval = ZaralekRotation({id = 0}),
     rewards = {
         Achievement({id = 17783, criteria = 59205}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59507}), -- Cavern Clawbbering
         Transmog({item = 205294, slot = L['cloth']}), -- Sandals of Molten Scorn
         Transmog({item = 205301, slot = L['leather']}), -- Hardened Lava Handwraps
         DC.WindingSlitherdrake.CurledCheekHorn, --
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}) -- Flightstones
     }
 }) -- Skornak
@@ -333,7 +331,7 @@ map.nodes[53106421] = Rare({
     vignette = 5642,
     quest = 75275,
     location = L['in_small_cave'],
-    interval = ZaralekRotation({id = 2}),
+    -- interval = ZaralekRotation({id = 2}),
     rewards = {
         Achievement({id = 17783, criteria = 59187}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59508}), -- Cavern Clawbbering
@@ -350,7 +348,7 @@ map.nodes[38424650] = Rare({
     id = 203662,
     vignette = 5662,
     quest = 75359,
-    interval = ZaralekRotation({id = 0}),
+    -- interval = ZaralekRotation({id = 0}),
     rewards = {
         Achievement({id = 17783, criteria = 59208}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59509}), -- Cavern Clawbbering
@@ -366,7 +364,7 @@ map.nodes[57766910] = Rare({
     id = 203593,
     vignette = 5646,
     quest = 75297,
-    interval = ZaralekRotation({id = 3}),
+    -- interval = ZaralekRotation({id = 3}),
     rewards = {
         Achievement({id = 17783, criteria = 59191}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59510}), -- Cavern Clawbbering
@@ -381,7 +379,7 @@ map.nodes[38867151] = Rare({
     id = 201029,
     vignette = 5664,
     quest = 75365,
-    interval = ZaralekRotation({id = 1}),
+    -- interval = ZaralekRotation({id = 1}),
     rewards = {
         Achievement({id = 17783, criteria = 59210}), -- Adventurer of Zaralek Cavern
         Achievement({id = 18100, criteria = 59511}), -- Cavern Clawbbering
@@ -438,7 +436,6 @@ map.nodes[56040305] = Treasure({
     note = L['chest_of_the_flights_treasure_note'],
     rewards = {
         Achievement({id = 17786, criteria = 59224}), -- Treasures of Zaralek Cavern
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     }
@@ -446,11 +443,10 @@ map.nodes[56040305] = Treasure({
 
 map.nodes[36397425] = Treasure({
     note = L['crystal_encased_chest_note'],
-    quest = {74987, 75559, 75601, 73697, 74986},
+    quest = {74987, 75559, 75601, 74986}, -- delete 73697, it's Ancient Zaqali Chest Looting Quest
     rewards = {
         Achievement({id = 17786, criteria = 59228}), -- Treasures of Zaralek Cavern
         Item({item = 204985}), -- Barter Brick
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     },
@@ -534,7 +530,6 @@ map.nodes[48451083] = Treasure({
     quest = 75514,
     note = L['fealtys_reward_note'],
     rewards = {
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     },
@@ -552,7 +547,6 @@ map.nodes[56734868] = Treasure({
     quest = 75320,
     note = L['moth_pilfered_pouch_note'],
     rewards = {
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     },
@@ -580,7 +574,6 @@ map.nodes[64197495] = Treasure({
     quest = 75745,
     note = L['nal_kskol_reliquary_note'],
     rewards = {
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Item({item = 191784}), -- Dragon Shard of Knowledge
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
@@ -592,9 +585,8 @@ map.nodes[64197495] = Treasure({
 
 map.nodes[60664622] = Treasure({
     label = L['stolen_stash_label'],
-    quest = {75302, 66382},
+    quest = 75302,
     rewards = {
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     }
@@ -605,7 +597,6 @@ deepflayerNest.nodes[63698291] = Treasure({
     quest = 75303,
     location = L['in_deepflayer_nest'],
     rewards = {
-        Item({item = 204075}), -- Whelpling's Shadowflame Crest Fragment
         Currency({id = 2245}), -- Flightstones
         Currency({id = 2003}) -- Dragon Isles Supplies
     },
@@ -688,6 +679,7 @@ map.nodes[50326091] = SmellyTrashPile()
 map.nodes[51055710] = SmellyTrashPile()
 map.nodes[51224089] = SmellyTrashPile()
 map.nodes[51931544] = SmellyTrashPile()
+map.nodes[52080709] = SmellyTrashPile()
 map.nodes[52562740] = SmellyTrashPile()
 map.nodes[57047087] = SmellyTrashPile()
 map.nodes[57476456] = SmellyTrashPile()
@@ -695,6 +687,63 @@ map.nodes[59225178] = SmellyTrashPile()
 map.nodes[60195755] = SmellyTrashPile()
 map.nodes[61146860] = SmellyTrashPile()
 map.nodes[62325600] = SmellyTrashPile()
+
+local SmellyTreasureChest = Class('SmellyTreasureChest', ns.node.Node, {
+    label = L['smelly_treasure_chest_label'],
+    icon = 'chest_rd',
+    group = ns.groups.SMELLY_TREASURE_CHEST,
+    requires = {
+        ns.requirement.Reputation(2564, 11, true), -- Loamm Niffen
+        ns.requirement.Item(191294) -- Small Expedition Shovel
+    },
+    rewards = {
+        DC.RenewedProtoDrake.PlatedJaw, -- Renewed Proto-Drake: Plated Jaw
+        Item({item = 199906}), -- Titan Relic
+        Item({item = 204985}), -- Barter Brick
+        Item({item = 205188}) -- Barter Boulder
+    }
+}) -- Smell Treasure Chest
+
+map.nodes[25704360] = SmellyTreasureChest()
+map.nodes[28205370] = SmellyTreasureChest()
+map.nodes[30204010] = SmellyTreasureChest()
+map.nodes[32505300] = SmellyTreasureChest()
+map.nodes[35904520] = SmellyTreasureChest()
+map.nodes[38808490] = SmellyTreasureChest()
+map.nodes[39106200] = SmellyTreasureChest()
+map.nodes[41103500] = SmellyTreasureChest()
+map.nodes[41305590] = SmellyTreasureChest()
+map.nodes[42807810] = SmellyTreasureChest()
+map.nodes[44104150] = SmellyTreasureChest()
+map.nodes[44403510] = SmellyTreasureChest()
+map.nodes[45001570] = SmellyTreasureChest()
+map.nodes[45307020] = SmellyTreasureChest()
+map.nodes[45705260] = SmellyTreasureChest()
+map.nodes[45902240] = SmellyTreasureChest()
+map.nodes[45902250] = SmellyTreasureChest()
+map.nodes[45908730] = SmellyTreasureChest()
+map.nodes[46608050] = SmellyTreasureChest()
+map.nodes[47002670] = SmellyTreasureChest()
+map.nodes[47306200] = SmellyTreasureChest()
+map.nodes[47904880] = SmellyTreasureChest()
+map.nodes[49104090] = SmellyTreasureChest()
+map.nodes[51302430] = SmellyTreasureChest()
+map.nodes[52706540] = SmellyTreasureChest()
+map.nodes[52803230] = SmellyTreasureChest()
+map.nodes[52902340] = SmellyTreasureChest()
+map.nodes[52902350] = SmellyTreasureChest()
+map.nodes[53104760] = SmellyTreasureChest()
+map.nodes[54107760] = SmellyTreasureChest()
+map.nodes[54402290] = SmellyTreasureChest()
+map.nodes[54502290] = SmellyTreasureChest()
+map.nodes[56903100] = SmellyTreasureChest()
+map.nodes[57507040] = SmellyTreasureChest()
+map.nodes[57507050] = SmellyTreasureChest()
+map.nodes[58704370] = SmellyTreasureChest()
+map.nodes[60006300] = SmellyTreasureChest()
+map.nodes[62504200] = SmellyTreasureChest()
+map.nodes[62906990] = SmellyTreasureChest()
+map.nodes[65205530] = SmellyTreasureChest()
 
 -------------------------------------------------------------------------------
 --------------------------------- BATTLE PETS ---------------------------------
@@ -804,7 +853,11 @@ map.nodes[48251702] = PT.Enchanting({id = 204990, quest = 75508}) -- Lava-Drench
 map.nodes[62395380] = PT.Enchanting({id = 204999, quest = 75509}) -- Shimmering Aqueous Orb
 
 map.nodes[50504790] = PT.Engineering({id = 204471, quest = 75184}) -- Defective Survival Pack
-map.nodes[37825884] = PT.Engineering({id = 204475, quest = 75186}) -- Busted Wyrmhole Generator
+map.nodes[37825884] = PT.Engineering({
+    id = 204475,
+    quest = 75186,
+    note = L['busted_wyrmhole_generator_note']
+}) -- Busted Wyrmhole Generator
 map.nodes[48101659] = PT.Engineering({
     id = 204855,
     quest = 75433,
@@ -843,10 +896,38 @@ map.nodes[62717036] = Dragonglyph({rewards = {Achievement({id = 17511})}}) -- Dr
 map.nodes[72114844] = Dragonglyph({rewards = {Achievement({id = 17515})}}) -- Dragon Glyphs: The Throughway
 
 -------------------------------------------------------------------------------
+------------------------------ ELUSIVE CREATURES ------------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[60233957] = ElusiveCreature({
+    label = '{npc:204821}',
+    quest = 74234,
+    rewards = {
+        Item({item = 193215}), -- Adamant Scales
+        Item({item = 193224}), -- Lustrous Scaled Hide
+        Item({item = 205451, quest = 75866}), -- Flawless Crystal Scale
+        Achievement({id = 18833, criteria = 61483}) -- Elusive Legends of the Dragon Isles
+    },
+    pois = {Path({ns.poi.Circle({origin = 60233957, radius = 3})})}
+}) -- Elusive Crystalscale Stonecleaver
+
+map.nodes[44054787] = ElusiveCreature({
+    label = '{npc:204831}',
+    quest = 74235,
+    rewards = {
+        Item({item = 193215}), -- Adamant Scales
+        Item({item = 193224}), -- Lustrous Scaled Hide
+        Item({item = 204460}), -- Zaralek Glowspores
+        Item({item = 205413}), -- Obsidian Cobraskin
+        Achievement({id = 18833, criteria = 61484}) -- Elusive Legends of the Dragon Isles
+    }
+}) -- Elusive Magma Cobra
+
+-------------------------------------------------------------------------------
 --------------------------------- ZONE EVENTS ---------------------------------
 -------------------------------------------------------------------------------
 
-local EventRotation = Class('EventRotation', ZaralekRotation, {event = true})
+-- local EventRotation = Class('EventRotation', ZaralekRotation, {event = true})
 
 local ZoneEvent = Class('ZoneEvent', ns.node.Node, {
     group = ns.groups.ZONE_EVENT,
@@ -869,76 +950,93 @@ function ZoneEvent.getters:rlabel()
 end
 
 map.nodes[44507490] = ZoneEvent({
-    quest = 75612,
-    interval = EventRotation({id = 1})
+    quest = 75612
+    -- interval = EventRotation({id = 1})
 }) -- Cascades Calling
+
 map.nodes[63004720] = ZoneEvent({
-    quest = 75471,
-    interval = EventRotation({id = 3})
+    quest = 75471
+    -- interval = EventRotation({id = 3})
 }) -- Crystalline Survey
+
 map.nodes[32104360] = ZoneEvent({
-    quest = 75455,
-    interval = EventRotation({id = 0})
+    quest = 75455
+    -- interval = EventRotation({id = 0})
 }) -- Conspiracy of Flame
+
 map.nodes[56606540] = ZoneEvent({
-    quest = 75664,
-    interval = EventRotation({id = 2})
+    quest = 75664
+    -- interval = EventRotation({id = 2})
 }) -- Discordant Crystals
+
 map.nodes[45008450] = ZoneEvent({
-    quest = 75611,
-    interval = EventRotation({id = 1})
+    quest = 75611
+    -- interval = EventRotation({id = 1})
 }) -- Glimmerfish Before It's Gone
+
 map.nodes[48102020] = ZoneEvent({
-    quest = 75478,
-    interval = EventRotation({id = 4})
+    quest = 75478
+    -- interval = EventRotation({id = 4})
 }) -- Hungry Hungry Hydra
+
 map.nodes[35405230] = ZoneEvent({
-    quest = 75451,
-    interval = EventRotation({id = 0})
+    quest = 75451
+    -- interval = EventRotation({id = 0})
 }) -- Imperfect Balance
+
 map.nodes[46602570] = ZoneEvent({
-    quest = 75461,
-    interval = EventRotation({id = 4})
+    quest = 75461
+    -- interval = EventRotation({id = 4})
 }) -- Magmaclaw Matriarch
+
 map.nodes[61707210] = ZoneEvent({
-    quest = 75705,
-    interval = EventRotation({id = 2})
+    quest = 75705
+    -- interval = EventRotation({id = 2})
 }) -- Monument Maintenance
+
 map.nodes[40204350] = ZoneEvent({
-    quest = 75454,
-    interval = EventRotation({id = 0})
+    quest = 75454
+    -- interval = EventRotation({id = 0})
 }) -- Mortar Warfare
+
 map.nodes[34304770] = ZoneEvent({
-    quest = 75450,
-    interval = EventRotation({id = 0})
+    quest = 75450
+    -- interval = EventRotation({id = 0})
 }) -- Seismic Ceremony
+
 map.nodes[57504890] = ZoneEvent({
-    quest = 75222,
-    interval = EventRotation({id = 3})
+    quest = 75222
+    -- interval = EventRotation({id = 3})
 }) -- Shellfire
+
 map.nodes[60605310] = ZoneEvent({
-    quest = 75370,
-    interval = EventRotation({id = 3})
+    quest = 75370
+    -- interval = EventRotation({id = 3})
 }) -- Smellincense
+
 map.nodes[44902080] = ZoneEvent({
-    quest = 75494,
-    interval = EventRotation({id = 4})
+    quest = 75494
+    -- interval = EventRotation({id = 4})
 }) -- Strike the Colors
+
 map.nodes[57705690] = ZoneEvent({
-    quest = 75441,
-    interval = EventRotation({id = 3})
+    quest = 75441
+    -- interval = EventRotation({id = 3})
 }) -- Smelly Scramble
+
 map.nodes[63905070] = ZoneEvent({
-    quest = 75156,
-    interval = EventRotation({id = 3})
+    quest = 75156
+    -- interval = EventRotation({id = 3})
 }) -- Stress Express
+
 map.nodes[45308320] = ZoneEvent({
-    quest = 75624,
-    interval = EventRotation({id = 1})
+    quest = 75624
+    -- interval = EventRotation({id = 1})
 }) -- The Champion's Challenge
+
 map.nodes[58206740] = ZoneEvent({
-    quest = 74352,
-    interval = EventRotation({id = 2})
+    quest = 74352
+    -- interval = EventRotation({id = 2})
 }) -- Whirling Zephyr
 
 -------------------------------------------------------------------------------
@@ -1067,21 +1165,6 @@ end
 
 map.nodes[44257993] = Briggul()
 
--- local darkshore = Map({id = 62, settings = false})
-
--- darkshore.nodes[47161853] = Collectible({
---     id = 48182,
---     icon = 442735,
---     note = L['big_slick_note'],
---     rewards = {
---         Pet({id = 493}) -- Shimmershell Snail
---     },
---     pois = {
---         POI({57941511, 57561701, 54761786, 53492013}), -- Shimmershell Snail
---         Path({Circle({origin = 48652445, radius = 1.5})}) -- Zidormi
---     }
--- }) -- Shimmershell Snail
-
 ----------------------------- PET: LORD STANTLEY ------------------------------
 
 local CuriousTopHat = Class('CuriousTopHat', Collectible, {
@@ -1097,6 +1180,141 @@ local CuriousTopHat = Class('CuriousTopHat', Collectible, {
 map.nodes[38866432] = CuriousTopHat()
 map.nodes[43967748] = CuriousTopHat()
 map.nodes[51586689] = CuriousTopHat()
+map.nodes[61736979] = CuriousTopHat()
+map.nodes[63205574] = CuriousTopHat()
+deepflayerNest.nodes[70016555] = CuriousTopHat({
+    parent = {id = map.id, location = L['in_cave'], pois = {POI({61463864})}}
+})
+
+-------------------------------------------------------------------------------
+----------------------- ACHIEVEMENT: THE GIFT OF CHEESE -----------------------
+-------------------------------------------------------------------------------
+
+local TheGiftOfCheese = Class('TheGiftOfCheese', Collectible, {
+    label = '{achievement:17736}',
+    icon = 515993,
+    rewards = {
+        Achievement({id = 17736, criteria = {qty = true, id = 1}}), -- The Gift of Cheese
+        Recipe({item = 204849, profession = 185}), -- Ratcipe: Charitable Cheddar
+        Pet({item = 204894, id = 3493}) -- Roland
+    }
+}) -- The Gift of Cheese
+
+function TheGiftOfCheese.getters:note()
+    local function status(id, itemsNeed, itemsNeedString)
+        local itemsHave = GetItemCount(id, true);
+        if ns.PlayerHasItem(id, itemsNeed) then
+            return ns.status.Green(itemsHave .. '/' .. itemsNeedString)
+        else
+            return ns.status.Red(itemsHave .. '/' .. itemsNeedString)
+        end
+    end
+
+    local function getString(id)
+        local s = '??????'
+        return s:sub(1, #tostring(GetItemCount(id))) -- 1/? or 26/?? or 159/???
+    end
+
+    local note = L['the_gift_of_cheese_note_1'] .. '\n\n'
+    note = note .. status(204871, 1, '1') .. ' ' ..
+               L['the_gift_of_cheese_note_2'] .. '\n\n'
+    note = note .. status(204872, 30, '30') .. ' ' ..
+               L['the_gift_of_cheese_note_3'] .. '\n\n'
+    note = note .. status(3927, 1, getString(3927)) .. ' ' ..
+               L['the_gift_of_cheese_note_4'] .. '\n\n'
+    return note .. L['the_gift_of_cheese_note_5']
+end
+
+map.nodes[52442683] = TheGiftOfCheese()
+
+-------------------------------------------------------------------------------
+------------------------------- ZARALEK SAFARI --------------------------------
+-------------------------------------------------------------------------------
+
+-- local Zaralek_Safari = Class('Zaralek_Safari', ns.node.Safari,
+--     {group = ns.groups.ZARALEK_SAFARI})
+
+-- map.nodes[49003260] = Zaralek_Safari({
+--     id = 203287,
+--     rewards = {Achievement({id = 17879, criteria = 59342}), Pet({id = 3477})},
+--     pois = {
+--         POI({
+--             44004020, 44004900, 44405020, 44405060, 44805840, 44805860,
+--             45005080, 45005160, 45203900, 45204000, 45205640, 45205660,
+--             46205400, 47203840, 47403740, 47403860, 47603720, 47603760,
+--             48203500, 48205240, 48403600, 48405320, 48603600, 48605320,
+--             48803460, 49003240, 49003260, 49005160, 49203360, 49403940,
+--             49403960, 49405040, 49405140, 49603860, 49604120, 49605040,
+--             49605140, 49605160, 49803340, 49803740, 49803780, 49804940,
+--             50004580, 50203960, 50404480, 50404740, 50404760, 50604640,
+--             50604660, 50604920, 50804300, 50804780
+--         })
+--     }
+-- })-- Puddlehopper
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Yellabon
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Stonewhisker
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Boulderfang
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Hollow Moth
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Rock Martin
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Endmite
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Cobbleshell
+
+-- map.nodes[1234] = Zaralek_Safari({
+--     id = nil,
+--     rewards = {Achievement({id = 17879, criteria = nil}), Pet({id = nil})},
+--     pois = {
+--         POI({})
+--     }
+-- })-- Slabwing
 
 -------------------------------------------------------------------------------
 
@@ -1107,9 +1325,9 @@ map.nodes[55895537] = LoammVendor({
     id = 203615,
     note = L['saccratos_note'],
     rewards = {
-        Pet({item = 205118, id = 3535, note = 'x50'}), -- Diamondshell
-        Mount({item = 191838, id = 1603, note = 'x100'}), -- Subterranean Magmammoth
-        Mount({item = 205197, id = 1730, note = 'x400'}) -- Igneous Shalewing
+        Pet({item = 205118, id = 3535, count = 55}), -- Diamondshell
+        Mount({item = 191838, id = 1603, count = 100}), -- Subterranean Magmammoth
+        Mount({item = 205197, id = 1730, count = 400}) -- Igneous Shalewing
     }
 }) -- Saccratos <Coveted Bauble Exchange>
 
@@ -1117,10 +1335,10 @@ map.nodes[58085381] = LoammVendor({
     id = 204693,
     note = L['ponzo_note'],
     rewards = {
-        DC.SetNote(DC.WindingSlitherdrake.HairyBrow, 'x55'),
-        DC.SetNote(DC.WindingSlitherdrake.ClusterChinHorn, 'x55'),
-        DC.SetNote(DC.WindingSlitherdrake.CurledNose, 'x55'),
-        Pet({item = 205120, id = 3537, note = 'x85'}), -- Thimblerig
-        Mount({item = 205209, id = 1736, note = 'x170'}) -- Boulder Hauler
+        DC.SetCount(DC.WindingSlitherdrake.HairyBrow, 55),
+        DC.SetCount(DC.WindingSlitherdrake.ClusterChinHorn, 55),
+        DC.SetCount(DC.WindingSlitherdrake.CurledNose, 55),
+        Pet({item = 205120, id = 3537, count = 85}), -- Thimblerig
+        Mount({item = 205209, id = 1736, count = 170}) -- Boulder Hauler
     }
 }) -- Ponzo <Barterer Extraordinaire>

@@ -52,6 +52,7 @@ function Node:Initialize(attrs)
     self.parent = ns.AsIDTable(self.parent)
     self.requires = ns.AsTable(self.requires, Requirement)
     self.group = ns.AsTable(self.group, Group)
+    self.vignette = ns.AsTable(self.vignette)
 
     -- ensure proper group(s) is/are assigned
     for _, group in pairs(self.group) do
@@ -156,6 +157,8 @@ function Node:IsEnabled()
     if self.group == ns.groups.QUEST or not ns:GetOpt('show_completed_nodes') then
         if self:IsCompleted() then return false end
     end
+
+    if self.class and self.class ~= ns.class then return false end
 
     return true
 end
@@ -284,11 +287,11 @@ function Node:Render(tooltip, focusable)
     end
 
     -- optional text directly under sublabel/label for development notes
-    if self.devnote then
+    if self.devnote and ns:GetOpt('development') then
         tooltip:AddLine(ns.RenderLinks(self.devnote), 1, 0, 1)
     end
     -- optional text directly under sublabel/label for development notes
-    if self.areaPOI then
+    if self.areaPOI and ns:GetOpt('development') then
         tooltip:AddLine(ns.RenderLinks('Poi ID: ' .. self.areaPOI), 0.58, 0.43,
             0.84)
     end
@@ -303,9 +306,9 @@ function Node:Render(tooltip, focusable)
         for i, req in ipairs(self.requires) do
             if IsInstance(req, Requirement) then
                 color = req:IsMet() and ns.color.White or ns.color.Red
-                text = color(L['Requires'] .. ' ' .. req:GetText())
+                text = color(L['requires'] .. ' ' .. req:GetText())
             else
-                text = ns.color.Red(L['Requires'] .. ' ' .. req)
+                text = ns.color.Red(L['requires'] .. ' ' .. req)
             end
             tooltip:AddLine(ns.RenderLinks(text, true))
         end
