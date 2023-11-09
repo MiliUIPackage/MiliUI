@@ -4,7 +4,7 @@
 ## Title-zhTW: |cffFFFF66[收藏]|r 坐騎收藏紀錄
 ## Notes-zhTW: MCL |n顯示坐騎收藏記錄，從小地圖旁插件列表內可進入，若顯示開啟失敗則多點幾次即可。
 ## X-Category-zhTW: 收藏
-## Version: 2.1.9
+## Version: 2.2.3a
 ## DefaultState: enabled
 ## LoadWith: Blizzard_Collections
 ## SavedVariables: MCL_DB, MOUNTLIST, MCL_PINNED, MCL_SETTINGS

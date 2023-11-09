@@ -112,6 +112,16 @@ L["Neltharus"] = '奈薩魯斯堡'
 L["Brackenhide Hollow"] = '蕨皮谷'
 L["Halls of Infusion"] = '灌注迴廊'
 
+-- DRAGONFLIGHT S3
+L["Dawn of the Infinites: Galakrond's Fall"] = "恆龍黎明: 葛拉克朗殞命之地"
+L["Dawn of the Infinites: Murozond's Rise"] = "恆龍黎明: 姆多茲諾高地"
+L["Atal'Dazar"] = "阿塔達薩"
+L["Waycrest Manor"] = "威奎斯特莊園"
+L["Darkheart Thicket"] = "暗心灌木林"
+L["Black Rook Hold"] = "玄鴉堡"
+L["Everbloom"] = "永茂林"
+L["Throne of the Tides"] = "海潮王座"
+
 
 -- 自行加入
 L["Astral Keys"] = "M+ 鑰石名單"

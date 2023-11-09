@@ -32,6 +32,26 @@ L["Supporters"] = "支援者"
 L["You must have an add-on that supports Masque installed to use it."] = "必須安裝支援 Masque 按鈕外觀的插件才能使用。"
 
 ----------------------------------------
+-- Advanced Settings
+---
+
+L["Advanced"] = "進階"
+L["Advanced Settings"] = "進階設定"
+L["Cast Animations"] = "施法動畫"
+L["Cooldown Animations"] = "冷卻動畫"
+L["Enable animations when action button cooldowns finish."] = "啟用冷卻完成動畫"
+L["Enable cast animations on action buttons."] = "啟用施法動畫"
+L["Enable interrupt animations on action buttons."] = "啟用斷法動畫"
+L["Enable targeting reticles on action buttons."] = "啟用瞄準線"
+L["Flash and Loop"] = "閃光並循環"
+L["Interrupt Animations"] = "斷法動畫"
+L["Loop Only"] = "只循環"
+L["Select which spell alert animations are enabled."] = "選擇要使用哪種提醒動畫效果。"
+L["Spell Alerts"] = "法術提醒"
+L["Targeting Reticles"] = "瞄準線"
+L["This section will allow you to adjust button settings for the default interface."] = "這裡可以調整預設介面的按鈕設定。"
+
+----------------------------------------
 -- Blizzard Classic Skin
 ---
 
@@ -90,17 +110,15 @@ L["This section will allow you to adjust Masque's interface and performance sett
 
 L["Author"] = "作者"
 L["Authors"] = "作者"
-L["Click for details."] = "點擊取得細節。"
 L["Compatible"] = "相容"
 L["Description"] = "說明"
-L["Incompatible"] = "不相容"
+L["Discord"] = "Discord"
 L["Installed Skins"] = "已安裝的外觀"
 L["No description available."] = "沒有說明。"
 L["Status"] = "狀態"
 L["The status of this skin is unknown."] = "此外觀的狀態為未知。"
 L["This section provides information on any skins you have installed."] = "本部分提供所有你已安裝的任何外觀的訊息。"
 L["This skin is compatible with Masque."] = "這款外觀與Masque相容。"
-L["This skin is outdated and is incompatible with Masque."] = "這款外觀已經過期或是不相容於Masque。"
 L["This skin is outdated but is still compatible with Masque."] = "這款外觀已經過期但仍相容於Masque。"
 L["Unknown"] = "未知"
 L["Version"] = "版本"
@@ -111,12 +129,20 @@ L["Websites"] = "網站"
 -- Interface Settings
 ---
 
+L["Add-On Compartment"] = "插件選單"
 L["Alternate Sorting"] = "另一種排序"
 L["Causes the skins included with Masque to be listed above third-party skins."] = "讓 Masque 內建的外觀排列在第三方外觀上方。"
-L["Enable the Minimap icon."] = "啟用小地圖按鈕。"
+L["Click to reload the interface."] = "點擊來載入或重載介面。"
 L["Interface"] = "介面"
 L["Interface Settings"] = "介面設置"
-L["Minimap Icon"] = "小地圖按鈕"
+L["Load the skin information panel."] = "載入外觀訊息面板"
+L["Menu Icon"] = "選單圖示"
+L["Minimap"] = "小地圖"
+L["None"] = "無"
+L["Reload Interface"] = "重載介面"
+L["Requires an interface reload."] = "需要介面重新載入。"
+L["Select where Masque's menu icon is displayed."] = "選擇 Masque 的選單圖示要顯示在哪裡。"
+L["Skin Information"] = "外觀訊息"
 L["Stand-Alone GUI"] = "獨立的圖形介面"
 L["This section will allow you to adjust settings that affect Masque's interface."] = "本部分允許您調整影響Masque介面的設置。"
 L["Use a resizable, stand-alone options window."] = "使用可調整大小的獨立選項視窗。"
@@ -126,25 +152,13 @@ L["Use a resizable, stand-alone options window."] = "使用可調整大小的獨
 ---
 
 L["Click to open Masque's settings."] = "點一下開啟按鈕外觀的設定選項。"
+L["Unavailable in combat."] = "戰鬥中無法使用。"
 
 ----------------------------------------
 -- Modern Enhanced Skin
 ---
 
--- L["An enhanced version of the Dragonflight button style."] = "An enhanced version of the Dragonflight button style."
-
-----------------------------------------
--- Performance Settings
----
-
-L["Click to load reload the interface."] = "點擊來載入或重載介面。"
-L["Load the skin information panel."] = "載入外觀訊息面板"
-L["Performance"] = "效能"
-L["Performance Settings"] = "效能設置"
-L["Reload Interface"] = "重載介面"
-L["Requires an interface reload."] = "需要介面重新載入。"
-L["Skin Information"] = "外觀訊息"
-L["This section will allow you to adjust settings that affect Masque's performance."] = "本部分允許您調整影響Masque效能的設置。"
+L["An enhanced version of the Dragonflight button style."] = "巨龍崛起按鈕樣式的加強版。"
 
 ----------------------------------------
 -- Profile Settings

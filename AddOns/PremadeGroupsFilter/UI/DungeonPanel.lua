@@ -29,31 +29,34 @@ local DIFFICULTY_TEXT = {
     [4] = { key = C.MYTHICPLUS, title = L["dialog.mythicplus"] },
 }
 
-local SEASON_DUNGEONS = {
+local CMID_MAP = {
     -- Dragonflight Season 2
-    [1] = { activityID = 1164, mapID = 405, keyword = "bh" },   -- Brackenhide Hollow
-    [2] = { activityID = 1168, mapID = 406, keyword = "hoi" },  -- Halls of Infusion
-    [3] = { activityID = 1172, mapID = 404, keyword = "nelt" }, -- Neltharus
-    [4] = { activityID = 1188, mapID = 403, keyword = "uld" },  -- Uldaman: Legacy of Tyr
-    [5] = { activityID = 518,  mapID = 245, keyword = "fh" },   -- Freehold
-    [6] = { activityID = 462,  mapID = 206, keyword = "nl" },   -- Neltharion's Lair
-    [7] = { activityID = 507,  mapID = 251, keyword = "undr" }, -- The Underrot
-    [8] = { activityID = 1195, mapID = 438, keyword = "vp" },   -- Vortex Pinnacle
+    [405] = { order = 1, keyword = "bh" },   -- Brackenhide Hollow
+    [406] = { order = 2, keyword = "hoi" },  -- Halls of Infusion
+    [404] = { order = 3, keyword = "nelt" }, -- Neltharus
+    [403] = { order = 4, keyword = "uld" },  -- Uldaman: Legacy of Tyr
+    [245] = { order = 5, keyword = "fh" },   -- Freehold
+    [206] = { order = 6, keyword = "nl" },   -- Neltharion's Lair
+    [251] = { order = 7, keyword = "undr" }, -- The Underrot
+    [438] = { order = 8, keyword = "vp" },   -- Vortex Pinnacle
 
     -- Dragonflight Season 3
-    --[1] = { activityID = 1247, mapID = 463, keyword = "fall" }, -- Dawn of the Infinite: Galakrond's Fall
-    --[2] = { activityID = 1248, mapID = 464, keyword = "rise" }, -- Dawn of the Infinite: Murozond's Rise
-    --[3] = { activityID = 530,  mapID = 248, keyword = "wm"   }, -- Waycrest Manor (Battle for Azeroth)
-    --[4] = { activityID = 502,  mapID = 244, keyword = "ad"   }, -- Atal'Dazar (Battle for Azeroth)
-    --[5] = { activityID = 460,  mapID = 198, keyword = "dht"  }, -- Darkheart Thicket (Legion)
-    --[6] = { activityID = 463,  mapID = 199, keyword = "brh"  }, -- Black Rook Hold (Legion)
-    --[7] = { activityID = 184,  mapID = 168, keyword = "teb"  },  -- The Everbloom (Warlords of Draenor)
-    --[8] = { activityID = 1274, mapID = 456, keyword = "tott" }, -- Throne of the Tides (Cataclysm)
+    [463] = { order = 1, keyword = "fall" }, -- Dawn of the Infinite: Galakrond's Fall
+    [464] = { order = 2, keyword = "rise" }, -- Dawn of the Infinite: Murozond's Rise
+    [248] = { order = 3, keyword = "wm" },   -- Waycrest Manor (Battle for Azeroth)
+    [244] = { order = 4, keyword = "ad" },   -- Atal'Dazar (Battle for Azeroth)
+    [198] = { order = 5, keyword = "dht" },  -- Darkheart Thicket (Legion)
+    [199] = { order = 6, keyword = "brh" },  -- Black Rook Hold (Legion)
+    [168] = { order = 7, keyword = "eb" },   -- The Everbloom (Warlords of Draenor)
+    [456] = { order = 8, keyword = "tott" }, -- Throne of the Tides (Cataclysm)
 
-    -- note that there are currently one 8 checkboxes available in the xml file
-    -- activityID can be found here: https://wago.tools/db2/GroupFinderActivity?sort[ID]=desc
-    -- mapID      can be found here: https://wago.tools/db2/MapChallengeMode?page=1&sort[ID]=desc
+    -- cmID can be found here as column ID: https://wago.tools/db2/MapChallengeMode?page=1&sort[ID]=desc
 }
+setmetatable(CMID_MAP, { __index = function() return { order = 0, keyword = "true" } end })
+
+-- Note that there are currently one 8 checkboxes available in the xml file.
+-- If a season has more or less than 8 dungeons, the code has to be adapted.
+local NUM_DUNGEON_CHECKBOXES = 8
 
 local DungeonPanel = CreateFrame("Frame", "PremadeGroupsFilterDungeonPanel", PGF.Dialog, "PremadeGroupsFilterDungeonPanelTemplate")
 
@@ -62,6 +65,10 @@ function DungeonPanel:OnLoad()
     self.name = "dungeon"
     self.dialogWidth = 420
     self.groupWidth = 245
+    self.cmIDs = {}
+
+    self:RegisterEvent("CHALLENGE_MODE_MAPS_UPDATE")
+    self:SetScript("OnEvent", self.OnEvent)
 
     -- Group
     self.Group.Title:SetText(L["dialog.filters.group"])
@@ -88,17 +95,58 @@ function DungeonPanel:OnLoad()
     self.Dungeons.Alert:SetScript("OnLeave", function(self)
         GameTooltip:Hide()
     end)
-    for i = 1, #SEASON_DUNGEONS do
-        --local dungeonName = C_LFGList.GetActivityInfoTable(SEASON_DUNGEONS[i].activityID).fullName
-        local dungeonName = C_ChallengeMode.GetMapUIInfo(SEASON_DUNGEONS[i].mapID)
-        self.Dungeons["Dungeon"..i]:SetWidth(145)
-        self.Dungeons["Dungeon"..i].Title:SetText(dungeonName)
-        self.Dungeons["Dungeon"..i].Title:SetWidth(105)
-        self.Dungeons["Dungeon"..i].Act:SetScript("OnClick", function(element)
+
+    for i = 1, NUM_DUNGEON_CHECKBOXES do
+        local dungeon = self.Dungeons["Dungeon"..i]
+        dungeon.cmId = cmID
+        dungeon.name = "..."
+        dungeon:SetWidth(145)
+        dungeon.Title:SetText("...")
+        dungeon.Title:SetWidth(105)
+        dungeon.Act:SetScript("OnClick", function(element)
             self.state["dungeon" .. i] = element:GetChecked()
             self:ToogleDungeonAlert()
             self:TriggerFilterExpressionChange()
         end)
+        dungeon:SetScript("OnEnter", function (self)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:SetText(self.name, nil, nil, nil, nil, true)
+            GameTooltip:Show()
+        end)
+        dungeon:SetScript("OnLeave", function(self)
+            GameTooltip:Hide()
+        end)
+    end
+    self:TryInitChallengeModes()
+end
+
+function DungeonPanel:TryInitChallengeModes()
+    if not self.cmIDs or #self.cmIDs == 0 then
+        self:InitChallengeModes()
+    end
+end
+
+function DungeonPanel:InitChallengeModes()
+    PGF.Logger:Debug("Dungeonpanel:InitChallengeModes")
+    if not C_ChallengeMode.GetMapTable() then
+        PGF.Logger:Debug("C_ChallengeMode.GetMapTable() not yet ready")
+        return
+    end
+
+    self.cmIDs = C_ChallengeMode.GetMapTable()
+    table.sort(self.cmIDs, function(a, b) -- sort by order asc, id asc
+        if CMID_MAP[a].order ~= CMID_MAP[b].order then
+            return CMID_MAP[a].order < CMID_MAP[b].order
+        end
+        return a < b
+    end)
+
+    for i, cmID in ipairs(self.cmIDs) do
+        local dungeonName = C_ChallengeMode.GetMapUIInfo(cmID) or "?"
+        local dungeon = self.Dungeons["Dungeon"..i]
+        dungeon.cmId = cmID
+        dungeon.name = dungeonName
+        dungeon.Title:SetText(dungeonName)
     end
 end
 
@@ -135,15 +183,23 @@ function DungeonPanel:Init(state)
     self.Group.BLFit.Act:SetChecked(self.state.blfit or false)
     self.Group.BRFit.Act:SetChecked(self.state.brfit or false)
 
-    for i = 1, #SEASON_DUNGEONS do
+    for i = 1, NUM_DUNGEON_CHECKBOXES do
         self.Dungeons["Dungeon"..i].Act:SetChecked(self.state["dungeon"..i] or false)
     end
     self.Advanced.Expression.EditBox:SetText(self.state.expression or "")
     self:ToogleDungeonAlert()
 end
 
+function DungeonPanel:OnEvent(event)
+    if event == "CHALLENGE_MODE_MAPS_UPDATE" then
+        PGF.Logger:Debug("DungeonPanel:OnEvent(CHALLENGE_MODE_MAPS_UPDATE)")
+        self:InitChallengeModes()
+    end
+end
+
 function DungeonPanel:OnShow()
     PGF.Logger:Debug("DungeonPanel:OnShow")
+    self:TryInitChallengeModes()
 end
 
 function DungeonPanel:OnHide()
@@ -171,7 +227,7 @@ function DungeonPanel:OnReset()
     self.state.partyfit = false
     self.state.blfit = false
     self.state.brfit = false
-    for i = 1, #SEASON_DUNGEONS do
+    for i = 1, NUM_DUNGEON_CHECKBOXES do
         self.state["dungeon"..i] = false
     end
     self.state.expression = ""
@@ -225,8 +281,9 @@ function DungeonPanel:GetFilterExpression()
 
     if self:GetNumDungeonsSelected() > 0 then
         expression = expression .. " and ( false" -- start with neutral element of logical or
-        for i = 1, #SEASON_DUNGEONS do
-            if self.state["dungeon"..i] then expression = expression .. " or " .. SEASON_DUNGEONS[i].keyword end
+        for i = 1, NUM_DUNGEON_CHECKBOXES do
+            local keyword = CMID_MAP[self.cmIDs[i]].keyword
+            if self.state["dungeon"..i] then expression = expression .. " or " .. keyword end
         end
         expression = expression .. " )"
         expression = expression:gsub("false or ", "")
@@ -249,7 +306,7 @@ end
 
 function DungeonPanel:GetNumDungeonsSelected()
     local numDungeonsSelected = 0
-    for i = 1, #SEASON_DUNGEONS do
+    for i = 1, NUM_DUNGEON_CHECKBOXES do
         if self.state["dungeon"..i] then
             numDungeonsSelected = numDungeonsSelected + 1
         end
@@ -263,36 +320,6 @@ function DungeonPanel:ToogleDungeonAlert()
         self.Dungeons.Alert:Show()
     else
         self.Dungeons.Alert:Hide()
-    end
-end
-
-function DungeonPanel:TogglePartyfit()
-    PGF.Logger:Debug("DungeonPanel:TogglePartyfit")
-    if self.state.partyfit then
-        self.Group:SetHeight(85)
-        self.Group.Members:Hide()
-        self.Group.Tanks:Hide()
-        self.Group.Heals:Hide()
-        self.Group.DPS:Hide()
-        self.state.members.act = false
-        self.state.members.min = ""
-        self.state.members.max = ""
-        self.state.tanks.act = false
-        self.state.tanks.min = ""
-        self.state.tanks.max = ""
-        self.state.heals.act = false
-        self.state.heals.min = ""
-        self.state.heals.max = ""
-        self.state.dps.act = false
-        self.state.dps.min = ""
-        self.state.dps.max = ""
-        self:Init(self.state)
-        self:TriggerFilterExpressionChange()
-    else
-        self.Group:SetHeight(185)
-        self.Group.Members:Show()
-        self.Group.Tanks:Show()
-        self.Group.Heals:Show()
     end
 end
 

@@ -24,7 +24,7 @@ local error, type = error, type
 -- WoW API
 ---
 
-local hooksecurefunc = hooksecurefunc
+local hooksecurefunc = _G.hooksecurefunc
 
 ----------------------------------------
 -- Internal
@@ -118,6 +118,7 @@ function Core.SkinIcon(Region, Button, Skin, xScale, yScale)
 	Region:SetTexCoord(GetTexCoords(Skin.TexCoords))
 	Region:SetDrawLayer(Skin.DrawLayer or "BACKGROUND", Skin.DrawLevel or 0)
 	Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
+
 	SetPoints(Region, Button, Skin, nil, Skin.SetAllPoints)
 
 	-- Mask
@@ -148,7 +149,7 @@ end
 -- Sets the button's empty status.
 function Core.API:SetEmpty(Button, IsEmpty)
 	if type(Button) ~= "table" then
-		if Core.db.profile.Debug then
+		if Core.Debug then
 			error("Bad argument to API method 'SetEmpty'. 'Button' must be a button object.", 2)
 		end
 		return

@@ -24,13 +24,13 @@ local error, type = error, type
 -- WoW API
 ---
 
-local hooksecurefunc, random = hooksecurefunc, random
+local hooksecurefunc, random = _G.hooksecurefunc, _G.random
 
 ----------------------------------------
 -- Internal
 ---
 
--- @ Skins\Default
+-- @ Skins\Blizzard_*
 local Default = Core.DEFAULT_SKIN.Normal
 
 -- @ Core\Utility
@@ -200,6 +200,7 @@ function Core.SkinNormal(Region, Button, Skin, Color, xScale, yScale)
 	end
 
 	SetPoints(Region, Button, Skin, nil, Skin.SetAllPoints)
+
 	Region:Show()
 
 	if IsButton and Button.__MSQ_EmptyType and not Button.__MSQ_NormalHook then
@@ -220,6 +221,7 @@ function Core.SetNormalColor(Region, Button, Skin, Color)
 	if Region then
 		Skin = GetTypeSkin(Button, Button.__MSQ_bType, Skin)
 		Button.__MSQ_NormalColor = Color or Skin.Color or DEF_COLOR
+
 		UpdateNormal(Button)
 	end
 end
@@ -233,7 +235,7 @@ Core.UpdateNormal = UpdateNormal
 -- Retrieves the 'Normal' region of a button.
 function Core.API:GetNormal(Button)
 	if type(Button) ~= "table" then
-		if Core.db.profile.Debug then
+		if Core.Debug then
 			error("Bad argument to API method 'GetNormal'. 'Button' must be a button object.", 2)
 		end
 		return

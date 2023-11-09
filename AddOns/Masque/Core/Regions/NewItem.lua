@@ -18,13 +18,13 @@ local _, Core = ...
 -- WoW API
 ---
 
-local hooksecurefunc = hooksecurefunc
+local hooksecurefunc = _G.hooksecurefunc
 
 ----------------------------------------
 -- Internal
 ---
 
--- @ Skins\Default
+-- @ Skins\Blizzard_*
 local Default = Core.DEFAULT_SKIN.NewItem
 
 -- @ Core\Utility

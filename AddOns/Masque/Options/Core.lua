@@ -13,17 +13,19 @@
 local MASQUE, Core = ...
 
 ----------------------------------------
--- Libraries
----
-
-local ACD = LibStub("AceConfigDialog-3.0")
-
-----------------------------------------
 -- WoW API
 ---
 
-local InterfaceOptionsFrame_OpenToCategory = InterfaceOptionsFrame_OpenToCategory
-local InterfaceOptionsFrame_Show = InterfaceOptionsFrame_Show
+local InterfaceOptionsFrame_OpenToCategory = _G.InterfaceOptionsFrame_OpenToCategory
+local InterfaceOptionsFrame_Show = _G.InterfaceOptionsFrame_Show
+local InCombatLockdown = _G.InCombatLockdown
+
+----------------------------------------
+-- Libraries
+---
+
+local LIB_ACD = LibStub("AceConfigDialog-3.0")
+local LIB_ACR = LibStub("AceConfigRegistry-3.0")
 
 ----------------------------------------
 -- Internal
@@ -85,31 +87,13 @@ function Setup.Core(self)
 
 	self.Options = Options
 
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable(MASQUE, self.Options)
+	LIB_ACR:RegisterOptionsTable(MASQUE, self.Options)
 
 	local Path = "Core"
-	self:AddOptionsPanel(Path, ACD:AddToBlizOptions(MASQUE, MASQUE, nil, Path))
+	self:AddOptionsPanel(Path, LIB_ACD:AddToBlizOptions(MASQUE, MASQUE, nil, Path))
 
 	OPT_FRAME = CreateFrame("Frame", "MSQ_OPT_FRAME", SettingsPanel or InterfaceOptionsFrame)
 	OPT_FRAME:SetScript("OnShow", function() Setup("LoD") end)
-
-	-- AddonCompartment
-	if WOW_RETAIL then
-		AddonCompartmentFrame:RegisterAddon({
-			text = MASQUE,
-			icon = [[Interface\AddOns\Masque\Textures\Icon]],
-			func = function(...)
-				Core:ToggleOptions()
-			end,
-			funcOnEnter = function()
-				GameTooltip:SetOwner(AddonCompartmentFrame, "ANCHOR_TOPRIGHT")
-				GameTooltip:SetText(MASQUE)
-				GameTooltip:AddLine(L["Click to open Masque's settings."], 1, 1, 1, true)
-				GameTooltip:Show()
-			end,
-			notCheckable = true,
-		})
-	end
 
 	-- GC
 	Setup.Core = nil
@@ -137,7 +121,11 @@ end
 -- Core
 ---
 
+Core.LIB_ACD = LIB_ACD
+Core.LIB_ACR = LIB_ACR
+
 Core.CRLF = CRLF
+
 Core.Setup = setmetatable(Setup, {
 	__call = function(self, Name, ...)
 		local func = Name and self[Name]
@@ -166,23 +154,25 @@ end
 function Core:ToggleOptions()
 	if Setup.LoD then Setup("LoD") end
 
+	if InCombatLockdown() then return end
+
 	local IOF_Open = InterfaceOptionsFrame and InterfaceOptionsFrame:IsShown()
-	local ACD_Open = ACD.OpenFrames[MASQUE]
+	local ACD_Open = LIB_ACD.OpenFrames[MASQUE]
 
 	-- Toggle the stand-alone GUI if enabled.
-	if self.db.profile.StandAlone then
+	if self.db.profile.Interface.StandAlone then
 		if IOF_Open then
 			InterfaceOptionsFrame_Show()
 		elseif ACD_Open then
-			ACD:Close(MASQUE)
+			LIB_ACD:Close(MASQUE)
 		else
-			ACD:Open(MASQUE)
-			ACD:SelectGroup(MASQUE, "Skins", "Global")
+			LIB_ACD:Open(MASQUE)
+			LIB_ACD:SelectGroup(MASQUE, "Skins", "Global")
 		end
 	-- Toggle the Interface Options frame.
 	else
 		if ACD_Open then
-			ACD:Close(MASQUE)
+			LIB_ACD:Close(MASQUE)
 		elseif IOF_Open then
 			InterfaceOptionsFrame_Show()
 		else
@@ -203,12 +193,24 @@ end
 -- Utility
 ---
 
--- Hides or shows panel titles.
-function Core.GetStandAlone()
-	return not ACD.OpenFrames[MASQUE]
-end
-
 -- Returns the 'arg' of an options group.
 function Core.GetArg(Info, ...)
 	return Info.arg
+end
+
+-- Generic getter function.
+function Core.GetOption(Info)
+	local Parent, Name = Info[#Info-1], Info[#Info]
+	return Core.db.profile[Parent][Name]
+end
+
+-- Generic setter function.
+function Core.SetOption(Info, Value)
+	local Parent, Name = Info[#Info-1], Info[#Info]
+	Core.db.profile[Parent][Name] = Value
+end
+
+-- Returns stand-alone options status.
+function Core.GetStandAlone()
+	return not LIB_ACD.OpenFrames[MASQUE]
 end

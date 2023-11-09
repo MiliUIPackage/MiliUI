@@ -13,8 +13,23 @@
 local MASQUE, Core = ...
 
 ----------------------------------------
+-- WoW API
+---
+
+local InCombatLockdown = _G.InCombatLockdown
+
+----------------------------------------
+-- Libraries
+---
+
+local LIB_DBI = Core.LIB_DBI
+
+----------------------------------------
 -- Internal
 ---
+
+-- @ Masque
+local WOW_RETAIL = Core.WOW_RETAIL
 
 -- @ Options\Core
 local Setup = Core.Setup
@@ -45,17 +60,50 @@ function Setup.LDB(self)
 				end
 				Tip:AddLine(MASQUE)
 				Tip:AddLine(L["Click to open Masque's settings."], 1, 1, 1)
+				
+				if InCombatLockdown() then
+					Tip:AddLine(L["Unavailable in combat."], 1, 0, 0)
+				end
 			end,
 		})
 
-		local LDBI = LibStub("LibDBIcon-1.0", true)
-
-		if LDBI then
-			LDBI:Register(MASQUE, self.LDBO, self.db.profile.LDB)
-			self.LDBI = LDBI
+		if LIB_DBI then
+			LIB_DBI:Register(MASQUE, self.LDBO, self.db.profile.LDB)
 		end
 	end
 
 	-- GC
 	Setup.LDB = nil
+end
+
+----------------------------------------
+-- Core
+---
+
+-- Updates the icon position.
+function Core:UpdateIconPosition(Position)
+	if LIB_DBI then
+		local db = Core.db.profile.LDB
+		local pos = Position or db.position
+
+		-- Minimap Icon
+		if pos == 1 then
+			LIB_DBI:Show(MASQUE)
+			db.hide = false
+		else
+			LIB_DBI:Hide(MASQUE)
+			db.hide = true
+		end
+
+		-- Add-On Compartment
+		if WOW_RETAIL then
+			if pos == 2 then
+				LIB_DBI:AddButtonToCompartment(MASQUE)
+			else
+				LIB_DBI:RemoveButtonFromCompartment(MASQUE)
+			end
+		end
+
+		db.position = pos
+	end
 end

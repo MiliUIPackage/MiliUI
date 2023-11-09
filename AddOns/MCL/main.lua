@@ -17,27 +17,46 @@ local load_check = 0
 -- * Function is designed to check if the ingame mount journal has loaded correctly before loading our own database.
 -- * -----------------------------------------------
 
-local function InitMounts()
-	load_check = 0
-	for b,n in pairs(core.mountList) do
-		for h,j in pairs(n) do
-			if (type(j) == "table") then
-				for k,v in pairs(j) do
+
+function CountMounts()
+    local count = 0
+    for b,n in pairs(core.mountList) do
+        for h,j in pairs(n) do
+            if (type(j) == "table") then
+                for k,v in pairs(j) do
                     for kk,vv in pairs(v.mounts) do
-                        if string.sub(vv, 1, 1) == "m" then
-                        else
-                            load_check = load_check + 1
-                            local a = vv
-                            mountName = C_MountJournal.GetMountFromItem(vv)
-                        end
-                        if mountName ~= nil then
-                            load_check = load_check + 1                   
-                        end                        
+                        count = count + 1
                     end                    
-				end
-			end
-		end
-	end
+                end
+            end
+        end
+    end
+    return count
+end
+
+-- Save total mount count
+local totalMountCount = CountMounts()
+
+local function InitMounts()
+    load_check = 0
+    totalMountCount = 0
+    for b,n in pairs(core.mountList) do
+        for h,j in pairs(n) do
+            if (type(j) == "table") then
+                for k,v in pairs(j) do
+                    for kk,vv in pairs(v.mounts) do
+                        if not string.match(vv, "^m") then
+                            totalMountCount = totalMountCount + 1
+                            local mountName = C_MountJournal.GetMountFromItem(vv)
+                            if mountName ~= nil then
+                                load_check = load_check + 1
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 
@@ -45,25 +64,52 @@ end
 -- * Toggle the main window
 -- * -----------------------------------------------------
 
+
+core.dataLoaded = false
+
 function MCL_Load:PreLoad()      
-    if load_check > 1000 then
+    if load_check >= totalMountCount then
+        -- print("Preload passed:", "totalMountCount", totalMountCount, "load_check", load_check)
+        core.dataLoaded = true
         return true
-    else
-        print("MCL - 初始化中，請再試一次")        
+    else   
+        -- print("Preload ongoing:", "totalMountCount", totalMountCount, "load_check", load_check)
         InitMounts()         
         return false
     end
 end
 
-function MCL_Load:Toggle()
-    if MCL_Load:PreLoad() == false then
-        return
+-- Initialization function
+function MCL_Load:Init()
+    local function repeatCheck()
+        if MCL_Load:PreLoad() == true then
+            if core.MCL_MF == nil then
+                core.MCL_MF = core.Frames:CreateMainFrame()
+                core.MCL_MF:SetShown(false) -- Keeps the UI frame 'closed' once created
+                core.Function:initSections()
+            end
+            core.Function:UpdateCollection()
+        else
+            -- If not ready, wait for another second (or any amount of reasonable time) and then check again
+            C_Timer.After(1, repeatCheck)
+        end
     end
+
+    -- Initially starts the check
+    repeatCheck()
+end
+
+-- Toggle function
+function MCL_Load:Toggle()
+    -- Check preload status and if false, prevent execution.
+    if core.dataLoaded == false then
+        print("數據尚未載入。")
+        return
+    end 
     if core.MCL_MF == nil then
-        core.MCL_MF = core.Frames:CreateMainFrame()            
-        core.Function:initSections()               
+        return -- Immune to function calls before the initialization process is complete, as the frame doesn't exist yet.
     else
-        core.MCL_MF:SetShown(not core.MCL_MF:IsShown());
+        core.MCL_MF:SetShown(not core.MCL_MF:IsShown()) -- The addon's frame exists and can be toggled.
     end
     core.Function:UpdateCollection()
 end
@@ -87,6 +133,9 @@ local function onevent(self, event, arg1, ...)
 	        LoadAddOn("Blizzard_Collections")
 	    end
         core.Function:AddonSettings()
+        
+        -- Initiate the addon when the required addon is loaded
+        MCL_Load:Init()
     end
 end
 

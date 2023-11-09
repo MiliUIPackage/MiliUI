@@ -16,7 +16,7 @@ local _, Core = ...
 -- Lua API
 ---
 
-local concat, tostring = table.concat, tostring
+local table_concat, tostring = table.concat, tostring
 
 ----------------------------------------
 -- Internal
@@ -39,6 +39,7 @@ local Supporters = {
 	COLOR_2.."Qissi|r",
 	-- [3]
 	COLOR_3.."Amenitra|r",
+	COLOR_3.."Mayron|r",
 	COLOR_3.."S9th|r",
 	COLOR_3.."Stormseer|r",
 }
@@ -147,7 +148,7 @@ function Setup.About(self)
 	-- Populate the Discord field.
 	args.Discord = {
 		type = "input",
-		name = "Discord",
+		name = L["Discord"],
 		arg  = self.Discord,
 		order = Order,
 		dialogControl = "SFX-Info-URL",
@@ -188,7 +189,7 @@ function Setup.About(self)
 	args.Supporters = {
 		type = "input",
 		name = L["Supporters"],
-		arg  = concat(Supporters, ", "),
+		arg  = table_concat(Supporters, ", "),
 		order = Order,
 		disabled = true,
 		dialogControl = "SFX-Info",

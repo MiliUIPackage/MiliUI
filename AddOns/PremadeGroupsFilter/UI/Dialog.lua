@@ -42,14 +42,17 @@ function PGFDialog:OnLoad()
     self.activePanel = nil
 
     self:SetScript("OnShow", self.OnShow)
+    self:SetScript("OnHide", self.OnHide)
     self:SetScript("OnMouseDown", self.OnMouseDown)
     self:SetScript("OnMouseUp", self.OnMouseUp)
 
-    self:SetBorder("ButtonFrameTemplateNoPortraitMinimizable")
-    self:SetPortraitShown(false)
     self:SetTitle(L["addon.name.long"])
-    self.MaximizeMinimizeFrame:SetOnMaximizedCallback(function () self:OnMaximize() end)
-    self.MaximizeMinimizeFrame:SetOnMinimizedCallback(function () self:OnMinimize() end)
+    if PGF.SupportsDragonflightUI() then
+        self:SetBorder("ButtonFrameTemplateNoPortraitMinimizable")
+        self:SetPortraitShown(false)
+        self.MaximizeMinimizeFrame:SetOnMaximizedCallback(function () self:OnMaximize() end)
+        self.MaximizeMinimizeFrame:SetOnMinimizedCallback(function () self:OnMinimize() end)
+    end
 
     self.ResetButton:SetText(L["dialog.reset"])
     self.ResetButton:SetScript("OnClick", function () self:OnResetButtonClick() end)
@@ -62,10 +65,16 @@ function PGFDialog:OnShow()
     if not PremadeGroupsFilterSettings.dialogMovable then
         self:ResetPosition()
     end
+    if self.activePanel and self.activePanel.OnShow then
+        self.activePanel:OnShow()
+    end
 end
 
 function PGFDialog:OnHide()
     PGF.Logger:Debug("PGFDialog:OnHide")
+    if self.activePanel and self.activePanel.OnHide then
+        self.activePanel:OnHide()
+    end
 end
 
 function PGFDialog:OnMouseDown(button)
@@ -149,15 +158,17 @@ function PGFDialog:UpdateCategory(categoryID, filters, baseFilters)
     local id = "c"..categoryID.."f"..allFilters
     self.activeId = id
     self.activeState = self:GetState(id)
-    self:MaximizeMinimize()
+    if PGF.SupportsDragonflightUI() then
+        self:MaximizeMinimize()
+    end
     self:SwitchToPanel()
 end
 
 function PGFDialog:SwitchToPanel()
     local panel = self.activeState.minimized
-            and self.panels.default       -- if minimized, use default panel
+            and self.panels.mini          -- if minimized, use mini panel
             or self.panels[self.activeId] -- if maximized, use panel for current category
-            or self.panels.default        -- if no panel for current category, use default panel
+            or self.panels.role           -- if no panel for current category, use role panel
     PGF.Logger:Debug("PGFDialog:SwitchToPanel("..panel.name..")")
     self.activeState[panel.name] = self.activeState[panel.name] or {} -- initialize panel state
     if self.activePanel then self.activePanel:Hide() end
@@ -166,8 +177,15 @@ function PGFDialog:SwitchToPanel()
     if self.activePanel.GetDesiredDialogWidth then
         local desiredWidth = self.activePanel:GetDesiredDialogWidth()
         self:SetWidth(desiredWidth)
-    else
+    elseif PGF.SupportsDragonflightUI() then
         self:SetWidth(300)
+    else
+        self:SetWidth(310)
+    end
+    if not PGF.SupportsDragonflightUI() then
+        self.activePanel:ClearAllPoints()
+        self.activePanel:SetPoint("TOPLEFT", 5, -20)
+        self.activePanel:SetPoint("BOTTOMRIGHT", 0, 35)
     end
     self.activePanel:Show()
 end
@@ -214,7 +232,11 @@ end
 function PGFDialog:ResetPosition()
     PGF.Logger:Debug("PGFDialog:ResetPosition")
     self:ClearAllPoints()
-    self:SetPoint("TOPLEFT", PVEFrame, "TOPRIGHT")
+    if PGF.SupportsDragonflightUI() then
+        self:SetPoint("TOPLEFT", PVEFrame, "TOPRIGHT")
+    else
+        self:SetPoint("TOPLEFT", PVEFrame, "TOPRIGHT", -5, 0)
+    end
 end
 
 function PGFDialog:RegisterPanel(id, panel)
@@ -222,11 +244,20 @@ function PGFDialog:RegisterPanel(id, panel)
     self.panels[id] = panel
 end
 
+local pvpButtonsHooked = false
 hooksecurefunc("LFGListSearchPanel_SetCategory", function(self, categoryID, filters, baseFilters)
     PGFDialog:UpdateCategory(categoryID, filters, baseFilters)
 end)
 hooksecurefunc("LFGListFrame_SetActivePanel", function () PGFDialog:Toggle() end)
-hooksecurefunc("PVEFrame_ShowFrame", function () PGFDialog:Toggle() end)
+hooksecurefunc("PVEFrame_ShowFrame", function (sidePanelName, selection)
+    -- PVPUIFrame is loaded dynamically and not available on startup
+    if sidePanelName == "PVPUIFrame" and PVPQueueFrame_ShowFrame and not pvpButtonsHooked then
+        hooksecurefunc("PVPQueueFrame_ShowFrame", function () PGFDialog:Toggle() end)
+        pvpButtonsHooked = true
+    end
+    PGFDialog:Toggle()
+end)
+hooksecurefunc("GroupFinderFrame_ShowGroupFrame", function () PGFDialog:Toggle() end)
 PVEFrame:HookScript("OnShow", function () PGFDialog:Toggle() end)
 PVEFrame:HookScript("OnHide", function () PGFDialog:Toggle() end)
 
