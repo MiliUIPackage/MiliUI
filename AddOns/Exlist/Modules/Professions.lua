@@ -43,13 +43,13 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.ITEM
     },
     {
-      quests = {66940, 66938, 72427},
-      name = L["Weekly Quest for Dhurrel"],
+      quests = { 75363, 75371, 66940, 72427, 66937, 66938 },
+      name = L["Weekly Quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {70531, 70530, 70533, 70532},
+      quests = { 70530, 70532, 70533, 70531 },
       name = L["Weekly Quest for Conflago"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -88,8 +88,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.ITEM
     },
     {
-      quests = {66897, 66517, 66941, 72398},
-      name = L["Weekly Quest for Dhurrel"],
+      quests = { 75148, 75569, 66897, 66517, 66941, 72398 },
+      name = L["Weekly Quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -100,7 +100,7 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {70211, 70235, 70233, 70234},
+      quests = { 70233, 70235, 70234, 70211 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -115,7 +115,7 @@ local professionWeeklies = {
   [333] = {
     -- Enchanting
     {
-      quests = {72172, 72173, 72175, 72155},
+      quests = { 72173, 72172, 72175, 72155 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -133,8 +133,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.ITEM
     },
     {
-      quests = {66884, 66900, 66935, 72423},
-      name = L["Weekly quest for Temnaayu or Gnoklin"],
+      quests = { 75865, 75150, 66900, 66884, 72423, 66935 },
+      name = L["Weekly quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -160,7 +160,7 @@ local professionWeeklies = {
   [202] = {
     -- Engineering
     {
-      quests = {70557, 70545, 70539, 70540},
+      quests = { 70557, 70540, 70545, 70539 },
       name = L["Crafting Weekly"],
       points = 2,
       type = WEEKLY_TYPE.QUEST
@@ -184,8 +184,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {72396, 66942, 66891, 66890},
-      name = L["Weekly quest for Dothenos or Gnoklin"],
+      quests = { 75575, 75608, 66890, 66891, 66942, 72396 },
+      name = L["Weekly quest for Kayann"],
       points = 2,
       type = WEEKLY_TYPE.QUEST
     },
@@ -211,7 +211,7 @@ local professionWeeklies = {
   [773] = {
     -- Inscription
     {
-      quests = {70558, 70559, 70560, 70561},
+      quests = { 70559, 70560, 70558, 70561 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -235,8 +235,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {66884, 66900, 66935, 72423},
-      name = L["Weekly quest for Temnaayu or Gnoklin"],
+      quests = { 75149, 75573, 66943, 66944, 72438, 66945 },
+      name = L["Weekly quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -262,7 +262,7 @@ local professionWeeklies = {
   [755] = {
     -- Jewelcrafting
     {
-      quests = {70562, 70563, 70564, 70565},
+      quests = { 70565, 70563, 70564, 70562 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -286,8 +286,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {66950, 72428, 66949, 66516},
-      name = L["Weekly quest for Temnaayu or Gnoklin"],
+      quests = { 75362, 75602, 66516, 72428, 66950, 66949 },
+      name = L["Weekly quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -313,7 +313,7 @@ local professionWeeklies = {
   [165] = {
     -- Letherworking
     {
-      quests = {70567, 70568, 70569, 70571},
+      quests = { 70568, 70569, 70571, 70567 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -337,8 +337,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {66363, 72407, 66951, 66364},
-      name = L["Weekly quest for Temnaayu or Dhurrel"],
+      quests = { 75354, 75368, 66363, 66364, 72407, 66951 },
+      name = L["Weekly quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -364,7 +364,7 @@ local professionWeeklies = {
   [197] = {
     -- Tailoring
     {
-      quests = {70587, 70582, 70572, 70586},
+      quests = { 70572, 70587, 70586, 70582 },
       name = L["Crafting Weekly"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
@@ -388,8 +388,8 @@ local professionWeeklies = {
       type = WEEKLY_TYPE.QUEST
     },
     {
-      quests = {66953, 72410, 66899, 66952},
-      name = L["Weekly quest for Temnaayu or Gnoklin"],
+      quests = { 75407, 75600, 72410, 66952, 66953, 66899 },
+      name = L["Weekly quest for Kayann"],
       points = 3,
       type = WEEKLY_TYPE.QUEST
     },
@@ -455,7 +455,13 @@ local professionWeeklies = {
       name = L["Draconic Treatise"],
       points = 1,
       type = WEEKLY_TYPE.ITEM
-    }
+    },
+    {
+      quests = { 70616, 70613, 70614, 70615 },
+      name = L["Weekly quest for Agrikus"],
+      points = 3,
+      type = WEEKLY_TYPE.QUEST
+    },
   },
   [186] = {
     -- Mining
@@ -500,12 +506,18 @@ local professionWeeklies = {
       name = L["Draconic Treatise"],
       points = 1,
       type = WEEKLY_TYPE.ITEM
-    }
+    },
+    {
+      quests = { 70617, 72157, 70618, 72156 },
+      name = L["Weekly quest for Sekita"],
+      points = 3,
+      type = WEEKLY_TYPE.QUEST
+    },
   },
   [393] = {
     -- Skinning
     {
-      quests = {70620, 72158, 72159, 70619},
+      quests = { 70620, 72158, 72159, 70619 },
       name = L["Handin Resources Weekly"],
       points = 1,
       type = WEEKLY_TYPE.QUEST
@@ -551,7 +563,13 @@ local professionWeeklies = {
       name = L["Draconic Treatise"],
       points = 1,
       type = WEEKLY_TYPE.ITEM
-    }
+    },
+    {
+      quests = { 70620, 72159, 70619, 72158 },
+      name = L["Weekly quest for Ralathor"],
+      points = 3,
+      type = WEEKLY_TYPE.QUEST
+    },
   }
 }
 
@@ -655,7 +673,7 @@ local function Updater(event)
   end
   local t = {}
   local prof1, prof2 = GetProfessions()
-  for _, id in ipairs({prof1, prof2}) do
+  for _, id in ipairs({ prof1, prof2 }) do
     table.insert(t, getProfessionData(id))
   end
 

@@ -14,15 +14,15 @@ local L = Exlist.L
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
 
 local followerTypes = {
-   {type = Enum.GarrisonFollowerType.FollowerType_6_2, level = 40},
-   {type = Enum.GarrisonFollowerType.FollowerType_7_0, level = 45},
-   {type = Enum.GarrisonFollowerType.FollowerType_8_0, level = 50},
-   {type = Enum.GarrisonFollowerType.FollowerType_9_0, level = 60}
+   {type = Enum.GarrisonFollowerType.FollowerType_6_0_GarrisonFollower, level = 40},
+   {type = Enum.GarrisonFollowerType.FollowerType_7_0_GarrisonFollower, level = 45},
+   {type = Enum.GarrisonFollowerType.FollowerType_8_0_GarrisonFollower, level = 50},
+   {type = Enum.GarrisonFollowerType.FollowerType_9_0_GarrisonFollower, level = 60}
 }
 
 local function GetFollowerType()
    local level = UnitLevel("player")
-   local followerType = Enum.GarrisonFollowerType.FollowerType_9_0
+   local followerType = Enum.GarrisonFollowerType.FollowerType_9_0_GarrisonFollower
    for _, types in ipairs(followerTypes) do
       if (level >= types.level) then
          followerType = types.type

@@ -70,24 +70,31 @@ Exlist.ShortenedMPlus = {
    [234] = L["UKara"],
    [239] = L["SotT"],
    -- BFA
-   [244] = L["AD"], -- Atal'dazar
-   [245] = L["FH"], -- Freehold
-   [246] = L["TD"], -- Tol Dagor
+   [244] = L["AD"],     -- Atal'dazar
+   [245] = L["FH"],     -- Freehold
+   [246] = L["TD"],     -- Tol Dagor
    [247] = L["MOTHER"], -- The MOTHERLODE!!
-   [248] = L["WM"], -- Waycrest Manor
-   [249] = L["KR"], -- Kings' Rest
-   [250] = L["ToS"], -- Temple of Sethraliss
-   [251] = L["URot"], -- The Underrot
-   [252] = L["SotS"], -- Shrine of the Storm
-   [353] = L["SoB"], -- Siege of Boralus
+   [248] = L["WM"],     -- Waycrest Manor
+   [249] = L["KR"],     -- Kings' Rest
+   [250] = L["ToS"],    -- Temple of Sethraliss
+   [251] = L["URot"],   -- The Underrot
+   [252] = L["SotS"],   -- Shrine of the Storm
+   [353] = L["SoB"],    -- Siege of Boralus
    -- SL
    -- S4
-   [370] = L["Work"], -- Workshop
+   [370] = L["Work"],    -- Workshop
    [391] = L["Streets"], -- Streets of Wonder
-   [169] = L["ID"], -- Iron Docks
-   [166] = L["GD"], -- Grimrail Depot
-   [369] = L["Junk"], -- Junkyard
-   [392] = L['Gambit'], -- Gambit
+   [169] = L["ID"],      -- Iron Docks
+   [166] = L["GD"],      -- Grimrail Depot
+   [369] = L["Junk"],    -- Junkyard
+   [392] = L['Gambit'],  -- Gambit
+   -- DF
+   -- S2
+   [403] = L["Ulda"],  -- Uldaman
+   [404] = L["Nelth"], -- Neltharus
+   [406] = L["HoI"],   -- Halls of Infusion
+   [405] = L["BH"],    -- Brackenhide
+   [438] = L["VP"],    -- Vortex Pinnacle
 }
 
 local Colors = {
@@ -112,13 +119,13 @@ local Colors = {
       almostlong = "FFf48c42",
       long = "FFFF0000"
    },
-   questTypeTitle = {daily = "ff70afd8", weekly = "ffe0a34e"},
+   questTypeTitle = { daily = "ff70afd8", weekly = "ffe0a34e" },
    config = {
       heading1 = "ffffd200",
       heading2 = "ffffb600",
       tableColumn = "ffffd200"
    },
-   time = {long = "fff44141", medium = "FFf4a142", short = "FF00FF00"},
+   time = { long = "fff44141", medium = "FFf4a142", short = "FF00FF00" },
    missions = {
       completed = "ff00ff00",
       inprogress = "FFf48642",
@@ -130,66 +137,66 @@ local Colors = {
          "ffbfbfbf", -- depleted
          "fffaff00", -- +1
          "fffbdb00", -- +2
-         "fffacd0c" -- +3
+         "fffacd0c"  -- +3
       },
       level = {
          { level = 24, color = 'ffe6cc80' },
          { level = 20, color = 'ffff8000' },
          { level = 15, color = 'ff870af5' },
-         { level = 8, color = 'ff005dd6' },
-         { level = 0, color = 'ff19d600' }
+         { level = 8,  color = 'ff005dd6' },
+         { level = 0,  color = 'ff19d600' }
       }
    },
    covenant = {
       "ff0ad5f5", -- Kyrian
       "fff50a0a", -- Venthyr
       "ffb007e3", -- NightFae
-      "ff00b837" -- Necrolord
+      "ff00b837"  -- Necrolord
    },
    ilvlColors = {
       -- Dragonflight --
-      {ilvl = 300, str = "ff26ff3f"},
-      {ilvl = 320, str = "ff26ffba"},
-      {ilvl = 340, str = "ff26e2ff"},
-      {ilvl = 360, str = "ff26a0ff"},
-      {ilvl = 380, str = "ff2663ff"},
-      {ilvl = 400, str = "ff8e26ff"},
-      {ilvl = 420, str = "ffe226ff"},
-      {ilvl = 440, str = "ffff2696"},
-      {ilvl = 460, str = "ffff2634"},
-      {ilvl = 480, str = "ffff7526"},
-      {ilvl = 500, str = "ffffc526"}
+      { ilvl = 300, str = "ff26ff3f" },
+      { ilvl = 320, str = "ff26ffba" },
+      { ilvl = 340, str = "ff26e2ff" },
+      { ilvl = 360, str = "ff26a0ff" },
+      { ilvl = 380, str = "ff2663ff" },
+      { ilvl = 400, str = "ff8e26ff" },
+      { ilvl = 420, str = "ffe226ff" },
+      { ilvl = 440, str = "ffff2696" },
+      { ilvl = 460, str = "ffff2634" },
+      { ilvl = 480, str = "ffff7526" },
+      { ilvl = 500, str = "ffffc526" }
    },
    profColors = {
-      {val = 20, color = "c6c3b4"},
-      {val = 30, color = "dbd3ab"},
-      {val = 40, color = "e2d388"},
-      {val = 50, color = "efd96b"},
-      {val = 70, color = "ffe254"},
-      {val = 90, color = "ffde3d"},
-      {val = 110, color = "ffd921"},
-      {val = 130, color = "ffd50c"},
-      {val = 150, color = "ffae00"}
+      { val = 20,  color = "c6c3b4" },
+      { val = 30,  color = "dbd3ab" },
+      { val = 40,  color = "e2d388" },
+      { val = 50,  color = "efd96b" },
+      { val = 70,  color = "ffe254" },
+      { val = 90,  color = "ffde3d" },
+      { val = 110, color = "ffd921" },
+      { val = 130, color = "ffd50c" },
+      { val = 150, color = "ffae00" }
    },
    -- REPUTATION --
    repColors = {
-      [1] = "ffe00000", -- Hated
-      [2] = "ffff3700", -- Hostile
-      [3] = "ffff8300", -- Unfriendly
-      [4] = "ffffc300", -- Neutral
-      [5] = "fff7ff20", -- Friendly
-      [6] = "ff5fff20", -- Honored
-      [7] = "ff2096ff", -- Revered
-      [8] = "ffd220ff", -- Exiled
+      [1] = "ffe00000",  -- Hated
+      [2] = "ffff3700",  -- Hostile
+      [3] = "ffff8300",  -- Unfriendly
+      [4] = "ffffc300",  -- Neutral
+      [5] = "fff7ff20",  -- Friendly
+      [6] = "ff5fff20",  -- Honored
+      [7] = "ff2096ff",  -- Revered
+      [8] = "ffd220ff",  -- Exiled
       [100] = "ffff20ca" -- Paragon
    },
    friendColors = {
-      [1] = "ffff8300", -- Unfriendly
-      [2] = "ffffc300", -- Neutral
-      [3] = "fff7ff20", -- Friendly
-      [4] = "ff5fff20", -- Honored
-      [5] = "ff2096ff", -- Revered
-      [6] = "ffd220ff", -- Exiled
+      [1] = "ffff8300",  -- Unfriendly
+      [2] = "ffffc300",  -- Neutral
+      [3] = "fff7ff20",  -- Friendly
+      [4] = "ff5fff20",  -- Honored
+      [5] = "ff2096ff",  -- Revered
+      [6] = "ffd220ff",  -- Exiled
       [100] = "ffff20ca" -- Paragon
    },
    majorFaction = "ff00bef2",
@@ -211,7 +218,7 @@ Exlist.DEFAULT_BACKDROP = {
    tile = false,
    tileSize = 0,
    edgeSize = 1,
-   insets = {left = 0, right = 0, top = 0, bottom = 0}
+   insets = { left = 0, right = 0, top = 0, bottom = 0 }
 }
 
 Exlist.Expansions = {

@@ -1,14 +1,15 @@
-# [1.6.10](https://github.com/sragia/Exlist/tree/1.6.10) (2023-03-19)
+# [1.7](https://github.com/sragia/Exlist/tree/1.7) (2023-11-08)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.9...1.6.10)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.11...1.7)
 
 ## Highlights
 
- Fix profession KP update timing 
+ Small update for 10.2 
 
 ## Commits
 
-Aigars Bedeicis (1):
+Aigars Bedeicis (2):
 
-- Fix profession kp update timing
+- Small 10.2 update
+- Profession updates and Slim Version
 

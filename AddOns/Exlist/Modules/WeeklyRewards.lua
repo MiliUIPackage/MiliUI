@@ -5,12 +5,19 @@ local L = Exlist.L
 local colors = Exlist.Colors
 
 local rewardTypes = {
-   [Enum.WeeklyRewardChestThresholdType.Raid] = {title = L["Raid"], prio = 1},
-   [Enum.WeeklyRewardChestThresholdType.MythicPlus] = {
-      title = L["Mythic+"],
+   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = "Raid", prio = 1 },
+   [Enum.WeeklyRewardChestThresholdType.Activities] = {
+      title = L["Dungeons"],
       prio = 2
    },
-   [Enum.WeeklyRewardChestThresholdType.RankedPvP] = {title = "PvP", prio = 3}
+   [Enum.WeeklyRewardChestThresholdType.RankedPvP] = { title = "PvP", prio = 3 }
+}
+
+local slimDifficulty = {
+   [PLAYER_DIFFICULTY1] = L['N'],
+   [PLAYER_DIFFICULTY2] = L['HC'],
+   [PLAYER_DIFFICULTY6] = L['M'],
+   [PLAYER_DIFFICULTY3] = L['LFR']
 }
 
 local function getActivitiesByType(type, activities)
@@ -30,11 +37,12 @@ local function getActivitiesByType(type, activities)
    return sortedActivities
 end
 
-local function formatLevel(type, level)
-   if type == Enum.WeeklyRewardChestThresholdType.MythicPlus then
+local function formatLevel(type, level, isSlim)
+   if type == Enum.WeeklyRewardChestThresholdType.Activities then
       return string.format("+%s", level)
    elseif type == Enum.WeeklyRewardChestThresholdType.Raid then
-      return DifficultyUtil.GetDifficultyName(level)
+      local diff = DifficultyUtil.GetDifficultyName(level)
+      return isSlim and slimDifficulty[diff] or diff
    elseif type == Enum.WeeklyRewardChestThresholdType.RankedPvP then
       return PVPUtil.GetTierName(level)
    end
@@ -87,27 +95,27 @@ local function getBestMythicPlusRuns(threshold)
 end
 
 local function getActivityTooltip(activity)
-   local sideTooltip = {body = {}}
+   local sideTooltip = { body = {} }
    local ilvls = getCurrentIlvl(activity.id)
 
    if ilvls.ilvl then
-      table.insert(sideTooltip.body, {L["Current"], string.format("%s %s", ilvls.ilvl, L["ilvl"])})
+      table.insert(sideTooltip.body, { L["Current"], string.format("%s %s", ilvls.ilvl, L["ilvl"]) })
    end
    if ilvls.upgradeIlvl then
-      table.insert(sideTooltip.body, {L["Upgrade"], string.format("%s %s", ilvls.upgradeIlvl, L["ilvl"])})
+      table.insert(sideTooltip.body, { L["Upgrade"], string.format("%s %s", ilvls.upgradeIlvl, L["ilvl"]) })
    end
 
    local typeName = ""
 
-   if activity.type == Enum.WeeklyRewardChestThresholdType.MythicPlus then
+   if activity.type == Enum.WeeklyRewardChestThresholdType.Activities then
       typeName = L["Mythic+"]
 
       if (activity.runs) then
          table.insert(sideTooltip.body, {})
-         table.insert(sideTooltip.body, {WrapTextInColorCode(L["Best Mythic+ Runs"], colors.sideTooltipTitle)})
+         table.insert(sideTooltip.body, { WrapTextInColorCode(L["Best Mythic+ Runs"], colors.sideTooltipTitle) })
          table.insert(
             sideTooltip.body,
-            {WrapTextInColorCode(L["Dungeon"], colors.faded), WrapTextInColorCode(L["Score"], colors.faded)}
+            { WrapTextInColorCode(L["Dungeon"], colors.faded), WrapTextInColorCode(L["Score"], colors.faded) }
          )
          for _, run in ipairs(activity.runs) do
             table.insert(
@@ -130,10 +138,10 @@ local function getActivityTooltip(activity)
    end
 
    sideTooltip.title =
-      WrapTextInColorCode(
-      string.format("%s %i/%i", typeName, activity.progress, activity.threshold),
-      colors.sideTooltipTitle
-   )
+       WrapTextInColorCode(
+          string.format("%s %i/%i", typeName, activity.progress, activity.threshold),
+          colors.sideTooltipTitle
+       )
 
    return sideTooltip
 end
@@ -149,7 +157,7 @@ local function Updater(event)
 
    if (t.activities and #t.activities > 0) then
       for _, activity in pairs(t.activities) do
-         if (activity.type == Enum.WeeklyRewardChestThresholdType.MythicPlus) then
+         if (activity.type == Enum.WeeklyRewardChestThresholdType.Activities) then
             activity.runs = getBestMythicPlusRuns(activity.threshold)
          end
       end
@@ -165,6 +173,8 @@ local function Linegenerator(tooltip, data, character)
    local info = {
       character = character
    }
+   local settings = Exlist.ConfigDB.settings
+   local isSlim = settings.shortenInfo
    local infoTables = {}
    local priority = prio
    for rewardType, reward in Exlist.spairs(
@@ -183,14 +193,15 @@ local function Linegenerator(tooltip, data, character)
          info.celOff = cellIndex - 2
          info.dontResize = true
          info.data =
-            string.format(
-            "|c%s%s/%s|r",
-            activity.progress >= activity.threshold and colors.available or colors.faded,
-            Exlist.ShortenNumber(activity.progress),
-            Exlist.ShortenNumber(activity.threshold)
-         ) .. (activity.level > 0 and string.format(" (%s)", formatLevel(activity.type, activity.level)) or "")
+             string.format(
+                "|c%s%s/%s|r",
+                activity.progress >= activity.threshold and colors.available or colors.faded,
+                Exlist.ShortenNumber(activity.progress),
+                Exlist.ShortenNumber(activity.threshold)
+             ) ..
+             (activity.level > 0 and string.format(" (%s)", formatLevel(activity.type, activity.level, isSlim)) or "")
 
-         if (activity.progress >= activity.threshold) then
+         if (activity.progress >= activity.threshold and not isSlim) then
             info.data = Exlist.AddCheckmark(info.data, true)
          end
 
