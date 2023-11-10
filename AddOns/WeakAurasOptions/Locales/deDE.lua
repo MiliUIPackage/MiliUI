@@ -13,12 +13,9 @@ local L = WeakAuras.L
 	--[[Translation missing --]]
 	L[" rotated |cFFFF0000%s|r degrees"] = " rotated |cFFFF0000%s|r degrees"
 	L["% of Progress"] = "Fortschritt in %"
-	--[[Translation missing --]]
-	L["%d |4aura:auras; added"] = "%d |4aura:auras; added"
-	--[[Translation missing --]]
-	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; deleted"
-	--[[Translation missing --]]
-	L["%d |4aura:auras; modified"] = "%d |4aura:auras; modified"
+	L["%d |4aura:auras; added"] = "%d |4aura:auras; hinzugefügt"
+	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; gelöscht"
+	L["%d |4aura:auras; modified"] = "%d |4aura:auras; geändert"
 	L["%i auras selected"] = "%i Auren ausgew\\195\\164hlt"
 	--[[Translation missing --]]
 	L["%i."] = "%i."
@@ -240,6 +237,8 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	--[[Translation missing --]]
 	L["and with width |cFFFF0000%s|r and %s"] = "and with width |cFFFF0000%s|r and %s"
 	L["Angle"] = "Winkel"
+	--[[Translation missing --]]
+	L["Angle Between Auras"] = "Angle Between Auras"
 	L["Animate"] = "Animieren"
 	L["Animated Expand and Collapse"] = "Erweitern und Verbergen animieren"
 	L["Animates progress changes"] = "Animiert Fortschrittsänderungen"
@@ -462,12 +461,13 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Debug Log:"] = "Debug Log:"
 	L["Default"] = "Standard"
 	L["Default Color"] = "Standardfarbe"
-	--[[Translation missing --]]
-	L["Delay"] = "Delay"
+	L["Delay"] = "Verzögerung"
 	L["Delete"] = "Löschen"
 	L["Delete all"] = "Alle löschen"
 	L["Delete children and group"] = "Kinder und Gruppe löschen"
 	L["Delete Entry"] = "Eintrag löschen"
+	--[[Translation missing --]]
+	L["Deleting auras: "] = "Deleting auras: "
 	L["Desaturate"] = "Entsättigen"
 	L["Description"] = "Beschreibung"
 	L["Description Text"] = "Beschreibungstext"
@@ -592,7 +592,7 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Fallback Icon"] = "Fallback Icon"
 	L["False"] = "Falsch"
 	--[[Translation missing --]]
-	L["Fetch Affected/Unaffected Names"] = "Fetch Affected/Unaffected Names"
+	L["Fetch Affected/Unaffected Names and Units"] = "Fetch Affected/Unaffected Names and Units"
 	--[[Translation missing --]]
 	L["Fetch Raid Mark Information"] = "Fetch Raid Mark Information"
 	--[[Translation missing --]]
@@ -629,6 +629,8 @@ Can use \ to escape -.]=]
 	L["Filter to only dispellable de/buffs of the given type(s)"] = "Filter to only dispellable de/buffs of the given type(s)"
 	L["Find Auras"] = "Finde Auren"
 	L["Finish"] = "Endanimation"
+	--[[Translation missing --]]
+	L["Finishing..."] = "Finishing..."
 	L["Fire Orb"] = "Feuerkugel"
 	L["Font"] = "Schriftart"
 	L["Font Size"] = "Schriftgröße"
@@ -772,11 +774,11 @@ Falls die Zahl als Dezimalzahl (z.B. 0.5), Bruch (z.B. 1/2) oder Prozentsatz (z.
 	--[[Translation missing --]]
 	L["Ignore Disconnected"] = "Ignore Disconnected"
 	--[[Translation missing --]]
+	L["Ignore out of casting range"] = "Ignore out of casting range"
+	--[[Translation missing --]]
 	L["Ignore out of checking range"] = "Ignore out of checking range"
 	--[[Translation missing --]]
 	L["Ignore Self"] = "Ignore Self"
-	--[[Translation missing --]]
-	L["Ignore updates"] = "Ignore updates"
 	--[[Translation missing --]]
 	L["Ignore Wago updates"] = "Ignore Wago updates"
 	L["Ignored"] = "Ignoriert"
@@ -912,6 +914,8 @@ Falls die Zahl als Dezimalzahl (z.B. 0.5), Bruch (z.B. 1/2) oder Prozentsatz (z.
 	L["Move this display down in its group's order"] = "Verschiebt diese Anzeige in der Reihenfolge seiner Gruppe nach unten"
 	L["Move this display up in its group's order"] = "Verschiebt diese Anzeige in der Reihenfolge seiner Gruppe nach oben"
 	L["Move Up"] = "Nach oben verschieben"
+	--[[Translation missing --]]
+	L["Moving auras: "] = "Moving auras: "
 	L["Multiple Displays"] = "Mehrere Anzeigen"
 	L["Multiselect ignored tooltip"] = [=[
 |cFFFF0000Ignoriert|r - |cFF777777Einfach|r - |cFF777777Mehrfach|r
@@ -1049,6 +1053,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Premade Auras"] = "Premade Auras"
 	--[[Translation missing --]]
 	L["Premade Snippets"] = "Premade Snippets"
+	--[[Translation missing --]]
+	L["Preparing auras: "] = "Preparing auras: "
 	L["Preset"] = "Voreinstellung"
 	L["Press Ctrl+C to copy"] = "Drücke Strg+C zum kopieren"
 	--[[Translation missing --]]
@@ -1210,6 +1216,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Soft Min"] = "Soft Min"
 	L["Sort"] = "Sortieren"
 	L["Sound"] = "Sound"
+	--[[Translation missing --]]
+	L["Sound by Kit ID"] = "Sound by Kit ID"
 	L["Sound Channel"] = "Soundkanal"
 	L["Sound File Path"] = "Sound Dateipfad"
 	L["Sound Kit ID"] = "Sound Kit ID"
@@ -1249,6 +1257,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Sub Elements"] = "Sub Elements"
 	--[[Translation missing --]]
 	L["Sub Option %i"] = "Sub Option %i"
+	--[[Translation missing --]]
+	L["Supports multiple entries, separated by commas"] = "Supports multiple entries, separated by commas"
 	--[[Translation missing --]]
 	L["Swipe Overlay Settings"] = "Swipe Overlay Settings"
 	--[[Translation missing --]]
@@ -1298,8 +1308,8 @@ It might not work correctly!]=] ] = [=[This aura was created with a different ve
 It might not work correctly!]=]
 	--[[Translation missing --]]
 	L[ [=[This aura was created with a newer version of WeakAuras.
-It might not work correctly with your version!]=] ] = [=[This aura was created with a newer version of WeakAuras.
-It might not work correctly with your version!]=]
+Upgrade your version of WeakAuras or wait for next release before installing this aura.]=] ] = [=[This aura was created with a newer version of WeakAuras.
+Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	L["This display is currently loaded"] = "Diese Anzeige ist momentan geladen"
 	L["This display is not currently loaded"] = "Diese Anzeige ist momentan nicht geladen"
 	--[[Translation missing --]]
@@ -1393,7 +1403,9 @@ It might not work correctly with your version!]=]
 	--[[Translation missing --]]
 	L["Uses Texture Coordinates to rotate the texture."] = "Uses Texture Coordinates to rotate the texture."
 	--[[Translation missing --]]
-	L["Uses UnitIsVisible() to check if in range. This is polled every second."] = "Uses UnitIsVisible() to check if in range. This is polled every second."
+	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."
+	--[[Translation missing --]]
+	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."
 	--[[Translation missing --]]
 	L["Value %i"] = "Value %i"
 	--[[Translation missing --]]

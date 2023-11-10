@@ -207,6 +207,8 @@ Activa esta opción si quieres que el temporizador esté oculto, o cuando utilic
 	--[[Translation missing --]]
 	L["and with width |cFFFF0000%s|r and %s"] = "and with width |cFFFF0000%s|r and %s"
 	L["Angle"] = "Ángulo"
+	--[[Translation missing --]]
+	L["Angle Between Auras"] = "Angle Between Auras"
 	L["Animate"] = "Animar"
 	L["Animated Expand and Collapse"] = "Animar Pliegue y Despliegue"
 	L["Animates progress changes"] = "Anima los cambios de progreso"
@@ -373,6 +375,8 @@ Off Screen]=] ] = "El aura está fuera de la pantalla"
 	L["Delete all"] = "Eliminar todo"
 	L["Delete children and group"] = "Eliminar grupo e hijos"
 	L["Delete Entry"] = "Eliminar entrada"
+	--[[Translation missing --]]
+	L["Deleting auras: "] = "Deleting auras: "
 	L["Desaturate"] = "Desaturar"
 	L["Description"] = "Descripción"
 	L["Description Text"] = "Texto de descripción"
@@ -465,7 +469,8 @@ Off Screen]=] ] = "El aura está fuera de la pantalla"
 	L["Fallback"] = "Respuesta"
 	L["Fallback Icon"] = "Icono de respuesta"
 	L["False"] = "Falso"
-	L["Fetch Affected/Unaffected Names"] = "Buscar nombres afectados/no afectados"
+	--[[Translation missing --]]
+	L["Fetch Affected/Unaffected Names and Units"] = "Fetch Affected/Unaffected Names and Units"
 	L["Fetch Raid Mark Information"] = "Obtener información sobre la marca de banda"
 	L["Fetch Role Information"] = "Obtener información del rol"
 	L["Fetch Tooltip Information"] = "Obtener información del tooltip"
@@ -489,6 +494,8 @@ Can use \ to escape -.]=] ] = "Formatos de filtro: 'Nombre', 'Nombre-Reino', '-R
 	L["Filter to only dispellable de/buffs of the given type(s)"] = "Filtrar solo los perjuicios o beneficios disipables de los tipos indicados"
 	L["Find Auras"] = "Encontrar auras"
 	L["Finish"] = "Finalizar"
+	--[[Translation missing --]]
+	L["Finishing..."] = "Finishing..."
 	L["Fire Orb"] = "Orbe de fuego"
 	L["Font"] = "Fuente"
 	L["Font Size"] = "Tamaño de fuente"
@@ -609,9 +616,10 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	L["If unchecked, then this space will fill the entire line it is on in User Mode."] = "Si no está marcada, este espacio ocupará toda la línea en la que se encuentre en Modo Usuario."
 	L["Ignore Dead"] = "Ignorar muertos"
 	L["Ignore Disconnected"] = "Ignorar desconectados"
+	--[[Translation missing --]]
+	L["Ignore out of casting range"] = "Ignore out of casting range"
 	L["Ignore out of checking range"] = "Ignorar fuera de rango de comprobación"
 	L["Ignore Self"] = "Ignorarse a sí mismo"
-	L["Ignore updates"] = "Ignorar actualizaciones"
 	--[[Translation missing --]]
 	L["Ignore Wago updates"] = "Ignore Wago updates"
 	L["Ignored"] = "Ignorar"
@@ -732,6 +740,8 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	--[[Translation missing --]]
 	L["Move this display up in its group's order"] = "Move this display up in its group's order"
 	L["Move Up"] = "Mover arriba"
+	--[[Translation missing --]]
+	L["Moving auras: "] = "Moving auras: "
 	L["Multiple Displays"] = "Múltiples auras"
 	L["Multiselect ignored tooltip"] = [=[
 |cFFFF0000Ignorado|r - |cFF777777Único|r - |cFF777777Múltiple|r
@@ -851,6 +861,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Premade Auras"] = "Auras prediseñadas"
 	--[[Translation missing --]]
 	L["Premade Snippets"] = "Premade Snippets"
+	--[[Translation missing --]]
+	L["Preparing auras: "] = "Preparing auras: "
 	L["Preset"] = "Preestablecido"
 	L["Press Ctrl+C to copy"] = "Pulsa Ctrl+C para copiar"
 	L["Press Ctrl+C to copy the URL"] = "Pulsa Ctrl+C para copiar la URL"
@@ -1020,6 +1032,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Soft Min"] = "Soft Min"
 	L["Sort"] = "Ordenar"
 	L["Sound"] = "Sonido"
+	--[[Translation missing --]]
+	L["Sound by Kit ID"] = "Sound by Kit ID"
 	L["Sound Channel"] = "Canal de Sonido"
 	L["Sound File Path"] = "Ruta al Fichero de Sonido"
 	--[[Translation missing --]]
@@ -1068,6 +1082,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Sub Elements"] = "Sub Elements"
 	--[[Translation missing --]]
 	L["Sub Option %i"] = "Sub Option %i"
+	--[[Translation missing --]]
+	L["Supports multiple entries, separated by commas"] = "Supports multiple entries, separated by commas"
 	--[[Translation missing --]]
 	L["Swipe Overlay Settings"] = "Swipe Overlay Settings"
 	--[[Translation missing --]]
@@ -1121,8 +1137,8 @@ It might not work correctly!]=] ] = [=[This aura was created with a different ve
 It might not work correctly!]=]
 	--[[Translation missing --]]
 	L[ [=[This aura was created with a newer version of WeakAuras.
-It might not work correctly with your version!]=] ] = [=[This aura was created with a newer version of WeakAuras.
-It might not work correctly with your version!]=]
+Upgrade your version of WeakAuras or wait for next release before installing this aura.]=] ] = [=[This aura was created with a newer version of WeakAuras.
+Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	--[[Translation missing --]]
 	L["This display is currently loaded"] = "This display is currently loaded"
 	--[[Translation missing --]]
@@ -1226,7 +1242,9 @@ It might not work correctly with your version!]=]
 	--[[Translation missing --]]
 	L["Uses Texture Coordinates to rotate the texture."] = "Uses Texture Coordinates to rotate the texture."
 	--[[Translation missing --]]
-	L["Uses UnitIsVisible() to check if in range. This is polled every second."] = "Uses UnitIsVisible() to check if in range. This is polled every second."
+	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."
+	--[[Translation missing --]]
+	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."
 	--[[Translation missing --]]
 	L["Value %i"] = "Value %i"
 	--[[Translation missing --]]

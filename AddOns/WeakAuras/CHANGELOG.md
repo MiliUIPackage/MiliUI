@@ -1,35 +1,40 @@
-# [5.6.0](https://github.com/WeakAuras/WeakAuras2/tree/5.6.0) (2023-07-10)
+# [5.8.4](https://github.com/WeakAuras/WeakAuras2/tree/5.8.4) (2023-11-07)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.5.7...5.6.0)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.8.3...5.8.4)
 
 ## Highlights
 
- - Support new specialization and patch features
-- Fixes for DBM/BW triggers
-- Condition titles are now dynamic and pretty 
+ - Template updates for 10.2.0
+- More options for Buff Triggers
+- Improvements to profiling UI
+- Bug fixes 
 
 ## Commits
 
-InfusOnWoW (4):
+InfusOnWoW (8):
 
-- BT2: Fix GROUP_ROSTER_UPDATE handling
-- Fix Item Set equipped trigger
-- Fix delayed anchoring of dynamic groups
-- Change SpinBox to emit MouseUp/OnValueChanged
+- Template updates for 10.2
+- Dynamic Group: Fix frame strata setting
+- Totem Trigger: Add a tooltip that a spell id can be entered
+- IconPicker: Fix error for spells that don't have an icon
+- Work around UnitInRange being wonky
+- Model: Remove HasAnimation check
+- BT2: Allow for multiple npcIds in npcId check
+- IconPicker: If a spell id is entered, show the icon for that spell id
 
-Stanzilla (1):
+Stanzilla (2):
 
-- Update TOC for retail patch 10.1.5
+- Update TOC for Retail Patch 10.2.0
+- Update PayPal link in README.md
 
-mrbuds (9):
+mrbuds (8):
 
-- Add new type of glow called "Proc Glow"
-- DBM Triggers: use count from callback instead of parsing text
-- Action - Chat message: fix sending to a unit on an other server #4517
-- Fix error with bogus update data #4518
-- add Augmentation spec templates
-- Fix error in DBM Timer trigger when extending timer
-- Change WeakAurasOptions background to match PANEL_BACKGROUND_COLOR
-- Pretty condition titles
-- Give triggers titles slightly more descriptive names
+- Profiling: improve system profiling readability by regrouping multiUnits
+- Theat Situation trigger: add nam/realm and npcId filters
+- Colorize "Class and Specialization" options fixes #4657
+- FontInstance:SetFont flags seems to break with "None"
+- BT2: add affectedUnits and unaffectedUnits tables when Fetch affected names option is toggle
+- Add "Not Item Equipped" load option, and make both Item Equipped option take multiple inputs
+- Workaround fonts not loading correctly on first login
+- Fix keybinding display
 
