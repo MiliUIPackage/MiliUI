@@ -18,7 +18,7 @@ along with Sushi. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local Lib = LibStub('Sushi-3.1')
-local Group = Lib.Callable:NewSushi('Group', 1, 'Frame')
+local Group = Lib.Callable:NewSushi('Group', 3, 'Frame')
 if not Group then return end
 
 
@@ -74,19 +74,21 @@ end
 
 function Group:Add(object, ...)
 	local kind = type(object)
-	assert(kind == 'string' or kind == 'table', 'Bad argument #1 to `:Add` (string or frame expected)')
+	assert(kind == 'string' or kind == 'function' or kind == 'table', 'Bad argument #1 to `:Add` (string, function or frame expected)')
 
 	if kind == 'string' then
 		local class = Lib[object]
 		assert(class, 'Sushi-3.1 class `' .. object .. '` was not found.')
 		assert(type(class) == 'table', 'Sushi-3.1 class name `' .. object .. '` is a reserved keyword')
 		object = class(self, ...)
+	elseif kind == 'function' then
+		object = object(self, ...)
 	elseif object.SetParent then
 		object:SetParent(self)
 	end
 
 	if object.SetCall then
-		object:SetCall('OnUpdate', function() self:Update() end)
+		object:SetCall('OnUpdate', function() self:Update(); self:FireCalls('OnUpdate') end)
 		object:SetCall('OnResize', function() self:Layout() end)
 	end
 
@@ -110,6 +112,10 @@ end
 
 function Group:IterateChildren()
 	return ipairs(self.Children)
+end
+
+function Group:NumChildren()
+	return #self.Children
 end
 
 

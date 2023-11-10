@@ -52,7 +52,7 @@ function Item:Construct()
 	local b = self:Super(Item):Construct()
 	local name = b:GetName()
 
-	b.Flash = b:CreateAnimationGroup()
+	b.FlashFind = b:CreateAnimationGroup()
 	b.IconGlow = b:CreateTexture(nil, 'OVERLAY', nil, -1)
 	b.Cooldown, b.QuestBorder = _G[name .. 'Cooldown'], _G[name .. 'IconQuestTexture']
 	b.UpdateTooltip = self.OnEnter
@@ -66,17 +66,19 @@ function Item:Construct()
 	b.IconGlow:SetSize(67, 67)
 
 	for i = 1, 3 do
-		local fade = b.Flash:CreateAnimation('Alpha')
+		local fade = b.FlashFind:CreateAnimation('Alpha')
+		fade:SetChildKey('flash')
 		fade:SetOrder(i * 2)
-		fade:SetDuration(.2)
-		fade:SetFromAlpha(.8)
-		fade:SetToAlpha(0)
+		fade:SetDuration(.4)
+		fade:SetFromAlpha(.1)
+		fade:SetToAlpha(1)
 
-		local fade = b.Flash:CreateAnimation('Alpha')
+		local fade = b.FlashFind:CreateAnimation('Alpha')
+		fade:SetChildKey('flash')
 		fade:SetOrder(i * 2 + 1)
-		fade:SetDuration(.3)
-		fade:SetFromAlpha(0)
-		fade:SetToAlpha(.8)
+		fade:SetDuration(.4)
+		fade:SetFromAlpha(1)
+		fade:SetToAlpha(.1)
 	end
 
 	b:SetScript('OnEvent', nil)
@@ -163,7 +165,7 @@ function Item:UpdateBorder()
 			r,g,b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
 		elseif Addon.sets.glowSets and Search:BelongsToSet(id) then
 	  		r,g,b = .2, 1, .8
-		elseif Addon.sets.glowQuality and quality and quality > 1 then
+		elseif Addon.sets.glowQuality and quality and quality >= 1 then
 			r,g,b = GetItemQualityColor(quality)
 		end
 
@@ -205,11 +207,7 @@ function Item:UpdateSecondary()
 end
 
 function Item:UpdateFocus()
-	if self:GetBag() == self:GetFrame().focusedBag then
-		self:LockHighlight()
-	else
-		self:UnlockHighlight()
-	end
+	self:SetHighlightLocked(self:GetBag() == self:GetFrame().focusedBag)
 end
 
 function Item:UpdateSearch()
@@ -221,7 +219,12 @@ function Item:UpdateSearch()
 end
 
 function Item:UpdateUpgradeIcon()
-	self.UpgradeIcon:SetShown(self:IsUpgrade())
+	local isUpgrade = self:IsUpgrade()
+	if isUpgrade == nil then
+		self:Delay(0.5, 'UpdateUpgradeIcon')
+	else
+		self.UpgradeIcon:SetShown(isUpgrade)
+	end
 end
 
 function Item:UpdateNewItemAnimation()
@@ -230,7 +233,7 @@ function Item:UpdateNewItemAnimation()
 	self.NewItemTexture:SetShown(new)
 
 	if new then
-		self.NewItemTexture:SetAtlas(quality and NEW_ITEM_ATLAS_BY_QUALITY[quality] or 'bags-glow-white')
+		self.NewItemTexture:SetAtlas(self.info.quality and NEW_ITEM_ATLAS_BY_QUALITY[self.info.quality] or 'bags-glow-white')
 		self.newitemglowAnim:Play()
 		self.flashAnim:Play()
 	end
@@ -307,7 +310,7 @@ function Item:GetQuery()
 end
 
 function Item:IsUpgrade()
-	return self.hasItem and IsAddOnLoaded('Pawn') and PawnShouldItemLinkHaveUpgradeArrow(self.info.hyperlink)
+	return (self.hasItem or false) and IsAddOnLoaded('Pawn') and PawnShouldItemLinkHaveUpgradeArrow(self.info.hyperlink)
 end
 
 function Item:GetInventorySlot()

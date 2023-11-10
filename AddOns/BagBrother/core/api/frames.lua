@@ -1,15 +1,16 @@
 --[[
 	frames.lua
 		Manages frame creation and display
+		All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
 local Frames = Addon:NewModule('Frames')
 Frames.Registry = {
-	{id = 'inventory', name = INVENTORY_TOOLTIP},
-	{id = 'bank', name = BANK},
-	{id = 'vault', name = VOID_STORAGE, addon = VoidStorage_LoadUI and ADDON..'_VoidStorage' or false},
-	{id = 'guild', name = GUILD_BANK, addon = GuildBankFrame_LoadUI and ADDON..'_GuildBank' or false},
+	{id = 'inventory', name = INVENTORY_TOOLTIP, icon = 130716},
+	{id = 'bank', name = BANK, icon = 'Interface/Addons/BagBrother/art/achievement-guildperk-mobilebanking'},
+	{id = 'vault', name = VOID_STORAGE, icon = 1711338, addon = VoidStorage_LoadUI and ADDON..'_VoidStorage' or false},
+	{id = 'guild', name = GUILD_BANK, icon = 'Interface/Addons/BagBrother/art/vas-guildfactionchange', addon = GuildBankFrame_LoadUI and ADDON..'_GuildBank' or false},
 }
 
 

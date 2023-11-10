@@ -9,7 +9,7 @@ if not L then return end
 -- general
 L.GeneralOptionsDesc = 'Impostazioni generali di configurazioni per %s.'
 L.Locked = 'Blocca la posizione della finestra.'
-L.TipCount = 'Attiva conteggio degli oggetti.'
+L.CountItems = 'Attiva conteggio degli oggetti.'
 L.CountGuild = 'Includi Banca di Gilda'
 L.FlashFind = 'Attiva Ricerca Veloce.'
 L.DisplayBlizzard = 'Mostra le finestre di Blizzard per le borse disabilitate.'
@@ -81,6 +81,7 @@ L.MapFrame = 'Quando apri la Mappa del Mondo'
 -- colors
 L.ColorOptions = 'Impostazioni del Colore'
 L.ColorOptionsDesc = 'Impostazione dei Colori sui vari Oggetti.'
+
 L.GlowQuality = 'Evidenzia Oggetti per Qualità.'
 L.GlowQuest = 'Evidenzia Oggetti delle Missioni.'
 L.GlowUnusable = 'Evidenzia Oggetti non Utilizzabili.'

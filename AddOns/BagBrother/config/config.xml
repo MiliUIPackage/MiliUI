@@ -7,6 +7,5 @@
   <Script file="panels\colorOptions.lua"/>
   <Script file="panels\displayOptions.lua"/>
   <Script file="panels\ruleOptions.lua"/>
-  <Script file="panels\eggPanel.lua"/> <!-- temp -->
   <Script file="panels\creditsPanel.lua"/>
 </Ui>

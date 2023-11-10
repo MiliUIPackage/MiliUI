@@ -9,7 +9,7 @@ if not L then return end
 -- general
 L.GeneralOptionsDesc = '환경 설정에 따라 설정을 전환 할 수 있는 일반적인 기능입니다.'
 L.Locked = '창 위치 잠금'
-L.TipCount = '아이템 갯수를 툴팁에 표시'
+L.CountItems = '아이템 갯수를 툴팁에 표시'
 L.CountGuild = '길드 금고 포함'
 L.FlashFind = '빠른 찾기 사용'
 L.DisplayBlizzard = '숨은 가방 대비책'
@@ -81,6 +81,7 @@ L.MapFrame = '지도를 열 때 가방 닫기'
 -- colors
 L.ColorOptions = '색상 설정'
 L.ColorOptionsDesc = '이 설정은 아이템의 변화 상황을 쉽게 구분할 수 있도록 표시합니다.'
+
 L.GlowQuality = '품질에 따라 아이템 강조'
 L.GlowQuest = '퀘스트 아이템 강조'
 L.GlowUnusable = '사용할 수 없는 아이템 강조'

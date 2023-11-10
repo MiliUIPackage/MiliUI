@@ -10,7 +10,7 @@ if not L then return end
 -- general
 L.GeneralOptionsDesc = 'Allgemeine Einstellungen für %s anpassen'
 L.Locked = 'Fensterpositionen sperren'
-L.TipCount = 'Ermögliche tooltip item count'
+L.CountItems = 'Ermögliche tooltip item count'
 L.FlashFind = 'Ermögliche Blitzsuche'
 L.EmptySlots = 'Zeige einen Hintergrund für leere Gegenstandslots'
 L.DisplayBlizzard = 'Blizzard Fenster für die deaktivierten Taschen anzeigen'
@@ -67,6 +67,7 @@ L.Merchant = 'beim Verlassen des Handlers'
 -- colors
 L.ColorOptions = 'Farbeinstellungen'
 L.ColorOptionsDesc = 'Einstellungen für das Einfärben der Gegenstandslots'
+
 L.GlowQuality = 'Gegenstände nach der Seltenheit hervorheben'
 L.GlowNew = 'Neue Gegenstände hervorheben'
 L.GlowQuest = 'Questgegenstände hervorheben'

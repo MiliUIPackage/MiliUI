@@ -1,6 +1,7 @@
 --[[
 	core.lua
 		Computes global constants and sets up config loading
+		All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
@@ -10,6 +11,7 @@ Addon.Version = GetAddOnMetadata(ADDON, 'Version')
 Addon.IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
 Addon.IsClassic = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 Addon.NumBags = NUM_TOTAL_EQUIPPED_BAG_SLOTS or NUM_BAG_SLOTS
+Addon.CurrencyLimit = 30  -- safety tracking limit
 
 Addon.None = {}
 Addon.BankBags = {BANK_CONTAINER}
@@ -36,7 +38,7 @@ function Addon:OnEnable()
 		C_CVar.SetCVarBitfield('closedInfoFrames', LE_FRAME_TUTORIAL_EQUIP_REAGENT_BAG, true)
 	end
 
-	CreateFrame('Frame', nil, InterfaceOptionsFrame or SettingsPanel):SetScript('OnShow', function()
+	CreateFrame('Frame', nil, SettingsPanel or InterfaceOptionsFrame):SetScript('OnShow', function()
 		LoadAddOn(ADDON .. '_Config')
 	end)
 end

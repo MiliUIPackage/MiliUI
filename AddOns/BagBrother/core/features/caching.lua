@@ -2,6 +2,7 @@
 	cache.lua
 		The old BagBrother, now implemented as a feature within the Wildpants core,
 		where it can take advantage of Wildpants API and dependencies.
+		All Rights Reserved.
 --]]
 
 
@@ -18,7 +19,7 @@ local NUM_VAULT_ITEMS = 80 * 2
 
 function Cacher:OnEnable()
 	self.player = Addon.player.cache
-	--self.player.currency = {tracked = {}}
+	self.player.currency = {tracked = {}}
 	self.player.equip = self.player.equip or {}
 	self.player.faction = UnitFactionGroup('player') == 'Alliance'
 	self.player.race = select(2, UnitRace('player'))
@@ -39,9 +40,9 @@ function Cacher:OnEnable()
 		self:RegisterEvent('GUILDBANKBAGSLOTS_CHANGED')
 	end
 
-	--[[C.CurrencyInfo.hooksecurefunc('SetCurrencyBackpack', function()
+	C.CurrencyInfo.hooksecurefunc('SetCurrencyBackpack', function()
 		self:CURRENCY_TRACKED_CHANGED()
-	end)--]]
+	end)
 
 	for i = BACKPACK_CONTAINER, Addon.NumBags do
 		self:SaveBag(i)
@@ -55,14 +56,14 @@ function Cacher:OnEnable()
 		self:SaveEquip(i)
 	end
 
-	--[[for id = 1, 5000 do
+	for id = 1, 5000 do
 		local data = C.CurrencyInfo.GetCurrencyInfo(id)
 		if data and data.quantity > 0 and data.quality > 0 then
 			self.player.currency[id] = data.quantity
 		end
-	end]]--
+	end
 
-	--self:CURRENCY_TRACKED_CHANGED()
+	self:CURRENCY_TRACKED_CHANGED()
 	self:GUILD_ROSTER_UPDATE()
 	self:PLAYER_MONEY()
 end
@@ -88,30 +89,30 @@ function Cacher:PLAYER_MONEY()
 	self.player.money = GetMoney()
 end
 
-function Cacher:CURRENCY_DISPLAY_UPDATE(id, quantity)
-	--self.player.currency[id] = quantity > 0 and quantity or nil
+function Cacher:CURRENCY_DISPLAY_UPDATE(_, id, quantity)
+	if id and quantity then
+		self.player.currency[id] = quantity > 0 and quantity or nil
+	end
 end
 
 function Cacher:CURRENCY_TRACKED_CHANGED()
-	--[[wipe(self.player.currency.tracked)
+	wipe(self.player.currency.tracked)
 
-	for i = 1,30 do
-		local data = C.GetBackpackCurrencyInfo(i)
+	for i = 1, Addon.CurrencyLimit do
+		local data = C.CurrencyInfo.GetBackpackCurrencyInfo(i)
 		if data then
 			tinsert(self.player.currency.tracked, data.currencyTypesID)
 		end
-	end]]--
+	end
 end
 
 function Cacher:BANK_CLOSE()
 	for i = FIRST_BANK_SLOT, LAST_BANK_SLOT do
 		self:SaveBag(i)
 	end
-
 	if REAGENTBANK_CONTAINER and IsReagentBankUnlocked() then
 		self:SaveBag(REAGENTBANK_CONTAINER)
 	end
-
 	self:SaveBag(BANK_CONTAINER)
 end
 
