@@ -182,8 +182,7 @@ end
 local AIO = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO:Hide()
 AIO:SetAllPoints()
-local addonNameLoc = "進階介面選項"
-AIO.name = addonNameLoc
+AIO.name = addonName
 
 -- Register all of our widgets here so we can iterate over them
 -- luacheck: ignore
@@ -214,7 +213,7 @@ local function newCheckbox(parent, cvar, getValue, setValue, label, description)
 	local cvarTable = addon.hiddenOptions[cvar]
 	if cvarTable then
 		label = cvarTable['prettyName'] or cvar
-		description = _G[cvarTable['description']] or cvarTable['description'] or '沒有說明'
+		description = _G[cvarTable['description']] or cvarTable['description'] or 'No description'
 	else
 		label = label or '[PH] Label'
 		description = description or '[PH] Description'
@@ -271,7 +270,7 @@ local function newSlider(parent, cvar, minRange, maxRange, stepSize, getValue, s
 	local description = cvarTable['description'] or ''
 
 	local _, defaultValue = GetCVarInfo(cvar)
-	description = description .. '\n\n預設值: ' .. (defaultValue or '')
+	description = description .. '\n\nDefault Value: ' .. (defaultValue or '')
 	local slider = CreateFrame('Slider', 'AIOSlider' .. cvar, parent, 'OptionsSliderTemplate')
 
 	slider.cvar = cvar
@@ -370,7 +369,7 @@ subText:SetJustifyV('TOP')
 subText:SetJustifyH('LEFT')
 subText:SetPoint('TOPLEFT', title, 'BOTTOMLEFT', 0, -8)
 subText:SetPoint('RIGHT', -32, 0)
-subText:SetText('這些選項可以調整軍臨天下改版後被移除的各種遊戲設定。')
+subText:SetText('These options allow you to toggle various options that have been removed from the game in Legion.')
 
 local playerTitles = newCheckbox(AIO, 'UnitNamePlayerPVPTitle')
 local playerGuilds = newCheckbox(AIO, 'UnitNamePlayerGuild')
@@ -382,17 +381,16 @@ local targetDebuffFilter = newCheckbox(AIO, 'noBuffDebuffFilterOnTarget')
 local enableWoWMouse = newCheckbox(AIO, 'enableWoWMouse')
 
 local questSortingLabel = AIO:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
-questSortingLabel:SetPoint('TOPLEFT', enableWoWMouse, 'BOTTOMLEFT', 0, -10)
-questSortingLabel:SetText('任務排序方式:')
+questSortingLabel:SetPoint('TOPLEFT', enableWoWMouse, 'BOTTOMLEFT', 0, 0)
+questSortingLabel:SetText('Select quest sorting mode:')
 
 local questSortingDropdown = CreateFrame("Frame", "AIOQuestSorting", AIO, "UIDropDownMenuTemplate")
 questSortingDropdown:SetPoint("TOPLEFT", questSortingLabel, "BOTTOMLEFT", -16, -10)
 questSortingDropdown.initialize = function(dropdown)
 	local sortMode = { "top", "proximity" }
-	local sortModeLoc = { "上方", "距離最近" }
 	for i, mode in next, sortMode do
 		local info = UIDropDownMenu_CreateInfo()
-		info.text = sortModeLoc[i]
+		info.text = sortMode[i]
 		info.value = sortMode[i]
 		info.func = function(self)
 			addon:SetCVar("trackQuestSorting", self.value)
@@ -411,19 +409,18 @@ questSortingDropdown:HookScript("OnEnter", function(self)
 end)
 questSortingDropdown:HookScript("OnLeave", GameTooltip_Hide)
 Widgets[ questSortingDropdown ] = 'trackQuestSorting'
---[[ 9.0 已不支援動感鏡頭模式
+
 local actionCamModeLabel = AIO:CreateFontString(nil, 'ARTWORK', 'GameFontHighlightSmall')
 actionCamModeLabel:SetPoint('TOPLEFT', questSortingDropdown, 'BOTTOMLEFT', 16, 0)
-actionCamModeLabel:SetText('動感鏡頭模式:')
+actionCamModeLabel:SetText('Select Action Cam mode:')
 
 local actionCamModeDropdown = CreateFrame("Frame", "AIOActionCamMode", AIO, "UIDropDownMenuTemplate")
 actionCamModeDropdown:SetPoint("TOPLEFT", actionCamModeLabel, "BOTTOMLEFT", -16, -10)
 actionCamModeDropdown.initialize = function(dropdown)
 	local sortMode = { "basic", "full", "off", "default" }
-	local sortModeLoc = { "基本", "完整", "關閉", "預設" }
 	for i, mode in next, sortMode do
 		local info = UIDropDownMenu_CreateInfo()
-		info.text = sortModeLoc[i]
+		info.text = sortMode[i]
 		info.value = sortMode[i]
 		info.func = function(self)
 			ConsoleExec("actioncam "..self.value)
@@ -434,7 +431,7 @@ actionCamModeDropdown.initialize = function(dropdown)
 	UIDropDownMenu_SetSelectedValue(dropdown, "off") -- TODO: This is wrong, obviously
 end
 actionCamModeDropdown:HookScript("OnShow", actionCamModeDropdown.initialize)
---]]
+
 local function cameraFactor_SetValue(self, value, userInput)
 	if userInput then
 		addon:SetCVar(self.cvar, value)
@@ -445,7 +442,7 @@ local function cameraFactor_SetValue(self, value, userInput)
 end
 
 local cameraFactor = newSlider(AIO, 'cameraDistanceMaxZoomFactor', 1, not IsRetail() and 3.4 or 2.6, 0.1, nil, cameraFactor_SetValue)
-cameraFactor:SetPoint('TOPLEFT', questSortingDropdown, 'BOTTOMLEFT', 20, -20)
+cameraFactor:SetPoint('TOPLEFT', actionCamModeDropdown, 'BOTTOMLEFT', 20, -20)
 
 if not IsRetail() then
 	-- blizzard options overwrites this cvar at start and is capped to 2.0
@@ -465,6 +462,7 @@ if not IsRetail() then
 		end
 	end)
 end
+
 playerTitles:SetPoint("TOPLEFT", subText, "BOTTOMLEFT", 0, -8)
 playerGuilds:SetPoint("TOPLEFT", playerTitles, "BOTTOMLEFT", 0, -4)
 playerGuildTitles:SetPoint("TOPLEFT", playerGuilds, "BOTTOMLEFT", 0, -4)
@@ -533,15 +531,15 @@ local enforceBox = newCheckbox(AIO, nil,
 		end
 		--]]
 	end,
-	'啟動時強制套用設定',
-	"登入遊戲或切換角色時重新套用所有設定。\n\n若每次登入時設定沒有被儲存，請勾選此項。")
+	'Enforce Settings on Startup',
+	"Reapplies all settings when you log in or change characters.\n\nCheck this if your settings aren't being saved between sessions.")
 enforceBox:SetPoint("LEFT", title, "RIGHT", 5, 0)
 
 -- Button to reset all of our settings back to their defaults
 StaticPopupDialogs['AIO_RESET_EVERYTHING'] = {
-	text = '請輸入 "IRREVERSIBLE" 來將所有 CVars 遊戲參數重置成預設設定',
-	button1 = '確認',
-	button2 = '取消',
+	text = 'Type "IRREVERSIBLE" into the text box to reset all CVars to their default settings',
+	button1 = 'Confirm',
+	button2 = 'Cancel',
 	hasEditBox = true,
 	OnShow = function(self)
 		self.button1:SetEnabled(false)
@@ -554,7 +552,7 @@ StaticPopupDialogs['AIO_RESET_EVERYTHING'] = {
 			local cvar = info.command
 			local current, default = GetCVarInfo(cvar)
 			if current ~= default then
-				print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', tostring(cvar), tostring(current), tostring(default)))
+				print(format('|cffaaaaff%s|r reset from |cffffaaaa%s|r to |cffaaffaa%s|r', tostring(cvar), tostring(current), tostring(default)))
 				addon:SetCVar(cvar, default)
 			end
 		end
@@ -571,7 +569,7 @@ StaticPopupDialogs['AIO_RESET_EVERYTHING'] = {
 
 local resetButton = CreateFrame('button', nil, AIO, 'UIPanelButtonTemplate')
 resetButton:SetSize(120, 22)
-resetButton:SetText("載入預設值")
+resetButton:SetText("Reset Settings")
 resetButton:SetPoint('BOTTOMRIGHT', -10, 10)
 resetButton:SetScript('OnClick', function(self)
 	StaticPopup_Show('AIO_RESET_EVERYTHING')
@@ -607,13 +605,13 @@ local function BackupSettings()
 		cvars = cvarBackup,
 	}
 
-	print(format("進階介面選項: 已備份 %d 個自訂的 CVar 遊戲參數設定!", settingCount))
+	print(format("AIO: Backed up %d customized CVar settings!", settingCount))
 end
 
 StaticPopupDialogs["AIO_BACKUP_SETTINGS"] = {
-	text = "是否要儲存目前的 CVar 遊戲參數設定，以便日後能夠還原設定?",
-	button1 = "備份設定",
-	button2 = "取消",
+	text = "Save current CVar settings to restore later?",
+	button1 = "Backup Settings",
+	button2 = "Cancel",
 	OnAccept = BackupSettings,
 	timeout = 0,
 	whileDead = true,
@@ -623,7 +621,7 @@ StaticPopupDialogs["AIO_BACKUP_SETTINGS"] = {
 
 local backupButton = CreateFrame("button", nil, AIO, "UIPanelButtonTemplate")
 backupButton:SetSize(120, 22)
-backupButton:SetText("備份設定")
+backupButton:SetText("Backup Settings")
 backupButton:SetPoint("BOTTOMLEFT", resetButton, "TOPLEFT", 0, 50)
 backupButton:SetScript("OnClick", function(self)
 	StaticPopup_Show("AIO_BACKUP_SETTINGS")
@@ -640,13 +638,13 @@ local function RestoreSettings()
 			if backupValue then
 				-- Restore value from backup
 				if currentValue ~= backupValue then
-					print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(backupValue)))
+					print(format('|cffaaaaff%s|r changed from |cffffaaaa%s|r to |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(backupValue)))
 					addon:SetCVar(cvar, backupValue)
 				end
 			else
 				-- CHECKME: If CVar isn't in backup and isn't set to default value, should we reset to default or ignore it?
 				if currentValue ~= defaultValue then
-					print(format('|cffaaaaff%s|r 的值從 |cffffaaaa%s|r 變成 |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(defaultValue)))
+					print(format('|cffaaaaff%s|r changed from |cffffaaaa%s|r to |cffaaffaa%s|r', cvar, tostring(currentValue), tostring(defaultValue)))
 					addon:SetCVar(cvar, defaultValue)
 				end
 			end
@@ -655,9 +653,9 @@ local function RestoreSettings()
 end
 
 StaticPopupDialogs["AIO_RESTORE_SETTINGS"] = {
-	text = "是否要從備份還原 CVar 遊戲參數設定?\n注意: 此動作無法復原!",
-	button1 = "還原設定",
-	button2 = "取消",
+	text = "Restore CVar settings from backup?\nNote: This can't be undone!",
+	button1 = "Restore Settings",
+	button2 = "Cancel",
 	OnAccept = RestoreSettings,
 	OnShow = function(self)
 		-- Disable accept button if we don't have any backups
@@ -672,7 +670,7 @@ StaticPopupDialogs["AIO_RESTORE_SETTINGS"] = {
 
 local restoreButton = CreateFrame("button", nil, AIO, "UIPanelButtonTemplate")
 restoreButton:SetSize(120, 22)
-restoreButton:SetText("還原設定")
+restoreButton:SetText("Restore Settings")
 restoreButton:SetPoint("TOPLEFT", backupButton, "BOTTOMLEFT", 0, -2)
 restoreButton:SetScript("OnClick", function(self)
 	StaticPopup_Show("AIO_RESTORE_SETTINGS")
@@ -683,8 +681,8 @@ end)
 local AIO_Chat = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_Chat:Hide()
 AIO_Chat:SetAllPoints()
-AIO_Chat.name = "聊天"
-AIO_Chat.parent = addonNameLoc
+AIO_Chat.name = "Chat"
+AIO_Chat.parent = addonName
 
 local Title_Chat = AIO_Chat:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title_Chat:SetJustifyV('TOP')
@@ -699,7 +697,7 @@ SubText_Chat:SetJustifyV('TOP')
 SubText_Chat:SetJustifyH('LEFT')
 SubText_Chat:SetPoint('TOPLEFT', Title_Chat, 'BOTTOMLEFT', 0, -8)
 SubText_Chat:SetPoint('RIGHT', -32, 0)
-SubText_Chat:SetText('這些選項可以調整不在預設介面中的聊天設定。')
+SubText_Chat:SetText('These options allow you to modify various chat settings that are no longer part of the default UI.')
 
 local chatMouseScroll = newCheckbox(AIO_Chat, 'chatMouseScroll')
 local chatDelay = newCheckbox(AIO_Chat, 'removeChatDelay')
@@ -716,7 +714,7 @@ local AIO_FCT = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_FCT:Hide()
 AIO_FCT:SetAllPoints()
 AIO_FCT.name = FLOATING_COMBATTEXT_LABEL
-AIO_FCT.parent = addonNameLoc
+AIO_FCT.parent = addonName
 
 local Title_FCT = AIO_FCT:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title_FCT:SetJustifyV('TOP')
@@ -867,7 +865,7 @@ local AIO_ST = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_ST:Hide()
 AIO_ST:SetAllPoints()
 AIO_ST.name = STATUSTEXT_LABEL
-AIO_ST.parent = addonNameLoc
+AIO_ST.parent = addonName
 
 local Title_ST = AIO_ST:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title_ST:SetJustifyV('TOP')
@@ -979,8 +977,8 @@ stTextDisplay:HookScript("OnLeave", GameTooltip_Hide)
 local AIO_NP = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_NP:Hide()
 AIO_NP:SetAllPoints()
-AIO_NP.name = "名條"
-AIO_NP.parent = addonNameLoc
+AIO_NP.name = "Nameplates"
+AIO_NP.parent = addonName
 
 local Title_NP = AIO_NP:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title_NP:SetJustifyV('TOP')
@@ -995,7 +993,7 @@ SubText_NP:SetJustifyV('TOP')
 SubText_NP:SetJustifyH('LEFT')
 SubText_NP:SetPoint('TOPLEFT', Title_NP, 'BOTTOMLEFT', 0, -8)
 SubText_NP:SetPoint('RIGHT', -32, 0)
-SubText_NP:SetText('這些選項可以調整名條/血條設定。')
+SubText_NP:SetText('These options allow you to modify Nameplate Options.')
 
 local nameplateAtBase = newCheckbox(AIO_NP, 'nameplateOtherAtBase')
 nameplateAtBase:SetPoint("TOPLEFT", SubText_NP, "BOTTOMLEFT", 0, -20)
@@ -1012,8 +1010,8 @@ nameplateColorFriendly:SetPoint("TOPLEFT", nameplateAtBase, "BOTTOMLEFT", 0, -8)
 local AIO_C = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 AIO_C:Hide()
 AIO_C:SetAllPoints()
-AIO_C.name = "戰鬥"
-AIO_C.parent = addonNameLoc
+AIO_C.name = "Combat"
+AIO_C.parent = addonName
 
 local Title_C = AIO_C:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title_C:SetJustifyV('TOP')
@@ -1028,7 +1026,7 @@ SubText_C:SetJustifyV('TOP')
 SubText_C:SetJustifyH('LEFT')
 SubText_C:SetPoint('TOPLEFT', Title_C, 'BOTTOMLEFT', 0, -8)
 SubText_C:SetPoint('RIGHT', -32, 0)
-SubText_C:SetText('這些選項可以調整戰鬥相關設定。')
+SubText_C:SetText('These options allow you to modify Combat Options.')
 
 local stopAutoAttack = newCheckbox(AIO_C, 'stopAutoAttackOnTargetChange')
 stopAutoAttack:SetPoint("TOPLEFT", SubText_C, "BOTTOMLEFT", 0, -8)
@@ -1057,10 +1055,10 @@ InterfaceOptions_AddCategory(AIO_NP, addonName)
 SlashCmdList.AIO = function(msg)
 	msg = msg:lower()
 	if not InCombatLockdown() then
-		InterfaceOptionsFrame_OpenToCategory(addonNameLoc)
-		InterfaceOptionsFrame_OpenToCategory(addonNameLoc)
+		InterfaceOptionsFrame_OpenToCategory(addonName)
+		InterfaceOptionsFrame_OpenToCategory(addonName)
 	else
-		DEFAULT_CHAT_FRAME:AddMessage("進階介面選項：戰鬥中無法調整介面設定")
+		DEFAULT_CHAT_FRAME:AddMessage(format("%s: Can't modify interface options in combat", addonName))
 	end
 end
 SLASH_AIO1 = "/aio"
