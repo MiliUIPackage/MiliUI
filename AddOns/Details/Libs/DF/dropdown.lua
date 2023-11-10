@@ -325,7 +325,7 @@ function DropDownMetaFunctions:NoOptionSelected()
 		return
 	end
 
-	self.label:SetText(self.empty_text or "no option selected")
+	self.label:SetText(self.empty_text or "無已選的選項")
 	self.label:SetPoint("left", self.icon, "right", 2, 0)
 	self.label:SetTextColor(1, 1, 1, 0.4)
 
@@ -345,7 +345,7 @@ function DropDownMetaFunctions:NoOption(state)
 		self:Disable()
 		self:SetAlpha(0.5)
 		self.no_options = true
-		self.label:SetText ("沒有選項")
+		self.label:SetText("無選項")
 		self.label:SetPoint("left", self.icon, "right", 2, 0)
 		self.label:SetTextColor(1, 1, 1, 0.4)
 		self.icon:SetTexture([[Interface\CHARACTERFRAME\UI-Player-PlayTimeUnhealthy]])
@@ -571,13 +571,13 @@ function DropDownMetaFunctions:Selected(thisOption)
 	end
 
 	if (overrideFont) then
-		self.label:SetFont(overrideFont, 13)
+		self.label:SetFont(overrideFont, 10)
 
 	elseif (thisOption.font) then
-		self.label:SetFont(thisOption.font, 13)
+		self.label:SetFont(thisOption.font, 10)
 
 	else
-		self.label:SetFont("GameFontHighlight", 13)
+		self.label:SetFont("GameFontHighlightSmall", 10)
 	end
 
 	self:SetValue(thisOption.value)
@@ -802,13 +802,13 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 					thisOptionFrame.label:SetText(thisOption.label)
 
 					if (overrideFont) then
-						thisOptionFrame.label:SetFont(overrideFont, 13.5)
+						thisOptionFrame.label:SetFont(overrideFont, 10.5)
 
 					elseif (thisOption.font) then
-						thisOptionFrame.label:SetFont(thisOption.font, 13.5)
+						thisOptionFrame.label:SetFont(thisOption.font, 10.5)
 
 					else
-						thisOptionFrame.label:SetFont("GameFontHighlight", 13.5)
+						thisOptionFrame.label:SetFont("GameFontHighlightSmall", 10.5)
 					end
 
 					if (currentText and currentText == thisOption.label) then
@@ -989,6 +989,10 @@ end
 function DF:BuildDropDownFontList(onClick, icon, iconTexcoord, iconSize)
 	local fontTable = {}
 
+	if (type(iconSize) ~= "table") then
+		iconSize = {iconSize or 16, iconSize or 16}
+	end
+
 	local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 	for name, fontPath in pairs(SharedMedia:HashTable("font")) do
 		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSize, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
@@ -1006,10 +1010,10 @@ function DropDownMetaFunctions:SetTemplate(template)
 	self.template = template
 
 	if (template.width) then
-		self:SetWidth(template.width)
+		PixelUtil.SetWidth(self.dropdown, template.width)
 	end
 	if (template.height) then
-		self:SetHeight(template.height)
+		PixelUtil.SetWidth(self.dropdown, template.height)
 	end
 
 	if (template.backdrop) then
@@ -1083,6 +1087,136 @@ end
 ------------------------------------------------------------------------------------------------------------
 --object constructor
 
+---@class df_dropdown : table, frame
+---@field SetTemplate fun(self:df_dropdown, template:table)
+---@field BuildDropDownFontList fun(self:df_dropdown, onClick:function, icon:any, iconTexcoord:table?, iconSize:table?):table make a dropdown list with all fonts available, on select a font, call the function onClick
+---@field 
+---@field 
+---@field 
+---@field 
+---@field 
+
+---return a function which when called returns a table filled with all fonts available and ready to be used on dropdowns
+---@param callback function
+---@return function
+function DF:CreateFontListGenerator(callback)
+	return function() return DF:BuildDropDownFontList(callback, [[Interface\AnimCreate\AnimCreateIcons]], {0, 32/128, 64/128, 96/128}, 16) end
+end
+
+local colorGeneratorStatusBarTexture = [[Interface\Tooltips\UI-Tooltip-Background]]
+local colorGeneratorStatusBarColor = {.1, .1, .1, .8}
+local colorGeneratorNoColor = {0, 0, 0, 0}
+
+function DF:CreateColorListGenerator(callback)
+	local newGenerator = function()
+		local dropdownOptions = {}
+
+		for colorName, colorTable in pairs(DF:GetDefaultColorList()) do
+			table.insert(dropdownOptions, {
+				label = colorName,
+				value = colorTable,
+				color = colorTable,
+				statusbar = colorGeneratorStatusBarTexture,
+				statusbarcolor = colorGeneratorStatusBarColor,
+				onclick = callback
+			})
+		end
+
+		table.insert(dropdownOptions, 1, {
+			label = "無顏色",
+			value = "blank",
+			color = colorGeneratorNoColor,
+			statusbar = colorGeneratorStatusBarTexture,
+			statusbarcolor = colorGeneratorStatusBarColor,
+			onclick = callback
+		})
+
+		return dropdownOptions
+	end
+
+	return newGenerator
+end
+
+function DF:CreateOutlineListGenerator(callback)
+	local newGenerator = function()
+		local dropdownOptions = {}
+
+		for i, outlineInfo in ipairs(DF.FontOutlineFlags) do
+			local outlineName, outlineLoc = unpack(outlineInfo)
+			table.insert(dropdownOptions, {
+				label = outlineLoc,
+				value = outlineName,
+				onclick = callback
+			})
+		end
+
+		return dropdownOptions
+	end
+
+	return newGenerator
+end
+
+function DF:CreateAnchorPointListGenerator(callback)
+	local newGenerator = function()
+		local dropdownOptions = {}
+
+		for i, pointName in pairs(DF.AnchorPoints) do
+			table.insert(dropdownOptions, {
+				label = pointName,
+				value = i,
+				onclick = callback
+			})
+		end
+
+		return dropdownOptions
+	end
+
+	return newGenerator
+end
+
+---create a dropdown object with a list of fonts
+---@param parent frame
+---@param callback function
+---@param default any
+---@param width number?
+---@param height number?
+---@param member string?
+---@param name string?
+---@param template table?
+function DF:CreateFontDropDown(parent, callback, default, width, height, member, name, template)
+	local func = DF:CreateFontListGenerator(callback)
+	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
+	return dropDownObject
+end
+
+function DF:CreateColorDropDown(parent, callback, default, width, height, member, name, template)
+	local func = DF:CreateColorListGenerator(callback)
+	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
+	return dropDownObject
+end
+
+function DF:CreateOutlineDropDown(parent, callback, default, width, height, member, name, template)
+	local func = DF:CreateOutlineListGenerator(callback)
+	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
+	return dropDownObject
+end
+
+function DF:CreateAnchorPointDropDown(parent, callback, default, width, height, member, name, template)
+	local func = DF:CreateAnchorPointListGenerator(callback)
+	local dropDownObject = DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
+	return dropDownObject
+end
+
+---create a dropdown object
+---@param parent frame
+---@param func function
+---@param default any
+---@param width number?
+---@param height number?
+---@param member string?
+---@param name string?
+---@param template table?
+---@return df_dropdown
 function DF:CreateDropDown(parent, func, default, width, height, member, name, template)
 	return DF:NewDropDown(parent, parent, name, member, width, height, func, default, template)
 end
@@ -1123,8 +1257,7 @@ function DF:NewDropDown(parent, container, name, member, width, height, func, de
 	end
 
 	dropDownObject.dropdown = DF:CreateNewDropdownFrame(parent, name)
-	dropDownObject.dropdown:SetWidth(width)
-	dropDownObject.dropdown:SetHeight(height)
+	PixelUtil.SetSize(dropDownObject.dropdown, width, height)
 
 	dropDownObject.container = container
 	dropDownObject.widget = dropDownObject.dropdown
@@ -1245,9 +1378,9 @@ function DF:CreateNewDropdownFrame(parent, name)
 	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlightSmall")
 	text:SetPoint("left", icon, "right", 5, 0)
 	text:SetJustifyH("left")
-	text:SetText("no option selected")
+	text:SetText("無已選的選項")
 	text:SetTextColor(1, 1, 1, 0.4)
-	DF:SetFontSize(text, 10)
+	DF:SetFontSize(text, 13)
 	newDropdownFrame.text = text
 
 	local arrowHightlight = newDropdownFrame:CreateTexture("$parent_ArrowTexture2", "OVERLAY", nil, 2)
@@ -1313,7 +1446,7 @@ function DF:CreateNewDropdownFrame(parent, name)
 	child.mouseover = mouseover
 
 	scroll:SetScrollChild(child)
-	tinsert(UISpecialFrames, newDropdownFrame.dropdownborder:GetName())
+	table.insert(UISpecialFrames, newDropdownFrame.dropdownborder:GetName())
 	--tinsert(UISpecialFrames, f.dropdownframe:GetName()) --not adding this solves an issue with ConsolePort addon and stackoverflows on Hide...
 
 	return newDropdownFrame

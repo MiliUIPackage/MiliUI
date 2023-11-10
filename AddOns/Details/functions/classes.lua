@@ -101,6 +101,10 @@ do
 		CONTAINER_ENEMYDEBUFFTARGET_CLASS = 11
 	}
 
+
+	local UnitName = UnitName
+	local GetRealmName = GetRealmName
+
 	local initialSpecListOverride = {
 		[1455] = 251, --dk
 		[1456] = 577, --demon hunter
@@ -168,6 +172,46 @@ do
 			end
 			return name
 		end
+	end
+
+	---return the class file name of the unit passed
+	local getFromCache = Details222.ClassCache.GetClassFromCache
+	local Ambiguate = Ambiguate
+	local UnitClass = UnitClass
+	function Details:GetUnitClass(unitId)
+		local class, classFileName = getFromCache(unitId)
+
+		if (not classFileName) then
+			unitId = Ambiguate(unitId, "none")
+			classFileName = select(2, UnitClass(unitId))
+		end
+
+		return classFileName
+	end
+
+	---return the class name, class file name and class id of the unit passed
+	function Details:GetUnitClassFull(unitId)
+		unitId = Ambiguate(unitId, "none")
+		local locClassName, classFileName, classId = UnitClass(unitId)
+		return locClassName, classFileName, classId
+	end
+
+	function Details:GetFullName(unitId)
+		--playerName, realmName = UnitFullName(unitId) --realm name already has spaces removed
+		--return playerName .. "-" .. realmName
+
+		local playerName, realmName = UnitName(unitId)
+
+		if (not realmName) then
+			realmName = GetRealmName():gsub("%s", "")
+		end
+
+		return playerName .. "-" .. realmName
+	end
+
+	local _, _, _, toc = GetBuildInfo() --check game version to know which version of GetFullName to use
+	if (toc < 100200) then
+		Details.GetFullName = Details.GetCLName
 	end
 
 	function Details:Class(actor)

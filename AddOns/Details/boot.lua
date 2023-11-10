@@ -13,8 +13,8 @@
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 11856
-		Details.alpha_build_counter = 11856 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12026
+		Details.alpha_build_counter = 12026 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -103,6 +103,7 @@
 			Schedules = {},
 		}
 		Details222.TimeMachine = {}
+		Details222.OnUseItem = {Trinkets = {}}
 
 		Details222.Date = {
 			GetDateForLogs = function()
@@ -137,12 +138,84 @@ do
 
 	--change logs
 	--[=[
-
-
 	--]=]
 
 	local news = {
-		{"v10.1.0.11022.151", "7月 11日, 2023"},
+		{"v10.2.0.12023.155", "11月 08日, 2023"},
+		"Several fixes to make the addon work with the combat log changes done on patch 10.2.0.",
+		"Added trinket data for patch 10.2.0.",
+		"Fixed an issue with death tooltips going off-screen when the window is too close to a screen border.",
+		"Fixed a spam of errors during battlegrounds when an enemy player heal with a dot spell.",
+
+		{"v10.1.7.12012.151", "10月 27日, 2023"},
+		"Implemented [Pip's Emerald Friendship Badge] trinket buffs.",
+		"Implemented the amount of times 'On Use' trinkets are used.",
+		"10.2 trinket damage spells renamed to the item name.",
+		"Framework Upgrade",
+		"Lib OpenRaid Upgrade.",
+		"Fixed the issue 'Segment Not Found' while resetting data.",
+		"Fixed Rogue icon",
+		"Fixed an issue with the healing merge amount on death tooltips (Flamanis).",
+		"Fixed 'extraStatusbar' showing in wrong views (non-player-dmg) (Continuity).",
+		"Removed LibCompress (Flamanis).",
+
+		{"v10.1.0.11914.151", "9月 13日, 2023"},
+		"Added an extra bar within the evoker damage bar, this new bar when hovered over shows the buff uptime of Ebon Might and Prescience on all players.",
+		"ToC Files of all plugins got updated.",
+		"Fixed the error 'Attempt to compare string with number' on vanilla (Flamanis).",
+		"Fixed the error 'object:ToolTip() is invalid'.",
+
+		{"v10.1.0.11901.151", "9月 09日, 2023"},
+		"喚能師傷害預測增強。",
+		"Improved spellId check for first hit when entering a combat (Flamanis).",
+		"Replaced Classic Era deprecated functions (Flamanis).",
+		"Change DF/pictureedit frame heirarchy to allow for close button and Done button to work right (Flamanis).",
+		"Unlocked Retail Streamer plugin for Classic Era (Flamanis).",
+		"Attempt to fix death log healing spam where a spell has multiple heals in the same millisecond.",
+		"Fixed an error with the old comparison window.",
+
+		{"v10.1.5.11856.151", "August 13th, 2023"},
+		"Fixed an issue with importing a profile with a corrupted time type.",
+		"Added Elemental Shaman overload spells (WillowGryph).",
+
+		{"v10.1.5.11855.151", "August 12th, 2023"},
+		"Forcing update interval to 0.1 on arenas matches using the real-time dps feature.",
+		"More parser cleanups and code improvements.",
+		"Auras tab now ignores regular 'world auras' (those weekly buffs of reputation, etc)",
+		"Fixed the player info tooltip (hovering the spec icon) height not being updated for Evoker Predicted damage.",
+		"Framework Update.",
+		"Lib Open Raid Update.",
+		"Code cleanup and refactoring.",
+
+		{"v10.1.5.11773.151", "July 30th, 2023"},
+		"Add animIn/animOut checks for the welcome window (Flamanis)",
+		"Fixed an issue with players with the time measurement 'real time' (Flamanis).",
+
+		{"v10.1.5.11770.151", "July 29th, 2023"},
+		"Removed 'Real Time DPS' from the time measure dropdown.",
+		"Added 'Show 'Real Time' DPS' toggle to show real time dps while in combat.",
+		"Added 'Order Bars By Real Time DPS' toggle to order bars by the amount of real time dps.",
+		"Added 'Always Use Real Time in Arenas' toggle to always use real time dps in Arenas.",
+		"Added .last_dps_realtime to player actors, caches the latest real time dps calculated.",
+		"Fixed breakdown window not opening when there's player data available at the window.",
+		"Fixed Augmented Evoker buffs placed before the combat start not being counted.",
+		"Cyclical pet ownership fix (Flamanis).",
+		"Added: Details:FindBuffCastedBy(unitId, buffSpellId, casterName), return up to 19 parameters",
+		"Framework and OpenRaid upgrades.",
+
+		{"v10.1.5.11718.151", "July 20th, 2023"},
+		"Renamed damageActor.extra_bar to damageActor.total_extra",
+		"Added: Details:ShowExtraStatusbar(barLineObject, amount, amountPercent, extraAmount)",
+		"Add the evoker predicted damage to overall data.",
+		"If any damage actor has 'total_extra' bigger than 0, the extra bar is shown.",
+		"List of spec names for spec tooltip detection now load at Startup not at lua compiling.",
+		"Renamed InstaciaCallFunction to InstanceCallDetailsFunc.",
+		"Fixed things about the Real Time DPS; Open Raid Lib Update.",
+		"Fixed Details:FindDebuffDuration(unitId, spellId, casterName) which wasn't taking the casterName in consideration.",
+		"Fixes on Encounter Details plugin.",
+		"Fixed an issue of clicking in a plugin icon in the title bar of Details! but the plugin wouldn't open.",
+
+		{"v10.1.5.11718.151", "July 13th, 2023"},
 		"Added: Hovering over the Augmented Evoker icon shows the Evoker's damage, along with an estimated damage done by its buffs.",
 		"Auras tab at the Breakdown Window, now shows damage buffs received from other players (Ebon Might, Precience and Power Infusion).",
 		"Auras tab now ignores regular 'world auras' (those weekly buffs of reputation, etc).",
@@ -170,7 +243,7 @@ do
 		"*Fixed custom displays ignoring actor.customColor.",
 		"*Details! Framework and LibOpenRaid upgrades.",
 
-		{"v10.1.0.11022.151", "7月 11日, 2023"},
+		{"v10.1.0.11700.151", "July 11th, 2023"},
 		"Effective time is used when displaying tooltips information.",
 		"Wrap the specid name locatlization cache in a Details Framework check.",
 		"More fixes for real time dps.",
@@ -353,29 +426,6 @@ do
 		"/details auras: show a panel with your current auras, spell ids and spell payload.",
 		"/details perf: show performance issues when you get a warning about freezes due to UpdateAddOnMemoryUsage().",
 		"/details npcid: get the npc id of your target (a box is shown with the number ready to be copied).",
-
-		{"v9.2.0.10001.146", "Aug 10th, 2022"},
-		"New feature: Arena DPS Bar, can be enabled at the Broadcaster Tools section, shows a bar in 'kamehameha' style showing which team is doing more damage in the latest 3 seconds.",
-		"/keystone now has more space for the dungeon name.",
-		"Revamp on the options section for Broadcaster tools.",
-		"Added 'Icon Size Offset' under Options > Bars: General, this new option allow to adjust the size of the class/spec icon shown on each bar.",
-		"Added 'Show Faction Icon' under Options > Bars: General, with this new option, you can choose to not show the faction icon, this icon is usually shown during battlegrounds.",
-		"Added 'Faction Icon Size Offset' under Options > Bars: General, new option to adjust the size of the faction icon.",
-		"Added 'Show Arena Role Icon' under Options > Bars: General, new option to hide or show the role icon of players during an arena match.",
-		"Added 'Clear On Start PVP' overall data option (Flamanis).",
-		"Added 'Arena Role Icon Size Offset' under Options > Bars: General, new option which allow to control the size of the arena role icon.",
-		"Added 'Level' option to Wallpapers, the wallpaper can now be placed on different levels which solves issues where the wallpaper is too low of certain configuration.",
-		"Streamer! plugin got updates, now it is more clear to pick which mode to use.",
-		"WotLK classic compatibility (Flamanis, Daniel Henry).",
-		"Fixed Grimrail Depot cannon and granades damage be added to players (dios-david).",
-		"Fixed the title bar text not showing when using the Custom Title Bar feature.",
-		"Fixed an issue with Dynamic Overall Damage printing errors into the chat window (Flamanis).",
-		"Role detection in classic versions got improvements.",
-		"New API: Details:GetTop5Actors(attributeId), return the top 5 actors from the selected attribute.",
-		"New API: Details:GetActorByRank(attributeId, rankIndex), return an actor from the selected attribute and rankIndex.",
-		"Major cleanup and code improvements on dropdowns for library Details! Framework.",
-		"Cleanup on NickTag library.",
-		"Removed LibGroupInSpecT, LibItemUpgradeInfo and LibCompress. These libraries got replaced by OpenRaidLib and LibDeflate.",
 	}
 
 	local newsString = "|cFFF1F1F1"
@@ -434,7 +484,7 @@ do
 
 		--current instances of the exp (need to maintain)
 			_detalhes.InstancesToStoreData = { --mapId
-				[2522] = true, --sepulcher of the first ones
+				[2549] = true, --amirdrassil
 			}
 
 		--store shield information for absorbs
@@ -1308,6 +1358,21 @@ if (select(4, GetBuildInfo()) >= 100000) then
 			StaticPopup1.button2:Click()
 		end
 	end)
+end
+
+local classCacheName = Details222.ClassCache.ByName
+local classCacheGUID = Details222.ClassCache.ByGUID
+
+function Details222.ClassCache.GetClassFromCache(value)
+	return classCacheName[value] or classCacheGUID[value]
+end
+
+function Details222.ClassCache.AddClassToCache(value, whichCache)
+	if (whichCache == "name") then
+		classCacheName[value] = true
+	elseif (whichCache == "guid") then
+		classCacheGUID[value] = true
+	end
 end
 
 function Details222.ClassCache.GetClass(value)

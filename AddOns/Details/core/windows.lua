@@ -624,6 +624,7 @@
 			esta_barra.minha_tabela = nil
 			esta_barra.animacao_fim = 0
 			esta_barra.animacao_fim2 = 0
+			if esta_barra.extraStatusbar then esta_barra.extraStatusbar:Hide() end
 		end
 
 		if (instancia.rolagem) then
@@ -872,7 +873,7 @@
 		if (preset == 1) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 12)
+			GameCooltip:SetOption("TextSize", 14)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
 			GameCooltip:SetOption("IgnoreButtonAutoHeight", true)
@@ -881,7 +882,7 @@
 		elseif (preset == 2) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 12)
+			GameCooltip:SetOption("TextSize", 14)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -896,7 +897,7 @@
 		elseif (preset == 2.1) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 10)
+			GameCooltip:SetOption("TextSize", 13)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", 0)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -908,7 +909,7 @@
 		elseif (preset == 3) then
 			GameCooltip:SetOption("TextFont", "Friz Quadrata TT")
 			GameCooltip:SetOption("TextColor", "orange")
-			GameCooltip:SetOption("TextSize", 12)
+			GameCooltip:SetOption("TextSize", 14)
 			GameCooltip:SetOption("FixedWidth", 220)
 			GameCooltip:SetOption("ButtonsYMod", -4)
 			GameCooltip:SetOption("YSpacingMod", -4)
@@ -1242,7 +1243,7 @@
 		if (not _G.DetailsUpdateDialog) then
 			local updatewindow_frame = CreateFrame("frame", "DetailsUpdateDialog", UIParent, "ButtonFrameTemplate")
 			updatewindow_frame:SetFrameStrata("LOW")
-			tinsert(UISpecialFrames, "DetailsUpdateDialog")
+			table.insert(UISpecialFrames, "DetailsUpdateDialog")
 			updatewindow_frame:SetPoint("center", UIParent, "center")
 			updatewindow_frame:SetSize(512, 200)
 			--updatewindow_frame.portrait:SetTexture([[Interface\CHARACTERFRAME\TEMPORARYPORTRAIT-FEMALE-GNOME]])
@@ -1280,7 +1281,7 @@
 
 			updatewindow_frame.close = CreateFrame("Button", "DetailsUpdateDialogCloseButton", updatewindow_frame)
 			updatewindow_frame.close:SetPoint("bottomleft", updatewindow_frame, "bottomleft", 8, 4)
-			updatewindow_frame.close:SetText("Close")
+			updatewindow_frame.close:SetText("關閉")
 
 			updatewindow_frame.close:SetScript("OnClick", function(self)
 				DetailsUpdateDialog:Hide()
@@ -1364,7 +1365,7 @@
 						GameCooltip:SetType ("menu")
 						GameCooltip:SetOption("ButtonsYMod", -5)
 						GameCooltip:SetOption("HeighMod", 5)
-						GameCooltip:SetOption("TextSize", 10)
+						GameCooltip:SetOption("TextSize", 13)
 
 						--reset
 						GameCooltip:AddMenu (1, Details.tabela_historico.ResetAllCombatData, true, nil, nil, Loc ["STRING_ERASE_DATA"], nil, true)
@@ -1622,7 +1623,7 @@ function Details.ShowCopyValueFrame(textToShow)
 		frame:SetSize(160, 20)
 		frame:SetPoint("center", UIParent, "center", 0, 0)
 		DetailsFramework:ApplyStandardBackdrop(frame)
-		tinsert(UISpecialFrames, "DetailsCopyValueFrame")
+		table.insert(UISpecialFrames, "DetailsCopyValueFrame")
 
 		frame.editBox = CreateFrame("editbox", nil, frame)
 		frame.editBox:SetPoint("topleft", frame, "topleft")

@@ -118,6 +118,9 @@
 			rampage_cast_amount = {},
 		}
 
+	--store the gear of each player
+		local gearCache = {}
+
 	--cache the data for passive trinkets procs
 		local _trinket_data_cache = {}
 
@@ -163,6 +166,7 @@
 			apoc = {},
 		}
 
+		--list of buffs that should be credited to the target of the buff
 		local buffs_to_other_players = {
 			--[10060] = true, --power infusion
 			[413426] = true, --rippling anthem (trinket 10.1)
@@ -200,7 +204,10 @@
 			[395152] = true, --ebon might (evoker 10.1.5) 395296 = the evoker buff on it self
 			[410089] = true, --prescience (evoker 10.1.5)
 			[10060] = true, --power infusion
+			[194384] = true, --atonement uptime
 		}
+
+		Details.CreditBuffToTarget = buffs_on_target
 
 		--store all information about augmentation evokers ~roskash
 		local augmentation_cache = {
@@ -376,6 +383,12 @@
 			[32176] = 17364, -- shaman Stormstrike
 			[45284] = 188196, --shaman lightining bolt overloaded
 
+			[45297] = 188443, -- shaman chain lightning overload
+			[120588] = 117014, -- shaman elemental blast overload
+			[285466] = 285452, -- shaman lava burst overload
+			[298765] = 77478, -- shaman earthquake overload
+			[219271] = 210714, -- shaman icefury overload
+
 			[228361] = 228360, --shadow priest void erruption
 
 			[401422] = 401428, --vessel of searing shadow (trinket)
@@ -385,6 +398,35 @@
 		--377461 382133
 		--377458 377459
 	end
+
+	local override_aura_spellid = {
+		[426672] = { --Pip's Emerald Friendship Badge Urctos
+			CanOverride = function(auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, ...)
+				if (duration and duration >= 1 and duration <= 60) then
+					return true
+				end
+			end,
+			NewSpellId = 426674,
+		},
+
+		[426676] = { --Pip's Emerald Friendship Badge Aerwynn
+			CanOverride = function(auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, ...)
+				if (duration and duration >= 1 and duration <= 60) then
+					return true
+				end
+			end,
+			NewSpellId = 426677,
+		},
+
+		[426647] = { --Pip's Emerald Friendship Badge Pip
+			CanOverride = function(auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, ...)
+				if (duration and duration >= 1 and duration <= 60) then
+					return true
+				end
+			end,
+			NewSpellId = 426648
+		},
+	}
 
 	local bitfield_debuffs = {}
 	for _, spellid in ipairs(Details.BitfieldSwapDebuffsIDs) do
@@ -554,7 +596,7 @@
 		--111400 warlock's burning rush
 		--368637 is buff from trinket "Scars of Fraternal Strife" which make the player bleed even out-of-combat
 		--371070 is "Iced Phial of Corrupting Rage" effect triggers randomly, even out-of-combat
-		--401394 is "Vessel of Seared Shadows" trinket 
+		--401394 is "Vessel of Seared Shadows" trinket
 		--146739 is corruption that doesn't expire
 
 		local spells_cant_start_combat = {
@@ -854,18 +896,13 @@
 					(not Details.in_group and sourceFlags and bitBand(sourceFlags, AFFILIATION_GROUP) ~= 0)
 				)
 			) then
-				
+
 				if (spells_cant_start_combat[spellId] and sourceName == Details.playername) then
 					return
 				end
 
 				if (Details.encounter_table.id and Details.encounter_table["start"] >= GetTime() - 3 and Details.announce_firsthit.enabled) then
-					local link
-					if (spellId <= 10) then
-						link = _GetSpellInfo(spellId)
-					else
-						link = _GetSpellInfo(spellId)
-					end
+					local link = _GetSpellInfo(spellId) --Removed check for the id being <= 10, both branches were the same.
 
 					if (Details.WhoAggroTimer) then
 						Details.WhoAggroTimer:Cancel()
@@ -1049,7 +1086,7 @@
 				overall["ALL"] = overall["ALL"] + 1  --qualtipo de hit ou absorb
 				mob["ALL"] = mob["ALL"] + 1  --qualtipo de hit ou absorb
 
-				if (spellId < 3) then
+				if (not isERA and spellId < 3) then
 					--overall
 					overall["HITS"] = overall["HITS"] + 1
 					mob["HITS"] = mob["HITS"] + 1
@@ -1166,16 +1203,19 @@
 		local is_friendly_fire = false
 
 		if (_is_in_instance) then
-			if (bitfield_swap_cache [sourceSerial] or ownerActor and bitfield_swap_cache [ownerActor.serial]) then
-				if (targetActor.grupo or targetOwner and targetOwner.grupo) then
-					is_friendly_fire = true
-				end
-			else
-				if (bitfield_swap_cache [targetSerial] or targetOwner and bitfield_swap_cache [targetOwner.serial]) then
-				else
-					--Astral Nova explosion from Astral Bomb (Spectral Invoker - Algeth'ar Academy) should get friend zone here
-					if ((targetActor.grupo or targetOwner and targetOwner.grupo) and (sourceActor.grupo or ownerActor and ownerActor.grupo)) then
+			local npcId = npcid_cache[targetSerial]
+			if (npcId ~= 207341) then
+				if (bitfield_swap_cache [sourceSerial] or ownerActor and bitfield_swap_cache [ownerActor.serial]) then
+					if (targetActor.grupo or targetOwner and targetOwner.grupo) then
 						is_friendly_fire = true
+					end
+				else
+					if (bitfield_swap_cache [targetSerial] or targetOwner and bitfield_swap_cache [targetOwner.serial]) then
+					else
+						--Astral Nova explosion from Astral Bomb (Spectral Invoker - Algeth'ar Academy) should get friend zone here
+						if ((targetActor.grupo or targetOwner and targetOwner.grupo) and (sourceActor.grupo or ownerActor and ownerActor.grupo)) then
+							is_friendly_fire = true
+						end
 					end
 				end
 			end
@@ -1285,11 +1325,18 @@
 							augmentedSpell = evokerActor.augmentedSpellsContainer:GetOrCreateSpell(extraSpellId, true, token)
 						end
 
+						--> calculate tier and ilevel bonuses; this values could be cached at the start of the combat
+							local bHasFourPieces = gearCache[evokerSourceSerial] and gearCache[evokerSourceSerial].tierAmount >= 4
+							local tierPieceMultiplier = bHasFourPieces and 1.08 or 1
+							local evokerItemLevel = gearCache[evokerSourceSerial] and gearCache[evokerSourceSerial].ilevel or 400
+							evokerItemLevel = max(evokerItemLevel, 400)
+							local itemLevelMultiplier = 1 + ((evokerItemLevel - 400) * 0.01)
+
 						local predictedAmount = 0
 						if (Details.zone_type == "raid") then --0x410b
-							predictedAmount = amount * 0.06947705
+							predictedAmount = amount * (0.06947705 * tierPieceMultiplier * itemLevelMultiplier)
 						else
-							predictedAmount = amount * 0.08416225
+							predictedAmount = amount * (0.08416225 * tierPieceMultiplier * itemLevelMultiplier)
 						end
 
 						evokerActor.total_extra = evokerActor.total_extra + predictedAmount
@@ -1547,7 +1594,7 @@
 			end
 		end
 
-		if (_trinket_data_cache[spellId] and _in_combat) then
+		if (_trinket_data_cache[spellId] and _in_combat) then --~trinket
 			---@type trinketdata
 			local thisData = _trinket_data_cache[spellId]
 			if (thisData.lastCombatId == _global_combat_counter) then
@@ -2099,7 +2146,7 @@
 -----------------------------------------------------------------------------------------------------------------------------------------
 	--SPELL_EMPOWER
 -----------------------------------------------------------------------------------------------------------------------------------------
-	function parser:spell_empower(token, time, sourceGUID, sourceName, sourceFlags, targetGUID, targetName, targetFlags, targetRaidFlags, spellId, spellName, spellSchool, empowerLevel)
+	function parser:spell_empower(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetRaidFlags, spellId, spellName, spellSchool, empowerLevel)
 		--empowerLevel only exists on _END and _INTERRUPT
 		if (token == "SPELL_EMPOWER_START" or token == "SPELL_EMPOWER_INTERRUPT") then
 			return
@@ -2110,7 +2157,7 @@
 		end
 
 		--early checks
-		if (not sourceGUID or not sourceName or not sourceFlags) then
+		if (not sourceSerial or not sourceName or not sourceFlags) then
 			return
 		end
 
@@ -2119,17 +2166,22 @@
 			return
 		end
 
-		local sourceObject = damage_cache[sourceGUID] or damage_cache[sourceName]
+		local sourceObject = damage_cache[sourceSerial] or damage_cache[sourceName]
 
 		if (not sourceObject) then
-			sourceObject = _current_damage_container:GetOrCreateActor(sourceGUID, sourceName, sourceFlags, true)
+			sourceObject = _current_damage_container:GetOrCreateActor(sourceSerial, sourceName, sourceFlags, true)
 		end
 
 		if (not sourceObject) then
 			return
 		end
 
-		empower_cache[sourceGUID] = empower_cache[sourceGUID] or {}
+		--add to the amount of spell casts
+		--nop, SPELL_EMPOWER_END does not trigger when Tip The Scales is enabled
+		--perhaps UNIT_SPELLCAST_SUCCEEDED checking if tip the scales buff is enabled and checking if the spell is an empowered spell
+		--parser:spellcast(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetRaidFlags, spellId, spellName)
+
+		empower_cache[sourceSerial] = empower_cache[sourceSerial] or {}
 		local empowerTable = {
 			spellName = spellName,
 			empowerLevel = empowerLevel,
@@ -2137,7 +2189,7 @@
 			counted_healing = false,
 			counted_damage  = false,
 		}
-		empower_cache[sourceGUID][spellName] = empowerTable
+		empower_cache[sourceSerial][spellName] = empowerTable
 	end
 	--parser.spell_empower
 	--10/30 15:32:11.515  SPELL_EMPOWER_START,Player-4184-00242A35,"Isodrak-Valdrakken",0x514,0x0,Player-4184-00242A35,"Isodrak-Valdrakken",0x514,0x0,382266,"Fire Breath",0x4
@@ -2154,7 +2206,6 @@
 		if (not sourceName) then
 			sourceName = "[*] " .. spellName
 		end
-
 		local npcId = tonumber(select(6, strsplit("-", petSerial)) or 0)
 
 		--differenciate army and apoc pets for DK
@@ -2174,7 +2225,7 @@
 
 		if (isWOTLK) then
 			if (npcId == 15439) then
-				Details.tabela_pets:Adicionar(petSerial:gsub("%-15439%-", "%-15438%-"), "Greater Fire Elemental", petFlags, sourceSerial, sourceName, sourceFlags)
+				Details.tabela_pets:AddPet(petSerial:gsub("%-15439%-", "%-15438%-"), "Greater Fire Elemental", petFlags, sourceSerial, sourceName, sourceFlags)
 
 			elseif (npcId == 15438) then
 				return
@@ -2192,7 +2243,7 @@
 			sourceName, sourceSerial, sourceFlags = petTable[1], petTable[2], petTable[3]
 		end
 
-		Details.tabela_pets:Adicionar(petSerial, petName, petFlags, sourceSerial, sourceName, sourceFlags)
+		Details.tabela_pets:AddPet(petSerial, petName, petFlags, sourceSerial, sourceName, sourceFlags)
 	end
 
 -----------------------------------------------------------------------------------------------------------------------------------------
@@ -2490,46 +2541,59 @@
 
 		if (targetActor.grupo) then
 			local t = last_events_cache[targetName]
-
 			if (not t) then
 				t = _current_combat:CreateLastEventsTable(targetName)
 			end
 
 			local i = t.n
 
-			local thisEvent = t[i]
-
-			thisEvent[1] = false --true if this is a damage || false for healing
-			thisEvent[2] = spellId --spellid || false if this is a battle ress line
-			thisEvent[3] = amount --amount of damage or healing
-			thisEvent[4] = time --parser time
-
-			--current unit heal
-			if (targetActor.arena_enemy) then
-				--this is an arena enemy, get the heal with the unit Id
-				local unitId = Details.arena_enemies[targetName]
-				if (not unitId) then
-					unitId = Details:GuessArenaEnemyUnitId(targetName)
+			--consolidate if the spellId is the same and the time is the same as well
+			local previousEvent = t[i-1]
+			if (previousEvent and previousEvent[1] == false and previousEvent[2] == spellId and floor(previousEvent[4]) == floor(time)) then
+				previousEvent[3] = previousEvent[3] + amount
+				if (absorbed) then
+					previousEvent[8] = (previousEvent[8] or 0) + absorbed
 				end
-				if (unitId) then
-					thisEvent[5] = UnitHealth(unitId)
+				previousEvent[7] = previousEvent[7] or bIsShield
+				previousEvent[1] = false --true if this is a damage || false for healing
+				previousEvent[5] = UnitHealth(targetName)
+				previousEvent[11] = (previousEvent[11] or 0) + 1 --attempt to perform arithmetic on a boolean value (during battlegrounds - fix 02 Nov 2023)
+			else
+				local thisEvent = t[i]
+
+				thisEvent[1] = false --true if this is a damage || false for healing
+				thisEvent[2] = spellId --spellid || false if this is a battle ress line
+				thisEvent[3] = amount --amount of damage or healing
+				thisEvent[4] = time --parser time
+				thisEvent[11] = nil
+
+				--current unit heal
+				if (targetActor.arena_enemy) then
+					--this is an arena enemy, get the heal with the unit Id
+					local unitId = Details.arena_enemies[targetName]
+					if (not unitId) then
+						unitId = Details:GuessArenaEnemyUnitId(targetName)
+					end
+					if (unitId) then
+						thisEvent[5] = UnitHealth(unitId)
+					else
+						thisEvent[5] = 0
+					end
 				else
-					thisEvent[5] = 0
+					thisEvent[5] = UnitHealth(targetName)
 				end
-			else
-				thisEvent[5] = UnitHealth(targetName)
-			end
 
-			thisEvent[6] = sourceName
-			thisEvent[7] = bIsShield
-			thisEvent[8] = absorbed
+				thisEvent[6] = sourceName
+				thisEvent[7] = bIsShield
+				thisEvent[8] = absorbed
 
-			i = i + 1
+				i = i + 1
 
-			if (i == _amount_of_last_events + 1) then
-				t.n = 1
-			else
-				t.n = i
+				if (i == _amount_of_last_events + 1) then
+					t.n = 1
+				else
+					t.n = i
+				end
 			end
 		end
 
@@ -2749,7 +2813,23 @@
 				end
 			end
 
-			if (spellId == 388007 or spellId == 388011) then --buff: bleesing of the summer and winter
+			if (override_aura_spellid[spellId] and UnitIsUnit(sourceName, "player")) then
+				local auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5 = Details:FindBuffCastedByUnitName(sourceName, spellId, sourceName)
+				if (auraName) then
+					local overrideTable = override_aura_spellid[spellId]
+					if (overrideTable.CanOverride(auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5)) then
+						--proc
+						parser:add_buff_uptime(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, overrideTable.NewSpellId, spellName, "BUFF_UPTIME_IN")
+						local bAddToTarget, bOverrideTime = false, true
+						parser:add_buff_uptime(token, time+duration, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, overrideTable.NewSpellId, spellName, "BUFF_UPTIME_OUT", bAddToTarget, bOverrideTime)
+
+						--standard buff (not discounting the time with proc, this give the player how much time the buff was active overall)
+						parser:add_buff_uptime(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, "BUFF_UPTIME_IN")
+						return
+					end
+				end
+
+			elseif (spellId == 388007 or spellId == 388011) then --buff: bleesing of the summer and winter
 				cacheAnything.paladin_vivaldi_blessings[targetSerial] = {sourceSerial, sourceName, sourceFlags}
 
 			elseif (spellId == 27827) then --spirit of redemption (holy ~priest) ~spirit
@@ -2907,6 +2987,7 @@
 		end
 	end
 
+	--~refresh
 	function parser:buff_refresh(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, spellschool, tipo, amount)
 		if (not sourceName) then
 			sourceName = names_cache[spellName]
@@ -3405,7 +3486,7 @@
 			if (not spellTable) then
 				spellTable = sourceActor.debuff_uptime_spells:GetOrCreateSpell(spellId, true, "DEBUFF_UPTIME")
 			end
-			return _spell_utility_func(spellTable, targetSerial, targetName, targetFlags, sourceName, sourceActor, "BUFF_OR_DEBUFF", sAuraInOrOut)
+			return _spell_utility_func(spellTable, targetName, sourceActor, "BUFF_OR_DEBUFF", sAuraInOrOut)
 		end
 	end
 
@@ -3422,8 +3503,9 @@
 	---@param spellId spellid
 	---@param spellName spellname
 	---@param sAuraInOrOut string
-	---@param bAddToTarget boolean? --augmentation evoker
-	function parser:add_buff_uptime(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, sAuraInOrOut, bAddToTarget)
+	---@param bAddToTarget boolean? --special auras which has to be added to the caster and target
+	---@param bOverrideTime boolean?
+	function parser:add_buff_uptime(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, sAuraInOrOut, bAddToTarget, bOverrideTime)
 		_current_misc_container.need_refresh = true
 
 		local sourceActor = misc_cache[sourceName]
@@ -3448,7 +3530,7 @@
 			if (not spellTable) then
 				spellTable = sourceActor.buff_uptime_spells:GetOrCreateSpell(spellId, true, "BUFF_UPTIME")
 			end
-			_spell_utility_func(spellTable, targetSerial, targetName, targetFlags, sourceName, sourceActor, "BUFF_OR_DEBUFF", sAuraInOrOut)
+			_spell_utility_func(spellTable, targetName, sourceActor, "BUFF_OR_DEBUFF", sAuraInOrOut, bOverrideTime and floor(time))
 		end
 
 		if (bAddToTarget and sourceSerial ~= targetSerial) then
@@ -3481,7 +3563,7 @@
 				spellTable.id = spellId
 			end
 
-			_spell_utility_func(spellTable, sourceSerial, sourceName, sourceFlags, targetName, targetActor, "BUFF_OR_DEBUFF", sAuraInOrOut)
+			_spell_utility_func(spellTable, sourceName, targetActor, "BUFF_OR_DEBUFF", sAuraInOrOut, bOverrideTime and floor(time))
 		end
 	end
 
@@ -3594,7 +3676,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 	local onUnitPowerUpdate = function(self, event, unitID, powerType)
 		if (powerType == "ALTERNATE") then
-			local actorName = Details:GetCLName(unitID)
+			local actorName = Details:GetFullName(unitID)
 			if (actorName) then
 				local power = _current_combat.alternate_power[actorName]
 				if (not power) then
@@ -3832,7 +3914,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			end
 		end
 
-		return _spell_utility_func(spellTable, targetSerial, targetName, targetFlags, sourceName, token, "BUFF_OR_DEBUFF", "COOLDOWN")
+		return _spell_utility_func(spellTable, targetName, token, "BUFF_OR_DEBUFF", "COOLDOWN")
 	end
 
 	--serach key: ~interrupt
@@ -3859,7 +3941,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		end
 
 		if (not sourceName) then
-			sourceName = "[*] "..spellName
+			sourceName = "[*] " .. spellName
 
 		elseif (not targetName) then
 			return
@@ -3869,6 +3951,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 	------------------------------------------------------------------------------------------------
 	--get actors
+		local petName, ownerName, ownerGUID, ownerFlags
+
 		---@type actorutility, actorutility
 		local sourceActor, ownerActor = misc_cache[sourceName], nil
 		if (not sourceActor) then
@@ -3877,6 +3961,16 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 				misc_cache[sourceName] = sourceActor
 			end
 		end
+
+		if (not ownerActor) then
+			petName, ownerName, ownerGUID, ownerFlags = Details.tabela_pets:GetPetOwner(sourceSerial, sourceName, sourceFlags)
+			if (petName) then
+				ownerActor = _current_misc_container:GetOrCreateActor(ownerGUID, ownerName, ownerFlags, true)
+				--print("pet found:", petName, ownerName, ownerGUID, ownerFlags)
+			end
+		end
+
+		--local sourceActor, ownerActor, sourceName = _current_misc_container:GetOrCreateActor(sourceSerial, sourceName, sourceFlags, true)
 
 	------------------------------------------------------------------------------------------------
 	--build containers on the fly
@@ -3914,9 +4008,14 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		if (not spell) then
 			spell = sourceActor.interrupt_spells:GetOrCreateSpell(spellId, true, token)
 		end
-		_spell_utility_func(spell, targetSerial, targetName, targetFlags, sourceName, token, extraSpellID, extraSpellName)
+		_spell_utility_func(spell, targetName, token, extraSpellID, extraSpellName)
 
-		--verifica se tem dono e adiciona o interrupt para o dono
+		if (spellId == 19647) then
+			--spell lock (warlock pet)
+			--Details:Msg("warlock pet interrupt, owner:", (ownerActor and ownerActor.nome or "no owner"))
+		end
+
+		--if the interrupt is from a pet, then we need to add the interrupt to the owner
 		if (ownerActor) then
 			if (not ownerActor.interrupt) then
 				ownerActor.interrupt = Details:GetOrderNumber(sourceName)
@@ -3925,16 +4024,15 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 				ownerActor.interrompeu_oque = {}
 			end
 
-			-- adiciona ao total
-			ownerActor.interrupt = ownerActor.interrupt + 1
-
-			-- adiciona aos alvos
-			ownerActor.interrupt_targets[targetName] = (ownerActor.interrupt_targets[targetName] or 0) + 1
-
-			-- update last event
 			ownerActor.last_event = _tempo
 
-			-- spells interrupted
+			--total interrupts
+			ownerActor.interrupt = ownerActor.interrupt + 1
+
+			--add to interrupt targets
+			ownerActor.interrupt_targets[targetName] = (ownerActor.interrupt_targets[targetName] or 0) + 1
+
+			--which spells this actor interrupted
 			ownerActor.interrompeu_oque[extraSpellID] = (ownerActor.interrompeu_oque[extraSpellID] or 0) + 1
 
 			--pet interrupt
@@ -3966,7 +4064,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 	---@param targetRaidFlags number
 	---@param spellId number
 	---@param spellName string
-	---@param spellType number
+	---@param spellType number?
 	function parser:spellcast(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetRaidFlags, spellId, spellName, spellType)
 		--only capture if is in combat
 		if (not _in_combat) then
@@ -3980,7 +4078,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		---@type actor, actor
 		local sourceActor, ownerActor = misc_cache[sourceSerial] or misc_cache_pets[sourceSerial] or misc_cache[sourceName], misc_cache_petsOwners[sourceSerial]
 		if (not sourceActor) then
-			sourceActor, ownerActor, sourceName = _current_misc_container:GetOrCreateActor (sourceSerial, sourceName, sourceFlags, true)
+			sourceActor, ownerActor, sourceName = _current_misc_container:GetOrCreateActor(sourceSerial, sourceName, sourceFlags, true)
 			if (ownerActor) then
 				if (sourceSerial ~= "") then
 					misc_cache_pets [sourceSerial] = sourceActor
@@ -3995,6 +4093,9 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 				end
 			end
 		end
+
+	--check if this is an item usage
+	spellId = Details222.OnUseItem.Trinkets[spellId] or spellId
 
 	------------------------------------------------------------------------------------------------
 	--build containers on the fly
@@ -4166,7 +4267,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		if (not spellTable) then
 			spellTable = sourceActor.dispell_spells:GetOrCreateSpell(spellId, true, token)
 		end
-		_spell_utility_func(spellTable, targetSerial, targetName, targetFlags, sourceName, token, extraSpellID, extraSpellName)
+		_spell_utility_func(spellTable, targetName, token, extraSpellID, extraSpellName)
 
 		--is has an owner, add the dispel to the owner as well
 		if (ownerActor) then
@@ -4267,11 +4368,11 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		sourceActor.ress_targets[targetName] = (sourceActor.ress_targets[targetName] or 0) + 1
 
 		--actor spells table
-		local spell = sourceActor.ress_spells._ActorTable[spellId]
-		if (not spell) then
-			spell = sourceActor.ress_spells:GetOrCreateSpell(spellId, true, token)
+		local spellTable = sourceActor.ress_spells._ActorTable[spellId]
+		if (not spellTable) then
+			spellTable = sourceActor.ress_spells:GetOrCreateSpell(spellId, true, token)
 		end
-		return _spell_utility_func(spell, targetSerial, targetName, targetFlags, sourceName, token)
+		return _spell_utility_func(spellTable, targetName, token)
 	end
 
 	--serach key: ~cc
@@ -4338,7 +4439,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		if (not spellTable) then
 			spellTable = sourceActor.cc_break_spells:GetOrCreateSpell(extraSpellID, true, token)
 		end
-		return _spell_utility_func(spellTable, targetSerial, targetName, targetFlags, sourceName, token, spellId, spellName)
+		return _spell_utility_func(spellTable, targetName, token, spellId, spellName)
 	end
 
 	--serach key: ~dead ~death ~morte
@@ -5498,6 +5599,58 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		Details222.AutoRunCode.DispatchAutoRunCode("on_entercombat")
 
 		Details.tabela_vigente.CombatStartedAt = GetTime()
+
+		local bSilentOnError = true
+		local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0", bSilentOnError) --isWOTLK isERA
+		if (openRaidLib) then
+			wipe(gearCache)
+			local bNeedPlayerGear = true
+
+			if (IsInRaid()) then
+				local unitIdCache = Details222.UnitIdCache.Raid
+				bNeedPlayerGear = false
+
+				for i = 1, 40 do
+					local unitId = unitIdCache[i]
+					local guid = UnitGUID(unitId)
+					if (guid) then
+						local unitGearInfo = openRaidLib.GetUnitGear(unitId)
+						if (unitGearInfo) then
+							gearCache[guid] = {
+								tierAmount = unitGearInfo.tierAmount or 0,
+								ilevel = unitGearInfo.ilevel or 0,
+							}
+						end
+					end
+				end
+
+			elseif (IsInGroup()) then
+				local unitIdCache = Details222.UnitIdCache.Party
+				for i = 1, 4 do
+					local unitId = unitIdCache[i]
+					local guid = UnitGUID(unitId)
+					if (guid) then
+						local unitGearInfo = openRaidLib.GetUnitGear(unitId)
+						if (unitGearInfo) then
+							gearCache[guid] = {
+								tierAmount = unitGearInfo.tierAmount or 0,
+								ilevel = unitGearInfo.ilevel or 0,
+							}
+						end
+					end
+				end
+			end
+
+			if (bNeedPlayerGear) then
+				local playerGearInfo = openRaidLib.GetUnitGear("player")
+				if (playerGearInfo) then
+					gearCache[UnitGUID("player")] = {
+						tierAmount = playerGearInfo.tierAmount or 0,
+						ilevel = playerGearInfo.ilevel or 0,
+					}
+				end
+			end
+		end
 	end
 
 	--in case the player left the raid during the encounter
@@ -5778,7 +5931,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 			if (serial and serial ~= UnitGUID("player") and serial:find("Player")) then
 				Details.duel_candidates[serial] = GetTime()
 
-				local playerName = Details:GetCLName(unit)
+				local playerName = Details:GetFullName(unit)
 
 				--check if the player is inside the current combat and flag the objects
 				if (playerName and _current_combat) then
@@ -5954,7 +6107,13 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		Details.in_combat = false
 		Details.combat_id = 0
 		Details.opened_windows = 0
-		Details.playername = UnitName("player")
+
+		local _, _, _, toc = GetBuildInfo()
+		if (toc >= 100200) then
+			Details.playername = UnitName("player") .. "-" .. (GetRealmName():gsub("%s", ''))
+		else
+			Details.playername = UnitName("player")
+		end
 
 		--player faction and enemy faction
 		Details.faction = UnitFactionGroup("player")

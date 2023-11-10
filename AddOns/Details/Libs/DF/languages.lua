@@ -1628,6 +1628,7 @@ function DF.Language.CreateLanguageSelector(addonId, parent, callback, selectedL
 
     local languageLabel = DF:CreateLabel(parent, _G.LANGUAGE  .. ":", 13, "silver")
     languageLabel:SetPoint("right", languageSelector, "left", -3, 0)
+    languageSelector.languageLabel = languageLabel
 
     return languageSelector
 end

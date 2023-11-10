@@ -6,6 +6,7 @@
 	local _tempo = time()
 	local _
 	local addonName, Details222 = ...
+	local detailsFramework = DetailsFramework
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --local pointers
@@ -1246,106 +1247,8 @@
 	end
 
 	function Details:MakeEqualizeOnActor (player, realm, receivedActor)
-
 		if (true) then --disabled for testing
 			return
-		end
-
-		local combat = Details:GetCombat("current")
-		local damage, heal, energy, misc = Details:GetAllActors("current", player)
-
-		if (not damage and not heal and not energy and not misc) then
-
-			--try adding server name
-			damage, heal, energy, misc = Details:GetAllActors("current", player.."-"..realm)
-
-			if (not damage and not heal and not energy and not misc) then
-				--not found any actor object, so we need to create
-
-				local actorName
-
-				if (realm ~= GetRealmName()) then
-					actorName = player.."-"..realm
-				else
-					actorName = player
-				end
-
-				local guid = Details:FindGUIDFromName (player)
-
-				-- 0x512 normal party
-				-- 0x514 normal raid
-
-				if (guid) then
-					damage = combat [1]:PegarCombatente (guid, actorName, 0x514, true)
-					heal = combat [2]:PegarCombatente (guid, actorName, 0x514, true)
-					energy = combat [3]:PegarCombatente (guid, actorName, 0x514, true)
-					misc = combat [4]:PegarCombatente (guid, actorName, 0x514, true)
-
-					if (Details.debug) then
-						Details:Msg("(debug) equalize received actor:", actorName, damage, heal)
-					end
-				else
-					if (Details.debug) then
-						Details:Msg("(debug) equalize couldn't get guid for player ",player)
-					end
-				end
-			end
-		end
-
-		combat[1].need_refresh = true
-		combat[2].need_refresh = true
-		combat[3].need_refresh = true
-		combat[4].need_refresh = true
-
-		if (damage) then
-			if (damage.total < receivedActor [1][1]) then
-				if (Details.debug) then
-					Details:Msg(player .. " damage before: " .. damage.total .. " damage received: " .. receivedActor [1][1])
-				end
-				damage.total = receivedActor [1][1]
-			end
-			if (damage.damage_taken < receivedActor [1][2]) then
-				damage.damage_taken = receivedActor [1][2]
-			end
-			if (damage.friendlyfire_total < receivedActor [1][3]) then
-				damage.friendlyfire_total = receivedActor [1][3]
-			end
-		end
-
-		if (heal) then
-			if (heal.total < receivedActor [2][1]) then
-				heal.total = receivedActor [2][1]
-			end
-			if (heal.totalover < receivedActor [2][2]) then
-				heal.totalover = receivedActor [2][2]
-			end
-			if (heal.healing_taken < receivedActor [2][3]) then
-				heal.healing_taken = receivedActor [2][3]
-			end
-		end
-
-		if (energy) then
-			if (energy.mana and (receivedActor [3][1] > 0 and energy.mana < receivedActor [3][1])) then
-				energy.mana = receivedActor [3][1]
-			end
-			if (energy.e_rage and (receivedActor [3][2] > 0 and energy.e_rage < receivedActor [3][2])) then
-				energy.e_rage = receivedActor [3][2]
-			end
-			if (energy.e_energy and (receivedActor [3][3] > 0 and energy.e_energy < receivedActor [3][3])) then
-				energy.e_energy = receivedActor [3][3]
-			end
-			if (energy.runepower and (receivedActor [3][4] > 0 and energy.runepower < receivedActor [3][4])) then
-				energy.runepower = receivedActor [3][4]
-			end
-		end
-
-		if (misc) then
-			if (misc.interrupt and (receivedActor [4][1] > 0 and misc.interrupt < receivedActor [4][1])) then
-				misc.interrupt = receivedActor [4][1]
-			end
-			if (misc.dispell and (receivedActor [4][2] > 0 and misc.dispell < receivedActor [4][2])) then
-				misc.dispell = receivedActor [4][2]
-			end
 		end
 	end
 
@@ -1629,7 +1532,7 @@
 		GameCooltip:AddStatusBar (100, 1, 0, 0, 0, 0.8)
 	end
 
-	function Details:AddTooltipBackgroundStatusbar (side, value, useSpark)
+	function Details:AddTooltipBackgroundStatusbar (side, value, useSpark, statusBarColor)
 		Details.tooltip.background [4] = 0.8
 		Details.tooltip.icon_size.W = Details.tooltip.line_height
 		Details.tooltip.icon_size.H = Details.tooltip.line_height
@@ -1661,6 +1564,9 @@
 
 		if (not side) then
 			local r, g, b, a = unpack(Details.tooltip.bar_color)
+			if (statusBarColor) then
+				r, g, b, a = detailsFramework:ParseColors(statusBarColor)
+			end
 			local rBG, gBG, bBG, aBG = unpack(Details.tooltip.background)
 			GameCooltip:AddStatusBar (value, 1, r, g, b, a, useSpark, {value = 100, color = {rBG, gBG, bBG, aBG}, texture = [[Interface\AddOns\Details\images\bar_serenity]]})
 
@@ -1743,6 +1649,10 @@
 		end
 	end
 
+	---@param self instance
+	---@param frame table
+	---@param whichRowLine number
+	---@param keydown string
 	function Details:MontaTooltip(frame, whichRowLine, keydown)
 		self:BuildInstanceBarTooltip(frame)
 
@@ -1773,6 +1683,9 @@
 		if (not object.ToolTip) then
 			if (object.__destroyed) then
 				Details:Msg("object:ToolTip() is invalid.", object.__destroyedBy)
+				self:ResetWindow()
+				self:RefreshWindow(true)
+				return
 			end
 		end
 
@@ -1892,7 +1805,7 @@
 		dumpt(t)
 	end
 
-	function Details:ForceRefresh()
+	function Details:ForceRefresh() --getting deprecated soon
 		self:RefreshMainWindow(true)
 	end
 

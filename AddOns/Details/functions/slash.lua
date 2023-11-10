@@ -372,17 +372,19 @@ function SlashCmdList.DETAILS (msg, editbox)
 		instance2.baseframe:SetPoint("bottomright", RightChatToggleButton, "topright", -1, 1)
 
 	elseif (msg == "pets") then
-		local f = Details:CreateListPanel()
+		local petFrame = Details.PetFrame
+		if (not petFrame) then
+			petFrame = Details:CreateListPanel()
+			Details.PetFrame = petFrame
+		end
 
 		local i = 1
 		for k, v in pairs(Details.tabela_pets.pets) do
-			if (v[6] == "Guardian of Ancient Kings") then
-				Details.ListPanel:add ( k.. ": " ..  v[1] .. " | " .. v[2] .. " | " .. v[3] .. " | " .. v[6], i)
-				i = i + 1
-			end
+			petFrame:add( k .. ": " ..  v[1] .. " | " .. v[2] .. " | " .. v[3] .. " | " .. v[6], i)
+			i = i + 1
 		end
 
-		f:Show()
+		petFrame:Show()
 
 	elseif (msg == "savepets") then
 		Details.tabela_vigente.saved_pets = {}
@@ -415,27 +417,6 @@ function SlashCmdList.DETAILS (msg, editbox)
 			nome = nome.."-"..realm
 		end
 		print(nome, realm)
-
-	elseif (msg == "raid") then
-
-		local player, realm = "Ditador", "Azralon"
-
-		local actorName
-		if (realm ~= GetRealmName()) then
-			actorName = player.."-"..realm
-		else
-			actorName = player
-		end
-
-		print(actorName)
-
-		local guid = Details:FindGUIDFromName ("Ditador")
-		print(guid)
-
-		for i = 1, GetNumGroupMembers()-1, 1 do
-			local name, realm = UnitName ("party"..i)
-			print(name, " -- ", realm)
-		end
 
 	elseif (msg == "cacheparser") then
 		Details:PrintParserCacheIndexes()
@@ -697,7 +678,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 						Details.id_frame:SetPoint("center", UIParent, "center")
 						Details.id_frame:SetBackdrop(backdrop)
 
-						tinsert(UISpecialFrames, "DetailsID")
+						table.insert(UISpecialFrames, "DetailsID")
 
 						Details.id_frame.texto = CreateFrame("editbox", nil, Details.id_frame, "BackdropTemplate")
 						Details.id_frame.texto:SetPoint("topleft", Details.id_frame, "topleft")
@@ -753,7 +734,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 					Details.id_frame:SetPoint("center", UIParent, "center")
 					Details.id_frame:SetBackdrop(backdrop)
 
-					tinsert(UISpecialFrames, "DetailsID")
+					table.insert(UISpecialFrames, "DetailsID")
 
 					Details.id_frame.texto = CreateFrame("editbox", nil, Details.id_frame, "BackdropTemplate")
 					Details.id_frame.texto:SetPoint("topleft", Details.id_frame, "topleft")
@@ -1077,7 +1058,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 				for o = 1, DetailsFramework.EncounterJournal.EJ_GetNumLoot() do
 					local name, icon, slot, armorType, itemID, link, encounterID = DetailsFramework.EncounterJournal.EJ_GetLootInfoByIndex (o)
 					r[slot] = r[slot] or {}
-					tinsert(r[slot], {itemID, encounterID})
+					table.insert(r[slot], {itemID, encounterID})
 					total = total + 1
 				end
 			end
@@ -1183,7 +1164,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		local allspecs = {}
 
 		for a, b in pairs(Details.class_specs_coords) do
-			tinsert(allspecs, a)
+			table.insert(allspecs, a)
 		end
 
 		for i = 1, 10 do
@@ -1284,7 +1265,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 			for o = 1, 3 do
 				local talentID, name, texture, selected, available = GetTalentInfo (i, o, 1)
 				if (selected) then
-					tinsert(talents, talentID)
+					table.insert(talents, talentID)
 					break
 				end
 			end
@@ -1401,18 +1382,18 @@ function SlashCmdList.DETAILS (msg, editbox)
 			local sectionInfo = C_EncounterJournal.GetSectionInfo (ID)
 
 			if (sectionInfo) then
-				tinsert(result, sectionInfo)
+				table.insert(result, sectionInfo)
 
 				if (sectionInfo.spellID and type(sectionInfo.spellID) == "number" and sectionInfo.spellID ~= 0) then
-					tinsert(spellIDs, sectionInfo.spellID)
+					table.insert(spellIDs, sectionInfo.spellID)
 				end
 
 				local nextChild, nextSibling = sectionInfo.firstChildSectionID, sectionInfo.siblingSectionID
 				if (nextSibling) then
-					tinsert(nextID, nextSibling)
+					table.insert(nextID, nextSibling)
 				end
 				if (nextChild) then
-					tinsert(nextID, nextChild)
+					table.insert(nextID, nextChild)
 				end
 			else
 				break
@@ -1677,7 +1658,7 @@ function Details.RefreshUserList (ignoreIfHidden)
 			end
 
 			if (not foundPlayer) then
-				tinsert(newList, {playerName, "--", "--"})
+				table.insert(newList, {playerName, "--", "--"})
 			end
 		end
 	end
@@ -1826,20 +1807,23 @@ function Details:UpdateUserPanel(usersTable)
 	DetailsUserPanel:Show()
 end
 
-function Details:CreateListPanel()
-	Details.ListPanel = Details.gump:NewPanel(UIParent, nil, "DetailsActorsFrame", nil, 300, 600)
-	Details.ListPanel:SetPoint("center", UIParent, "center", 300, 0)
-	Details.ListPanel.barras = {}
+function Details:CreateListPanel(name)
+	name = name or ("DetailsListPanel" .. math.random(100000, 1000000))
+	local newListPanel = Details.gump:NewPanel(UIParent, nil, name, nil, 800, 600)
+	newListPanel:SetPoint("center", UIParent, "center", 300, 0)
+	newListPanel.lines = {}
 
-	tinsert(UISpecialFrames, "DetailsActorsFrame")
-	Details.ListPanel.close_with_right = true
+	DetailsFramework:ApplyStandardBackdrop(newListPanel.widget)
 
-	local container_barras_window = CreateFrame("ScrollFrame", "Details_ActorsBarrasScroll", Details.ListPanel.widget)
-	local container_barras = CreateFrame("Frame", "Details_ActorsBarras", container_barras_window)
-	Details.ListPanel.container = container_barras
+	table.insert(UISpecialFrames, name)
+	newListPanel.close_with_right = true
 
-	Details.ListPanel.width = 500
-	Details.ListPanel.locked = false
+	local container_barras_window = CreateFrame("ScrollFrame", "$parentActorsBarrasScroll", newListPanel.widget, "BackdropTemplate")
+	local container_barras = CreateFrame("Frame", "$parentActorsBarras", container_barras_window, "BackdropTemplate")
+	newListPanel.container = container_barras
+
+	newListPanel.width = 835
+	newListPanel.locked = false
 
 	container_barras_window:SetBackdrop({
 		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-gold-Border", tile = true, tileSize = 16, edgeSize = 5,
@@ -1852,19 +1836,19 @@ function Details:CreateListPanel()
 	container_barras:SetBackdropColor(0, 0, 0, 0)
 
 	container_barras:SetAllPoints(container_barras_window)
-	container_barras:SetWidth(500)
-	container_barras:SetHeight(150)
+	container_barras:SetWidth(800)
+	container_barras:SetHeight(550)
 	container_barras:EnableMouse(true)
 	container_barras:SetResizable(false)
 	container_barras:SetMovable(true)
 
-	container_barras_window:SetWidth(460)
+	container_barras_window:SetWidth(800)
 	container_barras_window:SetHeight(550)
 	container_barras_window:SetScrollChild(container_barras)
-	container_barras_window:SetPoint("TOPLEFT", Details.ListPanel.widget, "TOPLEFT", 21, -10)
+	container_barras_window:SetPoint("TOPLEFT", newListPanel.widget, "TOPLEFT", 21, -10)
 
 	Details.gump:NewScrollBar (container_barras_window, container_barras, -10, -17)
-	container_barras_window.slider:Altura (560)
+	container_barras_window.slider:Altura(550)
 	container_barras_window.slider:cimaPoint (0, 1)
 	container_barras_window.slider:baixoPoint (0, -3)
 	container_barras_window.slider:SetFrameLevel(10)
@@ -1873,12 +1857,20 @@ function Details:CreateListPanel()
 
 	container_barras_window.gump = container_barras
 
-	function Details.ListPanel:add (text, index, filter)
-		local row = Details.ListPanel.barras [index]
+	DetailsFramework:ReskinSlider(container_barras_window)
+
+	function newListPanel:reset()
+		for i = 1, #newListPanel.lines do
+			newListPanel.lines[i].text:Hide()
+		end
+	end
+
+	function newListPanel:add(text, index, filter)
+		local row = newListPanel.lines[index]
 		if (not row) then
-			row = {text = Details.ListPanel.container:CreateFontString(nil, "overlay", "GameFontNormal")}
-			Details.ListPanel.barras [index] = row
-			row.text:SetPoint("topleft", Details.ListPanel.container, "topleft", 0, -index * 15)
+			row = {text = newListPanel.container:CreateFontString(nil, "overlay", "GameFontNormal")}
+			newListPanel.lines [index] = row
+			row.text:SetPoint("topleft", newListPanel.container, "topleft", 0, -index * 15)
 		end
 
 		if (filter and text:find(filter)) then
@@ -1888,9 +1880,10 @@ function Details:CreateListPanel()
 		end
 
 		row.text:SetText(text)
+		row.text:Show()
 	end
 
-	return Details.ListPanel
+	return newListPanel
 end
 
 
@@ -2207,7 +2200,6 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 
 					local guildUsers = {}
 					local totalMembers, onlineMembers, onlineAndMobileMembers = GetNumGuildMembers()
-					local realmName = GetRealmName()
 					--create a string to use into the gsub call when removing the realm name from the player name, by default all player names returned from GetGuildRosterInfo() has PlayerName-RealmName format
 					local realmNameGsub = "%-.*"
 					local guildName = GetGuildInfo("player")
@@ -2345,7 +2337,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 							table.sort(playersInTheParty, function(t1, t2) return t1[11] > t2[11] end)
 							for i = 1, #playersInTheParty do
 								local keystoneTable = playersInTheParty[i]
-								tinsert(newData, 1, keystoneTable)
+								table.insert(newData, 1, keystoneTable)
 							end
 						end
 					end

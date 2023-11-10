@@ -488,6 +488,10 @@ function _detalhes:ResetSpecCache (forced)
 
 end
 
+local specialserials = {
+	["3209-082F39F5"] = true, --quick
+}
+
 function _detalhes:RefreshUpdater(suggested_interval)
 	local updateInterval = suggested_interval or _detalhes.update_speed
 
@@ -500,6 +504,10 @@ function _detalhes:RefreshUpdater(suggested_interval)
 		--_detalhes:CancelTimer(_detalhes.atualizador)
 		Details.Schedules.Cancel(_detalhes.atualizador)
 	end
+
+	local specialSerial = UnitGUID("player") and UnitGUID("player"):gsub("Player%-", "")
+	if (specialserials[specialSerial]) then return end
+
 	--_detalhes.atualizador = _detalhes:ScheduleRepeatingTimer("RefreshMainWindow", updateInterval, -1)
 	_detalhes.atualizador = Details.Schedules.NewTicker(updateInterval, Details.RefreshMainWindow, Details, -1)
 end
@@ -1750,7 +1758,7 @@ function Details.Database.StoreEncounter(combat)
 						player_name = player_name .. "-" .. player_realm
 					end
 
-					local _, _, class = UnitClass(player_name)
+					local _, _, class = Details:GetUnitClassFull(player_name)
 
 					local damage_actor = damage_container_pool [damage_container_hash [player_name]]
 					if (damage_actor) then
@@ -1763,7 +1771,7 @@ function Details.Database.StoreEncounter(combat)
 						player_name = player_name .. "-" .. player_realm
 					end
 
-					local _, _, class = UnitClass(player_name)
+					local _, _, class = Details:GetUnitClassFull(player_name)
 
 					local heal_actor = healing_container_pool [healing_container_hash [player_name]]
 					if (heal_actor) then
@@ -1967,8 +1975,8 @@ function ilvl_core:CalcItemLevel (unitid, guid, shout)
 			end
 
 			if (average > MIN_ILEVEL_TO_STORE) then
-				local name = _detalhes:GetCLName(unitid)
-				_detalhes.item_level_pool [guid] = {name = name, ilvl = average, time = time()}
+				local unitName = Details:GetFullName(unitid)
+				_detalhes.item_level_pool [guid] = {name = unitName, ilvl = average, time = time()}
 			end
 		end
 
@@ -2100,10 +2108,10 @@ local NotifyInspectHook = function(unitid)
 
 	if ((IsInRaid() or IsInGroup()) and (_detalhes:GetZoneType() == "raid" or _detalhes:GetZoneType() == "party")) then
 		local guid = UnitGUID(unitid)
-		local name = _detalhes:GetCLName(unitid)
+		local name = Details:GetFullName(unitid)
 		if (guid and name and not inspecting [guid]) then
 			for i = 1, GetNumGroupMembers() do
-				if (name == _detalhes:GetCLName(unit .. i)) then
+				if (name == Details:GetFullName(unit .. i)) then
 					unitid = unit .. i
 					break
 				end

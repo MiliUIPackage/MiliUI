@@ -64,7 +64,17 @@
 ---@field key5 petname
 ---@field key6 guid
 
+---@class petownerinfo : table
+---@field key1 unitname owner name
+---@field key2 guid owner guid
+---@field key3 controlflags owner flags
+---@field key4 unixtime time when the pet was created
+---@field key5 boolean true if the pet is part of the player's group
+---@field key6 petname pet name
+---@field key7 guid pet guid
+
 ---@class details
+---@field pets table<guid, petinfo> store the pet guid as the key and the petinfo as the value
 ---@field SpellTableMixin spelltablemixin
 ---@field GetInstance fun(self: details) : instance
 ---@field GetWindow fun(self: details) : instance this is an alias of GetInstance
@@ -90,7 +100,7 @@
 ---@field spec specializationid
 
 ---@class customspellinfo : {name: string, isPassive: boolean, itemId: number, icon: string|number}
----@class customiteminfo: {itemId: number, isPassive: boolean}
+---@class customiteminfo: {itemId: number, isPassive: boolean, nameExtra: string?, icon: string|number|nil}
 ---@class savedspelldata : {key1: number, key2: string, key3: number}
 ---@class alternatepowertable : {last: number, total: number}
 
@@ -335,6 +345,7 @@
 ---@field IsLowerInstance fun(instance: instance) : boolean
 ---@field IsEnabled fun(instance: instance) : boolean
 ---@field GetId fun(instance: instance) : instanceid
+---@field SetSegmentId fun(instance: instance, segment: segmentid) set the segmentId for the instance and nothing else, use 'SetSegment' for a full update
 ---@field GetSegmentId fun(instance: instance) : segmentid
 ---@field RefreshCombat fun(instance: instance)
 ---@field Freeze fun(instance: instance)
@@ -464,17 +475,17 @@
 
 ---spelltableadv is similar to spelltable but allow custom members, methods and any modification isn't save to saved variables
 ---@class spelltableadv : spelltable, spelltablemixin
----@field expanded boolean if is true the show the nested spells
+---@field expanded boolean? if is true the show the nested spells
 ---@field spellTables spelltable[]
 ---@field nestedData bknesteddata[]
 ---@field bCanExpand boolean
----@field expandedIndex number
----@field bIsExpanded boolean
----@field statusBarValue number
----@field npcId npcid
----@field actorName string --when showing an actor header, this is the actor name
----@field bIsActorHeader boolean if this is true, the spellbar is an actor header, which is a bar with the actor name with the actor spells nested
----@field actorIcon textureid|texturepath
+---@field expandedIndex number?
+---@field bIsExpanded boolean?
+---@field statusBarValue number?
+---@field npcId any
+---@field actorName string? --when showing an actor header, this is the actor name
+---@field bIsActorHeader boolean? if this is true, the spellbar is an actor header, which is a bar with the actor name with the actor spells nested
+---@field actorIcon textureid|texturepath?
 
 ---@class bknesteddata : {spellId: number, spellTable: spelltable, actorName: string, value: number, bIsActorHeader: boolean} fills .nestedData table in spelltableadv, used to store the nested spells data, 'value' is set when the breakdown sort the values by the selected header
 
