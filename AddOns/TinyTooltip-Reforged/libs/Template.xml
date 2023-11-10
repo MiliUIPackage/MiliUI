@@ -44,7 +44,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 					</EditBox>
 				</ScrollChild>
 			</ScrollFrame>
-			<Button parentKey="export" inherits="GameMenuButtonTemplate" text="匯出">
+			<Button parentKey="export" inherits="GameMenuButtonTemplate" text="EXPORT">
 				<Size>
 					<AbsDimension x="100" y="25"/>
 				</Size>
@@ -56,7 +56,7 @@ C:\Projects\WoW\Bin\Interface\FrameXML\UI.xsd">
 					</Anchor>
 				</Anchors>
 			</Button>
-            		<Button parentKey="import" inherits="GameMenuButtonTemplate" text="匯入">
+            		<Button parentKey="import" inherits="GameMenuButtonTemplate" text="IMPORT">
 				<Size>
 					<AbsDimension x="100" y="25"/>
 				</Size>
