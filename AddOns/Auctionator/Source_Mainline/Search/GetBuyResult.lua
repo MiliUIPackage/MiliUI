@@ -7,8 +7,8 @@ function Auctionator.Search.GetBuyItemResult(resultInfo)
     owners = resultInfo.owners,
     totalNumberOfOwners = resultInfo.totalNumberOfOwners,
     otherSellers = Auctionator.Utilities.StringJoin(resultInfo.owners, PLAYER_LIST_DELIMITER),
-    timeLeftPretty = Auctionator.Utilities.FormatTimeLeftBand(resultInfo.timeLeft),
     timeLeft = resultInfo.timeLeft, --Used in sorting and the vanilla AH tooltip code
+    timeLeftPretty = Auctionator.Utilities.FormatTimeLeftBand(resultInfo.timeLeft),
     quantity = resultInfo.quantity,
     quantityFormatted = FormatLargeNumber(resultInfo.quantity),
     itemLink = resultInfo.itemLink,

@@ -68,6 +68,7 @@ function AuctionatorSearchDataProviderMixin:OnShow()
   Auctionator.EventBus:Register(self, {
     Auctionator.Selling.Events.SellSearchStart,
     Auctionator.Selling.Events.BagItemClicked,
+    Auctionator.Selling.Events.ClearBagItem,
     Auctionator.Cancelling.Events.RequestCancel,
   })
 
@@ -79,20 +80,22 @@ function AuctionatorSearchDataProviderMixin:OnHide()
   Auctionator.EventBus:Unregister(self, {
     Auctionator.Selling.Events.SellSearchStart,
     Auctionator.Selling.Events.BagItemClicked,
+    Auctionator.Selling.Events.ClearBagItem,
     Auctionator.Cancelling.Events.RequestCancel,
   })
 end
 
-function AuctionatorSearchDataProviderMixin:ReceiveEvent(eventName, itemKey, originalItemKey, originalItemLink)
+function AuctionatorSearchDataProviderMixin:ReceiveEvent(eventName, itemKey, originalItemLink)
   if eventName == Auctionator.Selling.Events.SellSearchStart then
     self:Reset()
     self.onSearchStarted()
     -- Used to prevent a sale causing the view to sometimes change to another item
     self.expectedItemKey = itemKey
-    self.originalItemKey = originalItemKey
     self.originalItemLink = originalItemLink
   elseif eventName == Auctionator.Selling.Events.BagItemClicked then
     self.onResetScroll()
+  elseif eventName == Auctionator.Selling.Events.ClearBagItem then
+    self:Reset()
   elseif eventName == Auctionator.Cancelling.Events.RequestCancel then
     self:RegisterEvent("AUCTION_CANCELED")
   end
@@ -141,7 +144,7 @@ function AuctionatorSearchDataProviderMixin:OnEvent(eventName, itemRef, auctionI
         ) then
     self.onPreserveScroll()
     self:Reset()
-    self:AppendEntries(self:ProcessItemResults(itemRef), true)
+    self:ProcessItemResults(itemRef)
 
   elseif eventName == "COMMODITY_PURCHASE_SUCCEEDED" then
     self.onPreserveScroll()
@@ -226,25 +229,27 @@ function AuctionatorSearchDataProviderMixin:ProcessItemResults(itemKey)
   local entries = {}
   local anyOwnedNotLoaded = false
 
-  for index = 1, C_AuctionHouse.GetNumItemSearchResults(itemKey) do
-    local resultInfo = C_AuctionHouse.GetItemSearchResultInfo(itemKey, index)
-    if Auctionator.Selling.DoesItemMatch(self.originalItemKey, self.originalItemLink, resultInfo.itemKey, resultInfo.itemLink) then
-      local entry = Auctionator.Search.GetBuyItemResult(resultInfo)
-      -- Test if the auction has been loaded for cancelling
-      if resultInfo.containsOwnerItem and not C_AuctionHouse.CanCancelAuction(resultInfo.auctionID) then
-        anyOwnedNotLoaded = true
+  local item = Item:CreateFromItemID(itemKey.itemID)
+  item:ContinueOnItemLoad(function()
+    for index = 1, C_AuctionHouse.GetNumItemSearchResults(itemKey) do
+      local resultInfo = C_AuctionHouse.GetItemSearchResultInfo(itemKey, index)
+      if Auctionator.Selling.DoesItemMatchFromLink(self.originalItemLink, resultInfo.itemKey, resultInfo.itemLink) then
+        local entry = Auctionator.Search.GetBuyItemResult(resultInfo)
+        -- Test if the auction has been loaded for cancelling
+        if resultInfo.containsOwnerItem and not C_AuctionHouse.CanCancelAuction(resultInfo.auctionID) then
+          anyOwnedNotLoaded = true
+        end
+
+        table.insert(entries, entry)
       end
-
-      table.insert(entries, entry)
     end
-  end
 
-  -- See comment in ProcessCommodityResults
-  if anyOwnedNotLoaded and cancelShortcutEnabled() then
-    Auctionator.AH.QueryOwnedAuctions({})
-  end
-
-  return entries
+    -- See comment in ProcessCommodityResults
+    if anyOwnedNotLoaded and cancelShortcutEnabled() then
+      Auctionator.AH.QueryOwnedAuctions({})
+    end
+    self:AppendEntries(entries, true)
+  end)
 end
 
 function AuctionatorSearchDataProviderMixin:GetRowTemplate()

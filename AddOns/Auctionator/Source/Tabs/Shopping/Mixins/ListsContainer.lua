@@ -147,7 +147,7 @@ function AuctionatorShoppingTabListsContainerMixin:OnShow()
 end
 
 function AuctionatorShoppingTabListsContainerMixin:OnHide()
-  Auctionator.EventBus:Register(self, {
+  Auctionator.EventBus:Unregister(self, {
     Auctionator.Shopping.Events.ListMetaChange,
     Auctionator.Shopping.Events.ListItemChange,
   })
@@ -155,8 +155,12 @@ end
 
 function AuctionatorShoppingTabListsContainerMixin:OnDragUpdate()
   if not self:IsMouseOver() or not IsMouseButtonDown("LeftButton") then
+    self.ScrollBox:ForEachFrame(function(frame)
+      if frame.elementData.type == RowType.SearchTerm and frame.elementData.index == self.draggingIndex then
+        frame:SetAlpha(1)
+      end
+    end)
     self.draggingIndex = nil
-    self:Populate()
     self:SetScript("OnUpdate", nil)
   elseif self.dragTargetIndex ~= nil then
     local oldIndex = self.draggingIndex
@@ -385,11 +389,7 @@ function AuctionatorShoppingTabListsContainerMixin:SetupContent()
 
   local view = CreateScrollBoxListLinearView(0, 0, 0, 0)
   view:SetElementExtent(buttonHeight)
-  if Auctionator.Constants.IsVanilla then
-    view:SetElementInitializer("Button", nil, OnButtonAcquire)
-  else
-    view:SetElementInitializer("Button", OnButtonAcquire)
-  end
+  view:SetElementInitializer("Button", OnButtonAcquire)
   view:SetPanExtent(50)
 
   ScrollUtil.InitScrollBoxListWithScrollBar(self.ScrollBox, self.ScrollBar, view)

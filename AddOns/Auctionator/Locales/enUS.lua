@@ -522,6 +522,7 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["BUY_NOW"] = "Buy Now"
   L["CONFIRM_PURCHASE_OF_X_FOR_X"] = "Confirm purchase of %s for %s?"
   L["TOTAL_OF_X_FOR_UNIT_PRICE_OF_X"] = "Total of %s for unit price of %s"
+  L["ITEM_NAME_X_ITEM_LEVEL_X"] = "%s (%s)"
 
   L["DEFAULT_TAB"] = "Default Tab"
   L["DEFAULT_TAB_TEXT"] = "shows as the default tab"
@@ -584,6 +585,9 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_SELLING_POSSESSED_FAVOURITES_FIRST"] = "In favourites item list place favourites you have in your bag first"
   L["CONFIG_SELLING_POSSESSED_FAVOURITES_FIRST_TOOLTIP_HEADER"] = "Possessed favourites first"
   L["CONFIG_SELLING_POSSESSED_FAVOURITES_FIRST_TOOLTIP_TEXT"] = "Set the favourites ordering to force any items in your bag to be at the start of the list."
+  L["CONFIG_SELLING_RESELECT_ITEM"] = "Select the last item selected for posting when opening the Selling tab"
+  L["CONFIG_SELLING_RESELECT_ITEM_TOOLTIP_HEADER"] = "Reselect previous item"
+  L["CONFIG_SELLING_RESELECT_ITEM_TOOLTIP_TEXT"] = "After closing the Selling tab and reopening it either during the current session or a later one (including logging out and back in) restore the item selected for posting."
   L["CONFIG_SELLING_POST_SHORTCUT"] = "A keyboard/mouse shortcut to post the current item is"
   L["CUSTOM_KEYBOARD_SHORTCUTS"] = "Custom keyboard shortcuts"
   L["CONFIG_SELLING_POST_SHORTCUT_TOOLTIP_TEXT"] = "Click and then press the buttons that you wish to use as the shortcut. This shortcut will only be active in the Selling tab and won't affect any other shortcuts bound to the buttons."
@@ -603,6 +607,7 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["UNHIDE_ALL_HIDDEN_ITEMS"] = "Unhide all hidden items"
   L["FAVOURITES"] = "Favourites"
   L["ADD_FAVOURITE"] = "Add Favourite"
+  L["FAVOURITES_GROUP"] = "Favourites Group"
   L["REMOVE_FAVOURITE"] = "Remove Favourite"
 
   L["LEFT_CLICK"] = "Left Click"
@@ -627,6 +632,7 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_MATCHING_ITEM_ID"] = "Same item/pet id"
   L["CONFIG_MATCHING_ITEM_NAME_AND_LEVEL"] = "Same item/pet id, title and level"
   L["CONFIG_MATCHING_ITEM_NAME"] = "Same item/pet id and title (ignoring level)"
+  L["CONFIG_SELLING_IGNORE_ITEM_LEVEL"] = "Ignore item level when searching for matching auctions"
 
   L["DEFAULT_LIST_HEADER"] = "Default Shopping List"
 
@@ -693,6 +699,21 @@ AUCTIONATOR_LOCALES.enUS = function()
   L["CONFIG_SHOPPING_ALWAYS_CONFIRM_QUANTITY"] = "Always type quantity twice when purchasing commodities from the shopping tab"
   L["CONFIG_SHOPPING_ALWAYS_CONFIRM_QUANTITY_TOOLTIP_HEADER"] = "Confirm quantity every time"
   L["CONFIG_SHOPPING_ALWAYS_CONFIRM_QUANTITY_TOOLTIP_TEXT"] = "By default the quantity is confirmed just once, this makes it so you have to type it a second time to confirm the purchase."
+
+  L["FOCUS"] = "Focus"
+  L["NEW_GROUP"] = "New Group"
+  L["NEW_GROUP_DIALOG"] = "Enter the name to be used for the new group"
+  L["GROUP_EXISTS_ALREADY"] = "That group name is already in use"
+  L["DELETE_GROUP_DIALOG"] = "Are you sure you want to delete group \"%s\"?"
+  L["RENAME_GROUP_DIALOG"] = "Choose a new name for \"%s\""
+  L["RENAME_GROUP_DIALOG"] = "Choose a new name for \"%s\""
+  L["SHIFT_UP"] = "Shift Up"
+  L["SHIFT_DOWN"] = "Shift Down"
+  L["CUSTOMISE_BAG_GROUPS"] = "Customise Bag Groups"
+  L["DEFAULT"] = "default"
+  L["POSTING_SETTINGS_COLON"] = "Posting Settings:"
+  L["ADD_TO_X"] = "Add to %s"
+  L["REMOVE_FROM_X"] = "Remove from %s"
 
   return L
 end

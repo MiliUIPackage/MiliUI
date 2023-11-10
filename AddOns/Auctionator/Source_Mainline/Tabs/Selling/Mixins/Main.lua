@@ -3,7 +3,12 @@ AuctionatorSellingTabMixin = {}
 function AuctionatorSellingTabMixin:OnLoad()
   self:ApplyHiding()
 
-  self.BagListing:Init(self.BagDataProvider)
+  Auctionator.Groups.OnAHOpen()
+
+  local defaultIconSize = Auctionator.Config.Defaults[Auctionator.Config.Options.SELLING_ICON_SIZE]
+  local currentIconSize = Auctionator.Config.Get(Auctionator.Config.Options.SELLING_ICON_SIZE)
+  local defaultIconsPerRow = 5
+  self.BagListing:SetWidth(math.ceil(defaultIconsPerRow * defaultIconSize / currentIconSize ) * currentIconSize + self.BagListing.View.ScrollBar:GetWidth() + 4 * 2)
 
   self.HistoricalPriceListing:Init(self.HistoricalPriceProvider)
 
@@ -42,4 +47,8 @@ function AuctionatorSellingTabMixin:ApplyHiding()
     self.CurrentPricesInset:SetPoint("TOPLEFT", self.CurrentPricesListing, -5, -24)
     self.CurrentPricesInset:SetPoint("BOTTOMRIGHT", self.CurrentPricesListing, 0, 2)
   end
+end
+
+function AuctionatorSellingTabMixin:OnHide()
+  self:Hide()
 end

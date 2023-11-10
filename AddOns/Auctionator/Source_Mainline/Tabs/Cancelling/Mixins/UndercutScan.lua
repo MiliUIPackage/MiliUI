@@ -35,6 +35,9 @@ end
 function AuctionatorUndercutScanMixin:OnHide()
   ClearOverrideBindings(self)
   FrameUtil.UnregisterFrameForEvents(self, CANCELLING_EVENTS)
+  if self.scanRunning then
+    self:EndScan()
+  end
 end
 
 function AuctionatorUndercutScanMixin:StartScan()
@@ -44,6 +47,7 @@ function AuctionatorUndercutScanMixin:StartScan()
   self.undercutAuctions = {}
   self.seenAuctionResults = {}
   self.seenItemMinPrice = {}
+  self.scanRunning = true
 
   Auctionator.EventBus:Fire(self, Auctionator.Cancelling.Events.UndercutScanStart)
 
@@ -62,6 +66,7 @@ end
 
 function AuctionatorUndercutScanMixin:EndScan()
   Auctionator.Debug.Message("undercut scan ended")
+  self.scanRunning = false
 
   FrameUtil.UnregisterFrameForEvents(self, UNDERCUT_START_STOP_EVENTS)
   Auctionator.EventBus:Unregister(self, AH_SCAN_EVENTS)
@@ -214,7 +219,7 @@ function AuctionatorUndercutScanMixin:ProcessSearchResults(auctionInfo, ...)
         end
       else
         resultInfo = C_AuctionHouse.GetItemSearchResultInfo(self.expectedItemKey, index)
-        if Auctionator.Selling.DoesItemMatch(auctionInfo.itemKey, auctionInfo.itemLink, resultInfo.itemKey, resultInfo.itemLink) then
+        if Auctionator.Selling.DoesItemMatchFromKey(auctionInfo.itemKey, auctionInfo.itemLink, resultInfo.itemKey, resultInfo.itemLink) then
           if minPrice == nil then
             minPrice = resultInfo.buyoutAmount
           end
