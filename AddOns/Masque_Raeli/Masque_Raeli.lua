@@ -21,8 +21,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\No_Backdrop]],
 	},
 	Icon = {
-		Width = 35,
-		Height = 35,
+		Width = 34,
+		Height = 34,
 		TexCoords = {0.07, 0.93, 0.07, 0.93},
 	},
 	Flash = {
@@ -138,7 +138,7 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		DrawLevel = 10,
 		Point = "BOTTOMRIGHT",
 		RelPoint = "BOTTOMRIGHT",
-		OffsetX = -1,
+		OffsetX = 0,
 		OffsetY = 2,
 	},
 	HotKey = {
@@ -423,7 +423,7 @@ MSQ:AddSkin('Raeli - Ring Edge', {
 		Height = 1,
 		Point = "CENTER",
 		RelPoint = "CENTER",
-		OffsetX = 50000000,
+		OffsetX = 0,
 		OffsetY = 0,
 		-- SetAllPoints = nil,
 	},
