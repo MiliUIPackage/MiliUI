@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("FreeholdTrash", "DBM-Party-BfA", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231026112110")
+mod:SetRevision("20231110073741")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -211,11 +211,9 @@ function mod:SPELL_CAST_START(args)
 		specWarnAzeriteGrenade:Show()
 		specWarnAzeriteGrenade:Play("watchstep")
 	elseif spellId == 257908 then
-		if self:AntiSpam(3, 5) then
-			if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
-				specWarnOiledBladeSelf:Show()
-				specWarnOiledBladeSelf:Play("defensive")
-			end
+		if self:IsTanking("player", nil, nil, true, args.sourceGUID) and self:AntiSpam(3, 5) then
+			specWarnOiledBladeSelf:Show()
+			specWarnOiledBladeSelf:Play("defensive")
 		end
 	end
 end
@@ -245,7 +243,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnGTFO:Play("watchfeet")
 	elseif spellId == 257476 and self:AntiSpam(3, 3) then
 		specWarnBestialWrath:Show(args.destName)
-		specWarnBestialWrath:Play("helpdispel")
+		specWarnBestialWrath:Play("enrage")
 	elseif spellId == 257739 and self:AntiSpam(3, 3) then
 		--If it can be dispelled by affected player, no reason to tell them to run away, dispel is priority
 		if self.Options.SpecWarn257739dispel then

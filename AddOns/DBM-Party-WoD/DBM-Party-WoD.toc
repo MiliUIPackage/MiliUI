@@ -20,7 +20,7 @@
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r102-45-gb0b9602
+## Version: r103-2-g767edc6
 ## X-DBM-Mod-MinExpansion: 5
 ## X-Category-zhTW: 團隊
 

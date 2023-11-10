@@ -1,5 +1,5 @@
 
-local MAJOR, MINOR = "LibDropDownMenu", tonumber((gsub("r34","r",""))) or 9999;
+local MAJOR, MINOR = "LibDropDownMenu", tonumber((gsub("r35","r",""))) or 9999;
 local lib = LibStub:NewLibrary(MAJOR, MINOR);
 
 if not lib then return end
@@ -146,6 +146,9 @@ function UIDropDownMenu_Initialize(frame, initFunction, displayMode, level, menu
 	local dropDownList = _G["LibDropDownMenu_List"..level];
 	dropDownList.dropdown = frame;
 	dropDownList.shouldRefresh = true;
+	if dropDownList.SetWindow and frame.GetWindow then -- classic compatibilty; SetWindow and GetWindow not present in classic
+		dropDownList:SetWindow(frame:GetWindow());
+	end
 
 	UIDropDownMenu_SetDisplayMode(frame, displayMode);
 end
@@ -335,7 +338,7 @@ function UIDropDownMenuButtonIcon_OnEnter(self)
 	local shouldShowIconTooltip = UIDropDownMenuButton_ShouldShowIconTooltip(button);
 
 	if shouldShowIconTooltip then
-		
+
 		local tooltip = GetAppropriateTooltip();
 		tooltip:SetOwner(button, "ANCHOR_RIGHT");
 		if button.iconTooltipTitle then
@@ -1416,7 +1419,6 @@ function UIDropDownMenu_OnHide(self)
 	if (id == 1) then
 		UIDROPDOWNMENU_OPEN_MENU = nil;
 	end
-
 	UIDropDownMenu_ClearCustomFrames(self);
 	if EventRegistry and EventRegistry.TriggerEvent then
 		EventRegistry:TriggerEvent("UIDropDownMenu.Hide");
@@ -1436,7 +1438,7 @@ end
 function UIDropDownMenu_MatchTextWidth(frame, minWidth, maxWidth)
 	local frameName = frame:GetName();
 	local newWidth = GetChild(frame, frameName, "Text"):GetUnboundedStringWidth() + UIDROPDOWNMENU_DEFAULT_WIDTH_PADDING;
-	
+
 	if minWidth or maxWidth then
 		newWidth = Clamp(newWidth, minWidth or newWidth, maxWidth or newWidth);
 	end

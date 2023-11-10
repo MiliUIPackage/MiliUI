@@ -46,6 +46,7 @@ do
 		if iconFrame.cooldown.EnableMouseMotion then
 			iconFrame.cooldown:EnableMouseMotion(false)
 		end
+		iconFrame.cooldown:SetHideCountdownNumbers (true) -- disable blizzard timers as we are using our own.
 		--iconFrame.cooldown.noCooldownCount = true --OmniCC override flag
 
 		-- CD text
@@ -481,8 +482,8 @@ end)
 local function getAllShownGUIDs() -- for testing
 	local guids = {}
 	for _, plateFrame in ipairs (GetNamePlates()) do
-		if plateFrame then
-			tinsert(guids, plateFrame.namePlateUnitGUID)
+		if plateFrame and plateFrame.UnitFrame and plateFrame.UnitFrame.unit then
+			tinsert(guids,  UnitGUID(plateFrame.UnitFrame.unit))
 		end
 	end
 	return guids

@@ -8,7 +8,7 @@ if (wowToc >= 100200) then
 	mod.upgradedMPlus = true
 end
 
-mod:SetRevision("20231022063244")
+mod:SetRevision("20231108211855")
 mod:SetCreatureID(83894, 83892, 83893)--Dulhu 83894, Gola 83892, Telu 83893
 mod:SetEncounterID(1757)
 mod:SetHotfixNoticeRev(20231021000000)
@@ -58,7 +58,7 @@ if (wowToc >= 100200) then
 	local timerTerrestrialFuryCD						= mod:NewCDCountTimer(50.9, 427509, nil, nil, nil, 2)
 	--Dulhu
 	mod:AddTimerLine(DBM:EJ_GetSectionInfo(10417))
-	local warnNoxiousCharge								= mod:NewTargetNofilterAnnounce(427510, 3)
+	local warnNoxiousCharge								= mod:NewTargetNoFilterAnnounce(427510, 3)
 
 	local specWarnNoxiousCharge							= mod:NewSpecialWarningYou(427510, nil, nil, nil, 3, 2)
 	local yellNoxiousCharge								= mod:NewShortYell(427510)
