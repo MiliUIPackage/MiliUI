@@ -1,3 +1,5 @@
+local addonName, addon = ...
+
 local db = {
     explorer = {
         enUS = "Explorer",
@@ -64,6 +66,11 @@ local db = {
         lower = 428,
         upper = 441,
     },
+    myth = {
+        enUS = "Myth",
+        lower = 441,
+        upper = 447,
+    },
 }
 
 local itemLevelPattern = ITEM_LEVEL
@@ -73,6 +80,10 @@ local upgradePattern = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING
 upgradePattern = upgradePattern:gsub("%%d", "%%s")
 upgradePattern = upgradePattern:format("(.+)", "(%d)", "(%d)")
 TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(tooltip, data)
+    if not addon.db then return end
+    if not addon.db.profile then return end
+    if not addon.db.profile.itemUpgrade then return end
+    
     local found, foundLower, foundUpper
     
     for k, v in pairs(data.lines) do
