@@ -13,8 +13,14 @@ local db = {
         koKR = "탐험가",
         zhTW = "探險者",
         zhCN = "探索者",
-        lower = 376,
-        upper = 398,
+        season2 = {
+            lower = 376,
+            upper = 398,
+        },
+        season3 = {
+            lower = 415,
+            upper = 437,
+        },
     },
     adventurer = {
         enUS = "Adventurer",
@@ -28,8 +34,14 @@ local db = {
         koKR = "모험가",
         zhTW = "冒險者",
         zhCN = "冒险者",
-        lower = 389,
-        upper = 411,
+        season2 = {
+            lower = 389,
+            upper = 411,
+        },
+        season3 = {
+            lower = 428,
+            upper = 450,
+        },
     },
     veteran = {
         enUS = "Veteran",
@@ -43,8 +55,14 @@ local db = {
         koKR = "노련가",
         zhTW = "精兵",
         zhCN = "老兵",
-        lower = 402,
-        upper = 424,
+        season2 = {
+            lower = 402,
+            upper = 424,
+        },
+        season3 = {
+            lower = 441,
+            upper = 463,
+        },
     },
     champion = {
         enUS = "Champion",
@@ -58,20 +76,40 @@ local db = {
         koKR = "챔피언",
         zhTW = "勇士",
         zhCN = "勇士",
-        lower = 415,
-        upper = 437,
+        season2 = {
+            lower = 415,
+            upper = 437,
+        },
+        season3 = {
+            lower = 454,
+            upper = 476,
+        },
     },
     hero = {
         enUS = "Hero",
-        lower = 428,
-        upper = 441,
+        season2 = {
+            lower = 428,
+            upper = 441,
+        },
+        season3 = {
+            lower = 467,
+            upper = 483,
+        },
     },
     myth = {
         enUS = "Myth",
-        lower = 441,
-        upper = 447,
+        season2 = {
+            lower = 441,
+            upper = 447,
+        },
+        season3 = {
+            lower = 480,
+            upper = 489,
+        },
     },
 }
+
+
 
 local itemLevelPattern = ITEM_LEVEL
 itemLevelPattern = itemLevelPattern:gsub("%%d", "(%%d)")
@@ -86,6 +124,17 @@ TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(toolt
     
     local found, foundLower, foundUpper
     
+    -- TODO: find a locale independent way to detect "Dragonflight Season 2"
+    -- checking for gray text should work for this season but its not future proof
+    local season = 3
+    for k, v in pairs(data.lines) do
+        if type(v) == "table" then 
+            if v.leftText:find(upgradePattern) and v.leftText:lower():match(DISABLED_FONT_COLOR:GenerateHexColorMarkup()) then
+                season = 2
+            end
+        end
+    end
+    
     for k, v in pairs(data.lines) do
         if type(v) == "table" then
             local text = v.leftText
@@ -94,7 +143,7 @@ TooltipDataProcessor.AddTooltipPreCall(Enum.TooltipDataType.Item, function(toolt
                 for _, data in pairs(db) do
                     if data[GetLocale()] and (data[GetLocale()] == rank) then 
                         if lower ~= upper then
-                            found, foundLower, foundUpper = true, data.lower, data.upper
+                            found, foundLower, foundUpper = true, data["season"..season].lower, data["season"..season].upper
                             break
                         end
                     end
