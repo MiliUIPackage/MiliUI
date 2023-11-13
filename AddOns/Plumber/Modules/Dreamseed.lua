@@ -276,12 +276,12 @@ function EL:SetFrameLayout(layoutIndex)
         for i, button in ipairs(self.Buttons) do
             button:ClearAllPoints();
             radian = (1 - i)*radianGap;
-            x = cx + radius * math.cos(radian);
+            x = cx + radius * math.cos(radian) - 180;
             y = cy + radius * math.sin(radian);
             button:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y);
         end
 
-        local headerRadiusOffset = 112;  --Positive value moves towards center
+        local headerRadiusOffset = 272;  --Positive value moves towards center
         local headerMaxWidth = 2*(headerRadiusOffset - buttonSize*0.5) - 8;
         radian = -(#self.Buttons - 1)*radianGap*0.5;
         x = cx + (radius - headerRadiusOffset) * math.cos(radian);
