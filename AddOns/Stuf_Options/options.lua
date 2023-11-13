@@ -718,7 +718,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 		},
 		focus={
-			frame={ x=playerx-300, y=playery/2, w=120, h=50, },
+			frame={ x=targetx, y=playery+65, w=120, h=50, },
 			portrait={
                 x=0, y=0, w=120, h=40, show3d=true,
                 framelevel = 2,                
@@ -803,7 +803,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			-- rangetext={ x=40, y=20, w=100, h=10, fontsize=12, justifyH="CENTER", framelevel=12, },
 		},
 		focustarget={
-			frame={ x=playerx-175, y=playery/2, w=70, h=50, },
+			frame={ x=targetx+125, y=playery+65, w=70, h=50, },
 			portrait={ x=0, y=0, w=12, h=12, hide=true, },
 			hpbar={ 
 				x=0, y=0, w=70, h=50, 
