@@ -73,7 +73,7 @@ local function showRealDate(curseDate)
 end
 
 DBM = {
-	Revision = parseCurseDate("20231110065339"),
+	Revision = parseCurseDate("20231114043954"),
 }
 
 local fakeBWVersion, fakeBWHash = 290, "894cc27"
@@ -81,8 +81,8 @@ local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
 if isRetail then
-	DBM.DisplayVersion = "10.2.2"
-	DBM.ReleaseRevision = releaseDate(2023, 11, 9) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "10.2.3"
+	DBM.ReleaseRevision = releaseDate(2023, 11, 13) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 8--When this is incremented, trigger force disable regardless of major patch
 elseif isClassic then
 	DBM.DisplayVersion = "1.14.50 alpha"
@@ -93,7 +93,7 @@ elseif isBCC then
 	DBM.ReleaseRevision = releaseDate(2023, 10, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 2--When this is incremented, trigger force disable regardless of major patch
 elseif isWrath then
-	DBM.DisplayVersion = "3.4.54"
+	DBM.DisplayVersion = "3.4.55 alpha"
 	DBM.ReleaseRevision = releaseDate(2023, 11, 7) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 3--When this is incremented, trigger force disable regardless of major patch
 end

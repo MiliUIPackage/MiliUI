@@ -12,16 +12,16 @@
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: LEG
 ## X-DBM-StatTypes: normal,heroic,mythic,challenge
-## X-DBM-Mod-SubCategoriesID: 1501, 1466, 1456, 1477, 1458
+## X-DBM-Mod-SubCategoriesID: 1501, 1466
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (軍臨天下)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (军团再临)
 ## X-DBM-Mod-Sort: 502
-## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458
+## X-DBM-Mod-MapID: 1501, 1466
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r102-45-gb0b9602
+## Version: r104
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
@@ -37,8 +37,3 @@ DarkheartThicket\Oakheart.lua
 DarkheartThicket\Dresaron.lua
 DarkheartThicket\ShadeofXavius.lua
 DarkheartThicket\DHTTrash.lua
-NeltharionsLair\Rokmora.lua
-NeltharionsLair\Ularogg.lua
-NeltharionsLair\Naraxas.lua
-NeltharionsLair\Dargrul.lua
-NeltharionsLair\NLTrash.lua

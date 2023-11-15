@@ -29,16 +29,6 @@ AtalDazar\Volkaal.lua
 AtalDazar\Rezan.lua
 AtalDazar\Yazma.lua
 AtalDazar\AtalDazarTrash.lua
-Freehold\SkycapnKragg.lua
-Freehold\CounciloCaptains.lua
-Freehold\RingofBooty.lua
-Freehold\HarlanSweete.lua
-Freehold\FreeholdTrash.lua
-TheUnderrot\ElderLeaxa.lua
-TheUnderrot\InfestedCrawg.lua
-TheUnderrot\SporecallerZancha.lua
-TheUnderrot\Unbound.lua
-TheUnderrot\UnderrotTrash.lua
 WaycrestManor\HeartsbaneTriad.lua
 WaycrestManor\SoulboundGoliath.lua
 WaycrestManor\RaaltheGlut.lua

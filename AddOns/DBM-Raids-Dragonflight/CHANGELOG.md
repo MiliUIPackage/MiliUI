@@ -1,66 +1,9 @@
 # <DBM Mod> Raids (DF)
 
-## [10.1.31-60-g68a2bcd](https://github.com/DeadlyBossMods/DBM-Retail/tree/68a2bcd4dcbcb331db29e4ede3d24ff073003f03) (2023-11-07)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Retail/compare/10.1.31...68a2bcd4dcbcb331db29e4ede3d24ff073003f03) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Retail/releases)
+## [10.2.3](https://github.com/DeadlyBossMods/DBM-Retail/tree/10.2.3) (2023-11-14)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Retail/compare/10.2.2...10.2.3) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Retail/releases)
 
-- Fix option key that changed on Nymue  
-- Update zhTW (GUI) (#308)  
-- Fixes to waKeyOverrides  
-- Add generic fallback for invalid spell/EJ/achievement ID in GUI (#309)  
-- cleaner and more efficient solution to key replacement compatability with weak auras  
-- New object for yet more WA compatability tuning  
-- Improve berserk timer options (#307)  
-- Push all staged updates for raid, minus private mythic timers, ahead of 10.2 release. remaining mythic updates will be released when public logs are available or when RWF has concluded/made that work public  
-- Improve stage timer callbacks for WA compatability  
-- Update localization.tw.lua (Core) (#304)  
-- Update localization.tw.lua (GUI) (#305)  
-- Fixes to last  
-- Push the fyrakk drycode (first pass). It will get a second pass before raid launches if there is time after the M+ trash mod prep  
-- Forgot to hit save on last file Add ability to group all private aura sound mod options separately int heir own categor  
-- Add ability to group all private aura sound mod options separately int heir own category  
-- DBT: Add fallback if self.color is defined Weird occurance when flashing or something, and using a custom set color??  
-- Revert \"if berserk timer is disabled, disable entire object not just the timer\" This reverts commit b8ef599cf999a111ba219255bd97e953ee467fb6.  
-- if berserk timer is disabled, disable entire object not just the timer  
-- Re-enable boss respawn times on mod local level now that core isn't auto assuming it for all modules globally anymore  
-- Fix wrong field (#301)  
-- Add testmode to nameplate timers (#300)  
-- Add another nil check to NameplateIcon\_Hide (#299)  
-- Fix incorrect capitalization of addon name in Amirdrassil trash module (#946)  
-- Handful of cleanups and fixes for Nymue  
-- Nymue mythic testing prep  
-- Update koKR (#298)  
-- Revert \"Re-enable boss1 nameplate icon injection where enabled\" This reverts commit 698d35e074931edd13519be84fd5c4f44c3a0a08.  
-- Re-enable boss1 nameplate icon injection where enabled  
-- move test mod callback position so it's sent before starting timers  
-- Set default icon pixel size to 30x30 to closer match kui nameplates and plater nameplates default boss mod aura sizes.  
-- Retire the hack option that hides basic timers with GUIDs and instead hide timers for objects that are using the nameplate timer type Also set simple timer type for WAs that might stlll parse by simple type in future  
-- Nameplate GUI update: - Fixed a bug where reset defaults didn't actaully reset most defaults - Added a Test button (with note) for testing them out  
-- Update koKR (Retail) (#945)  
-- Update zhTW (GUI) (#296)  
-- Add test mod activation callback  
-- Update commonlocal.tw.lua (#294)  
-- Localized \"Center\"  
-- Start support for nameplate CD timer icons and code refactoring. (#285)  
-- better gap  
-- fix error  
-- Actually debug all gossipId's  
-- Redo horseman gossip stuff to use new untested stuff  
-- typo  
-- GetMatchingGossip was useless, replace with SelectMatchingGossip  
-- Allow multiple inputs on Getmatchinggossip  
-- Fix range check compatibility mode when range finder frame is already visible (#293)  
-- improve gossip api and debug  
-- Fix GossipID for headless  
-    Select correct gossip for all triggers.  
-- Small headless horseman tweak to also support giant wickerman  
-- Add fallback min timers at this point  
-- Another timer adjust, also wish i had logged that bad dungeon, was like a 6 minute HH fight. Blizz needs to add a min ilvl to this queue at max level  
-- create new timer stop method that achieves a way of calling a hard \"stop\" on a timer object while still passing a guid arg for callback. This will help eliminate a lot of redundant duplicate stops that are being used mainly on count timers that are also passing a guid  
-- HH tweak to account for the alternate timer sequence. kind of a lazy fix cause a complex one for when hot headed and vines swap places in like 1 out of 9 pulls, isn't worth heavy effort.  
-- Update koKR (#292)  
-- I did not think it was possible to be this bad at headless horseman, but here we are, and now the mod supports timers for fight lasting up to like 4 minutes  
-- I didn't delete that line, sign  
-- Push Nymue rework from heroic retest  
-- Add global disable for private aura sounds  
-- Use modId rather than localized name for panel selection.  
+- prep new tag with some minor fixes for raid opening.  
+- Nymue tweaks  
+- debug mode tweaks  
 - bump alpha  

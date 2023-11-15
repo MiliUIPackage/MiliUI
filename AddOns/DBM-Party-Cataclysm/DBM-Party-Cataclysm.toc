@@ -27,16 +27,12 @@
 ## X-DBM-Mod-MinExpansion: 3
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r102-45-gb0b9602
+## Version: r104
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
 localization.tw.lua
 localization.cn.lua
-TheVortexPinnacle\GrandVizierErtan.lua
-TheVortexPinnacle\Altairus.lua
-TheVortexPinnacle\Asaad.lua
-TheVortexPinnacle\VortexPinnacleTrash.lua
 ThroneOfTides\LadyNazjar.lua
 ThroneOfTides\CommanderUlthok.lua
 ThroneOfTides\ErunakStonespeaker.lua

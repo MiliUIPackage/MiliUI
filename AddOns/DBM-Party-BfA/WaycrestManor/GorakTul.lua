@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2129, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231026101326")
+mod:SetRevision("20231111190907")
 mod:SetCreatureID(131864)
 mod:SetEncounterID(2117)
 mod:SetHotfixNoticeRev(20231025000000)
@@ -23,7 +23,7 @@ mod:RegisterEventsInCombat(
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
  or ability.id = 268202 and type = "begincast"
 --]]
---NOTE, death lense is cast 5.2-5.7 seconds after add spawns, but sadly grabbing add GUID to attach a nameplate Id isn't very easy
+--NOTE, death lens is cast 5.2-5.7 seconds after add spawns, but sadly grabbing add GUID to attach a nameplate Id isn't very easy
 local warnDeathlens					= mod:NewCastAnnounce(268202, 2)
 local warnDeathlensTarget			= mod:NewTargetNoFilterAnnounce(268202, 4)
 local warnFire						= mod:NewSpellAnnounce(266198, 1)

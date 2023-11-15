@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AtalDazarTrash", "DBM-Party-BfA", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231110073741")
+mod:SetRevision("20231112074425")
 --mod:SetModelID(47785)
 mod:SetZone(1763)
 
@@ -200,10 +200,10 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 260666 and args:IsPlayer() then
 		specWarnTransfusion:Show(taintedBlood)
 		specWarnTransfusion:Play("takedamage")
-	elseif spellId == 255824 then
+	elseif spellId == 255824 and self:AntiSpam(4, 3) then
 		specWarnFanaticsRageDispel:Show(args.destName)
 		specWarnFanaticsRageDispel:Play("enrage")
-	elseif spellId == 256849 then
+	elseif spellId == 256849 and not args:IsDestTypePlayer() and self:AntiSpam(4, 3) then
 		specWarnDinoMightDispel:Show(args.destName)
 		specWarnDinoMightDispel:Play("helpdispel")
 	elseif spellId == 252781 and args:IsPlayer() then
@@ -257,5 +257,3 @@ function mod:UNIT_DIED(args)
 		timerVenomfangStrikeCD:Stop(args.destGUID)
 	end
 end
-
-

@@ -1,9 +1,7 @@
-local wowToc, testBuild = DBM:GetTOC()
-if (wowToc < 100200) and not testBuild then return end
 local mod	= DBM:NewMod(2519, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231106101202")
+mod:SetRevision("20231107113441")
 --mod:SetCreatureID(165066)--yeah, this is gonna need to see fight first, too many to guess
 mod:SetEncounterID(2677)
 --mod:SetUsedIcons(1, 2, 3)
