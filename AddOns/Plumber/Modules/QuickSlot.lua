@@ -50,7 +50,7 @@ function Positioner:GetButtonGap()
 end
 
 function Positioner:GetRadius()
-    return math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (self.buttonSize*0.5) + 0.5 );
+    return math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (self.buttonSize*0.5) + 0.5 ) - 180;
 end
 
 function Positioner:GetButtonCenterGap()
@@ -477,7 +477,7 @@ function QuickSlot:SetFrameLayout(layoutIndex)
         self.headerMaxWidth = 0;
     else
         --Circular, on the right side
-        local radius = math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (buttonSize*0.5) + 0.5);
+        local radius = math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (buttonSize*0.5) + 0.5) - 180;
         local gapArc = buttonGap + buttonSize;
         local fromRadian = Positioner:GetFromRadian();
         local radianGap = gapArc/radius;
