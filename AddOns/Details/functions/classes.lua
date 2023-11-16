@@ -174,6 +174,8 @@ do
 		end
 	end
 
+	local _, _, _, toc = GetBuildInfo() --check game version to know which version of GetFullName to use
+
 	---return the class file name of the unit passed
 	local getFromCache = Details222.ClassCache.GetClassFromCache
 	local Ambiguate = Ambiguate
@@ -189,6 +191,13 @@ do
 		return classFileName
 	end
 
+	function Details:Ambiguate(unitName)
+		--if (toc >= 100200) then
+			unitName = Ambiguate(unitName, "none")
+		--end
+		return unitName
+	end
+
 	---return the class name, class file name and class id of the unit passed
 	function Details:GetUnitClassFull(unitId)
 		unitId = Ambiguate(unitId, "none")
@@ -196,23 +205,40 @@ do
 		return locClassName, classFileName, classId
 	end
 
-	function Details:GetFullName(unitId)
-		--playerName, realmName = UnitFullName(unitId) --realm name already has spaces removed
-		--return playerName .. "-" .. realmName
+	local UnitFullName = UnitFullName
+	--Details:GetCurrentCombat():GetActor(DETAILS_ATTRIBUTE_DAMAGE, Details:GetFullName("player")):GetSpell(1)
 
-		local playerName, realmName = UnitName(unitId)
+	---create a CLEU compatible name of the unit passed
+	---return string is in the format "playerName-realmName"
+	---the string will also be ambiguated using the ambiguateString passed
+	---@param unitId any
+	---@param ambiguateString any
+	function Details:GetFullName(unitId, ambiguateString) --not in use, get replace by Details.GetCLName a few lines below
+		--UnitFullName is guarantee to return the realm name of the unit queried
+		local playerName, realmName = UnitFullName(unitId)
+		if (playerName) then
+			if (not realmName) then
+				realmName = GetRealmName()
+			end
+			realmName = realmName:gsub("[%s-]", "")
 
-		if (not realmName) then
-			realmName = GetRealmName():gsub("%s", "")
+			playerName = playerName .. "-" .. realmName
+
+			if (ambiguateString) then
+				playerName = Ambiguate(playerName, ambiguateString)
+			end
+
+			return playerName
 		end
-
-		return playerName .. "-" .. realmName
 	end
 
-	local _, _, _, toc = GetBuildInfo() --check game version to know which version of GetFullName to use
-	if (toc < 100200) then
+	function Details:GetUnitNameForAPI(unitId)
+		return Details:GetFullName(unitId, "none")
+	end
+
+	--if (toc < 100200) then
 		Details.GetFullName = Details.GetCLName
-	end
+	--end
 
 	function Details:Class(actor)
 		return self.classe or actor and actor.classe

@@ -41,6 +41,29 @@ local Spells = {
     [198412] = 20, -- Feedback (Odyn)
 
 
+    -- Neltharion's Lair
+    [183407] = 20, -- Acid Splatter (Vileshard Crawler)
+    [183465] = 20, -- Viscid Bile (Tarspitter Lurker)
+    [226388] = 20, -- Rancid Ooze (Tarspitter Luker)
+    [226287] = 20, -- Crush (Vileshard Chunk)
+    [183088] = 20, -- Avalanche, Frontal (Mightstone Breaker)
+    [183100] = 20, -- Avalanche, Rocks (Mightstone Breaker)
+    [186576] = 20, -- Petrifying Cloud (Petrifying Totem, Blightshard Shaper)
+    [202089] = 20, -- Scorch (Burning Geode)
+    -- [183566] = 20, -- Rancid Pool (Rotdrool Grabber, Stoneclaw Grubmaster) - not really avoidable
+
+    [198028] = 20, -- Crystalline Ground (Rokmora)
+    [188169] = 20, -- Razor Shards (Rokmora)
+    [192800] = 20, -- Choking Dust (Blightshard Skitter, Rokmora)
+    [198475] = 20, -- Strike of the Mountain (Ularogg Cragshaper)
+    [210166] = 20, -- Toxic Retch, Area (Naraxas)
+    [199705] = 20, -- Devouring (Naraxas)
+    [200338] = 20, -- Crystal Spikes (Dargrul)
+    [217090] = 20, -- Magma Wave, Initial (Dargrul)
+    [200404] = 20, -- Magma Wave, Final (Dargrul)
+    [216407] = 20, -- Lava Geyser (Dargrul)
+
+
     -- Return to Karazhan: Lower
     [228001] = 20, -- Pennies From Heaven (Ghostly Philanthropist)
     [227917] = 20, -- Poetry Slam (Ghostly Understudy)
@@ -109,6 +132,16 @@ local SpellsNoTank = {
     [198888] = 20, -- Lightning Breath (Storm Drake) - TODO is this avoidable by tank?
     [199050] = 20, -- Mortal Hew (Valarjar Shieldmaiden)
     [192018] = 20, -- Shield of Light (Hyrja)
+
+    -- Neltharion's Lair
+    [193505] = 20, -- Fracture (Vileshard Hulk)
+    [226296] = 20, -- Piercing Shards (Vileshard Hulk)
+    [226304] = 20, -- Piercing Shards (Vileshard Hulk)
+    [226347] = 20, -- Stone Shatter (Stoneclaw Hunter / Stoneclaw Grubmaster)
+    [226406] = 20, -- Ember Swipe (Emberhusk Dominator)
+    [188494] = 20, -- Rancid Maw (Naraxas)
+    [205609] = 20, -- Rancid Maw (Naraxas) - TODO ID?
+    [200721] = 20 -- Landslide (Dargrul)
 
     -- Return to Karazhan: Lower
     [99758] = 20, -- Flame Breath (Ancient Core Hound)

@@ -9,6 +9,12 @@ local UnitIsUnit = UnitIsUnit
 local augmentationFunctions = Details222.SpecHelpers[1473]
 local augmentationCache = Details222.SpecHelpers[1473].augmentation_cache
 
+local playerRealmName = GetRealmName()
+
+
+
+
+
 function augmentationFunctions.BuffIn(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellId, spellName, spellschool, auraType, amount)
     if (spellId == 395152) then --ebom might on third parties
         local auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5 = Details:FindBuffCastedByUnitName(targetName, spellId, sourceName)
@@ -21,7 +27,7 @@ function augmentationFunctions.BuffIn(token, time, sourceSerial, sourceName, sou
         end
 
     elseif (spellId == 413984) then --ss
-        if (UnitExists(targetName) and not UnitIsUnit("player", targetName)) then
+        if (UnitExists(targetName) and targetName ~= Details.playername) then
             local auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5 = Details:FindBuffCastedByUnitName(targetName, spellId, sourceName)
             local versaGained = v1
             if (type(versaGained) == "number") then
@@ -39,7 +45,7 @@ function augmentationFunctions.BuffIn(token, time, sourceSerial, sourceName, sou
     elseif (spellId == 409560) then
         local unitIDAffected = Details:FindUnitIDByUnitSerial(targetSerial)
         if (unitIDAffected) then
-            local duration, expirationTime = Details:FindDebuffDuration(unitIDAffected, spellId, sourceName)
+            local duration, expirationTime = Details:FindDebuffDuration(unitIDAffected, spellId, Details:Ambiguate(sourceName))
             if (duration) then
                 local breathTargets = augmentationCache.breath_targets[targetSerial]
                 if (not breathTargets) then
@@ -92,7 +98,7 @@ function augmentationFunctions.BuffRefresh(token, time, sourceSerial, sourceName
         end
 
     elseif (spellId == 413984) then --ss
-        if (UnitExists(targetName) and not UnitIsUnit("player", targetName)) then
+        if (UnitExists(targetName) and targetName ~= Details.playername) then
             local auraName, texture, count, auraType, duration, expirationTime, sourceUnit, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, v1, v2, v3, v4, v5 = Details:FindBuffCastedByUnitName (targetName, spellId, sourceName)
             local versaGained = v1
 

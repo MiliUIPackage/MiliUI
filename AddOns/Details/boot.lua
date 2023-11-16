@@ -13,8 +13,8 @@
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 12026
-		Details.alpha_build_counter = 12026 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12043
+		Details.alpha_build_counter = 12043 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -142,12 +142,12 @@ do
 
 	local news = {
 		{"v10.2.0.12023.155", "11月 08日, 2023"},
-		"Several fixes to make the addon work with the combat log changes done on patch 10.2.0.",
-		"Added trinket data for patch 10.2.0.",
+		"多項修復使此插件可以在資料片10.2.0的戰鬥日誌上運作。",
+		"已加入資料片10.2.0的飾品數據。",
 		"Fixed an issue with death tooltips going off-screen when the window is too close to a screen border.",
 		"Fixed a spam of errors during battlegrounds when an enemy player heal with a dot spell.",
 
-		{"v10.1.7.12012.151", "10月 27日, 2023"},
+		{"v10.1.7.12012.155", "10月 27日, 2023"},
 		"Implemented [Pip's Emerald Friendship Badge] trinket buffs.",
 		"Implemented the amount of times 'On Use' trinkets are used.",
 		"10.2 trinket damage spells renamed to the item name.",
@@ -159,14 +159,14 @@ do
 		"Fixed 'extraStatusbar' showing in wrong views (non-player-dmg) (Continuity).",
 		"Removed LibCompress (Flamanis).",
 
-		{"v10.1.0.11914.151", "9月 13日, 2023"},
+		{"v10.1.7.11914.155", "September 13th, 2023"},
 		"Added an extra bar within the evoker damage bar, this new bar when hovered over shows the buff uptime of Ebon Might and Prescience on all players.",
 		"ToC Files of all plugins got updated.",
 		"Fixed the error 'Attempt to compare string with number' on vanilla (Flamanis).",
 		"Fixed the error 'object:ToolTip() is invalid'.",
 
-		{"v10.1.0.11901.151", "9月 09日, 2023"},
-		"喚能師傷害預測增強。",
+		{"v10.1.7.11901.155", "September 09th, 2023"},
+		"Evoker Predicted Damage improvements.",
 		"Improved spellId check for first hit when entering a combat (Flamanis).",
 		"Replaced Classic Era deprecated functions (Flamanis).",
 		"Change DF/pictureedit frame heirarchy to allow for close button and Done button to work right (Flamanis).",
@@ -174,11 +174,11 @@ do
 		"Attempt to fix death log healing spam where a spell has multiple heals in the same millisecond.",
 		"Fixed an error with the old comparison window.",
 
-		{"v10.1.5.11856.151", "August 13th, 2023"},
+		{"v10.1.7.11856.155", "August 13th, 2023"},
 		"Fixed an issue with importing a profile with a corrupted time type.",
 		"Added Elemental Shaman overload spells (WillowGryph).",
 
-		{"v10.1.5.11855.151", "August 12th, 2023"},
+		{"v10.1.5.11855.155", "August 12th, 2023"},
 		"Forcing update interval to 0.1 on arenas matches using the real-time dps feature.",
 		"More parser cleanups and code improvements.",
 		"Auras tab now ignores regular 'world auras' (those weekly buffs of reputation, etc)",
@@ -296,7 +296,7 @@ do
 		"Disabled time captures for spellTables, this should be done by a plugin.",
 		"Replacing table.wipe with Details:Destroy().",
 
-		{"v10.1.0.11022.151", "5月 20日, 2023"},
+		{"v10.1.0.11022.151", "May 20th, 2023"},
 		"Breakdown pet options has changed to: 'Group Pets by Their Names' or 'Group Pets by Their Spells'.",
 		"Evoker empowered level now ocupies less space on the rectangle showing the damage by empower level.",
 		"Another Framework update.",
@@ -307,7 +307,7 @@ do
 		"Fixed an issue with the Raid Check plugin throwing an error on Shuffle Arenas.",
 		"Fixed shields for Classic versions (Flamanis).",
 
-		{"v10.1.0.11011.151", "5月 13日, 2023"},
+		{"v10.1.0.11011.151", "May 13th, 2023"},
 		"Added options: 'Group Player Spells With Same Name' and 'Group Pets By Spell' on the breakdown options.",
 		"Added combat log options for 'Calculate Shield Wasted Amount' and 'Calculate Energy Wasted Amount' under the options > Combat Log.",
 		"Framework and OpenRaid Updated.",
@@ -321,32 +321,32 @@ do
 		"Fixed an issue where item damage was showing 'Unknown Item' on cold logins.",
 		"Fixed defenses gauge (miss, dodge, parry) not showing in the spell details on the breakdown window.",
 
-		{"v10.1.0.10985.151", "五月 4日, 2023"},
-		"戰鬥分析視窗已經從頭開始完全地重建，現在包括對幾個新功能的支持。",
-		"後端代碼的很大一部分已經進行了修改，從而提高了性能和穩定性。",
-		"戰鬥紀錄現在支持選項，請在選項面板中的“戰鬥紀錄”部分中勾選它們。",
-		"大型掛件更新具有改進的施法紀錄和進階死亡紀錄的新功能。",
+		{"v10.1.0.10985.151", "May 4th, 2023"},
+		"The Breakdown Window has been completely rebuilt from the ground up and now includes support for several new features.",
+		"A significant portion of the back-end code has been revamped, resulting in improved performance and stability.",
+		"Combatlog now supports options, check them at the Combat Log section in the options panel.",
+		"Big plugin updates with improvements to Cast Log and new features for Advanced Death Log.",
 		"Added Real-time dps bar for arena streamers.",
 		"Flamanis:",
-		"更改了寵物所有權檢測，希望將來的更新版本更加健全。",
-		"在戰鬥紀錄部分中，添加了合併Atonement, Contrition, Ancient Teachings, and Awakened Faeline以及致命一擊的的選項。",
-		"加入惡魔獵人與喚能師的減傷冷卻。",
-		"在傳奇+整體分段中重新加入只含首領選項。",
-		"已修正 issue with swapping to/from Tiny Threat and other plugins using bookmarks.",
-		"已修正 position persistency for Statusbar elements.",
-		"已修正 alpha channel persistency for certain color options.",
-		"已修正 stack overflow related to changing option tabs or profiles too many times.",
-		"已修正 the highlight image of a bar icon not swapping to the new icon upon scrolling.",
-		"已修正 issues related to the new Left Text Offset position.",
-		"已修正 the wrong options being unusable with Aligned Text Columns enabled.",
+		"Changed Pet Ownership detection to be hopefully more robust for future patches.",
+		"Added option to merge Atonement, Contrition, Ancient Teachings, and Awakened Faeline with their Crits, in the Combat Log section.",
+		"Added DemonHunter and Evoker Defensive cooldowns.",
+		"Readded option to have M+ Overall Segment only contain Bosses.",
+		"Fixed issue with swapping to/from Tiny Threat and other plugins using bookmarks.",
+		"Fixed position persistency for Statusbar elements.",
+		"Fixed alpha channel persistency for certain color options.",
+		"Fixed stack overflow related to changing option tabs or profiles too many times.",
+		"Fixed the highlight image of a bar icon not swapping to the new icon upon scrolling.",
+		"Fixed issues related to the new Left Text Offset position.",
+		"Fixed the wrong options being unusable with Aligned Text Columns enabled.",
 
-		{"v10.0.5.10661.147", "3月 1日, 2023"},
+		{"v10.0.5.10661.147", "Mar 1st, 2023"},
 		"Major fixes and updates on the Event Tracker feature (for streamers).",
 		"When trying to import a profile with a name that already exists, it'll rename it and import (Flamanis).",
 		"Ignoring Fodder to the Flame npcs (Flamanis).",
 		"Mythic plus overall segments now have the list of player deaths.",
 
-		{"v10.0.2.10561.148", "2月 9日, 2023"},
+		{"v10.0.2.10333.147", "Feb 08th, 2023"},
 		"Fixed load errors on Wrath.",
 		"Fixed enemy cast time in the death tooltip sometimes showing off time.",
 		"Allow negative offsets on Aligned Text Columns (Flamanis).",
@@ -358,7 +358,7 @@ do
 		"Fixed some issues with the breakdown window for 'Damage Taken' (Flamanis).",
 		"Fixed an issue where sometimes the 'Always Show Me' wouldn't show if the total bar is enabled (Ricodyn).",
 
-		{"v10.0.2.10401.148", "1月 5日, 2023"},
+		{"v10.0.2.10333.147", "Jan 04th, 2023"},
 		"Enemy Cast (non-interrupted) now is shown in the death log.",
 		"Damage Done by Blessing of Winter and Summer now counts torward the paladin.",
 		"Tooltips for Mythic Dungeon segments in the segments menu, now brings more information about the combat.",
@@ -382,16 +382,16 @@ do
 		"Fixed an issue with buff and debuff uptime sometimes not closing properly after the combat.",
 
 
-		{"v10.0.2.10333.147", "11月 18日, 2022"},
-		"在“戰鬥分析”視窗上加入了兩個勾選框，用於合併寵物和玩家法術。",
-		"為獵人的寵物 Frenzy 增益增加了覆蓋時間，它現在在“ 光環”標籤中顯示在“戰鬥分析”視窗中。",
-		"/played 顯示一些新的東西！",
-		"選項面板現在可通過按下Esc來關閉(Flamanis).",
+		{"v10.0.2.10333.147", "Nov 18th, 2022"},
+		"Added two checkboxes for Merge Pet and Player spell on the Breakdown window.",
+		"Added uptime for Hunter's Pet Frenzy Buff, it now show in the 'Auras' tab in the Breakdown Window.",
+		"/played is showing something new!",
+		"Options panel now closes by pressing Escape (Flamanis).",
 
-		{"v10.0.2.10277.146", "11月 18日, 2022"},
-		"提醒: '/details coach' to get damage/healing/deaths in real time as the 21st person (coach) for the next raid tier in dragonflight.",
-		"新比較標籤: 從頭開始重新建立，這種新的比較沒有玩家限制，寵物合併，更大的線條。",
-		"新 <掛件: Cast Log>  show a time line of spells used by players in the group, Raid Leader: show all attack and defense cooldowns used by the raid.",
+		{"v10.0.2.10277.146", "Nov 18th, 2022"},
+		"REMINDER: '/details coach' to get damage/healing/deaths in real time as the 21st person (coach) for the next raid tier in dragonflight.",
+		"New Compare tab: recreated from scratch, this new Compare has no player limitation, pets merged, bigger lines.",
+		"New <Plugin: Cast Log> show a time line of spells used by players in the group, Raid Leader: show all attack and defense cooldowns used by the raid (download it now on wago or curseforge).",
 		"Wago: Details! Standalone version is now hosted on addons.wago.io and WowUp.com.",
 		"",
 
