@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AmirdrassilTrash", "DBM-Raids-Dragonflight", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107113441")
+mod:SetRevision("20231115130648")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -12,8 +12,8 @@ mod:RegisterEvents(
 --	"SPELL_AURA_REMOVED"
 )
 
---TODO, icon mark shared suffering? Maybe when they fix ENCOUNTER_START, for now I don't want to risk trash mod messing with a boss mods icon marking
---Lady's Trash, minus bottled anima, which will need a unit event to detect it looks like
+--TODO, kick blazing pulse
+--TODO, inferno heart spread
 --local warnConcentrateAnima					= mod:NewTargetNoFilterAnnounce(339525, 3)
 
 --local specWarnConcentrateAnima				= mod:NewSpecialWarningMoveAway(310780, nil, nil, nil, 1, 2)

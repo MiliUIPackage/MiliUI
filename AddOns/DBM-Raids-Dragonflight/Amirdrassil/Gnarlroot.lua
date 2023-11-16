@@ -1,12 +1,12 @@
 local mod	= DBM:NewMod(2564, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107113441")
+mod:SetRevision("20231116090116")
 mod:SetCreatureID(209333)
 mod:SetEncounterID(2820)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
-mod:SetHotfixNoticeRev(20231003000000)
-mod:SetMinSyncRevision(20230923000000)
+mod:SetHotfixNoticeRev(20231116000000)
+mod:SetMinSyncRevision(20231116000000)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -82,62 +82,46 @@ mod.vb.cleaveCount = 0
 mod.vb.doomCount = 0
 local castsPerGUID = {}
 local addUsedMarks = {}
-local difficultyName = "normal"
+local difficultyName = "easy"
 --Timers Table Notes
 --If initial and loop timers were close enough, they were combined and minned since 1-2sec variation is acceptable
 --If the initial and repeat timers were radically different (consistently) like with Shadowflame heroic, two entries are used to separate them
 local allTimers = {
-	["lfr"] = {--Repeats unknown, not a single person testing LFR logged it on WCL
+	["easy"] = {
 		--Controlled Burn
-		[421971] = {36.4, 38.3},
+		[421971] = {33.2, 37.8},
 		--Dreadfire Barrage
-		[424352] = {10.6, 29.8, 27.6},
+		[424352] = {9.9, 27.7, 27.7},
 		--Flaming Pestilence
-		[421898] = {18.7, 44.0},
+		[421898] = {16.5, 42.2},
 		--Shadowflame Cleave
-		[422039] = {24.2, 31.8, 32.0},
-		[4220392] = {24.2, 31.8, 32.0},--Same as above, but so table entry isn't nil for global checks
+		[422039] = {22.1, 26.6, 26.6},
 		--Tortured Scream
-		[422026] = {4.0, 27.0, 18.3, 29.4},
-	},
-	["normal"] = {
-		--Controlled Burn
-		[421971] = {39.9, 43.0},--Repeat: 42.2, 43.0
-		--Dreadfire Barrage
-		[424352] = {12.2, 32.4, 29.1},--Repeat: 14.5, 32.3, 29.1
-		--Flaming Pestilence
-		[421898] = {21.4, 49.2},--Repeat: 23.7, 49.2
-		--Shadowflame Cleave
-		[422039] = {27.6, 36.9},--Repeat: 29.9, 36.9
-		[4220392] = {27.6, 36.9},--Same as above, but so table entry isn't nil for global checks
-		--Tortured Scream
-		[422026] = {4.5, 29.2, 23.0, 30.8},--Repeat: 6.8, 29.2, 23, 30.8
+		[422026] = {3.2, 25.5, 25.5, 26.6},
 	},
 	["heroic"] = {
 		--Controlled Burn
-		[421971] = {31.5, 32.0},--Repeat: 0, 34.9 / 0, 32.9
+		[421971] = {30, 32.0},
 		--Dreadfire Barrage
-		[424352] = {9.5, 24.8, 21.5, 21.5},--Repeat: 0, 25.0, 24.1, 21.5 / 0, 24.8, 22.3, 23.5 / 0, 24.8, 22.4, 23.4
+		[424352] = {8.9, 25, 25, 25},
 		--Flaming Pestilence
-		[421898] = {17.2, 34.7},--Repeat: 0, 36.1 / 0, 35.3
+		[421898] = {17.2, 38},
 		--Shadowflame Cleave
-		[422039] = {22.0, 20.4, 29.5},--Repeat: 0, 21.3, 30.9, 17.3 / 0, 21.1, 29.4, 18.9
-		[4220392] = {0, 21.1, 29.4, 17.3},--Repeat: 0, 21.3, 30.9, 17.3 / 0, 21.1, 29.4, 18.9
+		[422039] = {20, 23.9, 24},
 		--Tortured Scream
-		[422026] = {3.6, 22.4, 20.3, 20.0, 17.2},--Repeat: 0, 22.4, 21.9, 20.9, 17.2 / 0, 22.4, 21.2, 20.0, 18.8
+		[422026] = {3, 22.9, 23, 24},
 	},
 	["mythic"] = {
 		--Controlled Burn
-		[421971] = {31.8, 38.9},--Repeat: 33.5, 38.8
+		[421971] = {34, 33.9},
 		--Dreadfire Barrage
-		[424352] = {9.4, 25.9, 20.0, 18.9},--Repeat: 11.1, 26.0, 19.9, 18.9
+		[424352] = {8.9, 20.0, 20.0, 13.9, 18.0},
 		--Flaming Pestilence
-		[421898] = {16.5, 44.8},--Repeat: 18.2, 44.8
+		[421898] = {14.9, 42.0},
 		--Shadowflame Cleave
-		[422039] = {21.2, 28.2, 30.7},--Repeat: 22.9, 28.2, 30.7
-		[4220392] = {21.2, 28.2, 30.7},--Same as above, but so table entry isn't nil for global checks
+		[422039] = {20, 23.9, 27.0},
 		--Tortured Scream
-		[422026] = {3.5, 23.5, 16.4, 22.4, 20.1},--Repeat: 5.2, 23.6, 16.4, 22.4, 20.1
+		[422026] = {2.9, 23.0, 28.0, 21.9},
 	},
 }
 
@@ -155,35 +139,28 @@ function mod:OnCombatStart(delay)
 	--Mythic and heroic initials very close
 	if self:IsMythic() then
 		difficultyName = "mythic"
-		timerTorturedScreamCD:Start(3.5-delay, 1)
-		timerDreadfireBarrageCD:Start(9.4-delay, 1)
-		timerFlamingPestilenceCD:Start(16.5-delay, 1)
-		timerShadowflameCleaveCD:Start(21.2-delay, 1)
-		timerControlledBurnCD:Start(31.8-delay, 1)
+		timerTorturedScreamCD:Start(2.9-delay, 1)
+		timerDreadfireBarrageCD:Start(8.9-delay, 1)
+		timerFlamingPestilenceCD:Start(14.9-delay, 1)
+		timerShadowflameCleaveCD:Start(20-delay, 1)
+		timerControlledBurnCD:Start(34-delay, 1)
 	elseif self:IsHeroic() then
 		difficultyName = "heroic"
-		timerTorturedScreamCD:Start(3.6-delay, 1)
-		timerDreadfireBarrageCD:Start(9.5-delay, 1)
-		timerFlamingPestilenceCD:Start(17.2-delay, 1)
-		timerShadowflameCleaveCD:Start(22-delay, 1)
-		timerControlledBurnCD:Start(31.5-delay, 1)
-	--Normal and LFR initials are still quite different
-	elseif self:IsNormal() then
-		difficultyName = "normal"
-		timerTorturedScreamCD:Start(4.5-delay, 1)
-		timerDreadfireBarrageCD:Start(12.2-delay, 1)
-		timerFlamingPestilenceCD:Start(21.4-delay, 1)
-		timerShadowflameCleaveCD:Start(27.6-delay, 1)
-		timerControlledBurnCD:Start(39.9-delay, 1)
-	else
-		difficultyName = "lfr"
-		timerTorturedScreamCD:Start(4-delay, 1)
-		timerDreadfireBarrageCD:Start(10.6-delay, 1)
-		timerFlamingPestilenceCD:Start(18.7-delay, 1)
-		timerShadowflameCleaveCD:Start(24.2-delay, 1)
-		timerControlledBurnCD:Start(36.4-delay, 1)
+		timerTorturedScreamCD:Start(3-delay, 1)
+		timerDreadfireBarrageCD:Start(8.9-delay, 1)
+		timerFlamingPestilenceCD:Start(15-delay, 1)
+		timerShadowflameCleaveCD:Start(20-delay, 1)
+		timerControlledBurnCD:Start(30-delay, 1)
+	else--Normal and LFR seem synced now
+		difficultyName = "easy"
+		timerTorturedScreamCD:Start(3.2-delay, 1)
+		timerDreadfireBarrageCD:Start(9.9-delay, 1)
+		timerFlamingPestilenceCD:Start(16.5-delay, 1)
+		timerShadowflameCleaveCD:Start(22.1-delay, 1)
+		timerControlledBurnCD:Start(33.2-delay, 1)
+		timerDoomCultivationCD:Start(93.2-delay, 2, 1)
 	end
-	timerDoomCultivationCD:Start(96.7-delay, 2, 1)
+	timerDoomCultivationCD:Start(93-delay, 2, 1)--Technically this variates too based on difficult, but meh, 2-3 sec at most
 end
 
 --function mod:OnCombatEnd()
@@ -197,10 +174,8 @@ function mod:OnTimerRecovery()
 		difficultyName = "mythic"
 	elseif self:IsHeroic() then
 		difficultyName = "heroic"
-	elseif self:IsNormal() then
-		difficultyName = "normal"
 	else
-		difficultyName = "lfr"
+		difficultyName = "easy"
 	end
 end
 
@@ -238,12 +213,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.cleaveCount = self.vb.cleaveCount + 1
 		specWarnShadowflameCleave:Show(self.vb.cleaveCount)
 		specWarnShadowflameCleave:Play("shockwave")
-		local timer
-		if self.vb.doomCount > 0 then--All sets besides initial
-			timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId..2, self.vb.cleaveCount+1)
-		else--Initial timers
-			timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.cleaveCount+1)
-		end
+		local timer = self:GetFromTimersTable(allTimers, difficultyName, false, spellId, self.vb.cleaveCount+1)
 		if timer then
 			timerShadowflameCleaveCD:Start(timer, self.vb.cleaveCount+1)
 		end
@@ -335,19 +305,23 @@ function mod:SPELL_AURA_APPLIED(args)
 		self.vb.burnIcon = self.vb.burnIcon + 1
 	elseif spellId == 426106 then
 		local amount = args.amount or 1
-		if args:IsPlayer() then--This basically can swap every 1-2 stacks based on it's cooldown.
-			warnDreadfireBarrage:Show(args.destName, amount)
-		else
-			local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
-			local remaining
-			if expireTime then
-				remaining = expireTime-GetTime()
-			end
-			if (not remaining or remaining and remaining < 22) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
-				specWarnDreadfireBarrage:Show(args.destName)
-				specWarnDreadfireBarrage:Play("tauntboss")
-			else
+		--Applies 5 stacks at a time (then just refreshes after that)
+		--so this should effectively warn once per barrage
+		if amount >= 5 then
+			if args:IsPlayer() then--This basically can swap every 1-2 stacks based on it's cooldown.
 				warnDreadfireBarrage:Show(args.destName, amount)
+			else
+				local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
+				local remaining
+				if expireTime then
+					remaining = expireTime-GetTime()
+				end
+				if (not remaining or remaining and remaining < 22) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+					specWarnDreadfireBarrage:Show(args.destName)
+					specWarnDreadfireBarrage:Play("tauntboss")
+				else
+					warnDreadfireBarrage:Show(args.destName, amount)
+				end
 			end
 		end
 	elseif spellId == 421038 then
@@ -384,35 +358,26 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.cleaveCount = 0
 		timerUprootAgonyCD:Stop()
 		if self:IsMythic() then
-			timerTorturedScreamCD:Start(5.2, 1)
-			timerDreadfireBarrageCD:Start(11.1, 1)
-			timerFlamingPestilenceCD:Start(18.2, 1)
-			timerShadowflameCleaveCD:Start(22.9, 1)
-			timerControlledBurnCD:Start(33.5, 1)
-			timerDoomCultivationCD:Start(92, 2, self.vb.doomCount+1)--Recheck
-		elseif self:IsHeroic() then--Heroic needs rechecking
-			timerTorturedScreamCD:Start(4.8, 1)
-			timerDreadfireBarrageCD:Start(10.7, 1)
-			timerFlamingPestilenceCD:Start(17.8, 1)
-			timerShadowflameCleaveCD:Start(22.5, 1)
-			timerControlledBurnCD:Start(31.9, 1)
+			timerTorturedScreamCD:Start(4.3, 1)
+			timerDreadfireBarrageCD:Start(10.4, 1)
+			timerFlamingPestilenceCD:Start(16.4, 1)
+			timerShadowflameCleaveCD:Start(21.4, 1)
+			timerControlledBurnCD:Start(35.4, 1)
+			timerDoomCultivationCD:Start(94.1, 2, self.vb.doomCount+1)--Recheck multiple times
+		elseif self:IsHeroic() then
+			timerTorturedScreamCD:Start(4.5, 1)
+			timerDreadfireBarrageCD:Start(10.5, 1)
+			timerFlamingPestilenceCD:Start(16.5, 1)
+			timerShadowflameCleaveCD:Start(21.5, 1)
+			timerControlledBurnCD:Start(31.5, 1)
 			timerDoomCultivationCD:Start(93.4, 2, self.vb.doomCount+1)
-		elseif self:IsNormal() then
-			timerTorturedScreamCD:Start(6.8, 1)
-			timerDreadfireBarrageCD:Start(14.5, 1)
-			timerFlamingPestilenceCD:Start(23.1, 1)
-			timerShadowflameCleaveCD:Start(29.2, 1)
-			timerControlledBurnCD:Start(41.5, 1)
-			timerDoomCultivationCD:Start(98.5, 2, self.vb.doomCount+1)--Recheck
-		else--LFR
-			--None known
-			DBM:AddMsg("LFR timers are not known/vetted beyond this point")
-			--timerTorturedScreamCD:Start(4.8, 1)
-			--timerDreadfireBarrageCD:Start(10.7, 1)
-			--timerFlamingPestilenceCD:Start(17.8, 1)
-			--timerShadowflameCleaveCD:Start(22.5, 1)
-			--timerControlledBurnCD:Start(31.9, 1)
-			--timerDoomCultivationCD:Start(93.4, self.vb.doomCount+1)
+		else--LFR and normal
+			timerTorturedScreamCD:Start(4.4, 1)
+			timerDreadfireBarrageCD:Start(11, 1)
+			timerFlamingPestilenceCD:Start(17.7, 1)
+			timerShadowflameCleaveCD:Start(23.2, 1)
+			timerControlledBurnCD:Start(34.3, 1)
+			timerDoomCultivationCD:Start(94.4, 2, self.vb.doomCount+1)
 		end
 	end
 end

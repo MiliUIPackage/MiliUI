@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2125, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107025714")
+mod:SetRevision("20231116102800")
 mod:SetCreatureID(135358, 135359, 135360, 131823, 131824, 131825)--All versions so we can pull boss
 mod:SetEncounterID(2113)
 mod:DisableESCombatDetection()--ES fires For entryway trash pull sometimes, for some reason.
@@ -147,7 +147,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			timerSoulManipulationCD:Start(8, args.destGUID)--CAST START (8-11)
 		end
 		if self.Options.SetIconOnTriad then
-			self:ScanForMobs(args.destGUID, 2, 8, 1, nil, 12, "SetIconOnTriad")
+			self:ScanForMobs(args.destGUID, 2, 8, 1, nil, 12, "SetIconOnTriad", nil, nil, nil, true)
 		end
 	elseif spellId == 260703 then
 		warnUnstableMark:CombinedShow(0.3, args.destName)

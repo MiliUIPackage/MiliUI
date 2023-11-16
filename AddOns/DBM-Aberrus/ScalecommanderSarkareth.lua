@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2520, "DBM-Aberrus", nil, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102154902")
+mod:SetRevision("20231115003258")
 mod:SetCreatureID(201754)
 mod:SetEncounterID(2685)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -165,8 +165,8 @@ mod.vb.bigAddKilled = 0
 local oblivionStacks = {}
 local castsPerGUID = {}
 local oblivionDisabled = false--Cache to avoid constant option table spamming
-local difficultyName = "lfr"
 local playerVoidFracture = false
+local difficultyName = "lfr"
 local allTimers = {
 	["mythic"] = {
 		[1] = {

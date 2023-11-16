@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107113441")
+mod:SetRevision("20231115130648")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -44,6 +44,7 @@ local warnUrsineRage								= mod:NewSpellAnnounce(425114, 4)--You done fucked u
 
 local specWarnBlindingRage							= mod:NewSpecialWarningCount(420525, nil, nil, nil, 2, 2)
 local specWarnBarrelingCharge						= mod:NewSpecialWarningYouCount(420948, nil, nil, nil, 1, 2)
+local specWarnBarrelingChargeSpecial				= mod:NewSpecialWarningMoveTo(420948, nil, nil, nil, 3, 14)
 local yellBarrelingCharge							= mod:NewShortYell(420948, 100)
 local yellBarrelingChargeFades						= mod:NewShortFadesYell(420948)
 local specWarnTrampled								= mod:NewSpecialWarningTaunt(423420, nil, nil, nil, 1, 2)--Not grouped on purpose, so that it stays on diff WA key in GUI
@@ -55,7 +56,8 @@ local timerBlindingRage								= mod:NewBuffActiveTimer(15, 420525, nil, nil, ni
 local timerBarrelingChargeCD						= mod:NewCDCountTimer(11.8, 420948, 100, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Tank focused, but soaked by everyone so it's on for everyone
 local timerAgonizingClawsCD							= mod:NewCDCountTimer(6, 421022, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --Aerwynn
-mod:AddTimerLine(DBM:EJ_GetSectionInfo(27301))
+local Aerwynn = DBM:EJ_GetSectionInfo(27301)
+mod:AddTimerLine(Aerwynn)
 local warnRelentlessBarrage							= mod:NewSpellAnnounce(420937, 4)--You done fucked up
 local warnNoxiousBlossom							= mod:NewCountAnnounce(420671, 3)
 local warnPoisonousJavelin							= mod:NewTargetCountAnnounce(420858, 3, nil, nil, 298110)--, nil, nil, nil, nil, nil, nil, true
@@ -74,7 +76,7 @@ local timerPoisonousJavelinCD						= mod:NewCDCountTimer(25, 420858, 298110, nil
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(27302))
 local warnCaptivatingFinale							= mod:NewTargetNoFilterAnnounce(421032, 4)--You done fucked up
 local warnPolymorphBomb								= mod:NewIncomingCountAnnounce(418720, 2)
-local warnPolymorphBombTargets						= mod:NewTargetCountAnnounce(418720, 3, nil, nil, nil, nil, nil, nil, true)
+--local warnPolymorphBombTargets						= mod:NewTargetCountAnnounce(418720, 3, nil, nil, nil, nil, nil, nil, true)--Possible to detect private aura with RAID_BOSS_WHISPER syncs, but yeah...
 
 local specWarnSongoftheDragon						= mod:NewSpecialWarningCount(421029, nil, nil, nil, 2, 2)
 local specWarnCaptivatingFinale						= mod:NewSpecialWarningYou(421032, nil, nil, nil, 1, 2)
@@ -95,6 +97,7 @@ mod:AddSetIconOption("SetIconOnPoly", 418720, true, false, {1, 2, 3, 4})
 
 mod.vb.specialsActive = 0
 mod.vb.nextSpecial = 1
+mod.vb.chargeSpecial = false
 --Urctos
 mod.vb.clawsCount = 0
 mod.vb.rageCount = 0
@@ -127,16 +130,20 @@ local function specialInterrupted(self, spellId)
 		self.vb.nextSpecial = self.vb.nextSpecial + 1
 		self.vb.clawsCount = 0
 		timerAgonizingClawsCD:Start(8, 1)
-		timerBarrelingChargeCD:Restart(29, self.vb.chargeCount+1)
+		timerBarrelingChargeCD:Stop()
+		timerBarrelingChargeCD:Start(29, self.vb.chargeCount+1)
 
-		timerNoxiousBlossomCD:Restart(11, self.vb.blossomCount+1)--Even though this one can be cast during specials, it restarts when specials end
+
+		timerNoxiousBlossomCD:Stop()
+		timerNoxiousBlossomCD:Start(11, self.vb.blossomCount+1)--Even though this one can be cast during specials, it restarts when specials end
 		timerPoisonousJavelinCD:Start(20, self.vb.javCount+1)
 
-		timerPolymorphBombCD:Restart(16, self.vb.polyCount+1)
+		timerPolymorphBombCD:Stop()
+		timerPolymorphBombCD:Start(16, self.vb.polyCount+1)
 		timerEmeraldWindsCD:Start(45.5, self.vb.windsCount+1)
 		DBM:Debug("All specials have ended, restarting all non special timers")
 
-		if self:Mythic() then
+		if self:IsMythic() then
 			--Hard coded rotation for mythic
 			if self.vb.nextSpecial % 3 == 2 or self.vb.nextSpecial % 3 == 1 then -- 1, 2
 				timerConstrictingThicketCD:Start(56, self.vb.vinesCount+1)
@@ -202,8 +209,10 @@ function mod:SPELL_CAST_START(args)
 		specWarnBlindingRage:Show(self.vb.rageCount)
 		specWarnBlindingRage:Play("aesoon")
 		--Timers that specifically reset on blind rage begin
-		timerNoxiousBlossomCD:Restart(7, self.vb.blossomCount+1)
-		timerPolymorphBombCD:Restart(9, self.vb.polyCount+1)--Technically it's for the 2nd cast, first cast one event before this cast
+		timerNoxiousBlossomCD:Stop()
+		timerPolymorphBombCD:Stop()
+		timerNoxiousBlossomCD:Start(7, self.vb.blossomCount+1)
+		timerPolymorphBombCD:Start(9, self.vb.polyCount+1)--Technically it's for the 2nd cast, first cast one event before this cast
 		DBM:Debug("Starting second polymorph blinding rage timer, in case first happened before blinding rage")
 	elseif spellId == 420947 then
 		self.vb.chargeCount = self.vb.chargeCount + 1
@@ -230,6 +239,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 421292 then
 		self.vb.specialsActive = self.vb.specialsActive + 1
+		self.vb.chargeSpecial = true
 		self.vb.vinesCount = self.vb.vinesCount + 1
 		specWarnConstrictingThicket:Show(self.vb.vinesCount)
 		specWarnConstrictingThicket:Play("aesoon")
@@ -255,7 +265,8 @@ function mod:SPELL_CAST_START(args)
 		specWarnSongoftheDragon:Show(self.vb.songCount)
 		specWarnSongoftheDragon:Play("takedamage")
 		--Timers that specifically reset on song begin
-		timerNoxiousBlossomCD:Restart(2.9, self.vb.blossomCount+1)
+		timerNoxiousBlossomCD:Stop()
+		timerNoxiousBlossomCD:Start(2.9, self.vb.blossomCount+1)
 	elseif spellId == 418591 then
 		self.vb.polyIcon = 1
 		self.vb.polyCount = self.vb.polyCount + 1
@@ -298,8 +309,13 @@ function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 420948 then
 		if args:IsPlayer() then
-			specWarnBarrelingCharge:Show(self.vb.chargeCount)
-			specWarnBarrelingCharge:Play("chargemove")
+			if self.vb.chargeSpecial then
+				specWarnBarrelingChargeSpecial:Show(Aerwynn)
+				specWarnBarrelingChargeSpecial:Play("movetoboss")
+			else
+				specWarnBarrelingCharge:Show(self.vb.chargeCount)
+				specWarnBarrelingCharge:Play("chargemove")
+			end
 			yellBarrelingCharge:Yell()
 			yellBarrelingChargeFades:Countdown(spellId)
 		else
@@ -365,7 +381,6 @@ function mod:SPELL_AURA_APPLIED(args)
 				specWarnPolymorphBomb:Play("targetyou")
 				yellPolymorphBombFades:Countdown(spellId, nil, icon)
 			end
-			warnPolymorphBombTargets:CombinedShow(0.5, self.vb.polyCount, args.destName)
 		end
 		self.vb.polyIcon = self.vb.polyIcon + 1
 	elseif spellId == 421032 then
@@ -390,6 +405,9 @@ function mod:SPELL_AURA_REMOVED(args)
 	elseif spellId == 421298 then
 		timerConstrictingThicket:Stop()
 	elseif spellId == 421292 or spellId == 421029 then--Constricting Thicket, Song of the Dragon
+		if spellId == 421292 then
+			self.vb.chargeSpecial = false
+		end
 		specialInterrupted(self, spellId)
 	elseif spellId == 420858 then
 		if args:IsPlayer() then

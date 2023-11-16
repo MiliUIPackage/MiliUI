@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2556, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231113121717")
+mod:SetRevision("20231115112304")
 mod:SetCreatureID(206172)
 mod:SetEncounterID(2708)
 mod:SetUsedIcons(8, 7, 6)
@@ -94,7 +94,7 @@ function mod:OnCombatStart(delay)
 	self.vb.wardenIcon = 7
 	timerSurgingGrowthCD:Start(10, 1)--It's difficult to accurately time, it has no cast event and using soaks is iffy
 	timerViridianRainCD:Start(21, 1)
-	timerWeaversBurdenCD:Start(21, 1)
+	timerWeaversBurdenCD:Start(20, 1)
 	timerImpendingLoomCD:Start(24, 1)
 	timerFullBloomCD:Start(70, 1)
 --	if self:IsMythic() then
@@ -301,17 +301,14 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 		--21.0, 19.1, 20.0 then 36-37, 19.0, 20.1
 		if self.vb.burdenCount % 3 ~= 0 then--3rd cast in each set is last one before full bloom
 			if self.vb.burdenCount % 3 ~= 0 then
-				timerWeaversBurdenCD:Start(19, self.vb.burdenCount+1)
+				timerWeaversBurdenCD:Start(18, self.vb.burdenCount+1)
 			else
 				timerWeaversBurdenCD:Start(20, self.vb.burdenCount+1)
 			end
 		end
 		--Weavers burden is a private aura, but one of targets is always the active tank.
 		if self:IsTanking("player", "boss1", nil, true) then
-			specWarnWeaversBurden:Show()
-			specWarnWeaversBurden:Play("runout")
 			yellWeaversBurden:Yell()
---			yellWeaversBurdenFades:Countdown(8)
 		else
 			local bossTarget = UnitName("boss1target") or DBM_COMMON_L.UNKNOWN
 			--Delayed by a frame so as not to snipe the debuff
