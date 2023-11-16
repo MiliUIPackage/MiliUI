@@ -87,6 +87,8 @@ local db = {
     },
     hero = {
         enUS = "Hero",
+        zhTW = "英雄",
+        zhCN = "英雄",
         season2 = {
             lower = 428,
             upper = 441,
@@ -98,6 +100,8 @@ local db = {
     },
     myth = {
         enUS = "Myth",
+        zhTW = "神話",
+        zhCN = "神话",
         season2 = {
             lower = 441,
             upper = 447,
