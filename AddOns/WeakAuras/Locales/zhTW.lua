@@ -8,7 +8,10 @@ local L = WeakAuras.L
 L[ [=[ Filter formats: 'Name', 'Name-Realm', '-Realm'. 
 
 Supports multiple entries, separated by commas
-Can use \ to escape -.]=] ] = "過濾格式: '名字'、'名字-伺服器'、'-伺服器'。支援輸入多個項目，使用逗號分隔。可用 \\ 來換碼 -。"
+Can use \ to escape -.]=] ] = [=[過濾格式: '名字'、'名字-伺服器'、'-伺服器'。
+
+支援輸入多個項目，使用逗號分隔。
+要將 - 當成一般文字可使用跳脫符號 \]=]
 L["%s Overlay Color"] = "%s 疊加圖層顏色"
 L["* Suffix"] = "* 後綴詞"
 L["/wa help - Show this message"] = "/wa help - 顯示這個訊息"
@@ -1211,9 +1214,8 @@ L["Sulfuron Harbinger"] = "薩弗隆先驅者"
 L["Summon"] = "召喚"
 L["Supports multiple entries, separated by commas"] = "支援輸入多個項目，使用逗號分隔。"
 L[ [=[Supports multiple entries, separated by commas
-]=] ] = [=[
-支援輸入多個項目，使用逗號分隔。]=]
-L["Supports multiple entries, separated by commas. Escape ',' with \\"] = "支援多重輸入，以逗號分隔。例如 ','以及 \\"
+]=] ] = "支援輸入多個項目，使用逗號分隔。"
+L["Supports multiple entries, separated by commas. Escape ',' with \\"] = "支援輸入多個項目，使用逗號分隔。要將逗號當成一般文字請使用跳脫符號 \\"
 L["Supports multiple entries, separated by commas. Group Zone IDs must be prefixed with 'g', e.g. g277."] = "支援輸入多個項目，使用逗號分隔。群組區域 ID 必須為 g 開頭，例如 g277。"
 L["Swing"] = "揮動"
 L["Swing Timer"] = "揮擊計時條"
@@ -1333,8 +1335,8 @@ L["Unit is Unit"] = "單位相同"
 L["Unit Name"] = "單位名字"
 L["Unit Name/Realm"] = "單位名字/伺服器"
 L["Units Affected"] = "受影響的單位"
-L["Units of affected Players in a table format"] = "以表格格式顯示受影響玩家的單位"
-L["Units of unaffected Players in a table format"] = "表格格式中未受影響玩家的單位"
+L["Units of affected Players in a table format"] = "受影響玩家單位 (table)"
+L["Units of unaffected Players in a table format"] = "未受影響玩家單位 (table)"
 L["unknown location"] = "位置不明"
 L["Unlimited"] = "無限"
 L["Untrigger %s"] = "取消觸發 %s"
