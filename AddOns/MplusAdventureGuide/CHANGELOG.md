@@ -1,6 +1,6 @@
 # Mythic+ Miscellaneous
 
-## [10.1-015](https://github.com/teelolws/MplusAG/tree/10.1-015) (2023-09-05)
-[Full Changelog](https://github.com/teelolws/MplusAG/compare/10.1-014...10.1-015) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
+## [10.2-002](https://github.com/teelolws/MplusAG/tree/10.2-002) (2023-11-15)
+[Full Changelog](https://github.com/teelolws/MplusAG/compare/10.2-001...10.2-002) [Previous Releases](https://github.com/teelolws/MplusAG/releases)
 
-- Update for 10.1.7  
+- Update portal buttons for Dragonflight Season 3  

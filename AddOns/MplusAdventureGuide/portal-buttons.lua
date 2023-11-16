@@ -3,7 +3,7 @@ local addonName, addon = ...
 -- this module adds +20 portal buttons to the M+ UI if the player has learned them
 
 -- DB structure:
--- mapID = { -- number, the mapID of the M+ dungeon, eg 251 for The Underrot 
+-- mapID = { -- number, the mapID of the M+ dungeon, eg 251 for The Underrot. from C_ChallengeMode.GetMapUIInfo(mapID) 
 --   primarySpell = number, the spellID of the primary teleport to this dungeon
 --   alternateSpells = {
 --     number, [number, number...] spell IDs of next closest teleports, in order from closest to furthest
@@ -56,6 +56,48 @@ local db = {
         alternateSpells = {
             393256, -- Ruby Life Pools
         },
+    },
+    
+    -- Dragonflight Season 3
+    [168] = { -- Everbloom
+        primarySpell = 159901,
+        alternateSpells = {
+            426410, -- Alternate teleport to Everbloom added in 10.2, unsure if this one is actually needed
+            159900, -- Grimrail Depot
+            159896, -- Iron Docks
+        },
+    },
+    [248] = { -- Waycrest Manor
+        primarySpell = 272271,
+        alternateSpells = {},
+    },
+    [456] = { -- Throne of the Tides
+        primarySpell = 424142,
+        alternateSpells = {},
+    },
+    [464] = { -- Dawn of the Infinite: Murozond
+        primarySpell = 426121,
+        alternateSpells = {},
+    },
+    [463] = { -- Dawn of the Infinite: Galakrond
+        primarySpell = 426121,
+        alternateSpells = {},
+    },
+    [198] = { -- Darkheart Thicket
+        primarySpell = 424163,
+        alternateSpells = {
+            205373, -- Black Rook Hold
+        },
+    },
+    [199] = { -- Black Rook Hold
+        primarySpell = 205373,
+        alternateSpells = {
+            424163, -- Darkheart Thicket
+        },
+    },
+    [244] = { -- Atal'Dazar
+        primarySpell = 424187,
+        alternateSpells = {},
     },
 }
 
