@@ -1,4 +1,4 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r200-release...35b0ccfd96956e313858d81e4d3da795e963fa34)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r202-release...128cab19957e04d44a640a09a9d98693b9594830)
 
-- Update Amirdrassil debuffs
-- Update Health Text
+- Fix Target Counter defaults
+- Fix blz status bar (value = 0)

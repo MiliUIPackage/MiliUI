@@ -157,6 +157,8 @@ local function ResetIndicators()
 end
 
 local function HandleIndicators(b)
+    b._indicatorReady = nil
+
     -- NOTE: Remove old
     I:RemoveAllCustomIndicators(b)
 
@@ -310,6 +312,8 @@ local function HandleIndicators(b)
 
     --! update pixel perfect for widgets
     B:UpdatePixelPerfect(b, true)
+
+    b._indicatorReady = 1
 end
 
 local function UpdateIndicators(layout, indicatorName, setting, value, value2)
@@ -1488,7 +1492,7 @@ local function ShouldShowPowerBar(b)
         class = "VEHICLE"
     end
     
-    if class then
+    if class and Cell.vars.currentLayoutTable then
         if type(Cell.vars.currentLayoutTable["powerFilters"][class]) == "boolean" then
             return Cell.vars.currentLayoutTable["powerFilters"][class]
         else
@@ -2095,7 +2099,7 @@ UnitButton_UpdateNameColor = function(self)
 
     local nameText = self.indicators.nameText
 
-    if not Cell.loaded then
+    if not Cell.vars.currentLayoutTable then
         nameText:SetColor(1, 1, 1)
         return 
     end
@@ -2242,8 +2246,8 @@ UnitButton_UpdateAll = function(self)
     -- UnitButton_UpdateStatusIcon(self)
     I.UpdateStatusIcon_Resurrection(self)
 
-    if Cell.loaded and self.powerBarUpdateRequired then
-        self.powerBarUpdateRequired = nil
+    if Cell.loaded and self._powerBarUpdateRequired then
+        self._powerBarUpdateRequired = nil
         if ShouldShowPowerBar(self) then
             ShowPowerBar(self)
         else
@@ -2262,7 +2266,7 @@ end
 -- unit button events
 -------------------------------------------------
 local function UnitButton_RegisterEvents(self)
-    self:RegisterEvent("PLAYER_ENTERING_WORLD")
+    -- self:RegisterEvent("PLAYER_ENTERING_WORLD")
     self:RegisterEvent("GROUP_ROSTER_UPDATE")
     
     self:RegisterEvent("UNIT_HEALTH")
@@ -2345,8 +2349,8 @@ end
 local function UnitButton_OnEvent(self, event, unit, arg)
     if unit and (self.state.displayedUnit == unit or self.state.unit == unit) then
         if  event == "UNIT_ENTERED_VEHICLE" or event == "UNIT_EXITED_VEHICLE" or event == "UNIT_CONNECTION" then
-            self.updateRequired = 1
-            self.powerBarUpdateRequired = 1
+            self._updateRequired = 1
+            self._powerBarUpdateRequired = 1
         
         elseif event == "UNIT_NAME_UPDATE" then
             UnitButton_UpdateName(self)
@@ -2416,15 +2420,15 @@ local function UnitButton_OnEvent(self, event, unit, arg)
 
         elseif event == "UNIT_PORTRAIT_UPDATE" then -- pet summoned far away
             if self.state.healthMax == 0 then
-                self.updateRequired = 1
-                self.powerBarUpdateRequired = 1
+                self._updateRequired = 1
+                self._powerBarUpdateRequired = 1
             end
         end
 
     else
-        if event == "PLAYER_ENTERING_WORLD" or event == "GROUP_ROSTER_UPDATE" then
-            self.updateRequired = 1
-            self.powerBarUpdateRequired = 1
+        if event == "GROUP_ROSTER_UPDATE" then
+            self._updateRequired = 1
+            self._powerBarUpdateRequired = 1
 
         elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then
             UnitButton_UpdateLeader(self, event)
@@ -2454,6 +2458,15 @@ local function UnitButton_OnEvent(self, event, unit, arg)
         end
     end
 end
+
+-- local function EnterLeaveInstance()
+--     print("EnterLeaveInstance")
+--     C_Timer.After(1, function()
+--         F:IterateAllUnitButtons(UnitButton_UpdateAll)
+--     end)
+-- end
+-- Cell:RegisterCallback("EnterInstance", "UnitButton_EnterInstance", EnterLeaveInstance)
+-- Cell:RegisterCallback("LeaveInstance", "UnitButton_LeaveInstance", EnterLeaveInstance)
 
 local function UnitButton_OnAttributeChanged(self, name, value)
     if name == "unit" then
@@ -2491,7 +2504,8 @@ local function UnitButton_OnAttributeChanged(self, name, value)
             if string.match(value, "raid%d") then
                 local i = string.match(value, "%d")
                 _G["CellRaidFrameMember"..i] = self
-                self.unitid = value
+                self.unit = value
+                self.unitid = value -- REMOVE!
             end
 
             ResetAuraTables(self)
@@ -2509,8 +2523,8 @@ Cell.vars.names = {} -- name to unitid
 
 local function UnitButton_OnShow(self)
     -- print(GetTime(), "OnShow", self:GetName())
-    self.updateRequired = nil -- prevent UnitButton_UpdateAll twice. when convert party <-> raid, GROUP_ROSTER_UPDATE fired.
-    self.powerBarUpdateRequired = 1
+    self._updateRequired = nil -- prevent UnitButton_UpdateAll twice. when convert party <-> raid, GROUP_ROSTER_UPDATE fired.
+    self._powerBarUpdateRequired = 1
     UnitButton_RegisterEvents(self)
 
     --[[
@@ -2573,7 +2587,7 @@ end
 local UNKNOWN = _G.UNKNOWN
 local UNKNOWNOBJECT = _G.UNKNOWNOBJECT
 local function UnitButton_OnTick(self)
-    -- print(GetTime(), "OnTick", self.updateRequired, self:GetAttribute("refreshOnUpdate"), self:GetName())
+    -- print(GetTime(), "OnTick", self._updateRequired, self:GetAttribute("refreshOnUpdate"), self:GetName())
     local e = (self.__tickCount or 0) + 1
     if e >= 2 then -- every 0.5 second
         e = 0
@@ -2584,8 +2598,8 @@ local function UnitButton_OnTick(self)
                 -- NOTE: displayed unit entity changed
                 F:RemoveElementsExceptKeys(self.state, "unit", "displayedUnit")
                 self.__displayedGuid = displayedGuid
-                self.updateRequired = 1
-                self.powerBarUpdateRequired = 1
+                self._updateRequired = 1
+                self._powerBarUpdateRequired = 1
             end
 
             local guid = UnitGUID(self.state.unit)
@@ -2622,8 +2636,8 @@ local function UnitButton_OnTick(self)
         UnitButton_UpdateInRange(self)
     -- end
     
-    if self.updateRequired then
-        self.updateRequired = nil
+    if self._updateRequired and self._indicatorReady then
+        self._updateRequired = nil
         UnitButton_UpdateAll(self)
     end
 
@@ -3130,6 +3144,14 @@ function F:UnitButton_OnLoad(button)
    
     InitAuraTables(button)
 
+    -- ping system
+    Mixin(button, PingableType_UnitFrameMixin)
+    button:SetAttribute("ping-receiver", true)
+
+    function button:GetTargetPingGUID()
+        return button.__unitGuid
+    end
+
     -- background
     -- local background = button:CreateTexture(name.."Background", "BORDER")
     -- button.widget.background = background
@@ -3150,6 +3172,13 @@ function F:UnitButton_OnLoad(button)
     healthBar:SetStatusBarTexture(Cell.vars.texture)
     healthBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
     healthBar:SetFrameLevel(button:GetFrameLevel()+5)
+
+    -- FIXME: fix blizzard shits!
+    healthBar:SetScript("OnValueChanged", function(self, value)
+        if value == 0 then
+            healthBar:SetValue(0.1)
+        end
+    end)
     
     -- hp loss
     local healthBarLoss = button:CreateTexture(name.."HealthBarLoss", "ARTWORK", nil , -7)

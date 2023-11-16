@@ -2296,18 +2296,18 @@ function F:Revise()
     end
 
     -- r198-release
-    if CellDB["revise"] and dbRevision < 198 then
-        for _, layout in pairs(CellDB["layouts"]) do
-            local index = Cell.defaults.indicatorIndices.targetCounter
-            if type(layout["indicators"][index]["filters"]) ~= "table" then
-                layout["indicators"][index]["filters"] = {
-                    ["outdoor"] = false,
-                    ["pve"] = false,
-                    ["pvp"] = true,
-                }
-            end
-        end
-    end
+    -- if CellDB["revise"] and dbRevision < 198 then
+    --     for _, layout in pairs(CellDB["layouts"]) do
+    --         local index = Cell.defaults.indicatorIndices.targetCounter
+    --         if type(layout["indicators"][index]["filters"]) ~= "table" then
+    --             layout["indicators"][index]["filters"] = {
+    --                 ["outdoor"] = false,
+    --                 ["pve"] = false,
+    --                 ["pvp"] = true,
+    --             }
+    --         end
+    --     end
+    -- end
 
     -- r199-release
     if CellDB["revise"] and dbRevision < 199 then
@@ -2345,6 +2345,34 @@ function F:Revise()
             -- 阿梅达希尔，梦境之愿
             if not F:TContains(CellDB["targetedSpellsList"], 418637) then -- 狂怒冲锋
                 tinsert(CellDB["targetedSpellsList"], 418637)
+            end
+        end
+    end
+   
+    -- r202-release
+    if CellDB["revise"] and dbRevision < 202 then
+        -- custom indicator
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, indicator in pairs(layout["indicators"]) do
+                if indicator["type"] == "icon" or indicator["type"] == "icons" then
+                    if type(indicator["showStack"]) ~= "boolean" then
+                        indicator["showStack"] = true
+                    end
+                end
+            end
+        end
+    end
+
+    -- r203-release
+    if CellDB["revise"] and dbRevision < 203 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            local index = Cell.defaults.indicatorIndices.targetCounter
+            if type(layout["indicators"][index]["filters"]) ~= "table" then
+                layout["indicators"][index]["filters"] = {
+                    ["outdoor"] = false,
+                    ["pve"] = false,
+                    ["pvp"] = true,
+                }
             end
         end
     end
