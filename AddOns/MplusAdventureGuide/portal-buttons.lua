@@ -68,7 +68,7 @@ local db = {
         },
     },
     [248] = { -- Waycrest Manor
-        primarySpell = 272271,
+        primarySpell = 424167,
         alternateSpells = {},
     },
     [456] = { -- Throne of the Tides
@@ -76,11 +76,11 @@ local db = {
         alternateSpells = {},
     },
     [464] = { -- Dawn of the Infinite: Murozond
-        primarySpell = 426121,
+        primarySpell = 424197,
         alternateSpells = {},
     },
     [463] = { -- Dawn of the Infinite: Galakrond
-        primarySpell = 426121,
+        primarySpell = 424197,
         alternateSpells = {},
     },
     [198] = { -- Darkheart Thicket
@@ -90,7 +90,7 @@ local db = {
         },
     },
     [199] = { -- Black Rook Hold
-        primarySpell = 205373,
+        primarySpell = 424153,
         alternateSpells = {
             424163, -- Darkheart Thicket
         },

@@ -12,6 +12,7 @@ function addon:initWatermark()
                 local itemLink = GetInventoryItemLink("player", slot:GetID())
                 if not itemLink then return end
                 local itemRedundancySlot = C_ItemUpgrade.GetHighWatermarkSlotForItem(itemLink)
+                if not itemRedundancySlot then return end
                 local characterHighWatermark, accountHighWatermark = C_ItemUpgrade.GetHighWatermarkForSlot(itemRedundancySlot)
                 if (not characterHighWatermark) or (not accountHighWatermark) then return end
                 GameTooltip:AddLine("|cFFFFA500"..TRADESKILL_RECIPE_LEVEL_TOOLTIP_HIGHEST_RANK..": "..characterHighWatermark.." ("..ITEM_UPGRADE_DISCOUNT_TOOLTIP_ACCOUNT_WIDE.." "..accountHighWatermark..")|r")
