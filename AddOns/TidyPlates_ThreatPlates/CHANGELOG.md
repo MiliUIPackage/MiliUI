@@ -1,4 +1,3 @@
-# 11.1.24 (2023-07-12)
+# 11.1.32 (2023-11-27)
 
-* Updated for Patch 10.1.5 for WoW Mainline.
-* Upgrade integrated libraries (Ace3 r1309).
+* Fixed a bug with Arena widget where the arena number was not updated or shown at all after the last update [GH-486].

@@ -178,15 +178,6 @@ ThreatPlates.SPEC_ROLES = {
   WARRIOR			= { false, false, true },
 }
 
-ThreatPlates.FontStyle = {
-  NONE = L["None"],
-  OUTLINE = L["Outline"],
-  THICKOUTLINE = L["Thick Outline"],
-  ["NONE, MONOCHROME"] = L["No Outline, Monochrome"],
-  ["OUTLINE, MONOCHROME"] = L["Outline, Monochrome"],
-  ["THICKOUTLINE, MONOCHROME"] = L["Thick Outline, Monochrome"]
-}
-
 -- "By Threat", "By Level Color", "By Normal/Elite/Boss"
 ThreatPlates.ENEMY_TEXT_COLOR = {
   CLASS = L["By Class"],

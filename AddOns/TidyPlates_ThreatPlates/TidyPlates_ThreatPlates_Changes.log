@@ -1,5 +1,50 @@
 ﻿------------------------------------------------------
-11.1.24 (2023-06-24)
+11.1.32 (2023-11-27)
+------------------------------------------------------
+* Fixed a bug with Arena widget where the arena number was not updated or shown at all after the last update [GH-486].
+
+------------------------------------------------------
+11.1.31 (2023-11-26)
+------------------------------------------------------
+* Improved code for updating nameplates in arenas and battleground, e.g., after a new round in solo shuffles starts.
+* Nameplates for interactable, but dead units now automatically switch to headline view (to hide the empty healthbar) [Comment #7100, GH-485].
+
+------------------------------------------------------
+11.1.30 (2023-11-09)
+------------------------------------------------------
+* Updated TOC version for Patch 10.2.0 for WoW Mainline.
+
+------------------------------------------------------
+11.1.29 (2023-10-03)
+------------------------------------------------------
+* Fixed a Lua error in Classic that occurred when entering battlegrounds as an API function was used that is not available in Classic [Comment #7041].
+
+------------------------------------------------------
+11.1.28 (2023-09-15)
+------------------------------------------------------
+* Fixed a Lua error in Wrath Classic that occurred when entering battlegrounds as an API function was used that is not available in Wrath Classic [GH-474].
+
+------------------------------------------------------
+11.1.27 (2023-09-06)
+------------------------------------------------------
+* Fixed a bug in solo shuffle where nameplate colors where not updated correctly when a new match started [GH-472].
+* Updated TOC version for Patch 10.1.7 for WoW Mainline.
+
+------------------------------------------------------
+11.1.26 (2023-08-27)
+------------------------------------------------------
+* Fixed a bug where status text did not show the NPC's role when colorblind accessibility features were enabled [GH-473].
+* Fixed a bug where aura tooltips were not shown correctly for all aura types in WoW (Wrath) Classic [GH-470].
+* Updated TOC version for Classic Patch 1.14.4.
+
+------------------------------------------------------
+11.1.25 (2023-07-15)
+------------------------------------------------------
+* Fixed a Lua error that occurred when the font of the Blizzard nameplate's name was changed, but no flags (like Outline) were used [GH-464].
+* Updated TOC version for Wrath Classic Patch 3.4.2.
+
+------------------------------------------------------
+11.1.24 (2023-07-12)
 ------------------------------------------------------
 * Updated for Patch 10.1.5 for WoW Mainline.
 * Upgrade integrated libraries (Ace3 r1309).

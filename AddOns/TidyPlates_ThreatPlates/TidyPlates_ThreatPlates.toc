@@ -1,11 +1,14 @@
 ## Interface: 100200
 
 ## Title: Threat Plates
-## Version: 11.1.24
+## Version: 11.1.32
 ## Notes: Threat-reactive nameplates.
 ## Title-zhTW: |cff0099FF[介面]|r 威力血條
 ## Notes-zhTW: Threat Plates|r |n|n威力強大、能夠根據仇恨值變化血條、提供更多自訂選項的血條。還可以幫指定的怪自訂血條樣式，讓血條更清楚明顯。|n|n|cffffd200使用方法: |r輸入 /tptp 或從Esc>選項>插件>血條，進行設定。
 ## X-Category-zhTW: 介面
+## Notes-deDE: Bedrohungsreaktive Namensplaketten.
+## Notes-esES: Placas Identificativas de Amenaza
+## Notes-esMX: Placas Identificativas de Amenaza
 ## Author: Suicidal Katt, Blacksalsify
 ## SavedVariables: ThreatPlatesDB
 
@@ -20,6 +23,9 @@
 ## X-License: GNU General Public License
 ## X-Credits: danltiger (for Tidy Plates), Tosaido (for quest handling code from QuestMobs)
 
+## IconTexture: Interface\Icons\ability_warrior_innerrage
+
+## Libs\ForAllIndentsAndPurposes\indent.lua
 Libs\Libs.xml
 Locales\Locales.xml
 
