@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("Taerar", "DBM-WorldEvents", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20211125075428")
+mod:SetRevision("20231126234407")
 mod:SetCreatureID(121911)--121911 TW ID, 14890 classic ID
 --mod:SetModelID(17887)
 
@@ -21,8 +21,8 @@ local warningBellowingRoar		= mod:NewSpellAnnounce(243661, 3)
 local specWarnSleepingFog		= mod:NewSpecialWarningDodge(243399, nil, nil, nil, 2, 2)
 
 local timerNoxiousBreathCD		= mod:NewCDTimer(19.4, 243401, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--Iffy
-local timerSleepingFogCD		= mod:NewCDTimer(18.3, 243399, nil, nil, nil, 3)
-local timerBellowingRoarCD		= mod:NewCDTimer(7.2, 243661, nil, nil, nil, 2)
+local timerSleepingFogCD		= mod:NewCDTimer(17, 243399, nil, nil, nil, 3)
+local timerBellowingRoarCD		= mod:NewCDTimer(4.8, 243661, nil, nil, nil, 2)
 
 --mod:AddReadyCheckOption(48620, false)
 

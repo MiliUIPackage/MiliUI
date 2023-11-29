@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2535, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102055900")
+mod:SetRevision("20231125014209")
 mod.multiIDSingleBoss = true
 mod:SetCreatureID(198997, 201792, 201788, 201790)--It's technically just one creature animated 3 others, but checkbossHp will query all and return highest health for boss health percent
 mod:SetEncounterID(2668)
@@ -54,7 +54,7 @@ local timerCorrosiveInfusionCD				= mod:NewCDCountTimer(19.4, 406886, nil, nil, 
 local timerBlightReclamationCD				= mod:NewCDCountTimer(19.4, 407159, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerNecroticWindsCD					= mod:NewCDCountTimer(31.5, 407978, nil, nil, nil, 2)
 local timerNecrofrostCD						= mod:NewCDCountTimer(19.4, 408029, nil, nil, nil, 3, nil, DBM_COMMON_L.DAMAGE_ICON)
-local timerIncineratingBlightbreathCD		= mod:NewCDCountTimer(17.1, 408141, nil, nil, nil, 3)
+local timerIncineratingBlightbreathCD		= mod:NewCDCountTimer(15.8, 408141, nil, nil, nil, 3)
 
 mod.vb.corrosiveCount = 0
 mod.vb.reclaimCount = 0
@@ -144,7 +144,7 @@ function mod:SPELL_CAST_START(args)
 		specWarnIncinBlightBreath:Show(self.vb.fireBreathCount)
 		specWarnIncinBlightBreath:Play("breathsoon")
 		--The timers that are delayed will be auto corrected by Corrosive cast
-		timerIncineratingBlightbreathCD:Start(17.1, self.vb.fireBreathCount+1)
+		timerIncineratingBlightbreathCD:Start(15.8, self.vb.fireBreathCount+1)
 	end
 end
 
@@ -210,13 +210,13 @@ function mod:SPELL_AURA_REMOVED(args)
 		end
 	elseif spellId == 415097 then--Malignant Transferal (stage 2)
 		--Starting timers here better
-		timerCorrosiveInfusionCD:Start(6.3, 1)
+		timerCorrosiveInfusionCD:Start(6.1, 1)
 		timerNecroticWindsCD:Start(16, 1)
-		timerBlightReclamationCD:Start(30.5, 1)
+		timerBlightReclamationCD:Start(30.1, 1)
 	elseif spellId == 415114 then--Malignant Transferal (stage 2)
 		--Starting timers here better
 		timerCorrosiveInfusionCD:Start(15.6, 1)
-		timerIncineratingBlightbreathCD:Start(23.8, 1)
+		timerIncineratingBlightbreathCD:Start(22.8, 1)
 		timerNecrofrostCD:Start(31.4, 1)
 		timerBlightReclamationCD:Start(64, 1)
 	end

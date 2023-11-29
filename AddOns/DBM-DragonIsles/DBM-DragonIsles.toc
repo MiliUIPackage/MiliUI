@@ -1,5 +1,5 @@
 ## Interface: 100200
-## Version: 10.1.26-11
+## Version: 10.2.7-28-g81f6754
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (DF)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (巨龍崛起)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首领 (巨龙时代)|r

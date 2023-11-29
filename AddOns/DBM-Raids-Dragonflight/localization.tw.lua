@@ -98,23 +98,10 @@ L:SetGeneralLocalization({
 	name =	"洪荒化身牢獄小怪"
 })
 
---[[
 ---------------------------
 --  Kazzara --
 ---------------------------
 --L= DBM:GetModLocalization(2522)
-
---L:SetWarningLocalization({
---})
---
---L:SetTimerLocalization{
---}
---
---L:SetOptionLocalization({
---})
---
---L:SetMiscLocalization({
---})
 
 ---------------------------
 --  The Amalgamation Chamber --
@@ -129,6 +116,10 @@ L:SetOptionLocalization({
 --  The Forgotten Experiments --
 ---------------------------
 --L= DBM:GetModLocalization(2530)
+
+L:SetMiscLocalization({
+	SafeClear		= "安全清除"
+})
 
 ---------------------------
 --  Assault of the Zaqali --
@@ -161,8 +152,8 @@ L:SetOptionLocalization({
 })
 
 L:SetMiscLocalization({
-	pool		= "{rt%d}池 %d",--<icon> Pool 1,2,3
-	soakpool	= "吸收池"
+	pool		= "{rt%d}圈 %d",--<icon> Pool 1,2,3
+	soakpool	= "踩圈"
 })
 
 ---------------------------
@@ -183,7 +174,11 @@ L:SetMiscLocalization({
 ---------------------------
 --  Echo of Neltharion --
 ---------------------------
---L= DBM:GetModLocalization(2523)
+L= DBM:GetModLocalization(2523)
+
+L:SetMiscLocalization({
+	WallBreaker	= "破牆者"
+})
 
 ---------------------------
 --  Scalecommander Sarkareth --
@@ -205,7 +200,6 @@ L = DBM:GetModLocalization("AberrusTrash")
 L:SetGeneralLocalization({
 	name =	"亞貝魯斯小怪"
 })
---]]
 
 ---------------------------
 --  Amirdrassil, the Dream's Hope --
@@ -218,22 +212,41 @@ L:SetGeneralLocalization({
 ---------------------------
 --  Igira the Cruel --
 ---------------------------
---L= DBM:GetModLocalization(2554)
+L= DBM:GetModLocalization(2554)
+
+L:SetMiscLocalization({
+	HealAbsorb	= "治療吸收 (%s)"--Might be common localized later
+})
 
 ---------------------------
 --  Volcoross --
 ---------------------------
---L= DBM:GetModLocalization(2557)
+L= DBM:GetModLocalization(2557)
+
+L:SetMiscLocalization({
+	DebuffSoaks			= "減益吸收 (%s)"--Might be common localized later
+})
 
 ---------------------------
 --  Council of Dreams --
 ---------------------------
---L= DBM:GetModLocalization(2555)
+L= DBM:GetModLocalization(2555)
+
+L:SetMiscLocalization({
+	Ducks		= "鴨子 (%s)"
+})
 
 ---------------------------
 --  Larodar, Keeper of the Flame --
 ---------------------------
---L= DBM:GetModLocalization(2553)
+L= DBM:GetModLocalization(2553)
+
+L:SetMiscLocalization({
+	currentHealth		= "%d%%",
+	currentHealthIcon	= "{rt%d}%d%%",
+	Roots				= "樹根 (%s)",
+	HealAbsorb			= "治療吸收 (%s)"--Might be common localized later
+})
 
 ---------------------------
 --  Nymue, Weaver of the Cycle --
@@ -253,7 +266,20 @@ L:SetGeneralLocalization({
 ---------------------------
 --  Fyrakk the Blazing --
 ---------------------------
---L= DBM:GetModLocalization(2519)
+L= DBM:GetModLocalization(2519)
+
+L:SetTimerLocalization{
+	timerMythicDebuffs			= "牢籠 (%s)"
+}
+
+L:SetWarningLocalization{
+	warnMythicDebuffs			= "牢籠 (%s)"
+}
+
+L:SetOptionLocalization{
+	warnMythicDebuffs			= "當$spell:428988以及$spell:428970減益已施放時通告(包含計數)",
+	timerMythicDebuffs			= "顯示$spell:428988以及$spell:428970減益的計時(包含計數)"
+}
 
 -------------
 --  Trash  --

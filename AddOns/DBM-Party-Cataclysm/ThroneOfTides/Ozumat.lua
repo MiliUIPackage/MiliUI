@@ -2,17 +2,18 @@ local mod	= DBM:NewMod(104, "DBM-Party-Cataclysm", 9, 65)
 local L		= mod:GetLocalizedStrings()
 local wowToc = DBM:GetTOC()
 
+mod:SetRevision("20231128005122")
 if (wowToc >= 100200) then
 	mod.statTypes = "normal,heroic,challenge,timewalker"
 	mod.upgradedMPlus = true
+	mod:SetCreatureID(213770, 42172)--P1 Ink, P2 Ozumat
+	mod:SetBossHPInfoToHighest()
 else--TODO, refine for cata classic since no timewalker there
 	mod.statTypes = "normal,heroic,timewalker"
+	mod:SetCreatureID(40792)
+	mod:SetMainBossID(42172)--42172 is Ozumat, but we need Neptulon for engage trigger.
 end
-
-mod:SetRevision("20231022202350")
-mod:SetCreatureID(40792)
 mod:SetEncounterID(1047)
-mod:SetMainBossID(42172)--42172 is Ozumat, but we need Neptulon for engage trigger.
 
 mod:RegisterCombat("combat")
 
@@ -34,6 +35,7 @@ if (wowToc >= 100200) then
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
  or ability.id = 428526 and type = "begincast"
 	--]]
+	--NOTE: "Foul Bolt now has an 8 second initial cool up"
 	local warnPhase2									= mod:NewPhaseAnnounce(2, 2, nil, nil, nil, nil, nil, 2)
 	--Ink of Ozumat
 	mod:AddTimerLine(DBM:EJ_GetSectionInfo(28235))
@@ -93,7 +95,7 @@ if (wowToc >= 100200) then
 			timerBlottingBarrageCD:Start(nil, self.vb.barrageCount+1)
 		elseif spellId == 428868 then
 			self.vb.putridCount = self.vb.putridCount + 1
-			specWarnPutridRoar:Show()
+			specWarnPutridRoar:Show(self.vb.putridCount)
 			specWarnPutridRoar:Play("aesoon")
 			timerPutridRoarCD:Start(nil, self.vb.putridCount+1)
 		elseif spellId == 428530 then

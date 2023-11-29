@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("DawnoftheInfiniteTrash", "DBM-Party-Dragonflight", 9)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231114024625")
+mod:SetRevision("20231128005122")
 --mod:SetModelID(47785)
 mod:SetZone(2579)
 
@@ -46,7 +46,7 @@ local warnEnervate							= mod:NewTargetAnnounce(415437, 3)
 
 local specWarnInfiniteFury					= mod:NewSpecialWarningSpell(413622, nil, nil, nil, 2, 2)
 local specWarnAncientRadiance				= mod:NewSpecialWarningSpell(413023, nil, nil, nil, 2, 2)
-local specWarnTemporalStrike				= mod:NewSpecialWarningSpell(412136, nil, nil, nil, 2, 2)
+local specWarnTemporalStrike				= mod:NewSpecialWarningDodge(412136, nil, nil, nil, 2, 2)
 local specWarnTimerip						= mod:NewSpecialWarningDodge(412063, nil, nil, nil, 2, 2)
 local specWarnUntwist						= mod:NewSpecialWarningDodge(413529, nil, nil, nil, 2, 2)
 local specWarnTimelessCurse					= mod:NewSpecialWarningDodge(413621, nil, nil, nil, 2, 2)
@@ -93,7 +93,7 @@ local timerUntwistCD						= mod:NewCDNPTimer(13.3, 413529, nil, nil, nil, 3)
 local timerTimelessCurseCD					= mod:NewCDNPTimer(20.6, 413621, nil, nil, nil, 3)
 local timerInfiniteFuryCD					= mod:NewCDNPTimer(20.6, 413622, nil, nil, nil, 2)
 local timerBlightSpewCD						= mod:NewCDNPTimer(13.3, 412806, nil, nil, nil, 3)
-local timerStoneboltCD						= mod:NewCDNPTimer(13.3, 411958, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerStoneboltCD						= mod:NewCDNPTimer(12.1, 411958, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 --Second half
 local timerRendingCleaveCD					= mod:NewCDNPTimer(10.5, 412505, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--10.5-13.3
 local timerCorrodingVolleyCD				= mod:NewCDNPTimer(18.2, 413607, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -263,9 +263,9 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 412136 then
 		timerTemporalStrikeCD:Start(nil, args.sourceGUID)
-		if self:AntiSpam(3, 4) then
+		if self:AntiSpam(3, 2) then
 			specWarnTemporalStrike:Show()
-			specWarnTemporalStrike:Play("aesoon")
+			specWarnTemporalStrike:Play("watchstep")
 		end
 	elseif spellId == 413024 then
 		timerTitanticBulwarkCD:Start(nil, args.sourceGUID)
@@ -274,7 +274,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 413023 then
 		timerAncientRadianceCD:Start(nil, args.sourceGUID)
-		if self:AntiSpam(3, 4) then
+		if self:AntiSpam(3, 5) then
 			specWarnAncientRadiance:Show()
 			specWarnAncientRadiance:Play("aesoon")
 		end

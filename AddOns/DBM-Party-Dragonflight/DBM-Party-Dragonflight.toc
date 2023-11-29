@@ -22,7 +22,7 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r104
+## Version: r110
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

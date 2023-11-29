@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1657, "DBM-Party-Legion", 2, 762)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231115120249")
+mod:SetRevision("20231128005122")
 mod:SetCreatureID(99192)
 mod:SetEncounterID(1839)
 mod:SetHotfixNoticeRev(20231030000000)
@@ -34,14 +34,14 @@ local warnApocNightmare				= mod:NewSpellAnnounce(200050, 4)
 local warnFeedOnTheWeak				= mod:NewTargetNoFilterAnnounce(200238, 2)
 
 local specWarnFesteringRip			= mod:NewSpecialWarningDispel(200182, "RemoveMagic", nil, 2, 1, 2)
-local specWarnWakingNightmare		= mod:NewSpecialWarningYou(200243, nil, nil, nil, 1, 2)
+local specWarnWakingNightmare		= mod:NewSpecialWarningMoveTo(200243, nil, nil, nil, 1, 2)
 local yellWakingNightmare			= mod:NewYell(200243, nil, nil, nil, "YELL")--Yell is standard for grou up
 local specWarnParanoia				= mod:NewSpecialWarningMoveAway(200289, nil, nil, nil, 1, 2)
 local yellParanoia					= mod:NewYell(200289)--Say is standard for avoid
 
-local timerFesteringRipCD			= mod:NewCDCountTimer(19.3, 200182, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--17-21
-local timerNightmareBoltCD			= mod:NewCDCountTimer(24.3, 200185, nil, nil, nil, 3)--24.3-36.5
-local timerParanoiaCD				= mod:NewCDCountTimer(24.3, 200289, nil, nil, nil, 3)--24.3-34 (200359 matches journal, but better to sync up with debuff for WA keys)
+local timerFesteringRipCD			= mod:NewCDCountTimer(17, 200182, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--17-21
+local timerNightmareBoltCD			= mod:NewCDCountTimer(23.1, 200185, nil, nil, nil, 3)--24.3-36.5
+local timerParanoiaCD				= mod:NewCDCountTimer(22, 200289, nil, nil, nil, 3)--22-34 (200359 matches journal, but better to sync up with debuff for WA keys)
 local timerFeedOnTheWeakCD			= mod:NewCDCountTimer(18.2, 200238, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)
 
 mod:AddSetIconOption("SetIconOnNightmare", 200243, true, false, {1})
@@ -52,16 +52,16 @@ mod.vb.nightmareCount = 0
 mod.vb.feedCount = 0
 mod.vb.paranoiaCount = 0
 
---Feed on the Weak triggers 8.4 ICD
+--Feed on the Weak triggers 6 ICD
 --Festering Rip triggers 2.4 ICD
 --Nightmare Bolt triggers 4.8 ICD
 --Growing Paranoia triggers 6 ICD
 --Festering Apoc triggers 6 ICD (technically cast + 1)
-local function updateAllTimers(self, ICD)
+local function updateAllTimers(self, ICD, isWeak, isPara)
 	DBM:Debug("updateAllTimers running", 3)
-	if timerFesteringRipCD:GetRemaining(self.vb.festerCount+1) < ICD then
+	if timerFesteringRipCD:GetRemaining(self.vb.festerCount+1) < (isPara and 2.4 or ICD) then
 		local elapsed, total = timerFesteringRipCD:GetTime(self.vb.festerCount+1)
-		local extend = ICD - (total-elapsed)
+		local extend = (isPara and 2.4 or ICD) - (total-elapsed)
 		DBM:Debug("timerFesteringRipCD extended by: "..extend, 2)
 		timerFesteringRipCD:Update(elapsed, total+extend, self.vb.festerCount+1)
 	end
@@ -77,9 +77,9 @@ local function updateAllTimers(self, ICD)
 		DBM:Debug("timerFeedOnTheWeakCD extended by: "..extend, 2)
 		timerFeedOnTheWeakCD:Update(elapsed, total+extend, self.vb.feedCount+1)
 	end
-	if timerParanoiaCD:GetRemaining(self.vb.paranoiaCount+1) < ICD then
+	if timerParanoiaCD:GetRemaining(self.vb.paranoiaCount+1) < (isWeak and 3.6 or ICD) then
 		local elapsed, total = timerParanoiaCD:GetTime(self.vb.paranoiaCount+1)
-		local extend = ICD - (total-elapsed)
+		local extend = (isWeak and 3.6 or ICD) - (total-elapsed)
 		DBM:Debug("timerParanoiaCD extended by: "..extend, 2)
 		timerParanoiaCD:Update(elapsed, total+extend, self.vb.paranoiaCount+1)
 	end
@@ -91,9 +91,9 @@ function mod:OnCombatStart(delay)
 	self.vb.feedCount = 0
 	self.vb.paranoiaCount = 0
 	timerFesteringRipCD:Start(3.2-delay, 1)
-	timerNightmareBoltCD:Start(6.8-delay, 1)
-	timerFeedOnTheWeakCD:Start(16.6-delay, 1)
-	timerParanoiaCD:Start(23-delay, 1)
+	timerNightmareBoltCD:Start(6-delay, 1)
+	timerFeedOnTheWeakCD:Start(15.7-delay, 1)
+	timerParanoiaCD:Start(20.4-delay, 1)
 end
 
 --<1631.04 22:47:56> [CLEU] SPELL_CAST_START#Creature-0-5770-1466-11160-99192-000021BD9C#Shade of Xavius(78.8%-100.0%)##nil#200289#Growing Paranoia#nil#nil", -- [20172]
@@ -116,7 +116,7 @@ function mod:SPELL_CAST_START(args)
 		--27.5, 27.9, 32.7, 27.9, 32.7
 		--27.5, 27.9, 32.7
 		timerParanoiaCD:Start(nil, self.vb.paranoiaCount+1)
-		updateAllTimers(self, 6)
+		updateAllTimers(self, 6, false, true)--Review, might be 2.4 now
 	end
 end
 
@@ -136,7 +136,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		--16.6, 30.3, 30.3
 		--17.0, 30.4, 44.9, 30.4, 30.4 (yes even feed can get spell queued depending on apocalytpic timing)
 		timerFeedOnTheWeakCD:Start(nil, self.vb.feedCount+1)
-		updateAllTimers(self, 8.4)
+		updateAllTimers(self, 6, true)
 	end
 end
 
@@ -147,7 +147,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnFesteringRip:Play("helpdispel")
 	elseif spellId == 200243 then
 		if args:IsPlayer() then
-			specWarnWakingNightmare:Show()
+			specWarnWakingNightmare:Show(DBM_COMMON_L.ALLY)
 			specWarnWakingNightmare:Play("gathershare")
 			yellWakingNightmare:Yell()
 		else

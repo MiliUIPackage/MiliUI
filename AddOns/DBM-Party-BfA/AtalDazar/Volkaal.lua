@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2036, "DBM-Party-BfA", 1, 968)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231024091944")
+mod:SetRevision("20231128045828")
 mod:SetCreatureID(122965)
 mod:SetEncounterID(2085)
 --mod:SetHotfixNoticeRev(20231023000000)
@@ -35,7 +35,7 @@ local specWarnLeap					= mod:NewSpecialWarningDodge(250258, nil, nil, nil, 2, 2)
 local specWarnNoxiousStench			= mod:NewSpecialWarningInterrupt(259572, "HasInterrupt", nil, nil, 1, 2)
 local specWarnGTFO					= mod:NewSpecialWarningGTFO(250585, nil, nil, nil, 1, 8)
 
-local timerLeapCD					= mod:NewCDTimer(5.7, 250258, nil, nil, nil, 3)--6 uness delayed by stentch, then 8
+local timerLeapCD					= mod:NewCDTimer(5.3, 250258, nil, nil, nil, 3)--6 uness delayed by stentch, then 8
 local timerNoxiousStenchCD			= mod:NewCDCountTimer(18.2, 259572, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON..DBM_COMMON_L.DISEASE_ICON)
 
 mod.vb.totemRemaining = 3
@@ -77,7 +77,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 		if self:GetStage(2) then
 			timerNoxiousStenchCD:Start(18.2, self.vb.stenchCount+1)
 		else
-			timerNoxiousStenchCD:Start(20.6, self.vb.stenchCount+1)
+			timerNoxiousStenchCD:Start(19.5, self.vb.stenchCount+1)
 			timerLeapCD:AddTime(2)--Consistent with early alpha, might use more complex code if this becomes inconsistent
 		end
 	elseif spellId == 250241 then

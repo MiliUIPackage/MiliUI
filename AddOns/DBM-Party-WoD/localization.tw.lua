@@ -153,6 +153,15 @@ L:SetMiscLocalization({
 L= DBM:GetModLocalization(1210)
 
 -----------------------
+-- Trash --
+-----------------------
+L = DBM:GetModLocalization("EverBloomTrash")
+
+L:SetGeneralLocalization({
+	name =	"永茂林小怪"
+})
+
+-----------------------
 -- <<<Shadowmoon Buriel Grounds>>> --
 -----------------------
 -----------------------

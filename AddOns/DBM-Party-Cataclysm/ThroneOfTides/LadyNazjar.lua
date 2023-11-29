@@ -10,7 +10,7 @@ else--TODO, refine for cata classic since no timewalker there
 	mod.statTypes = "normal,heroic,timewalker"
 end
 
-mod:SetRevision("20231018005636")
+mod:SetRevision("20231118045752")
 mod:SetCreatureID(40586)
 mod:SetEncounterID(1045)
 
@@ -80,7 +80,7 @@ if (wowToc >= 100200) then
 
 	function mod:OnCombatStart(delay)
 		self:SetStage(1)
-		timerFocusedTempestCD:Start(8.8-delay)
+		timerFocusedTempestCD:Start(7.2-delay)
 		timerGeyserCD:Start(16.1-delay)
 		timerShockBlastCD:Start(19.7-delay)
 	end

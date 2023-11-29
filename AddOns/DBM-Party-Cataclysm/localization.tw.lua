@@ -378,6 +378,10 @@ L:SetOptionLocalization{
 	TimerPhase		= "為第二階段顯示計時器"
 }
 
+L:SetMiscLocalization{
+	--RolePlay		= "The beast has returned! It must not pollute my waters!"
+}
+
 ---------
 --Trash--
 ---------

@@ -1,9 +1,7 @@
-local wowToc, testBuild = DBM:GetTOC()
-if (wowToc < 100200) and not testBuild then return end
 local mod	= DBM:NewMod(2562, "DBM-DragonIsles", nil, 1205)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230909031458")
+mod:SetRevision("20231107113441")
 mod:SetCreatureID(209574)
 mod:SetEncounterID(2828)
 mod:SetReCombatTime(20)

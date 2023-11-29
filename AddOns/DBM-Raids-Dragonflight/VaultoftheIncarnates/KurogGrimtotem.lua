@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2491, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102154902")
+mod:SetRevision("20231123214402")
 mod:SetCreatureID(184986)
 mod:SetEncounterID(2605)
 mod:SetUsedIcons(1, 2, 3, 4, 5)
@@ -172,14 +172,11 @@ local warnStormBreak							= mod:NewSpellAnnounce(374622, 3)
 
 local specWarnLethalCurrent						= mod:NewSpecialWarningYou(391696, nil, nil, nil, 1, 2)
 local yellLethalCurrent							= mod:NewShortYell(391696)
-local specWarnLethalCurrentNear					= mod:NewSpecialWarningClose(391696, nil, nil, nil, 1, 2)
 
 local timerStormBreakCD							= mod:NewCDTimer(20.8, 374622, nil, nil, nil, 2)
 local timerThunderStrikeCD						= mod:NewCDTimer(41, 374215, nil, nil, nil, 5, nil, DBM_COMMON_L.MYTHIC_ICON)--Mythic Add version
 
 mod:GroupSpells(374622, 391696)--Storm Break and it's sub debuff Lethal Current
---mod:AddRangeFrameOption(10, 374620)
-
 
 mod.vb.chillCast = 0
 mod.vb.curAltar = false
@@ -221,9 +218,6 @@ end
 
 function mod:OnCombatEnd()
 	table.wipe(castsPerGUID)
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 --	if self.Options.InfoFrame then
 --		DBM.InfoFrame:Hide()
 --	end
@@ -514,9 +508,6 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnLethalCurrent:Show()
 			specWarnLethalCurrent:Play("targetyou")
 			yellLethalCurrent:Yell()
-		elseif self:CheckNearby(8, args.destName) then
-			specWarnLethalCurrentNear:Show(args.destName)
-			specWarnLethalCurrentNear:Play("runaway")
 		end
 	end
 end

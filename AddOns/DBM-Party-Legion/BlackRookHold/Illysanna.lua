@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1653, "DBM-Party-Legion", 1, 740)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107025714")
+mod:SetRevision("20231122205532")
 mod:SetCreatureID(98696)
 mod:SetEncounterID(1833)
 mod:SetUsedIcons(3, 2, 1)
@@ -113,7 +113,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 197546 then
 		self.vb.glaiveCount = self.vb.glaiveCount + 1
 		timerBrutalGlaiveCD:Start(nil, self.vb.glaiveCount+1)
-		self:BossTargetScanner(98696, "BrutalGlaiveTarget", 0.1, 10, true)
+		self:BossTargetScanner(args.sourceGUID, "BrutalGlaiveTarget", 0.1, 10, true)
 	elseif spellId == 197974 then
 		specWarnBonebreakingStrike:Show()
 		specWarnBonebreakingStrike:Play("shockwave")

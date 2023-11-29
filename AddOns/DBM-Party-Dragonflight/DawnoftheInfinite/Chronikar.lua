@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2521, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102055900")
+mod:SetRevision("20231125014209")
 mod:SetCreatureID(198995)
 mod:SetEncounterID(2666)
 --mod:SetUsedIcons(1, 2, 3)
@@ -52,7 +52,7 @@ function mod:OnCombatStart(delay)
 	self.vb.stompCount = 0
 	timerSandStompCD:Start(7.4-delay, 1)
 	timerEonShatterCD:Start(19.5-delay)
-	timerChronoShearCD:Start(43.8, 1)
+	timerChronoShearCD:Start(43.4, 1)
 end
 
 function mod:SPELL_CAST_START(args)

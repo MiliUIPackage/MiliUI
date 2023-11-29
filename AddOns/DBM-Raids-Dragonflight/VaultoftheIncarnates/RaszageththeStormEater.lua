@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2499, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102154902")
+mod:SetRevision("20231123214402")
 mod:SetCreatureID(189492)
 mod:SetEncounterID(2607)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -46,7 +46,6 @@ local specWarnGTFO								= mod:NewSpecialWarningGTFO(388115, nil, nil, nil, 1, 
 local timerPhaseCD								= mod:NewPhaseTimer(30)
 --local berserkTimer							= mod:NewBerserkTimer(600)
 
---mod:AddRangeFrameOption("8")
 --Stage One: The Winds of Change
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25244))
 local warnStaticCharge							= mod:NewTargetNoFilterAnnounce(381615, 3)
@@ -361,9 +360,6 @@ function mod:OnCombatStart(delay)
 end
 
 function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end

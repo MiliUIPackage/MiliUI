@@ -16,7 +16,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: a71a99c
+## Version: 288cc07
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 
@@ -39,7 +39,6 @@ localization.tw.lua
 
 commonlocal.en.lua
 commonlocal.tw.lua
-commonlocal.cn.lua
 
 # Pre-core modules
 modules\Modules.lua

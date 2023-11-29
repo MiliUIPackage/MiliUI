@@ -97,7 +97,6 @@ L:SetGeneralLocalization({
 	name =	"VotI Trash"
 })
 
---[[
 ---------------------------
 --  Kazzara --
 ---------------------------
@@ -200,7 +199,6 @@ L = DBM:GetModLocalization("AberrusTrash")
 L:SetGeneralLocalization({
 	name =	"Aberrus Trash"
 })
---]]
 
 ---------------------------
 --  Amirdrassil, the Dream's Hope --
@@ -262,12 +260,30 @@ L:SetMiscLocalization({
 ---------------------------
 --  Tindral Sageswift, Seer of the Flame --
 ---------------------------
---L= DBM:GetModLocalization(2565)
+L= DBM:GetModLocalization(2565)
+
+L:SetMiscLocalization({
+	TreeForm			= "Tree Form",
+	MoonkinForm			= "Moonkin Form"
+})
 
 ---------------------------
 --  Fyrakk the Blazing --
 ---------------------------
---L= DBM:GetModLocalization(2519)
+L= DBM:GetModLocalization(2519)
+
+L:SetTimerLocalization{
+	timerMythicDebuffs			= "Cages (%s)"
+}
+
+L:SetWarningLocalization{
+	warnMythicDebuffs			= "Cages (%s)"
+}
+
+L:SetOptionLocalization{
+	warnMythicDebuffs			= "Announce when $spell:428988 and $spell:428970 debuffs have been cast (with count)",
+	timerMythicDebuffs			= "Show timer (with count) for $spell:428988 and $spell:428970 debuffs"
+}
 
 -------------
 --  Trash  --

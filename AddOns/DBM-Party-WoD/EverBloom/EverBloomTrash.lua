@@ -2,7 +2,7 @@ if (DBM:GetTOC() < 100200) then return end--DO NOT DELETE DO NOT DELETE DO NOT D
 local mod	= DBM:NewMod("EverBloomTrash", "DBM-Party-WoD", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107112605")
+mod:SetRevision("20231121073213")
 --mod:SetModelID(47785)
 mod:SetZone(1279)
 
@@ -13,7 +13,7 @@ mod:RegisterEvents(
 	"SPELL_CAST_SUCCESS 165213 172578 165123 426500 427223",
 	"SPELL_INTERRUPT",
 	"SPELL_AURA_APPLIED 164965 169658 165123 169495 426500",
-	"SPELL_AURA_APPLIED_DOSE 164886",
+--	"SPELL_AURA_APPLIED_DOSE 164886",
 --	"SPELL_AURA_REMOVED",
 	"UNIT_DIED"
 )
@@ -30,7 +30,7 @@ local warnHealingWaters							= mod:NewCastAnnounce(164887, 3)
 local warnVenomBurst							= mod:NewTargetNoFilterAnnounce(165123, 4)
 local warnGnarledroots							= mod:NewTargetNoFilterAnnounce(426500, 3)
 
-local specWarnBoundingWhirl						= mod:NewSpecialWarningSpell(164965, "Melee", nil, nil, 4, 2)
+local specWarnBoundingWhirl						= mod:NewSpecialWarningSpell(172578, "Melee", nil, nil, 4, 2)
 local specWarnCinderboltSalvo					= mod:NewSpecialWarningSpell(427223, nil, nil, nil, 2, 2)
 local specWarnSpatialDisruption					= mod:NewSpecialWarningSpell(426974, nil, nil, nil, 2, 13)
 local specWarnColdFusion						= mod:NewSpecialWarningDodge(426845, nil, nil, nil, 2, 2)
@@ -43,7 +43,7 @@ local specWarnPyroblast							= mod:NewSpecialWarningInterrupt(169839, "HasInter
 local specWarnFrostbolt							= mod:NewSpecialWarningInterrupt(169840, false, nil, nil, 1, 2)
 local specWarnChokingVinesDispel				= mod:NewSpecialWarningDispel(164965, "RemoveMagic", nil, nil, 1, 2)
 local specWarnVenomBurstDispel					= mod:NewSpecialWarningDispel(165123, "RemovePoison", nil, nil, 1, 2)
-local specWarnDreadpetalToxinDispel				= mod:NewSpecialWarningDispel(164886, "RemovePoison", nil, nil, 1, 2)
+--local specWarnDreadpetalToxinDispel				= mod:NewSpecialWarningDispel(164886, "RemovePoison", nil, nil, 1, 2)
 local specWarnPoisonClawsDispel					= mod:NewSpecialWarningDispel(169658, "RemovePoison", nil, nil, 1, 2)
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(169495, nil, nil, nil, 1, 8)
 
@@ -55,11 +55,11 @@ local timerVenomBurstCD							= mod:NewCDNPTimer(10.6, 165123, nil, nil, nil, 3)
 local timerHealingWatersCD						= mod:NewCDNPTimer(19.4, 164887, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerLivingLeavesCD						= mod:NewCDNPTimer(18.1, 169494, nil, nil, nil, 3)
 local timerGnarledRootsCD						= mod:NewCDNPTimer(18.1, 426500, nil, nil, nil, 3)
-local timerPyroblastCD							= mod:NewCDNPTimer(8, 164965, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--8-13 window, quite large
+local timerPyroblastCD							= mod:NewCDNPTimer(8, 169839, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--8-13 window, quite large
 local timerCinderboltSalvoCD					= mod:NewCDNPTimer(18.2, 427223, nil, nil, nil, 2)
 local timerFrostboltCD							= mod:NewCDNPTimer(6, 169840, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerColdfusionCD							= mod:NewCDNPTimer(21.8, 426845, nil, nil, nil, 3)--21.8-25, maybe shorter
-local timerSpatialDisruptionCD					= mod:NewCDNPTimer(21.8, 426974, nil, nil, nil, 3)
+local timerSpatialDisruptionCD					= mod:NewCDNPTimer(19.5, 426974, nil, nil, nil, 3)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt, 8 GTFO
 
@@ -160,12 +160,12 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 164965 and args:IsDestTypePlayer() and self:CheckDispelFilter("magic") and self:AntiSpam(3, 3) then
 		specWarnChokingVinesDispel:Show(args.destName)
 		specWarnChokingVinesDispel:Play("helpdispel")
-	elseif spellId == 164886 and args:IsDestTypePlayer() then
-		local amount = args.amount or 1
-		if amount >= 6 and self:CheckDispelFilter("poison") and self:AntiSpam(3, 3) then
-			specWarnDreadpetalToxinDispel:Show(args.destName)
-			specWarnDreadpetalToxinDispel:Play("helpdispel")
-		end
+--	elseif spellId == 164886 and args:IsDestTypePlayer() then
+--		local amount = args.amount or 1
+--		if amount >= 6 and self:CheckDispelFilter("poison") and self:AntiSpam(3, 3) then
+--			specWarnDreadpetalToxinDispel:Show(args.destName)
+--			specWarnDreadpetalToxinDispel:Play("helpdispel")
+--		end
 	elseif spellId == 169658 and args:IsDestTypePlayer() and self:CheckDispelFilter("poison") and self:AntiSpam(3, 3) then
 		specWarnPoisonClawsDispel:Show(args.destName)
 		specWarnPoisonClawsDispel:Play("helpdispel")

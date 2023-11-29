@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2526, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231103035708")
+mod:SetRevision("20231121043415")
 mod:SetCreatureID(198998)
 mod:SetEncounterID(2670)
 mod:SetUsedIcons(1, 2)
@@ -28,6 +28,7 @@ mod:RegisterEventsInCombat(
 --]]
 --TODO, fine tune who should be soaking
 --TODO, Keep an eye on if the combo stays random order or if it gets normalized later to be static
+--TODO, *FIXME. Increased the cooldown of Double Strike and Triple Strike. 11-21-23
 local warnSparkofTyr								= mod:NewTargetNoFilterAnnounce(400681, 3, nil, "RemoveMagic|Healer")
 local warnSiphonOath								= mod:NewCountAnnounce(400642, 3)
 local warnSiphonOathOver							= mod:NewEndAnnounce(400642, 1)

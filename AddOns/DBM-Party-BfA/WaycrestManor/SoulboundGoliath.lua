@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2126, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231026101623")
+mod:SetRevision("20231119001055")
 mod:SetCreatureID(260551)
 mod:SetEncounterID(2114)
 mod:SetHotfixNoticeRev(20231025000000)
@@ -86,7 +86,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if args:IsPlayer() then
 			yellThorns:Yell()
 		else
-			specWarnThorns:Show(self.vb.thornsCount)
+			specWarnThorns:Show(self.vb.thornsCount+1)--+1 because event is lagged behind timer event
 			specWarnThorns:Play("targetchange")
 		end
 	elseif spellId == 260541 then

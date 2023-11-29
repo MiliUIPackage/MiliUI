@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2557, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231115130648")
+mod:SetRevision("20231123214402")
 mod:SetCreatureID(208478)
 mod:SetEncounterID(2737)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -14,6 +14,7 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 421672 425401 425400 420933 421616 420415 423117 421703",
 	"SPELL_CAST_SUCCESS 421284",
+	"SPELL_SUMMON 420421",
 	"SPELL_AURA_APPLIED 421207 419054 427201",
 	"SPELL_AURA_APPLIED_DOSE 419054",
 	"SPELL_AURA_REMOVED 421207 427201",
@@ -28,6 +29,7 @@ mod:RegisterEventsInCombat(
 --[[
 (ability.id = 421672 or ability.id = 425401 or ability.id = 425400 or ability.id = 420933 or ability.id = 421616 or ability.id = 420415 or ability.id = 423117 or ability.id = 421703) and type = "begincast"
  or ability.id = 421284 and type = "cast"
+ or ability.id = 420421
 --]]
 --TODO, disgorge targets?
 --TODO, chat bubbles for Coiling Flames
@@ -65,7 +67,6 @@ local timerScorchtailCrashCD						= mod:NewCDCountTimer(20, 420415, 136870, nil,
 local timerCataclysmJawsCD							= mod:NewNextCountTimer(10, 423117, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --local berserkTimer								= mod:NewBerserkTimer(600)
 
---mod:AddRangeFrameOption("5/6/10")
 --mod:AddInfoFrameOption(407919, true)
 --mod:AddSetIconOption("SetIconOnCoilingFlames", 421207, false, false, {1, 2, 3, 4})
 mod:AddSetIconOption("SetIconOnCoilingEruption", 427201, false, false, {1, 2, 3, 4})--Off by default since other mods don't use icons at all
@@ -79,9 +80,11 @@ mod.vb.jawsCount = 0
 
 local allTimers = {
 	--Cata Jaws
-	[423117] = {5.0, 30.0, 30.0, 40.0, 30.0, 40.0, 30.0, 25.0, 25.0, 20.0},
+	[423117] = {4.8, 30.0, 30.0, 40.0, 30.0, 40.0, 30.0, 25.0, 25.0, 20.0},
 	--Volcanic Disgorge
-	[421616] = {29.9, 20.0, 40.0, 10.0, 10.0, 10.0, 10.0, 30.0, 10.0, 10.0, 10.0, 10.0, 40.0, 20.0}
+	[421616] = {29.9, 20.0, 40.0, 10.0, 10.0, 10.0, 10.0, 30.0, 10.0, 10.0, 10.0, 10.0, 40.0, 20.0},
+	--Scorchtail Crash
+	[420421] = {19.9, 20, 20, 30, 10, 10, 10, 7.3, 27.5, 10, 10, 7.5, 10, 27, 19.9, 20}
 }
 
 function mod:DisgorgeTarget(targetname, uId)
@@ -102,18 +105,12 @@ function mod:OnCombatStart(delay)
 	self.vb.volcanicCount = 0
 	self.vb.tailCount = 0
 	self.vb.jawsCount = 0
-	timerCataclysmJawsCD:Start(5-delay, 1)
-	timerSerpentsFuryCD:Start(9.9-delay, 1)
+	timerCataclysmJawsCD:Start(4.8-delay, 1)
+	timerSerpentsFuryCD:Start(9.8-delay, 1)
 	timerScorchtailCrashCD:Start(20-delay, 1)
-	timerVolcanicDisgorgeCD:Start(29.9-delay, 1)
-	timerFloodoftheFirelandsCD:Start(69.9-delay, 1)
+	timerVolcanicDisgorgeCD:Start(29.8-delay, 1)
+	timerFloodoftheFirelandsCD:Start(69.8-delay, 1)
 end
-
---function mod:OnCombatEnd()
---	if self.Options.RangeFrame then
---		DBM.RangeCheck:Hide()
---	end
---end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
@@ -131,8 +128,8 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 421616 then
 		self.vb.volcanicCount = self.vb.volcanicCount + 1
 --		self:BossTargetScanner(args.sourceGUID, "DisgorgeTarget", 0.1, 8, true)
-		specWarnVolcanicDisgorge:Show(self.vb.volcanicCount)
-		specWarnVolcanicDisgorge:Play("watchstep")
+--		specWarnVolcanicDisgorge:Show(self.vb.volcanicCount)
+--		specWarnVolcanicDisgorge:Play("watchstep")
 		local timer = self:GetFromTimersTable(allTimers, false, false, spellId, self.vb.volcanicCount+1)
 		if timer then
 			timerVolcanicDisgorgeCD:Start(timer, self.vb.volcanicCount+1)
@@ -146,7 +143,6 @@ function mod:SPELL_CAST_START(args)
 			specWarnCataclysmJaws:Play("defensive")
 		else
 			local bossTarget = UnitName("boss1target") or DBM_COMMON_L.UNKNOWN
-			--Delayed by a frame so as not to snipe the debuff
 			specWarnCataclysmJawsTaunt:Show(bossTarget)
 			specWarnCataclysmJawsTaunt:Play("tauntboss")
 		end
@@ -156,6 +152,19 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 421703 then
 		warnSerpentsWrath:Show()
+	end
+end
+
+function mod:SPELL_SUMMON(args)
+	local spellId = args.spellId
+	if spellId == 420421 then
+		self.vb.tailCount = self.vb.tailCount + 1
+		specWarnScorchtailCrash:Show(self.vb.tailCount)
+		specWarnScorchtailCrash:Play("watchstep")
+		local timer = self:GetFromTimersTable(allTimers, false, false, spellId, self.vb.tailCount+1)
+		if timer then
+			timerScorchtailCrashCD:Start(timer, self.vb.tailCount+1)
+		end
 	end
 end
 
@@ -246,11 +255,9 @@ function mod:UNIT_SPELLCAST_START(uId, _, spellId)
 	end
 end
 
+--Maybe still use this later with clever filtering
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 421684 then--Scorchtail Crash
-		self.vb.tailCount = self.vb.tailCount + 1
-		specWarnScorchtailCrash:Show(self.vb.tailCount)
-		specWarnScorchtailCrash:Play("watchstep")
-		timerScorchtailCrashCD:Start(nil, self.vb.tailCount+1)
+	if spellId == 421356 or spellId == 421359 or spellId == 421684 then--Scorchtail Crash
+
 	end
 end
