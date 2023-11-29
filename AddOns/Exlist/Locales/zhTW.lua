@@ -325,6 +325,7 @@ L["Dragonflight"] = "巨龍崛起"
 L["Do you really want to delete all data for %s-%s?\n\nType \"DELETE\" into the field to confirm."] = "是否要刪除 %s-%s 的所有資料? \n\n請在文字欄中輸入 \"DELETE\" 來確認。"
 L["Tracks professions KPs"] = "追蹤專業知識點數"
 L["Slimmed down version of main tooltip i.e. +15 Neltharions Lair -> +15 NL\nMostly affects tooltip in horizontal orientation"] = "使用較窄的版面來顯示主要浮動提示資訊，例如 +15 奈薩里奧巢穴 -> +15 奈穴\n主要影響水平方向的浮動提示資訊"
+L["Available Knowledge Point Weeklies"] = "每週可取得的知識點數"
 
 -- 10.0 S1
 L["HoV"] = "英靈"
@@ -343,3 +344,9 @@ L["HoI"] = "迴廊"
 L["BH"] = "蕨皮"
 L["VP"] = "尖塔"
 L["NL"] = "奈穴"
+
+-- 10.1 S3
+L["EB"] = "永茂林"
+L["TotT"] = "王座"
+L["DotI:GF"] = "葛拉克朗"
+L["DOTI:MR"] = "姆多茲諾"

@@ -70,7 +70,9 @@ local zones = {
    2022, -- The Walking Shores
    2025, -- Thaldraszus
    2023, -- Ohn'ahran Plains
-   2023 -- The Azure Span
+   2023, -- The Azure Span
+   2133, -- Zaralek Caverns
+   2200, -- Emerald Dream
 }
 
 local rewardRules = {}

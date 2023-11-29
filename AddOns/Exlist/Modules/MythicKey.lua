@@ -20,7 +20,7 @@ local colors = Exlist.Colors
 local L = Exlist.L
 
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
-local affixThreshold = {2, 4, 7, 10}
+local affixThreshold = {2, 7, 14}
 
 local function getTimewornKey()
    for bag = 0, 4 do
@@ -242,11 +242,6 @@ local function init()
    Exlist.ConfigDB.settings.extraInfoToggles.affixes =
       Exlist.ConfigDB.settings.extraInfoToggles.affixes or {name = L["Mythic+ Weekly Affixes"], enabled = true}
 
-   if GetExpansionLevel() == 6 then
-      affixThreshold = {4, 7, 10} -- Legion
-   else
-      affixThreshold = {2, 4, 7, 10}
-   end
    local gt = Exlist.GetCharacterTableKey("global", "global", key)
    local foundAffixes = {}
    for i = 1, #gt do

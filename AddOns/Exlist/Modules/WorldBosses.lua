@@ -66,17 +66,19 @@ local worldBossIDs = {
    [54896] = {eid = 2329, warfront = "Darkshore", expansion = 8, enabled = false, wq = true}, -- Ivus the Forest Lord
    [54895] = {eid = 2345, warfront = "Darkshore", expansion = 8, enabled = false, wq = true}, -- Ivus the Decayed
    -- Shadowlands
-   [61813] = {eid = 2430, expansion = 9, enabled = true, wq = true}, -- Valinor, the Light of Eons
-   [61814] = {eid = 2433, expansion = 9, enabled = true, wq = true}, -- Nurgash Muckformed
-   [61815] = {eid = 2432, expansion = 9, enabled = true, wq = true}, -- Oranomonos the Everbanching
-   [61816] = {eid = 2431, expansion = 9, enabled = true, wq = true}, -- Mortanis
-   [64531] = {eid = 2456, expansion = 9, enabled = true, wq = true}, -- Mor'geth
-   [65143] = {eid = 2468, expansion = 9, enabled = true, wq = true}, -- Antros
+   [61813] = {eid = 2430, expansion = 9, enabled = false, wq = true}, -- Valinor, the Light of Eons
+   [61814] = {eid = 2433, expansion = 9, enabled = false, wq = true}, -- Nurgash Muckformed
+   [61815] = {eid = 2432, expansion = 9, enabled = false, wq = true}, -- Oranomonos the Everbanching
+   [61816] = {eid = 2431, expansion = 9, enabled = false, wq = true}, -- Mortanis
+   [64531] = {eid = 2456, expansion = 9, enabled = false, wq = true}, -- Mor'geth
+   [65143] = {eid = 2468, expansion = 9, enabled = false, wq = true}, -- Antros
    -- Dragonflight
-   [69930] =  {eid = 2506, expansion = 10, enabled = true, wq = true},
-   [69929] =  {eid = 2515, expansion = 10, enabled = true, wq = true},
-   [69927] =  {eid = 2517, expansion = 10, enabled = true, wq = true},
-   [69928] =  {eid = 2518, expansion = 10, enabled = true, wq = true},
+   [69930] = { eid = 2506, expansion = 10, enabled = true, wq = true },                                   -- Basrikron
+   [69929] = { eid = 2515, expansion = 10, enabled = true, wq = true },                                   -- Strunraan
+   [69927] = { eid = 2517, expansion = 10, enabled = true, wq = true },                                   -- Bazual
+   [69928] = { eid = 2518, expansion = 10, enabled = true, wq = true },                                   -- Liskanoth
+   [74892] = { eid = 2531, expansion = 10, enabled = true, wq = true },                                   -- Zaqali Elders
+   [76367] = { eid = 2562, expansion = 10, enabled = true, wq = true },                                   -- Aurostor
 
 }
 local lastUpdate = 0

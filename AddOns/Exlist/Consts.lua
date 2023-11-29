@@ -90,11 +90,16 @@ Exlist.ShortenedMPlus = {
    [392] = L['Gambit'],  -- Gambit
    -- DF
    -- S2
-   [403] = L["Ulda"],  -- Uldaman
-   [404] = L["Nelth"], -- Neltharus
-   [406] = L["HoI"],   -- Halls of Infusion
-   [405] = L["BH"],    -- Brackenhide
-   [438] = L["VP"],    -- Vortex Pinnacle
+   [403] = L["Ulda"],    -- Uldaman
+   [404] = L["Nelth"],   -- Neltharus
+   [406] = L["HoI"],     -- Halls of Infusion
+   [405] = L["BH"],      -- Brackenhide
+   [438] = L["VP"],      -- Vortex Pinnacle
+   -- S3
+   [168] = L["EB"],      -- Everbloom
+   [456] = L["TotT"],    -- Throne of the Tides
+   [463] = L["DotI:GF"], -- Dawn of the Infinite: Galagrond's Fall
+   [464] = L["DOTI:MR"]  -- Dawn of the Infinite: Murozond's Rise
 }
 
 local Colors = {
@@ -155,17 +160,17 @@ local Colors = {
    },
    ilvlColors = {
       -- Dragonflight --
-      { ilvl = 300, str = "ff26ff3f" },
-      { ilvl = 320, str = "ff26ffba" },
-      { ilvl = 340, str = "ff26e2ff" },
-      { ilvl = 360, str = "ff26a0ff" },
-      { ilvl = 380, str = "ff2663ff" },
-      { ilvl = 400, str = "ff8e26ff" },
-      { ilvl = 420, str = "ffe226ff" },
-      { ilvl = 440, str = "ffff2696" },
-      { ilvl = 460, str = "ffff2634" },
+      { ilvl = 380, str = "ff26ff3f" },
+      { ilvl = 400, str = "ff26ffba" },
+      { ilvl = 410, str = "ff26e2ff" },
+      { ilvl = 420, str = "ff26a0ff" },
+      { ilvl = 430, str = "ff2663ff" },
+      { ilvl = 440, str = "ff8e26ff" },
+      { ilvl = 450, str = "ffe226ff" },
+      { ilvl = 460, str = "ffff2696" },
+      { ilvl = 470, str = "ffff2634" },
       { ilvl = 480, str = "ffff7526" },
-      { ilvl = 500, str = "ffffc526" }
+      { ilvl = 490, str = "ffffc526" }
    },
    profColors = {
       { val = 20,  color = "c6c3b4" },

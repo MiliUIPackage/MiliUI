@@ -486,7 +486,9 @@ local function AuraFromId(unit, ID, filter)
          value3 = UnitAura(unit, i, filter)
       if name then
          if spellId and spellId == ID then
-            return name, icon, count, debuffType, duration, expirationTime, unitCaster, canStealOrPurge, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, isCastByPlayer, nameplateShowAll, timeMod, value1, value2, value3
+            return name, icon, count, debuffType, duration, expirationTime, unitCaster, canStealOrPurge,
+                nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, isCastByPlayer, nameplateShowAll, timeMod,
+                value1, value2, value3
          end
       else
          -- afaik auras always are in list w/o gaps ie 1,2,3,4,5,6 instead of 1,2,4,5,8...
@@ -1187,26 +1189,29 @@ local function OnEnter(self)
       end
       table.insert(Exlist.activeTooltips, tooltip)
    end
-   self.time = 0
-   self.elapsed = 0
-   self:SetScript(
-      "OnUpdate",
-      function(self, elapsed)
-         self.time = self.time + elapsed
-         if self.time > 0.1 then
-            if Exlist.MouseOverTooltips() or self:IsMouseOver() then
-               self.elapsed = 0
-            else
-               self.elapsed = self.elapsed + self.time
-               if self.elapsed > settings.delay then
-                  Exlist.ReleaseActiveTooltips()
-                  self:SetScript("OnUpdate", nil)
+   local button = self;
+   if (mainTooltip) then
+      mainTooltip.time = 0
+      mainTooltip.elapsed = 0
+      mainTooltip:SetScript(
+         "OnUpdate",
+         function(self, elapsed)
+            self.time = self.time + elapsed
+            if self.time > 0.1 then
+               if Exlist.MouseOverTooltips() or button:IsMouseOver() then
+                  self.elapsed = 0
+               else
+                  self.elapsed = self.elapsed + self.time
+                  if self.elapsed > settings.delay then
+                     Exlist.ReleaseActiveTooltips()
+                     self:SetScript("OnUpdate", nil)
+                  end
                end
+               self.time = 0
             end
-            self.time = 0
          end
-      end
-   )
+      )
+   end
 end
 
 butTool:SetScript("OnEnter", OnEnter)
@@ -1571,6 +1576,7 @@ function frame:OnEvent(event, ...)
       end
    end
 end
+
 frame:SetScript("OnEvent", frame.OnEvent)
 
 function Exlist.SendFakeEvent(event, ...)

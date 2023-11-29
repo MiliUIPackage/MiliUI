@@ -5,7 +5,7 @@ local L = Exlist.L
 local colors = Exlist.Colors
 
 local rewardTypes = {
-   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = "Raid", prio = 1 },
+   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = L["Raid"], prio = 1 },
    [Enum.WeeklyRewardChestThresholdType.Activities] = {
       title = L["Dungeons"],
       prio = 2

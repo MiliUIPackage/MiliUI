@@ -1,15 +1,20 @@
-# [1.7](https://github.com/sragia/Exlist/tree/1.7) (2023-11-08)
+# [1.7.1](https://github.com/sragia/Exlist/tree/1.7.1) (2023-11-11)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.6.11...1.7)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.7...1.7.1)
 
 ## Highlights
 
- Small update for 10.2 
+ Small 10.2 updates 
 
 ## Commits
 
-Aigars Bedeicis (2):
+Aigars Bedeicis (3):
 
-- Small 10.2 update
-- Profession updates and Slim Version
+- Update World Bosses
+- Small Updates
+- Adjust how we hide tooltip
+
+MarkW (1):
+
+- Update affix thresholds
 
