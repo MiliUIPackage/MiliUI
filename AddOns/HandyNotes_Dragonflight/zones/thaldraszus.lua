@@ -1551,7 +1551,7 @@ tpf.nodes[57404187] = ElementalStorm({
 
 -- ELEMENTAL STORM VENDOR -----------------------------------------------------
 
-local Mythressa = Class('Mythressa', NPC, {
+local Mythressa = Class('Mythressa', Collectible, {
     id = 196516,
     icon = 538566,
     group = ns.groups.ELEMENTAL_STORM,
@@ -1825,5 +1825,14 @@ map.nodes[60918021] = ns.node.Node({
         return ns.node.Item.IsEnabled(self)
     end
 }) -- Temporal Loom
+
+---------------- PORTAL TO CENTRAL ENCAMPMENT - EMERALD DREAM -----------------
+
+val.nodes[62685732] = ns.node.Node({
+    label = '{spell:370368}',
+    sublabel = '{spell:429034}',
+    icon = 'portal_gn',
+    scale = 2.0
+})
 
 -- STOP: DO NOT ADD NEW NODES HERE UNLESS THEY BELONG IN MISCELLANEOUS

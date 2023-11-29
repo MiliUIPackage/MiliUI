@@ -826,7 +826,7 @@ L['big_slick_note'] = '從 {npc:201752} 完成他的每日任務並達到 {facti
 L['grogul_note'] = '和 {npc:204672} 交談並選擇一種零食可以鼓勵那種蝸牛跑得更快.\n{note:此成就可以在名望7之前獲得.}'
 
 L['saccratos_note'] = '用 {item:204727} 交換寵物, 坐騎和更多東西.'
-L['ponzo_note'] = '用 {item:204985} 和 {item:205903} 交換飛龍自訂, 寵物, 坐騎和更多東西.'
+L['ponzo_note'] = '用 {item:204985} 和 {item:205903} 交換飛龍觀察者手稿, 寵物, 坐騎和更多東西.'
 
 L['smelly_trash_pile_label'] = '臭臭垃圾堆'
 L['options_icons_smelly_trash_pile'] = '臭臭垃圾堆'
@@ -862,25 +862,28 @@ L['options_icons_emerald_dream_safari'] = '{achievement:19401}'
 L['options_icons_emerald_dream_safari_desc'] = '顯示成就{achievement:19401}中戰鬥寵物的位置。'
 
 L['envoy_of_winter_note'] = '收集{item:208881}，並在井附近使用{spell:421658}，直到{npc:209929}出現。'
-L['fruitface_note'] = '請求{dot:Pink}{npc:209950}對你施放{spell:421446}，以便讓地上的{item:208837}顯形。撿起果子使得{dot:Yellow}{npc:209980}現身。 攻擊他，然後跟隨他直至他跳入水中{dot:Red}並且召喚{npc:209966}和稀有{npc:209913}。'
-L['greedy_gessie_note'] = '為野餐收集{object:野生青菜}，{object:紅玉之鱗甜瓜} 和{object:橙根}等原料，並將其放置在{npc:210285}們旁的籃子，以開啟戰鬥。'
+L['fruitface_note'] = '提供 {npc:209950} {dot:Pink} 幫助來取得 {spell:421446}, 接著 {item:208837} 會出現在地上. 撿起它們會讓 {npc:209980} {dot:Yellow} 現身. 攻擊並跟著他直到他跳到水裡 {dot:Red} 並召喚 {npc:209966} 和 {npc:209913}.'
+L['greedy_gessie_note'] = '你需要從附近區域收集 {object:野生蔬菜}, {object:晶紅鱗甜瓜} 和 {object:橘根} 並將它們放到 {npc:210285} 附近的籃子內來開啟戰鬥'
 L['nuoberon_note'] = '追逐烏龜{npc:209252}，拾取{object:美味的夢境大餐}對猴子{npc:209445}{spell:420253}，或與鱷魚{npc:209456}搏鬥，來幫助{npc:209101}做個有趣的夢！'
-L['reefbreaker_moruud_note'] = '利用附近全部6根{npc:210089}來牽制{npc:209898}。'
-L['surging_lasher_note'] = '當這片區域的{location:翡翠狂歡}事件激活時，會在此刷新。'
+L['reefbreaker_moruud_note'] = '將附近的6個 {npc:210089} 連到 {npc:209898} 身上後才可攻擊他.'
+L['splinterlimb_note'] = '在8層 {spell:420009} 減益後會變為敵對. 每一輪後會堆疊一層. 擊殺攻擊他的怪物可以讓他快點完成每輪.'
+L['surging_lasher_note'] = '在此區域有 {location:翡翠狂亂} 事件時會重生.'
+L['talthonei_ashwisper_note'] = '在附近的區域擊殺怪物直到被殺的怪物說"我會復仇的"來刷新稀有.'
+L['talthonei_ashwisper_wq_note'] = nil
 
 L['in_a_tree'] = '在樹上。'
 L['inside_building'] = '在建築裡面。'
 
-L['hidden_moonkin_stash_label'] = '隱秘的梟獸藏匿物'
+L['hidden_moonkin_stash_label'] = '梟獸藏匿的寶物'
 L['magical_bloom_note'] = '追逐{npc:210544}，直至他揭示寶藏。'
 L['pineshrew_cache_note'] = '在石塊旁。'
-L['reliquary_of_ashamane_note'] = '{note:如果世界任務{wq:樹妖消防演習}激活時，需要先完成任務才能看見寶藏。}\n\n在附近{dot:Green}找到並觸摸{object:阿莎曼的印記}， 在有{spell:425426}陪同時回{npc:212009}處。'
+L['reliquary_of_ashamane_note'] = '{note:如果世界任務 {wq:林精消防演習} 存在時, 你需要先完成他才能看到寶藏.}\n\n找到附近的 {object:亞夏曼印記} {dot:Green} 取得增益 {spell:425426} 後去找 {npc:212009}.'
 L['reliquary_of_aviana_note'] = '在附近{dot:Green}找到並觸摸{object:艾維娜的印記}，在有{spell:425432}陪同時回{npc:212011}處。'
 L['reliquary_of_goldrinn_note'] = '在附近{dot:Green}找到並觸摸{object:戈德林的印記}，在有{spell:425408}陪同時回{npc:212012}處。'
-L['reliquary_of_ursol_note'] = '在附近{dot:Green}找到並觸摸{object:烏索爾印記}，在有{spell:423306}陪同時回{npc:210732}處。'
+L['reliquary_of_ursol_note'] = '在附近{dot:Green}找到並觸摸{object:厄索印記}，在有{spell:423306}陪同時回{npc:210732}處。'
 L['triflesnatchs_roving_trove_note'] = '追隨{npc:210060}在枝頭間的飛翔路線。'
 
-L['unwaking_echo_label'] = '酣夢回響'
+L['unwaking_echo_label'] = '不醒回音'
 L['unwaking_echo_note'] = '{note:你只能在夢鄉中打開這個箱子。}\n\n在旁邊{emote:/睡覺}，進入夢鄉方可開啟箱子。'
 
 L['amirdrassil_defenders_shield_note'] = '在{npc:211328}旁邊的桌上。'
@@ -895,29 +898,46 @@ L['petrified_hope_note'] = '在樹樁上。'
 L['plush_pillow_note'] = '小屋內的一張桌子上。'
 L['snuggle_buddy_note'] = '在一艘小船裡。'
 
-L['dreamseed_soil_label'] = '夢境之種壤土'
-L['dreamseed_soil_note'] = '{currency:2650} 的捐獻進度, 決定了翡翠花蕾的品質。\n其品質影響{object:夢境之種寶箱}開出 {item:210059}的幾率。\n{item:210224} (至少1次)\n{item:210225} (進度50%)\n{item:210226} (進度100%)\n\n夢境之種的品質決定了獎勵的類型。\n{item:208066}: 專業材料 或 一件裝飾品\n{item:208067}: 專業材料 或 一只寵物\n{item:208047}: 專業材料 或 一匹坐騎'
-L['dreamseed_cache'] = '夢境之種寶箱'
+L['dreamseed_soil_label'] = '翡翠恩惠'
+L['dreamseed_soil_note'] = [[
+在 {object:夢境種子貯藏箱} 內的 {object:翡翠恩惠獎勵} 的品質和拿到 {item:210059} 的機率由你貢獻 {currency:2650} 的數量來決定.
 
+{item:210224} (貢獻 {currency:2650} 至少一次)
+{item:210225} (進度: 50%)
+{item:210226} (進度: 100%)
+
+貢獻 {object:夢境種子} 的品質決定了獎勵的類型:
+{item:208066}: 塑型或是製造材料.
+{item:208067}: 寵物或是製造材料.
+{item:208047}: 坐騎或是製造材料.
+
+{note:詳細獎勵列表可以到北邊島上找 {npc:211265} , 他也販賣大部分的獎勵.}
+]]
+L['dreamseed_cache'] = '夢境種子貯藏箱'
 L['options_icons_dream_of_seeds'] = '{achievement:19013}'
-L['options_icons_dream_of_seeds_desc'] = '顯示成就{achievement:19013}中{object:夢境之種壤土}的位置'
+L['options_icons_dream_of_seeds_desc'] = '顯示 {achievement:19013} 成就所需的 {object:翡翠恩惠} 所在的位置.'
+L['the_seeds_i_sow_suffix'] = '已貢獻給翡翠恩惠的種子數'
 
-L['dreamfruit_label'] = '美夢果'
-L['dreamfruit_note_1'] = '{location:超然盛放}事件開始時顯現。 事件每整點鐘開始。'
-L['dreamfruit_note_2'] = '{location:超然盛放}事件開始後的第一站顯現。 事件在{location:阿梅達希爾}周圍，每整點鐘開始。'
+L['bloom_man_group_suffix'] = '已使用野性滿溢之力次數'
+L['dream_chaser_suffix'] = '游移夢境已收集'
+L['dreamfruit_label'] = '夢果'
+L['dreamfruit_note_1'] = '當 {location:繁盛綻放} 事件開始時出現. 事件於每個整點開始.'
+L['dreamfruit_note_2'] = '在 {location:繁盛綻放} 停留第一站後出現. 事件於每個整點於 {location:埃達希爾} 開始.'
+L['options_icons_dreamfruit'] = '{achievement:19310}'
+L['options_icons_dreamfruit_desc'] = '顯示 {achievement:19310} 成就中夢果的位置.'
 
 L['options_icons_moonkin_hatchling'] = '{achievement:19293}'
 L['options_icons_moonkin_hatchling_desc'] = '顯示成就{achievement:19293}中梟獸寶寶的位置。'
-L['moonkin_hatchling_note'] = '需要世界任務{wq:關切利爪}激活時。'
+L['moonkin_hatchling_note'] = '需要世界任務 {wq:擔憂之爪} 存在時.'
 
 L['druid_glyphs_label'] = '德魯伊印記'
-L['druid_glyphs_sublabel'] = '{note:這不是一個德魯伊印記，而是清單!}'
-L['druid_glyphs_note'] = '在{location:翡翠夢境}中，通過各種途徑，收集{note:德魯伊印記}'
+L['druid_glyphs_sublabel'] = '{note:這不是一個德魯伊印記. 只是一份清單!}'
+L['druid_glyphs_note'] = '從 {location:翡翠夢境} 的各種活動中收集 {note:德魯伊印記}.'
 
-L['pollenfused_bristlebruin_fur_sample_note'] = '在{location:焦燼之壤}的一顆樹根處拾取{object:花粉灌注的鬃羆毛皮樣本}。'
+L['pollenfused_bristlebruin_fur_sample_note'] = '在 {location:焦黑地} 的大樹下附近拾取 {object:花粉融合刺棕熊毛皮樣品}.'
 
 L['mbc_note_start'] = '拾取{object:一箱小瓶子}，得到{item:210991}.\n\n你得到6個{item:210839}，需要用來自各大陸的月亮井水來裝滿。'
-L['mbc_note_end'] = '混合6個{item:210876}制造{item:210977}， 然後來到{location:阿梅達希爾}的{object:野性夢境石}.\n\n使用{item:210977}並拾取{object:月福之爪}，得到{item:210728}。'
+L['mbc_note_end'] = '合成6個 {item:210876} 來產生 {item:210977} 並將它帶到 {location:埃達希爾} 旁的 {object:Feral Dreamstone}.\n\n使用 {item:210977} 並拾取 {item:210977} 來取得 {item:210728}.'
 
 L['mbc_vial_b'] = '破'
 L['mbc_vial_d'] = '德'
@@ -934,76 +954,74 @@ L['mbc_vial_o_location'] = '贊加沼澤，塞納裡奧避難所'
 
 L['mbc_vial_location'] = '攜{item:%d}到{location:%s}的月亮井（{location:%s}， {location:%s}），灌滿井水，得到{item:%d}。'
 
-L['mbc_moonwell_label'] = '月亮井'
+L['mbc_moonwell_label'] = '月井'
 L['mbc_feral_dreamstone_label'] = '野性夢境石'
 
 L['azure_somnowl_note'] = '完成一個德魯伊專屬的簡短任務線，最後一步{quest:78066}獎勵{item:210645}。'
 
-L['slumbering_somnowl_note_a'] = '對{location:翡翠夢境}裡各種{npc:寐梟}施放{spell:2637}然後{spell:426183}，收集5根{item:210565}。'
-L['slumbering_somnowl_note_b'] = '從商人處購買一縷{item:4291} 。'
-L['slumbering_somnowl_note_c'] = '將5根{item:210565}和一縷{item:4291}組成{item:210566}。'
-L['slumbering_somnowl_note_d'] = '獲得一個{item:194864}。'
-L['slumbering_somnowl_note_e'] = '將{item:210566}和{item:194864}組成{item:210535}。'
+L['slumbering_somnowl_note_a'] = '在 {location:翡翠夢境} 用 {spell:2637} 讓不同的 {npc:Somnowl} 睡著來收集 5 個 {item:210565}'
+L['slumbering_somnowl_note_b'] = '從任意的補給品商人購買1個 {item:4291}.'
+L['slumbering_somnowl_note_c'] = '組合5個 {item:210565} 和1個 {item:4291} 來產生 {item:210566}.'
+L['slumbering_somnowl_note_d'] = '收集1個 {item:194864}.'
+L['slumbering_somnowl_note_e'] = '組合1個 {item:210566} 和1個 {item:194864} 來產生 {item:210535}.'
 
-L['thaelishar_vendor_note'] = '用金幣來購買德魯伊的沉默印記'
-L['silent_mark_label'] = '繁夢峭壁'
-L['silent_mark_note'] = '對目標動物引導，使印記與其形態協調，直至獲得{spell:426910}。 {note:你需要協調10來只動物。}\n\n用{item:210764}引導{npc:210892}。\n\n用{item:210767}引導{npc:211347}, {npc:211283}, 或 {npc:210894}。\n\n用{item:210755}引導{npc:210594}.\n\n用{item:210766}引導{npc:209494}。'
+L['thaelishar_vendor_note'] = '用金幣交換德魯伊印記.'
+L['silent_mark_label'] = '茂盛夢鹿'
+L['silent_mark_note'] = '選取正確的動物並引到對應的物品直到 {spell:426910} 出現. {note:你必須要同調 10+ 個動物.}\n\n引導 {item:210764} 到 {npc:210892}.\n\n引導 {item:210767} 到 {npc:211347}, {npc:211283}, or {npc:210894}.\n\n引導 {item:210755} 到 {npc:210594}.\n\n引導 {item:210766} 到 {npc:209494}, {npc:212028}, 或 {npc:212024}.'
 
-L['amirdrassil'] = '阿梅達希爾，夢境之願'
-L['prismatic_location'] = '在團本{location:阿梅達希爾，夢境之願}內。'
-L['prismatic_note_1'] = '1. 從{location:聖泉中庭}的水池中釣10條{item:210782}'
-L['prismatic_note_2'] = '2. 從{location:焰灼大廳(沃爾科羅斯焦坑)}的岩漿中釣10條{item:210783}。'
-L['prismatic_note_3'] = '3. 把10條魚扔進{location:聖泉中庭}最大的水池中，得到30分鐘的增益{spell:427145}。'
-L['prismatic_note_4'] = '4. {location:聖泉中庭}的水池中顯現{object:棱光腮須魚群}，從中可以釣到{item:210784}。'
-L['prismatic_note_5'] = '5. 將{npc:奇娜}放生回{location:聖泉中庭}的水池中，會得到{item:210753}。'
+L['amirdrassil'] = '『夢境希望』埃達希爾'
+L['prismatic_location'] = '在團本 {location:『夢境希望』埃達希爾} 內.'
+L['prismatic_note_1'] = '1. 從 {location:泉湧中庭} 的水池釣 10隻 {item:210782}.'
+L['prismatic_note_2'] = '2. 從 {location:灼烈大廳} 的熔岩池釣 10隻 {item:210783}.'
+L['prismatic_note_3'] = '3. 將總共20隻魚丟到 {location:泉湧中庭} 內最大的水池來取得30分鐘的增益 {spell:427145}.'
+L['prismatic_note_4'] = '4. 在 {location:泉湧中庭} 的 {object:稜彩鰓鬚魚水池} 魚群釣魚直到釣到 {item:210784}.'
+L['prismatic_note_5'] = '5. 在 {location:泉湧中庭} 釋放 {npc:希納} 回到水中來取得 {item:210753}.'
 
 L['options_icons_druid_glyph'] = '德魯伊印記'
 L['options_icons_druid_glyph_desc'] = '顯示{note:德魯伊印記}的位置'
 
-L['elianna_vendor_note'] = '完成{location:翡翠夢境}中的各項活動會獎勵%s (隱藏貨幣)。\n\n %s達到7,000時可以從{npc:211209}處，解鎖任務{quest:78598}，獎勵1枚{currency:2777}。\n\n用{currency:2777}來購買寵物和坐騎。'
+L['elianna_vendor_note'] = '在 {location:翡翠夢境} 完成活動會獎勵 %s (一種隱藏通貨).\n\n賺到 7000 %s 會從 {npc:211209} 解鎖 {quest:78598} 來獎勵 1個 {currency:2777}.\n\n使用 {currency:2777} 可以交換寵物和坐騎.'
 L['dream_energy_name'] = '夢境能量'
 L['dream_energy_info'] = '%s: %d/%d (%.1f%%)'
 
-L['sylvia_vendor_note'] = '用{currency:2651}來購買寵物，坐騎，幻化'
+L['sylvia_vendor_note'] = '使用 {currency:2651} 交換寵物, 坐騎和塑形. 你也可以從夢境種子的獎勵取得它們.'
 
-L['somnut'] = '小型眠果'
-L['options_icons_somnut'] = '小型眠果'
-L['options_icons_somnut_desc'] = '顯示{object:小型眠果}可能的位置'
+L['somnut'] = '小睡夢果'
+L['options_icons_somnut'] = '小睡夢果'
+L['options_icons_somnut_desc'] = '顯示 {object:小睡夢果} 可能的位置.'
 
-L['improvised_leafbed_note'] = '完成從{quest:77896}起始的任務線，從{npc:210164}得到獎勵{item:210864}。'
-L['kalandu_note'] = '完成從{quest:77948}起始的任務線，從{npc:210196}得到獎勵{item:210633}。'
+L['improvised_leafbed_note'] = '完成從 {quest:77896} 開始的任務鍊來從 {npc:210164} 取得 {item:210864}.'
+L['kalandu_note'] = '完成從 {quest:77948} 開始的任務鍊以從 {npc:210196} 取得 {item:210633}.'
 
-L['renewed_dream'] = '{note:這裡不是一個寶箱!}\n{item:201437}廣泛掉落自{location:翡翠夢境}。\n5個{item:201437s}可以合成1個{item:201439}。'
-
-L['ochre_note'] = '和{npc:209253}對話開始任務線, {npc:209571}會布置接下來的任務。'
-L['ochre_note_stage1'] = '{quest:77677}。{note:生長期5天。}'
-L['ochre_note_stage2'] = '{quest:78398}。{note:生長期5天。}'
-L['ochre_note_stage3'] = '{npc:209571}讓你收集5根{item:4537}{dot:Yellow}, 3顆{item:209416}{dot:Green}, 5份{item:208644}{dot:Red}, 將它們合成{item:208646}。{note:需要等待3天}形成{item:208647}後，才能完成{quest:77697}。{note:生長期5天。}'
+L['ochre_note'] = '和 {npc:209253} 交談來開始任務線. {npc:209571} 會提供下個階段'
+L['ochre_note_stage1'] = '{quest:77677}. {note:成長期5天.}'
+L['ochre_note_stage2'] = '{quest:78398}. {note:成長期5天.}'
+L['ochre_note_stage3'] = '{npc:209571} 會讓你收集 5個 {item:4537} {dot:Yellow}, 3個 {item:209416} {dot:Green}, 和 5個 {item:208644} {dot:Red}, 組合它們變成 {item:208646}. {note:需等待3天} 來讓它變成 {item:208647} 後完成 {quest:77697}. {note:成長期5天.}'
 L['ochre_note_stage4'] = '{quest:77711}。{note:生長期5天。}'
 L['ochre_note_stage5'] = '{quest:77762}。'
 
-L['thorn_beast_stag'] = '{item:%d} ({npc:鹿})'
-L['thorn_beast_saber'] = '{item:%d} ({npc:豹})'
+L['thorn_beast_stag'] = '{item:%d} ({npc:雄鹿})'
+L['thorn_beast_saber'] = '{item:%d} ({npc:夜刃豹})'
 L['thorn_beast_bear'] = '{item:%d} ({npc:熊})'
 
-L['thornbeast_disclaimer'] = '{note:注意：每種野獸的{item:%s}雖同名但不一樣。}'
+L['thornbeast_disclaimer'] = '{note:提醒, 每種野獸類型有獨特的 {item:%s} 並且會對應到相對的荊棘野獸.}'
 
-L['thorn_laden_heart_note_1'] = '從{location:翡翠夢境}的任意{npc:夢麋}, {npc:夢刃豹}, 或{npc:鬃羆}三類野獸身上拾取到3種不同的{item:209860}。'
-L['thorn_laden_heart_note_2'] = '獲得一種野獸的{item:209860}之後, 去{location:庫爾提拉斯}的{location:德魯斯瓦}, 找一只名喚{npc:140044}的母鹿。'
+L['thorn_laden_heart_note_1'] = '從 {location:翡翠夢境} 裡的任意 {npc:雄鹿}, {npc:夢刃豹} 或 {npc:熊} 拾取一個 {item:209860}.'
+L['thorn_laden_heart_note_2'] = '當你有一個 {item:209860} 後, 到 {location:庫爾提拉斯} 的 {location:佐司瓦} 找一隻母鹿 {npc:140044}.'
 
-L['athainne_note_1'] = '{note:{npc:140044}夜晚與{npc:129771}一起漫步, 白天在{location:奧爾法的獸穴}休憩。}\n\n請求{npc:140044}祝福{item:209860}來制造{item:209863}。'
-L['athainne_note_2'] = '得到{item:209863}之後, 去{location:奧爾法的獸穴}向{npc:141159}求助。'
+L['athainne_note_1'] = '{note:{npc:140044} 晚上時會和 {npc:129771} 一起移動, 白天時會在 {locatuon:烏爾法洞穴} 內休息.}\n\n要求 {npc:140044} 使用 {item:209860} 製造 {item:209863}.'
+L['athainne_note_2'] = '當你和 {npc:140044} 說話並取得 {item:209863} 後, 到 {locatuon:烏爾法洞穴} 找 {npc:141159} 求助.'
 
-L['ulfar_note_1'] = '請求{npc:149386}使用{item:209863}來制作{item:209866}。'
-L['ulfar_note_2'] = '獲得{item:209866}之後, 回{location:翡翠夢境}, 為轉化儀式找到合適的目標。'
+L['ulfar_note_1'] = '要求 {npc:149386} 使用 {item:209863} 製造 {item:209866}.'
+L['ulfar_note_2'] = '當你有了 {item:209866}, 回到 {location:翡翠夢境} 找到一個適合轉化儀式的目標.'
 
-L['thorn_stag_note'] = '1. 殺死{npc:210976},對屍體使用{item:209866}。 夢麋重生為{npc:210984}{npc:<荊生幽魂>}。\n\n2. 對其施放{spell:1515}。\n\n3. {npc:210984}有三種顏色(黑, 褐, 綠)。'
-L['thorn_saber_note'] = '1. 殺死{npc:210975},對屍體使用{item:209867}。夢刃豹重生為{npc:210981}{npc:<荊生幽魂>}。\n\n2. 對其施放{spell:1515}。\n\n3. {npc:210981}有三種顏色(黑, 綠, 灰)。'
-L['thorn_bear_note'] = '1. 殺死{npc:210977},對屍體使用{item:209868}。鬃羆重生為{npc:210988}{npc:<荊生幽魂>}。\n\n2. 對其施放{spell:1515}。\n\n3. {npc:210988}有三種顏色(褐, 暗, 綠)。'
+L['thorn_stag_note'] = '1. 殺掉 {npc:210976}, 並對著屍體使用 {item:209866}. 雄鹿會重生成 {npc:210984} {npc:<棘裔靈魂>}.\n\n2. 對牠使用 {spell:1515}.\n\n3. {npc:210984} 有三種顏色: 黑色, 棕色, 和綠色.'
+L['thorn_saber_note'] = '1. 殺掉 {npc:210975}, 並對著屍體使用 {item:209867}. 夢刃豹會重生成 {npc:210981} {npc:<棘裔靈魂>}.\n\n2. 對牠使用 {spell:1515}.\n\n3. {npc:210981} 有三種顏色: 黑色, 綠色, 和灰白.'
+L['thorn_bear_note'] = '1. 殺掉 {npc:210977}, 並對著屍體使用 {item:209868}. 熊會重生成 {npc:210988} {npc:<棘裔靈魂>}.\n\n2. 對牠使用 {spell:1515}.\n\n3. {npc:210981} 有三種顏色: 棕色, 暗色, 和綠色.'
 
-L['nahqi_note'] = '要對{npc:210908}施放{spell:1515}，需要{item:211314}。這來自於{item:210061}。\n\n{npc:210908}{npc:<愈合余燼>}圍繞{location:阿梅達希爾}在高空{note:逆時針}繞圈緩慢飛翔，一圈下來耗時17:30。 \n它的刷新時間最少 30 分鐘。 \n\n{note:這是只{npc:靈魂獸}。 只有獸王獵人能馴服。}'
+L['nahqi_note'] = '需要 {item:211314} 才能對 {npc:210908} 使用 {spell:1515}, 這需要從坐騎 {item:210061} 上取得.\n\n{npc:210908}{npc:<Ember of Regrowth>} 在空中 {note:逆時鐘} 繞著 {location:埃達希爾} 飛行, 飛行一周花費17:30.\n最小刷新時間為30分鐘.\n\n{note:牠是{npc:靈獸}. 只有獸王獵可以馴服牠.}'
 
-L['sulraka_note'] = '{npc:210868}{npc:<吉布爾之女>}在{location:阿梅達希爾}東方以{note:逆時針}路線巡游， 大約17分鐘繞一周。 \n它的刷新時間最少 30 分鐘。\n\n當它行進時會在身後留下{object:笨重的蹤跡}，持續3分鐘。 \n由於一直潛行狀態，你需要在一個剛剛刷新的{object:笨重的蹤跡}前面使用{spell:1543}來讓其顯形。 \n先施放{spell:257284}和(或){spell:187650}，再嘗試{spell:1515}。\n\n{note:注意：{npc:210868}即使受到攻擊也不會停止前行，所以一定要使用陷阱或照明。否則{spell:1543}會在超距後取消施法。}\n\n{note:這是只{npc:靈魂獸}。 只有獸王獵人能馴服。}'
+L['sulraka_note'] = '{npc:210868}{npc:<Daughter of Kimbul>} 以 {note:逆時鐘方向} 在 {location:埃達希爾} 東方的區域巡邏, 花費17分鐘完成一周.\n最小刷新時間為30分鐘.\n\n在移動時會在後方留下會存在3分鐘的 {object:Heavy Tracks}.\n牠會一直潛行移動, 所以你必須要在全新的 {object:Heavy Tracks} 前方使用 {spell:1543} 來揭露牠.\n施放 {spell:257284} 和/或 {spell:187650} 然後再嘗試使用  {spell:1515}.\n\n{note:把牠困住或是揭露牠是很重要的, 因為即使受到攻擊 {npc:210868} 也不會停止移動. 牠可能會跑出 {spell:1543} 的範圍來取消技能.}\n\n{note:牠是{npc:靈獸}. 只有獸王獵可以馴服牠.}'
 
 -------------------------------------------------------------------------------
 ----------------------------- SECRETS OF AZEROTH ------------------------------
