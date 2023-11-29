@@ -47,13 +47,15 @@ DUNGEON_TABLE[206] = L["Neltharion's Lair"]
 DUNGEON_TABLE[245] = L["Freehold"]
 DUNGEON_TABLE[251] = L["The Underrot"]
 
-DUNGEON_TABLE[463] = L["Dawn of the Infinites: Galakrond's Fall"]
-DUNGEON_TABLE[464] = L["Dawn of the Infinites: Murozond's Rise"]
+DUNGEON_TABLE["463F"] = L["Dawn of the Infinite: Galakrond's Fall"]
+DUNGEON_TABLE[463] = L["DotI: Galakrond's Fall"]
+DUNGEON_TABLE["464F"] = L["Dawn of the Infinite: Murozond's Rise"]
+DUNGEON_TABLE[464] = L["DotI: Murozond's Rise"]
 DUNGEON_TABLE[244] = L["Atal'Dazar"]
 DUNGEON_TABLE[248] = L["Waycrest Manor"]
 DUNGEON_TABLE[198] = L["Darkheart Thicket"]
 DUNGEON_TABLE[199] = L["Black Rook Hold"]
-DUNGEON_TABLE[168] = L["Everbloom"]
+DUNGEON_TABLE[168] = L["The Everbloom"]
 DUNGEON_TABLE[456] = L["Throne of the Tides"]
 
 function addon.GetMapName(mapID, full)
