@@ -1,15 +1,8 @@
 ------------------------------------------------------------------------
-r579 | Zimzarina | 2023-07-13 12:58:17 +0000 (Thu, 13 Jul 2023) | 1 line
+r604 | Zimzarina | 2023-11-16 02:49:53 +0000 (Thu, 16 Nov 2023) | 1 line
 Changed paths:
-   M /trunk/Postal.toc
-   M /trunk/Postal_Wrath.toc
+   M /trunk/Postal_Vanilla.toc
 
-Toc update for Wrath and Retail.
-------------------------------------------------------------------------
-r578 | Zimzarina | 2023-05-18 20:03:23 +0000 (Thu, 18 May 2023) | 1 line
-Changed paths:
-   M /trunk/Postal.toc
-
-Added IconTexture to Postal.toc retail release.
+TOC Update Classic.
 ------------------------------------------------------------------------
 
