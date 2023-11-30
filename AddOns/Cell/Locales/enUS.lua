@@ -80,6 +80,22 @@ select(2, ...).L = setmetatable({
 
     ["CHANGELOGS"] = [[
         <h1>If there are any issues after an update, check through all code snippets first.</h1>
+        <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
+        <br/>
+
+        <h1>r205-release (Nov 27, 2023, 12:27 GMT+8)</h1>
+        <p>* Updated raid debuffs, thanks to 钛锬(NGA) and Ulu2005(GitHub) for collecting and providing debuffs.</p>
+        <p>+ New custom indicator type: Glow.</p>
+        <p>+ (Retail) Added "Track by name" option for custom buff indicator.</p>
+        <p>+ Added "Hide Placeholder Frames" for Spotlights.</p>
+        <p>+ Added option to override LibGetFrame.</p>
+        <p>* Spotlight shortcuts now supports Blizzard and ElvUI.</p>
+        <p>* Updated frame level: Aggro (border), Dispels and custom Color indicator.</p>
+        <br/>
+
+        <h1>r204-release (Nov 21, 2023, 07:02 GMT+8)</h1>
+        <p>* Updated range checker (Retail).</p>
+        <p>+ Added "Always Update Buffs/Debuffs" options (Retail).</p>
         <br/>
 
         <h1>r203-release (Nov 14, 2023, 21:15 GMT+8)</h1>

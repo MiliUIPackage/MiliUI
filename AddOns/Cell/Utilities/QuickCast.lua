@@ -740,10 +740,12 @@ local function ShowUtilitySettings(which)
             F:ApplyCombatProtectionToFrame(qcPane, -4, 4, 4, -4)
 
             qcPane:SetScript("OnShow", function()
-                for i, p in pairs(previewButtons) do
-                    if quickCastTable and i <= quickCastTable["num"] then
-                        p.fadeOut:Stop()
-                        p:FadeIn()
+                if quickCastTable["enabled"] then
+                    for i, p in pairs(previewButtons) do
+                        if quickCastTable and i <= quickCastTable["num"] then
+                            p.fadeOut:Stop()
+                            p:FadeIn()
+                        end
                     end
                 end
             end)
@@ -794,8 +796,8 @@ local glowBuffs, glowCasts = {}, {}
 local outerBuff, innerBuff
 local borderSize, glowBuffsColor, glowCastsColor
 
-local quickCastFrame = CreateFrame("Frame", "_CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate") -- TODO: rename
-quickCastFrame:SetPoint("TOPLEFT", UIParent, "CENTER")
+local quickCastFrame = CreateFrame("Frame", "CellQuickCastFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
+PixelUtil.SetPoint(quickCastFrame, "TOPLEFT", UIParent, "CENTER", -1, -1)
 quickCastFrame:SetSize(16, 16)
 quickCastFrame:SetClampedToScreen(true)
 quickCastFrame:SetMovable(true)
@@ -940,6 +942,8 @@ local function QuickCast_UpdateStatus(self)
 end
 
 local function QuickCast_UpdateName(self)
+    if not self.unit then return end
+
     local name = UnitName(self.unit)
     name = Cell.vars.nicknameCustoms[name] or Cell.vars.nicknames[name] or name
     if string.len(name) == string.utf8len(name) then -- en
@@ -948,6 +952,16 @@ local function QuickCast_UpdateName(self)
         self.nameText:SetText(string.utf8sub(name, 1, 1))
     end
 end
+
+Cell:RegisterCallback("UpdateNicknames", "QuickCast_UpdateNicknames", function()
+    if quickCastButtons then
+        C_Timer.After(1, function()
+            for _, b in pairs(quickCastButtons) do
+                QuickCast_UpdateName(b)
+            end
+        end)
+    end
+end)
 
 local function QuickCast_OnEvent(self, event, unit, arg1, arg2)
     if unit and self.unit == unit then
@@ -1292,12 +1306,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
             innerCD:Hide()
         end
         
-        -- OmniCD
-        if OmniCD and OmniCD[1].db.position.uf == "Cell-QuickCast" then
-            C_Timer.After(0.5, function()
-                OmniCD[1].Party:UpdatePosition()
-            end)
-        end
+        F:UpdateOmniCDPosition("Cell-QuickCast")
     end
 
     --! NOTE: PLAYER_LOGIN or MANUALLY CALLED
@@ -1509,6 +1518,7 @@ local function UpdateQuickCast()
         innerBuff = nil
     end
 
+    F:UpdateOmniCDPosition("Cell-QuickCast")
 end
 Cell:RegisterCallback("UpdateQuickCast", "QuickCast_UpdateQuickCast", UpdateQuickCast)
 

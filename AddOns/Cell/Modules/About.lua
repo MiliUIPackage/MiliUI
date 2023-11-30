@@ -119,7 +119,7 @@ local function CreateSpecialThanksPane()
     specialThanksText:SetPoint("TOPLEFT", 5, -27)
     specialThanksText:SetSpacing(5)
     specialThanksText:SetJustifyH("LEFT")
-    specialThanksText:SetText("warbaby (爱不易)\n钛锬 (NGA)\nguesswhoiam (NGA)")
+    specialThanksText:SetText("warbaby (爱不易)\n钛锬 (NGA)\nJFunkGaming (YouTube)")
 end
 
 -------------------------------------------------
@@ -360,17 +360,15 @@ local function CreateLinksPane()
 
     --! afdian
     local afdian = CreateLink(linksPane, "afdian", "Interface\\AddOns\\Cell\\Media\\Links\\afdian.tga", function()
-        linksEB:SetText("https://afdian.net/a/enderneko")
+        linksEB:SetText("https://afdian.net/@enderneko")
     end)
     afdian:SetPoint("TOPRIGHT", linksEB, "BOTTOMRIGHT", 0, -7)
     
     --! ko-fi
     local kofi = CreateLink(linksPane, "kofi", "Interface\\AddOns\\Cell\\Media\\Links\\ko-fi.tga", function()
-        linksEB:SetText("")
+        linksEB:SetText("https://ko-fi.com/enderneko")
     end)
     kofi:SetPoint("TOPRIGHT", afdian, "TOPLEFT", -7, 0)
-    kofi:SetScript("OnEnter", nil)
-    kofi:SetAlpha(0.3)
 end
 
 -------------------------------------------------

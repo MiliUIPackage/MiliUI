@@ -96,14 +96,22 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
-L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
-L["Increase Health Update Rate"] = "增加血条刷新速率"
-L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Position"] = "位置"
 L["Lock Cell Frames"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
 L["Menu Position"] = "菜单位置"
+L["Always Update Buffs"] = "总是更新增益"
+L["Always Update Debuffs"] = "总是更新减益"
+L["Ignore UNIT_AURA payloads"] = "无视 UNIT_AURA 事件的负载"
+L["This may help solve issues of indicators not updating correctly"] = "可能有助于解决指示器不能正确更新的问题"
+L["Override"] = "重写"
+L["Ensure that other addons get the right unit button"] = "确保其他插件获取到正确的单位按钮"
+L["This may cause unknown issues"] = "可能导致未知问题"
+L["For addons/WAs not dependent on LibGetFrame, use %s"] = "对于不依赖 LibGetFrame 的插件或WA，使用 %s"
+L["Increase Health Update Rate"] = "增加血条刷新速率"
+L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
+L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
 
 -------------------------------------------------
 -- nickname
@@ -297,6 +305,7 @@ L["Show friendly NPCs in a separate frame"] = "将友方 NPC 显示在一个单�
 L["You can move it in Preview mode"] = "你可以在“预览”模式中移动它"
 
 L["Enable Spotlight Frame"] = "启用特别关注框体"
+L["Hide Placeholder Frames"] = "隐藏占位框"
 L["Spotlight Frame"] = "特别关注框体"
 L["spotlightTips"] = "左键：|cffffffff菜单|r\n右键：|cffffffff清除|r\n左键拖动：|cffffffff设置为目标单位（非战斗中）|r\n右键拖动：|cffffffff设置为目标单位的宠物（非战斗中）|r"
 L["Show units you care about more in a separate frame"] = "将你特别关注的单位显示在一个单独的框体中"
@@ -579,7 +588,7 @@ L["This will overwrite your debuffs"] = "这将覆盖你的副本减益"
 L["Raid Debuffs updated: %s."] = "已更新副本减益：%s。"
 L["Reset debuffs?"] = "重置减益？"
 L["Current Season"] = "当前赛季"
-L["Want to help improve Raid Debuffs?"] = "想要帮忙完善副本减益嘛？"
+L["Want to help improve Raid Debuffs?"] = "想要帮忙完善副本减益么？"
 L["Use %s addon"] = "用这个插件 %s"
 L["Then create a PR or submit a ticket on GitHub"] = "然后在GitHub上提交PR或Issue就可以啦"
 
@@ -756,6 +765,22 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
+    <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r205-release (Nov 27, 2023, 12:27 GMT+8)</h1>
+    <p>* 更新副本减益，感谢 钛锬（NGA）提供已排序的副本减益列表！以及 Ulu2005（GitHub）收集的减益！泰裤辣！</p>
+    <p>+ 新自定义指示器类型：发光。</p>
+    <p>+ （正式服）为自定义增益指示器添加了“匹配法术名称”的选项。</p>
+    <p>+ 为特别关注框体添加了“隐藏占位框”的选项。</p>
+    <p>+ 添加了重写 LibGetFrame 的选项。</p>
+    <p>* 特别关注框体的拖拽设置目标现在支持暴雪与 ElvUI 的框体，并且也支持鼠标指向的队伍中的玩家。</p>
+    <p>* 修复层级：仇恨（边框），驱散，自定义颜色指示器。</p>
+    <br/>
+
+    <h1>r204-release (Nov 21, 2023, 07:02 GMT+8)</h1>
+    <p>* 更新距离检查（正式服）。</p>
+    <p>+ 添加“总是更新增益/减益”选项（正式服）。</p>
     <br/>
 
     <h1>r203-release (Nov 14, 2023, 21:15 GMT+8)</h1>

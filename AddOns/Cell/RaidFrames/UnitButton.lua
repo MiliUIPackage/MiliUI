@@ -285,6 +285,10 @@ local function HandleIndicators(b)
         if type(t["fadeOut"]) == "boolean" then
             indicator:SetFadeOut(t["fadeOut"])
         end
+        -- update glow
+        if t["glowOptions"] then
+            indicator:UpdateGlowOptions(t["glowOptions"])
+        end
 
         -- init
         -- update name visibility
@@ -567,6 +571,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             I:UpdateMissingBuffsFilters()
         elseif setting == "targetCounterFilters" then
             I:UpdateTargetCounterFilters()
+        elseif setting == "glowOptions" then
+            F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:UpdateGlowOptions(value)
+                UnitButton_UpdateAuras(b)
+            end, true)
         elseif setting == "checkbutton" then
             if value == "showGroupNumber" then
                 F:IterateAllUnitButtons(function(b)
@@ -596,6 +605,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             elseif value == "showStack" then
                 F:IterateAllUnitButtons(function(b)
                     b.indicators[indicatorName]:ShowStack(value2)
+                    UnitButton_UpdateAuras(b)
+                end, true)
+            elseif value == "trackByName" then
+                F:IterateAllUnitButtons(function(b)
                     UnitButton_UpdateAuras(b)
                 end, true)
             elseif value == "showTooltip" then
@@ -681,6 +694,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update fadeOut
                 if type(value["fadeOut"]) == "boolean" then
                     indicator:SetFadeOut(value["fadeOut"])
+                end
+                -- update glow
+                if value["glowOptions"] then
+                    indicator:UpdateGlowOptions(value["glowOptions"])
                 end
                 -- FirstRun: Healers
                 if value["auras"] and #value["auras"] ~= 0 then
@@ -785,6 +802,7 @@ local function ResetDebuffVars(self)
     self._debuffs.resurrectionFound = false
     self._debuffs.raidDebuffsFound = false
     self._debuffs.crowdControlsFound = 0
+    self._debuffs.allFound = 0
 
     self.state.BGOrb = nil -- TODO: move to _debuffs
 end
@@ -803,7 +821,6 @@ local function HandleDebuffs(self, auraInfo, index)
     -- local attribute = auraInfo.points[1] -- UnitAura:arg16
 
     local refreshing = false
-    local startIndex = 1
 
     self._debuffs_indices[auraInstanceID] = index
     
@@ -825,8 +842,8 @@ local function HandleDebuffs(self, auraInfo, index)
             -- all debuffs / only dispellableByMe
             if not indicatorCustoms["debuffs"] or I:CanDispel(debuffType) then 
                 -- debuffs, may contain topDebuff and cc
-                if startIndex <= indicatorNums["debuffs"]+indicatorNums["raidDebuffs"]+indicatorNums["crowdControls"] then
-                    startIndex = startIndex + 1
+                if self._debuffs.allFound <= indicatorNums["debuffs"]+indicatorNums["raidDebuffs"]+indicatorNums["crowdControls"] then
+                    self._debuffs.allFound = self._debuffs.allFound + 1
                     if Cell.vars.bigDebuffs[spellId] then
                         self._debuffs_big[auraInstanceID] = refreshing
                     else
@@ -837,7 +854,7 @@ local function HandleDebuffs(self, auraInfo, index)
         end
         
         -- user created indicators
-        I:UpdateCustomIndicators(self, auraInfo)
+        I:UpdateCustomIndicators(self, auraInfo, refreshing)
 
         -- prepare raidDebuffs
         local order = I:GetDebuffOrder(name, spellId, count)
@@ -1371,21 +1388,21 @@ UnitButton_UpdateAuras = function(self, updateInfo)
         debuffsChanged = true
     else
         if updateInfo.addedAuras then
-            for _, aura in ipairs(updateInfo.addedAuras) do
+            for _, aura in pairs(updateInfo.addedAuras) do
                 if aura.isHelpful then buffsChanged = true end
                 if aura.isHarmful then debuffsChanged = true end
             end
         end
-    
+
         if updateInfo.updatedAuraInstanceIDs then
-            for _, auraInstanceID in ipairs(updateInfo.updatedAuraInstanceIDs) do
+            for _, auraInstanceID in pairs(updateInfo.updatedAuraInstanceIDs) do
                 if self._buffs_cache[auraInstanceID] then buffsChanged = true end
                 if self._debuffs_cache[auraInstanceID] then debuffsChanged = true end
             end
         end
-       
+
         if updateInfo.removedAuraInstanceIDs then
-            for _, auraInstanceID in ipairs(updateInfo.removedAuraInstanceIDs) do
+            for _, auraInstanceID in pairs(updateInfo.removedAuraInstanceIDs) do
                 if self._buffs_cache[auraInstanceID] then
                     self._buffs_cache[auraInstanceID] = nil
                     self._buffs_count_cache[auraInstanceID] = nil
@@ -1397,6 +1414,11 @@ UnitButton_UpdateAuras = function(self, updateInfo)
                     debuffsChanged = true
                 end
             end
+        end
+
+        if Cell.loaded then
+            if CellDB["general"]["alwaysUpdateBuffs"] then buffsChanged = true end
+            if CellDB["general"]["alwaysUpdateDebuffs"] then debuffsChanged = true end
         end
     end
     
@@ -1567,15 +1589,10 @@ local function UnitButton_UpdateTarget(self)
 end
 
 
-local function CheckVehicleRoot(petUnit)
+local function CheckVehicleRoot(self, petUnit)
     if not petUnit then return end
 
-    local playerUnit
-    if petUnit == "pet" then
-        playerUnit = "player"
-    else
-        playerUnit = petUnit:gsub("pet", "")
-    end
+    local playerUnit = F:GetPlayerUnit(petUnit)
 
     local isRoot
     for i = 1, UnitVehicleSeatCount(playerUnit) do
@@ -1586,10 +1603,7 @@ local function CheckVehicleRoot(petUnit)
         end
     end
 
-    local b = F:GetUnitButtonByUnit(petUnit)
-    if b then
-        b.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
-    end
+    self.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
 end
 
 UnitButton_UpdateRole = function(self)
@@ -1606,7 +1620,7 @@ UnitButton_UpdateRole = function(self)
 
         --! check vehicle root
         if self.state.guid and strfind(self.state.guid, "^Vehicle") then
-            CheckVehicleRoot(unit)
+            CheckVehicleRoot(self, unit)
         end
     else
         roleIcon:Hide()
@@ -2505,7 +2519,6 @@ local function UnitButton_OnAttributeChanged(self, name, value)
                 local i = string.match(value, "%d")
                 _G["CellRaidFrameMember"..i] = self
                 self.unit = value
-                self.unitid = value -- REMOVE!
             end
 
             ResetAuraTables(self)
@@ -2690,8 +2703,10 @@ end
 
 function B:SetTexture(button, tex)
     button.widget.healthBar:SetStatusBarTexture(tex)
+    button.widget.healthBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
     button.widget.healthBarLoss:SetTexture(tex)
     button.widget.powerBar:SetStatusBarTexture(tex)
+    button.widget.powerBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
     button.widget.powerBarLoss:SetTexture(tex)
     button.widget.incomingHeal:SetTexture(tex)
     button.widget.damageFlashTex:SetTexture(tex)
@@ -3194,7 +3209,7 @@ function F:UnitButton_OnLoad(button)
     -- P:Point(powerBar, "BOTTOMRIGHT", button, "BOTTOMRIGHT", -1, 1)
     powerBar:SetStatusBarTexture(Cell.vars.texture)
     powerBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
-    powerBar:SetFrameLevel(button:GetFrameLevel()+5)
+    powerBar:SetFrameLevel(button:GetFrameLevel()+6)
 
     local gapTexture = button:CreateTexture(nil, "BORDER")
     button.widget.gapTexture = gapTexture

@@ -4,6 +4,8 @@ local F = Cell.funcs
 local I = Cell.iFuncs
 local P = Cell.pixelPerfectFuncs
 
+local LCG = LibStub("LibCustomGlow-1.0")
+
 CELL_BORDER_SIZE = 1
 
 -------------------------------------------------
@@ -718,16 +720,15 @@ end
 -------------------------------------------------
 function I:CreateAura_Color(name, parent)
     local color = CreateFrame("Frame", name, parent)
-    color:SetFrameLevel(parent:GetFrameLevel()+8)
     color:Hide()
     color.indicatorType = "color"
 
-    local solidTex = color:CreateTexture(nil, "ARTWORK")
+    local solidTex = color:CreateTexture(nil, "OVERLAY", nil, -5)
     solidTex:SetTexture(Cell.vars.texture)
     solidTex:SetAllPoints(color)
     solidTex:Hide()
    
-    local gradientTex = color:CreateTexture(nil, "ARTWORK")
+    local gradientTex = color:CreateTexture(nil, "OVERLAY", nil, -5)
     gradientTex:SetTexture("Interface\\Buttons\\WHITE8x8")
     gradientTex:SetAllPoints(color)
     gradientTex:Hide()
@@ -744,12 +745,15 @@ function I:CreateAura_Color(name, parent)
         if anchorTo == "healthbar-current" then
             -- current hp texture
             color:SetAllPoints(parent.widget.healthBar:GetStatusBarTexture())
+            color:SetFrameLevel(parent:GetFrameLevel()+5)
         elseif anchorTo == "healthbar-entire" then
             -- entire hp bar
             color:SetAllPoints(parent.widget.healthBar)
+            color:SetFrameLevel(parent:GetFrameLevel()+5)
         else -- unitbutton
             P:Point(color, "TOPLEFT", parent.widget.overlayFrame, "TOPLEFT", 1, -1)
             P:Point(color, "BOTTOMRIGHT", parent.widget.overlayFrame, "BOTTOMRIGHT", -1, 1)
+            color:SetFrameLevel(parent:GetFrameLevel()+6)
         end
     end
 
@@ -949,4 +953,82 @@ function I:CreateAura_Icons(name, parent, num)
     end
 
     return icons
+end
+
+-------------------------------------------------
+-- CreateAura_Glow
+-------------------------------------------------
+local function Glow_SetCooldown(glow, start, duration)
+    if glow.fadeOut then
+        glow:SetScript("OnUpdate", function()
+            local remain = duration-(GetTime()-start)
+            if remain < 0 then remain = 0 end
+            if remain > duration then remain = duration end
+            glow:SetAlpha((remain/duration)*(1-0.2)+0.2)
+        end)
+    else
+        glow:SetScript("OnUpdate", nil)
+        glow:SetAlpha(1)
+    end
+
+    local glowOptions = glow.glowOptions
+    local glowType = glowOptions[1]
+
+    if glowType == "Normal" then
+        LCG.PixelGlow_Stop(glow)
+        LCG.AutoCastGlow_Stop(glow)
+        LCG.ProcGlow_Stop(glow)
+        LCG.ButtonGlow_Start(glow, glowOptions[2])
+    elseif glowType == "Pixel" then
+        LCG.ButtonGlow_Stop(glow)
+        LCG.AutoCastGlow_Stop(glow)
+        LCG.ProcGlow_Stop(glow)
+        -- color, N, frequency, length, thickness
+        LCG.PixelGlow_Start(glow, glowOptions[2], glowOptions[3], glowOptions[4], glowOptions[5], glowOptions[6])
+    elseif glowType == "Shine" then
+        LCG.ButtonGlow_Stop(glow)
+        LCG.PixelGlow_Stop(glow)
+        LCG.ProcGlow_Stop(glow)
+        -- color, N, frequency, scale
+        LCG.AutoCastGlow_Start(glow, glowOptions[2], glowOptions[3], glowOptions[4], glowOptions[5])
+    elseif glowType == "Proc" then
+        LCG.ButtonGlow_Stop(glow)
+        LCG.PixelGlow_Stop(glow)
+        LCG.AutoCastGlow_Stop(glow)
+        -- color, duration
+        LCG.ProcGlow_Start(glow, {color=glowOptions[2], glowOptions[3], startAnim=false})
+    else
+        LCG.ButtonGlow_Stop(glow)
+        LCG.PixelGlow_Stop(glow)
+        LCG.AutoCastGlow_Stop(glow)
+        LCG.ProcGlow_Stop(glow)
+    end
+
+    glow:Show()
+end
+
+function I:CreateAura_Glow(name, parent)
+    local glow = CreateFrame("Frame", name, parent)
+    glow:SetAllPoints(parent)
+    glow:Hide()
+    glow.indicatorType = "glow"
+    
+    glow.SetCooldown = Glow_SetCooldown
+
+    function glow:SetFadeOut(fadeOut)
+        glow.fadeOut = fadeOut
+    end
+
+    function glow:UpdateGlowOptions(options)
+        glow.glowOptions = options
+    end
+
+    glow:SetScript("OnHide", function()
+        LCG.ButtonGlow_Stop(glow)
+        LCG.PixelGlow_Stop(glow)
+        LCG.AutoCastGlow_Stop(glow)
+        LCG.ProcGlow_Stop(glow)
+    end)
+
+    return glow
 end

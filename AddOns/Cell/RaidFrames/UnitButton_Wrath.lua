@@ -289,6 +289,10 @@ local function HandleIndicators(b)
         if t["shape"] then
             indicator:SetShape(t["shape"])
         end
+        -- update glow
+        if t["glowOptions"] then
+            indicator:UpdateGlowOptions(t["glowOptions"])
+        end
 
         -- init
         -- update name visibility
@@ -567,6 +571,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             I:UpdateMissingBuffsFilters()
         elseif setting == "targetCounterFilters" then
             I:UpdateTargetCounterFilters()
+        elseif setting == "glowOptions" then
+            F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:UpdateGlowOptions(value)
+                UnitButton_UpdateAuras(b)
+            end, true)
         elseif setting == "checkbutton" then
             if value == "showGroupNumber" then
                 F:IterateAllUnitButtons(function(b)
@@ -687,6 +696,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 -- update fadeOut
                 if type(value["fadeOut"]) == "boolean" then
                     indicator:SetFadeOut(value["fadeOut"])
+                end
+                -- update glow
+                if value["glowOptions"] then
+                    indicator:UpdateGlowOptions(value["glowOptions"])
                 end
                 -- FirstRun: Healers
                 if value["auras"] and #value["auras"] ~= 0 then
@@ -1323,15 +1336,10 @@ local function UnitButton_UpdateTarget(self)
     end
 end
 
-local function CheckVehicleRoot(petUnit)
+local function CheckVehicleRoot(self, petUnit)
     if not petUnit then return end
 
-    local playerUnit
-    if petUnit == "pet" then
-        playerUnit = "player"
-    else
-        playerUnit = petUnit:gsub("pet", "")
-    end
+    local playerUnit = F:GetPlayerUnit(petUnit)
 
     local isRoot
     for i = 1, UnitVehicleSeatCount(playerUnit) do
@@ -1342,10 +1350,7 @@ local function CheckVehicleRoot(petUnit)
         end
     end
 
-    local b = F:GetUnitButtonByUnit(petUnit)
-    if b then
-        b.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
-    end
+    self.indicators.roleIcon:SetRole(isRoot and "VEHICLE" or "NONE")
 end
 
 UnitButton_UpdateRole = function(self)
@@ -1361,7 +1366,7 @@ UnitButton_UpdateRole = function(self)
 
         --! check vehicle root
         if self.state.guid and strfind(self.state.guid, "^Vehicle") then
-            CheckVehicleRoot(unit)
+            CheckVehicleRoot(self, unit)
         end
     else
         roleIcon:Hide()
@@ -2379,7 +2384,6 @@ local function UnitButton_OnAttributeChanged(self, name, value)
                 local i = string.match(value, "%d")
                 _G["CellRaidFrameMember"..i] = self
                 self.unit = value
-                self.unitid = value -- REMOVE!
             end
 
             ResetAuraTables(self)
@@ -2568,8 +2572,10 @@ end
 
 function B:SetTexture(button, tex)
     button.widget.healthBar:SetStatusBarTexture(tex)
+    button.widget.healthBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
     button.widget.healthBarLoss:SetTexture(tex)
     button.widget.powerBar:SetStatusBarTexture(tex)
+    button.widget.powerBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -6)
     button.widget.powerBarLoss:SetTexture(tex)
     button.widget.incomingHeal:SetTexture(tex)
     button.widget.damageFlashTex:SetTexture(tex)

@@ -222,11 +222,25 @@ local function CreateAssignmentButton(index)
         if InCombatLockdown() then return end
 
         local f = GetMouseFocus()
-        if f and f.state and f.state.displayedUnit then
+        
+        if f == WorldFrame then
+            f = F:GetUnitButtonByGUID(UnitGUID("mouseover") or "")
+        end
+
+        if not f then return end -- cursor outside wow window
+
+        local unitId
+        if f.state and f.state.displayedUnit then -- Cell
+            unitId = f.state.displayedUnit
+        elseif f.unit then
+            unitId = f.unit
+        end
+        
+        if unitId then
             if targetFrame.type == "unit" then
-                unit:SetUnit(b:GetAttribute("index"), f.state.displayedUnit)
+                unit:SetUnit(b:GetAttribute("index"), unitId)
             elseif targetFrame.type == "pet" then
-                unitpet:SetUnit(b:GetAttribute("index"), f.state.displayedUnit)
+                unitpet:SetUnit(b:GetAttribute("index"), unitId)
             end
         end
     end)
@@ -280,13 +294,13 @@ for i = 1, 10 do
         self:GetFrameRef("placeholder"):Hide()
     ]])
     wrapFrame:WrapScript(b, "OnHide", [[
-        if self:GetAttribute("unit") then
+        if self:GetAttribute("unit") and not self:GetAttribute("hidePlaceholder") then
             self:GetFrameRef("placeholder"):Show()
         end
     ]])
     wrapFrame:WrapScript(b, "OnAttributeChanged", [[
         if name ~= "unit" then return end
-        if self:GetAttribute("unit") and not self:IsShown() then
+        if self:GetAttribute("unit") and not self:IsShown() and not self:GetAttribute("hidePlaceholder") then
             self:GetFrameRef("placeholder"):Show()
         else
             self:GetFrameRef("placeholder"):Hide()
@@ -301,14 +315,7 @@ for i = 1, 10 do
             placeholders[i].text:SetText("|cffababab"..NONE)
         end
 
-        -- OmniCD
-        b.unit = value
-        if OmniCD and OmniCD[1].db.position.uf == "Cell-Spotlight" then
-            -- OmniCD[1].Party:GROUP_ROSTER_UPDATE(nil, true)
-            C_Timer.After(0.5, function()
-                OmniCD[1].Party:UpdatePosition()
-            end)
-        end
+        F:UpdateOmniCDPosition("Cell-Spotlight")
     end)
 end
 
@@ -769,6 +776,7 @@ local function UpdateLayout(layout, which)
         if layout["spotlight"]["enabled"] then
             for i = 1, 10 do
                 local unit = layout["spotlight"]["units"][i]
+                Cell.unitButtons.spotlight[i]:SetAttribute("hidePlaceholder", layout["spotlight"]["hidePlaceholder"])
                 Cell.unitButtons.spotlight[i]:SetAttribute("unit", unit)
                 if unit and strfind(unit, "^.+target$") then
                     Cell.unitButtons.spotlight[i]:SetAttribute("refreshOnUpdate", true)

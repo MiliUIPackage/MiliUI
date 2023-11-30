@@ -68,7 +68,7 @@ function F:IterateClasses()
     return function()
         i = i + 1
         if i <= GetNumClasses() then
-            return sortedClasses[i], classFileToID[sortedClasses[i]]
+            return sortedClasses[i], classFileToID[sortedClasses[i]], i
         end
     end
 end
@@ -780,10 +780,11 @@ function F:IterateSharedUnitButtons(func)
     end
 end
 
-function F:GetUnitButtonByUnit(unit)
+local spotlights = {}
+function F:GetUnitButtonByUnit(unit, getSpotlights)
     if not unit then return end
 
-    local normal, spotlight1, spotlight2, spotlight3, spotlight4, spotlight5
+    local normal
 
     if Cell.vars.groupType == "raid" then
         if Cell.vars.inBattleground == 5 then
@@ -797,31 +798,26 @@ function F:GetUnitButtonByUnit(unit)
         normal = Cell.unitButtons.solo[unit] or Cell.unitButtons.npc.units[unit]
     end
 
-    for _, b in pairs(Cell.unitButtons.spotlight) do
-        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
-            if not spotlight1 then
-                spotlight1 = b
-            elseif not spotlight2 then
-                spotlight2 = b
-            elseif not spotlight3 then
-                spotlight3 = b
-            elseif not spotlight4 then
-                spotlight4 = b
-            elseif not spotlight5 then
-                spotlight5 = b
+    if getSpotlights then
+        wipe(spotlights)
+        for _, b in pairs(Cell.unitButtons.spotlight) do
+            if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+                tinsert(spotlights, b)
             end
         end
+
+        return normal, spotlights
     end
 
-    return normal, spotlight1, spotlight2, spotlight3, spotlight4, spotlight5
+    return normal
 end
 
-function F:GetUnitButtonByGUID(guid)
-    return F:GetUnitButtonByUnit(Cell.vars.guids[guid])
+function F:GetUnitButtonByGUID(guid, getSpotlights)
+    return F:GetUnitButtonByUnit(Cell.vars.guids[guid], getSpotlights)
 end
 
-function F:GetUnitButtonByName(name)
-    return F:GetUnitButtonByUnit(Cell.vars.names[name])
+function F:GetUnitButtonByName(name, getSpotlights)
+    return F:GetUnitButtonByUnit(Cell.vars.names[name], getSpotlights)
 end
 
 function F:HandleUnitButton(type, unit, func, ...)
@@ -1405,17 +1401,48 @@ if playerClass == "EVOKER" then
                 end
             elseif UnitCanAttack("player", unit) then
                 -- print("CanAttack", unit)
-                if harmSpells[playerClass] then
-                    return IsSpellInRange(harmSpells[playerClass], unit) == 1
-                else
-                    return IsItemInRange(harmItems[playerClass], unit)
-                end
-            else
-                -- print("CheckInteractDistance", unit)
-                return CheckInteractDistance(unit, 4) -- 28 yards
+                return IsSpellInRange(harmSpells["EVOKER"], unit) == 1
             end
+           
+            -- print("InRange", unit)
+            return UnitInRange(unit)
         end
     end
+
+elseif Cell.isRetail then
+    function F:IsInRange(unit, check)
+        if not UnitIsVisible(unit) then
+            return false
+        end
+    
+        if UnitIsUnit("player", unit) then
+            return true
+        elseif not check and F:UnitInGroup(unit) then
+            -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
+            local checked
+            inRange, checked = UnitInRange(unit)
+            if not checked then
+                return F:IsInRange(unit, true)
+            end
+            return inRange
+        else
+            if UnitCanAssist("player", unit) then
+                -- print("CanAssist", unit)
+                if friendSpells[playerClass] then
+                    return IsSpellInRange(friendSpells[playerClass], unit) == 1
+                end
+            elseif UnitCanAttack("player", unit) then
+                -- print("CanAttack", unit)
+                if harmSpells[playerClass] then
+                    return IsSpellInRange(harmSpells[playerClass], unit) == 1
+                end
+            end
+
+            -- print("InRange", unit)
+            return UnitInRange(unit)
+        end
+    end
+
 else
     function F:IsInRange(unit, check)
         if not UnitIsVisible(unit) then
@@ -1795,5 +1822,45 @@ else
             end
         end
         return debuffs
+    end
+end
+
+-------------------------------------------------
+-- OmniCD
+-------------------------------------------------
+function F:UpdateOmniCDPosition(frame)
+    if OmniCD and OmniCD[1].db.position.uf == frame then
+        C_Timer.After(0.5, function()
+            OmniCD[1].Party:UpdatePosition()
+        end)
+    end
+end
+
+-------------------------------------------------
+-- LibGetFrame
+-------------------------------------------------
+function Cell.GetUnitFrame(unit)
+    local normal, spotlights = F:GetUnitButtonByUnit(unit, true)
+    if CellDB["general"]["framePriority"] == "normal_spotlight" then
+        if normal then return normal end
+        return spotlights[1]
+    else -- "spotlight_normal"
+        if spotlights[1] then return spotlights[1] end
+        return normal
+    end
+end
+
+function F:OverrideLGF(override)
+    if not override then return end
+
+    -- override LGF
+    local LGF = LibStub("LibGetFrame-1.0", true)
+    if LGF then
+        LGF.GetUnitFrame = Cell.GetUnitFrame
+        LGF.GetFrame = Cell.GetUnitFrame
+    end
+    -- override WA
+    if WeakAuras then
+        WeakAuras.GetUnitFrame = Cell.GetUnitFrame
     end
 end

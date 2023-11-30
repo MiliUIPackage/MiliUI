@@ -63,6 +63,8 @@ function I:CreateIndicator(parent, indicatorTable, noTableUpdate)
         indicator = I:CreateAura_Color(parent:GetName()..indicatorName, parent)
     elseif indicatorTable["type"] == "texture" then
         indicator = I:CreateAura_Texture(parent:GetName()..indicatorName, parent.widget.overlayFrame)
+    elseif indicatorTable["type"] == "glow" then
+        indicator = I:CreateAura_Glow(parent:GetName()..indicatorName, parent)
     end
     parent.indicators[indicatorName] = indicator
     
@@ -172,7 +174,7 @@ end
 -------------------------------------------------
 -- update
 -------------------------------------------------
-local function Update(indicator, indicatorTable, unit, spellId, start, duration, debuffType, icon, count, refreshing)
+local function Update(indicator, indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
     if indicatorTable["isIcons"] then
         if indicatorTable["found"][unit] < indicatorTable["num"] then
             indicatorTable["found"][unit] = indicatorTable["found"][unit] + 1
@@ -181,8 +183,8 @@ local function Update(indicator, indicatorTable, unit, spellId, start, duration,
             indicator:Show()
         end
     else
-        if indicatorTable["auras"][spellId] < indicatorTable["topOrder"][unit] then
-            indicatorTable["topOrder"][unit] = indicatorTable["auras"][spellId]
+        if indicatorTable["auras"][spell] < indicatorTable["topOrder"][unit] then
+            indicatorTable["topOrder"][unit] = indicatorTable["auras"][spell]
             indicatorTable["top"][unit]["start"] = start
             indicatorTable["top"][unit]["duration"] = duration
             indicatorTable["top"][unit]["debuffType"] = debuffType
@@ -205,7 +207,7 @@ function I:UpdateCustomIndicators(unitButton, auraType, spellId, spellName, star
                 spell = spellId
             end
             
-            if indicatorTable["auras"][spell] or indicatorTable["auras"][0] then -- is in indicator spell list
+            if indicatorTable["auras"][spell] or indicatorTable["auras"][0] or (indicatorTable["auras"][1] and duration ~= 0) then -- is in indicator spell list
                 if auraType == "buff" then
                     -- check caster
                     if (indicatorTable["castBy"] == "me" and castByMe) or (indicatorTable["castBy"] == "others" and not castByMe) or (indicatorTable["castBy"] == "anyone") then
