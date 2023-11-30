@@ -70,9 +70,9 @@ end
 
 function Eqx_OnVariablesLoaded()
 
-	PaperDollEquipmentManagerPane:HookScript ("OnHide", Eqx_HideAllMasks);
+--  PaperDollEquipmentManagerPane:HookScript ("OnHide", Eqx_HideAllMasks);
 --	PaperDollEquipmentManagerPane:HookScript ("OnShow", Eqx_GearManagerDialog_OnShow);
-	hooksecurefunc ("GearSetButton_OnClick", Eqx_GearSetBut_OnClick);
+--  hooksecurefunc ("GearSetButton_OnClick", Eqx_GearSetBut_OnClick);
 
 	hooksecurefunc ("ToggleBackpack", Eqx_BagsSetNeedsUpdate);
 	hooksecurefunc ("OpenBackpack", Eqx_BagsSetNeedsUpdate);
@@ -264,8 +264,8 @@ local function Eqx_GetEquipSetName_BySlot (bagID, slotID)
 
 		for x = 1, #slotNames do
 			local sname = slotNames[x];
-			if (string.len (sname) > 4) then
-				sname = string.sub (sname, 1, 3).."...";
+			if (string.len (sname) > 6) then
+				sname = string.sub (sname, 1, 6);
 			end
 			s = s..sname.."\n";
 		end
@@ -401,9 +401,9 @@ function Eqx_OnUpdate (self, elapsed)
 
 		Eqx_UpdateContainerFrames();
 
-		if (PaperDollEquipmentManagerPane:IsShown()) then
-			Eqx_UpdateMasks ({ showItemLevel = true });
-		end
+		-- if (PaperDollEquipmentManagerPane:IsShown()) then
+		-- 	Eqx_UpdateMasks ({ showItemLevel = true });
+		-- end
 	end
 
 end
@@ -643,14 +643,14 @@ end
 
 local CombuctorItemSlot = Combuctor and Combuctor.ItemSlot
 if CombuctorItemSlot then
-	hooksecurefunc(CombuctorItemSlot, 'SetItem', Eqx_UpdateContainerSlot)
+	hooksecurefunc(CombuctorItemSlot, 'Update', Eqx_UpdateContainerSlot)
 end
 
 --[[ Bagnon Support ]]--
 
 local BagnonItemSlot = Bagnon and Bagnon.ItemSlot
 if BagnonItemSlot then
-	hooksecurefunc(BagnonItemSlot, 'SetItem', Eqx_UpdateContainerSlot)
+	hooksecurefunc(BagnonItemSlot, 'Update', Eqx_UpdateContainerSlot)
 end
 
 --[[ Baggins Support ]]--
