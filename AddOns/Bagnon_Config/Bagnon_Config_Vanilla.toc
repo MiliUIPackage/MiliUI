@@ -3,7 +3,7 @@
 ## Author: Tuller & Jaliborc
 
 ## Dependencies: Bagnon
-## Interface: 11404
+## Interface: 11500
 ## LoadOnDemand: 1
 
 ..\Bagnon\src\config.lua

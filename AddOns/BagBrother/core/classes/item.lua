@@ -6,6 +6,7 @@
 local ADDON, Addon = ...
 local Item = Addon.Tipped:NewClass('Item', Addon.IsRetail and 'ItemButton' or 'Button', 'ContainerFrameItemButtonTemplate', true)
 local Search = LibStub('ItemSearch-1.3')
+local C = LibStub('C_Everywhere')
 
 Item.BagFamilies = {
 	[-3] = 'reagent',
@@ -165,7 +166,7 @@ function Item:UpdateBorder()
 			r,g,b = RED_FONT_COLOR.r, RED_FONT_COLOR.g, RED_FONT_COLOR.b
 		elseif Addon.sets.glowSets and Search:BelongsToSet(id) then
 	  		r,g,b = .2, 1, .8
-		elseif Addon.sets.glowQuality and quality and quality >= 1 then
+		elseif Addon.sets.glowQuality and quality and quality > 1 then
 			r,g,b = GetItemQualityColor(quality)
 		end
 
@@ -310,7 +311,7 @@ function Item:GetQuery()
 end
 
 function Item:IsUpgrade()
-	return (self.hasItem or false) and IsAddOnLoaded('Pawn') and PawnShouldItemLinkHaveUpgradeArrow(self.info.hyperlink)
+	return (self.hasItem or false) and C.Addons.IsAddOnLoaded('Pawn') and PawnShouldItemLinkHaveUpgradeArrow(self.info.hyperlink)
 end
 
 function Item:GetInventorySlot()
