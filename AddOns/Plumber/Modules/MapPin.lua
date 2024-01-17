@@ -1,9 +1,11 @@
 local _, addon = ...
 local API = addon.API;
+local TomTomUtil = addon.TomTomUtil;        --Send location to TomTom
 
 local HIDE_INACTIVE_PIN = false;
 local DATA_PROVIDER_ADDED = false;
 local ENABLE_MAP_PIN = false;
+local PIN_ICON_PRIORITIZE_REWARD = false;   --If the plant is active and has unclaimed reward, show Seed or Flower icon
 
 local VIGID_BOUNTY = 5971;
 local MAPID_EMRALD_DREAM = 2200;
@@ -34,9 +36,12 @@ local C_VignetteInfo = C_VignetteInfo;
 local GetVignetteInfo = C_VignetteInfo.GetVignetteInfo;
 local GetVignettePosition = C_VignetteInfo.GetVignettePosition;
 local IsWorldQuest = C_QuestLog.IsWorldQuest;
+local After = C_Timer.After;
+local InCombatLockdown = InCombatLockdown;
 local format = string.format;
 local pairs = pairs;
 local ipairs = ipairs;
+local _G = _G;
 
 local SecondsToTime = API.SecondsToTime;
 local DreamseedUtil = API.DreamseedUtil;    --Defined in Dreamseed.lua
@@ -180,10 +185,12 @@ function PinController:OnEvent(event, ...)
             local vignetteID = GetVignetteIDFromGUID(vignetteGUID);
             if self.chestOwnerCreatureID[vignetteID] then
                 --if the removed minimap icon is a Dreamseed Chest
-                local owner = self.chestOwnerCreatureID[vignetteID];
-                if not GetVignetteInfo(vignetteGUID) then
-                    DreamseedUtil:SetChestStateByCreatureID(owner, false);
-                end
+                After(0.5, function()
+                    local owner = self.chestOwnerCreatureID[vignetteID];
+                    if not GetVignetteInfo(vignetteGUID) then
+                        DreamseedUtil:SetChestStateByCreatureID(owner, false);
+                    end
+                end)
             end
         end
         if self.mapOpened and self.isRelavantVignetteGUID[vignetteGUID] then
@@ -272,21 +279,40 @@ end
 
 
 
+local function Dummy_SetPassThroughButtons()
+end
 
 PlumberWorldMapPinMixin = CreateFromMixins(MapCanvasPinMixin);
 
+function PlumberWorldMapPinMixin:OnCreated()
+    --When frame being created
+    self.originalSetPassThroughButtons = self.SetPassThroughButtons;
+    self.SetPassThroughButtons = Dummy_SetPassThroughButtons;
+    self:AllowPassThroughRightButton(true);
+end
+
 function PlumberWorldMapPinMixin:OnLoad()
-    --newPin
+    --newPin (see MapCanvasMixin:AcquirePin)
 	self:SetScalingLimits(1, 1.0, 1.2);
-    self.pinFrameLevelType = "PIN_FRAME_LEVEL_VIGNETTE";    --PIN_FRAME_LEVEL_VIGNETTE PIN_FRAME_LEVEL_AREA_POI
-    self.pinFrameLevelIndex = 23;
+    self.pinFrameLevelType = "PIN_FRAME_LEVEL_GROUP_MEMBER";    --PIN_FRAME_LEVEL_VIGNETTE  PIN_FRAME_LEVEL_AREA_POI   PIN_FRAME_LEVEL_WAYPOINT_LOCATION  PIN_FRAME_LEVEL_GROUP_MEMBER
+    self.pinFrameLevelIndex = 1;
     self:SetTexture("Interface/AddOns/Plumber/Art/MapPin/SeedPlanting-Empty-Distant");
     PinController:AddPin(self);
 end
 
-function PlumberWorldMapPinMixin:SetPassThroughButtons(unpackedPrimitiveType)
+function PlumberWorldMapPinMixin:IsMouseClickEnabled()
+    return true
+end
+
+function PlumberWorldMapPinMixin:AllowPassThroughRightButton(unpackedPrimitiveType)
     --Original "SetPassThroughButtons" (see SimpleScriptRegionAPI for details) has chance to taint when called
     --So we overwrite it
+    if (not self.isRightButtonAllowed) and (not InCombatLockdown()) then
+        self.isRightButtonAllowed = true;
+        if self.originalSetPassThroughButtons then
+            self.originalSetPassThroughButtons(self, "RightButton");
+        end
+    end
 end
 
 function PlumberWorldMapPinMixin:SetTexture(texture)
@@ -358,24 +384,49 @@ function PlumberWorldMapPinMixin:OnMouseEnter()
     local resourceText = DreamseedUtil:GetResourcesText();
     if resourceText then
         TooltipFrame:AddLine(resourceText, 1, 1, 1, false);
-        TooltipFrame:Show();
     end
 
     if hasReward then
         TooltipFrame:AddLine(WEEKLY_REWARDS_UNCLAIMED_TITLE, 0.098, 1.000, 0.098, false);   --GREEN_FONT_COLOR
-        TooltipFrame:Show();
-
-        --[[
-        local seedTier, bloomTier;
-        if self.objectGUID then
-            seedTier, bloomTier = DreamseedUtil:GetRewardTier(self.objectGUID);
-        else
-            seedTier, bloomTier = DreamseedUtil:GetRewardTierByCreatureID(self.cachedCreatureID);
-        end
-        TooltipFrame:AddLine(string.format("%s/%s", seedTier, bloomTier), 1, 1, 1, false);
-        TooltipFrame:Show();
-        --]]
     end
+
+    if TomTomUtil:IsTomTomAvailable() then
+        TooltipFrame:AddLine(addon.L["Click To Track In TomTom"], 1, 0.82, 0, true);
+        self:SetClickable(true);
+    else
+        if (hasReward or self.isActive) and addon.ControlCenter:ShouldShowNavigatorOnDreamseedPins() then
+            TooltipFrame:AddLine(addon.L["Click To Track Location"], 1, 0.82, 0, true);
+            self:SetClickable(true);
+        else
+            self:SetClickable(false);
+        end
+    end
+
+    TooltipFrame:Show();
+
+    self:AllowPassThroughRightButton(true);
+end
+
+function PlumberWorldMapPinMixin:OnMouseClickAction(mouseButton)
+    if mouseButton == "LeftButton" then
+        if TomTomUtil:IsTomTomAvailable() then
+            local x, y = self:GetPosition();
+            local desc = self.name;
+            TomTomUtil:AddWaypoint(MAPID_EMRALD_DREAM, x, y, desc);
+        else
+            if addon.ControlCenter:ShouldShowNavigatorOnDreamseedPins() then
+                addon.ControlCenter:EnableSuperTracking();
+                self:OnMouseEnter();
+            end
+        end
+    end
+end
+
+function PlumberWorldMapPinMixin:SetClickable(state)
+    if state ~= self.isClickable then
+        self.isClickable = state;
+    end
+    self:SetMouseClickEnabled(state);
 end
 
 function PlumberWorldMapPinMixin:OnAcquired(vignetteGUID, objectGUID)
@@ -573,7 +624,11 @@ function WorldMapDataProvider:ShowAllPins()
     local bestUniqueVignetteIndex = C_VignetteInfo.FindBestUniqueVignette(relavantVignetteGUIDs) or 0;
     for i, pin in ipairs(pins) do
         if pin.isActive then
-            pin:SetVisual(3);
+            if PIN_ICON_PRIORITIZE_REWARD and pin.hasReawrd then
+                pin:SetVisual(0);
+            else
+                pin:SetVisual(3);
+            end
         elseif pin.hasReawrd then
             pin:SetVisual(0);
         elseif i == bestUniqueVignetteIndex then
@@ -734,6 +789,14 @@ function MapTracker:OnViewingQuestDetailsChanged()
 end
 
 
+local function LoadOptionalSettings()
+    --Settings that are controlled by command, no UI (due to specific user request)
+    --Requires /reload
+    if not PlumberDB then return end;
+
+    PIN_ICON_PRIORITIZE_REWARD = (PlumberDB.PinIconPrioritizeReward and true) or false;
+end
+
 local ZoneTriggerModule;
 
 local function EnableModule(state)
@@ -741,7 +804,7 @@ local function EnableModule(state)
         ENABLE_MAP_PIN = true;
 
         if not ZoneTriggerModule then
-            local module = API.CreateZoneTriggeredModule();
+            local module = API.CreateZoneTriggeredModule("mappin");
             ZoneTriggerModule = module;
             module:SetValidZones(MAPID_EMRALD_DREAM);
 
@@ -755,15 +818,19 @@ local function EnableModule(state)
                 end
                 MapTracker:Attach();
                 PinController:EnableModule(true);
+                DreamseedUtil:RequestScanChests();
             end
 
             local function OnLeaveZoneCallback()
                 MapTracker:Detach();
                 PinController:EnableModule(false);
+                DreamseedUtil:PauseScanner();
             end
 
             module:SetEnterZoneCallback(OnEnterZoneCallback);
             module:SetLeaveZoneCallback(OnLeaveZoneCallback);
+
+            LoadOptionalSettings();
         end
         ZoneTriggerModule:SetEnabled(true);
         ZoneTriggerModule:Update();
@@ -1059,8 +1126,8 @@ end
 
 function FilterFrame:OnUpdate_UpdateAfter(elapsed)
     --We update on the next n frame
-    --self.n = self.n + 1;
-    --if self.n < 60 then return end;
+    self.n = self.n + 1;
+    if self.n < 2 then return end;
 
     self:SetScript("OnUpdate", nil);
     if self.targetDropdown and self.targetDropdown:IsShown() then
@@ -1080,14 +1147,28 @@ function FilterFrame:RequestUpdateDropdown(targetDropdown, uiMapID)
     self:SetScript("OnUpdate", self.OnUpdate_UpdateAfter);
 end
 
+function FilterFrame:GetBestDropDownHeight(dropdown)
+    local backgroundFrame = _G["DropDownList1MenuBackdrop"];
+    local height1 = dropdown:GetHeight();
+    local height2;
+    local diffHeight = 0;
+    if backgroundFrame then
+        height2 = backgroundFrame:GetHeight();
+        if height2 - height1 > 1 then
+            diffHeight = height2 - height1;
+        end
+    end
+    return math.max(height1, height2), diffHeight
+end
+
 function FilterFrame:SetupDropDown(dropdown)
     local scale = dropdown:GetEffectiveScale();
     local top = dropdown:GetTop();
     local left = dropdown:GetLeft();
     local width = dropdown:GetWidth();
-    local height = dropdown:GetHeight();
+    local height, diffHeight = self:GetBestDropDownHeight(dropdown);
     local firstButton, numButtons = self:CreateOptionList(width);
-    local extraHeight = (UIDROPDOWNMENU_BUTTON_HEIGHT or 16) * numButtons;
+    local extraHeight = (UIDROPDOWNMENU_BUTTON_HEIGHT or 16) * numButtons - diffHeight;
     local xPos = 11;
 
     self:SetScale(scale);
@@ -1146,6 +1227,8 @@ do
         dbKey = DB_KEY_MASTER_SWITCH,   --WorldMapPinSeedPlanting
         description = addon.L["ModuleDescription WorldMapPinSeedPlanting"],
         toggleFunc = EnableModule,
+        categoryID = 10020001,
+        uiOrder = 2,
     };
 
     addon.ControlCenter:AddModule(moduleData);

@@ -1,5 +1,6 @@
 local _, addon = ...
 local API = addon.API;
+local L = addon.L;
 
 local BUTTON_MIN_SIZE = 24;
 
@@ -10,14 +11,17 @@ local select = select;
 local tinsert = table.insert;
 local floor = math.floor;
 local ipairs = ipairs;
+local unpack = unpack;
 local time = time;
 local GetTime = GetTime;
 local IsMouseButtonDown = IsMouseButtonDown;
+local GetMouseFocus = GetMouseFocus;
 local PlaySound = PlaySound;
 local GetItemCount = GetItemCount;
 local GetSpellCharges = GetSpellCharges;
 local C_Item = C_Item;
 local CreateFrame = CreateFrame;
+local UIParent = UIParent;
 
 
 local function DisableSharpening(texture)
@@ -38,14 +42,47 @@ do  -- Slice Frame
         GenericBox = true,
         WhiteBorder = true,
         WhiteBorderBlackBackdrop = true,
-        Metal_Hexagon = true,
+        Metal_Hdgon = true,
         Metal_Hexagon_Red = true,
         Phantom = true,
     };
 
     local SliceFrameMixin = {};
 
+    --Use the new Texture Slicing   (https://warcraft.wiki.gg/wiki/Patch_10.2.0/API_changes)
+    --The SlicedTexture is pixel-perfect but doesn't scale with parent, so we shelve this and observer Blizzard's implementation
+    local function NiceSlice_CreatePieces(frame)
+        if not frame.NineSlice then
+            frame.NineSlice = frame:CreateTexture(nil, "BACKGROUND");
+            --frame.NineSlice:SetTextureSliceMode(0); --Enum.UITextureSliceMode, 0 Stretched(Default)  1 Tiled
+            --DisableSharpening(frame.NineSlice);
+            frame.TestBG = frame:CreateTexture(nil, "OVERLAY");
+            frame.TestBG:SetAllPoints(true);
+            frame.TestBG:SetColorTexture(1, 0, 0, 0.5);
+        end
+    end
+
+    local function NiceSlice_SetCornerSize(frame, a)
+        frame.NineSlice:SetTextureSliceMargins(32, 32, 32, 32);
+        local offset = 0;
+        frame.NineSlice:ClearAllPoints();
+        frame.NineSlice:SetPoint("TOPLEFT", frame, "TOPLEFT", -offset, offset);
+        frame.NineSlice:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", offset, -offset);
+    end
+
+    local function NiceSlice_SetTexture(frame, texture)
+        frame.NineSlice:SetTexture(texture);
+    end
+
     function SliceFrameMixin:CreatePieces(n)
+        --[[
+        if n == 9 then
+            NiceSlice_CreatePieces(self);
+            NiceSlice_SetCornerSize(self, 16);
+            return
+        end
+        --]]
+
         if self.pieces then return end;
         self.pieces = {};
         self.numSlices = n;
@@ -105,6 +142,10 @@ do  -- Slice Frame
             self.pieces[1]:SetSize(a, 2*a);
             self.pieces[3]:SetSize(a, 2*a);
         elseif self.numSlices == 9 then
+            --if true then
+            --    NiceSlice_SetCornerSize(self, a);
+            --    return
+            --end
             self.pieces[1]:SetSize(a, a);
             self.pieces[3]:SetSize(a, a);
             self.pieces[7]:SetSize(a, a);
@@ -113,6 +154,10 @@ do  -- Slice Frame
     end
 
     function SliceFrameMixin:SetTexture(tex)
+        --if self.NineSlice then
+        --    NiceSlice_SetTexture(self, tex);
+        --    return
+        --end
         for i = 1, #self.pieces do
             self.pieces[i]:SetTexture(tex);
         end
@@ -162,7 +207,21 @@ do  -- Slice Frame
     addon.CreateThreeSliceFrame = CreateThreeSliceFrame;
 
 
-    -- With
+    local function CreateTextureSlice(frame)
+        if not frame.TextureSlice then
+            frame.TextureSlice = frame:CreateTexture(nil, "BACKGROUND");
+            frame.TextureSlice:SetTextureSliceMode(1); --Enum.UITextureSliceMode, 0 Stretched(Default)  1 Tiled
+        end
+        local pixelMargin = 1;
+        frame.TextureSlice:SetTextureSliceMargins(pixelMargin, pixelMargin, pixelMargin, pixelMargin);
+        local offset = 0;
+        frame.TextureSlice:ClearAllPoints();
+        frame.TextureSlice:SetPoint("TOPLEFT", frame, "TOPLEFT", -offset, offset);
+        frame.TextureSlice:SetPoint("BOTTOMRIGHT", frame, "BOTTOMRIGHT", offset, -offset);
+        frame.TextureSlice:SetTexture("Interface/AddOns/Plumber/Art/Frame/PixelBorder_Dashed_Moving");
+    end
+
+    addon.CreateTextureSlice = CreateTextureSlice;
 end
 
 do  -- Checkbox
@@ -208,7 +267,7 @@ do  -- Checkbox
         else
             newState = not self:GetChecked();
             self:SetChecked(newState);
-            print("DB Key not assigned");
+            print("Plumber: DB Key not assigned");
         end
 
         if self.onClickFunc then
@@ -922,6 +981,7 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
         f.Cooldown:SetSize(64, 64);
         f.Cooldown:SetPoint("CENTER", f, "CENTER", 0, 0);
         f.Cooldown:SetHideCountdownNumbers(false);  --globally controlled by CVar "countdownForCooldowns" (boolean)
+        f.Cooldown.noCooldownCount = true;          --Disabled for OmniCC (  see OmniCC\core\cooldown.lua Cooldown:OnCooldownDone()  )
 
         local CountdownNumber = f.Cooldown:CreateFontString(nil, "OVERLAY", nil, 6);
         f.Cooldown.BackupCountdownNumber = CountdownNumber;
@@ -1493,7 +1553,7 @@ do
     addon.CreateTinyStatusBar = CreateTinyStatusBar;
 end
 
-do --Red Button
+do  --Red Button
     local RedButtonMixin = {};
 
 
@@ -2490,8 +2550,11 @@ do  --Shared Context Menu
     local MENU_PADDING_X = 2;
     local MENU_PADDING_Y = 8;
     local MENU_BUTTON_HEIGHT = 24;
+    local MENU_DIVIDER_HEIGHT = 14;
     local MENU_BUTTON_WIDTH = 240;
     local MENU_BUTTON_TEXT_OFFSET = 12;
+    local MENU_SUBBUTTON_TEXT_OFFSET = 30;
+    local MENU_TOOLTIP_DELAY = 0.5;
 
     local UIParent = UIParent;
     local GetScaledCursorPosition = API.GetScaledCursorPosition;
@@ -2507,6 +2570,7 @@ do  --Shared Context Menu
 
     function MenuButtonMixin:OnLeave()
         self.parent:FocusOnButton(nil);
+        GameTooltip:Hide();
     end
 
     function MenuButtonMixin:OnClick(button)
@@ -2516,20 +2580,136 @@ do  --Shared Context Menu
     end
 
     function MenuButtonMixin:OnMouseDown(button)
+        if not self:IsEnabled() then return end;
+
         if button == "LeftButton" then
-            self.Text:SetPoint("LEFT", self, "LEFT", MENU_BUTTON_TEXT_OFFSET + 1, 0);
+            self.Text:SetPoint("LEFT", self, "LEFT", self.baseTextOffset + 1, 0);
         end
     end
 
     function MenuButtonMixin:OnMouseUp(button)
-        self.Text:SetPoint("LEFT", self, "LEFT", MENU_BUTTON_TEXT_OFFSET, 0);
+        self.Text:SetPoint("LEFT", self, "LEFT", self.baseTextOffset, 0);
+    end
+
+    function MenuButtonMixin:SetupButtonTexture()
+        if self.divider then
+            self.divider:Hide();
+        end
+
+        if (not self.buttonType) or self.buttonType == "title" or self.buttonType == "divider" then
+            if self.Tex1 then
+                self.Tex1:Hide();
+            end
+            if self.Tex2 then
+                self.Tex2:Hide();
+            end
+
+            if self.buttonType == "divider" then
+                if not self.divider then
+                    self.divider = self:CreateTexture(nil, "ARTWORK");
+                    self.divider:SetPoint("LEFT", self, "LEFT", MENU_PADDING_X, 0);
+                    self.divider:SetPoint("RIGHT", self, "RIGHT", -MENU_PADDING_X, 0);
+                    self.divider:SetColorTexture(0.2, 0.2, 0.2);
+                    DisableSharpening(self.divider);
+                end
+                local px = API.GetPixelForWidget(self, 1);
+                self.divider:SetHeight(px);
+                self.divider:Show();
+            end
+
+            return
+        end
+
+
+        if not self.Tex1 then
+            self.Tex1 = self:CreateTexture(nil, "ARTWORK");
+            self.Tex1:SetSize(32, 32);
+            self.Tex1:SetPoint("CENTER", self, "LEFT", MENU_BUTTON_TEXT_OFFSET + 6, 0);
+            self.Tex1:SetTexture("Interface/AddOns/Plumber/Art/Button/Checkbox");
+            self.Tex1:SetTexCoord(0, 0.5, 0, 0.5);
+            DisableSharpening(self.Tex1);
+        end
+        if not self.Tex2 then
+            self.Tex2 = self:CreateTexture(nil, "OVERLAY");
+            self.Tex2:SetSize(16, 16);
+            self.Tex2:SetPoint("CENTER", self.Tex1, "CENTER", 0, 0);
+            self.Tex2:SetTexture("Interface/AddOns/Plumber/Art/Button/Checkbox");
+            self.Tex2:SetTexCoord(0.5, 0.75, 0.5, 0.75);
+            DisableSharpening(self.Tex2);
+        end
+
+        if self.buttonType == "checkbox" then
+            self.Tex1:SetTexture("Interface/AddOns/Plumber/Art/Button/Checkbox");
+            self.Tex2:SetTexture("Interface/AddOns/Plumber/Art/Button/Checkbox");
+        elseif self.buttonType == "radio" then
+            self.Tex1:SetTexture("Interface/AddOns/Plumber/Art/Button/RadioButton");
+            self.Tex2:SetTexture("Interface/AddOns/Plumber/Art/Button/RadioButton");
+        end
+
+        self.Tex2:SetShown(self.selected);
+        if self.selected then
+            self.Tex1:SetTexCoord(0, 0.5, 0, 0.5);
+        else
+            self.Tex1:SetTexCoord(0.5, 1, 0, 0.5);
+        end
+    end
+
+    function MenuButtonMixin:SetButtonType(buttonType, selected)
+        if buttonType ~= self.buttonType or selected ~= self.selected then
+            self.buttonType = buttonType;
+            self.selected = selected;
+        else
+            return
+        end
+
+        if buttonType == "divider" then
+            self:SetHeight(MENU_DIVIDER_HEIGHT);
+        else
+            self:SetHeight(MENU_BUTTON_HEIGHT);
+        end
+
+        if buttonType == "divider" or buttonType == "title" then
+            self:Disable();
+            if self.Tex1 then
+                self.Tex1:Hide();
+            end
+            if self.Tex2 then
+                self.Tex2:Hide();
+            end
+        else
+            self:Enable();
+        end
+
+        self:SetupButtonTexture();
+    end
+
+    function MenuButtonMixin:SetButtonColor(color)
+        if self.buttonType == "title" then
+            self.Text:SetTextColor(0.5, 0.5, 0.5);
+        elseif color then
+            self.Text:SetTextColor(color[1], color[2], color[3]);
+        else
+            self.Text:SetTextColor(1, 1, 1);
+        end
     end
 
     function MenuButtonMixin:SetButtonData(buttonData)
         self.Text:SetText(buttonData.text);
         self.onClickFunc = buttonData.onClickFunc;
+        self.tooltip = buttonData.tooltip;
+        self:SetButtonLevel(buttonData.level);
+        self:SetButtonType(buttonData.type, buttonData.selected);
+        self:SetButtonColor(buttonData.color);
     end
 
+    function MenuButtonMixin:SetButtonLevel(level)
+        if level == 1 then
+            self.baseTextOffset = MENU_SUBBUTTON_TEXT_OFFSET;
+        else
+            self.baseTextOffset = MENU_BUTTON_TEXT_OFFSET;
+        end
+        self.Text:SetPoint("LEFT", self, "LEFT", self.baseTextOffset, 0);
+    end
 
     function ContextMenuMixin:ReleaseButtons()
         if not self.buttons then return end;
@@ -2541,7 +2721,7 @@ do  --Shared Context Menu
         self.numActive = 0;
     end
 
-    function ContextMenuMixin:GetButton()
+    function ContextMenuMixin:AcquireButton()
         if not self.buttons then
             self.numActive = 0;
             self.buttons = {};
@@ -2563,7 +2743,12 @@ do  --Shared Context Menu
             button.Text:SetPoint("LEFT", button, "LEFT", MENU_BUTTON_TEXT_OFFSET, 0);
             button.Text:SetTextColor(1, 1, 1);
             button.id = index;
-            button:SetPoint("TOPLEFT", self, "TOPLEFT", MENU_PADDING_X, -MENU_PADDING_Y + (1-index)*MENU_BUTTON_HEIGHT);
+            --button:SetPoint("TOPLEFT", self, "TOPLEFT", MENU_PADDING_X, -MENU_PADDING_Y + (1-index)*MENU_BUTTON_HEIGHT);
+            if index == 1 then
+                button:SetPoint("TOPLEFT", self, "TOPLEFT", MENU_PADDING_X, -MENU_PADDING_Y);
+            else
+                button:SetPoint("TOPLEFT", self.buttons[index - 1], "BOTTOMLEFT", 0, 0);
+            end
             Mixin(button, MenuButtonMixin);
             button:SetScript("OnEnter", MenuButtonMixin.OnEnter);
             button:SetScript("OnLeave", MenuButtonMixin.OnLeave);
@@ -2600,20 +2785,25 @@ do  --Shared Context Menu
         self.owner = owner;
     end
 
-    function ContextMenuMixin:SetContent(content)
-        if content == self.content then
+    function ContextMenuMixin:SetContent(content, forceUpdate)
+        if content == self.content and not forceUpdate then
             return
         end
         self.content = content;
         self:ReleaseButtons();
 
         local button;
+        local numDivider = 0;
+
         for i, buttonData in ipairs(content) do
-            button = self:GetButton();
+            button = self:AcquireButton();
             button:SetButtonData(buttonData);
+            if buttonData.type == "divider" then
+                numDivider = numDivider + 1;
+            end
         end
 
-        self:SetHeight(#content * MENU_BUTTON_HEIGHT + 2 * MENU_PADDING_Y);
+        self:SetHeight((#content - numDivider) * MENU_BUTTON_HEIGHT + numDivider * MENU_DIVIDER_HEIGHT + 2 * MENU_PADDING_Y);
     end
 
     function ContextMenuMixin:CloseMenu()
@@ -2646,22 +2836,54 @@ do  --Shared Context Menu
     local function HighlightFrame_OnUpdate(self, elapsed)
         local x, y = GetScaledCursorPosition();
         self.HighlightTexture:SetPoint("CENTER", UIParent, "BOTTOMLEFT", x, y);
+
+        if self.mouseoverTime then
+            self.mouseoverTime = self.mouseoverTime + elapsed;
+            if self.mouseoverTime >= MENU_TOOLTIP_DELAY then
+                self.mouseoverTime = nil;
+                SharedContextMenu:ShowFocusedButtonTooltip();
+            end
+        end
     end
 
     function ContextMenuMixin:FocusOnButton(menuButton)
+        self.focusedButton = menuButton;
         if menuButton then
             self.HighlightFrame:ClearAllPoints();
             self.HighlightFrame:SetPoint("TOPLEFT", menuButton, "TOPLEFT", 0, 0);
             self.HighlightFrame:SetPoint("BOTTOMRIGHT", menuButton, "BOTTOMRIGHT", 0, 0);
+            self.HighlightFrame.mouseoverTime = 0;
             self.HighlightFrame:Show();
         else
             self.HighlightFrame:Hide();
+            self.HighlightFrame.mouseoverTime = nil;
+        end
+    end
+
+    function ContextMenuMixin:ShowFocusedButtonTooltip()
+        if self.focusedButton and self.focusedButton.tooltip and self.focusedButton:IsVisible() then
+            local tooltip = GameTooltip;
+            tooltip:Hide();
+            tooltip:SetOwner(self.focusedButton, "ANCHOR_NONE");
+
+            local buttonRight = self.focusedButton:GetRight();
+            local uiRight = UIParent:GetRight();
+            if buttonRight and uiRight and buttonRight + 240 > uiRight then
+                tooltip:SetPoint("TOPRIGHT", self.focusedButton, "TOPLEFT", -4, 6);
+            else
+                tooltip:SetPoint("TOPLEFT", self.focusedButton, "TOPRIGHT", 4, 6);
+            end
+
+            tooltip:SetText(self.focusedButton.Text:GetText(), 1, 1, 1, true);
+            tooltip:AddLine(self.focusedButton.tooltip, 1, 0.82, 0, true);
+            tooltip:Show();
         end
     end
 
     function ContextMenuMixin:Init()
         self:SetFrameStrata("TOOLTIP");
         self:SetFixedFrameStrata(true);
+        self:SetClampedToScreen(true);
 
         self:SetScript("OnShow", ContextMenuMixin.OnShow);
         self:SetScript("OnHide", ContextMenuMixin.OnHide);
@@ -2696,4 +2918,866 @@ do  --Shared Context Menu
         return SharedContextMenu
     end
     addon.GetSharedContextMenu = GetSharedContextMenu;
+end
+
+do  --Frame Reposition Button
+    local GetScaledCursorPosition = API.GetScaledCursorPosition;
+
+    local function OnUpdate_Frequency(self, elapsed)
+        self.t = self.t + elapsed;
+        if self.t > 0.016 then
+            self.t = 0;
+            return true
+        end
+        return false
+    end
+
+    local function OnUpdate_OnMoving(self, elapsed)
+        if OnUpdate_Frequency(self, elapsed) then
+            local x, y = GetScaledCursorPosition();
+            local offsetX, offsetY;
+            local anyChange;
+
+            if self.orientation == "x" then
+                offsetX = x - self.fromX;
+                if offsetX ~= self.offsetX then
+                    self.offsetX = offsetX;
+                    anyChange = true
+                end
+            elseif self.orientation == "y" then
+                offsetY = y - self.fromX;
+                if offsetY ~= self.offsetY then
+                    self.offsetY = offsetY;
+                    anyChange = true
+                end
+            end
+
+            if anyChange then
+                self.frameToControl:RepositionFrame(offsetX, offsetY);
+            end
+        end
+    end
+
+    local function OnUpdate_MonitorDiff(self, elapsed)
+        --start moving Owner once the cursor moves 2 units
+        if OnUpdate_Frequency(self, elapsed) then
+            local diff = 0;
+            local x, y = GetScaledCursorPosition();
+            if self.orientation == "x" then
+                diff = x - self.fromX;
+            elseif self.orientation == "y" then
+                diff = y - self.fromY;
+            end
+            if diff < 0 then
+                diff = -diff;
+            end
+            if diff >= 4 then   --Threshold
+                self.fromX, self.fromY = x, y;
+                self.isMovingFrame = true;
+                self:OnLeave();
+                self.frameToControl:SnapShotFramePosition();
+                self:SetScript("OnUpdate", OnUpdate_OnMoving);
+            end
+        end
+    end
+
+    local RepositionButtonMixin = {};
+
+    function RepositionButtonMixin:OnMouseDown(button)
+        if self:IsEnabled() then
+            self.Icon:SetPoint("CENTER", self, "CENTER", 0, -1);
+            if button == "LeftButton" then
+                --Pre Frame Reposition
+                self:LockHighlight();
+                self.t = 0;
+                self.fromX, self.fromY = GetScaledCursorPosition();
+                self:SetScript("OnUpdate", OnUpdate_MonitorDiff);
+            end
+        end
+    end
+
+    function RepositionButtonMixin:StopReposition()
+        self:SetScript("OnUpdate", nil);
+        self.isMovingFrame = false;
+        self.fromX, self.fromY = nil, nil;
+        self.offsetX, self.offsetY = nil, nil;
+    end
+
+    function RepositionButtonMixin:OnMouseUp()
+        if self.isMovingFrame then
+            self.frameToControl:ConfirmNewPosition();
+            self:StopReposition();
+        end
+        self.Icon:SetPoint("CENTER", self, "CENTER", 0, 0);
+        self:UnlockHighlight();
+    end
+
+    function RepositionButtonMixin:OnClick(button)
+        if button =="RightButton" then
+            self:OnDoubleClick();
+        end
+    end
+
+    function RepositionButtonMixin:OnDoubleClick()
+        self:StopReposition();
+        if self.frameToControl then
+            self.frameToControl:ResetFramePosition();
+        end
+    end
+
+    function RepositionButtonMixin:OnEnable()
+        self.Icon:SetDesaturated(false);
+        self.Icon:SetVertexColor(1, 1, 1);
+        self.Icon:SetPoint("CENTER", self, "CENTER", 0, 0);
+        self:RefreshOnEnter();
+    end
+
+    function RepositionButtonMixin:OnDisable()
+        self.Icon:SetDesaturated(true);
+        self.Icon:SetVertexColor(0.8, 0.8, 0.8);
+        self.Icon:SetPoint("CENTER", self, "CENTER", 0, 0);
+        --self.Highlight:Hide();
+        self:RefreshOnEnter();
+    end
+
+    function RepositionButtonMixin:RefreshOnEnter()
+        if self:IsVisible() and self:IsMouseOver() then
+            self:OnEnter();
+        end
+    end
+
+    function RepositionButtonMixin:OnShow()
+
+    end
+
+    function RepositionButtonMixin:OnHide()
+        self:StopReposition();
+    end
+
+    function RepositionButtonMixin:OnEnter()
+        if self.isMovingFrame then return end;
+        --self.Highlight:Show();
+
+        local tooltip = GameTooltip;
+        tooltip:Hide();
+        tooltip:SetOwner(self, "ANCHOR_RIGHT");
+
+        if self.orientation == "x" then
+            tooltip:SetText(L["Reposition Button Horizontal"], 1, 1, 1);
+        elseif self.orientation == "y" then
+            tooltip:SetText(L["Reposition Button Vertical"], 1, 1, 1);
+        end
+
+        tooltip:AddLine(L["Reposition Button Tooltip"], 1, 0.82, 0, true);
+        tooltip:Show();
+    end
+
+    function RepositionButtonMixin:OnLeave()
+        GameTooltip:Hide();
+        --self.Highlight:Hide();
+    end
+
+    function RepositionButtonMixin:SetOrientation(xy)
+        self.orientation = xy;
+        local tex;
+        if xy == "x" then
+            tex = "Interface/AddOns/Plumber/Art/Button/MoveButton-X";
+        elseif xy == "y" then
+            tex = "Interface/AddOns/Plumber/Art/Button/MoveButton-Y";
+        end
+        self.Highlight:SetTexture(tex);
+        self.Icon:SetTexture(tex);
+    end
+
+    local function CreateRepositionButton(frameToControl)
+        local button = CreateFrame("Button", nil, frameToControl);
+        button.frameToControl = frameToControl;
+        button:SetSize(20, 20);
+        button:SetMotionScriptsWhileDisabled(true);
+        button:RegisterForClicks("LeftButtonUp", "RightButtonUp");
+        Mixin(button, RepositionButtonMixin);
+
+        local tex = "Interface/AddOns/Plumber/Art/Button/MoveButton-X";
+
+        button.Highlight = button:CreateTexture(nil, "HIGHLIGHT");
+        --button.Highlight:Hide();
+        button.Highlight:SetSize(32, 32);
+        button.Highlight:SetPoint("CENTER", button, "CENTER", 0, 0);
+        button.Highlight:SetTexture(tex);
+        button.Highlight:SetTexCoord(0.5, 1, 0, 1);
+
+        button.Icon = button:CreateTexture(nil, "ARTWORK");
+        button.Icon:SetSize(32, 32);
+        button.Icon:SetPoint("CENTER", button, "CENTER", 0, 0);
+        button.Icon:SetTexture(tex);
+        button.Icon:SetTexCoord(0, 0.5, 0, 1);
+
+        button:SetScript("OnMouseDown", button.OnMouseDown);
+        button:SetScript("OnMouseUp", button.OnMouseUp);
+        button:SetScript("OnClick", button.OnClick);
+        button:SetScript("OnDoubleClick", button.OnDoubleClick);
+        button:SetScript("OnEnable", button.OnEnable);
+        button:SetScript("OnDisable", button.OnDisable);
+        button:SetScript("OnShow", button.OnShow);
+        button:SetScript("OnHide", button.OnHide);
+        button:SetScript("OnEnter", button.OnEnter);
+        button:SetScript("OnLeave", button.OnLeave);
+
+        return button
+    end
+    addon.CreateRepositionButton = CreateRepositionButton;
+end
+
+do  --Slider
+    local Round = API.Round;
+    local SliderFrameMixin = {};
+
+    local TEXTURE_FILE = "Interface/AddOns/Plumber/Art/Frame/Slider";
+    local TEX_COORDS = {
+        Thumb_Nomral = {0, 0.5, 0, 0.25},
+        Thumb_Disable = {0.5, 1, 0, 0.25},
+        Thumb_Highlight = {0, 0.5, 0.25, 0.5},
+
+        Back_Nomral = {0, 0.25, 0.5, 0.625},
+        Back_Disable = {0.25, 0.5, 0.5, 0.625},
+        Back_Highlight = {0.5, 0.75, 0.5, 0.625},
+
+        Forward_Nomral = {0, 0.25, 0.625, 0.75},
+        Forward_Disable = {0.25, 0.5, 0.625, 0.75},
+        Forward_Highlight = {0.5, 0.75, 0.625, 0.75},
+
+        Slider_Left = {0, 0.125, 0.875, 1},
+        Slider_Middle = {0.125, 0.375, 0.875, 1},
+        Slider_Right = {0.375, 0.5, 0.875, 1},
+    };
+
+    local function SetTextureCoord(texture, key)
+        texture:SetTexCoord( unpack(TEX_COORDS[key]) );
+    end
+
+    local SharedMethods = {
+        "GetValue", "SetValue", "SetMinMaxValues",
+    };
+
+    for k, v in ipairs(SharedMethods) do
+        SliderFrameMixin[v] = function(self, ...)
+            return self.Slider[v](self.Slider, ...);
+        end;
+    end
+
+
+    local SliderScripts = {};
+
+    function SliderScripts:OnMinMaxChanged(min, max)
+        if self.formatMinMaxValueFunc then
+            self.formatMinMaxValueFunc(min, max);
+        end
+    end
+
+    function SliderScripts:OnValueChanged(value, userInput)
+        if value ~= self.value then
+            self.value = value;
+        else
+            return
+        end
+
+        self.ThumbTexture:SetPoint("CENTER", self.Thumb, "CENTER", 0, 0);
+
+        if self.ValueText then
+            if self.formatValueFunc then
+                self.ValueText:SetText(self.formatValueFunc(value));
+            else
+                self.ValueText:SetText(value);
+            end
+        end
+
+        if userInput then
+            if self.onValueChangedFunc then
+                self.onValueChangedFunc(value);
+            end
+        end
+    end
+
+    function SliderScripts:OnMouseDown()
+        if self:IsEnabled() then
+            self:LockHighlight();
+        end
+    end
+
+    function SliderScripts:OnMouseUp()
+        self:UnlockHighlight();
+    end
+
+
+    local function BackForwardButton_OnClick(self)
+        if self.delta then
+            self:GetParent():SetValueByDelta(self.delta, true);
+        end
+    end
+
+    function SliderFrameMixin:OnLoad()
+        for k, v in pairs(SliderScripts) do
+            self.Slider:SetScript(k, v);
+        end
+
+        self.Back:SetScript("OnClick", BackForwardButton_OnClick);
+        self.Forward:SetScript("OnClick", BackForwardButton_OnClick);
+
+        self.Slider.Left:SetTexture(TEXTURE_FILE);
+        self.Slider.Middle:SetTexture(TEXTURE_FILE);
+        self.Slider.Right:SetTexture(TEXTURE_FILE);
+        self.Slider.ThumbTexture:SetTexture(TEXTURE_FILE);
+        self.Slider.ThumbHighlight:SetTexture(TEXTURE_FILE);
+        SetTextureCoord(self.Slider.Left, "Slider_Left");
+        SetTextureCoord(self.Slider.Middle, "Slider_Middle");
+        SetTextureCoord(self.Slider.Right, "Slider_Right");
+        SetTextureCoord(self.Slider.ThumbTexture, "Thumb_Nomral");
+        SetTextureCoord(self.Slider.ThumbHighlight, "Thumb_Highlight");
+
+        self.Back.Texture:SetTexture(TEXTURE_FILE);
+        self.Back.Highlight:SetTexture(TEXTURE_FILE);
+        SetTextureCoord(self.Back.Texture, "Back_Nomral");
+        SetTextureCoord(self.Back.Highlight, "Back_Highlight");
+
+        self.Forward.Texture:SetTexture(TEXTURE_FILE);
+        self.Forward.Highlight:SetTexture(TEXTURE_FILE);
+        SetTextureCoord(self.Forward.Texture, "Forward_Nomral");
+        SetTextureCoord(self.Forward.Highlight, "Forward_Highlight");
+
+        self:SetMinMaxValues(0, 100);
+        self:SetValueStep(10);
+        self:SetObeyStepOnDrag(true);
+        self:SetValue(0);
+
+        self:Enable();
+
+        DisableSharpening(self.Slider.Left);
+        DisableSharpening(self.Slider.Middle);
+        DisableSharpening(self.Slider.Right);
+    end
+
+    function SliderFrameMixin:Enable()
+        self.Slider:Enable();
+        self.Back:Enable();
+        self.Forward:Enable();
+        SetTextureCoord(self.Slider.ThumbTexture, "Thumb_Nomral");
+        SetTextureCoord(self.Back.Texture, "Back_Nomral");
+        SetTextureCoord(self.Forward.Texture, "Forward_Nomral");
+        self.Label:SetTextColor(1, 1, 1);
+        self.RightText:SetTextColor(1, 0.82, 0);
+    end
+
+    function SliderFrameMixin:Disable()
+        self.Slider:Disable();
+        self.Back:Disable();
+        self.Forward:Disable();
+        self.Slider:UnlockHighlight();
+        SetTextureCoord(self.Slider.ThumbTexture, "Thumb_Disable");
+        SetTextureCoord(self.Back, "Back_Disable");
+        SetTextureCoord(self.Forward.Texture, "Forward_Disable");
+        self.Label:SetTextColor(0.5, 0.5, 0.5);
+        self.RightText:SetTextColor(0.5, 0.5, 0.5);
+    end
+
+    function SliderFrameMixin:SetValueByDelta(delta, userInput)
+        local value = self:GetValue();
+        self:SetValue(value + delta);
+
+        if userInput then
+            if self.onValueChangedFunc then
+                self.onValueChangedFunc(self:GetValue());
+            end
+        end
+    end
+
+    function SliderFrameMixin:SetValueStep(valueStep)
+        self.Slider:SetValueStep(valueStep);
+        self.Back.delta = -valueStep;
+        self.Forward.delta = valueStep;
+    end
+
+    function SliderFrameMixin:SetObeyStepOnDrag(obey)
+        self.Slider:SetObeyStepOnDrag(obey);
+        if not obey then
+            local min, max = self.GetMinMaxValues();
+            local delta = (max - min) * 0.1;
+            self.Back.delta = -delta;
+            self.Forward.delta = delta;
+        end
+    end
+
+    function SliderFrameMixin:SetLabel(label)
+        self.Label:SetText(label);
+    end
+
+    function SliderFrameMixin:SetFormatValueFunc(formatValueFunc)
+        self.Slider.formatValueFunc = formatValueFunc;
+        self.RightText:SetText(formatValueFunc(self:GetValue() or 0));
+    end
+
+    function SliderFrameMixin:SetOnValueChangedFunc(onValueChangedFunc)
+        self.Slider.onValueChangedFunc = onValueChangedFunc;
+        self.onValueChangedFunc = onValueChangedFunc;
+    end
+
+    local function FormatValue(value)
+        return value
+    end
+
+    local function CreateSlider(parent)
+        local f = CreateFrame("Frame", nil, parent, "PlumberMinimalSliderWithControllerTemplate");
+        Mixin(f, SliderFrameMixin);
+
+        f.Slider.ValueText = f.RightText;
+        f.Slider.Back = f.Back;
+        f.Slider.Forward = f.Forward;
+
+        f:SetFormatValueFunc(FormatValue);
+        f:OnLoad();
+
+        return f
+    end
+    addon.CreateSlider = CreateSlider;
+end
+
+do  --UIPanelButton
+    local UIPanelButtonMixin = {};
+
+    function UIPanelButtonMixin:OnClick(button)
+
+    end
+
+    function UIPanelButtonMixin:OnMouseDown(button)
+        if self:IsEnabled() then
+            self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Down");
+        end
+    end
+
+    function UIPanelButtonMixin:OnMouseUp(button)
+        if self:IsEnabled() then
+            self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+        end
+    end
+
+    function UIPanelButtonMixin:OnDisable()
+        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Disabled");
+    end
+
+    function UIPanelButtonMixin:OnEnable()
+        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+    end
+
+    function UIPanelButtonMixin:OnEnter()
+
+    end
+
+    function UIPanelButtonMixin:OnLeave()
+
+    end
+
+    function UIPanelButtonMixin:SetButtonText(text)
+        self:SetText(text);
+    end
+
+    local function CreateUIPanelButton(parent)
+        local f = CreateFrame("Button", nil, parent);
+        f:SetSize(144, 24);
+        Mixin(f, UIPanelButtonMixin);
+
+        f:SetScript("OnMouseDown", f.OnMouseDown);
+        f:SetScript("OnMouseUp", f.OnMouseUp);
+        f:SetScript("OnEnter", f.OnEnter);
+        f:SetScript("OnLeave", f.OnLeave);
+        f:SetScript("OnEnable", f.OnEnable);
+        f:SetScript("OnDisable", f.OnDisable);
+
+        f.Background = f:CreateTexture(nil, "BACKGROUND");
+        f.Background:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Up");
+        f.Background:SetTextureSliceMargins(32, 16, 32, 16);
+        f.Background:SetTextureSliceMode(1);
+        f.Background:SetAllPoints(true);
+        DisableSharpening(f.Background);
+
+        f.Highlight = f:CreateTexture(nil, "HIGHLIGHT");
+        f.Highlight:SetTexture("Interface/AddOns/Plumber/Art/Button/UIPanelButton-Highlight");
+        f.Highlight:SetTextureSliceMargins(32, 16, 32, 16);
+        f.Highlight:SetTextureSliceMode(0);
+        f.Highlight:SetAllPoints(true);
+        f.Highlight:SetBlendMode("ADD");
+        f.Highlight:SetVertexColor(0.5, 0.5, 0.5);
+
+        f:SetNormalFontObject("GameFontNormal");
+        f:SetHighlightFontObject("GameFontHighlight");
+        f:SetDisabledFontObject("GameFontDisable");
+        f:SetPushedTextOffset(0, -1);
+
+        return f
+    end
+    addon.CreateUIPanelButton = CreateUIPanelButton;
+end
+
+do  --EditMode
+    local Round = API.Round;
+    local EditModeSelectionMixin = {};
+
+    function EditModeSelectionMixin:OnDragStart()
+        self.parent:OnDragStart();
+    end
+
+    function EditModeSelectionMixin:OnDragStop()
+        self.parent:OnDragStop();
+    end
+
+    function EditModeSelectionMixin:ShowHighlighted()
+        --Blue
+        if not self.parent:IsShown() then return end;
+        self.isSelected = false;
+        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Frame/EditModeHighlighted");
+        self:Show();
+        self.Label:Hide();
+    end
+
+    function EditModeSelectionMixin:ShowSelected()
+        --Yellow
+        if not self.parent:IsShown() then return end;
+        self.isSelected = true;
+        self.Background:SetTexture("Interface/AddOns/Plumber/Art/Frame/EditModeSelected");
+        self:Show();
+
+        if not self.hideLabel then
+            self.Label:Show();
+        end
+    end
+
+    function EditModeSelectionMixin:OnShow()
+        local offset = API.GetPixelForWidget(self, 6);
+        self.Background:SetPoint("TOPLEFT", self, "TOPLEFT", -offset, offset);
+        self.Background:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT", offset, -offset);
+        self:RegisterEvent("GLOBAL_MOUSE_DOWN");
+    end
+
+    function EditModeSelectionMixin:OnHide()
+        self:UnregisterEvent("GLOBAL_MOUSE_DOWN");
+    end
+
+    local function IsMouseOverOptionToggle()
+        local obj = GetMouseFocus();
+        if obj and obj.isPlumberEditModeToggle then
+            return true
+        else
+            return false
+        end
+    end
+
+    function EditModeSelectionMixin:OnEvent(event, ...)
+        if event == "GLOBAL_MOUSE_DOWN" then
+            if self:IsShown() and not(self.parent:IsFocused() or IsMouseOverOptionToggle()) then
+                self:ShowHighlighted();
+                self.parent:ShowOptions(false);
+            end
+        end
+    end
+
+    function EditModeSelectionMixin:OnMouseDown()
+        self:ShowSelected();
+        self.parent:ShowOptions(true);
+
+        if EditModeManagerFrame and EditModeManagerFrame.ClearSelectedSystem then
+            EditModeManagerFrame:ClearSelectedSystem()
+        end
+    end
+
+
+    local function CreateEditModeSelection(parent, uiName, hideLabel)
+        local f = CreateFrame("Frame", nil, parent);
+        f:Hide();
+        f:SetAllPoints(true);
+        f:SetFrameStrata(parent:GetFrameStrata());
+        f:SetToplevel(true);
+        f:SetFrameLevel(999);
+        f:EnableMouse(true);
+        f:RegisterForDrag("LeftButton");
+        f:SetIgnoreParentAlpha(true);
+
+        f.Label = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightMedium");
+        f.Label:SetText(uiName);
+        f.Label:SetJustifyH("CENTER");
+        f.Label:SetPoint("CENTER", f, "CENTER", 0, 0);
+
+        f.Background = f:CreateTexture(nil, "BACKGROUND");
+        f.Background:SetTexture("Interface/AddOns/Plumber/Art/Frame/EditModeHighlighted");
+        f.Background:SetTextureSliceMargins(16, 16, 16, 16);
+        f.Background:SetTextureSliceMode(0);
+        f.Background:SetPoint("TOPLEFT", f, "TOPLEFT", 0, 0);
+        f.Background:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 0, 0);
+
+        Mixin(f, EditModeSelectionMixin);
+
+        f:SetScript("OnShow", f.OnShow);
+        f:SetScript("OnHide", f.OnHide);
+        f:SetScript("OnEvent", f.OnEvent);
+        f:SetScript("OnMouseDown", f.OnMouseDown);
+        f:SetScript("OnDragStart", f.OnDragStart);
+        f:SetScript("OnDragStop", f.OnDragStop);
+
+        parent.Selection = f;
+        f.parent = parent;
+        f.hideLabel = hideLabel;
+
+        return f
+    end
+    addon.CreateEditModeSelection = CreateEditModeSelection;
+
+
+    local EditModeSettingsDialog;
+    local DIALOG_WIDTH = 382;
+
+    local EditModeSettingsDialogMixin = {};
+
+    function EditModeSettingsDialogMixin:Exit()
+        self:Hide();
+        self:ClearAllPoints();
+        self.requireResetPosition = true;
+        if self.parent then
+            if self.parent.Selection then
+                self.parent.Selection:ShowHighlighted();
+            end
+            if self.parent.ExitEditMode and not API.IsInEditMode() then
+                self.parent:ExitEditMode();
+            end
+            self.parent = nil;
+        end
+    end
+
+    function EditModeSettingsDialogMixin:ReleaseAllWidgets()
+        for _, widget in pairs(self.widgets) do
+            widget:Hide();
+            widget:ClearAllPoints();
+        end
+
+        self.activeWidgets = {};
+    end
+
+    function EditModeSettingsDialogMixin:Layout()
+        local leftPadding = 20;
+        local topPadding = 48;
+        local bottomPadding = 20;
+        local OPTION_GAP_Y = 8;  --consistent with ControlCenter
+        local height = topPadding;
+        local widgetHeight;
+        local contentWidth = DIALOG_WIDTH - 2*leftPadding;
+
+        for order, widget in ipairs(self.activeWidgets) do
+            if widget.isGap then
+                height = height + 8 + OPTION_GAP_Y;
+            else
+                widget:SetPoint("TOPLEFT", self, "TOPLEFT", leftPadding, -height);
+                widgetHeight = Round(widget:GetHeight());
+                height = height + widgetHeight + OPTION_GAP_Y;
+                if widget.matchParentWidth then
+                    widget:SetWidth(contentWidth);
+                end
+            end
+        end
+        
+        height = height - OPTION_GAP_Y + bottomPadding;
+        self:SetHeight(height);
+    end
+
+    function EditModeSettingsDialogMixin:AcquireWidgetByType(type)
+        local widget;
+
+        if type == "Checkbox" then
+            if not self.checkboxes then
+                self.checkboxes = {};
+            end
+            widget = addon.CreateCheckbox(self);
+        elseif type == "Slider" then
+            if not self.sliders then
+                self.sliders = {};
+            end
+            widget = addon.CreateSlider(self);
+        elseif type == "UIPanelButton" then
+            widget = addon.CreateUIPanelButton(self);
+        elseif type == "Texture" then
+            widget = self:CreateTexture(nil, "OVERLAY");
+            widget.isDivider = nil;
+            widget.matchParentWidth = nil;
+        elseif type == "FontString" then
+            widget = self:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+            widget.matchParentWidth = true;
+        end
+
+        widget:Show();
+
+        return widget
+    end
+
+    function EditModeSettingsDialogMixin:CreateCheckbox(widgetData)
+        local checkbox = self:AcquireWidgetByType("Checkbox");
+
+        checkbox.Label:SetFontObject("GameFontHighlightMedium");    --Fonts in EditMode and Options are different
+        checkbox.Label:SetTextColor(1, 1, 1);
+
+        checkbox:SetData(widgetData);
+        checkbox:SetChecked( PlumberDB[checkbox.dbKey] );
+
+        return checkbox
+    end
+
+    function EditModeSettingsDialogMixin:CreateSlider(widgetData)
+        local slider = self:AcquireWidgetByType("Slider");
+
+        slider:SetLabel(widgetData.label);
+        slider:SetMinMaxValues(widgetData.minValue, widgetData.maxValue);
+
+        if widgetData.valueStep then
+            slider:SetObeyStepOnDrag(true);
+            slider:SetValueStep(widgetData.valueStep);
+        else
+            slider:SetObeyStepOnDrag(false);
+        end
+
+        slider:SetFormatValueFunc(widgetData.formatValueFunc);
+        slider:SetOnValueChangedFunc(widgetData.onValueChangedFunc);
+
+        if widgetData.dbKey and PlumberDB[widgetData.dbKey] then
+            slider:SetValue(PlumberDB[widgetData.dbKey]);
+        end
+
+        return slider
+    end
+
+    function EditModeSettingsDialogMixin:CreateUIPanelButton(widgetData)
+        local button = self:AcquireWidgetByType("UIPanelButton");
+        button:SetButtonText(widgetData.label);
+        button:SetScript("OnClick", widgetData.onClickFunc);
+        if (not widgetData.stateCheckFunc) or (widgetData.stateCheckFunc()) then
+            button:Enable();
+        else
+            button:Disable();
+        end
+        button.matchParentWidth = true;
+        return button
+    end
+
+    function EditModeSettingsDialogMixin:CreateDivider(widgetData)
+        local texture = self:AcquireWidgetByType("Texture");
+        texture:SetTexture("Interface/AddOns/Plumber/Art/Frame/Divider_NineSlice");
+        texture:SetTextureSliceMargins(48, 4, 48, 4);
+        texture:SetTextureSliceMode(0);
+        texture:SetHeight(4);
+        texture.isDivider = true;
+        texture.matchParentWidth = true;
+        return texture
+    end
+
+    function EditModeSettingsDialogMixin:CreateHeader(widgetData)
+        local fontString = self:AcquireWidgetByType("FontString");
+        fontString:SetJustifyH("CENTER");
+        fontString:SetJustifyV("TOP");
+        fontString:SetSpacing(2);
+        fontString.matchParentWidth = true;
+        fontString:SetText(widgetData.label);
+        return fontString
+    end
+
+    function EditModeSettingsDialogMixin:SetupOptions(schematic)
+        self:ReleaseAllWidgets();
+        self:SetTitle(schematic.title);
+
+        if schematic.widgets then
+            for order, widgetData in ipairs(schematic.widgets) do
+                local widget;
+                if widgetData.type == "Checkbox" then
+                    widget = self:CreateCheckbox(widgetData);
+                elseif widgetData.type == "RadioGroup" then
+
+                elseif widgetData.type == "Slider" then
+                    widget = self:CreateSlider(widgetData);
+                elseif widgetData.type == "UIPanelButton" then
+                    widget = self:CreateUIPanelButton(widgetData);
+                elseif widgetData.type == "Divider" then
+                    widget = self:CreateDivider(widgetData);
+                elseif widgetData.type == "Header" then
+                    widget = self:CreateHeader(widgetData);
+                end
+
+                if widget then
+                    tinsert(self.activeWidgets, widget);
+                    widget.widgetKey = widgetData.widgetKey;
+                end
+            end
+        end
+        self:Layout();
+    end
+
+    function EditModeSettingsDialogMixin:FindWidget(widgetKey)
+        if self.activeWidgets then
+            for _, widget in pairs(self.activeWidgets) do
+                if widget.widgetKey == widgetKey then
+                    return widget
+                end
+            end
+        end
+    end
+
+    function EditModeSettingsDialogMixin:OnDragStart()
+        self:StartMoving();
+    end
+
+    function EditModeSettingsDialogMixin:OnDragStop()
+        self:StopMovingOrSizing();
+    end
+
+    function EditModeSettingsDialogMixin:SetTitle(title)
+        self.Title:SetText(title);
+    end
+
+    local function SetupSettingsDialog(parent, schematic)
+        if not EditModeSettingsDialog then
+            local f = CreateFrame("Frame", nil, UIParent);
+            EditModeSettingsDialog = f;
+            f:Hide();
+            f:SetSize(DIALOG_WIDTH, 350);
+            f:SetPoint("CENTER", UIParent, "CENTER", 0, 0);
+            f:SetMovable(true);
+            f:SetClampedToScreen(true);
+            f:RegisterForDrag("LeftButton");
+            f:SetDontSavePosition(true);
+            f:SetFrameStrata("DIALOG");
+            f:SetFrameLevel(200);
+            f:EnableMouse(true);
+
+            f.widgets = {};
+            f.requireResetPosition = true;
+
+            Mixin(f, EditModeSettingsDialogMixin);
+
+            f.Border = CreateFrame("Frame", nil, f, "DialogBorderTranslucentTemplate");
+            f.CloseButton = CreateFrame("Button", nil, f, "UIPanelCloseButtonNoScripts");
+            f.CloseButton:SetPoint("TOPRIGHT", f, "TOPRIGHT", 0, 0);
+            f.CloseButton:SetScript("OnClick", function()
+                f:Exit();
+            end);
+            f.Title = f:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge");
+            f.Title:SetPoint("TOP", f, "TOP", 0, -16);
+            f.Title:SetText("Title");
+
+            f:SetScript("OnDragStart", f.OnDragStart);
+            f:SetScript("OnDragStop", f.OnDragStop);
+        end
+
+        if schematic ~= EditModeSettingsDialog.schematic then
+            EditModeSettingsDialog.requireResetPosition = true;
+            EditModeSettingsDialog.schematic = schematic;
+            EditModeSettingsDialog:ClearAllPoints();
+            EditModeSettingsDialog:SetupOptions(schematic);
+        end
+
+        EditModeSettingsDialog.parent = parent;
+
+        return EditModeSettingsDialog
+    end
+    addon.SetupSettingsDialog = SetupSettingsDialog;
 end

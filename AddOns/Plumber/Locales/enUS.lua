@@ -1,3 +1,7 @@
+--Reserved space below so all localization files line up
+
+
+
 local _, addon = ...
 local L = addon.L;
 
@@ -7,6 +11,19 @@ L["Module Control"] = "Module Control";
 L["Quick Slot Generic Description"] = "\n\n*Quick Slot is a set of clickable buttons that appear under certain conditions.";
 L["Restriction Combat"] = "Does not work in combat";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*You can change the pin size in World Map - Map Filter - Plumber";
+
+
+--Module Categories
+--- order: 0
+L["Module Category Unknown"] = "Unknown"    --Don't need to translate
+--- order: 1
+L["Module Category General"] = "General";
+--- order: 2
+L["Module Category NPC Interaction"] = "NPC Interaction";
+--- order: 3
+L["Module Category Class"] = "Class";   --Player Class (rogue, paladin...)
+--- order: 4
+L["Module Category Dreamseeds"] = "Dreamseeds";     --Added in patch 10.2.0
 
 
 --AutoJoinEvents
@@ -71,6 +88,45 @@ L["ModuleDescription HandyLockpick"] = "Right click a lockbox in your bag or Tra
 L["Instruction Pick Lock"] = "<Right Click to Pick Lock>";
 
 
+--BlizzFixEventToast (Make the toast banner (Level-up, Weekly Reward Unlocked, etc.) non-interactable so it doesn't block your mouse clicks)
+L["ModuleName BlizzFixEventToast"] = "Blitz Fix: Event Toast";
+L["ModuleDescription BlizzFixEventToast"] = "Modify the behavior of Event Toasts so they don't consume your mouse clicks. Also allow you to Right Click on the toast and close it immediately.\n\n*Event Toasts are banners that appear on the top of the screen when you complete certain activities.";
+
+
+--Talking Head
+L["ModuleName TalkingHead"] = HUD_EDIT_MODE_TALKING_HEAD_FRAME_LABEL or "Talking Head";
+L["ModuleDescription TalkingHead"] = "Replace the default Talking Head UI with a clean, headless one.";
+L["EditMode TalkingHead"] = "Plumber: "..L["ModuleName TalkingHead"];
+L["TalkingHead Option InstantText"] = "Instant Text";   --Should texts immediately, no gradual fading
+L["TalkingHead Option Condition Header"] = "Hide Texts From Source:";
+L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "World Quests";
+L["TalkingHead Option Condition WorldQuest Tooltip"] = "Hide the transcription if it's from a World Quest.\nSometimes Talking Head is triggered before accepting the World Quest, and we won't be able to hide it.";
+L["TalkingHead Option Condition Instance"] = INSTANCE or "Instance";
+L["TalkingHead Option Condition Instance Tooltip"] = "Hide the transcription when you are in an instance.";
+
+
+--AzerothianArchives
+L["ModuleName AzerothianArchives"] = "Talking Head: Azerothian Archives";
+L["ModuleDescription AzerothianArchives"] = "Replace the default Talking Head UI while you are doing errands for the Azerothian Archives.";
+
+
+--Navigator(Waypoint/SuperTrack) Shared Strings
+L["Priority"] = "Priority";
+L["Priority Default"] = "Default";  --WoW's default waypoint priority: Corpse, Quest, Scenario, Content
+L["Priority Default Tooltip"] = "Follow WoW's default settings. Prioritize quest, corpse, vendor locations if possible. Otherwise, start tracking active seeds.";
+L["Stop Tracking"] = "Stop Tracking";
+L["Click To Track Location"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-SuperTrack:0:0:0:0|t " .. "Left click to track locations";
+L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-TomTom:0:0:0:0|t " .. "Left click to track in TomTom";
+
+
+--Navigator_Dreamseed (Use Super Tracking to navigate players)
+L["ModuleName Navigator_Dreamseed"] = "Navigator: Dreamseeds";
+L["ModuleDescription Navigator_Dreamseed"] = "Use the Waypoint system to guide you to the Dreamseeds.\n\n*Right click on the location indicator (if any) for more options.\n\n|cffd4641cThe game's default waypoints will be replaced while you are in the Emerald Dream.\n\nSeed location indicator may be overridden by quests.|r";
+L["Priority New Seeds"] = "Finding New Seeds";
+L["Priority Rewards"] = "Collecting Rewards";
+L["Stop Tracking Dreamseed Tooltip"] = "Stop tracking seeds until you Left Click on a map pin.";
+
+
 --Rare/Location Announcement
 L["Announce Location Tooltip"] = "Share this location in chat.";
 L["Announce Forbidden Reason In Cooldown"] = "You have shared a location recently.";
@@ -80,6 +136,14 @@ L["Available In Format"] = "Available in: |cffffffff%s|r";
 L["Seed Color Epic"] = ICON_TAG_RAID_TARGET_DIAMOND3 or "Purple";   --Using GlobalStrings as defaults
 L["Seed Color Rare"] = ICON_TAG_RAID_TARGET_SQUARE3 or "Blue";
 L["Seed Color Uncommon"] = ICON_TAG_RAID_TARGET_TRIANGLE3 or "Green";
+
+
+--Generic
+L["Reposition Button Horizontal"] = "Move Horizontally";   --Move the window horizontally
+L["Reposition Button Vertical"] = "Move Vertically";
+L["Reposition Button Tooltip"] = "Left-click and drag to move the window.";
+L["Font Size"] = FONT_SIZE or "Font Size";
+L["Reset To Default Position"] = HUD_EDIT_MODE_RESET_POSITION or "Reset To Default Position";
 
 
 

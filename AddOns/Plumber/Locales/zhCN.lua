@@ -1,5 +1,7 @@
 ﻿if not (GetLocale() == "zhCN") then return end;
 
+
+
 local _, addon = ...
 local L = addon.L;
 
@@ -73,12 +75,42 @@ L["ModuleDescription HandyLockpick"] = "右键点击可直接解锁放在背包�
 L["Instruction Pick Lock"] = "<右键点击以解锁>";
 
 
+--BlizzFixEventToast (Make the toast banner (Level-up, Weekly Reward Unlocked, etc.) non-interactable so it doesn't block your mouse clicks)
+L["ModuleName BlizzFixEventToast"] = "暴雪UI改进: 事件通知";
+L["ModuleDescription BlizzFixEventToast"] = "让事件通知不挡住你的鼠标，并且允许你右键点击来立即关闭它。\n\n*“事件通知”指的是当你完成一些活动时，在屏幕上方出现的横幅。";
+
+
+--Navigator(Waypoint/SuperTrack) Shared Strings
+L["Priority"] = "优先级";
+L["Priority Default"] = "游戏默认";  --WoW's default waypoint priority: Corpse, Quest, Scenario, Content
+L["Priority Default Tooltip"] = "遵从游戏默认设定。如果可能的话，优先追踪任务、尸体和商人位置，否则开始搜索新种子。";
+L["Stop Tracking"] = "停止追踪";
+L["Click To Track Location"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/SuperTrackIcon:0:0:0:0|t " .. "左键点击以开始追踪种子。";
+
+
+--Navigator_Dreamseed (Use Super Tracking to navigate players)
+L["ModuleName Navigator_Dreamseed"] = "导航: 梦境之种";
+L["ModuleDescription Navigator_Dreamseed"] = "使用路径点系统指引你到达梦境之种生长的位置。\n\n*右键点击图标可查看更多选项。\n\n|cffd4641c当你身处翡翠梦境时，此插件将取代游戏自带的路径指引系统。|r";
+L["Priority New Seeds"] = "搜索新种子";
+L["Priority Rewards"] = "拾取奖励";
+L["Stop Tracking Dreamseed Tooltip"] = "停止搜索种子。你可以点击大地图上正在生长的种子来恢复追踪。";
+
+
 --Rare/Location Announcement
 L["Announce Location Tooltip"] = "在聊天频道中分享这个位置。";
 L["Announce Forbidden Reason In Cooldown"] = "你不久前分享过位置。";
 L["Announce Forbidden Reason Duplicate Message"] = "其他玩家不久前分享过这个位置。";
 L["Announce Forbidden Reason Soon Despawn"] = "你不能通告一个即将消失的位置。";
 L["Available In Format"] = "此时间后可用：|cffffffff%s|r";
+L["Seed Color Epic"] = "紫色";
+L["Seed Color Rare"] = "蓝色";
+L["Seed Color Uncommon"] = "绿色";
+
+
+--Generic
+L["Reposition Button Horizontal"] = "水平方向移动";   --Move the window horizontally
+L["Reposition Button Vertical"] = "竖直方向移动";
+L["Reposition Button Tooltip"] = "左键点击并拖拉来移动这个窗口。";
 
 
 
