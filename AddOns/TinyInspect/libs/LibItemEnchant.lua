@@ -500,6 +500,8 @@ local EnchantItemDB = {
 	[6229] = 172366,
 	[6230] = 177962,
 	[6265] = 183738,
+    -- 巨龍崛起
+    [7052] = 210494, -- 熾熱精華
 }
 
 --Data from: M, RRRRBUA(NGA), KibsItemLevel, eltruism, fang2hou
