@@ -1,12 +1,14 @@
 local mod	= DBM:NewMod(2538, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231103035708")
+mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
+
+mod:SetRevision("20240110230340")
 mod:SetCreatureID(199000)
 mod:SetEncounterID(2673)
 --mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20231102000000)
-mod:SetMinSyncRevision(20231102000000)
+mod:SetHotfixNoticeRev(20231221000000)
+mod:SetMinSyncRevision(20231221000000)
 --mod.respawnTime = 29
 mod.sendMainBossGUID = true
 
@@ -148,6 +150,15 @@ function mod:SPELL_CAST_START(args)
 		--	DBM:Debug("timerTemporalBreathCD extended by: "..extend, 2)
 		--	timerTemporalBreathCD:Update(elapsed, total+extend, self.vb.breathCount+1)
 		--end
+		if self:GetStage(1) then
+			self:SetStage(2)
+			self.vb.breathCount = 0
+			self.vb.orbCount = 0
+			self.vb.keeperCount = 1--Reused for Infinite Corruption, (set to 1 since we triggered P2 off first cast)
+			timerSummonInfiniteKeeperCD:Stop()
+			timerTemporalBreathCD:Restart(11.8, 1)
+			timerInfinityOrbCD:Restart(19, 1)
+		end
 	elseif spellId == 412027 then
 		timerChronalBurnCD:Start(nil, args.sourceGUID)
 	end

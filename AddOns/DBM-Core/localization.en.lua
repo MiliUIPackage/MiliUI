@@ -46,7 +46,7 @@ L.LOOT_SPEC_REMINDER					= "Your current spec is %s. Your current loot choice is
 
 L.BIGWIGS_ICON_CONFLICT					= L.DBM .. " has detected that you have raid icons turned on in both BigWigs and " .. L.DBM .. ". Please disable icons in one of them to avoid conflicts"
 
-L.MOD_AVAILABLE							= "%s is available for this zone. You can find download on Curse, Wago, WoWI, or from the GitHub Releases page"
+L.MOD_AVAILABLE							= "%s is available for this zone. You can download it on Curse, Wago, WoWI, or from the GitHub Releases page."
 
 L.COMBAT_STARTED						= "%s engaged. Good luck and have fun! :)"
 L.COMBAT_STARTED_IN_PROGRESS			= "Engaged an in progress fight against %s. Good luck and have fun! :)"
@@ -139,8 +139,6 @@ L.GENERIC_WARNING_OTHERS2				= "and %d others"
 L.GENERIC_WARNING_BERSERK				= "Berserk in %s %s"
 L.GENERIC_TIMER_BERSERK					= "Berserk"
 L.OPTION_TIMER_BERSERK					= "Show timer for $spell:26662"
-L.GENERIC_TIMER_COMBAT					= "Combat starts"
-L.OPTION_TIMER_COMBAT					= "Show timer for combat start"
 L.BAD									= "Bad"
 
 L.OPTION_CATEGORY_TIMERS				= "Bars"
@@ -206,7 +204,7 @@ L.DBMLDB								= "WARNING: DBM-LDB is now built into DBM-Core. While it won't d
 L.DBMLOOTREMINDER						= "WARNING: 3rd party mod DBM-LootReminder is installed. This addon is no longer compatible with Retail WoW client and will cause " .. L.DBM .. " to break and not be able to send pull timers. Uninstall of this addon recommended"
 L.UPDATE_REQUIRES_RELAUNCH				= "WARNING: This " .. L.DBM .. " update will not work correctly if you don't fully restart your game client. This update contains new files or .toc file changes that cannot be loaded via ReloadUI. You may encounter broken functionality or errors if you continue without a client restart."
 L.OUT_OF_DATE_NAG						= "Your version of " .. L.DBM.. " is out-of-date and this specific fight mod has newer features or bug fixes. It is recommended you update for this fight to improve your experience."
-L.PLATER_NP_AURAS_MSG					= "DBM includes an advanced feature to show enemy cooldown timers using icons on nameplates. This is on by default for most users, but for Plater users it is off by default in Plater options unless you enable it. To get the most out of DBM (and Plater) it's recommended you enable this feature in Plater under 'Buff Special' section. If you don't want to see this message again, you can also just entirely disable 'Cooldown icons on nameplates' option in DBM global disable or nameplate options panels"
+L.PLATER_NP_AURAS_MSG					= L.DBM .. " includes an advanced feature to show enemy cooldown timers using icons on nameplates. This is on by default for most users, but for Plater users it is off by default in Plater options unless you enable it. To get the most out of DBM (and Plater) it's recommended you enable this feature in Plater under 'Buff Special' section. If you don't want to see this message again, you can also just entirely disable 'Cooldown icons on nameplates' option in DBM global disable or nameplate options panels"
 
 L.MOVABLE_BAR							= "Drag me!"
 
@@ -390,7 +388,7 @@ L.AUTO_SPEC_WARN_TEXTS = {
 	moveawaycount						= "%s (%%s) - move away from others",
 	moveto								= "%s - move to >%%s<",
 	soak								= "%s - soak it",
-	soakcount							= "%s - soak %%s",
+	soakcount							= "%s - soak (%%s)",
 	jump								= "%s - jump",
 	run									= "%s - run away",
 	runcount							= "%s - run away (%%s)",
@@ -417,7 +415,7 @@ L.AUTO_SPEC_WARN_OPTIONS = {
 	sooncount							= "Show pre-special announce (with count) for $spell:%s",
 	bait								= "Show pre-special announce (to bait) for $spell:%s",
 	prewarn 							= "Show pre-special announce %s seconds before $spell:%s",
-	dispel 								= "Show special announce to dispel/spellsteal $spell:%s",
+	dispel 								= "Show special announce to dispel $spell:%s",
 	interrupt							= "Show special announce to interrupt $spell:%s",
 	interruptcount						= "Show special announce (with count) to interrupt $spell:%s",
 	you 								= "Show special announce when you are affected by $spell:%s",
@@ -481,22 +479,22 @@ L.AUTO_TIMER_TEXTS = {
 
 	achievement							= "%s",
 	stage								= "Stage",
-	stagecount							= "Stage %%s",
-	stagecountcycle						= "Stage %%s (%%s)",--Example: Stage 2 (3) for a fight that alternates stage 1 and stage 2, but also tracks total cycles
+	stagecount							= "Stage %%s",--NOT BUGGED, stage is 2nd arg, spellID is ignored on purpose
+	stagecountcycle						= "Stage %%s (%%s)",--^^. Example: Stage 2 (3) for a fight that alternates stage 1 and stage 2, but also tracks total cycles
 	stagecontext						= "%s",
 	stagecontextcount					= "%s (%%s)",
-	Intermission						= "Intermission",
-	Intermissioncount					= "Intermission %%s",
+	intermission						= "Intermission",
+	intermissioncount					= "Intermission %%s",
 	adds								= "Adds",
 	addscustom							= "Adds (%%s)",
-	roleplay							= GUILD_INTEREST_RP or "Roleplay"
+	roleplay							= GUILD_INTEREST_RP or "Roleplay",--Used mid fight, pre fight, or even post fight. Boss does NOT auto engage upon completion
+	combat								= "Combat starts"--Only used if the boss auto engages upon completion (ie ragnaros type situation)
 }
 --This basically clones np only bar option and display text from regular counterparts
 L.AUTO_TIMER_TEXTS.cdnp = L.AUTO_TIMER_TEXTS.cd
 L.AUTO_TIMER_TEXTS.nextnp = L.AUTO_TIMER_TEXTS.next
 L.AUTO_TIMER_TEXTS.cdcountnp = L.AUTO_TIMER_TEXTS.cdcount
 L.AUTO_TIMER_TEXTS.nextcountnp = L.AUTO_TIMER_TEXTS.nextcount
-
 
 L.AUTO_TIMER_OPTIONS = {
 	target								= "Show timer for $spell:%s debuff",
@@ -529,7 +527,8 @@ L.AUTO_TIMER_OPTIONS = {
 	intermissioncount					= "Show timer (with count) for next intermission",
 	adds								= "Show timer for incoming adds",
 	addscustom							= "Show timer for incoming adds",
-	roleplay							= "Show timer for roleplay duration"--This does need localizing though.
+	roleplay							= "Show timer for roleplay duration",--This does need localizing though.
+	combat								= "Show timer for combat start"
 }
 
 L.AUTO_ICONS_OPTION_TARGETS				= "Set icons on $spell:%s targets"--Usually used for player targets with no specific sorting
@@ -543,9 +542,11 @@ L.AUTO_ICONS_OPTION_TARGETS_ALPHA		= "Set icons on $spell:%s targets with alphab
 L.AUTO_ICONS_OPTION_TARGETS_ROSTER		= "Set icons on $spell:%s targets with raid roster priority"
 L.AUTO_ICONS_OPTION_NPCS				= "Set icons on $spell:%s"--usually used for npcs/mobs
 L.AUTO_ICONS_OPTION_CONFLICT			= " (May conflict with other options)"
+
 L.AUTO_ARROW_OPTION_TEXT				= "Show " .. L.DBM .. " Arrow to move toward target affected by $spell:%s"
 L.AUTO_ARROW_OPTION_TEXT2				= "Show " .. L.DBM .. " Arrow to move away from target affected by $spell:%s"
 L.AUTO_ARROW_OPTION_TEXT3				= "Show " .. L.DBM .. " Arrow to move toward specific location for $spell:%s"
+
 L.AUTO_YELL_OPTION_TEXT = {
 	shortyell							= "Yell when you are affected by $spell:%s",
 	yell								= "Yell (with player name) when you are affected by $spell:%s",
@@ -573,7 +574,6 @@ L.AUTO_YELL_ANNOUNCE_TEXT = {
 	repeaticon							= "{rt%%1$d}"--Doesn't need translation. It's just icon spam
 }
 L.AUTO_YELL_CUSTOM_POSITION				= "{rt%d}%s"--Doesn't need translating. Has no strings (Used in niche situations such as icon repeat yells)
-L.AUTO_YELL_CUSTOM_POSITION2			= "{rt%d}%s{rt%d}"--Doesn't need translating. Has no strings (Deprecated, will be removed soon)
 L.AUTO_YELL_CUSTOM_FADE					= "%s faded"
 L.AUTO_HUD_OPTION_TEXT					= "Show HudMap for $spell:%s (Retired)"
 L.AUTO_HUD_OPTION_TEXT_MULTI			= "Show HudMap for various mechanics (Retired)"
@@ -637,7 +637,6 @@ L.LAG_FOOTER							= "No Response: %s"
 L.DUR_CHECKING							= "Checking raid Durability... "
 L.DUR_HEADER							= L.DEADLY_BOSS_MODS.. " - Durability Results"
 L.DUR_ENTRY								= "%s: Durability [%d percent] / Gear broken [%s]"
-L.LAG_FOOTER							= "No Response: %s"
 
 L.OVERRIDE_ACTIVATED					= "Configuration overrides have been activated for this encounter by RL"
 
@@ -654,5 +653,6 @@ L.WORLD_BUFFS = {
 	zgHeart								= "Now, only one step remains to rid us of the Soulflayer's threat",
 	zgHeartBooty						= "The Blood God, the Soulflayer, has been defeated!  We are imperiled no longer!",
 	zgHeartYojamba						= "Begin the ritual, my servants.  We must banish the heart of Hakkar back into the void!",
-	rendHead							= "The false Warchief, Rend Blackhand, has fallen!"
+	rendHead							= "The false Warchief, Rend Blackhand, has fallen!",
+	blackfathomBoon						= "boon of Blackfathom"
 }

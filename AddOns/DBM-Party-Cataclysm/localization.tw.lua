@@ -378,17 +378,13 @@ L:SetOptionLocalization{
 	TimerPhase		= "為第二階段顯示計時器"
 }
 
-L:SetMiscLocalization{
-	--RolePlay		= "The beast has returned! It must not pollute my waters!"
-}
-
 ---------
 --Trash--
 ---------
 L = DBM:GetModLocalization("ThroneofTidesTrash")
 
 L:SetGeneralLocalization({
-	name =	"海潮王座小怪"
+	name =	"潮汐王座小怪"
 })
 
 ----------------
@@ -719,51 +715,4 @@ L:SetOptionLocalization{
 
 L:SetMiscLocalization{
 	Event		= "現在呢，薩滿，把巨龍之魂交給我吧。"
-}
-
---------------------
---  World Bosses  --
--------------------------
--- Akma'hat --
--------------------------
-L = DBM:GetModLocalization("Akmahat")
-
-L:SetGeneralLocalization{
-	name = "阿克瑪哈特"
-}
-
------------
--- Garr --
-----------
-L = DBM:GetModLocalization("Garr")
-
-L:SetGeneralLocalization{
-	name = "加爾(浩劫與重生)"
-}
-
-----------------
--- Julak-Doom --
-----------------
-L = DBM:GetModLocalization("JulakDoom")
-
-L:SetGeneralLocalization{
-	name = "毀滅祖拉克"
-}
-
------------
--- Mobus --
------------
-L = DBM:GetModLocalization("Mobus")
-
-L:SetGeneralLocalization{
-	name = "莫比斯"
-}
-
------------
--- Xariona --
------------
-L = DBM:GetModLocalization("Xariona")
-
-L:SetGeneralLocalization{
-	name = "克薩瑞歐納"
 }

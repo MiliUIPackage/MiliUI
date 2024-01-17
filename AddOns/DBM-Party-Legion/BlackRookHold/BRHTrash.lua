@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod("BRHTrash", "DBM-Party-Legion", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231113122310")
+mod:SetRevision("20240109040154")
 --mod:SetModelID(47785)
 mod:SetZone(1501)
 
 mod.isTrashMod = true
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 200261 221634 221688 225573 214003 199663 200105 196916 225732 196883 194966 200248 200256 200291 200784 200913 201139 201176 182118 214001",--199663
+	"SPELL_CAST_START 200261 221634 221688 225573 214003 199663 200105 196916 225732 196883 194966 200248 200256 200291 200784 200913 201139 201176 182118 214001 227913",--199663
 	"SPELL_CAST_SUCCESS 200343 225962 203163 204896 200784",--8599
 	"SPELL_AURA_APPLIED 194966 200105 200248 8599 203163",
 	"SPELL_AURA_APPLIED_DOSE 200084 225909 200248",
@@ -33,7 +33,7 @@ local warnDrinkPotion				= mod:NewSpellAnnounce(200784, 4, nil, nil, nil, nil, n
 local warnBloodthirstyLeap			= mod:NewSpellAnnounce(225962, 2, nil, false)--Instant cast, announcing it already happened doesn't affect much agency to player
 local warnGlaiveToss				= mod:NewCastAnnounce(196916, 3)
 local warnPhasedExplosion			= mod:NewCastAnnounce(200256, 3, nil, nil, false)--They basically spam cast it, so off by default
-local warnFelFrenzy					= mod:NewCastAnnounce(182118, 4)--High prio off internet
+local warnFelFrenzy					= mod:NewCastAnnounce(227913, 4)--High prio off internet
 local warnSoulVenom					= mod:NewStackAnnounce(225909, 2)
 
 local specWarnSicBats				= mod:NewSpecialWarningYou(203163, nil, nil, nil, 1, 2)
@@ -52,11 +52,12 @@ local specWarnSpiritBlast			= mod:NewSpecialWarningInterrupt(196883, "HasInterru
 local specWarnDarkMending			= mod:NewSpecialWarningInterrupt(225573, "HasInterrupt", nil, nil, 1, 2)
 local specWarnSoulBlast				= mod:NewSpecialWarningInterrupt(199663, "HasInterrupt", nil, nil, 1, 2)
 local specWarnArcaneBlitz			= mod:NewSpecialWarningInterrupt(200248, "HasInterrupt", nil, nil, 1, 2)
-local specWarnFelFrenzy				= mod:NewSpecialWarningInterrupt(182118, "HasInterrupt", nil, nil, 1, 2)--High Priority
+local specWarnFelFrenzy				= mod:NewSpecialWarningInterrupt(227913, "HasInterrupt", nil, nil, 1, 2)--High Priority
 local specWarnSoulBlade				= mod:NewSpecialWarningDispel(200084, "RemoveMagic", nil, nil, 1, 2)
 local specWarnDrainLife				= mod:NewSpecialWarningDispel(204896, "RemoveMagic", nil, nil, 1, 2)
 local specWarnEnrage				= mod:NewSpecialWarningDispel(8599, "RemoveEnrage", nil, 2, 1, 2)
 
+local timerRP						= mod:NewRPTimer(68)
 local timerSacrificeSoulCD			= mod:NewCDNPTimer(21.8, 200105, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerGlaiveTossCD				= mod:NewCDNPTimer(14.5, 196916, nil, nil, nil, 3)
 local timerStrikeDownCD				= mod:NewCDNPTimer(9.7, 225732, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
@@ -68,12 +69,22 @@ local timerDrainLifeCD				= mod:NewCDNPTimer(16.8, 204896, nil, nil, nil, 3)--16
 local timerBrutalAssaultCD			= mod:NewCDNPTimer(20.6, 201139, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerDrinkPotionCD			= mod:NewCDNPTimer(21.8, 200784, nil, nil, nil, 5)
 local timerSicBatsCD				= mod:NewCDNPTimer(21.8, 203163, nil, nil, nil, 5)
-local timerCoupdeGraceCD			= mod:NewCDNPTimer(9.7, 214003, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerCoupdeGraceCD			= mod:NewCDNPTimer(8.4, 214003, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerRavensDiveCD				= mod:NewCDNPTimer(16.9, 214001, nil, nil, nil, 3)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt, 8 GTFO
 
 local blitzStacks = {}
+
+--"<2.04 23:10:40> [BOSS_KILL] 1832#Amalgam of Souls", -- [27]
+--"<2.07 23:10:40> [CLEU] UNIT_DIED##nil#Creature-0-4225-1501-17971-98542-00007A7FD4#Amalgam of Souls#-1#false#nil#nil", -- [28]
+--"<10.62 23:10:49> [CHAT_MSG_MONSTER_SAY] The darkness... it is gone.#Lady Velandras Ravencrest###Omegal##0#0##0#2108#nil#0#false#false#false#false", -- [37]
+--"<15.93 23:10:54> [CHAT_MSG_MONSTER_YELL] You... aren't the ones who did this?#Lord Etheldrin Ravencrest###Omegal##0#0##0#2109#nil#0#false#false#false#false", -- [38]
+--"<29.29 23:11:07> [CHAT_MSG_MONSTER_SAY] I... understand now. You... you must find Kur'talos. You must put a stop to this.#Lord Etheldrin Ravencrest###Darksøl##0#0##0#2110#nil#0#false#false#false#false", -- [39]
+--"<39.20 23:11:17> [ZONE_CHANGED_INDOORS] Black Rook Hold#Black Rook Hold#Hidden Passageway", -- [41]
+function mod:StartFirstRP()
+	timerRP:Start(36)--Approx, no definitive timestamp but zone ZONE_CHANGED_INDOORS fired running into door til it opened and we subtrack 1 second on top of that
+end
 
 function mod:SPELL_CAST_START(args)
 	if not self.Options.Enabled then return end
@@ -112,8 +123,8 @@ function mod:SPELL_CAST_START(args)
 			specWarnDarkMending:Show(args.sourceName)
 			specWarnDarkMending:Play("kickcast")
 		end
-	elseif spellId == 182118 then
-		if self.Options.SpecWarn182118interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
+	elseif spellId == 182118 or spellId == 227913 then
+		if self.Options.SpecWarn227913interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 			specWarnFelFrenzy:Show(args.sourceName)
 			specWarnFelFrenzy:Play("kickcast")
 		elseif self:AntiSpam(3, 7) then
@@ -160,7 +171,7 @@ function mod:SPELL_CAST_START(args)
 		warnPhasedExplosion:Show()
 	elseif spellId == 200291 then
 		timerKnifeDanceCD:Start(nil, args.sourceGUID)
-		if self:AntiSpam(3, 6) then
+		if self:AntiSpam(3.5, 6) then
 			warnKnifeDance:Show()
 			warnKnifeDance:Play("crowdcontrol")
 		end
@@ -169,7 +180,7 @@ function mod:SPELL_CAST_START(args)
 		--ie it'll recast after 4.8 seconds if this cast is stopped
 		--But if it finishes casting, goes on ?? second CD
 		timerDrinkPotionCD:Start(4.8, args.sourceGUID)
-		if self:AntiSpam(3, 6) then
+		if self:AntiSpam(3.5, 6) then
 			warnDrinkPotion:Show()
 			warnDrinkPotion:Play("crowdcontrol")
 		end
@@ -187,7 +198,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 200343 then
 		timerArrowBarrageCD:Start(nil, args.sourceGUID)
-		if self:AntiSpam(3, 6) then
+		if self:AntiSpam(3.5, 6) then
 			warnArrowBarrage:Show()
 			warnArrowBarrage:Play("crowdcontrol")
 		end
@@ -257,7 +268,7 @@ function mod:SPELL_AURA_APPLIED(args)
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
-function mod:SPELL_AURA_APPLIED(args)
+function mod:SPELL_AURA_REMOVED(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if spellId == 200248 then

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2556, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231127233244")
+mod:SetRevision("20240108002949")
 mod:SetCreatureID(206172)
 mod:SetEncounterID(2708)
 mod:SetUsedIcons(8, 7, 6)
@@ -35,7 +35,7 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(28355))
 local warnContinuum									= mod:NewCountAnnounce(420846, 2)
 local warnVerdantMatrix								= mod:NewCountAnnounce(420554, 2, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(420554))
 local warnInflorescence								= mod:NewYouAnnounce(423195, 1, nil, false, 2)--Can be spammy depending on player movements, off by default, most might track this with WA anyways
-local warnSurgingGrowth								= mod:NewCountAnnounce(420971, 2)
+local warnSurgingGrowth								= mod:NewCountAnnounce(429983, 2)
 local warnWeaversBurden								= mod:NewCountAnnounce(426519, 2, nil, nil, 167180)
 local warnWeaversBurdenTargets						= mod:NewTargetCountAnnounce(426519, 2, nil, nil, 167180, nil, nil, nil, true)
 local warnEphemeralFlora							= mod:NewCountAnnounce(430563, 3)
@@ -49,9 +49,9 @@ local yellWeaversBurden								= mod:NewShortYell(426519, 37859)--ST "Bomb"
 local specWarnWeaversBurdenOther					= mod:NewSpecialWarningTaunt(426519, nil, 37859, nil, 1, 2)
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(428474, nil, nil, nil, 1, 8)
 
-local timerImpendingLoomCD							= mod:NewCDCountTimer(23.8, 429615, DBM_COMMON_L.DODGES.." (%s)", nil, nil, 3)
+local timerImpendingLoomCD							= mod:NewCDCountTimer(23.8, 429615, L.Threads, nil, nil, 3)
 local timerEphemeralFloraCD							= mod:NewCDCountTimer(49, 430563, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
-local timerSurgingGrowthCD							= mod:NewCDCountTimer(7, 420971, DBM_COMMON_L.GROUPSOAKS.." (%s)", nil, nil, 3)--7-9, usually 8-9
+local timerSurgingGrowthCD							= mod:NewCDCountTimer(7, 429983, DBM_COMMON_L.GROUPSOAKS.." (%s)", nil, nil, 3)--5.1-9, usually 8-9
 local timerViridianRainCD							= mod:NewCDCountTimer(19.1, 420907, DBM_COMMON_L.AOEDAMAGE.." (%s)", nil, nil, 3)
 local timerWeaversBurdenCD							= mod:NewCDCountTimer(17.8, 426519, 167180, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--ST "Bombs"
 local berserkTimer									= mod:NewBerserkTimer(720)
@@ -60,20 +60,19 @@ mod:AddPrivateAuraSoundOption(427722, true, 426519, 1)--Weaver's Burden
 --Stage Two: Creation Complete
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28356))
 local warnFullBloom									= mod:NewCountAnnounce(426855, 2)
-local warnRadialFlourish							= mod:NewCountAnnounce(425370, 2, nil, false)
+local warnRadialFlourish							= mod:NewCountAnnounce(422721, 2, nil, false)
 local warnWakingDecimation							= mod:NewCountAnnounce(428471, 4)
 
 local specWarnLumberingSlam							= mod:NewSpecialWarningDodge(429108, nil, nil, nil, 2, 2)
 
 local timerFullBloomCD								= mod:NewCDCountTimer(49, 426855, nil, nil, nil, 6)
 local timerLumberingSlamCD							= mod:NewCDNPTimer(18.2, 429108, nil, nil, nil, 3)--No reason to CL it, it's a nameplate only timer
-local timerRadialFlourishCD							= mod:NewCDNPTimer(5.5, 425370, nil, false, nil, 3)--5-12 so kinda fickle, off by default
+local timerRadialFlourishCD							= mod:NewCDNPTimer(5.5, 422721, nil, false, nil, 3)--5-12 so kinda fickle, off by default
 local timerWakingDecimation							= mod:NewCastTimer(36, 428471, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)--1sec delay before energy starts + 30 + 5 second cast
 
 mod:AddSetIconOption("SetIconOnWarden", -27432, true, 5, {7, 6})
 mod:AddSetIconOption("SetIconOnManifestedDream", -28482, true, 5, {8})
 
-mod.vb.rbwDetected = false
 mod.vb.contCount = 0
 mod.vb.loomCount = 0
 mod.vb.burdenCount = 0
@@ -97,7 +96,6 @@ end
 function mod:OnCombatStart(delay)
 	self:SetStage(1)
 	table.wipe(castsPerGUID)
-	self.vb.rbwDetected = false
 	self.vb.contCount = 0
 	self.vb.loomCount = 0
 	self.vb.burdenCount = 0
@@ -146,7 +144,7 @@ function mod:SPELL_CAST_START(args)
 		--"<115.76 10:52:40> [CLEU] SPELL_CAST_START#Creature-0-1471-2549-13215-206172-0000588831#Nymue(70.4%-0.0%)##nil#420846#Continuum#nil#nil",
 		--"<117.10 10:52:42> [CLEU] SPELL_AURA_APPLIED_DOSE#Creature-0-1471-2549-13215-206172-0000588831#Nymue#Player-1084-0A94E8A7#****#429983#Surging Growth#DEBUFF#4",
 		--"<143.10 10:53:08> [CLEU] SPELL_AURA_REMOVED_DOSE#Creature-0-1471-2549-13215-206172-0000588831#Nymue#Player-1084-0A59CE90#****#429983#Surging Growth#DEBUFF#3",
-		timerSurgingGrowthCD:Start(27.3, 1)--self.vb.surgingCount+1
+		timerSurgingGrowthCD:Start(21, 1)--self.vb.surgingCount+1
 		timerWeaversBurdenCD:Start(34.7, 1)--self.vb.burdenCount+1
 		timerViridianRainCD:Start(36.7, 1)--self.vb.rainCount+1
 		timerImpendingLoomCD:Start(40.6, 1)--self.vb.loomCount+1
@@ -182,15 +180,14 @@ function mod:SPELL_CAST_START(args)
 			)
 		end
 	elseif spellId == 429108 or spellId == 429180 then
-		if self:CheckBossDistance(args.sourceGUID, false) and self:AntiSpam(4, 3) then--Antispam needed since checkbossdistance is not working (even though it should be)
+--		if self:CheckBossDistance(args.sourceGUID, true, 32698, 48) then
+		if self:AntiSpam(4, 5) then
 			specWarnLumberingSlam:Show()
 			specWarnLumberingSlam:Play("shockwave")
 		end
 	elseif spellId == 426519 then
 		self.vb.burdenCount = self.vb.burdenCount + 1
-		if not self.vb.rbwDetected then
-			warnWeaversBurden:Show(self.vb.burdenCount)
-		end
+		warnWeaversBurden:Show(self.vb.burdenCount)
 		--21.0, 19.1, 20.0 then 36-37, 19.0, 20.1
 		if self.vb.burdenCount % 3 ~= 0 then--3rd cast in each set is last one before full bloom
 --			if self.vb.burdenCount % 3 ~= 0 then
@@ -222,16 +219,17 @@ function mod:SPELL_CAST_SUCCESS(args)
 			end
 		end
 	elseif spellId == 422721 then
-		if self:CheckBossDistance(args.sourceGUID, false) then
+--		if self:CheckBossDistance(args.sourceGUID, true, 32698, 48) then
+		if self:AntiSpam(4, 4) then
 			warnRadialFlourish:Show()
 		end
 		timerRadialFlourishCD:Start(nil, args.sourceGUID)
 	elseif spellId == 426519 then
 		--Weavers burden is a private aura, but one of targets is always the active tank.
 		if args:IsPlayer() then
-			if not self.vb.rbwDetected then
-				yellWeaversBurden:Yell()
-			end
+			specWarnWeaversBurden:Show()
+			--No sound on purpose, private aura will do sound
+			yellWeaversBurden:Yell()
 		else
 			--Delayed by a frame so as not to snipe the debuff
 			specWarnWeaversBurdenOther:Schedule(0.1, args.destName)
@@ -278,16 +276,6 @@ function mod:SPELL_AURA_APPLIED(args)
 			warnVerdantMatrix:Cancel()
 			warnVerdantMatrix:Schedule(1, args.amount or 1)
 		end
---	elseif spellId == 427722 then
---		if args:IsPlayer() then
---			specWarnWeaversBurden:Show()
---			specWarnWeaversBurden:Play("runout")
---			yellWeaversBurden:Yell()
---			yellWeaversBurdenFades:Countdown(spellId)
---		else
---			specWarnWeaversBurdenOther:Show(args.destName)
---			specWarnWeaversBurdenOther:Play("tauntboss")
---		end
 	elseif spellId == 423195 then
 		if args:IsPlayer() then
 			playerInflorescence = true
@@ -301,7 +289,10 @@ function mod:SPELL_AURA_APPLIED(args)
 --			warnBlazingCoalescence:Schedule(1, args.amount or 1)
 			warnLucidVulnerability:Show(args.amount or 1)
 		end
-	elseif spellId == 429983 and self:AntiSpam(5, 2) and self.vb.phase % 2 == 1 then
+	elseif spellId == 429983 and self:AntiSpam(5, 2) and self.vb.phase % 2 == 1 and not self:IsLFR() then
+		--There is no cast event, so only way to detect them is when a player soaks
+		--This therefor makes a lot of unsafe assumptions about player soaking that don't always work right
+		--So timer and alert will just always have accuracy problems and is disabled on LFR for now (and maybe even other difficultes if it keeps generating reports)
 		self.vb.surgingCount = self.vb.surgingCount + 1
 		warnSurgingGrowth:Show(self.vb.surgingCount)
 		timerSurgingGrowthCD:Start(nil, self.vb.surgingCount+1)
@@ -315,16 +306,12 @@ function mod:SPELL_AURA_REMOVED(args)
 		if args:IsPlayer() then
 			playerInflorescence = false
 		end
---	elseif spellId == 427722 then
---		if args:IsPlayer() then
---			yellWeaversBurdenFades:Cancel()
---		end
 	end
 end
 
 function mod:SPELL_PERIODIC_DAMAGE(_, _, _, _, destGUID, _, _, _, spellId, spellName)
 	--Taking damage from miasma with vulnerability debuff
-	if spellId == 428474 and destGUID == UnitGUID("player") and DBM:UnitDebuff("player", 428479) and self:AntiSpam(3, 4) then
+	if spellId == 428474 and destGUID == UnitGUID("player") and DBM:UnitDebuff("player", 428479) and self:AntiSpam(3, 3) then
 		specWarnGTFO:Show(spellName)
 		specWarnGTFO:Play("watchfeet")
 	end
@@ -338,39 +325,5 @@ function mod:UNIT_DIED(args)
 		timerRadialFlourishCD:Stop(args.destGUID)
 	elseif cid == 213143 then--Manifested Dream
 		timerWakingDecimation:Stop(args.destGUID)
-	end
-end
-
---Since blizzard hasn't fixed this yet,
---and other addons and WAs are publically using this
---I guess DBM has to as well
-function mod:RAID_BOSS_WHISPER(msg)
-	if msg:find("spell:427722") then
-		if not self.vb.rbwDetected then
-			self.vb.rbwDetected = true
-			--Unregister private auras, not needed
-			if self.paSounds then
-				self:DisablePrivateAuraSounds()--Dirty, does full purge but this fight only has the one so it's fine for now
-			end
-		else--Only use these warnings if private aura sound already disabled, so don't get double sound
-			specWarnWeaversBurden:Show()
-			specWarnWeaversBurden:Play("runout")
-			yellWeaversBurden:Yell()
---			yellWeaversBurdenFades:Countdown(6)
-		end
-	end
-end
-
-function mod:OnTranscriptorSync(msg, targetName)
-	if msg:find("427722") and targetName then
-		if not self.vb.rbwDetected then
-			self.vb.rbwDetected = true
-			--Unregister private auras, not needed
-			if self.paSounds then
-				self:DisablePrivateAuraSounds()--Dirty, does full purge but this fight only has the one so it's fine for now
-			end
-		end
-		targetName = Ambiguate(targetName, "none")
-		warnWeaversBurdenTargets:CombinedShow(0.6, self.vb.burdenCount, targetName)
 	end
 end

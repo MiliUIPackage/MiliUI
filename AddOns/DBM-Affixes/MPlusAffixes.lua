@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230907175431")
+mod:SetRevision("20240106073327")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -22,7 +22,7 @@ mod:RegisterEvents(
 --]]
 local warnExplosion							= mod:NewCastAnnounce(240446, 4)
 local warnIncorporeal						= mod:NewCastAnnounce(408801, 4)
-local warnAfflictedCry						= mod:NewCastAnnounce(409492, 4, nil, nil, nil, nil, nil, 14)--spellId, color, castTime, icon, optionDefault, optionName, _, soundOption
+local warnAfflictedCry						= mod:NewCastAnnounce(409492, 4, nil, nil, "Healer|RemoveMagic|RemoveCurse|RemoveDisease|RemovePoison", 2, nil, 14)--Flagged to only warn players who actually have literally any skill to deal with spirits, else alert is just extra noise to some rogue or warrior with no skills for mechanic
 local warnDestabalize						= mod:NewCastAnnounce(408805, 4, nil, nil, false)
 local warnSpitefulFixate					= mod:NewYouAnnounce(350209, 4)
 
@@ -34,7 +34,7 @@ local specWarnGTFO							= mod:NewSpecialWarningGTFO(209862, nil, nil, nil, 1, 8
 
 local timerQuakingCD						= mod:NewNextTimer(20, 240447, nil, nil, nil, 3)
 local timerEntangledCD						= mod:NewCDTimer(30, 408556, nil, nil, nil, 3, 396347, nil, nil, 2, 3, nil, nil, nil, true)
-local timerAfflictedCD						= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON, nil, 3, 3)
+local timerAfflictedCD						= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, 2, DBM_COMMON_L.HEALER_ICON, nil, mod:IsHealer() and 3, 3)--Timer is still on for all, cause knowing when they spawn still informs decisions like running ahead or pulling
 local timerIncorporealCD					= mod:NewCDTimer(45, 408801, nil, nil, nil, 5, nil, nil, nil, 3, 3)
 
 mod:AddNamePlateOption("NPSanguine", 226510, "Tank")
@@ -86,7 +86,7 @@ local function checkForCombat(self)
 			if incorpRemaining and incorpRemaining > 0 then--Shouldn't be 0, unless a player clicked it off, in which case we can't reschedule
 				self:Unschedule(checkIncorp)
 				self:Schedule(incorpRemaining+10, checkIncorp, self)
-				DBM:Debug("Experimental reschedule of checkIncorp running because you're in debug mode")
+				DBM:Debug("Experimental reschedule of checkIncorp running")
 			end
 		elseif not combatFound and incorporealCounting then
 			incorporealCounting = false
@@ -102,7 +102,7 @@ local function checkForCombat(self)
 			if afflictRemaining and afflictRemaining > 0 then--Shouldn't be 0, unless a player clicked it off, in which case we can't reschedule
 				self:Unschedule(checkAfflicted)
 				self:Schedule(afflictRemaining+10, checkAfflicted, self)
-				DBM:Debug("Experimental reschedule of checkAfflicted running because you're in debug mode")
+				DBM:Debug("Experimental reschedule of checkAfflicted running")
 			end
 		elseif not combatFound and afflictedCounting then
 			afflictedCounting = false
@@ -115,20 +115,23 @@ end
 
 do
 	local validZones
-	if (C_MythicPlus.GetCurrentSeason() or 0) == 11 then--DF Season 3
-		--2579, 1279, 1501, 1466, 1763, 643, 1862
-		validZones = {[2579]=true, [1279]=true, [1501]=true, [1466]=true, [1763]=true, [643]=true, [1862]=true}
+	if (C_MythicPlus.GetCurrentSeason() or 0) == 9 then--DF Season 1
+		--2516, 2526, 2515, 2521, 1477, 1571, 1176, 960
+		validZones = {[2516]=true, [2526]=true, [2515]=true, [2521]=true, [1477]=true, [1571]=true, [1176]=true, [960]=true}
 	elseif (C_MythicPlus.GetCurrentSeason() or 0) == 10 then--DF Season 2
 		--657, 1841, 1754, 1458, 2527, 2519, 2451, 2520
 		validZones = {[657]=true, [1841]=true, [1754]=true, [1458]=true, [2527]=true, [2519]=true, [2451]=true, [2520]=true}
-	else--Season 1
-		--2516, 2526, 2515, 2521, 1477, 1571, 1176, 960
-		validZones = {[2516]=true, [2526]=true, [2515]=true, [2521]=true, [1477]=true, [1571]=true, [1176]=true, [960]=true}
+	elseif (C_MythicPlus.GetCurrentSeason() or 0) == 12 then--DF Season 4
+		--NOT YET KNOWN, season 3 placeholders
+		validZones = {[657]=true, [1841]=true, [1754]=true, [1458]=true, [2527]=true, [2519]=true, [2451]=true, [2520]=true}
+	else--Season 3 (11) (latest LIVE season put in else so if api fails, it just always returns latest)
+		--2579, 1279, 1501, 1466, 1763, 643, 1862
+		validZones = {[2579]=true, [1279]=true, [1501]=true, [1466]=true, [1763]=true, [643]=true, [1862]=true}
 	end
 	local eventsRegistered = false
-	local function delayedZoneCheck(self)
+	local function delayedZoneCheck(self, force)
 		local currentZone = DBM:GetCurrentArea() or 0
-		if validZones[currentZone] and not eventsRegistered then
+		if not force and validZones[currentZone] and not eventsRegistered then
 			eventsRegistered = true
 			self:RegisterShortTermEvents(
 				"SPELL_CAST_START 240446 409492 408805",
@@ -143,7 +146,8 @@ do
 			if self.Options.NPSanguine then
 				DBM:FireEvent("BossMod_EnableHostileNameplates")
 			end
-		elseif not validZones[currentZone] and eventsRegistered then
+			DBM:Debug("Registering M+ events")
+		elseif force or (not validZones[currentZone] and eventsRegistered) then
 			eventsRegistered = false
 			afflictedCounting = false
 			incorporealCounting = false
@@ -157,27 +161,22 @@ do
 			if self.Options.NPSanguine then
 				DBM.Nameplate:Hide(true, nil, nil, nil, true, true)
 			end
+			DBM:Debug("Unregistering M+ events")
 		end
 	end
 	function mod:LOADING_SCREEN_DISABLED()
 		self:Unschedule(delayedZoneCheck)
-		self:Schedule(1, delayedZoneCheck, self)
-		self:Schedule(3, delayedZoneCheck, self)
+		--Checks Delayed 1 second after core checks to prevent race condition of checking before core did and updated cached ID
+		self:Schedule(2, delayedZoneCheck, self)
+		self:Schedule(6, delayedZoneCheck, self)
 	end
 	mod.OnInitialize = mod.LOADING_SCREEN_DISABLED
 	mod.ZONE_CHANGED_NEW_AREA	= mod.LOADING_SCREEN_DISABLED
-end
 
-function mod:CHALLENGE_MODE_COMPLETED()
-	afflictedCounting = false
-	incorporealCounting = false
-	incorpDetected = false
-	afflictedDetected = false
-	self:UnregisterShortTermEvents()
-	self:Unschedule(checkForCombat)
-	self:Unschedule(checkEntangled)
-	self:Unschedule(checkAfflicted)
-	self:Stop()--Stop M+ timers on completion as well
+	function mod:CHALLENGE_MODE_COMPLETED()
+		--This basically force unloads things even when in a dungeon, so it's not countdown affixes that are disabled
+		delayedZoneCheck(self, true)
+	end
 end
 
 function mod:SPELL_CAST_START(args)

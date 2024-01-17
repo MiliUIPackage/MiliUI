@@ -1,4 +1,9 @@
+local _, private = ...
+
 local L = DBM_GUI_L
+
+---@class DBMGUI
+local DBM_GUI = DBM_GUI
 
 local pairs, next, type, ipairs, setmetatable, mfloor, mmax = pairs, next, type, ipairs, setmetatable, math.floor, math.max
 local CreateFrame, GameFontNormalSmall = CreateFrame, GameFontNormalSmall
@@ -6,6 +11,7 @@ local DBM = DBM
 
 local defaultFont, defaultFontSize = GameFontHighlightSmall:GetFont()
 
+---@class DBM_GUI_DropDownTemplate: ScrollFrame, BackdropTemplate
 local tabFrame1 = CreateFrame("ScrollFrame", "DBM_GUI_DropDown", _G["DBM_GUI_OptionsFrame"], "DBM_GUI_DropDownTemplate")
 tabFrame1.backdropInfo = {
 	bgFile		= "Interface\\ChatFrame\\ChatFrameBackground", -- 130937
@@ -75,6 +81,7 @@ end)
 
 tabFrame1.buttons = {}
 for i = 1, 10 do
+	---@class DBMFrameButton: Button, BackdropTemplate
 	local button = CreateFrame("Button", tabFrame1:GetName() .. "Button" .. i, tabFrame1, "BackdropTemplate,UIDropDownMenuButtonTemplate")
 	_G[button:GetName() .. "Check"]:Hide()
 	_G[button:GetName() .. "UnCheck"]:Hide()
@@ -184,6 +191,9 @@ function tabFrame1:Refresh()
 	ClickFrame:Show()
 end
 
+---@class DBMDropdownTemplate: Frame
+---@field values table
+---@field myheight number
 local dropdownPrototype = CreateFrame("Frame")
 
 function dropdownPrototype:SetSelectedValue(selected)
@@ -206,6 +216,8 @@ function DBM_GUI:CreateDropdown(title, values, vartype, var, callfunc, width, he
 			entry.value = entry.value or entry.text
 		end
 	end
+	---@class DBMDropDown: Frame, DBMDropdownTemplate
+	---@diagnostic disable-next-line: undefined-field -- frame comes from a subclass of DBM_GUI
 	local dropdown = CreateFrame("Frame", "DBM_GUI_DropDown" .. self:GetNewID(), parent or self.frame, "UIDropDownMenuTemplate")
 	dropdown.mytype = "dropdown"
 	dropdown.width = width
@@ -245,7 +257,7 @@ function DBM_GUI:CreateDropdown(title, values, vartype, var, callfunc, width, he
 		local titleText = dropdown:CreateFontString(dropdown:GetName() .. "TitleText", "BACKGROUND")
 		titleText:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 21, 1)
 		titleText:SetFontObject(GameFontNormalSmall)
-		titleText:SetText(title)
+		titleText:SetText(private.parseDescription(title))
 	end
 	if vartype and vartype == "DBM" and DBM.Options[var] ~= nil then
 		dropdown:SetScript("OnShow", function()

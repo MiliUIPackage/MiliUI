@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2525, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231123214402")
+mod:SetRevision("20240108061554")
 mod:SetCreatureID(201320)
 mod:SetEncounterID(2680)
 mod:SetUsedIcons(1)
@@ -60,8 +60,7 @@ local timerUnleashedShadowflameCD					= mod:NewCDCountTimer(40, 410070, 98565, n
 mod:AddInfoFrameOption(405827)
 mod:AddSetIconOption("SetIconOnSearingSlam", 405821, false, 0, {1})
 --mod:AddNamePlateOption("NPAuraOnAscension", 385541)
-mod:AddMiscLine(DBM_CORE_L.OPTION_CATEGORY_DROPDOWNS)
-mod:AddDropdownOption("TankSwapBehavior", {"DoubleSoak", "MinMaxSoak", "OnlyIfDanger"}, "DoubleSoak", "misc")
+mod:AddDropdownOption("TankSwapBehavior", {"DoubleSoak", "MinMaxSoak", "OnlyIfDanger"}, "DoubleSoak", "misc", nil, 407641)
 --mod:GroupSpells(390715, 396094)
 
 mod.vb.slamCount = 0

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2128, "DBM-Party-BfA", 10, 1001)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231125014209")
+mod:SetRevision("20240101080710")
 mod:SetCreatureID(131527, 131545)
 mod:SetMainBossID(131545)
 mod:SetEncounterID(2116)
@@ -58,7 +58,7 @@ local function scanBosses(self, delay)
 				timerWastingStrikeCD:Start(5-delay, 1, bossGUID)
 				timerVirulentPathogenCD:Start(9.5-delay, 1, bossGUID)
 			else
-				timerDiscordantCadenzaCD:Start(14.5-delay, 1, bossGUID)
+				timerDiscordantCadenzaCD:Start(13-delay, 1, bossGUID)
 			end
 		end
 	end

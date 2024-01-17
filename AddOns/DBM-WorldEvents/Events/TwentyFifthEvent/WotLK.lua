@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("WrathEvent", "DBM-WorldEvents", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20211125075428")
+mod:SetRevision("20240110075709")
 mod:SetCreatureID(36597, 34564, 15936)
 mod:SetEncounterID(2321)
 mod:SetModelID(30721)--Lich King
@@ -83,16 +83,11 @@ function mod:DefileTarget(targetname, uId)
 		specWarnDefileCast:Show()
 		specWarnDefileCast:Play("runout")
 		yellDefile:Yell()
+	elseif self:IsClassic() and self:CheckNearby(10, targetname) then
+		specWarnDefileNear:Show(targetname)
+		specWarnDefileNear:Play("runaway")
 	else
-		if uId then
-			local inRange = CheckInteractDistance(uId, 2)
-			if inRange then
-				specWarnDefileNear:Show(targetname)
-				specWarnDefileNear:Play("runaway")
-			else
-				warnDefileCast:Show(targetname)
-			end
-		end
+		warnDefileCast:Show(targetname)
 	end
 end
 

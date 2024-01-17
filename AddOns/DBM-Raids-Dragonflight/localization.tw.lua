@@ -251,7 +251,11 @@ L:SetMiscLocalization({
 ---------------------------
 --  Nymue, Weaver of the Cycle --
 ---------------------------
---L= DBM:GetModLocalization(2556)
+L= DBM:GetModLocalization(2556)
+
+L:SetMiscLocalization({
+	Threads			= "織物 (%s)"
+})
 
 ---------------------------
 --  Smolderon --
@@ -261,7 +265,13 @@ L:SetMiscLocalization({
 ---------------------------
 --  Tindral Sageswift, Seer of the Flame --
 ---------------------------
---L= DBM:GetModLocalization(2565)
+L= DBM:GetModLocalization(2565)
+
+L:SetMiscLocalization({
+	TreeForm			= "樹人型態",
+	MoonkinForm			= "梟獸型態",
+	Feathers			= "羽毛"
+})
 
 ---------------------------
 --  Fyrakk the Blazing --
@@ -277,7 +287,7 @@ L:SetWarningLocalization{
 }
 
 L:SetOptionLocalization{
-	warnMythicDebuffs			= "當$spell:428988以及$spell:428970減益已施放時通告(包含計數)",
+	warnMythicDebuffs			= "當$spell:428988以及$spell:428970減益施放時通告(包含計數)",
 	timerMythicDebuffs			= "顯示$spell:428988以及$spell:428970減益的計時(包含計數)"
 }
 

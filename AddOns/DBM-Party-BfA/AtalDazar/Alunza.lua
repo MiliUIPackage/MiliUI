@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2082, "DBM-Party-BfA", 1, 968)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231026101326")
+mod:SetRevision("20231224032758")
 mod:SetCreatureID(122967)
 mod:SetEncounterID(2084)
 mod:SetUsedIcons(8)
@@ -36,7 +36,7 @@ local specWarnSpiritofGold			= mod:NewSpecialWarningSwitchCount(259205, "Dps", n
 
 local timerTransfusionCD			= mod:NewCDCountTimer(34, 255577, nil, nil, nil, 5)
 local timerGildedClawsCD			= mod:NewCDCountTimer(34, 255579, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerMoltenGoldCD				= mod:NewCDCountTimer(34, 255582, nil, nil, nil, 3)
+local timerMoltenGoldCD				= mod:NewCDCountTimer(8.1, 255582, nil, nil, nil, 3)--8.1, but reset by transfusion 99% of time
 local timerSpiritofGoldCD			= mod:NewCDCountTimer(34, 259205, nil, nil, nil, 1, nil, DBM_COMMON_L.HEROIC_ICON)
 
 mod:AddSetIconOption("SetIconOnSpirit", 259205, true, 5, {8})
@@ -78,6 +78,8 @@ function mod:SPELL_CAST_START(args)
 		else--Already good to go, just a positive warning
 			warnTransfusion:Show(self.vb.transCount)
 		end
+		--Handle timer resets
+		timerMoltenGoldCD:Restart(25.5, self.vb.goldCount+1)
 	end
 end
 

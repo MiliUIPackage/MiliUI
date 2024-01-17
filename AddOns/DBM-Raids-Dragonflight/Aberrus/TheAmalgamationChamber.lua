@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2529, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231123214554")
+mod:SetRevision("20240108030833")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -237,7 +237,7 @@ local allTimers = {
 		--Gloom Conflag
 		[405437] = {50.3, 44.9, 45.2, 44.9, 46.2},
 		--Blistering Twilight
-		[405641] = {20.2, 15.7, 37.5, 15.7, 31.6},
+		[405641] = {20.2, 15.7, 36.4, 15.7, 31.6},
 		--Convergent Eruption (Heroic+)
 --		[408193] = {},
 		--Withering Vulnerability

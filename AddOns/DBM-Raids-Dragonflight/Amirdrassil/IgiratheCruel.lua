@@ -1,12 +1,12 @@
 local mod	= DBM:NewMod(2554, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231119113803")
+mod:SetRevision("20240112060931")
 mod:SetCreatureID(200926)
 mod:SetEncounterID(2709)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
-mod:SetHotfixNoticeRev(20231119000000)
-mod:SetMinSyncRevision(20231116000000)
+mod:SetHotfixNoticeRev(20231227000000)
+mod:SetMinSyncRevision(20231213000000)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -16,7 +16,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_SUCCESS 424456",
 	"SPELL_AURA_APPLIED 414340 414888 414367 419462 415623 414770 426056 422961",
 	"SPELL_AURA_APPLIED_DOSE 414340",
-	"SPELL_AURA_REMOVED 414888 422961",--415623
+	"SPELL_AURA_REMOVED 414888 422961 415623",
 	"UNIT_AURA player",
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
@@ -41,6 +41,7 @@ local warnHeartstopperSoon							= mod:NewSoonAnnounce(415623, 2)--Knife Stance
 local warnUmbralDestructionSoon						= mod:NewSoonAnnounce(416048, 2)--Axe Stance
 --local warnSmashingViscera							= mod:NewTargetNoFilterAnnounce(424456, 3)--Re-add if it gets put back in combat log
 local warnHeartStopper								= mod:NewTargetCountAnnounce(415623, 3, nil, nil, nil, nil, nil, nil, true)
+local warnFleshMortification						= mod:NewYouAnnounce(419462, 4)
 
 local specWarnDrenchedBlades						= mod:NewSpecialWarningTaunt(414340, nil, nil, nil, 1, 2)
 local specWarnBlisteringSpear						= mod:NewSpecialWarningYou(414888, nil, 369351, nil, 1, 2)
@@ -49,7 +50,6 @@ local yellBlisteringSpearFades						= mod:NewIconFadesYell(414888, nil, false)
 local specWarnBlisteringTorment						= mod:NewSpecialWarningYou(414770, nil, 184656, nil, 1, 2)--Shorttext "Chains"
 local yellBlisteringTorment							= mod:NewShortYell(414770, 184656)
 local specWarnTwistingBlade							= mod:NewSpecialWarningDodgeCount(416996, nil, 138737, nil, 2, 2)
-local specWarnFleshMortification					= mod:NewSpecialWarningYou(419462, nil, nil, nil, 1, 2)
 local specWarnRuinousEnd							= mod:NewSpecialWarningSpell(419048, nil, nil, nil, 3, 2)
 --Torments
 local specWarnUmbralDestruction						= mod:NewSpecialWarningCount(416048, nil, nil, nil, 2, 2)
@@ -57,6 +57,7 @@ local specWarnSmashingViscera						= mod:NewSpecialWarningYou(424456, nil, 47482
 local yellSmashingViscera							= mod:NewShortYell(424456, 47482)
 local yellSmashingVisceraFades						= mod:NewShortFadesYell(424456)
 local specWarnHeartStopper							= mod:NewSpecialWarningYou(415623, nil, nil, nil, 1, 2)
+local specWarnHeartStopperTaunt						= mod:NewSpecialWarningTaunt(415623, nil, nil, nil, 1, 2)
 local yellHeartStopperFades							= mod:NewShortFadesYell(415623)
 local specWarnVitalRupture							= mod:NewSpecialWarningYou(426056, nil, nil, nil, 1, 2)
 --local specWarnGTFO								= mod:NewSpecialWarningGTFO(409058, nil, nil, nil, 1, 8)
@@ -76,7 +77,7 @@ mod:AddSetIconOption("SetIconOnBlisteringSpear", 414888, false, false, {1, 2, 3,
 
 local blisteringMythicTimers = {14, 32.1, 35.1, 20.2}
 local blisteringHeroicTimers = {14, 23.0, 23.0, 22.5, 20.2}
-local blisteringEasyTimers = {14, 30.3, 40.0, 20.6}
+local blisteringEasyTimers = {14, 30.3, 38.9, 20.6}
 
 mod.vb.spearCount = 0--used for sequencing
 mod.vb.spearTotal = 0--Used for timer text
@@ -89,6 +90,8 @@ mod.vb.umbralCount = 0
 mod.vb.heartCount = 0
 --mod.vb.heartIcon = 1
 mod.vb.smashingCount = 0
+mod.vb.useHeartStopperBackup = false
+local tormentOverTime = 0
 
 function mod:OnCombatStart(delay)
 	self:SetStage(1)
@@ -98,6 +101,8 @@ function mod:OnCombatStart(delay)
 	self.vb.TwistingCount = 0
 	self.vb.TwistingTotal = 0
 	self.vb.tormentCount = 0
+	self.vb.useHeartStopperBackup = false
+	tormentOverTime = 0
 	if self:IsMythic() then
 		timerBlisteringSpearCD:Start(4.5-delay, 1)
 		timerTwistingBladeCD:Start(15.4-delay, 1)
@@ -106,7 +111,7 @@ function mod:OnCombatStart(delay)
 	else
 		timerBlisteringSpearCD:Start(10.6-delay, 1)
 		timerTwistingBladeCD:Start(4.5-delay, 1)
-		timerMarkedforTormentCD:Start(45-delay, 1)
+		timerMarkedforTormentCD:Start(44.7-delay, 1)
 		berserkTimer:Start(600-delay)
 	end
 end
@@ -143,6 +148,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 422776 then
 		self.vb.tormentCount = self.vb.tormentCount + 1
+		self.vb.useHeartStopperBackup = false
 		warnMarkedforTorment:Show(self.vb.tormentCount)
 		self:SetStage(self.vb.tormentCount)--Matching BW behavior which is kinda meh, but WA parity is needed
 	elseif spellId == 419048 then
@@ -190,7 +196,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if self:IsTanking(uId) then
 			local amount = args.amount or 1
 			if amount % 3 == 0 or amount > 6 then--Placeholder until review
-				if not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+				if amount > 6 and not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
 					specWarnDrenchedBlades:Show(args.destName)
 					specWarnDrenchedBlades:Play("tauntboss")
 				else
@@ -214,8 +220,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	elseif spellId == 414367 and args:IsPlayer() then
 		warnGatheringTorment:Show()
 	elseif spellId == 419462 and args:IsPlayer() then
-		specWarnFleshMortification:Show()
-		specWarnFleshMortification:Play("otherout")--Still reviewing best sound for this or if new one needed
+		warnFleshMortification:Show()
 	elseif spellId == 415623 then
 		if self:AntiSpam(8, 1) then
 			self.vb.heartCount = self.vb.heartCount + 1
@@ -227,6 +232,17 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnHeartStopper:Show()
 			specWarnHeartStopper:Play("targetyou")
 			yellHeartStopperFades:Countdown(spellId)--, nil, icon
+			--Unschedule if you also got it
+			specWarnHeartStopperTaunt:Cancel()
+			specWarnHeartStopperTaunt:CancelVoice()
+		elseif self.vb.useHeartStopperBackup then--Mythic difficulty and boss has debuffs and soaks
+			local uId = DBM:GetRaidUnitId(args.destName)
+			--If heartstopper is on tank that isn't you and you do not have it, taunt the boss on mythic difficulty
+			if self:IsTanking(uId) and not DBM:UnitDebuff("player", spellId) then
+				--Scheduled so first wait to make sure you don't also get it
+				specWarnHeartStopperTaunt:Schedule(0.8, args.destName)
+				specWarnHeartStopperTaunt:ScheduleVoice(0.8, "tauntboss")
+			end
 		end
 		warnHeartStopper:CombinedShow(1.1, self.vb.heartCount, args.destName)
 	elseif spellId == 414770 then
@@ -241,7 +257,18 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnVitalRupture:Play("targetyou")
 		end
 	elseif spellId == 422961 then--Torment Beginning
+		tormentOverTime = GetTime() + 20--Expected duration
 		timerMarkedforTorment:Start()
+		--Timers started in applied instead of removed, so they don't need adjusting later in LFR due to overtime
+		if self:IsHard() and self.vb.tormentCount >= 4 then
+--			timerTwistingBladeCD:Start(self:IsMythic() and 138.8 or 30.9, self.vb.TwistingTotal+1)--Mythic twisted not seen yet
+			timerBlisteringSpearCD:Start(38.8, self.vb.spearTotal+1)
+			timerMarkedforTormentCD:Start(self:IsMythic() and 139.1 or 74, self.vb.tormentCount+1)
+		else
+			timerBlisteringSpearCD:Start(34, self.vb.spearTotal+1)
+			timerTwistingBladeCD:Start(self:IsMythic() and 114.1 or 97.7, self.vb.TwistingTotal+1)
+			timerMarkedforTormentCD:Start(self:IsMythic() and 139.1 or 133.8, self.vb.tormentCount+1)
+		end
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -255,20 +282,16 @@ function mod:SPELL_AURA_REMOVED(args)
 		if args:IsPlayer() then
 			yellBlisteringSpearFades:Cancel()
 		end
+	elseif spellId == 415623 then
+		if args:IsPlayer() then
+			yellHeartStopperFades:Cancel()
+		end
 	elseif spellId == 422961 then--Torment Ending
+		tormentOverTime = GetTime() - tormentOverTime--Should be 0 all the time in non LFR, in LFR it will be 0 or greater
 		timerMarkedforTorment:Stop()
 		--Handle initial timer resets
 		self.vb.spearCount = 0
 		self.vb.TwistingCount = 0
-		if self:IsHard() and self.vb.tormentCount >= 4 then
-			timerTwistingBladeCD:Start(self:IsMythic() and 118.8 or 11.5, self.vb.TwistingTotal+1)--Mythic twisted not seen yet
-			timerBlisteringSpearCD:Start(18.8, self.vb.spearTotal+1)
-			timerMarkedforTormentCD:Start(self:IsMythic() and 119.9 or 54, self.vb.tormentCount+1)
-		else
-			timerBlisteringSpearCD:Start(14, self.vb.spearTotal+1)
-			timerTwistingBladeCD:Start(self:IsMythic() and 94.1 or 77.7, self.vb.TwistingTotal+1)
-			timerMarkedforTormentCD:Start(self:IsMythic() and 120 or 114.9, self.vb.tormentCount+1)
-		end
 	end
 end
 
@@ -298,19 +321,26 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 415020 then--Sword Stance
 		self.vb.smashingCount = 0
 		warnSmashingVisceraSoon:Show()
-		timerSmashingVisceraCD:Start(19.9, 1)
+		local initialTimer = self:IsLFR() and 24.7 or 19.9
+		local adjustedTimer = self:IsLFR() and (initialTimer - tormentOverTime) or initialTimer
+		timerSmashingVisceraCD:Start(adjustedTimer, 1)
 	elseif spellId == 415094 then--Knife Stance
 		self.vb.heartCount = 0
 		warnHeartstopperSoon:Show()
-		timerHeartStopperCD:Start(19, 1)
+		local initialTimer = self:IsLFR() and 23.9 or 19
+		local adjustedTimer = self:IsLFR() and (initialTimer - tormentOverTime) or initialTimer
+		timerHeartStopperCD:Start(adjustedTimer, 1)
 	elseif spellId == 415090 then--Axe Stance
 		self.vb.umbralCount = 0
 		warnUmbralDestructionSoon:Show()
-		timerUmbralDestructionCD:Start(18.8, 1)
+		local initialTimer = self:IsLFR() and 23.7 or 18.8
+		local adjustedTimer = self:IsLFR() and (initialTimer - tormentOverTime) or initialTimer
+		timerUmbralDestructionCD:Start(adjustedTimer, 1)
 	--Mythic specific weapon handling
 	elseif spellId == 425282 then--Axe Knife Stance
 		self.vb.umbralCount = 0
 		self.vb.heartCount = 0
+		self.vb.useHeartStopperBackup = true
 		warnUmbralDestructionSoon:Show()
 		warnHeartstopperSoon:Show()
 		timerHeartStopperCD:Start(21.2, 1)

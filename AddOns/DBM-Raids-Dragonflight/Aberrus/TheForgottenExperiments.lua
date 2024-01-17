@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2530, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231120131222")
+mod:SetRevision("20240108030833")
 mod:SetCreatureID(200912, 200913, 200918)
 mod:SetEncounterID(2693)
 mod:SetUsedIcons(1, 2, 3)
@@ -149,8 +149,8 @@ function mod:OnCombatStart(delay)
 		timerRendingChargeCD:Start(14-delay, 1)
 		timerMassiveSlamCD:Start(24-delay, 1)
 	else
-		timerBellowingRoarCD:Start(10.9-delay, 1)
-		timerRendingChargeCD:Start(19.4-delay, 1)
+		timerBellowingRoarCD:Start(10.6-delay, 1)
+		timerRendingChargeCD:Start(19-delay, 1)
 		timerMassiveSlamCD:Start(35.2-delay, 1)
 	end
 	--Thadrion

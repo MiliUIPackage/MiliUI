@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("d285", "DBM-WorldEvents", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231024223050")
+mod:SetRevision("20240105194200")
 
 if mod:IsRetail() then--10.1.7 fight rework
 	mod:SetZone(1004)

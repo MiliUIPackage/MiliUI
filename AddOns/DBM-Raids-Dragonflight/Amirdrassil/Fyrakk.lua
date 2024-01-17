@@ -1,20 +1,20 @@
 local mod	= DBM:NewMod(2519, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231128040735")
+mod:SetRevision("20240107070259")
 mod:SetCreatureID(204931)
 
 mod:SetEncounterID(2677)
 --mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20231127000000)
-mod:SetMinSyncRevision(20231127000000)
+mod:SetHotfixNoticeRev(20231212000000)
+mod:SetMinSyncRevision(20231208000000)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 419506 420422 417455 417431 412761 428963 428400 428971 428968 428965 419123 422837 410223 425492 422518",
-	"SPELL_CAST_SUCCESS 428954 414186 422935 422524 426368",
+	"SPELL_CAST_START 419506 420422 417455 417431 412761 428963 428400 428971 428968 428965 419123 422837 410223 425492 422518 419144",
+	"SPELL_CAST_SUCCESS 430441 422935 422524 426368",
 	"SPELL_AURA_APPLIED 417807 417443 429866 423717 425494 422517",
 	"SPELL_AURA_APPLIED_DOSE 417807 417443 429866 425494",
 	"SPELL_AURA_REMOVED 419144",
@@ -26,7 +26,7 @@ mod:RegisterEventsInCombat(
 
 --[[
 (ability.id = 419506 or ability.id = 420422 or ability.id = 417455 or ability.id = 417431 or ability.id = 419144 or ability.id = 412761 or ability.id = 428963 or ability.id = 428400 or ability.id = 428971 or ability.id = 428968 or ability.id = 428965 or ability.id = 419123 or ability.id = 422837 or ability.id = 410223 or ability.id = 425492 or ability.id = 422518) and type = "begincast"
- or (ability.id = 428954 or ability.id = 414186 or ability.id = 421937 or ability.id = 422935 or ability.id = 429875 or ability.id = 429876 or ability.id = 422524 or ability.id = 426368) and type = "cast"
+ or (ability.id = 430441 or ability.id = 414186 or ability.id = 421937 or ability.id = 422935 or ability.id = 429875 or ability.id = 429876 or ability.id = 422524 or ability.id = 426368) and type = "cast"
  or ability.id = 419144 and (type = "applybuff" or type = "removebuff")
  or (ability.id = 414187 or ability.id = 425525 or ability.id = 428988 or ability.id = 428970) and type = "applydebuff"
  or ability.id = 422517 and type = "applybuff"
@@ -35,7 +35,7 @@ mod:RegisterEventsInCombat(
 --TODO, tank swap stacks/when to taunt in stage 3, or maybe periods of time it shoudln't happen on mythic (if holding seed and shit going on, don't distract with taunt warning type deal)
 --TODO, more common locals/short names applied to mod?
 --General
-local warnPhase										= mod:NewPhaseChangeAnnounce(2, nil, nil, nil, nil, nil, 2)
+local warnPhase										= mod:NewPhaseChangeAnnounce(2, 2, nil, nil, nil, nil, nil, 2)
 
 local specWarnGTFO									= mod:NewSpecialWarningGTFO(419504, nil, nil, nil, 1, 8)
 
@@ -43,31 +43,31 @@ local timerPhaseCD									= mod:NewStageTimer(60, 408330)
 --local berserkTimer								= mod:NewBerserkTimer(600)
 --Stage One: The Dream Render
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26666))
-local warnDarkflameShades							= mod:NewCountAnnounce(428954, 2)
+local warnDarkflameShades							= mod:NewCountAnnounce(430441, 2, nil, false)
 local warnDarkflameCleave							= mod:NewCountAnnounce(426368, 4, nil, nil, 845)
-local warnFirestorm									= mod:NewCountAnnounce(419506, 4)
-local warnBlaze										= mod:NewCountAnnounce(414187, 3, nil, nil, nil, nil, nil, nil, 2)
+local warnFirestorm									= mod:NewCountAnnounce(419506, 4, nil, nil, nil, nil, nil, 2)--icon, optionDefault, optionName, castTime, preWarnTime, soundOption, noFilter
+local warnBlaze										= mod:NewCountAnnounce(414186, 3, nil, nil, nil, nil, nil, 2)
 local warnAflame									= mod:NewCountAnnounce(417807, 3, nil, nil, DBM_CORE_L.AUTO_ANNOUNCE_OPTIONS.stack:format(417807))--Player
 local warnFyralathsMark								= mod:NewStackAnnounce(417443, 3, nil, "Tank|Healer")
 
 local specWarnWildFire								= mod:NewSpecialWarningCount(420422, nil, nil, nil, 2, 2)
-local specWarnDreamRend								= mod:NewSpecialWarningRunCount(417455, nil, 193997, nil, 4, 2)
+local specWarnDreamRend								= mod:NewSpecialWarningRunCount(417455, nil, nil, nil, 4, 2)
 local specWarnFyralathsBite							= mod:NewSpecialWarningDefensive(417431, nil, nil, nil, 1, 2)
 local specWarnFyralathsMark							= mod:NewSpecialWarningTaunt(417443, nil, 37454, nil, 1, 2)
 
-local timerDarkflameShadesCD						= mod:NewCDCountTimer(49, 428954, nil, false, nil, 3, nil, DBM_CORE_L.MYTHIC_ICON)
+local timerDarkflameShadesCD						= mod:NewCDCountTimer(49, 430441, nil, false, nil, 3, nil, DBM_CORE_L.MYTHIC_ICON)
 local timerDarkflameCleaveCD						= mod:NewCDCountTimer(49, 426368, 845, nil, nil, 3, nil, DBM_CORE_L.MYTHIC_ICON)--Shortname "Cleave"
 local timerDarkflameCleave							= mod:NewCastCountTimer(4, 426368, 845, nil, nil, 5, nil, DBM_CORE_L.MYTHIC_ICON)
 local timerFirestormCD								= mod:NewCDCountTimer(49, 419506, nil, nil, nil, 3)
 local timerWildFireCD								= mod:NewCDCountTimer(49, 420422, nil, nil, nil, 2)
-local timerDreamRendCD								= mod:NewCDCountTimer(49, 417455, 193997, nil, nil, 3)--"Pull" short text. MIght change to "Pull in" though if it's unclear to users
-local timerBlazeCD									= mod:NewCDCountTimer(49, 414187, nil, nil, nil, 3)
+local timerDreamRendCD								= mod:NewCDCountTimer(49, 417455, nil, nil, nil, 3)--"Pull" short text. MIght change to "Pull in" though if it's unclear to users
+local timerBlazeCD									= mod:NewCDCountTimer(49, 414186, nil, nil, nil, 3)
 local timeAFlameCD									= mod:NewCDCountTimer(49, 417807, nil, "RemoveMagic", 2, 5, nil, DBM_COMMON_L.MAGIC_ICON)
 local timerFyralathsBiteCD							= mod:NewCDCountTimer(49, 417431, DBM_COMMON_L.FRONTAL.." (%s)", nil, 2, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 mod:AddPrivateAuraSoundOption(419060, true, 419506, 1)--Firestorm
 mod:AddPrivateAuraSoundOption(426370, true, 426370, 1)--Darkflame Cleave
-mod:AddPrivateAuraSoundOption(414187, true, 414187, 1)--Blaze
+mod:AddPrivateAuraSoundOption(414187, true, 414186, 1)--Blaze
 --Intermission: Amirdrassil in Peril
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26667))
 local warnShadowflameOrbs							= mod:NewCountAnnounce(421937, 2)
@@ -86,7 +86,7 @@ mod:AddPrivateAuraSoundOption(429903, true, 429903, 1)--Flamebound
 mod:AddPrivateAuraSoundOption(429906, true, 429906, 1)--Shadowbound
 --Stage Two: Children of the Stars
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(26668))
-local warnSpirits									= mod:NewCountAnnounce(422029, 3, nil, nil, 263222)
+local warnSpirits									= mod:NewCountAnnounce(422032, 3, nil, nil, 263222)
 local warnGreaterFirestorm							= mod:NewCountAnnounce(422518, 3)
 local warnExplodingCore								= mod:NewCastAnnounce(428400, 4)
 local warnMythicDebuffs								= mod:NewAnnounce("warnMythicDebuffs", 3, 428970, nil, nil, nil, 428970)
@@ -96,7 +96,7 @@ local specWarnShadowGauntlet						= mod:NewSpecialWarningDefensive(428965, nil, 
 local specWarnFlamefall								= mod:NewSpecialWarningRunCount(419123, nil, nil, nil, 4, 2)
 local specWarnShadowflameDevastation				= mod:NewSpecialWarningDodgeCount(422524, nil, 406227, nil, 2, 2)--Short name "Deep Breath"
 
-local timerSpiritsCD								= mod:NewCDCountTimer(49, 422029, 263222, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)--Shortname "Spirits"
+local timerSpiritsCD								= mod:NewCDCountTimer(49, 422032, 263222, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)--Shortname "Spirits"
 local timerGreaterFirestormCD						= mod:NewCDCountTimer(49, 422518, 419506, nil, nil, 3, nil, DBM_COMMON_L.HEALER_ICON)
 local timerMoltenGauntletCD							= mod:NewCDNPTimer(11.7, 428963, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 --local timerMoltenEruptionCD							= mod:NewCDNPTimer(23, 428971, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
@@ -154,23 +154,23 @@ mod.vb.swirlCount = 0
 local allTimers = {
 	[1.5] = {
 		--Blaze (Mythic Only intermission Blaze)
-		[414187] = {17, 12, 8},
+		[414186] = {29, 8},--29 guessed
 		--Shadowflame Orbs
 		[421937] = {3.5, 6, 6},
 	},
 	[2] = {--Same in all difficulties, minus Aflame
 		--Flamefall
 		[420422] = {5.8, 75, 79.9},
-		--Fyralaths Bite
-		[417431] = {18.7, 11.0, 60.0, 11.0, 11.0, 58.0, 11.0, 11.0},
+		--Fyr'alath's Bite
+		[417431] = {17.9, 11.0, 60.0, 11.0, 11.0, 58.0, 11.0, 11.0},
 		--Greater Firestorm
 		[422518] = {35.8, 79.9, 80.0},
 		--Shadowflame Devastation
 		[422524] = {58.8, 80},
 		--Spirits of the Kaldorai
-		[422029] = {20, 20, 20, 25, 26, 25, 25, 25},
+		[422032] = {20, 20, 20, 25, 26, 25, 25, 25},
 		--Blaze (Heroic+ only)
-		[414187] = {20.7, 14.9, 25, 30, 26.9, 23, 30, 25},
+		[414186] = {20.7, 14.9, 25, 30, 26.9, 23, 30, 25},
 		--Incarnate
 		[412761] = {44.6, 80.0, 79.5},
 		--Aflame (Heroic)
@@ -178,11 +178,7 @@ local allTimers = {
 		--Aflame (Normal)
 		[4178071] = {35.4, 74.0, 80.0},
 	},
-	[3] = {--Some timers assumed from pattern loop but probably fine
-		--Infernal Maw (Mythic)
-		[4254922] = {4.9, 3.0, 10.0, 3.0, 30.0, 3.0, 10.0, 3, 30, 10, 3, 30, 3, 10, 3},
-		--Infernal Maw (Non Mythic)
-		[4254921] = {4.9, 3.0, 10.0, 3.0, 25.0, 3.0, 10.0, 3.0, 25.0, 10.0, 3.0, 25.0, 3.0, 10.0, 3.0},
+	[3] = {
 		--Eternal Firestorm Embers
 		[402736] = {3.8, 6.4, 11.5, 11.5, 11.5, 5, 6.4, 11.5, 11.5, 11.5, 5, 6.4, 11.5, 11.5, 11.5, 5, 6.4, 11.5, 11.5, 11.5, 5, 6.4, 11.5, 11.5, 11.5},--Effectively 5, 6.4, 11.5, 11.5, 11.5 repeating, but with variance and no way to resync when it strays a little
 	},
@@ -201,7 +197,7 @@ local function blazeLoop(self)
 			timer = self.vb.blazeCount % 2 == 0 and 29.5 or 23.9
 		end
 	elseif stage == 1.5 or stage == 2 then--Still best sequenced sine it's larger pattern
-		timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, 414187, self.vb.blazeCount+1)
+		timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, 414186, self.vb.blazeCount+1)
 	else--Stage 3
 		timer = self:IsMythic() and (self.vb.blazeCount % 2 == 0 and 33 or 13) or (self.vb.blazeCount % 2 == 0 and 28 or 13)
 	end
@@ -310,6 +306,7 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 419506 then
 		self.vb.firestormCount = self.vb.firestormCount + 1
 		warnFirestorm:Show(self.vb.firestormCount)
+		warnFirestorm:Play("watchstep")
 		timerFirestormCD:Start(self:IsMythic() and 61 or 53.4, self.vb.firestormCount+1)
 	elseif spellId == 420422 then
 		self.vb.wildfireCount = self.vb.wildfireCount + 1
@@ -347,15 +344,14 @@ function mod:SPELL_CAST_START(args)
 		if timer then
 			timerFyralathsBiteCD:Start(timer, self.vb.tankCount+1)
 		end
---	elseif spellId == 419144 then--Corrupt
---		self:SetStage(1.5)
---		warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(1.5))
---		warnPhase:Play("phasechange")
+	elseif spellId == 419144 then--Corrupt
+		timerShadowflameOrbsCD:Start(3.5, 1)
+		self:Schedule(3.5, orbsLoop, self)
 	elseif spellId == 412761 then
 		self.vb.incarnCount = self.vb.incarnCount + 1
 		specWarnIncarnate:Show(self.vb.incarnCount)
-		specWarnIncarnate:Play("carefly")
 		if self:GetStage(1) then
+			specWarnIncarnate:Play("carefly")--Stage 1, it's transition which comes with knockback
 			self:SetStage(1.5)
 			self.vb.addsAlive = 0
 			self.vb.orbsCount = 0
@@ -370,14 +366,17 @@ function mod:SPELL_CAST_START(args)
 			self:Unschedule(blazeLoop)
 			timerDarkflameShadesCD:Stop()--Mythic Only
 			timerDarkflameCleaveCD:Stop()--Mythic Only
-			timerShadowflameOrbsCD:Start(3.5, 1)--TODO, maybe schedule on non mythic too
-			self:Schedule(3.5, orbsLoop, self)
 			timerCorrupt:Start(13)
 			if self:IsMythic() then
-				timerBlazeCD:Start(17, 1)--Mythic only
-				self:Schedule(17, blazeLoop, self)
+				timerBlazeCD:Start(29, 1)--Mythic only
+				self:Schedule(29, blazeLoop, self)
 			end
 		else
+			if self.vb.incarnCount == 3 then--only two sets of adds, 3rd one is only a knockback cause he's going dragon again
+				specWarnIncarnate:Play("carefly")
+			else
+				specWarnIncarnate:Play("mobsoon")--Stage 2, he's lifting off for big adds
+			end
 			local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, spellId, self.vb.incarnCount+1)
 			if timer then
 				timerIncarnateCD:Start(timer, self.vb.incarnCount+1)
@@ -436,29 +435,28 @@ function mod:SPELL_CAST_START(args)
 			specWarnInfernalMaw:Show()
 			specWarnInfernalMaw:Play("defensive")
 		end
-		local checkedId = self:IsMythic() and 4254922 or 4254921
-		local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, checkedId, self.vb.tankCount+1)
-		if timer then
-			timerInfernalMawCD:Start(timer, self.vb.tankCount+1)
+		--Mythic 30, 3, 10, 3 repeating
+		--Non Mythic 25, 3, 10, 3 repeating
+		local timer
+		if self.vb.tankCount % 4 == 0 then
+			timer = self:IsMythic() and 30 or 25
+		elseif self.vb.tankCount % 4 == 2 then
+			timer = 10
+		else--cast 1, and cast 3
+			timer = 3
 		end
+		timerInfernalMawCD:Start(timer, self.vb.tankCount+1)
 	end
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
-	if spellId == 428954 then--Not verified yet
+	if spellId == 430441 then
 		warnDarkflameShades:Show(self.vb.tankCount+1)
 		local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, spellId, self.vb.tankCount+2)
 		if timer then
 			timerDarkflameShadesCD:Start(timer, self.vb.tankCount+2)
 		end
---	elseif spellId == 414186 then--Not verified yet
---		self.vb.blazeCount = self.vb.blazeCount + 1
---		warnBlaze:Show(self.vb.blazeCount)
---		local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, spellId, self.vb.blazeCount+1)
---		if timer then
---			timerBlazeCD:Start(timer, self.vb.blazeCount+1)
---		end
 	elseif spellId == 422524 then
 		self.vb.shadowflameDevastation = self.vb.shadowflameDevastation + 1
 		specWarnShadowflameDevastation:Show(self.vb.shadowflameDevastation)
@@ -542,7 +540,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			remaining = expireTime-GetTime()
 		end
 		local timer = (self:GetFromTimersTable(allTimers, false, false, 417431, self.vb.tankCount+1) or 15) - 5
-		if (not remaining or remaining and remaining < timer) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+		if amount >= 2 and (not remaining or remaining and remaining < timer) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
 			specWarnFyralathsMark:Show(args.destName)
 			specWarnFyralathsMark:Play("tauntboss")
 		else
@@ -550,17 +548,13 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 425494 then
 		local amount = args.amount or 1
-		local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
-		local remaining
-		if expireTime then
-			remaining = expireTime-GetTime()
-		end
-		local timer = (self:GetFromTimersTable(allTimers, false, false, 425492, self.vb.tankCount+1) or 3) - 5
-		if amount >= 4 and (not remaining or remaining and remaining < timer) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
-			specWarnInfernalMawTaunt:Show(args.destName)
-			specWarnInfernalMawTaunt:Play("tauntboss")
-		else
-			warnInfernalMaw:Show(args.destName, amount)
+		if amount % 4 == 0 then--if amount >= 4 and (amount % 2 == 0) then (maybe use this instead of every 4 feels too infrequent)
+			if not args:IsPlayer() then
+				specWarnInfernalMawTaunt:Show(args.destName)
+				specWarnInfernalMawTaunt:Play("tauntboss")
+			else
+				warnInfernalMaw:Show(args.destName, amount)
+			end
 		end
 	elseif spellId == 423717 and args:IsPlayer() then
 		warnBloom:Show()
@@ -604,18 +598,16 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.aflameCount = 0
 		timerFlamefallCD:Start(5.8, 1)
 
-		timerFyralathsBiteCD:Start(18.4, 1)
-		timerSpiritsCD:Start(19.5, 1)
-		timerGreaterFirestormCD:Start(35.4, 1)
-		timerIncarnateCD:Start(44, 1)
-		timerShadowflameDevastationCD:Start(58.5, 1)
+		timerFyralathsBiteCD:Start(17.9, 1)
+		timerSpiritsCD:Start(19.1, 1)
+		timeAFlameCD:Start(27.1, 1)
+		timerGreaterFirestormCD:Start(34.9, 1)
+		timerIncarnateCD:Start(43.4, 1)
+		timerShadowflameDevastationCD:Start(57.9, 1)
 		timerPhaseCD:Start(215, 3)
 		if self:IsHard() then
 			timerBlazeCD:Start(20.7, 1)--Heroic/Mythic only
 			self:Schedule(20.7, blazeLoop, self)
-			timeAFlameCD:Start(35.4, 1)
-		else
-			timeAFlameCD:Start(27.1, 1)
 		end
 	end
 end
@@ -638,7 +630,7 @@ do
 		if mob == spiritsName then--Spirits yell when they spawn, no other time, so match action name with auto localized name, no localizing required
 			self.vb.spiritsCount = self.vb.spiritsCount + 1
 			warnSpirits:Show(self.vb.spiritsCount)
-			local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, 422029, self.vb.spiritsCount+1)
+			local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, 422032, self.vb.spiritsCount+1)
 			if timer then
 				timerSpiritsCD:Start(timer, self.vb.spiritsCount+1)
 			end

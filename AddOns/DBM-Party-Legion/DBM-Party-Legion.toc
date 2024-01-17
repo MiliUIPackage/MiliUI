@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 100205
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (Legion)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-軍臨天下|r
@@ -12,16 +12,16 @@
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: LEG
 ## X-DBM-StatTypes: normal,heroic,mythic,challenge
-## X-DBM-Mod-SubCategoriesID: 1501, 1466
+## X-DBM-Mod-SubCategoriesID: 1501, 1466, 1456, 1477, 1458, 1516, 1571, 1492, 1544, 1493, 1651, 1677, 1753
 ## X-DBM-Mod-Name-zhTW: 隊伍首領 (軍臨天下)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (军团再临)
 ## X-DBM-Mod-Sort: 502
-## X-DBM-Mod-MapID: 1501, 1466
+## X-DBM-Mod-MapID: 1501, 1466, 1456, 1477, 1458, 1516, 1571, 1492, 1544, 1493, 1651, 1677, 1753
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-DBM-Mod-MinExpansion: 6
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r109
+## Version: r115
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

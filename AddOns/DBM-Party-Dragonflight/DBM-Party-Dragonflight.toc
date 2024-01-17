@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 100205
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (DF)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (巨龙时代)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領-巨龍崛起|r
@@ -10,7 +10,7 @@
 ## X-DBM-Mod: 1
 ## X-DBM-Mod-Type: PARTY
 ## X-DBM-Mod-Category: DRAGONFLIGHT
-## X-DBM-StatTypes: normal,heroic,mythic,challenge
+## X-DBM-StatTypes: follower,normal,heroic,mythic,challenge
 ## X-DBM-Mod-SubCategoriesID: 2520, 2451, 2516, 2519, 2526, 2515, 2521, 2527, 2579
 ## X-DBM-Mod-Name: Dungeons (Dragonflight)
 ## X-DBM-Mod-Name-zhCN: 队伍首领 (巨龙时代)
@@ -22,7 +22,7 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r110
+## Version: r115
 ## X-Category-zhTW: 團隊
 
 localization.en.lua

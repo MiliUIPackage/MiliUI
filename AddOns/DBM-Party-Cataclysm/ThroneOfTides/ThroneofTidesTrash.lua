@@ -2,7 +2,7 @@ if (DBM:GetTOC() < 100200) then return end--DO NOT DELETE DO NOT DELETE DO NOT D
 local mod	= DBM:NewMod("ThroneofTidesTrash", "DBM-Party-Cataclysm", 9)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231128005122")
+mod:SetRevision("20240106072507")
 --mod:SetModelID(47785)
 mod:SetZone(643)
 
@@ -31,12 +31,11 @@ local warnHealingWave				= mod:NewCastAnnounce(76813, 3)
 local warnHex						= mod:NewCastAnnounce(76820, 2)
 local warnClenchingTentacles		= mod:NewCastAnnounce(428926, 4, nil, nil, nil, nil, nil, 13)
 local warnPsionicPulse				= mod:NewCastAnnounce(426905, 4, nil, nil, nil, nil, nil, 3)
+local warnAcidBarrage				= mod:NewSpellAnnounce(426645, 4)--, nil, nil, nil, nil, nil, 3
 local warnRazorJaws					= mod:NewStackAnnounce(426659, 2, nil, "Tank|Healer")
 
 local specWarnShadowSmash			= mod:NewSpecialWarningRun(76590, nil, nil, nil, 4, 2)
 local specWarnVolatileBolt			= mod:NewSpecialWarningDodge(426684, nil, nil, nil, 2, 2)
-local specWarnAcidBarrageOther		= mod:NewSpecialWarningDodge(426645, false, nil, nil, 2, 2)--Non Tank Version (off by default, tank SHOULD aim it away from group, but an option for those who want to be mindful of it)
-local specWarnAcidBarrageTank		= mod:NewSpecialWarningDefensive(426645, nil, nil, nil, 1, 2)--Tank Version
 local specWarnShellbreaker			= mod:NewSpecialWarningDefensive(426741, nil, nil, nil, 1, 2)
 local specWarnCrush					= mod:NewSpecialWarningDefensive(429021, nil, nil, nil, 1, 2)
 --local yellnViciousAmbush			= mod:NewYell(388984)
@@ -50,9 +49,9 @@ local specWarnGTFO					= mod:NewSpecialWarningGTFO(426688, nil, nil, nil, 1, 8)
 local timerHealingWaveCD			= mod:NewCDNPTimer(17, 76813, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--17-18.2
 local timerHexCD					= mod:NewCDNPTimer(20.4, 76820, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--Weak sample size, could be wrong
 local timerCrushingDepthsCD			= mod:NewCDNPTimer(27.9, 428542, nil, nil, nil, 5, nil, DBM_COMMON_L.HEALER_ICON)--Weak sample size, could be wrong
-local timerShellbreakerCD			= mod:NewCDNPTimer(17, 426741, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--17-19
+local timerShellbreakerCD			= mod:NewCDNPTimer(17, 426741, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--17-19 (8.4?)
 local timerVolatileBoltCD			= mod:NewCDNPTimer(20.6, 426684, nil, nil, nil, 3)--20.6-24.2
-local timerAcidBarrageCD			= mod:NewCDNPTimer(10.2, 426645, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--10.2-13
+local timerAcidBarrageCD			= mod:NewCDNPTimer(10.2, 426645, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)--10.2-13 (8.7 lowest?)
 local timerClenchingTentaclesCD		= mod:NewCDNPTimer(24.3, 428926, nil, nil, nil, 2)--24.3-25.5
 local timerCrushCD					= mod:NewCDNPTimer(17, 429021, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerPsionicPulseCD			= mod:NewCDNPTimer(8.5, 426905, nil, nil, nil, 2)
@@ -99,9 +98,10 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 426684 then
 		timerVolatileBoltCD:Start(nil, args.sourceGUID)
 		--If remaining time on acid barrage is less than 6 seconds when volatile bolt is cast, it'll be extended
-		if timerAcidBarrageCD:GetRemaining(args.sourceGUID) < 6 then
+		if timerAcidBarrageCD:GetRemaining(args.sourceGUID) < 4.8 then
+			DBM:Debug("extending acid barrage to 4.8 seconds", 2)
 			timerAcidBarrageCD:Stop(args.sourceGUID)
-			timerAcidBarrageCD:Start(6, args.sourceGUID)
+			timerAcidBarrageCD:Start(4.8, args.sourceGUID)
 		end
 		if self:AntiSpam(3, 2) then
 			specWarnVolatileBolt:Show()
@@ -109,16 +109,9 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 426645 then
 		timerAcidBarrageCD:Start(nil, args.sourceGUID)
-		if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
-			if self:AntiSpam(3, 5) then
-				specWarnAcidBarrageTank:Show()
-				specWarnAcidBarrageTank:Play("defensive")
-			end
-		else
-			if self:AntiSpam(3, 2) then
-				specWarnAcidBarrageOther:Show()
-				specWarnAcidBarrageOther:Play("shockwave")
-			end
+		if self:AntiSpam(3, 6) then
+			warnAcidBarrage:Show()
+--			warnAcidBarrage:Play("shockwave")
 		end
 	elseif spellId == 428926 then--Clenching tentacles is the new 10.2 mechanic that now triggers before the old Shadow Smash
 		timerClenchingTentaclesCD:Start(nil, args.sourceGUID)

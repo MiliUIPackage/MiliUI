@@ -1,6 +1,6 @@
-## Interface: 100200
-## Version: 10.2.7-28-g81f6754
-## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (DF)|r
+## Interface: 100205
+## Version: 10.2.17
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (Dragonflight)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (巨龍崛起)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首领 (巨龙时代)|r
 ## Author: MysticalOS
@@ -10,10 +10,10 @@
 ## SavedVariablesPerCharacter: DBMDragonIsles_SavedStats
 ## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
 ## X-DBM-Mod: 1
-## X-DBM-Mod-Type: RAID
+## X-DBM-Mod-Type: WORLDBOSS
 ## X-DBM-Mod-Category: DRAGONFLIGHT
 ## X-DBM-StatTypes: normal
-## X-DBM-Mod-Name: World Bosses (DF)
+## X-DBM-Mod-Name: World Bosses (Dragonflight)
 ## X-DBM-Mod-Name-zhTW: 世界首領 (巨龍崛起)
 ## X-DBM-Mod-Name-zhCN: 世界首领 (巨龙时代)
 ## X-DBM-Mod-World-Boss: 1

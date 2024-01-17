@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1656, "DBM-Party-Legion", 2, 762)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231107025714")
+mod:SetRevision("20240113205441")
 mod:SetCreatureID(99200)
 mod:SetEncounterID(1838)
 mod:SetHotfixNoticeRev(20231029000000)
@@ -31,9 +31,9 @@ local specWarnBreath				= mod:NewSpecialWarningDodgeCount(191325, "Tank", nil, n
 --local yellBreath					= mod:NewYell(199332)
 local specWarnFallingRocks			= mod:NewSpecialWarningGTFO(199460, nil, nil, nil, 1, 8)
 
-local timerBreathCD					= mod:NewCDTimer(22, 191325, nil, "Tank", nil, 5)--22/30 alternating? need more logs to confirm
-local timerEarthShakerCD			= mod:NewCDTimer(30.3, 199389, nil, nil, nil, 3)--OLD: 21
-local timerDownDraftCD				= mod:NewCDTimer(30.3, 199345, nil, nil, nil, 2)--OLD: 30-42 (health based or varaible?)
+local timerBreathCD					= mod:NewCDCountTimer(22, 191325, nil, "Tank", nil, 5)--22/30 alternating? need more logs to confirm
+local timerEarthShakerCD			= mod:NewCDCountTimer(30.3, 199389, nil, nil, nil, 3)--OLD: 21
+local timerDownDraftCD				= mod:NewCDCountTimer(30.3, 199345, nil, nil, nil, 2)--OLD: 30-42 (health based or varaible?)
 
 mod.vb.breathCount = 0
 mod.vb.earthCount = 0
@@ -44,8 +44,8 @@ function mod:OnCombatStart(delay)
 	self.vb.earthCount = 0
 	self.vb.draftCount = 0
 	timerBreathCD:Start(14.6-delay, 1)--14.6-15.4
-	timerDownDraftCD:Start(20.6-delay, 1)--20.6-22.7
-	timerEarthShakerCD:Start(32.9-delay, 1)--32.9-34.8
+	timerDownDraftCD:Start(19.4-delay, 1)--19.4-22.7
+	timerEarthShakerCD:Start(31.6-delay, 1)--31.6-34.8
 end
 
 function mod:SPELL_CAST_START(args)

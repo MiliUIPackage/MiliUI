@@ -8,7 +8,7 @@ if (wowToc >= 100200) then
 	mod.upgradedMPlus = true
 end
 
-mod:SetRevision("20231124193840")
+mod:SetRevision("20231221055323")
 mod:SetCreatureID(82682)
 mod:SetEncounterID(1751)
 mod:SetHotfixNoticeRev(20231020000000)
@@ -46,7 +46,7 @@ if (wowToc >= 100200) then
 	local timerCinderboltStormCD						= mod:NewCDTimer(60, 427899, nil, nil, nil, 2)
 	local timerGlacialFusionCD							= mod:NewCDTimer(60, 428082, nil, nil, nil, 3)
 	local timerSpetialCompressionCD						= mod:NewCDTimer(60, 428139, nil, nil, nil, 5)
-	local timerSpecialCD								= mod:NewCDSpecialTimer(20)--Used on mythic for now
+	--local timerSpecialCD								= mod:NewCDSpecialTimer(20)--Used on mythic for now
 
 	mod.vb.pullCount = 0
 
@@ -56,6 +56,14 @@ if (wowToc >= 100200) then
 		if not self:IsMythic() then--Mythic schedulers timers differently
 			timerGlacialFusionCD:Start(24.1)
 			timerSpetialCompressionCD:Start(43.7)
+		end
+		--Haven't seen bug in a while, guess print did it's job. Will remove if no one reports further problems with this boss for a while.
+		--DBM:AddMsg("This boss is very buggy and blizzard has ignored bug reports on the bugs. Sol sometimes resets her rotation back to cinder at random. Now, I've decided to reinstate showing what next rotation is SUPPOSED TO BE but if it's wrong don't complain to me, complain to blizzard for not fixing rotation bug")
+	end
+
+	function mod:OnCombatEnd(wipe, secondRun)
+		if not wipe and not secondRun then
+			DBM:GetModByName("EverBloomTrash"):PortalRP()
 		end
 	end
 
@@ -82,13 +90,13 @@ if (wowToc >= 100200) then
 			specWarnSpetialCompression:Show(self.vb.pullCount)
 			specWarnSpetialCompression:Play("pullin")
 			if self:IsMythic() then
---				if args:GetSrcCreatureID() == 82682 then--Source is Boss
---					timerGlacialFusionCD:Start(20)--Fire, Ice, Arcane, repeat (can come from either the boss or the add, but one of them will do it)
---					timerSpetialCompressionCD:Start(20)--Add will recast this next
---				end
-				if self:AntiSpam(5, 1) then
-					timerSpecialCD:Start(20)
+				if args:GetSrcCreatureID() == 82682 then--Source is Boss
+					timerGlacialFusionCD:Start(19.4)--Fire, Ice, Arcane, repeat (can come from either the boss or the add, but one of them will do it)
+					timerSpetialCompressionCD:Start(19.4)--Add will recast this next
 				end
+				--if self:AntiSpam(5, 1) then
+				--	timerSpecialCD:Start(20)
+				--end
 			else
 				timerSpetialCompressionCD:Start(60)
 			end
@@ -105,13 +113,13 @@ if (wowToc >= 100200) then
 		if spellId == 427899 then
 			warnCinderboltStorm:Show()
 			if self:IsMythic() then
---				if args:GetSrcCreatureID() == 82682 then--Source is Boss
---					timerGlacialFusionCD:Start(19.4)--Fire, Ice, Arcane, repeat
---					timerCinderboltStormCD:Start(20)--Add will recast this next
---				end
-				if self:AntiSpam(5, 1) then
-					timerSpecialCD:Start(20)
+				if args:GetSrcCreatureID() == 82682 then--Source is Boss
+					timerGlacialFusionCD:Start(18.4)--Fire, Ice, Arcane, repeat
+					timerCinderboltStormCD:Start(18.4)--Add will recast this next
 				end
+				--if self:AntiSpam(5, 1) then
+				--	timerSpecialCD:Start(20)
+				--end
 			else
 				timerCinderboltStormCD:Start(60)
 			end
@@ -119,13 +127,13 @@ if (wowToc >= 100200) then
 			specWarnGlacialFusion:Show()
 			specWarnGlacialFusion:Play("watchorb")
 			if self:IsMythic() then
---				if args:GetSrcCreatureID() == 82682 then--Source is Boss
---					timerSpetialCompressionCD:Start(20)--Fire, Ice, Arcane, repeat
---					timerGlacialFusionCD:Start(20)--Add will recast this next
---				end
-				if self:AntiSpam(5, 1) then
-					timerSpecialCD:Start(20)
+				if args:GetSrcCreatureID() == 82682 then--Source is Boss
+					timerSpetialCompressionCD:Start(18.4)--Fire, Ice, Arcane, repeat
+					timerGlacialFusionCD:Start(18.4)--Add will recast this next
 				end
+				--if self:AntiSpam(5, 1) then
+				--	timerSpecialCD:Start(20)
+				--end
 			else
 				timerGlacialFusionCD:Start(60)
 			end

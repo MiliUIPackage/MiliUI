@@ -1,7 +1,9 @@
 local mod	= DBM:NewMod(2528, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231102055900")
+mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
+
+mod:SetRevision("20240110230340")
 mod:SetCreatureID(198996)
 mod:SetEncounterID(2667)
 mod:SetUsedIcons(1, 2)

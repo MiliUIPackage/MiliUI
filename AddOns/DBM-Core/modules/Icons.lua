@@ -330,7 +330,7 @@ do
 				end
 			end
 		end
-		if success then
+		if success and guid then
 			addsGUIDs[guid] = true
 			addsIconSet[scanId] = addsIconSet[scanId] + 1
 			DBM:Debug("SetRaidTarget succeeded. Total set "..(addsIconSet[scanId] or "unknown").." of "..(iconVariables[scanId].maxIcon or "unknown"), 2)
@@ -449,6 +449,9 @@ do
 			end
 		else
 			DBM:Debug("Not elected to set icons for "..(optionName or "nil"), 2)
+			if wipeGUID then
+				addsGUIDs[scanId] = nil
+			end
 		end
 	end
 end

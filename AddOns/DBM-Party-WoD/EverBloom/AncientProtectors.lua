@@ -8,7 +8,7 @@ if (wowToc >= 100200) then
 	mod.upgradedMPlus = true
 end
 
-mod:SetRevision("20231121073213")
+mod:SetRevision("20231202060931")
 mod:SetCreatureID(83894, 83892, 83893)--Dulhu 83894, Gola 83892, Telu 83893
 mod:SetEncounterID(1757)
 mod:SetHotfixNoticeRev(20231021000000)
@@ -186,7 +186,7 @@ if (wowToc >= 100200) then
 		local spellId = args.spellId
 		if spellId == 427510 then
 			self.vb.chargeCount = self.vb.chargeCount + 1
-			timerNoxiousChargeCD:Start(nil, args.sourceGUID)
+			timerNoxiousChargeCD:Start(nil, self.vb.chargeCount+1, args.sourceGUID)
 		end
 	end
 

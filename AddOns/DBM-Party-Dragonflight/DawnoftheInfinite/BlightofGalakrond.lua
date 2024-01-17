@@ -1,8 +1,10 @@
 local mod	= DBM:NewMod(2535, "DBM-Party-Dragonflight", 9, 1209)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231125014209")
-mod.multiIDSingleBoss = true
+mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
+
+mod:SetRevision("20240115231709")
+mod:SetMultiIDSingleBoss()
 mod:SetCreatureID(198997, 201792, 201788, 201790)--It's technically just one creature animated 3 others, but checkbossHp will query all and return highest health for boss health percent
 mod:SetEncounterID(2668)
 --mod:SetUsedIcons(1, 2, 3)
@@ -213,9 +215,9 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerCorrosiveInfusionCD:Start(6.1, 1)
 		timerNecroticWindsCD:Start(16, 1)
 		timerBlightReclamationCD:Start(30.1, 1)
-	elseif spellId == 415114 then--Malignant Transferal (stage 2)
+	elseif spellId == 415114 then--Malignant Transferal (stage 3)
 		--Starting timers here better
-		timerCorrosiveInfusionCD:Start(15.6, 1)
+		timerCorrosiveInfusionCD:Start(14.5, 1)
 		timerIncineratingBlightbreathCD:Start(22.8, 1)
 		timerNecrofrostCD:Start(31.4, 1)
 		timerBlightReclamationCD:Start(64, 1)

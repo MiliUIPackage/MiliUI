@@ -2,7 +2,7 @@ if (DBM:GetTOC() < 100200) then return end--DO NOT DELETE DO NOT DELETE DO NOT D
 local mod	= DBM:NewMod("EverBloomTrash", "DBM-Party-WoD", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231121073213")
+mod:SetRevision("20240108011514")
 --mod:SetModelID(47785)
 mod:SetZone(1279)
 
@@ -23,6 +23,7 @@ mod:RegisterEvents(
  or (ability.id = 165213 or ability.id = 172578 or ability.id = 165123 or ability.id = 426500 or ability.id = 427223) and type = "cast"
 --]]
 local warnPoisonousClaws						= mod:NewSpellAnnounce(169657, 3, nil, "Tank")
+local warnSpatialDisruption						= mod:NewSpellAnnounce(426974, 2)
 local warnEnragedGrowth							= mod:NewCastAnnounce(165213, 4)
 local warnChokingVines							= mod:NewCastAnnounce(164965, 3)
 local warnNoxiousEruption						= mod:NewCastAnnounce(169445, 3)
@@ -32,7 +33,7 @@ local warnGnarledroots							= mod:NewTargetNoFilterAnnounce(426500, 3)
 
 local specWarnBoundingWhirl						= mod:NewSpecialWarningSpell(172578, "Melee", nil, nil, 4, 2)
 local specWarnCinderboltSalvo					= mod:NewSpecialWarningSpell(427223, nil, nil, nil, 2, 2)
-local specWarnSpatialDisruption					= mod:NewSpecialWarningSpell(426974, nil, nil, nil, 2, 13)
+--local specWarnSpatialDisruption					= mod:NewSpecialWarningSpell(426974, nil, nil, nil, 2, 13)
 local specWarnColdFusion						= mod:NewSpecialWarningDodge(426845, nil, nil, nil, 2, 2)
 local specWarnVenomBurst						= mod:NewSpecialWarningMoveAway(165123, nil, nil, nil, 1, 2)
 local yellnVenomBurst							= mod:NewYell(165123)
@@ -47,6 +48,7 @@ local specWarnVenomBurstDispel					= mod:NewSpecialWarningDispel(165123, "Remove
 local specWarnPoisonClawsDispel					= mod:NewSpecialWarningDispel(169658, "RemovePoison", nil, nil, 1, 2)
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(169495, nil, nil, nil, 1, 8)
 
+local timerRP									= mod:NewRPTimer(68)
 local timerEnragedGrowthCD						= mod:NewCDNPTimer(12.8, 165213, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--CD from success or interrupt
 local timerChokingVinesCD						= mod:NewCDNPTimer(20.6, 164965, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerBoundingWhirlCD						= mod:NewCDNPTimer(16.5, 172578, nil, nil, nil, 3)
@@ -62,6 +64,17 @@ local timerColdfusionCD							= mod:NewCDNPTimer(21.8, 426845, nil, nil, nil, 3)
 local timerSpatialDisruptionCD					= mod:NewCDNPTimer(19.5, 426974, nil, nil, nil, 3)
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt, 8 GTFO
+
+--"<6.63 00:47:46> [BOSS_KILL] 1751#Archmage Sol", -- [39]
+--"<8.41 00:47:48> [CHAT_MSG_MONSTER_SAY] You! Maybe there is still time. The portal atop this outpost is a direct link to our world-- to Stormwind! The genesaur...#Undermage Kesalon###Omegal##0#0##0#381#nil#0#false#false#false#false", -- [49]
+--"<21.76 00:48:01> [UNIT_SPELLCAST_SUCCEEDED] Yalnu(100.0%-0.0%){Target:??} -Teleport Out- [[target:Cast-3-4210-1279-28404-142193-000103D191:142193]]", -- [51]
+--"<33.92 00:48:13> [CLEU] SPELL_CAST_START#Creature-0-4210-1279-28404-85496-000003D0DD#Undermage Kesalon##nil#170738#Pyroblast#nil#nil", -- [52]
+--"<37.41 00:48:17> [CLEU] SPELL_CAST_SUCCESS#Creature-0-4210-1279-28404-85496-000003D0DD#Undermage Kesalon##nil#170738#Pyroblast#nil#nil", -- [53]
+--"<38.77 00:48:18> [CLEU] SPELL_CAST_SUCCESS#Creature-0-4210-1279-28404-85496-000003D0DD#Undermage Kesalon##nil#170741#Pyroblast#nil#nil", -- [56]
+--"<40.01 00:48:19> [CHAT_MSG_MONSTER_SAY] If that beast crosses through, the unchecked growth will choke the whole of Azeroth! Hurry!#Undermage Kesalon###Omegal##0#0##0#382#nil#0#false#false#false#false", -- [58]
+function mod:PortalRP()
+	timerRP:Start(34.3)--Approx, just using yell + 1
+end
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
@@ -120,8 +133,8 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 426974 then
 		timerSpatialDisruptionCD:Start(nil, args.sourceGUID)
 		--Not antispammed on purpose, it's too unique of a mechanic to bundle with any other mechanic
-		specWarnSpatialDisruption:Show()
-		specWarnSpatialDisruption:Play("pullin")
+		warnSpatialDisruption:Show()
+		--specWarnSpatialDisruption:Play("pullin")
 	end
 end
 
@@ -174,9 +187,11 @@ function mod:SPELL_AURA_APPLIED(args)
 		specWarnVenomBurstDispel:Play("helpdispel")
 	elseif spellId == 165123 then
 		if args:IsPlayer() then
-			specWarnVenomBurst:Show()
-			specWarnVenomBurst:Play("range5")
-			yellnVenomBurst:Yell()
+			if self:AntiSpam(4, 5) then
+				specWarnVenomBurst:Show()
+				specWarnVenomBurst:Play("range5")
+				yellnVenomBurst:Yell()
+			end
 		else
 			warnVenomBurst:Show(args.destName)
 		end
