@@ -5,6 +5,8 @@ function AuctionatorBagItemSelectedMixin:SetItemInfo(info, ...)
   self.IconSelectedHighlight:Hide()
   self.IconBorder:SetShown(info ~= nil)
   self.Icon:SetAlpha(1)
+
+  self.clickEventName = "BagUse.BagItemClicked"
 end
 
 local seenBag, seenSlot
@@ -15,6 +17,8 @@ function AuctionatorBagItemSelectedMixin:OnClick(button)
     if not check then
       if button == "LeftButton" and not wasCursorItem and self.itemInfo ~= nil then
         self:SearchInShoppingTab()
+      else
+        AuctionatorGroupsViewItemMixin.OnClick(self, button)
       end
     end
   end)
@@ -38,8 +42,9 @@ function AuctionatorBagItemSelectedMixin:ProcessCursor(callback)
     return
   end
 
-  -- Case when picking up a key from your keyring, WoW doesn't always give a
-  -- valid item location for the cursor, causing an error unless we either:
+  -- Case when picking up a key from your keyring in classic, WoW doesn't always
+  -- give a valid item location for the cursor, causing an error unless we
+  -- either:
   --  1. Ignore it
   --  2. Replace the location with one that is valid based on a hook on bag
   --  clicks.
@@ -81,8 +86,8 @@ local function HookForPickup(bag, slot)
   seenSlot = slot
 end
 
--- Record clicks on bag items so that we can make keyring items being picked up
--- and placed in the Selling tab work.
+-- For classic record clicks on bag items so that we can make keyring items
+-- being picked up and placed in the Selling tab work.
 if C_Container and C_Container.PickupContainerItem then
   hooksecurefunc(C_Container, "PickupContainerItem", HookForPickup)
 end
