@@ -1,4 +1,4 @@
-## Interface: 100200
+## Interface: 100205
 ## Version: 10.0.7.0
 ## Title: Masque Blizzard Bars
 ## Title-zhTW: |cFF0099FF[介面]|r 快捷樣式 - 暴雪快捷列

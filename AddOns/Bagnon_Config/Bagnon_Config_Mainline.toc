@@ -6,7 +6,7 @@
 ## Notes-zhTW: Bagnon Config|n背包整合設定介面。
 
 ## Dependencies: Bagnon
-## Interface: 100200
+## Interface: 100205
 ## LoadOnDemand: 1
 
 ..\Bagnon\src\config.lua

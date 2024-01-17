@@ -9,7 +9,7 @@
 
 ## SavedVariables: Bagnon_Sets
 ## Dependencies: BagBrother
-## Interface: 100200
+## Interface: 100205
 ## Version: 10.2.4
 
 src\main.xml
