@@ -2,7 +2,10 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 local B = Cell.bFuncs
+local A = Cell.animations
 local P = Cell.pixelPerfectFuncs
+
+local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 
 local raidPetFrame = CreateFrame("Frame", "CellRaidPetFrame", Cell.frames.mainFrame, "SecureHandlerAttributeTemplate")
 Cell.frames.raidPetFrame = raidPetFrame
@@ -22,6 +25,8 @@ hoverFrame:SetPoint("TOP", anchorFrame, 0, 1)
 hoverFrame:SetPoint("BOTTOM", anchorFrame, 0, -1)
 hoverFrame:SetPoint("LEFT", anchorFrame, -1, 0)
 hoverFrame:SetPoint("RIGHT", anchorFrame, 1, 0)
+
+A:ApplyFadeInOutToMenu(anchorFrame, hoverFrame)
 
 local dumb = Cell:CreateButton(anchorFrame, nil, "accent", {20, 10}, false, true)
 dumb:Hide()
@@ -47,7 +52,7 @@ dumb:HookScript("OnLeave", function()
     CellTooltip:Hide()
 end)
 
-function raidPetFrame:UpdateAnchor()
+local function UpdateAnchor()
     local show
     if Cell.vars.currentLayoutTable["pet"]["raidEnabled"] then
         show = Cell.unitButtons.raidpet[1]:IsShown()
@@ -69,68 +74,6 @@ function raidPetFrame:UpdateAnchor()
 end
 
 -------------------------------------------------
--- fadeIn & fadeOut
--------------------------------------------------
-local fadingIn, fadedIn, fadingOut, fadedOut
-anchorFrame.fadeIn = anchorFrame:CreateAnimationGroup()
-anchorFrame.fadeIn.alpha = anchorFrame.fadeIn:CreateAnimation("alpha")
-anchorFrame.fadeIn.alpha:SetFromAlpha(0)
-anchorFrame.fadeIn.alpha:SetToAlpha(1)
-anchorFrame.fadeIn.alpha:SetDuration(0.5)
-anchorFrame.fadeIn.alpha:SetSmoothing("OUT")
-anchorFrame.fadeIn:SetScript("OnPlay", function()
-    anchorFrame.fadeOut:Finish()
-    fadingIn = true
-end)
-anchorFrame.fadeIn:SetScript("OnFinished", function()
-    fadingIn = false
-    fadingOut = false
-    fadedIn = true
-    fadedOut = false
-    anchorFrame:SetAlpha(1)
-
-    if CellDB["general"]["fadeOut"] and not hoverFrame:IsMouseOver() then
-        anchorFrame.fadeOut:Play()
-    end
-end)
-
-anchorFrame.fadeOut = anchorFrame:CreateAnimationGroup()
-anchorFrame.fadeOut.alpha = anchorFrame.fadeOut:CreateAnimation("alpha")
-anchorFrame.fadeOut.alpha:SetFromAlpha(1)
-anchorFrame.fadeOut.alpha:SetToAlpha(0)
-anchorFrame.fadeOut.alpha:SetDuration(0.5)
-anchorFrame.fadeOut.alpha:SetSmoothing("OUT")
-anchorFrame.fadeOut:SetScript("OnPlay", function()
-    anchorFrame.fadeIn:Finish()
-    fadingOut = true
-end)
-anchorFrame.fadeOut:SetScript("OnFinished", function()
-    fadingIn = false
-    fadingOut = false
-    fadedIn = false
-    fadedOut = true
-    anchorFrame:SetAlpha(0)
-
-    if hoverFrame:IsMouseOver() then
-        anchorFrame.fadeIn:Play()
-    end
-end)
-
-hoverFrame:SetScript("OnEnter", function()
-    if not CellDB["general"]["fadeOut"] then return end
-    if not (fadingIn or fadedIn) then
-        anchorFrame.fadeIn:Play()
-    end
-end)
-hoverFrame:SetScript("OnLeave", function()
-    if not CellDB["general"]["fadeOut"] then return end
-    if hoverFrame:IsMouseOver() then return end
-    if not (fadingOut or fadedOut) then
-        anchorFrame.fadeOut:Play()
-    end
-end)
-
--------------------------------------------------
 -- header
 -------------------------------------------------
 local header = CreateFrame("Frame", "CellRaidPetFrameHeader", raidPetFrame, "SecureGroupPetHeaderTemplate")
@@ -147,7 +90,7 @@ header:SetAttribute("initialConfigFunction", [[
     -- self:SetHeight(header:GetAttribute("buttonHeight") or 46)
 ]])
 
-function header:UpdateButtonUnits(bName, unit)
+function header:UpdateButtonUnit(bName, unit)
     if not unit then return end
     Cell.unitButtons.raidpet.units[unit] = _G[bName]
     _G[bName].isRaidPet = true
@@ -155,7 +98,7 @@ end
 
 header:SetAttribute("_initialAttributeNames", "refreshUnitChange")
 header:SetAttribute("_initialAttribute-refreshUnitChange", [[
-    self:GetParent():CallMethod("UpdateButtonUnits", self:GetName(), self:GetAttribute("unit"))
+    self:GetParent():CallMethod("UpdateButtonUnit", self:GetName(), self:GetAttribute("unit"))
 ]])
     
 header:SetAttribute("template", "CellUnitButtonTemplate")
@@ -175,17 +118,17 @@ end
 header:Show()
 header:SetAttribute("startingIndex", 1)
 
-for i, b in ipairs({header:GetChildren()}) do
+for i, b in ipairs(header) do
     Cell.unitButtons.raidpet[i] = b
     -- b.type = "pet" -- layout setup
 end
 
 -- update mover
 header[1]:HookScript("OnShow", function()
-    raidPetFrame:UpdateAnchor()
+    UpdateAnchor()
 end)
 header[1]:HookScript("OnHide", function()
-    raidPetFrame:UpdateAnchor()
+    UpdateAnchor()
 end)
 
 -------------------------------------------------
@@ -235,7 +178,7 @@ local function UpdatePosition()
         end
     end
 
-    raidPetFrame:UpdateAnchor()
+    UpdateAnchor()
 end
 
 local function UpdateMenu(which)
@@ -266,8 +209,8 @@ local function RaidPetFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "raid" and init then return end
     init = true
     
-    if previousLayout == layout and not which then return end
-    previousLayout = layout
+    -- if previousLayout == layout and not which then return end
+    -- previousLayout = layout
 
     layout = CellDB["layouts"][layout]
 
@@ -284,10 +227,10 @@ local function RaidPetFrame_UpdateLayout(layout, which)
 
         P:Size(raidPetFrame, width, height)
 
-        header:SetAttribute("buttonWidth", P:Scale(width))
-        header:SetAttribute("buttonHeight", P:Scale(height))
+        -- header:SetAttribute("buttonWidth", P:Scale(width))
+        -- header:SetAttribute("buttonHeight", P:Scale(height))
 
-        for i, b in ipairs({header:GetChildren()}) do
+        for i, b in ipairs(header) do
             if not which or strfind(which, "size$") then
                 P:Size(b, width, height)
             end
@@ -297,7 +240,7 @@ local function RaidPetFrame_UpdateLayout(layout, which)
                 B:SetOrientation(b, layout["barOrientation"][1], layout["barOrientation"][2])
             end
            
-            if not which or strfind(which, "power$") or which == "barOrientation" then
+            if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
                 B:SetPowerSize(b, powerSize)
             end
         end
@@ -372,7 +315,7 @@ local function RaidPetFrame_UpdateLayout(layout, which)
         header:SetAttribute("columnAnchorPoint", headerColumnAnchorPoint)
 
         --! force update unitbutton's point
-        for i, b in ipairs({header:GetChildren()}) do
+        for i, b in ipairs(header) do
             b:ClearAllPoints()
         end
         header:SetAttribute("unitsPerColumn", 5)
@@ -386,7 +329,7 @@ local function RaidPetFrame_UpdateLayout(layout, which)
     if not which or which == "pet" then
         if layout["pet"]["raidEnabled"] and Cell.vars.inBattleground ~= 5 then
             header:SetAttribute("showRaid", true)
-            RegisterAttributeDriver(raidPetFrame, "state-visibility", "[group:raid] show; [group:party] hide; hide")
+            RegisterAttributeDriver(raidPetFrame, "state-visibility", "[@raid1,exists] show;hide")
         else
             header:SetAttribute("showRaid", false)
             UnregisterAttributeDriver(raidPetFrame, "state-visibility")

@@ -8,6 +8,7 @@ Cell.funcs = {}
 Cell.iFuncs = {}
 Cell.bFuncs = {}
 Cell.uFuncs = {}
+-- Cell.wFuncs = {} -- TODO: move widget functions
 Cell.animations = {}
 
 local F = Cell.funcs
@@ -18,13 +19,14 @@ local L = Cell.L
 -- sharing version check
 Cell.MIN_VERSION = 189
 Cell.MIN_CLICKCASTINGS_VERSION = 189
-Cell.MIN_LAYOUTS_VERSION = 203
-Cell.MIN_INDICATORS_VERSION = 203
+Cell.MIN_LAYOUTS_VERSION = 215
+Cell.MIN_INDICATORS_VERSION = 215
 Cell.MIN_DEBUFFS_VERSION = 189
+Cell.MIN_QUICKASSIST_VERSION = 213
 
---[==[@debug@
+--@debug@
 local debugMode = true
---@end-debug@]==]
+--@end-debug@
 function F:Debug(arg, ...)
     if debugMode then
         if type(arg) == "string" or type(arg) == "number" then
@@ -60,11 +62,11 @@ end)
 
 function F:UpdateLayout(layoutGroupType, updateIndicators)
     if InCombatLockdown() then
-        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\") DELAYED")
+        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\", "..(updateIndicators and "true" or "false")..") DELAYED")
         delayedLayoutGroupType, delayedUpdateIndicators = layoutGroupType, updateIndicators
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
-        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
+        F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\", "..(updateIndicators and "true" or "false")..")")
         local layout
         if Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] then
             layout = Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID][layoutGroupType]
@@ -88,7 +90,7 @@ local bgMaxPlayers = {
 -- layout auto switch
 local instanceType
 local function PreUpdateLayout()
-    if not Cell.vars.playerSpecRole then return end
+    if not (Cell.vars.playerSpecID and Cell.vars.playerSpecRole) then return end
 
     if instanceType == "pvp" then
         local name, _, _, _, _, _, _, id = GetInstanceInfo()
@@ -133,14 +135,14 @@ local eventFrame = CreateFrame("Frame")
 eventFrame:RegisterEvent("VARIABLES_LOADED")
 eventFrame:RegisterEvent("ADDON_LOADED")
 eventFrame:RegisterEvent("PLAYER_LOGIN")
-eventFrame:RegisterEvent("LOADING_SCREEN_ENABLED")
+-- eventFrame:RegisterEvent("LOADING_SCREEN_DISABLED")
 
-function eventFrame:LOADING_SCREEN_ENABLED()
-    if not InCombatLockdown() and not UnitAffectingCombat("player") then
-        F:Debug("|cffff7777collectgarbage")
-        collectgarbage("collect")
-    end
-end
+-- function eventFrame:LOADING_SCREEN_DISABLED()
+--     if not InCombatLockdown() and not UnitAffectingCombat("player") then
+--         F:Debug("|cffbbbbbbLOADING_SCREEN_DISABLED: |cffff7777collectgarbage")
+--         collectgarbage("collect")
+--     end
+-- end
 
 function eventFrame:VARIABLES_LOADED()
     SetCVar("predictedHealth", 1)
@@ -182,9 +184,9 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
                 ["alwaysUpdateBuffs"] = false,
-                ["alwaysUpdateDebuffs"] = false,
+                ["alwaysUpdateDebuffs"] = true,
                 ["overrideLGF"] = false,
-                ["framePriority"] = "normal_spotlight",
+                ["framePriority"] = "normal_spotlight_quickassist",
                 ["useCleuHealthUpdater"] = false,
                 ["translit"] = false,
             }
@@ -312,6 +314,9 @@ function eventFrame:ADDON_LOADED(arg1)
                 }
             }
         end
+
+        -- quickAssist ----------------------------------------------------------------------------
+        if type(CellDB["quickAssist"]) ~= "table" then CellDB["quickAssist"] = {} end
 
         -- quickCast ------------------------------------------------------------------------------
         if type(CellDB["quickCast"]) ~= "table" then CellDB["quickCast"] = {} end
@@ -522,6 +527,8 @@ function eventFrame:ADDON_LOADED(arg1)
         F:CheckWhatsNew()
         F:RunSnippets()
         Cell.loaded = true
+
+        Cell:Fire("AddonLoaded")
     end
 
     -- omnicd -------------------------------------------------------------------------------------
@@ -663,15 +670,16 @@ end
 local inInstance
 function eventFrame:PLAYER_ENTERING_WORLD()
     -- eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-    F:Debug("PLAYER_ENTERING_WORLD")
+    F:Debug("|cffbbbbbb=== PLAYER_ENTERING_WORLD ===")
     Cell.vars.inMythic = false
 
     local isIn, iType = IsInInstance()
     instanceType = iType
     Cell.vars.inInstance = isIn
+    Cell.vars.instanceType = iType
 
     if isIn then
-        F:Debug("|cffff1111Entered Instance:|r", iType)
+        F:Debug("|cffff1111*** Entered Instance:|r", iType)
         Cell:Fire("EnterInstance", iType)
         PreUpdateLayout()
         inInstance = true
@@ -682,16 +690,23 @@ function eventFrame:PLAYER_ENTERING_WORLD()
                 local difficultyID, difficultyName = select(3, GetInstanceInfo()) --! can't get difficultyID, difficultyName immediately after entering an instance
                 Cell.vars.inMythic = difficultyID == 16
                 if Cell.vars.inMythic then
+                    F:Debug("|cffff1111*** Entered Instance:|r", "raid-mythic")
+                    Cell:Fire("EnterInstance", iType)
                     PreUpdateLayout()
                 end
             end)
         end
 
     elseif inInstance then -- left insntance
-        F:Debug("|cffff1111Left Instance|r")
+        F:Debug("|cffff1111*** Left Instance|r")
         Cell:Fire("LeaveInstance")
         PreUpdateLayout()
         inInstance = false
+
+        if not InCombatLockdown() and not UnitAffectingCombat("player") then
+            F:Debug("|cffbbbbbb--- LeaveInstance: |cffff7777collectgarbage")
+            collectgarbage("collect")
+        end
     end
 
     if CellDB["firstRun"] then
@@ -701,7 +716,7 @@ end
 
 local prevSpec
 function eventFrame:PLAYER_LOGIN()
-    F:Debug("PLAYER_LOGIN")
+    F:Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
     eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE")
     eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
@@ -736,6 +751,8 @@ function eventFrame:PLAYER_LOGIN()
     Cell:Fire("UpdateTools")
     -- update requests
     Cell:Fire("UpdateRequests")
+    -- update quick assist
+    -- Cell:Fire("UpdateQuickAssist") -- NOTE: update in GroupTypeChanged/SpecChanged
     -- update quick cast
     Cell:Fire("UpdateQuickCast")
     -- update raid debuff list
@@ -774,7 +791,7 @@ end)
 -- PLAYER_SPECIALIZATION_CHANGED fires when level up, ACTIVE_TALENT_GROUP_CHANGED usually fire twice.
 -- NOTE: ACTIVE_TALENT_GROUP_CHANGED fires before PLAYER_LOGIN, but can't GetSpecializationInfo before PLAYER_LOGIN
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
-    F:Debug("ACTIVE_TALENT_GROUP_CHANGED")
+    F:Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
     -- not in combat & spec CHANGED
     if not InCombatLockdown() and (prevSpec and prevSpec ~= GetSpecialization() or forceRecheck) then
         prevSpec = GetSpecialization()
@@ -855,6 +872,10 @@ function SlashCmdList.CELL(msg, editbox)
             CellDB["snippets"] = {}
             CellDB["snippets"][0] = F:GetDefaultSnippet()
             ReloadUI()
+
+        elseif rest == "quickassist" then
+            CellDB["quickAssist"][Cell.vars.playerSpecID] = nil
+            ReloadUI()
         end
 
     elseif command == "report" then
@@ -891,6 +912,7 @@ function SlashCmdList.CELL(msg, editbox)
             "|cFFFFB5C5/cell reset clickcastings|r: "..L["reset all Click-Castings"]..".\n"..
             "|cFFFFB5C5/cell reset raiddebuffs|r: "..L["reset all Raid Debuffs"]..".\n"..
             "|cFFFFB5C5/cell reset snippets|r: "..L["reset all Code Snippets"]..".\n"..
+            "|cFFFFB5C5/cell reset quickassist|r: "..L["reset Quick Assist for current spec"]..".\n"..
             "|cFFFFB5C5/cell reset all|r: "..L["reset all Cell settings"].."."
         )
     end

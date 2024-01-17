@@ -312,6 +312,9 @@ local function CreatePreviewButtons()
 
     previewButton.widget.healthBar:SetMinMaxSmoothedValue(0, 100)
     previewButton.widget.healthBar:SetMinMaxValues(0, 100)
+
+    previewButton.widget.powerBar:SetMinMaxValues(0, 1)
+    previewButton.widget.powerBar:SetValue(1)
     
     local previewButtonBG = Cell:CreateFrame("CellAppearancePreviewButtonBG", appearanceTab)
     previewButtonBG:SetPoint("TOPLEFT", previewButton, 0, 20)
@@ -331,6 +334,9 @@ local function CreatePreviewButtons()
     previewButton2:SetScript("OnLeave", nil)
     previewButton2:SetScript("OnUpdate", nil)
     previewButton2:Show()
+
+    previewButton2.widget.powerBar:SetMinMaxValues(0, 1)
+    previewButton2.widget.powerBar:SetValue(1)
 
     local previewButtonBG2 = Cell:CreateFrame("CellAppearancePreviewButtonBG2", appearanceTab)
     previewButtonBG2:SetPoint("TOPLEFT", previewButton2, 0, 20)
@@ -422,17 +428,20 @@ local function UpdatePreviewShields(r, g, b)
         end
     end
 
-    if CellDB["appearance"]["shield"][1] then
-        previewButton2.widget.shieldBar:SetValue(0.4)
-        previewButton2.widget.shieldBar:SetVertexColor(CellDB["appearance"]["shield"][2][1], CellDB["appearance"]["shield"][2][2], CellDB["appearance"]["shield"][2][3], CellDB["appearance"]["shield"][2][4])
-    else
-        previewButton2.widget.shieldBar:Hide()
-    end
-
-    if CellDB["appearance"]["overshield"] then
-        previewButton2.widget.overShieldGlow:Show()
-    else
-        previewButton2.widget.overShieldGlow:Hide()
+    if Cell.isRetail or Cell.isWrath then
+        if CellDB["appearance"]["shield"][1] then
+            previewButton2.widget.shieldBar:SetValue(0.4)
+            previewButton2.widget.shieldBar:SetVertexColor(CellDB["appearance"]["shield"][2][1], CellDB["appearance"]["shield"][2][2], CellDB["appearance"]["shield"][2][3], CellDB["appearance"]["shield"][2][4])
+        else
+            previewButton2.widget.shieldBar:Hide()
+        end
+        
+        if CellDB["appearance"]["overshield"] then
+            previewButton2.widget.overShieldGlow:SetVertexColor(CellDB["appearance"]["shield"][2][1], CellDB["appearance"]["shield"][2][2], CellDB["appearance"]["shield"][2][3], 1)
+            previewButton2.widget.overShieldGlow:Show()
+        else
+            previewButton2.widget.overShieldGlow:Hide()
+        end
     end
 end
 
@@ -1058,28 +1067,28 @@ local function CreateUnitButtonStylePane()
     end)
     
     -- bar alpha
-    barAlpha = Cell:CreateSlider(L["Health Bar Alpha"], unitButtonPane, 0, 100, 141, 5, function(value)
+    barAlpha = Cell:CreateSlider(L["Health Bar Alpha"], unitButtonPane, 0, 100, 141, 1, function(value)
         CellDB["appearance"]["barAlpha"] = value/100
         Cell:Fire("UpdateAppearance", "alpha")
     end, nil, true)
     barAlpha:SetPoint("TOPLEFT", iconOptionsBtn, "BOTTOMLEFT", 0, -30)
     
     -- loss alpha
-    lossAlpha = Cell:CreateSlider(L["Health Loss Alpha"], unitButtonPane, 0, 100, 141, 5, function(value)
+    lossAlpha = Cell:CreateSlider(L["Health Loss Alpha"], unitButtonPane, 0, 100, 141, 1, function(value)
         CellDB["appearance"]["lossAlpha"] = value/100
         Cell:Fire("UpdateAppearance", "alpha")
     end, nil, true)
     lossAlpha:SetPoint("TOPLEFT", barAlpha, "BOTTOMLEFT", 0, -40)
     
     -- bg alpha
-    bgAlpha = Cell:CreateSlider(L["Background Alpha"], unitButtonPane, 0, 100, 141, 5, function(value)
+    bgAlpha = Cell:CreateSlider(L["Background Alpha"], unitButtonPane, 0, 100, 141, 1, function(value)
         CellDB["appearance"]["bgAlpha"] = value/100
         Cell:Fire("UpdateAppearance", "alpha")
     end, nil, true)
     bgAlpha:SetPoint("TOPLEFT", lossAlpha, "BOTTOMLEFT", 0, -40)
     
     -- out of range alpha
-    oorAlpha = Cell:CreateSlider(L["Out of Range Alpha"], unitButtonPane, 0, 100, 141, 5, function(value)
+    oorAlpha = Cell:CreateSlider(L["Out of Range Alpha"], unitButtonPane, 0, 100, 141, 1, function(value)
         CellDB["appearance"]["outOfRangeAlpha"] = value/100
         Cell:Fire("UpdateAppearance", "outOfRangeAlpha")
     end, nil, true)
@@ -1121,7 +1130,7 @@ local function CreateUnitButtonStylePane()
         F:EnableLibHealComm(checked)
     end, L["LibHealComm needs to be installed"])
     useLibCB:SetPoint("TOPLEFT", predCustomCB, "BOTTOMLEFT", 0, -7)
-    useLibCB:SetEnabled(Cell.isWrath)
+    useLibCB:SetEnabled(Cell.isVanilla or Cell.isWrath)
     
     -- heal absorb
     absorbCB = Cell:CreateCheckButton(unitButtonPane, "", function(checked, self)
@@ -1148,6 +1157,7 @@ local function CreateUnitButtonStylePane()
         Cell:Fire("UpdateAppearance", "shields")
     end)
     shieldCB:SetPoint("TOPLEFT", absorbCB, "BOTTOMLEFT", 0, -7)
+    shieldCB:SetEnabled(not Cell.isVanilla)
 
     shieldColorPicker = Cell:CreateColorPicker(unitButtonPane, L["Shield Texture"], true, function(r, g, b, a)
         CellDB["appearance"]["shield"][2][1] = r
@@ -1164,6 +1174,7 @@ local function CreateUnitButtonStylePane()
         Cell:Fire("UpdateAppearance", "shields")
     end)
     oversCB:SetPoint("TOPLEFT", shieldCB, "BOTTOMLEFT", 0, -7)
+    oversCB:SetEnabled(not Cell.isVanilla)
     
     -- reset
     local resetBtn = Cell:CreateButton(unitButtonPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+LeftClick] to reset these settings"])
@@ -1185,10 +1196,10 @@ end
 -------------------------------------------------
 -- debuff type color
 -------------------------------------------------
-local curseCP, diseaseCP, magicCP, poisonCP
+local curseCP, diseaseCP, magicCP, poisonCP, bleedCP
 
 local function CreateDebuffTypeColorPane()
-    local dtcPane = Cell:CreateTitledPane(appearanceTab, L["Debuff Type Color"], 422, 45)
+    local dtcPane = Cell:CreateTitledPane(appearanceTab, L["Debuff Type Color"], 422, 60)
     dtcPane:SetPoint("TOPLEFT", appearanceTab, "TOPLEFT", 5, -585)
 
     -- curse
@@ -1218,6 +1229,13 @@ local function CreateDebuffTypeColorPane()
         Cell:Fire("UpdateIndicators", F:GetNotifiedLayoutName(Cell.vars.currentLayout), "dispels", "debuffTypeColor")
     end)
     poisonCP:SetPoint("TOPLEFT", magicCP, "TOPRIGHT", 95, 0)
+   
+    -- bleed
+    bleedCP = Cell:CreateColorPicker(dtcPane, "|TInterface\\AddOns\\Cell\\Media\\Debuffs\\Bleed:0|t"..L["Bleed"], false, nil, function(r, g, b)
+        I:SetDebuffTypeColor("Bleed", r, g, b)
+        Cell:Fire("UpdateIndicators", F:GetNotifiedLayoutName(Cell.vars.currentLayout), "dispels", "debuffTypeColor")
+    end)
+    bleedCP:SetPoint("TOPLEFT", curseCP, "BOTTOMLEFT", 0, -7)
 
     -- reset
     local resetBtn = Cell:CreateButton(dtcPane, L["Reset All"], "accent", {77, 17}, nil, nil, nil, nil, nil, L["Reset All"], L["[Ctrl+LeftClick] to reset these settings"])
@@ -1302,6 +1320,7 @@ LoadDebuffTypeColor = function()
     diseaseCP:SetColor(I:GetDebuffTypeColor("Disease"))
     magicCP:SetColor(I:GetDebuffTypeColor("Magic"))
     poisonCP:SetColor(I:GetDebuffTypeColor("Poison"))
+    bleedCP:SetColor(I:GetDebuffTypeColor("Bleed"))
 end
 
 LoadData = function()
@@ -1366,7 +1385,7 @@ Cell:RegisterCallback("UpdateIndicators", "AppearanceTab_UpdateIndicators", Upda
 -- update appearance
 -------------------------------------------------
 local function UpdateAppearance(which)
-    F:Debug("|cff7f7fffUpdateAppearance:|r "..(which or "all"))
+    F:Debug("|cff7f7fffUpdateAppearance:|r", which)
     
     if not which or which == "texture" or which == "color" or which == "fullColor" or which == "deathColor" or which == "alpha" or which == "outOfRangeAlpha" or which == "shields" or which == "animation" or which == "highlightColor" or which == "highlightSize" or which == "reset" then
         local tex
@@ -1399,7 +1418,7 @@ local function UpdateAppearance(which)
             end
             -- outOfRangeAlpha
             if which == "outOfRangeAlpha" or which == "reset" then
-                b.state.wasInRange = false
+                b.state.wasInRange = nil
             end
             -- shields
             if not which or which == "shields" or which == "reset" then

@@ -1,6 +1,6 @@
 ## Interface: 30403
 ## Title: Cell
-## Version: r205-release
+## Version: r214-release
 ## Author: enderneko
 ## X-Flavor: Wrath
 ## SavedVariables: CellDB
@@ -15,13 +15,13 @@ Locales\zhCN.lua
 Locales\zhTW.lua
 Locales\koKR.lua
 
-Libs\LoadLibs_Wrath.xml
+Libs\LoadLibs_Classic.xml
 
 Core_Wrath.lua
 Utils.lua
 Revise.lua
 Comm\LoadComm.xml
-Widgets\LoadWidgets_Wrath.xml
+Widgets\LoadWidgets_Classic.xml
 Defaults\LoadDefaults_Wrath.xml
 
 HideBlizzard.lua
@@ -33,13 +33,13 @@ Indicators\AoEHealing.lua
 Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
 Indicators\Consumables.lua
-Indicators\Custom_Wrath.lua
-Indicators\PatronIcon.lua
+Indicators\Custom_Classic.lua
+Indicators\Patron.lua
 
 RaidFrames\MainFrame.lua
 
 RaidDebuffs\ExpansionData\LoadExpansionData.xml
-Modules\LoadModules_Wrath.xml
+Modules\LoadModules_Classic.xml
 Utilities\LoadUtilities_Wrath.xml
 RaidDebuffs\LoadRaidDebuffs_Wrath.xml
 

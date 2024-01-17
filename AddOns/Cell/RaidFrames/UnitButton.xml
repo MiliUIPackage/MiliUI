@@ -3,12 +3,14 @@
     <Button name="CellUnitButtonTemplate" inherits="BackdropTemplate,SecureUnitButtonTemplate,SecureHandlerEnterLeaveTemplate,SecureHandlerShowHideTemplate" hidden="true" virtual="true">
         <Attributes>
             <Attribute name="toggleForVehicle" type="boolean" value="true"/>
+            <Attribute name="checkselfcast" type="boolean" value="false"/>
+            <Attribute name="checkfocuscast" type="boolean" value="false"/>
             <!-- <Attribute name="allowVehicleTarget" type="boolean" value="true"/> -->
             <!-- <Attribute name="ping-receiver" type="boolean" value="true"/> -->
         </Attributes>
         <Scripts>
             <OnLoad>
-                Cell.funcs:UnitButton_OnLoad(self)
+                CellUnitButton_OnLoad(self)
             </OnLoad>
         </Scripts>
     </Button>
@@ -16,7 +18,7 @@
     <Button name="CellPreviewButtonTemplate" inherits="BackdropTemplate" hidden="true" virtual="true">
         <Scripts>
             <OnLoad>
-                Cell.funcs:UnitButton_OnLoad(self)
+                CellUnitButton_OnLoad(self)
                 self.isPreview = true
             </OnLoad>
         </Scripts>

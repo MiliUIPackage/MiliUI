@@ -24,6 +24,22 @@ end
 Cell.vars.nicknames = {}
 Cell.vars.nicknameCustoms = {}
 
+function F:GetNickname(shortname, fullname)
+    local name
+    if Cell.vars.nicknameCustomEnabled then
+        name = Cell.vars.nicknameCustoms[fullname] or
+               Cell.vars.nicknameCustoms[shortname] or
+               Cell.vars.nicknames[fullname] or
+               Cell.vars.nicknames[shortname] or
+               shortname
+    else
+        name = Cell.vars.nicknames[fullname] or
+               Cell.vars.nicknames[shortname] or
+               shortname
+    end
+    return name or _G.UNKNOWNOBJECT
+end
+
 local nic_check, nic_send
 
 local function Update(b)
@@ -41,6 +57,11 @@ local function UpdateName(who)
             who = who.."-"..GetNormalizedRealmName()
         end
         F:HandleUnitButton("name", who, Update)
+    end
+    -- update quickAssist
+    local unit = Cell.vars.names[who]
+    if unit and Cell.unitButtons.quickAssist.units[unit] then
+        Cell.unitButtons.quickAssist.units[unit].nameText:UpdateName()
     end
 end
 
@@ -215,7 +236,7 @@ f:SetScript("OnEvent", function()
     
     if not CELL_NICKTAG_ENABLED then return end
 
-    local nickTag = LibStub:GetLibrary("NickTag-1.0")
+    local nickTag = LibStub:GetLibrary("NickTag-1.0", true)
     if nickTag then
         Cell.NickTag = nickTag
 

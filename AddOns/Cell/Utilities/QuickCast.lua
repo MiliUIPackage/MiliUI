@@ -4,7 +4,9 @@ local F = Cell.funcs
 local U = Cell.uFuncs
 local A = Cell.animations
 local P = Cell.pixelPerfectFuncs
+
 local LCG = LibStub("LibCustomGlow-1.0")
+local LibTranslit = LibStub("LibTranslit-1.0")
 
 -- ----------------------------------------------------------------------- --
 --                                quick cast                               --
@@ -142,7 +144,7 @@ local function CreateQCPane()
             ["text"] = L["left-to-right"],
             ["value"] = "left-to-right",
             ["onClick"] = function()
-                qcLinesSlider:SetName(L["Columns"])
+                qcLinesSlider:SetLabel(L["Columns"])
                 quickCastTable["orientation"] = "left-to-right"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -151,7 +153,7 @@ local function CreateQCPane()
             ["text"] = L["right-to-left"],
             ["value"] = "right-to-left",
             ["onClick"] = function()
-                qcLinesSlider:SetName(L["Columns"])
+                qcLinesSlider:SetLabel(L["Columns"])
                 quickCastTable["orientation"] = "right-to-left"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -160,7 +162,7 @@ local function CreateQCPane()
             ["text"] = L["top-to-bottom"],
             ["value"] = "top-to-bottom",
             ["onClick"] = function()
-                qcLinesSlider:SetName(L["Rows"])
+                qcLinesSlider:SetLabel(L["Rows"])
                 quickCastTable["orientation"] = "top-to-bottom"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -169,7 +171,7 @@ local function CreateQCPane()
             ["text"] = L["bottom-to-top"],
             ["value"] = "bottom-to-top",
             ["onClick"] = function()
-                qcLinesSlider:SetName(L["Rows"])
+                qcLinesSlider:SetLabel(L["Rows"])
                 quickCastTable["orientation"] = "bottom-to-top"
                 Cell:Fire("UpdateQuickCast")
             end
@@ -357,6 +359,7 @@ local function CreateSpellButton(parent, func)
     local b = Cell:CreateButton(parent, " ", "accent-hover", {195, 20})
     b:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"LEFT", 2, 0})
     b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+    b:GetFontString():SetJustifyH("LEFT")
 
     b:SetScript("OnClick", function(self, button)
         if button == "LeftButton" then
@@ -694,9 +697,9 @@ local function LoadDB()
     qcButtonsSlider:SetValue(quickCastTable["num"])
     qcOrientationDD:SetSelectedValue(quickCastTable["orientation"])
     if strfind(quickCastTable["orientation"], "top") then
-        qcLinesSlider:SetName(L["Rows"])
+        qcLinesSlider:SetLabel(L["Rows"])
     else
-        qcLinesSlider:SetName(L["Columns"])
+        qcLinesSlider:SetLabel(L["Columns"])
     end
     qcLinesSlider:SetValue(quickCastTable["lines"])
     qcSizeSlider:SetValue(quickCastTable["size"])
@@ -944,8 +947,12 @@ end
 local function QuickCast_UpdateName(self)
     if not self.unit then return end
 
-    local name = UnitName(self.unit)
-    name = Cell.vars.nicknameCustoms[name] or Cell.vars.nicknames[name] or name
+    local name = F:GetNickname(UnitName(self.unit), F:UnitFullName(self.unit))
+
+    if CellDB["general"]["translit"] then
+        name = LibTranslit:Transliterate(name)
+    end
+
     if string.len(name) == string.utf8len(name) then -- en
         self.nameText:SetText(string.utf8sub(name, 1, 3))
     else
@@ -953,6 +960,7 @@ local function QuickCast_UpdateName(self)
     end
 end
 
+-- FIXME: sync others name
 Cell:RegisterCallback("UpdateNicknames", "QuickCast_UpdateNicknames", function()
     if quickCastButtons then
         C_Timer.After(1, function()
@@ -960,6 +968,14 @@ Cell:RegisterCallback("UpdateNicknames", "QuickCast_UpdateNicknames", function()
                 QuickCast_UpdateName(b)
             end
         end)
+    end
+end)
+
+Cell:RegisterCallback("TranslitNames", "QuickCast_TranslitNames", function()
+    if quickCastButtons then
+        for _, b in pairs(quickCastButtons) do
+            QuickCast_UpdateName(b)
+        end
     end
 end)
 
@@ -1405,7 +1421,7 @@ local function UpdateQuickCast()
     glowCastsColor = quickCastTable["glowCastsColor"]
 
     if quickCastTable["enabled"] then
-        RegisterAttributeDriver(quickCastFrame, "state-visibility", "[group] show; hide")
+        RegisterAttributeDriver(quickCastFrame, "state-visibility", "[@raid1,exists] show;[@party1,exists] show;hide")
         targetFrame:UpdatePixelPerfect()
         -- quickCastFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
         -- quickCastFrame:RegisterEvent("GROUP_ROSTER_UPDATE")

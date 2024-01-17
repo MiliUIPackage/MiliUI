@@ -2,6 +2,7 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 local B = Cell.bFuncs
+local A = Cell.animations
 local P = Cell.pixelPerfectFuncs
 
 local npcFrame = CreateFrame("Frame", "CellNPCFrame", Cell.frames.mainFrame, "SecureHandlerStateTemplate")
@@ -28,7 +29,7 @@ Cell.frames.separateNpcFrameAnchor = separateAnchor
 separateAnchor:SetMovable(true)
 separateAnchor:SetClampedToScreen(true)
 P:Size(separateAnchor, 20, 10)
-separateAnchor:SetPoint("TOPLEFT", UIParent, "CENTER")
+PixelUtil.SetPoint(separateAnchor, "TOPLEFT", UIParent, "CENTER", 1, -1)
 -- Cell:StylizeFrame(separateAnchor, {0, 1, 0, 0.4})
 
 local hoverFrame = CreateFrame("Frame", nil, npcFrame)
@@ -36,6 +37,8 @@ hoverFrame:SetPoint("TOP", separateAnchor, 0, 1)
 hoverFrame:SetPoint("BOTTOM", separateAnchor, 0, -1)
 hoverFrame:SetPoint("LEFT", separateAnchor, -1, 0)
 hoverFrame:SetPoint("RIGHT", separateAnchor, 1, 0)
+
+A:ApplyFadeInOutToMenu(separateAnchor, hoverFrame)
 
 local dumb = Cell:CreateButton(separateAnchor, nil, "accent", {20, 10}, false, true)
 dumb:Hide()
@@ -84,68 +87,6 @@ function npcFrame:UpdateSeparateAnchor()
         dumb:Hide()
     end
 end
-
--------------------------------------------------
--- fadeIn & fadeOut
--------------------------------------------------
-local fadingIn, fadedIn, fadingOut, fadedOut
-separateAnchor.fadeIn = separateAnchor:CreateAnimationGroup()
-separateAnchor.fadeIn.alpha = separateAnchor.fadeIn:CreateAnimation("alpha")
-separateAnchor.fadeIn.alpha:SetFromAlpha(0)
-separateAnchor.fadeIn.alpha:SetToAlpha(1)
-separateAnchor.fadeIn.alpha:SetDuration(0.5)
-separateAnchor.fadeIn.alpha:SetSmoothing("OUT")
-separateAnchor.fadeIn:SetScript("OnPlay", function()
-    separateAnchor.fadeOut:Finish()
-    fadingIn = true
-end)
-separateAnchor.fadeIn:SetScript("OnFinished", function()
-    fadingIn = false
-    fadingOut = false
-    fadedIn = true
-    fadedOut = false
-    separateAnchor:SetAlpha(1)
-
-    if CellDB["general"]["fadeOut"] and not hoverFrame:IsMouseOver() then
-        separateAnchor.fadeOut:Play()
-    end
-end)
-
-separateAnchor.fadeOut = separateAnchor:CreateAnimationGroup()
-separateAnchor.fadeOut.alpha = separateAnchor.fadeOut:CreateAnimation("alpha")
-separateAnchor.fadeOut.alpha:SetFromAlpha(1)
-separateAnchor.fadeOut.alpha:SetToAlpha(0)
-separateAnchor.fadeOut.alpha:SetDuration(0.5)
-separateAnchor.fadeOut.alpha:SetSmoothing("OUT")
-separateAnchor.fadeOut:SetScript("OnPlay", function()
-    separateAnchor.fadeIn:Finish()
-    fadingOut = true
-end)
-separateAnchor.fadeOut:SetScript("OnFinished", function()
-    fadingIn = false
-    fadingOut = false
-    fadedIn = false
-    fadedOut = true
-    separateAnchor:SetAlpha(0)
-
-    if hoverFrame:IsMouseOver() then
-        separateAnchor.fadeIn:Play()
-    end
-end)
-
-hoverFrame:SetScript("OnEnter", function()
-    if not CellDB["general"]["fadeOut"] then return end
-    if not (fadingIn or fadedIn) then
-        separateAnchor.fadeIn:Play()
-    end
-end)
-hoverFrame:SetScript("OnLeave", function()
-    if not CellDB["general"]["fadeOut"] then return end
-    if hoverFrame:IsMouseOver() then return end
-    if not (fadingOut or fadedOut) then
-        separateAnchor.fadeOut:Play()
-    end
-end)
 
 -------------------------------------------------
 -- NOTE: update each npc unit button
@@ -378,7 +319,6 @@ npcFrame:SetAttribute("_onstate-groupstate", [[
     -- NOTE: update each npc button
     self:RunAttribute("pointUpdater", orientation, point, anchorPoint, unitSpacing)
 ]])
--- RegisterStateDriver(npcFrame, "groupstate", "[group:raid] raid; [group:party] party; solo")
 
 -------------------------------------------------
 -- update point when pet state changed
@@ -493,8 +433,8 @@ Cell:RegisterCallback("UpdateMenu", "NPCFrame_UpdateMenu", UpdateMenu)
 
 local previousLayout
 local function NPCFrame_UpdateLayout(layout, which)
-    if previousLayout == layout and not which then return end
-    previousLayout = layout
+    -- if previousLayout == layout and not which then return end
+    -- previousLayout = layout
 
     layout = Cell.vars.currentLayoutTable
 
@@ -520,7 +460,7 @@ local function NPCFrame_UpdateLayout(layout, which)
         end
     end
     
-    if not which or strfind(which, "power$") or which == "barOrientation" then
+    if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
         for _, b in ipairs(Cell.unitButtons.npc) do
             if layout["npc"]["sameSizeAsMain"] then
                 B:SetPowerSize(b, layout["main"]["powerSize"])
@@ -680,7 +620,8 @@ local function NPCFrame_UpdateLayout(layout, which)
                 -- load separate npc frame position
                 P:LoadPosition(separateAnchor, layout["npc"]["position"])
             else
-                RegisterStateDriver(npcFrame, "groupstate", "[group:raid] raid; [group:party] party; solo")
+                -- RegisterStateDriver(npcFrame, "groupstate", "[group:raid] raid;[group:party] party;solo")
+                RegisterStateDriver(npcFrame, "groupstate", "[@raid1,exists] raid;[@party1,exists] party;solo")
                 RegisterStateDriver(npcFrame, "petstate", "[@pet,exists] pet; [@partypet1,exists] pet1; [@partypet2,exists] pet2; [@partypet3,exists] pet3; [@partypet4,exists] pet4; nopet")
             end
         else
@@ -698,7 +639,8 @@ local function NPCFrame_UpdateVisibility(which)
     if not which or which == "solo" or which == "party" then
         local showSolo = CellDB["general"]["showSolo"] and "show" or "hide"
         local showParty = CellDB["general"]["showParty"] and "show" or "hide"
-        RegisterAttributeDriver(npcFrame, "state-visibility", "[group:raid] show; [group:party] "..showParty.."; "..showSolo)
+        -- RegisterAttributeDriver(npcFrame, "state-visibility", "[group:raid] show; [group:party] "..showParty.."; "..showSolo)
+        RegisterAttributeDriver(npcFrame, "state-visibility", "[@raid1,exists] show;[@party1,exists] "..showParty..";"..showSolo)
     end
 end
 Cell:RegisterCallback("UpdateVisibility", "NPCFrame_UpdateVisibility", NPCFrame_UpdateVisibility)

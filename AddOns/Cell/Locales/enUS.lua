@@ -20,6 +20,8 @@ select(2, ...).L = setmetatable({
     ["VEHICLE"] = "Vehicle",
 
     ["showGroupNumber"] = "Show group number",
+    ["showTimer"] = "Show timer",
+    ["showBackground"] = "Show background",
     ["dispellableByMe"] = "Only show debuffs dispellable by me",
     ["showDispelTypeIcons"] = "Show dispel type icons",
     ["castByMe"] = "Only show buffs cast by me",
@@ -40,6 +42,7 @@ select(2, ...).L = setmetatable({
     ["shieldByMe"] = "Only show PW:S cast by me",
     ["onlyShowOvershields"] = "Only show overshields",
     ["showAllSpells"] = "Show all spells",
+    ["enableBlacklistShortcut"] = "Blacklist: Alt+Ctrl+RightClick",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -73,7 +76,6 @@ select(2, ...).L = setmetatable({
     ["marksTips"] = "\n|rTarget marker\nLeft-Click: |cffffffffset raid marker on target|r\nRight-Click: |cfffffffflock raid marker on target (in your group)|r",
     ["cleuAurasTips"] = "Check CLEU events for invisible auras",
     ["raidRosterTips"] = "[Right-Click] promote/demote (assistant). [Alt+Right-Click] uninvite.",
-    ["spotlightTips"] = "Left-Click: |cffffffffmenu|r\nRight-Click: |cffffffffclear|r\nLeft-Drag: |cffffffffset unit (not in combat)|r\nRight-Drag: |cffffffffset unit's pet (not in combat)|r",
     
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
@@ -81,6 +83,68 @@ select(2, ...).L = setmetatable({
     ["CHANGELOGS"] = [[
         <h1>If there are any issues after an update, check through all code snippets first.</h1>
         <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
+        <br/>
+
+        <h1>r214-release (Dec 30, 2023, 20:35 GMT+8)</h1>
+        <p>* Fixed Spell Request, updated CELL_NOTIFY payloads.</p>
+        <p>* Updated the priority of dispel types: Magic &gt; Curse &gt; Disease &gt; Poison &gt; Bleed.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+       
+        <h1>r213-release (Dec 26, 2023, 04:04 GMT+8)</h1>
+        <p>+ (Retail) Updated Quick Assist, new Spec Filter and Filter Auto Switch.</p>
+        <p>* (Retail) Updated Smart Resurrection, added support for mass resurrections.</p>
+        <p>* Increased maximum size for indicators.</p>
+        <p>* Fixed a power bar issue.</p>
+        <p>* Fixed utilities submenu.</p>
+        <p>* Fixed duration text color.</p>
+        <br/>
+
+        <h1>r212-release (Dec 18, 2023, 19:54 GMT+8)</h1>
+        <p>* Fixed a issue that newly created indicators did not show up when solo or in a party.</p>
+        <p>* Updated overshield texture. Now it uses the color of shield texture.</p>
+        <br/>
+
+        <h1>r211-release (Dec 16, 2023, 17:57 GMT+8)</h1>
+        <p>* Updated dispel checker, removed snippet var: CELL_DISPEL_EVOKER_CAUTERIZING_FLAME.</p>
+        <p>* When enter/leave instance, all visible unit buttons will be refreshed.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r210-release (Dec 15, 2023, 23:55 GMT+8)</h1>
+        <p>+ Implemented Bleed debuff type (using data from https://wago.tools/db2/SpellEffect, EffectMechanic=15).</p>
+        <p>* Fixed Quick Assist config/preview.</p>
+        <p>* (Wrath) Fixed PW:S indicator.</p>
+        <br/>
+
+        <h1>r209-release (Dec 14, 2023, 11:20 GMT+8)</h1>
+        <p>* Fixed issues with newly created custom Color indicators.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+        
+        <h1>r208-release (Dec 14, 2023, 00:43 GMT+8)</h1>
+        <p>* The order of click-casting items can now be adjusted by dragging them.</p>
+        <p>* Fixed click-castings for Quick Assist.</p>
+        <br/>
+
+        <h1>r207-release (Dec 13, 2023, 17:02 GMT+8)</h1>
+        <p>* (Retail) Updated Quick Assist, removed stand-alone click-castings, added bars/glows and filter switcher.</p>
+        <p>+ Updated Spotlights, added "Tank" and "Unit's Name".</p>
+        <p>+ Updated support for 1.15 Classic.</p>
+        <p>+ Added "Change Over Time" option for custom Color indicators.</p>
+        <p>+ Added role icon for vehicles.</p>
+        <p>* Fixed LibHealComm support.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r206-release (Dec 9, 2023, 00:50 GMT+8)</h1>
+        <p>+ (Retail) New utility: Quick Assist. Thanks 钛锬(NGA) for offensive spells and testing.</p>
+        <p>* Updated raid debuffs.</p>
+        <p>* Updated Cell.GetUnitFrame.</p>
+        <p>* (Retail) Updated dispel checker for Shaman.</p>
+        <p>+ Added "Show Background" and "Show Timer" for Status Text indicator.</p>
+        <p>* Updated locales.</p>
+        <p>* Bug fixes.</p>
         <br/>
 
         <h1>r205-release (Nov 27, 2023, 12:27 GMT+8)</h1>

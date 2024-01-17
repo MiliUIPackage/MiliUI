@@ -39,10 +39,10 @@ local encounterJournalList = {
     --     },
     -- },
 }
---[==[@debug@
+--@debug@
 Cell_DevExpansionData = encounterJournalList
 Cell_DevExpansionNames = {}
---@end-debug@]==]
+--@end-debug@
 
 -- used to GetInstanceInfo/GetRealZoneText --> instanceId
 local instanceNameMapping = {
@@ -100,9 +100,9 @@ local function LoadList()
     for tier = 1, num do
         local name = EJ_GetTierInfo(tier)
         encounterJournalList[name] = {}
-        --[==[@debug@
+        --@debug@
         tinsert(Cell_DevExpansionNames, 1, name)
-        --@end-debug@]==]
+        --@end-debug@
 
         if tier ~= num then -- don't load raid for "Mythic+ Dungeon"
             LoadInstanceList(tier, "raid", encounterJournalList[name])
@@ -1166,6 +1166,11 @@ local function CreatePreviewButton()
     previewButton:SetScript("OnUpdate", nil)
     previewButton:Hide()
 
+    previewButton.widget.healthBar:SetMinMaxValues(0, 1)
+    previewButton.widget.healthBar:SetValue(1)
+    previewButton.widget.powerBar:SetMinMaxValues(0, 1)
+    previewButton.widget.powerBar:SetValue(1)
+
     local previewButtonBG = Cell:CreateFrame("CellRaidDebuffsPreviewButtonBG", previewButton)
     previewButtonBG:SetPoint("TOPLEFT", previewButton, 0, 20)
     previewButtonBG:SetPoint("BOTTOMRIGHT", previewButton, "TOPRIGHT")
@@ -1211,7 +1216,7 @@ local function UpdatePreviewButton()
         previewButton.indicators.nameText:Show()
         previewButton.state.name = UnitName("player")
         previewButton.indicators.nameText:UpdateName()
-        previewButton.indicators.nameText:UpdatePreviewColor(iTable["nameColor"])
+        previewButton.indicators.nameText:UpdatePreviewColor(iTable["color"])
         previewButton.indicators.nameText:UpdateTextWidth(iTable["textWidth"])
         previewButton.indicators.nameText:SetFont(unpack(iTable["font"]))
         previewButton.indicators.nameText:ClearAllPoints()
@@ -1656,7 +1661,7 @@ local function CreateDetailsFrame()
     glowDuration:SetPoint("TOPLEFT", glowColor, "BOTTOMLEFT", 0, -25)
 
     -- glowFrequency
-    glowFrequency = Cell:CreateSlider(L["Frequency"], glowOptionsFrame, -2, 2, 117, 0.05, function(value)
+    glowFrequency = Cell:CreateSlider(L["Frequency"], glowOptionsFrame, -2, 2, 117, 0.01, function(value)
         SliderValueChanged(3, value)
     end)
     glowFrequency:SetPoint("TOPLEFT", glowLines, "BOTTOMLEFT", 0, -40)

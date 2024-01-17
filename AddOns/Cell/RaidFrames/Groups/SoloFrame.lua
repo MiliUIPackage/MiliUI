@@ -6,7 +6,6 @@ local P = Cell.pixelPerfectFuncs
 local soloFrame = CreateFrame("Frame", "CellSoloFrame", Cell.frames.mainFrame, "SecureFrameTemplate")
 Cell.frames.soloFrame = soloFrame
 soloFrame:SetAllPoints(Cell.frames.mainFrame)
--- RegisterAttributeDriver(soloFrame, "state-visibility", "[group] hide; show")
 
 local playerButton = CreateFrame("Button", soloFrame:GetName().."Player", soloFrame, "CellUnitButtonTemplate")
 -- playerButton.type = "main" -- layout setup
@@ -26,8 +25,8 @@ local function SoloFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "solo" and init then return end
     init = true
 
-    if previousLayout == layout and not which then return end
-    previousLayout = layout
+    -- if previousLayout == layout and not which then return end
+    -- previousLayout = layout
 
     layout = CellDB["layouts"][layout]
 
@@ -47,7 +46,7 @@ local function SoloFrame_UpdateLayout(layout, which)
         B:SetOrientation(petButton, layout["barOrientation"][1], layout["barOrientation"][2])
     end
     
-    if not which or strfind(which, "power$") or which == "barOrientation" then
+    if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
         B:SetPowerSize(playerButton, layout["main"]["powerSize"])
         if layout["pet"]["sameSizeAsMain"] then
             B:SetPowerSize(petButton, layout["main"]["powerSize"])
@@ -104,7 +103,7 @@ local function SoloFrame_UpdateVisibility(which)
 
     if not which or which == "solo" then
         if CellDB["general"]["showSolo"] then
-            RegisterAttributeDriver(soloFrame, "state-visibility", "[group] hide; show")
+            RegisterAttributeDriver(soloFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] hide;show")
         else
             UnregisterAttributeDriver(soloFrame, "state-visibility")
             soloFrame:Hide()

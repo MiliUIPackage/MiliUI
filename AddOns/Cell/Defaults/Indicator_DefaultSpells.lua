@@ -55,8 +55,8 @@ local bigDebuffs = {
     -- 226512, -- 鲜血脓液（血池）
     -----------------------------------------------
     -- NOTE: Thundering Affix - Dragonflight Season 1
-    396369, -- 闪电标记
-    396364, -- 狂风标记
+    -- 396369, -- 闪电标记
+    -- 396364, -- 狂风标记
     -----------------------------------------------
     -- NOTE: Shrouded Affix - Shadowlands Season 4
     -- 373391, -- 梦魇
@@ -543,11 +543,11 @@ local dispelNodeIDs = {
     
     -- EVOKER ---------------
         -- 1467 - Devastation
-        [1467] = {["Poison"] = 93306},
+        [1467] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = {93306, 93294}, ["Bleed"] = 93294},
         -- 1468	- Preservation
-        [1468] = {["Magic"] = true, ["Poison"] = true},
+        [1468] = {["Curse"] = 93294, ["Disease"] = 93294, ["Magic"] = true, ["Poison"] = true, ["Bleed"] = 93294},
         -- 1473 - Augmentation
-        [1473] = {["Poison"] = 93306},
+        [1473] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = {93306, 93294}, ["Bleed"] = 93294},
     -------------------------
         
     -- MAGE -----------------
@@ -588,11 +588,11 @@ local dispelNodeIDs = {
 
     -- SHAMAN ---------------
         -- 262 - Elemental
-        [262] = {["Curse"] = 81075},
+        [262] = {["Curse"] = 81075, ["Poison"] = 81093},
         -- 263 - Enhancement
-        [263] = {["Curse"] = 81077},
+        [263] = {["Curse"] = 81077, ["Poison"] = 81093},
         -- 264 - Restoration
-        [264] = {["Curse"] = 81073, ["Magic"] = true},
+        [264] = {["Curse"] = 81073, ["Magic"] = true, ["Poison"] = 81093},
     -------------------------
 
     -- WARLOCK --------------
@@ -638,6 +638,14 @@ else
             for dispelType, value in pairs(dispelNodeIDs[Cell.vars.playerSpecID]) do
                 if type(value) == "boolean" then
                     dispellable[dispelType] = value
+                elseif type(value) == "table" then -- more than one trait
+                    for _, v in pairs(value) do
+                        local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, v)
+                        if nodeInfo and nodeInfo.ranksPurchased ~= 0 then
+                            dispellable[dispelType] = true
+                            break
+                        end
+                    end
                 else -- number: check node info
                     local nodeInfo = C_Traits.GetNodeInfo(activeConfigID, value)
                     if nodeInfo and nodeInfo.ranksPurchased ~= 0 then
@@ -655,14 +663,6 @@ else
     eventFrame:SetScript("OnEvent", function(self, event)
         if event == "PLAYER_ENTERING_WORLD" then
             eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-            if Cell.vars.playerClass == "EVOKER" and CELL_DISPEL_EVOKER_CAUTERIZING_FLAME then
-                -- 1467 - Devastation
-                dispelNodeIDs[1467] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = 93306}
-                -- 1468	- Preservation
-                dispelNodeIDs[1468] = {["Curse"] = 93294, ["Disease"] = 93294, ["Magic"] = true, ["Poison"] = true}
-                -- 1473 - Augmentation
-                dispelNodeIDs[1473] = {["Curse"] = 93294, ["Disease"] = 93294, ["Poison"] = 93306}
-            end
         end
 
         if timer then timer:Cancel() end
@@ -784,7 +784,7 @@ function F:FirstRun()
 
         local last = #currentLayoutTable["indicators"]
         if currentLayoutTable["indicators"][last]["type"] == "built-in" then
-            indicatorName = "indicator"..(last+1)
+            indicatorName = "indicator1"
         else
             indicatorName = "indicator"..(tonumber(strmatch(currentLayoutTable["indicators"][last]["indicatorName"], "%d+"))+1)
         end
@@ -803,6 +803,7 @@ function F:FirstRun()
                 {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
+            ["showStack"] = true,
             ["showDuration"] = true,
             ["auraType"] = "buff",
             ["castBy"] = "me",

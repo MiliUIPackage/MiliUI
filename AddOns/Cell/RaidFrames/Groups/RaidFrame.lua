@@ -134,7 +134,7 @@ local function CreateGroupHeader(group)
     header:Show()
     header:SetAttribute("startingIndex", 1)
 
-    -- for i, b in ipairs({header:GetChildren()}) do
+    -- for i, b in ipairs(header) do
     --     b.type = "main" -- layout setup
     -- end
 
@@ -166,8 +166,8 @@ local function RaidFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "raid" and init then return end
     init = true
 
-    if previousLayout == layout and not which then return end
-    previousLayout = layout
+    -- if previousLayout == layout and not which then return end
+    -- previousLayout = layout
 
     layout = CellDB["layouts"][layout]
 
@@ -192,7 +192,7 @@ local function RaidFrame_UpdateLayout(layout, which)
         end
     end
 
-    if not which or strfind(which, "size$") or strfind(which, "power$") or which == "barOrientation" then
+    if not which or strfind(which, "size$") or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
         for i, arenaPet in ipairs(arenaPetButtons) do
             -- NOTE: SetOrientation BEFORE SetPowerSize
             B:SetOrientation(arenaPet, layout["barOrientation"][1], layout["barOrientation"][2])
@@ -210,8 +210,8 @@ local function RaidFrame_UpdateLayout(layout, which)
     for i, group in ipairs(shownGroups) do
         local header = groupHeaders[group]
 
-        if not which or which == "main-size" or which == "main-power" or which == "groupFilter" or which == "barOrientation" then
-            for j, b in ipairs({header:GetChildren()}) do
+        if not which or which == "main-size" or which == "main-power" or which == "groupFilter" or which == "barOrientation" or which == "powerFilter" then
+            for j, b in ipairs(header) do
                 if not which or which == "main-size" or which == "groupFilter" then
                     P:Size(b, width, height)
                     b:ClearAllPoints()
@@ -220,16 +220,12 @@ local function RaidFrame_UpdateLayout(layout, which)
                 if not which or which == "barOrientation" then
                     B:SetOrientation(b, layout["barOrientation"][1], layout["barOrientation"][2])
                 end
-                if not which or which == "power" or which == "groupFilter" or which == "barOrientation" then
+                if not which or which == "main-power" or which == "groupFilter" or which == "barOrientation" or which == "powerFilter" then
                     B:SetPowerSize(b, layout["main"]["powerSize"])
                 end
             end
 
             if not which or which == "main-size" or which == "groupFilter" then
-                --! important new button size depend on buttonWidth & buttonHeight
-                header:SetAttribute("buttonWidth", P:Scale(width))
-                header:SetAttribute("buttonHeight", P:Scale(height))
-
                 -- 确保按钮在“一定程度上”对齐
                 header:SetAttribute("minWidth", P:Scale(width))
                 header:SetAttribute("minHeight", P:Scale(height))
@@ -370,7 +366,7 @@ local function RaidFrame_UpdateLayout(layout, which)
 
         -- REVIEW: fix name width
         if which == "groupFilter" then
-            for j, b in ipairs({header:GetChildren()}) do
+            for j, b in ipairs(header) do
                 b.widget.healthBar:GetScript("OnSizeChanged")(b.widget.healthBar)
             end
             for k, arenaPet in ipairs(arenaPetButtons) do

@@ -10,7 +10,7 @@ partyFrame:SetAllPoints(Cell.frames.mainFrame)
 local header = CreateFrame("Frame", "CellPartyFrameHeader", partyFrame, "SecureGroupHeaderTemplate")
 header:SetAttribute("template", "CellUnitButtonTemplate")
 
-function header:UpdateButtonUnits(bName, unit)
+function header:UpdateButtonUnit(bName, unit)
     if not unit then return end
     
     _G[bName].unit = unit -- OmniCD
@@ -52,7 +52,7 @@ header:SetAttribute("_initialAttribute-refreshUnitChange", [[
         RegisterUnitWatch(petButton)
     end
 
-    header:CallMethod("UpdateButtonUnits", self:GetName(), unit)
+    header:CallMethod("UpdateButtonUnit", self:GetName(), unit)
 ]])
 
 header:SetAttribute("point", "TOP")
@@ -69,7 +69,7 @@ header:Show()
 header:SetAttribute("startingIndex", 1)
 
 -- init pet buttons
-for i, playerButton in ipairs({header:GetChildren()}) do
+for i, playerButton in ipairs(header) do
     -- playerButton.type = "main" -- layout setup
 
     local petButton = CreateFrame("Button", playerButton:GetName().."Pet", playerButton, "CellUnitButtonTemplate")
@@ -95,8 +95,8 @@ local function PartyFrame_UpdateLayout(layout, which)
     if Cell.vars.groupType ~= "party" and init then return end
     init = true
 
-    if previousLayout == layout and not which then return end
-    previousLayout = layout
+    -- if previousLayout == layout and not which then return end
+    -- previousLayout = layout
 
     layout = CellDB["layouts"][layout]
 
@@ -179,8 +179,8 @@ local function PartyFrame_UpdateLayout(layout, which)
         header:SetAttribute("unitsPerColumn", 5)
     end
 
-    if not which or strfind(which, "size$") or strfind(which, "power$") or which == "barOrientation" then
-        for i, playerButton in ipairs({header:GetChildren()}) do
+    if not which or strfind(which, "size$") or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
+        for i, playerButton in ipairs(header) do
             local petButton = playerButton.petButton
 
             if not which or strfind(which, "size$") then
@@ -201,7 +201,7 @@ local function PartyFrame_UpdateLayout(layout, which)
                 B:SetOrientation(petButton, layout["barOrientation"][1], layout["barOrientation"][2])
             end
            
-            if not which or strfind(which, "power$") or which == "barOrientation" then
+            if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
                 B:SetPowerSize(playerButton, layout["main"]["powerSize"])
                 if layout["pet"]["sameSizeAsMain"] then
                     B:SetPowerSize(petButton, layout["main"]["powerSize"])
@@ -215,11 +215,11 @@ local function PartyFrame_UpdateLayout(layout, which)
     if not which or which == "pet" then
         header:SetAttribute("showPartyPets", layout["pet"]["partyEnabled"])
         if layout["pet"]["partyEnabled"] then
-            for i, playerButton in ipairs({header:GetChildren()}) do
+            for i, playerButton in ipairs(header) do
                 RegisterUnitWatch(playerButton.petButton)
             end
         else
-            for i, playerButton in ipairs({header:GetChildren()}) do
+            for i, playerButton in ipairs(header) do
                 UnregisterUnitWatch(playerButton.petButton)
                 playerButton.petButton:Hide()
             end
@@ -229,7 +229,8 @@ local function PartyFrame_UpdateLayout(layout, which)
     if not which or which == "sort" then
         if layout["main"]["sortByRole"] then
             header:SetAttribute("sortMethod", "NAME")
-            header:SetAttribute("groupingOrder", "TANK,HEALER,DAMAGER,NONE")
+            local order = table.concat(layout["main"]["roleOrder"], ",")..",NONE"
+            header:SetAttribute("groupingOrder", order)
             header:SetAttribute("groupBy", "ASSIGNEDROLE")
         else
             header:SetAttribute("sortMethod", "INDEX")
@@ -248,7 +249,9 @@ local function PartyFrame_UpdateVisibility(which)
     if not which or which == "party" then
         header:SetAttribute("showParty", CellDB["general"]["showParty"])
         if CellDB["general"]["showParty"] then
-            RegisterAttributeDriver(partyFrame, "state-visibility", "[group:raid] hide; [group:party] show; hide")
+            --! [group] won't fire during combat
+            -- RegisterAttributeDriver(partyFrame, "state-visibility", "[group:raid] hide; [group:party] show; hide")
+            RegisterAttributeDriver(partyFrame, "state-visibility", "[@raid1,exists] hide;[@party1,exists] show;hide")
         else
             UnregisterAttributeDriver(partyFrame, "state-visibility")
             partyFrame:Hide()
@@ -256,3 +259,15 @@ local function PartyFrame_UpdateVisibility(which)
     end
 end
 Cell:RegisterCallback("UpdateVisibility", "PartyFrame_UpdateVisibility", PartyFrame_UpdateVisibility)
+
+-- local f = CreateFrame("Frame", nil, UIParent, "SecureFrameTemplate")
+-- RegisterAttributeDriver(f, "state-group", "[@raid1,exists] raid;[@party1,exists] party; solo")
+-- SecureHandlerWrapScript(f, "OnAttributeChanged", f, [[
+--     print(name, value)
+--     if name ~= "state-group" then return end
+-- ]])
+
+-- RegisterStateDriver(f, "groupstate", "[group:raid] raid; [group:party] party; solo")
+-- f:SetAttribute("_onstate-groupstate", [[
+--     print(stateid, newstate)
+-- ]])

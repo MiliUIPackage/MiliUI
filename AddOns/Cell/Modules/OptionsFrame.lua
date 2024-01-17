@@ -7,8 +7,7 @@ local lastShownTab
 
 local optionsFrame = Cell:CreateFrame("CellOptionsFrame", Cell.frames.mainFrame, 432, 401)
 Cell.frames.optionsFrame = optionsFrame
--- optionsFrame:SetPoint("BOTTOMLEFT", Cell.frames.mainFrame, "TOPLEFT", 0, 16)
-optionsFrame:SetPoint("CENTER", UIParent)
+PixelUtil.SetPoint(optionsFrame, "CENTER", UIParent, "CENTER", 1, -1)
 optionsFrame:SetFrameStrata("DIALOG")
 optionsFrame:SetFrameLevel(520)
 optionsFrame:SetClampedToScreen(true)
@@ -81,7 +80,7 @@ local function CreateTabButtons()
     
     local tabHeight = {
         ["general"] = 569,
-        ["appearance"] = 635,
+        ["appearance"] = 655,
         ["layouts"] = 525,
         ["clickCastings"] = 592,
         ["indicators"] = 512,
@@ -95,9 +94,6 @@ local function CreateTabButtons()
             P:Height(optionsFrame, tabHeight[tab])
             Cell:Fire("ShowOptionsTab", tab)
             lastShownTab = tab
-        end
-        if tab == utilitiesBtn.id then
-            F:ShowUtilityList(utilitiesBtn)
         end
     end
 
@@ -132,13 +128,18 @@ end
 -- show & hide
 -------------------------------------------------
 local init
-function F:ShowOptionsFrame()
+local function Init()
     if not init then
         init = true
         P:Resize(optionsFrame)
         P:Reborder(optionsFrame)
         CreateTabButtons()
+        F:CreateUtilityList(utilitiesBtn)
     end
+end
+
+function F:ShowOptionsFrame()
+    Init()
 
     if optionsFrame:IsShown() then
         optionsFrame:Hide()
@@ -149,20 +150,23 @@ function F:ShowOptionsFrame()
         generalBtn:Click()
     end
     
-    if not P:LoadPosition(optionsFrame, CellDB["optionsFramePosition"]) then
-        P:PixelPerfectPoint(optionsFrame)
-    end
     optionsFrame:Show()
 end
 
-optionsFrame:SetScript("OnHide", function()
-    -- stolen from dbm
-    if not InCombatLockdown() and not UnitAffectingCombat("player") and not IsFalling() then
-        F:Debug("|cffff7777collectgarbage")
-        collectgarbage("collect")
-        -- UpdateAddOnMemoryUsage() -- stuck like hell
+optionsFrame:SetScript("OnShow", function()
+    if not P:LoadPosition(optionsFrame, CellDB["optionsFramePosition"]) then
+        P:PixelPerfectPoint(optionsFrame)
     end
 end)
+
+-- optionsFrame:SetScript("OnHide", function()
+--     -- stolen from dbm
+--     if not InCombatLockdown() and not UnitAffectingCombat("player") and not IsFalling() then
+--         F:Debug("|cffbbbbbbCellOptionsFrame_OnHide: |cffff7777collectgarbage")
+--         collectgarbage("collect")
+--         -- UpdateAddOnMemoryUsage() -- stuck like hell
+--     end
+-- end)
 
 -- optionsFrame:SetScript("OnShow", function()
 --     P:PixelPerfectPoint(optionsFrame)
@@ -170,14 +174,22 @@ end)
 
 -- for Raid Debuffs import
 function F:ShowRaidDebuffsTab()
+    Init()
     optionsFrame:Show()
     debuffsBtn:Click()
 end
 
 -- for layout import
 function F:ShowLayousTab()
+    Init()
     optionsFrame:Show()
     layoutsBtn:Click()
+end
+
+function F:ShowUtilitiesTab()
+    Init()
+    optionsFrame:Show()
+    utilitiesBtn:Click()
 end
 
 -------------------------------------------------
@@ -227,3 +239,11 @@ optionsFrame:SetScript("OnEvent", function(self, event)
         end
     end
 end)
+
+-------------------------------------------------
+-- callbacks
+-------------------------------------------------
+local function UpdatePixelPerfect()
+    P:Resize(optionsFrame)
+end
+Cell:RegisterCallback("UpdatePixelPerfect", "OptionsFrame_UpdatePixelPerfect", UpdatePixelPerfect)

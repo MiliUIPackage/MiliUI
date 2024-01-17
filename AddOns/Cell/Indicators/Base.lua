@@ -7,6 +7,7 @@ local P = Cell.pixelPerfectFuncs
 local LCG = LibStub("LibCustomGlow-1.0")
 
 CELL_BORDER_SIZE = 1
+CELL_BORDER_COLOR = {0, 0, 0, 1}
 
 -------------------------------------------------
 -- SetFont
@@ -24,7 +25,7 @@ function I:SetFont(fs, anchorTo, font, size, flags, anchor, xOffset, yOffset, co
         elseif flags == "Outline" then
             flags = "OUTLINE"
         else
-            flags = "OUTLINE, MONOCHROME"
+            flags = "OUTLINE,MONOCHROME"
         end
         fs:SetFont(font, size, flags)
         fs:SetShadowOffset(0, 0)
@@ -70,25 +71,30 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
         frame.border:Hide()
         frame.cooldown:Show()
         frame.cooldown:SetSwipeColor(r, g, b)
-        frame.cooldown:SetCooldown(start, duration)
+        frame.cooldown:_SetCooldown(start, duration)
         frame.duration:Show()
 
         local fmt
-        frame:SetScript("OnUpdate", function()
+        frame.elapsed = 0.1 -- update immediately
+        frame:SetScript("OnUpdate", function(self, elapsed)
             local remain = duration-(GetTime()-start)
             if remain < 0 then remain = 0 end
 
-            -- color
-            if Cell.vars.iconDurationColors then
-                if remain < Cell.vars.iconDurationColors[3][4] then
-                    frame.duration:SetTextColor(Cell.vars.iconDurationColors[3][1], Cell.vars.iconDurationColors[3][2], Cell.vars.iconDurationColors[3][3])
-                elseif remain < (Cell.vars.iconDurationColors[2][4] * duration) then
-                    frame.duration:SetTextColor(Cell.vars.iconDurationColors[2][1], Cell.vars.iconDurationColors[2][2], Cell.vars.iconDurationColors[2][3])
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= 0.1 then
+                self.elapsed = 0
+                -- color
+                if Cell.vars.iconDurationColors then
+                    if remain < Cell.vars.iconDurationColors[3][4] then
+                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[3][1], Cell.vars.iconDurationColors[3][2], Cell.vars.iconDurationColors[3][3])
+                    elseif remain < (Cell.vars.iconDurationColors[2][4] * duration) then
+                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[2][1], Cell.vars.iconDurationColors[2][2], Cell.vars.iconDurationColors[2][3])
+                    else
+                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[1][1], Cell.vars.iconDurationColors[1][2], Cell.vars.iconDurationColors[1][3])
+                    end
                 else
-                    frame.duration:SetTextColor(Cell.vars.iconDurationColors[1][1], Cell.vars.iconDurationColors[1][2], Cell.vars.iconDurationColors[1][3])
+                    frame.duration:SetTextColor(frame.duration.r, frame.duration.g, frame.duration.b)
                 end
-            else
-                frame.duration:SetTextColor(frame.duration.r, frame.duration.g, frame.duration.b)
             end
 
             -- format
@@ -105,7 +111,6 @@ local function BorderIcon_SetCooldown(frame, start, duration, debuffType, textur
                     end
                 end
             end
-
             frame.duration:SetFormattedText(fmt, remain)
         end)
     end
@@ -136,8 +141,12 @@ function I:CreateAura_BorderIcon(name, parent, borderSize)
     cooldown:SetAllPoints(frame)
     cooldown:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
     cooldown:SetSwipeColor(1, 1, 1)
-    cooldown.noCooldownCount = true -- disable omnicc
     cooldown:SetHideCountdownNumbers(true)
+    -- disable omnicc
+    cooldown.noCooldownCount = true
+    -- prevent some addons from adding cooldown text
+    cooldown._SetCooldown = cooldown.SetCooldown
+    cooldown.SetCooldown = nil
 
     local iconFrame = CreateFrame("Frame", name.."IconFrame", frame)
     P:Point(iconFrame, "TOPLEFT", frame, "TOPLEFT", borderSize, -borderSize)
@@ -219,6 +228,7 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
             threshold = duration
         else -- false or number
             -- init bar values
+            frame.cooldown.elapsed = 0.1 -- update immediately
             frame.cooldown:SetMinMaxValues(0, duration)
             frame.cooldown:SetValue(GetTime()-start)
             frame.cooldown:Show()
@@ -239,7 +249,8 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
 
         if frame.showDuration then
             local fmt
-            frame:SetScript("OnUpdate", function()
+            frame.elapsed = 0.1 -- update immediately
+            frame:SetScript("OnUpdate", function(self, elapsed)
                 local remain = duration-(GetTime()-start)
                 if remain < 0 then remain = 0 end
 
@@ -248,17 +259,21 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
                     return
                 end
 
-                -- color
-                if Cell.vars.iconDurationColors then
-                    if remain < Cell.vars.iconDurationColors[3][4] then
-                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[3][1], Cell.vars.iconDurationColors[3][2], Cell.vars.iconDurationColors[3][3])
-                    elseif remain < (Cell.vars.iconDurationColors[2][4] * duration) then
-                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[2][1], Cell.vars.iconDurationColors[2][2], Cell.vars.iconDurationColors[2][3])
+                self.elapsed = self.elapsed + elapsed
+                if self.elapsed >= 0.1 then
+                    self.elapsed = 0
+                    -- color
+                    if Cell.vars.iconDurationColors then
+                        if remain < Cell.vars.iconDurationColors[3][4] then
+                            frame.duration:SetTextColor(Cell.vars.iconDurationColors[3][1], Cell.vars.iconDurationColors[3][2], Cell.vars.iconDurationColors[3][3])
+                        elseif remain < (Cell.vars.iconDurationColors[2][4] * duration) then
+                            frame.duration:SetTextColor(Cell.vars.iconDurationColors[2][1], Cell.vars.iconDurationColors[2][2], Cell.vars.iconDurationColors[2][3])
+                        else
+                            frame.duration:SetTextColor(Cell.vars.iconDurationColors[1][1], Cell.vars.iconDurationColors[1][2], Cell.vars.iconDurationColors[1][3])
+                        end
                     else
-                        frame.duration:SetTextColor(Cell.vars.iconDurationColors[1][1], Cell.vars.iconDurationColors[1][2], Cell.vars.iconDurationColors[1][3])
+                        frame.duration:SetTextColor(frame.duration.r, frame.duration.g, frame.duration.b)
                     end
-                else
-                    frame.duration:SetTextColor(frame.duration.r, frame.duration.g, frame.duration.b)
                 end
 
                 -- format
@@ -275,7 +290,6 @@ local function BarIcon_SetCooldown(frame, start, duration, debuffType, texture, 
                         end
                     end
                 end
-
                 frame.duration:SetFormattedText(fmt, remain)
             end)
         end
@@ -325,15 +339,19 @@ function I:CreateAura_BarIcon(name, parent)
     cooldown:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
     cooldown:GetStatusBarTexture():SetAlpha(0)
 
-    local elapsedTime = 0
+    cooldown.elapsed = 0.1 -- update immediately
     cooldown:SetScript("OnUpdate", function(self, elapsed)
-        -- cooldown:SetValue(GetTime()-cooldown.start)
-        if elapsedTime >= 0.1 then
-            cooldown:SetValue(cooldown:GetValue() + elapsedTime)
-            elapsedTime = 0
+        self.elapsed = self.elapsed + elapsed
+        if self.elapsed >= 0.1 then
+            cooldown:SetValue(cooldown:GetValue() + self.elapsed)
+            self.elapsed = 0
         end
-        elapsedTime = elapsedTime + elapsed
     end)
+
+    -- for LCG.ButtonGlow_Start
+    function cooldown:GetCooldownDuration()
+        return 0
+    end
 
     local spark = cooldown:CreateTexture(nil, "OVERLAY")
     frame.spark = spark
@@ -451,7 +469,7 @@ local function Text_SetFont(frame, font, size, flags)
         elseif flags == "Outline" then
             flags = "OUTLINE"
         else
-            flags = "OUTLINE, MONOCHROME"
+            flags = "OUTLINE,MONOCHROME"
         end
         frame.text:SetFont(font, size, flags)
         frame.text:SetShadowOffset(0, 0)
@@ -487,17 +505,23 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
             else
                 fmt = "%d "
             end
-            frame:SetScript("OnUpdate", function()
+
+            frame.elapsed = 0.1 -- update immediately
+            frame:SetScript("OnUpdate", function(self, elapsed)
                 local remain = duration-(GetTime()-start)
                 if remain < 0 then remain = 0 end
 
-                -- color
-                if remain <= frame.colors[3][4] then
-                    frame.text:SetTextColor(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
-                elseif remain <= duration * frame.colors[2][4] then
-                    frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
-                else
-                    frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
+                self.elapsed = self.elapsed + elapsed
+                if self.elapsed >= 0.1 then
+                    self.elapsed = 0
+                    -- color
+                    if remain <= frame.colors[3][4] then
+                        frame.text:SetTextColor(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
+                    elseif remain <= duration * frame.colors[2][4] then
+                        frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
+                    else
+                        frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
+                    end
                 end
 
                 -- format
@@ -525,20 +549,27 @@ local function Text_SetCooldown(frame, start, duration, debuffType, texture, cou
             else
                 fmt = "%d"
             end
-            frame:SetScript("OnUpdate", function()
-                local remain = duration-(GetTime()-start)
-                -- update color
-                if remain <= frame.colors[3][4] then
-                    frame.text:SetTextColor(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
-                elseif remain <= duration * frame.colors[2][4] then
-                    frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
-                else
-                    frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
-                end
-                -- update text
-                frame.text:SetFormattedText(fmt, count)
-            end)
+            
+            -- update count
+            frame.text:SetFormattedText(fmt, count)
 
+            frame.elapsed = 0.1 -- update immediately
+            frame:SetScript("OnUpdate", function(self, elapsed)
+                self.elapsed = self.elapsed + elapsed
+                if self.elapsed >= 0.1 then
+                    self.elapsed = 0
+                    
+                    local remain = duration-(GetTime()-start)
+                    -- update color
+                    if remain <= frame.colors[3][4] then
+                        frame.text:SetTextColor(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
+                    elseif remain <= duration * frame.colors[2][4] then
+                        frame.text:SetTextColor(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
+                    else
+                        frame.text:SetTextColor(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
+                    end
+                end
+            end)
         end
     end
 
@@ -600,15 +631,21 @@ local function Rect_SetCooldown(frame, start, duration, debuffType, texture, cou
         frame.tex:SetColorTexture(unpack(frame.colors[1]))
         frame:SetScript("OnUpdate", nil)
     else
-        frame:SetScript("OnUpdate", function()
-            local remain = duration-(GetTime()-start)
-            -- update color
-            if remain <= frame.colors[3][4] then
-                frame.tex:SetColorTexture(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
-            elseif remain <= duration * frame.colors[2][4] then
-                frame.tex:SetColorTexture(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
-            else
-                frame.tex:SetColorTexture(unpack(frame.colors[1]))
+        frame.elapsed = 0.1 -- update immediately
+        frame:SetScript("OnUpdate", function(self, elapsed)
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= 0.1 then
+                self.elapsed = 0
+
+                local remain = duration-(GetTime()-start)
+                -- update color
+                if remain <= frame.colors[3][4] then
+                    frame.tex:SetColorTexture(frame.colors[3][1], frame.colors[3][2], frame.colors[3][3])
+                elseif remain <= duration * frame.colors[2][4] then
+                    frame.tex:SetColorTexture(frame.colors[2][1], frame.colors[2][2], frame.colors[2][3])
+                else
+                    frame.tex:SetColorTexture(frame.colors[1][1], frame.colors[1][2], frame.colors[1][3])
+                end
             end
         end)
     end
@@ -671,17 +708,23 @@ local function Bar_SetCooldown(bar, start, duration, debuffType, texture, count)
         bar:SetStatusBarColor(unpack(bar.colors[1]))
     else
         bar:SetMinMaxValues(0, duration)
-        bar:SetValue(GetTime()-start)
-        bar:SetScript("OnUpdate", function()
+        bar.elapsed = 0.1 -- update immediately
+        bar:SetScript("OnUpdate", function(self, elapsed)
             local remain = duration-(GetTime()-start)
+            if remain < 0 then remain = 0 end
             bar:SetValue(remain)
-            -- update color
-            if remain <= bar.colors[3][4] then
-                bar:SetStatusBarColor(bar.colors[3][1], bar.colors[3][2], bar.colors[3][3])
-            elseif remain <= duration * bar.colors[2][4] then
-                bar:SetStatusBarColor(bar.colors[2][1], bar.colors[2][2], bar.colors[2][3])
-            else
-                bar:SetStatusBarColor(unpack(bar.colors[1]))
+
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= 0.1 then
+                self.elapsed = 0
+                -- update color
+                if remain <= bar.colors[3][4] then
+                    bar:SetStatusBarColor(bar.colors[3][1], bar.colors[3][2], bar.colors[3][3])
+                elseif remain <= duration * bar.colors[2][4] then
+                    bar:SetStatusBarColor(bar.colors[2][1], bar.colors[2][2], bar.colors[2][3])
+                else
+                    bar:SetStatusBarColor(bar.colors[1][1], bar.colors[1][2], bar.colors[1][3])
+                end
             end
         end)
     end
@@ -718,27 +761,58 @@ end
 -------------------------------------------------
 -- CreateAura_Color
 -------------------------------------------------
+local function Color_SetCooldown(color, start, duration, debuffType)
+    if color.type == "change-over-time" then
+        if duration == 0 then
+            color.solidTex:SetVertexColor(unpack(color.colors[4]))
+            color:SetScript("OnUpdate", nil)
+        else
+            color.elapsed = 0.1 -- update immediately
+            color:SetScript("OnUpdate", function(self, elapsed)
+                self.elapsed = self.elapsed + elapsed
+                if self.elapsed >= 0.1 then
+                    self.elapsed = 0
+
+                    local remain = duration-(GetTime()-start)
+                    -- update color
+                    if remain <= color.colors[6][4] then
+                        color.solidTex:SetVertexColor(color.colors[6][1], color.colors[6][2], color.colors[6][3])
+                    elseif remain <= duration * color.colors[5][4] then
+                        color.solidTex:SetVertexColor(color.colors[5][1], color.colors[5][2], color.colors[5][3])
+                    else
+                        color.solidTex:SetVertexColor(color.colors[4][1], color.colors[4][2], color.colors[4][3])
+                    end
+                end
+            end)
+        end
+    elseif color.type == "debuff-type" and debuffType then
+        solidTex:SetVertexColor(CellDB["debuffTypeColor"][debuffType]["r"], CellDB["debuffTypeColor"][debuffType]["g"], CellDB["debuffTypeColor"][debuffType]["b"], 1)
+    end
+    color:Show()
+end
+
 function I:CreateAura_Color(name, parent)
     local color = CreateFrame("Frame", name, parent)
     color:Hide()
     color.indicatorType = "color"
 
     local solidTex = color:CreateTexture(nil, "OVERLAY", nil, -5)
+    color.solidTex = solidTex
     solidTex:SetTexture(Cell.vars.texture)
     solidTex:SetAllPoints(color)
     solidTex:Hide()
+
+    solidTex:SetScript("OnShow", function()
+        -- update texture
+        solidTex:SetTexture(Cell.vars.texture)
+    end)
    
     local gradientTex = color:CreateTexture(nil, "OVERLAY", nil, -5)
     gradientTex:SetTexture("Interface\\Buttons\\WHITE8x8")
     gradientTex:SetAllPoints(color)
     gradientTex:Hide()
 
-    function color:SetCooldown(start, duration, debuffType, texture, count, refreshing)
-        if color.type == "debuff-type" and debuffType then
-            solidTex:SetVertexColor(CellDB["debuffTypeColor"][debuffType]["r"], CellDB["debuffTypeColor"][debuffType]["g"], CellDB["debuffTypeColor"][debuffType]["b"], color.alpha)
-        end
-        color:Show()
-    end
+    color.SetCooldown = Color_SetCooldown
 
     function color:SetAnchor(anchorTo)
         color:ClearAllPoints()
@@ -759,26 +833,32 @@ function I:CreateAura_Color(name, parent)
 
     function color:SetColors(colors)
         color.type = colors[1]
+        color.colors = colors
 
         if colors[1] == "solid" then
+            color:SetScript("OnUpdate", nil)
             solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
-            solidTex:SetTexture(Cell.vars.texture)
             solidTex:Show()
             gradientTex:Hide()
         elseif colors[1] == "gradient-vertical" then
+            color:SetScript("OnUpdate", nil)
             gradientTex:SetGradient("VERTICAL", CreateColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4]), CreateColor(colors[3][1], colors[3][2], colors[3][3], colors[3][4]))
             gradientTex:Show()
             solidTex:Hide()
         elseif colors[1] == "gradient-horizontal" then
+            color:SetScript("OnUpdate", nil)
             gradientTex:SetGradient("HORIZONTAL", CreateColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4]), CreateColor(colors[3][1], colors[3][2], colors[3][3], colors[3][4]))
             gradientTex:Show()
             solidTex:Hide()
         elseif colors[1] == "debuff-type" then
+            color:SetScript("OnUpdate", nil)
             solidTex:SetVertexColor(colors[2][1], colors[2][2], colors[2][3], colors[2][4])
-            solidTex:SetTexture(Cell.vars.texture)
             solidTex:Show()
             gradientTex:Hide()
-            color.alpha = colors[2][4]
+        elseif colors[1] == "change-over-time" then
+            solidTex:SetVertexColor(colors[4][1], colors[4][2], colors[4][3], colors[4][4])
+            solidTex:Show()
+            gradientTex:Hide()
         end
     end
         
@@ -798,9 +878,12 @@ function I:CreateAura_Texture(name, parent)
 
     function texture:SetCooldown(start, duration)
         if texture.fadeOut then
+            texture.elapsed = 0.1 -- update immediately
             texture:SetScript("OnUpdate", function(self, elapsed)
-                self.elapsed = (self.elapsed or 0) + elapsed
+                self.elapsed = self.elapsed + elapsed
                 if self.elapsed >= 0.1 then
+                    self.elapsed = 0
+
                     local remain = duration - (GetTime() - start)
                     if remain <= 0 then
                         tex:SetAlpha(0.2)
@@ -809,12 +892,11 @@ function I:CreateAura_Texture(name, parent)
                     else
                         tex:SetAlpha(remain / duration * 0.8 + 0.2)
                     end
-                    self.elapsed = 0
                 end
             end)
         else
             texture:SetScript("OnUpdate", nil)
-            tex:SetAlpha(1)
+            tex:SetAlpha(texture.colorAlpha)
         end
         texture:Show()
     end
@@ -831,6 +913,7 @@ function I:CreateAura_Texture(name, parent)
         end
         tex:SetRotation(texTbl[2] * math.pi / 180)
         tex:SetVertexColor(unpack(texTbl[3]))
+        texture.colorAlpha = texTbl[3][4]
     end
 
     return texture
@@ -849,10 +932,15 @@ function I:CreateAura_Icons(name, parent, num)
     function icons:UpdateSize(iconsShown)
         if not (icons.width and icons.height and icons.orientation) then return end -- not init
         if iconsShown then -- call from I:CheckCustomIndicators or preview
-            if icons.orientation == "horizontal" then
-                icons:_SetSize(icons.width*iconsShown, icons.height)
-            else
-                icons:_SetSize(icons.width, icons.height*iconsShown)
+            for i = iconsShown + 1, num do
+                icons[i]:Hide()
+            end
+            if iconsShown ~= 0 then
+                if icons.orientation == "horizontal" then
+                    icons:_SetSize(icons.width*iconsShown, icons.height)
+                else
+                    icons:_SetSize(icons.width, icons.height*iconsShown)
+                end
             end
         else
             for i = 1, num do
@@ -960,16 +1048,28 @@ end
 -------------------------------------------------
 local function Glow_SetCooldown(glow, start, duration)
     if glow.fadeOut then
-        glow:SetScript("OnUpdate", function()
-            local remain = duration-(GetTime()-start)
-            if remain < 0 then remain = 0 end
-            if remain > duration then remain = duration end
-            glow:SetAlpha((remain/duration)*(1-0.2)+0.2)
+        glow.elapsed = 0.1 -- update immediately
+        glow:SetScript("OnUpdate", function(self, elapsed)
+            self.elapsed = self.elapsed + elapsed
+            if self.elapsed >= 0.1 then
+                self.elapsed = 0
+
+                local remain = duration-(GetTime()-start)
+                if remain <= 0 then
+                    glow:SetAlpha(0.2)
+                elseif remain >= duration then
+                    glow:SetAlpha(1)
+                else
+                    glow:SetAlpha(remain / duration * 0.8 + 0.2)
+                end
+            end
         end)
     else
         glow:SetScript("OnUpdate", nil)
         glow:SetAlpha(1)
     end
+    
+    glow:Show()
 
     local glowOptions = glow.glowOptions
     local glowType = glowOptions[1]
@@ -996,15 +1096,14 @@ local function Glow_SetCooldown(glow, start, duration)
         LCG.PixelGlow_Stop(glow)
         LCG.AutoCastGlow_Stop(glow)
         -- color, duration
-        LCG.ProcGlow_Start(glow, {color=glowOptions[2], glowOptions[3], startAnim=false})
+        LCG.ProcGlow_Start(glow, {color=glowOptions[2], duration=glowOptions[3], startAnim=false})
     else
         LCG.ButtonGlow_Stop(glow)
         LCG.PixelGlow_Stop(glow)
         LCG.AutoCastGlow_Stop(glow)
         LCG.ProcGlow_Stop(glow)
+        glow:Hide()
     end
-
-    glow:Show()
 end
 
 function I:CreateAura_Glow(name, parent)
@@ -1031,4 +1130,117 @@ function I:CreateAura_Glow(name, parent)
     end)
 
     return glow
+end
+
+-------------------------------------------------
+-- CreateAura_Bars
+-------------------------------------------------
+local function Bars_SetCooldown(bar, start, duration, color)
+    if duration == 0 then
+        bar:SetScript("OnUpdate", nil)
+        bar:SetMinMaxValues(0, 1)
+        bar:SetValue(1)
+    else
+        bar:SetMinMaxValues(0, duration)
+        bar:SetScript("OnUpdate", function(self, elapsed)
+            local remain = duration-(GetTime()-start)
+            if remain < 0 then remain = 0 end
+            bar:SetValue(remain)
+        end)
+    end
+
+    bar:SetStatusBarColor(color[1], color[2], color[3], 1)
+    bar:Show()
+end
+
+function I:CreateAura_Bars(name, parent, num)
+    local bars = CreateFrame("Frame", name, parent)
+    bars:Hide()
+    bars.indicatorType = "bars"
+
+    bars._SetSize = bars.SetSize
+
+    function bars:UpdateSize(barsShown)
+        if not (bars.width and bars.height) then return end -- not init
+        if barsShown then -- call from I:CheckCustomIndicators or preview
+            for i = barsShown + 1, num do
+                bars[i]:Hide()
+            end
+            if barsShown ~= 0 then
+                bars:_SetSize(bars.width, bars.height*barsShown-P:Scale(1)*(barsShown-1))
+            end
+        else
+            for i = 1, num do
+                if bars[i]:IsShown() then
+                    bars:_SetSize(bars.width, bars.height*i-P:Scale(1)*(i-1))
+                else
+                    break
+                end
+            end
+        end
+    end
+
+    function bars:SetSize(width, height)
+        bars.width = width
+        bars.height = height
+
+        for i = 1, num do
+            bars[i]:SetSize(width, height)
+        end
+
+        bars:UpdateSize()
+    end
+
+    function bars:SetOrientation(orientation)
+        local point1, point2, offset
+        if orientation == "top-to-bottom" then
+            point1 = "TOPLEFT"
+            point2 = "BOTTOMLEFT"
+            offset = 1
+        elseif orientation == "bottom-to-top" then
+            point1 = "BOTTOMLEFT"
+            point2 = "TOPLEFT"
+            offset = -1
+        end
+        
+        for i = 1, num do
+            P:ClearPoints(bars[i])
+            if i == 1 then
+                P:Point(bars[i], point1)
+            else
+                P:Point(bars[i], point1, bars[i-1], point2, 0, offset)
+            end
+        end
+
+        bars:UpdateSize()
+    end
+
+    for i = 1, num do
+        local name = name.."Bar"..i
+        local bar = I:CreateAura_Bar(name, bars)
+        bars[i] = bar
+
+        bar.stack:Hide()
+        bar.SetCooldown = Bars_SetCooldown
+    end
+
+    bars._Hide = bars.Hide
+    function bars:Hide(hideAll)
+        bars:_Hide()
+        if hideAll then
+            for i = 1, num do
+                bars[i]:Hide()
+            end
+        end
+    end
+
+    function bars:UpdatePixelPerfect()
+        -- P:Resize(bars)
+        P:Repoint(bars)
+        for i = 1, num do
+            bars[i]:UpdatePixelPerfect()
+        end
+    end
+
+    return bars
 end

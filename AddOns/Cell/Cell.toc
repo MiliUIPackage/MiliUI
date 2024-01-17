@@ -1,13 +1,13 @@
 ## Interface: 100200
 ## Title: Cell
-## Title-zhTW: |cFF00CCFF[團隊]|r Cell 團隊框架
-## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
-## Version: r205-release
+## Version: r214-release
 ## Author: enderneko
 ## X-Flavor: Mainline
 ## SavedVariables: CellDB
 ## AddonCompartmentFunc: Cell_OnAddonCompartmentClick
 ## IconTexture: Interface\AddOns\Cell\Media\icon.tga
+## Title-zhTW: |cFF00CCFF[團隊]|r Cell 團隊框架
+## Notes-zhTW: Cell |n簡單好用的團隊框架，可自訂外觀，並且提供滑鼠點擊快速施法和其他功能。|n|cffffd200使用方法：|r點團隊框架左上方的小方塊，進行設定。
 
 ## X-Curse-Project-ID: 409666
 ## X-Wago-ID: qv63LLKb
@@ -37,7 +37,7 @@ Indicators\TargetCounter.lua
 Indicators\TargetedSpells.lua
 Indicators\Consumables.lua
 Indicators\Custom.lua
-Indicators\PatronIcon.lua
+Indicators\Patron.lua
 
 RaidFrames\MainFrame.lua
 

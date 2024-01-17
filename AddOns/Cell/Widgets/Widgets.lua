@@ -1,7 +1,3 @@
------------------------------------------
--- LibWidgets
--- by KevinSK
------------------------------------------
 local addonName, addon = ...
 local L = addon.L
 local F = addon.funcs
@@ -89,7 +85,7 @@ font_disable:SetShadowOffset(1, -1)
 font_disable:SetJustifyH("CENTER")
 
 local font_special = CreateFont(font_special_name)
-font_special:SetFont("Interface\\AddOns\\Cell\\Media\\font.ttf", 12, "")
+font_special:SetFont("Interface\\AddOns\\Cell\\Media\\Fonts\\font.ttf", 12, "")
 font_special:SetTextColor(1, 1, 1, 1)
 font_special:SetShadowColor(0, 0, 0)
 font_special:SetShadowOffset(1, -1)
@@ -116,7 +112,7 @@ function addon:UpdateOptionsFont(offset, useGameFont)
     if useGameFont then
         defaultFont = GameFontNormal:GetFont()
     else
-        defaultFont = "Interface\\AddOns\\Cell\\Media\\Accidental_Presidency.ttf"
+        defaultFont = "Interface\\AddOns\\Cell\\Media\\Fonts\\Accidental_Presidency.ttf"
     end
     fontSizeOffset = offset
 
@@ -184,8 +180,12 @@ function addon:SetEnabled(isEnabled, ...)
             else
                 w:SetDesaturated(true)
             end      
-        else
+        elseif w.SetEnabled then
             w:SetEnabled(isEnabled)
+        elseif isEnabled then
+            w:Show()
+        else
+            w:Hide()
         end
     end
 end
@@ -540,8 +540,8 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     elseif buttonColor == "none" then
         color = {0, 0, 0, 0}
     else
-        color = {0.115, 0.115, 0.115, 0.7}
-        hoverColor = {0.5, 1, 0, 0.6}
+        color = {0.115, 0.115, 0.115, 1}
+        hoverColor = {0.23, 0.23, 0.23, 1}
     end
 
     -- keep color & hoverColor
@@ -549,6 +549,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     b.hoverColor = hoverColor
 
     local s = b:GetFontString()
+    b.fs = s
     if s then
         s:SetWordWrap(false)
         -- s:SetWidth(size[1])
@@ -619,7 +620,7 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     addon:SetTooltips(b, "ANCHOR_TOPLEFT", 0, 3, ...)
 
     -- texture
-    function b:SetTexture(tex, texSize, point, isAtlas)
+    function b:SetTexture(tex, texSize, point, isAtlas, noPushDownEffect)
         b.tex = b:CreateTexture(nil, "ARTWORK")
         b.tex:SetPoint(unpack(point))
         b.tex:SetSize(unpack(texSize))
@@ -636,16 +637,18 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
             b:SetPushedTextOffset(0, 0)
         end
         -- push effect
-        b.onMouseDown = function()
-            b.tex:ClearAllPoints()
-            b.tex:SetPoint(point[1], point[2], point[3]-1)
+        if not noPushDownEffect then
+            b.onMouseDown = function()
+                b.tex:ClearAllPoints()
+                b.tex:SetPoint(point[1], point[2], point[3]-1)
+            end
+            b.onMouseUp = function()
+                b.tex:ClearAllPoints()
+                b.tex:SetPoint(unpack(point))
+            end
+            b:SetScript("OnMouseDown", b.onMouseDown)
+            b:SetScript("OnMouseUp", b.onMouseUp)
         end
-        b.onMouseUp = function()
-            b.tex:ClearAllPoints()
-            b.tex:SetPoint(unpack(point))
-        end
-        b:SetScript("OnMouseDown", b.onMouseDown)
-        b:SetScript("OnMouseUp", b.onMouseUp)
         -- enable / disable
         b:HookScript("OnEnable", function()
             b.tex:SetVertexColor(1, 1, 1)
@@ -679,90 +682,6 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     end
 
     return b
-end
-
------------------------------------------
--- Power Filter
------------------------------------------
-local function UpdateButtonSelection(b, selected)
-    b.tex:SetDesaturated(not selected)
-    -- if selected then
-    --     b:SetBackdropColor(unpack(b.hoverColor))
-    --     b:SetScript("OnEnter", nil)
-    --     b:SetScript("OnLeave", nil)
-    -- else
-    --     b:SetBackdropColor(unpack(b.color))
-    --     b:SetScript("OnEnter", function() 
-    --         b:SetBackdropColor(unpack(b.hoverColor))
-    --     end)
-    --     b:SetScript("OnLeave", function() 
-    --         b:SetBackdropColor(unpack(b.color))
-    --     end)
-    -- end
-end
-
-local localizedClass = {}
-FillLocalizedClassList(localizedClass)
-
-function addon:CreatePowerFilter(parent, classFileName, buttons, width, height, bWidth, color, bgColor)
-    local filter = CreateFrame("Frame", nil, parent, "BackdropTemplate")
-    Cell:StylizeFrame(filter, color, bgColor)
-    P:Size(filter, width, height)
-
-    filter.text = filter:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-    filter.text:SetPoint("LEFT", 5, 0)
-    if classFileName == "VEHICLE" or classFileName == "PET" or classFileName == "NPC" then
-        filter.text:SetText("|cff00ff33"..L[classFileName])
-    else
-        filter.text:SetText("|c"..RAID_CLASS_COLORS[classFileName].colorStr..localizedClass[classFileName])
-    end
-    -- filter:SetPoint("TOPLEFT", 5, -5)
-
-    filter.buttons = {}
-    local last
-    for i = #buttons, 1, -1 do
-        local b = Cell:CreateButton(filter, nil, "accent-hover", {height, height})
-        filter.buttons[buttons[i]] = b
-        b:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\"..buttons[i], {height-4, height-4}, {"CENTER", 0, 0})
-
-        if last then
-            b:SetPoint("BOTTOMRIGHT", last, "BOTTOMLEFT", P:Scale(1), 0)
-        else
-            b:SetPoint("BOTTOMRIGHT", filter)
-        end
-        last = b
-
-        b:SetScript("OnClick", function()
-            local selected
-            if type(filter.selectedLayoutTable["powerFilters"][classFileName]) == "boolean" then
-                filter.selectedLayoutTable["powerFilters"][classFileName] = not filter.selectedLayoutTable["powerFilters"][classFileName]
-                selected = filter.selectedLayoutTable["powerFilters"][classFileName]
-            else
-                filter.selectedLayoutTable["powerFilters"][classFileName][buttons[i]] = not filter.selectedLayoutTable["powerFilters"][classFileName][buttons[i]]
-                selected = filter.selectedLayoutTable["powerFilters"][classFileName][buttons[i]]
-            end
-            UpdateButtonSelection(b, selected)
-            -- update now, if selectedLayout == currentLayout
-            if filter.selectedLayout == Cell.vars.currentLayout then
-                Cell:Fire("UpdateLayout", filter.selectedLayout, "power")
-            end
-        end) 
-    end
-
-    function filter:LoadConfig(selectedLayout, selectedLayoutTable)
-        filter.selectedLayout = selectedLayout
-        filter.selectedLayoutTable = selectedLayoutTable
-
-        if type(selectedLayoutTable["powerFilters"][classFileName]) == "boolean" then
-            UpdateButtonSelection(filter.buttons["DAMAGER"], selectedLayoutTable["powerFilters"][classFileName])
-        else
-            for role, b in pairs(filter.buttons) do
-                UpdateButtonSelection(b, selectedLayoutTable["powerFilters"][classFileName][role])
-            end
-        end
-    end
-
-    return filter
 end
 
 -----------------------------------------
@@ -909,7 +828,7 @@ function addon:CreateCheckButton(parent, label, onClick, ...)
 
     function cb:SetText(text)
         cb.label:SetText(text)
-        if strtrim(label) ~= "" then
+        if strtrim(text) ~= "" then
             cb:SetHitRectInsets(0, -cb.label:GetStringWidth()-5, 0, 0)
         else
             cb:SetHitRectInsets(0, 0, 0, 0)
@@ -977,6 +896,13 @@ function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
     --     ColorPickerFrame:Hide()
     --     ColorPickerFrame:Show()
     -- end
+
+    cp.hasOpacity = hasOpacity
+
+    function cp:EnableAlpha(enable)
+        addon:HideColorPicker()
+        cp.hasOpacity = enable
+    end
     
     cp:SetScript("OnClick", function()
         addon:ShowColorPicker(function(r, g, b, a)
@@ -988,7 +914,7 @@ function addon:CreateColorPicker(parent, label, hasOpacity, onChange, onConfirm)
             if onChange then
                 onChange(r, g, b, a)
             end
-        end, onConfirm, hasOpacity, unpack(cp.color))
+        end, onConfirm, cp.hasOpacity, unpack(cp.color))
     end)
 
     cp.color = {1, 1, 1, 1}
@@ -1127,12 +1053,12 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
 
     addon:StylizeFrame(slider, {0.115, 0.115, 0.115, 1})
     
-    local nameText = slider:CreateFontString(nil, "OVERLAY", font_name)
-    nameText:SetText(name)
-    nameText:SetPoint("BOTTOM", slider, "TOP", 0, 2)
+    local label = slider:CreateFontString(nil, "OVERLAY", font_name)
+    label:SetText(name)
+    label:SetPoint("BOTTOM", slider, "TOP", 0, 2)
 
-    function slider:SetName(n)
-        nameText:SetText(n)
+    function slider:SetLabel(n)
+        label:SetText(n)
     end
 
     local currentEditBox = addon:CreateEditBox(slider, 48, 14)
@@ -1146,12 +1072,6 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     currentEditBox:SetScript("OnEnterPressed", function(self)
         self:ClearFocus()
         local value = tonumber(self:GetText())
-        -- if isPercentage then
-        --     value = string.gsub(self:GetText(), "%%", "")
-        --     value = tonumber(value)
-        -- else
-        --     value = tonumber(self:GetText())
-        -- end
 
         if value == self.oldValue then return end
         if value then
@@ -1267,7 +1187,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     slider:SetValue(low) -- NOTE: needs to be after OnValueChanged
 
     slider:SetScript("OnDisable", function()
-        nameText:SetTextColor(0.4, 0.4, 0.4)
+        label:SetTextColor(0.4, 0.4, 0.4)
         currentEditBox:SetEnabled(false)
         slider:SetScript("OnEnter", nil)
         slider:SetScript("OnLeave", nil)
@@ -1277,7 +1197,7 @@ function addon:CreateSlider(name, parent, low, high, width, step, onValueChanged
     end)
     
     slider:SetScript("OnEnable", function()
-        nameText:SetTextColor(1, 1, 1)
+        label:SetTextColor(1, 1, 1)
         currentEditBox:SetEnabled(true)
         slider:SetScript("OnEnter", slider.onEnter)
         slider:SetScript("OnLeave", slider.onLeave)
@@ -2712,6 +2632,7 @@ end
 local listInit, list, highlightTexture
 list = CreateFrame("Frame", addonName.."DropdownList", UIParent, "BackdropTemplate")
 list:SetIgnoreParentScale(true)
+list:SetClampedToScreen(true)
 -- addon:StylizeFrame(list, {0.115, 0.115, 0.115, 1})
 list:Hide()
 
@@ -2756,12 +2677,27 @@ local function SetHighlightItem(i)
     end
 end
 
-function addon:CreateDropdown(parent, width, dropdownType, isMini)
+function addon:CreateDropdown(parent, width, dropdownType, isMini, isHorizontal)
     local menu = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     P:Size(menu, width, 20)
     menu:EnableMouse(true)
     -- menu:SetFrameLevel(5)
     addon:StylizeFrame(menu, {0.115, 0.115, 0.115, 1})
+
+    -- label
+    function menu:SetLabel(label)
+        menu.label = menu:CreateFontString(nil, "OVERLAY", font_name)
+        menu.label:SetPoint("BOTTOMLEFT", menu, "TOPLEFT", 0, P:Scale(1))
+        menu.label:SetText(label)
+
+        hooksecurefunc(menu, "SetEnabled", function(self, enabled)
+            if enabled then
+                menu.label:SetTextColor(1, 1, 1)
+            else
+                menu.label:SetTextColor(0.4, 0.4, 0.4)
+            end
+        end)
+    end
     
     -- button: open/close menu list
     if isMini then
@@ -2978,35 +2914,55 @@ function addon:CreateDropdown(parent, width, dropdownType, isMini)
                     menu:SetSelected(item.text)
                 end
                 list:Hide()
-                if item.onClick then item.onClick(item.text) end
+                if item.onClick then item.onClick(item.text, item.value, menu.id) end
             end)
 
             -- update point
             b:SetParent(list.scrollFrame.content)
             b:Show()
-            if i == 1 then
-                b:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
-                b:SetPoint("TOPRIGHT", P:Scale(-1), P:Scale(-1))
+
+            if isMini and isHorizontal then
+                P:Width(b, width)
+                if i == 1 then
+                    b:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+                else
+                    b:SetPoint("TOPLEFT", list.items[i-1], "TOPRIGHT")
+                end
             else
-                b:SetPoint("TOPLEFT", list.items[i-1], "BOTTOMLEFT")
-                b:SetPoint("TOPRIGHT", list.items[i-1], "BOTTOMRIGHT")
+                if i == 1 then
+                    b:SetPoint("TOPLEFT", P:Scale(1), P:Scale(-1))
+                    b:SetPoint("TOPRIGHT", P:Scale(-1), P:Scale(-1))
+                else
+                    b:SetPoint("TOPLEFT", list.items[i-1], "BOTTOMLEFT")
+                    b:SetPoint("TOPRIGHT", list.items[i-1], "BOTTOMRIGHT")
+                end
             end
         end
 
         -- update list size
         list.menu = menu -- menu's OnHide -> list:Hide
         list:ClearAllPoints()
-        list:SetPoint("TOPLEFT", menu, "BOTTOMLEFT", 0, -2)
         
-        if #menu.items == 0 then
-            list:SetSize(menu:GetWidth(), P:Scale(5))
-        elseif #menu.items <= 10 then
-            list:SetSize(menu:GetWidth(), P:Scale(2) + #menu.items*P:Scale(18))
-            list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+        if isMini and isHorizontal then
+            list:SetPoint("TOPLEFT", menu, "TOPRIGHT", 2, 0)
+            if #menu.items == 0 then
+                list:SetSize(P:Scale(5), menu:GetHeight())
+            else
+                list:SetSize(P:Scale(2) + #menu.items*P:Scale(width), menu:GetHeight())
+            end
+            list.scrollFrame:SetContentHeight(P:Scale(20))
         else
-            list:SetSize(menu:GetWidth(), P:Scale(2) + 10*P:Scale(18))
-            -- update list scrollFrame
-            list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+            list:SetPoint("TOPLEFT", menu, "BOTTOMLEFT", 0, -2)
+            if #menu.items == 0 then
+                list:SetSize(menu:GetWidth(), P:Scale(5))
+            elseif #menu.items <= 10 then
+                list:SetSize(menu:GetWidth(), P:Scale(2) + #menu.items*P:Scale(18))
+                list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+            else
+                list:SetSize(menu:GetWidth(), P:Scale(2) + 10*P:Scale(18))
+                -- update list scrollFrame
+                list.scrollFrame:SetContentHeight(P:Scale(2) + #menu.items*P:Scale(18))
+            end
         end
     end
 
@@ -3186,6 +3142,28 @@ local function CreateGrid(parent, text, width)
         parent:Unhighlight()
     end)
 
+    grid:RegisterForDrag("LeftButton")
+    
+    grid:SetScript("OnDragStart", function(self)
+        if parent.unmovable then return end
+        parent:Unhighlight()
+        parent:SetFrameStrata("TOOLTIP")
+        parent:StartMoving()
+        parent:SetUserPlaced(false)
+    end)
+    
+    grid:SetScript("OnDragStop", function(self)
+        if parent.unmovable then return end
+        parent:StopMovingOrSizing()
+        parent:SetFrameStrata("LOW")
+        -- self:Hide() --! Hide() will cause OnDragStop trigger TWICE!!!
+        C_Timer.After(0.05, function()
+            local b = GetMouseFocus()
+            if b then b = b:GetParent() end
+            F:MoveClickCastings(parent.clickCastingIndex, b and b.clickCastingIndex)
+        end)
+    end)
+
     return grid
 end
 
@@ -3196,6 +3174,7 @@ function addon:CreateBindingListButton(parent, modifier, bindKey, bindType, bind
     b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
     b:SetBackdropColor(0.115, 0.115, 0.115, 1) 
     b:SetBackdropBorderColor(0, 0, 0, 1)
+    b:SetMovable(true)
 
     function b:Highlight()
         b:SetBackdropColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 0.1)

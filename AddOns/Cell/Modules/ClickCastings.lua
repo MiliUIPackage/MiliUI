@@ -12,6 +12,7 @@ clickCastingsTab:Hide()
 
 local listPane
 local bindingsFrame
+local listButtons = {}
 local clickCastingTable
 local loaded
 local LoadProfile
@@ -25,9 +26,15 @@ local function CheckChanges()
     if F:Getn(deleted) == 0 and F:Getn(changed) == 0 then
         saveBtn:SetEnabled(false)
         discardBtn:SetEnabled(false)
+        for _, b in pairs(listButtons) do
+            b.unmovable = nil
+        end
     else
         saveBtn:SetEnabled(true)
         discardBtn:SetEnabled(true)
+        for _, b in pairs(listButtons) do
+            b.unmovable = true
+        end
     end
 end
 
@@ -180,13 +187,13 @@ if Cell.isRetail then
             -- self:SetBindingClick(true, "SHIFT-C", self, "shiftC")
 
             --! update click-casting unit
-            local attrs = self:GetAttribute("cell")
-            -- print(attrs)
-            if attrs then
-                for _, k in pairs(table.new(strsplit("|", attrs))) do
-                    self:SetAttribute(k, string.gsub(self:GetAttribute(k), "@%w+", "@"..self:GetAttribute("unit")))
-                end
-            end
+            -- local attrs = self:GetAttribute("cell")
+            -- -- print(attrs)
+            -- if attrs then
+            --     for _, k in pairs(table.new(strsplit("|", attrs))) do
+            --         self:SetAttribute(k, string.gsub(self:GetAttribute(k), "@%w+", "@"..self:GetAttribute("unit")))
+            --     end
+            -- end
 
             --! update togglemenu
             local menuKey = self:GetAttribute("menu")
@@ -428,17 +435,26 @@ local function ApplyClickCastings(b)
                 condition = F:IsResurrectionForDead(spellName) and ",dead" or ",nodead"
             end
 
+            local unit = Cell.isRetail and "@mouseover" or "@cell"
+
             -- "sMaRt" resurrection
             local sMaRt = ""
             if smartResurrection ~= "disabled" and not (F:IsResurrectionForDead(spellName) or F:IsSoulstone(spellName)) then
                 if strfind(smartResurrection, "^normal") then
-                    if F:GetNormalResurrection(Cell.vars.playerClass) then
-                        sMaRt = sMaRt .. ";[@cell,dead,nocombat] "..F:GetNormalResurrection(Cell.vars.playerClass)
+                    local normalResurrection = F:GetNormalResurrection(Cell.vars.playerClass)
+                    if normalResurrection then
+                        if Cell.isRetail then -- mass resurrections
+                            for condition, spell in pairs(normalResurrection) do
+                                sMaRt = sMaRt .. ";["..unit..",dead,nocombat,"..condition.."] "..spell
+                            end
+                        else
+                            sMaRt = sMaRt .. ";["..unit..",dead,nocombat] "..normalResurrection
+                        end
                     end
                 end
                 if strfind(smartResurrection, "combat$") then
                     if F:GetCombatResurrection(Cell.vars.playerClass) then
-                        sMaRt = sMaRt .. ";[@cell,dead,combat] "..F:GetCombatResurrection(Cell.vars.playerClass)
+                        sMaRt = sMaRt .. ";["..unit..",dead,combat] "..F:GetCombatResurrection(Cell.vars.playerClass)
                     end
                 end
             end
@@ -446,15 +462,19 @@ local function ApplyClickCastings(b)
             if (alwaysTargeting == "left" and bindKey == "type1") or alwaysTargeting == "any" then
                 b:SetAttribute(bindKey, "macro")
                 local attr = string.gsub(bindKey, "type", "macrotext")
-                b:SetAttribute(attr, "/tar [@cell]\n/cast [@cell"..condition.."] "..spellName..sMaRt)
-                UpdatePlaceholder(b, attr)
+                b:SetAttribute(attr, "/tar ["..unit.."]\n/cast ["..unit..condition.."] "..spellName..sMaRt)
+                if not Cell.isRetail then UpdatePlaceholder(b, attr) end
             else
                 -- local attr = string.gsub(bindKey, "type", "spell")
                 -- b:SetAttribute(attr, spellName)
                 b:SetAttribute(bindKey, "macro")
                 local attr = string.gsub(bindKey, "type", "macrotext")
-                b:SetAttribute(attr, "/cast [@cell"..condition.."] "..spellName..sMaRt)
-                UpdatePlaceholder(b, attr)
+                if F:IsSoulstone(spellName) then
+                    b:SetAttribute(attr, "/tar ["..unit.."]\n/cast ["..unit.."] "..spellName.."\n/targetlasttarget")
+                else
+                    b:SetAttribute(attr, "/cast ["..unit..condition.."] "..spellName..sMaRt)
+                end
+                if not Cell.isRetail then UpdatePlaceholder(b, attr) end
             end
         elseif t[2] == "macro" then
             local attr = string.gsub(bindKey, "type", "macrotext")
@@ -464,7 +484,7 @@ local function ApplyClickCastings(b)
 end
 
 local function UpdateClickCastings(noReload)
-    F:Debug("|cff77ff77UpdateClickCastings:|r useCommon: "..tostring(Cell.vars.clickCastings["useCommon"]))
+    F:Debug("|cff77ff77UpdateClickCastings:|r useCommon:", Cell.vars.clickCastings["useCommon"])
     clickCastingTable = Cell.vars.clickCastings["useCommon"] and Cell.vars.clickCastings["common"] or Cell.vars.clickCastings[Cell.vars.playerSpecID]
     
     -- FIXME: remove this determine statement
@@ -497,7 +517,7 @@ local function UpdateClickCastings(noReload)
         
         -- load db and set attribute
         ApplyClickCastings(b)
-    end)
+    end, false, true)
     previousClickCastings = F:Copy(clickCastingTable)
 end
 Cell:RegisterCallback("UpdateClickCastings", "UpdateClickCastings", UpdateClickCastings)
@@ -513,6 +533,7 @@ local function CreateProfilePane()
     
     profileDropdown = Cell:CreateDropdown(profilePane, 412)
     profileDropdown:SetPoint("TOPLEFT", profilePane, "TOPLEFT", 5, -27)
+    profileDropdown:SetEnabled(not Cell.isVanilla)
     
     profileDropdown:SetItems({
         {
@@ -983,7 +1004,7 @@ local function ShowActionsMenu(index, b)
             },
         }
 
-        if Cell.isWrath and Cell.vars.playerClass == "WARLOCK" then
+        if (Cell.isVanilla or Cell.isWrath) and Cell.vars.playerClass == "WARLOCK" then
             tinsert(items, {
                 ["text"] = GetSpellInfo(20707),
                 ["onClick"] = function()
@@ -1027,6 +1048,30 @@ local function ShowActionsMenu(index, b)
                     peb:SetTips("|cffababab"..L["Input spell id"].."\n"..L["Enter: apply\nESC: discard"])
                     peb:ShowEditBox(b.bindSpell or "")
                     peb:SetNumeric(true)
+                    if not peb.tooltipAdded then
+                        peb.tooltipAdded = true
+                        peb:SetScript("OnTextChanged", function()
+                            local spellId = tonumber(peb:GetText())
+                            if not spellId then
+                                CellSpellTooltip:Hide()
+                                return
+                            end
+                    
+                            local name, _, icon = GetSpellInfo(spellId)
+                            if not name then
+                                CellSpellTooltip:Hide()
+                                return
+                            end
+                            
+                            CellSpellTooltip:SetOwner(peb, "ANCHOR_NONE")
+                            CellSpellTooltip:SetPoint("TOPLEFT", peb, "BOTTOMLEFT", 0, -1)
+                            CellSpellTooltip:SetSpellByID(spellId, icon)
+                            CellSpellTooltip:Show()
+                        end)
+                        peb:HookScript("OnHide", function()
+                            CellSpellTooltip:Hide()
+                        end)
+                    end
                 end,
             },
         }
@@ -1125,21 +1170,17 @@ local function CreateListPane()
     local newBtn = Cell:CreateButton(listPane, L["New"], "blue-hover", {141, 20})
     newBtn:SetPoint("TOPLEFT", bindingsFrame, "BOTTOMLEFT", 0, P:Scale(1))
     newBtn:SetScript("OnClick", function()
-        local b = CreateBindingListButton("", "notBound", "general", "target", #clickCastingTable+1)
+        local index = #clickCastingTable+1
+        local b = CreateBindingListButton("", "notBound", "general", "target", index)
         tinsert(clickCastingTable, EncodeDB("", "notBound", "general", "target"))
 
-        if last then
-            b:SetPoint("TOP", last, "BOTTOM", 0, -5)
-        else
-            b:SetPoint("TOP")
-        end
-        last = b
+        b:SetPoint("TOP", 0, P:Scale(-20)*(index-1)+P:Scale(-5)*(index-1))
 
         menu:Hide()
         bindingButton:Hide()
 
         -- scroll
-        bindingsFrame.scrollFrame:SetContentHeight(20, #clickCastingTable, 5)
+        bindingsFrame.scrollFrame:SetContentHeight(P:Scale(20), #clickCastingTable, P:Scale(5))
         bindingsFrame.scrollFrame:ScrollToBottom()
     end)
 
@@ -1230,9 +1271,22 @@ CreateBindingListButton = function(modifier, bindKey, bindType, bindAction, i)
         bindActionDisplay = bindAction
     end
 
-    local b = Cell:CreateBindingListButton(bindingsFrame.scrollFrame.content, modifierDisplay, bindKeyDisplay, L[F:UpperFirst(bindType)], bindActionDisplay)
+    if not listButtons[i] then
+        listButtons[i] = Cell:CreateBindingListButton(bindingsFrame.scrollFrame.content, "", "", "", "")
+    end
+    local b = listButtons[i]
+    b:SetParent(bindingsFrame.scrollFrame.content)
+    b:SetAlpha(1)
+    b:SetChanged(false)
+    b:Show()
+    
+    b.keyGrid:SetText(modifierDisplay..bindKeyDisplay)
+    b.typeGrid:SetText(L[F:UpperFirst(bindType)])
+    b.actionGrid:SetText(bindActionDisplay)
+    
     b.modifier, b.bindKey, b.bindType, b.bindAction = modifier, bindKey, bindType, bindAction
     b.bindSpell = bindSpell
+    b.clickCastingIndex = i
 
     b:SetPoint("LEFT", 5, 0)
     b:SetPoint("RIGHT", -5, 0)
@@ -1300,18 +1354,27 @@ LoadProfile = function(isCommon)
         local modifier, bindKey, bindType, bindAction = DecodeDB(t)
         local b = CreateBindingListButton(modifier, bindKey, bindType, bindAction, i)
 
-        if last then
-            b:SetPoint("TOP", last, "BOTTOM", 0, -5)
-        else
-            b:SetPoint("TOP")
-        end
-        last = b
+        b:SetPoint("TOP", 0, P:Scale(-20)*(i-1)+P:Scale(-5)*(i-1))
+    end
+    -- hide unused
+    for i = #clickCastingTable+1, #listButtons do
+        listButtons[i]:Hide()
     end
     -- F:Debug("-- Load clickCastings end ----------------")
-    bindingsFrame.scrollFrame:SetContentHeight(20, #clickCastingTable, 5)
+    bindingsFrame.scrollFrame:SetContentHeight(P:Scale(20), #clickCastingTable, P:Scale(5))
     menu:Hide()
     wipe(deleted)
     wipe(changed)
+end
+
+function F:MoveClickCastings(from, to)
+    F:Debug(from, "->", to)
+    if from and to then
+        local temp = clickCastingTable[from]
+        tremove(clickCastingTable, from)
+        tinsert(clickCastingTable, to, temp)
+    end
+    LoadProfile(Cell.vars.clickCastings["useCommon"])
 end
 
 -------------------------------------------------
@@ -1381,7 +1444,7 @@ clickCastingsTab:SetScript("OnShow", function()
     
     local isCommon = Cell.vars.clickCastings["useCommon"]
     profileDropdown:SetSelectedItem(isCommon and 1 or 2)
-    UpdateCurrentText(isCommon)
+    -- UpdateCurrentText(isCommon)
     LoadProfile(isCommon)
 
     smartResDropdown:SetSelectedValue(Cell.vars.clickCastings["smartResurrection"])

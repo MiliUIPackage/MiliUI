@@ -114,7 +114,7 @@ Cell.defaults.layout = {
             ["position"] = {"CENTER", "CENTER", 0, 0},
             ["frameLevel"] = 1,
             ["font"] = {"Cell ".._G.DEFAULT, 13, "Shadow"},
-            ["nameColor"] = {"custom", {1, 1, 1}},
+            ["color"] = {"custom_color", {1, 1, 1}},
             ["vehicleNamePosition"] = {"TOP", 0},
             ["textWidth"] = {"percentage", 0.75},
             ["showGroupNumber"] = false,
@@ -127,6 +127,8 @@ Cell.defaults.layout = {
             ["position"] = {"BOTTOM", 0},
             ["frameLevel"] = 30,
             ["font"] = {"Cell ".._G.DEFAULT, 11, "Shadow"},
+            ["showTimer"] = true,
+            ["showBackground"] = true,
             ["colors"] = {
                 ["AFK"] = {1, 0.19, 0.19, 1},
                 ["OFFLINE"] = {1, 0.19, 0.19, 1},
@@ -186,7 +188,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["hideInCombat"] = true,
-            ["position"] = {"TOPLEFT", "TOPLEFT", 0, -11},
+            ["position"] = {"TOPLEFT", "TOPLEFT", 1, -10},
             ["size"] = {11, 11},
         }, -- 7
         {
@@ -224,7 +226,7 @@ Cell.defaults.layout = {
             ["enabled"] = true,
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
             ["frameLevel"] = 3,
-            ["size"] = {10, 10},
+            ["size"] = {11, 11},
         }, -- 11
         {
             ["name"] = "Aggro (bar)",
@@ -240,8 +242,8 @@ Cell.defaults.layout = {
             ["indicatorName"] = "aggroBorder",
             ["type"] = "built-in",
             ["enabled"] = false,
-            ["frameLevel"] = 3,
-            ["thickness"] = 3,
+            ["frameLevel"] = 7,
+            ["thickness"] = 2,
         }, -- 13
         {
             ["name"] = "Shield Bar",
@@ -344,6 +346,7 @@ Cell.defaults.layout = {
             ["size"] = {{13, 13}, {17, 17}},
             ["showDuration"] = false,
             ["showTooltip"] = false,
+            ["enableBlacklistShortcut"] = false,
             ["num"] = 3,
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", "TOPRIGHT", 2, 1, {1, 1, 1}},
