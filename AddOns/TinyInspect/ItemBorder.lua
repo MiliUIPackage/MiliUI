@@ -17,32 +17,31 @@ local function SetItemAngularBorderScheduled(button, quality, itemIDOrLink)
         button    = button,
         onExecute = function(self)
             -- if (not self.button.angularFrame) then
-                -- local anchor, w, h = self.button.IconBorder or self.button, self.button:GetSize()
-                -- local ww, hh = anchor:GetSize()
-                -- if (ww == 0 or hh == 0) then
-                --     anchor = self.button.Icon or self.button.icon or self.button
-                --     w, h = anchor:GetSize()
-                -- else
-                --     w, h = min(w, ww), min(h, hh)
-                -- end
-                -- if (w > h * 1.28) then
-                --     w = h
-                -- end
-                -- self.button.angularFrame = CreateFrame("Frame", nil, self.button)
-                -- self.button.angularFrame:SetFrameLevel(5)
-                -- self.button.angularFrame:SetSize(w, h)
-                -- self.button.angularFrame:SetPoint("CENTER", anchor, "CENTER", 0, 0)
-                -- self.button.angularFrame:Hide()
-                -- self.button.angularFrame.mask = CreateFrame("Frame", nil, self.button.angularFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-                -- self.button.angularFrame.mask:SetSize(w-2, h-2)
-                -- self.button.angularFrame.mask:SetPoint("CENTER")
-                -- self.button.angularFrame.mask:SetBackdrop({edgeFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeSize = 2})
-                -- self.button.angularFrame.mask:SetBackdropBorderColor(0, 0, 0)
-                -- self.button.angularFrame.border = CreateFrame("Frame", nil, button.angularFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
-                -- self.button.angularFrame.border:SetSize(w, h)
-                -- self.button.angularFrame.border:SetFrameLevel(0)
-                -- self.button.angularFrame.border:SetPoint("CENTER")
-                -- self.button.angularFrame.border:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1})
+            --     local anchor, w, h = self.button.IconBorder or self.button, self.button:GetSize()
+            --     local ww, hh = anchor:GetSize()
+            --     if (ww == 0 or hh == 0) then
+            --         anchor = self.button.Icon or self.button.icon or self.button
+            --         w, h = anchor:GetSize()
+            --     else
+            --         w, h = min(w, ww), min(h, hh)
+            --     end
+            --     if (w > h * 1.28) then
+            --         w = h
+            --     end
+            --     self.button.angularFrame = CreateFrame("Frame", nil, self.button)
+            --     self.button.angularFrame:SetFrameLevel(5)
+            --     self.button.angularFrame:SetSize(w, h)
+            --     self.button.angularFrame:SetPoint("CENTER", anchor, "CENTER", 0, 0)
+            --     self.button.angularFrame:Hide()
+            --     self.button.angularFrame.mask = CreateFrame("Frame", nil, self.button.angularFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+            --     self.button.angularFrame.mask:SetSize(w-2, h-2)
+            --     self.button.angularFrame.mask:SetPoint("CENTER")
+            --     self.button.angularFrame.mask:SetBackdrop({edgeFile = "Interface\\Tooltips\\UI-Tooltip-Background", edgeSize = 2})
+            --     self.button.angularFrame.mask:SetBackdropBorderColor(0, 0, 0)
+            --     self.button.angularFrame.border = CreateFrame("Frame", nil, self.button.angularFrame, BackdropTemplateMixin and "BackdropTemplate" or nil)
+            --     self.button.angularFrame.border:SetSize(w, h)
+            --     self.button.angularFrame.border:SetPoint("CENTER")
+            --     self.button.angularFrame.border:SetBackdrop({edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1})
             -- end
             -- if (self.button.isBag) then
             --     self.button.angularFrame:Hide()
