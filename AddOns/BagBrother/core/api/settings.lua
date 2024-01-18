@@ -45,6 +45,7 @@ local ProfileDefaults = {
 		columns = 10,
 		width = 384,
 		height = 200,
+		skin = 'Thin',
 	}, FrameDefaults),
 
 	bank = Addon:SetDefaults({
@@ -54,20 +55,23 @@ local ProfileDefaults = {
 		columns = 20,
 		width = 600,
 		height = 500,
-		x = 95
+		x = 95,
+		skin = 'Thin',
 	}, FrameDefaults),
 
 	vault = Addon:SetDefaults({
 		borderColor = {1, 0, 0.98, 1},
 		point = 'LEFT',
 		columns = 10,
-		x = 95
+		x = 95,
+		skin = 'Thin',
 	}, FrameDefaults),
 
 	guild = Addon:SetDefaults({
 		borderColor = {0, 1, 0, 1},
 		point = 'CENTER',
 		columns = 7,
+		skin = 'Thin',
 	}, FrameDefaults)
 }
 
