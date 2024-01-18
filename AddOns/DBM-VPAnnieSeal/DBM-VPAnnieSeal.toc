@@ -2,6 +2,7 @@
 ## Title:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0Voicepack AnnieSeal|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0安妮海豹 语音包|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM|r|cffffe00a>|r |cff69ccf0安妮海豹 語音包|r
+## Notes-zhTW: 由Twitch實況主安妮海豹精心錄製的中文女聲語音包，感謝支持！
 ## DefaultState: enabled
 ## RequiredDeps: DBM-Core
 ## Author: Annie
@@ -11,5 +12,5 @@
 ## X-DBM-Voice: 1
 ## X-DBM-Voice-Name: AnnieSeal (中文女聲)
 ## X-DBM-Voice-ShortName: AnnieSeal
-## X-DBM-Voice-Version: 15
+## X-DBM-Voice-Version: 16
 ## X-DBM-Voice-HasCount: 1
