@@ -16,7 +16,7 @@ local FrameDefaults = {
 	money = true, broker = false,
 	bagToggle = true, sort = true, search = true, options = true,
 
-	strata = 'HIGH', alpha = 1,
+	strata = 'HIGH', skin = ADDON, alpha = 1,
 	scale = Addon.FrameScale or 1,
 	color = {0.1098039299249649, 0.1098039299249649, 0.1098039299249649, 1},
 	x = 0, y = 0,
@@ -106,24 +106,36 @@ function Settings:OnEnable()
 		herbColor = {.5, 1, .5},
 	})
 
-	----- upgrade old setting
+	----- upgrade old settings (temporary till next xpac)
 	for realm, owners in pairs(Addon.sets.profiles) do
 		for id, profile in pairs(owners) do
 			self:SetDefaults(profile, ProfileDefaults)
 			
 			for frame, options in pairs(profile) do
-				if type(options) == 'table' and options.bagBreak == true then
-					options.bagBreak = 2 -- upgrade old setting
+				if type(options) == 'table' then
+					if options.bagBreak == true then
+						options.bagBreak = 2
+					elseif not options.bagBreak then
+						options.bagBreak = nil
+					end
 				end
 			end
 		end
 	end
 
 	for frame, options in pairs(Addon.sets.global) do
-		if type(options) == 'table' and options.bagBreak == true then
-			options.bagBreak = 2 -- upgrade old setting
+		if type(options) == 'table' then
+			if options.bagBreak == true then
+				options.bagBreak = 2
+			elseif not options.bagBreak then
+				options.bagBreak = nil
+			end
 		end
 	end
+
+	if type(Addon.sets.latest) ~= 'table' then
+		Addon.sets.latest = {}
+    end
 	----
 
 	_G[VAR] = Addon.sets

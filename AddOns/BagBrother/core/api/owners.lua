@@ -50,7 +50,7 @@ function Owners:OnEnable()
 	Addon.player = self:New(UnitFullName('player'))
 
 	for i, realm in ipairs {Addon.player.realm, unpack(GetAutoCompleteRealms())} do
-		for id, cache in pairs(BrotherBags[realm] or {}) do
+		for id, cache in pairs(BrotherBags[realm] or Addon.None) do
 			self:New(id, realm)
 		end
 	end
@@ -83,7 +83,7 @@ function Owners:Sort()
 end
 
 function Owners:Iterate()
-	return ipairs(self.ordered or {})
+	return ipairs(self.ordered or Addon.None)
 end
 
 function Owners:Count()
@@ -120,16 +120,16 @@ end
 
 function Owners:SetProfile(profile)
 	Addon.Settings:SetProfile(self.realm, self.id, profile)
-	self.profile = Addon.Settings:GetProfile(owner.realm, owner.id)
+	self.profile = Addon.Settings:GetProfile(self.realm, self.id)
 end
 
 function Owners:GetIconMarkup(size, x, y)
 	local icon, coords = self:GetIcon()
 	if coords then
 		local u,v,w,z = unpack(coords)
-		return CreateTextureMarkup(icon, 128,128, size,size, u,v,w,z, x,y)
+		return CreateTextureMarkup(icon, 128,128, size,size, u,v,w,z, x or 0, y or 0)
 	else
-		return CreateAtlasMarkup(icon, size,size, x,y)
+		return CreateAtlasMarkup(icon, size,size, x or 0, y or 0)
 	end
 end
 

@@ -1,6 +1,6 @@
 ﻿--[[
-	searchToggle.lua
-		A searcn toggle widget
+	A search toggle button.
+	All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
@@ -34,12 +34,11 @@ function Toggle:OnToggle()
 	self:SetChecked(Addon.canSearch)
 end
 
+function Toggle:OnEnter()
+	self:ShowTooltip(SEARCH)
+end
+
 function Toggle:OnClick()
 	Addon.canSearch = self:GetChecked()
 	Addon:SendSignal('SEARCH_TOGGLED', self:GetChecked() and self:GetFrameID())
-end
-
-function Toggle:OnEnter()
-	GameTooltip:SetOwner(self:GetTipAnchor())
-	GameTooltip:SetText((self:GetChecked() and L.TipHideSearch or L.TipShowSearch):format(L.Click))
 end

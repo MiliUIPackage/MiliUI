@@ -1,8 +1,6 @@
 --[[
-	main.lua
-		Constant specifics for the addon
+	Constants specific to Bagnon
 --]]
 
 local ADDON, Addon = ...
-Addon.FrameTemplate = BackdropTemplateMixin and 'BackdropTemplate'
 Addon.Slash = 'bgn'
