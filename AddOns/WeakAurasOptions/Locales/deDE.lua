@@ -16,6 +16,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; added"] = "%d |4aura:auras; hinzugefügt"
 	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; gelöscht"
 	L["%d |4aura:auras; modified"] = "%d |4aura:auras; geändert"
+	--[[Translation missing --]]
+	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
 	L["%i auras selected"] = "%i Auren ausgew\\195\\164hlt"
 	--[[Translation missing --]]
 	L["%i."] = "%i."
@@ -73,6 +75,8 @@ local L = WeakAuras.L
 	L["%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"] = "%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"
 	--[[Translation missing --]]
 	L["%s %u. Overlay Function"] = "%s %u. Overlay Function"
+	--[[Translation missing --]]
+	L["%s (%s)"] = "%s (%s)"
 	--[[Translation missing --]]
 	L["%s Alpha: %d%%"] = "%s Alpha: %d%%"
 	L["%s Color"] = "%s Farbe"
@@ -868,6 +872,8 @@ Falls die Zahl als Dezimalzahl (z.B. 0.5), Bruch (z.B. 1/2) oder Prozentsatz (z.
 	L["Load"] = "Laden"
 	L["Loaded"] = "Geladen"
 	--[[Translation missing --]]
+	L["Loaded/Standby"] = "Loaded/Standby"
+	--[[Translation missing --]]
 	L["Lock Positions"] = "Lock Positions"
 	L["Loop"] = "Schleife"
 	L["Low Mana"] = "Niedriges Mana"
@@ -1231,6 +1237,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Spark Texture"] = "Funkentextur"
 	--[[Translation missing --]]
 	L["Specialization"] = "Specialization"
+	--[[Translation missing --]]
+	L["Specific Currency ID"] = "Specific Currency ID"
 	L["Specific Unit"] = "Spezifische Einheit"
 	L["Spell ID"] = "Zauber-ID"
 	--[[Translation missing --]]
@@ -1238,6 +1246,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Stack Count"] = "Stapelanzahl"
 	L["Stack Info"] = "Stapelinfo"
 	L["Stagger"] = "Taumeln"
+	--[[Translation missing --]]
+	L["Standby"] = "Standby"
 	L["Star"] = "Stern"
 	L["Start"] = "Start"
 	L["Start Angle"] = "Startwinkel"
@@ -1303,6 +1313,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 Make sure you can trust the person who sent it!]=] ] = [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=]
 	--[[Translation missing --]]
+	L["This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
+	L["This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=] ] = [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=]
@@ -1312,6 +1326,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	L["This display is currently loaded"] = "Diese Anzeige ist momentan geladen"
 	L["This display is not currently loaded"] = "Diese Anzeige ist momentan nicht geladen"
+	--[[Translation missing --]]
+	L["This display is on standby, it will be loaded when needed."] = "This display is on standby, it will be loaded when needed."
 	--[[Translation missing --]]
 	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."
 	--[[Translation missing --]]

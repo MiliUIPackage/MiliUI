@@ -17,6 +17,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; deleted"
 	--[[Translation missing --]]
 	L["%d |4aura:auras; modified"] = "%d |4aura:auras; modified"
+	--[[Translation missing --]]
+	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
 	L["%i auras selected"] = "효과 %i개 선택됨"
 	--[[Translation missing --]]
 	L["%i."] = "%i."
@@ -64,6 +66,8 @@ local L = WeakAuras.L
 	L["%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"] = "%s %s, 입자: %d, 빈도: %0.2f, 비율: %0.2f"
 	--[[Translation missing --]]
 	L["%s %u. Overlay Function"] = "%s %u. Overlay Function"
+	--[[Translation missing --]]
+	L["%s (%s)"] = "%s (%s)"
 	L["%s Alpha: %d%%"] = "%s 투명도: %d%%"
 	L["%s Color"] = "%s 색상"
 	--[[Translation missing --]]
@@ -722,6 +726,8 @@ Can use \ to escape -.]=] ] = "필터 형식: '이름', '이름-서버', '-서�
 	L["Linked aura: "] = "Linked aura: "
 	L["Load"] = "불러오기"
 	L["Loaded"] = "불러옴"
+	--[[Translation missing --]]
+	L["Loaded/Standby"] = "Loaded/Standby"
 	L["Lock Positions"] = "위치 잠금"
 	L["Loop"] = "반복"
 	L["Low Mana"] = "마나 낮음"
@@ -1008,12 +1014,16 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Spark Settings"] = "섬광 설정"
 	L["Spark Texture"] = "섬광 텍스쳐"
 	L["Specialization"] = "전문화"
+	--[[Translation missing --]]
+	L["Specific Currency ID"] = "Specific Currency ID"
 	L["Specific Unit"] = "특정 유닛"
 	L["Spell ID"] = "주문 ID"
 	L["Spell Selection Filters"] = "주문 선택 필터"
 	L["Stack Count"] = "중첩 횟수"
 	L["Stack Info"] = "중첩 정보"
 	L["Stagger"] = "계단식 배치"
+	--[[Translation missing --]]
+	L["Standby"] = "Standby"
 	L["Star"] = "별"
 	L["Start"] = "시작"
 	L["Start Angle"] = "시작 각도"
@@ -1067,6 +1077,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["This adds %tooltip, %tooltip1, %tooltip2, %tooltip3 and %tooltip4 as text replacements and also allows filtering based on the tooltip content/values."] = "This adds %tooltip, %tooltip1, %tooltip2, %tooltip3 and %tooltip4 as text replacements and also allows filtering based on the tooltip content/values."
 	L[ [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=] ] = "이 효과는 사용자 정의 Lua 코드를 포함합니다. 보낸 사람을 믿을 수 있는지 확인하세요!"
+	--[[Translation missing --]]
+	L["This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
+	L["This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=] ] = "이 효과는 월드 오브 워크래프트의 다른 버전(%s)으로 생성되었습니다. 제대로 작동하지 않을 수 있습니다!"
 	--[[Translation missing --]]
@@ -1075,6 +1089,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	L["This display is currently loaded"] = "이 디스플레이는 불러온 상태입니다"
 	L["This display is not currently loaded"] = "이 디스플레이는 불러오지 않았습니다"
+	--[[Translation missing --]]
+	L["This display is on standby, it will be loaded when needed."] = "This display is on standby, it will be loaded when needed."
 	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "이렇게 하면 디버그 로그를 수집할 수 있습니다. 사용자 정의 코드는 DebugPrint 기능을 통해 로그에 디버그 정보를 추가할 수 있습니다."
 	--[[Translation missing --]]
 	L["This is a modified version of your aura, |cff9900FF%s.|r"] = "This is a modified version of your aura, |cff9900FF%s.|r"

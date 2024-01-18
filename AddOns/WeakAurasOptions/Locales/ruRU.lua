@@ -14,6 +14,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; added"] = "%d |4индикация добавлена:индикации добавлены:индикаций добавлено;"
 	L["%d |4aura:auras; deleted"] = "%d |4индикация удалена:индикации удалены:индикаций удалено;"
 	L["%d |4aura:auras; modified"] = "%d |4индикация изменена:индикации изменены:индикаций изменено;"
+	--[[Translation missing --]]
+	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
 	L["%i auras selected"] = "%i |4индикация выбрана:индикации выбраны:индикаций выбрано;"
 	L["%i."] = "%i."
 	L["%i. %s"] = "%i. %s"
@@ -43,6 +45,8 @@ local L = WeakAuras.L
 	L["%s %s, Lines: %d, Frequency: %0.2f, Length: %d, Thickness: %d"] = "%s %s; Линии %d; Частота %.3g; Длина %0.3g; Толщина %0.3g"
 	L["%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"] = "%s %s; Частицы %d; Частота %.3g; Масштаб %.3g"
 	L["%s %u. Overlay Function"] = "%s Функция наложения %u"
+	--[[Translation missing --]]
+	L["%s (%s)"] = "%s (%s)"
 	L["%s Alpha: %d%%"] = "%s Прозрачность %d%%"
 	L["%s Color"] = "%s "
 	L["%s Custom Variables"] = "%s Переменные TSU"
@@ -596,6 +600,7 @@ Can use \ to escape -.]=] ] = [=[Формат записи: Имя, Имя-Иг�
 	L["Linked aura: "] = "Связанная индикация: "
 	L["Load"] = "Загрузка"
 	L["Loaded"] = "Загружено"
+	L["Loaded/Standby"] = "Загружен/Ожидает"
 	L["Lock Positions"] = "Заблокировать позиции"
 	L["Loop"] = "Повторять"
 	L["Low Mana"] = "Мало маны"
@@ -850,12 +855,14 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Spark Settings"] = "Настройки искры"
 	L["Spark Texture"] = "Текстура искры"
 	L["Specialization"] = "Специализация"
+	L["Specific Currency ID"] = "ID валюты"
 	L["Specific Unit"] = "Конкретная единица"
 	L["Spell ID"] = "ID заклинания"
 	L["Spell Selection Filters"] = "Фильтры выбора заклинания"
 	L["Stack Count"] = "Количество стаков"
 	L["Stack Info"] = "Информация о стаках"
 	L["Stagger"] = "Выступ (смещение уровня)"
+	L["Standby"] = "Ожидает"
 	L["Star"] = "Звезда"
 	L["Start"] = "Начальная"
 	L["Start Angle"] = "Начальный угол"
@@ -898,6 +905,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L[ [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=] ] = [=[Индикация содержит пользовательский код Lua.
 Убедитесь, что вы можете доверять человеку, который ее отправил!]=]
+	--[[Translation missing --]]
+	L["This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
+	L["This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=] ] = [=[Индикация была создана в другой версии World of Warcraft (%s).
 Она может работать неправильно!]=]
@@ -906,6 +917,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 Прежде чем импортировать её, обновите вашу версию аддона или дождитесь следующего релиза WeakAuras.]=]
 	L["This display is currently loaded"] = "Эта индикация загружена"
 	L["This display is not currently loaded"] = "Эта индикация не загружена"
+	--[[Translation missing --]]
+	L["This display is on standby, it will be loaded when needed."] = "This display is on standby, it will be loaded when needed."
 	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "Позволяет собирать записи отладки. Используйте функцию DebugPrint в вашем коде для добавления отладочной информации в журнал."
 	L["This is a modified version of your aura, |cff9900FF%s.|r"] = "Это изменённая версия вашей индикации |cFF9900FF%s|r"
 	L["This is a modified version of your group: |cff9900FF%s|r"] = "Это изменённая версия вашей группы индикаций |cFF9900FF%s|r"

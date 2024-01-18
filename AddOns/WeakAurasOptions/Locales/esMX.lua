@@ -14,6 +14,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; added"] = "%d |4aura:auras; agregada(s)"
 	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; eliminada(s)"
 	L["%d |4aura:auras; modified"] = "%d |4aura:auras; modificada(s)"
+	--[[Translation missing --]]
+	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
 	L["%i auras selected"] = "%i auras seleccionados"
 	--[[Translation missing --]]
 	L["%i."] = "%i."
@@ -68,6 +70,8 @@ local L = WeakAuras.L
 	L["%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"] = "%s %s, Partículas: %d, Frecuencia: %0.2f, Escala: %0.2f"
 	--[[Translation missing --]]
 	L["%s %u. Overlay Function"] = "%s %u. Overlay Function"
+	--[[Translation missing --]]
+	L["%s (%s)"] = "%s (%s)"
 	L["%s Alpha: %d%%"] = "%s Alfa: %d%%"
 	L["%s Color"] = "%s Color"
 	--[[Translation missing --]]
@@ -892,6 +896,8 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	L["Load"] = "Cargar"
 	L["Loaded"] = "Cargado"
 	--[[Translation missing --]]
+	L["Loaded/Standby"] = "Loaded/Standby"
+	--[[Translation missing --]]
 	L["Lock Positions"] = "Lock Positions"
 	--[[Translation missing --]]
 	L["Loop"] = "Loop"
@@ -1277,6 +1283,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Spark Texture"] = "Textura de la chispa"
 	--[[Translation missing --]]
 	L["Specialization"] = "Specialization"
+	--[[Translation missing --]]
+	L["Specific Currency ID"] = "Specific Currency ID"
 	L["Specific Unit"] = "Unidad específica"
 	L["Spell ID"] = "ID de hechizo"
 	--[[Translation missing --]]
@@ -1284,6 +1292,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Stack Count"] = "Contador de acumulaciones"
 	L["Stack Info"] = "Información de acumulaciones"
 	L["Stagger"] = "Tambaleo"
+	--[[Translation missing --]]
+	L["Standby"] = "Standby"
 	L["Star"] = "Estrella"
 	L["Start"] = "Comenzar"
 	L["Start Angle"] = "Ángulo de inicio"
@@ -1353,6 +1363,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 Make sure you can trust the person who sent it!]=] ] = [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=]
 	--[[Translation missing --]]
+	L["This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
+	L["This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=] ] = [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=]
@@ -1362,6 +1376,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	L["This display is currently loaded"] = "Esta aura está cargada"
 	L["This display is not currently loaded"] = "Esta aura no está cargada"
+	--[[Translation missing --]]
+	L["This display is on standby, it will be loaded when needed."] = "This display is on standby, it will be loaded when needed."
 	--[[Translation missing --]]
 	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."
 	--[[Translation missing --]]
@@ -1520,7 +1536,7 @@ WeakAuras will always run custom grow code if you include 'changed' in this list
 	L["Your Saved Snippets"] = "Your Saved Snippets"
 	L["Z Offset"] = "Posición de Z"
 	L["Z Rotation"] = "Rotación de Z"
-	L["Zoom"] = "Ampliar"
+	L["Zoom"] = "Zoom"
 	L["Zoom In"] = "Acercar"
 	L["Zoom Out"] = "Alejar"
 

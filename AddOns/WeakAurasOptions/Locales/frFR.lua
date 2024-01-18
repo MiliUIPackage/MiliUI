@@ -14,6 +14,8 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; added"] = "%d |4aura:auras; ajoutée(s)"
 	L["%d |4aura:auras; deleted"] = "%d |4aura:auras; supprimée(s)"
 	L["%d |4aura:auras; modified"] = "%d |4aura:auras; modifiée(s)"
+	--[[Translation missing --]]
+	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
 	L["%i auras selected"] = "%i auras sélectionnées"
 	L["%i."] = "%i."
 	--[[Translation missing --]]
@@ -48,6 +50,8 @@ local L = WeakAuras.L
 	L["%s %s, Lines: %d, Frequency: %0.2f, Length: %d, Thickness: %d"] = "%s %s, Lignes : %d, Fréquence : %0.2f, Longueur : %d, Épaisseur : %d"
 	L["%s %s, Particles: %d, Frequency: %0.2f, Scale: %0.2f"] = "%s %s, Particules : %d, Fréquence : %0.2f, Échelle : %0.2f"
 	L["%s %u. Overlay Function"] = "%s %u. Fonction de superposition"
+	--[[Translation missing --]]
+	L["%s (%s)"] = "%s (%s)"
 	L["%s Alpha: %d%%"] = "%s Opacité : %d%%"
 	L["%s Color"] = "%s Couleur"
 	L["%s Custom Variables"] = "%s Variables personnalisées"
@@ -745,6 +749,8 @@ Si cette case est cochée, ce séparateur inclura du texte. Sinon, ce sera juste
 	L["Linked aura: "] = "Linked aura: "
 	L["Load"] = "Chargement"
 	L["Loaded"] = "Chargé"
+	--[[Translation missing --]]
+	L["Loaded/Standby"] = "Loaded/Standby"
 	L["Lock Positions"] = "Verrouiller les positions"
 	L["Loop"] = "Boucle"
 	L["Low Mana"] = "Mana bas"
@@ -1056,6 +1062,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Spark Texture"] = "Texture de l'étincelle"
 	--[[Translation missing --]]
 	L["Specialization"] = "Specialization"
+	--[[Translation missing --]]
+	L["Specific Currency ID"] = "Specific Currency ID"
 	L["Specific Unit"] = "Unité spécifique"
 	L["Spell ID"] = "ID de sort"
 	--[[Translation missing --]]
@@ -1063,6 +1071,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Stack Count"] = "Nombre de Piles"
 	L["Stack Info"] = "Info de Piles"
 	L["Stagger"] = "Report"
+	--[[Translation missing --]]
+	L["Standby"] = "Standby"
 	L["Star"] = "Étoile"
 	L["Start"] = "Début"
 	L["Start Angle"] = "Angle de départ"
@@ -1125,6 +1135,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 Make sure you can trust the person who sent it!]=] ] = [=[This aura contains custom Lua code.
 Make sure you can trust the person who sent it!]=]
 	--[[Translation missing --]]
+	L["This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to an aura '%s', but cannot be used to update that aura. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
+	L["This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."] = "This aura is marked as an update to auras '%s', but cannot be used to update them. This usually happens if an aura is moved out of a group."
+	--[[Translation missing --]]
 	L[ [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=] ] = [=[This aura was created with a different version (%s) of World of Warcraft.
 It might not work correctly!]=]
@@ -1134,6 +1148,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 Upgrade your version of WeakAuras or wait for next release before installing this aura.]=]
 	L["This display is currently loaded"] = "Cet affichage est actuellement chargé"
 	L["This display is not currently loaded"] = "Cet affichage n'est pas chargé"
+	--[[Translation missing --]]
+	L["This display is on standby, it will be loaded when needed."] = "This display is on standby, it will be loaded when needed."
 	--[[Translation missing --]]
 	L["This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."] = "This enables the collection of debug logs. Custom code can add debug information to the log through the function DebugPrint."
 	--[[Translation missing --]]

@@ -7,10 +7,14 @@ end
 local L = WeakAuras.L
 
 -- WeakAuras/Templates
-	--[[Translation missing --]]
-	L["< 4 stacks"] = "< 4 stacks"
-	--[[Translation missing --]]
-	L["5 stacks"] = "5 stacks"
+	L["(Dwarf)"] = "(Enano)"
+	L["(Dwarf/Human)"] = "(Enano/Humano)"
+	L["(Human)"] = "(Humano)"
+	L["(Night Elf)"] = "(Elfo de la noche)"
+	L["(Troll)"] = "(Trol)"
+	L["(Undead)"] = "(No-muerto)"
+	L["< 4 stacks"] = "< 4 acumulaciones"
+	L["5 stacks"] = "5 acumulaciones"
 	L["Abilities"] = "Habilidades"
 	L["Add Triggers"] = "Añadir activadores"
 	L["Always Active"] = "Siempre activo"
@@ -42,17 +46,19 @@ local L = WeakAuras.L
 	L["buff"] = "beneficio"
 	L["Buffs"] = "Beneficios"
 	L["Cancel"] = "Cancelar"
-	L["Cast"] = "Castear"
+	L["Cast"] = "Lanzar"
 	L["Charge and Buff Tracking"] = "Seguimiento de cargas y beneficios"
 	L["Charge and Debuff Tracking"] = "Seguimiento de cargas y perjuicios"
 	L["Charge and Duration Tracking"] = "Seguimiento de cargas y duración"
 	L["Charge Tracking"] = "Seguimiento de cargas"
-	L["cooldown"] = "cooldown"
-	L["Cooldown Tracking"] = "Seguimiento de cooldown"
-	L["Cooldowns"] = "Cooldowns"
+	L["cooldown"] = "reutilización"
+	L["Cooldown Tracking"] = "Seguimiento de reutilización"
+	L["Cooldowns"] = "Reutilizaciones"
 	L["Create Auras"] = "Crear auras"
 	L["debuff"] = "perjuicio"
 	L["Debuffs"] = "Perjuicios"
+	--[[Translation missing --]]
+	L["dps buff"] = "dps buff"
 	L["General"] = "General"
 	L["Health"] = "Salud"
 	L["Highlight while action is queued."] = "Resaltar mientras la acción está en cola."
@@ -66,9 +72,9 @@ local L = WeakAuras.L
 	L["Hold CTRL to create multiple auras at once"] = "Mantén pulsado CTRL para crear varias auras a la vez"
 	L["Keeps existing triggers intact"] = "Mantiene intactos los activadores existentes"
 	--[[Translation missing --]]
-	L["Max 3"] = "Max 3"
-	--[[Translation missing --]]
-	L["Max 4"] = "Max 4"
+	L["Master Channeler Rune"] = "Master Channeler Rune"
+	L["Max 3"] = "Máx. 3"
+	L["Max 4"] = "Máx. 4"
 	L["Next"] = "Siguiente"
 	L["Only show the aura if the target has the debuff."] = "Mostrar el aura solo si el objetivo tiene el perjuicio activo."
 	L["Only show the aura when the item is on cooldown."] = "Mostrar el aura solo cuando el objeto está en reutilización."
@@ -77,12 +83,13 @@ local L = WeakAuras.L
 	L["Only shows the aura if the target has the buff."] = "Muestra el aura solo si el objetivo tiene el beneficio activo."
 	L["Only shows the aura when the ability is on cooldown."] = "Mostrar el aura solo cuando la habilidad está en reutilización."
 	L["Only shows the aura when the ability is ready to use."] = "Mostrar el aura solo cuando la habilidad está lista para usar."
-	--[[Translation missing --]]
-	L["Other cooldown"] = "Other cooldown"
+	L["Other cooldown"] = "Otra reutilización"
 	L["Pet alive"] = "Mascota viva"
 	L["Pet Behavior"] = "Comportamiento de mascota"
 	--[[Translation missing --]]
 	L["PvP Talents"] = "PvP Talents"
+	--[[Translation missing --]]
+	L["regen buff"] = "regen buff"
 	L["Replace all existing triggers"] = "Sustituir todos los activadores existentes"
 	L["Replace Triggers"] = "Sustituir activadores"
 	L["Resources"] = "Recursos"
@@ -90,8 +97,7 @@ local L = WeakAuras.L
 	L["Resources and Shapeshift Form"] = "Resources and Shapeshift Form"
 	--[[Translation missing --]]
 	L["Rogue cooldown"] = "Rogue cooldown"
-	--[[Translation missing --]]
-	L["Runes"] = "Runes"
+	L["Runes"] = "Runas"
 	--[[Translation missing --]]
 	L["Shapeshift Form"] = "Shapeshift Form"
 	--[[Translation missing --]]
@@ -145,8 +151,7 @@ local L = WeakAuras.L
 	L["Show Only if on Cooldown"] = "Show Only if on Cooldown"
 	--[[Translation missing --]]
 	L["Show Totem and Charge Information"] = "Show Totem and Charge Information"
-	--[[Translation missing --]]
-	L["Stance"] = "Stance"
+	L["Stance"] = "Actitud"
 	--[[Translation missing --]]
 	L["Track the charge and proc, highlight while proc is active, turns red when out of range, blue on insufficient resources."] = "Track the charge and proc, highlight while proc is active, turns red when out of range, blue on insufficient resources."
 	L["Tracks the charge and the buff, highlight while the buff is active, blue on insufficient resources."] = "Realiza un seguimiento de la carga y el beneficio, resaltar cuando el beneficio está activo, azul si no hay recursos suficientes."

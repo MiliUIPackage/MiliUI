@@ -1,7 +1,7 @@
-## Interface: 11404
+## Interface: 11500
 ## Title: WeakAuras Options
 ## Author: The WeakAuras Team
-## Version: 5.8.5
+## Version: 5.9.2
 ## Notes: Options for WeakAuras
 ## Notes-esES: Opciones para WeakAuras
 ## Notes-deDE: Optionen für WeakAuras
@@ -76,6 +76,7 @@ AceGUI-Widgets\AceGUIWidget-WeakAurasIcon.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasNewHeaderButton.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasLoadedHeaderButton.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasDisplayButton.lua
+AceGUI-Widgets\AceGUIWidget-WeakAurasDropDownItemCurrency.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasPendingInstallButton.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasPendingUpdateButton.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasTextureButton.lua

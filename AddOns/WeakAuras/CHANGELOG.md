@@ -1,20 +1,14 @@
-# [5.8.5](https://github.com/WeakAuras/WeakAuras2/tree/5.8.5) (2023-11-12)
+# [5.9.2](https://github.com/WeakAuras/WeakAuras2/tree/5.9.2) (2024-01-18)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.8.4...5.8.5)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.9.1...5.9.2)
 
 ## Highlights
 
- - More template updates and bug fixes 
+  
 
 ## Commits
 
-InfusOnWoW (2):
+InfusOnWoW (1):
 
-- More Template Updates
-- Combat Log Trigger: Fix various condition checks for !=
-
-mrbuds (2):
-
-- Alternate Power trigger: make power field a multiEntry
-- Dynamic group: flatten background level of all regions
+- Fix WA tainting AbbreviateNumbers for korea/taiwan users
 
