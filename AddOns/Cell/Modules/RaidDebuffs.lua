@@ -39,10 +39,10 @@ local encounterJournalList = {
     --     },
     -- },
 }
---@debug@
+--[==[@debug@
 Cell_DevExpansionData = encounterJournalList
 Cell_DevExpansionNames = {}
---@end-debug@
+--@end-debug@]==]
 
 -- used to GetInstanceInfo/GetRealZoneText --> instanceId
 local instanceNameMapping = {
@@ -100,9 +100,9 @@ local function LoadList()
     for tier = 1, num do
         local name = EJ_GetTierInfo(tier)
         encounterJournalList[name] = {}
-        --@debug@
+        --[==[@debug@
         tinsert(Cell_DevExpansionNames, 1, name)
-        --@end-debug@
+        --@end-debug@]==]
 
         if tier ~= num then -- don't load raid for "Mythic+ Dungeon"
             LoadInstanceList(tier, "raid", encounterJournalList[name])
