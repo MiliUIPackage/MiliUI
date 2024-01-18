@@ -160,7 +160,7 @@ function addon:ColorFontStringWithAccentColor(fs)
 end
 
 function addon:WrapTextInAccentColor(text)
-    return WrapTextInColorCode(text, accentColor.s)
+    return WrapTextInColorCode(text, accentColor.s) -- FIXME: ("|c%s%s|r"):format(colorHexString, text)
 end
 
 -----------------------------------------
@@ -401,7 +401,7 @@ local function ShowTooltips(widget, anchor, x, y, tooltips)
 end
 
 function addon:SetTooltips(widget, anchor, x, y, ...)
-    if not widget.tooltipsInited then
+    if not widget._tooltipsInited then
         widget._tooltipsInited = true
 
         widget:HookScript("OnEnter", function()

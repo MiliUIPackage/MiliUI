@@ -21,7 +21,8 @@ function I:GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
                 {"Cell ".._G.DEFAULT, 11, "Outline", "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
             },
             ["showStack"] = true,
-            ["showDuration"] = false,
+            ["showDuration"] = true,
+            ["showAnimation"] = true,
             ["auraType"] = auraType,
             ["auras"] = {},
         }
@@ -92,6 +93,7 @@ function I:GetDefaultCustomIndicatorTable(name, indicatorName, type, auraType)
             },
             ["showStack"] = true,
             ["showDuration"] = false,
+            ["showAnimation"] = true,
             ["auraType"] = auraType,
             ["auras"] = {},
         }

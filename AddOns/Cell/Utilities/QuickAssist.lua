@@ -546,9 +546,11 @@ end
 
 local function QuickAssist_OnAttributeChanged(self, name, value)
     if name == "unit" then
-        self.unit = value
-        self:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", value)
-        ResetAuraTables(self)
+        if self.unit ~= value then
+            self.unit = value
+            self:RegisterUnitEvent("UNIT_IN_RANGE_UPDATE", value)
+            ResetAuraTables(self)
+        end
 
         if value then
             Cell.unitButtons.quickAssist.units[value] = self
@@ -1195,6 +1197,7 @@ local function UpdateQuickAssist(which)
             -- font
             indicator:SetFont(unpack(bit["font"]))
             indicator:ShowDuration(bit["showDuration"])
+            indicator:ShowAnimation(bit["showAnimation"])
             indicator:ShowStack(bit["showStack"])
 
             -- bar
@@ -1241,6 +1244,7 @@ local function UpdateQuickAssist(which)
             -- font
             indicator:SetFont(unpack(oit["font"]))
             indicator:ShowDuration(oit["showDuration"])
+            indicator:ShowAnimation(oit["showAnimation"])
             indicator:ShowStack(oit["showStack"])
             
             -- glow

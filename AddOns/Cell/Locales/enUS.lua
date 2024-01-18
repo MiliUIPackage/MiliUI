@@ -28,6 +28,7 @@ select(2, ...).L = setmetatable({
     ["buffByMe"] = "Only show buffs I can apply",
     ["trackByName"] = "Track by name",
     ["showDuration"] = "Show duration text",
+    ["showAnimation"] = "Show animation",
     ["showStack"] = "Show stack text",
     ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",
@@ -83,6 +84,26 @@ select(2, ...).L = setmetatable({
     ["CHANGELOGS"] = [[
         <h1>If there are any issues after an update, check through all code snippets first.</h1>
         <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
+        <br/>
+
+        <h1>r217-release (Jan 18, 2024, 17:01 GMT+8)</h1>
+        <p>* Fixed duration text visibility.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r216-release (Jan 18, 2024, 12:31 GMT+8)</h1>
+        <p>* Fixed an icon preview issue in Appearance.</p>
+        <p>* Fixed icon animation of Quick Assist.</p>
+        <br/>
+
+        <h1>r215-release (Jan 18, 2024, 11:31 GMT+8)</h1>
+        <p>+ Implemented blacklist shortcut for Debuffs: Alt + Ctrl + LeftClick (disabled by default).</p>
+        <p>+ Added "Show animation" option for some indicators.</p>
+        <p>+ (Retail) Added "Color" option for Tank Active Mitigation.</p>
+        <p>* Updated party role order option (PR #102, thanks abazilla).</p>
+        <p>* (Retail) Set the default value of "Always Update Debuffs" to true.</p>
+        <p>* Fixed a Spec Filter issue for Quick Assist.</p>
+        <p>* Fixed layout preview mover.</p>
         <br/>
 
         <h1>r214-release (Dec 30, 2023, 20:35 GMT+8)</h1>
