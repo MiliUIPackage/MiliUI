@@ -68,6 +68,9 @@ function Details:StartMeUp()
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialize
 
+	--make an encounter journal cache
+	C_Timer.After(1, Details222.EJCache.CreateEncounterJournalDump)
+
 	--plugin container
 	Details:CreatePluginWindowContainer()
 	Details:InitializeForge() --to install into the container plugin
@@ -276,7 +279,10 @@ function Details:StartMeUp()
 			Details.listener:RegisterEvent("PLAYER_SPECIALIZATION_CHANGED")
 			Details.listener:RegisterEvent("PLAYER_TALENT_UPDATE")
 			Details.listener:RegisterEvent("CHALLENGE_MODE_START")
+			--Details.listener:RegisterEvent("CHALLENGE_MODE_END") --doesn't exists ingame (only at cleu)
 			Details.listener:RegisterEvent("CHALLENGE_MODE_COMPLETED")
+			Details.listener:RegisterEvent("WORLD_STATE_TIMER_START")
+
 		end
 
 		Details.parser_frame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
@@ -384,7 +390,7 @@ function Details:StartMeUp()
 						C_Timer.After(10, function()
 							if (lowerInstanceId:IsEnabled()) then
 								lowerInstanceId:InstanceAlert(Loc ["STRING_VERSION_UPDATE"], {[[Interface\GossipFrame\AvailableQuestIcon]], 16, 16, false}, 60, {Details.OpenNewsWindow}, true)
-								Details:Msg(Loc ["A new version has been installed: /details news"]) --localize-me
+								Details:Msg(Loc["A new version has been installed: /details news"]) --localize-me
 							end
 						end)
 					end
@@ -481,7 +487,7 @@ function Details:StartMeUp()
 				---@type trinketdata
 				local thisTrinketData = {
 					itemName = C_Item.GetItemNameByID(trinketTable.itemId),
-					spellName = GetSpellInfo(spellId) or "spell not found",
+					spellName = GetSpellInfo(spellId) or Loc["spell not found"],
 					lastActivation = 0,
 					lastPlayerName = "",
 					totalCooldownTime = 0,
@@ -554,7 +560,7 @@ function Details:StartMeUp()
 	if (not DetailsFramework.IsClassicWow()) then
 		--i'm not in classc wow
 	else
-		--print(Loc ["|CFFFFFF00[Details!]: you're using Details! for RETAIL on Classic WOW, please get the classic version (Details! Damage Meter Classic WoW), if you need help see our Discord (/details discord)."])
+		--print("|CFFFFFF00[Details!]: you're using Details! for RETAIL on Classic WOW, please get the classic version (Details! Damage Meter Classic WoW), if you need help see our Discord (/details discord).")
 	end
 
 	Details:InstallHook("HOOK_DEATH", Details.Coach.Client.SendMyDeath)
@@ -601,7 +607,7 @@ function Details:StartMeUp()
 			if (level == 1) then
 				if (Details.overall_clear_newtorghast) then
 					Details.historico:ResetOverallData()
-					Details:Msg("總體數據現已重置。") --localize-me
+					Details:Msg("overall data are now reset.") --localize-me
 				end
 			end
 		end)
@@ -622,8 +628,6 @@ function Details:StartMeUp()
 	end
 
 	Details.InitializeSpellBreakdownTab()
-
-	pcall(Details222.EJCache.MakeCache)
 
 	pcall(Details222.ClassCache.MakeCache)
 

@@ -416,6 +416,14 @@
 		end
 	end
 
+	function classCombat:GetRunTime()
+		return self.run_time or self:GetCombatTime()
+	end
+
+	function classCombat:GetRunTimeNoDefault()
+		return self.run_time
+	end
+
 	function classCombat:GetStartTime()
 		return self.start_time
 	end
@@ -677,6 +685,8 @@ function classCombat:NovaTabela(bTimeStarted, overallCombatObject, combatId, ...
 		combatObject.start_time = 0
 		combatObject.end_time = nil
 	end
+
+	combatObject.is_challenge = Details:IsInMythicPlus()
 
 	-- o container ir� armazenar as classes de dano -- cria um novo container de indexes de seriais de jogadores --par�metro 1 classe armazenada no container, par�metro 2 = flag da classe
 	combatObject[1].need_refresh = true

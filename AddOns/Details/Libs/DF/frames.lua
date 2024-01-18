@@ -37,11 +37,6 @@ local cornerNames = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
 ---@field Left texture
 ---@field Right texture
 
----@class df_roundedpanel_preset : table
----@field border_color any
----@field color any
----@field roundness number
-
 ---@class df_roundedpanel_options : table
 ---@field width number
 ---@field height number
@@ -53,6 +48,12 @@ local cornerNames = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
 ---@field color any
 ---@field border_color any
 ---@field corner_texture texturepath|textureid
+---@field horizontal_border_size_offset number?
+
+---@class df_roundedpanel_preset : table, df_roundedpanel_options
+---@field border_color any
+---@field color any
+---@field roundness number
 
 ---@class df_roundedcornermixin : table
 ---@field RoundedCornerConstructor fun(self:df_roundedpanel) --called from CreateRoundedPanel
@@ -293,13 +294,13 @@ detailsFramework.RoundedCornerPanelMixin = {
 
             --set the new size of the corners on all corner textures
             for _, thisTexture in pairs(self.CornerTextures) do
-                thisTexture:SetSize(newCornerSize-self.cornerRoundness, newCornerSize)
+                thisTexture:SetSize(newCornerSize - (self.cornerRoundness - 2), newCornerSize)
             end
 
             --check if the frame has border and set the size of the border corners as well
             if (self.bHasBorder) then
                 for _, thisTexture in pairs(self.BorderCornerTextures) do
-                    thisTexture:SetSize(newCornerSize, newCornerSize)
+                    thisTexture:SetSize(newCornerSize-2, newCornerSize+2)
                 end
 
                 --hide the left and right edges as the corner textures already is enough to fill the frame
@@ -307,8 +308,8 @@ detailsFramework.RoundedCornerPanelMixin = {
                 self.BorderEdgeTextures["Right"]:Hide()
 
                 local horizontalEdgesNewSize = self:CalculateBorderEdgeSize("horizontal")
-                self.BorderEdgeTextures["Top"]:SetSize(horizontalEdgesNewSize, 1)
-                self.BorderEdgeTextures["Bottom"]:SetSize(horizontalEdgesNewSize, 1)
+                self.BorderEdgeTextures["Top"]:SetSize(horizontalEdgesNewSize + (self.options.horizontal_border_size_offset or 0), 1)
+                self.BorderEdgeTextures["Bottom"]:SetSize(horizontalEdgesNewSize + (self.options.horizontal_border_size_offset or 0), 1)
             end
 
             self.CenterBlock:Hide()
@@ -613,6 +614,7 @@ function detailsFramework:AddRoundedCornersToFrame(frame, preset)
 
     --handle preset
     if (preset and type(preset) == "table") then
+        frame.options.horizontal_border_size_offset = preset.horizontal_border_size_offset
         applyPreset(frame, preset)
     else
         applyPreset(frame, defaultPreset)

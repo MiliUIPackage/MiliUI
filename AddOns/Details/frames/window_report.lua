@@ -126,7 +126,7 @@ local _
 			Details.copypasteframe:Hide()
 
 			DetailsFramework:ApplyStandardBackdrop(Details.copypasteframe)
-			DetailsFramework:CreateTitleBar(Details.copypasteframe, "Export Text")
+			DetailsFramework:CreateTitleBar(Details.copypasteframe, Loc["Export Text"])
 
 			local editBox = CreateFrame("editbox", nil, Details.copypasteframe)
 			editBox:SetPoint("topleft", Details.copypasteframe, "topleft", 2, -26)
@@ -381,7 +381,7 @@ local createDropdown = function(thisFrame)
 		thisFrame.linhas_amt:SetText(Loc ["STRING_REPORTFRAME_LINES"])
 		thisFrame.linhas_amt:SetTextColor(.9, .9, .9, 1)
 		thisFrame.linhas_amt:SetPoint("bottomleft", thisFrame, "bottomleft", 58, 12)
-		Details:SetFontSize(thisFrame.linhas_amt, 13)
+		Details:SetFontSize(thisFrame.linhas_amt, 10)
 
 		local slider = CreateFrame("Slider", "Details_Report_Slider", thisFrame, "BackdropTemplate")
 		thisFrame.slider = slider
@@ -445,7 +445,7 @@ local createDropdown = function(thisFrame)
 		thisFrame.wisp_who:SetTextColor(1, 1, 1, 1)
 		thisFrame.wisp_who:SetPoint("topleft", thisFrame.select, "topleft", 14, -30)
 
-		Details:SetFontSize(thisFrame.wisp_who, 13)
+		Details:SetFontSize(thisFrame.wisp_who, 10)
 
 		--editbox
 		local editbox = CreateFrame("EditBox", nil, thisFrame, "BackdropTemplate")
@@ -546,14 +546,14 @@ local createDropdown = function(thisFrame)
 		local checkbox = CreateFrame("CheckButton", "Details_Report_CB_1", thisFrame, "ChatConfigCheckButtonTemplate,BackdropTemplate")
 		checkbox:SetPoint("topleft", thisFrame.wisp_who, "bottomleft", -25, -4)
 		_G[checkbox:GetName().."Text"]:SetText(Loc ["STRING_REPORTFRAME_CURRENT"])
-		Details:SetFontSize(_G[checkbox:GetName().."Text"], 13)
+		Details:SetFontSize(_G[checkbox:GetName().."Text"], 14)
 		checkbox.tooltip = Loc ["STRING_REPORTFRAME_CURRENTINFO"]
 		checkbox:SetHitRectInsets(0, -35, 0, 0)
 
 		local checkbox2 = CreateFrame("CheckButton", "Details_Report_CB_2", thisFrame, "ChatConfigCheckButtonTemplate,BackdropTemplate")
 		checkbox2:SetPoint("topleft", thisFrame.wisp_who, "bottomleft", 35, -4)
 		_G[checkbox2:GetName().."Text"]:SetText(Loc ["STRING_REPORTFRAME_REVERT"])
-		Details:SetFontSize(_G[checkbox2:GetName().."Text"], 13)
+		Details:SetFontSize(_G[checkbox2:GetName().."Text"], 14)
 		checkbox2.tooltip = Loc ["STRING_REPORTFRAME_REVERTINFO"]
 		checkbox2:SetHitRectInsets(0, -35, 0, 0)
 	end
@@ -576,7 +576,7 @@ local createDropdown = function(thisFrame)
 		end
 
 		window.last_reported_label:SetPoint("topleft", window, "topleft", 5, -28)
-		gump:SetFontSize(window.last_reported_label, 13)
+		gump:SetFontSize(window.last_reported_label, 14)
 
 		for i = 1, 9 do --window.max_last_buttons
 			local recentReportButton = window.recently_report_buttons[i]
@@ -588,7 +588,7 @@ local createDropdown = function(thisFrame)
 			insets = {left = 0, right = 0, top = 0, bottom = 0}})
 			recentReportButton:SetBackdropColor(0, 0, 0, 0.3)
 			recentReportButton.text:SetTextColor(1, 1, 1, 1)
-			Details:SetFontSize(recentReportButton.text, 12)
+			Details:SetFontSize(recentReportButton.text, 13)
 
 			recentReportButton:SetScript("OnEnter", recentReportButtonOnEnter)
 			recentReportButton:SetScript("OnLeave", recentReportButtonOnLeave)
@@ -967,7 +967,7 @@ local createDropdown = function(thisFrame)
 
 			local successful, errortext = pcall(skin)
 			if (not successful) then
-				Details:Msg("error occurred on report window skin call():", errortext)
+				Details:Msg(Loc["error occurred on report window skin call():"], errortext)
 				pcall(DetailsReportWindow.skins["defaultSkin"])
 			end
 		end

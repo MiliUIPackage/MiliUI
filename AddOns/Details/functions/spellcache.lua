@@ -186,26 +186,26 @@ do
 			[77535] = {name = GetSpellInfo(77535), icon = "Interface\\Addons\\Details\\images\\icon_blood_shield"},
 
 			--bfa trinkets (deprecated)
-			[278155] = {name = GetSpellInfo(278155) .. " (Trinket)"}, --[Twitching Tentacle of Xalzaix]
-			[279664] = {name = GetSpellInfo(279664) .. " (Trinket)"}, --[Vanquished Tendril of G'huun]
-			[278227] = {name = GetSpellInfo(278227) .. " (Trinket)"}, --[T'zane's Barkspines]
-			[278383] = {name = GetSpellInfo(278383) .. " (Trinket)"}, --[Azurethos' Singed Plumage]
-			[278862] = {name = GetSpellInfo(278862) .. " (Trinket)"}, --[Drust-Runed Icicle]
-			[278359] = {name = GetSpellInfo(278359) .. " (Trinket)"}, --[Doom's Hatred]
-			[278812] = {name = GetSpellInfo(278812) .. " (Trinket)"}, --[Lion's Grace]
-			[270827] = {name = GetSpellInfo(270827) .. " (Trinket)"}, --[Vessel of Skittering Shadows]
-			[271071] = {name = GetSpellInfo(271071) .. " (Trinket)"}, --[Conch of Dark Whispers]
-			[270925] = {name = GetSpellInfo(270925) .. " (Trinket)"}, --[Hadal's Nautilus]
-			[271115] = {name = GetSpellInfo(271115) .. " (Trinket)"}, --[Ignition Mage's Fuse]
-			[271462] = {name = GetSpellInfo(271462) .. " (Trinket)"}, --[Rotcrusted Voodoo Doll]
-			[271465] = {name = GetSpellInfo(271465) .. " (Trinket)"}, --[Rotcrusted Voodoo Doll]
-			[268998] = {name = GetSpellInfo(268998) .. " (Trinket)"}, --[Balefire Branch]
-			[271671] = {name = GetSpellInfo(271671) .. " (Trinket)"}, --[Lady Waycrest's Music Box]
-			[277179] = {name = GetSpellInfo(277179) .. " (Trinket)"}, --[Dread Gladiator's Medallion]
-			[277187] = {name = GetSpellInfo(277187) .. " (Trinket)"}, --[Dread Gladiator's Emblem]
-			[277181] = {name = GetSpellInfo(277181) .. " (Trinket)"}, --[Dread Gladiator's Insignia]
-			[277185] = {name = GetSpellInfo(277185) .. " (Trinket)"}, --[Dread Gladiator's Badge]
-			[278057] = {name = GetSpellInfo(278057) .. " (Trinket)"}, --[Vigilant's Bloodshaper]
+			[278155] = {name = GetSpellInfo(278155) .. Loc[" (Trinket)"]}, --[Twitching Tentacle of Xalzaix]
+			[279664] = {name = GetSpellInfo(279664) .. Loc[" (Trinket)"]}, --[Vanquished Tendril of G'huun]
+			[278227] = {name = GetSpellInfo(278227) .. Loc[" (Trinket)"]}, --[T'zane's Barkspines]
+			[278383] = {name = GetSpellInfo(278383) .. Loc[" (Trinket)"]}, --[Azurethos' Singed Plumage]
+			[278862] = {name = GetSpellInfo(278862) .. Loc[" (Trinket)"]}, --[Drust-Runed Icicle]
+			[278359] = {name = GetSpellInfo(278359) .. Loc[" (Trinket)"]}, --[Doom's Hatred]
+			[278812] = {name = GetSpellInfo(278812) .. Loc[" (Trinket)"]}, --[Lion's Grace]
+			[270827] = {name = GetSpellInfo(270827) .. Loc[" (Trinket)"]}, --[Vessel of Skittering Shadows]
+			[271071] = {name = GetSpellInfo(271071) .. Loc[" (Trinket)"]}, --[Conch of Dark Whispers]
+			[270925] = {name = GetSpellInfo(270925) .. Loc[" (Trinket)"]}, --[Hadal's Nautilus]
+			[271115] = {name = GetSpellInfo(271115) .. Loc[" (Trinket)"]}, --[Ignition Mage's Fuse]
+			[271462] = {name = GetSpellInfo(271462) .. Loc[" (Trinket)"]}, --[Rotcrusted Voodoo Doll]
+			[271465] = {name = GetSpellInfo(271465) .. Loc[" (Trinket)"]}, --[Rotcrusted Voodoo Doll]
+			[268998] = {name = GetSpellInfo(268998) .. Loc[" (Trinket)"]}, --[Balefire Branch]
+			[271671] = {name = GetSpellInfo(271671) .. Loc[" (Trinket)"]}, --[Lady Waycrest's Music Box]
+			[277179] = {name = GetSpellInfo(277179) .. Loc[" (Trinket)"]}, --[Dread Gladiator's Medallion]
+			[277187] = {name = GetSpellInfo(277187) .. Loc[" (Trinket)"]}, --[Dread Gladiator's Emblem]
+			[277181] = {name = GetSpellInfo(277181) .. Loc[" (Trinket)"]}, --[Dread Gladiator's Insignia]
+			[277185] = {name = GetSpellInfo(277185) .. Loc[" (Trinket)"]}, --[Dread Gladiator's Badge]
+			[278057] = {name = GetSpellInfo(278057) .. Loc[" (Trinket)"]}, --[Vigilant's Bloodshaper]
 		}
 	else --retail (dragonflight)
 		defaultSpellCustomization = {
@@ -336,12 +336,15 @@ do
 		return customItemList
 	end
 
-	function Details:UserCustomSpellUpdate(index, spellName, spellIcon)
+	function Details:UserCustomSpellUpdate(index, spellName, spellIcon) --called from the options panel > rename spells
 		---@type savedspelldata
 		local savedSpellData = Details.savedCustomSpells[index]
 		if (savedSpellData) then
+			local spellId = savedSpellData[1]
 			savedSpellData[2], savedSpellData[3] = spellName or savedSpellData[2], spellIcon or savedSpellData[3]
-			return rawset(Details.spellcache, savedSpellData[1], {savedSpellData[2], 1, savedSpellData[3]})
+			rawset(Details.spellcache, spellId, {savedSpellData[2], 1, savedSpellData[3]})
+			Details.userCustomSpells[spellId] = true
+			return true
 		else
 			return false
 		end
@@ -360,7 +363,7 @@ do
 			end
 
 			if (not spellName) then
-				spellName = "Unknown"
+				spellName = Loc["Unknown"]
 			end
 			if (not spellIcon) then
 				spellIcon = [[Interface\InventoryItems\WoWUnknownItem01]]
@@ -376,7 +379,7 @@ do
 	function Details:FillUserCustomSpells()
 		for spellId, spellTable in pairs(defaultSpellCustomization) do
 			local spellName, _, spellIcon = Details.GetSpellInfo(spellId)
-			Details:UserCustomSpellAdd(spellId, spellTable.name or spellName or "Unknown", spellTable.icon or spellIcon or [[Interface\InventoryItems\WoWUnknownItem01]])
+			Details:UserCustomSpellAdd(spellId, spellTable.name or spellName or Loc["Unknown"], spellTable.icon or spellIcon or [[Interface\InventoryItems\WoWUnknownItem01]])
 		end
 
 		--itens
@@ -416,7 +419,13 @@ do
 		end
 	end
 
-	function Details:UserCustomSpellAdd(spellId, spellName, spellIcon)
+	function Details:UserCustomSpellAdd(spellId, spellName, spellIcon, bAddedByUser)
+		if (Details.userCustomSpells[spellId]) then
+			if (not bAddedByUser) then
+				return
+			end
+		end
+
 		local isOverwrite = false
 		for index, savedSpellData in ipairs(Details.savedCustomSpells) do
 			if (savedSpellData[1] == spellId) then
@@ -431,7 +440,11 @@ do
 			tinsert(Details.savedCustomSpells, {spellId, spellName, spellIcon})
 		end
 
-		return rawset(Details.spellcache, spellId, {spellName, 1, spellIcon})
+		rawset(Details.spellcache, spellId, {spellName, 1, spellIcon})
+
+		if (bAddedByUser) then
+			Details.userCustomSpells[spellId] = true
+		end
 	end
 
 	function Details:UserCustomSpellRemove(index)

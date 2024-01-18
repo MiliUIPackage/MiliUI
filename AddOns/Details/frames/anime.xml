@@ -210,14 +210,14 @@
 							</Anchors>
 							<Color r="1" g="1" b="1"/>
 						</FontString>
-						<FontString name="$parentTopText" inherits="GameFontNormalSmall" parentKey="TopText">
+						<FontString name="$parentTopText" inherits="GameFontNormal" parentKey="TopText">
 							<Anchors>
 								<Anchor point="TOP" x="0" y="-4"/>
 								<Anchor point="LEFT" relativeTo="$parentQuestIconBg" relativePoint="RIGHT" x="-6"/>
 								<Anchor point="RIGHT" x="-8"/>
 							</Anchors>
 						</FontString>
-						<FontString name="$parentBottomText" inherits="GameFontDisableSmall" parentKey="BottomText">
+						<FontString name="$parentBottomText" inherits="GameFontDisable" parentKey="BottomText">
 							<Anchors>
 								<Anchor point="BOTTOM" x="0" y="4"/>
 								<Anchor point="LEFT" relativeTo="$parentQuestIconBg" relativePoint="RIGHT" x="-6"/>

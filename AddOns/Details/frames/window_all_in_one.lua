@@ -447,15 +447,15 @@
         CreateHeader = function(titleBar)
             local defaultHeaderTable = {
                 {text = "", width = 20}, --spec icon
-                {text = "動作名稱", width = 60, attribute = {name = true}},
+                {text = "Actor Name", width = 60, attribute = {name = true}},
 
-                {text = "造成傷害", width = 60, attribute = {1, 1}},
+                {text = "Damage Done", width = 60, attribute = {1, 1}},
                 {text = "DPS", width = 50, attribute = {1, 2}},
-                {text = "傷害 %", width = 50, attribute = {percent = true}},
+                {text = "Damage %", width = 50, attribute = {percent = true}},
 
-                {text = "造成治療", width = 60, attribute = {1, 1}},
+                {text = "Healing Done", width = 60, attribute = {1, 1}},
                 {text = "HPS", width = 50, attribute = {1, 2}},
-                {text = "治療 %", width = 50, attribute = {percent = true}},
+                {text = "Healing %", width = 50, attribute = {percent = true}},
             }
 
             local defaultHeaderOptions = {

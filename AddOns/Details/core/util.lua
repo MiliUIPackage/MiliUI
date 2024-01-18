@@ -35,6 +35,10 @@
 
 	local gump = Details.gump --details local
 
+	function Details:IsInMythicPlus()
+		return C_ChallengeMode and C_ChallengeMode.IsChallengeModeActive and C_ChallengeMode.IsChallengeModeActive()
+	end
+
 	local predicateFunc = function(spellIdToFind, casterName, _, name, icon, applications, dispelName, duration, expirationTime, sourceUnitId, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossAura, isFromPlayerOrPlayerPet, nameplateShowAll, timeMod, applications)
 		if (spellIdToFind == spellId and UnitExists(sourceUnitId)) then
 			if (casterName == Details:GetUnitNameForAPI(sourceUnitId)) then
@@ -827,7 +831,7 @@
 			language = "auto"
 		end
 		Details.numerical_system_symbols = language
-		Details:Msg("NumSystem override is now:", language)
+		Details:Msg(Loc["NumSystem override is now:"], language)
 
 		Details:SelectNumericalSystem()
 	end
@@ -888,7 +892,7 @@
 
 		local okey, value = _pcall (func, parameters_cache [1], parameters_cache [2], parameters_cache [3], parameters_cache [4], arguments_cache[1], arguments_cache[2], arguments_cache[3])
 		if (not okey) then
-			Details:Msg("|cFFFF9900error on custom text|r:", value)
+			Details:Msg(Loc["|cFFFF9900error on custom text|r:"], value)
 			return 0
 		end
 		return value or 0
@@ -1287,7 +1291,7 @@ end
 		--coach feature
 		if (not Details.Coach.Server.IsEnabled()) then
 			if (Details.debug) then
-				Details:Msg("coach is disabled, the combat is now over!")
+				--Details:Msg("coach is disabled, the combat is now over!")
 			end
 		end
 
@@ -1374,7 +1378,7 @@ end
 						if (ThisGradient.Func) then
 							local okey, errortext = _pcall (ThisGradient.Func, ThisGradient.FuncParam)
 							if (not okey) then
-								Details:Msg("GradientEffect() end function error:", errortext)
+								Details:Msg(Loc["GradientEffect() end function error:"], errortext)
 							end
 						end
 

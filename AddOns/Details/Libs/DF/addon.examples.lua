@@ -3,7 +3,7 @@
 for this example, let's consider the name of your addon is "Slice And Dance"
 addon folder name on World of Warcraft/_retail_/Interface/AddOns/SliceAndDance/
 toc file example /World of Warcraft/_retail_/Interface/AddOns/SliceAndDance/SliceAndDance.toc:
-    ## Interface: 100205
+    ## Interface: 100107
     ## Title: "Slice And Dance"
     ## Notes: Show a slice and dice bar for rogues
     ## SavedVariables: SliceAndDanceDatabase

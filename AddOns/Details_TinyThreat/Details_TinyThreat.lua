@@ -1,5 +1,6 @@
 local AceLocale = LibStub ("AceLocale-3.0")
 local Loc = AceLocale:GetLocale ("Details_Threat")
+local detailsFramework = _G.DetailsFramework
 
 local _GetNumSubgroupMembers = GetNumSubgroupMembers --> wow api
 local _GetNumGroupMembers = GetNumGroupMembers --> wow api
@@ -26,14 +27,14 @@ local ThreatMeter = Details:NewPluginObject ("Details_TinyThreat")
 --> Main Frame
 local ThreatMeterFrame = ThreatMeter.Frame
 
-ThreatMeter:SetPluginDescription ("Small tool for track the threat you and other raid members have in your current target.")
+ThreatMeter:SetPluginDescription (Loc["Small tool for track the threat you and other raid members have in your current target."])
 
 local _
 
 local UnitDetailedThreatSituation = UnitDetailedThreatSituation
 local _UnitDetailedThreatSituation
 
-if (DetailsFramework.IsTimewalkWoW()) then
+if (detailsFramework.IsTimewalkWoW()) then
 	_UnitDetailedThreatSituation = function(source, target)
 		local isTanking, status, threatpct, rawthreatpct, threatvalue = UnitDetailedThreatSituation(source, target)
 
@@ -730,9 +731,10 @@ end
 
 local build_options_panel = function()
 
-	local options_frame = ThreatMeter:CreatePluginOptionsFrame ("ThreatMeterOptionsWindow", "Tiny Threat Options", 1)
+	local options_frame = ThreatMeter:CreatePluginOptionsFrame ("ThreatMeterOptionsWindow", Loc["Tiny Threat Options"], 1)
 
 	local menu = {
+		--[=[]]
 		{
 			type = "range",
 			get = function() return ThreatMeter.saveddata.updatespeed end,
@@ -740,16 +742,17 @@ local build_options_panel = function()
 			min = 0.2,
 			max = 3,
 			step = 0.2,
-			desc = Loc ["How fast the window get updates."],
-			name = Loc ["Update Speed"],
+			desc = Loc["How fast the window get updates."],
+			name = Loc["Update Speed"],
 			usedecimals = true,
 		},
+		--]=]
 		{
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.useplayercolor end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.useplayercolor = value end,
-			desc = Loc ["When enabled, your bar get the following color."],
-			name = Loc ["Player Color Enabled"]
+			desc = Loc["When enabled, your bar get the following color."],
+			name = Loc["Player Color Enabled"]
 		},
 		{
 			type = "color",
@@ -758,15 +761,15 @@ local build_options_panel = function()
 				local current = ThreatMeter.saveddata.playercolor
 				current[1], current[2], current[3], current[4] = r, g, b, a
 			end,
-			desc = Loc ["If Player Color is enabled, your bar have this color."],
-			name = Loc ["Color"]
+			desc = Loc["If Player Color is enabled, your bar have this color."],
+			name = Loc["Color"]
 		},
 		{
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.useclasscolors end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.useclasscolors = value end,
-			desc = Loc ["When enabled, threat bars uses the class color of the character."],
-			name = Loc ["Use Class Colors"]
+			desc = Loc["When enabled, threat bars uses the class color of the character."],
+			name = Loc["Use Class Colors"]
 		},
 
 		{type = "blank"},
@@ -775,29 +778,29 @@ local build_options_panel = function()
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.usefocus end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.usefocus = value end,
-			desc = Loc ["Show threat for the focus target if there's one."],
-			name = Loc ["Track Focus Target (if any)"]
+			desc = Loc["Show threat for the focus target if there's one."],
+			name = Loc["Track Focus Target (if any)"]
 		},
 		{
 			type = "toggle",
 			get = function() return not ThreatMeter.saveddata.hide_pull_bar end,
 			set = function (self, fixedparam, value) ThreatMeter.saveddata.hide_pull_bar = not value end,
-			desc = Loc ["Show Pull Aggro Bar"],
-			name = Loc ["Show Pull Aggro Bar"]
+			desc = Loc["Show Pull Aggro Bar"],
+			name = Loc["Show Pull Aggro Bar"]
 		},
 		{
 			type = "toggle",
 			get = function() return ThreatMeter.saveddata.absolute_mode end,
 			set = function(self, fixedparam, value) ThreatMeter.saveddata.absolute_mode = value end,
-			desc = "If this is disabled, you see weighted threat percentages – aggro switches at 100%.\nIf this is enabled, you see absolute threat percentages – aggro switches at 110% in melee, and 130% at range.",
-			name = "Display absolute threat",
+			desc = Loc["If this is disabled, you see weighted threat percentages – aggro switches at 100%.\nIf this is enabled, you see absolute threat percentages – aggro switches at 110% in melee, and 130% at range."],
+			name = Loc["Display absolute threat"],
 		},
 		{
 			type = "toggle",
 			get = function() return not ThreatMeter.saveddata.disable_gouge end,
 			set = function(self, fixedparam, value) ThreatMeter.saveddata.disable_gouge = not value end,
-			desc = "If this is enabled, certain bosses will show an additional threat threshold at 90.9% of the off-tank's threat. Any player above this threshold might be targeted after the Main Tank is incapacitated.",
-			name = "Enable Gouge mode",
+			desc = Loc["If this is enabled, certain bosses will show an additional threat threshold at 90.9% of the off-tank's threat. Any player above this threshold might be targeted after the Main Tank is incapacitated."],
+			name = Loc["Enable Gouge mode"],
 		},
 
 
@@ -814,7 +817,14 @@ local build_options_panel = function()
 
 	}
 
-	Details.gump:BuildMenu (options_frame, menu, 15, -35, 160)
+	local options_text_template = detailsFramework:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
+	local options_dropdown_template = detailsFramework:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
+	local options_switch_template = detailsFramework:GetTemplate ("switch", "OPTIONS_CHECKBOX_TEMPLATE")
+	local options_slider_template = detailsFramework:GetTemplate ("slider", "OPTIONS_SLIDER_TEMPLATE")
+	local options_button_template = detailsFramework:GetTemplate ("button", "OPTIONS_BUTTON_TEMPLATE")
+	menu.always_boxfirst = true
+
+	detailsFramework:BuildMenu (options_frame, menu, 15, -35, 160, false, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template)
 	options_frame:SetHeight(160)
 
 end

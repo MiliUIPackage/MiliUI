@@ -47,7 +47,7 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
     local optionsFrame = DetailsOptionsWindow.frame
 
 	optionsFrame.Frame = optionsFrame
-	optionsFrame.__name = "選項"
+	optionsFrame.__name = Loc["Options"]
 	optionsFrame.real_name = "DETAILS_OPTIONS"
 	optionsFrame.__icon = [[Interface\Scenarios\ScenarioIcon-Interact]]
     _G.DetailsPluginContainerWindow.EmbedPlugin(optionsFrame, optionsFrame, true)
@@ -58,7 +58,7 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
     local titleBar = detailsFramework:CreateTitleBar(optionsFrame, "Options Panel")
     titleBar.Text:Hide()
 
-    local titleText = detailsFramework:NewLabel(titleBar, nil, "$parentTitleLabel", "title", "Details! " .. Loc ["STRING_OPTIONS_WINDOW"], "GameFontHighlightLeft", 12, {227/255, 186/255, 4/255})
+    local titleText = detailsFramework:NewLabel(titleBar, nil, "$parentTitleLabel", "title", "Details! " .. Loc ["STRING_OPTIONS_WINDOW"], "GameFontHighlightLeft", 16, {227/255, 186/255, 4/255})
     titleText:SetPoint("center", titleBar, "center")
 
     optionsFrame:Hide()
@@ -149,7 +149,7 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
                     if (SoloInfo) then
                         instanceList[#instanceList+1] = {value = index, label = "#".. index .. " " .. SoloInfo[1], onclick = onSelectInstance, icon = SoloInfo [2]}
                     else
-                        instanceList[#instanceList+1] = {value = index, label = "#".. index .. " unknown", onclick = onSelectInstance, icon = ""}
+                        instanceList[#instanceList+1] = {value = index, label = "#".. index .. Loc[" unknown"], onclick = onSelectInstance, icon = ""}
                     end
 
                 elseif (modo == 4) then --raid plugin
@@ -159,10 +159,10 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
                         if (plugin_object) then
                             instanceList[#instanceList+1] = {value = index, label = "#".. index .. " " .. plugin_object.__name, onclick = onSelectInstance, icon = plugin_object.__icon}
                         else
-                            instanceList[#instanceList+1] = {value = index, label = "#".. index .. " unknown", onclick = onSelectInstance, icon = ""}
+                            instanceList[#instanceList+1] = {value = index, label = "#".. index .. Loc[" unknown"], onclick = onSelectInstance, icon = ""}
                         end
                     else
-                        instanceList[#instanceList+1] = {value = index, label = "#".. index .. " unknown", onclick = onSelectInstance, icon = ""}
+                        instanceList[#instanceList+1] = {value = index, label = "#".. index .. Loc[" unknown"], onclick = onSelectInstance, icon = ""}
                     end
                 else
                     instanceList[#instanceList+1] = {value = index, label = "#".. index .. " " .. Details.atributos.lista[atributo] .. " - " .. Details.sub_atributos [atributo].lista [sub_atributo], onclick = onSelectInstance, icon = Details.sub_atributos [atributo].icones[sub_atributo] [1], texcoord = Details.sub_atributos [atributo].icones[sub_atributo] [2]}
@@ -186,7 +186,7 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
         GameCooltip:Hide()
     end)
 
-    local instancesFontString = detailsFramework:NewLabel(optionsFrame, nil, "$parentInstanceDropdownLabel", "instancetext", Loc ["STRING_OPTIONS_EDITINSTANCE"], "GameFontNormal", 12)
+    local instancesFontString = detailsFramework:NewLabel(optionsFrame, nil, "$parentInstanceDropdownLabel", "instancetext", Loc ["STRING_OPTIONS_EDITINSTANCE"], "GameFontNormal", 16)
     instancesFontString:SetPoint("right", instanceSelection, "left", -2, 1)
     formatFooterText(instancesFontString)
 
@@ -202,7 +202,7 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
     editingGroupCheckBox:SetAsCheckBox()
     editingGroupCheckBox.tooltip = Loc ["STRING_MINITUTORIAL_OPTIONS_PANEL2"]
 
-    local editingGroupLabel = detailsFramework:NewLabel(optionsFrame, nil, "$parentEditingGroupLabel", "editingGroupLabel", "Editing Group:", "GameFontNormal", 12) --localize-me
+    local editingGroupLabel = detailsFramework:NewLabel(optionsFrame, nil, "$parentEditingGroupLabel", "editingGroupLabel", Loc["Editing Group:"], "GameFontNormal", 16) --localize-me
     editingGroupLabel:SetPoint("bottomleft", instancesFontString, "topleft", 0, 5)
     editingGroupCheckBox:SetPoint("left", editingGroupLabel, "right", 2, 0)
     formatFooterText(editingGroupLabel)
@@ -326,12 +326,12 @@ function Details222.OptionsPanel.InitializeOptionsWindow(instance)
         [11] = Loc ["STRING_OPTIONSMENU_DATAFEED"],
 
         [14] = Loc ["STRING_OPTIONSMENU_RAIDTOOLS"],
-        [15] = Loc ["Broadcaster Tools"],
+        [15] = Loc["Broadcaster Tools"],
         [16] = Loc ["STRING_OPTIONSMENU_SPELLS"],
         [17] = Loc ["STRING_OPTIONSMENU_DATACHART"],
-		[18] = Loc ["Mythic Dungeon"],
-        [19] = "搜尋結果",
-        [20] = "戰鬥紀錄",
+        [18] = Loc["Mythic Dungeon"],
+        [19] = Loc["Search Results"],
+        [20] = Loc["Combat Log"],
     }
 
     local optionsSectionsOrder = {

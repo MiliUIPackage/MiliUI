@@ -112,7 +112,7 @@ do
 				elseif (Details.SoloTables.NameTable [self.pluginName]) then
 					Details.SoloTables:EnableSoloMode(instance, self.pluginName)
 				else
-					Details:Msg(Loc ["Plugin not found."])
+					Details:Msg(Loc["Plugin not found."])
 				end
 
 				allDisplaysFrame:Hide()
@@ -269,7 +269,7 @@ do
 			title_icon:SetSize(16, 16)
 			local title_str = allDisplaysFrame:CreateFontString(nil, "overlay", "GameFontNormal")
 			title_str:SetPoint("left", title_icon, "right", 2, 0)
-			title_str:SetText("腳本")
+			title_str:SetText("Scripts")
 
 			title_icon:SetPoint("topleft", allDisplaysFrame.x, allDisplaysFrame.y)
 			allDisplaysFrame.y = allDisplaysFrame.y - 20
@@ -524,7 +524,7 @@ function Details.switch:ShowMe(instancia)
 
 			function Details.switch:CreateSegmentBlock()
 				local s = gump:CreateLabel(Details.switch.frame)
-				Details:SetFontSize(s, 13)
+				Details:SetFontSize(s, 9)
 
 				local index = #Details.switch.segments_blocks
 				if (index == 1) then --overall button
@@ -878,7 +878,7 @@ function Details:FastSwitch(button, bookmark, bookmarkNumber, selectNew)
 		elseif (Details.SoloTables.NameTable [bookmark.sub_atributo]) then
 			Details.SoloTables:EnableSoloMode(Details.switch.current_instancia, bookmark.sub_atributo)
 		else
-			Details:Msg(Loc ["Plugin not found."])
+			Details:Msg(Loc["Plugin not found."])
 		end
 	else
 		Details.switch.current_instancia:TrocaTabela(Details.switch.current_instancia, true, bookmark.atributo, bookmark.sub_atributo)
@@ -1150,7 +1150,7 @@ local bookmarkButtonBodyOnEnter = function(self)
 		gameCooltip:Reset()
 		gameCooltip:SetOwner(self)
 
-		gameCooltip:SetOption("TextSize", 13)
+		gameCooltip:SetOption("TextSize", 10)
 		gameCooltip:SetOption("ButtonsYMod", 0)
 		gameCooltip:SetOption("YSpacingMod", 0)
 		gameCooltip:SetOption("IgnoreButtonAutoHeight", false)
@@ -1187,10 +1187,10 @@ local bookmarkButtonIconOnEnter = function(self)
 	gameCooltip:Reset()
 	gameCooltip:SetOwner(self)
 
-	gameCooltip:AddLine("select bookmark")
+	gameCooltip:AddLine(Loc["select bookmark"])
 	gameCooltip:AddIcon([[Interface\TUTORIALFRAME\UI-TUTORIAL-FRAME]], 1, 1, 12, 14, 0.0019531, 0.1484375, 0.6269531, 0.8222656)
 
-	gameCooltip:SetOption("TextSize", 13)
+	gameCooltip:SetOption("TextSize", 14)
 	gameCooltip:SetOption("ButtonsYMod", 0)
 	gameCooltip:SetOption("YSpacingMod", 0)
 	gameCooltip:SetOption("IgnoreButtonAutoHeight", false)

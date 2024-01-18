@@ -2,6 +2,7 @@
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local _, Details222 = ...
 _ = nil
 local _GetSpellInfo = Details.GetSpellInfo
@@ -35,7 +36,7 @@ function Details:ScrollDamage()
 		local y = -15
 		local headerY = y - 15
 		local scrollY = headerY - 20
-		local fontSize = 13
+		local fontSize = 10
 
 		local LibWindow = _G.LibStub("LibWindow-1.1")
 		DetailsScrollDamage:SetScript("OnMouseDown", nil)
@@ -58,10 +59,10 @@ function Details:ScrollDamage()
 		--header
 		local headerTable = {
 			{text = "", width = 20},
-			{text = "法術名稱", width = 104},
-			{text = "數量", width = 60},
-			{text = "時間", width = 45},
-			{text = "法術ID", width = 80},
+			{text = Loc["Spell Name"], width = 104},
+			{text = Loc["Amount"], width = 60},
+			{text = Loc["Time"], width = 45},
+			{text = Loc["Spell ID"], width = 80},
 		}
 		local headerOptions = {
 			padding = 2,
@@ -244,7 +245,7 @@ function Details:ScrollDamage()
 
 				elseif (token == "SWING_DAMAGE") then
 				--	amount, overkill, school, resisted, blocked, absorbed, critical, glacing, crushing, isoffhand = spellID, spellName, spellType, amount, overKill, school, resisted, blocked, absorbed, isCritical
-				--	tinsert(DetailsScrollDamage.Data, 1, {timew, token, hidding, sourceSerial, sourceName, sourceFlag, sourceFlag2, targetSerial, targetName, targetFlag, targetFlag2, spellID, spellName, spellType, amount, overKill, school, resisted, blocked, absorbed, isCritical})
+				--	table.insert(DetailsScrollDamage.Data, 1, {timew, token, hidding, sourceSerial, sourceName, sourceFlag, sourceFlag2, targetSerial, targetName, targetFlag, targetFlag2, spellID, spellName, spellType, amount, overKill, school, resisted, blocked, absorbed, isCritical})
 				--	damageScroll:RefreshScroll()
 				end
 			end
@@ -275,14 +276,14 @@ function Details:ScrollDamage()
 		autoOpenCheckbox:SetAsCheckBox()
 		autoOpenCheckbox:SetPoint("left", statusBar, "left", 5, 0)
 
-		local autoOpenText = DetailsFramework:CreateLabel(statusBar, "自動開啟在訓練假人", 13)
+		local autoOpenText = DetailsFramework:CreateLabel(statusBar, Loc["Auto Open on Training Dummy"], 14)
 		autoOpenText:SetPoint("left", autoOpenCheckbox, "right", 2, 0)
 
 		--search bar
 		local searchBox = DF:CreateTextEntry(statusBar, function()end, 150, 18, _, _, _, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 		searchBox:SetPoint("bottomright", statusBar, "bottomright", -2, 0)
 
-		local searchLabel = DF:CreateLabel(searchBox, "search")
+		local searchLabel = DF:CreateLabel(searchBox, Loc["search"])
 		searchLabel.fontcolor = "silver"
 		searchLabel:SetPoint("left", searchBox, "left", 3, 0)
 

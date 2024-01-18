@@ -936,7 +936,7 @@ function _detalhes.storage:GetBestFromPlayer (diff, encounter_id, role, playerna
 	local db = _detalhes.storage:OpenRaidStorage()
 
 	if (not db) then
-		print("DB noot found on GetBestFromPlayer()")
+		print(Loc["DB noot found on GetBestFromPlayer()"])
 		return
 	end
 
@@ -1418,7 +1418,7 @@ end
 function _detalhes.ScheduleLoadStorage()
 	if (InCombatLockdown() or UnitAffectingCombat("player")) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! storage 排程載入 (玩家戰鬥中)。")
+			print("|cFFFFFF00Details! storage scheduled to load (player in combat).")
 		end
 		_detalhes.schedule_storage_load = true
 		return
@@ -1427,7 +1427,7 @@ function _detalhes.ScheduleLoadStorage()
 			local loaded, reason = LoadAddOn("Details_DataStorage")
 			if (not loaded) then
 				if (_detalhes.debug) then
-					print("|cFFFFFF00Details! Storage|r: 無法載入數據，或許此掛件已停用。")
+					print("|cFFFFFF00Details! Storage|r: can't load storage, may be the addon is disabled.")
 				end
 				return
 			end
@@ -1440,11 +1440,11 @@ function _detalhes.ScheduleLoadStorage()
 		_detalhes.schedule_storage_load = nil
 		_detalhes.StorageLoaded = true
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! storage 已載入。")
+			print("|cFFFFFF00Details! storage loaded.")
 		end
 	else
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! 載入數據失敗，再排程一次。")
+			print("|cFFFFFF00Details! fail to load storage, scheduled once again.")
 		end
 		_detalhes.schedule_storage_load = true
 	end
@@ -1462,7 +1462,7 @@ function _detalhes.OpenStorage()
 		--can't open it during combat
 		if (InCombatLockdown() or UnitAffectingCombat("player")) then
 			if (_detalhes.debug) then
-				print("|cFFFFFF00Details! Storage|r: 無法在戰鬥中載入數據。")
+				print("|cFFFFFF00Details! Storage|r: can't load storage due to combat.")
 			end
 			return false
 		end
@@ -1470,7 +1470,7 @@ function _detalhes.OpenStorage()
 		local loaded, reason = LoadAddOn("Details_DataStorage")
 		if (not loaded) then
 			if (_detalhes.debug) then
-				print("|cFFFFFF00Details! Storage|r: 無法載入數據，或許此掛件已停用。")
+				print("|cFFFFFF00Details! Storage|r: can't load storage, may be the addon is disabled.")
 			end
 			return
 		end
@@ -1495,7 +1495,7 @@ function Details.Database.LoadDB()
 		local loaded, reason = LoadAddOn("Details_DataStorage")
 		if (not loaded) then
 			if (_detalhes.debug) then
-				print("|cFFFFFF00Details! Storage|r: 無法儲存此遭遇戰，無法載入DataStorage，或許此掛件已停用。")
+				print("|cFFFFFF00Details! Storage|r: can't save the encounter, couldn't load DataStorage, may be the addon is disabled.")
 			end
 			return
 		end
@@ -1508,13 +1508,13 @@ function Details.Database.LoadDB()
 		db = _detalhes:CreateStorageDB()
 		if (not db) then
 			if (_detalhes.debug) then
-				print("|cFFFFFF00Details! Storage|r: 無法儲存此遭遇戰，無法載入DataStorage，或許此掛件已停用。")
+				print("|cFFFFFF00Details! Storage|r: can't save the encounter, couldn't load DataStorage, may be the addon is disabled.")
 			end
 			return
 		end
 	elseif (not db) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 無法儲存此遭遇戰，無法載入DataStorage，或許此掛件已停用。")
+			print("|cFFFFFF00Details! Storage|r: can't save the encounter, couldn't load DataStorage, may be the addon is disabled.")
 		end
 		return
 	end
@@ -1537,7 +1537,7 @@ function Details.Database.StoreWipe(combat)
 
 	if (not combat) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 找不到戰鬥。")
+			print("|cFFFFFF00Details! Storage|r: combat not found.")
 		end
 		return
 	end
@@ -1547,7 +1547,7 @@ function Details.Database.StoreWipe(combat)
 
 	if (not instancesToStoreData[mapID]) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 副本不允許。")
+			print("|cFFFFFF00Details! Storage|r: instance not allowed.")
 		end
 		return
 	end
@@ -1557,7 +1557,7 @@ function Details.Database.StoreWipe(combat)
 
 	if (not dungeonEncounterID) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 遭遇戰ID未找到。")
+			print("|cFFFFFF00Details! Storage|r: encounter ID not found.")
 		end
 		return
 	end
@@ -1596,7 +1596,7 @@ function Details.Database.StoreWipe(combat)
 		--wipes amount
 		if (bossData.wipes % 10 == 0) then
 			--nah player does not want to know that
-			--Details:Msg("Wipe stored, you have now " .. bossData.wipes .. " wipes on this boss.")
+			--Details:Msg(Loc["Wipe stored, you have now "] .. bossData.wipes .. Loc[" wipes on this boss."])
 		end
 	end
 end
@@ -1606,7 +1606,7 @@ function Details.Database.StoreEncounter(combat)
 
 	if (not combat) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 找不到戰鬥。")
+			print("|cFFFFFF00Details! Storage|r: combat not found.")
 		end
 		return
 	end
@@ -1616,7 +1616,7 @@ function Details.Database.StoreEncounter(combat)
 
 	if (not instancesToStoreData[mapID]) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 副本不允許。")
+			print("|cFFFFFF00Details! Storage|r: instance not allowed.")
 		end
 		return
 	end
@@ -1626,7 +1626,7 @@ function Details.Database.StoreEncounter(combat)
 
 	if (not encounter_id) then
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 遭遇戰ID未找到。")
+			print("|cFFFFFF00Details! Storage|r: encounter ID not found.")
 		end
 		return
 	end
@@ -1826,7 +1826,7 @@ function Details.Database.StoreEncounter(combat)
 		end
 	else
 		if (_detalhes.debug) then
-			print("|cFFFFFF00Details! Storage|r: 團隊難度必須是英雄或傳奇。")
+			print("|cFFFFFF00Details! Storage|r: raid difficulty must be heroic or mythic.")
 		end
 	end
 end
@@ -1869,7 +1869,7 @@ local MIN_ILEVEL_TO_STORE = 50
 local LOOP_TIME = 7
 
 function _detalhes:IlvlFromNetwork (player, realm, core, serialNumber, itemLevel, talentsSelected, currentSpec)
-	if (_detalhes.debug) then
+	if (_detalhes.debug and false) then
 		local talents = "Invalid Talents"
 		if (type(talentsSelected) == "table") then
 			talents = ""
@@ -1877,7 +1877,7 @@ function _detalhes:IlvlFromNetwork (player, realm, core, serialNumber, itemLevel
 				talents = talents .. talentsSelected [i] .. ","
 			end
 		end
-		_detalhes:Msg("(debug) Received PlayerInfo Data: " .. (player or "Invalid Player Name") .. " | " .. (itemLevel or "Invalid Item Level") .. " | " .. (currentSpec or "Invalid Spec") .. " | " .. talents  .. " | " .. (serialNumber or "Invalid Serial"))
+		Details222.DebugMsg("Received PlayerInfo Data: " .. (player or "Invalid Player Name") .. " | " .. (itemLevel or "Invalid Item Level") .. " | " .. (currentSpec or "Invalid Spec") .. " | " .. talents  .. " | " .. (serialNumber or "Invalid Serial"))
 	end
 
 	if (not player) then
@@ -1964,7 +1964,7 @@ function ilvl_core:CalcItemLevel (unitid, guid, shout)
 		--register
 		if (average > 0) then
 			if (shout) then
-				_detalhes:Msg(UnitName(unitid) .. " item level: " .. average)
+				_detalhes:Msg(UnitName(unitid) .. Loc[" item level: "] .. average)
 			end
 
 			if (average > MIN_ILEVEL_TO_STORE) then
@@ -2008,7 +2008,7 @@ function ilvl_core:CalcItemLevel (unitid, guid, shout)
 			if (type(ilvl_core.forced_inspects [guid].callback) == "function") then
 				local okey, errortext = pcall(ilvl_core.forced_inspects[guid].callback, guid, unitid, ilvl_core.forced_inspects[guid].param1, ilvl_core.forced_inspects[guid].param2)
 				if (not okey) then
-					_detalhes:Msg("Error on QueryInspect callback: " .. errortext)
+					_detalhes:Msg(Loc["Error on QueryInspect callback: "] .. errortext)
 				end
 			end
 			ilvl_core.forced_inspects [guid] = nil
@@ -2378,27 +2378,27 @@ function Details:DecompressData (data, dataType)
 
 			dataCompressed = LibDeflate:DecodeForPrint (data)
 			if (not dataCompressed) then
-				Details:Msg("無法解碼數據。")
+				Details:Msg(Loc["couldn't decode the data."])
 				return false
 			end
 
 		elseif (dataType == "comm") then
 			dataCompressed = LibDeflate:DecodeForWoWAddonChannel (data)
 			if (not dataCompressed) then
-				Details:Msg("無法解碼數據。")
+				Details:Msg(Loc["couldn't decode the data."])
 				return false
 			end
 		end
 		local dataSerialized = LibDeflate:DecompressDeflate (dataCompressed)
 
 		if (not dataSerialized) then
-			Details:Msg("無法解壓縮數據。")
+			Details:Msg(Loc["couldn't uncompress the data."])
 			return false
 		end
 
 		local okay, data = LibAceSerializer:Deserialize (dataSerialized)
 		if (not okay) then
-			Details:Msg("無法解除數據。")
+			Details:Msg(Loc["couldn't unserialize the data."])
 			return false
 		end
 
@@ -3151,7 +3151,7 @@ hooksecurefunc("ChatFrame_DisplayTimePlayed", function()
 			local levelText = TIME_PLAYED_LEVEL and TIME_PLAYED_LEVEL:gsub("%%s", "") or ""
 			for fontString in ChatFrame1.fontStringPool:EnumerateActive() do
 				if (fontString:GetText() and fontString:GetText():find(levelText)) then
-					print(Details.GetPlayTimeOnClassString() .. " (/details playedclass)")
+					print(Details.GetPlayTimeOnClassString() .. " (不顯示此訊息請輸入 /details playedclass)")
 					break
 				end
 			end
@@ -3182,7 +3182,7 @@ Details.UpdateAddOnMemoryUsage_Custom = function()
 		if (deltaTime >= 500) then
 			bigStutterCounter = bigStutterCounter + 1
 			if (bigStutterCounter >= 6) then
-				Details:Msg("一個插件使您的遊戲凍結超過半秒，使用'/details perf'來了解更多。")
+				Details:Msg(Loc["an addon made your game freeze for more than a half second, use '/details perf' to know more."])
 				bigStutterCounter = -10000 --make this msg appear only once
 			end
 		end
@@ -3191,15 +3191,15 @@ Details.UpdateAddOnMemoryUsage_Custom = function()
 		local stutterDegree = 0
 		if (stutterCounter > 60) then
 			if (deltaTime < 48) then
-				Details:Msg("一些插件可能導致些微偵數打結，使用'/details perf'來了解更多。")
+				Details:Msg(Loc["some addon may be causing small framerate stuttering, use '/details perf' to know more."])
 				stutterDegree = 1
 
 			elseif (deltaTime <= 100) then
-				Details:Msg("一些插件可能導致偵數低落，使用'/details perf'來了解更多。")
+				Details:Msg(Loc["some addon may be causing framerate drops, use '/details perf' to know more."])
 				stutterDegree = 2
 
 			else
-				Details:Msg("一些插件可能導致效能問題，使用'/details perf'來了解更多。")
+				Details:Msg(Loc["some addon might be causing performance issues, use '/details perf' to know more."])
 				stutterDegree = 3
 			end
 
@@ -3210,7 +3210,7 @@ Details.UpdateAddOnMemoryUsage_Custom = function()
 			deltaTime = deltaTime,
 			callStack = callStack,
 			culpritFunc = "_G.UpdateAddOnMemoryUsage()",
-			culpritDesc = "Calculates memory usage of addons",
+			culpritDesc = Loc["Calculates memory usage of addons"],
 		}
 	end
 end

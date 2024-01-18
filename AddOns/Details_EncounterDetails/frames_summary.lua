@@ -80,17 +80,17 @@ local createRow = function(parent, index)
     highlightTexture:Hide()
     newBar.highlightTexture = highlightTexture
 
-    newBar.lineText1 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlight")
+    newBar.lineText1 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     newBar.lineText1:SetPoint("left", newBar.statusBar, "left", 22, -1)
     newBar.lineText1:SetJustifyH("left")
     newBar.lineText1:SetTextColor(1, 1, 1, 1)
 
-    newBar.lineText3 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlight")
+    newBar.lineText3 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     newBar.lineText3:SetPoint("right", newBar.statusBar, "right", -70, 0)
     newBar.lineText3:SetJustifyH("right")
     newBar.lineText3:SetTextColor(1, 1, 1, 1)
 
-    newBar.lineText4 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlight")
+    newBar.lineText4 = newBar.statusBar:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     newBar.lineText4:SetPoint("right", newBar.statusBar, "right", -2, 0)
     newBar.lineText4:SetJustifyH("right")
     newBar.lineText4:SetTextColor(1, 1, 1, 1)
@@ -222,7 +222,7 @@ do --player damage taken
     local icon = detailsFramework:CreateImage(damageTakenScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_damage", 20, 20, "overlay", {0.125*2, 0.125*3, 0, 1})
     icon:SetPoint("bottomleft", damageTakenScroll, "topleft", 0, 1)
 
-    local damageTakenTitle = detailsFramework:NewLabel(damageTakenScroll, damageTakenScroll, nil, "damagetaken_title", "玩家承受傷害", "GameFontHighlight") --localize-me
+    local damageTakenTitle = detailsFramework:NewLabel(damageTakenScroll, damageTakenScroll, nil, "damagetaken_title", "Player Damage Taken", "GameFontHighlight") --localize-me
     damageTakenTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_BOTTOM do
@@ -381,7 +381,7 @@ do --~ability ~damage taken by spell
     local icon = detailsFramework:CreateImage(spellDamageScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_damage", 20, 20, "overlay", {0.125*7, 1, 0, 1})
     icon:SetPoint("bottomleft", spellDamageScroll, "topleft", 0, 1)
 
-    local spellDamageTitle = detailsFramework:NewLabel(spellDamageScroll, spellDamageScroll, nil, "spelldamage_title", "法術承受傷害", "GameFontHighlight") --localize-me
+    local spellDamageTitle = detailsFramework:NewLabel(spellDamageScroll, spellDamageScroll, nil, "spelldamage_title", "Damage Taken by Spell", "GameFontHighlight") --localize-me
     spellDamageTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_TOP do
@@ -572,7 +572,7 @@ do --enemy damage taken ~adds ~enemies
     local icon = detailsFramework:CreateImage(enemiesScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_damage", 20, 20, "overlay", {0.125*5, 0.125*6, 0, 1})
     icon:SetPoint("bottomleft", enemiesScroll, "topleft", 0, 1)
 
-    local enemiesScrollTitle = detailsFramework:NewLabel(enemiesScroll, enemiesScroll, nil, "enemies_title", "敵方承受傷害", "GameFontHighlight") --localize-me
+    local enemiesScrollTitle = detailsFramework:NewLabel(enemiesScroll, enemiesScroll, nil, "enemies_title", "Enemy Damage Taken", "GameFontHighlight") --localize-me
     enemiesScrollTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_TOP do
@@ -713,7 +713,7 @@ do -- ~interrupt
     local icon = detailsFramework:CreateImage(interruptsScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_misc", 20, 20, "overlay", {0.125*2, 0.125*3, 0, 1})
     icon:SetPoint("bottomleft", interruptsScroll, "topleft", 0, 1)
 
-    local interruptsScrollTitle = detailsFramework:NewLabel(interruptsScroll, interruptsScroll, nil, "interrupt_title", "打斷", "GameFontHighlight") --localize-me
+    local interruptsScrollTitle = detailsFramework:NewLabel(interruptsScroll, interruptsScroll, nil, "interrupt_title", "Interrupts", "GameFontHighlight") --localize-me
     interruptsScrollTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_BOTTOM do
@@ -898,7 +898,7 @@ do -- ~dispel
     local icon = detailsFramework:CreateImage(dispelScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_misc", 20, 20, "overlay", {0.125*3, 0.125*4, 0, 1})
     icon:SetPoint("bottomleft", dispelScroll, "topleft", 0, 1)
 
-    local dispelScrollTitle = detailsFramework:NewLabel(dispelScroll, dispelScroll, nil, "dispel_title", "驅散", "GameFontHighlight") --localize-me
+    local dispelScrollTitle = detailsFramework:NewLabel(dispelScroll, dispelScroll, nil, "dispel_title", "Dispels", "GameFontHighlight") --localize-me
     dispelScrollTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_BOTTOM do
@@ -1046,7 +1046,7 @@ do --~deaths ~dead
 					local overkill = thisEvent[10] or 0
 					if (overkill > 0) then
 						amount = amount - overkill
-						overkillString = " (" .. Details:Format(overkill) .. " |cFFFF8800過量擊殺|r)"
+						overkillString = " (" .. Details:Format(overkill) .. " |cFFFF8800overkill|r)"
 					else
 						overkillString = ""
 					end
@@ -1181,7 +1181,7 @@ do --~deaths ~dead
     local icon = detailsFramework:CreateImage(deathsScroll, "Interface\\AddOns\\Details\\images\\atributos_icones_misc", 20, 20, "overlay", {0.125*4, 0.125*5, 0, 1})
     icon:SetPoint("bottomleft", deathsScroll, "topleft", 0, 1)
 
-    local deathsScrollTitle = detailsFramework:NewLabel(deathsScroll, deathsScroll, nil, "deaths_title", "死亡", "GameFontHighlight") --localize-me
+    local deathsScrollTitle = detailsFramework:NewLabel(deathsScroll, deathsScroll, nil, "deaths_title", "Deaths", "GameFontHighlight") --localize-me
     deathsScrollTitle:SetPoint("left", icon, "right", 2, 0)
 
     for i = 1, CONST_LINE_AMOUNT_TOP do

@@ -1,17 +1,20 @@
 ## Interface: 100205
 ## Title: Details! Damage Meter
 ## Notes: Essential tool to impress that chick in your raid.
-## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-主程式
-## Notes-zhTW: Details! Damage Meter |n可以看自己和隊友的DPS、HPS...等模組化的傷害統計資訊，還有各種好用的戰鬥分析工具和外掛套件。|n|cffffd200使用方法：|r點小地圖按鈕，或從Esc>介面設定>插件>戰鬥-統計，進行設定。
-## DefaultState: Disabled
-## SavedVariables: _detalhes_global, __details_backup
+## Notes-ruRU: Незаменимый инструмент, чтобы произвести впечатление на цыпочку в вашем рейде.
+## SavedVariables: _detalhes_global, __details_backup, __details_debug
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibGraph-2.0
-## Version: #Details.20231120.12044.155-2
+## Version: #Details.20240117.12222.155
 ## IconTexture: Interface\AddOns\Details\images\minimap
-## X-Category-zhTW: 戰鬥
+
 ## X-Curse-Project-ID: 61284
 ## X-Wago-ID: 25NRDlK3
+
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計
+## Notes-zhTW: Details! Damage Meter |n|n可以看自己和隊友的DPS、HPS...等模組化的傷害統計資訊，還有各種好用的戰鬥分析工具和外掛套件。|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>戰鬥-統計，進行設定。
+## X-Category-zhTW: 戰鬥
+## DefaultState: disabled
 
 #@no-lib-strip@
 Libs\libs.xml
@@ -29,6 +32,7 @@ core\util.lua
 functions\mixin.lua
 API.lua
 
+functions\ej_cache.lua
 functions\events.lua
 functions\private.lua
 functions\profiles.lua
@@ -66,6 +70,7 @@ functions\warcraftlogs.lua
 functions\textures.lua
 functions\journal.lua
 
+core\aura_scan.lua
 core\timemachine.lua
 
 frames\anime.lua
@@ -89,6 +94,7 @@ frames\window_breakdown\breakdown_spells_genericframes.lua
 frames\window_breakdown\breakdown_spells_spellframes.lua
 frames\window_breakdown\breakdown_spells_targetframes.lua
 frames\window_breakdown\breakdown_spells_phaseframes.lua
+frames\window_mythicplus\window_mythic_breakdown.lua
 frames\window_report.lua
 frames\window_main.lua
 frames\window_custom.lua

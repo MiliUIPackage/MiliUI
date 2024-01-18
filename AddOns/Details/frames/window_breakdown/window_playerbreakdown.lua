@@ -105,6 +105,9 @@ local PLAYER_DETAILS_WINDOW_HEIGHT = 620
 local PLAYER_DETAILS_STATUSBAR_HEIGHT = 20
 local PLAYER_DETAILS_STATUSBAR_ALPHA = 1
 
+Details222.BreakdownWindow.width = PLAYER_DETAILS_WINDOW_WIDTH
+Details222.BreakdownWindow.height = PLAYER_DETAILS_WINDOW_HEIGHT
+
 ---@type button[]
 Details.player_details_tabs = {}
 ---@type button[]
@@ -751,10 +754,10 @@ function Details:CreateBreakdownWindow()
 		breakdownWindowFrame.actorName = breakdownWindowFrame:CreateFontString(nil, "overlay", "QuestFont_Large")
 		breakdownWindowFrame.actorName:SetPoint("left", breakdownWindowFrame.classIcon, "right", 20, -7)
 
-		breakdownWindowFrame.attributeName = breakdownWindowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+		breakdownWindowFrame.attributeName = breakdownWindowFrame:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
 		breakdownWindowFrame.avatar = breakdownWindowFrame:CreateTexture(nil, "overlay")
 		breakdownWindowFrame.avatar_bg = breakdownWindowFrame:CreateTexture(nil, "overlay")
-		breakdownWindowFrame.avatar_attribute = breakdownWindowFrame:CreateFontString(nil, "overlay", "GameFontHighlight")
+		breakdownWindowFrame.avatar_attribute = breakdownWindowFrame:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
 		breakdownWindowFrame.avatar_nick = breakdownWindowFrame:CreateFontString(nil, "overlay", "QuestFont_Large")
 		breakdownWindowFrame.avatar:SetDrawLayer("overlay", 3)
 		breakdownWindowFrame.avatar_bg:SetDrawLayer("overlay", 2)
@@ -796,7 +799,7 @@ function Details:CreateBreakdownWindow()
 
 	function breakdownWindowFrame:SetStatusbarText(text, fontSize, fontColor)
 		if (not text) then
-			breakdownWindowFrame:SetStatusbarText("Details! Damage Meter | Use '/details stats' for statistics", 13, "gray")
+			breakdownWindowFrame:SetStatusbarText(Loc["Details! Damage Meter | Use '/details stats' for statistics"], 14, "gray")
 			return
 		end
 		statusBar.Text.text = text

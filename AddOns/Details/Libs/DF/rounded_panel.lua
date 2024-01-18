@@ -53,11 +53,13 @@ local cornerNames = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
 ---@field border_color any
 ---@field corner_texture any
 ---@field horizontal_border_size_offset number?
+---@field titlebar_height number?
 
 ---@class df_roundedpanel_preset : table, df_roundedpanel_options
 ---@field border_color any
 ---@field color any
 ---@field roundness number?
+---@field titlebar_height number?
 
 ---@class df_roundedcornermixin : table
 ---@field RoundedCornerConstructor fun(self:df_roundedpanel) --called from CreateRoundedPanel
@@ -72,6 +74,7 @@ local cornerNames = {"TopLeft", "TopRight", "BottomLeft", "BottomRight"}
 ---@field GetMaxFrameLevel fun(self:df_roundedpanel) : number --return the max frame level of the frame and its children
 
 ---@class df_roundedpanel : frame, df_roundedcornermixin, df_optionsmixin, df_titlebar
+---@field disabled boolean
 ---@field bHasBorder boolean
 ---@field bHasTitleBar boolean
 ---@field options df_roundedpanel_options
@@ -239,9 +242,9 @@ detailsFramework.RoundedCornerPanelMixin = {
     ---create a frame placed at the top side of the rounded panel, this frame has a member called 'Text' which is a fontstring for the title
     ---@param self df_roundedpanel
     ---@return df_roundedpanel
-    CreateTitleBar = function(self)
+    CreateTitleBar = function(self, optionsTable)
         ---@type df_roundedpanel
-        local titleBar = detailsFramework:CreateRoundedPanel(self, "$parentTitleBar", {width = self.options.width - 6, height = 16})
+        local titleBar = detailsFramework:CreateRoundedPanel(self, "$parentTitleBar", {width = self.options.width - 6, height = self.options.titlebar_height})
         titleBar:SetPoint("top", self, "top", 0, -4)
         titleBar:SetRoundness(5)
         titleBar:SetFrameLevel(9500)
@@ -284,6 +287,10 @@ detailsFramework.RoundedCornerPanelMixin = {
     ---adjust the size of the corner textures and the border edge textures
     ---@param self df_roundedpanel
     OnSizeChanged = function(self)
+        if (self.disabled) then
+            return
+        end
+
         --if the frame has a titlebar, need to adjust the size of the titlebar
         if (self.bHasTitleBar) then
             self.TitleBar:SetWidth(self:GetWidth() - 14)
@@ -347,6 +354,44 @@ detailsFramework.RoundedCornerPanelMixin = {
                 PixelUtil.SetSize(self.BorderEdgeTextures["Right"], 1, verticalEdgesNewSize)
             end
         end
+    end,
+
+    DisableRoundedCorners = function(self)
+		self.TopLeft:Hide()
+		self.TopRight:Hide()
+		self.BottomLeft:Hide()
+		self.BottomRight:Hide()
+		self.CenterBlock:Hide()
+		self.TopEdgeBorder:Hide()
+		self.BottomEdgeBorder:Hide()
+		self.LeftEdgeBorder:Hide()
+		self.RightEdgeBorder:Hide()
+		self.TopLeftBorder:Hide()
+		self.TopRightBorder:Hide()
+		self.BottomLeftBorder:Hide()
+		self.BottomRightBorder:Hide()
+		self.TopHorizontalEdge:Hide()
+		self.BottomHorizontalEdge:Hide()
+        self.disabled = true
+    end,
+
+    EnableRoundedCorners = function(self)
+		self.TopLeft:Show()
+		self.TopRight:Show()
+		self.BottomLeft:Show()
+		self.BottomRight:Show()
+		self.CenterBlock:Show()
+		self.TopEdgeBorder:Show()
+		self.BottomEdgeBorder:Show()
+		self.LeftEdgeBorder:Show()
+		self.RightEdgeBorder:Show()
+		self.TopLeftBorder:Show()
+		self.TopRightBorder:Show()
+		self.BottomLeftBorder:Show()
+		self.BottomRightBorder:Show()
+		self.TopHorizontalEdge:Show()
+		self.BottomHorizontalEdge:Show()
+        self.disabled = false
     end,
 
     ---get the size of the edge texture
@@ -512,19 +557,20 @@ local defaultOptions = {
     color = {.1, .1, .1, 1},
     border_color = {.2, .2, .2, .5},
     corner_texture = [[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]],
+    titlebar_height = 26,
 }
 
 local defaultPreset = {
     color = {.1, .1, .1, 1},
     border_color = {.2, .2, .2, .5},
     roundness = 3,
+    titlebar_height = 16,
 }
 
 ---create a regular panel with rounded corner
 ---@param parent frame
 ---@param name string|nil
 ---@param optionsTable table|nil
----@return df_roundedpanel
 function detailsFramework:CreateRoundedPanel(parent, name, optionsTable)
     ---@type df_roundedpanel
     local newRoundedPanel = CreateFrame("frame", name, parent, "BackdropTemplate")
@@ -540,7 +586,10 @@ function detailsFramework:CreateRoundedPanel(parent, name, optionsTable)
 
     if (newRoundedPanel.options.use_titlebar) then
         ---@type df_roundedpanel
-        local titleBar = detailsFramework:CreateRoundedPanel(newRoundedPanel, "$parentTitleBar", {height = 26})
+        local titleBar = newRoundedPanel:CreateTitleBar(newRoundedPanel.options)
+
+        --[=[
+        local titleBar = detailsFramework:CreateRoundedPanel(newRoundedPanel, "$parentTitleBar", {height = newRoundedPanel.options.titlebar_height, title = newRoundedPanel.options.title})
         titleBar:SetColor(unpack(titleBarColor))
         titleBar:SetPoint("top", newRoundedPanel, "top", 0, -7)
 
@@ -549,6 +598,7 @@ function detailsFramework:CreateRoundedPanel(parent, name, optionsTable)
         newRoundedPanel.TitleBar = titleBar
         titleBar:SetRoundness(5)
         newRoundedPanel.bHasTitleBar = true
+        --]=]
     end
 
     if (newRoundedPanel.options.use_scalebar) then
@@ -579,7 +629,8 @@ local applyPreset = function(frame, preset)
     end
 
     if (preset.use_titlebar) then
-        frame:CreateTitleBar()
+        frame:CreateTitleBar(preset)
+        frame.TitleBar.Text:SetText(preset.title)
     end
 end
 
@@ -623,6 +674,7 @@ function detailsFramework:AddRoundedCornersToFrame(frame, preset)
     --handle preset
     if (preset and type(preset) == "table") then
         frame.options.horizontal_border_size_offset = preset.horizontal_border_size_offset
+        frame.options.titlebar_height = preset.titlebar_height
         applyPreset(frame, preset)
     else
         applyPreset(frame, defaultPreset)

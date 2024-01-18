@@ -203,9 +203,9 @@ do
 
             local timetypeOptions = {
                 --localize-me
-                {value = 1, label = Loc ["Activity Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_Daily_08", iconcolor = {1, .9, .9}, texcoord = {0.078125, 0.921875, 0.078125, 0.921875}},
-                {value = 2, label = Loc ["Effective Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_08"},
-                --{value = 3, label = "實時", onclick = onSelectTimeType, icon = "Interface\\Icons\\Ability_Evoker_TipTheScales"},
+                {value = 1, label = Loc["Activity Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_Daily_08", iconcolor = {1, .9, .9}, texcoord = {0.078125, 0.921875, 0.078125, 0.921875}},
+                {value = 2, label = Loc["Effective Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Achievement_Quests_Completed_08"},
+                --{value = 3, label = Loc["Real Time"], onclick = onSelectTimeType, icon = "Interface\\Icons\\Ability_Evoker_TipTheScales"},
             }
             local buildTimeTypeMenu = function()
                 return timetypeOptions
@@ -311,8 +311,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.use_realtimedps = value
                 end,
-                name = "顯示'實時'DPS",
-                desc = "如果啟用並在戰鬥中，顯示最新5秒除以5的傷害。",
+                name = Loc["Show 'Real Time' DPS"],
+                desc = Loc["If Enabled and while in combat, show the damage done of the latest 5 seconds divided by 5."],
                 boxfirst = true,
             },
 
@@ -322,8 +322,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.realtimedps_order_bars = value
                 end,
-                name = "根據實時DPS排序條列",
-                desc = "如果啟用，視窗中造成更多實時DPS的玩家排列在其他玩家之上。",
+                name = Loc["Order Bars By Real Time DPS"],
+                desc = Loc["If Enabled, players dealing more real time DPS are place above other players in the window."],
                 boxfirst = true,
             },
 
@@ -333,13 +333,13 @@ do
                 set = function(self, fixedparam, value)
                     Details.realtimedps_always_arena = value
                 end,
-                name = "在競技場永遠使用實時",
-                desc = "如果啟用，競技場中永遠使用實時DPS，即使上述選項已禁用。",
+                name = Loc["Always Use Real Time in Arenas"],
+                desc = Loc["If Enabled, real time DPS is always used in arenas, even if the option above is disabled."],
                 boxfirst = true,
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "片段:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Segments:"] end, text_template = subSectionTitleTextTemplate},
 
             {--segments locked
                 type = "toggle",
@@ -402,7 +402,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "自動清除:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Auto Erase:"] end, text_template = subSectionTitleTextTemplate},
 
             {--auto erase settings | erase data
                 type = "select",
@@ -480,8 +480,8 @@ do
                     Details:SetOverallResetOptions(nil, nil, nil, value)
                     afterUpdate()
                 end,
-                name = "開始PVP時清除", --localize-me
-                desc = "啟用後，當新的競技場或戰場開始時，將自動擦除總體數據。", --localize-me
+                name = Loc["Clear On Start PVP"], --localize-me
+                desc = Loc["When enabled, overall data is automatically wiped when a new arena or battleground starts."], --localize-me
                 boxfirst = true,
             },
             {--erase overall data on logout
@@ -502,14 +502,14 @@ do
                     Details.auto_swap_to_dynamic_overall = value
                     afterUpdate()
                 end,
-                name = "使用動態整體傷害",
-                desc = "當顯示整體傷害時，進入戰鬥時交換為動態總體傷害。",
+                name = Loc["Use Dynamic Overall Damage"],
+                desc = Loc["When showing Damage Done Overall, swap to Dynamic Overall Damage on entering combat."],
                 boxfirst = true,
             },
 
             {type = "blank"},
 
-            {type = "label", get = function() return Loc ["Window Control:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")}, --localize-me
+            {type = "label", get = function() return Loc["Window Control:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")}, --localize-me
             {--lock instance
                 type = "execute",
                 func = function(self)
@@ -577,7 +577,7 @@ do
 
             {type = "blank"},
 
-            {type = "label", get = function() return "專注" end, text_template = subSectionTitleTextTemplate}, --localize-me
+            {type = "label", get = function() return Loc["Immersion"] end, text_template = subSectionTitleTextTemplate}, --localize-me
             {--show pets when solo
                 type = "toggle",
                 get = function() return Details.immersion_pets_on_solo_play end,
@@ -585,8 +585,8 @@ do
                     Details.immersion_pets_on_solo_play = value
                     afterUpdate()
                 end,
-                name = Loc ["Show pets when solo"], --localize-me
-                desc = Loc ["Show pets when solo"],
+                name = Loc["Show pets when solo"], --localize-me
+                desc = Loc["Show pets when solo"],
                 boxfirst = true,
             },
 
@@ -627,8 +627,8 @@ do
                 end,
                 icontexture = [[Interface\GLUES\LOGIN\Glues-CheckBox-Check]],
                 --icontexcoords = {160/512, 179/512, 142/512, 162/512},
-                name = Loc ["Reset Nickname"],
-                desc = Loc ["Reset Nickname"],
+                name = Loc["Reset Nickname"],
+                desc = Loc["Reset Nickname"],
             },
             {--ignore nicknames
                 type = "toggle",
@@ -655,7 +655,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "你自己" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Your Self"] end, text_template = subSectionTitleTextTemplate},
 
             {--player bar color toggle
                 type = "toggle",
@@ -664,8 +664,8 @@ do
                     Details.use_self_color = value
                     afterUpdate()
                 end,
-                name = "為你使用不同顏色",
-                desc = "在你自己的條列上使用不同顏色",
+                name = Loc["Use Different Color for You"],
+                desc = Loc["Use a different color on your own bar"],
                 boxfirst = true,
             },
 
@@ -681,8 +681,8 @@ do
                     Details.class_colors.SELF[3] = b
                     afterUpdate()
 				end,
-				name = "你的條列顏色",
-				desc = "你的條列顏色",
+				name = Loc["Your Bar Color"],
+				desc = Loc["Your Bar Color"],
                 boxfirst = true,
             },
 
@@ -810,7 +810,7 @@ do
                         Details:Msg(Loc ["STRING_CUSTOM_IMPORT_ERROR"])
                     end
                 
-                end, Loc ["Details! Import Skin (paste string)"]) --localize-me
+                end, Loc["Details! Import Skin (paste string)"]) --localize-me
             end
 
         local sectionOptions = {
@@ -847,8 +847,8 @@ do
                 end,
                 icontexture = [[Interface\GLUES\LOGIN\Glues-CheckBox-Check]],
                 --icontexcoords = {160/512, 179/512, 142/512, 162/512},
-                name = Loc ["Reset Custom Skin"],
-                desc = Loc ["Reset Custom Skin"],
+                name = Loc["Reset Custom Skin"],
+                desc = Loc["Reset Custom Skin"],
             },
 
             {--save as skin
@@ -945,9 +945,9 @@ do
                         tinsert(loadtable, {value = index, label = _table.name, onclick = function(_, _, index)
                             local compressedData = Details:CompressData(Details.savedStyles[index], "print")
                             if (compressedData) then
-                                Details:ShowImportWindow(compressedData, nil, Loc ["Details! Export Skin"])
+                                Details:ShowImportWindow(compressedData, nil, Loc["Details! Export Skin"])
                             else
-                                Details:Msg (Loc ["failed to export skin."]) --localize-me
+                                Details:Msg(Loc["failed to export skin."]) --localize-me
                             end
                             Details222.OptionsPanel.SetCurrentInstanceAndRefresh(currentInstance)
                             afterUpdate()
@@ -1021,8 +1021,8 @@ do
                 min = -100,
                 max = 100,
                 step = 1,
-                name = Loc ["Width Offset"], --localize-me
-                desc = Loc ["Fine tune the size of the window while embeded in the chat."], --localize-me
+                name = Loc["Width Offset"], --localize-me
+                desc = Loc["Fine tune the size of the window while embeded in the chat."], --localize-me
             },
 
             {--chat tab height offset
@@ -1038,8 +1038,8 @@ do
                 min = -100,
                 max = 100,
                 step = 1,
-                name = Loc ["Height Offset"], --localize-me
-                desc = Loc ["Fine tune the size of the window while embeded in the chat."], --localize-me
+                name = Loc["Height Offset"], --localize-me
+                desc = Loc["Fine tune the size of the window while embeded in the chat."], --localize-me
             },
         }
 
@@ -1171,8 +1171,8 @@ do
     local list = {
         {value = [[]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE1"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize, iconcolor = {1, 1, 1, .3}},
         {value = [[Interface\AddOns\Details\images\classes_small]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE2"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\spec_icons_normal]], label = Loc ["Specialization"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\spec_icons_normal_alpha]], label = Loc ["Specialization Alpha"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
+        {value = [[Interface\AddOns\Details\images\spec_icons_normal]], label = Loc["Specialization"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
+        {value = [[Interface\AddOns\Details\images\spec_icons_normal_alpha]], label = Loc["Specialization Alpha"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
         {value = [[Interface\AddOns\Details\images\classes_small_bw]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE3"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
         {value = [[Interface\AddOns\Details\images\classes_small_alpha]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE4"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
         {value = [[Interface\AddOns\Details\images\classes_small_alpha_bw]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE6"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
@@ -1307,8 +1307,8 @@ do
                 end,
                 icontexture = [[Interface\Buttons\UI-GroupLoot-Pass-Down]],
                 --icontexcoords = {160/512, 179/512, 142/512, 162/512},
-                name = Loc ["Remove Custom Texture"], --localize-me
-                desc = Loc ["Remove Custom Texture"],
+                name = Loc["Remove Custom Texture"], --localize-me
+                desc = Loc["Remove Custom Texture"],
             },
 
 			{--bar color
@@ -1339,7 +1339,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Overlay:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Overlay:"] end, text_template = subSectionTitleTextTemplate},
             {--overlay texture
                 type = "select",
                 get = function() return currentInstance.row_info.overlay_texture end,
@@ -1347,7 +1347,7 @@ do
                     return buildTextureOverlayMenu()
                 end,
                 name = Loc ["STRING_TEXTURE"],
-                desc = "Texture which sits above the bar",
+                desc = Loc["Texture which sits above the bar"],
             },
 
 			{--overlay color
@@ -1473,8 +1473,8 @@ do
                 max = 20,
                 usedecimals = true,
                 step = 0.5,
-                name = "圖示大小位置", --localize-me
-                desc = "Icon Size Offset",
+                name = Loc["Icon Size Offset"], --localize-me
+                desc = Loc["Icon Size Offset"],
                 thumbscale = 2.2,
             },
 
@@ -1487,8 +1487,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarFactionIconSettings", value)
                     afterUpdate()
                 end,
-                name = "顯示陣營圖示", --localize-me
-                desc = "When showing a player from the opposite faction, show the faction icon.",
+                name = Loc["Show Faction Icon"], --localize-me
+                desc = Loc["When showing a player from the opposite faction, show the faction icon."],
             },
 
             {--faction icon size offset
@@ -1502,8 +1502,8 @@ do
                 max = 20,
                 usedecimals = true,
                 step = 0.5,
-                name = "陣營圖示大小位置", --localize-me
-                desc = "Faction Icon Size Offset",
+                name = Loc["Faction Icon Size Offset"], --localize-me
+                desc = Loc["Faction Icon Size Offset"],
                 thumbscale = 2.2,
             },
 
@@ -1516,8 +1516,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarArenaRoleIconSettings", value)
                     afterUpdate()
                 end,
-                name = "顯示競技場角色類型圖示", --localize-me
-                desc = "When showing a player from arena, show the role icon.",
+                name = Loc["Show Arena Role Icon"], --localize-me
+                desc = Loc["When showing a player from arena, show the role icon."],
             },
 
             {--role icon size offset
@@ -1531,8 +1531,8 @@ do
                 max = 20,
                 usedecimals = true,
                 step = 0.5,
-                name = "競技場角色類型圖示大小位置", --localize-me
-                desc = "Arena Role Icon Size Offset",
+                name = Loc["Arena Role Icon Size Offset"], --localize-me
+                desc = Loc["Arena Role Icon Size Offset"],
                 thumbscale = 2.2,
             },
 
@@ -1580,8 +1580,8 @@ do
                 min = -30,
                 max = 30,
                 step = 1,
-                name = "單位名字大小偏移",
-                desc = "Unit Name Size Offset",
+                name = Loc["Unit Name Size Offset"],
+                desc = Loc["Unit Name Size Offset"],
             },
 
             {--lineText2 (left, usuali is the 'done' amount)
@@ -1669,7 +1669,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Arena Team Color" end, text_template = subSectionTitleTextTemplate}, --localize-me
+            {type = "label", get = function() return Loc["Arena Team Color"] end, text_template = subSectionTitleTextTemplate}, --localize-me
 			{--team 1 color
                 type = "color",
                 get = function()
@@ -1683,7 +1683,7 @@ do
                     afterUpdate()
                 end,
                 name = Loc ["STRING_COLOR"],
-                desc = "Arena team color", --localize-me
+                desc = Loc["Arena team color"], --localize-me
             },
 			{--team 2 color
                 type = "color",
@@ -1698,7 +1698,7 @@ do
                     afterUpdate()
                 end,
                 name = Loc ["STRING_COLOR"],
-                desc = "Arena team color", --localize-me
+                desc = Loc["Arena team color"], --localize-me
             },
 
             {type = "blank"},
@@ -1792,8 +1792,8 @@ do
         
         local buildPercentMenu = function()
             local percentTable = {
-                {value = 1, label = Loc ["Relative to Total"], onclick = onSelectPercent, icon = [[Interface\GROUPFRAME\UI-GROUP-MAINTANKICON]]},
-                {value = 2, label = Loc ["Relative to Top Player"], onclick = onSelectPercent, icon = [[Interface\GROUPFRAME\UI-Group-LeaderIcon]]}
+                {value = 1, label = Loc["Relative to Total"], onclick = onSelectPercent, icon = [[Interface\GROUPFRAME\UI-GROUP-MAINTANKICON]]},
+                {value = 2, label = Loc["Relative to Top Player"], onclick = onSelectPercent, icon = [[Interface\GROUPFRAME\UI-Group-LeaderIcon]]}
             }
             return percentTable
         end
@@ -1809,7 +1809,7 @@ do
 			{value = "{", label = "{", onclick = onSelectBracket, icon = ""},
 			{value = "[", label = "[", onclick = onSelectBracket, icon = ""},
 			{value = "<", label = "<", onclick = onSelectBracket, icon = ""},
-			{value = "NONE", label = Loc ["no bracket"], onclick = onSelectBracket, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]},
+			{value = "NONE", label = Loc["no bracket"], onclick = onSelectBracket, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]},
 		}
 		local buildBracketMenu = function()
 			return BracketTable
@@ -1830,7 +1830,7 @@ do
 			{value = "/", label = "/", onclick = onSelectSeparator, icon = ""},
 			{value = "\\", label = "\\", onclick = onSelectSeparator, icon = ""},
 			{value = "~", label = "~", onclick = onSelectSeparator, icon = ""},
-			{value = "NONE", label = Loc ["no separator"], onclick = onSelectSeparator, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]},
+			{value = "NONE", label = Loc["no separator"], onclick = onSelectSeparator, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]},
 		}
 		local buildSeparatorMenu = function()
 			return separatorTable
@@ -1877,8 +1877,8 @@ do
                 min = -10,
                 max = 10,
                 step = 1,
-                name = "文字垂直偏移", -- Loc ["STRING_OPTIONS_TEXT_YOFFSET"]
-                desc = "Change the vertical offset for both left and right texts.", -- Loc ["STRING_OPTIONS_TEXT_YOFFSET_DESC"]
+                name = Loc["Text Y Offset"], -- Loc ["STRING_OPTIONS_TEXT_YOFFSET"]
+                desc = Loc["Change the vertical offset for both left and right texts."], -- Loc ["STRING_OPTIONS_TEXT_YOFFSET_DESC"]
             },
             {--text font 3
                 type = "select",
@@ -1931,8 +1931,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarTextSettings", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, value)
                     afterUpdate()
                 end,
-                name = Loc ["Outline"], --localize-me
-                desc = Loc ["Text Outline"],
+                name = Loc["Outline"], --localize-me
+                desc = Loc["Text Outline"],
             },
 			{--outline small color 10
                 type = "color",
@@ -1944,8 +1944,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarTextSettings", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, {r, g, b, a})
                     afterUpdate()
                 end,
-                name = Loc ["Outline Color"],
-                desc = Loc ["Outline Color"],
+                name = Loc["Outline Color"],
+                desc = Loc["Outline Color"],
             },
             {--position number 11
                 type = "toggle",
@@ -1977,8 +1977,8 @@ do
                 min = -10,
                 max = 50,
                 step = 1,
-                name = "偏移", -- Loc ["STRING_OPTIONS_TEXT_LOFFSET"]
-                desc = "更改水平偏移。", -- Loc ["STRING_OPTIONS_TEXT_LOFFSET_DESC"]
+                name = Loc["Offset"], -- Loc ["STRING_OPTIONS_TEXT_LOFFSET"]
+                desc = Loc["Change the horizontal offset."], -- Loc ["STRING_OPTIONS_TEXT_LOFFSET_DESC"]
             },
 
             {type = "blank"}, --13
@@ -2041,8 +2041,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarTextSettings", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, value)
                     afterUpdate()
                 end,
-                name = "Outline", --localize-me
-                desc = "Text Outline",
+                name = Loc["Outline"], --localize-me
+                desc = Loc["Text Outline"],
             },
 			{--outline small color 21
                 type = "color",
@@ -2054,8 +2054,8 @@ do
                     editInstanceSetting(currentInstance, "SetBarTextSettings", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, {r, g, b, a})
                     afterUpdate()
                 end,
-                name = Loc ["Outline Color"],
-                desc = Loc ["Outline Color"],
+                name = Loc["Outline Color"],
+                desc = Loc["Outline Color"],
             },
 
             {type = "blank"}, --22
@@ -2203,7 +2203,7 @@ do
         local build_font_menu = function()
             local fonts = {}
             for name, fontPath in pairs(SharedMedia:HashTable ("font")) do 
-                fonts [#fonts+1] = {value = name, label = name, icon = font_select_icon, texcoord = font_select_texcoord, onclick = on_select_attribute_font, font = fontPath, descfont = name, desc = "Our thoughts strayed constantly\nAnd without boundary\nThe ringing of the division bell had began."}
+                fonts [#fonts+1] = {value = name, label = name, icon = font_select_icon, texcoord = font_select_texcoord, onclick = on_select_attribute_font, font = fontPath, descfont = name, desc = Loc["Our thoughts strayed constantly\nAnd without boundary\nThe ringing of the division bell had began."]}
             end
             table.sort (fonts, function(t1, t2) return t1.label < t2.label end)
             return fonts
@@ -2234,10 +2234,10 @@ do
 
         local buildIconStyleMenu = function()
             local iconMenu = {
-                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons", label = Loc ["Set 1"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
-                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_shadow", label = Loc ["Set 2"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_shadow", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
-                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_2", label = Loc ["Set 3"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_2", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
-                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_2_shadow", label = Loc ["Set 4"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_2_shadow", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
+                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons", label = Loc["Set 1"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
+                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_shadow", label = Loc["Set 2"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_shadow", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
+                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_2", label = Loc["Set 3"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_2", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
+                {value = "Interface\\AddOns\\Details\\images\\toolbar_icons_2_shadow", label = Loc["Set 4"], icon = "Interface\\AddOns\\Details\\images\\toolbar_icons_2_shadow", texcoord = {0, 0.125, 0, 1}, onclick = on_select_icon_set},
             }
             return iconMenu
         end
@@ -2247,7 +2247,7 @@ do
     local buildSection = function(sectionFrame)
         local sectionOptions = {
 
-            {type = "label", get = function() return "Title Bar" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Title Bar"] end, text_template = subSectionTitleTextTemplate},
 
             {--use custom titlebar
                 type = "toggle",
@@ -2257,8 +2257,8 @@ do
                     editInstanceSetting(currentInstance, "RefreshTitleBar")
                     afterUpdate()
                 end,
-                name = "啟用自定義標題條",
-                desc = "Use an alternative title bar instead of the title bar builtin in the Skin file.\n\n|cFFFFFF00Important|r: To disable the title bar from the Skin file, go to 'Window Body' and make the 'skin color' fully transparent.",
+                name = Loc["Enable Custom Title Bar"],
+                desc = Loc["Use an alternative title bar instead of the title bar builtin in the Skin file.\n\n|cFFFFFF00Important|r: To disable the title bar from the Skin file, go to 'Window Body' and make the 'skin color' fully transparent."],
             },
 
             {--custom title bar height
@@ -2272,8 +2272,8 @@ do
                 min = 0,
                 max = 32,
                 step = 1,
-                name = "高度",
-                desc = "Height",
+                name = Loc["Height"],
+                desc = Loc["Height"],
             },
 
             {--custom title bar texture
@@ -2297,8 +2297,8 @@ do
                     editInstanceSetting(currentInstance, "RefreshTitleBar")
                     afterUpdate()
                 end,
-                name = "顏色",
-                desc = "Color",
+                name = Loc["Color"],
+                desc = Loc["Color"],
             },
 
 
@@ -2418,8 +2418,8 @@ do
                 values = function()
                     return buildIconStyleMenu()
                 end,
-                name = Loc ["Icon Set"],
-                desc = Loc ["Icon Set"],
+                name = Loc["Icon Set"],
+                desc = Loc["Icon Set"],
             },
 
             {--title bar icons size
@@ -2710,11 +2710,11 @@ do
 
     --frame strata options
         local strata = {
-            ["BACKGROUND"] = Loc ["Background"],
-            ["LOW"] = Loc ["Low"],
-            ["MEDIUM"] = Loc ["Medium"],
-            ["HIGH"] = Loc ["High"],
-            ["DIALOG"] = Loc ["Dialog"]
+            ["BACKGROUND"] = Loc["Background"],
+            ["LOW"] = Loc["Low"],
+            ["MEDIUM"] = Loc["Medium"],
+            ["HIGH"] = Loc["High"],
+            ["DIALOG"] = Loc["Dialog"]
         }
 
         local onStrataSelect = function(_, instance, strataName)
@@ -2723,11 +2723,11 @@ do
         end
 
         local strataTable = {
-            {value = "BACKGROUND", label = Loc ["Background"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]], iconcolor = {0, .5, 0, .8}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-            {value = "LOW", label = Loc ["Low"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-            {value = "MEDIUM", label = Loc ["Medium"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-            {value = "HIGH", label = Loc ["High"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , iconcolor = {1, .7, 0, 1}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-            {value = "DIALOG", label = Loc ["Dialog"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Red]] , iconcolor = {1, 0, 0, 1},  texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
+            {value = "BACKGROUND", label = Loc["Background"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]], iconcolor = {0, .5, 0, .8}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
+            {value = "LOW", label = Loc["Low"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
+            {value = "MEDIUM", label = Loc["Medium"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
+            {value = "HIGH", label = Loc["High"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , iconcolor = {1, .7, 0, 1}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
+            {value = "DIALOG", label = Loc["Dialog"], onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Red]] , iconcolor = {1, 0, 0, 1},  texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
         }
         local buildStrataMenu = function() return strataTable end
 
@@ -2906,8 +2906,8 @@ do
                     Details:InstanceGroupCall(currentInstance, "UpdateClickThroughSettings", nil, value, value, value)
                     afterUpdate()
                 end,
-                name = "點擊穿越",
-                desc = "點擊穿越",
+                name = Loc["Click Through"],
+                desc = Loc["Click Through"],
                 boxfirst = true,
             },
             {--click only in combat
@@ -2917,8 +2917,8 @@ do
                     Details:InstanceGroupCall(currentInstance, "UpdateClickThroughSettings", value)
                     afterUpdate()
                 end,
-                name = "只在戰鬥中點擊穿越",
-                desc = "只在戰鬥中點擊穿越",
+                name = Loc["Click Through Only in Combat"],
+                desc = Loc["Click Through Only in Combat"],
                 boxfirst = true,
             },            
             {type = "blank"},
@@ -3020,7 +3020,7 @@ do
             },
 
             {type = "breakline"},
-            {type = "label", get = function() return "Window Area Border" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Window Area Border"] end, text_template = subSectionTitleTextTemplate},
 
             {--show full border ~border
                 type = "toggle",
@@ -3029,8 +3029,8 @@ do
                     editInstanceSetting(currentInstance, "UpdateFullBorder", value)
                     afterUpdate()
                 end,
-                name = "顯示邊框",
-                desc = "顯示邊框",
+                name = Loc["Show Border"],
+                desc = Loc["Show Border"],
             },
 
 			{--full border color
@@ -3042,8 +3042,8 @@ do
                     editInstanceSetting(currentInstance, "UpdateFullBorder", nil, {r, g, b, a})
                     afterUpdate()
                 end,
-                name = "邊框顏色",
-                desc = "邊框顏色",
+                name = Loc["Border Color"],
+                desc = Loc["Border Color"],
             },
 
             {--border size
@@ -3057,12 +3057,12 @@ do
                 max = 5,
                 step = 0.5,
                 usedecimals = true,
-                name = "邊框厚度",
-                desc = "邊框厚度",
+                name = Loc["Border Thickness"],
+                desc = Loc["Border Thickness"],
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Row's Area Border" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Row's Area Border"] end, text_template = subSectionTitleTextTemplate},
 
             {--show full border ~border
                 type = "toggle",
@@ -3071,8 +3071,8 @@ do
                     editInstanceSetting(currentInstance, "UpdateRowAreaBorder", value)
                     afterUpdate()
                 end,
-                name = "顯示邊框",
-                desc = "顯示邊框",
+                name = Loc["Show Border"],
+                desc = Loc["Show Border"],
             },
 
 			{--full border color
@@ -3084,8 +3084,8 @@ do
                     editInstanceSetting(currentInstance, "UpdateRowAreaBorder", nil, {r, g, b, a})
                     afterUpdate()
                 end,
-                name = "邊框顏色",
-                desc = "邊框顏色",
+                name = Loc["Border Color"],
+                desc = Loc["Border Color"],
             },
 
             {--border size
@@ -3099,8 +3099,8 @@ do
                 max = 5,
                 step = 0.5,
                 usedecimals = true,
-                name = "邊框厚度",
-                desc = "邊框厚度",
+                name = Loc["Border Thickness"],
+                desc = Loc["Border Thickness"],
             },
             
         }
@@ -3230,7 +3230,7 @@ do
             DF:NewLabel(sectionFrame, _, "$parentMicroDisplayLeftLabel", "MicroDisplayLeftLabel", Loc ["STRING_ANCHOR_LEFT"], "GameFontHighlightLeft")
             DF:NewLabel(sectionFrame, _, "$parentMicroDisplayCenterLabel", "MicroDisplayCenterLabel", Loc ["STRING_CENTER_UPPER"], "GameFontHighlightLeft")
             DF:NewLabel(sectionFrame, _, "$parentMicroDisplayRightLabel", "MicroDisplayRightLabel", Loc ["STRING_ANCHOR_RIGHT"], "GameFontHighlightLeft")
-            DF:NewLabel(sectionFrame, _, "$parentMicroDisplayWarningLabel", "MicroDisplayWarningLabel", Loc ["STRING_OPTIONS_MICRODISPLAYS_WARNING"], "GameFontHighlight", 13, "orange")
+            DF:NewLabel(sectionFrame, _, "$parentMicroDisplayWarningLabel", "MicroDisplayWarningLabel", Loc ["STRING_OPTIONS_MICRODISPLAYS_WARNING"], "GameFontHighlight", 14, "orange")
 
             --dropdown on select option
             local onMicroDisplaySelect = function(_, _, micro_display)
@@ -3482,15 +3482,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 16)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 16)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 16)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 12)
+            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 16)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 16)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -3504,19 +3504,19 @@ do
         --then add a 'ghost' plugin so the player can download
     
         local allExistentToolbarPlugins = {
-            {"DETAILS_PLUGIN_CHART_VIEWER", "Details_ChartViewer", Loc ["Chart Viewer"], Loc ["View combat data in handsome charts."], "https://www.curseforge.com/wow/addons/details-chart-viewer-plugin"},
-            {"DETAILS_PLUGIN_DEATH_GRAPHICS", "Details_DeathGraphs", Loc ["Advanced Death Logs"], Loc ["Encounter endurance per player (who's dying more), deaths timeline by enemy spells and regular death logs."], "https://www.curseforge.com/wow/addons/details-advanced-death-logs-plug"},
-            --{"Details_RaidPowerBars", Loc ["Raid Power Bars"], Loc ["Alternate power bar in a details! window"], "https://www.curseforge.com/wow/addons/details_raidpowerbars/"},
-            --{"Details_TargetCaller", Loc ["Target Caller"], Loc ["Show raid damage done to an entity since you targetted it."], "https://www.curseforge.com/wow/addons/details-target-caller-plugin"},
-            {"DETAILS_PLUGIN_TIME_LINE", "Details_TimeLine", Loc ["Time Line"], Loc ["View raid cooldowns usage, debuff gain, boss casts in a fancy time line."], "https://www.curseforge.com/wow/addons/details_timeline"},
+            {"DETAILS_PLUGIN_CHART_VIEWER", "Details_ChartViewer", Loc["Chart Viewer"], Loc["View combat data in handsome charts."], "https://www.curseforge.com/wow/addons/details-chart-viewer-plugin"},
+            {"DETAILS_PLUGIN_DEATH_GRAPHICS", "Details_DeathGraphs", Loc["Advanced Death Logs"], Loc["Encounter endurance per player (who's dying more), deaths timeline by enemy spells and regular death logs."], "https://www.curseforge.com/wow/addons/details-advanced-death-logs-plug"},
+            --{"Details_RaidPowerBars", Loc["Raid Power Bars"], Loc["Alternate power bar in a details! window"], "https://www.curseforge.com/wow/addons/details_raidpowerbars/"},
+            --{"Details_TargetCaller", Loc["Target Caller"], Loc["Show raid damage done to an entity since you targetted it."], "https://www.curseforge.com/wow/addons/details-target-caller-plugin"},
+            {"DETAILS_PLUGIN_TIME_LINE", "Details_TimeLine", Loc["Time Line"], Loc["View raid cooldowns usage, debuff gain, boss casts in a fancy time line."], "https://www.curseforge.com/wow/addons/details_timeline"},
         }
     
         local allExistentRaidPlugins = {
-            --{"DETAILS_PLUGIN_CHART_VIEWER", "Details_ChartViewer", Loc ["Chart Viewer"], Loc ["View combat data in handsome charts."], "https://www.curseforge.com/wow/addons/details-chart-viewer-plugin"},
-            --{"DETAILS_PLUGIN_DEATH_GRAPHICS", "Details_DeathGraphs", Loc ["Advanced Death Logs"], Loc ["Encounter endurance per player (who's dying more), deaths timeline by enemy spells and regular death logs."], "https://www.curseforge.com/wow/addons/details-advanced-death-logs-plug"},
-            {"DETAILS_PLUGIN_RAID_POWER_BARS", "Details_RaidPowerBars", Loc ["Raid Power Bars"], Loc ["Alternate power bar in a details! window"], "https://www.curseforge.com/wow/addons/details_raidpowerbars/"},
-            {"DETAILS_PLUGIN_TARGET_CALLER", "Details_TargetCaller", Loc ["Target Caller"], Loc ["Show raid damage done to an entity since you targetted it."], "https://www.curseforge.com/wow/addons/details-target-caller-plugin"},
-            --{"DETAILS_PLUGIN_TIME_LINE", "Details_TimeLine", Loc ["Time Line"], Loc ["View raid cooldowns usage, debuff gain, boss casts in a fancy time line."], "https://www.curseforge.com/wow/addons/details_timeline"},
+            --{"DETAILS_PLUGIN_CHART_VIEWER", "Details_ChartViewer", Loc["Chart Viewer"], Loc["View combat data in handsome charts."], "https://www.curseforge.com/wow/addons/details-chart-viewer-plugin"},
+            --{"DETAILS_PLUGIN_DEATH_GRAPHICS", "Details_DeathGraphs", Loc["Advanced Death Logs"], Loc["Encounter endurance per player (who's dying more), deaths timeline by enemy spells and regular death logs."], "https://www.curseforge.com/wow/addons/details-advanced-death-logs-plug"},
+            {"DETAILS_PLUGIN_RAID_POWER_BARS", "Details_RaidPowerBars", Loc["Raid Power Bars"], Loc["Alternate power bar in a details! window"], "https://www.curseforge.com/wow/addons/details_raidpowerbars/"},
+            {"DETAILS_PLUGIN_TARGET_CALLER", "Details_TargetCaller", Loc["Target Caller"], Loc["Show raid damage done to an entity since you targetted it."], "https://www.curseforge.com/wow/addons/details-target-caller-plugin"},
+            --{"DETAILS_PLUGIN_TIME_LINE", "Details_TimeLine", Loc["Time Line"], Loc["View raid cooldowns usage, debuff gain, boss casts in a fancy time line."], "https://www.curseforge.com/wow/addons/details_timeline"},
         }
     
         local installedToolbarPlugins = {}
@@ -3588,7 +3588,7 @@ do
                 local pluginObject = {
                     __icon = "",
                     __name = allExistentToolbarPlugins [o] [3],
-                    __author = Loc ["Not Installed"],
+                    __author = Loc["Not Installed"],
                     __version = "",
                     OpenOptionsPanel = false,
                 }
@@ -3619,7 +3619,7 @@ do
                 bframe ["toolbarPluginsLabel3"..i]:SetPoint("topleft", anchorFrame, "topleft", 290, y-4)
                 bframe ["toolbarPluginsLabel3"..i].color = notInstalledColor
     
-                local installButton = DF:CreateButton(bframe, function() Details:CopyPaste (allExistentToolbarPlugins [o] [5]) end, 120, 20, "Install")
+                local installButton = DF:CreateButton(bframe, function() Details:CopyPaste (allExistentToolbarPlugins [o] [5]) end, 120, 20, Loc["Install"])
                 installButton:SetTemplate(options_button_template)
                 installButton:SetPoint("topleft", anchorFrame, "topleft", 510, y-0)
                 
@@ -3641,15 +3641,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel2", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel2", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 16)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel2", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel2", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 16)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel2", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel2", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 16)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel2", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel2", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 16)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel2", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel2", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 16)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -3726,7 +3726,7 @@ do
                 local pluginObject = {
                     __icon = "",
                     __name = allExistentRaidPlugins [o] [3],
-                    __author = Loc ["Not Installed"],
+                    __author = Loc["Not Installed"],
                     __version = "",
                     OpenOptionsPanel = false,
                 }
@@ -3757,7 +3757,7 @@ do
                 bframe ["toolbarPluginsLabel3"..i]:SetPoint("topleft", anchorFrame, "topleft", 290, y-4)
                 bframe ["toolbarPluginsLabel3"..i].color = notInstalledColor
     
-                local installButton = DF:CreateButton(bframe, function() Details:CopyPaste (allExistentRaidPlugins [o] [5]) end, 120, 20, "Install")
+                local installButton = DF:CreateButton(bframe, function() Details:CopyPaste (allExistentRaidPlugins [o] [5]) end, 120, 20, Loc["Install"])
                 installButton:SetTemplate(options_button_template)
                 installButton:SetPoint("topleft", anchorFrame, "topleft", 510, y-0)
                 
@@ -3779,15 +3779,15 @@ do
             descbar:SetTexture(.3, .3, .3, .8)
             descbar:SetPoint("topleft", anchorFrame, "topleft", 5, y+3)
             descbar:SetSize(650, 20)
-            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel3", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescNameLabel3", "descNameLabel", Loc ["STRING_OPTIONS_PLUGINS_NAME"], "GameFontNormal", 16)
             anchorFrame.descNameLabel:SetPoint("topleft", anchorFrame, "topleft", 15, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel3", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescAuthorLabel3", "descAuthorLabel", Loc ["STRING_OPTIONS_PLUGINS_AUTHOR"], "GameFontNormal", 16)
             anchorFrame.descAuthorLabel:SetPoint("topleft", anchorFrame, "topleft", 180, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel3", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescVersionLabel3", "descVersionLabel", Loc ["STRING_OPTIONS_PLUGINS_VERSION"], "GameFontNormal", 16)
             anchorFrame.descVersionLabel:SetPoint("topleft", anchorFrame, "topleft", 290, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel3", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescEnabledLabel3", "descEnabledLabel", Loc ["STRING_ENABLED"], "GameFontNormal", 16)
             anchorFrame.descEnabledLabel:SetPoint("topleft", anchorFrame, "topleft", 400, y)
-            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel3", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 14)
+            DF:NewLabel(anchorFrame, _, "$parentDescOptionsLabel3", "descOptionsLabel", Loc ["STRING_OPTIONS_PLUGINS_OPTIONS"], "GameFontNormal", 16)
             anchorFrame.descOptionsLabel:SetPoint("topleft", anchorFrame, "topleft", 510, y)
         end
         
@@ -3942,7 +3942,7 @@ do
 
             {--profile name
                 type = "textentry",
-                get = function() return Loc ["profile name"] end,
+                get = function() return Loc["profile name"] end,
                 func = function(self, _, text) end,
                 name = Loc ["STRING_OPTIONS_PROFILES_CREATE"],
                 --desc = Loc ["STRING_OPTIONS_NICKNAME"],
@@ -4000,7 +4000,7 @@ do
                     end
 
                     if (profileName == Details:GetCurrentProfileName()) then
-                        return Details:Msg(Loc ["Can't delete current profile."])
+                        return Details:Msg(Loc["Can't delete current profile."])
                     end
 
                     Details:EraseProfile(profileName)
@@ -4019,7 +4019,7 @@ do
                 func = function(self)
                     local str = Details:ExportCurrentProfile()
                     if (str) then
-                        Details:ShowImportWindow (str, nil, Loc ["Details! Export Profile"])
+                        Details:ShowImportWindow (str, nil, Loc["Details! Export Profile"])
                     end
                 end,
                 name = Loc["STRING_OPTIONS_EXPORT_PROFILE"],
@@ -4103,7 +4103,7 @@ do
                 type = "select",
                 get = function() return Details.always_use_profile_name end,
                 values = function() return buildProfileMenuForAlwaysUse() end,
-                name = Loc ["Select Profile"],
+                name = Loc["Select Profile"],
                 desc = Loc ["STRING_OPTIONS_PROFILE_GLOBAL"],
             },
 
@@ -4143,7 +4143,7 @@ do
                 local fonts = {}
                 for name, fontPath in pairs(SharedMedia:HashTable ("font")) do 
                 
-                    fonts [#fonts+1] = {value = name, icon = font_select_icon, texcoord = font_select_texcoord, label = name, onclick = on_select_tooltip_font, font = fontPath, descfont = name, desc = "Our thoughts strayed constantly\nAnd without boundary\nThe ringing of the division bell had began."}
+                    fonts [#fonts+1] = {value = name, icon = font_select_icon, texcoord = font_select_texcoord, label = name, onclick = on_select_tooltip_font, font = fontPath, descfont = name, desc = Loc["Our thoughts strayed constantly\nAnd without boundary\nThe ringing of the division bell had began."]}
                 end
                 table.sort (fonts, function(t1, t2) return t1.label < t2.label end)
                 return fonts
@@ -4167,14 +4167,14 @@ do
             end
 
             local abbreviationOptions = {
-                {value = 1, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_NONE"], desc = Loc ["STRING_EXAMPLE"] .. ": 305.500 -> 305500", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 2, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK"], desc = Loc ["STRING_EXAMPLE"] .. ": 305.500 -> 305.5K", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 3, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK2"], desc = Loc ["STRING_EXAMPLE"] .. ": 305.500 -> 305K", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 4, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK0"], desc = Loc ["STRING_EXAMPLE"] .. ": 25.305.500 -> 25M", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 5, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOKMIN"], desc = Loc ["STRING_EXAMPLE"] .. ": 305.500 -> 305.5k", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 6, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK2MIN"], desc = Loc ["STRING_EXAMPLE"] .. ": 305.500 -> 305k", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 7, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK0MIN"], desc = Loc ["STRING_EXAMPLE"] .. ": 25.305.500 -> 25m", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
-                {value = 8, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_COMMA"], desc = Loc ["STRING_EXAMPLE"] .. ": 25305500 -> 25.305.500", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize} --, desc = ""
+                {value = 1, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_NONE"], desc = "Example: 305.500 -> 305500", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 2, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK"], desc = "Example: 305.500 -> 305.5K", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 3, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK2"], desc = "Example: 305.500 -> 305K", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 4, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK0"], desc = "Example: 25.305.500 -> 25M", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 5, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOKMIN"], desc = "Example: 305.500 -> 305.5k", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 6, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK2MIN"], desc = "Example: 305.500 -> 305k", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 7, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_TOK0MIN"], desc = "Example: 25.305.500 -> 25m", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize}, --, desc = ""
+                {value = 8, label = Loc ["STRING_OPTIONS_PS_ABBREVIATE_COMMA"], desc = "Example: 25305500 -> 25.305.500", onclick = onSelectTimeAbbreviation, icon = icon, iconcolor = iconcolor, iconsize = iconsize} --, desc = ""
             }
             local buildAbbreviationMenu = function()
                 return abbreviationOptions
@@ -4377,8 +4377,8 @@ do
                     color[4] = a
                     afterUpdate()
                 end,
-                name = "Bar Color",
-                desc = "Bar Color",
+                name = Loc["Bar Color"],
+                desc = Loc["Bar Color"],
             },
 
 			{--background color
@@ -4413,8 +4413,8 @@ do
                     color[4] = a
                     afterUpdate()
                 end,
-                name = "Divisor Color",
-                desc = "Divisor Color",
+                name = Loc["Divisor Color"],
+                desc = Loc["Divisor Color"],
             },
 
             {type = "blank"},
@@ -5065,8 +5065,8 @@ do
                 min = 0,
                 max = 3,
                 step = 1,
-                name = "層級",
-                desc = "Change where the wallpaper is placed.", --localize-me
+                name = Loc["Level"],
+                desc = Loc["Change where the wallpaper is placed."], --localize-me
             },
 
             {--edit wallpaper
@@ -5119,7 +5119,7 @@ do
         local buildSwitchMenu = function()
             sectionFrame.lastSwitchList = {}
             local t = {
-                {value = 0, label = Loc ["do not switch"], color = {.7, .7, .7, 1}, onclick = Current_Switch_Func, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]}
+                {value = 0, label = Loc["do not switch"], color = {.7, .7, .7, 1}, onclick = Current_Switch_Func, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]]}
             }
             
             local attributes = Details.sub_atributos
@@ -5252,7 +5252,7 @@ do
 
         local sectionOptions = {
 
-            {type = "label", get = function() return "Switch by Role Out of Combat" end, text_template = subSectionTitleTextTemplate}, --localize-me
+            {type = "label", get = function() return Loc["Switch by Role Out of Combat"] end, text_template = subSectionTitleTextTemplate}, --localize-me
 
             {--DAMAGER role out of combat
                 type = "select",
@@ -5291,7 +5291,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return Loc ["Switch by Role In Combat"] end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Switch by Role In Combat"] end, text_template = subSectionTitleTextTemplate},
 
             {--DAMAGER role in combat
                 type = "select",
@@ -5498,7 +5498,7 @@ do
 
 			local contextLabel = DetailsFramework:CreateLabel(line, typeCombatAlpha[i])
 			contextLabel:SetPoint("left", line, "left", 2, 0)
-            contextLabel.textsize = 13
+            contextLabel.textsize = 10
 
 			local enabledCheckbox = DetailsFramework:NewSwitch(line, nil, nil, nil, 20, 20, nil, nil, false, nil, nil, nil, nil, options_switch_template)
 			enabledCheckbox:SetPoint("left", line, "left", 140, 0)
@@ -5810,8 +5810,8 @@ do --raid tools
                     Details.announce_interrupts.channel = channel
                 end,
                 icontexture = [[Interface\CHATFRAME\ChatFrameExpandArrow]],
-                name = Loc ["Test"],
-                desc = Loc ["Click to test!"], --localize-me
+                name = Loc["Test"],
+                desc = Loc["Click to test!"], --localize-me
             },
 
             {type = "blank"},
@@ -5865,8 +5865,8 @@ do --raid tools
                     Details.announce_cooldowns.channel = channel
                 end,
                 icontexture = [[Interface\CHATFRAME\ChatFrameExpandArrow]],
-                name = Loc ["Test"],
-                desc = Loc ["Click to test!"], --localize-me
+                name = Loc["Test"],
+                desc = Loc["Click to test!"], --localize-me
             },
 
             {--ignored cooldowns
@@ -5937,7 +5937,7 @@ do --raid tools
             },
 
             {type = "breakline"},
-            {type = "label", get = function() return Loc ["Death Recap:"] end, text_template = subSectionTitleTextTemplate}, --localize-me
+            {type = "label", get = function() return Loc["Death Recap:"] end, text_template = subSectionTitleTextTemplate}, --localize-me
 
             {--enable death recap
                 type = "toggle",
@@ -5947,7 +5947,7 @@ do --raid tools
                     afterUpdate()
                 end,
                 name = Loc ["STRING_ENABLED"],
-                desc = Loc ["Modify the Blizzard's Death Recap screen."], --localize-me
+                desc = Loc["Modify the Blizzard's Death Recap screen."], --localize-me
             },
 
             {--relevance time
@@ -5960,8 +5960,8 @@ do --raid tools
                 min = 1,
                 max = 12,
                 step = 1,
-                name = Loc ["Relevance Time"], --localize-me
-                desc = Loc ["Attempt to fill the Death Recap with high damage (discart low hits) in the relevant time before death."], --localize-me
+                name = Loc["Relevance Time"], --localize-me
+                desc = Loc["Attempt to fill the Death Recap with high damage (discart low hits) in the relevant time before death."], --localize-me
             },
 
             {--show life percent
@@ -5971,8 +5971,8 @@ do --raid tools
                     Details.death_recap.show_life_percent = value
                     afterUpdate()
                 end,
-                name = Loc ["Life Percent"], --localize-me
-                desc = Loc ["Show the percent of life the player had when received the hit."], --localize-me
+                name = Loc["Life Percent"], --localize-me
+                desc = Loc["Show the percent of life the player had when received the hit."], --localize-me
             },
 
             {--show segment list
@@ -5982,8 +5982,8 @@ do --raid tools
                     Details.death_recap.show_segments = value
                     afterUpdate()
                 end,
-                name = Loc ["Segment List"], --localize-me
-                desc = Loc ["Show a list of the latest segments in case you want to see recaps from previous fights."], --localize-me
+                name = Loc["Segment List"], --localize-me
+                desc = Loc["Show a list of the latest segments in case you want to see recaps from previous fights."], --localize-me
             },
             
             {type = "blank"},
@@ -6007,8 +6007,8 @@ do --raid tools
                     Details.on_death_menu = value
                     afterUpdate()
                 end,
-                name = Loc ["Show Death Menu"], --localize-me
-                desc = Loc ["Show a panel below the Release / Death Recap panel with some shortcuts for Raid Leaders."], --localize-me
+                name = Loc["Show Death Menu"], --localize-me
+                desc = Loc["Show a panel below the Release / Death Recap panel with some shortcuts for Raid Leaders."], --localize-me
             },
         }
 
@@ -6029,10 +6029,10 @@ do
 
         --streamer plugin - a.k.a. Action Tracker
 			--title anchor
-            DF:NewLabel(sectionFrame, _, "$parentStreamerPluginAnchor", "streamerPluginAnchor", "Action Tracker", "GameFontNormal")
+            DF:NewLabel(sectionFrame, _, "$parentStreamerPluginAnchor", "streamerPluginAnchor", Loc["Action Tracker"], "GameFontNormal")
             sectionFrame.streamerPluginAnchor:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 20)
 
-			local streamerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentStreamerTitleDescText", "StreamerTitleDescTextLabel", "Show the spells you are casting, allowing the viewer to follow your decision making and learn your rotation.", "GameFontNormal", 10, "white")
+			local streamerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentStreamerTitleDescText", "StreamerTitleDescTextLabel", Loc["Show the spells you are casting, allowing the viewer to follow your decision making and learn your rotation."], "GameFontNormal", 14, "white")
 			streamerTitleDesc:SetSize(270, 40)
 			streamerTitleDesc:SetJustifyV ("top")
 			streamerTitleDesc:SetPoint("topleft", sectionFrame.streamerPluginAnchor, "bottomleft", 0, -4)
@@ -6051,10 +6051,10 @@ do
                         StreamerPlugin.__enabled = tPluginSettings.enabled
 
                         if (not tPluginSettings.enabled) then
-                            sectionFrame.enableActionTrackerButtton:SetText("Enable")
+                            sectionFrame.enableActionTrackerButtton:SetText(Loc["Enable"])
                             Details:SendEvent("PLUGIN_DISABLED", StreamerPlugin)
                         else
-                            sectionFrame.enableActionTrackerButtton:SetText("Disable") --enableButton is nil value
+                            sectionFrame.enableActionTrackerButtton:SetText(Loc["Disable"]) --enableButton is nil value
 							Details:SendEvent("PLUGIN_ENABLED", StreamerPlugin)
                         end
                     end
@@ -6067,10 +6067,10 @@ do
                     end
 
                     --create the enable, disable and options button
-                    local enableActionTrackerButtton = DF:CreateButton(sectionFrame, enablePluginFunc, 100, 20, "Enable", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+                    local enableActionTrackerButtton = DF:CreateButton(sectionFrame, enablePluginFunc, 100, 20, Loc["Enable"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
                     enableActionTrackerButtton:SetPoint("topleft", streamerTitleImage, "bottomleft", 0, -7)
 
-                    local actionTrackerOptionsButtton = DF:CreateButton(sectionFrame, openOptions, 100, 20, "Options", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+                    local actionTrackerOptionsButtton = DF:CreateButton(sectionFrame, openOptions, 100, 20, Loc["Options"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
                     actionTrackerOptionsButtton:SetPoint("left", enableActionTrackerButtton, "right", 5, 0)
 
                     sectionFrame.enableActionTrackerButtton = enableActionTrackerButtton
@@ -6080,14 +6080,14 @@ do
 
 					--plugin already enabled
 					if (bIsPluginEnabled) then
-                        enableActionTrackerButtton:SetText("Disable")
+                        enableActionTrackerButtton:SetText(Loc["Disable"])
 					else
-                        enableActionTrackerButtton:SetText("Enable")
+                        enableActionTrackerButtton:SetText(Loc["Enable"])
 					end
 				end
 			else
 				--plugin is disabled at the addon control panel
-				local pluginDisabled = DF:NewLabel(sectionFrame, _, "$parentStreamerDisabledText", "StreamerDisabledTextLabel", "Enable 'Details!: Streamer' addon at the AddOns Control Panel.", "GameFontNormal", 10, "red")
+				local pluginDisabled = DF:NewLabel(sectionFrame, _, "$parentStreamerDisabledText", "StreamerDisabledTextLabel", Loc["Enable 'Details!: Streamer' addon at the AddOns Control Panel."], "GameFontNormal", 14, "red")
 				pluginDisabled:SetSize(270, 40)
 				pluginDisabled:SetPoint("topleft", streamerTitleImage, "bottomleft", 0, -2)
 			end
@@ -6098,31 +6098,31 @@ do
     
                 if (pluginObject) then
                     if (pluginStable.enabled) then
-                        sectionFrame.enableActionTrackerButtton:SetText("Disable")
+                        sectionFrame.enableActionTrackerButtton:SetText(Loc["Disable"])
                     else
-                        sectionFrame.enableActionTrackerButtton:SetText("Enable")
+                        sectionFrame.enableActionTrackerButtton:SetText(Loc["Enable"])
                     end
                 end
 
                 if (Details.event_tracker.enabled) then
-                    sectionFrame.enableEventTrackerButtton:SetText("Disable")
+                    sectionFrame.enableEventTrackerButtton:SetText(Loc["Disable"])
                 else
-                    sectionFrame.enableEventTrackerButtton:SetText("Enable")
+                    sectionFrame.enableEventTrackerButtton:SetText(Loc["Enable"])
                 end
 
                 if (Details.realtime_dps_meter.enabled) then
-                    sectionFrame.enableArenaDPSTrackerButtton:SetText("Disable")
+                    sectionFrame.enableArenaDPSTrackerButtton:SetText(Loc["Disable"])
                 else
-                    sectionFrame.enableArenaDPSTrackerButtton:SetText("Enable")
+                    sectionFrame.enableArenaDPSTrackerButtton:SetText(Loc["Enable"])
                 end
             end)
 
 		
 		--event tracker
-            DF:NewLabel(sectionFrame, _, "$parentEventTrackerAnchor", "eventTrackerAnchor", "Event Tracker", "GameFontNormal")
+            DF:NewLabel(sectionFrame, _, "$parentEventTrackerAnchor", "eventTrackerAnchor", Loc["Event Tracker"], "GameFontNormal")
             sectionFrame.eventTrackerAnchor:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 180)
 
-			local eventTrackerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentEventTrackerTitleDescText", "EventTrackerTitleDescTextLabel", "Show what's happening near you so the viewer can follow what's going on. Show cooldowns, CC, spell interruption. Useful on any group content.", "GameFontNormal", 13, "white")
+			local eventTrackerTitleDesc = DF:NewLabel(sectionFrame, _, "$parentEventTrackerTitleDescText", "EventTrackerTitleDescTextLabel", Loc["Show what's happening near you so the viewer can follow what's going on. Show cooldowns, CC, spell interruption. Useful on any group content."], "GameFontNormal", 14, "white")
 			eventTrackerTitleDesc:SetJustifyV ("top")
 			eventTrackerTitleDesc:SetSize(270, 40)
 			eventTrackerTitleDesc:SetPoint("topleft", sectionFrame.eventTrackerAnchor, "bottomleft", 0, -4)
@@ -6136,9 +6136,9 @@ do
                 afterUpdate()
 
                 if (Details.event_tracker.enabled) then
-                    sectionFrame.enableEventTrackerButtton:SetText("Disable")
+                    sectionFrame.enableEventTrackerButtton:SetText(Loc["Disable"])
                 else
-                    sectionFrame.enableEventTrackerButtton:SetText("Enable")
+                    sectionFrame.enableEventTrackerButtton:SetText(Loc["Enable"])
                 end
             end
 
@@ -6150,10 +6150,10 @@ do
             end
 
             --create the enable, disable and options button
-            local enableEventTrackerButtton = DF:CreateButton(sectionFrame, enableEventTracker, 100, 20, "Enable", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+            local enableEventTrackerButtton = DF:CreateButton(sectionFrame, enableEventTracker, 100, 20, Loc["Enable"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
             enableEventTrackerButtton:SetPoint("topleft", eventTrackerTitleImage, "bottomleft", 0, -7)
 
-            local actionTrackerOptionsButtton = DF:CreateButton(sectionFrame, openEventTrackerOptions, 100, 20, "Options", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+            local actionTrackerOptionsButtton = DF:CreateButton(sectionFrame, openEventTrackerOptions, 100, 20, Loc["Options"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
             actionTrackerOptionsButtton:SetPoint("left", enableEventTrackerButtton, "right", 5, 0)
 
             sectionFrame.enableEventTrackerButtton = enableEventTrackerButtton
@@ -6161,10 +6161,10 @@ do
 
 
 		--arena kamehameha bar
-            DF:NewLabel(sectionFrame, _, "$parentCurrentDPSAnchor", "currentDPSAnchor", "Arena DPS Bar", "GameFontNormal")
+            DF:NewLabel(sectionFrame, _, "$parentCurrentDPSAnchor", "currentDPSAnchor", Loc["Arena DPS Bar"], "GameFontNormal")
             sectionFrame.currentDPSAnchor:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 340)
 
-			local currentDPSTitleDesc = DF:NewLabel(sectionFrame, _, "$parentCurrentDPSTitleDescText", "CurrentDPSTitleDescTextLabel", "Show a bar which grows to the side of the team doing most damage in the last 5 seconds.", "GameFontNormal", 13, "white")
+			local currentDPSTitleDesc = DF:NewLabel(sectionFrame, _, "$parentCurrentDPSTitleDescText", "CurrentDPSTitleDescTextLabel", Loc["Show a bar which grows to the side of the team doing most damage in the last 5 seconds."], "GameFontNormal", 14, "white")
 			currentDPSTitleDesc:SetJustifyV ("top")
 			currentDPSTitleDesc:SetSize(270, 40)
 			currentDPSTitleDesc:SetPoint("topleft", sectionFrame.currentDPSAnchor, "bottomleft", 0, -4)
@@ -6178,9 +6178,9 @@ do
                 afterUpdate()
 
                 if (Details.realtime_dps_meter.enabled) then
-                    sectionFrame.enableArenaDPSTrackerButtton:SetText("Disable")
+                    sectionFrame.enableArenaDPSTrackerButtton:SetText(Loc["Disable"])
                 else
-                    sectionFrame.enableArenaDPSTrackerButtton:SetText("Enable")
+                    sectionFrame.enableArenaDPSTrackerButtton:SetText(Loc["Enable"])
                 end
             end
 
@@ -6192,10 +6192,10 @@ do
             end
 
             --create the enable, disable and options button
-            local enableArenaDPSTrackerButtton = DF:CreateButton(sectionFrame, enableArenaDPS, 100, 20, "Enable", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+            local enableArenaDPSTrackerButtton = DF:CreateButton(sectionFrame, enableArenaDPS, 100, 20, Loc["Enable"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
             enableArenaDPSTrackerButtton:SetPoint("topleft", currentDPSTitleImage, "bottomleft", 0, -7)
 
-            local arenaDPSTrackerOptionsButtton = DF:CreateButton(sectionFrame, openArenaDPSOptions, 100, 20, "Options", false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
+            local arenaDPSTrackerOptionsButtton = DF:CreateButton(sectionFrame, openArenaDPSOptions, 100, 20, Loc["Options"], false, false, "", false, false, false, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
             arenaDPSTrackerOptionsButtton:SetPoint("left", enableArenaDPSTrackerButtton, "right", 5, 0)
 
             sectionFrame.enableArenaDPSTrackerButtton = enableArenaDPSTrackerButtton
@@ -6230,8 +6230,8 @@ do
                     Details.streamer_config.no_alerts = value
                     afterUpdate()
                 end,
-                name = Loc ["Suppress Alerts"], --localize-me
-                desc = Loc ["Suppress Alerts"],
+                name = Loc["Suppress Alerts"], --localize-me
+                desc = Loc["Suppress Alerts"],
             },
 
             {--60hz updates
@@ -6242,8 +6242,8 @@ do
                     Details:RefreshUpdater()
                     afterUpdate()
                 end,
-                name = Loc ["60 Updates per Second"], --localize-me
-                desc = Loc ["60 Updates per Second"],
+                name = Loc["60 Updates per Second"], --localize-me
+                desc = Loc["60 Updates per Second"],
             },
 
             {--quick player info
@@ -6253,8 +6253,8 @@ do
                     Details.streamer_config.quick_detection = value
                     afterUpdate()
                 end,
-                name = Loc ["Quick Player Info Detection"], --localize-me
-                desc = Loc ["Quick Player Info Detection"],
+                name = Loc["Quick Player Info Detection"], --localize-me
+                desc = Loc["Quick Player Info Detection"],
             },
 
             {--disable M+ shenanigans
@@ -6264,8 +6264,8 @@ do
                     Details.streamer_config.disable_mythic_dungeon = value
                     afterUpdate()
                 end,
-                name = Loc ["Disable Mythic+ Stuff"], --localize-me
-                desc = Loc ["Disable Mythic+ Stuff"],
+                name = Loc["Disable Mythic+ Stuff"], --localize-me
+                desc = Loc["Disable Mythic+ Stuff"],
             },
 
             {--disable M+ charts
@@ -6275,8 +6275,8 @@ do
                     Details.mythic_plus.show_damage_graphic = value
                     afterUpdate()
                 end,
-                name = Loc ["Disable Mythic+ Chart"], --localize-me
-                desc = Loc ["Disable Mythic+ Chart"],
+                name = Loc["Disable Mythic+ Chart"], --localize-me
+                desc = Loc["Disable Mythic+ Chart"],
             },
 
             {--clear cache regurlary
@@ -6286,8 +6286,8 @@ do
                     Details.mythic_plus.show_damage_graphic = value
                     afterUpdate()
                 end,
-                name = Loc ["Clear Cache Regularly"], --localize-me
-                desc = Loc ["Clear Cache Regularly"],
+                name = Loc["Clear Cache Regularly"], --localize-me
+                desc = Loc["Clear Cache Regularly"],
             },
 
         }
@@ -6401,7 +6401,8 @@ do
 					return Details:Msg(Loc ["STRING_OPTIONS_SPELL_IDERROR"])
 				end
 				
-				Details:UserCustomSpellAdd (id, name, icon)
+                local bAddedByUser = true
+				Details:UserCustomSpellAdd (id, name, icon, bAddedByUser)
 				
 				panel:Refresh()
 				
@@ -6448,7 +6449,7 @@ do
 		end
 
 		sectionFrame.ConsolidadeSpellsSwitch:SetPoint(startX, startY - 20)
-        Details:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 14)
+        Details:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 12)
         
         local sectionOptions = {
 
@@ -6469,7 +6470,7 @@ do
 
 	--title
     local titulo_datacharts = DF:NewLabel(sectionFrame, _, "$parentTituloDataChartsText", "DataChartsLabel", Loc ["STRING_OPTIONS_DATACHARTTITLE"], "GameFontNormal", 16)
-    local titulo_datacharts_desc = DF:NewLabel(sectionFrame, _, "$parentDataChartsText2", "DataCharts2Label", Loc ["STRING_OPTIONS_DATACHARTTITLE_DESC"], "GameFontNormal", 13, "white")
+    local titulo_datacharts_desc = DF:NewLabel(sectionFrame, _, "$parentDataChartsText2", "DataCharts2Label", Loc ["STRING_OPTIONS_DATACHARTTITLE_DESC"], "GameFontNormal", 10, "white")
     titulo_datacharts_desc.width = 350
 
 --warning
@@ -6590,7 +6591,7 @@ do
                 big_code_editor2.editbox:HighlightText()
                 big_code_editor2.editbox:SetFocus(true)
             else
-                Details:Msg("error exporting the time capture.") --localize-me
+                Details:Msg(Loc["error exporting the time capture."]) --localize-me
             end
         end
     end
@@ -6728,7 +6729,7 @@ do
     
         local importframe = DF:NewSpecialLuaEditorEntry(sectionFrame, 683, 422, "importEditor", "$parentImportEditor", true)
         local font, size, flag = importframe.editbox:GetFont()
-        importframe.editbox:SetFont(font, 13, flag)
+        importframe.editbox:SetFont(font, 9, flag)
         importframe:SetPoint("topleft", sectionFrame, "topleft", startX, startY - 70)
         importframe:SetFrameLevel(sectionFrame:GetFrameLevel()+6)
         importframe:SetBackdrop({bgFile = [[Interface\AddOns\Details\images\background]], edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1,tile = 1, tileSize = 16})
@@ -6890,14 +6891,40 @@ do
         local sectionOptions = {
             {type = "label", get = function() return Loc["STRING_OPTIONS_GENERAL_ANCHOR"] end, text_template = subSectionTitleTextTemplate},
 
+            {
+                type = "toggle",
+                get = function() return Details.mythic_plus.mythicrun_time_type == 1 end,
+                set = function(self, fixedparam, value)
+                    Details.mythic_plus.mythicrun_time_type = value and 1
+                    sectionFrame:GetWidgetById("mythic_time_2"):SetValue(not value)
+                end,
+                name = Loc["Use Total Combat Time"],
+                desc = Loc["The overall segment for the Mythic+ run will use 'totalDamage / totalCombatTime' to calculate DPS."],
+                id = "mythic_time_1",
+            },
+
+            {
+                type = "toggle",
+                get = function() return Details.mythic_plus.mythicrun_time_type == 2 end,
+                set = function(self, fixedparam, value)
+                    Details.mythic_plus.mythicrun_time_type = value and 2
+                    sectionFrame:GetWidgetById("mythic_time_1"):SetValue(not value)
+                end,
+                name = Loc["Use Run Time"],
+                desc = Loc["The overall segment for the Mythic+ run will use 'totalDamage / runTime' to calculate DPS."],
+                id = "mythic_time_2",
+            },
+
+            {type = "blank"},
+
             {--dedicated segment for bosses
                 type = "toggle",
                 get = function() return Details.mythic_plus.boss_dedicated_segment end,
                 set = function(self, fixedparam, value)
                     Details.mythic_plus.boss_dedicated_segment = value
                 end,
-                name = "首領開戰的新戰鬥",
-                desc = Loc ["If a boss is pulled while in combat, Details! close the combat and start a new one for the boss."],
+                name = Loc["New Combat on Boss Pull"],
+                desc = Loc["If a boss is pulled while in combat, Details! close the combat and start a new one for the boss."],
             },
 
             {--make overall when done
@@ -6906,18 +6933,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.mythic_plus.make_overall_when_done = value
                 end,
-                name = Loc ["Make Overall Segment"],
-                desc = Loc ["When the run is done, make an overall segment."],
-            },
-
-            {--overall only with bosses
-                type = "toggle",
-                get = function() return Details.mythic_plus.make_overall_boss_only end,
-                set = function(self, fixedparam, value)
-                    Details.mythic_plus.make_overall_boss_only = value
-                end,
-                name = "整體只含首領分段",
-                desc = "只加入首領分段到整體數據。",
+                name = Loc["Make Overall Segment"],
+                desc = Loc["When the run is done, make an overall segment."],
             },
 
             {--merge trash
@@ -6926,8 +6943,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.mythic_plus.merge_boss_trash = value
                 end,
-                name = Loc ["Merge Trash"],
-                desc = Loc ["Merge Trash"],
+                name = Loc["Merge Trash"],
+                desc = Loc["Merge Trash"],
             },
 
             {type = "blank"},
@@ -6938,8 +6955,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.mythic_plus.show_damage_graphic = value
                 end,
-                name = Loc ["Show Damage Charts"],
-                desc = Loc ["Show Damage Charts"],
+                name = Loc["Show Damage Charts"],
+                desc = Loc["Show Damage Charts"],
             },
 
 
@@ -6973,24 +6990,24 @@ do
             Details:SetDeathLogLimit(limitAmount)
         end
         local DeathLogLimitOptions = {
-            {value = 16, label = "16 Records", onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
-            {value = 32, label = "32 Records", onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
-            {value = 45, label = "45 Records", onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
+            {value = 16, label = Loc["16 Records"], onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
+            {value = 32, label = Loc["32 Records"], onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
+            {value = 45, label = Loc["45 Records"], onclick = onSelectDeathLogLimit, icon = [[Interface\WorldStateFrame\ColumnIcon-GraveyardDefend0]]},
         }
         local buildDeathLogLimitMenu = function()
             return DeathLogLimitOptions
         end
 
         local sectionOptions = {
-            {type = "label", get = function() return "死亡紀錄選項:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Death Log Options:"] end, text_template = subSectionTitleTextTemplate},
             {--reverse death logs
                 type = "toggle",
                 get = function() return Details.combat_log.inverse_deathlog_raid end,
                 set = function(self, fixedparam, value)
                     Details.combat_log.inverse_deathlog_raid = value
                 end,
-                name = "反轉死亡紀錄 (團隊)",
-                desc = "反轉死亡紀錄 (團隊)",
+                name = Loc["Invert Death Log (Raid)"],
+                desc = Loc["Invert Death Log (Raid)"],
             },
 
             {--reverse death logs
@@ -6999,8 +7016,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.combat_log.inverse_deathlog_mplus = value
                 end,
-                name = "反轉死亡紀錄 (M+)",
-                desc = "反轉死亡紀錄 (M+)",
+                name = Loc["Invert Death Log (M+)"],
+                desc = Loc["Invert Death Log (M+)"],
             },
 
             {--reverse death logs
@@ -7009,8 +7026,8 @@ do
                 set = function(self, fixedparam, value)
                     Details.combat_log.inverse_deathlog_overalldata = value
                 end,
-                name = "反轉死亡紀錄 (整體數據)",
-                desc = "反轉死亡紀錄 (整體數據)",
+                name = Loc["Invert Death Log (Overall Data)"],
+                desc = Loc["Invert Death Log (Overall Data)"],
             },
 
             {--pvp frags
@@ -7050,7 +7067,7 @@ do
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "Damage Options:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Damage Options:"] end, text_template = subSectionTitleTextTemplate},
             {--damage taken everything
                 type = "toggle",
                 get = function() return Details.damage_taken_everything end,
@@ -7071,13 +7088,13 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = "合併原初之石 10.0.7",
-                desc = "合併原初之石 10.0.7",
+                name = Loc["Merge Primordial Stones 10.0.7"],
+                desc = Loc["Merge Primordial Stones 10.0.7"],
                 boxfirst = true,
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "職業選項:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Class Options:"] end, text_template = subSectionTitleTextTemplate},
 
             {--hunter track pet frenzy
                 type = "toggle",
@@ -7087,8 +7104,8 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = DF:AddClassIconToText("獵人追蹤寵物狂熱", false, "HUNTER"),
-                desc = "獵人追蹤寵物狂熱",
+                name = DF:AddClassIconToText(Loc["Hunter Track Pet Frenzy"], false, "HUNTER"),
+                desc = Loc["Hunter Track Pet Frenzy"],
                 boxfirst = true,
             },
 
@@ -7100,8 +7117,8 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = DF:AddClassIconToText("預測強化傷害", false, "EVOKER"),
-                desc = "計算強化喚能師增益其他玩家的效果",
+                name = DF:AddClassIconToText(Loc["Predict Augmentation Damage"], false, "EVOKER"),
+                desc = Loc["Calculate how much the Augmentation Evoker are buffing other players"],
                 boxfirst = true,
             },
 
@@ -7113,13 +7130,13 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = DF:AddClassIconToText("在強化喚能師使用實時每秒傷害", false, "EVOKER"),
-                desc = "Use Real Time Dps for Augmentation Evoker",
+                name = DF:AddClassIconToText(Loc["Use Real Time Dps for Aug. Evoker"], false, "EVOKER"),
+                desc = Loc["Use Real Time Dps for Augmentation Evoker"],
                 boxfirst = true,
             },
 
             {type = "blank"},
-            {type = "label", get = function() return "解析選項:" end, text_template = subSectionTitleTextTemplate},
+            {type = "label", get = function() return Loc["Parser Options:"] end, text_template = subSectionTitleTextTemplate},
 
             {--overheal shields
                 type = "toggle",
@@ -7130,8 +7147,8 @@ do
                     Details:ClearParserCache()
                     Details:UpdateParserGears()
                 end,
-                name = "計算護盾浪費的量",
-                desc = "This is the 'overheal' of shields, it is calculated when a shield get replaced or removed.",
+                name = Loc["Calculate Shield Wasted Amount"],
+                desc = Loc["This is the 'overheal' of shields, it is calculated when a shield get replaced or removed."],
                 boxfirst = true,
             },
 
@@ -7144,8 +7161,8 @@ do
                     Details:ClearParserCache()
                     Details:UpdateParserGears()
                 end,
-                name = "計算能量浪費的量",
-                desc = "Compute the energy wasted by players when they are at maximum energy.",
+                name = Loc["Calculate Energy Wasted Amount"],
+                desc = Loc["Compute the energy wasted by players when they are at maximum energy."],
                 boxfirst = true,
             },
 
@@ -7157,8 +7174,8 @@ do
                     afterUpdate()
                     Details:ClearParserCache()
                 end,
-                name = "合併致命一擊治療",
-                desc = "Merges spells like Atonement and Awakened Faeline with their critical damage component.",
+                name = Loc["Merge Critical Heals"],
+                desc = Loc["Merges spells like Atonement and Awakened Faeline with their critical damage component."],
                 boxfirst = true,
             },
         }

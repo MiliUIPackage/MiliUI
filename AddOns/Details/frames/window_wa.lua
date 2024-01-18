@@ -137,7 +137,7 @@ local text_dispell_prototype = {
 
 local text_interrupt_prototype = {
     ["outline"] = true,
-    ["fontSize"] = 12,
+    ["fontSize"] = 16,
     ["color"] = {1, 1, 1, 1},
     ["displayText"] = "%c\n",
     ["customText"] = "function()\n    return aura_env.text\nend \n\n",
@@ -924,7 +924,7 @@ local text_dbm_timerbar_prototype = {
 
 local text_prototype = {
     ["outline"] = true,
-    ["fontSize"] = 12,
+    ["fontSize"] = 16,
     ["color"] = {1, 1, 1, 1},
     ["displayText"] = "",
     ["yOffset"] = 0,
@@ -1231,7 +1231,7 @@ local icon_prototype = {
                 ["text_wordWrap"] = "WordWrap",
                 ["text_visible"] = true,
                 ["text_anchorPoint"] = "INNER_BOTTOMRIGHT",
-                ["text_fontSize"] = 12,
+                ["text_fontSize"] = 16,
                 ["anchorXOffset"] = 0,
                 ["text_fontType"] = "OUTLINE",
             }, -- [1]
@@ -2073,7 +2073,7 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
             return aura_type_table
         end
         local aura_type = fw:CreateDropDown (f, aura_type_options, 1, 150, 20, "AuraTypeDropdown", "$parentAuraTypeDropdown")
-        local aura_type_label = fw:CreateLabel(f, "Aura Type: ", nil, nil, "GameFontNormal")
+        local aura_type_label = fw:CreateLabel(f, L["Aura Type: "], nil, nil, "GameFontNormal")
         aura_type:SetPoint("left", aura_type_label, "right", 2, 0)
         aura_type:Hide()
         
@@ -2433,7 +2433,7 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
         useglow:SetAsCheckBox()			
         
         useglow:SetPoint("left", useglow_label, "right", 2, 0)
-        useglow.tooltip = "請勿在WeakAuras選項面板上重命名光環否則光暈效果可能不起作用。"
+        useglow.tooltip = L["Do not rename the aura on WeakAuras options panel or the glow effect may not work."]
         
         useglow.glow_test = CreateFrame("frame", "DetailsAuraTextGlowTest", useglow.widget, "ActionBarButtonSpellActivationAlert")
         useglow.glow_test:SetPoint("topleft", useglow.widget, "topleft", -20, 2)
@@ -2449,7 +2449,7 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
         
         --size
         local icon_size_slider = fw:NewSlider (f, f, "$parentIconSizeSlider", "IconSizeSlider", 150, 20, 8, 256, 1, 64)
-        local icon_size_label = fw:CreateLabel(f, "Size: ", nil, nil, "GameFontNormal")
+        local icon_size_label = fw:CreateLabel(f, L["Size: "], nil, nil, "GameFontNormal")
         icon_size_slider:SetTemplate(slider_template)
         icon_size_slider:SetPoint("left", icon_size_label, "right", 2, 0)
         icon_size_slider.tooltip = L["Icon size, width and height."]
@@ -2543,7 +2543,7 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
         f.weakauras_newgroup = weakauras_newgroup_textentry
         weakauras_newgroup_textentry.tooltip = L["Enter the name of the new group"]
         
-        local weakauras_newgroup_button = fw:CreateButton(f, create_wa_group, 106, 20, "Create Group")
+        local weakauras_newgroup_button = fw:CreateButton(f, create_wa_group, 106, 20, L["Create Group"])
         weakauras_newgroup_button:SetTemplate(slider_template)
         weakauras_newgroup_button:SetTemplate(_detalhes.gump:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
         weakauras_newgroup_button:SetWidth(100)
@@ -2591,7 +2591,7 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
         create_button:SetTemplate(_detalhes.gump:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
         create_button:SetWidth(160)
         
-        local cancel_button = fw:CreateButton(f, function() name_textentry:ClearFocus(); f:Hide() end, 106, 20, "Cancel")
+        local cancel_button = fw:CreateButton(f, function() name_textentry:ClearFocus(); f:Hide() end, 106, 20, L["Cancel"])
         cancel_button:SetTemplate(_detalhes.gump:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
         cancel_button:SetWidth(160)
         
@@ -2705,12 +2705,12 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
                 f.IconButton:Disable()
                 f.UseGlow:Disable()
                 icon_size_label:SetText(L["Text Size: "])
-                f.IconSizeSlider:SetValue(14)
+                f.IconSizeSlider:SetValue(11)
                 if (trigger == 41) then
                     f.AuraText:SetText(L["=Not Interrupted!="])
                     aura_text_label.text = L["Not Interrupted: "]
                 elseif (trigger == 42) then
-                    f.AuraText:SetText(DetailsAuraPanel.name.text:gsub ("%(d!%)", "") .. "Dispells")
+                    f.AuraText:SetText(DetailsAuraPanel.name.text:gsub("%(d!%)", "") .. L["Dispells"])
                     aura_text_label.text = L["Title Text: "]
                 end
             end

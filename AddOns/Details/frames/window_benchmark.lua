@@ -5,8 +5,8 @@ end
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
-local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local libwindow = LibStub("LibWindow-1.1")
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 --this function isn't in use
     function Details.OpenDpsBenchmark()
@@ -60,9 +60,9 @@ local libwindow = LibStub("LibWindow-1.1")
             f.Title = f.TitleBar:CreateFontString("$parentTitle", "overlay", "GameFontNormal")
             f.Title:SetPoint("center", f.TitleBar, "center")
             f.Title:SetTextColor(.8, .8, .8, 1)
-            f.Title:SetText(Loc ["Details! Benchmark"])
+            f.Title:SetText(Loc["Details! Benchmark"])
             
-            DF:InstallTemplate("font", "DETAILS_BENCHMARK_NORMAL", {color = "white", size = 13, font = "Friz Quadrata TT"})
+            DF:InstallTemplate("font", "DETAILS_BENCHMARK_NORMAL", {color = "white", size = 10, font = "Friz Quadrata TT"})
             
             function f.CreateCombatObject()
                 local t = {}

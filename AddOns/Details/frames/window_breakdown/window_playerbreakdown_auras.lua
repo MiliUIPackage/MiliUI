@@ -1,5 +1,7 @@
 
 local Details = Details
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale ( "Details" )
+local Details = Details
 local GameTooltip = GameTooltip
 local detailsFramework = DetailsFramework
 local unpack = unpack
@@ -39,10 +41,12 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
     }
 
     local onEnterLine = function(self)
-        GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")
-        Details:GameTooltipSetSpellByID(self.spellID)
-        GameTooltip:Show()
-        self:SetBackdropColor(1, 1, 1, .2)
+        if (self.spellID) then
+            GameTooltip:SetOwner(self, "ANCHOR_TOPRIGHT")
+            Details:GameTooltipSetSpellByID(self.spellID)
+            GameTooltip:Show()
+            self:SetBackdropColor(1, 1, 1, .2)
+        end
     end
 
     local onLeaveLine = function(self)
@@ -172,18 +176,18 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
         return newTitleDescFrame
     end
 
-    local buffLabel = detailsFramework:CreateLabel(frame, "增益名稱")
+    local buffLabel = detailsFramework:CreateLabel(frame, "Buff Name")
     buffLabel:SetPoint(headerOffsetsBuffs[1], -10)
-    local uptimeLabel = detailsFramework:CreateLabel(frame, "覆蓋時間")
+    local uptimeLabel = detailsFramework:CreateLabel(frame, "Uptime")
     uptimeLabel:SetPoint(headerOffsetsBuffs[2], -10)
 
     local appliedLabel = detailsFramework:CreateLabel(frame, "A")
     appliedLabel:SetPoint(headerOffsetsBuffs[3], -10)
-    createTitleDesc_Frame(appliedLabel.widget, "應用")
+    createTitleDesc_Frame(appliedLabel.widget, "applications")
 
     local refreshedLabel = detailsFramework:CreateLabel(frame, "R")
     refreshedLabel:SetPoint(headerOffsetsBuffs[4], -10)
-    createTitleDesc_Frame(refreshedLabel.widget, "刷新")
+    createTitleDesc_Frame(refreshedLabel.widget, "refreshes")
 
     local buffScroll = detailsFramework:CreateScrollBox(frame, "$parentBuffUptimeScroll", scrollRefreshBuffs, {}, scroll_width, scrollHeight, scroll_line_amount, scroll_line_height)
     buffScroll:SetPoint("topleft", frame, "topleft", 5, -30)
@@ -194,19 +198,19 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
     detailsFramework:ReskinSlider(buffScroll)
     tab.BuffScroll = buffScroll
 
-    local debuffLabel = detailsFramework:CreateLabel(frame, "減益名稱")
+    local debuffLabel = detailsFramework:CreateLabel(frame, "Debuff Name")
     debuffLabel:SetPoint(headerOffsetsDebuffs[1], -10)
 
-    local uptimeLabel2 = detailsFramework:CreateLabel(frame, "覆蓋時間")
+    local uptimeLabel2 = detailsFramework:CreateLabel(frame, "Uptime")
     uptimeLabel2:SetPoint(headerOffsetsDebuffs[2], -10)
 
     local appliedLabel2 = detailsFramework:CreateLabel(frame, "A")
     appliedLabel2:SetPoint(headerOffsetsDebuffs[3], -10)
-    createTitleDesc_Frame(appliedLabel2.widget, "應用")
+    createTitleDesc_Frame(appliedLabel2.widget, "applications")
 
     local refreshedLabel2 = detailsFramework:CreateLabel(frame, "R")
     refreshedLabel2:SetPoint(headerOffsetsDebuffs[4], -10)
-    createTitleDesc_Frame(refreshedLabel2.widget, "刷新")
+    createTitleDesc_Frame(refreshedLabel2.widget, "refreshes")
 
     local debuffScroll = detailsFramework:CreateScrollBox(frame, "$parentDebuffUptimeScroll", scrollRefreshBuffs, {}, scroll_width, scrollHeight, scroll_line_amount, scroll_line_height)
     debuffScroll:SetPoint("topleft", frame, "topleft", debuffScrollStartX, -30)

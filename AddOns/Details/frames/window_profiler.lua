@@ -42,7 +42,7 @@ function Details:OpenProfiler()
     string_profiler:SetPoint("topleft", f, "topleft", 10, -130)
     string_profiler:SetText(L["STRING_OPTIONS_PROFILE_SELECTEXISTING"])
     string_profiler:SetWidth(230)
-    Details:SetFontSize(string_profiler, 14)
+    Details:SetFontSize(string_profiler, 11)
     Details:SetFontColor(string_profiler, "white")
     
     --get the new profile name
@@ -80,7 +80,7 @@ function Details:OpenProfiler()
         end
         f:Hide()
     end
-    local confirm = Details.gump:NewButton(f, f, "DetailsProfilerProfileConfirmButton", "button", 150, 20, confirm_func, nil, nil, nil, "Okey!")
+    local confirm = Details.gump:NewButton(f, f, "DetailsProfilerProfileConfirmButton", "button", 150, 20, confirm_func, nil, nil, nil, L["Okey!"])
     confirm:SetPoint(50, -250)
     confirm:InstallCustomTexture()
 end

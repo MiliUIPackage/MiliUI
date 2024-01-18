@@ -95,7 +95,7 @@
 					DetailsFramework:SetEnvironment(func)
 					_detalhes.custom_function_cache [instanceObject.customName] = func
 				else
-					_detalhes:Msg("|cFFFF9900error compiling code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
+					_detalhes:Msg(Loc["|cFFFF9900error compiling code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
 				end
 
 				if (customObject.tooltip) then
@@ -104,7 +104,7 @@
 						DetailsFramework:SetEnvironment(tooltip_script)
 						_detalhes.custom_function_cache [instanceObject.customName .. "Tooltip"] = tooltip_script
 					else
-						_detalhes:Msg("|cFFFF9900error compiling tooltip code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
+						_detalhes:Msg(Loc["|cFFFF9900error compiling tooltip code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "tooltip"
 				end
@@ -115,7 +115,7 @@
 						DetailsFramework:SetEnvironment(total_script)
 						_detalhes.custom_function_cache [instanceObject.customName .. "Total"] = total_script
 					else
-						_detalhes:Msg("|cFFFF9900error compiling total code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
+						_detalhes:Msg(Loc["|cFFFF9900error compiling total code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "total"
 				end
@@ -126,7 +126,7 @@
 						DetailsFramework:SetEnvironment(percent_script)
 						_detalhes.custom_function_cache [instanceObject.customName .. "Percent"] = percent_script
 					else
-						_detalhes:Msg("|cFFFF9900error compiling percent code for custom display " .. (instanceObject.customName or "") ..  " |r:", errortext)
+						_detalhes:Msg(Loc["|cFFFF9900error compiling percent code for custom display "] .. (instanceObject.customName or "") ..  " |r:", errortext)
 					end
 					scriptTypeName = "percent"
 				end
@@ -206,7 +206,7 @@
 					if (percent_script) then
 						okey, percent = pcall (percent_script, floor(actor.value), top, total, combatObject, instanceObject, actor)
 						if (not okey) then
-							_detalhes:Msg("|cFFFF9900percent script error|r:", percent)
+							_detalhes:Msg(Loc["|cFFFF9900percent script error|r:"], percent)
 							return _detalhes:EndRefresh (instanceObject, 0, combatObject, combatObject [1])
 						end
 					else
@@ -216,7 +216,7 @@
 					if (total_script) then
 						local okey, value = pcall (total_script, floor(actor.value), top, total, combatObject, instanceObject, actor)
 						if (not okey) then
-							_detalhes:Msg("|cFFFF9900total script error|r:", value)
+							_detalhes:Msg(Loc["|cFFFF9900total script error|r:"], value)
 							return _detalhes:EndRefresh (instanceObject, 0, combatObject, combatObject [1])
 						end
 
@@ -363,19 +363,19 @@
 
 	function classCustom:Refresh (instance, instance_container, combat, force, total, top, custom_object)
 		local whichRowLine = 1
-		local barras_container = instance.barras
-		local percentage_type = instance.row_info.percent_type
+		local barContainer = instance.barras
+		local percentageType = instance.row_info.percent_type
 
-		local combat_time = combat:GetCombatTime()
+		local combatElapsedTime = combat:GetCombatTime()
 		UsingCustomLeftText = instance.row_info.textL_enable_custom_text
 		UsingCustomRightText = instance.row_info.textR_enable_custom_text
 
 		--total bar
-		local use_total_bar = false
+		local bUseTotalbar = false
 		if (instance.total_bar.enabled) then
-			use_total_bar = true
+			bUseTotalbar = true
 			if (instance.total_bar.only_in_group and (not IsInGroup() and not IsInRaid())) then
-				use_total_bar = false
+				bUseTotalbar = false
 			end
 		end
 
@@ -388,7 +388,7 @@
 
 		if (instance.bars_sort_direction == 1) then --top to bottom
 
-			if (use_total_bar and instance.barraS[1] == 1) then
+			if (bUseTotalbar and instance.barraS[1] == 1) then
 
 				whichRowLine = 2
 				local iter_last = instance.barraS[2]
@@ -396,10 +396,10 @@
 					iter_last = iter_last - 1
 				end
 
-				local row1 = barras_container [1]
+				local row1 = barContainer [1]
 				row1.minha_tabela = nil
 				row1.lineText1:SetText(Loc ["STRING_TOTAL"])
-				row1.lineText4:SetText(_detalhes:ToK2 (total) .. " (" .. _detalhes:ToK (total / combat_time) .. ")")
+				row1.lineText4:SetText(_detalhes:ToK2 (total) .. " (" .. _detalhes:ToK (total / combatElapsedTime) .. ")")
 
 				row1:SetValue(100)
 				local r, g, b = unpack(instance.total_bar.color)
@@ -411,20 +411,20 @@
 				Details.FadeHandler.Fader(row1, "out")
 
 				for i = instance.barraS[1], iter_last, 1 do
-					instance_container._ActorTable[i]:UpdateBar (barras_container, whichRowLine, percentage_type, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
+					instance_container._ActorTable[i]:UpdateBar (barContainer, whichRowLine, percentageType, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
 					whichRowLine = whichRowLine+1
 				end
 
 			else
 				for i = instance.barraS[1], instance.barraS[2], 1 do
-					instance_container._ActorTable[i]:UpdateBar (barras_container, whichRowLine, percentage_type, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
+					instance_container._ActorTable[i]:UpdateBar (barContainer, whichRowLine, percentageType, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
 					whichRowLine = whichRowLine+1
 				end
 			end
 
 		elseif (instance.bars_sort_direction == 2) then --bottom to top
 
-			if (use_total_bar and instance.barraS[1] == 1) then
+			if (bUseTotalbar and instance.barraS[1] == 1) then
 
 				whichRowLine = 2
 				local iter_last = instance.barraS[2]
@@ -432,10 +432,10 @@
 					iter_last = iter_last - 1
 				end
 
-				local row1 = barras_container [1]
+				local row1 = barContainer [1]
 				row1.minha_tabela = nil
 				row1.lineText1:SetText(Loc ["STRING_TOTAL"])
-				row1.lineText4:SetText(_detalhes:ToK2 (total) .. " (" .. _detalhes:ToK (total / combat_time) .. ")")
+				row1.lineText4:SetText(_detalhes:ToK2 (total) .. " (" .. _detalhes:ToK (total / combatElapsedTime) .. ")")
 
 				row1:SetValue(100)
 				local r, g, b = unpack(instance.total_bar.color)
@@ -447,13 +447,13 @@
 				Details.FadeHandler.Fader(row1, "out")
 
 				for i = iter_last, instance.barraS[1], -1 do --vai atualizar s� o range que esta sendo mostrado
-					instance_container._ActorTable[i]:UpdateBar (barras_container, whichRowLine, percentage_type, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
+					instance_container._ActorTable[i]:UpdateBar (barContainer, whichRowLine, percentageType, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
 					whichRowLine = whichRowLine+1
 				end
 
 			else
 				for i = instance.barraS[2], instance.barraS[1], -1 do --vai atualizar s� o range que esta sendo mostrado
-					instance_container._ActorTable[i]:UpdateBar (barras_container, whichRowLine, percentage_type, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
+					instance_container._ActorTable[i]:UpdateBar (barContainer, whichRowLine, percentageType, i, total, top, instance, force, percent_script, total_script, combat, bars_show_data, bars_brackets, bars_separator)
 					whichRowLine = whichRowLine+1
 				end
 			end
@@ -467,6 +467,8 @@
 				end
 			end
 		end
+
+		instance:AutoAlignInLineFontStrings()
 
 	end
 
@@ -491,7 +493,7 @@
 				--local value, top, total, combat, instance = ...
 				okey, percent = pcall (percent_script, self.value, top, total, combat, instance, self)
 				if (not okey) then
-					_detalhes:Msg("|cFFFF9900error on custom display function|r:", percent)
+					_detalhes:Msg(Loc["|cFFFF9900error on custom display function|r:"], percent)
 					return _detalhes:EndRefresh (instance, 0, combat, combat [1])
 				end
 			else
@@ -510,7 +512,7 @@
 			if (total_script) then
 				local okey, value = pcall (total_script, self.value, top, total, combat, instance, self)
 				if (not okey) then
-					_detalhes:Msg("|cFFFF9900error on custom display function|r:", value)
+					_detalhes:Msg(Loc["|cFFFF9900error on custom display function|r:"], value)
 					return _detalhes:EndRefresh (instance, 0, combat, combat [1])
 				end
 
@@ -531,14 +533,14 @@
 					row.lineText2:SetText("")
 				end
 			else
-				local formated_value = SelectedToKFunction (_, self.value)
-				local rightText = formated_value .. bars_brackets[1] .. percent .. bars_brackets[2]
+				local formatedValue = SelectedToKFunction(_, self.value)
+				local rightText = formatedValue .. bars_brackets[1] .. percent .. bars_brackets[2]
 
 				if (UsingCustomRightText) then
-					row.lineText4:SetText(stringReplace (instance.row_info.textR_custom_text, formated_value, "", percent, self, combat, instance, rightText))
+					row.lineText4:SetText(stringReplace(instance.row_info.textR_custom_text, formatedValue, "", percent, self, combat, instance, rightText))
 				else
 					if (instance.use_multi_fontstrings) then
-						instance:SetInLineTexts(row, "", formated_value, percent)
+						instance:SetInLineTexts(row, "", formatedValue, percent)
 					else
 						row.lineText4:SetText(rightText)
 						row.lineText3:SetText("")
@@ -842,6 +844,8 @@
 				color = actor.color,
 			}, classCustom.mt)
 
+			newActor.customColor = actor.customColor
+
 			newActor.name_complement = name_complement
 			newActor.displayName = actor.displayName or (_detalhes:GetOnlyName(newActor.nome) .. (name_complement or ""))
 
@@ -892,9 +896,9 @@
 
 	function classCustom:CreateCustomDisplayObject()
 		return setmetatable({
-			name = "new custom",
+			name = Loc["new custom"],
 			icon = [[Interface\ICONS\TEMP]],
-			author = "unknown",
+			author = UNKNOWN, -- 需要自行修改為大寫
 			attribute = "damagedone",
 			source = "[all]",
 			target = "[all]",
@@ -943,7 +947,7 @@
 				local func = _detalhes.custom_function_cache [instanceObject.customName .. "Tooltip"]
 				local okey, errortext = pcall(func, actorObject, instanceObject.showing, instanceObject, keydown)
 				if (not okey) then
-					_detalhes:Msg("|cFFFF9900error on custom display tooltip function|r:", errortext)
+					_detalhes:Msg(Loc["|cFFFF9900error on custom display tooltip function|r:"], errortext)
 					return false
 				end
 			end
@@ -1503,7 +1507,7 @@
 			attribute = false,
 			spellid = false,
 			author = "Details!",
-			desc = "Show the crowd control amount for each player.",
+			desc = Loc["Show the crowd control amount for each player."],
 			source = false,
 			target = false,
 			script_version = 11,
@@ -1607,7 +1611,7 @@
 			attribute = false,
 			spellid = false,
 			author = "Details!",
-			desc = "Show the amount of crowd control received for each player.",
+			desc = Loc["Show the amount of crowd control received for each player."],
 			source = false,
 			target = false,
 			script_version = 3,
@@ -1847,30 +1851,30 @@
 			    end
 
 			    --Cooltip code
-			    GC:AddLine("施放:", cast_string or "?")
+			    GC:AddLine("Casts:", cast_string or "?")
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    if (debuff_uptime_total ~= "") then
-				GC:AddLine("覆蓋時間:", (debuff_uptime_total or "?") .. "%")
+				GC:AddLine("Uptime:", (debuff_uptime_total or "?") .. "%")
 				GC:AddStatusBar (100, 1, R, G, B, A)
 			    end
 
-			    GC:AddLine("命中:", spell.counter)
+			    GC:AddLine("Hits:", spell.counter)
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    local average = spell.total / total_hits
-			    GC:AddLine("平均:", _detalhes:ToK (average))
+			    GC:AddLine("Average:", _detalhes:ToK (average))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    GC:AddLine("E-Dps:", _detalhes:ToK (spell.total / combat_time))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
-			    GC:AddLine("類型:", schooltext)
+			    GC:AddLine("School:", schooltext)
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")
 
-			    GC:AddLine("普通命中: ", spell.n_amt .. " (" ..floor( spell.n_amt/total_hits*100) .. "%)")
+			    GC:AddLine("Normal Hits: ", spell.n_amt .. " (" ..floor( spell.n_amt/total_hits*100) .. "%)")
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    local n_average = spell.n_total / spell.n_amt
@@ -1878,12 +1882,12 @@
 			    local P = average/n_average*100
 			    T = P*T/100
 
-			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
+			    GC:AddLine("Average / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")
 
-			    GC:AddLine("致命一擊命中: ", spell.c_amt .. " (" ..floor( spell.c_amt/total_hits*100) .. "%)")
+			    GC:AddLine("Critical Hits: ", spell.c_amt .. " (" ..floor( spell.c_amt/total_hits*100) .. "%)")
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    if (spell.c_amt > 0) then
@@ -1893,9 +1897,9 @@
 				T = P*T/100
 				local crit_dps = spell.c_total / T
 
-				GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (c_average) .. " / " .. _detalhes:comma_value (crit_dps))
+				GC:AddLine("Average / E-Dps: ",  _detalhes:ToK (c_average) .. " / " .. _detalhes:comma_value (crit_dps))
 			    else
-				GC:AddLine("平均 / E-Dps: ",  "0 / 0")
+				GC:AddLine("Average / E-Dps: ",  "0 / 0")
 			    end
 
 			    GC:AddStatusBar (100, 1, R, G, B, A)
@@ -1915,22 +1919,22 @@
 			    local combat_time = instance.showing:GetCombatTime()
 
 			    --Cooltip code
-			    GC:AddLine("命中:", spell.counter)
+			    GC:AddLine("Hits:", spell.counter)
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    local average = spell.total / total_hits
-			    GC:AddLine("平均:", _detalhes:ToK (average))
+			    GC:AddLine("Average:", _detalhes:ToK (average))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    GC:AddLine("E-Hps:", _detalhes:ToK (spell.total / combat_time))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
-			    GC:AddLine("類型:", schooltext)
+			    GC:AddLine("School:", schooltext)
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")
 
-			    GC:AddLine("普通命中: ", spell.n_amt .. " (" ..floor( spell.n_amt/total_hits*100) .. "%)")
+			    GC:AddLine("Normal Hits: ", spell.n_amt .. " (" ..floor( spell.n_amt/total_hits*100) .. "%)")
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    local n_average = spell.n_total / spell.n_amt
@@ -1938,12 +1942,12 @@
 			    local P = average/n_average*100
 			    T = P*T/100
 
-			    GC:AddLine("平均 / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
+			    GC:AddLine("Average / E-Dps: ",  _detalhes:ToK (n_average) .. " / " .. format("%.1f",spell.n_total / T ))
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    --GC:AddLine(" ")
 
-			    GC:AddLine("致命一擊命中: ", spell.c_amt .. " (" ..floor( spell.c_amt/total_hits*100) .. "%)")
+			    GC:AddLine("Critical Hits: ", spell.c_amt .. " (" ..floor( spell.c_amt/total_hits*100) .. "%)")
 			    GC:AddStatusBar (100, 1, R, G, B, A)
 
 			    if (spell.c_amt > 0) then
@@ -1953,9 +1957,9 @@
 				T = P*T/100
 				local crit_dps = spell.c_total / T
 
-				GC:AddLine("平均 / E-Hps: ",  _detalhes:ToK (c_average) .. " / " .. _detalhes:comma_value (crit_dps))
+				GC:AddLine("Average / E-Hps: ",  _detalhes:ToK (c_average) .. " / " .. _detalhes:comma_value (crit_dps))
 			    else
-				GC:AddLine("平均 / E-Hps: ",  "0 / 0")
+				GC:AddLine("Average / E-Hps: ",  "0 / 0")
 			    end
 
 			    GC:AddStatusBar (100, 1, R, G, B, A)
@@ -2227,7 +2231,7 @@
 			attribute = false,
 			spellid = false,
 			author = "Details!",
-			desc = "Show overall damage done on the fly.",
+			desc = Loc["Show overall damage done on the fly."],
 			source = false,
 			target = false,
 			script_version = 8,
@@ -2399,7 +2403,7 @@
 			attribute = false,
 			spellid = false,
 			author = "Details!",
-			desc = "Damage done to shields",
+			desc = Loc["Damage done to shields"],
 			source = false,
 			target = false,
 			script_version = 1,

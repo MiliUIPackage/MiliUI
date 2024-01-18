@@ -325,7 +325,7 @@ function DropDownMetaFunctions:NoOptionSelected()
 		return
 	end
 
-	self.label:SetText(self.empty_text or "無已選的選項")
+	self.label:SetText(self.empty_text or "no option selected")
 	self.label:SetPoint("left", self.icon, "right", 2, 0)
 	self.label:SetTextColor(1, 1, 1, 0.4)
 
@@ -345,7 +345,7 @@ function DropDownMetaFunctions:NoOption(state)
 		self:Disable()
 		self:SetAlpha(0.5)
 		self.no_options = true
-		self.label:SetText("無選項")
+		self.label:SetText("沒有選項")
 		self.label:SetPoint("left", self.icon, "right", 2, 0)
 		self.label:SetTextColor(1, 1, 1, 0.4)
 		self.icon:SetTexture([[Interface\CHARACTERFRAME\UI-Player-PlayTimeUnhealthy]])
@@ -574,10 +574,10 @@ function DropDownMetaFunctions:Selected(thisOption)
 		self.label:SetFont(overrideFont, 10)
 
 	elseif (thisOption.font) then
-		self.label:SetFont(thisOption.font, 10)
+		self.label:SetFont(thisOption.font, 14)
 
 	else
-		self.label:SetFont("GameFontHighlightSmall", 10)
+		self.label:SetFont("GameFontHighlight", 14)
 	end
 
 	self:SetValue(thisOption.value)
@@ -802,13 +802,13 @@ function DetailsFrameworkDropDownOnMouseDown(button, buttontype)
 					thisOptionFrame.label:SetText(thisOption.label)
 
 					if (overrideFont) then
-						thisOptionFrame.label:SetFont(overrideFont, 10.5)
+						thisOptionFrame.label:SetFont(overrideFont, 14)
 
 					elseif (thisOption.font) then
-						thisOptionFrame.label:SetFont(thisOption.font, 10.5)
+						thisOptionFrame.label:SetFont(thisOption.font, 145)
 
 					else
-						thisOptionFrame.label:SetFont("GameFontHighlightSmall", 10.5)
+						thisOptionFrame.label:SetFont("GameFontHighlight", 14)
 					end
 
 					if (currentText and currentText == thisOption.label) then
@@ -986,16 +986,13 @@ function DetailsFrameworkDropDownOnHide(self)
 	object:Close()
 end
 
+local iconSizeTable = {16, 16}
 function DF:BuildDropDownFontList(onClick, icon, iconTexcoord, iconSize)
 	local fontTable = {}
 
-	if (type(iconSize) ~= "table") then
-		iconSize = {iconSize or 16, iconSize or 16}
-	end
-
 	local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 	for name, fontPath in pairs(SharedMedia:HashTable("font")) do
-		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSize, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
+		fontTable[#fontTable+1] = {value = name, label = name, onclick = onClick, icon = icon, iconsize = iconSizeTable, texcoord = iconTexcoord, font = fontPath, descfont = "abcdefg ABCDEFG"}
 	end
 
 	table.sort(fontTable, function(t1, t2) return t1.label < t2.label end)
@@ -1123,7 +1120,7 @@ function DF:CreateColorListGenerator(callback)
 		end
 
 		table.insert(dropdownOptions, 1, {
-			label = "無顏色",
+			label = "no color",
 			value = "blank",
 			color = colorGeneratorNoColor,
 			statusbar = colorGeneratorStatusBarTexture,
@@ -1141,11 +1138,12 @@ function DF:CreateOutlineListGenerator(callback)
 	local newGenerator = function()
 		local dropdownOptions = {}
 
-		for i, outlineInfo in ipairs(DF.FontOutlineFlags) do
-			local outlineName, outlineLoc = unpack(outlineInfo)
+		for index, outlineInfo in pairs(DF.FontOutlineFlags) do
+			local outlineValue = outlineInfo[1]
+			local outlineName = outlineInfo[2]
 			table.insert(dropdownOptions, {
-				label = outlineLoc,
-				value = outlineName,
+				label = outlineName,
+				value = outlineValue,
 				onclick = callback
 			})
 		end
@@ -1375,12 +1373,12 @@ function DF:CreateNewDropdownFrame(parent, name)
 	centerTexture:SetSize(20, 20)
 	newDropdownFrame.centerTexture = centerTexture
 
-	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlightSmall")
+	local text = newDropdownFrame:CreateFontString("$parent_Text", "ARTWORK", "GameFontHighlight")
 	text:SetPoint("left", icon, "right", 5, 0)
 	text:SetJustifyH("left")
-	text:SetText("無已選的選項")
+	text:SetText("尚未選擇選項")
 	text:SetTextColor(1, 1, 1, 0.4)
-	DF:SetFontSize(text, 13)
+	DF:SetFontSize(text, 10)
 	newDropdownFrame.text = text
 
 	local arrowHightlight = newDropdownFrame:CreateTexture("$parent_ArrowTexture2", "OVERLAY", nil, 2)
@@ -1468,10 +1466,10 @@ function DF:CreateDropdownButton(parent, name)
 	icon:SetTexture([[Interface\ICONS\Spell_ChargePositive]])
 	newButton.icon = icon
 
-	local text = newButton:CreateFontString("$parent_Text", "OVERLAY", "GameFontHighlightSmall")
+	local text = newButton:CreateFontString("$parent_Text", "OVERLAY", "GameFontHighlight")
 	text:SetPoint("left", icon, "right", 5, 0)
 	text:SetJustifyH("left")
-	DF:SetFontSize(text, 13)
+	DF:SetFontSize(text, 14)
 	newButton.label = text
 
 	local rightButton = DF:CreateButton(newButton, function()end, 16, 16, "", 0, 0, "", "rightButton", "$parentRightButton", nil, DF:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))

@@ -4,6 +4,7 @@
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local _
 
 local startX = 5
@@ -138,7 +139,7 @@ end
 
 function Details.Survey.OpenSpellCategoryScreen()
     if (not Details.Survey.GetTargetCharacterForRealm()) then
-        Details:Msg("No survey at the moment.")
+        Details:Msg(Loc["No survey at the moment."])
         return
     end
 
@@ -146,7 +147,7 @@ function Details.Survey.OpenSpellCategoryScreen()
 		DetailsSpellCategoryFrame = DetailsFramework:CreateSimplePanel(UIParent)
         local detailsSpellCategoryFrame = DetailsSpellCategoryFrame
 		detailsSpellCategoryFrame:SetSize(scroll_width, windowHeight+26)
-		detailsSpellCategoryFrame:SetTitle("Identifying and Categorizing Cooldown Spells")
+		detailsSpellCategoryFrame:SetTitle(Loc["Identifying and Categorizing Cooldown Spells"])
 		detailsSpellCategoryFrame.Data = {}
 
 		--statusbar
@@ -165,23 +166,23 @@ function Details.Survey.OpenSpellCategoryScreen()
 		statusBar2:SetAlpha(0.8)
 		DF:ApplyStandardBackdrop(statusBar2)
         DF:ApplyStandardBackdrop(statusBar2)
-        local dataInfoLabel = DF:CreateLabel(statusBar2, "This cooldown data is send to people on Details! team and shared in 'Open Raid' library where any weakaura or addon can use it", 12, "silver")
+        local dataInfoLabel = DF:CreateLabel(statusBar2, Loc["This cooldown data is send to people on Details! team and shared in 'Open Raid' library where any weakaura or addon can use it"], 12, "silver")
         dataInfoLabel:SetPoint("center", 0, 0)
         dataInfoLabel.justifyH = "center"
 
 		--create the header
 		local headerTable = {
-			{text = "圖示", width = 24},
-			{text = "法術名稱", width = 140},
-            {text = "無", width = 70},
-			{text = "減傷 CD", width = 100},
-			{text = "個人減傷 CD", width = 120},
-			{text = "目標減傷 CD", width = 120},
-			{text = "團隊減傷 CD", width = 120},
-			{text = "團隊技能 CD", width = 100},
-			{text = "打斷", width = 70},
-			{text = "驅散", width = 50},
-			{text = "控場", width = 50},
+			{text = Loc["Icon"], width = 24},
+			{text = Loc["Spell Name"], width = 140},
+            {text = Loc["NONE"], width = 70},
+			{text = Loc["Offensive CD"], width = 100},
+			{text = Loc["Personal Defensive CD"], width = 120},
+			{text = Loc["Targeted Defensive CD"], width = 120},
+			{text = Loc["Raid Defensive CD"], width = 120},
+			{text = Loc["Raid Utility CD"], width = 100},
+			{text = Loc["Interrupt"], width = 70},
+			{text = Loc["Dispel"], width = 50},
+			{text = Loc["CC"], width = 50},
 		}
 		local headerOptions = {
 			padding = 2,
@@ -195,18 +196,18 @@ function Details.Survey.OpenSpellCategoryScreen()
         detailsSpellCategoryFrame:SetWidth(maxLineWidth + 20)
 
         local thisClassSavedTable = Details.Survey.GetCategorySpellListForClass()
-        local sendButton = DetailsFramework:CreateButton(statusBar, function() Details.Survey.SendSpellCatogeryDataToTargetCharacter(); DetailsSpellCategoryFrame:Hide() end, 800, 20, "SAVE and SEND")
+        local sendButton = DetailsFramework:CreateButton(statusBar, function() Details.Survey.SendSpellCatogeryDataToTargetCharacter(); DetailsSpellCategoryFrame:Hide() end, 800, 20, Loc["SAVE and SEND"])
         sendButton:SetPoint("center", statusBar, "center", 0, 0)
 
         detailsSpellCategoryFrame.Header = DetailsFramework:CreateHeader(detailsSpellCategoryFrame, headerTable, headerOptions)
         detailsSpellCategoryFrame.Header:SetPoint("topleft", detailsSpellCategoryFrame, "topleft", startX, headerY)
 
         local tooltipDesc = {}
-        tooltipDesc[2] = "|cffffff00" .. headerTable[4].text .. "|r|n" .. "Examples:\nPower Infusion, Ice Veins, Combustion, Adrenaline Rush" --ofensive cooldowns
-        tooltipDesc[3] = "|cffffff00" .. headerTable[5].text .. "|r|n" .. "Examples:\nIce Block, Dispersion, Cloak of Shadows, Shield Wall " --personal cooldowns
-        tooltipDesc[4] = "|cffffff00" .. headerTable[6].text .. "|r|n" .. "Examples:\nBlessing of Sacrifice, Ironbark, Life Cocoon, Pain Suppression" --targetted devense cooldowns
-        tooltipDesc[5] = "|cffffff00" .. headerTable[7].text .. "|r|n" .. "Examples:\nPower Word: Barrier, Spirit Link Totem, Tranquility, Anti-Magic Zone" --raid wide cooldowns
-        tooltipDesc[6] = "|cffffff00" .. headerTable[8].text .. "|r|n" .. "Examples:\nStampeding Roar, Leap of Faith"
+        tooltipDesc[2] = "|cffffff00" .. headerTable[4].text .. "|r|n" .. Loc["Examples:\nPower Infusion, Ice Veins, Combustion, Adrenaline Rush"] --ofensive cooldowns
+        tooltipDesc[3] = "|cffffff00" .. headerTable[5].text .. "|r|n" .. Loc["Examples:\nIce Block, Dispersion, Cloak of Shadows, Shield Wall "] --personal cooldowns
+        tooltipDesc[4] = "|cffffff00" .. headerTable[6].text .. "|r|n" .. Loc["Examples:\nBlessing of Sacrifice, Ironbark, Life Cocoon, Pain Suppression"] --targetted devense cooldowns
+        tooltipDesc[5] = "|cffffff00" .. headerTable[7].text .. "|r|n" .. Loc["Examples:\nPower Word: Barrier, Spirit Link Totem, Tranquility, Anti-Magic Zone"] --raid wide cooldowns
+        tooltipDesc[6] = "|cffffff00" .. headerTable[8].text .. "|r|n" .. Loc["Examples:\nStampeding Roar, Leap of Faith"]
         tooltipDesc[7] = ""
         tooltipDesc[8] = ""
         tooltipDesc[9] = ""

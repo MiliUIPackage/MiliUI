@@ -86,7 +86,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 	elseif (command == "stopperfcheck") then
 		Details.check_stuttering = not Details.check_stuttering
-		Details:Msg("效能/凍結 檢查器:", Details.check_stuttering and "enabled" or "disabled")
+		Details:Msg("stuttering/freeze checker:", Details.check_stuttering and "enabled" or "disabled")
 		if (Details.check_stuttering) then
 			_G["UpdateAddOnMemoryUsage"] = Details.UpdateAddOnMemoryUsage_Custom
 		else
@@ -100,17 +100,17 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 		local returnTable = {}
 
-		returnTable[#returnTable+1] = "關於效能的訊息:"
-		returnTable[#returnTable+1] = "一個插件功能，腳本正在使用：" .. performanceData.culpritFunc .. ""
+		returnTable[#returnTable+1] = "Stuttering Information:"
+		returnTable[#returnTable+1] = "An addon feature, script is using: " .. performanceData.culpritFunc .. ""
 
 		returnTable[#returnTable+1] = ""
 
-		returnTable[#returnTable+1] = "描述：" .. performanceData.culpritDesc
+		returnTable[#returnTable+1] = "Description: " .. performanceData.culpritDesc
 
 		returnTable[#returnTable+1] = ""
 
-		returnTable[#returnTable+1] = "您可以首先：禁用使用該功能的插件功能。"
-		returnTable[#returnTable+1] = "第二：禁用使用函數調用的腳本：" .. performanceData.culpritFunc .. "."
+		returnTable[#returnTable+1] = "You may first: disable the addon feature that uses the functionality."
+		returnTable[#returnTable+1] = "Second: disable a script which are using the function call: " .. performanceData.culpritFunc .. "."
 
 		returnTable[#returnTable+1] = ""
 
@@ -124,7 +124,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 	elseif (command == "mergepetspells") then --deprecated
 		Details.merge_pet_abilities = not Details.merge_pet_abilities
-		Details:Msg("合併寵物法術:", Details.merge_pet_abilities or "false")
+		Details:Msg("Merging pet spells:", Details.merge_pet_abilities or "false")
 
 	elseif (command == "softhide") then
 		for instanceID, instance in Details:ListInstances() do
@@ -279,13 +279,13 @@ function SlashCmdList.DETAILS (msg, editbox)
 			if (combatObject) then
 				Details:DestroyCombat(combatObject)
 				Details:SendEvent("DETAILS_DATA_SEGMENTREMOVED")
-				Details:Msg("片段已移除。")								   
+				Details:Msg("segment removed.")
 				collectgarbage()
 			else
-				Details:Msg("片段未找到。")
+				Details:Msg("segment not found.")
 			end
 		else
-			Details:Msg("片段ID無效。")
+			Details:Msg(Loc["segment ID invalid."])
 		end
 		return
 
@@ -310,7 +310,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 			local profile = Details:GetProfile(profileName)
 			if (not profile) then
-				return Details:Msg(Loc ["Profile Not Found."])
+				return Details:Msg(Loc["Profile Not Found."])
 			end
 
 			if (not Details:ApplyProfile(profileName)) then
@@ -393,7 +393,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 			Details.tabela_vigente.saved_pets[k] = {v[1], v[2], v[3]}
 		end
 
-		Details:Msg("pet table has been saved on current combat.")
+		Details:Msg(Loc["pet table has been saved on current combat."])
 
 	elseif (msg == "model") then
 		local frame = CreateFrame("PlayerModel");
@@ -425,10 +425,10 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 	elseif (msg == "captures") then
 		for k, v in pairs(Details.capture_real) do
-			print("real -",k,":",v)
+			print(Loc["real -"],k,":",v)
 		end
 		for k, v in pairs(Details.capture_current) do
-			print("current -",k,":",v)
+			print(Loc["current -"],k,":",v)
 		end
 
 	elseif (msg == "slider") then
@@ -471,7 +471,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		--_detalhes.ResetButton:SetHighlightTexture(t)
 		Details.ResetButton:SetNormalTexture(t)
 
-		print("backdrop", Details.ResetButton:GetBackdrop())
+		print(Loc["backdrop"], Details.ResetButton:GetBackdrop())
 
 		Details.ResetButton:SetBackdropColor(0, 0, 1, 1)
 
@@ -555,15 +555,15 @@ function SlashCmdList.DETAILS (msg, editbox)
 			if (segment and segment ~= 0) then
 				local c = Details:GetCombat(segment)
 				playerActor = c (4, playername)
-				print(Loc ["using segment"], segment, c, Loc ["player actor:"], playerActor)
+				print(Loc["using segment"], segment, c, Loc["player actor:"], playerActor)
 			else
 				playerActor = c (4, playername)
 			end
 
-			print(Loc ["actor table: "], playerActor)
+			print(Loc["actor table: "], playerActor)
 
 			if (not playerActor) then
-				print(Loc ["actor table not found"])
+				print(Loc["actor table not found"])
 				return
 			end
 
@@ -577,11 +577,6 @@ function SlashCmdList.DETAILS (msg, editbox)
 			end
 		end
 
-	elseif (msg == "teste") then
-
-		local a, b = Details:GetEncounterEnd (1098, 3)
-		print(a, unpack(b))
-
 	elseif (msg == "yesno") then
 		--_detalhes:Show()
 
@@ -589,8 +584,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 		local callback = function(width, height, overlayColor, alpha, texCoords)
 			print(width, height, alpha)
-			print(Loc ["overlay: "], unpack(overlayColor))
-			print(Loc ["crop: "], unpack(texCoords))
+			print(Loc["overlay: "], unpack(overlayColor))
+			print(Loc["crop: "], unpack(texCoords))
 		end
 
 		Details.gump:ImageEditor (callback, "Interface\\TALENTFRAME\\bg-paladin-holy", nil, {1, 1, 1, 1}) -- {0.25, 0.25, 0.25, 0.25}
@@ -643,8 +638,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 		Details.VarDump (backdrop)
 		Details.VarDump (backdrop.insets)
 
-		print(Loc ["bgcolor:"],f:GetBackdropColor())
-		print(Loc ["bordercolor"],f:GetBackdropBorderColor())
+		print(Loc["bgcolor:"],f:GetBackdropColor())
+		print(Loc["bordercolor"],f:GetBackdropBorderColor())
 
 	elseif (command == "myguid") then --localize-me
 
@@ -774,7 +769,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 		local profile = rest:match("^(%S*)%s*(.-)$")
 
-		print(Loc ["Force apply profile: "], profile)
+		print(Loc["Force apply profile: "], profile)
 
 		Details:ApplyProfile (profile, false)
 
@@ -835,7 +830,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 			f:add (name, i)
 		end
 
-		print(i, Loc ["names found."])
+		print(i, Loc["names found."])
 
 		f:Show()
 
@@ -854,7 +849,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		end
 
 		local container = Details.tabela_vigente [t]._ActorTable
-		print(#container, "actors found.")
+		print(#container, Loc["actors found."])
 		for index, actor in ipairs(container) do
 			f:add (actor.nome, index, filter)
 		end
@@ -863,7 +858,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 	--debug
 	elseif (msg == "save") then
-		print(Loc ["running... this is a debug command, details wont work until next /reload."])
+		print(Loc["running... this is a debug command, details wont work until next /reload."])
 		Details:PrepareTablesForSave()
 
 	elseif (msg == "buffs") then
@@ -898,21 +893,21 @@ function SlashCmdList.DETAILS (msg, editbox)
 	elseif (command == "debug") then
 		if (Details.debug) then
 			Details.debug = false
-			print(Loc ["STRING_DETAILS1"] .. Loc ["diagnostic mode has been turned off."])
+			print(Loc ["STRING_DETAILS1"] .. Loc["diagnostic mode has been turned off."])
 			return
 		else
 			Details.debug = true
-			print(Loc ["STRING_DETAILS1"] .. Loc ["diagnostic mode has been turned on."])
+			print(Loc ["STRING_DETAILS1"] .. Loc["diagnostic mode has been turned on."])
 
 			if (rest and rest ~= "") then
 				if (rest == "-clear") then
 					_detalhes_global.debug_chr_log = ""
-					print(Loc ["STRING_DETAILS1"] .. Loc ["log for characters has been wiped."])
+					print(Loc ["STRING_DETAILS1"] .. Loc["log for characters has been wiped."])
 					return
 				end
 				Details.debug_chr = rest
 				_detalhes_global.debug_chr_log = _detalhes_global.debug_chr_log or ""
-				print(Loc ["STRING_DETAILS1"] .. Loc ["diagnostic for character "] .. rest .. Loc [" turned on."])
+				print(Loc ["STRING_DETAILS1"] .. Loc["diagnostic for character "] .. rest .. Loc[" turned on."])
 				return
 			end
 		end
@@ -921,11 +916,11 @@ function SlashCmdList.DETAILS (msg, editbox)
 	elseif (msg == "combatlog") then
 		if (Details.isLoggingCombat) then
 			LoggingCombat (false)
-			print(Loc ["Wow combatlog record turned OFF."])
+			print(Loc["Wow combatlog record turned OFF."])
 			Details.isLoggingCombat = nil
 		else
 			LoggingCombat (true)
-			print(Loc ["Wow combatlog record turned ON."])
+			print(Loc["Wow combatlog record turned ON."])
 			Details.isLoggingCombat = true
 		end
 
@@ -951,7 +946,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		BigWigs.RegisterMessage(addon, "BigWigs_Message")
 		function addon:BigWigs_Message(event, module, key, text)
 		  if module.journalId  == 1197 and text:match("^Phase %d$") then -- 1197 = Margok
-		   print(Loc ["Phase Changed!"], event, module, key, text)
+		   print(Loc["Phase Changed!"], event, module, key, text)
 		  end
 		end
 
@@ -1008,7 +1003,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 					local itemName, itemLink, itemRarity, itemLevel, _, itemType, itemSubType = GetItemInfo (itemLink)
 					if (itemType == "Armor" or itemType == "Weapon") then --a weapon or armor
 						if (itemLevel < 460) then
-							print(Loc ["Selling"], itemName, itemType)
+							print(Loc["Selling"], itemName, itemType)
 							UseContainerItem (b, s)
 						end
 					end
@@ -1042,33 +1037,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 			1 --school =
 		)
 
-	elseif (msg == "ejloot") then
-		DetailsFramework.EncounterJournal.EJ_SelectInstance (669) -- hellfire citadel
-		DetailsFramework.EncounterJournal.EJ_SetDifficulty (16)
-
-		local r = {}
-		local total = 0
-
-		for i = 1, 100 do
-			local name, description, encounterID, rootSectionID, link = DetailsFramework.EncounterJournal.EJ_GetEncounterInfoByIndex (i, 669)
-			if (name) then
-				DetailsFramework.EncounterJournal.EJ_SelectEncounter (encounterID)
-				print(name, encounterID, DetailsFramework.EncounterJournal.EJ_GetNumLoot())
-
-				for o = 1, DetailsFramework.EncounterJournal.EJ_GetNumLoot() do
-					local name, icon, slot, armorType, itemID, link, encounterID = DetailsFramework.EncounterJournal.EJ_GetLootInfoByIndex (o)
-					r[slot] = r[slot] or {}
-					table.insert(r[slot], {itemID, encounterID})
-					total = total + 1
-				end
-			end
-		end
-
-		print("total loot", total)
-		_detalhes_global.ALOOT  = r
-
 	elseif (msg == "ilvl" or msg == "itemlevel" or msg == "ilevel") then
-
 		local item_amount = 16
 		local item_level = 0
 		local failed = 0
@@ -1106,7 +1075,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		end
 
 		local average = item_level / item_amount
-		Details:Msg(Loc ["gear score: "] .. item_level, Loc ["| item amount:"], item_amount, Loc ["| ilvl:"], average)
+		Details:Msg(Loc["gear score: "] .. item_level, Loc["| item amount:"], item_amount, Loc["| ilvl:"], average)
 
 		Details.ilevel:CalcItemLevel ("player", UnitGUID("player"), true)
 
@@ -1212,7 +1181,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 			local instance = Details:GetInstance(lower_instance)
 			if (instance) then
 				local func = {Details.OpenRaidHistoryWindow, Details, "Hellfire Citadel", 1800, 15, "DAMAGER", "Rock Lobster", 2, "Keyspell"}
-				instance:InstanceAlert (Loc ["Boss Defeated, Open History! "], {[[Interface\AddOns\Details\images\icons]], 16, 16, false, 434/512, 466/512, 243/512, 273/512}, 40, func, true)
+				instance:InstanceAlert (Loc["Boss Defeated, Open History! "], {[[Interface\AddOns\Details\images\icons]], 16, 16, false, 434/512, 466/512, 243/512, 273/512}, 40, func, true)
 			end
 		end
 
@@ -1230,7 +1199,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		local lower_instance = Details:GetLowerInstanceNumber()
 		local instance = Details:GetInstance(lower_instance)
 
-		instance:InstanceAlert (Loc ["Boss Defeated! Show Ranking"], icon, 12, func, true)
+		instance:InstanceAlert (Loc["Boss Defeated! Show Ranking"], icon, 10, func, true)
 
 	elseif (msg == "scroll" or msg == "scrolldamage" or msg == "scrolling") then
 		Details:ScrollDamage()
@@ -1251,13 +1220,13 @@ function SlashCmdList.DETAILS (msg, editbox)
 	if (spec) then
 		local specID = DetailsFramework.GetSpecializationInfo(spec)
 		if (specID and specID ~= 0) then
-			print(Loc ["Current SpecID: "], specID)
+			print(Loc["Current SpecID: "], specID)
 		end
 	end
 
 	elseif (msg == "senditemlevel") then
 		Details:SendCharacterData()
-		print(Loc ["Item level dispatched."])
+		print(Loc["Item level dispatched."])
 
 	elseif (msg == "talents") then
 		local talents = {}
@@ -1280,7 +1249,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 		--at this point, details! should not be in combat
 		if (Details.in_combat) then
-			Details:Msg(Loc ["already in combat, closing current segment."])
+			Details:Msg(Loc["already in combat, closing current segment."])
 			Details:SairDoCombate()
 		end
 
@@ -1315,7 +1284,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		end
 
 		newCombat.is_trash = false
-		Details:Msg(Loc ["done merging, segments: "] .. segmentsAdded .. Loc [", total time: "] .. DetailsFramework:IntegerToTimer(totalTime))
+		Details:Msg(Loc["done merging, segments: "] .. segmentsAdded .. Loc[", total time: "] .. DetailsFramework:IntegerToTimer(totalTime))
 
 		--[[ --mythic+ debug
 		--tag the segment as mythic overall segment
@@ -1503,23 +1472,23 @@ function SlashCmdList.DETAILS (msg, editbox)
 
 	elseif (msg == "coach") then
 		--if (not UnitIsGroupLeader("player")) then
-		--	Details:Msg("you aren't the raid leader.")
+		--	Details:Msg(Loc["you aren't the raid leader."])
 		--	return
 		--end
 
 		if (not Details.coach.enabled) then
 			Details.Coach.WelcomePanel()
 		else
-			Details:Msg(Loc ["coach disabled."])
+			Details:Msg(Loc["coach disabled."])
 			Details.Coach.Disable()
 		end
 
 	elseif (msg == "9") then
-		print(Loc ["skin:"], Details.skin)
-		print(Loc ["current profile:"], Details:GetCurrentProfileName())
-		print(Loc ["always use profile:"], Details.always_use_profile)
-		print(Loc ["profile name:"], Details.always_use_profile_name)
-		print(Loc ["version:"], Details.build_counter >= Details.alpha_build_counter and Details.build_counter or Details.alpha_build_counter)
+		print(Loc["skin:"], Details.skin)
+		print(Loc["current profile:"], Details:GetCurrentProfileName())
+		print(Loc["always use profile:"], Details.always_use_profile)
+		print(Loc["profile name:"], Details.always_use_profile_name)
+		print(Loc["version:"], Details.build_counter >= Details.alpha_build_counter and Details.build_counter or Details.alpha_build_counter)
 
 	elseif (msg == "record") then
 
@@ -1578,31 +1547,31 @@ function SlashCmdList.DETAILS (msg, editbox)
 						rest = tonumber(rest)
 						if (rest) then
 							Details [command] = rest
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' set to "] .. rest)
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' set to "] .. rest)
 						else
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' expects a number"])
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' expects a number"])
 						end
 
 					elseif (whichType == "string") then
 						rest = tostring(rest)
 						if (rest) then
 							Details [command] = rest
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' set to "] .. rest)
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' set to "] .. rest)
 						else
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' expects a string"])
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' expects a string"])
 						end
 
 					elseif (whichType == "boolean") then
 						if (rest == "true") then
 							Details [command] = true
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' set to true"])
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' set to true"])
 
 						elseif (rest == "false") then
 							Details [command] = false
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' set to false"])
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' set to false"])
 
 						else
-							print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' expects true or false"])
+							print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' expects true or false"])
 						end
 					end
 
@@ -1611,7 +1580,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 					if (type(value) == "boolean") then
 						value = value and "true" or "false"
 					end
-					print(Loc ["STRING_DETAILS1"] .. Loc ["config '"] .. command .. Loc ["' current value is: "] .. value)
+					print(Loc ["STRING_DETAILS1"] .. Loc["config '"] .. command .. Loc["' current value is: "] .. value)
 				end
 
 				return
@@ -1623,11 +1592,11 @@ function SlashCmdList.DETAILS (msg, editbox)
 		print("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_RESET"] .. "|r: " .. Loc ["STRING_SLASH_RESET_DESC"])
 		print("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_OPTIONS"] .. "|r|cfffcffb0 <" .. Loc ["STRING_WINDOW_NUMBER"] .. ">|r: " .. Loc ["STRING_SLASH_OPTIONS_DESC"])
 		print("|cffffaeae/details|r |cffffff33" .. "API" .. "|r: " .. Loc ["STRING_SLASH_API_DESC"])
-		print("|cffffaeae/details|r |cffffff33" .. "me" .. Loc ["|r: open the player breakdown for you."]) --localize-me
-		print("|cffffaeae/details|r |cffffff33" .. "spells" .. Loc ["|r: list of spells already saw."]) --localize-me
+		print("|cffffaeae/details|r |cffffff33" .. "me" .. Loc["|r: open the player breakdown for you."]) --localize-me
+		print("|cffffaeae/details|r |cffffff33" .. "spells" .. Loc["|r: list of spells already saw."]) --localize-me
 
-		print("|cFFFFFF00DETAILS! 版本|r:|cFFFFAA00" .. " " .. Details.GetVersionString())
-		print("|cffffaeae/details|r |cffffff33" .. "版本" .. "|r: copy version.")
+		print("|cFFFFFF00DETAILS! VERSION|r:|cFFFFAA00" .. " " .. Details.GetVersionString())
+		print("|cffffaeae/details|r |cffffff33" .. "version" .. "|r: copy version.")
 
 	end
 end
@@ -1671,7 +1640,7 @@ function Details:UpdateUserPanel(usersTable)
 		local frameWidth, frameHeight = 470, 605
 		DetailsUserPanel = DetailsFramework:CreateSimplePanel(UIParent)
 		DetailsUserPanel:SetSize(frameWidth, frameHeight)
-		DetailsUserPanel:SetTitle("Details! 版本檢查")
+		DetailsUserPanel:SetTitle(Loc["Details! Version Check"])
 		DetailsUserPanel.Data = {}
 		DetailsUserPanel:ClearAllPoints()
 		DetailsUserPanel:SetPoint("left", UIParent, "left", 5, 100)
@@ -1697,9 +1666,9 @@ function Details:UpdateUserPanel(usersTable)
 
 		--header
 		local headerTable = {
-			{text = "使用者名稱", width = 160},
-			{text = "伺服器", width = 130},
-			{text = "版本", width = 140},
+			{text = Loc["User Name"], width = 160},
+			{text = Loc["Realm"], width = 130},
+			{text = Loc["Version"], width = 140},
 		}
 
 		local headerOptions = {
@@ -1964,9 +1933,11 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 		local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0")
 		if (openRaidLib) then
 			if (not DetailsKeystoneInfoFrame) then
+				---@type detailsframework
+				local detailsFramework = DetailsFramework
 
 				local CONST_WINDOW_WIDTH = 614
-				local CONST_WINDOW_HEIGHT = 700
+				local CONST_WINDOW_HEIGHT = 720
 				local CONST_SCROLL_LINE_HEIGHT = 20
 				local CONST_SCROLL_LINE_AMOUNT = 30
 
@@ -1979,7 +1950,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 				local backdrop_color_inguild = {.5, .8, .5, 0.2}
 				local backdrop_color_on_enter_inguild = {.5, 1, .5, 0.4}
 
-				local f = DetailsFramework:CreateSimplePanel(UIParent, CONST_WINDOW_WIDTH, CONST_WINDOW_HEIGHT, "M+ Keystones (/key)", "DetailsKeystoneInfoFrame")
+				local f = detailsFramework:CreateSimplePanel(UIParent, CONST_WINDOW_WIDTH, CONST_WINDOW_HEIGHT, "M+ Keystones (/key)", "DetailsKeystoneInfoFrame")
 				f:SetPoint("center", UIParent, "center", 0, 0)
 
 				f:SetScript("OnMouseDown", nil) --disable framework native moving scripts
@@ -1990,24 +1961,55 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 				LibWindow.MakeDraggable(f)
 				LibWindow.RestorePosition(f)
 
-				local scaleBar = DetailsFramework:CreateScaleBar(f, Details.keystone_frame)
+				f:SetScript("OnEvent", function(self, event, ...)
+					if (f:IsShown()) then
+						if (event == "GUILD_ROSTER_UPDATE") then
+							self:RefreshData()
+						end
+					end
+				end)
+
+				local scaleBar = detailsFramework:CreateScaleBar(f, Details.keystone_frame)
 				f:SetScale(Details.keystone_frame.scale)
 
-				local statusBar = DetailsFramework:CreateStatusBar(f)
+				local statusBar = detailsFramework:CreateStatusBar(f)
 				statusBar.text = statusBar:CreateFontString(nil, "overlay", "GameFontNormal")
 				statusBar.text:SetPoint("left", statusBar, "left", 5, 0)
-				statusBar.text:SetText("By Terciob | From Details! Damage Meter|Built with Details! Framework | Data from Open Raid Library")
-				DetailsFramework:SetFontSize(statusBar.text, 11)
-				DetailsFramework:SetFontColor(statusBar.text, "gray")
+				statusBar.text:SetText("By Terciob | From Details! Damage Meter")
+				detailsFramework:SetFontSize(statusBar.text, 12)
+				detailsFramework:SetFontColor(statusBar.text, "gray")
+
+				local requestFromGuildButton = detailsFramework:CreateButton(f, function()
+					local guildName = GetGuildInfo("player")
+					if (guildName) then
+						f:RegisterEvent("GUILD_ROSTER_UPDATE")
+
+						C_Timer.NewTicker(1, function()
+							f:RefreshData()
+						end, 30)
+
+						C_Timer.After(30, function()
+							f:UnregisterEvent("GUILD_ROSTER_UPDATE")
+						end)
+						C_GuildInfo.GuildRoster()
+
+						openRaidLib.RequestKeystoneDataFromGuild()
+					end
+				end, 100, 22, "Request from Guild")
+				requestFromGuildButton:SetPoint("bottomleft", statusBar, "topleft", 2, 2)
+				requestFromGuildButton:SetTemplate(detailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
+				requestFromGuildButton:SetIcon("UI-RefreshButton", 20, 20, "overlay", {0, 1, 0, 1}, "lawngreen")
+				requestFromGuildButton:SetFrameLevel(f:GetFrameLevel()+5)
+				f.RequestFromGuildButton = requestFromGuildButton
 
 				--header
 				local headerTable = {
-					{text = "職業", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
-					{text = "玩家名字", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "層級", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
-					{text = "地下城", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = "Class", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = "Player Name", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = "Level", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
+					{text = "Dungeon", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
 					--{text = "Classic Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "傳奇+ 評分", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = "Mythic+ Rating", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
 				}
 
 				local headerOnClickCallback = function(headerFrame, columnHeader)
@@ -2026,8 +2028,8 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					header_click_callback = headerOnClickCallback,
 				}
 
-				f.Header = DetailsFramework:CreateHeader(f, headerTable, headerOptions, "DetailsKeystoneInfoFrameHeader")
-				f.Header:SetPoint("topleft", f, "topleft", 5, -25)
+				f.Header = detailsFramework:CreateHeader(f, headerTable, headerOptions, "DetailsKeystoneInfoFrameHeader")
+				f.Header:SetPoint("topleft", f, "topleft", 3, -25)
 
 				--scroll
 				local refreshScrollLines = function(self, data, offset, totalLines)
@@ -2064,13 +2066,13 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 							line.icon:SetTexCoord(L+0.02, R-0.02, T+0.02, B-0.02)
 
 							--remove the realm name from the player name (if any)
-							local unitNameNoRealm = DetailsFramework:RemoveRealmName(unitName)
+							local unitNameNoRealm = detailsFramework:RemoveRealmName(unitName)
 							line.playerNameText.text = unitNameNoRealm
 							line.keystoneLevelText.text = level
 							line.dungeonNameText.text = mapName
-							DetailsFramework:TruncateText(line.dungeonNameText, 240)
+							detailsFramework:TruncateText(line.dungeonNameText, 240)
 							line.classicDungeonNameText.text = "" --mapNameChallenge
-							DetailsFramework:TruncateText(line.classicDungeonNameText, 120)
+							detailsFramework:TruncateText(line.classicDungeonNameText, 120)
 							line.inMyParty = inMyParty > 0
 							line.inMyGuild = isGuildMember
 
@@ -2114,8 +2116,8 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					end
 				end
 
-				local scrollFrame = DetailsFramework:CreateScrollBox(f, "$parentScroll", refreshScrollLines, {}, CONST_WINDOW_WIDTH-10, CONST_WINDOW_HEIGHT-70, CONST_SCROLL_LINE_AMOUNT, CONST_SCROLL_LINE_HEIGHT)
-				DetailsFramework:ReskinSlider(scrollFrame)
+				local scrollFrame = detailsFramework:CreateScrollBox(f, "$parentScroll", refreshScrollLines, {}, CONST_WINDOW_WIDTH-10, CONST_WINDOW_HEIGHT-90, CONST_SCROLL_LINE_AMOUNT, CONST_SCROLL_LINE_HEIGHT)
+				detailsFramework:ReskinSlider(scrollFrame)
 				scrollFrame:SetPoint("topleft", f.Header, "bottomleft", -1, -1)
 				scrollFrame:SetPoint("topright", f.Header, "bottomright", 0, -1)
 
@@ -2146,7 +2148,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					line:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
 					line:SetBackdropColor(unpack(backdrop_color))
 
-					DetailsFramework:Mixin(line, DetailsFramework.HeaderFunctions)
+					detailsFramework:Mixin(line, detailsFramework.HeaderFunctions)
 
 					line:SetScript("OnEnter", lineOnEnter)
 					line:SetScript("OnLeave", lineOnLeave)
@@ -2156,19 +2158,19 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					icon:SetSize(CONST_SCROLL_LINE_HEIGHT - 2, CONST_SCROLL_LINE_HEIGHT - 2)
 
 					--player name
-					local playerNameText = DetailsFramework:CreateLabel(line)
+					local playerNameText = detailsFramework:CreateLabel(line, "")
 
 					--keystone level
-					local keystoneLevelText = DetailsFramework:CreateLabel(line)
+					local keystoneLevelText = detailsFramework:CreateLabel(line, "")
 
 					--dungeon name
-					local dungeonNameText = DetailsFramework:CreateLabel(line)
+					local dungeonNameText = detailsFramework:CreateLabel(line, "")
 
 					--classic dungeon name
-					local classicDungeonNameText = DetailsFramework:CreateLabel(line)
+					local classicDungeonNameText = detailsFramework:CreateLabel(line, "")
 
 					--player rating
-					local ratingText = DetailsFramework:CreateLabel(line)
+					local ratingText = detailsFramework:CreateLabel(line, "")
 
 					line.icon = icon
 					line.playerNameText = playerNameText
@@ -2200,6 +2202,17 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 
 					local guildUsers = {}
 					local totalMembers, onlineMembers, onlineAndMobileMembers = GetNumGuildMembers()
+
+					--[=[
+					local unitsInMyGroup = {
+						[Details:GetFullName("player")] = true,
+					}
+					for i = 1, GetNumGroupMembers() do
+						local unitName = Details:GetFullName("party" .. i)
+						unitsInMyGroup[unitName] = true
+					end
+					--]=]
+
 					--create a string to use into the gsub call when removing the realm name from the player name, by default all player names returned from GetGuildRosterInfo() has PlayerName-RealmName format
 					local realmNameGsub = "%-.*"
 					local guildName = GetGuildInfo("player")
@@ -2288,18 +2301,23 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					--sort by player class
 					if (columnIndex == 1) then
 						sortByIndex = 5
+
 					--sort by player name
 					elseif (columnIndex == 2) then
 						sortByIndex = 1
+
 					--sort by keystone level
 					elseif (columnIndex == 3) then
 						sortByIndex = 2
+
 					--sort by dungeon name
 					elseif (columnIndex == 4) then
 						sortByIndex = 3
+
 					--sort by classic dungeon name
 					--elseif (columnIndex == 5) then
 					--	sortByIndex = 4
+
 					--sort by mythic+ ranting
 					elseif (columnIndex == 5) then
 						sortByIndex = 6
@@ -2320,7 +2338,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 						end
 					end
 
-					newData.offlineGuildPlayers = DetailsFramework.table.reverse(newData.offlineGuildPlayers)
+					newData.offlineGuildPlayers = detailsFramework.table.reverse(newData.offlineGuildPlayers)
 
 					--put players in the group at the top of the list
 					if (IsInGroup() and not IsInRaid()) then
@@ -2364,25 +2382,29 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 				end)
 			end
 
-			--call an update on the guild roster
-			if (C_GuildInfo and C_GuildInfo.GuildRoster) then
-				C_GuildInfo.GuildRoster()
-			end
-
 			--show the frame
 			DetailsKeystoneInfoFrame:Show()
 
 			openRaidLib.RegisterCallback(DetailsKeystoneInfoFrame, "KeystoneUpdate", "OnKeystoneUpdate")
 
-			openRaidLib.WipeKeystoneData()
+			local guildName = GetGuildInfo("player")
+			if (guildName) then
+				--call an update on the guild roster
+				if (C_GuildInfo and C_GuildInfo.GuildRoster) then
+					C_GuildInfo.GuildRoster()
+				end
+				DetailsKeystoneInfoFrame.RequestFromGuildButton:Enable()
+			else
+				DetailsKeystoneInfoFrame.RequestFromGuildButton:Disable()
+			end
+
+			--openRaidLib.WipeKeystoneData()
 
 			if (IsInRaid()) then
 				openRaidLib.RequestKeystoneDataFromRaid()
 			elseif (IsInGroup()) then
 				openRaidLib.RequestKeystoneDataFromParty()
 			end
-
-			openRaidLib.RequestKeystoneDataFromGuild()
 
 			DetailsKeystoneInfoFrame.RefreshData()
 		end

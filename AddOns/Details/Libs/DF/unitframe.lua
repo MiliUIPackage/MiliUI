@@ -621,7 +621,7 @@ detailsFramework.PowerFrameFunctions = {
 			self.percentText:Show()
 			PixelUtil.SetPoint(self.percentText, "center", self, "center", 0, 0)
 
-			detailsFramework:SetFontSize(self.percentText, 12)
+			detailsFramework:SetFontSize(self.percentText, 9)
 			detailsFramework:SetFontColor(self.percentText, "white")
 			detailsFramework:SetFontOutline(self.percentText, "OUTLINE")
 		else
@@ -1457,8 +1457,22 @@ detailsFramework.CastFrameFunctions = {
 		end
 	end,
 
-	UpdateCastingInfo = function(self, unit)
-		local name, text, texture, startTime, endTime, isTradeSkill, castID, notInterruptible, spellID = CastInfo.UnitCastingInfo(unit)
+	UpdateCastingInfo = function(self, unit, ...)
+		local unitID, castID, spellID = ...
+		local name, text, texture, startTime, endTime, isTradeSkill, uciCastID, notInterruptible, uciSpellID = CastInfo.UnitCastingInfo(unit)
+		spellID = uciSpellID or spellID
+		castID = uciCastID or castID
+		
+		if spellID and (not name or not texture or not text) then
+			local siName, _, siIcon, siCastTime = GetSpellInfo(spellID)
+			texture = texture or siIcon
+			name = name or siName
+			text = text or siName
+			if not startTime then
+				startTime = GetTime()
+				endTime = startTime + siCastTime
+			end
+		end
 
 		--is valid?
 		if (not self:IsValid(unit, name, isTradeSkill, true)) then
@@ -1519,8 +1533,8 @@ detailsFramework.CastFrameFunctions = {
 		self:UpdateInterruptState()
 	end,
 
-	UNIT_SPELLCAST_START = function(self, unit)
-		self:UpdateCastingInfo(unit)
+	UNIT_SPELLCAST_START = function(self, unit, ...)
+		self:UpdateCastingInfo(unit, ...)
 		self:RunHooksForWidget("OnCastStart", self, self.unit, "UNIT_SPELLCAST_START")
 	end,
 
@@ -1570,7 +1584,20 @@ detailsFramework.CastFrameFunctions = {
 
 	UpdateChannelInfo = function(self, unit, ...)
 		local unitID, castID, spellID = ...
-		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, spellID, _, numStages = CastInfo.UnitChannelInfo (unit)
+		local name, text, texture, startTime, endTime, isTradeSkill, notInterruptible, uciSpellID, _, numStages = CastInfo.UnitChannelInfo (unit)
+		spellID = uciSpellID or spellID
+		castID = uciCastID or castID
+		
+		if spellID and (not name or not texture or not text) then
+			local siName, _, siIcon, siCastTime = GetSpellInfo(spellID)
+			texture = texture or siIcon
+			name = name or siName
+			text = text or siName
+			if not startTime then
+				startTime = GetTime()
+				endTime = startTime + siCastTime
+			end
+		end
 
 		--is valid?
 		if (not self:IsValid (unit, name, isTradeSkill, true)) then
@@ -1936,6 +1963,7 @@ function detailsFramework:CreateCastBar(parent, name, settingsOverride)
 	--mixins
 	detailsFramework:Mixin(castBar, detailsFramework.CastFrameFunctions)
 	detailsFramework:Mixin(castBar, detailsFramework.StatusBarFunctions)
+
 
 	castBar:CreateTextureMask()
 	castBar:AddMaskTexture(castBar.flashTexture)
@@ -2503,7 +2531,7 @@ function detailsFramework:CreateUnitFrame(parent, name, unitFrameSettingsOverrid
 	--unit frame layers
 		do
 			--artwork
-			mewUnitFrame.unitName = mewUnitFrame:CreateFontString(nil, "artwork", "GameFontHighlight")
+			mewUnitFrame.unitName = mewUnitFrame:CreateFontString(nil, "artwork", "GameFontHighlightSmall")
 			PixelUtil.SetPoint(mewUnitFrame.unitName, "topleft", healthBar, "topleft", 2, -2, 1, 1)
 
 			--target overlay - it's parented in the healthbar so other widgets won't get the overlay

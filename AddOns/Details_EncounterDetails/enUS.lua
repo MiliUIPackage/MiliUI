@@ -48,7 +48,7 @@ Loc ["STRING_INTERRIPT_HELP"] = " |cFFFFFF00Click|r on a bar:\nopen report windo
 Loc ["STRING_DISPELL_HELP"] = " \n|cFFFFFF00Click|r on a bar:\nopen report window."
 Loc ["STRING_DEATHS_HELP"] = " \n|cFFFFFF00Click|r on a bar:\nopen report window."
 
---> mechanic types
+--mechanic types
 Loc ["STRING_HEAL"] = "heal"
 Loc ["STRING_LOWDPS"] = "lowdps"
 Loc ["STRING_LOWHEAL"] = "lowheal"
@@ -170,5 +170,5 @@ Loc [" |cFFFF8800overkill|r)"] = " |cFFFF8800overkill|r)"
 Loc [" Damage Done"] = " Damage Done"
 Loc ["Damage Done"] = "Damage Done"
 Loc [" Damage taken"] = " Damage taken"
-Loc ["Details! Tamage Taken of "] = "Details! Tamage Taken of "
+Loc ["Details! Damage Taken of "] = "Details! Damage Taken of "
 Loc ["Details! Damage Done of "] = "Details! Damage Done of "

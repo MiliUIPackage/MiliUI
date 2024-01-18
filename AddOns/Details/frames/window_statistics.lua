@@ -62,8 +62,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
 
         --create title bar
         local titlebar = DF:CreateTitleBar(statisticsFrame, "Details! " .. Loc ["STRING_STATISTICS"])
-        titlebar.CloseButton:SetScript("OnClick", function() statisticsFrame:GetParent():Hide() end)
-
+		titlebar.CloseButton:SetScript("OnClick", function() statisticsFrame:GetParent():Hide() end)
 --STRING_GUILDDAMAGERANK_TUTORIAL_DESC
 --STRING_OPTIONS_CHART_CLOSE
 
@@ -159,7 +158,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
 
                 statisticsFrame.SyncText = workingFrame:CreateFontString(nil, "border", "GameFontNormal")
                 statisticsFrame.SyncText:SetPoint("right", statisticsFrame.SyncTextureBackground, "left", 0, 0)
-                statisticsFrame.SyncText:SetText("working")
+                statisticsFrame.SyncText:SetText(Loc["working"])
 
                 local endAnimationHub = DF:CreateAnimationHub(workingFrame, nil, function() workingFrame:Hide() end)
                 DF:CreateAnimation(endAnimationHub, "ALPHA", 1, 0.5, 1, 0)
@@ -209,7 +208,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                     statisticsFrame.DownloadedSize = statisticsFrame.DownloadedSize + length
                     local downloadSpeed = statisticsFrame.DownloadedSize / (time() - statisticsFrame.SyncStartTime)
 
-                    statisticsFrame.SyncText:SetText("working [downloading " .. statisticsFrame.DownloadedAmount .. "/" .. statisticsFrame.RequestedAmount .. ", " .. format("%.2f", downloadSpeed/1024) .. "Kbps]")
+                    statisticsFrame.SyncText:SetText(Loc["working [downloading "] .. statisticsFrame.DownloadedAmount .. "/" .. statisticsFrame.RequestedAmount .. ", " .. format("%.2f", downloadSpeed/1024) .. "Kbps]")
                 end
             end
         end
@@ -224,7 +223,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                 --requested to download a selected list of encounter tables
                 elseif (guildSyncID == "G") then
                     statisticsFrame.RequestedAmount = statisticsFrame.RequestedAmount + #missingIDs
-                    statisticsFrame.SyncText:SetText("working [downloading " .. statisticsFrame.DownloadedAmount .. "/" .. statisticsFrame.RequestedAmount .. "]")
+                    statisticsFrame.SyncText:SetText(Loc["working [downloading "] .. statisticsFrame.DownloadedAmount .. "/" .. statisticsFrame.RequestedAmount .. "]")
                 end
             end
         end
@@ -239,7 +238,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                     local bossName = statisticsFrame.select_boss.label:GetText()
                     local bossDiff = statisticsFrame.select_diff.label:GetText()
                     local guildName = statisticsFrame.select_guild.label:GetText()
-                    local reportTable = {"Details!: DPS Rank for: " .. (bossDiff or "") .. " " .. (bossName or "--x--x--") .. " <" .. (guildName or "") .. ">"}
+                    local reportTable = {Loc["Details!: DPS Rank for: "] .. (bossDiff or "") .. " " .. (bossName or "--x--x--") .. " <" .. (guildName or "") .. ">"}
                     local result = {}
 
                     for i = 1, AmtLines do
@@ -382,8 +381,8 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
 
         local buildRoleList = function()
             return {
-                {value = "damage", label = "Damager", icon = icon, onclick = onRoleSelect},
-                {value = "healing", label = "Healer", icon = icon, onclick = onRoleSelect}
+                {value = "damage", label = Loc["Damager"], icon = icon, onclick = onRoleSelect},
+                {value = "healing", label = Loc["Healer"], icon = icon, onclick = onRoleSelect}
             }
         end
 
@@ -554,23 +553,23 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                             elseif (difficulty == 15) then
                                 local alreadyHave = false
                                 for i, t in ipairs(difficultyList) do
-                                    if (t.label == "Heroic") then
+                                    if (t.label == Loc["Heroic"]) then
                                         alreadyHave = true
                                     end
                                 end
                                 if (not alreadyHave) then
-                                    table.insert(difficultyList, 1, {value = difficulty, label = "Heroic", icon = icon, onclick = onDifficultySelect})
+                                    table.insert(difficultyList, 1, {value = difficulty, label = Loc["Heroic"], icon = icon, onclick = onDifficultySelect})
                                 end
 
                             elseif (difficulty == 16) then
                                 local alreadyHave = false
                                 for i, t in ipairs(difficultyList) do
-                                    if (t.label == "Mythic") then
+                                    if (t.label == Loc["Mythic"]) then
                                         alreadyHave = true
                                     end
                                 end
                                 if (not alreadyHave) then
-                                    table.insert(difficultyList, {value = difficulty, label = "Mythic", icon = icon, onclick = onDifficultySelect})
+                                    table.insert(difficultyList, {value = difficulty, label = Loc["Mythic"], icon = icon, onclick = onDifficultySelect})
                                 end
                             end
                         end
@@ -655,23 +654,23 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                             elseif (difficulty == 15) then
                                 local alreadyHave = false
                                 for i, t in ipairs(difficultyList) do
-                                    if (t.label == "Heroic") then
+                                    if (t.label == Loc["Heroic"]) then
                                         alreadyHave = true
                                     end
                                 end
                                 if (not alreadyHave) then
-                                    table.insert(difficultyList, 1, {value = difficulty, label = "Heroic", icon = icon, onclick = onDifficultySelect})
+                                    table.insert(difficultyList, 1, {value = difficulty, label = Loc["Heroic"], icon = icon, onclick = onDifficultySelect})
                                 end
 
                             elseif (difficulty == 16) then
                                 local alreadyHave = false
                                 for i, t in ipairs(difficultyList) do
-                                    if (t.label == "Mythic") then
+                                    if (t.label == Loc["Mythic"]) then
                                         alreadyHave = true
                                     end
                                 end
                                 if (not alreadyHave) then
-                                    table.insert(difficultyList, {value = difficulty, label = "Mythic", icon = icon, onclick = onDifficultySelect})
+                                    table.insert(difficultyList, {value = difficulty, label = Loc["Mythic"], icon = icon, onclick = onDifficultySelect})
                                 end
                             end
                         end
@@ -727,7 +726,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
 
                         if (player) then
 
-                            --tinsert(data, {text = date, value = player[1], data = player, fulldate = encounter.date, elapsed = encounter.elapsed})
+                            --table.insert(data, {text = date, value = player[1], data = player, fulldate = encounter.date, elapsed = encounter.elapsed})
                             table.insert(data, {text = date, value = player[1]/encounter.elapsed, utext = Details:ToK2 (player[1]/encounter.elapsed), data = player, fulldate = encounter.date, elapsed = encounter.elapsed})
                         end
                     end
@@ -740,10 +739,10 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                         GameCooltip:SetType("tooltip")
                         GameCooltip:Preset(2)
 
-                        GameCooltip:AddLine("Total Done:", Details:ToK2 (self.data.value), 1, "white")
-                        GameCooltip:AddLine("Dps:", Details:ToK2 (self.data.value / self.data.elapsed), 1, "white")
-                        GameCooltip:AddLine("Item Level:", floor(self.data.data [2]), 1, "white")
-                        GameCooltip:AddLine("Date:", self.data.fulldate:gsub(".*%s", ""), 1, "white")
+                        GameCooltip:AddLine(Loc["Total Done:"], Details:ToK2 (self.data.value), 1, "white")
+                        GameCooltip:AddLine(Loc["Dps:"], Details:ToK2 (self.data.value / self.data.elapsed), 1, "white")
+                        GameCooltip:AddLine(Loc["Item Level:"], floor(self.data.data [2]), 1, "white")
+                        GameCooltip:AddLine(Loc["Date:"], self.data.fulldate:gsub(".*%s", ""), 1, "white")
 
                         GameCooltip:SetOwner(self.ball.tooltip_anchor)
                         GameCooltip:Show()
@@ -767,7 +766,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
 
         function statisticsFrame:BuildGuildRankTable(encounterTable, guild, role)
 
-            local header = {{name = "Player Name", type = "text"}, {name = "Per Second", type = "text"}, {name = "Total", type = "text"}, {name = "Length", type = "text"}, {name = "Item Level", type = "text"}, {name = "Date", type = "text"}}
+            local header = {{name = Loc["Player Name"], type = "text"}, {name = Loc["Per Second"], type = "text"}, {name = Loc["Total"], type = "text"}, {name = Loc["Length"], type = "text"}, {name = Loc["Item Level"], type = "text"}, {name = Loc["Date"], type = "text"}}
             local players = {}
             local players_index = {}
 
@@ -853,7 +852,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
                 return
             end
 
-            local header = {{name = "Player Name", type = "text"}} -- , width = 90
+            local header = {{name = Loc["Player Name"], type = "text"}} -- , width = 90
             local players = {}
             local players_index = {}
             local player_class = {}

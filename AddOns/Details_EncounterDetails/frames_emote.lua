@@ -203,12 +203,12 @@ for i = 1, CONST_EMOTES_MAX_LINES do
     line.icon:SetPoint("left", line, "left", 2, 0)
     line.icon:SetSize(14, 14)
 
-    line.leftText = line:CreateFontString(nil, "overlay", "GameFontHighlight")
+    line.leftText = line:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     line.leftText:SetPoint("left", line.icon, "right", 2, 0)
     line.leftText:SetHeight(14)
     line.leftText:SetJustifyH("left")
 
-    line.rightText = line:CreateFontString(nil, "overlay", "GameFontHighlight")
+    line.rightText = line:CreateFontString(nil, "overlay", "GameFontHighlightSmall")
     line.rightText:SetPoint("left", line.icon, "right", 46, 0)
     line.rightText:SetHeight(14)
     line.rightText:SetJustifyH("left")
@@ -224,7 +224,7 @@ for i = 1, CONST_EMOTES_MAX_LINES do
 end
 
 --select emote segment
-local emotesSegmentLabel = detailsFramework:CreateLabel(edFrame, "Segment:", 11, nil, "GameFontHighlight")
+local emotesSegmentLabel = detailsFramework:CreateLabel(edFrame, "Segment:", 11, nil, "GameFontHighlightSmall")
 emotesSegmentLabel:SetPoint("topleft", edFrame, "topleft", 10, -85)
 
 local onEmoteSegmentSelected = function(_, _, segment)
@@ -276,10 +276,10 @@ table.insert(edFrame.EmoteWidgets, emoteSegmentsDropdown)
 table.insert(edFrame.EmoteWidgets, emotesSegmentLabel)
 
 --search box
-local emotesSearchLabel = detailsFramework:CreateLabel(edFrame, "搜尋:", 13, nil, "GameFontHighlight")
+local emotesSearchLabel = detailsFramework:CreateLabel(edFrame, "Search:", 11, nil, "GameFontHighlightSmall")
 emotesSearchLabel:SetPoint("topleft", edFrame, "topleft", 10, -130)
 
-local emotesSearchResultsLabel = detailsFramework:CreateLabel(edFrame, "", 13, nil, "GameFontNormal", "SearchResults")
+local emotesSearchResultsLabel = detailsFramework:CreateLabel(edFrame, "", 11, nil, "GameFontNormal", "SearchResults")
 emotesSearchResultsLabel:SetPoint("topleft", edFrame, "topleft", 10, -190)
 
 local searchTextEntry = detailsFramework:NewTextEntry(edFrame, nil, "$parentEmoteSearchBox", nil, 180, 20)
@@ -349,7 +349,7 @@ local reportEmoteButton = detailsFramework:NewButton(edFrame, nil, "$parentRepor
 
             encounterDetails:SendReportLines(encounterDetails.report_lines)
         else
-            encounterDetails:Msg("沒有什麼可報告。")
+            encounterDetails:Msg("There is nothing to report.")
         end
     end
 
@@ -369,5 +369,5 @@ for _, widget in pairs(edFrame.EmoteWidgets) do
     widget:Hide()
 end
 
-local emoteReportLabel = detailsFramework:NewLabel(searchTextEntry.widget, searchTextEntry.widget, nil, "report_click", "|cFFffb400左鍵點擊|r: 報告行")
+local emoteReportLabel = detailsFramework:NewLabel(searchTextEntry.widget, searchTextEntry.widget, nil, "report_click", "|cFFffb400Left Click|r: Report Line")
 emoteReportLabel:SetPoint("topleft", searchTextEntry.widget, "bottomleft", 1, -61)

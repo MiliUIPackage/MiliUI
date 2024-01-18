@@ -454,7 +454,7 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 
 			elseif (shortMethod == 1) then
 				local loop = true
-				local textSize = 11
+				local textSize = 15
 				while (loop) do
 					if (textWidth + 15 + iconWidth < buttonWidth or textSize < 8) then
 						loop = false
@@ -829,7 +829,7 @@ end
 		self.text:SetJustifyH("CENTER")
 		self.text:SetPoint("CENTER", self, "CENTER", 0, 0)
 		self:SetFontString(self.text)
-		detailsFramework:SetFontSize(self.text, 10)
+		detailsFramework:SetFontSize(self.text, 14)
 
 		self.texture_disabled = self:CreateTexture("$parent_TextureDisabled", "OVERLAY")
 		self.texture_disabled:SetAllPoints()
@@ -969,7 +969,7 @@ end
 
 			elseif (shortMethod == 1) then
 				local loop = true
-				local textsize = 11
+				local textsize = 15
 				while (loop) do
 					if (textWidth + 15 < width or textsize < 8) then
 						loop = false

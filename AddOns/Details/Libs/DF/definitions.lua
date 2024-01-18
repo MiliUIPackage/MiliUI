@@ -9,7 +9,7 @@
 ---@field deploy fun(tblReceiving:table, tblGiving:table) : table copy keys/values that does exist on tblGiving but not in tblReceiving
 ---@field copytocompress fun(tblReceiving:table, tblGiving:table) : table copy the values from table2 to table1 overwriting existing values, ignores __index, functions and tables with a 'GetObjectType' key
 ---@field removeduplicate fun(tbl1:table, tbl2:table) remove the keys from table1 which also exists in table2 with the same value
----@field getfrompath fun(tbl:table, path:string) : any get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c
+---@field getfrompath fun(tbl:table, path:string, subOffset:number?) : any get a value from a table using a path, e.g. getfrompath(tbl, "a.b.c") is the same as tbl.a.b.c; if subOffset is passed, return the subOffset'th value of the path
 ---@field setfrompath fun(tbl:table, path:string, value:any) : boolean set the value of a table using a path, e.g. setfrompath(tbl, "a.b.c", 10) is the same as tbl.a.b.c = 10
 ---@field dump fun(tbl:table) : string dump a table to a string
 
@@ -45,6 +45,7 @@
 
 ---@class detailsframework
 ---@field dversion number
+---@field internalFunctions table
 ---@field OptionsFunctions df_optionsmixin
 ---@field GlobalWidgetControlNames table
 ---@field RoundedCornerPanelMixin df_roundedcornermixin
@@ -56,7 +57,7 @@
 ---@field EditorMixin df_editormixin
 ---@field ClassCache {ID:number, Name:string, FileString:string, Texture:string, TexCoord:number[]}[] only available after calling GetClassList()
 ---@field Math df_math
----@field FontOutlineFlags {key1:outline, key2:string}[]
+---@field FontOutlineFlags table<outline, boolean>
 ---@field table df_table_functions
 ---@field AnchorPoints string[]
 ---@field ClassFileNameToIndex table<string, number> engClass -> classIndex
@@ -102,7 +103,7 @@
 ---@field CommaValue fun(self:table, value:number) : string convert a number to a string with commas, e.g. 1000000 -> 1,000,000
 ---@field SplitTextInLines fun(self:table, text:string) : string[] split a text into lines
 ---@field UnitGroupRolesAssigned fun(unitId: unit, bUseSupport:boolean, specId: specializationid) : string there's no self here
----@field SetAnchor fun(self:table, widget:uiobject, anchorTable:df_anchor, anchorTo:uiobject)
+---@field SetAnchor fun(self:table, widget:uiobject, anchorTable:df_anchor, anchorTo:uiobject?) only adjust the anchors of a widget, does not save values
 ---@field AddTextureToText fun(text:string, textureInfo:table, bAddSpace:boolean?, bAddAfterText:boolean) : string textureInfo is a table with .texture .width .height .coords{left, right, top, bottom}
 ---@field CreateTextureInfo fun(texture:atlasname|texturepath|textureid, width:number?, height:number?, left:number?, right:number?, top:number?, bottom:number?, imageWidthnumber?, imageHeightnumber?) : table
 ---@field ApplyStandardBackdrop fun(self:table, frame:frame, bUseSolidColor:boolean?, alphaScale:number?)
@@ -132,8 +133,15 @@
 ---@field CreateAuraScrollBox fun(self:table, parent:frame, name:string?, data:table?, onRemoveCallback:function?, options:table?) : df_aurascrollbox
 ---@field CreateGridScrollBox fun(self:table, parent:frame, name:string?, refreshFunc:function, data:table?, createColumnFrameFunc:function, options:table?) : df_gridscrollbox
 ---@field CreateCanvasScrollBox fun(self:table, parent:frame, child:frame?, name:string?, options:table?) : df_canvasscrollbox
+---@field CreateTabContainer fun(self:table, parent:frame, title:string, frameName:string, tabList:df_tabinfotable[], optionsTable:table?, hookList:table?, languageInfo:table?) : df_tabcontainer
 ---@field GetSizeFromPercent fun(self:table, uiObject:uiobject, percent:number) : number get the min size of a uiObject and multiply it by the percent passed
 ---@field BuildMenu fun(self:table, parent:frame, menuOptions:df_menu_table[], xOffset:number?, yOffset:number?, height:number?, useColon:boolean?, textTemplate:table?, dropdownTemplate:table?, switchTemplate:table?, switchIsCheckbox:boolean?, sliderTemplate:table?, buttonTemplate:table?, valueChangeHook:function?)
 ---@field BuildMenuVolatile fun(self:table, parent:frame, menuOptions:df_menu_table[], xOffset:number?, yOffset:number?, height:number?, useColon:boolean?, textTemplate:table?, dropdownTemplate:table?, switchTemplate:table?, switchIsCheckbox:boolean?, sliderTemplate:table?, buttonTemplate:table?, valueChangeHook:function?)
+---@field GetColorBrightness fun(self:table, r:number, g:number, b:number) : number return the brightness of a color from zero to one
+---@field GetColorHue fun(self:table, r:number, g:number, b:number) : number return the hue of a color from red to blue to green to  yellow and back to red
+---@field IsHtmlColor fun(self:table, colorName:any) : unknown return true if DF.alias_text_colors has the colorName as a key
+---@field CreateColorTable fun(self:table, r:number, g:number, b:number, a:number) : table return a table with {r, g, b, a}
+---@field FormatColor fun(self:table, newFormat:string, r:number|string, g:number?, b:number?, a:number?, decimalsAmount:number?) : string|table|number|nil, number|nil, number|nil, number|nil takes in a color in one format and converts it to another specified format.
 ---@field 
 ---@field 
+

@@ -62,7 +62,7 @@ local VanguardFrame = Vanguard.Frame
 
 local onUpdateFrame = CreateFrame("frame")
 
-Vanguard:SetPluginDescription (Loc ["Show debuffs on each tanks in the raid, also shows incoming heal and damage and the last hits you took."])
+Vanguard:SetPluginDescription (Loc["Show debuffs on each tanks in the raid, also shows incoming heal and damage and the last hits you took."])
 
 Vanguard.auraUpdateFrames = {}
 for i = 1, CONST_MAX_TANKS do
@@ -98,7 +98,7 @@ local function CreatePluginFrames (data)
 				welcome:SetSize(400, 200)
 				DF:ApplyStandardBackdrop(welcome)
 				
-				local str = Details.gump:CreateLabel(welcome, Loc ["Welcome to Vanguard!\n\n\n- The green-left bar represents the incoming healing plus absorbs on the tank.\n\n- The red-right show the incoming damage.\n\n- Tanks health bar and debuffs on them are shown in the bottom side.\n\n- Click anywhere to show options."], nil, nil, "GameFontNormal")
+				local str = Details.gump:CreateLabel(welcome, Loc["Welcome to Vanguard!\n\n\n- The green-left bar represents the incoming healing plus absorbs on the tank.\n\n- The red-right show the incoming damage.\n\n- Tanks health bar and debuffs on them are shown in the bottom side.\n\n- Click anywhere to show options."], nil, nil, "GameFontNormal")
 				str:SetPoint(15, -15)
 				str:SetWidth(375)
 				
@@ -926,7 +926,7 @@ end
 
 
 local build_options_panel = function()
-	local options_frame = Vanguard:CreatePluginOptionsFrame ("VanguardOptionsWindow", "Vanguard Options", 1)
+	local options_frame = Vanguard:CreatePluginOptionsFrame ("VanguardOptionsWindow", Loc["Vanguard Options"], 1)
 	
 	local tank_texture_set = function(_, _, value) 
 		Vanguard.db.tank_block_texture = value;
@@ -960,8 +960,8 @@ local build_options_panel = function()
 			type = "select",
 			get = function() return Vanguard.db.tank_block_texture end,
 			values = function() return tank_texture_menu end,
-			--desc = Loc ["Choose the texture used on tank blocks."],
-			name = Loc ["Texture"]
+			--desc = "Choose the texture used on tank blocks.",
+			name = Loc["Texture"]
 		},
 
 		{type = "blank"},	
@@ -971,7 +971,7 @@ local build_options_panel = function()
 			get = function() return Vanguard.db.show_inc_bars end,
 			set = function(self, fixedparam, value) Vanguard.db.show_inc_bars = value; Vanguard:ResetBars() end,
 			--desc = "Shows the incoming heal vs incoming damage.",
-			name = Loc ["Show Incoming Damage"]
+			name = Loc["Show Incoming Damage"]
 		},
 		{
 			type = "range",
@@ -984,8 +984,8 @@ local build_options_panel = function()
 			min = 10,
 			max = 50,
 			step = 1,
-			--desc = Loc ["Inc Damage Height"],
-			name = Loc ["Incoming Damage Height"],
+			--desc = "Inc Damage Height",
+			name = Loc["Incoming Damage Height"],
 		},
 		{type = "blank"},
 
@@ -993,19 +993,19 @@ local build_options_panel = function()
 			type = "toggle",
 			get = function() return Vanguard.db.show_health_bar end,
 			set = function(self, fixedparam, value) Vanguard.db.show_health_bar = value; Vanguard:RefreshTanks(); Vanguard:ResetBars() end,
-			name = Loc ["Show Health Bar"]
+			name = Loc["Show Health Bar"]
 		},
 		{
 			type = "toggle",
 			get = function() return Vanguard.db.show_cast_bar end,
 			set = function(self, fixedparam, value) Vanguard.db.show_cast_bar = value; Vanguard:RefreshTanks(); Vanguard:ResetBars() end,
-			name = Loc ["Show Cast Bar"]
+			name = Loc["Show Cast Bar"]
 		},
 		{
 			type = "toggle",
 			get = function() return Vanguard.db.show_power_bar end,
 			set = function(self, fixedparam, value) Vanguard.db.show_power_bar = value; Vanguard:RefreshTanks(); Vanguard:ResetBars() end,
-			name = Loc ["Show Power Bar"]
+			name = Loc["Show Power Bar"]
 		},
 
 		{
@@ -1015,8 +1015,8 @@ local build_options_panel = function()
 			min = 70,
 			max = 250,
 			step = 1,
-			--desc = Loc ["Set the width of the blocks showing the tanks."],
-			name = Loc ["Health Bar Width"],
+			--desc = "Set the width of the blocks showing the tanks.",
+			name = Loc["Health Bar Width"],
 		},
 		{
 			type = "range",
@@ -1025,7 +1025,7 @@ local build_options_panel = function()
 			min = 10,
 			max = 100,
 			step = 1,
-			name = Loc ["Health Bar Height"],
+			name = Loc["Health Bar Height"],
 		},
 		{
 			type = "range",
@@ -1034,7 +1034,7 @@ local build_options_panel = function()
 			min = 10,
 			max = 60,
 			step = 1,
-			name = Loc ["Cast Bar Height"],
+			name = Loc["Cast Bar Height"],
 		},		
 		{
 			type = "range",
@@ -1043,7 +1043,7 @@ local build_options_panel = function()
 			min = 10,
 			max = 60,
 			step = 1,
-			name = Loc ["Power Bar Height"],
+			name = Loc["Power Bar Height"],
 		},
 		{
 			type = "color",
@@ -1053,8 +1053,8 @@ local build_options_panel = function()
 				current[1], current[2], current[3], current[4] = r, g, b, a;
 				Vanguard:RefreshTanks()
 			end,
-			--desc = Loc ["Select the color of the tank block background."],
-			name = Loc ["Health Bar Background Color"]
+			--desc = "Select the color of the tank block background.",
+			name = Loc["Health Bar Background Color"]
 		},
 
 		{type = "blank"},
@@ -1065,7 +1065,7 @@ local build_options_panel = function()
 			min = -20,
 			max = 20,
 			step = 1,
-			name = Loc ["Debuff Y Offset"],
+			name = Loc["Debuff Y Offset"],
 		},
 		{
 			type = "range",
@@ -1074,7 +1074,7 @@ local build_options_panel = function()
 			min = 6,
 			max = 24,
 			step = 1,
-			name = Loc ["Debuff Text Size"],
+			name = Loc["Debuff Text Size"],
 		},
 	}
 
@@ -1127,7 +1127,7 @@ function Vanguard:OnEvent (_, event, arg1, token, time, who_serial, who_name, wh
 				--Install
 				function Vanguard:OnDetailsEvent() end --dummy func to stop warnings.
 				
-				local install, saveddata = _G.Details:InstallPlugin ("TANK", "Vanguard", "Interface\\Icons\\INV_Shield_04", Vanguard, "DETAILS_PLUGIN_VANGUARD", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", "v3.0", default_saved_table)
+				local install, saveddata = _G.Details:InstallPlugin ("TANK", Loc["Vanguard"], "Interface\\Icons\\INV_Shield_04", Vanguard, "DETAILS_PLUGIN_VANGUARD", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", "v3.0", default_saved_table)
 				if (type(install) == "table" and install.error) then
 					print(install.error)
 				end

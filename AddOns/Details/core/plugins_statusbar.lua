@@ -8,7 +8,7 @@
 	local DEFAULT_CHILD_HEIGHT = 16
 	local DEFAULT_CHILD_FONTFACE = "Friz Quadrata TT"
 	local DEFAULT_CHILD_FONTCOLOR = {1, 0.733333, 0, 1}
-	local DEFAULT_CHILD_FONTSIZE = 13
+	local DEFAULT_CHILD_FONTSIZE = 10
 	local _
 
 	local unpack = unpack
@@ -366,9 +366,9 @@
 		Details.StatusBar:ApplyOptions(instance.StatusBar.center, "textface", "Friz Quadrata TT")
 		Details.StatusBar:ApplyOptions(instance.StatusBar.right, "textface", "Friz Quadrata TT")
 
-		Details.StatusBar:ApplyOptions(instance.StatusBar.left, "textsize", 12)
-		Details.StatusBar:ApplyOptions(instance.StatusBar.center, "textsize", 12)
-		Details.StatusBar:ApplyOptions(instance.StatusBar.right, "textsize", 12)
+		Details.StatusBar:ApplyOptions(instance.StatusBar.left, "textsize", 9)
+		Details.StatusBar:ApplyOptions(instance.StatusBar.center, "textsize", 9)
+		Details.StatusBar:ApplyOptions(instance.StatusBar.right, "textsize", 9)
 	end
 
 	function Details.StatusBar:GetIndexFromAbsoluteName(absoluteName)
@@ -460,7 +460,7 @@
 		local newLabel = detailsFramework:NewLabel(frame, nil, "$parentText", "text", "0")
 		newLabel:SetPoint("right", frame, "right", 0, 0)
 		newLabel:SetJustifyH("right")
-		Details:SetFontSize(newLabel, 12.8)
+		Details:SetFontSize(newLabel, 13.8)
 
 		frame:SetHook("OnEnter", OnEnter)
 		frame:SetHook("OnLeave", OnLeave)
@@ -541,7 +541,7 @@
 			if (value == nil) then
 				value = child.options.textSize
 			end
-			child.options.textSize = value or 12
+			child.options.textSize = value or 9
 			child:SetFontSize(child.text, child.options.textSize)
 
 		elseif (option == "textface") then
@@ -908,11 +908,11 @@ do
 					if (timeType == 1) then
 						local combatTime = combatObject:GetCombatTime()
 						local minutos, segundos = math.floor(combatTime/60), math.floor(combatTime%60)
-						childObject.text:SetText(minutos .. "m " .. segundos .. "s")
+						childObject.text:SetText(minutos .. Loc["m "] .. segundos .. Loc["s"])
 
 					elseif (timeType == 2) then
 						local combatTime = combatObject:GetCombatTime()
-						childObject.text:SetText(combatTime .. "s")
+						childObject.text:SetText(combatTime .. Loc["s"])
 
 					elseif (timeType == 3) then
 						local segmentId = instance:GetSegmentId()
@@ -929,9 +929,9 @@ do
 						local currentCombatTime = combatObject:GetCombatTime()
 
 						if (lastFight) then
-							childObject.text:SetText(currentCombatTime - lastFight:GetCombatTime() .. "s")
+							childObject.text:SetText(currentCombatTime - lastFight:GetCombatTime() .. Loc["s"])
 						else
-							childObject.text:SetText(currentCombatTime .. "s")
+							childObject.text:SetText(currentCombatTime .. Loc["s"])
 						end
 					end
 				end

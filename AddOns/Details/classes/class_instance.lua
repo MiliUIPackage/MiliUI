@@ -2943,10 +2943,10 @@ function Details:GetInstanceAttributeText()
 			if (plugin_object) then
 				return plugin_object.__name
 			else
-				return "Unknown Plugin"
+				return Loc["Unknown Plugin"]
 			end
 		else
-			return "Unknown Plugin"
+			return Loc["Unknown Plugin"]
 		end
 
 	elseif (self.modo == modo_alone) then
@@ -2955,7 +2955,7 @@ function Details:GetInstanceAttributeText()
 		if (SoloInfo) then
 			return SoloInfo [1]
 		else
-			return "Unknown Plugin"
+			return Loc["Unknown Plugin"]
 		end
 	end
 end
@@ -3326,7 +3326,7 @@ function Details:FormatReportLines (report_table, data, f1, f2, f3)
 	end
 	local _, fontSize = FCF_GetChatWindowInfo (1)
 	if (fontSize < 1) then
-		fontSize = 13
+		fontSize = 10
 	end
 	local fonte, _, flags = Details.fontstring_len:GetFont()
 	Details.fontstring_len:SetFont(fonte, fontSize, flags)

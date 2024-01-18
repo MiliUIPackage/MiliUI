@@ -1,6 +1,7 @@
 
 local Details = Details
 local DF = DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local _
 
 --namespace
@@ -154,16 +155,16 @@ function Details.AuraTracker.CreatePanel()
     statusBar.text = statusBar:CreateFontString(nil, "overlay", "GameFontNormal")
     statusBar.text:SetPoint("left", statusBar, "left", 5, 0)
     statusBar.text:SetText("By Terciob | Part of Details! Damage Meter")
-    DetailsFramework:SetFontSize(statusBar.text, 14)
+    DetailsFramework:SetFontSize(statusBar.text, 11)
     DetailsFramework:SetFontColor(statusBar.text, "gray")
 
     --header
     local headerTable = {
         {text = "", width = 20},
-        {text = "光環名稱", width = 162},
-        {text = "法術Id", width = 100},
-        {text = "Lua Table", width = 200},
-        {text = "Payload (Points)", width = 296},
+        {text = Loc["Aura Name"], width = 162},
+        {text = Loc["Spell Id"], width = 100},
+        {text = Loc["Lua Table"], width = 200},
+        {text = Loc["Payload (Points)"], width = 296},
     }
     local headerOptions = {
         padding = 2,

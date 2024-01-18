@@ -190,7 +190,7 @@ local safe_load = function(func, param1, ...)
 			Details:CreatePanicWarning()
 		end
 		Details.do_not_save_skins = true
-		Details.instance_load_failed.text:SetText("Failed to load a Details! window.\n/reload or reboot the game client may fix the problem.\nIf the problem persist, try /details reinstall.\nError: " .. errortext .. "")
+		Details.instance_load_failed.text:SetText(Loc["Failed to load a Details! window.\n/reload or reboot the game client may fix the problem.\nIf the problem persist, try /details reinstall.\nError: "] .. errortext .. "")
 	end
 	return okey
 end
@@ -201,7 +201,7 @@ function Details:ApplyProfile(profileName, bNoSave, bIsCopy)
 
 	--if the profile doesn't exist, just quit
 		if (not profile) then
-			Details:Msg("Profile Not Found.")
+			Details:Msg(Loc["Profile Not Found."])
 			return false
 		end
 
@@ -355,10 +355,10 @@ function Details:ApplyProfile(profileName, bNoSave, bIsCopy)
 						instance.posicao = Details.CopyTable(skin.__pos)
 					else
 						if (not instance.posicao) then
-							print(Loc ["|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
+							print(Loc["|cFFFF2222Details!: Position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
 							instance.posicao = {normal = {x = 1, y = 1, w = 300, h = 200}, solo = {}}
 						elseif (not instance.posicao.normal) then
-							print(Loc ["|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
+							print(Loc["|cFFFF2222Details!: Normal position for a window wasn't found! Moving it to the center of the screen.|r\nType '/details exitlog' to check for errors."])
 							instance.posicao.normal = {x = 1, y = 1, w = 300, h = 200}
 						end
 					end
@@ -494,6 +494,14 @@ function Details:ApplyProfile(profileName, bNoSave, bIsCopy)
 	if (Details.time_type == 3 or not Details.time_type) then
 		Details.time_type = 2
 	end
+
+	--enable all captures, this is a fix for the old performance profiles which doesn't exiss anymore
+	Details.capture_real["damage"] = true
+	Details.capture_real["heal"] = true
+	Details.capture_real["energy"] = true
+	Details.capture_real["miscdata"] = true
+	Details.capture_real["aura"] = true
+	Details.capture_real["spellcast"] = true
 
 	return true
 end
@@ -949,7 +957,7 @@ local default_profile = {
 		memory_ram = 64,
 		remove_realm_from_name = true,
 		trash_concatenate = false,
-		trash_auto_remove = true, -- 更改預設值
+		trash_auto_remove = false,
 		world_combat_is_trash = false,
 
 	--death log
@@ -1038,7 +1046,7 @@ local default_profile = {
 			},
 			options_frame = {},
 			enabled = false,
-			font_size = 13,
+			font_size = 14,
 			font_color = {1, 1, 1, 1},
 			font_shadow = "NONE",
 			font_face = "Friz Quadrata TT",
@@ -1092,8 +1100,8 @@ local default_profile = {
 	--tooltip
 		tooltip = {
 			fontface = "Friz Quadrata TT",
-			fontsize = 13,
-			fontsize_title = 13,
+			fontsize = 14,
+			fontsize_title = 14,
 			fontcolor = {1, 1, 1, 1},
 			fontcolor_right = {1, 0.7, 0, 1}, --{1, 0.9254, 0.6078, 1}
 			fontshadow = false,
@@ -1169,7 +1177,7 @@ local default_player_data = {
 			players = {
 				--damage done by each player
 				{
-					name = "每個個別玩家的傷害",
+					name = Loc["Damage of Each Individual Player"],
 					combatObjectContainer = 1,
 					playerOnly = true,
 					playerKey = "total",
@@ -1179,7 +1187,7 @@ local default_player_data = {
 			totals = {
 				--total damage done by the raid group
 				{
-					name = "全部玩家的傷害總和",
+					name = Loc["Damage of All Player Combined"],
 					combatObjectSubTableName = "totals",
 					combatObjectSubTableKey = 1,
 				},
@@ -1346,6 +1354,7 @@ local default_global_data = {
 		custom = {},
 		savedStyles = {},
 		savedCustomSpells = {},
+		userCustomSpells = {}, --spells modified by the user
 		savedTimeCaptures = {},
 		lastUpdateWarning = 0,
 		update_warning_timeout = 10,
@@ -1371,7 +1380,10 @@ local default_global_data = {
 			["14"] = false,
 		},
 		current_exp_raid_encounters = {},
+		encounter_journal_cache = {}, --store a dump of the encounter journal
 		installed_skins_cache = {},
+
+		user_is_patreon_supporter = false,
 
 		show_aug_predicted_spell_damage = false,
 
@@ -1386,8 +1398,8 @@ local default_global_data = {
 		merge_pet_abilities = false,
 		merge_player_abilities = false,
 
-		played_class_time = true,
-		check_stuttering = false,
+		played_class_time = false, -- 遊戲時間洗頻訊息
+		check_stuttering = false,  -- 檢查卡頓
 
 		--[bossname] = texture
 		boss_icon_cache = {},
@@ -1407,7 +1419,7 @@ local default_global_data = {
 	--all switch settings (panel shown when right click the title bar)
 		all_switch_config = {
 			scale = 1,
-			font_size = 10,
+			font_size = 14,
 		},
 
 	--keystone window
@@ -1482,7 +1494,7 @@ local default_global_data = {
 		genericcontainer_headers_right = {}, --store information about active headers and their sizes (generic right)
 
 		spellcontainer_header_height = 20,
-		spellcontainer_header_fontsize = 13,
+		spellcontainer_header_fontsize = 14,
 		spellcontainer_header_fontcolor = {1, 1, 1, 1},
 	},
 
@@ -1515,7 +1527,7 @@ local default_global_data = {
 			ctrl_click_close_tutorial = false,
 		},
 
-		performance_profiles = {
+		performance_profiles = { --deprecated
 			["RaidFinder"] = {enabled = false, update_speed = 1, use_row_animations = false, damage = true, heal = true, aura = true, energy = false, miscdata = true},
 			["Raid15"] = {enabled = false, update_speed = 1, use_row_animations = false, damage = true, heal = true, aura = true, energy = false, miscdata = true},
 			["Raid30"] = {enabled = false, update_speed = 1, use_row_animations = false, damage = true, heal = true, aura = true, energy = false, miscdata = true},
@@ -1594,19 +1606,21 @@ local default_global_data = {
 			mythicrun_chart_frame = {},
 			mythicrun_chart_frame_minimized = {},
 			mythicrun_chart_frame_ready = {},
-		},
+
+			mythicrun_time_type = 1, --1: combat time (the amount of time the player is in combat) 2: run time (the amount of time it took to finish the mythic+ run)
+		}, --implementar esse time_type quando estiver dando refresh na janela
 
 	--plugin window positions
 		plugin_window_pos = {},
 
 	--run code
 		run_code = {
-			["on_specchanged"] = Loc ["\n-- run when the player changes its spec"],
-			["on_zonechanged"] = Loc ["\n-- when the player changes zone, this code will run"],
-			["on_init"] = Loc ["\n-- code to run when Details! initializes, put here code which only will run once\n-- this also will run then the profile is changed\n\n--size of the death log tooltip in the Deaths display (default 350)\nDetails.death_tooltip_width = 350;\n\n--when in arena or battleground, details! silently switch to activity time (goes back to the old setting on leaving, default true)\nDetails.force_activity_time_pvp = true;\n\n--speed of the bar animations (default 33)\nDetails.animation_speed = 33;\n\n--threshold to trigger slow or fast speed (default 0.45)\nDetails.animation_speed_mintravel = 0.45;\n\n--call to update animations\nDetails:RefreshAnimationFunctions();\n\n--max window size, does require a /reload to work (default 480 x 450)\nDetails.max_window_size.width = 480;\nDetails.max_window_size.height = 450;\n\n--use the arena team color as the class color (default true)\nDetails.color_by_arena_team = true;\n\n--how much time the update warning is shown (default 10)\nDetails.update_warning_timeout = 10;"],
-			["on_leavecombat"] = Loc ["\n-- this code runs when the player leave combat"],
-			["on_entercombat"] = Loc ["\n-- this code runs when the player enters in combat"],
-			["on_groupchange"] = Loc ["\n-- this code runs when the player enter or leave a group"],
+			["on_specchanged"] = Loc["\n-- run when the player changes its spec"],
+			["on_zonechanged"] = Loc["\n-- when the player changes zone, this code will run"],
+			["on_init"] = Loc["\n-- code to run when Details! initializes, put here code which only will run once\n-- this also will run then the profile is changed\n\n--size of the death log tooltip in the Deaths display (default 350)\nDetails.death_tooltip_width = 350;\n\n--when in arena or battleground, details! silently switch to activity time (goes back to the old setting on leaving, default true)\nDetails.force_activity_time_pvp = true;\n\n--speed of the bar animations (default 33)\nDetails.animation_speed = 33;\n\n--threshold to trigger slow or fast speed (default 0.45)\nDetails.animation_speed_mintravel = 0.45;\n\n--call to update animations\nDetails:RefreshAnimationFunctions();\n\n--max window size, does require a /reload to work (default 480 x 450)\nDetails.max_window_size.width = 480;\nDetails.max_window_size.height = 450;\n\n--use the arena team color as the class color (default true)\nDetails.color_by_arena_team = true;\n\n--how much time the update warning is shown (default 10)\nDetails.update_warning_timeout = 10;"],
+			["on_leavecombat"] = Loc["\n-- this code runs when the player leave combat"],
+			["on_entercombat"] = Loc["\n-- this code runs when the player enters in combat"],
+			["on_groupchange"] = Loc["\n-- this code runs when the player enter or leave a group"],
 		},
 
 	--plater integration
@@ -1848,7 +1862,7 @@ function Details:ExportCurrentProfile()
 	--data saved inside the profile
 	local profileObject = Details:GetProfile (Details:GetCurrentProfileName())
 	if (not profileObject) then
-		Details:Msg(Loc ["fail to get the current profile."])
+		Details:Msg(Loc["fail to get the current profile."])
 		return false
 	end
 
@@ -1898,7 +1912,7 @@ end
 ---@return boolean
 function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCode, bIsFromImportPrompt)
 	if (not newProfileName or type(newProfileName) ~= "string" or string.len(newProfileName) < 2) then
-		Details:Msg(Loc ["invalid profile name or profile name is too short."]) --localize-me
+		Details:Msg(Loc["invalid profile name or profile name is too short."]) --localize-me
 		return false
 	end
 
@@ -1919,7 +1933,7 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 			--profile doesn't exists, create new
 			profileObject = Details:CreateProfile (newProfileName)
 			if (not profileObject) then
-				Details:Msg(Loc ["failed to create a new profile."])--localize-me
+				Details:Msg(Loc["failed to create a new profile."])--localize-me
 				return
 			end
 		end
@@ -2005,13 +2019,13 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 		end
 
 		if(nameWasDuplicate) then
-			Details:Msg("profile name already exists and was imported as:", newProfileName)--localize-me
+			Details:Msg(Loc["profile name already exists and was imported as:"], newProfileName)--localize-me
 		else
-			Details:Msg("設定檔成功匯入。")--localize-me
+			Details:Msg(Loc["profile successfully imported."])--localize-me
 		end
 		return true
 	else
-		Details:Msg("無法解壓縮設定檔數據。")--localize-me
+		Details:Msg(Loc["failed to decompress profile data."])--localize-me
 		return false
 	end
 end
@@ -2056,7 +2070,7 @@ function Details.ShowImportProfileConfirmation(message, callback)
 		--create the checkbox label with the text: "Import Auto Run Scripts"
 		local checkboxLabel = promptFrame:CreateFontString(nil, "overlay", "GameFontNormal")
 		checkboxLabel:SetPoint("left", checkbox.widget, "right", 2, 0)
-		checkboxLabel:SetText("匯入自動運行腳本")
+		checkboxLabel:SetText("Import Auto Run Scripts")
 		checkboxLabel:SetJustifyH("left")
 		promptFrame.checkboxLabel = checkboxLabel
 

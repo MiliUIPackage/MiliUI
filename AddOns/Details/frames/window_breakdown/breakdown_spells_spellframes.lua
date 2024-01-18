@@ -21,7 +21,7 @@ local CONST_SPELLSCROLL_LINEHEIGHT = 20
 local CONST_TARGET_TEXTURE = [[Interface\MINIMAP\TRACKING\Target]]
 local CONST_SPELLBLOCK_DEFAULT_COLOR = {.4, .4, .4, 1}
 local CONST_SPELLBLOCK_HEADERTEXT_COLOR = {.9, .8, 0, 1}
-local CONST_SPELLBLOCK_HEADERTEXT_SIZE = 14
+local CONST_SPELLBLOCK_HEADERTEXT_SIZE = 11
 
 local spellBlockContainerSettings = {
 	amount = 6, --amount of block the container have
@@ -536,9 +536,9 @@ function spellsTab.CreateSpellBlock(spellBlockContainer, index) --~breakdownspel
 		local line = CreateFrame("frame", "$parentLine" .. i, spellBlock)
 		spellBlock.Lines[i] = line
 
-		line.leftText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlight")
-		line.centerText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlight")
-		line.rightText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlight")
+		line.leftText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlightSmall")
+		line.centerText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlightSmall")
+		line.rightText = line:CreateFontString("$parentLeftText", "overlay", "GameFontHighlightSmall")
 
 		line.leftText:SetPoint("left", line, "left", 2, 0)
 		line.leftText:SetJustifyH("left")

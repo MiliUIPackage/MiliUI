@@ -49,10 +49,8 @@ end
 
 --]]
 
---precisa converter um wipe em um trash segment? provavel que sim
-
--- at the end of a mythic run, if enable on settings, merge all the segments from the mythic run into only one
 function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
+    --at the end of a mythic run, if enable on settings, merge all the segments from the mythic run into only one
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
         print("Details!", "MergeSegmentsOnEnd() > starting to merge mythic segments.", "InCombatLockdown():", InCombatLockdown())
     end
@@ -66,16 +64,20 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
     local newCombat = Details:GetCurrentCombat()
     local segmentsTable = Details:GetCombatSegments()
 
-    local totalTime = 0
+    newCombat.is_challenge = true
+
+    local timeInCombat = 0
     local startDate, endDate = "", ""
     local lastSegment
     local totalSegments = 0
 
+    --copy deaths occured on all segments to the new segment, also sum the activity combat time
     if (Details.mythic_plus.reverse_death_log) then
         for i = 1, 40 do --copy the deaths from the first segment to the last one
             local thisCombat = segmentsTable[i]
             if (thisCombat and thisCombat.is_mythic_dungeon_run_id == Details.mythic_dungeon_id) then
                 newCombat:CopyDeathsFrom(thisCombat, true)
+                timeInCombat = timeInCombat + thisCombat:GetCombatTime()
             end
         end
     else
@@ -84,10 +86,45 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
             if (thisCombat) then
                 if (thisCombat.is_mythic_dungeon_run_id == Details.mythic_dungeon_id) then
                     newCombat:CopyDeathsFrom(thisCombat, true)
+                    timeInCombat = timeInCombat + thisCombat:GetCombatTime()
                 end
             end
         end
     end
+
+    local zoneName, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
+
+    --tag the segment as mythic overall segment
+    newCombat.is_mythic_dungeon = {
+        StartedAt = Details.MythicPlus.StartedAt, --the start of the run
+        EndedAt = Details.MythicPlus.EndedAt, --the end of the run
+        WorldStateTimerStart = Details222.MythicPlus.WorldStateTimerStartAt,
+        WorldStateTimerEnd = Details222.MythicPlus.WorldStateTimerEndAt,
+        RunTime = Details222.MythicPlus.time,
+        TimeInCombat = timeInCombat,
+        SegmentID = "overall", --segment number within the dungeon
+        RunID = Details.mythic_dungeon_id,
+        OverallSegment = true,
+        ZoneName = Details.MythicPlus.DungeonName,
+        EJID = Details.MythicPlus.ejID,
+		MapID = Details222.MythicPlus.MapID,
+		Level = Details222.MythicPlus.Level,
+		OnTime = Details222.MythicPlus.OnTime,
+		KeystoneUpgradeLevels = Details222.MythicPlus.KeystoneUpgradeLevels,
+		PracticeRun = Details222.MythicPlus.PracticeRun,
+		OldDungeonScore = Details222.MythicPlus.OldDungeonScore,
+		NewDungeonScore = Details222.MythicPlus.NewDungeonScore,
+		IsAffixRecord = Details222.MythicPlus.IsAffixRecord,
+		IsMapRecord = Details222.MythicPlus.IsMapRecord,
+		PrimaryAffix = Details222.MythicPlus.PrimaryAffix,
+		IsEligibleForScore = Details222.MythicPlus.IsEligibleForScore,
+		UpgradeMembers = Details222.MythicPlus.UpgradeMembers,
+		TimeLimit = Details222.MythicPlus.TimeLimit,
+		DungeonName = Details222.MythicPlus.DungeonName,
+		DungeonID = Details222.MythicPlus.DungeonID,
+		DungeonTexture = Details222.MythicPlus.Texture,
+		DungeonBackgroundTexture = Details222.MythicPlus.BackgroundTexture,
+    }
 
     --add all boss segments from this run to this new segment
     for i = 1, 40 do --from the newer combat to the oldest
@@ -96,15 +133,12 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
             local canAddThisSegment = true
             if (Details.mythic_plus.make_overall_boss_only) then
                 if (not thisCombat.is_boss) then
-                    canAddThisSegment = false
+                    --canAddThisSegment = false --disabled
                 end
             end
 
             if (canAddThisSegment) then
                 newCombat = newCombat + thisCombat
-                --newCombat:CopyDeathsFrom(thisCombat, true)
-
-                totalTime = totalTime + thisCombat:GetCombatTime()
                 totalSegments = totalSegments + 1
 
                 if (DetailsMythicPlusFrame.DevelopmentDebug) then
@@ -113,7 +147,7 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
 
                 if (endDate == "") then
                     local _, whenEnded = thisCombat:GetDate()
-                    endDate =whenEnded
+                    endDate = whenEnded
                 end
                 lastSegment = thisCombat
             end
@@ -126,33 +160,33 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
     end
 
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
-        print("Details!", "MergeSegmentsOnEnd() > totalTime:", totalTime, "startDate:", startDate)
+        print("Details!", "MergeSegmentsOnEnd() > totalTime:", timeInCombat, "startDate:", startDate)
     end
 
-    local zoneName, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
-
-    --tag the segment as mythic overall segment
-    newCombat.is_mythic_dungeon = {
-        StartedAt = Details.MythicPlus.StartedAt, --the start of the run
-        EndedAt = Details.MythicPlus.EndedAt, --the end of the run
-        SegmentID = "overall", --segment number within the dungeon
-        RunID = Details.mythic_dungeon_id,
-        OverallSegment = true,
-        ZoneName = Details.MythicPlus.DungeonName,
-        MapID = instanceMapID,
-        Level = Details.MythicPlus.Level,
-        EJID = Details.MythicPlus.ejID,
-    }
-
     newCombat.total_segments_added = totalSegments
-
     newCombat.is_mythic_dungeon_segment = true
     newCombat.is_mythic_dungeon_run_id = Details.mythic_dungeon_id
 
+    --check if both values are valid, this can get invalid if the player leaves the dungeon before the timer ends or the game crashes
+    if (type(Details222.MythicPlus.time) == "number") then
+        newCombat.run_time = Details222.MythicPlus.time
+        Details222.MythicPlus.LogStep("GetCompletionInfo() Found, Time: " .. Details222.MythicPlus.time)
+
+    elseif (newCombat.is_mythic_dungeon.WorldStateTimerEnd and newCombat.is_mythic_dungeon.WorldStateTimerStart) then
+        local runTime = newCombat.is_mythic_dungeon.WorldStateTimerEnd - newCombat.is_mythic_dungeon.WorldStateTimerStart
+        newCombat.run_time = Details222.MythicPlus.time
+        Details222.MythicPlus.LogStep("World State Timers is Available, Run Time: " .. runTime .. "| start:" .. newCombat.is_mythic_dungeon.WorldStateTimerStart .. "| end:" .. newCombat.is_mythic_dungeon.WorldStateTimerEnd)
+    else
+        newCombat.run_time = timeInCombat
+        Details222.MythicPlus.LogStep("GetCompletionInfo() and World State Timers not Found, Activity Time: " .. timeInCombat)
+    end
+
+    newCombat:SetStartTime(GetTime() - timeInCombat)
+    newCombat:SetEndTime(GetTime())
+    Details222.MythicPlus.LogStep("Activity Time: " .. timeInCombat)
+
     --set the segment time and date
-    newCombat:SetStartTime (GetTime() - totalTime)
-    newCombat:SetEndTime (GetTime())
-    newCombat:SetDate (startDate, endDate)
+    newCombat:SetDate(startDate, endDate)
 
     --immediatly finishes the segment just started
     Details:SairDoCombate()
@@ -177,6 +211,8 @@ function DetailsMythicPlusFrame.MergeSegmentsOnEnd() --~merge
             instance:InstanceAlert ("Showing Mythic+ Run Segment", {[[Interface\AddOns\Details\images\icons]], 16, 16, false, 434/512, 466/512, 243/512, 273/512}, 6, func, true)
         end
     end
+
+    Details:SendEvent("COMBAT_MYTHICPLUS_OVERALL_READY")
 end
 
 --after each boss fight, if enalbed on settings, create an extra segment with all trash segments from the boss just killed
@@ -391,9 +427,9 @@ function DetailsMythicPlusFrame.MergeRemainingTrashAfterAllBossesDone()
     end
 end
 
---this function is called right after defeat a boss inside a mythic dungeon
---it comes from details! control leave combat
 function DetailsMythicPlusFrame.BossDefeated(this_is_end_end, encounterID, encounterName, difficultyID, raidSize, endStatus) --hold your breath and count to ten
+    --this function is called right after defeat a boss inside a mythic dungeon
+    --it comes from details! control leave combat
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
         print("Details!", "BossDefeated() > boss defeated | SegmentID:", Details.MythicPlus.SegmentID, " | mapID:", Details.MythicPlus.DungeonID)
     end
@@ -512,6 +548,7 @@ function DetailsMythicPlusFrame.MythicDungeonFinished (fromZoneLeft)
         --check if there is trash segments after the last boss. need to merge these segments with the trash segment of the last boss
         local bCanMergeBossTrash = Details.mythic_plus.merge_boss_trash
         Details222.MythicPlus.LogStep("MythicDungeonFinished() | merge_boss_trash = " .. (bCanMergeBossTrash and "true" or "false"))
+
         if (bCanMergeBossTrash and not Details.MythicPlus.IsRestoredState and not fromZoneLeft) then
             --is the current combat not a boss fight?
             --this mean a combat was opened after the last boss of the dungeon was killed
@@ -650,18 +687,19 @@ function DetailsMythicPlusFrame.MythicDungeonStarted()
     local mythicLevel = C_ChallengeMode.GetActiveKeystoneInfo()
     local zoneName, _, _, _, _, _, _, currentZoneID = GetInstanceInfo()
 
-    local mapID = C_Map.GetBestMapForUnit ("player")
+    local mapID = C_Map.GetBestMapForUnit("player")
 
     if (not mapID) then
         return
     end
 
-    local ejID = DF.EncounterJournal.EJ_GetInstanceForMap (mapID)
+    local ejID = Details:GetInstanceEJID(mapID)
 
     --setup the mythic run info
     Details.MythicPlus.Started = true
     Details.MythicPlus.DungeonName = zoneName
     Details.MythicPlus.DungeonID = currentZoneID
+    Details:Msg("(debug) mythic dungeon start time: ", time()+9.7, "time now:", time(), "diff:", time()+9.7-time())
     Details.MythicPlus.StartedAt = time()+9.7 --there's the countdown timer of 10 seconds
     Details.MythicPlus.EndedAt = nil --reset
     Details.MythicPlus.SegmentID = 1
@@ -669,12 +707,12 @@ function DetailsMythicPlusFrame.MythicDungeonStarted()
     Details.MythicPlus.ejID = ejID
     Details.MythicPlus.PreviousBossKilledAt = time()
 
-    Details:SaveState_CurrentMythicDungeonRun (Details.mythic_dungeon_id, zoneName, currentZoneID, time()+9.7, 1, mythicLevel, ejID, time())
+    Details:SaveState_CurrentMythicDungeonRun(Details.mythic_dungeon_id, zoneName, currentZoneID, time()+9.7, 1, mythicLevel, ejID, time())
 
     local name, groupType, difficultyID, difficult = GetInstanceInfo()
     if (groupType == "party" and Details.overall_clear_newchallenge) then
         Details.historico:ResetOverallData()
-        Details:Msg("整體數據現已重置。")
+        Details:Msg(Loc["the overall data has been reset."]) --localize-me
 
         if (Details.debug) then
             Details:Msg("(debug) timer is for a mythic+ dungeon, overall has been reseted.")
@@ -684,19 +722,17 @@ function DetailsMythicPlusFrame.MythicDungeonStarted()
     if (DetailsMythicPlusFrame.DevelopmentDebug) then
         print("Details!", "MythicDungeonStarted() > State set to Mythic Dungeon, new combat starting in 10 seconds.")
     end
-
 end
 
 function DetailsMythicPlusFrame.OnChallengeModeStart()
     --is this a mythic dungeon?
-    local _, _, difficulty, _, _, _, _, currentZoneID = GetInstanceInfo()
+    local _, _, difficultyID, _, _, _, _, currentZoneID = GetInstanceInfo()
 
-    if (difficulty == 8 and DetailsMythicPlusFrame.LastTimer and DetailsMythicPlusFrame.LastTimer+2 > GetTime()) then
+    if (difficultyID == 8) then
         --start the dungeon on Details!
         DetailsMythicPlusFrame.MythicDungeonStarted()
-        --print("D! mythic dungeon started!")
+        Details222.MythicPlus.LogStep("OnChallengeModeStart()")
     else
-
         --print("D! mythic dungeon was already started!")
         --from zone changed
         local mythicLevel = C_ChallengeMode.GetActiveKeystoneInfo()
@@ -794,10 +830,10 @@ function DetailsMythicPlusFrame.EventListener.OnDetailsEvent(contextObject, even
             lowerInstance = Details:GetInstance(lowerInstance)
             if (lowerInstance) then
                 C_Timer.After(3, function()
-                    if (lowerInstance:IsEnabled()) then
+                    --if (lowerInstance:IsEnabled()) then
                         --todo, need localization
-                        lowerInstance:InstanceAlert("Details!" .. " " .. "Damage" .. " " .. "Meter", {[[Interface\AddOns\Details\images\minimap]], 16, 16, false}, 3, {function() end}, false, true)
-                    end
+                        --lowerInstance:InstanceAlert("Details!" .. " " .. "Damage" .. " " .. "Meter", {[[Interface\AddOns\Details\images\minimap]], 16, 16, false}, 3, {function() end}, false, true)
+                    --end
                 end)
             end
         end
@@ -812,7 +848,7 @@ function DetailsMythicPlusFrame.EventListener.OnDetailsEvent(contextObject, even
             Details:Destroy(Details.cached_specs)
         end
 
-        C_Timer.After(0.5, DetailsMythicPlusFrame.OnChallengeModeStart)
+        C_Timer.After(0.25, DetailsMythicPlusFrame.OnChallengeModeStart)
 
         --debugging
         local mPlusSettings = Details.mythic_plus
@@ -825,7 +861,7 @@ function DetailsMythicPlusFrame.EventListener.OnDetailsEvent(contextObject, even
 
         local mythicLevel = C_ChallengeMode.GetActiveKeystoneInfo()
         local zoneName, _, _, _, _, _, _, currentZoneID = GetInstanceInfo()
-		Details222.MythicPlus.LogStep("CHALLENGE_MODE_START | settings: " .. result .. " | level: " .. mythicLevel .. " | zone: " .. zoneName .. " | zoneId: " .. currentZoneID)
+		Details222.MythicPlus.LogStep("COMBAT_MYTHICDUNGEON_START | settings: " .. result .. " | level: " .. mythicLevel .. " | zone: " .. zoneName .. " | zoneId: " .. currentZoneID)
 
     elseif (event == "COMBAT_MYTHICDUNGEON_END") then
         --ignore the event if ignoring mythic dungeon special treatment
@@ -842,7 +878,7 @@ end
 
 DetailsMythicPlusFrame:SetScript("OnEvent", function(_, event, ...)
     if (event == "START_TIMER") then
-        DetailsMythicPlusFrame.LastTimer = GetTime()
+        --DetailsMythicPlusFrame.LastTimer = GetTime()
 
     elseif (event == "ZONE_CHANGED_NEW_AREA") then
         if (DetailsMythicPlusFrame.IsDoingMythicDungeon) then

@@ -2,6 +2,7 @@
 
 local Details = _G.Details
 local DF = _G.DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0", true)
 local addonName, Details222 = ...
 
@@ -147,7 +148,17 @@ end
 
                 if (cooldownLine) then
                     --get the cooldown time from the lib, it return data ready to use on statusbar
-                    local isReady, normalizedPercent, timeLeft, charges, minValue, maxValue, currentValue = openRaidLib.GetCooldownStatusFromCooldownInfo(cooldownInfo)
+
+                    local isReady, normalizedPercent, timeLeft, charges, minValue, maxValue, currentValue
+                    local bRunOkay, errorText = pcall(function()
+                        isReady, normalizedPercent, timeLeft, charges, minValue, maxValue, currentValue = openRaidLib.GetCooldownStatusFromCooldownInfo(cooldownInfo)
+                    end)
+                    if (not bRunOkay) then
+                        local spellName = GetSpellInfo(spellId)
+                        --print("error on cooldown update:", unitName, spellName, errorText)
+                        return
+                    end
+
                     if (not isReady) then
                         cooldownLine:SetTimer(currentValue, minValue, maxValue)
                     else
@@ -278,7 +289,7 @@ end
                 classId = select(3, UnitClass(unitInfo.nameFull))
             end
 
-            if (unitInfo and classId) then
+            if (unitInfo and classId and cooldownsOrganized[classId]) then
                 local allCooldownFrames = Details222.CooldownTracking.GetAllCooldownFrames()
 
                 for spellId, cooldownInfo in pairs(unitCooldowns) do
@@ -486,7 +497,7 @@ end
         local DetailsCDTrackerWindow = CreateFrame("frame", "DetailsCDTrackerWindow", UIParent, "BackdropTemplate")
         DetailsCDTrackerWindow:SetSize(700, 480)
         DetailsCDTrackerWindow.Frame = DetailsCDTrackerWindow
-        DetailsCDTrackerWindow.__name = "冷卻追蹤器"
+        DetailsCDTrackerWindow.__name = Loc["Cooldown Tracker"]
         DetailsCDTrackerWindow.real_name = "DETAILS_CDTRACKERWINDOW"
         DetailsCDTrackerWindow.__icon = [[Interface\TUTORIALFRAME\UI-TUTORIALFRAME-SPIRITREZ]]
         DetailsCDTrackerWindow.__iconcoords = {130/512, 256/512, 0, 1}
@@ -512,7 +523,7 @@ end
 
         --check if the window exists, if not create it
         if (not _G.DetailsCDTrackerWindow or not _G.DetailsCDTrackerWindow.Initialized) then
-            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, "Details! 線上冷卻追蹤器", "DetailsCDTrackerWindow")
+            local f = _G.DetailsCDTrackerWindow or DF:CreateSimplePanel(UIParent, 700, 480, Loc["Details! Online CD Tracker"], "DetailsCDTrackerWindow")
             _G.DetailsCDTrackerWindow.Initialized = true
             DF:ApplyStandardBackdrop(f)
             --enabled with a toggle button
@@ -538,8 +549,8 @@ end
                             Details222.CooldownTracking.DisableTracker()
                         end
                     end,
-                    name = "啟用實驗冷卻跟踪器",
-                    desc = "啟用實驗冷卻跟踪器",
+                    name = Loc["Enable Experimental Cooldown Tracker"],
+                    desc = Loc["Enable Experimental Cooldown Tracker"],
                 },
 
                 {--show only in group
@@ -549,8 +560,8 @@ end
                         Details.ocd_tracker.show_conditions.only_in_group = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "只有在隊伍中",
-                    desc = "只有在隊伍中",
+                    name = Loc["Only in Group"],
+                    desc = Loc["Only in Group"],
                 },
 
                 {--show only inside instances
@@ -560,8 +571,8 @@ end
                         Details.ocd_tracker.show_conditions.only_inside_instance = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "只有在副本中",
-                    desc = "只有在副本中",
+                    name = Loc["Only Inside Instances"],
+                    desc = Loc["Only Inside Instances"],
                 },
                 {--lock frame
                     type = "toggle",
@@ -570,8 +581,8 @@ end
                         Details.ocd_tracker.framme_locked = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "鎖定框架",
-                    desc = "鎖定框架",
+                    name = Loc["Lock Frame"],
+                    desc = Loc["Lock Frame"],
                 },
 
                 {type = "breakline"},
@@ -583,8 +594,8 @@ end
                         Details.ocd_tracker.filters["defensive-raid"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "減傷：團隊",
-                    desc = "範例：druid tranquility.",
+                    name = Loc["Defensive: Raid"],
+                    desc = Loc["Example: druid tranquility."],
                 },
 
                 {--filter: show target defensive cooldowns
@@ -594,8 +605,8 @@ end
                         Details.ocd_tracker.filters["defensive-target"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "減傷：目標",
-                    desc = "範例：priest pain suppression.",
+                    name = Loc["Defensive: Target"],
+                    desc = Loc["Example: priest pain suppression."],
                 },
 
                 {--filter: show personal defensive cooldowns
@@ -605,8 +616,8 @@ end
                         Details.ocd_tracker.filters["defensive-personal"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "減傷：個人",
-                    desc = "範例：mage ice block.",
+                    name = Loc["Defensive: Personal"],
+                    desc = Loc["Example: mage ice block."],
                 },
 
                 {--filter: show ofensive cooldowns
@@ -616,8 +627,8 @@ end
                         Details.ocd_tracker.filters["ofensive"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "進攻技能冷卻",
-                    desc = "範例：牧師能量灌注。",
+                    name = Loc["Offensive Cooldowns"],
+                    desc = Loc["Example: priest power infusion."],
                 },
 
                 {--filter: show utility cooldowns
@@ -627,8 +638,8 @@ end
                         Details.ocd_tracker.filters["utility"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "技能冷卻",
-                    desc = "範例：druid roar.",
+                    name = Loc["Utility Cooldowns"],
+                    desc = Loc["Example: druid roar."],
                 },
 
                 {--filter: show interrupt cooldowns
@@ -638,8 +649,8 @@ end
                         Details.ocd_tracker.filters["interrupt"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "打斷冷卻",
-                    desc = "範例：rogue kick.",
+                    name = Loc["Interrupt Cooldowns"],
+                    desc = Loc["Example: rogue kick."],
                 },
 
                 {--filter: item cooldowns
@@ -649,8 +660,8 @@ end
                         Details.ocd_tracker.filters["itemheal"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "物品：治療",
-                    desc = "範例：治療石。",
+                    name = Loc["Item: Healing"],
+                    desc = Loc["Example: Healthstone."],
                 },
 
                 {--filter: item cooldowns
@@ -660,8 +671,8 @@ end
                         Details.ocd_tracker.filters["itempower"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "物品：能量增加",
-                    desc = "範例：Elemental Potion of Power.",
+                    name = Loc["Item: Power Increase"],
+                    desc = Loc["Example: Elemental Potion of Power."],
                 },
 
                 {--filter: item cooldowns
@@ -671,8 +682,8 @@ end
                         Details.ocd_tracker.filters["itemutil"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "物品：工具",
-                    desc = "範例：隱形藥水。",
+                    name = Loc["Item: Utility"],
+                    desc = Loc["Example: Invisibility Potion."],
                 },
 
                 {--filter: crowd control
@@ -682,8 +693,8 @@ end
                         Details.ocd_tracker.filters["crowdcontrol"] = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "控場",
-                    desc = "範例：Incapacitaion Roar.",
+                    name = Loc["Crowd Control"],
+                    desc = Loc["Example: Incapacitaion Roar."],
                 },
 
                 {type = "breakline"},
@@ -698,8 +709,8 @@ end
                     min = 10,
                     max = 200,
                     step = 1,
-                    name = "寬度",
-                    desc = "Width",
+                    name = Loc["Width"],
+                    desc = Loc["Width"],
                 },
 
                 {--bar height
@@ -712,8 +723,8 @@ end
                     min = 10,
                     max = 200,
                     step = 1,
-                    name = "高度",
-                    desc = "Height",
+                    name = Loc["Height"],
+                    desc = Loc["Height"],
                 },
                 
                 {--bar height
@@ -726,8 +737,8 @@ end
                     min = 1,
                     max = 30,
                     step = 1,
-                    name = "每欄行數",
-                    desc = "每欄行數",
+                    name = Loc["Lines Per Column"],
+                    desc = Loc["Lines Per Column"],
                 },
 
                 {--show anchor
@@ -737,8 +748,8 @@ end
                         Details.ocd_tracker.show_title = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "顯示抬頭",
-                    desc = "Show Title",
+                    name = Loc["Show Title"],
+                    desc = Loc["Show Title"],
                 },
 
                 {--show anchor
@@ -748,8 +759,8 @@ end
                         Details.ocd_tracker.group_frames = value
                         Details222.CooldownTracking.RefreshAllCooldownFrames()
                     end,
-                    name = "群組框架",
-                    desc = "Group Frames",
+                    name = Loc["Group Frames"],
+                    desc = Loc["Group Frames"],
                 },
 
             }
@@ -768,7 +779,7 @@ end
             --lib test test warning texts
             local warning1 = cooldownSelectionFrame:CreateFontString(nil, "overlay", "GameFontNormal", 5)
             warning1:SetPoint("center", f, "center", 0, 0)
-            warning1:SetText("A cooldown tracker on Details!?\nWhat's next, a Caw counter for Elwynn Forest?")
+            warning1:SetText(Loc["A cooldown tracker on Details!?\nWhat's next, a Caw counter for Elwynn Forest?"])
             DF:SetFontColor(warning1, "silver")
             DF:SetFontSize(warning1, 14)
             local animationHub = DF:CreateAnimationHub(warning1)
@@ -782,7 +793,7 @@ end
             warning2:SetJustifyH("left")
             warning2:SetPoint("topleft", f, "topleft", 5, -160)
             DF:SetFontColor(warning2, "lime")
-            warning2:SetText("This is a concept of a cooldown tracker using the new library 'Open Raid' which uses comms to update cooldown timers.\nThe code to implement is so small that can fit inside a weakaura\nIf you're a coder, the implementation is on Details/frames/window_cdtracker.lua")
+            warning2:SetText(Loc["This is a concept of a cooldown tracker using the new library 'Open Raid' which uses comms to update cooldown timers.\nThe code to implement is so small that can fit inside a weakaura\nIf you're a coder, the implementation is on Details/frames/window_cdtracker.lua"])
         end
 
         _G.DetailsPluginContainerWindow.OpenPlugin(_G.DetailsCDTrackerWindow)

@@ -394,16 +394,16 @@ detailsFramework.LayoutFrame = {
 			if (textType) then
 				textType = string.lower(textType)
 				if (textType == "short") then
-					text = "關閉視窗"
+					text = "close window"
 
 				elseif (textType == "medium") then
-					text = "關閉視窗"
+					text = "close window"
 
 				elseif (textType == "large") then
-					text = "關閉視窗"
+					text = "close window"
 				end
 			else
-				text = "關閉視窗"
+				text = "close window"
 			end
 		end
 
@@ -825,7 +825,7 @@ local align_rows = function(self)
 					text:SetPoint("left", line, "left", self._anchors [#self._anchors], 0)
 					text:SetWidth(row.width)
 
-					detailsFramework:SetFontSize(text, row.textsize or 10)
+					detailsFramework:SetFontSize(text, row.textsize or 14)
 					text:SetJustifyH(row.textalign or "left")
 				end
 			elseif (rowType == "entry") then
@@ -1483,40 +1483,94 @@ end
 
 
 ------------color pick
-local color_pick_func = function()
-	local r, g, b = ColorPickerFrame:GetColorRGB()
-	local a = OpacitySliderFrame:GetValue()
-	ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
+local _, _, _, toc = GetBuildInfo()
+if (toc >= 100205) then
+	local color_pick_func = function(...)
+		local r, g, b = ColorPickerFrame:GetColorRGB()
+		local a = ColorPickerFrame:GetColorAlpha()
+		ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
+	end
+
+	local color_pick_func_cancel = function()
+		local r, g, b, a = ColorPickerFrame.previousValues.r, ColorPickerFrame.previousValues.g, ColorPickerFrame.previousValues.b, ColorPickerFrame.previousValues.a
+		ColorPickerFrame.Content.ColorPicker:SetColorRGB(r, g, b)
+		ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
+	end
+
+	function detailsFramework:ColorPick(frame, r, g, b, alpha, callback)
+
+		ColorPickerFrame:ClearAllPoints()
+		ColorPickerFrame:SetPoint("bottomleft", frame, "topright", 0, 0)
+
+		ColorPickerFrame.dcallback = callback
+		ColorPickerFrame.dframe = frame
+
+		ColorPickerFrame.func = color_pick_func
+		ColorPickerFrame.opacityFunc = color_pick_func
+		ColorPickerFrame.cancelFunc = color_pick_func_cancel
+
+		ColorPickerFrame.opacity = alpha
+		ColorPickerFrame.hasOpacity = alpha and true
+
+		ColorPickerFrame.previousValues = {r, g, b}
+		ColorPickerFrame.previousAlpha = alpha
+		ColorPickerFrame:SetParent(UIParent)
+		ColorPickerFrame:SetFrameStrata("tooltip")
+
+		local info = {
+			swatchFunc = color_pick_func,
+			hasOpacity = alpha and true,
+			opacityFunc = color_pick_func,
+			opacity = alpha,
+			previousValues = {r = r, g = g, b = b, a = alpha},
+			cancelFunc = color_pick_func_cancel,
+			r = r,
+			g = g,
+			b = b,
+		}
+		--OpenColorPicker(info)
+		ColorPickerFrame:SetupColorPickerAndShow(info)
+
+	end
+else
+	local color_pick_func = function()
+		local r, g, b = ColorPickerFrame:GetColorRGB()
+		local a = OpacitySliderFrame:GetValue()
+		ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
+	end
+	local color_pick_func_cancel = function()
+		ColorPickerFrame:SetColorRGB (unpack(ColorPickerFrame.previousValues))
+		local r, g, b = ColorPickerFrame:GetColorRGB()
+		local a = OpacitySliderFrame:GetValue()
+		ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
+	end
+
+	function detailsFramework:ColorPick (frame, r, g, b, alpha, callback)
+
+		ColorPickerFrame:ClearAllPoints()
+		ColorPickerFrame:SetPoint("bottomleft", frame, "topright", 0, 0)
+
+		ColorPickerFrame.dcallback = callback
+		ColorPickerFrame.dframe = frame
+
+		ColorPickerFrame.func = color_pick_func
+		ColorPickerFrame.opacityFunc = color_pick_func
+		ColorPickerFrame.cancelFunc = color_pick_func_cancel
+
+		ColorPickerFrame.opacity = alpha
+		ColorPickerFrame.hasOpacity = alpha and true
+
+		ColorPickerFrame.previousValues = {r, g, b}
+		ColorPickerFrame:SetParent(UIParent)
+		ColorPickerFrame:SetFrameStrata("tooltip")
+		ColorPickerFrame:SetColorRGB (r, g, b)
+		ColorPickerFrame:Show()
+	end
 end
-local color_pick_func_cancel = function()
-	ColorPickerFrame:SetColorRGB (unpack(ColorPickerFrame.previousValues))
-	local r, g, b = ColorPickerFrame:GetColorRGB()
-	local a = OpacitySliderFrame:GetValue()
-	ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
-end
 
-function detailsFramework:ColorPick (frame, r, g, b, alpha, callback)
 
-	ColorPickerFrame:ClearAllPoints()
-	ColorPickerFrame:SetPoint("bottomleft", frame, "topright", 0, 0)
 
-	ColorPickerFrame.dcallback = callback
-	ColorPickerFrame.dframe = frame
 
-	ColorPickerFrame.func = color_pick_func
-	ColorPickerFrame.opacityFunc = color_pick_func
-	ColorPickerFrame.cancelFunc = color_pick_func_cancel
-
-	ColorPickerFrame.opacity = alpha
-	ColorPickerFrame.hasOpacity = alpha and true
-
-	ColorPickerFrame.previousValues = {r, g, b}
-	ColorPickerFrame:SetParent(UIParent)
-	ColorPickerFrame:SetFrameStrata("tooltip")
-	ColorPickerFrame:SetColorRGB (r, g, b)
-	ColorPickerFrame:Show()
-
-end
 
 ------------icon pick
 function detailsFramework:IconPick (callback, close_when_select, param1, param2)
@@ -1576,10 +1630,10 @@ function detailsFramework:IconPick (callback, close_when_select, param1, param2)
 		detailsFramework.IconPickFrame.preview:Hide()
 
 		--serach
-		detailsFramework.IconPickFrame.searchLabel =  detailsFramework:NewLabel(detailsFramework.IconPickFrame, nil, "$parentSearchBoxLabel", nil, "Search:")
+		detailsFramework.IconPickFrame.searchLabel =  detailsFramework:NewLabel(detailsFramework.IconPickFrame, nil, "$parentSearchBoxLabel", nil, "搜尋:")
 		detailsFramework.IconPickFrame.searchLabel:SetPoint("topleft", detailsFramework.IconPickFrame, "topleft", 12, -36)
 		detailsFramework.IconPickFrame.searchLabel:SetTemplate(detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
-		detailsFramework.IconPickFrame.searchLabel.fontsize = 14
+		detailsFramework.IconPickFrame.searchLabel.fontsize = 16
 
 		detailsFramework.IconPickFrame.search = detailsFramework:NewTextEntry(detailsFramework.IconPickFrame, nil, "$parentSearchBox", nil, 140, 20)
 		detailsFramework.IconPickFrame.search:SetPoint("left", detailsFramework.IconPickFrame.searchLabel, "right", 2, 0)
@@ -1602,7 +1656,7 @@ function detailsFramework:IconPick (callback, close_when_select, param1, param2)
 		--manually enter the icon path
 		detailsFramework.IconPickFrame.customIcon = detailsFramework:CreateLabel(detailsFramework.IconPickFrame, "Icon Path:", detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
 		detailsFramework.IconPickFrame.customIcon:SetPoint("bottomleft", detailsFramework.IconPickFrame, "bottomleft", 12, 16)
-		detailsFramework.IconPickFrame.customIcon.fontsize = 14
+		detailsFramework.IconPickFrame.customIcon.fontsize = 12
 
 		detailsFramework.IconPickFrame.customIconEntry = detailsFramework:CreateTextEntry(detailsFramework.IconPickFrame, function()end, 200, 20, "CustomIconEntry", _, _, detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 		detailsFramework.IconPickFrame.customIconEntry:SetPoint("left", detailsFramework.IconPickFrame.customIcon, "right", 2, 0)
@@ -1931,7 +1985,7 @@ local SimplePanel_frame_backdrop_border_color = {0, 0, 0, 1}
 ---@field thumb texture
 function detailsFramework:CreateScaleBar(frame, config) --~scale
 	---@type df_scalebar
-	local scaleBar, text = detailsFramework:CreateSlider(frame, 120, 14, 0.6, 1.6, 0.1, config.scale, true, "ScaleBar", nil, "Scale:", detailsFramework:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE"), detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
+	local scaleBar, text = detailsFramework:CreateSlider(frame, 120, 14, 0.6, 1.6, 0.1, config.scale, true, "ScaleBar", nil, "縮放:", detailsFramework:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE"), detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
 	scaleBar.thumb:SetWidth(24)
 	scaleBar:SetValueStep(0.1)
 	scaleBar:SetObeyStepOnDrag(true)
@@ -2074,10 +2128,11 @@ function detailsFramework:CreateSimplePanel(parent, width, height, title, frameN
 	--set the backdrop
 	if (panelOptions.RoundedCorners) then
 		local tRoundedCornerPreset = {
-			roundness = 6,
+			roundness = 3,
 			color = {.1, .1, .1, 0.98},
 			border_color = {.05, .05, .05, 0.834},
 			use_titlebar = true,
+			titlebar_height = 26,
 		}
 		detailsFramework:AddRoundedCornersToFrame(simplePanel, tRoundedCornerPreset)
 	else
@@ -3532,9 +3587,9 @@ function detailsFramework:CreateRightClickToClose(parent, xOffset, yOffset, colo
 	xOffset = xOffset or 0
 	yOffset = yOffset or 0
 	color = color or "white"
-	fontSize = fontSize or 14
+	fontSize = fontSize or 10
 
-	local label = detailsFramework:CreateLabel(parent, "右鍵點擊關閉", fontSize, color)
+	local label = detailsFramework:CreateLabel(parent, "right click to close", fontSize, color)
 	label:SetPoint("bottomright", parent, "bottomright", -4 + xOffset, 5 + yOffset)
 
 	return label
@@ -3715,12 +3770,12 @@ function detailsFramework:CreateSimpleListBox(parent, name, title, emptyText, li
 
 	scroll:SetSize(scroll.options.width + 2, scroll.options.height)
 
-	local name = detailsFramework:CreateLabel(scroll, title, 12, "silver")
+	local name = detailsFramework:CreateLabel(scroll, title, 16, "silver")
 	name:SetTemplate(detailsFramework:GetTemplate("font", "OPTIONS_FONT_TEMPLATE"))
 	name:SetPoint("bottomleft", scroll, "topleft", 0, 2)
 	scroll.Title = name
 
-	local emptyLabel = detailsFramework:CreateLabel(scroll, emptyText, 12, "gray")
+	local emptyLabel = detailsFramework:CreateLabel(scroll, emptyText, 16, "gray")
 	emptyLabel:SetAlpha(.6)
 	emptyLabel:SetSize(scroll.options.width-10, scroll.options.height)
 	emptyLabel:SetPoint("center", 0, 0)
@@ -3984,7 +4039,7 @@ local default_radiogroup_options = {
 	backdrop_border_color = {0.1, 0.1, 0.1, .2},
 	is_radio = false,
 	text_color = {1, 0.8196, 0, 1},
-	text_size = 13,
+	text_size = 10,
 	text_outline = "NONE",
 }
 
@@ -4078,9 +4133,25 @@ detailsFramework.RadioGroupCoreFunctions = {
 		local checkbox = detailsFramework:CreateSwitch(self, function()end, false)
 		checkbox:SetTemplate(detailsFramework:GetTemplate("switch", "OPTIONS_CHECKBOX_BRIGHT_TEMPLATE"))
 		checkbox:SetAsCheckBox()
+
+		if (self.options.rounded_corner_preset) then
+			checkbox:SetBackdrop(nil)
+			detailsFramework:AddRoundedCornersToFrame(checkbox, self.options.rounded_corner_preset)
+		end
+
+		if (self.options.checked_texture) then
+			checkbox:SetCheckedTexture(self.options.checked_texture, self.options.checked_texture_offset_x, self.options.checked_texture_offset_y)
+		end
+
 		checkbox.Icon = detailsFramework:CreateImage(checkbox, "", 16, 16)
 		checkbox.Label = detailsFramework:CreateLabel(checkbox, "")
 		self.allCheckBoxes[#self.allCheckBoxes + 1] = checkbox
+
+		if (self.options.on_create_checkbox) then
+			--use dispatch
+			detailsFramework:QuickDispatch(self.options.on_create_checkbox, self, checkbox)
+		end
+
 		return checkbox
 	end,
 
@@ -4106,6 +4177,10 @@ detailsFramework.RadioGroupCoreFunctions = {
 		if (checkbox._callback) then
 			detailsFramework:QuickDispatch(checkbox._callback, fixedParam, checkbox._optionid)
 		end
+
+		if (radioGroup.options.on_click_option) then
+			detailsFramework:QuickDispatch(radioGroup.options.on_click_option, radioGroup, checkbox, fixedParam, checkbox._optionid)
+		end
 	end,
 
 	RefreshCheckbox = function(self, checkbox, optionTable, optionId)
@@ -4122,8 +4197,8 @@ detailsFramework.RadioGroupCoreFunctions = {
 		checkbox._optionid = optionId
 		checkbox:SetFixedParameter(optionTable.param or optionId)
 
-		local isChecked = type(optionTable.get) == "function" and detailsFramework:Dispatch(optionTable.get) or false
-		checkbox:SetValue(isChecked)
+		local bIsChecked = type(optionTable.get) == "function" and detailsFramework:Dispatch(optionTable.get) or false
+		checkbox:SetValue(bIsChecked)
 
 		checkbox.Label.text = optionTable.name
 		checkbox.Label.textsize = optionTable.text_size or self.options.text_size
@@ -4133,7 +4208,7 @@ detailsFramework.RadioGroupCoreFunctions = {
 		if (optionTable.texture) then
 			checkbox.Icon:SetTexture(optionTable.texture)
 			checkbox.Icon:SetSize(width, height)
-			checkbox.Icon:SetPoint("left", checkbox, "right", 2, 0)
+			checkbox.Icon:SetPoint("left", checkbox, "right", self.AnchorOptions.icon_offset_x, 0)
 			checkbox.Label:SetPoint("left", checkbox.Icon, "right", 2, 0)
 			checkbox.tooltip = optionTable.tooltip
 
@@ -4141,6 +4216,12 @@ detailsFramework.RadioGroupCoreFunctions = {
 				checkbox.Icon:SetTexCoord(unpack(optionTable.texcoord))
 			else
 				checkbox.Icon:SetTexCoord(0, 1, 0, 1)
+			end
+
+			if (optionTable.mask) then
+				checkbox.Icon:SetMask(optionTable.mask)
+			else
+				checkbox.Icon:SetMask(nil)
 			end
 		else
 			checkbox.Icon:SetTexture("")
@@ -4176,7 +4257,19 @@ detailsFramework.RadioGroupCoreFunctions = {
 			totalWidth = math.max(self.AnchorOptions.min_width * #radioOptions, totalWidth)
 		end
 
-		self:SetSize(totalWidth, maxHeight)
+		if (not self.AnchorOptions.width) then
+			self:SetWidth(totalWidth)
+		else
+			self:SetWidth(self.AnchorOptions.width)
+		end
+
+		if (not self.AnchorOptions.height) then
+			self:SetHeight(maxHeight)
+		else
+			self:SetHeight(self.AnchorOptions.height)
+		end
+
+		self.AnchorOptions.start_y = -5
 
 		--sending false to automatically use the radio group children
 		self:ArrangeFrames(false, self.AnchorOptions)
@@ -4751,7 +4844,7 @@ local elapsedtime_frame_options = {
 	backdrop_color = {.3, .3, .3, .7},
 
 	text_color = {1, 1, 1, 1},
-	text_size = 14,
+	text_size = 16,
 	text_font = "Arial Narrow",
 	text_outline = "NONE",
 
@@ -5623,8 +5716,8 @@ function detailsFramework:CreateListBox(parent, name, data, options, headerTable
 	--header
 		--check for default values in the header
 		headerTable = headerTable or {
-			{text = "法術ID", width = 70},
-			{text = "法術名稱", width = 70},
+			{text = "Spell Id", width = 70},
+			{text = "Spell Name", width = 70},
 		}
 		headerOptions = headerOptions or {
 			padding = 2,

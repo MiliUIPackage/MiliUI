@@ -206,8 +206,8 @@ local languagesAvailable = {
     koKR = {text = "한국어", font = [[Fonts\2002.TTF]]},
     ptBR = {text = "Português (BR)", font = "Fonts\\FRIZQT__.TTF"},
     ruRU = {text = "Русский", font = "Fonts\\FRIZQT___CYR.TTF"},
-    zhCN = {text = "简体中文", font = [[Fonts\ARHei.ttf]]},
-    zhTW = {text = "繁體中文", font = [[Fonts\blei00d.TTF]]},
+    zhCN = {text = "简体中文", font = STANDARD_TEXT_FONT},
+    zhTW = {text = "繁體中文", font = STANDARD_TEXT_FONT},
 }
 
 local ignoredCharacters = {}
@@ -1626,7 +1626,7 @@ function DF.Language.CreateLanguageSelector(addonId, parent, callback, selectedL
     languageSelector:SetAddonID(addonId)
     languageSelector:SetFixedParameter(addonId)
 
-    local languageLabel = DF:CreateLabel(parent, _G.LANGUAGE  .. ":", 13, "silver")
+    local languageLabel = DF:CreateLabel(parent, _G.LANGUAGE  .. ":", 10, "silver")
     languageLabel:SetPoint("right", languageSelector, "left", -3, 0)
     languageSelector.languageLabel = languageLabel
 

@@ -81,10 +81,10 @@ function Details:OpenForge()
             insets = {left = 0, right = 0, top = 0, bottom = 0}, edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize=1})
             tutorialFrame:SetBackdropColor(0, 0, 0, 1)
 
-            tutorialFrame.Title = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_TITLE"], 12, "orange")
-            tutorialFrame.Desc = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_DESC"], 12)
+            tutorialFrame.Title = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_TITLE"], 16, "orange")
+            tutorialFrame.Desc = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_DESC"], 16)
             tutorialFrame.Desc.width = 370
-            tutorialFrame.Example = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_VIDEO"], 12)
+            tutorialFrame.Example = Details.gump:CreateLabel(tutorialFrame, L["STRING_FORGE_TUTORIAL_VIDEO"], 16)
 
             tutorialFrame.Title:SetPoint("top", tutorialFrame, "top", 0, -5)
             tutorialFrame.Desc:SetPoint("topleft", tutorialFrame, "topleft", 10, -45)
@@ -698,8 +698,8 @@ function Details:OpenForge()
         end
 
         local allNpcsModule = {
-            name = L["Npc List"],
-            desc = L["Show a list of known npcs"],
+            name = L["Npc List"], --localize-me
+            desc = L["Show a list of known npcs"], --localize-me
 
             filters_widgets = function()
                 if (not DetailsForgeEncounterNpcIDsFilterPanel) then
@@ -747,7 +747,7 @@ function Details:OpenForge()
             header = {
                 {name = L["STRING_FORGE_HEADER_INDEX"], width = 40, type = "text", func = no_func},
                 {name = L["STRING_FORGE_HEADER_NAME"], width = 200, type = "entry", func = no_func},
-                {name = L["NpcID"], width = 60, type = "entry", func = no_func},
+                {name = L["NpcId"], width = 60, type = "entry", func = no_func},
                 {name = L["Ignore"], width = 50, type = "checkbox", func = ignoreNpcFunc, icon = [[Interface\Glues\LOGIN\Glues-CheckBox-Check]], notext = true, iconalign = "center"},
             },
 
@@ -792,7 +792,7 @@ function Details:OpenForge()
                 end
             end
 
-            Details:OpenAuraPanel (data[2], spellname, spellicon, data.id, DETAILS_WA_TRIGGER_DBM_TIMER, DETAILS_WA_AURATYPE_TEXT, {dbm_timer_id = data[2], spellid = data[7], text = "Next " .. spellname .. " In", text_size = 72, icon = spellicon})
+            Details:OpenAuraPanel (data[2], spellname, spellicon, data.id, DETAILS_WA_TRIGGER_DBM_TIMER, DETAILS_WA_AURATYPE_TEXT, {dbm_timer_id = data[2], spellid = data[7], text = L["Next "] .. spellname .. L[" In"], text_size = 72, icon = spellicon})
         end
 
         local dbm_timers_module = {
@@ -920,11 +920,11 @@ function Details:OpenForge()
                 else
                     spellname, _, spellicon = GetSpellInfo(spellid)
                 end
-                Details:OpenAuraPanel (data [2], spellname, spellicon, data.id, DETAILS_WA_TRIGGER_BW_TIMER, DETAILS_WA_AURATYPE_TEXT, {bw_timer_id = data [2], text = "Next " .. spellname .. " In", text_size = 72, icon = spellicon})
+                Details:OpenAuraPanel (data [2], spellname, spellicon, data.id, DETAILS_WA_TRIGGER_BW_TIMER, DETAILS_WA_AURATYPE_TEXT, {bw_timer_id = data [2], text = L["Next "] .. spellname .. L[" In"], text_size = 72, icon = spellicon})
 
             elseif (type(data [2]) == "string") then
                 --"Xhul'horac" Imps
-                Details:OpenAuraPanel (data [2], data[3], data[5], data.id, DETAILS_WA_TRIGGER_BW_TIMER, DETAILS_WA_AURATYPE_TEXT, {bw_timer_id = data [2], text = "Next " .. (data[3] or "") .. " In", text_size = 72, icon = data[5]})
+                Details:OpenAuraPanel (data [2], data[3], data[5], data.id, DETAILS_WA_TRIGGER_BW_TIMER, DETAILS_WA_AURATYPE_TEXT, {bw_timer_id = data [2], text = L["Next "] .. (data[3] or "") .. L[" In"], text_size = 72, icon = data[5]})
             end
         end
 

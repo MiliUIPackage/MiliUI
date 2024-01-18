@@ -291,8 +291,8 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	----------------------------------------------
 
 	local NewDamageRecord  = DetailsNewDamageRecord:CreateFontString("NewDamageRecordFontString", "OVERLAY")
-	NewDamageRecord:SetFont(STANDARD_TEXT_FONT, 14, "OUTLINE")
-	NewDamageRecord:SetText(Loc ["Damage Record!"])
+	NewDamageRecord:SetFont(STANDARD_TEXT_FONT, 16, "OUTLINE")
+	NewDamageRecord:SetText(Loc["Damage Record!"])
 	NewDamageRecord:SetDrawLayer("OVERLAY", 0)
 	NewDamageRecord:SetPoint("center", DetailsNewDamageRecord, "center", 18, 7)
 	NewDamageRecord:SetSize(181, 20)
@@ -330,7 +330,7 @@ function _detalhes.PlayBestDamageOnGuild (damage)
 	----------------------------------------------
 
 	local DamageAmount  = DetailsNewDamageRecord:CreateFontString("DamageAmountFontString", "OVERLAY")
-	DamageAmount:SetFont(STANDARD_TEXT_FONT, 14, "THICKOUTLINE")
+	DamageAmount:SetFont(STANDARD_TEXT_FONT, 16, "THICKOUTLINE")
 	DamageAmount:SetText(_detalhes:comma_value (damage))
 	DamageAmount:SetDrawLayer("OVERLAY", 0)
 	DamageAmount:SetPoint("center", DetailsNewDamageRecord, "center", 18, -7)

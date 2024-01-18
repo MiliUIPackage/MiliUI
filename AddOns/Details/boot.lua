@@ -10,11 +10,16 @@
 		--add the original name to the global namespace
 		_detalhes = _G.Details --[[GLOBAL]]
 
+		__details_debug = __details_debug or {}
+		if (__details_debug.prescience_timeline) then
+			wipe(__details_debug.prescience_timeline)
+		end
+
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 12044
-		Details.alpha_build_counter = 12044 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12222
+		Details.alpha_build_counter = 12222 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -74,6 +79,12 @@
 			return Details222.ColorScheme[colorScheme]
 		end
 
+		function Details222.DebugMsg(...)
+			if (Details.debug) then
+				print("|cFFCCAAAADetails! Debug:|r", ...)
+			end
+		end
+
 		--namespace for damage spells (spellTable)
 		Details222.DamageSpells = {}
 		--namespace for texture
@@ -87,6 +98,7 @@
 		Details222.Instances = {}
 		Details222.Combat = {}
 		Details222.MythicPlus = {}
+		Details222.MythicPlusBreakdown = {}
 		Details222.EJCache = {}
 		Details222.Segments = {}
 		Details222.Tables = {}
@@ -125,6 +137,10 @@
 		Details222.CurrentDPS = {
 			Cache = {}
 		}
+		--store all data from the encounter journal
+		Details222.EncounterJournalDump = {}
+		--aura scanner
+		Details222.AuraScan = {}
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --initialization stuff
@@ -141,13 +157,65 @@ do
 	--]=]
 
 	local news = {
-		{"v10.2.0.12023.155", "11月 08日, 2023"},
-		"多項修復使此插件可以在資料片10.2.0的戰鬥日誌上運作。",
-		"已加入資料片10.2.0的飾品數據。",
+		{"v10.2.0.12220.155", "January 14th, 2024"},
+		"Ignoring the heal of Smoldering Seedling trinket (Flamanis).",
+		"Attribute Judgement of Light to the healed on Wrath (Flamanis).",
+		"Fixed an error while scrolling down target npcs in the breakdown window.",
+		"Fixed an error when clicking to open the Death Recap by Details!.",
+		"End of Mythic Run panel got updates.",
+		"Many tooltips in Details! are now rouded!",
+		"Evoker extra bar tooltip's, now also show the uptime of Black Attunement and Prescience applications.",
+		"Breakdown Window now show Plater Npc Colors in the target box.",
+		"Added event: 'COMBAT_MYTHICPLUS_OVERALL_READY', trigger when the overall segment for the mythic+ is ready.",
+		"Added event: 'COMBAT_PLAYER_LEAVING', trigger at the beginning of the leave combat process.",
+		"Added: Details:IsInMythicPlus() return true if the player is on a mythic dungeon run.",
+		"CombatObjects now have the key 'is_challenge' if the combat is a part of a challenge mode or mythic+ run.",
+		"Lib Open Raid updated.",
+
+		{"v10.2.0.12188.155", "December 28th, 2023"},
+		"Dreamwalker's Healing Potion now shows in the Healing Potion & Stone custom display.",
+		"Added the 'Remove Battleground Segments' option to the menu that opens when hovering over the erase button.",
+		"Attempt to fix Battleground faction icons, shown on enemy players damage bars.",
+		"API: Actor:GetSpellContainer(containerName) now also accepts dispelwhat, interrupt, interruptwhat, interrupttargets.",
+		"Fixed custom scripts showing the damage text too close to the dps text.",
+		"Fixed Dynamic Overall Data, showing overlapped texts for damage and dps.",
+		"Fixed an error when hovering over some spells in the Auras panel on the Player Breakdown window.",
+		"Fixed the character item level, which was not showing for players that left the party group on the Player Breakdown window.",
+		"Fixed boss images not showing at the segments selection menu.",
+		"Other updates related to encounter journal and mythic+, both under development.",
+		"Update Details! Framework for bug fixes.",
+		"Update lib Open Raid (more cooldowns added).",
+
+		{"v10.2.0.12109.155", "December 14th, 2023"},
+		"Classic now uses the same combat log reader as retail (Flamanis).",
+		"Merged Rage of Fyr'alath spells (equara)",
+		"Added Rogue Ambushes to merged spells (WillowGryph).",
+		"The Remove Common Segments option now also removes segments trash between raid bosses.",
+		"Fixed an issue where auras applied before combat start, such as Power Infusion and Prescience, which are counted towards the target, were not being accounted for.",
+		"Added to Combat Class: classCombat:GetRunTimeNoDefault(). This returns the run time of the Mythic+ if available, nil otherwise.",
+
+		{"v10.2.0.12096.155", "December 1st, 2023"},
+		"Added Mythic+ Overall DPS calculation options: 'Use Total Combat Time' and 'Use Run Time'. These options are available in the Mythic Dungeon section of the options panel. The option 'Use Run Time', takes the player's damage and divide by the total elapsed time of the run.",
+		"Added reset options: 'Remove Common Segments' and 'Reset, but keep Mythic+ Overall Segments'.",
+		"Added trinket 'Corrupted Starlight' and 'Dreambinder, Loom of the Great Cycle' extra information.",
+		"Fixes for the API change of distance checks.",
+		"Fixed some panels in the options panel, not closing at pressing the X button.",
+		"Fixed the Pet of a Pet detection non ending loop (Flamanis).",
+		"Fixed the issue of combats having only 1 second of duration.",
+		"Fixed the Damage Graphic not showing after a Mythic+ run.",
+		"Fixed an issue while renaming a spell, the change wouldn't stick and the spell would be renamed back to the original name.",
+		"Fixed death logs now showing the green healing bar.",
+		"Fixed Augmentation Evoker not showing the extra predicted damage bar.",
+		"Fixed an issue where users were unable to see interrupts and cooldowns.",
+		"Added to Combat Class: combat:GetRunTime(). This returns the run time if available or combat:GetCombatTime() if not.",
+
+		{"v10.2.0.12023.155", "November 08th, 2023"},
+		"Several fixes to make the addon work with the combat log changes done on patch 10.2.0.",
+		"Added trinket data for patch 10.2.0.",
 		"Fixed an issue with death tooltips going off-screen when the window is too close to a screen border.",
 		"Fixed a spam of errors during battlegrounds when an enemy player heal with a dot spell.",
 
-		{"v10.1.7.12012.155", "10月 27日, 2023"},
+		{"v10.1.7.12012.155", "October 27th, 2023"},
 		"Implemented [Pip's Emerald Friendship Badge] trinket buffs.",
 		"Implemented the amount of times 'On Use' trinkets are used.",
 		"10.2 trinket damage spells renamed to the item name.",
@@ -472,14 +540,14 @@ do
 			_detalhes.parser_frame:Hide()
 
 			_detalhes.MacroList = {
-				{Name = "Click on Your Own Bar", Desc = "To open the player details window on your character, like if you click on your bar in the damage window. The number '1' is the window number where it'll click.", MacroText = "/script Details:OpenPlayerDetails(1)"},
-				{Name = "Open Encounter Breakdown", Desc = "Open the encounter breakdown plugin. Details! Encounter Breakdown (plugin) must be enabled.", MacroText = "/script Details:OpenPlugin ('Encounter Breakdown')"},
-				{Name = "Open Damage per Phase", Desc = "Open the encounter breakdown plugin in the phase tab. Details! Encounter Breakdown (plugin) must be enabled.", MacroText = "/script Details:OpenPlugin ('Encounter Breakdown'); local a=Details_EncounterDetails and Details_EncounterDetails.buttonSwitchPhases:Click()"},
-				{Name = "Reset Data", Desc = "Reset the overall and regular segments data. Use 'ResetSegmentOverallData' to reset only the overall.", MacroText = "/script Details:ResetSegmentData()"},
-				{Name = "Change What the Window Shows", Desc = "Make a window show different data. SetDisplay uses (segment, displayGroup, displayID), the menu from the sword icon is in order (damage = group 1, overheal is: displayGroup 2 displayID 3.", MacroText = "/script Details:GetWindow(1):SetDisplay( DETAILS_SEGMENTID_CURRENT, 4, 5 )"},
-				{Name = "Toggle Window Height to Max Size", Desc = "Make a window be 450 pixel height, pressing the macro again toggle back to the original size. The number '1' if the window number. Hold a click in any window to show their number.", MacroText = "/script Details:GetWindow(1):ToggleMaxSize()"},
+				{Name = Loc["Click on Your Own Bar"], Desc = Loc["To open the player details window on your character, like if you click on your bar in the damage window. The number '1' is the window number where it'll click."], MacroText = "/script Details:OpenPlayerDetails(1)"},
+				{Name = Loc["Open Encounter Breakdown"], Desc = Loc["Open the encounter breakdown plugin. Details! Encounter Breakdown (plugin) must be enabled."], MacroText = "/script Details:OpenPlugin ('Encounter Breakdown')"},
+				{Name = Loc["Open Damage per Phase"], Desc = Loc["Open the encounter breakdown plugin in the phase tab. Details! Encounter Breakdown (plugin) must be enabled."], MacroText = "/script Details:OpenPlugin ('Encounter Breakdown'); local a=Details_EncounterDetails and Details_EncounterDetails.buttonSwitchPhases:Click()"},
+				{Name = Loc["Reset Data"], Desc = Loc["Reset the overall and regular segments data. Use 'ResetSegmentOverallData' to reset only the overall."], MacroText = "/script Details:ResetSegmentData()"},
+				{Name = Loc["Change What the Window Shows"], Desc = Loc["Make a window show different data. SetDisplay uses (segment, displayGroup, displayID), the menu from the sword icon is in order (damage = group 1, overheal is: displayGroup 2 displayID 3."], MacroText = "/script Details:GetWindow(1):SetDisplay( DETAILS_SEGMENTID_CURRENT, 4, 5 )"},
+				{Name = Loc["Toggle Window Height to Max Size"], Desc = Loc["Make a window be 450 pixel height, pressing the macro again toggle back to the original size. The number '1' if the window number. Hold a click in any window to show their number."], MacroText = "/script Details:GetWindow(1):ToggleMaxSize()"},
 			--	/script Details:OpenPlugin ('Advanced Death Logs'); local a = Details_DeathGraphsModeEnduranceButton and Details_DeathGraphsModeEnduranceButton.MyObject:Click()
-				{Name = "Report What is Shown In the Window", Desc = "Report the current data shown in the window, the number 1 is the window number, replace it to report another window.", MacroText = "/script Details:FastReportWindow(1)"},
+				{Name = Loc["Report What is Shown In the Window"], Desc = Loc["Report the current data shown in the window, the number 1 is the window number, replace it to report another window."], MacroText = "/script Details:FastReportWindow(1)"},
 			}
 
 		--current instances of the exp (need to maintain)
@@ -659,7 +727,7 @@ do
 
 		--armazena instancias inativas
 			_detalhes.unused_instances = {}
-			_detalhes.default_skin_to_use = "Minimalistic"
+			_detalhes.default_skin_to_use = "Serenity" -- 更改預設值
 			_detalhes.instance_title_text_timer = {}
 		--player detail skin
 			_detalhes.playerdetailwindow_skins = {}
@@ -672,12 +740,12 @@ do
 
 		--auto run code
 		_detalhes.RunCodeTypes = {
-			{Name = "On Initialization", Desc = "Run code when Details! initialize or when a profile is changed.", Value = 1, ProfileKey = "on_init"},
-			{Name = "On Zone Changed", Desc = "Run code when the zone where the player is in has changed (e.g. entered in a raid).", Value = 2, ProfileKey = "on_zonechanged"},
-			{Name = "On Enter Combat", Desc = "Run code when the player enters in combat.", Value = 3, ProfileKey = "on_entercombat"},
-			{Name = "On Leave Combat", Desc = "Run code when the player left combat.", Value = 4, ProfileKey = "on_leavecombat"},
-			{Name = "On Spec Change", Desc = "Run code when the player has changed its specialization.", Value = 5, ProfileKey = "on_specchanged"},
-			{Name = "On Enter/Leave Group", Desc = "Run code when the player has entered or left a party or raid group.", Value = 6, ProfileKey = "on_groupchange"},
+			{Name = Loc["On Initialization"], Desc = Loc["Run code when Details! initialize or when a profile is changed."], Value = 1, ProfileKey = "on_init"},
+			{Name = Loc["On Zone Changed"], Desc = Loc["Run code when the zone where the player is in has changed (e.g. entered in a raid)."], Value = 2, ProfileKey = "on_zonechanged"},
+			{Name = Loc["On Enter Combat"], Desc = Loc["Run code when the player enters in combat."], Value = 3, ProfileKey = "on_entercombat"},
+			{Name = Loc["On Leave Combat"], Desc = Loc["Run code when the player left combat."], Value = 4, ProfileKey = "on_leavecombat"},
+			{Name = Loc["On Spec Change"], Desc = Loc["Run code when the player has changed its specialization."], Value = 5, ProfileKey = "on_specchanged"},
+			{Name = Loc["On Enter/Leave Group"], Desc = Loc["Run code when the player has entered or left a party or raid group."], Value = 6, ProfileKey = "on_groupchange"},
 		}
 
 		--run a function without stopping the execution in case of an error
@@ -745,7 +813,7 @@ do
 				backdropbordercolor = {0, 0, 0, 1},
 				onentercolor = {1, 1, 1, .9},
 				textcolor = "DETAILS_PLUGIN_BUTTONTEXT_COLOR",
-				textsize = 10,
+				textsize = 14,
 				width = 120,
 				height = 20,
 			}
@@ -757,7 +825,7 @@ do
 				backdropbordercolor = {1, .7, 0, 1},
 				onentercolor = {1, 1, 1, .9},
 				textcolor = "DETAILS_PLUGIN_BUTTONTEXT_COLOR",
-				textsize = 10,
+				textsize = 14,
 				width = 120,
 				height = 20,
 			}
@@ -1288,7 +1356,7 @@ do
 
 	--welcome
 		function _detalhes:WelcomeMsgLogon()
-			_detalhes:Msg("you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated.")
+			_detalhes:Msg(Loc["you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated."])
 
 			function _detalhes:wipe_combat_after_failed_load()
 				_detalhes.tabela_historico = _detalhes.historico:CreateNewSegmentDatabase()
@@ -1300,7 +1368,7 @@ do
 				_detalhes_database.tabela_overall = nil
 				_detalhes_database.tabela_historico = nil
 
-				_detalhes:Msg("seems failed to load, please type /reload to try again.")
+				_detalhes:Msg(Loc["seems failed to load, please type /reload to try again."])
 			end
 
 			Details.Schedules.After(5, _detalhes.wipe_combat_after_failed_load)
@@ -1450,6 +1518,8 @@ Details222.UnitIdCache.Party = {
 	[3] = "party3",
 	[4] = "party4",
 }
+
+Details222.UnitIdCache.PartyIds = {"player", "party1", "party2", "party3", "party4"}
 
 Details222.UnitIdCache.Boss = {
 	[1] = "boss1",

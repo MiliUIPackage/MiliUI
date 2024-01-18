@@ -893,12 +893,12 @@ detailsFramework.KeybindMixin = {
 
 		line.actionNameFontString = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
 		detailsFramework:SetFontColor(line.actionNameFontString, "BLIZZ_OPTIONS_COLOR")
-		detailsFramework:SetFontSize(line.actionNameFontString, 14)
+		detailsFramework:SetFontSize(line.actionNameFontString, 12)
 
 		---@type df_button
         line.setKeybindButton = detailsFramework:CreateButton(line, function()end, headerTable[3].width, keyBindFrame.options.line_height-6, "", nil, nil, nil, "SetNewKeybindButton", "$parentSetNewKeybindButton", 0, nil, options_text_template)
 		line.setKeybindButton.textcolor = "white"
-		line.setKeybindButton.textsize = 13
+		line.setKeybindButton.textsize = 10
 		line.setKeybindButton:SetHook("OnEnter", keyBindFrame.OnEnterScrollLine)
 		line.setKeybindButton:SetHook("OnLeave", keyBindFrame.OnLeaveScrollLine)
 

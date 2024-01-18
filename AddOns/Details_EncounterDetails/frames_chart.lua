@@ -63,7 +63,7 @@ local createMultiChartFrame = function()
     local phaseTooltip = encounterDetails:CreatePhaseTooltip(chartPanel)
     encounterDetails:CreatePhaseIndicators(chartPanel, phaseTooltip)
 
-    detailsFramework:NewLabel(chartPanel, chartPanel, nil, "phases_string", "phases:", "GameFontHighlight")
+    detailsFramework:NewLabel(chartPanel, chartPanel, nil, "phases_string", "phases:", "GameFontHighlightSmall")
     chartPanel["phases_string"]:SetPoint("bottomleft", chartPanel, "bottomleft", 5, 10)
 
     chartPanel:SetScript("OnShow", function()

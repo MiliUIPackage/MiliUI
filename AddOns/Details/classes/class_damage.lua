@@ -1400,9 +1400,9 @@ end
 
 		local minutos, segundos = floor(uptime / 60), floor(uptime % 60)
 		if (minutos > 0) then
-			uptime = "" .. minutos .. "m " .. segundos .. "s" .. ""
+			uptime = "" .. minutos .. Loc["m "] .. segundos .. Loc["s"] .. ""
 		else
-			uptime = "" .. segundos .. "s" .. ""
+			uptime = "" .. segundos .. Loc["s"] .. ""
 		end
 
 		return Details:ToK2(value) .. " - " .. uptime .. " "
@@ -1479,9 +1479,9 @@ end
 				local actor_table = {Details:GetOnlyName(void_table[1])}
 				local m, s = _math_floor(void_table[3].uptime / 60), _math_floor(void_table[3].uptime % 60)
 				if (m > 0) then
-					actor_table [2] = FormatTooltipNumber (_, void_table[3].damage) .. " (" .. m .. "m " .. s .. "s" .. ")"
+					actor_table [2] = FormatTooltipNumber (_, void_table[3].damage) .. " (" .. m .. Loc["m "] .. s .. Loc["s"] .. ")"
 				else
-					actor_table [2] = FormatTooltipNumber (_, void_table[3].damage) .. " (" .. s .. "s" .. ")"
+					actor_table [2] = FormatTooltipNumber (_, void_table[3].damage) .. " (" .. s .. Loc["s"] .. ")"
 				end
 				t [#t+1] = actor_table
 			end
@@ -1593,9 +1593,9 @@ end
 
 			local minutos, segundos = _math_floor(debuff_table.uptime / 60), _math_floor(debuff_table.uptime % 60)
 			if (minutos > 0) then
-				GameCooltip:AddLine(Details:GetOnlyName(t[1]), FormatTooltipNumber (_, debuff_table.damage) .. " (" .. minutos .. "m " .. segundos .. "s" .. ")")
+				GameCooltip:AddLine(Details:GetOnlyName(t[1]), FormatTooltipNumber (_, debuff_table.damage) .. " (" .. minutos .. Loc["m "] .. segundos .. Loc["s"] .. ")")
 			else
-				GameCooltip:AddLine(Details:GetOnlyName(t[1]), FormatTooltipNumber (_, debuff_table.damage) .. " (" .. segundos .. "s" .. ")")
+				GameCooltip:AddLine(Details:GetOnlyName(t[1]), FormatTooltipNumber (_, debuff_table.damage) .. " (" .. segundos .. Loc["s"] .. ")")
 			end
 
 			local classe = Details:GetClass(t[1])
@@ -2736,43 +2736,56 @@ function damageClass:RefreshLine(instanceObject, lineContainer, whichRowLine, ra
 		percentString = format("%.1f", self[keyName] / instanceObject.top * 100)
 	end
 
-	local currentCombat = Details:GetCurrentCombat()
+	local currentCombat = instanceObject:GetCombat()
 
-	--calculate the actor dps
-	if ((Details.time_type == 2 and self.grupo) or not Details:CaptureGet("damage") or instanceObject.segmento == -1 or Details.use_realtimedps) then
-		if (Details.use_realtimedps and Details.in_combat) then
-			local currentDps = self.last_dps_realtime
-			if (currentDps) then
-				dps = currentDps
-			end
+	if (currentCombat:GetCombatType() == DETAILS_SEGMENTTYPE_MYTHICDUNGEON_OVERALL) then
+		if (Details.mythic_plus.mythicrun_time_type == 1) then
+			--total time in combat, activity time
+			combatTime = currentCombat:GetCombatTime()
+		elseif (Details.mythic_plus.mythicrun_time_type == 2) then
+			--elapsed time of the run
+			combatTime = currentCombat:GetRunTime()
 		end
 
-		if (not dps) then
-			if (instanceObject.segmento == -1 and combatTime == 0) then
-				local actor = currentCombat(1, self.nome)
-				if (actor) then
-					local combatTime = actor:Tempo()
-					dps = damageTotal / combatTime
-					self.last_dps = dps
+		dps = damageTotal / combatTime
+		self.last_dps = dps
+	else
+		--calculate the actor dps
+		if ((Details.time_type == 2 and self.grupo) or not Details:CaptureGet("damage") or instanceObject.segmento == -1 or Details.use_realtimedps) then
+			if (Details.use_realtimedps and Details.in_combat) then
+				local currentDps = self.last_dps_realtime
+				if (currentDps) then
+					dps = currentDps
+				end
+			end
+
+			if (not dps) then
+				if (instanceObject.segmento == -1 and combatTime == 0) then
+					local actor = currentCombat(1, self.nome)
+					if (actor) then
+						local combatTime = actor:Tempo()
+						dps = damageTotal / combatTime
+						self.last_dps = dps
+					else
+						dps = damageTotal / combatTime
+						self.last_dps = dps
+					end
 				else
 					dps = damageTotal / combatTime
 					self.last_dps = dps
 				end
-			else
-				dps = damageTotal / combatTime
-				self.last_dps = dps
 			end
-		end
-	else
-		if (not self.on_hold) then
-			dps = damageTotal/self:Tempo() --calcula o dps deste objeto
-			self.last_dps = dps --salva o dps dele
 		else
-			if (self.last_dps == 0) then --n�o calculou o dps dele ainda mas entrou em standby
-				dps = damageTotal/self:Tempo()
-				self.last_dps = dps
+			if (not self.on_hold) then
+				dps = damageTotal/self:Tempo() --calcula o dps deste objeto
+				self.last_dps = dps --salva o dps dele
 			else
-				dps = self.last_dps
+				if (self.last_dps == 0) then --n�o calculou o dps dele ainda mas entrou em standby
+					dps = damageTotal/self:Tempo()
+					self.last_dps = dps
+				else
+					dps = self.last_dps
+				end
 			end
 		end
 	end
@@ -3018,6 +3031,15 @@ function Details:ShowExtraStatusbar(thisLine, amount, extraAmount, totalAmount, 
 			extraStatusbar:SetPoint("topleft", thisLine.icone_classe, "topright", startExtraStatusbarOffset - fillTheGapWidth, 0)
 		else
 			extraStatusbar:SetPoint("topleft", thisLine, "topleft", (statusBarWidth * percent) - fillTheGapWidth, 0)
+		end
+
+		--check if the extra bar will be bigger than the window
+		local windowWidth = instanceObject:GetSize()
+		local lineWidth = thisLine:GetWidth() * (amount/topAmount)
+		local maxExtraBarWidth = windowWidth - lineWidth - initialOffset
+
+		if (extraStatusbarWidth > maxExtraBarWidth) then
+			extraStatusbarWidth = maxExtraBarWidth
 		end
 
 		extraStatusbar:SetWidth(extraStatusbarWidth)
@@ -3423,7 +3445,7 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 
 				for i = 1, math.min(#spellsAugmented, 5) do
 					local sourceName, sourceAmount = unpack(spellsAugmented[i])
-					GameCooltip:AddLine(sourceName, Details:Format(sourceAmount), 1, "yellow", "yellow", 13)
+					GameCooltip:AddLine(sourceName, Details:Format(sourceAmount), 1, "yellow", "yellow", 10)
 					local actorObject = combatObject:GetActor(1, sourceName)
 					if (actorObject) then
 						local actorIcon = Details:GetActorIcon(actorObject)
@@ -3434,6 +3456,9 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 						end
 					end
 				end
+
+				GameCooltip:AddLine(" ")
+				GameCooltip:AddIcon("", 1, 1, 5, 5)
 			end
 		end
 	else
@@ -3450,12 +3475,25 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 		---@type actorcontainer
 		local utilityContainer = combatObject:GetContainer(DETAILS_ATTRIBUTE_MISC)
 
+		---@type table<spellid, table<spellid, number, actorname, actorname, class, boolean>>
 		local buffUptimeTable = {}
 
-		--for each actor in the container
+		local CONST_SPELLID_EBONMIGHT = 395152
+		local CONST_SPELLID_PRESCIENCE = 410089
+		local CONST_SPELLID_BLACKATTUNEMENT = 403264
+
+		---@type actor[]
+		local augmentationEvokers = {}
+
+		--prescience and ebon might updatime on each actor
 		for _, actorObject in utilityContainer:ListActors() do
 			---@type spellcontainer
 			local receivedBuffs = actorObject.received_buffs_spells
+
+			--check if the actor is an augmentation evoker
+			if (actorObject.spec == 1473) then
+				augmentationEvokers[#augmentationEvokers+1] = actorObject
+			end
 
 			if (receivedBuffs and actorObject:IsPlayer() and actorObject:IsGroupPlayer()) then
 				for sourceNameSpellId, spellTable in receivedBuffs:ListSpells() do
@@ -3464,20 +3502,28 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 						spellId = tonumber(spellId)
 						local spellName, _, spellIcon = Details.GetSpellInfo(spellId)
 
-						if (spellName) then
+						if (spellName and spellId) then
 							sourceName = detailsFramework:RemoveRealmName(sourceName)
 							local targetName = actorObject:Name()
 							targetName = detailsFramework:RemoveRealmName(targetName)
 
 							local uptime = spellTable.uptime or 0
-							buffUptimeTable[#buffUptimeTable+1] = {spellId, uptime, sourceName, targetName, actorObject:Class()}
+							local bCanShowOnTooltip = true
+							buffUptimeTable[spellId] = buffUptimeTable[spellId] or {}
+							table.insert(buffUptimeTable[spellId], {spellId, uptime, sourceName, targetName, actorObject:Class(), bCanShowOnTooltip})
 						end
 					end
 				end
 			end
 		end
 
-		table.sort(buffUptimeTable, Details.Sort2)
+		for spellId, buffTable in pairs(buffUptimeTable) do
+			local totalUptime = 0
+			for i = 1, #buffTable do
+				totalUptime = totalUptime + buffTable[i][2]
+			end
+			table.sort(buffTable, Details.Sort2)
+		end
 
 		Details:FormatCooltipForSpells()
 		Details:AddTooltipSpellHeaderText(Loc ["STRING_SPELLS"], headerColor, #buffUptimeTable, Details.tooltip_spell_icon.file, unpack(Details.tooltip_spell_icon.coords))
@@ -3486,24 +3532,86 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 		local iconSize = 22
 		local iconBorderInfo = Details.tooltip.icon_border_texcoord
 
+		--add the total combat time into the tooltip
 		local combatTimeMinutes, combatTimeSeconds = math.floor(combatTime / 60), math.floor(combatTime % 60)
-		GameCooltip:AddLine("Combat Time", combatTimeMinutes .. "m " .. combatTimeSeconds .. "s" .. " (" .. format("%.1f", 100) .. "%)")
+		GameCooltip:AddLine("Combat Time", combatTimeMinutes .. Loc["m "] .. combatTimeSeconds .. Loc["s"] .. " (" .. format("%.1f", 100) .. "%)")
 		GameCooltip:AddIcon([[Interface\TARGETINGFRAME\UnitFrameIcons]], nil, nil, iconSize, iconSize, iconBorderInfo.L, iconBorderInfo.R, iconBorderInfo.T, iconBorderInfo.B)
-		Details:AddTooltipBackgroundStatusbar(false, 100, true, "green")
+		Details:AddTooltipBackgroundStatusbar(false, 100, true, "limegreen")
 
-		if (#buffUptimeTable > 0) then
-			for i = 1, min(30, #buffUptimeTable) do
-				local uptimeTable = buffUptimeTable[i]
+		GameCooltip:AddLine("", "")
+		GameCooltip:AddIcon("", nil, nil, 1, 1)
+
+		local ebonMightTable = buffUptimeTable[CONST_SPELLID_EBONMIGHT][1]
+		if (ebonMightTable) then
+			local uptime = ebonMightTable[2]
+			local spellName, _, spellIcon = _GetSpellInfo(CONST_SPELLID_EBONMIGHT)
+			local uptimePercent = uptime / combatTime * 100
+			local sourceName = ebonMightTable[3]
+
+			if (uptime <= combatTime) then
+				local minutes, seconds = math.floor(uptime / 60), math.floor(uptime % 60)
+				if (minutes > 0) then
+					GameCooltip:AddLine(spellName, minutes .. "m " .. seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
+					Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "limegreen")
+				else
+					GameCooltip:AddLine(spellName, seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
+					Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "limegreen")
+				end
+
+				GameCooltip:AddIcon(spellIcon, nil, nil, iconSize, iconSize, iconBorderInfo.L, iconBorderInfo.R, iconBorderInfo.T, iconBorderInfo.B)
+			end
+		end
+
+		GameCooltip:AddLine("", "")
+		GameCooltip:AddIcon("", nil, nil, 1, 1)
+
+		for i = 1, #augmentationEvokers do
+			local actorObject = augmentationEvokers[i]
+			if (actorObject:Name() == actorName) then
+				local buffUptimeSpellContainer = actorObject:GetSpellContainer("buff")
+				if (buffUptimeSpellContainer) then
+					local spellTable = buffUptimeSpellContainer:GetSpell(403264)
+					if (spellTable) then
+						local uptime = spellTable.uptime
+						local spellName, _, spellIcon = _GetSpellInfo(CONST_SPELLID_BLACKATTUNEMENT)
+						local uptimePercent = uptime / combatTime * 100
+
+						if (uptime <= combatTime) then
+							local minutes, seconds = math.floor(uptime / 60), math.floor(uptime % 60)
+							if (minutes > 0) then
+								GameCooltip:AddLine(spellName, minutes .. "m " .. seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
+								Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, "limegreen")
+							else
+								GameCooltip:AddLine(spellName, seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
+								Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, "limegreen")
+							end
+
+							GameCooltip:AddIcon(spellIcon, nil, nil, iconSize, iconSize, iconBorderInfo.L, iconBorderInfo.R, iconBorderInfo.T, iconBorderInfo.B)
+						end
+					end
+				end
+			end
+		end
+
+		GameCooltip:AddLine("", "")
+		GameCooltip:AddIcon("", nil, nil, 1, 1)
+
+		--add the buff uptime into the tooltip
+		local allPrescienceTargets = buffUptimeTable[CONST_SPELLID_PRESCIENCE]
+		if (#allPrescienceTargets > 0) then
+			for i = 1, math.min(30, #allPrescienceTargets) do
+				local uptimeTable = allPrescienceTargets[i]
 
 				local spellId = uptimeTable[1]
 				local uptime = uptimeTable[2]
 				local sourceName = uptimeTable[3]
 				local targetName = uptimeTable[4]
 				local targetClass = uptimeTable[5]
+				local bCanShow = uptimeTable[6]
 
 				local uptimePercent = uptime / combatTime * 100
 
-				if (uptime > 0 and uptimePercent < 99.5) then
+				if (uptime > 0 and uptimePercent < 99.5 and bCanShow) then
 					local spellName, _, spellIcon = _GetSpellInfo(spellId)
 
 					if (sourceName) then
@@ -3515,11 +3623,11 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 					if (uptime <= combatTime) then
 						local minutes, seconds = math.floor(uptime / 60), math.floor(uptime % 60)
 						if (minutes > 0) then
-							GameCooltip:AddLine(spellName, minutes .. "m " .. seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
-							Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "green")
+							GameCooltip:AddLine(spellName, minutes .. Loc["m "] .. seconds .. Loc["s"] .. " (" .. format("%.1f", uptimePercent) .. "%)")
+							Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "limegreen")
 						else
-							GameCooltip:AddLine(spellName, seconds .. "s" .. " (" .. format("%.1f", uptimePercent) .. "%)")
-							Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "green")
+							GameCooltip:AddLine(spellName, seconds .. Loc["s"] .. " (" .. format("%.1f", uptimePercent) .. "%)")
+							Details:AddTooltipBackgroundStatusbar(false, uptimePercent, true, sourceName and "limegreen")
 						end
 
 						GameCooltip:AddIcon(spellIcon, nil, nil, iconSize, iconSize, iconBorderInfo.L, iconBorderInfo.R, iconBorderInfo.T, iconBorderInfo.B)
@@ -3528,6 +3636,36 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 			end
 		else
 			GameCooltip:AddLine(Loc ["STRING_NO_SPELL"])
+		end
+
+		local evokerObject = combatObject:GetActor(DETAILS_ATTRIBUTE_MISC, actorName)
+
+		GameCooltip:AddLine(" ")
+		GameCooltip:AddIcon(" ", 1, 1, 10, 10)
+
+		if (evokerObject) then
+			GameCooltip:AddLine("Prescience Uptime by Amount of Applications")
+			local prescienceData = evokerObject.cleu_prescience_time --real time
+
+			if (prescienceData) then
+				prescienceData = prescienceData.stackTime
+				local totalTimeWithPrescienceUp = 0
+
+				for amountOfPrescienceApplied, time in ipairs(prescienceData) do
+					totalTimeWithPrescienceUp = totalTimeWithPrescienceUp + time
+				end
+
+				for amountOfPrescienceApplied, time in ipairs(prescienceData) do
+					if (time > 0) then
+						local uptimePercent = time / combatTime * 100
+						local timeString = detailsFramework:IntegerToTimer(time)
+						GameCooltip:AddLine("Presciece Applied: " .. amountOfPrescienceApplied, timeString .. " (" .. format("%.1f", uptimePercent) .. "%)")
+						--5199639 prescience icon
+						GameCooltip:AddIcon([[Interface\AddOns\Details\images\spells\prescience_time]], nil, nil, iconSize, iconSize)
+						Details:AddTooltipBackgroundStatusbar(false, time/totalTimeWithPrescienceUp*100, true, "green")
+					end
+				end
+			end
 		end
 	end
 
@@ -5708,7 +5846,7 @@ local MontaDetalhesBuffProcs = function(actor, row, instance)
 						local spellApplies = spellObject.appliedamt
 						local spellRefreshes = spellObject.refreshamt
 
-						gump:SetaDetalheInfoTexto(i, 100, FormatSpellString ("" .. spellID .. " " .. spellName), "啟動: " .. spellApplies, " ", "刷新: " .. spellRefreshes, " ", "覆蓋時間: " .. spellUptime .. "秒")
+						gump:SetaDetalheInfoTexto(i, 100, FormatSpellString ("" .. spellID .. " " .. spellName), "Activations: " .. spellApplies, " ", "Refreshes: " .. spellRefreshes, " ", "Uptime: " .. spellUptime .. Loc["s"])
 						added = added + 1
 					end
 				end
@@ -5756,12 +5894,12 @@ function damageClass:BuildSpellDetails(spellBar, spellBlockContainer, blockIndex
 			if (trinketProcData) then
 				local trinketProc = trinketProcData[spellId]
 				if (trinketProc) then
-					blockLine1.leftText:SetText("觸發: " .. trinketProc.total)
+					blockLine1.leftText:SetText("Procs: " .. trinketProc.total)
 				end
 			end
 
 		elseif (Details.GetItemSpellInfo(spellId)) then
-			blockLine1.leftText:SetText("使用: " .. totalCasts)
+			blockLine1.leftText:SetText("Uses: " .. totalCasts)
 		end
 
 		blockLine1.rightText:SetText(Loc ["STRING_HITS"]..": " .. totalHits) --hits and uptime
@@ -5817,26 +5955,26 @@ function damageClass:BuildSpellDetails(spellBar, spellBlockContainer, blockIndex
 		empowerBlock:SetColor(0.200, 0.576, 0.498, 0.6)
 
 		local blockLine1, blockLine2, blockLine3 = empowerBlock:GetLines()
-		blockLine1.leftText:SetText("法術聚能平均等級: " .. string.format("%.2f", empowerLevelSum / empowerAmount))
+		blockLine1.leftText:SetText("Spell Empower Average Level: " .. string.format("%.2f", empowerLevelSum / empowerAmount))
 
 		if (level1AverageDamage ~= "0") then
-			blockLine2.leftText:SetText("#1平均: " .. level1AverageDamage .. " (" .. (empowerAmountPerLevel[1] or 0) .. ")")
+			blockLine2.leftText:SetText("#1 Avg: " .. level1AverageDamage .. " (" .. (empowerAmountPerLevel[1] or 0) .. ")")
 		end
 
 		if (level2AverageDamage ~= "0") then
-			blockLine2.centerText:SetText("#2平均: " .. level2AverageDamage .. " (" .. (empowerAmountPerLevel[2] or 0) .. ")")
+			blockLine2.centerText:SetText("#2 Avg: " .. level2AverageDamage .. " (" .. (empowerAmountPerLevel[2] or 0) .. ")")
 		end
 
 		if (level3AverageDamage ~= "0") then
-			blockLine2.rightText:SetText("#3平均: " .. level3AverageDamage .. " (" .. (empowerAmountPerLevel[3] or 0) .. ")")
+			blockLine2.rightText:SetText("#3 Avg: " .. level3AverageDamage .. " (" .. (empowerAmountPerLevel[3] or 0) .. ")")
 		end
 
 		if (level4AverageDamage ~= "0") then
-			blockLine3.leftText:SetText("#4平均: " .. level4AverageDamage .. " (" .. (empowerAmountPerLevel[4] or 0) .. ")")
+			blockLine3.leftText:SetText("#4 Avg: " .. level4AverageDamage .. " (" .. (empowerAmountPerLevel[4] or 0) .. ")")
 		end
 
 		if (level5AverageDamage ~= "0") then
-			blockLine3.rightText:SetText("#5平均: " .. level5AverageDamage .. " (" .. (empowerAmountPerLevel[5] or 0) .. ")")
+			blockLine3.rightText:SetText("#5 Avg: " .. level5AverageDamage .. " (" .. (empowerAmountPerLevel[5] or 0) .. ")")
 		end
 	end
 
@@ -5959,15 +6097,15 @@ function damageClass:BuildSpellDetails(spellBar, spellBlockContainer, blockIndex
 		blockIndex = blockIndex + 1
 
 		local blockLine1, blockLine2, blockLine3 = trinketBlock:GetLines()
-		blockLine1.leftText:SetText("飾品資訊")
+		blockLine1.leftText:SetText("Trinket Info")
 
 		blockLine1.rightText:SetText("PPM: " .. string.format("%.2f", average / 60))
 		if (minTime == 9999999) then
-			blockLine2.leftText:SetText("最小時間: " .. _G["UNKNOWN"])
+			blockLine2.leftText:SetText("Min Time: " .. _G["UNKNOWN"])
 		else
-			blockLine2.leftText:SetText("最小時間: " .. math.floor(minTime))
+			blockLine2.leftText:SetText("Min Time: " .. math.floor(minTime))
 		end
-		blockLine2.rightText:SetText("最大時間: " .. math.floor(maxTime))
+		blockLine2.rightText:SetText("Max Time: " .. math.floor(maxTime))
 	end
 end
 
@@ -6056,7 +6194,7 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 			local uptime_spellid = spellTable.id
 			local debuff_uptime = misc_actor.debuff_uptime_spells and misc_actor.debuff_uptime_spells._ActorTable [uptime_spellid] and misc_actor.debuff_uptime_spells._ActorTable [uptime_spellid].uptime
 			if (debuff_uptime) then
-				hits_string = hits_string .. "  |cFFDDDD44(" .. _math_floor(debuff_uptime / breakdownWindowFrame.instancia.showing:GetCombatTime() * 100) .. "% uptime)|r"
+				hits_string = hits_string .. "  |cFFDDDD44(" .. _math_floor(debuff_uptime / breakdownWindowFrame.instancia.showing:GetCombatTime() * 100) .. Loc["% uptime)|r"]
 			end
 
 			local amountOfCasts = breakdownWindowFrame.instancia.showing:GetSpellCastAmount(self:Name(), spellName)
@@ -6187,7 +6325,7 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 
 		t4[1] = 0
 		t4[2] = {p = 100, c = {0.200, 0.576, 0.498, 0.6}}
-		t4[3] = "法術聚能平均等級: " .. format("%.2f", empowerLevelSum / empowerAmount)
+		t4[3] = "Spell Empower Average Level: " .. format("%.2f", empowerLevelSum / empowerAmount)
 		t4[4] = ""
 		t4[5] = ""
 		t4[6] = ""
@@ -6195,23 +6333,23 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 		t4[11] = ""
 
 		if (level1AverageDamage ~= "0") then
-			t4[4] = "等級1平均: " .. level1AverageDamage .. " (" .. (empowerAmountPerLevel[1] or 0) .. ")"
+			t4[4] = "Level 1 Avg: " .. level1AverageDamage .. " (" .. (empowerAmountPerLevel[1] or 0) .. ")"
 		end
 
 		if (level2AverageDamage ~= "0") then
-			t4[6] = "等級2平均: " .. level2AverageDamage .. " (" .. (empowerAmountPerLevel[2] or 0) .. ")"
+			t4[6] = "Level 2 Avg: " .. level2AverageDamage .. " (" .. (empowerAmountPerLevel[2] or 0) .. ")"
 		end
 
 		if (level3AverageDamage ~= "0") then
-			t4[11] = "等級3平均: " .. level3AverageDamage .. " (" .. (empowerAmountPerLevel[3] or 0) .. ")"
+			t4[11] = "Level 3 Avg: " .. level3AverageDamage .. " (" .. (empowerAmountPerLevel[3] or 0) .. ")"
 		end
 
 		if (level4AverageDamage ~= "0") then
-			t4[10] = "等級4平均: " .. level4AverageDamage .. " (" .. (empowerAmountPerLevel[4] or 0) .. ")"
+			t4[10] = "Level 4 Avg: " .. level4AverageDamage .. " (" .. (empowerAmountPerLevel[4] or 0) .. ")"
 		end
 
 		if (level5AverageDamage ~= "0") then
-			t4[5] = "等級5平均: " .. level5AverageDamage .. " (" .. (empowerAmountPerLevel[5] or 0) .. ")"
+			t4[5] = "Level 5 Avg: " .. level5AverageDamage .. " (" .. (empowerAmountPerLevel[5] or 0) .. ")"
 		end
 	end
 
@@ -6249,7 +6387,7 @@ function damageClass:MontaDetalhesDamageDone (spellId, spellLine, instance) --th
 				for i = 1, amountOfTimeStamps do
 					thatRectangle66.timeStamps[i] = thatRectangle66:CreateFontString(nil, "overlay", "GameFontNormal")
 					thatRectangle66.timeStamps[i]:SetPoint("topleft", thatRectangle66, "topleft", 2 + (i - 1) * (width / amountOfTimeStamps), -2)
-					DetailsFramework:SetFontSize(thatRectangle66.timeStamps[i], 12)
+					DetailsFramework:SetFontSize(thatRectangle66.timeStamps[i], 9)
 				end
 			end
 

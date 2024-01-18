@@ -199,7 +199,7 @@ function Details:OpenBrokerTextEditor()
         ok_button:SetPoint("topright", panel, "topright", -12, -174)
         ok_button:SetTemplate(DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
 
-        local reset_button = DF:NewButton(panel, nil, "$parentDefaultOk", nil, 80, 20, function() textentry.editbox:SetText("") end, nil, nil, nil, "Reset", 1)
+        local reset_button = DF:NewButton(panel, nil, "$parentDefaultOk", nil, 80, 20, function() textentry.editbox:SetText("") end, nil, nil, nil, Loc["Reset"], 1)
         reset_button.tooltip = Loc ["STRING_OPTIONS_TEXTEDITOR_RESET_TOOLTIP"]
         reset_button:SetPoint("topright", panel, "topright", -100, -152)
         reset_button:SetTemplate(DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))

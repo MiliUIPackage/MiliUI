@@ -1,6 +1,7 @@
 
 local Details = Details
 local DF = DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 
 --create the main frame for the options panel
 
@@ -18,7 +19,7 @@ local createOptionsPanel = function()
     local options_slider_template = DF:GetTemplate("slider", "OPTIONS_SLIDER_TEMPLATE")
     local options_button_template = DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE")
 
-    local optionsFrame = DF:CreateSimplePanel(UIParent, 550, 500, "Details! Breakdown Options", "DetailsSpellBreakdownOptionsPanel")
+    local optionsFrame = DF:CreateSimplePanel(UIParent, 550, 500, Loc["Details! Breakdown Options"], "DetailsSpellBreakdownOptionsPanel")
     optionsFrame:SetFrameStrata("DIALOG")
     optionsFrame:SetPoint("topleft", UIParent, "topleft", 2, -40)
     optionsFrame:Show()
@@ -50,17 +51,17 @@ local createOptionsPanel = function()
         DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
         DetailsSpellBreakdownOptionsPanel:RefreshOptions()
 
-        Details:Msg("設置恢復回預設。")
+        Details:Msg(Loc["Settings reseted to default."])
     end
 
-    local resetSettingsButton = DF:CreateButton(optionsFrame, resetSettings, 130, 20, "Reset Settings")
+    local resetSettingsButton = DF:CreateButton(optionsFrame, resetSettings, 130, 20, Loc["Reset Settings"])
     resetSettingsButton:SetPoint("bottomleft", optionsFrame, "bottomleft", 5, 5)
     resetSettingsButton:SetTemplate(options_button_template)
 
     local subSectionTitleTextTemplate = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")
 
     local optionsTable = {
-        {type = "label", get = function() return "Spell Details Block" end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return Loc["Spell Details Block"] end, text_template = subSectionTitleTextTemplate},
             {--block height
                 type = "range",
                 get = function() return Details.breakdown_spell_tab.blockspell_height end,
@@ -71,14 +72,14 @@ local createOptionsPanel = function()
                 min = 50,
                 max = 80,
                 step = 1,
-                name = "區塊高度",
-                desc = "Block Height",
+                name = Loc["Block Height"],
+                desc = Loc["Block Height"],
             },
 
         {type = "blank"},
         {type = "blank"},
 
-        {type = "label", get = function() return "Spell Header Options" end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return Loc["Spell Header Options"] end, text_template = subSectionTitleTextTemplate},
             { --per second
                 type = "toggle",
                 get = function() return Details.breakdown_spell_tab.spellcontainer_headers["persecond"].enabled end,
@@ -86,8 +87,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["persecond"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "每秒",
-                desc = "Per Second",
+                name = Loc["Per Second"],
+                desc = Loc["Per Second"],
             },
 
             { --amount of casts
@@ -97,8 +98,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["casts"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "施放",
-                desc = "Casts",
+                name = Loc["Casts"],
+                desc = Loc["Casts"],
             },
 
             { --critical hits percent
@@ -108,8 +109,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["critpercent"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "致命命中百分比",
-                desc = "Critical Hits Percent",
+                name = Loc["Critical Hits Percent"],
+                desc = Loc["Critical Hits Percent"],
             },
 
             { --amount of hits
@@ -119,8 +120,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["hits"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "命中次數",
-                desc = "Hits Amount",
+                name = Loc["Hits Amount"],
+                desc = Loc["Hits Amount"],
             },
 
             { --average damage of healing per cast amount
@@ -130,8 +131,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["castavg"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "施放平均",
-                desc = "Cast Average",
+                name = Loc["Cast Average"],
+                desc = Loc["Cast Average"],
             },
 
             { --debuff uptime
@@ -141,8 +142,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["uptime"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "覆蓋時間",
-                desc = "Uptime",
+                name = Loc["Uptime"],
+                desc = Loc["Uptime"],
             },
 
             { --overheal
@@ -152,8 +153,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["overheal"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "整體治療",
-                desc = "Overheal",
+                name = Loc["Overheal"],
+                desc = Loc["Overheal"],
             },
 
             { --absorbed
@@ -163,12 +164,12 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.spellcontainer_headers["absorbed"].enabled = value
                     DetailsSpellBreakdownTab.UpdateHeadersSettings("spells")
                 end,
-                name = "治療吸收",
-                desc = "Heal Absorbed",
+                name = Loc["Heal Absorbed"],
+                desc = Loc["Heal Absorbed"],
             },
 
         {type = "breakline"},
-        {type = "label", get = function() return "Scroll Options" end, text_template = subSectionTitleTextTemplate},
+        {type = "label", get = function() return Loc["Scroll Options"] end, text_template = subSectionTitleTextTemplate},
 
             { --locked
                 type = "toggle",
@@ -181,8 +182,8 @@ local createOptionsPanel = function()
                     local container = DetailsSpellBreakdownTab.GetTargetScrollContainer()
                     container:SetResizeLocked(value)
                 end,
-                name = "已鎖定",
-                desc = "Is Locked",
+                name = Loc["Is Locked"],
+                desc = Loc["Is Locked"],
             },
 
             {--background alpha
@@ -196,8 +197,8 @@ local createOptionsPanel = function()
                 max = 1,
                 step = 0.1,
                 usedecimals = true,
-                name = "背景透明度",
-                desc = "Background Alpha",
+                name = Loc["Background Alpha"],
+                desc = Loc["Background Alpha"],
             },
 
         {type = "blank"},
@@ -208,8 +209,8 @@ local createOptionsPanel = function()
                 set = function(self, fixedparam, value)
                     Details.breakdown_spell_tab.nest_players_spells_with_same_name = value
                 end,
-                name = "相同名稱的團隊玩家法術",
-                desc = "Group spells casted by players which has the same name",
+                name = Loc["Group Player Spells With Same Name"],
+                desc = Loc["Group spells casted by players which has the same name"],
             },
 
         {type = "blank"},
@@ -221,8 +222,8 @@ local createOptionsPanel = function()
                 set = function(self, fixedparam, value)
                     Details.breakdown_spell_tab.nest_pet_spells_by_name = value
                 end,
-                name = "隊伍寵物名稱在寵物法術條下",
-                desc = "Group Pets By Name",
+                name = Loc["Group Pet Names Under a Pet Spell Bar"],
+                desc = Loc["Group Pets By Name"],
                 hooks = {["OnSwitch"] = function()
                     if (Details.breakdown_spell_tab.nest_pet_spells_by_name) then
                         Details.breakdown_spell_tab.nest_pet_spells_by_caster = false
@@ -238,8 +239,8 @@ local createOptionsPanel = function()
                     Details.breakdown_spell_tab.nest_pet_spells_by_caster = value
 
                 end,
-                name = "隊伍寵物法術在寵物名稱條下",
-                desc = "Group Pets By Spell",
+                name = Loc["Group Pet Spells Under a Pet Name Bar"],
+                desc = Loc["Group Pets By Spell"],
                 hooks = {["OnSwitch"] = function()
                     if (Details.breakdown_spell_tab.nest_pet_spells_by_caster) then
                         Details.breakdown_spell_tab.nest_pet_spells_by_name = false

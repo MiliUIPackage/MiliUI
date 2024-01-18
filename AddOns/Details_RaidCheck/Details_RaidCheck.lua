@@ -209,7 +209,7 @@ local CreatePluginFrames = function()
 
 	local reportString1 = raidCheckFrame:CreateFontString(nil, "overlay", "GameFontNormal")
 	reportString1:SetPoint("bottomleft", raidCheckFrame, "bottomleft", 10, 8)
-	reportString1:SetText("|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:225:307|t Report No Food/Flask  |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:328:409|t Report No Pre-Pot  |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:126:204|t Report No Rune  |  |cFFFFFFFFShift+Click: Options|r") 
+	reportString1:SetText("|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:225:307|t" .. Loc["Report No Food/Flask"] .. " |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:328:409|t" .. Loc["Report No Pre-Pot"] .. " |TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:12:12:0:1:512:512:8:70:126:204|t" .. Loc["Report No Rune"] .. "  |  |cFFFFFFFF" .. Loc["Shift+Click: Options"] .. "|r")  
 
 	DetailsRaidCheck:SetFontSize(reportString1, 10)
 	DetailsRaidCheck:SetFontColor(reportString1, "white")
@@ -217,16 +217,16 @@ local CreatePluginFrames = function()
 
 	--header and scroll
 	local headerTable = {
-		{text = "玩家姓名", width = 140},
-		{text = "天賦", width = 130},
-		{text = "裝等", width = 45},
-		{text = "修理", width = 45},
-		{text = "食物", width = 45},
-		{text = "精煉", width = 45},
-		{text = "符文", width = 45},
-		{text = "M+分數", width = 60},
-		--{text = "Pre-Pot Last Try", width = 100},
-		--{text = "Using Details!", width = 100},
+		{text = Loc["Player Name"], width = 140},
+		{text = Loc["Talents"], width = 130},
+		{text = Loc["Item Level"], width = 45},
+		{text = Loc["Repair"], width = 45},
+		{text = Loc["Food"], width = 45},
+		{text = Loc["Flask"], width = 45},
+		{text = Loc["Rune"], width = 45},
+		{text = Loc["M+ Score"], width = 60},
+		--{text = Loc["Pre-Pot Last Try"], width = 100},
+		--{text = Loc["Using Details!"], width = 100},
 	}
 	local headerOptions = {
 		padding = 2,
@@ -369,7 +369,7 @@ local CreatePluginFrames = function()
 		local printAmount = false
 
 		if (printAmount) then
-			print("#data", #data, "total lines:", totalLines)
+			print("#data", #data, Loc["total lines:"], totalLines)
 		end
 
 		local addedPlayersAmount = 0
@@ -515,7 +515,7 @@ local CreatePluginFrames = function()
 
 		if (button == "LeftButton") then
 			--link no food/flask
-			local reportString, added = "Details!: No Flask or Food: ", {}
+			local reportString, added = Loc["Details!: No Flask or Food: "], {}
 
 			local amt = GetNumGroupMembers()
 			local _, _, difficulty = GetInstanceInfo()
@@ -551,7 +551,7 @@ local CreatePluginFrames = function()
 
 		elseif (button == "RightButton") then
 			--link no pre-pot latest segment
-			local reportString = "Details!: No Pre-Pot Last Try: "
+			local reportString = Loc["Details!: No Pre-Pot Last Try: "]
 			local groupMembersAmount = GetNumGroupMembers()
 			local _, _, difficulty = GetInstanceInfo()
 			if (difficulty == 16 and DetailsRaidCheck.db.mythic_1_4 and groupMembersAmount > 20) then
@@ -587,7 +587,7 @@ local CreatePluginFrames = function()
 
 		elseif (button == "MiddleButton") then
 			--report focus aug
-			local reportString = "Details!: Not using Rune: "
+			local reportString = Loc["Details!: Not using Rune: "]
 			local groupMembersAmount = GetNumGroupMembers()
 			local _, _, difficulty = GetInstanceInfo()
 			if (difficulty == 16 and DetailsRaidCheck.db.mythic_1_4 and groupMembersAmount > 20) then
@@ -674,8 +674,9 @@ local CreatePluginFrames = function()
 					local mythicPlusProfile = rioProfile.mythicKeystoneProfile
 					local previousScore = mythicPlusProfile.previousScore or 0
 					local currentScore = mythicPlusProfile.currentScore or 0
-					mythicPlusScore = previousScore and previousScore > currentScore and previousScore or currentScore
-					mythicPlusScore = mythicPlusScore or currentScore
+					--mythicPlusScore = previousScore and previousScore > currentScore and previousScore or currentScore
+					--mythicPlusScore = mythicPlusScore or currentScore
+					mythicPlusScore = currentScore
 				end
 			end
 
@@ -958,54 +959,54 @@ local CreatePluginFrames = function()
 end
 
 local buildOptionsPanel = function()
-	local optionsFrame = DetailsRaidCheck:CreatePluginOptionsFrame("DetailsRaidCheckOptionsWindow", "Details! Raid Check Options", 1)
+	local optionsFrame = DetailsRaidCheck:CreatePluginOptionsFrame("DetailsRaidCheckOptionsWindow", Loc["Details! Raid Check Options"], 1)
 	local optionsTable = {
-		{type = "label", get = function() return Loc ["General Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+		{type = "label", get = function() return Loc["General Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.pre_pot_healers end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.pre_pot_healers = value end,
-			desc = Loc ["If enabled, pre potion for healers are also shown."],
-			name = Loc ["Track Healers Pre Pot"]
+			desc = Loc["If enabled, pre potion for healers are also shown."],
+			name = Loc["Track Healers Pre Pot"]
 		},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.pre_pot_tanks end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.pre_pot_tanks = value end,
-			desc = Loc ["If enabled, pre potion for tanks are also shown."],
-			name = Loc ["Track Tank Pre Pot"]
+			desc = Loc["If enabled, pre potion for tanks are also shown."],
+			name = Loc["Track Tank Pre Pot"]
 		},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.mythic_1_4 end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.mythic_1_4 = value end,
-			desc = Loc ["When raiding on Mythic difficult, only check the first 4 groups."],
-			name = Loc ["Mythic 1-4 Group Only"]
+			desc = Loc["When raiding on Mythic difficult, only check the first 4 groups."],
+			name = Loc["Mythic 1-4 Group Only"]
 		},
 
 		{type = "breakline"},
 
-		{type = "label", get = function() return Loc ["Food Level Tracking:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+		{type = "label", get = function() return Loc["Food Level Tracking:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.food_tier1 end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.food_tier1 = value end,
-			desc = Loc ["Consider players using Tier 1 food."],
-			name = Loc ["Food Tier 1 [41]"]
+			desc = Loc["Consider players using Tier 1 food."],
+			name = Loc["Food Tier 1 [41]"]
 		},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.food_tier2 end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.food_tier2 = value end,
-			desc = Loc ["Consider players using Tier 2 food."],
-			name = Loc ["Food Tier 2 [55]"]
+			desc = Loc["Consider players using Tier 2 food."],
+			name = Loc["Food Tier 2 [55]"]
 		},
 		{
 			type = "toggle",
 			get = function() return DetailsRaidCheck.db.food_tier3 end,
 			set = function (self, fixedparam, value) DetailsRaidCheck.db.food_tier3 = value end,
-			desc = Loc ["Consider players using Tier 3 food."],
-			name = Loc ["Food Tier 3 [>= 75]"]
+			desc = Loc["Consider players using Tier 3 food."],
+			name = Loc["Food Tier 3 [>= 75]"]
 		},
 	}
 

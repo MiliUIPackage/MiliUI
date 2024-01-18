@@ -603,6 +603,23 @@ local classTypeUtility = Details.atributos.misc
 						actorContainer:Cleanup()
 					end
 				end
+			else
+				if (combatObject.is_mythic_dungeon_segment) then
+					for i = 1, DETAILS_COMBAT_AMOUNT_CONTAINERS do
+						---@type actorcontainer
+						local actorContainer = combatObject:GetContainer(i)
+						if (actorContainer) then
+							local actorTable = actorContainer:GetActorTable()
+							for o = #actorTable, 1, -1 do
+								---@type actor
+								local actorObject = actorTable[o]
+								for funcName in pairs(Details222.Mixins.ActorMixin) do
+									actorObject[funcName] = nil
+								end
+							end
+						end
+					end
+				end
 			end
 		end
 
@@ -666,9 +683,9 @@ local classTypeUtility = Details.atributos.misc
 
 		if (Details.debug) then
 			if (bShouldForceCollect) then
-				Details:Msg("(debug) collecting garbage with forced state:", bShouldForceCollect)
+				--Details:Msg("(debug) collecting garbage with forced state:", bShouldForceCollect)
 			else
-				Details:Msg("(debug) collecting garbage.")
+				--Details:Msg("(debug) collecting garbage.")
 			end
 		end
 
@@ -713,8 +730,8 @@ local classTypeUtility = Details.atributos.misc
 		Details222.GarbageCollector.lastCollectTime = Details._tempo
 
 		if (Details.debug) then
-			Details:Msg("(debug) executing: collectgarbage().")
-			collectgarbage()
+			--Details:Msg("(debug) executing: collectgarbage().")
+			--collectgarbage()
 		end
 	end
 
@@ -773,11 +790,13 @@ local classTypeUtility = Details.atributos.misc
 
 					if (canCollect) then
 						amountCleaned = amountCleaned + 1
+
 						if (containerId == 1 or containerId == 2) then --damage or healing
 							Details222.TimeMachine.RemoveActor(actorObject)
 						end
+
 						--remove the actor from the container
-						Details:DestroyActor(actorObject, actorContainer, combatObject)
+						Details:DestroyActor(actorObject, actorContainer, combatObject) --a window showing 'Auras & Void Zones' did not refreshed and had an actor pointing to here
 					end
 				end
 			end

@@ -132,10 +132,10 @@ function phaseFrame.OnSelectPhase(phaseSelected)
 	phaseFrame:UpdatePhaseBars()
 end
 
-local PhaseSelectLabel = detailsFramework:CreateLabel(phaseFrame, "選擇階段:", 14, "orange")
-local DamageLabel = detailsFramework:CreateLabel(phaseFrame, "造成傷害")
-local HealLabel = detailsFramework:CreateLabel(phaseFrame, "造成治療")
-local PhaseTimersLabel = detailsFramework:CreateLabel(phaseFrame, "每個階段時間花費")
+local PhaseSelectLabel = detailsFramework:CreateLabel(phaseFrame, "Select Phase:", 12, "orange")
+local DamageLabel = detailsFramework:CreateLabel(phaseFrame, "Damage Done")
+local HealLabel = detailsFramework:CreateLabel(phaseFrame, "Healing Done")
+local PhaseTimersLabel = detailsFramework:CreateLabel(phaseFrame, "Time Spent on Each Phase")
 
 local report_damage = function(IsCurrent, IsReverse, AmtLines)
 	local result = {}
@@ -149,7 +149,7 @@ local report_damage = function(IsCurrent, IsReverse, AmtLines)
 		encounterDetails:SendReportLines(result)
 	end
 
-	table.insert(result, "Details!: 傷害在階段 " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
+	table.insert(result, "Details!: Damage for Phase " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
 	for i = 1, #phaseFrame.DamageTable do
 		table.insert(result, encounterDetails:GetOnlyName(phaseFrame.DamageTable[i][1]) .. ": " .. Details:ToK(math.floor(phaseFrame.DamageTable[i][2])))
 	end
@@ -157,10 +157,10 @@ local report_damage = function(IsCurrent, IsReverse, AmtLines)
 	encounterDetails:SendReportWindow(reportFunc, nil, nil, true)
 end
 
-local Report_DamageButton = detailsFramework:CreateButton(phaseFrame, report_damage, 16, 16, "報告")
+local Report_DamageButton = detailsFramework:CreateButton(phaseFrame, report_damage, 16, 16, "report")
 Report_DamageButton:SetPoint("left", DamageLabel, "left", scrollWidth-44, 0)
 Report_DamageButton.textcolor = "gray"
-Report_DamageButton.textsize = 12
+Report_DamageButton.textsize = 9
 
 local report_healing = function()
 	local result = {}
@@ -174,17 +174,17 @@ local report_healing = function()
 		encounterDetails:SendReportLines(result)
 	end
 
-	table.insert(result, "Details!: 治療在階段 " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
+	table.insert(result, "Details!: Healing for Phase " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
 	for i = 1, #phaseFrame.HealingTable do
 		table.insert(result, encounterDetails:GetOnlyName(phaseFrame.HealingTable[i][1]) .. ": " .. Details:ToK(math.floor(phaseFrame.HealingTable[i][2])))
 	end
 
 	encounterDetails:SendReportWindow(reportFunc, nil, nil, true)
 end
-local Report_HealingButton = detailsFramework:CreateButton(phaseFrame, report_healing, 16, 16, "報告")
+local Report_HealingButton = detailsFramework:CreateButton(phaseFrame, report_healing, 16, 16, "report")
 Report_HealingButton:SetPoint("left", HealLabel, "left", scrollWidth-44, 0)
 Report_HealingButton.textcolor = "gray"
-Report_HealingButton.textsize = 12
+Report_HealingButton.textsize = 9
 
 
 PhaseSelectLabel:SetPoint("topleft", phaseFrame, "topleft", 10, phasesY)
@@ -257,13 +257,13 @@ local scrollCreateLine = function(self, index)
 	icon:SetSize(scrollLineHeight, scrollLineHeight)
 
 	local name = statusBar:CreateFontString("$parentName", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(name, 13)
+	detailsFramework:SetFontSize(name, 10)
 	icon:SetPoint("left", line, "left", 2, 0)
 	name:SetPoint("left", icon, "right", 2, 0)
 	detailsFramework:SetFontColor(name, "white")
 
 	local done = statusBar:CreateFontString("$parentDone", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(done, 13)
+	detailsFramework:SetFontSize(done, 10)
 	detailsFramework:SetFontColor(done, "white")
 	done:SetPoint("right", line, "right", -2, 0)
 
@@ -271,7 +271,7 @@ local scrollCreateLine = function(self, index)
 	line.name = name
 	line.done = done
 	line.statusbar = statusBar
-	name:SetHeight(12)
+	name:SetHeight(10)
 	name:SetJustifyH("left")
 	return line
 end
@@ -335,9 +335,9 @@ for i = 1, 10 do
 	icon:SetSize(16, 16)
 	icon:SetTexture([[Interface\AddOns\Details\images\clock]])
 	local name = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(name, 13)
+	detailsFramework:SetFontSize(name, 10)
 	local done = line:CreateFontString("$parentDone", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(done, 13)
+	detailsFramework:SetFontSize(done, 10)
 
 	icon:SetPoint("left", line, "left", 2, 0)
 	name:SetPoint("left", icon, "right", 2, 0)
@@ -346,7 +346,7 @@ for i = 1, 10 do
 	line.icon = icon
 	line.name = name
 	line.done = done
-	name:SetHeight(12)
+	name:SetHeight(10)
 	name:SetJustifyH("left")
 
 	table.insert(phaseFrame.PhasesBars, line)
@@ -363,16 +363,16 @@ for i = 1, 20 do
 	line:SetBackdropColor(unpack(edTable.defaultBackgroundColor))
 	line:Hide()
 	local name = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(name, 12)
+	detailsFramework:SetFontSize(name, 9)
 	name:SetPoint("left", line, "left", 2, 0)
 
 	local done = line:CreateFontString("$parentDone", "overlay", "GameFontNormal")
-	detailsFramework:SetFontSize(done, 12)
+	detailsFramework:SetFontSize(done, 9)
 	done:SetPoint("right", line, "right", -2, 0)
 
 	line.name = name
 	line.done = done
-	name:SetHeight(12)
+	name:SetHeight(10)
 	name:SetJustifyH("left")
 
 	table.insert(phaseFrame.PhasesSegmentCompare, line)
@@ -447,18 +447,18 @@ function phaseFrame:UpdateSegmentCompareBars(phase)
 
 			if (timers [phase]) then
 				if (segment ~= segmentTable) then
-					bar.name:SetText("分段 " .. i .. ":")
+					bar.name:SetText("Segment " .. i .. ":")
 					detailsFramework:SetFontColor(bar.name, "orange")
 					bar.done:SetText(detailsFramework:IntegerToTimer(timers [phase]))
 					detailsFramework:SetFontColor(bar.done, "orange")
 				else
-					bar.name:SetText("分段 " .. i .. ":")
+					bar.name:SetText("Segment " .. i .. ":")
 					detailsFramework:SetFontColor(bar.name, "white")
 					bar.done:SetText(detailsFramework:IntegerToTimer(timers [phase]))
 					detailsFramework:SetFontColor(bar.done, "white")
 				end
 			else
-				bar.name:SetText("分段 " .. i .. ":")
+				bar.name:SetText("Segment " .. i .. ":")
 				detailsFramework:SetFontColor(bar.name, "red")
 				bar.done:SetText("--x--x--")
 			end

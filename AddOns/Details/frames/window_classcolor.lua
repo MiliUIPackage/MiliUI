@@ -143,8 +143,8 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("damage")
                 end,
-                name = "傷害",
-                desc = "Damage",
+                name = Loc["Damage"],
+                desc = Loc["Damage"],
             },
             {--heal
                 type = "select",
@@ -152,8 +152,8 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("heal")
                 end,
-                name = "治療",
-                desc = "Heal",
+                name = Loc["Heal"],
+                desc = Loc["Heal"],
             },
             {--friendlyfire
                 type = "select",
@@ -161,8 +161,8 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("friendlyfire")
                 end,
-                name = "友方誤傷",
-                desc = "Friendly Fire",
+                name = Loc["Friendly Fire"],
+                desc = Loc["Friendly Fire"],
             },
             {--cooldown
                 type = "select",
@@ -170,8 +170,8 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("cooldown")
                 end,
-                name = "冷卻",
-                desc = "Cooldown",
+                name = Loc["Cooldown"],
+                desc = Loc["Cooldown"],
             },
             {--debuff
                 type = "select",
@@ -179,17 +179,17 @@ function Details:OpenClassColorsConfig()
                 values = function()
                     return buildColorList("debuff")
                 end,
-                name = "減益",
-                desc = "Debuff",
+                name = Loc["Debuff"],
+                desc = Loc["Debuff"],
             },
-            {--buff
+			{--buff
                 type = "select",
                 get = function() return Details.death_log_colors.buff end,
                 values = function()
                     return buildColorList("buff")
                 end,
-                name = "增益",
-                desc = "Buff",
+                name = Loc["Buff"],
+                desc = Loc["Buff"],
             },
         }
 
@@ -202,7 +202,7 @@ function Details:OpenClassColorsConfig()
 
         DetailsFramework:BuildMenu(panel, deathLogOptions, 5, -315, 700, true, options_text_template, options_dropdown_template, options_switch_template, true, options_slider_template, options_button_template)
 
-        local deathLogColorsLabel = DF:CreateLabel(panel, "死亡日誌顏色:", 14,"yellow")
+        local deathLogColorsLabel = DF:CreateLabel(panel, Loc["Colors on Death Log:"], 12, "yellow")
         deathLogColorsLabel:SetPoint("topleft", panel, "topleft", 5, -295)
     end
 

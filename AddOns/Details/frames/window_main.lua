@@ -1964,7 +1964,7 @@ local lineScript_Onmouseup = function(self, button)
 						if (func) then
 							local successful, errortext = pcall(func, self, self.minha_tabela, instanceObject)
 							if (not successful) then
-								Details:Msg("error occurred custom script shift+click:", errortext)
+								Details:Msg(Loc["error occurred custom script shift+click:"], errortext)
 							end
 							return
 						end
@@ -1980,7 +1980,7 @@ local lineScript_Onmouseup = function(self, button)
 			end
 
 			if (not self.minha_tabela) then
-				return Details:Msg("this bar is waiting update.")
+				return Details:Msg(Loc["this bar is waiting update."])
 			end
 
 			Details:OpenBreakdownWindow(instanceObject, self.minha_tabela, nil, nil, bIsShiftDown, bIsControlDown)
@@ -2174,10 +2174,10 @@ local iconFrame_OnEnter = function(self)
 						--discover which are the player position in the guild rank
 						local playerTable, onEncounter, rankPosition = Details.storage:GetPlayerGuildRank(diff, combat:GetBossInfo().id, attribute == 1 and "damage" or "healing", name, true)
 
-						GameCooltip:AddLine(Loc["Best Score:"], Details:ToK2((bestRank[1] or 0) / encounterTable.elapsed) .. " [|cFFFFFF00Rank: " .. (rankPosition or "#") .. "|r]", 1, "white")
+						GameCooltip:AddLine(Loc["Best Score:"], Details:ToK2((bestRank[1] or 0) / encounterTable.elapsed) .. Loc[" [|cFFFFFF00Rank: "] .. (rankPosition or "#") .. "|r]", 1, "white")
 						Details:AddTooltipBackgroundStatusbar()
 
-						GameCooltip:AddLine("|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:224:306|t Open Rank", "|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:328:409|t Refresh Talents", 1, "white", "white")
+						GameCooltip:AddLine(Loc["|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:224:306|t Open Rank"], Loc["|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:328:409|t Refresh Talents"], 1, "white", "white")
 						Details:AddTooltipBackgroundStatusbar()
 
 						if (not gotInfo) then
@@ -2210,10 +2210,10 @@ local iconFrame_OnEnter = function(self)
 					local currentScore = rioProfile.currentScore or 0
 
 					if (false and previousScore > currentScore and time() > 1700562401) then --2023.11.21 midday
-						GameCooltip:AddLine("M+ 分數:", previousScore .. " (|cFFFFDD11" .. currentScore .. "|r)", 1, "white")
+						GameCooltip:AddLine(Loc["M+ Score:"], previousScore .. " (|cFFFFDD11" .. currentScore .. "|r)", 1, "white")
 						addedInfo = true
 					else
-						GameCooltip:AddLine("M+ 分數:", currentScore, 1, "white")
+						GameCooltip:AddLine(Loc["M+ Score:"], currentScore, 1, "white")
 						addedInfo = true
 					end
 				else
@@ -2221,7 +2221,7 @@ local iconFrame_OnEnter = function(self)
 					if (dungeonPlayerInfo) then
 						local currentScore = dungeonPlayerInfo.currentSeasonScore or 0
 						if (currentScore > 0) then
-							GameCooltip:AddLine("M+ 分數:", currentScore, 1, "white")
+							GameCooltip:AddLine(Loc["M+ Score:"], currentScore, 1, "white")
 							addedInfo = true
 						end
 					end
@@ -2239,7 +2239,7 @@ local iconFrame_OnEnter = function(self)
 					if (dungeonPlayerInfo) then
 						local currentScore = dungeonPlayerInfo.currentSeasonScore or 0
 						if (currentScore > 0) then
-							GameCooltip:AddLine("M+ 分數:", currentScore, 1, "white")
+							GameCooltip:AddLine(Loc["M+ Score:"], currentScore, 1, "white")
 							GameCooltip:AddIcon([[]], 1, 1, 1, 20)
 							Details:AddTooltipBackgroundStatusbar()
 							--increase frame height
@@ -2251,7 +2251,7 @@ local iconFrame_OnEnter = function(self)
 
 			if (actor.spec == 1473 and actor.tipo == DETAILS_ATTRIBUTE_DAMAGE) then
 				local damageDone = math.floor(actor.total + actor.total_extra)
-				GameCooltip:AddLine("喚能師預測傷害:", Details:Format(damageDone) .. " (" .. Details:Format(damageDone / Details:GetCurrentCombat():GetCombatTime()) .. ")", 1, "white")
+				GameCooltip:AddLine("Evoker Predicted Damage:", Details:Format(damageDone) .. " (" .. Details:Format(damageDone / Details:GetCurrentCombat():GetCombatTime()) .. ")", 1, "white")
 				GameCooltip:AddIcon([[]], 1, 1, 1, 20)
 				Details:AddTooltipBackgroundStatusbar()
 				height = height + 19
@@ -3094,7 +3094,7 @@ local alert_on_click = function(self, button)
 	if (self.func) then
 		local okey, errortext = pcall(self.func, unpack(self.func_param))
 		if (not okey) then
-			Details:Msg("error on alert function:", errortext)
+			Details:Msg(Loc["error on alert function:"], errortext)
 		end
 	end
 	self:GetParent():Hide()
@@ -3137,7 +3137,7 @@ local function CreateAlertFrame(baseframe, instancia)
 
 	local text = alert_bg:CreateFontString(nil, "overlay", "GameFontNormal")
 	text:SetPoint("right", alert_bg, "right", -14, 0)
-	Details:SetFontSize(text, 13)
+	Details:SetFontSize(text, 14)
 	text:SetTextColor(1, 1, 1, 0.8)
 
 	local rotate_frame = CreateFrame("frame", "DetailsAlertFrameRotate" .. instancia.meu_id, alert_bg)
@@ -3643,7 +3643,7 @@ function gump:CriaJanelaPrincipal (ID, instancia, criando)
 		instancia._version = baseframe:CreateFontString(nil, "overlay", "GameFontHighlight")
 			--instancia._version:SetPoint("left", backgrounddisplay, "left", 20, 0)
 			instancia._version:SetTextColor(1, 1, 1)
-			instancia._version:SetText(Loc ["this is a alpha version of Details\nyou can help us sending bug reports\nuse the blue button."])
+			instancia._version:SetText(Loc["this is a alpha version of Details\nyou can help us sending bug reports\nuse the blue button."])
 			if (not Details.initializing) then
 
 			end
@@ -5442,12 +5442,12 @@ function Details:StatusBarAlert(text, icon, color, time)
 			if (text.size) then
 				Details:SetFontSize(statusbar.text, text.size)
 			else
-				Details:SetFontSize(statusbar.text, 12)
+				Details:SetFontSize(statusbar.text, 9)
 			end
 		else
 			statusbar.text:SetText(text)
 			statusbar.text:SetTextColor(1, 1, 1, 1)
-			Details:SetFontSize(statusbar.text, 12)
+			Details:SetFontSize(statusbar.text, 9)
 		end
 	else
 		statusbar.text:SetText("")
@@ -6464,14 +6464,13 @@ local buildSegmentTooltip = function(self, deltaTime)
 							end
 
 							--sub menu
-							local decorrido = thisCombat:GetCombatTime()
-							local minutos, segundos = floor(decorrido/60), floor(decorrido%60)
+							local timeInCombat = thisCombat:GetCombatTime()
 
 							if (segmentID == "trashoverall") then
-								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_TIMEINCOMBAT"] .. ":",  Details.gump:IntegerToTimer(decorrido), 2, "white", "white")
+								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_TIMEINCOMBAT"] .. ":",  Details.gump:IntegerToTimer(timeInCombat), 2, "white", "white")
 								addIconAndStatusBar()
 								local totalRealTime = endedAt - startedAt
-								local wasted = totalRealTime - decorrido
+								local wasted = totalRealTime - timeInCombat
 
 								--wasted time
 								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_WASTED_TIME"] .. ":", "|cFFFF3300" .. Details.gump:IntegerToTimer(wasted) .. " (" .. floor(wasted / totalRealTime * 100) .. "%)|r", 2, "white", "white")
@@ -6480,19 +6479,21 @@ local buildSegmentTooltip = function(self, deltaTime)
 								addIconAndStatusBar()
 
 							elseif (isMythicOverallSegment) then
-								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_TIMEINCOMBAT"] .. ":",  Details.gump:IntegerToTimer(decorrido), 2, "white", "white")
+								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_TIMEINCOMBAT"] .. ":",  Details.gump:IntegerToTimer(timeInCombat), 2, "white", "white")
 								addIconAndStatusBar()
-								local totalRealTime = endedAt - startedAt
-								local wasted = totalRealTime - decorrido
 
-								--wasted time
-								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_WASTED_TIME"] .. ":", "|cFFFF3300" .. Details.gump:IntegerToTimer(wasted) .. " (" .. floor(wasted / totalRealTime * 100) .. "%)|r", 2, "white", "white")
-								addIconAndStatusBar(0.15)
+								local totalRealTime = thisCombat:GetRunTimeNoDefault() or (endedAt - startedAt)
+								local notInCombatTime = totalRealTime - timeInCombat
+
 								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_TOTALTIME"] .. ":", Details.gump:IntegerToTimer(totalRealTime), 2, "white", "white")
 								addIconAndStatusBar()
 
+								--wasted time
+								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_WASTED_TIME"] .. ":", "|cFFFF3300" .. Details.gump:IntegerToTimer(notInCombatTime) .. " (" .. floor(notInCombatTime / totalRealTime * 100) .. "%)|r", 2, "white", "white")
+								addIconAndStatusBar(0.15)
+
 							else
-								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":",  Details.gump:IntegerToTimer(decorrido), 2, "white", "white")
+								gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":",  Details.gump:IntegerToTimer(timeInCombat), 2, "white", "white")
 								addIconAndStatusBar()
 							end
 
@@ -6503,7 +6504,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 
 							gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", thisCombat.data_inicio, 2, "white", "white")
 							addIconAndStatusBar()
-							gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or "in progress", 2, "white", "white")
+							gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or Loc["in progress"], 2, "white", "white")
 							addIconAndStatusBar()
 							--gameCooltip:AddStatusBar(100, 1, .3, .3, .3, 0.2, false, false, "Skyline")
 						else
@@ -6518,7 +6519,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 							gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":",  Details.gump:IntegerToTimer(thisCombat:GetCombatTime()), 2, "white", "white")
 							gameCooltip:AddLine("", "", 2, "white", "white")
 							gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", thisCombat.data_inicio, 2, "white", "white")
-							gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or "in progress", 2, "white", "white")
+							gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or Loc["in progress"], 2, "white", "white")
 
 							if (trashInfo) then
 								local backgroundImage = Details:GetRaidIcon(trashInfo.MapID, trashInfo.EJID, "party")
@@ -6530,6 +6531,9 @@ local buildSegmentTooltip = function(self, deltaTime)
 						segmentInfoAdded = true
 
 					elseif (thisCombat.is_boss and thisCombat.is_boss.name) then
+						---@type details_instanceinfo
+						local instanceInfo = Details:GetInstanceInfo(thisCombat.is_boss.mapid)
+
 						isMythicDungeon = false
 						local try_number = thisCombat.is_boss.try_number
 						local combat_time = thisCombat:GetCombatTime()
@@ -6558,31 +6562,22 @@ local buildSegmentTooltip = function(self, deltaTime)
 							end
 						end
 
-						local portrait = Details:GetBossPortrait(thisCombat.is_boss.mapid, thisCombat.is_boss.index) or thisCombat.is_boss.bossimage
+						---@type details_encounterinfo
+						local encounterInfo = Details:GetEncounterInfo(thisCombat.EncounterName)
+
+						local portrait = (encounterInfo and encounterInfo.creatureIcon) or thisCombat.is_boss.bossimage or thisCombat.bossIcon
 						if (portrait) then
 							gameCooltip:AddIcon(portrait, 2, "top", 128, 64)
-						else
-							local encounter_name = thisCombat.is_boss.encounter
-							local instanceID = thisCombat.is_boss.ej_instance_id
-							if (encounter_name and instanceID and instanceID ~= 0) then
-								local index, name, description, encounterID, rootSectionID, link = Details:GetEncounterInfoFromEncounterName (instanceID, encounter_name)
-								if (index and name and encounterID) then
-									--EJ_SelectInstance (instanceID)
-									--creature info pode ser sempre 1, n�o usar o index do boss
-									local id, name, description, displayInfo, iconImage = DetailsFramework.EncounterJournal.EJ_GetCreatureInfo (1, encounterID)
-									if (iconImage) then
-										gameCooltip:AddIcon(iconImage, 2, "top", 128, 64)
-									end
-								end
-							end
 						end
 
 						gameCooltip:AddIcon([[Interface\AddOns\Details\images\icons]], "main", "left", 16, 16, 0.96875, 1, 0, 0.03125)
 
 						if (Details.tooltip.submenu_wallpaper) then
-							local background = Details:GetRaidIcon (thisCombat.is_boss.mapid)
+
+							local background = Details:GetRaidIcon(thisCombat.is_boss.mapid)
+
 							if (background and bCanUseBackgroundImage) then
-								gameCooltip:SetWallpaper (2, background, nil, segments_wallpaper_color, true)
+								gameCooltip:SetWallpaper(2, background, nil, segments_wallpaper_color, true)
 							else
 								local ej_id = thisCombat.is_boss.ej_instance_id
 								if (ej_id and ej_id ~= 0) then
@@ -6649,10 +6644,10 @@ local buildSegmentTooltip = function(self, deltaTime)
 						gameCooltip:AddLine(Loc["STRING_SEGMENT_ENEMY"] .. ":", enemy, 2, "white", "white")
 						local decorrido = thisCombat:GetCombatTime() --attempt to call method 'GetCombatTime' (a nil value)
 						local minutos, segundos = floor(decorrido/60), floor(decorrido%60)
-						gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos.."m "..segundos.."s", 2, "white", "white")
+						gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 
 						gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", thisCombat.data_inicio, 2, "white", "white")
-						gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or "in progress", 2, "white", "white")
+						gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or Loc["in progress"], 2, "white", "white")
 					end
 
 					amountOfSegments = amountOfSegments + 1
@@ -6747,7 +6742,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 					--sub menu
 					local decorrido = thisCombat:GetCombatTime()
 					local minutos, segundos = floor(decorrido/60), floor(decorrido%60)
-					--CoolTip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos.."m "..segundos.."s", 2, "white", "white")
+					--CoolTip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 
 					if (segmentID == "trashoverall") then
 						local totalRealTime = endedAt - startedAt
@@ -6782,7 +6777,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 					end
 
 					gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", thisCombat.data_inicio, 2, "white", "white")
-					gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or "in progress", 2, "white", "white")
+					gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or Loc["in progress"], 2, "white", "white")
 
 				else
 					--the combat has mythic dungeon tag but doesn't have a mythic dungeon table information
@@ -6799,7 +6794,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 					gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":",  Details.gump:IntegerToTimer(thisCombat:GetCombatTime()), 2, "white", "white")
 					gameCooltip:AddLine("", "", 2, "white", "white")
 					gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", thisCombat.data_inicio, 2, "white", "white")
-					gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or "in progress", 2, "white", "white")
+					gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", thisCombat.data_fim or Loc["in progress"], 2, "white", "white")
 
 					if (trashInfo) then
 						local backgroundImage = Details:GetRaidIcon (trashInfo.MapID, trashInfo.EJID, "party")
@@ -6877,18 +6872,18 @@ local buildSegmentTooltip = function(self, deltaTime)
 					if (Details.in_combat) then
 						local decorrido = Details.tabela_vigente:GetCombatTime()
 						local minutos, segundos = floor(decorrido/60), floor(decorrido%60)
-						gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos.."m "..segundos.."s", 2, "white", "white")
+						gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 					else
 						gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", "--x--x--", 2, "white", "white")
 					end
 				else
 					local decorrido = Details.tabela_vigente:GetCombatTime()
 					local minutos, segundos = floor(decorrido/60), floor(decorrido%60)
-					gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos.."m "..segundos.."s", 2, "white", "white")
+					gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 				end
 
 				gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", Details.tabela_vigente.data_inicio, 2, "white", "white")
-				gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", Details.tabela_vigente.data_fim or "in progress", 2, "white", "white")
+				gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", Details.tabela_vigente.data_fim or Loc["in progress"], 2, "white", "white")
 			end
 
 			--fill � a quantidade de menu que esta sendo mostrada
@@ -6917,7 +6912,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 			local combat_time = Details.tabela_overall:GetCombatTime()
 			local minutos, segundos = floor(combat_time / 60), floor(combat_time % 60)
 
-			gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos.."m "..segundos.."s", 2, "white", "white")
+			gameCooltip:AddLine(Loc["STRING_SEGMENTS_LIST_COMBATTIME"] .. ":", minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 			gameCooltip:AddLine(Loc["STRING_SEGMENT_START"] .. ":", Details.tabela_overall.data_inicio, 2, "white", "white")
 			gameCooltip:AddLine(Loc["STRING_SEGMENT_END"] .. ":", Details.tabela_overall.data_fim, 2, "white", "white")
 
@@ -6937,7 +6932,7 @@ local buildSegmentTooltip = function(self, deltaTime)
 					name = string.sub (name, 1, #name - (#name - 20))
 				end
 
-				gameCooltip:AddLine("" .. name, minutos.."m "..segundos.."s", 2, "white", "white")
+				gameCooltip:AddLine("" .. name, minutos..Loc["m "]..segundos..Loc["s"], 2, "white", "white")
 
 				local segmentType = segment.type
 				if (segmentType == DETAILS_SEGMENTTYPE_MYTHICDUNGEON_TRASH) then
@@ -7003,11 +6998,11 @@ end
 
 function Details:SetUserCustomSkinFile (file)
 	if (type(file) ~= "string") then
-		error(Loc ["SetUserCustomSkinFile() file must be a string."])
+		error(Loc["SetUserCustomSkinFile() file must be a string."])
 	end
 
 	if (file:find("\\") or file:find("/")) then
-		error(Loc ["SetUserCustomSkinFile() file must be only the file name (with out up folders) and slashes."])
+		error(Loc["SetUserCustomSkinFile() file must be only the file name (with out up folders) and slashes."])
 	end
 
 	self.skin_custom = file
@@ -7584,7 +7579,7 @@ function Details:AdjustAlphaByContext(interacting)
 
 	--in combat
 	if (not self.meu_id) then
-		print("error Details! AdjustAlphaByContext()", debugstack())
+		print(Loc["error Details! AdjustAlphaByContext()"], debugstack())
 	end
 
 	local hasRuleEnabled = false
@@ -9004,21 +8999,25 @@ end
 
 		Details:SetTooltipMinWidth()
 
-		gameCooltip:AddLine("刪除常用分段", nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
+		gameCooltip:AddLine(Loc["Reset, but keep Mythic+ Overall Segments"], nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
 		gameCooltip:AddIcon([[Interface\Buttons\UI-StopButton]], 1, 1, 14, 14, 0, 1, 0, 1, "orange")
-		gameCooltip:AddMenu(1, function() return Details.tabela_historico:ResetDataByCombatType("generic") end)
+		gameCooltip:AddMenu(1, function() Details.tabela_historico:ResetDataByCombatType("m+overall"); GameCooltip:Hide() end)
 
-		gameCooltip:AddLine("重置，但保留傳奇+整體分段", nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
+		gameCooltip:AddLine("$div", nil, 1, nil, -5, -11)
+
+		gameCooltip:AddLine(Loc["Remove Common Segments"], nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
 		gameCooltip:AddIcon([[Interface\Buttons\UI-StopButton]], 1, 1, 14, 14, 0, 1, 0, 1, "orange")
-		gameCooltip:AddMenu(1, function() return Details.tabela_historico:ResetDataByCombatType("m+overall") end)
+		gameCooltip:AddMenu(1, function() Details.tabela_historico:ResetDataByCombatType("generic"); GameCooltip:Hide() end)
+
+		gameCooltip:AddLine(Loc["Remove Battleground Segments"], nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
+		gameCooltip:AddIcon([[Interface\Buttons\UI-StopButton]], 1, 1, 14, 14, 0, 1, 0, 1, "orange")
+		gameCooltip:AddMenu(1, function() Details.tabela_historico:ResetDataByCombatType("battleground"); GameCooltip:Hide() end)
 
 		gameCooltip:AddLine("$div", nil, 1, nil, -5, -11)
 
 		gameCooltip:AddLine(Loc["STRING_ERASE_DATA_OVERALL"], nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
 		gameCooltip:AddIcon([[Interface\Buttons\UI-StopButton]], 1, 1, 14, 14, 0, 1, 0, 1, "orange")
 		gameCooltip:AddMenu(1, Details.tabela_historico.ResetOverallData)
-
-		gameCooltip:AddLine("$div", nil, 1, nil, -5, -11)
 
 		gameCooltip:AddLine(Loc["STRING_ERASE_DATA"], nil, 1, "white", nil, Details.font_sizes.menus, Details.font_faces.menus)
 		gameCooltip:AddIcon([[Interface\Buttons\UI-StopButton]], 1, 1, 14, 14, 0, 1, 0, 1, "red")
@@ -9273,7 +9272,7 @@ local attributeButton_OnEnter = function(self, motion, forced, from_click)
 
 			GameCooltip:SetOption("TextHeightMod", 0)
 			GameCooltip:SetOption("IgnoreButtonAutoHeight", false)
-			GameCooltip:AddLine("All raid plugins already\nin use or disabled.", nil, 1, "white", nil, 10, SharedMedia:Fetch("font", "Friz Quadrata TT"))
+			GameCooltip:AddLine(Loc["All raid plugins already\nin use or disabled."], nil, 1, "white", nil, 10, SharedMedia:Fetch("font", "Friz Quadrata TT"))
 			GameCooltip:AddIcon([[Interface\GROUPFRAME\UI-GROUP-ASSISTANTICON]], 1, 1)
 			GameCooltip:SetWallpaper(1, Details.tooltip.menus_bg_texture, Details.tooltip.menus_bg_coords, Details.tooltip.menus_bg_color, true)
 		end

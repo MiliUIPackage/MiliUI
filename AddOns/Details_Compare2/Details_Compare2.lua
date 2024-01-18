@@ -8,6 +8,7 @@ do
 
 	local _
 	local DF = _G.DetailsFramework
+	local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 	local _ipairs = ipairs
 	local unpack = _G.unpack
 	local gameCooltip = GameCooltip2
@@ -22,7 +23,7 @@ do
 	local frame = compareTwo.Frame
 
 	--> set the description
-	compareTwo:SetPluginDescription("替換玩家戰鬥分析上的預設比較視窗。")
+	compareTwo:SetPluginDescription(Loc["Replaces the default comparison window on the player breakdown."])
 
 	--> when receiving an event from details, handle it here
 	local handle_details_event = function (event, ...)
@@ -75,8 +76,8 @@ do
 			targetTooltipLineHeight = 16,
 
 			--font settings
-			fontSize = 13,
-			playerNameSize = 14,
+			fontSize = 10,
+			playerNameSize = 12,
 			playerNameYOffset = 12,
 
 			--line colors
@@ -140,7 +141,7 @@ do
 			local colors = {{26/255, 26/255, 26/255}, {19/255, 19/255, 19/255}, {26/255, 26/255, 26/255}, {34/255, 39/255, 42/255}, {42/255, 51/255, 60/255}}
 			
 			--player name label
-			tooltip.player_name_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.player_name_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.player_name_label:SetPoint ("bottomleft", tooltip, "topleft", 1, 2)
 			tooltip.player_name_label:SetTextColor (1, .7, .1, .834)
 			DetailsFramework:SetFontSize (tooltip.player_name_label, 11)
@@ -244,7 +245,7 @@ do
 			background:SetPoint ("bottomright", tooltip, "bottomright", 0, 0)
 			
 			--player name label
-			tooltip.player_name_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.player_name_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.player_name_label:SetPoint ("bottomleft", tooltip, "topleft", 1, 2)
 			tooltip.player_name_label:SetTextColor (1, .7, .1, .834)
 			DetailsFramework:SetFontSize (tooltip.player_name_label, 11)
@@ -258,71 +259,71 @@ do
 			name_bg:SetVertexColor (unpack (colors[2]))
 			
 			--cast line
-			tooltip.casts_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.casts_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.casts_label:SetPoint ("topleft", tooltip, "topleft", x_start, -2 + (y*0))
-			tooltip.casts_label:SetText ("Casts:")
+			tooltip.casts_label:SetText (Loc["Casts:"])
 			tooltip.casts_label:SetJustifyH ("left")
-			tooltip.casts_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.casts_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.casts_label2:SetPoint ("topright", tooltip, "topright", -x_start, -2 + (y*0))
 			tooltip.casts_label2:SetText ("0")
 			tooltip.casts_label2:SetJustifyH ("right")
-			tooltip.casts_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.casts_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.casts_label3:SetPoint ("topright", tooltip, "topright", -x_start - 46, -2 + (y*0))
 			tooltip.casts_label3:SetText ("0")
 			tooltip.casts_label3:SetJustifyH ("right")
 			
 			--hits
-			tooltip.hits_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.hits_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.hits_label:SetPoint ("topleft", tooltip, "topleft", x_start, -14 + (y*1))
-			tooltip.hits_label:SetText ("Hits:")
+			tooltip.hits_label:SetText (Loc["Hits:"])
 			tooltip.hits_label:SetJustifyH ("left")
-			tooltip.hits_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.hits_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.hits_label2:SetPoint ("topright", tooltip, "topright", -x_start, -14 + (y*1))
 			tooltip.hits_label2:SetText ("0")
 			tooltip.hits_label2:SetJustifyH ("right")
-			tooltip.hits_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.hits_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.hits_label3:SetPoint ("topright", tooltip, "topright", -x_start - 46, -14 + (y*1))
 			tooltip.hits_label3:SetText ("0")
 			tooltip.hits_label3:SetJustifyH ("right")
 			
 			--average
-			tooltip.average_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.average_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.average_label:SetPoint ("topleft", tooltip, "topleft", x_start, -26 + (y*2))
-			tooltip.average_label:SetText ("Average:")
+			tooltip.average_label:SetText (Loc["Average:"])
 			tooltip.average_label:SetJustifyH ("left")
-			tooltip.average_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.average_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.average_label2:SetPoint ("topright", tooltip, "topright", -x_start, -26 + (y*2))
 			tooltip.average_label2:SetText ("0")
 			tooltip.average_label2:SetJustifyH ("right")
-			tooltip.average_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.average_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.average_label3:SetPoint ("topright", tooltip, "topright", -x_start - 46, -26 + (y*2))
 			tooltip.average_label3:SetText ("0")
 			tooltip.average_label3:SetJustifyH ("right")
 			
 			--critical
-			tooltip.crit_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.crit_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.crit_label:SetPoint ("topleft", tooltip, "topleft", x_start, -38 + (y*3))
-			tooltip.crit_label:SetText ("Critical:")
+			tooltip.crit_label:SetText (Loc["Critical:"])
 			tooltip.crit_label:SetJustifyH ("left")
-			tooltip.crit_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.crit_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.crit_label2:SetPoint ("topright", tooltip, "topright", -x_start, -38 + (y*3))
 			tooltip.crit_label2:SetText ("0")
 			tooltip.crit_label2:SetJustifyH ("right")
-			tooltip.crit_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.crit_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.crit_label3:SetPoint ("topright", tooltip, "topright", -x_start - 46, -38 + (y*3))
 			tooltip.crit_label3:SetText ("0")
 			tooltip.crit_label3:SetJustifyH ("right")
 			
 			--uptime
-			tooltip.uptime_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.uptime_label = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.uptime_label:SetPoint ("topleft", tooltip, "topleft", x_start, -50 + (y*4))
-			tooltip.uptime_label:SetText ("Uptime:")
+			tooltip.uptime_label:SetText (Loc["Uptime:"])
 			tooltip.uptime_label:SetJustifyH ("left")
-			tooltip.uptime_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.uptime_label2 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.uptime_label2:SetPoint ("topright", tooltip, "topright", -x_start, -50 + (y*4))
 			tooltip.uptime_label2:SetText ("0")
 			tooltip.uptime_label2:SetJustifyH ("right")
-			tooltip.uptime_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlight")
+			tooltip.uptime_label3 = tooltip:CreateFontString (nil, "overlay", "GameFontHighlightSmall")
 			tooltip.uptime_label3:SetPoint ("topright", tooltip, "topright", -x_start - 46, -50 + (y*4))
 			tooltip.uptime_label3:SetText ("0")
 			tooltip.uptime_label3:SetJustifyH ("right")
@@ -394,7 +395,7 @@ do
 					local minutos, segundos = floor (spell.uptime / 60), floor (spell.uptime % 60)
 					uptime = spell.uptime
 					tooltip.uptime_label2:SetText (fullPercent)
-					tooltip.uptime_label3:SetText (minutos .. "m " .. segundos .. "s")
+					tooltip.uptime_label3:SetText (minutos .. Loc["m "] .. segundos .. Loc["s"])
 					
 					DetailsFramework:SetFontColor (tooltip.uptime_label2, "gray")
 					DetailsFramework:SetFontColor (tooltip.uptime_label3, "white")
@@ -515,7 +516,7 @@ do
 					local minutos, segundos = floor (spell.uptime / 60), floor (spell.uptime % 60)
 					uptime = spell.uptime
 					tooltip.uptime_label2:SetText (getPercentComparison (mainAuraUptime, uptime))
-					tooltip.uptime_label3:SetText (minutos .. "m " .. segundos .. "s")
+					tooltip.uptime_label3:SetText (minutos .. Loc["m "] .. segundos .. Loc["s"])
 					
 					DetailsFramework:SetFontColor (tooltip.uptime_label2, "white")
 					DetailsFramework:SetFontColor (tooltip.uptime_label3, "white")
@@ -1520,7 +1521,7 @@ do
 			height = 14,
 		}
 
-		Details:CreatePlayerDetailsTab ("New Compare", "Compare", --[1] tab name [2] localized name
+		Details:CreatePlayerDetailsTab ("New Compare", Loc["Compare"], --[1] tab name [2] localized name
 			function (tabOBject, playerObject)  --[2] condition
 				
 				local attribute = Details:GetDisplayTypeFromBreakdownWindow()
@@ -1579,7 +1580,7 @@ do
 				end
 
 				--> Install: install -> if successful installed; saveddata -> a table saved inside details db, used to save small amount of data like configs
-				local install, saveddata = Details:InstallPlugin("RAID", "Compare 2.0", "Interface\\Icons\\Ability_Warrior_BattleShout", compareTwo, "DETAILS_PLUGIN_COMPARETWO_WINDOW", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", COMPARETWO_VERSION)
+				local install, saveddata = Details:InstallPlugin("RAID", Loc["Compare 2.0"], "Interface\\Icons\\Ability_Warrior_BattleShout", compareTwo, "DETAILS_PLUGIN_COMPARETWO_WINDOW", MINIMAL_DETAILS_VERSION_REQUIRED, "Terciob", COMPARETWO_VERSION)
 				if (type(install) == "table" and install.error) then
 					print(install.error)
 				end

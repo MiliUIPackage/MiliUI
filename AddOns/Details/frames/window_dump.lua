@@ -22,7 +22,7 @@ function Details:Dump (...)
 	if (not DetailsDumpFrame) then
 		DetailsDumpFrame = DetailsFramework:CreateSimplePanel(_G.UIParent)
 		DetailsDumpFrame:SetSize(700, 800)
-		DetailsDumpFrame:SetTitle(Loc ["Details! Dump Table [|cFFFF3333Ready Only|r]"])
+		DetailsDumpFrame:SetTitle(Loc["Details! Dump Table [|cFFFF3333Ready Only|r]"])
 
 		local text_editor = DetailsFramework:NewSpecialLuaEditorEntry(DetailsDumpFrame, 680, 760, "Editbox", "$parentEntry", true)
 		text_editor:SetPoint("topleft", DetailsDumpFrame, "topleft", 10, -30)
@@ -80,7 +80,7 @@ end
 
 function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 	if (not _G.DetailsExportWindow) then
-		local importWindow = DetailsFramework:CreateSimplePanel(_G.UIParent, 800, 610, "Details! Dump String", "DetailsExportWindow")
+		local importWindow = DetailsFramework:CreateSimplePanel(_G.UIParent, 800, 610, Loc["Details! Dump String"], "DetailsExportWindow")
 		importWindow:SetFrameStrata("FULLSCREEN")
 		importWindow:SetPoint("center")
 		DetailsFramework:ApplyStandardBackdrop(importWindow, false, 1.2)
@@ -118,12 +118,12 @@ function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 			end
 			importWindow:Hide()
 		end
-		local okayButton = DetailsFramework:CreateButton(importTextEditor, onClickImportButton, 120, 20, "Okay", -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
+		local okayButton = DetailsFramework:CreateButton(importTextEditor, onClickImportButton, 120, 20, Loc["Okay"], -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
 		okayButton:SetIcon ([[Interface\BUTTONS\UI-Panel-BiggerButton-Up]], 20, 20, "overlay", {0.1, .9, 0.1, .9})
 		importTextEditor.OkayButton = okayButton
 
 		--cancel button
-		local cancelButton = DetailsFramework:CreateButton(importTextEditor, function() importWindow:Hide() end, 120, 20, "Cancel", -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
+		local cancelButton = DetailsFramework:CreateButton(importTextEditor, function() importWindow:Hide() end, 120, 20, Loc["Cancel"], -1, nil, nil, nil, nil, nil, Details.gump:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), Details.gump:GetTemplate("font", "OPTIONS_FONT_TEMPLATE")) --localize-me
 		cancelButton:SetIcon ([[Interface\BUTTONS\UI-Panel-MinimizeButton-Up]], 20, 20, "overlay", {0.1, .9, 0.1, .9})
 
 		okayButton:SetPoint("topright", importTextEditor, "bottomright", 0, -10)
@@ -135,7 +135,7 @@ function Details:ShowImportWindow (defaultText, confirmFunc, titleText)
 	_G.DetailsExportWindow.ImportEditor:SetText(defaultText or "")
 	_G.DetailsExportWindow:Show()
 
-	titleText = titleText or Loc ["Details! Dump String"]
+	titleText = titleText or Loc["Details! Dump String"]
 	_G.DetailsExportWindow.Title:SetText(titleText)
 
 	C_Timer.After(.2, function()

@@ -18,7 +18,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 
 		local DF = Details.gump
 	
-		local f = DF:CreateSimplePanel(UIParent, 700, 400, "Details! 競技場傷害條選項", "DetailsCurrentRealDPSOptions")
+		local f = DF:CreateSimplePanel(UIParent, 700, 400, Loc["Details! Arena Damage Bar Options"], "DetailsCurrentRealDPSOptions")
 		f:SetPoint("center", UIParent, "center")
 		f:SetScript("OnMouseDown", nil)
 		f:SetScript("OnMouseUp", nil)
@@ -43,7 +43,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 		statusBar.text = statusBar:CreateFontString(nil, "overlay", "GameFontNormal")
 		statusBar.text:SetPoint("left", statusBar, "left", 5, 0)
 		statusBar.text:SetText("By Terciob | Part of Details! Damage Meter | Built with Details! Framework")
-		DF:SetFontSize(statusBar.text, 14)
+		DF:SetFontSize(statusBar.text, 11)
 		DF:SetFontColor(statusBar.text, "gray")
 
 		--add an extra background
@@ -60,11 +60,11 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				Details:UpdateTheRealCurrentDPSFrame(testUsing)
 			end
 			local strataTable = {}
-			strataTable [1] = {value = "BACKGROUND", label = Loc["BACKGROUND"], onclick = set_frame_strata}
-			strataTable [2] = {value = "LOW", label = Loc["LOW"], onclick = set_frame_strata}
-			strataTable [3] = {value = "MEDIUM", label = Loc["MEDIUM"], onclick = set_frame_strata}
-			strataTable [4] = {value = "HIGH", label = Loc["HIGH"], onclick = set_frame_strata}
-			strataTable [5] = {value = "DIALOG", label = Loc["DIALOG"], onclick = set_frame_strata}
+			strataTable [1] = {value = "BACKGROUND", label = Loc ["BACKGROUND"], onclick = set_frame_strata}
+			strataTable [2] = {value = "LOW", label = Loc ["LOW"], onclick = set_frame_strata}
+			strataTable [3] = {value = "MEDIUM", label = Loc ["MEDIUM"], onclick = set_frame_strata}
+			strataTable [4] = {value = "HIGH", label = Loc ["HIGH"], onclick = set_frame_strata}
+			strataTable [5] = {value = "DIALOG", label = Loc ["DIALOG"], onclick = set_frame_strata}
 			
 		--font options
 			local set_font_shadow= function(_, _, shadow)
@@ -209,7 +209,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 
 			--[=[
 			{type = "breakline"},
-			{type = "label", get = function() return "Enabled On:" end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return Loc["Enabled On:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--arenas
 			{
 				type = "toggle",
@@ -218,7 +218,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details.realtime_dps_meter.arena_enabled = not Details.realtime_dps_meter.arena_enabled
 					Details:LoadFramesForBroadcastTools()
 				end,
-				name = "Arena Matches",
+				name = Loc["Arena Matches"],
 				text_template = options_text_template,
 			},
 			--mythic dungeon
@@ -229,7 +229,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 					Details.realtime_dps_meter.mythic_dungeon_enabled = not Details.realtime_dps_meter.mythic_dungeon_enabled
 					Details:LoadFramesForBroadcastTools()
 				end,
-				name = "Mythic Dungeons",
+				name = Loc["Mythic Dungeons"],
 				text_template = options_text_template,
 			},
 			--]=]
@@ -291,7 +291,7 @@ function Details:OpenCurrentRealDPSOptions(from_options_panel)
 				min = 0,
 				max = 150,
 				step = 1,
-				name = "文字位置",
+				name = Loc["Text Position"],
 				text_template = options_text_template,
 			},
 		}
@@ -477,8 +477,8 @@ function Details:CreateCurrentDpsFrame(parent, name)
 	--title bar
 		local TitleString = f:CreateFontString(nil, "overlay", "GameFontNormal")
 		TitleString:SetPoint("top", f, "top", 0, -5)
-		TitleString:SetText("Details! 競技場實時DPS追蹤器")
-		DF:SetFontSize(TitleString, 12)
+		TitleString:SetText(Loc["Details! Arena Real Time DPS Tracker"])
+		DF:SetFontSize(TitleString, 9)
 		local TitleBackground = f:CreateTexture(nil, "artwork")
 		TitleBackground:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
 		TitleBackground:SetVertexColor(.1, .1, .1, .9)

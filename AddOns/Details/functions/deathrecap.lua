@@ -77,7 +77,7 @@ local create_deathrecap_line = function(parent, n)
 	Details.gump:SetFontColor(timeAt, "gray")
 	Details.gump:SetFontColor(sourceName, "yellow")
 
-	Details.gump:SetFontSize(sourceName, 13)
+	Details.gump:SetFontSize(sourceName, 10)
 
 	--text alpha
 	timeAt:SetAlpha(textAlpha)
@@ -634,7 +634,7 @@ hooksecurefunc (_G, "DeathRecap_LoadUI", function()
                     local format = Details:GetCurrentToKFunction()
 
                     if (Details.death_recap.enabled) then
-                        if (Details:GetZoneType() == "party" or Details:GetZoneType() == "raid") then
+                        if (Details:GetZoneType() == "party" or Details:GetZoneType() == "raid" and texture) then
                             local msgText = "|cFFAAAAFFDeath Recap (Blizzard):"
                             print(msgText, "|T" .. texture .. ":16:16:0:0:64:64:5:59:5:59|t", GetSpellLink(spellId) or spellName, format(_, amountDamage or 0))
                         end

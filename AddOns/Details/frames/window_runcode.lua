@@ -1,6 +1,7 @@
 
 local Details = _G.Details
 local detailsFramework = _G.DetailsFramework
+local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 local _
 local addonName, Details222 = ...
 local CreateFrame = CreateFrame
@@ -10,7 +11,7 @@ local load = loadstring
 function Details:InitializeRunCodeWindow()
     local detailsRunCodePanel = detailsFramework:CreateSimplePanel(UIParent, 700, 480, "Details! Run Code Automation", "DetailsRunCodePanel")
     detailsRunCodePanel.Frame = detailsRunCodePanel
-    detailsRunCodePanel.__name = "Auto Run Code"
+    detailsRunCodePanel.__name = Loc["Auto Run Code"]
     detailsRunCodePanel.real_name = "DETAILS_RUNCODEWINDOW"
     --DetailsRunCodePanel.__icon = [[Interface\AddOns\Details\images\lua_logo]]
     detailsRunCodePanel.__icon = [[Interface\AddOns\Details\images\run_code]]
@@ -35,7 +36,7 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
     if (not detailsRunCodePanel or not detailsRunCodePanel.Initialized) then
         detailsRunCodePanel.Initialized = true
 
-        local autoRunCodeFrame = detailsRunCodePanel or detailsFramework:CreateSimplePanel(UIParent, 700, 480, "Details! Run Code", "DetailsRunCodePanel")
+        local autoRunCodeFrame = detailsRunCodePanel or detailsFramework:CreateSimplePanel(UIParent, 700, 480, Loc["Details! Run Code"], "DetailsRunCodePanel")
 
         --lua editor
         local codeEditor = detailsFramework:NewSpecialLuaEditorEntry(UIParent, 885, 510, nil, nil, false, true, true)
@@ -136,7 +137,7 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
             return t
         end
 
-        local code_type_label = detailsFramework:CreateLabel(autoRunCodeFrame, "Event:", detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
+        local code_type_label = detailsFramework:CreateLabel(autoRunCodeFrame, Loc["Event:"], detailsFramework:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
         local code_type_dropdown = detailsFramework:CreateDropDown(autoRunCodeFrame, build_CodeType_dropdown_options, 1, 160, 20, "CodeTypeDropdown", _, detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
         code_type_dropdown:SetPoint("left", code_type_label, "right", 2, 0)
         code_type_dropdown:SetFrameLevel(codeEditor:GetFrameLevel() + 10)
@@ -150,11 +151,11 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
             if (func) then
                 Details222.AutoRunCode.CodeTable[autoRunCodeFrame.EditingCodeKey] = code
                 Details222.AutoRunCode.RecompileAutoRunCode()
-                Details:Msg("Code saved!")
+                Details:Msg(Loc["Code saved!"])
                 codeEditor:ClearFocus()
             else
                 errortext_frame:Flash(0.2, 0.2, 0.4, true, nil, nil, "NONE")
-                Details:Msg("Can't save the code: it has errors.")
+                Details:Msg(Loc["Can't save the code: it has errors."])
             end
         end
 
@@ -180,7 +181,7 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
         local saveButton = CreateFrame("button", nil, codeEditor)
         detailsFramework:ApplyStandardBackdrop(saveButton)
         saveButton:SetSize(120, 20)
-        saveButton:SetText("Save")
+        saveButton:SetText(Loc["Save"])
         saveButton:SetScript("OnClick", save_script)
         saveButton:SetPoint("topright", codeEditor, "bottomright", 0, button_y)
         saveButton:SetNormalFontObject("GameFontNormal")
@@ -188,7 +189,7 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
         local cancelButton = CreateFrame("button", nil, codeEditor)
         detailsFramework:ApplyStandardBackdrop(cancelButton)
         cancelButton:SetSize(120, 20)
-        cancelButton:SetText("Cancel")
+        cancelButton:SetText(Loc["Cancel"])
         cancelButton:SetScript("OnClick", cancel_script)
         cancelButton:SetPoint("topleft", codeEditor, "bottomleft", 0, button_y)
         cancelButton:SetNormalFontObject("GameFontNormal")
@@ -197,7 +198,7 @@ function Details222.AutoRunCode.OpenRunCodeWindow()
         local runButton = CreateFrame("button", nil, codeEditor)
         detailsFramework:ApplyStandardBackdrop(runButton)
         runButton:SetSize(120, 20)
-        runButton:SetText("Test Code")
+        runButton:SetText(Loc["Test Code"])
         runButton:SetScript("OnClick", execute_script)
         runButton:SetPoint("bottomright", codeEditor, "topright", 0, 3)
         runButton:SetNormalFontObject("GameFontNormal")

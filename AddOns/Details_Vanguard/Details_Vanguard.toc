@@ -2,11 +2,14 @@
 ## Title: Details!: Vanguard (plugin)
 ## Notes: Show the health and debuffs for tanks in your group.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-坦克
-## Notes-zhTW: Details!: Vanguard (plugin) |n顯示隊伍中坦克的血量和減益效果。
+## Notes-zhTW: Details!: Vanguard (plugin) |n|n顯示隊伍中坦克的血量和減益效果。
+## X-Category-zhTW: 戰鬥
+## DefaultState: disabled
 ## SavedVariablesPerCharacter: _detalhes_databaseVanguard
 ## RequiredDeps: Details
 ## OptionalDeps: Ace3
-## X-Category-zhTW: 戰鬥
 ## IconTexture: Interface\AddOns\Details\images\minimap
+
+## X-Wago-ID: ZQ6abgKW
 
 Details_Vanguard.lua

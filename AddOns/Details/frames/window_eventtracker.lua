@@ -9,7 +9,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 
 		local DF = DetailsFramework
 
-		local optionsPanel = DF:CreateSimplePanel(UIParent, 700, 400, "Details! Event Tracker Options", "DetailsEventTrackerOptions")
+		local optionsPanel = DF:CreateSimplePanel(UIParent, 700, 400, Loc["Details! Event Tracker Options"], "DetailsEventTrackerOptions")
 		optionsPanel:SetPoint("center", _G.UIParent, "center")
 		optionsPanel:SetScript("OnMouseDown", nil)
 		optionsPanel:SetScript("OnMouseUp", nil)
@@ -36,7 +36,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 			strataTable [3] = {value = "MEDIUM", label = Loc ["MEDIUM"], onclick = set_frame_strata}
 			strataTable [4] = {value = "HIGH", label = Loc ["HIGH"], onclick = set_frame_strata}
 			strataTable [5] = {value = "DIALOG", label = Loc ["DIALOG"], onclick = set_frame_strata}
-
+		
 		--font options
 			local set_font_shadow= function(_, _, shadow)
 				Details.event_tracker.font_shadow = shadow
@@ -71,7 +71,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
             always_boxfirst = true,
             --language_addonId = addonId,
 
-			{type = "label", get = function() return Loc ["Frame Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return Loc["Frame Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--enabled
 			{
 				type = "toggle",
@@ -80,8 +80,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					Details.event_tracker.enabled = not Details.event_tracker.enabled
 					Details:LoadFramesForBroadcastTools()
 				end,
-				desc = Loc ["Enabled"],
-				name = Loc ["Enabled"],
+				desc = Loc["Enabled"],
+				name = Loc["Enabled"],
 				text_template = options_text_template,
 			},
 			--locked
@@ -92,8 +92,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					Details.event_tracker.frame.locked = not Details.event_tracker.frame.locked
 					Details:UpdateEventTrackerFrame()
 				end,
-				desc = Loc ["Locked"],
-				name = Loc ["Locked"],
+				desc = Loc["Locked"],
+				name = Loc["Locked"],
 				text_template = options_text_template,
 			},
 			--showtitle
@@ -104,8 +104,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					Details.event_tracker.frame.show_title = not Details.event_tracker.frame.show_title
 					Details:UpdateEventTrackerFrame()
 				end,
-				desc = Loc ["Show Title"],
-				name = Loc ["Show Title"],
+				desc = Loc["Show Title"],
+				name = Loc["Show Title"],
 				text_template = options_text_template,
 			},
 			--backdrop color
@@ -119,8 +119,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					color[1], color[2], color[3], color[4] = r, g, b, a
 					Details:UpdateEventTrackerFrame()
 				end,
-				desc = Loc ["Backdrop Color"],
-				name = Loc ["Backdrop Color"],
+				desc = Loc["Backdrop Color"],
+				name = Loc["Backdrop Color"],
 				text_template = options_text_template,
 			},
 			--statra
@@ -128,10 +128,10 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				type = "select",
 				get = function() return Details.event_tracker.frame.strata end,
 				values = function() return strataTable end,
-				name = Loc ["Frame Strata"]
+				name = Loc["Frame Strata"]
 			},
 			{type = "breakline"},
-			{type = "label", get = function() return Loc ["Line Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
+			{type = "label", get = function() return Loc["Line Settings:"] end, text_template = DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE")},
 			--line height
 			{
 				type = "range",
@@ -143,7 +143,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				min = 4,
 				max = 32,
 				step = 1,
-				name = Loc ["Line Height"],
+				name = Loc["Line Height"],
 				text_template = options_text_template,
 			},
 			--line texture
@@ -151,7 +151,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				type = "select",
 				get = function() return Details.event_tracker.line_texture end,
 				values = function() return texTable end,
-				name = Loc ["Line Texture"],
+				name = Loc["Line Texture"],
 			},
 			--line color
 			{
@@ -164,8 +164,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					color[1], color[2], color[3], color[4] = r, g, b, a
 					Details:UpdateEventTrackerFrame()
 				end,
-				desc = Loc ["Line Color"],
-				name = Loc ["Line Color"],
+				desc = Loc["Line Color"],
+				name = Loc["Line Color"],
 				text_template = options_text_template,
 			},
 			--font size
@@ -179,7 +179,7 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				min = 4,
 				max = 32,
 				step = 1,
-				name = Loc ["Font Size"],
+				name = Loc["Font Size"],
 				text_template = options_text_template,
 			},
 			--font color
@@ -193,8 +193,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 					color[1], color[2], color[3], color[4] = r, g, b, a
 					Details:UpdateEventTrackerFrame()
 				end,
-				desc = Loc ["Font Color"],
-				name = Loc ["Font Color"],
+				desc = Loc["Font Color"],
+				name = Loc["Font Color"],
 				text_template = options_text_template,
 			},
 			--font shadow
@@ -202,14 +202,14 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				type = "select",
 				get = function() return Details.event_tracker.font_shadow end,
 				values = function() return fontShadowTable end,
-				name = Loc ["Font Shadow"]
+				name = Loc["Font Shadow"]
 			},
 			--font face
 			{
 				type = "select",
 				get = function() return Details.event_tracker.font_face end,
 				values = function() return DF:BuildDropDownFontList (on_select_text_font) end,
-				name = Loc ["Font Face"],
+				name = Loc["Font Face"],
 				text_template = options_text_template,
 			},
 
@@ -221,8 +221,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				set = function(self, fixedparam, value)
 					Details.event_tracker.show_crowdcontrol_pvp = value
 				end,
-				desc = "顯示控場 (競技場 & 戰場)",
-				name = "Show Crowd Control when inside a PvP zone",
+				desc = Loc["Show Crowd Control (Arena & BG)"],
+				name = Loc["Show Crowd Control when inside a PvP zone"],
 				text_template = options_text_template,
 			},
 			{
@@ -231,8 +231,8 @@ function Details:OpenEventTrackerOptions(bFromOptionsPanel)
 				set = function(self, fixedparam, value)
 					Details.event_tracker.show_crowdcontrol_pvm = value
 				end,
-				desc = "顯示控場 (地下城 & 團隊)",
-				name = "Show Crowd Control when inside a PvE zone",
+				desc = Loc["Show Crowd Control (Dungeon & Raid)"],
+				name = Loc["Show Crowd Control when inside a PvE zone"],
 				text_template = options_text_template,
 			},
 		}
@@ -383,12 +383,12 @@ function Details:CreateEventTrackerFrame(parentObject, name)
 			righticon:SetPoint("right", line, "right", 0, 0)
 
 			local lefttext = statusbar:CreateFontString("$parentLeftText", "overlay", "GameFontNormal")
-			DF:SetFontSize(lefttext, 13)
+			DF:SetFontSize(lefttext, 9)
 			lefttext:SetPoint("left", lefticon, "right", 2, 0)
 			lefttext.__languageId = "enUS"
 
 			local righttext = statusbar:CreateFontString("$parentRightText", "overlay", "GameFontNormal")
-			DF:SetFontSize(righttext, 13)
+			DF:SetFontSize(righttext, 9)
 			righttext:SetPoint("right", righticon, "left", -2, 0)
 
 			lefttext:SetJustifyH("left")
@@ -547,7 +547,7 @@ function Details:CreateEventTrackerFrame(parentObject, name)
 						sourceName = "Снизуслева"
 
 					elseif (math.random(3) == 3) then
-						sourceName = "質下方的材質"
+						sourceName = "值下方的材質"
 
 					elseif (math.random(4) == 1) then
 						sourceName = "주문 별 받은 피해"
@@ -646,7 +646,7 @@ function Details:CreateEventTrackerFrame(parentObject, name)
 		--title text
 		local TitleString = screenFrame:CreateFontString(nil, "overlay", "GameFontNormal")
 		TitleString:SetPoint("top", screenFrame, "top", 0, -3)
-		TitleString:SetText(Loc ["Details!: Event Tracker"])
+		TitleString:SetText(Loc["Details!: Event Tracker"])
 		local TitleBackground = screenFrame:CreateTexture(nil, "artwork")
 		TitleBackground:SetTexture([[Interface\Tooltips\UI-Tooltip-Background]])
 		TitleBackground:SetVertexColor(.1, .1, .1, .9)
