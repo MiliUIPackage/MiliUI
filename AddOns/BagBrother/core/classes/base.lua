@@ -1,10 +1,11 @@
 --[[
-	base.lua
-		Abstract class that all others derive from
+	Abstract class that all others derive from.
+	All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
 local Base = Addon:NewModule('Base', LibStub('Poncho-2.0')(), 'MutexDelay-1.0')
+Base.Get = GetOrCreateTableEntryByCallback
 
 function Base:NewClass(name, type, template, global)
 	local class = self:Super(Base):NewClass(type, (global or self:GetClassName()) and (ADDON .. name), template == true and (ADDON .. name .. 'Template') or template)

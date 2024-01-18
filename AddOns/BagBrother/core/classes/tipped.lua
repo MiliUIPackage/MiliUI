@@ -1,6 +1,6 @@
 --[[
-	tipped.lua
-		Abstract class with utility methods for managing tooltips
+	Abstract class with utility methods for managing tooltips.
+  All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
@@ -17,5 +17,9 @@ function Tipped:OnLeave()
 end
 
 function Tipped:GetTipAnchor()
-  return self, self:GetRight() > (GetScreenWidth() / 2) and 'ANCHOR_LEFT' or 'ANCHOR_RIGHT'
+  return self, self:IsFarLeft() and 'ANCHOR_LEFT' or 'ANCHOR_RIGHT'
+end
+
+function Tipped:IsFarLeft()
+  return self:GetRight() > (GetScreenWidth() / 2)
 end

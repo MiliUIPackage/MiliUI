@@ -17,7 +17,7 @@ You should have received a copy of the GNU General Public License
 along with Sushi. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
-local Popup = LibStub('Sushi-3.2').Group:NewSushi('Popup', 3)
+local Popup = LibStub('Sushi-3.2').Group:NewSushi('Popup', 6)
 if not Popup then return end
 Popup.Active = Popup.Active or {}
 Popup.Size = 420
@@ -99,8 +99,8 @@ function Popup:Construct()
 	money.top, money.bottom, money.centered = 0, 6, true
 
 	local icon = f:CreateTexture()
-	icon:SetPoint('LEFT', 24,0)
-	icon:SetSize(36,36)
+	icon:SetPoint('LEFT', 22,0)
+	icon:SetSize(40,40)
 
 	f.MoneyInput, f.Icon = money, icon
 	return f
@@ -108,9 +108,9 @@ end
 
 function Popup:New(input)
 	local info = type(input) == 'table' and input or CopyTable(StaticPopupDialogs[input])
-	local id = info.id or input
+	local id = info.id or info.text or input
 
-	if UnitIsDeadOrGhost('player') and not info.whileDead then
+	if UnitIsDeadOrGhost('player') and info.whileDead == false then
 		return info.OnCancel and info.OnCancel('dead')
 	elseif InCinematic() and not info.interruptCinematic then
 		return info.OnCancel and info.OnCancel('cinematic')
@@ -128,9 +128,9 @@ function Popup:New(input)
 	end
 
 	local f = self:Super(Popup):New(UIParent)
-	f.id, f.edit, f.money = info.id or info.text, info.editBox, info.moneyInput or info.money
+	f.id, f.edit, f.money = id, info.editBox, info.moneyInput or info.money
 	f.button1, f.button2, f.moneyInput, f.hideOnEscape = info.button1, info.button2, info.moneyInput, f.hideOnEscape
-	f.text = info.text .. (not f.moneyInput and f.money and ('|n'..GetCoinTextureString(f.money)) or '')
+	f.text = (info.text or '') .. (not f.moneyInput and f.money and ('|n'..GetCoinTextureString(f.money)) or '')
 	f:SetBackdrop('DialogBorderDarkTemplate')
 	f:SetCall('OnAccept', info.OnAccept)
 	f:SetCall('OnCancel', info.OnCancel)
@@ -138,10 +138,10 @@ function Popup:New(input)
 	f:Show()
 
 	local icon = info.icon or (info.showAlert and 357854) or (info.showAlertGear and 357855)
-	if tonumber(icon) then
-		f.Icon:SetTexture(icon)
-	else
+	if icon and C_Texture.GetAtlasInfo(icon) then
 		f.Icon:SetAtlas(icon)
+	else
+		f.Icon:SetTexture(icon)
 	end
 
 	tinsert(self.Active, f)

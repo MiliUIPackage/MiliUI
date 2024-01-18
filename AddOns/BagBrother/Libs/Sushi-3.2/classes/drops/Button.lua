@@ -18,7 +18,7 @@ along with Sushi. If not, see <http://www.gnu.org/licenses/>.
 --]]
 
 local Sushi = LibStub('Sushi-3.2')
-local Button = Sushi.Clickable:NewSushi('DropButton', 1, 'CheckButton', 'UIDropDownMenuButtonTemplate', true)
+local Button = Sushi.Clickable:NewSushi('DropButton', 3, 'CheckButton', 'UIDropDownMenuButtonTemplate', true)
 if not Button then return end
 
 
@@ -38,9 +38,6 @@ function Button:Construct()
 	b.Icon = _G[name .. 'Icon']
 	b.Icon:Show()
 
-	b.Sublevel = Sushi.Dropdown:New(b)
-	b.Sublevel:SetPoint('TOPLEFT', b, 'RIGHT')
-
 	b:SetScript('OnEnable', nil)
 	b:SetScript('OnDisable', nil)
 	b:SetHighlightTexture(b.Highlight)
@@ -55,14 +52,14 @@ function Button:New(parent, info)
 	local b = self:Super(Button):New(parent)
 
 	--b.Color:SetShown(info.hasColorSwatch)
-
-	MergeTable(b, info)
+	b:SetKeys(info)
 	b:SetText(b.text)
 	b:SetIcon(b.icon)
 	b:SetSublevel(sublevel)
 	b:SetChecked(b.checked)
-	b:SetFletched(b.hasArrow or sublevel)
+	b:SetTooltip(b.tooltipTitle, b.tooltipText)
 	b:SetEnabled(not b.disabled and not b.isTitle)
+	b:SetFletched(b.arrow or b.hasArrow or sublevel)
 	b:SetCheckable(not b.isTitle and not b.notCheckable, not b.isNotRadio)
 	b:SetNormalFontObject(b.fontObject or b.isTitle and GameFontNormalSmallLeft or GameFontHighlightSmallLeft)
 	b:SetDisabledFontObject(b.fontObject or b.isTitle and GameFontNormalSmallLeft or GameFontDisableSmallLeft)
@@ -76,7 +73,7 @@ function Button:New(parent, info)
 end
 
 function Button:Reset()
-	wipe(self.Sublevel:GetCalls('OnChildren'))
+	self:SetSublevel(nil)
 	self:Super(Button):Reset()
 end
 
@@ -89,8 +86,8 @@ function Button:OnClick()
 end
 
 function Button:OnUpdate()
-	self.Sublevel:SetShown(self.Sublevel:IsMouseInteracting())
-	self:SetHighlightLocked(self.Sublevel:IsVisible())
+	self.panel:SetShown(self.panel:IsMouseInteracting())
+	self:SetHighlightLocked(self.panel:IsVisible())
 end
 
 
@@ -136,8 +133,12 @@ function Button:IsCheckable()
 end
 
 function Button:SetSublevel(children)
-	self:SetScript('OnUpdate', children and self.OnUpdate)
-	self.Sublevel:SetChildren(children)
+	if self.panel then
+		self.panel:Release()
+	end
+
+	self.panel = children and Sushi.Dropdown(self, children):SetPoint('TOPLEFT', self, 'RIGHT')
+	self:SetScript('OnUpdate', self.panel and self.OnUpdate)
 	self:SetHighlightLocked(false)
 end
 

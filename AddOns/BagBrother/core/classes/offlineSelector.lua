@@ -1,6 +1,6 @@
 --[[
-	offlineSelector.lua
-		A button for opening offline owners or locations
+	A button for opening offline owners or locations.
+	All Rights Reserved
 --]]
 
 local ADDON, Addon = ...
@@ -65,7 +65,7 @@ function OfflineSelector:OnClick(button)
 						end
 					end
 
-					locations:SetHeight(ceil(locations:NumChildren() / 2) * 32)
+					locations:SetHeight(ceil(locations:NumChildren() / 2) * 33)
 				end)
 
 				local charHeader = drop:Add {text = 'Characters', isTitle = true }

@@ -18,6 +18,7 @@ function Frame:New(id)
 	f.id, f.quality = id, 0
 	f.profile = f:GetBaseProfile()
 
+	f.MenuButtons = {}
 	f.Title = Addon.Title(f, f.Title)
 	f.SearchFrame = Addon.SearchFrame(f)
 	f.ItemGroup = self.ItemGroup(f, f.Bags)
@@ -103,18 +104,17 @@ end
 
 function Frame:PlaceTitle()
 	local frame = self.Title
-	local menuButtons = self.menuButtons
-	local w, h = 0, 0
+	local w = 0
 
 	frame:ClearAllPoints()
-	if #menuButtons > 0 then
-		frame:SetPoint('LEFT', menuButtons[#menuButtons], 'RIGHT', 4, 0)
+	frame:SetHeight(20)
+
+	if #self.MenuButtons > 0 then
+		frame:SetPoint('LEFT', self.MenuButtons[#self.MenuButtons], 'RIGHT', 4, 0)
 		w = frame:GetTextWidth() / 2 + 4
-		h = 20
 	else
 		frame:SetPoint('TOPLEFT', self, 'TOPLEFT', 8, -8)
 		w = frame:GetTextWidth() + 8
-		h = 20
 	end
 
 	if self:HasOptionsToggle() then
@@ -122,14 +122,13 @@ function Frame:PlaceTitle()
 	else
 		frame:SetPoint('RIGHT', self.CloseButton, 'LEFT', -4, 0)
 	end
-	frame:SetHeight(20)
 
-	return w, h
+	return w, 20
 end
 
 function Frame:PlaceItemGroup()
 	local anchor = self:IsBagGroupShown() and self.bagGroup
-					or #self.menuButtons > 0 and self.menuButtons[1]
+					or #self.MenuButtons > 0 and self.MenuButtons[1]
 					or self.Title
 
 	self.ItemGroup:SetPoint('TOPLEFT', anchor, 'BOTTOMLEFT', 0, -4)
@@ -137,103 +136,47 @@ function Frame:PlaceItemGroup()
 end
 
 
---[[ Menu Buttons ]]--
+--[[ Top Menu ]]--
 
 function Frame:PlaceMenuButtons()
-	for i, button in pairs(self.menuButtons or {}) do
+	local buttons = {}
+	tinsert(buttons, self:HasOwnerSelector() and self:Get('OwnerSelector', function() return Addon.OwnerSelector(self) end))
+	tAppendAll(buttons, self:GetExtraButtons())
+	tinsert(buttons, self:HasSortButton() and self:Get('SortButton', function() return Addon.SortButton(self) end))
+	tinsert(buttons, self:HasSearchToggle() and self:Get('SearchToggle', function() return Addon.SearchToggle(self) end))
+
+	for i, button in pairs(self.MenuButtons) do
 		button:Hide()
 	end
+	self.MenuButtons = tFilter(buttons, function(v) return v end, true)
 
-	self.menuButtons = {}
-	self:ListMenuButtons()
-
-	for i, button in ipairs(self.menuButtons) do
-		button:ClearAllPoints()
+	for i, button in ipairs(self.MenuButtons) do
 		if i == 1 then
 			button:SetPoint('TOPLEFT', self, 'TOPLEFT', 8, -8)
 		else
-			button:SetPoint('TOPLEFT', self.menuButtons[i-1], 'TOPRIGHT', 4, 0)
+			button:SetPoint('TOPLEFT', self.MenuButtons[i-1], 'TOPRIGHT', 4, 0)
 		end
 		button:Show()
 	end
 
-	return 20 * #self.menuButtons, 20
+	return 20 * #self.MenuButtons, 20
 end
-
-function Frame:ListMenuButtons()
-	if self:HasOwnerSelector() then
-		tinsert(self.menuButtons, self.ownerSelector or self:CreateOwnerSelector())
-	end
-
-	if self:HasBagToggle() then
-		tinsert(self.menuButtons, self.bagToggle or self:CreateBagToggle())
-	end
-
-	if self:HasSortButton() then
-		tinsert(self.menuButtons, self.sortButton or self:CreateSortButton())
-	end
-
-	if self:HasSearchToggle() then
-		tinsert(self.menuButtons, self.searchToggle or self:CreateSearchToggle())
-	end
-end
-
-function Frame:HasOwnerSelector()
-	return Addon.Owners:Count() > 1
-end
-
-function Frame:HasSearchToggle()
-	return self.profile.search
-end
-
-function Frame:HasBagToggle()
-	return self.profile.bagToggle
-end
-
-function Frame:HasSortButton()
-	return self.profile.sort
-end
-
-function Frame:CreateOwnerSelector()
-	self.ownerSelector = Addon.OwnerSelector(self)
-	return self.ownerSelector
-end
-
-function Frame:CreateSearchToggle()
-	self.searchToggle = Addon.SearchToggle(self)
-	return self.searchToggle
-end
-
-function Frame:CreateBagToggle()
-	self.bagToggle = Addon.BagToggle(self)
-	return self.bagToggle
-end
-
-function Frame:CreateSortButton()
-	self.sortButton = Addon.SortButton(self)
-	return self.sortButton
-end
-
-
---[[ Remainder Top ]]--
 
 function Frame:PlaceSearchBar()
-	local frame, menuButtons = self.SearchFrame, self.menuButtons
-	frame:ClearAllPoints()
+	self.SearchFrame:ClearAllPoints()
+	self.SearchFrame:SetHeight(28)
 
-	if #menuButtons > 0 then
-		frame:SetPoint('LEFT', menuButtons[#menuButtons], 'RIGHT', 2, 0)
+	if #self.MenuButtons > 0 then
+		self.SearchFrame:SetPoint('LEFT', self.MenuButtons[#self.MenuButtons], 'RIGHT', 2, 0)
 	else
-		frame:SetPoint('TOPLEFT', self, 'TOPLEFT', 8, -8)
+		self.SearchFrame:SetPoint('TOPLEFT', self, 'TOPLEFT', 8, -8)
 	end
 
 	if self:HasOptionsToggle() then
-		frame:SetPoint('RIGHT', self.OptionsToggle, 'LEFT', -2, 0)
+		self.SearchFrame:SetPoint('RIGHT', self.OptionsToggle, 'LEFT', -2, 0)
 	else
-		frame:SetPoint('RIGHT', self.CloseButton, 'LEFT', -2, 0)
+		self.SearchFrame:SetPoint('RIGHT', self.CloseButton, 'LEFT', -2, 0)
 	end
-
-	frame:SetHeight(28)
 end
 
 function Frame:PlaceOptionsToggle()
@@ -255,33 +198,38 @@ function Frame:HasOptionsToggle()
 	return C.Addons.GetAddOnEnableState(ADDON .. '_Config', UnitName('player')) >= 2 and self.profile.options
 end
 
+function Frame:HasOwnerSelector()
+	return Addon.Owners:Count() > 1
+end
+
+function Frame:HasSearchToggle()
+	return self.profile.search
+end
+
+function Frame:HasSortButton()
+	return self.profile.sort
+end
+
 
 --[[ Bag Frame ]]--
 
 function Frame:PlaceBagGroup()
 	if self:IsBagGroupShown() then
-		local frame = self.bagGroup or self:CreateBagGroup()
-		frame:ClearAllPoints()
-		frame:Show()
+		self.bagGroup = self.bagGroup or self.BagGroup(self, 'LEFT', 36, 0)
+		self.bagGroup:Show()
 
-		local menuButtons = self.menuButtons
-		if #menuButtons > 0 then
-			frame:SetPoint('TOPLEFT', menuButtons[1], 'BOTTOMLEFT', 0, -4)
+		if #self.MenuButtons > 0 then
+			self.bagGroup:SetPoint('TOPLEFT', self.MenuButtons[1], 'BOTTOMLEFT', 0, -4)
 		else
-			frame:SetPoint('TOPLEFT', self.Title, 'BOTTOMLEFT', 0, -4)
+			self.bagGroup:SetPoint('TOPLEFT', self.Title, 'BOTTOMLEFT', 0, -4)
 		end
 
-		return frame:GetWidth(), frame:GetHeight() + 4
+		return self.bagGroup:GetWidth(), self.bagGroup:GetHeight() + 4
 	elseif self.bagGroup then
 		self.bagGroup:Hide()
 	end
 
 	return 0, 0
-end
-
-function Frame:CreateBagGroup()
-	self.bagGroup = self.BagGroup(self, 'LEFT', 36, 0)
-	return self.bagGroup
 end
 
 function Frame:IsBagGroupShown()

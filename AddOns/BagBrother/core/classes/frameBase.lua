@@ -1,7 +1,6 @@
 --[[
-	frame.lua
-		Useful methods to implement a class for frame objects.
-		All Rights Reserved.
+	Useful methods to implement a class for frame objects.
+	All Rights Reserved
 --]]
 
 
@@ -32,7 +31,7 @@ function Frame:OnHide()
 end
 
 
---[[ Appearance ]]--
+--[[ UI ]]--
 
 function Frame:UpdateAppearance()
 	self:ClearAllPoints()
@@ -79,12 +78,16 @@ function Frame:GetPosition()
 	return self.profile.point or 'CENTER', self.profile.x, self.profile.y
 end
 
+function Frame:GetExtraButtons()
+	return {}
+end
+
 
 --[[ Filtering ]]--
 
 function Frame:FindRules()
 	for id, rule in Addon.Rules:Iterate() do
-		if not tContains(self.profile.rules, id) and not self.profile.hiddenRules[id] then
+		if not tContains(self.profile.rules, id) then
 			self:Delay(0.01, 'SendFrameSignal', 'RULES_UPDATED')
 			tinsert(self.profile.rules, id)
 		end
@@ -126,7 +129,7 @@ function Frame:GetItemInfo(bag, slot)
 		local link, count = strsplit(';', data)
 		local item = {hyperlink = 'item:' .. link, stackCount = tonumber(count)}
 		item.itemID, _,_,_, item.iconFileID = GetItemInfoInstant(item.hyperlink)
-		_, _, item.quality = GetItemInfo(item.hyperlink) 
+		_, item.hyperlink, item.quality = GetItemInfo(item.hyperlink) 
 		return item
 	end
 	return {}

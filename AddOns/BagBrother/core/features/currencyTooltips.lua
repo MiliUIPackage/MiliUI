@@ -1,7 +1,6 @@
 --[[
-	currencyTooltips.lua
-		Adds counts to currency tooltips and reorganizes meta info for better readability.
-		All Rights Reserved.
+	Adds counts to currency tooltips and reorganizes meta info for better readability.
+	All Rights Reserved
 ]]--
 
 local ADDON, Addon = ...
@@ -71,13 +70,13 @@ function TipCounts.OnID(tip, id)
 			end
 		end
 
-		-- local info = C.GetCurrencyInfo(id)
-		-- if info.maxWeeklyQuantity > 0 then
-		-- 	tip:AddDoubleLine(SILVER:format(WEEKLY), SILVER:format(info.maxWeeklyQuantity))
-		-- end
-		-- if info.maxQuantity > 0 then
-		-- 	tip:AddDoubleLine(SILVER:format(MAXIMUM), SILVER:format(info.maxQuantity))
-		-- end
+		local info = C.GetCurrencyInfo(id)
+		if info.maxWeeklyQuantity > 0 then
+			tip:AddDoubleLine(SILVER:format(WEEKLY), SILVER:format(info.maxWeeklyQuantity))
+		end
+		if info.maxQuantity > 0 then
+			tip:AddDoubleLine(SILVER:format(MAXIMUM), SILVER:format(info.maxQuantity))
+		end
 
 		tip:Show()
 	end

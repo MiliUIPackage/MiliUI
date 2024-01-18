@@ -19,17 +19,11 @@ L.CmdShowGuild = 'Toggles your guild bank'
 L.CmdShowVault = 'Toggles your void storage'
 L.CmdShowVersion = 'Prints the current version'
 L.CmdShowOptions = 'Opens the configuration menu'
-L.Updated = 'Updated to v%s'
 
 --frame titles
 L.TitleBags = '%s\'s Inventory'
 L.TitleBank = '%s\'s Bank'
 L.TitleVault = '%s\'s Void Storage'
-
---dropdowns
-L.TitleFrames = '%s Frames'
-L.OfflineViewing = 'Offline Viewing'
-L.ConfirmDelete = 'Are you sure you want to delete   %s\'s cached data?'
 
 --interactions
 L.Click = 'Click'
@@ -54,7 +48,6 @@ L.TipConfigure = '%s to configure.'
 L.TipDepositReagents = '%s to deposit reagents at the bank.'
 L.TipDeposit = '%s to deposit.'
 L.TipWithdraw = '%s to withdraw (%s remaining).'
-L.TipFrameToggle = '%s to toggle other windows.'
 L.TipHideBag = '%s to hide this bag.'
 L.TipHideBags = '%s to hide the bags display.'
 L.TipHideSearch = '%s to stop searching.'
@@ -67,6 +60,8 @@ L.TipShowBank = '%s to toggle your bank.'
 L.TipShowInventory = '%s to toggle your inventory.'
 L.TipShowOptions = '%s to open the options menu.'
 L.TipShowSearch = '%s to search.'
+L.TipToggleBank = '%s to toggle bank.'
+L.TipToggleTrade = '%s to toggle profession bags.'
 
 --item tooltips
 L.TipCountEquip = 'Equipped: %d'
@@ -76,8 +71,20 @@ L.TipCountVault = 'Vault: %d'
 L.TipCountGuild = 'Guild: %d'
 L.TipDelimiter = '|'
 
+--dropdowns
+L.OfflineViewing = 'Offline Viewing'
+L.ConfirmDelete = 'Are you sure you want to delete %s\'s cached data?'
+L.ServerSorting = 'Server-Side Sorting'
+L.ServerSortingTip = 'Whether to let the game server sort items where available.'
+L.CleanupOptions = 'Cleanup Options'
+L.LockItems = 'Lock Item Slots'
+L.RequiresClientSorting = 'Requires client-side sorting!'
+
 --dialogs
 L.AskMafia = 'Ask Mafia'
 L.ConfirmTransfer = 'Depositing any items will remove all modifications and make them non-tradeable and non-refundable.|n|nDo you wish to continue?'
 L.CannotPurchaseVault = 'You do not have enough money to unlock the Void Storage service|n|n|cffff2020Cost: %s|r'
 L.PurchaseVault = 'Would you like to unlock the Void Storage service?|n|n|cffffd200Cost:|r %s'
+L.ConfigurationMode = 'You are now in the client-side sorting configuration mode.|n|nClick item slots to toggle if they should be locked while sorting.'
+L.OutOfDate = 'You might be running an outdated |cffffd200%s|r version!|nSomeone in your party or guild reported having|n|cff82c5ff%s|r, please update if true.'
+L.InvalidVersion = 'Your copy of |cffffd200%s|r is either corrupted or illegal.|nPlease download an official build for free.'

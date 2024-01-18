@@ -5,7 +5,7 @@ A library heavily inspired in AceAddon-3.0, with small behavior changes
 and additional features that I needed and were incompatible with Ace.
 ]]--
 
-local Lib = LibStub:NewLibrary('WildAddon-1.0', 1)
+local Lib = LibStub:NewLibrary('WildAddon-1.0', 2)
 if not Lib then return end
 
 
@@ -71,6 +71,23 @@ function Embeds:NewModule(...)
   return module
 end
 
+function Embeds:SetDefaults(target, defaults)
+  defaults.__index = nil
+
+  for k, v in pairs(defaults) do
+    if type(v) == 'table' then
+			if getmetatable(v) == false then
+				target[k] = target[k] or setmetatable(CopyTable(v), {__metatable = false})
+			else
+				target[k] = self:SetDefaults(target[k] or {}, v)
+			end
+    end
+  end
+
+  defaults.__index = defaults
+  return setmetatable(target, defaults)
+end
+  
 function Embeds:RegisterSignal(id, call, ...)
   self:RegisterMessage(self.Tag .. id, call or id, ...)
 end
