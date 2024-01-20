@@ -1,6 +1,6 @@
 # Edit Mode Expanded
 
-## [10.2-002](https://github.com/teelolws/EditModeExpanded/tree/10.2-002) (2023-11-08)
-[Full Changelog](https://github.com/teelolws/EditModeExpanded/compare/10.2-001...10.2-002) [Previous Releases](https://github.com/teelolws/EditModeExpanded/releases)
+## [10.2-012](https://github.com/teelolws/EditModeExpanded/tree/10.2-012) (2024-01-19)
+[Full Changelog](https://github.com/teelolws/EditModeExpanded/compare/10.2-011...10.2-012) [Previous Releases](https://github.com/teelolws/EditModeExpanded/releases)
 
-- Allow player frame to be resized smaller  
+- Fix lua error  

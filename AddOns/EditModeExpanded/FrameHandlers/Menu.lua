@@ -82,6 +82,12 @@ function addon:initMenuBar()
                 if alreadyInit then return end
                 alreadyInit = true
                 addon:continueAfterCombatEnds(function()
+                    
+                    -- workaround for bug introduced in 10.2.5
+                    -- not sure why its happening, something to do with layout-local.txt
+                    -- but trying SetUserPlaced causes an error
+                    ContainerFrame1.Bg:SetFrameLevel(0)
+                    
                     lib:RegisterFrame(ContainerFrame1, "Main Bag", db.ContainerFrame1)
                     hooksecurefunc("UpdateContainerFrameAnchors", function()
                         if noInfinite then return end

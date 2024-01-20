@@ -128,6 +128,7 @@ do
     local prefix = "hud-microbutton-"
     	
     local function replaceAtlases(self, name)
+        if not SLSkinEnabled then return end
         -- code from 9.2 version of FrameXML\MainMenuBarMicroButtons.lua
         self:SetNormalAtlas(prefix..name.."-Up", true)
         self:SetPushedAtlas(prefix..name.."-Down", true)
@@ -181,6 +182,7 @@ do
     }
 
     local function replaceAllAtlases()
+        if not SLSkinEnabled then return end
         for _, data in pairs(buttons) do
             replaceAtlases(data.button, data.name)
         end
@@ -210,8 +212,19 @@ do
         	end
         	MainMenuBarDownload:Show();
         end
-        replaceAllAtlases()
+        replaceAtlases(MainMenuMicroButton, "MainMenu")
     end)
+    
+    local eventTypes = {"OnEnter", "OnClick", "OnMouseDown", "OnMouseUp", "OnLeave"}
+    for _, data in pairs(buttons) do
+        for _, eventType in pairs(eventTypes) do
+            data.button:HookScript(eventType, function()
+                replaceAtlases(data.button, data.name)
+            end)
+        end
+        hooksecurefunc(data.button, "SetPushed", replaceAllAtlases)
+        hooksecurefunc(data.button, "SetNormal", replaceAllAtlases)     
+    end
 
     CreateFrame("Frame", "GuildMicroButtonTabard", GuildMicroButton)
     GuildMicroButtonTabard:SetPoint("TOPLEFT", 3, 1)
@@ -238,7 +251,6 @@ do
     		GuildMicroButtonTabard:SetPoint("TOPLEFT", 3, 1);
     		GuildMicroButtonTabard:SetAlpha(1);
         end
-        GuildMicroButtonTabard:Show()
     end
 
     hooksecurefunc("UpdateMicroButtons", updateButtons)
@@ -258,4 +270,6 @@ do
     function addon:DisableSkinMicroMenuSL()
         SLSkinEnabled = false
     end
+    
+    replaceAllAtlases()
 end

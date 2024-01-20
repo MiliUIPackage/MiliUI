@@ -46,6 +46,7 @@ local defaults = {
             buffFrame = true,
             debuffFrame = true,
             objectiveTrackerFrame = true,
+			targetFrameBuffs = false,
         },
         QueueStatusButton = {},
         TotemFrame = {},
@@ -89,6 +90,8 @@ local defaults = {
         ContainerFrameCombinedBags = {},
         MinimapZoneName = {},
         MinimapSeparated = {},
+		TargetDebuffs = {},
+        TargetBuffs = {},
     }
 }
 
@@ -271,6 +274,11 @@ local options = {
         targetFrame = {
             name = "目標",
             desc = "啟用/停用目標框架的額外選項",
+            type = "toggle",
+        },
+		targetFrameBuffs = {
+            name = "目標增益",
+            desc = "啟用/停用支援目標增益和減益",
             type = "toggle",
         },
         focusFrame = {
