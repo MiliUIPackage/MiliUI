@@ -2,6 +2,8 @@ local addonName, addon = ...
 local _G = _G
 local E = addon:Eve()
 
+local GetCVarInfo = addon.GetCVarInfo
+
 -- C_Console.GetAllCommands() does not return the complete list of CVars on login
 -- Repopulate the list using UpdateCVarList() when the CVar browser is opened
 local CVarList = {}
@@ -108,8 +110,8 @@ end
 local OptionsPanel = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 OptionsPanel:Hide()
 OptionsPanel:SetAllPoints()
-OptionsPanel.name = "CVar Browser"
-OptionsPanel.parent = addonName
+OptionsPanel.name = "CVar 遊戲參數"
+OptionsPanel.parent = "進階介面選項"
 
 local Title = OptionsPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title:SetJustifyV('TOP')
@@ -124,7 +126,7 @@ SubText:SetJustifyV('TOP')
 SubText:SetJustifyH('LEFT')
 SubText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
 SubText:SetPoint('RIGHT', -32, 0)
-SubText:SetText('These options allow you to modify various CVars within the game.')
+SubText:SetText('這些選項可以調整遊戲中的各種 CVars 參數。')
 
 InterfaceOptions_AddCategory(OptionsPanel, addonName)
 
@@ -150,7 +152,7 @@ FilterBox:SetScript('OnEditFocusGained', function(self)
 end)
 
 local CVarTable = {}
-local ListFrame = addon:CreateListFrame(OptionsPanel, 615, 465, {{NAME, 200}, {'Description', 260, 'LEFT'}, {'Value', 100, 'RIGHT'}})
+local ListFrame = addon:CreateListFrame(OptionsPanel, 615, 465, {{NAME, 200}, {'說明', 260, 'LEFT'}, {'值', 100, 'RIGHT'}})
 ListFrame:SetPoint('TOP', FilterBox, 'BOTTOM', 0, -20)
 ListFrame:SetPoint('BOTTOMLEFT', 4, 6)
 ListFrame:SetItems(CVarTable)
@@ -319,11 +321,11 @@ function E:PLAYER_LOGIN()
 				if cvarTable['description'] then --and _G[ cvarTable['description'] ] then
 					GameTooltip:AddLine(cvarTable['description'], 1, 1, 1, true)
 				end
-				GameTooltip:AddDoubleLine("Default Value:", defaultValue, 0.2, 1, 0.6, 0.2, 1, 0.6)
+				GameTooltip:AddDoubleLine("預設值:", defaultValue, 0.2, 1, 0.6, 0.2, 1, 0.6)
 
 				local modifiedBy = AdvancedInterfaceOptionsSaved.ModifiedCVars[ self.value:lower() ]
 				if modifiedBy then
-					GameTooltip:AddDoubleLine("Last Modified By:", modifiedBy, 1, 0, 0, 1, 0, 0)
+					GameTooltip:AddDoubleLine("最近修改:", modifiedBy, 1, 0, 0, 1, 0, 0)
 				end
 
 				GameTooltip:Show()
