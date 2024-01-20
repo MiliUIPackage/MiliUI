@@ -6,8 +6,7 @@
 
 ## SavedVariables: Bagnon_Sets
 ## Dependencies: BagBrother
-## X-Development: True
 ## Interface: 11500
-## Version: 10.2.14
+## Version: 10.2.15
 
 src\main.xml
