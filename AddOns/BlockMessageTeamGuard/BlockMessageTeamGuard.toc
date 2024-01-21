@@ -1,12 +1,14 @@
 ## Interface: 100205
-## Version: v1.4
+## Version: v1.4 Fix3
 ## IconTexture: Interface\Icons\inv_misc_bomb_04
 ## Title: BlockMessageTeamGuard
 ## Notes: BlockMessageTeamGuard V1.4
-## Title-zhTW: |r|cFFFFFFFF[其他]|r 工作室過濾
-## Notes-zhTW: BlockMessageTeamGuard |n過濾陌生人組隊與工作室訊息。
 ## SavedVariables: LP_DB
 ## X-Curse-Project-ID: 831610
+
+## Title-zhTW: |r|cFFFFFFFF[其他]|r 廣告守衛
+## Notes-zhTW: BlockMessage & TeamGuard |n|n過濾掉聊天訊息中的廣告、自動拒絕陌生人的組隊邀請。|n|n|cffffd200使用方法: |rEsc>選項>插件>過濾廣告>進行設定。
+## X-Category-zhTW: 社交
 
 enUS.lua
 zhTW.lua

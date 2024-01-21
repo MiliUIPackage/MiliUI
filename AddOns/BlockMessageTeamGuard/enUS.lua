@@ -425,7 +425,7 @@ end
     disableInInstanceToggleButton:SetChecked(LPaddon.disableInInstance)
     declineInviteToggleButton:SetChecked(LP_DB.declineInvite)
     InitializeButtonStatus()
-    print("BlockMessageV1.4 loaded, type /bsc to open settings.")
+    -- print("BlockMessageV1.4 loaded, type /bsc to open settings.")
 end
 local function OnSave(self, event, ...)
     LP_DB.enabled = LPaddon.checkMessage

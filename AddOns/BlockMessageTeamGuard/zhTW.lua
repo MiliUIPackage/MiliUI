@@ -4,7 +4,7 @@ end
 
 local LPName, LPaddon = ...
 local optionsPanel = CreateFrame("Frame", LPName.."OptionsPanel", InterfaceOptionsFramePanelContainer)
-optionsPanel.name = LPName
+optionsPanel.name = "廣告守衛"
 optionsPanel:Hide()
 local strangerGroupToggleButton = CreateFrame("CheckButton", LPName.."StrangerGroupToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 strangerGroupToggleButton:SetPoint("TOPLEFT", 16, -360)
@@ -29,14 +29,14 @@ filterTitle:SetText("聊天過濾功能")
 
 local messageToggleButton = CreateFrame("CheckButton", LPName.."MessageToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 messageToggleButton:SetPoint("TOPLEFT", 16, -44)
-messageToggleButton.Text:SetText("隱藏任何包含簡體字的訊息     (只有頻道、說、大喊、耳語生效)")
+messageToggleButton.Text:SetText("隱藏任何包含簡體字的訊息     (只有頻道、說、大喊、密語生效)")
 messageToggleButton:SetScript("OnClick", function(self)
     LPaddon.checkMessage = self:GetChecked()
 end)
 
 local senderToggleButton = CreateFrame("CheckButton", LPName.."SenderToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 senderToggleButton:SetPoint("TOPLEFT", 16, -66)
-senderToggleButton.Text:SetText("隱藏角色名稱含有簡體字的玩家訊息     (只有頻道、說、大喊、耳語生效)")
+senderToggleButton.Text:SetText("隱藏角色名稱含有簡體字的玩家訊息     (只有頻道、說、大喊、密語生效)")
 senderToggleButton:SetScript("OnClick", function(self)
     LPaddon.checkSender = self:GetChecked()
 end)
@@ -72,7 +72,7 @@ end)
 
 local declineInviteToggleButton = CreateFrame("CheckButton", LPName.."DeclineInviteToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 declineInviteToggleButton:SetPoint("TOPLEFT", 16, -380)
-declineInviteToggleButton.Text:SetText("自訂:     拒絕角色名稱包含以下自訂詞的玩家邀請")
+declineInviteToggleButton.Text:SetText("自訂:     拒絕角色名稱包含下列關鍵字的玩家邀請")
 declineInviteToggleButton:SetScript("OnClick", function(self)
     LPaddon.declineInvite = self:GetChecked()
     LP_DB.declineInvite = self:GetChecked()
@@ -114,7 +114,7 @@ addAdIdLabel:SetPoint("BOTTOMLEFT", addAdIdEditBox, "TOPLEFT", 0, 4)
 local addButton = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
 addButton:SetPoint("LEFT", addAdIdEditBox, "RIGHT", 3, 0)
 addButton:SetSize(86, 25)
-addButton:SetText("添加\\刪除")
+addButton:SetText("新增\\刪除")
 addButton:SetScript("OnClick", function(self)
     local newAdId = addAdIdEditBox:GetText()
     ToggleAdId(newAdId)
@@ -158,7 +158,7 @@ local function toggleKeyword(keyword)
 end
 local customFilterToggleButton = CreateFrame("CheckButton", LPName.."CustomFilterToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 customFilterToggleButton:SetPoint("TOPLEFT", 16, -110)
-customFilterToggleButton.Text:SetText("自訂:     隱藏包含以下關鍵字的訊息")
+customFilterToggleButton.Text:SetText("自訂:     隱藏包含下列關鍵字的訊息     (會自動忽略空格和各種符號)")
 customFilterToggleButton:SetScript("OnClick", function(self)
     LPaddon.customFilter = self:GetChecked()
     LP_DB.customFilter = self:GetChecked()
@@ -197,7 +197,7 @@ newKeywordEditBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() 
 local addKeywordButton = CreateFrame("Button", nil, optionsPanel, "UIPanelButtonTemplate")
 addKeywordButton:SetSize(88	, 23)
 addKeywordButton:SetPoint("LEFT", newKeywordEditBox, "RIGHT", 2, 0)
-addKeywordButton:SetText("添加\\刪除")
+addKeywordButton:SetText("新增\\刪除")
 addKeywordButton:SetScript("OnClick", function()
     local newKeyword = newKeywordEditBox:GetText()
     if newKeyword and newKeyword ~= "" then
@@ -225,6 +225,32 @@ end
 local whisperWithKeyword = {}
 local chatBubbleSenders = {}
 
+-- 過濾掉特殊符號
+local function filter_spec_chars(s)  
+    local ss = {}  
+    for k = 1, #s do  
+        local c = string.byte(s,k)  
+        if not c then break end  
+        if (c>=48 and c<=57) or (c>= 65 and c<=90) or (c>=97 and c<=122) then  
+            table.insert(ss, string.char(c))  
+        elseif c>=228 and c<=233 then  
+            local c1 = string.byte(s,k+1)  
+            local c2 = string.byte(s,k+2)  
+            if c1 and c2 then  
+                local a1,a2,a3,a4 = 128,191,128,191  
+                if c == 228 then a1 = 184  
+                elseif c == 233 then a2,a4 = 190,c1 ~= 190 and 191 or 165  
+                end  
+                if c1>=a1 and c1<=a2 and c2>=a3 and c2<=a4 then  
+                    k = k + 2  
+                    table.insert(ss, string.char(c,c1,c2))  
+                end  
+            end  
+        end  
+    end  
+    return table.concat(ss)  
+end
+
 local function filter(self, event, msg, sender)
     if not (LPaddon.checkMessage or LPaddon.checkSender or LPaddon.customFilter) then
         return
@@ -233,7 +259,12 @@ local function filter(self, event, msg, sender)
     if LPaddon.disableInInstance and inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "arena" or instanceType == "pvp") then
         return
     end
-    local lowercase_message = msg:lower()
+    -- local lowercase_message = msg:lower()
+    -- local lowercase_message = string.gsub(msg, "%s", "") -- 過濾空格
+    local lowercase_message = string.gsub(msg, "{(.-)}", "") -- 過濾圖案
+    -- print(lowercase_message)
+	local lowercase_message = filter_spec_chars(lowercase_message) -- 過濾符號
+	-- print(lowercase_message)
     local lowercase_name = sender:lower()
 
     local close_chat_frame = function()
@@ -397,7 +428,7 @@ local function OnLoad(self, event, ...)
     LPaddon.customFilter = LP_DB.customFilter == nil and true or LP_DB.customFilter
     LPaddon.strangerGroupEnabled = LP_DB.strangerGroupEnabled == nil and true or LP_DB.strangerGroupEnabled
     if not LP_DB.customFilterWords or next(LP_DB.customFilterWords) == nil then
-    LP_DB.customFilterWords = {["包赔"] = true, ["站桩"] = true, ["零封号"] = true, ["包团"] = true, ["散拍"] = true, ["快速到滿級"] = true, ["自己上随时打"] = true, ["来消费"] = true, ["淘宝"] = true, ["淘 宝"] = true, ["现在有团"] = true, ["为您服务"] = true, ["装备全送"] = true, ["同甲低保"] = true, ["免費送低保"] = true, ["掏宝"] = true, ["淘寶"] = true, ["自己上号"] = true, ["安全效率"] = true, ["送低保"] = true, ["上号躺"] = true, ["消費團本"] = true, ["满级即可参加"] = true}
+    LP_DB.customFilterWords = {["微信"] = true, ["包赔"] = true, ["站桩"] = true, ["零封号"] = true, ["包团"] = true, ["散拍"] = true, ["快速到滿級"] = true, ["自己上随时打"] = true, ["来消费"] = true, ["淘宝"] = true, ["现在有团"] = true, ["为您服务"] = true, ["装备全送"] = true, ["同甲低保"] = true, ["免費送低保"] = true, ["掏宝"] = true, ["淘寶"] = true, ["自己上号"] = true, ["安全效率"] = true, ["送低保"] = true, ["上号躺"] = true, ["消費團本"] = true, ["满级即可参加"] = true, ["自己挂"] = true, ["可自上"] = true, ["躺尸"] = true, ["挂满级"] = true, ["掛滿級"] = true, ["加薇"] = true, ["薇信"] = true,  ["加微"] = true, ["散买"] = true, ["加威"] = true, ["+威"] = true, ["威信"] = true, ["贝贝魔兽"] = true, ["贝贝魔獸"] = true, ["咸鱼魔兽"] = true, ["主线飞行"] = true, ["主线驭泷术"] = true,}
 end
     LPaddon.customFilterWords = LP_DB.customFilterWords    
     customFilterToggleButton:SetChecked(LPaddon.customFilter)
@@ -409,7 +440,7 @@ end
     disableInInstanceToggleButton:SetChecked(LPaddon.disableInInstance)
     declineInviteToggleButton:SetChecked(LP_DB.declineInvite)
     InitializeButtonStatus()
-    print("BlockMessageV1.4已載入,輸入/bsc設定.")
+    -- print("BlockMessageV1.4已載入,輸入/bsc設定.")
 end
 local function OnSave(self, event, ...)
     LP_DB.enabled = LPaddon.checkMessage
@@ -488,7 +519,7 @@ end)
 LPaddon = {
     checkMessage = false,
     checkSender = true,
-    showButton = true,
+    showButton = false, -- 更改預設值
     strangerGroupEnabled = true,
     filterWords = {},
     filterNames = {},
@@ -582,7 +613,7 @@ myButton:SetScript("OnClick", function(self, button, down)
         InterfaceOptionsFrame_OpenToCategory(optionsPanel)
     end
 end)
-myButton.tooltip = "簡體過濾"
+myButton.tooltip = "廣告守衛"
 myButton:SetScript("OnEnter", function(self)
     GameTooltip:SetOwner(self, "ANCHOR_TOPLEFT")
     GameTooltip:AddLine(self.tooltip)
@@ -837,7 +868,11 @@ local event1 = false
 local event2 = false
 
 local function getFullName(name, server)
-    return server and name .. "-" .. server or name
+    if type(server) == "string" then -- 暫時修正
+		name = name .. "-" .. server
+	end
+	return name
+	-- return server and name .. "-" .. server or name
 end
 
 local function printDungeonDifficulty()

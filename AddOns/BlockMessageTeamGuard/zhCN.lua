@@ -164,7 +164,7 @@ local function toggleKeyword(keyword)
 end
 local customFilterToggleButton = CreateFrame("CheckButton", LPName.."CustomFilterToggleButton", optionsPanel, "InterfaceOptionsCheckButtonTemplate")
 customFilterToggleButton:SetPoint("TOPLEFT", 16, -66)
-customFilterToggleButton.Text:SetText("自订:   隐藏包含以下关键字的讯息")
+customFilterToggleButton.Text:SetText("自订:   隐藏包含以下关键字的讯息     (会自动忽略空格和各种符号)")
 customFilterToggleButton:SetScript("OnClick", function(self)
     LPaddon.customFilter = self:GetChecked()
     LP_DB.customFilter = self:GetChecked()
@@ -231,6 +231,32 @@ end
 local whisperWithKeyword = {}
 local chatBubbleSenders = {}
 
+-- 過濾掉特殊符號
+local function filter_spec_chars(s)  
+    local ss = {}  
+    for k = 1, #s do  
+        local c = string.byte(s,k)  
+        if not c then break end  
+        if (c>=48 and c<=57) or (c>= 65 and c<=90) or (c>=97 and c<=122) then  
+            table.insert(ss, string.char(c))  
+        elseif c>=228 and c<=233 then  
+            local c1 = string.byte(s,k+1)  
+            local c2 = string.byte(s,k+2)  
+            if c1 and c2 then  
+                local a1,a2,a3,a4 = 128,191,128,191  
+                if c == 228 then a1 = 184  
+                elseif c == 233 then a2,a4 = 190,c1 ~= 190 and 191 or 165  
+                end  
+                if c1>=a1 and c1<=a2 and c2>=a3 and c2<=a4 then  
+                    k = k + 2  
+                    table.insert(ss, string.char(c,c1,c2))  
+                end  
+            end  
+        end  
+    end  
+    return table.concat(ss)  
+end
+
 local function filter(self, event, msg, sender)
     if not (LPaddon.checkMessage or LPaddon.checkSender or LPaddon.customFilter) then
         return
@@ -239,7 +265,9 @@ local function filter(self, event, msg, sender)
     if LPaddon.disableInInstance and inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "arena" or instanceType == "pvp") then
         return
     end
-    local lowercase_message = msg:lower()
+    -- local lowercase_message = msg:lower()
+	local lowercase_message = string.gsub(msg, "{(.-)}", "") -- 過濾圖案
+	local lowercase_message = filter_spec_chars(lowercase_message) -- 過濾符號
     local lowercase_name = sender:lower()
 
     local close_chat_frame = function()
@@ -403,7 +431,7 @@ local function OnLoad(self, event, ...)
     LPaddon.customFilter = LP_DB.customFilter == nil and true or LP_DB.customFilter
     LPaddon.strangerGroupEnabled = LP_DB.strangerGroupEnabled == nil and true or LP_DB.strangerGroupEnabled
     if not LP_DB.customFilterWords or next(LP_DB.customFilterWords) == nil then
-    LP_DB.customFilterWords = {["包赔"] = true, ["站桩"] = true, ["零封号"] = true, ["包团"] = true, ["散拍"] = true, ["快速到满级"] = true, ["自己上随时打"] = true, ["来消费"] = true, ["淘寶"] = true, ["淘 宝"] = true, ["现在有团"] = true, ["为您服务"] = true, ["装备全送"] = true, ["同甲低保"] = true, ["免费送低保"] = true, ["掏宝"] = true, ["淘宝"] = true, ["自己上号"] = true, ["安全效率"] = true, ["送低保"] = true, ["上号躺"] = true, ["消费团本"] = true, ["满级即可参加"] = true}
+    LP_DB.customFilterWords = {["微信"] = true, ["包赔"] = true, ["站桩"] = true, ["零封号"] = true, ["包团"] = true, ["散拍"] = true, ["快速到滿級"] = true, ["自己上随时打"] = true, ["来消费"] = true, ["淘宝"] = true, ["现在有团"] = true, ["为您服务"] = true, ["装备全送"] = true, ["同甲低保"] = true, ["免費送低保"] = true, ["掏宝"] = true, ["淘寶"] = true, ["自己上号"] = true, ["安全效率"] = true, ["送低保"] = true, ["上号躺"] = true, ["消費團本"] = true, ["满级即可参加"] = true, ["自己挂"] = true, ["可自上"] = true, ["躺尸"] = true, ["挂满级"] = true, ["掛滿級"] = true, ["加薇"] = true, ["薇信"] = true,  ["加微"] = true, ["散买"] = true, ["加威"] = true, ["+威"] = true, ["威信"] = true, ["贝贝魔兽"] = true, ["贝贝魔獸"] = true, ["咸鱼魔兽"] = true, ["主线飞行"] = true, ["主线驭泷术"] = true,}
 end
     LPaddon.customFilterWords = LP_DB.customFilterWords    
     customFilterToggleButton:SetChecked(LPaddon.customFilter)
@@ -415,7 +443,7 @@ end
     disableInInstanceToggleButton:SetChecked(LPaddon.disableInInstance)
     declineInviteToggleButton:SetChecked(LP_DB.declineInvite)
     InitializeButtonStatus()
-    print("BlockMessageV1.4已载入,输入/BSC配置")
+    -- print("BlockMessageV1.4已载入,输入/BSC配置")
 end
 local function OnSave(self, event, ...)
     LP_DB.enabled = LPaddon.checkMessage
