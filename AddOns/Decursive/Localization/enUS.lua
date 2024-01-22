@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.12) add-on for World of Warcraft UI
+    Decursive (v 2.7.15) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful, but WITHOUT
     ANY WARRANTY.
 
-    This file was last updated on 2023-09-03T20:24:23Z
+    This file was last updated on 2023-12-18T08:50:23Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -104,7 +104,7 @@ L["BINDING_NAME_DCRSKADD"] = "Add target to skip list"
 L["BINDING_NAME_DCRSKCLEAR"] = "Clear the skip list"
 L["BINDING_NAME_DCRSKLIST"] = "Print the skip list"
 L["BINDING_NAME_DCRSKSHOW"] = "Show or hide the skip list"
-L["BLACK_LENGTH"] = "Seconds on the blacklist : "
+L["BLACK_LENGTH"] = "Seconds on the blacklist:"
 L["BLACKLISTED"] = "Black-listed"
 L["BLEED"] = "Bleed"
 L["CHARM"] = "Charm"
@@ -224,7 +224,8 @@ L["OPT_AMOUNT_AFFLIC_DESC"] = "Defines the max number of cursed to display in th
 L["OPT_ANCHOR_DESC"] = "Shows the anchor of the custom message frame"
 L["OPT_AUTOHIDEMFS"] = "Hide MUFs when:"
 L["OPT_AUTOHIDEMFS_DESC"] = "Choose when to automatically hide the MUFs' window."
-L["OPT_BLACKLENTGH_DESC"] = "Defines how long someone stays on the blacklist"
+L["OPT_BLACKLENTGH_DESC"] = [=[Defines how long someone stays on the blacklist
+Set to 0 to disable the blacklist completely.]=]
 L["OPT_BLEED_EFFECT_BAD_SPELLID"] = "Bad spell ID, only input numeric Spell IDs as found on wowhead.com"
 L["OPT_BLEED_EFFECT_DESCRIPTION"] = "Description (Spell ID: |cFF00C000%s|r)"
 L["OPT_BLEED_EFFECT_HOLDER"] = "Bleed effects management"
@@ -542,4 +543,4 @@ L["Decursive"] = "Decursive"
 
 
 
-T._LoadedFiles["enUS.lua"] = "2.7.12";
+T._LoadedFiles["enUS.lua"] = "2.7.15";

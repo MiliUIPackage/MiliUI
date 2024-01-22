@@ -1,5 +1,34 @@
-Decursive 2.7.12
+Decursive 2.7.15
 ================
+
+Decursive 2.7.15 (2024-01-21)
+-----------------------------
+
+- Fix Lua error when bleed default keywords are empty.
+
+- Fix bleed effect keywords defaults detection for non ASCII locals.
+Users should check if the defaults are correct, if they are not please open a
+new issue: Open the option panel (`/decursive` in chat), and head to
+ `curingoptions` -> `Bleed effects management` to check the default keywords.
+
+- TOC update for 10.2.5
+
+
+Decursive 2.7.14 (2023-12-18)
+-----------------------------
+
+- Fix spell detection in classic versions of WoW when "Show all spells ranks"
+  option is not checked in WoW's spell book UI.
+
+- The blacklist can now be disabled completely by setting the "Seconds on the
+  Blacklist" option to 0.
+
+- Fix problem with Decursive' message frame preventing the new Pinging WoW
+  feature to work when clicking through this invisible frame.
+
+- Support for improved purify talent which is now required for priests to be
+  able to cure diseases with Purify (WoW Retail).
+
 
 Decursive 2.7.12 (2023-11-08)
 -----------------------------

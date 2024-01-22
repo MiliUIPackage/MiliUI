@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.12) add-on for World of Warcraft UI
+    Decursive (v 2.7.15) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ T._LoadedFiles["frFR.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "frFR");
 
 if not L then
-    T._LoadedFiles["frFR.lua"] = "2.7.12";
+    T._LoadedFiles["frFR.lua"] = "2.7.15";
     return;
 end
 
@@ -222,7 +222,8 @@ L["OPT_AMOUNT_AFFLIC_DESC"] = "Définit le nombre max d'affectés affichés dans
 L["OPT_ANCHOR_DESC"] = "Montre l'ancre de la fenêtre de discussion spéciale"
 L["OPT_AUTOHIDEMFS"] = "Masquer les MUFs quand :"
 L["OPT_AUTOHIDEMFS_DESC"] = "Choisissez quand la fenêtre des micro-portraits doit être masquée automatiquement."
-L["OPT_BLACKLENTGH_DESC"] = "Définit combien de temps quelqu'un reste sur liste noire"
+L["OPT_BLACKLENTGH_DESC"] = [=[Définit combien de temps quelqu'un reste sur liste noire.
+Mettre à 0 pour désactiver la liste noire complètement.]=]
 L["OPT_BLEED_EFFECT_BAD_SPELLID"] = "Mauvais Spell ID, seulement utiliser un nombre tel qu'on trouve sur wowhead.com"
 L["OPT_BLEED_EFFECT_DESCRIPTION"] = "Description (Spell ID: |cFF00C000%s|r)"
 L["OPT_BLEED_EFFECT_HOLDER"] = "Gestion des effets de saignement"
@@ -538,4 +539,4 @@ L["UNSTABLERELEASE"] = "Version instable"
 
 
 
-T._LoadedFiles["frFR.lua"] = "2.7.12";
+T._LoadedFiles["frFR.lua"] = "2.7.15";

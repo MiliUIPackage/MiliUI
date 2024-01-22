@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.12) add-on for World of Warcraft UI
+    Decursive (v 2.7.15) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2023-09-03T20:24:23Z
+    This file was last updated on 2024-01-21T21:14:55Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -758,7 +758,7 @@ local function GetStaticOptions ()
                         type = 'range',
                         name = L["BLACK_LENGTH"],
                         desc = L["OPT_BLACKLENTGH_DESC"],
-                        min = 1,
+                        min = 0,
                         max = 20,
                         step = 0.1,
                         order = 40,
@@ -1901,7 +1901,7 @@ local function GetStaticOptions ()
                                     "\n\n|cFFDDDD00 %s|r:\n   %s"..
                                     "\n\n|cFFDDDD00 %s|r:\n   %s\n\n   %s"
                                 ):format(
-                                    "2.7.12", "John Wellesz", ("2023-11-08T10:01:56Z"):sub(1,10),
+                                    "2.7.15", "John Wellesz", ("2024-01-21T21:46:01Z"):sub(1,10),
                                     L["ABOUT_NOTES"],
                                     L["ABOUT_LICENSE"],         GetAddOnMetadata("Decursive", "X-License") or 'All Rights Reserved',
                                     L["ABOUT_SHAREDLIBS"],      GetAddOnMetadata("Decursive", "X-Embeds")  or 'GetAddOnMetadata() failure',
@@ -3401,11 +3401,13 @@ do
     local function higlightkeywords(desc, test_pattern)
         local highlightedDesc = desc;
 
-        for pattern in D.Status.P_BleedEffectsKeywords_noCase:gmatch("[^\n\r]+") do
-            pcall(function()
-                highlightedDesc =
-                highlightedDesc:gsub(pattern, function (identifier) return ("|cFFFF0077%s|r"):format(identifier) end);
-            end)
+        if D.Status.P_BleedEffectsKeywords_noCase ~= false then
+            for pattern in D.Status.P_BleedEffectsKeywords_noCase:gmatch("[^\n\r]+") do
+                pcall(function()
+                    highlightedDesc =
+                    highlightedDesc:gsub(pattern, function (identifier) return ("|cFFFF0077%s|r"):format(identifier) end);
+                end)
+            end
         end
 
         return highlightedDesc;
@@ -3534,12 +3536,18 @@ do
 
     function D:GetDefaultBleedEffectsKeywords()
         local keywords;
+
         -- ENCOUNTER_JOURNAL_SECTION_FLAG13 is equal to Bleed but it appears that
         -- many "bleeding" effect do not contain this term but rather 'Physical' so we use both.
         if _G.STRING_SCHOOL_PHYSICAL then
-            keywords = _G.STRING_SCHOOL_PHYSICAL:gsub("%A", "");
+            local cleanedSchoolPhysical = (_G.STRING_SCHOOL_PHYSICAL:gsub("%A", ""))
+
+            keywords = cleanedSchoolPhysical ~= "" and cleanedSchoolPhysical or _G.STRING_SCHOOL_PHYSICAL;
+
             if _G.ENCOUNTER_JOURNAL_SECTION_FLAG13 then
-                keywords = keywords .. "\n" .. _G.ENCOUNTER_JOURNAL_SECTION_FLAG13:gsub("%A", "");
+                local cleanedEJSF13 = (_G.ENCOUNTER_JOURNAL_SECTION_FLAG13:gsub("%A", ""))
+
+                keywords = keywords .. "\n" .. (cleanedEJSF13 ~= "" and cleanedEJSF13 or _G.ENCOUNTER_JOURNAL_SECTION_FLAG13);
             else
                 keywords = keywords .. "\n" .. L["BLEED"]
             end
@@ -3693,6 +3701,6 @@ function D:QuickAccess (CallingObject, button) -- {{{
 end -- }}}
 
 
-T._LoadedFiles["Dcr_opt.lua"] = "2.7.12";
+T._LoadedFiles["Dcr_opt.lua"] = "2.7.15";
 
 -- Closer

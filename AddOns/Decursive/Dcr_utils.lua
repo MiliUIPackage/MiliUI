@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.12) add-on for World of Warcraft UI
+    Decursive (v 2.7.15) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2023-09-03T18:31:04Z
+    This file was last updated on 2023-12-18T09:41:51Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -626,7 +626,8 @@ end
 
 function D:isSpellReady(spellID, isPetAbility)
 
-    if DC.WOWC and isPetAbility then
+    -- in wow classic flavors, the 'display all ranks' option in the spell book UI changes the output of the IsSpellKnown() function...
+    if DC.WOWC and (isPetAbility or not IsSpellKnown(spellID, isPetAbility)) then
         -- Former ranks of known pet spell abilities are lost in WoW classic
         -- so we need to get back to the corresponding current spell id using
         -- the name of the spell.
@@ -638,23 +639,24 @@ function D:isSpellReady(spellID, isPetAbility)
 
             if spellName then
                 spellType, id = GetSpellBookItemInfo(spellName);
+                spellID = id;
             end
 
             if id and spellType == "PETACTION" then
                 spellID = band(0xffffff, id);
-            elseif spellType then
+            elseif spellType and isPetAbility then
                 D:Debug("Pet ability update lookup failed", spellID, spellName, spellType, id);
             end
         else
             if spellName then
                 spellID = select(7, GetSpellInfo(spellName));
-            else
+            elseif isPetAbility then
                 D:Debug("Pet ability update lookup failed", spellID, spellName, "GetSpellInfo(spellName):", GetSpellInfo(spellName));
             end
         end
     end
 
-    return spellID and IsSpellKnown(spellID, isPetAbility);
+    return spellID and IsSpellKnown(spellID, isPetAbility); -- returns false if not all known spell checkbox is checked... how stupid.
 end
 
 function D:GetItemFromLink(link)
@@ -1037,4 +1039,4 @@ do
         return nocase:trim();
     end
 end
-T._LoadedFiles["Dcr_utils.lua"] = "2.7.12";
+T._LoadedFiles["Dcr_utils.lua"] = "2.7.15";
