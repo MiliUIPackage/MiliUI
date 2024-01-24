@@ -125,7 +125,7 @@ function CCP.openCcpCopyFrame(window, url)
 	local fontSize = false;
 	local channelInfo = ChatTypeInfo["CHANNEL" .. window];
 	local guildChannelInfo = ChatTypeInfo["GUILD"];
-	-- ccpCopyFrame.EditBox:SetFont("Fonts\\ARIALN.ttf", 11, "");
+	ccpCopyFrame.EditBox:SetFont(STANDARD_TEXT_FONT, 11, "");
 	ccpCopyFrame.EditBox:SetText("");
 	if (url) then
 		ccpCopyFrame.EditBox:Insert(url);
@@ -296,7 +296,7 @@ function CCP.makeChatWindowButtons(i)
 	obj.Tooltip = CreateFrame("FRAME", "ccpChatCopyIconTT", obj, "TooltipBorderedFrameTemplate");
 	obj.Tooltip:SetPoint("Top", 0, 25);
 	obj.Tooltip.fs = obj.Tooltip:CreateFontString("ccpChatCopyIconTTFS", "ARTWORK");
-	obj.Tooltip.fs:SetFont("Fonts\\bLEI00D.ttf", 12, "");
+	obj.Tooltip.fs:SetFont(STANDARD_TEXT_FONT, 12, "");
 	obj.Tooltip.fs:SetText("複製對話");
 	obj.Tooltip.fs:SetPoint("CENTER", 0.5, 0.5);
 	local fswidth = obj.Tooltip.fs:GetStringWidth();
