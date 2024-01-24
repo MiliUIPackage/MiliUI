@@ -36,5 +36,39 @@ function addon:initPlayerFrame()
         if db.EMEOptions.playerFrameResize then
             lib:RegisterResizable(PlayerFrame)
         end
+        
+        lib:RegisterCustomCheckbox(PlayerFrame, "隱藏名字",
+            function()
+                PlayerFrame.name:Hide()
+            end,
+            function()
+                PlayerFrame.name:Show()
+            end,
+            "HideName"
+        )
+        
+        lib:RegisterCustomCheckbox(PlayerFrame, "隱藏圖示",
+            function()
+                PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual:Hide()
+                PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.StatusTexture:Hide()
+            end,
+            function()
+                PlayerFrame.PlayerFrameContent.PlayerFrameContentContextual:Show()
+                PlayerFrame.PlayerFrameContent.PlayerFrameContentMain.StatusTexture:Show()
+            end,
+            "HideIcons"
+        )
+        
+        C_Timer.After(4, function()
+            lib:RegisterCustomCheckbox(PlayerFrame, "隱藏等級",
+                function()
+                    PlayerLevelText:Hide()
+                end,
+                function()
+                    PlayerLevelText:Show()
+                end,
+                "HideLevel"
+            )
+        end)
     end
 end

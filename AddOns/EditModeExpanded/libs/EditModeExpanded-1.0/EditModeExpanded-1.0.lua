@@ -2,12 +2,15 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 76
+local MAJOR, MINOR = "EditModeExpanded-1.0", 78
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
 -- the internal frames provided by Blizzard go up to index 16. They reference Enum.EditModeSystem, which starts from index 0
-local STARTING_INDEX = 17
+local STARTING_INDEX = 0
+for _ in pairs(Enum.EditModeSystem) do
+    STARTING_INDEX = STARTING_INDEX + 1
+end
 local index = STARTING_INDEX
 local frames = lib.frames or {}
 lib.frames = frames
@@ -29,6 +32,7 @@ local ENUM_EDITMODEACTIONBARSETTING_MINIMAPPINNED = 11
 local ENUM_EDITMODEACTIONBARSETTING_CUSTOM = 12
 local ENUM_EDITMODEACTIONBARSETTING_CLAMPED = 13
 local ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT = 14
+local ENUM_EDITMODEACTIONBARSETTING_BUTTON = 15
 
 -- run OnLoad the first time RegisterFrame is called by an addon
 local f = lib.internalOnLoadFrame or {}
@@ -108,6 +112,10 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint, clamped)
     assert(type(name) == "string")
     assert(type(db) == "table")
     
+    if frame:IsUserPlaced() then
+        frame:SetUserPlaced(false)
+    end
+    
     if not anchorTo then anchorTo = UIParent end
     if not anchorPoint then anchorPoint = "BOTTOMLEFT" end
     frame.EMEanchorTo = anchorTo
@@ -155,6 +163,9 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint, clamped)
         
         frame.Selection:HookScript("OnDragStop", function(self)
             EditModeExpandedSystemSettingsDialog:UpdateSettings(frame)
+            if frame:IsUserPlaced() then
+                frame:SetUserPlaced(false)
+            end
         end)
         
         return
@@ -276,6 +287,10 @@ function lib:RegisterFrame(frame, name, db, anchorTo, anchorPoint, clamped)
         frame:SetPoint(anchorPoint, anchorTo, anchorPoint, x, y)
         
         EditModeExpandedSystemSettingsDialog:UpdateSettings(frame)
+        
+        if frame:IsUserPlaced() then
+            frame:SetUserPlaced(false)
+        end
     end)
     
     function frame:ClearHighlight()
@@ -641,6 +656,24 @@ function lib:RegisterCustomCheckbox(frame, name, onChecked, onUnchecked, interna
     end
 end
 
+-- call this to register a custom button
+-- the button will not save any settings
+function lib:RegisterCustomButton(frame, name, onClick)
+    local systemID = getSystemID(frame)
+    local button = CreateFrame("Button", nil, EditModeExpandedSystemSettingsDialog.Settings, "UIPanelButtonTemplate,ResizeLayoutFrame")
+    button.SetupSetting = nop
+    
+    table.insert(framesDialogs[systemID],
+        {
+            setting = ENUM_EDITMODEACTIONBARSETTING_BUTTON,
+            type = ENUM_EDITMODEACTIONBARSETTING_BUTTON,
+            onClick = onClick,
+            name = name,
+            button = button,
+        }
+    )
+end
+
 --
 -- Code for Expanded Manager Frame here
 -- This is a frame that will show checkboxes, to turn on/off all custom frames during Edit Mode
@@ -820,7 +853,7 @@ hooksecurefunc(f, "OnLoad", function()
     frame:SetSize(300, 350)
     frame:SetPoint("TOPLEFT")
     frame.widthPadding = 40
-    frame.heightPadding = 40
+    frame.heightPadding = 10
     frame.Title = frame:CreateFontString(nil, "ARTWORK", "GameFontHighlightLarge")
     frame.Title:SetPoint("TOP", 0, -15)
     frame.Border = frame.Border or CreateFrame("Frame", nil, frame, "DialogBorderTranslucentTemplate")
@@ -938,10 +971,17 @@ hooksecurefunc(f, "OnLoad", function()
             if systemSettingDisplayInfo then
                 for index, displayInfo in ipairs(systemSettingDisplayInfo) do
                     local settingPool = self:GetSettingPool(displayInfo.type);
+                    
+                    if displayInfo.type == ENUM_EDITMODEACTIONBARSETTING_BUTTON then
+                        settingPool = displayInfo.button
+                    end
+                    
                     if settingPool then
                         local settingFrame;
     
-                        if draggingSlider and draggingSlider.setting == displayInfo.setting then
+                        if displayInfo.type == ENUM_EDITMODEACTIONBARSETTING_BUTTON then
+                            settingFrame = settingPool
+                        elseif draggingSlider and draggingSlider.setting == displayInfo.setting then
                             -- This is a slider that is being interacted with and so was not released.
                             settingFrame = draggingSlider;
                         else
@@ -951,7 +991,7 @@ hooksecurefunc(f, "OnLoad", function()
                         settingFrame:SetPoint("TOPLEFT");
                         settingFrame.layoutIndex = index;
                         
-                        local settingName = (self.attachedToSystem:UseSettingAltName(displayInfo.setting) and displayInfo.altName) and displayInfo.altName or displayInfo.name
+                        local settingName = displayInfo.name
                         local updatedDisplayInfo = self.attachedToSystem:UpdateDisplayInfoOptions(displayInfo);
                         if not framesDB[systemID].settings then framesDB[systemID].settings = {} end
                           
@@ -1018,6 +1058,14 @@ hooksecurefunc(f, "OnLoad", function()
                                     displayInfo.onUnchecked(false)
                                 end
                             end)
+                        end
+                        
+                        if displayInfo.setting == ENUM_EDITMODEACTIONBARSETTING_BUTTON then
+                            settingFrame:SetScript("OnClick", displayInfo.onClick)
+                            settingFrame.Text:SetText(displayInfo.name)
+                            settingFrame:SetPoint("TOPLEFT", EditModeExpandedSystemSettingsDialog.Settings, "TOPLEFT")
+                            settingFrame.widthPadding = 15
+                            settingFrame.fixedHeight = 28
                         end
                         
                         if displayInfo.setting == ENUM_EDITMODEACTIONBARSETTING_CLAMPED then
@@ -1277,13 +1325,19 @@ end
 
 
 do
-    local lf = CreateFrame("Frame")
+    local initialLayout
+    initialLayout = function()
+        if EditModeManagerFrame:GetActiveLayoutInfo() then
+            profilesInitialised = true
+            refreshCurrentProfile()
+            initialLayout = nop
+        end
+    end
+    initialLayout()
+    
     hooksecurefunc(f, "OnLoad", function()
-        lf:RegisterEvent("EDIT_MODE_LAYOUTS_UPDATED")
-    end)
-    lf:SetScript("OnEvent", function()
-        profilesInitialised = true
-        refreshCurrentProfile()
+        initialLayout()
+        EventUtil.RegisterOnceFrameEventAndCallback("EDIT_MODE_LAYOUTS_UPDATED", initialLayout)
     end)
 end
 
@@ -1559,15 +1613,17 @@ do
                     
                     local systemID = getSystemID(frame)
                     local db = framesDB[systemID]
-                    local settings = db.settings
-                    local dialogs = framesDialogsKeys[systemID]
-                    
-                    if dialogs and dialogs[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] and settings and (settings[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] == 1) and dialogs[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] then
-                        if settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1 then
-                            -- if "Hide" in enabled and this option too, then hide it while out of combat, show it while in combat
-                            frame:Show()
-                        else
-                            frame:Hide()
+                    if db then
+                        local settings = db.settings
+                        local dialogs = framesDialogsKeys[systemID]
+                        
+                        if dialogs and dialogs[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] and settings and (settings[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] == 1) and dialogs[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] then
+                            if settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1 then
+                                -- if "Hide" in enabled and this option too, then hide it while out of combat, show it while in combat
+                                frame:Show()
+                            else
+                                frame:Hide()
+                            end
                         end
                     end
                 end
@@ -1582,14 +1638,16 @@ do
                     end
                     local systemID = getSystemID(frame)
                     local db = framesDB[systemID]
-                    local settings = db.settings
-                    local dialogs = framesDialogsKeys[systemID]
-                    
-                    if dialogs and settings and dialogs[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] and (settings[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] == 1) and dialogs[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] then
-                        if settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1 then
-                            frame:Hide()
-                        else
-                            frame:Show()
+                    if db then
+                        local settings = db.settings
+                        local dialogs = framesDialogsKeys[systemID]
+                        
+                        if dialogs and settings and dialogs[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] and (settings[ENUM_EDITMODEACTIONBARSETTING_TOGGLEHIDEINCOMBAT] == 1) and dialogs[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] then
+                            if settings[ENUM_EDITMODEACTIONBARSETTING_HIDEABLE] == 1 then
+                                frame:Hide()
+                            else
+                                frame:Show()
+                            end
                         end
                     end
                 end

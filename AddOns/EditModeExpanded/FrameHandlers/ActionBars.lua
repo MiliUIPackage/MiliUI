@@ -29,6 +29,26 @@ function addon:initActionBars()
             )
             
             addon:registerSecureFrameHideable(bar)
+            
+            local alreadyHidden
+            lib:RegisterCustomCheckbox(bar, "隱藏巨集/按鍵名稱",
+                function()
+                    for _, button in pairs(bar.actionButtons) do
+                        button.Name:Hide()
+                        button.HotKey:Hide()
+                    end
+                    alreadyHidden = true
+                end,
+                function()
+                    if not alreadyHidden then return end
+                    for _, button in pairs(bar.actionButtons) do
+                        button.Name:Show()
+                        button.HotKey:Show()
+                    end
+                    alreadyHidden = false
+                end,
+                "HideMacroName"
+            )
         end
     end)
 end
