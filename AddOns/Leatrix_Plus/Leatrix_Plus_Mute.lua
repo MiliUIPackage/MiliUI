@@ -195,6 +195,11 @@
 			"01.mp3#1506781", "02.mp3#1506780", "03.mp3#1506779", "04.mp3#1506778",
 		},
 
+		-- Meerah (Meerah's Jukebox) (sound/creature/vo_835_meerah_jukebox/)
+		["MuteMeerah"] = {
+			"vo_835_meerah_jukebox_f.ogg#3169894",
+		},
+
 		----------------------------------------------------------------------
 		-- Combat
 		----------------------------------------------------------------------
@@ -249,6 +254,15 @@
 
 			-- Drums (sound/doodad/) (used in Nagrand Arena)
 			"fx_arena_wardrums_mono_loop.ogg#1531445",
+
+			-- Nokhudon Proving Grounds (unknown)
+			-- Sound files are encrypted and filenames are not mapped.
+			"4621429#4621429", -- SKIT:200422:Malicia:It's time for the show! Don't disappoint me.
+			"4621430#4621430", -- SKIT:200423:Malicia:I see who the strongest mortals are... for now.
+			"4621431#4621431", -- SKIT:200424:Malicia:Interesting. I did not expect this outcome.
+			"4621432#4621432", -- SKIT:200425:Malicia:You are gathered here for my entertainment... I mean, to prove yourself.
+			"4621433#4621433", -- SKIT:200426:Malicia:Let the best team win! Oh, who am I kidding--give me a good show.
+			"4621434#4621434", -- SKIT:200427:Malicia:So close! This just means more entertainment for me.
 
 		},
 
@@ -664,6 +678,23 @@
 			-- Highland Drake (sound/creature/companiondrake/)
 			"companiondrake_cast_oneshot_4633278.ogg#4633278", "companiondrake_cast_oneshot_4633280.ogg#4633280", "companiondrake_cast_oneshot_4633282.ogg#4633282", "companiondrake_cast_oneshot_4633284.ogg#4633284", "companiondrake_cast_oneshot_4633286.ogg#4633286", "companiondrake_cast_oneshot_4633288.ogg#4633288", "companiondrake_cast_oneshot_4633290.ogg#4633290", "companiondrake_cast_oneshot_4641087.ogg#4641087", "companiondrake_cast_oneshot_4641089.ogg#4641089", "companiondrake_cast_oneshot_4641091.ogg#4641091", "companiondrake_cast_oneshot_4641093.ogg#4641093", "companiondrake_cast_oneshot_4641095.ogg#4641095", "companiondrake_cast_oneshot_4641097.ogg#4641097", "companiondrake_cast_oneshot_4641099.ogg#4641099",
 			"companiondrake_flying_4633316.ogg#4633316", "companiondrake_flying_4634009.ogg#4634009", "companiondrake_flying_4634011.ogg#4634011", "companiondrake_flying_4634013.ogg#4634013", "companiondrake_flying_4634015.ogg#4634015", "companiondrake_flying_4634017.ogg#4634017", "companiondrake_flying_4634019.ogg#4634019", "companiondrake_flying_4634021.ogg#4634021",
+
+			-- Winding Slitherdrake (sound/creature/companionserpent/)
+			"companionserpent_aggro_5163128.ogg#5163128", "companionserpent_aggro_5163130.ogg#5163130", "companionserpent_aggro_5163132.ogg#5163132", "companionserpent_aggro_5163134.ogg#5163134", "companionserpent_aggro_5163136.ogg#5163136", "companionserpent_aggro_5163138.ogg#5163138", "companionserpent_aggro_5163140.ogg#5163140",
+
+			-- Algarian Stormrider (sound/creature/stormgryphonpet/stormgryphonpet_)
+			"stormgryphonpet_fidget_5357752#5357752", "stormgryphonpet_fidget_5357769#5357769", "stormgryphonpet_fidget_5357771#5357771", "stormgryphonpet_fidget_5357773#5357773", "stormgryphonpet_fidget_5357775#5357775",
+			"stormgryphonpet_death_5356559#5356559","stormgryphonpet_death_5356561#5356561", "stormgryphonpet_death_5356563#5356563", "stormgryphonpet_death_5356565#5356565", "stormgryphonpet_death_5356567#5356567", "stormgryphonpet_death_5356569#5356569", "stormgryphonpet_death_5356571#5356571",
+			"stormgryphonpet_battleshout_5356837#5356837", "stormgryphonpet_battleshout_5356839#5356839", "stormgryphonpet_battleshout_5356841#5356841", "stormgryphonpet_battleshout_5356843#5356843", "stormgryphonpet_battleshout_5356845#5356845", "stormgryphonpet_battleshout_5356847#5356847", "stormgryphonpet_battleshout_5356849#5356849",
+
+			-- Anu'relos, Flame's Guidance (sound/creature/dreamowl_firemount/dreamowl_firemount_)
+			--[[fidget]] "4683513#4683513", "4683515#4683515", "4683517#4683517", "4683519#4683519", "4683521#4683521", "4683523#4683523", "4683525#4683525", "4683527#4683527", "4683529#4683529", "4683531#4683531", "4683533#4683533", "4683535#4683535", "4683537#4683537", "4683539#4683539", "4683541#4683541", "4683543#4683543", "4683545#4683545", "4683547#4683547", "4683549#4683549", "4683551#4683551", "5482244#5482244", "5482246#5482246", "5482248#5482248", "5482250#5482250", "5482335#5482335", "5482337#5482337", "5482339#5482339", "5482341#5482341", "5482343#5482343", "5482345#5482345", "5482347#5482347", "5482373#5482373", "5482375#5482375", "5482377#5482377", "5482379#5482379", "5482381#5482381", "5482383#5482383", "5482385#5482385",
+			--[[wound]] "5482177#5482177", "5482179#5482179", "5482181#5482181",
+
+			-- Flourishing Whimsydrake (shares some additional files with companiondrake)
+
+			-- Grotto Netherwing Drake (VO_1015_Big_Zhusa_)
+			"4633370#4633370", "4633372#4633372", "4633374#4633374", "4633376#4633376", "4633378#4633378", "4633380#4633380", "4633382#4633382",
 
 			-- Passive loops (not used because many are generic sounds used elsewhere in the game)
 

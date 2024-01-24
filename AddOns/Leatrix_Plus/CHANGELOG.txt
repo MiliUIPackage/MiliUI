@@ -1,3 +1,138 @@
+10.2.11 - 24th January 2023
+- For 'Mute game sounds', added 'Meerah's Jukebox' (toys).
+- Fixed ScrollFrameTemplate editbox widths.
+
+10.2.10 - 16th January 2023
+- Preliminary update for game patch 10.2.5.
+- For 'Hide chat buttons' ('Chat'), fixed an issue which caused a black border around chat tabs.
+- Updated ScrollFrameTemplate, C_AddOns and SurfaceArgs.
+- Repackage following CurseForge backend issues.
+
+10.2.09 - 10th January 2023
+- Added a new command '/ltp quest wipe' which will clear the quest log.
+
+10.2.08 - 3rd January 2023
+- Updated 'Automate gossip' ('Automation') for soft targeting.
+- For the minimap button, holding CTRL and SHIFT will now toggle windowed mode.  Holding CTRL and ALT will toggle the Zygor addon (if installed).
+- For 'Media', added 'Emerald Dream' zone music to 'Zones'.
+
+10.2.07 - 27th December 2023
+- Updated 'Automate quests' ('Automation') for soft targeting.
+
+10.2.05 - 13th December 2023
+- For 'Enhance minimap' ('Interface'), fixed an issue which caused some minimap addon buttons to not be placed correctly.
+
+10.2.04 - 6th December 2023
+- For 'Enhance minimap' ('Interface'), fixed an issue with 'Combine addon buttons' and the BtWQuests minimap button (if installed).
+
+10.2.03 - 29th November 2023
+- For 'Enhance minimap' ('Interface'), fixed an issue which caused a button to be created for SexyMap (if installed).
+
+10.2.02 - 22nd November 2023
+- Fixed the /ltp con command (launches the developer console with a large font).
+- PTR (10.2.5): Fixed 'Hide portrait numbers' ('Text') (Lua error).
+- PTR (10.2.5): Fixed 'Enhance tooltip' ('Interface') (hypen added to same-realm unit names).
+
+10.2.01 - 15th November 2023
+- Code updates.
+- For 'Enhance tooltip' ('Interface'), the scale slider now applies to the character customisation screen (barbershop, dragonriding customisation, etc).
+- For 'Mute game sounds' ('System'), 'Dragonriding') now includes Algarian Stormrider, Anu'relos and Grotto Netherwing Drake.
+
+10.2.00 - 7th November 2023
+- Preliminary update for game patch 10.2.0.
+- For 'Mute game sounds' ('System'), the 'Arena' setting now includes Nokhudon Proving Grounds.
+- For 'Enhance tooltip' ('Interface'), the scale slider now applies to the game settings panel tooltips.
+- For 'Hide error messages' ('Text'), ping system errors will now be hidden.
+- Added Leatrix Plus to the minimap addon compartment menu.
+
+10.1.28 - 1st November 2023
+- For 'Manage widget top' ('Frames'), the configuration panel will now show a warning if Titan Panel is installed and frame adjustment widget top is enabled.
+- Fixed two situational Lua errors when clicking the editboxes of 'Enhance dressup' (share outfit online) and 'Show pet save button' ('Interface').
+- For 'Enhance tooltip' ('Interface'), the scale slider now applies to LibDBIcon tooltips.
+- General code updates.
+
+10.1.27 - 25th October 2023
+- For 'Remove transforms' ('System'), added a missing bat costume to Hallow's End: Hallowed Wand.
+
+10.1.26 - 18th October 2023
+- Updated 'Faster movie skip' ('System') since the game bug appears to have been fixed.
+
+10.1.24 - 4th October 2023
+- The 'Faster movie skip' option ('System') now applies to cinematics once again.  If you are using BugGrabber with BugSack, it will store an error when a cinematic is skipped but it should not interrupt your gameplay and you can safely ignore it.  The error is caused by a bug in the game code which Blizzard will hopefully fix at some point (https://github.com/Stanzilla/WoWUIBugs/issues/483).
+
+10.1.23 - 2nd October 2023
+- The 'Faster movie skip' option ('System') now only applies to movies.  It no longer applies to cinematics.
+- Fixed a potential issue with 'Automate quests' ('Automation') which may have occasionally shown a Lua error when accepting a quest.
+
+10.1.19 - 6th September 2023
+- Updated for game version 10.1.7.
+
+10.1.13 - 26th July 2023
+- For 'Sell junk automatically' ('Automation'), increased the exclusion list limit to 2000 characters (was 600).
+
+10.1.12 - 18th July 2023
+- For 'Enhance tooltip' ('Interface'), player class and specialisation are now shown below level and race (matching changes in the default UI).
+- For 'Mute mount sounds', added a few Winding Slitherdrake sounds to 'Dragonriding'.
+
+10.1.10 -  12th July 2023
+- Updated for game version 10.1.5.
+- Added new cinematics 'Dawn of the Infinite (Interlude)', 'Dawn of the Infinite (Finale)' and 'A Matter of Time' (watch in 'Movies' or listen in 'Various > Cinematics').
+- The 'Resize mail text' and 'Resize quest text' options ('Text') now have a maximum font size of 30 (reduced from 36).
+- Fixed an issue with 'Block shared quests' ('Social') which caused a few quests to be incorrectly declined.
+- If you previously used 'Manage timer' or 'Manage frames' ('Frames'), you can now move both with Edit Mode.
+
+10.1.09 - 5th July 2023
+- PTR (10.1.5): Update.
+
+10.1.08 - 28th June 2023
+- Updated LibDBIcon.
+
+10.1.07 - 19th June 2023
+- PTR (10.1.5): The 'Manage vehicle' option ('Frames') has been removed as you can now move the vehicle seat indicator with Edit Mode.
+
+10.1.06 - 11th June 2023
+- PTR (10.1.5): The 'Manage timer' option ('Frames') has been removed as you can now move the timer bar with Edit Mode.
+- PTR (10.1.5): The 'Sell junk automatically' option ('Automation') will now hide the new sell all junk items button (added in 10.1.5) as clicking it would ignore all of your chosen settings (such as excluding special items and transmog gear).  Toggling the 'Sell junk automatically' option now requires a UI reload.
+
+10.1.05 - 4th June 2023
+- Added Dragonflight cinematic 'A Symbol of Hope' (watch in Movies and listen in Various > Cinematics).
+
+10.1.04 - 27th May 2023
+- For 'Sell junk automatically' ('Automation'), Leatrix Plus will stop attempting to sell items if your character is at the gold cap.
+
+10.1.01 - 20th May 2023
+- Added Dragonflight cinematics 'Opening The Way' and 'Fyrakk Incinerates Loamm' (watch in Movies and listen in Various > Cinematics).
+- Fixed an issue with 'Recent chat window' ('Chat') which caused a Lua error when opening the recent chat window.
+
+10.1.00 - 3rd May 2023
+- Updated for game version 10.1.
+- Added an icon for the in-game addon listing.
+- For 'Easy item destroy' ('System'), fixed an issue which caused a Lua error when clicking outside of the destroy confirmation.
+
+10.0.59 - 22nd April 2023
+- Fixed an issue with 'Automate gossip' ('Automation') which caused some gossip options to not be automated due to an issue with the game code.
+
+10.0.52 - 23rd March 2023
+- Updated for game version 10.0.7.
+- Added movie 'Secrets of the Reach'.  Watch it in 'Movies' and listen to it in 'Various > Cinematics'.
+
+10.0.39 - 10th February 2023
+- For 'Remove transforms' ('System'), fixed an issue with 'All profession transforms' which sometimes caused the Fishing For Attention buff to not be removed automatically.
+
+10.0.38 - 8th February 2023
+- For 'Remove transforms' ('System'), the transform settings are now shown in a categorised, scrolling list.  Added Aqir Egg Cluster and Detoxified Blight Grenade transforms.
+
+10.0.37 - 6th February 2023
+- For 'Remove transforms' ('System'), the 'Professions' setting now includes fishing.
+
+10.0.36 - 5th February 2023
+- For 'Sell junk automatically' ('Automation'), fixed a bug which prevented items in the reagent bag from being sold.
+- For 'Enhance tooltip' ('Interface'), the tooltip scale setting will now apply to the trading post item tooltip.
+
+10.0.35 - 4th February 2023
+- The 'Show character addons' ('System') option has returned.  If checked, the game addon list will show character addons by default.
+- For 'Enhance dressup' ('Interface'), there are new options for the transmogrify character preview.  You can make the character preview wider, increase the maximum zoom out distance and show a character model animation slider.  The weapon slots are now shown in the right-side column to give a better view of your character.
+
 10.0.34 - 1st February 2023
 - For 'Mute game sounds' ('System'), you can now mute duck greetings.  Use this if you would like to do your Valdrakken banking in peace.
 - Updated 'Recent chat window' ('Chat') and close button code.
