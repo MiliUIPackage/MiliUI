@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240106073327")
+mod:SetRevision("20240121032255")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -196,7 +196,7 @@ function mod:SPELL_CAST_START(args)
 		self:Unschedule(checkForCombat)
 		self:Unschedule(checkAfflicted)
 		checkForCombat(self)
-		self:Schedule(35, checkAfflicted, self)
+		self:Schedule(40, checkAfflicted, self)
 	elseif spellId == 408805 and self:AntiSpam(3, "aff3") then
 		warnDestabalize:Show()
 	end

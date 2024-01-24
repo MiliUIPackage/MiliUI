@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1654, "DBM-Party-Legion", 2, 762)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240106080507")
+mod:SetRevision("20240122020117")
 mod:SetCreatureID(96512)
 mod:SetEncounterID(1836)
 mod:SetUsedIcons(8, 7)
@@ -91,7 +91,7 @@ function mod:OnCombatStart(delay)
 	self.vb.nightCount = 0
 	timerLeapCD:Start(5-delay, 1)
 	timerRampageCD:Start(12.2-delay, 1)
-	timerNightfallCD:Start(20.6-delay, 1)--20.6-25.5
+	timerNightfallCD:Start(19.4-delay, 1)--19.4-25.5
 	if self.Options.NPAuraOnFixate then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end

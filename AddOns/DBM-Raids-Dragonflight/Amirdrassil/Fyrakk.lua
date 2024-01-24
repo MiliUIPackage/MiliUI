@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2519, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240118055633")
+mod:SetRevision("20240120080957")
 mod:SetCreatureID(204931)
 
 mod:SetEncounterID(2677)
@@ -566,12 +566,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		local cid = self:GetCIDFromGUID(args.destGUID)
 		if cid == 207796 then--Burning Colossus
 			self.vb.addsAlive = self.vb.addsAlive + 1
-			timerMoltenGauntletCD:Start(6.9, args.destGUID)
---			timerMoltenEruptionCD:Start(6.9, args.destGUID)--Using a shared global timer for now
+			timerMoltenGauntletCD:Start(6.2, args.destGUID)
 		elseif cid == 214012 then--Dark Colossus
 			self.vb.addsAlive = self.vb.addsAlive + 1
-			timerShadowGauntletCD:Start(6.9, args.destGUID)
---			timerShadowCageCD:Start(6.9, args.destGUID)
+			timerShadowGauntletCD:Start(6.2, args.destGUID)
 			--If starting timer object here, no reason for mythic check
 			self.vb.debuffsCount = 0
 			timerMythicDebuffs:Start(6.9, 1)

@@ -3,6 +3,7 @@ if not DBM_COMMON_L then DBM_COMMON_L = {} end
 
 local CL = DBM_COMMON_L
 
+--General
 CL.NONE						= "無"
 CL.RANDOM					= "隨機"
 CL.UNKNOWN					= "未知"--UNKNOWN which is "Unknown" (does u vs U matter?)
@@ -14,6 +15,7 @@ CL.NO_DEBUFF				= "沒有%s"--For use in places like info frame where you put "N
 CL.ALLY						= "隊友"--Such as "Move to Ally"
 CL.ALLIES					= "隊友"--Such as "Move to Allies"
 CL.TANK						= "坦克"--Such as "Move to Tank"
+CL.CLEAR					= "清除"
 CL.SAFE						= "安全"
 CL.NOTSAFE					= "不安全"
 CL.SEASONAL					= "季節性"--Used for option headers to label options that apply to seasonal mechanics (Such as season of mastery on classic era)
