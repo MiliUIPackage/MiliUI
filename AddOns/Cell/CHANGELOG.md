@@ -1,5 +1,6 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r217-release...6dc1b08c2a0a36c5bd6c4f0219f770764f7f7cf2)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r219-release...d1cd3d33c1c475ea2aa95560f69289cf6a95ca88)
 
-- Fix party role order option (non-retail)
-- Fix frame visibility
-- Update BuffTracker_Vanilla.lua
+- Update Cell.GetUnitFrame
+- Update range checker
+- Fix secure buttons
+- Update zhTW

@@ -155,6 +155,7 @@ L["Enable Death Color"] = "启用死亡颜色"
 L["Power Color"] = "能量颜色"
 L["Power Color (dark)"] = "能量颜色 (暗)"
 L["Bar Animation"] = "条动画"
+L["Gradient Colors"] = "渐变色"
 L["Flash"] = "闪光"
 L["Smooth"] = "平滑"
 L["Target Highlight Color"] = "目标高亮颜色"
@@ -808,6 +809,18 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r220-release (Jan 25, 2024, 19:06 GMT+8)</h1>
+    <p>* 修复特别关注框体的设置按钮。</p>
+    <p>* 更新距离检查。</p>
+    <p>* 更新 Cell.GetUnitFrame。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r219-release (Jan 24, 2024, 10:56 GMT+8)</h1>
+    <p>* 修复快速协助的距离检查（现在使用OnUpdate）。</p>
+    <p>+ 添加了自定义渐变色的选项（外观）。</p>
     <br/>
 
     <h1>r218-release (Jan 20, 2024, 18:49 GMT+8)</h1>

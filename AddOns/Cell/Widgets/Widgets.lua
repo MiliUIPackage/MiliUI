@@ -602,10 +602,10 @@ function addon:CreateButton(parent, text, buttonColor, size, noBorder, noBackgro
     end
 
     -- click sound
-    if Cell.isRetail then
+    if not Cell.isVanilla then
         b:SetScript("PostClick", function(self, button, down)
-            --! NOTE: ActionButtonUseKeyDown will affect OnClick
-            if template and strfind(template, "Secure") then
+            if template and strfind(template, "SecureActionButtonTemplate") then
+                -- NOTE: ActionButtonUseKeyDown will affect OnClick
                 if down == GetCVarBool("ActionButtonUseKeyDown") then
                     PlaySound(SOUNDKIT.U_CHAT_SCROLL_BUTTON)
                 end
