@@ -72,6 +72,8 @@ function Frame:UpdateBackdrop()
 	bg:EnableMouse(true)
 
 	self.CloseButton:SetPoint('TOPRIGHT', (bg.skin.closeX or 0)-2, (bg.skin.closeY or 0)-2)
+	self.Title:SetHighlightFontObject(bg.skin.fontH or 'GameFontHighlightLeft')
+	self.Title:SetNormalFontObject(bg.skin.font or 'GameFontNormalLeft')
 	self.bg = bg
 
 	Addon.Skins:Call('load', bg)
