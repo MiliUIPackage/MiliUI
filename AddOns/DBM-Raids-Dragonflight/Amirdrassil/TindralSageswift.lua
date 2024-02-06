@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2565, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240117005753")
+mod:SetRevision("20240125080131")
 mod:SetCreatureID(209090)--Primary ID
 mod:SetEncounterID(2786)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -391,7 +391,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	if spellId == 422000 then
 		local amount = args.amount or 1
 		if (amount % 3 == 0) then
-			if amount >= 12 then
+			if amount >= 9 then
 				if not DBM:UnitDebuff("player", spellId) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
 					specWarnSearingWrath:Show(args.destName)
 					specWarnSearingWrath:Play("tauntboss")

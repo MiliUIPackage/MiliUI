@@ -357,18 +357,25 @@ L.CBTRole							= "Specific Role Spell"
 L.CBTPhase							= "Phase Change"
 L.CBTImportant						= "User Important Spell"
 --Dropdown Options
-L.ColorDropGeneric					= "Generic (Original)"
-L.ColorDrop1						= "Color 1"
-L.ColorDrop2						= "Color 2"
-L.ColorDrop3						= "Color 3"
-L.ColorDrop4						= "Color 4"
-L.ColorDrop5						= "Color 5"
-L.ColorDrop6						= "Color 6"
-L.CDDImportant1						= "Important 1"
-L.CDDImportant2						= "Important 2"
-L.CVoiceOne							= "Count Voice 1"
-L.CVoiceTwo							= "Count Voice 2"
-L.CVoiceThree						= "Count Voice 3"
+--Special Announce Dropdowns
+L.SAOne								= "Global Sound 1 (Personal)"
+L.SATwo								= "Global Sound 2 (Everyone)"
+L.SAThree							= "Global Sound 3 (High Priority Action)"
+L.SAFour							= "Global Sound 4 (High Priority Run Away)"
+--Timer Dropdowns
+L.ColorDropGeneric					= "Generic (Default: Untyped)"
+L.ColorDrop1						= "Color 1 (Default: Add)"
+L.ColorDrop2						= "Color 2 (Default: AOE)"
+L.ColorDrop3						= "Color 3 (Default: Targeted)"
+L.ColorDrop4						= "Color 4 (Default: Interrupt)"
+L.ColorDrop5						= "Color 5 (Default: Role)"
+L.ColorDrop6						= "Color 6 (Default: Stage)"
+L.CDDImportant1						= "Important 1 (Non-Defaulted)"
+L.CDDImportant2						= "Important 2 (Non-Defaulted)"
+--Countdown Dropdowns
+L.CVoiceOne							= "Global Countdown 1"
+L.CVoiceTwo							= "Global Countdown 2"
+L.CVoiceThree						= "Global Countdown 3"
 
 -- Panel: Bar Appearance
 L.Panel_Appearance	 				= "Bar Appearance"
@@ -419,7 +426,7 @@ L.SpamBlockNoShowAnnounce			= "Do not show text or play sound for ANY general (n
 L.SpamBlockNoSpecWarnText			= "Do not show special announce text"
 L.SpamBlockNoSpecWarnFlash			= "Do not show special announce screen flash"
 L.SpamBlockNoSpecWarnVibrate		= "Do not vibrate controller on special announce"
-L.SpamBlockNoSpecWarnSound			= "Do not play special announce sounds (voice packs sounds enabled in Countdowns & Voice Packs panel will still play)"
+L.SpamBlockNoSpecWarnSound			= "Do not play special announce sounds (voice packs sounds enabled in Countdowns &amp; Voice Packs panel will still play)"
 L.SpamBlockNoPrivateAuraSound		= "Do not register private aura sounds"
 
 L.Area_SpamFilter_Timers			= "Timer Features"
@@ -496,19 +503,29 @@ L.SpamSpecRoleGTFO					= "Filter 'gtfo' alerts (No text or sound at all)"
 
 -- Panel: Blizzard Features
 L.Panel_HideBlizzard				= "Block Blizzard Features"
-L.Area_HideBlizzard					= "Disable & Hide Blizzard Features"
-L.HideBossEmoteFrame				= "Hide raid boss emote frame during boss fights"
-L.HideWatchFrame					= "Hide watch (objectives) frame during boss fights if no achievements are being tracked and if not in a Mythic+"
+--Toast
+L.Area_HideToast					= "Disable blizzard toasts (popups)"
 L.HideGarrisonUpdates				= "Hide follower toasts during boss fights"
 L.HideGuildChallengeUpdates			= "Hide guild challenge toasts during boss fights"
-L.HideQuestTooltips					= "Hide quest objectives from tooltips during boss fights"
+--L.HideBossKill					= "Hide boss kill toasts"--NYI
+--L.HideVaultUnlock					= "Hide vault unlock toasts"--NYI
+--Cut Scenes
+L.Area_Cinematics					= "Block in-game cinematics"
+L.DuringFight						= "Block in combat cut scenes during boss encounters"--uses explicite IsEncounterInProgress check
+L.InstanceAnywhere					= "Block non combat cut scenes anywhere inside a dungeon or raid instance"
+L.NonInstanceAnywhere				= "DANGER: Block cut scenes in outdoor open world (NOT recommended)"
+L.OnlyAfterSeen						= "Only block cut scenes after they have been seen at least once (STRONGLY recommended, to experience story as intended at least once)"
+--Sound
+L.Area_Sound						= "Block in-game sounds"
+L.DisableSFX						= "Disable sound effects channel during boss fights"
+L.DisableAmbiance					= "Disable ambiance channel during boss fights"
+L.DisableMusic						= "Disable music channel during boss fights (Note: If enabled, custom boss music will not play if enabled in event sounds)"
+--Other
+L.Area_HideBlizzard					= "Disable & Hide other Blizzard Annoyances"
+L.HideBossEmoteFrame				= "Hide raid boss emote frame during boss fights"
+L.HideWatchFrame					= "Hide watch (objectives) frame during boss fights if no achievements are being tracked and if not in a Mythic+"
+L.HideQuestTooltips					= "Hide quest objectives from tooltips during boss fights"--Currently hidden (NYI)
 L.HideTooltips						= "Completely hide tooltips during boss fights"
-L.DisableSFX						= "Disable sound effects channel during boss fights (Note: If you enable this option it'll turn sound effects on when fight ends even if they weren't on when entering fight)"
-L.DisableCinematics					= "Hide in-game cinematics"
-L.OnlyFight							= "Only during fight, after each movie has played once"
-L.AfterFirst						= "In instance, after each movie has played once"
-L.CombatOnly						= "Disable in combat (any)"
-L.RaidCombat						= "Disable in combat (bosses only)"
 
 -- Panel: Raid Leader Controls
 L.Tab_RLControls					= "Raid Leader Controls"

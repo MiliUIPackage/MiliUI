@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("DHTTrash", "DBM-Party-Legion", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231221065105")
+mod:SetRevision("20240127063852")
 --mod:SetModelID(47785)
 mod:SetZone(1466)
 
@@ -63,7 +63,7 @@ local timerTormentingEyeCD			= mod:NewCDNPTimer(5.2, 204243, nil, "HasInterrupt"
 local timerBloodBombCD				= mod:NewCDNPTimer(15.7, 201272, nil, nil, nil, 2)
 local timerBloodAssaultCD			= mod:NewCDNPTimer(22.6, 201226, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerBloodMetaCD				= mod:NewCDNPTimer(10.9, 225562, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerDreadInfernoCD			= mod:NewCDNPTimer(17, 201399, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerDreadInfernoCD			= mod:NewCDNPTimer(15.8, 201399, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerCurseofIsolationCD		= mod:NewCDNPTimer(15.8, 201839, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerRootBurstCD				= mod:NewCDNPTimer(16.2, 201129, nil, nil, nil, 3)
 local timerVileMushroomCD			= mod:NewCDNPTimer(17, 198910, nil, nil, nil, 3)

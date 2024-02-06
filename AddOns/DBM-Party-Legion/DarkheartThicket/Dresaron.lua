@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1656, "DBM-Party-Legion", 2, 762)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240113205441")
+mod:SetRevision("20240127063852")
 mod:SetCreatureID(99200)
 mod:SetEncounterID(1838)
 mod:SetHotfixNoticeRev(20231029000000)
@@ -43,7 +43,7 @@ function mod:OnCombatStart(delay)
 	self.vb.breathCount = 0
 	self.vb.earthCount = 0
 	self.vb.draftCount = 0
-	timerBreathCD:Start(14.6-delay, 1)--14.6-15.4
+	timerBreathCD:Start(13.3-delay, 1)--13.3-15.4
 	timerDownDraftCD:Start(19.4-delay, 1)--19.4-22.7
 	timerEarthShakerCD:Start(31.6-delay, 1)--31.6-34.8
 end

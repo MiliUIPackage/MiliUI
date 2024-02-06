@@ -74,21 +74,21 @@ end
 
 ---@class DBM
 local DBM = {
-	Revision = parseCurseDate("20240124011108"),
+	Revision = parseCurseDate("20240203183533"),
 }
 _G.DBM = DBM
 
-local fakeBWVersion, fakeBWHash = 316, "5fa8e54"--316.0
+local fakeBWVersion, fakeBWHash = 318, "5fa8e54"--316.0
 local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
 if isRetail then
-	DBM.DisplayVersion = "10.2.19"
-	DBM.ReleaseRevision = releaseDate(2024, 1, 23) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "10.2.21"
+	DBM.ReleaseRevision = releaseDate(2024, 2, 3) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 9--When this is incremented, trigger force disable regardless of major patch
 elseif isClassic then
-	DBM.DisplayVersion = "1.15.9 alpha"
-	DBM.ReleaseRevision = releaseDate(2024, 1, 16) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+	DBM.DisplayVersion = "1.15.10 alpha"
+	DBM.ReleaseRevision = releaseDate(2024, 1, 28) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 	PForceDisable = 4--When this is incremented, trigger force disable regardless of major patch
 elseif isBCC then
 	DBM.DisplayVersion = "2.6.0 alpha"--When TBC returns (and it will one day). It'll probably be game version 2.6
@@ -248,6 +248,8 @@ DBM.DefaultOptions = {
 	HideGuildChallengeUpdates = true,
 	HideTooltips = false,
 	DisableSFX = false,
+	DisableAmbiance = false,
+	DisableMusic = false,
 	EnableModels = true,
 	GUIWidth = 800,
 	GUIHeight = 600,
@@ -386,7 +388,10 @@ DBM.DefaultOptions = {
 	ShowBerserkWarnings = true,
 	HelpMessageVersion = 3,
 	MoviesSeen = {},
-	MovieFilter2 = "Never",
+	HideMovieDuringFight = true,
+	HideMovieInstanceAnywhere = true,
+	HideMovieNonInstanceAnywhere = false,
+	HideMovieOnlyAfterSeen = true,
 	LastRevision = 0,
 	DebugMode = false,
 	DebugLevel = 1,
@@ -983,10 +988,37 @@ do
 	local registeredSpellIds = {}
 	local unfilteredCLEUEvents = {}
 	local registeredUnitEventIds = {}
-	local argsMT = {__index = {}}
-	local args = setmetatable({}, argsMT)
+	---@class DBMCombatLogArgs
+	local argsMT = {}
+	---@class DBMCombatLogArgs
+	local args = setmetatable({
+		-- Explicitly define them because type deduction from CLEU events is ~impossible
+		event             = nil, ---@type string
+		timestamp         = nil, ---@type number
+		sourceGUID        = nil, ---@type string
+		sourceName        = nil, ---@type string?
+		sourceFlags       = nil, ---@type number
+		sourceRaidFlags   = nil, ---@type number
+		destGUID          = nil, ---@type string
+		destName          = nil, ---@type string?
+		destFlags         = nil, ---@type number
+		destRaidFlags     = nil, ---@type number
+		spellId           = nil, ---@type number
+		spellName         = nil, ---@type string
+		extraSpellId      = nil, ---@type number
+		extraSpellName    = nil, ---@type string
+		environmentalType = nil, ---@type string
+		amount            = nil, ---@type number
+		overkill          = nil, ---@type number
+		school            = nil, ---@type number
+		blocked           = nil, ---@type number?
+		absorbed          = nil, ---@type number?
+		critical          = nil, ---@type boolean
+		glancing          = nil, ---@type boolean
+		crushing          = nil, ---@type boolean
+	}, {__index = argsMT})
 
-	function argsMT.__index:IsSpellID(...)
+	function argsMT:IsSpellID(...)
 		for i = 1, select('#', ...) do
 			if args.spellId == select(i, ...) then
 				return true
@@ -997,7 +1029,7 @@ do
 
 	--Function exclusively used in classic era to make it a little cleaner to mass unifiy modules to auto check spellid or spellName based on game flavor
 	--As of 1.15.0 classic era now has spellids, but want to keep wrapper for now in case they ever revert this or they decide to do classic fresh with no IDs one day
-	function argsMT.__index:IsSpell(...)
+	function argsMT:IsSpell(...)
 	--	if isClassic then
 	--		--ugly ass performance wasting checks that have to first convert Ids to names because #nochanges
 	--		for i = 1, select('#', ...) do
@@ -1018,7 +1050,7 @@ do
 	--	end
 	end
 
-	function argsMT.__index:IsPlayer()
+	function argsMT:IsPlayer()
 		-- If blizzard ever removes destFlags, this will automatically switch to fallback
 		if args.destFlags and COMBATLOG_OBJECT_AFFILIATION_MINE then
 			return bband(args.destFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 and bband(args.destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0
@@ -1027,7 +1059,7 @@ do
 		end
 	end
 
-	function argsMT.__index:IsPlayerSource()
+	function argsMT:IsPlayerSource()
 		-- If blizzard ever removes sourceFlags, this will automatically switch to fallback
 		if args.sourceFlags and COMBATLOG_OBJECT_AFFILIATION_MINE then
 			return bband(args.sourceFlags, COMBATLOG_OBJECT_AFFILIATION_MINE) ~= 0 and bband(args.sourceFlags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0
@@ -1036,19 +1068,19 @@ do
 		end
 	end
 
-	function argsMT.__index:IsNPC()
+	function argsMT:IsNPC()
 		return bband(args.destFlags, COMBATLOG_OBJECT_TYPE_NPC) ~= 0
 	end
 
-	function argsMT.__index:IsPet()
+	function argsMT:IsPet()
 		return bband(args.destFlags, COMBATLOG_OBJECT_TYPE_PET) ~= 0
 	end
 
-	function argsMT.__index:IsPetSource()
+	function argsMT:IsPetSource()
 		return bband(args.sourceFlags, COMBATLOG_OBJECT_TYPE_PET) ~= 0
 	end
 
-	function argsMT.__index:IsSrcTypePlayer()
+	function argsMT:IsSrcTypePlayer()
 		-- If blizzard ever removes sourceFlags, this will automatically switch to fallback
 		if args.sourceFlags and COMBATLOG_OBJECT_TYPE_PLAYER then
 			return bband(args.sourceFlags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0
@@ -1057,7 +1089,7 @@ do
 		end
 	end
 
-	function argsMT.__index:IsDestTypePlayer()
+	function argsMT:IsDestTypePlayer()
 		-- If blizzard ever removes destFlags, this will automatically switch to fallback
 		if args.destFlags and COMBATLOG_OBJECT_TYPE_PLAYER then
 			return bband(args.destFlags, COMBATLOG_OBJECT_TYPE_PLAYER) ~= 0
@@ -1066,7 +1098,7 @@ do
 		end
 	end
 
-	function argsMT.__index:IsSrcTypeHostile()
+	function argsMT:IsSrcTypeHostile()
 		-- If blizzard ever removes sourceFlags, this will automatically switch to fallback
 		if args.sourceFlags and COMBATLOG_OBJECT_REACTION_HOSTILE then
 			return bband(args.sourceFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) ~= 0
@@ -1075,7 +1107,7 @@ do
 		end
 	end
 
-	function argsMT.__index:IsDestTypeHostile()
+	function argsMT:IsDestTypeHostile()
 		-- If blizzard ever removes destFlags, this will automatically switch to fallback
 		if args.destFlags and COMBATLOG_OBJECT_REACTION_HOSTILE then
 			return bband(args.destFlags, COMBATLOG_OBJECT_REACTION_HOSTILE) ~= 0
@@ -1084,11 +1116,11 @@ do
 		end
 	end
 
-	function argsMT.__index:GetSrcCreatureID()
+	function argsMT:GetSrcCreatureID()
 		return DBM:GetCIDFromGUID(self.sourceGUID)
 	end
 
-	function argsMT.__index:GetDestCreatureID()
+	function argsMT:GetDestCreatureID()
 		return DBM:GetCIDFromGUID(self.destGUID)
 	end
 
@@ -1913,7 +1945,7 @@ do
 			if RolePollPopup and RolePollPopup:IsEventRegistered("ROLE_POLL_BEGIN") and isRetail then
 				RolePollPopup:UnregisterEvent("ROLE_POLL_BEGIN")
 			end
-			self:GROUP_ROSTER_UPDATE()
+			self:GROUP_ROSTER_UPDATE(true)
 			C_TimerAfter(1.5, function()
 				combatInitialized = true
 			end)
@@ -2528,10 +2560,11 @@ do
 
 	function DBM:GROUP_ROSTER_UPDATE(force)
 		self:Unschedule(updateAllRoster)
-		if force then
+		--Updated with no throttle on ADDON_LOADDED, DBM:LoadMod and if in combat with a boss
+		if force or #inCombat > 0 then
 			updateAllRoster(self)
 		else
-			self:Schedule(1.5, updateAllRoster, self)
+			self:Schedule(3, updateAllRoster, self)
 		end
 	end
 
@@ -3693,9 +3726,9 @@ do
 	function DBM:TransitionToDungeonBGM(force, cleanup)
 		if cleanup then--Runs on zone change/cinematic Start (first load delay) and combat end
 			self:Unschedule(self.TransitionToDungeonBGM)
-			if self.Options.RestoreSettingMusic then
-				SetCVar("Sound_EnableMusic", self.Options.RestoreSettingMusic)
-				self.Options.RestoreSettingMusic = nil
+			if self.Options.RestoreSettingCustomMusic then
+				SetCVar("Sound_EnableMusic", self.Options.RestoreSettingCustomMusic)
+				self.Options.RestoreSettingCustomMusic = nil
 				self:Debug("Restoring Sound_EnableMusic CVAR")
 			end
 			if self.Options.musicPlaying then--Primarily so DBM doesn't call StopMusic unless DBM is one that started it. We don't want to screw with other addons
@@ -3707,14 +3740,15 @@ do
 			return
 		end
 		if LastInstanceType ~= "raid" and LastInstanceType ~= "party" and not force then return end
+		if self.Options.RestoreSettingMusic then return end--Music was disabled by the music disable override, abort here
 		fireEvent("DBM_MusicStart", "RaidOrDungeon")
 		if self.Options.EventSoundDungeonBGM and self.Options.EventSoundDungeonBGM ~= "None" and self.Options.EventSoundDungeonBGM ~= "" and not (self.Options.EventDungMusicMythicFilter and (savedDifficulty == "mythic" or savedDifficulty == "challenge")) then
-			if not self.Options.RestoreSettingMusic then
-				self.Options.RestoreSettingMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
-				if self.Options.RestoreSettingMusic == 0 then
+			if not self.Options.RestoreSettingCustomMusic then
+				self.Options.RestoreSettingCustomMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
+				if self.Options.RestoreSettingCustomMusic == 0 then
 					SetCVar("Sound_EnableMusic", 1)
 				else
-					self.Options.RestoreSettingMusic = nil--Don't actually need it
+					self.Options.RestoreSettingCustomMusic = nil--Don't actually need it
 				end
 			end
 			local path = "MISSING"
@@ -5391,6 +5425,15 @@ do
 				end
 				if self.Options.DisableSFX and GetCVar("Sound_EnableSFX") == "1" then
 					SetCVar("Sound_EnableSFX", 0)
+					self.Options.RestoreSettingSFX = true
+				end
+				if self.Options.DisableAmbiance and GetCVar("Sound_EnableAmbiance") == "1" then
+					SetCVar("Sound_EnableAmbiance", 0)
+					self.Options.RestoreSettingAmbiance = true
+				end
+				if self.Options.DisableMusic and GetCVar("Sound_EnableMusic") == "1" then
+					SetCVar("Sound_EnableMusic", 0)
+					self.Options.RestoreSettingMusic = true
 				end
 				--boss health info scheduler
 				if mod.CustomHealthUpdate then
@@ -5540,14 +5583,14 @@ do
 				if self.Options.EventSoundEngage2 and self.Options.EventSoundEngage2 ~= "" and self.Options.EventSoundEngage2 ~= "None" then
 					self:PlaySoundFile(self.Options.EventSoundEngage2, nil, true)
 				end
-				if self.Options.EventSoundMusic and self.Options.EventSoundMusic ~= "None" and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (savedDifficulty == "mythic" or savedDifficulty == "challenge")) and not mod.noStatistics then
+				if self.Options.EventSoundMusic and self.Options.EventSoundMusic ~= "None" and self.Options.EventSoundMusic ~= "" and not (self.Options.EventMusicMythicFilter and (savedDifficulty == "mythic" or savedDifficulty == "challenge")) and not mod.noStatistics and not self.Options.RestoreSettingMusic then
 					fireEvent("DBM_MusicStart", "BossEncounter")
-					if not self.Options.RestoreSettingMusic then
-						self.Options.RestoreSettingMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
-						if self.Options.RestoreSettingMusic == 0 then
+					if not self.Options.RestoreSettingCustomMusic then
+						self.Options.RestoreSettingCustomMusic = tonumber(GetCVar("Sound_EnableMusic")) or 1
+						if self.Options.RestoreSettingCustomMusic == 0 then
 							SetCVar("Sound_EnableMusic", 1)
 						else
-							self.Options.RestoreSettingMusic = nil--Don't actually need it
+							self.Options.RestoreSettingCustomMusic = nil--Don't actually need it
 						end
 					end
 					local path = "MISSING"
@@ -5882,8 +5925,17 @@ do
 					tooltipsHidden = false
 					GameTooltip:SetScript("OnShow", GameTooltip.Show)
 				end
-				if self.Options.DisableSFX then
+				if self.Options.RestoreSettingSFX then
 					SetCVar("Sound_EnableSFX", 1)
+					self.Options.RestoreSettingSFX = nil
+				end
+				if self.Options.RestoreSettingAmbiance then
+					SetCVar("Sound_EnableAmbiance", 1)
+					self.Options.RestoreSettingAmbiance = nil
+				end
+				if self.Options.RestoreSettingMusic then
+					SetCVar("Sound_EnableMusic", 1)
+					self.Options.RestoreSettingMusic = nil
 				end
 				--cache table
 				twipe(autoRespondSpam)
@@ -6683,16 +6735,22 @@ do
 			end
 		end
 		--Check if any previous changed cvars were not restored and restore them
-		if self.Options.DisableSFX then
+		if self.Options.RestoreSettingSFX then
 			SetCVar("Sound_EnableSFX", 1)
+			self.Options.RestoreSettingSFX = nil
 			self:Debug("Restoring Sound_EnableSFX CVAR")
 		end
-		if self.Options.RestoreSettingQuestTooltips then
-			SetCVar("showQuestTrackingTooltips", self.Options.RestoreSettingQuestTooltips) ---@diagnostic disable-line: param-type-mismatch
-			self.Options.RestoreSettingQuestTooltips = nil
-			self:Debug("Restoring showQuestTrackingTooltips CVAR")
+		if self.Options.RestoreSettingAmbiance then
+			SetCVar("Sound_EnableAmbiance", 1)
+			self.Options.RestoreSettingAmbiance = nil
+			self:Debug("Restoring Sound_EnableAmbiance CVAR")
 		end
-		--RestoreSettingMusic doens't need restoring here, since zone change transition will handle it
+		if self.Options.RestoreSettingMusic then
+			SetCVar("Sound_EnableMusic", 1)
+			self.Options.RestoreSettingMusic = nil
+			self:Debug("Restoring Sound_EnableMusic CVAR")
+		end
+		--RestoreSettingCustomMusic doens't need restoring here, since zone change transition will handle it
 	end
 end
 
@@ -6847,11 +6905,6 @@ do
 				DisableEvent(AlertFrame, "GUILD_CHALLENGE_COMPLETED")
 			end
 		elseif toggle == 0 then
-			if self.Options.RestoreSettingQuestTooltips then
-				SetCVar("showQuestTrackingTooltips", self.Options.RestoreSettingQuestTooltips) ---@diagnostic disable-line: param-type-mismatch
-				self.Options.RestoreSettingQuestTooltips = nil
-				self:Debug("Restoring Quest Tooltip CVAR")
-			end
 			if (self.Options.HideBossEmoteFrame2 or custom) and not testBuild then
 				EnableEvent(RaidBossEmoteFrame, "RAID_BOSS_EMOTE")
 				EnableEvent(RaidBossEmoteFrame, "RAID_BOSS_WHISPER")
@@ -7021,8 +7074,8 @@ function DBM:RoleCheck(ignoreLoot)
 end
 
 -- An anti spam function to throttle spammy events (e.g. SPELL_AURA_APPLIED on all group members)
--- @param time the time to wait between two events (optional, default 2.5 seconds)
--- @param id the id to distinguish different events (optional, only necessary if your mod keeps track of two different spam events at the same time)
+--- @param time number? time to wait between two events (optional, default 2.5 seconds)
+--- @param id any? id to distinguish different events (optional, only necessary if your mod keeps track of two different spam events at the same time)
 function DBM:AntiSpam(time, id)
 	if GetTime() - (id and (self["lastAntiSpam" .. tostring(id)] or 0) or self.lastAntiSpam or 0) > (time or 2.5) then
 		if id then
@@ -7099,37 +7152,66 @@ do
 		[489] = true, -- Unknown, currently encrypted
 		[490] = true, -- Unknown, currently encrypted
 	}
-	function DBM:PLAY_MOVIE(id)
-		if id and not neverFilter[id] then
-			self:Debug("PLAY_MOVIE fired for ID: "..id, 2)
-			local isInstance, instanceType = IsInInstance()
-			if not isInstance or (C_Garrison and C_Garrison:IsOnGarrisonMap()) or instanceType == "scenario" or self.Options.MovieFilter2 == "Never" or self.Options.MovieFilter2 == "OnlyFight" and not IsEncounterInProgress() then return end
-			if self.Options.MovieFilter2 == "Block" or (self.Options.MovieFilter2 == "AfterFirst" or self.Options.MovieFilter2 == "OnlyFight") and self.Options.MoviesSeen[id] then
-				MovieFrame:Hide()--can only just hide movie frame safely now, which means can't stop audio anymore :\
-				self:AddMsg(L.MOVIE_SKIPPED)
-			else
-				self.Options.MoviesSeen[id] = true
+	local requiresRecentKill = {
+		[2238] = 2519--Fyrakk in Amirdrassil
+	}
+	local function checkOptions(self, id, mapID)
+		--First, check if this specific cut scene should be blocked at all via the 3 primary rules
+		local allowBlock = false
+		if self.Options.HideMovieDuringFight and IsEncounterInProgress() then
+			allowBlock = true
+		end
+		local isInstance, instanceType = IsInInstance()
+		--HideMovieInstanceAnywhere means only dunegons and raids. NOT scenarios, and NOT garrisons. Delves will probably be added to this when api known
+		if self.Options.HideMovieInstanceAnywhere and isInstance and instanceType ~= "scenario" and not (C_Garrison and C_Garrison:IsOnGarrisonMap()) then
+			allowBlock = true
+		end
+		--HideMovieNonInstanceAnywhere means any outdoor area, which means anywhere non instanced or the garrison.
+		--Scenarios are once again excluded, per deal with blizzard, since Legion
+		--(scenarios ofen used for story events like broken shore and blizzard doesn't want addons skipping these)
+		if self.Options.HideMovieNonInstanceAnywhere and instanceType ~= "scenario" and (not isInstance or (C_Garrison and C_Garrison:IsOnGarrisonMap())) then
+			allowBlock = true
+		end
+		--Check for cinematics that should only be blocked if boss just died or was just pulled
+		if mapID and requiresRecentKill[mapID] and allowBlock then
+			local modID = requiresRecentKill[mapID]
+			local mod = DBM:GetModByName(modID)
+			if mod and mod.lastKillTime and (GetTime() - mod.lastKillTime) > 5 then
+				allowBlock = false
 			end
 		end
+		--Last check if seen yet and if seen once filter enabled, abort after flagging seen once
+		if allowBlock and self.Options.HideMovieOnlyAfterSeen and not self.Options.MoviesSeen[id] then
+			self.Options.MoviesSeen[id] = true
+			allowBlock = false
+		end
+		return allowBlock
+	end
+	function DBM:PLAY_MOVIE(id)
+		--Stop custom BG music during cut scenes regardless of block features
 		self:TransitionToDungeonBGM(false, true)
+		if id and not neverFilter[id] then
+			self:Debug("PLAY_MOVIE fired for ID: "..id, 2)
+			if checkOptions(self, id) then
+				MovieFrame:Hide()--can only just hide movie frame safely now, which means can't stop audio anymore :\
+				self:AddMsg(L.MOVIE_SKIPPED)
+			end
+		end
 	end
 
 	function DBM:CINEMATIC_START()
 		self:Debug("CINEMATIC_START fired", 2)
+		--Stop custom BG music during cut scenes regardless of block features
+		self:TransitionToDungeonBGM(false, true)
 		self.HudMap:SupressCanvas()
-		local isInstance, instanceType = IsInInstance()
-		if not isInstance or (C_Garrison and C_Garrison:IsOnGarrisonMap()) or instanceType == "scenario" or self.Options.MovieFilter2 == "Never" or DBM.Options.MovieFilter2 == "OnlyFight" and not IsEncounterInProgress() then return end
 		local currentMapID = C_Map.GetBestMapForUnit("player")
 		local currentSubZone = GetSubZoneText() or ""
-		if not currentMapID then return end--Protection from map failures in zones that have no maps yet
-		if self.Options.MovieFilter2 == "Block" or (self.Options.MovieFilter2 == "AfterFirst" or self.Options.MovieFilter2 == "OnlyFight") and self.Options.MoviesSeen[currentMapID..currentSubZone] then
+		--Just abort if map is nil, don't want to touch it if can't map cinematic to an area
+		if currentMapID and checkOptions(self, currentMapID..currentSubZone, currentMapID) then
 			CinematicFrame_CancelCinematic()
 			self:AddMsg(L.MOVIE_SKIPPED)
 --			self:AddMsg(L.MOVIE_NOTSKIPPED)
-		else
-			self.Options.MoviesSeen[currentMapID..currentSubZone] = true
 		end
-		self:TransitionToDungeonBGM(false, true)
 	end
 	function DBM:CINEMATIC_STOP()
 		self:Debug("CINEMATIC_STOP fired", 2)
@@ -8348,27 +8430,46 @@ do
 			[46968] = true,--Warrior: Shockwave (Stun)
 			[221562] = true,--DK: Asphyxiate (Stun)
 			[5211] = true,--Druid: Mighty Bash (Stun)
+			[408] = true,--Rogue: Kidney Shot (Stun)
+			[1833] = true,--Rogue: Cheap Shot (Stun)
+			[192058] = true,--Shaman: Capacitor Totem (Stun)
 		},
 		["knock"] = {
 			[132469] = true,--Druid: Typhoon
 			--[102793] = true,--Druid: Ursol's Vortex
 			[108199] = true,--DK: Gorefiends Grasp
 			[49576] = true,--DK: Death Grip (!Also a taunt!)
+			[157981] = true,--Mage: Blast Wave
+			[51490] = true,--Shaman: Thunderstorm
 		},
 		["disorient"] = {
 			[5246] = true,--Warrior: Intimidating Shout
 			[33786] = true,--Druid: Cyclone
+			[2094] = true,--Rogue: Blind
+			[31661] = true,--Mage: Dragon's Breath
 		},
 		["incapacitate"] = {
 			[99] = true,--Druid: Incapacitating Roar
 			[217832] = true,--DH: Imprison
+			[118] = true,--Mage: Polymorph (Should be shared CD with all variants, so only need one ID)
+			[383121] = true,--Mage: Mass Polymorph
+			[197214] = true,--Shaman: Sundering
+			[51514] = true,--Shaman: Hex
 		},
 		["root"] = {
 			[339] = true,--Druid: Entangling roots
+			[122] = true,--Mage: Frost Nova
+			[51485] = true,--Shaman: Earthgrab Totem
 		},
+		--Many slows are spamable abilities, but can still be used in inverse CD filter
+		--Since this filter checks if it's available, not if it isn't
+		--So can still also be used as an "Is a slow spell known" check :D
 		["slow"] = {
+			[1715] = true,--Warrior: Hamstring
 			[45524] = true,--DK: Chains of Ice
 			[202138] = true,--DH: Sigil of Chains (also a knock?)
+			[120] = true,--Mage: Cone of Cold
+			[2484] = true,--Shaman: Earthbind Totem
 		},
 		["sleep"] = {
 			[2637] = true,--Druid: Hibernate
@@ -10693,10 +10794,10 @@ do
 			local colorId
 			if self.option then
 				colorId = self.mod.Options[self.option .. "TColor"]
-			elseif self.colorType and type(self.colorType) == "string" then--No option for specific timer, but another bool option given that tells us where to look for TColor
+			elseif self.colorType and type(self.colorType) == "string" then--No option for specific timer, but another bool option given that tells us where to look for TColor (for mods such as trio boss for valentines day in events mods)
 				colorId = self.mod.Options[self.colorType .. "TColor"]
 			else--No option, or secondary option, set colorId to hardcoded color type
-				colorId = self.colorType
+				colorId = self.colorType or 0
 			end
 			local countVoice, countVoiceMax = 0, self.countdownMax or 4
 			if self.option then
@@ -11210,7 +11311,7 @@ do
 				timer = timer,
 				id = name,
 				icon = icon,
-				colorType = colorType,
+				colorType = colorType or 0,
 				inlineIcon = inlineIcon,
 				keep = keep,
 				countdown = countdown,
@@ -11233,12 +11334,13 @@ do
 	-- new constructor for the new auto-localized timer types
 	-- note that the function might look unclear because it needs to handle different timer types, especially achievement timers need special treatment
 	-- If a new countdown is added to an existing timer that didn't have one before, use optionName (number) to force timer to reset defaults by assigning it a new variable
+	---@param timerType string
 	local function newTimer(self, timerType, timer, spellId, timerText, optionDefault, optionName, colorType, texture, inlineIcon, keep, countdown, countdownMax, r, g, b, requiresCombat)
 		if type(timer) == "string" and timer:match("OptionVersion") then
 			error("OptionVersion hack deprecated, remove it from: "..spellId)
 		end
-		if type(colorType) == "number" and colorType > 7 then
-			DBM:Debug("|cffff0000texture is in the colorType arg for: |r"..spellId)
+		if type(colorType) == "number" and colorType > 8 then
+			DBM:AddMsg("|cffff0000texture is in the colorType arg for: |r"..spellId)
 		end
 		--Use option optionName for optionVersion as well, no reason to split.
 		--This ensures that remaining arg positions match for auto generated and regular NewTimer
@@ -11270,6 +11372,7 @@ do
 			colorType = 1
 		else
 			icon = parseSpellIcon(texture or spellId, timerType)
+			colorType = colorType or 0
 		end
 		local timerTextValue
 		if timerText then
@@ -11336,24 +11439,29 @@ do
 		return obj
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewTargetTimer(...)
 		return newTimer(self, "target", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewTargetCountTimer(...)
 		return newTimer(self, "targetcount", ...)
 	end
 
 	--Buff/Debuff/event on boss
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewBuffActiveTimer(...)
 		return newTimer(self, "active", ...)
 	end
 
 	----Buff/Debuff on players
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewBuffFadesTimer(...)
 		return newTimer(self, "fades", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCastTimer(timer, ...)
 		if tonumber(timer) and timer > 1000 then -- hehe :) best hack in DBM. This makes the first argument optional, so we can omit it to use the cast time from the spell id ;)
 			local spellId = timer
@@ -11365,6 +11473,7 @@ do
 		return newTimer(self, "cast", timer, ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCastCountTimer(timer, ...)
 		if tonumber(timer) and timer > 1000 then -- hehe :) best hack in DBM. This makes the first argument optional, so we can omit it to use the cast time from the spell id ;)
 			local spellId = timer
@@ -11376,6 +11485,7 @@ do
 		return newTimer(self, "castcount", timer, ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCastSourceTimer(timer, ...)
 		if tonumber(timer) and timer > 1000 then -- hehe :) best hack in DBM. This makes the first argument optional, so we can omit it to use the cast time from the spell id ;)
 			local spellId = timer
@@ -11387,107 +11497,130 @@ do
 		return newTimer(self, "castsource", timer, ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDTimer(...)
 		return newTimer(self, "cd", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDCountTimer(...)
 		return newTimer(self, "cdcount", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDSourceTimer(...)
 		return newTimer(self, "cdsource", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextTimer(...)
 		return newTimer(self, "next", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextCountTimer(...)
 		return newTimer(self, "nextcount", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextSourceTimer(...)
 		return newTimer(self, "nextsource", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewAchievementTimer(...)
 		return newTimer(self, "achievement", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDSpecialTimer(...)
 		return newTimer(self, "cdspecial", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextSpecialTimer(...)
 		return newTimer(self, "nextspecial", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewStageTimer(...)
 		return newTimer(self, "stage", ...)
 	end
 	bossModPrototype.NewPhaseTimer = bossModPrototype.NewStageTimer--Deprecated naming, once all mods are converted over, NewPhaseTimer will be wiped out for NewStageTimer
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewStageCountTimer(...)
 		return newTimer(self, "stagecount", ...)
 	end
 
 	--Used mainly for compat with BW/LW timers where they use "stages" but then use the spell/journal descriptor instead of "stage d"
 	--Basically, it's a generic spellName timer for "stages" callback
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewStageContextTimer(...)
 		return newTimer(self, "stagecontext", ...)
 	end
 
-	--Same as above, with count
+	--Same as NewStageContextTimer, with count
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewStageContextCountTimer(...)
 		return newTimer(self, "stagecontextcount", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewStageCountCycleTimer(...)
 		return newTimer(self, "stagecountcycle", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewIntermissionTimer(...)
 		return newTimer(self, "intermission", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewIntermissionCountTimer(...)
 		return newTimer(self, "intermissioncount", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewRPTimer(...)
 		return newTimer(self, "roleplay", ...)
 	end
 
-	--self, timerType, timer, spellId, timerText, optionDefault, optionName, colorType, texture, inlineIcon, keep, countdown, countdownMax
 	function bossModPrototype:NewCombatTimer(timer)
 		return newTimer(self, "combat", timer, nil, nil, nil, nil, 0, "132349", nil, nil, 1, 5)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewAddsTimer(...)
 		return newTimer(self, "adds", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewAddsCustomTimer(...)
 		return newTimer(self, "addscustom", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDNPTimer(...)
 		return newTimer(self, "cdnp", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextNPTimer(...)
 		return newTimer(self, "nextnp", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewCDCountNPTimer(...)
 		return newTimer(self, "cdcountnp", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewNextCountNPTimer(...)
 		return newTimer(self, "nextcountnp", ...)
 	end
 
+	---@overload fun(self: DBMMod, timer: number|string, spellId: number|string?, timerText: number|string?, optionDefault: boolean|string?, optionName: string|number?, colorType: number?, texture: number|string?, inlineIcon: string?, keep: boolean?, countdown: number?, countdownMax: number?, r: number?, g: number?, b: number?, requiresCombat: boolean?)
 	function bossModPrototype:NewAITimer(...)
 		return newTimer(self, "ai", ...)
 	end

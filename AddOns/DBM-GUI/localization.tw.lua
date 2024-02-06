@@ -354,6 +354,10 @@ L.CBTRole					= "角色類型法術"
 L.CBTPhase					= "階段轉換"
 L.CBTImportant				= "使用者重要法術"
 --Dropdown Options
+L.SAOne						= "通用音效 1 (個人)"
+L.SATwo						= "通用音效 2 (全部人)"
+L.SAThree					= "通用音效 3 (高優先動作)"
+L.SAFour					= "通用音效 4 (高優先跑開)"
 L.ColorDropGeneric			= "通用 (原始)"
 L.ColorDrop1				= "顏色 1"
 L.ColorDrop2				= "顏色 2"
@@ -492,20 +496,30 @@ L.SpamSpecRoleSwitch				= "過濾'切換目標''小怪' 警報 (完全無文字�
 L.SpamSpecRoleGTFO					= "過濾'地板技能'警告 (完全無文字或聲音)"
 
 -- Panel: Blizzard Features
-L.Panel_HideBlizzard			= "暴雪內建功能設置"
-L.Area_HideBlizzard				= "禁用及隱藏暴雪功能選項"
-L.HideBossEmoteFrame			= "首領戰鬥時隱藏團隊首領表情框架"
-L.HideWatchFrame				= "首領戰鬥時隱藏任務目標框架。如果沒有追蹤中的成就，或是不在傳奇+。"
-L.HideGarrisonUpdates			= "首領戰鬥時隱藏追隨者任務完成提示"
-L.HideGuildChallengeUpdates		= "首領戰鬥時隱藏公會挑戰完成提示"
-L.HideQuestTooltips				= "首領戰鬥時隱藏任務目標提示"
-L.HideTooltips					= "首領戰鬥時完全地隱藏滑鼠提示"
-L.DisableSFX					= "首領戰鬥時禁用音效頻道（注意：如果啟用此選項，則即使戰鬥進入時音效未打開，戰鬥結束時也會打開聲音效果）"
-L.DisableCinematics				= "禁用遊戲中的過場動畫"
-L.OnlyFight						= "只有戰鬥中，每次動畫播放一次之後"
-L.AfterFirst					= "在副本中，每次動畫播放一次之後"
-L.CombatOnly					= "在任何戰鬥中停用"
-L.RaidCombat					= "只在首領戰鬥中停用"
+L.Panel_HideBlizzard				= "阻擋暴雪功能"
+--Toast
+L.Area_HideToast					= "停用暴雪彈出提示 (跳出提醒)"
+L.HideGarrisonUpdates				= "首領戰鬥時隱藏追隨者彈出提示"
+L.HideGuildChallengeUpdates			= "首領戰鬥時隱藏公會挑戰彈出提示"
+--L.HideBossKill					= "Hide boss kill toasts"--NYI
+--L.HideVaultUnlock					= "Hide vault unlock toasts"--NYI
+--Cut Scenes
+L.Area_Cinematics					= "阻擋遊戲中的動畫"
+L.DuringFight						= "首領戰鬥時阻擋戰鬥過場動畫"--uses explicite IsEncounterInProgress check
+L.InstanceAnywhere					= "在地下城或團隊副本中的任何地方阻擋非戰鬥過場動畫"
+L.NonInstanceAnywhere				= "危險: 在室外開放世界阻擋過場動畫 (不建議)"
+L.OnlyAfterSeen						= "只在每次動畫播放一次之後阻擋 (強烈建議，至少體驗一次劇情)"
+--Sound
+L.Area_Sound						= "阻擋遊戲中聲音"
+L.DisableSFX						= "首領戰鬥時停用音效頻道"
+L.DisableAmbiance					= "首領戰鬥時停用環境頻道"
+L.DisableMusic						= "首領戰鬥時停用音樂頻道 (注意: 如果啟用，在事件音效中啟用的自訂音樂將不會播放)"
+--Other
+L.Area_HideBlizzard					= "停用 & 隱藏其他暴雪提示"
+L.HideBossEmoteFrame				= "首領戰鬥時隱藏團隊首領表情框架"
+L.HideWatchFrame					= "首領戰鬥時隱追蹤框架(任務目標)，如果沒有追踪成就，或不是在傳奇+中"
+L.HideQuestTooltips					= "首領戰鬥時隱藏任務目標提示"--Currently hidden (NYI)
+L.HideTooltips						= "首領戰鬥時隱藏完全隱藏提示"
 
 -- Panel: Raid Leader Controls
 L.Tab_RLControls					= "團隊領隊控制項"

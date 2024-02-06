@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2554, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240112060931")
+mod:SetRevision("20240128051705")
 mod:SetCreatureID(200926)
 mod:SetEncounterID(2709)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
@@ -30,6 +30,7 @@ mod:RegisterEventsInCombat(
 --]]
 --TODO, secondary warning for https://wowhead.com/ptr-2/spell=424347 ?
 --TODO, Smashing Viscera is a hidden aura that's not logged, but UNIT_AURA might work
+--TODO, spears 13 is long by 2.3?
 --https://www.warcraftlogs.com/reports/N2k1xpg9rVqRDyQZ#fight=11&pins=2%24Off%24%23244F4B%24expression%24(ability.id%20%3D%20414425%20or%20ability.id%20%3D%20416996%20or%20ability.id%20%3D%20422776%20or%20ability.id%20%3D%20419048%20or%20ability.id%20%3D%20416048%20or%20ability.id%20%3D%20418531%20or%20ability.id%20%3D%20415624)%20and%20type%20%3D%20%22begincast%22%0A%20or%20ability.id%20%3D%20424456%20and%20type%20%3D%20%22cast%22%0A%20or%20ability.id%20%3D%20415020%20or%20ability.id%20%3D%20415094%20or%20ability.id%20%3D%20415090%20or%20ability.id%20%3D%20425282%20or%20ability.id%20%3D%20425283%20or%20ability.id%20%3D%20414357%0A%20or%20ability.name%20%3D%20%22Heart%20Stopper%22&view=events
 local warnDrenchedBlades							= mod:NewStackAnnounce(414340, 2, nil, "Tank|Healer")
 local warnBlisteringSpear							= mod:NewTargetCountAnnounce(414888, 3, nil, nil, 282481, nil, nil, nil, true)

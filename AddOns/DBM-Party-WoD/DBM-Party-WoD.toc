@@ -20,7 +20,7 @@
 ## X-DBM-Mod-MinCoreRevision: 20200524142133
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
-## Version: r115
+## Version: r118-6
 ## X-DBM-Mod-MinExpansion: 5
 ## X-Category-zhTW: 團隊
 
@@ -33,3 +33,5 @@ EverBloom\ArchmageSol.lua
 EverBloom\Xeritac.lua
 EverBloom\Yalnu.lua
 EverBloom\EverBloomTrash.lua
+					 
+					
