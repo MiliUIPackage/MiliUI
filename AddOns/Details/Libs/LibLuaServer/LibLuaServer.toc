@@ -1,7 +1,7 @@
 ## Interface: 100105
 ## Title: LuaServerDefinitions
 ## Notes: Development Tools
-## Version: #Details.20240122.12237.155
+## Version: #Details.20240204.12256.155
 
 ## X-Curse-Project-ID: 889573
 

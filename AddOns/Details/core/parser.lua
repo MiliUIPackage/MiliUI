@@ -4832,6 +4832,13 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		return Details.capture_real[captureType]
 	end
 
+	function Details:CaptureReset()
+		Details:CancelAllCaptureSchedules()
+		for _, thisType in ipairs(Details.capture_types) do
+			Details:CaptureSet(true, thisType, true)
+		end
+	end
+
 	function Details:CaptureSet(onOff, captureType, real, time)
 		if (onOff == nil) then
 			onOff = Details.capture_real[captureType]
@@ -5203,6 +5210,10 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		Details.zone_name = zoneName
 
 		_in_resting_zone = IsResting()
+
+		if (_in_resting_zone) then
+			Details:CaptureReset()
+		end
 
 		parser:WipeSourceCache()
 		Details.listener:UnregisterEvent("UNIT_FLAGS")

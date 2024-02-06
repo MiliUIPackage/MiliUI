@@ -1885,7 +1885,6 @@ L["Group Frames"] = "將框架組成群組"
 -- L["Width"] = "寬度"
 -- L["Height"] = "高度"
 L["Lines Per Column"] = "各自獨立一行"
-L["A cooldown tracker on Details!?\nWhat's next, a Caw counter for Elwynn Forest?"] = "Details 有技能冷卻追蹤?\n那接下來會是什麼，艾爾文森林的乳牛牧場?"
 L["This is a concept of a cooldown tracker using the new library 'Open Raid' which uses comms to update cooldown timers.\nThe code to implement is so small that can fit inside a weakaura\nIf you're a coder, the implementation is on Details/frames/window_cdtracker.lua"] = "這是一種新的技能冷卻追蹤概念，使用新的函式庫 'Open Raid'，透過彼此通訊來更新冷卻時間。\n程式碼非常小，小可以塞到 WA 技能提醒裡面，如果你會寫程式，寫法在 Details/frames/window_cdtracker.lua。"
 L["Crowd Control"] = "控場"
 L["Example: Incapacitaion Roar."] = "例如: 癱瘓咆哮。"
@@ -2365,7 +2364,7 @@ L["See how much damage the enemy is taking in real time!"] = "立馬知道敵人
 L["Plater isn't installed! you may download it from the Curseforge app."] = "Plater 血條插件尚未安裝! 可以從 CurseForge 網站或使用 Curseforge app 下載。"
 
 -- frames\window_breakdown\window_playerbreakdown.lua 更改字體大小
-L["Details! Damage Meter | Use '/details stats' for statistics"] = "Details! Damage Meter | 輸入 '/details stats' 顯示統計資料"
+L["Details! Damage Meter | Click 'Options' button for settings."] = "Details! Damage Meter | 點一下 '選項' 按鈕進行設定。"
 
 -- frames\window_breakdown\window_playerbreakdown_auras.lua
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
@@ -2626,6 +2625,23 @@ L["No Aura Addon selected. Addons currently supported: WeakAuras 2."] = "沒有�
 -- frames\window_welcome.lua 更改字體大小
 -- L["wait... "] = "請稍等... " -- 前面已有
 
+-- frames\window_mythicplus\window_chart.lua 更改字體大小
+-- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
+-- L["Enabled"] = "啟用" -- 前面已有
+L["Dungeon Run Chart"] = "地城攻略圖表"
+L["Show this chart at the end of a mythic dungeon run.\n\nIf disabled, you can reactivate it again at the options panel > streamer settings."] = "打完傳奇地城後顯示這個圖表。\n\n停用時，可以從選項面板 > streamer settings 將它再次啟用。"
+L["Show Boss"] = "顯示首領"
+L["Details!: Average Dps for "] = "Details!: 平均 DPS - "
+
+-- frames\window_mythicplus\window_end_of_run.lua 更改字體大小
+L["Details! Mythic Run Completed!"] = "Details! 傳奇地城通關!"
+L["Show Damage Graphic"] = "顯示傷害圖表"
+L["Time not in combat:"] = "沒有戰鬥的時間:"
+L["Run Time:"] = "通關時間:"
+L["You are seeing this because it's a 28 or above. Under development."] = "看到這段訊息表示這是 28 層或以上，相關功能仍在開發中。"
+L["Show Breakdown"] = "顯示分析"
+L["Unknown for this run"] = "此次通關未知"
+
 -- functions\deathmenu.lua 更改字體大小
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
 L["you can disable this at /details > Raid Tools"] = "可以在 /details > 團隊工具，停用。"
@@ -2650,16 +2666,8 @@ L["Advanced Death Logs plugin is disabled or not installed, check the Addon Cont
 L["Spells"] = "法術"
 L["Open your player Details! breakdown."] = "打開 Details! 玩家分析。"
 
--- functions\dungeon.lua 更改字體大小
--- L["Enabled"] = "啟用" -- 前面已有
-L["Dungeon Run Chart"] = "地城攻略圖表"
-L["Show this chart at the end of a mythic dungeon run.\n\nIf disabled, you can reactivate it again at the options panel > streamer settings."] = "打完傳奇地城後顯示這個圖表。\n\n停用時，可以從選項面板 > streamer settings 將它再次啟用。"
-L["Show Boss"] = "顯示首領"
-L["Details!: Average Dps for "] = "Details!: 平均 DPS - "
-L["Details! Mythic Run Completed!"] = "Details! 傳奇地城通關!"
-
--- functions\mythicdungeon.lua
-L["the overall data has been reset."] = "已重置整體資料。"
+-- functions\mythicdungeon\mythicdungeon.lua
+L["the overall data has been reset."] = "已重置整場資料。"
 
 -- functions\profiles.lua 更改字體大小
 L["Profile Not Found."] = "沒有找到設定檔。"

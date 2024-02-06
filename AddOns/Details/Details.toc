@@ -5,7 +5,7 @@
 ## SavedVariables: _detalhes_global, __details_backup, __details_debug
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibGraph-2.0
-## Version: #Details.20240122.12237.155
+## Version: #Details.20240204.12256.155
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
 ## X-Curse-Project-ID: 61284
@@ -54,9 +54,10 @@ functions\currentdps.lua
 functions\report.lua
 functions\rowanimation.lua
 functions\raidinfo.lua
-functions\dungeon.lua
+functions\mythicdungeon\mythicdungeon.lua
+functions\mythicdungeon\data_capture.lua
+functions\mythicdungeon\segments.lua
 functions\pack.lua
-functions\mythicdungeon.lua
 functions\immersion.lua
 functions\schedules.lua
 functions\autorun.lua
@@ -95,6 +96,8 @@ frames\window_breakdown\breakdown_spells_spellframes.lua
 frames\window_breakdown\breakdown_spells_targetframes.lua
 frames\window_breakdown\breakdown_spells_phaseframes.lua
 frames\window_mythicplus\window_mythic_breakdown.lua
+frames\window_mythicplus\window_end_of_run.lua
+frames\window_mythicplus\window_chart.lua
 frames\window_report.lua
 frames\window_main.lua
 frames\window_custom.lua
