@@ -148,9 +148,50 @@ local options = {
                 },
             },
         },
+        targetGroup = {
+            name = "目標和專注目標",
+            type = "group",
+            args = {
+                targetOfTarget = {
+                    name = "目標的目標",
+                    desc = "啟用/停用支援目標的目標",
+                    type = "toggle",
+                },
+                targetCast = {
+                    name = "目標施法條",
+                    desc = "啟用/停用支援目標施法條",
+                    type = "toggle",
+                },
+                focusTargetOfTarget = {
+                    name = "專注目標的目標",
+                    desc = "啟用/停用支援專注目標的目標",
+                    type = "toggle",
+                },
+                focusCast = {
+                    name = "專注目標施法條",
+                    desc = "啟用/停用支援專注目標施法條",
+                    type = "toggle",
+                },
+                targetFrame = {
+                    name = "目標",
+                    desc = "啟用/停用目標框架的額外選項",
+                    type = "toggle",
+                },
+                targetFrameBuffs = {
+                    name = "目標增益",
+                    desc = "啟用/停用支援目標增益和減益效果圖示",
+                    type = "toggle",
+                },
+                focusFrame = {
+                    name = "專注目標",
+                    desc = "啟用/停用專注目標框架的額外選項",
+                    type = "toggle",
+                },
+            },
+        },
         totem = {
             name = "圖騰",
-            desc = "啟用/停用支援",
+            desc = "啟用/停用支援圖騰",
             type = "toggle",
         },
         achievementAlert = {
@@ -158,26 +199,7 @@ local options = {
             desc = "啟用/停用支援成就通知",
             type = "toggle",
         },
-        targetOfTarget = {
-            name = "目標的目標",
-            desc = "啟用/停用支援目標的目標框架",
-            type = "toggle",
-        },
-        targetCast = {
-            name = "目標施法條",
-            desc = "啟用/停用支援目標施法條",
-            type = "toggle",
-        },
-        focusTargetOfTarget = {
-            name = "專注目標的目標",
-            desc = "啟用/停用支援專注目標的目標",
-            type = "toggle",
-        },
-        focusCast = {
-            name = "專注目標施法條",
-            desc = "啟用/停用支援專注目標施法條",
-            type = "toggle",
-        },
+        
         compactRaidFrameContainer = {
             name = "團隊框架",
             desc = "啟用/停用團隊框架的額外選項",
@@ -271,21 +293,7 @@ local options = {
                 },
             },
         },
-        targetFrame = {
-            name = "目標",
-            desc = "啟用/停用目標框架的額外選項",
-            type = "toggle",
-        },
-		targetFrameBuffs = {
-            name = "目標增益",
-            desc = "啟用/停用支援目標增益和減益",
-            type = "toggle",
-        },
-        focusFrame = {
-            name = "專注目標",
-            desc = "啟用/停用專注目標框架的額外選項",
-            type = "toggle",
-        },
+        
         buffFrame = {
             name = "增益效果",
             desc = "啟用/停用增益效果框架的額外選項",
