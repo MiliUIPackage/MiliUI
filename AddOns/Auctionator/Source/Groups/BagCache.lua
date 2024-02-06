@@ -100,25 +100,11 @@ local function KeyPartsPetLink(itemLink)
 end
 
 local function GetItemKey(entry)
-  if Auctionator.Config.Get(Auctionator.Config.Options.SELLING_GROUP_BY_ITEM_KEY) then
-    local itemLevel = entry.itemLevel or 0
-    if entry.classID == Enum.ItemClass.Battlepet then
-      itemLevel = Auctionator.Utilities.GetPetLevelFromLink(entry.itemLink)
-    end
-    return entry.itemID .. "_" ..  entry.itemName .. "_" .. itemLevel .. "_" .. tostring(entry.auctionable)
-  end
-
-  -- Battle pets
+  local itemLevel = entry.itemLevel or 0
   if entry.classID == Enum.ItemClass.Battlepet then
-    return "p:" .. KeyPartsPetLink(entry.itemLink)
-  -- Equipment
-  elseif Auctionator.Utilities.IsEquipment(entry.classID) then
-    local cleanLink = KeyPartsItemLink(entry.itemLink)
-    return "g:" .. strjoin("_", cleanLink, tostring(entry.auctionable))
-  -- Everything else
-  else
-    return "i:" .. strjoin("_", tostring(entry.itemID), tostring(entry.auctionable))
+    itemLevel = Auctionator.Utilities.GetPetLevelFromLink(entry.itemLink)
   end
+  return entry.itemID .. "_" ..  entry.itemName .. "_" .. itemLevel .. "_" .. tostring(entry.auctionable)
 end
 
 function AuctionatorBagCacheMixin:PostUpdate(bagContents)
@@ -384,12 +370,13 @@ function AuctionatorBagCacheMixin:AddToCache(location, slotInfo)
       entry.itemName = C_PetJournal.GetPetInfoBySpeciesID(tonumber(entry.itemLink:match("battlepet:(%d+)")))
       entry.stackCount = 1
     else
-      local itemName, _, quality, _, _, _, _, stackCount, _, _, _, classID, _ = GetItemInfo(entry.itemLink)
+      local itemName, itemLink, quality, _, _, _, _, stackCount, _, _, _, classID, _ = GetItemInfo(entry.itemLink)
       if itemName == nil then --mythic keystones don't have a normal item link
         return nil
       end
-      entry.classID = select(6, GetItemInfoInstant(slotInfo.itemID))
+      entry.classID = classID
       entry.itemName = itemName
+      entry.itemLink = itemLink
       entry.stackCount = stackCount
       entry.quality = quality
     end
