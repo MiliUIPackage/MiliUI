@@ -1,3 +1,4 @@
-# 11.1.32 (2023-11-27)
+# 11.1.37 (2024-01-28)
 
-* Fixed a bug with Arena widget where the arena number was not updated or shown at all after the last update [GH-486].
+* Fixed a Lua error with Auras widget that occurred in arenas when auras had no duration time [GH-497].
+* Updated TOC version for Patch 10.2.5 for WoW Mainline.
