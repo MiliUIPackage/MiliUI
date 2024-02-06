@@ -1,7 +1,7 @@
 # AppearanceTooltip
 
-## [v43](https://github.com/kemayo/wow-appearancetooltip/tree/v43) (2024-01-17)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v42.1...v43) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v44](https://github.com/kemayo/wow-appearancetooltip/tree/v44) (2024-01-26)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v43.1...v44) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- TOC for 10.2.5  
-- 10.2.5 moves ContainerFrames from UIParent to ContainerFrameContainer  
+- Use Baganator's API rather than hooking it  
+    Refs #19  
