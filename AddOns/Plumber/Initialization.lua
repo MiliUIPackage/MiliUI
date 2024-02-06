@@ -1,5 +1,5 @@
-local VERSION_TEXT = "v1.2.1";
-local VERSION_DATE = 1706115215;
+local VERSION_TEXT = "v1.2.2";
+local VERSION_DATE = 1706633000;
 
 
 local addonName, addon = ...
@@ -23,6 +23,7 @@ local DefaultValues = {
     WorldMapPinSeedPlanting = true,     --Aditional Map Pin: Dreamseed
     AlternativePlayerChoiceUI = true,   --Revamp PlayerChoiceFrame for Dreamseed Nurturing
     HandyLockpick = true,               --Right-click to lockpick inventory items (Rogue/Mechagnome)
+    Technoscryers = true,               --Show Technoscryers on QuickSlot (Azerothian Archives World Quest)
 
     --Modify default interface behavior:
     BlizzFixEventToast = true,          --Make Toast non-interactable

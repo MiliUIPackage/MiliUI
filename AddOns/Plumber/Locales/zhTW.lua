@@ -10,6 +10,19 @@ L["Quick Slot Generic Description"] = "\n\n*快捷按鈕是一組在特定情形
 L["Restriction Combat"] = "戰鬥中不可用";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*如需更改標記大小，請打開 世界地圖 - 地圖篩選 - Plumber";
 
+--Module Categories
+--- order: 0
+L["Module Category Unknown"] = "Unknown"    --Don't need to translate
+--- order: 1
+L["Module Category General"] = "一般";
+--- order: 2
+L["Module Category NPC Interaction"] = "NPC互動";
+--- order: 3
+L["Module Category Class"] = "職業";   --Player Class (rogue, paladin...)
+--- order: 4
+L["Module Category Dreamseeds"] = "夢境種子";     --Added in patch 10.2.0
+--- order: 5
+L["Module Category AzerothianArchives"] = "艾澤拉斯文庫";     --Added in patch 10.2.5
 
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "自動加入活動";
@@ -92,8 +105,8 @@ L["TalkingHead Option Condition Instance"] = INSTANCE or "副本";
 
 
 --AzerothianArchives
---L["ModuleName AzerothianArchives"] = "Talking Head: Azerothian Archives";
---L["ModuleDescription AzerothianArchives"] = "Replace the default Talking Head UI while you are doing errands for the Azerothian Archives.";
+L["ModuleName Technoscryers"] = "快速插槽: 科技探勘";
+--L["ModuleDescription Technoscryers"] = "Show a button to put on the Technoscryers when you are doing Technoscrying World Quest."..L["Quick Slot Generic Description"];
 
 
 --Navigator(Waypoint/SuperTrack) Shared Strings

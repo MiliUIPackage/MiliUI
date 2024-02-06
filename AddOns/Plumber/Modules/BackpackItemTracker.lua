@@ -2006,10 +2006,10 @@ function TrackerFrame:ParentTo_Baganator()
     self:SetClampedToScreen(false);
     self:ClearAllPoints();
 
-    local anchorTo = parent.ToggleReagentsButton;
+    local anchorTo = Baganator_MainViewFrame;
 
     if anchorTo then
-        self:SetPoint("LEFT", anchorTo, "RIGHT", 8, 0);
+        self:SetPoint("LEFT", anchorTo, "BOTTOMLEFT", 54, 17);
         self.Border:SetPoint("LEFT", self, "LEFT", 0, 0);
     else
         self:Hide();
