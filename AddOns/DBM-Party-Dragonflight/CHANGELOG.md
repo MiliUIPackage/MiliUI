@@ -1,12 +1,19 @@
 # <DBM Mod> Dungeons (DF)
 
-## [r118-4-g30af280](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/30af2800ef6b9000b762bc62807681d5c8970b00) (2024-01-27)
-[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r118...30af2800ef6b9000b762bc62807681d5c8970b00) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
+## [r119-13-ge07b23a](https://github.com/DeadlyBossMods/DBM-Dungeons/tree/e07b23a8cfd5bbc5ba3b11debd543ad18ef9d1ba) (2024-02-17)
+[Full Changelog](https://github.com/DeadlyBossMods/DBM-Dungeons/compare/r119...e07b23a8cfd5bbc5ba3b11debd543ad18ef9d1ba) [Previous Releases](https://github.com/DeadlyBossMods/DBM-Dungeons/releases)
 
-- note the last missing RP timer cause I keep forgetting to log  
-- Dawn of Infinite Update  
-     - Auto gossip option finally added for rift auto clicking  
-     - RP timer finally added to Tyr  
-     - Rp timer finally added to timelost battlefield  
-- Micro adjust many timers  
-- Add counts to primary abilities on kokia  
+- Update localization.tw.lua (#175)  
+- update to checkout 4  
+- Update README.md  
+- Update README.md  
+- Update README.md  
+- Update localization.ru.lua (#174)  
+- missed one  
+- Update luacheck  
+- Push unified world event mods to Dungeons repo, with automatic packaging and toc handling for each version of WoW  
+- Update koKR (#172)  
+    Co-authored-by: Artemis <QartemisT@gmail.com>  
+- Update localization.ru.lua (#171)  
+- Another timer tweak  
+- few dungeon updates  

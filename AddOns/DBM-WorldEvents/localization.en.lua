@@ -21,7 +21,8 @@ L:SetTimerLocalization{
 }
 
 L:SetOptionLocalization({
-	TrioActiveTimer		= "Show timers for when Apothecary Trio becomes active"
+	TrioActiveTimer		= "Show timers for when Apothecary Trio becomes active",
+	AGBoss				= "Auto select gossip to summon Apothecary Trio"
 })
 
 L:SetMiscLocalization({
@@ -146,6 +147,17 @@ L:SetOptionLocalization({
 L:SetMiscLocalization({
 	MassiveWave		= "A Massive Wave of Zombies is Approaching!"
 })
+
+-- Quest
+L = DBM:GetModLocalization("EscortQuests")
+
+L:SetGeneralLocalization{
+	name = "Escort Quests",
+}
+
+L:SetOptionLocalization{
+	Timers = "Show timers for some escort quests"
+}
 
 --------------------------
 --  Demonic Invasions  --

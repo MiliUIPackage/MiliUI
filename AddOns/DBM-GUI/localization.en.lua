@@ -514,7 +514,7 @@ L.Area_Cinematics					= "Block in-game cinematics"
 L.DuringFight						= "Block in combat cut scenes during boss encounters"--uses explicite IsEncounterInProgress check
 L.InstanceAnywhere					= "Block non combat cut scenes anywhere inside a dungeon or raid instance"
 L.NonInstanceAnywhere				= "DANGER: Block cut scenes in outdoor open world (NOT recommended)"
-L.OnlyAfterSeen						= "Only block cut scenes after they have been seen at least once (STRONGLY recommended, to experience story as intended at least once)"
+L.OnlyAfterSeen						= "Only block cut scenes, you selected to block, after they have been seen at least once. (To experience story as intended at least once, this option is strongly recommended)"
 --Sound
 L.Area_Sound						= "Block in-game sounds"
 L.DisableSFX						= "Disable sound effects channel during boss fights"
@@ -530,7 +530,7 @@ L.HideTooltips						= "Completely hide tooltips during boss fights"
 -- Panel: Raid Leader Controls
 L.Tab_RLControls					= "Raid Leader Controls"
 L.Area_FeatureOverrides				= "Feature Override Options"
-L.OverrideIcons 					= "Disable icon marking for all users in raid, including your own (Use override instead of disable if you want DBM to do marking under your terms)"
+L.OverrideIcons 					= "Disable icon marking for all users in raid, including your own"-- (Use override instead of disable if you want DBM to do marking under your terms)
 L.OverrideSay						= "Disable chat bubble/SAY messages for all users in the raid, including your own"
 L.DisableStatusWhisperShort			= "Disable status/reply whispers for the entire group"--Duplicated from privacy but makes sense to include option in both panels
 L.DisableGuildStatusShort			= "Disable progression messages from being synced to guild for the entire group"--Duplicated from privacy but makes sense to include option in both panels
@@ -585,7 +585,12 @@ L.NPAuraSize						= "Icon Pixel size (squared): %d"
 L.NPIcon_BarOffSetX 				= "Icon Offset X: %d"
 L.NPIcon_BarOffSetY 				= "Icon Offset Y: %d"
 L.NPIcon_GrowthDirection 			= "Icon Growth Direction"
+L.NPIcon_Spacing		 			= "Icon Spacing: %d"
+L.NPIcon_MaxTextLen		 			= "Max. Text Length: %d"
+L.NPIconAnchorPoint		 			= "Icon Anchor Point"
 L.NPDemo							= "Test (Be near nameplates)"
+L.FontTypeTimer						= "Select timer font"
+L.FontTypeText						= "Select text font"
 
 -- Misc
 L.Area_General						= "General"

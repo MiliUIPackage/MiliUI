@@ -1,6 +1,6 @@
 ## Interface: 100205
 ## X-Min-Interface: 100205
-## X-Min-Interface-Classic: 11500
+## X-Min-Interface-Classic: 11501
 ## X-Min-Interface-BCC: 20504
 ## X-Min-Interface-Wrath: 30403
 
@@ -16,7 +16,7 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 79d4301
+## Version: d3b6f97
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 

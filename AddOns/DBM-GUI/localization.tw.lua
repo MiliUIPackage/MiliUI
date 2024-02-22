@@ -508,7 +508,7 @@ L.Area_Cinematics					= "阻擋遊戲中的動畫"
 L.DuringFight						= "首領戰鬥時阻擋戰鬥過場動畫"--uses explicite IsEncounterInProgress check
 L.InstanceAnywhere					= "在地下城或團隊副本中的任何地方阻擋非戰鬥過場動畫"
 L.NonInstanceAnywhere				= "危險: 在室外開放世界阻擋過場動畫 (不建議)"
-L.OnlyAfterSeen						= "只在每次動畫播放一次之後阻擋 (強烈建議，至少體驗一次劇情)"
+L.OnlyAfterSeen						= "只有阻擋過場動畫，至少播放一次之後您選擇阻擋 (至少體驗一次劇情，強烈建議此選項)"
 --Sound
 L.Area_Sound						= "阻擋遊戲中聲音"
 L.DisableSFX						= "首領戰鬥時停用音效頻道"
@@ -524,7 +524,7 @@ L.HideTooltips						= "首領戰鬥時隱藏完全隱藏提示"
 -- Panel: Raid Leader Controls
 L.Tab_RLControls					= "團隊領隊控制項"
 L.Area_FeatureOverrides				= "功能覆蓋選項"
-L.OverrideIcons 					= "禁用團隊中所有玩家的圖示標記，包括我自己 (如果您希望DBM按您的原則進行標記，請使用覆蓋而不是禁用)"
+L.OverrideIcons 					= "禁用團隊中所有玩家的圖示標記，包括我自己" --(如果您希望DBM按您的原則進行標記，請使用覆蓋而不是禁用)
 L.OverrideSay						= "禁用團隊中所有玩家的聊天泡泡/說訊息，包含我自己"
 L.DisableStatusWhisperShort			= "禁用整個團隊的狀態/回覆密語"--Duplicated from privacy but makes sense to include option in both panels
 L.DisableGuildStatusShort			= "禁用整個團隊同步到公會的進度訊息"--Duplicated from privacy but makes sense to include option in both panels
@@ -578,7 +578,12 @@ L.NPAuraSize				= "光環像素大小 (平方): %d"
 L.NPIcon_BarOffSetX 		= "圖示水平偏移：%d"
 L.NPIcon_BarOffSetY 		= "圖示垂直偏移：%d"
 L.NPIcon_GrowthDirection 	= "圖示增長方向"
+L.NPIcon_Spacing		 	= "圖示間距: %d"
+L.NPIcon_MaxTextLen		 	= "最大文字長度: %d"
+L.NPIconAnchorPoint		 	= "圖示定位點"
 L.NPDemo					= "測試 (靠近名條)"
+L.FontTypeTimer				= "選擇計時器字體"
+L.FontTypeText				= "選擇文字字體"
 
 -- Misc
 L.Area_General				= "一般"

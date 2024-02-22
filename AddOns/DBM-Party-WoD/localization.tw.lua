@@ -152,6 +152,10 @@ L:SetMiscLocalization({
 -----------------------
 L= DBM:GetModLocalization(1210)
 
+L:SetMiscLocalization({
+	YalnuRP	= "我們一定要阻止這隻怪物，不能讓他逃脫！"
+})
+
 -----------------------
 -- Trash --
 -----------------------

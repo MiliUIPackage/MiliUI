@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240119065627")
+mod:SetRevision("20240221055819")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -15,7 +15,7 @@ mod:RegisterCombat("combat")
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 418187 420525 420947 421020 421292 420937 420671 420856 421029 418591 421024",
 	"SPELL_CAST_SUCCESS 418757",
-	"SPELL_AURA_APPLIED 420948 421022 425114 421298 418755 420858 421236 418720 421032 421031",
+	"SPELL_AURA_APPLIED 420948 421022 425114 421298 418755 420858 421236 418720 421032 421031 421029",
 	"SPELL_AURA_APPLIED_DOSE 421022 420858",
 	"SPELL_AURA_REMOVED 420948 421298 418755 420858 421236 418720 421292 421029 420525 421031",
 	"SPELL_PERIODIC_DAMAGE 426390",
@@ -42,10 +42,11 @@ local warnAgonizingClaws							= mod:NewStackAnnounce(421022, 2, nil, "Tank|Heal
 local warnUrsineRage								= mod:NewSpellAnnounce(425114, 4)--You done fucked up
 
 local specWarnBlindingRage							= mod:NewSpecialWarningCount(420525, nil, nil, nil, 2, 2)
-local specWarnBarrelingCharge						= mod:NewSpecialWarningCount(420948, nil, nil, nil, 1, 2)
+local specWarnBarrelingCharge						= mod:NewSpecialWarningCount(420948, nil, nil, nil, 1, 14)
 local specWarnBarrelingChargeSpecial				= mod:NewSpecialWarningMoveTo(420948, nil, nil, nil, 3, 14)
 local yellBarrelingCharge							= mod:NewShortYell(420948, 100, nil, nil, "YELL")
 local yellBarrelingChargeFades						= mod:NewShortFadesYell(420948, nil, nil, nil, "YELL")
+local specWarnAgonizingClaws						= mod:NewSpecialWarningTaunt(421022, nil, nil, 2, 1, 2)
 local specWarnTrampled								= mod:NewSpecialWarningTaunt(423420, nil, nil, nil, 1, 2)--Not grouped on purpose, so that it stays on diff WA key in GUI
 --local specWarnPyroBlast							= mod:NewSpecialWarningInterrupt(396040, "HasInterrupt", nil, nil, 1, 2)
 
@@ -144,7 +145,7 @@ local function specialInterrupted(self, spellId)
 			timerPoisonousJavelinCD:Start(21, self.vb.javCount+1)
 			--Pip
 			timerPolymorphBombCD:Stop()
-			timerPolymorphBombCD:Start(16, self.vb.polyCount+1)
+			timerPolymorphBombCD:Start(15.3, self.vb.polyCount+1)
 			timerEmeraldWindsCD:Start(43, self.vb.windsCount+1)
 		elseif self:IsNormal() then
 			--Urctos
@@ -208,7 +209,7 @@ local function specialInterrupted(self, spellId)
 end
 
 local function checkSong()
-	if playerSong then--Still have it, warn again
+	if playerSong and not DBM:UnitDebuff("player", 418720) then--Still have it, warn again
 		specWarnSongoftheDragon:Show(DBM_COMMON_L.POOL)
 		specWarnSongoftheDragon:Play("takedamage")
 	end
@@ -334,7 +335,7 @@ function mod:SPELL_CAST_START(args)
 		if self.vb.specialsActive == 0 then
 			--Is cast during specials, but Cd resets during them, twice, once on special begin and once again on special end
 			if castBeforeSpecial(self, 35) then--Extra large used cause there is a large gap between 2nd cast and specials now.
-				timerNoxiousBlossomCD:Start(self:IsLFR() and 29.3 or self:IsNormal() and 22 or 20.7, self.vb.blossomCount+1)
+				timerNoxiousBlossomCD:Start(self:IsLFR() and 29.3 or self:IsNormal() and 22 or 20, self.vb.blossomCount+1)
 			elseif self.vb.rageNext and castBeforeSpecial(self, 20) then
 				if self:IsMythic() then
 					if self.vb.vinesNext then
@@ -355,7 +356,6 @@ function mod:SPELL_CAST_START(args)
 			timerPoisonousJavelinCD:Start(self:IsLFR() and 33.3 or 25, self.vb.javCount+1)
 		end
 	elseif spellId == 421029 then
-		self.vb.specialsActive = self.vb.specialsActive + 1
 		self.vb.songCount = self.vb.songCount + 1
 		--Timers that specifically reset on song begin
 		if not self:IsMythic() then--Review further. It definitely still happens on normal though
@@ -435,18 +435,28 @@ function mod:SPELL_AURA_APPLIED(args)
 		local uId = DBM:GetRaidUnitId(args.destName)
 		if self:IsTanking(uId) then
 			local amount = args.amount or 1
---			local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
---			local remaining
---			if expireTime then
---				remaining = expireTime-GetTime()
---			end
---			local timer = (self:GetFromTimersTable(allTimers, difficultyName, false, 376279, self.vb.slamCount+1) or 17.9) - 5
---			if (not remaining or remaining and remaining < timer) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
---				specWarnConcussiveSlamTaunt:Show(args.destName)
---				specWarnConcussiveSlamTaunt:Play("tauntboss")
---			else
+			if self.Options.SpecWarn421022taunt2 and not args:IsPlayer() then
+				if self.vb.clawsCount % 2 == 1 then--1 and 3
+					specWarnAgonizingClaws:Show(args.destName)
+					specWarnAgonizingClaws:Play("tauntboss")
+				else--Claws 2 and 4 need additional safety check to avoid getting killed by charge
+					local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", 423420)
+					local remaining
+					if expireTime then
+						remaining = expireTime-GetTime()
+					end
+					--Don't taunt if charge is incoming and you can't take it cause you'll still have debuff
+					local timerLeft = timerBarrelingChargeCD:GetRemaining(self.vb.chargeCount+1) or 20
+					if (not remaining or remaining and remaining < timerLeft) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+						specWarnAgonizingClaws:Show(args.destName)
+						specWarnAgonizingClaws:Play("tauntboss")
+					else
+						warnAgonizingClaws:Show(args.destName, amount)
+					end
+				end
+			else
 				warnAgonizingClaws:Show(args.destName, amount)
---			end
+			end
 		end
 	elseif spellId == 425114 then
 		warnUrsineRage:Show()
@@ -494,9 +504,22 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	elseif spellId == 421031 and args:IsPlayer() then
 		playerSong = true
-		specWarnSongoftheDragon:Show(DBM_COMMON_L.POOL)
-		specWarnSongoftheDragon:Play("takedamage")
+		if not DBM:UnitDebuff("player", 418720) then
+			specWarnSongoftheDragon:Show(DBM_COMMON_L.POOL)
+			specWarnSongoftheDragon:Play("takedamage")
+		end
 		self:Schedule(6, checkSong, self)--Schedule 2nd warning half way through debuff
+	elseif spellId == 421029 then
+		--Song isn't active until buff goes up, so if you interrupt bear SUPER fast, you can early terminate a combo on mythic
+		--Log referencing bug behavior if
+		--https://www.warcraftlogs.com/reports/MV98mgGfX4yPYQHr#fight=last&pins=2%24Off%24%23244F4B%24expression%24(ability.id%20%3D%20418187%20or%20ability.id%20%3D%20420525%20or%20ability.id%20%3D%20420947%20or%20ability.id%20%3D%20421020%20or%20ability.id%20%3D%20421292%20or%20ability.id%20%3D%20420937%20or%20ability.id%20%3D%20420671%20or%20ability.id%20%3D%20420856%20or%20ability.id%20%3D%20421029%20or%20ability.id%20%3D%20418591%20or%20ability.id%20%3D%20421024)%20and%20type%20%3D%20%22begincast%22%20%20or%20ability.id%20%3D%20418755%20or%20ability.id%20%3D%20421292%20or%20ability.id%20%3D%20421029%20or%20ability.id%20%3D%20420525%20or%20ability.id%20%3D%20418757%20and%20type%20%3D%20%22cast%22&view=events
+		--So don't intecfremnt specials active count if we recently ended a special phase early due to above bug
+		--Song is never cast first, specials active should always be 1 unless SUPER early bear interrupt
+		if self:IsMythic() and self.vb.specialsActive == 0 and castBeforeSpecial(self, 50) then
+			DBM:ShowTestSpecialWarning("Special phase terminated early due to blizzard bug!", 3, nil, true)
+		else
+			self.vb.specialsActive = self.vb.specialsActive + 1
+		end
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
@@ -509,8 +532,20 @@ function mod:SPELL_AURA_REMOVED(args)
 		if args:IsPlayer() then
 			yellBarrelingChargeFades:Cancel()
 		else
-			specWarnTrampled:Show(args.destName)
-			specWarnTrampled:Play("tauntboss")
+			--Only show taunt warning after charge, if the tank who took charge would die to claws 3
+			local uId = DBM:GetRaidUnitId(args.destName)
+			if uId then
+				local _, _, _, _, _, expireTime = DBM:UnitDebuff(uId, 421022)--Claws debuff
+				local remaining
+				if expireTime then
+					remaining = expireTime-GetTime()
+				end
+				local timerLeft = timerAgonizingClawsCD:GetRemaining(self.vb.clawsCount+1) or 20
+				if (not remaining or remaining and remaining < timerLeft) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+					specWarnTrampled:Show(args.destName)
+					specWarnTrampled:Play("tauntboss")
+				end
+			end
 		end
 	elseif spellId == 421298 then
 		timerConstrictingThicket:Stop()

@@ -22,7 +22,8 @@ L:SetTimerLocalization({
 })
 
 L:SetOptionLocalization({
-	TrioActiveTimer		= "為藥劑師三人組開始活動顯示計時器"
+	TrioActiveTimer		= "為藥劑師三人組開始活動顯示計時器",
+	AGBoss				= "自動選擇對話以召喚藥劑師三人組"
 })
 
 L:SetMiscLocalization({

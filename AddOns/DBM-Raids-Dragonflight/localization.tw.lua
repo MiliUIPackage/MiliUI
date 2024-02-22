@@ -299,3 +299,7 @@ L = DBM:GetModLocalization("AmirdrassilTrash")
 L:SetGeneralLocalization({
 	name =	"埃達希爾小怪"
 })
+
+L:SetMiscLocalization({
+	FyrakkRP			= "又來了。可惜我沒時間親自動手。"
+})
