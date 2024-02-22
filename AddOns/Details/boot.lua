@@ -18,8 +18,8 @@
 		local addonName, Details222 = ...
 		local version, build, date, tocversion = GetBuildInfo()
 
-		Details.build_counter = 12256
-		Details.alpha_build_counter = 12256 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12330
+		Details.alpha_build_counter = 12330 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -158,9 +158,33 @@ do
 
 	--change logs
 	--[=[
+		12329
+		"Frame for 'Ask to Erase Data' can now be moved.",
+		"Small bug fixes and continued development on End of Mythic+ Panel.",
 	--]=]
 
 	local news = {
+		{"v10.2.5.12329.155", "February 18th, 2024"},
+		"Frame for 'Ask to Erase Data' can now be moved.",
+		"Small bug fixes and continued development on End of Mythic+ Panel.",
+
+		{"v10.2.5.12307.155", "February 13th, 2024"},
+		"Fixed the deaths display, where the windows wasn't usig custom text scripts.",
+		"Fixed an issue with custom displays, where it was unable to use class colors in their texts.",
+		"More development and bug fixes on the new Mythic+ Run Completion panel.",
+		"Framework Update.",
+
+		{"v10.2.5.12294.155", "February 08th, 2024"},
+		"General fixes applied to the Mythic+ Panel.",
+		"The Mythic+ section in the options panel can now be translated.",
+		"More fixes for text color.",
+
+		{"v10.2.5.12281.155", "February 07th, 2024"},
+		"Released the new panel for the Mythic+ Run Completion.",
+		"The list of Crowd Control spells is now sourced from the Lib Open Raid.",
+		"Fixed an issue where the Player Color feature wouldn't work properly if not using class colors.",
+		"Fixed an error with Vanilla, where it was trying to access talent data from Retail.",
+
 		{"v10.2.5.12255.155", "February 04th, 2024"},
 		"Dungeon followers now correctly show into the damage done section.",
 		"Fixed an error while statusbar plugin options.",
@@ -624,6 +648,7 @@ do
 		--armazena as skins dispon�veis para as janelas
 			_detalhes.skins = {}
 		--armazena os hooks das fun��es do parser
+			---@type table<detailshook, function[]>
 			_detalhes.hooks = {}
 		--informa��es sobre a luta do boss atual
 			_detalhes.encounter_end_table = {}

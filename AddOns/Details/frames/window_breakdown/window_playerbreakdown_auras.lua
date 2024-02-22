@@ -176,18 +176,18 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
         return newTitleDescFrame
     end
 
-    local buffLabel = detailsFramework:CreateLabel(frame, "Buff Name")
+    local buffLabel = detailsFramework:CreateLabel(frame, Loc["Buff Name"])
     buffLabel:SetPoint(headerOffsetsBuffs[1], -10)
-    local uptimeLabel = detailsFramework:CreateLabel(frame, "Uptime")
+    local uptimeLabel = detailsFramework:CreateLabel(frame, Loc["Uptime"])
     uptimeLabel:SetPoint(headerOffsetsBuffs[2], -10)
 
     local appliedLabel = detailsFramework:CreateLabel(frame, "A")
     appliedLabel:SetPoint(headerOffsetsBuffs[3], -10)
-    createTitleDesc_Frame(appliedLabel.widget, "applications")
+    createTitleDesc_Frame(appliedLabel.widget, Loc["applications"])
 
     local refreshedLabel = detailsFramework:CreateLabel(frame, "R")
     refreshedLabel:SetPoint(headerOffsetsBuffs[4], -10)
-    createTitleDesc_Frame(refreshedLabel.widget, "refreshes")
+    createTitleDesc_Frame(refreshedLabel.widget, Loc["refreshes"])
 
     local buffScroll = detailsFramework:CreateScrollBox(frame, "$parentBuffUptimeScroll", scrollRefreshBuffs, {}, scroll_width, scrollHeight, scroll_line_amount, scroll_line_height)
     buffScroll:SetPoint("topleft", frame, "topleft", 5, -30)
@@ -198,19 +198,19 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
     detailsFramework:ReskinSlider(buffScroll)
     tab.BuffScroll = buffScroll
 
-    local debuffLabel = detailsFramework:CreateLabel(frame, "Debuff Name")
+    local debuffLabel = detailsFramework:CreateLabel(frame, Loc["Debuff Name"])
     debuffLabel:SetPoint(headerOffsetsDebuffs[1], -10)
 
-    local uptimeLabel2 = detailsFramework:CreateLabel(frame, "Uptime")
+    local uptimeLabel2 = detailsFramework:CreateLabel(frame, Loc["Uptime"])
     uptimeLabel2:SetPoint(headerOffsetsDebuffs[2], -10)
 
     local appliedLabel2 = detailsFramework:CreateLabel(frame, "A")
     appliedLabel2:SetPoint(headerOffsetsDebuffs[3], -10)
-    createTitleDesc_Frame(appliedLabel2.widget, "applications")
+    createTitleDesc_Frame(appliedLabel2.widget, Loc["applications"])
 
     local refreshedLabel2 = detailsFramework:CreateLabel(frame, "R")
     refreshedLabel2:SetPoint(headerOffsetsDebuffs[4], -10)
-    createTitleDesc_Frame(refreshedLabel2.widget, "refreshes")
+    createTitleDesc_Frame(refreshedLabel2.widget, Loc["refreshes"])
 
     local debuffScroll = detailsFramework:CreateScrollBox(frame, "$parentDebuffUptimeScroll", scrollRefreshBuffs, {}, scroll_width, scrollHeight, scroll_line_amount, scroll_line_height)
     debuffScroll:SetPoint("topleft", frame, "topleft", debuffScrollStartX, -30)
@@ -303,7 +303,7 @@ function Details:InitializeAurasTab()
     end
 
     Details:CreatePlayerDetailsTab("Auras", --[1] tab name
-        "Auras",  --[2] localized name
+        Loc["Auras"],  --[2] localized name
         function(tabOBject, playerObject)  --[3] condition
             return true
         end,

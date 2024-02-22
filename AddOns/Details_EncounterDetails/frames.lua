@@ -487,7 +487,7 @@ do
 			segmentDropdown:SetTemplate(detailsFramework:GetTemplate("dropdown", "OPTIONS_DROPDOWN_TEMPLATE"))
 
 			--options button
-			local optionsButton = detailsFramework:NewButton(edFrame, nil, "$parentOptionsButton", "OptionsButton", 120, 20, encounterDetails.OpenOptionsPanel, nil, nil, nil, "Options")
+			local optionsButton = detailsFramework:NewButton(edFrame, nil, "$parentOptionsButton", "OptionsButton", 120, 20, encounterDetails.OpenOptionsPanel, nil, nil, nil, Loc["Options"])
 			optionsButton:SetPoint("left", segmentDropdown, "right", 10, 0)
 			optionsButton:SetTemplate(detailsFramework:GetTemplate("button", "DETAILS_PLUGIN_BUTTON_TEMPLATE"))
 			optionsButton:SetIcon([[Interface\Buttons\UI-OptionsButton]], 14, 14, nil, {0, 1, 0, 1}, nil, 3)

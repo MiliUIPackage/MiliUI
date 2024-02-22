@@ -132,10 +132,10 @@ function phaseFrame.OnSelectPhase(phaseSelected)
 	phaseFrame:UpdatePhaseBars()
 end
 
-local PhaseSelectLabel = detailsFramework:CreateLabel(phaseFrame, "Select Phase:", 12, "orange")
-local DamageLabel = detailsFramework:CreateLabel(phaseFrame, "Damage Done")
-local HealLabel = detailsFramework:CreateLabel(phaseFrame, "Healing Done")
-local PhaseTimersLabel = detailsFramework:CreateLabel(phaseFrame, "Time Spent on Each Phase")
+local PhaseSelectLabel = detailsFramework:CreateLabel(phaseFrame, Loc["Select Phase:"], 14, "orange")
+local DamageLabel = detailsFramework:CreateLabel(phaseFrame, Loc["Damage Done"])
+local HealLabel = detailsFramework:CreateLabel(phaseFrame, Loc["Healing Done"])
+local PhaseTimersLabel = detailsFramework:CreateLabel(phaseFrame, Loc["Time Spent on Each Phase"])
 
 local report_damage = function(IsCurrent, IsReverse, AmtLines)
 	local result = {}
@@ -149,7 +149,7 @@ local report_damage = function(IsCurrent, IsReverse, AmtLines)
 		encounterDetails:SendReportLines(result)
 	end
 
-	table.insert(result, "Details!: Damage for Phase " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
+	table.insert(result, Loc["Details!: Damage for Phase "] .. phaseFrame.LastPhaseSelected .. Loc[" of "] ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or Loc["Unknown"]) .. ":")
 	for i = 1, #phaseFrame.DamageTable do
 		table.insert(result, encounterDetails:GetOnlyName(phaseFrame.DamageTable[i][1]) .. ": " .. Details:ToK(math.floor(phaseFrame.DamageTable[i][2])))
 	end
@@ -157,10 +157,10 @@ local report_damage = function(IsCurrent, IsReverse, AmtLines)
 	encounterDetails:SendReportWindow(reportFunc, nil, nil, true)
 end
 
-local Report_DamageButton = detailsFramework:CreateButton(phaseFrame, report_damage, 16, 16, "report")
+local Report_DamageButton = detailsFramework:CreateButton(phaseFrame, report_damage, 16, 16, Loc["report"])
 Report_DamageButton:SetPoint("left", DamageLabel, "left", scrollWidth-44, 0)
 Report_DamageButton.textcolor = "gray"
-Report_DamageButton.textsize = 9
+Report_DamageButton.textsize = 12
 
 local report_healing = function()
 	local result = {}
@@ -174,17 +174,17 @@ local report_healing = function()
 		encounterDetails:SendReportLines(result)
 	end
 
-	table.insert(result, "Details!: Healing for Phase " .. phaseFrame.LastPhaseSelected .. " of " ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or "Unknown") .. ":")
+	table.insert(result, Loc["Details!: Healing for Phase "] .. phaseFrame.LastPhaseSelected .. Loc[" of "] ..(phaseFrame.CurrentSegment and phaseFrame.CurrentSegment.is_boss and phaseFrame.CurrentSegment.is_boss.name or Loc["Unknown"]) .. ":")
 	for i = 1, #phaseFrame.HealingTable do
 		table.insert(result, encounterDetails:GetOnlyName(phaseFrame.HealingTable[i][1]) .. ": " .. Details:ToK(math.floor(phaseFrame.HealingTable[i][2])))
 	end
 
 	encounterDetails:SendReportWindow(reportFunc, nil, nil, true)
 end
-local Report_HealingButton = detailsFramework:CreateButton(phaseFrame, report_healing, 16, 16, "report")
+local Report_HealingButton = detailsFramework:CreateButton(phaseFrame, report_healing, 16, 16, Loc["report"])
 Report_HealingButton:SetPoint("left", HealLabel, "left", scrollWidth-44, 0)
 Report_HealingButton.textcolor = "gray"
-Report_HealingButton.textsize = 9
+Report_HealingButton.textsize = 12
 
 
 PhaseSelectLabel:SetPoint("topleft", phaseFrame, "topleft", 10, phasesY)
@@ -423,7 +423,7 @@ function phaseFrame:UpdatePhaseBars()
 	local i = 1
 	for index, phase in ipairs(timers) do
 		local timer = hash[phase]
-		phaseFrame.PhasesBars[i].name:SetText("|cFFC0C0C0Phase:|r |cFFFFFFFF" .. phase)
+		phaseFrame.PhasesBars[i].name:SetText(Loc["|cFFC0C0C0Phase:|r |cFFFFFFFF"] .. phase)
 		phaseFrame.PhasesBars[i].done:SetText(detailsFramework:IntegerToTimer(timer))
 		phaseFrame.PhasesBars[i].phase = phase
 		phaseFrame.PhasesBars[i]:Show()
@@ -447,18 +447,18 @@ function phaseFrame:UpdateSegmentCompareBars(phase)
 
 			if (timers [phase]) then
 				if (segment ~= segmentTable) then
-					bar.name:SetText("Segment " .. i .. ":")
+					bar.name:SetText(Loc["Segment "] .. i .. ":")
 					detailsFramework:SetFontColor(bar.name, "orange")
 					bar.done:SetText(detailsFramework:IntegerToTimer(timers [phase]))
 					detailsFramework:SetFontColor(bar.done, "orange")
 				else
-					bar.name:SetText("Segment " .. i .. ":")
+					bar.name:SetText(Loc["Segment "] .. i .. ":")
 					detailsFramework:SetFontColor(bar.name, "white")
 					bar.done:SetText(detailsFramework:IntegerToTimer(timers [phase]))
 					detailsFramework:SetFontColor(bar.done, "white")
 				end
 			else
-				bar.name:SetText("Segment " .. i .. ":")
+				bar.name:SetText(Loc["Segment "] .. i .. ":")
 				detailsFramework:SetFontColor(bar.name, "red")
 				bar.done:SetText("--x--x--")
 			end

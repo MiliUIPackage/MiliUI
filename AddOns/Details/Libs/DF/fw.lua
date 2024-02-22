@@ -1,6 +1,6 @@
 
 
-local dversion = 510
+local dversion = 515
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -520,6 +520,10 @@ function DF:RandomBool(odds)
 	else
 		return math.random(1, 2) == 1
 	end
+end
+
+function DF:SetTexCoordFromAtlasInfo(texture, atlasInfo)
+	texture:SetTexCoord(atlasInfo.leftTexCoord, atlasInfo.rightTexCoord, atlasInfo.topTexCoord, atlasInfo.bottomTexCoord)
 end
 
 ------------------------------------------------------------------------------------------------------------
@@ -2061,16 +2065,16 @@ end
 		IsColorTable = true,
 	}
 
-	--takes in a color in one format and converts it to another specified format.
-	--here are the parameters it accepts:
-	--newFormat (string): The format to convert the color to. It can be one of the following: "commastring", "tablestring", "table", "tablemembers", "numbers", "hex".
-	--r (number|string): The red component of the color or a string representing the color.
-	--g (number|nil): The green component of the color. This is optional if r is a string.
-	--b (number|nil): The blue component of the color. This is optional if r is a string.
-	--a (number|nil): The alpha component of the color. This is optional and defaults to 1 if not provided.
-	--decimalsAmount (number|nil): The number of decimal places to round the color components to. This is optional and defaults to 4 if not provided.
-	--The function returns the color in the new format. The return type depends on the newFormat parameter. It can be a string, a table, or four separate number values (for the "numbers" format). 
-	--For the "hex" format, it returns a string representing the color in hexadecimal format.	
+	---* takes in a color in one format and converts it to another specified format.
+	---* here are the parameters it accepts:
+	---* newFormat (string): The format to convert the color to. It can be one of the following: "commastring", "tablestring", "table", "tablemembers", "numbers", "hex".
+	---* r (number|string): The red component of the color or a string representing the color.
+	---* g (number|nil): The green component of the color. This is optional if r is a string.
+	---* b (number|nil): The blue component of the color. This is optional if r is a string.
+	---* a (number|nil): The alpha component of the color. This is optional and defaults to 1 if not provided.
+	---* decimalsAmount (number|nil): The number of decimal places to round the color components to. This is optional and defaults to 4 if not provided.
+	---* The function returns the color in the new format. The return type depends on the newFormat parameter. It can be a string, a table, or four separate number values (for the "numbers" format). 
+	---* For the "hex" format, it returns a string representing the color in hexadecimal format.	
 	---@param newFormat string
 	---@param r number|string
 	---@param g number|nil
@@ -2522,6 +2526,28 @@ DF.dropdown_templates["OPTIONS_DROPDOWNDARK_TEMPLATE"] = {
 	dropiconpoints = {-2, -3},
 }
 
+DF.dropdown_templates["OLD_DROPDOWN_TEMPLATE"] = {
+	height = 24,
+
+	backdrop = {
+		edgeFile = "Interface\\Buttons\\UI-SliderBar-Border",
+		edgeSize = 8,
+		bgFile = [[Interface\Tooltips\UI-Tooltip-Background]],
+		tileSize = 64,
+		tile = true,
+		insets = {left = 4, right = 4, top = 4, bottom = 4}
+	},
+
+	backdropcolor = {0.1215, 0.1176, 0.1294, 0.4000},
+	backdropbordercolor = {1, 1, 1, 1},
+	onentercolor = {.5, .5, .5, .9},
+	onenterbordercolor = {1, 1, 1, 1},
+
+	dropicon = "Interface\\BUTTONS\\arrow-Down-Down",
+	dropiconsize = {16, 16},
+	dropiconpoints = {-2, -3},
+}
+
 --switches
 DF.switch_templates = DF.switch_templates or {}
 DF.switch_templates["OPTIONS_CHECKBOX_TEMPLATE"] = {
@@ -2534,6 +2560,23 @@ DF.switch_templates["OPTIONS_CHECKBOX_TEMPLATE"] = {
 	disabled_backdropcolor = {1, 1, 1, .2},
 	onenterbordercolor = {1, 1, 1, 1},
 }
+
+DF.switch_templates["OPTIONS_CIRCLECHECKBOX_TEMPLATE"] = {
+	width = 18,
+	height = 18,
+	is_checkbox = true, --will call SetAsCheckBox()
+	checked_texture = [[Interface\CHARACTERFRAME\TempPortraitAlphaMaskSmall]],
+	checked_size_percent = 0.7,
+	checked_xoffset = 0,
+	checked_yoffset = 0,
+	checked_color = "dark3",
+	rounded_corner = {
+		color = {.075, .075, .075, 1},
+		border_color = {.2, .2, .2, 1},
+		roundness = 8,
+	},
+}
+
 DF.switch_templates["OPTIONS_CHECKBOX_BRIGHT_TEMPLATE"] = {
 	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
 	backdropcolor = {1, 1, 1, .5},
@@ -2551,6 +2594,14 @@ DF.button_templates["OPTIONS_BUTTON_TEMPLATE"] = {
 	backdrop = {edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true},
 	backdropcolor = {1, 1, 1, .5},
 	backdropbordercolor = {0, 0, 0, 1},
+}
+
+DF.button_templates["OPTIONS_CIRCLEBUTTON_TEMPLATE"] = {
+	rounded_corner = {
+		color = {.075, .075, .075, 1},
+		border_color = {.2, .2, .2, 1},
+		roundness = 8,
+	},
 }
 
 DF.button_templates["OPTIONS_BUTTON_GOLDENBORDER_TEMPLATE"] = {
@@ -2797,9 +2848,30 @@ function DF:CreateAnimationHub(parent, onPlay, onFinished)
 	return newAnimation
 end
 
-function DF:CreateAnimation(animation, animationType, order, duration, arg1, arg2, arg3, arg4, arg5, arg6, arg7)
-	local anim = animation:CreateAnimation(animationType)
-	anim:SetOrder(order or animation.NextAnimation)
+---* Create a new animation for an animation hub or group.
+---* Alpha: CreateAnimation(animGroup, "Alpha", order, duration, fromAlpha, toAlpha).
+---* Scale: CreateAnimation(animGroup, "Scale", order, duration, fromScaleX, fromScaleY, toScaleX, toScaleY, originPoint, x, y).
+---* Translation: CreateAnimation(animGroup, "Translation", order, duration, xOffset, yOffset).
+---* Rotation: CreateAnimation(animGroup, "Rotation", order, duration, degrees, originPoint, x, y).
+---* Path: CreateAnimation(animGroup, "Path", order, duration, xOffset, yOffset, curveType).
+---* VertexColor: CreateAnimation(animGroup, "VertexColor", order, duration, r1, g1, b1, a1, r2, g2, b2, a2).
+---@param animationGroup animationgroup
+---@param animationType animationtype
+---@param order number
+---@param duration number
+---@param arg1 any
+---@param arg2 any
+---@param arg3 any
+---@param arg4 any
+---@param arg5 any
+---@param arg6 any
+---@param arg7 any
+---@param arg8 any
+---@return animation
+function DF:CreateAnimation(animationGroup, animationType, order, duration, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8)
+	---@type animation
+	local anim = animationGroup:CreateAnimation(animationType)
+	anim:SetOrder(order or animationGroup.NextAnimation)
 	anim:SetDuration(duration)
 
 	animationType = string.upper(animationType)
@@ -2824,9 +2896,33 @@ function DF:CreateAnimation(animation, animationType, order, duration, arg1, arg
 
 	elseif (animationType == "TRANSLATION") then
 		anim:SetOffset(arg1, arg2)
+
+	elseif (animationType == "PATH") then
+		local newControlPoint = anim:CreateControlPoint()
+		anim:SetCurveType(arg4 or "SMOOTH")
+		newControlPoint:SetOffset(arg2, arg3)
+		newControlPoint:SetOrder(#anim:GetControlPoints())
+
+	elseif (animationType == "VERTEXCOLOR" or animationType == "COLOR") then
+		local r1, g1, b1, a1 = arg1, arg2, arg3, arg4
+		local r2, g2, b2, a2 = arg5, arg6, arg7, arg8
+
+		if ((type(r1) == "table" or type(r1) == "string") and (type(g1) == "table" or type(g1) == "string")) then
+			r2, g2, b2, a2 = DF:ParseColors(g1)
+			r1, g1, b1, a1 = DF:ParseColors(r1)
+
+		elseif ((type(r1) == "table" or type(r1) == "string")) then
+			r1, g1, b1, a1 = DF:ParseColors(r1)
+
+		elseif ((type(r2) == "table" or type(r2) == "string")) then
+			r2, g2, b2, a2 = DF:ParseColors(r2)
+		end
+
+		anim:SetStartColor(CreateColor(r1, g1, b1, a1))
+		anim:SetEndColor(CreateColor(r2, g2, b2, a2))
 	end
 
-	animation.NextAnimation = animation.NextAnimation + 1
+	animationGroup.NextAnimation = animationGroup.NextAnimation + 1
 	return anim
 end
 
@@ -3070,7 +3166,7 @@ local frameshake_play = function(parent, shakeObject, scaleDirection, scaleAmpli
 		--update the amount of shake running on this frame
 		parent.__frameshakes.enabled = parent.__frameshakes.enabled + 1
 
-		if (not parent:GetScript("OnUpdate")) then
+		if (parent:HasScript("OnUpdate") and not parent:GetScript("OnUpdate")) then
 			parent:SetScript("OnUpdate", function()end)
 		end
 	end
@@ -3104,7 +3200,7 @@ local frameshake_SetConfig = function(parent, shakeObject, duration, amplitude, 
 	shakeObject.OriginalDuration = shakeObject.Duration
 end
 
----@class frameshake : table
+---@class df_frameshake : table
 ---@field Amplitude number
 ---@field Frequency number
 ---@field Duration number
@@ -3121,9 +3217,9 @@ end
 ---@field OriginalFrequency number
 ---@field OriginalAmplitude number
 ---@field OriginalDuration number
----@field PlayFrameShake fun(parent:uiobject, shakeObject:frameshake, scaleDirection:number?, scaleAmplitude:number?, scaleFrequency:number?, scaleDuration:number?)
----@field StopFrameShake fun(parent:uiobject, shakeObject:frameshake)
----@field SetFrameShakeSettings fun(parent:uiobject, shakeObject:frameshake, duration:number?, amplitude:number?, frequency:number?, absoluteSineX:boolean?, absoluteSineY:boolean?, scaleX:number?, scaleY:number?, fadeInTime:number?, fadeOutTime:number?)
+---@field PlayFrameShake fun(parent:uiobject, shakeObject:df_frameshake, scaleDirection:number?, scaleAmplitude:number?, scaleFrequency:number?, scaleDuration:number?)
+---@field StopFrameShake fun(parent:uiobject, shakeObject:df_frameshake)
+---@field SetFrameShakeSettings fun(parent:uiobject, shakeObject:df_frameshake, duration:number?, amplitude:number?, frequency:number?, absoluteSineX:boolean?, absoluteSineY:boolean?, scaleX:number?, scaleY:number?, fadeInTime:number?, fadeOutTime:number?)
 
 ---create a frame shake object
 ---@param parent uiobject
@@ -3137,7 +3233,7 @@ end
 ---@param fadeInTime number?
 ---@param fadeOutTime number?
 ---@param anchorPoints table?
----@return frameshake
+---@return df_frameshake
 function DF:CreateFrameShake(parent, duration, amplitude, frequency, absoluteSineX, absoluteSineY, scaleX, scaleY, fadeInTime, fadeOutTime, anchorPoints)
 	--create the shake table
 	local frameShake = {
@@ -3905,7 +4001,7 @@ function DF:GetClassSpecIds(engClass) --naming conventions
 end
 
 local dispatch_error = function(context, errortext)
-	DF:Msg( (context or "<no context>") .. " |cFFFF9900error|r: " .. (errortext or "<no error given>"))
+	error((context or "") .. (errortext or ""))
 end
 
 --call a function with payload, if the callback doesn't exists, quit silently
@@ -3930,23 +4026,8 @@ end
 ---@param ... any
 ---@return any
 function DF:Dispatch(func, ...)
-	if (type(func) ~= "function") then
-		return dispatch_error(_, "DetailsFramework:Dispatch(func) expect a function as parameter 1.")
-	end
+	assert(type(func) == "function", "DetailsFramework:Dispatch(func) expect a function as parameter 1. Received: " .. type(func) .. " instead.")
 	return select(2, xpcall(func, geterrorhandler(), ...))
-
-	--[=[
-		local dispatchResult = {xpcall(func, geterrorhandler(), ...)}
-		local okay = dispatchResult[1]
-
-		if (not okay) then
-			return false
-		end
-
-		tremove(dispatchResult, 1)
-
-		return unpack(dispatchResult)
-	--]=]
 end
 
 --[=[

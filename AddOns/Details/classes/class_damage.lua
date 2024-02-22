@@ -327,6 +327,29 @@ function Details.Sort4Reverse(table1, table2) --[[exported]]
 	return table1[4] < table2[4]
 end
 
+function Details:GetTextColor(instanceObject, textSide)
+	local actorObject = self
+	textSide = textSide or "left"
+
+	local bUseClassColor = false
+	if (textSide == "left") then
+		bUseClassColor = instanceObject.row_info.textL_class_colors
+	elseif (textSide == "right") then
+		bUseClassColor = instanceObject.row_info.textR_class_colors
+	end
+
+	if (bUseClassColor) then
+		local actorClass = actorObject.classe or "UNKNOW"
+		if (actorClass == "UNKNOW") then
+			return unpack(instanceObject.row_info.fixed_text_color)
+		else
+			return unpack(Details.class_colors[actorClass])
+		end
+	else
+		return unpack(instanceObject.row_info.fixed_text_color)
+	end
+end
+
 function Details:GetBarColor(actor) --[[exported]]
 	actor = actor or self
 
@@ -2653,7 +2676,7 @@ eventListener:RegisterEvent("COMBAT_PLAYER_ENTER", function()
 	end
 end)
 
-local actor_class_color_r, actor_class_color_g, actor_class_color_b
+local classColor_Red, classColor_Green, classColor_Blue
 
 -- ~texts
 --[[exported]] function Details:SetInLineTexts(thisLine, valueText, perSecondText, percentText)
@@ -2992,7 +3015,7 @@ function damageClass:RefreshLine(instanceObject, lineContainer, whichRowLine, ra
 		bForceRefresh = true
 	end
 
-	actor_class_color_r, actor_class_color_g, actor_class_color_b = self:GetBarColor()
+	classColor_Red, classColor_Green, classColor_Blue = self:GetBarColor()
 
 	return self:RefreshLineValue(thisLine, instanceObject, previousData, bForceRefresh, percentNumber, bUseAnimations, total, instanceObject.top)
 end
@@ -3171,9 +3194,12 @@ function Details:SetBarLeftText(bar, instance, enemy, arenaEnemy, arenaAlly, usi
 		barNumber = bar.colocacao .. ". "
 	end
 
-	--translate cyrillic alphabet to western alphabet by Vardex (https://github.com/Vardex May 22, 2019)
 	if (instance.row_info.textL_translit_text) then
-		self.displayName = Translit:Transliterate(self.displayName, "!")
+		if (not self.transliteratedName) then
+			--translate cyrillic alphabet to western alphabet by Vardex (https://github.com/Vardex May 22, 2019)
+			self.transliteratedName = Translit:Transliterate(self.displayName, "!")
+		end
+		self.displayName = self.transliteratedName or self.displayName
 	end
 
 	if (enemy) then
@@ -3249,7 +3275,12 @@ end
 function Details:SetBarColors(bar, instance, r, g, b, a) --[[exported]] --~colors
 	a = a or 1
 
-	if (instance.row_info.texture_class_colors) then
+	local bUseClassColor = instance.row_info.texture_class_colors
+
+	if (self.customColor) then
+		bar.textura:SetVertexColor(r, g, b, a)
+
+	elseif (bUseClassColor) then
 		if (self.classe == "UNGROUPPLAYER") then
 			if (self.spec) then
 				local specId, specName, specDescription, specIcon, specRole, specClass = DetailsFramework.GetSpecializationInfoByID(self.spec)
@@ -3259,6 +3290,9 @@ function Details:SetBarColors(bar, instance, r, g, b, a) --[[exported]] --~color
 			end
 		end
 		bar.textura:SetVertexColor(r, g, b, a)
+	else
+		r, g, b, a = unpack(instance.row_info.fixed_texture_color)
+		bar.textura:SetVertexColor(r, g, b, a)
 	end
 
 	if (instance.row_info.texture_background_class_color) then
@@ -3266,18 +3300,23 @@ function Details:SetBarColors(bar, instance, r, g, b, a) --[[exported]] --~color
 	end
 
 	if (instance.row_info.textL_class_colors) then
-		bar.lineText1:SetTextColor(r, g, b, a)
+		local textColor_Red, textColor_Green, textColor_Blue = self:GetTextColor(instance, "left")
+		bar.lineText1:SetTextColor(textColor_Red, textColor_Green, textColor_Blue) --the r, g, b color passed are the color used on the bar, so if the bar is not using class color, the text is painted with the fixed color for the bar
 	end
 
 	if (instance.row_info.textR_class_colors) then
-		bar.lineText2:SetTextColor(r, g, b, a)
-		bar.lineText3:SetTextColor(r, g, b, a)
-		bar.lineText4:SetTextColor(r, g, b, a)
+		local textColor_Red, textColor_Green, textColor_Blue = self:GetTextColor(instance, "right")
+		bar.lineText2:SetTextColor(textColor_Red, textColor_Green, textColor_Blue)
+		bar.lineText3:SetTextColor(textColor_Red, textColor_Green, textColor_Blue)
+		bar.lineText4:SetTextColor(textColor_Red, textColor_Green, textColor_Blue)
 	end
 
 	if (instance.row_info.backdrop.use_class_colors) then
 		--get the alpha from the border color
 		local alpha = instance.row_info.backdrop.color[4]
+		if (not bUseClassColor) then
+			r, g, b = self:GetClassColor()
+		end
 		bar.lineBorder:SetVertexColor(r, g, b, alpha)
 	end
 end
@@ -3360,8 +3399,8 @@ function Details:SetClassIcon(texture, instance, class) --[[exported]] --~icons
 	elseif (class == "PET") then
 		texture:SetTexture(instance and instance.row_info.icon_file or [[Interface\AddOns\Details\images\classes_small]])
 		texture:SetTexCoord(0.25, 0.49609375, 0.75, 1)
-		actor_class_color_r, actor_class_color_g, actor_class_color_b = DetailsFramework:ParseColors(actor_class_color_r, actor_class_color_g, actor_class_color_b)
-		texture:SetVertexColor(actor_class_color_r, actor_class_color_g, actor_class_color_b)
+		classColor_Red, classColor_Green, classColor_Blue = DetailsFramework:ParseColors(classColor_Red, classColor_Green, classColor_Blue)
+		texture:SetVertexColor(classColor_Red, classColor_Green, classColor_Blue)
 
 	else
 		if (instance and instance.row_info.use_spec_icons) then
@@ -3393,7 +3432,7 @@ function Details:RefreshBarra(thisLine, instance, fromResize) --[[exported]]
 	end
 
 	if (fromResize) then
-		actor_class_color_r, actor_class_color_g, actor_class_color_b = self:GetBarColor()
+		classColor_Red, classColor_Green, classColor_Blue = self:GetBarColor()
 	end
 
 	--icon
@@ -3407,7 +3446,7 @@ function Details:RefreshBarra(thisLine, instance, fromResize) --[[exported]]
 	end
 
 	--texture color
-	self:SetBarColors(thisLine, instance, actor_class_color_r, actor_class_color_g, actor_class_color_b)
+	self:SetBarColors(thisLine, instance, classColor_Red, classColor_Green, classColor_Blue)
 
 	--left text
 	self:SetBarLeftText(thisLine, instance, enemy, arenaEnemy, arenaAlly, UsingCustomLeftText)
@@ -3619,7 +3658,7 @@ function damageClass.PredictedAugSpellsOnEnter(self)
 
 		--add the buff uptime into the tooltip
 		local allPrescienceTargets = buffUptimeTable[CONST_SPELLID_PRESCIENCE]
-		if (#allPrescienceTargets > 0) then
+		if (allPrescienceTargets and #allPrescienceTargets > 0) then
 			for i = 1, math.min(30, #allPrescienceTargets) do
 				local uptimeTable = allPrescienceTargets[i]
 

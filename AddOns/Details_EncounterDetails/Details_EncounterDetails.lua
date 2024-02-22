@@ -113,7 +113,7 @@ local function CreatePluginFrames(data)
 				local raidGroupDamageDone = currentCombat:GetTotal(DETAILS_ATTRIBUTE_DAMAGE, nil, DETAILS_TOTALS_ONLYGROUP)
 				return raidGroupDamageDone or 0
 			]]
-			Details:TimeDataRegister("Raid Damage Done", string_damage_done_func, nil, "Encounter Details", "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
+			Details:TimeDataRegister(Loc["Raid Damage Done"], string_damage_done_func, nil, Loc["Encounter Details"], "v1.0", [[Interface\ICONS\Ability_DualWield]], true, true)
 
 			if (encounterDetails.db.show_icon == 4) then
 				encounterDetails:ShowIcon()
@@ -143,7 +143,7 @@ local function CreatePluginFrames(data)
 				encounterDetails:AutoShowIcon()
 			end
 
-			local chartName = "Raid Damage Done"
+			local chartName = Loc["Raid Damage Done"]
 			local combatUniquieID = _combat_object:GetCombatNumber()
 			local chartData = _combat_object:GetTimeData(chartName)
 
@@ -319,7 +319,7 @@ local function CreatePluginFrames(data)
 		Details:SetTooltipMinWidth()
 
 		--summary
-		gameCooltip:AddLine("Encounter Summary")
+		gameCooltip:AddLine(Loc["Encounter Summary"])
 		gameCooltip:AddMenu(1, encounterDetails.Frame.switch, "main")
 		gameCooltip:AddIcon("Interface\\AddOns\\Details_EncounterDetails\\images\\boss_frame_buttons", 1, 1, 20, 20, 0, 0.125, 0, 0.5)
 
