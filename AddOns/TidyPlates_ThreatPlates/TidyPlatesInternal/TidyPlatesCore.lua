@@ -54,7 +54,7 @@ if Addon.IS_CLASSIC then
 
   UnitChannelInfo = function(...)
     local text, _, texture, startTime, endTime, _, _, _, spellID = Addon.LibClassicCasterino:UnitChannelInfo(...)
-
+    
     -- With LibClassicCasterino, startTime is nil sometimes which means that no casting information
     -- is available
     if not startTime or not endTime then
@@ -64,17 +64,7 @@ if Addon.IS_CLASSIC then
     return text, text, texture, startTime, endTime, false, false, spellID
   end
 
-  UnitCastingInfo = function(...)
-    local text, _, texture, startTime, endTime, _, _, _, spellID = Addon.LibClassicCasterino:UnitCastingInfo(...)
-
-    -- With LibClassicCasterino, startTime is nil sometimes which means that no casting information
-    -- is available
-    if not startTime or not endTime then
-      text = nil
-    end
-
-    return text, text, texture, startTime, endTime, false, nil, false, spellID
-  end
+  UnitCastingInfo = _G.UnitCastingInfo
 
   -- Not available in Classic, introduced in patch 9.0.1
   UnitNameplateShowsWidgetsOnly = function() return false end
@@ -1617,7 +1607,7 @@ local TANK_AURA_SPELL_IDs = {
   [407627] = true,  -- Paladin Righteous Fury (Season of Discovery)
   [408680] = true,  -- Shaman Way of Earth (Season of Discovery)
   [403789] = true,  -- Warlock Metamorphosis (Season of Discovery)
-  [400014] = true,  -- Rogue Just a Flesh Wound (Season of Discovery)
+  -- Rogue tanks are detected using IsSpellKnown (as there is no buff for Just a Flesh Wound)
 }
 local function UNIT_AURA(event, unitid)
   for i = 1, 40 do
@@ -1633,32 +1623,44 @@ local function UNIT_AURA(event, unitid)
   Addon.PlayerIsTank = false
 end
 
+local function HandleEventRuneUpdate(event)
+  Addon.PlayerIsTank = IsSpellKnown(400014, false) -- Just a Flesh Wound (Season of Discovery)
+end
+
 --  function CoreEvents:UNIT_SPELLCAST_INTERRUPTED(unitid, lineid, spellid)
 --    if unitid == "target" or UnitIsUnit("player", unitid) or not ShowCastBars then return end
 --  end
 
+CoreEvents.UNIT_SPELLCAST_START = UNIT_SPELLCAST_START
+CoreEvents.UNIT_SPELLCAST_DELAYED = UnitSpellcastMidway
+CoreEvents.UNIT_SPELLCAST_STOP = UNIT_SPELLCAST_STOP
+
+-- UNIT_SPELLCAST_SUCCEEDED
+-- UNIT_SPELLCAST_FAILED
+-- UNIT_SPELLCAST_FAILED_QUIET
+-- UNIT_SPELLCAST_INTERRUPTED - handled by COMBAT_LOG_EVENT_UNFILTERED / SPELL_INTERRUPT as it's the only way to find out the interruptorom
+-- UNIT_SPELLCAST_SENT
+
 if Addon.IS_CLASSIC then
-  Addon.UNIT_SPELLCAST_START = UNIT_SPELLCAST_START
-  Addon.UNIT_SPELLCAST_STOP = UNIT_SPELLCAST_STOP
+  UNIT_SPELLCAST_SUCCEEDED = UNIT_SPELLCAST_STOP
+  UNIT_SPELLCAST_FAILED = UNIT_SPELLCAST_STOP
+
   Addon.UNIT_SPELLCAST_CHANNEL_START = UNIT_SPELLCAST_CHANNEL_START
   Addon.UNIT_SPELLCAST_CHANNEL_STOP = UNIT_SPELLCAST_CHANNEL_STOP
   Addon.UnitSpellcastMidway = UnitSpellcastMidway
   CoreEvents.UNIT_HEALTH_FREQUENT = UNIT_HEALTH
+
+  if Addon.IS_CLASSIC_SOD and Addon.PlayerClass == "ROGUE" then
+    CoreEvents.RUNE_UPDATED = HandleEventRuneUpdate
+    CoreEvents.PLAYER_EQUIPMENT_CHANGED = HandleEventRuneUpdate
+    -- As these events don't fire after login, call them directly to initialize Addon.PlayerIsTank
+    HandleEventRuneUpdate()
+  end  
 else
   -- The following events should not have worked before adjusting UnitSpellcastMidway
-  CoreEvents.UNIT_SPELLCAST_START = UNIT_SPELLCAST_START
-  CoreEvents.UNIT_SPELLCAST_DELAYED = UnitSpellcastMidway
-  CoreEvents.UNIT_SPELLCAST_STOP = UNIT_SPELLCAST_STOP
-
   CoreEvents.UNIT_SPELLCAST_CHANNEL_START = UNIT_SPELLCAST_CHANNEL_START
   CoreEvents.UNIT_SPELLCAST_CHANNEL_UPDATE = UnitSpellcastMidway
-  CoreEvents.UNIT_SPELLCAST_CHANNEL_STOP = UNIT_SPELLCAST_CHANNEL_STOP
-  
-  -- UNIT_SPELLCAST_SUCCEEDED
-  -- UNIT_SPELLCAST_FAILED
-  -- UNIT_SPELLCAST_FAILED_QUIET
-  -- UNIT_SPELLCAST_INTERRUPTED - handled by COMBAT_LOG_EVENT_UNFILTERED / SPELL_INTERRUPT as it's the only way to find out the interruptorom
-  -- UNIT_SPELLCAST_SENT
+  CoreEvents.UNIT_SPELLCAST_CHANNEL_STOP = UNIT_SPELLCAST_CHANNEL_STOP 
 
   CoreEvents.PLAYER_FOCUS_CHANGED = PLAYER_FOCUS_CHANGED
 
@@ -1669,7 +1671,7 @@ else
     CoreEvents.UNIT_SPELLCAST_EMPOWER_START = UNIT_SPELLCAST_CHANNEL_START
     CoreEvents.UNIT_SPELLCAST_EMPOWER_UPDATE = UnitSpellcastMidway
     CoreEvents.UNIT_SPELLCAST_EMPOWER_STOP = UNIT_SPELLCAST_CHANNEL_STOP
-  
+
     CoreEvents.UNIT_ABSORB_AMOUNT_CHANGED = UNIT_ABSORB_AMOUNT_CHANGED
     CoreEvents.UNIT_HEAL_ABSORB_AMOUNT_CHANGED = UNIT_HEAL_ABSORB_AMOUNT_CHANGED
 

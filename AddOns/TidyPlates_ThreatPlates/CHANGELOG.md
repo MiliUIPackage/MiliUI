@@ -1,4 +1,8 @@
-# 11.1.37 (2024-01-28)
+# 11.1.38 (2024-02-09)
 
-* Fixed a Lua error with Auras widget that occurred in arenas when auras had no duration time [GH-497].
-* Updated TOC version for Patch 10.2.5 for WoW Mainline.
+* Aura for Polymorph (Duck, Mage), and Polymorph (Mawrat, Mage) are now correctly recognized as crowd-control auras [GH-499].
+* Fixed a bug with abbreviation for unit names now for all localizations where initials where shown as empty squares when UTF-8 fonts were used.
+* Fixed a bug with tank role detection for Rogues - a wrong spell ID for Just a Flesh Wound was used [Comment #7166].
+* Fixed a bug with player castbars not being shown since since WoW Classic Patch 1.15.0 [GH-493, Comment #7194].
+* Removed LibClassicDurations as aura durations are provided by the WoW API since WoW Classic Patch 1.15.0 [GH-430].
+* Updated TOC version for Classic Patch 1.15.1.
