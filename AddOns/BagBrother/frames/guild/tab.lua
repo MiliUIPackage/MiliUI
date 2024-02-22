@@ -27,10 +27,17 @@ function Tab:OnClick()
 		local tab = self:GetID()
 		SetCurrentGuildBankTab(tab)
 		QueryGuildBankTab(tab)
-		self:SendSignal('GUILD_TAB_CHANGED')
-	else
-		self:SetChecked(nil)
+		return self:SendSignal('GUILD_TAB_CHANGED')
+	elseif self:CanPurchase() then
+		LibStub('Sushi-3.2').Popup {
+			text = CONFIRM_BUY_GUILDBANK_TAB, button1 = YES, button2 = NO,
+			money = GetGuildBankTabCost(),
+			OnAccept = BuyGuildBankTab
+		}
+		-- text = format(NUM_GUILDBANK_TABS_PURCHASED, numTabs, MAX_BUY_GUILDBANK_TABS))
 	end
+
+	self:SetChecked(nil)
 end
 
 
@@ -52,6 +59,8 @@ end
 
 function Tab:Update()
 	local info = self:GetInfo()
+	local plus = self:CanPurchase()
+
 	if info.icon then
 		local enabled = info.viewable or self:IsCached()
 		local color = enabled and 1 or 0.1
@@ -60,10 +69,14 @@ function Tab:Update()
 		self.Icon:SetVertexColor(1, color, color)
 		self.Icon:SetDesaturated(not enabled)
 		self:UpdateStatus()
+	elseif plus then
+		self.Icon:SetTexture(132071)
+		self.Icon:SetVertexColor(1,1,1)
+		self.Icon:SetDesaturated(false)
 	end
 
-	self:EnableMouse(info.icon)
-	self:SetAlpha(info.icon and 1 or 0)
+	self:EnableMouse(info.icon or plus)
+	self:SetAlpha((info.icon or plus) and 1 or 0)
 end
 
 function Tab:UpdateStatus()
@@ -77,7 +90,7 @@ end
 function Tab:UpdateTooltip()
 	local info = self:GetInfo()
 	if info.name then
-		GameTooltip:SetText(info.name)
+		GameTooltip:SetText(info.name, 1,1,1)
 
 		if not self:IsCached() then
 			if not info.viewable or not info.deposit and info.withdraw == 0 then
@@ -92,10 +105,21 @@ function Tab:UpdateTooltip()
 
 			local remaining = info.remaining
 			if info.viewable and remaining and remaining >= 0 then
-				GameTooltip:AddLine(L.NumRemainingWithdrawals:format(remaining > 0 and remaining or remaining == 0 and NONE or UNLIMITED), 1,1,1)
+				GameTooltip:AddLine(L.NumRemainingWithdrawals:format(remaining > 0 and remaining or remaining == 0 and NONE or UNLIMITED))
 			end
 		end
 
+		local text = strtrim(GetGuildBankText(self:GetID()))
+		if text ~= '' then
+			GameTooltip:AddLine('"' .. text .. '"')
+		else
+			QueryGuildBankText(self:GetID())
+		end
+
+		GameTooltip:Show()
+	elseif self:CanPurchase() then
+		GameTooltip:SetText(BUY_GUILDBANK_TAB, 1,1,1)
+		GameTooltip:AddLine(GetMoneyString(GetGuildBankTabCost(), true))
 		GameTooltip:Show()
 	end
 end
@@ -107,4 +131,8 @@ function Tab:GetInfo()
 		local name, icon, viewable, deposit, withdraw, remaining = GetGuildBankTabInfo(self:GetID())
 		return {name = name, icon = icon, viewable = viewable, deposit = deposit, withdraw = withdraw, remaining = remaining}
 	end
+end
+
+function Tab:CanPurchase()
+	return IsGuildLeader() and not self:IsCached() and self:GetID() <= MAX_BUY_GUILDBANK_TABS and self:GetID() == (GetNumGuildBankTabs()+1)
 end
