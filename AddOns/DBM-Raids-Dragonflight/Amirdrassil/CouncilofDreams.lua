@@ -1,13 +1,13 @@
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240221055819")
+mod:SetRevision("20240223061121")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
 mod:SetBossHPInfoToHighest()
-mod:SetHotfixNoticeRev(20240104000000)
-mod:SetMinSyncRevision(20231129000000)
+mod:SetHotfixNoticeRev(20240223000000)
+mod:SetMinSyncRevision(20240223000000)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
@@ -47,7 +47,6 @@ local specWarnBarrelingChargeSpecial				= mod:NewSpecialWarningMoveTo(420948, ni
 local yellBarrelingCharge							= mod:NewShortYell(420948, 100, nil, nil, "YELL")
 local yellBarrelingChargeFades						= mod:NewShortFadesYell(420948, nil, nil, nil, "YELL")
 local specWarnAgonizingClaws						= mod:NewSpecialWarningTaunt(421022, nil, nil, 2, 1, 2)
-local specWarnTrampled								= mod:NewSpecialWarningTaunt(423420, nil, nil, nil, 1, 2)--Not grouped on purpose, so that it stays on diff WA key in GUI
 --local specWarnPyroBlast							= mod:NewSpecialWarningInterrupt(396040, "HasInterrupt", nil, nil, 1, 2)
 
 --local timerSinseekerCD							= mod:NewAITimer(49, 335114, nil, nil, nil, 3)
@@ -222,6 +221,7 @@ function mod:OnCombatStart(delay)
 	self.vb.rageCount = 0
 	self.vb.rageNext = true
 	self.vb.chargeCount = 0
+	self.vb.nextSpecial = 1
 	if self:IsHard() then
 		--Urctos
 		timerAgonizingClawsCD:Start(4.9-delay, 1)
@@ -230,6 +230,9 @@ function mod:OnCombatStart(delay)
 		--Aerwynn
 		timerNoxiousBlossomCD:Start(4.9-delay, 1)
 		timerPoisonousJavelinCD:Start(21-delay, 1)
+		if self:IsMythic() then
+			timerConstrictingThicketCD:Start(55.8, 1)
+		end
 		--Pip
 		timerPolymorphBombCD:Start(36-delay, 1)
 		timerEmeraldWindsCD:Start(42.9-delay, 1)
@@ -268,7 +271,6 @@ function mod:OnCombatStart(delay)
 	self.vb.polyCount = 0
 	self.vb.polyIcon = 1
 	self.vb.windsCount = 0
-	--Still register private auras on pull until first RAID_BOSS_WHISPER detected, since we still want this mod to work if blizzard ever decides to fix bug that was reported many months ago on PTR
 	self:EnablePrivateAuraSound(418589, "bombyou", 2)
 	self:EnablePrivateAuraSound(429123, "bombyou", 2, 418589)--Register secondary private aura (different ID for differentn difficulty?)
 	nextSpecial = GetTime() + (self:IsLFR() and 74.6 or 55.8)
@@ -439,7 +441,7 @@ function mod:SPELL_AURA_APPLIED(args)
 				if self.vb.clawsCount % 2 == 1 then--1 and 3
 					specWarnAgonizingClaws:Show(args.destName)
 					specWarnAgonizingClaws:Play("tauntboss")
-				else--Claws 2 and 4 need additional safety check to avoid getting killed by charge
+				else--Claws 2 and 4 need additional safety check to avoid getting hit by extra damage charge
 					local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", 423420)
 					local remaining
 					if expireTime then
@@ -541,9 +543,10 @@ function mod:SPELL_AURA_REMOVED(args)
 					remaining = expireTime-GetTime()
 				end
 				local timerLeft = timerAgonizingClawsCD:GetRemaining(self.vb.clawsCount+1) or 20
-				if (not remaining or remaining and remaining < timerLeft) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
-					specWarnTrampled:Show(args.destName)
-					specWarnTrampled:Play("tauntboss")
+				--Claws debuff wont' be gone yet off other tank, so you need to take it
+				if (remaining and remaining > timerLeft) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
+					specWarnAgonizingClaws:Show(args.destName)
+					specWarnAgonizingClaws:Play("tauntboss")
 				end
 			end
 		end
