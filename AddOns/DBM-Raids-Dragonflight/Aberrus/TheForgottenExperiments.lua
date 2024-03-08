@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2530, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240108030833")
+mod:SetRevision("20240305165926")
 mod:SetCreatureID(200912, 200913, 200918)
 mod:SetEncounterID(2693)
 mod:SetUsedIcons(1, 2, 3)
@@ -335,7 +335,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		else
 			if args:IsPlayer() and amount > 10 then
 				local icon = GetRaidTargetIndex("player")
-				local text = amount
+				local text = tostring(amount)
 				if icon then
 					text = "{rt"..icon.."} "..amount.." {rt"..icon.."}"
 				end

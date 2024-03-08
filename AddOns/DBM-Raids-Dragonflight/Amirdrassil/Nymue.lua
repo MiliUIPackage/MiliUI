@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2556, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240216054823")
+mod:SetRevision("20240305165926")
 mod:SetCreatureID(206172)
 mod:SetEncounterID(2708)
 mod:SetUsedIcons(8, 7, 6)
@@ -18,8 +18,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_APPLIED 420554 425745 425781 423195 427722 428479 429983",
 	"SPELL_AURA_APPLIED_DOSE 420554 428479 429983",
 	"SPELL_AURA_REMOVED 423195",
-	"UNIT_DIED",
-	"RAID_BOSS_WHISPER"
+	"UNIT_DIED"
+--	"RAID_BOSS_WHISPER"
 )
 
 --[[
@@ -64,7 +64,7 @@ mod:AddPrivateAuraSoundOption(427722, true, 426519, 1)--Weaver's Burden
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28356))
 local warnFullBloom									= mod:NewCountAnnounce(426855, 2)
 local warnRadialFlourish							= mod:NewCountAnnounce(422721, 2, nil, false)
-local warnWakingDecimation							= mod:NewCountAnnounce(428471, 4)
+local warnWakingDecimation							= mod:NewCastAnnounce(428471, 4, 35)
 
 local specWarnLumberingSlam							= mod:NewSpecialWarningDodge(429108, nil, nil, nil, 2, 2)
 

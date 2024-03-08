@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2554, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240208053057")
+mod:SetRevision("20240305165926")
 mod:SetCreatureID(200926)
 mod:SetEncounterID(2709)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
@@ -13,7 +13,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 414425 416996 422776 419048 416048 418531 415624",
-	"SPELL_CAST_SUCCESS 424456",
+--	"SPELL_CAST_SUCCESS 424456",
 	"SPELL_AURA_APPLIED 414340 414888 414367 419462 415623 414770 426056 422961",
 	"SPELL_AURA_APPLIED_DOSE 414340",
 	"SPELL_AURA_REMOVED 414888 422961 415623",

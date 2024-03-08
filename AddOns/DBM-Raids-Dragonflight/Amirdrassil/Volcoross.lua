@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2557, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240207092305")
+mod:SetRevision("20240305165926")
 mod:SetCreatureID(208478)
 mod:SetEncounterID(2737)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -13,7 +13,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 421672 420933 421616 420415 423117 421703",
-	"SPELL_CAST_SUCCESS 421284",
+--	"SPELL_CAST_SUCCESS 421284",
 	"SPELL_SUMMON 420421",
 	"SPELL_AURA_APPLIED 421207 419054 427201",
 	"SPELL_AURA_APPLIED_DOSE 419054",
@@ -22,8 +22,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_PERIODIC_DAMAGE 421082 423494",
 	"SPELL_PERIODIC_MISSED 421082 423494",
 --	"UNIT_DIED",
-	"UNIT_SPELLCAST_START boss1",
-	"UNIT_SPELLCAST_SUCCEEDED boss1"
+	"UNIT_SPELLCAST_START boss1"
+--	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
 --[[
@@ -254,9 +254,11 @@ function mod:UNIT_SPELLCAST_START(uId, _, spellId)
 	end
 end
 
+--[[
 --Maybe still use this later with clever filtering
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 	if spellId == 421356 or spellId == 421359 or spellId == 421684 then--Scorchtail Crash
 
 	end
 end
+--]]

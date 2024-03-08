@@ -1,6 +1,7 @@
-DBM_CORE_L = {}
+---@class DBMLocale
+local L = {}
 
-local L = DBM_CORE_L
+DBM_CORE_L = L
 
 L.DEADLY_BOSS_MODS						= "Deadly Boss Mods" -- NO TRANSLATE
 L.DBM									= "DBM" -- NO TRANSLATE
@@ -242,7 +243,7 @@ L.RANGERADAR_IN_RANGE_TEXTONE			= "%s (%0.1fy)"--One target
 L.INFOFRAME_SHOW_SELF					= "Always show your power"		-- Always show your own power value even if you are below the threshold
 L.INFOFRAME_SETLINES					= "Set max lines"
 L.INFOFRAME_SETCOLS						= "Set max columns"
-L.INFOFRAME_LINESDEFAULT				= "Set by mod"
+L.INFOFRAME_LINESDEFAULT				= "Auto Set by boss modules"
 L.INFOFRAME_LINES_TO					= "%d lines"
 L.INFOFRAME_COLS_TO						= "%d columns"
 L.INFOFRAME_POWER						= "Power"
@@ -471,13 +472,13 @@ L.AUTO_TIMER_TEXTS = {
 	cdcount								= "%s (%%s)",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
 	cdsource							= "%s: >%%s<",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
 	cdspecial							= "Special",--Now same as next, as the ~ was moved to timer number
-	cdcombo								= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number
+	cdcombo								= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
 
 	next								= "%s", -- OPTIONAL
 	nextcount							= "%s (%%s)", -- OPTIONAL
 	nextsource							= "%s: >%%s<", -- OPTIONAL
 	nextspecial							= "Special",
-	nextcombo							= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number
+	nextcombo							= "%%1$s + %%2$s",--Now same as next, as the ~ was moved to timer number -- OPTIONAL
 
 	achievement							= "%s", -- OPTIONAL
 	stage								= "Stage",

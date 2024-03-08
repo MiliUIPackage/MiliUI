@@ -1,5 +1,5 @@
 
-local MAJOR, MINOR = "LibDropDownMenu", tonumber((gsub("r37","r",""))) or 9999;
+local MAJOR, MINOR = "LibDropDownMenu", tonumber((gsub("r39","r",""))) or 9999;
 local lib = LibStub:NewLibrary(MAJOR, MINOR);
 
 if not lib then return end
@@ -791,6 +791,7 @@ function UIDropDownMenu_AddButton(info, level)
 		_G[listFrameName.."Button"..index.."UnCheck"]:Hide();
 	end
 	button.checked = info.checked;
+	Update_DropDownMenuButton(button:GetName());
 	button.NewFeature:SetShown(button.showNewLabel);
 
 	-- If has a colorswatch, show it and vertex color it
@@ -893,6 +894,7 @@ function UIDropDownMenu_GetButtonWidth(button)
 		width = width + 10;
 	end
 	if (button.showNewLabel) then
+		Update_DropDownMenuButton(buttonName);
 		width = width + button.NewFeature.Label:GetUnboundedStringWidth();
 	end
 	if ( button.notCheckable ) then
@@ -968,6 +970,7 @@ function UIDropDownMenu_Refresh(frame, useValue, dropdownLevel)
 		end
 
 		local normalText = _G[button:GetName().."NormalText"];
+		Update_DropDownMenuButton(button:GetName());
 		button.NewFeature:SetShown(button.showNewLabel);
 		button.NewFeature:SetPoint("LEFT", normalText, "RIGHT", 20, 0);
 

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2030, "DBM-Party-BfA", 1, 968)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240202232139")
+mod:SetRevision("20240305170811")
 mod:SetCreatureID(122968)
 mod:SetEncounterID(2087)
 mod:SetHotfixNoticeRev(20231023000000)
@@ -95,7 +95,7 @@ function mod:OnCombatStart(delay)
 	self.vb.echoCount = 0
 	timerWrackingPainCD:Start(3.5-delay, 1)
 	timerSkewerCD:Start(5-delay, 1)
-	timerSoulrendCD:Start(7-delay, 1)
+	timerSoulrendCD:Start(5.9-delay, 1)
 	timerEchoesCD:Start(15.6-delay, 1)
 end
 

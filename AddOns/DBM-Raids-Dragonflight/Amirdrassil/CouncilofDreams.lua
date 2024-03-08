@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240223061121")
+mod:SetRevision("20240302185810")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -243,7 +243,7 @@ function mod:OnCombatStart(delay)
 		timerBlindingRageCD:Start(55.8-delay, 1)
 		--Aerwynn
 		timerNoxiousBlossomCD:Start(10.9-delay, 1)
-		timerPoisonousJavelinCD:Start(19.9)
+		timerPoisonousJavelinCD:Start(19.9, 1)
 		--Pip
 		timerPolymorphBombCD:Start(34.9-delay, 1)
 		timerEmeraldWindsCD:Start(45-delay, 1)
@@ -254,7 +254,7 @@ function mod:OnCombatStart(delay)
 		timerBlindingRageCD:Start(74.6-delay, 1)
 		--Aerwynn
 		timerNoxiousBlossomCD:Start(14.6-delay, 1)
-		timerPoisonousJavelinCD:Start(26.6)
+		timerPoisonousJavelinCD:Start(26.6, 1)
 		--Pip
 		timerPolymorphBombCD:Start(46.6-delay, 1)
 		timerEmeraldWindsCD:Start(60-delay, 1)

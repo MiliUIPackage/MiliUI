@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AberrusTrash", "DBM-Raids-Dragonflight", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231120131222")
+mod:SetRevision("20240305165926")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -64,7 +64,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		yellDarkBindingsFades:Countdown(spellId)
 	end
 end
-mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
+--mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId
