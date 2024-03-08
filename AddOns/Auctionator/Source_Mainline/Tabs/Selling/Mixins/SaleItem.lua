@@ -298,6 +298,8 @@ function AuctionatorSaleItemMixin:SetItemName()
     itemName = itemName .. " " .. C_Texture.GetCraftingReagentQualityChatIcon(reagentQuality)
   elseif self.itemInfo.itemLevel then
     itemName = AUCTIONATOR_L_ITEM_NAME_X_ITEM_LEVEL_X:format(itemName, self.itemInfo.itemLevel)
+  elseif self.itemInfo.itemLink:find("battlepet", nil, true) then
+    itemName = AUCTIONATOR_L_ITEM_NAME_X_ITEM_LEVEL_X:format(itemName, Auctionator.Utilities.GetPetLevelFromLink(self.itemInfo.itemLink))
   end
   itemName = ITEM_QUALITY_COLORS[self.itemInfo.quality].color:WrapTextInColorCode(itemName)
   self.TitleArea.Text:SetText(itemName)
@@ -342,29 +344,11 @@ local DURATIONS_TO_TIME = {
 function AuctionatorSaleItemMixin:SetDuration()
   local duration = Auctionator.Config.Get(Auctionator.Config.Options.AUCTION_DURATION)
 
-  if self.itemInfo.groupName then
-    local groupSettings = Auctionator.Config.Get(Auctionator.Config.Options.SELLING_GROUPS_SETTINGS)[self.itemInfo.groupName]
-    if groupSettings and groupSettings.duration and groupSettings.duration ~= 0 then
-      duration = DURATIONS_TO_TIME[groupSettings.duration]
-    end
-  end
-
   self.Duration:SetSelectedValue(duration)
 end
 
 function AuctionatorSaleItemMixin:SetQuantity()
   local defaultQuantity = Auctionator.Config.Get(Auctionator.Config.Options.DEFAULT_QUANTITIES)[self.itemInfo.classId]
-
-  if self.itemInfo.groupName then
-    local groupSettings = Auctionator.Config.Get(Auctionator.Config.Options.SELLING_GROUPS_SETTINGS)[self.itemInfo.groupName]
-    -- Setting to prevent global item settings restricting quantity
-    local applyGlobal = Auctionator.Config.Get(Auctionator.Config.Options.SELLING_ALLOW_GLOBAL_QUANTITY_OVERRIDE)
-    if groupSettings and not applyGlobal and (not groupSettings.quantity or groupSettings.quantity == 0) then
-      defaultQuantity = 0
-    elseif groupSettings and groupSettings.quantity and groupSettings.quantity ~= 0 then
-      defaultQuantity = groupSettings.quantity
-    end
-  end
 
   if self.itemInfo.count == 0 then
     self.Quantity:SetNumber(0)
