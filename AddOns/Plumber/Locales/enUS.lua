@@ -27,6 +27,7 @@ L["Module Category Dreamseeds"] = "Dreamseeds";     --Added in patch 10.2.0
 --- order: 5
 L["Module Category AzerothianArchives"] = "Azerothian Archives";     --Added in patch 10.2.5
 
+
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "Auto Join Events";
 L["ModuleDescription AutoJoinEvents"] = "Auto select (Begin Time Rift) when you interact with Soridormi during the event.";
@@ -47,9 +48,11 @@ L["Not Found"] = "Not Found";   --Item not found
 L["Own"] = "Own";   --Something that the player has/owns
 L["Numbers To Earn"] = "# To Earn";     --The number of items/currencies player can earn. The wording should be as abbreviated as possible.
 L["Numbers Of Earned"] = "# Earned";    --The number of stuff the player has earned
-L["Track Upgrade Currency"] = "Track Crests";     --Crest: e.g. Drake’s Dreaming Crest
+L["Track Upgrade Currency"] = "Track Crests";       --Crest: e.g. Drake’s Dreaming Crest
 L["Track Upgrade Currency Tooltip"] = "Pin the top-tier crest you have earned to the bar.";
 L["Currently Pinned Colon"] = "Currently Pinned:";  --Tells the currently pinned item
+L["Bar Inside The Bag"] = "Bar Inside The Bag";     --Put the bar inside the bag UI (below money/currency)
+L["Bar Inside The Bag Tooltip"] = "Place the bar inside the bag UI.\n\nIt only works in Blizzard's Separate Bags mode.";
 
 
 --GossipFrameMedal
@@ -99,7 +102,7 @@ L["ModuleName TalkingHead"] = HUD_EDIT_MODE_TALKING_HEAD_FRAME_LABEL or "Talking
 L["ModuleDescription TalkingHead"] = "Replace the default Talking Head UI with a clean, headless one.";
 L["EditMode TalkingHead"] = "Plumber: "..L["ModuleName TalkingHead"];
 L["TalkingHead Option InstantText"] = "Instant Text";   --Should texts immediately, no gradual fading
-L["TalkingHead Option TextOutline"] = "Text Outline";
+L["TalkingHead Option TextOutline"] = "Text Outline";   --Added a stroke/outline to the letter
 L["TalkingHead Option Condition Header"] = "Hide Texts From Source:";
 L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "World Quests";
 L["TalkingHead Option Condition WorldQuest Tooltip"] = "Hide the transcription if it's from a World Quest.\nSometimes Talking Head is triggered before accepting the World Quest, and we won't be able to hide it.";
