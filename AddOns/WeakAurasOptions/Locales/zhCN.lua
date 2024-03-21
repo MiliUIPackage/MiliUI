@@ -16,6 +16,12 @@ local L = WeakAuras.L
 	L["%d |4aura:auras; modified"] = "已修改%d个光环"
 	--[[Translation missing --]]
 	L["%d |4aura:auras; with meta data modified"] = "%d |4aura:auras; with meta data modified"
+	--[[Translation missing --]]
+	L["%d displays loaded"] = "%d displays loaded"
+	--[[Translation missing --]]
+	L["%d displays not loaded"] = "%d displays not loaded"
+	--[[Translation missing --]]
+	L["%d displays on standby"] = "%d displays on standby"
 	L["%i auras selected"] = "已选中%i个光环"
 	L["%i."] = "%i"
 	L["%i. %s"] = "%i. %s"
@@ -187,7 +193,6 @@ Off Screen]=] ] = "光环在屏幕外"
 	L["Aura: '%s'"] = "光环：'%s'"
 	L["Author Options"] = "作者选项"
 	L["Auto-Clone (Show All Matches)"] = "自动克隆（显示所有符合项）"
-	L["Auto-cloning enabled"] = "自动克隆已启用"
 	L["Automatic"] = "自动"
 	L["Automatic length"] = "自动长度"
 	L["Available Voices are system specific"] = "可用的声音由系统决定"
@@ -227,6 +232,8 @@ Off Screen]=] ] = "光环在屏幕外"
 	L["Can set to 0 if Columns * Width equal File Width"] = "如果列x宽度=文件宽度，可以设为0"
 	L["Can set to 0 if Rows * Height equal File Height"] = "如果行x高度=文件高度，可以设为0"
 	L["Cancel"] = "取消"
+	--[[Translation missing --]]
+	L["Case Insensitive"] = "Case Insensitive"
 	L["Cast by a Player Character"] = "玩家角色施放"
 	L["Categories to Update"] = "即将更新的类"
 	L["Center"] = "中间"
@@ -248,8 +255,8 @@ Off Screen]=] ] = "光环在屏幕外"
 	L["Collapse all non-loaded displays"] = "折叠所有未载入的图示"
 	L["Collapse all pending Import"] = "折叠所有待定的导入"
 	L["Collapsible Group"] = "可折叠的组"
-	L["color"] = "颜色"
 	L["Color"] = "颜色"
+	L["color"] = "颜色"
 	L["Column Height"] = "行高度"
 	L["Column Space"] = "行空间"
 	L["Columns"] = "列"
@@ -378,6 +385,8 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Enter an Aura Name, partial Aura Name, or Spell ID. A Spell ID will match any spells with the same name."] = "输入全部或部分光环名称，或者法术 ID。如果输入法术 ID，则会匹配所有具有相同名称的法术。"
 	L["Enter Author Mode"] = "进入作者模式"
 	L["Enter in a value for the tick's placement."] = "输入进度指示放置位置的值"
+	--[[Translation missing --]]
+	L["Enter static or relative values with %"] = "Enter static or relative values with %"
 	L["Enter User Mode"] = "进入用户模式"
 	L["Enter user mode."] = "进入到使用者的模式。"
 	L["Entry %i"] = "条目 %i"
@@ -403,8 +412,6 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED]=]
 	L["Fade"] = "淡化"
 	L["Fade In"] = "淡入"
 	L["Fade Out"] = "淡出"
-	L["Fallback"] = "后备"
-	L["Fallback Icon"] = "后备图标"
 	L["False"] = "假"
 	L["Fetch Affected/Unaffected Names and Units"] = "获取受影响/未受影响的单位名称与单位"
 	L["Fetch Raid Mark Information"] = "获取团队标记信息"
@@ -433,6 +440,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Finish"] = "结束"
 	L["Finishing..."] = "即将完成"
 	L["Fire Orb"] = "火焰宝珠"
+	--[[Translation missing --]]
+	L["Flat Framelevels"] = "Flat Framelevels"
 	L["Font"] = "字体"
 	L["Font Size"] = "字体大小"
 	L["Foreground"] = "前景"
@@ -464,6 +473,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Grid direction"] = "盒方向"
 	L["Group"] = "组"
 	L["Group (verb)"] = "加入组"
+	--[[Translation missing --]]
+	L["Group Alpha"] = "Group Alpha"
 	L[ [=[Group and anchor each auras by frame.
 
 - Nameplates: attach to nameplates per unit.
@@ -518,6 +529,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Icon Source"] = "图标来源"
 	L["If"] = "如果"
 	L["If %s"] = "如果 %s"
+	--[[Translation missing --]]
+	L["If checked, then the combo box in the User settings will be sorted."] = "If checked, then the combo box in the User settings will be sorted."
 	L["If checked, then the user will see a multi line edit box. This is useful for inputting large amounts of text."] = "勾选后，用户可以看见一个多行的输入框，在输入大量文本时很有用。"
 	L["If checked, then this group will not merge with other group when selecting multiple auras."] = "勾选后，在选中多个光环的情况下，此组将不会和其他组合并。"
 	L["If checked, then this option group can be temporarily collapsed by the user."] = "勾选后，选项组可以临时被用户折叠"
@@ -591,11 +604,19 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Low Mana"] = "低法力值"
 	L["Magnetically Align"] = "磁力对齐"
 	L["Main"] = "主要的"
+	--[[Translation missing --]]
+	L["Manual"] = "Manual"
+	--[[Translation missing --]]
+	L["Manual Icon"] = "Manual Icon"
+	--[[Translation missing --]]
+	L["Manual with %i/%i"] = "Manual with %i/%i"
 	L["Match Count"] = "匹配计数"
 	L["Match Count per Unit"] = "每单位匹配计数"
 	L["Matches the height setting of a horizontal bar or width for a vertical bar."] = "符合水平进度条的高度设置，或者垂直进度条的宽度设置。"
 	L["Max"] = "最大"
 	L["Max Length"] = "最大长度"
+	--[[Translation missing --]]
+	L["Maximum"] = "Maximum"
 	L["Media Type"] = "媒体类型"
 	L["Medium Icon"] = "中等图标"
 	L["Message"] = "信息"
@@ -603,6 +624,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Message Suffix"] = "信息后缀"
 	L["Message Type"] = "信息类型"
 	L["Min"] = "最小"
+	--[[Translation missing --]]
+	L["Minimum"] = "Minimum"
 	L["Mirror"] = "镜像"
 	L["Model"] = "模型"
 	L["Model %s"] = "模型 %s"
@@ -645,6 +668,8 @@ Can use \ to escape -.]=] ] = [=[过滤格式：'名称'，'名称-服务器'，
 	L["Not all children have the same value for this option"] = "并非所有子项目的此选项的值都一致"
 	L["Not Loaded"] = "未载入"
 	L["Note: Automated Messages to SAY and YELL are blocked outside of Instances."] = "注意：无法在副本外自动发送“说”与“大喊”信息。"
+	--[[Translation missing --]]
+	L["Note: This progress source does not provide a total value/duration. A total value/duration must be set via \"Set Maximum Progress\""] = "Note: This progress source does not provide a total value/duration. A total value/duration must be set via \"Set Maximum Progress\""
 	L["Npc ID"] = "NPC ID"
 	L["Number of Entries"] = "条目数"
 	L[ [=[Occurrence of the event, reset when aura is unloaded
@@ -718,6 +743,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Prevent Merging"] = "阻止合并"
 	L["Progress Bar"] = "进度条"
 	L["Progress Bar Settings"] = "进度条设置"
+	--[[Translation missing --]]
+	L["Progress Settings"] = "Progress Settings"
+	--[[Translation missing --]]
+	L["Progress Source"] = "Progress Source"
 	L["Progress Texture"] = "进度条材质"
 	L["Progress Texture Settings"] = "进度条材质设置"
 	L["Purple Rune"] = "紫色符文"
@@ -770,6 +799,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["Send To"] = "发送给"
 	L["Separator Text"] = "分隔符文本"
 	L["Separator text"] = "分隔符文本"
+	--[[Translation missing --]]
+	L["Set Maximum Progress"] = "Set Maximum Progress"
+	--[[Translation missing --]]
+	L["Set Minimum Progress"] = "Set Minimum Progress"
 	L["Set Parent to Anchor"] = "将父框架置于锚点"
 	L["Set Thumbnail Icon"] = "设置缩略图标"
 	L["Sets the anchored frame as the aura's parent, causing the aura to inherit attributes such as visibility and scale."] = "将锚点框体设置为光环的父框体，使得光环继承锚点框体的一些属性（例如：可见性和缩放）"
@@ -874,6 +907,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["The addon OmniCC is enabled. It might add cooldown numbers to the swipe. You can configure these in the OmniCC settings"] = "插件OmniCC已启用。它可能会向冷却刷添加冷却文本。你可以在OmniCC设置中调整。"
 	L["The duration of the animation in seconds."] = "动画持续秒数"
 	L["The duration of the animation in seconds. The finish animation does not start playing until after the display would normally be hidden."] = "动画时长秒时。直到显示内容可以被正常隐藏之后，结束动画才会播放。"
+	--[[Translation missing --]]
+	L["The group and all direct children will share the same base frame level."] = "The group and all direct children will share the same base frame level."
 	L["The type of trigger"] = "触发器类型"
 	L["Then "] = "然后"
 	L["Thickness"] = "粗细"
@@ -921,6 +956,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Top HUD position"] = "顶部 HUD 位置"
 	L["Top Left"] = "左上"
 	L["Top Right"] = "右上"
+	--[[Translation missing --]]
+	L["Total"] = "Total"
 	L["Total Angle"] = "最大角度"
 	L["Total Time"] = "总时间"
 	L["Trigger"] = "触发"
@@ -952,8 +989,14 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Uses Texture Coordinates to rotate the texture."] = "使用材质坐标以旋转材质"
 	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "使用UnitInRange()检查是否在范围内。根据你的职业和专精决定范围为25或40码，与默认团队框架的在或不在范围表现一致。"
 	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "使用UnitIsVisible()检查游戏客户端是否加载此单位的对象。此距离大概为100码。每秒检查一次。"
+	--[[Translation missing --]]
+	L["Value"] = "Value"
 	L["Value %i"] = "值 %i"
 	L["Values are in normalized rgba format."] = "数值为标准化的 RGBA 格式"
+	--[[Translation missing --]]
+	L["Values/Remaining Time above this value are displayed as full progress."] = "Values/Remaining Time above this value are displayed as full progress."
+	--[[Translation missing --]]
+	L["Values/Remaining Time below this value are displayed as zero progress."] = "Values/Remaining Time below this value are displayed as zero progress."
 	L["Values:"] = "值："
 	L["Version: "] = "版本："
 	L["Version: %s"] = "版本：%s"
@@ -970,8 +1013,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["X Offset"] = "X 偏移"
 	L["X Rotation"] = "X轴旋转"
 	L["X Scale"] = "宽度比例"
-	L["X-Offset"] = "X 偏移"
 	L["x-Offset"] = "X偏移"
+	L["X-Offset"] = "X 偏移"
 	L["Y Offset"] = "Y 偏移"
 	L["Y Rotation"] = "Y轴旋转"
 	L["Y Scale"] = "长度比例"

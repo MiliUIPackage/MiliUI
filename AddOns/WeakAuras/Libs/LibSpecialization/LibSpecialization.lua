@@ -1,7 +1,7 @@
 --@curseforge-project-slug: libspecialization@
 if WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE then return end
 
-local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 6)
+local LS, oldminor = LibStub:NewLibrary("LibSpecialization", 8)
 if not LS then return end -- No upgrade needed
 
 LS.callbackMap = LS.callbackMap or {}
@@ -137,9 +137,10 @@ local starterSpecs = {
 local callbackMap = LS.callbackMap
 local frame = LS.frame
 
-local next, type, error, tonumber, format = next, type, error, tonumber, string.format
+local next, type, error, tonumber, format, strsplit = next, type, error, tonumber, string.format, string.split
 local Ambiguate, GetTime, IsInGroup = Ambiguate, GetTime, IsInGroup
 local GetSpecialization, GetSpecializationInfo = GetSpecialization, GetSpecializationInfo
+local C_ClassTalents_GetActiveConfigID, C_Traits_GenerateImportString = C_ClassTalents.GetActiveConfigID, C_Traits.GenerateImportString
 local SendAddonMessage, CTimerAfter = C_ChatInfo.SendAddonMessage, C_Timer.After
 local pName = UnitName("player")
 
@@ -153,18 +154,18 @@ do
 		["PARTY"] = true,
 		["INSTANCE_CHAT"] = true,
 	}
-	local talentChangeThrottle, currentSpecId = 0, 0
+	local talentChangeThrottle, currentSpecId, currentTalentString = 0, 0, nil
 	local timerInstance, timerGroup = false, false
 	local function SendToInstance()
 		timerInstance = false
 		if IsInGroup(2) then
-			SendAddonMessage("LibSpec", format("%d", currentSpecId), "INSTANCE_CHAT")
+			SendAddonMessage("LibSpec", format("%d,%s", currentSpecId, currentTalentString), "INSTANCE_CHAT")
 		end
 	end
 	local function SendToGroup()
 		timerGroup = false
 		if IsInGroup(1) then
-			SendAddonMessage("LibSpec", format("%d", currentSpecId), "RAID") -- RAID auto downgrades to PARTY as needed
+			SendAddonMessage("LibSpec", format("%d,%s", currentSpecId, currentTalentString), "RAID") -- RAID auto downgrades to PARTY as needed
 		end
 	end
 	frame:SetScript("OnEvent", function(_, event, prefix, msg, channel, sender)
@@ -172,18 +173,20 @@ do
 			if prefix == "LibSpec" and approved[channel] then -- Only approved channels
 				if msg == "R" then
 					if channel == "INSTANCE_CHAT" then
-						local specId = LS:MySpecialization()
+						local specId, _, _, talentString = LS:MySpecialization()
 						if specId then
 							currentSpecId = specId
+							currentTalentString = talentString
 							if not timerInstance then
 								timerInstance = true
 								CTimerAfter(3, SendToInstance)
 							end
 						end
 					else -- RAID/PARTY
-						local specId = LS:MySpecialization()
+						local specId, _, _, talentString = LS:MySpecialization()
 						if specId then
 							currentSpecId = specId
+							currentTalentString = talentString
 							if not timerGroup then
 								timerGroup = true
 								CTimerAfter(3, SendToGroup)
@@ -193,33 +196,46 @@ do
 					return
 				end
 
-				local specId = tonumber(msg)
-				local role, position = roleTable[specId], positionTable[specId]
-				if role and position then
-					for _,func in next, callbackMap do
-						func(specId, role, position, Ambiguate(sender, "none"), channel)
+				if msg:find(",", nil, true) then
+					local spec, talentString = strsplit(",", msg)
+					local specId = tonumber(spec)
+					local role, position = roleTable[specId], positionTable[specId]
+					if role and position then
+						for _,func in next, callbackMap do
+							func(specId, role, position, Ambiguate(sender, "none"), #talentString > 1 and talentString)
+						end
+					end
+				else
+					local specId = tonumber(msg)
+					local role, position = roleTable[specId], positionTable[specId]
+					if role and position then
+						for _,func in next, callbackMap do
+							func(specId, role, position, Ambiguate(sender, "none"))
+						end
 					end
 				end
 			end
 		elseif event == "GROUP_FORMED" then -- Join new group
 			LS:RequestSpecialization()
-		elseif event == "ACTIVE_TALENT_GROUP_CHANGED" then -- Talent change fires twice
-			local t = GetTime()
-			if t - talentChangeThrottle > 2 then
-				talentChangeThrottle = t
-				local specId, role, position = LS:MySpecialization()
-				if specId then
-					currentSpecId = specId -- Update this just in case a timer is queued
-					if IsInGroup() then
-						if IsInGroup(2) then -- Instance group
-							SendAddonMessage("LibSpec", format("%d", specId), "INSTANCE_CHAT")
-						end
-						if IsInGroup(1) then -- Normal group
-							SendAddonMessage("LibSpec", format("%d", specId), "RAID")
-						end
-					else
-						for _,func in next, callbackMap do
-							func(specId, role, position, pName, channel) -- This allows us to show our own spec info when not grouped
+		elseif event == "ACTIVE_COMBAT_CONFIG_CHANGED" or event == "TRAIT_CONFIG_UPDATED" then
+			if prefix == C_ClassTalents_GetActiveConfigID() then
+				local t = GetTime()
+				if t - talentChangeThrottle > 2 then -- Safety throttle
+					talentChangeThrottle = t
+					local specId, role, position, talentString = LS:MySpecialization()
+					if specId then
+						currentSpecId = specId -- Update this just in case a timer is queued
+						if IsInGroup() then
+							if IsInGroup(2) then -- Instance group
+								SendAddonMessage("LibSpec", format("%d,%s", specId, talentString), "INSTANCE_CHAT")
+							end
+							if IsInGroup(1) then -- Normal group
+								SendAddonMessage("LibSpec", format("%d,%s", specId, talentString), "RAID")
+							end
+						else
+							for _,func in next, callbackMap do
+								func(specId, role, position, pName, talentString) -- This allows us to show our own spec info when not grouped
+							end
 						end
 					end
 				end
@@ -230,7 +246,8 @@ do
 	end)
 	frame:RegisterEvent("CHAT_MSG_ADDON")
 	frame:RegisterEvent("GROUP_FORMED")
-	frame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+	frame:RegisterEvent("ACTIVE_COMBAT_CONFIG_CHANGED")
+	frame:RegisterEvent("TRAIT_CONFIG_UPDATED")
 	frame:RegisterEvent("PLAYER_LOGIN")
 end
 
@@ -243,6 +260,11 @@ function LS:MySpecialization()
 		if specId and role then
 			local position = positionTable[specId]
 			if position then
+				local activeConfigID = C_ClassTalents_GetActiveConfigID()
+				if activeConfigID then
+					local talentString = C_Traits_GenerateImportString(activeConfigID)
+					return specId, role, position, talentString
+				end
 				return specId, role, position
 			elseif not starterSpecs[specId] then
 				error(format("LibSpecialization: Unknown specId %q", specId))
@@ -255,10 +277,10 @@ do
 	local prev = 0
 	local timer = false
 	function LS:RequestSpecialization()
-		local specId, role, position = LS:MySpecialization()
+		local specId, role, position, talentString = LS:MySpecialization()
 		if specId then
 			for _,func in next, callbackMap do
-				func(specId, role, position, pName) -- This allows us to show our own spec info when not grouped
+				func(specId, role, position, pName, talentString) -- This allows us to show our own spec info when not grouped
 			end
 		end
 

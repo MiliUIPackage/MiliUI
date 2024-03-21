@@ -101,6 +101,7 @@ function OptionsPrivate.DuplicateAura(data, newParent, massEdit, targetIndex)
       if not massEdit then
         local button = OptionsPrivate.GetDisplayButton(parentData.id)
         button.callbacks.UpdateExpandButton()
+        button:UpdateParentWarning()
       end
       OptionsPrivate.ClearOptions(parentData.id)
     end
@@ -287,6 +288,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
     parentButton.callbacks.UpdateExpandButton();
     parentButton:Expand();
     parentButton:ReloadTooltip();
+    parentButton:UpdateParentWarning();
   else
     WeakAuras.Add(data);
     WeakAuras.NewDisplayButton(data);
@@ -308,6 +310,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
       local oldParentButton = OptionsPrivate.GetDisplayButton(oldParent)
       oldParentButton.callbacks.UpdateExpandButton();
       oldParentButton:ReloadTooltip()
+      oldParentButton:UpdateParentWarning()
     end
 
     tinsert(data.controlledChildren, childId);
@@ -326,6 +329,7 @@ local function CreateNewGroupFromSelection(regionType, resetChildPositions)
 
   local button = OptionsPrivate.GetDisplayButton(data.id);
   button.callbacks.UpdateExpandButton();
+  button:UpdateParentWarning()
   OptionsPrivate.SortDisplayButtons();
   button:Expand();
 
@@ -579,6 +583,13 @@ function WeakAuras.ToggleOptions(msg, Private)
         -- The button does not yet exists if a new aura is created
         displayButtons[id]:UpdateWarning()
       end
+      local data = Private.GetDataByUID(uid)
+      if data and data.parent then
+        local button = OptionsPrivate.GetDisplayButton(data.parent);
+        if button then
+          button:UpdateParentWarning()
+        end
+      end
     end)
 
     OptionsPrivate.Private.callbacks:RegisterCallback("ScanForLoads", AfterScanForLoads)
@@ -786,6 +797,7 @@ function OptionsPrivate.DeleteAuras(auras, parents)
         parentButton:SetNormalTooltip()
         WeakAuras.Add(parentData)
         WeakAuras.ClearAndUpdateOptions(parentData.id)
+        parentButton:UpdateParentWarning()
         frame.loadProgress:SetText(L["Finishing..."])
         coroutine.yield()
       end
@@ -971,19 +983,18 @@ function OptionsPrivate.UpdateButtonsScroll()
   frame.buttonsScroll:DoLayout()
 end
 
-local function addButton(button, aurasMatchingFilter, visible, list)
+local function addButton(button, aurasMatchingFilter, visible)
   button.frame:Show();
   if button.AcquireThumbnail then
     button:AcquireThumbnail()
   end
   tinsert(frame.buttonsScroll.children, button);
-  tinsert(list, button)
   visible[button] = true
 
   if button.data.controlledChildren and button:GetExpanded() then
     for _, childId in ipairs(button.data.controlledChildren) do
       if aurasMatchingFilter[childId] then
-        addButton(displayButtons[childId], aurasMatchingFilter, visible, list)
+        addButton(displayButtons[childId], aurasMatchingFilter, visible)
       end
     end
   end
@@ -1133,12 +1144,35 @@ function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
   local visible = {}
 
   for id, child in pairs(displayButtons) do
-    if OptionsPrivate.Private.loaded[id] == true then
-      child:SetLoaded({0, 0.68, 0.30, 1}, L["Loaded"], L["This display is currently loaded"])
-    elseif OptionsPrivate.Private.loaded[id] == false then
-      child:SetLoaded({0.96, 0.82, 0.16, 1}, L["Standby"], L["This display is on standby, it will be loaded when needed."])
+    if child.data.controlledChildren then
+      local hasLoaded, hasStandBy, hasNotLoaded = 0, 0, 0
+      for leaf in OptionsPrivate.Private.TraverseLeafs(child.data) do
+        local id = leaf.id
+        if OptionsPrivate.Private.loaded[id] == true then
+          hasLoaded = hasLoaded + 1
+        elseif OptionsPrivate.Private.loaded[id] == false then
+          hasStandBy = hasStandBy + 1
+        else
+          hasNotLoaded = hasNotLoaded + 1
+        end
+      end
+      if hasLoaded > 0 then
+        child:SetLoaded(1, {0, 0.68, 0.30, 1}, L["Loaded"], L["%d displays loaded"]:format(hasLoaded))
+      elseif hasStandBy > 0 then
+        child:SetLoaded(2, {0.96, 0.82, 0.16, 1}, L["Standby"], L["%d displays on standby"]:format(hasStandBy))
+      elseif hasNotLoaded > 0 then
+        child:SetLoaded(3, {0.6, 0.6, 0.6, 1}, L["Not Loaded"], L["%d displays not loaded"]:format(hasNotLoaded))
+      else
+        child:ClearLoaded()
+      end
     else
-      child:SetLoaded({0.6, 0.6, 0.6, 1}, L["Not Loaded"],L["This display is not currently loaded"])
+      if OptionsPrivate.Private.loaded[id] == true then
+        child:SetLoaded(1, {0, 0.68, 0.30, 1}, L["Loaded"], L["This display is currently loaded"])
+      elseif OptionsPrivate.Private.loaded[id] == false then
+        child:SetLoaded(2, {0.96, 0.82, 0.16, 1}, L["Standby"], L["This display is on standby, it will be loaded when needed."])
+      else
+        child:SetLoaded(3, {0.6, 0.6, 0.6, 1}, L["Not Loaded"], L["This display is not currently loaded"])
+      end
     end
 
     if useTextFilter then
@@ -1154,7 +1188,7 @@ function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
 
     if not child:GetGroup() then
       -- Top Level aura
-      if OptionsPrivate.Private.loaded[child.data.id] ~= nil then
+      if OptionsPrivate.Private.loaded[id] ~= nil then
         tinsert(topLevelLoadedAuras, id)
       else
         tinsert(topLevelUnloadedAuras, id)
@@ -1167,8 +1201,14 @@ function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
     table.sort(topLevelLoadedAuras, function(a, b) return a:lower() < b:lower() end)
     for _, id in ipairs(topLevelLoadedAuras) do
       if aurasMatchingFilter[id] then
-        addButton(displayButtons[id], aurasMatchingFilter, visible, frame.loadedButton.childButtons)
+        addButton(displayButtons[id], aurasMatchingFilter, visible)
       end
+    end
+  end
+
+  for _, id in ipairs(topLevelLoadedAuras) do
+    for child in OptionsPrivate.Private.TraverseLeafsOrAura(WeakAuras.GetData(id)) do
+      tinsert(frame.loadedButton.childButtons, displayButtons[child.id])
     end
   end
 
@@ -1179,8 +1219,14 @@ function OptionsPrivate.SortDisplayButtons(filter, overrideReset, id)
     table.sort(topLevelUnloadedAuras, function(a, b) return a:lower() < b:lower() end)
     for _, id in ipairs(topLevelUnloadedAuras) do
       if aurasMatchingFilter[id] then
-        addButton(displayButtons[id], aurasMatchingFilter, visible, frame.unloadedButton.childButtons)
+        addButton(displayButtons[id], aurasMatchingFilter, visible)
       end
+    end
+  end
+
+  for _, id in ipairs(topLevelUnloadedAuras) do
+    for child in OptionsPrivate.Private.TraverseLeafsOrAura(WeakAuras.GetData(id)) do
+      tinsert(frame.unloadedButton.childButtons, displayButtons[child.id])
     end
   end
 
@@ -1633,8 +1679,8 @@ function WeakAuras.UpdateThumbnail(data)
   button:UpdateThumbnail()
 end
 
-function OptionsPrivate.OpenTexturePicker(baseObject, path, properties, textures, SetTextureFunc, adjustSize)
-  frame.texturePicker:Open(baseObject, path, properties, textures, SetTextureFunc, adjustSize)
+function OptionsPrivate.OpenTexturePicker(baseObject, paths, properties, textures, SetTextureFunc, adjustSize)
+  frame.texturePicker:Open(baseObject, paths, properties, textures, SetTextureFunc, adjustSize)
 end
 
 function OptionsPrivate.OpenIconPicker(baseObject, paths, groupIcon)
@@ -1755,6 +1801,7 @@ function WeakAuras.NewAura(sourceData, regionType, targetId)
         WeakAuras.UpdateGroupOrders(group.data);
         OptionsPrivate.ClearOptions(group.data.id);
         group.callbacks.UpdateExpandButton();
+        group:UpdateParentWarning();
         group:Expand();
         group:ReloadTooltip();
         OptionsPrivate.PickAndEditDisplay(data.id);

@@ -11,7 +11,7 @@ end
 
 L.HOW_TO_USE_MOD				= "歡迎使用"..L.DBM.."。在聊天頻道輸入 /dbm 打開設定開始設定。你可以載入特定區域後為任何首領設定你喜歡的特別設置。"..L.DBM.."會在設定你的職業天賦的預設值，但有些選項可能需要調整。"
 L.SILENT_REMINDER				= "提醒："..L.DBM.."正處於無聲模式。"
-L.NEWS_UPDATE					= "|h|c11ff1111更新說明|r|h: 此更新基本上是重新發佈的9.1.9，以清除上一個文件發佈時的錯誤惡意軟件檢測驗證。讀取更多訊息在|Hgarrmission:DBM:news|h|cff3588ff[此處]|r|h"
+L.NEWS_UPDATE					= "|h|c11ff1111更新說明|r|h: 此更新更改了模組結構，因此經典版和正式版現在使用統一的（相同）模組。這意味著經典版、燃燒的遠征、巫妖王之怒以及浩劫與重生現在分別安裝並使用與正式版相同的插件包。 讀取更多訊息在|Hgarrmission:DBM:news|h|cff3588ff[此處]|r|h"
 
 L.COPY_URL_DIALOG_NEWS			= "要閱讀最新說明，請拜訪以下連結"
 
@@ -44,7 +44,8 @@ L.LOOT_SPEC_REMINDER			= "你目前的專精為:%s。而你目前的拾取選擇
 
 L.BIGWIGS_ICON_CONFLICT			= L.DBM.."偵測到你同時開啟BigWigs和"..L.DBM.."的團隊圖示。請關閉其中之一的團隊圖示功能以免產生衝突。"
 
-L.MOD_AVAILABLE					= "%s在此區域有模組可用。你可以在Curse、Wago、WoWI或從GitHub正式版頁面下載。"
+L.MOD_AVAILABLE					= "%s在此區域有模組可用但未安裝。你可以在Curse、Wago、WoWI或從GitHub正式版頁面下載。"
+L.MOD_MISSING					= "無團隊模組"
 
 L.COMBAT_STARTED				= "%s開戰。祝好運與盡興! :)"
 L.COMBAT_STARTED_IN_PROGRESS	= "與%s開戰已進行的戰鬥。祝好運與盡興! :)"
@@ -185,6 +186,7 @@ L.BIG_WIGS						= "BigWigs"
 L.WEAKAURA_KEY					= " (|cff308530WA鍵:|r %s)"
 
 L.UPDATEREMINDER_HEADER				= "你的Deadly Boss Mod已經過期。\n你可以在Curse網站或是WOWI網站以及GitHub專案網頁下載到新版本%s (%s)"
+L.UPDATEREMINDER_HEADER_SUBMODULE	= "你的 %s 模組已經過期。\n 你可以在Curse網站或是WOWI網站以及GitHub專案網頁下載到新版本 %s"
 L.UPDATEREMINDER_FOOTER				= "按下" .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  "：複製下載網址到剪貼簿。"
 L.UPDATEREMINDER_FOOTER_GENERIC		= "按下" .. (IsMacClient() and "Cmd-C" or "Ctrl-C")  ..  "：複製網址到剪貼簿。"
 L.UPDATEREMINDER_DISABLE			= "警告: 你的"..L.DBM.."版本已大幅度的過期並且無法與新版本相容，"..L.DBM.."已被強制關閉並且無法使用直到更新為止。這是為了確保舊而不相容的程式碼不會對你而團隊夥伴造成低落的遊戲體驗。"
@@ -237,6 +239,7 @@ L.RANGERADAR_IN_RANGE_TEXT		= "%d在範圍內(%0.1f碼)"--Multi
 L.RANGECHECK_IN_RANGE_TEXT		= "%d在範圍內"--Text based doesn't need (%dyd), especially since it's not very accurate to the specific yard anyways
 L.RANGERADAR_IN_RANGE_TEXTONE	= "%s (%0.1f碼)"--One target
 
+L.INFOFRAME_TITLE				= "DBM資訊框架"
 L.INFOFRAME_SHOW_SELF			= "總是顯示你的能量"
 L.INFOFRAME_SETLINES			= "設定最大行數"
 L.INFOFRAME_SETCOLS				= "設定最大行數"

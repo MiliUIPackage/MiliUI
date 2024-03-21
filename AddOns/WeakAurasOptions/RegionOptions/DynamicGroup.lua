@@ -511,6 +511,12 @@ local function createOptions(id, data)
       name = L["Animated Expand and Collapse"],
       order = 27
     },
+    spacer = {
+      type = "description",
+      width = WeakAuras.normalWidth,
+      name = "",
+      order = 27.5
+    },
     scale = {
       type = "range",
       control = "WeakAurasSpinBox",
@@ -532,6 +538,31 @@ local function createOptions(id, data)
         data.scale = v
         WeakAuras.Add(data);
         OptionsPrivate.ResetMoverSizer();
+      end
+    },
+    alpha = {
+      type = "range",
+      control = "WeakAurasSpinBox",
+      width = WeakAuras.normalWidth,
+      name = L["Group Alpha"],
+      order = 29,
+      min = 0,
+      max = 1,
+      bigStep = 0.01,
+      isPercent = true
+    },
+    sharedFrameLevel = {
+      type = "toggle",
+      width = WeakAuras.normalWidth,
+      name = L["Flat Framelevels"],
+      desc = L["The group and all direct children will share the same base frame level."],
+      order = 30,
+      set = function(info, v)
+        data.sharedFrameLevel = v
+        WeakAuras.Add(data)
+        for parent in OptionsPrivate.Private.TraverseParents(data) do
+          WeakAuras.Add(parent)
+        end
       end
     },
     endHeader = {

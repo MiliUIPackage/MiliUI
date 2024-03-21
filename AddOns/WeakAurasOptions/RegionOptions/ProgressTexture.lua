@@ -20,7 +20,12 @@ local function createOptions(id, data)
       width = 0.15,
       order = 2,
       func = function()
-        OptionsPrivate.OpenTexturePicker(data, {}, {
+        local path = {}
+        local paths = {}
+        for child in OptionsPrivate.Private.TraverseLeafsOrAura(data) do
+          paths[child.id] = path
+        end
+        OptionsPrivate.OpenTexturePicker(data, paths, {
           texture = "foregroundTexture",
           color = "foregroundColor",
           texRotation = "rotation",
@@ -48,7 +53,12 @@ local function createOptions(id, data)
       width = 0.15,
       order = 6,
       func = function()
-        OptionsPrivate.OpenTexturePicker(data, {}, {
+        local path = {}
+        local paths = {}
+        for child in OptionsPrivate.Private.TraverseLeafsOrAura(data) do
+          paths[child.id] = path
+        end
+        OptionsPrivate.OpenTexturePicker(data, paths, {
           texture = "backgroundTexture",
           color = "backgroundColor",
           texRotation = "rotation",
@@ -298,18 +308,12 @@ local function createOptions(id, data)
       hidden = function() return not data.slanted or data.orientation == "CLOCKWISE" or data.orientation == "ANTICLOCKWISE" end,
       values = OptionsPrivate.Private.slant_mode
     },
-    spacer = {
-      type = "header",
-      name = "",
-      order = 56
-    },
     endHeader = {
       type = "header",
       order = 100,
       name = "",
     },
   };
-  options = OptionsPrivate.Private.regionPrototype.AddAdjustedDurationOptions(options, data, 57);
 
   local overlayInfo = OptionsPrivate.Private.GetOverlayInfo(data);
   if (overlayInfo and next(overlayInfo)) then
@@ -353,6 +357,7 @@ local function createOptions(id, data)
 
   return {
     progresstexture = options,
+    progressOptions = OptionsPrivate.commonOptions.ProgressOptions(data),
     position = OptionsPrivate.commonOptions.PositionOptions(id, data),
   };
 end

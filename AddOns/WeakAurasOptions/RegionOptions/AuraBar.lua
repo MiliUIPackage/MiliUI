@@ -183,7 +183,7 @@ local function createOptions(id, data)
     displayIcon = {
       type = "input",
       width = WeakAuras.normalWidth - 0.15,
-      name = L["Fallback"],
+      name = L["Manual"],
       disabled = function() return not data.icon end,
       order = 40.5,
       get = function()
@@ -268,7 +268,12 @@ local function createOptions(id, data)
       width = 0.15,
       order = 44.1,
       func = function()
-        OptionsPrivate.OpenTexturePicker(data, {}, {
+        local path = {}
+        local paths = {}
+        for child in OptionsPrivate.Private.TraverseLeafsOrAura(data) do
+          paths[child.id] = path
+        end
+        OptionsPrivate.OpenTexturePicker(data, paths, {
           texture = "sparkTexture",
           color = "sparkColor",
           rotation = "sparkRotation",
@@ -411,8 +416,6 @@ local function createOptions(id, data)
     },
   };
 
-  options = OptionsPrivate.Private.regionPrototype.AddAdjustedDurationOptions(options, data, 36.5);
-
   local overlayInfo = OptionsPrivate.Private.GetOverlayInfo(data);
   if (overlayInfo and next(overlayInfo)) then
     options["overlayheader"] = {
@@ -476,6 +479,7 @@ local function createOptions(id, data)
 
   return {
     aurabar = options,
+    progressOptions = OptionsPrivate.commonOptions.ProgressOptions(data),
     position = OptionsPrivate.commonOptions.PositionOptions(id, data),
   };
 end
