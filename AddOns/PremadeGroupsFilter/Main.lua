@@ -47,21 +47,23 @@ end
 
 function PGF.GetUserSortingTable()
     local sorting = PGF.Dialog:GetSortingExpression()
-    if PGF.Empty(sorting) then return 0, {} end
-    -- example string:  "friends asc, age desc , foo asc, bar   desc , x"
-    -- resulting table: { ["friends"] = "asc", ["age"] = "desc", ["foo"] = "asc", ["bar"] = "desc" }
-    local c = 0
+    if PGF.Empty(sorting) then return {} end
+    -- example string:  "friends asc, age desc , bar   desc , x"
+    -- resulting sortTable = {
+    --     [1] = { key = "friends", order = "asc" },
+    --     [2] = { key = "age",     order = "desc" },
+    --     [3] = { key = "bar",     order = "desc" },
+    -- }
     local t = {}
     for k, v in string.gmatch(sorting, "(%w+)%s+(%w+),?") do
-        c = c + 1
-        t[k] = v
+        table.insert(t, { key = k, order = v })
     end
-    return c, t
+    return t
 end
 
 function PGF.SortSearchResults(results)
-    local sortTableSize, sortTable = PGF.GetUserSortingTable()
-    if sortTableSize > 0 then -- use custom sorting if defined
+    local sortTable = PGF.GetUserSortingTable()
+    if sortTable and #sortTable > 0 then -- use custom sorting if defined
         table.sort(results, PGF.SortByExpression)
     elseif PGF.IsRetail() then -- use our extended useful sorting
         table.sort(results, PGF.SortByUsefulOrder)
@@ -71,18 +73,22 @@ function PGF.SortSearchResults(results)
 end
 
 function PGF.SortByExpression(searchResultID1, searchResultID2)
+    if not searchResultID1 or not searchResultID2 then return false end -- race condition
+
+    -- look-up via table should be faster
     local info1 = PGF.searchResultIDInfo[searchResultID1]
     local info2 = PGF.searchResultIDInfo[searchResultID2]
     if not info1 or not info2 then return false end -- race condition
-    local sortTableSize, sortTable = PGF.GetUserSortingTable()
-    for k, v in pairs(sortTable) do
-        if info1.env[k] ~= info2.env[k] then -- works with unknown 'k' as 'nil ~= nil' is false (or 'nil == nil' is true)
-            if v == "desc" then
-                if type(info1.env[k]) == "boolean" then return info1.env[k] end -- true before false
-                return info1.env[k] > info2.env[k]
+
+    local sortTable = PGF.GetUserSortingTable()
+    for _, sort in ipairs(sortTable) do
+        if info1.env[sort.key] ~= info2.env[sort.key] then -- works with unknown keys as 'nil ~= nil' is false (or 'nil == nil' is true)
+            if sort.order == "desc" then
+                if type(info1.env[sort.key]) == "boolean" then return info1.env[sort.key] end -- true before false
+                return info1.env[sort.key] > info2.env[sort.key]
             else -- works with unknown 'v', in this case sort ascending by default
-                if type(info1.env[k]) == "boolean" then return info2.env[k] end -- false before true
-                return info1.env[k] < info2.env[k]
+                if type(info1.env[sort.key]) == "boolean" then return info2.env[sort.key] end -- false before true
+                return info1.env[sort.key] < info2.env[sort.key]
             end
         end
     end
@@ -149,31 +155,6 @@ function PGF.SortByUsefulOrder(searchResultID1, searchResultID2)
     return searchResultInfo1.age < searchResultInfo2.age
 end
 
---- Ensures that all class-role/role-class and ranged/melees keywords are initialized to zero in the filter environment,
---- because the values would cause a semantic error otherwise (because they do not exist)
---- @generic V
---- @param env table<string, V> environment to be prepared
-function PGF.InitClassRoleTypeKeywords(env)
-    env.cloth = 0
-    env.leather = 0
-    env.mail = 0
-    env.plate = 0
-    env.ranged = 0
-    env.ranged_strict = 0
-    env.melees = 0
-    env.melees_strict = 0
-    for class, type in pairs(C.DPS_CLASS_TYPE) do
-        local classPlural = class:lower() .. "s"
-        env[classPlural] = 0
-        for role, prefix in pairs(C.ROLE_PREFIX) do
-            local classRolePlural = prefix .. "_" .. classPlural
-            local roleClassPlural = class:lower() .. "_" .. C.ROLE_SUFFIX[role]
-            env[classRolePlural] = 0
-            env[roleClassPlural] = 0
-        end
-    end
-end
-
 --- Puts a table that maps localized boss names to a boolean that indicates if the boss was defeated
 --- @generic V
 --- @param resultID number search result identifier
@@ -194,42 +175,6 @@ function PGF.PutEncounterNames(resultID, env)
     end
 
     env.boss = encounterToBool
-end
-
---- Initializes all class-role/role-class and ranged/melees keywords and increments them to their correct value
---- @generic V
---- @param resultID number search result identifier
---- @param searchResultInfo table<string, V> search result info from API
---- @param env table<string, V> environment to be prepared
-function PGF.PutSearchResultMemberInfos(resultID, searchResultInfo, env)
-    PGF.InitClassRoleTypeKeywords(env)
-    for i = 1, searchResultInfo.numMembers do
-        local role, class = C_LFGList.GetSearchResultMemberInfo(resultID, i)
-        local classPlural = class:lower() .. "s" -- plural form of the class in english
-        env[classPlural] = env[classPlural] + 1
-        local armor = C.DPS_CLASS_TYPE[class].armor
-        if armor then
-            env[armor] = env[armor] + 1
-        end
-        if role then
-            local classRolePlural = C.ROLE_PREFIX[role] .. "_" .. class:lower() .. "s"
-            local roleClassPlural = class:lower() .. "_" .. C.ROLE_SUFFIX[role]
-            env[classRolePlural] = env[classRolePlural] + 1
-            env[roleClassPlural] = env[roleClassPlural] + 1
-            if role == "DAMAGER" then
-                if C.DPS_CLASS_TYPE[class].range and C.DPS_CLASS_TYPE[class].melee then
-                    env.ranged = env.ranged + 1
-                    env.melees = env.melees + 1
-                elseif C.DPS_CLASS_TYPE[class].range then
-                    env.ranged = env.ranged + 1
-                    env.ranged_strict = env.ranged_strict + 1
-                elseif C.DPS_CLASS_TYPE[class].melee then
-                    env.melees = env.melees + 1
-                    env.melees_strict = env.melees_strict + 1
-                end
-            end
-        end
-    end
 end
 
 function PGF.DoFilterSearchResults(results)
@@ -344,6 +289,13 @@ function PGF.DoFilterSearchResults(results)
             env.hasbl = env.shamans > 0 or env.evokers > 0 or env.hunters > 0 or env.mages > 0
             env.hashero = env.hasbl
             env.haslust = env.hasbl
+            env.dispells = env.shamans + env.evokers +  env.priests + env.mages + env.paladins + env.monks + env.druids
+
+            -- tier token filters
+            env.dreadful = env.deathknights + env.warlocks +  env.demonhunters
+            env.mystic = env.hunters + env.mages + env.druids
+            env.venerated = env.shamans + env.priests + env.paladins
+            env.zenith = env.warriors + env.evokers + env.monks + env.rogues
         end
         if PGF.SupportsSpecializations() then
             env.brfit = env.hasbr or PGF.PlayerOrGroupHasBattleRezz() or PGF.HasRemainingSlotsForBattleRezzAfterJoin(memberCounts)

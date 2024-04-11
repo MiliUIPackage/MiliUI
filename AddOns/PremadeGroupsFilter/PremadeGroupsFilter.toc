@@ -1,7 +1,7 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 5.0.3
+## Version: 5.3.4
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -24,6 +24,7 @@ UI\StaticPopup.lua
 Modules\Util.lua
 Modules\Activity.lua
 Modules\ActivityKeywords.lua
+Modules\Specializations.lua
 Modules\MemberInfo.lua
 Modules\RemainingSlots.lua
 Modules\ColoredApplications.lua

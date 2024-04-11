@@ -105,6 +105,14 @@ C.ROLE_SUFFIX = {
     ["TANK"] = "tanks",
 }
 
+C.ROLE_ATLAS = {
+    ["TANK"] = "roleicon-tiny-tank",
+    ["HEALER"] = "roleicon-tiny-healer",
+    ["DAMAGER"] = "roleicon-tiny-dps",
+}
+
+C.LEADER_ATLAS = "groupfinder-icon-leader"
+
 C.DPS_CLASS_TYPE = {
     ["DEATHKNIGHT"] = { range = false, melee = true,  armor = "plate",   br = true,  bl = false },
     ["DEMONHUNTER"] = { range = false, melee = true,  armor = "leather", br = false, bl = false },
@@ -120,6 +128,10 @@ C.DPS_CLASS_TYPE = {
     ["WARLOCK"]     = { range = true,  melee = false, armor = "cloth",   br = true,  bl = false },
     ["WARRIOR"]     = { range = false, melee = true,  armor = "plate",   br = false, bl = false },
 }
+setmetatable(C.DPS_CLASS_TYPE, { __index = function()
+    return { range = false, melee = false, armor = "unknown", br = false, bl = false }
+end })
+
 
 local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata
 local flavor = GetAddOnMetadata(PGFAddonName, "X-Flavor")
@@ -238,6 +250,9 @@ function PGF.OnAddonLoaded(name)
         if PGF.SupportsMythicPlus() then
             C_MythicPlus.RequestCurrentAffixes()
             C_MythicPlus.RequestMapInfo()
+        end
+        if PGF.SupportsSpecializations() then
+            PGF.InitSpecializations()
         end
     end
 end

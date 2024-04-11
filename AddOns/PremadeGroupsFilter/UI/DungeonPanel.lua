@@ -58,6 +58,29 @@ setmetatable(CMID_MAP, { __index = function() return { order = 0, keyword = "tru
 -- If a season has more or less than 8 dungeons, the code has to be adapted.
 local NUM_DUNGEON_CHECKBOXES = 8
 
+-- Strip some prefixes from dungeons names next to checkboxes to make them more readable
+local stripPrefixes = {
+    -- DOTI -- /dump C_ChallengeMode.GetMapUIInfo(463)
+    "^Dawn of the Infinite: ",     -- English
+    "^Dämmerung des Ewigen: ",     -- German
+    "^El Amanecer del Infinito: ", -- Spanish (EU)
+    "^El Alba del Infinito: ",     -- Spanish (AL)
+    "^Aube de l’Infini : ",     -- French with a non breaking space before the colon
+    "^Alba degli Infiniti: ",      -- Italian
+    "^Despertar do Infinito: ",    -- Portugues
+    "^Рассвет Бесконечности: ",    -- Russian
+    "^무한의 여명: ",                -- Korean
+    "^恆龍黎明：",                   -- Traditional Chinese
+    "^永恒黎明：",                   -- Simplified Chinese
+    -- Articles
+    "^The ",      -- English
+    "^Der ",      -- German
+    "^Die ",      -- German
+    "^Das ",      -- German
+    "^[EeIi]l ",  -- Romance languages
+    "^[Ll][ae] ", -- Romance languages
+}
+
 local DungeonPanel = CreateFrame("Frame", "PremadeGroupsFilterDungeonPanel", PGF.Dialog, "PremadeGroupsFilterDungeonPanelTemplate")
 
 function DungeonPanel:OnLoad()
@@ -143,10 +166,14 @@ function DungeonPanel:InitChallengeModes()
 
     for i, cmID in ipairs(self.cmIDs) do
         local dungeonName = C_ChallengeMode.GetMapUIInfo(cmID) or "?"
+        local shortName = dungeonName
+        for _, prefix in ipairs(stripPrefixes) do
+            shortName = shortName:gsub(prefix, "", 1)
+        end
         local dungeon = self.Dungeons["Dungeon"..i]
         dungeon.cmId = cmID
         dungeon.name = dungeonName
-        dungeon.Title:SetText(dungeonName)
+        dungeon.Title:SetText(shortName)
     end
 end
 
