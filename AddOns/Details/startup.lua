@@ -87,6 +87,8 @@ function Details:StartMeUp()
 	Details:InitializePlaterIntegrationWindow()
 	Details:InitializeMacrosWindow()
 
+	Details222.CreateAllDisplaysFrame()
+
 	if (Details.ocd_tracker.show_options) then
 		Details:InitializeCDTrackerWindow()
 	end
@@ -548,6 +550,13 @@ function Details:StartMeUp()
 	Details.standard_skin = false
 	--enforce to show 6 abilities on the tooltip
 	--_detalhes.tooltip.tooltip_max_abilities = 6 freeeeeedooommmmm
+	--no no, enforece 8, 8 is much better, 8 is more lines, we like 8
+	Details.tooltip.tooltip_max_abilities = 8
+
+	local tooltipBarColor = Details.tooltip.bar_color
+	tooltipBarColor[1] = 0.149
+	tooltipBarColor[2] = 0.149
+	tooltipBarColor[3] = 0.149
 
 	Details.InstallRaidInfo()
 

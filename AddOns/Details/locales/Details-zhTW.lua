@@ -1,4 +1,5 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("Details", "zhTW") 
+local L = LibStub("AceLocale-3.0"):NewLocale("Details", "zhTW") 
 if not L then return end 
 
 L["ABILITY_ID"] = "技能 ID"
@@ -1796,7 +1797,7 @@ L["Please make sure you are declaring"] = "請確保你的外掛套件物件"
 L["A member called 'OnDetailsEvent' on your plugin object"] = "有宣告叫做 'OnDetailsEvent' 的成員"
 L["With a function to receive the events like bellow:"] = "並且包含用來接收事件的函數，例如:"
 L["Thank You Sir!==================="] = "感謝!==================="
-L["right click to close"] = "點一下右鍵關閉"
+L[" right click to close"] = " 點一下右鍵關閉"
 L["Plugins"] = "外掛套件" -- 前面已有 STRING_OPTIONS_PLUGINS
 L["Tools"] = "工具"
 L["detected options panel out of screen, position has reset"] = "偵測到選項面板超出畫面，已重置位置。"
@@ -1816,6 +1817,8 @@ L["Death: "] = "死亡: "
 L["NumSystem override is now:"] = "數字系統取代，現在是:"
 L["|cFFFF9900error on custom text|r:"] = "|cFFFF9900自訂文字發生錯誤|r:"
 L["GradientEffect() end function error:"] = "GradientEffect() end 函數錯誤:"
+L["Specialization"] = "專精"
+L["Specialization Alpha"] = "專精 (透明)"
 
 -- core\windows.lua 更改字體大小
 L["invalid pre_defined table for resize, please rezise the window manually."] = "調整大小的預先定義表格無效，請手動調整視窗大小。"
@@ -2040,8 +2043,6 @@ L["in progress"] = "進行中"
 -- L["s"] = " 秒"
 L["SetUserCustomSkinFile() file must be a string."] = "SetUserCustomSkinFile() 必須是文字檔案。"
 L["SetUserCustomSkinFile() file must be only the file name (with out up folders) and slashes."] = "SetUserCustomSkinFile() 只能有檔案名稱 (不包含上一層資料夾) 和斜線。"
-L["|cFFFF9900error on skin callback function|r:"] = "|cFFFF9900外觀 callback 函數發生錯誤|r:"
-L["|cFFFF9900error on skin control on start function|r:"] = "|cFFFF9900外觀控制 on start 函數發生錯誤|r:"
 L["error Details! AdjustAlphaByContext()"] = "Details! AdjustAlphaByContext() 發生錯誤"
 L["All raid plugins already\nin use or disabled."] = "全部的團隊外掛套件都\n已經在使用中，或已經停用。"
 L["|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:224:306|t Open Rank"] = "|TInterface\\TUTORIALFRAME\\UI-TUTORIAL-FRAME:14:12:0:1:512:512:8:70:224:306|t 打開等級"
@@ -2105,8 +2106,6 @@ L["Width Offset"] = "寬度調整"
 L["Height Offset"] = "高度調整"
 L["Fine tune the size of the window while embeded in the chat."] = "嵌入到聊天視窗內時，微調視窗的大小。"
 L["Stop using the custom texture"] = "停止使用自訂材質"
-L["Specialization"] = "專精"
-L["Specialization Alpha"] = "專精 (透明)"
 L["- Press escape to restore default value.\n- Leave empty to hide icons."] = "- 按下 ESC 鍵恢復成預設值。\n- 留空白會隱藏圖示。"
 L["Clear icon file / Restore default"] = "清除圖示檔案/恢復成預設值"
 L["'func' keyword found, auto update disabled."] = "找到關鍵字 'func'，已停用自動更新。"
@@ -2284,6 +2283,7 @@ L["Use Dynamic Overall Damage"] = "使用動態整場傷害"
 L["When showing Damage Done Overall, swap to Dynamic Overall Damage on entering combat."] = "顯示整場輸出傷害，進入戰鬥時切換成動態整場傷害。"
 L["Bar Color"] = "計量條顏色"
 L["Divisor Color"] = "分隔線顏色"
+L["Show Rounded Border"] = "顯示圓角邊框"
 L["Text Y Offset"] = "文字垂直位置"
 L["Change the vertical offset for both left and right texts."] = "同時更改左側和右側文字的垂直偏移位置。"
 L["Offset"] = "偏移位置"
@@ -2298,7 +2298,7 @@ L["Damage Options:"] = "傷害輸出選項:"
 L["Merge Primordial Stones 10.0.7"] = "合併原初之石 10.0.7"
 L["Class Options:"] = "職業選項:"
 L["Hunter Track Pet Frenzy"] = "獵人追蹤寵物狂暴"
-L["Predict Augmentation Damage"] = "預測強化傷害"
+L["Show Augmentation Extra Bar"] = "顯示額外的強化計量條"
 L["Calculate how much the Augmentation Evoker are buffing other players"] = "計算強化喚能師提供多少增益效果給其他玩家"
 L["Use Real Time Dps for Aug. Evoker"] = "強化喚能師使用即時 DPS"
 L["Use Real Time Dps for Augmentation Evoker"] = "強化喚能師使用即時 DPS"
@@ -2412,6 +2412,9 @@ L["Player 3"] = "玩家 3"
 -- L["Player Name"] = "玩家名字" -- 前面已有
 L["iLvL"] = "裝等"
 L["WCL Parse"] = "WCL 階段"
+-- L["Plugins"] = "外掛套件" -- 前面已有
+L["Select Player"] = "選擇玩家"
+L["Select Segment"] = "選擇戰鬥記錄"
 
 -- frames\window_breakdown\window_playerbreakdown_spells.lua
 L["spell name"] = "法術名稱"
@@ -2444,6 +2447,8 @@ L["name"] = "名稱"
 L["Details! Breakdown Options"] = "Details! 分析選項"
 L["Settings reseted to default."] = "設定已重置成預設值。"
 L["Reset Settings"] = "重置設定"
+L["General Settings"] = "一般設定"
+L["Background Color"] = "背景顏色"
 L["Spell Details Block"] = "法術詳細內容區塊"
 L["Block Height"] = "區塊高度"
 L["Spell Header Options"] = "法術標題列選項"
@@ -2455,14 +2460,21 @@ L["Cast Average"] = "平均唱法"
 -- L["Uptime"] = "覆蓋時間"
 L["Overheal"] = "過量治療"
 L["Heal Absorbed"] = "吸收治療"
+L["Text Options"] = "文字選項"
+L["Text Color"] = "文字顏色"
+L["Text Size"] = "文字大小"
+L["Text Outline"] = "文字外框"
+L["Font Face"] = "字體"
 L["Scroll Options"] = "捲動選項"
 L["Is Locked"] = "鎖定"
 L["Background Alpha"] = "背景透明度"
-L["Group Player Spells With Same Name"] = "群組名稱相同的玩家法術"
+L["Group Player Spells:"] = "群組玩家法術:"
+L["Group Player Spells With Same Name"] = "名稱相同的玩家法術組成群組"
 L["Group spells casted by players which has the same name"] = "將玩家所施放、相同名稱的法術群組在一起。"
-L["Group Pet Names Under a Pet Spell Bar"] = "在寵物法術列中群組寵物名稱"
+L["Group Pet Spells:"] = "群組寵物法術:"
+L["Group Pet Names Under a Pet Spell Bar"] = "寵物法術列的寵物名稱組成群組"
 L["Group Pets By Name"] = "依名稱群組寵物"
-L["Group Pet Spells Under a Pet Name Bar"] = "在寵物名稱列中群組寵物法術"
+L["Group Pet Spells Under a Pet Name Bar"] = "寵物名稱列的寵物法術組成群組"
 L["Group Pets By Spell"]= "依法術群組寵物"
 
 -- frames\window_profiler.lua
@@ -2543,6 +2555,7 @@ L["Total"] = "總計"
 L["Length"] = "時間"
 L["Item Level"] = "裝等"
 L["Date"] = "日期"
+L["Failled to load statistics, Details! Storage is disabled?"] = "無法載入統計資料，Details! Storage 是否被停用?"
 
 -- frames\window_switch.lua 更改字體大小
 L["Plugin not found."] = "無法找到外掛套件。"
@@ -2631,11 +2644,12 @@ L["Details!: Average Dps for "] = "Details!: 平均 DPS - "
 
 -- frames\window_mythicplus\window_end_of_run.lua 更改字體大小
 L["Details! Mythic Run Completed!"] = "Details! 傳奇地城通關!"
-L["Show Damage Graphic"] = "顯示傷害圖表"
-L["Time not in combat:"] = "沒有戰鬥的時間:"
-L["Run Time:"] = "通關時間:"
 L["Under development."] = "開發中。"
+L["Waiting for loot"] = "等待拾取"
 L["Show Breakdown"] = "顯示分析"
+L["Show Damage Graphic"] = "顯示傷害圖表"
+L["Run Time:"] = "通關時間:"
+L["Time not in combat:"] = "沒有戰鬥的時間:"
 L["Unknown for this run"] = "此次通關未知"
 
 -- functions\deathmenu.lua 更改字體大小
@@ -2830,6 +2844,7 @@ L["A new version has been installed: /details news"] = "已經安裝新版本: /
 L["spell not found"] = "無法找到法術"
 
 -- 函式庫：更改字體大小、少部分翻譯
+-- Libs\DF\buildmenu.lua
 -- Libs\DF\button.lua
 -- Libs\DF\cooltip.lua
 -- Libs\DF\dropdown.lua
@@ -2886,6 +2901,8 @@ L["Replaces the default comparison window on the player breakdown."] = "取代�
 -- L["s"]
 L["Compare"] = "比較"
 L["Compare 2.0"] = "比較 2.0"
+L["Compare Same Spec"]  = "比較相同專精"
+L["Compare Segments"] = "比較戰鬥記錄"
 
 -- Details_CastHistory.lua
 L["Show a time line of casts of players"] = "顯示玩家的施法時間軸。"
@@ -2948,7 +2965,7 @@ L["|cFFFF7700Left Click|r: Open Options\n|cFFFF7700Slash Command|r: /streamer"] 
 L["Locked"] = "鎖定"
 L["Can't move or interact within the frame when it's locked."] = "鎖定時無法移動框架，也無法與之互動。"
 L["Color used on the background."] = "背景使用的顏色。"
-L["Background Color"] = "背景顏色"
+-- L["Background Color"] = "背景顏色" -- 前面已有
 L["How hight is each bar."] = "每一條的高度。"
 L["Bar Height"] = "技能條高度"
 L["How much space each bar use."] = "每一條之間的距離。"

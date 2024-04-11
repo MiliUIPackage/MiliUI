@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: Details!: Vanguard (plugin)
 ## Notes: Show the health and debuffs for tanks in your group.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-坦克

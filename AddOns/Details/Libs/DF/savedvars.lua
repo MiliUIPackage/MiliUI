@@ -274,7 +274,7 @@ function detailsFramework.SavedVars.CreateProfilePanel(addonObject, frameName, p
     profileNameTextEntry:SetPoint("topleft", createNewProfileLabel, "bottomleft", 0, -5)
     profileNameTextEntry:SetBackdrop(nil)
     profileNameTextEntry:SetJustifyH("left")
-    profileNameTextEntry.fontsize = 12
+    profileNameTextEntry.fontsize = 16
     detailsFramework:AddRoundedCornersToFrame(profileNameTextEntry, Details.PlayerBreakdown.RoundedCornerPreset)
     frame.ProfileNameTextEntry = profileNameTextEntry
 

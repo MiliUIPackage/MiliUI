@@ -596,7 +596,7 @@ function detailsFramework:NewTextEntry(parent, container, name, member, width, h
 	end
 
 	if (name:find("$parent")) then
-		local parentName = detailsFramework.GetParentName(parent)
+		local parentName = detailsFramework:GetParentName(parent)
 		name = name:gsub("$parent", parentName)
 	end
 
@@ -738,7 +738,7 @@ function detailsFramework:CreateSearchBox(parent, callback)
     searchBox:SetHook("OnTextChanged", callback)
 
     local file, size, flags = searchBox:GetFont()
-    searchBox:SetFont(file, 12, flags)
+    searchBox:SetFont(file, 16, flags)
     searchBox.ClearSearchButton:SetAlpha(0)
 
     searchBox.BottomLineTexture = searchBox:CreateTexture(nil, "border")
@@ -1065,7 +1065,7 @@ end
 function detailsFramework:NewSpecialLuaEditorEntry(parent, width, height, member, name, nointent, showLineNumbers, bNoName)
 	if (not bNoName) then
 		if (name and name:find("$parent")) then
-			local parentName = detailsFramework.GetParentName(parent)
+			local parentName = detailsFramework:GetParentName(parent)
 			name = name:gsub("$parent", parentName)
 		end
 	else

@@ -1165,21 +1165,15 @@ do
         return texTable2
     end
 
-    local iconsize = {16, 16}
-    local icontexture = [[Interface\WorldStateFrame\ICONS-CLASSES]]
-    local iconcoords = {0.25, 0.50, 0, 0.25}
-    local list = {
-        {value = [[]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE1"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize, iconcolor = {1, 1, 1, .3}},
-        {value = [[Interface\AddOns\Details\images\classes_small]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE2"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\spec_icons_normal]], label = Loc["Specialization"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\spec_icons_normal_alpha]], label = Loc["Specialization Alpha"], onclick = OnSelectIconFileSpec, icon = [[Interface\AddOns\Details\images\icons]], texcoord = {2/512, 32/512, 480/512, 510/512}, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\classes_small_bw]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE3"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\classes_small_alpha]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE4"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\classes_small_alpha_bw]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE6"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-        {value = [[Interface\AddOns\Details\images\classes]], label = Loc ["STRING_OPTIONS_BAR_ICONFILE5"], onclick = OnSelectIconFile, icon = icontexture, texcoord = iconcoords, iconsize = iconsize},
-    }
     local builtIconList = function()
-        return list
+		for k,v in ipairs(Details222.BarIconSetList) do
+            if v.isSpec then
+                v.onclick = OnSelectIconFileSpec
+            else
+                v.onclick = OnSelectIconFile
+            end
+        end
+        return Details222.BarIconSetList
     end
 
     local buildSection = function(sectionFrame)
@@ -4417,6 +4411,17 @@ do
                 desc = Loc["Divisor Color"],
             },
 
+            {--rounded corner
+                type = "toggle",
+                get = function() return Details.tooltip.rounded_corner end,
+                set = function(self, fixedparam, value)
+                    Details.tooltip.rounded_corner = value
+                    afterUpdate()
+                end,
+                name =  Loc["Show Rounded Border"],
+                desc =  Loc["Show Rounded Border"],
+            },
+
             {type = "blank"},
 
             {--show amount
@@ -6449,7 +6454,7 @@ do
 		end
 
 		sectionFrame.ConsolidadeSpellsSwitch:SetPoint(startX, startY - 20)
-        Details:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 12)
+        Details:SetFontSize(sectionFrame.ConsolidadeSpellsLabel, 16)
         
         local sectionOptions = {
 
@@ -7111,13 +7116,14 @@ do
 
             {--show evoker bar
                 type = "toggle",
-                get = function() return Details.combat_log.evoker_calc_damage end,
+                get = function() return Details.combat_log.calc_evoker_damage end,
                 set = function(self, fixedparam, value)
-                    Details.combat_log.evoker_calc_damage = value
+                    Details.combat_log.calc_evoker_damage = value
                     afterUpdate()
                     Details:ClearParserCache()
+                    currentInstance:InstanceReset()
                 end,
-                name = DF:AddClassIconToText(Loc["Predict Augmentation Damage"], false, "EVOKER"),
+                name = DF:AddClassIconToText(Loc["Show Augmentation Extra Bar"], false, "EVOKER"),
                 desc = Loc["Calculate how much the Augmentation Evoker are buffing other players"],
                 boxfirst = true,
             },

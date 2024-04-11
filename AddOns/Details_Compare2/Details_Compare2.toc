@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: Details!: Compare 2.0
 ## Notes: Replace the Compare tab in the player breakdown window.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-比較

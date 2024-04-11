@@ -1026,7 +1026,7 @@ function Details:OpenRaidHistoryWindow(raidName, bossEncounterId, difficultyId, 
     end
 
     if (not statsWindow.UpdateDropdowns) then
-        Details:Msg("Failled to load statistics, Details! Storage is disabled?")
+        Details:Msg(Loc["Failled to load statistics, Details! Storage is disabled?"])
         return
     end
 

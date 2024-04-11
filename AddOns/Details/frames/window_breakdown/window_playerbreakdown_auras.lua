@@ -1,12 +1,16 @@
 
+---@type details
 local Details = Details
+---@type detailsframework
+
 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale ( "Details" )
-local Details = Details
-local GameTooltip = GameTooltip
 local detailsFramework = DetailsFramework
+
+local GameTooltip = GameTooltip
 local unpack = unpack
 local CreateFrame = CreateFrame
-local GetSpellInfo = GetSpellInfo
+
+local _
 
 Details.BuffUptimeSpellsToIgnore = {
     [186401] = true, --Sign of the Skirmisher
@@ -72,7 +76,9 @@ local createAuraTabOnBreakdownWindow = function(tab, frame)
 
         local iconTexture = line:CreateTexture("$parentIcon", "overlay")
         iconTexture:SetSize(scroll_line_height -2 , scroll_line_height - 2)
-        iconTexture:SetAlpha(0.834)
+        iconTexture:SetAlpha(0.924)
+        detailsFramework:SetMask(iconTexture, Details:GetTextureAtlas("iconmask"))
+
         local nameLabel = line:CreateFontString("$parentName", "overlay", "GameFontNormal")
         local uptimeLabel = line:CreateFontString("$parentUptime", "overlay", "GameFontNormal")
         local uptimePercentLabel = line:CreateFontString("$parentPercent", "overlay", "GameFontNormal")

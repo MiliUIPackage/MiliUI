@@ -166,7 +166,7 @@ function Details.Survey.OpenSpellCategoryScreen()
 		statusBar2:SetAlpha(0.8)
 		DF:ApplyStandardBackdrop(statusBar2)
         DF:ApplyStandardBackdrop(statusBar2)
-        local dataInfoLabel = DF:CreateLabel(statusBar2, Loc["This cooldown data is send to people on Details! team and shared in 'Open Raid' library where any weakaura or addon can use it"], 12, "silver")
+        local dataInfoLabel = DF:CreateLabel(statusBar2, Loc["This cooldown data is send to people on Details! team and shared in 'Open Raid' library where any weakaura or addon can use it"], 16, "silver")
         dataInfoLabel:SetPoint("center", 0, 0)
         dataInfoLabel.justifyH = "center"
 

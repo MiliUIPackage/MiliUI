@@ -32,6 +32,7 @@ local _
 ---@field desc string
 ---@field descPhraseId string
 ---@field hooks table
+---@field include_default boolean
 
 ---@class df_menu_toggle : df_menu_table
 ---@field set function
@@ -962,7 +963,7 @@ function detailsFramework:BuildMenuVolatile(parent, menuOptions, xOffset, yOffse
 
                     do
                         if (widgetTable.type == "selectfont") then
-                            local func = detailsFramework:CreateFontListGenerator(widgetTable.set)
+                            local func = detailsFramework:CreateFontListGenerator(widgetTable.set, widgetTable.include_default)
                             dropdown:SetFunction(func)
 
                         elseif (widgetTable.type == "selectcolor") then
@@ -1202,7 +1203,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 local dropdown
                 do
                     if (widgetTable.type == "selectfont") then
-                        dropdown = detailsFramework:CreateFontDropDown(parent, widgetTable.set, widgetTable.get(), widgetWidth or 140, widgetHeight or defaultHeight, nil, "$parentWidget" .. index, dropdownTemplate)
+                        dropdown = detailsFramework:CreateFontDropDown(parent, widgetTable.set, widgetTable.get(), widgetWidth or 140, widgetHeight or defaultHeight, nil, "$parentWidget" .. index, dropdownTemplate, widgetTable.include_default)
 
                     elseif (widgetTable.type == "selectcolor") then
                         dropdown = detailsFramework:CreateColorDropDown(parent, widgetTable.set, widgetTable.get(), widgetWidth or 140, widgetHeight or defaultHeight, nil, "$parentWidget" .. index, dropdownTemplate)
@@ -1219,7 +1220,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
 
                 local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
                 DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, dropdown, "have_tooltip", descPhraseId, widgetTable.desc)
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 dropdown.hasLabel = label
 
                 local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable, true)
@@ -1248,7 +1249,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
                 DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, switch, "have_tooltip", descPhraseId, widgetTable.desc)
 
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 switch.hasLabel = label
 
                 local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable, true)
@@ -1273,7 +1274,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
                 DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, slider, "have_tooltip", descPhraseId, widgetTable.desc)
 
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 slider.hasLabel = label
 
                 local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable, true)
@@ -1295,7 +1296,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 local descPhraseId = getDescripttionPhraseID(widgetTable, languageAddonId, languageTable)
                 DetailsFramework.Language.RegisterTableKeyWithDefault(languageAddonId, colorpick, "have_tooltip", descPhraseId, widgetTable.desc)
 
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 colorpick.hasLabel = label
 
                 local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable, true)
@@ -1315,7 +1316,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
                 local button = detailsFramework:NewButton(parent, nil, "$parentWidget" .. index, nil, widgetWidth or 120, widgetHeight or 18, widgetTable.func, widgetTable.param1, widgetTable.param2, nil, "", nil, buttonTemplate, textTemplate)
                 button.widget_type = "execute"
 
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 button.hasLabel = label
 
                 local namePhraseId = getNamePhraseID(widgetTable, languageAddonId, languageTable, true)
@@ -1336,7 +1337,7 @@ function detailsFramework:BuildMenu(parent, menuOptions, xOffset, yOffset, heigh
             elseif (widgetTable.type == "textentry") then
                 ---@cast widgetTable df_menu_textentry
                 local textentry = detailsFramework:CreateTextEntry(parent, widgetTable.func or widgetTable.set, widgetWidth or 120, widgetHeight or 18, nil, "$parentWidget" .. index, nil, buttonTemplate)
-                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 12)
+                local label = detailsFramework:NewLabel(parent, nil, "$parentLabel" .. index, nil, "", "GameFontNormal", widgetTable.text_template or textTemplate or 16)
                 textentry.hasLabel = label
                 textentry.align = widgetTable.align or "left"
 

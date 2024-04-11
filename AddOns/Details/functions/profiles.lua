@@ -1116,6 +1116,8 @@ local default_profile = {
 			header_statusbar = {0.3, 0.3, 0.3, 0.8, false, false, "WorldState Score"},
 			submenu_wallpaper = true,
 
+			rounded_corner = true,
+
 			anchored_to = 1,
 			anchor_screen_pos = {507.700, -350.500},
 			anchor_point = "bottom",
@@ -1168,7 +1170,7 @@ local default_player_data = {
 			track_hunter_frenzy = false,
 			merge_gemstones_1007 = false,
 			merge_critical_heals = false,
-			evoker_calc_damage = false,
+			calc_evoker_damage = true,
 			evoker_show_realtimedps = false,
 		},
 
@@ -1443,6 +1445,16 @@ local default_global_data = {
 			},
 		},
 
+	breakdown_general = {
+		font_size = 11,
+		font_color = {0.9, 0.9, 0.9, 0.923},
+		font_outline = "NONE",
+		font_face = "DEFAULT",
+		bar_texture = "Skyline",
+	},
+
+	frame_background_color = {0.1215, 0.1176, 0.1294, 0.8},
+
 --/run Details.breakdown_spell_tab.spellcontainer_height = 311 --352
 	--breakdown spell tab
 	breakdown_spell_tab = {
@@ -1608,7 +1620,7 @@ local default_global_data = {
 
 			reverse_death_log = false,
 
-			delay_to_show_graphic = 10,
+			delay_to_show_graphic = 1,
 			last_mythicrun_chart = {},
 			mythicrun_chart_frame = {},
 			mythicrun_chart_frame_minimized = {},
@@ -1723,20 +1735,32 @@ function Details:SaveProfileSpecial()
 end
 
 --save things for the mythic dungeon run
-function Details:SaveState_CurrentMythicDungeonRun (runID, zoneName, zoneID, startAt, segmentID, level, ejID, latestBossAt)
+function Details:SaveState_CurrentMythicDungeonRun(runID, zoneName, zoneID, startAt, segmentID, level, ejID, latestBossAt)
+	local zoneName, _, _, _, _, _, _, currentZoneID = GetInstanceInfo()
+
 	local savedTable = Details.mythic_dungeon_currentsaved
 	savedTable.started = true
 	savedTable.run_id = runID
 	savedTable.dungeon_name = zoneName
-	savedTable.dungeon_zone_id = zoneID
+	savedTable.dungeon_zone_id = currentZoneID
 	savedTable.started_at = startAt
 	savedTable.segment_id = segmentID
 	savedTable.level = level
 	savedTable.ej_id = ejID
 	savedTable.previous_boss_killed_at = latestBossAt
+
+	local playersOnTheRun = {}
+	for i = 1, GetNumGroupMembers() do
+		local unitGUID = UnitGUID("party" .. i)
+		if (unitGUID) then
+			playersOnTheRun[#playersOnTheRun+1] = unitGUID
+		end
+	end
+
+	savedTable.players = playersOnTheRun
 end
 
-function Details:UpdateState_CurrentMythicDungeonRun (stillOngoing, segmentID, latestBossAt)
+function Details:UpdateState_CurrentMythicDungeonRun(stillOngoing, segmentID, latestBossAt)
 	local savedTable = Details.mythic_dungeon_currentsaved
 
 	if (not stillOngoing) then
@@ -1753,7 +1777,6 @@ function Details:UpdateState_CurrentMythicDungeonRun (stillOngoing, segmentID, l
 end
 
 function Details:RestoreState_CurrentMythicDungeonRun()
-
 	--no need to check for mythic+ if the user is playing on classic wow
 	if (DetailsFramework.IsTimewalkWoW()) then
 		return
@@ -1762,7 +1785,7 @@ function Details:RestoreState_CurrentMythicDungeonRun()
 	local savedTable = Details.mythic_dungeon_currentsaved
 	local mythicLevel = C_ChallengeMode.GetActiveKeystoneInfo()
 	local zoneName, _, _, _, _, _, _, currentZoneID = GetInstanceInfo()
-	local mapID =  C_Map.GetBestMapForUnit ("player")
+	local mapID =  C_Map.GetBestMapForUnit("player")
 
 	if (not mapID) then
 		--print("D! no mapID to restored mythic dungeon state.")
@@ -1772,7 +1795,7 @@ function Details:RestoreState_CurrentMythicDungeonRun()
 	local ejID = 0
 
 	if (mapID) then
-		ejID = DetailsFramework.EncounterJournal.EJ_GetInstanceForMap (mapID) or 0
+		ejID = DetailsFramework.EncounterJournal.EJ_GetInstanceForMap(mapID) or 0
 	end
 
 	--is there a saved state for the dungeon?
@@ -1793,7 +1816,7 @@ function Details:RestoreState_CurrentMythicDungeonRun()
 				Details.MythicPlus.IsRestoredState = true
 				DetailsMythicPlusFrame.IsDoingMythicDungeon = true
 
-				print("D! (debug) mythic dungeon state restored.")
+				Details:Msg("D! (debug) mythic dungeon state restored.")
 
 				C_Timer.After(2, function()
 					Details:SendEvent("COMBAT_MYTHICDUNGEON_START")
@@ -2005,7 +2028,7 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 		mythicPlusSettings.make_overall_boss_only = false
 		mythicPlusSettings.show_damage_graphic = true
 		mythicPlusSettings.reverse_death_log = false
-		mythicPlusSettings.delay_to_show_graphic = 10
+		mythicPlusSettings.delay_to_show_graphic = 1
 		mythicPlusSettings.last_mythicrun_chart = {}
 		mythicPlusSettings.mythicrun_chart_frame = {}
 		mythicPlusSettings.mythicrun_chart_frame_minimized = {}

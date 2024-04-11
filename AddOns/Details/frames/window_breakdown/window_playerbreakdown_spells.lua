@@ -13,11 +13,22 @@ local GetSpellInfo = GetSpellInfo
 local _GetSpellInfo = Details.GetSpellInfo
 local GameTooltip = GameTooltip
 local IsShiftKeyDown = IsShiftKeyDown
-local DF = DetailsFramework
 local tinsert = table.insert
+
+---@type detailsframework
+local DF = DetailsFramework
+---@type detailsframework
+local detailsFramework = DetailsFramework
 
 ---@type breakdownspelltab
 local spellsTab = {}
+spellsTab.ReportOverlays = {}
+
+function spellsTab.SetShownReportOverlay(bIsShown)
+	for robIndex, ROB in ipairs(spellsTab.ReportOverlays) do
+		ROB:SetShown(bIsShown)
+	end
+end
 
 --expose the object to the global namespace
 DetailsSpellBreakdownTab = spellsTab
@@ -521,6 +532,8 @@ function spellsTab.OnShownTab()
 	spellsTab.UpdateHeadersSettings("phases")
 	spellsTab.UpdateHeadersSettings("generic_left")
 	spellsTab.UpdateHeadersSettings("generic_right")
+
+	spellsTab.SetShownReportOverlay(false)
 end
 
 ---called when the tab is getting created, run only once
@@ -549,64 +562,90 @@ function spellsTab.OnCreateTabCallback(tabButton, tabFrame) --~init
 	--create a button in the breakdown window to open the options for this tab
 	local optionsButton = DF:CreateButton(tabFrame, Details.OpenSpellBreakdownOptions, 130, 18, Loc["STRING_OPTIONS_PLUGINS_OPTIONS"], 14)
 	--optionsButton:SetTemplate(DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
-	optionsButton:SetPoint("bottomright", tabFrame, "bottomright", -10, -19)
+	optionsButton:SetPoint("bottomright", tabFrame, "bottomright", -10, -16)
+	optionsButton:SetTemplate("STANDARD_GRAY")
+	optionsButton:SetIcon(Details:GetTextureAtlas("breakdown-icon-optionsbutton"))
 	optionsButton.textsize = 16
-	optionsButton.textcolor = "orange"
-
-	---@type df_roundedpanel_preset
-	local preset = {
-		roundness = 5,
-		color = {.2, .2, .2, 0.98},
-		border_color = {.1, .1, .1, 0.834},
-	}
-	DF:AddRoundedCornersToFrame(optionsButton, preset)
+	optionsButton.textcolor = "DETAILS_STATISTICS_ICON"
+	optionsButton:SetAlpha(0.834)
 
 	--create a report button
 	local onClickReportButton = function(blizButton, buttonType, param1, param2)
-		--get what is shown in the breakdown window
-		local instance = spellsTab.GetInstance()
-		local actor = spellsTab.GetActor()
-		local combat = spellsTab.GetCombat()
-
-		local displayId, subDisplayId = instance:GetDisplay()
-
-		local spellScroll = spellsTab.GetSpellScrollFrame()
-		local getNumLines = spellScroll:GetNumFramesShown()
-
-		local dataToReport = {}
-
-		for i = 1, getNumLines do
-			---@type breakdownspellbar
-			local thisLine = spellScroll:GetLine(i)
-
-			--get the spell id
-			local spellId = thisLine.spellId
-			local spellName = GetSpellInfo(spellId)
-
-			--get the amount
-			local bkSpellData = thisLine.bkSpellData
-
-			if (bkSpellData) then
-				--dumpt(bkSpellData)
-				if (displayId == DETAILS_ATTRIBUTE_DAMAGE) then
-					if (subDisplayId == DETAILS_ATTRIBUTE_DAMAGE) then
-						dataToReport[#dataToReport+1] = spellName .. " .. " .. bkSpellData.total --, {bkSpellData.total, spellName, spellId}
-					end
-				end
-			end
+		if (spellsTab.ReportOverlays[1]:IsShown()) then
+			spellsTab.SetShownReportOverlay(false)
+		else
+			spellsTab.SetShownReportOverlay(true)
 		end
-
-		if (#dataToReport > 0) then
-			instance:Reportar(dataToReport, {}, nil, nil)
-		end
-
 	end
+
+	---~report
+	local reportScrollContents = function(self, buttonPressed)
+		local scrollFrame = self.scrollFrame
+
+		---@type breakdownreporttable
+		local reportData = scrollFrame:GetReportData()
+		local reportDataBuilt = {reportData.title}
+
+		for i = 1, #reportData do
+			local data = reportData[i]
+			local str = data.name .. " ...... " .. data.amount .. "  (" .. data.percent .. ")"
+			reportDataBuilt[#reportDataBuilt+1] = str
+		end
+
+		spellsTab.SetShownReportOverlay(false)
+
+		Details:Reportar(reportDataBuilt, {_no_current = true, _no_inverse = true, _custom = true})
+	end
+
+	--create a report overlay for each of the containers
+	local createReportOverlay = function(scrollFrame)
+		local reportOverlayButton = CreateFrame("button", "DetailsSpellScrollSelectionButton", scrollFrame, "BackdropTemplate")
+		local ROB = reportOverlayButton
+
+		spellsTab.ReportOverlays[#spellsTab.ReportOverlays+1] = ROB
+
+		--backdrop
+		ROB:SetBackdrop({
+			edgeFile = [[Interface\AddOns\Details\images\border_2]],
+			edgeSize = 16,
+		})
+
+		ROB:SetFrameLevel(scrollFrame:GetFrameLevel()+5)
+		ROB:SetAllPoints()
+		ROB:EnableMouse(true)
+
+		local backgroundTexture = ROB:CreateTexture("DetailsSpellScrollSelectionButtonTexture", "overlay")
+		--instead of all point, do topleft and bottomright
+		backgroundTexture:SetPoint("topleft", ROB, "topleft", 0, 0)
+		backgroundTexture:SetPoint("bottomright", ROB, "bottomright", 0, 0)
+		ROB.backgroundTexture = backgroundTexture
+
+		backgroundTexture:SetColorTexture(.1, .1, .1, 0.834)
+
+		local text = ROB:CreateFontString(nil, "overlay", "GameFontNormal")
+		text:SetText("REPORT")
+		text:SetTextColor(1, 1, 1, 1)
+		text:SetPoint("center", ROB, "center", 0, 0)
+		ROB.reportText = text
+
+		ROB.scrollFrame = scrollFrame
+		ROB:SetScript("OnClick", reportScrollContents)
+
+		ROB:Hide()
+	end
+
+	createReportOverlay(spellsTab.GetSpellScrollFrame())
+	createReportOverlay(spellsTab.GetTargetScrollFrame())
+	createReportOverlay(spellsTab.GetPhaseScrollFrame())
+	createReportOverlay(spellsTab.GetGenericScrollFrame())
 
 	local reportButton = DF:CreateButton(tabFrame, onClickReportButton, 130, 18, Loc["STRING_REPORT_TEXT"], 1, 2) --will have a text?
 	reportButton:SetPoint("right", optionsButton, "left", -5, 0)
 	reportButton.textsize = 12
-	reportButton.textcolor = "orange"
-	DF:AddRoundedCornersToFrame(reportButton, preset)
+	reportButton.textcolor = "DETAILS_STATISTICS_ICON"
+	reportButton:SetTemplate("STANDARD_GRAY")
+	reportButton:SetIcon(Details:GetTextureAtlas("breakdown-icon-reportbutton"))
+	reportButton:SetAlpha(0.834)
 
 	--open the breakdown window at startup for testing
 	--[=[ debug
@@ -623,9 +662,14 @@ end
 function spellsTab.UpdateBarSettings(bar)
 	if (bar.statusBar) then
 		bar.statusBar:SetAlpha(Details.breakdown_spell_tab.statusbar_alpha) --could be moved to when the bar is updated
-		bar.statusBar:GetStatusBarTexture():SetTexture(Details.breakdown_spell_tab.statusbar_texture)
-		bar.statusBar.backgroundTexture:SetColorTexture(unpack(Details.breakdown_spell_tab.statusbar_background_color))
-		bar.statusBar.backgroundTexture:SetAlpha(Details.breakdown_spell_tab.statusbar_background_alpha)
+
+		--bar.statusBar:GetStatusBarTexture():SetTexture(Details.breakdown_spell_tab.statusbar_texture)
+		Details222.BreakdownWindow.ApplyTextureSettings(bar.statusBar)
+
+		--bar.statusBar.backgroundTexture:SetColorTexture(unpack(Details.breakdown_spell_tab.statusbar_background_color))
+		--bar.statusBar.backgroundTexture:SetAlpha(Details.breakdown_spell_tab.statusbar_background_alpha)
+
+		detailsFramework:SetTemplate(bar.statusBar.backgroundTexture, "STANDARD_GRAY")
 	end
 end
 
