@@ -1,0 +1,61 @@
+## Interface: 100206
+## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
+## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r
+## Notes: GUI for Deadly Boss Mods
+## Notes-zhCN: Deadly Boss Mods的设置界面
+## Notes-zhTW: Deadly Boss Mods的使用者介面
+## Dependencies: DBM-Core
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
+## LoadOnDemand: 1
+## DefaultState: enabled
+## Author: MysticalOS, QartemisT
+## Version: 10.2.34
+## X-Website: https://deadlybossmods.com
+## X-Category-zhTW: 團隊
+
+localization.en.lua
+localization.cn.lua
+localization.tw.lua
+
+DBM-GUI.lua
+DBM-GUI_DropDown.xml
+DBM-GUI_DropDown.lua
+
+# Modules
+modules\MainFramePrototype.lua
+modules\ListFrameButtonsPrototype.lua
+modules\MainFrame.lua
+modules\PanelPrototype.lua
+
+modules\options\general\General.lua
+modules\options\general\Core_GUI.lua
+modules\options\general\AutoLogging.lua
+modules\options\general\ExtraFeatures.lua
+modules\options\general\Profile.lua
+
+modules\options\alerts\Alerts.lua
+modules\options\alerts\Announcements.lua
+modules\options\alerts\SpecialAnnouncements.lua
+modules\options\alerts\ChatframeMessages.lua
+modules\options\alerts\SpokenAlerts.lua
+modules\options\alerts\EventSounds.lua
+
+modules\options\timers\Timers.lua
+modules\options\timers\Appearance.lua
+modules\options\timers\ColorbyType.lua
+modules\options\timers\Behavior.lua
+modules\options\timers\PBC.lua
+
+modules\options\filters\Filters.lua
+modules\options\filters\GlobalDisables.lua
+modules\options\filters\Reduction.lua
+modules\options\filters\Handholding.lua
+modules\options\filters\HideBlizzard.lua
+modules\options\filters\RaidLeaderDisable.lua
+modules\options\filters\Privacy.lua
+
+modules\options\frames\Frames.lua
+modules\options\frames\InfoFrame.lua
+modules\options\frames\Range.lua
+modules\options\frames\Nameplate.lua
