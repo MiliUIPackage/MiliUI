@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: Postal
 ## Version: v4.0.9
 ## X-Build: 604

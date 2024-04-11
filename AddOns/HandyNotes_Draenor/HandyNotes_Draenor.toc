@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: HandyNotes: Draenor
 ## Version: 2.8
 ## Notes: Draenor Rares and Treasures simplified

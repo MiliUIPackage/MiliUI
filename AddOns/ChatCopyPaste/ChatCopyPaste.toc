@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Notes: A simple chat copy paste addon.
 ## Title: ChatCopyPaste
 ## Author: Novaspark-Arugal OCE

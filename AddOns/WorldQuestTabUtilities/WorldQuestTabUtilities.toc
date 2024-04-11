@@ -1,4 +1,4 @@
-﻿## Interface: 100205
+﻿## Interface: 100206
 ## Title: World Quest Tab Utilities
 ## Notes: Plug-in for World Quest Tab.
 ## Title-zhTW: |cFF00AA99[任務]|r 世界任務標籤頁-小工具

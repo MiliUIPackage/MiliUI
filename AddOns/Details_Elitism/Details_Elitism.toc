@@ -1,4 +1,4 @@
-## Interface: 100205
+## Interface: 100206
 ## Title: Details!: Elitism (plugin)
 ## Notes: Show avoidable damage and abilities taken by players.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-可避免傷害分析
