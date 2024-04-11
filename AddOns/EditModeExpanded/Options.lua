@@ -331,7 +331,7 @@ local options = {
         },
         backpack = {
             name = "背包",
-            desc = "啟用/停用支援骰子面板",
+            desc = "啟用/停用支援背包",
             type = "toggle",
         },
     },

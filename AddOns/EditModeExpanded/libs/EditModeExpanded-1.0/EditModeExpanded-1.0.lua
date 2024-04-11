@@ -2,7 +2,7 @@
 -- Internal variables
 --
 
-local MAJOR, MINOR = "EditModeExpanded-1.0", 79
+local MAJOR, MINOR = "EditModeExpanded-1.0", 80
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -24,7 +24,6 @@ local framesDialogsKeys = lib.framesDialogsKeys or {}
 lib.framesDialogsKeys = framesDialogsKeys
 local existingFrames = lib.exitingFrames or {} -- frames already part of Edit Mode where we are adding more options
 lib.existingFrames = existingFrames
--- lib.firstCheckButtonPlaced = false
 local enteringCombat = InCombatLockdown()
 
 local ENUM_EDITMODEACTIONBARSETTING_HIDEABLE = 10 -- Enum.EditModeActionBarSetting.Hideable = 10
@@ -1261,7 +1260,7 @@ hooksecurefunc(f, "OnLoad", function()
     
         self.pools = CreateFramePoolCollection();
         --self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingDropdownTemplate") -- trying to use dropdowns causes taint issues, probably because of long-running taint issues with dropdowns in general
-        --self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingSliderTemplate");
+        self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingSliderTemplate");
         self.pools:CreatePool("FRAME", self.Settings, "EditModeSettingCheckboxTemplate");
     
         local function resetExtraButton(pool, button)
