@@ -7,7 +7,7 @@ local AceConfDia = LibStub("AceConfigDialog-3.0")
 
 local addonVersion = GetAddOnMetadata(name, "version")
 -- @debug@
-if addonVersion == "1.7.1" then
+if addonVersion == "1.7.2" then
    addonVersion = "Development"
 end
 -- @end-debug@
@@ -268,7 +268,7 @@ Exlist.SetupConfig = function(refresh)
                   name = L["Slim Version"],
                   type = "toggle",
                   desc = L[
-                     "Slimmed down version of main tooltip i.e. +15 Neltharions Lair -> +15 NL\nMostly affects tooltip in horizontal orientation"
+                  "Slimmed down version of main tooltip i.e. +15 Neltharions Lair -> +15 NL\nMostly affects tooltip in horizontal orientation"
                   ],
                   width = "full",
                   get = function()
@@ -363,13 +363,13 @@ Exlist.SetupConfig = function(refresh)
             name = L["Tooltip"],
             order = 2,
             args = {
-               des = {type = "description", name = " ", order = 1},
+               des = { type = "description", name = " ", order = 1 },
                tooltipOrientation = {
                   type = "select",
                   order = 1.1,
                   width = "full",
                   name = L["Tooltip Orientation"],
-                  values = {V = L["Vertical"], H = L["Horizontal"]},
+                  values = { V = L["Vertical"], H = L["Horizontal"] },
                   set = function(self, v)
                      Exlist.ConfigDB.settings.horizontalMode = v == "H"
                   end,
@@ -419,7 +419,7 @@ Exlist.SetupConfig = function(refresh)
                      return c.r, c.g, c.b, c.a
                   end,
                   set = function(self, r, g, b, a)
-                     local c = {r = r, g = g, b = b, a = a}
+                     local c = { r = r, g = g, b = b, a = a }
                      Exlist.ConfigDB.settings.backdrop.color = c
                   end
                },
@@ -434,7 +434,7 @@ Exlist.SetupConfig = function(refresh)
                      return c.r, c.g, c.b, c.a
                   end,
                   set = function(self, r, g, b, a)
-                     local c = {r = r, g = g, b = b, a = a}
+                     local c = { r = r, g = g, b = b, a = a }
                      Exlist.ConfigDB.settings.backdrop.borderColor = c
                   end
                }
@@ -666,7 +666,7 @@ Exlist.SetupConfig = function(refresh)
          width = 0.1,
          disabled = function()
             return GetCharPosition(char) >= GetLastEnabledChar() or Exlist.ConfigDB.settings.orderByIlvl or
-               not characters[char].enabled
+                not characters[char].enabled
          end,
          func = function()
             for i, c in ipairs(charOrder) do
@@ -687,7 +687,7 @@ Exlist.SetupConfig = function(refresh)
 
       -- Spacer
       n = n + 1
-      charOptions.args[char .. "spacer"] = {type = "description", order = n, name = "", width = 0.7}
+      charOptions.args[char .. "spacer"] = { type = "description", order = n, name = "", width = 0.7 }
 
       -- Delete Data
       n = n + 1
@@ -808,8 +808,8 @@ function Exlist.InitConfig()
                C_Timer.After(
                   0.1,
                   function()
-                     _G.SettingsPanel.GameTab:SetSelected(true);
-                     _G.SettingsPanel.AddOnsTab:SetSelected(true);
+                     _G.SettingsPanel:GetCategoryList():SetCategorySet(Settings.CategorySet.Game);
+                     _G.SettingsPanel:GetCategoryList():SetCategorySet(Settings.CategorySet.AddOns);
                   end
                )
             end

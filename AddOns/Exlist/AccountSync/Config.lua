@@ -4,16 +4,16 @@ Exlist.accountSync = {
    init = function()
       configDB = Exlist.ConfigDB
       configDB.accountSync =
-         Exlist.AddMissingTableEntries(
-         configDB.accountSync or {},
-         {
-            enabled = false,
-            pairedCharacters = {},
-            accountName = "Account " .. Exlist.GenerateRandomString(4),
-            displaySyncProgress = true,
-            tickerFrequency = 180
-         }
-      )
+          Exlist.AddMissingTableEntries(
+             configDB.accountSync or {},
+             {
+                enabled = false,
+                pairedCharacters = {},
+                accountName = "Account " .. Exlist.GenerateRandomString(4),
+                displaySyncProgress = true,
+                tickerFrequency = 180
+             }
+          )
       Exlist.accountSync.coreInit()
    end,
    coreInit = function()
@@ -64,15 +64,8 @@ local function AddOptions(refresh)
    local tmpConfigs = {}
    local options = {
       type = "group",
-      name = L["Account Sync - (Alpha)"],
+      name = L["Account Sync"],
       args = {
-         desc = {
-            type = "description",
-            order = 0,
-            width = "full",
-            fontSize = "medium",
-            name = L["Alpha version - Use at your own discretion"]
-         },
          desc2 = {
             type = "description",
             order = 1,
@@ -205,9 +198,9 @@ local function AddOptions(refresh)
       }
    }
    if refresh then
-      Exlist.RefreshModuleOptions("accountsync", options, L["Account Sync - Alpha"])
+      Exlist.RefreshModuleOptions("accountsync", options, L["Account Sync"])
    else
-      Exlist.AddModuleOptions("accountsync", options, L["Account Sync - Alpha"])
+      Exlist.AddModuleOptions("accountsync", options, L["Account Sync"])
    end
 end
 Exlist.ModuleToBeAdded(AddOptions)
