@@ -1,13 +1,9 @@
 # Astral Keys
 
-## [3.97](https://github.com/astralguild/AstralKeys/tree/3.97) (2023-11-29)
-[Full Changelog](https://github.com/astralguild/AstralKeys/compare/3.96...3.97) [Previous Releases](https://github.com/astralguild/AstralKeys/releases)
+## [4.03](https://github.com/astralguild/AstralKeys/tree/4.03) (2024-04-23)
+[Full Changelog](https://github.com/astralguild/AstralKeys/compare/4.02...4.03) [Previous Releases](https://github.com/astralguild/AstralKeys/releases)
 
 - Update AstralKeys.toc  
-- Merge branch 'main' of https://github.com/astralguild/AstralKeys  
-- Rest of affix rotation  
-- Merge pull request #110 from zs00556266/patch-2  
-    Update zhCN.lua  
-- Update zhCN.lua  
-- Merge branch 'main' of https://github.com/astralguild/AstralKeys  
-- Update affixes (2/10)  
+- Merge pull request #116 from AlexSafatli/df-s4  
+    Fix error on open with new season  
+- Fix error on /ak  

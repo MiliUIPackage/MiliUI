@@ -10,11 +10,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="8">
+			<Font font="GameFontHighlight" height="8">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="12"> <!-- 目前/本週最佳 -->
+			<Font font="GameFontHighlight" height="12"> <!-- 目前/本週最佳 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -39,11 +39,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -67,11 +67,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="12">
+			<Font font="GameFontHighlight" height="12">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="16"> <!-- 自己的角色名字/設定選項標題 -->
+			<Font font="GameFontHighlight" height="16"> <!-- 自己的角色名字/設定選項標題 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -95,11 +95,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -123,11 +123,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -151,11 +151,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -185,11 +185,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="10">
+			<Font font="GameFontHighlight" height="10">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="14"> <!-- 欄位標題 -->
+			<Font font="GameFontHighlight" height="14"> <!-- 欄位標題 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -213,11 +213,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="12" justifyH="LEFT">
+			<Font font="GameFontHighlight" height="12" justifyH="LEFT">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="14" justifyH="LEFT"> <!-- 等級/地城/本週最佳的內文 -->
+			<Font font="GameFontHighlight" height="14" justifyH="LEFT"> <!-- 等級/地城/本週最佳的內文 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -241,11 +241,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -269,11 +269,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -297,11 +297,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -325,11 +325,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="10">
+			<Font font="GameFontHighlight" height="10">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="14"> <!-- 自己角色地城/本週最佳的內文 -->
+			<Font font="GameFontHighlight" height="14"> <!-- 自己角色地城/本週最佳的內文 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -353,11 +353,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="12">
+			<Font font="GameFontHighlight" height="12">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="14"> <!-- 設定選項內文 -->
+			<Font font="GameFontHighlight" height="14"> <!-- 設定選項內文 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -381,11 +381,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="12">
+			<Font font="GameFontHighlight" height="12">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="14"> <!-- 角色的內文 -->
+			<Font font="GameFontHighlight" height="14"> <!-- 角色的內文 -->
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -409,11 +409,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -437,11 +437,11 @@
 			</Font>
 		</Member>
 		<Member alphabet="simplifiedchinese">
-			<Font font="Fonts\ARKai_T.ttf" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="traditionalchinese">
-			<Font font="Fonts\blei00d.TTF" height="17">
+			<Font font="GameFontHighlight" height="17">
 			</Font>
 		</Member>
 		<Member alphabet="russian">
@@ -461,13 +461,13 @@
 		<Color r="1" g="1" b="1" a="1"/>
 	</Font>
 
-	<Font name="AstralFontNormal" inherits="GameFontNormal" justifyH="LEFT" virtual="true">
+	<Font name="AstralFontNormal" inherits="GameFontHighlight" justifyH="LEFT" virtual="true">
 		<Color r="1" g="1" b="1" a="1"/>
 	</Font>
 	<Font name="AstralFontLarge" inherits="AstralFont_Large" justifyH="LEFT" virtual="true">
 		<Color r="1" g="1" b="1" a="1"/>
 	</Font>
-	<Font name="AstralFontNormalCenter" inherits="GameFontNormal" justifyH="CENTER" virtual="true">
+	<Font name="AstralFontNormalCenter" inherits="GameFontHighlight" justifyH="CENTER" virtual="true">
 		<Color r="1" g="1" b="1" a="1"/>
 	</Font>
 	<Font name="AstralFontLargeCenter" inherits="AstralFont_Large" justifyH="CENTER" virtual="true">
