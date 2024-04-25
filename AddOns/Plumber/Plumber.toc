@@ -1,11 +1,12 @@
 ## Interface: 100206
-## Version: 1.2.5
+## Version: 1.2.7
 
 ## Title: Plumber
 
 ## Notes: Provides a variety of quality-of-life features.|nMore details in the AddOn Settings.
 ## Notes-zhCN: 提供多种便捷功能。|n请前往插件设置来查看更多信息。
 ## Notes-zhTW: 提供多種便捷功能。|n請前往插件設置來查看更多訊息。
+
 ## Author: Peterodox
 ## SavedVariables: PlumberDB
 ## X-Category: 介面

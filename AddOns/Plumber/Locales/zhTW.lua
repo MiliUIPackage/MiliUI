@@ -155,3 +155,7 @@ L["Reposition Button Vertical"] = "垂直方向移動";
 L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動此視窗。";
 L["Font Size"] = FONT_SIZE or "文字大小";
 L["Reset To Default Position"] = HUD_EDIT_MODE_RESET_POSITION or "重置回預設位置";
+L["currency-2806"] = L["currency-2706"];
+L["currency-2807"] = L["currency-2707"];
+L["currency-2809"] = L["currency-2708"];
+L["currency-2812"] = L["currency-2709"];

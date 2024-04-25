@@ -59,16 +59,16 @@ local HolidayItems = {
 local CrestCurrenies = {
     --Universal Upgrade System (Crests)
     --convert to string for hybrid process
+    --CategoryID ~= 142
 
-    2706,   --Whelpling (LFR, M5)
-    2707,   --Drake     (N, M10)
-    2708,   --Wyrm      (H, M15)
-    2709,   --Aspect    (M, M16+)
+    --S4 Awakened
+    2812,   --Aspect    (M, M6+)
+    2809,   --Wyrm      (H, M5)
+    2807,   --Drake     (N, M0)
+    2806,   --Whelpling (LFR, H)
 };
 
-if not addon.IsGame_10_2_0 then
-    CrestCurrenies = {};
-end
+addon.CrestCurrenies = CrestCurrenies;
 
 local EL = CreateFrame("Frame");
 EL:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -84,7 +84,7 @@ function CrestUtil:GetBestCrestName(colorized)
     local info, currencyID;
     local name;
 
-    for tier = numTiers, 1, -1 do
+    for tier = 1, numTiers do
         currencyID = CrestCurrenies[tier];
         info = GetCurrencyInfo(currencyID);
         if info and info.discovered then
@@ -114,11 +114,11 @@ function CrestUtil:GetBestCrestForPlayer()
     local bestTier = 0;
     local info, currencyID, bestCurrencyID;
 
-    for tier = numTiers, 1, -1 do
+    for tier = 1, numTiers do
         currencyID = CrestCurrenies[tier];
         info = GetCurrencyInfo(currencyID);
         if info and info.discovered then
-            bestTier = tier;
+            bestTier = numTiers - tier + 1;
             bestCurrencyID = currencyID;
             break
         end
@@ -2342,20 +2342,6 @@ local function AnchorToCompatibleAddOn()
             TrackerFrame:ParentTo_LiteBag();
             --This addon is using stock searchbox
         end
-    elseif IsAddOnLoaded("ElvUI") then
-        local bagFrame = ElvUI_ContainerFrame;
-        if bagFrame then
-            TrackerFrame.UpdateAnchor = DoesNothing;
-            TrackerFrame:ParentTo_ElvUI();
-            GetSearchBox = GetAddOnSearchBox.ElvUI;
-        end
-    elseif IsAddOnLoaded("NDui") then
-        local bagFrame = NDui_BackpackBag;
-        if bagFrame then
-            TrackerFrame.UpdateAnchor = DoesNothing;
-            TrackerFrame:ParentTo_NDui();
-            GetSearchBox = GetAddOnSearchBox.NDui;
-        end
     elseif IsAddOnLoaded("Baganator") then
         --Baganator is being actively developed
         --Available space (width) is affected by Bag Columns, we ignore it for now
@@ -2371,6 +2357,20 @@ local function AnchorToCompatibleAddOn()
             TrackerFrame.UpdateAnchor = DoesNothing;
             TrackerFrame:ParentTo_BetterBags();
             --GetSearchBox = GetAddOnSearchBox.BetterBags;  --No Search Bar yet
+        end
+    elseif IsAddOnLoaded("ElvUI") then
+        local bagFrame = ElvUI_ContainerFrame;
+        if bagFrame then
+            TrackerFrame.UpdateAnchor = DoesNothing;
+            TrackerFrame:ParentTo_ElvUI();
+            GetSearchBox = GetAddOnSearchBox.ElvUI;
+        end
+    elseif IsAddOnLoaded("NDui") then
+        local bagFrame = NDui_BackpackBag;
+        if bagFrame then
+            TrackerFrame.UpdateAnchor = DoesNothing;
+            TrackerFrame:ParentTo_NDui();
+            GetSearchBox = GetAddOnSearchBox.NDui;
         end
     end
 
