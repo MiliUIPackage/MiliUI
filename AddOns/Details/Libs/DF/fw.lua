@@ -1,6 +1,6 @@
 
 
-local dversion = 526
+local dversion = 532
 local major, minor = "DetailsFramework-1.0", dversion
 local DF, oldminor = LibStub:NewLibrary(major, minor)
 
@@ -27,6 +27,17 @@ local IS_WOW_PROJECT_NOT_MAINLINE = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 
 local UnitPlayerControlled = UnitPlayerControlled
 local UnitIsTapDenied = UnitIsTapDenied
+
+-- TWW compatibility:
+local GetSpellInfo = GetSpellInfo or function(spellID) if not spellID then return nil end local si = C_Spell.GetSpellInfo(spellID) if si then return si.name, nil, si.iconID, si.castTime, si.minRange, si.maxRange, si.spellID, si.originalIconID end end
+local GetSpellBookItemName = GetSpellBookItemName or C_SpellBook.GetSpellBookItemName
+local GetNumSpellTabs = GetNumSpellTabs or C_SpellBook.GetNumSpellBookSkillLines
+local GetSpellTabInfo = GetSpellTabInfo or function(tabLine) local skillLine = C_SpellBook.GetSpellBookSkillLineInfo(tabLine) if skillLine then return skillLine.name, skillLine.iconID, skillLine.itemIndexOffset, skillLine.numSpellBookItems, skillLine.isGuild, skillLine.offSpecID end end
+local SpellBookItemTypeMap = Enum.SpellBookItemType and {[Enum.SpellBookItemType.Spell] = "SPELL", [Enum.SpellBookItemType.None] = "NONE", [Enum.SpellBookItemType.Flyout] = "FLYOUT", [Enum.SpellBookItemType.FutureSpell] = "FUTURESPELL", [Enum.SpellBookItemType.PetAction] = "PETACTION" } or {}
+local GetSpellBookItemInfo = GetSpellBookItemInfo or function(...) local si = C_SpellBook.GetSpellBookItemInfo(...) if si then return SpellBookItemTypeMap[si.itemType] or "NONE", si.spellID end end
+local SPELLBOOK_BANK_PLAYER = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Player or "player"
+local SPELLBOOK_BANK_PET = Enum.SpellBookSpellBank and Enum.SpellBookSpellBank.Pet or "pet"
+local IsPassiveSpell = IsPassiveSpell or C_Spell.IsSpellPassive
 
 SMALL_NUMBER = 0.000001
 ALPHA_BLEND_AMOUNT = 0.8400251
@@ -95,7 +106,7 @@ end
 ---return if the wow version the player is playing is a classic version of wow
 ---@return boolean
 function DF.IsTimewalkWoW()
-    if (buildInfo < 40000) then        return true    end
+    if (buildInfo < 50000) then        return true    end
 	return false
 end
 
@@ -188,15 +199,6 @@ function DF.IsNonRetailWowWithRetailAPI()
 end
 DF.IsWotLKWowWithRetailAPI = DF.IsNonRetailWowWithRetailAPI -- this is still in use
 
----return true if the version of wow the player is playing is the shadowlands
-function DF.IsShadowlandsWow()
-    local _, _, _, buildInfo = GetBuildInfo()
-    if (buildInfo < 100000 and buildInfo >= 90000) then
-        return true
-    end
-	return false
-end
-
 ---for classic wow, get the role using the texture from the talents frame
 local roleBySpecTextureName = {
 	DruidBalance = "DAMAGER",
@@ -257,7 +259,12 @@ function DF:GetRoleByClassicTalentTree()
 	for i = 1, (MAX_TALENT_TABS or 3) do
 		if (i <= numTabs) then
 			--tab information
-			local name, iconTexture, pointsSpent, fileName = GetTalentTabInfo(i)
+			local id, name, description, iconTexture, pointsSpent, fileName
+			if DF.IsCataWow() then
+				id, name, description, iconTexture, pointsSpent, fileName = GetTalentTabInfo(i)
+			else
+				name, iconTexture, pointsSpent, fileName = GetTalentTabInfo(i)
+			end
 			if (name) then
 				table.insert(pointsPerSpec, {name, pointsSpent, fileName})
 			end
@@ -1348,6 +1355,10 @@ function DF:AddClassIconToText(text, playerName, englishClassName, useSpec, icon
 					spec = spec
 				end
 			end
+		else
+			if (type(useSpec) == "number") then
+				local specId, specName = GetSpecializationInfoByID(useSpec)
+			end
 		end
 	end
 
@@ -1372,6 +1383,33 @@ function DF:AddClassIconToText(text, playerName, englishClassName, useSpec, icon
 	end
 
 	return text
+end
+
+function DF:AddClassIconToString(text, engClass, size)
+	size = size or 16
+	local tcoords = CLASS_ICON_TCOORDS[engClass]
+	if (tcoords) then
+		local l, r, t, b = unpack(tcoords)
+		return "|TInterface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes:" .. size .. ":" .. size .. ":0:0:256:256:" .. (l * 256) .. ":" .. (r * 256) .. ":" .. (t * 256) .. ":" .. (b * 256) .. "|t " .. text
+	end
+end
+
+function DF:AddSpecIconToString(text, specId, size)
+	size = size or 16
+
+	if (not specId) then
+		--get the player specId
+		local specIndex = GetSpecialization()
+		specId = GetSpecializationInfo(specIndex)
+		if (not specId) then
+			return
+		end
+	end
+
+	local id, name, description, icon = GetSpecializationInfoByID(specId)
+	if (id) then
+		return "|T" .. icon .. ":" .. size .. ":" .. size .. ":0:0|t " .. text
+	end
 end
 
 ---create a table with information about a texture (deprecated, use: DetailsFramework:CreateAtlas())
@@ -1695,7 +1733,7 @@ function DF:GetSpellBookSpells()
             local tabEnd = offset + numSpells
 
             for j = offset, tabEnd - 1 do
-                local spellType, spellId = GetSpellBookItemInfo(j, "player")
+                local spellType, spellId = GetSpellBookItemInfo(j, SPELLBOOK_BANK_PLAYER)
 
                 if (spellId) then
                     if (spellType ~= "FLYOUT") then
@@ -1780,7 +1818,7 @@ function DF:GetAvailableSpells()
     offset = offset + 1
     local tabEnd = offset + numSpells
     for entryOffset = offset, tabEnd - 1 do
-        local spellType, spellId = GetSpellBookItemInfo(entryOffset, "player")
+        local spellType, spellId = GetSpellBookItemInfo(entryOffset, SPELLBOOK_BANK_PLAYER)
         local spellData = LIB_OPEN_RAID_COOLDOWNS_INFO[spellId]
         if (spellData) then
             local raceId = spellData.raceid
@@ -1789,7 +1827,7 @@ function DF:GetAvailableSpells()
                     if (raceId[playerRaceId]) then
                         spellId = C_SpellBook.GetOverrideSpell(spellId)
                         local spellName = GetSpellInfo(spellId)
-                        local bIsPassive = IsPassiveSpell(spellId, "player")
+                        local bIsPassive = IsPassiveSpell(spellId, SPELLBOOK_BANK_PLAYER)
                         if (spellName and not bIsPassive) then
                             completeListOfSpells[spellId] = true
                         end
@@ -1799,7 +1837,7 @@ function DF:GetAvailableSpells()
                     if (raceId == playerRaceId) then
                         spellId = C_SpellBook.GetOverrideSpell(spellId)
                         local spellName = GetSpellInfo(spellId)
-                        local bIsPassive = IsPassiveSpell(spellId, "player")
+                        local bIsPassive = IsPassiveSpell(spellId, SPELLBOOK_BANK_PLAYER)
                         if (spellName and not bIsPassive) then
                             completeListOfSpells[spellId] = true
                         end
@@ -1817,12 +1855,12 @@ function DF:GetAvailableSpells()
 		offset = offset + 1
 		local tabEnd = offset + numSpells
 		for entryOffset = offset, tabEnd - 1 do
-			local spellType, spellId = GetSpellBookItemInfo(entryOffset, "player")
+			local spellType, spellId = GetSpellBookItemInfo(entryOffset, SPELLBOOK_BANK_PLAYER)
 			if (spellId) then
 				if (spellType == "SPELL") then
 					spellId = C_SpellBook.GetOverrideSpell(spellId)
 					local spellName = GetSpellInfo(spellId)
-					local bIsPassive = IsPassiveSpell(spellId, "player")
+					local bIsPassive = IsPassiveSpell(spellId, SPELLBOOK_BANK_PLAYER)
 					if (spellName and not bIsPassive) then
 						completeListOfSpells[spellId] = bIsOffSpec == false
 					end
@@ -1862,10 +1900,10 @@ function DF:GetAvailableSpells()
     local numPetSpells = getNumPetSpells()
     if (numPetSpells) then
         for i = 1, numPetSpells do
-            local spellName, _, unmaskedSpellId = GetSpellBookItemName(i, "pet")
+            local spellName, _, unmaskedSpellId = GetSpellBookItemName(i, SPELLBOOK_BANK_PET)
             if (unmaskedSpellId) then
                 unmaskedSpellId = C_SpellBook.GetOverrideSpell(unmaskedSpellId)
-                local bIsPassive = IsPassiveSpell(unmaskedSpellId, "pet")
+                local bIsPassive = IsPassiveSpell(unmaskedSpellId, SPELLBOOK_BANK_PET)
                 if (spellName and not bIsPassive) then
                     completeListOfSpells[unmaskedSpellId] = true
                 end
@@ -3182,7 +3220,7 @@ function DF:CreateAnimation(animationGroup, animationType, order, duration, arg1
 		anim:SetToAlpha(arg2)
 
 	elseif (animationType == "SCALE") then
-		if (DF.IsDragonflight() or DF.IsNonRetailWowWithRetailAPI()) then
+		if (DF.IsDragonflight() or DF.IsNonRetailWowWithRetailAPI() or DF.IsWarWow()) then
 			anim:SetScaleFrom(arg1, arg2)
 			anim:SetScaleTo(arg3, arg4)
 		else
