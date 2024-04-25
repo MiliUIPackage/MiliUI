@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod("CataEvent", "DBM-WorldEvents", 3)
+local mod	= DBM:NewMod("CataEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240216003824")
+mod:SetRevision("20240315080105")
 mod:SetCreatureID(52409, 41376, 43324)
 mod:SetEncounterID(2320)
 mod:SetBossHPInfoToHighest()

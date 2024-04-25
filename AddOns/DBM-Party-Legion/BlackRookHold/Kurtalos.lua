@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(1672, "DBM-Party-Legion", 1, 740)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231123001440")
+mod:SetRevision("20240412075414")
 mod:SetCreatureID(98965, 98970)
 mod:SetEncounterID(1835)
 mod:SetHotfixNoticeRev(20231027000000)
@@ -36,7 +36,7 @@ local specWarnDarkblast				= mod:NewSpecialWarningDodgeCount(198820, nil, nil, n
 
 local timerDarkBlastCD				= mod:NewCDCountTimer(18.1, 198820, nil, nil, nil, 3)
 local timerWhirlingBladeCD			= mod:NewCDCountTimer(23, 198641, nil, nil, nil, 3)
-local timerUnerringShearCD			= mod:NewCDCountTimer(12.1, 198635, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON, nil, mod:IsTank() and 2, 4)
+local timerUnerringShearCD			= mod:NewCDCountTimer(12.1, 198635, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON, nil, mod:IsTank() and 2 or nil, 4)
 --Stage Two: Vengeance of the Ancients
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(12509))
 local warnCloud						= mod:NewCountAnnounce(199143, 2)

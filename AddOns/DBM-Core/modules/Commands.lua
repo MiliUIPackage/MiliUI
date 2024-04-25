@@ -1,6 +1,9 @@
 local _, private = ...
 
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
+local wowTOC = select(4, GetBuildInfo())
+local isCata = (wowTOC >= 40400) and (wowTOC < 50000)
+local newShit = (wowTOC >= 100207) or isCata
 
 local L = DBM_CORE_L
 
@@ -18,11 +21,13 @@ local function Pull(timer)
 	if timer > 0 and timer < 3 then
 		return DBM:AddMsg(L.TIME_TOO_SHORT)
 	end
-	local targetName = (UnitExists("target") and UnitIsEnemy("player", "target")) and UnitName("target") or nil--Filter non enemies in case player isn't targetting bos but another player/pet
-	if targetName then
-		private.sendSync(private.DBMSyncProtocol, "PT", timer .. "\t" .. DBM:GetCurrentArea() .. "\t" .. targetName)
+	if newShit then
+		--Send blizzard pull timer that all users see (including modless)
+		C_PartyInfo.DoCountdown(timer)
+		DBM:Debug("Sending Blizzard Pull Timer")
 	else
 		private.sendSync(private.DBMSyncProtocol, "PT", timer .. "\t" .. DBM:GetCurrentArea())
+		DBM:Debug("Sending DBM Pull Timer")
 	end
 end
 
@@ -135,14 +140,6 @@ if not _G["BigWigs"] then
 	SLASH_DEADLYBOSSMODSBREAK1 = "/break"
 	SlashCmdList["DEADLYBOSSMODSBREAK"] = function(msg)
 		Break(tonumber(msg) or 10)
-	end
-	if C_PartyInfo then
-		---@diagnostic disable-next-line:duplicate-set-field
-		C_PartyInfo.DoCountdown = function(msg)
-			if SlashCmdList.DEADLYBOSSMODSPULL then
-				SlashCmdList.DEADLYBOSSMODSPULL(msg)
-			end
-		end
 	end
 end
 

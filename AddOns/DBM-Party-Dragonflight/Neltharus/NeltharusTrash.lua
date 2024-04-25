@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("NeltharusTrash", "DBM-Party-Dragonflight", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231026112110")
+mod:SetRevision("20240412191704")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -225,6 +225,7 @@ end
 function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 376169 and self:AntiSpam(5, 8) then--Throw Experimental Concoction
+		---@diagnostic disable-next-line: dbm-sync-checker
 		magmaMod:SendSync("TuskRP")
 	elseif spellId == 372296 then
 		timerConflagrantBatteryCD:Start(nil, args.sourceGUID)

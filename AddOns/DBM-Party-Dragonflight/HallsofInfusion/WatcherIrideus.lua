@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2504, "DBM-Party-Dragonflight", 8, 1204)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240412075414")
 mod:SetCreatureID(189719)
 mod:SetEncounterID(2615)
 mod:SetHotfixNoticeRev(20230507000000)
@@ -103,7 +103,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			timerTitanicFistCD:Stop()
 		end
 	elseif spellId == 389443 then
-		warnPurifyingBlast:CombinedShow(1, args.destname)
+		warnPurifyingBlast:CombinedShow(1, args.destName)
 	end
 end
 

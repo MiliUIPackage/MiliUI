@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod("Gnoll", "DBM-WorldEvents", 4)
+local mod	= DBM:NewMod("Gnoll", "DBM-WorldEvents", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240216003824")
+mod:SetRevision("20240412075414")
 
 mod:RegisterEvents(
 	"SPELL_AURA_APPLIED 101612",
@@ -56,8 +56,8 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(_, _, spellId)
 	end
 end
 
-function mod:UNIT_POWER_UPDATE(_, type)
-	if type == "ALTERNATE" then
+function mod:UNIT_POWER_UPDATE(_, powerType)
+	if powerType == "ALTERNATE" then
 		local playerPower = UnitPower("player", 10)
 		if playerPower > gameEarnedPoints then
 			gameEarnedPoints = playerPower

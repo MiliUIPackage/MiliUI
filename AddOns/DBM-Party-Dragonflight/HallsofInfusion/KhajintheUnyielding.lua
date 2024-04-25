@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2510, "DBM-Party-Dragonflight", 8, 1204)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240412065918")
 mod:SetCreatureID(189727)
 mod:SetEncounterID(2617)
 mod:SetHotfixNoticeRev(20230507000000)
@@ -65,7 +65,7 @@ function mod:OnCombatStart(delay)
 		timerHailstormCD:Start(20-delay, 1)
 		timerGlacialSurgeCD:Start(self:IsMythicPlus() and 32 or 27-delay, 1)
 	else--TODO, verify heroic still does this
-		timerHailstormCD:Start(10-delay)
+		timerHailstormCD:Start(10-delay, 1)
 		timerGlacialSurgeCD:Start(22-delay, 1)
 	end
 end

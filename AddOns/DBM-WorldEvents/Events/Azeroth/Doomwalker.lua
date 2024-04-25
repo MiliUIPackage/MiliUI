@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod("DoomwalkerEvent", "DBM-WorldEvents", 3)
+local mod	= DBM:NewMod("DoomwalkerEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240216003824")
+mod:SetRevision("20240315080105")
 mod:SetCreatureID(167749)
 --mod:SetModelID(21435)
 

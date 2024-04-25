@@ -1,7 +1,7 @@
-local mod	= DBM:NewMod("Taerar", "DBM-WorldEvents", 3)
+local mod	= DBM:NewMod("Taerar", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240216003824")
+mod:SetRevision("20240315080105")
 mod:SetCreatureID(121911)--121911 TW ID, 14890 classic ID
 --mod:SetModelID(17887)
 

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2490, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240412075414")
 mod:SetCreatureID(189340)
 mod:SetEncounterID(2613)
 mod:SetHotfixNoticeRev(20230703000000)
@@ -126,6 +126,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
+mod.SPELL_AURA_REFRESH = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId

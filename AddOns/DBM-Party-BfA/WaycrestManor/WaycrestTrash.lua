@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("WaycrestTrash", "DBM-Party-BfA", 10)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240207091809")
+mod:SetRevision("20240412075414")
 --mod:SetModelID(47785)
 mod:SetZone(1862)
 
@@ -300,7 +300,7 @@ function mod:SPELL_AURA_APPLIED(args)
 	end
 end
 
-function mod:SPELL_AURA_APPLIED(args)
+function mod:SPELL_AURA_REMOVED(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if spellId == 265880 and args:IsPlayer() then

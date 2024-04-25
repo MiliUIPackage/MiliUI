@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
 
-mod:SetRevision("20240127063852")
+mod:SetRevision("20240412075414")
 mod:SetCreatureID(199000)
 mod:SetEncounterID(2673)
 --mod:SetUsedIcons(1, 2, 3)
@@ -16,8 +16,8 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 416152 411763 410904 416139 416264 412027",
-	"SPELL_AURA_APPLIED 412027 410908",
-	"SPELL_AURA_APPLIED_DOSE 410908",
+	"SPELL_AURA_APPLIED 412027",--410908
+--	"SPELL_AURA_APPLIED_DOSE 410908",
 	"SPELL_PERIODIC_DAMAGE 417413",
 	"SPELL_PERIODIC_MISSED 417413",
 	"UNIT_DIED"

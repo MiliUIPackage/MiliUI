@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AlgetharAcademyTrash", "DBM-Party-Dragonflight", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240412075414")
 --mod:SetModelID(47785)
 mod:SetZone(2526)
 
@@ -164,7 +164,6 @@ function mod:SPELL_AURA_APPLIED(args)
 		end
 	end
 end
-mod.SPELL_AURA_APPLIED_DOSE = mod.SPELL_AURA_APPLIED
 
 function mod:SPELL_AURA_REMOVED(args)
 	local spellId = args.spellId

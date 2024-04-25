@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2494, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240412191704")
 mod:SetCreatureID(181861)
 mod:SetEncounterID(2610)
 mod:SetHotfixNoticeRev(20230507000000)
@@ -107,6 +107,7 @@ end
 mod.SPELL_PERIODIC_MISSED = mod.SPELL_PERIODIC_DAMAGE
 
 function mod:OnSync(msg)
+	---@diagnostic disable-next-line: dbm-sync-checker
 	if msg == "TuskRP" and self:AntiSpam(10, 9) then--Sync sent from trash mod since trash mod is already monitoring out of combat CLEU events
 		timerRP:Start(9.9)
 	end
