@@ -9,6 +9,7 @@ function addon:setupOptions()
             watermark = true,
             achievementExpansionFeatures = true,
             keystoneMovable = true,
+            plunderstormRenown = true,
         },
     }
         
@@ -63,6 +64,13 @@ function addon:setupOptions()
                 name = "Enable Keystone Movable Module",
                 set = function(info, v) addon.db.profile.keystoneMovable = v end,
                 get = function() return addon.db.profile.keystoneMovable end,
+                width = "full",
+            },
+            plunderstormRenown = {
+                type = "toggle",
+                name = "Enable Plunderstorm Renown Module",
+                set = function(info, v) addon.db.profile.plunderstormRenown = v end,
+                get = function() return addon.db.profile.plunderstormRenown end,
                 width = "full",
             },
         },

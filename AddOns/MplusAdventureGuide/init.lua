@@ -3,8 +3,9 @@ local addonName, addon = ...
 EventUtil.ContinueOnAddOnLoaded(addonName, function()
     addon:setupOptions()
     addon:initWatermark()
+    addon:initEnablePlunderstormRenownButton()
     
-    C_Timer.After(0, function()
+    RunNextFrame(function()
         EventUtil.ContinueOnAddOnLoaded("Blizzard_ChallengesUI", function()
             addon:initHighestFortTyr()
             addon:initPortalButtons()

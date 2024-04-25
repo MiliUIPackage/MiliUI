@@ -86,7 +86,7 @@ local db = {
     [198] = { -- Darkheart Thicket
         primarySpell = 424163,
         alternateSpells = {
-            205373, -- Black Rook Hold
+            424153, -- Black Rook Hold
         },
     },
     [199] = { -- Black Rook Hold
@@ -97,7 +97,26 @@ local db = {
     },
     [244] = { -- Atal'Dazar
         primarySpell = 424187,
-        alternateSpells = {},
+        alternateSpells = {
+            281404, -- Dazar'alor
+        },
+    },
+    
+    -- Dragonflight Season 4 (just adding the dungeons from Season 1, from before this module existed)
+    [400] = { -- Nokhud Offensive
+        primarySpell = 393262,
+    },
+    [401] = { -- Azure Vault
+        primarySpell = 393279,
+    },
+    [399] = { -- Ruby Life Pools
+        primarySpell = 393256,
+    },
+    [402] = { -- Algethar Academy
+        primarySpell = 393273,
+        alternateSpells = {
+            393283, -- Halls of Infusion
+        },
     },
 }
 
