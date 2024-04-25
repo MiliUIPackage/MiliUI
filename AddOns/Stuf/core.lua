@@ -152,6 +152,7 @@ local function Disable(f)
 end
 local function DisableDefault(f)
 	if not f then return end
+	if f == PlayerFrame and PlayerFrameBottomManagedFramesContainer then PlayerFrameBottomManagedFramesContainer:SetParent(UIParent) end -- 暫時修正職業資源條
 	f:SetAlpha(0)
 	f:EnableMouse(false)
 	f:ClearAllPoints()
@@ -176,7 +177,7 @@ function events.ADDON_LOADED(a1)
 	events.ADDON_LOADED = Stuf.nofunc
 	Stuf:RegisterEvent("PLAYER_LOGIN")
 	events.PLAYER_LOGIN = function()
-		if InCombatLockdown() then return print(L["|cff00ff00Stuf|r: "]..L["Cannot load Stuf while in combat."]) end
+		if InCombatLockdown() then return print("|cff00ff00Stuf|r: "..L["Cannot load Stuf while in combat."]) end
 		
 		-- Saved Variables
 		if StufDB == "perchar" then
@@ -186,7 +187,7 @@ function events.ADDON_LOADED(a1)
 			StufCharDB = StufDB.temp
 			db = StufCharDB
 			StufDB = "perchar"
-			print(L["|cff00ff00Stuf|r: "]..L["Settings copied to this character."])
+			print("|cff00ff00Stuf|r: "..L["Settings copied to this character."])
 		else
 			StufCharDB = nil
 			StufDB = type(StufDB) == "table" and StufDB or { }
@@ -198,13 +199,13 @@ function events.ADDON_LOADED(a1)
 				Stuf:LoadDefaults(db)
 				db.global.init = 9
 			else
-				return print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options is required to initialize variables."])
+				return print("|cff00ff00Stuf|r: "..L["Stuf_Options is required to initialize variables."])
 			end
 		end
 
 		dbg = db.global
 		classcolor, powercolor, reactioncolor = dbg.classcolor, dbg.powercolor, dbg.reactioncolor
-		if dbg.initlegion ~= 1 then
+		if dbg.initDragonflight ~= 1 then
 			for i = 0, 20, 1 do
 				local color = PowerBarColor[i]
 				if color and (not powercolor[i] or not powercolor[i].r) then
@@ -227,10 +228,11 @@ function events.ADDON_LOADED(a1)
 			db.player.holybar = db.player.holybar or { x=0, y=0, }
 			db.player.shardbar = db.player.shardbar or { x=0, y=0, }
 			db.player.chibar = db.player.chibar or { x=0, y=0, }
-			db.player.eclipsebar = db.player.eclipsebar or { x=0, y=0, }
+			db.player.arcanebar = db.player.arcanebar or { x=0, y=0, }
+			db.player.essencesbar = db.player.essencesbar or { x=0, y=0, }
 			db.player.priestbar = db.player.priestbar or { x=0, y=0, }
 
-			dbg.initlegion = 1
+			dbg.initDragonflight = 1
 		end
 
 		hpgreen, hpred, gray = dbg.hpgreen, dbg.hpred, dbg.gray
@@ -335,12 +337,12 @@ function events.ADDON_LOADED(a1)
 			if Stuf.OpenOptions then
 				Stuf:OpenOptions(Stuf.panel)
 			else
-				print(L["|cff00ff00Stuf|r: "]..L["Stuf_Options not found."])
+				print("|cff00ff00Stuf|r: "..L["Stuf_Options not found."])
 			end
 		end
 		if not Stuf.OpenOptions then -- AceConfig hack to be LOD friendly
 			Stuf.panel = CreateFrame("Frame", nil, nil, BackdropTemplateMixin and 'BackdropTemplate')
-			Stuf.panel.name = L["Stuf"]
+			Stuf.panel.name = "Stuf"
 			Stuf.panel:SetScript("OnShow", SlashCmdList.STUF)
 			InterfaceOptions_AddCategory(Stuf.panel)
 		end

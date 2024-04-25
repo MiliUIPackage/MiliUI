@@ -677,7 +677,11 @@ do  -- Threat Bar --------------------------------------------------------------
 					this.dir = dir * -1
 				end
 				this.alp = alp
-				this:SetAlpha(this.basealpha + alp)
+				-- 暫時修正
+				alp = this.basealpha + alp
+				if alp > 1 then alp = 1 end
+				if alp < 0 then alp = 0 end
+				this:SetAlpha(alp)
 			end
 			UpdateThreatOnUnit = UpdateThreatOnUnit or function(unit, uf, _, _, a5, config)
 				uf = uf or su[unit]
@@ -1103,11 +1107,74 @@ if CLS == "MONK" then  -- Monk Power Frame -------------------------------------
 			f:SetFrameStrata(db.strata)
 		end
 		if _G.MonkHarmonyBar then _G.MonkHarmonyBar:EnableMouse(not db.nomouse) end
-		for i = 1, 4, 1 do
+		for i = 1, 6, 1 do
 			if _G.MonkHarmonyBar and _G.MonkHarmonyBar["lightEnergy"..i] then
 				_G.MonkHarmonyBar["lightEnergy"..i]:EnableMouse(not db.nomouse)
 			end
 		end
 	end)
 end
+if CLS == "MAGE" then  -- Mage Arcane Charges Frame -----------------------------------------------------------------------------------------------
+	Stuf:AddBuilder("arcanebar", function(unit, uf, name, db, a5, config) 
+		if unit ~= "player" then return end
+		local f = MageArcaneChargesFrame
+		if not f or db.hide then
+			if f then f:Hide() end
+			return
+		end
 
+		f:SetParent(uf)
+		f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
+		f:SetScale(db.scale or 1)
+		f:SetAlpha(db.alpha or 1)
+		if db.framelevel then
+			f:SetFrameLevel(db.framelevel)
+		end
+		if db.strata then
+			f:SetFrameStrata(db.strata)
+		end
+		if _G.MageArcaneChargesFrame then _G.MageArcaneChargesFrame:EnableMouse(not db.nomouse) end
+	end)
+end
+if CLS == "EVOKER" then  -- Evoker Essences Frame -----------------------------------------------------------------------------------------------
+	Stuf:AddBuilder("essencesbar", function(unit, uf, name, db, a5, config) 
+		if unit ~= "player" then return end
+		local f = EssencePlayerFrame
+		if not f or db.hide then
+			if f then f:Hide() end
+			return
+		end
+
+		f:SetParent(uf)
+		f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
+		f:SetScale(db.scale or 1)
+		f:SetAlpha(db.alpha or 1)
+		if db.framelevel then
+			f:SetFrameLevel(db.framelevel)
+		end
+		if db.strata then
+			f:SetFrameStrata(db.strata)
+		end
+		if _G.EssencePlayerFrame then _G.EssencePlayerFrame:EnableMouse(not db.nomouse) end
+		
+		hooksecurefunc(EssencePlayerFrame, "Show", function()
+			local f = EssencePlayerFrame
+			if not f or db.hide then
+				if f then f:Hide() end
+				return
+			end
+
+			f:SetParent(uf)
+			f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
+			f:SetScale(db.scale or 1)
+			f:SetAlpha(db.alpha or 1)
+			if db.framelevel then
+				f:SetFrameLevel(db.framelevel)
+			end
+			if db.strata then
+				f:SetFrameStrata(db.strata)
+			end
+			if _G.EssencePlayerFrame then _G.EssencePlayerFrame:EnableMouse(not db.nomouse) end
+		end)
+	end)
+end

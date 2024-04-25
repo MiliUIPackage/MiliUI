@@ -603,6 +603,11 @@ do  -- Combo Points ------------------------------------------------------------
 		if (dir == 1 and alp > 0.95) or (dir == -1 and alp < 0.45) then
 			this.dir = dir * -1
 		end
+		if alp > 1 then  -- 暫時修正
+			alp = 1
+		elseif alp < 0 then
+			alp = 0 
+		end
 		this.alp = alp
 
 		if this.individual then

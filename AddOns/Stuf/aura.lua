@@ -519,7 +519,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 		for i = 1, 40, 1 do  -- update debuffgroup
 			if allow then  -- prevents calling UnitDebuff when it's useless
 				name, icon, count, atype, duration, endtime, ismine, isstealable = UnitDebuff(unit, i, dfilter)
-				ismine = ismine == "player" or ismine == "vehicle" or (showpet and ismine == "pet")
+				ismine = ismine == "player" or ismine == "boss1" or ismine == "boss2" or ismine == "boss3" or ismine == "boss4" or ismine == "vehicle" or (showpet and ismine == "pet") -- 自行修改，加上 BOSS 的
 				clr = dbgaura[atype or "none"] or dbgaura.none
 				allow = name and (not onlymined or ismine)
 			end
@@ -920,6 +920,11 @@ do  -- Dispell Icon ------------------------------------------------------------
 		local alp = (this.alp or 0.5) + a1 * dir
 		if (dir == 0.5 and alp > 0.7) or (dir == -0.5 and alp < 0.3) then
 			this.dir = dir * -1
+		end
+		if alp > 0.7 then  -- 自行修正
+			alp = 0.7
+		elseif alp < 0.3 then
+			alp = 0.3
 		end
 		this.alp = alp
 		this:SetAlpha(alp)  -- flash between 0.3 and 0.7 alpha

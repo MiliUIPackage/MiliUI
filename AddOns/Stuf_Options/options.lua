@@ -502,6 +502,8 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			holybar={ x=5, y=0, framelevel=0, },
 			shardbar={ x=0, y=-10, },
 			chibar={ x=5, y=10, framelevel=0, },
+			arcanebar={ x=5, y=10, },
+			essencesbar={ x=5, y=10 },
 			priestbar={ x=0, y=0, },
 		},
 		target={
@@ -611,7 +613,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			dispellicon={ x=-2, y=-4, w=42, h=42, hide = true, },
 			pvpicon={ x=176, y=-12, w=28, h=28, hide=true, },
 			statusicon={ x=-8, y=10, w=14, h=14, framelevel=10, },
-			leadericon={ x=7, y=10, w=12, h=12, framelevel=10, },
+			leadericon={ x=5, y=6, w=12, h=12, framelevel=10, },
 			looticon={ x=18, y=10, w=12, h=12, framelevel=10, },
 			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5, },
 			infoicon={ x=50, y=-37, w=12, h=12, hide=true,},
@@ -639,7 +641,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			threatbar={ x=157, y=-2, w=32, h=12, framelevel=5, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 			-- inspectbutton={ x=315, y=25, w=26, h=26, framelevel=1, },
 			-- threatbar={ x=60, y=-11, w=45, h=16, fontsize=14, bgcolor={ r=0, g=0, b=0, a=0.4, }, framelevel=4,},
-			-- rangetext={ x=0, y=-15, w=100, h=10, fontsize=14, justifyH="LEFT", framelevel=4, },
+			rangetext={ x=4, y=10, w=200, h=10, fontsize=12, justifyH="LEFT", framelevel=5, fontflags="OUTLINE", },
 		},
 		targettarget={
 			frame={ x=targetx+210, y=targety, w=120, h=28, },
@@ -718,7 +720,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			infoicon={ hide=true, x=0, y=0, w=12, h=12, },
 		},
 		focus={
-			frame={ x=targetx, y=playery+65, w=120, h=50, },
+			frame={ x=targetx, y=playery+100, w=120, h=50, },
 			portrait={
                 x=0, y=0, w=120, h=40, show3d=true,
                 framelevel = 2,                
@@ -728,7 +730,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 barcolormethod="classreaction", bgcolormethod="classreactiondark",
                 bgalpha=0.6, 
                 baralpha = 0.4,
-                framelevel = 4,
+                framelevel = 5,
                 bartexture = "TukTex",
                 border=  "Square Outline",
                 bordercolor = {r=0, g=0, b=0, a=1, },
@@ -738,7 +740,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 bartexture = "TukTex",
                 border=  "Square Outline",
                 bordercolor = {r=0, g=0, b=0, a=1, },
-                framelevel = 4,
+                framelevel = 5,
             },
 			text1={ 
 				pattern="[name]", 
@@ -800,10 +802,10 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
                 timefontflags="OUTLINE",
                 framelevel=10,
 			},
-			-- rangetext={ x=40, y=20, w=100, h=10, fontsize=12, justifyH="CENTER", framelevel=12, },
+			rangetext={ x=0, y=12, w=120, h=10, fontsize=11, justifyH="LEFT", framelevel=6, fontflags="OUTLINE", },
 		},
 		focustarget={
-			frame={ x=targetx+125, y=playery+65, w=70, h=50, },
+			frame={ x=targetx+125, y=playery+100, w=70, h=50, },
 			portrait={ x=0, y=0, w=12, h=12, hide=true, },
 			hpbar={ 
 				x=0, y=0, w=70, h=50, 
@@ -1408,6 +1410,7 @@ local function set(info, r, g, b, a)
 		elseif setting == "strata" then
 			db[unit][object][setting] = stratakey[r] or nil
 		else
+			-- if not db[unit][object] then db[unit][object] = {} end
 			db[unit][object][setting] = shorten(r)
 		end
 		Stuf:UpdateElementLook(unit, object)
@@ -2127,7 +2130,20 @@ local chibar={
 		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,
 	},
 }
-
+local arcanebar={
+	name=L["Arcane Charges"], type="group", hidden=function() return Stuf.CLS ~= "MAGE" end, order=30,
+	args={
+		hide=hide, blank=blank,
+		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,
+	},
+}
+local essencesbar={
+	name=L["Essences Bar"], type="group", hidden=function() return Stuf.CLS ~= "EVOKER" end, order=30,
+	args={
+		hide=hide, blank=blank,
+		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,
+	},
+}
 local function pointhide(info)
 	local unit, object, setting = infobreakdown(info)
 	return db[unit][object].combostyle ~= 2
@@ -2203,7 +2219,7 @@ options={
 				drag=v
 				for unit, uf in pairs(su) do
 					uf:SetMovable(drag)
-					uf:RegisterForDrag(drag and "LeftButton")
+					uf:RegisterForDrag(drag and "LeftButton" or "Button1069")
 					uf:SetScript("OnDragStart", OnDragStart)
 					uf:SetScript("OnDragStop", OnDragStop)
 				end
@@ -2370,7 +2386,7 @@ options={
 				lfgicon=lfgicon,
 				totembar=totembar,
 				runebar=runebar, druidbar=druidbar, holybar=holybar, shardbar=shardbar,
-				chibar=chibar, priestbar=priestbar,
+				chibar=chibar, priestbar=priestbar, arcanebar=arcanebar, essencesbar=essencesbar,
 				castbar=castbar,
 			},
 		},
