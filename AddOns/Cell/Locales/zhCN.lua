@@ -78,6 +78,13 @@ L["Reset"] = "重置"
 L["Reset All"] = "全部重置"
 
 -------------------------------------------------
+-- refresh
+-------------------------------------------------
+L["refresh unit buttons"] = "刷新单位按钮"
+L["Unit buttons refreshed (%s)."] = "单位按钮已刷新（%s）。"
+L["Refreshing unit buttons (%s)..."] = "正在刷新单位按钮（%s）…"
+
+-------------------------------------------------
 -- general
 -------------------------------------------------
 L["General"] = "常规"
@@ -88,6 +95,8 @@ L["Hide Blizzard Frames"] = "隐藏暴雪框体"
 L["Require reload of the UI"] = "需要重载界面"
 L["Tooltips"] = "鼠标提示"
 L["Hide in Combat"] = "战斗中隐藏"
+L["Hide tooltips for units"] = "隐藏单位的鼠标提示"
+L["This will not affect aura tooltips"] = "不影响增减益的鼠标提示"
 L["Anchored To"] = "对齐到"
 L["Unit Button"] = "单位按钮"
 L["Cursor"] = "鼠标指针"
@@ -485,10 +494,12 @@ L["Size (Big)"] = "尺寸（大）"
 L["Border"] = "边框"
 L["Alpha"] = "透明度"
 L["Max Icons"] = "最大显示数量"
+L["Icons Per Line"] = "每行/列图标数"
 L["Format"] = "格式"
 L["shields"] = "护盾"
 L["hideIfEmptyOrFull"] = "当死亡或血量满时隐藏"
 L["Color"] = "颜色"
+L["Background Color"] = "背景色"
 L["Remaining Time <"] = "剩余时间 <"
 L["sec"] = "秒"
 L["Always"] = "总是"
@@ -809,6 +820,14 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r221-release (Apr 6, 2024, 22:00 GMT+8)</h1>
+    <p>+ 为自定义“图标组”指示器添加了多行图标的支持。</p>
+    <p>* 更新自定义“进度条”指示器的颜色选项。</p>
+    <p>+ 添加点击右键刷新的功能（主框体与快速协助框体）。</p>
+    <p>* 提升 LibGroupInfo 的可靠性（快速协助的过滤器应该更靠谱了）。</p>
+    <p>* 修复快速协助的图标（主要是不隐藏的问题）。</p>
     <br/>
 
     <h1>r220-release (Jan 25, 2024, 19:06 GMT+8)</h1>

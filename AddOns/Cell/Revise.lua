@@ -2610,6 +2610,25 @@ function F:Revise()
         end
     end
 
+    -- r221-release
+    if CellDB["revise"] and dbRevision < 221 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.type == "icons" then
+                    if not i.numPerLine then
+                        i.numPerLine = i.num
+                    end
+                elseif i.type == "bar" then
+                    if #i.colors ~= 4 then
+                        tinsert(i.colors, {0.07,0.07,0.07,0.9})
+                        tinsert(i.colors[2], 1, true)
+                        tinsert(i.colors[3], 1, true)
+                    end
+                end
+            end
+        end
+    end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --

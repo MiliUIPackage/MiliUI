@@ -34,10 +34,6 @@ local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 local cellMainFrame = CreateFrame("Frame", "CellMainFrame", UIParent, "SecureFrameTemplate")
 Cell.frames.mainFrame = cellMainFrame
 cellMainFrame:SetIgnoreParentScale(true)
--- cellMainFrame:SetFrameStrata("LOW")
--- RegisterStateDriver(cellMainFrame, 'visibility', '[petbattle] hide; show')
--- cellMainFrame:SetClampedToScreen(true)
--- cellMainFrame:SetClampRectInsets(0, 0, 15, 0)
 
 local hoverFrame = CreateFrame("Frame", nil, cellMainFrame, "BackdropTemplate")
 -- Cell:StylizeFrame(hoverFrame, {1,0,0,0.3}, {0,0,0,0})
@@ -65,13 +61,13 @@ local function RegisterButtonEvents(frame)
 
     frame:HookScript("OnEnter", function()
         hoverFrame:GetScript("OnEnter")(hoverFrame)
-        Cell.frames.menuFrame:SetFrameStrata("HIGH")
-        Cell.frames.menuFrame:SetToplevel(true)
+        -- Cell.frames.menuFrame:SetFrameStrata("HIGH")
+        -- Cell.frames.menuFrame:SetToplevel(true)
     end)
     frame:HookScript("OnLeave", function()
         hoverFrame:GetScript("OnLeave")(hoverFrame)
-        Cell.frames.menuFrame:SetFrameStrata(CellDB["appearance"]["strata"])
-        Cell.frames.menuFrame:SetToplevel(false)
+        -- Cell.frames.menuFrame:SetFrameStrata(CellDB["appearance"]["strata"])
+        -- Cell.frames.menuFrame:SetToplevel(false)
     end)
 end
 
@@ -81,7 +77,7 @@ end
 local menuFrame = CreateFrame("Frame", "CellMenuFrame", cellMainFrame)
 Cell.frames.menuFrame = menuFrame
 menuFrame:SetAllPoints(anchorFrame)
--- menuFrame:SetFrameStrata("MEDIUM")
+menuFrame:SetFrameLevel(27)
 
 local options = Cell:CreateButton(menuFrame, "", "red", {20, 10}, false, true)
 P:Point(options, "TOPLEFT", menuFrame)
@@ -92,13 +88,14 @@ options:SetScript("OnClick", function(self, button)
         F:ShowOptionsFrame()
     elseif button == "RightButton" then
         F:IterateAllUnitButtons(B.UpdateAll, true)
-        F:Print("All unit buttons refreshed.")
+        F:Print(L["Unit buttons refreshed (%s)."]:format(L["Main"]))
     end
 end)
 options:HookScript("OnEnter", function()
     CellTooltip:SetOwner(options, "ANCHOR_NONE")
     CellTooltip:SetPoint(tooltipPoint, options, tooltipRelativePoint, tooltipX, tooltipY)
     CellTooltip:AddLine(L["Options"])
+    CellTooltip:AddLine("|cffffb5c5"..L["Right-Click"]..": |cffffffff"..L["refresh unit buttons"])
     CellTooltip:Show()
 end)
 options:HookScript("OnLeave", function()
