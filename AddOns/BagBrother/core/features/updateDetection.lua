@@ -26,9 +26,10 @@ end
 function Detection:OnEnable()
     self.Queued = {}
     self:RegisterEvent('CHAT_MSG_ADDON', 'OnMessage')
-    self:RegisterUpdateEvent('PLAYER_ENTERING_WORLD', function() return IsInInstance() and 'INSTANCE_CHAT' end)
     self:RegisterUpdateEvent('GUILD_ROSTER_UPDATE', function() return IsInGuild() and 'GUILD' end)
-    self:RegisterUpdateEvent('GROUP_ROSTER_UPDATE', function() return IsInGroup() and 'RAID' end)
+    self:RegisterUpdateEvent('GROUP_ROSTER_UPDATE', function() return IsInGroup(LE_PARTY_CATEGORY_HOME) and 'PARTY' end)
+    self:RegisterUpdateEvent('GROUP_ROSTER_UPDATE', function() return IsInGroup(LE_PARTY_CATEGORY_INSTANCE) and 'INSTANCE_CHAT' end)
+    self:RegisterUpdateEvent('GROUP_ROSTER_UPDATE', function() return IsInRaid(LE_PARTY_CATEGORY_HOME) and 'RAID' end)
 
     local latest = Addon.sets.latest
     if latest.id and GetServerTime() >= (latest.cooldown or 0) then
