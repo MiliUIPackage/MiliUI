@@ -1,5 +1,8 @@
 if not WeakAuras.IsLibsOK() then return end
-local AddonName, OptionsPrivate = ...
+---@type string
+local AddonName = ...
+---@class OptionsPrivate
+local OptionsPrivate = select(2, ...)
 
 local L = WeakAuras.L
 
@@ -698,7 +701,7 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
                 end
               elseif(arg.type == "spell") then
                 if arg.noValidation then
-                  return value
+                  return value and tostring(value)
                 end
                 local useExactSpellId = (arg.showExactOption and getValue(trigger, nil, "use_exact_"..realname, multiEntry, entryNumber))
                 if value and value ~= "" then

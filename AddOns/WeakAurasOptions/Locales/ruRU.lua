@@ -966,8 +966,7 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Top HUD position"] = "Верхняя позиция HUD"
 	L["Top Left"] = "Сверху слева"
 	L["Top Right"] = "Сверху справа"
-	--[[Translation missing --]]
-	L["Total"] = "Total"
+	L["Total"] = "Общий"
 	L["Total Angle"] = "Общий угол"
 	L["Total Time"] = "Общее время"
 	L["Trigger"] = "Триггер"

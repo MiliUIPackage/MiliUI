@@ -358,8 +358,7 @@ Off Screen]=] ] = "Aura está fuera de la pantalla"
 	L["Enter an Aura Name, partial Aura Name, or Spell ID. A Spell ID will match any spells with the same name."] = "Introduce un nombre de aura, un nombre de aura parcial o un ID de hechizo. Un ID de hechizo coincidirá con cualquier hechizo que tenga el mismo nombre."
 	L["Enter Author Mode"] = "Acceder al modo autor"
 	L["Enter in a value for the tick's placement."] = "Introduce un valor para la colocación del tic."
-	--[[Translation missing --]]
-	L["Enter static or relative values with %"] = "Enter static or relative values with %"
+	L["Enter static or relative values with %"] = "Ingrese valores estáticos o relativos con %"
 	L["Enter User Mode"] = "Acceder al modo usuario"
 	L["Enter user mode."] = "Accede al modo usuario."
 	L["Entry %i"] = "Entrada %i"
@@ -419,7 +418,7 @@ Can use \ to escape -.]=] ] = "Formatos de filtro: 'Nombre', 'Nombre-Reino', '-R
 	L["Format"] = "Formato"
 	L["Format for %s"] = "Formato para %s"
 	L["Found a Bug?"] = "¿Has encontrado un error?"
-	L["Frame"] = "Macro"
+	L["Frame"] = "Marco"
 	L["Frame Count"] = "Recuento de fotogramas"
 	L["Frame Height"] = "Altura de marco"
 	L["Frame Rate"] = "Cuadros por segundo"
@@ -567,19 +566,15 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	L["Low Mana"] = "Maná bajo"
 	L["Magnetically Align"] = "Alineación magnética"
 	L["Main"] = "Principal"
-	--[[Translation missing --]]
 	L["Manual"] = "Manual"
-	--[[Translation missing --]]
-	L["Manual Icon"] = "Manual Icon"
-	--[[Translation missing --]]
-	L["Manual with %i/%i"] = "Manual with %i/%i"
+	L["Manual Icon"] = "Icono manual"
+	L["Manual with %i/%i"] = "Manual con %i/%i"
 	L["Match Count"] = "Recuento de coincidencia"
 	L["Match Count per Unit"] = "Recuento de coincidencia por unidad"
 	L["Matches the height setting of a horizontal bar or width for a vertical bar."] = "Coincide con la altura de una barra horizontal o la anchura de una barra vertical."
 	L["Max"] = "Máx."
 	L["Max Length"] = "Longitud máx."
-	--[[Translation missing --]]
-	L["Maximum"] = "Maximum"
+	L["Maximum"] = "Máximo"
 	L["Media Type"] = "Tipo de media"
 	L["Medium Icon"] = "Icono medio"
 	L["Message"] = "Mensaje"
@@ -587,8 +582,7 @@ Con |cFF00CC00>= 0|r se activará siempre.]=]
 	L["Message Suffix"] = "Sufijo del Mensaje"
 	L["Message Type"] = "Tipo de mensaje"
 	L["Min"] = "Mín."
-	--[[Translation missing --]]
-	L["Minimum"] = "Minimum"
+	L["Minimum"] = "Mínimo"
 	L["Mirror"] = "Reflejar"
 	L["Model"] = "Modelo"
 	L["Model %s"] = "Modelo %s"
@@ -634,8 +628,7 @@ Sólo un valor coincidente puede ser escogido.]=]
 	L["Not all children have the same value for this option"] = "No todos los hijos contienen la misma configuración."
 	L["Not Loaded"] = "No cargado"
 	L["Note: Automated Messages to SAY and YELL are blocked outside of Instances."] = "Nota: los mensajes automáticos para DECIR y GRITAR están bloqueados fuera de las instancias."
-	--[[Translation missing --]]
-	L["Note: This progress source does not provide a total value/duration. A total value/duration must be set via \"Set Maximum Progress\""] = "Note: This progress source does not provide a total value/duration. A total value/duration must be set via \"Set Maximum Progress\""
+	L["Note: This progress source does not provide a total value/duration. A total value/duration must be set via \"Set Maximum Progress\""] = "Nota: Esta fuente de progreso no proporciona un valor/duración total. Se debe establecer un valor/duración total mediante \"Establecer progreso máximo\"."
 	L["Npc ID"] = "ID de pnj"
 	L["Number of Entries"] = "Número de entradas"
 	L[ [=[Occurrence of the event, reset when aura is unloaded
@@ -700,10 +693,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Ocurrencia d
 	L["Prevent Merging"] = "Evitar la fusión"
 	L["Progress Bar"] = "Barra de progreso"
 	L["Progress Bar Settings"] = "Configuración de la barra de progreso"
-	--[[Translation missing --]]
-	L["Progress Settings"] = "Progress Settings"
-	--[[Translation missing --]]
-	L["Progress Source"] = "Progress Source"
+	L["Progress Settings"] = "Configuración de progreso"
+	L["Progress Source"] = "Fuente de progreso"
 	L["Progress Texture"] = "Textura de progreso"
 	L["Progress Texture Settings"] = "Ajustes de textura de progreso"
 	L["Purple Rune"] = "Runa morada"
@@ -756,10 +747,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Ocurrencia d
 	L["Send To"] = "Envar A"
 	L["Separator Text"] = "Texto del separador"
 	L["Separator text"] = "Texto del separador"
-	--[[Translation missing --]]
-	L["Set Maximum Progress"] = "Set Maximum Progress"
-	--[[Translation missing --]]
-	L["Set Minimum Progress"] = "Set Minimum Progress"
+	L["Set Maximum Progress"] = "Establecer progreso máximo"
+	L["Set Minimum Progress"] = "Establecer progreso mínimo"
 	L["Set Parent to Anchor"] = "Establecer padre a la ancla"
 	L["Set Thumbnail Icon"] = "Establecer icono de miniatura"
 	L["Sets the anchored frame as the aura's parent, causing the aura to inherit attributes such as visibility and scale."] = "Establece el marco anclado como el padre del aura, lo que hace que el aura herede atributos como la visibilidad y la escala."
@@ -911,7 +900,6 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Top HUD position"] = "Posición superior de la visualización (HUD)"
 	L["Top Left"] = "Superior izquierda"
 	L["Top Right"] = "Superior derecha"
-	--[[Translation missing --]]
 	L["Total"] = "Total"
 	L["Total Angle"] = "Ángulo total"
 	L["Total Time"] = "Tiempo total"
@@ -944,14 +932,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Uses Texture Coordinates to rotate the texture."] = "Utiliza coordenadas de textura para rotar la textura."
 	L["Uses UnitInRange() to check if in range. Matches default raid frames out of range behavior, which is between 25 to 40 yards depending on your class and spec."] = "Utiliza UnitInRange() para comprobar si está dentro de alcance. Coincide con el comportamiento predeterminado de los marcos de banda fuera de alcance, que oscila entre 25 y 40 metros dependiendo de tu clase y especialización."
 	L["Uses UnitIsVisible() to check if game client has loaded a object for this unit. This distance is around 100 yards. This is polled every second."] = "Utiliza UnitIsVisible() para comprobar si el cliente del juego ha cargado un objeto para esta unidad. Esta distancia es de unos 100 metros. Esto se encuesta cada segundo."
-	--[[Translation missing --]]
-	L["Value"] = "Value"
+	L["Value"] = "Valor"
 	L["Value %i"] = "Valor %i"
 	L["Values are in normalized rgba format."] = "Los valores están en formato rgba normalizado."
-	--[[Translation missing --]]
-	L["Values/Remaining Time above this value are displayed as full progress."] = "Values/Remaining Time above this value are displayed as full progress."
-	--[[Translation missing --]]
-	L["Values/Remaining Time below this value are displayed as zero progress."] = "Values/Remaining Time below this value are displayed as zero progress."
+	L["Values/Remaining Time above this value are displayed as full progress."] = "Los valores/tiempo restante por encima de este valor se muestran como progreso completo."
+	L["Values/Remaining Time below this value are displayed as zero progress."] = "Los valores/tiempo restante por debajo de este valor se muestran como sin progreso."
 	L["Values:"] = "Valores:"
 	L["Version: "] = "Versión:"
 	L["Version: %s"] = "Versión: %s"
@@ -978,7 +963,7 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["y-Offset"] = "Desplazamiento y"
 	L["You already have this group/aura. Importing will create a duplicate."] = "Ya tienes este grupo/aura. La importación creará un duplicado."
 	L["You are about to delete %d aura(s). |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "Estás a punto de eliminar aura(s) %d. |cFFFF0000¡Esto no se puede deshacer!|r ¿Te gustarías continuar?"
-	L["You are about to delete a trigger. |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "Estás a punto de eliminar activador %d. |cFFFF0000¡Esto no se puede deshacer!|r ¿Te gustarías continuar?"
+	L["You are about to delete a trigger. |cFFFF0000This cannot be undone!|r Would you like to continue?"] = "Estás a punto de eliminar un activador. |cFFFF0000¡Esto no se puede deshacer!|r ¿Te gustaría continuar?"
 	L[ [=[You can add a comma-separated list of state values here that (when changed) WeakAuras should also run the Anchor Code on.
 
 WeakAuras will always run custom anchor code if you include 'changed' in this list, or when a region is added, removed, or re-ordered.]=] ] = "Puedes agregar aquí una lista de valores de estado separados por comas en los que (cuando se modifican) WeakAuras también debería ejecutar el código anclaje. WeakAuras siempre ejecutará el código de orden personalizado si incluye \"cambiado\" en esta lista, o cuando se agrega, se elimina, o se reordena una región"

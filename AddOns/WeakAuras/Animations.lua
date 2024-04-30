@@ -1,6 +1,8 @@
 if not WeakAuras.IsLibsOK() then return end
---- @type string, Private
-local AddonName, Private = ...
+---@type string
+local AddonName = ...
+---@class Private
+local Private = select(2, ...)
 local L = WeakAuras.L
 
 -- Animations
@@ -9,8 +11,6 @@ local pending_controls = {}
 local anim_function_strings = Private.anim_function_strings;
 
 local function noopErrorHandler() end
-
-local frame = Private.frames["WeakAuras Main Frame"]
 
 local function RunAnimation(key, anim, elapsed, time)
   Private.StartProfileUID(anim.auraUID)
@@ -160,6 +160,9 @@ end
 local updatingAnimations;
 local last_update = GetTime();
 local function UpdateAnimations()
+  if not updatingAnimations then
+    return
+  end
   Private.StartProfileSystem("animations");
 
   for groupUid, groupRegion in pairs(pending_controls) do
@@ -178,12 +181,15 @@ local function UpdateAnimations()
   Private.StopProfileSystem("animations");
 end
 
+local frame = CreateFrame("Frame")
+Private.frames["WeakAuras Animation Frame"] = frame
+frame:SetScript("OnUpdate", UpdateAnimations)
+
 function Private.RegisterGroupForPositioning(uid, region)
   pending_controls[uid] = region
   if not updatingAnimations then
     updatingAnimations = true
     last_update = GetTime()
-    frame:SetScript("OnUpdate", UpdateAnimations)
   end
 end
 
@@ -378,11 +384,9 @@ function Private.Animate(namespace, uid, type, anim, region, inverse, onFinished
     animation.auraUID = uid
 
     if not(updatingAnimations) then
-      frame:SetScript("OnUpdate", UpdateAnimations);
       last_update = GetTime()
       updatingAnimations = true;
     end
-    RunAnimation(key, animation, 0, GetTime())
     return true;
   else
     if(animations[key]) then

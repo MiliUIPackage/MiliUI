@@ -1,7 +1,9 @@
---- @type string, Private
-local AddonName, Private = ...
+---@type string
+local AddonName = ...
+---@class Private
+local Private = select(2, ...)
 
-local internalVersion = 71
+local internalVersion = 73
 
 -- Lua APIs
 local insert = table.insert
@@ -23,6 +25,7 @@ local GetNumTalentTabs, GetNumTalents = GetNumTalentTabs, GetNumTalents
 local MAX_NUM_TALENTS = MAX_NUM_TALENTS or 20
 
 local ADDON_NAME = "WeakAuras"
+---@class WeakAuras
 local WeakAuras = WeakAuras
 local L = WeakAuras.L
 local versionString = WeakAuras.versionString
@@ -1113,7 +1116,7 @@ Broker_WeakAuras = LDB:NewDataObject("WeakAuras", {
     elseif(button == 'MiddleButton') then
       WeakAuras.ToggleMinimap();
     else
-      WeakAuras.RealTimeProfilingWindow:Toggle()
+      WeakAurasProfilingFrame:Toggle()
     end
     tooltip_draw()
   end,
@@ -2561,6 +2564,9 @@ local function loadOrder(tbl, idtable)
   return order
 end
 
+---@type fun(data: auraData)
+local pAdd
+
 ---@param tbl auraData[]
 ---@param takeSnapshots boolean
 function Private.AddMany(tbl, takeSnapshots)
@@ -2614,7 +2620,7 @@ function Private.AddMany(tbl, takeSnapshots)
     if data.parent and bads[data.parent] then
       bads[data.id] = true
     else
-      local ok = xpcall(WeakAuras.PreAdd, geterrorhandler(), data)
+      local ok = xpcall(WeakAuras.PreAdd, Private.GetErrorHandlerUid(data.uid, "PreAdd"), data)
       if not ok then
         prettyPrint(L["Unable to modernize aura '%s'. This is probably due to corrupt data or a bad migration, please report this to the WeakAuras team."]:format(data.id))
         if data.regionType == "dynamicgroup" or data.regionType == "group" then
@@ -2630,9 +2636,16 @@ function Private.AddMany(tbl, takeSnapshots)
 
   for _, data in ipairs(order) do
     if not bads[data.id] then
-      WeakAuras.Add(data)
-      coroutine.yield()
+      if data.parent and bads[data.parent] then
+        bads[data.id] = true
+      else
+        local ok = xpcall(pAdd, Private.GetErrorHandlerUid(data.uid, "pAdd"), data)
+        if not ok then
+          bads[data.id] = true
+        end
+      end
     end
+    coroutine.yield()
   end
 
   for id in pairs(anchorTargets) do
@@ -3005,7 +3018,7 @@ function WeakAuras.PreAdd(data)
   data.expanded = nil
 end
 
-local function pAdd(data, simpleChange)
+function pAdd(data, simpleChange)
   local id = data.id;
   if not(id) then
     error("Improper arguments to WeakAuras.Add - id not defined");
@@ -4513,6 +4526,10 @@ local function startStopTimers(id, cloneId, triggernum, state)
       stopAutoHideTimer(id, triggernum, cloneId)
       return
     else
+      if state.expirationTime == nil and type(state.duration) == "number" then
+        -- Set the expiration time, because users rely on that, even though it's wrong to do
+        state.expirationTime = GetTime() + state.duration
+      end
       expirationTime = state.expirationTime
     end
   elseif type(state.autoHide) == "number" then
@@ -5830,22 +5847,12 @@ function Private.FindUnusedId(prefix)
 end
 
 function WeakAuras.SetModel(frame, model_path, model_fileId, isUnit, isDisplayInfo)
-  if WeakAuras.IsClassicEra() then
-    if isDisplayInfo then
-      pcall(frame.SetDisplayInfo, frame, tonumber(model_path))
-    elseif isUnit then
-      pcall(frame.SetUnit, frame, model_path)
-    else
-      pcall(frame.SetModel, frame, model_path)
-    end
+  if isDisplayInfo then
+    pcall(frame.SetDisplayInfo, frame, tonumber(model_fileId))
+  elseif isUnit then
+    pcall(frame.SetUnit, frame, model_fileId)
   else
-    if isDisplayInfo then
-      pcall(frame.SetDisplayInfo, frame, tonumber(model_fileId))
-    elseif isUnit then
-      pcall(frame.SetUnit, frame, model_fileId)
-    else
-      pcall(frame.SetModel, frame, tonumber(model_fileId))
-    end
+    pcall(frame.SetModel, frame, tonumber(model_fileId))
   end
 end
 
