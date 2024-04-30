@@ -1,13 +1,13 @@
 ## Interface: 100206
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 5.3.4
+## Version: 5.4.0
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
 ## Notes-zhCN: 允许使用用户界面或高级过滤器表达式过滤预制组。
 ## Notes-zhTW: Premade Groups Filter|n顯示預組隊伍中的職業角色資訊，提供方便的過濾選項來篩選隊伍，還有進階的過濾方式。
-## Author: Elotheon-Arthas-EU
+## Author: Bernhard Saumweber
 ## SavedVariables: PremadeGroupsFilterSettings
 ## SavedVariablesPerCharacter: PremadeGroupsFilterState
 ## X-Category-zhTW: 團隊
