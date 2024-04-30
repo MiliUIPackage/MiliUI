@@ -12,5 +12,5 @@
 ## X-DBM-Voice: 1
 ## X-DBM-Voice-Name: AnnieSeal (中文女聲)
 ## X-DBM-Voice-ShortName: AnnieSeal
-## X-DBM-Voice-Version: 16
+## X-DBM-Voice-Version: 17
 ## X-DBM-Voice-HasCount: 1
