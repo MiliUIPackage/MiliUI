@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2486, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231123214402")
+mod:SetRevision("20240427112709")
 mod:SetCreatureID(187771, 187768, 187772, 187767)
 mod:SetEncounterID(2590)
 mod:SetUsedIcons(1, 2)
@@ -105,17 +105,17 @@ local allTimers = {
 	},
 	["heroic"] = {--Needs work, some of these can be lower
 		--Conductive Mark
-		[375331] = {15.7, 55.9, 35.3, 36.5, 34.1, 36.5, 36.5, 35.2, 37.7, 32.8, 35.2},
+		[375331] = {15.7, 55.9, 35.3, 34.0, 32.8, 36.5, 36.5, 35.2, 37.7, 32.8, 35.2},
 		--Pillars
-		[372322] = {7.2, 35.3, 37.7, 35.2, 36.5, 35.3, 35.2, 34.1, 37.7, 34, 35.2, 37.6},
+		[372322] = {7.2, 35.3, 37.7, 31.7, 35.2, 35.3, 35.2, 34.1, 37.7, 34, 35.2, 37.6},
 		--Primal Blizzard (excluded for now)
-		[373059] = {49.8, 118, 105.8, 108},
+		[373059] = {49.8, 115.5, 105.8, 108},
 	},
 	["normal"] = {--Needs work, some of these can be lower (Also includes LFR)
 		--Conductive Mark
 		[375331] = {16.7, 70.5, 43.7, 44.9, 43.7, 44.9, 43.8, 41.2, 44.9, 45, 42.5},
 		--Pillars
-		[372322] = {8.5, 42.9, 47.6, 43.7, 43.7, 46.1, 43.7, 42.5, 47.3, 42.5, 43.7, 47.4},
+		[372322] = {8.5, 42.9, 47.6, 40.1, 43.7, 46.1, 43.7, 42.5, 47.3, 42.5, 43.7, 47.4},
 		--Primal Blizzard (excluded for now)
 		[373059] = {60, 149.6, 133, 133},
 	},
@@ -152,7 +152,7 @@ function mod:OnCombatStart(delay)
 			timerPrimalBlizzardCD:Start(48-delay, 1)
 			--Dathea Stormlsh
 			timerChainLightningCD:Start(12.1-delay)
-			timerConductiveMarkCD:Start(15.7-delay, 1)
+			timerConductiveMarkCD:Start(14.2-delay, 1)
 			--Opalfang
 			timerEarthenPillarCD:Start(6.9-delay, 1)
 			timerCrushCD:Start(18.1-delay, 1)
@@ -174,7 +174,7 @@ function mod:OnCombatStart(delay)
 		timerMeteorAxeCD:Start(22.3-delay, 1)
 	end
 	if self.Options.InfoFrame then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(373059))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(373059))
 		DBM.InfoFrame:Show(self:IsMythic() and 20 or 10, "table", blizzardStacks, 1)--On mythic, see everyone to coordinate clears, else just show top idiots because cleares are infinite
 	end
 end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2532, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231123214402")
+mod:SetRevision("20240420001330")
 mod:SetCreatureID(202375)
 mod:SetEncounterID(2689)
 mod:SetUsedIcons(8, 7, 6, 5, 4, 3, 2, 1)
@@ -119,7 +119,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.addIcon = 8
 		self.vb.golemsCount = self.vb.golemsCount + 1
 		specWarnAnimateGolems:Show(self.vb.golemsCount)
-		specWarnAnimateGolems:Play("killmobs")
+		specWarnAnimateGolems:Play("killmob")
 		timerAnimateGolemsCD:Start(73, self.vb.golemsCount+1)--Can get spell queued up to 78
 	elseif spellId == 405919 or spellId == 405886 then
 		if not castsPerGUID[args.sourceGUID] then

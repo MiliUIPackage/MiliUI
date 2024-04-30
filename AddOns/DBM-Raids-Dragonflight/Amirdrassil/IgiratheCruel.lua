@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2554, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240310194118")
+mod:SetRevision("20240428104643")
 mod:SetCreatureID(200926)
 mod:SetEncounterID(2709)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6)
@@ -74,7 +74,7 @@ local timerSmashingVisceraCD						= mod:NewCDCountTimer(49, 424456, 47482, nil, 
 local timerHeartStopperCD							= mod:NewCDCountTimer(49, 415623, DBM_COMMON_L.HEALABSORBS.." (%s)", nil, nil, 3)
 local berserkTimer									= mod:NewBerserkTimer(600)
 
-mod:AddSetIconOption("SetIconOnBlisteringSpear", 414888, false, false, {1, 2, 3, 4, 5, 6})
+mod:AddSetIconOption("SetIconOnBlisteringSpear", 414888, false, 0, {1, 2, 3, 4, 5, 6})
 
 local blisteringMythicTimers = {14, 32.1, 35.1, 20.2}
 local blisteringHeroicTimers = {14, 23.0, 23.0, 22.5, 20.2}

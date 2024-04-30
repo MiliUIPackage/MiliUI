@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
 
-mod:SetRevision("20240216003824")
+mod:SetRevision("20240428124541")
 mod:SetCreatureID(198996)
 mod:SetEncounterID(2667)
 mod:SetUsedIcons(1, 2)
@@ -45,9 +45,9 @@ local timerRP										= mod:NewRPTimer(13.3)
 local timerChronofadedCD							= mod:NewCDCountTimer(30.3, 405696, nil, nil, nil, 3, nil, DBM_COMMON_L.MAGIC_ICON)
 local timerFragmentsofTimeCD						= mod:NewCDCountTimer(30.3, 405431, nil, nil, nil, 3)
 
-mod:AddSetIconOption("SetIconOnChronoFaded", 405696, true, false, {1, 2})
+mod:AddSetIconOption("SetIconOnChronoFaded", 405696, true, 0, {1, 2})
 
-local fastTime = DBM:GetSpellInfo(403912)
+local fastTime = DBM:GetSpellName(403912)
 mod.vb.DebuffIcon = 1
 mod.vb.fadedCount = 0
 mod.vb.fragmentsCount = 0

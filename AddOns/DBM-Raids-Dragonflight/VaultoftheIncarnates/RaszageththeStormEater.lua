@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2499, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231231044144")
+mod:SetRevision("20240426053735")
 mod:SetCreatureID(189492)
 mod:SetEncounterID(2607)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -12,7 +12,7 @@ mod.respawnTime = 29
 mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
-	"SPELL_CAST_START 377612 388643 377658 377594 385065 385553 397382 397468 387261 385574 389870 385068 395885 386410 382434 390463",
+	"SPELL_CAST_START 377612 388643 377658 377594 385553 397382 397468 387261 385574 389870 385068 395885 386410 382434 390463",
 	"SPELL_CAST_SUCCESS 381615 396037 399713 181089 381249 378829 382434 390463",
 	"SPELL_AURA_APPLIED 381615 388631 395906 388115 396037 385541 397382 397387 388691 391990 394574 394576 391991 394579 394575 394582 391993 394584 377467 395929 391285 399713 391281 389214 389878 394583 391402",
 	"SPELL_AURA_APPLIED_DOSE 389878",
@@ -21,6 +21,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_PERIODIC_MISSED 395929",
 	"UNIT_DIED",
 	"CHAT_MSG_RAID_BOSS_EMOTE",
+	"UNIT_SPELLCAST_START boss1",
 	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
@@ -48,8 +49,9 @@ local timerPhaseCD								= mod:NewPhaseTimer(30)
 
 --Stage One: The Winds of Change
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(25244))
-local warnStaticCharge							= mod:NewTargetNoFilterAnnounce(381615, 3)
+local warnStaticCharge							= mod:NewTargetNoFilterAnnounce(381615, 3, nil, nil, 37859)
 local warnLightningStrike						= mod:NewSpellAnnounce(376126, 3)
+local warnHurricaneWingOver						= mod:NewFadesAnnounce(377612, 1, nil, nil, nil, nil, nil, 2)
 
 local specWarnHurricaneWing						= mod:NewSpecialWarningCount(377612, nil, nil, nil, 2, 13)
 local specWarnStaticCharge						= mod:NewSpecialWarningYouPos(381615, nil, 37859, nil, 1, 2)
@@ -60,7 +62,8 @@ local specWarnElectrifiedJaws					= mod:NewSpecialWarningDefensive(395906, nil, 
 local specWarnElectrifiedJawsOther				= mod:NewSpecialWarningTaunt(395906, nil, nil, nil, 1, 2)
 local specWarnLightingBreath					= mod:NewSpecialWarningDodgeCount(377594, nil, 18357, nil, 2, 2)
 
-local timerHurricaneWingCD						= mod:NewCDCountTimer(35, 377612, nil, nil, nil, 2)
+local timerHurricaneWingCD						= mod:NewCDCountTimer(35, 377612, DBM_COMMON_L.PUSHBACK.." (%s)", nil, nil, 2)
+local timerHurricaneWing						= mod:NewCastTimer(8, 377612, DBM_COMMON_L.PUSHBACK, nil, nil, 5)
 local timerStaticChargeCD						= mod:NewCDCountTimer(35, 381615, 167180, nil, nil, 3)--"Bombs"
 local timerStaticCharge							= mod:NewCastTimer(35, 381615, 167180, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)--"Bombs"
 local timerVolatileCurrentCD					= mod:NewCDCountTimer(47, 388643, 384738, nil, nil, 3)
@@ -386,6 +389,7 @@ end
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 377612 then
+		local modifier = self:IsMythic() and (self.vb.energyCount * 0.5) or 0--Purposely calculated before increasing count
 		self.vb.energyCount = self.vb.energyCount + 1
 		specWarnHurricaneWing:Show(self.vb.energyCount)
 		specWarnHurricaneWing:Play("pushbackincoming")
@@ -393,6 +397,9 @@ function mod:SPELL_CAST_START(args)
 		if timer then
 			timerHurricaneWingCD:Start(timer, self.vb.energyCount+1)
 		end
+		timerHurricaneWing:Start(9 + modifier)--6 sec cast + 3 sec duration + mythic cast count mod if applicable
+		warnHurricaneWingOver:Schedule(9 + modifier)
+		warnHurricaneWingOver:ScheduleVoice(9 + modifier, "safenow")
 	elseif spellId == 388643 then
 		self.vb.currentCount = self.vb.currentCount + 1
 		specWarnVolatileCurrent:Show(self.vb.currentCount)
@@ -421,15 +428,8 @@ function mod:SPELL_CAST_START(args)
 			timerLightningBreathCD:Start(timer, self.vb.breathCount+1)
 			self:Schedule(timer+4, breathCorrect, self)
 		end
-	elseif spellId == 385065 then
-		self.vb.breathCount = self.vb.breathCount + 1
-		local timer = self.vb.phase == 1.5 and (self:IsMythic() and 9.7 or self:IsHeroic() and 12.1 or 13.3) or (self:IsMythic() and 29 or self:IsHeroic() and 31.5 or 32.7)
-		if self.Options.SetBreathToBait then
-			timer = timer - 1.5--Sets timer for baiting breath instead of breath activation
-		end
-		timerLightningDevastationCD:Start(timer, self.vb.breathCount+1)
-		self:Unschedule(warnDeepBreath)
-		self:Schedule(0.5, warnDeepBreath, self, false)
+--	elseif spellId == 385065 then
+
 	elseif spellId == 397382 then
 		self.vb.shroudIcon = 1
 		--Time between casts not known yet, fix when groups suck really bad
@@ -536,9 +536,9 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.breathCount = 0--Reused for Lightning Devastation
 
 		if self.Options.SetBreathToBait then
-			timerLightningDevastationCD:Start(self:IsMythic() and 11.3 or 11.7, 1)
+			timerLightningDevastationCD:Start(self:IsMythic() and 10.5 or 10.9, 1)
 		else
-			timerLightningDevastationCD:Start(self:IsMythic() and 12.8 or 13.2, 1)
+			timerLightningDevastationCD:Start(self:IsMythic() and 12 or 12.4, 1)
 		end
 		timerPhaseCD:Start(self:IsMythic() and 93.3 or 100)
 	elseif spellId == 381249 and self:GetStage(1.5) then--Pre stage 2 trigger (Electric Scales)
@@ -762,7 +762,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerStormBreakCD:Start(21.8, 1)
 	elseif spellId == 391402 then
 		warnLightningStrike:Show()
-		timerLightningStrikeCD:Start(self:IsMythic() and 29.1 or self:IsHeroic() and 31.5 or 32.8)
+		timerLightningStrikeCD:Start(self:IsMythic() and 29.1 or self:IsHeroic() and 31.1 or 32.8)
 	elseif spellId == 389214 then--Overload
 		local cid = self:GetCIDFromGUID(args.destGUID)
 		if cid == 199547 then--Frostforged Zealot
@@ -877,6 +877,24 @@ function mod:CHAT_MSG_RAID_BOSS_EMOTE(msg, npc, _, _, target)
 --	if msg:find(L.BreathEmote) or msg == L.BreathEmote then
 		self:Unschedule(warnDeepBreath)
 		warnDeepBreath(self, true)
+	end
+end
+
+--Faster than combat log
+--<146.14 00:37:27> [UNIT_SPELLCAST_START] Raszageth(64.6%-0.0%){Target:??} -Lightning Devastation- 6.5s [[boss1:Cast-3-3895-2522-5422-385065-0065A96D89:385065]]", -- [4032]
+--<146.34 00:37:27> [CHAT_MSG_RAID_BOSS_EMOTE] Raszageth takes a deep breath...#Raszageth###Raszageth##0#0##0#3303#nil#0#false#false#false#false", -- [4039]
+--<148.75 00:37:30> [CLEU] SPELL_CAST_START#Creature-0-3895-2522-5422-189492-0000296C3C#Raszageth(64.6%-0.0%)##nil#385065#Lightning Devastation#nil#nil", -- [4120]
+function mod:UNIT_SPELLCAST_START(uId, _, spellId)
+	if spellId == 385065 then
+		self.vb.breathCount = self.vb.breathCount + 1
+		--TODO, recheck heroic and mythic, since normal is faster now in Season 4
+		local timer = self.vb.phase == 1.5 and (self:IsMythic() and 9.7 or self:IsHeroic() and 12.1 or 10.7) or (self:IsMythic() and 29 or self:IsHeroic() and 30.4 or 32.7)
+		if self.Options.SetBreathToBait then
+			timer = timer - 1.5--Sets timer for baiting breath instead of breath activation
+		end
+		timerLightningDevastationCD:Start(timer, self.vb.breathCount+1)
+		self:Unschedule(warnDeepBreath)
+		self:Schedule(0.5, warnDeepBreath, self, false)
 	end
 end
 

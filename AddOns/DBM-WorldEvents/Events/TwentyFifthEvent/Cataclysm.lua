@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("CataEvent", "DBM-WorldEvents", 4)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240315080105")
+mod:SetRevision("20240426175442")
 mod:SetCreatureID(52409, 41376, 43324)
 mod:SetEncounterID(2320)
 mod:SetBossHPInfoToHighest()
@@ -67,7 +67,7 @@ mod:AddRangeFrameOption(6, 98495)
 mod:GroupSpells(99268, 99849)--Living Meteor with Fixate
 
 local meteorWarned = false
-local meteorTarget = DBM:GetSpellInfo(99849)
+local meteorTarget = DBM:GetSpellName(99849)
 local seenAdds = {}
 mod.vb.seedsActive = false
 mod.vb.meteorSpawned = 0

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2519, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240412222303")
+mod:SetRevision("20240423043800")
 mod:SetCreatureID(204931)
 
 mod:SetEncounterID(2677)
@@ -221,10 +221,10 @@ end
 
 local function eternalFireSwirlLoop(self)
 	self.vb.swirlCount = self.vb.swirlCount + 1
-	warnEternalFirestorm:Show(self.vb.swirlCount)
+	warnEternalFirestormSwirl:Show(self.vb.swirlCount)
 	local timer = self:GetFromTimersTable(allTimers, false, self.vb.phase, 402736, self.vb.swirlCount+1)
 	if timer then
-		timerEternalFirestormCD:Start(timer, self.vb.swirlCount+1)
+		timerEternalFirestormSwirlCD:Start(timer, self.vb.swirlCount+1)
 		self:Schedule(timer, eternalFireSwirlLoop, self)
 	end
 end

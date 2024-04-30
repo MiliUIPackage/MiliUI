@@ -511,9 +511,9 @@ function DBM_GUI:CreateBossModPanel(mod)
 					if spellID < 0 then
 						title, desc, _, icon = DBM:EJ_GetSectionInfo(-spellID)
 					else
-						local _title = DBM:GetSpellInfo(spellID)
+						local _title = DBM:GetSpellName(spellID)
 						if _title then
-							title, desc, icon = _title, tonumber(spellID), GetSpellTexture(spellID or 0)
+							title, desc, icon = _title, tonumber(spellID), DBM:GetSpellTexture(spellID or 0)
 						end
 					end
 				elseif spellID:find("^ej") then
@@ -939,10 +939,10 @@ do
 		end
 	end
 
-    local expansions = {"CLASSIC", "BC", "WOTLK", "CATA", "MOP", "WOD", "LEG", "BFA", "SHADOWLANDS", "DRAGONFLIGHT"}
+    local expansions = {"CLASSIC", "BC", "WOTLK", "CATA", "MOP", "WOD", "LEG", "BFA", "SHADOWLANDS", "DRAGONFLIGHT", "WARWITHIN"}
 
 	-- WotLK compat, search for "local C_AddOns" in DBM-Core.lua for more details
-	local IsAddOnLoaded = C_AddOns.IsAddOnLoaded or IsAddOnLoaded ---@diagnostic disable-line:deprecated
+	local IsAddOnLoaded = _G.C_AddOns.IsAddOnLoaded or IsAddOnLoaded ---@diagnostic disable-line:deprecated
 	function DBM_GUI:UpdateModList()
 		for _, addon in ipairs(DBM.AddOns) do
 			if not addon.panel then

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2483, "DBM-Party-Dragonflight", 6, 1203)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240426175442")
 mod:SetCreatureID(186737)
 mod:SetEncounterID(2583)
 mod:SetHotfixNoticeRev(20221027000000)
@@ -43,7 +43,7 @@ local timerAbsoluteZeroCD						= mod:NewNextTimer(60, 388008, nil, nil, nil, 2)
 mod:AddRangeFrameOption(8, 387151)
 
 
-local vaultRuin = DBM:GetSpellInfo(388072)
+local vaultRuin = DBM:GetSpellName(388072)
 
 function mod:DevastatorTarget(targetname)
 	if not targetname then return end

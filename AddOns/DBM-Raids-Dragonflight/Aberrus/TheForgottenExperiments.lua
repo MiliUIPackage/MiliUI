@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2530, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240305165926")
+mod:SetRevision("20240426174649")
 mod:SetCreatureID(200912, 200913, 200918)
 mod:SetEncounterID(2693)
 mod:SetUsedIcons(1, 2, 3)
@@ -164,7 +164,7 @@ function mod:OnCombatStart(delay)
 	self.vb.anomalyCount = 0
 	self:EnablePrivateAuraSound(406317, "targetyou", 2)--Rending Charge
 	if self.Options.InfoFrame then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(406313))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(406313))
 		DBM.InfoFrame:Show(5, "function", updateInfoFrame, false, true)
 	end
 end

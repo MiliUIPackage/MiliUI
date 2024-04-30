@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2527, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240221053818")
+mod:SetRevision("20240426174649")
 mod:SetCreatureID(201579)
 mod:SetEncounterID(2683)
 mod:SetUsedIcons(1, 2, 3, 8)
@@ -99,7 +99,7 @@ function mod:OnCombatStart(delay)
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end
 	if self.Options.InfoFrame then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(408839))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(408839))
 		DBM.InfoFrame:Show(30, "table", heatStacks, 1)
 	end
 end

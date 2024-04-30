@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2497, "DBM-Party-Dragonflight", 3, 1198)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240121162733")
+mod:SetRevision("20240426175442")
 mod:SetCreatureID(186615)
 mod:SetEncounterID(2636)
 mod:SetHotfixNoticeRev(20221029000000)
@@ -47,7 +47,7 @@ function mod:OnCombatStart(delay)
 	timerLightingStrikeCD:Start(10-delay)
 	timerElectricStormCD:Start(30.1-delay)
 	if self.Options.InfoFrame then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(382628))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(382628))
 		DBM.InfoFrame:Show(5, "playerdebuffremaining", 382628)
 	end
 end

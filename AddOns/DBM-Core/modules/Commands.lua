@@ -1,8 +1,9 @@
-local _, private = ...
+---@class DBMCoreNamespace
+local private = select(2, ...)
 
 local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
 local wowTOC = select(4, GetBuildInfo())
-local isCata = (wowTOC >= 40400) and (wowTOC < 50000)
+local isCata = WOW_PROJECT_ID == (WOW_PROJECT_CATACLYSM_CLASSIC or 14)
 local newShit = (wowTOC >= 100207) or isCata
 
 local L = DBM_CORE_L
@@ -14,17 +15,22 @@ if LibStub then
 end
 
 local function Pull(timer)
-	local LFGTankException = isRetail and IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
+	--Apparently BW wants to accept all pull timers regardless of length, and not support break timers that can be used by all users
+	--Sadly, this means DBM has to also be as limiting because if boss mods are not on same page it creates conflicts within multi mod groups
+	local LFGTankException = IsPartyLFG and IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
 	if (DBM:GetRaidRank() == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
 		return DBM:AddMsg(L.ERROR_NO_PERMISSION)
 	end
 	if timer > 0 and timer < 3 then
-		return DBM:AddMsg(L.TIME_TOO_SHORT)
+		return DBM:AddMsg(L.PULL_TIME_TOO_SHORT)
 	end
+	--if timer > 60 then
+	--	return DBM:AddMsg(L.PULL_TIME_TOO_LONG)
+	--end
 	if newShit then
-		--Send blizzard pull timer that all users see (including modless)
+		--Send blizzard countdown timer that all users see (including modless)
 		C_PartyInfo.DoCountdown(timer)
-		DBM:Debug("Sending Blizzard Pull Timer")
+		DBM:Debug("Sending Blizzard Countdown Timer")
 	else
 		private.sendSync(private.DBMSyncProtocol, "PT", timer .. "\t" .. DBM:GetCurrentArea())
 		DBM:Debug("Sending DBM Pull Timer")
@@ -32,15 +38,28 @@ local function Pull(timer)
 end
 
 local function Break(timer)
-	if IsInGroup() and (DBM:GetRaidRank() == 0 or (isRetail and IsPartyLFG())) or IsEncounterInProgress() or select(2, IsInInstance()) == "pvp" then--No break timers if not assistant or if it's dungeon/raid finder/BG
-		DBM:AddMsg(L.ERROR_NO_PERMISSION)
-		return
+	--Apparently BW wants to accept all pull timers regardless of length, and not support break timers that can be used by all users
+	--Sadly, this means DBM has to also be as limiting because if boss mods are not on same page it creates conflicts within multi mod groups
+	local LFGTankException = IsPartyLFG and IsPartyLFG() and UnitGroupRolesAssigned("player") == "TANK"--Tanks in LFG need to be able to send pull timer even if someone refuses to pass lead. LFG locks roles so no one can abuse this.
+	if (DBM:GetRaidRank() == 0 and IsInGroup() and not LFGTankException) or select(2, IsInInstance()) == "pvp" or IsEncounterInProgress() then
+		return DBM:AddMsg(L.ERROR_NO_PERMISSION)
 	end
 	if timer > 60 then
-		DBM:AddMsg(L.BREAK_USAGE)
-		return
+		return DBM:AddMsg(L.BREAK_USAGE)
 	end
-	private.sendSync(private.DBMSyncProtocol, "BT", timer * 60)
+	timer = timer * 60
+	--Make sure 1 minute break timer is sent as a break timer and not a pull timer
+	--if timer == 60 then
+	--	timer = 61
+	--end
+	--if newShit then
+	--	--Send blizzard countdown timer that all users see (including modless)
+	--	C_PartyInfo.DoCountdown(timer)
+	--	DBM:Debug("Sending Blizzard Countdown Timer")
+	--else
+		private.sendSync(private.DBMSyncProtocol, "BT", timer)
+		DBM:Debug("Sending DBM Break Timer")
+	--end
 end
 
 local ShowLag, ShowDurability
@@ -402,7 +421,7 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 	elseif cmd:sub(1, 5) == "debug" then
 		DBM.Options.DebugMode = not DBM.Options.DebugMode
 		DBM:AddMsg("Debug Message is " .. (DBM.Options.DebugMode and "ON" or "OFF"))
-		private:GetModule("DevTools"):OnDebugToggle()
+		private:GetModule("DevToolsModule"):OnDebugToggle()
 	elseif cmd:sub(1, 4) == "test" then
 		DBM:DemoMode()
 	elseif cmd:sub(1, 8) == "whereiam" or cmd:sub(1, 8) == "whereami" then

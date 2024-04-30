@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2512, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240426175442")
 mod:SetCreatureID(186951)
 mod:SetEncounterID(2563)
 mod:SetHotfixNoticeRev(20230103000000)
@@ -61,7 +61,7 @@ function mod:OnCombatStart(delay)
 	timerBranchOutCD:Start(30-delay)
 	timerBurstForthCD:Start(56-delay)
 	if self.Options.InfoFrame and self:IsMythic() then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(389033))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(389033))
 		DBM.InfoFrame:Show(5, "table", toxinStacks, 1)
 	end
 end

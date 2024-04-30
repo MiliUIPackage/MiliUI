@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240329111205")
+mod:SetRevision("20240423222539")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -14,6 +14,7 @@ mod:RegisterEvents(
 )
 
 --TODO, fine tune tank stacks/throttle?
+--TODO, when Season 4 starts, prune season 3 IDs, and add WW Season 1 ids
 --[[
 (ability.id = 240446 or ability.id = 409492) and type = "begincast"
  or (ability.id = 408556 or ability.id = 408801) and type = "applydebuff"
@@ -115,18 +116,17 @@ end
 
 do
 	local validZones
-	if (C_MythicPlus.GetCurrentSeason() or 0) == 9 then--DF Season 1
-		--2516, 2526, 2515, 2521, 1477, 1571, 1176, 960
-		validZones = {[2516]=true, [2526]=true, [2515]=true, [2521]=true, [1477]=true, [1571]=true, [1176]=true, [960]=true}
-	elseif (C_MythicPlus.GetCurrentSeason() or 0) == 10 then--DF Season 2
-		--657, 1841, 1754, 1458, 2527, 2519, 2451, 2520
-		validZones = {[657]=true, [1841]=true, [1754]=true, [1458]=true, [2527]=true, [2519]=true, [2451]=true, [2520]=true}
-	elseif (C_MythicPlus.GetCurrentSeason() or 0) == 12 then--DF Season 4
+	--Upcoming Seasons
+	if (C_MythicPlus.GetCurrentSeason() or 0) == 13 then--War Within Season 1
+		--2652, 2662, 2660, 2669, 670, 1822, 2286, 2290
+		validZones = {[2652]=true, [2662]=true, [2660]=true, [2669]=true, [670]=true, [1822]=true, [2286]=true, [2290]=true}
+	elseif (C_MythicPlus.GetCurrentSeason() or 0) == 14 then--War Within Season 2
+		--2651, 2649, 2648, 2661, ?, ?, ?, ?
+		validZones = {[2651]=true, [2649]=true, [2648]=true, [2661]=true}
+	--Current Season (latest LIVE season put in else so if api fails, it just always returns latest)
+	else--DF Season 4 (12)
 		--2516, 2526, 2515, 2521, 2527, 2519, 2451, 2520
 		validZones = {[2516]=true, [2526]=true, [2515]=true, [2521]=true, [2527]=true, [2519]=true, [2451]=true, [2520]=true}
-	else--Season 3 (11) (latest LIVE season put in else so if api fails, it just always returns latest)
-		--2579, 1279, 1501, 1466, 1763, 643, 1862
-		validZones = {[2579]=true, [1279]=true, [1501]=true, [1466]=true, [1763]=true, [643]=true, [1862]=true}
 	end
 	local eventsRegistered = false
 	function mod:DelayedZoneCheck(force)

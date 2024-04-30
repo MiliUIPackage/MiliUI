@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2477, "DBM-Party-Dragonflight", 3, 1198)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240426062327")
 mod:SetCreatureID(186151)
 mod:SetEncounterID(2580)
 mod:SetHotfixNoticeRev(20221214000000)
@@ -101,7 +101,7 @@ function mod:SPELL_CAST_START(args)
 			specWarnRendingStrike:Play("defensive")
 		end
 		--Now alternates again
-		local timer = (self.vb.comboCount % 2 == 0) and 17 or 22
+		local timer = (self.vb.comboCount % 2 == 0) and 15 or 22
 		timerRendingStrikeCD:Start(timer, self.vb.comboCount+1)
 	elseif spellId == 376827 then
 		self.vb.comboCount = self.vb.comboCount + 1

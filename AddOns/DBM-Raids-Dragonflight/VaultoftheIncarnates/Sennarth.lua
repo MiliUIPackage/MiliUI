@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2482, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240305165926")
+mod:SetRevision("20240428104643")
 mod:SetCreatureID(187967)
 mod:SetEncounterID(2592)
 mod:SetUsedIcons(1, 2, 3)
@@ -80,7 +80,7 @@ local specWarnRepellingBurst						= mod:NewSpecialWarningSpell(371983, nil, nil,
 local timerSuffocatingWebsCD						= mod:NewCDCountTimer(38.8, 373048, nil, nil, nil, 3)--38-46
 local timerRepellingBurstCD							= mod:NewCDCountTimer(33.9, 371983, nil, nil, nil, 2)--33-37 (unknown on normal
 
-mod:AddSetIconOption("SetIconOnSufWeb", 373048, true, false, {1, 2, 3})
+mod:AddSetIconOption("SetIconOnSufWeb", 373048, true, 0, {1, 2, 3})
 
 local stickyStacks = {}
 mod.vb.webIcon = 1
@@ -96,13 +96,13 @@ local allTimers = {
 	["mythic"] = {--Very close to heroic so won't alter til transcriptor to make it lower work load
 		[1] = {
 			--Chilling Blast
-			[371976] = {15.5, 37.6, 37.4, 29.1, 37.2, 37.5, 21.9, 36.5, 37.3},
+			[371976] = {15.5, 37.6, 36.8, 29.1, 37.2, 37.5, 21.9, 36.5, 37.3},
 			--Enveloping Webs
-			[372082] = {18.1, 26.7, 30.5, 44.8, 26.7, 30.4, 38.9, 26.4, 30.4},
+			[372082] = {18.1, 26.7, 30.5, 43.5, 26.7, 30.4, 38.9, 26.4, 30.4},
 			--Gossamer Burst
-			[373405] = {31.4, 37.7, 65.5, 36.5, 59.6, 37.6},
+			[373405] = {31.4, 37.7, 63.1, 36.5, 59.6, 37.6},
 			--Call Spiderlings
-			[372238] = {0, 25.5, 25.5, 26.7, 38.8, 25.5, 25.5, 25.5, 20.7, 26.7, 26.7},--5th has largest variance, 14-23 because sequencing isn't right way to do this, just the lazy way
+			[372238] = {0, 25.5, 25.5, 25.9, 35.1, 25.5, 25.5, 25.5, 19.5, 26.7, 26.7},--5th has largest variance, 14-23 because sequencing isn't right way to do this, just the lazy way
 		},
 		--[2] = {
 		--	--Chilling Blast
@@ -114,13 +114,13 @@ local allTimers = {
 	["heroic"] = {
 		[1] = {
 			--Chilling Blast
-			[371976] = {15.5, 37.6, 37.4, 26.7, 37.2, 36.4, 21.9, 36.5, 37.3},--likely 36 sec cd that resets on encounter events
+			[371976] = {15.5, 37.6, 36.8, 26.7, 37.2, 36.4, 21.9, 36.5, 37.3},--likely 36 sec cd that resets on encounter events
 			--Enveloping Webs
-			[372082] = {18.1, 26.7, 30.5, 43.8, 24.3, 26.6, 38.9, 26.4, 30.4},--likely 26sec cd that rests on encounter events
+			[372082] = {18.1, 26.7, 30.5, 43.5, 24.3, 26.6, 38.9, 26.4, 30.4},--likely 26sec cd that rests on encounter events
 			--Gossamer Burst
-			[373405] = {31.4, 37.7, 64.3, 36.5, 59.6, 37.6},--likely 36 sec cd that resets on encounter events
+			[373405] = {31.4, 37.7, 63.1, 36.5, 59.6, 37.6},--likely 36 sec cd that resets on encounter events
 			--Call Spiderlings
-			[372238] = {0, 25.5, 25.5, 26.7, 38.8, 25.5, 25.5, 25.5, 19.4, 26.7, 26.7},--likely 25 sec cd that resets on encounter events
+			[372238] = {0, 25.5, 25.5, 25.9, 35.1, 25.5, 25.5, 25.5, 18.2, 26.7, 26.7},--likely 25 sec cd that resets on encounter events
 		},
 		--[2] = {
 		--	--Chilling Blast
@@ -181,7 +181,7 @@ function mod:OnCombatStart(delay)
 	timerEnvelopingWebsCD:Start(17.2-delay, 1)
 	timerGossamerBurstCD:Start(31.4-delay, 1)
 	timerPhaseCD:Start(42.4-delay)
-	timerFrostbreathArachnidCD:Start(103.1, 2)--First one engages with boss
+	timerFrostbreathArachnidCD:Start(102.8, 2)--First one engages with boss
 	if self:IsMythic() then
 		difficultyName = "mythic"
 	elseif self:IsHeroic() then
@@ -192,7 +192,7 @@ function mod:OnCombatStart(delay)
 		difficultyName = "lfr"
 	end
 	if self.Options.InfoFrame then
-		DBM.InfoFrame:SetHeader(DBM:GetSpellInfo(372030))
+		DBM.InfoFrame:SetHeader(DBM:GetSpellName(372030))
 		DBM.InfoFrame:Show(20, "table", stickyStacks, 1)
 	end
 end
