@@ -8,9 +8,6 @@ local Mapster = LibStub("AceAddon-3.0"):NewAddon("Mapster", "AceEvent-3.0", "Ace
 local LibWindow = LibStub("LibWindow-1.1")
 local L = LibStub("AceLocale-3.0"):GetLocale("Mapster")
 
-local WoWClassic = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
-local WoWRetail = (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE)
-
 local defaults = {
 	profile = {
 		hideMapButton = false,
@@ -18,7 +15,6 @@ local defaults = {
 		modules = {
 			['*'] = true,
 		},
-		enableScaling = false,
 		scale = 1,
 		poiScale = 0.9,
 		ejScale = 0.8,
@@ -94,14 +90,10 @@ function Mapster:OnEnable()
 	self:SecureHookScript(WorldMapFrame, "OnShow", "WorldMapFrame_OnShow")
 
 	-- hooks for scale
-	-- XXX: disabled on retail due to taint
-	if not WoWRetail or db.enableScaling then
-		if HelpPlate_Show then
-			self:SecureHook("HelpPlate_Show")
-			self:SecureHook("HelpPlate_Hide")
-			self:SecureHook("HelpPlate_Button_AnimGroup_Show_OnFinished")
-		end
-		self:RawHook(WorldMapFrame.ScrollContainer, "GetCursorPosition", "WorldMapFrame_ScrollContainer_GetCursorPosition", true)
+	if HelpPlate_Show then
+		self:SecureHook("HelpPlate_Show")
+		self:SecureHook("HelpPlate_Hide")
+		self:SecureHook("HelpPlate_Button_AnimGroup_Show_OnFinished")
 	end
 
 	-- hook into EJ icons
@@ -128,17 +120,6 @@ function Mapster:OnEnable()
 	end
 
 	self:SecureHook("ShowUIPanel", "ShowUIPanelHook")
-
-	-- classic compat stuff
-	if WoWClassic then
-		self:RawHook(WorldMapFrame, "HandleUserActionToggleSelf", function(frame) if frame:IsShown() then frame:Hide() else frame:Show() end end, true)
-		WorldMapFrame:SetIgnoreParentScale(false)
-		WorldMapFrame.BlackoutFrame:Hide()
-		WorldMapFrame.IsMaximized = function() return false end
-
-		WorldMapFrame:SetFrameStrata("HIGH")
-		WorldMapFrame.BorderFrame:SetFrameStrata("LOW")
-	end
 
 	-- close the map on escape
 	table.insert(UISpecialFrames, "WorldMapFrame")
@@ -222,10 +203,6 @@ end
 
 function Mapster:SetPosition()
 	if not WorldMapFrame:IsMaximized() then
-		-- override scale back to 1.0 for retail fix
-		if WoWRetail and not db.enableScaling then
-			db.scale = 1.0
-		end
 		LibWindow.RestorePosition(WorldMapFrame)
 	end
 end
@@ -235,9 +212,6 @@ function Mapster:WorldMapFrame_OnShow()
 end
 
 function Mapster:SetScale(force)
-	-- disabled on retail due to map taint
-	if WoWRetail and not db.enableScaling then return end
-
 	if WorldMapFrame:IsMaximized() and WorldMapFrame:GetScale() ~= 1 then
 		WorldMapFrame:SetScale(1)
 	elseif not WorldMapFrame:IsMaximized() and (WorldMapFrame:GetScale() ~= db.scale or force) then
@@ -246,11 +220,9 @@ function Mapster:SetScale(force)
 end
 
 function Mapster:WorldMapFrame_ScrollContainer_GetCursorPosition()
-	local x,y = self.hooks[WorldMapFrame.ScrollContainer].GetCursorPosition(WorldMapFrame.ScrollContainer)
-	local s = WorldMapFrame:GetScale()
-	if WoWClassic then
-		s = s * UIParent:GetEffectiveScale()
-	end
+	-- intentionally not calling the original function to avoid double-hooks with addons trying to fix the same thing
+	local x,y = GetCursorPosition()
+	local s = WorldMapFrame:GetEffectiveScale()
 	return x / s, y / s
 end
 
@@ -300,17 +272,10 @@ end
 
 function Mapster:QuestPOI_OnAcquired(pin)
 	pin:SetSize(50 * db.poiScale, 50 * db.poiScale)
-	if not WoWClassic then
-		pin.Display:SetScale(db.poiScale)
-		pin.NormalTexture:SetScale(db.poiScale)
-		pin.PushedTexture:SetScale(db.poiScale)
-		pin.HighlightTexture:SetScale(db.poiScale)
-	else
-		pin.Texture:SetScale(db.poiScale)
-		pin.PushedTexture:SetScale(db.poiScale)
-		pin.Number:SetScale(db.poiScale)
-		pin.Highlight:SetScale(db.poiScale)
-	end
+	pin.Display:SetScale(db.poiScale)
+	pin.NormalTexture:SetScale(db.poiScale)
+	pin.PushedTexture:SetScale(db.poiScale)
+	pin.HighlightTexture:SetScale(db.poiScale)
 end
 
 function Mapster:SetPOIScale()
