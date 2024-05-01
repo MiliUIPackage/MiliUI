@@ -133,7 +133,7 @@ local GetPointInfo = function(point)
     local icon
     if (point) then
         local label = GetCreatureNameByID(point.npc) or point.label or point.multilabel and Prepare(point.multilabel) or UNKNOWN
-        if (point.icon == "portal" and point.quest and not IsQuestCompleted(point.quest)) then
+        if (point.icon == "portal" and ((point.quest and not IsQuestCompleted(point.quest)) or (point.level and UnitLevel("player") < point.level))) then
             icon = private.constants.icon["portal_red"]
         else
             icon = SetIcon(point)
@@ -230,7 +230,7 @@ local function closeAllDropdowns()
 end
 
 local function addTomTomWaypoint(button, uMapID, coord)
-    if (IsAddOnLoaded("TomTom")) then
+    if (C_AddOns.IsAddOnLoaded("TomTom")) then
         local x, y = HandyNotes:getXY(coord)
         TomTom:AddWaypoint(uMapID, x, y, {
             title = GetPointInfoByCoord(uMapID, coord),
@@ -272,7 +272,7 @@ do
             }, level)
 
             -- TomTom waypoint menu item
-            if (IsAddOnLoaded("TomTom")) then
+            if (C_AddOns.IsAddOnLoaded("TomTom")) then
                 UIDropDownMenu_AddButton({
                     text = L["handler_context_menu_add_tomtom"],
                     notCheckable = true,
@@ -315,7 +315,7 @@ do
     HL_Dropdown.initialize = generateMenu
 
     function PluginHandler:OnClick(button, down, uMapID, coord)
-        local TomTom = select(2, IsAddOnLoaded('TomTom'))
+        local TomTom = select(2, C_AddOns.IsAddOnLoaded('TomTom'))
         local dropdown = private.db.easy_waypoint_dropdown
 
         if (down or button ~= "RightButton") then return end
@@ -390,14 +390,14 @@ do
         if (point.icon == "guildvault" and not private.db.show_guildvault) then return false end
         if (point.icon == "innkeeper" and not private.db.show_innkeeper) then return false end
         if (point.icon == "mail" and not private.db.show_mail) then return false end
-        if (point.icon == "portal" and (not private.db.show_portal or IsAddOnLoaded("HandyNotes_TravelGuide"))) then return false end
+        if (point.icon == "portal" and (not private.db.show_portal or C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide"))) then return false end
         if (point.icon == "reforge" and not private.db.show_reforge) then return false end
         if (point.icon == "rostrum" and not private.db.show_rostrum) then return false end
         if (point.icon == "stablemaster" and not private.db.show_stablemaster) then return false end
         if (point.icon == "trainer" and not private.db.show_trainer) then return false end
         if (point.icon == "portaltrainer" and not private.db.show_portaltrainer) then return false end
         if (point.icon == "transmogrifier" and not private.db.show_transmogrifier) then return false end
-        if (point.icon == "tpplatform" and (not private.db.show_tpplatform or IsAddOnLoaded("HandyNotes_TravelGuide"))) then return false end
+        if (point.icon == "tpplatform" and (not private.db.show_tpplatform or C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide"))) then return false end
         if ((point.icon == "vendor" or point.icon == "anvil") and not private.db.show_vendor) then return false end
         if (point.icon == "void" and not private.db.show_void) then return false end
     end

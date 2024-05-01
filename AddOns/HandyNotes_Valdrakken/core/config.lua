@@ -48,7 +48,7 @@ config.options = {
                             type = "description",
                             name = L["config_travelguide_note"],
                             hidden = function()
-                                return not IsAddOnLoaded("HandyNotes_TravelGuide")
+                                return not C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide")
                             end,
                             order = 30,
                         },
@@ -109,7 +109,7 @@ config.options = {
                             type = "select",
                             values = { L["Blizzard"], L["TomTom"], L["Both"] },
                             disabled = function() return not private.db.easy_waypoint end,
-                            hidden = function() return not IsAddOnLoaded("TomTom") end,
+                            hidden = function() return not C_AddOns.IsAddOnLoaded("TomTom") end,
                             name = L["config_waypoint_dropdown"],
                             desc = L["config_waypoint_dropdown_desc"],
                             width = 0.7,
@@ -159,13 +159,13 @@ end
 -- set some parameters for general config menu points
 local gcmp = config.options.args.ICONDISPLAY.args.display.args
 
-gcmp.show_portal["name"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_portal"].." |cFFFF0000(*)|r" or L["config_portal"] end
-gcmp.show_portal["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
+gcmp.show_portal["name"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_portal"].." |cFFFF0000(*)|r" or L["config_portal"] end
+gcmp.show_portal["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
 
 gcmp.show_portaltrainer["hidden"] = function() return not (select(2, UnitClass("player")) == "MAGE") end
 
-gcmp.show_tpplatform["name"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_tpplatform"].." |cFFFF0000(*)|r" or L["config_tpplatform"] end
-gcmp.show_tpplatform["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
+gcmp.show_tpplatform["name"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_tpplatform"].." |cFFFF0000(*)|r" or L["config_tpplatform"] end
+gcmp.show_tpplatform["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
 
 -- create the scale / alpha config menu
 for i, icongroup in ipairs(private.constants.icongroup) do
@@ -200,14 +200,14 @@ end
 -- set some parameters for scale / alpha config menu points
 local sacmp = config.options.args.SCALEALPHA.args
 
-sacmp.name_portal["name"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_portal"].." |cFFFF0000(*)|r" or L["config_portal"] end
-sacmp.icon_scale_portal["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
-sacmp.icon_alpha_portal["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
+sacmp.name_portal["name"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_portal"].." |cFFFF0000(*)|r" or L["config_portal"] end
+sacmp.icon_scale_portal["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
+sacmp.icon_alpha_portal["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
 
 sacmp.name_portaltrainer["hidden"] = function() return not (select(2, UnitClass("player")) == "MAGE") end
 sacmp.icon_scale_portaltrainer["hidden"] = function() return not (select(2, UnitClass("player")) == "MAGE") end
 sacmp.icon_alpha_portaltrainer["hidden"] = function() return not (select(2, UnitClass("player")) == "MAGE") end
 
-sacmp.name_tpplatform["name"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_tpplatform"].." |cFFFF0000(*)|r" or L["config_tpplatform"] end
-sacmp.icon_scale_tpplatform["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
-sacmp.icon_alpha_tpplatform["disabled"] = function() return IsAddOnLoaded("HandyNotes_TravelGuide") end
+sacmp.name_tpplatform["name"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") and L["config_tpplatform"].." |cFFFF0000(*)|r" or L["config_tpplatform"] end
+sacmp.icon_scale_tpplatform["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
+sacmp.icon_alpha_tpplatform["disabled"] = function() return C_AddOns.IsAddOnLoaded("HandyNotes_TravelGuide") end
