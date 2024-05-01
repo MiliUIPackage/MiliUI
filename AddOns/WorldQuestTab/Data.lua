@@ -156,6 +156,7 @@ local WQT_DRAGONFLIGHT = {
 	[2025] =  {["x"] = 0.63, ["y"] = 0.50}, -- Thaldraszus
 	[2085] =  {["x"] = 0.66, ["y"] = 0.57}, -- Primalist Future
 	[2133] =  {["x"] = 0.86, ["y"] = 0.83}, -- Zaralek Cavern
+	[2200] =  {["x"] = 0.31, ["y"] = 0.55}, -- Emerald Dream
 }
 local WQT_SHADOWLANDS = {
 	[1543] =  {["x"] = 0.23, ["y"] = 0.13}, -- The Maw
@@ -309,6 +310,7 @@ local ZonesByExpansion = {
 		2025, -- Thaldraszus
 		2085, -- Primalist Future
 		2133, -- Zaralek Cavern
+		2200, -- Emerald Dream
 	}
 	,[LE_EXPANSION_SHADOWLANDS] = {
 		1550, -- The Shadowlands
@@ -561,6 +563,7 @@ _V["SETTING_CATEGORIES"] = {
 	{["id"]="DEBUG", ["label"] = "Debug"}
 	,{["id"]="PROFILES", ["label"] = _L["PROFILES"]}
 	,{["id"]="GENERAL", ["label"] = GENERAL, ["expanded"] = true}
+	,{["id"]="GENERAL_DRAGONFLIGHT", ["parentCategory"] = "GENERAL", ["label"] = EXPANSION_NAME9, ["expanded"] = true}
 	,{["id"]="GENERAL_SHADOWLANDS", ["parentCategory"] = "GENERAL", ["label"] = EXPANSION_NAME8, ["expanded"] = true}
 	,{["id"]="GENERAL_OLDCONTENT", ["parentCategory"] = "GENERAL", ["label"] = _L["PREVIOUS_EXPANSIONS"]}
 	,{["id"]="QUESTLIST", ["label"] = _L["QUEST_LIST"]}
@@ -784,15 +787,21 @@ _V["SETTING_LIST"] = {
 			end
 			,["getValueFunc"] = function() return WQT.settings.list.includeDaily end
 			}
-	
-	,{["template"] = "WQT_SettingCheckboxTemplate", ["categoryID"] = "GENERAL_SHADOWLANDS", ["label"] = _L["CALLINGS_BOARD"], ["tooltip"] = _L["CALLINGS_BOARD_TT"], ["isNew"] = true
+	,{["template"] = "WQT_SettingCheckboxTemplate", ["categoryID"] = "GENERAL_DRAGONFLIGHT", ["label"] = _L["GOLD_PURSES"], ["tooltip"] = _L["GOLD_PURSES_TT"], ["isNew"] = true
+			, ["valueChangedFunc"] = function(value)
+				WQT.settings.general.df_goldPurses = value;
+				WQT_WorldQuestFrame.dataProvider:ReloadQuestRewards();
+			end
+			,["getValueFunc"] = function() return WQT.settings.general.df_goldPurses end
+			}
+	,{["template"] = "WQT_SettingCheckboxTemplate", ["categoryID"] = "GENERAL_SHADOWLANDS", ["label"] = _L["CALLINGS_BOARD"], ["tooltip"] = _L["CALLINGS_BOARD_TT"]
 			, ["valueChangedFunc"] = function(value) 
 				WQT.settings.general.sl_callingsBoard = value;
 				WQT_CallingsBoard:UpdateVisibility();
 			end
 			,["getValueFunc"] = function() return WQT.settings.general.sl_callingsBoard end
 			}
-	,{["template"] = "WQT_SettingCheckboxTemplate", ["categoryID"] = "GENERAL_SHADOWLANDS", ["label"] = _L["GENERIC_ANIMA"], ["tooltip"] = _L["GENERIC_ANIMA_TT"], ["isNew"] = true
+	,{["template"] = "WQT_SettingCheckboxTemplate", ["categoryID"] = "GENERAL_SHADOWLANDS", ["label"] = _L["GENERIC_ANIMA"], ["tooltip"] = _L["GENERIC_ANIMA_TT"]
 			, ["valueChangedFunc"] = function(value) 
 				WQT.settings.general.sl_genericAnimaIcons = value;
 				WQT_WorldQuestFrame.dataProvider:ReloadQuestRewards();
@@ -1039,10 +1048,12 @@ _V["QUESTS_NOT_COUNTING"] = {
 	}
 
 _V["NUMBER_ABBREVIATIONS_ASIAN"] = {
-		{["value"] = 1000000000, ["format"] = _L["NUMBERS_THIRD"]}
+		{["value"] = 10000000000000, ["format"] = _L["NUMBERS_THIRD"]}
+		,{["value"] = 1000000000000, ["format"] = _L["NUMBERS_THIRD"], ["decimal"] = true}
+		,{["value"] = 1000000000, ["format"] = _L["NUMBERS_SECOND"]}
 		,{["value"] = 100000000, ["format"] = _L["NUMBERS_SECOND"], ["decimal"] = true}
 		,{["value"] = 100000, ["format"] = _L["NUMBERS_FIRST"]}
-		,{["value"] = 1000, ["format"] = _L["NUMBERS_FIRST"], ["decimal"] = true}
+		,{["value"] = 10000, ["format"] = _L["NUMBERS_FIRST"], ["decimal"] = true}
 	}
 
 _V["NUMBER_ABBREVIATIONS"] = {
@@ -1260,10 +1271,17 @@ _V["FILTER_FUNCTIONS"] = {
 -- /dump WorldMapFrame:GetMapID()
 -- /dump FlightMapFrame:GetMapID()
 _V["WQT_CONTINENT_GROUPS"] = {
-		[875]	= {876} 
-		,[1011]	= {876}  -- Zandalar flightmap
-		,[876]	= {875}
-		,[1014]	= {875} -- Kul Tiras flightmap
+		[2200] = {1978,2133} -- Emerald Dream 
+		,[2241] = {1978,2133} -- Emerald Dream flightmap
+		,[2133] = {1978,2200} -- Zaralek Cavern 
+		,[2175] = {1978,2200} -- Zaralek Cavern flightmap
+		,[1978] = {2133,2200} -- Dragonflight
+		,[2057] = {2133,2200} -- Dragonflight flightmap
+		,[875]	= {876, 1355} -- Zandalar
+		,[1011]	= {876, 1355} -- Zandalar flightmap
+		,[876]	= {875, 1355} -- Kul Tiras
+		,[1014]	= {875, 1355} -- Kul Tiras flightmap
+		,[1355]	= {875, 876} -- Nazjatar
 		,[1504]	= {875, 876} -- Nazjatar flightmap
 		,[619]	= {905} -- Legion
 		,[905]	= {619} -- Argus
@@ -1271,7 +1289,7 @@ _V["WQT_CONTINENT_GROUPS"] = {
 	}
 
 _V["ZONE_SUBZONES"] = {
-	[2025] = {2112, 2085, 2133}; -- Thaldraszus, Valdrakken, Primalist Future, Zaralek Cavern
+	[2025] = {2112, 2085}; -- Thaldraszus, Valdrakken, Primalist Future
 	[1565] = {1701, 1702, 1703}; -- Ardenweald covenant
 	[1533] = {1707, 1708}; -- Bastion Covenant
 	[1525] = {1699, 1700}; -- Revendreth Covenant
@@ -1279,7 +1297,13 @@ _V["ZONE_SUBZONES"] = {
 }
 
 _V["WQT_ZONE_MAPCOORDS"] = {
-		[2057] = WQT_DRAGONFLIGHT -- Dragonflight flightmap
+		[2241]	= { -- Emerald Dream flightmap
+			[2200] = {["x"] = 0, ["y"] = 0} -- Emerald Dream
+		}
+		,[2175]	= { -- Zaralek Cavern flightmap
+			[2133] = {["x"] = 0, ["y"] = 0} -- Zaralek Cavern
+		}
+		,[2057] = WQT_DRAGONFLIGHT -- Dragonflight flightmap
 		,[1978] = WQT_DRAGONFLIGHT -- Dragonflight
 		,[1647] = WQT_SHADOWLANDS -- Shadowlands flightmap
 		,[1550]	= WQT_SHADOWLANDS -- Shadowlands
@@ -1321,7 +1345,7 @@ _V["WQT_ZONE_MAPCOORDS"] = {
 		}
 	}
 
-_V["WQT_NO_FACTION_DATA"] = { ["expansion"] = 0 ,["playerFaction"] = nil ,["texture"] = 134400, ["name"]=_L["NO_FACTION"] } -- No faction
+_V["WQT_NO_FACTION_DATA"] = { ["expansion"] = 0 ,["playerFaction"] = nil ,["texture"] = 1103069, ["name"]=_L["NO_FACTION"] } -- No faction
 _V["WQT_FACTION_DATA"] = {
 	[67] = 		{ ["expansion"] = LE_EXPANSION_CLASSIC ,["playerFaction"] = nil ,["texture"] = 2203914 } -- Horde
 	,[469] = 	{ ["expansion"] = LE_EXPANSION_CLASSIC ,["playerFaction"] = nil ,["texture"] = 2203912 } -- Alliance
@@ -1380,6 +1404,9 @@ _V["WQT_FACTION_DATA"] = {
 	,[2524] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 4528812 } -- Obsidian Warders
 	,[2526] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 4901295 } -- Winterpelt Furbolg
 	,[2564] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 5140835 } -- Loamm Niffen
+	,[2553] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 609811 } -- Soridormi
+	,[2574] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 5244643 } -- Dream Wardens
+	,[2615] =	{ ["expansion"] = LE_EXPANSION_DRAGONFLIGHT,["playerFaction"] = nil ,["texture"] = 5315246 } -- Azerothian Archives	
 }
 -- Add localized faction names
 for k, v in pairs(_V["WQT_FACTION_DATA"]) do
@@ -1444,7 +1471,7 @@ _V["WQT_DEFAULTS"] = {
 			bountyReward = false;
 			bountySelectedOnly = true;
 			showDisliked = true;
-			
+			df_goldPurses = false;
 			sl_callingsBoard = true;
 			sl_genericAnimaIcons = false;
 			
@@ -1517,7 +1544,39 @@ end
 
 -- This is just easier to maintain than changing the entire string every time
 _V["PATCH_NOTES"] = {
+		{["version"] = "10.2.5.0",
+			["intro"] = { "Update for 10.2.5." },
+			["new"] ={
+				"Added new Dragonflight factions.",
+			},
+		},
+		{["version"] = "10.2.0.0",
+			["intro"] = { "Update for 10.2.0." },
+			["new"] ={
+				"Added new Dragonflight zones and factions.",
+			},
+			["fixes"] = {
+				"Updated embedded libraries.",
+				"Minor fixes.",
+			},
+		},
+		{["version"] = "10.1.7.0",
+			["intro"] = { "Update for 10.1.7." },
+			["new"] ={
+				"Added option to treat Dragonflight dragon racer's purse rewards as gold.",
+			},
+		},
+		{["version"] = "10.1.5.0",
+			["intro"] = { "Update for 10.1.5." },
+			["changes"] = {
+				"Added experimental zhCN translation.",
+			},
+			["fixes"] = {
+				"Updated embedded libraries.",
+			},
+		},
 		{["version"] = "10.1.0.0",
+			["intro"] = { "Update for 10.1.0 content." },
 			["new"] ={
 				"Added new Dragonflight zones and factions.",
 			},
@@ -1528,8 +1587,6 @@ _V["PATCH_NOTES"] = {
 				"Moved full screen button default position.",
 			},
 		},
-		
-		
 		{["version"] = "10.0.7.1",
 			["fixes"] = {
 				[[Fixed "Vol'dun" bug.]],
