@@ -514,6 +514,9 @@ local frames = {
 	["ProfessionsCustomerOrdersFrame"] = {
 		DriftDisabledBy = "windowsDisabled",
 	},
+	["GuideFrame"] = {
+		DriftDisabledBy = "windowsDisabled",
+	},
 }
 
 -- Frame for handling events
