@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2488, "DBM-Party-Dragonflight", 7, 1202)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426175442")
+mod:SetRevision("20240504141048")
 mod:SetCreatureID(188252)
 mod:SetEncounterID(2609)
 mod:SetHotfixNoticeRev(20221126000000)
@@ -132,7 +132,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		specWarnFrostOverload:Play("kickcast")
 	elseif spellId == 373680 then--Frost Overload
 		--True, at least in M+
-		timerHailbombsCD:Start(4.8)
+		timerHailbombsCD:Start(4.1)
 		timerChillstormCD:Start(13.3)
 	end
 end

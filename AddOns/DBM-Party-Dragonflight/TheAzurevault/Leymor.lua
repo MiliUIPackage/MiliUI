@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2492, "DBM-Party-Dragonflight", 6, 1203)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240428124541")
+mod:SetRevision("20240507051555")
 mod:SetCreatureID(186644)
 mod:SetEncounterID(2582)
 mod:SetUsedIcons(1, 2, 3)
@@ -37,11 +37,11 @@ local specWarnEruptingFissure					= mod:NewSpecialWarningDodgeCount(386660, nil,
 local yellEruptingFissure						= mod:NewYell(386660)
 local specWarnInfusedStrike						= mod:NewSpecialWarningDefensive(374789, nil, nil, nil, 1, 2)
 
-local timerLeylineSproutsCD						= mod:NewCDCountTimer(48.1, 374364, nil, nil, nil, 3)
-local timerExplosiveEruptionCD					= mod:NewCDCountTimer(48.5, 374567, nil, nil, nil, 3)
-local timerConsumingStompCD						= mod:NewCDCountTimer(48.5, 374720, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerEruptingFissureCD					= mod:NewCDCountTimer(48.5, 386660, nil, nil, nil, 3)
-local timerInfusedStrikeCD						= mod:NewCDCountTimer(48.5, 374789, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
+local timerLeylineSproutsCD						= mod:NewCDCountTimer(47.4, 374364, nil, nil, nil, 3)
+local timerExplosiveEruptionCD					= mod:NewCDCountTimer(47.4, 374567, nil, nil, nil, 3)
+local timerConsumingStompCD						= mod:NewCDCountTimer(47.4, 374720, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerEruptingFissureCD					= mod:NewCDCountTimer(47.4, 386660, nil, nil, nil, 3)
+local timerInfusedStrikeCD						= mod:NewCDCountTimer(47.4, 374789, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
 mod:AddSetIconOption("SetIconOnExplosiveEruption", 374567, true, 0, {1, 2, 3})
 

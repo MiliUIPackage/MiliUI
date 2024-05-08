@@ -192,6 +192,10 @@ function bossModPrototype:UnregisterOnUpdateHandler()
 	table.wipe(private.updateFunctions)
 end
 
+---Set the stage number.
+---<br>Use 0 to auto increment by 1
+---<br>Use 0.5 to auto increment by 0.5
+---@param stage number
 function bossModPrototype:SetStage(stage)
 	if stage == 0 then--Increment request instead of hard value
 		if not self.vb.phase then return end--Person DCed mid fight and somehow managed to perfectly time running SetStage with a value of 0 before getting variable recovery
@@ -213,11 +217,11 @@ function bossModPrototype:SetStage(stage)
 	end
 end
 
---If args are passed, returns true or false
---If no args given, just returns current stage and stage total
---stage: stage value to checkf or true/false rules
---checkType: 0 or nil for just current stage match, 1 for less than check, 2 for greater than check, 3 not equal check
---useTotal: uses stage total instead of current
+---If args are passed, returns true or false for specific Stage
+---<br>If no args given, just returns current stage and stage total
+---@param stage number? stage value to checkf or true/false rules
+---@param checkType number? 0 or nil for just current stage match, 1 for less than check, 2 for greater than check, 3 not equal check
+---@param useTotal boolean? uses stage total instead of current
 function bossModPrototype:GetStage(stage, checkType, useTotal)
 	local currentStage, currentTotal = self.vb.phase or 0, self.vb.stageTotality or 0
 	if stage then
@@ -257,8 +261,14 @@ function bossModPrototype:RegisterEventsInCombat(...)
 	end
 end
 
+---Used to filter casts from non combat units
+---@param sourceGUID string
+---@param customunitID string? if provided, makes check require GUID match this unitID (such as "target")
+---@param loose boolean? In a loose check, this just checks if we're in combat and alone. Designed for solo runs like torghast or delves
+---@param allowFriendly boolean?
+---@return boolean
 function bossModPrototype:IsValidWarning(sourceGUID, customunitID, loose, allowFriendly)
-	if loose and InCombatLockdown() and GetNumGroupMembers() < 2 then return true end--In a loose check, this basically just checks if we're in combat, important for solo runs of torghast to not gimp mod too much
+	if loose and InCombatLockdown() and GetNumGroupMembers() < 2 then return true end
 	if customunitID then
 		if UnitExists(customunitID) and UnitGUID(customunitID) == sourceGUID and UnitAffectingCombat(customunitID) and (allowFriendly or not UnitIsFriend("player", customunitID)) then return true end
 	else
@@ -311,6 +321,8 @@ do
 	local bossCache = {}
 	local lastTank
 
+	---Returns current name and unitID of person tanking requested target if possible, false otherwise
+	---@param cidOrGuid number|string
 	function bossModPrototype:GetCurrentTank(cidOrGuid)
 		if lastTank and GetTime() - (bossCache[cidOrGuid] or 0) < 2 then -- return last tank within 2 seconds of call
 			return lastTank
@@ -351,6 +363,13 @@ do
 	local rangeUpdated = {}
 	local IsItemInRange = C_Item and C_Item.IsItemInRange or IsItemInRange
 
+	---Used when we want to alert or filter based on proximity to the casting boss
+	---@param cidOrGuid number|string
+	---@param onlyBoss boolean? Used when you only need to check "boss" unitids
+	---@param itemId number? Used to define which item (range) is used. 32698 (48) is used if empty
+	---@param distance number? Used for tank distance fallback if item api is restricted
+	---@param defaultReturn boolean? Fallback return if all checks fail (whether a failure returns true or false)
+	---@return boolean
 	function bossModPrototype:CheckBossDistance(cidOrGuid, onlyBoss, itemId, distance, defaultReturn)
 		if not DBM.Options.DontShowFarWarnings then return true end--Global disable.
 		cidOrGuid = cidOrGuid or self.creatureId
@@ -380,7 +399,11 @@ do
 		return (defaultReturn == nil) or defaultReturn--When we simply can't figure anything out, return true and allow warnings using this filter to fire
 	end
 
-	--This is still restricted because it uses friendly api, which isn't available to us in combat
+	---This is still restricted because it uses friendly api, which isn't available to us in combat
+	---@param cidOrGuid number|string
+	---@param onlyBoss boolean? Used when you only need to check "boss" unitids
+	---@param defaultReturn boolean? Fallback return if all checks fail (whether a failure returns true or false)
+	---@return boolean
 	function bossModPrototype:CheckTankDistance(cidOrGuid, _, onlyBoss, defaultReturn)--distance
 		if not DBM.Options.DontShowFarWarnings then return true end--Global disable.
 		--distance = distance or 43--Basically unused
@@ -450,9 +473,11 @@ do
 --		[202137] = true,--Demon Hunter Sigil of Silence (Not uncommented because CheckInterruptFilter doesn't properly handle dual interrupts for single class yet)
 		[351338] = true,--Evoker Quell
 	}
-	--checkOnlyTandF param is used when CheckInterruptFilter is actually being used for a simpe target/focus check and nothing more.
-	--checkCooldown should always be passed true except for special rotations like count warnings when you should be alerted it's your turn even if you dropped ball and put it on CD at wrong time
-	--ignoreTandF is passed usually when interrupt is on a main boss or event that is global to entire raid and should always be alerted regardless of targetting.
+	---@param sourceGUID string
+	---@param checkOnlyTandF boolean? is used when CheckInterruptFilter is actually being used for a simpe target/focus check and nothing more.
+	---@param checkCooldown boolean? should always be passed true except for special rotations like count warnings when you should be alerted it's your turn even if you dropped ball and put it on CD at wrong time
+	---@param ignoreTandF boolean? is usually used when interrupt is on a main boss or event that is global to entire raid and should always be alerted regardless of targetting.
+	---@return boolean
 	function bossModPrototype:CheckInterruptFilter(sourceGUID, checkOnlyTandF, checkCooldown, ignoreTandF)
 		--Check healer spec filter
 		if self:IsHealer() and (self.isTrashMod and DBM.Options.FilterTInterruptHealer or not self.isTrashMod and DBM.Options.FilterBInterruptHealer) then
@@ -562,6 +587,7 @@ do
 		},
 	}
 	local lastCheck, lastReturn = 0, true
+	---Smart alert filtering based on cooldown check for dispel type
 	---@param dispelType DispelType
 	function bossModPrototype:CheckDispelFilter(dispelType)
 		if not DBM.Options.FilterDispel then return true end
@@ -670,6 +696,7 @@ do
 		},
 	}
 	local lastCheck, lastReturn = 0, true
+	---Smart alert filtering based on cooldown check for cc type
 	---@param ccType CCType
 	function bossModPrototype:CheckCCFilter(ccType)
 		if not DBM.Options.FilterCrowdControl then return true end
@@ -695,7 +722,12 @@ do
 	end
 end
 
-
+---Automatic parsing of allTimers tables in boss mods
+---@param table table the table name that contains all the data
+---@param difficultyName string|boolean string for difficulty name, false otherwise
+---@param phase number|boolean number for phase number, false otherwise
+---@param spellId number
+---@param count number|boolean? cast count if count object, false/nil otherwise
 function bossModPrototype:GetFromTimersTable(table, difficultyName, phase, spellId, count)
 	local prev = table
 
@@ -730,14 +762,14 @@ end
 
 
 --Function to actually register specific media to specific auras
---auraspellId: Private aura spellId
---voice: voice pack media path
---voiceVersion: Required voice pack verion (if not met, falls back to airhorn
----@param voice VPSound
+---@param auraspellId number ID of Private aura we're actually monitoring (if it doesn't match option key, put option key in altOptionId)
+---@param voice VPSound|any voice pack media path
+---@param voiceVersion number Required voice pack verion (if not met, falls back to default special warning sounds)
+---@param altOptionId number? Used if auraspellId doesn't match option key (usually happens when registering multiple ids for a single spell)
 function bossModPrototype:EnablePrivateAuraSound(auraspellId, voice, voiceVersion, altOptionId)
 	if DBM.Options.DontPlayPrivateAuraSound then return end
 	local optionId = altOptionId or auraspellId
-	if self.Options["PrivateAuraSound" .. optionId] then
+	if optionId and self.Options["PrivateAuraSound" .. optionId] then
 		if not self.paSounds then self.paSounds = {} end
 		local soundId = self.Options["PrivateAuraSound" .. optionId .. "SWSound"] or DBM.Options.SpecialWarningSound--Shouldn't be nil value, but just in case options fail to load, fallback to default SW1 sound
 		local mediaPath
@@ -771,6 +803,8 @@ function bossModPrototype:EnablePrivateAuraSound(auraspellId, voice, voiceVersio
 			self.paSounds[#self.paSounds + 1] = C_UnitAuras.AddPrivateAuraAppliedSound({
 				spellID = auraspellId,
 				unitToken = "player",
+				--Another cause of LuaLS being stupid for some reason
+				---@diagnostic disable-next-line: assign-type-mismatch
 				soundFileName = mediaPath,
 				outputChannel = "master",
 			})

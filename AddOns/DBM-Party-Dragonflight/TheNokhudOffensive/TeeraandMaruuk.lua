@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2478, "DBM-Party-Dragonflight", 3, 1198)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426062327")
+mod:SetRevision("20240503080608")
 mod:SetCreatureID(186339, 186338)
 mod:SetEncounterID(2581)
 mod:SetBossHPInfoToHighest()
@@ -146,11 +146,12 @@ function mod:SPELL_CAST_START(args)
 		self.vb.leapCount = self.vb.leapCount + 1
 		warnSpiritLeap:Show()
 		local timer
-		--Spirit Leap: 6.0, 24.0, 13.5, 19.9, 24.0, 13.5, 20.0, 23.9, 13.5
+		--Spirit Leap: 6.0, 24.0, 13.5, 19.9, 24.0, 13.5, 20.0, 23.9, 13.5 (Season 1)
+		--			   6.0, 24.0, 13.5, 21.1, 22.9, 13.5, 21.1 (Season 4)
 		if self.vb.leapCount % 3 == 0 then--3, 6, 9, etc
-			timer = 19.9
+			timer = 19.9--Change to 21.1?
 		elseif self.vb.leapCount % 3 == 1 then--1, 4, 7, etc
-			timer = 23.9
+			timer = 22.9
 		else--2, 5, 8, etc
 			timer = 13
 		end

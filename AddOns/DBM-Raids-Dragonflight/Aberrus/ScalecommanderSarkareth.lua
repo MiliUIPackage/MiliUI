@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2520, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426174649")
+mod:SetRevision("20240502024538")
 mod:SetCreatureID(201754)
 mod:SetEncounterID(2685)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -250,7 +250,7 @@ local allTimers = {
 			--Void Slash
 			[408422] = {21, 36.2, 37.5, 85.0, 11.2, 61.3},
 			--Scouring Eternity
-			[403625] = {46.2, 77.7, 80.2, 77.9},
+			[403625] = {46.2, 76.5, 80.2, 77.9},
 			--Embrace of Nothingness
 			[403517] = {24.7, 111.2, 50.0},
 		},

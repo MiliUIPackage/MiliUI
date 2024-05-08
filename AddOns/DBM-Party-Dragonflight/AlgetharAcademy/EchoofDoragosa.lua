@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2514, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426175442")
+mod:SetRevision("20240501102915")
 mod:SetCreatureID(190609)
 mod:SetEncounterID(2565)
 mod:SetHotfixNoticeRev(20221015000000)
@@ -100,7 +100,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		warnEnergyBomb:CombinedShow(0.3, args.destName)
 		if args:IsPlayer() then
 			specWarnEnergyBomb:Show()
-			if playerDebuffCount == 2 then--Will spawn rift when it expires, runout
+			if playerDebuffCount == 3 then--Will spawn rift when it expires, runout
 				specWarnEnergyBomb:Play("runout")
 			else
 				specWarnEnergyBomb:Play("scatter")

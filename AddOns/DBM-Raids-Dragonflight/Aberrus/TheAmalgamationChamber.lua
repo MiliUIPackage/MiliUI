@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2529, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240108030833")
+mod:SetRevision("20240503055811")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -334,7 +334,7 @@ function mod:OnCombatStart(delay)
 		timerMoltenEruptionCD:Start(16.7-delay, 1)
 		timerFieryMeteorCD:Start(35.2-delay, 1)
 	else--Normal and LFR confirmed
-		timerFlameSlashCD:Start(9.3-delay, 1)
+		timerFlameSlashCD:Start(7-delay, 1)
 		timerSwirlingFlameCD:Start(10.5-delay, 1)
 		--timerMoltenEruptionCD:Start(23-delay, 1)
 		timerFieryMeteorCD:Start(35.2-delay, 1)

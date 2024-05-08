@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2490, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240412075414")
+mod:SetRevision("20240501102915")
 mod:SetCreatureID(189340)
 mod:SetEncounterID(2613)
 mod:SetHotfixNoticeRev(20230703000000)
@@ -135,7 +135,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		timerFetter:Stop(args.destName)
 		--Fetter on other hand does seem to hard reset things, to an extent
 		if not self.vb.focusInProgress then
-			timerMagmaWaveCD:Start(9, self.vb.magmawaveCount+1)
+			timerMagmaWaveCD:Start(8.7, self.vb.magmawaveCount+1)
 			timerDragonStrikeCD:Start(15.1, self.vb.dragonCount+1)
 			timerGroundingSpearCD:Start(27.2)
 			timerFieryFocusCD:Start(30.9, self.vb.focusCount+1)
