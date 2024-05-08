@@ -1,4 +1,4 @@
-## Interface: 100206
+## Interface: 100207
 ## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer

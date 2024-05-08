@@ -6,7 +6,7 @@
 ## Notes-zhTW: Bagnon Void Storage|n功能強大的整合背包。
 
 ## Dependencies: Bagnon
-## Interface: 100206
+## Interface: 100207
 ## LoadOnDemand: 1
 
 ..\BagBrother\frames\vault\vault.xml

@@ -1,4 +1,4 @@
-## Interface: 100206
+## Interface: 100207
 ## Title: EquipSee
 ## Title-zhTW: |cFF2DA267[物品]|r 裝備管理員名稱顯示
 ## Notes-zhTW: EquipSee|n在背包中顯示裝備管理員列表定義的名稱。

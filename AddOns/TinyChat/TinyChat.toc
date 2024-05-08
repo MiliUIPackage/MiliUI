@@ -1,4 +1,4 @@
-## Interface: 100206
+## Interface: 100207
 ## IconTexture: 982414
 ## Title: TinyChat
 ## Notes: TinyChat
