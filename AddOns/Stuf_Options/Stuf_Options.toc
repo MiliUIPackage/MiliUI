@@ -1,4 +1,4 @@
-## Interface: 100206
+## Interface: 100207
 ## Title: Stuf_Options
 ## Author: TotalPackage
 ## Notes: Configuration Menu for Stuf.
@@ -10,6 +10,8 @@
 ## OptionalDeps: Ace3, AceGUI-3.0-SharedMediaWidgets, Stuf_OptionsLocale
 ## LoadOnDemand: 1
 
+## X-Category-zhTW: 介面
+## IconTexture: Interface\Icons\inv_pet_riverotter_red
 
 embeds.xml
 Stuf_OptionsLocale.lua

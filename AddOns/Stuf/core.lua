@@ -655,7 +655,8 @@ function Stuf:UpdateTextLook(t, font, afont, fontsize, fontflag, hj, vj, tc, sx,
 	t:SetFont(afont or Stuf:GetMedia("font", font), fontsize or 12, fontflag ~= "None" and fontflag or "")
 	t:SetJustifyH(hj or "CENTER")
 	if vj ~= "none" then
-		t:SetJustifyV(vj or "CENTER")
+		if vj == "CENTER" then vj = "MIDDLE" end -- 10.2.7 fix											  
+		t:SetJustifyV(vj or "MIDDLE")
 	end
 	if tc then
 		t:SetTextColor(tc.r, tc.g, tc.b, tc.a)

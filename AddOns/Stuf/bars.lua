@@ -665,7 +665,7 @@ do  -- Threat Bar --------------------------------------------------------------
 			f.text = f:CreateFontString(nil, "OVERLAY")
 			f.text:SetAllPoints(f)
 			f.text:SetJustifyH("CENTER")
-			f.text:SetJustifyV("CENTER")
+			f.text:SetJustifyV("MIDDLE")
 
 			ThreatOnUpdate = ThreatOnUpdate or function(this, a1)
 				local dir = this.dir or 1
@@ -917,13 +917,13 @@ if CLS == "SHAMAN" or CLS == "DRUID" or CLS == "DEATHKNIGHT" or CLS == "PALADIN"
 				if reverse then
 					b.icon:SetPoint("LEFT", b, "RIGHT")
 					b.time:SetJustifyH("LEFT")
-					b.time:SetJustifyV("CENTER")
+					b.time:SetJustifyV("MIDDLE")
 					b.click:SetPoint("TOPLEFT", b, "TOPLEFT")
 					b.click:SetPoint("BOTTOMRIGHT", b.icon, "BOTTOMRIGHT")
 				else
 					b.icon:SetPoint("RIGHT", b, "LEFT")
 					b.time:SetJustifyH("RIGHT")
-					b.time:SetJustifyV("CENTER")
+					b.time:SetJustifyV("MIDDLE")
 					b.click:SetPoint("TOPLEFT", b.icon, "TOPLEFT")
 					b.click:SetPoint("BOTTOMRIGHT", b, "BOTTOMRIGHT")
 				end
