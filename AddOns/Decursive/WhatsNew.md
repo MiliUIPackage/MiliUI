@@ -1,5 +1,24 @@
-Decursive 2.7.16
+Decursive 2.7.18
 ================
+
+Decursive 2.7.17 (2024-03-21)
+-----------------------------
+
+- Cataclysm compatibility update.
+ There might be some other necessary fixes, update [issue #23](https://github.com/2072/Decursive/issues/23)
+ on GitHub if you find anything.
+
+- Fix expired version false alert in Retail.
+
+- Update TOC for classic.
+
+
+Decursive 2.7.17 (2024-03-21)
+-----------------------------
+
+- Fix spell detection for 10.2.6.
+  Thanks to Jardragon901 and Meivyn for their help in fixing this!
+
 
 Decursive 2.7.16 (2024-02-19)
 -----------------------------

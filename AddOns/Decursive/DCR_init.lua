@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.16) add-on for World of Warcraft UI
+    Decursive (v 2.7.18) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-02-19T03:51:57Z
+    This file was last updated on 2024-05-02T00:30:00Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -74,7 +74,7 @@ local function RegisterDecursive_Once() -- {{{
     --@end-debug@]==]
 
     D.name = "Decursive";
-    D.version = "2.7.16";
+    D.version = "2.7.18";
     D.author = "John Wellesz";
 
     D.DcrFullyInitialized = false;
@@ -99,7 +99,7 @@ end -- }}}
 
 local function SetBasicConstants_Once() -- these are constants that may be used at parsing time in other .lua and .xml {{{
 
-    BINDING_HEADER_DECURSIVE = D.L["Decursive"];
+    BINDING_HEADER_DECURSIVE = "Decursive";
 
     local DC = T._C;
 
@@ -497,9 +497,18 @@ local function SetRuntimeConstants_Once () -- {{{
         DC.SpellsToUse = {
             -- Mage
             [DSI["SPELL_REMOVE_CURSE_DRUID"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=475/remove-lesser-curse
-                Types = {DC.CURSE},
+                Types = not DC.WOTLK and {DC.CURSE} or {DC.CURSE, DC.POISON},
                 Better = 0,
                 Pet = false,
+
+                EnhancedBy = DC.WOTLK and DS["TALENT_NATURES_CURE"] ~= nil,
+                EnhancedByCheck = function ()
+                    local talentName, _, _, _, isAvailable = GetTalentInfo(2,6)
+                    return talentName == DS["TALENT_NATURES_CURE"] and isAvailable ~= 0
+                end,
+                Enhancements = {
+                    Types = {DC.CURSE, DC.POISON, DC.MAGIC},
+                }
             },
             -- Druid
             [DSI["SPELL_REMOVE_CURSE_MAGE"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=2782/remove-curse
@@ -515,9 +524,18 @@ local function SetRuntimeConstants_Once () -- {{{
             },
             -- Paladin
             [DSI["SPELL_CLEANSE"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=4987/cleanse
-                Types = {DC.MAGIC, DC.DISEASE, DC.POISON},
+                Types =  not DC.WOTLK and {DC.MAGIC, DC.DISEASE, DC.POISON} or {DC.DISEASE, DC.POISON},
                 Better = 2,
                 Pet = false,
+                -- XXX
+                EnhancedBy = DC.WOTLK and DS["TALENT_SACRED_CLEANSING"] ~= nil,
+                EnhancedByCheck = function ()
+                    local talentName, _, _, _, isAvailable = GetTalentInfo(1,7)
+                    return talentName == DS["TALENT_SACRED_CLEANSING"] and isAvailable ~= 0
+                end,
+                Enhancements = {
+                    Types = {DC.MAGIC, DC.DISEASE, DC.POISON},
+                }
             },
             -- Warlock
             [DSI["SPELL_FEAR"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=5782/fear
@@ -544,26 +562,33 @@ local function SetRuntimeConstants_Once () -- {{{
                 Pet = false,
             },
             -- Priests (rank 1 is no longer detected once rank 2 is learned apprently)
-            [DSI["SPELL_DISPELL_MAGIC_PRIEST_R2"]] = { -- WOW CLASSIC  https://www.wowhead.com/wotlk/spell=988/dispel-magic
+            [not DC.WOTLK and DSI["SPELL_DISPELL_MAGIC_PRIEST_R2"] or false] = { -- WOW CLASSIC  https://www.wowhead.com/wotlk/spell=988/dispel-magic
                 Types = {DC.MAGIC, DC.ENEMYMAGIC},
                 Better = 1,
                 Pet = false,
             },
             -- Paladin
-            [DSI["SPELL_PURIFY"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=1152/purify
+            [not DC.WOTLK and DSI["SPELL_PURIFY"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=1152/purify
                 Types = {DC.POISON, DC.DISEASE},
                 Better = 1,
                 Pet = false,
             },
             -- Priest
-            [DSI["SPELL_ABOLISH_DISEASE"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=552/abolish-disease
+            [not DC.WOTLK and DSI["SPELL_ABOLISH_DISEASE"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=552/abolish-disease
                 Types = {DC.DISEASE},
                 Better = 2,
                 Pet = false,
 
+
+            },
+            -- Priest
+            [DSI["SPELL_CURE_DISEASE_PRIEST"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=528/cure-disease
+                Types = {DC.DISEASE},
+                Better = 0,
+                Pet = false,
                 EnhancedBy = DC.WOTLK and DS["TALENT_BODY_AND_SOUL"] ~= nil,
                 EnhancedByCheck = function ()
-                    local talentName, _, _, _, isAvailable = GetTalentInfo(2,27)
+                    local talentName, _, _, _, isAvailable = GetTalentInfo(2,6)
                     return talentName == DS["TALENT_BODY_AND_SOUL"] and isAvailable ~= 0
                 end,
                 Enhancements = {
@@ -574,12 +599,6 @@ local function SetRuntimeConstants_Once () -- {{{
                 }
             },
             -- Priest
-            [DSI["SPELL_CURE_DISEASE_PRIEST"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=528/cure-disease
-                Types = {DC.DISEASE},
-                Better = 0,
-                Pet = false,
-            },
-            -- Priest
             [not DC.WOTLK and DSI["SPELL_CURE_DISEASE_SHAMAN"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=2870/cure-disease
                 Types = {DC.DISEASE},
                 Better = 0,
@@ -587,9 +606,16 @@ local function SetRuntimeConstants_Once () -- {{{
             },
             -- Shaman
             [DC.WOTLK and DSI["CLEANSE_SPIRIT"] or false] = {
-                Types = {DC.CURSE, DC.DISEASE, DC.POISON},
+                Types = {DC.CURSE},
                 Better = 2,
                 Pet = false,
+                EnhancedBy = DS["TALENT_IMPROVED_CLEANSE_SPIRIT"] ~= nil,
+                EnhancedByCheck = function ()
+                    return (select(5, GetTalentInfo(3,14))) > 0;
+                end,
+                Enhancements = {
+                    Types = {DC.MAGIC, DC.CURSE},
+                }
             },
             -- HUNTERS http://www.wowhead.com/?spell=19801
             [DC.WOTLK and DSI["SPELL_TRANQUILIZING_SHOT"] or false]    = {
@@ -604,19 +630,19 @@ local function SetRuntimeConstants_Once () -- {{{
                 Pet = false,
             },
             -- Druid
-            [DSI["SPELL_ABOLISH_POISON"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=2893/abolish-poison
+            [not DC.WOTLK and DSI["SPELL_ABOLISH_POISON"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=2893/abolish-poison
                 Types = {DC.POISON},
                 Better = 2,
                 Pet = false,
             },
             -- Shaman
-            [DSI["SPELL_CURE_POISON_SHAMAN"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=526/cure-poison
+            [not DC.WOTLK and DSI["SPELL_CURE_POISON_SHAMAN"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=526/cure-poison
                 Types = DC.WOTLK and {DC.POISON, DC.DISEASE} or {DC.POISON},
                 Better = 0,
                 Pet = false,
             },
             -- Druid
-            [DSI["SPELL_CURE_POISON_DRUID"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=8946/cure-poison
+            [not DC.WOTLK and DSI["SPELL_CURE_POISON_DRUID"] or false] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=8946/cure-poison
                 Types = {DC.POISON},
                 Better = 0,
                 Pet = false,
@@ -660,12 +686,12 @@ local function InitVariables_Once() -- {{{
     -- A table UnitID=>IsDebuffed (boolean)
     D.UnitDebuffed = {};
 
-    D.Revision = "d4690df"; -- not used here but some other add-on may request it from outside
-    D.date = "2024-02-19T03:53:25Z";
-    D.version = "2.7.16";
+    D.Revision = "e93ba2f"; -- not used here but some other add-on may request it from outside
+    D.date = "2024-05-02T00:50:38Z";
+    D.version = "2.7.18";
 
     if D.date ~= "@project".."-date-iso@" then
-        -- 1708314805 doesn't work
+        -- 1714611038 doesn't work
 
         --local example =  "2008-05-01T12:34:56Z";
 
@@ -711,10 +737,14 @@ end
 function D:VersionWarnings(forceDisplay) -- {{{
 
     local alpha = false;
+    local debug = false;
     local fromCheckOut = false;
     --[=[@alpha@
     alpha = true;
     --@end-alpha@]=]
+    --[==[@debug@
+    debug = true;
+    --@end-debug@]==]
 
 
     -- test if WoW's TOC version is superior to Decursive's, wait 40 days and warn the users that this version has expired
@@ -725,13 +755,13 @@ function D:VersionWarnings(forceDisplay) -- {{{
         if not self.db.global.TocExpiredDetection then
             self.db.global.TocExpiredDetection = time();
 
-        elseif time() - self.db.global.TocExpiredDetection > 3600 * 24 * 40 then -- if more than 40 days elapsed since the detection
+        elseif time() - self.db.global.TocExpiredDetection > 3600 * 24 * 40 or debug then -- if more than 40 days elapsed since the detection
 
             DC.DevVersionExpired = true; -- disable error reports
 
-            if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
+            if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay or debug then
 
-                T._ShowNotice ("|cff00ff00Decursive version: 2.7.16|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
+                T._ShowNotice ("|cff00ff00Decursive version: 2.7.18|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
 
                 self.db.global.LastExpirationAlert = time();
             end
@@ -740,7 +770,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         self.db.global.TocExpiredDetection = false;
     end
 
-    if (("2.7.16"):lower()):find("beta") or ("2.7.16"):find("RC") or ("2.7.16"):find("Candidate") or alpha then
+    if (("2.7.18"):lower()):find("beta") or ("2.7.18"):find("RC") or ("2.7.18"):find("Candidate") or alpha then
 
         D.RunningADevVersion = true;
 
@@ -753,7 +783,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
                 DC.DevVersionExpired = true;
                 -- Display the expiration notice only once evry 48 hours
                 if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
-                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.16|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
+                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.18|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
 
                     self.db.global.LastExpirationAlert = time();
                 end
@@ -764,16 +794,16 @@ function D:VersionWarnings(forceDisplay) -- {{{
         end
 
         -- display a warning if this is a developpment version (avoid insults from people who don't know what they're doing)
-        if self.db.global.NonRelease ~= "2.7.16" then
-            self.db.global.NonRelease = "2.7.16";
-            T._ShowNotice ("|cff00ff00Decursive version: 2.7.16|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
+        if self.db.global.NonRelease ~= "2.7.18" then
+            self.db.global.NonRelease = "2.7.18";
+            T._ShowNotice ("|cff00ff00Decursive version: 2.7.18|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
         end
     end
 
     --[==[@debug@
     fromCheckOut = true;
     if time() - self.db.global.LastUnpackagedAlert > 24 * 3600  then
-        T._ShowNotice ("|cff00ff00Decursive version: 2.7.16|r\n\n" .. "|cFFFFAA66" ..
+        T._ShowNotice ("|cff00ff00Decursive version: 2.7.18|r\n\n" .. "|cFFFFAA66" ..
         [[
         |cFFFF0000You're using an unpackaged version of Decursive.|r
         Decursive is not meant to be used this way.
@@ -811,7 +841,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         if D.db.global.NewerVersionDetected > D.VersionTimeStamp and D.db.global.NewerVersionName ~= D.version then -- it's still newer than this one
             if time() - D.db.global.NewerVersionAlert > 3600 * 24 * 4 then -- it's been more than 4 days since the new version alert was shown
                 if not D.db.global.NewVersionsBugMeNot then -- the user did not disable new version alerts
-                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.16|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
+                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.18|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
                     D.db.global.NewerVersionAlert = time();
                 end
             end
@@ -950,7 +980,7 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
 
     D.eventFrame:RegisterEvent("GROUP_ROSTER_UPDATE");
 
-    if not DC.WOWC then
+    if not DC.WOWC or DC.WOTLK then
         D.eventFrame:RegisterEvent("PLAYER_FOCUS_CHANGED");
     end
 
@@ -973,10 +1003,10 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     -- Configure specific profile dependent data
     D:SetConfiguration();
 
-    -- if FirstEnable and not D.db.global.NoStartMessages then
-    --    D:ColorPrint(0.3, 0.5, 1, L["IS_HERE_MSG"]);
+    if FirstEnable and not D.db.global.NoStartMessages then
+        D:ColorPrint(0.3, 0.5, 1, L["IS_HERE_MSG"]);
         -- D:ColorPrint(0.3, 0.5, 1, L["SHOW_MSG"]);
-    -- end
+    end
 
     FirstEnable = false;
 
@@ -1248,9 +1278,9 @@ function D:Init() --{{{
         D.profile.OutputWindow =  "DEFAULT_CHAT_FRAME";
     end
 
-    -- if not D.db.global.NoStartMessages then
-    --    D:Println("%s %s by %s", D.name, D.version, D.author);
-    -- end
+    if not D.db.global.NoStartMessages then
+        D:Println("%s %s by %s", D.name, D.version, D.author);
+    end
 
     D:Debug( "Decursive Initialization started!");
 
@@ -1513,7 +1543,7 @@ function D:Configure() --{{{
                     --@end-alpha@]=]
 
                     -- Workaround to the fact that function are not serialized upon storage to the DB
-                    if not spell.EnhancedByCheck and D.classprofile.UserSpells[spellID] then
+                    if not spell.EnhancedByCheck and D.classprofile.UserSpells[spellID] and DC.SpellsToUse[spellID] then -- XXX
                         spell.EnhancedByCheck = DC.SpellsToUse[spellID].EnhancedByCheck;
                         D.classprofile.UserSpells[spellID].EnhancedByCheck = spell.EnhancedByCheck;
                     end
@@ -1730,6 +1760,13 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
                 ['Shadowmeld']                           = 20580,
                 ["IMPROVED_PURIFY_SPIRIT"]               = 383016, -- resto shaman
                 ['SPELL_POISON_CLEANSING_TOTEM']         = 383013, -- shaman
+                -- removed in CT
+                ["SPELL_CURE_POISON_SHAMAN"]             = 526,
+                ["SPELL_ABOLISH_DISEASE"]                = 552,
+                ["SPELL_ABOLISH_POISON"]                 = 2893,
+                ["SPELL_DISPELL_MAGIC_PRIEST_R2"]        = 988,
+                ["SPELL_PURIFY"]                         = 1152,
+                ["SPELL_CURE_POISON_DRUID"]              = 8946,
             } -- }}}
 
 
@@ -1777,12 +1814,15 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
                 T._C.DSI["Shadowmeld"]                    = 58984;
                 T._C.DSI["SPELL_TRANQUILIZING_SHOT"]      = 19801;
                 T._C.DSI["TALENT_BODY_AND_SOUL"]          = 64127;
+                T._C.DSI["TALENT_IMPROVED_CLEANSE_SPIRIT"]= 77130;
+                T._C.DSI["TALENT_NATURES_CURE"]           = 88423;
+                T._C.DSI["TALENT_SACRED_CLEANSING"]       = 53551;
                 T._C.DSI["CLEANSE_SPIRIT"]                = 51886;
                 T._C.DSI["SPELL_HEX"]	                  = 51514;
 
                 T._C.EXPECTED_DUPLICATES = {
-                    {"SPELL_REMOVE_CURSE_DRUID", "SPELL_REMOVE_CURSE_MAGE"},
-                    {"SPELL_DISPELL_MAGIC", "SPELL_DISPELL_MAGIC_PRIEST_R2"},
+                 --   {"SPELL_REMOVE_CURSE_DRUID", "SPELL_REMOVE_CURSE_MAGE"},
+                 --   {"SPELL_DISPELL_MAGIC", "SPELL_DISPELL_MAGIC_PRIEST_R2"},
                 }
             end
 
@@ -1965,7 +2005,7 @@ end -- }}}
 
 
 
-T._LoadedFiles["DCR_init.lua"] = "2.7.16";
+T._LoadedFiles["DCR_init.lua"] = "2.7.18";
 
 -------------------------------------------------------------------------------
 
@@ -1974,42 +2014,42 @@ TEST to see what keyword substitutions are actually working....
 
 Simple replacements
 
-943
+1090
     Turns into the current revision of the file in integer form. e.g. 1234
     Note: does not work for git
-1090
+1099
     Turns into the highest revision of the entire project in integer form. e.g. 1234
     Note: does not work for git
-37532ef19a6d4602cd657789b26a7262de1e5eb3
+0d564328aa2cb6a50dcbfd58c1d54538e1607837
     Turns into the hash of the file in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-d4690df2e99a8ec45293b247b71fb7528e152bba
+e93ba2f8a173e00048f21527aeb1f9379251cc8f
     Turns into the hash of the entire project in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-37532ef
+0d56432
     Turns into the abbreviated hash of the file in hex form. e.g. 106c63 Note: does not work for svn
-d4690df
+e93ba2f
     Turns into the abbreviated hash of the entire project in hex form. e.g. 106c63
     Note: does not work for svn
 Archarodim
     Turns into the last author of the file. e.g. ckknight
 Archarodim
     Turns into the last author of the entire project. e.g. ckknight
-2024-02-19T03:51:57Z
+2024-05-02T00:30:00Z
     Turns into the last changed date (by UTC) of the file in ISO 8601. e.g. 2008-05-01T12:34:56Z
-2024-02-19T03:53:25Z
+2024-05-02T00:50:38Z
     Turns into the last changed date (by UTC) of the entire project in ISO 8601. e.g. 2008-05-01T12:34:56Z
-20240219035157
+20240502003000
     Turns into the last changed date (by UTC) of the file in a readable integer fashion. e.g. 20080501123456
-20240219035325
+20240502005038
     Turns into the last changed date (by UTC) of the entire project in a readable integer fashion. e.g. 2008050123456
-1708314717
+1714609800
     Turns into the last changed date (by UTC) of the file in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-1708314805
+1714611038
     Turns into the last changed date (by UTC) of the entire project in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-2.7.16
+2.7.18
     Turns into an approximate version of the project. The tag name if on a tag, otherwise it's up to the repo.
     :SVN returns something like "r1234"
     :Git returns something like "v0.1-873fc1"

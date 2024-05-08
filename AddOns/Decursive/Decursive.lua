@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.16) add-on for World of Warcraft UI
+    Decursive (v 2.7.18) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-02-19T03:51:57Z
+    This file was last updated on 2024-05-01T22:17:09Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -807,10 +807,10 @@ do
 
                     if (not self.Status.delayedDebuffReportDisabled) and self.db.global.MFScanEverybodyReport then
                         if IsDebuffed then
-                            self:AddDebugText("delayed debuff found by scaneveryone", Unit, Debuffs[1].Name);
+                            self:AddDebugText("delayed debuff found by scaneveryone (you can disable this error by unchecking the `Periodic scan debug reporting` option in the MUFs performance options - see Decursive 2.7.16 release notes)", Unit, Debuffs[1].Name);
                             --D:ScheduleDelayedCall("Dcr_lateanalysis" .. Unit, self.MicroUnitF.LateAnalysis, 1, self.MicroUnitF, "ScanEveryone", Debuffs, MUF, MUF.UnitStatus);
                         else
-                            self:AddDebugText("delayed UNdebuff found by scaneveryone on", Unit, MUFDebuffName, IsDebuffed, IsMUFDebuffed, MUF.UnitStatus);
+                            self:AddDebugText("delayed UNdebuff found by scaneveryone (you can disable this error by unchecking the `Periodic scan debug reporting` option in the MUFs performance options - see Decursive 2.7.16 release notes)", Unit, MUFDebuffName, IsDebuffed, IsMUFDebuffed, MUF.UnitStatus);
                         end
                     else
                         self:Debug("delayed buff found but no-report is set")
@@ -929,6 +929,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.16";
+T._LoadedFiles["Decursive.lua"] = "2.7.18";
 
 -- Sin
