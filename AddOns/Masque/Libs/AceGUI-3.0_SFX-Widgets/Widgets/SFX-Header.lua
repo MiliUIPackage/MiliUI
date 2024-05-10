@@ -100,13 +100,13 @@ local Methods = {
 	-- Widget:SetText()
 	-- Sets the header text.
 	SetText = function(self, Text)
-		local Text, Count = gsub(Text or "", ">>>", "")
-		self.Text = Text
+		local Title, Count = gsub(Text or "", ">>>", "")
+		self.Text = Title
 
 		local Label = self.Label
-		Label:SetText(Text)
+		Label:SetText(Title)
 
-		if Text == "" then
+		if Title == "" then
 			self.Right:SetPoint("LEFT")
 		else
 			self.Right:SetPoint("LEFT", Label, "RIGHT", 5, 0)

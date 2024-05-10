@@ -22,7 +22,7 @@ if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 -- Lua API
 ---
 
-local max, pairs = math.max, pairs
+local pairs = pairs
 
 ----------------------------------------
 -- WoW API

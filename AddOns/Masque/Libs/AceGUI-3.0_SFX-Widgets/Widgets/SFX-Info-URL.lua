@@ -116,7 +116,7 @@ local function EditBox_OnEnter(self)
 end
 
 -- EditBox:OnLeave()
-local function EditBox_OnLeave(self)
+local function EditBox_OnLeave()
 	Tooltip:Hide()
 end
 
@@ -160,7 +160,7 @@ local function Button_OnEnter(self)
 end
 
 -- Button:OnLeave()
-local function Button_OnLeave(self)
+local function Button_OnLeave()
 	Tooltip:Hide()
 end
 

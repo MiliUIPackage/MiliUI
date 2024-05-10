@@ -16,7 +16,8 @@ local MASQUE, Core = ...
 -- WoW API
 ---
 
-local InCombatLockdown = _G.InCombatLockdown
+local AOC_FRAME = AddonCompartmentFrame
+local InCombatLockdown = InCombatLockdown
 
 ----------------------------------------
 -- Libraries
@@ -27,9 +28,6 @@ local LIB_DBI = Core.LIB_DBI
 ----------------------------------------
 -- Internal
 ---
-
--- @ Masque
-local WOW_RETAIL = Core.WOW_RETAIL
 
 -- @ Options\Core
 local Setup = Core.Setup
@@ -49,6 +47,7 @@ function Setup.LDB(self)
 			type  = "launcher",
 			label = MASQUE,
 			icon  = "Interface\\Addons\\Masque\\Textures\\LDB",
+			tocname = MASQUE, -- Required by Diagnostics
 			OnClick = function(Tip, Button)
 				if Button == "LeftButton" or Button == "RightButton" then
 					Core:ToggleOptions()
@@ -60,7 +59,7 @@ function Setup.LDB(self)
 				end
 				Tip:AddLine(MASQUE)
 				Tip:AddLine(L["Click to open Masque's settings."], 1, 1, 1)
-				
+
 				if InCombatLockdown() then
 					Tip:AddLine(L["Unavailable in combat."], 1, 0, 0)
 				end
@@ -96,7 +95,7 @@ function Core:UpdateIconPosition(Position)
 		end
 
 		-- Add-On Compartment
-		if WOW_RETAIL then
+		if AOC_FRAME then
 			if pos == 2 then
 				LIB_DBI:AddButtonToCompartment(MASQUE)
 			else
