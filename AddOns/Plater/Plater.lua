@@ -7475,7 +7475,7 @@ end
 	function Plater.AddGuildNameToPlayerName (plateFrame)
 		local currentText = plateFrame.CurrentUnitNameString:GetText()
 		if (not currentText:find ("<")) then
-			plateFrame.CurrentUnitNameString:SetText (currentText .. "\n" .. "<" .. plateFrame.playerGuildName .. ">")
+			plateFrame.CurrentUnitNameString:SetText (currentText .. "\n" .. "|cFF7a7a99" .. plateFrame.playerGuildName .. "|r")
 		end
 	end
 	
