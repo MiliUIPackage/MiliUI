@@ -1,0 +1,77 @@
+<Ui>
+  <Frame name="BaganatorBagSearchLayoutMonitorTemplate" virtual="true" mixin="BaganatorBagSearchLayoutMonitorMixin">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorGuildSearchLayoutMonitorTemplate" virtual="true" mixin="BaganatorGuildSearchLayoutMonitorMixin">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorCachedBagLayoutTemplate" virtual="true" mixin="BaganatorCachedBagLayoutMixin" parentArray="Layouts">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+      <OnShow method="OnShow"/>
+      <OnHide method="OnHide"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorCachedGuildLayoutTemplate" virtual="true" mixin="BaganatorGeneralGuildLayoutMixin" parentArray="Layouts">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+      <OnShow method="OnShow"/>
+      <OnHide method="OnHide"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorLiveBagLayoutTemplate" virtual="true" mixin="BaganatorLiveBagLayoutMixin" parentArray="Layouts">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+      <OnShow method="OnShow"/>
+      <OnHide method="OnHide"/>
+      <OnEvent method="OnEvent"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorLiveGuildLayoutTemplate" virtual="true" mixin="BaganatorLiveGuildLayoutMixin" parentArray="Layouts">
+    <Scripts>
+      <OnLoad method="OnLoad"/>
+      <OnShow method="OnShow"/>
+      <OnHide method="OnHide"/>
+      <OnEvent method="OnEvent"/>
+    </Scripts>
+  </Frame>
+
+  <Frame name="BaganatorBagDividerTemplate" virtual="true">
+    <Anchors>
+      <Anchor point="TOPLEFT"/>
+      <Anchor point="BOTTOMRIGHT" relativePoint="TOPRIGHT"/>
+    </Anchors>
+    <Scripts>
+      <OnLoad>
+        if Baganator.Constants.IsRetail then
+          self.Divider:SetAtlas("activities-divider", true)
+        else
+          self.Divider:SetAtlas("battlefieldminimap-border-top")
+          self.Divider:SetHeight(15)
+          self.Divider:ClearAllPoints()
+          self.Divider:SetPoint("TOPLEFT", 0, 6)
+          self.Divider:SetPoint("TOPRIGHT", 0, 6)
+        end
+      </OnLoad>
+    </Scripts>
+    <Layers>
+      <Layer level="BACKGROUND">
+        <Texture parentKey="Divider">
+          <Anchors>
+            <Anchor point="TOPLEFT"/>
+            <Anchor point="TOPRIGHT"/>
+          </Anchors>
+        </Texture>
+      </Layer>
+    </Layers>
+  </Frame>
+</Ui>
