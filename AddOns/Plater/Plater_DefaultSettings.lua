@@ -3033,7 +3033,7 @@ PLATER_DEFAULT_SETTINGS = {
 		indicator_raidmark_scale = 1,
 		indicator_raidmark_anchor = {side = 2, x = -1, y = 0},
 		
-		target_indicator = "Silver",
+		target_indicator = "Arrow",
 		
 		color_override = true,
 		color_override_colors = {
