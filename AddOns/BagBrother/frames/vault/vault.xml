@@ -1,6 +1,0 @@
-<Ui>
-	<Script file="item.lua"/>
-	<Script file="itemGroup.lua"/>
-	<Script file="transferButton.lua"/>
-	<Script file="vault.lua"/>
-</Ui>
