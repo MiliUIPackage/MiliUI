@@ -12,10 +12,10 @@ _G[addon.Metadata.Prefix .. "_LE_LOOT_FILTER_SEARCH"] = 201;
 
 local defaults = {
 	profile = {
-		HideCollectedPets = false,
-		HideCollectedMounts = false,
-		HideCollectedToys = false,
-		HideCollectedTransmog = false,
+		HideCollectedPets = true,
+		HideCollectedMounts = true,
+		HideCollectedToys = true,
+		HideCollectedTransmog = true,
 		Custom = {
 			Pets = true,
 			Mounts = true,
