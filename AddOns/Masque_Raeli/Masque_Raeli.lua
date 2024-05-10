@@ -21,8 +21,8 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\No_Backdrop]],
 	},
 	Icon = {
-		Width = 34,
-		Height = 34,
+		Width = 36,
+		Height = 36,
 		TexCoords = {0.07, 0.93, 0.07, 0.93},
 	},
 	Flash = {
@@ -44,9 +44,9 @@ MSQ:AddSkin('Raeli - Square Edge', {
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Pushed]],
 	},
 	Normal = {
-		Width = 36,
-		Height = 36,
-		Color = {0, 0, 0, 1},
+		Width = 38,
+		Height = 38,
+		Color = {0, 0, 0, 0.9},
 		Texture = [[Interface\AddOns\Masque_Raeli\Textures\Raeli\Normal]],
 	},
 	-- Disabled
