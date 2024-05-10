@@ -145,7 +145,7 @@ function PGF.SupportsDragonflightUI() return PGF.IsRetail() end -- User Interfac
 C.SETTINGS_DEFAULT = {
     version = 1,
     dialogMovable = true,
-    classNamesInTooltip = true,
+    classNamesInTooltip = false,
     coloredGroupTexts = true,
     coloredApplications = true,
     ratingInfo = true,
