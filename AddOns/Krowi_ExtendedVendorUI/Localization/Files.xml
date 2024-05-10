@@ -1,0 +1,8 @@
+<Ui>
+    <Script file="Localization.lua" />
+    <Script file="enUS.lua" />
+    <Script file="enUS.Plugins.lua" />
+    <Script file="zhTW.lua" />
+    <Script file="zhTW.Plugins.lua" />
+    <Script file="GlobalStrings.lua" />
+</Ui>
