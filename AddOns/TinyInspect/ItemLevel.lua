@@ -285,14 +285,8 @@ local function SetPaperDollItemLevel(self, unit)
     end
 end
 
-hooksecurefunc("PaperDollItemSlotButton_OnShow", function(self, isBag)
+hooksecurefunc("PaperDollItemSlotButton_Update",function(self)
     SetPaperDollItemLevel(self, "player")
-end)
-
-hooksecurefunc("PaperDollItemSlotButton_OnEvent", function(self, event, id, ...)
-    if (event == "PLAYER_EQUIPMENT_CHANGED" and self:GetID() == id) then
-        SetPaperDollItemLevel(self, "player")
-    end
 end)
 
 LibEvent:attachTrigger("UNIT_INSPECT_READY", function(self, data)

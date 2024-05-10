@@ -160,7 +160,7 @@ function lib:GetUnitItemInfo(unit, index, stats)
     if (not UnitExists(unit)) then return 1, -1 end  --C_PaperDollInfo.GetInspectItemLevel
     unittip:SetOwner(UIParent, "ANCHOR_NONE")
     unittip:SetInventoryItem(unit, index)
-    local link = GetInventoryItemLink(unit, index) or select(2, unittip:GetItem())
+    local link = GetInventoryItemLink(unit, index)
     if (not link or link == "") then
         return 0, 0
     end
