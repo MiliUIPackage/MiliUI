@@ -93,7 +93,10 @@ PLATER_DEFAULT_SETTINGS = {
 	profile = {
 	
 		--> save some cvars values so it can restore when a new character login using Plater
-		saved_cvars = {},
+		saved_cvars = {
+			["nameplateShowOnlyNames"] = "1",
+			["nameplateShowFriends"] = "1",
+		},
 		saved_cvars_last_change = {},
 		keybinds = {},
 
