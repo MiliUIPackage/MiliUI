@@ -1,0 +1,55 @@
+## Interface: 40400
+## Title: Cell
+## Version: r227-release
+## Author: enderneko
+## X-Flavor: Cata
+## SavedVariables: CellDB
+## SavedVariablesPerCharacter: CellCharacterDB
+
+## X-Curse-Project-ID: 409666
+## X-Wago-ID: qv63LLKb
+## X-WoWI-ID: 26244
+
+Locales\enUS.lua
+Locales\zhCN.lua
+Locales\zhTW.lua
+Locales\koKR.lua
+
+Libs\LoadLibs_Classic.xml
+
+Core_Cata.lua
+Utils.lua
+Revise.lua
+Comm\LoadComm.xml
+Widgets\LoadWidgets_Classic.xml
+Defaults\LoadDefaults_Cata.xml
+
+HideBlizzard.lua
+
+Indicators\Base.lua
+Indicators\Built-in.lua
+Indicators\StatusIcon.lua
+Indicators\AoEHealing.lua
+Indicators\TargetCounter.lua
+Indicators\TargetedSpells.lua
+Indicators\Consumables.lua
+Indicators\Custom_Classic.lua
+Indicators\Patron.lua
+
+RaidFrames\MainFrame.lua
+
+RaidDebuffs\ExpansionData\LoadExpansionData.xml
+Modules\LoadModules_Classic.xml
+Utilities\LoadUtilities_Cata.xml
+RaidDebuffs\LoadRaidDebuffs_Cata.xml
+
+RaidFrames\UnitButton_Cata.lua
+RaidFrames\UnitButton.xml
+RaidFrames\Groups\SoloFrame.lua
+RaidFrames\Groups\PartyFrame.lua
+RaidFrames\Groups\RaidFrame.lua
+RaidFrames\Groups\RaidPetFrame.lua
+RaidFrames\Groups\NPCFrame.lua
+RaidFrames\Groups\SpotlightFrame.lua
+
+Patrons.lua

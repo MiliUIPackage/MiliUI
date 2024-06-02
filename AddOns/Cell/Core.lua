@@ -17,12 +17,12 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 189
-Cell.MIN_CLICKCASTINGS_VERSION = 189
-Cell.MIN_LAYOUTS_VERSION = 221
-Cell.MIN_INDICATORS_VERSION = 221
-Cell.MIN_DEBUFFS_VERSION = 189
-Cell.MIN_QUICKASSIST_VERSION = 217
+Cell.MIN_VERSION = 200
+Cell.MIN_CLICKCASTINGS_VERSION = 200
+Cell.MIN_LAYOUTS_VERSION = 226
+Cell.MIN_INDICATORS_VERSION = 226
+Cell.MIN_DEBUFFS_VERSION = 200
+Cell.MIN_QUICKASSIST_VERSION = 227
 
 --[==[@debug@
 local debugMode = true
@@ -67,15 +67,20 @@ function F:UpdateLayout(layoutGroupType, updateIndicators)
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\", "..(updateIndicators and "true" or "false")..")")
-        local layout
-        if Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] then
-            layout = Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID][layoutGroupType]
+        
+        if CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
+            Cell.vars.layoutAutoSwitchBy = "spec"
+            Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID]
         else
-            layout = Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecRole][layoutGroupType]
+            Cell.vars.layoutAutoSwitchBy = "role"
+            Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"]["role"][Cell.vars.playerSpecRole]
         end
+
+        local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
         Cell.vars.currentLayout = layout
         Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         Cell.vars.layoutGroupType = layoutGroupType
+
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
         if updateIndicators then
             Cell:Fire("UpdateIndicators")
@@ -380,14 +385,19 @@ function eventFrame:ADDON_LOADED(arg1)
             end
 
             -- https://wow.gamepedia.com/SpecializationID
-            local indices = {}
-            for i = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
-                tinsert(indices, i)
+            local specs = {}
+            do
+                local specID
+                --! GetNumSpecializations / GetSpecializationInfo returns NOTHING at this time
+                for i = 1, GetNumSpecializationsForClassID(Cell.vars.playerClassID) do
+                    specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, i)
+                    tinsert(specs, specID)
+                end
+                specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, 5)
+                tinsert(specs, specID) -- "Initial" (no spec)
             end
-            tinsert(indices, 5) -- "Initials" (no spec)
-            
-            for _, sepcIndex in pairs(indices) do
-                local specID = GetSpecializationInfoForClassID(Cell.vars.playerClassID, sepcIndex)
+
+            for _, specID in pairs(specs) do
                 CellDB["clickCastings"][Cell.vars.playerClass]["alwaysTargeting"][specID] = "disabled"
                 CellDB["clickCastings"][Cell.vars.playerClass][specID] = {
                     {"type1", "target"},
@@ -408,71 +418,42 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
-        -- init enabled layout
+        -- layoutAutoSwitch -----------------------------------------------------------------------
         if type(CellDB["layoutAutoSwitch"]) ~= "table" then
             CellDB["layoutAutoSwitch"] = {
-                ["TANK"] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["raid_mythic"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                },
-                ["HEALER"] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["raid_mythic"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                },
-                ["DAMAGER"] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["raid_mythic"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                },
+                ["role"] = {
+                    ["TANK"] = F:Copy(Cell.defaults.layoutAutoSwitch),
+                    ["HEALER"] = F:Copy(Cell.defaults.layoutAutoSwitch),
+                    ["DAMAGER"] = F:Copy(Cell.defaults.layoutAutoSwitch),
+                }
             }
         end
 
-        -- validate layout
-        for role, t in pairs(CellDB["layoutAutoSwitch"]) do
-            for groupType, layout in pairs(t) do
-                if not CellDB["layouts"][layout] then
-                    CellDB["layoutAutoSwitch"][role][groupType] = "default"
-                end
-            end
+        if type(CellDB["layoutAutoSwitch"][Cell.vars.playerClass]) ~= "table" then
+            CellDB["layoutAutoSwitch"][Cell.vars.playerClass] = {}
         end
-
-        Cell.vars.layoutAutoSwitch = CellDB["layoutAutoSwitch"]
 
         -- dispelBlacklist ------------------------------------------------------------------------
         if type(CellDB["dispelBlacklist"]) ~= "table" then
-            CellDB["dispelBlacklist"] = I:GetDefaultDispelBlacklist()
+            CellDB["dispelBlacklist"] = I.GetDefaultDispelBlacklist()
         end
         Cell.vars.dispelBlacklist = F:ConvertTable(CellDB["dispelBlacklist"])
 
         -- debuffBlacklist ------------------------------------------------------------------------
         if type(CellDB["debuffBlacklist"]) ~= "table" then
-            CellDB["debuffBlacklist"] = I:GetDefaultDebuffBlacklist()
+            CellDB["debuffBlacklist"] = I.GetDefaultDebuffBlacklist()
         end
         Cell.vars.debuffBlacklist = F:ConvertTable(CellDB["debuffBlacklist"])
         
         -- bigDebuffs -----------------------------------------------------------------------------
         if type(CellDB["bigDebuffs"]) ~= "table" then
-            CellDB["bigDebuffs"] = I:GetDefaultBigDebuffs()
+            CellDB["bigDebuffs"] = I.GetDefaultBigDebuffs()
         end
         Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
         
         -- debuffTypeColor -----------------------------------------------------------------------------
         if type(CellDB["debuffTypeColor"]) ~= "table" then
-            I:ResetDebuffTypeColor()
+            I.ResetDebuffTypeColor()
         end
 
         -- defensives/externals -------------------------------------------------------------------
@@ -493,7 +474,7 @@ function eventFrame:ADDON_LOADED(arg1)
         -- }
 
         -- if type(CellDB["cleuAuras"]) ~= "table" then CellDB["cleuAuras"] = {} end
-        -- I:UpdateCleuAuras(CellDB["cleuAuras"])
+        -- I.UpdateCleuAuras(CellDB["cleuAuras"])
 
         -- if type(CellDB["cleuGlow"]) ~= "table" then
         --     CellDB["cleuGlow"] = {"Pixel", {{0, 1, 1, 1}, 9, 0.25, 8, 2}}
@@ -501,12 +482,12 @@ function eventFrame:ADDON_LOADED(arg1)
         
         -- targetedSpells -------------------------------------------------------------------------
         if type(CellDB["targetedSpellsList"]) ~= "table" then
-            CellDB["targetedSpellsList"] = I:GetDefaultTargetedSpellsList()
+            CellDB["targetedSpellsList"] = I.GetDefaultTargetedSpellsList()
         end
         Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
         
         if type(CellDB["targetedSpellsGlow"]) ~= "table" then
-            CellDB["targetedSpellsGlow"] = I:GetDefaultTargetedSpellsGlow()
+            CellDB["targetedSpellsGlow"] = I.GetDefaultTargetedSpellsGlow()
         end
         Cell.vars.targetedSpellsGlow = CellDB["targetedSpellsGlow"]
 
@@ -515,9 +496,9 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- consumables ----------------------------------------------------------------------------
         if type(CellDB["consumables"]) ~= "table" then
-            CellDB["consumables"] = I:GetDefaultConsumables()
+            CellDB["consumables"] = I.GetDefaultConsumables()
         end
-        Cell.vars.consumables = I:ConvertConsumables(CellDB["consumables"])
+        Cell.vars.consumables = I.ConvertConsumables(CellDB["consumables"])
 
         -- misc -----------------------------------------------------------------------------------
         Cell.version = GetAddOnMetadata(addonName, "version")
@@ -526,8 +507,20 @@ function eventFrame:ADDON_LOADED(arg1)
         F:Revise()
         F:CheckWhatsNew()
         F:RunSnippets()
-        Cell.loaded = true
+        
+        -- validation -----------------------------------------------------------------------------
+        -- validate layout
+        for _, roleOrClass in pairs(CellDB["layoutAutoSwitch"]) do
+            for _, t in pairs(roleOrClass) do
+                for groupType, layout in pairs(t) do
+                    if not CellDB["layouts"][layout] then
+                        t[groupType] = "default"
+                    end
+                end
+            end
+        end
 
+        Cell.loaded = true
         Cell:Fire("AddonLoaded")
     end
 
@@ -714,7 +707,6 @@ function eventFrame:PLAYER_ENTERING_WORLD()
     end
 end
 
-local prevSpec
 function eventFrame:PLAYER_LOGIN()
     F:Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -731,10 +723,15 @@ function eventFrame:PLAYER_LOGIN()
         bgMaxPlayers[bgId] = maxPlayers
     end
 
-    if not prevSpec then prevSpec = GetSpecialization() end
     Cell.vars.playerGUID = UnitGUID("player")
+    
     -- update spec vars
-    Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(prevSpec)
+    Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
+    if Cell.vars.playerSpecName == "" then
+        Cell.vars.playerSpecName = L["No Spec"]
+        Cell.vars.playerSpecIcon = 134400
+    end
+
     --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable 
     eventFrame:GROUP_ROSTER_UPDATE()
     -- update visibility
@@ -765,9 +762,9 @@ function eventFrame:PLAYER_LOGIN()
     -- update CLEU health
     Cell:Fire("UpdateCLEU")
     -- update builtIns and customs
-    I:UpdateDefensives(CellDB["defensives"])
-    I:UpdateExternals(CellDB["externals"])
-    I:UpdateCrowdControls(CellDB["crowdControls"])
+    I.UpdateDefensives(CellDB["defensives"])
+    I.UpdateExternals(CellDB["externals"])
+    I.UpdateCrowdControls(CellDB["crowdControls"])
     -- update pixel perfect
     Cell:Fire("UpdatePixelPerfect")
     -- overrideLGF
@@ -783,34 +780,49 @@ function eventFrame:UI_SCALE_CHANGED()
     end
 end
 
-local forceRecheck
+-------------------------------------------------
+-- ACTIVE_TALENT_GROUP_CHANGED
+-------------------------------------------------
+local timer
 local checkSpecFrame = CreateFrame("Frame")
 checkSpecFrame:SetScript("OnEvent", function()
     eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
 end)
--- PLAYER_SPECIALIZATION_CHANGED fires when level up, ACTIVE_TALENT_GROUP_CHANGED usually fire twice.
+
+-- ACTIVE_TALENT_GROUP_CHANGED fires twice
+-- PLAYER_SPECIALIZATION_CHANGED fires when level up
+-- ACTIVE_PLAYER_SPECIALIZATION_CHANGED only fires when player manually change spec
 -- NOTE: ACTIVE_TALENT_GROUP_CHANGED fires before PLAYER_LOGIN, but can't GetSpecializationInfo before PLAYER_LOGIN
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
-    F:Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
-    -- not in combat & spec CHANGED
-    if not InCombatLockdown() and (prevSpec and prevSpec ~= GetSpecialization() or forceRecheck) then
-        prevSpec = GetSpecialization()
+    -- not in combat
+    if InCombatLockdown() then
+        checkSpecFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
+        return
+    end
+    
+    --  fires twice
+    if timer then timer:Cancel() end
+    timer = C_Timer.NewTimer(0.5, function()
+        timer = nil
+        F:Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
+        
         -- update spec vars
-        Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(prevSpec)
-        if not Cell.vars.playerSpecID then -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
-            forceRecheck = true
+        Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
+
+        if not Cell.vars.playerSpecID then
+            -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
             checkSpecFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
             F:Debug("|cffffbb77SpecChanged:|r FAILED")
         else
-            forceRecheck = false
             checkSpecFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+            checkSpecFrame:UnregisterEvent("PLAYER_REGEN_ENABLED")
+            F:Debug("|cffffbb77SpecChanged:|r", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
             if not CellDB["clickCastings"][Cell.vars.playerClass]["useCommon"] then
                 Cell:Fire("UpdateClickCastings")
             end
-            F:Debug("|cffffbb77SpecChanged:|r", Cell.vars.playerSpecRole)
-            Cell:Fire("SpecChanged", Cell.vars.playerSpecRole)
+            Cell:Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
         end
-    end
+    end)
 end
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)

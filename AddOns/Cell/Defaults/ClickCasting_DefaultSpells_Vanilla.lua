@@ -145,7 +145,7 @@ local defaultSpells = {
     },
 }
 
-function F:GetSpellList(class)
+function F:GetClickCastingSpellList(class)
     local spells = defaultSpells[class]["common"] and F:Copy(defaultSpells[class]["common"]) or {}
     
     -- fill data
@@ -202,7 +202,7 @@ end
 
 local resurrection_click_castings = {
     ["DRUID"] = {
-        {"type-R", "spell", 20484},
+        {"type-altR", "spell", 20484},
     },
     ["PALADIN"] = {
         {"type-shiftR", "spell", 7328},

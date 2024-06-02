@@ -17,11 +17,11 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 189
-Cell.MIN_CLICKCASTINGS_VERSION = 189
-Cell.MIN_LAYOUTS_VERSION = 221
-Cell.MIN_INDICATORS_VERSION = 221
-Cell.MIN_DEBUFFS_VERSION = 189
+Cell.MIN_VERSION = 200
+Cell.MIN_CLICKCASTINGS_VERSION = 200
+Cell.MIN_LAYOUTS_VERSION = 226
+Cell.MIN_INDICATORS_VERSION = 226
+Cell.MIN_DEBUFFS_VERSION = 200
 
 --[==[@debug@
 local debugMode = true
@@ -66,10 +66,14 @@ function F:UpdateLayout(layoutGroupType, updateIndicators)
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
-        local layout = Cell.vars.layoutAutoSwitch[Cell.vars.activeTalentGroup][layoutGroupType]
+
+        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"][Cell.vars.activeTalentGroup]
+
+        local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
         Cell.vars.currentLayout = layout
         Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         Cell.vars.layoutGroupType = layoutGroupType
+
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
         if updateIndicators then
             Cell:Fire("UpdateIndicators")
@@ -349,61 +353,35 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
-        -- init enabled layout
+        -- layoutAutoSwitch -----------------------------------------------------------------------
         if type(CellCharacterDB["layoutAutoSwitch"]) ~= "table" then
             CellCharacterDB["layoutAutoSwitch"] = {
-                [1] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["arena"] = "default",
-                    ["battleground"] = "default",
-                },
-                [2] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["arena"] = "default",
-                    ["battleground"] = "default",
-                },
+                [1] = F:Copy(Cell.defaults.layoutAutoSwitch),
+                [2] = F:Copy(Cell.defaults.layoutAutoSwitch),
             }
         end
 
-        -- validate layout
-        for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
-            for groupType, layout in pairs(t) do
-                if not CellDB["layouts"][layout] then
-                    CellCharacterDB["layoutAutoSwitch"][talent][groupType] = "default"
-                end
-            end
-
-            if not t["raid_instance"] then t["raid_instance"] = "default" end
-            if not t["battleground"] then t["battleground"] = "default" end
-        end
-
-        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"]
-
         -- dispelBlacklist ------------------------------------------------------------------------
         if type(CellDB["dispelBlacklist"]) ~= "table" then
-            CellDB["dispelBlacklist"] = I:GetDefaultDispelBlacklist()
+            CellDB["dispelBlacklist"] = I.GetDefaultDispelBlacklist()
         end
         Cell.vars.dispelBlacklist = F:ConvertTable(CellDB["dispelBlacklist"])
         
         -- debuffBlacklist ------------------------------------------------------------------------
         if type(CellDB["debuffBlacklist"]) ~= "table" then
-            CellDB["debuffBlacklist"] = I:GetDefaultDebuffBlacklist()
+            CellDB["debuffBlacklist"] = I.GetDefaultDebuffBlacklist()
         end
         Cell.vars.debuffBlacklist = F:ConvertTable(CellDB["debuffBlacklist"])
 
         -- bigDebuffs -----------------------------------------------------------------------------
         if type(CellDB["bigDebuffs"]) ~= "table" then
-            CellDB["bigDebuffs"] = I:GetDefaultBigDebuffs()
+            CellDB["bigDebuffs"] = I.GetDefaultBigDebuffs()
         end
         Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
                 
         -- debuffTypeColor -----------------------------------------------------------------------------
         if type(CellDB["debuffTypeColor"]) ~= "table" then
-            I:ResetDebuffTypeColor()
+            I.ResetDebuffTypeColor()
         end
 
         -- defensives/externals -------------------------------------------------------------------
@@ -425,20 +403,20 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- targetedSpells -------------------------------------------------------------------------
         if type(CellDB["targetedSpellsList"]) ~= "table" then
-            CellDB["targetedSpellsList"] = I:GetDefaultTargetedSpellsList()
+            CellDB["targetedSpellsList"] = I.GetDefaultTargetedSpellsList()
         end
         Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
         
         if type(CellDB["targetedSpellsGlow"]) ~= "table" then
-            CellDB["targetedSpellsGlow"] = I:GetDefaultTargetedSpellsGlow()
+            CellDB["targetedSpellsGlow"] = I.GetDefaultTargetedSpellsGlow()
         end
         Cell.vars.targetedSpellsGlow = CellDB["targetedSpellsGlow"]
 
         -- consumables ----------------------------------------------------------------------------
         if type(CellDB["consumables"]) ~= "table" then
-            CellDB["consumables"] = I:GetDefaultConsumables()
+            CellDB["consumables"] = I.GetDefaultConsumables()
         end
-        Cell.vars.consumables = I:ConvertConsumables(CellDB["consumables"])
+        Cell.vars.consumables = I.ConvertConsumables(CellDB["consumables"])
         
         -- misc -----------------------------------------------------------------------------------
         Cell.version = GetAddOnMetadata(addonName, "version")
@@ -447,8 +425,19 @@ function eventFrame:ADDON_LOADED(arg1)
         F:Revise()
         F:CheckWhatsNew()
         F:RunSnippets()
-        Cell.loaded = true
 
+        -- validation -----------------------------------------------------------------------------
+
+         -- validate layout
+         for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
+            for groupType, layout in pairs(t) do
+                if not CellDB["layouts"][layout] then
+                    CellCharacterDB["layoutAutoSwitch"][talent][groupType] = "default"
+                end
+            end
+        end
+
+        Cell.loaded = true
         Cell:Fire("AddonLoaded")
     end
 
@@ -629,7 +618,6 @@ function eventFrame:PLAYER_LOGIN()
 
     -- update spec vars
     Cell.vars.activeTalentGroup = 1
-    Cell.vars.playerSpecRole = Cell.vars.activeTalentGroup
     Cell.vars.playerSpecID = Cell.vars.activeTalentGroup
     
     --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable 
@@ -658,14 +646,14 @@ function eventFrame:PLAYER_LOGIN()
     -- update CLEU
     Cell:Fire("UpdateCLEU")
     -- update builtIns and customs
-    I:UpdateDefensives(CellDB["defensives"])
-    I:UpdateExternals(CellDB["externals"])
+    I.UpdateDefensives(CellDB["defensives"])
+    I.UpdateExternals(CellDB["externals"])
     -- update pixel perfect
     Cell:Fire("UpdatePixelPerfect")
     -- overrideLGF
     F:OverrideLGF(CellDB["general"]["overrideLGF"])
     -- LibHealComm
-    F:EnableLibHealComm(CellDB["appearance"]["useLibHealComm"])
+    -- F:EnableLibHealComm(CellDB["appearance"]["useLibHealComm"])
 end
 
 function eventFrame:UI_SCALE_CHANGED()

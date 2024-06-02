@@ -1,6 +1,7 @@
 local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
+local I = Cell.iFuncs
 
 Cell.vars.playerFaction = UnitFactionGroup("player")
 
@@ -14,6 +15,7 @@ Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 -- Cell.isBCC = WOW_PROJECT_ID == WOW_PROJECT_BURNING_CRUSADE_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_BURNING_CRUSADE
 -- Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WRATH_OF_THE_LICH_KING
 Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
+Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
 
 -------------------------------------------------
 -- class
@@ -78,26 +80,34 @@ function F:GetSortedClasses()
 end
 
 -------------------------------------------------
--- WotLK
+-- Classic
 -------------------------------------------------
-function F:GetActiveTalentInfo()
-    local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
-
-    local maxPoints = 0
-    local specName, specIcon, specFileName
-
-    for i = 1, GetNumTalentTabs() do
-        local name, texture, pointsSpent, fileName = GetTalentTabInfo(i)
-        if pointsSpent > maxPoints then
-            maxPoints = pointsSpent
-            specIcon = texture
-            specFileName = fileName
-        elseif pointsSpent == maxPoints then
-            specIcon = 132148
-        end
+if Cell.isCata then
+    function F:GetActiveTalentInfo()
+        local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
+        return which, Cell.vars.playerSpecIcon, Cell.vars.playerSpecName
     end
 
-    return which, specIcon, specFileName
+elseif Cell.isVanilla then
+    function F:GetActiveTalentInfo()
+        local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
+
+        local maxPoints = 0
+        local specName, specIcon, specFileName
+
+        for i = 1, GetNumTalentTabs() do
+            local name, texture, pointsSpent, fileName = GetTalentTabInfo(i)
+            if pointsSpent > maxPoints then
+                maxPoints = pointsSpent
+                specIcon = texture
+                specName = name
+            elseif pointsSpent == maxPoints then
+                specIcon = 132148
+            end
+        end
+
+        return which, specIcon, specName
+    end
 end
 
 -- local specRoles = {
@@ -331,6 +341,10 @@ function F:ConvertHSBToRGB(h, s, b)
     return R, G, B
 end
 
+function F:InvertColor(r, g, b)
+    return 1 - r, 1 - g, 1 - b
+end
+
 -------------------------------------------------
 -- number
 -------------------------------------------------
@@ -349,8 +363,8 @@ if Cell.isAsian then
             return string.format("%.3f"..symbol_1B, n/100000000)
         elseif abs(n) >= 10000 then
             return string.format("%.2f"..symbol_10K, n/10000)
-        elseif abs(n) >= 1000 then
-            return string.format("%.1f"..symbol_1K, n/1000)
+        -- elseif abs(n) >= 1000 then
+        --     return string.format("%.1f"..symbol_1K, n/1000)
         else
             return n
         end
@@ -529,8 +543,10 @@ end
 
 function F:RemoveElementsExceptKeys(tbl, ...)
     local keys = {}
-    for _, v in ipairs({...}) do
-        keys[v] = true
+
+    for i = 1, select("#", ...) do
+        local k = select(i, ...)
+        keys[k] = true
     end
 
     for k in pairs(tbl) do
@@ -541,15 +557,9 @@ function F:RemoveElementsExceptKeys(tbl, ...)
 end
 
 function F:RemoveElementsByKeys(tbl, ...)
-    local keys = {}
-    for _, v in ipairs({...}) do
-        keys[v] = true
-    end
-
-    for k in pairs(tbl) do
-        if keys[k] then
-            tbl[k] = nil
-        end
+    for i = 1, select("#", ...) do
+        local k = select(i, ...)
+        tbl[k] = nil
     end
 end
 
@@ -766,6 +776,9 @@ end
 -------------------------------------------------
 -- unit buttons
 -------------------------------------------------
+local combinedHeader = "CellRaidFrameHeader0"
+local separatedHeaders = {"CellRaidFrameHeader1", "CellRaidFrameHeader2", "CellRaidFrameHeader3", "CellRaidFrameHeader4", "CellRaidFrameHeader5", "CellRaidFrameHeader6", "CellRaidFrameHeader7", "CellRaidFrameHeader8"}
+
 function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist)
     -- solo
     if not updateCurrentGroupOnly or (updateCurrentGroupOnly and Cell.vars.groupType == "solo") then
@@ -785,9 +798,15 @@ function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
 
     -- raid
     if not updateCurrentGroupOnly or (updateCurrentGroupOnly and Cell.vars.groupType == "raid") then
-        for index, header in pairs(Cell.unitButtons.raid) do
-            if index ~= "units" then
-                for _, b in ipairs(header) do
+        if not updateCurrentGroupOnly or Cell.vars.currentLayoutTable.main.combineGroups then
+            for _, b in ipairs(Cell.unitButtons.raid[combinedHeader]) do
+                func(b)
+            end
+        end
+
+        if not updateCurrentGroupOnly or not Cell.vars.currentLayoutTable.main.combineGroups then
+            for _, header in ipairs(separatedHeaders) do
+                for _, b in ipairs(Cell.unitButtons.raid[header]) do
                     func(b)
                 end
             end
@@ -856,7 +875,7 @@ function F:GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
     if getSpotlights then
         wipe(spotlights)
         for _, b in pairs(Cell.unitButtons.spotlight) do
-            if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+            if b.states.unit and UnitIsUnit(b.states.unit, unit) then
                 tinsert(spotlights, b)
             end
         end
@@ -908,7 +927,7 @@ function F:HandleUnitButton(type, unit, func, ...)
     end
     
     for _, b in pairs(Cell.unitButtons.spotlight) do
-        if b.state.unit and UnitIsUnit(b.state.unit, unit) then
+        if b.states.unit and UnitIsUnit(b.states.unit, unit) then
             func(b, ...)
             handled = true
         end
@@ -971,6 +990,27 @@ end
 -- end
 
 -------------------------------------------------
+-- global functions
+-------------------------------------------------
+local UnitGUID = UnitGUID
+local GetNumGroupMembers = GetNumGroupMembers
+local GetRaidRosterInfo = GetRaidRosterInfo
+local IsInRaid = IsInRaid
+local IsInGroup = IsInGroup
+local UnitIsPlayer = UnitIsPlayer
+local UnitIsUnit = UnitIsUnit
+local UnitInParty = UnitInParty
+local UnitInRaid = UnitInRaid
+local UnitPlayerOrPetInParty = UnitPlayerOrPetInParty
+local UnitPlayerOrPetInRaid = UnitPlayerOrPetInRaid
+local UnitClass = UnitClass
+local UnitClassBase = UnitClassBase
+local UnitName = UnitName
+local UnitIsGroupLeader = UnitIsGroupLeader
+local UnitIsGroupAssistant = UnitIsGroupAssistant
+local UnitInPartyIsAI = UnitInPartyIsAI or function() end
+
+-------------------------------------------------
 -- frame colors
 -------------------------------------------------
 local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
@@ -994,7 +1034,21 @@ function F:GetClassColorStr(class)
     end
 end
 
-local function GetPowerColor(unit)
+function F:GetUnitClassColor(unit, class, guid)
+    class = class or select(2, UnitClass(unit))
+    guid = guid or UnitGUID(unit)
+
+    if UnitIsPlayer(unit) or UnitInPartyIsAI(unit) then -- player
+        return F:GetClassColor(class)
+    elseif F:IsPet(guid) then -- pet
+        return 0.5, 0.5, 1
+    else -- npc / vehicle
+        return 0, 1, 0.2
+    end
+end
+
+
+function F:GetPowerColor(unit)
     local r, g, b, t
     -- https://wow.gamepedia.com/API_UnitPowerType
     local powerType, powerToken, altR, altG, altB = UnitPowerType(unit)
@@ -1002,9 +1056,9 @@ local function GetPowerColor(unit)
 
     local info = PowerBarColor[powerToken]
     if powerType == 0 then -- MANA
-        info = {r=0, g=.5, b=1} -- default mana color is too dark!
+        info = {r=0, g=0.5, b=1} -- default mana color is too dark!
     elseif powerType == 13 then -- INSANITY
-        info = {r=.6, g=.2, b=1}
+        info = {r=0.6, g=0.2, b=1}
     end
 
     if info then
@@ -1022,9 +1076,9 @@ local function GetPowerColor(unit)
     return r, g, b, t
 end
 
-function F:GetPowerColor(unit, class)
+function F:GetPowerBarColor(unit, class)
     local r, g, b, lossR, lossG, lossB, t
-    r, g, b, t = GetPowerColor(unit)
+    r, g, b, t = F:GetPowerColor(unit)
 
     if not Cell.loaded then
         return r, g, b, r*0.2, g*0.2, b*0.2, t
@@ -1045,7 +1099,7 @@ function F:GetPowerColor(unit, class)
     return r, g, b, lossR, lossG, lossB, t
 end
 
-function F:GetHealthColor(percent, isDeadOrGhost, r, g, b)
+function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
     if not Cell.loaded then
         return r, g, b, r*0.2, g*0.2, b*0.2      
     end
@@ -1108,20 +1162,6 @@ end
 -------------------------------------------------
 -- units
 -------------------------------------------------
-local GetNumGroupMembers = GetNumGroupMembers
-local GetRaidRosterInfo = GetRaidRosterInfo
-local IsInRaid = IsInRaid
-local IsInGroup = IsInGroup
-local UnitIsUnit = UnitIsUnit
-local UnitInParty = UnitInParty
-local UnitInRaid = UnitInRaid
-local UnitPlayerOrPetInParty = UnitPlayerOrPetInParty
-local UnitPlayerOrPetInRaid = UnitPlayerOrPetInRaid
-local UnitClassBase = UnitClassBase
-local UnitName = UnitName
-local UnitIsGroupLeader = UnitIsGroupLeader
-local UnitIsGroupAssistant = UnitIsGroupAssistant
-
 function F:GetNumSubgroupMembers(group)
     local n = 0
     for i = 1, GetNumGroupMembers() do
@@ -1245,9 +1285,9 @@ end
 
 function F:UnitInGroup(unit, ignorePets)
     if ignorePets then
-        return UnitIsUnit(unit, "player") or UnitInParty(unit) or UnitInRaid(unit)
+        return UnitIsUnit(unit, "player") or UnitInParty(unit) or UnitInRaid(unit) or UnitInPartyIsAI(unit)
     else
-        return UnitIsUnit(unit, "player") or UnitIsUnit(unit, "pet") or UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit)
+        return UnitIsUnit(unit, "player") or UnitIsUnit(unit, "pet") or UnitPlayerOrPetInParty(unit) or UnitPlayerOrPetInRaid(unit) or UnitInPartyIsAI(unit)
     end
 end
 
@@ -1261,7 +1301,7 @@ function F:GetTargetUnitID(target)
 
     if not F:UnitInGroup(target) then return end
 
-    if UnitIsPlayer(target) then
+    if UnitIsPlayer(target) or UnitInPartyIsAI(target) then
         for unit in F:IterateGroupMembers() do
             if UnitIsUnit(target, unit) then
                 return unit
@@ -1283,7 +1323,7 @@ function F:GetTargetPetID(target)
 
     if not F:UnitInGroup(target) then return end
 
-    if UnitIsPlayer(target) then
+    if UnitIsPlayer(target) or UnitInPartyIsAI(target) then
         for unit in F:IterateGroupMembers() do
             if UnitIsUnit(target, unit) then
                 return F:GetPetUnit(unit)
@@ -1300,6 +1340,30 @@ local OBJECT_AFFILIATION_RAID = 0x00000004
 function F:IsFriend(unitFlags)
     if not unitFlags then return false end
     return (bit.band(unitFlags, OBJECT_AFFILIATION_MINE) ~= 0) or (bit.band(unitFlags, OBJECT_AFFILIATION_RAID) ~= 0) or (bit.band(unitFlags, OBJECT_AFFILIATION_PARTY) ~= 0)
+end
+
+function F:IsPlayer(guid)
+    if guid then
+        return string.find(guid, "^Player")
+    end
+end
+
+function F:IsPet(guid)
+    if guid then
+        return string.find(guid, "^Pet")
+    end
+end
+
+function F:IsNPC(guid)
+    if guid then
+        return string.find(guid, "^Creature")
+    end
+end
+
+function F:IsVehicle(guid)
+    if guid then
+        return string.find(guid, "^Vehicle")
+    end
 end
 
 function F:GetTargetUnitInfo()
@@ -1883,7 +1947,7 @@ if Cell.isRetail then
         local debuffs = {}
         AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
             if spellIds[spellId] then
-                debuffs[spellId] = debuffType
+                debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
         end)
         return debuffs
@@ -1893,7 +1957,7 @@ if Cell.isRetail then
         local debuffs = {}
         AuraUtil.ForEachAura(unit, "HARMFUL", nil, function(name, icon, count, debuffType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId)
             if types == "all" or types[debuffType] then
-                debuffs[spellId] = debuffType
+                debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
         end)
         return debuffs
@@ -1908,7 +1972,7 @@ else
             end
 
             if spellIds[spellId] then
-                debuffs[spellId] = debuffType
+                debuffs[spellId] = I.CheckDebuffType(debuffType, spellId)
             end
         end
         return debuffs
@@ -1923,7 +1987,7 @@ else
             end
 
             if types == "all" or types[debuffType] then
-                debuffs[spellId] = debuffType
+                debuffs[spellId] = I.CheckDebuffType(s, spellId)
             end
         end
         return debuffs

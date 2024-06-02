@@ -32,7 +32,7 @@ select(2, ...).L = setmetatable({
     ["showStack"] = "Show stack text",
     ["showTooltip"] = "Show aura tooltip",
     ["enableHighlight"] = "Highlight unit button",
-    ["hideIfEmptyOrFull"] = "Hide while HP is empty/full",
+    ["hideIfEmptyOrFull"] = "Hide if empty/full",
     ["onlyShowTopGlow"] = "Only show glow for the first debuff",
     ["circledStackNums"] = "Circled stack numbers",
     ["hideDamager"] = "Hide Damager",
@@ -44,6 +44,7 @@ select(2, ...).L = setmetatable({
     ["onlyShowOvershields"] = "Only show overshields",
     ["showAllSpells"] = "Show all spells",
     ["enableBlacklistShortcut"] = "Blacklist: Alt+Ctrl+RightClick",
+    ["smooth"] = "Smooth",
 
     ["BOTTOM"] = "Bottom",
     ["BOTTOMLEFT"] = "Bottom Left",
@@ -77,13 +78,61 @@ select(2, ...).L = setmetatable({
     ["marksTips"] = "\n|rTarget marker\nLeft-Click: |cffffffffset raid marker on target|r\nRight-Click: |cfffffffflock raid marker on target (in your group)|r",
     ["cleuAurasTips"] = "Check CLEU events for invisible auras",
     ["raidRosterTips"] = "[Right-Click] promote/demote (assistant). [Alt+Right-Click] uninvite.",
-    
+
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
 
     ["CHANGELOGS"] = [[
         <h1>If there are any issues after an update, check through all code snippets first.</h1>
         <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
+        <br/>
+
+        <h1>r227-release (May 21, 2024, 01:08 GMT+8)</h1>
+        <p>* Fixed Quick Assist.</p>
+        <p>+ Fixed a layout switch issue.</p>
+        <p>* Updated zhTW.</p>
+        <br/>
+
+        <h1>r226-release (May 20, 2024, 02:33 GMT+8)</h1>
+        <p>* Added a separated "Shadow" option for fonts (#110).</p>
+        <p>* Fixed Shield Bar alpha in preview (#111).</p>
+        <p>+ Implemented "Reverse Filling" for overshields.</p>
+        <p>+ Added "Frame Level" option for Role Icon indicator.</p>
+        <p>+ Added "Show Duration" for Raid Debuffs indicator.</p>
+        <p>* Updated color options for custom Text/Rect/Bar/Color/Overlay indicators (added ALPHAs).</p>
+        <br/>
+
+        <h1>r225-release (May 13, 2024, 03:50 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <br/>
+
+        <h1>r224-release (May 13, 2024, 01:00 GMT+8)</h1>
+        <p>+ New indicator: Power Text.</p>
+        <p>* The custom Icons indicators now have an ordered spell list.</p>
+        <p>+ Added "Class Color" for custom Color indicators and Health Text indicator.</p>
+        <p>+ Added "Frame Level" for custom Color/Overlay indicators.</p>
+        <p>+ Added "Invert Color" for Heal Absorb.</p>
+        <p>+ Added a "30%" for some duration related options.</p>
+        <p>* Fixed anchor of NPC frame while using combined groups.</p>
+        <p>* Fixed Power Filters when solo.</p>
+        <p>* Fixed Layout Auto Switch for Cata.</p>
+        <p>* Fixed issues with AI followers.</p>
+        <p>* Moved "Use LibHealComm" to Code Snippets.</p>
+        <br/>
+
+        <h1>r223-release (May 6, 2024, 00:05 GMT+8)</h1>
+        <p>* Updated Cata debuffs.</p>
+        <br/>
+
+        <h1>r222-release (May 4, 2024, 00:40 GMT+8)</h1>
+        <p>+ Updated for Cata.</p>
+        <p>+ Implemented "Combine Groups" (support sorting by role), check it out on Layouts tab.</p>
+        <p>+ New custom indicator type: Overlay (bar).</p>
+        <p>+ Added Clear/Import/Export for indicator aura list.</p>
+        <p>* Expanded Spotlight Frame to 15 buttons.</p>
+        <p>* Fixed colors of AI followers.</p>
+        <p>* Fixed colors for custom Text/Rect/Bar indicators.</p>
+        <p>* Updated zhTW.</p>
         <br/>
 
         <h1>r221-release (Apr 6, 2024, 22:00 GMT+8)</h1>

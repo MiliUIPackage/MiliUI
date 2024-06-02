@@ -440,7 +440,7 @@ end
 local previews = {}
 local previewOrientation
 
-function I:CreateConsumables(parent, isPreview)
+function I.CreateConsumables(parent, isPreview)
     local consumables = CreateFrame("Frame", parent:GetName().."ConsumablesParent", parent)
     
     -- mask
@@ -471,8 +471,8 @@ function I:CreateConsumables(parent, isPreview)
         end
     else
         parent.indicators.consumables = consumables
-        consumables:SetFrameLevel(parent.widget.healthBar:GetFrameLevel()+1)
-        consumables:SetAllPoints(parent.widget.healthBar)
+        consumables:SetFrameLevel(parent.widgets.healthBar:GetFrameLevel()+1)
+        consumables:SetAllPoints(parent.widgets.healthBar)
     end
 
     -- speed
@@ -488,7 +488,7 @@ function I:CreateConsumables(parent, isPreview)
     end
 end
 
-function I:UpdateConsumablesOrientation(parent, barOrientation)
+function I.UpdateConsumablesOrientation(parent, barOrientation)
     orientation = barOrientation
     for _, a in pairs(parent.indicators.consumables.animations) do
         a:UpdateOrientation()
@@ -504,7 +504,7 @@ function I:UpdateConsumablesOrientation(parent, barOrientation)
     end
 end
 
-function I:EnableConsumables(enabled)
+function I.EnableConsumables(enabled)
     if enabled then
         eventFrame:RegisterEvent("UNIT_SPELLCAST_SUCCEEDED")
     else

@@ -30,7 +30,6 @@ local tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY
 -------------------------------------------------
 -- CellMainFrame
 -------------------------------------------------
-
 local cellMainFrame = CreateFrame("Frame", "CellMainFrame", UIParent, "SecureFrameTemplate")
 Cell.frames.mainFrame = cellMainFrame
 cellMainFrame:SetIgnoreParentScale(true)
@@ -88,7 +87,7 @@ options:SetScript("OnClick", function(self, button)
         F:ShowOptionsFrame()
     elseif button == "RightButton" then
         F:IterateAllUnitButtons(B.UpdateAll, true)
-        F:Print(L["Unit buttons refreshed (%s)."]:format(L["Main"]))
+        F:Print(L["Unit buttons refreshed (%s)."]:format(F:UpperFirst(L["all"])))
     end
 end)
 options:HookScript("OnEnter", function()
@@ -163,6 +162,36 @@ tools:SetAttribute("_onmousedown", [=[
     end
 ]=])
 ]===]
+
+-------------------------------------------------
+-- LoadingBar
+-------------------------------------------------
+local loadingBar = CreateFrame("StatusBar", "CellLoadingBar", options)
+loadingBar:Hide()
+loadingBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+loadingBar:SetStatusBarColor(0.5, 1, 0)
+P:Height(loadingBar, 1)
+P:Point(loadingBar, "BOTTOMLEFT", options, 1, 1)
+P:Point(loadingBar, "BOTTOMRIGHT", options, -1, 1)
+
+-------------------------------------------------
+-- MemoryUsage
+-------------------------------------------------
+--[==[@debug@
+local memUsage = CreateFrame("Frame", nil, cellMainFrame)
+memUsage:SetSize(10, 10)
+memUsage:SetPoint("LEFT", raid, "RIGHT", 5, 0)
+memUsage.text = memUsage:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+memUsage.text:SetPoint("LEFT")
+memUsage:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed > 1 then
+        UpdateAddOnMemoryUsage()
+        memUsage.text:SetFormattedText("%.2fMB", GetAddOnMemoryUsage("Cell")/1024)
+        self.elapsed = 0
+    end
+end)
+--@end-debug@]==]
 
 -------------------------------------------------
 -- fadeIn & fadeOut
@@ -508,11 +537,15 @@ local function UpdateMenu(which)
 end
 Cell:RegisterCallback("UpdateMenu", "MainFrame_UpdateMenu", UpdateMenu)
 
+local init
 local function MainFrame_UpdateLayout(layout, which)
     F:Debug("|cffff0066UpdateLayout:|r layout:", layout, " which:", which)
 
-    --! NOTE: a reload during pet battle prevents HEADER from CREATING CHILDs (unit buttons), this hide delay is a MUST  
-    RegisterStateDriver(cellMainFrame, 'visibility', '[petbattle] hide; show')
+    if not init then
+        init = true
+        --! NOTE: a reload during pet battle prevents HEADER from CREATING CHILDs (unit buttons), this hide delay is a MUST  
+        RegisterStateDriver(cellMainFrame, "visibility", "[petbattle] hide; show")
+    end
     
     layout = Cell.vars.currentLayoutTable
     
@@ -525,10 +558,12 @@ local function MainFrame_UpdateLayout(layout, which)
     end
 
     -- load position
-    if not P:LoadPosition(anchorFrame, layout["main"]["position"]) then
-        P:ClearPoints(anchorFrame)
-        -- no position, use default
-        PixelUtil.SetPoint(anchorFrame, "TOPLEFT", UIParent, "CENTER", 1, -1)
+    if not which then
+        if not P:LoadPosition(anchorFrame, layout["main"]["position"]) then
+            P:ClearPoints(anchorFrame)
+            -- no position, use default
+            PixelUtil.SetPoint(anchorFrame, "TOPLEFT", UIParent, "CENTER", 1, -1)
+        end
     end
 end
 Cell:RegisterCallback("UpdateLayout", "MainFrame_UpdateLayout", MainFrame_UpdateLayout)
@@ -540,6 +575,8 @@ local function UpdatePixelPerfect()
     P:Resize(anchorFrame)
     options:UpdatePixelPerfect()
     raid:UpdatePixelPerfect()
+    P:Repoint(loadingBar)
+    P:Resize(loadingBar)
 
     -- NOTE: update pixel perfect for each button moved to UpdateIndicators
     -- F:IterateAllUnitButtons(function(b)

@@ -351,7 +351,12 @@ local function GetBindingSnippet()
                 elseif not bindingClicks[key] then
                     local m, k = DecodeKeyboard(key)
                     -- override keyboard to click
-                    bindingClicks[key] = [[self:SetBindingClick(true, "]]..strupper(m..k)..[[", self, "]]..key..[[")]]
+                    if k == [[\]] then
+                        key = key:gsub([[\]], [[\\]])
+                        bindingClicks[key] = [[self:SetBindingClick(true, "]]..strupper(m)..[[\\", self, "]]..key..[[")]]
+                    else
+                        bindingClicks[key] = [[self:SetBindingClick(true, "]]..strupper(m..k)..[[", self, "]]..key..[[")]]
+                    end
                 end
             end
         end
@@ -415,7 +420,7 @@ local function ApplyClickCastings(b)
             b:SetAttribute("menu", bindKey)
         ------------------------------------------------------------------
         --* 已修复：实际上载具（宠物按钮）无法选中的原因是没有 SetAttribute("toggleForVehicle", false)
-        -- elseif Cell.isWrath and t[2] == "target" then
+        -- elseif Cell.isCata and t[2] == "target" then
         --     b:SetAttribute(bindKey, "macro")
         --     local attr = string.gsub(bindKey, "type", "macrotext")
         --     b:SetAttribute(attr, "/tar [@cell]")
@@ -1004,7 +1009,7 @@ local function ShowActionsMenu(index, b)
             },
         }
 
-        if (Cell.isVanilla or Cell.isWrath) and Cell.vars.playerClass == "WARLOCK" then
+        if (Cell.isVanilla or Cell.isCata) and Cell.vars.playerClass == "WARLOCK" then
             tinsert(items, {
                 ["text"] = GetSpellInfo(20707),
                 ["onClick"] = function()
@@ -1077,7 +1082,7 @@ local function ShowActionsMenu(index, b)
         }
 
         -- default spells
-        local spells = F:GetSpellList(Cell.vars.playerClass, Cell.vars.playerSpecID)
+        local spells = F:GetClickCastingSpellList(Cell.vars.playerClass, Cell.vars.playerSpecID)
         -- {icon, name, type(C/S/P), id}
         
         for _, t in ipairs(spells) do
@@ -1124,7 +1129,7 @@ local function UpdateCurrentText(isCommon)
     else
         if Cell.isRetail then
             listPane:SetTitle(L["Current Profile"]..": ".."|T"..Cell.vars.playerSpecIcon..":12:12:0:1:12:12:1:11:1:11|t "..Cell.vars.playerSpecName)
-        elseif Cell.isWrath then
+        elseif Cell.isCata then
             local name, icon = F:GetActiveTalentInfo()
             listPane:SetTitle(L["Current Profile"]..": ".."|T"..icon..":12:12:0:1:12:12:1:11:1:11|t "..name)
         end
@@ -1452,3 +1457,9 @@ clickCastingsTab:SetScript("OnShow", function()
     menu:SetMenuParent(clickCastingsTab)
     -- texplore(changed)
 end)
+
+function F:UpdateClickCastingProfileLabel()
+    if loaded then
+        UpdateCurrentText(Cell.vars.clickCastings["useCommon"])
+    end
+end

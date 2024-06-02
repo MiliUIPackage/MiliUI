@@ -43,6 +43,7 @@ end
 local font_title_name = strupper(addonName).."_FONT_WIDGET_TITLE"
 local font_title_disable_name = strupper(addonName).."_FONT_WIDGET_TITLE_DISABLE"
 local font_name = strupper(addonName).."_FONT_WIDGET"
+local font_small_name = strupper(addonName).."_FONT_WIDGET_SMALL"
 local font_chinese_name = strupper(addonName).."_FONT_CHINESE"
 local font_disable_name = strupper(addonName).."_FONT_WIDGET_DISABLE"
 local font_special_name = strupper(addonName).."_FONT_SPECIAL"
@@ -69,6 +70,13 @@ font:SetTextColor(1, 1, 1, 1)
 font:SetShadowColor(0, 0, 0)
 font:SetShadowOffset(1, -1)
 font:SetJustifyH("CENTER")
+
+local font_small = CreateFont(font_small_name)
+font_small:SetFont(GameFontNormal:GetFont(), 11, "")
+font_small:SetTextColor(1, 1, 1, 1)
+font_small:SetShadowColor(0, 0, 0)
+font_small:SetShadowOffset(1, -1)
+font_small:SetJustifyH("CENTER")
 
 local font_chinese = CreateFont(font_chinese_name)
 font_chinese:SetFont(UNIT_NAME_FONT_CHINESE, 14, "")
@@ -119,6 +127,7 @@ function addon:UpdateOptionsFont(offset, useGameFont)
     font_title:SetFont(defaultFont, 14+offset, "")
     font_title_disable:SetFont(defaultFont, 14+offset, "")
     font:SetFont(defaultFont, 13+offset, "")
+    font_small:SetFont(defaultFont, 11+offset, "")
     font_chinese:SetFont(UNIT_NAME_FONT_CHINESE, 14+offset, "")
     font_disable:SetFont(defaultFont, 13+offset, "")
     font_class_title:SetFont(defaultFont, 14+offset, "")
@@ -1558,9 +1567,7 @@ function addon:CreateStatusBar(name, parent, width, height, maxValue, smooth, fu
     function bar:UpdatePixelPerfect()
         P:Resize(bar)
         P:Repoint(bar)
-        bar:SetBackdrop({bgFile="Interface\\Buttons\\WHITE8x8", edgeFile="Interface\\Buttons\\WHITE8x8", edgeSize=P:Scale(1)})
-        bar:SetBackdropColor(0.07, 0.07, 0.07, 0.9)
-        bar:SetBackdropBorderColor(0, 0, 0, 1)
+        P:Reborder(bar)
     end
 
     return bar
@@ -1818,11 +1825,74 @@ function addon:CreateConfirmPopup(parent, width, text, onAccept, onReject, mask,
     end)
 
     -- parent.confirmPopup:SetFrameStrata("DIALOG")
-    parent.confirmPopup:SetFrameLevel(parent:GetFrameLevel() + 50)
+    parent.confirmPopup:SetFrameLevel(parent:GetFrameLevel() + 300)
     parent.confirmPopup:ClearAllPoints() -- prepare for SetPoint()
     parent.confirmPopup:Show()
 
     return parent.confirmPopup
+end
+
+-----------------------------------------
+-- notification popup
+-----------------------------------------
+function addon:CreateNotificationPopup(parent, width, text, mask)
+    if not parent.notificationPopup then -- not init
+        parent.notificationPopup = CreateFrame("Frame", nil, parent, "BackdropTemplate")
+        parent.notificationPopup:SetSize(width, 100)
+        addon:StylizeFrame(parent.notificationPopup, {0.1, 0.1, 0.1, 0.95}, {accentColor.t[1], accentColor.t[2], accentColor.t[3], 1})
+        parent.notificationPopup:EnableMouse(true)
+        parent.notificationPopup:SetClampedToScreen(true)
+        parent.notificationPopup:Hide()
+        
+        parent.notificationPopup:SetScript("OnHide", function()
+            parent.notificationPopup:Hide()
+            -- hide mask
+            if mask and parent.mask then parent.mask:Hide() end
+        end)
+
+        parent.notificationPopup.text = parent.notificationPopup:CreateFontString(nil, "OVERLAY", font_title_name)
+        parent.notificationPopup.text:SetWordWrap(true)
+        parent.notificationPopup.text:SetSpacing(3)
+        parent.notificationPopup.text:SetJustifyH("CENTER")
+        parent.notificationPopup.text:SetPoint("TOPLEFT", 5, -8)
+        parent.notificationPopup.text:SetPoint("TOPRIGHT", -5, -8)
+
+        -- ok
+        parent.notificationPopup.button = addon:CreateButton(parent.notificationPopup, _G.OKAY, "green", {37, 17})
+        parent.notificationPopup.button:SetPoint("BOTTOMRIGHT")
+        parent.notificationPopup.button:SetBackdropBorderColor(accentColor.t[1], accentColor.t[2], accentColor.t[3], 1)
+    end
+
+    if mask then -- show mask?
+        if not parent.mask then
+            addon:CreateMask(parent, nil, {1, -1, -1, 1})
+        else
+            parent.mask:Show()
+        end
+    end
+
+    parent.notificationPopup.button:SetScript("OnClick", function()
+        if mask and parent.mask then parent.mask:Hide() end
+        parent.notificationPopup:Hide()
+    end)
+
+    parent.notificationPopup:SetWidth(width)
+    parent.notificationPopup.text:SetText(text)
+
+    -- update height
+    parent.notificationPopup:SetScript("OnUpdate", function(self, elapsed)
+        local newHeight = parent.notificationPopup.text:GetStringHeight() + 30
+        parent.notificationPopup:SetHeight(newHeight)
+        -- run OnUpdate once, stop updating height
+        parent.notificationPopup:SetScript("OnUpdate", nil)
+    end)
+
+    -- parent.notificationPopup:SetFrameStrata("DIALOG")
+    parent.notificationPopup:SetFrameLevel(parent:GetFrameLevel() + 310)
+    parent.notificationPopup:ClearAllPoints() -- prepare for SetPoint()
+    parent.notificationPopup:Show()
+
+    return parent.notificationPopup
 end
 
 -----------------------------------------

@@ -3,7 +3,7 @@ if not LOCALE_zhCN then return end
 local L = select( 2, ...).L
 
 L["New version found (%s). Please visit %s to get the latest version."] = "发现新版本 (%s)。 请访问 %s 下载最新版本。"
-L["ABOUT"] = "Cell 团队框架的灵感来主要来自 CompactRaid 与 Grid2，同时也稍微参考了 Aptechka 和 VuhDo。\nCell 不轻量，也并非全能，其目标是提供良好的用户体验。\n希望你能喜欢。"
+L["ABOUT"] = "Cell 团队框架的灵感来主要来自 CompactRaid 与 Grid2，同时也稍微参考了 Aptechka 和 VuhDo。\nCell 不轻量，也并非全能，其目标是提供相比以往更好的用户体验。\n希望你能喜欢。"
 L["RESET"] = "从过旧的版本更新，需要重置Cell"
 L["RESET_CHARACTER"] = "从过旧的版本更新，需要重置Cell的角色配置"
 L["RESET_INCLUDES"] = "这仅包括点击施法与布局自动切换"
@@ -183,7 +183,9 @@ L["Color Duration Text"] = "对持续时间文本着色"
 L["Heal Prediction"] = "治疗预估"
 L["LibHealComm needs to be installed"] = "需要自行安装 LibHealComm"
 L["Heal Absorb"] = "治疗吸收"
+L["Invert Color"] = "使用反色"
 L["Shield Texture"] = "护盾材质"
+L["Reverse Filling"] = "反向填充"
 L["Overshield Texture"] = "超过血量上限的护盾材质"
 L["[Ctrl+Left-Click] to reset these settings"] = "[Ctrl+左键] 点击此按钮来重置这些设置"
 L["Debuff Type Color"] = "减益类型颜色"
@@ -277,6 +279,7 @@ L["Friendly NPC Frame"] = "友方 NPC 框体"
 L["Layout Auto Switch"] = "布局自动切换"
 L["Role"] = "职责"
 L["Spec"] = "专精"
+L["No Spec"] = "无专精"
 L["use separate profile for current spec"] = "为当前专精使用独立配置"
 L["Solo/Party"] = "单人/小队"
 L["Outdoor"] = "野外"
@@ -303,9 +306,10 @@ L["Group Columns"] = "队伍列数"
 L["Group Rows"] = "队伍行数"
 L["Group Spacing"] = "队伍间距"
 
-L["Sort By Role (Party Only)"] = "按职责排序（仅小队）"
-L["Hide Self (Party Only)"] = "隐藏自己（仅小队）"
+L["Combine Groups"] = "合并队伍"
+L["Sort By Role"] = "按职责排序"
 L["Hide Self"] = "隐藏自己"
+L["%s is required"] = "需要%s"
 
 L["Use Same Size As Main"] = "使用与主框体相同的尺寸"
 L["Use Same Arrangement As Main"] = "使用与主框体相同的排列"
@@ -406,8 +410,10 @@ L["Indicator Settings"] = "指示器设置"
 L["Name Text"] = "名字"
 L["Status Text"] = "状态文字"
 L["Health Text"] = "血量文字"
+L["Power Text"] = "能量文字"
 L["Status Icon"] = "状态图标"
 L["Role Icon"] = "职责图标"
+L["Party Assignment Icon"] = "职位图标"
 L["Leader Icon"] = "队长图标"
 L["Ready Check Icon"] = "就位确认图标"
 L["Raid Icon (player)"] = "团队标记 (玩家)"
@@ -451,6 +457,7 @@ L["Bar"] = "进度条"
 L["Text"] = "文本"
 L["Icons"] = "图标组"
 L["Bars"] = "进度条组"
+L["Overlay"] = "叠加层"
 
 L["Enabled"] = "启用"
 L["Anchor Point"] = "锚点"
@@ -471,7 +478,7 @@ L["Font Outline"] = "字体轮廓"
 L["Font Size"] = "字体尺寸"
 L["Shadow"] = "阴影"
 L["Outline"] = "轮廓"
-L["Monochrome Outline"] = "单色轮廓"
+L["Monochrome"] = "单色"
 L["stackFont"] = "层数字体"
 L["durationFont"] = "持续时间字体"
 L["This setting will be ignored, if the %1$s option in %2$s tab is enabled"] = "如果启用了%2$s页面下的%1$s选项，此设置将被忽略"
@@ -497,9 +504,10 @@ L["Max Icons"] = "最大显示数量"
 L["Icons Per Line"] = "每行/列图标数"
 L["Format"] = "格式"
 L["shields"] = "护盾"
-L["hideIfEmptyOrFull"] = "当死亡或血量满时隐藏"
+L["hideIfEmptyOrFull"] = "当值为满或空时隐藏"
 L["Color"] = "颜色"
-L["Background Color"] = "背景色"
+L["Border Color"] = "边框颜色"
+L["Background Color"] = "背景颜色"
 L["Remaining Time <"] = "剩余时间 <"
 L["sec"] = "秒"
 L["Always"] = "总是"
@@ -523,6 +531,7 @@ L["Cast By"] = "来源"
 L["Me"] = "我"
 L["Anyone"] = "任何人"
 L["Others"] = "其他人"
+L["smooth"] = "平滑"
 
 L["Click to preview"] = "点击预览"
 L["Debug Mode"] = "调试模式"
@@ -547,7 +556,7 @@ L["showTooltip"] = "显示鼠标提示"
 L["This will make these icons not click-through-able"] = "将会使这些图标无法点击穿透"
 L["Tooltips need to be enabled in General tab"] = "需要先启用常规页面中的鼠标提示功能"
 L["Added |T%d:0|t|cFFFF3030%s(%d)|r into debuff blacklist."] = "已将 |T%d:0|t|cFFFF3030%s(%d)|r 添加至减益黑名单。"
-L["enableBlacklistShortcut"] = "黑名单：Alt+Ctrl+RightClick"
+L["enableBlacklistShortcut"] = "黑名单：Alt+Ctrl+右键"
 L["Only one threshold is displayed at a time"] = "同一时间只显示一个阈值"
 L["hideDamager"] = "隐藏伤害输出"
 L["hideInCombat"] = "战斗中隐藏"
@@ -802,6 +811,7 @@ L["Code Snippets"] = "代码片段"
 L["SNIPPETS_TIPS"] = "[双击]改名，[Shift+左键]删除。所有已勾选的代码片段将会在 Cell 初始化阶段的最后自动执行（即 ADDON_LOADED 事件中）。"
 L["Run"] = "执行"
 L["unnamed"] = "未命名"
+L["All snippets have been disabled, due to the version update"] = "由于版本更新，所有的代码片段已被禁用"
 
 -------------------------------------------------
 -- CHANGELOGS
@@ -820,6 +830,54 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r227-release (May 21, 2024, 01:08 GMT+8)</h1>
+    <p>* 修复快速协助。</p>
+    <p>+ 修复了一个布局切换时可能出现的异常。</p>
+    <p>* 更新繁中。</p>
+    <br/>
+
+    <h1>r226-release (May 20, 2024, 02:33 GMT+8)</h1>
+    <p>* 为字体添加了单独的“阴影”选项（#110）。</p>
+    <p>* 修复护盾条指示器在预览中的透明度（#111）。</p>
+    <p>+ 为超出血量上限的护盾添加了“反向填充”的选项。</p>
+    <p>+ 为职责指示器添加了“层级”的选项。</p>
+    <p>+ 为副本减益指示器添加了“显示持续时间文本”的选项。</p>
+    <p>* 更新自定义“文本/矩形/进度条/颜色/叠加层”指示器的颜色选项（增加了透明度）。</p>
+    <br/>
+
+    <h1>r225-release (May 13, 2024, 03:50 GMT+8)</h1>
+    <p>* 修复异常。</p>
+    <br/>
+
+    <h1>r224-release (May 13, 2024, 01:00 GMT+8)</h1>
+    <p>+ 新指示器：能量文字。</p>
+    <p>* 图标组指示器的法术列表现在是有序的了。</p>
+    <p>+ 为自定义“颜色”指示器和血量文字指示器添加了“职业颜色”的选项。</p>
+    <p>+ 为自定义“颜色/叠加层”指示器添加了“层级”的选项。</p>
+    <p>+ 为治疗吸收材质添加了“使用反色”的选项。</p>
+    <p>+ 为一部分持续时间相关的设置添加了“30%”的选项。</p>
+    <p>* 修复合并队伍时NPC框体的锚点。</p>
+    <p>* 修复单人时的能量条过滤。</p>
+    <p>* 修复大灾变的布局自动切换功能。</p>
+    <p>* 修复追随者地下城中AI队友相关问题。</p>
+    <p>* 将“使用 LibHealComm”选项移至代码片段内。</p>
+    <br/>
+
+    <h1>r223-release (May 6, 2024, 00:05 GMT+8)</h1>
+    <p>* 更新大灾变副本减益。</p>
+    <br/>
+
+    <h1>r222-release (May 4, 2024, 00:40 GMT+8)</h1>
+    <p>+ 适配大灾变怀旧服。</p>
+    <p>+ 新增“合并队伍”功能（支持按职责排序），此选项位于布局页面内。</p>
+    <p>+ 新自定义指示器：叠加层（进度条）。</p>
+    <p>+ 为指示器的法术列表添加了“清除/导入/导出”的功能。</p>
+    <p>* 将特别关注框体的按钮上限提升至15个。</p>
+    <p>* 修复追随者地下城中AI队友的血条颜色。</p>
+    <p>* 修复“文本/矩形/进度条”类型自定义指示器的颜色选项。</p>
+    <p>* 更新繁中。</p>
     <br/>
 
     <h1>r221-release (Apr 6, 2024, 22:00 GMT+8)</h1>

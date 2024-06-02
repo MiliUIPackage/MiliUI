@@ -48,7 +48,7 @@ config:SetScript("OnDragStop", function()
     P:SavePosition(anchorFrame, Cell.vars.currentLayoutTable["spotlight"]["position"])
 end)
 config:SetAttribute("_onclick", [[
-    for i = 1, 10 do
+    for i = 1, 15 do
         local b = self:GetFrameRef("assignment"..i)
         if b:IsShown() then
             b:Hide()
@@ -189,8 +189,8 @@ local function CreateAssignmentButton(index)
         if not f then return end -- cursor outside wow window
 
         local unitId
-        if f.state and f.state.displayedUnit then -- Cell
-            unitId = f.state.displayedUnit
+        if f.states and f.states.displayedUnit then -- Cell
+            unitId = f.states.displayedUnit
         elseif f.unit then
             unitId = f.unit
         end
@@ -231,7 +231,7 @@ end
 -------------------------------------------------
 local wrapFrame = CreateFrame("Frame", "CellSpotlightWrapFrame", nil, "SecureHandlerBaseTemplate")
 
-for i = 1, 10 do
+for i = 1, 15 do
     -- placeholder
     placeholders[i] = CreatePlaceHolder(i)
 
@@ -289,7 +289,7 @@ menu:SetClampedToScreen(true)
 menu:Hide()
 
 --! assignmentBtn -> spotlightButton
-for i = 1, 10 do
+for i = 1, 15 do
     -- assignmentBtn -> menu
     SecureHandlerSetFrameRef(assignmentButtons[i], "menu", menu)
     -- menu -> spotlightButton
@@ -302,7 +302,7 @@ end
 SecureHandlerSetFrameRef(menu, "config", config)
 SecureHandlerSetFrameRef(config, "menu", menu)
 -- menu:SetAttribute("_onhide", [[
---     for i = 1, 10 do
+--     for i = 1, 15 do
 --         self:GetFrameRef("assignment"..i):Hide()
 --     end
 -- ]])
@@ -402,7 +402,7 @@ unitname:SetAttribute("_onclick", [[
 ]])
 function unitname:SetUnit(index, target)
     local unitId = F:GetTargetUnitID(target)
-    if unitId and UnitIsPlayer(unitId) then
+    if unitId and (UnitIsPlayer(unitId) or UnitInPartyIsAI(unitId)) then
         local name = GetUnitName(unitId, true)
         Cell.unitButtons.spotlight[index]:SetAttribute("unit", unitId)
         assignmentButtons[index]:SetText(name)
@@ -493,7 +493,7 @@ end
 boss1target = Cell:CreateButton(menu, L["Boss1 Target"], "transparent-accent", {20, 20}, true, false, nil, nil, "SecureHandlerAttributeTemplate,SecureHandlerClickTemplate")
 P:Point(boss1target, "TOPLEFT", tank, "BOTTOMLEFT")
 P:Point(boss1target, "TOPRIGHT", tank, "BOTTOMRIGHT")
-boss1target:SetEnabled(Cell.isRetail)
+boss1target:SetEnabled(not Cell.isVanilla)
 boss1target:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
@@ -537,7 +537,7 @@ UpdateTanks = function()
 
     -- assign
     local n = 1
-    for index = 1, 10 do
+    for index = 1, 15 do
         if InCombatLockdown() then
             tankUpdateRequired = true
             return
@@ -842,14 +842,14 @@ local function UpdateLayout(layout, which)
             f:ClearAllPoints()
             if last then
                 if strfind(orientation, "^vertical") then
-                    if i == 6 and orientation == "vertical" then
-                        f:SetPoint(point, placeholders[1], groupPoint, unitSpacingX, 0)
+                    if i % 5 == 1 and orientation == "vertical" then
+                        f:SetPoint(point, placeholders[i-5], groupPoint, unitSpacingX, 0)
                     else
                         f:SetPoint(point, last, anchorPoint, 0, unitSpacingY)
                     end
                 else
-                    if i == 6 and orientation == "horizontal" then
-                        f:SetPoint(point, placeholders[1], groupPoint, 0, unitSpacingY)
+                    if i % 5 == 1 and orientation == "horizontal" then
+                        f:SetPoint(point, placeholders[i-5], groupPoint, 0, unitSpacingY)
                     else
                         f:SetPoint(point, last, anchorPoint, unitSpacingX, 0)
                     end
@@ -870,7 +870,7 @@ local function UpdateLayout(layout, which)
         end
     end
     
-    if not which or strfind(which, "power$") or which == "barOrientation" then
+    if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
         for _, b in pairs(Cell.unitButtons.spotlight) do
             if layout["spotlight"]["sameSizeAsMain"] then
                 B:SetPowerSize(b, layout["main"]["powerSize"])
@@ -885,7 +885,7 @@ local function UpdateLayout(layout, which)
         wipe(names)
 
         if layout["spotlight"]["enabled"] then
-            for i = 1, 10 do
+            for i = 1, 15 do
                 local unit = layout["spotlight"]["units"][i]
                 Cell.unitButtons.spotlight[i]:SetAttribute("hidePlaceholder", layout["spotlight"]["hidePlaceholder"])
                 
@@ -909,7 +909,7 @@ local function UpdateLayout(layout, which)
             UpdateNames()
             spotlightFrame:Show()
         else
-            for i = 1, 10 do
+            for i = 1, 15 do
                 Cell.unitButtons.spotlight[i]:SetAttribute("unit", nil)
                 Cell.unitButtons.spotlight[i]:SetAttribute("refreshOnUpdate", nil)
                 UnregisterUnitWatch(Cell.unitButtons.spotlight[i])

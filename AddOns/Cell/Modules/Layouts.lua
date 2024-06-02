@@ -9,7 +9,6 @@ Cell.frames.layoutsTab = layoutsTab
 layoutsTab:SetAllPoints(Cell.frames.optionsFrame)
 layoutsTab:Hide()
 
-local autoSwitchIndex
 local selectedLayout, selectedLayoutTable
 local selectedPage = "main"
 -------------------------------------------------
@@ -28,10 +27,10 @@ local function CreatePreviewButton()
     previewButton:SetScript("OnUpdate", nil)
     previewButton:Show()
 
-    previewButton.widget.healthBar:SetMinMaxValues(0, 1)
-    previewButton.widget.healthBar:SetValue(1)
-    previewButton.widget.powerBar:SetMinMaxValues(0, 1)
-    previewButton.widget.powerBar:SetValue(1)
+    previewButton.widgets.healthBar:SetMinMaxValues(0, 1)
+    previewButton.widgets.healthBar:SetValue(1)
+    previewButton.widgets.powerBar:SetMinMaxValues(0, 1)
+    previewButton.widgets.powerBar:SetValue(1)
     previewButton.isPreview = true
     
     local previewButtonBG = Cell:CreateFrame("CellLayoutsPreviewButtonBG", layoutsTab)
@@ -57,7 +56,7 @@ local function UpdatePreviewButton(which, value)
         if iTable["enabled"] then
             previewButton.indicators.nameText:Show()
             previewButton.indicators.nameText.isPreview = true
-            previewButton.state.name = UnitName("player")
+            previewButton.states.name = UnitName("player")
             previewButton.indicators.nameText:UpdateName()
             previewButton.indicators.nameText:UpdatePreviewColor(iTable["color"])
             previewButton.indicators.nameText:UpdateTextWidth(iTable["textWidth"])
@@ -73,16 +72,16 @@ local function UpdatePreviewButton(which, value)
     end
 
     if not which or which == "appearance" then
-        previewButton.widget.healthBar:SetStatusBarTexture(Cell.vars.texture)
-        previewButton.widget.powerBar:SetStatusBarTexture(Cell.vars.texture)
+        previewButton.widgets.healthBar:SetStatusBarTexture(Cell.vars.texture)
+        previewButton.widgets.powerBar:SetStatusBarTexture(Cell.vars.texture)
 
         -- health color
-        local r, g, b = F:GetHealthColor(1, false, F:GetClassColor(Cell.vars.playerClass))
-        previewButton.widget.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
+        local r, g, b = F:GetHealthBarColor(1, false, F:GetClassColor(Cell.vars.playerClass))
+        previewButton.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
         
         -- power color
-        r, g, b = F:GetPowerColor("player", Cell.vars.playerClass)
-        previewButton.widget.powerBar:SetStatusBarColor(r, g, b)
+        r, g, b = F:GetPowerBarColor("player", Cell.vars.playerClass)
+        previewButton.widgets.powerBar:SetStatusBarColor(r, g, b)
 
         -- alpha
         previewButton:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
@@ -166,11 +165,11 @@ local function CreateLayoutPreview()
         layoutPreview:Hide()
     end)
 
-    -- headers
-    layoutPreview.headers = {}
+    -- separatedHeaders
+    layoutPreview.separatedHeaders = {}
     for i = 1, 8 do
-        local header = CreateFrame("Frame", "CellLayoutPreviewFrameHeader"..i, layoutPreview)
-        layoutPreview.headers[i] = header
+        local header = CreateFrame("Frame", "CellLayoutPreviewSeparatedHeader"..i, layoutPreview)
+        layoutPreview.separatedHeaders[i] = header
 
         for j = 1, 5 do
             header[j] = header:CreateTexture(nil, "BACKGROUND")
@@ -180,9 +179,13 @@ local function CreateLayoutPreview()
 
             header[j].tex = header:CreateTexture(nil, "ARTWORK")
             header[j].tex:SetTexture("Interface\\Buttons\\WHITE8x8")
-    
             header[j].tex:SetPoint("TOPLEFT", header[j], "TOPLEFT", P:Scale(1), P:Scale(-1))
             header[j].tex:SetPoint("BOTTOMRIGHT", header[j], "BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+
+            header[j].label = header:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_SMALL")
+            header[j].label:SetPoint("BOTTOMRIGHT", header[j].tex, -2, 2)
+            header[j].label:SetText(i.."-"..j)
+            header[j].label:SetTextColor(0.5, 0.5, 0.5)
 
             if i == 1 then
                 header[j].tex:SetVertexColor(F:ConvertRGB(255, 0, 0, desaturation[j])) -- Red
@@ -203,6 +206,28 @@ local function CreateLayoutPreview()
             end
             header[j].tex:SetAlpha(0.555)
         end
+    end
+
+    -- combinedHeader
+    layoutPreview.combinedHeader = CreateFrame("Frame", "CellLayoutPreviewCombinedHeader", layoutPreview)
+    for i = 1, 40 do
+        local f = layoutPreview.combinedHeader:CreateTexture(nil, "BACKGROUND")
+        layoutPreview.combinedHeader[i] = f
+
+        f:SetColorTexture(0, 0, 0)
+        f:SetAlpha(0.555)
+
+        f.tex = layoutPreview.combinedHeader:CreateTexture(nil, "ARTWORK")
+        f.tex:SetTexture("Interface\\Buttons\\WHITE8x8")
+        f.tex:SetPoint("TOPLEFT", f, "TOPLEFT", P:Scale(1), P:Scale(-1))
+        f.tex:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
+        f.tex:SetVertexColor(F:ConvertRGB(255, 0, 0, 1 + ((1 - i) * 0.02)))
+        f.tex:SetAlpha(0.555)
+
+        f.label = layoutPreview.combinedHeader:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET_SMALL")
+        f.label:SetPoint("BOTTOMRIGHT", f.tex, -2, 2)
+        f.label:SetText(i)
+        f.label:SetTextColor(0.5, 0.5, 0.5)
     end
 end
 
@@ -248,12 +273,13 @@ local function UpdateLayoutPreview()
     end
 
     -- update layoutPreviewAnchor point
+    layoutPreviewAnchor:ClearAllPoints()
     if selectedLayout == Cell.vars.currentLayout then
+        layoutPreviewAnchor:EnableMouse(false)
         layoutPreviewAnchor:SetAllPoints(Cell.frames.anchorFrame)
     else
-        if #selectedLayoutTable["main"]["position"] == 2 then
-            P:LoadPosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"])
-        else
+        layoutPreviewAnchor:EnableMouse(true)
+        if not P:LoadPosition(layoutPreviewAnchor, selectedLayoutTable["main"]["position"]) then
             layoutPreviewAnchor:ClearAllPoints()
             layoutPreviewAnchor:SetPoint("TOPLEFT", UIParent, "CENTER")
         end
@@ -261,128 +287,201 @@ local function UpdateLayoutPreview()
     layoutPreviewName:SetText(L["Layout"]..": "..selectedLayout)
 
     -- re-arrange
-    local shownGroups = {}
-    for i, isShown in ipairs(selectedLayoutTable["groupFilter"]) do
-        if isShown then
-            tinsert(shownGroups, i)
+    local spacingX = selectedLayoutTable["main"]["spacingX"]
+    local spacingY = selectedLayoutTable["main"]["spacingY"]
+    local point, anchorPoint, groupAnchorPoint, unitSpacing, groupSpacing, verticalSpacing, horizontalSpacing
+
+    if selectedLayoutTable["main"]["orientation"] == "vertical" then
+        if selectedLayoutTable["main"]["anchor"] == "BOTTOMLEFT" then
+            point, anchorPoint, groupAnchorPoint = "BOTTOMLEFT", "TOPLEFT", "BOTTOMRIGHT"
+            unitSpacing = spacingY
+            groupSpacing = spacingX
+            verticalSpacing = spacingY+selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "BOTTOMRIGHT" then
+            point, anchorPoint, groupAnchorPoint = "BOTTOMRIGHT", "TOPRIGHT", "BOTTOMLEFT"
+            unitSpacing = spacingY
+            groupSpacing = -spacingX
+            verticalSpacing = spacingY+selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "TOPLEFT" then
+            point, anchorPoint, groupAnchorPoint = "TOPLEFT", "BOTTOMLEFT", "TOPRIGHT"
+            unitSpacing = -spacingY
+            groupSpacing = spacingX
+            verticalSpacing = -spacingY-selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "TOPRIGHT" then
+            point, anchorPoint, groupAnchorPoint = "TOPRIGHT", "BOTTOMRIGHT", "TOPLEFT"
+            unitSpacing = -spacingY
+            groupSpacing = -spacingX
+            verticalSpacing = -spacingY-selectedLayoutTable["main"]["groupSpacing"]
+        end
+    else
+        if selectedLayoutTable["main"]["anchor"] == "BOTTOMLEFT" then
+            point, anchorPoint, groupAnchorPoint = "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT"
+            unitSpacing = spacingX
+            groupSpacing = spacingY
+            horizontalSpacing = spacingX+selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "BOTTOMRIGHT" then
+            point, anchorPoint, groupAnchorPoint = "BOTTOMRIGHT", "BOTTOMLEFT", "TOPRIGHT"
+            unitSpacing = -spacingX
+            groupSpacing = spacingY
+            horizontalSpacing = -spacingX-selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "TOPLEFT" then
+            point, anchorPoint, groupAnchorPoint = "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT"
+            unitSpacing = spacingX
+            groupSpacing = -spacingY
+            horizontalSpacing = spacingX+selectedLayoutTable["main"]["groupSpacing"]
+        elseif selectedLayoutTable["main"]["anchor"] == "TOPRIGHT" then
+            point, anchorPoint, groupAnchorPoint = "TOPRIGHT", "TOPLEFT", "BOTTOMRIGHT"
+            unitSpacing = -spacingX
+            groupSpacing = -spacingY
+            horizontalSpacing = -spacingX-selectedLayoutTable["main"]["groupSpacing"]
         end
     end
 
-    for i, group in ipairs(shownGroups) do
-        local header = layoutPreview.headers[group]
-        local spacingX = selectedLayoutTable["main"]["spacingX"]
-        local spacingY = selectedLayoutTable["main"]["spacingY"]
+    if selectedLayoutTable["main"]["combineGroups"] then
+        -- hide separatedHeaders
+        for i = 1, 8 do
+            layoutPreview.separatedHeaders[i]:Hide()
+        end
+
+        -- show combinedHeader
+        layoutPreview.combinedHeader:Show()
+        layoutPreview.combinedHeader:ClearAllPoints()
+        layoutPreview.combinedHeader:SetPoint(point)
         
-        header:ClearAllPoints()
+        local maxColumns = selectedLayoutTable["main"]["maxColumns"]
+        local unitsPerColumn = selectedLayoutTable["main"]["unitsPerColumn"]
+        local units = maxColumns * unitsPerColumn
+
+        -- party preview
+        if previewMode == 1 then
+            units = min(5, units)
+        end
+        
 
         if selectedLayoutTable["main"]["orientation"] == "vertical" then
-            -- anchor
-            local point, anchorPoint, groupAnchorPoint, unitSpacing, groupSpacing, verticalSpacing
-            if selectedLayoutTable["main"]["anchor"] == "BOTTOMLEFT" then
-                point, anchorPoint, groupAnchorPoint = "BOTTOMLEFT", "TOPLEFT", "BOTTOMRIGHT"
-                unitSpacing = spacingY
-                groupSpacing = spacingX
-                verticalSpacing = spacingY+selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "BOTTOMRIGHT" then
-                point, anchorPoint, groupAnchorPoint = "BOTTOMRIGHT", "TOPRIGHT", "BOTTOMLEFT"
-                unitSpacing = spacingY
-                groupSpacing = -spacingX
-                verticalSpacing = spacingY+selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "TOPLEFT" then
-                point, anchorPoint, groupAnchorPoint = "TOPLEFT", "BOTTOMLEFT", "TOPRIGHT"
-                unitSpacing = -spacingY
-                groupSpacing = spacingX
-                verticalSpacing = -spacingY-selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "TOPRIGHT" then
-                point, anchorPoint, groupAnchorPoint = "TOPRIGHT", "BOTTOMRIGHT", "TOPLEFT"
-                unitSpacing = -spacingY
-                groupSpacing = -spacingX
-                verticalSpacing = -spacingY-selectedLayoutTable["main"]["groupSpacing"]
-            end
+            P:Size(layoutPreview.combinedHeader, 
+                selectedLayoutTable["main"]["size"][1]*maxColumns+abs(groupSpacing)*(maxColumns-1),
+                selectedLayoutTable["main"]["size"][2]*unitsPerColumn+abs(unitSpacing)*(unitsPerColumn-1))
+                
+            for i = 1, min(40, units) do
+                local header = layoutPreview.combinedHeader
+                header[i]:ClearAllPoints()
 
-            P:Size(header, selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2]*5+abs(unitSpacing)*4)
-            for j = 1, 5 do
-                P:Size(header[j], selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2])
-                header[j]:ClearAllPoints()
-
-                if j == 1 then
-                    header[j]:SetPoint(point)
+                if i == 1 then
+                    header[i]:SetPoint(point)
+                elseif i % selectedLayoutTable["main"]["unitsPerColumn"] == 1 then
+                    header[i]:SetPoint(point, header[i-selectedLayoutTable["main"]["unitsPerColumn"]], groupAnchorPoint, groupSpacing, 0)
                 else
-                    header[j]:SetPoint(point, header[j-1], anchorPoint, 0, unitSpacing)
-                end
-            end
-
-            if i == 1 then
-                header:SetPoint(point)
-            else
-                if i / selectedLayoutTable["main"]["columns"] > 1 then -- not the first row
-                    header:SetPoint(point, layoutPreview.headers[shownGroups[i-selectedLayoutTable["main"]["columns"]]], anchorPoint, 0, verticalSpacing)
-                else
-                    header:SetPoint(point, layoutPreview.headers[shownGroups[i-1]], groupAnchorPoint, groupSpacing, 0)
+                    header[i]:SetPoint(point, header[i-1], anchorPoint, 0, unitSpacing)
                 end
             end
         else
-            -- anchor
-            local point, anchorPoint, groupAnchorPoint, unitSpacing, groupSpacing, horizontalSpacing
-            if selectedLayoutTable["main"]["anchor"] == "BOTTOMLEFT" then
-                point, anchorPoint, groupAnchorPoint = "BOTTOMLEFT", "BOTTOMRIGHT", "TOPLEFT"
-                unitSpacing = spacingX
-                groupSpacing = spacingY
-                horizontalSpacing = spacingX+selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "BOTTOMRIGHT" then
-                point, anchorPoint, groupAnchorPoint = "BOTTOMRIGHT", "BOTTOMLEFT", "TOPRIGHT"
-                unitSpacing = -spacingX
-                groupSpacing = spacingY
-                horizontalSpacing = -spacingX-selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "TOPLEFT" then
-                point, anchorPoint, groupAnchorPoint = "TOPLEFT", "TOPRIGHT", "BOTTOMLEFT"
-                unitSpacing = spacingX
-                groupSpacing = -spacingY
-                horizontalSpacing = spacingX+selectedLayoutTable["main"]["groupSpacing"]
-            elseif selectedLayoutTable["main"]["anchor"] == "TOPRIGHT" then
-                point, anchorPoint, groupAnchorPoint = "TOPRIGHT", "TOPLEFT", "BOTTOMRIGHT"
-                unitSpacing = -spacingX
-                groupSpacing = -spacingY
-                horizontalSpacing = -spacingX-selectedLayoutTable["main"]["groupSpacing"]
-            end
+            P:Size(layoutPreview.combinedHeader, 
+                selectedLayoutTable["main"]["size"][1]*unitsPerColumn+abs(unitSpacing)*(unitsPerColumn-1),
+                selectedLayoutTable["main"]["size"][2]*maxColumns+abs(groupSpacing)*(maxColumns-1))
 
-            P:Size(header, selectedLayoutTable["main"]["size"][1]*5+abs(unitSpacing)*4, selectedLayoutTable["main"]["size"][2])
-            for j = 1, 5 do
-                P:Size(header[j], selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2])
-                header[j]:ClearAllPoints()
+            for i = 1, min(40, units) do
+                local header = layoutPreview.combinedHeader
+                header[i]:ClearAllPoints()
 
-                if j == 1 then
-                    header[j]:SetPoint(point)
+                if i == 1 then
+                    header[i]:SetPoint(point)
+                elseif i % selectedLayoutTable["main"]["unitsPerColumn"] == 1 then
+                    header[i]:SetPoint(point, header[i-selectedLayoutTable["main"]["unitsPerColumn"]], groupAnchorPoint, 0, groupSpacing)
                 else
-                    header[j]:SetPoint(point, header[j-1], anchorPoint, unitSpacing, 0)
-                end
-            end
-
-            if i == 1 then
-                header:SetPoint(point)
-            else
-                if i / selectedLayoutTable["main"]["rows"] > 1 then -- not the first column
-                    header:SetPoint(point, layoutPreview.headers[shownGroups[i-selectedLayoutTable["main"]["rows"]]], anchorPoint, horizontalSpacing, 0)
-                else
-                    header:SetPoint(point, layoutPreview.headers[shownGroups[i-1]], groupAnchorPoint, 0, groupSpacing)
+                    header[i]:SetPoint(point, header[i-1], anchorPoint, unitSpacing, 0)
                 end
             end
         end
-    end
 
-    -- update group filter
-    if previewMode ~= 1 then
-        for i = 1, 8 do
-            if selectedLayoutTable["groupFilter"][i] then
-                layoutPreview.headers[i]:Show()
+        -- hide unused
+        for i = 1, 40 do
+            P:Size(layoutPreview.combinedHeader[i], selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2])
+            if i > units then
+                layoutPreview.combinedHeader[i]:Hide()
+                layoutPreview.combinedHeader[i].tex:Hide()
+                layoutPreview.combinedHeader[i].label:Hide()
             else
-                layoutPreview.headers[i]:Hide()
+                layoutPreview.combinedHeader[i]:Show()
+                layoutPreview.combinedHeader[i].tex:Show()
+                layoutPreview.combinedHeader[i].label:Show()
             end
         end
-    else -- party
-        layoutPreview.headers[1]:Show()
-        for i = 2, 8 do
-            layoutPreview.headers[i]:Hide()
+
+    else
+        -- update group filter
+        if previewMode ~= 1 then
+            for i = 1, 8 do
+                if selectedLayoutTable["groupFilter"][i] then
+                    layoutPreview.separatedHeaders[i]:Show()
+                else
+                    layoutPreview.separatedHeaders[i]:Hide()
+                end
+            end
+        else -- party
+            layoutPreview.separatedHeaders[1]:Show()
+            for i = 2, 8 do
+                layoutPreview.separatedHeaders[i]:Hide()
+            end
+        end
+        layoutPreview.combinedHeader:Hide()
+
+        local shownGroups = {}
+        for i, isShown in ipairs(selectedLayoutTable["groupFilter"]) do
+            if isShown then
+                tinsert(shownGroups, i)
+            end
+        end
+
+        for i, group in ipairs(shownGroups) do
+            local header = layoutPreview.separatedHeaders[group]
+            header:ClearAllPoints()
+
+            if selectedLayoutTable["main"]["orientation"] == "vertical" then
+                P:Size(header, selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2]*5+abs(unitSpacing)*4)
+                for j = 1, 5 do
+                    P:Size(header[j], selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2])
+                    header[j]:ClearAllPoints()
+
+                    if j == 1 then
+                        header[j]:SetPoint(point)
+                    else
+                        header[j]:SetPoint(point, header[j-1], anchorPoint, 0, unitSpacing)
+                    end
+                end
+
+                if i == 1 then
+                    header:SetPoint(point)
+                else
+                    if i / selectedLayoutTable["main"]["maxColumns"] > 1 then -- not the first row
+                        header:SetPoint(point, layoutPreview.separatedHeaders[shownGroups[i-selectedLayoutTable["main"]["maxColumns"]]], anchorPoint, 0, verticalSpacing)
+                    else
+                        header:SetPoint(point, layoutPreview.separatedHeaders[shownGroups[i-1]], groupAnchorPoint, groupSpacing, 0)
+                    end
+                end
+            else
+                P:Size(header, selectedLayoutTable["main"]["size"][1]*5+abs(unitSpacing)*4, selectedLayoutTable["main"]["size"][2])
+                for j = 1, 5 do
+                    P:Size(header[j], selectedLayoutTable["main"]["size"][1], selectedLayoutTable["main"]["size"][2])
+                    header[j]:ClearAllPoints()
+
+                    if j == 1 then
+                        header[j]:SetPoint(point)
+                    else
+                        header[j]:SetPoint(point, header[j-1], anchorPoint, unitSpacing, 0)
+                    end
+                end
+
+                if i == 1 then
+                    header:SetPoint(point)
+                else
+                    if i / selectedLayoutTable["main"]["maxColumns"] > 1 then -- not the first column
+                        header:SetPoint(point, layoutPreview.separatedHeaders[shownGroups[i-selectedLayoutTable["main"]["maxColumns"]]], anchorPoint, horizontalSpacing, 0)
+                    else
+                        header:SetPoint(point, layoutPreview.separatedHeaders[shownGroups[i-1]], groupAnchorPoint, 0, groupSpacing)
+                    end
+                end
+            end
         end
     end
 
@@ -559,9 +658,7 @@ local function UpdateNPCPreview()
         P:LoadPosition(Cell.frames.separateNpcFrameAnchor, Cell.vars.currentLayoutTable["npc"]["position"])
     end
 
-    if #selectedLayoutTable["npc"]["position"] == 2 then
-        P:LoadPosition(npcPreviewAnchor, selectedLayoutTable["npc"]["position"])
-    else
+    if not P:LoadPosition(npcPreviewAnchor, selectedLayoutTable["npc"]["position"]) then
         npcPreviewAnchor:ClearAllPoints()
         npcPreviewAnchor:SetPoint("TOPLEFT", UIParent, "CENTER")
     end
@@ -810,9 +907,7 @@ local function UpdateRaidPetPreview()
         P:LoadPosition(CellRaidPetAnchorFrame, Cell.vars.currentLayoutTable["pet"]["position"])
     end
 
-    if #selectedLayoutTable["pet"]["position"] == 2 then
-        P:LoadPosition(raidPetPreviewAnchor, selectedLayoutTable["pet"]["position"])
-    else
+    if not P:LoadPosition(raidPetPreviewAnchor, selectedLayoutTable["pet"]["position"]) then
         raidPetPreviewAnchor:ClearAllPoints()
         raidPetPreviewAnchor:SetPoint("TOPLEFT", UIParent, "CENTER")
     end
@@ -969,7 +1064,7 @@ local function CreateSpotlightPreview()
     end)
 
     spotlightPreview.header = CreateFrame("Frame", "CellSpotlightPreviewFrameHeader", spotlightPreview)
-    for i = 1, 10 do
+    for i = 1, 15 do
         spotlightPreview.header[i] = spotlightPreview.header:CreateTexture(nil, "BACKGROUND")
         spotlightPreview.header[i]:SetColorTexture(0, 0, 0)
         spotlightPreview.header[i]:SetAlpha(0.555)
@@ -980,7 +1075,7 @@ local function CreateSpotlightPreview()
         spotlightPreview.header[i].tex:SetPoint("TOPLEFT", spotlightPreview.header[i], "TOPLEFT", P:Scale(1), P:Scale(-1))
         spotlightPreview.header[i].tex:SetPoint("BOTTOMRIGHT", spotlightPreview.header[i], "BOTTOMRIGHT", P:Scale(-1), P:Scale(1))
 
-        spotlightPreview.header[i].tex:SetVertexColor(F:ConvertRGB(255, 0, 102, i <= 5 and desaturation[i] or desaturation[i-5]))
+        spotlightPreview.header[i].tex:SetVertexColor(F:ConvertRGB(255, 0, 102, i % 5 == 0 and desaturation[5] or desaturation[i-floor(i/5)*5]))
         spotlightPreview.header[i].tex:SetAlpha(0.555)
     end
 end
@@ -1132,21 +1227,21 @@ local function UpdateSpotlightPreview()
     P:Size(header, width, height)
     header:SetPoint(point)
 
-    for i = 1, 10 do
+    for i = 1, 15 do
         P:Size(header[i], width, height)
         header[i]:ClearAllPoints()
         if i == 1 then
             header[i]:SetPoint(point)
         else
             if strfind(orientation, "^vertical") then
-                if i == 6 and orientation == "vertical" then
-                    header[i]:SetPoint(point, header[1], groupPoint, unitSpacingX, 0)
+                if i % 5 == 1 and orientation == "vertical" then
+                    header[i]:SetPoint(point, header[i-5], groupPoint, unitSpacingX, 0)
                 else
                     header[i]:SetPoint(point, header[i-1], anchorPoint, 0, unitSpacingY)
                 end
             else
-                if i == 6 and orientation == "horizontal" then
-                    header[i]:SetPoint(point, header[1], groupPoint, 0, unitSpacingY)
+                if i % 5 == 1 and orientation == "horizontal" then
+                    header[i]:SetPoint(point, header[i-5], groupPoint, 0, unitSpacingY)
                 else
                     header[i]:SetPoint(point, header[i-1], anchorPoint, unitSpacingX, 0)
                 end
@@ -1331,33 +1426,31 @@ local function CreateLayoutPane()
                 
                 -- update auto switch dropdowns
                 LoadAutoSwitchDropdowns()
-                for role, t in pairs(Cell.vars.layoutAutoSwitch) do
-                    for groupType, layout in pairs(t) do
-                        if layout == selectedLayout then
-                            -- NOTE: rename
-                            Cell.vars.layoutAutoSwitch[role][groupType] = name
-                            -- update its dropdown selection
-                            if groupType == "party" then
-                                partyDropdown:SetSelected(name)
-                            elseif groupType == "raid_outdoor" then
-                                raidOutdoorDropdown:SetSelected(name)
-                            elseif groupType == "raid_instance" then
-                                raidInstanceDropdown:SetSelected(name)
-                            elseif groupType == "raid_mythic" then
-                                raidMythicDropdown:SetSelected(name)
-                            elseif groupType == "raid10" then
-                                raid10Dropdown:SetSelected(name)
-                            elseif groupType == "raid25" then
-                                raid25Dropdown:SetSelected(name)
-                            elseif groupType == "arena" then
-                                arenaDropdown:SetSelected(name)
-                            elseif groupType == "battleground15" then
-                                bg15Dropdown:SetSelected(name)
-                            elseif groupType == "battleground40" then
-                                bg40Dropdown:SetSelected(name)
-                            elseif groupType == "battleground" then
-                                bgDropdown:SetSelected(name)
-                            end
+                for groupType, layout in pairs(Cell.vars.layoutAutoSwitch) do
+                    if layout == selectedLayout then
+                        -- NOTE: rename
+                        Cell.vars.layoutAutoSwitch[groupType] = name
+                        -- update its dropdown selection
+                        if groupType == "party" then
+                            partyDropdown:SetSelected(name)
+                        elseif groupType == "raid_outdoor" then
+                            raidOutdoorDropdown:SetSelected(name)
+                        elseif groupType == "raid_instance" then
+                            raidInstanceDropdown:SetSelected(name)
+                        elseif groupType == "raid_mythic" then
+                            raidMythicDropdown:SetSelected(name)
+                        elseif groupType == "raid10" then
+                            raid10Dropdown:SetSelected(name)
+                        elseif groupType == "raid25" then
+                            raid25Dropdown:SetSelected(name)
+                        elseif groupType == "arena" then
+                            arenaDropdown:SetSelected(name)
+                        elseif groupType == "battleground15" then
+                            bg15Dropdown:SetSelected(name)
+                        elseif groupType == "battleground40" then
+                            bg40Dropdown:SetSelected(name)
+                        elseif groupType == "battleground" then
+                            bgDropdown:SetSelected(name)
                         end
                     end
                 end
@@ -1411,33 +1504,31 @@ local function CreateLayoutPane()
 
             -- update auto switch dropdowns
             LoadAutoSwitchDropdowns()
-            for role, t in pairs(Cell.vars.layoutAutoSwitch) do
-                for groupType, layout in pairs(t) do
-                    if layout == selectedLayout then
-                        -- NOTE: set to default
-                        Cell.vars.layoutAutoSwitch[role][groupType] = "default"
-                        -- update its dropdown selection
-                        if groupType == "party" then
-                            partyDropdown:SetSelectedValue("default")
-                        elseif groupType == "raid_outdoor" then
-                            raidOutdoorDropdown:SetSelectedValue("default")
-                        elseif groupType == "raid_instance" then
-                            raidInstanceDropdown:SetSelectedValue("default")
-                        elseif groupType == "raid_mythic" then
-                            raidMythicDropdown:SetSelectedValue("default")
-                        elseif groupType == "raid10" then
-                            raid10Dropdown:SetSelectedValue("default")
-                        elseif groupType == "raid25" then
-                            raid25Dropdown:SetSelectedValue("default")
-                        elseif groupType == "arena" then
-                            arenaDropdown:SetSelectedValue("default")
-                        elseif groupType == "battleground15" then
-                            bg15Dropdown:SetSelectedValue("default")
-                        elseif groupType == "battleground40" then
-                            bg40Dropdown:SetSelectedValue("default")
-                        elseif groupType == "battleground" then
-                            bgDropdown:SetSelectedValue("default")
-                        end
+            for groupType, layout in pairs(Cell.vars.layoutAutoSwitch) do
+                if layout == selectedLayout then
+                    -- NOTE: set to default
+                    Cell.vars.layoutAutoSwitch[groupType] = "default"
+                    -- update its dropdown selection
+                    if groupType == "party" then
+                        partyDropdown:SetSelectedValue("default")
+                    elseif groupType == "raid_outdoor" then
+                        raidOutdoorDropdown:SetSelectedValue("default")
+                    elseif groupType == "raid_instance" then
+                        raidInstanceDropdown:SetSelectedValue("default")
+                    elseif groupType == "raid_mythic" then
+                        raidMythicDropdown:SetSelectedValue("default")
+                    elseif groupType == "raid10" then
+                        raid10Dropdown:SetSelectedValue("default")
+                    elseif groupType == "raid25" then
+                        raid25Dropdown:SetSelectedValue("default")
+                    elseif groupType == "arena" then
+                        arenaDropdown:SetSelectedValue("default")
+                    elseif groupType == "battleground15" then
+                        bg15Dropdown:SetSelectedValue("default")
+                    elseif groupType == "battleground40" then
+                        bg40Dropdown:SetSelectedValue("default")
+                    elseif groupType == "battleground" then
+                        bgDropdown:SetSelectedValue("default")
                     end
                 end
             end
@@ -1556,17 +1647,9 @@ local function CreateAutoSwitchPane()
         -- type switch
         typeSwitch = Cell:CreateSwitch(autoSwitchPane, {140, 20}, L["Role"], "role", L["Spec"], "spec", function(value)
             if value == "role" then
-                Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] = nil
+                CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] = nil
             else
-                Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid_instance"] = "default",
-                    ["raid_mythic"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                }
+                CellDB["layoutAutoSwitch"][Cell.vars.playerClass][Cell.vars.playerSpecID] = F:Copy(CellDB["layoutAutoSwitch"]["role"][Cell.vars.playerSpecRole])
             end
             Cell:Fire("LayoutAutoSwitchChanged")
             LoadLayoutAutoSwitchDB()
@@ -1642,7 +1725,7 @@ local function CreateAutoSwitchPane()
         raidMythicText:SetPoint("BOTTOMLEFT", raidMythicDropdown, "TOPLEFT", 0, 1)
         raidMythicText:SetText(raidMythic)
     
-    elseif Cell.isWrath then
+    elseif Cell.isCata then
         -- raid10
         raid10Dropdown = Cell:CreateDropdown(autoSwitchPane, 140)
         raid10Dropdown:SetPoint("TOPLEFT", raidOutdoorDropdown, "BOTTOMLEFT", 0, -30)
@@ -1673,7 +1756,7 @@ local function CreateAutoSwitchPane()
     arenaDropdown = Cell:CreateDropdown(autoSwitchPane, 140)
     if Cell.isRetail then
         arenaDropdown:SetPoint("TOPLEFT", raidMythicDropdown, "BOTTOMLEFT", 0, -30)
-    elseif Cell.isWrath then
+    elseif Cell.isCata then
         arenaDropdown:SetPoint("TOPLEFT", raid25Dropdown, "BOTTOMLEFT", 0, -30)
     elseif Cell.isVanilla then
         arenaDropdown:SetPoint("TOPLEFT", raidInstanceDropdown, "BOTTOMLEFT", 0, -30)
@@ -1727,7 +1810,7 @@ LoadAutoSwitchDropdowns = function()
             ["text"] = value == "default" and _G.DEFAULT or value,
             ["value"] = value,
             ["onClick"] = function()
-                Cell.vars.layoutAutoSwitch[autoSwitchIndex]["party"] = value
+                Cell.vars.layoutAutoSwitch["party"] = value
                 if Cell.vars.layoutGroupType == "party" then
                     F:UpdateLayout("party", true)
                     -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1746,7 +1829,7 @@ LoadAutoSwitchDropdowns = function()
             ["text"] = value == "default" and _G.DEFAULT or value,
             ["value"] = value,
             ["onClick"] = function()
-                Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_outdoor"] = value
+                Cell.vars.layoutAutoSwitch["raid_outdoor"] = value
                 if Cell.vars.layoutGroupType == "raid_outdoor" then
                     F:UpdateLayout("raid_outdoor", true)
                     -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1766,7 +1849,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_instance"] = value
+                    Cell.vars.layoutAutoSwitch["raid_instance"] = value
                     if Cell.vars.layoutGroupType == "raid_instance" then
                         F:UpdateLayout("raid_instance", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1785,7 +1868,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_mythic"] = value
+                    Cell.vars.layoutAutoSwitch["raid_mythic"] = value
                     if Cell.vars.layoutGroupType == "raid_mythic" then
                         F:UpdateLayout("raid_mythic", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1797,7 +1880,7 @@ LoadAutoSwitchDropdowns = function()
         end
         raidMythicDropdown:SetItems(raidMythicItems)
 
-    elseif Cell.isWrath then
+    elseif Cell.isCata then
         -- raid10Dropdown
         local raid10Items = {}
         for _, value in pairs(indices) do
@@ -1805,7 +1888,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid10"] = value
+                    Cell.vars.layoutAutoSwitch["raid10"] = value
                     if Cell.vars.layoutGroupType == "raid10" then
                         F:UpdateLayout("raid10", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1824,7 +1907,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid25"] = value
+                    Cell.vars.layoutAutoSwitch["raid25"] = value
                     if Cell.vars.layoutGroupType == "raid25" then
                         F:UpdateLayout("raid25", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1844,7 +1927,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_instance"] = value
+                    Cell.vars.layoutAutoSwitch["raid_instance"] = value
                     if Cell.vars.layoutGroupType == "raid_instance" then
                         F:UpdateLayout("raid_instance", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1864,7 +1947,7 @@ LoadAutoSwitchDropdowns = function()
             ["text"] = value == "default" and _G.DEFAULT or value,
             ["value"] = value,
             ["onClick"] = function()
-                Cell.vars.layoutAutoSwitch[autoSwitchIndex]["arena"] = value
+                Cell.vars.layoutAutoSwitch["arena"] = value
                 if Cell.vars.layoutGroupType == "arena" then
                     F:UpdateLayout("arena", true)
                     -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1884,7 +1967,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground"] = value
+                    Cell.vars.layoutAutoSwitch["battleground"] = value
                     if Cell.vars.layoutGroupType == "battleground" then
                         F:UpdateLayout("battleground", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1904,7 +1987,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground15"] = value
+                    Cell.vars.layoutAutoSwitch["battleground15"] = value
                     if Cell.vars.layoutGroupType == "battleground15" then
                         F:UpdateLayout("battleground15", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -1923,7 +2006,7 @@ LoadAutoSwitchDropdowns = function()
                 ["text"] = value == "default" and _G.DEFAULT or value,
                 ["value"] = value,
                 ["onClick"] = function()
-                    Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground40"] = value
+                    Cell.vars.layoutAutoSwitch["battleground40"] = value
                     if Cell.vars.layoutGroupType == "battleground40" then
                         F:UpdateLayout("battleground40", true)
                         -- LoadLayoutDB(Cell.vars.currentLayout)
@@ -2027,11 +2110,11 @@ end
 -------------------------------------------------
 local widthSlider, heightSlider, powerSizeSlider
 
-local rcSlider, groupSpacingSlider
+local rcSlider, groupSpacingSlider, unitsSlider
 local orientationDropdown, anchorDropdown, spacingXSlider, spacingYSlider
 
 local sameSizeAsMainCB, sameArrangementAsMainCB
-local sortByRoleCB, roleOrderWidget, hideSelfCB
+local combineGroupsCB, sortByRoleCB, roleOrderWidget, hideSelfCB
 local showNpcCB, separateNpcCB, spotlightCB, hidePlaceholderCB, spotlightOrientationDropdown, partyPetsCB, raidPetsCB
 
 local function UpdateSize()
@@ -2082,6 +2165,30 @@ local function UpdateArrangement()
         UpdateNPCPreview()
     elseif selectedPage == "spotlight" then
         UpdateSpotlightPreview()
+    end
+end
+
+local function UpdateSliderStatus()
+    if selectedLayoutTable["main"]["orientation"] == "vertical" then
+        rcSlider:SetLabel(L["Group Columns"])
+        unitsSlider:SetLabel(L["Units Per Column"])
+    else
+        unitsSlider:SetLabel(L["Units Per Row"])
+        rcSlider:SetLabel(L["Group Rows"])
+    end
+
+    if selectedLayoutTable["main"]["combineGroups"] then
+        unitsSlider:Show()
+        groupSpacingSlider:Hide()
+    else
+        unitsSlider:Hide()
+        groupSpacingSlider:Show()
+    end
+
+    if selectedLayoutTable["main"]["maxColumns"] == 8 then
+        groupSpacingSlider:SetEnabled(false)
+    else
+        groupSpacingSlider:SetEnabled(true)
     end
 end
 
@@ -2178,7 +2285,11 @@ local function CreateLayoutSetupPane()
     -- same arrangement as main
     sameArrangementAsMainCB = Cell:CreateCheckButton(layoutSetupPane, L["Use Same Arrangement As Main"], function(checked, self)
         selectedLayoutTable[selectedPage]["sameArrangementAsMain"] = checked
-        orientationDropdown:SetEnabled(not checked)
+        if selectedPage == "spotlight" then
+            spotlightOrientationDropdown:SetEnabled(not checked)
+        else
+            orientationDropdown:SetEnabled(not checked)
+        end
         anchorDropdown:SetEnabled(not checked)
         spacingXSlider:SetEnabled(not checked)
         spacingYSlider:SetEnabled(not checked)
@@ -2222,13 +2333,7 @@ local function CreateLayoutSetupPane()
                 UpdateArrangement()
 
                 if selectedPage == "main" then
-                    rcSlider:SetLabel(L["Group Rows"])
-                    rcSlider:SetValue(selectedLayoutTable["main"]["rows"])
-                    if selectedLayoutTable["main"]["rows"] == 8 then
-                        groupSpacingSlider:SetEnabled(false)
-                    else
-                        groupSpacingSlider:SetEnabled(true)
-                    end
+                    UpdateSliderStatus()
                 end
             end,
         },
@@ -2240,19 +2345,13 @@ local function CreateLayoutSetupPane()
                 UpdateArrangement()
                 
                 if selectedPage == "main" then
-                    rcSlider:SetLabel(L["Group Columns"])
-                    rcSlider:SetValue(selectedLayoutTable["main"]["columns"])
-                    if selectedLayoutTable["main"]["columns"] == 8 then
-                        groupSpacingSlider:SetEnabled(false)
-                    else
-                        groupSpacingSlider:SetEnabled(true)
-                    end
+                    UpdateSliderStatus()
                 end
             end,
         },
     })
     
-    local orientationText = layoutSetupPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    local orientationText = orientationDropdown:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     orientationText:SetPoint("BOTTOMLEFT", orientationDropdown, "TOPLEFT", 0, 1)
     orientationText:SetText(L["Orientation"])
 
@@ -2335,8 +2434,19 @@ local function CreateLayoutSetupPane()
     pages.main:SetAllPoints(layoutSetupPane)
     pages.main:Hide()
 
+    -- combine groups
+    combineGroupsCB = Cell:CreateCheckButton(pages.main, L["Combine Groups"].." ("..L["Raid"]..")", function(checked, self)
+        selectedLayoutTable["main"]["combineGroups"] = checked
+        Cell:Fire("UpdateLayout", selectedLayout, "header")
+        UpdateSliderStatus()
+        -- preview
+        UpdateLayoutPreview()
+    end)
+    combineGroupsCB:SetPoint("TOPLEFT", 5, -27)
+    Cell:RegisterForCloseDropdown(combineGroupsCB)
+
     -- sort by role
-    sortByRoleCB = Cell:CreateCheckButton(pages.main, L["Sort By Role (Party Only)"], function(checked, self)
+    sortByRoleCB = Cell:CreateCheckButton(pages.main, L["Sort By Role"], function(checked, self)
         selectedLayoutTable["main"]["sortByRole"] = checked
         if checked then
             roleOrderWidget:Show()
@@ -2344,8 +2454,8 @@ local function CreateLayoutSetupPane()
             roleOrderWidget:Hide()
         end
         Cell:Fire("UpdateLayout", selectedLayout, "sort")
-    end)
-    sortByRoleCB:SetPoint("TOPLEFT", 5, -27)
+    end, L["Sort By Role"], L["%s is required"]:format("|cffffb5c5"..L["Combine Groups"].."|r").." ("..L["Raid"]..")", "|cffffb5c5"..L["Left-Drag"]..":|r "..L["change the order"])
+    sortByRoleCB:SetPoint("TOPLEFT", combineGroupsCB, "BOTTOMLEFT", 0, -10)
     Cell:RegisterForCloseDropdown(sortByRoleCB)
 
     -- role order
@@ -2353,18 +2463,18 @@ local function CreateLayoutSetupPane()
     roleOrderWidget:SetPoint("TOPLEFT", sortByRoleCB, sortByRoleCB.label:GetWidth()+25, 3)
 
     -- hide self
-    hideSelfCB = Cell:CreateCheckButton(pages.main, L["Hide Self (Party Only)"], function(checked, self)
+    hideSelfCB = Cell:CreateCheckButton(pages.main, L["Hide Self"].." ("..L["Party"]..")", function(checked, self)
         selectedLayoutTable["main"]["hideSelf"] = checked
         Cell:Fire("UpdateLayout", selectedLayout, "hideSelf")
     end)
-    hideSelfCB:SetPoint("TOPLEFT", sortByRoleCB, "BOTTOMLEFT", 0, -8)
+    hideSelfCB:SetPoint("TOPLEFT", sortByRoleCB, "BOTTOMLEFT", 0, -10)
 
     -- rows/columns
     rcSlider = Cell:CreateSlider("", pages.main, 1, 8, 117, 1, function(value)
         if selectedLayoutTable["main"]["orientation"] == "vertical" then
-            selectedLayoutTable["main"]["columns"] = value
+            selectedLayoutTable["main"]["maxColumns"] = value
         else -- horizontal
-            selectedLayoutTable["main"]["rows"] = value
+            selectedLayoutTable["main"]["maxColumns"] = value
         end
         if value == 8 then
             groupSpacingSlider:SetEnabled(false)
@@ -2389,6 +2499,17 @@ local function CreateLayoutSetupPane()
         UpdateLayoutPreview()
     end)
     groupSpacingSlider:SetPoint("TOPLEFT", spacingYSlider, 0, -55)
+
+    -- unitsPerColumn
+    unitsSlider = Cell:CreateSlider(L["Units Per Column"], pages.main, 2, 20, 117, 1, function(value)
+        selectedLayoutTable["main"]["unitsPerColumn"] = value
+        if selectedLayout == Cell.vars.currentLayout then
+            Cell:Fire("UpdateLayout", selectedLayout, "unitsPerColumn")
+        end
+        -- preview
+        UpdateLayoutPreview()
+    end)
+    unitsSlider:SetPoint("TOPLEFT", spacingYSlider, 0, -55)
 
     --* pet -------------------------------------
     pages.pet = CreateFrame("Frame", nil, layoutsTab)
@@ -2522,7 +2643,7 @@ local function CreateLayoutSetupPane()
         },
     })
     
-    local spotlightOrientationText = layoutSetupPane:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    local spotlightOrientationText = spotlightOrientationDropdown:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
     spotlightOrientationText:SetPoint("BOTTOMLEFT", spotlightOrientationDropdown, "TOPLEFT", 0, 1)
     spotlightOrientationText:SetText(L["Orientation"])
 
@@ -2594,7 +2715,7 @@ local barOrientationDropdown, rotateTexCB
 
 local function CreateBarOrientationPane()
     local barOrientationPane = Cell:CreateTitledPane(layoutsTab, L["Bar Orientation"], 205, 80)
-    barOrientationPane:SetPoint("TOPLEFT", 5, -420)
+    barOrientationPane:SetPoint("TOPLEFT", 5, -425)
 
     local function SetOrientation(orientation)
         selectedLayoutTable["barOrientation"][1] = orientation
@@ -2654,7 +2775,7 @@ end
 -------------------------------------------------
 local function CreateMiscPane()
     local miscPane = Cell:CreateTitledPane(layoutsTab, L["Misc"], 205, 80)
-    miscPane:SetPoint("TOPLEFT", 222, -420)
+    miscPane:SetPoint("TOPLEFT", 222, -425)
 
     local powerFilterBtn = Cell:CreateButton(miscPane, L["Power Bar Filters"], "accent-hover", {195, 20})
     Cell.frames.layoutsTab.powerFilterBtn = powerFilterBtn
@@ -2711,11 +2832,19 @@ LoadPageDB = function(page)
         widthSlider:SetEnabled(not selectedLayoutTable[page]["sameSizeAsMain"])
         heightSlider:SetEnabled(not selectedLayoutTable[page]["sameSizeAsMain"])
         powerSizeSlider:SetEnabled(not selectedLayoutTable[page]["sameSizeAsMain"])
-        spotlightOrientationDropdown:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
-        orientationDropdown:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
         anchorDropdown:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
         spacingXSlider:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
         spacingYSlider:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
+    end
+    
+    if page == "spotlight" then
+        orientationDropdown:Hide()
+        spotlightOrientationDropdown:Show()
+        spotlightOrientationDropdown:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
+    else
+        orientationDropdown:Show()
+        spotlightOrientationDropdown:Hide()
+        orientationDropdown:SetEnabled(not selectedLayoutTable[page]["sameArrangementAsMain"])
     end
 end
 
@@ -2727,23 +2856,13 @@ LoadLayoutDB = function(layout, dontShowPreview)
 
     layoutDropdown:SetSelectedValue(selectedLayout)
 
-    if selectedLayoutTable["main"]["orientation"] == "vertical" then
-        rcSlider:SetLabel(L["Group Columns"])
-        rcSlider:SetValue(selectedLayoutTable["main"]["columns"])
-        if selectedLayoutTable["main"]["columns"] == 8 then
-            groupSpacingSlider:SetEnabled(false)
-        else
-            groupSpacingSlider:SetEnabled(true)
-        end
-    else
-        rcSlider:SetLabel(L["Group Rows"])
-        rcSlider:SetValue(selectedLayoutTable["main"]["rows"])
-        if selectedLayoutTable["main"]["rows"] == 8 then
-            groupSpacingSlider:SetEnabled(false)
-        else
-            groupSpacingSlider:SetEnabled(true)
-        end
-    end
+    UpdateSliderStatus()
+
+    -- maxColumns
+    rcSlider:SetValue(selectedLayoutTable["main"]["maxColumns"])
+
+    -- groupSpacing, unitsPerColumn
+    unitsSlider:SetValue(selectedLayoutTable["main"]["unitsPerColumn"])
     groupSpacingSlider:SetValue(selectedLayoutTable["main"]["groupSpacing"])
 
     -- bar orientation
@@ -2752,6 +2871,7 @@ LoadLayoutDB = function(layout, dontShowPreview)
 
     -- pages
     LoadPageDB(selectedPage)
+    combineGroupsCB:SetChecked(selectedLayoutTable["main"]["combineGroups"])
     sortByRoleCB:SetChecked(selectedLayoutTable["main"]["sortByRole"])
     if selectedLayoutTable["main"]["sortByRole"] then
         roleOrderWidget:Show()
@@ -2781,44 +2901,40 @@ end
 LoadLayoutAutoSwitchDB = function()
     if Cell.isRetail then
         P:Height(autoSwitchFrame, 465)
-        if Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] then
-            autoSwitchIndex = Cell.vars.playerSpecID
+        if Cell.vars.layoutAutoSwitchBy == "spec" then
             currentProfileBox.text:SetText("|T"..Cell.vars.playerSpecIcon..":12:12:0:0:12:12:1:11:1:11|t "..Cell.vars.playerSpecName)
         else
-            autoSwitchIndex = Cell.vars.playerSpecRole
-            currentProfileBox.text:SetText("|TInterface\\AddOns\\Cell\\Media\\Roles\\"..autoSwitchIndex..":12|t ".._G[autoSwitchIndex])
+            currentProfileBox.text:SetText("|TInterface\\AddOns\\Cell\\Media\\Roles\\"..Cell.vars.playerSpecRole..":12|t ".._G[Cell.vars.playerSpecRole])
         end
         
-        typeSwitch:SetSelected(Cell.vars.layoutAutoSwitch[Cell.vars.playerSpecID] and "spec" or "role")
-        raidInstanceDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_instance"])
-        raidMythicDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_mythic"])
-        bg15Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground15"])
-        bg40Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground40"])
+        typeSwitch:SetSelected(Cell.vars.layoutAutoSwitchBy)
+        raidInstanceDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid_instance"])
+        raidMythicDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid_mythic"])
+        bg15Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["battleground15"])
+        bg40Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["battleground40"])
 
-    elseif Cell.isWrath then
-        P:Height(autoSwitchFrame, 465)
-        autoSwitchIndex = Cell.vars.playerSpecRole
-        if autoSwitchIndex == 1 then
+    elseif Cell.isCata then
+        P:Height(autoSwitchFrame, 430)
+        if Cell.vars.activeTalentGroup == 1 then
             currentProfileBox.text:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\1:13|t "..L["Primary Talents"])
         else
             currentProfileBox.text:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\2:13|t "..L["Secondary Talents"])
         end
-        raid10Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid10"])
-        raid25Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid25"])
-        bg15Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground15"])
-        bg40Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground40"])
+        raid10Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid10"])
+        raid25Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid25"])
+        bg15Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["battleground15"])
+        bg40Dropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["battleground40"])
 
     elseif Cell.isVanilla then
         P:Height(autoSwitchFrame, 330)
-        autoSwitchIndex = Cell.vars.playerSpecRole
         currentProfileBox.text:SetText("|TInterface\\AddOns\\Cell\\Media\\Icons\\1:13|t "..L["Primary Talents"])
-        raidInstanceDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_instance"])
-        bgDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["battleground"])
+        raidInstanceDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid_instance"])
+        bgDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["battleground"])
     end
 
-    partyDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["party"])
-    raidOutdoorDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["raid_outdoor"])
-    arenaDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch[autoSwitchIndex]["arena"])
+    partyDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["party"])
+    raidOutdoorDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["raid_outdoor"])
+    arenaDropdown:SetSelectedValue(Cell.vars.layoutAutoSwitch["arena"])
 end
 
 local function UpdateLayoutAutoSwitch(layout, which)
@@ -2895,7 +3011,7 @@ local function UpdateLayoutAutoSwitch(layout, which)
                         raidInstanceText:SetText(Cell:GetAccentColorString()..raidInstance.."*")
                         raidMythicText:SetText(raidMythic)
                     end
-                elseif Cell.isWrath then
+                elseif Cell.isCata then
                     if Cell.vars.raidType == "raid10" then
                         raid10Text:SetText(Cell:GetAccentColorString()..L["Raid"].." 10*")
                         raid25Text:SetText(L["Raid"].." 25")

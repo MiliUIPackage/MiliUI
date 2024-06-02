@@ -19,8 +19,8 @@ eventFrame:SetScript("OnEvent", function()
     -- if subevent == "SPELL_SUMMON" then print(subevent, sourceName, sourceGUID, destName, destGUID, spellName) end
     if subevent == "SPELL_SUMMON" then
         -- print(sourceGUID == Cell.vars.playerGUID, destGUID, spellName, spellId)
-        if sourceGUID == Cell.vars.playerGUID and destGUID and (I:IsAoEHealing(spellName) or I:IsAoEHealing(spellId)) then
-            local duration = I:GetSummonDuration(spellName)
+        if sourceGUID == Cell.vars.playerGUID and destGUID and (I.IsAoEHealing(spellName) or I.IsAoEHealing(spellId)) then
+            local duration = I.GetSummonDuration(spellName)
             if duration then
                 playerSummoned[destGUID] = GetTime() + duration -- expirationTime
                 C_Timer.After(duration, function()
@@ -34,19 +34,19 @@ eventFrame:SetScript("OnEvent", function()
     if subevent == "SPELL_HEAL" or subevent == "SPELL_PERIODIC_HEAL" then
         if destGUID then
             -- print(sourceGUID, playerSummoned[sourceGUID])
-            if (sourceGUID == Cell.vars.playerGUID and (I:IsAoEHealing(spellName) or I:IsAoEHealing(spellId))) or playerSummoned[sourceGUID] then
+            if (sourceGUID == Cell.vars.playerGUID and (I.IsAoEHealing(spellName) or I.IsAoEHealing(spellId))) or playerSummoned[sourceGUID] then
                 F:HandleUnitButton("guid", destGUID, Display)
             end
         end
     end
 end)
 
-function I:CreateAoEHealing(parent)
-    local aoeHealing = CreateFrame("Frame", parent:GetName().."AoEHealing", parent.widget.healthBar)
+function I.CreateAoEHealing(parent)
+    local aoeHealing = CreateFrame("Frame", parent:GetName().."AoEHealing", parent.widgets.healthBar)
     parent.indicators.aoeHealing = aoeHealing
-    aoeHealing:SetPoint("TOPLEFT", parent.widget.healthBar)
-    aoeHealing:SetPoint("TOPRIGHT", parent.widget.healthBar)
-    aoeHealing:SetFrameLevel(parent.widget.healthBar:GetFrameLevel()+1)
+    aoeHealing:SetPoint("TOPLEFT", parent.widgets.healthBar)
+    aoeHealing:SetPoint("TOPRIGHT", parent.widgets.healthBar)
+    aoeHealing:SetFrameLevel(parent.widgets.healthBar:GetFrameLevel()+1)
     -- aoeHealing:SetHeight(15)
     aoeHealing:Hide()
 
@@ -88,7 +88,7 @@ function I:CreateAoEHealing(parent)
     end
 end
 
-function I:EnableAoEHealing(enabled)
+function I.EnableAoEHealing(enabled)
     if enabled then
         eventFrame:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED")
     else
