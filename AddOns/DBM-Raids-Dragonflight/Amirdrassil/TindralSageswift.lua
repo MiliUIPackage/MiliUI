@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2565, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240428104643")
+mod:SetRevision("20240529053031")
 mod:SetCreatureID(209090)--Primary ID
 mod:SetEncounterID(2786)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -455,6 +455,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerFieryGrowthCD:Stop()
 		timerFallingStarsCD:Stop()
 		timerMassEntanglementCD:Stop()
+		timerFlamingGerminationCD:Stop()
 		timerTyphoon:Start()--5.5
 		if self:GetStage(1) then
 			self:SetStage(1.5)
