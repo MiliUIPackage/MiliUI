@@ -27,6 +27,8 @@ function loadHelper:OnEvent(event, arg1, arg2)
             addon.Icon:Load();
 
             addon.Api.Load();
+			
+			KrowiEVU_OptionsButton:ShowHide();  -- 自行修正，載入時檢查是否要顯示選項按鈕。
         end
     end
 end

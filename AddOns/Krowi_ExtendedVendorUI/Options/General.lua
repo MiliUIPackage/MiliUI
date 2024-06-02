@@ -37,7 +37,7 @@ local function MinimapShowMinimapIconSet(_, value)
 end
 
 local function OptionsButtonShowOptionsButtonSet(_, value)
-    if addon.Options.db.profile.ShowOptionsButton == value then return; end
+	if addon.Options.db.profile.ShowOptionsButton == value then return; end
     addon.Options.db.profile.ShowOptionsButton = value;
     KrowiEVU_OptionsButton:ShowHide();
 end

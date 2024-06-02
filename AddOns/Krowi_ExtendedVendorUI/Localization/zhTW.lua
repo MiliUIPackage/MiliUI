@@ -10,7 +10,7 @@ addon.Plugins:LoadLocalization(L);
 
 -- [[ Exported at 2023-08-20 18-17-39 ]] --
 L["Are you sure you want to hide the options button?"] = [=[是否確定要隱藏選項按鈕?
-要再次顯示選項按鈕，請到 {gameMenu} > {interface} > {addOns} > 商人 > {general} > {options}]=]
+要再次顯示選項按鈕，請到 {gameMenu} > {addOns} > 商人 > {general} > {options}]=]
 L["Author"] = "作者"
 L["Build"] = "魔獸版本"
 L["Checked"] = "啟用"
