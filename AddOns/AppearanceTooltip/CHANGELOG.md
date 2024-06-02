@@ -1,7 +1,8 @@
 # AppearanceTooltip
 
-## [v44](https://github.com/kemayo/wow-appearancetooltip/tree/v44) (2024-01-26)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v43.1...v44) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v45](https://github.com/kemayo/wow-appearancetooltip/tree/v45) (2024-05-22)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v44...v45) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Use Baganator's API rather than hooking it  
-    Refs #19  
+- Show ensemble knowledge in button overlays  
+- Allow ensembles to be previewed  
+- TOC for 10.2.7  
