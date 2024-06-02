@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2493, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240521111455")
+mod:SetRevision("20240518202941")
 mod:SetCreatureID(190245)
 mod:SetEncounterID(2614)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -525,7 +525,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		local _, _, _, _, _, expireTime = DBM:UnitDebuff("player", spellId)
 		local remaining
 		if expireTime then
-			remaining = expireTime-GetTime()
+			remaining = expireTime-self:GetTime()
 		end
 		if self:GetStage(2) and (not remaining or remaining and remaining < 6.1) and not UnitIsDeadOrGhost("player") and not self:IsHealer() then
 			specWarnMortalWounds:Show(args.destName)

@@ -437,15 +437,12 @@ end
 
 function timerPrototype:DelayedStart(delay, ...)
 	DBMScheduler:Unschedule(self.Start, self.mod, self, ...)
-	local id = DBMScheduler:Schedule(delay or 0.5, self.Start, self.mod, self, ...)
-	test:Trace(self.mod, "SchedulerHideFromTraceIfUnscheduled", id)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "DelayedStart", ...)
+	DBMScheduler:Schedule(delay or 0.5, self.Start, self.mod, self, ...)
 end
 timerPrototype.DelayedShow = timerPrototype.DelayedStart
 
 function timerPrototype:Schedule(t, ...)
-	local id = DBMScheduler:Schedule(t, self.Start, self.mod, self, ...)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", ...)
+	return DBMScheduler:Schedule(t, self.Start, self.mod, self, ...)
 end
 
 function timerPrototype:Unschedule(...)

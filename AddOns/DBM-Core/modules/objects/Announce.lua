@@ -440,16 +440,13 @@ function announcePrototype:CombinedShow(delay, ...)
 		end
 	end
 	DBMScheduler:Unschedule(self.Show, self.mod, self)
-	local id = DBMScheduler:Schedule(delay or 0.5, self.Show, self.mod, self, ...)
-	test:Trace(self.mod, "SchedulerHideFromTraceIfUnscheduled", id)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "CombinedShow", ...)
+	DBMScheduler:Schedule(delay or 0.5, self.Show, self.mod, self, ...)
 end
 
 ---New object that allows defining count instead of scheduling for more efficient and immediate warnings when precise count is known
 ---@param maxTotal number
 ---@param ... any
 function announcePrototype:PreciseShow(maxTotal, ...)
-	test:Trace(self.mod, "CombinedWarningPreciseShow", self, maxTotal)
 	if self.option and not self.mod.Options[self.option] then return end
 	if DBM.Options.DontShowBossAnnounces then return end	-- don't show the announces if the spam filter option is set
 	if DBM.Options.DontShowTargetAnnouncements and (self.announceType == "target" or self.announceType == "targetcount") and not self.noFilter then return end--don't show announces that are generic target announces
@@ -469,20 +466,15 @@ function announcePrototype:PreciseShow(maxTotal, ...)
 	local viableTotal = DBM:NumRealAlivePlayers()
 	if (maxTotal <= #self.combinedtext + self.combinedcount) or (viableTotal <= #self.combinedtext + self.combinedcount) then--All targets gathered, show immediately
 		self:Show(...)--Does this need self or mod? will it have this bug? https://github.com/DeadlyBossMods/DBM-Unified/issues/153
-		test:Trace(self.mod, "CombinedWarningPreciseShowSuccess", self, maxTotal)
 	else--And even still, use scheduling backup in case counts still fail
-		local id = DBMScheduler:Schedule(1.2, self.Show, self.mod, self, ...)
-		test:Trace(self.mod, "SchedulerHideFromTraceIfUnscheduled", id, maxTotal)
-		test:Trace(self.mod, "SetScheduleMethodName", id, self, "PreciseShow", maxTotal, ...)
+		DBMScheduler:Schedule(1.2, self.Show, self.mod, self, ...)
 	end
 end
 
 ---@param t number
 ---@param ... any
 function announcePrototype:Schedule(t, ...)
-	local id = DBMScheduler:Schedule(t, self.Show, self.mod, self, ...)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "Schedule", ...)
-	return id
+	return DBMScheduler:Schedule(t, self.Show, self.mod, self, ...)
 end
 
 ---@param time number?
@@ -518,9 +510,7 @@ end
 function announcePrototype:ScheduleVoice(t, name, customPath)
 	if private.voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" or not DBM.Options.VPReplacesAnnounce then return end
 	DBMScheduler:Unschedule(self.Play, self.mod, self)--Allow ScheduleVoice to be used in same way as CombinedShow
-	local id = DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "ScheduleVoice", name, customPath)
-	return id
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
 ---Object Permits scheduling voice multiple times for same object
@@ -529,9 +519,7 @@ end
 ---@param customPath? string|number
 function announcePrototype:ScheduleVoiceOverLap(t, name, customPath)
 	if private.voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" or not DBM.Options.VPReplacesAnnounce then return end
-	local id = DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
-	test:Trace(self.mod, "SetScheduleMethodName", id, self, "ScheduleVoiceOverLap", name, customPath)
-	return id
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
 function announcePrototype:CancelVoice(...)

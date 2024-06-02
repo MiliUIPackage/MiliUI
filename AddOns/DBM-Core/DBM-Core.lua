@@ -75,16 +75,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20240530232740")
+DBM.Revision = parseCurseDate("20240527053600")
 
 local fakeBWVersion, fakeBWHash = 330, "8c25119"--330.1
 local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "10.2.46"--Core version
+DBM.DisplayVersion = "10.2.43"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 5, 30) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
-PForceDisable = 12--When this is incremented, trigger force disable regardless of major patch
+DBM.ReleaseRevision = releaseDate(2024, 5, 27) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+PForceDisable = 10--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
 -- support for github downloads, which doesn't support curse keyword expansion
@@ -785,12 +785,7 @@ local function sendWhisper(target, msg)
 			BNSendWhisper(target, msg)
 		end
 	elseif type(target) == "string" then
-		local length = string.len(target)
-		--Only send sync if it's to a target with a shorter name due to blizzard bug
-		--https://github.com/Stanzilla/WoWUIBugs/issues/573
-		if length < 47 then
-			SendChatMessage(msg, "WHISPER", nil, target) -- Whispering to ourselves here is okay and somewhat useful for whisper-warnings
-		end
+		SendChatMessage(msg, "WHISPER", nil, target) -- Whispering to ourselves here is okay and somewhat useful for whisper-warnings
 	end
 end
 
@@ -2113,12 +2108,7 @@ do
 					end
 				end
 				if notify and v.revision < self.ReleaseRevision then
-					local length = string.len(v.name)
-					--Only send sync if it's to a target with a shorter name due to blizzard bug
-					--https://github.com/Stanzilla/WoWUIBugs/issues/573
-					if length < 47 then
-						SendChatMessage(chatPrefixShort .. L.YOUR_VERSION_OUTDATED, "WHISPER", nil, v.name)
-					end
+					SendChatMessage(chatPrefixShort .. L.YOUR_VERSION_OUTDATED, "WHISPER", nil, v.name)
 				end
 			elseif self.Options.ShowAllVersions and v.displayVersion and v.bwversion then--DBM & BigWigs
 				self:AddMsg(L.VERSIONCHECK_ENTRY_TWO:format(name, L.DBM .. " " .. v.displayVersion, showRealDate(v.revision), L.BIG_WIGS, bwVersionResponseString:format(v.bwversion, v.bwhash)), false)
@@ -2187,12 +2177,7 @@ do
 				text = text:sub(1, 16)
 				text = text:gsub("%%t", UnitName("target") or "<no target>")
 				if whisperTarget then
-					local length = string.len(whisperTarget)
-					--Only send sync if it's to a target with a shorter name due to blizzard bug
-					--https://github.com/Stanzilla/WoWUIBugs/issues/573
-					if length < 47 then
-						C_ChatInfo.SendAddonMessageLogged(DBMPrefix, (DBMSyncProtocol .. "\tUW\t0\t%s"):format(text), "WHISPER", whisperTarget)
-					end
+					C_ChatInfo.SendAddonMessageLogged(DBMPrefix, (DBMSyncProtocol .. "\tUW\t0\t%s"):format(text), "WHISPER", whisperTarget)
 				else
 					sendLoggedSync(DBMSyncProtocol, "U", ("0\t%s"):format(text))
 				end
@@ -2212,12 +2197,7 @@ do
 			if whisperTarget then
 				--no dbm function uses whisper for pizza timers
 				--this allows weak aura creators or other modders to use the pizza timer object unicast via whisper instead of spamming group sync channels
-				local length = string.len(whisperTarget)
-				--Only send sync if it's to a target with a shorter name due to blizzard bug
-				--https://github.com/Stanzilla/WoWUIBugs/issues/573
-				if length < 47 then
-					C_ChatInfo.SendAddonMessageLogged(DBMPrefix, (DBMSyncProtocol .. "\tUW\t%s\t%s"):format(time, text), "WHISPER", whisperTarget)
-				end
+				C_ChatInfo.SendAddonMessageLogged(DBMPrefix, (DBMSyncProtocol .. "\tUW\t%s\t%s"):format(time, text), "WHISPER", whisperTarget)
 			else
 				sendLoggedSync(DBMSyncProtocol, "U", ("%s\t%s"):format(time, text))
 			end
@@ -3621,7 +3601,7 @@ do
 		self:Schedule(2, throttledTalentCheck, self)
 	end
 	--Throttle this api too.
-	DBM.PLAYER_TALENT_UPDATE = DBM.CHARACTER_POINTS_CHANGED -- Wrath/Cata support
+	DBM.PLAYER_TALENT_UPDATE = DBM.CHARACTER_POINTS_CHANGED -- Wrath support
 end
 
 do
@@ -6250,39 +6230,23 @@ do
 		["EVOKER"] = 1465,
 	}
 
-	--In event api fails to pull any data at all, just assign classes to generic DPS role (typically unspecced players such as sub level 11)
-	local catafallbackClassToRole = {
-		["MAGE"] = 799,--Arcane Mage
-		["PALADIN"] = 855,--Ret Paladin
-		["WARRIOR"] = 746,--Arms Warrior
-		["DRUID"] = 752,--Balance druid
-		["DEATHKNIGHT"] = 251,--Frost DK
-		["HUNTER"] = 811,--Beastmaster Hunter
-		["PRIEST"] = 795,--Shadow Priest
-		["ROGUE"] = 182,--Assassination Rogue
-		["SHAMAN"] = 263,--Enhancement Shaman
-		["WARLOCK"] = 871,--Affliction Warlock
-	}
-
-	function DBM:SetCurrentSpecInfo()
+	function DBM:SetCurrentSpecInfo(useEraFallback)
 		if private.isRetail then
-			currentSpecGroup = GetSpecialization()
-			if currentSpecGroup and GetSpecializationInfo(currentSpecGroup) then
-				currentSpecID, currentSpecName = GetSpecializationInfo(currentSpecGroup)
+			currentSpecGroup = GetSpecialization() or 1
+			if GetSpecializationInfo(currentSpecGroup) then
+				currentSpecID, currentSpecName = GetSpecializationInfo(currentSpecGroup)--give temp first spec id for non-specialization char. no one should use dbm with no specialization, below level 10, should not need dbm.
 				currentSpecID = tonumber(currentSpecID)
 			else
-				currentSpecID, currentSpecName = fallbackClassToRole[playerClass], playerClass--give temp first spec id for non-specialization char. no one should use dbm with no specialization, below level 10, should not need dbm.
+				currentSpecID, currentSpecName = fallbackClassToRole[playerClass], playerClass
 			end
-			DBM:Debug("Current specID set to: "..currentSpecID, 2)
-		elseif private.isCata then
-			currentSpecGroup = GetPrimaryTalentTree()
-			if currentSpecGroup and GetTalentTabInfo(currentSpecGroup) then
-				currentSpecID, currentSpecName = GetTalentTabInfo(currentSpecGroup)
+		elseif private.isCata and not useEraFallback then
+			currentSpecGroup = GetPrimaryTalentTree() or 1
+			if GetTalentTabInfo(currentSpecGroup) then
+				currentSpecID, currentSpecName = GetTalentTabInfo(currentSpecGroup)--give temp first spec id for non-specialization char. no one should use dbm with no specialization, below level 10, should not need dbm.
 				currentSpecID = tonumber(currentSpecID)
 			else
-				currentSpecID, currentSpecName = catafallbackClassToRole[playerClass], playerClass--give temp first spec id for non-specialization char. no one should use dbm with no specialization, below level 10, should not need dbm.
+				currentSpecID = playerClass .. tostring(1)--Probably low level, or initially loading into world
 			end
-			DBM:Debug("Current specID set to: "..currentSpecID, 2)
 		else
 			local numTabs = GetNumTalentTabs()
 			local highestPointsSpent = 0
@@ -6302,10 +6266,6 @@ do
 			--If 0 talents are spent, then just set them to first spec to prevent nil errors
 			--This should only happen for a level 1 player or someone who's in middle of respecing
 			if not currentSpecID then currentSpecID = playerClass .. tostring(1) end
-		end
-		if not InCombatLockdown() and currentSpecID and not private.specRoleTable[currentSpecID] then
-			--Refresh entire spec table if not in combat and it's still missing for some reason
-			DBMExtraGlobal:rebuildSpecTable()
 		end
 	end
 end
@@ -6447,7 +6407,7 @@ end
 ---Future proofing EJ_GetSectionInfo compat layer to make it easier updatable.
 function DBM:EJ_GetSectionInfo(sectionID)--Should be number, but accepts string too since Blizzards api converts strings to number.
 	if not sectionID then return end
-	if private.isClassic or private.isWrath then
+	if not private.isRetail then
 		return "EJ_GetSectionInfo not supported on Classic, please report this message and boss"
 	end
 	--Built in wow api extension doesn't know EJ_GetSectionInfo can accept strings
@@ -6750,17 +6710,10 @@ do
 			end
 		end
 		if not selectedClient then return end
-		local length = string.len(selectedClient.name)
-		--Only send sync if it's to a target with a shorter name due to blizzard bug
-		--https://github.com/Stanzilla/WoWUIBugs/issues/573
-		if length < 47 then
-			self:Debug("Requesting timer recovery to " .. selectedClient.name)
-			requestedFrom[selectedClient.name] = true
-			requestTime = GetTime()
-			SendAddonMessage(DBMPrefix, DBMSyncProtocol .. "\tRT", "WHISPER", selectedClient.name)
-		else
-			self:Debug("Passing timer recovery due to blizzard bug to " .. selectedClient.name)
-		end
+		self:Debug("Requesting timer recovery to " .. selectedClient.name)
+		requestedFrom[selectedClient.name] = true
+		requestTime = GetTime()
+		SendAddonMessage(DBMPrefix, DBMSyncProtocol .. "\tRT", "WHISPER", selectedClient.name)
 	end
 
 	---@param mod DBMMod
@@ -6827,12 +6780,7 @@ do
 			--But only if we are not in combat with a boss
 			if DBT:GetBar(L.TIMER_BREAK) then
 				local remaining = DBT:GetBar(L.TIMER_BREAK).timer
-				local length = string.len(target)
-				--Only send sync if it's to a target with a shorter name due to blizzard bug
-				--https://github.com/Stanzilla/WoWUIBugs/issues/573
-				if length < 47 then
-					SendAddonMessage(DBMPrefix, DBMSyncProtocol .. "\tBTR3\t" .. remaining, "WHISPER", target)
-				end
+				SendAddonMessage(DBMPrefix, DBMSyncProtocol .. "\tBTR3\t" .. remaining, "WHISPER", target)
 			end
 			return
 		end
@@ -6870,35 +6818,25 @@ end
 ---@param mod DBMMod
 function DBM:SendCombatInfo(mod, target)
 	if not dbmIsEnabled then return end
-	local length = string.len(target)
-	--Only send sync if it's to a target with a shorter name due to blizzard bug
-	--https://github.com/Stanzilla/WoWUIBugs/issues/573
-	if length < 47 then
-		return SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tCI\t%s\t%s"):format(mod.id, GetTime() - mod.combatInfo.pull), "WHISPER", target)
-	end
+	return SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tCI\t%s\t%s"):format(mod.id, GetTime() - mod.combatInfo.pull), "WHISPER", target)
 end
 
 ---@param mod DBMMod
 function DBM:SendTimerInfo(mod, target)
 	if not dbmIsEnabled then return end
-	local length = string.len(target)
-	--Only send sync if it's to a target with a shorter name due to blizzard bug
-	--https://github.com/Stanzilla/WoWUIBugs/issues/573
-	if length < 47 then
-		for _, v in ipairs(mod.timers) do
-			--Pass on any timer that has no type, or has one that isn't an ai timer
-			if not v.type or v.type and v.type ~= "ai" then
-				for _, uId in ipairs(v.startedTimers) do
-					local elapsed, totalTime, timeLeft
-					if select("#", string.split("\t", uId)) > 1 then
-						elapsed, totalTime = v:GetTime(select(2, string.split("\t", uId)))
-					else
-						elapsed, totalTime = v:GetTime()
-					end
-					timeLeft = totalTime - elapsed
-					if timeLeft > 0 and totalTime > 0 then
-						SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tTR\t%s\t%s\t%s\t%s\t%s"):format(mod.id, timeLeft, totalTime, uId, v.paused and "1" or "0"), "WHISPER", target)
-					end
+	for _, v in ipairs(mod.timers) do
+		--Pass on any timer that has no type, or has one that isn't an ai timer
+		if not v.type or v.type and v.type ~= "ai" then
+			for _, uId in ipairs(v.startedTimers) do
+				local elapsed, totalTime, timeLeft
+				if select("#", string.split("\t", uId)) > 1 then
+					elapsed, totalTime = v:GetTime(select(2, string.split("\t", uId)))
+				else
+					elapsed, totalTime = v:GetTime()
+				end
+				timeLeft = totalTime - elapsed
+				if timeLeft > 0 and totalTime > 0 then
+					SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tTR\t%s\t%s\t%s\t%s\t%s"):format(mod.id, timeLeft, totalTime, uId, v.paused and "1" or "0"), "WHISPER", target)
 				end
 			end
 		end
@@ -6908,15 +6846,10 @@ end
 ---@param mod DBMMod
 function DBM:SendVariableInfo(mod, target)
 	if not dbmIsEnabled then return end
-	local length = string.len(target)
-	--Only send sync if it's to a target with a shorter name due to blizzard bug
-	--https://github.com/Stanzilla/WoWUIBugs/issues/573
-	if length < 47 then
-		for vname, v in pairs(mod.vb) do
-			local v2 = tostring(v)
-			if v2 then
-				SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tVI\t%s\t%s\t%s"):format(mod.id, vname, v2), "WHISPER", target)
-			end
+	for vname, v in pairs(mod.vb) do
+		local v2 = tostring(v)
+		if v2 then
+			SendAddonMessage(DBMPrefix, (DBMSyncProtocol .. "\tVI\t%s\t%s\t%s"):format(mod.id, vname, v2), "WHISPER", target)
 		end
 	end
 end
@@ -7091,10 +7024,6 @@ end
 do
 	local forceDisabled = false
 	function DBM:Disable(forceDisable)
-		for _, mod in ipairs(inCombat) do
-			-- force combat end if anything is active because :Unschedule below breaks wipe detection leaving you in a weird state
-			DBM:EndCombat(mod, true, true, "DBM:Disable() called")
-		end
 		DBMScheduler:Unschedule()
 		dbmIsEnabled = false
 		forceDisabled = forceDisable
@@ -7156,7 +7085,7 @@ do
 		if not testMod then
 			---@class DBMModTestMod: DBMMod
 			testMod = self:NewMod("TestMod")
-			self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "Test Mod"}
+			self:GetModLocalization("TestMod"):SetGeneralLocalization{name = "測試模式"}
 			testWarning1 = testMod:NewAnnounce("%s", 1, "136116")--Interface\\Icons\\Spell_Nature_WispSplode
 			testWarning2 = testMod:NewAnnounce("%s", 2, private.isRetail and "136194" or "136221")
 			testWarning3 = testMod:NewAnnounce("%s", 3, "135826")
@@ -7172,22 +7101,22 @@ do
 			testSpecialWarning2 = testMod:NewSpecialWarning(" %s ", nil, nil, nil, 2, 2)
 			testSpecialWarning3 = testMod:NewSpecialWarning("  %s  ", nil, nil, nil, 3, 2) -- hack: non auto-generated special warnings need distinct names (we could go ahead and give them proper names with proper localization entries, but this is much easier)
 		end
-		testTimer1:Stop("Test Bar")
-		testTimer2:Stop("Adds")
-		testTimer3:Stop("Evil Debuff")
-		testTimer4:Stop("Important Interrupt")
-		testTimer5:Stop("Boom!")
-		testTimer6:Stop("Handle your Role")
-		testTimer7:Stop("Next Stage")
-		testTimer8:Stop("Custom User Bar")
-		testTimer1:Start(10, "Test Bar")
-		testTimer2:Start(30, "Adds")
-		testTimer3:Start(43, "Evil Debuff")
-		testTimer4:Start(20, "Important Interrupt")
-		testTimer5:Start(60, "Boom!")
-		testTimer6:Start(35, "Handle your Role")
-		testTimer7:Start(50, "Next Stage")
-		testTimer8:Start(55, "Custom User Bar")
+		testTimer1:Stop("測試條")
+		testTimer2:Stop("小怪")
+		testTimer3:Stop("惡魔減益")
+		testTimer4:Stop("重要的打斷")
+		testTimer5:Stop("蹦!")
+		testTimer6:Stop("掌握你的職責")
+		testTimer7:Stop("下一階段")
+		testTimer8:Stop("用戶自訂義條")
+		testTimer1:Start(10, "測試條")
+		testTimer2:Start(30, "小怪")
+		testTimer3:Start(43, "惡魔減益")
+		testTimer4:Start(20, "重要的打斷")
+		testTimer5:Start(60, "蹦!")
+		testTimer6:Start(35, "掌握你的職責")
+		testTimer7:Start(50, "下一階段")
+		testTimer8:Start(55, "用戶自訂義條")
 		testWarning1:Cancel()
 		testWarning2:Cancel()
 		testWarning3:Cancel()
@@ -7197,19 +7126,19 @@ do
 		testSpecialWarning2:CancelVoice()
 		testSpecialWarning3:Cancel()
 		testSpecialWarning3:CancelVoice()
-		testWarning1:Show("Test-mode started...")
-		testWarning1:Schedule(62, "Test-mode finished!")
-		testWarning3:Schedule(50, "Boom in 10 sec!")
-		testWarning3:Schedule(20, "Pew Pew Laser Owl!")
-		testWarning2:Schedule(38, "Evil Spell in 5 sec!")
-		testWarning2:Schedule(43, "Evil Spell!")
-		testWarning1:Schedule(10, "Test bar expired!")
-		testSpecialWarning1:Schedule(20, "Pew Pew Laser Owl")
-		testSpecialWarning1:ScheduleVoice(20, "runaway")
-		testSpecialWarning2:Schedule(43, "Fear!")
-		testSpecialWarning2:ScheduleVoice(43, "fearsoon")
-		testSpecialWarning3:Schedule(60, "Boom!")
-		testSpecialWarning3:ScheduleVoice(60, "defensive")
+		testWarning1:Show("測試模式開始...")
+		testWarning1:Schedule(62, "測試模式已結束!")
+		testWarning3:Schedule(50, "10秒後爆炸!")
+		testWarning3:Schedule(20, "皮皮雷射貓頭鷹!")
+		testWarning2:Schedule(38, "惡魔法術5秒後!")
+		testWarning2:Schedule(43, "惡魔法術!")
+		testWarning1:Schedule(10, "測試條已過期!")
+		testSpecialWarning1:Schedule(20, "PiuPiu雷射貓頭鷹")
+		testSpecialWarning1:ScheduleVoice(20, "跑開人群")
+		testSpecialWarning2:Schedule(43, "恐懼!")
+		testSpecialWarning2:ScheduleVoice(43, "恐懼準備")
+		testSpecialWarning3:Schedule(60, "蹦!")
+		testSpecialWarning3:ScheduleVoice(60, "開啟減傷")
 	end
 end
 
@@ -7243,16 +7172,12 @@ function DBM:RoleCheck(ignoreLoot)
 		if not currentSpecID then
 			DBM:SetCurrentSpecInfo()
 		end
-		if currentSpecID and private.specRoleTable[currentSpecID] then
-			if private.specRoleTable[currentSpecID]["Healer"] then
-				role = "HEALER"
-			elseif private.specRoleTable[currentSpecID]["Tank"] then
-				role = "TANK"
-			else
-				role = "DAMAGER"
-			end
-		else--By some miracle, despite excessive redundancy, it still failed because classic spagetti code.
-			role = "DAMAGER"--Set default role (which is what cataclysm does btw, it sets everyone to damager on raid join unless changed by our mod)
+		if private.specRoleTable[currentSpecID]["Healer"] then
+			role = "HEALER"
+		elseif private.specRoleTable[currentSpecID]["Tank"] then
+			role = "TANK"
+		else
+			role = "DAMAGER"
 		end
 	end
 	if not InCombatLockdown() and not IsFalling() and ((IsPartyLFG() and (difficulties.difficultyIndex == 14 or difficulties.difficultyIndex == 15)) or not IsPartyLFG()) then
@@ -8930,12 +8855,6 @@ end)
 test:RegisterLocalHook("UnitAffectingCombat", function(val)
 	local old = UnitAffectingCombat
 	UnitAffectingCombat = val
-	return old
-end)
-
-test:RegisterLocalHook("UnitGUID", function(val)
-	local old = UnitGUID
-	UnitGUID = val
 	return old
 end)
 

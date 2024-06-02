@@ -16,8 +16,8 @@ local DBM, DBM_OPTION_SPACER = DBM, DBM_OPTION_SPACER
 local playerName, realmName, playerLevel = UnitName("player"), GetRealmName(), UnitLevel("player")
 
 StaticPopupDialogs["IMPORTPROFILE_ERROR"] = {
-	text = "There are one or more errors importing this profile. Please see the chat for more information. Would you like to continue and reset found errors to default?",
-	button1 = "Import and fix",
+	text = "匯入此設定檔有一個或多個錯誤。 請參閱聊天以獲取更多訊息。 您想繼續並重置錯誤回復預設嗎？",
+	button1 = "匯入與修正",
 	button2 = "No",
 	OnAccept = function(self)
 		self.importFunc()
@@ -312,7 +312,7 @@ do
 
 	function DBM_GUI:CreateExportProfile(export)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -325,7 +325,7 @@ do
 
 	function DBM_GUI:CreateImportProfile(importFunc)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -690,7 +690,7 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 				---@diagnostic disable-next-line: inject-field
 				DBM:GetModByName(id).Options = importTable[id]
 			end
-			DBM:AddMsg("Profile imported.")
+			DBM:AddMsg("設定檔已匯入。")
 		end
 
 		local importExportProfilesArea = panel:CreateArea(L.Area_ImportExportProfile)
