@@ -1,5 +1,12 @@
 ## Revision History:
 
+#### v13 (May 07, 2024)
+-------------------------------
+* Added new NPCs
+* Removed Season 3 Portal
+* Updated localizations
+* Bump .toc to 100207
+
 #### v12 (March 20, 2024)
 -------------------------------
 * Bump .toc to 100206

@@ -8,12 +8,12 @@
 ## Notes-deDE: Zeigt die Positionen von NPCs und anderen Orten von Interesse in Valdrakken an.
 ## Notes-zhCN: 显示瓦德拉肯各种NPC及传送门位置。
 ## Author: |cFFFF8C00Dathwada EU-Eredar|r
-## Version: v12
+## Version: v13
 ## RequiredDeps: HandyNotes
 ## DefaultState: enabled
 ## SavedVariables: HandyNotes_ValdrakkenDB
 ## IconTexture: 4661644
-## X-Date: 2024-03-20
+## X-Date: 2024-05-07
 ## X-Category: Map
 
 # LOCALIZATION FILES
