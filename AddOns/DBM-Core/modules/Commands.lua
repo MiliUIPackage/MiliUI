@@ -8,6 +8,8 @@ local newShit = (wowTOC >= 100207) or isCata
 
 local L = DBM_CORE_L
 
+local test = private:GetPrototype("DBMTest")
+
 local LibStub = _G["LibStub"]
 local LibLatency, LibDurability
 if LibStub then
@@ -170,7 +172,7 @@ end
 local trackedHudMarkers = {}
 SLASH_DEADLYBOSSMODS1 = "/dbm"
 SlashCmdList["DEADLYBOSSMODS"] = function(msg)
-	if not private.dbmIsEnabled then
+	if not DBM:IsEnabled() then
 		DBM:ForceDisableSpam()
 		return
 	end
@@ -423,7 +425,12 @@ SlashCmdList["DEADLYBOSSMODS"] = function(msg)
 		DBM:AddMsg("Debug Message is " .. (DBM.Options.DebugMode and "ON" or "OFF"))
 		private:GetModule("DevToolsModule"):OnDebugToggle()
 	elseif cmd:sub(1, 4) == "test" then
-		DBM:DemoMode()
+		local args = msg:sub(5):trim()
+		if args == "" then
+			DBM:DemoMode()
+		else
+			test:HandleCommand(string.split(" ", args))
+		end
 	elseif cmd:sub(1, 8) == "whereiam" or cmd:sub(1, 8) == "whereami" then
 		local x, y, _, map = UnitPosition("player")
 		local mapID = C_Map.GetBestMapForUnit("player") or -1

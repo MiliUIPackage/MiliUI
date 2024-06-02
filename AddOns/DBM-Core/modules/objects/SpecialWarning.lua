@@ -15,6 +15,8 @@ local announcePrototype = private:GetPrototype("Announce")
 ---@class DBMMod
 local bossModPrototype = private:GetPrototype("DBMMod")
 
+local test = private:GetPrototype("DBMTest")
+
 local playerName = UnitName("player")
 
 ---@diagnostic disable: inject-field
@@ -89,7 +91,7 @@ function DBM:UpdateSpecialWarningOptions()
 	end
 end
 
-function DBM:AddSpecialWarning(text, force)
+function DBM:AddSpecialWarning(text, force, specWarnObject)
 	local added = false
 	if not frame.font1ticker then
 		font1elapsed = 0
@@ -110,7 +112,9 @@ function DBM:AddSpecialWarning(text, force)
 		local prevText1 = font2:GetText()
 		font1:SetText(prevText1)
 		font1elapsed = font2elapsed
-		self:AddSpecialWarning(text, true)
+		self:AddSpecialWarning(text, true, specWarnObject)
+	else
+		test:Trace(specWarnObject and specWarnObject.mod or self, "ShowSpecialWarning", specWarnObject, text)
 	end
 end
 
@@ -285,6 +289,9 @@ function specialWarningPrototype:UpdateKey(altSpellId)
 	end
 end
 
+---@param self SpecialWarning
+---@param soundId number?
+---@return boolean
 local function canVoiceReplace(self, soundId)
 	if private.voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" then
 		return false
@@ -416,7 +423,7 @@ function specialWarningPrototype:Show(...)
 			if self.announceType and not self.announceType:find("switch") then
 				text = text:gsub(">.-<", classColoringFunction)
 			end
-			DBM:AddSpecialWarning(text)
+			DBM:AddSpecialWarning(text, nil, self)
 			if DBM.Options.ShowSWarningsInChat then
 				local colorCode = ("|cff%.2x%.2x%.2x"):format(DBM.Options.SpecialWarningFontCol[1] * 255, DBM.Options.SpecialWarningFontCol[2] * 255, DBM.Options.SpecialWarningFontCol[3] * 255)
 				self.mod:AddMsg(colorCode .. "[" .. L.MOVE_SPECIAL_WARNING_TEXT .. "] " .. text .. "|r", nil)
@@ -495,7 +502,9 @@ function specialWarningPrototype:CombinedShow(delay, ...)
 	DBMScheduler:Schedule(delay or 0.5, self.Show, self.mod, self, ...)
 end
 
---New object that allows defining count instead of scheduling for more efficient and immediate warnings when precise count is known
+---New object that allows defining count instead of scheduling for more efficient and immediate warnings when precise count is known
+---@param maxTotal number
+---@param ... any
 function specialWarningPrototype:PreciseShow(maxTotal, ...)
 	--Check if option for this warning is even enabled
 	if self.option and not self.mod.Options[self.option] then return end
@@ -524,15 +533,23 @@ function specialWarningPrototype:PreciseShow(maxTotal, ...)
 	end
 end
 
+---Used as a lazy antispam. Does NOT combine. Use CombinedShow for that
+---@param delay number?
+---@param ... any
 function specialWarningPrototype:DelayedShow(delay, ...)
 	DBMScheduler:Unschedule(self.Show, self.mod, self, ...)
 	DBMScheduler:Schedule(delay or 0.5, self.Show, self.mod, self, ...)
 end
 
+---@param t number
+---@param ... any
 function specialWarningPrototype:Schedule(t, ...)
 	return DBMScheduler:Schedule(t, self.Show, self.mod, self, ...)
 end
 
+---@param time number
+---@param numAnnounces number?
+---@param ... any
 function specialWarningPrototype:Countdown(time, numAnnounces, ...)
 	DBMScheduler:ScheduleCountdown(time, numAnnounces, self.Show, self.mod, self, ...)
 end
@@ -609,16 +626,22 @@ function specialWarningPrototype:Play(name, customPath)
 	end
 end
 
-function specialWarningPrototype:ScheduleVoice(t, ...)
+---@param t number
+---@param name VPSound?
+---@param customPath? string|number
+function specialWarningPrototype:ScheduleVoice(t, name, customPath)
 	if not canVoiceReplace(self) then return end
 	DBMScheduler:Unschedule(self.Play, self.mod, self)--Allow ScheduleVoice to be used in same way as CombinedShow
-	return DBMScheduler:Schedule(t, self.Play, self.mod, self, ...)
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
---Object Permits scheduling voice multiple times for same object
-function specialWarningPrototype:ScheduleVoiceOverLap(t, ...)
+---Object Permits scheduling voice multiple times for same object
+---@param t number
+---@param name VPSound?
+---@param customPath? string|number
+function specialWarningPrototype:ScheduleVoiceOverLap(t, name, customPath)
 	if not canVoiceReplace(self) then return end
-	return DBMScheduler:Schedule(t, self.Play, self.mod, self, ...)
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
 function specialWarningPrototype:CancelVoice(...)
@@ -626,6 +649,17 @@ function specialWarningPrototype:CancelVoice(...)
 	return DBMScheduler:Unschedule(self.Play, self.mod, self, ...)
 end
 
+---old constructor (no auto-localize)
+---@param text string
+---@param optionDefault SpecFlags|boolean?
+---@param optionName string|boolean? String for custom option name. Using false hides option completely
+---@param optionVersion any optional: has to be number, but luaLS has a fit if we tell it that
+---@param runSound boolean|number? 1 = Personal, 2 = Everyone, 3 = Very Important, 4 = Run Away
+---@param hasVoice boolean|number? Voice pack version required for used sound file.
+---@param difficulty number? Raid Difficulty index used for displaying difficulty icon next to option
+---@param icon number|string? Use number for spellId, -number for journalID, number as string for textureID
+---@param spellID string|number? Used to define a spellID used for GroupSpells and WeakAura key
+---@param waCustomName any? Used to show custom name/text for Spell header (usually used when a made up SpellID is used)
 function bossModPrototype:NewSpecialWarning(text, optionDefault, optionName, optionVersion, runSound, hasVoice, difficulty, icon, spellID, waCustomName)
 	if not text then
 		error("NewSpecialWarning: you must provide special warning text", 2)
@@ -645,6 +679,7 @@ function bossModPrototype:NewSpecialWarning(text, optionDefault, optionName, opt
 	---@class SpecialWarning
 	local obj = setmetatable(
 		{
+			objClass = "SpecialWarning",
 			text = self.localization.warnings[text],
 			combinedtext = {},
 			combinedcount = 0,
@@ -658,6 +693,7 @@ function bossModPrototype:NewSpecialWarning(text, optionDefault, optionName, opt
 		},
 		mt
 	)
+	test:Trace(self, "NewSpecialWarning", obj, "untyped")
 	local optionId = optionName or optionName ~= false and text
 	if optionId then
 		obj.voiceOptionId = hasVoice and "Voice" .. optionId or nil
@@ -692,6 +728,7 @@ local function newSpecialWarning(self, announceType, spellId, stacks, optionDefa
 	---@class SpecialWarning
 	local obj = setmetatable( -- todo: fix duplicate code
 		{
+			objClass = "SpecialWarning",
 			text = text,
 			combinedtext = {},
 			combinedcount = 0,
@@ -709,6 +746,7 @@ local function newSpecialWarning(self, announceType, spellId, stacks, optionDefa
 		},
 		mt
 	)
+	test:Trace(self, "NewSpecialWarning", obj, announceType)
 	if optionName then
 		obj.option = optionName
 	elseif optionName ~= false then
@@ -985,6 +1023,9 @@ function bossModPrototype:NewSpecialWarningPreWarn(spellId, optionDefault, time,
 	return newSpecialWarning(self, "prewarn", spellId, time, optionDefault, ...)
 end
 
+---@param number number
+---@param forceVoice string?
+---@param forcePath string?
 function DBM:PlayCountSound(number, forceVoice, forcePath)
 	if number > 10 then return end
 	local voice
@@ -1010,6 +1051,8 @@ function DBM:PlayCountSound(number, forceVoice, forcePath)
 	self:PlaySoundFile(path .. number .. ".ogg")
 end
 
+---@param soundId number|string
+---@param force boolean?
 function DBM:PlaySpecialWarningSound(soundId, force)
 	local sound
 	if not force and self:IsTrivial() and self.Options.DontPlayTrivialSpecialWarningSound then
@@ -1024,7 +1067,11 @@ local function testWarningEnd()
 	frame:SetFrameStrata("HIGH")
 end
 
-function DBM:ShowTestSpecialWarning(text, number, noSound, force) -- text, number, noSound, force
+---@param text string?
+---@param number number?
+---@param noSound boolean?
+---@param force boolean?
+function DBM:ShowTestSpecialWarning(text, number, noSound, force)
 	if moving then
 		return
 	end

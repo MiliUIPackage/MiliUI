@@ -15,6 +15,8 @@ local announcePrototype = private:GetPrototype("Announce")
 ---@class DBMMod
 local bossModPrototype = private:GetPrototype("DBMMod")
 
+local test = private:GetPrototype("DBMTest")
+
 local mt = {__index = announcePrototype}
 
 ---@diagnostic disable: inject-field
@@ -160,7 +162,7 @@ function DBM:UpdateWarningOptions()
 	end
 end
 
-function DBM:AddWarning(text, force)
+function DBM:AddWarning(text, force, announceObject)
 	local added = false
 	if not frame.font1ticker then
 		font1elapsed = 0
@@ -195,7 +197,9 @@ function DBM:AddWarning(text, force)
 		font1elapsed = font2elapsed
 		font2:SetText(prevText2)
 		font2elapsed = font3elapsed
-		self:AddWarning(text, true)
+		self:AddWarning(text, true, announceObject)
+	else
+		test:Trace(announceObject and announceObject.mod or self, "ShowAnnounce", announceObject, text)
 	end
 end
 
@@ -301,8 +305,9 @@ function announcePrototype:SetText(customName)
 	self.spellName = spellName
 end
 
---Not to be confused with SetText, which only sets the text of object.
---This changes actual ID so announce callback also swaps ID for WAs
+---Not to be confused with SetText, which only sets the text of object.
+---<br>This changes actual ID so announce callback also swaps ID for WAs
+---@param altSpellId string|number
 function announcePrototype:UpdateKey(altSpellId)
 	self.spellId = altSpellId
 	self.icon = DBM:ParseSpellIcon(altSpellId, self.announceType, self.icon)
@@ -383,7 +388,7 @@ function announcePrototype:Show(...) -- todo: reduce amount of unneeded strings
 			end
 		end
 		text = text:gsub(">.-<", cachedColorFunctions[self.color])
-		DBM:AddWarning(text)
+		DBM:AddWarning(text, nil, self)
 		if DBM.Options.ShowWarningsInChat then
 			if not DBM.Options.WarningIconChat then
 				text = text:gsub(textureExp, "") -- textures @ chat frame can (and will) distort the font if using certain combinations of UI scale, resolution and font size TODO: is this still true as of cataclysm?
@@ -415,7 +420,9 @@ function announcePrototype:Show(...) -- todo: reduce amount of unneeded strings
 	end
 end
 
---Object that's used when precision isn't possible (number of targets variable or unknown
+---Object that's used when precision isn't possible (number of targets variable or unknown)
+---@param delay number
+---@param ... any
 function announcePrototype:CombinedShow(delay, ...)
 	if self.option and not self.mod.Options[self.option] then return end
 	if DBM.Options.DontShowBossAnnounces then return end	-- don't show the announces if the spam filter option is set
@@ -457,17 +464,22 @@ function announcePrototype:PreciseShow(maxTotal, ...)
 	end
 	DBMScheduler:Unschedule(self.Show, self.mod, self)
 	local viableTotal = DBM:NumRealAlivePlayers()
-	if (maxTotal == #self.combinedtext) or (viableTotal == #self.combinedtext) then--All targets gathered, show immediately
+	if (maxTotal <= #self.combinedtext + self.combinedcount) or (viableTotal <= #self.combinedtext + self.combinedcount) then--All targets gathered, show immediately
 		self:Show(...)--Does this need self or mod? will it have this bug? https://github.com/DeadlyBossMods/DBM-Unified/issues/153
 	else--And even still, use scheduling backup in case counts still fail
 		DBMScheduler:Schedule(1.2, self.Show, self.mod, self, ...)
 	end
 end
 
+---@param t number
+---@param ... any
 function announcePrototype:Schedule(t, ...)
 	return DBMScheduler:Schedule(t, self.Show, self.mod, self, ...)
 end
 
+---@param time number?
+---@param numAnnounces number?
+---@param ... any
 function announcePrototype:Countdown(time, numAnnounces, ...)
 	DBMScheduler:ScheduleCountdown(time, numAnnounces, self.Show, self.mod, self, ...)
 end
@@ -492,16 +504,22 @@ function announcePrototype:Play(name, customPath)
 	end
 end
 
-function announcePrototype:ScheduleVoice(t, ...)
+---@param t number
+---@param name VPSound?
+---@param customPath? string|number
+function announcePrototype:ScheduleVoice(t, name, customPath)
 	if private.voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" or not DBM.Options.VPReplacesAnnounce then return end
 	DBMScheduler:Unschedule(self.Play, self.mod, self)--Allow ScheduleVoice to be used in same way as CombinedShow
-	return DBMScheduler:Schedule(t, self.Play, self.mod, self, ...)
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
---Object Permits scheduling voice multiple times for same object
-function announcePrototype:ScheduleVoiceOverLap(t, ...)
+---Object Permits scheduling voice multiple times for same object
+---@param t number
+---@param name VPSound?
+---@param customPath? string|number
+function announcePrototype:ScheduleVoiceOverLap(t, name, customPath)
 	if private.voiceSessionDisabled or DBM.Options.ChosenVoicePack2 == "None" or not DBM.Options.VPReplacesAnnounce then return end
-	return DBMScheduler:Schedule(t, self.Play, self.mod, self, ...)
+	return DBMScheduler:Schedule(t, self.Play, self.mod, self, name, customPath)
 end
 
 function announcePrototype:CancelVoice(...)
@@ -509,7 +527,15 @@ function announcePrototype:CancelVoice(...)
 	return DBMScheduler:Unschedule(self.Play, self.mod, self, ...)
 end
 
--- old constructor (no auto-localize)
+---old constructor (no auto-localize)
+---@param text string
+---@param color number? 1 = Positive Message, 2 = Normal Message, 3 - Higher Priority, 4 - Highest Priority
+---@param icon number|string? Use number for spellId, -number for journalID, number as string for textureID
+---@param optionDefault SpecFlags|boolean?
+---@param optionName string|boolean? String for custom option name. Using false hides option completely
+---@param soundOption number|boolean? 0 = No Sound, 1 = Sound with no voice pack support, >=2 = Voice pack version/support
+---@param spellID number|string? Used to define a spellID used for GroupSpells and WeakAura key
+---@param waCustomName any? Used to show custom name/text for Spell header (usually used when a made up SpellID is used)
 function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionName, soundOption, spellID, waCustomName)
 	if not text then
 		error("NewAnnounce: you must provide announce text", 2)
@@ -528,6 +554,7 @@ function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionNa
 	---@class Announce
 	local obj = setmetatable(
 		{
+			objClass = "Announce",
 			text = self.localization.warnings[text],
 			combinedtext = {},
 			combinedcount = 0,
@@ -539,6 +566,7 @@ function bossModPrototype:NewAnnounce(text, color, icon, optionDefault, optionNa
 		},
 		mt
 	)
+	test:Trace(self, "NewAnnounce", obj, "untyped")
 	if optionName then
 		obj.option = optionName
 		self:AddBoolOption(obj.option, optionDefault, "announce", nil, nil, nil, spellID, nil, waCustomName)
@@ -574,6 +602,7 @@ local function newAnnounce(self, announceType, spellId, color, icon, optionDefau
 	---@class Announce
 	local obj = setmetatable( -- todo: fix duplicate code
 		{
+			objClass = "Announce",
 			text = text,
 			combinedtext = {},
 			combinedcount = 0,
@@ -591,6 +620,7 @@ local function newAnnounce(self, announceType, spellId, color, icon, optionDefau
 		},
 		mt
 	)
+	test:Trace(self, "NewAnnounce", obj, announceType)
 	local catType = "announce"--Default to General announce
 	if not self.NoSortAnnounce then--ALL announce objects will be assigned "announce", usually for mods that sort by phase instead
 		--Change if Personal or Other

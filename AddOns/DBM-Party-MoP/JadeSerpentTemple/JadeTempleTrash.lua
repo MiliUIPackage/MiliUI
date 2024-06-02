@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("JadeTempleTrash", "DBM-Party-MoP", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20230320021831")
+mod:SetRevision("20231026112110")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -18,7 +18,6 @@ mod:RegisterEvents(
 --]]
 --TODO, add https://www.wowhead.com/spell=110125/shattered-resolve when i better understand if ground stuff is on applied or removed
 local warnSurgingDeluge						= mod:NewSpellAnnounce(397881, 2)
-local warnTaintedRipple						= mod:NewCastAnnounce(397878, 3)
 local warnTidalburst						= mod:NewCastAnnounce(397889, 3)
 local warnHauntingScream					= mod:NewCastAnnounce(395859, 4)
 local warnSleepySililoquy					= mod:NewCastAnnounce(395872, 3)
@@ -29,6 +28,7 @@ local warnHauntingGaze						= mod:NewCastAnnounce(114646, 3, nil, nil, "Tank|Hea
 local warnDarkClaw							= mod:NewCastAnnounce(397931, 4, nil, nil, "Tank|Healer")
 local warnGoldenBarrier						= mod:NewTargetNoFilterAnnounce(396020, 2)
 
+local specWarnTaintedRipple					= mod:NewSpecialWarningMoveTo(397878, nil, nil, nil, 2, 13)
 local specWarnFlamesofDoubt					= mod:NewSpecialWarningDodge(398300, nil, nil, nil, 2, 2)
 local specWarnLegSweep						= mod:NewSpecialWarningDodge(397899, nil, nil, nil, 2, 2)
 local specWarnTerritorialDisplay			= mod:NewSpecialWarningDodge(396001, nil, nil, nil, 2, 2)
@@ -41,13 +41,13 @@ local specWarnSleepySililoquy				= mod:NewSpecialWarningInterrupt(395872, "HasIn
 local specWarnDefilingMists					= mod:NewSpecialWarningInterrupt(397914, "HasInterrupt", nil, nil, 1, 2)
 local specWarnTidalburst					= mod:NewSpecialWarningInterrupt(397889, "HasInterrupt", nil, nil, 1, 2)
 
-local timerTaintedRippleCD					= mod:NewCDTimer(14.5, 397878, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
-local timerTidalburstCD						= mod:NewCDTimer(16.6, 397889, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerDarkClawCD						= mod:NewCDTimer(9.7, 397931, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--9.7-14.5
-local timerHauntingScreamCD					= mod:NewCDTimer(18.2, 395859, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerSleepySililoquyCD				= mod:NewCDTimer(10.9, 395872, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--10.9-12
-local timerFlamesofDoubtCD					= mod:NewCDTimer(15.3, 398300, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
-local timerDefilingMistsCD					= mod:NewCDTimer(10.9, 397914, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerTaintedRippleCD					= mod:NewCDNPTimer(14.5, 397878, nil, nil, nil, 2, nil, DBM_COMMON_L.HEALER_ICON)
+local timerTidalburstCD						= mod:NewCDNPTimer(16.6, 397889, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerDarkClawCD						= mod:NewCDNPTimer(9.7, 397931, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)--9.7-14.5
+local timerHauntingScreamCD					= mod:NewCDNPTimer(18.2, 395859, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerSleepySililoquyCD				= mod:NewCDNPTimer(10.9, 395872, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--10.9-12
+local timerFlamesofDoubtCD					= mod:NewCDNPTimer(15.3, 398300, nil, nil, nil, 3, nil, DBM_COMMON_L.DEADLY_ICON)
+local timerDefilingMistsCD					= mod:NewCDNPTimer(10.9, 397914, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 
 --local playerName = UnitName("player")
 
@@ -77,7 +77,7 @@ function mod:SPELL_CAST_START(args)
 			warnHauntingScream:Show()
 		end
 	elseif spellId == 395872 then
-		timerSleepySililoquyCD:Start()
+		timerSleepySililoquyCD:Start(nil, args.sourceGUID)
 		if self.Options.SpecWarn395872interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
 			specWarnSleepySililoquy:Show(args.sourceName)
 			specWarnSleepySililoquy:Play("kickcast")
@@ -107,7 +107,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 396018 and self:AntiSpam(3, 5) then
 		warnFitofRage:Show()
 	elseif spellId == 397931 then
-		timerDarkClawCD:Start()
+		timerDarkClawCD:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 5) then
 			warnDarkClaw:Show()
 		end
@@ -116,7 +116,8 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 397878 then
 		timerTaintedRippleCD:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 4) then
-			warnTaintedRipple:Show()
+			specWarnTaintedRipple:Show(DBM_COMMON_L.BREAK_LOS)
+			specWarnTaintedRipple:Play("breaklos")
 		end
 	end
 end
@@ -150,12 +151,12 @@ function mod:UNIT_DIED(args)
 	elseif cid == 59555 then--Haunting Sha
 		timerHauntingScreamCD:Stop(args.destGUID)
 	elseif cid == 59546 then--The Talking Fish
-		timerSleepySililoquyCD:Stop()
+		timerSleepySililoquyCD:Stop(args.destGUID)
 	elseif cid == 200387 then--Shambling Infester
 		timerFlamesofDoubtCD:Stop(args.destGUID)
 	elseif cid == 200137 then--Depraved mistweaver
 		timerDefilingMistsCD:Stop(args.destGUID)
-	elseif cid == 57109 then--Minion of Doubt
+	elseif cid == 57109 or cid == 65362 then--Minion of Doubt
 		timerDarkClawCD:Stop(args.destGUID)
 	elseif cid == 59873 then--Corrupted Living Water
 		timerTaintedRippleCD:Stop(args.destGUID)

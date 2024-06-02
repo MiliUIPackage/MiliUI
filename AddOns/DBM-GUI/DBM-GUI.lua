@@ -687,6 +687,7 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 			local profileID = playerLevel > 9 and DBM_UseDualProfile and GetSpecializationGroup() or 0
 			for _, id in ipairs(DBM.ModLists[addon.modId]) do
 				_G[addon.modId:gsub("-", "") .. "_AllSavedVars"][playerName .. "-" .. realmName][id][profileID] = importTable[id]
+				---@diagnostic disable-next-line: inject-field
 				DBM:GetModByName(id).Options = importTable[id]
 			end
 			DBM:AddMsg("設定檔已匯入。")
@@ -755,7 +756,7 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 	area.frame:SetPoint("TOPLEFT", 10, modProfileArea and -270 or -25)
 
 	local statOrder = {
-		"lfr", "follower", "normal", "normal25", "heroic", "heroic25", "mythic", "challenge", "timewalker"
+		"follower", "story", "lfr", "normal", "normal25", "heroic", "heroic25", "mythic", "challenge", "timewalker"
 	}
 
 	for _, mod in ipairs(DBM.Mods) do
@@ -823,6 +824,7 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 
 			local statTypes = {
 				follower	= L.FOLLOWER,--no PLAYER_DIFFICULTY entry yet
+				story		= L.STORY,--no PLAYER_DIFFICULTY entry yet
 				lfr25		= PLAYER_DIFFICULTY3,
 				normal		= mod.addon.minExpansion < 5 and RAID_DIFFICULTY1 or PLAYER_DIFFICULTY1,
 				normal25	= RAID_DIFFICULTY2,
@@ -904,7 +906,14 @@ do
 		for _, challengeMap in ipairs(C_ChallengeMode.GetMapTable()) do
 			local challengeMode = challengeModeIds[challengeMap]
 			local id = challengeMode
-			local mapName = strsplit("-", GetRealZoneText(id):trim() or id)
+			--For handling zones like Warfront: Arathi - Alliance
+			local mapName = GetRealZoneText(id):trim() or id
+			for w in string.gmatch(mapName, " - ") do
+				if w:trim() ~= "" then
+					mapName = w
+					break
+				end
+			end
 			if not currentSeasons[mapName] then
 				local modId
 				for _, addon in ipairs(DBM.AddOns) do
@@ -990,7 +999,9 @@ do
 				end
 			end
 
-			for _, mod in ipairs(DBM.Mods) do
+			for _, v in ipairs(DBM.Mods) do
+				---@class DBMMod
+				local mod = v
 				if mod.modId == addon.modId then
 					if not mod.panel and (not addon.subTabs or (addon.subPanels and (addon.subPanels[mod.subTab] or mod.subTab == 0))) then
 						if addon.subTabs and addon.subPanels[mod.subTab] then

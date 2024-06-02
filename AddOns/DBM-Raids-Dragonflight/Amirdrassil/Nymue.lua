@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2556, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426174649")
+mod:SetRevision("20240512085548")
 mod:SetCreatureID(206172)
 mod:SetEncounterID(2708)
 mod:SetUsedIcons(8, 7, 6)
@@ -299,7 +299,7 @@ function mod:SPELL_AURA_APPLIED(args)
 --			warnBlazingCoalescence:Schedule(1, args.amount or 1)
 			warnLucidVulnerability:Show(args.amount or 1)
 		end
-	elseif spellId == 429983 and self:AntiSpam(5, 2) and self.vb.phase % 2 == 1 and not self:IsLFR() then
+	elseif spellId == 429983 and self:AntiSpam(5, 2) and self.vb.phase and (self.vb.phase % 2 == 1) and not self:IsLFR() then
 		--There is no cast event, so only way to detect them is when a player soaks
 		--This therefor makes a lot of unsafe assumptions about player soaking that don't always work right
 		--So timer and alert will just always have accuracy problems and is disabled on LFR for now (and maybe even other difficultes if it keeps generating reports)
