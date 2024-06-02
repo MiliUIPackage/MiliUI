@@ -12,7 +12,7 @@ L["Map Pin Change Size Method"] = "\n\n*如需更改標記大小，請打開 世
 
 --Module Categories
 --- order: 0
-L["Module Category Unknown"] = "Unknown"    --Don't need to translate
+L["Module Category Unknown"] = "未知"    --Don't need to translate
 --- order: 1
 L["Module Category General"] = "一般";
 --- order: 2
@@ -101,14 +101,14 @@ L["TalkingHead Option InstantText"] = "立即文字";   --Should texts immediate
 L["TalkingHead Option TextOutline"] = "文字描邊";
 L["TalkingHead Option Condition Header"] = "隱藏文字來自來源:";
 L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "世界任務";
---L["TalkingHead Option Condition WorldQuest Tooltip"] = "Hide the transcription if it's from a World Quest.\nSometimes Talking Head is triggered before accepting the World Quest, and we won't be able to hide it.";
-L["TalkingHead Option Condition Instance"] = INSTANCE or "副本";
---L["TalkingHead Option Condition Instance Tooltip"] = "Hide the transcription when you are in an instance.";
+L["TalkingHead Option Condition WorldQuest Tooltip"] = "隱藏來自世界任務的文字。\n有時對話會在接受世界任務之前觸發，此時我們將無法隱藏這段文字。";
+L["TalkingHead Option Condition Instance"] = "副本";
+L["TalkingHead Option Condition Instance Tooltip"] = "在副本裡隱藏文字。";
 
 
 --AzerothianArchives
 L["ModuleName Technoscryers"] = "快速插槽: 科技探勘";
---L["ModuleDescription Technoscryers"] = "Show a button to put on the Technoscryers when you are doing Technoscrying World Quest."..L["Quick Slot Generic Description"];
+L["ModuleDescription Technoscryers"] = "在你做“科技考古”世界任務時顯示一個可以讓你直接戴上科技占蔔器的按鈕。"..L["Quick Slot Generic Description"];
 
 
 --Navigator(Waypoint/SuperTrack) Shared Strings
@@ -148,6 +148,10 @@ L["currency-2706"] = "幼龍";
 L["currency-2707"] = "飛龍";
 L["currency-2708"] = "巨龍";
 L["currency-2709"] = "守護巨龍";
+L["currency-2806"] = L["currency-2706"];
+L["currency-2807"] = L["currency-2707"];
+L["currency-2809"] = L["currency-2708"];
+L["currency-2812"] = L["currency-2709"];
 
 --Generic
 L["Reposition Button Horizontal"] = "水平方向移動";   --Move the window horizontally
@@ -155,7 +159,3 @@ L["Reposition Button Vertical"] = "垂直方向移動";
 L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動此視窗。";
 L["Font Size"] = FONT_SIZE or "文字大小";
 L["Reset To Default Position"] = HUD_EDIT_MODE_RESET_POSITION or "重置回預設位置";
-L["currency-2806"] = L["currency-2706"];
-L["currency-2807"] = L["currency-2707"];
-L["currency-2809"] = L["currency-2708"];
-L["currency-2812"] = L["currency-2709"];
