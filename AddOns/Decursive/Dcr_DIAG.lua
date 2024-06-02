@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.18) add-on for World of Warcraft UI
+    Decursive (v 2.7.19) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-05-01T22:15:16Z
+    This file was last updated on 2024-05-10T12:52:03Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -112,7 +112,7 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.18";
+local VERSION = "2.7.19";
 
 T._LoadedFiles = {};
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
@@ -328,7 +328,7 @@ do
         local dbclud = T.Dcr.Status.delayedUnDebuffOccurences
 
 
-        DebugHeader = ("%s\n2.7.18  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        DebugHeader = ("%s\n2.7.19  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
         tostring(T._BDT_HotFix1_applyed), -- BDTHFAd: %s
@@ -945,9 +945,9 @@ do
         --LibStub:GetLibrary
         local UseLibStub = {
             ["AceAddon-3.0"] = 13,
-            ["AceComm-3.0"] = 12,
+            ["AceComm-3.0"] = 14,
             ["AceConsole-3.0"] = 7,
-            ["AceDB-3.0"] = 28,
+            ["AceDB-3.0"] = 29,
             ["AceDBOptions-3.0"] = 15,
             ["AceEvent-3.0"] = 4,
             ["AceHook-3.0"] = 9,
@@ -957,11 +957,11 @@ do
             ["AceGUI-3.0"] = 41,
             ["AceConfig-3.0"] = 3,
             ["AceConfigCmd-3.0"] = 14,
-            ["AceConfigDialog-3.0"] = 85,
-            ["AceConfigRegistry-3.0"] = 20,
+            ["AceConfigDialog-3.0"] = 86,
+            ["AceConfigRegistry-3.0"] = 21,
 
             ["LibDataBroker-1.1"] = 4,
-            ["LibDBIcon-1.0"] = 44,
+            ["LibDBIcon-1.0"] = 52,
             ["LibQTip-1.0"] = 49,
             ["CallbackHandler-1.0"] = 8,
             ["LibDualSpec-1.0"] = (DC.WOTLK or not DC.WOWC) and 22 or nil,
@@ -1161,4 +1161,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.18";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.19";

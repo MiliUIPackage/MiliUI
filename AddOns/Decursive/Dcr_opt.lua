@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.18) add-on for World of Warcraft UI
+    Decursive (v 2.7.19) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-02-19T03:51:57Z
+    This file was last updated on 2024-05-10T13:29:21Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -641,7 +641,7 @@ local function GetStaticOptions ()
     return {
         -- {{{
         type = "group",
-        name = D.name,
+        name = L["Decursive"],
 
         get = D.GetHandler,
         set = D.SetHandler,
@@ -672,16 +672,16 @@ local function GetStaticOptions ()
                 type = 'toggle',
                 name = L["OPT_HIDEMUFSHANDLE"],
                 desc = L["OPT_HIDEMUFSHANDLE_DESC"],
-                guiHidden = true,
+                guiHidden = D.profile and not D.profile.HideMUFsHandle,
                 disabled = function() return not D:IsEnabled() or not D.profile.ShowDebuffsFrame and D.profile.AutoHideMUFs == 1; end,
                 get = function(info) return not D.MFContainerHandle:IsMouseEnabled(); end,
                 order = -4,
             },
             debug = {
                 type = "toggle",
+                guiHidden = not D.debug,
                 name = L["OPT_ENABLEDEBUG"],
                 desc = L["OPT_ENABLEDEBUG_DESC"],
-                guiHidden = true,
                 order = -5,
             },
             -- Atticus Ross rules!
@@ -919,7 +919,7 @@ local function GetStaticOptions ()
                                 --]]
 
                                 f.FSt = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSt:SetFont("Fonts\\MORPHEUS.TTF", 18 );
+                                f.FSt:SetFont(STANDARD_TEXT_FONT, 18 );
                                 f.FSt:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSt:SetPoint("TOPLEFT", f.tTL, "TOPLEFT", 5, -20);
                                 f.FSt:SetPoint("TOPRIGHT", f.tTR, "TOPRIGHT", -5, -20);
@@ -928,7 +928,7 @@ local function GetStaticOptions ()
                                 f.FSt:SetAlpha(0.80);
 
                                 f.FSc = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSc:SetFont("Fonts\\MORPHEUS.TTF", 15 );
+                                f.FSc:SetFont(STANDARD_TEXT_FONT, 15 );
                                 f.FSc:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSc:SetHeight(h - 30 - 60);
                                 f.FSc:SetPoint("TOP", f.FSt, "BOTTOM", 0, -28);
@@ -944,7 +944,7 @@ local function GetStaticOptions ()
                                 f.FSc:SetAlpha(0.80);
 
                                 f.FSl = f:CreateFontString(nil,"OVERLAY", "MailTextFontNormal");
-                                f.FSl:SetFont("Fonts\\MORPHEUS.TTF", 15 );
+                                f.FSl:SetFont(STANDARD_TEXT_FONT, 15 );
                                 f.FSl:SetTextColor(0.18, 0.12, 0.06, 1);
                                 f.FSl:SetJustifyH("LEFT");
                                 f.FSl:SetJustifyV("BOTTOM");
@@ -1940,7 +1940,7 @@ local function GetStaticOptions ()
                                     "\n\n|cFFDDDD00 %s|r:\n   %s"..
                                     "\n\n|cFFDDDD00 %s|r:\n   %s\n\n   %s"
                                 ):format(
-                                    "2.7.18", "John Wellesz", ("2024-05-02T00:50:38Z"):sub(1,10),
+                                    "2.7.19", "John Wellesz", ("2024-05-10T13:31:04Z"):sub(1,10),
                                     L["ABOUT_NOTES"],
                                     L["ABOUT_LICENSE"],         GetAddOnMetadata("Decursive", "X-License") or 'All Rights Reserved',
                                     L["ABOUT_SHAREDLIBS"],      GetAddOnMetadata("Decursive", "X-Embeds")  or 'GetAddOnMetadata() failure',
@@ -3749,6 +3749,6 @@ function D:QuickAccess (CallingObject, button) -- {{{
 end -- }}}
 
 
-T._LoadedFiles["Dcr_opt.lua"] = "2.7.18";
+T._LoadedFiles["Dcr_opt.lua"] = "2.7.19";
 
 -- Closer
