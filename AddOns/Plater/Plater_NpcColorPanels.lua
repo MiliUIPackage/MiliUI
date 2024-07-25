@@ -14,7 +14,7 @@ local startX, startY, heightSize = 10, platerInternal.optionsYStart, 755
 local highlightColorLastCombat = {1, 1, .2, .25}
 
 --options
-local scroll_width = 1050
+local scroll_width = 1080
 local scroll_height = 442
 local scroll_lines = 20
 local scroll_line_height = 20
@@ -23,6 +23,8 @@ local backdrop_color_on_enter = {.8, .8, .8, 0.4}
 local y = startY
 local headerY = y - 20
 local scrollY = headerY - 20
+local scrollbar_x_offset = -271
+local line_width_offset = -34
 
 local DB_NPCID_CACHE
 local DB_NPCID_COLORS
@@ -44,7 +46,7 @@ local headerTable = {
     {text = "Select Color", width = 110},
     {text = "Send to Raid", width = 100},
     {text = "Casts", width = 30},
-    {text = "", width = 270}, --filler
+    {text = "", width = 266}, --filler
 }
 
 local headerOptions = {
@@ -65,15 +67,17 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
     colorsFrame.Header:SetPoint("topleft", colorsFrame, "topleft", 10, headerY)
 
     colorsFrame.ModelFrame = CreateFrame("PlayerModel", nil, colorsFrame, "ModelWithControlsTemplate, BackdropTemplate")
-    colorsFrame.ModelFrame:SetSize(250, 440)
+    colorsFrame.ModelFrame:SetSize(252, 440)
     colorsFrame.ModelFrame:EnableMouse(true)
-    colorsFrame.ModelFrame:SetPoint("topleft", colorsFrame.Header, "topright", -265, -scroll_line_height - 1)
+    colorsFrame.ModelFrame:SetPoint("topleft", colorsFrame.Header, "topright", -255, -scroll_line_height - 1)
     colorsFrame.ModelFrame:SetBackdrop({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
     colorsFrame.ModelFrame:SetBackdropColor(.4, .4, .4, 1)
     colorsFrame.ModelFrame:SetScript("OnEnter", nil)
     colorsFrame.ModelFrame.zoomLevel = 0.1
     colorsFrame.ModelFrame.minZoom = 0.01
     colorsFrame.ModelFrame.maxZoom = 1
+
+    colorsFrame.ModelFrame.RightEdge:Hide()
 
     --store npcID = checkbox object
     --this is used when selecting the color from the dropdown, it'll automatically enable the color and need to set the checkbox to checked for feedback
@@ -255,7 +259,7 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
     local scrollBox_CreateLine = function(self, index)
         local line = CreateFrame("button", "$parentLine" .. index, self, BackdropTemplateMixin and "BackdropTemplate")
         line:SetPoint("topleft", self, "topleft", 1, -((index-1) * (scroll_line_height+1)) - 1)
-        line:SetSize(scroll_width - colorsFrame.ModelFrame:GetWidth() + 19, scroll_line_height)
+        line:SetSize(scroll_width - colorsFrame.ModelFrame:GetWidth() + line_width_offset, scroll_line_height)
         line:SetScript("OnEnter", lineOnEnter)
         line:SetScript("OnLeave", lineOnLeave)
 
@@ -317,6 +321,7 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
         --this button select the casts colors tab and search for the npc name there
         local gotoCastColorsTab = DF:CreateButton(line, function(self, fixedParameter, param1) Plater.OpenCastColorsPanel(param1) end, 20, 20)
         gotoCastColorsTab:SetIcon([[Interface\Buttons\UI-Panel-BiggerButton-Up]], 18, 18, "overlay", {0.2, 0.8, 0.2, 0.8}, {1, 1, 1, 0.834})
+        gotoCastColorsTab:SetSize(21, 20)
         line.gotoCastColorsTab = gotoCastColorsTab
 
         --set hooks
@@ -541,6 +546,11 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
     spells_scroll:SetPoint("topleft", colorsFrame, "topleft", 10, scrollY)
     colorsFrame.SpellsScroll = spells_scroll
 
+    --position of the scrollbar
+    PlaterOptionsPanelContainerColorManagementColorsScrollScrollBar:ClearAllPoints()
+    PlaterOptionsPanelContainerColorManagementColorsScrollScrollBar:SetPoint("topleft", PlaterOptionsPanelContainerColorManagementColorsScroll, "topright", scrollbar_x_offset, -18)
+    PlaterOptionsPanelContainerColorManagementColorsScrollScrollBar:SetPoint("bottomleft", PlaterOptionsPanelContainerColorManagementColorsScroll, "bottomright", scrollbar_x_offset, 18)
+
     colorsFrame.ModelFrame:SetFrameLevel(spells_scroll:GetFrameLevel() + 20)
 
     spells_scroll:SetScript("OnShow", function(self)
@@ -571,7 +581,7 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
         spells_scroll:CreateLine(scrollBox_CreateLine)
     end
 
-    --create search box
+    --create search box ~search
         local latestSearchUpdate = 0
         function colorsFrame.OnSearchBoxTextChanged()
             local text = colorsFrame.AuraSearchTextEntry:GetText()
@@ -592,24 +602,14 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
             spells_scroll:Refresh()
         end
 
-        local aura_search_textentry = DF:CreateTextEntry(colorsFrame, function()end, 150, 20, "AuraSearchTextEntry", _, _, options_dropdown_template)
-        aura_search_textentry:SetPoint("bottomright", colorsFrame.ModelFrame, "topright", 0, 21)
-        aura_search_textentry:SetHook("OnChar",		colorsFrame.OnSearchBoxTextChanged)
-        aura_search_textentry:SetHook("OnTextChanged", 	colorsFrame.OnSearchBoxTextChanged)
-        local aura_search_label = DF:CreateLabel(aura_search_textentry, "search", DF:GetTemplate("font", "ORANGE_FONT_TEMPLATE"))
-        aura_search_label:SetPoint("left", aura_search_textentry, "left", 4, 0)
-        aura_search_label.fontcolor = "gray"
-        aura_search_label.color = {.5, .5, .5, .3}
-        aura_search_textentry.tooltip = "|cFFFFFF00Npc Name|r or |cFFFFFF00Zone Name|r"
-        aura_search_textentry:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
-
-        --clear search button
-        local clear_search_button = DF:CreateButton(colorsFrame, function() aura_search_textentry:SetText(""); aura_search_textentry:ClearFocus() end, 20, 20, "", -1)
-        clear_search_button:SetPoint("right", aura_search_textentry, "right", 5, 0)
-        clear_search_button:SetAlpha(.7)
-        clear_search_button:SetIcon([[Interface\Glues\LOGIN\Glues-CheckBox-Check]])
-        clear_search_button.icon:SetDesaturated(true)
-        clear_search_button:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 21)
+        local auraSearchTextEntry = DF:CreateTextEntry(colorsFrame, function()end, 150, 20, "AuraSearchTextEntry", _, _, options_dropdown_template)
+        auraSearchTextEntry:SetPoint("bottomright", colorsFrame.ModelFrame, "topright", 1, 21) --offset the x in 1 pixel to account the border size of the scrollframe
+        auraSearchTextEntry:SetHook("OnChar",		colorsFrame.OnSearchBoxTextChanged)
+        auraSearchTextEntry:SetHook("OnTextChanged", 	colorsFrame.OnSearchBoxTextChanged)
+        auraSearchTextEntry:SetAsSearchBox()
+        auraSearchTextEntry.tooltip = "|cFFFFFF00Npc Name|r or |cFFFFFF00Zone Name|r"
+        auraSearchTextEntry:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
+        auraSearchTextEntry:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
 
         function colorsFrame.RefreshScroll(refreshSpeed)
             spells_scroll:Hide()
@@ -617,16 +617,19 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
         end
 
     --help button
-        local help_button = DF:CreateButton(colorsFrame, function()end, 70, 20, "help", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
-        help_button:SetPoint("right", aura_search_textentry, "left", -2, 0)
+        local help_button = DF:CreateButton(colorsFrame, function()end, 90, 20, "Help", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        help_button:SetPoint("right", auraSearchTextEntry, "left", -2, 0)
         help_button.tooltip = "|cFFFFFF00Help:|r\n\n- Run dungeons and raids to fill the npc list.\n\n- |cFFFFEE00Scripts Only|r aren't automatically applied, scripts can import the color set here using |cFFFFEE00local colorTable = Plater.GetNpcColor(unitFrame)|r.\n\n- Colors set here override threat colors.\n\n- Colors set in scripts override colors set here.\n\n- |TInterface\\AddOns\\Plater\\media\\star_empty_64:16:16|t icon indicates the color is favorite, so you can use it across dungeons to keep color consistency."
         help_button:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
+        help_button:SetIcon([[Interface\AddOns\Plater\images\circle_icon_help.png]], 16, 16, "overlay", {0, 1, 0, 1}, nil, nil, nil, nil, nil, "TRILINEAR")
 
     --refresh button
-        local refresh_button = DF:CreateButton(colorsFrame, function() colorsFrame.RefreshScroll() end, 70, 20, "refresh", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        local refresh_button = DF:CreateButton(colorsFrame, function() colorsFrame.RefreshScroll() end, 90, 20, "Refresh", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
         refresh_button:SetPoint("right", help_button, "left", -2, 0)
         refresh_button.tooltip = "refresh the list the npcs"
         refresh_button:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
+        refresh_button:SetIcon([[Interface\AddOns\Plater\images\circle_icon_refresh.png]], 16,    16,     "overlay", {0, 1, 0, 1}, nil,     nil,          nil,         nil,        nil,         "TRILINEAR")
+                              --texture,                                                   width, height, layout,    texcoord,     overlay, textDistance, leftPadding, textHeight, shortMethod, filterMode
 
         local create_import_box = function(parent, mainFrame)
             --import and export string text editor
@@ -772,9 +775,10 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
                 colorsFrame.ImportEditor.editbox:SetFocus(true)
             end)
         end
-        local import_button = DF:CreateButton(colorsFrame, import_func, 70, 20, L["IMPORT"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        local import_button = DF:CreateButton(colorsFrame, import_func, 90, 20, L["IMPORT"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
         import_button:SetPoint("right", refresh_button, "left", -2, 0)
         import_button:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
+        import_button:SetIcon([[Interface\AddOns\Plater\images\file_arrow_up.png]], 14, 18, "overlay", {0, 1, 0.115, 0.885}, nil, nil, nil, nil, nil, "TRILINEAR")
 
         local export_func = function()
             if (not colorsFrame.ImportEditor) then
@@ -858,11 +862,13 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
             end)
         end
 
-        local exportButton = DF:CreateButton(colorsFrame, export_func, 70, 20, L["EXPORT"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        local exportButton = DF:CreateButton(colorsFrame, export_func, 90, 20, L["EXPORT"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
         exportButton:SetPoint("right", import_button, "left", -2, 0)
         exportButton:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
+        exportButton:SetIcon([[Interface\AddOns\Plater\images\file_arrow_down.png]], 14, 18, "overlay", {0, 1, 0.115, 0.885}, nil, nil, nil, nil, nil, "TRILINEAR")
+        exportButton:SetIconFilterMode("TRILINEAR")
 
-    --disable all button
+    --disable all colors button
         local disableAllColors = function()
             DF:ShowPromptPanel("Confirm disable all colors?", function()
                 for npcId, colorTable in pairs(Plater.db.profile.npc_colors) do
@@ -888,7 +894,7 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
             colorsFrame.RefreshScroll()
         end
 
-        local scriptsall_button = DF:CreateButton(colorsFrame, setAllAsScriptOnly, 200, 20, "Set All Enabled as 'Scripts Only'", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        --[[deprecated]] local scriptsall_button = DF:CreateButton(colorsFrame, setAllAsScriptOnly, 200, 20, "Set All Enabled as 'Scripts Only'", -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"), DF:GetTemplate("font", "PLATER_BUTTON"))
         scriptsall_button:SetPoint("left", disableall_button, "right", 0, 0)
         scriptsall_button:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 20)
         scriptsall_button:Hide()
@@ -898,15 +904,16 @@ function Plater.CreateNpcColorOptionsFrame(colorsFrame)
         addnpc_text.fontcolor = "gray"
         addnpc_text:SetPoint("left", scriptsall_button, "right", 10, 0)
 
-    -- buttons backdrop
-        local backdropFoot = CreateFrame("frame", nil, spells_scroll, BackdropTemplateMixin and "BackdropTemplate")
+    --scroll footer where the below the scroll buttons are located
+        local backdropFoot = CreateFrame("frame", "$parentFooter", spells_scroll, BackdropTemplateMixin and "BackdropTemplate")
         backdropFoot:SetHeight(20)
         backdropFoot:SetPoint("bottomleft", spells_scroll, "bottomleft", 0, 0)
-        backdropFoot:SetPoint("bottomright", colorsFrame.ModelFrame, "bottomleft", -3, 0)
+        backdropFoot:SetPoint("bottomright", colorsFrame.ModelFrame, "bottomleft", -23, 0)
         backdropFoot:SetBackdrop({edgeFile = [[Interface\Buttons\WHITE8X8]], edgeSize = 1, bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
         backdropFoot:SetBackdropColor(.52, .52, .52, .7)
         backdropFoot:SetBackdropBorderColor(0, 0, 0, 1)
         backdropFoot:SetFrameLevel(colorsFrame.Header:GetFrameLevel() + 19)
+        spells_scroll.ScrollFooter = backdropFoot
 
     --empty label
         local empty_text = DF:CreateLabel(colorsFrame, "this list is automatically filled when\nyou see enemies inside a dungeon or raid\n\nthen you may select colors here or directly\nin the dropdown below the nameplate")

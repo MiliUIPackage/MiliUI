@@ -40,7 +40,7 @@ License: MIT
 -- @class file
 -- @name LibRangeCheck-3.0
 local MAJOR_VERSION = "LibRangeCheck-3.0"
-local MINOR_VERSION = 14
+local MINOR_VERSION = 20
 
 ---@class lib
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
@@ -49,14 +49,10 @@ if not lib then
 end
 
 local isRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE
-local isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 local isEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
-local InCombatLockdownRestriction
-if isRetail or isEra then
-  InCombatLockdownRestriction = function(unit) return InCombatLockdown() and not UnitCanAttack("player", unit) end
-else
-  InCombatLockdownRestriction = function() return false end
-end
+local isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
+
+local InCombatLockdownRestriction = function(unit) return InCombatLockdown() and not UnitCanAttack("player", unit) end
 
 local _G = _G
 local next = next
@@ -70,12 +66,9 @@ local tinsert = tinsert
 local tremove = tremove
 local tostring = tostring
 local setmetatable = setmetatable
-local BOOKTYPE_SPELL = BOOKTYPE_SPELL
-local GetSpellInfo = GetSpellInfo
-local GetSpellBookItemName = GetSpellBookItemName
-local GetNumSpellTabs = GetNumSpellTabs
-local GetSpellTabInfo = GetSpellTabInfo
-local GetItemInfo = GetItemInfo
+local BOOKTYPE_SPELL = BOOKTYPE_SPELL or Enum.SpellBookSpellBank.Player
+local GetSpellBookItemName = GetSpellBookItemName or C_SpellBook.GetSpellBookItemName
+local C_Item = C_Item
 local UnitCanAttack = UnitCanAttack
 local UnitCanAssist = UnitCanAssist
 local UnitExists = UnitExists
@@ -83,8 +76,28 @@ local UnitIsUnit = UnitIsUnit
 local UnitGUID = UnitGUID
 local UnitIsDeadOrGhost = UnitIsDeadOrGhost
 local CheckInteractDistance = CheckInteractDistance
-local IsSpellInRange = IsSpellInRange
-local IsItemInRange = IsItemInRange
+local IsSpellInRange = _G.IsSpellInRange or function(id, unit)
+  local result = C_Spell.IsSpellInRange(id, unit)
+  if result == true then
+    return 1
+  elseif result == false then
+    return 0
+  end
+  return nil
+end
+local IsSpellBookItemInRange = _G.IsSpellInRange or function(index, spellBank, unit)
+  -- Deprecated_11_0_0.lua set BOOKTYPE_SPELL to "spell" but doesn't provide a compatibility wrapper for IsSpellBookItemInRange
+  if type(spellBank) == "string" then
+    spellBank = (spellBank == "spell") and Enum.SpellBookSpellBank.Player or Enum.SpellBookSpellBank.Pet;
+  end
+  local result = C_SpellBook.IsSpellBookItemInRange(index, spellBank, unit)
+  if result == true then
+    return 1
+  elseif result == false then
+    return 0
+  end
+  return nil
+end
 local UnitClass = UnitClass
 local UnitRace = UnitRace
 local GetInventoryItemLink = GetInventoryItemLink
@@ -92,6 +105,32 @@ local GetTime = GetTime
 local HandSlotId = GetInventorySlotInfo("HANDSSLOT")
 local math_floor = math.floor
 local UnitIsVisible = UnitIsVisible
+
+local GetSpellInfo = GetSpellInfo or function(spellID)
+  if not spellID then
+    return nil;
+  end
+
+  local spellInfo = C_Spell.GetSpellInfo(spellID);
+  if spellInfo then
+    return spellInfo.name, nil, spellInfo.iconID, spellInfo.castTime, spellInfo.minRange, spellInfo.maxRange, spellInfo.spellID, spellInfo.originalIconID;
+  end
+end
+
+local GetNumSpellTabs = GetNumSpellTabs or C_SpellBook.GetNumSpellBookSkillLines
+local GetSpellTabInfo = GetSpellTabInfo or function(index)
+  local skillLineInfo = C_SpellBook.GetSpellBookSkillLineInfo(index);
+  if skillLineInfo then
+    return skillLineInfo.name,
+        skillLineInfo.iconID,
+        skillLineInfo.itemIndexOffset,
+        skillLineInfo.numSpellBookItems,
+        skillLineInfo.isGuild,
+        skillLineInfo.offSpecID,
+        skillLineInfo.shouldHide,
+        skillLineInfo.specID;
+  end
+end
 
 -- << STATIC CONFIG
 
@@ -535,7 +574,7 @@ local lastUpdate = 0
 local checkers_Spell = setmetatable({}, {
   __index = function(t, spellIdx)
     local func = function(unit)
-      if IsSpellInRange(spellIdx, BOOKTYPE_SPELL, unit) == 1 then
+      if IsSpellBookItemInRange(spellIdx, BOOKTYPE_SPELL, unit) == 1 then
         return true
       end
     end
@@ -550,7 +589,7 @@ local checkers_Item = setmetatable({}, {
       if not skipInCombatCheck and InCombatLockdownRestriction(unit) then
         return nil
       else
-        return IsItemInRange(item, unit) or nil
+        return C_Item.IsItemInRange(item, unit) or nil
       end
     end
     t[item] = func
@@ -647,7 +686,7 @@ local function getCheckerForSpellWithMinRange(spellIdx, minRange, range, spellLi
   local minRangeChecker = findMinRangeChecker(minRange, range, spellList, interactLists)
   if minRangeChecker then
     checker = function(unit)
-      if IsSpellInRange(spellIdx, BOOKTYPE_SPELL, unit) == 1 then
+      if IsSpellBookItemInRange(spellIdx, BOOKTYPE_SPELL, unit) == 1 then
         return true
       elseif minRangeChecker(unit) then
         return true, true
@@ -680,7 +719,7 @@ local function createCheckerList(spellList, itemList, interactList)
     for range, items in pairs(itemList) do
       for i = 1, #items do
         local item = items[i]
-        if Item:CreateFromItemID(item):IsItemDataCached() and GetItemInfo(item) then
+        if Item:CreateFromItemID(item):IsItemDataCached() and C_Item.GetItemInfo(item) then
           addChecker(res, range, nil, checkers_Item[item], "item:" .. item)
           break
         end
@@ -916,9 +955,9 @@ local function createSmartChecker(friendChecker, harmChecker, miscChecker)
 end
 
 local minItemChecker = function(item)
-  if GetItemInfo(item) then
+  if C_Item.GetItemInfo(item) then
     return function(unit)
-      return IsItemInRange(item, unit)
+      return C_Item.IsItemInRange(item, unit)
     end
   end
 end
@@ -1267,7 +1306,7 @@ function lib:processItemRequests(itemRequests)
         tremove(items, i)
       elseif pendingItemRequest[item] and GetTime() < itemRequestTimeoutAt[item] then
         return true -- still waiting for server response
-      elseif GetItemInfo(item) then
+      elseif C_Item.GetItemInfo(item) then
         -- print("### processItemRequests: found: " .. tostring(item))
         foundNewItems = true
         itemRequestTimeoutAt[item] = nil
@@ -1350,11 +1389,11 @@ function lib:activate()
     frame:RegisterEvent("CHARACTER_POINTS_CHANGED")
     frame:RegisterEvent("SPELLS_CHANGED")
 
-    if isEra or isWrath then
+    if isEra or isCata then
       frame:RegisterEvent("CVAR_UPDATE")
     end
 
-    if isRetail or isWrath then
+    if isRetail or isCata then
       frame:RegisterEvent("PLAYER_TALENT_UPDATE")
     end
 

@@ -218,6 +218,8 @@ L["OPTIONS_RANGECHECK_OUTOFRANGE_DESC"] = "当铭牌超出范围时，alpha会�
 L["OPTIONS_RESOURCES_TARGET"] = "显示目标上的资源"
 L["OPTIONS_RESOURCES_TARGET_DESC"] = "显示您的资源，例如当前目标上方的组合点。使用暴雪默认资源并禁用Platers自己的资源。角色特定设置！"
 L["OPTIONS_SCALE"] = "缩放"
+--[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
 L["OPTIONS_SCRIPTING_REAPPLY"] = "重新应用默认值"
 L["OPTIONS_SETTINGS_COPIED"] = "设置已经拷贝"
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "从当前选择的标签页获取设置失败"

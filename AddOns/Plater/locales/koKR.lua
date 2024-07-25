@@ -246,6 +246,8 @@ L["OPTIONS_RESOURCES_TARGET_DESC"] = [=[현재 대상 위에 콤보 포인트같
 
 Character specific setting!]=]
 L["OPTIONS_SCALE"] = "창 크기"
+--[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
 L["OPTIONS_SCRIPTING_REAPPLY"] = "기본값 다시 적용"
 L["OPTIONS_SETTINGS_COPIED"] = "설정이 복사되었습니다."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "현재 선택된 탭의 설정을 가져오지 못했습니다."

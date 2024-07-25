@@ -7,6 +7,8 @@ do
 
 L["OPTIONS_"] = ""
 
+
+
     --on curseforge
     L["OPTIONS_CASTBAR_APPEARANCE"] = "Cast Bar Appearance"
     L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "Spark Settings"
@@ -276,6 +278,7 @@ L["OPTIONS_"] = ""
     Character specific setting!]=]
     L["OPTIONS_SCALE"] = "Scale"
     L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
+    L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
     L["OPTIONS_SETTINGS_COPIED"] = "settings copied."
     L["OPTIONS_SETTINGS_FAIL_COPIED"] = "failed to get the settings for the current selected tab."
     L["OPTIONS_SHADOWCOLOR"] = "Shadow Color"
@@ -289,7 +292,7 @@ L["OPTIONS_"] = ""
     L["OPTIONS_STACK_AURATIME_DESC"] = "Show shortest time of stacked auras or the longes time, when disabled."
     L["OPTIONS_STACK_SIMILAR_AURAS"] = "Stack Similar Auras"
     L["OPTIONS_STACK_SIMILAR_AURAS_DESC"] = "Auras with the same name (e.g. warlock's unstable affliction debuff) get stacked together."
-    L["OPTIONS_STATUSBAR_TEXT"] = "You can now import profiles, mods, scripts, animations and color tables from |cFFFFAA00http://wago.io|r"
+    L["OPTIONS_STATUSBAR_TEXT"] = "Import profiles, mods, scripts, animations and color tables from |cFFFFAA00http://wago.io|r"
     L["OPTIONS_TABNAME_ADVANCED"] = "Advanced"
     L["OPTIONS_TABNAME_ANIMATIONS"] = "Spell Feedback"
     L["OPTIONS_TABNAME_AUTO"] = "Auto"
@@ -632,6 +635,7 @@ Uses Blizzard default resources and disables Platers own resources.
 
 Character specific setting!]=]
 L["OPTIONS_SCALE"] = "Scale"
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
 L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
 L["OPTIONS_SETTINGS_COPIED"] = "settings copied."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "failed to get the settings for the current selected tab."
@@ -648,7 +652,7 @@ L["OPTIONS_STACK_AURATIME"] = "Show shortest time of stacked auras"
 L["OPTIONS_STACK_AURATIME_DESC"] = "Show shortest time of stacked auras or the longes time, when disabled."
 L["OPTIONS_STACK_SIMILAR_AURAS"] = "Stack Similar Auras"
 L["OPTIONS_STACK_SIMILAR_AURAS_DESC"] = "Auras with the same name (e.g. warlock's unstable affliction debuff) get stacked together."
-L["OPTIONS_STATUSBAR_TEXT"] = "You can now import profiles, mods, scripts, animations and color tables from |cFFFFAA00http://wago.io|r"
+L["OPTIONS_STATUSBAR_TEXT"] = "Import profiles, mods, scripts, animations and color tables from |cFFFFAA00http://wago.io|r"
 L["OPTIONS_TABNAME_ADVANCED"] = "Advanced"
 L["OPTIONS_TABNAME_ANIMATIONS"] = "Spell Feedback"
 L["OPTIONS_TABNAME_AUTO"] = "Auto"

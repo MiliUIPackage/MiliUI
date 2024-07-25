@@ -392,6 +392,8 @@ Character specific setting!]=]
 --[[Translation missing --]]
 L["OPTIONS_SCALE"] = "Scale"
 --[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
+--[[Translation missing --]]
 L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
 L["OPTIONS_SETTINGS_COPIED"] = "Einstellungen kopiert."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "Fehler beim kopieren der Einstllungen für den aktuell ausgewählten Reiter."

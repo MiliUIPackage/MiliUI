@@ -301,6 +301,8 @@ Uses Blizzard default resources and disables Platers own resources.
 
 Character specific setting!]=]
 L["OPTIONS_SCALE"] = "Масштаб"
+--[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
 L["OPTIONS_SCRIPTING_REAPPLY"] = "Применить значения по умолчанию"
 L["OPTIONS_SETTINGS_COPIED"] = "настройки скопированы."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "не удалось получить настройки для текущей выбранной вкладки."

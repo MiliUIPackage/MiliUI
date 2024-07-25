@@ -2,6 +2,8 @@ local addonName, platerInternal = ...
 
 local Plater = Plater
 local GameCooltip = GameCooltip2
+
+---@type detailsframework
 local DF = DetailsFramework
 local _
 local unpack = _G.unpack
@@ -9,6 +11,13 @@ local tremove = _G.tremove
 local CreateFrame = _G.CreateFrame
 local tinsert = _G.tinsert
 local GetSpellInfo = GetSpellInfo or function(spellID) if not spellID then return nil end local si = C_Spell.GetSpellInfo(spellID) if si then return si.name, nil, si.iconID, si.castTime, si.minRange, si.maxRange, si.spellID, si.originalIconID end end
+
+---@class searchdata : table
+---@field [1] number data index within the profile.script_data table
+---@field [2] scriptdata
+---@field [3] scriptname
+---@field [4] number -- 1 enabled or 0 if disabled
+---@field [5] number -- 1 has or 0 if not
 
 --sort scripts
 function Plater.SortScripts (t1, t2)
@@ -293,7 +302,6 @@ Plater.TriggerDefaultMembers = {
 }
 
 function platerInternal.Scripts.GetDefaultScriptForSpellId(spellId)
-	--platerInternal.Scripts.DefaultCastScripts
 	local allScripts = Plater.db.profile.script_data
 	for i = 1, #allScripts do
 		local scriptObject = allScripts[i]
@@ -1273,25 +1281,38 @@ end
 	end
 	
 	--refresh the list of scripts already created
-	local refresh_script_scrollbox = function (self, data, offset, total_lines)
+	local refresh_script_scrollbox = function (self, data, offset, totalLines)
 		--get the main frame
 		local mainFrame = self:GetParent()
-		
+
 		--alphabetical order
+		---@type searchdata[]
 		local dataInOrder = {}
-		
-		if (mainFrame.SearchString ~= "") then
+
+		---@type string
+		local searchingText = mainFrame.SearchString
+
+		--data = profile.script_data
+		---@cast data scriptdata
+
+		if (searchingText ~= "") then
+			offset = 0
+
+			---scripts that match the search text
+			---@type table<scriptname, boolean>
 			local scriptsFound = {}
+
 			for i = 1, #data do
 				if not data[i].hidden then
 					local bFoundMatch = false
 					local triggerSpellIdList = data[i].SpellIds
+
 					if (triggerSpellIdList and type(triggerSpellIdList) == "table") then
 						for o, spellId in ipairs(triggerSpellIdList) do
 							local spellName = GetSpellInfo(spellId)
 							if (spellName) then
 								spellName = spellName:lower()
-								if (spellName:find(mainFrame.SearchString) and not scriptsFound[data[i].Name]) then
+								if (spellName:find(searchingText) and not scriptsFound[data[i].Name]) then
 									dataInOrder[#dataInOrder+1] = {i, data [i], data[i].Name, data[i].Enabled and 1 or 0, data[i].hasWagoUpdateFromImport and 1 or 0}
 									bFoundMatch = true
 									scriptsFound[data[i].Name] = true
@@ -1299,15 +1320,17 @@ end
 							end
 						end
 					end
-					
+
 					if (not bFoundMatch) then
 						local name = data[i].FullName or data[i].Name or ""
-						if (name:lower():find (mainFrame.SearchString)) then
+						if (name:lower():find (searchingText)) then
 							dataInOrder [#dataInOrder+1] = {i, data [i], data[i].Name, data[i].Enabled and 1 or 0, data[i].hasWagoUpdateFromImport and 1 or 0}
 						end
 					end
 				end
 			end
+
+			--print("found matches:", #dataInOrder) --debug
 		else
 			for i = 1, #data do
 				if not data[i].hidden then
@@ -1319,9 +1342,9 @@ end
 		table.sort (dataInOrder, Plater.SortScripts)
 		
 		local currentScript = mainFrame.GetCurrentScriptObject()
-		
+
 		--update the scroll
-		for i = 1, total_lines do
+		for i = 1, totalLines do
 			local index = i + offset
 			local t = dataInOrder [index]
 			if (t) then
@@ -1700,6 +1723,19 @@ end
 		add_FW_dropdown:SetPoint ("right", add_API_label, "left", -10, 0)
 		add_FW_label:SetPoint ("right", add_FW_dropdown, "left", -2, 0)
 		
+		---@type df_button
+		local toggleCastBarButton = DF:CreateButton(parent,
+			function()
+				if (Plater.IsShowingCastBarTest) then
+					Plater.StopCastBarTest()
+				else
+					Plater.StartCastBarTest()
+				end
+			end, 
+			100, 20, DF.Language.CreateLocTable(addonName, "OPTIONS_CASTBAR_TOGGLE_TEST", true), 0, nil, nil, nil, nil, nil, options_button_template, DF:GetTemplate ("font", "PLATER_BUTTON"))
+		toggleCastBarButton:SetPoint ("right", add_FW_dropdown, "left", -117, 38)
+
+
 		--error text
 		local errortext_frame = CreateFrame ("frame", nil, code_editor, BackdropTemplateMixin and "BackdropTemplate")
 		errortext_frame:SetPoint ("bottomleft", code_editor, "bottomleft", 1, 1)
@@ -2514,7 +2550,7 @@ function Plater.CreateHookingPanel()
 		--add the hook to the script object
 		if (not scriptObject.Hooks [hookName]) then
 			local defaultScript
-			if (hookName == "Load Screen" or hookName == "Player Logon" or hookName == "Initialization" or hookName == "Deinitialization" or hookName == "Option Changed") then
+			if (hookName == "Load Screen" or hookName == "Player Logon" or hookName == "Initialization" or hookName == "Deinitialization" or hookName == "Option Changed" or hookName == "Mod Option Changed") then
 				defaultScript = hookFrame.DefaultScriptNoNameplate
 
 			elseif (hookName == "Player Power Update") then
@@ -4003,6 +4039,13 @@ function Plater.CreateScriptingPanel()
 					scriptingFrame.UpdateOverlapButton()
 				end
 			
+			-- 3d model for the units
+				local npc3DFrame = CreateFrame ("playermodel", "", nil, "ModelWithControlsTemplate")
+				npc3DFrame:SetSize (200, 250)
+				npc3DFrame:EnableMouse (false)
+				npc3DFrame:EnableMouseWheel (false)
+				npc3DFrame:Hide()
+			
 			--when the user hover over a scrollbox line
 				local onenter_trigger_line = function (self)
 					if (self.SpellID) then
@@ -4010,12 +4053,29 @@ function Plater.CreateScriptingPanel()
 						GameTooltip:SetSpellByID (self.SpellID)
 						GameTooltip:AddLine (" ")
 						GameTooltip:Show()
+					elseif self.NpcID then
+						local npcID = tonumber(self.NpcID)
+						GameTooltip:SetOwner (self, "ANCHOR_RIGHT")
+						GameTooltip:SetHyperlink (("unit:Creature-0-0-0-0-%d"):format(npcID))
+						GameTooltip:AddLine (" ")
+						if npcID and Plater.db.profile.npc_cache[npcID] then
+							GameTooltip:AddLine (Plater.db.profile.npc_cache[npcID][2] or "???")
+							GameTooltip:AddLine (" ")
+						end
+						npc3DFrame:SetCreature(npcID)
+						npc3DFrame:SetParent(GameTooltip)
+						npc3DFrame:SetPoint ("top", GameTooltip, "bottom", 0, -10)
+						npc3DFrame:Show()
+						GameTooltip:Show()
 					end
 					self:SetBackdropColor (.3, .3, .3, 0.7)
 				end
 			
 			--when the user leaves a scrollbox line from a hover over
 				local onleave_trigger_line = function (self)
+					npc3DFrame:SetParent(nil)
+					npc3DFrame:ClearAllPoints()
+					npc3DFrame:Hide()
 					GameTooltip:Hide()
 					self:SetBackdropColor (unpack (scrollbox_line_backdrop_color))
 				end
@@ -4032,6 +4092,7 @@ function Plater.CreateScriptingPanel()
 					self.Icon:SetDesaturated (false)
 					self.Icon:SetAlpha (1)
 					self.SpellID = trigger
+					self.NpcID = nil
 					self.TriggerName:SetText (spellName)
 					self.TriggerID:SetText (trigger)
 					
@@ -4042,8 +4103,16 @@ function Plater.CreateScriptingPanel()
 					self.Icon:SetDesaturated (true)
 					self.Icon:SetAlpha (0.5)
 					self.SpellID = nil
-					self.TriggerName:SetText (trigger)
-					self.TriggerID:SetText ("")
+					self.NpcID = trigger
+					
+					local npcData = tonumber(trigger) and Plater.db.profile.npc_cache[tonumber(trigger)]
+					if npcData and npcData[1] then
+						self.TriggerName:SetText (npcData[1])
+						self.TriggerID:SetText (trigger)
+					else
+						self.TriggerName:SetText (trigger)
+						self.TriggerID:SetText ("")
+					end
 				end
 				
 				self.TriggerId = trigger_id

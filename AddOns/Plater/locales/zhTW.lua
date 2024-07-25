@@ -407,6 +407,8 @@ Character specific setting!]=]
 --[[Translation missing --]]
 L["OPTIONS_SCALE"] = "Scale"
 --[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
+--[[Translation missing --]]
 L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
 L["OPTIONS_SETTINGS_COPIED"] = "設置已經拷貝"
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "從當前選擇的標簽頁獲取設置失敗"

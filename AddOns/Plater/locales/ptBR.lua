@@ -334,6 +334,8 @@ L["OPTIONS_RESOURCES_TARGET_DESC"] = [=[Mostra seus recursos, como pontos de com
     Configuração específica do personagem!]=]
 L["OPTIONS_SCALE"] = "Escala"
 --[[Translation missing --]]
+L["OPTIONS_SCRIPTING_ADDOPTION"] = "Select which option to add"
+--[[Translation missing --]]
 L["OPTIONS_SCRIPTING_REAPPLY"] = "Re-Apply Default Values"
 L["OPTIONS_SETTINGS_COPIED"] = "configurações copiadas."
 L["OPTIONS_SETTINGS_FAIL_COPIED"] = "falha ao obter as configurações da guia selecionada."
