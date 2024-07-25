@@ -461,7 +461,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 							if aura then
 								name = aura.name
 								icon = aura.icon
-								count = aura.charges
+								count = aura.charges or 0
 								atype = aura.dispelName
 							else
 								name = nil
@@ -489,7 +489,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 				if name then
 					local dc = dbgaura[atype or "none"] or dbgaura.none
 					dispellicon.texture:SetTexture(icon)
-					dispellicon.ctext:SetText((count > 1 and count) or "")
+					dispellicon.ctext:SetText((count and count > 1 and count) or "")
 					dispellicon:SetBackdropColor(dc.r, dc.g, dc.b)
 					dispellicon:Show()
 				else
