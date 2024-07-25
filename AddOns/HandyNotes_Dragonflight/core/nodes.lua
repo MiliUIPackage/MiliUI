@@ -175,7 +175,7 @@ function Node:IterateRewards()
             index = index + 1
             if index > #self.rewards then return end
             reward = self.rewards[index]
-        until reward:IsEnabled()
+        until reward and reward:IsEnabled()
         return reward
     end
 end
@@ -220,6 +220,7 @@ function Node:Prepare()
     ns.PrepareLinks(self.sublabel)
     ns.PrepareLinks(self.location)
     ns.PrepareLinks(self.note)
+    ns.PrepareLinks(self.rlabel)
 
     if self.requires then
         for i, req in ipairs(self.requires) do
@@ -282,7 +283,7 @@ function Node:Render(tooltip, focusable)
     if #rlabel > 0 then
         local rtext = _G[tooltip:GetName() .. 'TextRight1']
         rtext:SetTextColor(1, 1, 1)
-        rtext:SetText(rlabel)
+        rtext:SetText(ns.RenderLinks(rlabel, true))
         rtext:Show()
     end
 
@@ -541,6 +542,13 @@ function Treasure.getters:label()
 end
 
 -------------------------------------------------------------------------------
+----------------------------------- VENDOR ------------------------------------
+-------------------------------------------------------------------------------
+
+local Vendor = Class('Vendor', Collectible,
+    {icon = 'bag', scale = 1.35, group = ns.groups.VENDOR})
+
+-------------------------------------------------------------------------------
 ------------------------------- Interval Class --------------------------------
 -------------------------------------------------------------------------------
 
@@ -609,7 +617,8 @@ ns.node = {
     PetBattle = PetBattle,
     Quest = Quest,
     Rare = Rare,
-    Treasure = Treasure
+    Treasure = Treasure,
+    Vendor = Vendor
 }
 
 ns.Interval = Interval

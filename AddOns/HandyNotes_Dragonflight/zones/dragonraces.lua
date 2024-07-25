@@ -7,12 +7,13 @@ local L = ns.locale
 local Class = ns.Class
 
 local Collectible = ns.node.Collectible
+local Vendor = ns.node.Vendor
 
 local Achievement = ns.reward.Achievement
 local Section = ns.reward.Section
 local Spacer = ns.reward.Spacer
 local Transmog = ns.reward.Transmog
-
+local Item = ns.reward.Item
 local DC = ns.DRAGON_CUSTOMIZATIONS
 
 -------------------------------------------------------------------------------
@@ -109,30 +110,44 @@ end
 ---------------------------- DRAGONRIDING VENDORS -----------------------------
 -------------------------------------------------------------------------------
 
-local DragonridingVendor = Class('DragonridingVendor', Collectible, {
-    icon = 4638724,
-    group = ns.groups.DRAGONRACE,
+local DragonridingVendor = Class('DragonridingVendor', Vendor, {
     note = L['dr_vendor_note'],
     rewards = {
-        DC.CliffsideWylderdrake.CurledHeadHorns,
-        DC.HighlandDrake.CurledBackHorns, --
-        DC.RenewedProtoDrake.ProngedTail, --
-        DC.WindborneVelocidrake.HookedSnout,
-        DC.SetCount(DC.WindborneVelocidrake.TealScales, '50'),
-        DC.SetCount(DC.WindingSlitherdrake.BlondeHair, '25'),
-        DC.SetCount(DC.WindingSlitherdrake.CurvedNoseHorn, '25'),
-        DC.WindingSlitherdrake.HornedBrow, --
-        DC.WindingSlitherdrake.PairedHorns, --
-        DC.WindingSlitherdrake.SharkFinnedTail, --
-        DC.WindingSlitherdrake.YellowScales, --
+        ns.reward.Toy({item = 212518, count = 40}), -- Vial of Endless Draconic Scales
+        DC.SetCount(DC.WindborneVelocidrake.TealScales, 50),
+        DC.SetCount(DC.WindingSlitherdrake.BlondeHair, 25),
+        DC.SetCount(DC.WindingSlitherdrake.CurvedNoseHorn, 25),
+        DC.SetCount(DC.WindingSlitherdrake.HornedBrow, 25),
+        DC.SetCount(DC.WindingSlitherdrake.PairedHorns, 25),
+        DC.SetCount(DC.WindingSlitherdrake.SharkFinnedTail, 25),
+        DC.SetCount(DC.WindingSlitherdrake.YellowScales, 50), --
         Spacer(), --
-        Transmog({item = 206588, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Helmet
-        Transmog({item = 206589, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Shoulderpads
-        Transmog({item = 206590, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Jersey
-        Transmog({item = 206591, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Handwraps
-        Transmog({item = 206592, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Belt
-        Transmog({item = 206593, slot = L['cosmetic'], count = '20'}), -- Drake Racer's Leggings
-        Transmog({item = 206594, slot = L['cosmetic'], count = '20'}) -- Drake Racer's Boots
+        DC.SetCount(DC.CliffsideWylderdrake.CurledHeadHorns, 25),
+        DC.SetCount(DC.CliffsideWylderdrake.LargeTailSpikes, 25), -- 10.2.5
+        DC.SetCount(DC.HighlandDrake.CurledBackHorns, 25),
+        DC.SetCount(DC.HighlandDrake.SweptSpikedHead, 25), -- 10.2.5
+        DC.SetCount(DC.RenewedProtoDrake.DualHornedCrest, 25), -- 10.2.5
+        DC.SetCount(DC.RenewedProtoDrake.ProngedTail, 25),
+        DC.SetCount(DC.WindborneVelocidrake.CurledHorns, 25), -- 10.2.5
+        DC.SetCount(DC.WindborneVelocidrake.HookedSnout, 25), --
+        Spacer(), --
+        Transmog({item = 206588, slot = L['cosmetic'], count = 20}), -- Drake Racer's Helmet
+        Transmog({item = 206589, slot = L['cosmetic'], count = 20}), -- Drake Racer's Shoulderpads
+        Transmog({item = 206590, slot = L['cosmetic'], count = 20}), -- Drake Racer's Jersey
+        Transmog({item = 206591, slot = L['cosmetic'], count = 20}), -- Drake Racer's Handwraps
+        Transmog({item = 206592, slot = L['cosmetic'], count = 20}), -- Drake Racer's Belt
+        Transmog({item = 206593, slot = L['cosmetic'], count = 20}), -- Drake Racer's Leggings
+        Transmog({item = 206594, slot = L['cosmetic'], count = 20}), -- Drake Racer's Boots
+        Spacer(), --
+        Transmog({item = 211877, slot = L['cosmetic'], count = 5}), -- Drake Racer's Scarf
+        Transmog({item = 211881, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Helmet
+        Transmog({item = 211882, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Shoulderpads
+        Transmog({item = 211883, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Jersey
+        Transmog({item = 211884, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Handwraps
+        Transmog({item = 211885, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Belt
+        Transmog({item = 211886, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Leggings
+        Transmog({item = 211887, slot = L['cosmetic'], count = 15}), -- Outlandish Drake Racer's Boots
+        Transmog({item = 211888, slot = L['cosmetic'], count = 5}) -- Outlandish Drake Racer's Scarf
     }
 }) -- Dragonriding Vendor
 
@@ -156,6 +171,16 @@ Valdrakken.nodes[27004760] = DragonridingVendor({
 
 --------------------------------- AZURE SPAN ----------------------------------
 
+local DragonRacersPurse = {
+    Spacer(), Section(_G.WORLD_QUEST_REWARD_FILTERS_TITLE),
+    Item({item = 199192}), -- Dragon Racer's Purse
+    DC.RenewedProtoDrake.DualHornedCrest, DC.RenewedProtoDrake.ThinSpinedJaw,
+    DC.WindborneVelocidrake.HookedSnout, DC.WindborneVelocidrake.CurledHorns,
+    DC.HighlandDrake.CurledBackHorns, DC.HighlandDrake.HookedTail,
+    DC.HighlandDrake.SweptSpikedHead, DC.CliffsideWylderdrake.LargeTailSpikes,
+    DC.CliffsideWylderdrake.SpikedBrow, DC.CliffsideWylderdrake.CurledHeadHorns
+}
+
 local function AzureSpan_Rewards(b, c, r, s) -- basic, challenge, reverse challenge, storm race
     local rewards = {
         Achievement({id = 15921, criteria = b, oneline = true}), -- normal bronze
@@ -174,7 +199,8 @@ local function AzureSpan_Rewards(b, c, r, s) -- basic, challenge, reverse challe
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18757, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18758, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18759, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18759, criteria = r, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -261,7 +287,11 @@ local function ForbiddenReach_Rewards(b, c, r, s) -- basic, challenge, reverse c
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18779, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18780, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18781, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18781, criteria = r, oneline = true}), -- reverse challenge gold
+        Spacer(), Section(_G.WORLD_QUEST_REWARD_FILTERS_TITLE),
+        Item({item = 205226}), -- Reach Racer's Purse
+        DC.RenewedProtoDrake.PlatedBrow, DC.WindborneVelocidrake.SmallEars,
+        DC.HighlandDrake.SweptHorns, DC.CliffsideWylderdrake.FlaredCheek
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -348,7 +378,8 @@ local function OhnahranPlains_Rewards(b, c, r, s) -- basic, challenge, reverse c
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18754, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18755, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18756, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18756, criteria = r, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -406,7 +437,8 @@ OhnahranPlains.nodes[59933555] = Dragonrace({
         Section(L['dr_challenge']),
         Achievement({id = 18754, criteria = 11, oneline = true}), -- challenge bronze
         Achievement({id = 18755, criteria = 11, oneline = true}), -- challenge silver
-        Achievement({id = 18756, criteria = 11, oneline = true}) -- challenge gold
+        Achievement({id = 18756, criteria = 11, oneline = true}), -- challenge gold
+        unpack(DragonRacersPurse)
     }
 }) -- Maruukai Dash
 
@@ -421,7 +453,8 @@ OhnahranPlains.nodes[47487064] = Dragonrace({
         Section(L['dr_challenge']),
         Achievement({id = 18754, criteria = 12, oneline = true}), -- challenge bronze
         Achievement({id = 18755, criteria = 12, oneline = true}), -- challenge silver
-        Achievement({id = 18756, criteria = 12, oneline = true}) -- challenge gold
+        Achievement({id = 18756, criteria = 12, oneline = true}), -- challenge gold
+        unpack(DragonRacersPurse)
     }
 }) -- Mirror of Sky Dash
 
@@ -449,7 +482,8 @@ OhnahranPlains.nodes[43746678] = Dragonrace({
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18754, criteria = 10, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18755, criteria = 10, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18756, criteria = 10, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18756, criteria = 10, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
 }) -- River Rapids Route
 
@@ -473,7 +507,8 @@ local function Thaldraszus_Rewards(b, c, r, s) -- basic, challenge, reverse chal
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18760, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18761, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18762, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18762, criteria = r, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -560,7 +595,8 @@ local function WakingShores_Rewards(b, c, r, s) -- basic, challenge, reverse cha
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18748, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18749, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18750, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18750, criteria = r, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -601,7 +637,8 @@ WakingShores.nodes[47018558] = Dragonrace({
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18748, criteria = 16, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18749, criteria = 4, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18750, criteria = 4, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18750, criteria = 4, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
 }) -- Wild Preserve Slalom
 
@@ -679,7 +716,8 @@ WakingShores.nodes[42599445] = Dragonrace({
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18748, criteria = 4, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18749, criteria = 16, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18750, criteria = 16, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18750, criteria = 16, oneline = true}), -- reverse challenge gold
+        unpack(DragonRacersPurse)
     }
 }) -- Wild Preserve Circuit
 
@@ -703,7 +741,16 @@ local function ZaralekCavern_Rewards(b, c, r, s) -- basic, challenge, reverse ch
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 18786, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 18787, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 18788, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 18788, criteria = r, oneline = true}), -- reverse challenge gold
+        Spacer(), Section(_G.WORLD_QUEST_REWARD_FILTERS_TITLE),
+        Item({item = 205226}), -- Cavern Racer's Purse
+        DC.RenewedProtoDrake.ProngedTail, DC.HighlandDrake.TaperedChin,
+        DC.CliffsideWylderdrake.SplitHorns,
+        DC.CliffsideWylderdrake.SmallHeadSpikes,
+        DC.WindingSlitherdrake.SmallFinnedCrest,
+        DC.WindingSlitherdrake.FinnedTipTail,
+        DC.WindingSlitherdrake.PointedNose,
+        DC.WindingSlitherdrake.TripleJawHorns
     }
     if s then AddStormRace(rewards, s) end
     return rewards
@@ -713,7 +760,7 @@ ZaralekCavern.nodes[38756061] = Dragonrace({
     label = '{quest:74839}',
     normal = {2246, 68, 63},
     advanced = {2252, 60, 55},
-    reverse = {2258, 57, 52},
+    reverse = {2258, 58, 53},
     challenge = {2486, 60, 57},
     reverseChallenge = {2487, 61, 58},
     stormRace = {nil, nil, nil},
@@ -744,7 +791,7 @@ ZaralekCavern.nodes[58724503] = Dragonrace({
     label = '{quest:74951}',
     normal = {2249, 80, 75},
     advanced = {2255, 75, 70},
-    reverse = {2261, 77, 42},
+    reverse = {2261, 75, 70},
     challenge = {2492, 82, 79},
     reverseChallenge = {2493, 78, 75},
     rewards = ZaralekCavern_Rewards(4, 7, 8)
@@ -790,7 +837,16 @@ local function EmeraldDream_Rewards(b, c, r) -- basic, challenge, reverse challe
         Spacer(), Section(L['dr_reverse_challenge']),
         Achievement({id = 19124, criteria = r, oneline = true}), -- reverse challenge bronze
         Achievement({id = 19125, criteria = r, oneline = true}), -- reverse challenge silver
-        Achievement({id = 19126, criteria = r, oneline = true}) -- reverse challenge gold
+        Achievement({id = 19126, criteria = r, oneline = true}), -- reverse challenge gold
+        Spacer(), Section(_G.WORLD_QUEST_REWARD_FILTERS_TITLE),
+        Item({item = 210549}), -- Dream Racer's Purse
+        DC.WindingSlitherdrake.HairyJaw, DC.WindingSlitherdrake.ShortHorns,
+        DC.WindingSlitherdrake.ThornHorns,
+        DC.WindingSlitherdrake.LargeFinnedTail,
+        DC.GrottoNetherwingDrake.SpikedBack,
+        DC.GrottoNetherwingDrake.ClusterSpikedCrest,
+        DC.GrottoNetherwingDrake.VolatilePattern,
+        DC.GrottoNetherwingDrake.DoubleFinnedTail
     }
 end
 
@@ -844,7 +900,7 @@ EmeraldDream.nodes[62808812] = Dragonrace({
     rewards = EmeraldDream_Rewards(5, 5, 5)
 }) -- Canopy Concours
 
-EmeraldDream.nodes[32354820] = Dragonrace({
+EmeraldDream.nodes[32364825] = Dragonrace({
     label = '{quest:78115}',
     normal = {2681, 89, 84},
     advanced = {2687, 73, 70},
@@ -1206,27 +1262,153 @@ RedridgeMountains.nodes[40822500] = EasternKingdomsCup({
 ----------------------------------- OUTLANDS ----------------------------------
 -------------------------------------------------------------------------------
 
--- local function Outlands_Rewards(c)
---     return {
---         Achievement({id = 18566, criteria = c, oneline = true}), -- normal bronze
---         Achievement({id = 18567, criteria = c, oneline = true}), -- normal silver
---         Achievement({id = 18568, criteria = c, oneline = true}), -- normal gold
---         Achievement({id = 18569, criteria = c, oneline = true}), -- advanced bronze
---         Achievement({id = 18570, criteria = c, oneline = true}), -- advanced silver
---         Achievement({id = 18571, criteria = c, oneline = true}), -- advanced gold
---         Achievement({id = 18572, criteria = c, oneline = true}), -- reverse bronze
---         Achievement({id = 18573, criteria = c, oneline = true}), -- reverse silver
---         Achievement({id = 18574, criteria = c, oneline = true}) -- reverse gold
---     }
--- end
+local OutlandCup = Class('OutlandCup', Dragonrace,
+    {parent = 101, group = ns.groups.OUTLAND_CUP})
 
--- local BladesEdge = ns.maps[105] or Map({id = 105, settings = true})
--- local HellfirePeninsula = ns.maps[100] or Map({id = 100, settings = true})
--- local Nagrand = ns.maps[107] or Map({id = 107, settings = true})
--- local Netherstorm = ns.maps[109] or Map({id = 109, settings = true})
--- local ShadowmoonValley = ns.maps[104] or Map({id = 104, settings = true})
--- local TerokkarForest = ns.maps[108] or Map({id = 108, settings = true})
--- local Zangarmarsh = ns.maps[102] or Map({id = 102, settings = true})
+local function Outland_Rewards(c)
+    return {
+        Achievement({id = 19092, criteria = c, oneline = true}), -- normal bronze
+        Achievement({id = 19097, criteria = c, oneline = true}), -- normal silver
+        Achievement({id = 19098, criteria = c, oneline = true}), -- normal gold
+        Achievement({id = 19099, criteria = c, oneline = true}), -- advanced bronze
+        Achievement({id = 19100, criteria = c, oneline = true}), -- advanced silver
+        Achievement({id = 19101, criteria = c, oneline = true}), -- advanced gold
+        Achievement({id = 19102, criteria = c, oneline = true}), -- reverse bronze
+        Achievement({id = 19103, criteria = c, oneline = true}), -- reverse silver
+        Achievement({id = 19104, criteria = c, oneline = true}) -- reverse gold
+    }
+end
+
+local HellfirePeninsula = ns.maps[100] or Map({id = 100, settings = true})
+HellfirePeninsula.nodes[75514425] = OutlandCup({
+    label = '{quest:77102}',
+    normal = {2600, 80, 75},
+    advanced = {2615, 76, 73},
+    reverse = {2630, 75, 72},
+    rewards = Outland_Rewards(1),
+    areaPoiID = 7589
+}) -- Hellfire Hustle
+
+local Zangarmarsh = ns.maps[102] or Map({id = 102, settings = true})
+Zangarmarsh.nodes[36923719] = OutlandCup({
+    label = '{quest:77169}',
+    normal = {2601, 80, 75},
+    advanced = {2616, 73, 70},
+    reverse = {2631, 73, 70},
+    rewards = Outland_Rewards(2),
+    areaPoiID = 7590
+}) -- Coilfang Caper
+
+local BladesEdge = ns.maps[105] or Map({id = 105, settings = true})
+BladesEdge.nodes[61032759] = OutlandCup({
+    label = '{quest:77205}',
+    normal = {2602, 80, 75},
+    advanced = {2617, 75, 72},
+    reverse = {2632, 78, 75},
+    rewards = Outland_Rewards(3),
+    areaPoiID = 7591
+}) -- Blade's Edge Brawl
+
+local ShadowmoonValley = ns.maps[104] or Map({id = 104, settings = true})
+ShadowmoonValley.nodes[61734841] = OutlandCup({
+    label = '{quest:77346}',
+    normal = {2608, 75, 70},
+    advanced = {2623, 66, 63},
+    reverse = {2638, 66, 63},
+    rewards = Outland_Rewards(9),
+    areaPoiID = 7597
+}) -- Shadowmoon Slam
+
+ShadowmoonValley.nodes[51014006] = OutlandCup({
+    label = '{quest:77684}',
+    normal = {2612, 82, 77},
+    advanced = {2627, 76, 73},
+    reverse = {2642, 79, 76},
+    rewards = Outland_Rewards(13),
+    areaPoiID = 7601
+}) -- Fel Pit Fracas
+
+local Nagrand = ns.maps[107] or Map({id = 107, settings = true})
+Nagrand.nodes[58267599] = OutlandCup({
+    label = '{quest:77238}',
+    normal = {2603, 69, 64},
+    advanced = {2618, 60, 57},
+    reverse = {2633, 61, 58},
+    rewards = Outland_Rewards(4),
+    areaPoiID = 7592
+}) -- Telaar Tear
+
+Nagrand.nodes[29472503] = OutlandCup({
+    label = '{quest:77589}',
+    normal = {2610, 85, 80},
+    advanced = {2625, 75, 72},
+    reverse = {2640, 76, 73},
+    rewards = Outland_Rewards(11),
+    areaPoiID = 7599
+}) -- Warmaul Wingding
+
+local TerokkarForest = ns.maps[108] or Map({id = 108, settings = true})
+local Shattrath = ns.maps[111] or Map({id = 111, settings = true})
+local ShattrathCitySashay = OutlandCup({
+    label = '{quest:77322}',
+    normal = {2607, 80, 75},
+    advanced = {2622, 68, 65},
+    reverse = {2637, 69, 66},
+    rewards = Outland_Rewards(8),
+    areaPoiID = 7596
+}) -- Shattrath City Sashay
+
+TerokkarForest.nodes[34813025] = ShattrathCitySashay
+Shattrath.nodes[71317061] = ShattrathCitySashay
+
+local RazorthornRiseRush = OutlandCup({
+    label = '{quest:77260}',
+    normal = {2604, 72, 67},
+    advanced = {2619, 57, 54},
+    reverse = {2634, 57, 54},
+    rewards = Outland_Rewards(5),
+    areaPoiID = 7593
+}) -- Razorthorn Rise Rush
+
+TerokkarForest.nodes[59810480] = RazorthornRiseRush
+HellfirePeninsula.nodes[32657707] = RazorthornRiseRush
+
+TerokkarForest.nodes[42256788] = OutlandCup({
+    label = '{quest:77264}',
+    normal = {2605, 78, 73},
+    advanced = {2620, 73, 70},
+    reverse = {2635, 73, 70},
+    rewards = Outland_Rewards(6),
+    areaPoiID = 7594
+}) -- Auchindoun Coaster
+
+TerokkarForest.nodes[67256586] = OutlandCup({
+    label = '{quest:77645}',
+    normal = {2611, 75, 70},
+    advanced = {2626, 66, 63},
+    reverse = {2641, 66, 63},
+    rewards = Outland_Rewards(12),
+    areaPoiID = 7600
+}) -- Skettis Scramble
+
+local Netherstorm = ns.maps[109] or Map({id = 109, settings = true})
+Netherstorm.nodes[51204193] = OutlandCup({
+    label = '{quest:77398}',
+    normal = {2609, 120, 115},
+    advanced = {2624, 112, 109},
+    reverse = {2639, 113, 110},
+    rewards = Outland_Rewards(10),
+    areaPoiID = 7598
+}) -- Eco-Dome Excursion
+
+Netherstorm.nodes[68894774] = OutlandCup({
+    label = '{quest:77278}',
+    normal = {2606, 105, 100},
+    advanced = {2621, 90, 87},
+    reverse = {2636, 91, 88},
+    rewards = Outland_Rewards(7),
+    areaPoiID = 7595
+}) -- Tempest Keep Sweep
 
 -------------------------------------------------------------------------------
 ---------------------------------- NORTHREND ----------------------------------

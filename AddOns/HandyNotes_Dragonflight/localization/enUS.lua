@@ -60,6 +60,8 @@ L['options_icons_tuskarr_tacklebox_desc'] = 'Display possible locations of {obje
 L['squirrels_note'] = 'You must use the emote {emote:/love} on critters, not battle pets.'
 L['options_icons_squirrels'] = '{achievement:16729}'
 L['options_icons_squirrels_desc'] = 'Display critter locations for {achievement:16729} achievement.'
+L['options_icons_zaralek_squirrels'] = '{achievement:18361}'
+L['options_icons_zaralek_squirrels_desc'] = 'Display critter locations for {achievement:18361} achievement.'
 
 L['hnj_sublabel'] = 'Requires local Shikaar Grand Hunt'
 L['hnj_western_azure_span_hunt'] = 'On top of the dead tree.'
@@ -144,6 +146,10 @@ L['frostbound_chest'] = 'Frostbound Chest'
 L['options_icons_frostbound_chest'] = 'Frostbound Chest'
 L['options_icons_frostbound_chest_desc'] = 'Display possible locations of {object:Frostbound Chests}.'
 
+L['war_supply_chest_note'] = 'A {npc:135181} will fly overhead once every 45 minutes and drop a {npc:135238} at one of these potential drop locations.'
+L['options_icons_war_supplies_desc'] = 'Display {npc:135238} drop locations.'
+L['options_icons_war_supplies'] = '{npc:135238}'
+
 L['fyrakk_assault_label'] = 'Fyrakk Assault'
 L['fyrakk_secured_shipment'] = 'Secured Shipment'
 
@@ -165,6 +171,29 @@ L['earthwarders_forge_note'] = 'Required when crafting this recipe:\n{spell:3677
 L['dreamsurge_sublabel'] = '{note:Only available while a {location:Dreamsurge} is active in this zone.}'
 L['celestine_vendor_note'] = 'Exchange {item:207026} for a mount, toys, pets, and transmog.'
 L['renewed_magmammoth_note'] = 'Collect 20x {item:209419} from the final boss of a {location:Dreamsurge} and combine to create {item:192807}.'
+
+L['dragon_pepe_label'] = 'Dragon Pepe'
+L['dragon_pepe_note'] = 'Perched on the pillar to the left of the stairs leading to the {location:Seat of the Aspects}.'
+L['explorer_pepe_label'] = 'Explorer Pepe'
+L['explorer_pepe_note'] = 'Perched on top of the large tent at {location:Dragonscale Basecamp}.'
+L['tuskarr_pepe_label'] = 'Tuskarr Pepe'
+L['tuskarr_pepe_note'] = 'Perched on the building near {npc:196544} and {npc:187680}.'
+
+L['end_of_august'] = '{note:Only available before end of August.}'
+
+L['rich_soil_label'] = 'Rich Soil'
+L['rich_soil_note'] = 'Plant various seedlings in a patch of {object:Rich Soil} on the {location:Dragon Isles} to sprout random rewards.\n\n{item:200506} - Grow random standard {location:Dragon Isles} herbs\n\n{item:200508} - Grow random Rousing Essences\n\n{item:200507} - Grow random decayed herbs\n\n{item:200509} - Spawn {npc:198571} for various random herbs and essences'
+L['options_icons_rich_soil'] = 'Rich Soil'
+L['options_icons_rich_soil_desc'] = 'Display locations for {object:Rich Soil}.'
+
+L['information_stuffed_clue'] = 'Information-Stuffed Clue'
+L['clued_in_note'] = 'The {npc:210079} spawn during {note:the Big Dig} event and the 3 world quests {wq:Research: ...}.'
+L['options_icons_clued_in'] = '{achievement:19787}'
+L['options_icons_clued_in_desc'] = 'Display {npc:210079} locations for {achievement:19787} achievement.'
+
+L['goggle_wobble_note'] = '{emote:/dance} with {npc:207763} during the intro quest line or the 3 world quests {wq:Technoscrying: ...} while wearing {item:202247}.'
+L['options_icons_goggle_wobble'] = '{achievement:19791}'
+L['options_icons_goggle_wobble_desc'] = 'Display {npc:207763} locations for {achievement:19791} achievement.'
 
 -------------------------------------------------------------------------------
 ------------------------------- THE AZURE SPAN --------------------------------
@@ -282,6 +311,16 @@ L['naszuro_azure_archives'] = 'On the side of the mountain, on a small rock.'
 L['naszuro_hudsons_rock'] = 'On top of the small rocky hill.'
 
 L['ferry_to_iskaara'] = 'Boat to Iskaara'
+
+L['options_icons_vegetarian_diet'] = '{achievement:16762}'
+L['options_icons_vegetarian_diet_desc'] = 'Display {object:Meat Storage} locations for {achievement:16762}.'
+
+L['meat_storage_label'] = 'Meat Storage'
+L['meat_storage_note'] = 'After freeing all 12 {npc:186766} from {object:Meat Storage} inside of {location:Brackenhide Hollow} you will recieve mail from {npc:196267} containing the {item:200631}.'
+
+L['meat_storage_location_a'] = 'On the beach surrounded by {npc:96239s}.'
+L['meat_storage_location_b'] = 'Near a cave behind {npc:187192}.'
+L['meat_storage_location_c'] = 'In a small cave behind the {npc:197130} and {npc:186226}.'
 
 -------------------------------------------------------------------------------
 ------------------ FORBIDDEN REACH (DRACTHYR STARTING ZONE) -------------------
@@ -415,6 +454,12 @@ L['trader_hagarth_note'] = 'Exchange {item:190456} for Artisan Curio recipes.'
 
 L['naszuro_caldera_of_the_menders'] = 'On top of the tower.'
 
+L['sun_bleached_vase'] = 'Sun-Bleached Vase'
+L['untranslated_tome'] = 'Untranslated Tome'
+L['untranslated_tome_note'] = 'In the building with the entrance below the bridge.'
+L['mysterious_boot'] = 'Mysterious Boot'
+L['mysterious_boot_note'] = 'Upper floor.'
+
 -------------------------------------------------------------------------------
 ------------------------------ OHN'AHRAN PLAINS -------------------------------
 -------------------------------------------------------------------------------
@@ -521,6 +566,12 @@ L['bloodgullet_note'] = 'Get the {spell:369277} buff (1 hour) in a tent at the {
 L['naszuro_windsong_rise'] = 'On top of the rock pillar.'
 L['naszuro_emerald_gardens'] = 'On the grass besides the waterfall.'
 
+L['prismatic_leaper_school_label'] = 'Prismatic Leaper School'
+L['prismatic_leaper_school_note'] = 'Speak with {npc:195935} in {location:Iskaara} to make your upgrades.\n\nFish up the following items from {object:Prismatic Leaper Schools} throughout the {location:Ohn\'ahran Plains}:\n\n{item:%d}\n{item:%d}\n{item:%d}\n{item:%d}\n{item:%d}'
+
+L['aylaag_spear'] = 'Aylaag Spear'
+L['dedication_plaquard'] = 'Dedication Plaquard'
+
 -------------------------------------------------------------------------------
 --------------------------------- THALDRASZUS ---------------------------------
 -------------------------------------------------------------------------------
@@ -570,7 +621,17 @@ L['new_perspective_note'] = 'Take a picture with the S.E.L.F.I.E. camera at the 
 L['options_icons_new_perspective'] = '{achievement:16634}'
 L['options_icons_new_perspective_desc'] = 'Display vista locations for the {achievement:16634} achievement.'
 
+L['fringe_benefits_note'] = 'Complete 8 of the daily quests to earn the achievement.'
+L['options_icons_fringe_benefits'] = '{achievement:19507}'
+L['options_icons_fringe_benefits_desc'] = 'Display the location where the daily quests for the {achievement:19507} achievement can be accepted.'
+
+L['little_scales_daycare_note'] = 'You have to do a questline over multiple days, starting with {quest:72664} from {npc:197478}, to earn this achievement and the pet.'
+L['options_icons_whelp'] = '{achievement:18384}'
+L['options_icons_whelp_desc'] = 'Display the location where the daily quests for the {achievement:18384} achievement can be accepted.'
+
 L['ruby_feast_gourmand'] = 'Every day, a random guest chef serves up different dishes and drinks.'
+L['options_icons_ruby_feast_gourmand'] = '{achievement:16556}'
+L['options_icons_ruby_feast_gourmand_desc'] = 'Display the location where the daily quests for the {achievement:16556} achievement can be accepted.'
 
 L['sorotis_note'] = 'Exchange {item:199906} for {faction:2510} reputation.'
 L['lillian_brightmoon_note'] = 'Exchange {item:201412} for {faction:2507} reputation.'
@@ -600,7 +661,6 @@ A small slime called {npc:198590} will spawn and run away to a branch behind {np
 Go back to {npc:198062}, sitting on a bench, and turn in the quest for your {item:200872}.
 ]]
 
-L['little_scales_daycare_note'] = 'You have to do a questline over multiple days, starting with {quest:72664} from {npc:197478}, to earn this achievement and the pet.'
 L['naszuro_veiled_ossuary'] = 'Besides the small shrine.'
 L['naszuro_algethar_academy'] = 'On the ledge of the tower top.'
 L['naszuro_vault_of_the_incarnates'] = 'At the foot of the statue.'
@@ -609,6 +669,15 @@ L['naszuro_temporal_conflux'] = 'On the head of the dragon statue.'
 
 L['revival_catalyst_label'] = 'Revival Catalyst'
 L['revival_catalyst_note'] = 'Convert non-tier gear into an equivalent item level and gear slot Tier piece.'
+
+L['provisioner_aristta_note'] = 'Exchange {currency:2657} for transmogs and a mount.'
+
+L['investigators_pocketwatch_note_a'] = '1. Borrow {item:208449} from {npc:204990} ({dot:Green}) upstairs in {location:Everywhen Inn} in {location:Eon\'s Fringe}.\n\n{note:You must have previously completed her quest chain.}'
+L['investigators_pocketwatch_note_b'] = '2. Use {item:208449} near {npc:203769} ({dot:Blue}) downstairs in {location:Everywhen Inn} in {location:Eon\'s Fringe} and purchase {item:208448} from {npc:207463}.\n\n{note:{item:208448} has a 30 second duration. Be quick!}'
+L['investigators_pocketwatch_note_c'] = '3. Quickly get to the waterfall and drink the {item:208448}. Interact with the newly visible {object:Time-Soaked Clock} to spawn the {npc:201664}.'
+
+L['ominous_portal_label'] = 'Ominous Portal'
+L['ominous_portal_note'] = 'Every 30 minutes an {object:Ominous Portal} will spawn.\n\n5 minutes later {npc:214984} will spawn several bosses. Defeat {npc:215141}, {npc:215147}, and {npc:215146} for your chance at the rewards.\n\n{note:There is no daily loot lockout.}'
 
 -------------------------------------------------------------------------------
 ------------------------------ THE WAKING SHORE -------------------------------
@@ -854,6 +923,11 @@ L['zaralek_event_inactive'] = ns.color.Orange('This Zone Event will not start to
 L['options_icons_zone_event'] = 'Zone Event'
 L['options_icons_zone_event_desc'] = 'Display locations for zone events.'
 
+L['djaradin_scroll'] = 'Djaradin Scroll'
+L['forgotten_incense'] = 'Forgotten Incense'
+L['forgotten_incense_note'] = '{note:Hard to reach due to the quest boundaries.}'
+L['historied_heirloom'] = 'Historied Heirloom'
+
 -------------------------------------------------------------------------------
 ------------------------------- Emerald Dream ---------------------------------
 -------------------------------------------------------------------------------
@@ -933,6 +1007,7 @@ L['moonkin_hatchling_note'] = 'Requires Worldquest {wq:Claws for Concern} to be 
 L['druid_glyphs_label'] = 'Druid Glyphs'
 L['druid_glyphs_sublabel'] = '{note:This is NOT a Druid Glyph. Just a checklist!}'
 L['druid_glyphs_note'] = 'Collect {note:Druid Glyphs} from various activities around the {location:Emerald Dream}.'
+L['druid_glyphs_checklist_note'] = 'Track daily kills for rares in the {location:Emerald Dream}. Only {npc:NPCs} with needed loot will appear in the list.\n\nDaily kills will be marked as ' .. ns.status.Green('Completed') .. '.'
 
 L['pollenfused_bristlebruin_fur_sample_note'] = 'Loot the {object:Pollenfused Bristlebruin Fur Sample} found near the bottom of the tree in {location:The Char}.'
 
@@ -947,7 +1022,7 @@ L['mbc_vial_n'] = 'N'
 L['mbc_vial_o'] = 'O'
 
 L['mbc_vial_d_location'] = 'Starfall Outpost'
-L['mbc_vial_e_location'] = 'Twighlight Gove'
+L['mbc_vial_e_location'] = 'Twilight Grove'
 L['mbc_vial_k_location'] = 'Stormrage Barrow Den'
 L['mbc_vial_n_location'] = 'Star\'s Rest'
 L['mbc_vial_o_location'] = 'Cenarion Refuge'
@@ -1022,6 +1097,15 @@ L['thorn_bear_note'] = '1. Kill {npc:210977}, then use {item:209868} on the corp
 L['nahqi_note'] = 'It requires the {item:211314} to use {spell:1515} with {npc:210908}, that is obtained from the mount {item:210061}.\n\n{npc:210908}{npc:<Ember of Regrowth>} flies in the sky around {location:Amirdrassil} in a {note:counter clockwise} route, taking 17:30 minutes to complete a lap.\nIt has a minimum respawn timer of 30 minutes.\n\n{note:It is a {npc:Spirit Beast}. Only Beast Mastery Hunters can tame it.}'
 
 L['sulraka_note'] = '{npc:210868}{npc:<Daughter of Kimbul>} patrols the area to the east of {location:Amirdrassil} in a {note:counter clockwise} route, taking 17 minutes to complete a lap.\nIt has a minimum respawn timer of 30 minutes.\n\nIt leaves behind {object:Heavy Tracks} while walking which lasts 3 minutes.\nWalks always in stealth, so you will need to use {spell:1543} in front of a freshly {object:Heavy Tracks} to reveal her.\nCast {spell:257284} and/or {spell:187650} and attempt to {spell:1515}.\n\n{note:It is important to trap it or to reveal her because {npc:210868} will not stop moving, even when attacked. Can get out of range of the {spell:1543} cancelling the skill.}\n\n{note:It is a {npc:Spirit Beast}. Only Beast Mastery Hunters can tame it.}'
+
+L['alarashinu_note'] = '{item:210961}, a hidden fel-tinged nature warglaive.\n\n{note:Special Visual Effects:}\nYou leave behind a trail of flowers when using {spell:195072}/ {spell:189110}/ {spell:198793} with Alara\'shinu equipped or transmogged!'
+L['alarashinu_note_stage1'] = 'Speak with {npc:213029} at {location:Central Encampment} in {location:Emerald Dream}.'
+L['alarashinu_note_stage2'] = 'Head to {location:The Lost Temple} in {location:Broken Shore}, witness a {npc:213114}.'
+L['alarashinu_note_stage3'] = 'Head to {location:Temple of Elune} in {location:Val\'sharah}, witness another {npc:213186}.'
+L['alarashinu_note_stage4'] = 'After the memory plays out, a {npc:213248} will appear carrying his Warlgiave.'
+L['alarashinu_note_stage5'] = 'Imbue {npc:213308} with your fel flame.'
+L['alarashinu_note_stage6'] = 'Loot {npc:213381} and receive {item:210961}.'
+L['alarashinu_note_end'] = 'Return to {npc:213029}, and he has a bonus dialog after you get this warglaive.'
 
 -------------------------------------------------------------------------------
 ----------------------------- SECRETS OF AZEROTH ------------------------------
@@ -1242,3 +1326,31 @@ L['wr_dur_foil_01'] = 'Behind some supply crates.'
 
 L['options_icons_warcraft_rumble'] = 'Warcraft Rumble'
 L['options_icons_warcraft_rumble_desc'] = 'Display {object:Rumble Coin Bag} and {object:Rumble Foil Bag} locations for the {object:Warcraft Rumble} crossover promotion.'
+
+-------------------------------------------------------------------------------
+--------------------------------- AMIRDRASSIL ---------------------------------
+-------------------------------------------------------------------------------
+
+L['kaldorei_backpack_label'] = 'Kaldorei Backpack'
+L['kaldorei_bag_label'] = 'Kaldorei Bag'
+L['kaldorei_bedroll_label'] = 'Kaldorei Bedroll'
+L['kaldorei_dagger_label'] = 'Kaldorei Dagger'
+L['kaldorei_horn_label'] = 'Kaldorei Horn'
+L['kaldorei_moon_bow_label'] = 'Kaldorei Moon Bow'
+L['kaldorei_shield_label'] = 'Kaldorei Shield'
+L['kaldorei_spear_label'] = 'Kaldorei Spear'
+L['kaldorei_spyglass_label'] = 'Kaldorei Spyglass'
+
+L['blue_kaldorei_backpack_note'] = 'On top of a crate in the harbor shop at {location:Belanaar}.'
+L['blue_kaldorei_bedroll_note'] = 'Behind the table near the moonwell.'
+L['blue_kaldorei_pouch_note'] = 'On a barrel outside the building filled with portals.'
+L['kaldorei_bow_carver_note'] = 'On a table at the top of the {location:Twilight Watchtower} near {npc:216731}.'
+L['kaldorei_sentinels_spyglass_note'] = 'On top of a crate at the end of the dock in {location:Belanaar}.'
+L['night_elven_bow_note'] = 'Leaning against the weapon rack in {location:Arlithrien Lodge}.'
+L['night_elven_horn_note'] = 'On a crate at the top of the {location:Dawning Watchtower} near {npc:216752}.'
+L['night_elven_shield_note'] = 'Leaning against a crate near {npc:216269} the mining trainer.'
+L['night_elven_signal_note'] = 'Hanging on a brazier atop the steps.'
+L['night_elven_spear_note'] = 'Leaning against the wall of the {location:Keen-Edge Hall}.'
+L['violet_kaldorei_pouch_note'] = 'Near the bottom of the arch behind the moonwell.'
+
+L['moon_priestess_lasara_note'] = 'Exchange {currency:2003} for transmog.'

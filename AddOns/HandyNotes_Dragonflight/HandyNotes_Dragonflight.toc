@@ -1,6 +1,6 @@
 ## Interface: 110000
 ## Title: HandyNotes: Dragonflight
-## Version: 45
+## Version: 63
 ## Notes: Dragonflight Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-巨龍崛起
 ## Notes-zhTW: HandyNotes: Dragonflight |n巨龍崛起的各種地圖標記
