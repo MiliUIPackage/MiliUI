@@ -69,8 +69,8 @@ local function TraceCVar(cvar, value, ...)
 			lineNum = "(unhandled exception)"
 		end
 	end
-	-- Ignore C_CVar.SetCVar hook if it originated from CvarUtil.lua
-	if source and not source:lower():find("[\\/]sharedxml[\\/]cvarutil%.lua") then
+	-- Ignore C_CVar.SetCVar hook if it originated from CvarUtil.lua or ClassicCvarUtil.lua
+	if source and not (source:lower():find("[_\\/]sharedxml[\\/]cvarutil%.lua") or source:lower():find("[_\\/]sharedxml[\\/]classiccvarutil%.lua")) then
 		local realValue = GetCVar(cvar) -- the client does some conversions to the original value
 		if SVLoaded then
 			AdvancedInterfaceOptionsSaved.ModifiedCVars[ cvar:lower() ] = source .. ':' .. lineNum
@@ -110,8 +110,9 @@ end
 local OptionsPanel = CreateFrame('Frame', nil, InterfaceOptionsFramePanelContainer)
 OptionsPanel:Hide()
 OptionsPanel:SetAllPoints()
-OptionsPanel.name = "CVar 遊戲參數"
-OptionsPanel.parent = "進階介面選項"
+OptionsPanel.name = "CVar Browser"
+OptionsPanel.parent = addonName
+addon.OptionsPanel = OptionsPanel
 
 local Title = OptionsPanel:CreateFontString(nil, 'ARTWORK', 'GameFontNormalLarge')
 Title:SetJustifyV('TOP')
@@ -126,9 +127,7 @@ SubText:SetJustifyV('TOP')
 SubText:SetJustifyH('LEFT')
 SubText:SetPoint('TOPLEFT', Title, 'BOTTOMLEFT', 0, -8)
 SubText:SetPoint('RIGHT', -32, 0)
-SubText:SetText('這些選項可以調整遊戲中的各種 CVars 參數。')
-
-InterfaceOptions_AddCategory(OptionsPanel, addonName)
+SubText:SetText('These options allow you to modify various CVars within the game.')
 
 -- FilterBox should adjust the contents of the list frame based on the input text
 -- todo: Display grey "Search" text in the box if it's empty
@@ -152,7 +151,7 @@ FilterBox:SetScript('OnEditFocusGained', function(self)
 end)
 
 local CVarTable = {}
-local ListFrame = addon:CreateListFrame(OptionsPanel, 615, 465, {{NAME, 200}, {'說明', 260, 'LEFT'}, {'值', 100, 'RIGHT'}})
+local ListFrame = addon:CreateListFrame(OptionsPanel, 615, 465, {{NAME, 200}, {'Description', 260, 'LEFT'}, {'Value', 100, 'RIGHT'}})
 ListFrame:SetPoint('TOP', FilterBox, 'BOTTOM', 0, -20)
 ListFrame:SetPoint('BOTTOMLEFT', 4, 6)
 ListFrame:SetItems(CVarTable)
@@ -321,11 +320,11 @@ function E:PLAYER_LOGIN()
 				if cvarTable['description'] then --and _G[ cvarTable['description'] ] then
 					GameTooltip:AddLine(cvarTable['description'], 1, 1, 1, true)
 				end
-				GameTooltip:AddDoubleLine("預設值:", defaultValue, 0.2, 1, 0.6, 0.2, 1, 0.6)
+				GameTooltip:AddDoubleLine("Default Value:", defaultValue, 0.2, 1, 0.6, 0.2, 1, 0.6)
 
 				local modifiedBy = AdvancedInterfaceOptionsSaved.ModifiedCVars[ self.value:lower() ]
 				if modifiedBy then
-					GameTooltip:AddDoubleLine("最近修改:", modifiedBy, 1, 0, 0, 1, 0, 0)
+					GameTooltip:AddDoubleLine("Last Modified By:", modifiedBy, 1, 0, 0, 1, 0, 0)
 				end
 
 				GameTooltip:Show()
@@ -375,11 +374,3 @@ hooksecurefunc('SetCVar', FilteredRefresh)
 
 -- should we even bother checking what the console command did?
 hooksecurefunc('ConsoleExec', FilteredRefresh)
-
-SlashCmdList.CVAR = function()
-	if not InCombatLockdown() then
-		InterfaceOptionsFrame_OpenToCategory(OptionsPanel)
-		InterfaceOptionsFrame_OpenToCategory(OptionsPanel)
-	end
-end
-SLASH_CVAR1 = "/cvar"

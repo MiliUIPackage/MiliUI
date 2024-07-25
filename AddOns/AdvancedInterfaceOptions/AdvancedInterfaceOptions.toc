@@ -1,7 +1,7 @@
-## Interface: 110000
+## Interface: 110000, 100207
 ## Title: Advanced Interface Options
 ## Author: Stanzilla, Semlar
-## Version: 1.8.14
+## Version: 1.9.0-3-gc90c107
 ## IconTexture: 134521
 ## Notes: Restores access to removed interface options in Legion
 ## Title-zhTW: |r|cFFFFFFFF[其他]|r 進階介面選項
@@ -12,11 +12,12 @@
 ## X-Curse-Project-ID: 99982
 ## X-WoWI-ID: 25002
 ## X-Wago-ID: ZQ6aPNW7
+## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: AdvancedInterfaceOptionsSaved
 
 semlib\semlib.xml
 utils.lua
 cvars.lua
-basicOptions.lua
 browser.lua
+basicOptions.lua
