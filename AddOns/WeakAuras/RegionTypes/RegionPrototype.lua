@@ -132,10 +132,10 @@ local function SoundRepeatStop(self)
   Private.StopProfileSystem("sound");
 end
 
-local function SoundStop(self)
+local function SoundStop(self, fadeoutTime)
   Private.StartProfileSystem("sound");
   if (self.soundHandle) then
-    StopSound(self.soundHandle);
+    StopSound(self.soundHandle, fadeoutTime);
   end
   Private.StopProfileSystem("sound");
 end
@@ -203,7 +203,8 @@ local function SoundPlay(self, options)
     return
   end
 
-  self:SoundStop();
+  local fadeoutTime = options.sound_type == "Stop" and options.sound_fade and options.sound_fade * 1000 or 0
+  self:SoundStop(fadeoutTime);
   self:SoundRepeatStop();
 
   self.soundOptions = options;
@@ -384,6 +385,7 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
   local inverseProperty = progressSource[6]
   local pausedProperty = progressSource[7]
   local remainingProperty = progressSource[8]
+  local useAdditionalProgress = progressSource[9]
 
   if progressType == "number" then
     local value = state[property]
@@ -418,7 +420,11 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
       self:UpdateValue()
     end
     if self.SetAdditionalProgress then
-      self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, false)
+      if useAdditionalProgress then
+        self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, false)
+      else
+        self:SetAdditionalProgress(nil)
+      end
     end
   elseif progressType == "timer" then
     local expirationTime
@@ -468,7 +474,11 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
       self:UpdateTime()
     end
     if self.SetAdditionalProgress then
-      self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, inverse)
+      if useAdditionalProgress then
+        self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, inverse)
+      else
+        self:SetAdditionalProgress(nil)
+      end
     end
   elseif progressType == "elapsedTimer" then
     local startTime = state[property] or math.huge
@@ -502,13 +512,17 @@ local function UpdateProgressFromState(self, minMaxConfig, state, progressSource
       self:UpdateTime()
     end
     if self.SetAdditionalProgress then
-      self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, false)
+      if useAdditionalProgress then
+        self:SetAdditionalProgress(state.additionalProgress, adjustMin, max, false)
+      else
+        self:SetAdditionalProgress(nil)
+      end
     end
   end
 end
 
-local autoTimedProgressSource = {-1, "timer", "expirationTime", "duration", "modRate", "inverse", "paused", "remaining"}
-local autoStaticProgressSource = {-1, "number", "value", "total", nil, nil, nil, nil}
+local autoTimedProgressSource = {-1, "timer", "expirationTime", "duration", "modRate", "inverse", "paused", "remaining", true}
+local autoStaticProgressSource = {-1, "number", "value", "total", nil, nil, nil, nil, true}
 local function UpdateProgressFromAuto(self, minMaxConfig, state)
   if state.progressType == "timed"  then
     UpdateProgressFromState(self, minMaxConfig, state, autoTimedProgressSource)
@@ -559,7 +573,7 @@ local function UpdateProgressFromManual(self, minMaxConfig, state, value, total)
     self:UpdateValue()
   end
   if self.SetAdditionalProgress then
-    self:SetAdditionalProgress(state.additionalProgress, adjustMin, max)
+    self:SetAdditionalProgress(nil)
   end
 end
 
@@ -650,6 +664,7 @@ function Private.regionPrototype.create(region)
   region.RunCode = RunCode;
   region.GlowExternal = GlowExternal;
 
+  region.ReAnchor = UpdatePosition;
   region.SetAnchor = SetAnchor;
   region.SetOffset = SetOffset;
   region.SetXOffset = SetXOffset;

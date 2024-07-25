@@ -1195,6 +1195,17 @@ WeakAuras.ModelPaths = {
    {
     children = {
      {
+      fileId = "524328",
+      text = "fandralfirecatnoarmor.m2",
+      value = "fandralfirecatnoarmor.m2",
+     },
+    },
+    text = "fandralfirecat",
+    value = "fandralfirecat",
+   },
+   {
+    children = {
+     {
       fileId = "123821",
       text = "batrider.m2",
       value = "batrider.m2",
@@ -4316,6 +4327,37 @@ WeakAuras.ModelPaths = {
  },
  {
   children = {
+   {
+    children = {
+     {
+      fileId = "1728344",
+      text = "fogvolume_test01.m2",
+      value = "fogvolume_test01.m2",
+     },
+     {
+      fileId = "1728346",
+      text = "fogvolume_test02.m2",
+      value = "fogvolume_test02.m2",
+     },
+     {
+      fileId = "1728354",
+      text = "fogvolume_test03.m2",
+      value = "fogvolume_test03.m2",
+     },
+     {
+      fileId = "1728356",
+      text = "fogvolume_test04.m2",
+      value = "fogvolume_test04.m2",
+     },
+     {
+      fileId = "1728359",
+      text = "fogvolume_test05.m2",
+      value = "fogvolume_test05.m2",
+     },
+    },
+    text = "fogvolumes",
+    value = "fogvolumes",
+   },
    {
     children = {
      {
@@ -15959,6 +16001,16 @@ WeakAuras.ModelPaths = {
         value = "axe_2h_blackwing_a_02.m2",
        },
        {
+        fileId = "144759",
+        text = "axe_2h_gorehowl_c_01.m2",
+        value = "axe_2h_gorehowl_c_01.m2",
+       },
+       {
+        fileId = "144760",
+        text = "axe_2h_gorehowl_d_01.m2",
+        value = "axe_2h_gorehowl_d_01.m2",
+       },
+       {
         fileId = "144763",
         text = "axe_2h_horde_a_01.m2",
         value = "axe_2h_horde_a_01.m2",
@@ -18710,6 +18762,86 @@ WeakAuras.ModelPaths = {
  {
   children = {
    {
+    fileId = "5076825",
+    text = "10fx_aberrus_amalgamation_fierymeteor.m2",
+    value = "10fx_aberrus_amalgamation_fierymeteor.m2",
+   },
+   {
+    fileId = "5679913",
+    text = "11fx_nyalothathewakingcity_drestagath_dismemberment_impact.m2",
+    value = "11fx_nyalothathewakingcity_drestagath_dismemberment_impact.m2",
+   },
+   {
+    fileId = "1087046",
+    text = "6_0_flamesofragnaros_enchant.m2",
+    value = "6_0_flamesofragnaros_enchant.m2",
+   },
+   {
+    fileId = "1611750",
+    text = "7fx_kiljaeden_armageddon_meteor_missile.m2",
+    value = "7fx_kiljaeden_armageddon_meteor_missile.m2",
+   },
+   {
+    fileId = "1315162",
+    text = "7fx_weaponenchant_energyfire.m2",
+    value = "7fx_weaponenchant_energyfire.m2",
+   },
+   {
+    fileId = "1315163",
+    text = "7fx_weaponenchant_energyshadow.m2",
+    value = "7fx_weaponenchant_energyshadow.m2",
+   },
+   {
+    fileId = "1392610",
+    text = "7fx_weaponenchant_nightmare.m2",
+    value = "7fx_weaponenchant_nightmare.m2",
+   },
+   {
+    fileId = "1733364",
+    text = "8fx_nazmir_bloodtroll_basickit_casthand.m2",
+    value = "8fx_nazmir_bloodtroll_basickit_casthand.m2",
+   },
+   {
+    fileId = "2032201",
+    text = "8fx_nazmir_bloodtroll_basickit_cone.m2",
+    value = "8fx_nazmir_bloodtroll_basickit_cone.m2",
+   },
+   {
+    fileId = "1725600",
+    text = "8fx_nazmir_bloodtroll_basickit_precasthand.m2",
+    value = "8fx_nazmir_bloodtroll_basickit_precasthand.m2",
+   },
+   {
+    fileId = "2066466",
+    text = "8fx_nazmir_bloodtroll_basickit_shield.m2",
+    value = "8fx_nazmir_bloodtroll_basickit_shield.m2",
+   },
+   {
+    fileId = "1777740",
+    text = "8fx_nazmir_bloodtroll_damagestate_statechest.m2",
+    value = "8fx_nazmir_bloodtroll_damagestate_statechest.m2",
+   },
+   {
+    fileId = "1733368",
+    text = "8fx_nazmir_bloodtroll_impactlow_chest.m2",
+    value = "8fx_nazmir_bloodtroll_impactlow_chest.m2",
+   },
+   {
+    fileId = "1728831",
+    text = "8fx_nazmir_bloodtroll_novahigh_impactworld.m2",
+    value = "8fx_nazmir_bloodtroll_novahigh_impactworld.m2",
+   },
+   {
+    fileId = "1843255",
+    text = "8fx_priestessalunza_taintedblood_missile.m2",
+    value = "8fx_priestessalunza_taintedblood_missile.m2",
+   },
+   {
+    fileId = "2066495",
+    text = "8fx_uldir_bloodofghuun_liquify_aura.m2",
+    value = "8fx_uldir_bloodofghuun_liquify_aura.m2",
+   },
+   {
     fileId = "165529",
     text = "abolishmagic_base.m2",
     value = "abolishmagic_base.m2",
@@ -19745,6 +19877,11 @@ WeakAuras.ModelPaths = {
     value = "druid_flourish.m2",
    },
    {
+    fileId = "620834",
+    text = "druid_glyphofstars_base.m2",
+    value = "druid_glyphofstars_base.m2",
+   },
+   {
     fileId = "240875",
     text = "druid_nourish.m2",
     value = "druid_nourish.m2",
@@ -20266,6 +20403,11 @@ WeakAuras.ModelPaths = {
     value = "firecrackers_thrown.m2",
    },
    {
+    fileId = "1062239",
+    text = "fireelemental_kar_low.m2",
+    value = "fireelemental_kar_low.m2",
+   },
+   {
     fileId = "166144",
     text = "firenova_area.m2",
     value = "firenova_area.m2",
@@ -20491,6 +20633,11 @@ WeakAuras.ModelPaths = {
     value = "frostward_impact_chest.m2",
    },
    {
+    fileId = "5763802",
+    text = "fx_ancientweaponoil_aura.m2",
+    value = "fx_ancientweaponoil_aura.m2",
+   },
+   {
     fileId = "166237",
     text = "ghost_state.m2",
     value = "ghost_state.m2",
@@ -20564,6 +20711,11 @@ WeakAuras.ModelPaths = {
     fileId = "166288",
     text = "harmundeadaura_base.m2",
     value = "harmundeadaura_base.m2",
+   },
+   {
+    fileId = "240920",
+    text = "haunt_heal.m2",
+    value = "haunt_heal.m2",
    },
    {
     fileId = "240921",
@@ -21282,6 +21434,11 @@ WeakAuras.ModelPaths = {
     fileId = "166519",
     text = "mage_livingbomb_state.m2",
     value = "mage_livingbomb_state.m2",
+   },
+   {
+    fileId = "942241",
+    text = "mage_meteor_missile.m2",
+    value = "mage_meteor_missile.m2",
    },
    {
     fileId = "240953",

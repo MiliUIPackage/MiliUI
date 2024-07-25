@@ -242,8 +242,7 @@ hooksecurefunc("SetItemRef", function(link, text)
         characterName = characterName:gsub("%.", "")
         ShowTooltip({
           {2, "WeakAuras", displayName, 0.5, 0, 1, 1, 1, 1},
-          {1, L["Requesting display information from %s ..."]:format(characterName), 1, 0.82, 0},
-          {1, L["Note, that cross realm transmission is possible if you are on the same group"], 1, 0.82, 0}
+          {1, L["Requesting display information from %s ..."]:format(characterName), 1, 0.82, 0}
         });
         tooltipLoading = true;
         receivedData = false;
@@ -252,8 +251,7 @@ hooksecurefunc("SetItemRef", function(link, text)
           if (tooltipLoading and not receivedData and ItemRefTooltip:IsVisible()) then
             ShowTooltip({
               {2, "WeakAuras", displayName, 0.5, 0, 1, 1, 1, 1},
-              {1, L["Error not receiving display information from %s"]:format(characterName), 1, 0, 0},
-              {1, L["Note, that cross realm transmission is possible if you are on the same group"], 1, 0.82, 0}
+              {1, L["Error not receiving display information from %s"]:format(characterName), 1, 0, 0}
             })
           end
         end, 5);
@@ -395,8 +393,60 @@ function Private.DisplayToString(id, forChat)
   end
 end
 
-local function recurseStringify(data, level, lines)
-  for k, v in pairs(data) do
+local orderedPairs
+do
+  local function __genOrderedIndex(t)
+    local orderedIndex = {}
+    for key in pairs(t) do
+      if key ~= "__orderedIndex" then
+        table.insert(orderedIndex, key)
+      end
+    end
+    table.sort(orderedIndex, function(a, b)
+      local typeA, typeB = type(a), type(b)
+      if typeA ~= typeB then
+        return typeA < typeB
+      else
+        return a < b
+      end
+    end)
+    return orderedIndex
+  end
+
+  local function orderedNext(t, state)
+    -- Equivalent of the next function, but returns the keys in the alphabetic
+    -- order. We use a temporary ordered key table that is stored in the
+    -- table being iterated.
+    local key = nil
+    if state == nil then
+      -- the first time, generate the index
+      t.__orderedIndex = __genOrderedIndex(t)
+      key = t.__orderedIndex[1]
+    else
+      -- fetch the next value
+      for i = 1, table.getn(t.__orderedIndex) do
+        if t.__orderedIndex[i] == state then
+          key = t.__orderedIndex[i+1]
+        end
+      end
+    end
+
+    if key then
+      return key, t[key]
+    end
+
+    -- no more value to return, cleanup
+    t.__orderedIndex = nil
+  end
+
+  function orderedPairs(t)
+    return orderedNext, t, nil
+  end
+end
+
+local function recurseStringify(data, level, lines, sorted)
+  local pairsFn = sorted and orderedPairs or pairs
+  for k, v in pairsFn(data) do
     local lineFormat = strrep("    ", level) .. "[%s] = %s"
     local form1, form2, value
     local kType, vType = type(k), type(v)
@@ -419,7 +469,7 @@ local function recurseStringify(data, level, lines)
     lineFormat = lineFormat:format(form1, form2)
     if vType == "table" then
       tinsert(lines, lineFormat:format(k, "{"))
-      recurseStringify(v, level + 1, lines)
+      recurseStringify(v, level + 1, lines, sorted)
       tinsert(lines, strrep("    ", level) .. "},")
     else
       tinsert(lines, lineFormat:format(k, v) .. ",")
@@ -427,16 +477,16 @@ local function recurseStringify(data, level, lines)
   end
 end
 
-function Private.DataToString(id)
+function Private.DataToString(id, sorted)
   local data = WeakAuras.GetData(id)
   if data then
-    return Private.SerializeTable(data):gsub("|", "||")
+    return Private.SerializeTable(data, sorted):gsub("|", "||")
   end
 end
 
-function Private.SerializeTable(data)
+function Private.SerializeTable(data, sorted)
   local lines = {"{"}
-  recurseStringify(data, 1, lines)
+  recurseStringify(data, 1, lines, sorted)
   tinsert(lines, "}")
   return table.concat(lines, "\n")
 end
@@ -551,20 +601,6 @@ function WeakAuras.Import(inData, target, callbackFunc, linkedAuras)
   return ImportNow(data, children, target, linkedAuras, nil, callbackFunc)
 end
 
-local function crossRealmSendCommMessage(prefix, text, target, queueName, callbackFn, callbackArg)
-  local chattype = "WHISPER"
-  if target and not UnitIsSameServer(target) then
-    if UnitInRaid(target) then
-      chattype = "RAID"
-      text = ("§§%s:%s"):format(target, text)
-    elseif UnitInParty(target) then
-      chattype = "PARTY"
-      text = ("§§%s:%s"):format(target, text)
-    end
-  end
-  Comm:SendCommMessage(prefix, text, chattype, target, queueName, callbackFn, callbackArg)
-end
-
 local safeSenders = {}
 function RequestDisplay(characterName, displayName)
   safeSenders[characterName] = true
@@ -574,7 +610,7 @@ function RequestDisplay(characterName, displayName)
     d = displayName
   };
   local transmitString = TableToString(transmit);
-  crossRealmSendCommMessage("WeakAuras", transmitString, characterName);
+  Comm:SendCommMessage("WeakAuras", transmitString, characterName);
 end
 
 function TransmitError(errorMsg, characterName)
@@ -582,14 +618,14 @@ function TransmitError(errorMsg, characterName)
     m = "dE",
     eM = errorMsg
   };
-  crossRealmSendCommMessage("WeakAuras", TableToString(transmit), characterName);
+  Comm:SendCommMessage("WeakAuras", TableToString(transmit), characterName);
 end
 
 function TransmitDisplay(id, characterName)
   local encoded = Private.DisplayToString(id);
   if(encoded ~= "") then
-    crossRealmSendCommMessage("WeakAuras", encoded, characterName, "BULK", function(displayName, done, total)
-      crossRealmSendCommMessage("WeakAurasProg", done.." "..total.." "..displayName, characterName, "ALERT");
+    Comm:SendCommMessage("WeakAuras", encoded, characterName, "BULK", function(displayName, done, total)
+      Comm:SendCommMessage("WeakAurasProg", done.." "..total.." "..displayName, characterName, "ALERT");
     end, id);
   else
     TransmitError("dne", characterName);

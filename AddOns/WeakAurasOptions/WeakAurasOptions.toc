@@ -1,7 +1,7 @@
-## Interface: 100207
+## Interface: 100207, 110000
 ## Title: WeakAuras Options
 ## Author: The WeakAuras Team
-## Version: 5.12.8
+## Version: 5.15.3
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## Notes: Options for WeakAuras
 ## Notes-esES: Opciones para WeakAuras
@@ -17,6 +17,7 @@
 ## Dependencies: WeakAuras
 ## SavedVariables: WeakAurasOptionsSaved
 
+embeds.xml
 locales.xml
 
 ForAllIndentsAndPurposes.lua
@@ -100,5 +101,7 @@ AceGUI-Widgets\AceGuiWidget-WeakAurasProgressBar.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasSpinBox.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasMiniTalent_Dragonflight.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasScrollArea.lua
+AceGUI-Widgets\AceGUIWidget-WeakAurasInput.lua
 AceGUI-Widgets\AceGUIWidget-WeakAurasInputFocus.lua
 AceGUI-Widgets\AceGuiWidget-WeakAurasMediaSound.lua
+AceGUI-Widgets\WeakAurasStatusbarAtlasWidget.lua

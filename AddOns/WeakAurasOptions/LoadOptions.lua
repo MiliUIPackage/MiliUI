@@ -22,14 +22,14 @@ local spellCache = WeakAuras.spellCache;
 local function CorrectSpellName(input)
   local inputId = tonumber(input);
   if(inputId) then
-    local name = GetSpellInfo(inputId);
+    local name = OptionsPrivate.Private.ExecEnv.GetSpellName(inputId);
     if(name) then
       return inputId;
     else
       return nil;
     end
   elseif WeakAuras.IsClassicEra() and input then
-    local _, _, _, _, _, _, spellId = GetSpellInfo(input)
+    local _, _, _, _, _, _, spellId = OptionsPrivate.Private.ExecEnv.GetSpellInfo(input)
     if spellId then
       return spellId
     end
@@ -38,21 +38,11 @@ local function CorrectSpellName(input)
     if(input:sub(1,1) == "\124") then
       link = input;
     else
-      link = GetSpellLink(input);
+      link = (GetSpellLink and GetSpellLink(input)) or (C_Spell and C_Spell.GetSpellLink and C_Spell.GetSpellLink(input));
     end
     if(link) and link ~= "" then
       local itemId = link:match("spell:(%d+)");
       return tonumber(itemId);
-    elseif WeakAuras.IsRetail() then
-      for tier = 1, MAX_TALENT_TIERS do
-        for column = 1, NUM_TALENT_COLUMNS do
-          local _, _, _, _, _, spellId = GetTalentInfo(tier, column, 1)
-          local name = GetSpellInfo(spellId);
-          if name == input then
-            return spellId;
-          end
-        end
-      end
     end
   end
 end
@@ -62,7 +52,7 @@ local function CorrectItemName(input)
   if(inputId) then
     return inputId;
   elseif(input) then
-    local _, link = GetItemInfo(input);
+    local _, link = C_Item.GetItemInfo(input);
     if(link) then
       local itemId = link:match("item:(%d+)");
       return tonumber(itemId);
@@ -253,7 +243,7 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
           width = WeakAuras.normalWidth,
           name = arg.display,
           desc = function()
-            if arg.multiNoSingle then return arg.desc end
+            if arg.multiNoSingle or arg.desc then return arg.desc end
             local v = trigger["use_"..realname];
             if(v == true) then
               return L["Multiselect single tooltip"];
@@ -320,6 +310,7 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
           order = order,
           hidden = hidden,
         }
+        order = order + 1;
         options["description_title_"..name] = {
           type = "description",
           width = WeakAuras.doubleWidth,
@@ -337,6 +328,15 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
           hidden = hidden,
         }
         order = order + 1;
+      elseif (arg.type == "header") then
+        options["header_"..name] = {
+          type = "header",
+          width = WeakAuras.doubleWidth,
+          name = arg.display,
+          order = order,
+          hidden = hidden,
+        }
+        order = order + 1
       else
         options["use_"..name] = {
           type = "toggle",
@@ -656,10 +656,10 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
                       end
                     end
                   end
-                  local _, _, icon = GetSpellInfo(value);
+                  local icon = OptionsPrivate.Private.ExecEnv.GetSpellIcon(value);
                   return icon and tostring(icon) or "", 18, 18;
                 elseif(arg.type == "item") then
-                  local _, _, _, _, _, _, _, _, _, icon = GetItemInfo(value);
+                  local _, _, _, _, _, _, _, _, _, icon = C_Item.GetItemInfo(value);
                   return icon and tostring(icon) or "", 18, 18;
                 end
               else
@@ -668,7 +668,7 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
             end,
             disabled = function()
               local value = getValue(trigger, nil, realname, multiEntry, entryNumber)
-              return not ((arg.type == "aura" and value and spellCache.GetIcon(value)) or (arg.type == "spell" and value and GetSpellInfo(value)) or (arg.type == "item" and value and GetItemIcon(value or '')))
+              return not ((arg.type == "aura" and value and spellCache.GetIcon(value)) or (arg.type == "spell" and value and OptionsPrivate.Private.ExecEnv.GetSpellName(value)) or (arg.type == "item" and value and C_Item.GetItemIconByID(value or '')))
             end
           };
           order = order + 1;
@@ -690,7 +690,7 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
                       return tostring(value)
                     end
                   else
-                    local name = GetItemInfo(value);
+                    local name = C_Item.GetItemInfo(value);
                     if name then
                       return name;
                     end
@@ -700,9 +700,6 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
                   return nil;
                 end
               elseif(arg.type == "spell") then
-                if arg.noValidation then
-                  return value and tostring(value)
-                end
                 local useExactSpellId = (arg.showExactOption and getValue(trigger, nil, "use_exact_"..realname, multiEntry, entryNumber))
                 if value and value ~= "" then
                   local spellID = WeakAuras.SafeToNumber(value)
@@ -713,16 +710,19 @@ function OptionsPrivate.ConstructOptions(prototype, data, startorder, triggernum
                         return ("%s (%s)"):format(spellID, tbl.title) .. "\0" .. value
                       end
                     end
-                    local spellName = GetSpellInfo(WeakAuras.SafeToNumber(value))
+                    local spellName = OptionsPrivate.Private.ExecEnv.GetSpellName(WeakAuras.SafeToNumber(value))
                     if spellName then
                       return ("%s (%s)"):format(spellID, spellName) .. "\0" .. value
                     end
-                  elseif not useExactSpellId then
-                    local spellName = GetSpellInfo(value)
+                  elseif not useExactSpellId and not arg.noValidation then
+                    local spellName = OptionsPrivate.Private.ExecEnv.GetSpellName(value)
                     if spellName then
                       return spellName
                     end
                   end
+                end
+                if arg.noValidation then
+                  return value and tostring(value)
                 end
                 if value == nil then
                   return nil

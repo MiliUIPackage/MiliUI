@@ -1,7 +1,7 @@
 ## Interface: 40400
 ## Title: WeakAuras Templates
 ## Author: The WeakAuras Team
-## Version: 5.12.8
+## Version: 5.15.3
 ## Notes: Templates for WeakAuras
 ## X-Category: Interface Enhancements
 ## Globe-Main: WeakAuras
@@ -13,6 +13,6 @@
 locales.xml
 
 TriggerTemplates.lua
-TriggerTemplatesDataWrath.lua
+TriggerTemplatesDataCataclysm.lua
 
 AceGUI-Widgets\AceGUIContainer-WeakAurasTemplateGroup.lua

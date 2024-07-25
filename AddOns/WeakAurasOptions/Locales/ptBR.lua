@@ -11,6 +11,8 @@ local L = WeakAuras.L
 	L["-- Do not remove this comment, it is part of this aura: "] = "-- Não remova este comentário, ele faz parte desta aura:"
 	--[[Translation missing --]]
 	L[" rotated |cFFFF0000%s|r degrees"] = " rotated |cFFFF0000%s|r degrees"
+	--[[Translation missing --]]
+	L["% - To show a percent sign"] = "% - To show a percent sign"
 	L["% of Progress"] = "% do progresso"
 	--[[Translation missing --]]
 	L["%d |4aura:auras; added"] = "%d |4aura:auras; added"
@@ -252,6 +254,8 @@ WeakAuras → Opções → Opções ]=]
 	L["At a position a bit left of Right HUD position"] = "Em uma posição um pouco à esquerda da posição direita do HUD."
 	L["At the same position as Blizzard's spell alert"] = "Na mesma posição do alerta de feitiço da Blizzard"
 	--[[Translation missing --]]
+	L["Attach to Foreground"] = "Attach to Foreground"
+	--[[Translation missing --]]
 	L["Aura"] = "Aura"
 	L[ [=[Aura is
 Off Screen]=] ] = "Aura está fora da tela"
@@ -309,6 +313,8 @@ Off Screen]=] ] = "Aura está fora da tela"
 	--[[Translation missing --]]
 	L["Bracket Matching"] = "Bracket Matching"
 	L["Browse Wago, the largest collection of auras."] = "Acesse Wago, a maior coleção de auras."
+	--[[Translation missing --]]
+	L["By default this shows the information from the trigger selected via dynamic information. The information from a specific trigger can be shown via e.g. %2.p."] = "By default this shows the information from the trigger selected via dynamic information. The information from a specific trigger can be shown via e.g. %2.p."
 	L["Can be a UID (e.g., party1)."] = "Pode ser um UNID (por exemplo, grupo1)."
 	--[[Translation missing --]]
 	L["Can set to 0 if Columns * Width equal File Width"] = "Can set to 0 if Columns * Width equal File Width"
@@ -400,6 +406,8 @@ Off Screen]=] ] = "Aura está fora da tela"
 	L["Crop Y"] = "Cortar Y"
 	--[[Translation missing --]]
 	L["Custom"] = "Custom"
+	--[[Translation missing --]]
+	L["Custom - Allows you to define a custom Lua function that returns a list of string values. %c1 will be replaced by the first value returned, %c2 by the second, etc."] = "Custom - Allows you to define a custom Lua function that returns a list of string values. %c1 will be replaced by the first value returned, %c2 by the second, etc."
 	--[[Translation missing --]]
 	L["Custom Anchor"] = "Custom Anchor"
 	--[[Translation missing --]]
@@ -498,7 +506,7 @@ Off Screen]=] ] = "Aura está fora da tela"
 	--[[Translation missing --]]
 	L["Dynamic information from Trigger %i"] = "Dynamic information from Trigger %i"
 	--[[Translation missing --]]
-	L["Dynamic text tooltip"] = "Dynamic text tooltip"
+	L["Dynamic Text Replacements"] = "Dynamic Text Replacements"
 	--[[Translation missing --]]
 	L["Ease Strength"] = "Ease Strength"
 	--[[Translation missing --]]
@@ -584,6 +592,10 @@ Off Screen]=] ] = "Aura está fora da tela"
 	--[[Translation missing --]]
 	L["Fade Out"] = "Fade Out"
 	--[[Translation missing --]]
+	L["Fadeout Sound"] = "Fadeout Sound"
+	--[[Translation missing --]]
+	L["Fadeout Time (seconds)"] = "Fadeout Time (seconds)"
+	--[[Translation missing --]]
 	L["False"] = "False"
 	--[[Translation missing --]]
 	L["Fetch Affected/Unaffected Names and Units"] = "Fetch Affected/Unaffected Names and Units"
@@ -652,8 +664,6 @@ Can use \ to escape -.]=]
 	L["Frame Height"] = "Frame Height"
 	--[[Translation missing --]]
 	L["Frame Rate"] = "Frame Rate"
-	--[[Translation missing --]]
-	L["Frame Selector"] = "Frame Selector"
 	L["Frame Strata"] = "Camada do quadro"
 	--[[Translation missing --]]
 	L["Frame Width"] = "Frame Width"
@@ -747,6 +757,8 @@ Can use \ to escape -.]=]
 	--[[Translation missing --]]
 	L["Hybrid Sort Mode"] = "Hybrid Sort Mode"
 	L["Icon"] = "Ícone"
+	--[[Translation missing --]]
+	L["Icon - The icon associated with the display"] = "Icon - The icon associated with the display"
 	L["Icon Info"] = "Informação do ícone"
 	--[[Translation missing --]]
 	L["Icon Inset"] = "Icon Inset"
@@ -832,6 +844,8 @@ Can use \ to escape -.]=]
 	--[[Translation missing --]]
 	L["Inner"] = "Inner"
 	--[[Translation missing --]]
+	L["Insert text replacement codes to make text dynamic."] = "Insert text replacement codes to make text dynamic."
+	--[[Translation missing --]]
 	L["Invalid Item ID"] = "Invalid Item ID"
 	--[[Translation missing --]]
 	L["Invalid Item Name/ID/Link"] = "Invalid Item Name/ID/Link"
@@ -877,6 +891,8 @@ Can use \ to escape -.]=]
 	--[[Translation missing --]]
 	L["Length of |cFFFF0000%s|r"] = "Length of |cFFFF0000%s|r"
 	--[[Translation missing --]]
+	L["LibSharedMedia"] = "LibSharedMedia"
+	--[[Translation missing --]]
 	L["Limit"] = "Limit"
 	--[[Translation missing --]]
 	L["Line"] = "Line"
@@ -920,8 +936,6 @@ Can use \ to escape -.]=]
 	L["Medium Icon"] = "Medium Icon"
 	--[[Translation missing --]]
 	L["Message"] = "Message"
-	L["Message Prefix"] = "Prefixo de Mensagem"
-	L["Message Suffix"] = "Sufixo de Mensagem"
 	--[[Translation missing --]]
 	L["Message Type"] = "Message Type"
 	--[[Translation missing --]]
@@ -969,13 +983,13 @@ Can use \ to escape -.]=]
 	L["Multiselect single tooltip"] = "Multiselect single tooltip"
 	--[[Translation missing --]]
 	L["Must be a power of 2"] = "Must be a power of 2"
+	--[[Translation missing --]]
+	L["Name - The name of the display (usually an aura name), or the display's ID if there is no dynamic name"] = "Name - The name of the display (usually an aura name), or the display's ID if there is no dynamic name"
 	L["Name Info"] = "Informação do Nome"
 	--[[Translation missing --]]
 	L["Name Pattern Match"] = "Name Pattern Match"
 	L["Name(s)"] = "Nome(s)"
 	L["Name:"] = "Nome:"
-	--[[Translation missing --]]
-	L["Nameplate"] = "Nameplate"
 	--[[Translation missing --]]
 	L["Nameplates"] = "Nameplates"
 	L["Negator"] = "Negador"
@@ -1110,6 +1124,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Press Ctrl+C to copy the URL"] = "Press Ctrl+C to copy the URL"
 	--[[Translation missing --]]
 	L["Prevent Merging"] = "Prevent Merging"
+	--[[Translation missing --]]
+	L["Progress - The remaining time of a timer, or a non-timer value"] = "Progress - The remaining time of a timer, or a non-timer value"
 	L["Progress Bar"] = "Barra de Progresso"
 	--[[Translation missing --]]
 	L["Progress Bar Settings"] = "Progress Bar Settings"
@@ -1194,6 +1210,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Saved Data"] = "Saved Data"
 	--[[Translation missing --]]
 	L["Scale"] = "Scale"
+	--[[Translation missing --]]
+	L["Search API"] = "Search API"
 	--[[Translation missing --]]
 	L["Select Talent"] = "Select Talent"
 	--[[Translation missing --]]
@@ -1323,6 +1341,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Stack Count"] = "Contagem do Monte"
 	L["Stack Info"] = "Informação do Monte"
 	--[[Translation missing --]]
+	L["Stacks - The number of stacks of an aura (usually)"] = "Stacks - The number of stacks of an aura (usually)"
+	--[[Translation missing --]]
 	L["Stagger"] = "Stagger"
 	--[[Translation missing --]]
 	L["Standby"] = "Standby"
@@ -1347,6 +1367,10 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	--[[Translation missing --]]
 	L["Sub Option %i"] = "Sub Option %i"
 	--[[Translation missing --]]
+	L["Subevent"] = "Subevent"
+	--[[Translation missing --]]
+	L["Subevent Suffix"] = "Subevent Suffix"
+	--[[Translation missing --]]
 	L["Supports multiple entries, separated by commas"] = "Supports multiple entries, separated by commas"
 	--[[Translation missing --]]
 	L["Swipe Overlay Settings"] = "Swipe Overlay Settings"
@@ -1365,6 +1389,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	L["Texture Picker"] = "Texture Picker"
 	--[[Translation missing --]]
 	L["Texture Rotation"] = "Texture Rotation"
+	--[[Translation missing --]]
+	L["Texture Selection Mode"] = "Texture Selection Mode"
 	L["Texture Settings"] = "Configurações da Textura"
 	--[[Translation missing --]]
 	L["Texture Wrap"] = "Texture Wrap"
@@ -1383,8 +1409,12 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	--[[Translation missing --]]
 	L["The group and all direct children will share the same base frame level."] = "The group and all direct children will share the same base frame level."
 	--[[Translation missing --]]
+	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."
+	--[[Translation missing --]]
 	L["The type of trigger"] = "The type of trigger"
 	L["Then "] = "Então"
+	--[[Translation missing --]]
+	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."
 	--[[Translation missing --]]
 	L["Thickness"] = "Thickness"
 	--[[Translation missing --]]
@@ -1474,6 +1504,8 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	--[[Translation missing --]]
 	L["Total"] = "Total"
 	--[[Translation missing --]]
+	L["Total - The maximum duration of a timer, or a maximum non-timer value"] = "Total - The maximum duration of a timer, or a maximum non-timer value"
+	--[[Translation missing --]]
 	L["Total Angle"] = "Total Angle"
 	L["Total Time"] = "Tempo Total"
 	L["Trigger"] = "Gatilho"
@@ -1496,9 +1528,9 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	--[[Translation missing --]]
 	L["Unit Count"] = "Unit Count"
 	--[[Translation missing --]]
-	L["Unit Frame"] = "Unit Frame"
-	--[[Translation missing --]]
 	L["Unit Frames"] = "Unit Frames"
+	--[[Translation missing --]]
+	L["Unknown"] = "Unknown"
 	--[[Translation missing --]]
 	L["Unknown property '%s' found in '%s'"] = "Unknown property '%s' found in '%s'"
 	--[[Translation missing --]]
