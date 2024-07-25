@@ -1,12 +1,14 @@
 --[[---------------------------------------------------------------------------
-    Addon:  CursorTrail
     File:   CursorTrailTools.lua
     Desc:   This contains non-essential functions that were useful during
             the development of this addon, and may be useful in the future
             if Blizzard changes their model API again.
 -----------------------------------------------------------------------------]]
 
+local kAddonFolderName, private = ...
+
 --[[                       Saved (Persistent) Variables                      ]]
+CursorTrail_Config = CursorTrail_Config or {}
 CursorTrail_PlayerConfig = CursorTrail_PlayerConfig or {}
 
 --[[                       Aliases to Globals                                ]]
@@ -18,6 +20,7 @@ local CreateFrame = _G.CreateFrame
 local CopyTable = _G.CopyTable
 local date = _G.date
 local floor = _G.floor
+local GetBuildInfo = _G.GetBuildInfo
 local GetCurrentResolution = _G.GetCurrentResolution
 local GetCursorPosition = _G.GetCursorPosition
 local GetScreenResolutions = _G.GetScreenResolutions
@@ -25,6 +28,7 @@ local GetScreenHeight = _G.GetScreenHeight
 local GetScreenWidth = _G.GetScreenWidth
 local GetTime = _G.GetTime
 local geterrorhandler = _G.geterrorhandler
+local InCombatLockdown = _G.InCombatLockdown
 local max =_G.math.max
 local min =_G.math.min
 local next = _G.next
@@ -38,6 +42,7 @@ local table = _G.table
 local tonumber = _G.tonumber
 local type = _G.type
 local UIParent = _G.UIParent
+local WorldFrame = _G.WorldFrame
 local xpcall = _G.xpcall
 
 --[[                       Declare Namespace                                 ]]
@@ -50,12 +55,16 @@ setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather t
 --[[                       Helper Functions                                  ]]
 
 -------------------------------------------------------------------------------
+msgBox = private.UDControls.MsgBox
+
+-------------------------------------------------------------------------------
 function printMsg(msg)
 	(Globals.SELECTED_CHAT_FRAME or Globals.DEFAULT_CHAT_FRAME):AddMessage(msg)
 end
 
 -------------------------------------------------------------------------------
 function vdt_dump(varValue, varDescription)  -- e.g.  vdt_dump(someVar, "Checkpoint 1")
+    assert(varDescription == nil or type(varDescription) == "string")
     if Globals.ViragDevTool_AddData then
         Globals.ViragDevTool_AddData(varValue, varDescription)
     end
@@ -64,13 +73,13 @@ end
 -------------------------------------------------------------------------------
 function dumpObject(obj, heading, indents)
     local dataType
- 
+
     indents = indents or ""
     heading = heading or "Object Dump"
     if (heading ~= nil and heading ~= "") then print(indents .. heading .. " ...") end
     if (obj == nil) then print(indents .. "Object is NIL."); return end
     indents = indents .. "    "
- 
+
     local count = 0
     local varName, value
     for varName, value in pairs(obj) do
@@ -95,13 +104,13 @@ end
 --~ -------------------------------------------------------------------------------
 --~ function dumpObjectSorted(obj, heading, indents)
 --~     local dataType
---~  
+--~
 --~     indents = indents or ""
 --~     heading = heading or "Object Dump"
 --~     if (heading ~= nil and heading ~= "") then print(indents .. heading .. " ...") end
 --~     if (obj == nil) then print(indents .. "Object is NIL."); return end
 --~     indents = indents .. "    "
---~  
+--~
 --~     local count = 0
 --~     local varName, value
 --~     local lines = {}
@@ -122,8 +131,8 @@ end
 --~             if (dataType=="table") then dumpObject(value, varName, indents) end
 --~         end
 --~     end
---~     if (count == 0) then 
---~         print(indents .. "Object is empty.") 
+--~     if (count == 0) then
+--~         print(indents .. "Object is empty.")
 --~     else
 --~         table.sort(lines)
 --~         for i = 1, #lines do print(lines[i]) end
@@ -165,7 +174,22 @@ function isInteger(val)  -- 'val' can be a number or string containing a number.
 end
 
 -------------------------------------------------------------------------------
-function str_split(str, delimiter)
+local function str_split_lines(str)  -- Splits string into lines. (Returns empty lines too.)
+    local lines = {}
+    ----for line in string.gmatch(str, "(.-)\n") do
+    for line in string.gmatch(str, "([^\n]*)\n?") do
+        table.insert(lines, line)
+    end
+
+    -- The loop above creates one extra line we don't want.  Remove it.
+    if #lines > 0 then
+        table.remove(lines, #lines)
+    end
+    return lines
+end
+
+-------------------------------------------------------------------------------
+function str_split(str, delimiter)  -- Note: Does not return empty lines.
     assert(delimiter)
     local parts = {}
     for part in string.gmatch(str, "([^"..delimiter.."]+)") do
@@ -173,6 +197,82 @@ function str_split(str, delimiter)
     end
     ----for i = 1, #parts do print("Part#"..i.." = ".. parts[i]) end  -- Dump results.
     return parts
+end
+
+-------------------------------------------------------------------------------
+function strContains(str, sub)  -- Based on kgriffs/string_util.lua on GitHub.
+    return str:find(sub, 1, true) ~= nil
+end
+
+-------------------------------------------------------------------------------
+function strStartsWith(str, start)  -- Based on kgriffs/string_util.lua on GitHub.
+    return str:sub(1, #start) == start
+end
+
+--~ -------------------------------------------------------------------------------
+--~ function strEndsWith(str, ending)  -- Based on kgriffs/string_util.lua on GitHub.
+--~     return ending == "" or str:sub(-#ending) == ending
+--~ end
+
+--~ -------------------------------------------------------------------------------
+--~ function strInsert(str, pos, text)  -- Based on kgriffs/string_util.lua on GitHub.
+--~     return str:sub(1, pos - 1) .. text .. str:sub(pos)
+--~ end
+
+--~ -------------------------------------------------------------------------------
+--~ function strReplace(str, old, new)  -- Based on kgriffs/string_util.lua on GitHub.
+--~     local s = str
+--~     local search_start_idx = 1
+
+--~     while true do
+--~         local start_idx, end_idx = s:find(old, search_start_idx, true)
+--~         if (not start_idx) then
+--~             break
+--~         end
+
+--~         local postfix = s:sub(end_idx + 1)
+--~         s = s:sub(1, (start_idx - 1)) .. new .. postfix
+
+--~         search_start_idx = -1 * postfix:len()
+--~     end
+
+--~     return s
+--~ end
+
+-------------------------------------------------------------------------------
+function staticClearTable(tbl)
+  -- Removes all non-table keys from the table without changing the memory location
+  -- of the table or any of its sub-tables.  (Sub-tables will remain, but will be empty.)
+    assert(type(tbl) == "table")
+    for k, v in pairs(tbl) do
+        if type(v) == "table" then
+            staticClearTable(v)
+        else
+            tbl[k] = nil
+        end
+    end
+end
+
+-------------------------------------------------------------------------------
+function staticCopyTable(src, dest, debugPath)
+  -- Copies values of keys from src table to dest table without changing
+  -- the memory address of the dest table or any of its sub-tables.
+  -- The dest table keys are cleared first using staticClearTable().
+  -- Note: src and dest must have same sub-table structure!  Else table addresses would differ.
+  --       For tables that don't have the same sub-table structure, use CopyTable().
+    debugPath = debugPath or "dest"
+    assert(type(src) == "table")
+    assert(type(dest) == "table", "Destination missing sub-table '"..debugPath.."'.")
+    if src == dest then return end  -- Avoid copying a table to itself.  (Not sure what would happen.)
+
+    staticClearTable(dest)
+    for k, v in pairs(src) do
+        if type(v) == "table" then
+            staticCopyTable( v, dest[k], debugPath.."."..k )
+        else
+            dest[k] = v
+        end
+    end
 end
 
 -------------------------------------------------------------------------------
@@ -251,13 +351,23 @@ function dbg(msg)
     ----local timestamp = GetTime()
     ----local timestamp = date("%Y-%m-%d %H:%M:%S")
     local timestamp = date("%I:%M:%S")
-    print("|c00ff3030["..timestamp.."] "..(kAddonName or "")..": "..(msg or "nil").."|r")  -- Color format = xRGB.
+    print("|c00ff3030["..timestamp.."] "..(kAddonFolderName or "")..": "..(msg or "nil").."|r")  -- Color format = xRGB.
 end
 
 -------------------------------------------------------------------------------
-function errHandler(msg)  -- Used by xpcall().  See also the lua function, geterrorhandler().
+function errHandler(msg)  -- Used by xpcall().  See also the Blizzard function, geterrorhandler().
     dbg(msg)
     print("Call Stack ...\n" .. debugstack(2, 3, 2))
+end
+
+-------------------------------------------------------------------------------
+function propagateKeyboardInput(frame, bPropagate)  -- Safely propagates keyboard input.
+-- NOTE: Since patch 10.1.5 (2023-07-11), SetPropagateKeyboardInput() is restricted and
+--       may no longer be called by insecure code while in combat.
+    if not InCombatLockdown() then
+        return frame:SetPropagateKeyboardInput(bPropagate)
+    end
+    ----print(kAddonAlertHeading.."WARNING - Unable to propagate keyboard input during combat!")
 end
 
 --[[                       Text Frame Functions                              ]]
@@ -297,14 +407,14 @@ end
 --~     TextFrameText = TextFrame:CreateFontString(nil,"OVERLAY", "GameFontNormal")
 --~     TextFrameText:SetPoint("CENTER", TextFrame, "CENTER", 0, 0)
 --~     TextFrameText:SetJustifyH("CENTER")
---~     TextFrameText:SetJustifyV("CENTER")
+--~     TextFrameText:SetJustifyV("MIDDLE")
 --~ end
 
 -------------------------------------------------------------------------------
 function DebugText(txt, width, height)
     if not DbgFrame then
         -- Create the frame.
-        DbgFrame = CreateFrame("frame", kAddonName.."DebugFrame", nil, "BackdropTemplate")
+        DbgFrame = CreateFrame("frame", kAddonFolderName.."DebugFrame", nil, "BackdropTemplate")
         DbgFrame:Hide()
         DbgFrame:SetPoint("CENTER", UIParent, "CENTER")
         DbgFrame:SetFrameStrata("TOOLTIP")
@@ -347,381 +457,241 @@ function DebugText(txt, width, height)
 end
 
 -------------------------------------------------------------------------------
-function msgBox(msg,
-                btnText1, btnFunc1,
-                btnText2, btnFunc2,
-                customData, bShowAlertIcon, soundID, timeoutSecs)
--- REQUIRES:    'kAddonName' to have been set to the addon's name.  i.e. First line
---              of your lua file should look like this -->  local kAddonName = ...
--- Examples:
---      msgBox("Job done.")
---      msgBox("Bad data found!  Click OK to use it anyway, or CANCEL to restore defaults.",
---              "OK", saveMyData,
---              "Cancel", restoreMyDefaultData,
---              myDataBuffer, true, SOUNDKIT.ALARM_CLOCK_WARNING_2)
---      msgBox("Uh oh! Show help?\n\n(This message goes away after 15 seconds.)",
---              "Yes", showMyHelp,
---              "No", nil,
---              nil, false, SOUNDKIT.ALARM_CLOCK_WARNING_3, 15)
---
--- For more info, see...
---      https://wowwiki-archive.fandom.com/wiki/Creating_simple_pop-up_dialog_boxes
-    local dialogID = "MSGBOX_FOR_" .. kAddonName
-
-    if (btnText1 == "" or btnText1 == nil) then btnText1 = "OK" end
-    if (btnText2 == "") then btnText2 = nil end
-    if (bShowAlertIcon ~= true) then bShowAlertIcon = nil end  -- Forces it to be 'true' or 'nil'.
-
-    Globals.StaticPopupDialogs[dialogID] =
-    {
-        text = (msg or ""),
-        showAlert = bShowAlertIcon,
-        sound = soundID,
-        timeout = timeoutSecs,
-
-        enterClicksFirstButton = true,
-        hideOnEscape = true,
-        whileDead = true,
-        ----exclusive = true,  -- Makes the popup go away if any other popup is displayed.
-        ----preferredIndex = 3,
-
-        button1 = btnText1,
-        OnAccept = btnFunc1,
-
-        button2 = btnText2,
-        OnCancel = btnFunc2,
-
-        OnHide = function(self) self.data = nil; self.selectedIcon = nil; end,
-    }
-
-    local dlgBox = Globals.StaticPopup_Show(dialogID)
-    if dlgBox then
-        dlgBox.data = customData
-        ----dlgBox.data2 = customData2
-    end
-end
-
--------------------------------------------------------------------------------
 function showErrMsg(msg)
--- REQUIRES:    'kAddonName' to have been set to the addon's name.  i.e. First line
---              of your lua file should look like this -->  local kAddonName = ...
+-- REQUIRES:    'kAddonFolderName' to have been set to the addon's name.  i.e. First line
+--              of your lua file should look like this -->  local kAddonFolderName = ...
     local bar = ":::::::::::::"
-    msgBox( bar.." [ "..kAddonName.." ] "..bar.."\n\n"..msg,
+    msgBox( bar.." [ "..kAddonFolderName.." ] "..bar.."\n\n"..msg,
             nil, nil,
             nil, nil,
-            nil, true, SOUNDKIT.ALARM_CLOCK_WARNING_3 )
-end
-
--------------------------------------------------------------------------------
-function createTextScrollFrame(parent, title, width, height)
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
--- USAGE EXAMPLE:
---    local tsf = createTextScrollFrame(OptionsFrame, "*** Scroll Window Test ***", 333)
---
---    local title = tsf.scrollChild:CreateFontString("ARTWORK", nil, "GameFontNormalLarge")
---    title:SetPoint("TOP", 0, -4)
---    title:SetText("General Info")
---
---    local firstLine = tsf.scrollChild:CreateFontString("ARTWORK", nil, "GameFontNormal")
---    firstLine:SetPoint("TOP", title, "BOTTOM", 0, -1)
---    firstLine:SetJustifyH("LEFT")  -- Specify this when using text with carriage returns in it.
---    firstLine:SetText("This is the first line.\n  (Scroll way down to see the last!)")
---
---    local footer = tsf.scrollChild:CreateFontString("ARTWORK", nil, "GameFontNormal")
---    footer:SetPoint("TOP", 0, -5000)
---    footer:SetText("This is 5000 pixels below the top, so scrollChild automatically adjusts its height.")
---
---        -- < OR > --
---
---    local indent = 16 -- pixels
---    tsf:addText("General Info:", 0, 4, "GameFontNormalLarge")
---    tsf:addText("This is the first line.\n  (Scroll way down to see the last!)")
---    tsf:addText("|cffEE5500Line #2 is orange.|r", indent)
---    tsf:addText("This is line #3.  It is a very long line in order to test the .:.:.:. word wrap feature of the scroll frame.\n ", indent)
---    tsf:addText("This is 5000 pixels below the top, so scrollChild automatically adjusts its height.", 0, 5000)
--- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    parent = parent or UIParent
-    width = width or 400
-    height = height or 600
-
-    local margin = 9
-
-    -----------------------------
-    -- Create a container frame.
-    -----------------------------
-    local containerFrame = CreateFrame("frame", nil, parent) ----, "BackdropTemplate")
-    ----containerFrame:Hide()
-    containerFrame:SetFrameStrata("DIALOG")
-    containerFrame:SetFrameLevel(10)
-    ----containerFrame:SetToplevel(true)
-    containerFrame:EnableMouse(true)  -- Prevents clicking thru this frame and triggering things beneath it.
-    containerFrame:SetPoint("CENTER")
-    containerFrame:SetWidth(width)
-    containerFrame:SetHeight(height)
-    ----containerFrame:SetBackdropColor(0,0,0, 1)
-
-    -- Create dark marbled background.
-    containerFrame.bg = containerFrame:CreateTexture(nil, "BACKGROUND") ----, "BackdropTemplate")
-    containerFrame.bg:SetPoint("TOPLEFT", 1, -1)
-    containerFrame.bg:SetPoint("BOTTOMRIGHT", -1, 1)
-    containerFrame.bg:SetTexture("Interface\\FrameGeneral\\UI-Background-Marble", true, true)
-    ----containerFrame.bg:SetColorTexture(0, 0, 0, 1) -- Black
-
-    containerFrame.bg:SetHorizTile(true)
-    containerFrame.bg:SetVertTile(true)
-    ----containerFrame.bg:SetBackdropColor(0,0,0, 1)
-
-    -- Create border around the edges.
-    for k, v in pairs({
-            {"UI-Frame-InnerTopLeft", "TOPLEFT", 0, 0},
-            {"UI-Frame-InnerTopRight", "TOPRIGHT", 0, 0},
-            {"UI-Frame-InnerBotLeftCorner", "BOTTOMLEFT", 0, 0},
-            {"UI-Frame-InnerBotRight", "BOTTOMRIGHT", 0, 0},
-            {"_UI-Frame-InnerTopTile", "TOPLEFT", 6, 0, "TOPRIGHT", -6, 0},
-            {"_UI-Frame-InnerBotTile", "BOTTOMLEFT", 6, 0, "BOTTOMRIGHT", -6, 0},
-            {"!UI-Frame-InnerLeftTile", "TOPLEFT", 0, -6, "BOTTOMLEFT", 0, 6},
-            {"!UI-Frame-InnerRightTile", "TOPRIGHT", 0, -6, "BOTTOMRIGHT", 0, 6}
-            }) do
-        local border = containerFrame:CreateTexture(nil, "BORDER", v[1])
-        border:ClearAllPoints()
-        border:SetPoint( v[2], v[3], v[4] )
-        if v[5] then border:SetPoint( v[5], v[6], v[7] ) end
-    end
-
-    -- Create title banner.
-    if title then
-        containerFrame.title = containerFrame:CreateFontString("ARTWORK", nil, "SplashHeaderFont")  -- "GameFontNormalLarge"?
-        containerFrame.title:SetPoint("TOP", 0, -margin-1)
-        ----local titleFont = containerFrame.title:GetFontObject()
-        ----titleFont:SetTextColor(1,1,1)
-        ----titleFont:SetShadowColor(0,0,1)
-        containerFrame.title:SetText(title)
-    end
-
-    -- Create CLOSE button.
-    containerFrame.closeBtn = CreateFrame("Button", nil, containerFrame, kButtonTemplate)
-    containerFrame.closeBtn:SetText("Close")
-    containerFrame.closeBtn:SetPoint("BOTTOM", 0, 12)
-    containerFrame.closeBtn:SetSize(width/3, 24)
-    containerFrame.closeBtn:SetScript("OnClick", function(self) self:GetParent():Hide() end)
-
-    -----------------------------------------------------------------
-    -- Create a scroll frame (view port) inside the container frame.
-    -----------------------------------------------------------------
-
-    -- Create the scrolling parent frame and size it to fit inside the texture.
-    containerFrame.scrollFrame = CreateFrame("ScrollFrame", nil, containerFrame, "UIPanelScrollFrameTemplate")
-    if containerFrame.title then
-        containerFrame.scrollFrame:SetPoint("TOP", containerFrame.title, "BOTTOM", 0, -8)
-    else
-        containerFrame.scrollFrame:SetPoint("TOP", containerFrame, "TOP", 0, -margin)
-    end
-    containerFrame.scrollFrame:SetPoint("LEFT", margin, 0)
-    containerFrame.scrollFrame:SetPoint("BOTTOM", containerFrame.closeBtn, "TOP", 0, margin*0.6)
-    containerFrame.scrollFrame:SetPoint("RIGHT", -23, 0)
-    
-    containerFrame.scrollFrame.ScrollBar:ClearAllPoints()
-	containerFrame.scrollFrame.ScrollBar:SetPoint("TOPLEFT", containerFrame.scrollFrame, "TOPRIGHT", 2, -17)
-	containerFrame.scrollFrame.ScrollBar:SetPoint("BOTTOMRIGHT", containerFrame.scrollFrame, "BOTTOMRIGHT", 18, 16)
-    ----containerFrame.scrollFrame:SetScript("OnMouseWheel", function(self, delta) 
-    ----        -- Customize mouse wheel scroll speed.
-    ----        local newValue = self:GetVerticalScroll() - (delta * 20) -- Larger delta multiplier speeds up scrolling.
-    ----        if (newValue < 0) then newValue = 0
-    ----        elseif (newValue > self:GetVerticalScrollRange()) then newValue = self:GetVerticalScrollRange()
-    ----        end
-    ----        self:SetVerticalScroll(newValue)
-    ----    end)
-
-    -- Create the scrolling child frame, set its width to fit, and give it an arbitrary minimum height of 1.
-    containerFrame.scrollChild = CreateFrame("Frame", nil, containerFrame.scrollFrame)
-    containerFrame.scrollChild:SetWidth( containerFrame:GetWidth()-18 )
-    containerFrame.scrollChild:SetHeight( 1 )  -- Specifies an arbitrary minimum height.
-    containerFrame.scrollChild.bg = containerFrame.scrollChild:CreateTexture(nil, "BACKGROUND")
-    containerFrame.scrollChild.bg:SetAllPoints(containerFrame.scrollFrame, true)
-    containerFrame.scrollChild.bg:SetColorTexture(0.6, 0.3, 0.0, 0.13)  -- R, G, B, a
-    containerFrame.scrollFrame:SetScrollChild( containerFrame.scrollChild )
-
-    ----------------------------------
-    -- Scroll frame helper functions.
-    ----------------------------------
-
-    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    -- addText(text, dx, dy, fontName):
-    --      'dx' and 'dy' must be positive!
-    --      Note: You can change color of text parts using the "|cAARRGGBB...|r" syntax.
-    containerFrame.strings = {}
-    containerFrame.nextVertPos = 0  -- # of pixels from the top to add the next text string.
-    containerFrame.addText = function(self, text, dx, dy, fontName)  
-            assert(type(self) == "table")  -- Fails if this function is called using a dot instead of a colon.
-            dx = dx or 0
-            assert(dx >= 0)
-            dy = dy or 1
-            assert(dy >= 0)
-            
-            local numStrings = #containerFrame.strings
-            numStrings = numStrings + 1
-            local str = self.scrollChild:CreateFontString("ARTWORK", nil, fontName or "GameFontNormal")
-            str:SetJustifyH("LEFT")  -- Required when using carriage returns or wordwrap.
-            str:SetText(text)
-            str:SetPoint("LEFT", dx+2, 0)
-            str:SetPoint("RIGHT", -20, 0)
-            if (numStrings > 1) then
-                str:SetPoint("TOP", self.strings[numStrings-1], "BOTTOM", 0, -dy)
-            else -- It's the first string to be added.
-                str:SetPoint("TOP", self.scrollChild, "TOP", 0, -dy)
-            end
-            str.verticalScrollPos = self.nextVertPos
-            self.nextVertPos = self.nextVertPos + str:GetHeight() + dy
-            self.strings[numStrings] = str  -- Store this string.
-
-            return str  -- Return the font string so it can be customized.
-        end
-
-    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    -- getNextVerticalPosition():  
-    -- Returns vertical position (in pixels) of where the next line will be added by addText().
-    containerFrame.getNextVerticalPosition = function(self)
-            return self.nextVertPos
-        end
-    
-    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    -- setVerticalScroll(offsetInPixels, delaySecs):
-    --      'offsetInPixels' must be positive!
-    --      'delaySecs' can be used if the scrollbar doesn't update correctly.  Usually 0.1 secs is long enough.
-    containerFrame.setVerticalScroll = function(self, offsetInPixels, delaySecs)  
-            assert(type(self) == "table")  -- Fails if this function is called using a dot instead of a colon.
-            assert(offsetInPixels >= 0)
-            if (delaySecs == nil or delaySecs == 0) then
-                self.scrollFrame:SetVerticalScroll(offsetInPixels)
-            else
-                C_Timer.After(0.1, function() self.scrollFrame:SetVerticalScroll(offsetInPixels) end)
-            end
-        end
-        
-    -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
-    -- setScrollTextBackColor(r, g, b, alpha):
-    containerFrame.setScrollTextBackColor = function(self, r, g, b, alpha)
-            assert(type(self) == "table")  -- Fails if this function is called using a dot instead of a colon.
-            self.scrollChild.bg:SetColorTexture(r, g, b, alpha)
-        end
-        
-    -----------
-    -- Finish.
-    -----------
-    return containerFrame
-end
-
--------------------------------------------------------------------------------
-function displayAllFonts()
-    if (Globals.FontNamesScrollFrame == nil) then
-        Globals.FontNamesScrollFrame = createTextScrollFrame(UIParent, "*** Available Fonts ***", 1000, 600)
-        
-        local fontNames = Globals.GetFonts()
-        table.sort(fontNames, function(name1, name2) return (name1 < name2); end)
-        local name
-        for i = 1, #fontNames do
-            name = fontNames[i]
-            if (name and type(name) == "string" ----and name ~= ""
-                and name ~= "ScrollingMessageFrame"
-                and name:sub(1, 6) ~= "table:"
-              ) then
-                ----print("DBG: fontNames["..i.."]:", name)
-                Globals.FontNamesScrollFrame:addText(name, nil, nil, name)
-            end
-        end    
-    end
-    
-    Globals.FontNamesScrollFrame:Show()
+            nil, nil, true, SOUNDKIT.ALARM_CLOCK_WARNING_3 )
 end
 
 --[[                          Tool Functions                                 ]]
 
 -------------------------------------------------------------------------------
-function HandleToolSwitches(params)
+function HandleToolSwitches(params)  --[ Keywords: Slash Commands ]
     local paramAsNum = tonumber(params)
 
+    -------------------------------------------------------------------------------
     if (params == "screen") then
         Screen_Dump()
+    -------------------------------------------------------------------------------
     elseif (params == "camera") then
         Camera_Dump()
+    -------------------------------------------------------------------------------
     elseif (params == "config") then
         dumpObject(PlayerConfig, "CONFIG INFO")
+    -------------------------------------------------------------------------------
     elseif (params == "model") then
         CursorModel_Dump()
+    -------------------------------------------------------------------------------
     ----elseif (params == "cal") then
     ----    Calibrating_DoNextStep()
     ----elseif (params == "track") then
     ----    TrackPosition()
-    -----------------------------------------------------
+    -------------------------------------------------------------------------------
     -- NOTE: You can also enable the switch "kEditBaseValues" in the main file and then use
     --       the arrow keys to alter the values below (while the UI is displayed).
-    --       Shift/Ctrl/Alt affect what is changed, or how much the change is.
+    --       Arrow keys (no modifier key) change BaseOfsX and BaseOfsY.
+    --       Alt causes arrow keys to change BaseStepX and BaseStepY.
+    --       Shift decrease the amount of change each arrow key press.
+    --       Ctrl increase the amount of change each arrow key press.
     --       When done, type "/ct model" to dump all values (BEFORE CLOSING THE UI).
-    elseif (params:sub(1,5) == "box++") then CmdLineValue("BaseOfsX",  params:sub(6), "+")
-    elseif (params:sub(1,5) == "boy++") then CmdLineValue("BaseOfsY",  params:sub(6), "+")
-    elseif (params:sub(1,5) == "bsx++") then CmdLineValue("BaseStepX", params:sub(6), "+")
-    elseif (params:sub(1,5) == "bsy++") then CmdLineValue("BaseStepY", params:sub(6), "+")
-    elseif (params:sub(1,5) == "box--") then CmdLineValue("BaseOfsX",  params:sub(6), "-")
-    elseif (params:sub(1,5) == "boy--") then CmdLineValue("BaseOfsY",  params:sub(6), "-")
-    elseif (params:sub(1,5) == "bsx--") then CmdLineValue("BaseStepX", params:sub(6), "-")
-    elseif (params:sub(1,5) == "bsy--") then CmdLineValue("BaseStepY", params:sub(6), "-")
+    ----elseif (params:sub(1,5) == "box++") then CmdLineValue("BaseOfsX",  params:sub(6), "+")
+    ----elseif (params:sub(1,5) == "boy++") then CmdLineValue("BaseOfsY",  params:sub(6), "+")
+    ----elseif (params:sub(1,5) == "bsx++") then CmdLineValue("BaseStepX", params:sub(6), "+")
+    ----elseif (params:sub(1,5) == "bsy++") then CmdLineValue("BaseStepY", params:sub(6), "+")
+    ----elseif (params:sub(1,5) == "box--") then CmdLineValue("BaseOfsX",  params:sub(6), "-")
+    ----elseif (params:sub(1,5) == "boy--") then CmdLineValue("BaseOfsY",  params:sub(6), "-")
+    ----elseif (params:sub(1,5) == "bsx--") then CmdLineValue("BaseStepX", params:sub(6), "-")
+    ----elseif (params:sub(1,5) == "bsy--") then CmdLineValue("BaseStepY", params:sub(6), "-")
     elseif (params:sub(1,3) == "box")   then CmdLineValue("BaseOfsX",  params:sub(4))
     elseif (params:sub(1,3) == "boy")   then CmdLineValue("BaseOfsY",  params:sub(4))
+    elseif (params:sub(1,3) == "boz")   then CmdLineValue("BaseOfsZ",  params:sub(4))
+    elseif (params:sub(1,3) == "brx")   then CmdLineValue("BaseRotX",  params:sub(4))
+    elseif (params:sub(1,3) == "bry")   then CmdLineValue("BaseRotY",  params:sub(4))
+    elseif (params:sub(1,3) == "brz")   then CmdLineValue("BaseRotZ",  params:sub(4))
     elseif (params:sub(1,3) == "bsx")   then CmdLineValue("BaseStepX", params:sub(4))
     elseif (params:sub(1,3) == "bsy")   then CmdLineValue("BaseStepY", params:sub(4))
-    elseif (params:sub(1,4) == "bs++")  then CmdLineValue("BaseScale", params:sub(5), "+")
-    elseif (params:sub(1,4) == "bs--")  then CmdLineValue("BaseScale", params:sub(5), "-")
+    ----elseif (params:sub(1,4) == "bs++")  then CmdLineValue("BaseScale", params:sub(5), "+")
+    ----elseif (params:sub(1,4) == "bs--")  then CmdLineValue("BaseScale", params:sub(5), "-")
     elseif (params:sub(1,2) == "bs")    then CmdLineValue("BaseScale", params:sub(3))
-    elseif (params:sub(1,4) == "bf++")  then CmdLineValue("BaseFacing",params:sub(5), "+")
-    elseif (params:sub(1,4) == "bf--")  then CmdLineValue("BaseFacing",params:sub(5), "-")
+    ----elseif (params:sub(1,4) == "bf++")  then CmdLineValue("BaseFacing",params:sub(5), "+")
+    ----elseif (params:sub(1,4) == "bf--")  then CmdLineValue("BaseFacing",params:sub(5), "-")
     elseif (params:sub(1,2) == "bf")    then CmdLineValue("BaseFacing",params:sub(3))
-    elseif (params:sub(1,4) == "hs++")  then CmdLineValue("HorizontalSlope", params:sub(5), "+")
-    elseif (params:sub(1,4) == "hs--")  then CmdLineValue("HorizontalSlope", params:sub(5), "-")
+    ----elseif (params:sub(1,4) == "hs++")  then CmdLineValue("HorizontalSlope", params:sub(5), "+")
+    ----elseif (params:sub(1,4) == "hs--")  then CmdLineValue("HorizontalSlope", params:sub(5), "-")
     elseif (params:sub(1,2) == "hs")    then CmdLineValue("HorizontalSlope", params:sub(3))
     ----elseif (params == "mdl++")          then OptionsFrame_IncrDecrModel(1)
     ----elseif (params == "mdl--")          then OptionsFrame_IncrDecrModel(-1)
     -----------------------------------------------------
     elseif (params:sub(1,3) == "mdl") then
         local modelID = tonumber(params:sub(4))
-        local msg = kAddonName
+        local msg = kAddonFolderName
         if (modelID == nil) then
             modelID = CursorModel:GetModelFileID()
             msg = msg .. " model ID is " .. (modelID or "NIL") .. "."
         else
             local origBaseScale = CursorModel.Constants.BaseScale
-            local tmpConfig = CopyTable(kDefaultConfig)
+            local tmpConfig = CopyTable( kDefaultConfig[kDefaultConfigKey] )
             tmpConfig.ModelID = modelID
             CursorTrail_Load(tmpConfig)
             CursorTrail_Show()
             CursorModel.Constants.BaseScale = origBaseScale
             CursorModel.Constants.BaseStepX = 3330
             CursorModel.Constants.BaseStepY = 3330
-            CursorTrail_ApplyUserSettings()
+            CursorTrail_ApplyModelSettings()
             msg = msg .. " changed model ID to " .. (modelID or "NIL") .. "."
         end
         print(msg)
+    -------------------------------------------------------------------------------
     elseif (params:sub(1,3) == "pos") then  -- Set position (0,0), (1,1), (2,2), etc.
         local delta = tonumber(params:sub(4))
         CursorModel:SetPosition(0, delta, delta)
-    elseif (params:sub(1,4) == "test") then
-        local modelID = tonumber(params:sub(5))
-        if not TestCursorModel then
-            TestCursorModel = CreateFrame("PlayerModel", nil, kGameFrame)
+    -------------------------------------------------------------------------------
+    elseif (params:sub(1,9) == "testmodel" or params:sub(1,2) == "tm") then  -- /ct testmodel <modelID> <scale> <rotationX>
+        local rad, CreateVector3D = Globals.rad, Globals.CreateVector3D
+        local cmd, modelID, scale, rotX, rotY, rotZ, ofsX, ofsY, ofsZ = string.split(" ", params)
+        if modelID then modelID = tonumber(modelID) end
+        if scale then scale = tonumber(scale) else scale=1 end
+        if rotX then rotX = tonumber(rotX) else rotX=0 end
+        if rotY then rotY = tonumber(rotY) else rotY=0 end
+        if rotZ then rotZ = tonumber(rotZ) else rotZ=0 end
+        if ofsX then ofsX = tonumber(ofsX) else ofsX=0 end
+        if ofsY then ofsY = tonumber(ofsY) else ofsY=0 end
+        if ofsZ then ofsZ = tonumber(ofsZ) else ofsZ=0 end
+
+        local useSetTransform = true
+        if cmd == "tmn" then useSetTransform = false end -- Specify command "tmn" instead of "tm" to not use SetTransform.
+
+        -- Some preset test models.
+        if modelID == -1 then
+            modelID=166498; scale=0.004  -- (Electric, Blue (Long))
+        elseif modelID == -2 then
+            modelID=166492; scale=0.032  -- (Electric, Blue)
+        elseif modelID == -3 then
+            modelID=166538; scale=0.0162  -- (Burning Cloud, Blue)
+        elseif modelID == -4 then
+            modelID=975870; scale=0.011; rotX=180; rotY=100; rotZ=270  -- (Swirling, Purple & Orange)  /ct tm 975870 0.011 180 100 270
+        elseif modelID == -5 then
+            modelID=667272; scale=0.005  -- (<New> Green Ring)
+        elseif modelID == -6 then
+            if useSetTransform then
+                modelID=343980; scale=0.022; rotX=270  -- (Cat Mark, Green)  /ct tm 343980 0.022 270
+            else
+                modelID=343980; scale=0.06; ofsY=21  -- (Cat Mark, Green)  /ct tmn 343980 0.06 0 0 0 0 21
+            end
+        elseif modelID == -7 then
+            modelID=1029302; scale=0.004  -- (Beam Target)
+        else
+            assert(modelID == nil or modelID >= 0)
         end
-        TestCursorModel:SetAllPoints()
-        TestCursorModel:SetFrameStrata("TOOLTIP")
-        TestCursorModel:ClearModel()
-        TestCursorModel:SetScale(1)  -- Very important!
-        TestCursorModel:SetPosition(0, 0, 0)  -- Very Important!
-        TestCursorModel:SetAlpha(1)
-        TestCursorModel:SetFacing(0)
-        if modelID then TestCursorModel:SetModel(modelID) end
-        TestCursorModel:SetCustomCamera(1) -- Very important! (Note: CursorModel:SetCamera(1) doesn't work here.)
-    ----elseif (paramAsNum ~= nil) then
-    ----    print(kAddonName .. " processed number", paramAsNum, ".")
-    elseif (params == "bug") then  -- Cause a bug to test error handling.
+
+        local debugHeader = "|cff00FFFFTestModel|r|cffFFFF00>|r  "
+        print(debugHeader..(modelID or "nil").."  scale:", scale, "  rot:", rotX, rotY, rotZ, "  ofs:", ofsX, ofsY, ofsZ)
+        rotX = rad(rotX); rotY = rad(rotY); rotZ = rad(rotZ)  -- Convert degrees to radians.
+
+        ----if TestModel then TestModel:ClearModel() end
+        if not TestModel then
+            TestModel = CreateFrame("PlayerModel", nil, kGameFrame)
+            TestModel:SetAllPoints()
+        end
+
+        local cameraID = 1 -- (0 is non movable.  1 can be rotated. Used by dressing room, character view, etc.  Other #s can be freely moved.)
+        TestModel:ClearModel()
+        TestModel:SetScale(1)
+        if not modelID then return true end  -- Done.
+
+        local modelX = (ScreenMidX + ofsX) / ScreenHypotenuse
+        local modelY = (ScreenMidY + ofsY) / ScreenHypotenuse
+        local modelZ = ofsZ
+
+        TestModel:SetAlpha(1)
+        TestModel:SetFrameStrata( CursorModel:GetFrameStrata() )
+        TestModel:UseModelCenterToTransform(true)
+        TestModel:SetKeepModelOnHide(true)
+        TestModel:Hide()  -- Prevents flickering when model is set.
+
+        TestModel.UseSetTransform = useSetTransform
+        TestModel.Scale = scale
+        TestModel.RotX = rotX; TestModel.RotY = rotY; TestModel.RotZ = rotZ
+        TestModel.OfsX = ofsX; TestModel.OfsY = ofsY; TestModel.OfsZ = ofsZ;
+
+----local posX, posY, posZ, yaw, pitch, roll, animId, animVariation, animFrame, centerModel = GetUICameraInfo(cameraID);
+----Globals.Model_ApplyUICamera(TestModel, cameraID)
+----vdt_dump({Globals.GetUICameraInfo(cameraID)}, "ck1")
+------TestModel:RefreshCamera()  <<< Clobbers your custom camera?
+----TestModel:SetCameraTarget(0,0,0);
+
+    local numTimes = (useSetTransform and 1) or 2  -- For some reason, have to do this part twice when using SetFacing/SetPitch/SetRoll.
+    for i = 1, numTimes do
+        TestModel:SetScale(1)  -- Very important!
+        TestModel:SetModel(modelID)
+        TestModel:SetCustomCamera(cameraID) -- Very important! (Note: SetCamera() doesn't work here.)
+
+        --'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        ----local delay = 0.04  -- Need a 0.04 sec delay between SetModel() and SetTransform() calls.
+        if TestModel.UseSetTransform then
+            print(debugHeader.."Using SetTransform.")
+            --_________________________________________________________________
+            -- SetTransform()
+            --  PROS: Tracking mouse position is trivial.  (Might solve ultrawide monitor problems.)
+            --  CONS: Can't scale models as small as using SetScale(), and using
+            --        the Z offset to "scale" the model is complicated, requiring
+            --        varying changes to Y offset as well.
+            -- Note: SetTransform() requires a custom camera!  Use MakeCurrentCameraCustom() or SetCustomCamera().
+            --_________________________________________________________________
+            ----TestModel:SetCustomCamera(cameraID) -- Works, but HasCustomCamera() still returns false.  WTF?
+            ----TestModel:SetCamera(cameraID)
+            ----TestModel:MakeCurrentCameraCustom() -- Must use a custom camera when using SetTransform().
+            ----C_Timer.After(delay, function()  -- Required delay?
+                TestModel:SetTransform( CreateVector3D(modelX, modelY, modelZ),  -- (Position x,y,z)
+                                        CreateVector3D(rotX, rotY, rotZ),  scale)  -- (Rotation x,y,z) | Scale
+                TestModel:Show()
+            ----end) -- C_Timer
+            ----TestModel:SetCameraDistance(TestModel:GetCameraDistance()*3) -- Note: Requires a custom camera. --<<< NO EFFECT.
+        --'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        else -- Use SetFacing/SetPitch/SetRoll.  (Note: Require a non-custom camera.)
+            print(debugHeader.."Using SetFacing/SetPitch/SetRoll.")
+            --_________________________________________________________________
+            -- SetScale(), SetFacing(), SetPitch(), SetRoll()
+            --  PROS: Original implemention.  Can scale models smaller than SetTransform() can.
+            --  CONS: Difficult to keep model in sync with mouse position.
+            --        Complicated to add new models.
+            --_________________________________________________________________
+            TestModel:ClearTransform()
+            TestModel:SetScale(scale)
+            ----TestModel:SetModelScale(scale)
+            ----C_Timer.After(delay, function()  -- Required delay?
+                ----ofsX, ofsY, ofsZ = TestModel:TransformCameraSpaceToModelSpace(CreateVector3D(ofsX, ofsY, ofsZ)):GetXYZ()
+                TestModel:SetPosition(ofsZ, ofsX, ofsY)
+                TestModel:SetFacing(rotX)
+                TestModel:SetPitch(rotY)
+                TestModel:SetRoll(rotZ)
+
+                --TODO: Retest this ...
+                ----local lightValues = { omnidirectional = false, point = CreateVector3D(0, 0, 0), ambientIntensity = .7, ambientColor = CreateColor(1, 1, 1), diffuseIntensity = 0, diffuseColor = CreateColor(1, 1, 1) };
+                ----local enabled = true;
+                ----TestModel:SetLight(enabled, lightValues);
+                TestModel:Show()
+            ----end) -- C_Timer
+        end
+    end -- FOR
+        --'''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+        ----vdt_dump(TestModel, "TestModel")
+        ----CursorModel_Dump("TEST MODEL INFO", TestModel)
+        ----C_Timer.After(0.5, function() CursorModel_Dump("TEST MODEL INFO (DELAYED)", TestModel) end)
+        ----Camera_Dump("TEST MODEL CAMERA INFO", TestModel)
+        ----C_Timer.After(0.5, function() Camera_Dump("TEST MODEL CAMERA INFO (DELAYED)", TestModel) end)
+    -------------------------------------------------------------------------------
+    elseif (params == "fonts") then
+        private.UDControls.DisplayAllFonts()
+    -------------------------------------------------------------------------------
+    elseif (params == "bug") then  -- Cause a bug to test error reporting.
         xpcall(bogus_function, geterrorhandler())
         ----xpcall(bogus_function, errHandler)
+    -------------------------------------------------------------------------------
     else
         return false  -- 'params' was NOT handled by this function.
     end
@@ -733,7 +703,7 @@ end
 function CmdLineValue(name, val, plusOrMinus)
     val = tonumber(val)
     if (val == nil) then
-        print(kAddonName .. " "..name.." is", CursorModel.Constants[name], ".")
+        print(kAddonFolderName .. " "..name.." is", CursorModel.Constants[name], ".")
     else
         if (plusOrMinus == "+") then
             val = CursorModel.Constants[name] + val
@@ -745,7 +715,7 @@ function CmdLineValue(name, val, plusOrMinus)
         if (name == "BaseScale") then
             PlayerConfig.UserScale = 1.0  -- Reset user offsets when changing base scale.
             CursorModel.Constants.BaseScale = 1.0  -- VERY IMPORTANT to do this first.
-            CursorTrail_ApplyUserSettings()
+            CursorTrail_ApplyModelSettings()
         elseif (name:sub(1,7) == "BaseOfs") then
             -- Reset user offsets when changing base offsets.
             PlayerConfig.UserOfsX = 0
@@ -753,76 +723,87 @@ function CmdLineValue(name, val, plusOrMinus)
         end
 
         CursorModel.Constants[name] = val  -- Change the specified value.
-        CursorTrail_ApplyUserSettings()    -- Apply the change.
-        print(kAddonName .. " changed "..name.." to", val, ".")
+        CursorTrail_ApplyModelSettings()   -- Apply the change.
+        print(kAddonFolderName .. " changed "..name.." to", val, ".")
         ----if (name == "BaseScale") then CursorModel_Dump() end
     end
 end
 
 -------------------------------------------------------------------------------
 function Screen_Dump(heading)
-    -- Print the current resolution to chat
+    -- Print the current resolution to chat.
     local origGameFrame = kGameFrame
-    local currentResolutionIndex = GetCurrentResolution()
-    local resolution = select(currentResolutionIndex, GetScreenResolutions())
-    local dumpStr = (heading or "SCREEN INFO") .. " ..."
-            .."\n  Screen Size = "..(resolution or "Unknown")
+    local width, height
+    local indents = "    "
+
+    print((heading or "SCREEN INFO") .. " ...")
+
+    if GetCurrentResolution then  -- Use old API?
+        ----NOT WORKING CORRECTLY ANYMORE ...
+        ----local currentResolutionIndex = GetCurrentResolution()
+        ----local resolution = select(currentResolutionIndex, GetScreenResolutions())
+        ----print(indents.."Screen Resolution = "..(resolution or "Unknown"))
+    else -- Use new API introduced in 10.0.
+        ----width, height = Globals.GetPhysicalScreenSize()  SEEMS TO RETURN RESOLUTION, NOT PHYSICAL SIZE.
+        ----print("  Screen Physical Size =", floor(width), "x", floor(height))
+        local gameWindowSize = Globals.C_VideoOptions.GetCurrentGameWindowSize()
+        width, height = gameWindowSize:GetXY()
+        print(indents.."Screen Resolution =", floor(width), "x", floor(height))
+    end
 
     for i = 1, 2 do
         if (i == 1) then
-            dumpStr = dumpStr .. "\n  -----[ WORLD FRAME ]-----"
-            kGameFrame = Globals.WorldFrame
+            print(indents.."-----[ WorldFrame ]-----")
+            kGameFrame = WorldFrame
         else
-            dumpStr = dumpStr .. "\n  -----[ PARENT FRAME ]-----"
-            kGameFrame = Globals.UIParent
+            print(indents.."-----[ UIParent ]-----")
+            kGameFrame = UIParent
         end
 
-        local unscaledW, unscaledH = getScreenSize()  -- Uses kGameFrame.
+        local unscaledW, unscaledH = kGameFrame:GetSize()  -- i.e. getScreenSize()
         local scaledW, scaledH, scaledMidX, scaledMidY, uiscale, hypotenuse = getScreenScaledSize()  -- Uses kGameFrame.
 
-        dumpStr = dumpStr
-            .."\n  Window Size = "..round(unscaledW,2).." x "..round(unscaledH,2)
-            .."\n  Aspect Ratio = "..round(scaledW/scaledH,2)
-            .."\n  UI Scale = "..round(uiscale,3)
-            .."\n  Scaled Size = "..round(scaledW,2).." x "..round(scaledH,2)
-            .."\n  Scaled Center = ("..round(scaledMidX,2)..", "..round(scaledMidY,2)..")"
-            .."\n  Scaled Hypotenuse = "..round(hypotenuse,2)
+        print(indents.."Window Size = "..round(unscaledW,2).." x "..round(unscaledH,2))
+        print(indents.."Aspect Ratio = "..round(scaledW/scaledH,2))
+        print(indents.."UI Scale = "..round(uiscale,3))
+        print(indents.."Scaled Size = "..round(scaledW,2).." x "..round(scaledH,2))
+        print(indents.."Scaled Center = ("..round(scaledMidX,2)..", "..round(scaledMidY,2)..")")
+        print(indents.."Scaled Hypotenuse = "..round(hypotenuse,2))
     end
 
-    print(dumpStr)
     local z, x, y = CursorModel:GetPosition()
-    print("  Cursor Position (x,y,z): ("..round(x,1)..", "..round(y,1)..", "..round(z,1)..")")
+    print("  Model Position (x,y,z): ("..round(x,1)..", "..round(y,1)..", "..round(z,1)..")")
 
     kGameFrame = origGameFrame
 end
 
 -------------------------------------------------------------------------------
-function Camera_Dump(heading)
-    assert(CursorModel)
-    local z, x, y = CursorModel:GetCameraPosition()
-    local tz, tx, ty = CursorModel:GetCameraTarget()
-
-    heading = heading or "CAMERA INFO (Distance/Yaw/Pitch)"
-    print( heading.." ..."
-            .."\n  Camera Position = "
-                ..round(z,3) -- Camera's distance from the view port?
-                .."  /  "..round(x,3)   -- Rotation around the z-axis.
-                .."  /  "..round(y,3)   -- Rotation around the y-axis.
-            .."\n  Camera Target    = "
-                ..round(tz,3)  -- Camera target's distance from the view port?
-                .."  /  "..round(tx,3)    -- Rotation around the z-axis.
-                .."  /  "..round(ty,3)    -- Rotation around the y-axis.
-            .."\n  Model Yaw (Left/Right) =", round(CursorModel:GetFacing(),3)
-            .."\n  Model Pitch (Up/Down) =", round(CursorModel:GetPitch(),3) )
+function Camera_Dump(heading, model)
+    model = model or CursorModel
+    heading = heading or "CAMERA INFO"
+    local x, y, z
+    print(heading.." ...")
+    print("  HasCustomCamera =", model:HasCustomCamera())
+    z, x, y = model:GetCameraPosition()
+    print("  GetCameraPosition =", round(z,3)..",  "..round(x,3)..",  "..round(y,3))
+    z, x, y = model:GetCameraTarget()
+    print("  GetCameraTarget =", round(z,3)..",  "..round(x,3)..",  "..round(y,3))
+    print("  GetCameraDistance =", round(model:GetCameraDistance(),3))
+    print("  GetCameraRoll =", round(model:GetCameraRoll(),3))
+    print("  GetCameraFacing (Yaw Left/Right) =", round(model:GetCameraFacing(),3))
+    ----print("  GetCameraPitch (Up/Down) = n/a")
 end
 
 -------------------------------------------------------------------------------
-function CursorModel_Dump(heading)
-    assert(CursorModel)
-    dumpObject(CursorModel, heading or "MODEL INFO")
-    local w, h = CursorModel:GetSize()
-    print("|cff9999ff    Width =|r", round(w))
-    print("|cff9999ff    Height =|r", round(h))
+function CursorModel_Dump(heading, model)
+    model = model or CursorModel
+    dumpObject(model, heading or "MODEL INFO")
+    local color = "|cff9999ff"
+    local w, h = model:GetSize()
+    print(color.."    GetWidth, GetHeight =|r", round(w), ",", round(h))
+    print(color.."    GetScale, GetModelScale =|r", round(model:GetScale(),3), ",", round(model:GetModelScale(),3))
+    local z, x, y = model:GetPosition()
+    print(color.."    GetPosition (Z,x,y) =|r", round(z,3), ",", round(x,3), ",", round(y,3))
 end
 
 --~ -------------------------------------------------------------------------------
@@ -842,7 +823,7 @@ end
 --~             CursorModel:SetScale( Calibrating.OriginalModelScale )
 --~             Calibrating = nil
 --~             TextFrame_SetText()
---~             print(kAddonName.." calibration aborted.")
+--~             print(kAddonFolderName.." calibration aborted.")
 --~         end
 --~         return
 --~     end

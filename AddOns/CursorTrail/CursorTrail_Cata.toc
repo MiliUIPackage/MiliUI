@@ -1,12 +1,8 @@
-## Interface: 110000
+## Interface: 40400
 ## Title: CursorTrail
-## Title-zhTW: |cff0099FF[介面]|r 滑鼠軌跡
-## Notes-zhTW: CursorTrail |n|n 為你的滑鼠游標加入發亮的軌跡特效。
-## DefaultState: Disabled
 ## Notes: Adds a shape, shadow, and glowing trail effect to your mouse cursor.
 ## Author: UppyDan
-## Version: 10.2.7.5
-## IconTexture: Interface\Icons\INV_Enchant_EssenceEternalLarge
+## Version: 4.4.0.6
 ## SavedVariables: CursorTrail_Config
 ## SavedVariablesPerCharacter: CursorTrail_PlayerConfig
 
@@ -15,7 +11,7 @@ Libs\UDControls.lua
 CursorTrail.lua
 CursorTrailConfig.lua
 CursorTrailTools.lua
-CursorTrailModels.lua
+CursorTrailModels_Cata.lua
 CursorTrailShapes.lua
 CursorTrailDefaults.lua
 CursorTrailHelp.lua

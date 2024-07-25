@@ -1,0 +1,27 @@
+<Ui>
+
+<!-- Include required controls. -->
+<Script file="UDControls.lua" />
+
+<!-- Include English (US) localization file first. -->
+<Script file="UDProfiles-enUS.lua" />
+
+<!-- Include other localization files. -->
+<Script file="UDProfiles-deDE.lua" />
+<Script file="UDProfiles-esES.lua" />
+<Script file="UDProfiles-esMX.lua" />
+<Script file="UDProfiles-frFR.lua" />
+<Script file="UDProfiles-itIT.lua" />
+<Script file="UDProfiles-koKR.lua" />
+<Script file="UDProfiles-ptBR.lua" />
+<Script file="UDProfiles-ruRU.lua" />
+<Script file="UDProfiles-zhCN.lua" />
+<Script file="UDProfiles-zhTW.lua" />
+
+<!-- For testing, include this test file.
+<Script file="UDProfiles-zzzzTEST.lua" /> -->
+
+<!-- Include UDProfiles implementation. -->
+<Script file="UDProfiles.lua" />
+
+</Ui>

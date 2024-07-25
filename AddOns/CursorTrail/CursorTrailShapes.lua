@@ -1,5 +1,4 @@
 --[[---------------------------------------------------------------------------
-    Addon:  CursorTrail
     File:   CursorTrailShapes.lua
     Desc:   This file contains a list of shapes used by this addon.
 -----------------------------------------------------------------------------]]
