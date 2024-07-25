@@ -30,7 +30,7 @@ local function Updater(event)
       C_Timer.After(
          1,
          function()
-            Exlist.SendFakeEvent("FUCK_YOU_BLIZZARD")
+            Exlist.SendFakeEvent("BLIZZARD_THANKS_SMILE")
          end
       )
    end
@@ -40,8 +40,8 @@ local function Updater(event)
    if initialized < 1 then
       return
    end
-   if not IsAddOnLoaded("Blizzard_ChallengesUI") then
-      LoadAddOn("Blizzard_ChallengesUI")
+   if not C_AddOns.IsAddOnLoaded("Blizzard_ChallengesUI") then
+      C_AddOns.LoadAddOn("Blizzard_ChallengesUI")
       C_MythicPlus.RequestRewards()
       C_MythicPlus.RequestMapInfo()
       return
@@ -69,7 +69,7 @@ local function Updater(event)
          if not IsItPlayersRun(members) then
             return
          end
-         table.insert(dungeons, {mapId = mapIds[i], name = mapName, level = mapLevel, time = mapTime})
+         table.insert(dungeons, { mapId = mapIds[i], name = mapName, level = mapLevel, time = mapTime })
       end
       -- check if best map this week
       if mapLevel and mapLevel > bestLevel then
@@ -124,12 +124,12 @@ local function Linegenerator(tooltip, data, character)
    end
 
    if data.mapsDone and #data.mapsDone > 0 then
-      local sideTooltip = {title = WrapTextInColorCode(L["Mythic+"], colors.sideTooltipTitle), body = {}}
+      local sideTooltip = { title = WrapTextInColorCode(L["Mythic+"], colors.sideTooltipTitle), body = {} }
       local maps = data.mapsDone
       for i = 1, #maps do
          table.insert(
             sideTooltip.body,
-            {"+" .. maps[i].level .. " " .. maps[i].name, Exlist.FormatTime(maps[i].time)}
+            { "+" .. maps[i].level .. " " .. maps[i].name, Exlist.FormatTime(maps[i].time) }
          )
       end
       info.OnEnter = Exlist.CreateSideTooltip()
@@ -209,7 +209,7 @@ local data = {
       "PLAYER_ENTERING_WORLD",
       "LOOT_CLOSED",
       "MYTHIC_PLUS_REFRESH_INFO",
-      "FUCK_YOU_BLIZZARD"
+      "BLIZZARD_THANKS_SMILE"
    },
    description = L["Tracks highest completed mythic+ in a week and all highest level runs per dungeon"],
    weeklyReset = true,

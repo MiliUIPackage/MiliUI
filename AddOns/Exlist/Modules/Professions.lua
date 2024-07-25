@@ -706,11 +706,13 @@ local function Linegenerator(tooltip, data, character)
     tooltipData.body = getWeeklyTooltipData(prof, tooltipData.body)
   end
 
-  info.data = string.format(L["%i/%i (KP)"], profKPCurr, profKPMax)
-  if (profKPCurr / profKPMax == 1) then
-    info.data = Exlist.AddCheckmark(info.data, true)
-  elseif (profKPCurr / profKPMax > 0.3) then
-    info.data = WrapTextInColorCode(info.data, colors.incomplete)
+  if (profKPCurr > 0 and profKPMax > 0) then
+    info.data = string.format(L["%i/%i (KP)"], profKPCurr, profKPMax)
+    if (profKPCurr / profKPMax == 1) then
+      info.data = Exlist.AddCheckmark(info.data, true)
+    elseif (profKPCurr / profKPMax > 0.3) then
+      info.data = WrapTextInColorCode(info.data, colors.incomplete)
+    end
   end
   info.OnEnter = Exlist.CreateSideTooltip()
   info.OnEnterData = tooltipData

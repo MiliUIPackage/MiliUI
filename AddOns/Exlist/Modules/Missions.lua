@@ -14,15 +14,15 @@ local L = Exlist.L
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
 
 local followerTypes = {
-   {type = Enum.GarrisonFollowerType.FollowerType_6_0_GarrisonFollower, level = 40},
-   {type = Enum.GarrisonFollowerType.FollowerType_7_0_GarrisonFollower, level = 45},
-   {type = Enum.GarrisonFollowerType.FollowerType_8_0_GarrisonFollower, level = 50},
-   {type = Enum.GarrisonFollowerType.FollowerType_9_0_GarrisonFollower, level = 60}
+   { type = Enum.GarrisonFollowerType.FollowerType_6_2, level = 40 },
+   { type = Enum.GarrisonFollowerType.FollowerType_7_0, level = 45 },
+   { type = Enum.GarrisonFollowerType.FollowerType_8_0, level = 50 },
+   { type = Enum.GarrisonFollowerType.FollowerType_9_0, level = 60 }
 }
 
 local function GetFollowerType()
    local level = UnitLevel("player")
-   local followerType = Enum.GarrisonFollowerType.FollowerType_9_0_GarrisonFollower
+   local followerType = Enum.GarrisonFollowerType.FollowerType_9_0
    for _, types in ipairs(followerTypes) do
       if (level >= types.level) then
          followerType = types.type
@@ -117,19 +117,19 @@ local function GetRewardsString(rewards)
       end
       if type(reward.quantity) == "number" and reward.quantity > 1 then
          rewardString =
-            string.format(
-            "%s%ix|T%s:15:15|t %s",
-            rewardString,
-            reward.quantity or "",
-            reward.icon or unknownIcon,
-            reward.name or L["Unknown"]
-         )
+             string.format(
+                "%s%ix|T%s:15:15|t %s",
+                rewardString,
+                reward.quantity or "",
+                reward.icon or unknownIcon,
+                reward.name or L["Unknown"]
+             )
       elseif type(reward.quantity) == "string" then
          rewardString =
-            string.format("%s|T%s:15:15|t%s", rewardString, reward.icon or unknownIcon, reward.quantity or "")
+             string.format("%s|T%s:15:15|t%s", rewardString, reward.icon or unknownIcon, reward.quantity or "")
       else
          rewardString =
-            string.format("%s|T%s:15:15|t %s", rewardString, reward.icon or unknownIcon, reward.name or L["Unknown"])
+             string.format("%s|T%s:15:15|t %s", rewardString, reward.icon or unknownIcon, reward.name or L["Unknown"])
       end
    end
    return rewardString
@@ -153,14 +153,14 @@ local function missionStrings(source, hasTime)
                      L["Time Left"],
                      Exlist.TimeLeftColor(
                         (source[i].endTime - ti) or 0,
-                        {1800, 7200},
-                        {colors.time.short, colors.time.medium, colors.time.long}
+                        { 1800, 7200 },
+                        { colors.time.short, colors.time.medium, colors.time.long }
                      )
                   )
                }
             )
          else
-            table.insert(t, {WrapTextInColorCode(source[i].name, colors.missionName)})
+            table.insert(t, { WrapTextInColorCode(source[i].name, colors.missionName) })
          end
       else
          table.insert(
@@ -168,18 +168,18 @@ local function missionStrings(source, hasTime)
             {
                WrapTextInColorCode(source[i].name, colors.missionName),
                source[i].offerEndTime and
-                  (L["Expires in"] ..
-                     ": " ..
-                        Exlist.TimeLeftColor(
-                           (source[i].offerEndTime - ti) or 0,
-                           {14400, 28800},
-                           {colors.time.long, colors.time.medium, colors.time.short}
-                        )) or
-                  ""
+               (L["Expires in"] ..
+                  ": " ..
+                  Exlist.TimeLeftColor(
+                     (source[i].offerEndTime - ti) or 0,
+                     { 14400, 28800 },
+                     { colors.time.long, colors.time.medium, colors.time.short }
+                  )) or
+               ""
             }
          )
       end
-      table.insert(t, {L["Reward"] .. ": " .. GetRewardsString(source[i].rewards), ""})
+      table.insert(t, { L["Reward"] .. ": " .. GetRewardsString(source[i].rewards), "" })
    end
    return t
 end
@@ -218,11 +218,11 @@ local function Linegenerator(tooltip, data, character)
    end
    local t2 = string.format("%s/%i", completed, ip) or ""
    info.data = t2
-   local sideTooltip = {body = {}, title = WrapTextInColorCode(L["Missions"], colors.sideTooltipTitle)}
+   local sideTooltip = { body = {}, title = WrapTextInColorCode(L["Missions"], colors.sideTooltipTitle) }
    if #done > 0 then
       table.insert(
          sideTooltip.body,
-         {WrapTextInColorCode(L["Completed"], colors.missions.completed), "", {"headerseparator"}}
+         { WrapTextInColorCode(L["Completed"], colors.missions.completed), "", { "headerseparator" } }
       )
       local t = missionStrings(done, true)
       for i = 1, #t do
@@ -232,7 +232,7 @@ local function Linegenerator(tooltip, data, character)
    if #inprogress > 0 then
       table.insert(
          sideTooltip.body,
-         {WrapTextInColorCode(L["In Progress"], colors.missions.inprogress), "", {"headerseparator"}}
+         { WrapTextInColorCode(L["In Progress"], colors.missions.inprogress), "", { "headerseparator" } }
       )
       table.sort(
          inprogress,
@@ -248,7 +248,7 @@ local function Linegenerator(tooltip, data, character)
    if #available > 0 then
       table.insert(
          sideTooltip.body,
-         {WrapTextInColorCode(L["Available"], colors.missions.available), "", {"headerseparator"}}
+         { WrapTextInColorCode(L["Available"], colors.missions.available), "", { "headerseparator" } }
       )
       table.sort(
          available,
@@ -278,7 +278,7 @@ local data = {
    linegenerator = Linegenerator,
    priority = prio,
    updater = Updater,
-   event = {"GARRISON_MISSION_COMPLETE_RESPONSE", "GARRISON_MISSION_STARTED", "GARRISON_MISSION_NPC_OPENED"},
+   event = { "GARRISON_MISSION_COMPLETE_RESPONSE", "GARRISON_MISSION_STARTED", "GARRISON_MISSION_NPC_OPENED" },
    description = L["Garrison mission progress"],
    weeklyReset = false
 }

@@ -5,9 +5,9 @@ local AceGUI = LibStub("AceGUI-3.0")
 local AceConfReg = LibStub("AceConfigRegistry-3.0")
 local AceConfDia = LibStub("AceConfigDialog-3.0")
 
-local addonVersion = GetAddOnMetadata(name, "version")
+local addonVersion = C_AddOns.GetAddOnMetadata(name, "version")
 -- @debug@
-if addonVersion == "1.7.2" then
+if addonVersion == "1.8.0" then
    addonVersion = "Development"
 end
 -- @end-debug@
@@ -45,7 +45,7 @@ end
 
 local function RegisterAdditionalOptions(modName, optionTbl, displayName)
    AceConfReg:RegisterOptionsTable(name .. modName, optionTbl, true)
-   AceConfDia:AddToBlizOptions(name .. modName, displayName, L[name])
+   AceConfDia:AddToBlizOptions(name .. modName, displayName, name)
 end
 local function RefreshAdditionalOptions(modName, optionTbl, displayName)
    AceConfReg:RegisterOptionsTable(name .. modName, optionTbl, true)
@@ -55,8 +55,10 @@ local function UpdateCharOrder()
    local chars = Exlist.ConfigDB.settings.allowedCharacters
    local order = 0
    for _, char in ipairs(charOrder) do
-      chars[char].order = order
-      order = order + 1
+      if (chars[char]) then
+         chars[char].order = order
+         order = order + 1
+      end
    end
 end
 local function GetCharPosition(char)
@@ -128,7 +130,7 @@ end
 Exlist.SetupConfig = function(refresh)
    local options = {
       type = "group",
-      name = L["Exlist "],
+      name = name,
       args = {
          logo = {
             order = 0,
@@ -198,6 +200,21 @@ Exlist.SetupConfig = function(refresh)
                   end,
                   set = function(self, v)
                      Exlist.ConfigDB.settings.iconAlpha = v
+                     Exlist.RefreshAppearance()
+                  end
+               },
+               minLevelToTrack = {
+                  order = 2.1,
+                  type = "range",
+                  name = L["Min Level to track"],
+                  min = 1,
+                  max = 100,
+                  step = 1,
+                  get = function(self)
+                     return Exlist.ConfigDB.settings.minLevelToTrack or 70
+                  end,
+                  set = function(self, v)
+                     Exlist.ConfigDB.settings.minLevelToTrack = v
                      Exlist.RefreshAppearance()
                   end
                },
@@ -694,7 +711,7 @@ Exlist.SetupConfig = function(refresh)
       charOptions.args[char .. "delete"] = {
          type = "execute",
          order = n,
-         name = L["Delete"],
+         name = "Delete",
          width = 0.5,
          func = function()
             StaticPopupDialogs["DeleteDataPopup_" .. charname .. realm] = {
@@ -703,8 +720,8 @@ Exlist.SetupConfig = function(refresh)
                   charname,
                   realm
                ),
-               button1 = OKAY,
-               button3 = CANCEL,
+               button1 = "Ok",
+               button3 = "Cancel",
                hasEditBox = 1,
                editBoxWidth = 200,
                OnShow = function(self)
@@ -776,7 +793,7 @@ end
 function Exlist.InitConfig()
    local options = {
       type = "group",
-      name = L["Exlist "],
+      name = name,
       args = {
          logo = {
             order = 0,
@@ -818,7 +835,7 @@ function Exlist.InitConfig()
    }
    SetupOrder()
    AceConfReg:RegisterOptionsTable(name, options)
-   AceConfDia:AddToBlizOptions(name, L[name])
+   AceConfDia:AddToBlizOptions(name)
 end
 
 Exlist.AddModuleOptions = RegisterAdditionalOptions

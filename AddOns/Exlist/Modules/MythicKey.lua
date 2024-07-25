@@ -20,7 +20,7 @@ local colors = Exlist.Colors
 local L = Exlist.L
 
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
-local affixThreshold = {2, 7, 14}
+local affixThreshold = {2, 5, 10}
 
 local function getTimewornKey()
    for bag = 0, 4 do

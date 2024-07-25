@@ -29,8 +29,8 @@ local function Linegenerator(tooltip, data, character)
       -- show note
       StaticPopupDialogs["DeleteNotePopup_" .. name .. realm] = {
          text = L["Delete Note?"],
-         button1 = YES,
-         button3 = CANCEL,
+         button1 = "Yes",
+         button3 = "Cancel",
          hasEditBox = false,
          OnAccept = function()
             StaticPopup_Hide("DeleteNotePopup_" .. name .. realm)
@@ -52,9 +52,9 @@ local function Linegenerator(tooltip, data, character)
    else
       -- Add note
       StaticPopupDialogs["AddNotePopup_" .. name .. realm] = {
-         text = L["Add Note"],
-         button1 = OKAY,
-         button3 = CANCEL,
+         text = "Add Note",
+         button1 = "Ok",
+         button3 = "Cancel",
          hasEditBox = 1,
          editBoxWidth = 200,
          OnShow = function(self)

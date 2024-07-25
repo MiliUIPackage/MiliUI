@@ -80,7 +80,7 @@ AddRefreshOptions = function()
    local cur = Exlist.ConfigDB.settings.currencies
    local options = {
       type = "group",
-      name = L["Currency"],
+      name = "Currency",
       args = {
          desc = {
             type = "description",
@@ -238,18 +238,6 @@ AddRefreshOptions = function()
 end
 Exlist.ModuleToBeAdded(AddRefreshOptions)
 
--- 千位分隔符函數
-local function comma_value(amount)
-  local formatted = amount
-  while true do  
-    formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
-    if (k==0) then
-      break
-    end
-  end
-  return formatted
-end
-						
 local function Linegenerator(tooltip, data, character)
    if not data or not data.money then
       return
@@ -259,9 +247,8 @@ local function Linegenerator(tooltip, data, character)
       moduleName = key,
       priority = prio,
       titleName = L["Currency"],
-      -- data = Exlist.SeperateThousands(data.money.gold) ..
-      --   "|cFFd8b21ag|r " .. data.money.silver .. "|cFFadadads|r " .. data.money.coppers .. "|cFF995813c|r"
-	  data = comma_value(data.money.gold) .. "|cFFd8b21ag|r ",
+      data = Exlist.SeperateThousands(data.money.gold) ..
+         "|cFFd8b21ag|r " .. data.money.silver .. "|cFFadadads|r " .. data.money.coppers .. "|cFF995813c|r"
    }
    local extraInfos = {}
    local currency = data.currency

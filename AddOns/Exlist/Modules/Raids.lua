@@ -6,6 +6,7 @@ local L = Exlist.L
 local pairs, ipairs, type = pairs, ipairs, type
 local WrapTextInColorCode = WrapTextInColorCode
 local LFRencounters = {}
+local RaidMapIDs = {}
 local GetNumSavedInstances, GetSavedInstanceInfo, GetSavedInstanceEncounterInfo, GetLFGDungeonEncounterInfo =
     GetNumSavedInstances,
     GetSavedInstanceInfo,
@@ -46,7 +47,7 @@ local function AddRaidOptions()
    local numExpansions = #Exlist.Expansions
    local configOpt = {
       type = "group",
-      name = L["Raids"],
+      name = "Raids",
       args = {
          desc = {
             type = "description",
@@ -150,6 +151,8 @@ local function Updater(event, ...)
    local isHorde = UnitFactionGroup("player") == "Horde"
    for raid, c in pairs(LFRencounters) do
       if raids[raid] and raids[raid].enabled then
+         local isModifiedActive = RaidMapIDs[raid] and
+             C_ModifiedInstance.GetModifiedInstanceInfoFromMapID(RaidMapIDs[raid]) ~= nil
          Exlist.Debug("Scanning ", raid)
          local killed = 0
          local total = 0
@@ -162,7 +165,7 @@ local function Updater(event, ...)
                return t[a].order < t[b].order
             end
          ) do
-            if lfr.horde == nil or lfr.horde == isHorde then
+            if (lfr.horde == nil or lfr.horde == isHorde) and (not isModifiedActive or lfr.isModified) then
                total = not lfr.dontCount and total + lfr.totalEncounters or total
                local saveId = lfr.saveId or id
                if lfr.map then
@@ -325,10 +328,12 @@ end
 
 local function init()
    defaultSettings = {
+      -- The War Within
+      [GetLFGDungeonInfo(2645) or "Nerub-ar Palace"] = { enabled = true, expansion = 11, order = 10 },
       -- Dragonflight
-      [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = { enabled = true, expansion = 10, order = 8 },
-      [GetLFGDungeonInfo(2403) or "Aberrus, the Shadowed Crucible"] = { enabled = true, expansion = 10, order = 9 },
-      [GetLFGDungeonInfo(2388) or "Vault of the Incarnates"] = { enabled = true, expansion = 10, order = 10 },
+      [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = { enabled = false, expansion = 10, order = 8 },
+      [GetLFGDungeonInfo(2403) or "Aberrus, the Shadowed Crucible"] = { enabled = false, expansion = 10, order = 9 },
+      [GetLFGDungeonInfo(2388) or "Vault of the Incarnates"] = { enabled = false, expansion = 10, order = 10 },
       -- Shadowlands
       [GetLFGDungeonInfo(2288) or "Sepulcher of the First Ones"] = { enabled = false, expansion = 9, order = 8 },
       [GetLFGDungeonInfo(2226) or "Sanctum of Domination"] = { enabled = false, expansion = 9, order = 9 },
@@ -571,19 +576,36 @@ local function init()
          [2370] = { name = "Fury of the Storm", totalEncounters = 3, order = 1 },
          [2371] = { name = "Caverns of Infusion", totalEncounters = 3, order = 2 },
          [2372] = { name = "The Primal Bulwark", totalEncounters = 2, order = 3 },
+         [2703] = { name = "Fury of the Storm (Awakened)", totalEncounters = 3, isModified = true, order = 1 },
+         [2705] = { name = "Caverns of Infusion (Awakened)", totalEncounters = 3, isModified = true, order = 2 },
+         [2706] = { name = "The Primal Bulwark (Awakened)", totalEncounters = 2, isModified = true, order = 3 },
       },
       [GetLFGDungeonInfo(2403) or "Aberrus, the Shadowed Crucible"] = {
          [2399] = { name = "Discarded Works", totalEncounters = 3, order = 1 },
          [2400] = { name = "Fury of Giants", totalEncounters = 3, order = 2 },
          [2401] = { name = "Neltharion's Shadow", totalEncounters = 2, order = 3 },
          [2402] = { name = "Edge of the Void", totalEncounters = 1, order = 4 },
+         [2704] = { name = "Discarded Works (Awakened)", totalEncounters = 3, isModified = true, order = 1 },
+         [2707] = { name = "Fury of Giants (Awakened)", totalEncounters = 3, isModified = true, order = 2 },
+         [2708] = { name = "Neltharion's Shadow (Awakened)", totalEncounters = 2, isModified = true, order = 3 },
+         [2709] = { name = "Edge of the Void (Awakened)", totalEncounters = 1, isModified = true, order = 4 },
       },
-      [GetLFGDungeonInfo(2502) or "Aberrus, the Shadowed Crucible"] = {
+      [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = {
          [2466] = { name = "Incarnate's Wake", totalEncounters = 3, order = 1 },
          [2467] = { name = "The Viridian Weave", totalEncounters = 2, order = 2 },
          [2468] = { name = "Molten Incursion", totalEncounters = 2, order = 3 },
          [2469] = { name = "Fate of Amirdrassil", totalEncounters = 2, order = 4 },
-      }
+         [2710] = { name = "Incarnate's Wake (Awakened)", totalEncounters = 3, isModified = true, order = 1 },
+         [2711] = { name = "The Viridian Weave (Awakened)", totalEncounters = 2, isModified = true, order = 2 },
+         [2712] = { name = "Molten Incursion (Awakened)", totalEncounters = 2, isModified = true, order = 3 },
+         [2713] = { name = "Fate of Amirdrassil (Awakened)", totalEncounters = 2, isModified = true, order = 4 },
+      },
+   }
+
+   RaidMapIDs = {
+      [GetLFGDungeonInfo(2388) or "Vault of the Incarnates"] = 2522,
+      [GetLFGDungeonInfo(2403) or "Aberrus, the Shadowed Crucible"] = 2569,
+      [GetLFGDungeonInfo(2502) or "Amirdrassil, the Dream's Hope"] = 2549
    }
 
    -- Order and Affixes

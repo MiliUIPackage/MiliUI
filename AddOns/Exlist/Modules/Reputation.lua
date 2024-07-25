@@ -58,7 +58,7 @@ local function AddReputationToCache(name, factionID)
       end
    end
    if not found then
-      table.insert(settings.reputation.cache, {name = name, factionID = factionID})
+      table.insert(settings.reputation.cache, { name = name, factionID = factionID })
       table.sort(
          settings.reputation.cache,
          function(a, b)
@@ -72,15 +72,15 @@ local function UpdateReputationCache(factionID)
    local ret = false
    factionID = tonumber(factionID)
    if factionID and type(factionID) == "number" then
-      local name = GetFactionInfoByID(factionID)
-      AddReputationToCache(name, factionID)
-      ret = name
+      local factionData = C_Reputation.GetFactionDataByID(factionID)
+      AddReputationToCache(factionData.name, factionID)
+      ret = factionData.name
    end
-   local numFactions = GetNumFactions()
+   local numFactions = C_Reputation.GetNumFactions()
    for i = 1, numFactions do
-      local name, _, _, _, _, _, _, _, isHeader, _, _, _, _, factionID = GetFactionInfo(i)
-      if not isHeader and factionID ~= 1168 then -- 1168 = guild rep
-         AddReputationToCache(name, factionID)
+      local factionData = C_Reputation.GetFactionDataByIndex(i)
+      if not factionData.isHeader and factionData.factionID ~= 1168 then -- 1168 = guild rep
+         AddReputationToCache(factionData.name, factionData.factionID)
       end
    end
    return ret
@@ -97,12 +97,12 @@ local function Updater(event)
       )
    end
    for _, faction in ipairs(settings.reputation.cache) do
-      local name, description, standingID, barMin, barMax, barValue = GetFactionInfoByID(faction.factionID)
+      local factionData = C_Reputation.GetFactionDataByID(faction.factionID)
       local friendshipReputation = C_GossipInfo.GetFriendshipReputation(faction.factionID)
       local isMajorFaction = faction.factionID and C_Reputation.IsMajorFaction(faction.factionID)
-      if name then
-         local curr = barValue - barMin -- current
-         local max = barMax - barMin -- max
+      if factionData then
+         local curr = factionData.currentStanding - factionData.currentReactionThreshold      -- current
+         local max = factionData.nextReactionThreshold - factionData.currentReactionThreshold -- max
          local paragonReward, friendStandingLevel
          local isFriend = false
          local isMax = false
@@ -118,13 +118,13 @@ local function Updater(event)
             friendStandingLevel = friendshipReputation.reaction
          end
          if
-            (not isMajorFaction and standingID >= (isFriend and 6 or 8) and
-               C_Reputation.IsFactionParagon(faction.factionID))
-          then
+             (not isMajorFaction and factionData.reaction >= (isFriend and 6 or 8) and
+                C_Reputation.IsFactionParagon(faction.factionID))
+         then
             -- Paragon stuff
-            standingID = 100
+            factionData.reaction = 100
             local currentValue, threshold, rewardQuestID, hasRewardPending, tooLowLevelForParagon =
-               C_Reputation.GetFactionParagonInfo(faction.factionID)
+                C_Reputation.GetFactionParagonInfo(faction.factionID)
             paragonReward = hasRewardPending
             curr = mod(currentValue, threshold)
             max = threshold
@@ -137,16 +137,16 @@ local function Updater(event)
             local majorFactionData = C_MajorFactions.GetMajorFactionData(faction.factionID)
             isMax = C_MajorFactions.HasMaximumRenown(faction.factionID)
             local barValue =
-               isMax and majorFactionData.renownLevelThreshold or majorFactionData.renownReputationEarned or 0
+                isMax and majorFactionData.renownLevelThreshold or majorFactionData.renownReputationEarned or 0
             local barMax = majorFactionData.renownLevelThreshold
             curr = barValue
             max = barMax
-            standingID = majorFactionData.renownLevel
+            factionData.reaction = majorFactionData.renownLevel
          end
          t[faction.factionID] = {
-            name = name,
-            description = description,
-            standing = standingID,
+            name = factionData.name,
+            description = factionData.description,
+            standing = factionData.reaction,
             curr = curr,
             isFriend = isFriend,
             isMax = isMax,
@@ -181,23 +181,23 @@ local function Linegenerator(tooltip, data, character)
          return
       end
       local text =
-         string.format(
-         "%s %s",
-         Exlist.ShortenText(factionInfo.name, "", true),
-         WrapTextInColorCode(
-            factionInfo.isMajorFaction and
-               string.format(
-                  L["R-%s %s/%s"],
-                  factionInfo.standing,
-                  Exlist.ShortenNumber(factionInfo.curr),
-                  Exlist.ShortenNumber(factionInfo.max)
-               ) or
-               string.format("%s/%s", Exlist.ShortenNumber(factionInfo.curr), Exlist.ShortenNumber(factionInfo.max)),
-            factionInfo.isMajorFaction and colors.majorFaction or
-               factionInfo.isFriend and colors.friendColors[factionInfo.standing] or
-               colors.repColors[factionInfo.standing]
-         )
-      )
+          string.format(
+             "%s %s",
+             Exlist.ShortenText(factionInfo.name, "", true),
+             WrapTextInColorCode(
+                factionInfo.isMajorFaction and
+                string.format(
+                   L["R-%s %s/%s"],
+                   factionInfo.standing,
+                   Exlist.ShortenNumber(factionInfo.curr),
+                   Exlist.ShortenNumber(factionInfo.max)
+                ) or
+                string.format("%s/%s", Exlist.ShortenNumber(factionInfo.curr), Exlist.ShortenNumber(factionInfo.max)),
+                factionInfo.isMajorFaction and colors.majorFaction or
+                factionInfo.isFriend and colors.friendColors[factionInfo.standing] or
+                colors.repColors[factionInfo.standing]
+             )
+          )
       if factionInfo.paragonReward then
          text = Exlist.AddCheckmark(text, true)
       end
@@ -205,7 +205,7 @@ local function Linegenerator(tooltip, data, character)
    else
       info.data = L["None"]
    end
-   local sideTooltip = {title = WrapTextInColorCode(L["Reputations"], colors.sideTooltipTitle), body = {}}
+   local sideTooltip = { title = WrapTextInColorCode(L["Reputations"], colors.sideTooltipTitle), body = {} }
    for factionID, factionInfo in pairs(settings.reputation.enabled) do
       if factionInfo.enabled then
          ret = true
@@ -215,32 +215,33 @@ local function Linegenerator(tooltip, data, character)
             local text2 = ""
             if (not r.isMajorFaction and r.standing == 8) or r.isMax then
                text2 =
-                  WrapTextInColorCode(
-                  r.isMajorFaction and string.format(L["Renown %s"], r.standing) or r.isFriend and r.friendStandingLevel or
-                     standingNames[r.standing],
-                  r.isMajorFaction and colors.majorFaction or r.isFriend and colors.friendColors[r.standing] or
-                     colors.repColors[r.standing]
-               )
+                   WrapTextInColorCode(
+                      r.isMajorFaction and string.format(L["Renown %s"], r.standing) or
+                      r.isFriend and r.friendStandingLevel or
+                      standingNames[r.standing],
+                      r.isMajorFaction and colors.majorFaction or r.isFriend and colors.friendColors[r.standing] or
+                      colors.repColors[r.standing]
+                   )
             else
                text2 =
-                  string.format(
-                  "%s (%s/%s)",
-                  WrapTextInColorCode(
-                     r.isMajorFaction and string.format(L["Renown %s"], r.standing) or
-                        r.isFriend and r.friendStandingLevel or
-                        standingNames[r.standing],
-                     r.isMajorFaction and colors.majorFaction or r.isFriend and colors.friendColors[r.standing] or
-                        colors.repColors[r.standing]
-                  ),
-                  Exlist.ShortenNumber(r.curr),
-                  Exlist.ShortenNumber(r.max)
-               )
+                   string.format(
+                      "%s (%s/%s)",
+                      WrapTextInColorCode(
+                         r.isMajorFaction and string.format(L["Renown %s"], r.standing) or
+                         r.isFriend and r.friendStandingLevel or
+                         standingNames[r.standing],
+                         r.isMajorFaction and colors.majorFaction or r.isFriend and colors.friendColors[r.standing] or
+                         colors.repColors[r.standing]
+                      ),
+                      Exlist.ShortenNumber(r.curr),
+                      Exlist.ShortenNumber(r.max)
+                   )
             end
             if r.paragonReward then
                paragonAvailable = true
                text2 = Exlist.AddCheckmark(text2, true)
             end
-            table.insert(sideTooltip.body, {text1, text2})
+            table.insert(sideTooltip.body, { text1, text2 })
          end
       end
    end
@@ -264,7 +265,7 @@ local function AddOptions(refresh)
    -- Make reputation list
    local reps = {}
    local repLookup = {}
-   reps[0] = L["None"]
+   reps[0] = "None"
    repLookup[0] = 0
    for i, reputation in ipairs(settings.reputation.cache) do
       repLookup[i] = reputation.factionID
@@ -291,7 +292,7 @@ local function AddOptions(refresh)
             set = function(self, id)
                local name = UpdateReputationCache(id)
                if name then
-                  settings.reputation.enabled[tonumber(id)] = {name = name, enabled = true}
+                  settings.reputation.enabled[tonumber(id)] = { name = name, enabled = true }
                end
                AddOptions(true)
             end
@@ -324,7 +325,7 @@ local function AddOptions(refresh)
                return selectedFaction == 0
             end,
             func = function()
-               settings.reputation.enabled[repLookup[selectedFaction]] = {name = reps[selectedFaction], enabled = true}
+               settings.reputation.enabled[repLookup[selectedFaction]] = { name = reps[selectedFaction], enabled = true }
                selectedFaction = 0
                AddOptions(true)
             end,
@@ -362,7 +363,7 @@ local function AddOptions(refresh)
       }
    }
    local enabledReps = {}
-   enabledReps[0] = L["None"]
+   enabledReps[0] = "None"
    -- Populate enabled factions
    local order = 50
    for factionID, info in pairs(settings.reputation.enabled) do

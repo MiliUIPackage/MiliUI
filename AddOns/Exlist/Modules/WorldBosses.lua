@@ -8,11 +8,11 @@ local UnitLevel, GetRealmName, UnitName = UnitLevel, GetRealmName, UnitName
 local WrapTextInColorCode = WrapTextInColorCode
 local string, table = string, table
 local C_TaskQuest, C_WorldMap, EJ_GetCreatureInfo, C_ContributionCollector, C_Timer =
-   C_TaskQuest,
-   C_WorldMap,
-   EJ_GetCreatureInfo,
-   C_ContributionCollector,
-   C_Timer
+    C_TaskQuest,
+    C_WorldMap,
+    EJ_GetCreatureInfo,
+    C_ContributionCollector,
+    C_Timer
 local pairs, ipairs, time, select = pairs, ipairs, time, select
 local GetTime = GetTime
 local IsInRaid, IsInInstance = IsInRaid, IsInInstance
@@ -23,55 +23,55 @@ local GameTooltip = GameTooltip
 
 local worldBossIDs = {
    -- MoP
-   [32099] = {eid = 691, expansion = 5, enabled = false}, -- Sha of Anger
-   [32098] = {eid = 725, expansion = 5, enabled = false}, -- Galleon
-   [32518] = {eid = 814, expansion = 5, enabled = false}, -- Nalak
-   [32519] = {eid = 826, expansion = 5, enabled = false}, -- Oondasta
-   [33117] = {eid = 857, expansion = 5, enabled = false, name = L["The Four Celestials"]}, -- Chi-Ji
+   [32099] = { eid = 691, expansion = 5, enabled = false },                                  -- Sha of Anger
+   [32098] = { eid = 725, expansion = 5, enabled = false },                                  -- Galleon
+   [32518] = { eid = 814, expansion = 5, enabled = false },                                  -- Nalak
+   [32519] = { eid = 826, expansion = 5, enabled = false },                                  -- Oondasta
+   [33117] = { eid = 857, expansion = 5, enabled = false, name = L["The Four Celestials"] }, -- Chi-Ji
    -- WoD
    [37462] = {
       eid = 1211,
       expansion = 6,
       name = select(2, EJ_GetCreatureInfo(1, 1291)):match("^[^ ]+") ..
-         " / " .. select(2, EJ_GetCreatureInfo(1, 1211)):match("^[^ ]+"),
+          " / " .. select(2, EJ_GetCreatureInfo(1, 1211)):match("^[^ ]+"),
       enabled = false
-   }, -- Drov/Tarlna share a loot and quest atm
-   [37464] = {eid = 1262, expansion = 6, enabled = false}, -- Rukhmar
-   [39380] = {eid = 1452, expansion = 6, enabled = false}, -- Kazzak
+   },                                                                                                     -- Drov/Tarlna share a loot and quest atm
+   [37464] = { eid = 1262, expansion = 6, enabled = false },                                              -- Rukhmar
+   [39380] = { eid = 1452, expansion = 6, enabled = false },                                              -- Kazzak
    -- Legion
-   [42270] = {eid = 1749, expansion = 7, enabled = false, wq = true}, -- Nithogg
-   [42269] = {eid = 1756, expansion = 7, name = EJ_GetEncounterInfo(1756), enabled = false, wq = true}, -- The Soultakers
-   [42779] = {eid = 1763, expansion = 7, enabled = false, wq = true}, -- Shar'thos
-   [43192] = {eid = 1769, expansion = 7, enabled = false, wq = true}, -- Levantus
-   [42819] = {eid = 1770, expansion = 7, enabled = false, wq = true}, -- Humongris
-   [43193] = {eid = 1774, expansion = 7, enabled = false, wq = true}, -- Calamir
-   [43513] = {eid = 1783, expansion = 7, enabled = false, wq = true}, -- Na'zak the Fiend
-   [43448] = {eid = 1789, expansion = 7, enabled = false, wq = true}, -- Drugon the Frostblood
-   [43512] = {eid = 1790, expansion = 7, enabled = false, wq = true}, -- Ana-Mouz
-   [43985] = {eid = 1795, expansion = 7, enabled = false, wq = true}, -- Flotsam
-   [44287] = {eid = 1796, expansion = 7, enabled = false, wq = true}, -- Withered Jim
-   [46947] = {eid = 1883, expansion = 7, enabled = false, wq = true}, -- Brutallus
-   [46948] = {eid = 1884, expansion = 7, enabled = false, wq = true}, -- Malificus
-   [46945] = {eid = 1885, expansion = 7, enabled = false, wq = true}, -- Si'vash
-   [47061] = {eid = 1956, expansion = 7, enabled = false, wq = true}, -- Apocron
+   [42270] = { eid = 1749, expansion = 7, enabled = false, wq = true },                                   -- Nithogg
+   [42269] = { eid = 1756, expansion = 7, name = EJ_GetEncounterInfo(1756), enabled = false, wq = true }, -- The Soultakers
+   [42779] = { eid = 1763, expansion = 7, enabled = false, wq = true },                                   -- Shar'thos
+   [43192] = { eid = 1769, expansion = 7, enabled = false, wq = true },                                   -- Levantus
+   [42819] = { eid = 1770, expansion = 7, enabled = false, wq = true },                                   -- Humongris
+   [43193] = { eid = 1774, expansion = 7, enabled = false, wq = true },                                   -- Calamir
+   [43513] = { eid = 1783, expansion = 7, enabled = false, wq = true },                                   -- Na'zak the Fiend
+   [43448] = { eid = 1789, expansion = 7, enabled = false, wq = true },                                   -- Drugon the Frostblood
+   [43512] = { eid = 1790, expansion = 7, enabled = false, wq = true },                                   -- Ana-Mouz
+   [43985] = { eid = 1795, expansion = 7, enabled = false, wq = true },                                   -- Flotsam
+   [44287] = { eid = 1796, expansion = 7, enabled = false, wq = true },                                   -- Withered Jim
+   [46947] = { eid = 1883, expansion = 7, enabled = false, wq = true },                                   -- Brutallus
+   [46948] = { eid = 1884, expansion = 7, enabled = false, wq = true },                                   -- Malificus
+   [46945] = { eid = 1885, expansion = 7, enabled = false, wq = true },                                   -- Si'vash
+   [47061] = { eid = 1956, expansion = 7, enabled = false, wq = true },                                   -- Apocron
    -- BFA
-   [52847] = {eid = 2213, warfront = "Arathi", expansion = 8, enabled = false, wq = true}, -- Doom's Howl
-   [52848] = {eid = 2212, warfront = "Arathi", expansion = 8, enabled = false, wq = true}, -- The Lion's Roar
-   [52196] = {eid = 2210, expansion = 8, enabled = false, wq = true}, -- Dunegorger Kraulok
-   [52181] = {eid = 2139, expansion = 8, enabled = false, wq = true}, -- T'zane
-   [52169] = {eid = 2141, expansion = 8, enabled = false, wq = true}, -- Ji'arak
-   [52157] = {eid = 2197, expansion = 8, enabled = false, wq = true}, -- Hailstone Construct
-   [52163] = {eid = 2199, expansion = 8, enabled = false, wq = true}, -- Azurethos, The Winged Typhoon
-   [52166] = {eid = 2198, expansion = 8, enabled = false, wq = true}, -- Warbringer Yenajz
-   [54896] = {eid = 2329, warfront = "Darkshore", expansion = 8, enabled = false, wq = true}, -- Ivus the Forest Lord
-   [54895] = {eid = 2345, warfront = "Darkshore", expansion = 8, enabled = false, wq = true}, -- Ivus the Decayed
+   [52847] = { eid = 2213, warfront = "Arathi", expansion = 8, enabled = false, wq = true },              -- Doom's Howl
+   [52848] = { eid = 2212, warfront = "Arathi", expansion = 8, enabled = false, wq = true },              -- The Lion's Roar
+   [52196] = { eid = 2210, expansion = 8, enabled = false, wq = true },                                   -- Dunegorger Kraulok
+   [52181] = { eid = 2139, expansion = 8, enabled = false, wq = true },                                   -- T'zane
+   [52169] = { eid = 2141, expansion = 8, enabled = false, wq = true },                                   -- Ji'arak
+   [52157] = { eid = 2197, expansion = 8, enabled = false, wq = true },                                   -- Hailstone Construct
+   [52163] = { eid = 2199, expansion = 8, enabled = false, wq = true },                                   -- Azurethos, The Winged Typhoon
+   [52166] = { eid = 2198, expansion = 8, enabled = false, wq = true },                                   -- Warbringer Yenajz
+   [54896] = { eid = 2329, warfront = "Darkshore", expansion = 8, enabled = false, wq = true },           -- Ivus the Forest Lord
+   [54895] = { eid = 2345, warfront = "Darkshore", expansion = 8, enabled = false, wq = true },           -- Ivus the Decayed
    -- Shadowlands
-   [61813] = {eid = 2430, expansion = 9, enabled = false, wq = true}, -- Valinor, the Light of Eons
-   [61814] = {eid = 2433, expansion = 9, enabled = false, wq = true}, -- Nurgash Muckformed
-   [61815] = {eid = 2432, expansion = 9, enabled = false, wq = true}, -- Oranomonos the Everbanching
-   [61816] = {eid = 2431, expansion = 9, enabled = false, wq = true}, -- Mortanis
-   [64531] = {eid = 2456, expansion = 9, enabled = false, wq = true}, -- Mor'geth
-   [65143] = {eid = 2468, expansion = 9, enabled = false, wq = true}, -- Antros
+   [61813] = { eid = 2430, expansion = 9, enabled = true, wq = true },                                    -- Valinor, the Light of Eons
+   [61814] = { eid = 2433, expansion = 9, enabled = true, wq = true },                                    -- Nurgash Muckformed
+   [61815] = { eid = 2432, expansion = 9, enabled = true, wq = true },                                    -- Oranomonos the Everbanching
+   [61816] = { eid = 2431, expansion = 9, enabled = true, wq = true },                                    -- Mortanis
+   [64531] = { eid = 2456, expansion = 9, enabled = true, wq = true },                                    -- Mor'geth
+   [65143] = { eid = 2468, expansion = 9, enabled = true, wq = true },                                    -- Antros
    -- Dragonflight
    [69930] = { eid = 2506, expansion = 10, enabled = true, wq = true },                                   -- Basrikron
    [69929] = { eid = 2515, expansion = 10, enabled = true, wq = true },                                   -- Strunraan
@@ -79,12 +79,18 @@ local worldBossIDs = {
    [69928] = { eid = 2518, expansion = 10, enabled = true, wq = true },                                   -- Liskanoth
    [74892] = { eid = 2531, expansion = 10, enabled = true, wq = true },                                   -- Zaqali Elders
    [76367] = { eid = 2562, expansion = 10, enabled = true, wq = true },                                   -- Aurostor
+   -- The War Within
+   [81624] = { eid = 2625, expansion = 11, enabled = true, wq = true },                                   -- Orta
+   [81653] = { eid = 2636, expansion = 11, enabled = true, wq = true },                                   -- Shurrai
+   [82653] = { eid = 2635, expansion = 11, enabled = true, wq = true },                                   -- Aggregation
+   [81630] = { eid = 2625, expansion = 11, enabled = true, wq = true },                                   -- Kordac
+
 
 }
 local lastUpdate = 0
 local warfronts = {
-   Arathi = {Horde = 11, Alliance = 116},
-   Darkshore = {Alliance = 117, Horde = 118}
+   Arathi = { Horde = 11, Alliance = 116 },
+   Darkshore = { Alliance = 117, Horde = 118 }
 }
 
 local statusMarks = {
@@ -95,7 +101,7 @@ local function AddCheckmark(text, status)
    return string.format("|T%s:0|t %s", statusMarks[status], text)
 end
 
-local factions = {"Horde", "Alliance"}
+local factions = { "Horde", "Alliance" }
 local function OpossiteFacton(faction)
    return factions[1] ~= faction and factions[1] or factions[2]
 end
@@ -104,13 +110,13 @@ local function GetWarfrontEnd(warfront)
    local faction = UnitFactionGroup("player")
    local state, pctComplete, timeNext = C_ContributionCollector.GetState(warfronts[warfront][faction])
    if state == 2 then
-      return {value = timeNext, type = "time"}
+      return { value = timeNext, type = "time" }
    elseif state == 1 and pctComplete < 1 then
-      return {value = pctComplete, type = "pct"}
+      return { value = pctComplete, type = "pct" }
    else
       state, pctComplete, timeNext = C_ContributionCollector.GetState(warfronts[warfront][OpossiteFacton(faction)])
       if state == 1 then
-         return {value = pctComplete, type = "pct"}
+         return { value = pctComplete, type = "pct" }
       end
    end
 end
@@ -264,11 +270,11 @@ local function Linegenerator(_, data, character)
                   "%s (%s)",
                   info.name,
                   info.endTime and (type(info.endTime) == "table" or info.endTime > timeNow) and
-                     FormatEndTime(info.endTime) or
-                     WrapTextInColorCode(L["Not Available"], colors.notavailable)
+                  FormatEndTime(info.endTime) or
+                  WrapTextInColorCode(L["Not Available"], colors.notavailable)
                ),
                info.defeated and WrapTextInColorCode(L["Defeated"], colors.completed) or
-                  WrapTextInColorCode(L["Available"], colors.available)
+               WrapTextInColorCode(L["Available"], colors.available)
             }
          )
       end
@@ -298,7 +304,7 @@ local function Linegenerator(_, data, character)
          character = character,
          moduleName = key,
          priority = prio,
-         titleName = WrapTextInColorCode(L["World Bosses"], colors.faded),
+         titleName = WrapTextInColorCode(L["World Bosses"] .. ":", colors.faded),
          data = string.format("%i/%i", killed, availableWB),
          OnEnter = Exlist.CreateSideTooltip(),
          OnEnterData = sideTooltip,
@@ -348,13 +354,13 @@ local function GlobalLineGenerator(tooltip, data)
                   )
                end
                local lineNum =
-                  Exlist.AddLine(
-                  tooltip,
-                  {
-                     AddCheckmark(info.name, C_QuestLog.IsQuestFlaggedCompleted(questId)),
-                     FormatEndTime(info.endTime)
-                  }
-               )
+                   Exlist.AddLine(
+                      tooltip,
+                      {
+                         AddCheckmark(info.name, C_QuestLog.IsQuestFlaggedCompleted(questId)),
+                         FormatEndTime(info.endTime)
+                      }
+                   )
                Exlist.AddScript(
                   tooltip,
                   lineNum,
@@ -407,9 +413,9 @@ end
 local function init()
    RegisterWorldBossWQs()
    Exlist.ConfigDB.settings.extraInfoToggles.worldbosses =
-      Exlist.ConfigDB.settings.extraInfoToggles.worldbosses or {name = L["World Bosses"], enabled = true}
+       Exlist.ConfigDB.settings.extraInfoToggles.worldbosses or { name = L["World Bosses"], enabled = true }
    Exlist.ConfigDB.settings.extraInfoToggles.warfronts =
-      Exlist.ConfigDB.settings.extraInfoToggles.warfronts or {name = L["Warfronts"], enabled = false} -- 暫時修正
+       Exlist.ConfigDB.settings.extraInfoToggles.warfronts or { name = L["Warfronts"], enabled = true }
    -- BFA Prepatch Retire
    Exlist.ConfigDB.settings.extraInfoToggles.invasions = nil
    Exlist.ConfigDB.settings.extraInfoToggles.brokenshore = nil
@@ -435,7 +441,7 @@ local function AddWorldBossOptions()
    local numExpansions = #Exlist.Expansions
    local configOpt = {
       type = "group",
-      name = L["World Bosses"],
+      name = "World Bosses",
       args = {
          desc = {
             type = "description",

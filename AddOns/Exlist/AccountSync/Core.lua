@@ -23,7 +23,7 @@ local PROGRESS_TYPE = {
 
 local dbState
 
-local CHAR_STATUS = {ONLINE = "Online", OFFLINE = "Offline"}
+local CHAR_STATUS = { ONLINE = "Online", OFFLINE = "Offline" }
 
 local function getPairedCharacters()
    return Exlist.ConfigDB.accountSync.pairedCharacters
@@ -55,7 +55,7 @@ local function setCharStatus(char, status, accountID)
       characters[char].status = status
       characters[char].accountID = accountID or characters[char].accountID
    elseif char and status and accountID then
-      characters[char] = {status = status, accountID = accountID}
+      characters[char] = { status = status, accountID = accountID }
    end
 end
 
@@ -82,11 +82,13 @@ local function getFilteredDB()
    -- Filter out all other account characters
    for dbRealm, realmData in pairs(db) do
       for dbChar in pairs(realmData) do
-         for char in pairs(paired) do
-            local name, realm = strsplit("-", char)
-            if (name == dbChar and getFormattedRealm(dbRealm) == realm) then
-               db[dbRealm][dbChar] = nil
-               break
+         for char, info in pairs(paired) do
+            if (info.accountID ~= Exlist.ConfigDB.accountSync.accountName) then
+               local name, realm = strsplit("-", char)
+               if (name == dbChar and getFormattedRealm(dbRealm) == realm) then
+                  db[dbRealm][dbChar] = nil
+                  break
+               end
             end
          end
       end
@@ -151,8 +153,8 @@ local callbacks = {}
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local LibSerialize = LibStub("LibSerialize")
 local AceComm = LibStub:GetLibrary("AceComm-3.0")
-local configForDeflate = {level = 9}
-local configForLS = {errorOnUnserializableType = false}
+local configForDeflate = { level = 9 }
+local configForLS = { errorOnUnserializableType = false }
 
 local function getOnlineCharacters()
    local characters = getPairedCharacters()
@@ -169,7 +171,7 @@ end
 local function mergePairedCharacters(accountChars, accountID)
    local paired = Exlist.ConfigDB.accountSync.pairedCharacters
    for _, char in ipairs(accountChars) do
-      paired[char] = {status = CHAR_STATUS.OFFLINE, accountID = accountID}
+      paired[char] = { status = CHAR_STATUS.OFFLINE, accountID = accountID }
    end
    Exlist.accountSync.AddOptions(true)
 end
@@ -316,25 +318,25 @@ end
 local function pingCharacter(characterName, callbackFn)
    ToggleChatSystemEvent(false)
    local rqTime =
-      sendMessage(
-      {
-         type = MSG_TYPE.ping,
-         key = Exlist.ConfigDB.accountSync.userKey
-      },
-      "WHISPER",
-      characterName,
-      nil,
-      function(_, done, total)
-         if (done >= total) then
-            C_Timer.After(
-               0.4,
-               function()
-                  ToggleChatSystemEvent(true)
-               end
-            )
-         end
-      end
-   )
+       sendMessage(
+          {
+             type = MSG_TYPE.ping,
+             key = Exlist.ConfigDB.accountSync.userKey
+          },
+          "WHISPER",
+          characterName,
+          nil,
+          function(_, done, total)
+             if (done >= total) then
+                C_Timer.After(
+                   0.4,
+                   function()
+                      ToggleChatSystemEvent(true)
+                   end
+                )
+             end
+          end
+       )
    if (callbackFn) then
       callbacks[rqTime] = callbackFn
    end
@@ -366,6 +368,9 @@ end
 -- Does account have any online characters
 local loginDataSent = {}
 local function pingAccountCharacters(accountID)
+   if (accountID == Exlist.ConfigDB.accountSync.accountName) then
+      return
+   end
    local characters = Exlist.ConfigDB.accountSync.pairedCharacters
    local i = 1
    for char, info in pairs(characters) do
@@ -424,7 +429,7 @@ local function messageReceive(_, message, distribution, sender)
       {
          [MSG_TYPE.ping] = function()
             if (validateRequest(data)) then
-               sendMessage({type = MSG_TYPE.pingSuccess, resTime = data.rqTime}, distribution, sender)
+               sendMessage({ type = MSG_TYPE.pingSuccess, resTime = data.rqTime }, distribution, sender)
                setCharStatus(sender, CHAR_STATUS.ONLINE, data.accountID)
             end
          end,
@@ -523,7 +528,7 @@ end
 function accountSync.syncCompleteData(characterName, response)
    local myData = getFilteredDB()
    local type = response and MSG_TYPE.syncAllResp or MSG_TYPE.syncAll
-   sendMessage({type = type, changes = myData}, "WHISPER", characterName, "BULK", displayDataSentProgress)
+   sendMessage({ type = type, changes = myData }, "WHISPER", characterName, "BULK", displayDataSentProgress)
 end
 
 function accountSync.pingEveryone()
@@ -531,7 +536,7 @@ function accountSync.pingEveryone()
    local pingedAccounts = {}
    local i = 1
    for _, info in pairs(characters) do
-      if (not pingedAccounts[info.accountID]) then
+      if (not pingedAccounts[info.accountID] and info.accountID ~= Exlist.ConfigDB.accountSync.accountName) then
          C_Timer.After(
             0.5 * i,
             function()
@@ -558,7 +563,7 @@ local function tickerFunc()
                   local changes = getDbChanges()
                   if (changes) then
                      sendMessage(
-                        {type = MSG_TYPE.sync, changes = changes},
+                        { type = MSG_TYPE.sync, changes = changes },
                         "WHISPER",
                         sender,
                         "BULK",
@@ -596,6 +601,8 @@ end
 
 accountSync.coreInit = function()
    setInitialDBState()
-   accountSync.pingEveryone()
-   accountSync.refreshTicker()
+   if (Exlist.ConfigDB.accountSync.enabled) then
+      accountSync.pingEveryone()
+      accountSync.refreshTicker()
+   end
 end

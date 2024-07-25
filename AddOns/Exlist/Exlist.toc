@@ -6,12 +6,10 @@
 ## X-Category-zhTW: 團隊
 ## Author: Exality
 ## SavedVariables: Exlist_DB, Exlist_Config
-## Version: 1.7.2
+## Version: 1.8.0
 ## X-Curse-Project-ID: 284907
 ## X-WoWI-ID: 24636
 ## X-Wago-ID: pkNMj6z9
-
-## IconTexture: Interface\AddOns\Exlist\Media\Icons\logo
 
 #Libs
 Libs\LibStub\LibStub.lua

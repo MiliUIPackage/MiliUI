@@ -5,12 +5,13 @@ local L = Exlist.L
 local colors = Exlist.Colors
 
 local rewardTypes = {
-   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = L["Raid"], prio = 1 },
+   [Enum.WeeklyRewardChestThresholdType.Raid] = { title = "Raid", prio = 1 },
    [Enum.WeeklyRewardChestThresholdType.Activities] = {
       title = L["Dungeons"],
       prio = 2
    },
-   [Enum.WeeklyRewardChestThresholdType.RankedPvP] = { title = "PvP", prio = 3 }
+   [Enum.WeeklyRewardChestThresholdType.RankedPvP] = { title = "PvP", prio = 3 },
+   [Enum.WeeklyRewardChestThresholdType.World] = { title = "World", prio = 3 }
 }
 
 local slimDifficulty = {
@@ -54,10 +55,10 @@ local function getCurrentIlvl(id)
    local data = {}
 
    if exampleItem then
-      data.ilvl = GetDetailedItemLevelInfo(exampleItem)
+      data.ilvl = C_Item.GetDetailedItemLevelInfo(exampleItem)
    end
    if upgradeItem then
-      data.upgradeIlvl = GetDetailedItemLevelInfo(upgradeItem)
+      data.upgradeIlvl = C_Item.GetDetailedItemLevelInfo(upgradeItem)
    end
 
    return data
@@ -133,6 +134,8 @@ local function getActivityTooltip(activity)
       end
    elseif activity.type == Enum.WeeklyRewardChestThresholdType.Raid then
       typeName = L["Raid"]
+   elseif activity.type == Enum.WeeklyRewardChestThresholdType.World then
+      typeName = L["World"]
    elseif activity.type == Enum.WeeklyRewardChestThresholdType.RankedPvP then
       typeName = L["PvP"]
    end
