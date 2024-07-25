@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.19) add-on for World of Warcraft UI
+    Decursive (v 2.7.20) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-05-10T12:52:03Z
+    This file was last updated on 2024-07-16T09:27:29Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -48,6 +48,9 @@ local pcall             = _G.pcall;
 local pairs             = _G.pairs;
 local ipairs            = _G.ipairs;
 local InCombatLockdown  = _G.InCombatLockdown;
+local GetSpellInfo      = _G.C_Spell and _G.C_Spell.GetSpellInfo or _G.GetSpellInfo;
+local GetSpellName      = _G.C_Spell and _G.C_Spell.GetSpellName or function (spellId) return (GetSpellInfo(spellId)) end;
+local GetItemInfo       = _G.C_Item and _G.C_Item.GetItemInfo or _G.GetItemInfo;
 
 local addonName, T = ...;
 DecursiveRootTable = T; -- needed until we get rid of the xml based UI. -- Also used by HHTD from 2013-04-05
@@ -112,7 +115,7 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.19";
+local VERSION = "2.7.20";
 
 T._LoadedFiles = {};
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
@@ -322,16 +325,17 @@ do
         TIandBI[#TIandBI + 1], TIandBI[#TIandBI + 2], TIandBI[#TIandBI + 3], TIandBI[#TIandBI + 4] = GetBuildInfo();
         _Debug(unpack(TIandBI));
 
-        local dbcgd = T.Dcr.db.global.delayedDebuffOccurences
-        local dbcld = T.Dcr.Status.delayedDebuffOccurences
-        local dbcgud = T.Dcr.db.global.delayedUnDebuffOccurences
-        local dbclud = T.Dcr.Status.delayedUnDebuffOccurences
+        local dbcgd = T.Dcr.db and T.Dcr.db.global.delayedDebuffOccurences or -1
+        local dbcld = T.Dcr.Status and T.Dcr.Status.delayedDebuffOccurences or -1
+        local dbcgud = T.Dcr.db and T.Dcr.db.global.delayedUnDebuffOccurences or -1
+        local dbclud = T.Dcr.Status and T.Dcr.Status.delayedUnDebuffOccurences or -1
 
 
-        DebugHeader = ("%s\n2.7.19  %s(%s)  CT: %0.4f D: %s %s %s BDTHFAd: %s nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        DebugHeader = ("%s\n2.7.20  %s(%s)  CT: %0.4f D: %s %s %s DTl: %d DE: %d nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
-        tostring(T._BDT_HotFix1_applyed), -- BDTHFAd: %s
+        #DebugTextTable / 2, -- DTl: %d
+        T._DecursiveErrors, -- DE: %d
         T._NonDecursiveErrors, -- nDrE: %d
         tostring(T._EmbeddedMode), -- Embeded: %s
         IsWindowsClient() and 1 or 0, -- W: %d
@@ -466,6 +470,7 @@ local AddDebugText = T._AddDebugText;
 local IsReporting = false;
 
 T._NonDecursiveErrors = 0;
+T._DecursiveErrors = 0;
 T._TaintingAccusations = 0;
 T._NDRTaintingAccusations = 0;
 T._BlizzardUIErrors = 0;
@@ -570,6 +575,7 @@ function T._onError(event, errorObject)
             T._CatchAllErrors = false; -- Errors are unacceptable so one is enough, no need to get all subsequent errors.
             mine = true;
             _Debug("Lua error recorded");
+            T._DecursiveErrors = T._DecursiveErrors + 1;
         else
             T._NonDecursiveErrors = T._NonDecursiveErrors + 1;
             T._TaintingAccusations = T._TaintingAccusations + 1;
@@ -640,6 +646,7 @@ T._tocversion = tocversion;
 
 DC.WOWC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
 DC.WOTLK =  WOW_PROJECT_WRATH_CLASSIC ~= nil and WOW_PROJECT_ID >= WOW_PROJECT_WRATH_CLASSIC -- https://wowpedia.fandom.com/wiki/WOW_PROJECT_ID
+DC.TWW = tocversion >= 110000
 
 
 
@@ -858,7 +865,7 @@ do
             if not spellData.IsDefault then
                  customSpellConfText[#customSpellConfText + 1] = ("    %s (id: %s) - %s - %s - %s - B: %d - Ts: %s - UF: %s - Macro: %s\n"):format(
                  --                                                                  3    4    5       6        7        8           9
-                 select (2, pcall(function () return tostring(spellData.IsItem and (GetItemInfo(spellID * -1)) or (GetSpellInfo(spellID))) end)), tostring(spellID),
+                 select (2, pcall(function () return tostring(spellData.IsItem and (GetItemInfo(spellID * -1)) or GetSpellName(spellID)) end)), tostring(spellID),
                  spellData.Disabled and "OFF" or "ON", -- 3
                  spellData.Pet and "PET" or "PLAYER", -- 4
                  spellData.IsItem and "ITEM" or "SPELL", -- 5
@@ -885,7 +892,7 @@ do
             return errorPrefix("T._C.DSI not available");
         end
 
-        return "\n(left and right side should be 'matching')\n" .. D:tAsString(D:tMap(T._C.DSI, GetSpellInfo));
+        return "\n(left and right side should be 'matching')\n" .. D:tAsString(D:tMap(T._C.DSI, GetSpellName));
     end
     function T._ExportActionsConfiguration () -- (use pcall with this) -- {{{
 
@@ -968,7 +975,7 @@ do
         };
 
         local GenericErrorMessage1 = "Decursive could not initialize properly because one or several of the required shared libraries (at least |cFF00FF00LibStub|r) could not be found.\n";
-        local GenericErrorMessage2 = "Try to re-install Decursive from its original archive or use the |cFF00FF00Curse client|r (Curse.com) to update |cFFFF0000ALL|r your add-ons properly.\nIf that doesn't work, install the add-ons BugGrabber and BugSack in order to detect other errors preventing Decursive to load properly.\n|cFFF000F0Remember that the WoW client must _NOT_ be running while you install add-ons.|r";
+        local GenericErrorMessage2 = "Try to re-install Decursive from its original archive or use the |cFF00FF00Curse client|r (Curse.com) to update |cFFFF0000ALL|r your add-ons properly.\nIf that doesn't work, install the add-ons BugGrabber and BugSack in order to detect other errors preventing Decursive from loading properly.\n|cFFF000F0Remember that the WoW client must _NOT_ be running while you install add-ons.|r";
 
         local ErrorFound = false;
         local Errors = {};
@@ -1161,4 +1168,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.19";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.20";

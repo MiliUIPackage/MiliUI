@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.19) add-on for World of Warcraft UI
+    Decursive (v 2.7.20) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ T._LoadedFiles["ruRU.lua"] = false;
 local L = LibStub("AceLocale-3.0"):NewLocale("Decursive", "ruRU");
 
 if not L then
-    T._LoadedFiles["ruRU.lua"] = "2.7.19";
+    T._LoadedFiles["ruRU.lua"] = "2.7.20";
     return;
 end;
 
@@ -224,6 +224,7 @@ L["OPT_BLEED_EFFECT_BAD_SPELLID"] = "Неправильный идентифик
 L["OPT_BLEED_EFFECT_DESCRIPTION"] = "Описание заклинания (SpellID: |cFF00C000%s|r)"
 L["OPT_BLEED_EFFECT_HOLDER"] = "Управление эффектом кровотечения"
 L["OPT_BLEED_EFFECT_HOLDER_DESC"] = "Управление обнаружением эффекта кровотечения"
+L["OPT_BLEED_EFFECT_IDENTIFIERS"] = "Ключевые слова описания эффектов кровотечения:"
 L["OPT_BLEED_EFFECT_UNKNOWN_SPELL"] = "Неизвестное заклинание (%s)"
 L["OPT_BLEEDCHECK_DESC"] = "Если этот флажок установлен, Вы сможете увидеть и вылечить эффекты кровотечения"
 L["OPT_BORDERTRANSP"] = "Прозрачность краёв"
@@ -477,4 +478,4 @@ L["UNSTABLERELEASE"] = "Нестабильный релиз"
 
 
 
-T._LoadedFiles["ruRU.lua"] = "2.7.19";
+T._LoadedFiles["ruRU.lua"] = "2.7.20";

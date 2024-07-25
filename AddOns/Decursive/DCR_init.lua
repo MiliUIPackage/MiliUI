@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.19) add-on for World of Warcraft UI
+    Decursive (v 2.7.20) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-05-05T01:11:08Z
+    This file was last updated on 2024-07-16T22:59:00Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -57,8 +57,9 @@ T._LoadedFiles["DCR_init.lua"] = false;
 local D;
 local _G                    = _G;
 local select                = _G.select;
-local GetSpellBookItemInfo  = _G.GetSpellBookItemInfo;
-local GetSpellInfo          = _G.GetSpellInfo;
+local GetSpellBookItemInfo  = _G.C_SpellBook and _G.C_SpellBook.GetSpellBookItemInfo or _G.GetSpellBookItemInfo;
+local GetSpellInfo          = _G.C_Spell and _G.C_Spell.GetSpellInfo or _G.GetSpellInfo;
+local GetSpellName          = _G.C_Spell and _G.C_Spell.GetSpellName or function (spellId) return (GetSpellInfo(spellId)) end;
 local IsSpellKnown          = nil; -- use D:isSpellReady instead
 local GetSpecialization     = _G.GetSpecialization;
 local IsPlayerSpell         = _G.IsPlayerSpell;
@@ -74,7 +75,7 @@ local function RegisterDecursive_Once() -- {{{
     --@end-debug@]==]
 
     D.name = "Decursive";
-    D.version = "2.7.19";
+    D.version = "2.7.20";
     D.author = "John Wellesz";
 
     D.DcrFullyInitialized = false;
@@ -92,7 +93,7 @@ local function RegisterLocals_Once() -- {{{
     -- While that was probably caused by a badd-on redefining the constant,
     -- it's best to stay on the safe side...
 
-    D.LC = setmetatable(FillLocalizedClassList({}, false), {__index = function(t,k) return k end});
+    D.LC = setmetatable((FillLocalizedClassList or LocalizedClassList)({}, false), {__index = function(t,k) return k end});
 
     RegisterLocals_Once = nil;
 end -- }}}
@@ -364,7 +365,7 @@ local function SetRuntimeConstants_Once () -- {{{
 
                 EnhancedBy = true,
                 EnhancedByCheck = function ()
-                    return (GetSpellInfo(DS["SPELL_COMMAND_DEMON"])) == DS["PET_SINGE_MAGIC"] or (GetSpellInfo(DS["SPELL_COMMAND_DEMON"])) == DS["PET_SEAR_MAGIC"];
+                    return (GetSpellName(DS["SPELL_COMMAND_DEMON"])) == DS["PET_SINGE_MAGIC"] or (GetSpellName(DS["SPELL_COMMAND_DEMON"])) == DS["PET_SEAR_MAGIC"];
                 end,
                 Enhancements = {
                     Types = {DC.MAGIC},
@@ -465,7 +466,7 @@ local function SetRuntimeConstants_Once () -- {{{
                 Pet = false,
                 EnhancedBy = true,
                 EnhancedByCheck = function ()
-                    return (GetSpellInfo(DS["SPELL_EXPUNGE"])) == DS["SPELL_NATURALIZE"];
+                    return (GetSpellName(DS["SPELL_EXPUNGE"])) == DS["SPELL_NATURALIZE"];
                 end,
                 Enhancements = {
                     Types = {DC.POISON, DC.MAGIC},
@@ -557,6 +558,19 @@ local function SetRuntimeConstants_Once () -- {{{
                 Types = {DC.MAGIC, DC.ENEMYMAGIC},
                 Better = 0,
                 Pet = false,
+                UnitFiltering = DC.WOTLK and {
+                    [DC.MAGIC]  = 1, -- player only
+                } or nil,
+                EnhancedBy = DC.WOTLK and (DS["TALENT_ABSOLUTION"] ~= nil),
+                EnhancedByCheck = function ()
+                    return DC.WOTLK and (IsPlayerSpell(DSI["TALENT_ABSOLUTION"]))
+                end,
+                Enhancements = DC.WOTLK and {
+                    Types = {DC.MAGIC, DC.ENEMYMAGIC},
+                    UnitFiltering = {
+                        [DC.MAGIC]  = nil,
+                    },
+                } or nil,
             },
             -- Priests (rank 1 is no longer detected once rank 2 is learned apprently)
             [not DC.WOTLK and DSI["SPELL_DISPELL_MAGIC_PRIEST_R2"] or false] = { -- WOW CLASSIC  https://www.wowhead.com/wotlk/spell=988/dispel-magic
@@ -645,7 +659,7 @@ local function SetRuntimeConstants_Once () -- {{{
             },
             -- Warlock
             [DSI["PET_DEVOUR_MAGIC"]] = { -- WOW CLASSIC  https://classic.wowhead.com/spell=19505/devour-magic
-                Types = {DC.MAGIC, DC.ENEMYMAGIC},
+                Types = not DC.WOTLK and {DC.MAGIC, DC.ENEMYMAGIC} or {DC.ENEMYMAGIC},
                 Better = 0,
                 Pet = true,
             },
@@ -682,12 +696,12 @@ local function InitVariables_Once() -- {{{
     -- A table UnitID=>IsDebuffed (boolean)
     D.UnitDebuffed = {};
 
-    D.Revision = "2f47f9d"; -- not used here but some other add-on may request it from outside
-    D.date = "2024-05-10T13:31:04Z";
-    D.version = "2.7.19";
+    D.Revision = "d87ca16"; -- not used here but some other add-on may request it from outside
+    D.date = "2024-07-19T13:31:22Z";
+    D.version = "2.7.20";
 
     if D.date ~= "@project".."-date-iso@" then
-        -- 1715347864 doesn't work
+        -- 1721395882 doesn't work
 
         --local example =  "2008-05-01T12:34:56Z";
 
@@ -713,9 +727,6 @@ T._CatchAllErrors = "InitVariables_Once";       InitVariables_Once();
 local L  = D.L;
 local LC = D.LC;
 local DC = T._C;
-
-local BOOKTYPE_PET      = _G.BOOKTYPE_PET;
-local BOOKTYPE_SPELL    = _G.BOOKTYPE_SPELL;
 
 local select            = _G.select;
 local pairs             = _G.pairs;
@@ -756,7 +767,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
 
             if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay or debug then
 
-                T._ShowNotice ("|cff00ff00Decursive version: 2.7.19|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
+                T._ShowNotice ("|cff00ff00Decursive version: 2.7.20|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
 
                 self.db.global.LastExpirationAlert = time();
             end
@@ -765,7 +776,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         self.db.global.TocExpiredDetection = false;
     end
 
-    if (("2.7.19"):lower()):find("beta") or ("2.7.19"):find("RC") or ("2.7.19"):find("Candidate") or alpha then
+    if (("2.7.20"):lower()):find("beta") or ("2.7.20"):find("RC") or ("2.7.20"):find("Candidate") or alpha then
 
         D.RunningADevVersion = true;
 
@@ -778,7 +789,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
                 DC.DevVersionExpired = true;
                 -- Display the expiration notice only once evry 48 hours
                 if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
-                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.19|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
+                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.20|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
 
                     self.db.global.LastExpirationAlert = time();
                 end
@@ -789,16 +800,16 @@ function D:VersionWarnings(forceDisplay) -- {{{
         end
 
         -- display a warning if this is a developpment version (avoid insults from people who don't know what they're doing)
-        if self.db.global.NonRelease ~= "2.7.19" then
-            self.db.global.NonRelease = "2.7.19";
-            T._ShowNotice ("|cff00ff00Decursive version: 2.7.19|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
+        if self.db.global.NonRelease ~= "2.7.20" then
+            self.db.global.NonRelease = "2.7.20";
+            T._ShowNotice ("|cff00ff00Decursive version: 2.7.20|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
         end
     end
 
     --[==[@debug@
     fromCheckOut = true;
     if time() - self.db.global.LastUnpackagedAlert > 24 * 3600  then
-        T._ShowNotice ("|cff00ff00Decursive version: 2.7.19|r\n\n" .. "|cFFFFAA66" ..
+        T._ShowNotice ("|cff00ff00Decursive version: 2.7.20|r\n\n" .. "|cFFFFAA66" ..
         [[
         |cFFFF0000You're using an unpackaged version of Decursive.|r
         Decursive is not meant to be used this way.
@@ -836,7 +847,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         if D.db.global.NewerVersionDetected > D.VersionTimeStamp and D.db.global.NewerVersionName ~= D.version then -- it's still newer than this one
             if time() - D.db.global.NewerVersionAlert > 3600 * 24 * 4 then -- it's been more than 4 days since the new version alert was shown
                 if not D.db.global.NewVersionsBugMeNot then -- the user did not disable new version alerts
-                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.19|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
+                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.20|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
                     D.db.global.NewerVersionAlert = time();
                 end
             end
@@ -950,7 +961,7 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     end); -- }}}
 
     D:SecureHook("CastSpellByName", "HOOK_CastSpellByName");
-    D:SecureHook("UseItemByName",   "HOOK_UseItemByName");
+    D:SecureHook(C_Item, "UseItemByName",   "HOOK_UseItemByName");
 
     -- these events are automatically stopped when the addon is disabled by Ace
 
@@ -965,6 +976,7 @@ function D:OnEnable() -- called after PLAYER_LOGIN -- {{{
     end
     D.eventFrame:RegisterEvent("PLAYER_ALIVE"); -- talents SHOULD be available
     D.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD");
+    D.eventFrame:RegisterEvent("PLAYER_LEAVING_WORLD");
 
     -- Combat detection events
     D.eventFrame:RegisterEvent("PLAYER_REGEN_DISABLED");
@@ -1141,7 +1153,7 @@ function D:SetConfiguration() -- {{{
         -- Try the id on the functions directly and remove them if they crash (they can return nothing at an early game loading stage)
         if not (pcall(
             function ()
-                return spellData.IsItem and (GetItemInfo(spellOrItemID * -1)) or (GetSpellInfo(spellOrItemID))
+                return spellData.IsItem and (GetItemInfo(spellOrItemID * -1)) or (GetSpellName(spellOrItemID))
             end)) then
             D.classprofile.UserSpells[spellOrItemID] = nil;
             --[==[@debug@
@@ -1492,7 +1504,6 @@ function D:Configure() --{{{
     CuringSpells[DC.BLEED]      = false;
 
     local Type, _;
-    local GetSpellBookItemInfo = _G.GetSpellBookItemInfo;
     local IsSpellKnown = nil; -- use D:isSpellReady instead
     local Types = {};
     local UnitFiltering = false;
@@ -1629,7 +1640,6 @@ function D:Configure() --{{{
 end --}}}
 
 function D:SetSpellsTranslations(FromDIAG) -- {{{
-    local GetSpellInfo = _G.GetSpellInfo;
 
     if not T._C.DS then
         T._C.DS = {};
@@ -1810,6 +1820,7 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
                 T._C.DSI["SPELL_TRANQUILIZING_SHOT"]      = 19801;
                 T._C.DSI["TALENT_BODY_AND_SOUL_1"]        = 64127;
                 T._C.DSI["TALENT_BODY_AND_SOUL_2"]        = 64129;
+                T._C.DSI["TALENT_ABSOLUTION"]             = 33167;
                 T._C.DSI["TALENT_IMPROVED_CLEANSE_SPIRIT"]= 77130;
                 T._C.DSI["TALENT_NATURES_CURE"]           = 88423;
                 T._C.DSI["TALENT_SACRED_CLEANSING"]       = 53551;
@@ -1841,7 +1852,7 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
     ok = true;
     for Sname, Sid in pairs(DSI) do
 
-        DS[Sname] = (GetSpellInfo(Sid));
+        DS[Sname] = (GetSpellName(Sid));
 
         if FromDIAG and DS[Sname] then
             if not duplicates[DS[Sname]] then
@@ -1911,73 +1922,139 @@ end -- }}}
 
 local MAX_ACCOUNT_MACROS = _G.MAX_ACCOUNT_MACROS;
 
-function D:UpdateMacro () -- {{{
+do
 
+    local BlizzardIsAnnoyingComment = "# Ask Blizzard to re-add support for macrotext attribute dropped in wow 11 if you do not want to see this macro...\n"
 
-    if D.profile.DisableMacroCreation then
-        return false;
+    local function updateMacroByName(macroName, icon, macroText, notEditable) -- {{{
+        if not D.Status.createdMacros then
+            D.Status.createdMacros = {};
+        end
+
+        local createdMacros = D.Status.createdMacros
+
+        local updatedMacroText = notEditable and BlizzardIsAnnoyingComment..macroText or macroText
+
+        if (updatedMacroText:len() > 256) then
+            updatedMacroText = macroText
+        end
+
+        local catchAllErrorBackup = T._CatchAllErrors;
+        T._CatchAllErrors = false; -- the API calls below fire some WoW events (UPDATE_MACRO), we don't want to catch errors done by bugged handlers from other add-ons
+
+        --D:PrintLiteral(GetMacroIndexByName(D.CONF.MACRONAME));
+        if GetMacroIndexByName(macroName) ~= 0 then
+            if notEditable or not D.profile.AllowMacroEdit then
+                EditMacro(GetMacroIndexByName(macroName), macroName, icon, updatedMacroText);
+                if notEditable then
+                    createdMacros[macroName] = true
+                end
+                D:Debug(("Macro '%s' updated"):format(macroName));
+            else
+                D:Debug(("Macro '%s' not updated due to AllowMacroEdit"):format(macroName));
+            end
+        elseif (GetNumMacros()) < MAX_ACCOUNT_MACROS then
+            CreateMacro(macroName, icon, updatedMacroText);
+            if notEditable then
+                createdMacros[macroName] = true
+            end
+        else
+            D:errln(("Too many macros exist, Decursive cannot create its '%s' macro"):format(macroName));
+            T._CatchAllErrors = catchAllErrorBackup;
+            return false;
+        end
+
+        T._CatchAllErrors = catchAllErrorBackup;
+
+        return true;
+    end -- }}}
+
+    function D:SetMacrosPerPrioTable(unit)
+        D.Status.prio_macro = {};
+        local prio_macro = D.Status.prio_macro;
+        local tmp;
+
+        for Spell, Prio in pairs(D.Status.CuringSpellsPrio) do
+
+            if not D.Status.FoundSpells[Spell][5] then -- if using the default macro mechanism
+
+                if not D.UnitFilteringTest (unit, D.Status.FoundSpells[Spell][6]) then
+                    --the [target=%s, help][target=%s, harm] prevents the 'please select a unit' cursor problem (Blizzard should fix this...)
+                    -- -- XXX this trick may cause issues or confusion when for some reason the unit is invalid, nothing will happen when clicking
+                    prio_macro[Prio] = ("%s/%s [@%s, help][@%s, harm] %s"):format(
+
+                        not D.Status.FoundSpells[Spell][1] and "/stopcasting\n" or "", -- pet test
+                        D.Status.FoundSpells[Spell][2] > 0 and "cast" or "use", -- item test
+                        unit, unit,
+                        Spell
+                    );
+                end
+            else
+                tmp = D.Status.FoundSpells[Spell][5];
+                tmp = tmp:gsub("UNITID", unit);
+                if tmp:len() < 256 then -- last chance protection, shouldn't happen
+                    prio_macro[Prio] = tmp;
+                else
+                    D:errln("Macro too long for prio", Prio);
+                end
+            end
+
+        end
+
     end
 
-    if InCombatLockdown() then
-        D:AddDelayedFunctionCall (
-        "UpdateMacro", self.UpdateMacro,
-        self);
-        return false;
-    end
-    D:Debug("UpdateMacro called");
+    function D:UpdateMacro () -- {{{
 
 
-    local CuringSpellsPrio  = D.Status.CuringSpellsPrio;
-    local ReversedCureOrder = D.Status.ReversedCureOrder;
-    local CuringSpells      = D.Status.CuringSpells;
+        if D.profile.DisableMacroCreation then
+            return false;
+        end
+
+        if InCombatLockdown() then
+            D:AddDelayedFunctionCall (
+            "UpdateMacro", self.UpdateMacro,
+            self);
+            return false;
+        end
+        D:Debug("UpdateMacro called");
+
+        local CuringSpellsPrio  = D.Status.CuringSpellsPrio;
+        local ReversedCureOrder = D.Status.ReversedCureOrder;
+        local CuringSpells      = D.Status.CuringSpells;
 
 
-    -- Get an ordered spell table
-    local Spells = {};
-    for Spell, Prio in pairs(D.Status.CuringSpellsPrio) do -- XXX MACROUPDATE
-        Spells[Prio] = Spell;
-    end
+        -- Get an ordered spell table
+        local Spells = {};
+        for Spell, Prio in pairs(D.Status.CuringSpellsPrio) do -- XXX MACROUPDATE
+            Spells[Prio] = Spell;
+        end
 
-    if (next (Spells)) then
-        for i=1,4 do
-            if (not Spells[i]) then
-                table.insert (Spells, CuringSpells[ReversedCureOrder[1] ]);
+        if (next (Spells)) then
+            for i=1,4 do
+                if (not Spells[i]) then
+                    table.insert (Spells, CuringSpells[ReversedCureOrder[1] ]);
+                end
             end
         end
-    end
 
-    local MacroParameters = {
-        D.CONF.MACRONAME,
-        "INV_MISC_QUESTIONMARK", -- icon
-        next(Spells) and string.format("/stopcasting\n/cast [@mouseover,nomod,exists] %s;  [@mouseover,exists,mod:ctrl] %s; [@mouseover,exists,mod:shift] %s", unpack(Spells)) or "/script DecursiveRootTable.Dcr:Println('"..L["NOSPELL"].."')",
-    };
+        local MacroParameters = {
+            D.CONF.MACRONAME,
+            "INV_MISC_QUESTIONMARK", -- icon
+            next(Spells) and string.format("/stopcasting\n/cast [@mouseover,nomod,exists] %s;  [@mouseover,exists,mod:ctrl] %s; [@mouseover,exists,mod:shift] %s", unpack(Spells)) or "/script DecursiveRootTable.Dcr:Println('"..L["NOSPELL"].."')",
+        };
 
-    local catchAllErrorBackup = T._CatchAllErrors;
-    T._CatchAllErrors = false; -- the API calls below fire some WoW events (UPDATE_MACRO), we don't want to catch errors done by bugged handlers
+        local catchAllErrorBackup = T._CatchAllErrors;
+        T._CatchAllErrors = false; -- the API calls below fire some WoW events (UPDATE_MACRO), we don't want to catch errors done by bugged handlers
 
-    --D:PrintLiteral(GetMacroIndexByName(D.CONF.MACRONAME));
-    if GetMacroIndexByName(D.CONF.MACRONAME) ~= 0 then
-        if not D.profile.AllowMacroEdit then
-            EditMacro(D.CONF.MACRONAME, unpack(MacroParameters));
-            D:Debug("Macro updated");
-        else
-            D:Debug("Macro not updated due to AllowMacroEdit");
-        end
-    elseif (GetNumMacros()) < MAX_ACCOUNT_MACROS then
-        CreateMacro(unpack(MacroParameters));
-    else
-        D:errln("Too many macros exist, Decursive cannot create its macro");
+        updateMacroByName(unpack(MacroParameters));
+
+        D:SetMacroKey(D.db.global.MacroBind);
+
         T._CatchAllErrors = catchAllErrorBackup;
-        return false;
-    end
+        return true;
 
-
-    D:SetMacroKey(D.db.global.MacroBind);
-
-    T._CatchAllErrors = catchAllErrorBackup;
-    return true;
-
-end -- }}}
+    end -- }}}
+end
 
 
 
@@ -2001,7 +2078,7 @@ end -- }}}
 
 
 
-T._LoadedFiles["DCR_init.lua"] = "2.7.19";
+T._LoadedFiles["DCR_init.lua"] = "2.7.20";
 
 -------------------------------------------------------------------------------
 
@@ -2010,42 +2087,42 @@ TEST to see what keyword substitutions are actually working....
 
 Simple replacements
 
-1090
+954
     Turns into the current revision of the file in integer form. e.g. 1234
     Note: does not work for git
-1104
+1116
     Turns into the highest revision of the entire project in integer form. e.g. 1234
     Note: does not work for git
-9bda9c4831f7f1acec7e527cab794df80fe6f5c3
+ebbf8c618a1715b65a87e0e8f6179569eeb7156c
     Turns into the hash of the file in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-2f47f9da09ca384ddb0798d1f4f6e36dd948aec5
+d87ca166a2250490dae671a94aab84bc8dbfd955
     Turns into the hash of the entire project in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-9bda9c4
+ebbf8c6
     Turns into the abbreviated hash of the file in hex form. e.g. 106c63 Note: does not work for svn
-2f47f9d
+d87ca16
     Turns into the abbreviated hash of the entire project in hex form. e.g. 106c63
     Note: does not work for svn
 Archarodim
     Turns into the last author of the file. e.g. ckknight
 Archarodim
     Turns into the last author of the entire project. e.g. ckknight
-2024-05-05T01:11:08Z
+2024-07-16T22:59:00Z
     Turns into the last changed date (by UTC) of the file in ISO 8601. e.g. 2008-05-01T12:34:56Z
-2024-05-10T13:31:04Z
+2024-07-19T13:31:22Z
     Turns into the last changed date (by UTC) of the entire project in ISO 8601. e.g. 2008-05-01T12:34:56Z
-20240505011108
+20240716225900
     Turns into the last changed date (by UTC) of the file in a readable integer fashion. e.g. 20080501123456
-20240510133104
+20240719133122
     Turns into the last changed date (by UTC) of the entire project in a readable integer fashion. e.g. 2008050123456
-1714871468
+1721170740
     Turns into the last changed date (by UTC) of the file in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-1715347864
+1721395882
     Turns into the last changed date (by UTC) of the entire project in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-2.7.19
+2.7.20
     Turns into an approximate version of the project. The tag name if on a tag, otherwise it's up to the repo.
     :SVN returns something like "r1234"
     :Git returns something like "v0.1-873fc1"

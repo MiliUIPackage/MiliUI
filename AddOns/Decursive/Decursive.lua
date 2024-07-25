@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.19) add-on for World of Warcraft UI
+    Decursive (v 2.7.20) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-05-01T22:17:09Z
+    This file was last updated on 2024-06-09T16:30:19Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -402,12 +402,31 @@ end
 do
 
     local D                 = D;
+    local C_UnitAuras       = _G.C_UnitAuras
 
-    local UnitDebuff        = _G.UnitDebuff;
+    local UnitDebuff        = _G.UnitDebuff or function (unitToken, i)
+        local auraData = C_UnitAuras.GetDebuffDataByIndex(unitToken, i);
+
+        if not auraData then
+			return nil;
+		end
+
+        return auraData.name,
+		auraData.icon,
+		auraData.applications,
+		auraData.dispelName,
+		auraData.duration,
+		auraData.expirationTime,
+		nil,
+		nil,
+		nil,
+		auraData.spellId;
+    end
+
     local UnitIsCharmed     = _G.UnitIsCharmed;
     local UnitCanAttack     = _G.UnitCanAttack;
     local GetTime           = _G.GetTime;
-    local GetSpellDescription  = _G.GetSpellDescription;
+    local GetSpellDescription = _G.C_Spell and _G.C_Spell.GetSpellDescription or _G.GetSpellDescription;
     local IsSpellDataCached    = _G.C_Spell.IsSpellDataCached
     local RequestLoadSpellData = _G.C_Spell.RequestLoadSpellData
 
@@ -929,6 +948,6 @@ end
 
 
 
-T._LoadedFiles["Decursive.lua"] = "2.7.19";
+T._LoadedFiles["Decursive.lua"] = "2.7.20";
 
 -- Sin
