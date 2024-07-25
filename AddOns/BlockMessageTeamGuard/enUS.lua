@@ -225,15 +225,16 @@ end)
 local editBoxBackground = newKeywordEditBox:CreateTexture(nil, "BACKGROUND")
 editBoxBackground:SetAllPoints(newKeywordEditBox)
 editBoxBackground:SetColorTexture(0, 0, 0, 0.5)
-InterfaceOptions_AddCategory(optionsPanel)
+local category = Settings.RegisterCanvasLayoutCategory(optionsPanel, optionsPanel.name)
+category.ID = optionsPanel.name
+Settings.RegisterAddOnCategory(category)
 SlashCmdList[LPName] = function(msg)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+    Settings.OpenToCategory(optionsPanel.name)
 end
 SLASH_BlockMessageTeamGuard1 = "/"..LPName
 SLASH_BlockMessageTeamGuard2 = "/BSC"
 SlashCmdList[LPName] = function(msg)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+    Settings.OpenToCategory(optionsPanel.name)
 end
 
 local whisperWithKeyword = {}
@@ -593,9 +594,9 @@ myButton:SetScript("OnMouseUp", function(self, button)
 end)
 myButton:SetScript("OnClick", function(self, button, down)
     if button == "LeftButton" then
-        InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+        Settings.OpenToCategory(optionsPanel.name)
     elseif button == "RightButton" then
-        InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+        Settings.OpenToCategory(optionsPanel.name)
     end
 end)
 myButton.tooltip = "BlockMessageTeamGuard"

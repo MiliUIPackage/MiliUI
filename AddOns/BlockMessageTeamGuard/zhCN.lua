@@ -217,15 +217,16 @@ end)
 local editBoxBackground = newKeywordEditBox:CreateTexture(nil, "BACKGROUND")
 editBoxBackground:SetAllPoints(newKeywordEditBox)
 editBoxBackground:SetColorTexture(0, 0, 0, 0.5)
-InterfaceOptions_AddCategory(optionsPanel)
+local category = Settings.RegisterCanvasLayoutCategory(optionsPanel, optionsPanel.name)
+category.ID = optionsPanel.name
+Settings.RegisterAddOnCategory(category)
 SlashCmdList[LPName] = function(msg)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+    Settings.OpenToCategory(optionsPanel.name)
 end
 SLASH_BlockMessageTeamGuard1 = "/"..LPName
 SLASH_BlockMessageTeamGuard2 = "/BSC"
 SlashCmdList[LPName] = function(msg)
-    InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+    Settings.OpenToCategory(optionsPanel.name)
 end
 
 local whisperWithKeyword = {}
@@ -265,9 +266,9 @@ local function filter(self, event, msg, sender)
     if LPaddon.disableInInstance and inInstance and (instanceType == "party" or instanceType == "raid" or instanceType == "scenario" or instanceType == "arena" or instanceType == "pvp") then
         return
     end
-    -- local lowercase_message = msg:lower()
-	local lowercase_message = string.gsub(msg, "{(.-)}", "") -- 過濾圖案
-	local lowercase_message = filter_spec_chars(lowercase_message) -- 過濾符號
+    local lowercase_message = string.gsub(msg, "{(.-)}", "") -- 過濾圖案
+	lowercase_message = filter_spec_chars(lowercase_message) -- 過濾符號和空格
+	lowercase_message = lowercase_message:lower()
     local lowercase_name = sender:lower()
 
     local close_chat_frame = function()
@@ -430,8 +431,9 @@ local function OnLoad(self, event, ...)
     LPaddon.declineBladeOfKrol = LP_DB.declineBladeOfKrol or false
     LPaddon.customFilter = LP_DB.customFilter == nil and true or LP_DB.customFilter
     LPaddon.strangerGroupEnabled = LP_DB.strangerGroupEnabled == nil and true or LP_DB.strangerGroupEnabled
-    if not LP_DB.customFilterWords or next(LP_DB.customFilterWords) == nil then
-    LP_DB.customFilterWords = {["微信"] = true, ["包赔"] = true, ["站桩"] = true, ["零封号"] = true, ["包团"] = true, ["散拍"] = true, ["快速到滿級"] = true, ["自己上随时打"] = true, ["来消费"] = true, ["淘宝"] = true, ["现在有团"] = true, ["为您服务"] = true, ["装备全送"] = true, ["同甲低保"] = true, ["免費送低保"] = true, ["掏宝"] = true, ["淘寶"] = true, ["自己上号"] = true, ["安全效率"] = true, ["送低保"] = true, ["上号躺"] = true, ["消費團本"] = true, ["满级即可参加"] = true, ["自己挂"] = true, ["可自上"] = true, ["躺尸"] = true, ["挂满级"] = true, ["掛滿級"] = true, ["加薇"] = true, ["薇信"] = true,  ["加微"] = true, ["散买"] = true, ["加威"] = true, ["+威"] = true, ["威信"] = true, ["贝贝魔兽"] = true, ["贝贝魔獸"] = true, ["咸鱼魔兽"] = true, ["主线飞行"] = true, ["主线驭泷术"] = true,}
+    if not LP_DB.customFilterWords or next(LP_DB.customFilterWords) == nil or not LP_DB.resetFilterWords or LP_DB.resetFilterWords < 1 then
+    LP_DB.customFilterWords = {["wow1"] = true, ["wow2"] = true, ["wow3"] = true, ["wow4"] = true, ["wow5"] = true, ["wow6"] = true, ["wow7"] = true, ["wow8"] = true, ["wow9"] = true, ["wow0"] = true,  ["wlk"] = true, ["咸鱼"] = true, ["8wow"] = true,}
+	LP_DB.resetFilterWords = 1
 end
     LPaddon.customFilterWords = LP_DB.customFilterWords    
     customFilterToggleButton:SetChecked(LPaddon.customFilter)
@@ -611,9 +613,9 @@ myButton:SetScript("OnMouseUp", function(self, button)
 end)
 myButton:SetScript("OnClick", function(self, button, down)
     if button == "LeftButton" then
-        InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+        Settings.OpenToCategory(optionsPanel.name)
     elseif button == "RightButton" then
-        InterfaceOptionsFrame_OpenToCategory(optionsPanel)
+        Settings.OpenToCategory(optionsPanel.name)
     end
 end)
 myButton.tooltip = "BlockMessageTeamGuard"
