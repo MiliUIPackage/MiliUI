@@ -45,14 +45,15 @@ do
 	local lastError = nil
 	function onError()
 		if not lastError or GetTime() > (lastError + 2) then
-			if not addon.db.mute then
-				local sound = media:Fetch("sound", addon.db.soundMedia)
-				if addon.db.useMaster then
-					PlaySoundFile(sound, "Master")
-				else
-					PlaySoundFile(sound)
-				end
-			end
+			-- if not addon.db.mute then
+			-- 	local sound = media:Fetch("sound", addon.db.soundMedia)
+			-- 	if addon.db.useMaster then
+			-- 		PlaySoundFile(sound, "Master")
+			-- 	else
+			-- 		PlaySoundFile(sound)
+			-- 	end
+				
+			-- end
 			if addon.db.chatframe then
 				print(L["There's a bug in your soup!"])
 			end
@@ -117,7 +118,7 @@ do
 		local sv = BugSackDB
 		sv.profileKeys = nil
 		sv.profiles = nil
-		if type(sv.mute) ~= "boolean" then sv.mute = false end
+		if type(sv.mute) ~= "boolean" then sv.mute = true end
 		if type(sv.auto) ~= "boolean" then sv.auto = false end
 		if type(sv.chatframe) ~= "boolean" then sv.chatframe = false end
 		if type(sv.soundMedia) ~= "string" then sv.soundMedia = "BugSack: Fatality" end
