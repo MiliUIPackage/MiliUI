@@ -12,7 +12,7 @@
     SOFTWARE.
 ]]
 
-local lib = LibStub:NewLibrary("Krowi_Util-1.0", 6);
+local lib = LibStub:NewLibrary("Krowi_Util-1.0", 12);
 
 if not lib then
 	return;
@@ -21,7 +21,11 @@ end
 local version = (GetBuildInfo());
 local major = string.match(version, "(%d+)%.(%d+)%.(%d+)(%w?)");
 lib.IsWrathClassic = major == "3";
-lib.IsDragonflightRetail = major == "10";
+lib.IsCataClassic = major == "4";
+lib.IsClassicWithAchievements = lib.IsWrathClassic or lib.IsCataClassic;
+lib.IsDragonflight = major == "10";
+lib.IsTheWarWithin = major == "11";
+lib.IsMainline = lib.IsDragonflight or lib.IsTheWarWithin;
 
 function lib.ConcatTables(t1, t2)
     if t2 then
@@ -122,4 +126,51 @@ function lib.TableFindKeyByValue(table, value)
             return key;
         end
     end
+end
+
+function lib.SafeGet(source, path)
+    local current = source;
+    for _, key in next, path do
+        current = current[key];
+        if current == nil then
+            return nil;
+        end
+    end
+    return current;
+end
+
+function lib.IsType(value, _type)
+    return type(value) == _type;
+end
+
+function lib.IsNil(value)
+    return lib.IsType(value, "nil");
+end
+
+function lib.IsNumber(value)
+    return lib.IsType(value, "number");
+end
+
+function lib.IsString(value)
+    return lib.IsType(value, "string");
+end
+
+function lib.IsBoolean(value)
+    return lib.IsType(value, "boolean");
+end
+
+function lib.IsTable(value)
+    return lib.IsType(value, "table");
+end
+
+function lib.IsFunction(value)
+    return lib.IsType(value, "function");
+end
+
+function lib.IsThread(value)
+    return lib.IsType(value, "thread");
+end
+
+function lib.IsUserData(value)
+    return lib.IsType(value, "userdata");
 end

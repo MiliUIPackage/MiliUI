@@ -1,6 +1,10 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## 8.0 - 2024-07-24
+### Fixed
+- Several bugs due to The War Within changes
+
 ## 7.0 - 2024-04-04
 ### Added
 - Transmog filters

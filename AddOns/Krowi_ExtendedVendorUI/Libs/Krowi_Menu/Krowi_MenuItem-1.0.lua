@@ -18,7 +18,7 @@
         the copyright holders.
 ]]
 
-local lib = LibStub:NewLibrary("Krowi_MenuItem-1.0", 3);
+local lib = LibStub:NewLibrary("Krowi_MenuItem-1.0", 4);
 
 if not lib then
 	return;

@@ -18,7 +18,7 @@
         the copyright holders.
 ]]
 
-local lib = LibStub:NewLibrary("Krowi_Menu-1.0", 3);
+local lib = LibStub:NewLibrary("Krowi_Menu-1.0", 4);
 
 if not lib then
 	return;
@@ -189,31 +189,31 @@ function lib:UIDropDownMenu_Refresh(frame, useValue, dropdownLevel)
 			-- If checked show check image
 			local checkImage = _G["DropDownList"..dropdownLevel.."Button"..i.."Check"];
 			local uncheckImage = _G["DropDownList"..dropdownLevel.."Button"..i.."UnCheck"];
-			if not button.ignoreAsMenuSelection then
-				if checked then
-						somethingChecked = true;
-						local icon = GetChild(frame, frame:GetName(), "Icon");
-						if (button.iconOnly and button.icon) then
-							UIDropDownMenu_SetIconImage(icon, button.icon, button.iconInfo);
-						elseif useValue then
-							UIDropDownMenu_SetText(frame, button.value);
-							if icon then
-								icon:Hide();
-							end
-						else
-							UIDropDownMenu_SetText(frame, button:GetText());
-							if icon then
-								icon:Hide();
-							end
+			if checked then
+				if not button.ignoreAsMenuSelection then
+					somethingChecked = true;
+					local icon = GetChild(frame, frame:GetName(), "Icon");
+					if (button.iconOnly and button.icon) then
+						UIDropDownMenu_SetIconImage(icon, button.icon, button.iconInfo);
+					elseif useValue then
+						UIDropDownMenu_SetText(frame, button.value);
+						if icon then
+							icon:Hide();
 						end
-					button:LockHighlight();
-					checkImage:Show();
-					uncheckImage:Hide();
-				else
-					button:UnlockHighlight();
-					checkImage:Hide();
-					uncheckImage:Show();
+					else
+						UIDropDownMenu_SetText(frame, button:GetText());
+						if icon then
+							icon:Hide();
+						end
+					end
 				end
+				button:LockHighlight();
+				checkImage:Show();
+				uncheckImage:Hide();
+			else
+				button:UnlockHighlight();
+				checkImage:Hide();
+				uncheckImage:Show();
 			end
 		end
 		if button:IsShown() then

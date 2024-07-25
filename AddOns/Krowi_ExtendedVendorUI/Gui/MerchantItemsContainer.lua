@@ -88,7 +88,7 @@ function merchantItemsContainer:PrepareInfo()
 	end
 end
 
-hooksecurefunc("MerchantFrame_UpdateFilterString", function()
+hooksecurefunc(MerchantFrame.FilterDropdown, "Update", function()
 	merchantItemsContainer:PrepareInfo();
 end);
 

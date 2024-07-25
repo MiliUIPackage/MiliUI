@@ -33,3 +33,11 @@ function loadHelper:OnEvent(event, arg1, arg2)
     end
 end
 loadHelper:SetScript("OnEvent", loadHelper.OnEvent);
+
+if not MerchantFrame_SetFilter then
+    MerchantFrame_SetFilter = function(self, filter)
+		SetMerchantFilter(filter);
+		MerchantFrame.page = 1;
+		MerchantFrame_Update();
+	end
+end

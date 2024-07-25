@@ -7,7 +7,7 @@ addon.Plugins:LoadLocalization(L);
 -- [[ https://legacy.curseforge.com/wow/addons/krowi-extended-vendor-ui/localization ]] --
 -- [[ Everything after this line is automatically generated from CurseForge and is not meant for manual edit - SOURCETOKEN - AUTOGENTOKEN ]] --
 
--- [[ Exported at 2024-04-04 10-09-42 ]] --
+-- [[ Exported at 2023-08-20 18-17-39 ]] --
 L["Are you sure you want to hide the options button?"] = [=[Are you sure you want to hide the options button?
 The options button can be shown again via {gameMenu} {arrow} {interface} {arrow} {addOns} {arrow} {addonName} {arrow} {general} {arrow} {options}]=]
 L["Author"] = true
@@ -32,7 +32,6 @@ L["Show minimap icon"] = true
 L["Show minimap icon Desc"] = "Show / hide the minimap icon."
 L["Show options button"] = true
 L["Show options button Desc"] = "Show / hide the options button in the merchant window."
-L["Transmog"] = true
 L["Unchecked"] = true
 L["Wago"] = true
 L["Wago Desc"] = "Open a popup dialog with a link to the {addonName} {wago} page."
