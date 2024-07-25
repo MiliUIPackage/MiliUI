@@ -8,15 +8,19 @@ if not ldb then return end
 local plugin = ldb:NewDataObject(addonName, {
 	type = "data source",
 	text = "0",
-	icon = "Interface\\AddOns\\BugSack\\Media\\icon",
+	icon = "Interface\\AddOns\\"..addonName.."\\Media\\icon",
 })
 
 local BugGrabber = BugGrabber
 
 function plugin.OnClick(self, button)
 	if button == "RightButton" then
-		InterfaceOptionsFrame_OpenToCategory(addonName)
-		InterfaceOptionsFrame_OpenToCategory(addonName)
+		if InterfaceOptionsFrame_OpenToCategory then
+			InterfaceOptionsFrame_OpenToCategory(addonName)
+			InterfaceOptionsFrame_OpenToCategory(addonName)
+		else
+			Settings.OpenToCategory(addon.settingsCategory.ID)
+		end
 	else
 		if IsShiftKeyDown() then
 			ReloadUI()
@@ -33,7 +37,7 @@ end
 hooksecurefunc(addon, "UpdateDisplay", function()
 	local count = #addon:GetErrors(BugGrabber:GetSessionId())
 	plugin.text = count
-	plugin.icon = count == 0 and "Interface\\AddOns\\BugSack\\Media\\icon" or "Interface\\AddOns\\BugSack\\Media\\icon_red"
+	plugin.icon = count == 0 and "Interface\\AddOns\\"..addonName.."\\Media\\icon" or "Interface\\AddOns\\"..addonName.."\\Media\\icon_red"
 end)
 
 do
