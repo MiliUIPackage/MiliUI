@@ -1,5 +1,5 @@
 		-------------------------------------------------
-		-- Paragon Reputation 1.43 by Fail US-Ragnaros --
+		-- Paragon Reputation 1.54 by Fail US-Ragnaros --
 		-------------------------------------------------
 
 		  --[[	  Special thanks to Ammako for
@@ -8,6 +8,8 @@
 
 local ADDON_NAME,ParagonReputation = ...
 local PR = ParagonReputation
+
+local GetAddOnMetadata = GetAddOnMetadata or C_AddOns.GetAddOnMetadata
 
 local COLOR_CHECK_LIST = {"BLUE","GREEN","YELLOW","ORANGE","RED"}
 local COLOR_CHECK_VALUE = {{0,.5,.9,1},{0,.6,.1,1},{.9,.7,0,1},{.75,.27,0,1},{1,.25,.62,1}}
@@ -73,7 +75,7 @@ local DB = {
 	value = {0,.5,.9,1},
 	color = "BLUE",
 	text = "PARAGON",
-	toast = false,
+	toast = true, -- 更改預設值
 	sound = true,
 	fade = 5,
 	point = {"TOP","TOP",0,-160},
@@ -105,18 +107,22 @@ function ParagonReputation:SetToastPosition()
 	PR.toast:SetPoint(point,UIParent,relative,x,y)
 end
 
--- [AddOn Options] Creata AddOn Options
+-- [AddOn Options] Create AddOn Options
 function ParagonReputation:CreateOptions()
 
 	-- [Interface Options] Create Options
 	PR.options = CreateFrame("FRAME",nil)
-	PR.options.name = "巔峰聲望提示"
-	InterfaceOptions_AddCategory(PR.options)
+	PR.options.name = PR.L["Paragon Reputation"]
+	
+	local category = Settings.RegisterCanvasLayoutCategory(PR.options,PR.options.name)
+	category.ID = PR.options.name
+	Settings.RegisterAddOnCategory(category)
+	--InterfaceOptions_AddCategory(PR.options)
 
 	-- [Interface Options] Title
 	PR.options.title = PR.options:CreateFontString(nil,"ARTWORK","GameFontNormalLarge")
 	PR.options.title:SetPoint("TOPLEFT",16,-16)
-	PR.options.title:SetText("|cff0088eeParagon|r Reputation |cff0088eev"..GetAddOnMetadata(ADDON_NAME,"Version").."|r")
+	PR.options.title:SetText(PR.L["|cff0088eeParagon|r Reputation |cff0088eev"]..GetAddOnMetadata(ADDON_NAME,"Version").."|r")
 
 	-- [Interface Options] Title Description
 	PR.options.description1 = PR.options:CreateFontString(nil,"ARTWORK","GameFontHighlightSmall")
@@ -230,8 +236,7 @@ function ParagonReputation:CreateOptions()
 		if PR.toast:IsVisible() then
 			PR:LockButton()
 		else
-			HideUIPanel(InterfaceOptionsFrame)
-			HideUIPanel(GameMenuFrame)
+			HideUIPanel(SettingsPanel)
 			PR.toast:Show()
 			PR.toast:SetAlpha(1)
 			PR.toast:EnableMouse(true)
@@ -301,8 +306,7 @@ end
 function ParagonReputation:LockButton()
 	local point,_,relative,x,y = PR.toast:GetPoint()
 	PR.DB.point = {point,relative,x,y}
-	InterfaceOptionsFrame_OpenToCategory("Paragon Reputation")
-	InterfaceOptionsFrame_OpenToCategory("Paragon Reputation") --Done twice just because of an odd glitch on this function.
+	Settings.OpenToCategory(PR.options.name)
 	PR.toast:Hide()
 	PR.toast.reset:Hide()
 	PR.toast.lock:Hide()

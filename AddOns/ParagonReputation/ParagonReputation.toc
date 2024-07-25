@@ -1,13 +1,16 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: |cff0088eeParagon|r Reputation
 ## Author: |cffabd473Fail|r |cffff4000US-Ragnaros|r
-## Version: 1.43
+## Version: 1.54
 ## Notes: Better visualization of Paragon Factions on the Reputation Frame.
 ## Title-zhTW: |cFF0099FF[介面]|r 巔峰聲望提示
 ## Notes-zhTW: Paragon Reputation|n在聲望到達顛峰時跳出提醒，並在聲望上顯示可以拿到的獎勵並且標示是否已取得。
+## IconTexture: 3753261
 ## DefaultState: Enabled
 ## LoadOnDemand: 0
 ## SavedVariables: ParagonReputationDB
+
+## X-Category-zhTW: 介面
 
 data.lua
 localization.lua
