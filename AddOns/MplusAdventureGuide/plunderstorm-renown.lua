@@ -3,8 +3,8 @@
 local addonName, addon = ...
 
 function addon:initEnablePlunderstormRenownButton()
-    hooksecurefunc(ReputationDetailViewRenownButton, "Refresh", function(self)
-    	local factionID = select(14, GetFactionInfo(GetSelectedFaction()))
+    hooksecurefunc(ReputationFrame.ReputationDetailFrame.ViewRenownButton, "Refresh", function(self)
+    	local factionID = C_Reputation.GetFactionDataByIndex(GetSelectedFaction()).factionID
         if factionID == 2593 then
             self:Enable()
         end
