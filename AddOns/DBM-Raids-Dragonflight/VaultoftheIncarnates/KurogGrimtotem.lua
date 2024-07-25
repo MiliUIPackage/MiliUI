@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2491, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240511084734")
+mod:SetRevision("20240702184243")
 mod:SetCreatureID(184986)
 mod:SetEncounterID(2605)
 mod:SetUsedIcons(1, 2, 3, 4, 5)
@@ -37,7 +37,7 @@ mod:RegisterEventsInCombat(
 --General
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(374554, nil, nil, nil, 1, 8)
 
-local timerPhaseCD								= mod:NewPhaseTimer(30)
+local timerPhaseCD								= mod:NewStageTimer(30)
 local berserkTimer								= mod:NewBerserkTimer(600)
 
 --Stage One: Elemental Mastery
@@ -184,6 +184,7 @@ mod.vb.damageSpell = "?"
 mod.vb.avoidSpell = "?"
 mod.vb.ultimateSpell = "?"
 mod.vb.damageCount = 0
+mod.vb.zeroCount = 0
 mod.vb.damageTimer = 30
 mod.vb.avoidTimer = 60
 mod.vb.ultTimer = 60
@@ -197,10 +198,11 @@ function mod:OnCombatStart(delay)
 	self.vb.chillCast = 0
 	self.vb.curAltar = false
 	self.vb.damageCount = 0
+	self.vb.zeroCount = 0
 	self.vb.damageSpell = "?"
 	self.vb.avoidSpell = "?"
 	self.vb.ultimateSpell = "?"
-	timerSunderStrikeCD:Start(8-delay)
+	timerSunderStrikeCD:Start(7.2-delay)
 	timerPhaseCD:Start(125-delay)--125-127
 	self.vb.damageTimer = 19.5--Alternating in P1
 	self.vb.avoidTimer = 45
@@ -538,7 +540,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.damageCount = 0
 		self.vb.zeroCount = 0
 		self:SetStage(1)
-		timerSunderStrikeCD:Start(7.4)
+		timerSunderStrikeCD:Start(7.1)
 		if self.vb.stageTotality == 3 then
 			timerPhaseCD:Start(127)--Second intermission (Primal Barrier)
 		else

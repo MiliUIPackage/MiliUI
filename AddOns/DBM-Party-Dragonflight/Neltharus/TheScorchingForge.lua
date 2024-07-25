@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2489, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240714045506")
 mod:SetCreatureID(189478)--Forgemaster Gorek
 mod:SetEncounterID(2612)
 --mod:SetUsedIcons(1, 2, 3)
@@ -31,7 +31,7 @@ local specWarnMightoftheForge					= mod:NewSpecialWarningCount(374635, nil, nil,
 local specWarnBlazinAegis						= mod:NewSpecialWarningMoveAway(374842, nil, nil, nil, 1, 2)
 local yellBlazinAegis							= mod:NewYell(374842)
 local yellBlazinAegisFades						= mod:NewShortFadesYell(374842)
-local specWarnHeatedSwings						= mod:NewSpecialWarningMoveAway(374534, nil, nil, nil, 1, 2)
+local specWarnHeatedSwings						= mod:NewSpecialWarningMoveAwayCount(374534, nil, nil, nil, 1, 2)
 local yellHeatedSwings							= mod:NewYell(374534)
 local yellHeatedSwingsFades						= mod:NewShortFadesYell(374534)
 local specWarnForgestorm						= mod:NewSpecialWarningDodgeCount(374969, nil, nil, nil, 2, 2)

@@ -1,0 +1,28 @@
+## Interface: 100207, 110000, 110002
+## Version: 10.2.52
+## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
+## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r
+## Author: MysticalOS
+## LoadOnDemand: 1
+## RequiredDeps: DBM-Core
+## SavedVariables: DBMWarWithin_AllSavedVars
+## SavedVariablesPerCharacter: DBMWarWithin_SavedStats
+## IconTexture: Interface\AddOns\DBM-Core\textures\dbm_airhorn
+## X-DBM-Mod: 1
+## X-DBM-Mod-Type: WORLDBOSS
+## X-DBM-Mod-Category: WARWITHIN
+## X-DBM-StatTypes: normal
+## X-DBM-Mod-Name: World Bosses (War Within)
+## X-DBM-Mod-Name-zhTW: 世界首領 (地心之戰)
+## X-DBM-Mod-World-Boss: 1
+## X-DBM-Mod-Sort: 110
+## X-DBM-Mod-MapID: 2774
+## X-DBM-Mod-LoadCID: 220999, 221067
+## X-DBM-Mod-MinCoreRevision: 17286
+## X-DBM-Mod-MinExpansion: 10
+## X-Category-zhTW: 團隊
+
+localization.en.lua
+
+AggregationofHorrors.lua
+Orta.lua

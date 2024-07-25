@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2529, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240503055811")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(201774, 201773, 201934)--Krozgoth, Moltannia, Molgoth
 mod:SetEncounterID(2687)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -83,7 +83,7 @@ local specWarnWitheringVulnerability			= mod:NewSpecialWarningDefensive(405914, 
 local specWarnWitheringVulnerabilityTaunt		= mod:NewSpecialWarningTaunt(405914, nil, nil, nil, 1, 2)
 local yellShadowandFlameRepeat					= mod:NewIconRepeatYell(409385, nil, false, 2)
 
-local timerPhaseCD								= mod:NewPhaseTimer(30)
+local timerPhaseCD								= mod:NewStageTimer(30)
 local timerShadowandFlameCD						= mod:NewCDCountTimer(47.4, 409385, nil, nil, nil, 3, nil, DBM_COMMON_L.MYTHIC_ICON)
 local timerGloomConflagCD						= mod:NewCDCountTimer(40, 405437, nil, nil, nil, 3)
 local timerBlisteringTwilightCD					= mod:NewCDCountTimer(40, 405642, 167180, nil, nil, 3)--"Bombs"
@@ -182,7 +182,7 @@ local allTimers = {
 	["hard"] = {
 		----Fire Duder
 		--Flame Slash
-		[403203] = {7, 15.7, 26.7, 15.3, 19.4, 15.8, 18.2, 15.7, 18.6},
+		[403203] = {7, 15.7, 25.5, 15.3, 19.4, 15.8, 18.2, 15.7, 18.6},
 		--Swirling Flame
 		[404896] = {10.6, 14.5, 25.8, 14.1, 20.3, 14.6, 18.2, 14.6, 20.7},
 		--Fiery Meteor
@@ -249,6 +249,7 @@ local allTimers = {
 
 --As computational as this looks, it's purpose is to just filter information overload.
 --Basically, it solves for what should or shouldn't be shown, not what a player should or shouldn't do.
+---@param self DBMMod
 local function updateBossDistance(self)
 	if not self.Options.AdvancedBossFiltering then return end
 	--Check if near or far from Krozgoth
@@ -290,6 +291,7 @@ local function updateBossDistance(self)
 	self:Schedule(2, updateBossDistance, self)
 end
 
+---@param self DBMMod
 local function yellRepeater(self, text)
 	yellShadowandFlameRepeat:Yell(text)
 	self:Schedule(1.5, yellRepeater, self, text)
@@ -477,7 +479,7 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 409385 then
 		self.vb.SandFCount = self.vb.SandFCount + 1
-		warnShadowandFlame:Show(self.vb.SandFCount)
+		warnShadowandFlame:Show()
 		timerShadowandFlameCD:Start(self.vb.SandFCount == 1 and 52 or 47, self.vb.SandFCount+1)
 	end
 end

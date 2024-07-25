@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2474, "DBM-Party-Dragonflight", 1, 1196)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426175442")
+mod:SetRevision("20240601044955")
 mod:SetCreatureID(186121)
 mod:SetEncounterID(2569)
 mod:SetUsedIcons(8)
@@ -78,9 +78,12 @@ function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 373960 then
 		warnDecayigStrength:Show()
-		timerChokingRotcloutCD:Restart(10)
-		timerDecayStrikeCD:Restart(14.5)
-		timerRotburstTotemCD:Restart(22.9)
+		timerChokingRotcloutCD:Stop()
+		timerChokingRotcloutCD:Start(10)
+		timerDecayStrikeCD:Stop()
+		timerDecayStrikeCD:Start(14.5)
+		timerRotburstTotemCD:Stop()
+		timerRotburstTotemCD:Start(22.9)
 		timerDecayingStrengthCD:Start(44.9)
 	elseif spellId == 376170 then
 		specWarnChokingRotcloud:Show()

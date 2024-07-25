@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2493, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240521111455")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(190245)
 mod:SetEncounterID(2614)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -40,7 +40,7 @@ mod:AddTimerLine(DBM:EJ_GetSectionInfo(25120))
 local warnEggsLeft								= mod:NewCountAnnounce(19873, 1)
 local warnGreatstaffsWrath						= mod:NewTargetNoFilterAnnounce(375889, 2)
 local warnClutchwatchersRage					= mod:NewStackAnnounce(375829, 2)
-local warnRapidIncubation						= mod:NewSpellAnnounce(376073, 3)
+local warnRapidIncubation						= mod:NewCountAnnounce(376073, 3)
 local warnMortalWounds							= mod:NewStackAnnounce(378782, 2, nil, "Tank|Healer")
 local warnDiurnasGaze							= mod:NewYouAnnounce(390561, 3)
 
@@ -144,6 +144,7 @@ Key Notes:
 In stage 1 staff is consistently 24 seconds, whether that's actual CD kind of doesn't matter, since other spells have equal CD it'll queue at 24-27sec regardless
 In stage 2, staff has 20 second cd on easy and 17 seconds on normal (at least based on current data) but it'll rarely ever see it's base CD due to spell queuing/ICD
 --]]
+---@param self DBMMod
 local function updateAllTimers(self, ICD, exclusion)
 	if not self.Options.ExperimentalTimerCorrection then return end
 	DBM:Debug("updateAllTimers running", 3)
@@ -211,6 +212,7 @@ local function updateAllTimers(self, ICD, exclusion)
 	end
 end
 
+---@param self DBMMod
 local function resetTankComboState(self)
 	self.vb.tankComboStarted = false
 end
@@ -298,7 +300,7 @@ function mod:SPELL_CAST_START(args)
 		else
 			timerMortalStoneclawsCD:Stop()--Don't print cast refreshed before expired for a recast
 		end
-		local timer = ((self:IsEasy() or self:GetStage(1)) and 21.4 or 7.3)
+		local timer = ((self:IsEasy() or self:GetStage(1)) and 20.3 or 7.3)
 		timerMortalStoneclawsCD:Start(timer, self.vb.tankCombocount+1)
 		updateAllTimers(self, 2, true)
 	elseif spellId == 396269 then
@@ -558,7 +560,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			--On mythic mortal claws swaps to mortal slam, doesn't change on heroic and below
 			if self:IsMythic() then
 				local remainingCombo = timerMortalStoneclawsCD:GetRemaining(self.vb.tankCombocount+1)
-				if remainingCombo then
+				if remainingCombo and remainingCombo > 0 then
 					timerMortalStoneclawsCD:Stop()
 					timerMortalStoneclawsCD:Start(remainingCombo, self.vb.tankCombocount+1)--Does NOT restart anymore, even though on mythic it inherits a cast sequence, it still finishes out previous CD
 				end
@@ -570,7 +572,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			--	timerEGreatstaffoftheBroodkeeperCD:Start(remainingStaff, self.vb.staffCount+1)--Does NOT restart anymore, even though on mythic it inherits a cast sequence, it still finishes out previous CD
 			--end
 			local remainingIcy = timerIcyShroudCD:GetRemaining(self.vb.icyCount+1)
-			if remainingIcy then
+			if remainingIcy and remainingIcy > 0 then
 				timerIcyShroudCD:Stop()
 				timerFrozenShroudCD:Start(remainingIcy, 1)
 			end

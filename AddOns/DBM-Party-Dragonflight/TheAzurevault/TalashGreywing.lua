@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2483, "DBM-Party-Dragonflight", 6, 1203)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240513062426")
+mod:SetRevision("20240601044955")
 mod:SetCreatureID(186737)
 mod:SetEncounterID(2583)
 mod:SetHotfixNoticeRev(20221027000000)
@@ -87,8 +87,10 @@ function mod:SPELL_CAST_START(args)
 		specWarAbsoluteZero:Show(vaultRuin)
 		specWarAbsoluteZero:Play("findshelter")
 		timerAbsoluteZeroCD:Start()
-		timerFrostBombCD:Restart(12.2)
-		timerIcyDevastatorCD:Restart(self:IsMythicPlus() and 19.6 or 23.2)
+		timerFrostBombCD:Stop()
+		timerFrostBombCD:Start(12.2)
+		timerIcyDevastatorCD:Stop()
+		timerIcyDevastatorCD:Start(self:IsMythicPlus() and 19.6 or 23.2)
 	end
 end
 

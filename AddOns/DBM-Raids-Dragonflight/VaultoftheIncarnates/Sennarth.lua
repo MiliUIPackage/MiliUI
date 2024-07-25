@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2482, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240530232513")
+mod:SetRevision("20240714045321")
 mod:SetCreatureID(187967)
 mod:SetEncounterID(2592)
 mod:SetUsedIcons(1, 2, 3)
@@ -42,7 +42,7 @@ local warnChillingBlast							= mod:NewTargetAnnounce(371976, 2)
 local warnEnvelopingWebs						= mod:NewTargetNoFilterAnnounce(372082, 3)
 local warnWrappedInWebs							= mod:NewTargetNoFilterAnnounce(372044, 4)
 local warnCallSpiderlings						= mod:NewCountAnnounce(372238, 2)
-local warnFrostbreathArachnid					= mod:NewSpellAnnounce(-24899, 2)
+local warnFrostbreathArachnid					= mod:NewCountAnnounce(-24899, 2)
 
 local specWarnChillingBlast						= mod:NewSpecialWarningMoveAway(371976, nil, nil, nil, 1, 2)
 local yellChillingBlast							= mod:NewYell(371976)
@@ -51,17 +51,17 @@ local specWarnEnvelopingWebs					= mod:NewSpecialWarningYouPos(372082, nil, nil,
 local yellEnvelopingWebs						= mod:NewShortPosYell(372082)
 local yellEnvelopingWebsFades					= mod:NewIconFadesYell(372082)
 local specWarnStickyWebbing						= mod:NewSpecialWarningStack(372030, nil, 3, nil, nil, 1, 6)
-local specWarnGossamerBurst						= mod:NewSpecialWarningSpell(373405, nil, nil, nil, 2, 12)
+local specWarnGossamerBurst						= mod:NewSpecialWarningCount(373405, nil, nil, nil, 2, 12)
 local specWarnWebBlast							= mod:NewSpecialWarningTaunt(385083, nil, nil, nil, 1, 2)
 local specWarnFreezingBreath					= mod:NewSpecialWarningDodge(374112, nil, nil, nil, 1, 2)
 
 local timerChillingBlastCD						= mod:NewCDCountTimer(18.5, 371976, nil, nil, nil, 3)--18.5-54.5
 local timerEnvelopingWebsCD						= mod:NewCDCountTimer(24, 372082, nil, nil, nil, 3)--24-46.9
-local timerGossamerBurstCD						= mod:NewCDCountTimer(36.9, 373405, nil, nil, nil, 2)--36.9-67.6
+local timerGossamerBurstCD						= mod:NewCDCountTimer(34, 373405, nil, nil, nil, 2)--34-67.6
 local timerCallSpiderlingsCD					= mod:NewCDCountTimer(25.1, 372238, nil, nil, nil, 1)--17.6-37
 local timerFrostbreathArachnidCD				= mod:NewCDCountTimer(98.9, -24899, nil, nil, nil, 1)
 local timerFreezingBreathCD						= mod:NewCDTimer(11.1, 374112, nil, "Tank", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerPhaseCD								= mod:NewPhaseTimer(30)
+local timerPhaseCD								= mod:NewStageTimer(30)
 
 mod:AddInfoFrameOption(372030, false)--Useful raid leader tool, but not needed by everyone
 mod:GroupSpells(372082, 372030, 372044)--Wrapped in webs and sticking webbing with enveloping Webs
@@ -74,7 +74,7 @@ local warnSuffocatinWebs							= mod:NewTargetNoFilterAnnounce(373048, 3)
 local specWarnSuffocatingWebs						= mod:NewSpecialWarningYouPos(373048, nil, nil, nil, 1, 2)
 local yellSuffocatingWebs							= mod:NewShortPosYell(373048)
 local yellSuffocatingWebsFades						= mod:NewIconFadesYell(373048)
-local specWarnRepellingBurst						= mod:NewSpecialWarningSpell(371983, nil, nil, nil, 2, 12)
+local specWarnRepellingBurst						= mod:NewSpecialWarningCount(371983, nil, nil, nil, 2, 12)
 
 local timerSuffocatingWebsCD						= mod:NewCDCountTimer(38.8, 373048, nil, nil, nil, 3)--38-46
 local timerRepellingBurstCD							= mod:NewCDCountTimer(33.9, 371983, nil, nil, nil, 2)--33-37 (unknown on normal
@@ -240,10 +240,7 @@ function mod:SPELL_CAST_START(args)
 		self.vb.burstCount = self.vb.burstCount + 1
 		specWarnGossamerBurst:Show(self.vb.burstCount)
 		specWarnGossamerBurst:Play("pullin")
-		local timer = self:GetFromTimersTable(allTimers, difficultyName, 1, spellId, self.vb.burstCount+1)
-		if timer then
-			timerGossamerBurstCD:Start(timer, self.vb.burstCount+1)
-		end
+		timerGossamerBurstCD:Start(34, self.vb.burstCount+1)
 	elseif spellId == 374112 then
 		if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
 			specWarnFreezingBreath:Show()

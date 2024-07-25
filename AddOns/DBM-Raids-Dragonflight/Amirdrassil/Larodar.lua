@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2553, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240315041745")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(208445)
 mod:SetEncounterID(2731)
 mod:SetUsedIcons(6, 7, 8)
@@ -231,6 +231,7 @@ local allTimers = {
 	},
 }
 
+---@param self DBMMod
 local function smolderingYellRepeater(self)
 	local health = UnitHealth("player") / UnitHealthMax("player") * 100
 	if health < 75 then -- Only let players know when you are below 75%

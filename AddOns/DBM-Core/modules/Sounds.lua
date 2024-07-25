@@ -1,5 +1,4 @@
-local isRetail = WOW_PROJECT_ID == (WOW_PROJECT_MAINLINE or 1)
-local isWrath = WOW_PROJECT_ID == (WOW_PROJECT_WRATH_CLASSIC or 11)
+local private = select(2, ...)
 
 local tinsert, unpack = table.insert, unpack
 
@@ -17,8 +16,6 @@ do
 		{	text	= "Pewsey",value 	= "Pewsey", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Pewsey\\", max = 10},
 		{	text	= "Bear (Child)",value = "Bear", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Bear\\", max = 10},
 		{	text	= "Moshne",	value 	= "Mosh", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Mosh\\", max = 5},
-		{	text	= "Anshlun (ptBR)",value = "Anshlun", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Anshlun\\", max = 10},
-		{	text	= "Neryssa (ptBR)",value = "Neryssa", path = "Interface\\AddOns\\DBM-Core\\Sounds\\Neryssa\\", max = 10},
 	}
 	local hasCached = false
 	local cachedTable
@@ -75,7 +72,7 @@ end
 do
 	local defeat
 
-	if isRetail then
+	if private.isRetail then
 		defeat = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
@@ -91,7 +88,18 @@ do
 			{text = "Valithria: Failures",value = 563333, length=4},--"Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg"
 			{text = "Yogg-Saron: Laugh",value = 564859, length=4},--"Sound\\Creature\\YoggSaron\\UR_YoggSaron_Slay01.ogg"
 		}
-	elseif isWrath then
+	elseif private.isCata then
+		defeat = {
+			{text = CL.NONE,value  = "None"},
+			{text = CL.RANDOM,value  = "Random"},
+			{text = "Alizabal: Incompetent Raiders",value = 572130, length=4},--"Sound\\Creature\\ALIZABAL\\VO_BH_ALIZABAL_RESET_01.ogg"
+			{text = "Kologarn: You Fail",value = 553345, length=4},--"Sound\\Creature\\Kologarn\\UR_Kologarn_Slay02.ogg"
+			{text = "Hodir: Tragic",value = 552023, length=4},--"Sound\\Creature\\Hodir\\UR_Hodir_Slay01.ogg"
+			{text = "Thorim: Failures",value = 562111, length=4},--"Sound\\Creature\\Thorim\\UR_Thorim_P1Wipe01.ogg"
+			{text = "Valithria: Failures",value = 563333, length=4},--"Sound\\Creature\\ValithriaDreamwalker\\IC_Valithria_Berserk01.ogg"
+			{text = "Yogg-Saron: Laugh",value = 564859, length=4},--"Sound\\Creature\\YoggSaron\\UR_YoggSaron_Slay01.ogg"
+		}
+	elseif private.isWrath then
 		defeat = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
@@ -134,7 +142,7 @@ do
 	-- Filtered list of media assigned to dungeon/raid background music catagory
 	local dungeonMusic
 
-	if isRetail then
+	if private.isRetail then
 		dungeonMusic = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
@@ -142,7 +150,14 @@ do
 			{text = "Nightsong",value = 441705, length=160},--"Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3" Soundkit: 71181
 			{text = "Ulduar: Titan Orchestra",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
 		}
-	elseif isWrath then
+	elseif private.isCata then
+		dungeonMusic = {
+			{text = CL.NONE,value  = "None"},
+			{text = CL.RANDOM,value  = "Random"},
+			{text = "Nightsong",value = 441705, length=160},--"Sound\\Music\\cataclysm\\MUS_NightElves_GU01.mp3" Soundkit: 71181
+			{text = "Ulduar: Titan Orchestra",value = 298910, length=102},--"Sound\\Music\\ZoneMusic\\UlduarRaidInt\\UR_TitanOrchestraIntro.mp3" Soundkit: 15873
+		}
+	elseif private.isWrath then
 		dungeonMusic = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
@@ -181,7 +196,7 @@ do
 	-- Filtered list of media assigned to boss/encounter background music catagory
 	local battleMusic
 
-	if isRetail then
+	if private.isRetail then
 		battleMusic = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},
@@ -189,7 +204,7 @@ do
 			{text = "Bronze Jam",value = 350021, length=116},--"Sound\\Music\\ZoneMusic\\IcecrownRaid\\IR_BronzeJam.mp3" Soundkit: 118800
 			{text = "Invincible",value = 1100052, length=197},--"Sound\\Music\\Draenor\\MUS_Invincible.mp3" Soundkit: 49536
 		}
-	elseif isWrath then
+	elseif private.isWrath then
 		battleMusic = {
 			{text = CL.NONE,value  = "None"},
 			{text = CL.RANDOM,value  = "Random"},

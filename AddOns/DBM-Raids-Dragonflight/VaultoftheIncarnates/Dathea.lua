@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2502, "DBM-Raids-Dragonflight", 3, 1200)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240426174649")
+mod:SetRevision("20240702200348")
 mod:SetCreatureID(189813)
 mod:SetEncounterID(2635)
 mod:SetUsedIcons(8, 7, 6, 5, 4)
@@ -119,20 +119,23 @@ function mod:SPELL_CAST_START(args)
 		specWarnCoalescingStorm:Show(self.vb.stormCount)
 		specWarnCoalescingStorm:Play("mobsoon")
 		--Timers reset by storm
+		timerConductiveMarkCD:Stop()
+		timerZephyrSlamCD:Stop()
+		timerCrosswindsCD:Stop()
 		if self:IsMythic() then
-			timerConductiveMarkCD:Restart(19.5, self.vb.markCount+1)
-			timerZephyrSlamCD:Restart(30, self.vb.slamCount+1)--30-33
-			timerCrosswindsCD:Restart(40, self.vb.crosswindCount+1)--40-45, but always a minimum of 40 from heer
+			timerConductiveMarkCD:Start(19.5, self.vb.markCount+1)
+			timerZephyrSlamCD:Start(30, self.vb.slamCount+1)--30-33
+			timerCrosswindsCD:Start(40, self.vb.crosswindCount+1)--40-45, but always a minimum of 40 from heer
 			timerColaescingStormCD:Start(86.2, self.vb.stormCount+1)
 		elseif self:IsHeroic() then
-			timerZephyrSlamCD:Restart(20.7, self.vb.slamCount+1)
-			timerCrosswindsCD:Restart(30.4, self.vb.crosswindCount+1)--40-45, but always a minimum of 40 from heer
-			timerConductiveMarkCD:Restart(35, self.vb.markCount+1)
+			timerZephyrSlamCD:Start(20.7, self.vb.slamCount+1)
+			timerCrosswindsCD:Start(30.4, self.vb.crosswindCount+1)--40-45, but always a minimum of 40 from heer
+			timerConductiveMarkCD:Start(35, self.vb.markCount+1)
 			timerColaescingStormCD:Start(75.5, self.vb.stormCount+1)
 		else
-			timerConductiveMarkCD:Restart(9.7, self.vb.markCount+1)
-			timerZephyrSlamCD:Restart(15.7, self.vb.slamCount+1)
-			timerCrosswindsCD:Restart(34, self.vb.crosswindCount+1)
+			timerConductiveMarkCD:Start(9.7, self.vb.markCount+1)
+			timerZephyrSlamCD:Start(14.6, self.vb.slamCount+1)
+			timerCrosswindsCD:Start(34, self.vb.crosswindCount+1)
 			timerColaescingStormCD:Start(86.2, self.vb.stormCount+1)
 		end
 	elseif spellId == 388302 then
@@ -143,9 +146,10 @@ function mod:SPELL_CAST_START(args)
 		self.vb.cycloneCount = self.vb.cycloneCount + 1
 		specWarnCyclone:Show(self.vb.cycloneCount)
 		specWarnCyclone:Play("pullin")
-		timerCycloneCD:Start(self:IsHeroic() and 75 or 86.2, self.vb.cycloneCount+1)
+		timerCycloneCD:Start(self:IsHeroic() and 72.8 or 86.2, self.vb.cycloneCount+1)
 		if timerZephyrSlamCD:GetRemaining(self.vb.slamCount+1) < 13.2 then
-			timerZephyrSlamCD:Restart(13.2, self.vb.slamCount+1)--13.2-15
+			timerZephyrSlamCD:Stop()
+			timerZephyrSlamCD:Start(13.2, self.vb.slamCount+1)--13.2-15
 		end
 	elseif spellId == 388410 then
 		self.vb.crosswindCount = self.vb.crosswindCount + 1
@@ -156,7 +160,8 @@ function mod:SPELL_CAST_START(args)
 			timerCrosswindsCD:Start(nil, self.vb.crosswindCount+1)
 		end
 		if timerZephyrSlamCD:GetRemaining(self.vb.slamCount+1) < 6 then
-			timerZephyrSlamCD:Restart(6, self.vb.slamCount+1)--6-8
+			timerZephyrSlamCD:Stop()
+			timerZephyrSlamCD:Start(6, self.vb.slamCount+1)--6-8
 		end
 	elseif spellId == 375580 then
 		self.vb.slamCount = self.vb.slamCount + 1

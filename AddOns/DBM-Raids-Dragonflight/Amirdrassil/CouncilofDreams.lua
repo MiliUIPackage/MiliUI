@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2555, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240428104643")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(208363, 208365, 208367)--Urctos, Aerwynn, Pip
 mod:SetEncounterID(2728)
 mod:SetUsedIcons(1, 2, 3, 4)
@@ -116,6 +116,7 @@ mod.vb.windsCount = 0
 local nextSpecial = 0
 local playerSong = false
 
+---@param self DBMMod
 local function castBeforeSpecial(self, cooldown)
 	if (nextSpecial - GetTime()) > cooldown then
 		return true
@@ -123,6 +124,7 @@ local function castBeforeSpecial(self, cooldown)
 	return false
 end
 
+---@param self DBMMod
 local function specialInterrupted(self, spellId)
 	self.vb.specialsActive = self.vb.specialsActive - 1
 	--Timers that always reset on special end, regardless of who's special it is

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2475, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240521083837")
+mod:SetRevision("20240521111647")
 mod:SetCreatureID(184580, 184581, 184582)
 mod:SetEncounterID(2555)
 mod:SetBossHPInfoToHighest()
@@ -102,13 +102,6 @@ function mod:OnCombatEnd()
 		DBM.RangeCheck:Hide()
 	end
 end
-
-local UnitPower = UnitPower
-DBM.Test:RegisterLocalHook("UnitPower", function(val)
-	local old = UnitPower
-	UnitPower = val
-	return old
-end)
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId

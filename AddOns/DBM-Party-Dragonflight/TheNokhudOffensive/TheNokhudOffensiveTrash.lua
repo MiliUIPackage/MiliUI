@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheNokhudOffensiveTrash", "DBM-Party-Dragonflight", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240511020640")
+mod:SetRevision("20240621023045")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 
@@ -52,15 +52,15 @@ local specWarnDisruptiveShout				= mod:NewSpecialWarningInterrupt(384365, "HasIn
 
 local timerRallytheClanCD					= mod:NewCDNPTimer(20.6, 383823, nil, nil, nil, 5)--20-23
 local timerWarStompCD						= mod:NewCDNPTimer(15.7, 384336, nil, nil, nil, 3)
---local timerRainofArrowsCD					= mod:NewCDNPTimer(15.7, 384476, nil, nil, nil, 3)
+local timerRainofArrowsCD					= mod:NewCDNPTimer(18.2, 384476, nil, nil, nil, 3)
 local timerRottingWindCD					= mod:NewCDNPTimer(23, 436841, nil, nil, nil, 2)
 local timerSwiftWindCD						= mod:NewCDNPTimer(20.6, 387596, nil, nil, nil, 5)
 local timerSwiftStabCD						= mod:NewCDNPTimer(13.4, 381683, nil, nil, nil, 5)--13.4-26.9 (basically casts can be skipped via stuns
 local timerThunderstrikeCD					= mod:NewCDNPTimer(4.9, 387125, nil, nil, nil, 5)
 local timerVehementChargeCD					= mod:NewCDNPTimer(16.3, 382277, nil, nil, nil, 3)--16.3-17.1
-local timerMortalStrikeCD					= mod:NewCDNPTimer(15.7, 388801, nil, nil, nil, 5)
+local timerMortalStrikeCD					= mod:NewCDNPTimer(15.1, 388801, nil, nil, nil, 5)
 local timerDisruptingShoutCD				= mod:NewCDNPTimer(21.8, 384365, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--20-30ish
-local timerTempestCD						= mod:NewCDNPTimer(20.6, 386024, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--20-25
+local timerTempestCD						= mod:NewCDNPTimer(18.2, 386024, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--20-25
 local timerDesecratingRoarCD				= mod:NewCDNPTimer(15.8, 387440, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerDeathBoltVolleyCD				= mod:NewCDNPTimer(10.9, 387411, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerBloodcurdlingShoutCD				= mod:NewCDNPTimer(19.1, 373395, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
@@ -175,7 +175,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 384476 then
---		timerRainofArrowsCD:Start(nil, args.sourceGUID)
+		timerRainofArrowsCD:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 2) then
 			specWarnRainofArrows:Show()
 			specWarnRainofArrows:Play("watchstep")
@@ -225,7 +225,7 @@ function mod:UNIT_DIED(args)
 	elseif cid == 193462 then--Batak
 		timerBloodcurdlingShoutCD:Stop(args.destGUID)
 	elseif cid == 192789 then--Nokhud Longbow
-		--timerRainofArrowsCD:Stop(args.destGUID)
+		timerRainofArrowsCD:Stop(args.destGUID)
 	elseif cid == 195876 then--Desecrated Ohuna
 		timerRottingWindCD:Stop(args.destGUID)
 	elseif cid == 195877 then--Risen Mystic

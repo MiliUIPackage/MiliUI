@@ -44,7 +44,13 @@ local mt = {__index = bossModPrototype}
 ---@field soloChallenge boolean?
 ---@field disableHealthCombat boolean?
 ---@field isCustomMod boolean?
+---@field sendMainBossGUID boolean? Used to force enable nameplate timers for main boss
 
+---@param name string|number Name of mod is usually journalID for auto translation or a unique string
+---@param modId string? Must match parent module name (ie DBM-Party-Classic) or it won't appear in GUI
+---@param modSubTab number? Defines sub tab for mod in GUI
+---@param instanceId number? Encounter Journal Instance ID
+---@param nameModifier number|function?
 function DBM:NewMod(name, modId, modSubTab, instanceId, nameModifier)
 	name = tostring(name) -- the name should never be a number of something as it confuses sync handlers that just receive some string and try to get the mod from it
 	if name == "DBM-ProfilesDummy" then return {} end
@@ -89,7 +95,6 @@ function DBM:NewMod(name, modId, modSubTab, instanceId, nameModifier)
 			inCombat = false,
 			isTrashMod = false,
 			isDummyMod = false,
-			NoSortAnnounce = false
 		},
 		mt
 	)
@@ -151,6 +156,7 @@ function DBM:NewMod(name, modId, modSubTab, instanceId, nameModifier)
 	return obj
 end
 
+---@param name string|number
 ---@return DBMMod
 function DBM:GetModByName(name)
 	return modsById[tostring(name)]
@@ -276,6 +282,11 @@ function bossModPrototype:GetStage(stage, checkType, useTotal)
 	end
 end
 
+---Used to flag an event during a boss fight that affects Raid affixes
+---@param eventType number 0 = Stop, 1 = Start, 2 = extend due to spell queue/delay
+---@param stage number?
+---@param timeAdjust number? Used to define extend amount for eventType 2
+---@param spellDebit boolean? The extended timer is debited from next cast
 function bossModPrototype:AffixEvent(eventType, stage, timeAdjust, spellDebit)
 	if self.inCombat then--Safety, in event mod manages to run any phase change calls out of combat/during a wipe we'll just safely ignore it
 		DBM:FireEvent("DBM_AffixEvent", self, self.id, eventType, self.multiEncounterPullDetection and self.multiEncounterPullDetection[1] or self.encounterId, stage or 1, timeAdjust, spellDebit)--Mod, modId, type (0 end, 1, begin, 2, timerExtend), Encounter Id (if available), stage, amount of time to extend to, spellDebit, whether to subtrack the previous extend arg from next timer
@@ -322,7 +333,7 @@ function bossModPrototype:IsValidWarning(sourceGUID, customunitID, loose, allowF
 end
 
 function bossModPrototype:IsCriteriaCompleted(criteriaIDToCheck)
-	if not private.isRetail then
+	if not private.isRetail then--Fixme if MoP classic becomes a thing
 		print("bossModPrototype:IsCriteriaCompleted should not be called in classic, report this message")
 		return false
 	end
@@ -331,15 +342,24 @@ function bossModPrototype:IsCriteriaCompleted(criteriaIDToCheck)
 		return false
 	end
 	local _, _, numCriteria = C_Scenario.GetStepInfo()
+	local GetCriteriaInfo = C_ScenarioInfo.GetCriteriaInfo or C_Scenario.GetCriteriaInfo
 	for i = 1, numCriteria do
-		local _, _, criteriaCompleted, _, _, _, _, _, criteriaID = C_Scenario.GetCriteriaInfo(i)
-		if criteriaID == criteriaIDToCheck and criteriaCompleted then
+		local info, _, criteriaCompleted, _, _, _, _, _, criteriaID = GetCriteriaInfo(i)
+		--Quick/lazy fix for War Within. Cleanup later when all clients are updated
+		if type(info) == "table" then
+			criteriaCompleted = info.completed
+			criteriaID = info.criteriaID
+		end
+		if criteriaID and criteriaID == criteriaIDToCheck and criteriaCompleted then
 			return true
 		end
 	end
 	return false
 end
 
+---Used to restrict enclosed code to only run if player is under a certain latency threshold
+---@param custom number? Custom latency threshold to check against, otherwise global threshold is used
+---@return boolean
 function bossModPrototype:LatencyCheck(custom)
 	return select(4, GetNetStats()) < (custom or DBM.Options.LatencyThreshold)
 end
@@ -572,24 +592,7 @@ do
 end
 
 do
-	--lazyCheck mostly for migration, doesn't distinquish dispel types
-	local lazyCheck = {
-		[88423] = true,--Druid: Nature's Cure (Dps: Magic only. Healer: Magic, Curse, Poison)
-		[2782] = true,--Druid: Remove Corruption (Curse and Poison)
-		[115450] = true,--Monk: Detox (Healer) (Magic, Poison, and Disease)
-		[218164] = true,--Monk: Detox (non Healer) (Poison and Disease)
-		[527] = true,--Priest: Purify (Magic and Disease)
-		[213634] = true,--Priest: Purify Disease (Disease)
-		[4987] = true,--Paladin: Cleanse ( Dps/Healer: Magic. Healer Only: Poison, Disease)
-		[51886] = true,--Shaman: Cleanse Spirit (Curse)
-		[77130] = true,--Shaman: Purify Spirit (Magic and Curse)
-		[475] = true,--Mage: Remove Curse (Curse)
-		[89808] = true,--Warlock: Singe Magic (Magic)
-		[360823] = true,--Evoker: Naturalize (Magic and Poison)
-		[374251] = true,--Evoker: Cauterizing Flame (Bleed, Poison, Curse, and Disease)
-		[365585] = true,--Evoker: Expunge (Poison)
-	}
-	--Obviously only checks spells relevant for the dispel type
+	--Only checks spells relevant for the dispel type
 	---@enum (key) DispelType
 	local typeCheck = {
 		["magic"] = {
@@ -666,13 +669,7 @@ do
 				end
 			end
 		else--use lazy check until all mods are migrated to define type
-			for spellID, _ in pairs(lazyCheck) do
-				if IsSpellKnown(spellID) and (DBM:GetSpellCooldown(spellID)) == 0 then--Spell is known and not on cooldown
-					lastCheck = GetTime()
-					lastReturn = true
-					return true
-				end
-			end
+			error("DBM CheckDispelFilter must provide dispel type")
 		end
 		lastCheck = GetTime()
 		lastReturn = false
@@ -866,14 +863,22 @@ function bossModPrototype:DisablePrivateAuraSounds()
 	self.paSounds = nil
 end
 
+---@param t number
+---@param f function
+---@param ... any?
 function bossModPrototype:Schedule(t, f, ...)
 	return scheduler:Schedule(t, f, self, ...)
 end
 
+---@param f function? If nil, all schedules for this mod are unscheduled
+---@param ... any?
 function bossModPrototype:Unschedule(f, ...)
 	return scheduler:Unschedule(f, self, ...)
 end
 
+---@param t number
+---@param method string
+---@param ... any?
 function bossModPrototype:ScheduleMethod(t, method, ...)
 	if not self[method] then
 		error(("Method %s does not exist"):format(tostring(method)), 2)
@@ -884,6 +889,8 @@ function bossModPrototype:ScheduleMethod(t, method, ...)
 end
 bossModPrototype.ScheduleEvent = bossModPrototype.ScheduleMethod
 
+---@param method string
+---@param ... any?
 function bossModPrototype:UnscheduleMethod(method, ...)
 	if not self[method] then
 		error(("Method %s does not exist"):format(tostring(method)), 2)

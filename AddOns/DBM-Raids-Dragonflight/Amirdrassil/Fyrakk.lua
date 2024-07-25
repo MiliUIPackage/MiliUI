@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2519, "DBM-Raids-Dragonflight", 1, 1207)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240423043800")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(204931)
 
 mod:SetEncounterID(2677)
@@ -33,7 +33,6 @@ mod:RegisterEventsInCombat(
  or ability.id = 417807 and type = "applydebuff"
 --]]
 --TODO, tank swap stacks/when to taunt in stage 3, or maybe periods of time it shoudln't happen on mythic (if holding seed and shit going on, don't distract with taunt warning type deal)
---TODO, more common locals/short names applied to mod?
 --General
 local warnPhase										= mod:NewPhaseChangeAnnounce(2, 2, nil, nil, nil, nil, nil, 2)
 
@@ -188,6 +187,7 @@ local allTimers = {
 	},
 }
 
+---@param self DBMMod
 local function blazeLoop(self)
 	self.vb.blazeCount = self.vb.blazeCount + 1
 	warnBlaze:Show(self.vb.blazeCount)
@@ -211,6 +211,7 @@ local function blazeLoop(self)
 	end
 end
 
+---@param self DBMMod
 local function eternalFireLoop(self)
 	self.vb.firestormCount = self.vb.firestormCount + 1
 	warnEternalFirestorm:Show(self.vb.firestormCount)
@@ -219,6 +220,7 @@ local function eternalFireLoop(self)
 	self:Schedule(timer, eternalFireLoop, self)
 end
 
+---@param self DBMMod
 local function eternalFireSwirlLoop(self)
 	self.vb.swirlCount = self.vb.swirlCount + 1
 	warnEternalFirestormSwirl:Show(self.vb.swirlCount)
@@ -230,6 +232,7 @@ local function eternalFireSwirlLoop(self)
 end
 
 --Countmod inherits firestorm count on initial then iterates on loop
+---@param self DBMMod
 local function mythicDebuffs(self)
 	self.vb.debuffsCount = self.vb.debuffsCount + 1
 	warnMythicDebuffs:Show(self.vb.debuffsCount)
@@ -237,6 +240,7 @@ local function mythicDebuffs(self)
 	self:Schedule(23, mythicDebuffs, self)
 end
 
+---@param self DBMMod
 local function orbsLoop(self)
 	self.vb.orbsCount = self.vb.orbsCount + 1
 	warnShadowflameOrbs:Show(self.vb.orbsCount)
@@ -267,12 +271,12 @@ function mod:OnCombatStart(delay)
 	--Hopefully the API doesn't mind registering 16 private auras at same time on pull
 	--It's not DBMs fault designers got carried away :D
 	self:EnablePrivateAuraSound(419060, "runout", 2)--Firestorm
-	self:EnablePrivateAuraSound(414187, "targetyou", 2)--Blaze
-	self:EnablePrivateAuraSound(421825, "targetyou", 2, 414187)--Register Additional blaze Ids (6 in total)
-	self:EnablePrivateAuraSound(421826, "targetyou", 2, 414187)--Register Additional blaze Ids (6 in total)
-	self:EnablePrivateAuraSound(421827, "targetyou", 2, 414187)--Register Additional blaze Ids (6 in total)
-	self:EnablePrivateAuraSound(421828, "targetyou", 2, 414187)--Register Additional blaze Ids (6 in total)
-	self:EnablePrivateAuraSound(421829, "targetyou", 2, 414187)--Register Additional blaze Ids (6 in total)
+	self:EnablePrivateAuraSound(414187, "lineyou", 17)--Blaze
+	self:EnablePrivateAuraSound(421825, "lineyou", 17, 414187)--Register Additional blaze Ids (6 in total)
+	self:EnablePrivateAuraSound(421826, "lineyou", 17, 414187)--Register Additional blaze Ids (6 in total)
+	self:EnablePrivateAuraSound(421827, "lineyou", 17, 414187)--Register Additional blaze Ids (6 in total)
+	self:EnablePrivateAuraSound(421828, "lineyou", 17, 414187)--Register Additional blaze Ids (6 in total)
+	self:EnablePrivateAuraSound(421829, "lineyou", 17, 414187)--Register Additional blaze Ids (6 in total)
 	self:EnablePrivateAuraSound(422520, "runout", 2)--Greater Firestorm
 	self:EnablePrivateAuraSound(423601, "seedyou", 15)--Seed of Amirdrassil
 	self:EnablePrivateAuraSound(430048, "seedyou", 15)--Corrupted Seed

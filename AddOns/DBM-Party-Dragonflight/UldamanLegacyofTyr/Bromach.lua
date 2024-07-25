@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2487, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240513062426")
+mod:SetRevision("20240706220158")
 mod:SetCreatureID(184018)
 mod:SetEncounterID(2556)
 mod:SetUsedIcons(8)
@@ -56,7 +56,20 @@ function mod:OnCombatStart(delay)
 	timerThunderingSlamCD:Start(12.1-delay, 1)
 	timerQuakingTotemCD:Start(20.4-delay, 1)
 	timerBloodlustCD:Start(27-delay)
+	--Trash is often pulled with this boss, so we want to enable trash mod functionality during fight
+	local trashMod = DBM:GetModByName("UldamanLegacyofTyrTrash")
+	if trashMod then
+		trashMod.isTrashModBossFightAllowed = true
+	end
 end
+
+function mod:OnCombatEnd()
+	local trashMod = DBM:GetModByName("UldamanLegacyofTyrTrash")
+	if trashMod then
+		trashMod.isTrashModBossFightAllowed = false
+	end
+end
+
 
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId

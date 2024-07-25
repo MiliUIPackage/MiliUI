@@ -16,8 +16,8 @@ local DBM, DBM_OPTION_SPACER = DBM, DBM_OPTION_SPACER
 local playerName, realmName, playerLevel = UnitName("player"), GetRealmName(), UnitLevel("player")
 
 StaticPopupDialogs["IMPORTPROFILE_ERROR"] = {
-	text = "There are one or more errors importing this profile. Please see the chat for more information. Would you like to continue and reset found errors to default?",
-	button1 = "Import and fix",
+	text = "匯入此設定檔有一個或多個錯誤。 請參閱聊天以獲取更多訊息。 您想繼續並重置錯誤回復預設嗎？",
+	button1 = "匯入與修正",
 	button2 = "No",
 	OnAccept = function(self)
 		self.importFunc()
@@ -93,6 +93,15 @@ local challengeModeIds = {
 	[456] = 643, -- Throne of the Tides
 	[463] = 2579, -- Dawn of the Infinite: Galakrond's Fall
 	[464] = 2579, -- Dawn of the Infinite: Murozond's Rise
+	[499] = 2649, -- Priory of the Sacred Flame
+	[500] = 2648, -- The Rookery
+	[501] = 2652, -- The Stonevault
+	[502] = 2669, -- City of Threads
+	[503] = 2660, -- Ara-Kara, City of Echoes
+	[504] = 2651, -- Darkflame Cleft
+	[505] = 2662, -- The Dawnbreaker
+	[506] = 2661, -- Cinderbrew Meadery
+	[507] = 670, -- Grim Batol
 }
 
 do
@@ -312,7 +321,7 @@ do
 
 	function DBM_GUI:CreateExportProfile(export)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -325,7 +334,7 @@ do
 
 	function DBM_GUI:CreateImportProfile(importFunc)
 		if not canWeWork then
-			DBM:AddMsg("Missing required libraries to export.")
+			DBM:AddMsg("缺少需要的函數庫來匯出。")
 			return
 		end
 		if not popupFrame then
@@ -690,7 +699,7 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 				---@diagnostic disable-next-line: inject-field
 				DBM:GetModByName(id).Options = importTable[id]
 			end
-			DBM:AddMsg("Profile imported.")
+			DBM:AddMsg("設定檔已匯入。")
 		end
 
 		local importExportProfilesArea = panel:CreateArea(L.Area_ImportExportProfile)
@@ -854,10 +863,10 @@ function DBM_GUI:CreateBossModTab(addon, panel, subtab)
 					lastArea = lastArea + 1
 					local section = sections[lastArea]
 					section.header:SetText(statTypes[statType])
-					local kills, pulls, bestRank, bestTime = mod.stats[statType .. "Kills"] or 0, mod.stats[statType .. "Pulls"] or 0, mod.stats[statType .. "BestRank"] or 0, mod.stats[statType .. "BestTime"]
+					local kills, pulls, bestRank, bestTime = mod.stats[statType .. "Kills"] or 0, mod.stats[statType .. "Pulls"] or 0, mod.stats["challengeBestRank"] or 0, mod.stats[statType .. "BestTime"]
 					section.value1:SetText(kills)
 					section.value2:SetText(pulls - kills)
-					if statType == "challenge" and bestRank > 0 then
+					if bestRank > 0 then--statType == "challenge" and
 						section.value3:SetText(bestTime and ("%d:%02d (%d)"):format(mfloor(bestTime / 60), bestTime % 60, bestRank) or "-")
 					else
 						section.value3:SetText(bestTime and ("%d:%02d"):format(mfloor(bestTime / 60), bestTime % 60) or "-")

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2524, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231230233732")
+mod:SetRevision("20240714045321")
 mod:SetCreatureID(199659)--Warlord Kagni
 mod:SetEncounterID(2682)
 mod:SetHotfixNoticeRev(20230619000000)
@@ -184,7 +184,7 @@ function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 401258 then
 		if self:IsTanking("player", "boss1", nil, true) then
-			specWarnHeavyCudgel:Show(self.vb.cudgelCount+1)
+			specWarnHeavyCudgel:Show()
 			specWarnHeavyCudgel:Play("defensive")
 		end
 		--Timers moved to success event

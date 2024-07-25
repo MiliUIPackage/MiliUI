@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AlgetharAcademyTrash", "DBM-Party-Dragonflight", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240511020640")
+mod:SetRevision("20240622210644")
 --mod:SetModelID(47785)
 mod:SetZone(2526)
 
@@ -52,11 +52,11 @@ local timerDeadlyWindsCD						= mod:NewCDNPTimer(10.9, 378003, nil, nil, nil, 3)
 local timerExpelIntrudersCD						= mod:NewCDNPTimer(26.6, 377912, nil, nil, nil, 2, nil, DBM_COMMON_L.DEADLY_ICON)
 local timerViciousAmbushCD						= mod:NewCDNPTimer(14.5, 388984, nil, nil, nil, 3)
 local timerAstralWhirlwindCD					= mod:NewCDNPTimer(18.2, 387910, nil, "Melee", nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
-local timerAstralBombCD							= mod:NewCDNPTimer(18.2, 387843, nil, nil, nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
+local timerAstralBombCD							= mod:NewCDNPTimer(17, 387843, nil, nil, nil, 3)--These mob packs are heavily stunned and CD can be delayed by stuns
 local timerVicousLungeCD						= mod:NewCDNPTimer(11.4, 389054, nil, nil, nil, 3)
 local timerSeveringSlashCD						= mod:NewCDNPTimer(14.3, 388911, nil, nil, nil, 5)
 
-mod:AddBoolOption("AGBuffs", true)
+mod:AddGossipOption(true, "Buff")
 
 --local playerName = UnitName("player")
 
@@ -206,7 +206,7 @@ function mod:GOSSIP_SHOW()
 	local gossipOptionID = self:GetGossipID()
 	if gossipOptionID then
 		--Black, Bronze, Blue, Red, Green
-		if self.Options.AGBuffs and (gossipOptionID == 107065 or gossipOptionID == 107081 or gossipOptionID == 107082 or gossipOptionID == 107088 or gossipOptionID == 107083) then -- Buffs
+		if self.Options.AutoGossipBuff and (gossipOptionID == 107065 or gossipOptionID == 107081 or gossipOptionID == 107082 or gossipOptionID == 107088 or gossipOptionID == 107083) then -- Buffs
 			self:SelectGossip(gossipOptionID)
 		end
 	end

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2520, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240502024538")
+mod:SetRevision("20240629030018")
 mod:SetCreatureID(201754)
 mod:SetEncounterID(2685)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -45,7 +45,7 @@ local specWarnOblivionStack					= mod:NewSpecialWarningStack(401951, nil, 6, nil
 local specWarnEmptynessBetweenStars			= mod:NewSpecialWarningYou(401215, nil, nil, nil, 1, 5)
 local specWarnGTFO							= mod:NewSpecialWarningGTFO(406989, nil, nil, nil, 1, 8)
 
-local timerPhaseCD							= mod:NewPhaseTimer(30)
+local timerPhaseCD							= mod:NewStageTimer(30)
 local timerEmptynessBetweenStars			= mod:NewBuffFadesTimer(15, 401215, nil, nil, nil, 3)
 local berserkTimer							= mod:NewBerserkTimer(600)
 
@@ -440,7 +440,8 @@ function mod:SPELL_CAST_START(args)
 			timerMassDisintegrateCD:Stop()
 			timerSearingBreathCD:Stop()
 			timerBurningClawsCD:Stop()
-			timerPhaseCD:Restart(11)
+			timerPhaseCD:Stop()
+			timerPhaseCD:Start(11)
 		end
 	elseif spellId == 401500 then
 		self.vb.bombCount = self.vb.bombCount + 1
@@ -720,7 +721,8 @@ function mod:SPELL_AURA_APPLIED(args)
 				warnBurningClaws:Show(args.destName, amount)
 			end
 		end
-		timerBurningClaws:Restart(27, args.destName)
+		timerBurningClaws:Stop()
+		timerBurningClaws:Start(27, args.destName)
 	elseif spellId == 411241 then
 		if not args:IsPlayer() and not UnitIsDeadOrGhost("player") then--and not DBM:UnitDebuff("player", spellId)
 			specWarnVoidClawsTaunt:Show(args.destName)
@@ -740,7 +742,8 @@ function mod:SPELL_AURA_APPLIED(args)
 				yellVoidClawsFades:Countdown(spellId)
 			end
 		end
-		timerVoidClaws:Restart(18, args.destName)
+		timerVoidClaws:Stop()
+		timerVoidClaws:Start(18, args.destName)
 	elseif spellId == 408429 then
 		local uId = DBM:GetRaidUnitId(args.destName)
 		if self:IsTanking(uId) then--Frontal filter, in case it can hit anyone that's in front of boss
@@ -763,7 +766,8 @@ function mod:SPELL_AURA_APPLIED(args)
 				end
 			end
 		end
-		timerVoidSlash:Restart(21, args.destName)--Needs to show for even non tanks getting hit though
+		timerVoidSlash:Stop()
+		timerVoidSlash:Start(21, args.destName)--Needs to show for even non tanks getting hit though
 	elseif spellId == 404218 then
 		if args:IsPlayer() then
 			playerVoidFracture = true

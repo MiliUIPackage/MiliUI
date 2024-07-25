@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2473, "DBM-Party-Dragonflight", 1, 1196)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240507051050")
+mod:SetRevision("20240706220158")
 mod:SetCreatureID(186120)
 mod:SetEncounterID(2568)
 mod:SetUsedIcons(8, 7, 6, 5)
@@ -60,11 +60,20 @@ function mod:OnCombatStart(delay)
 	timerDecaySprayCD:Start(12.5-delay)
 	timerGraspingVinesCD:Start(23.2-delay)
 --	timerInfectiousSpitCD:Start(25.9-delay)--Restarted by vines anyways
+	--Trash is often pulled with this boss, so we want to enable trash mod functionality during fight
+	local trashMod = DBM:GetModByName("BrackenhideHollowTrash")
+	if trashMod then
+		trashMod.isTrashModBossFightAllowed = true
+	end
 end
 
 function mod:OnCombatEnd()
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
+	end
+	local trashMod = DBM:GetModByName("BrackenhideHollowTrash")
+	if trashMod then
+		trashMod.isTrashModBossFightAllowed = false
 	end
 end
 
@@ -90,9 +99,12 @@ function mod:SPELL_CAST_START(args)
 		end
 		timerGraspingVinesCD:Start(54.6)
 		--Timer restarts
---		timerInfectiousSpitCD:Restart(10.2)--No longer exists at all?
-		timerVineWhipCD:Restart(9)--9 second timer is started here, but will queue up if consume happens and be used near immediately when consume fades
---		timerDecaySprayCD:Restart(33.2)--No longer restarts here
+--		timerInfectiousSpitCD:Stop()
+--		timerInfectiousSpitCD:Start(10.2)--No longer exists at all?
+		timerVineWhipCD:Stop()
+		timerVineWhipCD:Start(9)--9 second timer is started here, but will queue up if consume happens and be used near immediately when consume fades
+--		timerDecaySprayCD:Stop()
+--		timerDecaySprayCD:Start(33.2)--No longer restarts here
 	end
 end
 

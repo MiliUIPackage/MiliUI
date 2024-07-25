@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2484, "DBM-Party-Dragonflight", 2, 1197)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240428124541")
+mod:SetRevision("20240601044955")
 mod:SetCreatureID(184124)
 mod:SetEncounterID(2557)
 mod:SetUsedIcons(1, 2, 3)
@@ -66,7 +66,8 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 372600 then
 		warnInexorable:Show()
 		if not self:IsNormal() then
-			timerTitanicEmpowermentCD:Restart(25)
+			timerTitanicEmpowermentCD:Stop()
+			timerTitanicEmpowermentCD:Start(25)
 		end
 	elseif spellId == 372623 then
 		self.vb.orbIcon = 1

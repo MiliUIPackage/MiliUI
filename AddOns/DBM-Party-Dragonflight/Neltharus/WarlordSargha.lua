@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2501, "DBM-Party-Dragonflight", 4, 1199)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20231029212301")
+mod:SetRevision("20240601044955")
 mod:SetCreatureID(189901)
 mod:SetEncounterID(2611)
 mod:SetHotfixNoticeRev(20230508000000)
@@ -98,7 +98,8 @@ function mod:SPELL_CAST_START(args)
 		timerBurningEmberCD:Pause()
 	elseif spellId == 377017 then
 		if goldStarted then--It's a bugged recast
-			timerMoltenGoldCD:Restart()--Avoid false debug reporting
+			timerMoltenGoldCD:Stop()
+			timerMoltenGoldCD:Start()--Avoid false debug reporting
 		else
 			goldStarted = true
 			timerMoltenGoldCD:Start()

@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "normal,heroic,mythic,challenge"--No Follower dungeon
 
-mod:SetRevision("20240428124541")
+mod:SetRevision("20240714045506")
 mod:SetCreatureID(198998)
 mod:SetEncounterID(2670)
 mod:SetUsedIcons(1, 2)
@@ -87,7 +87,7 @@ function mod:SPELL_CAST_START(args)
 	if spellId == 401248 then
 		self.vb.sharedCount = self.vb.sharedCount + 1
 		if self:IsTanking("player", "boss1", nil, true) then
-			specWarnTitanicBlow:Show(self.vb.sharedCount)
+			specWarnTitanicBlow:Show()
 			specWarnTitanicBlow:Play("carefly")
 		end
 		--Shared Cd between 3 abilities, have to do fancy logic stuffs

@@ -1,53 +1,45 @@
 # DBM - Core
 
-## [10.2.46](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/10.2.46) (2024-05-30)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/10.2.45...10.2.46) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.0.0](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.0) (2024-07-23)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/10.2.54...11.0.0) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- Ready the tag  
-- Fix bug causing all cata journal based spells in RAID to show invalid classic support message, make this a force update  
-    Also force update for retail since this core update also has the disconnect workaround for long character names on long realm names that blizzard has taken longer than a month to fix themselves  
-- Work around blizzard whisper disconnect bug (for the second time in recent years) with addon comms  
-- Tests: enforce minimum real FPS to avoid lags  
-    This also enables a "run as fast as possible" mode just by setting the  
-    factor to a very huge value.  
-- UI/Tests: small UI fixes  
-    Correctly handle tests named like "a/b/c" and "a/b" at the same time.  
-    (But please don't create tests named like that)  
-- UI/Tests: Add big "Run all" button  
-- Tests: clean up use of DBM.Options for timewarp setting  
-- UI/Tests: make time warp slider exponential  
-- Split tocs and cleanup tocs  
-- Add UI for tests  
-- Make UpdateReminder frame more flexible  
-    Automatically set height to allow for more than 3 lines of text and  
-    avoid odd frame size for short texts (e.g., URL copy frames).  
-    Also allow user to configure width and text alignment.  
-- Clean up combat state on DBM:Disable()  
-- Tests: simulate a consistent frame rate of 30 fps  
-    Previously the simulated frame rate was the same as the real frame rate,  
-    so if you set a high replay speed and your game got laggy you simulated  
-    fewer OnUpdate calls, which can make logs less deterministic.  
-    The diff in Diurna shows such a case; it now consistently unschedules  
-    the scheduled announce before the event gets processed.  
-- Tests: correctly hook OnUpdate of frames created during the test  
-- Tests: fix rewiring args.destName to real player name  
-- Diurna: update test with new feature  
-    GetTime() global is now overriden in mods when tests are running, no  
-    more ugly self:GetTime() :)  
-- Tests: add a way to acknowledge/ignore warnings  
-- Tests: report deltas between Show/Start calls  
-- Tests: track and report calls to :Schedule() properly  
-    Potential problem: recursive schedule calls will look a bit ugly in the  
-    test report, but so far I haven't seen a mod that uses this excessively.  
-- Tests: fix error on importing test results if you have other files in target dir  
-- Tests: Replay UNIT_* events without implying they are _UNFILTERED  
-- Tests: make it easier to inject mocks into mods by changing the mod's environment  
-- Tests: add mock for UnitGUID  
-- Fix some potential nil index errors  
-    Not a problem in every instance of this because usually there is some  
-    check on the Unit that would never pass if it doesn't exist.  
-- Scheduler: clean up  
-    I'm not sure why I wrote it that way 🤷‍♂️  
-    unpack() takes parameters to handle exactly this case.  
-- Fix https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1109 by actually canceling seeds timer on intermission  
+- Prep new DBM core with version bump and Delve tier detection support for statistics.  
+- Push delve tier fix  
+- Begin work on supporting delve tiers in stats recording and GUI. This way it records highest delves as priority over shortest time, similar to Mythic + behavior  
+    Fixed bug where story raid returned "delves" type  
+    Queen Ansurek will now store/show story kills in GUI  
+- Make sure LuaLS recognizes "self" in all local functions used by mods, to avoid missing any errors (none found, but just good convention to practice now)  
+- Add some nil error protection on Rashanan that i missed on normal  
+- fix counts in initial timers on each movement  
+- another fix  
+- Fixes to Rashanan  
+- Update koKR (#1151)  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1152  
+- disable two warnings inconsiquential in LFR. Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1153  
+- Redo how timers and phases are handled on Rashanan to be accurate to way it's coded.  
+- Fix a bug where tank combo and shroud timer on biurna could fully start new timers on phase 2 start because the previous timer had already expired. Now if previous timer has expired, no replacement timer is created as the abilities remain off CD on stage 2 start (intended behavior)  
+    Closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1149  
+- Update DBM-Raids-WarWithin\_Mainline.toc (#1147)  
+- Create localization.tw.lua (#1146)  
+- Update koKR (#1145)  
+- Update localization.ru.lua (#1144)  
+- Update commonlocal.ru.lua (#1143)  
+- Core/Timers: add missing timerTypes to options constructor (#1148)  
+- Add icontarget yell type that just shows 5 icons (#1142)  
+- Make IsTanking object more robust by validating both enemy and player UIDs. Now test I did in video would fail ;)  
+    Ironically scanning entirety of DBMs history found 0 occurances that was ever typoed, but now it can't be.  
+- Tests: update filters and fix bug when parsing logs with source flags  
+- Tests: reconstruct unit targets without boss unit IDs (for classic)  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1136  
+- Update localization.ru.lua (#1141)  
+- Add a common local for an idea i'm thinking about  
+- Update koKR (#1140)  
+- prune some deprecated stuff and cleanup  
+- Special warning objects now have more robust LuaLS checking  
+    Fixed a bug on Magmorax where Blazing Breath alert gave no count  
+    Fixed a bug on Raszageth where Ball lighting gave no count  
+    Fixed a bug on Sennarth where Gossamer burst gave no count  
+- scope last  
+- Fix DBM not reporting new dungeon in SoD as having dungeon mods available.  
 - bump alpha  
+- Update localization.ru.lua (#1139)  

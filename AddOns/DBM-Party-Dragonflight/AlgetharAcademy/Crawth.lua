@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2495, "DBM-Party-Dragonflight", 5, 1201)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240505023247")
+mod:SetRevision("20240601044955")
 mod:SetCreatureID(191736)
 mod:SetEncounterID(2564)
 mod:SetHotfixNoticeRev(20221127000000)
@@ -105,8 +105,10 @@ function mod:SPELL_AURA_APPLIED(args)
 		timerFirestorm:Start()
 		--Regardless of time remaining, crawth will cast these coming out of stun
 		--Season 4 seems to have swapped these? or spell queue is now happening and either can be cast at 12?
-		timerDeafeningScreechCD:Restart(12, 1)
-		timerOverpoweringGustCD:Restart(12)--Screech and gust can swap, whatever one is 12 the other is ~17
+		timerDeafeningScreechCD:Stop()
+		timerDeafeningScreechCD:Start(12, 1)
+		timerOverpoweringGustCD:Stop()
+		timerOverpoweringGustCD:Start(12)--Screech and gust can swap, whatever one is 12 the other is ~17
 		timerSavagePeckCD:Stop()--24.6, This one probably restarts too but also gets wierd spell queue and MIGHT not happen
 	elseif spellId == 181089 then
 		if args:GetDestCreatureID() == 191736 then--Crawth getting buff is play ball starting

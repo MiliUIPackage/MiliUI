@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2523, "DBM-Raids-Dragonflight", 2, 1208)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240503055628")
+mod:SetRevision("20240721192753")
 mod:SetCreatureID(201668)
 mod:SetEncounterID(2684)
 mod:SetUsedIcons(6)
@@ -81,7 +81,7 @@ local specWarnRazetheEarth						= mod:NewSpecialWarningDodge(409313, nil, nil, n
 local specWarnCorruption						= mod:NewSpecialWarningYou(401010, nil, nil, nil, 1, 2)
 local yellCorruption							= mod:NewShortYell(401010)
 local specWarnUmbralAnnihilation				= mod:NewSpecialWarningCount(405433, nil, nil, nil, 2, 2)
-local specWarnSweepingShadows					= mod:NewSpecialWarningDodgeCount(403846, nil, nil, nil, 2, 2)
+--local specWarnSweepingShadows					= mod:NewSpecialWarningDodgeCount(403846, nil, nil, nil, 2, 2)--Not used by mod?
 local specWarnSunderShadow						= mod:NewSpecialWarningDefensive(407790, nil, nil, nil, 1, 2)
 local specWarnSunderShadowSwap					= mod:NewSpecialWarningTaunt(407790, nil, nil, nil, 1, 2)
 
@@ -125,7 +125,7 @@ local mythicTwistedP2Timers = {41.6, 18.2, 12.1, 29.2, 13.4, 14.6}
 local volcanicP2Timers = {21.3, 15.7, 17.0, 14.8, 17.3, 16.7, 18, 14.5}
 local volcanicP2LFRTimers = {21.3, 15.6, 16.9, 17, 12, 16.9, 12, 16.9, 12, 17}
 
-
+---@param self DBMMod
 local function checkRealityOnSelf(self)
 	if not playerReality then
 		specWarnEbonDestructionMove:Show(realityName)
@@ -134,6 +134,7 @@ local function checkRealityOnSelf(self)
 end
 
 --Work around for stage 2 bug where sometimes cast success event is missing
+---@param self DBMMod
 local function fixBrokenHeartTimer(self)
 	self.vb.volcanicCount = self.vb.volcanicCount + 1
 	local timer = volcanicP2Timers[self.vb.volcanicCount+1]
@@ -142,6 +143,7 @@ local function fixBrokenHeartTimer(self)
 	end
 end
 
+---@param self DBMMod
 local function checkForSkippedDarkness(self)
 	if self.vb.RushingDarknessCount == 0 then--first one skipped (which is like 95% of pulls)
 		self.vb.RushingDarknessCount = self.vb.RushingDarknessCount + 1
@@ -176,7 +178,7 @@ function mod:OnCombatStart(delay)
 	self.vb.ebonCount = 0
 	playerReality = false
 --	timerTwistedEarthCD:Start(2-delay)--Used 2 sec into pull
-	timerRushingDarknessCD:Start(10.5-delay, 1)
+	timerRushingDarknessCD:Start(8.9-delay, 1)
 	timerVolcanicHeartCD:Start(15.6-delay, 1)
 	timerCalamitousStrikeCD:Start(self:IsMythic() and 25.1 or 24.1-delay, 1)--Delayed by extra wall on mythic
 	timerEchoingFissureCD:Start(33.6-delay, 1)
@@ -248,7 +250,7 @@ function mod:SPELL_CAST_START(args)
 		--As of May 30th reset, stage 3 no longer has new darkness that causes the 17 second time between darkness 1 and 2 in stage 3
 		--As of June 13th reset, it's kind of up in air how to handle this cause it's still going back and forth, so now code is gonna account for BOTH variations of initial timers
 		if self:GetStage(3) and (self.vb.RushingDarknessCount == 1) and not self.vb.skippedDarkness then
-			timerRushingDarknessCD:Start(17, self.vb.RushingDarknessCount+1)
+			timerRushingDarknessCD:Start(16.6, self.vb.RushingDarknessCount+1)
 		else
 			timerRushingDarknessCD:Start(self:GetStage(2) and 27.9 or 35.2, self.vb.RushingDarknessCount+1)--new, now every 35-36 due to inceased cast time of portals
 		end

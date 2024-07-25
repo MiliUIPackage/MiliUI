@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("MPlusAffixes", "DBM-Affixes")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240508235014")
+mod:SetRevision("20240721192753")
 --mod:SetModelID(47785)
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
@@ -26,6 +26,7 @@ local warnIncorporeal						= mod:NewCastAnnounce(408801, 4)
 local warnAfflictedCry						= mod:NewCastAnnounce(409492, 4, nil, nil, "Healer|RemoveMagic|RemoveCurse|RemoveDisease|RemovePoison", 2, nil, 14)--Flagged to only warn players who actually have literally any skill to deal with spirits, else alert is just extra noise to some rogue or warrior with no skills for mechanic
 local warnDestabalize						= mod:NewCastAnnounce(408805, 4, nil, nil, false)
 local warnSpitefulFixate					= mod:NewYouAnnounce(350209, 4)
+local warnUnstablePower						= mod:NewSpellAnnounce(461895, 3, nil, nil, nil, nil, nil, 2)
 
 local specWarnQuake							= mod:NewSpecialWarningMoveAway(240447, nil, nil, nil, 1, 2)
 local specWarnSpitefulFixate				= mod:NewSpecialWarningYou(350209, false, nil, 2, 1, 2)
@@ -37,6 +38,7 @@ local timerQuakingCD						= mod:NewNextTimer(20, 240447, nil, nil, nil, 3)
 local timerEntangledCD						= mod:NewCDTimer(30, 408556, nil, nil, nil, 3, 396347, nil, nil, 2, 3, nil, nil, nil, true)
 local timerAfflictedCD						= mod:NewCDTimer(30, 409492, nil, nil, nil, 5, 2, DBM_COMMON_L.HEALER_ICON, nil, mod:IsHealer() and 3 or nil, 3)--Timer is still on for all, cause knowing when they spawn still informs decisions like running ahead or pulling
 local timerIncorporealCD					= mod:NewCDTimer(45, 408801, nil, nil, nil, 5, nil, nil, nil, 3, 3)
+local timerUnstablePowerCD					= mod:NewCDTimer(59.9, 461895, nil, nil, nil, 1)
 
 mod:AddNamePlateOption("NPSanguine", 226510, "Tank")
 
@@ -46,7 +48,10 @@ local incorporealCounting = false
 local incorpDetected = false
 local afflictedCounting = false
 local afflictedDetected = false
+local unstableDetected = false
+local unstableCounting = false
 
+---@param self DBMMod
 local function checkEntangled(self)
 	if timerEntangledCD:GetRemaining() > 0 then
 		--Timer exists, do nothing
@@ -56,6 +61,7 @@ local function checkEntangled(self)
 	self:Schedule(30, checkEntangled, self)
 end
 
+---@param self DBMMod
 local function checkAfflicted(self)
 	if timerAfflictedCD:GetRemaining() > 0 then
 		--Timer exists, do nothing
@@ -65,6 +71,7 @@ local function checkAfflicted(self)
 	self:Schedule(30, checkAfflicted, self)
 end
 
+---@param self DBMMod
 local function checkIncorp(self)
 	if timerIncorporealCD:GetRemaining() > 0 then
 		--Timer exists, do nothing
@@ -112,6 +119,17 @@ local function checkForCombat(self)
 			self:Unschedule(checkAfflicted)--Soon as a pause happens this can no longer be trusted
 		end
 	end
+	--Without transcriptor don't know if it works same as afflicted and incorp do, or same as thundering, so coding like thundering for now
+	--ie pauses out of combat, doesn't skip casts and reloop
+	if unstableDetected then
+		if combatFound and not unstableCounting then
+			unstableCounting = true
+			timerUnstablePowerCD:Resume()
+		elseif not combatFound and unstableCounting then
+			unstableCounting = false
+			timerUnstablePowerCD:Pause()
+		end
+	end
 	self:Schedule(0.25, checkForCombat, self)
 end
 
@@ -136,7 +154,7 @@ do
 			eventsRegistered = true
 			self:RegisterShortTermEvents(
 				"SPELL_CAST_START 240446 409492 408805",
-			--	"SPELL_CAST_SUCCESS",
+				"SPELL_CAST_SUCCESS 461895",
 				"SPELL_AURA_APPLIED 240447 226510 226512 350209 408556 408801",
 			--	"SPELL_AURA_APPLIED_DOSE",
 				"SPELL_AURA_REMOVED 226510",
@@ -150,10 +168,12 @@ do
 			DBM:Debug("Registering M+ events")
 		elseif force or (not validZones[currentZone] and eventsRegistered) then
 			eventsRegistered = false
+			afflictedDetected = false
 			afflictedCounting = false
 			incorporealCounting = false
 			incorpDetected = false
-			afflictedDetected = false
+			unstableDetected = false
+			unstableCounting = false
 			self:UnregisterShortTermEvents()
 			self:Unschedule(checkForCombat)
 			self:Unschedule(checkEntangled)
@@ -203,15 +223,21 @@ function mod:SPELL_CAST_START(args)
 	end
 end
 
---[[
 function mod:SPELL_CAST_SUCCESS(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.spellId
-	if spellId == 373370 then
-		timerNightmareCloudCD:Start(30.5, args.sourceGUID)
+	if spellId == 461895 and self:AntiSpam(5, "aff8") then--Takes a good 3-4 seconds for them all to spawn, so 5 second antispam is safe
+		warnUnstablePower:Show()
+		warnUnstablePower:Play("targetchange")--If this affix actually lasts til live, i'll give it a unique voice
+		if not unstableDetected then
+			unstableDetected = true
+		end
+		unstableCounting = true
+		timerUnstablePowerCD:Start()
+		self:Unschedule(checkForCombat)
+		checkForCombat(self)
 	end
 end
---]]
 
 function mod:SPELL_AURA_APPLIED(args)
 	if not self.Options.Enabled then return end
@@ -251,6 +277,7 @@ function mod:SPELL_AURA_APPLIED(args)
 			specWarnEntangled:Play("breakvine")--breakvine
 		end
 	elseif spellId == 408801 and self:AntiSpam(25, "aff7") then
+		warnIncorporeal:Show()
 		if not incorpDetected then
 			incorpDetected = true
 		end
