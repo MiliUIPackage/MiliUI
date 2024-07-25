@@ -1,4 +1,4 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: HandyNotes: Oribos
 ## Notes: Shows the NPC and POI locations in Oribos.
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-奧睿博司

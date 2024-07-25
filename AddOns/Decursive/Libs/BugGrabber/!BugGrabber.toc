@@ -1,4 +1,4 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: BugGrabber
 ## Version: 2.7.19
 ## Notes: Grabs bugs for the bug sack.

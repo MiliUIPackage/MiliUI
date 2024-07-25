@@ -1,4 +1,4 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: CursorTrail
 ## Notes: Adds a glowing trail effect to your mouse cursor.
 ## Title-zhTW: |cff0099FF[介面]|r 滑鼠軌跡

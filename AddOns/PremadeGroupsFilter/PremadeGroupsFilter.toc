@@ -1,4 +1,4 @@
-## Interface: 100207
+## Interface: 110000
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
 ## Version: 5.4.0
