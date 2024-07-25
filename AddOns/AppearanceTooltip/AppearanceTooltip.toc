@@ -2,7 +2,7 @@
 ## Title: AppearanceTooltip
 ## Author: Kemayo
 ## Notes: Show the item your mouse is over on your character in a tooltip
-## Version: v45
+## Version: v45.1
 ## LoadOnDemand: 0
 ## OptionalDeps: tekDebug, LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
 ## X-Embeds: LibStub, LibArmorToken-1.0, LibAppropriateItems-1.0
@@ -16,7 +16,6 @@
 ## Notes-zhTW: AppearanceTooltip |n|n滑鼠指向裝備圖示時，會顯示你的角色穿上時的外觀預覽。|n|n|cffffd200使用方法: |r滾動滑鼠滾輪旋轉預覽，從Esc>選項>插件>塑形預覽，可以設定縮放、自動旋轉和其他相關設定。
 ## X-Category-zhTW: 收藏
 ## IconTexture: Interface\Icons\inv_raidpriestmythic_q_01chest
-
 #@no-lib-strip@
 embeds.xml
 #@end-no-lib-strip@
