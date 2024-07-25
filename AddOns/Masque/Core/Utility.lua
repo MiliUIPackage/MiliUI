@@ -48,12 +48,33 @@ end
 -- Points
 ---
 
--- Clears and sets the points for a region.
-function Core.SetPoints(Region, Button, Skin, Default, SetAllPoints)
+-- Clears and sets the point(s) for a region.
+function Core.ClearSetPoint(Region, Point, Anchor, RelPoint, OffsetX, OffsetY, SetAllPoints)
+	Anchor = Anchor or Region:GetParent()
+
 	Region:ClearAllPoints()
 
-	local Anchor, Regions = Skin.Anchor, Button.__Regions
-	Anchor = (Anchor and Regions) and Regions[Anchor]
+	if SetAllPoints then
+		Region:SetAllPoints(Anchor)
+	else
+		Region:SetPoint(Point or "CENTER", Anchor, RelPoint or "CENTER", OffsetX or 0, OffsetY or 0)
+	end
+end
+
+-- Clears and sets the point(s) for a region using skin data.
+function Core.SetSkinPoint(Region, Button, Skin, Default, SetAllPoints)
+	local Anchor
+	local Skin_Anchor = Skin.Anchor
+
+	if Skin_Anchor then
+		local Regions = Button.__Regions
+
+		if type(Regions) == "table" then
+			Anchor = Regions[Skin_Anchor]
+		end
+	end
+
+	Region:ClearAllPoints()
 
 	if SetAllPoints then
 		Region:SetAllPoints(Anchor or Button)

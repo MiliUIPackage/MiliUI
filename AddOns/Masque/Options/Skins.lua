@@ -503,7 +503,7 @@ function Setup.Skins(self)
 	self.Options.args.Skins = Options
 
 	local Path = "Skins"
-	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["Skin Settings"], MASQUE, Path))
+	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["Skin Settings"], L["Masque"], Path))
 
 	-- GC
 	Setup.Skins = nil

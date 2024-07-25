@@ -250,15 +250,35 @@ function Setup.General(self)
 						fontSize = "medium",
 					},
 					SpellAlert = {
-						type = "select",
-						name = L["Spell Alerts"],
-						desc = L["Select which spell alert animations are enabled."],
-						values = {
-							[0] = L["None"],
-							[1] = L["Flash and Loop"],
-							[2] = L["Loop Only"],
-						},
+						type = "group",
+						name = "",
+						inline = true,
+						set = function(Info, Value)
+							local Name = Info[#Info]
+
+							Core.db.profile.SpellAlert[Name] = Value
+						end,
 						order = 2,
+						args = {
+							State = {
+								type = "select",
+								name = L["Spell Alert Animations"],
+								desc = L["Select which spell alert animations are enabled."],
+								values = {
+									[0] = L["None"],
+									[1] = L["Flash and Loop"],
+									[2] = L["Loop Only"],
+								},
+								order = 1,
+							},
+							Style = {
+								type = "select",
+								name = L["Spell Alert Style"],
+								desc = L["Select the spell alert style."]..Reload,
+								values = Core.FlipBook_List,
+								order = 2,
+							},
+						},
 					},
 					SPC01 = {
 						type = "description",
@@ -365,7 +385,7 @@ function Setup.General(self)
 	self.Options.args.General = Options
 
 	local Path = "General"
-	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["General Settings"], MASQUE, Path))
+	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["General Settings"], L["Masque"], Path))
 
 	-- GC
 	Setup.General = nil

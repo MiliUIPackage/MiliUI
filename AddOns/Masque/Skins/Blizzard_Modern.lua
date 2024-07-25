@@ -36,7 +36,7 @@ local SkinID = "Blizzard Modern"
 
 local Skin = {
 	API_VERSION = Core.API_VERSION,
-	Shape = "Square",
+	Shape = "Blizzard",
 	SkinID = SkinID,
 
 	-- Info
@@ -414,7 +414,7 @@ local Skin = {
 		OffsetX = -5,
 		OffsetY = 5,
 		Aura = {
-			JustifyH = "CENTER",
+			JustifyH = "RIGHT",
 			JustifyV = "MIDDLE",
 			DrawLayer = "ARTWORK",
 			Width = 36,
@@ -851,32 +851,77 @@ local Skin = {
 			-- UseColor = nil,
 		},
 	},
-	AutoCastShine = {
-		Width = 33,
-		Height = 33,
-		Point = "CENTER",
-		RelPoint = "CENTER",
-		OffsetX = 1,
-		OffsetY = -0.5,
-		-- SetAllPoints = nil,
-	},
-	Cooldown = {
-		Texture = [[Interface\AddOns\Masque\Textures\Cooldown\Swipe-Modern]],
-		EdgeTexture = [[Interface\Cooldown\UI-HUD-ActionBar-SecondaryCooldown]],
-		PulseTexture = [[Interface\Cooldown\star4]],
-		Color = {0, 0, 0, 0.8},
-		Width = 31.5,
-		Height = 31.5,
-		Anchor = "Icon",
+	-- [ AutoCastOverlay (Retail) ]
+	-- AB (45) / SAB (30) = 1.5
+	-- Lua @ SAB: 31 * 1.5 = 46.5
+	-- Masque: 46.5 / 1.25 = 37.2
+	-- Multiplier = 1.2 (1.5 / 1.25)
+	AutoCast_Frame = {
+		Width = 37, -- 31
+		Height = 37, -- 31
 		Point = "CENTER",
 		RelPoint = "CENTER",
 		OffsetX = 0,
 		OffsetY = 0,
 		-- SetAllPoints = nil,
 	},
-	ChargeCooldown = {
+	AutoCast_Shine = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Ants",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 0,
+		Width = 49, -- 41
+		Height = 49, -- 41
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Mask = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Mask",
+		UseAtlasSize = false,
+		Width = 28, -- 23
+		Height = 28, -- 23
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Corners = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Corners",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 37, -- 31
+		Height = 37, -- 31
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		SetAllPoints = true,
+	},
+	-- [ AutoCastShine (Classic) ]
+	AutoCastShine = {
+		Width = 33, -- 40/28
+		Height = 33, -- 40/28
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 1,
+		OffsetY = -0.5,
+		-- SetAllPoints = nil,
+	},
+	-- [ Cooldowns ]
+	Cooldown = {
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\Mask]],
 		EdgeTexture = [[Interface\Cooldown\UI-HUD-ActionBar-SecondaryCooldown]],
 		PulseTexture = [[Interface\Cooldown\star4]],
+		Color = {0, 0, 0, 0.8},
 		Width = 31,
 		Height = 31,
 		Anchor = "Icon",
@@ -884,8 +929,11 @@ local Skin = {
 		RelPoint = "CENTER",
 		OffsetX = 0,
 		OffsetY = 0,
-		--SetAllPoints = true,
+		-- SetAllPoints = nil,
 	},
+	ChargeCooldown = "Cooldown",
+	-- [ SpellAlert ]
+	-- SpellAlert = Default.SpellAlert,
 }
 
 ----------------------------------------

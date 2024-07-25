@@ -29,7 +29,7 @@ local Hidden = Core.__Hidden
 Core.AddSkin("Zoomed", {
 	Template = "Blizzard Classic",
 	-- API_VERSION = Template.API_VERSION,
-	-- Shape = Template.Shape,
+	Shape = "Square",
 
 	-- Info
 	Authors = Core.Authors,
@@ -377,6 +377,38 @@ Core.AddSkin("Zoomed", {
 		-- SetAllPoints = nil,
 	},
 	-- Highlight = Template.Highlight,
+	-- [ AutoCastOverlay (Retail) ]
+	-- AutoCast_Frame = Template.AutoCast_Frame,
+	-- AutoCast_Shine = Template.AutoCast_Shine,
+	AutoCast_Mask = {
+		-- Atlas = "UI-HUD-ActionBar-PetAutoCast-Mask",
+		-- UseAtlasSize = false,
+		Texture = [[Interface\AddOns\Masque\Textures\Square\AutoCast-Mask]],
+		-- TexCoords = {0, 1, 0, 1},
+		Width = 34,
+		Height = 34,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Corners = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Corners",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 38,
+		Height = 38,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = true,
+	},
+	-- [ AutoCastShine (Classic) ]
 	AutoCastShine = {
 		Width = 36,
 		Height = 36,
@@ -386,9 +418,10 @@ Core.AddSkin("Zoomed", {
 		OffsetY = -0.5
 		-- SetAllPoints = nil,
 	},
+	-- [ Cooldowns ]
 	Cooldown = {
-		-- Texture = nil,
-		EdgeTexture = [[Interface\AddOns\Masque\Textures\Cooldown\Edge]],
+		Texture = [[Interface\AddOns\Masque\Textures\Square\Mask]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Square\Edge]],
 		PulseTexture = [[Interface\Cooldown\star4]],
 		Color = {0, 0, 0, 0.8},
 		Width = 36,
@@ -400,4 +433,17 @@ Core.AddSkin("Zoomed", {
 		-- SetAllPoints = nil,
 	},
 	ChargeCooldown = "Cooldown",
+	-- [ SpellAlert ]
+	SpellAlert = {
+		Width = 40,
+		Height = 40,
+		Classic = {
+			Height = 34,
+			Width = 34,
+		},
+		Thin = {
+			Height = 30,
+			Width = 30,
+		},
+	},
 }, true)

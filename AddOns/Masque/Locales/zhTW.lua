@@ -64,7 +64,7 @@ L["The default Classic button style."] = "預設的經典按鈕樣式。"
 L["The default Dragonflight button style."] = "預設的巨龍崛起按鈕樣式。"
 
 ----------------------------------------
--- Classic Redux Skin
+-- Classic Enhanced Skin
 ---
 
 L["A modified version of the Classic button style."] = "經典按鈕樣式的修改版。"
@@ -218,3 +218,6 @@ L["This section will allow you to skin the buttons of the add-ons and add-on gro
 ---
 
 L["A square skin with zoomed icons and a semi-transparent background."] = "方形的外觀，帶有縮放過的圖示以及半透明的背景。"
+
+-- 自行加入
+L["Masque"] = "按鈕外觀"

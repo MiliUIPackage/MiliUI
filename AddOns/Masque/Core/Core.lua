@@ -57,53 +57,51 @@ end
 
 -- Returns a sub-type, if applicable.
 local function GetSubType(Button, bType)
-	local Name = Button.GetName and Button:GetName()
+	local Button_Name = Button.GetName and Button:GetName()
 	local SubType = bType
 
+	-- Action Sub-Types
 	if bType == "Action" then
-		if Name then
-			if Name:find("Stance") then
+		if Button_Name then
+			if Button_Name:find("Stance") then
 				SubType = "Stance"
-			elseif Name:find("Possess") then
+			elseif Button_Name:find("Possess") then
 				SubType = "Possess"
-			elseif Name:find("Pet") then
+			elseif Button_Name:find("Pet") then
 				SubType = "Pet"
 			end
 		end
 
+	-- Item Sub-Types
 	elseif bType == "Item" then
-		if Name then
-			-- Retail Bag Buttons
-			if Button.SlotHighlightTexture then
-				if Name:find("Backpack") then
-					SubType = "Backpack"
-				elseif Name:find("CharacterBag") then
-					SubType = "BagSlot"
-				elseif Name:find("ReagentBag") then
-					SubType = "ReagentBag"
-				end
-
-			-- Classic Bag Buttons
-			elseif Button.__MSQ_oType == "CheckButton" then
-				if Name:find("Backpack") then
-					SubType = "Backpack"
-				elseif Name:find("CharacterBag") then
-					SubType = "BagSlot"
-				end
+		if Button_Name then
+			if Button_Name:find("Backpack") then
+				SubType = "Backpack"
+			elseif Button_Name:find("CharacterBag") then
+				SubType = "BagSlot"
+			-- Retail Only
+			elseif Button_Name:find("ReagentBag") then
+				SubType = "ReagentBag"
 			end
 		end
 
+	-- Aura Sub-Types
 	elseif bType == "Aura" then
+		-- Retail
 		if Button.DebuffBorder then
-			SubType = Button.auraType or "Aura"
+			-- Possible values are "Buff", "DeadlyDebuff", "Debuff" and "TempEnchant"
+			SubType = Button.auraType or bType
 
 			if SubType == "DeadlyDebuff" then
 				SubType = "Debuff"
 			elseif SubType == "TempEnchant" then
 				SubType = "Enchant"
 			end
+
+		-- Classic
 		else
-			local Border = Button.Border or (Name and _G[Name.."Border"])
+			-- The Button.Border key isn't used by Classic, but add-ons may be using it.
+			local Border = Button.Border or (Button_Name and _G[Button_Name.."Border"])
 
 			if Border then
 				SubType = (Button.symbol and "Debuff") or "Enchant"
@@ -162,23 +160,23 @@ end
 -- Group Queue
 ---
 
--- Self-destructing table to skin groups created prior to PLAYER_LOGIN.
+-- Self-destructing table to skin groups created prior to the PLAYER_LOGIN event.
 Core.Queue = {
 	Cache = {},
 
 	-- Adds a group to the queue.
-	Add = function(self, obj)
-		self.Cache[#self.Cache + 1] = obj
-		obj.Queued = true
+	Add = function(self, Group)
+		self.Cache[#self.Cache + 1] = Group
+		Group.Queued = true
 	end,
 
 	-- Re-Skins all queued groups.
 	ReSkin = function(self)
 		for i = 1, #self.Cache do
-			local obj = self.Cache[i]
+			local Group = self.Cache[i]
 
-			obj:ReSkin(true)
-			obj.Queued = nil
+			Group:ReSkin(true)
+			Group.Queued = nil
 		end
 
 		-- GC
@@ -193,31 +191,57 @@ setmetatable(Core.Queue, {__call = Core.Queue.Add})
 -- Region Finder
 ---
 
--- Returns a region for a button based on a template.
+-- Returns a region for a button that uses a template.
 function Core.GetRegion(Button, Info)
-	local Key, Region = Info.Key, nil
+	local Region_Key = Info.Key
+	local Region
 
-	if Key then
-		local Obj = Key and Button[Key]
+	-- Check for a key reference.
+	if Region_Key then
+		local Parent_Key = Info.Parent
+		local Object
 
-		if Obj and type(Obj) == "table" then
-			local Type = Obj.GetObjectType and Obj:GetObjectType()
+		-- Region Parent
+		if Parent_Key then
+			local Parent = Button[Parent_Key]
 
-			if Type == Info.Type then
-				Region = Obj
+			if type(Parent) == "table" then
+				Object = Parent[Region_Key]
+			end
+
+		-- Button Parent
+		else
+			Object = Button[Region_Key]
+		end
+
+		-- Validate the object type.
+		if type(Object) == "table" then
+			local Object_Type = Object.GetObjectType and Object:GetObjectType()
+
+			if Object_Type == Info.Type then
+				Region = Object
 			end
 		end
 	end
 
+	-- Check for a method or global reference.
 	if not Region then
-		local Func, Name = Info.Func, Info.Name
+		local Method_Name = Info.Func
+		local Region_Name = Info.Name
 
-		if Func then
-			local f = Func and Button[Func]
-			Region = f and f(Button)
-		elseif Name then
-			local n = Button.GetName and Button:GetName()
-			Region = n and _G[n..Name]
+		-- Method
+		if Method_Name then
+			local f = Button[Method_Name]
+
+			if type(f) == "function" then
+				Region = f(Button)
+			end
+
+		-- Global
+		elseif Region_Name then
+			local Button_Name = Button.GetName and Button:GetName()
+
+			Region = Button_Name and _G[Button_Name..Region_Name]
 		end
 	end
 

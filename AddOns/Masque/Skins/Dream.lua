@@ -28,7 +28,7 @@ local Hidden = Core.__Hidden
 
 Core.AddSkin("Dream", {
 	-- API_VERSION = Template.API_VERSION,
-	-- Shape = Template.Shape,
+	Shape = "Square",
 	Template = "Blizzard Classic",
 
 	-- Info
@@ -421,6 +421,38 @@ Core.AddSkin("Dream", {
 		-- SetAllPoints = nil,
 		-- UseColor = nil,
 	},
+	-- [ AutoCastOverlay (Retail) ]
+	-- AutoCast_Frame = Template.AutoCast_Frame,
+	-- AutoCast_Shine = Template.AutoCast_Shine,
+	AutoCast_Mask = {
+		-- Atlas = "UI-HUD-ActionBar-PetAutoCast-Mask",
+		-- UseAtlasSize = false,
+		Texture = [[Interface\AddOns\Masque\Textures\Square\AutoCast-Mask]],
+		-- TexCoords = {0, 1, 0, 1},
+		Width = 28,
+		Height = 28,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Corners = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Corners",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 32,
+		Height = 32,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = true,
+	},
+	-- [ AutoCastShine (Classic) ]
 	AutoCastShine = {
 		Width = 28,
 		Height = 28,
@@ -430,9 +462,10 @@ Core.AddSkin("Dream", {
 		OffsetY = -0.5,
 		-- SetAllPoints = nil,
 	},
+	-- [ Cooldowns ]
 	Cooldown = {
-		-- Texture = nil,
-		EdgeTexture = [[Interface\AddOns\Masque\Textures\Cooldown\Edge]],
+		Texture = [[Interface\AddOns\Masque\Textures\Square\Mask]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Square\Edge]],
 		PulseTexture = [[Interface\Cooldown\star4]],
 		Color = {0, 0, 0, 0.8},
 		Width = 30,
@@ -444,8 +477,17 @@ Core.AddSkin("Dream", {
 		-- SetAllPoints = nil,
 	},
 	ChargeCooldown = "Cooldown",
+	-- [ SpellAlert ]
 	SpellAlert = {
-		Width = 32,
-		Height = 32,
+		Width = 34,
+		Height = 34,
+		Classic = {
+			Height = 28,
+			Width = 28,
+		},
+		Thin = {
+			Height = 26,
+			Width = 26,
+		},
 	},
 }, true)

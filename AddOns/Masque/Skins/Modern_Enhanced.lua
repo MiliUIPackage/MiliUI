@@ -30,7 +30,7 @@ local Hidden = Core.__Hidden
 
 Core.AddSkin("Modern Enhanced", {
 	-- API_VERSION = Template.API_VERSION,
-	-- Shape = Template.Shape,
+	Shape = "Modern",
 	Template = "Blizzard Modern",
 
 	-- Info
@@ -261,7 +261,7 @@ Core.AddSkin("Modern Enhanced", {
 	EnchantBorder = "Border",
 	-- IconBorder = Template.IconBorder,
 	Gloss = {
-		Texture = [[Interface\AddOns\Masque\Textures\Gloss\Action-Modern]],
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\Gloss]],
 		-- TexCoords = {0, 1, 0, 1},
 		Color = {1, 1, 1, 0.8},
 		BlendMode = "BLEND",
@@ -354,7 +354,66 @@ Core.AddSkin("Modern Enhanced", {
 			-- UseColor = nil,
 		},
 	},
+	-- [ AutoCastOverlay (Retail) ]
+	-- AutoCast_Frame = Template.AutoCast_Frame,
+	-- AutoCast_Shine = Template.AutoCast_Shine,
+	AutoCast_Mask = {
+		-- Atlas = "UI-HUD-ActionBar-PetAutoCast-Mask",
+		-- UseAtlasSize = false,
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\AutoCast-Mask]],
+		-- TexCoords = {0, 1, 0, 1},
+		Width = 30,
+		Height = 30,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Corners = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Corners",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 36,
+		Height = 36,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = true,
+	},
+	-- [ AutoCastShine (Classic) ]
 	-- AutoCastShine = Template.AutoCastShine,
-	-- Cooldown = Template.Cooldown,
-	-- ChargeCooldown = Template.ChargeCooldown,
+	-- [ Cooldowns ]
+	Cooldown = {
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\Mask]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Modern\Edge]],
+		PulseTexture = [[Interface\Cooldown\star4]],
+		Color = {0, 0, 0, 0.8},
+		Width = 31,
+		Height = 31,
+		Anchor = "Icon",
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	ChargeCooldown = "Cooldown",
+	-- [ SpellAlert ]
+	SpellAlert = {
+		Height = 38,
+		Width = 38,
+		Classic = {
+			Height = 30,
+			Width = 30,
+		},
+		Thin = {
+			Height = 29,
+			Width = 29,
+		},
+	},
 }, true)

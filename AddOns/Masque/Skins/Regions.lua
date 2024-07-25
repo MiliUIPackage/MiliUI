@@ -228,7 +228,7 @@ local Legacy = {
 		Iterate = true,
 	},
 	AutoCastable = {
-		Key = "AutoCastable",
+		Key = "AutoCastable", -- Only used by Pet buttons.
 		Type = "Texture",
 		Iterate = true,
 	},
@@ -287,12 +287,14 @@ local Legacy = {
 			UseColor = true,
 		},
 	},
-	-- [ FRAME ]
+	-- [ FRAMES ]
+	-- [ AutoCastShine (Classic) ]
 	AutoCastShine = { -- Only used by Pet buttons.
 		--Key = "AutoCastShine", -- Causes issues with Pet bars.
 		Name = "Shine",
 		Type = "Frame",
 	},
+	-- [ Cooldowns ]
 	Cooldown = {
 		Key = "cooldown",
 		Name = "Cooldown",
@@ -329,6 +331,27 @@ if WOW_RETAIL then
 		Iterate = true,
 		UseColor = true,
 	}
+	-- [ FRAMES ]
+	-- [ AutoCastOverlay (Retail) ]
+	Legacy.AutoCast_Frame = {
+		Key = "AutoCastOverlay",
+		Type = "Frame",
+	}
+	Legacy.AutoCast_Shine = {
+		Key = "Shine",
+		Parent = "AutoCastOverlay",
+		Type = "Texture",
+	}
+	Legacy.AutoCast_Mask = {
+		Key = "Shine",
+		Parent = "AutoCastOverlay",
+		Type = "Texture",
+	}
+	Legacy.AutoCast_Corners = {
+		Key = "Shine",
+		Parent = "AutoCastOverlay",
+		Type = "Texture",
+	}
 end
 
 ----------------------------------------
@@ -351,6 +374,10 @@ local Action = {
 	SpellHighlight = Legacy.SpellHighlight,
 	Name = Legacy.Name,
 	Highlight = Legacy.Highlight,
+	AutoCast_Frame = Legacy.AutoCast_Frame,
+	AutoCast_Shine = Legacy.AutoCast_Shine,
+	AutoCast_Mask = Legacy.AutoCast_Mask,
+	AutoCast_Corners = Legacy.AutoCast_Corners,
 	AutoCastShine = Legacy.AutoCastShine,
 	Cooldown = Legacy.Cooldown,
 	ChargeCooldown = Legacy.ChargeCooldown,

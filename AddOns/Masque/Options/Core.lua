@@ -49,7 +49,7 @@ function Setup.Core(self)
 
 	local Options = {
 		type = "group",
-		name = MASQUE,
+		name = L["Masque"],
 		args = {
 			Core = {
 				type = "group",
@@ -81,7 +81,7 @@ function Setup.Core(self)
 	LIB_ACR:RegisterOptionsTable(MASQUE, self.Options)
 
 	local Path = "Core"
-	self:AddOptionsPanel(Path, LIB_ACD:AddToBlizOptions(MASQUE, MASQUE, nil, Path))
+	self:AddOptionsPanel(Path, LIB_ACD:AddToBlizOptions(MASQUE, L["Masque"], nil, Path))
 
 	OPT_LDR_FRAME = CreateFrame("Frame", "MSQ_LDR_FRAME", SettingsPanel)
 	OPT_LDR_FRAME:SetScript("OnShow", function() Setup("LoD") end)

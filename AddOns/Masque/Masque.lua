@@ -41,11 +41,11 @@ local L = Core.Locale
 local Masque = LibStub("AceAddon-3.0"):NewAddon(MASQUE)
 
 -- API Version
-local API_VERSION = 100105
+local API_VERSION = 100209
 
 -- Client Version
 local WOW_VERSION = select(4, GetBuildInfo()) or 0
-local WOW_RETAIL = (WOW_VERSION > 100000 and true) or nil
+local WOW_RETAIL = ((WOW_VERSION > 100000) and true) or nil
 
 ----------------------------------------
 -- Utility
@@ -126,7 +126,7 @@ Core.WOW_VERSION = WOW_VERSION
 Core.WOW_RETAIL = WOW_RETAIL
 
 -- Add-On Info
-Core.Version = "10.2.7"
+Core.Version = "10.2.11"
 Core.Discord = "https://discord.gg/7MTWRgDzz8"
 
 Core.Authors = {
@@ -217,7 +217,10 @@ function Masque:OnInitialize()
 				-- Cooldown = true, -- Disabled by Blizzard
 				Interrupt = true,
 				Reticle = true,
-				SpellAlert = 1,
+			},
+			SpellAlert = {
+				State = 1,
+				Style = false,
 			},
 		},
 	}
@@ -232,7 +235,7 @@ function Masque:OnInitialize()
 	Core.db = db
 
 	-- LibDualSpec-1.0
-	if (WOW_VERSION > 30000) and LIB_LDS then
+	if LIB_LDS then
 		LIB_LDS:EnhanceDatabase(Core.db, MASQUE)
 	end
 

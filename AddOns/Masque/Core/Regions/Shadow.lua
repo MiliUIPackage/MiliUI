@@ -24,7 +24,7 @@ local error, type = error, type
 
 -- @ Core\Utility
 local GetColor, GetSize, GetTexCoords = Core.GetColor, Core.GetSize, Core.GetTexCoords
-local GetTypeSkin, SetPoints = Core.GetTypeSkin, Core.SetPoints
+local GetTypeSkin, SetSkinPoint = Core.GetTypeSkin, Core.SetSkinPoint
 
 ----------------------------------------
 -- Locals
@@ -67,28 +67,14 @@ local function AddShadow(Button, Skin, Color, xScale, yScale)
 	end
 
 	Region:SetParent(Button)
-
-	local Atlas = Skin.Atlas
-	local UseAtlasSize = Skin.UseAtlasSize
-	local Coords
-
-	if Atlas then
-		Region:SetAtlas(Atlas, UseAtlasSize)
-	else
-		Coords = Skin.TexCoords
-		Region:SetTexture(Skin.Texture)
-	end
-
-	Region:SetTexCoord(GetTexCoords(Coords))
-	Region:SetVertexColor(GetColor(Color or Skin.Color))
+	Region:SetTexture(Skin.Texture)
+	Region:SetTexCoord(GetTexCoords(Skin.TexCoords))
 	Region:SetBlendMode(Skin.BlendMode or "BLEND")
+	Region:SetVertexColor(GetColor(Color or Skin.Color))
 	Region:SetDrawLayer(Skin.DrawLayer or "ARTWORK", Skin.DrawLevel or -1)
+	Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
 
-	if not UseAtlasSize then
-		Region:SetSize(GetSize(Skin.Width, Skin.Height, xScale, yScale, Button))
-	end
-
-	SetPoints(Region, Button, Skin, nil, Skin.SetAllPoints)
+	SetSkinPoint(Region, Button, Skin, nil, Skin.SetAllPoints)
 
 	if Button.__MSQ_Empty then
 		Region:Hide()
@@ -115,7 +101,7 @@ end
 function Core.SkinShadow(Enabled, Button, Skin, Color, xScale, yScale)
 	Skin = GetTypeSkin(Button, Button.__MSQ_bType, Skin)
 
-	if Enabled and not Skin.Hide and (Skin.Atlas or Skin.Texture) then
+	if Enabled and (not Skin.Hide) and (Skin.Atlas or Skin.Texture) then
 		AddShadow(Button, Skin, Color, xScale, yScale)
 	else
 		RemoveShadow(Button)

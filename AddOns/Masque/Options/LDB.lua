@@ -45,7 +45,7 @@ function Setup.LDB(self)
 
 		self.LDBO = LDB:NewDataObject(MASQUE, {
 			type  = "launcher",
-			label = MASQUE,
+			label = L["Masque"],
 			icon  = "Interface\\Addons\\Masque\\Textures\\LDB",
 			tocname = MASQUE, -- Required by Diagnostics
 			OnClick = function(Tip, Button)
@@ -57,7 +57,7 @@ function Setup.LDB(self)
 				if not Tip or not Tip.AddLine then
 					return
 				end
-				Tip:AddLine(MASQUE)
+				Tip:AddLine(L["Masque"])
 				Tip:AddLine(L["Click to open Masque's settings."], 1, 1, 1)
 
 				if InCombatLockdown() then

@@ -6,7 +6,7 @@
 	* File...: Skins\Maul_Classic.lua
 	* Author.: StormFX, Maul, Blizzard Entertainment
 
-	"Classic Redux" Skin
+	"Classic Enhanced" Skin
 
 ]]
 
@@ -20,12 +20,12 @@ local _, Core = ...
 local L = Core.Locale
 
 ----------------------------------------
--- Classic Redux
+-- Classic Enhanced
 ---
 
-Core.AddSkin("Classic Redux", {
+Core.AddSkin("Classic Enhanced", {
 	-- API_VERSION = Template.API_VERSION,
-	-- Shape = Template.Shape,
+	Shape = "Modern",
 	Template = "Blizzard Classic",
 
 	-- Info
@@ -411,6 +411,38 @@ Core.AddSkin("Classic Redux", {
 		-- SetAllPoints = nil,
 		-- UseColor = nil,
 	},
+	-- [ AutoCastOverlay (Retail) ]
+	-- AutoCast_Frame = Template.AutoCast_Frame,
+	-- AutoCast_Shine = Template.AutoCast_Shine,
+	AutoCast_Mask = {
+		-- Atlas = "UI-HUD-ActionBar-PetAutoCast-Mask",
+		-- UseAtlasSize = false,
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\AutoCast-Mask]],
+		-- TexCoords = {0, 1, 0, 1},
+		Width = 28,
+		Height = 28,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = nil,
+	},
+	AutoCast_Corners = {
+		Atlas = "UI-HUD-ActionBar-PetAutoCast-Corners",
+		UseAtlasSize = false,
+		-- Color = {1, 1, 1, 1},
+		BlendMode = "BLEND",
+		DrawLayer = "OVERLAY",
+		DrawLevel = 1,
+		Width = 36,
+		Height = 36,
+		Point = "CENTER",
+		RelPoint = "CENTER",
+		OffsetX = 0,
+		OffsetY = 0,
+		-- SetAllPoints = true,
+	},
+	-- [ AutoCastShine (Classic) ]
 	AutoCastShine = {
 		Width = 32,
 		Height = 32,
@@ -420,9 +452,10 @@ Core.AddSkin("Classic Redux", {
 		OffsetY = -0.5,
 		-- SetAllPoints = nil,
 	},
+	-- [ Cooldowns ]
 	Cooldown = {
-		-- Texture = nil,
-		EdgeTexture = [[Interface\AddOns\Masque\Textures\Cooldown\Edge]],
+		Texture = [[Interface\AddOns\Masque\Textures\Modern\Mask]],
+		EdgeTexture = [[Interface\AddOns\Masque\Textures\Modern\Edge]],
 		PulseTexture = [[Interface\Cooldown\star4]],
 		Color = {0, 0, 0, 0.8},
 		Width = 32,
@@ -434,4 +467,18 @@ Core.AddSkin("Classic Redux", {
 		-- SetAllPoints = nil,
 	},
 	ChargeCooldown = "Cooldown",
+	--ChargeCooldown = "Cooldown",
+	-- [ SpellAlert ]
+	SpellAlert = {
+		Height = 40,
+		Width = 40,
+		Classic = {
+			Height = 32,
+			Width = 32,
+		},
+		Thin = {
+			Height = 30,
+			Width = 30,
+		},
+	},
 }, true)
