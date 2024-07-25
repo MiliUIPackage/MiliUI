@@ -201,7 +201,28 @@
 ---@field spec specializationid
 
 ---@class customspellinfo : {name: string, isPassive: boolean, itemId: number, icon: string|number}
----@class customiteminfo: {itemId: number, isPassive: boolean, nameExtra: string?, icon: string|number|nil}
+
+---@class customiteminfo: table
+---@field itemId number
+---@field isPassive boolean?
+---@field nameExtra string?
+---@field icon string|number|nil
+---@field onUse boolean?
+---@field isSummon boolean?
+---@field castId spellid?
+---@field defaultName string?
+---@field aura1 spellid?
+---@field aura2 spellid?
+
+---@class pvpcombatinfo : table
+---@field name string zone name
+---@field mapid number zone mapid
+
+---@class arenacombatinfo : table
+---@field name string zone name
+---@field zone string zone name
+---@field mapid number zone mapid
+
 ---@class savedspelldata : {key1: number, key2: string, key3: number}
 ---@class alternatepowertable : {last: number, total: number}
 
@@ -242,11 +263,16 @@
 ---@field end_time gametime
 ---@field combat_counter number
 ---@field is_trash boolean while in raid this is set to true if the combat isn't raid boss, in dungeon this is set to true if the combat isn't a boss or if the dungeon isn't a mythic+
----@field raid_roster table<string, string> [unitName] = unitGUID
----@field overall_added boolean is true when the combat got added into the overall combat
+---@field is_boss bossinfo
+---@field is_world_trash_combat boolean when true this combat is a regular combat done in the world, not in a dungeon, raid, battleground, arena, ...
 ---@field is_mythic_dungeon mythicdungeoninfo
 ---@field is_mythic_dungeon_run_id number
 ---@field is_mythic_dungeon_segment boolean
+---@field is_pvp pvpcombatinfo
+---@field is_arena arenacombatinfo
+---@field arena boolean
+---@field raid_roster table<string, string> [unitName] = unitGUID
+---@field overall_added boolean is true when the combat got added into the overall combat
 ---@field trinketProcs table<actorname, table<spellid, {cooldown: number, total: number}>>
 ---@field _trashoverallalreadyadded boolean
 ---@field alternate_power table<actorname, alternatepowertable>
@@ -254,62 +280,60 @@
 ---@field totals_grupo {key1: table, key2: table, key3: table, key3: table}
 ---@field __destroyed boolean
 ---@field PhaseData table
----@field is_boss bossinfo
----@field is_world_trash_combat boolean when true this combat is a regular combat done in the world, not in a dungeon, raid, battleground, arena, ...
 ---@field player_last_events table<string, table[]> record the latest events of each player, latter used to build the death log
 ---@field
----@field GetCurrentPhase fun(combat: combat) : number return the current phase of the combat or the phase where the combat ended
+---@field GetTotal fun(self: combat, attribute: number, subAttribute: number?, onlyGroup: boolean?) : number return the total amount of the requested attribute
+---@field GetCurrentPhase fun(self: combat) : number return the current phase of the combat or the phase where the combat ended
 ---@field StoreTalents fun(self:combat)
----@field FindEnemyName fun(combat: combat) : string attempt to get the name of the enemy in the combat by getting the top most damaged unit by the player
----@field GetTryNumber fun(combat: combat) : number?
----@field GetFormattedCombatTime fun(combat: combat) : string
----@field GetMSTime fun(combat: combat) : number, number
----@field GetSegmentSlotId fun(combat: combat) : segmentid
----@field GetCombatName fun(combat: combat, bOnlyName: boolean?, bTryFind: boolean?) : string, number?, number?, number?, number? get the name of the combat
----@field GetCombatIcon fun(combat: combat) : df_atlasinfo, df_atlasinfo?
+---@field FindEnemyName fun(self: combat) : string attempt to get the name of the enemy in the combat by getting the top most damaged unit by the player
+---@field GetTryNumber fun(self: combat) : number?
+---@field GetFormattedCombatTime fun(self: combat) : string
+---@field GetMSTime fun(self: combat) : number, number
+---@field GetSegmentSlotId fun(self: combat) : segmentid
+---@field GetCombatName fun(self: combat, bOnlyName: boolean?, bTryFind: boolean?) : string, number?, number?, number?, number? get the name of the combat
+---@field GetCombatIcon fun(self: combat) : df_atlasinfo, df_atlasinfo?
 ---@field GetTrinketProcsForPlayer fun(self: combat, playerName: string) : table<spellid, trinketprocdata> return a key|value table containing the spellId as key and a table with information about the trinket as value
----@field IsMythicDungeon fun(combat: combat) : boolean, number return a boolean indicating if the combat is from a mythic+ dungeon, if true, also return the runId
----@field GetMythicDungeonInfo fun(combat: combat) : mythicdungeoninfo
----@field GetCombatType fun(combat: combat) : number
----@field GetCombatUID fun(combat: combat) : uniquecombatid
----@field GetTimeData fun(combat: combat, dataName: string) : table
----@field GetPhases fun(combat: combat) : table
----@field GetCombatTime fun(comba: combat) : number
----@field GetRunTime fun(combat: combat) : number return the elapsed time of a mythic+ dungeon run, if not exists, return the combat time
----@field GetRunTimeNoDefault fun(combat: combat) : number return the elapsed time of a mythic+ dungeon run, nil if not exists
----@field GetDeaths fun(combat) : table --get the table which contains the deaths of the combat
----@field GetStartTime fun(combat: combat) : number
----@field SetStartTime fun(combat: combat, time: number)
----@field GetEndTime fun(combat: combat) : number
----@field GetDifficulty fun(combat: combat) : number return the dungeon or raid difficulty for boss fights
----@field GetEncounterCleuID fun(combat: combat) : number return the encounterId for boss fights, this number is gotten from the ENCOUNTER_START event
----@field GetBossInfo fun(combat: combat) : bossinfo a table containing many informations about the boss fight
----@field SetEndTime fun(combat: combat, time: number)
+---@field IsMythicDungeon fun(self: combat) : boolean, number return a boolean indicating if the combat is from a mythic+ dungeon, if true, also return the runId
+---@field GetMythicDungeonInfo fun(self: combat) : mythicdungeoninfo
+---@field GetCombatType fun(self: combat) : number
+---@field GetCombatUID fun(self: combat) : uniquecombatid
+---@field GetTimeData fun(self: combat, dataName: string) : table
+---@field GetPhases fun(self: combat) : table
+---@field GetCombatTime fun(self: combat) : number
+---@field GetRunTime fun(self: combat) : number return the elapsed time of a mythic+ dungeon run, if not exists, return the combat time
+---@field GetRunTimeNoDefault fun(self: combat) : number return the elapsed time of a mythic+ dungeon run, nil if not exists
+---@field GetDeaths fun(self: combat) : table --get the table which contains the deaths of the combat
+---@field GetStartTime fun(self: combat) : number
+---@field SetStartTime fun(self: combat, time: number)
+---@field GetEndTime fun(self: combat) : number
+---@field GetDifficulty fun(self: combat) : number, string return the dungeon or raid difficulty for boss fights as a number, the string is an english difficulty name in lower case which is not always present
+---@field GetEncounterCleuID fun(self: combat) : number return the encounterId for boss fights, this number is gotten from the ENCOUNTER_START event
+---@field GetBossInfo fun(self: combat) : bossinfo a table containing many informations about the boss fight
+---@field SetEndTime fun(self: combat, time: number)
 ---@field CopyDeathsFrom fun(combat1: combat, combat2: combat, bMythicPlus: boolean) copy the deaths from combat2 to combat1, use true on bMythicPlus if the combat is from a mythic plus run
----@field GetContainer fun(combat: combat, containerType: containertype) : actorcontainer get an actorcontainer, containerType can be 1 for damage, 2 heal, 3 resources, 4 utility
----@field GetSpellCastAmount fun(combat: combat, actorName: string, spellName: string) : number get the amount of times a spell was casted
----@field RemoveActorFromSpellCastTable fun(combat: combat, actorName: string)
----@field GetSpellCastTable fun(combat: combat, actorName: string|nil) : table
----@field GetSpellUptime fun(combat: combat, actorName: string, spellId: number, auraType: string|nil) : number get the uptime of a buff or debuff
----@field GetActor fun(combat: combat, containerType: number, playerName: string) : actor
----@field CreateAlternatePowerTable fun(combat: combat, actorName: string) : alternatepowertable
----@field GetCombatNumber fun(combat: combat) : number get a unique number representing the combatId, each combat has a unique number
----@field SetDate fun(combat: combat, startDate: string?, endDate: string?) set the start and end date of the combat, format: "H:M:S"
----@field GetDate fun(combat: combat) : string, string get the start and end date of the combat, format: "H:M:S"
----@field GetRoster fun(combat: combat) : table<string, string> get the roster of the combat, the table contains the names of the players in the combat
----@field GetInstanceType fun(combat: combat) : instancetype get the instance type of the combat, can be "raid" or "party" or "pvp" or "arena" or "none"
----@field IsTrash fun(combat: combat) : boolean is true if the combat is a trash combat
----@field GetEncounterName fun(combat: combat) : string get the name of the encounter
----@field GetBossImage fun(combat: combat) : texturepath|textureid get the icon of the encounter
----@field SetDateToNow fun(combat: combat, bSetStartDate: boolean?, bSetEndDate: boolean?) set the date to the current time. format: "H:M:S"
----@field GetBossHealth fun(combat: combat) : number get the percentage of the boss health when the combat ended
----@field GetBossHealthString fun(combat: combat) : string get the percentage of the boss health when the combat ended as a string
----@field GetBossName fun(combat: combat) : string? return the name of the unitId "boss1", nil if the unit doesn't existed during the combat
-
+---@field GetContainer fun(self: combat, containerType: containertype) : actorcontainer get an actorcontainer, containerType can be 1 for damage, 2 heal, 3 resources, 4 utility
+---@field GetSpellCastAmount fun(self: combat, actorName: string, spellName: string) : number get the amount of times a spell was casted
+---@field RemoveActorFromSpellCastTable fun(self: combat, actorName: string)
+---@field GetSpellCastTable fun(self: combat, actorName: string|nil) : table
+---@field GetSpellUptime fun(self: combat, actorName: string, spellId: number, auraType: string|nil) : number get the uptime of a buff or debuff
+---@field GetActor fun(self: combat, containerType: number, playerName: string) : actor
+---@field CreateAlternatePowerTable fun(self: combat, actorName: string) : alternatepowertable
+---@field GetCombatNumber fun(self: combat) : number get a unique number representing the combatId, each combat has a unique number
+---@field SetDate fun(self: combat, startDate: string?, endDate: string?) set the start and end date of the combat, format: "H:M:S"
+---@field GetDate fun(self: combat) : string, string get the start and end date of the combat, format: "H:M:S"
+---@field GetRoster fun(self: combat) : table<string, string> get the roster of the combat, the table contains the names of the players in the combat
+---@field GetInstanceType fun(self: combat) : instancetype get the instance type of the combat, can be "raid" or "party" or "pvp" or "arena" or "none"
+---@field IsTrash fun(self: combat) : boolean is true if the combat is a trash combat
+---@field GetEncounterName fun(self: combat) : string get the name of the encounter
+---@field GetBossImage fun(self: combat) : texturepath|textureid get the icon of the encounter
+---@field SetDateToNow fun(self: combat, bSetStartDate: boolean?, bSetEndDate: boolean?) set the date to the current time. format: "H:M:S"
+---@field GetBossHealth fun(self: combat) : number get the percentage of the boss health when the combat ended
+---@field GetBossHealthString fun(self: combat) : string get the percentage of the boss health when the combat ended as a string
+---@field GetBossName fun(self: combat) : string? return the name of the unitId "boss1", nil if the unit doesn't existed during the combat
 
 ---@class actorcontainer : table contains two tables _ActorTable and _NameIndexTable, the _ActorTable contains the actors, the _NameIndexTable contains the index of the actors in the _ActorTable, making quick to reorder them without causing overhead
 ---@field need_refresh boolean when true the container is dirty and needs to be refreshed
----@field _ActorTable table array of actors
+---@field _ActorTable table a table containing all actors stored in the container
 ---@field _NameIndexTable table<string, number> [actorName] = actorIndex in the _ActorTable, actorcontainer:Remap() refreshes the _NameIndexTable
 ---@field GetActor fun(container: actorcontainer, actorName: string) get an actor by its name
 ---@field GetOrCreateActor fun(container: actorcontainer, actorSerial: guid, actorName: actorname, actorFlags: controlflags, bShouldCreateActor: boolean) get an actor by its name, if the actor doesn't exist it will be created
@@ -429,6 +453,7 @@
 ---@field GetDisplayName fun(actor: actor) : string Get the display name of the actor. Display name is often the player name without the realm name.
 ---@field GetActorSpells fun(actor: actor) : spellcontainer get the spell container of the actor
 ---@field Pets fun(actor: actor) : petname[] get the pets of the actor
+---@field SetSpecId fun(actor: actor, specId: number) set the specId of the actor
 ---@field 
 
 ---@class actordamage : actor
@@ -800,6 +825,7 @@
 
 ---@class details222 : table
 ---@field TimeMachine timemachine
+---@field PetContainer petcontainer
 
 ---@class profile_breakdown_settings : table
 ---@field font_size number

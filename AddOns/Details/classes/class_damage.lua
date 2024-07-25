@@ -35,13 +35,16 @@
 	local GameTooltip = GameTooltip --api local
 	local IsInRaid = IsInRaid --api local
 	local IsInGroup = IsInGroup --api local
+    local GetSpellLink = GetSpellLink or C_Spell.GetSpellLink --api local
 
-	local GetSpellInfo = GetSpellInfo --api local
+	local GetSpellInfo = Details222.GetSpellInfo --api local
 	local _GetSpellInfo = Details.getspellinfo --details api
 	local stringReplace = Details.string.replace --details api
 
 	--show more information about spells
 	local debugmode = false
+
+	local GetSpellTexture = GetSpellTexture or C_Spell.GetSpellTexture
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --constants
@@ -1773,6 +1776,7 @@ end
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --main refresh function
 
+--~refresh
 ---@param instanceObject instance
 ---@param combatObject combat
 ---@param bForceUpdate boolean
@@ -1780,6 +1784,8 @@ end
 function damageClass:RefreshWindow(instanceObject, combatObject, bForceUpdate, bExportData)
 	---@type actorcontainer
 	local damageContainer = combatObject[class_type] --o que esta sendo mostrado -> [1] - dano [2] - cura --pega o container com ._NameIndexTable ._ActorTable
+
+	--print("updating the main window")
 
 	--not have something to show
 	if (#damageContainer._ActorTable < 1) then
@@ -2034,7 +2040,7 @@ function damageClass:RefreshWindow(instanceObject, combatObject, bForceUpdate, b
 											this_spell [2] = this_spell [2] + on_player
 											total = total + on_player
 										else
-											error("error - no spell id for DTBS friendly fire " .. spellid)
+											--error("error - no spell id for DTBS friendly fire " .. spellid)
 										end
 									end
 								end
@@ -2591,19 +2597,20 @@ end
 		--space between string4 and string3 (usually dps is 4 and total value is 3)
 		for lineId = 1, self:GetNumLinesShown() do
 			local thisLine = self:GetLine(lineId)
+			if (thisLine) then
+				--check strings 3 and 4
+				if (thisLine.lineText4:GetText() ~= "" and thisLine.lineText3:GetText() ~= "") then
+					--the length of the far right string determines the space between it and the next string in the left
+					local stringLength = thisLine.lineText4:GetStringWidth()
+					maxStringLength_StringFour = stringLength > maxStringLength_StringFour and stringLength or maxStringLength_StringFour
+				end
 
-			--check strings 3 and 4
-			if (thisLine.lineText4:GetText() ~= "" and thisLine.lineText3:GetText() ~= "") then
-				--the length of the far right string determines the space between it and the next string in the left
-				local stringLength = thisLine.lineText4:GetStringWidth()
-				maxStringLength_StringFour = stringLength > maxStringLength_StringFour and stringLength or maxStringLength_StringFour
-			end
-
-			--check strings 2 and 3
-			if (thisLine.lineText2:GetText() ~= "" and thisLine.lineText3:GetText() ~= "") then
-				--the length of the middle string determines the space between it and the next string in the left
-				local stringLength = thisLine.lineText3:GetStringWidth()
-				maxStringLength_StringThree = stringLength > maxStringLength_StringThree and stringLength or maxStringLength_StringThree
+				--check strings 2 and 3
+				if (thisLine.lineText2:GetText() ~= "" and thisLine.lineText3:GetText() ~= "") then
+					--the length of the middle string determines the space between it and the next string in the left
+					local stringLength = thisLine.lineText3:GetStringWidth()
+					maxStringLength_StringThree = stringLength > maxStringLength_StringThree and stringLength or maxStringLength_StringThree
+				end
 			end
 		end
 
@@ -2624,7 +2631,9 @@ end
 			--update the lines
 			for lineId = 1, self:GetNumLinesShown() do
 				local thisLine = self:GetLine(lineId)
-				thisLine.lineText3:SetPoint("right", thisLine.statusbar, "right", -newOffset, profileYOffset)
+				if (thisLine) then
+					thisLine.lineText3:SetPoint("right", thisLine.statusbar, "right", -newOffset, profileYOffset)
+				end
 			end
 		end
 
@@ -2645,7 +2654,9 @@ end
 				--update the lines
 				for lineId = 1, self:GetNumLinesShown() do
 					local thisLine = self:GetLine(lineId)
-					thisLine.lineText2:SetPoint("right", thisLine.statusbar, "right", -newOffset, profileYOffset)
+					if (thisLine) then
+						thisLine.lineText2:SetPoint("right", thisLine.statusbar, "right", -newOffset, profileYOffset)
+					end
 				end
 			end
 		end
@@ -2656,7 +2667,7 @@ end
 
 			--check if there's something showing in this line
 			--check if the line is shown and if the text exists for sanitization
-			if (thisLine.minha_tabela and thisLine:IsShown() and thisLine.lineText1:GetText()) then
+			if (thisLine and thisLine.minha_tabela and thisLine:IsShown() and thisLine.lineText1:GetText()) then
 				local playerNameFontString = thisLine.lineText1
 				local text2 = thisLine.lineText2
 				local text3 = thisLine.lineText3
@@ -2668,10 +2679,10 @@ end
 				DetailsFramework:TruncateTextSafe(playerNameFontString, self.cached_bar_width - totalWidth) --this avoid truncated strings with ...
 
 				--these commented lines are for to create a cache and store the name already truncated there to safe performance
-					--local truncatedName = playerNameFontString:GetText()
-					--local actorObject = thisLine.minha_tabela
-					--actorObject.name_cached = truncatedName
-					--actorObject.name_cached_time = GetTime()
+				--local truncatedName = playerNameFontString:GetText()
+				--local actorObject = thisLine.minha_tabela
+				--actorObject.name_cached = truncatedName
+				--actorObject.name_cached_time = GetTime()
 			end
 		end
 	end
@@ -4160,6 +4171,11 @@ function damageClass:ToolTip_DamageDone (instancia, numero, barra, keydown)
 				local petDPS = damageTable[3]
 
 				petName = damageTable[1]:gsub(("%s%<.*"), "")
+
+				if (instance.row_info.textL_translit_text) then
+					petName = Translit:Transliterate(petName, "!")
+				end
+
 				if (instancia.sub_atributo == 1) then
 					GameCooltip:AddLine(petName, FormatTooltipNumber(_, petDamageDone) .. " (" .. math.floor(petDamageDone/self.total*100) .. "%)")
 				else
@@ -5290,7 +5306,7 @@ function damageClass:MontaInfoDamageDone() --I guess this fills the list of spel
 	---@type combat
 	local combatObject = instance:GetCombat()
 	---@type number
-	local diff = combatObject:GetDifficulty()
+	local diff, diffEngName = combatObject:GetDifficulty()
 	---@type string
 	local playerName = actorObject:Name()
 
@@ -5299,14 +5315,15 @@ function damageClass:MontaInfoDamageDone() --I guess this fills the list of spel
 	--guild ranking on a boss
 	--check if is a raid encounter and if is heroic or mythic
 	do
-		if (diff and (diff == 15 or diff == 16)) then
+		if (diff and (diff == 15 or diff == 16)) then --this might give errors
 			local db = Details.OpenStorage()
 			if (db) then
-				local bestRank, encounterTable = Details.storage:GetBestFromPlayer(diff, combatObject:GetBossInfo().id, "damage", playerName, true)
+				---@type details_storage_unitresult, details_encounterkillinfo
+				local bestRank, encounterTable = Details222.storage.GetBestFromPlayer(diffEngName, combatObject:GetBossInfo().id, "DAMAGER", playerName, true)
 				if (bestRank) then
 					--discover which are the player position in the guild rank
-					local playerTable, onEncounter, rankPosition = Details.storage:GetPlayerGuildRank (diff, combatObject:GetBossInfo().id, "damage", playerName, true)
-					local text1 = playerName .. " Guild Rank on " .. (combatObject:GetBossInfo().name or "") .. ": |cFFFFFF00" .. (rankPosition or "x") .. "|r Best Dps: |cFFFFFF00" .. Details:ToK2((bestRank[1] or 0) / encounterTable.elapsed) .. "|r (" .. encounterTable.date:gsub(".*%s", "") .. ")"
+					local rankPosition = Details222.storage.GetUnitGuildRank(diffEngName, combatObject:GetBossInfo().id, "DAMAGER", playerName, true)
+					local text1 = playerName .. " Guild Rank on " .. (combatObject:GetBossInfo().name or "") .. ": |cFFFFFF00" .. (rankPosition or "x") .. "|r Best Dps: |cFFFFFF00" .. Details:ToK2((bestRank.total or SMALL_NUMBER) / encounterTable.elapsed) .. "|r (" .. encounterTable.date:gsub(".*%s", "") .. ")"
 					breakdownWindowFrame:SetStatusbarText (text1, 10, "gray")
 				else
 					breakdownWindowFrame:SetStatusbarText()

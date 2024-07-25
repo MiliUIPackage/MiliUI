@@ -114,6 +114,7 @@ Loc ["Only show the icon while inside a raid."] = "Only show the icon while insi
 Loc ["Options"] = "Options"
 Loc ["Phase out of range:"] = "Phase out of range:"
 Loc ["Phases"] = "Phases"
+Loc ["Player Damage Taken"] = "Player Damage Taken"
 Loc ["Raid Damage Done"] = "Raid Damage Done"
 Loc ["Raid encounters summary, show basic stuff like dispels, interrupts and also graphic charts, boss emotes and the Weakaura Creation Tool."] = "Raid encounters summary, show basic stuff like dispels, interrupts and also graphic charts, boss emotes and the Weakaura Creation Tool."
 Loc ["Report Results"] = "Report Results"

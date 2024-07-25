@@ -401,50 +401,27 @@ do
                 desc = Loc ["STRING_OPTIONS_SEGMENTSSAVE_DESC"],
             },
 
-            {type = "blank"},
-            {type = "label", get = function() return Loc["Auto Erase:"] end, text_template = subSectionTitleTextTemplate},
-
-            {--auto erase settings | erase data
-                type = "select",
-                get = function() return Details.segments_auto_erase end,
-                values = function()
-                    return buildEraseDataMenu()
-                end,
-                name = Loc ["STRING_OPTIONS_ED"],
-                desc = Loc ["STRING_OPTIONS_ED_DESC"],
-            },
-
-            {--auto erase trash segments
-                type = "toggle",
-                get = function() return Details.trash_auto_remove end,
+            {--max segments on boss wipes
+                type = "range",
+                get = function() return Details.segments_amount_boss_wipes end,
                 set = function(self, fixedparam, value)
-                    Details.trash_auto_remove = value
+                    Details.segments_amount_boss_wipes = value
                     afterUpdate()
                 end,
-                name = Loc ["STRING_OPTIONS_CLEANUP"],
-                desc = Loc ["STRING_OPTIONS_CLEANUP_DESC"],
-                boxfirst = true,
+                min = 1,
+                max = 40,
+                step = 1,
+                name = Loc["Segments Boss Wipe"],
+                desc = Loc["Amount of segments to keep for wipes on the same boss."],
             },
-            {--auto erase world segments
+            {--wipe segments keep the best segments and delete the worst ones
                 type = "toggle",
-                get = function() return Details.world_combat_is_trash end,
+                get = function() return Details.segments_boss_wipes_keep_best_performance end,
                 set = function(self, fixedparam, value)
-                    Details.world_combat_is_trash = value
-                    afterUpdate()
+                    Details.segments_boss_wipes_keep_best_performance = value
                 end,
-                name = Loc ["STRING_OPTIONS_PERFORMANCE_ERASEWORLD"],
-                desc = Loc ["STRING_OPTIONS_PERFORMANCE_ERASEWORLD_DESC"],
-                boxfirst = true,
-            },
-            {--erase chart data
-                type = "toggle",
-                get = function() return Details.clear_graphic end,
-                set = function(self, fixedparam, value)
-                    Details.clear_graphic = value
-                    afterUpdate()
-                end,
-                name = Loc ["STRING_OPTIONS_ERASECHARTDATA"],
-                desc = Loc ["STRING_OPTIONS_ERASECHARTDATA_DESC"],
+                name = Loc["Keep Best Performance (boss wipes)"],
+                desc = Loc["Keep the segments with more progress in the boss health and delete the ones with less progress."],
                 boxfirst = true,
             },
 
@@ -685,6 +662,53 @@ do
 				desc = Loc["Your Bar Color"],
                 boxfirst = true,
             },
+
+            {type = "blank"},
+            {type = "label", get = function() return Loc["Auto Erase:"] end, text_template = subSectionTitleTextTemplate},
+
+            {--auto erase settings | erase data
+                type = "select",
+                get = function() return Details.segments_auto_erase end,
+                values = function()
+                    return buildEraseDataMenu()
+                end,
+                name = Loc ["STRING_OPTIONS_ED"],
+                desc = Loc ["STRING_OPTIONS_ED_DESC"],
+            },
+
+            {--auto erase trash segments
+                type = "toggle",
+                get = function() return Details.trash_auto_remove end,
+                set = function(self, fixedparam, value)
+                    Details.trash_auto_remove = value
+                    afterUpdate()
+                end,
+                name = Loc ["STRING_OPTIONS_CLEANUP"],
+                desc = Loc ["STRING_OPTIONS_CLEANUP_DESC"],
+                boxfirst = true,
+            },
+            {--auto erase world segments
+                type = "toggle",
+                get = function() return Details.world_combat_is_trash end,
+                set = function(self, fixedparam, value)
+                    Details.world_combat_is_trash = value
+                    afterUpdate()
+                end,
+                name = Loc ["STRING_OPTIONS_PERFORMANCE_ERASEWORLD"],
+                desc = Loc ["STRING_OPTIONS_PERFORMANCE_ERASEWORLD_DESC"],
+                boxfirst = true,
+            },
+            {--erase chart data
+                type = "toggle",
+                get = function() return Details.clear_graphic end,
+                set = function(self, fixedparam, value)
+                    Details.clear_graphic = value
+                    afterUpdate()
+                end,
+                name = Loc ["STRING_OPTIONS_ERASECHARTDATA"],
+                desc = Loc ["STRING_OPTIONS_ERASECHARTDATA_DESC"],
+                boxfirst = true,
+            },            
 
         }
 
@@ -4978,7 +5002,7 @@ do
                     end)
                     
                     DF:ApplyStandardBackdrop(f)
-                    DF:CreateTitleBar(f, "Load Your Image") --localize-me
+                    DF:CreateTitleBar(f, Loc["Load Your Image"]) --localize-me
                     
                     tinsert(_G.UISpecialFrames, "DetailsLoadWallpaperImage")
                     
@@ -6383,7 +6407,7 @@ do
 			spellname_entry:SetPoint("left", spellname, "right", 2, 0)
 
 			local spellid_entry_func = function(arg1, arg2, spellid) 
-				local spellname, _, icon = GetSpellInfo(spellid)
+				local spellname, _, icon = _GetSpellInfo(spellid)
 				if (spellname) then
 					spellname_entry:SetText(spellname) 
 					addframe.spellIconButton.icon.texture = icon

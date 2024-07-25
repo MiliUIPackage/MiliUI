@@ -904,6 +904,10 @@ local default_profile = {
 	--segments
 		segments_amount = 25,
 		segments_amount_to_save = 15,
+		--max amount of boss wipes allowed
+		segments_amount_boss_wipes = 10,
+		--should boss wipes delete segments with less progression?
+		segments_boss_wipes_keep_best_performance = true,
 		segments_panic_mode = false,
 		segments_auto_erase = 1,
 
@@ -1375,6 +1379,10 @@ local default_global_data = {
 		damage_scroll_position = {
 			scale = 1,
 		},
+        cleu_debug_panel = {
+            position = {},
+            scaletable = {scale = 1},
+        },
 		data_wipes_exp = {
 			["9"] = false,
 			["10"] = false,
@@ -1386,6 +1394,16 @@ local default_global_data = {
 		current_exp_raid_encounters = {},
 		encounter_journal_cache = {}, --store a dump of the encounter journal
 		installed_skins_cache = {},
+
+		auto_change_to_standard = true,
+
+		debug_options_panel = {
+			scaletable = {scale = 1},
+			position = {},
+		},
+
+		boss_wipe_counter = {},
+		boss_wipe_min_time = 20, --minimum time to consider a wipe as a boss wipe
 
 		user_is_patreon_supporter = false,
 
@@ -1940,8 +1958,9 @@ end
 ---@param newProfileName string
 ---@param bImportAutoRunCode boolean
 ---@param bIsFromImportPrompt boolean
+---@param overwriteExisting boolean
 ---@return boolean
-function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCode, bIsFromImportPrompt)
+function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCode, bIsFromImportPrompt, overwriteExisting)
 	if (not newProfileName or type(newProfileName) ~= "string" or string.len(newProfileName) < 2) then
 		Details:Msg(Loc["invalid profile name or profile name is too short."]) --localize-me
 		return false
@@ -1955,11 +1974,13 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 
 		local profileObject = Details:GetProfile (newProfileName, false)
 		local nameWasDuplicate = false
-		while(profileObject) do
-			newProfileName = newProfileName .. '2';
-			profileObject = Details:GetProfile(newProfileName, false)
-			nameWasDuplicate = true
-		end
+    if not overwriteExisting then
+      while(profileObject) do
+        newProfileName = newProfileName .. '2';
+        profileObject = Details:GetProfile(newProfileName, false)
+        nameWasDuplicate = true
+      end
+    end
 		if (not profileObject) then
 			--profile doesn't exists, create new
 			profileObject = Details:CreateProfile (newProfileName)
@@ -2039,6 +2060,10 @@ function Details:ImportProfile (profileString, newProfileName, bImportAutoRunCod
 		Details.segments_amount = 25
 		--max segments to save between sections
 		Details.segments_amount_to_save = 15
+		--max amount of boss wipes allowed
+		Details.segments_amount_boss_wipes = 10
+		--should boss wipes delete segments with less progression?
+		Details.segments_boss_wipes_keep_best_performance = true
 
 		--transfer instance data to the new created profile
 		profileObject.instances = DetailsFramework.table.copy({}, profileData.instances)

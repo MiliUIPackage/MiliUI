@@ -1253,8 +1253,8 @@ end
 
 		local currentCombat = Details:GetCurrentCombat()
 		if (Details.encounter_table.start and not Details.encounter_table["end"] and currentCombat.is_boss) then
-			local encounterHealth = UnitHealth("boss1") or 0
-			local encounterMaxHealth = UnitHealthMax("boss1") or 1
+			local encounterHealth = math.max(UnitHealth("boss1"), 0.000001)
+			local encounterMaxHealth = math.max(UnitHealthMax("boss1"), 0.000002)
 			currentCombat.boss_hp = encounterHealth / encounterMaxHealth
 		end
 
@@ -1299,6 +1299,16 @@ end
 		if (not Details.Coach.Server.IsEnabled()) then
 			if (Details.debug) then
 				--Details:Msg("coach is disabled, the combat is now over!")
+			end
+		end
+
+		--check if the player is a rogue and has the aura Vanish
+		if (Details.playerclass == "ROGUE") then
+			--if the player has vanish aura, skip this check
+			---@type aurainfo
+			local auraInfo = C_UnitAuras.GetPlayerAuraBySpellID(11327)
+			if (auraInfo) then
+				return true
 			end
 		end
 

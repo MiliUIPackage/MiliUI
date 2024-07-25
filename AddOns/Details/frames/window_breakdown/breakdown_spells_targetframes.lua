@@ -6,8 +6,8 @@ local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
 local unpack = unpack
 local GetTime = GetTime
 local CreateFrame = CreateFrame
-local GetSpellLink = GetSpellLink
-local GetSpellInfo = GetSpellInfo
+local GetSpellLink = GetSpellLink or C_Spell.GetSpellLink --api local
+local GetSpellInfo = Details222.GetSpellInfo
 local _GetSpellInfo = Details.GetSpellInfo
 local GameTooltip = GameTooltip
 local IsShiftKeyDown = IsShiftKeyDown
@@ -148,7 +148,7 @@ local updateTargetBar = function(targetBar, index, combatObject, scrollFrame, he
 			textIndex = textIndex + 1
 
 		elseif (header.name == "percent") then
-			targetBar.percent = value / totalValue * 100 --totalValue is nil
+			targetBar.percent = value / math.max(totalValue, 0.001) * 100 --totalValue is nil
 			---@type string
 			local percentFormatted = string.format("%.1f", targetBar.percent) .. "%"
 			text:SetText(percentFormatted)

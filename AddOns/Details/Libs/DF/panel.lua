@@ -401,16 +401,16 @@ detailsFramework.LayoutFrame = {
 			if (textType) then
 				textType = string.lower(textType)
 				if (textType == "short") then
-					text = "close window"
+					text = "關閉視窗"
 
 				elseif (textType == "medium") then
-					text = "close window"
+					text = "關閉視窗"
 
 				elseif (textType == "large") then
-					text = "close window"
+					text = "關閉視窗"
 				end
 			else
-				text = "close window"
+				text = "關閉視窗"
 			end
 		end
 
@@ -1491,6 +1491,8 @@ end
 
 ------------color pick
 local _, _, _, toc = GetBuildInfo()
+local ColorPickerFrame = ColorPickerFrame --stop warnings
+
 if ((ColorPickerFrame and ColorPickerFrame.SetupColorPickerAndShow) or toc >= 100205) then -- maybe fallback to only check CPF in the future
 	local color_pick_func = function(...)
 		local r, g, b = ColorPickerFrame:GetColorRGB()
@@ -1500,7 +1502,7 @@ if ((ColorPickerFrame and ColorPickerFrame.SetupColorPickerAndShow) or toc >= 10
 
 	local color_pick_func_cancel = function()
 		local r, g, b, a = ColorPickerFrame.previousValues.r, ColorPickerFrame.previousValues.g, ColorPickerFrame.previousValues.b, ColorPickerFrame.previousValues.a
-		ColorPickerFrame.Content.ColorPicker:SetColorRGB(r, g, b)
+		ColorPickerFrame.Content.ColorPicker:SetColorRGB(r, g, b) --error here: attempt to index field 'Content' (a nil value)
 		ColorPickerFrame:dcallback (r, g, b, a, ColorPickerFrame.dframe)
 	end
 
@@ -4800,6 +4802,7 @@ function detailsFramework:CreateBorderFrame(parent, name)
 	local parentName = name or ("DetailsFrameworkBorderFrame" .. tostring(math.random(1, 100000000)))
 
 	local f = CreateFrame("frame", parentName, parent, "BackdropTemplate")
+	detailsFramework:Mixin(f, detailsFramework.FrameFunctions)
 	f:SetFrameLevel(f:GetFrameLevel()+1)
 	f:SetAllPoints()
 

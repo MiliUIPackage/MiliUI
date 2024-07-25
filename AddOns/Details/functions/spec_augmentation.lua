@@ -3,6 +3,9 @@ local addonName, Details222 = ...
 local Details = Details
 local _
 
+---@type detailsframework
+local detailsFramework = DetailsFramework
+
 local CONST_SPELLID_EBONMIGHT = 395152
 local CONST_SPELLID_SS = 413984
 local CONST_SPELLID_PRESCIENCE = 410089
@@ -12,6 +15,8 @@ local CONST_SPELLID_INFERNOBLESS = 410263
 
 local UnitExists = UnitExists
 local UnitIsUnit = UnitIsUnit
+local GetSpellInfo = Details222.GetSpellInfo
+local UnitAuraBySpellName = C_UnitAuras.GetAuraDataBySpellName
 
 local augmentationFunctions = Details222.SpecHelpers[1473]
 local augmentationCache = Details222.SpecHelpers[1473].augmentation_cache
@@ -22,16 +27,10 @@ local getAmountOfBuffsAppliedBySpellId = function(spellId)
     local amountBuffs = 0
     local spellName = GetSpellInfo(spellId)
 
-    for i, unitId in ipairs(Details222.UnitIdCache.PartyIds) do
+    for i, unitId in ipairs(Details222.UnitIdCache.Party) do
         if (UnitExists(unitId)) then
-            for o = 1, 40 do
-                local auraName = UnitBuff(unitId, o)
-                if (auraName == spellName) then
-                    amountBuffs = amountBuffs + 1
-                    break
-                elseif (not auraName) then
-                    break
-                end
+            if UnitAuraBySpellName(unitId, spellName) then
+                amountBuffs = amountBuffs + 1
             end
         else
             break
@@ -44,6 +43,11 @@ end
 local eventListener = Details:CreateEventListener()
 --eventListener:RegisterEvent("COMBAT_PLAYER_ENTER")
 eventListener:RegisterEvent("COMBAT_PLAYER_LEAVING", function(eventName, combatObject)
+    --check if the expansion the player is playing has the augmentation evokers
+    if (not detailsFramework.ExpansionHasAugEvoker()) then
+        return
+    end
+
     --close the time on the current amount of prescience stacks the evoker have
     ---@type combat
     local combat = Details:GetCurrentCombat()
@@ -468,6 +472,7 @@ function augmentationFunctions.BuffRefresh(token, time, sourceSerial, sourceName
             local attributeGained = v2
             if (type(attributeGained) == "number") then
                 Details222.DebugMsg("Ebon Might Refreshed!, but the evoker was not found in the cache (2), adding:", sourceName, sourceSerial, targetName, targetSerial)
+                augmentationCache.ebon_might[targetSerial] = {} --This is needed because the cache was nil
                 table.insert(augmentationCache.ebon_might[targetSerial], {sourceSerial, sourceName, sourceFlags, attributeGained})
             end
         end

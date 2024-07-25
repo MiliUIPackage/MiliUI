@@ -24,15 +24,9 @@ local _
 local addonName, Details222 = ...
 local detailsFramework = DetailsFramework
 
-local gump = 			_detalhes.gump
-
-local alvo_da_habilidade = 	_detalhes.alvo_da_habilidade
+local gump = _detalhes.gump
 local container_habilidades = 	_detalhes.container_habilidades
-local container_combatentes = _detalhes.container_combatentes
-local container_pets =		_detalhes.container_pets
 local atributo_energy =		_detalhes.atributo_energy
-local habilidade_energy = 	_detalhes.habilidade_energy
-
 local container_energy = _detalhes.container_type.CONTAINER_ENERGY_CLASS
 
 --local modo_ALONE = _detalhes.modos.alone
@@ -40,9 +34,6 @@ local modo_GROUP = _detalhes.modos.group
 local modo_ALL = _detalhes.modos.all
 
 local class_type = _detalhes.atributos.e_energy
-
-local DATA_TYPE_START = _detalhes._detalhes_props.DATA_TYPE_START
-local DATA_TYPE_END = _detalhes._detalhes_props.DATA_TYPE_END
 
 local ToKFunctions = _detalhes.ToKFunctions
 local SelectedToKFunction = ToKFunctions [1]
@@ -1025,7 +1016,7 @@ function atributo_energy:ToolTipRegenRecebido (instancia, numero, barra, keydown
 
 	for i = 1, #allGeneratorSpells do
 		local thisGenerator = allGeneratorSpells [i]
-		local spellName, _, spellIcon = GetSpellInfo(thisGenerator[1].id)
+		local spellName, _, spellIcon = _GetSpellInfo(thisGenerator[1].id)
 		GameCooltip:AddLine(spellName, FormatTooltipNumber (_,  thisGenerator[2]) .. " (|cFFFF5555overflow: " .. FormatTooltipNumber (_,  thisGenerator[3]) .. "|r | " .. _cstr ("%.1f", (thisGenerator[2] / allGenerated) * 100).."%)")
 		GameCooltip:AddIcon (spellIcon, nil, nil, icon_size.W, icon_size.H, .1, .9, .1, .9)
 		_detalhes:AddTooltipBackgroundStatusbar()
@@ -1226,6 +1217,8 @@ function atributo_energy:MontaInfoRegenRecebido()
 end
 
 function atributo_energy:MontaDetalhesRegenRecebido (nome, barra)
+
+    if true then return end
 
 	reset_tooltips_table()
 

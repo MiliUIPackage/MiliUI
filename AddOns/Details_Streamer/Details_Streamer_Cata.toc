@@ -5,6 +5,8 @@
 ## SavedVariables: Details_StreamerDB
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
+## X-Wago-ID: VBNB9MGx
+
 ## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計-直播工具
 ## Notes-zhTW: Details!: Streamer (plugin) |n顯示你施放了什麼法術，讓粉絲能夠追隨你的步伐。
 ## DefaultState: disabled

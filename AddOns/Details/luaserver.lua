@@ -13,7 +13,7 @@
 
 ---This table contains documentation for functions inside C_ChallengeMode.
 ---@class blizzard_documentation : table
----@field Name string the name of the field, can be 
+---@field Name string the name of the field, can be
 ---@field Type string most of the time the type is "Function"
 ---@field Arguments blizzard_documentation_arguments[]? a table containing the arguments of the function
 ---@field Returns blizzard_documentation_returns[]? a table containing the returns of the function, the the type is table, it may have "InnerType" which is the type of the elements inside the table
@@ -259,6 +259,55 @@ function LibStub:IterateLibraries()end
 ---| "IN_OUT"
 ---| "NONE"
 
+---@alias aurafilter : table
+---| "HELPFUL"
+---| "HARMFUL"
+---| "PLAYER"
+---| "RAID"
+---| "CANCELABLE"
+---| "NOT_CANCELABLE"
+---| "INCLUDE_NAME_PLATE_ONLY"
+---| "MAW"
+
+---@class spellinfo : table
+---@field name string
+---@field iconID number
+---@field castTime number
+---@field mimRange number
+---@field maxRange number
+---@field spellID number
+---@field originalIconID number
+
+---@class privateaura_anchor : table
+---@field unitToken unit
+---@field auraIndex number
+---@field parent frame
+---@field showCountdownFrame boolean
+---@field showCountdownNumbers boolean
+---@field iconInfo privateaura_iconinfo?
+---@field durationAnchor privateaura_anchorbinding?
+
+---@class privateaura_iconinfo : table
+---@field iconAnchor privateaura_anchorbinding
+---@field iconWidth number
+---@field iconHeight number
+
+---@class privateaura_anchorbinding : table
+---@field point anchorpoint
+---@field relativeTo uiobject
+---@field relativePoint anchorpoint
+---@field offsetX number
+---@field offsetY number
+
+---@class privateaura_appliedsoundinfo : table
+---@field unitToken unit
+---@field spellID spellid
+---@field soundFileName string? 	
+---@field soundFileID number? 	
+---@field outputChannel audiochannels?
+
+---@class privateaura_soundid : number
+
 ---@class aurainfo : table
 ---@field applications number
 ---@field auraInstanceID number
@@ -308,6 +357,7 @@ function LibStub:IterateLibraries()end
 ---@alias encounterid number encounter ID number received by the event ENCOUNTER_START and ENCOUNTER_END
 ---@alias encounterejid number encounter ID number used by the encounter journal
 ---@alias encountername string encounter name received by the event ENCOUNTER_START and ENCOUNTER_END also used by the encounter journal
+---@alias encounterdifficulty number difficulty of the encounter received by the event ENCOUNTER_START and ENCOUNTER_END
 ---@alias instancename string localized name of an instance (e.g. "The Nighthold")
 ---@alias spellid number each spell in the game has a unique spell id, this id can be used to identify a spell.
 ---@alias unitname string name of a unit
@@ -320,6 +370,8 @@ function LibStub:IterateLibraries()end
 ---@alias actorid string unique id of a unit (GUID)
 ---@alias serial string unique id of a unit (GUID)
 ---@alias guid string unique id of a unit (GUID)
+---@alias guildname string name of the guild
+---@alias date string date in the format "YYYY-MM-DD"
 ---@alias keylevel number the level of a mythic dungeon key
 ---@alias mapid number each map in the game has a unique map id, this id can be used to identify a map.
 ---@alias challengemapid number each challenge mode map in the game has a unique map id, this id can be used to identify a challenge mode map.
@@ -338,6 +390,7 @@ function LibStub:IterateLibraries()end
 ---@alias unixtime number a number that represents the number of seconds that have elapsed since 00:00:00 Coordinated Universal Time (UTC), Thursday, 1 January 1970, not counting leap seconds.
 ---@alias timestring string refers to a string showing a time value, such as "1:23" or "1:23:45".
 ---@alias combattime number elapsed time of a combat or time in seconds that a unit has been in combat.
+---@alias servertime number unixtime on the server
 ---@alias auraduration number
 ---@alias gametime number number of seconds that have elapsed since the start of the game session.
 ---@alias milliseconds number a number in milliseconds, usually need to divide by 1000 to get the seconds.
@@ -357,6 +410,9 @@ function LibStub:IterateLibraries()end
 ---@field UnitName fun(unit: string): string
 ---@field GetCursorPosition fun(): number, number return the position of the cursor on the screen, in pixels, relative to the bottom left corner of the screen.
 ---@field C_Timer C_Timer
+
+---table containing backdrop functions
+BackdropTemplateMixin = {}
 
 ---@class timer : table
 ---@field Cancel fun(self: timer)
@@ -743,12 +799,235 @@ function LibStub:IterateLibraries()end
 ---@field SetThumbTexture fun(self: slider, texture: textureid|texturepath)
 ---@field SetStepsPerPage fun(self: slider, steps: number)
 
+---@return number
+function debugprofilestop() return 0 end
+
 INVSLOT_FIRST_EQUIPPED = true
 INVSLOT_LAST_EQUIPPED = true
 LE_PARTY_CATEGORY_INSTANCE = true
 
 --functions
 C_ChatInfo = true
+
+C_Item = {}
+function C_Item.PickupItem() end
+function C_Item.IsBoundToAccountUntilEquip() end
+function C_Item.LockItem() end
+function C_Item.DoesItemMatchTargetEnchantingSpell() end
+function C_Item.IsItemCorruptionRelated() end
+function C_Item.GetItemIconByID() end
+function C_Item.ConfirmOnUse() end
+function C_Item.GetItemIDForItemInfo() end
+function C_Item.IsCorruptedItem() end
+function C_Item.GetBaseItemTransmogInfo() end
+function C_Item.GetItemMaxStackSize() end
+function C_Item.ConfirmNoRefundOnUse() end
+function C_Item.GetFirstTriggeredSpellForItem() end
+function C_Item.GetItemInventorySlotInfo() end
+function C_Item.GetItemNameByID() end
+function C_Item.IsItemCorrupted() end
+function C_Item.ActionBindsItem() end
+function C_Item.GetCurrentItemTransmogInfo() end
+function C_Item.RequestLoadItemDataByID() end
+function C_Item.GetItemSetInfo() end
+function C_Item.GetItemCreationContext() end
+function C_Item.IsEquippedItem() end
+function C_Item.IsItemDataCachedByID() end
+function C_Item.ItemHasRange() end
+function C_Item.ConfirmBindOnUse() end
+function C_Item.GetItemSpecInfo() end
+function C_Item.EndBoundTradeable() end
+function C_Item.EndRefund() end
+function C_Item.UseItemByName() end
+function C_Item.IsDressableItemByID() end
+function C_Item.GetItemGUID() end
+function C_Item.GetItemInventoryTypeByID() end
+function C_Item.UnlockItem() end
+function C_Item.RequestLoadItemData() end
+function C_Item.IsItemInRange() end
+function C_Item.IsItemConvertibleAndValidForPlayer() end
+function C_Item.DoesItemExist() end
+function C_Item.EquipItemByName() end
+function C_Item.ReplaceTradeEnchant() end
+function C_Item.UnlockItemByGUID() end
+function C_Item.DoesItemExistByID() end
+function C_Item.LockItemByGUID() end
+function C_Item.GetItemQualityColor() end
+function C_Item.GetItemIDByGUID() end
+function C_Item.IsLocked() end
+function C_Item.GetItemLocation() end
+function C_Item.IsItemSpecificToPlayerClass() end
+function C_Item.GetItemNumAddedSockets() end
+function C_Item.IsItemKeystoneByID() end
+function C_Item.IsConsumableItem() end
+function C_Item.GetItemStats() end
+function C_Item.IsCurioItem() end
+function C_Item.GetItemStatDelta() end
+function C_Item.IsItemDataCached() end
+function C_Item.IsItemConduit() end
+function C_Item.GetItemNumSockets() end
+function C_Item.GetAppliedItemTransmogInfo() end
+function C_Item.IsHelpfulItem() end
+function C_Item.GetItemClassInfo() end
+function C_Item.GetItemUniquenessByID() end
+function C_Item.GetItemGemID() end
+function C_Item.IsHarmfulItem() end
+function C_Item.GetItemIcon() end
+function C_Item.DropItemOnUnit() end
+
+---@param itemInfo number|string
+---@return number actualItemLevel
+---@return number previewLevel
+---@return number sparseItemLevel
+function C_Item.GetDetailedItemLevelInfo(itemInfo) return 0, 0, 0 end
+
+function C_Item.IsEquippedItemType() end
+function C_Item.GetItemFamily() end
+function C_Item.GetLimitedCurrencyItemInfo() end
+function C_Item.GetItemInventorySlotKey() end
+function C_Item.IsEquippableItem() end
+function C_Item.GetItemConversionOutputIcon() end
+function C_Item.ReplaceEnchant() end
+function C_Item.GetItemLearnTransmogSet() end
+function C_Item.IsCurrentItem() end
+function C_Item.IsItemGUIDInInventory() end
+function C_Item.GetItemGem() end
+function C_Item.IsBound() end
+function C_Item.IsCosmeticItem() end
+function C_Item.IsArtifactPowerItem() end
+function C_Item.IsAnimaItemByID() end
+function C_Item.ReplaceTradeskillEnchant() end
+function C_Item.GetItemUniqueness() end
+function C_Item.GetSetBonusesForSpecializationByItemID() end
+function C_Item.GetItemCooldown() end
+function C_Item.GetItemSpell() end
+function C_Item.GetItemID() end
+function C_Item.DoesItemMatchBonusTreeReplacement() end
+function C_Item.IsUsableItem() end
+function C_Item.GetCurrentItemLevel() end
+function C_Item.DoesItemContainSpec() end
+function C_Item.CanItemTransmogAppearance() end
+function C_Item.GetItemQualityByID() end
+function C_Item.GetItemLinkByGUID() end
+function C_Item.BindEnchant() end
+function C_Item.GetItemQuality() end
+function C_Item.IsItemCorruptionResistant() end
+function C_Item.CanViewItemPowers() end
+function C_Item.GetItemChildInfo() end
+function C_Item.GetItemLink() end
+function C_Item.CanScrapItem() end
+
+---@return string itemName
+---@return string itemLink
+---@return number itemQuality
+---@return number itemLevel
+---@return number itemMinLevel
+---@return string itemType
+---@return string itemSubType
+---@return number itemStackCount
+---@return string itemEquipLoc
+---@return number itemTexture
+---@return number sellPrice
+---@return number classID
+---@return number subclassID
+---@return number bindType
+---@return number expansionID
+---@return number setID
+---@return boolean isCraftingReagent
+function C_Item.GetItemInfo() return "", "", 0, 0, 0, "", "", 0, "", 0, 0, 0, 0, 0, 0, 0, true end
+
+function C_Item.GetItemName() end
+function C_Item.GetItemSubClassInfo() end
+function C_Item.GetItemInventoryType() end
+function C_Item.GetItemMaxStackSizeByID() end
+function C_Item.DoesItemMatchTrackJump() end
+function C_Item.GetItemCount() end
+function C_Item.GetItemInfoInstant() end
+function C_Item.GetStackCount() end
+
+C_UnitAuras = {}
+
+---@param privateAuraAnchor privateaura_anchor
+function C_UnitAuras.AddPrivateAuraAnchor(privateAuraAnchor)end
+
+---@param privateAuraAnchor privateaura_anchor
+---@return number
+function C_UnitAuras.AddPrivateAuraAppliedSound(privateAuraAnchor) return 0 end
+
+---@param spellID spellid
+---@return boolean
+function C_UnitAuras.AuraIsPrivate(spellID) return true end
+
+---@param parent uiobject
+---@param anchor privateaura_anchorbinding
+function C_UnitAuras.SetPrivateWarningTextAnchor(parent, anchor) end
+
+---@param anchorID number
+function C_UnitAuras.RemovePrivateAuraAnchor(anchorID) end
+
+---@param privateAuraSoundID number
+function C_UnitAuras.RemovePrivateAuraAppliedSound(privateAuraSoundID) end
+
+---@param unitToken unit
+---@param auraInstanceID number
+---@return aurainfo
+function C_UnitAuras.GetAuraDataByAuraInstanceID(unitToken, auraInstanceID) return {} end
+
+---@param unitToken unit
+---@param auraIndex number
+---@param filter aurafilter?
+---@return aurainfo
+function C_UnitAuras.GetAuraDataByIndex(unitToken, auraIndex, filter) return {} end
+
+---@param unitToken unit
+---@param auraSlot number
+---@return aurainfo
+function C_UnitAuras.GetAuraDataBySlot(unitToken, auraSlot) return {} end
+
+---@param unitToken unit
+---@param spellName spellname
+---@param filter aurafilter?
+---@return aurainfo
+function C_UnitAuras.GetAuraDataBySpellName(unitToken, spellName, filter) return {} end
+
+---@param unitToken unit
+---@param filter aurafilter
+---@param maxSlots number
+---@param continuationToken number
+---@return number outContinuationToken
+---@return ...
+function C_UnitAuras.GetAuraSlots(unitToken, filter, maxSlots, continuationToken) return 0, 0 end
+
+---@param unitToken unit
+---@param index number
+---@param filter aurafilter?
+---@return aurainfo
+function C_UnitAuras.GetBuffDataByIndex(unitToken, index, filter) return {} end
+
+---@param unitToken unit
+---@param index number
+---@param filter aurafilter?
+---@return aurainfo
+function C_UnitAuras.GetDebuffDataByIndex(unitToken, index, filter) return {} end
+
+---@param spellID spellid
+---@return spellid
+function C_UnitAuras.GetCooldownAuraBySpellID(spellID) return 0 end
+
+---@param spellID spellid
+---@return aurainfo
+function C_UnitAuras.GetPlayerAuraBySpellID(spellID) return {} end
+
+---@param unitToken unit
+---@param auraInstanceID number
+---@param filterString aurafilter
+---@return boolean
+function C_UnitAuras.IsAuraFilteredOutByInstanceID(unitToken, auraInstanceID, filterString) return true end
+
+---@param unitToken unit
+---@return boolean
+function C_UnitAuras.WantsAlteredForm(unitToken) return true end
+
 
 
 ---linearly interpolates between two values. Example: Lerp(1, 2, 0.5) return 1.5
@@ -1395,6 +1674,9 @@ function bit.rol(x, y) return 0 end
 ---@return number The bitwise rotate right of the number.
 function bit.ror(x, y) return 0 end
 
+---return the epoch time in seconds from the server.
+---@return number
+function GetServerTime() return 0 end
 
 
 C_Timer = {}
@@ -3254,8 +3536,9 @@ GetGuildCharterCost = function() return 0 end
 ---@return string, string, number, number, number, boolean, boolean, string, string
 GetGuildEventInfo = function(index) return "", "", 0, 0, 0, true, true, "", "" end
 
+---@param unit string
 ---@return string, string, number, number, number, number, string, string, number, string
-GetGuildInfo = function() return "", "", 0, 0, 0, 0, "", "", 0, "" end
+GetGuildInfo = function(unit) return "", "", 0, 0, 0, 0, "", "", 0, "" end
 
 ---@return string
 GetGuildInfoText = function() return "" end
@@ -3784,8 +4067,8 @@ GetItemFamily = function(itemID) return 0 end
 GetItemIcon = function(itemID) return "" end
 
 ---@param itemID number
----@return string, string, string, number
-GetItemInfo = function(itemID) return "", "", "", 0 end
+---@return string, string, number, number
+GetItemInfo = function(itemID) return "", "", 0, 0 end
 
 ---@param quality number
 ---@return table
@@ -4879,7 +5162,7 @@ ShowingCloak = function() return true end
 ShowingHelm = function() return true end
 
 ---@param settings table
-UploadSettings = function(settings) 
+UploadSettings = function(settings)
     return true
 end
 
@@ -4949,7 +5232,7 @@ GetSpellInfo = function(spellNameOrID) return "", 0, 0, 0, 0, 0, 0, 0 end
 GetSpellLink = function(spellID) return "" end
 
 ---@param tabIndex number
----@param isFlyout boolean
+---@param isFlyout boolean?
 ---@return string, string, number, number
 GetSpellTabInfo = function(tabIndex, isFlyout) return "", "", 0, 0 end
 
@@ -5019,14 +5302,18 @@ ToggleSpellAutocast = function() end
 ---@return string, string, number, number, boolean, string
 UnitCastingInfo = function() return "", "", 0, 0, false, "" end
 
+---@param unit string
 ---@return string, string, number, number, boolean, string
-UnitChannelInfo = function() return "", "", 0, 0, false, "" end
+UnitChannelInfo = function(unit) return "", "", 0, 0, false, "" end
 
 ---@param command string
 ConsoleExec = function(command) end
 
----@return string, string, string, string
-GetBuildInfo = function() return "", "", "", "" end
+---@return string game version
+---@return string buildId
+---@return string compileDate
+---@return number buildNumber
+GetBuildInfo = function() return "", "", "", 0 end
 
 ---@return number
 GetFramerate = function() return 0 end
@@ -5279,8 +5566,8 @@ function GetTalentLink(tabIndex, talentIndex, isInspect) return "" end
 function GetTalentPrereqs(tabIndex, talentIndex, isInspect) return 0 end
 
 ---@param tabIndex number
----@return string, string, number, number, number, number
-function GetTalentTabInfo(tabIndex) return "", "", 0, 0, 0, 0 end
+---@return number, string, string, number, number, string, number, boolean
+function GetTalentTabInfo(tabIndex) return 0, "", "", 0, 0, "", 0, false end
 
 ---@param tabIndex number
 ---@param talentIndex number
