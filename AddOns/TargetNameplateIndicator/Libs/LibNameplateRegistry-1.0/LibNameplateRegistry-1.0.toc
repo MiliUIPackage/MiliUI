@@ -1,9 +1,10 @@
-## Interface: 90200
-## Interface-Retail: 90200
-## Interface-Classic: 11402
-## Interface-BCC: 20503
-## X-Max-Interface: 90200
-## X-Min-Interface: 11402
+## Interface: 100206
+## Interface-Retail: 100206
+## Interface-Classic: 11502
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
+## X-Max-Interface: 100206
+## X-Min-Interface: 11502
 
 
 
@@ -11,7 +12,7 @@
 ## Notes: an embeddable library providing an abstraction layer for tracking and querying Blizzard's Nameplate frames with ease and efficiency.
 ## Author: John Wellesz
 ## DefaultState: enabled
-## Version: 0.19T13
+## Version: 0.20T10
 ## LoadOnDemand: 1
 ## X-Category: Library
 
@@ -20,7 +21,7 @@
 ## OptionalDeps: Libstub, CallbackHandler-1.0
 ## X-Embeds: Libstub, CallbackHandler-1.0
 
-## X-ReleaseDate: "2022-02-27T21:35:29Z"
+## X-ReleaseDate: "2024-05-02T00:34:51Z"
 ## X-eMail: LibNameplateRegistry@2072productions.com
 ## X-Website: https://www.wowace.com/projects/libnameplateregistry-1-0
 ## X-Curse-Project-ID: 62519

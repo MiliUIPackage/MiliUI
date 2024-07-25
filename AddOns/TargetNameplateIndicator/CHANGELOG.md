@@ -1,3 +1,44 @@
+## 1.55
+- Bump TOC Interface version for Retail, Classic and WotLK Classic
+
+## 1.54
+- Bump TOC Interface version for Retail and Classic
+- Add TOC Interface version for Cataclysm Classic
+
+## 1.53
+- Add missing localisation entries on CurseForge
+
+## 1.52
+- Add green_arrow_down_11384 texture
+  - Suggested by Hayan of CurseForge, from [Iconpacks](https://iconpacks.net/?utm_source=link-attribution&utm_content=11384)
+
+## 1.51
+- Add missing localisation entries on CurseForge
+
+## 1.50
+- Add option to control frame strata of indicator
+- Bump TOC Interface version to 10.2.0
+- Bump TOC Interface version for Classic to 1.15.0
+
+## 1.49
+- Bump TOC Interface version to 10.1.7
+- Bump TOC Interface version for Classic to 1.14.4
+
+## 1.48
+- Bump TOC Interface version to 10.1.5
+- Bump TOC Interface version for WotLK Classic to 3.4.2
+
+## 1.47
+- Bump TOC Interface version to 10.0.2
+
+## 1.46
+- Bump TOC Interface version to 10.0.0
+
+## 1.45
+- Bump TOC Interface version 9.2.7
+- Add support for WotLK Classic
+	- This is untested, please report any errors
+
 ## 1.44
 - Add more textures from Inokis of Curse
 

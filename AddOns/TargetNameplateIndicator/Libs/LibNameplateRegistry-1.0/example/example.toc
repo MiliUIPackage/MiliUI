@@ -1,9 +1,10 @@
-## Interface: 90200
-## Interface-Retail: 90200
-## Interface-Classic: 11402
-## Interface-BCC: 20503
-## X-Max-Interface: 90200
-## X-Min-Interface: 11402
+## Interface: 100206
+## Interface-Retail: 100206
+## Interface-Classic: 11502
+## Interface-Wrath: 30403
+## Interface-Cata: 40400
+## X-Max-Interface: 100206
+## X-Min-Interface: 11502
 
 ## Title: example
 

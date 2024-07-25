@@ -47,6 +47,7 @@ local TEXTURE_NAMES = {
 	"Arrows_FriendAway",
 	"Arrows_FocusTowards",
 	"Arrows_FocusAway",
+	"green_arrow_down_11384",
 }
 
 -- Add the directory prefix to the texture names and localise the descriptions
@@ -56,7 +57,30 @@ local TEXTURES = {
 do
 	for _, textureName in ipairs(TEXTURE_NAMES) do
 		local description = L[("Dropdown.Texture.%s.Desc"):format(textureName)]
-		TEXTURES["Interface\\AddOns\\TargetNameplateIndicator\\Textures\\" .. textureName] = ("%s - %s"):format(textureName, description)
+		TEXTURES["Interface\\AddOns\\TargetNameplateIndicator\\Textures\\" .. textureName] = ("%s - %s"):format(
+			textureName,
+			description
+		)
+	end
+end
+
+-- The frame stratas. Used by the strata dropdown.
+local FRAME_STRATA_NAMES = {
+	"BACKGROUND",
+	"LOW",
+	"MEDIUM",
+	"HIGH",
+	"DIALOG",
+	"FULLSCREEN",
+	"FULLSCREEN_DIALOG",
+	"TOOLTIP",
+}
+
+-- Localise the frame strata descriptions
+local FRAME_STRATAS = {}
+do
+	for _, frameStrata in ipairs(FRAME_STRATA_NAMES) do
+		FRAME_STRATAS[frameStrata] = L[("Dropdown.FrameStrata.%s.Desc"):format(frameStrata)]
 	end
 end
 
@@ -251,6 +275,15 @@ local function CreateUnitRectionTypeConfigTable(unit, unitReactionType, order)
 				get = getNumber,
 				set = setNumber,
 			},
+			frameStrata = {
+				name = getName,
+				desc = getDesc,
+				order = nextIndex(),
+				type = "select",
+				values = FRAME_STRATAS,
+				sorting = FRAME_STRATA_NAMES,
+				style = "dropdown",
+			},
 			opacity = {
 				name = getName,
 				desc = getDesc,
@@ -351,8 +384,7 @@ TNI.ACC_HandleCommand = ACC.HandleCommand
 local slash = slashes[1]
 function TNI:HandleChatCommand(input)
 	if input:trim() == "" then
-		InterfaceOptionsFrame_OpenToCategory(frameref)
-		InterfaceOptionsFrame_OpenToCategory(frameref)
+		Settings.OpenToCategory(frameref.name)
 	else
 		self:ACC_HandleCommand(slash, addon, input)
 	end

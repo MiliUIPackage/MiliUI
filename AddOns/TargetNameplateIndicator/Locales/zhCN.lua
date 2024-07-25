@@ -3,6 +3,22 @@ local L = LibStub("AceLocale-3.0"):NewLocale(addon, "zhCN")
 
 if not L then return end
 
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.BACKGROUND.Desc"] = "BACKGROUND"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.DIALOG.Desc"] = "DIALOG"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.FULLSCREEN.Desc"] = "FULLSCREEN"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.FULLSCREEN_DIALOG.Desc"] = "FULLSCREEN_DIALOG"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.HIGH.Desc"] = "HIGH"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.LOW.Desc"] = "LOW"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.MEDIUM.Desc"] = "MEDIUM"
+--[[Translation missing --]]
+L["Dropdown.FrameStrata.TOOLTIP.Desc"] = "TOOLTIP"
 L["Dropdown.RegionPoint.BOTTOM.Desc"] = "下 - 矩形底部的中间"
 L["Dropdown.RegionPoint.BOTTOMLEFT.Desc"] = "左下 - 矩形的左下角"
 L["Dropdown.RegionPoint.BOTTOMRIGHT.Desc"] = "右下 - 矩形的右下角"
@@ -34,6 +50,8 @@ L["Dropdown.Texture.BlueArrow.Desc"] = "蓝色向下箭头"
 L["Dropdown.Texture.bluearrow1.Desc"] = "抽象蓝色向下箭头"
 L["Dropdown.Texture.circles_target.Desc"] = "红色同心圆标靶"
 L["Dropdown.Texture.gearsofwar.Desc"] = "战争机器logo"
+--[[Translation missing --]]
+L["Dropdown.Texture.green_arrow_down_11384.Desc"] = "Green arrow pointing downwards"
 L["Dropdown.Texture.greenarrowtarget.Desc"] = "霓虹绿色箭头和红色标靶"
 L["Dropdown.Texture.Hunters_Mark.Desc"] = "红色猎人标记箭头"
 L["Dropdown.Texture.malthael.Desc"] = "玛瑟尔（暗黑破坏神）logo"
@@ -89,6 +107,10 @@ L["Option.UnitReactionType.anchorPoint.Desc"] = "材质图形要对齐到血条�
 L["Option.UnitReactionType.anchorPoint.Name"] = "对齐点"
 L["Option.UnitReactionType.enable.Desc"] = "启用/停用此互动类型的指示箭头"
 L["Option.UnitReactionType.enable.Name"] = "启用"
+--[[Translation missing --]]
+L["Option.UnitReactionType.frameStrata.Desc"] = "The frame strata to use for the indicator"
+--[[Translation missing --]]
+L["Option.UnitReactionType.frameStrata.Name"] = "Frame Strata"
 L["Option.UnitReactionType.height.Desc"] = "材质图形的高度"
 L["Option.UnitReactionType.height.Name"] = "材质高度"
 L["Option.UnitReactionType.opacity.Desc"] = "材质图形的透明度，1 - 完全不透明，0 - 完全透明"

@@ -19,7 +19,7 @@
     You should have received a copy of the GNU Lesser Public License
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
-This file was last updated on 2022-02-27T21:35:29Z by Archarodim
+This file was last updated on 2024-05-02T00:34:51Z by Archarodim
 
 --]]
 
@@ -43,7 +43,7 @@ This file was last updated on 2022-02-27T21:35:29Z by Archarodim
 --
 
 -- Library framework {{{
-local MAJOR, MINOR = "LibNameplateRegistry-1.0", 19
+local MAJOR, MINOR = "LibNameplateRegistry-1.0", 20
 
 -- used to be set using debug packager tags but they've been broken ever since the new wowace.com...
 -- see: https://www.curseforge.com/forums/wow-sites/wow-sites-feedback/185461-curse-keyword-substitution-not-applied-for
@@ -119,7 +119,7 @@ local pairs                 = _G.pairs;
 local select                = _G.select;
 local setmetatable          = _G.setmetatable;
 local twipe                 = _G.table.wipe;
-local GetMouseFocus         = _G.GetMouseFocus;
+-- local GetMouseFocus         = _G.GetMouseFocus;
 local UnitExists            = _G.UnitExists;
 local UnitGUID              = _G.UnitGUID;
 local UnitName              = _G.UnitName;
@@ -343,7 +343,16 @@ function LNR_Private.RawGetPlateType (frame)
 
     local unitToken = LNR_Private:GetUnitTokenFromPlate(frame);
 
-    local reaction = UnitReaction('player', unitToken);
+    -- a recent accessibility update is using nameplates to display interaction
+    -- icons over GameObject on which UnitReaction returns nil.
+    -- In such case, return a number that will be interpreted as neutral
+    local reaction = UnitReaction('player', unitToken) or 3;
+
+    --[==[@debug@
+    if DEBUG then
+        Debug(INFO, 'RawGetPlateType - unitToken:', unitToken, 'reaction:', UnitReaction('player', unitToken), 'final reaction:', reaction);
+    end
+    --@end-debug@]==]
 
     if reaction > 4 then
         reaction = 'FRIENDLY';
@@ -354,7 +363,7 @@ function LNR_Private.RawGetPlateType (frame)
     end
 
     --TODO check if tapped state is still detectable in some ways (API removed in 7.0.3)
-    local unitType = UnitPlayerControlled(LNR_Private:GetUnitTokenFromPlate(frame)) and 'PLAYER' or 'NPC';
+    local unitType = UnitPlayerControlled(unitToken) and 'PLAYER' or 'NPC';
 
 
     return reaction, unitType;
@@ -608,7 +617,7 @@ function LNR_Private:UPDATE_MOUSEOVER_UNIT()
 
     local unitName = "";
     local mouseoverNameplate, data;
-    if GetMouseFocus() == WorldFrame then -- the cursor is either on a name plate or on a 3d model (ie: not on a unit-frame)
+    if WorldFrame:IsMouseMotionFocus() then -- the cursor is either on a name plate or on a 3d model (ie: not on a unit-frame)
 
         if UnitExists("mouseover") then
             mouseoverNameplate = GetNamePlateForUnit("mouseover");
