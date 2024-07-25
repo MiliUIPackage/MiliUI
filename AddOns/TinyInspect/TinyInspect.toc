@@ -13,7 +13,7 @@ libs\lib.xml
 locales\locales.xml
 Options.lua
 
-ItemBorder.lua
+##ItemBorder.lua
 ItemLevel.lua
 
 InspectCore.lua
