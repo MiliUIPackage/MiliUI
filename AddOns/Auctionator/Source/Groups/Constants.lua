@@ -19,9 +19,11 @@ Auctionator.Groups.Constants.Events = {
   "Customise.EditMade",
 }
 
-if not Auctionator.Groups.Constants.IsRetail then
-  -- Note that -2 is the keyring bag, which only exists in classic
+if Auctionator.Groups.Constants.IsVanilla then
+  -- Note that -2 is the keyring bag, which only exists in classic era
   Auctionator.Groups.Constants.BagIDs = {-2, 0, 1, 2, 3, 4}
+elseif not Auctionator.Groups.Constants.IsRetail then
+  Auctionator.Groups.Constants.BagIDs = {0, 1, 2, 3, 4}
 elseif Auctionator.Groups.Constants.IsRetail then
   Auctionator.Groups.Constants.BagIDs = {0, 1, 2, 3, 4, 5}
 end
@@ -52,6 +54,7 @@ elseif Auctionator.Groups.Constants.IsCata then
     Enum.ItemClass.Glyph,
     Enum.ItemClass.Tradegoods,
     Enum.ItemClass.Projectile,
+    Enum.ItemClass.Reagent,
     Enum.ItemClass.Quiver,
     Enum.ItemClass.Recipe,
     Enum.ItemClass.Gem,
@@ -88,6 +91,7 @@ elseif Auctionator.Groups.Constants.IsVanilla then
     Enum.ItemClass.Reagent,
     Enum.ItemClass.Miscellaneous,
     Enum.ItemClass.Questitem,
+    Enum.ItemClass.Key,
   }
 end
 
@@ -101,7 +105,7 @@ Auctionator.Groups.Constants.DefaultGroups = {
 
 for _, classID in ipairs(Auctionator.Groups.Constants.ValidItemClassIDs) do
   table.insert(Auctionator.Groups.Constants.DefaultGroups, {
-    name = GetItemClassInfo(classID),
+    name = C_Item.GetItemClassInfo(classID),
     type = Auctionator.Groups.Constants.GroupType.ClassID,
     classID = classID,
   })

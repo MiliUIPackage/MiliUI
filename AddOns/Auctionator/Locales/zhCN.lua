@@ -153,6 +153,7 @@ L["CONFIG_SELLING_ICON_SIZE_TOOLTIP_HEADER"] = "图示大小"
 L["CONFIG_SELLING_ICON_SIZE_TOOLTIP_TEXT"] = "让销售标签页面中的背包物品图示大一点 (最大 50) 或小一点 (最小 10)。预设大小是 42。"
 L["CONFIG_SELLING_IGNORE_ITEM_LEVEL"] = [=[搜索匹配拍卖物品时忽略等级
 ]=]
+L["CONFIG_SELLING_IGNORE_ITEM_SUFFIX"] = "搜索匹配拍卖时忽略物品后缀/标题"
 L["CONFIG_SELLING_LIFO_HEADER"] = "销售: 物品"
 L["CONFIG_SELLING_LIFO_TEXT"] = "设定大部分物品的压低价格百分比或数值，以及拍卖有效时限的选项。不压低价格时，这些类别中价格相同的物品会组合在一起，最后加入的物品会第一个卖出，所以不一定要压低价格。"
 L["CONFIG_SELLING_MISSING_FAVOURITES"] = "总是显示收藏夹/自定义物品，包括不在你背包的时候。"
@@ -463,7 +464,7 @@ L["SPLASH_100106_SHOPPING_TAB_RETAIL_1"] = "新购买的商品当价格不稳定
 L["SPLASH_100106_SHOPPING_TAB_RETAIL_2"] = "用于搜索字的魔兽世界扩展过滤器。"
 L["SPLASH_100106_SHOPPING_TAB_RETAIL_3"] = "用于制造配方的巨龙物品品质过滤器"
 L["SPLASH_100106_SHOPPING_TAB_RETAIL_HEADER"] = "\\\"购物\\\"选项卡（正式服）"
-L["SPLASH_830_BUGS_1"] = "加入我们请到拍卖小帮手的 Discord 伺服器 %s "
+L["SPLASH_830_BUGS_1"] = "加入我们请到拍卖小帮手的 Discord 服务频道 %s "
 L["SPLASH_830_BUGS_2"] = "反馈问题请到 Github %s"
 L["SPLASH_830_BUGS_3"] = "我们大部分都在 Discord 活动，所以请不要在 curseforge 或 Auctionator 讨论区反馈问题。"
 L["SPLASH_830_BUGS_4"] = "有关即将推出功能的开发计划，请造访 %s"
@@ -496,8 +497,8 @@ L["SPLASH_832_FEATURES_5"] = "可以透过右键点击拍卖清单来取消已�
 L["SPLASH_832_FEATURES_6"] = "按住 Alt + 右键点击不是你拍卖的物品，便能够将它买下来"
 L["SPLASH_832_FEATURES_7"] = "按住 Alt 键点击背包中的物品，便会将它放到销售标签页面中，准备好来拍卖 (也可以在设定中改为右键)"
 L["SPLASH_832_FEATURES_HEADER"] = "销售标签页面的功能"
-L["SPLASH_833_CONNECTED_REALMS_1"] = "现在连结的伺服器群组会共享完整扫描价格。"
-L["SPLASH_833_CONNECTED_REALMS_HEADER"] = "连结的伺服器"
+L["SPLASH_833_CONNECTED_REALMS_1"] = "现在互联的服务器群组会共享完整扫描价格。"
+L["SPLASH_833_CONNECTED_REALMS_HEADER"] = "互联的服务器"
 L["SPLASH_833_DESCRIPTION"] = "这是小型的发布版本，有多项品质改善和错误修正。"
 L["SPLASH_833_SELLING_IMPROVEMENTS_1"] = [=[可以从背包检视隐藏特定物品 (在物品图示点一下右键选择 "隐藏")
 ]=]

@@ -1,8 +1,14 @@
 function Auctionator.CraftingInfo.InitializeObjectiveTrackerFrame()
+  local header
+  if ObjectiveTrackerBlocksFrame then -- Dragonflight (10+)
+    header = ObjectiveTrackerBlocksFrame.ProfessionHeader
+  else -- The War Within (11.0)
+    header = ProfessionsRecipeTracker.Header
+  end
   local trackedRecipeSearchContainer = CreateFrame(
     "Frame",
     "AuctionatorCraftingInfoObjectiveTrackerFrame",
-    ObjectiveTrackerBlocksFrame.ProfessionHeader,
+    header,
     "AuctionatorCraftingInfoObjectiveTrackerFrameTemplate"
   )
 end
@@ -65,7 +71,7 @@ function Auctionator.CraftingInfo.DoTrackedRecipesSearch()
 
   local function OnItemInfoReady()
     for index, itemInfo in ipairs(possibleItems) do
-      local itemInfo = {GetItemInfo(itemInfo)}
+      local itemInfo = {C_Item.GetItemInfo(itemInfo)}
       if not Auctionator.Utilities.IsBound(itemInfo) then
         table.insert(searchTerms, {searchString = itemInfo[1], isExact = true, quantity = quantities[index]})
       end
