@@ -45,7 +45,7 @@ local function CreateDRPane()
         UpdateDRWidgets()
         Cell:Fire("UpdateRequests", "dispelRequest")
         CellDropdownList:Hide()
-        
+
         U:HideGlowOptions()
         U:HideTextOptions()
         Cell:StopRainbowText(drTypeOptionsBtn:GetFontString())
@@ -171,18 +171,18 @@ local function CreateDRPane()
             return
         end
 
-        local name, _, tex = GetSpellInfo(spellId)
+        local name, tex = F:GetSpellInfo(spellId)
         if not name then
             CellSpellTooltip:Hide()
             return
         end
-        
+
         CellSpellTooltip:SetOwner(popup, "ANCHOR_NONE")
         CellSpellTooltip:SetPoint("TOPLEFT", popup, "BOTTOMLEFT", 0, -1)
         CellSpellTooltip:SetSpellByID(spellId, tex)
         CellSpellTooltip:Show()
     end)
-    
+
     popup:HookScript("OnHide", function()
         CellSpellTooltip:Hide()
     end)
@@ -192,7 +192,7 @@ local function CreateDRPane()
     debuffItems[0]:SetScript("OnClick", function(self)
         local popup = Cell:CreatePopupEditBox(drDebuffsList, function(text)
             local spellId = tonumber(text)
-            local spellName = GetSpellInfo(spellId)
+            local spellName = F:GetSpellInfo(spellId)
             if spellId and spellName then
                 -- update db
                 tinsert(CellDB["dispelRequest"]["debuffs"], spellId)
@@ -306,7 +306,7 @@ LoadList = function(scrollToBottom)
             debuffItems[i].spellIdText:SetPoint("RIGHT", debuffItems[i], "LEFT", 80, 0)
             debuffItems[i].spellIdText:SetWordWrap(false)
             debuffItems[i].spellIdText:SetJustifyH("LEFT")
-            
+
             -- spellName text
             debuffItems[i].spellNameText = debuffItems[i]:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
             debuffItems[i].spellNameText:SetPoint("LEFT", debuffItems[i].spellIdText, "RIGHT", 5, 0)
@@ -331,12 +331,12 @@ LoadList = function(scrollToBottom)
             -- tooltip
             debuffItems[i]:HookScript("OnEnter", function(self)
                 if not drDebuffsList.popupEditBox:IsShown() then
-                    local name, _, icon = GetSpellInfo(self.spellId)
+                    local name, icon = F:GetSpellInfo(self.spellId)
                     if not name then
                         CellSpellTooltip:Hide()
                         return
                     end
-                    
+
                     CellSpellTooltip:SetOwner(debuffItems[i], "ANCHOR_NONE")
                     CellSpellTooltip:SetPoint("TOPRIGHT", debuffItems[i], "TOPLEFT", -1, 0)
                     CellSpellTooltip:SetSpellByID(self.spellId, icon)
@@ -350,7 +350,7 @@ LoadList = function(scrollToBottom)
             end)
         end
 
-        local name, _, icon = GetSpellInfo(id)
+        local name, icon = F:GetSpellInfo(id)
 
         debuffItems[i].spellId = id
         debuffItems[i].spellIdText:SetText(id)
@@ -394,9 +394,10 @@ end
 -- create text
 -------------------------------------------------
 function U:CreateDispelRequestText(parent)
-    local drText = CreateFrame("Frame", parent:GetName().."DispelRequestText", parent.widgets.drGlowFrame)
+    local drText = CreateFrame("Frame", parent:GetName().."DispelRequestText", parent.widgets.indicatorFrame)
     parent.widgets.drText = drText
     drText:SetIgnoreParentAlpha(true)
+    drText:SetFrameLevel(parent.widgets.indicatorFrame:GetFrameLevel()+110)
     drText:Hide()
 
     local tex = drText:CreateTexture(nil, "ARTWORK")
@@ -442,9 +443,9 @@ local function ShowUtilitySettings(which)
         if not init then
             CreateDRPane()
         end
-        
+
         drPane:Show()
-        
+
         if init then return end
         init = true
 

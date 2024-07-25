@@ -27,7 +27,7 @@ Cell.defaults.indicatorIndices = {
     ["raidDebuffs"] = 21,
     ["targetedSpells"] = 22,
     ["targetCounter"] = 23,
-    ["consumables"] = 24,
+    ["actions"] = 24,
     ["missingBuffs"] = 25,
 }
 
@@ -124,7 +124,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "statusText",
             ["type"] = "built-in",
             ["enabled"] = true,
-            ["position"] = {"BOTTOM", 0},
+            ["position"] = {"BOTTOM", 0, "justify"},
             ["frameLevel"] = 30,
             ["font"] = {"Cell ".._G.DEFAULT, 11, "None", true},
             ["showTimer"] = true,
@@ -206,6 +206,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "readyCheckIcon",
             ["type"] = "built-in",
             ["enabled"] = true,
+            ["position"] = {"CENTER", "CENTER", 0, 0},
             ["frameLevel"] = 100,
             ["size"] = {16, 16},
         }, -- 9
@@ -215,7 +216,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"TOP", "TOP", 0, 3},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {14, 14},
             ["alpha"] = 0.77,
         }, -- 10
@@ -225,7 +226,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = false,
             ["position"] = {"TOP", "TOP", -14, 3},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {14, 14},
             ["alpha"] = 0.77,
         }, -- 11
@@ -235,7 +236,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = false,
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
-            ["frameLevel"] = 3,
+            ["frameLevel"] = 7,
             ["size"] = {11, 11},
         }, -- 12
         {
@@ -252,7 +253,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "aggroBorder",
             ["type"] = "built-in",
             ["enabled"] = true,
-            ["frameLevel"] = 7,
+            ["frameLevel"] = 3,
             ["thickness"] = 2,
         }, -- 14
         {
@@ -322,7 +323,14 @@ Cell.defaults.layout = {
             ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
             ["frameLevel"] = 15,
             ["size"] = {12, 12},
-            ["dispellableByMe"] = true,
+            ["filters"] = {
+                ["dispellableByMe"] = true,
+                ["Curse"] = true,
+                ["Disease"] = true,
+                ["Magic"] = true,
+                ["Poison"] = true,
+                ["Bleed"] = true,
+            },
             ["highlightType"] = "gradient-half",
             ["showDispelTypeIcons"] = true,
             ["orientation"] = "right-to-left",
@@ -333,7 +341,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 1, 4},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {{13, 13}, {17, 17}},
             ["showDuration"] = false,
             ["showAnimation"] = true,
@@ -372,11 +380,13 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["showAllSpells"] = false,
-            ["position"] = {"CENTER", "TOPLEFT", 7, -7},
+            ["position"] = {"TOPLEFT", "TOPLEFT", -4, 4},
             ["frameLevel"] = 50,
             ["size"] = {20, 20},
             ["border"] = 2,
+            ["num"] = 1,
             ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
+            ["orientation"] = "left-to-right",
         }, -- 22
         {
             ["name"] = "Target Counter",
@@ -394,8 +404,8 @@ Cell.defaults.layout = {
             },
         }, -- 23
         {
-            ["name"] = "Consumables",
-            ["indicatorName"] = "consumables",
+            ["name"] = "Actions",
+            ["indicatorName"] = "actions",
             ["type"] = "built-in",
             ["enabled"] = true,
             ["speed"] = 1,
@@ -425,6 +435,7 @@ Cell.defaults.layout = {
 }
 
 Cell.defaults.layoutAutoSwitch = {
+    ["solo"] = "default",
     ["party"] = "default",
     ["raid_outdoor"] = "default",
     ["raid_instance"] = "default",

@@ -1,5 +1,6 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r226-release...07499d9388070c25ad756c32d2b5dd94c3e226df)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r235-release...1d2c1dcb75b8369b35f2f56ff7d39502fac71391)
 
-- Fix QuickAssist font shadows
-- Fix indicator updates
-- Update zhTW
+- Fix layout related
+- Fix appearance tab
+- Enable world marks for cata
+- Update locales

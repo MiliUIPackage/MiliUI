@@ -16,12 +16,18 @@ Cell.isVanilla = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC
 -- Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC and LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WRATH_OF_THE_LICH_KING
 Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
+Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
 -------------------------------------------------
 -- class
 -------------------------------------------------
-local localizedClass = {}
-FillLocalizedClassList(localizedClass)
+local localizedClass
+if Cell.isRetail then
+    localizedClass = LocalizedClassList()
+else
+    localizedClass = {}
+    FillLocalizedClassList(localizedClass)
+end
 
 local sortedClasses = {}
 local classFileToID = {}
@@ -88,7 +94,7 @@ if Cell.isCata then
         return which, Cell.vars.playerSpecIcon, Cell.vars.playerSpecName
     end
 
-elseif Cell.isVanilla then
+elseif Cell.isWrath or Cell.isVanilla then
     function F:GetActiveTalentInfo()
         local which = GetActiveTalentGroup() == 1 and L["Primary Talents"] or L["Secondary Talents"]
 
@@ -100,13 +106,13 @@ elseif Cell.isVanilla then
             if pointsSpent > maxPoints then
                 maxPoints = pointsSpent
                 specIcon = texture
-                specName = name
-            elseif pointsSpent == maxPoints then
-                specIcon = 132148
+                specName = fileName
+            -- elseif pointsSpent == maxPoints then
+            --     specIcon = 132148
             end
         end
 
-        return which, specIcon, specName
+        return which, specIcon or 134400, specName or L["No Spec"]
     end
 end
 
@@ -122,7 +128,7 @@ end
 --     ["HunterBeastMastery"] = "DAMAGER",
 --     ["HunterSurvival"] = "DAMAGER",
 --     ["HunterMarksmanship"] = "DAMAGER",
-    
+
 --     ["MageFrost"] = "DAMAGER",
 --     ["MageArcane"] = "DAMAGER",
 --     ["MageFire"] = "DAMAGER",
@@ -209,28 +215,33 @@ end
 --     elseif perc <= 0 then
 --         return r1, g1, b1
 --     end
- 
+
 --     local segment, relperc = math.modf(perc * 2)
 --     local rr1, rg1, rb1, rr2, rg2, rb2 = select((segment * 3) + 1, r1,g1,b1, r2,g2,b2, r3,g3,b3)
- 
+
 --     return rr1 + (rr2 - rr1) * relperc, rg1 + (rg2 - rg1) * relperc, rb1 + (rb2 - rb1) * relperc
 -- end
 
-function F:ColorGradient(perc, c1, c2, c3)
+function F:ColorGradient(perc, c1, c2, c3, lowBound, highBound)
     local r1, g1, b1 = c1[1], c1[2], c1[3]
     local r2, g2, b2 = c2[1], c2[2], c2[3]
     local r3, g3, b3 = c3[1], c3[2], c3[3]
 
+    lowBound = lowBound or 0
+    highBound = highBound or 1
+
     perc = perc or 1
-    if perc >= 1 then
+    if perc >= highBound then
         return r3, g3, b3
-    elseif perc <= 0 then
+    elseif perc <= lowBound then
         return r1, g1, b1
     end
- 
+
+    perc = (perc - lowBound) / (highBound - lowBound)
+
     local segment, relperc = math.modf(perc * 2)
     local rr1, rg1, rb1, rr2, rg2, rb2 = select((segment * 3) + 1, r1,g1,b1, r2,g2,b2, r3,g3,b3)
- 
+
     return rr1 + (rr2 - rr1) * relperc, rg1 + (rg2 - rg1) * relperc, rb1 + (rb2 - rb1) * relperc
 end
 
@@ -250,14 +261,14 @@ function F:ConvertRGBToHSB(r, g, b)
     local colorMin = min(min(r, g), b)
     local delta = colorMax - colorMin
     local H, S, B
-    
+
     -- WoW's LUA doesn't handle floating point numbers very well (Somehow 1.000000 != 1.000000   WTF?)
     -- So we do this weird conversion of, Number to String back to Number, to make the IF..THEN work correctly!
     colorMax = tonumber(format("%f", colorMax))
     r = tonumber(format("%f", r))
     g = tonumber(format("%f", g))
     b = tonumber(format("%f", b))
-    
+
     if (delta > 0) then
         if (colorMax == r) then
             H = 60 * (((g - b) / delta) % 6)
@@ -266,24 +277,24 @@ function F:ConvertRGBToHSB(r, g, b)
         elseif (colorMax == b) then
             H = 60 * (((r - g) / delta) + 4)
         end
-        
+
         if (colorMax > 0) then
             S = delta / colorMax
         else
             S = 0
         end
-        
+
         B = colorMax
     else
         H = 0
         S = 0
         B = colorMax
     end
-    
+
     if (H < 0) then
         H = H + 360
     end
-    
+
     return H, S, B
 end
 
@@ -333,11 +344,11 @@ function F:ConvertHSBToRGB(h, s, b)
         G = 0
         B = 0
     end
-    
+
     R = R + M
     G = G + M
     B =  B + M
-    
+
     return R, G, B
 end
 
@@ -403,7 +414,7 @@ end
 
 function F:SplitToNumber(sep, str)
     if not str then return end
-    
+
     local ret = {strsplit(sep, str)}
     for i, v in ipairs(ret) do
         ret[i] = tonumber(v) or ret[i] -- keep non number
@@ -433,9 +444,9 @@ function F:Utf8sub(str, startChar, numChars)
         startIndex = startIndex + Chsize(char)
         startChar = startChar - 1
     end
-    
+
     local currentIndex = startIndex
-    
+
     while numChars > 0 and currentIndex <= #str do
         local char = string.byte(str, currentIndex)
         currentIndex = currentIndex + Chsize(char)
@@ -454,7 +465,7 @@ function F:FitWidth(fs, text, alignment)
             else
                 fs:SetText(string.utf8sub(text, i).."...")
             end
-            
+
             if not fs:IsTruncated() then
                 break
             end
@@ -493,11 +504,11 @@ end
 function F:Copy(t)
     local newTbl = {}
     for k, v in pairs(t) do
-        if type(v) == "table" then  
+        if type(v) == "table" then
             newTbl[k] = F:Copy(v)
-        else  
-            newTbl[k] = v  
-        end  
+        else
+            newTbl[k] = v
+        end
     end
     return newTbl
 end
@@ -529,12 +540,13 @@ function F:TRemove(t, v)
 end
 
 function F:TMergeOverwrite(...)
-    local tbls = {...}
-    if #tbls == 0 then return {} end
+    local n = select("#", ...)
+    if n == 0 then return {} end
 
-    local temp = F:Copy(tbls[1])
-    for i = 2, #tbls do
-        for k, v in pairs(tbls[i]) do
+    local temp = F:Copy(...)
+    for i = 2, n do
+        local t = select(i, ...)
+        for k, v in pairs(t) do
             temp[k] = v
         end
     end
@@ -615,7 +627,6 @@ function F:ConvertTable(t, value)
     return temp
 end
 
-local GetSpellInfo = GetSpellInfo
 function F:ConvertSpellTable(t, convertIdToName)
     if not convertIdToName then
         return F:ConvertTable(t)
@@ -623,9 +634,27 @@ function F:ConvertSpellTable(t, convertIdToName)
 
     local temp = {}
     for k, v in ipairs(t) do
-        local name = GetSpellInfo(v)
+        local name = F:GetSpellInfo(v)
         if name then
             temp[name] = k
+        end
+    end
+    return temp
+end
+
+function F:ConvertSpellTable_WithColor(t, convertIdToName)
+    local temp = {}
+    for k, st in ipairs(t) do
+        local index
+
+        if convertIdToName then
+            index = F:GetSpellInfo(st[1])
+        else
+            index = st[1]
+        end
+
+        if index then
+            temp[index] = {k, st[2]}
         end
     end
     return temp
@@ -635,7 +664,7 @@ function F:ConvertSpellTable_WithClass(t)
     local temp = {}
     for class, ct in pairs(t) do
         for _, id in ipairs(ct) do
-            local name = GetSpellInfo(id)
+            local name = F:GetSpellInfo(id)
             if name then
                 temp[id] = true
             end
@@ -648,7 +677,7 @@ function F:ConvertSpellDurationTable(t, convertIdToName)
     local temp = {}
     for _, v in ipairs(t) do
         local id, duration = strsplit(":", v)
-        local name = GetSpellInfo(id)
+        local name = F:GetSpellInfo(id)
         if name then
             if convertIdToName then
                 temp[name] = tonumber(duration)
@@ -665,7 +694,7 @@ function F:ConvertSpellDurationTable_WithClass(t)
     for class, ct in pairs(t) do
         for k, v in ipairs(ct) do
             local id, duration = strsplit(":", v)
-            local name, _, icon = GetSpellInfo(id)
+            local name, icon = F:GetSpellInfo(id)
             if name then
                 temp[tonumber(id)] = {tonumber(duration), icon}
             end
@@ -695,10 +724,10 @@ function F:FilterInvalidSpells(t)
         local spellId
         if type(t[i]) == "number" then
             spellId = t[i]
-        else -- consumables
+        else -- table
             spellId = t[i][1]
         end
-        if not GetSpellInfo(spellId) then
+        if not F:GetSpellInfo(spellId) then
             tremove(t, i)
         end
     end
@@ -715,7 +744,7 @@ function F:UnitFullName(unit)
     if not unit or not UnitIsPlayer(unit) then return end
 
     local name = GetUnitName(unit, true)
-    
+
     --? name might be nil in some cases?
     if name and not string.find(name, "-") then
         local server = GetNormalizedRealmName()
@@ -724,7 +753,7 @@ function F:UnitFullName(unit)
             name = name.."-"..server
         end
     end
-    
+
     return name
 end
 
@@ -779,7 +808,24 @@ end
 local combinedHeader = "CellRaidFrameHeader0"
 local separatedHeaders = {"CellRaidFrameHeader1", "CellRaidFrameHeader2", "CellRaidFrameHeader3", "CellRaidFrameHeader4", "CellRaidFrameHeader5", "CellRaidFrameHeader6", "CellRaidFrameHeader7", "CellRaidFrameHeader8"}
 
-function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist)
+-- REVIEW:
+-- Cell.clickCastFrames = {}
+-- Cell.clickCastFrameQueue = {}
+
+-- function F:RegisterFrame(frame)
+--     Cell.clickCastFrames[frame] = true
+--     Cell.clickCastFrameQueue[frame] = true  -- put into queue
+--     Cell:Fire("UpdateQueuedClickCastings")
+-- end
+
+-- function F:UnregisterFrame(frame)
+--     Cell.clickCastFrames[frame] = nil       -- ignore
+--     Cell.clickCastFrameQueue[frame] = false -- mark for only cleanup
+--     Cell:Fire("UpdateQueuedClickCastings")
+-- end
+
+-- REVIEW: updateBlizzardFrames
+function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist, updateBlizzardFrames)
     -- solo
     if not updateCurrentGroupOnly or (updateCurrentGroupOnly and Cell.vars.groupType == "solo") then
         for _, b in pairs(Cell.unitButtons.solo) do
@@ -811,7 +857,7 @@ function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
                 end
             end
         end
-        
+
         -- arena pet
         for _, b in pairs(Cell.unitButtons.arena) do
             func(b)
@@ -854,11 +900,10 @@ function F:IterateSharedUnitButtons(func)
     end
 end
 
-local spotlights = {}
 function F:GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
     if not unit then return end
 
-    local normal, quickAssist
+    local normal, spotlights, quickAssist
 
     if Cell.vars.groupType == "raid" then
         if Cell.vars.inBattleground == 5 then
@@ -873,14 +918,14 @@ function F:GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
     end
 
     if getSpotlights then
-        wipe(spotlights)
+        spotlights = {}
         for _, b in pairs(Cell.unitButtons.spotlight) do
-            if b.states.unit and UnitIsUnit(b.states.unit, unit) then
+            if b.unit and UnitIsUnit(b.unit, unit) then
                 tinsert(spotlights, b)
             end
         end
     end
-    
+
     if getQuickAssist then
         quickAssist = Cell.unitButtons.quickAssist.units[unit]
     end
@@ -888,12 +933,12 @@ function F:GetUnitButtonByUnit(unit, getSpotlights, getQuickAssist)
     return normal, spotlights, quickAssist
 end
 
-function F:GetUnitButtonByGUID(guid, getSpotlights)
-    return F:GetUnitButtonByUnit(Cell.vars.guids[guid], getSpotlights)
+function F:GetUnitButtonByGUID(guid, getSpotlights, getQuickAssist)
+    return F:GetUnitButtonByUnit(Cell.vars.guids[guid], getSpotlights, getQuickAssist)
 end
 
-function F:GetUnitButtonByName(name, getSpotlights)
-    return F:GetUnitButtonByUnit(Cell.vars.names[name], getSpotlights)
+function F:GetUnitButtonByName(name, getSpotlights, getQuickAssist)
+    return F:GetUnitButtonByUnit(Cell.vars.names[name], getSpotlights, getQuickAssist)
 end
 
 function F:HandleUnitButton(type, unit, func, ...)
@@ -925,7 +970,7 @@ function F:HandleUnitButton(type, unit, func, ...)
         func(normal, ...)
         handled = true
     end
-    
+
     for _, b in pairs(Cell.unitButtons.spotlight) do
         if b.states.unit and UnitIsUnit(b.states.unit, unit) then
             func(b, ...)
@@ -1013,10 +1058,10 @@ local UnitInPartyIsAI = UnitInPartyIsAI or function() end
 -------------------------------------------------
 -- frame colors
 -------------------------------------------------
-local RAID_CLASS_COLORS = CUSTOM_CLASS_COLORS or RAID_CLASS_COLORS
+local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 function F:GetClassColor(class)
     if class and class ~= "" and RAID_CLASS_COLORS[class] then
-        if CUSTOM_CLASS_COLORS then
+        if CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] then
             return CUSTOM_CLASS_COLORS[class].r, CUSTOM_CLASS_COLORS[class].g, CUSTOM_CLASS_COLORS[class].b
         else
             return RAID_CLASS_COLORS[class]:GetRGB()
@@ -1028,7 +1073,11 @@ end
 
 function F:GetClassColorStr(class)
     if class and class ~= "" and RAID_CLASS_COLORS[class] then
-        return "|c"..RAID_CLASS_COLORS[class].colorStr
+        if CUSTOM_CLASS_COLORS and CUSTOM_CLASS_COLORS[class] then
+            return "|c"..CUSTOM_CLASS_COLORS[class].colorStr
+        else
+            return "|c"..RAID_CLASS_COLORS[class].colorStr
+        end
     else
         return "|cffffffff"
     end
@@ -1040,7 +1089,7 @@ function F:GetUnitClassColor(unit, class, guid)
 
     if UnitIsPlayer(unit) or UnitInPartyIsAI(unit) then -- player
         return F:GetClassColor(class)
-    elseif F:IsPet(guid) then -- pet
+    elseif F:IsPet(guid, unit) then -- pet
         return 0.5, 0.5, 1
     else -- npc / vehicle
         return 0, 1, 0.2
@@ -1083,7 +1132,7 @@ function F:GetPowerBarColor(unit, class)
     if not Cell.loaded then
         return r, g, b, r*0.2, g*0.2, b*0.2, t
     end
-    
+
     if CellDB["appearance"]["powerColor"][1] == "power_color_dark" then
         lossR, lossG, lossB = r, g, b
         r, g, b = r*0.2, g*0.2, b*0.2
@@ -1101,11 +1150,11 @@ end
 
 function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
     if not Cell.loaded then
-        return r, g, b, r*0.2, g*0.2, b*0.2      
+        return r, g, b, r*0.2, g*0.2, b*0.2
     end
 
     local barR, barG, barB, lossR, lossG, lossB
-    
+
     -- bar
     if percent == 1 and Cell.vars.useFullColor then
         barR = CellDB["appearance"]["fullColor"][2][1]
@@ -1117,12 +1166,12 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
         elseif CellDB["appearance"]["barColor"][1] == "class_color_dark" then
             barR, barG, barB = r*0.2, g*0.2, b*0.2
         elseif CellDB["appearance"]["barColor"][1] == "gradient" then
-            barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3])
+            barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3], CellDB["appearance"]["gradientColors"][4], CellDB["appearance"]["gradientColors"][5])
         elseif CellDB["appearance"]["barColor"][1] == "gradient2" then
             if percent == 1 then
                 barR, barG, barB = r, g, b -- full: class color
             else
-                barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3])
+                barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3], CellDB["appearance"]["gradientColors"][4], CellDB["appearance"]["gradientColors"][5])
             end
         else
             barR = CellDB["appearance"]["barColor"][2][1]
@@ -1348,7 +1397,10 @@ function F:IsPlayer(guid)
     end
 end
 
-function F:IsPet(guid)
+function F:IsPet(guid, unit)
+    if unit then
+        return strfind(unit, "pet%d*$")
+    end
     if guid then
         return string.find(guid, "^Pet")
     end
@@ -1401,38 +1453,56 @@ function F:HasPermission(isPartyMarkPermission)
 end
 
 -------------------------------------------------
--- range checker
+-- range check
 -------------------------------------------------
 local UnitIsVisible = UnitIsVisible
 local UnitInRange = UnitInRange
 local UnitCanAssist = UnitCanAssist
 local UnitCanAttack = UnitCanAttack
 local UnitCanCooperate = UnitCanCooperate
-local IsSpellInRange = IsSpellInRange
-local IsItemInRange = IsItemInRange
+local IsSpellInRange = (C_Spell and C_Spell.IsSpellInRange) and C_Spell.IsSpellInRange or IsSpellInRange
+local IsItemInRange = (C_Spell and C_Item.IsItemInRange) and C_Item.IsItemInRange or IsItemInRange
 local CheckInteractDistance = CheckInteractDistance
 local UnitIsDead = UnitIsDead
-local GetSpellTabInfo = GetSpellTabInfo
-local GetNumSpellTabs = GetNumSpellTabs
-local GetSpellBookItemName = GetSpellBookItemName
-local BOOKTYPE_SPELL = BOOKTYPE_SPELL
+local IsSpellKnown = IsSpellKnown
+-- local GetSpellTabInfo = GetSpellTabInfo
+-- local GetNumSpellTabs = GetNumSpellTabs
+-- local GetSpellBookItemName = GetSpellBookItemName
+-- local BOOKTYPE_SPELL = BOOKTYPE_SPELL
+
+local UnitInSamePhase
+if Cell.isRetail then
+    UnitInSamePhase = function(unit)
+        return not UnitPhaseReason(unit)
+    end
+else
+    UnitInSamePhase = UnitInPhase
+end
 
 local playerClass = UnitClassBase("player")
 
 local friendSpells = {
-    ["DEATHKNIGHT"] = 61999,
+    -- ["DEATHKNIGHT"] = 47541,
     -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = Cell.isRetail and 8936 or 5185,
-    ["EVOKER"] = 361469,
+    ["DRUID"] = (Cell.isWrath or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
+    ["EVOKER"] = 361469, -- 活化烈焰
+    -- ["HUNTER"] = 136,
+    ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
+    ["MONK"] = 116670, -- 活血术
+    ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
+    ["PRIEST"] = (Cell.isWrath or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
+    -- ["ROGUE"] = Cell.isWrath and 57934,
+    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
+    ["WARLOCK"] = 5697, -- 无尽呼吸
+    -- ["WARRIOR"] = 3411,
+}
+
+local deadSpells = {
+    ["EVOKER"] = 361227, -- resurrection range, need separately for evoker
+}
+
+local petSpells = {
     ["HUNTER"] = 136,
-    ["MAGE"] = 1459,
-    ["MONK"] = 116670,
-    ["PALADIN"] = Cell.isRetail and 19750 or 635,
-    ["PRIEST"] = Cell.isRetail and 2061 or 2050,
-    ["ROGUE"] = 2764,
-    ["SHAMAN"] = Cell.isRetail and 8004 or 331,
-    ["WARLOCK"] = 20707,
-    -- ["WARRIOR"] = ,
 }
 
 local harmSpells = {
@@ -1441,202 +1511,247 @@ local harmSpells = {
     ["DRUID"] = 5176,
     ["EVOKER"] = 361469,
     ["HUNTER"] = 75,
-    ["MAGE"] = 116,
+    ["MAGE"] = Cell.isRetail and 116 or 133,
     ["MONK"] = 117952,
     ["PALADIN"] = 20271,
     ["PRIEST"] = Cell.isRetail and 589 or 585,
-    -- ["ROGUE"] = ,
+    ["ROGUE"] = 1752,
     ["SHAMAN"] = Cell.isRetail and 188196 or 403,
     ["WARLOCK"] = 686,
     ["WARRIOR"] = 355,
 }
 
-local friendItems = {
-    ["DEATHKNIGHT"] = 34471,
-    ["DEMONHUNTER"] = 34471,
-    ["DRUID"] = 34471,
-    ["EVOKER"] = 1180, -- 30y
-    ["HUNTER"] = 34471,
-    ["MAGE"] = 34471,
-    ["MONK"] = 34471,
-    ["PALADIN"] = 34471,
-    ["PRIEST"] = 34471,
-    ["ROGUE"] = 34471,
-    ["SHAMAN"] = 34471,
-    ["WARLOCK"] = 34471,
-    ["WARRIOR"] = 34471,
-}
+-- local friendItems = {
+--     ["DEATHKNIGHT"] = 34471,
+--     ["DEMONHUNTER"] = 34471,
+--     ["DRUID"] = 34471,
+--     ["EVOKER"] = 1180, -- 30y
+--     ["HUNTER"] = 34471,
+--     ["MAGE"] = 34471,
+--     ["MONK"] = 34471,
+--     ["PALADIN"] = 34471,
+--     ["PRIEST"] = 34471,
+--     ["ROGUE"] = 34471,
+--     ["SHAMAN"] = 34471,
+--     ["WARLOCK"] = 34471,
+--     ["WARRIOR"] = 34471,
+-- }
 
 local harmItems = {
-    ["DEATHKNIGHT"] = 28767,
-    ["DEMONHUNTER"] = 28767,
-    ["DRUID"] = 28767,
+    ["DEATHKNIGHT"] = 28767, -- 40y
+    ["DEMONHUNTER"] = 28767, -- 40y
+    ["DRUID"] = 28767, -- 40y
     ["EVOKER"] = 24268, -- 25y
-    ["HUNTER"] = 28767,
-    ["MAGE"] = 28767,
-    ["MONK"] = 28767,
-    ["PALADIN"] = 28767,
-    ["PRIEST"] = 28767,
-    ["ROGUE"] = 28767,
-    ["SHAMAN"] = 28767,
-    ["WARLOCK"] = 28767,
-    ["WARRIOR"] = 28767,
+    ["HUNTER"] = 28767, -- 40y
+    ["MAGE"] = 28767, -- 40y
+    ["MONK"] = 28767, -- 40y
+    ["PALADIN"] = 835, -- 30y
+    ["PRIEST"] = 28767, -- 40y
+    ["ROGUE"] = 28767, -- 40y
+    ["SHAMAN"] = 28767, -- 40y
+    ["WARLOCK"] = 28767, -- 40y
+    ["WARRIOR"] = 28767, -- 40y
 }
 
-local function GetNumSpells()
-    local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
-    return offset + numSpells
-end
-
-local function FindSpellIndex(spellName)
-    if not spellName or spellName == "" then
-        return nil
-    end
-    for i = 1, GetNumSpells() do
-        local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
-        if spell == spellName then
-            return i
-        end
-    end
-    return nil
-end
-
--- do
---     -- NOTE: convert ID to NAME then to INDEX
---     for k, id in pairs(friendSpells) do
---         friendSpells[k] = FindSpellIndex(GetSpellInfo(id))
+-- local FindSpellIndex
+-- if C_SpellBook and C_SpellBook.FindSpellBookSlotForSpell then
+--     FindSpellIndex = function(spellName)
+--         if not spellName or spellName == "" then return end
+--         return C_SpellBook.FindSpellBookSlotForSpell(spellName)
 --     end
---     for k, id in pairs(harmSpells) do
---         harmSpells[k] = FindSpellIndex(GetSpellInfo(id))
+-- else
+--     local function GetNumSpells()
+--         local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
+--         return offset + numSpells
+--     end
+
+--     FindSpellIndex = function(spellName)
+--         if not spellName or spellName == "" then return end
+--         for i = 1, GetNumSpells() do
+--             local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+--             if spell == spellName then
+--                 return i
+--             end
+--         end
 --     end
 -- end
 
-local function UnitInSpellRange(spellIndex, unit)
-    if not spellIndex then return end
-    return IsSpellInRange(spellIndex, BOOKTYPE_SPELL, unit) == 1
+local UnitInSpellRange
+if C_Spell and C_Spell.IsSpellInRange then
+    UnitInSpellRange = function(spellName, unit)
+        return IsSpellInRange(spellName, unit)
+    end
+else
+    UnitInSpellRange = function(spellName, unit)
+        return IsSpellInRange(spellName, unit) == 1
+    end
 end
 
 local rc = CreateFrame("Frame")
 rc:RegisterEvent("SPELLS_CHANGED")
 
-if playerClass == "EVOKER" then
-    local spell_dead, spell_alive, spell_harm
-    rc:SetScript("OnEvent", function()
-        spell_dead = FindSpellIndex(GetSpellInfo(361227))
-        spell_alive = FindSpellIndex(GetSpellInfo(361469))
-        spell_harm = FindSpellIndex(GetSpellInfo(361469))
-    end)
+local spell_friend, spell_pet, spell_harm, spell_dead
+rc:SetScript("OnEvent", function()
+    if friendSpells[playerClass] and IsSpellKnown(friendSpells[playerClass]) then
+        spell_friend = F:GetSpellInfo(friendSpells[playerClass])
+    end
+    if petSpells[playerClass] and IsSpellKnown(petSpells[playerClass]) then
+        spell_pet = F:GetSpellInfo(petSpells[playerClass])
+    end
+    if harmSpells[playerClass] and IsSpellKnown(harmSpells[playerClass]) then
+        spell_harm = F:GetSpellInfo(harmSpells[playerClass])
+    end
+    if deadSpells[playerClass] and IsSpellKnown(deadSpells[playerClass]) then
+        spell_dead = F:GetSpellInfo(deadSpells[playerClass])
+    end
+    F:Debug(
+        "[RANGE CHECK]",
+        "\nfriend:", spell_friend or "nil",
+        "\npet:", spell_pet or "nil",
+        "\nharm:", spell_harm or "nil",
+        "\ndead:", spell_dead or "nil"
+    )
+end)
 
-    -- NOTE: UnitInRange for evoker is around 50y
-    function F:IsInRange(unit, check)
-        if not UnitIsVisible(unit) then
-            return false
-        end
-    
-        if UnitIsUnit("player", unit) then
-            return true
-        -- elseif not check and F:UnitInGroup(unit) then
-        --     -- NOTE: UnitInRange only works with group players/pets
-        --     local checked
-        --     inRange, checked = UnitInRange(unit)
-        --     if not checked then
-        --         return F:IsInRange(unit, true)
-        --     end
-        --     return inRange
-        else
-            -- UnitCanCooperate works with cross-faction, UnitCanAssist does not
-            if UnitCanAssist("player", unit) or UnitCanCooperate("player", unit) then
-                -- print("CanAssist", unit)
-                if UnitIsDead(unit) then
-                    return UnitInSpellRange(spell_dead, unit) -- 40y
-                else
-                    return UnitInSpellRange(spell_alive, unit) -- 25/30y
+function F:IsInRange(unit)
+    if not UnitIsVisible(unit) then
+        return false
+    end
+
+    if UnitIsUnit("player", unit) then
+        return true
+
+    -- elseif not check and F:UnitInGroup(unit) then
+    --     -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
+    --     local inRange, checked = UnitInRange(unit)
+    --     if not checked then
+    --         return F:IsInRange(unit, true)
+    --     end
+    --     return inRange
+
+    else
+        if UnitCanAssist("player", unit) then
+            if not (UnitIsConnected(unit) and UnitInSamePhase(unit)) then
+                return false
+            end
+
+            if UnitIsDead(unit) then
+                if spell_dead then
+                    return UnitInSpellRange(spell_dead, unit)
                 end
-            elseif UnitCanAttack("player", unit) then
-                -- print("CanAttack", unit)
+            elseif spell_friend then
+                return UnitInSpellRange(spell_friend, unit)
+            end
+
+            local inRange, checked = UnitInRange(unit)
+            if checked then
+                return inRange
+            end
+
+            if UnitIsUnit(unit, "pet") and spell_pet then
+                -- no spell_friend, use spell_pet
+                return UnitInSpellRange(spell_pet, unit)
+            end
+
+        elseif UnitCanAttack("player", unit) then
+            if UnitIsDead(unit) then
+                return CheckInteractDistance(unit, 4) -- 28 yards
+            elseif spell_harm then
                 return UnitInSpellRange(spell_harm, unit)
             end
-           
-            -- print("InRange", unit)
-            return UnitInRange(unit)
+            return IsItemInRange(harmItems[playerClass], unit)
         end
+
+        if not InCombatLockdown() then
+            return CheckInteractDistance(unit, 4) -- 28 yards
+        end
+
+        return true
     end
-else
-    local spell_friend, spell_harm
-    rc:SetScript("OnEvent", function()
-        spell_friend = FindSpellIndex(GetSpellInfo(friendSpells[playerClass]))
-        spell_harm = FindSpellIndex(GetSpellInfo(harmSpells[playerClass]))
-    end)
+end
 
-    if Cell.isRetail then
-        function F:IsInRange(unit, check)
-            if not UnitIsVisible(unit) then
-                return false
-            end
-        
-            if UnitIsUnit("player", unit) then
-                return true
-            elseif not check and F:UnitInGroup(unit) then
-                -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
-                local checked
-                inRange, checked = UnitInRange(unit)
-                if not checked then
-                    return F:IsInRange(unit, true)
-                end
-                return inRange
-            else
-                if UnitCanAssist("player", unit) or UnitCanCooperate("player", unit) then
-                    -- print("CanAssist", unit)
-                    if spell_friend then
-                        return UnitInSpellRange(spell_friend, unit)
-                    end
-                elseif UnitCanAttack("player", unit) then
-                    -- print("CanAttack", unit)
-                    if spell_harm then
-                        return UnitInSpellRange(spell_harm, unit)
-                    end
-                end
+-------------------------------------------------
+-- RangeCheck debug
+-------------------------------------------------
+local debug = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+debug:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+debug:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+debug:SetBackdropBorderColor(0, 0, 0, 1)
+debug:SetSize(1, 1)
+debug:SetPoint("LEFT", 300, 0)
+debug:Hide()
 
-                -- print("InRange", unit)
-                return UnitInRange(unit)
-            end
-        end
+debug.text = debug:CreateFontString(nil, "OVERLAY")
+debug.text:SetFont(GameFontNormal:GetFont(), 13, "")
+debug.text:SetShadowColor(0, 0, 0)
+debug.text:SetShadowOffset(1, -1)
+debug.text:SetJustifyH("LEFT")
+debug.text:SetSpacing(5)
+debug.text:SetPoint("LEFT", 5, 0)
+
+local function GetResult1()
+    local inRange, checked = UnitInRange("target")
+
+    return "UnitID: " .. (F:GetTargetUnitID("target") or "target") ..
+        "\n|cffffff00F.IsInRange:|r " .. (F:IsInRange("target") and "true" or "false") ..
+        "\nUnitInRange: " .. (checked and "checked" or "unchecked") .. " " .. (inRange and "true" or "false") ..
+        "\nUnitIsVisible: " .. (UnitIsVisible("target") and "true" or "false") ..
+        "\n\nUnitCanAssist: " .. (UnitCanAssist("player", "target") and "true" or "false") ..
+        "\nUnitCanAttack: " .. (UnitCanAttack("player", "target") and "true" or "false") ..
+        "\n\nUnitIsConnected: " .. (UnitIsConnected("target") and "true" or "false") ..
+        "\nUnitInSamePhase: " .. (UnitInSamePhase("target") and "true" or "false") ..
+        "\nUnitIsDead: " .. (UnitIsDead("target") and "true" or "false") ..
+        "\n\nspell_friend: " .. (spell_friend and (spell_friend .. " " .. (UnitInSpellRange(spell_friend, "target") and "true" or "false")) or "none") ..
+        "\nspell_dead: " .. (spell_dead and (spell_dead .. " " .. (UnitInSpellRange(spell_dead, "target") and "true" or "false")) or "none") ..
+        "\nspell_pet: " .. (spell_pet and (spell_pet .. " " .. (UnitInSpellRange(spell_pet, "target") and "true" or "false")) or "none") ..
+        "\nspell_harm: " .. (spell_harm and (spell_harm .. " " .. (UnitInSpellRange(spell_harm, "target") and "true" or "false")) or "none")
+end
+
+local function GetResult2()
+    if UnitCanAttack("player", "target") then
+        return "IsItemInRange: " .. (IsItemInRange(harmItems[playerClass], "target") and "true" or "false") ..
+            "\nCheckInteractDistance(28y): " .. (CheckInteractDistance("target", 4) and "true" or "false")
     else
-        function F:IsInRange(unit, check)
-            if not UnitIsVisible(unit) then
-                return false
-            end
-        
-            if UnitIsUnit("player", unit) then
-                return true
-            elseif not check and F:UnitInGroup(unit) then
-                -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
-                local checked
-                inRange, checked = UnitInRange(unit)
-                if not checked then
-                    return F:IsInRange(unit, true)
-                end
-                return inRange
-            else
-                if UnitCanAssist("player", unit) then
-                    -- print("CanAssist", unit)
-                    if spell_friend then
-                        return UnitInSpellRange(spell_friend, unit)
-                    else
-                        return IsItemInRange(friendItems[playerClass], unit)
-                    end
-                elseif UnitCanAttack("player", unit) then
-                    -- print("CanAttack", unit)
-                    if spell_harm then
-                        return UnitInSpellRange(spell_harm, unit)
-                    else
-                        return IsItemInRange(harmItems[playerClass], unit)
-                    end
-                end
-                
-                -- print("CheckInteractDistance", unit)
-                return CheckInteractDistance(unit, 4) -- 28 yards
-            end
+        return "IsItemInRange: " .. (InCombatLockdown() and "notAvailable" or (IsItemInRange(harmItems[playerClass], "target") and "true" or "false")) ..
+            "\nCheckInteractDistance(28y): " .. (InCombatLockdown() and "notAvailable" or (CheckInteractDistance("target", 4) and "true" or "false"))
+    end
+end
+
+debug:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed >= 0.25 then
+        self.elapsed = 0
+        local result = GetResult1() .. "\n\n" .. GetResult2()
+        result = string.gsub(result, "none", "|cffabababnone|r")
+        result = string.gsub(result, "true", "|cff00ff00true|r")
+        result = string.gsub(result, "false", "|cffff0000false|r")
+        result = string.gsub(result, " checked", " |cff00ff00checked|r")
+        result = string.gsub(result, "unchecked", "|cffff0000unchecked|r")
+
+        debug.text:SetText("|cffff0066Cell Range Check (Target)|r\n\n" .. result)
+
+        debug:SetSize(debug.text:GetStringWidth() + 10, debug.text:GetStringHeight() + 20)
+    end
+end)
+
+debug:SetScript("OnEvent", function()
+    if not UnitExists("target") then
+        debug:Hide()
+        return
+    end
+
+    debug:Show()
+end)
+
+SLASH_CELLRC1 = "/cellrc"
+function SlashCmdList.CELLRC()
+    if debug:IsEventRegistered("PLAYER_TARGET_CHANGED") then
+        debug:UnregisterEvent("PLAYER_TARGET_CHANGED")
+        debug:Hide()
+    else
+        debug:RegisterEvent("PLAYER_TARGET_CHANGED")
+        if UnitExists("target") then
+            debug:Show()
         end
     end
 end
@@ -1645,10 +1760,12 @@ end
 -- LibSharedMedia
 -------------------------------------------------
 Cell.vars.texture = "Interface\\AddOns\\Cell\\Media\\statusbar.tga"
+Cell.vars.emptyTexture = "Interface\\AddOns\\Cell\\Media\\empty.tga"
+Cell.vars.whiteTexture = "Interface\\AddOns\\Cell\\Media\\white.tga"
 
 local LSM = LibStub("LibSharedMedia-3.0", true)
 LSM:Register("statusbar", "Cell ".._G.DEFAULT, Cell.vars.texture)
-LSM:Register("font", "visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255) 
+LSM:Register("font", "visitor", [[Interface\Addons\Cell\Media\Fonts\visitor.ttf]], 255)
 
 function F:GetBarTexture()
     --! update Cell.vars.texture for further use in UnitButton_OnLoad
@@ -1692,7 +1809,7 @@ function F:GetFontItems()
 
     local items = {}
     local fonts, fontNames
-    
+
     -- if LSM then
         fonts, fontNames = F:Copy(LSM:HashTable("font")), F:Copy(LSM:List("font"))
         -- insert default font
@@ -1722,7 +1839,7 @@ function F:GetFontItems()
     --         -- end,
     --     })
     -- end
-    return items, fonts, defaultFontName, defaultFont 
+    return items, fonts, defaultFontName, defaultFont
 end
 
 -------------------------------------------------
@@ -1740,7 +1857,7 @@ function F:GetTexCoord(width, height)
         local aspectRatio = (i % 2 == 1) and xRatio or yRatio
         texCoord[i] = (coord - 0.5) * aspectRatio + 0.5
     end
-    
+
     return texCoord
 end
 
@@ -1761,7 +1878,7 @@ function F:RotateTexture(texture, degrees)
     local LLx, LLy = CalculateCorner(degrees + 135)
     local ULx, ULy = CalculateCorner(degrees + 225)
     local URx, URy = CalculateCorner(degrees - 45)
-    
+
     texture:SetTexCoord(ULx, ULy, LLx, LLy, URx, URy, LRx, LRy)
 end
 
@@ -1821,12 +1938,12 @@ function F:GetTextures()
     local builtIns = #wowAtlases + #wowTextures + #shapes
 
     local t = {}
-    
+
     -- wow atlases
     for _, wa in pairs(wowAtlases) do
         tinsert(t, wa)
     end
-    
+
     -- wow textures
     for _, wt in pairs(wowTextures) do
         tinsert(t, wt)
@@ -1836,7 +1953,7 @@ function F:GetTextures()
     for _, s in pairs(shapes) do
         tinsert(t, "Interface\\AddOns\\Cell\\Media\\Shapes\\"..s..".tga")
     end
-    
+
     -- add weakauras textures
     if WeakAuras then
         builtIns = builtIns + #powaTextures
@@ -1853,18 +1970,26 @@ function F:GetTextures()
     return builtIns, t
 end
 
--------------------------------------------------
--- frame position
--------------------------------------------------
--- function F:SavePosition(frame, pTable)
---     local point, relativeTo, relativePoint, xOfs, yOfs = frame:GetPoint(1)
---     pTable[1], pTable[2], pTable[3], pTable[4] = point, relativePoint, xOfs, yOfs
--- end
+function F:GetDefaultRoleIcon(role)
+    if not role or role == "NONE" then return "" end
+    return "Interface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role
+end
 
--- function F:RestorePosition(frame, pTable)
---     frame:ClearAllPoints()
---     frame:SetPoint(pTable[1], UIParent, pTable[2], pTable[3], pTable[4])
--- end
+function F:GetDefaultRoleIconEscapeSequence(role, size)
+    if not role or role == "NONE" then return "" end
+    return "|TInterface\\AddOns\\Cell\\Media\\Roles\\Default_" .. role .. ":" .. (size or 0) .. "|t"
+end
+
+-------------------------------------------------
+-- frame
+-------------------------------------------------
+function F:GetMouseFocus()
+    if Cell.isTWW then
+        return GetMouseFoci()[1]   -- Latest Beta build changed this to return the table under key `1`
+    else
+        return GetMouseFocus()
+    end
+end
 
 -------------------------------------------------
 -- instance
@@ -1890,7 +2015,7 @@ function F:GetInstanceName()
 end
 
 -------------------------------------------------
--- spell description
+-- spell
 -------------------------------------------------
 -- https://wow.gamepedia.com/UIOBJECT_GameTooltip
 -- local function EnumerateTooltipLines_helper(...)
@@ -1905,10 +2030,10 @@ end
 
 -- https://wowpedia.fandom.com/wiki/Patch_10.0.2/API_changes
 local lines = {}
-function F:GetSpellInfo(spellId)
+function F:GetSpellTooltipInfo(spellId)
     wipe(lines)
-    
-    local name, _, icon = GetSpellInfo(spellId)
+
+    local name, icon = F:GetSpellInfo(spellId)
     if not name then return end
 
     local data = C_TooltipInfo.GetSpellByID(spellId)
@@ -1919,6 +2044,53 @@ function F:GetSpellInfo(spellId)
     end
 
     return name, icon, table.concat(lines, "\n")
+end
+
+if Cell.isRetail then
+    function F:GetSpellInfo(spellId)
+        if C_Spell and C_Spell.GetSpellInfo then
+            local info = C_Spell.GetSpellInfo(spellId)
+            if not info then return end
+
+            if not info.iconID then -- FIXME:
+                info.iconID = C_Spell.GetSpellTexture(spellId)
+            end
+
+            return info.name, info.iconID
+        end
+
+        -- TODO: remove once 11.0 prepatch hits
+        local name, _, icon = GetSpellInfo(spellId)
+        return name, icon
+    end
+else
+    function F:GetSpellInfo(spellId)
+        local name, _, icon = GetSpellInfo(spellId)
+        return name, icon
+    end
+end
+
+-------------------------------------------------
+-- macro
+-------------------------------------------------
+local mc = CreateFrame("Frame")
+mc:RegisterEvent("UPDATE_MACROS")
+
+local macroIndices = {}
+mc:SetScript("OnEvent", function()
+    wipe(macroIndices)
+
+    local global, perChar = GetNumMacros()
+    for i = 1, global do
+        tinsert(macroIndices, i)
+    end
+    for i = 1, perChar do
+        tinsert(macroIndices, 120 + i)
+    end
+end)
+
+function F:GetMacroIndices()
+    return macroIndices
 end
 
 -------------------------------------------------
@@ -2008,76 +2180,43 @@ end
 -------------------------------------------------
 -- LibGetFrame
 -------------------------------------------------
--- function Cell.GetUnitFrame(unit)
---     local normal, spotlights, quickAssist = F:GetUnitButtonByUnit(unit, true, true)
---     if CellDB["general"]["framePriority"] == "normal_spotlight_quickassist" then
---         if normal then return normal end
---         if spotlights[1] then return spotlights[1] end
---         return quickAssist
---     elseif CellDB["general"]["framePriority"] == "spotlight_normal_quickassist" then
---         if spotlights[1] then return spotlights[1] end
---         if normal then return normal end
---         return quickAssist
---     else -- "quickassist_normal_spotlight"
---         if quickAssist then return quickAssist end
---         if normal then return normal end
---         return spotlights[1]
---     end
--- end
+function Cell.GetUnitFramesForLGF(unit, frames, priorities)
+    frames = frames or {}
 
-local WA_GetUnitFrame, LGF_GetUnitFrame
-
-function Cell.GetUnitFrame(unit)
     local normal, spotlights, quickAssist = F:GetUnitButtonByUnit(unit, true, true)
-    
+
+    if normal and normal:IsVisible() and normal.widgets and normal.widgets.highLevelFrame then
+        frames[normal.widgets.highLevelFrame] = "CellNormalUnitFrame"
+    end
+
+    if spotlights then
+        for _, spotlight in pairs(spotlights) do
+            if not strfind(spotlight.unit, "target$") and spotlight.widgets and spotlight.widgets.highLevelFrame then
+                frames[spotlight.widgets.highLevelFrame] = "CellSpotlightUnitFrame"
+                break
+            end
+        end
+    end
+
+    if quickAssist and quickAssist:IsVisible() then
+        frames[quickAssist] = "CellQuickAssistUnitFrame"
+    end
+
     if CellDB["general"]["framePriority"] == "normal_spotlight_quickassist" then
-        if normal and normal:IsVisible() then
-            frame = normal
-        elseif spotlights[1] and spotlights[1]:IsVisible() then
-            frame = spotlights[1]
-        else
-            frame = quickAssist
-        end
+        tinsert(priorities, 1, "^CellNormalUnitFrame$")
+        tinsert(priorities, 2, "^CellSpotlightUnitFrame$")
+        tinsert(priorities, 3, "^CellQuickAssistUnitFrame$")
+
     elseif CellDB["general"]["framePriority"] == "spotlight_normal_quickassist" then
-        if spotlights[1] and spotlights[1]:IsVisible() then
-            frame = spotlights[1]
-        elseif normal and normal:IsVisible() then
-            frame = normal
-        else
-            frame = quickAssist
-        end
+        tinsert(priorities, 1, "^CellSpotlightUnitFrame$")
+        tinsert(priorities, 2, "^CellNormalUnitFrame$")
+        tinsert(priorities, 3, "^CellQuickAssistUnitFrame$")
+
     else -- "quickassist_normal_spotlight"
-        if quickAssist and quickAssist:IsVisible() then
-            frame = quickAssist
-        elseif normal and normal:IsVisible() then
-            frame = normal
-        else
-            frame = spotlights[1]
-        end
+        tinsert(priorities, 1, "^CellQuickAssistUnitFrame$")
+        tinsert(priorities, 2, "^CellNormalUnitFrame$")
+        tinsert(priorities, 3, "^CellSpotlightUnitFrame$")
     end
 
-    if frame then
-        return frame
-    elseif WA_GetUnitFrame then
-        return WA_GetUnitFrame(unit)
-    elseif LGF_GetUnitFrame then
-        return LGF_GetUnitFrame(unit)
-    end
-end
-
-function F:OverrideLGF(override)
-    if not override then return end
-
-    -- override LGF
-    local LGF = LibStub("LibGetFrame-1.0", true)
-    if LGF then
-        LGF_GetUnitFrame = LGF.GetUnitFrame
-        LGF.GetUnitFrame = Cell.GetUnitFrame
-        LGF.GetFrame = Cell.GetUnitFrame
-    end
-    -- override WA
-    if WeakAuras then
-        WA_GetUnitFrame = WeakAuras.GetUnitFrame
-        WeakAuras.GetUnitFrame = Cell.GetUnitFrame
-    end
+    return frames
 end

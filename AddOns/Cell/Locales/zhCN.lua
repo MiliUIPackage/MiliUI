@@ -108,6 +108,8 @@ L["Show while not in a group"] = "当不在队伍时显示"
 L["To open options frame, use /cell options"] = "用 /cell options 来打开选项窗口"
 L["Show Party"] = "小队时显示"
 L["Show while in a party"] = "当在小队时显示"
+L["Show Raid"] = "团队时显示"
+L["Show while in a raid"] = "当在团队时显示"
 L["Position"] = "位置"
 L["Lock Cell Frames"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
@@ -117,10 +119,11 @@ L["Always Update Buffs"] = "总是更新增益"
 L["Always Update Debuffs"] = "总是更新减益"
 L["Ignore UNIT_AURA payloads"] = "无视 UNIT_AURA 事件的负载"
 L["This may help solve issues of indicators not updating correctly"] = "可能有助于解决指示器不能正确更新的问题"
-L["Override"] = "重写"
-L["Ensure that other addons get the right unit button"] = "确保其他插件获取到正确的单位按钮"
-L["This may cause unknown issues"] = "可能导致未知问题"
-L["For addons/WAs not dependent on LibGetFrame, use %s"] = "对于不依赖 LibGetFrame 的插件或WA，使用 %s"
+-- L["Override"] = "重写"
+-- L["Ensure that other addons get the right unit button"] = "确保其他插件获取到正确的单位按钮"
+-- L["This may cause unknown issues"] = "可能导致未知问题"
+-- L["For addons/WAs not dependent on LibGetFrame, use %s"] = "对于不依赖 LibGetFrame 的插件或WA，使用 %s"
+L["Frame priorities for LibGetFrame"] = "指定 LibGetFrame 获取单位按钮的的优先级"
 L["Increase Health Update Rate"] = "增加血条刷新速率"
 L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
@@ -136,6 +139,7 @@ L["Awesome!"] = "太棒了！"
 L["Sync Nicknames with Others"] = "与他人同步昵称"
 L["Custom Nicknames"] = "自定义昵称"
 L["Only visible to me"] = "仅对自己可见"
+L["Target a player to autofill the name"] = "选中玩家可以自动填入名字"
 
 -------------------------------------------------
 -- appearance
@@ -185,7 +189,7 @@ L["LibHealComm needs to be installed"] = "需要自行安装 LibHealComm"
 L["Heal Absorb"] = "治疗吸收"
 L["Invert Color"] = "使用反色"
 L["Shield Texture"] = "护盾材质"
-L["Reverse Filling"] = "反向填充"
+L["Reverse Fill"] = "反向填充"
 L["Overshield Texture"] = "超过血量上限的护盾材质"
 L["[Ctrl+Left-Click] to reset these settings"] = "[Ctrl+左键] 点击此按钮来重置这些设置"
 L["Debuff Type Color"] = "减益类型颜色"
@@ -216,7 +220,6 @@ L["Secondary Talents"] = "副天赋"
 L["New"] = "新建"
 L["Save"] = "保存"
 L["Discard"] = "撤销"
-L["clickcastingsHints"] = "左键：编辑\n右键：删除"
 L["Conflicts Detected!"] = "发现冲突！"
 L["Remove"] = "移除"
 
@@ -230,6 +233,8 @@ L["ScrollDown"] = "滚轮下"
 
 L["Macro"] = "宏"
 L["Spell"] = "法术"
+L["Item"] = "物品"
+L["Custom"] = "自定义"
 L["target"] = "目标"
 L["focus"] = "焦点"
 L["assist"] = "协助"
@@ -281,7 +286,7 @@ L["Role"] = "职责"
 L["Spec"] = "专精"
 L["No Spec"] = "无专精"
 L["use separate profile for current spec"] = "为当前专精使用独立配置"
-L["Solo/Party"] = "单人/小队"
+L["Solo"] = "单人"
 L["Outdoor"] = "野外"
 L["Arena"] = "竞技场"
 L["BG 1-15"] = "战场 1-15"
@@ -342,6 +347,12 @@ L["set unit's name"] = "设置为目标单位的名字"
 L["set unit's pet"] = "设置为目标单位的宠物"
 L["not in combat"] = "非战斗中"
 
+L["Invalid layout name."] = "无效布局名称。"
+L["Layout imported: %s."] = "已导入布局：%s。"
+L["Layout added: %s."] = "已创建布局：%s。"
+L["Layout deleted: %s."] = "已删除布局：%s。"
+L["Layout renamed: %s to %s."] = "重命名布局 %s 为 %s。"
+
 -- L["Group Arrangement"] = "队伍排列"
 -- L["Button Size"] = "按钮尺寸"
 -- L["Pet Button"] = "宠物按钮"
@@ -384,7 +395,6 @@ L["|cff1Aff1AYes|r - Overwrite"] = "|cff1Aff1A是|r - 覆盖"
 L["|cffff1A1ANo|r - Create New"] = "|cffff1A1A否|r - 新建"
 L["Error"] = "错误"
 L["Incompatible Version"] = "版本不兼容"
-L["Layout imported: %s."] = "已导入布局：%s。"
 
 -------------------------------------------------
 -- indicators
@@ -396,6 +406,7 @@ L["syncTips"] = "在这里设置主布局\n从布局的所有指示器将与主�
 L["All indicators of %s will be replaced with those in %s"] = "%s 布局的所有指示器将被 %s 布局的替换"
 L["Indicators"] = "指示器"
 L["Preview"] = "预览"
+L["Show All"] = "显示全部"
 L["Create"] = "创建"
 L["Copy"] = "复制"
 L["Copy indicators from one layout to another"]= "将指示器从一个布局复制到另一个布局"
@@ -434,6 +445,7 @@ L["Private Auras"] = "个人光环" -- 私有光环？
 L["Targeted Spells"] = "被法术选中"
 L["Target Counter"] = "目标计数"
 L["Crowd Controls"] = "群体控制"
+L["Actions"] = "动作"
 L["Consumables"] = "消耗品"
 L["Health Thresholds"] = "血量阈值"
 L["Missing Buffs"] = "缺失增益"
@@ -458,6 +470,8 @@ L["Text"] = "文本"
 L["Icons"] = "图标组"
 L["Bars"] = "进度条组"
 L["Overlay"] = "叠加层"
+L["Block"] = "色块"
+L["Blocks"] = "色块组"
 
 L["Enabled"] = "启用"
 L["Anchor Point"] = "锚点"
@@ -508,7 +522,7 @@ L["hideIfEmptyOrFull"] = "当值为满或空时隐藏"
 L["Color"] = "颜色"
 L["Border Color"] = "边框颜色"
 L["Background Color"] = "背景颜色"
-L["Remaining Time <"] = "剩余时间 <"
+L["Remaining Time"] = "剩余时间"
 L["sec"] = "秒"
 L["Always"] = "总是"
 L["hide icon animation"] = "隐藏图标动画"
@@ -532,6 +546,7 @@ L["Me"] = "我"
 L["Anyone"] = "任何人"
 L["Others"] = "其他人"
 L["smooth"] = "平滑"
+L["Color By"] = "着色"
 
 L["Click to preview"] = "点击预览"
 L["Debug Mode"] = "调试模式"
@@ -584,6 +599,8 @@ L["Check all visible enemy nameplates."] = "检查所有可见的敌方姓名板
 L["cleuAurasTips"] = "通过战斗记录事件匹配不可见的法术效果"
 L["%s in Utilities must be enabled to make this indicator work."] = "要使用此指示器，必须先启用工具页面下的%s功能。"
 L["If you are a paladin or warrior, and the unit has no buffs from you, a %s icon will be displayed."] = "如果你是圣骑士或战士，且该单位没有来自你的增益时，将会显示一个%s图标。"
+L["Play animation when the unit uses a specific spell/item. The list is global shared, not layout-specific."] = "当单位使用特定的法术/物品时，播放动画。这个列表是全局共享的，而非每个布局独立。"
+L["Display a gradient texture when the unit receives a heal from your certain AoE healing spells."] = "当单位受到你的特定群体治疗法术的治疗时，显示一个渐变材质。"
 
 L["Would you like Cell to create a \"Healers\" indicator (icons)?"] = "需要 Cell 为你创建一个 “Healers” 指示器（图标组）？"
 
@@ -596,6 +613,9 @@ L["RAID_DEBUFFS_TIPS"] = "提示：[拖动]减益可以调整顺序，[双击]�
 -- L["Enable All"] = "全部启用"
 -- L["Disable All"] = "全部禁用"
 L["Track by ID"] = "匹配法术ID"
+L["Use Elapsed Time"] = "存在时间"
+L["Display elapsed time since debuff applied"] = "显示自持有该减益以来所经过的时间"
+L["Only affects duration text"] = "仅影响持续时间文本"
 L["Condition"] = "条件"
 L["Glow Type"] = "发光类型"
 L["Glow Color"] = "发光颜色"
@@ -793,7 +813,7 @@ L["You can't do that while in combat."] = "你不可以在战斗中这么做。"
 L["About"] = "关于"
 L["Author"] = "作者"
 L["Special Thanks"] = "特别感谢"
-L["Patrons"] = "感谢发电"
+L["Supporters"] = "感谢发电"
 L["Translators"] = "翻译"
 L["Slash Commands"] = "斜杠命令"
 L["Bug Report & Suggestion"] = "问题报告与建议"
@@ -832,9 +852,112 @@ L["CHANGELOGS"] = [[
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
     <br/>
 
+    <h1>r236-release (Jul 24, 2024, 16:10 GMT+8)</h1>
+    <p>* 修复“外观”与“布局”页面的一些小问题。</p>
+    <p>* 更新本地化。</p>
+    <p>* 更新大灾变的世界标记功能。</p>
+    <br/>
+
+    <h1>r235-release (Jul 23, 2024, 20:00 GMT+8)</h1>
+    <p>+ 添加“团队时显示”选项（PR #176）。</p>
+    <p>* 修复满血颜色（PR #175）。</p>
+    <p>* （地心之战）修复战复计时、快速协助、法术/驱散请求。</p>
+    <p>* 修复指示器图标宽高比。</p>
+    <p>* 修复怀旧服副本减益无法创建的问题。</p>
+    <p>* 修复载具图标。</p>
+    <p>* 修复层数文本。</p>
+    <p>* 修复图标/色块组指示器的尺寸。</p>
+    <p>* 更新血条渐变色相关的选项。</p>
+    <p>* 更新 LibGetFrame 相关功能（Cell.GetUnitFrame -> Cell.GetUnitFramesForLGF）。</p>
+    <p>+ 为“状态文字”指示器添加了调节对齐方式的选项。</p>
+    <p>+ 添加俄语环境下的副本数据。</p>
+    <p>+ 新自定义指示器类型：边框。</p>
+    <br/>
+
+    <h1>r234-release (Jul 13, 2024, 17:37 GMT+8)</h1>
+    <p>+ 为“就位确认图标”指示器添加了位置相关的选项。</p>
+    <p>* “重写 LibGetFrame”现在默认启用。</p>
+    <p>* 提升“AoE治疗”指示器的层级。</p>
+    <p>* 更新距离检查。</p>
+    <p>* 更新德语、繁中。</p>
+    <br/>
+
+    <h1>r233-release (Jul 11, 2024, 16:10 GMT+8)</h1>
+    <p>+ 为驱散高亮添加了“当前+”的效果。</p>
+    <p>* 修复唤魔师“营救”的点击施法。</p>
+    <p>* 修复布局预览。</p>
+    <p>* 修复副本减益不能创建的问题。</p>
+    <p>* 修复“使用反色”的选项。</p>
+    <p>* 修复“匹配法术名称”的选项。</p>
+    <p>* 修复“色块”类型指示器的颜色选项。</p>
+    <p>* 修复真言术：盾的法术ID。</p>
+    <p>* 更新距离检查。</p>
+    <p>* 更新“动作”指示器的层级。</p>
+    <p>* 更新国服巫妖王的增益检查。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r232-release (Jul 7, 2024, 02:40 GMT+8)</h1>
+    <p>* 修复了导致所有自定义指示器丢失的严重问题。</p>
+    <br/>
+
+    <h1>r231-release (Jul 6, 2024, 21:00 GMT+8)</h1>
+    <p>* 更新对地心之战的支持（#142,#144,#145）。</p>
+    <p>* 尝试适配国服巫妖王。</p>
+    <p>* 重命名“消耗品”指示器为“动作”。</p>
+    <p>* 更新本地化。添加德语（译者 CheersItsJulian），俄语（译者 SkywardenSylvanas）。</p>
+    <p>+ 为“驱散”指示器添加了“过滤器”。</p>
+    <p>+ 为“色块”类型的指示器添加了“按持续时间/层数着色”的功能。</p>
+    <p>* 修复“放大显示的减益”。</p>
+    <p>* 修复点击施法。</p>
+    <br/>
+
+    <h1>r230-beta (Jul 2, 2024, 00:27 GMT+8)</h1>
+    <p>* 适配地心之战（#139，#120），但又没有完全适配。</p>
+    <p>* 更新流血列表（#119）。</p>
+    <p>+ 引入新的代码片段变量“CELL_COOLDOWN_STYLE”，旧的“暴雪样式冷却图标”已过期。</p>
+    <p>+ 自定义指示器现在可以通过拖拽调整顺序辣。</p>
+    <p>+ 新指示器类型“色块组”（“CELL_COOLDOWN_STYLE”同样会影响该指示器）。</p>
+    <p>+ 为“群体控制”指示器添加了“显示持续时间文本”的选项。</p>
+    <p>* 更新“驱散”和“颜色”指示器的层级。</p>
+    <p>* 更新距离检查。</p>
+    <p>* 更新“职责图标”指示器的材质。</p>
+    <p>* 修复“文本”指示器的对齐问题。</p>
+    <p>* 修复大灾变的驱散检查。</p>
+    <br/>
+
+    <h1>r229-release (Jun 11, 2024, 20:11 GMT+8)</h1>
+    <p>* 干掉异常。</p>
+    <p>* 更新繁中。</p>
+    <p>+ 添加对葡萄牙语的支持（由 cathtail 本地化）。</p>
+    <br/>
+
+    <h1>r228-release (Jun 10, 2024, 23:38 GMT+8)</h1>
+    <h2>点击施法</h2>
+    <p>* 修复了点击施法中存在的一些问题，检查点击施法设置，如果为“无效”则需要重新配置法术。</p>
+    <h2>指示器</h2>
+    <p>* 更新指示器预览，添加了“显示全部”，移除了“透明度”（#125）。</p>
+    <p>* 更新“流血”列表（#119）。</p>
+    <p>+ 为图标组指示器添加了“间距”的选项。</p>
+    <p>+ 新自定义指示器类型：色块。</p>
+    <p>+ 为矩形/进度条添加了持续时间文本。</p>
+    <p>* 更新“被法术选中”指示器，现在最多可以同时显示3个图标，且更靠谱了。</p>
+    <p>* 上调驱散高亮的层级。</p>
+    <p>* 更新大灾变的驱散检查。</p>
+    <h2>副本减益</h2>
+    <p>+ 添加了“存在时间”的选项。</p>
+    <p>* 更新大灾变副本减益。</p>
+    <h2>布局</h2>
+    <p>+ 布局自动切换现在支持“单人”。</p>
+    <p>* 更新“按职责排序”，现在也支持团队的每个小队内排序（之前要求合并队伍）。</p>
+    <p>* 修复特别关注框体的菜单层级。</p>
+    <h2>其他</h2>
+    <p>* 自定义昵称现在能快速输入玩家名，同时添加了编辑功能（之前必须删除重新添加）。</p>
+    <br/>
+
     <h1>r227-release (May 21, 2024, 01:08 GMT+8)</h1>
     <p>* 修复快速协助。</p>
-    <p>+ 修复了一个布局切换时可能出现的异常。</p>
+    <p>* 修复了一个布局切换时可能出现的异常。</p>
     <p>* 更新繁中。</p>
     <br/>
 
@@ -1024,7 +1147,7 @@ L["CHANGELOGS"] = [[
     <p>* 更新“减伤（自身）”。</p>
     <p>* 更新繁中。</p>
     <br/>
-        
+
     <h1>r199-release (Oct 21, 2023, 15:40 GMT+8)</h1>
     <p>* 更新“减伤”指示器的内置法术。</p>
     <p>+ 为增益类型的自定义指示器添加了“来源”选项。</p>
@@ -1126,7 +1249,7 @@ L["CHANGELOGS"] = [[
     <p>* 修复布局：按职责排序，隐藏自己。</p>
     <p>* 更新繁中。</p>
     <br/>
-    
+
     <h1>r182-release (Jul 18, 2023, 05:07 GMT+8)</h1>
     <p>* 重构布局模块。</p>
     <p>* 更新永恒黎明的副本减益列表，感谢钛锬(NGA)收集并提供已排序的副本减益。</p>
@@ -1270,7 +1393,7 @@ L["OLDER_CHANGELOGS"] = [[
     <p>+ 为怀旧服版本添加了“自我施法快捷键”的冲突检查。</p>
     <p>* 更新繁中。</p>
     <br/>
-        
+
     <h1>r158-release (Mar 17, 2023, 20:17 GMT+8)</h1>
     <p>+ 新指示器：缺失增益（仅正式服）。</p>
     <p>+ 为“驱散”指示器添加了自定义驱散类型颜色的选项。</p>
@@ -1298,7 +1421,7 @@ L["OLDER_CHANGELOGS"] = [[
     <p>* 修复几处小问题。</p>
     <p>* 适配3.4.1。</p>
     <br/>
-    
+
     <h1>r153-release (Jan 6, 2023, 02:37 GMT+8)</h1>
     <p>* 尝试修复：字体和仇恨(边框)指示器。</p>
     <p>* 更新被法术选中指示器的默认法术列表。</p>
@@ -1417,7 +1540,7 @@ L["OLDER_CHANGELOGS"] = [[
     <p>* 为“职责图标”指示器添加了“隐藏伤害输出”的选项。</p>
     <p>* 修复了几坨bug。</p>
     <br/>
-        
+
     <h1>r133-release (Oct 28, 2022, 05:15 GMT+8)</h1>
     <p>* 修bug。</p>
     <br/>
@@ -1566,7 +1689,7 @@ L["OLDER_CHANGELOGS"] = [[
     <h2>巫妖王之怒</h2>
     <p>* Cell 基本可以在巫妖王之怒怀旧服中使用了（但并非所有正式服的功能都可用，有些不想做，有些做不了）。</p>
     <br/>
-    
+
     <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
     <p>* 更新当前赛季史诗钥石地下城的相关减益（感谢 夕曦@NGA 提供的列表）。</p>
     <p>* 修复了几处小问题。</p>
@@ -1635,7 +1758,7 @@ L["OLDER_CHANGELOGS"] = [[
     <p>* 歼灭两只bug。</p>
     <p>* 更新本地化。</p>
     <br/>
-    
+
     <h1>r95-release (Apr 18, 2022, 09:17 GMT+8)</h1>
     <p>+ 添加了“将持续时间文本向上取整”的选项。</p>
     <p>* 更新了自定义“文本”指示器中“持续时间文本”的相关选项。</p>
@@ -1900,7 +2023,7 @@ L["OLDER_CHANGELOGS"] = [[
     <p>* 更新Cell缩放。Cell主框体现在为像素精确，选项框体则不会强行实现像素精确。</p>
     <p>* 更新副本减益列表，现在不全，之后还会更新。</p>
     <br/>
-    
+
     <h1>r50-release (May 1, 2021, 03:20 GMT+8)</h1>
     <h2>指示器</h2>
     <P>+ 新指示器：状态图标，目标计数（仅战场、竞技场）。</P>
@@ -2022,7 +2145,7 @@ L["OLDER_CHANGELOGS"] = [[
 
     <h1>r26-release (Nov 23, 2020, 21:25 GMT+8)</h1>
     <h2>点击施法</h2>
-    <p>* 点击施法现在支持键盘与多键鼠标。</p> 
+    <p>* 点击施法现在支持键盘与多键鼠标。</p>
     <p>! 由于代码改动，你可能需要重新设置点击施法的按键绑定。</p>
     <h2>指示器</h2>
     <p>* 指示器法术列表更新了，现在所有自定义指示器将检查法术ID而不是法术名称。</p>

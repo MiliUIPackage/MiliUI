@@ -2,7 +2,7 @@
 -- File: Cell\RaidDebuffs\ExpansionData\ExpansionData.lua
 -- Author: enderneko (enderneko-dev@outlook.com)
 -- Created : 2022-08-26 04:40:40 +08:00
--- Modified: 2024-05-04 17:29:16 +08:00
+-- Modified: 2024-07-05 14:34 +08:00
 ---------------------------------------------------------------------
 
 local _, Cell = ...
@@ -21,10 +21,12 @@ Cell:RegisterCallback("AddonLoaded", "UpdateExpansionData", function()
     local index
     if Cell.isVanilla then
         index = 1
+    elseif Cell.isWrath then
+        index = 3
     elseif Cell.isCata then
         index = 4
     end
-    
+
     for i = 1, #Cell_ExpansionData["expansions"] - index do
         -- print("remove", Cell_ExpansionData.expansions[1])
         -- remove data
@@ -1054,6 +1056,11 @@ Cell_ExpansionData.data = {
                     ["image"] = 522210,
                     ["name"] = "\"Captain\" Cookie",
                 }, -- [5]
+                {
+                    ["id"] = 95,
+                    ["image"] = 522278,
+                    ["name"] = "Vanessa VanCleef",
+                }, -- [6]
             },
         }, -- [7]
         {
@@ -4277,6 +4284,11 @@ Cell_ExpansionData.data = {
                     ["image"] = 522210,
                     ["name"] = "\"Captain\" Cookie",
                 }, -- [5]
+                {
+                    ["id"] = 95,
+                    ["image"] = 522278,
+                    ["name"] = "Vanessa VanCleef",
+                }, -- [6]
             },
         }, -- [8]
         {

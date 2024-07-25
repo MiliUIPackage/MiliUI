@@ -168,7 +168,7 @@ tools:SetAttribute("_onmousedown", [=[
 -------------------------------------------------
 local loadingBar = CreateFrame("StatusBar", "CellLoadingBar", options)
 loadingBar:Hide()
-loadingBar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+loadingBar:SetStatusBarTexture(Cell.vars.whiteTexture)
 loadingBar:SetStatusBarColor(0.5, 1, 0)
 P:Height(loadingBar, 1)
 P:Point(loadingBar, "BOTTOMLEFT", options, 1, 1)
@@ -178,19 +178,19 @@ P:Point(loadingBar, "BOTTOMRIGHT", options, -1, 1)
 -- MemoryUsage
 -------------------------------------------------
 --[==[@debug@
-local memUsage = CreateFrame("Frame", nil, cellMainFrame)
-memUsage:SetSize(10, 10)
-memUsage:SetPoint("LEFT", raid, "RIGHT", 5, 0)
-memUsage.text = memUsage:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
-memUsage.text:SetPoint("LEFT")
-memUsage:SetScript("OnUpdate", function(self, elapsed)
-    self.elapsed = (self.elapsed or 0) + elapsed
-    if self.elapsed > 1 then
-        UpdateAddOnMemoryUsage()
-        memUsage.text:SetFormattedText("%.2fMB", GetAddOnMemoryUsage("Cell")/1024)
-        self.elapsed = 0
-    end
-end)
+-- local memUsage = CreateFrame("Frame", nil, cellMainFrame)
+-- memUsage:SetSize(10, 10)
+-- memUsage:SetPoint("LEFT", raid, "RIGHT", 5, 0)
+-- memUsage.text = memUsage:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+-- memUsage.text:SetPoint("LEFT")
+-- memUsage:SetScript("OnUpdate", function(self, elapsed)
+--     self.elapsed = (self.elapsed or 0) + elapsed
+--     if self.elapsed > 1 then
+--         UpdateAddOnMemoryUsage()
+--         memUsage.text:SetFormattedText("%.2fMB", GetAddOnMemoryUsage("Cell")/1024)
+--         self.elapsed = 0
+--     end
+-- end)
 --@end-debug@]==]
 
 -------------------------------------------------
@@ -301,9 +301,9 @@ end
 -------------------------------------------------
 -- raid setup
 -------------------------------------------------
-local tankIcon = "|TInterface\\AddOns\\Cell\\Media\\Roles\\TANK:0|t"
-local healerIcon = "|TInterface\\AddOns\\Cell\\Media\\Roles\\HEALER:0|t"
-local damagerIcon = "|TInterface\\AddOns\\Cell\\Media\\Roles\\DAMAGER:0|t"
+local tankIcon = F:GetDefaultRoleIconEscapeSequence("TANK")
+local healerIcon = F:GetDefaultRoleIconEscapeSequence("HEALER")
+local damagerIcon = F:GetDefaultRoleIconEscapeSequence("DAMAGER")
 
 -- local GetGroupMemberCountsForDisplay = GetGroupMemberCountsForDisplay
 -- if not GetGroupMemberCountsForDisplay then
@@ -324,10 +324,10 @@ local function GetRaidSetupDetail(role)
 
             for i = 1, Cell.vars.raidSetup[role][class] do
                 if line ~= "  " then
-                    line = line .. "|TInterface\\Buttons\\WHITE8x8:10:1:0:0:1:10:1:1:1:10:0:0:0|t"
+                    line = line .. "|TInterface\\AddOns\\Cell\\Media\\white:10:1:0:0:1:10:1:1:1:10:0:0:0|t"
                 end
 
-                line = line .. "|TInterface\\Buttons\\WHITE8x8:10:2:0:0:2:10:1:2:1:10:"..r..":"..g..":"..b.."|t"
+                line = line .. "|TInterface\\AddOns\\Cell\\Media\\white:10:2:0:0:2:10:1:2:1:10:"..r..":"..g..":"..b.."|t"
             end
         end
     end
@@ -384,8 +384,12 @@ local function MainFrame_UpdateVisibility()
         else
             menuFrame:Hide()
         end
-    else -- raid: always show
-        menuFrame:Show()
+    else
+        if CellDB["general"]["showRaid"] then
+            menuFrame:Show()
+        else
+            menuFrame:Hide()
+        end
     end
 end
 Cell:RegisterCallback("UpdateVisibility", "MainFrame_UpdateVisibility", MainFrame_UpdateVisibility)
@@ -423,7 +427,7 @@ Cell:RegisterCallback("GroupTypeChanged", "MainFrame_GroupTypeChanged", MainFram
 -------------------------------------------------
 local function UpdatePosition()
     local anchor = Cell.vars.currentLayoutTable["main"]["anchor"]
-    
+
     cellMainFrame:ClearAllPoints()
     P:ClearPoints(raid)
 
@@ -432,25 +436,25 @@ local function UpdatePosition()
         P:Size(options, 20, 10)
         P:Size(raid, 20, 10)
 
-        
+
         if anchor == "BOTTOMLEFT" then
             cellMainFrame:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 0, 4)
             P:Point(raid, "BOTTOMLEFT", options, "BOTTOMRIGHT", 1, 0)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "TOPLEFT", "BOTTOMLEFT", 0, -3
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 5, -20, -20, 20
-            
+
         elseif anchor == "BOTTOMRIGHT" then
             cellMainFrame:SetPoint("BOTTOMRIGHT", anchorFrame, "TOPRIGHT", 0, 4)
             P:Point(raid, "BOTTOMRIGHT", options, "BOTTOMLEFT", -1, 0)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "TOPRIGHT", "BOTTOMRIGHT", 0, -3
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 5, -20, -20, 20
-            
+
         elseif anchor == "TOPLEFT" then
             cellMainFrame:SetPoint("TOPLEFT", anchorFrame, "BOTTOMLEFT", 0, -4)
             P:Point(raid, "TOPLEFT", options, "TOPRIGHT", 1, 0)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "BOTTOMLEFT", "TOPLEFT", 0, 3
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 20, -5, -20, 20
-            
+
         elseif anchor == "TOPRIGHT" then
             cellMainFrame:SetPoint("TOPRIGHT", anchorFrame, "BOTTOMRIGHT", 0, -4)
             P:Point(raid, "TOPRIGHT", options, "TOPLEFT", -1, 0)
@@ -467,19 +471,19 @@ local function UpdatePosition()
             P:Point(raid, "BOTTOMLEFT", options, "TOPLEFT", 0, 1)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "BOTTOMRIGHT", "BOTTOMLEFT", -3, 0
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 20, -20, -20, 5
-            
+
         elseif anchor == "BOTTOMRIGHT" then
             cellMainFrame:SetPoint("BOTTOMRIGHT", anchorFrame, "BOTTOMLEFT", -4, 0)
             P:Point(raid, "BOTTOMRIGHT", options, "TOPRIGHT", 0, 1)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "BOTTOMLEFT", "BOTTOMRIGHT", 3, 0
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 20, -20, -5, 20
-            
+
         elseif anchor == "TOPLEFT" then
             cellMainFrame:SetPoint("TOPLEFT", anchorFrame, "TOPRIGHT", 4, 0)
             P:Point(raid, "TOPLEFT", options, "BOTTOMLEFT", 0, -1)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "TOPRIGHT", "TOPLEFT", -3, 0
             -- hoverTop, hoverBottom, hoverLeft, hoverRight = 20, -20, -20, 5
-            
+
         elseif anchor == "TOPRIGHT" then
             cellMainFrame:SetPoint("TOPRIGHT", anchorFrame, "TOPLEFT", -4, 0)
             P:Point(raid, "TOPRIGHT", options, "BOTTOMRIGHT", 0, -1)
@@ -543,12 +547,12 @@ local function MainFrame_UpdateLayout(layout, which)
 
     if not init then
         init = true
-        --! NOTE: a reload during pet battle prevents HEADER from CREATING CHILDs (unit buttons), this hide delay is a MUST  
+        --! NOTE: a reload during pet battle prevents HEADER from CREATING CHILDs (unit buttons), this hide delay is a MUST
         RegisterStateDriver(cellMainFrame, "visibility", "[petbattle] hide; show")
     end
-    
+
     layout = Cell.vars.currentLayoutTable
-    
+
     if not which or which == "main-size" then
         P:Size(cellMainFrame, unpack(layout["main"]["size"]))
     end

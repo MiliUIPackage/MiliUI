@@ -17,7 +17,7 @@ Cell.defaults.appearance = {
     ["lossAlpha"] = 1,
     ["bgAlpha"] = 1,
     ["barAnimation"] = "Flash",
-    ["gradientColors"] = {{1,0,0}, {1,0.7,0}, {0.7,1,0}},
+    ["gradientColors"] = {{1,0,0}, {1,0.7,0}, {0.7,1,0}, 0.05, 0.95},
     ["auraIconOptions"] = {
         ["animation"] = "duration",
         ["durationRoundUp"] = false,
@@ -34,7 +34,7 @@ Cell.defaults.appearance = {
     ["healAbsorbInvertColor"] = false,
     ["shield"] = {not Cell.isVanilla, {1, 1, 1, 0.4}},
     ["overshield"] = {not Cell.isVanilla, {1, 1, 1, 1}},
-    ["overshieldReverseFilling"] = false,
+    ["overshieldReverseFill"] = false,
 }
 
 local buttonStyleIndices = {
@@ -58,7 +58,7 @@ local buttonStyleIndices = {
     "healAbsorbInvertColor",
     "shield",
     "overshield",
-    "overshieldReverseFilling"
+    "overshieldReverseFill"
 }
 
 function F:ResetButtonStyle()

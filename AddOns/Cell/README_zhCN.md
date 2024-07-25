@@ -1,9 +1,9 @@
 # Cell
 
 [![version](https://img.shields.io/github/v/release/enderneko/Cell)](https://github.com/enderneko/Cell/releases)
-[![CodeFactor](https://www.codefactor.io/repository/github/enderneko/cell/badge)](https://www.codefactor.io/repository/github/enderneko/cell)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/enderneko/Cell)](https://github.com/enderneko/Cell/commits/master)
 [![last commit](https://img.shields.io/github/last-commit/enderneko/Cell)](https://github.com/enderneko/Cell/commits/master)
+![wakatime](https://wakatime.com/badge/user/b2ffce60-8269-440f-81a0-7316f36a6085/project/82ff5b42-1fec-416d-9d8d-50b586ceea0c.svg)
 
 [![Discord](https://img.shields.io/discord/1122747237546610760?label=Discord&color=5865F2)](https://discord.gg/9PSe3fKQGJ)
 [![Curseforge](https://img.shields.io/curseforge/dt/409666?label=CurseForge&color=F16436)](https://www.curseforge.com/wow/addons/cell)
@@ -46,12 +46,6 @@ __如果更新后遇到各种问题，先检查/禁用代码片段。__
 2. 新建 -> 粘贴 -> 保存 -> 勾选自动运行
 3. 重载界面
 
-### 暴雪冷却样式的图标
-
-<https://raw.githubusercontent.com/enderneko/Cell/master/.snippets/CooldownIcons_BlizzardStyle.lua>
-
-![暴雪冷却样式的图标](https://github.com/enderneko/Cell/raw/master/.snippets/CooldownIcons_BlizzardStyle.gif)
-
 &nbsp;
 
 ## 不支持的功能（未来可能也不会考虑做）
@@ -69,7 +63,7 @@ Use __/cell__ for more information.
 
 ## 想要帮忙完善副本减益？
 
-使用 [Instance Spell Collector](https://legacy.curseforge.com/wow/addons/instance-spell-collector) 收集副本减益，然后在 GitHub 上提交 PR 或 issue 就行啦。
+使用 [Instance Spell Collector](https://www.curseforge.com/wow/addons/instance-spell-collector) 收集副本减益，然后在 GitHub 上提交 PR 或 issue 就行啦。
 
 &nbsp;
 

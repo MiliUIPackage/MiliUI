@@ -53,13 +53,13 @@ local qcGlowCastsPane, qcGlowCastsCP, qcGlowCastsAddBtn
 local function UpdateWidgets()
     Cell:SetEnabled(quickCastTable["enabled"], qcNameDD, qcNameText, qcButtonsSlider, qcSizeSlider, qcOrientationDD, qcOrientationText, qcSpacingXSlider, qcSpacingYSlider, qcLinesSlider)
     Cell:SetEnabled(quickCastTable["enabled"], qcOuterCP, qcOuterBtn, qcInnerCP, qcInnerBtn, qcGlowBuffsCP, qcGlowBuffsAddBtn, qcGlowCastsCP, qcGlowCastsAddBtn)
-    
+
     for _, b in pairs(qcGlowBuffsButtons) do
-        b:SetEnabled(quickCastTable["enabled"])    
+        b:SetEnabled(quickCastTable["enabled"])
     end
 
     for _, b in pairs(qcGlowCastsButtons) do
-        b:SetEnabled(quickCastTable["enabled"])    
+        b:SetEnabled(quickCastTable["enabled"])
     end
 end
 
@@ -83,7 +83,7 @@ local function CreateQCPane()
         if not CellDB["quickCast"][Cell.vars.playerClass] then
             CellDB["quickCast"][Cell.vars.playerClass] = {}
         end
-        
+
         if not CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID] then
             CellDB["quickCast"][Cell.vars.playerClass][Cell.vars.playerSpecID] = F:Copy(defaultQuickCastTable)
         end
@@ -99,7 +99,7 @@ local function CreateQCPane()
     -- name -------------------------------------------------------------------------
     qcNameDD = Cell:CreateDropdown(qcPane, 120)
     qcNameDD:SetPoint("TOPLEFT", qcPane, 297, -75)
-    
+
     local anchorPoints = {"LEFT", "RIGHT", "TOP", "BOTTOM"}
     local items = {}
     tinsert(items, {
@@ -135,7 +135,7 @@ local function CreateQCPane()
         Cell:Fire("UpdateQuickCast")
     end)
     qcButtonsSlider:SetPoint("TOPLEFT", qcEnabledCB, 0, -55)
-    
+
     -- orientation ------------------------------------------------------------------
     qcOrientationDD = Cell:CreateDropdown(qcPane, 120)
     qcOrientationDD:SetPoint("TOPLEFT", qcButtonsSlider, 146, 0)
@@ -203,7 +203,7 @@ local function CreateQCPane()
         Cell:Fire("UpdateQuickCast")
     end)
     qcSpacingXSlider:SetPoint("TOPLEFT", qcSizeSlider, 146, 0)
-    
+
     -- spacingY ---------------------------------------------------------------------
     qcSpacingYSlider = Cell:CreateSlider(L["Spacing"].." Y", qcPane, 0, 64, 120, 1, function(value)
         quickCastTable["spacingY"] = value
@@ -223,12 +223,12 @@ local function CreateQCPane()
             return
         end
 
-        local name, _, icon = GetSpellInfo(spellId)
+        local name, icon = F:GetSpellInfo(spellId)
         if not name then
             CellSpellTooltip:Hide()
             return
         end
-        
+
         CellSpellTooltip:SetOwner(qcAddEB, "ANCHOR_NONE")
         CellSpellTooltip:SetPoint("TOPLEFT", qcAddEB, "BOTTOMLEFT", 0, -1)
         CellSpellTooltip:SetSpellByID(spellId, icon)
@@ -275,7 +275,7 @@ UpdatePreview = function()
             self.glowBuffElapsed = (self.glowBuffElapsed or 0) + elapsed
             self.outerElapsed = (self.outerElapsed or 0) + elapsed
             self.innerElapsed = (self.innerElapsed or 0) + elapsed
-            
+
             if self.glowBuffElapsed >= 20 then
                 self.glowBuffElapsed = 0
                 self:SetGlowBuffCooldown(GetTime(), 5)
@@ -315,7 +315,7 @@ UpdatePreview = function()
             self:SetInnerCooldown(GetTime(), 10)
         end)
     end
-    
+
     previewButton:SetSize(quickCastTable["size"])
     previewButton:SetNamePosition(quickCastTable["namePosition"])
     previewButton:SetColor(quickCastTable["glowBuffsColor"],  quickCastTable["glowCastsColor"], quickCastTable["outerColor"], quickCastTable["innerColor"])
@@ -336,7 +336,7 @@ local function CreatePreviewFrame()
     previewFrame = Cell:CreateFrame(nil, qcPane, 130, 130)
     previewFrame:SetPoint("TOPLEFT", CellOptionsFrame, "TOPRIGHT", 5, -80)
     previewFrame:Show()
-    
+
     previewPane = Cell:CreateTitledPane(previewFrame, L["Preview"], 130, 130)
     previewPane:SetPoint("TOPLEFT", 5, -5)
     previewPane:SetPoint("BOTTOMRIGHT", -5, 5)
@@ -365,7 +365,7 @@ local function CreateSpellButton(parent, func)
         if button == "LeftButton" then
             local popup = Cell:CreatePopupEditBox(qcPane, function(text)
                 local spellId = tonumber(text)
-                local spellName, _, spellIcon = GetSpellInfo(spellId)
+                local spellName, spellIcon = F:GetSpellInfo(spellId)
                 if spellId and spellName then
                     b.id = spellId
                     b.icon = spellIcon
@@ -400,7 +400,7 @@ local function CreateSpellButton(parent, func)
             CellSpellTooltip:Show()
         end
     end)
-    
+
     b:HookScript("OnLeave", function(self)
         CellSpellTooltip:Hide()
     end)
@@ -498,11 +498,11 @@ local function LoadGlowList(parent, buttons, addBtn, anchorTo, t, separator)
                     CellSpellTooltip:Show()
                 end
             end)
-            
+
             buttons[i]:HookScript("OnLeave", function(self)
                 CellSpellTooltip:Hide()
             end)
-            
+
             buttons[i]:SetScript("OnClick", function()
                 tremove(t, i)
                 LoadGlowList(parent, buttons, addBtn, anchorTo, t, separator)
@@ -515,7 +515,7 @@ local function LoadGlowList(parent, buttons, addBtn, anchorTo, t, separator)
             buttons[i].duration:SetText(duration)
         end
 
-        local name, _, icon = GetSpellInfo(id)
+        local name, icon = F:GetSpellInfo(id)
         if not name then icon = 134400 end
         buttons[i].id = id
         buttons[i].icon = icon
@@ -575,7 +575,7 @@ local function CreateGlowBuffsPane()
         Cell:Fire("UpdateQuickCast")
     end)
     qcGlowBuffsCP:SetPoint("TOPLEFT", 5, -27)
-    
+
     -- buffs ------------------------------------------------------------------------
     qcGlowBuffsAddBtn = Cell:CreateButton(qcGlowBuffsPane, nil, "accent-hover", {20, 20})
     qcGlowBuffsAddBtn:SetPoint("TOPLEFT", qcGlowBuffsCP, "BOTTOMLEFT", 0, -10)
@@ -583,7 +583,7 @@ local function CreateGlowBuffsPane()
     qcGlowBuffsAddBtn:SetScript("OnClick", function()
         local popup = Cell:CreatePopupEditBox(qcPane, function(text)
             local spellId = tonumber(text)
-            local spellName = GetSpellInfo(spellId)
+            local spellName = F:GetSpellInfo(spellId)
             if spellId and spellName then
                 tinsert(quickCastTable["glowBuffs"], spellId)
                 LoadGlowList(qcGlowBuffsPane, qcGlowBuffsButtons, qcGlowBuffsAddBtn, qcGlowBuffsCP, quickCastTable["glowBuffs"])
@@ -628,12 +628,12 @@ local function CreateGlowCastsPane()
             return
         end
 
-        local name, _, icon = GetSpellInfo(spellId)
+        local name, icon = F:GetSpellInfo(spellId)
         if not name then
             CellSpellTooltip:Hide()
             return
         end
-        
+
         CellSpellTooltip:SetOwner(self, "ANCHOR_NONE")
         CellSpellTooltip:SetPoint("TOPLEFT", self, "BOTTOMLEFT", 0, -1)
         CellSpellTooltip:SetSpellByID(spellId, icon)
@@ -649,7 +649,7 @@ local function CreateGlowCastsPane()
     qcGlowCastsAddBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
     qcGlowCastsAddBtn:SetScript("OnClick", function()
         local popup = Cell:CreateDualPopupEditBox(qcGlowCastsPane, "ID", L["Duration"], true, function(spellId, duration)
-            local spellName = GetSpellInfo(spellId)
+            local spellName = F:GetSpellInfo(spellId)
             if spellId and spellName and duration then
                 tinsert(quickCastTable["glowCasts"], spellId..":"..duration)
                 LoadGlowList(qcGlowCastsPane, qcGlowCastsButtons, qcGlowCastsAddBtn, qcGlowCastsCP, quickCastTable["glowCasts"], ":")
@@ -677,7 +677,7 @@ local function LoadSpellButton(b, value)
         b.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create")
         b.tex:SetTexCoord(0, 1, 0, 1)
     else
-        local name, _, icon = GetSpellInfo(value)
+        local name, icon = F:GetSpellInfo(value)
         if name and icon then
             b:SetText(name)
             b.tex:SetTexture(icon)
@@ -705,7 +705,7 @@ local function LoadDB()
     qcSizeSlider:SetValue(quickCastTable["size"])
     qcSpacingXSlider:SetValue(quickCastTable["spacingX"])
     qcSpacingYSlider:SetValue(quickCastTable["spacingY"])
-    
+
     UpdatePreview()
 
     -- glow
@@ -713,11 +713,11 @@ local function LoadDB()
     LoadGlowList(qcGlowBuffsPane, qcGlowBuffsButtons, qcGlowBuffsAddBtn, qcGlowBuffsCP, quickCastTable["glowBuffs"])
     qcGlowCastsCP:SetColor(unpack(quickCastTable["glowCastsColor"]))
     LoadGlowList(qcGlowCastsPane, qcGlowCastsButtons, qcGlowCastsAddBtn, qcGlowCastsCP, quickCastTable["glowCasts"], ":")
-    
+
     -- outer
     qcOuterCP:SetColor(unpack(quickCastTable["outerColor"]))
     LoadSpellButton(qcOuterBtn, quickCastTable["outerBuff"])
-    
+
     -- inner
     qcInnerCP:SetColor(unpack(quickCastTable["innerColor"]))
     LoadSpellButton(qcInnerBtn, quickCastTable["innerBuff"])
@@ -765,7 +765,7 @@ local function ShowUtilitySettings(which)
 
         LoadDB()
         qcPane:Show()
-        
+
     elseif init then
         qcPane:Hide()
     end
@@ -855,7 +855,7 @@ local function RegisterDrag(frame)
             targetFrame.isMoving = true
             targetFrame:StartMoving()
             LCG.PixelGlow_Start(b, Cell:GetAccentColorTable(), 9, 0.25, 8, 2) -- color, N, frequency, length, thickness
-    
+
             targetFrame.label:SetText(L["Unit"])
 
         elseif IsAltKeyDown() then --! move
@@ -868,7 +868,7 @@ local function RegisterDrag(frame)
         quickCastFrame:StopMovingOrSizing()
         if not InCombatLockdown() then P:PixelPerfectPoint(quickCastFrame) end
         P:SavePosition(quickCastFrame, quickCastTable["position"])
-        
+
         --! target
         if targetFrame.isMoving then
             targetFrame.isMoving = false
@@ -879,7 +879,7 @@ local function RegisterDrag(frame)
                 return
             end
 
-            local f = GetMouseFocus()
+            local f = F:GetMouseFocus()
             if f and f.states and f.states.displayedUnit and F:UnitInGroup(f.states.displayedUnit) then
                 quickCastTable["units"][frame.index] = f.states.displayedUnit
                 frame:SetUnit(f.states.displayedUnit, outerBuff, innerBuff)
@@ -901,7 +901,7 @@ local function QuickCast_UpdateAuras(self)
             glowBuffFound = true
             self:SetGlowBuffCooldown(expirationTime - duration, duration)
         end
-        
+
         if source == "player" then
             if name == outerBuff then
                 outerBuffFound = true
@@ -1015,7 +1015,7 @@ end
 -- ----------------------------------------------------------------------- --
 local function CreatePreviewButton(b)
     local p = CreateFrame("Frame", nil, CellMainFrame, "BackdropTemplate")
-    p:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
+    p:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     p:SetBackdropColor(0.5, 0.5, 0.5, 0.7)
     p:SetAllPoints(b)
     p:SetFrameStrata("LOW")
@@ -1061,7 +1061,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
     b.nameText = nameText
     nameText:Hide()
     nameText:SetFont(GameFontNormal:GetFont(), 13, "Outline")
-    
+
     -- invalid ----------------------------------------------------------------------
     local invalidTex = b:CreateTexture(nil, "ARTWORK")
     b.invalidTex = invalidTex
@@ -1079,7 +1079,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
     glowBuffCD:SetScript("OnHide", function()
         LCG.ButtonGlow_Stop(glowBuffCD)
     end)
-    
+
     -- glow cast --------------------------------------------------------------------
     local glowCastCD = CreateFrame("Frame", name.."GlowCastCD", b)
     b.glowCastCD = glowCastCD
@@ -1095,9 +1095,9 @@ CreateQuickCastButton = function(parent, name, isPreview)
     local outerCD = CreateFrame("Cooldown", name.."OuterCD", b, "BackdropTemplate,CooldownFrameTemplate")
     b.outerCD = outerCD
     outerCD:SetFrameLevel(b:GetFrameLevel() + 1)
-    outerCD:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
+    outerCD:SetSwipeTexture(Cell.vars.whiteTexture)
     outerCD:SetDrawEdge(true)
-    -- outerCD:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
+    -- outerCD:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     -- outerCD:SetBackdropColor(0, 0, 0, 0.5)
     outerCD.noCooldownCount = true -- disable omnicc
     outerCD:SetHideCountdownNumbers(true)
@@ -1111,14 +1111,14 @@ CreateQuickCastButton = function(parent, name, isPreview)
     outerCD:SetScript("OnHide", function()
         b:Update()
     end)
-    
+
     -- inner ------------------------------------------------------------------------
     local innerCD = CreateFrame("Cooldown", name.."InnerCD", b, "BackdropTemplate,CooldownFrameTemplate")
     b.innerCD = innerCD
     innerCD:SetFrameLevel(b:GetFrameLevel() + 2)
-    innerCD:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
+    innerCD:SetSwipeTexture(Cell.vars.whiteTexture)
     innerCD:SetDrawEdge(true)
-    innerCD:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
+    innerCD:SetBackdrop({bgFile = Cell.vars.whiteTexture})
     innerCD:SetBackdropColor(0, 0, 0, 0.4)
     innerCD.noCooldownCount = true -- disable omnicc
     innerCD:SetHideCountdownNumbers(true)
@@ -1126,7 +1126,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
     innerCD:SetScript("OnCooldownDone", function()
         innerCD:Hide()
     end)
-    
+
     -- cooldowns --------------------------------------------------------------------
     function b:SetGlowBuffCooldown(start, duration)
         if start and duration then
@@ -1151,7 +1151,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
             glowBuffCD:Hide()
         end
     end
-   
+
     function b:SetGlowCastCooldown(start, duration)
         if start and duration then
             glowCastCD:SetScript("OnUpdate", function(self, elapsed)
@@ -1211,7 +1211,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
         b:_SetSize(P:Scale(size), P:Scale(size))
 
         borderSize = floor(size/8)
-        b:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(borderSize)})
+        b:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(borderSize)})
         b:SetBackdropColor(b._r*0.2, b._g*0.2, b._b*0.2, 0.7)
         b:SetBackdropBorderColor(b._r, b._g, b._b, 0.9)
 
@@ -1227,7 +1227,7 @@ CreateQuickCastButton = function(parent, name, isPreview)
         P:ClearPoints(glowBuffCD)
         P:Point(glowBuffCD, "TOPLEFT", -borderSize, borderSize)
         P:Point(glowBuffCD, "BOTTOMRIGHT", borderSize, -borderSize)
-        
+
         P:ClearPoints(glowCastCD)
         P:Point(glowCastCD, "TOPLEFT", -borderSize, borderSize)
         P:Point(glowCastCD, "BOTTOMRIGHT", borderSize, -borderSize)
@@ -1321,14 +1321,14 @@ CreateQuickCastButton = function(parent, name, isPreview)
             outerCD:Hide()
             innerCD:Hide()
         end
-        
+
         F:UpdateOmniCDPosition("Cell-QuickCast")
     end
 
     --! NOTE: PLAYER_LOGIN or MANUALLY CALLED
     function b:SetUnit(unit, leftCast, rightCast)
         F:Debug("[QuickCast] SetUnit:", unit, leftCast, rightCast)
-        
+
         b.unit = unit
 
         if unit then
@@ -1384,16 +1384,16 @@ CreateQuickCastButton = function(parent, name, isPreview)
                 F:Print(L["You can't do that while in combat."])
                 return
             end
-    
+
             b.unit = nil
             b:CheckUnit()
-    
+
             b:SetAttribute("unit", nil)
             b:SetAttribute("type1", nil)
             b:SetAttribute("spell1", nil)
             b:SetAttribute("type2", nil)
             b:SetAttribute("spell2", nil)
-    
+
             quickCastTable["units"][b.index] = nil
         end
     end)
@@ -1440,8 +1440,8 @@ local function UpdateQuickCast()
         -- prepare buffs
         glowBuffs = F:ConvertSpellTable(quickCastTable["glowBuffs"], true)
         glowCasts = F:ConvertSpellDurationTable(quickCastTable["glowCasts"])
-        outerBuff = GetSpellInfo(quickCastTable["outerBuff"])
-        innerBuff = GetSpellInfo(quickCastTable["innerBuff"])
+        outerBuff = F:GetSpellInfo(quickCastTable["outerBuff"])
+        innerBuff = F:GetSpellInfo(quickCastTable["innerBuff"])
 
         -- create
         if not quickCastButtons then
@@ -1460,7 +1460,7 @@ local function UpdateQuickCast()
             quickCastButtons[i]:SetColor(quickCastTable["glowBuffsColor"], quickCastTable["glowCastsColor"], quickCastTable["outerColor"], quickCastTable["innerColor"])
             quickCastButtons[i]:SetUnit(quickCastTable["units"][i], outerBuff, innerBuff)
             quickCastButtons[i]:Show()
-    
+
             P:ClearPoints(quickCastButtons[i])
             if quickCastTable["orientation"] == "left-to-right" then
                 if i == 1 then
@@ -1520,7 +1520,7 @@ local function UpdateQuickCast()
                 end
             end
         end
-    
+
         -- hide
         for i = quickCastTable["num"] + 1, 6 do
             quickCastButtons[i]:Hide()

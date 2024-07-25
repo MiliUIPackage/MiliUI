@@ -26,7 +26,7 @@ local debuffBlacklist = {
 function I.GetDefaultDebuffBlacklist()
     -- local temp = {}
     -- for i, id in pairs(debuffBlacklist) do
-    --     temp[i] = GetSpellInfo(id)
+    --     temp[i] = F:GetSpellInfo(id)
     -- end
     -- return temp
     return debuffBlacklist
@@ -72,7 +72,7 @@ local aoeHealings = {
 do
     local temp = {}
     for _, id in pairs(aoeHealings) do
-        temp[GetSpellInfo(id)] = true
+        temp[F:GetSpellInfo(id)] = true
     end
     aoeHealings = temp
 end
@@ -89,7 +89,7 @@ local summonDuration = {
 do
     local temp = {}
     for id, duration in pairs(summonDuration) do
-        temp[GetSpellInfo(id)] = duration
+        temp[F:GetSpellInfo(id)] = duration
     end
     summonDuration = temp
 end
@@ -143,7 +143,7 @@ function I.UpdateExternals(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = GetSpellInfo(id)
+                    local name = F:GetSpellInfo(id)
                     if name then
                         builtInExternals[name] = true
                     end
@@ -157,15 +157,16 @@ function I.UpdateExternals(t)
     -- user created
     wipe(customExternals)
     for _, id in pairs(t["custom"]) do
-        local name = GetSpellInfo(id)
-        if name then
-            customExternals[name] = true
-        end
+        -- local name = F:GetSpellInfo(id)
+        -- if name then
+        --     customExternals[name] = true
+        -- end
+        customExternals[id] = true
     end
 end
 
 function I.IsExternalCooldown(name, id, source, target)
-    return builtInExternals[name] or builtInExternals[id] or customExternals[name]
+    return builtInExternals[name] or builtInExternals[id] or customExternals[id]
 end
 
 -------------------------------------------------
@@ -209,7 +210,7 @@ local defensives = { -- true: track by name, false: track by id
     ["ROGUE"] = {
         [1966] = true, -- 佯攻
         [5277] = true, -- 闪避
-        [31224] = true, -- 暗影斗篷
+        [31224] = false, -- 暗影斗篷
     },
 
     ["SHAMAN"] = {
@@ -238,7 +239,7 @@ function I.UpdateDefensives(t)
         for id, trackByName in pairs(spells) do
             if not t["disabled"][id] then -- not disabled
                 if trackByName then
-                    local name = GetSpellInfo(id)
+                    local name = F:GetSpellInfo(id)
                     if name then
                         builtInDefensives[name] = true
                     end
@@ -252,10 +253,11 @@ function I.UpdateDefensives(t)
     -- user created
     wipe(customDefensives)
     for _, id in pairs(t["custom"]) do
-        local name = GetSpellInfo(id)
-        if name then
-            customDefensives[name] = true
-        end
+        -- local name = F:GetSpellInfo(id)
+        -- if name then
+        --     customDefensives[name] = true
+        -- end
+        customDefensives[id] = true
     end
 end
 
@@ -267,52 +269,65 @@ local defensiveBlacklist = {
 
 function I.IsDefensiveCooldown(name, id)
     if defensiveBlacklist[id] then return end
-    return builtInDefensives[name] or builtInDefensives[id] or customDefensives[name]
+    return builtInDefensives[name] or builtInDefensives[id] or customDefensives[id]
 end
 
 -------------------------------------------------
 -- dispels
 -------------------------------------------------
-local dispellable = {
-    -- DRUID ----------------
-    [11] = {["Curse"] = true, ["Poison"] = true},
-        
-    -- MAGE -----------------
-    [8] = {["Curse"] = true},
-        
-    -- PALADIN --------------
-    [2] = {["Disease"] = true, ["Magic"] = true, ["Poison"] = true, ["Bleed"] = true},
-    
-    -- PRIEST ---------------
-    -- TODO: 全心全意天赋可以解自己的毒
-    [5] = {["Disease"] = true, ["Magic"] = true},
-
-    -- SHAMAN ---------------
-    [7] = {["Disease"] = true, ["Poison"] = true},
-}
-
-do
-    -- NOTE: 净化灵魂天赋可以解除诅咒
-    if UnitClassBase("player") == "SHAMAN" then
-        local eventFrame = CreateFrame("Frame")
-        eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
-        eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
-        eventFrame:SetScript("OnEvent", function(self, event)
-            if event == "PLAYER_ENTERING_WORLD" then
-                eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
-            end
-            dispellable[7]["Curse"] = IsSpellKnown(51886)
-        end)
-    end
-end
+local dispellable = {}
 
 function I.CanDispel(dispelType)
     if not dispelType then return end
-    
-    if dispellable[Cell.vars.playerClassID] then
-        return dispellable[Cell.vars.playerClassID][dispelType]
-    end
+    return dispellable[dispelType]
 end
+
+local dispels = {
+    -- DRUID ----------------
+    [11] = {["Curse"] = true, ["Magic"] = "3,15", ["Poison"] = true},
+
+    -- MAGE -----------------
+    [8] = {["Curse"] = true},
+
+    -- PALADIN --------------
+    [2] = {["Disease"] = true, ["Magic"] = "1,7", ["Poison"] = true, ["Bleed"] = true},
+
+    -- PRIEST ---------------
+    -- TODO: 身心合一天赋可以解自己的毒
+    [5] = {["Disease"] = true, ["Magic"] = true},
+
+    -- SHAMAN ---------------
+    [7] = {["Curse"] = true, ["Magic"] = "3,14"},
+}
+
+local eventFrame = CreateFrame("Frame")
+eventFrame:RegisterEvent("PLAYER_TALENT_UPDATE")
+eventFrame:RegisterEvent("ACTIVE_TALENT_GROUP_CHANGED")
+eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+
+local function UpdateDispellable()
+    wipe(dispellable)
+    if dispels[Cell.vars.playerClassID] then
+        for dispelType, value in pairs(dispels[Cell.vars.playerClassID]) do
+            if type(value) == "boolean" then
+                dispellable[dispelType] = value
+            elseif select(5, GetTalentInfo(strsplit(",", value))) == 1 then
+                dispellable[dispelType] = true
+            end
+        end
+    end
+    -- texplore(dispellable)
+end
+
+local timer
+eventFrame:SetScript("OnEvent", function(self, event)
+    if event == "PLAYER_ENTERING_WORLD" then
+        eventFrame:UnregisterEvent("PLAYER_ENTERING_WORLD")
+    end
+
+    if timer then timer:Cancel() end
+    timer = C_Timer.NewTimer(1, UpdateDispellable)
+end)
 
 -------------------------------------------------
 -- drinking
@@ -325,7 +340,7 @@ local drinks = {
 do
     local temp = {}
     for _, id in pairs(drinks) do
-        temp[GetSpellInfo(id)] = true
+        temp[F:GetSpellInfo(id)] = true
     end
     drinks = temp
 end
@@ -335,7 +350,7 @@ function I.IsDrinking(name)
 end
 
 -------------------------------------------------
--- healer 
+-- healer
 -------------------------------------------------
 local spells =  {
     -- druid
@@ -360,10 +375,10 @@ local spells =  {
 function F:FirstRun()
     local icons = "\n\n"
     for i, id in pairs(spells) do
-        local icon = select(3, GetSpellInfo(id))
+        local icon = select(2, F:GetSpellInfo(id))
         icons = icons .. "|T"..icon..":0|t"
         if i % 11 == 0 then
-            icons = icons .. "\n"    
+            icons = icons .. "\n"
         end
     end
 
@@ -376,7 +391,7 @@ function F:FirstRun()
         else
             indicatorName = "indicator"..(tonumber(strmatch(currentLayoutTable["indicators"][last]["indicatorName"], "%d+"))+1)
         end
-        
+
         tinsert(currentLayoutTable["indicators"], {
             ["name"] = "Healers",
             ["indicatorName"] = indicatorName,
@@ -388,6 +403,7 @@ function F:FirstRun()
             ["num"] = 5,
             ["numPerLine"] = 5,
             ["orientation"] = "right-to-left",
+            ["spacing"] = {0, 0},
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
@@ -414,7 +430,7 @@ end
 -- targetedSpells
 -------------------------------------------------
 local targetedSpells = {
-    
+
 }
 
 function I.GetDefaultTargetedSpellsList()
@@ -426,18 +442,18 @@ function I.GetDefaultTargetedSpellsGlow()
 end
 
 -------------------------------------------------
--- Consumables: Healing Potion & Healthstone
+-- Actions: Healing Potion & Healthstone ...
 -------------------------------------------------
-local consumables = {
-    
+local actions = {
+
 }
 
 
-function I.GetDefaultConsumables()
-    return consumables
+function I.GetDefaultActions()
+    return actions
 end
 
-function I.ConvertConsumables(db)
+function I.ConvertActions(db)
     local temp = {}
     for _, t in pairs(db) do
         temp[t[1]] = t[2]
@@ -466,7 +482,7 @@ do
     local temp = {}
     for _, k in pairs(buffsOrder) do
         local id = missingBuffs[k]
-        local name, _, icon = GetSpellInfo(id)
+        local name, icon = F:GetSpellInfo(id)
         if name then
             tinsert(temp, {
                 ["id"] = id,

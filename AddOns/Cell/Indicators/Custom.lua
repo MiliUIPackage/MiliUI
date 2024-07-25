@@ -6,6 +6,7 @@ local I = Cell.iFuncs
 -------------------------------------------------
 -- custom indicators
 -------------------------------------------------
+local currentLayout
 local enabledIndicators = {}
 local customIndicators = {
     ["buff"] = {},
@@ -27,9 +28,22 @@ local function UpdateTablesForIndicator(indicatorTable)
     if indicatorTable["type"] == "icons" then
         customIndicators[auraType][indicatorName] = {
             ["auras"] = F:ConvertSpellTable(indicatorTable["auras"], indicatorTable["trackByName"]), -- auras to match
-            ["isIcons"] = true,
             ["found"] = {},
             ["num"] = indicatorTable["num"],
+        }
+    elseif indicatorTable["type"] == "blocks" then
+        customIndicators[auraType][indicatorName] = {
+            ["auras"] = F:ConvertSpellTable_WithColor(indicatorTable["auras"], indicatorTable["trackByName"]), -- auras to match
+            ["hasColor"] = true,
+            ["found"] = {},
+            ["num"] = indicatorTable["num"],
+        }
+    elseif indicatorTable["type"] == "border" then
+        customIndicators[auraType][indicatorName] = {
+            ["auras"] = F:ConvertSpellTable_WithColor(indicatorTable["auras"], indicatorTable["trackByName"]), -- auras to match
+            ["hasColor"] = true,
+            ["top"] = {},
+            ["topOrder"] = {},
         }
     else
         customIndicators[auraType][indicatorName] = {
@@ -38,6 +52,8 @@ local function UpdateTablesForIndicator(indicatorTable)
             ["topOrder"] = {}, -- top aura order
         }
     end
+
+    customIndicators[auraType][indicatorName]["name"] = indicatorTable["name"]
 
     if auraType == "buff" then
         customIndicators[auraType][indicatorName]["castBy"] = indicatorTable["castBy"]
@@ -50,23 +66,29 @@ function I.CreateIndicator(parent, indicatorTable, noTableUpdate)
     local indicatorName = indicatorTable["indicatorName"]
     local indicator
     if indicatorTable["type"] == "icon" then
-        indicator = I.CreateAura_BarIcon(parent:GetName()..indicatorName, parent.widgets.overlayFrame)
+        indicator = I.CreateAura_BarIcon(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "text" then
-        indicator = I.CreateAura_Text(parent:GetName()..indicatorName, parent.widgets.overlayFrame)
+        indicator = I.CreateAura_Text(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "bar" then
-        indicator = I.CreateAura_Bar(parent:GetName()..indicatorName, parent.widgets.overlayFrame)
+        indicator = I.CreateAura_Bar(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "rect" then
-        indicator = I.CreateAura_Rect(parent:GetName()..indicatorName, parent.widgets.overlayFrame)
+        indicator = I.CreateAura_Rect(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "icons" then
-        indicator = I.CreateAura_Icons(parent:GetName()..indicatorName, parent.widgets.overlayFrame, 10)
+        indicator = I.CreateAura_Icons(parent:GetName()..indicatorName, parent.widgets.indicatorFrame, 10)
     elseif indicatorTable["type"] == "color" then
         indicator = I.CreateAura_Color(parent:GetName()..indicatorName, parent)
     elseif indicatorTable["type"] == "texture" then
-        indicator = I.CreateAura_Texture(parent:GetName()..indicatorName, parent.widgets.overlayFrame)
+        indicator = I.CreateAura_Texture(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "glow" then
-        indicator = I.CreateAura_Glow(parent:GetName()..indicatorName, parent)
+        indicator = I.CreateAura_Glow(parent:GetName()..indicatorName, parent.widgets.highLevelFrame)
     elseif indicatorTable["type"] == "overlay" then
         indicator = I.CreateAura_Overlay(parent:GetName()..indicatorName, parent)
+    elseif indicatorTable["type"] == "block" then
+        indicator = I.CreateAura_Block(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
+    elseif indicatorTable["type"] == "blocks" then
+        indicator = I.CreateAura_Blocks(parent:GetName()..indicatorName, parent.widgets.indicatorFrame, 10)
+    elseif indicatorTable["type"] == "border" then
+        indicator = I.CreateAura_Border(parent:GetName()..indicatorName, parent.widgets.highLevelFrame)
     end
     parent.indicators[indicatorName] = indicator
 
@@ -115,6 +137,9 @@ function I.ResetCustomIndicatorTables()
     for i = Cell.defaults.builtIns + 1, #Cell.vars.currentLayoutTable.indicators do
         UpdateTablesForIndicator(Cell.vars.currentLayoutTable.indicators[i])
     end
+
+    -- update currentLayout
+    currentLayout = Cell.vars.currentLayout
 end
 
 local function UpdateCustomIndicators(layout, indicatorName, setting, value, value2)
@@ -130,12 +155,20 @@ local function UpdateCustomIndicators(layout, indicatorName, setting, value, val
         end
     elseif setting == "auras" then
         customIndicators[value][indicatorName]["_auras"] = F:Copy(value2) --* save ids
-        customIndicators[value][indicatorName]["auras"] = F:ConvertSpellTable(value2, customIndicators[value][indicatorName]["trackByName"])
+        if customIndicators[value][indicatorName]["hasColor"] then
+            customIndicators[value][indicatorName]["auras"] = F:ConvertSpellTable_WithColor(value2, customIndicators[value][indicatorName]["trackByName"])
+        else
+            customIndicators[value][indicatorName]["auras"] = F:ConvertSpellTable(value2, customIndicators[value][indicatorName]["trackByName"])
+        end
     elseif setting == "checkbutton" then
         if customIndicators["buff"][indicatorName] then
             customIndicators["buff"][indicatorName][value] = value2
             if value == "trackByName" then
-                customIndicators["buff"][indicatorName]["auras"] = F:ConvertSpellTable(customIndicators["buff"][indicatorName]["_auras"], value2)
+                if customIndicators["buff"][indicatorName]["hasColor"] then
+                    customIndicators["buff"][indicatorName]["auras"] = F:ConvertSpellTable_WithColor(customIndicators["buff"][indicatorName]["_auras"], value2)
+                else
+                    customIndicators["buff"][indicatorName]["auras"] = F:ConvertSpellTable(customIndicators["buff"][indicatorName]["_auras"], value2)
+                end
             end
         elseif customIndicators["debuff"][indicatorName] then
             customIndicators["debuff"][indicatorName][value] = value2
@@ -159,7 +192,7 @@ function I.ResetCustomIndicators(unitButton, auraType)
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
         if enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
             unitButton.indicators[indicatorName]:Hide(true)
-            if indicatorTable["isIcons"] then
+            if indicatorTable["num"] then
                 if not indicatorTable["found"][unit] then
                     indicatorTable["found"][unit] = {}
                 else
@@ -181,17 +214,34 @@ end
 -- update
 -------------------------------------------------
 local function Update(indicator, indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
-    if indicatorTable["isIcons"] then
-        tinsert(indicatorTable["found"][unit], {indicatorTable["auras"][spell], start, duration, debuffType, icon, count, refreshing})
+    if indicatorTable["num"] then
+        if indicatorTable["hasColor"] then
+            tinsert(indicatorTable["found"][unit], {indicatorTable["auras"][spell][1], start, duration, debuffType, icon, count, refreshing, indicatorTable["auras"][spell][2]})
+        else
+            tinsert(indicatorTable["found"][unit], {indicatorTable["auras"][spell], start, duration, debuffType, icon, count, refreshing})
+        end
     else
-        if indicatorTable["auras"][spell] < indicatorTable["topOrder"][unit] then
-            indicatorTable["topOrder"][unit] = indicatorTable["auras"][spell]
-            indicatorTable["top"][unit]["start"] = start
-            indicatorTable["top"][unit]["duration"] = duration
-            indicatorTable["top"][unit]["debuffType"] = debuffType
-            indicatorTable["top"][unit]["texture"] = icon
-            indicatorTable["top"][unit]["count"] = count
-            indicatorTable["top"][unit]["refreshing"] = refreshing
+        if indicatorTable["hasColor"] then
+            if indicatorTable["auras"][spell][1] < indicatorTable["topOrder"][unit] then
+                indicatorTable["topOrder"][unit] = indicatorTable["auras"][spell][1]
+                indicatorTable["top"][unit]["start"] = start
+                indicatorTable["top"][unit]["duration"] = duration
+                indicatorTable["top"][unit]["debuffType"] = debuffType
+                indicatorTable["top"][unit]["texture"] = icon
+                indicatorTable["top"][unit]["count"] = count
+                indicatorTable["top"][unit]["refreshing"] = refreshing
+                indicatorTable["top"][unit]["color"] = indicatorTable["auras"][spell][2]
+            end
+        else
+            if indicatorTable["auras"][spell] < indicatorTable["topOrder"][unit] then
+                indicatorTable["topOrder"][unit] = indicatorTable["auras"][spell]
+                indicatorTable["top"][unit]["start"] = start
+                indicatorTable["top"][unit]["duration"] = duration
+                indicatorTable["top"][unit]["debuffType"] = debuffType
+                indicatorTable["top"][unit]["texture"] = icon
+                indicatorTable["top"][unit]["count"] = count
+                indicatorTable["top"][unit]["refreshing"] = refreshing
+            end
         end
     end
 end
@@ -201,7 +251,7 @@ function I.UpdateCustomIndicators(unitButton, auraInfo, refreshing)
 
     local auraType = auraInfo.isHelpful and "buff" or "debuff"
     local icon = auraInfo.icon
-    local debuffType = auraInfo.isHarmful and (auraInfo.dispelName or "")
+    local debuffType = auraInfo.isHarmful and (auraInfo.dispelName or "") or nil
     local count = auraInfo.applications
     local duration = auraInfo.duration
     local start = (auraInfo.expirationTime or 0) - auraInfo.duration
@@ -246,28 +296,33 @@ local function comparator(a, b)
 end
 
 function I.ShowCustomIndicators(unitButton, auraType)
+    if Cell.vars.currentLayout ~= currentLayout then return end
+
     local unit = unitButton.states.displayedUnit
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
-        if indicatorName and enabledIndicators[indicatorName] then
-            local indicator = unitButton.indicators[indicatorName]
-            if indicatorTable["isIcons"] then
+        local indicator = unitButton.indicators[indicatorName]
+        if indicator and enabledIndicators[indicatorName] then
+            if indicatorTable["num"] then
                 local t = indicatorTable["found"][unit]
                 sort(t, comparator)
                 for i = 1, indicatorTable["num"] do
                     if not t[i] then break end
-                    indicator[i]:SetCooldown(t[i][2], t[i][3], t[i][4], t[i][5], t[i][6], t[i][7])
+                    -- 1:order, 2:start, 3:duration, 4:debuffType, 5:icon, 6:count, 7:refreshing, 8:color
+                    indicator[i]:SetCooldown(t[i][2], t[i][3], t[i][4], t[i][5], t[i][6], t[i][7], t[i][8])
                     indicator:Show()
                 end
-                indicator:UpdateSize(#t)
+                indicator:UpdateSize()
             else
-                if indicatorTable["top"][unit]["start"] then
+                if indicatorTable["top"][unit] and indicatorTable["top"][unit]["start"] then
                     indicator:SetCooldown(
                         indicatorTable["top"][unit]["start"],
                         indicatorTable["top"][unit]["duration"],
                         indicatorTable["top"][unit]["debuffType"],
                         indicatorTable["top"][unit]["texture"],
                         indicatorTable["top"][unit]["count"],
-                        indicatorTable["top"][unit]["refreshing"])
+                        indicatorTable["top"][unit]["refreshing"],
+                        indicatorTable["top"][unit]["color"]
+                    )
                 end
             end
         end

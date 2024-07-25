@@ -2,8 +2,6 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 
-local GetSpellInfo = GetSpellInfo
-
 -------------------------------------------------
 -- click-castings
 -------------------------------------------------
@@ -30,7 +28,6 @@ local defaultSpells = {
             50769, -- Revive - 起死回生
             8936, -- Regrowth - 愈合
             "774C", -- Rejuvenation - 回春术
-            "18562C", -- Swiftmend - 迅捷治愈
             "102401C", -- Wild Charge - 野性冲锋
             "29166C", -- Innervate - 激活
             "48438C", -- Wild Growth - 野性成长
@@ -43,6 +40,7 @@ local defaultSpells = {
         -- 103 - Feral
         [103] = {
             "2782C", -- Remove Corruption - 清除腐蚀
+            "391888S", -- Adaptive Swarm - 激变蜂群
             "305497P", -- pvp - Thorns - 荆棘术
         },
         -- 104 - Guardian
@@ -58,8 +56,9 @@ local defaultSpells = {
             "50464S", -- Nourish - 滋养
             "102342S", -- Ironbark - 铁木树皮
             "203651S", -- Overgrowth - 过度生长
-            "391888S", -- Adaptive Swarm - 激变蜂群
             "392160S", -- Invigorate - 鼓舞
+            "18562S", -- Swiftmend - 迅捷治愈
+            "102693H", -- Grove Guardians - ???
             "305497P", -- pvp - Thorns - 荆棘术
         },
     },
@@ -74,7 +73,10 @@ local defaultSpells = {
             "374251C", -- Cauterizing Flame - 灼烧之焰
             "369459C", -- Source of Magic - 魔力之源
             "370665C", -- Rescue - 营救
+            "406732C", -- Spatial Paradox - 空间悖论
             "378441P", -- Time Stop - 时间停止
+            "374348C", -- Renewing Blaze - ???
+            "443328H", -- Engulf -- ??
         },
         -- 1467 - Devastation
         [1467] = {
@@ -95,7 +97,6 @@ local defaultSpells = {
             "365585C", -- Expunge - 净除
             "360827S", -- Blistering Scales - 炽火龙鳞
             "409311S", -- Prescience - 先知先觉
-            "406732S", -- Spatial Paradox - 空间悖论
             "408233S", -- Bestow Weyrnstone - 赋予军营之石
             "412710S", -- Timelessness - 超脱时间
         }
@@ -136,6 +137,7 @@ local defaultSpells = {
             116670, -- Vivify - 活血术
             "115175C", -- Soothing Mist - 抚慰之雾
             "115098C", -- Chi Wave - 真气波
+            "116841C", -- Tiger's Lust - ???
         },
         -- 268 - Brewmaster
         [268] = {
@@ -153,6 +155,7 @@ local defaultSpells = {
             "115151S", -- Renewing Mist - 复苏之雾
             "116849S", -- Life Cocoon - 作茧缚命
             "124081S", -- Zen Pulse - 禅意波
+            "399491S" -- Sheilun's Gift - ???
         },
     },
 
@@ -180,7 +183,9 @@ local defaultSpells = {
             "148039S", -- Barrier of Faith - 信仰屏障
             "156910S", -- Beacon of Faith - 信仰道标
             "388007S", -- Blessing of Summer - 仲夏祝福
-            -- "200025T", -- Beacon of Virtue -- 美德道标
+            "200025S", -- Beacon of Virtue -- 美德道标
+            "432459S", -- Holy Bulwark - ???
+            "156322H", -- Eternal Flame - ???
         },
         -- 66 - Protection
         [66] = {
@@ -192,6 +197,7 @@ local defaultSpells = {
         [70] = {
             "213644C", -- Cleanse Toxins - 清毒术
             "210256P", -- pvp - Blessing of Sanctuary - 庇护祝福
+            "156322H", -- Eternal Flame - ???
         },
     },
 
@@ -202,6 +208,7 @@ local defaultSpells = {
             1706, -- Levitate - 漂浮术
             17, -- Power Word: Shield - 真言术：盾
             2061, -- Flash Heal - 快速治疗
+            2096, -- Mind Vision - ???
             "139C", -- Renew - 恢复
             "33076C", -- Prayer of Mending - 愈合祷言
             "73325C", -- Leap of Faith - 信仰飞跃
@@ -218,6 +225,7 @@ local defaultSpells = {
             "33206S", -- Pain Suppression - 痛苦压制
             "47536S", -- Rapture - 全神贯注
             "314867S", -- Shadow Covenant - 暗影盟约
+            "421453S", -- Ultimate Penitence - ???
         },
         -- 257 - Holy
         [257] = {
@@ -253,6 +261,7 @@ local defaultSpells = {
             2008, -- Ancestral Spirit - 先祖之魂
             8004, -- Healing Surge - 治疗之涌
             546, -- Water Walking - 水上行走
+            462854, -- Skyfury - ???
             "1064C", -- Chain Heal - 治疗链
             "974C", -- Earth Shield - 大地之盾
             "51490C", -- Thunderstorm - 雷霆风暴
@@ -272,6 +281,7 @@ local defaultSpells = {
             "61295S", -- Riptide - 激流
             "77472S", -- Healing Wave - 治疗波
             "73685S", -- Unleash Life - 生命释放
+            "428332S", -- Primordial Wave - ???
         },
     },
 
@@ -301,7 +311,7 @@ local defaultSpells = {
 
 function F:GetClickCastingSpellList(class, spec)
     local spells = defaultSpells[class]["common"] and F:Copy(defaultSpells[class]["common"]) or {}
-    
+
     -- check spec
     if spec and defaultSpells[class][spec] then
         for _, v in pairs(defaultSpells[class][spec]) do
@@ -309,15 +319,34 @@ function F:GetClickCastingSpellList(class, spec)
         end
     end
 
+    local invalid
+
     -- fill data
     for i, v in pairs(spells) do
+        local spellId, spellType
+
         if type(v) == "number" then
-            local name, _, icon = GetSpellInfo(v)
-            spells[i] = {icon, name, nil, v}
+            spellId = v
         else -- string
-            local spellId, spellType = strmatch(v, "(%d+)(%a)")
-            local name, _, icon = GetSpellInfo(spellId)
-            spells[i] = {icon, name, L[spellType], spellId}
+            spellId, spellType = strmatch(v, "(%d+)(%a)")
+            spellId = tonumber(spellId)
+            spellType = L[spellType]
+        end
+
+        local name, icon = F:GetSpellInfo(spellId)
+        if name then
+            spells[i] = {icon, name, spellType, spellId}
+        else
+            F:Debug("|cffff0000[INVALID]|r click-casting spell:", spellId)
+            if not invalid then invalid = {} end
+            tinsert(invalid, i)
+        end
+    end
+
+    -- check invalid ids
+    if invalid then
+        for i = #invalid, 1, -1 do
+            tremove(spells, invalid[i])
         end
     end
 
@@ -362,12 +391,12 @@ local resurrections_for_dead = {
 do
     local temp = {}
     for _, id in pairs(resurrections_for_dead) do
-        temp[GetSpellInfo(id)] = true
+        temp[F:GetSpellInfo(id)] = true
     end
     resurrections_for_dead = temp
 end
 
-local spell_soulstone = GetSpellInfo(20707)
+local spell_soulstone = F:GetSpellInfo(20707)
 function F:IsSoulstone(spell)
     return spell == spell_soulstone
 end
@@ -408,7 +437,7 @@ local resurrection_click_castings = {
 -- do
 --     for class, t in pairs(resurrection_click_castings) do
 --         for _, clickCasting in pairs(t) do
---             clickCasting[3] = GetSpellInfo(clickCasting[3])
+--             clickCasting[3] = F:GetSpellInfo(clickCasting[3])
 --         end
 --     end
 -- end
@@ -450,7 +479,7 @@ local normalResurrection = {
 do
     for class, t in pairs(normalResurrection) do
         for condition, spell in pairs(t) do
-            t[condition] = GetSpellInfo(spell)
+            t[condition] = F:GetSpellInfo(spell)
         end
     end
 end
@@ -468,7 +497,7 @@ local combatResurrection = {
 
 do
     for class, spell in pairs(combatResurrection) do
-        combatResurrection[class] = GetSpellInfo(spell)
+        combatResurrection[class] = F:GetSpellInfo(spell)
     end
 end
 

@@ -13,6 +13,7 @@ select(2, ...).L = setmetatable({
     ["T"] = "Talent",
     ["C"] = "Class Talent",
     ["S"] = "Spec Talent",
+    ["H"] = "Hero Talent",
     ["P"] = "PvP Talent",
     ["notBound"] = "|cff777777".._G.NOT_BOUND,
 
@@ -71,7 +72,6 @@ select(2, ...).L = setmetatable({
     ["RESET_INCLUDES"] = "Only Click-Castings and Layout Auto Switch are included",
     ["RESET_YES_NO"] = "|cff22ff22Yes|r - Reset Cell\n|cffff2222No|r - I'll fix it myself",
 
-    ["clickcastingsHints"] = "Left-Click: edit\nRight-Click: delete",
     ["syncTips"] = "Set the master layout here\nAll indicators of slave layout are fully in-sync with the master\nIt's a two-way sync, but all indicators of slave layout will be lost when set a master",
     ["readyCheckTips"] = "\n|rReady Check\nLeft-Click: |cffffffffinitiate a ready check|r\nRight-Click: |cffffffffstart a role check|r",
     ["pullTimerTips"] = "\n|rPull Timer\nLeft-Click: |cffffffffstart timer|r\nRight-Click: |cffffffffcancel timer|r",
@@ -87,16 +87,119 @@ select(2, ...).L = setmetatable({
         <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
         <br/>
 
+        <h1>r236-release (Jul 24, 2024, 16:10 GMT+8)</h1>
+        <p>* Fixed appearance/layout tab.</p>
+        <p>* Updated locales.</p>
+        <p>* Updated world marks for cata.</p>
+        <br/>
+
+        <h1>r235-release (Jul 23, 2024, 20:00 GMT+8)</h1>
+        <p>+ Added "Show Raid" option (PR #176).</p>
+        <p>* Fixed full health color (PR #175).</p>
+        <p>* (TWW) Fixed BR timer, QuickAssist, Spell/Dispel Request.</p>
+        <p>* Fixed icon aspect ratio.</p>
+        <p>* Fixed raid debuff creation on classic.</p>
+        <p>* Fixed vehicle icon.</p>
+        <p>* Fixed stack text.</p>
+        <p>* Fixed size of indicator group.</p>
+        <p>* Updated gradient color options for health bar.</p>
+        <p>* Updated LibGetFrame related functions (Cell.GetUnitFrame -> Cell.GetUnitFramesForLGF).</p>
+        <p>+ Added an option to adjust StatusText alignment.</p>
+        <p>+ Added expansion data for ruRU.</p>
+        <p>+ New custom indicator type: Border.</p>
+        <br/>
+
+        <h1>r234-release (Jul 13, 2024, 17:37 GMT+8)</h1>
+        <p>+ Added "position" for Ready Check Icon indicator.</p>
+        <p>* "Override LibGetFrame" is now enabled by default.</p>
+        <p>* Increased the frame level of AoE Healing indicator.</p>
+        <p>* Update range check.</p>
+        <p>* Updated deDE, zhTW.</p>
+        <br/>
+
+        <h1>r233-release (Jul 11, 2024, 16:10 GMT+8)</h1>
+        <p>+ Added a dispel highlight option "current+".</p>
+        <p>* Fixed click-casting for evoker spell "Rescue".</p>
+        <p>* Fixed layout preview.</p>
+        <p>* Fixed creation of raid debuffs.</p>
+        <p>* Fixed "Invert Color" option.</p>
+        <p>* Fixed "Track by name" option.</p>
+        <p>* Fixed color options for Block indicators.</p>
+        <p>* Fixed a wrong PWS id.</p>
+        <p>* Updated range check.</p>
+        <p>* Updated frame level of Actions indicator.</p>
+        <p>* Updated buff tracker for CN WotLK.</p>
+        <p>* Updated locales.</p>
+        <br/>
+
+        <h1>r232-release (Jul 7, 2024, 02:40 GMT+8)</h1>
+        <p>* Fixed a critical issue that removes all custom indicators.</p>
+        <br/>
+
+        <h1>r231-release (Jul 6, 2024, 21:00 GMT+8)</h1>
+        <p>* Updated for TWW (#142,#144,#145).</p>
+        <p>* Updated for CN WotLK.</p>
+        <p>* Renamed "Consumables" to "Actions".</p>
+        <p>* Updated locales. Added deDE (by CheersItsJulian), ruRU (by SkywardenSylvanas).</p>
+        <p>+ Added "Filters" for Dispels indicator.</p>
+        <p>+ Added "Color By Duration/Stack" for "Block" indicators.</p>
+        <p>* Fixed BigDebuffs.</p>
+        <p>* Fixed Click-Castings.</p>
+        <br/>
+
+        <h1>r230-beta (Jul 2, 2024, 00:27 GMT+8)</h1>
+        <p>* Updated for TWW (#139,#120), not fully compatible though.</p>
+        <p>* Updated bleedList (#119).</p>
+        <p>+ Introduced new snippet var "CELL_COOLDOWN_STYLE", the old snippet "CooldownIcons_BlizzardStyle" is now OUTDATED.</p>
+        <p>+ Custom indicators can be reordered by dragging and dropping now.</p>
+        <p>+ New custom indicator type "Blocks" ("CELL_COOLDOWN_STYLE" can affect this type of indicators).</p>
+        <p>+ Added "Show Duration" for Crowd Controls indicator.</p>
+        <p>* Updated frame level of Dispels and "Color" indicators.</p>
+        <p>* Updated range check.</p>
+        <p>* Updated texture of Role Icon indicator.</p>
+        <p>* Fixed "Text" alignment.</p>
+        <p>* Fixed "Dispels" check for Cata.</p>
+        <br/>
+
+        <h1>r229-release (Jun 11, 2024, 20:11 GMT+8)</h1>
+        <p>* Bug fixes.</p>
+        <p>* Updated zhTW.</p>
+        <p>+ Added ptBR (by cathtail).</p>
+        <br/>
+
+        <h1>r228-release (Jun 10, 2024, 23:38 GMT+8)</h1>
+        <h2>Click-Castings</h2>
+        <p>* Fixed Click-Castings issues, some settings may be "Invalid", just re-set them.</p>
+        <h2>Indicators</h2>
+        <p>* Updated indicator preview, added "Show All", removed "Alpha" (#125).</p>
+        <p>* Updated BleedList (#119).</p>
+        <p>+ Added "Spacing" for Icons indicators.</p>
+        <p>+ New custom indicator: (color) Block.</p>
+        <p>+ Added duration text for Rect/Bar.</p>
+        <p>* Updated Targeted Spells, now it supports up to 3 icons and is more stable.</p>
+        <p>* Increased frame level of Dispel Highlight.</p>
+        <p>* Fixed dispel checker on Cata.</p>
+        <h2>Raid Debuffs</h2>
+        <p>+ Added "Use Elapsed Time" option for Raid Debuffs.</p>
+        <p>* Updated Cata Raid Debuffs.</p>
+        <h2>Layouts</h2>
+        <p>+ Added "Solo" for Layout Auto Switch.</p>
+        <p>* Updated "Sort by Role", now it supports separated group headers.</p>
+        <p>* Fixed frame level of Spotlight menu.</p>
+        <h2>Misc</h2>
+        <p>* Improved usability of Custom Nicknames.</p>
+        <br/>
+
         <h1>r227-release (May 21, 2024, 01:08 GMT+8)</h1>
         <p>* Fixed Quick Assist.</p>
-        <p>+ Fixed a layout switch issue.</p>
+        <p>* Fixed a layout switch issue.</p>
         <p>* Updated zhTW.</p>
         <br/>
 
         <h1>r226-release (May 20, 2024, 02:33 GMT+8)</h1>
         <p>* Added a separated "Shadow" option for fonts (#110).</p>
         <p>* Fixed Shield Bar alpha in preview (#111).</p>
-        <p>+ Implemented "Reverse Filling" for overshields.</p>
+        <p>+ Implemented "Reverse Fill" for overshields.</p>
         <p>+ Added "Frame Level" option for Role Icon indicator.</p>
         <p>+ Added "Show Duration" for Raid Debuffs indicator.</p>
         <p>* Updated color options for custom Text/Rect/Bar/Color/Overlay indicators (added ALPHAs).</p>
@@ -149,7 +252,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated Cell.GetUnitFrame.</p>
         <p>* Updated zhTW.</p>
         <br/>
-        
+
         <h1>r219-release (Jan 24, 2024, 10:56 GMT+8)</h1>
         <p>* Fixed range check for Quick Assist (now uses OnUpdate).</p>
         <p>+ Added custom Gradient Colors (Appearance).</p>
@@ -184,7 +287,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated the priority of dispel types: Magic &gt; Curse &gt; Disease &gt; Poison &gt; Bleed.</p>
         <p>* Updated zhTW.</p>
         <br/>
-       
+
         <h1>r213-release (Dec 26, 2023, 04:04 GMT+8)</h1>
         <p>+ (Retail) Updated Quick Assist, new Spec Filter and Filter Auto Switch.</p>
         <p>* (Retail) Updated Smart Resurrection, added support for mass resurrections.</p>
@@ -215,7 +318,7 @@ select(2, ...).L = setmetatable({
         <p>* Fixed issues with newly created custom Color indicators.</p>
         <p>* Updated zhTW.</p>
         <br/>
-        
+
         <h1>r208-release (Dec 14, 2023, 00:43 GMT+8)</h1>
         <p>* The order of click-casting items can now be adjusted by dragging them.</p>
         <p>* Fixed click-castings for Quick Assist.</p>
@@ -325,7 +428,7 @@ select(2, ...).L = setmetatable({
         <p>* Fixed expansion data for frFR.</p>
         <p>* Updated zhTW.</p>
         <br/>
-        
+
         <h1>r191-release (Aug 22, 2023, 09:50 GMT+8)</h1>
         <p>* Updated expansion data for frFR (Thanks to Zuvila).</p>
         <p>* Updated Targeted Spells, Quick Cast.</p>
@@ -356,14 +459,14 @@ select(2, ...).L = setmetatable({
         <p>+ Added "Premade Mode" to raid roster utility.</p>
         <p>* Fixed Dispel Request on Wrath.</p>
         <br/>
-        
+
         <h1>r186-release (Jul 24, 2023, 21:06 GMT+8)</h1>
         <p>* Fixed import &amp; export.</p>
         <p>* Updated Dispel/Spell Request.</p>
         <p>* Updated Health Text indicator.</p>
         <p>* Updated zhTW.</p>
         <br/>
-        
+
         <h1>r185-release (Jul 21, 2023, 20:57 GMT+8)</h1>
         <p>* Updated Options UI (wip).</p>
         <p>+ Added "Only show overshields" to Shield Bar indicator.</p>
@@ -428,7 +531,7 @@ select(2, ...).L = setmetatable({
         <p>* Fixed Power Bar Filters.</p>
         <p>* Fixed animation Type A of Consumables indicator (Wrath).</p>
         <br/>
-        
+
         <h1>r174-release (Jun 18, 2023, 17:25 GMT+8)</h1>
         <p>* Updated font options for some indicators. The stack font and duration font can be set separately. And if you use CooldownIcons_BlizzardStyle snippet, an update is required.</p>
         <p>* Health Text indicator: added options to show shield value.</p>
@@ -436,7 +539,7 @@ select(2, ...).L = setmetatable({
         <p>* Fixed Private Auras indicator.</p>
         <p>* Updated raid debuffs.</p>
         <br/>
-        
+
         <h1>r173-release (Jun 2, 2023, 18:36 GMT+8)</h1>
         <p>* Added a "Hide in combat" option for Leader Icon indicator.</p>
         <p>* Updated zhTW.</p>
@@ -736,11 +839,11 @@ select(2, ...).L = setmetatable({
         <h1>r122-release (Oct 14, 2022, 04:25 GMT+8)</h1>
         <p>* Fixed Click-Castings.</p>
         <br/>
-        
+
         <h1>r121-release (Oct 13, 2022, 14:40 GMT+8)</h1>
         <p>* Bug fixes.</p>
         <br/>
-        
+
         <h1>r120-release (Oct 12, 2022, 20:45 GMT+8)</h1>
         <p>* Fixed Click-Castings.</p>
         <p>* Updated locales.</p>
@@ -792,7 +895,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated debuffs.</p>
         <p>* Fixed health bar color.</p>
         <br/>
-       
+
         <h1>r112-release (Sep 11, 2022, 19:00 GMT+8)</h1>
         <p>* Add custom auras support to Defensives and Externals.</p>
         <p>* Add Mirror Image to Defensives.</p>
@@ -820,7 +923,7 @@ select(2, ...).L = setmetatable({
         <h2>Wrath Classic</h2>
         <p>* Cell should work on Wrath Classic now (not all Retail features are available).</p>
         <br/>
-        
+
         <h1>r108-release (Aug 17, 2022, 18:20 GMT+8)</h1>
         <p>* Updated M+ debuffs.</p>
         <p>* Fixed several bugs.</p>
@@ -879,7 +982,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated zhTW.</p>
         <p>* Bug fixes.</p>
         <br/>
-        
+
         <h1>r97-release (Apr 19, 2022, 20:10 GMT+8)</h1>
         <p>+ Added nicknames (beta).</p>
         <p>* Updated locales.</p>
@@ -1036,7 +1139,7 @@ select(2, ...).L = setmetatable({
         <h1>r73-release (Dec 8, 2021, 22:22 GMT+8)</h1>
         <p>* Defect fixes.</p>
         <br/>
-        
+
         <h1>r72-release (Dec 7, 2021, 15:20 GMT+8)</h1>
         <p>* Fixed Debuffs indicator delayed refreshing issue.</p>
         <p>* Updated zhTW.</p>
@@ -1110,7 +1213,7 @@ select(2, ...).L = setmetatable({
         <p>* Updated anchors of indicators.</p>
         <p>* Updated Death Report, Buff Tracker and Targeted Spells.</p>
         <br/>
-        
+
         <h1>r59-release (Aug 7, 2021, 18:23 GMT+8)</h1>
         <p>* Implemented Copy Indicators.</p>
         <p>* Updated Layout Auto Switch.</p>
@@ -1279,7 +1382,7 @@ select(2, ...).L = setmetatable({
 
         <h1>r26-release (Nov 23, 2020, 21:25 GMT+8)</h1>
         <h2>Click-Castings</h2>
-        <p>+ Keyboard/multi-button mouse support for Click-Castings comes.</p> 
+        <p>+ Keyboard/multi-button mouse support for Click-Castings comes.</p>
         <p>! Due to code changes, you might have to reconfigure Key Bindings.</p>
         <h2>Indicators</h2>
         <p>* Aura List has been updated. Now all custom indicators will check spell IDs instead of NAMEs.</p>

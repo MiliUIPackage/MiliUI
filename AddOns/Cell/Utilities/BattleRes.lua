@@ -135,6 +135,22 @@ end)
 ---------------------------------
 -- Update
 ---------------------------------
+local GetSpellCharges = C_Spell.GetSpellCharges or GetSpellCharges
+local GetBRInfo
+if C_Spell.GetSpellCharges then
+    GetBRInfo = function()
+        local info = GetSpellCharges(20484)
+        if info then
+            return info.currentCharges, info.cooldownStartTime, info.cooldownDuration
+        end
+    end
+else
+    GetBRInfo = function()
+        local charges, _, started, duration = GetSpellCharges(20484)
+        return charges, started, duration
+    end
+end
+
 local total = 0
 -- local isMovable = false
 
@@ -144,17 +160,17 @@ battleResFrame:SetScript("OnUpdate", function(self, elapsed)
     total = total + elapsed
     if total >= 0.25 then
         total = 0
-        
+
         -- Upon engaging a boss, all combat resurrection spells will have their cooldowns reset and begin with 1 charge.
         -- Charges will accumulate at a rate of 1 per (90/RaidSize) minutes.
-        local charges, _, started, duration = GetSpellCharges(20484)
+        local charges, started, duration = GetBRInfo()
         if not charges then
             -- hide out of encounter
             battleResFrame:Hide()
             battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
             return
         end
-        
+
         local color = (charges > 0) and "|cffffffff" or "|cffff0000"
         local remaining = duration - (GetTime() - started)
         local m = floor(remaining / 60)
@@ -162,14 +178,14 @@ battleResFrame:SetScript("OnUpdate", function(self, elapsed)
 
         stack:SetText(("%s%d|r  "):format(color, charges))
         rTime:SetText(("%d:%02d"):format(m, s))
-        
+
         bar:SetMinMaxValues(0, duration)
         bar:SetValue(duration - remaining)
     end
 end)
 
 function battleResFrame:SPELL_UPDATE_CHARGES()
-    local charges = GetSpellCharges(20484)
+    local charges = GetBRInfo()
     if charges then
         battleResFrame:UnregisterEvent("SPELL_UPDATE_CHARGES")
         -- isMovable = false
@@ -180,7 +196,7 @@ end
 function battleResFrame:PLAYER_ENTERING_WORLD()
     battleResFrame:UnregisterEvent("SPELL_UPDATE_CHARGES")
     battleResFrame:Hide()
-    
+
     local _, instanceType, difficulty = GetInstanceInfo()
 
     if instanceType == "raid" then -- raid
@@ -189,7 +205,7 @@ function battleResFrame:PLAYER_ENTERING_WORLD()
         else
             battleResFrame:RegisterEvent("SPELL_UPDATE_CHARGES")
         end
-    
+
     elseif difficulty == 8 then -- challenge mode
         battleResFrame:Show()
     end
@@ -226,15 +242,15 @@ local function UpdatePosition()
     if anchor == "BOTTOMLEFT" then
         point, relativePoint = "TOPLEFT", "BOTTOMLEFT"
         onShow, onHide = -4, 10
-        
+
     elseif anchor == "BOTTOMRIGHT" then
         point, relativePoint = "TOPRIGHT", "BOTTOMRIGHT"
         onShow, onHide = -4, 10
-        
+
     elseif anchor == "TOPLEFT" then
         point, relativePoint = "BOTTOMLEFT", "TOPLEFT"
         onShow, onHide = 4, -10
-        
+
     elseif anchor == "TOPRIGHT" then
         point, relativePoint = "BOTTOMRIGHT", "TOPRIGHT"
         onShow, onHide = 4, -10

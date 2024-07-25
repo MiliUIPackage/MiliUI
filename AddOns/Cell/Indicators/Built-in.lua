@@ -10,7 +10,7 @@ local LibTranslit = LibStub("LibTranslit-1.0")
 -------------------------------------------------
 -- shared functions
 -------------------------------------------------
-local function Cooldowns_SetSize(self, width, height)
+function I.Cooldowns_SetSize(self, width, height)
     self.width = width
     self.height = height
 
@@ -21,9 +21,9 @@ local function Cooldowns_SetSize(self, width, height)
     self:UpdateSize()
 end
 
-local function Cooldowns_UpdateSize(self, iconsShown)
+function I.Cooldowns_UpdateSize(self, iconsShown)
     if not (self.width and self.height and self.orientation) then return end -- not init
-    
+
     if iconsShown then -- call from I.UnitButton_UpdateBuffs or preview
         for i = iconsShown + 1, #self do
             self[i]:Hide()
@@ -48,9 +48,9 @@ local function Cooldowns_UpdateSize(self, iconsShown)
     end
 end
 
-local function Cooldowns_UpdateSize_WithSpacing(self, iconsShown)
+function I.Cooldowns_UpdateSize_WithSpacing(self, iconsShown)
     if not (self.width and self.height and self.orientation) then return end -- not init
-    
+
     if iconsShown then -- call from I.UnitButton_UpdateBuffs or preview
         for i = iconsShown + 1, #self do
             self[i]:Hide()
@@ -75,40 +75,40 @@ local function Cooldowns_UpdateSize_WithSpacing(self, iconsShown)
     end
 end
 
-local function Cooldowns_SetBorder(self, border)
+function I.Cooldowns_SetBorder(self, border)
     for i = 1, #self do
         self[i]:SetBorder(border)
     end
 end
 
-local function Cooldowns_SetFont(self, ...)
+function I.Cooldowns_SetFont(self, ...)
     for i = 1, #self do
         self[i]:SetFont(...)
     end
 end
 
-local function Cooldowns_ShowDuration(self, show)
+function I.Cooldowns_ShowDuration(self, show)
     for i = 1, #self do
         self[i]:ShowDuration(show)
     end
 end
 
-local function Cooldowns_ShowAnimation(self, show)
+function I.Cooldowns_ShowAnimation(self, show)
     for i = 1, #self do
         self[i]:ShowAnimation(show)
     end
 end
 
-local function Cooldowns_UpdatePixelPerfect(self)
+function I.Cooldowns_UpdatePixelPerfect(self)
     P:Repoint(self)
     for i = 1, #self do
         self[i]:UpdatePixelPerfect()
     end
 end
 
-local function Cooldowns_SetOrientation(self, orientation)
+function I.Cooldowns_SetOrientation(self, orientation)
     local point1, point2, x, y
-    
+
     if orientation == "left-to-right" then
         point1 = "TOPLEFT"
         point2 = "TOPRIGHT"
@@ -134,7 +134,7 @@ local function Cooldowns_SetOrientation(self, orientation)
         x = 0
         y = -1
     end
-    
+
     for i = 1, #self do
         P:ClearPoints(self[i])
         if i == 1 then
@@ -147,7 +147,7 @@ local function Cooldowns_SetOrientation(self, orientation)
     self:UpdateSize()
 end
 
-local function Cooldowns_SetOrientation_WithSpacing(self, orientation)
+function I.Cooldowns_SetOrientation_WithSpacing(self, orientation)
     local point1, point2, x, y
 
     if orientation == "left-to-right" then
@@ -175,7 +175,7 @@ local function Cooldowns_SetOrientation_WithSpacing(self, orientation)
         x = 0
         y = 1
     end
-    
+
     for i = 1, #self do
         P:ClearPoints(self[i])
         if i == 1 then
@@ -192,19 +192,19 @@ end
 -- CreateDefensiveCooldowns
 -------------------------------------------------
 function I.CreateDefensiveCooldowns(parent)
-    local defensiveCooldowns = CreateFrame("Frame", parent:GetName().."DefensiveCooldownParent", parent.widgets.overlayFrame)
+    local defensiveCooldowns = CreateFrame("Frame", parent:GetName().."DefensiveCooldownParent", parent.widgets.indicatorFrame)
     parent.indicators.defensiveCooldowns = defensiveCooldowns
     -- defensiveCooldowns:SetSize(20, 10)
     defensiveCooldowns:Hide()
 
     defensiveCooldowns._SetSize = defensiveCooldowns.SetSize
-    defensiveCooldowns.SetSize = Cooldowns_SetSize
-    defensiveCooldowns.UpdateSize = Cooldowns_UpdateSize
-    defensiveCooldowns.SetFont = Cooldowns_SetFont
-    defensiveCooldowns.SetOrientation = Cooldowns_SetOrientation
-    defensiveCooldowns.ShowDuration = Cooldowns_ShowDuration
-    defensiveCooldowns.ShowAnimation = Cooldowns_ShowAnimation
-    defensiveCooldowns.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    defensiveCooldowns.SetSize = I.Cooldowns_SetSize
+    defensiveCooldowns.UpdateSize = I.Cooldowns_UpdateSize
+    defensiveCooldowns.SetFont = I.Cooldowns_SetFont
+    defensiveCooldowns.SetOrientation = I.Cooldowns_SetOrientation
+    defensiveCooldowns.ShowDuration = I.Cooldowns_ShowDuration
+    defensiveCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    defensiveCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
         local name = parent:GetName().."DefensiveCooldown"..i
@@ -217,18 +217,18 @@ end
 -- CreateExternalCooldowns
 -------------------------------------------------
 function I.CreateExternalCooldowns(parent)
-    local externalCooldowns = CreateFrame("Frame", parent:GetName().."ExternalCooldownParent", parent.widgets.overlayFrame)
+    local externalCooldowns = CreateFrame("Frame", parent:GetName().."ExternalCooldownParent", parent.widgets.indicatorFrame)
     parent.indicators.externalCooldowns = externalCooldowns
     externalCooldowns:Hide()
 
     externalCooldowns._SetSize = externalCooldowns.SetSize
-    externalCooldowns.SetSize = Cooldowns_SetSize
-    externalCooldowns.UpdateSize = Cooldowns_UpdateSize
-    externalCooldowns.SetFont = Cooldowns_SetFont
-    externalCooldowns.SetOrientation = Cooldowns_SetOrientation
-    externalCooldowns.ShowDuration = Cooldowns_ShowDuration
-    externalCooldowns.ShowAnimation = Cooldowns_ShowAnimation
-    externalCooldowns.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    externalCooldowns.SetSize = I.Cooldowns_SetSize
+    externalCooldowns.UpdateSize = I.Cooldowns_UpdateSize
+    externalCooldowns.SetFont = I.Cooldowns_SetFont
+    externalCooldowns.SetOrientation = I.Cooldowns_SetOrientation
+    externalCooldowns.ShowDuration = I.Cooldowns_ShowDuration
+    externalCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    externalCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
         local name = parent:GetName().."ExternalCooldown"..i
@@ -241,18 +241,18 @@ end
 -- CreateAllCooldowns
 -------------------------------------------------
 function I.CreateAllCooldowns(parent)
-    local allCooldowns = CreateFrame("Frame", parent:GetName().."AllCooldownParent", parent.widgets.overlayFrame)
+    local allCooldowns = CreateFrame("Frame", parent:GetName().."AllCooldownParent", parent.widgets.indicatorFrame)
     parent.indicators.allCooldowns = allCooldowns
     allCooldowns:Hide()
 
     allCooldowns._SetSize = allCooldowns.SetSize
-    allCooldowns.SetSize = Cooldowns_SetSize
-    allCooldowns.UpdateSize = Cooldowns_UpdateSize
-    allCooldowns.SetFont = Cooldowns_SetFont
-    allCooldowns.SetOrientation = Cooldowns_SetOrientation
-    allCooldowns.ShowDuration = Cooldowns_ShowDuration
-    allCooldowns.ShowAnimation = Cooldowns_ShowAnimation
-    allCooldowns.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    allCooldowns.SetSize = I.Cooldowns_SetSize
+    allCooldowns.UpdateSize = I.Cooldowns_UpdateSize
+    allCooldowns.SetFont = I.Cooldowns_SetFont
+    allCooldowns.SetOrientation = I.Cooldowns_SetOrientation
+    allCooldowns.ShowDuration = I.Cooldowns_ShowDuration
+    allCooldowns.ShowAnimation = I.Cooldowns_ShowAnimation
+    allCooldowns.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
         local name = parent:GetName().."ExternalCooldown"..i
@@ -265,11 +265,11 @@ end
 -- CreateTankActiveMitigation
 -------------------------------------------------
 function I.CreateTankActiveMitigation(parent)
-    local bar = Cell:CreateStatusBar(parent:GetName().."TanckActiveMitigation", parent.widgets.overlayFrame, 20, 6, 100)
+    local bar = Cell:CreateStatusBar(parent:GetName().."TanckActiveMitigation", parent.widgets.indicatorFrame, 20, 6, 100)
     parent.indicators.tankActiveMitigation = bar
     bar:Hide()
-    
-    bar:SetStatusBarTexture("Interface\\Buttons\\WHITE8x8")
+
+    bar:SetStatusBarTexture(Cell.vars.whiteTexture)
     bar:GetStatusBarTexture():SetAlpha(0)
     bar:SetReverseFill(true)
 
@@ -399,7 +399,7 @@ local function Debuffs_SetOrientation(self, orientation)
         point1 = "BOTTOM"..h
         point2 = "TOP"..h
     end
-    
+
     for i = 1, 10 do
         P:ClearPoints(self[i])
         if i == 1 then
@@ -420,14 +420,21 @@ local function Debuffs_ShowTooltip(debuffs, show)
             debuffs[i]:SetScript("OnEnter", function(self)
                 F:ShowTooltips(debuffs.parent, "spell", debuffs.parent.states.displayedUnit, self.index, "HARMFUL")
             end)
-            
+
             debuffs[i]:SetScript("OnLeave", function()
                 GameTooltip:Hide()
             end)
+
+            -- https://warcraft.wiki.gg/wiki/API_ScriptRegion_EnableMouse
+            debuffs[i]:SetMouseClickEnabled(false)
         else
             debuffs[i]:SetScript("OnEnter", nil)
             debuffs[i]:SetScript("OnLeave", nil)
-            if not debuffs.enableBlacklistShortcut then debuffs[i]:EnableMouse(false) end
+            if debuffs.enableBlacklistShortcut then
+                debuffs[i]:SetMouseMotionEnabled(false)
+            else
+                debuffs[i]:EnableMouse(false)
+            end
         end
     end
 end
@@ -441,7 +448,7 @@ local function Debuffs_EnableBlacklistShortcut(debuffs, enabled)
                 if button == "RightButton" and isInside and IsLeftAltKeyDown() and IsLeftControlKeyDown()
                     and self.spellId and not F:TContains(CellDB["debuffBlacklist"], self.spellId) then
                     -- print msg
-                    local name, _, icon = GetSpellInfo(self.spellId)
+                    local name, icon = F:GetSpellInfo(self.spellId)
                     if name and icon then
                         F:Print(L["Added |T%d:0|t|cFFFF3030%s(%d)|r into debuff blacklist."]:format(icon, name, self.spellId))
                     end
@@ -455,13 +462,17 @@ local function Debuffs_EnableBlacklistShortcut(debuffs, enabled)
             end)
         else
             debuffs[i]:SetScript("OnMouseUp", nil)
-            if not debuffs.showTooltip then debuffs[i]:EnableMouse(false) end
+            if debuffs.showTooltip then
+                debuffs[i]:SetMouseClickEnabled(false)
+            else
+                debuffs[i]:EnableMouse(false)
+            end
         end
     end
 end
 
 function I.CreateDebuffs(parent)
-    local debuffs = CreateFrame("Frame", parent:GetName().."DebuffParent", parent.widgets.overlayFrame)
+    local debuffs = CreateFrame("Frame", parent:GetName().."DebuffParent", parent.widgets.indicatorFrame)
     parent.indicators.debuffs = debuffs
     debuffs:Hide()
     debuffs.parent = parent
@@ -477,13 +488,13 @@ function I.CreateDebuffs(parent)
     debuffs.SetPoint = Debuffs_SetPoint
     debuffs.SetOrientation = Debuffs_SetOrientation
 
-    debuffs.ShowDuration = Cooldowns_ShowDuration
-    debuffs.ShowAnimation = Cooldowns_ShowAnimation
-    debuffs.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    debuffs.ShowDuration = I.Cooldowns_ShowDuration
+    debuffs.ShowAnimation = I.Cooldowns_ShowAnimation
+    debuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     debuffs.ShowTooltip = Debuffs_ShowTooltip
     debuffs.EnableBlacklistShortcut = Debuffs_EnableBlacklistShortcut
-    
+
     for i = 1, 10 do
         local name = parent:GetName().."Debuff"..i
         local frame = I.CreateAura_BarIcon(name, debuffs)
@@ -514,7 +525,7 @@ local function Dispels_SetSize(self, width, height)
     end
 
     if self._orientation then
-        self:SetOrientation(self._orientation)            
+        self:SetOrientation(self._orientation)
     else
         self:UpdateSize()
     end
@@ -522,7 +533,7 @@ end
 
 local function Dispels_UpdateSize(self, iconsShown)
     if not (self.orientation and self.width and self.height) then return end
-        
+
     local width, height = self.width, self.height
     if iconsShown then -- SetDispels
         iconsShown = iconsShown - 1
@@ -567,7 +578,7 @@ local function Dispels_SetDispels(self, dispelTypes)
                 local r, g, b = I.GetDebuffTypeColor(dispelType)
                 if self.highlightType == "entire" then
                     self.highlight:SetVertexColor(r, g, b, 0.5)
-                elseif self.highlightType == "current" then
+                elseif self.highlightType == "current" or self.highlightType == "current+" then
                     self.highlight:SetVertexColor(r, g, b, 1)
                 elseif self.highlightType == "gradient" or self.highlightType == "gradient-half" then
                     self.highlight:SetGradient("VERTICAL", CreateColor(r, g, b, 1), CreateColor(r, g, b, 0))
@@ -619,7 +630,7 @@ local function Dispels_SetOrientation(self, orientation)
         y = floor(self.height / 2)
         self.orientation = "vertical"
     end
-    
+
     for i = 1, 5 do
         self[i]:ClearAllPoints()
         if i == 1 then
@@ -632,50 +643,67 @@ local function Dispels_SetOrientation(self, orientation)
     self:UpdateSize()
 end
 
+local function Dispels_UpdateHighlight(self, highlightType)
+    self.highlightType = highlightType
+    self.highlight:SetBlendMode("BLEND")
+
+    if highlightType == "none" then
+        self.highlight:Hide()
+    elseif highlightType == "gradient" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "gradient-half" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetPoint("BOTTOMLEFT", self.parent.widgets.healthBar)
+        self.highlight:SetPoint("TOPRIGHT", self.parent.widgets.healthBar, "RIGHT")
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "entire" then
+        -- self.highlight:SetParent(self.parent.widgets.indicatorFrame)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar)
+        self.highlight:SetTexture(Cell.vars.whiteTexture)
+        self.highlight:SetDrawLayer("ARTWORK", 0)
+    elseif highlightType == "current" then
+        -- self.highlight:SetParent(self.parent.widgets.healthBar)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
+        self.highlight:SetTexture(Cell.vars.texture)
+        self.highlight:SetDrawLayer("ARTWORK", -7)
+    elseif highlightType == "current+" then
+        -- self.highlight:SetParent(self.parent.widgets.healthBar)
+        self.highlight:ClearAllPoints()
+        self.highlight:SetAllPoints(self.parent.widgets.healthBar:GetStatusBarTexture())
+        self.highlight:SetTexture(Cell.vars.texture)
+        self.highlight:SetDrawLayer("ARTWORK", -7)
+        self.highlight:SetBlendMode("ADD")
+    end
+end
+
 function I.CreateDispels(parent)
-    local dispels = CreateFrame("Frame", parent:GetName().."DispelParent", parent.widgets.overlayFrame)
+    local dispels = CreateFrame("Frame", parent:GetName().."DispelParent", parent.widgets.indicatorFrame)
     parent.indicators.dispels = dispels
+    dispels.parent = parent
     dispels:Hide()
 
     dispels:SetScript("OnHide", function()
         dispels.highlight:Hide()
     end)
 
-    dispels.highlight = parent.widgets.healthBar:CreateTexture(parent:GetName().."DispelHighlight", "OVERLAY")
+    dispels.highlight = parent.widgets.midLevelFrame:CreateTexture(parent:GetName().."DispelHighlight")
     dispels.highlight:Hide()
 
     dispels._SetSize = dispels.SetSize
     dispels.SetSize = Dispels_SetSize
     dispels.UpdateSize = Dispels_UpdateSize
     dispels.SetDispels = Dispels_SetDispels
-    -- dispels.UpdateHighlight = Dispels_UpdateHighlight
+    dispels.UpdateHighlight = Dispels_UpdateHighlight
     dispels.ShowIcons = Dispels_ShowIcons
     dispels.SetOrientation = Dispels_SetOrientation
-
-    function dispels:UpdateHighlight(highlightType)
-        dispels.highlightType = highlightType
-
-        if highlightType == "none" then
-            dispels.highlight:Hide()
-        elseif highlightType == "gradient" then
-            dispels.highlight:ClearAllPoints()
-            dispels.highlight:SetAllPoints(parent.widgets.healthBar)
-            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
-        elseif highlightType == "gradient-half" then
-            dispels.highlight:ClearAllPoints()
-            dispels.highlight:SetPoint("BOTTOMLEFT", parent.widgets.healthBar)
-            dispels.highlight:SetPoint("TOPRIGHT", parent.widgets.healthBar, "RIGHT")
-            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
-        elseif highlightType == "entire" then
-            dispels.highlight:ClearAllPoints()
-            dispels.highlight:SetAllPoints(parent.widgets.healthBar)
-            dispels.highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
-        elseif highlightType == "current" then
-            dispels.highlight:ClearAllPoints()
-            dispels.highlight:SetAllPoints(parent.widgets.healthBar:GetStatusBarTexture())
-            dispels.highlight:SetTexture(Cell.vars.texture)
-        end
-    end
 
     for i = 1, 5 do
         local icon = dispels:CreateTexture(parent:GetName().."Dispel"..i, "ARTWORK")
@@ -703,7 +731,7 @@ local function UpdateDebuffsForCurrentZone(instanceName)
     wipe(currentAreaDebuffs)
     local iName = F:GetInstanceName()
     if iName == "" then return end
-    
+
     if iName == instanceName or instanceName == nil then
         currentAreaDebuffs = F:GetDebuffList(iName)
         F:Debug("|cffff77AARaidDebuffsChanged:|r", iName)
@@ -763,6 +791,13 @@ function I.GetDebuffGlow(spellName, spellId, count)
     else
         return "None", nil
     end
+end
+
+function I.IsDebuffUseElapsedTime(spellName, spellId)
+    local t = currentAreaDebuffs[spellId] or currentAreaDebuffs[spellName]
+    if not t then return end
+
+    return t["useElapsedTime"]
 end
 
 local function RaidDebuffs_ShowGlow(self, glowType, glowOptions, noHiding)
@@ -839,7 +874,7 @@ local function RaidDebuffs_ShowTooltip(raidDebuffs, show)
 end
 
 function I.CreateRaidDebuffs(parent)
-    local raidDebuffs = CreateFrame("Frame", parent:GetName().."RaidDebuffParent", parent.widgets.overlayFrame)
+    local raidDebuffs = CreateFrame("Frame", parent:GetName().."RaidDebuffParent", parent.widgets.indicatorFrame)
     parent.indicators.raidDebuffs = raidDebuffs
     raidDebuffs:Hide()
     raidDebuffs.parent = parent
@@ -851,23 +886,23 @@ function I.CreateRaidDebuffs(parent)
     end)
 
     raidDebuffs._SetSize = raidDebuffs.SetSize
-    raidDebuffs.SetSize = Cooldowns_SetSize
-    raidDebuffs.SetBorder = Cooldowns_SetBorder
-    raidDebuffs.UpdateSize = Cooldowns_UpdateSize_WithSpacing
-    raidDebuffs.ShowDuration = Cooldowns_ShowDuration
-    raidDebuffs.SetOrientation = Cooldowns_SetOrientation_WithSpacing
-    raidDebuffs.SetFont = Cooldowns_SetFont
+    raidDebuffs.SetSize = I.Cooldowns_SetSize
+    raidDebuffs.SetBorder = I.Cooldowns_SetBorder
+    raidDebuffs.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
+    raidDebuffs.ShowDuration = I.Cooldowns_ShowDuration
+    raidDebuffs.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
+    raidDebuffs.SetFont = I.Cooldowns_SetFont
     raidDebuffs.ShowGlow = RaidDebuffs_ShowGlow
     raidDebuffs.HideGlow = RaidDebuffs_HideGlow
-    raidDebuffs.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    raidDebuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     raidDebuffs.ShowTooltip = RaidDebuffs_ShowTooltip
 
     for i = 1, 3 do
         local frame = I.CreateAura_BorderIcon(parent:GetName().."RaidDebuff"..i, raidDebuffs, 2)
         tinsert(raidDebuffs, frame)
-        frame:SetScript("OnShow", raidDebuffs.UpdateSize)
-        frame:SetScript("OnHide", raidDebuffs.UpdateSize)
+        -- frame:SetScript("OnShow", raidDebuffs.UpdateSize)
+        -- frame:SetScript("OnHide", raidDebuffs.UpdateSize)
     end
 end
 
@@ -918,7 +953,7 @@ local function PrivateAuras_UpdatePrivateAuraAnchor(self, unit)
 end
 
 function I.CreatePrivateAuras(parent)
-    local privateAuras = CreateFrame("Frame", parent:GetName().."PrivateAuraParent", parent.widgets.overlayFrame)
+    local privateAuras = CreateFrame("Frame", parent:GetName().."PrivateAuraParent", parent.widgets.indicatorFrame)
     parent.indicators.privateAuras = privateAuras
     privateAuras:Hide()
 
@@ -941,10 +976,10 @@ end
 -- player raid icon
 -------------------------------------------------
 function I.CreatePlayerRaidIcon(parent)
-    -- local playerRaidIcon = parent.widgets.overlayFrame:CreateTexture(parent:GetName().."PlayerRaidIcon", "ARTWORK", nil, -7)
+    -- local playerRaidIcon = parent.widgets.indicatorFrame:CreateTexture(parent:GetName().."PlayerRaidIcon", "ARTWORK", nil, -7)
     -- parent.indicators.playerRaidIcon = playerRaidIcon
     -- playerRaidIcon:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
-    local playerRaidIcon = CreateFrame("Frame", parent:GetName().."PlayerRaidIcon", parent.widgets.overlayFrame)
+    local playerRaidIcon = CreateFrame("Frame", parent:GetName().."PlayerRaidIcon", parent.widgets.indicatorFrame)
     parent.indicators.playerRaidIcon = playerRaidIcon
     playerRaidIcon.tex = playerRaidIcon:CreateTexture(nil, "ARTWORK")
     playerRaidIcon.tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
@@ -956,7 +991,7 @@ end
 -- target raid icon
 -------------------------------------------------
 function I.CreateTargetRaidIcon(parent)
-    local targetRaidIcon = CreateFrame("Frame", parent:GetName().."TargetRaidIcon", parent.widgets.overlayFrame)
+    local targetRaidIcon = CreateFrame("Frame", parent:GetName().."TargetRaidIcon", parent.widgets.indicatorFrame)
     parent.indicators.targetRaidIcon = targetRaidIcon
     targetRaidIcon.tex = targetRaidIcon:CreateTexture(nil, "ARTWORK")
     targetRaidIcon.tex:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcons")
@@ -974,12 +1009,12 @@ local font_status = CreateFont("CELL_FONT_STATUS")
 font_status:SetFont(GameFontNormal:GetFont(), 11, "")
 
 function I.CreateNameText(parent)
-    local nameText = CreateFrame("Frame", parent:GetName().."NameText", parent.widgets.overlayFrame)
+    local nameText = CreateFrame("Frame", parent:GetName().."NameText", parent.widgets.indicatorFrame)
     parent.indicators.nameText = nameText
     nameText:Hide()
 
     nameText.name = nameText:CreateFontString(parent:GetName().."NameText_Name", "OVERLAY", "CELL_FONT_NAME")
-    
+
     nameText.vehicle = nameText:CreateFontString(parent:GetName().."NameText_Vehicle", "OVERLAY", "CELL_FONT_STATUS")
     nameText.vehicle:SetTextColor(0.8, 0.8, 0.8, 1)
     nameText.vehicle:Hide()
@@ -995,7 +1030,7 @@ function I.CreateNameText(parent)
 
     function nameText:SetFont(font, size, outline, shadow)
         font = F:GetFont(font)
-        
+
         local flags
         if outline == "None" then
             flags = ""
@@ -1004,10 +1039,10 @@ function I.CreateNameText(parent)
         else
             flags = "OUTLINE,MONOCHROME"
         end
-        
+
         nameText.name:SetFont(font, size, flags)
         nameText.vehicle:SetFont(font, size-2, flags)
-        
+
         if shadow then
             nameText.name:SetShadowOffset(1, -1)
             nameText.name:SetShadowColor(0, 0, 0, 1)
@@ -1059,7 +1094,7 @@ function I.CreateNameText(parent)
     function nameText:UpdateName()
         local name
 
-        -- patron rainbow
+        -- supporter rainbow
         if nameText.name.rainbow then
             nameText.name.updater:SetScript("OnUpdate", nil)
             if nameText.name.timer then
@@ -1067,7 +1102,7 @@ function I.CreateNameText(parent)
                 nameText.name.timer = nil
             end
         end
-        
+
         -- only check nickname for players
         if parent.states.isPlayer then
             if CELL_NICKTAG_ENABLED and Cell.NickTag then
@@ -1145,7 +1180,7 @@ function I.CreateNameText(parent)
 
     function nameText:UpdateTextWidth(width)
         nameText.width = width
-        
+
         nameText:UpdateName()
 
         if parent.states.inVehicle or nameText.isPreview then
@@ -1173,7 +1208,7 @@ function I.CreateNameText(parent)
     parent.widgets.healthBar:SetScript("OnSizeChanged", function()
         if parent.states.name then
             nameText:UpdateName()
-            
+
             if parent.states.inVehicle or nameText.isPreview then
                 nameText:UpdateVehicleName()
             end
@@ -1199,7 +1234,7 @@ end
 -------------------------------------------------
 local function StatusText_SetFont(self, font, size, outline, shadow)
     font = F:GetFont(font)
-    
+
     local flags
     if outline == "None" then
         flags = ""
@@ -1208,10 +1243,10 @@ local function StatusText_SetFont(self, font, size, outline, shadow)
     else
         flags = "OUTLINE,MONOCHROME"
     end
-    
+
     self.text:SetFont(font, size, flags)
     self.timer:SetFont(font, size, flags)
-    
+
     if shadow then
         self.text:SetShadowOffset(1, -1)
         self.text:SetShadowColor(0, 0, 0, 1)
@@ -1224,123 +1259,148 @@ local function StatusText_SetFont(self, font, size, outline, shadow)
         self.timer:SetShadowColor(0, 0, 0, 0)
     end
     self.shadow = shadow
-    
+
+    self:SetHeight(self.text:GetHeight()+P:Scale(1)*2)
+end
+
+local function StatusText_GetStatus(self)
+    return self.status
+end
+
+local function StatusText_SetStatus(self, status)
+    -- print("status: " .. (status or "nil"))
+    self.status = status
+    if status then
+        self.text:SetText(L[status])
+        self.text:SetTextColor(unpack(self.colors[status]))
+        self.timer:SetTextColor(unpack(self.colors[status]))
+        self:SetHeight(self.text:GetHeight()+P:Scale(1)*2)
+    else
+        self:Hide()
+    end
+end
+
+local function StatusText_SetColors(self, colors)
+    self.colors = colors
+end
+
+local function StatusText_SetShowTimer(self, show)
+    self.showTimer = show
+end
+
+local function StatusText_ShowBackground(self, show)
+    if show then
+        self.bg:Show()
+    else
+        self.bg:Hide()
+    end
+end
+
+local function StatusText_SetPosition(self, point, yOffset, justify)
+    self:ClearAllPoints()
+    self:SetPoint("LEFT", self.parent.widgets.healthBar)
+    self:SetPoint("RIGHT", self.parent.widgets.healthBar)
+    self:SetPoint(point, self.parent.widgets.healthBar, 0, P:Scale(yOffset))
+
+    self.text:ClearAllPoints()
+    self.timer:ClearAllPoints()
+    if justify == "justify" then
+        self.text:SetPoint("LEFT")
+        self.text:SetJustifyH("LEFT")
+        self.timer:SetPoint("RIGHT")
+        self.timer:SetJustifyH("RIGHT")
+        self.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.777), CreateColor(0, 0, 0, 0))
+    elseif justify == "left" then
+        self.text:SetPoint("LEFT")
+        self.text:SetJustifyH("LEFT")
+        self.timer:SetPoint("LEFT", self.text, "RIGHT", 2, 0)
+        self.timer:SetJustifyH("LEFT")
+        self.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.777), CreateColor(0, 0, 0, 0))
+    else
+        self.text:SetPoint("RIGHT")
+        self.text:SetJustifyH("RIGHT")
+        self.timer:SetPoint("RIGHT", self.text, "LEFT", -2, 0)
+        self.timer:SetJustifyH("RIGHT")
+        self.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0), CreateColor(0, 0, 0, 0.777))
+    end
+
     self:SetHeight(self.text:GetHeight()+P:Scale(1)*2)
 end
 
 local startTimeCache = {}
+local function StatusText_ShowTimer(self)
+    if not self.showTimer then
+        self:HideTimer(true)
+        return
+    end
+
+    self.timer:Show()
+
+    if not startTimeCache[self.parent.states.guid] then startTimeCache[self.parent.states.guid] = GetTime() end
+
+    self.ticker = C_Timer.NewTicker(1, function()
+        if not self.parent.states.guid and self.parent.states.unit then -- ElvUI AFK mode
+            self.parent.states.guid = UnitGUID(self.parent.states.unit)
+        end
+        if self.parent.states.guid and startTimeCache[self.parent.states.guid] then
+            self.timer:SetFormattedText(F:FormatTime(GetTime() - startTimeCache[self.parent.states.guid]))
+        else
+            self.timer:SetText("")
+        end
+    end)
+end
+
+local function StatusText_HideTimer(self, reset)
+    self.timer:Hide()
+    self.timer:SetText("")
+    if reset then
+        if self.ticker then self.ticker:Cancel() end
+        startTimeCache[self.parent.states.guid] = nil
+    end
+end
+
+local function StatusText_UpdatePixelPerfect(self)
+    if self.shadow then
+        -- NOTE: remove then add shadows back
+        self.text:SetShadowOffset(0, 0)
+        self.timer:SetShadowOffset(0, 0)
+
+        self.text:SetShadowOffset(1, -1)
+        self.text:SetShadowColor(0, 0, 0, 1)
+        self.timer:SetShadowOffset(1, -1)
+        self.timer:SetShadowColor(0, 0, 0, 1)
+    end
+end
+
 function I.CreateStatusText(parent)
-    local statusText = CreateFrame("Frame", parent:GetName().."StatusText", parent.widgets.overlayFrame)
+    local statusText = CreateFrame("Frame", parent:GetName().."StatusText", parent.widgets.indicatorFrame)
     parent.indicators.statusText = statusText
     statusText:SetIgnoreParentAlpha(true)
     statusText:Hide()
 
-    statusText.bg = statusText:CreateTexture(nil, "ARTWORK")
-    statusText.bg:SetTexture("Interface\\Buttons\\WHITE8x8")
-    statusText.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.777), CreateColor(0, 0, 0, 0))
-    statusText.bg:SetAllPoints(statusText)
+    statusText.parent = parent
 
-    -- statusText:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8"})
-    -- statusText:SetBackdropColor(0, 0, 0, 0.3)
+    statusText.bg = statusText:CreateTexture(nil, "ARTWORK")
+    statusText.bg:SetTexture(Cell.vars.whiteTexture)
+    -- statusText.bg:SetGradient("HORIZONTAL", CreateColor(0, 0, 0, 0.777), CreateColor(0, 0, 0, 0))
+    statusText.bg:SetAllPoints(statusText)
 
     local text = statusText:CreateFontString(nil, "ARTWORK", "CELL_FONT_STATUS")
     statusText.text = text
 
     local timer = statusText:CreateFontString(nil, "ARTWORK", "CELL_FONT_STATUS")
     statusText.timer = timer
-    
-    function statusText:GetStatus()
-        return statusText.status
-    end
 
-    function statusText:SetStatus(status)
-        -- print("status: " .. (status or "nil"))
-        statusText.status = status
-        if status then
-            text:SetText(L[status])
-            text:SetTextColor(unpack(statusText.colors[status]))
-            timer:SetTextColor(unpack(statusText.colors[status]))
-            statusText:SetHeight(text:GetHeight()+P:Scale(1)*2)
-        else
-            statusText:Hide()
-        end
-    end
-
-    function statusText:SetColors(colors)
-        statusText.colors = colors
-    end
-    
-    statusText._SetPoint = statusText.SetPoint
-    function statusText:SetPoint(point, _, yOffset)
-        statusText:ClearAllPoints()
-        statusText:_SetPoint("LEFT", parent.widgets.healthBar)
-        statusText:_SetPoint("RIGHT", parent.widgets.healthBar)
-        statusText:_SetPoint(point, parent.widgets.healthBar, 0, yOffset)
-
-        text:ClearAllPoints()
-        text:SetPoint(point.."LEFT")
-        timer:ClearAllPoints()
-        timer:SetPoint(point.."RIGHT")
-
-        statusText:SetHeight(text:GetHeight()+P:Scale(1)*2)
-    end
-    
+    statusText.GetStatus = StatusText_GetStatus
+    statusText.SetStatus = StatusText_SetStatus
+    statusText.SetColors = StatusText_SetColors
+    statusText.SetPosition = StatusText_SetPosition
     statusText.SetFont = StatusText_SetFont
-
-    function statusText:SetShowTimer(show)
-        statusText.showTimer = show
-    end
-
-    function statusText:ShowBackground(show)
-        if show then
-            statusText.bg:Show()
-        else
-            statusText.bg:Hide()
-        end
-    end
-
-    function statusText:ShowTimer()
-        if not statusText.showTimer then
-            statusText:HideTimer(true)
-            return
-        end
-
-        timer:Show()
-        if not startTimeCache[parent.states.guid] then startTimeCache[parent.states.guid] = GetTime() end
-        
-        statusText.ticker = C_Timer.NewTicker(1, function()
-            if not parent.states.guid and parent.states.unit then -- ElvUI AFK mode
-                parent.states.guid = UnitGUID(parent.states.unit)
-            end
-            if parent.states.guid and startTimeCache[parent.states.guid] then
-                timer:SetFormattedText(F:FormatTime(GetTime() - startTimeCache[parent.states.guid]))
-            else
-                timer:SetText("")
-            end
-        end)
-    end
-
-    function statusText:HideTimer(reset)
-        timer:Hide()
-        timer:SetText("")
-        if reset then
-            if statusText.ticker then statusText.ticker:Cancel() end
-            startTimeCache[parent.states.guid] = nil
-        end
-    end
-
-    function statusText:UpdatePixelPerfect()
-        if statusText.shadow then
-            -- NOTE: remove then add shadows back
-            text:SetShadowOffset(0, 0)
-            timer:SetShadowOffset(0, 0)
-
-            text:SetShadowOffset(1, -1)
-            text:SetShadowColor(0, 0, 0, 1)
-            timer:SetShadowOffset(1, -1)
-            timer:SetShadowColor(0, 0, 0, 1)
-        end
-    end
+    statusText.SetShowTimer = StatusText_SetShowTimer
+    statusText.ShowBackground = StatusText_ShowBackground
+    statusText.ShowTimer = StatusText_ShowTimer
+    statusText.HideTimer = StatusText_HideTimer
+    statusText.UpdatePixelPerfect = StatusText_UpdatePixelPerfect
 end
 
 -------------------------------------------------
@@ -1449,7 +1509,7 @@ local function HealthText_SetFont(self, font, size, outline, shadow)
     end
 
     self.text:SetFont(font, size, flags)
-    
+
     if shadow then
         self.text:SetShadowOffset(1, -1)
         self.text:SetShadowColor(0, 0, 0, 1)
@@ -1518,7 +1578,7 @@ local function HealthText_UpdatePreviewColor(self, color)
 end
 
 function I.CreateHealthText(parent)
-    local healthText = CreateFrame("Frame", parent:GetName().."HealthText", parent.widgets.overlayFrame)
+    local healthText = CreateFrame("Frame", parent:GetName().."HealthText", parent.widgets.indicatorFrame)
     parent.indicators.healthText = healthText
     healthText:Hide()
 
@@ -1617,7 +1677,7 @@ local function PowerText_UpdatePreviewColor(self, color)
 end
 
 function I.CreatePowerText(parent)
-    local powerText = CreateFrame("Frame", parent:GetName().."PowerText", parent.widgets.overlayFrame)
+    local powerText = CreateFrame("Frame", parent:GetName().."PowerText", parent.widgets.indicatorFrame)
     parent.indicators.powerText = powerText
     powerText:Hide()
 
@@ -1637,50 +1697,64 @@ end
 -------------------------------------------------
 -- role icon
 -------------------------------------------------
-local GetTexCoordsForRoleSmallCircle = GetTexCoordsForRoleSmallCircle
+local ICON_PATH = "Interface\\AddOns\\Cell\\Media\\Roles\\"
 
-local defaultRoleIcon = {
-    TANK = "Interface\\AddOns\\Cell\\Media\\Roles\\TANK32",
-    HEALER = "Interface\\AddOns\\Cell\\Media\\Roles\\HEALER32",
-    DAMAGER = "Interface\\AddOns\\Cell\\Media\\Roles\\DAMAGER32",
-}
+local function GetTexCoordsForRole(role)
+    if role == "TANK" then
+        return 0, 67/256, 67/256, 134/256
+    elseif role == "HEALER" then
+        return 67/256, 134/256, 0, 67/256
+    elseif role == "DAMAGER" then
+        return 67/256, 134/256, 67/256, 134/256
+    end
+end
+
+local function GetTexCoordsForRoleSmall(role)
+    if role == "TANK" then
+        return 0, 19/64, 22/64, 41/64
+    elseif role == "HEALER" then
+        return 20/64, 39/64, 1/64, 20/64
+    elseif role == "DAMAGER" then
+        return 20/64, 39/64, 22/64, 41/64
+    end
+end
 
 local function RoleIcon_SetRole(self, role)
+    self.tex:SetTexCoord(0, 1, 0, 1)
     self.tex:SetVertexColor(1, 1, 1)
+
     if role == "TANK" or role == "HEALER" or (not self.hideDamager and role == "DAMAGER") then
         if self.texture == "default" then
-            -- self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\UI-LFG-ICON-PORTRAITROLES.blp")
-            -- self.tex:SetTexCoord(GetTexCoordsForRoleSmallCircle(role))
-            self.tex:SetTexture(defaultRoleIcon[role])
-            self.tex:SetTexCoord(0, 1, 0, 1)
+            self.tex:SetTexture(ICON_PATH .. "Default_" .. role)
         elseif self.texture == "default2" then
-            self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\UI-LFG-ICON-ROLES.blp")
+            self.tex:SetTexture(ICON_PATH .. "Default2_ROLES")
             self.tex:SetTexCoord(GetTexCoordsForRole(role))
         elseif self.texture == "blizzard" then
-            self.tex:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-PORTRAITROLES.blp")
-            self.tex:SetTexCoord(GetTexCoordsForRoleSmallCircle(role))
+            self.tex:SetTexture(ICON_PATH .. "Blizzard_ROLES")
+            self.tex:SetTexCoord(GetTexCoordsForRoleSmall(role))
         elseif self.texture == "blizzard2" then
-            self.tex:SetTexture("Interface\\LFGFRAME\\UI-LFG-ICON-ROLES.blp")
+            self.tex:SetTexture(ICON_PATH .. "Blizzard2_ROLES")
             self.tex:SetTexCoord(GetTexCoordsForRole(role))
+        elseif self.texture == "blizzard3" then
+            self.tex:SetTexture(ICON_PATH .. "Blizzard3_" .. role)
+        elseif self.texture == "blizzard4" then
+            self.tex:SetTexture(ICON_PATH .. "Blizzard4_" .. role)
         elseif self.texture == "ffxiv" then
-            self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\FFXIV\\"..role)
-            self.tex:SetTexCoord(0, 1, 0, 1)
+            self.tex:SetTexture(ICON_PATH .. "FFXIV_" .. role)
         elseif self.texture == "miirgui" then
-            self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\MiirGui\\"..role)
-            self.tex:SetTexCoord(0, 1, 0, 1)
+            self.tex:SetTexture(ICON_PATH .. "MiirGui_" .. role)
         elseif self.texture == "mattui" then
-            self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\MattUI.blp")
-            self.tex:SetTexCoord(GetTexCoordsForRoleSmallCircle(role))
+            self.tex:SetTexture(ICON_PATH .. "MattUI_ROLES")
+            self.tex:SetTexCoord(GetTexCoordsForRoleSmall(role))
         elseif self.texture == "custom" then
             self.tex:SetTexture(self[role])
-            self.tex:SetTexCoord(0, 1, 0, 1)
         end
         self:Show()
     elseif role == "VEHICLE-ROOT" then
-        self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\VEHICLE")
+        self.tex:SetTexture(ICON_PATH .. "VEHICLE")
         self:Show()
     elseif role == "VEHICLE" then
-        self.tex:SetTexture("Interface\\AddOns\\Cell\\Media\\Roles\\VEHICLE")
+        self.tex:SetTexture(ICON_PATH .. "VEHICLE")
         self.tex:SetVertexColor(0.6, 0.6, 1)
         self:Show()
     else
@@ -1705,11 +1779,11 @@ local function RoleIcon_UpdatePixelPerfect(self)
 end
 
 function I.CreateRoleIcon(parent)
-    local roleIcon = CreateFrame("Frame", parent:GetName().."RoleIcon", parent.widgets.overlayFrame)
+    local roleIcon = CreateFrame("Frame", parent:GetName().."RoleIcon", parent.widgets.indicatorFrame)
     parent.indicators.roleIcon = roleIcon
-    -- roleIcon:SetPoint("TOPLEFT", overlayFrame)
+    -- roleIcon:SetPoint("TOPLEFT", indicatorFrame)
     -- roleIcon:SetSize(11, 11)
-    
+
     roleIcon.tex = roleIcon:CreateTexture(nil, "ARTWORK")
     roleIcon.tex:SetAllPoints()
 
@@ -1723,7 +1797,7 @@ end
 -- party assignment icon
 -------------------------------------------------
 function I.CreatePartyAssignmentIcon(parent)
-    local partyAssignmentIcon = parent.widgets.overlayFrame:CreateTexture(parent:GetName().."PartyAssignmentIcon", "ARTWORK", nil, -7)
+    local partyAssignmentIcon = parent.widgets.indicatorFrame:CreateTexture(parent:GetName().."PartyAssignmentIcon", "ARTWORK", nil, -7)
     parent.indicators.partyAssignmentIcon = partyAssignmentIcon
     partyAssignmentIcon:Hide()
 
@@ -1738,7 +1812,7 @@ function I.CreatePartyAssignmentIcon(parent)
             partyAssignmentIcon:Hide()
         end
     end
-    
+
     function partyAssignmentIcon:UpdatePixelPerfect()
         P:Resize(partyAssignmentIcon)
         P:Repoint(partyAssignmentIcon)
@@ -1749,13 +1823,13 @@ end
 -- leader icon
 -------------------------------------------------
 function I.CreateLeaderIcon(parent)
-    local leaderIcon = parent.widgets.overlayFrame:CreateTexture(parent:GetName().."LeaderIcon", "ARTWORK", nil, -7)
+    local leaderIcon = parent.widgets.indicatorFrame:CreateTexture(parent:GetName().."LeaderIcon", "ARTWORK", nil, -7)
     parent.indicators.leaderIcon = leaderIcon
     -- leaderIcon:SetPoint("TOPLEFT", roleIcon, "BOTTOM")
     -- leaderIcon:SetPoint("TOPLEFT", 0, -11)
     -- leaderIcon:SetSize(11, 11)
     leaderIcon:Hide()
-    
+
     function leaderIcon:SetIcon(isLeader, isAssistant)
         if isLeader then
             leaderIcon:SetTexture("Interface\\GroupFrame\\UI-Group-LeaderIcon")
@@ -1777,15 +1851,15 @@ end
 -------------------------------------------------
 -- ready check icon
 -------------------------------------------------
--- READY_CHECK_WAITING_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Waiting";
--- READY_CHECK_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Ready";
--- READY_CHECK_NOT_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady";
--- READY_CHECK_AFK_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady";
+-- READY_CHECK_WAITING_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Waiting"
+-- READY_CHECK_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-Ready"
+-- READY_CHECK_NOT_READY_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
+-- READY_CHECK_AFK_TEXTURE = "Interface\\RaidFrame\\ReadyCheck-NotReady"
 -- ↓↓↓ since 10.1.5
--- READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark";
--- READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark";
--- READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark";
--- READY_CHECK_AFK_TEXTURE = "UI-LFG-DeclineMark";
+-- READY_CHECK_WAITING_TEXTURE = "UI-LFG-PendingMark"
+-- READY_CHECK_READY_TEXTURE = "UI-LFG-ReadyMark"
+-- READY_CHECK_NOT_READY_TEXTURE = "UI-LFG-DeclineMark"
+-- READY_CHECK_AFK_TEXTURE = "UI-LFG-DeclineMark"
 
 local READY_CHECK_STATUS = {
     ready = {t = "Interface\\AddOns\\Cell\\Media\\Icons\\readycheck-ready", c = {0, 1, 0, 1}},
@@ -1794,16 +1868,14 @@ local READY_CHECK_STATUS = {
 }
 
 function I.CreateReadyCheckIcon(parent)
-    local readyCheckIcon = CreateFrame("Frame", parent:GetName().."ReadyCheckIcon", parent.widgets.overlayFrame)
+    local readyCheckIcon = CreateFrame("Frame", parent:GetName().."ReadyCheckIcon", parent.widgets.indicatorFrame)
     parent.indicators.readyCheckIcon = readyCheckIcon
-    -- readyCheckIcon:SetSize(16, 16)
-    readyCheckIcon:SetPoint("CENTER", parent.widgets.healthBar)
     readyCheckIcon:Hide()
     readyCheckIcon:SetIgnoreParentAlpha(true)
-    
+
     readyCheckIcon.tex = readyCheckIcon:CreateTexture(nil, "ARTWORK")
     readyCheckIcon.tex:SetAllPoints(readyCheckIcon)
-    
+
     function readyCheckIcon:SetStatus(status)
         readyCheckIcon.tex:SetTexture(READY_CHECK_STATUS[status].t)
         -- readyCheckIcon.tex:SetAtlas(READY_CHECK_STATUS[status].t)
@@ -1827,26 +1899,26 @@ function I.CreateAggroBorder(parent)
     local left = aggroBorder:CreateTexture(nil, "BORDER")
     local right = aggroBorder:CreateTexture(nil, "BORDER")
 
-    top:SetTexture("Interface\\Buttons\\WHITE8x8")
+    top:SetTexture(Cell.vars.whiteTexture)
     top:SetPoint("TOPLEFT")
     top:SetPoint("TOPRIGHT")
     top:SetHeight(5)
-    
-    bottom:SetTexture("Interface\\Buttons\\WHITE8x8")
+
+    bottom:SetTexture(Cell.vars.whiteTexture)
     bottom:SetPoint("BOTTOMLEFT")
     bottom:SetPoint("BOTTOMRIGHT")
     bottom:SetHeight(5)
-    
-    left:SetTexture("Interface\\Buttons\\WHITE8x8")
+
+    left:SetTexture(Cell.vars.whiteTexture)
     left:SetPoint("TOPLEFT")
     left:SetPoint("BOTTOMLEFT")
     left:SetWidth(5)
-    
-    right:SetTexture("Interface\\Buttons\\WHITE8x8")
+
+    right:SetTexture(Cell.vars.whiteTexture)
     right:SetPoint("TOPRIGHT")
     right:SetPoint("BOTTOMRIGHT")
     right:SetWidth(5)
-    
+
     top:SetGradient("VERTICAL", CreateColor(1, 0.1, 0.1, 0.2), CreateColor(1, 0.1, 0.1, 1))
     bottom:SetGradient("VERTICAL", CreateColor(1, 0.1, 0.1, 1), CreateColor(1, 0.1, 0.1, 0.2))
     left:SetGradient("HORIZONTAL", CreateColor(1, 0.1, 0.1, 1), CreateColor(1, 0.1, 0.1, 0.2))
@@ -1876,11 +1948,11 @@ end
 -- aggro blink
 -------------------------------------------------
 function I.CreateAggroBlink(parent)
-    local aggroBlink = CreateFrame("Frame", parent:GetName().."AggroBlink", parent.widgets.overlayFrame, "BackdropTemplate")
+    local aggroBlink = CreateFrame("Frame", parent:GetName().."AggroBlink", parent.widgets.indicatorFrame, "BackdropTemplate")
     parent.indicators.aggroBlink = aggroBlink
     -- aggroBlink:SetPoint("TOPLEFT")
     -- aggroBlink:SetSize(10, 10)
-    aggroBlink:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+    aggroBlink:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
     aggroBlink:SetBackdropColor(1, 0, 0, 1)
     aggroBlink:SetBackdropBorderColor(0, 0, 0, 1)
     aggroBlink:Hide()
@@ -1894,11 +1966,11 @@ function I.CreateAggroBlink(parent)
     alpha:SetFromAlpha(1)
     alpha:SetToAlpha(0)
     alpha:SetDuration(0.5)
-    
+
     aggroBlink:SetScript("OnShow", function(self)
         self.blink:Play()
     end)
-    
+
     aggroBlink:SetScript("OnHide", function(self)
         self.blink:Stop()
     end)
@@ -1911,7 +1983,7 @@ function I.CreateAggroBlink(parent)
     function aggroBlink:UpdatePixelPerfect()
         P:Resize(aggroBlink)
         P:Repoint(aggroBlink)
-        aggroBlink:SetBackdrop({bgFile = "Interface\\Buttons\\WHITE8x8", edgeFile = "Interface\\Buttons\\WHITE8x8", edgeSize = P:Scale(1)})
+        aggroBlink:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(1)})
         aggroBlink:SetBackdropColor(1, 0, 0, 1)
         aggroBlink:SetBackdropBorderColor(0, 0, 0, 1)
     end
@@ -1962,11 +2034,11 @@ local function ShieldBar_SetPoint(bar, point, anchorTo, anchorPoint, x, y)
 end
 
 function I.CreateShieldBar(parent)
-    local shieldBar = CreateFrame("Frame", parent:GetName().."ShieldBar", parent.widgets.overlayFrame, "BackdropTemplate")
+    local shieldBar = CreateFrame("Frame", parent:GetName().."ShieldBar", parent.widgets.indicatorFrame, "BackdropTemplate")
     parent.indicators.shieldBar = shieldBar
     -- shieldBar:SetSize(4, 4)
     shieldBar:Hide()
-    shieldBar:SetBackdrop({edgeFile="Interface\\Buttons\\WHITE8x8", edgeSize=P:Scale(1)})
+    shieldBar:SetBackdrop({edgeFile=Cell.vars.whiteTexture, edgeSize=P:Scale(1)})
     shieldBar:SetBackdropBorderColor(0, 0, 0, 1)
 
     local tex = shieldBar:CreateTexture(nil, "BORDER", nil, -7)
@@ -1997,9 +2069,9 @@ function I.CreateHealthThresholds(parent)
     parent.indicators.healthThresholds = healthThresholds
     healthThresholds:SetAllPoints(parent.widgets.healthBar)
     healthThresholds:SetFrameLevel(parent.widgets.healthBar:GetFrameLevel()+1)
-    
+
     healthThresholds.tex = healthThresholds:CreateTexture(nil, "ARTWORK")
-    
+
     function healthThresholds:SetThickness(thickness)
         healthThresholds.thickness = thickness
         P:Size(healthThresholds.tex, thickness, thickness)
@@ -2016,7 +2088,7 @@ function I.CreateHealthThresholds(parent)
             healthThresholds.tex:SetPoint("RIGHT")
         end
     end
-    
+
     function healthThresholds:CheckThreshold(percent)
         local found
         for i, t in ipairs(Cell.vars.healthThresholds) do
@@ -2047,7 +2119,7 @@ function I.CreateHealthThresholds(parent)
                 P:Size(healthThresholds[i], healthThresholds.thickness, healthThresholds.thickness)
                 healthThresholds[i]:SetColorTexture(unpack(t[2]))
                 -- healthThresholds[i]:SetBlendMode("ADD")
-                
+
                 healthThresholds[i]:ClearAllPoints()
                 if healthThresholds.orientation == "horizontal" then
                     healthThresholds[i]:SetPoint("TOP")
@@ -2080,15 +2152,15 @@ end
 -- missing buffs
 -------------------------------------------------
 function I.CreateMissingBuffs(parent)
-    local missingBuffs = CreateFrame("Frame", parent:GetName().."MissingBuffParent", parent.widgets.overlayFrame)
+    local missingBuffs = CreateFrame("Frame", parent:GetName().."MissingBuffParent", parent.widgets.indicatorFrame)
     parent.indicators.missingBuffs = missingBuffs
     missingBuffs:Hide()
 
     missingBuffs._SetSize = missingBuffs.SetSize
-    missingBuffs.SetSize = Cooldowns_SetSize
-    missingBuffs.UpdateSize = Cooldowns_UpdateSize
-    missingBuffs.SetOrientation = Cooldowns_SetOrientation
-    missingBuffs.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    missingBuffs.SetSize = I.Cooldowns_SetSize
+    missingBuffs.UpdateSize = I.Cooldowns_UpdateSize
+    missingBuffs.SetOrientation = I.Cooldowns_SetOrientation
+    missingBuffs.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 5 do
         local name = parent:GetName().."MissingBuff"..i
@@ -2138,7 +2210,7 @@ end
 local missingBuffsCounter = {}
 function I.HideMissingBuffs(unit, force)
     if not (missingBuffsEnabled or force) then return end
-    
+
     missingBuffsCounter[unit] = nil
 
     F:HandleUnitButton("unit", unit, HideMissingBuffs)
@@ -2146,9 +2218,9 @@ end
 
 local function ShowMissingBuff(b, index, icon, buffByMe)
     b.indicators.missingBuffs:UpdateSize(index)
-    
+
     local f = b.indicators.missingBuffs[index]
-    
+
     f:SetCooldown(0, 0, nil, icon, 0)
 
     if buffByMe then
@@ -2164,7 +2236,7 @@ function I.ShowMissingBuff(unit, buff, icon, buffByMe)
     if not missingBuffsEnabled then return end
     if missingBuffsFilters["buffByMe"] and not buffByMe then return end
     if not missingBuffsFilters[buff] then return end
-    
+
     missingBuffsCounter[unit] = (missingBuffsCounter[unit] or 0) + 1
 
     if missingBuffsCounter[unit] > missingBuffsNum then return end
@@ -2176,7 +2248,7 @@ end
 -- power word : shield 怀旧服API太落后，蛋疼！
 -------------------------------------------------
 function I.CreatePowerWordShield(parent)
-    local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widgets.overlayFrame, "BackdropTemplate")
+    local powerWordShield = CreateFrame("Frame", parent:GetName().."PowerWordShield", parent.widgets.indicatorFrame, "BackdropTemplate")
     parent.indicators.powerWordShield = powerWordShield
     powerWordShield:Hide()
 
@@ -2187,7 +2259,7 @@ function I.CreatePowerWordShield(parent)
     local shieldAmount = CreateFrame("Cooldown", parent:GetName().."PowerWordShieldAmount", powerWordShield)
     -- shieldAmount:SetAllPoints(powerWordShield)
     shieldAmount:SetSwipeTexture([[Interface\AddOns\Cell\Media\Shapes\circle_filled.tga]])
-    -- shieldAmount:SetSwipeTexture("Interface\\Buttons\\WHITE8x8")
+    -- shieldAmount:SetSwipeTexture(Cell.vars.whiteTexture)
     shieldAmount:SetSwipeColor(1, 1, 0)
     shieldAmount.noCooldownCount = true -- disable omnicc
     shieldAmount:SetHideCountdownNumbers(true)
@@ -2239,7 +2311,7 @@ function I.CreatePowerWordShield(parent)
 
         powerWordShield:_SetSize(P:Scale(size), P:Scale(size))
         innerBG:SetSize(P:Scale(ceil(size/2)+2), P:Scale(ceil(size/2)+2))
-        
+
         shieldCooldown:SetSize(P:Scale(ceil(size/2)), P:Scale(ceil(size/2)))
         weakendedSoulCooldown:SetSize(P:Scale(ceil(size/2)), P:Scale(ceil(size/2)))
 
@@ -2298,7 +2370,7 @@ function I.CreatePowerWordShield(parent)
             Update()
         end
     end
-    
+
     function powerWordShield:SetWeakenedSoulCooldown(start, duration, isMine)
         if start and duration then
             powerWordShield:Show()
@@ -2315,22 +2387,23 @@ end
 -- crowd controls
 -------------------------------------------------
 function I.CreateCrowdControls(parent)
-    local crowdControls = CreateFrame("Frame", parent:GetName().."CrowdControlsParent", parent.widgets.overlayFrame)
+    local crowdControls = CreateFrame("Frame", parent:GetName().."CrowdControlsParent", parent.widgets.indicatorFrame)
     parent.indicators.crowdControls = crowdControls
     crowdControls:Hide()
-   
+
     crowdControls._SetSize = crowdControls.SetSize
-    crowdControls.SetSize = Cooldowns_SetSize
-    crowdControls.SetBorder = Cooldowns_SetBorder
-    crowdControls.UpdateSize = Cooldowns_UpdateSize_WithSpacing
-    crowdControls.SetOrientation = Cooldowns_SetOrientation_WithSpacing
-    crowdControls.SetFont = Cooldowns_SetFont
-    crowdControls.UpdatePixelPerfect = Cooldowns_UpdatePixelPerfect
+    crowdControls.SetSize = I.Cooldowns_SetSize
+    crowdControls.SetBorder = I.Cooldowns_SetBorder
+    crowdControls.UpdateSize = I.Cooldowns_UpdateSize_WithSpacing
+    crowdControls.ShowDuration = I.Cooldowns_ShowDuration
+    crowdControls.SetOrientation = I.Cooldowns_SetOrientation_WithSpacing
+    crowdControls.SetFont = I.Cooldowns_SetFont
+    crowdControls.UpdatePixelPerfect = I.Cooldowns_UpdatePixelPerfect
 
     for i = 1, 3 do
         local frame = I.CreateAura_BorderIcon(parent:GetName().."CrowdControl"..i, crowdControls, 2)
         tinsert(crowdControls, frame)
-        frame:SetScript("OnShow", crowdControls.UpdateSize)
-        frame:SetScript("OnHide", crowdControls.UpdateSize)
+        -- frame:SetScript("OnShow", crowdControls.UpdateSize)
+        -- frame:SetScript("OnHide", crowdControls.UpdateSize)
     end
 end

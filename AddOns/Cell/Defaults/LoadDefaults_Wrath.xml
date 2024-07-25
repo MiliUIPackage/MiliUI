@@ -4,6 +4,6 @@
     <Script file="Indicator_Bleeds.lua"/>
     <Script file="Indicator_DefaultSpells_Wrath.lua"/>
     <Script file="Appearance_Defaults.lua"/>
-    <Script file="Layout_Defaults_Wrath.lua"/>
+    <Script file="Layout_Defaults_Cata_Wrath.lua"/>
     <Script file="ClickCasting_DefaultSpells_Wrath.lua"/>
 </Ui>

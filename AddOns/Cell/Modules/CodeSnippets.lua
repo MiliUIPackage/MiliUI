@@ -87,25 +87,25 @@ local function CreateCodeSnippetsFrame()
         end
     end)
 
-    local discardBtn = Cell:CreateButton(bottomPane, L["Discard"], "red", {200, 20})
-    bottomPane.discardBtn = discardBtn
-    discardBtn:SetPoint("BOTTOMRIGHT")
-    discardBtn:SetEnabled(false)
-    discardBtn:SetScript("OnClick", function()
+    local cancelBtn = Cell:CreateButton(bottomPane, L["Cancel"], "red", {200, 20})
+    bottomPane.cancelBtn = cancelBtn
+    cancelBtn:SetPoint("BOTTOMRIGHT")
+    cancelBtn:SetEnabled(false)
+    cancelBtn:SetScript("OnClick", function()
         codePane:SetText(CellDB["snippets"][selected]["code"])
-        discardBtn:SetEnabled(false)
+        cancelBtn:SetEnabled(false)
         bottomPane.saveBtn:SetEnabled(false)
     end)
-    
+
     local saveBtn = Cell:CreateButton(bottomPane, L["Save"], "red", {200, 20})
     bottomPane.saveBtn = saveBtn
     saveBtn:SetPoint("BOTTOMLEFT", runBtn, "BOTTOMRIGHT", 10, 0)
-    saveBtn:SetPoint("BOTTOMRIGHT", discardBtn, "BOTTOMLEFT", -10, 0)
+    saveBtn:SetPoint("BOTTOMRIGHT", cancelBtn, "BOTTOMLEFT", -10, 0)
     saveBtn:SetEnabled(false)
     saveBtn:SetScript("OnClick", function()
         CellDB["snippets"][selected]["code"] = codePane:GetText()
         saveBtn:SetEnabled(false)
-        bottomPane.discardBtn:SetEnabled(false)
+        bottomPane.cancelBtn:SetEnabled(false)
     end)
 
     -- current line number
@@ -125,7 +125,7 @@ local function CreateCodeSnippetsFrame()
     codePane.eb:HookScript("OnTextChanged", function(self, userChanged)
         local changed =  CellDB["snippets"][selected]["code"] ~= codePane:GetText()
         saveBtn:SetEnabled(changed)
-        discardBtn:SetEnabled(changed)
+        cancelBtn:SetEnabled(changed)
     end)
 
     codePane.eb:SetScript("OnEditFocusGained", function()
@@ -146,10 +146,10 @@ local function CreateCodeSnippetsFrame()
             next = codePane.OriginalGetText(codePane.eb):find("[\n]", next + 1)
             line = line + 1
         end
-        
+
         lineNumber:SetText(line)
     end)
-    
+
     -- NOTE: indentation
     Cell.IndentationLib.enable(codePane.eb)
 
@@ -212,7 +212,7 @@ LoadList = function()
         if not buttons[i] then
             buttons[i] = Cell:CreateButton(topPane, "", "accent-hover", {156, 20})
             buttons[i].id = i -- for highlight
-            
+
             -- rename
             buttons[i]:SetScript("OnDoubleClick", function()
                 renameEB:ClearAllPoints()
@@ -227,7 +227,7 @@ LoadList = function()
                     buttons[i].label:SetText(i.."."..CellDB["snippets"][i]["name"])
                 end)
             end)
-            
+
             -- checkbox
             buttons[i].cb = Cell:CreateCheckButton(buttons[i], "", function(checked)
                 CellDB["snippets"][i]["autorun"] = checked
@@ -269,7 +269,7 @@ LoadList = function()
                     LoadList()
                 end
             end)
-            
+
             -- label
             buttons[i].label = buttons[i]:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
             buttons[i].label:SetPoint("LEFT", buttons[i].cb, "RIGHT", 3, 0)
@@ -290,7 +290,7 @@ LoadList = function()
                 CellTooltip:Hide()
             end
         end
-        
+
         buttons[i].cb:SetChecked(t["autorun"])
         buttons[i].label:SetText(i.."."..t["name"])
 
@@ -339,7 +339,7 @@ LoadList = function()
         rows = math.ceil((total+2) / 4)
     end
     topPane:SetHeight(rows*20 - (rows-1))
-    
+
     -- update scroll
     codePane.scrollFrame:UpdateSize()
 
@@ -358,7 +358,7 @@ LoadSnippet = function(index)
         codePane:SetEnabled(true)
         bottomPane.runBtn:SetEnabled(true)
         bottomPane.saveBtn:SetEnabled(false)
-        bottomPane.discardBtn:SetEnabled(false)
+        bottomPane.cancelBtn:SetEnabled(false)
         renameEB:Hide()
         errorPopup:Hide()
     end
@@ -407,7 +407,9 @@ function F:GetDefaultSnippet()
         ["autorun"] = true,
         ["code"] = "-- snippets can be found at https://github.com/enderneko/Cell/tree/master/.snippets\n"..
             "-- use \"/run CellDB['snippets'][0]=nil ReloadUI()\" to reset this snippet\n\n"..
-            "-- fade out unit button if hp percent < (number: 0-1)\n"..
+            "-- cooldown style for icon/block indicators (\"VERTICAL\", \"CLOCK\")\n"..
+            "CELL_COOLDOWN_STYLE = \"VERTICAL\"\n\n"..
+            "-- fade out unit button if hp percent > (number: 0-1)\n"..
             "CELL_FADE_OUT_HEALTH_PERCENT = nil\n\n"..
             "-- add summon icons to Status Icon indicator (boolean, retail only)\n"..
             "CELL_SUMMON_ICONS_ENABLED = false\n\n"..

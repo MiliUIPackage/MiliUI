@@ -119,7 +119,7 @@ local function CreateAssignmentButton(index)
 
     b:SetAttribute("_onclick", [[
         local menu = self:GetFrameRef("menu")
-        
+
         if button == "LeftButton" then --! show menu
             if menu:IsShown() and menu:GetAttribute("index") == self:GetAttribute("index") then
                 menu:Hide()
@@ -138,6 +138,7 @@ local function CreateAssignmentButton(index)
             local spotlight = menu:GetFrameRef("spotlight"..index)
             spotlight:SetAttribute("unit", nil)
             spotlight:SetAttribute("refreshOnUpdate", nil)
+            spotlight:SetAttribute("updateOnTargetChanged", nil)
             menu:GetFrameRef("assignment"..index):SetAttribute("text", "none")
             menu:Hide()
 
@@ -173,15 +174,15 @@ local function CreateAssignmentButton(index)
             targetFrame.type = "pet"
         end
     end)
-    
+
     b:SetScript("OnDragStop", function()
         targetFrame:StopMoving()
         LCG.PixelGlow_Stop(b)
 
         if InCombatLockdown() then return end
 
-        local f = GetMouseFocus()
-        
+        local f = F:GetMouseFocus()
+
         if f == WorldFrame then
             f = F:GetUnitButtonByGUID(UnitGUID("mouseover") or "")
         end
@@ -194,7 +195,7 @@ local function CreateAssignmentButton(index)
         elseif f.unit then
             unitId = f.unit
         end
-        
+
         if unitId then
             if targetFrame.type == "unit" then
                 unit:SetUnit(b:GetAttribute("index"), unitId)
@@ -239,7 +240,7 @@ for i = 1, 15 do
     assignmentButtons[i] = CreateAssignmentButton(i)
     assignmentButtons[i]:SetAllPoints(placeholders[i])
     SecureHandlerSetFrameRef(config, "assignment"..i, assignmentButtons[i])
-    
+
     -- unit button
     local b = CreateFrame("Button", "CellSpotlightFrameUnitButton"..i, spotlightFrame, "CellUnitButtonTemplate")
     Cell.unitButtons.spotlight[i] = b
@@ -276,6 +277,7 @@ for i = 1, 15 do
             placeholders[i].text:SetText("|cffababab"..NONE)
         end
 
+        self.unit = value
         F:UpdateOmniCDPosition("Cell-Spotlight")
     end)
 end
@@ -284,7 +286,8 @@ end
 -- menu
 -------------------------------------------------
 menu = CreateFrame("Frame", "CellSpotlightAssignmentMenu", spotlightFrame, "BackdropTemplate,SecureHandlerAttributeTemplate,SecureHandlerShowHideTemplate")
-menu:SetFrameStrata("TOOLTIP")
+menu:SetFrameStrata("FULLSCREEN_DIALOG")
+menu:SetToplevel(true)
 menu:SetClampedToScreen(true)
 menu:Hide()
 
@@ -317,6 +320,7 @@ target:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", "target")
     spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", true)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "target")
     menu:Hide()
 
@@ -333,6 +337,7 @@ targettarget:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", "targettarget")
     spotlight:SetAttribute("refreshOnUpdate", true)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "targettarget")
     menu:Hide()
 
@@ -348,6 +353,7 @@ focus:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", "focus")
     spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "focus")
     menu:Hide()
 
@@ -363,6 +369,7 @@ focustarget:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", "focustarget")
     spotlight:SetAttribute("refreshOnUpdate", true)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "focustarget")
     menu:Hide()
 
@@ -375,7 +382,9 @@ P:Point(unit, "TOPRIGHT", focustarget, "BOTTOMRIGHT")
 unit:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
-    menu:GetFrameRef("spotlight"..index):SetAttribute("refreshOnUpdate", nil)
+    local spotlight = menu:GetFrameRef("spotlight"..index)
+    spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     self:CallMethod("SetUnit", index, "target")
     menu:Hide()
 ]])
@@ -396,7 +405,9 @@ P:Point(unitname, "TOPRIGHT", unit, "BOTTOMRIGHT")
 unitname:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
-    menu:GetFrameRef("spotlight"..index):SetAttribute("refreshOnUpdate", nil)
+    local spotlight = menu:GetFrameRef("spotlight"..index)
+    spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     self:CallMethod("SetUnit", index, "target")
     menu:Hide()
 ]])
@@ -407,10 +418,10 @@ function unitname:SetUnit(index, target)
         Cell.unitButtons.spotlight[index]:SetAttribute("unit", unitId)
         assignmentButtons[index]:SetText(name)
         menu:Save(index, ":"..name)
-        
+
         local previous = names[name]
         names[name] = index
-        
+
         if previous and previous ~= index then -- exists, remove previous
             Cell.unitButtons.spotlight[previous]:SetAttribute("unit", nil)
             assignmentButtons[previous]:SetText("|cffababab"..NONE)
@@ -427,7 +438,9 @@ P:Point(unitpet, "TOPRIGHT", unitname, "BOTTOMRIGHT")
 unitpet:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
-    menu:GetFrameRef("spotlight"..index):SetAttribute("refreshOnUpdate", nil)
+    local spotlight = menu:GetFrameRef("spotlight"..index)
+    spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     self:CallMethod("SetUnit", index, "target")
     menu:Hide()
 ]])
@@ -448,7 +461,6 @@ P:Point(unittarget, "TOPRIGHT", unitpet, "BOTTOMRIGHT")
 unittarget:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
-    menu:GetFrameRef("spotlight"..index):SetAttribute("refreshOnUpdate", true)
     self:CallMethod("SetUnit", index, "target")
     menu:Hide()
 ]])
@@ -458,10 +470,12 @@ function unittarget:SetUnit(index, target)
         if unitId == "player" then
             unitId = "target"
             Cell.unitButtons.spotlight[index]:SetAttribute("refreshOnUpdate", nil)
+            Cell.unitButtons.spotlight[index]:SetAttribute("updateOnTargetChanged", true)
         else
             unitId = unitId.."target"
             -- NOTE: no EVENT for this kind of targets， use OnUpdate
             Cell.unitButtons.spotlight[index]:SetAttribute("refreshOnUpdate", true)
+            Cell.unitButtons.spotlight[index]:SetAttribute("updateOnTargetChanged", nil)
         end
         Cell.unitButtons.spotlight[index]:SetAttribute("unit", unitId)
         assignmentButtons[index]:SetText(unitId)
@@ -478,7 +492,9 @@ tank:SetEnabled(not Cell.isVanilla)
 tank:SetAttribute("_onclick", [[
     local menu = self:GetParent()
     local index = menu:GetAttribute("index")
-    menu:GetFrameRef("spotlight"..index):SetAttribute("refreshOnUpdate", nil)
+    local spotlight = menu:GetFrameRef("spotlight"..index)
+    spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "tank")
     self:CallMethod("SetUnit", index)
     menu:Hide()
@@ -500,6 +516,7 @@ boss1target:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", "boss1target")
     spotlight:SetAttribute("refreshOnUpdate", true)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "boss1target")
     menu:Hide()
 
@@ -515,6 +532,7 @@ clear:SetAttribute("_onclick", [[
     local spotlight = menu:GetFrameRef("spotlight"..index)
     spotlight:SetAttribute("unit", nil)
     spotlight:SetAttribute("refreshOnUpdate", nil)
+    spotlight:SetAttribute("updateOnTargetChanged", nil)
     menu:GetFrameRef("assignment"..index):SetAttribute("text", "none")
     menu:Hide()
 
@@ -542,7 +560,7 @@ UpdateTanks = function()
             tankUpdateRequired = true
             return
         end
-        
+
         if tanks[index] then
             if units[n] then
                 Cell.unitButtons.spotlight[index]:SetAttribute("unit", units[n])
@@ -550,7 +568,7 @@ UpdateTanks = function()
                 Cell.unitButtons.spotlight[index]:SetAttribute("unit", nil)
             end
             n = n + 1
-        end        
+        end
     end
 
     tankUpdateRequired = nil
@@ -564,7 +582,7 @@ UpdateNames = function()
     for unit in F:IterateGroupMembers() do
         if InCombatLockdown() then
             nameUpdateRequired = true
-            return 
+            return
         end
         local name = GetUnitName(unit, true)
         if names[name] then
@@ -572,7 +590,7 @@ UpdateNames = function()
             found[name] = true
         end
     end
-    
+
     -- hide not found
     for name, index in pairs(names) do
         if InCombatLockdown() then
@@ -659,21 +677,21 @@ end
 -------------------------------------------------
 local function UpdatePosition()
     local layout = Cell.vars.currentLayoutTable
-    
+
     local anchor
     if layout["spotlight"]["sameArrangementAsMain"] then
         anchor = layout["main"]["anchor"]
     else
         anchor = layout["spotlight"]["anchor"]
     end
-    
+
     spotlightFrame:ClearAllPoints()
     -- NOTE: detach from spotlightPreviewAnchor
     P:LoadPosition(anchorFrame, layout["spotlight"]["position"])
 
     if CellDB["general"]["menuPosition"] == "top_bottom" then
         P:Size(anchorFrame, 20, 10)
-        
+
         if anchor == "BOTTOMLEFT" then
             spotlightFrame:SetPoint("BOTTOMLEFT", anchorFrame, "TOPLEFT", 0, 4)
             tooltipPoint, tooltipRelativePoint, tooltipX, tooltipY = "TOPLEFT", "BOTTOMLEFT", 0, -3
@@ -768,7 +786,7 @@ local function UpdateLayout(layout, which)
         -- anchors
         local point, anchorPoint, groupPoint, unitSpacingX, unitSpacingY
         local menuAnchorPoint, menuX, menuY
-        
+
         if strfind(orientation, "^vertical") then
             if anchor == "BOTTOMLEFT" then
                 point, anchorPoint = "BOTTOMLEFT", "TOPLEFT"
@@ -869,7 +887,7 @@ local function UpdateLayout(layout, which)
             B:SetOrientation(b, layout["barOrientation"][1], layout["barOrientation"][2])
         end
     end
-    
+
     if not which or strfind(which, "power$") or which == "barOrientation" or which == "powerFilter" then
         for _, b in pairs(Cell.unitButtons.spotlight) do
             if layout["spotlight"]["sameSizeAsMain"] then
@@ -888,7 +906,10 @@ local function UpdateLayout(layout, which)
             for i = 1, 15 do
                 local unit = layout["spotlight"]["units"][i]
                 Cell.unitButtons.spotlight[i]:SetAttribute("hidePlaceholder", layout["spotlight"]["hidePlaceholder"])
-                
+
+                Cell.unitButtons.spotlight[i]:SetAttribute("refreshOnUpdate", nil)
+                Cell.unitButtons.spotlight[i]:SetAttribute("updateOnTargetChanged", nil)
+
                 if unit == "tank" then -- tank
                     tanks[i] = true
                 elseif unit and strfind(unit, "^:") then -- name
@@ -898,6 +919,8 @@ local function UpdateLayout(layout, which)
                     Cell.unitButtons.spotlight[i]:SetAttribute("unit", unit)
                     if unit and strfind(unit, "^.+target$") then
                         Cell.unitButtons.spotlight[i]:SetAttribute("refreshOnUpdate", true)
+                    elseif unit == "target" then
+                        Cell.unitButtons.spotlight[i]:SetAttribute("updateOnTargetChanged", true)
                     end
                 end
                 RegisterUnitWatch(Cell.unitButtons.spotlight[i])
@@ -912,6 +935,7 @@ local function UpdateLayout(layout, which)
             for i = 1, 15 do
                 Cell.unitButtons.spotlight[i]:SetAttribute("unit", nil)
                 Cell.unitButtons.spotlight[i]:SetAttribute("refreshOnUpdate", nil)
+                Cell.unitButtons.spotlight[i]:SetAttribute("updateOnTargetChanged", nil)
                 UnregisterUnitWatch(Cell.unitButtons.spotlight[i])
                 assignmentButtons[i]:SetText("|cffababab"..NONE)
                 Cell.unitButtons.spotlight[i]:Hide()
@@ -949,8 +973,12 @@ Cell:RegisterCallback("UpdatePixelPerfect", "SpotlightFrame_UpdatePixelPerfect",
 
 local function UpdateAppearance(which)
     if not which or which == "strata" then
-        C_Timer.After(1, function()
+        C_Timer.After(0.5, function()
             targetFrame:SetFrameStrata("TOOLTIP")
+            if not InCombatLockdown() then
+                menu:SetFrameStrata("FULLSCREEN_DIALOG")
+                menu:SetToplevel(true)
+            end
         end)
     end
 end

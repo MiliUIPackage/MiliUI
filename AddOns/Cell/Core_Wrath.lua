@@ -17,11 +17,11 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 189
-Cell.MIN_CLICKCASTINGS_VERSION = 189
-Cell.MIN_LAYOUTS_VERSION = 221
-Cell.MIN_INDICATORS_VERSION = 221
-Cell.MIN_DEBUFFS_VERSION = 189
+Cell.MIN_VERSION = 200
+Cell.MIN_CLICKCASTINGS_VERSION = 228
+Cell.MIN_LAYOUTS_VERSION = 236
+Cell.MIN_INDICATORS_VERSION = 235
+Cell.MIN_DEBUFFS_VERSION = 228
 
 --[==[@debug@
 local debugMode = true
@@ -66,10 +66,14 @@ function F:UpdateLayout(layoutGroupType, updateIndicators)
         delayedFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
     else
         F:Debug("|cFF7CFC00F:UpdateLayout(\""..layoutGroupType.."\")")
-        local layout = Cell.vars.layoutAutoSwitch[Cell.vars.activeTalentGroup][layoutGroupType]
+
+        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"][Cell.vars.activeTalentGroup]
+
+        local layout = Cell.vars.layoutAutoSwitch[layoutGroupType]
         Cell.vars.currentLayout = layout
         Cell.vars.currentLayoutTable = CellDB["layouts"][layout]
         Cell.vars.layoutGroupType = layoutGroupType
+
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
         if updateIndicators then
             Cell:Fire("UpdateIndicators")
@@ -103,7 +107,9 @@ local function PreUpdateLayout()
         F:UpdateLayout("arena", true)
     else
         Cell.vars.inBattleground = false
-        if Cell.vars.groupType == "solo" or Cell.vars.groupType == "party" then
+        if Cell.vars.groupType == "solo" then
+            F:UpdateLayout("solo", true)
+        elseif Cell.vars.groupType == "party" then
             F:UpdateLayout("party", true)
         else -- raid
             if Cell.vars.raidType then
@@ -136,17 +142,21 @@ function eventFrame:ADDON_LOADED(arg1)
     if arg1 == addonName then
         -- cellLoaded = true
         eventFrame:UnregisterEvent("ADDON_LOADED")
-        
+
         if type(CellDB) ~= "table" then CellDB = {} end
         if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
 
-        if type(CellDB["indicatorPreviewAlpha"]) ~= "number" then CellDB["indicatorPreviewAlpha"] = 0.5 end
-        if type(CellDB["indicatorPreviewScale"]) ~= "number" then CellDB["indicatorPreviewScale"] = 1 end
+        if type(CellDB["indicatorPreview"]) ~= "table" then
+            CellDB["indicatorPreview"] = {
+                ["scale"] = 2,
+                ["showAll"] = false,
+            }
+        end
 
         if type(CellDB["customTextures"]) ~= "table" then CellDB["customTextures"] = {} end
-        
+
         if type(CellDB["snippets"]) ~= "table" then CellDB["snippets"] = {} end
         if not CellDB["snippets"][0] then CellDB["snippets"][0] = F:GetDefaultSnippet() end
 
@@ -158,6 +168,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["tooltipsPosition"] = {"BOTTOMLEFT", "Default", "TOPLEFT", 0, 15},
                 ["showSolo"] = true,
                 ["showParty"] = true,
+                ["showRaid"] = true,
                 ["hideBlizzardParty"] = true,
                 ["hideBlizzardRaid"] = true,
                 ["locked"] = false,
@@ -165,7 +176,6 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["menuPosition"] = "top_bottom",
                 ["alwaysUpdateBuffs"] = false,
                 ["alwaysUpdateDebuffs"] = true,
-                ["overrideLGF"] = false,
                 ["framePriority"] = "normal_spotlight_quickassist",
                 ["useCleuHealthUpdater"] = false,
                 ["translit"] = false,
@@ -196,9 +206,9 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- spellRequest ---------------------------------------------------------------------------
         if type(CellDB["spellRequest"]) ~= "table" then
-            local POWER_INFUSION, _, POWER_INFUSION_ICON = GetSpellInfo(10060)
-            local INNERVATE, _, INNERVATE_ICON = GetSpellInfo(29166)
-            
+            local POWER_INFUSION, POWER_INFUSION_ICON = F:GetSpellInfo(10060)
+            local INNERVATE, INNERVATE_ICON = F:GetSpellInfo(29166)
+
             CellDB["spellRequest"] = {
                 ["enabled"] = false,
                 ["checkIfExists"] = true,
@@ -217,7 +227,7 @@ function eventFrame:ADDON_LOADED(arg1)
                     0, -- [6] y
                 },
                 ["spells"] = {
-                    { 
+                    {
                         ["spellId"] = 10060,
                         ["buffId"] = 10060,
                         ["keywords"] = POWER_INFUSION,
@@ -238,7 +248,7 @@ function eventFrame:ADDON_LOADED(arg1)
                         },
                         ["isBuiltIn"] = true
                     },
-                    { 
+                    {
                         ["spellId"] = 29166,
                         ["buffId"] = 29166,
                         ["keywords"] = INNERVATE,
@@ -274,7 +284,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["type"] = "text",
                 ["textOptions"] = {
                     "A",
-                    {1, 0, 0, 1}, -- [1] color 
+                    {1, 0, 0, 1}, -- [1] color
                     32, -- [2] size
                     "TOPLEFT", -- [3] anchor
                     "TOPLEFT", -- [4] anchorTo
@@ -316,7 +326,7 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- color ---------------------------------------------------------------------------------
         if CellDB["appearance"]["accentColor"] then -- version < r103
-            if CellDB["appearance"]["accentColor"][1] == "custom" then 
+            if CellDB["appearance"]["accentColor"][1] == "custom" then
                 Cell:OverrideAccentColor(CellDB["appearance"]["accentColor"][2])
             end
         end
@@ -326,7 +336,7 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellCharacterDB["clickCastings"]) ~= "table" then
             CellCharacterDB["clickCastings"] = {
-                ["class"] = Cell.vars.playerClass, -- validate on import
+                ["class"] = Cell.vars.playerClass, -- NOTE: validate on import
                 ["useCommon"] = true,
                 ["smartResurrection"] = "disabled",
                 ["alwaysTargeting"] = {
@@ -365,73 +375,41 @@ function eventFrame:ADDON_LOADED(arg1)
             }
         end
 
-        -- init enabled layout
+        -- layoutAutoSwitch -----------------------------------------------------------------------
         if type(CellCharacterDB["layoutAutoSwitch"]) ~= "table" then
             CellCharacterDB["layoutAutoSwitch"] = {
-                [1] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid10"] = "default",
-                    ["raid25"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                },
-                [2] = {
-                    ["party"] = "default",
-                    ["raid_outdoor"] = "default",
-                    ["raid10"] = "default",
-                    ["raid25"] = "default",
-                    ["arena"] = "default",
-                    ["battleground15"] = "default",
-                    ["battleground40"] = "default",
-                },
+                [1] = F:Copy(Cell.defaults.layoutAutoSwitch),
+                [2] = F:Copy(Cell.defaults.layoutAutoSwitch),
             }
         end
 
-        -- validate layout
-        for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
-            for groupType, layout in pairs(t) do
-                if not CellDB["layouts"][layout] then
-                    CellCharacterDB["layoutAutoSwitch"][talent][groupType] = "default"
-                end
-            end
-
-            if not t["raid10"] then t["raid10"] = "default" end
-            if not t["raid25"] then t["raid25"] = "default" end
-            if not t["battleground15"] then t["battleground15"] = "default" end
-            if not t["battleground40"] then t["battleground40"] = "default" end
-        end
-
-        Cell.vars.layoutAutoSwitch = CellCharacterDB["layoutAutoSwitch"]
-
         -- dispelBlacklist ------------------------------------------------------------------------
         if type(CellDB["dispelBlacklist"]) ~= "table" then
-            CellDB["dispelBlacklist"] = I:GetDefaultDispelBlacklist()
+            CellDB["dispelBlacklist"] = I.GetDefaultDispelBlacklist()
         end
         Cell.vars.dispelBlacklist = F:ConvertTable(CellDB["dispelBlacklist"])
-        
+
         -- debuffBlacklist ------------------------------------------------------------------------
         if type(CellDB["debuffBlacklist"]) ~= "table" then
-            CellDB["debuffBlacklist"] = I:GetDefaultDebuffBlacklist()
+            CellDB["debuffBlacklist"] = I.GetDefaultDebuffBlacklist()
         end
         Cell.vars.debuffBlacklist = F:ConvertTable(CellDB["debuffBlacklist"])
 
         -- bigDebuffs -----------------------------------------------------------------------------
         if type(CellDB["bigDebuffs"]) ~= "table" then
-            CellDB["bigDebuffs"] = I:GetDefaultBigDebuffs()
+            CellDB["bigDebuffs"] = I.GetDefaultBigDebuffs()
         end
         Cell.vars.bigDebuffs = F:ConvertTable(CellDB["bigDebuffs"])
-                
+
         -- debuffTypeColor -----------------------------------------------------------------------------
         if type(CellDB["debuffTypeColor"]) ~= "table" then
-            I:ResetDebuffTypeColor()
+            I.ResetDebuffTypeColor()
         end
 
         -- defensives/externals -------------------------------------------------------------------
         if type(CellDB["defensives"]) ~= "table" then CellDB["defensives"] = {["disabled"]={}, ["custom"]={}} end
         if type(CellDB["externals"]) ~= "table" then CellDB["externals"] = {["disabled"]={}, ["custom"]={}} end
-        
+
         -- raid debuffs ---------------------------------------------------------------------------
         if type(CellDB["raidDebuffs"]) ~= "table" then CellDB["raidDebuffs"] = {} end
         -- CellDB["raidDebuffs"] = {
@@ -447,30 +425,40 @@ function eventFrame:ADDON_LOADED(arg1)
 
         -- targetedSpells -------------------------------------------------------------------------
         if type(CellDB["targetedSpellsList"]) ~= "table" then
-            CellDB["targetedSpellsList"] = I:GetDefaultTargetedSpellsList()
+            CellDB["targetedSpellsList"] = I.GetDefaultTargetedSpellsList()
         end
         Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
-        
+
         if type(CellDB["targetedSpellsGlow"]) ~= "table" then
-            CellDB["targetedSpellsGlow"] = I:GetDefaultTargetedSpellsGlow()
+            CellDB["targetedSpellsGlow"] = I.GetDefaultTargetedSpellsGlow()
         end
         Cell.vars.targetedSpellsGlow = CellDB["targetedSpellsGlow"]
 
-        -- consumables ----------------------------------------------------------------------------
-        if type(CellDB["consumables"]) ~= "table" then
-            CellDB["consumables"] = I:GetDefaultConsumables()
+        -- actions --------------------------------------------------------------------------------
+        if type(CellDB["actions"]) ~= "table" then
+            CellDB["actions"] = I.GetDefaultActions()
         end
-        Cell.vars.consumables = I:ConvertConsumables(CellDB["consumables"])
-        
+        Cell.vars.actions = I.ConvertActions(CellDB["actions"])
+
         -- misc -----------------------------------------------------------------------------------
         Cell.version = GetAddOnMetadata(addonName, "version")
-        Cell.versionNum = tonumber(string.match(Cell.version, "%d+")) 
+        Cell.versionNum = tonumber(string.match(Cell.version, "%d+"))
         if not CellDB["revise"] then CellDB["firstRun"] = true end
         F:Revise()
         F:CheckWhatsNew()
         F:RunSnippets()
-        Cell.loaded = true
 
+        -- validation -----------------------------------------------------------------------------
+        -- validate layout
+        for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
+            for groupType, layout in pairs(t) do
+                if not CellDB["layouts"][layout] then
+                    t[groupType] = "default"
+                end
+            end
+        end
+
+        Cell.loaded = true
         Cell:Fire("AddonLoaded")
     end
 
@@ -673,6 +661,13 @@ local function CheckDivineAegis()
     end
 end
 
+local function UpdateSpecVars(exceptActiveTalentGroup)
+    -- if not exceptActiveTalentGroup then
+        Cell.vars.activeTalentGroup = GetActiveTalentGroup()
+        Cell.vars.playerSpecID = Cell.vars.activeTalentGroup
+    -- end
+end
+
 function eventFrame:PLAYER_LOGIN()
     F:Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -695,13 +690,9 @@ function eventFrame:PLAYER_LOGIN()
     Cell.vars.playerGUID = UnitGUID("player")
 
     -- update spec vars
-    if not Cell.vars.activeTalentGroup then
-        Cell.vars.activeTalentGroup = GetActiveTalentGroup()
-        Cell.vars.playerSpecRole = Cell.vars.activeTalentGroup
-        Cell.vars.playerSpecID = Cell.vars.activeTalentGroup
-    end
+    UpdateSpecVars()
 
-    --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable 
+    --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable
     eventFrame:GROUP_ROSTER_UPDATE()
     -- update visibility
     Cell:Fire("UpdateVisibility")
@@ -727,14 +718,12 @@ function eventFrame:PLAYER_LOGIN()
     -- update CLEU
     Cell:Fire("UpdateCLEU")
     -- update builtIns and customs
-    I:UpdateDefensives(CellDB["defensives"])
-    I:UpdateExternals(CellDB["externals"])
+    I.UpdateDefensives(CellDB["defensives"])
+    I.UpdateExternals(CellDB["externals"])
     -- update pixel perfect
     Cell:Fire("UpdatePixelPerfect")
-    -- overrideLGF
-    F:OverrideLGF(CellDB["general"]["overrideLGF"])
     -- LibHealComm
-    F:EnableLibHealComm(CellDB["appearance"]["useLibHealComm"])
+    -- F:EnableLibHealComm(CellDB["appearance"]["useLibHealComm"])
 end
 
 function eventFrame:UI_SCALE_CHANGED()
@@ -747,10 +736,8 @@ end
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
     F:Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
     -- not in combat & spec CHANGED
-    if not InCombatLockdown() and (Cell.vars.activeTalentGroup and Cell.vars.activeTalentGroup ~= GetActiveTalentGroup()) then
-        Cell.vars.activeTalentGroup = GetActiveTalentGroup()
-        Cell.vars.playerSpecRole = Cell.vars.activeTalentGroup
-        Cell.vars.playerSpecID = Cell.vars.activeTalentGroup
+    if not InCombatLockdown() and (Cell.vars.activeTalentGroup ~= GetActiveTalentGroup()) then
+        UpdateSpecVars()
 
         Cell:Fire("UpdateClickCastings")
         F:Debug("|cffffbb77ActiveTalentGroupChanged:|r", Cell.vars.activeTalentGroup)
@@ -763,6 +750,8 @@ end
 -- check Divine Aegis
 function eventFrame:PLAYER_TALENT_UPDATE()
     CheckDivineAegis()
+    -- UpdateSpecVars(true)
+    F:UpdateClickCastingProfileLabel()
 end
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)
@@ -816,11 +805,11 @@ function SlashCmdList.CELL(msg, editbox)
         elseif rest == "clickcastings" then
             CellCharacterDB["clickCastings"] = nil
             ReloadUI()
-        
+
         elseif rest == "raiddebuffs" then
             CellDB["raidDebuffs"] = nil
             ReloadUI()
-        
+
         elseif rest == "snippets" then
             CellDB["snippets"] = {}
             CellDB["snippets"][0] = F:GetDefaultSnippet()
@@ -840,7 +829,7 @@ function SlashCmdList.CELL(msg, editbox)
         else
             F:Print(L["A 0-40 integer is required."])
         end
-   
+
     -- elseif command == "buff" then
     --     rest = tonumber(rest:format("%d"))
     --     if rest and rest > 0 then

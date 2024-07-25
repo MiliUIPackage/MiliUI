@@ -31,7 +31,7 @@ Cell.defaults.indicatorIndices = {
     ["targetedSpells"] = 25,
     ["targetCounter"] = 26,
     ["crowdControls"] = 27,
-    ["consumables"] = 28,
+    ["actions"] = 28,
     ["missingBuffs"] = 29,
 }
 
@@ -135,7 +135,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "statusText",
             ["type"] = "built-in",
             ["enabled"] = true,
-            ["position"] = {"BOTTOM", 0},
+            ["position"] = {"BOTTOM", 0, "justify"},
             ["frameLevel"] = 30,
             ["font"] = {"Cell ".._G.DEFAULT, 11, "None", true},
             ["showTimer"] = true,
@@ -204,7 +204,7 @@ Cell.defaults.layout = {
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
             ["size"] = {11, 11},
             ["roleTexture"] = {"default", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\Tank.tga", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\Healer.tga", "Interface\\AddOns\\ElvUI\\Core\\Media\\Textures\\DPS.tga"},
-            ["frameLevel"] = 1,
+            ["frameLevel"] = 5,
         }, -- 7
         {
             ["name"] = "Leader Icon",
@@ -220,6 +220,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "readyCheckIcon",
             ["type"] = "built-in",
             ["enabled"] = true,
+            ["position"] = {"CENTER", "CENTER", 0, 0},
             ["frameLevel"] = 100,
             ["size"] = {16, 16},
         }, -- 9
@@ -229,7 +230,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"TOP", "TOP", 0, 3},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {14, 14},
             ["alpha"] = 0.77,
         }, -- 10
@@ -239,7 +240,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = false,
             ["position"] = {"TOP", "TOP", -14, 3},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {14, 14},
             ["alpha"] = 0.77,
         }, -- 11
@@ -249,7 +250,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"TOPLEFT", "TOPLEFT", 0, 0},
-            ["frameLevel"] = 3,
+            ["frameLevel"] = 7,
             ["size"] = {11, 11},
         }, -- 12
         {
@@ -266,7 +267,7 @@ Cell.defaults.layout = {
             ["indicatorName"] = "aggroBorder",
             ["type"] = "built-in",
             ["enabled"] = false,
-            ["frameLevel"] = 7,
+            ["frameLevel"] = 3,
             ["thickness"] = 2,
         }, -- 14
         {
@@ -275,7 +276,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = false,
             ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 0, 0},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["height"] = 4,
             ["color"] = {1, 1, 0, 1},
             ["onlyShowOvershields"] = false,
@@ -345,7 +346,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"TOPLEFT", "TOPLEFT", 10, 0},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {20, 6},
             ["color"] = {"class_color", {0.25, 1, 0}},
         }, -- 20
@@ -357,7 +358,14 @@ Cell.defaults.layout = {
             ["position"] = {"BOTTOMRIGHT", "BOTTOMRIGHT", 0, 4},
             ["frameLevel"] = 15,
             ["size"] = {12, 12},
-            ["dispellableByMe"] = true,
+            ["filters"] = {
+                ["dispellableByMe"] = true,
+                ["Curse"] = true,
+                ["Disease"] = true,
+                ["Magic"] = true,
+                ["Poison"] = true,
+                ["Bleed"] = true,
+            },
             ["highlightType"] = "gradient-half",
             ["showDispelTypeIcons"] = true,
             ["orientation"] = "right-to-left",
@@ -368,7 +376,7 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["position"] = {"BOTTOMLEFT", "BOTTOMLEFT", 1, 4},
-            ["frameLevel"] = 2,
+            ["frameLevel"] = 5,
             ["size"] = {{13, 13}, {17, 17}},
             ["showDuration"] = false,
             ["showAnimation"] = true,
@@ -417,11 +425,13 @@ Cell.defaults.layout = {
             ["type"] = "built-in",
             ["enabled"] = true,
             ["showAllSpells"] = false,
-            ["position"] = {"CENTER", "TOPLEFT", 7, -7},
+            ["position"] = {"TOPLEFT", "TOPLEFT", -4, 4},
             ["frameLevel"] = 50,
             ["size"] = {20, 20},
             ["border"] = 2,
+            ["num"] = 1,
             ["font"] = {"Cell ".._G.DEFAULT, 12, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
+            ["orientation"] = "left-to-right",
         }, -- 25
         {
             ["name"] = "Target Counter",
@@ -448,6 +458,7 @@ Cell.defaults.layout = {
             ["size"] = {22, 22},
             ["border"] = 2,
             ["num"] = 3,
+            ["showDuration"] = true,
             ["font"] = {
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "TOPRIGHT", 2, 1, {1, 1, 1}},
                 {"Cell ".._G.DEFAULT, 11, "Outline", false, "BOTTOMRIGHT", 2, -1, {1, 1, 1}},
@@ -456,8 +467,8 @@ Cell.defaults.layout = {
             ["orientation"] = "left-to-right",
         }, -- 27
         {
-            ["name"] = "Consumables",
-            ["indicatorName"] = "consumables",
+            ["name"] = "Actions",
+            ["indicatorName"] = "actions",
             ["type"] = "built-in",
             ["enabled"] = true,
             ["speed"] = 1,
@@ -485,6 +496,7 @@ Cell.defaults.layout = {
 }
 
 Cell.defaults.layoutAutoSwitch = {
+    ["solo"] = "default",
     ["party"] = "default",
     ["raid_outdoor"] = "default",
     ["raid_instance"] = "default",

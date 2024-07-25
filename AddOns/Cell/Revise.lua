@@ -8,7 +8,7 @@ function F:Revise()
     F:Debug("DBRevision:", dbRevision)
 
     local charaDbRevision
-    if Cell.isVanilla or Cell.isCata then
+    if CellCharacterDB then
         charaDbRevision = CellCharacterDB["revise"] and tonumber(string.match(CellCharacterDB["revise"], "%d+")) or 0
         F:Debug("CharaDBRevision:", charaDbRevision)
     end
@@ -27,7 +27,7 @@ function F:Revise()
         end)
         return
     end
-    
+
     if CellCharacterDB and CellCharacterDB["revise"] and charaDbRevision < Cell.MIN_VERSION then -- update from an unsupported version
         local f = CreateFrame("Frame")
         f:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -123,7 +123,7 @@ function F:Revise()
         CellDB["disableTooltips"] = nil
         CellDB["showSolo"] = nil
     end
-    
+
     -- r15-release
     if not(CellDB["revise"]) or dbRevision < 15 then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -478,7 +478,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r38-release
     if CellDB["revise"] and dbRevision < 38 then
         if CellDB["raidTools"]["pullTimer"][1] == "ERT" then
@@ -770,7 +770,7 @@ function F:Revise()
             Cell.vars.debuffBlacklist = F:ConvertTable(CellDB["debuffBlacklist"])
         end
     end
-    
+
     -- r64-release
     if CellDB["revise"] and dbRevision < 64 then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -829,7 +829,7 @@ function F:Revise()
             CellDB["appearance"]["iconAnimation"] = "duration"
         end
     end
-    
+
     -- r69-release
     if CellDB["revise"] and dbRevision < 69 then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -858,7 +858,7 @@ function F:Revise()
         if type(CellDB["appearance"]["barAlpha"]) ~= "number" then
             CellDB["appearance"]["barAlpha"] = 1
         end
-        
+
         if type(CellDB["appearance"]["lossAlpha"]) ~= "number" then
             CellDB["appearance"]["lossAlpha"] = 1
         end
@@ -866,7 +866,7 @@ function F:Revise()
         if type(CellDB["appearance"]["lossColor"]) ~= "table" then
             CellDB["appearance"]["lossColor"] = CellDB["appearance"]["bgColor"]
             CellDB["appearance"]["bgColor"] = nil
-        end 
+        end
 
         if type(CellDB["appearance"]["healPrediction"]) ~= "boolean" then
             CellDB["appearance"]["healPrediction"] = true
@@ -898,7 +898,7 @@ function F:Revise()
                     ["DECLINED"] = {1, 0.19, 0.19},
                 }
             end
-            
+
             if not layout["powerFilters"] then
                 layout["powerFilters"] = {
                     ["DEATHKNIGHT"] = {["TANK"] = true, ["DAMAGER"] = true},
@@ -941,7 +941,7 @@ function F:Revise()
             CellDB["appearance"]["useGameFont"] = true
         end
     end
-    
+
     -- r79-release
     if CellDB["revise"] and dbRevision < 79 then
         -- update name text width
@@ -968,7 +968,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r81-release
     if CellDB["revise"] and dbRevision < 81 then
         -- update marks
@@ -988,7 +988,7 @@ function F:Revise()
             CellDB["raidTools"]["showBuffTracker"] = nil
             CellDB["raidTools"]["buffTrackerPosition"] = nil
         end
-        
+
         -- update readyAndPull
         if type(CellDB["raidTools"]["readyAndPull"]) ~= "table" then
             CellDB["raidTools"]["readyAndPull"] = {CellDB["raidTools"]["showButtons"], CellDB["raidTools"]["pullTimer"], CellDB["raidTools"]["buttonsPosition"]}
@@ -998,7 +998,7 @@ function F:Revise()
             CellDB["raidTools"]["buttonsPosition"] = nil
         end
     end
-    
+
     -- r82-release
     if CellDB["revise"] and dbRevision < 82 then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -1012,7 +1012,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r87-release
     if CellDB["revise"] and dbRevision < 87 then
         -- rename raid tools
@@ -1195,7 +1195,7 @@ function F:Revise()
             [21] = "raidDebuffs",
             [22] = "targetedSpells"
         }
-        
+
         for _, layout in pairs(CellDB["layouts"]) do
             for i, t in pairs(layout["indicators"]) do
                 if i <= Cell.defaults.builtIns then -- built-ins
@@ -1285,7 +1285,7 @@ function F:Revise()
     if CellDB["revise"] and dbRevision < 99 then
         -- remove old nickname
         CellDB["general"]["nickname"] = nil
-        
+
         for _, layout in pairs(CellDB["layouts"]) do
             if layout["indicators"][1] and layout["indicators"][1]["indicatorName"] == "nameText" then
                 -- add Frame Level to Name Text indicator
@@ -1418,7 +1418,7 @@ function F:Revise()
                     ["color"] = {1, 1, 0, 1},
                 })
             end
-            
+
             -- add Consumables (r114)
             if not layout["indicators"][consumablesIndex] or layout["indicators"][consumablesIndex]["indicatorName"] ~= "consumables" then
                 tinsert(layout["indicators"], consumablesIndex, {
@@ -1429,17 +1429,17 @@ function F:Revise()
                     ["speed"] = 1,
                 })
             end
-            
+
             -- add speed to Consumables (r115)
             if not layout["indicators"][consumablesIndex]["speed"] then
                 layout["indicators"][consumablesIndex]["speed"] = 1
             end
-            
+
             -- add highlightType to Dispels (r115)
             if not layout["indicators"][dispelsIndex]["highlightType"] then
                 layout["indicators"][dispelsIndex]["highlightType"] = "gradient"
             end
-            
+
             -- add showDispelTypeIcons to Dispels (r115)
             if type(layout["indicators"][dispelsIndex]["showDispelTypeIcons"]) ~= "boolean" then
                 layout["indicators"][dispelsIndex]["showDispelTypeIcons"] = true
@@ -1464,7 +1464,7 @@ function F:Revise()
             CellDB["snippets"][0]["code"] = "-- snippets can be found at https://github.com/enderneko/Cell/tree/master/.snippets\n"..CellDB["snippets"][0]["code"]
         end
     end
-   
+
     -- r138-release
     if CellDB["revise"] and dbRevision < 138 then
         if Cell.isRetail then
@@ -1860,7 +1860,7 @@ function F:Revise()
             CellDB["appearance"]["strata"] = "MEDIUM"
         end
     end
-    
+
     -- r164-release
     if CellDB["revise"] and dbRevision < 164 then
         for class, t in pairs(CellDB["clickCastings"]) do
@@ -1888,7 +1888,7 @@ function F:Revise()
     if CellDB["revise"] and dbRevision < 169 then
         if Cell.isRetail then
             local privateAuras = Cell.defaults.indicatorIndices["privateAuras"]
-    
+
             for _, layout in pairs(CellDB["layouts"]) do
                 if layout["indicators"][privateAuras]["indicatorName"] ~= "privateAuras" then
                     tinsert(layout["indicators"], privateAuras, {
@@ -1950,7 +1950,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r174-release
     if CellDB["revise"] and dbRevision < 174 then
         for _, layout in pairs(CellDB["layouts"]) do
@@ -2064,7 +2064,7 @@ function F:Revise()
                     ["rows"] = layout["rows"],
                     ["groupSpacing"] = layout["groupSpacing"],
                 }
-                
+
                 layout["pet"] = {
                     ["partyEnabled"] = layout["pet"][1],
                     ["raidEnabled"] = layout["pet"][2],
@@ -2138,23 +2138,23 @@ function F:Revise()
                 0, -- [5] x
                 0, -- [6] y
             }
-    
+
             for _, t in pairs(CellDB["spellRequest"]["spells"]) do
                 t["type"] = "icon"
-                t["icon"] = select(3, GetSpellInfo(t["spellId"]))
+                t["icon"] = select(2, F:GetSpellInfo(t["spellId"]))
                 t["iconColor"] = t["glowOptions"][2][1]
             end
-            
+
             CellDB["dispelRequest"]["textOptions"] = {
                 "A",
-                {1, 0, 0, 1}, -- [1] color 
+                {1, 0, 0, 1}, -- [1] color
                 32, -- [2] size
                 "TOPLEFT", -- [3] anchor
                 "TOPLEFT", -- [4] anchorTo
                 -1, -- [5] x
                 5, -- [6] y
             }
-            
+
             CellDB["dispelRequest"]["type"] = "text"
         end
 
@@ -2183,7 +2183,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r188-release
     if CellDB["revise"] and dbRevision < 188 then
         if Cell.isRetail and type(CellDB["quickCast"]) == "table" then
@@ -2236,7 +2236,7 @@ function F:Revise()
         end
 
         local filters
-        
+
         if Cell.isRetail then
             filters = {
                 ["PWF"] = true,
@@ -2348,7 +2348,7 @@ function F:Revise()
             end
         end
     end
-   
+
     -- r202-release
     -- if CellDB["revise"] and dbRevision < 202 then
     --     -- custom indicator
@@ -2507,7 +2507,7 @@ function F:Revise()
             CellDB["debuffTypeColor"]["Bleed"] = {r=1, g=0.2, b=0.6}
         end
     end
-   
+
     -- r213-release
     if CellDB["revise"] and dbRevision < 213 then
         if Cell.isRetail then
@@ -2547,7 +2547,7 @@ function F:Revise()
                         t["color"] = {"class_color", {0.25, 1, 0}}
                     end
                 end
-                
+
                 -- rename nameColor to color
                 if t["indicatorName"] == "nameText" then
                     if type(t["color"]) ~= "table" then
@@ -2573,12 +2573,12 @@ function F:Revise()
             for _, i in pairs(layout["indicators"]) do
                 if i.indicatorName == "externalCooldowns" or i.indicatorName == "defensiveCooldowns" or i.indicatorName == "allCooldowns" or i.indicatorName == "debuffs"
                     or i.type == "icon" or i.type == "icons" then
-                    
+
                     -- add showAnimation option
                     if type(i.showAnimation) ~= "boolean" then
                         i.showAnimation = true
                     end
-                    
+
                     -- update showDuration
                     if i.showDuration == 0 then
                         i.showDuration = true
@@ -2616,7 +2616,7 @@ function F:Revise()
             end
         end
     end
-    
+
     -- r219-release
     if CellDB["revise"] and dbRevision < 219 then
         if not CellDB["appearance"]["gradientColors"] then
@@ -2711,7 +2711,7 @@ function F:Revise()
                     end
                 end
             end
-            
+
             -- add power text indicator
             local index = Cell.defaults.indicatorIndices.powerText
             if layout["indicators"][index]["indicatorName"] ~= "powerText" then
@@ -2754,14 +2754,14 @@ function F:Revise()
             temp[3] = {t[2], t[3], t[4], 1}
             return temp
         end
-        
+
         local function AddAlpha2(t)
             local temp = {}
             temp[1] = t[4]
             temp[2] = {t[1], t[2], t[3], 1}
             return temp
         end
-        
+
         local function AddAlpha3(t)
             local temp = {}
             temp[1] = t[1]
@@ -2880,6 +2880,242 @@ function F:Revise()
         end
     end
 
+    -- r228-release
+    if CellDB["revise"] and dbRevision < 228 then
+        if type(CellDB["appearance"]["overshieldReverseFill"]) ~= "boolean" then
+            CellDB["appearance"]["overshieldReverseFill"] = CellDB["appearance"]["overshieldReverseFilling"] or false
+            CellDB["appearance"]["overshieldReverseFilling"] = nil
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.type == "bar" or i.type == "rect" then
+                    -- add duration font for Bar/Rect
+                    if #i.font ~= 2 then
+                        i.showDuration = false
+                        if i.showStack then
+                            local stackFont = i.font
+                            i.font = {
+                                stackFont,
+                                {"Cell ".._G.DEFAULT, 11, "Outline", false, "RIGHT", -1, 0, {1, 1, 1}},
+                            }
+                        else
+                            i.font = {
+                                {"Cell ".._G.DEFAULT, 11, "Outline", false, "LEFT", 1, 0, {1, 1, 1}},
+                                {"Cell ".._G.DEFAULT, 11, "Outline", false, "RIGHT", -1, 0, {1, 1, 1}},
+                            }
+                        end
+                    end
+
+                elseif i.type == "icons" then
+                    -- add spacing for icons
+                    if type(i.spacing) ~= "table" then
+                        i.spacing = {0, 0}
+                    end
+
+                elseif i.indicatorName == "targetedSpells" then
+                    if not i.num then
+                        i.num = 1
+                        i.orientation = "left-to-right"
+                    end
+                end
+            end
+        end
+
+        -- update RaidDebuffs structure
+        local indices = {"order", "trackByID", "condition", "glowType", "glowOptions", "glowCondition"}
+        for instanceId, iTable in pairs(CellDB["raidDebuffs"]) do
+            for bossId, bTable in pairs(iTable) do
+                for spellId, sTable in pairs(bTable) do
+                    if #sTable ~= 0 then
+                        local old = F:Copy(sTable)
+                        wipe(sTable)
+                        for i, index in pairs(indices) do
+                            sTable[index] = old[i]
+                        end
+                    end
+                end
+            end
+        end
+
+        -- add "solo" for layout auto switch
+        if Cell.isRetail then
+            for role, t in pairs(CellDB["layoutAutoSwitch"]) do
+                for _, st in pairs(t) do
+                    if not st.solo then st.solo = st.party end
+                end
+            end
+        end
+    end
+
+    if CellCharacterDB and CellCharacterDB["revise"] and charaDbRevision < 229 then
+        for _, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
+            if not t.solo then t.solo = t.party end
+        end
+    end
+
+    -- r230-beta
+    if CellDB["revise"] and dbRevision < 230 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.type == "color" then
+                    -- limit frameLevel to 50
+                    if i.frameLevel > 50 then
+                        i.frameLevel = 50
+                    end
+                end
+            end
+        end
+
+        -- CELL_COOLDOWN_STYLE
+        if not strfind(CellDB["snippets"][0]["code"], "CELL_COOLDOWN_STYLE") then
+            CellDB["snippets"][0]["code"] = CellDB["snippets"][0]["code"].."\n\n-- cooldown style for icon/block indicators (\"VERTICAL\", \"CLOCK\")\nCELL_COOLDOWN_STYLE = \"VERTICAL\""
+        end
+
+        -- disable snippets
+        F:DisableSnippets()
+    end
+
+    -- r231-release
+    if CellDB["revise"] and dbRevision < 231 then
+        -- consumables -> actions
+        if CellDB["consumables"] then
+            CellDB["actions"] = CellDB["consumables"]
+            CellDB["consumables"] = nil
+
+            for _, layout in pairs(CellDB["layouts"]) do
+                for _, i in pairs(layout["indicators"]) do
+                    if i.indicatorName == "consumables" then
+                        i.name = "Actions"
+                        i.indicatorName = "actions"
+                        break
+                    end
+                end
+            end
+        end
+
+        -- click-castings macro -> macrotext
+        if Cell.isRetail then
+            for _, classT in pairs(CellDB["clickCastings"]) do
+                for k, t in pairs(classT) do
+                    if type(k) == "number" or k == "common" then
+                        for _, binding in pairs(t) do
+                            if binding[2] == "macro" and binding[3] and strfind(strtrim(binding[3]), "^[/#]") then
+                                binding[2] = "custom"
+                            end
+                        end
+                    end
+                end
+            end
+        else
+            for _, t in pairs(CellCharacterDB["clickCastings"]) do
+                if type(k) == "number" or k == "common" then
+                    for _, binding in pairs(t) do
+                        if binding[2] == "macro" and binding[3] and strfind(strtrim(binding[3]), "^[/#]") then
+                            binding[2] = "custom"
+                        end
+                    end
+                end
+            end
+        end
+
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.type == "block" then
+                    -- update block, add "colorBy"
+                    if #i.colors == 4 then
+                        tinsert(i.colors, 1, "duration")
+                    end
+
+                elseif i.indicatorName == "dispels" then
+                    -- update Dispels filters
+                    if not i.filters then
+                        i.filters = {
+                            ["dispellableByMe"] = i.dispellableByMe,
+                            ["Curse"] = true,
+                            ["Disease"] = true,
+                            ["Magic"] = true,
+                            ["Poison"] = true,
+                            ["Bleed"] = true,
+                        }
+                    end
+                    i.dispellableByMe = nil
+                end
+            end
+        end
+    end
+
+    -- r234-release
+    if CellDB["revise"] and dbRevision < 234 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.indicatorName == "readyCheckIcon" then
+                    if not i.position then
+                        i.position = {"CENTER", "CENTER", 0, 0}
+                    end
+                end
+
+                if i.type == "overlay" then
+                    if i.frameLevel > 50 then
+                        i.frameLevel = 50
+                    end
+                end
+            end
+        end
+    end
+
+    -- r235-release
+    if CellDB["revise"] and dbRevision < 235 then
+        for _, layout in pairs(CellDB["layouts"]) do
+            for _, i in pairs(layout["indicators"]) do
+                if i.indicatorName == "statusText" then
+                    if #i.position ~= 3 then
+                        i.position[3] = "justify"
+                    end
+                end
+            end
+        end
+
+        if #CellDB["appearance"]["gradientColors"] ~= 5 then
+            CellDB["appearance"]["gradientColors"][4] = 0.05
+            CellDB["appearance"]["gradientColors"][5] = 0.95
+        end
+
+        if type(CellDB["general"]["showRaid"]) ~= "boolean" then
+            CellDB["general"]["showRaid"] = true
+        end
+    end
+
+    -- r236-release
+    -- if CellDB["revise"] and dbRevision < 236 then
+    --     for layout, t in pairs(CellDB["layouts"]) do
+    --         local name = string.gsub(layout, ":", "_")
+    --         name = string.gsub(name, "!", "*")
+    --         if name ~= layout then
+    --             CellDB["layouts"][name] = t
+    --             CellDB["layouts"][layout] = nil
+    --         end
+    --     end
+
+    --     if Cell.isRetail then
+    --         for _, roleOrClass in pairs(CellDB["layoutAutoSwitch"]) do
+    --             for _, t in pairs(roleOrClass) do
+    --                 for groupType, layout in pairs(t) do
+    --                     t[groupType] = string.gsub(t[groupType], ":", "_")
+    --                     t[groupType] = string.gsub(t[groupType], "!", "*")
+    --                 end
+    --             end
+    --         end
+    --     else
+    --         for talent, t in pairs(CellCharacterDB["layoutAutoSwitch"]) do
+    --             for groupType, layout in pairs(t) do
+    --                 t[groupType] = string.gsub(t[groupType], ":", "_")
+    --                 t[groupType] = string.gsub(t[groupType], "!", "*")
+    --             end
+    --         end
+    --     end
+    -- end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --
@@ -2887,7 +3123,7 @@ function F:Revise()
         for layoutName, layout in pairs(CellDB["layouts"]) do
             local toValidate = F:Copy(Cell.defaults.indicatorIndices)
             local temp = {}
-            
+
             -- built-ins
             for i, t in ipairs(layout["indicators"]) do
                 local name = t["indicatorName"]
@@ -2917,14 +3153,11 @@ function F:Revise()
                     toValidate[name] = nil
                 end
             end
-            
+
             -- customs
-            local index = 1
             for i, t in ipairs(layout["indicators"]) do
                 if t["type"] ~= "built-in" then
-                    t["indicatorName"] = "indicator"..index
                     tinsert(temp, t)
-                    index = index + 1
                 end
             end
 
@@ -2932,8 +3165,19 @@ function F:Revise()
         end
     end
 
+    --! update custom indicator names
+    for _, layout in pairs(CellDB["layouts"]) do
+        local index = 1
+        for i, t in ipairs(layout["indicators"]) do
+            if t["type"] ~= "built-in" then
+                t["indicatorName"] = "indicator"..index
+                index = index + 1
+            end
+        end
+    end
+
     CellDB["revise"] = Cell.version
-    if Cell.isVanilla or Cell.isCata then
+    if CellCharacterDB then
         CellCharacterDB["revise"] = Cell.version
     end
 end

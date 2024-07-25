@@ -12,37 +12,43 @@ generalTab:Hide()
 -------------------------------------------------
 -- visibility
 -------------------------------------------------
-local showSoloCB, showPartyCB, hideBlizzardPartyCB, hideBlizzardRaidCB
+local showSoloCB, showPartyCB, showRaidCB, hideBlizzardPartyCB, hideBlizzardRaidCB
 
 local function CreateVisibilityPane()
     local visibilityPane = Cell:CreateTitledPane(generalTab, L["Visibility"], 205, 110)
     visibilityPane:SetPoint("TOPLEFT", generalTab, "TOPLEFT", 5, -5)
-    
+
     showSoloCB = Cell:CreateCheckButton(visibilityPane, L["Show Solo"], function(checked, self)
         CellDB["general"]["showSolo"] = checked
         Cell:Fire("UpdateVisibility", "solo")
     end, L["Show Solo"], L["Show while not in a group"], L["To open options frame, use /cell options"])
     showSoloCB:SetPoint("TOPLEFT", visibilityPane, "TOPLEFT", 5, -27)
-    
+
     showPartyCB = Cell:CreateCheckButton(visibilityPane, L["Show Party"], function(checked, self)
         CellDB["general"]["showParty"] = checked
         Cell:Fire("UpdateVisibility", "party")
     end, L["Show Party"], L["Show while in a party"], L["To open options frame, use /cell options"])
     showPartyCB:SetPoint("TOPLEFT", showSoloCB, "BOTTOMLEFT", 0, -7)
-    
+
+    showRaidCB = Cell:CreateCheckButton(visibilityPane, L["Show Raid"], function(checked, self)
+        CellDB["general"]["showRaid"] = checked
+        Cell:Fire("UpdateVisibility", "raid")
+    end, L["Show Raid"], L["Show while in a raid"], L["To open options frame, use /cell options"])
+    showRaidCB:SetPoint("TOPLEFT", showPartyCB, "BOTTOMLEFT", 0, -7)
+
     hideBlizzardPartyCB = Cell:CreateCheckButton(visibilityPane, L["Hide Blizzard Party"], function(checked, self)
         CellDB["general"]["hideBlizzardParty"] = checked
-    
+
         local popup = Cell:CreateConfirmPopup(generalTab, 200, L["A UI reload is required.\nDo it now?"], function()
             ReloadUI()
         end, nil, true)
         popup:SetPoint("TOPLEFT", generalTab, 117, -77)
     end, L["Hide Blizzard Frames"], L["Require reload of the UI"])
-    hideBlizzardPartyCB:SetPoint("TOPLEFT", showPartyCB, "BOTTOMLEFT", 0, -7)
-   
+    hideBlizzardPartyCB:SetPoint("TOPLEFT", showRaidCB, "BOTTOMLEFT", 0, -7)
+
     hideBlizzardRaidCB = Cell:CreateCheckButton(visibilityPane, L["Hide Blizzard Raid"], function(checked, self)
         CellDB["general"]["hideBlizzardRaid"] = checked
-    
+
         local popup = Cell:CreateConfirmPopup(generalTab, 200, L["A UI reload is required.\nDo it now?"], function()
             ReloadUI()
         end, nil, true)
@@ -171,13 +177,13 @@ local lockCB, fadeOutCB, menuPositionDD
 local function CreatePositionPane()
     local positionPane = Cell:CreateTitledPane(generalTab, L["Position"], 205, 120)
     positionPane:SetPoint("TOPLEFT", generalTab, 5, -145)
-    
+
     lockCB = Cell:CreateCheckButton(positionPane, L["Lock Cell Frames"], function(checked, self)
         CellDB["general"]["locked"] = checked
         Cell:Fire("UpdateMenu", "lock")
     end)
     lockCB:SetPoint("TOPLEFT", 5, -27)
-    
+
     fadeOutCB = Cell:CreateCheckButton(positionPane, L["Fade Out Menu"], function(checked, self)
         CellDB["general"]["fadeOut"] = checked
         Cell:Fire("UpdateMenu", "fadeOut")
@@ -277,7 +283,7 @@ end
 -------------------------------------------------
 -- misc
 -------------------------------------------------
-local alwaysUpdateBuffsCB, alwaysUpdateDebuffsCB, overrideLGFCB, framePriorityDD, useCleuCB, translitCB
+local alwaysUpdateBuffsCB, alwaysUpdateDebuffsCB, framePriorityDD, useCleuCB, translitCB
 
 local function CreateMiscPane()
     local miscPane = Cell:CreateTitledPane(generalTab, L["Misc"], 422, 140)
@@ -295,22 +301,8 @@ local function CreateMiscPane()
     alwaysUpdateDebuffsCB:SetPoint("TOPLEFT", 222, -27)
     alwaysUpdateDebuffsCB:SetEnabled(Cell.isRetail)
 
-    overrideLGFCB = Cell:CreateCheckButton(miscPane, L["Override"].." LibGetFrame.GetUnitFrame", function(checked, self)
-        CellDB["general"]["overrideLGF"] = checked
-        F:OverrideLGF(checked)
-        framePriorityDD:SetEnabled(checked)
-
-        if not checked then
-            local popup = Cell:CreateConfirmPopup(generalTab, 200, L["A UI reload is required.\nDo it now?"], function()
-                ReloadUI()
-            end, nil, true)
-            popup:SetPoint("TOPLEFT", generalTab, 117, -370)
-        end
-    end, L["Ensure that other addons get the right unit button"], L["This may cause unknown issues"], L["For addons/WAs not dependent on LibGetFrame, use %s"]:format("|cffffb5c5Cell.GetUnitFrame(unit)"))
-    overrideLGFCB:SetPoint("TOPLEFT", alwaysUpdateBuffsCB, "BOTTOMLEFT", 0, -9)
-
     framePriorityDD = Cell:CreateDropdown(miscPane, 250)
-    framePriorityDD:SetPoint("TOPLEFT", overrideLGFCB, "BOTTOMRIGHT", 5, -5)
+    framePriorityDD:SetPoint("TOPLEFT", alwaysUpdateBuffsCB, "BOTTOMLEFT", 0, -29)
     framePriorityDD:SetItems({
         {
             ["text"] = L["Main"].." > "..L["Spotlight"].." > "..L["Quick Assist"],
@@ -335,12 +327,16 @@ local function CreateMiscPane()
         },
     })
 
+    local framePriorityText = framePriorityDD:CreateFontString(nil, "OVERLAY", "CELL_FONT_WIDGET")
+    framePriorityText:SetPoint("BOTTOMLEFT", framePriorityDD, "TOPLEFT", 0, 1)
+    framePriorityText:SetText(L["Frame priorities for LibGetFrame"])
+
     useCleuCB = Cell:CreateCheckButton(miscPane, L["Increase Health Update Rate"], function(checked, self)
         CellDB["general"]["useCleuHealthUpdater"] = checked
         Cell:Fire("UpdateCLEU")
     end, "|cffff2727"..L["HIGH CPU USAGE"].." (EXPERIMENTAL)", L["Use CLEU events to increase health update rate"])
-    useCleuCB:SetPoint("TOPLEFT", overrideLGFCB, "BOTTOMLEFT", 0, -37)
-    
+    useCleuCB:SetPoint("TOPLEFT", framePriorityDD, "BOTTOMLEFT", 0, -9)
+
     translitCB = Cell:CreateCheckButton(miscPane, L["Translit Cyrillic to Latin"], function(checked, self)
         CellDB["general"]["translit"] = checked
         Cell:Fire("TranslitNames")
@@ -365,7 +361,7 @@ local function ShowTab(tab)
             F:ApplyCombatProtectionToFrame(generalTab)
             Cell:CreateMask(generalTab, nil, {1, -1, -1, 1})
             generalTab.mask:Hide()
-        end 
+        end
 
         generalTab:Show()
 
@@ -398,6 +394,7 @@ local function ShowTab(tab)
         -- visibility
         showSoloCB:SetChecked(CellDB["general"]["showSolo"])
         showPartyCB:SetChecked(CellDB["general"]["showParty"])
+        showRaidCB:SetChecked(CellDB["general"]["showRaid"])
         hideBlizzardPartyCB:SetChecked(CellDB["general"]["hideBlizzardParty"])
         hideBlizzardRaidCB:SetChecked(CellDB["general"]["hideBlizzardRaid"])
 
@@ -413,8 +410,6 @@ local function ShowTab(tab)
         -- misc
         alwaysUpdateBuffsCB:SetChecked(CellDB["general"]["alwaysUpdateBuffs"])
         alwaysUpdateDebuffsCB:SetChecked(CellDB["general"]["alwaysUpdateDebuffs"])
-        overrideLGFCB:SetChecked(CellDB["general"]["overrideLGF"])
-        framePriorityDD:SetEnabled(CellDB["general"]["overrideLGF"])
         framePriorityDD:SetSelectedValue(CellDB["general"]["framePriority"])
         useCleuCB:SetChecked(CellDB["general"]["useCleuHealthUpdater"])
         translitCB:SetChecked(CellDB["general"]["translit"])

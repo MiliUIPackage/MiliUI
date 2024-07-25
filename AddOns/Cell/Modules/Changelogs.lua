@@ -6,7 +6,7 @@ local P = Cell.pixelPerfectFuncs
 local changelogsFrame
 
 local function CreateChangelogsFrame()
-    changelogsFrame = Cell:CreateMovableFrame("Cell "..L["Changelogs"], "CellChangelogsFrame", 370, 430, "DIALOG", 1, true)
+    changelogsFrame = Cell:CreateMovableFrame("Cell "..L["Changelogs"], "CellChangelogsFrame", 400, 450, "DIALOG", 1, true)
     Cell.frames.changelogsFrame = changelogsFrame
     changelogsFrame:SetToplevel(true)
 
@@ -48,7 +48,7 @@ local function CreateChangelogsFrame()
         elseif linkData == "recent" then
             content:SetText("<html><body>" .. L["CHANGELOGS"] .. "</body></html>")
         end
-            
+
         local height = content:GetContentHeight()
         content:SetHeight(height)
         changelogsFrame.scrollFrame.content:SetHeight(height + 30)

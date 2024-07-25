@@ -2,8 +2,6 @@ local _, Cell = ...
 local L = Cell.L
 local F = Cell.funcs
 
-local GetSpellInfo = GetSpellInfo
-
 -------------------------------------------------
 -- click-castings
 -------------------------------------------------
@@ -162,19 +160,20 @@ local defaultSpells = {
 
 function F:GetClickCastingSpellList(class)
     local spells = defaultSpells[class]["common"] and F:Copy(defaultSpells[class]["common"]) or {}
-    
+
     -- fill data
     for i, v in pairs(spells) do
         local spellId, spellType
-        
+
         if type(v) == "number" then
             spellId = v
         else -- string
             spellId, spellType = strmatch(v, "(%d+)(%a)")
+            spellId = tonumber(spellId)
             spellType = L[spellType]
         end
 
-        local name, _, icon = GetSpellInfo(spellId)
+        local name, icon = F:GetSpellInfo(spellId)
         spells[i] = {icon, name, spellType, spellId}
     end
 
@@ -206,7 +205,7 @@ local resurrections_for_dead = {
 do
     local temp = {}
     for _, id in pairs(resurrections_for_dead) do
-        temp[GetSpellInfo(id)] = true
+        temp[F:GetSpellInfo(id)] = true
     end
     resurrections_for_dead = temp
 end
@@ -238,14 +237,6 @@ local resurrection_click_castings = {
     },
 }
 
--- do
---     for class, t in pairs(resurrection_click_castings) do
---         for _, clickCasting in pairs(t) do
---             clickCasting[3] = GetSpellInfo(clickCasting[3])
---         end
---     end
--- end
-
 function F:GetResurrectionClickCastings(class)
     return resurrection_click_castings[class] or {}
 end
@@ -262,7 +253,7 @@ local normalResurrection = {
 
 do
     for class, spell in pairs(normalResurrection) do
-        normalResurrection[class] = GetSpellInfo(spell)
+        normalResurrection[class] = F:GetSpellInfo(spell)
     end
 end
 
@@ -277,7 +268,7 @@ local combatResurrection = {
 
 do
     for class, spell in pairs(combatResurrection) do
-        combatResurrection[class] = GetSpellInfo(spell)
+        combatResurrection[class] = F:GetSpellInfo(spell)
     end
 end
 
