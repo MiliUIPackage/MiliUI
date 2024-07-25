@@ -19,8 +19,8 @@
 		local addonName, Details222 = ...
 		local version, build, date, tvs = GetBuildInfo()
 
-		Details.build_counter = 12814
-		Details.alpha_build_counter = 12814 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12819
+		Details.alpha_build_counter = 12819 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
@@ -213,7 +213,7 @@
 		--aura scanner
 		Details222.AuraScan = {}
 
-        local GetSpellInfo = GetSpellInfo or C_Spell.GetSpellInfo
+        local GetSpellInfo = C_Spell and C_Spell.GetSpellInfo or GetSpellInfo
         Details222.GetSpellInfo = GetSpellInfo
 
 		local UnitBuff = UnitBuff or C_UnitAuras.GetBuffDataByIndex
