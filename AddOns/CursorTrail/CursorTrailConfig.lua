@@ -46,7 +46,7 @@ local UnitAffectingCombat = _G.UnitAffectingCombat
 
 --~ local GameMenuFrame = _G.GameMenuFrame
 --~ local HideUIPanel = _G.HideUIPanel
-local InterfaceOptions_AddCategory = _G.InterfaceOptions_AddCategory
+--~ local InterfaceOptions_AddCategory = _G.InterfaceOptions_AddCategory
 --~ local InterfaceOptionsFrame_OpenToCategory = _G.InterfaceOptionsFrame_OpenToCategory
 --~ local InterfaceOptionsFrameCancel_OnClick = _G.InterfaceOptionsFrameCancel_OnClick
 --~ local InterfaceOptionsFrame = _G.InterfaceOptionsFrame
@@ -283,16 +283,16 @@ function StandardPanel_Create(buttonText, buttonW, buttonH)
     end)
 
     -- Adds this top level panel to the Interface Options.
-    ----if Settings then
-    ----    StandardPanel.OnCommit = function() end
-    ----    StandardPanel.OnDefault = function() end
-    ----    StandardPanel.OnRefresh = function() end
-    ----    local category, layout = Settings.RegisterCanvasLayoutCategory(StandardPanel, StandardPanel.name, StandardPanel.name)
-    ----    category.ID = StandardPanel.name
-    ----    Settings.RegisterAddOnCategory(category)
-    ----else
-        InterfaceOptions_AddCategory(StandardPanel)
-    ----end
+    if Globals.InterfaceOptions_AddCategory then
+        Globals.InterfaceOptions_AddCategory(StandardPanel)
+    elseif Globals.Settings then
+        ----StandardPanel.OnCommit = function() end
+        ----StandardPanel.OnDefault = function() end
+        ----StandardPanel.OnRefresh = function() end
+        local category, layout = Globals.Settings.RegisterCanvasLayoutCategory(StandardPanel, StandardPanel.name) ----, StandardPanel.name)
+        ----category.ID = StandardPanel.name
+        Globals.Settings.RegisterAddOnCategory(category)
+    end
     --|traceCfg("OUT StandardPanel_Create().")
 end
 

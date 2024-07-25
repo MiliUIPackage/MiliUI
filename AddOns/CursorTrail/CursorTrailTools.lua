@@ -290,7 +290,7 @@ function isRetailWoW()  return (kGameTocVersion >= 100000) end
 ----UNTESTED:  local isDragonflight = floor(select(4, GetBuildInfo()) / 10000) == 10
 
 -------------------------------------------------------------------------------
-function compareVersions(verA, verB)
+function compareVersions(verA, verB)  -- Example:  isFirstNewerThanSecond = (compareVersions(verStr1, verStr2) == 1)
 -- Returns 0 if equal, 1 if verA is newer, or 2 if verB is newer.
     assert(verA or verB)  -- One must exist!
     local a = str_split(verA, ".")

@@ -1,4 +1,4 @@
-local CONTROLS_VERSION = "2024-06-25"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
+local CONTROLS_VERSION = "2024-07-24"  -- Version (date) of this file.  Stored as "UDControls.VERSION".
 
 --[[---------------------------------------------------------------------------
 FILE:   UDControls.lua
@@ -16,6 +16,8 @@ REQUIREMENTS / DEPENDANCIES:
 USAGE:  See examples at end of this comment block.
 -- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - --
 CHANGE HISTORY:
+    Jul 24, 2024
+        - Fixed GetMouseFocus() errors caused in WoW 11.0.  (Added CUtil.GetMouseFocus() and exported that function too.)
     Jun 25, 2024
         - Added CListBox.AddSeparator() and CDropDown.AddSeparator().
         - Changed listbox tooltips so they can optionally appear for disabled lines.
@@ -705,6 +707,8 @@ local CreateFrame = CreateFrame
 local GameTooltip = GameTooltip
 local GetAddOnMetadata = GetAddOnMetadata or C_AddOns.GetAddOnMetadata
 ----local GetBuildInfo = GetBuildInfo
+local GetMouseFoci = GetMouseFoci
+local GetMouseFocus = GetMouseFocus
 local GetTime = GetTime
 local HIGHLIGHT_FONT_COLOR = HIGHLIGHT_FONT_COLOR
 local InCombatLockdown = InCombatLockdown
@@ -1212,7 +1216,7 @@ function CListBox.OnMouseWheel(thisDisplay, delta)  --DJUchanged ...
         scrollAmt = 1
     end
 
-    local mouseFocus = GetMouseFocus()
+    local mouseFocus = CUtil.GetMouseFocus()
     if mouseFocus and mouseFocus.parentListBox and mouseFocus.parentListBox == listbox then
         ----print("LINE OnLeave:", mouseFocus.fontString:GetText(), mouseFocus:IsEnabled())
         mouseFocus:GetScript("OnLeave")(mouseFocus)  -- Calls CListBox.OnLeaveLine() .
@@ -1229,7 +1233,7 @@ function CListBox.OnMouseWheel(thisDisplay, delta)  --DJUchanged ...
         end
     end
 
-    mouseFocus = GetMouseFocus()
+    mouseFocus = CUtil.GetMouseFocus()
     if mouseFocus and mouseFocus.parentListBox and mouseFocus.parentListBox == listbox then
         ----print("LINE OnEnter:", mouseFocus.fontString:GetText(), mouseFocus:IsEnabled())
         mouseFocus:GetScript("OnEnter")(mouseFocus)  -- Calls CListBox.OnEnterLine() .
@@ -4558,6 +4562,20 @@ function CUtil.GameTooltip_SetTitleAndText(title, text, wrapText)
 end
 
 
+-- ****************************************************************************
+-- Displays tooltips that has text and a title.
+-- ****************************************************************************
+function CUtil.GetMouseFocus()
+    if GetMouseFocus then  -- Older version of WoW?
+        return GetMouseFocus()
+    end
+
+    -- Else use GetMouseFoci(), which was added in WoW 11.0.
+    local regionsUnderMouse = GetMouseFoci()
+    return regionsUnderMouse[1]
+end
+
+
 --#############################################################################
 -------------------------------------------------------------------------------
 -- Module interface.
@@ -4586,6 +4604,7 @@ private.UDControls.CreateHorizontalDivider= CUtil.CreateHorizontalDivider
 private.UDControls.CreateTexture_NEW      = CUtil.CreateTexture_NEW
 private.UDControls.DisplayAllFonts        = CUtil.DisplayAllFonts
 private.UDControls.GameTooltip_SetTitleAndText = CUtil.GameTooltip_SetTitleAndText  --DJUadded
+private.UDControls.GetMouseFocus          = CUtil.GetMouseFocus  --DJUadded
 private.UDControls.handleGlobalMouseClick = CUtil.handleGlobalMouseClick
 private.UDControls.MsgBox                 = CUtil.MsgBox
 private.UDControls.Outline                = CUtil.Outline
