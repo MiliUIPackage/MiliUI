@@ -10,7 +10,7 @@ local AdjustedWidth = addon.InjectOptions.AdjustedWidth;
 
 function general.RegisterOptionsTable()
     LibStub("AceConfig-3.0"):RegisterOptionsTable(addon.Metadata.Title, options.OptionsTable.args.General);
-    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addon.Metadata.Title, MERCHANT, nil);
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions(addon.Metadata.Title, addon.Metadata.Title, nil);
 end
 
 local RefreshOptions; -- Assigned at the end of the file
@@ -37,7 +37,7 @@ local function MinimapShowMinimapIconSet(_, value)
 end
 
 local function OptionsButtonShowOptionsButtonSet(_, value)
-	if addon.Options.db.profile.ShowOptionsButton == value then return; end
+    if addon.Options.db.profile.ShowOptionsButton == value then return; end
     addon.Options.db.profile.ShowOptionsButton = value;
     KrowiEVU_OptionsButton:ShowHide();
 end

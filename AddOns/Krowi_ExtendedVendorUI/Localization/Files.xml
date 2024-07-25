@@ -4,5 +4,9 @@
     <Script file="enUS.Plugins.lua" />
     <Script file="zhTW.lua" />
     <Script file="zhTW.Plugins.lua" />
+    <Script file="deDE.lua" />
+    <Script file="deDE.Plugins.lua" />
+    <Script file="frFR.lua" />
+    <Script file="frFR.Plugins.lua" />
     <Script file="GlobalStrings.lua" />
 </Ui>
