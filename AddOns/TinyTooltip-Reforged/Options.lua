@@ -827,13 +827,25 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     InitVariablesFrame()
 end)
 
-InterfaceOptions_AddCategory(frame)
-InterfaceOptions_AddCategory(framePCScrollFrame)
-InterfaceOptions_AddCategory(frameNPCScrollFrame)
-InterfaceOptions_AddCategory(frameStatusbar)
-InterfaceOptions_AddCategory(frameSpell)
-InterfaceOptions_AddCategory(frameFont)
-InterfaceOptions_AddCategory(frameVariables)
+-- InterfaceOptions_AddCategory(frame)
+-- InterfaceOptions_AddCategory(framePCScrollFrame)
+-- InterfaceOptions_AddCategory(frameNPCScrollFrame)
+-- InterfaceOptions_AddCategory(frameStatusbar)
+-- InterfaceOptions_AddCategory(frameSpell)
+-- InterfaceOptions_AddCategory(frameFont)
+-- InterfaceOptions_AddCategory(frameVariables)
+
+local category = Settings.RegisterCanvasLayoutCategory(frame, frame.name)
+category.ID = "TinyTooltip-Reforged"
+Settings.RegisterAddOnCategory(category)
+
+Settings.RegisterCanvasLayoutSubcategory(category, framePCScrollFrame, framePCScrollFrame.name)
+Settings.RegisterCanvasLayoutSubcategory(category, frameNPCScrollFrame, frameNPCScrollFrame.name)
+Settings.RegisterCanvasLayoutSubcategory(category, frameStatusbar, frameStatusbar.name)
+Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
+Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
+Settings.RegisterCanvasLayoutSubcategory(category, frameVariables, frameVariables.name)
+
 SLASH_TinyTooltipReforged1 = "/tinytooltipr"
 SLASH_TinyTooltipReforged2 = "/ttr"
 SLASH_TinyTooltipReforged3 = "/tip"
@@ -842,7 +854,8 @@ function SlashCmdList.TinyTooltipReforged(msg, editbox)
         BigTipReforgedDB = {}
 	TinyTooltipReforgedCharacterDB = {}
         ReloadUI()
-    elseif (msg == "npc") then
+    --[[
+	elseif (msg == "npc") then
         InterfaceOptionsFrame_OpenToCategory(frameNPC)
         InterfaceOptionsFrame_OpenToCategory(frameNPC)
     elseif (msg == "player") then
@@ -854,10 +867,9 @@ function SlashCmdList.TinyTooltipReforged(msg, editbox)
     elseif (msg == "statusbar") then
         InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
         InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
+	--]]
     else
-        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
-        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
-        InterfaceOptionsFrame_OpenToCategory(frame)
+        Settings.OpenToCategory("TinyTooltip-Reforged")
     end
 end
 

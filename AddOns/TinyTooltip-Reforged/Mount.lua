@@ -33,7 +33,7 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
 end)
 
 hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...)
-    local spellID = select(10, UnitBuff(...))
+    local spellID = C_UnitAuras.GetBuffDataByIndex(...).spellId
     if (mounts[spellID]) then
         self:AddLine(" ")
         if (mounts[spellID].isCollected) then

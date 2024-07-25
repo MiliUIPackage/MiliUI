@@ -33,7 +33,7 @@ addon.L, addon.G = {}, {}
 setmetatable(addon.L, {__index = function(_, k) return k end})
 setmetatable(addon.G, {__index = function(_, k) return _G[k] or k end})
 
-local actualVersion = GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
+local actualVersion = C_AddOns.GetAddOnMetadata("TinyTooltip-Reforged", "Version") or "unknown"
 -- print("|cff00d200TinyTooltip Reforged v",actualVersion," loaded.|r")
 
 addon.tooltips = {
@@ -860,7 +860,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             local flag = info.tooltipData.type
             local guid = info.tooltipData.guid
             if (flag == 0) then
-                local link = select(2, GetItemInfo(info.tooltipData.id))
+                local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))
                 if (self.GetItem) then
                     local link = select(2, self:GetItem())
                 end

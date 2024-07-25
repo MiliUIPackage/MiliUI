@@ -90,9 +90,9 @@ if (clientToc>=100002) then
 else
     GameTooltip:HookScript("OnTooltipSetSpell", function(self) ShowId(self, "Spell", (select(2,self:GetSpell()))) end)
 end
-hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) ShowId(self, "Spell", (select(10,UnitAura(...)))) end)
-hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...) ShowId(self, "Spell", (select(10,UnitBuff(...)))) end)
-hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...) ShowId(self, "Spell", (select(10,UnitDebuff(...)))) end)
+hooksecurefunc(GameTooltip, "SetUnitAura", function(self, ...) ShowId(self, "Spell", (C_UnitAuras.GetAuraDataByIndex(...).spellId)) end)
+hooksecurefunc(GameTooltip, "SetUnitBuff", function(self, ...) ShowId(self, "Spell", (C_UnitAuras.GetBuffDataByIndex(...).spellId)) end)
+hooksecurefunc(GameTooltip, "SetUnitDebuff", function(self, ...) ShowId(self, "Spell", (C_UnitAuras.GetDebuffDataByIndex(...).spellId)) end)
 if (GameTooltip.SetArtifactPowerByID) then
     hooksecurefunc(GameTooltip, "SetArtifactPowerByID", function(self, powerID)
         ShowId(self, "Power", powerID)
@@ -134,7 +134,7 @@ end
 -- adds caster of buffs/debuffs to their tooltips
 hooksecurefunc(GameTooltip,"SetUnitAura",function(self,unit,index,filter)
 	if (IsShiftKeyDown() or IsControlKeyDown() or IsAltKeyDown() or addon.db.general.alwaysShowIdInfo) then
-		local caster = select(7,UnitAura(unit,index,filter))
+		local caster = C_UnitAuras.GetAuraDataByIndex(unit,index,filter).sourceUnit
 		if caster and UnitExists(caster) then
 				GameTooltip:AddLine(addon.L["Caster"]..": "..UnitName(caster),.65,.85,1,1)
 				GameTooltip:Show()

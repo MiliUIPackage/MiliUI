@@ -1,8 +1,8 @@
-## Interface: 30403
+## Interface: 11503
 ## Title: TinyTooltip-Reforged |cFF69CCF0by Beezer|r
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r v9.3|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.4.2
+## Version: 9.4.3
 ## SavedVariables: BigTipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip

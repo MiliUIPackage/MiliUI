@@ -64,7 +64,7 @@ end
 LibEvent:attachTrigger("tooltip:anchor", function(self, tip, parent)
     if (tip ~= GameTooltip) then return end
     local unit
-    local focus = GetMouseFocus()
+    local focus = GetMouseFoci()
     local isUnitFrame = false
     if (focus and focus.unit) then
         unit = focus.unit
