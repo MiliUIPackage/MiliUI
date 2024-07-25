@@ -194,7 +194,7 @@ function events.ADDON_LOADED(a1)
 			db = StufDB
 		end
 		if not db.global or db.global.init ~= 9 then
-			LoadAddOn("Stuf_Options")
+			C_AddOns.LoadAddOn("Stuf_Options")
 			if Stuf.LoadDefaults then
 				Stuf:LoadDefaults(db)
 				db.global.init = 9
@@ -263,7 +263,7 @@ function events.ADDON_LOADED(a1)
 		CONFIGMODE_CALLBACKS.Stuf = function(action, mode)
 			if action == "ON" then
 				if not Stuf.GetOptionsTable then
-					LoadAddOn("Stuf_Options")
+					C_AddOns.LoadAddOn("Stuf_Options")
 				end
 				if Stuf.GetOptionsTable then
 					Stuf:GetOptionsTable().args.configmode.set(nil, true)
@@ -320,7 +320,7 @@ function events.ADDON_LOADED(a1)
 				Stuf.unitcopy["boss"..i.."target"] = "boss1target"
 
 				if not db[bu] then
-					LoadAddOn("Stuf_Options")
+					C_AddOns.LoadAddOn("Stuf_Options")
 					if Stuf.LoadDefaults then
 						Stuf:LoadDefaults(db, nil, nil, 1)
 					end
@@ -332,7 +332,7 @@ function events.ADDON_LOADED(a1)
 		SLASH_STUF1 = "/stuf"
 		SlashCmdList.STUF = function()
 			if not Stuf.OpenOptions then
-				LoadAddOn("Stuf_Options")
+				C_AddOns.LoadAddOn("Stuf_Options")
 			end
 			if Stuf.OpenOptions then
 				Stuf:OpenOptions(Stuf.panel)
@@ -344,7 +344,9 @@ function events.ADDON_LOADED(a1)
 			Stuf.panel = CreateFrame("Frame", nil, nil, BackdropTemplateMixin and 'BackdropTemplate')
 			Stuf.panel.name = "Stuf"
 			Stuf.panel:SetScript("OnShow", SlashCmdList.STUF)
-			InterfaceOptions_AddCategory(Stuf.panel)
+			local category = Settings.RegisterCanvasLayoutCategory(Stuf.panel, Stuf.panel.name)
+			category.ID = "Stuf"
+			Settings.RegisterAddOnCategory(category)
 		end
 
 		for k, v in pairs(events) do

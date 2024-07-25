@@ -12,6 +12,39 @@ local L = setmetatable(StufLocalization or { }, {
 	end
 })
 
+-- Role codes borrowed from Details! 
+local roleTexcoord = {
+	DAMAGER = "72:130:69:127",
+	HEALER = "72:130:2:60",
+	TANK = "5:63:69:127",
+	NONE = "139:196:69:127",
+}
+
+local roleTextures = {
+	DAMAGER = "Interface\\LFGFRAME\\UI-LFG-ICON-ROLES",
+	TANK = "Interface\\LFGFRAME\\UI-LFG-ICON-ROLES",
+	HEALER = "Interface\\LFGFRAME\\UI-LFG-ICON-ROLES",
+	NONE = "Interface\\LFGFRAME\\UI-LFG-ICON-ROLES",
+}
+
+local roleTexcoord2 = {
+	DAMAGER = {72/256, 130/256, 69/256, 127/256},
+	HEALER = {72/256, 130/256, 2/256, 60/256},
+	TANK = {5/256, 63/256, 69/256, 127/256},
+	NONE = {139/256, 196/256, 69/256, 127/256},
+}
+
+local function GetRoleIconAndCoords(role)
+	local texture = roleTextures[role]
+	local coords = roleTexcoord2[role]
+	return texture, unpack(coords)
+end
+
+local function GetRoleTCoordsAndTexture(roleID)
+	local texture, l, r, t, b = GetRoleIconAndCoords(roleID)
+	return l, r, t, b, texture
+end
+
 do
 	local SetPortraitTexture, UnitIsVisible = SetPortraitTexture, UnitIsVisible
 	local function UpdatePortrait(unit, uf, f, reset)
@@ -405,7 +438,7 @@ do  -- General Icons -----------------------------------------------------------
 						if not config and (not role or role == "NONE") then
 							f:Hide()
 						else
-							local l, r, t, b = GetTexCoordsForRole(role ~= "NONE" and role or "TANK")
+							local l, r, t, b = GetRoleTCoordsAndTexture(role ~= "NONE" and role or "TANK")
 							if not f.db.circular then
 								local offset1, offset2 = (r - l) * .2, (b - t) * .2
 								f:SetTexCoord(l + offset1, r - offset1, t + offset2, b - (offset2 * 1.2))

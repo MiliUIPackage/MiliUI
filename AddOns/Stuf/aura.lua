@@ -357,7 +357,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 	Stuf.ApplyPush = ApplyPush
 	local ShowSetupMode
 	local temp, debuffconfig, rtime, showpet = { }, nil, nil, nil
-	local UnitBuff, UnitDebuff, UnitIsUnit = UnitBuff, UnitDebuff, UnitIsUnit
+	-- local UnitBuff, UnitDebuff, UnitIsUnit = UnitBuff, UnitDebuff, UnitIsUnit
 	function UpdateAura(unit, uf, _, _, _, config)  -- updates all elements dealing with buffs/debuffs
 		-----------------------------------------------
 		-- edited on 3MAY2022 uf = uf or su[unit]
@@ -367,7 +367,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 		if not uf or uf.hidden then return end
 		
 		local allow, clr, bfilter, dfilter, onlymineb, onlymined = true, nil, nil, nil, nil, nil
-		local name, icon, count, atype, duration, endtime, ismine, isstealable
+		local name, icon, count, atype, duration, endtime, ismine, isstealable, aura
 		local cache = uf.cache
 		
 		local dispellicon, buffgroup, debuffgroup, auratimers = uf.dispellicon, uf.buffgroup, uf.debuffgroup, uf.auratimers
@@ -456,7 +456,17 @@ do 	-- Aura handlers -----------------------------------------------------------
 				if iswarlock then
 					if UnitCreatureFamily("pet") == "Felhunter" then
 						for i = 1, 40, 1 do
-							name, icon, count, atype = UnitDebuff(unit, i)
+							-- name, icon, count, atype = UnitDebuff(unit, i)
+							aura = C_UnitAuras.GetDebuffDataByIndex(unit, i)
+							if aura then
+								name = aura.name
+								icon = aura.icon
+								count = aura.charges
+								atype = aura.dispelName
+							else
+								name = nil
+								atype = nil
+							end
 							if not name or atype == "Magic" then
 								break
 							else
@@ -465,7 +475,16 @@ do 	-- Aura handlers -----------------------------------------------------------
 						end
 					end
 				else
-					name, icon, count, atype = UnitDebuff(unit, 1, "RAID")
+					-- name, icon, count, atype = UnitDebuff(unit, 1, "RAID")
+					aura = C_UnitAuras.GetDebuffDataByIndex(unit, 1, "RAID")
+					if aura then
+						name = aura.name
+						icon = aura.icon
+						count = aura.charges
+						atype = aura.dispelName
+					else
+						name = nil
+					end
 				end
 				if name then
 					local dc = dbgaura[atype or "none"] or dbgaura.none
@@ -483,7 +502,21 @@ do 	-- Aura handlers -----------------------------------------------------------
 		
 		for i = 1, 32, 1 do  -- update buffgroup
 			if allow then  -- prevents calling UnitBuff when it's useless
-				name, icon, count, atype, duration, endtime, ismine, isstealable = UnitBuff(unit, i, bfilter)
+				-- name, icon, count, atype, duration, endtime, ismine, isstealable = UnitBuff(unit, i, bfilter)
+				aura = C_UnitAuras.GetBuffDataByIndex(unit, i, bfilter)
+				if aura then
+					name = aura.name
+					icon = aura.icon
+					count = aura.charges
+					atype = aura.dispelName
+					duration = aura.duration
+					endtime = aura.expirationTime
+					ismine = aura.sourceUnit
+					isstealable = aura.isStealable
+				else
+					name = nil
+					ismine = nil
+				end
 				ismine = ismine == "player" or ismine == "vehicle" or (showpet and ismine == "pet")
 				allow = name and (not onlymineb or ismine)
 			end
@@ -518,7 +551,22 @@ do 	-- Aura handlers -----------------------------------------------------------
 		allow = true
 		for i = 1, 40, 1 do  -- update debuffgroup
 			if allow then  -- prevents calling UnitDebuff when it's useless
-				name, icon, count, atype, duration, endtime, ismine, isstealable = UnitDebuff(unit, i, dfilter)
+				-- name, icon, count, atype, duration, endtime, ismine, isstealable = UnitDebuff(unit, i, dfilter)
+				aura = C_UnitAuras.GetDebuffDataByIndex(unit, i, dfilter)
+				if aura then
+					name = aura.name
+					icon = aura.icon
+					count = aura.charges
+					atype = aura.dispelName
+					duration = aura.duration
+					endtime = aura.expirationTime
+					ismine = aura.sourceUnit
+					isstealable = aura.isStealable
+				else
+					name = nil
+					ismine = nil
+					atype = nil
+				end
 				ismine = ismine == "player" or ismine == "boss1" or ismine == "boss2" or ismine == "boss3" or ismine == "boss4" or ismine == "vehicle" or (showpet and ismine == "pet") -- 自行修改，加上 BOSS 的
 				clr = dbgaura[atype or "none"] or dbgaura.none
 				allow = name and (not onlymined or ismine)

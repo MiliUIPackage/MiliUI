@@ -5,7 +5,7 @@ local su = Stuf.units
 local s40, dbg
 Stuf:AddOnInit(function(_, idbg)
 	dbg = idbg
-	s40 = Stuf.supportspell and GetSpellTexture(Stuf.supportspell) and Stuf.supportspell
+	s40 = Stuf.supportspell and C_Spell.GetSpellTexture(Stuf.supportspell) and Stuf.supportspell
 end)
 
 local CreateFrame = CreateFrame
@@ -14,7 +14,7 @@ local UnitIsTapDenied = UnitIsTapDenied
 local UnitIsDeadOrGhost, UnitIsDead, UnitIsGhost, UnitIsConnected = UnitIsDeadOrGhost, UnitIsDead, UnitIsGhost, UnitIsConnected
 local UnitIsAFK, UnitIsDND = UnitIsAFK, UnitIsDND
 local UnitSex = UnitSex
-local UnitIsVisible, GetSpellTexture, IsSpellInRange, UnitInRange = UnitIsVisible, GetSpellTexture, IsSpellInRange, UnitInRange
+local UnitIsVisible, GetSpellTexture, IsSpellInRange, UnitInRange = UnitIsVisible, C_Spell.GetSpellTexture, C_Spell.IsSpellInRange, UnitInRange
 local UnitAffectingCombat, InCombatLockdown = UnitAffectingCombat, InCombatLockdown
 
 local format, strmatch, gsub = format, strmatch, gsub

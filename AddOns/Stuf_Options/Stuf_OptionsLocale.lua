@@ -5,9 +5,8 @@ if ( GetLocale() == "zhTW" ) then
 StufOptionsLocalization = {
 
 [" Boss"] = " 首領",
-["+"] = " 精英",
+["+ Rare"] = "+ 稀有",
 [" Rare"] = " 稀有",
-["+ Rare"] = " 稀有精英",
 ["Power Type"] = "能量類型",
 ["Dark Power Type"] = "能量類型 (較暗)",
 ["Health Green"] = "綠色血量",
