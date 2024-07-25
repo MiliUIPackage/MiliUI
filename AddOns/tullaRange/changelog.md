@@ -1,5 +1,52 @@
 # tullaRange release notes
 
+## 11.0.0
+
+* Fix an options menu error in WoW 11.0.0
+* Update TOCs for 11.0.2 and 1.15.3
+
+## 10.2.6
+
+* Update TOCs
+
+## 10.2.5
+
+* Added initial War Within support
+* Update TOCs for 11.0.0 and 10.2.7
+
+## 10.2.4
+
+* Update TOCs
+
+## 10.2.3
+
+* Update TOCs for 1.15.1
+* Fixed an issue causing the options menu sliders to not render properly in Classic
+
+## 10.2.2
+
+* Update TOCs for 10.2.5
+
+## 10.2.1
+
+* Update TOCs for 3.4.3 and 1.15.0
+
+## 10.2.0
+
+* Update TOCs for 10.2.0
+
+## 10.1.8
+
+* Revert TOC back to 3.4.2
+
+## 10.1.7
+
+* Update TOCs for 10.1.7, 3.4.3, and 1.14.4
+
+## 10.1.6
+
+* Fix an issue causing acton buttons to be registered multiple times
+
 ## 10.1.5
 
 * Note: This version does not work on 10.1.0 realms (aka Retail)

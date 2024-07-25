@@ -8,7 +8,7 @@ local _, Addon = ...
 
 local L = Addon.L
 local tullaRange = _G.tullaRange
-local ColorChannels = {'Red', 'Green', 'Blue', 'Opacity'}
+local ColorChannels = { 'Red', 'Green', 'Blue', 'Opacity' }
 
 local ColorSelector = Addon:NewWidgetTemplate('Frame')
 
@@ -87,25 +87,39 @@ function ColorSelector:New(state, parent)
 end
 
 do
-    local spellIcons = {}
+    local SpellIcons = {}
 
     -- generate spell icons
-    do
+    if type(GetSpellBookItemTexture) == "function" then
         for i = 1, GetNumSpellTabs() do
-            local offset, numSpells = select(3, GetSpellTabInfo(i))
-            local tabEnd = offset + numSpells
+            local _, _, offset, numSlots = GetSpellTabInfo(i)
+            local tabEnd = offset + numSlots
 
             for j = offset, tabEnd - 1 do
                 local texture = GetSpellBookItemTexture(j, 'player')
                 if texture then
-                    table.insert(spellIcons, texture)
+                    SpellIcons[#SpellIcons + 1] = texture
+                end
+            end
+        end
+    else
+        for i = 1, C_SpellBook.GetNumSpellBookSkillLines() do
+            local skillLineInfo = C_SpellBook.GetSpellBookSkillLineInfo(i)
+            local offset = skillLineInfo.itemIndexOffset
+            local numSlots = skillLineInfo.numSpellBookItems
+            local tabEnd = offset + numSlots
+
+            for j = offset, tabEnd - 1 do
+                local texture = C_SpellBook.GetSpellBookItemTexture(j, Enum.SpellBookSpellBank.Player)
+                if texture then
+                    SpellIcons[#SpellIcons + 1] = texture
                 end
             end
         end
     end
 
     function ColorSelector:UpdateValues()
-        local texture = spellIcons[math.random(1, #spellIcons)]
+        local texture = SpellIcons[math.random(1, #SpellIcons)]
 
         self.PreviewIcon:SetTexture(texture)
 
