@@ -1,13 +1,17 @@
--------------------------------------------------------------------------------
--- Title: Mik's Scrolling Battle Text Localization
+﻿-------------------------------------------------------------------------------
+-- Title: Mik's Scrolling Battle Text German Localization
 -- Author: Mikord
+-- German Translation by: Farook, mojosdojo
 -------------------------------------------------------------------------------
+
+-- Don't do anything if the locale isn't German.
+if (GetLocale() ~= "deDE") then return end
 
 -- Local reference for faster access.
 local L = MikSBT.translations
 
 -------------------------------------------------------------------------------
--- English localization (Default)
+-- German localization
 -------------------------------------------------------------------------------
 
 ------------------------------
@@ -34,20 +38,14 @@ L.DEFAULT_FONT_NAME = "MSBT Porky"
 -- Commands
 ------------------------------
 
-L.COMMAND_RESET		= "reset"
-L.COMMAND_DISABLE	= "disable"
-L.COMMAND_ENABLE	= "enable"
-L.COMMAND_SHOWVER	= "version"
-L.COMMAND_HELP		= "help"
-
 L.COMMAND_USAGE = {
-	"Usage: " .. MikSBT.COMMAND .. " <command> [params]",
-	" Commands:",
-	"  " .. L.COMMAND_RESET .. " - Reset the current profile to the default settings.",
-	"  " .. L.COMMAND_DISABLE .. " - Disables the mod.",
-	"  " .. L.COMMAND_ENABLE .. " - Enables the mod.",
-	"  " .. L.COMMAND_SHOWVER .. " - Shows the current version.",
-	"  " .. L.COMMAND_HELP .. " - Show the command usage.",
+	"Usage: " .. MikSBT.COMMAND .. " <Befehl> [Parameter]",
+	" Befehle:",
+	"  " .. L.COMMAND_RESET .. " - Das aktuelle Profil auf Standardwerte zurücksetzen.",
+	"  " .. L.COMMAND_DISABLE .. " - Das Addon deaktivieren.",
+	"  " .. L.COMMAND_ENABLE .. " - Das Addon aktivieren.",
+	"  " .. L.COMMAND_SHOWVER .. " - Die aktuelle Version anzeigen.",
+	"  " .. L.COMMAND_HELP .. " - Hilfe anzeigen.",
 }
 
 
@@ -55,42 +53,38 @@ L.COMMAND_USAGE = {
 -- Output messages
 ------------------------------
 
-L.MSG_DISABLE				= "Mod disabled."
-L.MSG_ENABLE				= "Mod enabled."
-L.MSG_PROFILE_RESET			= "Profile Reset"
-L.MSG_HITS					= "Hits"
-L.MSG_CRIT					= "Crit"
-L.MSG_CRITS					= "Crits"
-L.MSG_MULTIPLE_TARGETS		= "Multiple"
-L.MSG_READY_NOW				= "Ready Now"
+L.MSG_DISABLE				= "Addon deaktiviert."
+L.MSG_ENABLE				= "Addon aktiviert."
+L.MSG_PROFILE_RESET			= "Profil zurückgesetzt."
+L.MSG_HITS					= "Treffer"
+L.MSG_CRIT					= "Krit"
+L.MSG_CRITS					= "Krits"
+L.MSG_MULTIPLE_TARGETS		= "Mehrere"
+L.MSG_READY_NOW				= "verfügbar"
 
 
 ------------------------------
 -- Scroll area names
 ------------------------------
 
-L.MSG_INCOMING			= "Incoming"
-L.MSG_OUTGOING			= "Outgoing"
-L.MSG_NOTIFICATION		= "Notification"
-L.MSG_STATIC			= "Static"
+L.MSG_INCOMING			= "Eingehend"
+L.MSG_OUTGOING			= "Ausgehend"
+L.MSG_NOTIFICATION		= "Benachrichtigung"
+L.MSG_STATIC			= "Statisch"
 
 
 ----------------------------------------
 -- Master profile event output messages
 ----------------------------------------
 
-L.MSG_COMBAT					= "Combat"
+L.MSG_COMBAT					= "Kampf"
 L.MSG_DISPEL					= "Dispel"
+--L.MSG_CHI_FULL					= "Full Chi"
 L.MSG_CP						= "CP"
-L.MSG_CHI_FULL					= "Full Chi"
-L.MSG_AC						= "Arcane Charge"
-L.MSG_AC_FULL					= "Full Arcane Charges"
-L.MSG_CP_FULL					= "Finish It"
-L.MSG_HOLY_POWER_FULL			= "Full Holy Power"
-L.MSG_SHADOW_ORBS_FULL			= "Full Shadow Orbs"
-L.MSG_ESSENCE				= "Essence"
-L.MSG_ESSENCE_FULL			= "Full Essence"
-L.MSG_KILLING_BLOW				= "Killing Blow"
-L.MSG_TRIGGER_LOW_HEALTH		= "Low Health"
-L.MSG_TRIGGER_LOW_MANA			= "Low Mana"
-L.MSG_TRIGGER_LOW_PET_HEALTH	= "Low Pet Health"
+L.MSG_CP_FULL					= "Alle CP"
+L.MSG_HOLY_POWER_FULL			= "Alle Heilige Kraft"
+--L.MSG_SHADOW_ORBS_FULL			= "Full Shadow Orbs"
+L.MSG_KILLING_BLOW				= "Todesstoß"
+L.MSG_TRIGGER_LOW_HEALTH		= "Wenig Gesundheit"
+L.MSG_TRIGGER_LOW_MANA			= "Wenig Mana"
+L.MSG_TRIGGER_LOW_PET_HEALTH	= "Wenig Begleiter Gesundheit"

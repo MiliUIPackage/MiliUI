@@ -25,8 +25,6 @@ local GetItemInfo = GetItemInfo
 local GetItemCount = GetItemCount
 local DisplayEvent = MikSBT.Animations.DisplayEvent
 
-local IsClassic = WOW_PROJECT_ID >= WOW_PROJECT_CLASSIC
-
 
 
 -------------------------------------------------------------------------------
@@ -39,7 +37,7 @@ local SILVER = string_gsub(SILVER_AMOUNT, "%%d *", "")
 local COPPER = string_gsub(COPPER_AMOUNT, "%%d *", "")
 
 -- Localized name for item types.
-local ITEM_TYPE_QUEST = _G.GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM or Enum.ItemClass.Questitem)
+local ITEM_TYPE_QUEST = _G.C_Item.GetItemClassInfo(LE_ITEM_CLASS_QUESTITEM or Enum.ItemClass.Questitem)
 
 
 -------------------------------------------------------------------------------
@@ -84,23 +82,17 @@ local function HandleCurrency(parserEvent)
 	-- Get information about the looted currency.
 	local itemLink = parserEvent.itemLink
 	local itemName, numAmount, itemTexture, totalMax, itemQuality, numLootedFromMessage
-
-	if IsClassic then
-		local _
-		itemName, numAmount, itemTexture, _, _, totalMax, _, itemQuality = GetCurrencyInfo(itemLink)
+	local currency = C_CurrencyInfo.GetCurrencyInfoFromLink(itemLink)
+	if currency then
+		itemName, numAmount, itemTexture, totalMax, itemQuality = currency.name, currency.quantity, currency.iconFileID, currency.maxQuantity, currency.quality
 	else
-		local currency = C_CurrencyInfo.GetCurrencyInfoFromLink(itemLink)
-                if currency then
-		    itemName, numAmount, itemTexture, totalMax, itemQuality = currency.name, currency.quantity, currency.iconFileID, currency.maxQuantity, currency.quality
-                else
-                    if string.match(itemLink,"^, %d+") then
+		if string.match(itemLink,"^, %d+") then
 			numLootedFromMessage = string.match(itemLink, "%d+")
-                        currency = C_CurrencyInfo.GetCurrencyInfo(1901)
-                        itemName, numAmount, itemTexture, totalMax, itemQuality = currency.name, currency.quantity, currency.iconFileID, currency.maxQuantity, currency.quality
-                    else
+			currency = C_CurrencyInfo.GetCurrencyInfo(1901)
+			itemName, numAmount, itemTexture, totalMax, itemQuality = currency.name, currency.quantity, currency.iconFileID, currency.maxQuantity, currency.quality
+		else
 			return
-                    end
-                end
+		end
 	end
 
 	-- Determine whether to show the event and ignore it if necessary.
@@ -157,9 +149,9 @@ local function HandleItems(parserEvent)
 	local numLooted = parserEvent.amount or 1
 	local numItems = GetItemCount(itemLink)
 	if (numItems == 0) then
-	    numItems = numLooted
+		numItems = numLooted
 	else
-            numItems = numItems + numLooted
+		numItems = numItems + numLooted
 	end
 	local numTotal = numItems
 

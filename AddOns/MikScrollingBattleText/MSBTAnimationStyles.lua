@@ -837,6 +837,7 @@ end
 -------------------------------------------------------------------------------
 
 -- Register the default animation styles.
+if MikSBT and MikSBT.RegisterAnimationStyle then 
 MikSBT.RegisterAnimationStyle("Angled", InitAngled, "Alternate;Left;Right", "AngleUp;AngleDown")
 MikSBT.RegisterAnimationStyle("Straight", InitStraight, "Up;Down", nil)
 MikSBT.RegisterAnimationStyle("Parabola", InitParabola, "Up;Down", "CurvedLeft;CurvedRight")
@@ -847,3 +848,4 @@ MikSBT.RegisterAnimationStyle("Static", InitStatic, "Up;Down", nil)
 -- Register the default sticky animation styles.
 MikSBT.RegisterStickyAnimationStyle("Pow", InitPow, "Up;Down", "Normal;Jiggle")
 MikSBT.RegisterStickyAnimationStyle("Static", InitStatic, "Up;Down", nil)
+end
