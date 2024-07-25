@@ -205,8 +205,12 @@ do
     -- customModel:SetPoint("LEFT", modelBox, 12, 0)
     -- customRaceDropdown:SetPoint("LEFT", customModel.Text, "RIGHT", 12, -2)
     -- customGenderDropdown:SetPoint("TOPLEFT", customRaceDropdown, "TOPRIGHT", 4, 0)
-
-    InterfaceOptions_AddCategory(panel)
+    if InterfaceOptions_AddCategory then
+        InterfaceOptions_AddCategory(panel)
+    else
+        local category, layout = Settings.RegisterCanvasLayoutCategory(panel, panel.name);
+        Settings.RegisterAddOnCategory(category);
+    end
 end
 
 -- Overlay config
@@ -252,7 +256,12 @@ do
     encounterjournal:SetPoint("TOPLEFT", loot, "BOTTOMLEFT", 0, -4)
 	setjournal:SetPoint("TOPLEFT", encounterjournal, "BOTTOMLEFT", 0, -4)
 
-    InterfaceOptions_AddCategory(panel)
+    if InterfaceOptions_AddCategory then
+        InterfaceOptions_AddCategory(panel)
+    else
+        local category, layout = Settings.RegisterCanvasLayoutCategory(panel, panel.name);
+        Settings.RegisterAddOnCategory(category);
+    end
 end
 
 -- Slash handler
