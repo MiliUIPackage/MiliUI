@@ -461,7 +461,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 							if aura then
 								name = aura.name
 								icon = aura.icon
-								count = aura.charges or 0
+								count = aura.applications
 								atype = aura.dispelName
 							else
 								name = nil
@@ -480,7 +480,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 					if aura then
 						name = aura.name
 						icon = aura.icon
-						count = aura.charges
+						count = aura.applications
 						atype = aura.dispelName
 					else
 						name = nil
@@ -507,7 +507,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 				if aura then
 					name = aura.name
 					icon = aura.icon
-					count = aura.charges
+					count = aura.applications
 					atype = aura.dispelName
 					duration = aura.duration
 					endtime = aura.expirationTime
@@ -556,7 +556,7 @@ do 	-- Aura handlers -----------------------------------------------------------
 				if aura then
 					name = aura.name
 					icon = aura.icon
-					count = aura.charges
+					count = aura.applications
 					atype = aura.dispelName
 					duration = aura.duration
 					endtime = aura.expirationTime

@@ -2,7 +2,7 @@
 ## Title: Stuf_Range
 ## Author: TotalPackage
 ## Notes: Displays estimate distance using LibRangeCheck-3.0.
-## Title-zhTW: |cFF0099FF[介面]|r Stuf頭像-顯示距離
+## Title-zhTW: |cff4DD2FF[頭像]|r Stuf頭像-顯示距離
 ## Notes-zhTW: Stuf_Range |n|n顯示目標的距離，使用 LibRangeCheck-3.0。
 ## X-Category-zhTW: 介面
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red

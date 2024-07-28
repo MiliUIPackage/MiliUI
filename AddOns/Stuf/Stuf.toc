@@ -2,9 +2,7 @@
 ## Title: Stuf Unit Frames
 ## Author: TotalPackage
 ## Notes: Main unitframes replacement. Assembly optional.
-## Title-zhTW: |cFF0099FF[介面]|r Stuf頭像
-## Notes-zhTW: Stuf Unit Frames |n玩家、目標、小隊等頭像和血條框架，簡單好用自訂性高!|n|cffffd200使用方法：|r輸入 /頭像 或 /stuf ，或從 Esc>介面>插件>Stuf頭像，開啟設定。|n如果無法顯示設定內容，按Esc關閉設定視窗後再重新開啟，因載入較慢，請多試幾次。|n|cffFF2D2D特別注意：|r請勿和其他頭像插件同時載入使用。
-## Version: 11.0.2
+## Version: 11.0.3
 
 ## SavedVariables: StufDB
 ## SavedVariablesPerCharacter: StufCharDB
@@ -15,6 +13,8 @@
 ## LoadManagers: AddonLoader
 ## X-LoadOn-Always: true
 
+## Title-zhTW: |cff4DD2FF[頭像]|r Stuf頭像
+## Notes-zhTW: Stuf Unit Frames |n|n玩家、目標、小隊等頭像和血條框架，簡單好用自訂性高!|n|n|cffffd200使用方法: |r輸入 /stuf ，或從 Esc>選項>插件>Stuf頭像，開啟設定。|n|n|cffFF2D2D特別注意: |r請勿和其他頭像插件同時載入使用。
 ## X-Category-zhTW: 介面
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red
 
