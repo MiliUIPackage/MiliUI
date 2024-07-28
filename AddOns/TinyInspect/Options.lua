@@ -17,7 +17,7 @@ end})
 
 local DefaultDB = {
     version = VERSION,                    --配置的版本號
-    ShowItemBorder = false,                --物品直角邊框
+    ShowItemBorder = false,               --物品直角邊框 #暂停用#
     EnableItemLevel  = true,              --物品等級
       ShowColoredItemLevelString = true, --裝等文字隨物品品質
       ShowCorruptedMark = true,          --腐蚀装备标记
@@ -31,7 +31,7 @@ local DefaultDB = {
         EnableItemLevelAltEquipment = true,
         EnableItemLevelPaperDoll = true,
         EnableItemLevelGuildNews = true,
-        EnableItemLevelChat = true,
+        EnableItemLevelChat = false,
         EnableItemLevelLoot = true,
         EnableItemLevelOther = true,
     ShowInspectAngularBorder = true,     --觀察面板直角邊框
@@ -61,7 +61,7 @@ local DefaultDB = {
             {false, "WAISTSLOT", },
             {true, "LEGSSLOT", },
             {true, "FEETSLOT", },
-            {true, "WRISTSLOT", },
+            {false, "WRISTSLOT", },
             {false, "HANDSSLOT", },
             {true, "FINGER0SLOT", },
             {true, "FINGER1SLOT", },
@@ -74,7 +74,7 @@ local DefaultDB = {
 }
 
 local options = {
-    { key = "ShowItemBorder" },
+    --{ key = "ShowItemBorder" },
     { key = "ShowGemAndEnchant",
         subcheck = DefaultDB.EnchantParts,
     },
@@ -95,7 +95,7 @@ local options = {
         -- { key = "GuildBank" },
         -- { key = "Merchant" },
         -- { key = "Trade" },
-        -- { key = "PaperDoll" },
+        { key = "PaperDoll" },
         -- { key = "Loot" },
       },
       anchorkey = "ItemLevelAnchorPoint",
@@ -341,7 +341,8 @@ frame.title = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 frame.title:SetPoint("TOPLEFT", 18, -16)
 frame.title:SetText(addon)
 CreateCheckbox(options, frame, frame.title, 18, 9)
-Settings.RegisterAddOnCategory(Settings.RegisterCanvasLayoutCategory(frame, addon))
+local category = Settings.RegisterCanvasLayoutCategory(frame, addon)
+Settings.RegisterAddOnCategory(category)
 
 LibEvent:attachEvent("VARIABLES_LOADED", function()
     if (not TinyInspectDB or not TinyInspectDB.version) then
@@ -363,6 +364,5 @@ function SlashCmdList.TinyInspect(msg, editbox)
     if (msg == "raid") then
         return ToggleFrame(TinyInspectRaidFrame)
     end
-    InterfaceOptionsFrame_OpenToCategory(frame)
-    InterfaceOptionsFrame_OpenToCategory(frame)
+    Settings.OpenToCategory(category.ID)
 end

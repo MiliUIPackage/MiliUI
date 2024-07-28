@@ -251,6 +251,12 @@ end)
 
 --設置邊框
 LibEvent:attachTrigger("INSPECT_FRAME_SHOWN", function(self, frame, parent, ilevel)
+local currentParent = parent;
+    if (parent:GetName() == "PaperDollFrame" and CharacterFrameBgbg) then
+        currentParent = CharacterFrameBgbg
+    elseif (parent:GetName() == "InspectFrame" and InspectFrameBgbg) then
+        currentParent = InspectFrameBgbg
+    end
     local backdrop = frame:GetBackdrop() or {
             bgFile   = "Interface\\Tooltips\\UI-Tooltip-Background",
             edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -267,7 +273,7 @@ LibEvent:attachTrigger("INSPECT_FRAME_SHOWN", function(self, frame, parent, ilev
         backdrop.insets.right = 1
         backdrop.insets.bottom = 1
         frame.backdrop = backdrop
-        frame:SetPoint("TOPLEFT", parent, "TOPRIGHT", 2, 0)
+        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 2 , 0)
     else
         backdrop.edgeSize = 16
         backdrop.edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border"
@@ -276,7 +282,7 @@ LibEvent:attachTrigger("INSPECT_FRAME_SHOWN", function(self, frame, parent, ilev
         backdrop.insets.right = 4
         backdrop.insets.bottom = 4
         frame.backdrop = backdrop
-        frame:SetPoint("TOPLEFT", parent, "TOPRIGHT", 0, 0)
+        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 0 , 0)
     end
 end)
 

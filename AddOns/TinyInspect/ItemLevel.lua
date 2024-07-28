@@ -50,21 +50,22 @@ local function GetItemLevelFrame(self, category)
         self.ItemLevelFrame:SetSize(w, h)
         self.ItemLevelFrame:SetPoint("CENTER", anchor, "CENTER", 0, 0)
         self.ItemLevelFrame.slotString = self.ItemLevelFrame:CreateFontString(nil, "OVERLAY")
-        self.ItemLevelFrame.slotString:SetFont(STANDARD_TEXT_FONT, 10 + fontAdjust, "OUTLINE")
+        self.ItemLevelFrame.slotString:SetFont(STANDARD_TEXT_FONT, 12 + fontAdjust, "OUTLINE")
         self.ItemLevelFrame.slotString:SetPoint("BOTTOMRIGHT", 1, 2)
         self.ItemLevelFrame.slotString:SetTextColor(1, 1, 1)
         self.ItemLevelFrame.slotString:SetJustifyH("RIGHT")
         self.ItemLevelFrame.slotString:SetWidth(30)
         self.ItemLevelFrame.slotString:SetHeight(0)
         self.ItemLevelFrame.levelString = self.ItemLevelFrame:CreateFontString(nil, "OVERLAY")
-        self.ItemLevelFrame.levelString:SetFont(STANDARD_TEXT_FONT, 14 + fontAdjust, "OUTLINE")
+        self.ItemLevelFrame.levelString:SetFont(STANDARD_TEXT_FONT, 15 + fontAdjust, "OUTLINE")
         self.ItemLevelFrame.levelString:SetPoint("TOP")
-        self.ItemLevelFrame.levelString:SetTextColor(1, 0.82, 0)
+        self.ItemLevelFrame.levelString:SetTextColor(1, 1, 0.4)
         LibEvent:trigger("ITEMLEVEL_FRAME_CREATED", self.ItemLevelFrame, self)
     end
     if (TinyInspectDB and TinyInspectDB.EnableItemLevel) then
-        self.ItemLevelFrame:Show()
-        LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
+        -- 移除讀取緩存，避免升級或轉化欄位出現不正常的裝等與部位 by Mili
+        -- self.ItemLevelFrame:Show()
+        -- LibEvent:trigger("ITEMLEVEL_FRAME_SHOWN", self.ItemLevelFrame, self, category or "")
     else
         self.ItemLevelFrame:Hide()
     end
