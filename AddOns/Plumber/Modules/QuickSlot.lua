@@ -502,6 +502,7 @@ function QuickSlot:SetFrameLayout(layoutIndex)
     else
         --Circular, on the right side
         local radius = math.floor( (0.5 * UIParent:GetHeight()*16/9 /3) + (buttonSize*0.5) + 0.5) - 180;
+        local track0Radius = radius;
         local gapArc = buttonGap + buttonSize;
         local fromRadian = Positioner:GetFromRadian();
         local radianGap = gapArc/radius;

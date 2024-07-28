@@ -19,9 +19,11 @@ L["Module Category General"] = "一般";
 L["Module Category NPC Interaction"] = "NPC互動";
 --- order: 3
 L["Module Category Class"] = "職業";   --Player Class (rogue, paladin...)
---- order: 4
+
+L["Module Category Dragonflight"] = EXPANSION_NAME9 or "巨龍崛起";  --Merge Expansion Feature (Dreamseeds, AzerothianArchives) Modules into this
+
+--Deprecated
 L["Module Category Dreamseeds"] = "夢境種子";     --Added in patch 10.2.0
---- order: 5
 L["Module Category AzerothianArchives"] = "艾澤拉斯文庫";     --Added in patch 10.2.5
 
 --AutoJoinEvents
@@ -46,6 +48,7 @@ L["Numbers To Earn"] = "還可獲取";     --The number of items/currencies play
 L["Numbers Of Earned"] = "已獲取";    --The number of stuff the player has earned
 L["Track Upgrade Currency"] = "追蹤紋章";     --Crest: e.g. Drake’s Dreaming Crest
 L["Track Upgrade Currency Tooltip"] = "在最左側顯示你已獲得的最高等級的紋章。";
+L["Track Holiday Item"] = "追蹤節日兌換通貨";       --e.g. Tricky Treats (Hallow's End)
 L["Currently Pinned Colon"] = "當前顯示：";     --Tells the currently pinned item
 L["Bar Inside The Bag"] = "條列於背包內";     --Put the bar inside the bag UI (below money/currency)
 L["Bar Inside The Bag Tooltip"] = "將條列置於背包介面內。\n\n它只適用於暴雪內建的分離背包模式。";
@@ -63,7 +66,7 @@ L["ModuleDescription DruidModelFix"] = "修復使用群星雕文導致人物界�
 
 --PlayerChoiceFrameToken (PlayerChoiceFrame)
 L["ModuleName PlayerChoiceFrameToken"] = "顯示捐獻物品數";
-L["ModuleDescription PlayerChoiceFrameToken"] = "Show how many to-be-donated items you have on the PlayerChoice UI.\n\nCurrently only supports Dreamseed Nurturing.";
+L["ModuleDescription PlayerChoiceFrameToken"] = "在捐獻界面上顯示你有多少待捐物品。\n\n目前只支援地心之戰的事件。";
 
 
 --EmeraldBountySeedList (Show available Seeds when approaching Emerald Bounty 10.2.0)
@@ -107,8 +110,8 @@ L["TalkingHead Option Condition Instance Tooltip"] = "在副本裡隱藏文字�
 
 
 --AzerothianArchives
-L["ModuleName Technoscryers"] = "快速插槽: 科技探勘";
-L["ModuleDescription Technoscryers"] = "在你做“科技考古”世界任務時顯示一個可以讓你直接戴上科技占蔔器的按鈕。"..L["Quick Slot Generic Description"];
+L["ModuleName Technoscryers"] = "快捷按鈕: 科技探勘";
+L["ModuleDescription Technoscryers"] = "在你做“科技考古”世界任務時顯示一個可以讓你直接戴上科技占卜器的按鈕。"..L["Quick Slot Generic Description"];
 
 
 --Navigator(Waypoint/SuperTrack) Shared Strings
@@ -129,7 +132,7 @@ L["Stop Tracking Dreamseed Tooltip"] = "停止搜索種子。你可以點擊大�
 
 
 --BlizzFixWardrobeTrackingTip (Permanently disable the tip for wardrobe shortcuts)
-L["ModuleName BlizzFixWardrobeTrackingTip"] = "Blitz Fix: 收藏衣櫃提示";
+L["ModuleName BlizzFixWardrobeTrackingTip"] = "暴雪UI改進: 收藏衣櫃提示";
 L["ModuleDescription BlizzFixWardrobeTrackingTip"] = "隱藏衣櫃快捷方式的教學。";
 
 
@@ -143,15 +146,18 @@ L["Seed Color Epic"] = "紫色";
 L["Seed Color Rare"] = "藍色";
 L["Seed Color Uncommon"] = "綠色";
 
--- !! Do NOT translate the following entries
-L["currency-2706"] = "幼龍";
-L["currency-2707"] = "飛龍";
-L["currency-2708"] = "巨龍";
-L["currency-2709"] = "守護巨龍";
-L["currency-2806"] = L["currency-2706"];
-L["currency-2807"] = L["currency-2707"];
-L["currency-2809"] = L["currency-2708"];
-L["currency-2812"] = L["currency-2709"];
+
+--Tooltip 
+L["ModuleName TooltipChestKeys"] = "工具提示：箱子鑰匙";
+L["ModuleDescription TooltipChestKeys"] = "顯示打開當前箱子或門所需的鑰匙訊息。"
+
+--Merchant UI Price
+L["ModuleName MerchantPrice"] = "商品價格";
+L["ModuleDescription MerchantPrice"] = "改變商人界面的預設行為：\n\n- 只把數量不足的貨幣變灰。\n\n- 在錢幣方框內顯示當前頁面所需的所有貨幣。";
+L["Num Items In Bank Format"] = "銀行: |cffffffff%d|r";
+L["Num Items In Bag Format"] = "背包: |cffffffff%d|r";
+L["Number Thousands"] = "K";
+L["Number Millions"] = "M";
 
 --Generic
 L["Reposition Button Horizontal"] = "水平方向移動";   --Move the window horizontally
@@ -159,3 +165,23 @@ L["Reposition Button Vertical"] = "垂直方向移動";
 L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動此視窗。";
 L["Font Size"] = FONT_SIZE or "文字大小";
 L["Reset To Default Position"] = HUD_EDIT_MODE_RESET_POSITION or "重置回預設位置";
+
+
+-- !! Do NOT translate the following entries
+L["currency-2706"] = "幼龍";
+L["currency-2707"] = "飛龍";
+L["currency-2708"] = "巨龍";
+L["currency-2709"] = "守護巨龍";
+
+L["currency-2914"] = "Weathered";
+L["currency-2915"] = "Carved";
+L["currency-2916"] = "Runed";
+L["currency-2917"] = "Gilded";
+
+L["Scenario Delves"] = "探究";
+L["GameObject Door"] = "門";
+L["Delve Chest 1 Rare"] = "豐裕　Coffer";   --We'll use the GameObjectID once it shows up in the database
+
+--Map Pin Filter Name (name should be plural)
+L["Bountiful Delve"] =  "豐裕探究";
+L["Special Assignment"] = "特別任務";

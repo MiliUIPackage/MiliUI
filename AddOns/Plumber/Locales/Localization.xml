@@ -4,4 +4,6 @@
     <Script file="enUS.lua"/>
     <Script file="zhCN.lua"/>
     <Script file="zhTW.lua"/>
+
+    <Script file="PostLoad.lua"/>
 </Ui>

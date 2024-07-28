@@ -1,18 +1,16 @@
-## Interface: 110000
-## Version: 1.2.9
+## Interface: 110000, 110002
+## Version: 1.3.3
 
 ## Title: Plumber
-
+## Title-zhTW: |cFF00AA99[任務]|r 實用工具包
 ## Notes: Provides a variety of quality-of-life features.|nMore details in the AddOn Settings.
 ## Notes-zhCN: 提供多种便捷功能。|n请前往插件设置来查看更多信息。
-## Notes-zhTW: 提供多種便捷功能。|n請前往插件設置來查看更多訊息。
+## Notes-zhTW: Plumber |n提供多種便捷功能。|n請前往插件設置來查看更多訊息。
 ## Author: Peterodox
-## SavedVariables: PlumberDB
+## SavedVariables: PlumberDB, PlumberDevData
 ## X-Category: 介面
 ## IconTexture: Interface\AddOns\Plumber\Art\Logo\PlumberLogo64
 
-## Title-zhTW: |cFF00AA99[任務]|r 夢境工具插件
-## Notes-zhTW: Plumber |n一個主要用於夢境增強的工具插件，但也包含一些其他小功能。|n請前往插件設置來查看更多訊息。
 
 Initialization.lua
 Locales\Localization.xml
@@ -28,7 +26,7 @@ ControlCenter.lua
 Modules\GossipFrameMedal.lua
 Modules\BackpackItemTracker.lua
 Modules\TimeRift.lua
-#Modules\PlayerChoiceFrameToken.lua
+Modules\PlayerChoiceFrameToken.lua
 #Modules\DruidModelFix.lua
 Modules\QuickSlot.lua
 Modules\Dreamseed.lua
@@ -41,7 +39,12 @@ Modules\Lockpicking.lua
 Modules\BlizzFix_EventToast.lua
 Modules\TalkingHead.lua
 Modules\AzerothianArchives.lua
-#Modules\Tillers.lua
+Modules\MerchantPrice.lua
+
+#TWW
+Modules\TooltipKey.lua
+Modules\Delves.lua
+Modules\ExpansionLandingPage.xml
 
 #Modules\AddonList.lua
 #Modules\BlizzFix_WardrobeTrackingHelpTip.lua

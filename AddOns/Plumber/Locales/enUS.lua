@@ -22,9 +22,11 @@ L["Module Category General"] = "General";
 L["Module Category NPC Interaction"] = "NPC Interaction";
 --- order: 3
 L["Module Category Class"] = "Class";   --Player Class (rogue, paladin...)
---- order: 4
+
+L["Module Category Dragonflight"] = EXPANSION_NAME9 or "Dragonflight";  --Merge Expansion Feature (Dreamseeds, AzerothianArchives) Modules into this
+
+--Deprecated
 L["Module Category Dreamseeds"] = "Dreamseeds";     --Added in patch 10.2.0
---- order: 5
 L["Module Category AzerothianArchives"] = "Azerothian Archives";     --Added in patch 10.2.5
 
 
@@ -50,9 +52,11 @@ L["Numbers To Earn"] = "# To Earn";     --The number of items/currencies player 
 L["Numbers Of Earned"] = "# Earned";    --The number of stuff the player has earned
 L["Track Upgrade Currency"] = "Track Crests";       --Crest: e.g. Drake’s Dreaming Crest
 L["Track Upgrade Currency Tooltip"] = "Pin the top-tier crest you have earned to the bar.";
+L["Track Holiday Item"] = "Track Holiday Currency";       --e.g. Tricky Treats (Hallow's End)
 L["Currently Pinned Colon"] = "Currently Pinned:";  --Tells the currently pinned item
 L["Bar Inside The Bag"] = "Bar Inside The Bag";     --Put the bar inside the bag UI (below money/currency)
 L["Bar Inside The Bag Tooltip"] = "Place the bar inside the bag UI.\n\nIt only works in Blizzard's Separate Bags mode.";
+L["Catalyst Charges"] = "Catalyst Charges";
 
 
 --GossipFrameMedal
@@ -66,8 +70,8 @@ L["ModuleDescription DruidModelFix"] = "Fix the Character UI model display issue
 
 
 --PlayerChoiceFrameToken (PlayerChoiceFrame)
-L["ModuleName PlayerChoiceFrameToken"] = "To-Be-Donated Item Count";
-L["ModuleDescription PlayerChoiceFrameToken"] = "Show how many to-be-donated items you have on the PlayerChoice UI.\n\nCurrently only supports Dreamseed Nurturing.";
+L["ModuleName PlayerChoiceFrameToken"] = "Choice UI: Item Cost";
+L["ModuleDescription PlayerChoiceFrameToken"] = "Show how many items it needs to complete a certain action on the PlayerChoice UI.\n\nCurrently only supports events in The War Within.";
 
 
 --EmeraldBountySeedList (Show available Seeds when approaching Emerald Bounty 10.2.0)
@@ -137,11 +141,6 @@ L["ModuleName BlizzFixWardrobeTrackingTip"] = "Blitz Fix: Wardrobe Tip";
 L["ModuleDescription BlizzFixWardrobeTrackingTip"] = "Hide the tutorial for Wardrobe shortcuts.";
 
 
---TillersFarm
-L["ModuleName TillersFarm"] = "Tillers Farm"
-L["ModuleDescription TillersFarm"] = "Show a list of seeds when you target the soils in Sunsong Ranch.";
-
-
 --Rare/Location Announcement
 L["Announce Location Tooltip"] = "Share this location in chat.";
 L["Announce Forbidden Reason In Cooldown"] = "You have shared a location recently.";
@@ -151,6 +150,32 @@ L["Available In Format"] = "Available in: |cffffffff%s|r";
 L["Seed Color Epic"] = ICON_TAG_RAID_TARGET_DIAMOND3 or "Purple";   --Using GlobalStrings as defaults
 L["Seed Color Rare"] = ICON_TAG_RAID_TARGET_SQUARE3 or "Blue";
 L["Seed Color Uncommon"] = ICON_TAG_RAID_TARGET_TRIANGLE3 or "Green";
+
+
+--Tooltip Chest Keys
+L["ModuleName TooltipChestKeys"] = "Tooltip: Chest Keys";
+L["ModuleDescription TooltipChestKeys"] = "Show info on the key required to open the current chest or door.";
+
+
+--Merchant UI Price
+L["ModuleName MerchantPrice"] = "Merchant Price";
+L["ModuleDescription MerchantPrice"] = "Modify Merchant UI's behaviors:\n\n- Grey out only the insufficient currencies.\n\n- Show all required items in the coin box.";
+L["Num Items In Bank Format"] = (BANK or "Bank") ..": |cffffffff%d|r";
+L["Num Items In Bag Format"] = (HUD_EDIT_MODE_BAGS_LABEL or "Bags") ..": |cffffffff%d|r";
+L["Number Thousands"] = "K";    --15K  15,000
+L["Number Millions"] = "M";     --1.5M 1,500,000
+
+
+--Landing Page (Expansion Summary Minimap)
+L["ModuleName ExpansionLandingPage"] = WAR_WITHIN_LANDING_PAGE_TITLE or "Khaz Algar Summary";
+L["ModuleDescription ExpansionLandingPage"] = "Display extra info on the landing page:\n\n- Severed Threads Pact Level";
+L["Instruction Track Reputation"] = "<Shift click to track this reputation>";
+L["Instruction Untrack Reputation"] = CONTENT_TRACKING_UNTRACK_TOOLTIP_PROMPT or "<Shift click to stop tracking>";
+
+
+--WorldMapPin_TWW (Show Pins On Continent Map)
+L["ModuleName WorldMapPin_TWW"] = "Map Pin: "..(EXPANSION_NAME10 or "The War Within");
+L["ModuleDescription WorldMapPin_TWW"] = "Show additional pins on Khaz Algar continent map:\n\n- %s\n\n- %s";  --Wwe'll replace %s with locales (See Map Pin Filter Name at the bottom)
 
 
 --Generic
@@ -169,7 +194,17 @@ L["currency-2707"] = "Drake";
 L["currency-2708"] = "Wyrm";
 L["currency-2709"] = "Aspect";
 
-L["currency-2806"] = L["currency-2706"];
-L["currency-2807"] = L["currency-2707"];
-L["currency-2809"] = L["currency-2708"];
-L["currency-2812"] = L["currency-2709"];
+L["currency-2914"] = "Weathered";
+L["currency-2915"] = "Carved";
+L["currency-2916"] = "Runed";
+L["currency-2917"] = "Gilded";
+
+
+L["Scenario Delves"] = "Delves";
+L["GameObject Door"] = "Door";
+L["Delve Chest 1 Rare"] = "Bountiful Coffer";   --We'll use the GameObjectID once it shows up in the database
+
+
+--Map Pin Filter Name (name should be plural)
+L["Bountiful Delve"] =  "Bountiful Delves";
+L["Special Assignment"] = "Special Assignments";

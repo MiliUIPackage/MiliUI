@@ -15,12 +15,13 @@ local unpack = unpack;
 local time = time;
 local GetTime = GetTime;
 local IsMouseButtonDown = IsMouseButtonDown;
-local GetMouseFocus = GetMouseFocus;
+local GetMouseFocus = API.GetMouseFocus;
 local PlaySound = PlaySound;
 local GetSpellCharges = GetSpellCharges;
 local C_Item = C_Item;
 local GetItemCount = C_Item.GetItemCount;
 local GetItemIconByID = C_Item.GetItemIconByID;
+local GetCVarBool = C_CVar.GetCVarBool;
 local CreateFrame = CreateFrame;
 local UIParent = UIParent;
 
@@ -48,6 +49,7 @@ do  -- Slice Frame
         Metal_Hexagon = true,
         Metal_Hexagon_Red = true,
         Phantom = true,
+        CoinBox = true,
     };
 
     local SliceFrameMixin = {};
@@ -182,6 +184,12 @@ do  -- Slice Frame
         end
     end
 
+    function SliceFrameMixin:ShowBackground(state)
+        for _, piece in ipairs(self.pieces) do
+            piece:SetShown(state);
+        end
+    end
+
     local function CreateNineSliceFrame(parent, layoutName)
         if not (layoutName and NineSliceLayouts[layoutName]) then
             layoutName = "WhiteBorder";
@@ -264,8 +272,8 @@ do  -- Checkbox
         local newState;
 
         if self.dbKey then
-            newState = not PlumberDB[self.dbKey];
-            PlumberDB[self.dbKey] = newState;
+            newState = not addon.GetDBValue(self.dbKey)
+            addon.SetDBValue(self.dbKey, newState);
             self:SetChecked(newState);
         else
             newState = not self:GetChecked();
@@ -554,45 +562,328 @@ do  -- Common Frame with Header (and close button)
     addon.CreateHeaderFrame = CreateHeaderFrame;
 end
 
-do  -- TokenFrame
+do  -- TokenFrame   -- Money   -- Coin
+    local TOKEN_TYPE_CURRENCY = 0;
+    local TOKEN_TYPE_ITEM = 1;
+
     local TOKEN_FRAME_SIDE_PADDING = 8;
-    local TOKEN_FRAME_BUTTON_PADDING = 8;
-    local TOKEN_BUTTON_TEXT_ICON_GAP = 2;
+    local TOKEN_FRAME_BUTTON_PADDING = 6;
+    local TOKEN_BUTTON_TEXT_ICON_GAP = 0;
     local TOKEN_BUTTON_ICON_SIZE = 12;
-    local TOKEN_BUTTON_HEIGHT = 12;
+    local TOKEN_BUTTON_HEIGHT = 16;
+
+    local COIN_TYPE_GAP = 4;
+    local COIN_TEXTURE_SIZE = 13;
+    local COLORBLIND_TEXT_GAP = 0;
+    local AMOUNT_COIN_GAP = 0;
+
+    local NUMBER_K = L["Number Thousands"];
+    local NUMBER_M = L["Number Millions"];
+
+    local BreakUpLargeNumbers = BreakUpLargeNumbers;
+    local GetMoney = GetMoney;
+    local GetCurrencyInfo = C_CurrencyInfo.GetCurrencyInfo;
+
+
+    local MoneyDisplayMixin = {};
+
+
+    function MoneyDisplayMixin:SetSimplified(simplified, noUpdate)
+        self.isSimplified = simplified;
+        if not noUpdate then
+            self:Layout();
+        end
+    end
+
+    function MoneyDisplayMixin:ClearAmount()
+        self.Amount1:SetText("");
+        self.Amount2:SetText("");
+        self.Amount3:SetText("");
+        self.Symbol1:Hide();
+        self.Symbol2:Hide();
+        self.Symbol3:Hide();
+    end
+
+    function MoneyDisplayMixin:Layout()
+        local gold = floor(self.rawCopper / 10000);
+        local silver = floor((self.rawCopper - gold * 10000) / 100);
+        local copper = floor(self.rawCopper - gold * 10000 - silver * 100);
+
+        self:ClearAmount();
+
+        local coinIndex = 0;
+
+        if self.isSimplified then
+            local showSilver = false;
+
+            if gold > 0 then
+                local abbrev;
+
+                if gold >= 10000000 then    --15M 10,000,000
+                    gold = floor(gold / 1000000);
+                    gold = gold;
+                    abbrev = NUMBER_M;
+                elseif gold >= 1000000 then --1.5M 1,000,000
+                    gold = floor(gold / 100000) / 10;
+                    abbrev = NUMBER_M;
+                elseif gold >= 10000 then  --150K 15K 10,000
+                    gold = floor(gold / 1000);
+                    abbrev = NUMBER_K;
+                else
+                    showSilver = true;
+                end
+
+                coinIndex = coinIndex + 1;
+                if abbrev then
+                    self:SetGoldAmount(coinIndex, gold..abbrev);
+                else
+                    self:SetGoldAmount(coinIndex, gold);
+                end
+            else
+                showSilver = true;
+            end
+
+            local showCopper = gold <= 0;
+
+            if showSilver and silver > 0 then
+                coinIndex = coinIndex + 1;
+                self:SetSilverAmount(coinIndex, silver);
+            end
+
+            if showCopper and (copper > 0 or self.rawCopper == 0) then
+                coinIndex = coinIndex + 1;
+                self:SetCopperAmount(coinIndex, copper);
+            end
+        else
+            if gold > 0 then
+                coinIndex = coinIndex + 1;
+                gold = BreakUpLargeNumbers(gold);
+                self:SetGoldAmount(coinIndex, gold);
+            end
+
+            if silver > 0 then
+                coinIndex = coinIndex + 1;
+                self:SetSilverAmount(coinIndex, silver);
+            end
+
+            if copper > 0 then
+                coinIndex = coinIndex + 1;
+                self:SetCopperAmount(coinIndex, copper);
+            end
+        end
+
+
+        --Sizing
+        local width;
+
+        self.Amount1:SetPoint("LEFT", self, "LEFT", 0, 0);
+        width = self.Amount1:GetWrappedWidth() + AMOUNT_COIN_GAP;
+        self.Symbol1:SetPoint("LEFT", self, "LEFT", width, 0);
+
+        if self.colorblindMode then
+            width = width + COLORBLIND_TEXT_GAP;
+        else
+            width = width + COIN_TEXTURE_SIZE;
+        end
+
+        if coinIndex >= 2 then
+            width = width + COIN_TYPE_GAP;
+            self.Amount2:SetPoint("LEFT", self, "LEFT", width, 0);
+            width = width + self.Amount2:GetWrappedWidth() + AMOUNT_COIN_GAP;
+            self.Symbol2:SetPoint("LEFT", self, "LEFT", width, 0);
+            if self.colorblindMode then
+                width = width + COLORBLIND_TEXT_GAP;
+            else
+                width = width + COIN_TEXTURE_SIZE;
+            end
+        end
+
+        if coinIndex >= 3 then
+            width = width + COIN_TYPE_GAP;
+            self.Amount3:SetPoint("LEFT", self, "LEFT", width, 0);
+            width = width + self.Amount3:GetWrappedWidth() + AMOUNT_COIN_GAP;
+            self.Symbol3:SetPoint("LEFT", self, "LEFT", width, 0);
+            if self.colorblindMode then
+                width = width + COLORBLIND_TEXT_GAP;
+            else
+                width = width + COIN_TEXTURE_SIZE;
+            end
+        end
+
+        if self.colorblindMode then
+            width = width - COLORBLIND_TEXT_GAP;
+        end
+
+        width = floor(width + 0.5);
+        self:SetWidth(width);
+        return width
+    end
+
+    function MoneyDisplayMixin:SetTextureGold(texture)
+        texture:SetTexCoord(0, 0.25, 0, 1);
+        texture:Show();
+    end
+
+    function MoneyDisplayMixin:SetTextureSilver(texture)
+        texture:SetTexCoord(0.25, 0.5, 0, 1);
+        texture:Show();
+    end
+
+    function MoneyDisplayMixin:SetTextureCopper(texture)
+        texture:SetTexCoord(0.5, 0.75, 0, 1);
+        texture:Show();
+    end
+
+    function MoneyDisplayMixin:ShowPlayerMoney()
+        return self:SetAmount(GetMoney());
+    end
+
+    function MoneyDisplayMixin:SetAmount(rawCopper, playerMoney, minusMoney)
+        self.rawCopper = rawCopper or 0;
+
+        local color;
+
+        if playerMoney then
+            if playerMoney < rawCopper then
+                color = 1;
+            end
+        elseif minusMoney then
+            color = 2;
+        end
+
+        if self.color ~= color then
+            self.color = color;
+            if color == 1 then
+                self.Amount1:SetTextColor(0.6, 0.6, 0.6);
+                self.Amount2:SetTextColor(0.6, 0.6, 0.6);
+                self.Amount3:SetTextColor(0.6, 0.6, 0.6);
+            elseif color == 2 then
+                self.Amount1:SetTextColor(1.000, 0.125, 0.125);
+                self.Amount2:SetTextColor(1.000, 0.125, 0.125);
+                self.Amount3:SetTextColor(1.000, 0.125, 0.125);
+            else
+                self.Amount1:SetTextColor(1, 1, 1);
+                self.Amount2:SetTextColor(1, 1, 1);
+                self.Amount3:SetTextColor(1, 1, 1);
+            end
+        end
+
+        self.colorblindMode = GetCVarBool("colorblindMode");
+
+        return self:Layout();
+    end
+
+    function MoneyDisplayMixin:SetGoldAmount(coinIndex, amount)
+        if self.colorblindMode then
+            self["Amount"..coinIndex]:SetText(amount..(GOLD_AMOUNT_SYMBOL or "g"));
+            self["Symbol"..coinIndex]:Hide();
+        else
+            self["Amount"..coinIndex]:SetText(amount);
+            self:SetTextureGold(self["Symbol"..coinIndex]);
+        end
+    end
+
+    function MoneyDisplayMixin:SetSilverAmount(coinIndex, amount)
+        if self.colorblindMode then
+            self["Amount"..coinIndex]:SetText(amount..(SILVER_AMOUNT_SYMBOL or "s"));
+            self["Symbol"..coinIndex]:Hide();
+        else
+            self["Amount"..coinIndex]:SetText(amount);
+            self:SetTextureSilver(self["Symbol"..coinIndex]);
+        end
+    end
+
+    function MoneyDisplayMixin:SetCopperAmount(coinIndex, amount)
+        if self.colorblindMode then
+            self["Amount"..coinIndex]:SetText(amount..(COPPER_AMOUNT_SYMBOL or "c"));
+            self["Symbol"..coinIndex]:Hide();
+        else
+            self["Amount"..coinIndex]:SetText(amount);
+            self:SetTextureCopper(self["Symbol"..coinIndex]);
+        end
+    end
+
+    local function CreateMoneyDisplay(parent, numberFont)
+        local f = CreateFrame("Frame", nil, parent);
+        f:SetHeight(16);
+        f:SetWidth(32);
+        Mixin(f, MoneyDisplayMixin);
+
+        f.rawCopper = 0;
+
+        local fontObject = numberFont or "NumberFontNormal";
+    
+        f.Amount1 = f:CreateFontString(nil, "OVERLAY", fontObject);
+        f.Amount2 = f:CreateFontString(nil, "OVERLAY", fontObject);
+        f.Amount3 = f:CreateFontString(nil, "OVERLAY", fontObject);
+
+        f.Amount1:SetJustifyH("LEFT");
+        f.Amount2:SetJustifyH("LEFT");
+        f.Amount3:SetJustifyH("LEFT");
+
+        local iconSize = COIN_TEXTURE_SIZE;
+
+        f.Symbol1 = f:CreateTexture(nil, "OVERLAY");
+        f.Symbol1:SetSize(iconSize, iconSize);
+        f.Symbol1:SetTexture("Interface/AddOns/Plumber/Art/BackpackItemTracker/CoinSymbol");
+        f.Symbol1:SetTexCoord(0, 0.25, 0, 1);
+
+        f.Symbol2 = f:CreateTexture(nil, "OVERLAY");
+        f.Symbol2:SetSize(iconSize, iconSize);
+        f.Symbol2:SetTexture("Interface/AddOns/Plumber/Art/BackpackItemTracker/CoinSymbol");
+        f.Symbol2:SetTexCoord(0, 0.25, 0, 1);
+
+        f.Symbol3 = f:CreateTexture(nil, "OVERLAY");
+        f.Symbol3:SetSize(iconSize, iconSize);
+        f.Symbol3:SetTexture("Interface/AddOns/Plumber/Art/BackpackItemTracker/CoinSymbol");
+        f.Symbol3:SetTexCoord(0, 0.25, 0, 1);
+
+        f:SetTextureGold(f.Symbol1);
+        f:SetTextureSilver(f.Symbol2);
+        f:SetTextureCopper(f.Symbol3);
+
+        return f
+    end
+    addon.CreateMoneyDisplay = CreateMoneyDisplay;
+
 
     local TokenDisplayMixin = {};
 
-    local function CreateTokenDisplay(parent)
-        local f = addon.CreateThreeSliceFrame(parent);
+    local function CreateTokenDisplay(parent, layoutName)
+        local f = addon.CreateThreeSliceFrame(parent, layoutName);
         f:SetHeight(16);
         f:SetWidth(32);
         Mixin(f, TokenDisplayMixin);
-        f.currencies = {};
+        f.tokens = {};
         f.tokenButtons = {};
+
+        f:SetScript("OnHide", f.OnHide);
+        f:SetScript("OnEvent", f.OnEvent);
+
         return f
     end
     addon.CreateTokenDisplay = CreateTokenDisplay;
 
     function TokenDisplayMixin:AddCurrency(currencyID)
-        for i, id in ipairs(self.currencies) do
-            if id == currencyID then
+        for i, tokenInfo in ipairs(self.tokens) do
+            if tokenInfo[1] == TOKEN_TYPE_CURRENCY and tokenInfo[2] == currencyID then
                 return
             end
         end
 
-        tinsert(self.currencies, currencyID);
+        tinsert(self.tokens, {TOKEN_TYPE_CURRENCY, currencyID});
         self:Update();
     end
 
     function TokenDisplayMixin:RemoveCurrency(currencyID)
         local anyChange = false;
 
-        if currencyID then
-            anyChange = API.RemoveValueFromList(self.currencies, currencyID);
-        else
-            self.currencies = {};
-            anyChange = true;
+        for i, tokenInfo in ipairs(self.tokens) do
+            if tokenInfo[1] == TOKEN_TYPE_CURRENCY and tokenInfo[2] == currencyID then
+                table.remove(self.tokens, i);
+                anyChange = true;
+                break
+            end
         end
 
         if anyChange then
@@ -600,61 +891,159 @@ do  -- TokenFrame
         end
     end
 
-    function TokenDisplayMixin:SetCurrencies(...)
-        self.currencies = {};
-
-        local n = select('#', ...);
-        local id = select(1, ...);
-
-        if id and type(id) == "table" then
-            for _, v in ipairs(id) do
-                tinsert(self.currencies, v);
+    function TokenDisplayMixin:AddItem(itemID)
+        for i, tokenInfo in ipairs(self.tokens) do
+            if tokenInfo[1] == TOKEN_TYPE_ITEM and tokenInfo[2] == itemID then
+                return
             end
-        else
-            for i = 1, n do
-                id = select(i, ...);
-                tinsert(self.currencies, id);
+        end
+
+        tinsert(self.tokens, {TOKEN_TYPE_ITEM, itemID});
+        self:Update();
+    end
+
+    function TokenDisplayMixin:SetTokens(tokens)
+        self.tokens = {};
+
+        --[[
+        local n = select('#', ...);
+        local tokenInfo;
+
+        for i = 1, n do
+            tokenInfo = select(i, ...);
+            tinsert(self.tokens, tokenInfo);
+        end
+        --]]
+
+        if tokens and #tokens > 0 then
+            if type(tokens[1]) == "table" then
+                self.tokens = tokens;
+            else
+                self.tokens[1] = tokens;
             end
         end
 
         self:Update();
     end
 
+
+    local function AppendItemCount(tooltip, itemID)
+        local inBag = GetItemCount(itemID);
+        local total = GetItemCount(itemID, true, false, true);
+        local inBank = total - inBag;
+
+        local text = L["Num Items In Bag Format"]:format(inBag);
+
+        if inBank > 0 then
+            text = text.."    "..L["Num Items In Bank Format"]:format(inBank);
+        end
+
+        tooltip:AddLine(text, 1, 0.82, 0, true);
+        tooltip:Show();
+    end
+
     local function TokenButton_OnEnter(self)
+        self.UpdateTooltip = nil;
+
         GameTooltip:SetOwner(self, "ANCHOR_RIGHT");
-        GameTooltip:SetCurrencyByID(self.currencyID);
+        if self.tokenType == 0 and self.currencyID then
+            GameTooltip:SetCurrencyByID(self.currencyID);
+        elseif self.tokenType == 1 and self.itemID then
+            GameTooltip:SetItemByID(self.itemID);
+            AppendItemCount(GameTooltip, self.itemID);
+            self.UpdateTooltip = function()
+                TokenButton_OnEnter(self)
+            end
+        else
+            GameTooltip:Hide();
+        end
     end
 
     local function TokenButton_OnLeave(self)
+        self.UpdateTooltip = nil;
         GameTooltip:Hide();
     end
 
-    local function TokenButton_Setup(self, currencyID)
-        self.currencyID = currencyID;
-        local info = C_CurrencyInfo.GetCurrencyInfo(currencyID);
-        if info then
-            self.Icon:SetTexture(info.iconFileID);
-            self.Count:SetText(info.quantity);
+    function TokenDisplayMixin:SetupTokenButton(tokenButton, currencyData, currencyInfoCache)
+        local tokenType = currencyData[1];
+        local id = currencyData[2];
+
+        --For Vendors
+        local numRequired = currencyData[3];
+        local icon = currencyData[4];
+        local quantity;
+        local grayColor = false;    --0.6   NumberFontNormalRightGray
+
+        tokenButton.tokenType = tokenType;
+
+        if tokenType == TOKEN_TYPE_CURRENCY then
+            --Currency
+            self.anyCurrency = true;
+            tokenButton.currencyID = id;
+            tokenButton.itemID = nil;
+
+            local info;
+
+            if currencyInfoCache then
+                if currencyInfoCache[id] then
+                    info = currencyInfoCache[id];
+                else
+                    info = GetCurrencyInfo(id);
+                    currencyInfoCache[id] = info;
+                end
+            else
+                info = GetCurrencyInfo(id);
+            end
+
+            icon = info.iconFileID;
+            quantity = info.quantity;
+
+        elseif tokenType == TOKEN_TYPE_ITEM then
+            --Item
+            self.anyItem = true;
+            tokenButton.currencyID = nil;
+            tokenButton.itemID = id;
+            icon = GetItemIconByID(id)
+
+            if self.includeBank then
+                quantity = GetItemCount(id, true, false, true);
+            else
+                quantity = GetItemCount(id);
+            end
+        end
+
+        if quantity then
+            tokenButton.Icon:SetTexture(icon);
+            if numRequired then
+                tokenButton.Count:SetText(numRequired);
+            else
+                tokenButton.Count:SetText(quantity);
+            end
+            if numRequired and numRequired > quantity then
+                grayColor = true;
+            end
         else
-            self.Icon:SetTexture(134400);   --question mark
-            self.Count:SetText("??");
+            tokenButton.Icon:SetTexture(134400);   --question mark
+            tokenButton.Count:SetText("??");
+        end
+
+        if grayColor then
+            tokenButton.Count:SetTextColor(0.6, 0.6, 0.6);
+            tokenButton.Icon:SetVertexColor(0.6, 0.6, 0.6);
+        else
+            tokenButton.Count:SetTextColor(1, 1, 1);
+            tokenButton.Icon:SetVertexColor(1, 1, 1);
         end
 
         --update width
-        local span = TOKEN_BUTTON_ICON_SIZE + TOKEN_BUTTON_TEXT_ICON_GAP + floor(self.Count:GetWrappedWidth() + 0.5);
-        self:SetWidth(span);
+        local span = TOKEN_BUTTON_ICON_SIZE + TOKEN_BUTTON_TEXT_ICON_GAP + floor(tokenButton.Count:GetWrappedWidth() + 0.5);
+        tokenButton:SetWidth(span);
         return span
     end
 
     function TokenDisplayMixin:AcquireTokenButton(index)
         if not self.tokenButtons[index] then
             local button = CreateFrame("Frame", nil, self);
-
-            if index == 1 then
-                button:SetPoint("LEFT", self, "LEFT", TOKEN_FRAME_SIDE_PADDING, 0);
-            else
-                button:SetPoint("LEFT", self.tokenButtons[index - 1], "RIGHT", TOKEN_FRAME_BUTTON_PADDING, 0);
-            end
 
             button:SetSize(TOKEN_BUTTON_ICON_SIZE, TOKEN_BUTTON_HEIGHT);
 
@@ -663,7 +1052,7 @@ do  -- TokenFrame
             button.Icon:SetSize(TOKEN_BUTTON_ICON_SIZE, TOKEN_BUTTON_ICON_SIZE);
             button.Icon:SetTexCoord(0.0625, 0.9375, 0.0625, 0.9375);
 
-            button.Count = button:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall");
+            button.Count = button:CreateFontString(nil, "ARTWORK", self.numberFont or "GameFontHighlightSmall");
             button.Count:SetJustifyH("RIGHT");
             button.Count:SetPoint("RIGHT", button.Icon, "LEFT", -TOKEN_BUTTON_TEXT_ICON_GAP, 0);
 
@@ -677,52 +1066,88 @@ do  -- TokenFrame
     end
 
     function TokenDisplayMixin:Update()
-        local numVisible = #self.currencies;
+        local numTokens = #self.tokens;
         local button;
 
-        local totalWidth = 0;
+        local totalWidth = TOKEN_FRAME_SIDE_PADDING;
         local buttonWidth;
 
-        for i, currencyID in ipairs(self.currencies) do
+        self:ListenEvents(true);
+
+        if self.useMoneyFrame and self.MoneyFrame then
+            self.MoneyFrame:SetPoint("LEFT", self, "LEFT", totalWidth, 0);
+            totalWidth = totalWidth + self.MoneyFrame:ShowPlayerMoney();
+            totalWidth = totalWidth + TOKEN_FRAME_BUTTON_PADDING;
+
+            if numTokens > 0 then
+                totalWidth = totalWidth + TOKEN_FRAME_BUTTON_PADDING;
+            end
+        end
+
+        for i, tokenInfo in ipairs(self.tokens) do
             button = self:AcquireTokenButton(i);
             button:Show();
-            buttonWidth = TokenButton_Setup(button, currencyID);
+            button:SetPoint("LEFT", self, "LEFT", totalWidth, 0);
+            buttonWidth = self:SetupTokenButton(button, tokenInfo);
             totalWidth = totalWidth + buttonWidth + TOKEN_FRAME_BUTTON_PADDING;
         end
 
-        totalWidth = totalWidth - TOKEN_FRAME_BUTTON_PADDING + 2*TOKEN_FRAME_SIDE_PADDING;
+        totalWidth = totalWidth - TOKEN_FRAME_BUTTON_PADDING + TOKEN_FRAME_SIDE_PADDING;
         if totalWidth < TOKEN_BUTTON_ICON_SIZE then
             totalWidth = TOKEN_BUTTON_ICON_SIZE;
         end
         self:SetWidth(totalWidth);
 
-        for i = numVisible + 1, #self.tokenButtons do
+        for i = numTokens + 1, #self.tokenButtons do
             self.tokenButtons[i]:Hide();
+        end
+
+        if self.anyCurrency then
+            self:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
+        end
+
+        if self.anyItem then
+            self:RegisterEvent("BAG_UPDATE");
         end
     end
 
-    function TokenDisplayMixin:SetFrameOwner(owner, position)
-        --To avoid taint, our frame isn't parent-ed to owner
-        local b = owner:GetBottom();
-        local r = owner:GetRight();
+    function TokenDisplayMixin:SetFrameOwner(owner, position, offsetX, offsetY)
+        --local b = owner:GetBottom();
+        --local r = owner:GetRight();
+        offsetX = offsetX or 0;
+        offsetY = offsetY or 0;
 
         self:ClearAllPoints();
         self:SetFrameStrata("FULLSCREEN");
 
-        local realParent = UIParent;
-        local scale = realParent:GetScale();
+        local realParent = owner;   --UIParent
 
         if position == "BOTTOMRIGHT" then
-            self:SetPoint("BOTTOMRIGHT", realParent, "BOTTOMLEFT", r, b);
+            self:SetPoint("BOTTOMRIGHT", realParent, "BOTTOMRIGHT", offsetX, offsetY);
             --f:SetPoint("CENTER", UIParent, "BOTTOM", 0, 64)
+        elseif position == "BOTTOM" then
+            self:SetPoint("BOTTOM", realParent, "BOTTOM", offsetX, offsetY);
+        elseif position == "BOTTOMLEFT" then
+            self:SetPoint("BOTTOMLEFT", realParent, "BOTTOMLEFT", offsetX, offsetY);
         end
 
         self:Show();
     end
 
-    function TokenDisplayMixin:DisplayCurrencyOnFrame(owner, position, ...)
-        self:SetFrameOwner(owner, position);
-        self:SetCurrencies(...);
+    function TokenDisplayMixin:DisplayCurrencyOnFrame(tokens, owner, position, offsetX, offsetY)
+        self:SetFrameOwner(owner, position, offsetX, offsetY);
+        self:SetTokens(tokens);
+    end
+
+    function TokenDisplayMixin:ShowMoneyFrame(state)
+        if state and not self.MoneyFrame then
+            self.MoneyFrame = CreateMoneyDisplay(self);
+        end
+
+        self.useMoneyFrame = state;
+        if self.MoneyFrame then
+            self.MoneyFrame:SetShown(state);
+        end
     end
 
     function TokenDisplayMixin:HideTokenFrame()
@@ -731,6 +1156,126 @@ do  -- TokenFrame
             self:ClearAllPoints();
         end
     end
+
+    function TokenDisplayMixin:ListenEvents(state)
+        if state then
+            self:RegisterEvent("BAG_UPDATE");
+            self:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
+            if self.useMoneyFrame then
+                self:RegisterEvent("PLAYER_MONEY");
+            end
+        else
+            self:UnregisterEvent("BAG_UPDATE");
+            self:UnregisterEvent("CURRENCY_DISPLAY_UPDATE");
+            self:UnregisterEvent("PLAYER_MONEY");
+        end
+    end
+
+    function TokenDisplayMixin:OnHide()
+        self:ListenEvents(false);
+        self:SetScript("OnUpdate", nil);
+    end
+
+    local function Update_Delay(self, elapsed)
+        self.t = self.t + elapsed;
+        if self.t >= 0.2 then
+            self.t = 0;
+            self:SetScript("OnUpdate", nil);
+            self:Update();
+        end
+    end
+
+    function TokenDisplayMixin:RequestUpdate()
+        if not self:IsVisible() then return end;
+
+        self.t = 0;
+        self:SetScript("OnUpdate", Update_Delay);
+    end
+
+    function TokenDisplayMixin:OnEvent(event)
+        self:ListenEvents(false);
+        self:RequestUpdate();
+    end
+
+
+    --For Merchant Vendor Item Price
+    --Update is controlled by a shared event listener
+    local PriceDisplayMixin = {};
+    PriceDisplayMixin.SetupTokenButton = TokenDisplayMixin.SetupTokenButton;
+    PriceDisplayMixin.AcquireTokenButton = TokenDisplayMixin.AcquireTokenButton;
+    PriceDisplayMixin.SetFrameOwner = TokenDisplayMixin.SetFrameOwner;
+    PriceDisplayMixin.ShowMoneyFrame = TokenDisplayMixin.ShowMoneyFrame;
+
+    function PriceDisplayMixin:SetMoneyAndAltCurrency(rawCopper, altCurrency, playerMoney)
+        rawCopper = rawCopper or 0;
+
+        if rawCopper > 0 then
+            self:ShowMoneyFrame(true);
+            self.MoneyFrame:SetAmount(rawCopper, playerMoney);
+        else
+            self:ShowMoneyFrame(false);
+        end
+
+        self.tokens = altCurrency;
+
+        self:Update();
+    end
+
+    function PriceDisplayMixin:Update()
+        local numTokens = self.tokens and #self.tokens or 0;
+        local button, tokenInfo;
+
+        local totalWidth = 0;
+        local buttonWidth;
+
+        if self.useMoneyFrame then
+            self.MoneyFrame:SetPoint("LEFT", self, "LEFT", totalWidth, 0);
+            totalWidth = totalWidth + self.MoneyFrame:GetWidth();
+            if numTokens > 0 then
+                totalWidth = totalWidth + TOKEN_FRAME_BUTTON_PADDING;
+            end
+        end
+
+        for i = 1, #self.tokenButtons do    --re-trigger OnEnter
+            self.tokenButtons[i]:Hide();
+        end
+
+        local currencyInfoCache = {};
+
+        for i = 1, numTokens do
+            tokenInfo = self.tokens[i];
+            button = self:AcquireTokenButton(i);
+            button:Show();
+            if i > 1 then
+                totalWidth = totalWidth + TOKEN_FRAME_BUTTON_PADDING;
+            end
+            button:SetPoint("LEFT", self, "LEFT", totalWidth, 0);
+            buttonWidth = self:SetupTokenButton(button, tokenInfo, currencyInfoCache);
+            totalWidth = totalWidth + buttonWidth;
+        end
+
+        if totalWidth < 0 then
+            --On test realm some items don't have a price
+            totalWidth = 1;
+        end
+
+        self:SetWidth(totalWidth);
+    end
+
+    local function CreatePriceDisplay(parent)
+        local f = CreateFrame("Frame", nil, parent);
+
+        f:SetHeight(16);
+        f:SetWidth(32);
+        Mixin(f, PriceDisplayMixin);
+        f.tokens = {};
+        f.tokenButtons = {};
+        f.numberFont = "NumberFontNormal";
+        f.includeBank = true;
+
+        return f
+    end
+    addon.CreatePriceDisplay = CreatePriceDisplay;
 end
 
 do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the button onMouseOver)
@@ -955,7 +1500,7 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
             self.Cooldown.EdgeTexture:Show();
             self.Cooldown.EdgeTexture:SetRotation(0);
             self.supposedEndTime = time() + second;
-            local countdownNumberEnabled = C_CVar.GetCVarBool("countdownForCooldowns");
+            local countdownNumberEnabled = GetCVarBool("countdownForCooldowns");
             self.Cooldown.showCountdownNumber = not countdownNumberEnabled;
             self.Cooldown.BackupCountdownNumber:SetShown(not countdownNumberEnabled);
             self.Cooldown.BackupCountdownNumber:SetText("");
@@ -991,7 +1536,7 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
         f.Cooldown:SetSize(64, 64);
         f.Cooldown:SetPoint("CENTER", f, "CENTER", 0, 0);
         f.Cooldown:SetHideCountdownNumbers(false);  --globally controlled by CVar "countdownForCooldowns" (boolean)
-        f.Cooldown.noCooldownCount = true;          --Disabled for OmniCC (  see OmniCC\core\cooldown.lua Cooldown:OnCooldownDone()  )
+        f.Cooldown.noCooldownCount = true;          --Disabled for OmniCC (  see OmniCC/core/cooldown.lua Cooldown:OnCooldownDone()  )
 
         local CountdownNumber = f.Cooldown:CreateFontString(nil, "OVERLAY", nil, 6);
         f.Cooldown.BackupCountdownNumber = CountdownNumber;
@@ -1012,7 +1557,7 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
         --f.Cooldown:SetEdgeTexture("Interface/Cooldown/edge", 1, 1, 1, 1);  --Interface/AddOns/Plumber/Art/Button/ActionButtonCircle-SpellCast-Edge
         --f.Cooldown:SetDrawEdge(true);
         --f.Cooldown:SetEdgeScale(1);
-        --f.Cooldown:SetUseCircularEdge(true);
+        --f.Cooldown:SetUseRadialEdge(true);
 
         local EdgeTexture = f.Cooldown:CreateTexture(nil, "OVERLAY", nil, 6);
         f.Cooldown.EdgeTexture = EdgeTexture;
@@ -1028,7 +1573,6 @@ do  -- PeudoActionButton (a real ActionButtonTemplate will be attached to the bu
     end
     addon.CreateActionButtonSpellCastOverlay = CreateActionButtonSpellCastOverlay;
 end
-
 
 do  --(In)Secure Button Pool
     local InCombatLockdown = InCombatLockdown;
@@ -1168,7 +1712,6 @@ do  --(In)Secure Button Pool
     end
     addon.AcquireSecureActionButton = AcquireSecureActionButton;
 end
-
 
 do
     local SecondsToTime = API.SecondsToTime;
@@ -2338,7 +2881,7 @@ do  --Cursor Cooldown (Displayed near the cursor)
             DisableSharpening(f.Background);
             f:SetScript("OnEvent", CursorProgressMixin.OnEvent);
             f:SetScript("OnHide", CursorProgressMixin.OnHide);
-            f:SetUseCircularEdge(true);
+            f:SetUseRadialEdge(true);
             f:SetColorIndex(2);
             f:SetFrameStrata("FULLSCREEN");
             f:SetFixedFrameStrata(true);
@@ -3630,7 +4173,7 @@ do  --EditMode
         checkbox.Label:SetTextColor(1, 1, 1);
 
         checkbox:SetData(widgetData);
-        checkbox:SetChecked( PlumberDB[checkbox.dbKey] );
+        checkbox:SetChecked(addon.GetDBValue(checkbox.dbKey));
 
         return checkbox
     end
@@ -3651,8 +4194,8 @@ do  --EditMode
         slider:SetFormatValueFunc(widgetData.formatValueFunc);
         slider:SetOnValueChangedFunc(widgetData.onValueChangedFunc);
 
-        if widgetData.dbKey and PlumberDB[widgetData.dbKey] then
-            slider:SetValue(PlumberDB[widgetData.dbKey]);
+        if widgetData.dbKey and addon.GetDBValue(widgetData.dbKey) then
+            slider:SetValue(addon.GetDBValue(widgetData.dbKey));
         end
 
         return slider
@@ -3790,4 +4333,349 @@ do  --EditMode
         return EditModeSettingsDialog
     end
     addon.SetupSettingsDialog = SetupSettingsDialog;
+end
+
+do  --Radial Progress Bar
+    local RadialProgressBarMixin = {};
+
+    function RadialProgressBarMixin:SetPercentage(percentage)
+        local seconds = 100;
+
+        if percentage > 1 then
+            percentage = 1;
+        elseif percentage < 0 then
+            percentage = 0;
+        end
+
+        self:Pause();
+        self:SetCooldown(GetTime() - (seconds * percentage), seconds);
+    end
+
+    function RadialProgressBarMixin:SetValue(currentValue, maxValue)
+        if not currentValue or not maxValue or maxValue == 0 then
+            currentValue = 0;
+            maxValue = 1;
+        end
+
+        self:SetPercentage(currentValue / maxValue);
+    end
+
+    local function CreateRadialProgressBar(parent)
+        local f = CreateFrame("Cooldown", nil, parent, "PlumberRadialProgressBarTemplate");
+        Mixin(f, RadialProgressBarMixin);
+
+        local tex = "Interface/AddOns/Plumber/Art/Frame/ProgressBar-Radial-WarWithin";
+
+        f.Border:SetTexture(tex);
+        f.Border:SetTexCoord(0, 80/256, 80/256, 160/256);
+
+        f.BorderHighlight:SetTexture(tex);
+        f.BorderHighlight:SetTexCoord(0, 80/256, 80/256, 160/256);
+
+        f:SetSwipeTexture(tex);
+        local lowTexCoords =
+        {
+            x = 80/256,
+            y = 80/256,
+        };
+        local highTexCoords =
+        {
+            x = 160/256,
+            y = 160/256,
+        };
+        f:SetTexCoordRange(lowTexCoords, highTexCoords);
+
+        f.ValueText = f:CreateFontString("OVERLAY", nil, "GameFontNormalLargeOutline");
+        f.ValueText:SetJustifyH("CENTER");
+        f.ValueText:SetPoint("CENTER", f, "BOTTOM", 2, 14);
+        f.ValueText:SetTextColor(1, 0.82, 0);
+
+        return f
+    end
+    addon.CreateRadialProgressBar = CreateRadialProgressBar;
+end
+
+do  --Progress Bar With Level
+    local LevelProgressBarMixin = {};
+
+    local FILL_TEXTURE_LEFT = 26;
+    local FILL_TEXTURE_RIGHT = 262;
+    local FILL_TEXTURE_FULLWIDTH = 288;
+
+    function LevelProgressBarMixin:SetSizeScale(scale)
+        self.sizeScale = scale;
+
+        local hexSize = 96;
+        local hexOffset = -16;
+        local barBGWidth, barBGHeight = 288, 96;
+        local barFillHeight = 32;
+        local effectiveHeight = 64;
+        local effectiveWidth, barOffsetX, barOffsetY;
+
+        self.Label:ClearAllPoints();
+
+        if self.showLevel then
+            effectiveWidth = 300;
+            barOffsetX = 26;
+            barOffsetY = 8;
+            self.Label:SetPoint("BOTTOMLEFT", self.BarBackground, "LEFT", 36 * scale, 8 * scale);
+            self.Label:SetJustifyH("LEFT");
+        else
+            effectiveWidth = 248;
+            barOffsetX = 0;
+            barOffsetY = 0;
+            self.Label:SetPoint("BOTTOM", self.BarBackground, "CENTER", 0, 8 * scale);
+            self.Label:SetJustifyH("CENTER");
+        end
+
+        self:SetSize(effectiveWidth*scale, effectiveHeight*scale);
+
+        self.BarBackground:ClearAllPoints();
+        self.BarBackground:SetPoint("CENTER", self, "CENTER", barOffsetX * scale, barOffsetY * scale);
+        self.BarBackground:SetSize(barBGWidth * scale, barBGHeight * scale);
+
+        self.BarFill:ClearAllPoints();
+        self.BarFill:SetPoint("LEFT", self.BarBackground, "LEFT", 0, -16 * scale);
+        self.BarFill:SetHeight(barFillHeight * scale);
+
+        self.MouseoverFrame.ValueText:SetPoint("CENTER", self.BarBackground, "CENTER", 0, -16 * scale);
+
+        self.BarSurface:ClearAllPoints();
+        self.BarSurface:SetPoint("RIGHT", self.BarFill, "RIGHT", 8 * scale, 0);
+        self.BarSurface:SetSize(48 * scale, 32 * scale);
+
+        self.LevelBackground:ClearAllPoints();
+        self.LevelBackground:SetPoint("LEFT", self, "LEFT", hexOffset * scale, 0);
+        self.LevelBackground:SetSize(hexSize * scale, hexSize * scale);
+
+        self.MaxLevelIcon:SetSize(48 * scale, 48 * scale);
+
+        self.MouseoverArea:SetSize(248 * scale, 32 * scale);
+        self.MouseoverArea:SetPoint("CENTER", self.BarBackground, "CENTER", 0, -16 * scale);
+
+        self.BarSurfaceMask:SetWidth(236 * scale);
+
+        self.DeltaValueFrame:ClearAllPoints();
+        self.DeltaValueFrame:SetPoint("BOTTOMLEFT", self.BarBackground, "RIGHT", -60, 8);
+
+        self:SetValue(self.value or 0);
+    end
+
+    function LevelProgressBarMixin:SetLabel(label)
+        self.Label:SetText(label);
+    end
+
+    function LevelProgressBarMixin:ShowLevel(state)
+        state = state == true or state == nil;
+        self.showLevel = state;
+        self.LevelText:SetShown(state);
+        self.LevelBackground:SetShown(state);
+
+        if self.sizeScale then
+            self:SetSizeScale(self.sizeScale);
+        end
+    end
+
+    function LevelProgressBarMixin:SetLevel(level, reachMaxLevel)
+        self.level = level;
+        if reachMaxLevel then
+            self.LevelText:Hide();
+            self.MaxLevelIcon:Show();
+        else
+            self.LevelText:SetText(level);
+            self.LevelText:Show();
+            self.MaxLevelIcon:Hide();
+        end
+    end
+
+    function LevelProgressBarMixin:SetVisualByRatio(ratio)
+        if ratio > 1 then
+            ratio = 1;
+        end
+
+        self.visualRatio = ratio;
+        local textureWidth = FILL_TEXTURE_LEFT + (FILL_TEXTURE_RIGHT - FILL_TEXTURE_LEFT) * ratio;
+        self.BarFill:SetWidth(textureWidth * self.sizeScale);
+        self.BarFill:SetTexCoord(0, textureWidth / 512, 0.1875, 0.25);
+    end
+
+    local FILL_RATIO_PER_SEC = 0.25;     --50%/sec
+    local EasingFunc = addon.EasingFunctions.outSine;
+
+    local function CalculateEaseDuration(deltaRatio)
+        if deltaRatio < 0 then
+            deltaRatio = -deltaRatio;
+        end
+
+        if deltaRatio < 0.02 then
+            return 0
+        else
+            local t = deltaRatio / FILL_RATIO_PER_SEC;
+            if t < 0.5 then
+                t = 0.5;
+            elseif t > 2 then
+                t = 2;
+            end
+            return t
+        end
+    end
+
+    local function AnimFill_Plus_SameLevel(self, elapsed)
+        self.t = self.t + elapsed;
+        local ratio = EasingFunc(self.t, self.fromRatio, self.toRatio, self.easeDuration);
+        if self.t >= self.easeDuration then
+            self:ClearAnimation();
+            return
+        end
+        self:SetVisualByRatio(ratio);
+    end
+
+    local function AnimFill_Plus_LevelUp(self, elapsed)
+        local ratio = self.fromRatio + 2*FILL_RATIO_PER_SEC * elapsed;
+        self.fromRatio = ratio;
+        if ratio >= 1 then
+            ratio = 1;
+            self.t = 0;
+            self.fromRatio = 0;
+            self.easeDuration = CalculateEaseDuration(self.toRatio - self.fromRatio);
+            if self.easeDuration > 0 then
+                self:SetScript("OnUpdate", AnimFill_Plus_SameLevel);
+            else
+                self:ClearAnimation();
+            end
+        else
+            self:SetVisualByRatio(ratio);
+        end
+    end
+
+    function LevelProgressBarMixin:ClearAnimation()
+        if self.toRatio then
+            self:SetScript("OnUpdate", nil);
+            self:SetVisualByRatio(self.toRatio);
+            self.t = nil;
+            self.easeDuration = nil;
+            self.fromRatio = nil;
+            self.toRatio = nil;
+        end
+
+        if self:IsShown() and self.StartFadeOutCountdown and self.autoFadeOut and not self.MouseoverArea:IsMouseMotionFocus() then
+            self:StartFadeOutCountdown();
+        end
+    end
+
+    function LevelProgressBarMixin:SetValue(value, levelUp)
+        self.value = value;
+        local ratio = value / self.maxValue;
+        self.MouseoverFrame.ValueText:SetText(value.." / "..self.maxValue);
+
+        if self.useAnimation and self:IsVisible() then
+            self.t = 0;
+            self.fromRatio = self.visualRatio or 0;
+            self.toRatio = ratio;
+
+            if levelUp then
+                self:SetScript("OnUpdate", AnimFill_Plus_LevelUp);
+                return
+            else
+                self.easeDuration = CalculateEaseDuration(self.toRatio - self.fromRatio);
+                if self.easeDuration > 0 then
+                    self:SetScript("OnUpdate", AnimFill_Plus_SameLevel);
+                    return
+                end
+            end
+        end
+
+        self:ClearAnimation();
+        self:SetVisualByRatio(ratio);
+    end
+
+    function LevelProgressBarMixin:SetMaxValue(maxValue)
+        if maxValue <= 0 then
+            maxValue = 1;
+        end
+
+        self.maxValue = maxValue;
+    end
+
+    function LevelProgressBarMixin:AnimateDeltaValue(deltaValue)
+        self.DeltaValueFrame.Value:SetText(deltaValue);
+        self.DeltaValueFrame.AnimText:Stop();
+        self.DeltaValueFrame.AnimText:Play();
+        self.DeltaValueFrame:Show();
+    end
+
+    function LevelProgressBarMixin:SetValueByDelta(deltaValue, newMaxValue)
+        local newValue = (self.value or 0) + deltaValue;
+        local levelUp = self.maxValue and newValue > self.maxValue;
+        local value;
+
+        if levelUp then
+            value = newValue - (self.maxValue or 0);
+        else
+            value = newValue;
+        end
+
+        if newMaxValue then
+            self.maxValue = newMaxValue;
+        end
+
+        self:SetValue(value, levelUp);
+        self:AnimateDeltaValue(deltaValue);
+    end
+
+    function LevelProgressBarMixin:SetBarReachMaxLevel(state)
+        if state and not self.isMaxed then
+            self.isMaxed = true;
+            self:SetLevel(self.level or 0, true);
+        elseif (not state) and self.isMaxed then
+            self.isMaxed = false;
+            self:SetLevel(self.level or 0);
+        end
+    end
+
+    function LevelProgressBarMixin:SetUseAnimation(state)
+        self.useAnimation = state;
+    end
+
+    function LevelProgressBarMixin:IsAnimating()
+        return self.easeDuration ~= nil
+    end
+
+    function LevelProgressBarMixin:SetAutoFadeOut(state)
+        self.autoFadeOut = state == true;
+    end
+
+    local function CreateLevelProgressBar(parent)
+        local f = CreateFrame("Frame", nil, parent, "PlumberWoWProgressBarTemplate");
+        Mixin(f, LevelProgressBarMixin);
+
+        f:SetMaxValue(100);
+        f:ShowLevel(true);
+        f:SetSizeScale(0.8);
+
+        f.BarSurfaceMask:SetTexture("Interface/AddOns/Plumber/Art/BasicShape/Mask-Full", "CLAMPTOBLACKADDITIVE", "CLAMPTOBLACKADDITIVE", "NEAREST");
+
+        f.MouseoverArea:SetScript("OnEnter", function()
+            f.MouseoverFrame:Show();
+            if f.onEnterFunc then
+                f.onEnterFunc(f);
+            end
+        end);
+
+        f.MouseoverArea:SetScript("OnLeave", function()
+            f.MouseoverFrame:Hide();
+            if f.onLeaveFunc then
+                f.onLeaveFunc(f);
+            end
+        end);
+
+        f.MouseoverArea:SetScript("OnMouseDown", function()
+            f.MouseoverFrame:Hide();
+            f:Hide();
+            f:ClearAnimation();
+        end);
+
+        return f
+    end
+    addon.CreateLevelProgressBar = CreateLevelProgressBar;
 end

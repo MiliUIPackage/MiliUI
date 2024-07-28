@@ -7,6 +7,7 @@ local ENABLE_THIS_MODULE = true;        --DB.BackpackItemTracker
 local HIDE_ZERO_COUNT_ITEM = true;      --DB.HideZeroCountItem      Dock items inside a flyout menu
 local USE_CONSISE_TOOLTIP = true;       --DB.ConciseTokenTooltip
 local TRACK_UPGRADE_CURRENCY = true;    --DB.TrackItemUpgradeCurrency
+local TRACK_HOLIDAY_ITEM = true;        --DB.TrackHolidayItem
 local INSIDE_SEPARATE_BAG = false;
 
 local MAX_CUSTOM_ITEMS = 6;
@@ -33,7 +34,7 @@ local GetColorizedItemName = API.GetColorizedItemName;
 local CursorHasItem = CursorHasItem;
 local ClearCursor = ClearCursor;
 local GetCursorInfo = GetCursorInfo;
-local GetItemCount = GetItemCount;
+local GetItemCount = C_Item.GetItemCount;
 --local GetItemUniquenessByID = C_Item.GetItemUniquenessByID;     --Only returns True for equipment, not items with Unique (10)
 local GetItemIconByID = C_Item.GetItemIconByID;
 local GetItemMaxStackSizeByID = C_Item.GetItemMaxStackSizeByID;
@@ -56,19 +57,8 @@ local HolidayItems = {
     --winterveil
 };
 
-local CrestCurrenies = {
-    --Universal Upgrade System (Crests)
-    --convert to string for hybrid process
-    --CategoryID ~= 142
+local UpgradeCurrencies = addon.UpgradeCurrencies;  --Defined in SharedTooltip.lua
 
-    --S4 Awakened
-    2812,   --Aspect    (M, M6+)
-    2809,   --Wyrm      (H, M5)
-    2807,   --Drake     (N, M0)
-    2806,   --Whelpling (LFR, H)
-};
-
-addon.CrestCurrenies = CrestCurrenies;
 
 local EL = CreateFrame("Frame");
 EL:RegisterEvent("PLAYER_ENTERING_WORLD");
@@ -80,12 +70,12 @@ local CrestUtil = {};
 CrestUtil.watchedCurrrencies = {};
 
 function CrestUtil:GetBestCrestName(colorized)
-    local numTiers = #CrestCurrenies;
+    local numTiers = #UpgradeCurrencies;
     local info, currencyID;
     local name;
 
     for tier = 1, numTiers do
-        currencyID = CrestCurrenies[tier];
+        currencyID = UpgradeCurrencies[tier];
         info = GetCurrencyInfo(currencyID);
         if info and info.discovered then
             name = info.name;
@@ -110,12 +100,12 @@ function CrestUtil:GetBestCrestForPlayer()
         return
     end
 
-    local numTiers = #CrestCurrenies;
+    local numTiers = #UpgradeCurrencies;
     local bestTier = 0;
     local info, currencyID, bestCurrencyID;
 
     for tier = 1, numTiers do
-        currencyID = CrestCurrenies[tier];
+        currencyID = UpgradeCurrencies[tier];
         info = GetCurrencyInfo(currencyID);
         if info and info.discovered then
             bestTier = numTiers - tier + 1;
@@ -129,7 +119,7 @@ function CrestUtil:GetBestCrestForPlayer()
         --if there is an undiscovered tier above the player's best tier, listen to Events for update
         local temp = "";
         for tier = bestTier + 1, numTiers do
-            currencyID = CrestCurrenies[tier];
+            currencyID = UpgradeCurrencies[tier];
             temp = temp .. " "..currencyID;
             self.watchedCurrrencies[currencyID] = true;
         end
@@ -147,7 +137,7 @@ do
         ExcludeFromSave[id] = true;
     end
 
-    for _, id in pairs(CrestCurrenies) do
+    for _, id in pairs(UpgradeCurrencies) do
         ExcludeFromSave[ tostring(id) ] = true;
         UseSpecialTooltip[id] = true;
     end
@@ -526,6 +516,7 @@ function SettingsFrame.OnChanged(manual)
     HIDE_ZERO_COUNT_ITEM = db.HideZeroCountItem;
     USE_CONSISE_TOOLTIP = db.ConciseTokenTooltip;
     TRACK_UPGRADE_CURRENCY = db.TrackItemUpgradeCurrency;
+    TRACK_HOLIDAY_ITEM = db.TrackHolidayItem;
 
     local insideSeparateBag = db.TrackerBarInsideSeparateBag;
 
@@ -573,6 +564,14 @@ local function OptionButton_TrackItemUpgradeCurrency_OnEnter(self)
     tooltip:Show();
 end
 
+local function OptionButton_TrackHolidayItem_OnClick()
+    local db = PlumberDB;
+    if not db then return end;
+
+    TRACK_HOLIDAY_ITEM = db.TrackHolidayItem;
+    InitializeModule();
+end
+
 local function OptionButton_InsideBag_OnClick()
 
 end
@@ -612,6 +611,7 @@ function SettingsFrame:Init()
         {dbKey = "HideZeroCountItem", label = L["Hide Not Owned Items"], tooltip = L["Hide Not Owned Items Tooltip"], onClickFunc = SettingsFrame.OnChanged},
         {dbKey = "ConciseTokenTooltip", label = L["Concise Tooltip"], tooltip = L["Concise Tooltip Tooltip"], onClickFunc = SettingsFrame.OnChanged},
         {dbKey = "TrackItemUpgradeCurrency", label = L["Track Upgrade Currency"], onClickFunc = OptionButton_TrackItemUpgradeCurrency_OnClick, onEnterFunc = OptionButton_TrackItemUpgradeCurrency_OnEnter},
+        {dbKey = "TrackHolidayItem", label = L["Track Holiday Item"], onClickFunc = OptionButton_TrackHolidayItem_OnClick},
     };
 
     if TrackerFrame.isBlizzardBag and (not C_CVar.GetCVarBool("combinedBags")) then
@@ -952,13 +952,15 @@ function SettingsFrame:UpdateListFrame()
     self.AlertText:SetShown(numActiveButton == 0);
 end
 
-function SettingsFrame:ShowUI()
+function SettingsFrame:ShowUI(atCursorPosition)
     self:Init();
     if not self.frame:IsShown() then
         self.frame:Show();
         self:UpdateListFrame();
         PlaySound(SOUNDKIT.IG_MAINMENU_OPTION_CHECKBOX_ON);
     end
+
+    self:AnchorToTrackerFrame(not atCursorPosition);
 end
 
 function SettingsFrame:ToggleUI()
@@ -966,6 +968,30 @@ function SettingsFrame:ToggleUI()
         self:ShowUI();
     else
         self:CloseUI();
+    end
+end
+
+function SettingsFrame:AnchorToTrackerFrame(state)
+    local f = self.frame;
+
+    f:ClearAllPoints();
+    if state then
+        f:SetParent(TrackerFrame);
+        f:SetPoint("BOTTOMLEFT", TrackerFrame, "TOPLEFT", 0, 4);
+    else
+        f:SetParent(UIParent);
+        local x, y = GetScaledCursorPosition();
+        f:SetPoint("TOPLEFT", UIParent, "BOTTOMLEFT", x + 16, y);
+    end
+end
+
+local function SettingsFrame_ToggleUIAtCursorPosition()
+    local f = SettingsFrame.frame;
+
+    if (not f) or (not f:IsShown()) then
+        SettingsFrame:ShowUI(true);
+    else
+        SettingsFrame:CloseUI();
     end
 end
 
@@ -1381,7 +1407,7 @@ function TrackerFrame:UpdateAnchor(forceUpdate)
 
     if anchorMode == 3 then
         --Anchor to Backpack
-        self.Background:Show();
+        self:SetShowBackground(true);
         parent = ContainerFrame1;
         self:SetParent(parent);
 
@@ -1400,11 +1426,11 @@ function TrackerFrame:UpdateAnchor(forceUpdate)
         self.Border:SetPoint("LEFT", self, "LEFT", BORDER_SHRINK, 0);
         if anchorMode == 1 then
             --Anchor to MonenyFrame
-            self.Background:Hide();
+            self:SetShowBackground(false);
             self:SetPoint("LEFT", parent.MoneyFrame, "LEFT", 0, 0);
         elseif anchorMode == 2 then
             --Anchor to CombinedBag BottomLeft
-            self.Background:Show();
+            self:SetShowBackground(true);
             self:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 8, -4);
         end
     end
@@ -1876,6 +1902,8 @@ function TrackerFrame:UpdateTray(manual)
         self.TrayButtons[i].itemID = nil;
         self.TrayButtons[i].currencyID = nil;
     end
+
+    self:UpdateBackgroundVisibility();
 end
 
 function TrackerFrame:CalculateHeight()
@@ -2015,6 +2043,29 @@ function RepositionUtil:SetAnchorMode(id)
     end
 end
 
+function TrackerFrame:SetShowBackground(showBackground)
+    --Show Background Texture if our Frame is placed outside bag window
+    --Hide background if nothing is being tracked
+    self.showBackground = showBackground;
+    self:UpdateBackgroundVisibility();
+end
+
+function TrackerFrame:UpdateBackgroundVisibility()
+    local trackingAnything = self:IsTrackingAnyItems();
+
+    if self.showBackground then
+        if trackingAnything then
+            self.Background:Show();
+        else
+            self.Background:Hide();
+        end
+    else
+        self.Background:Hide();
+    end
+
+    self:EnableMouse(trackingAnything);
+end
+
 function TrackerFrame:ParentTo_Bagnon()
     --Changes to Bagnon 10.2.15: Frame Struture Changed, Bottom Left of the Bag becomes DataBroker
 
@@ -2029,7 +2080,7 @@ function TrackerFrame:ParentTo_Bagnon()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2061,7 +2112,7 @@ function TrackerFrame:ParentTo_AdiBags()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2096,7 +2147,7 @@ function TrackerFrame:ParentTo_ArkInventory()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2124,7 +2175,7 @@ function TrackerFrame:ParentTo_ElvUI()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2152,7 +2203,7 @@ function TrackerFrame:ParentTo_NDui()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2180,7 +2231,7 @@ function TrackerFrame:ParentTo_LiteBag()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2203,22 +2254,26 @@ function TrackerFrame:ParentTo_LiteBag()
 end
 
 function TrackerFrame:ParentTo_Baganator()
-    local parent = Baganator_SingleViewBackpackViewFrame;
+    local backpackView1 = Baganator_SingleViewBackpackViewFrame;
+    local backpackView2 = Baganator_CategoryViewBackpackViewFrame;
+
+    local parent = backpackView1;
 
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
     self:SetClampedToScreen(false);
     self:ClearAllPoints();
 
-    local anchorTo = Baganator_SingleViewBackpackViewFrame;
+    local isSingleView = true;
+    local anchorTo = backpackView1;
 
     local function Callback_AllocateBags()
-        if anchorTo.lastBagDetails then
+        if isSingleView and anchorTo.lastBagDetails then
             local numButtons = anchorTo.lastBagDetails.special and #anchorTo.lastBagDetails.special or 0;
             local fromOffset = 0;
             local iconButtonWidth = 32;
@@ -2232,9 +2287,38 @@ function TrackerFrame:ParentTo_Baganator()
         end
     end
 
+
+    --Supporting Category Group View
+
+    if backpackView1 and backpackView1:GetScript("OnShow") ~= nil then
+        backpackView1:HookScript("OnShow", function()
+            if not isSingleView then
+                isSingleView = true;
+                self:ClearAllPoints();
+                self.Border:ClearAllPoints();
+                self:SetParent(backpackView1);
+                Callback_AllocateBags();
+            end
+        end);
+    end
+
+    if backpackView2 and backpackView2:GetScript("OnShow") ~= nil then
+        backpackView2:HookScript("OnShow", function()
+            if isSingleView then
+                isSingleView = false;
+                self:ClearAllPoints();
+                self.Border:ClearAllPoints();
+                self:SetParent(backpackView2);
+                self:SetPoint("LEFT", backpackView2, "BOTTOMLEFT", 17, 17);
+                self.Border:SetPoint("LEFT", self, "LEFT", BORDER_SHRINK, 0);
+            end
+        end);
+    end
+
+
     if anchorTo then
         if anchorTo.AllocateBags then
-            hooksecurefunc(Baganator_SingleViewBackpackViewFrame, "AllocateBags", Callback_AllocateBags)
+            hooksecurefunc(backpackView1, "AllocateBags", Callback_AllocateBags)
         end
         self:SetPoint("LEFT", anchorTo, "BOTTOMLEFT", 54, 17);
         self.Border:SetPoint("LEFT", self, "LEFT", BORDER_SHRINK, 0);
@@ -2249,7 +2333,7 @@ function TrackerFrame:ParentTo_BetterBags()
     if not parent then return end;
 
     self.isBlizzardBag = false;
-    self.Background:Show();
+    self:SetShowBackground(true);
     self:SetParent(parent);
     self:SetScript("OnShow", TrackerFrame_Update_OnShow);
     self:Show();
@@ -2263,7 +2347,7 @@ function TrackerFrame:ParentTo_BetterBags()
 
     local anchorOutside = true;
     if anchorOutside then
-        self:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 0, -2);
+        self:SetPoint("TOPLEFT", parent, "BOTTOMLEFT", 5, -2);
     else
         self:SetPoint("BOTTOMLEFT", parent, "BOTTOMLEFT", 4, 5);
     end
@@ -2422,15 +2506,12 @@ end
 function InitializeModule()
     CurrentPinnedItems = {};
 
-    local trackCrests = true;
-    if trackCrests then
-        local bestCurrencyID = CrestUtil:GetBestCrestForPlayer();
-        if bestCurrencyID then
-            table.insert(CurrentPinnedItems, 1, tostring(bestCurrencyID));
-        end
+    local bestCurrencyID = CrestUtil:GetBestCrestForPlayer();   --Returns nil if player opts out
+    if bestCurrencyID then
+        table.insert(CurrentPinnedItems, 1, tostring(bestCurrencyID));
     end
 
-    local HolidayInfo = API.GetActiveMajorHolidayInfo();
+    local HolidayInfo = TRACK_HOLIDAY_ITEM and API.GetActiveMajorHolidayInfo();
     if HolidayInfo then
         for _, info in ipairs(HolidayInfo) do
             local key = info:GetKey();
@@ -2514,6 +2595,7 @@ do
         toggleFunc = EnableModule,
         categoryID = 1,
         uiOrder = 1,
+        optionToggleFunc = SettingsFrame_ToggleUIAtCursorPosition,
     };
 
     addon.ControlCenter:AddModule(moduleData);
