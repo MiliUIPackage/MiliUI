@@ -1,4 +1,4 @@
-local lib, oldMinor = LibStub:NewLibrary("LibAppropriateItems-1.0", 1)
+local lib, oldMinor = LibStub:NewLibrary("LibAppropriateItems-1.0", 2)
 if not lib then return end
 
 local _, playerclass = UnitClass("player")
