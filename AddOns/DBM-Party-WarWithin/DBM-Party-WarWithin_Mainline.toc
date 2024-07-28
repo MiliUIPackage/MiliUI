@@ -1,4 +1,4 @@
-## Interface: 100207, 110000, 110002
+## Interface: 110000, 110002
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0Dungeons (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0队伍首领 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffc030c0隊伍首領 (地心之戰)|r
@@ -27,6 +27,7 @@
 
 localization.en.lua
 localization.cn.lua
+localization.tw.lua
 
 DarkflameCleft\OlWaxbeard.lua
 DarkflameCleft\Blazikon.lua

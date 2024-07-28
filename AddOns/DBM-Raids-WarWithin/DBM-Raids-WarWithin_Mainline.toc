@@ -1,6 +1,6 @@
-## Interface: 100207, 110000, 110002
+## Interface: 110000, 110002
 ## X-Min-Interface: 100206
-## Version: 11.0.0
+## Version: 11.0.1
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (WW)|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010团队副本 (地心之战)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010團隊副本 (地心之戰)|r

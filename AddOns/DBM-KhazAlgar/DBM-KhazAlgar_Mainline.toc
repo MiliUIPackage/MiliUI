@@ -1,5 +1,5 @@
-## Interface: 100207, 110000, 110002
-## Version: 10.2.52
+## Interface: 110000, 110002
+## Version: 11.0.0-15
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r
 ## Author: MysticalOS
@@ -16,13 +16,15 @@
 ## X-DBM-Mod-Name-zhTW: 世界首領 (地心之戰)
 ## X-DBM-Mod-World-Boss: 1
 ## X-DBM-Mod-Sort: 110
-## X-DBM-Mod-MapID: 2774
-## X-DBM-Mod-LoadCID: 220999, 221067
+## X-DBM-Mod-MapID: 2774, 2601
+## X-DBM-Mod-LoadCID: 220999, 221067, 221224, 229334
 ## X-DBM-Mod-MinCoreRevision: 17286
 ## X-DBM-Mod-MinExpansion: 10
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
 
+Kordac.lua
 AggregationofHorrors.lua
+Shurrai.lua
 Orta.lua

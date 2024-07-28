@@ -1,6 +1,6 @@
---[===[@non-alpha@
+--@non-alpha@
 do return end
---@end-non-alpha@]===]
+--@end-non-alpha@
 
 ---@class DBMGUI
 local DBM_GUI = DBM_GUI
