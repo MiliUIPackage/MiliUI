@@ -19,12 +19,12 @@
 		local addonName, Details222 = ...
 		local version, build, date, tvs = GetBuildInfo()
 
-		Details.build_counter = 12819
-		Details.alpha_build_counter = 12819 --if this is higher than the regular counter, use it instead
+		Details.build_counter = 12828
+		Details.alpha_build_counter = 12828 --if this is higher than the regular counter, use it instead
 		Details.dont_open_news = true
 		Details.game_version = version
 		Details.userversion = version .. " " .. Details.build_counter
-		Details.realversion = 158 --core version, this is used to check API version for scripts and plugins (see alias below)
+		Details.realversion = 159 --core version, this is used to check API version for scripts and plugins (see alias below)
 		Details.gametoc = tvs
 		Details.APIVersion = Details.realversion --core version
 		Details.version = Details.userversion .. " (core " .. Details.realversion .. ")" --simple stirng to show to players
@@ -1566,7 +1566,7 @@ function Details222.ClassCache.MakeCache()
 end
 
 Details222.UnitIdCache.Party = {"player"}
-Details222.UnitIdCache.PartyPet = {"playetpet"}
+Details222.UnitIdCache.PartyPet = {"playerpet"}
 for i = 1, 4 do
 	table.insert(Details222.UnitIdCache.Party, "party" .. i)
 	table.insert(Details222.UnitIdCache.PartyPet, "partypet" .. i)

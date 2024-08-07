@@ -628,14 +628,18 @@
 		--146739 is corruption that doesn't expire
 
 		local spells_cant_start_combat = {
-			[387846] = true,
-			[352561] = true,
-			[111400] = true,
-			[371070] = true,
-			[368637] = true,
-			[401394] = true,
-			[146739] = true,
+			[368637] = true, --The Third Rune
+			[371070] = true, --Rotting from Within
+			[146739] = true, --Corruption
+			[387846] = true, --Fel Armor
+			[352561] = true, --Undulating Maneuvers
+			[401394] = true, --Unstable Flames
+			[111400] = true, --Burning Rush
+			[12654] = true, --Ignite
+			[419800] = true, --Intensifying Flame
+			[448744] = true, --Authority of Radiant Power
 		}
+
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --internal functions
 
@@ -937,6 +941,8 @@
 					end
 				end
 
+				--local spellInfo = C_Spell.GetSpellInfo(spellId)
+				--print("1 spell:", spellId, spellInfo.name)
 				Details222.StartCombat(sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags)
 			else
 				--entrar em combate se for dot e for do jogador e o ultimo combate ter sido a mais de 10 segundos atr�s
@@ -945,8 +951,9 @@
 						return
 					end
 
-					--faz o calculo dos 10 segundos
+					--can't start a combat with a dot with the latest combat finished less than 10 seconds ago
 					if (Details.last_combat_time + 10 < _tempo) then
+						--print("2 spell:", spellId)
 						Details222.StartCombat(sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags)
 					end
 				end
@@ -1165,15 +1172,15 @@
 			end
 
 			--record death log
-			local t = last_events_cache[targetName]
+			local actorLatestEvents = last_events_cache[targetName]
 
-			if (not t) then
-				t = _current_combat:CreateLastEventsTable(targetName)
+			if (not actorLatestEvents) then
+				actorLatestEvents = _current_combat:CreateLastEventsTable(targetName)
 			end
 
-			local i = t.n
+			local i = actorLatestEvents.n
 
-			local thisEvent = t [i]
+			local thisEvent = actorLatestEvents[i]
 			thisEvent[1] = true --true if this is a damage || false for healing
 			thisEvent[2] = spellId --spellid || false if this is a battle ress line
 			thisEvent[3] = amount --amount of damage or healing
@@ -1187,14 +1194,14 @@
 					unitId = Details:GuessArenaEnemyUnitId(targetName)
 				end
 				if (unitId) then
-					thisEvent[5] = UnitHealth(unitId)
+					thisEvent[5] = UnitHealth(unitId) / UnitHealthMax(unitId)
 				else
 					thisEvent[5] = cacheAnything.arenaHealth[targetName] or 100000
 				end
 
 				cacheAnything.arenaHealth[targetName] = thisEvent[5]
 			else
-				thisEvent[5] = UnitHealth(targetName)
+				thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName)
 			end
 
 			thisEvent[6] = sourceName --source name
@@ -1208,9 +1215,9 @@
 			i = i + 1
 
 			if (i == _amount_of_last_events + 1) then
-				t.n = 1
+				actorLatestEvents.n = 1
 			else
-				t.n = i
+				actorLatestEvents.n = i
 			end
 		end
 
@@ -1295,7 +1302,7 @@
 				thisEvent[2] = spellId --spellid || false if this is a battle ress line
 				thisEvent[3] = amount --amount of damage or healing
 				thisEvent[4] = time --parser time
-				thisEvent[5] = UnitHealth(targetName) --current unit heal
+				thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName) --current unit heal
 				thisEvent[6] = sourceName --source name
 				thisEvent[7] = absorbed
 				thisEvent[8] = spellType or school
@@ -1792,7 +1799,7 @@
 		this_event [2] = spellId --spellid || false if this is a battle ress line
 		this_event [3] = amount --amount of damage or healing
 		this_event [4] = time --parser time
-		this_event [5] = UnitHealth(sourceName) --current unit heal
+		this_event [5] = UnitHealth(sourceName) / UnitHealthMax(sourceName) --current unit heal
 		this_event [6] = sourceName --source name
 		this_event [7] = absorbed
 		this_event [8] = school
@@ -1887,7 +1894,7 @@
 		this_event [2] = spellid --spellid || false if this is a battle ress line
 		this_event [3] = amount --amount of damage or healing
 		this_event [4] = time --parser time
-		this_event [5] = UnitHealth(who_name) --current unit heal
+		this_event [5] = UnitHealth(who_name) / UnitHealthMax(who_name) --current unit heal
 		this_event [6] = who_name --source name
 		this_event [7] = absorbed
 		this_event [8] = school
@@ -2007,7 +2014,7 @@
 		this_event [2] = spellid --spellid || false if this is a battle ress line
 		this_event [3] = amount --amount of damage or healing
 		this_event [4] = time --parser time
-		this_event [5] = UnitHealth(alvo_name) --current unit heal
+		this_event [5] = UnitHealth(alvo_name) / UnitHealthMax(alvo_name) --current unit heal
 		this_event [6] = who_name --source name
 		this_event [7] = absorbed
 		this_event [8] = spelltype or school
@@ -2329,7 +2336,7 @@
 	end
 
 -----------------------------------------------------------------------------------------------------------------------------------------
-	--HEALING 	serach key: ~healing											|
+	--HEALING 	serach key: ~healing	~heal										|
 -----------------------------------------------------------------------------------------------------------------------------------------
 
 	local ignored_shields = {
@@ -2636,7 +2643,7 @@
 				end
 				previousEvent[7] = previousEvent[7] or bIsShield
 				previousEvent[1] = false --true if this is a damage || false for healing
-				previousEvent[5] = UnitHealth(targetName)
+				previousEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName)
 				previousEvent[11] = (previousEvent[11] or 0) + 1 --attempt to perform arithmetic on a boolean value (during battlegrounds - fix 02 Nov 2023)
 			else
 				local thisEvent = t[i]
@@ -2655,12 +2662,12 @@
 						unitId = Details:GuessArenaEnemyUnitId(targetName)
 					end
 					if (unitId) then
-						thisEvent[5] = UnitHealth(unitId)
+						thisEvent[5] = UnitHealth(unitId) / UnitHealthMax(unitId)
 					else
 						thisEvent[5] = 0
 					end
 				else
-					thisEvent[5] = UnitHealth(targetName)
+					thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName)
 				end
 
 				thisEvent[6] = sourceName
@@ -2824,7 +2831,7 @@
 		this_event [2] = spellid --spellid || false if this is a battle ress line
 		this_event [3] = amount --amount of damage or healing
 		this_event [4] = time --parser time
-		this_event [5] = UnitHealth(alvo_name) --current unit heal
+		this_event [5] = UnitHealth(alvo_name)  / UnitHealthMax(alvo_name) --current unit heal
 		this_event [6] = who_name --source name
 		this_event [7] = is_shield
 		this_event [8] = absorbed
@@ -2933,7 +2940,7 @@
 				thisEvent[2] = spellId --spellid
 				thisEvent[3] = 1
 				thisEvent[4] = time --parser time
-				thisEvent[5] = UnitHealth(targetName) --current unit heal
+				thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName) --current unit heal
 				thisEvent[6] = sourceName --source name
 				thisEvent[7] = false
 				thisEvent[8] = false
@@ -3442,7 +3449,7 @@
 					thisEvent[2] = spellId --spellid
 					thisEvent[3] = 1
 					thisEvent[4] = time --parser time
-					thisEvent[5] = UnitHealth(targetName) --current unit heal
+					thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName) --current unit heal
 					thisEvent[6] = sourceName --source name
 					thisEvent[7] = false
 					thisEvent[8] = false
@@ -3502,7 +3509,7 @@
 						thisEvent[2] = spellId --spellid
 						thisEvent[3] = stackSize or 1
 						thisEvent[4] = time --parser time
-						thisEvent[5] = UnitHealth(targetName) --current unit heal
+						thisEvent[5] = UnitHealth(targetName) / UnitHealthMax(targetName) --current unit heal
 						thisEvent[6] = sourceName --source name
 						thisEvent[7] = false
 						thisEvent[8] = false
@@ -3977,7 +3984,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 				thisEvent[2] = spellId --spellid || false if this is a battle ress line
 				thisEvent[3] = 1 --amount of damage or healing
 				thisEvent[4] = time
-				thisEvent[5] = UnitHealth(sourceName)
+				thisEvent[5] = UnitHealth(sourceName) / UnitHealthMax(sourceName)
 				thisEvent[6] = sourceName
 
 				i = i + 1
@@ -4440,7 +4447,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 							spellId,
 							1,
 							time,
-							UnitHealth(targetName),
+							UnitHealth(targetName) / UnitHealthMax(targetName),
 							sourceName
 						})
 						break
@@ -4650,6 +4657,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 				--get the index of the last event recorded
 				local lastIndex = recordedEvents.n
 
+				--first, remove all healing events where the player was at full health
+
 				--here the event log gets reordered as in the parser it work with index recycling
 				if (lastIndex < _amount_of_last_events+1 and not recordedEvents[lastIndex][4]) then
 					--the last events table amount of indexes is less than the amount of events to store
@@ -4773,8 +4782,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 					eventTable[6] = targetName --source name
 					eventsBeforePlayerDeath[#eventsBeforePlayerDeath+1] = eventTable
 				end
-
-				
 
 				local maxHealth
 				if (thisPlayer.arena_enemy) then
@@ -7233,12 +7240,14 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 					end
 
 					actor = _current_damage_container:GetOrCreateActor (guid, name, flag, true)
-					actor.total = Details:GetOrderNumber()
-					actor.classe = classToken or "UNKNOW"
-
-					if (flag == 0x548) then
-						--oponent
-						actor.enemy = true
+					if (actor) then
+						actor.total = Details:GetOrderNumber()
+						actor.classe = classToken or "UNKNOW"
+						if (flag == 0x548) then
+							--oponent
+							actor.enemy = true
+						end
+						actor.made_by_pvpparser = true
 					end
 				end
 			end
@@ -7263,12 +7272,14 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 					end
 
 					actor = _current_heal_container:GetOrCreateActor (guid, name, flag, true)
-					actor.total = Details:GetOrderNumber()
-					actor.classe = classToken or "UNKNOW"
-
-					if (flag == 0x548) then
-						--oponent
-						actor.enemy = true
+					if (actor) then
+						actor.total = Details:GetOrderNumber()
+						actor.classe = classToken or "UNKNOW"
+						if (flag == 0x548) then
+							--oponent
+							actor.enemy = true
+						end
+						actor.made_by_pvpparser = true
 					end
 				end
 			end

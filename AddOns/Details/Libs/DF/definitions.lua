@@ -167,6 +167,7 @@
 ---@field UnitGroupRolesAssigned fun(unitId: unit, bUseSupport:boolean?, specId: specializationid?) : string there's no self here
 ---@field IsDragonflight fun():boolean
 ---@field IsDragonflightAndBeyond fun():boolean
+---@field IsDragonflightOrBelow fun():boolean
 ---@field IsTimewalkWoW fun():boolean
 ---@field IsClassicWow fun():boolean
 ---@field IsTBCWow fun():boolean
@@ -329,10 +330,9 @@
 ---@field CreateSearchBox fun(self:table, parent:frame, callback:function) : df_searchbox
 ---@field ConvertAnchorPointToInside fun(self:table, anchorPoint:anchorid) : anchorid
 ---@field CreateHeader fun(self:table, parent:frame, headerTable:df_headercolumndata[], options:table?, frameName:string?) : df_headerframe
+---@field CreateGraphicMultiLineFrame fun(self:table, parent:frame, name:string) : df_chartmulti
+---@field CreateGraphicLineFrame fun(self:table, parent:frame, name:string) : df_chart
 ---@field
----@field
-
-
 
 --[=[
     Wrapped objects: when using the following functions, the object will be wrapped in a table, e.g. detailsFramework:CreateButton() will return a table with the button, the button will be accessible through the "button" key.

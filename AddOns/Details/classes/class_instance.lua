@@ -595,7 +595,61 @@ local instanceMixins = {
 		instance:ResetWindow()
 		instance:RefreshWindow(true)
 	end,
+
+	---open a window with the keys and values of the actor object being shown in the line index
+	---this function doesn't not return the values, it will 'dump' the values in a new window by calling 'dumpt'
+	---@param self instance
+	---@param index number
+	GetActorInfoFromLineIndex = function(self, index)
+		local actor = self.barras[index] and self.barras[index].minha_tabela
+		if (actor) then
+			Details:DumpActorInfo(actor)
+		else
+			Details:Msg("no actor found in line index", index)
+		end
+	end,
 }
+
+function Details:DumpActorInfo(actor)
+	local tableToDump = Details:GenerateActorInfo(actor)
+	dumpt(tableToDump)
+end
+
+local tablesToIgnore = {
+	["pets"] = "type = table",
+	["friendlyfire"] = "type = table",
+	["damage_from"] = "type = table",
+	["targets"] = "type = table",
+	["raid_targets"] = "type = table",
+	["minha_barra"] = "type = table",
+	["__index"] = "type = table",
+	["spells"] = "type = table",
+}
+
+function Details:GenerateActorInfo(actor, errorText, bIncludeStack)
+	local tableToDump = {}
+	for k, v in pairs(actor) do
+		if (not tablesToIgnore[k]) then
+			if (type(k) == "string") then
+				if (type(v) == "number" or type(v) == "string"or type(v) == "boolean") then
+					tableToDump[k] = v
+				elseif (type(v) == "table") then
+					tableToDump[k] = "table{}"
+				end
+			end
+		end
+	end
+
+	if (errorText) then
+		tableToDump["__ERRORTEXT"] = errorText
+	end
+
+	if (bIncludeStack) then
+		tableToDump["__STACKCALL"] = debugstack(2)
+	end
+
+	return tableToDump
+end
 
 ---get the table with all instances, these instance could be not initialized yet, some might be open, some not in use
 ---@return instance[]

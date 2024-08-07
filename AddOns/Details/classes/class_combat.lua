@@ -940,6 +940,25 @@ local segmentTypeToString = {
 		end
 	end
 
+	function classCombat:CutDeathEventsByTime(time)
+		time = time or 10
+		local deathsTable = self:GetDeaths()
+		for i = #deathsTable, 1, -1 do
+			local deathTable = deathsTable[i]
+			local playerName, playerClass, deathTime, deathCombatTime, deathTimeString, playerMaxHealth, deathEvents, lastCooldown, spec = Details:UnpackDeathTable(deathTable)
+			for evIndex = #deathEvents, 1, -1 do
+				local event = deathEvents[evIndex]
+				local evType = event[1]
+				if (type(evType) == "boolean") then
+					local eventTime = event[4]
+					if (eventTime+10 < deathTime) then
+						table.remove(deathEvents, evIndex)
+					end
+				end
+			end
+		end
+	end
+
 	--return the total of a specific attribute
 	local power_table = {0, 1, 3, 6, 0, "alternatepower"}
 

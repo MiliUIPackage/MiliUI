@@ -291,10 +291,10 @@ function SlashCmdList.DETAILS (msg, editbox)
 			if (combatObject) then
 				Details:DestroyCombat(combatObject)
 				Details:SendEvent("DETAILS_DATA_SEGMENTREMOVED")
-				Details:Msg("segment removed.")
+				Details:Msg(Loc["segment removed."])
 				collectgarbage()
 			else
-				Details:Msg("segment not found.")
+				Details:Msg(Loc["segment not found."])
 			end
 		else
 			Details:Msg(Loc["segment ID invalid."])
@@ -465,7 +465,7 @@ function SlashCmdList.DETAILS (msg, editbox)
 		--_detalhes.ResetButton:SetHighlightTexture(t)
 		Details.ResetButton:SetNormalTexture(t)
 
-		print(Loc["backdrop"], Details.ResetButton:GetBackdrop())
+		-- print("backdrop", Details.ResetButton:GetBackdrop())
 
 		Details.ResetButton:SetBackdropColor(0, 0, 1, 1)
 
@@ -1536,9 +1536,15 @@ function SlashCmdList.DETAILS (msg, editbox)
 	elseif (msg == "generateracialslist") then
 		Details.GenerateRacialSpellList()
 
-	elseif (msg == "survey") then
+	elseif (msg == "bug") then
+		dumpt(DETAILS_FAILED_ACTOR or {"No bug to report here."})
+
+	elseif (msg == "spellcat") then
 		Details.Survey.OpenSurveyPanel()
 
+	elseif (msg == "pstate") then
+		local sEngineState = Details222.Parser.GetState()
+		Details:Msg("Parser State:", sEngineState)
 	else
 
 		--if (_detalhes.opened_windows < 1) then
@@ -1959,7 +1965,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 				local backdrop_color_inguild = {.5, .8, .5, 0.2}
 				local backdrop_color_on_enter_inguild = {.5, 1, .5, 0.4}
 
-				local f = detailsFramework:CreateSimplePanel(UIParent, CONST_WINDOW_WIDTH, CONST_WINDOW_HEIGHT, "M+ Keystones (/key)", "DetailsKeystoneInfoFrame")
+				local f = detailsFramework:CreateSimplePanel(UIParent, CONST_WINDOW_WIDTH, CONST_WINDOW_HEIGHT, Loc["M+ Keystones (/key)"], "DetailsKeystoneInfoFrame")
 				f:SetPoint("center", UIParent, "center", 0, 0)
 
 				f:SetScript("OnMouseDown", nil) --disable framework native moving scripts
@@ -2004,7 +2010,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 
 						openRaidLib.RequestKeystoneDataFromGuild()
 					end
-				end, 100, 22, "Request from Guild")
+				end, 100, 22, Loc["Request from Guild"])
 				requestFromGuildButton:SetPoint("bottomleft", statusBar, "topleft", 2, 2)
 				requestFromGuildButton:SetTemplate(detailsFramework:GetTemplate("button", "OPTIONS_BUTTON_TEMPLATE"))
 				requestFromGuildButton:SetIcon("UI-RefreshButton", 20, 20, "overlay", {0, 1, 0, 1}, "lawngreen")
@@ -2013,12 +2019,12 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 
 				--header
 				local headerTable = {
-					{text = "Class", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
-					{text = "Player Name", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "Level", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
-					{text = "Dungeon", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = Loc["Class"], width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = Loc["Player Name"], width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = Loc["Level"], width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
+					{text = Loc["Dungeon"], width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
 					--{text = "Classic Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "Mythic+ Rating", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
+					{text = Loc["Mythic+ Rating"], width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
 				}
 
 				local headerOnClickCallback = function(headerFrame, columnHeader)
@@ -2053,6 +2059,10 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 							local line = self:GetLine(i)
 
 							local unitName, level, mapID, challengeMapID, classID, rating, mythicPlusMapID, classIconTexture, iconTexCoords, mapName, inMyParty, isOnline, isGuildMember = unpack(unitTable)
+
+							if (mapName == "") then
+								mapName = "user need update details!"
+							end
 
 							local rioProfile
 							if (RaiderIO) then
@@ -2209,6 +2219,17 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					newData.offlineGuildPlayers = {}
 					local keystoneData = openRaidLib.GetAllKeystonesInfo()
 
+					--[=[
+						["Exudragão"] =  {
+							["mapID"] = 2526,
+							["challengeMapID"] = 402,
+							["mythicPlusMapID"] = 0,
+							["rating"] = 215,
+							["classID"] = 13,
+							["level"] = 6,
+						},
+					--]=]
+
 					local guildUsers = {}
 					local totalMembers, onlineMembers, onlineAndMobileMembers = GetNumGuildMembers()
 
@@ -2250,7 +2271,12 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 							local coords = CLASS_ICON_TCOORDS
 							local _, class = GetClassInfo(classId)
 
-							local mapName = C_ChallengeMode.GetMapUIInfo(keystoneInfo.mythicPlusMapID) or ""
+							local mapName = C_ChallengeMode.GetMapUIInfo(keystoneInfo.mythicPlusMapID)
+							if (not mapName) then
+								mapName = C_ChallengeMode.GetMapUIInfo(keystoneInfo.challengeMapID)
+							end
+
+							mapName = mapName or "map name not found"
 
 							--local mapInfoChallenge = C_Map.GetMapInfo(keystoneInfo.challengeMapID)
 							--local mapNameChallenge = mapInfoChallenge and mapInfoChallenge.name or ""

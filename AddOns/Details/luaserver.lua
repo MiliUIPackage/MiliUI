@@ -278,6 +278,13 @@ function LibStub:IterateLibraries()end
 ---@field spellID number
 ---@field originalIconID number
 
+---@class spellchargeinfo
+---@field currentCharges number
+---@field maxCharges number
+---@field cooldownStartTime number
+---@field cooldownDuration number
+---@field chargeModRate number
+
 ---@class privateaura_anchor : table
 ---@field unitToken unit
 ---@field auraIndex number
@@ -815,7 +822,17 @@ function C_Item.IsBoundToAccountUntilEquip() end
 function C_Item.LockItem() end
 function C_Item.DoesItemMatchTargetEnchantingSpell() end
 function C_Item.IsItemCorruptionRelated() end
-function C_Item.GetItemIconByID() end
+
+---return the item's icon texture
+---@param itemInfo number|string
+---@return number
+function C_Item.GetItemIconByID(itemInfo) return 0 end
+
+---return the item's icon texture
+---@param itemLocation table
+---@return number
+function C_Item.GetItemIcon(itemLocation) return 0 end
+
 function C_Item.ConfirmOnUse() end
 function C_Item.GetItemIDForItemInfo() end
 function C_Item.IsCorruptedItem() end
@@ -872,7 +889,6 @@ function C_Item.GetItemClassInfo() end
 function C_Item.GetItemUniquenessByID() end
 function C_Item.GetItemGemID() end
 function C_Item.IsHarmfulItem() end
-function C_Item.GetItemIcon() end
 function C_Item.DropItemOnUnit() end
 
 ---@param itemInfo number|string
@@ -1719,6 +1735,15 @@ function bit.ror(x, y) return 0 end
 ---@return number
 function GetServerTime() return 0 end
 
+C_Spell = {}
+
+---@param spellID number
+---@return spellinfo
+function C_Spell.GetSpellInfo(spellID) return {} end
+
+---@param spellID number
+---@return spellchargeinfo
+function C_Spell.GetSpellCharges(spellID) return {} end
 
 C_Timer = {}
 ---@param delay number
@@ -3691,9 +3716,9 @@ GuildUninvite = function(unit) end
 ---@return boolean
 IsGuildLeader = function(unit) return true end
 
----@param unit string
+---return true if the player is in a guild
 ---@return boolean
-IsInGuild = function(unit) return true end
+IsInGuild = function() return true end
 
 ---@param eventIndex number
 QueryGuildEventLog = function(eventIndex) end
@@ -5294,8 +5319,9 @@ IsAttackSpell = function(spellId) return true end
 IsAutoRepeatSpell = function(spellId) return true end
 
 ---@param spellId number
+---@param spellBank string
 ---@return boolean
-IsPassiveSpell = function(spellId) return true end
+IsPassiveSpell = function(spellId, spellBank) return true end
 
 ---@param spellName string
 ---@param target string
@@ -5720,9 +5746,11 @@ function FocusUnit(unit) end
 
 function ClearFocus() end
 
----@param unit string
+---if bFullName is true, return the full name of the unit if the unit is from another realm, otherwise return the short name
+---@param unit unit
+---@param bFullName boolean
 ---@return string
-function GetUnitName(unit) return "" end
+function GetUnitName(unit, bFullName) return "" end
 
 ---@param unit string
 ---@return number

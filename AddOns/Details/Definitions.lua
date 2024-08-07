@@ -142,7 +142,8 @@
 ---@field DefaultTooltipIconSize number default size of the icons in the tooltip, this also dictates the size of each line in the tooltip
 ---@field 
 ---@field 
----@field 
+---@field GenerateActorInfo fun(self: details, actor: actor, errorText:string, bIncludeStack:boolean) : table<string, boolean|string|number> generates a table with the main attributes of the actor, this is mainly for debug purposes
+---@field DumpActorInfo fun(self: details, actor: actor) open a window showig the main attributes of an actor, this is mainly for debug purposes
 ---@field GetDisplayClassByDisplayId fun(self: details, displayId: number) : table -return the class object for the given displayId (attributeId)
 ---@field GetTextureAtlas fun(self: details, atlasName: atlasname) : df_atlasinfo return the texture atlas data
 ---@field GetTextureAtlasTable fun(self: details) : table<atlasname, df_atlasinfo>[] return the table with the texture atlas data
@@ -282,6 +283,8 @@
 ---@field PhaseData table
 ---@field player_last_events table<string, table[]> record the latest events of each player, latter used to build the death log
 ---@field
+---@field LockActivityTime fun(self: combat)
+---@field CutDeathEventsByTime fun(self: combat, time: number?) remove death events by time, default 10 seconds
 ---@field GetTotal fun(self: combat, attribute: number, subAttribute: number?, onlyGroup: boolean?) : number return the total amount of the requested attribute
 ---@field GetCurrentPhase fun(self: combat) : number return the current phase of the combat or the phase where the combat ended
 ---@field StoreTalents fun(self:combat)
