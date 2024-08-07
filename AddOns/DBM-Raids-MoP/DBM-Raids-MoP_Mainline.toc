@@ -1,4 +1,4 @@
-## Interface: 110000
+## Interface: 100207
 ## X-Min-Interface: 80000
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010Raids (MoP)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cffff6010團隊 (潘達利亞)|r

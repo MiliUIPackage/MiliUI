@@ -1,30 +1,37 @@
 # DBM - Core
 
-## [11.0.1](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.1) (2024-07-27)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.0.0...11.0.1) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.0.2](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.2) (2024-07-28)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.0.1...11.0.2) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- Prep new tag for improved difficulty detection and stats storing for molten core difficulty tiers  
-- Tests: support UNIT\_HEALTH and improve target detection  
-    Uses UNIT\_SPELLCAST_* transcriptor events to update targets and unit  
-    health/power values.  
-    This makes health-based phase pre-warnings (e.g., Onyxia) work in tests.  
-- Return heat level text in combat messages  
-- Try this  
-- just disable GetSpellInfo from global checks  
-- correctly record wipe modifier in classic era if not inside raid on wipe  
-- fix copy paste mistake  
-- Add support for molten core heat levels in SoD. Will support showing heat level in pull kill and wipe messages, and boss stats  
-- Fix wrath mod message showing on zone in to vanilla onyxia  
-    Fix vanilla mod message NOT showing loading into vanilla onyxia  
-- cleanup tank code, the way it is is perfect already, just needed a minor antispam to prevent double warnings from appearing.  
-- Ulgrax Update:  
-     - Improve message clarity on Digestive Venom  
-     - Removed swallowing darkness count as it's only cast once  
-- fix all dungeons showing key level when they should only show on mythic+  
-    changed delve stat storage to "challenge" to make it cleaner to avoid above.  
-- Add support for remaining two world bosses  
-- Update koKR (#1156)  
-- Update localization.ru.lua (#1155)  
-- Remove extra pkgmeta  
-- bundle dev tools in all versions, not just alphas  
+- prep new tag  
+- Tests: Give mods more time to detect a wipe if necessary (#1171)  
+- Tests: restructure UI a bit (#1170)  
+- AnnoyingPopup: Simplify logic (#1168)  
+- Update koKR (#1169)  
+- Update localization.tw.lua  
+- Update localization.ru.lua (#1165)  
+- fix link  
+- Update localization.ru.lua (#1163)  
+- Update koKR (#1164)  
+- improve instructional language  
+- Also support M+ dungeons for that alert  
+- Fix delves and molten core showing needless + sign. that was bad copy and paste from Mythic+  
+    Add regular vanilla, wrath, and cata raid popups  
+    Fix wago url for vanilla raid module  
+- Show more annoying nag if important raid mods are missing (#1162)  
+- Push core fixes for delve loading timing  
+- Fix last to actually use faster function on retail  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1159  
+    Fixes cross realm pull timers no longer working in pre patch. Also fixes pull timers never fully working correctly in Classic Era and Classic Cata  
+- Tests: strip prefix when auto-generating test report files  
+- Tests: pre-fill more metadata based on educated guesses when generating tests  
+- Tests: parse difficulty modifier from Transcriptor logs  
+- Tests: update transcriptor filter  
+- Tests: fake player debuff on test start for MC heat levels  
+- Core: don't special-case unnamed AntiSpam() calls  
+    This avoids a somewhat obscure problem in tests: it was generating a  
+    trailing whitespace in the record because the check result gets removed  
+    from an array with a hole due to the previous nil-value.  
+- Add new nil warning object to avoid a LuaLS nil checking bug (#1158)  
+- Fix and close https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1160  
 - bump alpha  
