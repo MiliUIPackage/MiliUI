@@ -40,6 +40,37 @@ C.ARENA2V2   = 5
 C.ARENA3V3   = 6
 C.ARENA5V5   = 7
 
+-- Difficulty values as used in various tables like GroupFinderActivity and in lockouts
+C.DIFFICULTY_MAP = {
+    [  1] = C.NORMAL,     -- DungeonNormal
+    [  2] = C.HEROIC,     -- DungeonHeroic
+    [  3] = C.NORMAL,     -- Raid10Normal
+    [  4] = C.NORMAL,     -- Raid25Normal
+    [  5] = C.HEROIC,     -- Raid10Heroic
+    [  6] = C.HEROIC,     -- Raid25Heroic
+    [  7] = 0,            -- RaidLFR
+    [  8] = C.MYTHICPLUS, -- DungeonChallenge
+    [  9] = C.NORMAL,     -- Raid40
+    [ 14] = C.NORMAL,     -- PrimaryRaidNormal
+    [ 15] = C.HEROIC,     -- PrimaryRaidHeroic
+    [ 16] = C.MYTHIC,     -- PrimaryRaidMythic
+    [ 17] = 0,            -- PrimaryRaidLFR
+    [ 23] = C.MYTHIC,     -- DungeonMythic
+    [ 24] = 0,            -- DungeonTimewalker
+    [ 33] = 0,            -- RaidTimewalker
+    [ 38] = C.NORMAL,     -- RandomIslandNormal
+    [ 39] = C.HEROIC,     -- RandomIslandHeroic
+    [ 40] = C.MYTHIC,     -- RandomIslandMythic
+    [ 45] = 0,            -- RandomIslandPvP
+    [148] = C.NORMAL,     -- Raid20 (Ruins of Ahn'Qiraj and Zul'Gurub)
+    [167] = 0,            -- Torghast
+    [175] = C.NORMAL,     -- Ulduar10Normal
+    [176] = C.NORMAL,     -- Ulduar25Normal
+    [193] = C.HEROIC,     -- Ulduar10Heroic
+    [194] = C.HEROIC,     -- Ulduar25Heroic
+}
+setmetatable(C.DIFFICULTY_MAP, { __index = function() return 0 end })
+
 -- corresponds to the third parameter of C_LFGList.GetActivityInfoTable().categoryID
 C.CATEGORY_ID = {
     QUESTING           = 1,
@@ -52,11 +83,13 @@ C.CATEGORY_ID = {
     BATTLEGROUND       = 8,
     RATED_BATTLEGROUND = 9,
     ASHRAN             = 10,
+    ISLAND             = 111,
     THORGAST           = 113,
     WRATH_RAID         = 114,
     WRATH_QUESTING     = 116,
     WRATH_BATTLEGROUND = 118,
     WRATH_CUSTOM       = 120,
+    DELVES             = 121,
 }
 
 C.DIFFICULTY_KEYWORD = {
@@ -145,12 +178,11 @@ function PGF.SupportsDragonflightUI() return PGF.IsRetail() end -- User Interfac
 C.SETTINGS_DEFAULT = {
     version = 1,
     dialogMovable = true,
-    classNamesInTooltip = false,
+    classNamesInTooltip = true,
     coloredGroupTexts = true,
-    coloredApplications = true,
     ratingInfo = true,
-    classCircle = PGF.SupportsDragonflightUI(),
-    classBar = not PGF.SupportsDragonflightUI(),
+    classCircle = false,
+    classBar = false,
     leaderCrown = false,
     oneClickSignUp = true,
     persistSignUpNote = true,
@@ -223,10 +255,30 @@ function PGF.MigrateStateV6()
     end
 end
 
+function PGF.MigrateSettingsV2()
+    if not PremadeGroupsFilterSettings.version or PremadeGroupsFilterSettings.version < 2 then
+        if PGF.IsRetail() then -- disable features now provided by default
+            PremadeGroupsFilterSettings.classCircle = false
+            PremadeGroupsFilterSettings.classBar = false
+            PremadeGroupsFilterSettings.leaderCrown = false -- does not work well because of different icon order
+        end
+        PremadeGroupsFilterSettings.version = 2
+    end
+end
+
+function PGF.MigrateSettingsV3()
+    if not PremadeGroupsFilterSettings.version or PremadeGroupsFilterSettings.version < 3 then
+        PremadeGroupsFilterSettings.coloredApplications = nil
+        PremadeGroupsFilterSettings.version = 3
+    end
+end
+
 function PGF.OnAddonLoaded(name)
     if name == PGFAddonName then
         -- update new settings with defaults
         PGF.Table_UpdateWithDefaults(PremadeGroupsFilterSettings, PGF.C.SETTINGS_DEFAULT)
+        PGF.MigrateSettingsV2()
+        PGF.MigrateSettingsV3()
 
         -- initialize dialog state and migrate to latest version
         if PremadeGroupsFilterState == nil or PremadeGroupsFilterState.version == nil then

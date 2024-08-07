@@ -1,7 +1,7 @@
-## Interface: 110000
+## Interface: 110000, 110002
 ## Title: Premade Groups Filter
 ## Title-zhTW: |cFF00CCFF[團隊]|r 預組隊伍過濾
-## Version: 5.4.0
+## Version: 5.8.3
 ## IconTexture: 397907
 ## X-Flavor: Retail
 ## Notes: Allows filtering of premade groups using an UI or advanced filter expressions.
@@ -14,14 +14,8 @@
 
 Init.lua
 Localization\enUS.lua
-Localization\frFR.lua
-Localization\deDE.lua
-Localization\koKR.lua
 Localization\zhCN.lua
 Localization\zhTW.lua
-Localization\ruRU.lua
-Localization\esES.lua
-Localization\itIT.lua
 Modules\Logger.lua
 Fixes\FixGetPlaystyleString.lua
 Fixes\FixReportAdvertisement.lua
@@ -30,10 +24,10 @@ UI\StaticPopup.lua
 Modules\Util.lua
 Modules\Activity.lua
 Modules\ActivityKeywords.lua
+Modules\AdvancedFilter.lua
 Modules\Specializations.lua
 Modules\MemberInfo.lua
 Modules\RemainingSlots.lua
-Modules\ColoredApplications.lua
 Modules\ApplicationStatus.lua
 Modules\Lockout.lua
 Modules\Expression.lua

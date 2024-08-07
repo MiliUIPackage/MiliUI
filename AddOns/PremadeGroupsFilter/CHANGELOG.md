@@ -1,6 +1,6 @@
 # Premade Groups Filter
 
-## [5.5.1](https://github.com/0xbs/premade-groups-filter/tree/5.5.1) (2024-05-06)
-[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/5.5.0...5.5.1) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
+## [5.8.3](https://github.com/0xbs/premade-groups-filter/tree/5.8.3) (2024-07-28)
+[Full Changelog](https://github.com/0xbs/premade-groups-filter/compare/5.8.2...5.8.3) [Previous Releases](https://github.com/0xbs/premade-groups-filter/releases)
 
-- Add missing header for Cata version file (fixes #251)  
+- Fix matchingid/bossesahead wrong when no lockout (see #268)  
