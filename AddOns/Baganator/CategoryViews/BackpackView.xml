@@ -1,0 +1,8 @@
+<Ui>
+  <Frame name="BaganatorCategoryViewBackpackViewTemplate" virtual="true" inherits="BaganatorItemViewCommonBackpackViewTemplate" mixin="BaganatorCategoryViewBackpackViewMixin">
+    <Scripts>
+      <OnEvent method="OnEvent"/>
+      <OnHide method="OnHide"/>
+    </Scripts>
+  </Frame>
+</Ui>

@@ -1,0 +1,7 @@
+<Ui>
+  <Frame name="BaganatorCategoryViewBankViewCharacterViewTemplate" virtual="true" mixin="BaganatorCategoryViewBankViewCharacterViewMixin" inherits="BaganatorItemViewCommonBankViewCharacterViewTemplate">
+    <Scripts>
+      <OnEvent method="OnEvent"/>
+    </Scripts>
+  </Frame>
+</Ui>

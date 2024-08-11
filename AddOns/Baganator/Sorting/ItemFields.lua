@@ -1,4 +1,5 @@
 local _, addonTable = ...
+local _, addonTable = ...
 
 -- Translate from a base item info to get information hidden behind further API
 -- calls
@@ -74,18 +75,18 @@ local sorted = {
     17, -- 2h weapon
     13, -- weapon
     21, -- weapon main
+    14, -- shield
+    23, -- holdable
     26, -- ranged right
     22, -- weapon off
     15, -- ranged
     25, -- thrown
     24, -- ammo
-    14, -- shield
     27, -- quiver
     28, -- relic
-    23, -- holdable
     1, -- head
     3, -- shoulder
-    4, -- body/shirt
+    16, -- cloak
     5, -- chest
     20, -- robe
     9, -- wrist
@@ -94,12 +95,12 @@ local sorted = {
     7, -- legs
     8, -- feet
     2, -- neck
-    16, -- cloak
     11, -- finger
     12, -- trinket
+    4, -- body/shirt
+    19, -- tabard
     29, -- prof tool
     30, -- prof gear
-    19, -- tabard
     18, -- bag
     31, -- spell offensive
     32, -- spell utility
@@ -140,7 +141,7 @@ for key, list in pairs(sorted) do
   sortedMap[key] = map
 end
 
-local petCageID = Baganator.Constants.BattlePetCageID
+local petCageID = addonTable.Constants.BattlePetCageID
 
 keysMapping["expansion"] = function(self)
   -- Use ItemVersion addon's database if available
@@ -156,15 +157,19 @@ keysMapping["expansion"] = function(self)
     return 0
   end
 
-  local expansion = select(15, C_Item.GetItemInfo(self.itemLink))
-  return expansion
+  if C_Item.IsItemDataCachedByID(self.itemID) then
+    local expansion = select(15, C_Item.GetItemInfo(self.itemID))
+    return expansion
+  else
+    return 0
+  end
 end
 
 keysMapping["invertedExpansion"] = function(self)
   return self.expansion and -self.expansion
 end
 
-keysMapping["itemLevel"] = function(self)
+keysMapping["itemLevelRaw"] = function(self)
   if C_Item.IsItemDataCachedByID(self.itemID) then
     local itemLevel = C_Item.GetDetailedItemLevelInfo(self.itemLink)
     return itemLevel or -1
@@ -173,8 +178,16 @@ keysMapping["itemLevel"] = function(self)
   end
 end
 
-keysMapping["invertedItemLevel"] = function(self)
-  return self.itemLevel and -self.itemLevel
+keysMapping["invertedItemLevelRaw"] = function(self)
+  return self.itemLevelRaw and -self.itemLevelRaw
+end
+
+keysMapping["invertedItemLevelEquipment"] = function(self)
+  if Syndicator.Utilities.IsEquipment(self.itemLink) then
+    return self.itemLevelRaw and -self.itemLevelRaw
+  else
+    return 0
+  end
 end
 
 -- Dragonflight crafting reagent quality

@@ -1,6 +1,6 @@
-## Interface: 110000
+## Interface: 110000, 110002
 ## Title: Baganator
-## Version: 253
+## Version: 415
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -8,6 +8,8 @@
 ## X-Category-zhTW: 物品
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合
 ## Notes-zhTW: Baganator|n功能強大的整合背包。
+
+Embeds\json.lua
 
 Locales.lua
 
@@ -17,7 +19,10 @@ Core\Constants.lua
 Core\Config.lua
 Core\Utilities.lua
 Core\SlashCmd.lua
+Core\Welcome.lua
 Core\Main.lua
+
+Skins.lua
 
 Sorting\BagUsageChecks.lua
 Sorting\ItemFields.lua
@@ -34,40 +39,89 @@ Transfers\AddToMail.lua
 Transfers\VendorItems.lua
 Transfers\AddToTrade.lua
 
-UnifiedViews\Utilities.lua
-UnifiedViews\Search.lua
-UnifiedViews\ItemButton.lua
-UnifiedViews\ItemButton.xml
-UnifiedViews\ItemButtonDataEvents.lua
-UnifiedViews\Pools.lua
-UnifiedViews\ContainerSlots.lua
-UnifiedViews\ContainerSlots.xml
-UnifiedViews\Components.xml
-UnifiedViews\Layouts.lua
-UnifiedViews\Layouts.xml
-UnifiedViews\EquipmentSetInfo.lua
-UnifiedViews\BankView.lua
-UnifiedViews\BankView.xml
-UnifiedViews\GuildView.lua
-UnifiedViews\GuildView.xml
-UnifiedViews\MoneyDisplay.lua
-UnifiedViews\CharacterSelect.lua
-UnifiedViews\CharacterSelect.xml
-UnifiedViews\BagTransfers.lua
-UnifiedViews\CollapsingBagSections.lua
-UnifiedViews\BackpackView.lua
-UnifiedViews\BackpackView.xml
-UnifiedViews\OpenClose.lua
-UnifiedViews\Main.lua
+ItemViewCommon\Utilities.lua
+ItemViewCommon\Search.lua
+ItemViewCommon\Search.xml
+ItemViewCommon\ItemButton.lua
+ItemViewCommon\ItemButton.xml
+ItemViewCommon\ItemButtonDataEvents.lua
+ItemViewCommon\Pools.lua
+ItemViewCommon\ContainerSlots.lua
+ItemViewCommon\ContainerSlots.xml
+ItemViewCommon\Components.xml
+ItemViewCommon\Layouts.lua
+ItemViewCommon\Layouts.xml
+ItemViewCommon\EquipmentSetInfo.lua
+ItemViewCommon\MoneyDisplay.lua
+ItemViewCommon\CharacterSelect.lua
+ItemViewCommon\CharacterSelect.xml
+ItemViewCommon\Currency.lua
+ItemViewCommon\Currency.xml
+ItemViewCommon\ButtonVisibility.lua
+ItemViewCommon\ButtonVisibility.xml
+ItemViewCommon\OpenClose.lua
+ItemViewCommon\BackpackView.lua
+ItemViewCommon\BackpackView.xml
+ItemViewCommon\BankViewCharacterView.lua
+ItemViewCommon\BankViewCharacterView.xml
+ItemViewCommon\BankViewWarbandView.lua
+ItemViewCommon\BankViewWarbandView.xml
+ItemViewCommon\BankView.lua
+ItemViewCommon\BankView.xml
+ItemViewCommon\BagTransfers.lua
+ItemViewCommon\NewItemsTracking.lua
+ItemViewCommon\AnchorSetter.lua
+ItemViewCommon\ShowBlizzardBagPreferences.lua
+ItemViewCommon\Initialize.lua
+
+SingleViews\Pools.lua
+SingleViews\BankViewCharacterView.lua
+SingleViews\BankViewCharacterView.xml
+SingleViews\BankViewWarbandView.lua
+SingleViews\BankViewWarbandView.xml
+SingleViews\BankView.xml
+SingleViews\CollapsingBagSections.lua
+SingleViews\BackpackView.lua
+SingleViews\BackpackView.xml
+SingleViews\GuildView.lua
+SingleViews\GuildView.xml
+
+CategoryViews\Constants.lua
+CategoryViews\Utilities.lua
+CategoryViews\ComposeCategories.lua
+CategoryViews\Packing.lua
+CategoryViews\BagLayout.lua
+CategoryViews\CategorySearch.lua
+CategoryViews\CategorySort.lua
+CategoryViews\ItemsPreparation.lua
+CategoryViews\Components.lua
+CategoryViews\Components.xml
+CategoryViews\BankViewCharacterView.lua
+CategoryViews\BankViewCharacterView.xml
+CategoryViews\BankViewWarbandView.lua
+CategoryViews\BankViewWarbandView.xml
+CategoryViews\BankView.xml
+CategoryViews\BackpackView.lua
+CategoryViews\BackpackView.xml
+CategoryViews\Initialize.lua
+
+ViewManagement\Initialize.lua
 
 CustomiseDialog\Components.lua
 CustomiseDialog\Components.xml
-CustomiseDialog\CornersComponents.lua
 CustomiseDialog\Corners.lua
-CustomiseDialog\Corners.xml
+CustomiseDialog\CategoriesOrder.lua
+CustomiseDialog\CategoriesEditor.lua
+CustomiseDialog\CategoriesEditor.xml
+CustomiseDialog\CategoriesSectionEditor.lua
+CustomiseDialog\CategoriesSectionEditor.xml
+CustomiseDialog\CategoriesRecentEditor.lua
+CustomiseDialog\CategoriesImportExport.lua
 CustomiseDialog\Main.lua
 CustomiseDialog\Main.xml
 CustomiseDialog\Initialize.lua
+
+Help\Search.lua
 
 API\Main.lua
 API\Junk.lua

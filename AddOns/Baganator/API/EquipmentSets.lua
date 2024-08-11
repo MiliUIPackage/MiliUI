@@ -1,5 +1,6 @@
+local _, addonTable = ...
 -- Blizzard Equipment sets (Wrath onwards)
-do
+if not addonTable.Constants.IsEra and (not addonTable.Constants.IsRetail or not IsMacClient()) then
   local BlizzardSetTracker = CreateFrame("Frame")
 
   function BlizzardSetTracker:OnLoad()
@@ -9,9 +10,12 @@ do
       "PLAYER_LOGIN",
     })
     self.equipmentSetInfo = {}
+    self.equipmentSetNames = {}
 
     Baganator.API.RegisterItemSetSource(BAGANATOR_L_BLIZZARD, "blizzard", function(itemLocation, guid)
       return self.equipmentSetInfo[guid]
+    end, function()
+      return self.equipmentSetNames
     end)
   end
   BlizzardSetTracker:OnLoad()
@@ -36,15 +40,17 @@ do
     local oldSetInfo = CopyTable(self.equipmentSetInfo)
 
     local cache = {}
+    self.equipmentSetNames = {}
     for _, setID in ipairs(C_EquipmentSet.GetEquipmentSetIDs()) do
       local name, iconTexture = C_EquipmentSet.GetEquipmentSetInfo(setID)
-      local info = {name = name, iconTexture = iconTexture, setID = setID}
+      table.insert(self.equipmentSetNames, name)
+      local info = {name = name, iconTexture = iconTexture}
       -- Uses or {} because a set might exist without any associated item
       -- locations
       for _, location in pairs(C_EquipmentSet.GetItemLocations(setID) or {}) do
         if location ~= -1 and location ~= 0 and location ~= 1 then
           local player, bank, bags, voidStorage, slot, bag
-          if Baganator.Constants.IsClassic then
+          if addonTable.Constants.IsClassic then
             player, bank, bags, slot, bag = EquipmentManager_UnpackLocation(location)
           else
             player, bank, bags, voidStorage, slot, bag = EquipmentManager_UnpackLocation(location)
@@ -71,7 +77,7 @@ do
         end
       end
     end
-    if Baganator.Config.Get(Baganator.Config.Options.DEBUG_TIMERS) then
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       print("equipment set tracking took", debugprofilestop() - start)
     end
     if not tCompare(oldSetInfo, cache, 15) then
@@ -82,14 +88,17 @@ do
 end
 
 -- ItemRack Classic
-if not Baganator.Constants.IsRetail then
-  Baganator.Utilities.OnAddonLoaded("ItemRack", function()
+if not addonTable.Constants.IsRetail then
+  addonTable.Utilities.OnAddonLoaded("ItemRack", function()
     local equipmentSetInfo = {}
+    local equipmentSetNames = {}
     local function ItemRackUpdated()
       equipmentSetInfo = {}
+      equipmentSetNames = {}
       for name, details in pairs(ItemRackUser.Sets) do
         if name:sub(1, 1) ~= "~" then
-          local setInfo = {name = name, icon = details.icon}
+          table.insert(equipmentSetNames, name)
+          local setInfo = {name = name, iconTexture = details.icon}
           for _, itemRef in pairs(details.equip) do
             if not equipmentSetInfo[itemRef] then
               equipmentSetInfo[itemRef] = {}
@@ -119,7 +128,7 @@ if not Baganator.Constants.IsRetail then
       -- Workaround for ItemRack classic not getting the run id correctly for
       -- bag items
       if ItemRack.AppendRuneID then
-        local bagID, slotID = itemLocation:GetBagAndSlot()
+        local bagID, slotID = itemLocation.bagID, itemLocation.slotIndex
         local isEngravable = false
         local runeInfo = nil
         if bagID == Enum.BagIndex.Bank then
@@ -142,6 +151,8 @@ if not Baganator.Constants.IsRetail then
         end
       end
       return equipmentSetInfo[id]
+    end, function()
+      return equipmentSetNames
     end)
   end)
 end

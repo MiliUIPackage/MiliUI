@@ -1,10 +1,11 @@
+local _, addonTable = ...
 local frame = CreateFrame("Frame")
 -- Avoid confirmation dialogs for sales to vendors
 frame:SetScript("OnEvent", function()
   SellCursorItem()
 end)
 
-function Baganator.Transfers.VendorItems(toSell)
+function addonTable.Transfers.VendorItems(toSell)
   frame:RegisterEvent("MERCHANT_CONFIRM_TRADE_TIMER_REMOVAL")
   local sold = 0
   for _, item in ipairs(toSell) do
@@ -14,7 +15,7 @@ function Baganator.Transfers.VendorItems(toSell)
       sold = sold + 1
       -- Limit sold to the most that can be bought back from the merchant if
       -- clicked by mistaked
-      if sold >= 12 then
+      if sold >= 6 then
         break
       end
     end
@@ -24,5 +25,5 @@ function Baganator.Transfers.VendorItems(toSell)
   end
   frame:UnregisterEvent("MERCHANT_CONFIRM_TRADE_TIMER_REMOVAL")
 
-  return Baganator.Constants.SortStatus.Complete
+  return addonTable.Constants.SortStatus.Complete
 end

@@ -1,4 +1,5 @@
 local _, addonTable = ...
+local _, addonTable = ...
 
 -- See comment in Sorting/ItemFields.lua.
 -- Values generated are cached across the current sort iteration.
@@ -22,7 +23,7 @@ local allSortKeys = {
     "sortedClassID",
     "sortedInvSlotID",
     "sortedSubClassID",
-    "itemLevel",
+    "itemLevelRaw",
     "invertedExpansion", -- table.remove removes this on classic
     "itemName",
     "craftingQuality",
@@ -30,21 +31,12 @@ local allSortKeys = {
     "invertedItemCount",
     "itemLink",
   },
-  ["quality-legacy"] = {
-    "priority",
-    "quality",
-    "classID",
-    "subClassID",
-    "itemID",
-    "itemLink",
-    "itemCount",
-  },
   ["type"] = {
     "priority",
     "sortedClassID",
     "sortedInvSlotID",
     "sortedSubClassID",
-    "invertedItemLevel",
+    "invertedItemLevelRaw",
     "invertedExpansion", -- table.remove removes this on classic
     "invertedQuality",
     "itemName",
@@ -53,21 +45,27 @@ local allSortKeys = {
     "invertedItemCount",
     "itemLink",
   },
-  ["type-legacy"] = {
+  ["item-level"] = {
     "priority",
-    "classID",
-    "subClassID",
-    "itemID",
-    "quality",
+    "invertedItemLevelEquipment",
+    "sortedClassID",
+    "sortedInvSlotID",
+    "sortedSubClassID",
+    "invertedExpansion", -- table.remove removes this on classic
+    "invertedQuality",
+    "invertedItemLevelRaw",
+    "itemName",
+    "invertedCraftingQuality",
+    "invertedItemID",
+    "invertedItemCount",
     "itemLink",
-    "itemCount",
   },
   ["expansion"] = {
     "invertedExpansion",
     "sortedClassID",
     "sortedInvSlotID",
     "sortedSubClassID",
-    "invertedItemLevel",
+    "invertedItemLevelRaw",
     "invertedQuality",
     "itemName",
     "invertedCraftingQuality",
@@ -79,9 +77,10 @@ local allSortKeys = {
 
 -- Remove expansion sort criteria on classic, as there isn't much expansion
 -- content to sort among
-if Baganator.Constants.IsClassic then
+if addonTable.Constants.IsClassic then
   table.remove(allSortKeys["quality"], tIndexOf(allSortKeys["quality"], "invertedExpansion"))
   table.remove(allSortKeys["type"], tIndexOf(allSortKeys["type"], "invertedExpansion"))
+  table.remove(allSortKeys["item-level"], tIndexOf(allSortKeys["item-level"], "invertedExpansion"))
 end
 
 local PriorityItems = {
@@ -94,7 +93,7 @@ for _, itemID in ipairs(PriorityItems) do
   PriorityMap[itemID] = true
 end
 
-function Baganator.Sorting.AddSortKeys(list)
+function addonTable.Sorting.AddSortKeys(list)
   for index, item in ipairs(list) do
     if item.itemLink then
       setmetatable(item, itemMetatable)
@@ -107,7 +106,7 @@ function Baganator.Sorting.AddSortKeys(list)
       item.classID, item.subClassID = select(6, C_Item.GetItemInfoInstant(linkToCheck))
       item.invSlotID = C_Item.GetItemInventoryTypeByID(item.itemID)
       item.index = index
-      if item.itemID == Baganator.Constants.BattlePetCageID then
+      if item.itemID == addonTable.Constants.BattlePetCageID then
         local speciesID = tonumber(item.itemLink:match("battlepet:(%d+)"))
         local petName, _, subClassID = C_PetJournal.GetPetInfoBySpeciesID(speciesID)
         item.itemName = petName
@@ -117,18 +116,12 @@ function Baganator.Sorting.AddSortKeys(list)
   end
 end
 
-function Baganator.Sorting.OrderOneListOffline(list)
-  local start = debugprofilestop()
-
-  if Baganator.Config.Get(Baganator.Config.Options.DEBUG_TIMERS) then
-    print("sort convert", debugprofilestop() - start)
-  end
-
-  local reverse = Baganator.Config.Get(Baganator.Config.Options.REVERSE_GROUPS_SORT_ORDER)
+function addonTable.Sorting.OrderOneListOffline(list, sortMethod)
+  local reverse = addonTable.Config.Get(addonTable.Config.Options.REVERSE_GROUPS_SORT_ORDER)
 
   list = tFilter(list, function(a) return a.itemLink ~= nil end, true)
 
-  local sortKeys = allSortKeys[Baganator.Config.Get("sort_method")]
+  local sortKeys = allSortKeys[sortMethod]
 
   local incomplete = false
   if reverse then
