@@ -156,12 +156,17 @@ do
     ChatMainButton.dropDown = CreateFrame("Frame", "ChatMainButtonDropDown", ChatMainButton, "UIDropDownMenuTemplate")
 	
 	-- 重置位置的全域函數
+	local chatFrameMoved = false
 	function resetTinyChat()
 	
 		-- 聊天視窗往上一點
-		local point, relativeTo, relativePoint, offsetX, offsetY = _G["ChatFrame1"]:GetPoint()
-		_G["ChatFrame1"]:ClearAllPoints()
-		_G["ChatFrame1"]:SetPoint(point, relativeTo, relativePoint, offsetX, offsetY+30)
+		if not chatFrameMoved then
+			local point, relativeTo, relativePoint, offsetX, offsetY = _G["ChatFrame1"]:GetPoint()
+			_G["ChatFrame1"]:ClearAllPoints()
+			_G["ChatFrame1"]:SetPoint(point, relativeTo, relativePoint, offsetX, offsetY+30)
+			chatFrameMoved = true
+		end
+		
 
 		ChatMainButton:ClearAllPoints()
 		if isGlassEnabled then  --這裡調整位置
@@ -533,7 +538,9 @@ do
             info.value = nil
             info.notCheckable = 1
             info.func = function(self)
-				resetTinyChat()
+				if TinyChatDB.point then
+					resetTinyChat()
+				end
 				LibDD:CloseDropDownMenus()
 			end
             LibDD:UIDropDownMenu_AddButton(info, level)
@@ -684,16 +691,17 @@ do
 			TopOrBottom({value=TinyChatDB.EditBoxPos})
 			
 			ChatMainButton:SetScale(TinyChatDB.Sacle or 1.1)
-			
+
+			chatFrameMoved = false
 			if TinyChatDB.point then
 				ChatMainButton:ClearAllPoints()
 				ChatMainButton:SetPoint(TinyChatDB.point, TinyChatDB.rTo, TinyChatDB.rPoint, TinyChatDB.xOfs, TinyChatDB.yOfs)
-			elseif isReload then
+			else
 				C_Timer.After(1, function()
 					resetTinyChat()
 				end)
 			end
-			
+
 			-- 自行加入與 ConsolePort 的相容性
 			C_Timer.After(1, function()
 				if C_AddOns.IsAddOnLoaded("ConsolePort") then
@@ -705,14 +713,6 @@ do
 					end
 				end
 			end)
-		elseif event == "ZONE_CHANGED_NEW_AREA" then
-			-- 過圖後聊天視窗可能會恢復原位，重置一下讓聊天按鈕有空間
-			if TinyChatDB.point then
-				ChatMainButton:ClearAllPoints()
-				ChatMainButton:SetPoint(TinyChatDB.point, TinyChatDB.rTo, TinyChatDB.rPoint, TinyChatDB.xOfs, TinyChatDB.yOfs)
-			else
-				resetTinyChat()
-			end
 		end
     end)
     
