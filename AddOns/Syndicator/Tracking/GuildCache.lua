@@ -67,6 +67,7 @@ function SyndicatorGuildCacheMixin:OnLoad()
   })
 
   self.currentGuild = GetGuildKey()
+  Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
   self.lastTabPickups = {}
 
   local function UpdateForPickup(tabIndex, slotID)
@@ -107,8 +108,9 @@ function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
     Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", key)
   -- Potential change to guild name
   elseif eventName == "GUILD_ROSTER_UPDATE" or eventName == "PLAYER_GUILD_UPDATE" then
+    local oldGuild = self.currentGuild
     self.currentGuild = GetGuildKey()
-    if self.currentGuild then
+    if self.currentGuild and oldGuild ~= self.currentGuild then
       Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
     end
   end

@@ -4,6 +4,11 @@ SyndicatorCurrencyCacheMixin = {}
 function SyndicatorCurrencyCacheMixin:OnLoad()
   self:RegisterEvent("PLAYER_MONEY")
 
+  if Syndicator.Constants.WarbandBankActive then
+    self:RegisterEvent("ACCOUNT_MONEY")
+    self:RegisterEvent("BANKFRAME_OPENED")
+  end
+
   self.currentCharacter = Syndicator.Utilities.GetCharacterFullName()
 
   SYNDICATOR_DATA.Characters[self.currentCharacter].money = GetMoney()
@@ -11,6 +16,12 @@ function SyndicatorCurrencyCacheMixin:OnLoad()
   if C_CurrencyInfo then
     self:RegisterEvent("CURRENCY_DISPLAY_UPDATE")
     self:ScanAllCurrencies()
+  end
+  if Syndicator.Constants.IsRetail then
+    self:RegisterEvent("CURRENCY_TRANSFER_FAILED")
+    hooksecurefunc(C_CurrencyInfo, "RequestCurrencyFromAccountCharacter", function()
+      self:RegisterEvent("CURRENCY_TRANSFER_LOG_UPDATE")
+    end)
   end
 end
 
@@ -22,14 +33,53 @@ function SyndicatorCurrencyCacheMixin:OnEvent(eventName, ...)
     if currencyID ~= nil then
       local info = C_CurrencyInfo.GetCurrencyInfo(currencyID)
       SYNDICATOR_DATA.Characters[self.currentCharacter].currencies[currencyID] = info.quantity
-
       self:SetScript("OnUpdate", self.OnUpdate)
-    else
+    elseif not self.scannedLate then
+      self.scannedLate = true
       self:ScanAllCurrencies()
     end
   elseif eventName == "PLAYER_MONEY" then
     SYNDICATOR_DATA.Characters[self.currentCharacter].money = GetMoney()
     Syndicator.CallbackRegistry:TriggerEvent("CurrencyCacheUpdate", self.currentCharacter)
+  elseif eventName == "ACCOUNT_MONEY" or eventName == "BANKFRAME_OPENED" then
+    SYNDICATOR_DATA.Warband[1].money = C_Bank.FetchDepositedMoney(Enum.BankType.Account)
+    Syndicator.CallbackRegistry:TriggerEvent("WarbandCurrencyCacheUpdate", 1)
+  elseif eventName == "CURRENCY_TRANSFER_LOG_UPDATE" then
+    local allTransfers = C_CurrencyInfo.FetchCurrencyTransferTransactions()
+    local lastTransfer = allTransfers[#allTransfers]
+    local sourceCharacter
+    local function Finish()
+      if SYNDICATOR_DATA.Characters[sourceCharacter] then
+        local oldValue = SYNDICATOR_DATA.Characters[sourceCharacter].currencies[lastTransfer.currencyType]
+        if oldValue ~= nil then
+          SYNDICATOR_DATA.Characters[sourceCharacter].currencies[lastTransfer.currencyType] = oldValue - lastTransfer.quantityTransferred
+
+          self:SetScript("OnUpdate", self.OnUpdate)
+        end
+      end
+      self:UnregisterEvent("CURRENCY_TRANSFER_LOG_UPDATE")
+    end
+    if lastTransfer.sourceCharacterGUID then
+      local ticker
+      ticker = C_Timer.NewTicker(0.2, function()
+        local name, realm = select(6, GetPlayerInfoByGUID(lastTransfer.sourceCharacterGUID))
+        if realm ~= "" then
+          ticker:Cancel()
+          sourceCharacter = name .. "-" .. realm
+          Finish()
+        elseif GetTime() - ticker.startTime > 5 then
+          ticker:Cancel()
+          sourceCharacter = lastTransfer.sourceCharacterName .. "-" .. GetNormalizedRealmName()
+          Finish()
+        end
+      end)
+      ticker.startTime = GetTime()
+    else
+      sourceCharacter = lastTransfer.sourceCharacterName .. "-" .. GetNormalizedRealmName()
+      Finish()
+    end
+  elseif eventName == "CURRENCY_TRANSFER_FAILED" then
+    self:UnregisterEvent("CURRENCY_TRANSFER_LOG_UPDATE")
   end
 end
 
@@ -57,7 +107,7 @@ function SyndicatorCurrencyCacheMixin:ScanAllCurrencies()
     end
 
     if #toCollapse > 0 then
-      for index = #toCollapse, 1 do
+      for index = #toCollapse, 1, -1 do
         C_CurrencyInfo.ExpandCurrencyList(toCollapse[index], false)
       end
     end
@@ -84,7 +134,7 @@ function SyndicatorCurrencyCacheMixin:ScanAllCurrencies()
     end
 
     if #toCollapse > 0 then
-      for index = #toCollapse, 1 do
+      for index = #toCollapse, 1, -1 do
         ExpandCurrencyList(toCollapse[index], 0)
       end
     end

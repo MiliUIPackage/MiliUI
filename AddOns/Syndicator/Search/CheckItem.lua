@@ -9,6 +9,10 @@ local function GetItemName(details)
   elseif C_Item.IsItemDataCachedByID(details.itemID) then
     details.itemName = C_Item.GetItemNameByID(details.itemLink) or C_Item.GetItemNameByID(details.itemID)
   end
+
+  if not details.itemName then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+  end
 end
 
 local function GetClassSubClass(details)
@@ -22,21 +26,28 @@ local function GetClassSubClass(details)
     details.classID = Enum.ItemClass.Battlepet
     details.subClassID = petType - 1
   else
-    local classID, subClassID = select(6, C_Item.GetItemInfoInstant(details.itemLink))
-    if not classID then
-      classID, subClassID = C_Item.GetItemInfoInstant(details.itemID)
-    end
+    local classID, subClassID = select(6, C_Item.GetItemInfoInstant(details.itemID))
     details.classID = classID
     details.subClassID = subClassID
   end
 end
 
 local function PetCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Battlepet or (details.classID == Enum.ItemClass.Miscellaneous and details.subClassID == Enum.ItemMiscellaneousSubclass.CompanionPet)
 end
 
-local function ReagentCheck(details)
-  return (select(17, C_Item.GetItemInfo(details.itemID)))
+local ReagentCheck
+if Syndicator.Constants.IsClassic then
+  ReagentCheck = function(details)
+    GetClassSubClass(details)
+    -- Trade good that isn't an explosive or device
+    return details.classID == 7 and details.subClassID ~= 2 and details.subClassID ~= 3
+  end
+else
+  ReagentCheck = function(details)
+    return (select(17, C_Item.GetItemInfo(details.itemID)))
+  end
 end
 
 local function SetCheck(details)
@@ -44,78 +55,218 @@ local function SetCheck(details)
 end
 
 local function EngravableCheck(details)
-  return details.isEngravable
+  return details.isEngravable == true
 end
 
 local function EngravedCheck(details)
   return details.engravingInfo ~= nil
 end
 
-local function BindOnEquipCheck(details)
-  return not details.isBound and (Syndicator.Utilities.IsEquipment(details.itemLink) or details.classID == Enum.ItemClass.Container)
-end
-
 local function EquipmentCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Armor or details.classID == Enum.ItemClass.Weapon
 end
 
 local function FoodCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Consumable and details.subClassID == 5
 end
 
 local function PotionCheck(details)
-  return details.classID == Enum.ItemClass.Consumable and (details.subClassID == 1 or details.subClassID == 2)
-end
-
-local function JunkCheck(details)
-  return details.isJunk == true
+  GetClassSubClass(details)
+  return details.classID == Enum.ItemClass.Consumable and (details.subClassID == 1 or details.subClassID == 2 or details.subClassID == 3)
 end
 
 local function CosmeticCheck(details)
+  if not details.itemLink:match("item:") then
+    return false
+  end
   if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
     return nil
   end
-  details.isCosmetic = IsCosmeticItem(details.itemLink)
+  details.isCosmetic = C_Item.IsCosmeticItem(details.itemLink)
   return details.isCosmetic
 end
 
-local function GetQualityCheck(quality)
-  return function(details)
-    return details.quality == quality
-  end
-end
-
 local function AxeCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Weapon and (details.subClassID == Enum.ItemWeaponSubclass.Axe2H or details.subClassID == Enum.ItemWeaponSubclass.Axe1H)
 end
 
 local function MaceCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Weapon and (details.subClassID == Enum.ItemWeaponSubclass.Mace2H or details.subClassID == Enum.ItemWeaponSubclass.Mace1H)
 end
 
 local function SwordCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Weapon and (details.subClassID == Enum.ItemWeaponSubclass.Sword2H or details.subClassID == Enum.ItemWeaponSubclass.Sword1H)
 end
 
 local function StaffCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Weapon and (details.subClassID == Enum.ItemWeaponSubclass.Stave)
 end
 
 local function MountCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Miscellaneous and details.subClassID == Enum.ItemMiscellaneousSubclass.Mount
 end
 
 local function RelicCheck(details)
+  GetClassSubClass(details)
   return details.classID == Enum.ItemClass.Gem and details.subClassID == Enum.ItemGemSubclass.Artifactrelic
 end
 
 local function StackableCheck(details)
-  details.isStackable = details.isStackable or C_Item.GetItemMaxStackSizeByID(details.itemID) > 1
+  if details.isStackable ~= nil then
+    return details.isStackable
+  end
+
+  local stackCount = C_Item.GetItemMaxStackSizeByID(details.itemID)
+  if stackCount ~= nil then
+    details.isStackable = stackCount > 1
+  end
   return details.isStackable
+end
+
+local function SocketedCheck(details)
+  local gem1, gem2, gem3, gem4 = details.itemLink:match("item:%d+:[^:]*:(%d*):(%d*):(%d*):(%d*):")
+  if tonumber(gem1) or tonumber(gem2) or tonumber(gem3) or tonumber(gem4) then
+    return true
+  else
+    return false
+  end
+end
+
+local function GetSourceID(itemLink)
+  local _, sourceID = C_TransmogCollection.GetItemInfo(itemLink)
+  if sourceID then
+    return sourceID
+  end
+  local _, sourceID = C_TransmogCollection.GetItemInfo((C_Item.GetItemInfoInstant(itemLink)))
+  return sourceID
+end
+
+local function IsTMogCollectedCompletionist(itemLink)
+  local sourceID = GetSourceID(itemLink)
+  if not sourceID then
+    return nil
+  else
+    return C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance(sourceID)
+  end
+end
+
+local function IsTMogCollectedUnique(itemLink)
+  local sourceID = GetSourceID(itemLink)
+  if not sourceID then
+    return
+  else
+    local subClass = select(7, C_Item.GetItemInfoInstant(itemLink))
+    local sourceInfo = C_TransmogCollection.GetSourceInfo(sourceID)
+    local allSources = C_TransmogCollection.GetAllAppearanceSources(sourceInfo.visualID)
+    if #allSources == 0 then
+      allSources = {sourceID}
+    end
+    local anyCollected = false
+    for _, alternateSourceID in ipairs(allSources) do
+      local altInfo = C_TransmogCollection.GetSourceInfo(alternateSourceID)
+      local altSubClass = select(7, C_Item.GetItemInfoInstant(altInfo.itemID))
+      if altInfo.isCollected and altSubClass == subClass then
+        anyCollected = true
+        break
+      end
+    end
+    return anyCollected
+  end
+end
+
+local function IsPetCollected(itemLink)
+  local speciesID = tonumber((itemLink:match("battlepet:(%d+)")))
+  local numCollected = C_PetJournal.GetNumCollectedInfo(speciesID)
+  return numCollected > 0
+end
+
+local function IsToyCollected(itemID)
+  local hasToy = PlayerHasToy(itemID)
+  return hasToy
+end
+
+local function IsMountCollected(itemID)
+  local mountID = C_MountJournal.GetMountFromItem(itemID)
+  if mountID then
+    return (select(11, C_MountJournal.GetMountInfoByID(mountID)))
+  end
+end
+
+local function CollectedCheck(details)
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  local result = nil
+
+  if C_TransmogCollection and Syndicator.Utilities.IsEquipment(details.itemLink) then
+    if ATTC and ATTC.Settings and ATTC.Settings.Get and ATTC.Settings:Get("Completionist") then
+      result = IsTMogCollectedCompletionist(details.itemLink)
+    else
+      result = IsTMogCollectedUnique(details.itemLink)
+    end
+  end
+  if C_PetJournal and details.itemID == Syndicator.Constants.BattlePetCageID then
+    result = IsPetCollected(details.itemLink)
+  end
+  if C_ToyBox and C_ToyBox.GetToyInfo(details.itemID) ~= nil then
+    result = IsToyCollected(details.itemID)
+  end
+  if C_MountJournal and C_MountJournal.GetMountFromItem(details.itemID) then
+    result = IsMountCollected(details.itemID)
+  end
+
+  return result or false, result == false
+end
+
+local function UncollectedCheck(details)
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
+    return nil
+  end
+
+  local result = nil
+
+  if C_TransmogCollection and Syndicator.Utilities.IsEquipment(details.itemLink) then
+    if ATTC and ATTC.Settings and ATTC.Settings.Get and ATTC.Settings:Get("Completionist") then
+      result = IsTMogCollectedCompletionist(details.itemLink)
+    else
+      result = IsTMogCollectedUnique(details.itemLink)
+    end
+  end
+  if C_PetJournal and details.itemID == Syndicator.Constants.BattlePetCageID then
+    result = IsPetCollected(details.itemLink)
+  end
+  if C_ToyBox and C_ToyBox.GetToyInfo(details.itemID) ~= nil then
+    result = IsToyCollected(details.itemID)
+  end
+  if C_MountJournal and C_MountJournal.GetMountFromItem(details.itemID) then
+    result = IsMountCollected(details.itemID)
+  end
+
+  if result ~= nil then
+    result = not result
+  end
+
+  return result or false, result == true
 end
 
 local function GetTooltipInfoSpell(details)
   if details.tooltipInfoSpell then
+    return
+  end
+
+  if not C_Item.IsItemDataCachedByID(details.itemID) then
+    C_Item.RequestLoadItemDataByID(details.itemID)
     return
   end
 
@@ -124,26 +275,17 @@ local function GetTooltipInfoSpell(details)
     C_Spell.RequestLoadSpellData(spellID)
     return
   end
+
   details.tooltipInfoSpell = details.tooltipGetter() or {lines={}}
 end
 
---[[local function ReputationCheck(details)
-  GetTooltipInfoSpell(details)
-
-  if details.tooltipInfoSpell then
-    for _, lineData in ipairs(details.tooltipInfoSpell.lines) do
-      if lineData.leftText:match(SYNDICATOR_L_KEYWORD_REPUTATION) then
-        return true
-      end
-    end
-    return false
-  else
-    return nil
+local JUNK_PATTERN = "^" .. SELL_PRICE
+local function JunkCheck(details)
+  if details.isJunk ~= nil then
+    return details.isJunk
   end
-end]]
 
-local function BindOnAccountCheck(details)
-  if not details.isBound then
+  if details.quality ~= Enum.ItemQuality.Poor then
     return false
   end
 
@@ -151,7 +293,50 @@ local function BindOnAccountCheck(details)
 
   if details.tooltipInfoSpell then
     for _, row in ipairs(details.tooltipInfoSpell.lines) do
+      if row.leftText:match(JUNK_PATTERN) then
+        return false
+      end
+    end
+    return true
+  end
+end
+
+local function BindOnEquipCheck(details)
+  if details.isBound or (not Syndicator.Utilities.IsEquipment(details.itemLink) and details.classID ~= Enum.ItemClass.Container) then
+    return false
+  end
+
+  GetTooltipInfoSpell(details)
+
+  if details.tooltipInfoSpell then
+    for _, row in ipairs(details.tooltipInfoSpell.lines) do
+      if row.leftText == ITEM_BIND_ON_EQUIP then
+        return true
+      end
+    end
+    return false
+  end
+end
+
+local function BindOnAccountCheck(details)
+  GetTooltipInfoSpell(details)
+
+  if details.tooltipInfoSpell then
+    for _, row in ipairs(details.tooltipInfoSpell.lines) do
       if tIndexOf(Syndicator.Constants.AccountBoundTooltipLines, row.leftText) ~= nil then
+        return true
+      end
+    end
+    return false
+  end
+end
+
+local function WarboundUntilEquippedCheck(details)
+  GetTooltipInfoSpell(details)
+
+  if details.tooltipInfoSpell then
+    for _, row in ipairs(details.tooltipInfoSpell.lines) do
+      if row.leftText == ITEM_ACCOUNTBOUND_UNTIL_EQUIP then
         return true
       end
     end
@@ -200,13 +385,29 @@ local function UseCheck(details)
   local usableSeen = false
   if details.tooltipInfoSpell then
     for _, row in ipairs(details.tooltipInfoSpell.lines) do
-      if row.leftColor.r == 0 and row.leftColor.g == 1 and row.leftColor.b == 0 and row.leftText:match("^" .. USE_COLON) then
+      if row.leftColor.r == 0 and row.leftColor.g == 1 and row.leftColor.b == 0 and row.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONUSE) then
         usableSeen = true
-      elseif row.leftColor.r == 1 and row.leftColor.g < 0.5 and row.leftColor.b < 0.5 then
+      elseif row.leftColor.r == 1 and row.leftColor.g < 0.2 and row.leftColor.b < 0.2 then
         return false
       end
     end
     return usableSeen
+  end
+end
+
+local function UsableCheck(details)
+  GetTooltipInfoSpell(details)
+
+  if details.tooltipInfoSpell then
+    for _, row in ipairs(details.tooltipInfoSpell.lines) do
+      if row.leftColor.r == 1 and row.leftColor.g < 0.2 and row.leftColor.b < 0.2 then
+        return false
+      end
+      if row.rightColor and row.rightColor.r == 1 and row.rightColor.g < 0.2 and row.rightColor.b < 0.2 then
+        return false
+      end
+    end
+    return true
   end
 end
 
@@ -242,22 +443,21 @@ end]]
 
 local GetItemStats = C_Item.GetItemStats or GetItemStats
 
-local function SaveBaseStats(details)
+local function SaveGearStats(details)
   if not Syndicator.Utilities.IsEquipment(details.itemLink) then
-    details.baseItemStats = {}
+    details.itemStats = {}
     return
   end
 
-  local cleanedLink = details.itemLink:gsub("item:(%d+):(%d*):(%d*):(%d*):(%d*):", "item:%1:::::")
-  details.baseItemStats = GetItemStats(cleanedLink)
+  details.itemStats = GetItemStats(details.itemLink)
 end
 
 local function SocketCheck(details)
-  SaveBaseStats(details)
-  if not details.baseItemStats then
+  SaveGearStats(details)
+  if not details.itemStats then
     return nil
   end
-  for key in pairs(details.baseItemStats) do
+  for key in pairs(details.itemStats) do
     if key:find("EMPTY_SOCKET", nil, true) then
       return true
     end
@@ -295,73 +495,114 @@ local function IsTradeableLoot(details)
   return false
 end
 
-local KEYWORDS_TO_CHECK = {
-  [SYNDICATOR_L_KEYWORD_PET] = PetCheck,
-  [SYNDICATOR_L_KEYWORD_BATTLE_PET] = PetCheck,
-  [SYNDICATOR_L_KEYWORD_SOULBOUND] = SoulboundCheck,
-  [SYNDICATOR_L_KEYWORD_BOP] = SoulboundCheck,
-  [SYNDICATOR_L_KEYWORD_BOE] = BindOnEquipCheck,
-  [SYNDICATOR_L_KEYWORD_BOU] = BindOnUseCheck,
-  [SYNDICATOR_L_KEYWORD_EQUIPMENT] = EquipmentCheck,
-  [SYNDICATOR_L_KEYWORD_GEAR] = EquipmentCheck,
-  [SYNDICATOR_L_KEYWORD_AXE] = AxeCheck,
-  [SYNDICATOR_L_KEYWORD_MACE] = MaceCheck,
-  [SYNDICATOR_L_KEYWORD_SWORD] = SwordCheck,
-  [SYNDICATOR_L_KEYWORD_STAFF] = StaffCheck,
-  [SYNDICATOR_L_KEYWORD_REAGENT] = ReagentCheck,
-  [SYNDICATOR_L_KEYWORD_FOOD] = FoodCheck,
-  [SYNDICATOR_L_KEYWORD_DRINK] = FoodCheck,
-  [SYNDICATOR_L_KEYWORD_POTION] = PotionCheck,
-  [SYNDICATOR_L_KEYWORD_SET] = SetCheck,
-  [SYNDICATOR_L_KEYWORD_ENGRAVABLE] = EngravableCheck,
-  [SYNDICATOR_L_KEYWORD_ENGRAVED] = EngravedCheck,
-  [SYNDICATOR_L_KEYWORD_SOCKET] = SocketCheck,
-  [SYNDICATOR_L_KEYWORD_JUNK] = JunkCheck,
-  [SYNDICATOR_L_KEYWORD_TRASH] = JunkCheck,
-  --[SYNDICATOR_L_KEYWORD_REPUTATION] = ReputationCheck,
-  [SYNDICATOR_L_KEYWORD_BOA] = BindOnAccountCheck,
-  [SYNDICATOR_L_KEYWORD_ACCOUNT_BOUND] = BindOnAccountCheck,
-  [SYNDICATOR_L_KEYWORD_USE] = UseCheck,
-  [SYNDICATOR_L_KEYWORD_OPEN] = OpenCheck,
-  [MOUNT:lower()] = MountCheck,
-  [SYNDICATOR_L_KEYWORD_TRADEABLE_LOOT] = IsTradeableLoot,
-  [SYNDICATOR_L_KEYWORD_TRADABLE_LOOT] = IsTradeableLoot,
-  [SYNDICATOR_L_KEYWORD_RELIC] = RelicCheck,
-  [SYNDICATOR_L_KEYWORD_STACKS] = StackableCheck,
-  [SYNDICATOR_L_KEYWORD_STACKABLE] = StackableCheck,
-}
+local function UniqueCheck(details)
+  GetTooltipInfoSpell(details)
 
-if Syndicator.Constants.IsRetail then
-  KEYWORDS_TO_CHECK[SYNDICATOR_L_KEYWORD_COSMETIC] = CosmeticCheck
-  --KEYWORDS_TO_CHECK[SYNDICATOR_L_KEYWORD_MANUSCRIPT] = ManuscriptCheck
-  KEYWORDS_TO_CHECK[TOY:lower()] = ToyCheck
+  if not details.tooltipInfoSpell then
+    return
+  end
+
+  for _, row in ipairs(details.tooltipInfoSpell.lines) do
+    if row.leftText == ITEM_UNIQUE then
+      return true
+    end
+  end
+  return false
 end
 
-local function AddKeyword(keyword, check)
+local function UseATTInfo(details)
+  if details.ATTInfoAcquired or not ATTC or not ATTC.SearchForField then -- All The Things
+    return
+  end
+  local ATTSearch = ATTC.SearchForField("itemIDAsCost", details.itemID)
+  for _, entry in ipairs(ATTSearch) do
+    if entry.itemID then
+      details.isCurrency = true
+      break
+    elseif entry.questID then
+      details.isQuestObjectiveItem = true
+      break
+    end
+  end
+  details.ATTInfoAcquired = true
+end
+
+local function CurrencyCheck(details)
+  UseATTInfo(details)
+  return details.isCurrency == true -- powered by ATT data
+end
+
+local function QuestObjectiveCheck(details)
+  UseATTInfo(details)
+  return details.isQuestObjectiveItem == true
+end
+
+local KEYWORDS_TO_CHECK = {}
+local KEYWORD_AND_CATEGORY = {}
+
+function Syndicator.Search.CleanKeyword(keyword)
+  return keyword:gsub("[()&|~!]", " "):gsub("%s+", " "):gsub(" $", "")
+end
+local function AddKeyword(keyword, check, group)
+  keyword = Syndicator.Search.CleanKeyword(keyword)
   local old = KEYWORDS_TO_CHECK[keyword]
   if old then
     KEYWORDS_TO_CHECK[keyword] = function(...) return old(...) or check(...) end
   else
     KEYWORDS_TO_CHECK[keyword] = check
   end
+  KEYWORDS_TO_CHECK["_" .. keyword .. "_"] = KEYWORDS_TO_CHECK[keyword]
+  KEYWORDS_TO_CHECK[keyword:gsub(" ", "-")] = KEYWORDS_TO_CHECK[keyword]
+
+  table.insert(KEYWORD_AND_CATEGORY, {keyword = keyword, group = group or ""})
 end
 
-local function PetCollectedCheck(details)
-  local speciesID
-  if details.itemID == Syndicator.Constants.BattlePetCageID then
-    speciesID = tonumber((details.itemLink:match("battlepet:(%d+)")))
-  elseif C_PetJournal.GetPetInfoByItemID(details.itemID) ~= nil then
-    speciesID = select(13, C_PetJournal.GetPetInfoByItemID(details.itemID))
-  end
-  if speciesID then
-    return C_PetJournal.GetNumCollectedInfo(speciesID) == 0
-  else
-    return false
-  end
-end
+AddKeyword(SYNDICATOR_L_KEYWORD_PET, PetCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_BATTLE_PET, PetCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_SOULBOUND, SoulboundCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_BOP, SoulboundCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_BOE, BindOnEquipCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_BOU, BindOnUseCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_EQUIPMENT, EquipmentCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_GEAR, EquipmentCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_AXE, AxeCheck, SYNDICATOR_L_GROUP_WEAPON_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_MACE, MaceCheck, SYNDICATOR_L_GROUP_WEAPON_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_SWORD, SwordCheck, SYNDICATOR_L_GROUP_WEAPON_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_STAFF, StaffCheck, SYNDICATOR_L_GROUP_WEAPON_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_REAGENT, ReagentCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_FOOD, FoodCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_DRINK, FoodCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_POTION, PotionCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_SET, SetCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_EQUIPMENT_SET, SetCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_ENGRAVABLE, EngravableCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_ENGRAVED, EngravedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_SOCKET, SocketCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_JUNK, JunkCheck, SYNDICATOR_L_GROUP_QUALITY)
+AddKeyword(SYNDICATOR_L_KEYWORD_TRASH, JunkCheck, SYNDICATOR_L_GROUP_QUALITY)
+AddKeyword(SYNDICATOR_L_KEYWORD_BOA, BindOnAccountCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_ACCOUNT_BOUND, BindOnAccountCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_USE, UseCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_USABLE, UsableCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_OPEN, OpenCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_TRADEABLE_LOOT, IsTradeableLoot, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_TRADABLE_LOOT, IsTradeableLoot, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_RELIC, RelicCheck, SYNDICATOR_L_GROUP_ARMOR_TYPE)
+AddKeyword(SYNDICATOR_L_KEYWORD_STACKS, StackableCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_SOCKETED, SocketedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_CURRENCY, CurrencyCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_OBJECTIVE, QuestObjectiveCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_COLLECTED, CollectedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(SYNDICATOR_L_KEYWORD_UNCOLLECTED, UncollectedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+AddKeyword(ITEM_UNIQUE:lower(), UniqueCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
 
 if Syndicator.Constants.IsRetail then
-  AddKeyword(SYNDICATOR_L_KEYWORD_UNCOLLECTED_PET, PetCollectedCheck)
+  AddKeyword(SYNDICATOR_L_KEYWORD_COSMETIC, CosmeticCheck, SYNDICATOR_L_GROUP_QUALITY)
+  AddKeyword(TOY:lower(), ToyCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
+  if Syndicator.Constants.WarbandBankActive then
+    AddKeyword(ITEM_ACCOUNTBOUND:lower(), BindOnAccountCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+    AddKeyword(ITEM_ACCOUNTBOUND_UNTIL_EQUIP:lower(), WarboundUntilEquippedCheck, SYNDICATOR_L_GROUP_ITEM_DETAIL)
+  end
 end
 
 local sockets = {
@@ -386,12 +627,12 @@ for _, key in ipairs(sockets) do
   local global = _G[key]
   if global then
     AddKeyword(global:lower(), function(details)
-      SaveBaseStats(details)
-      if details.baseItemStats then
-        return details.baseItemStats[key] ~= nil
+      SaveGearStats(details)
+      if details.itemStats then
+        return details.itemStats[key] ~= nil
       end
       return nil
-    end)
+    end, SYNDICATOR_L_GROUP_SOCKET)
   end
 end
 
@@ -416,6 +657,7 @@ local inventorySlots = {
   "INVTYPE_WEAPONMAINHAND",
   "INVTYPE_WEAPONOFFHAND",
   "INVTYPE_HOLDABLE",
+  "INVTYPE_SHIELD",
   "INVTYPE_AMMO",
   "INVTYPE_THROWN",
   "INVTYPE_RANGEDRIGHT",
@@ -437,7 +679,7 @@ end
 for _, slot in ipairs(inventorySlots) do
   local text = _G[slot]
   if text ~= nil then
-    AddKeyword(text:lower(),  function(details) GetInvType(details) return details.invType == slot end)
+    AddKeyword(text:lower(),  function(details) GetInvType(details) return details.invType == slot end, SYNDICATOR_L_GROUP_SLOT)
   end
 end
 
@@ -445,7 +687,7 @@ do
   AddKeyword(SYNDICATOR_L_KEYWORD_OFF_HAND, function(details)
     GetInvType(details)
     return details.invType == "INVTYPE_HOLDABLE" or details.invType == "INVTYPE_SHIELD"
-  end)
+  end, SYNDICATOR_L_GROUP_SLOT)
 end
 
 local moreSlotMappings = {
@@ -458,13 +700,13 @@ local moreSlotMappings = {
 }
 
 for keyword, slot in pairs(moreSlotMappings) do
-  AddKeyword(keyword, function(details) GetInvType(details) return details.invType == slot end)
+  AddKeyword(keyword, function(details) GetInvType(details) return details.invType == slot end, SYNDICATOR_L_GROUP_SLOT)
 end
 
 if Syndicator.Constants.IsRetail then
   AddKeyword(SYNDICATOR_L_KEYWORD_AZERITE, function(details)
     return C_AzeriteEmpoweredItem.IsAzeriteEmpoweredItemByID(details.itemID)
-  end)
+  end, SYNDICATOR_L_GROUP_ITEM_DETAIL)
 end
 
 local TextToExpansion = {
@@ -473,6 +715,7 @@ local TextToExpansion = {
   ["bc"] = 1,
   ["burning crusade"] = 1,
   ["tbc"] = 1,
+  ["the burning crusade"] = 1,
   ["wrath"] = 2,
   ["wotlk"] = 2,
   ["cataclysm"] = 3,
@@ -487,72 +730,60 @@ local TextToExpansion = {
   ["shadowlands"] = 8,
   ["df"] = 9,
   ["dragonflight"] = 9,
+  ["tww"] = 10,
+  ["war within"] = 10,
+  ["the war within"] = 10,
 }
 
 for key, quality in pairs(Enum.ItemQuality) do
   local term = _G["ITEM_QUALITY" .. quality .. "_DESC"]
   if term then
-    AddKeyword(term:lower(), function(details) return details.quality == quality end)
+    AddKeyword(term:lower(), function(details) return details.quality == quality end, SYNDICATOR_L_GROUP_QUALITY)
   end
 end
 
-if Syndicator.Constants.IsRetail then
-  function Syndicator.Search.GetExpansion(details)
-    if details.itemID == Syndicator.Constants.BattlePetCageID then
-      return -1
-    end
+function Syndicator.Search.GetExpansion(details)
+  if details.itemID == Syndicator.Constants.BattlePetCageID then
+    return -1
+  end
 
-    if ItemVersion then
-      local itemVersionDetails = ItemVersion.API:getItemVersion(details.itemID, true)
-      if itemVersionDetails then
-        return itemVersionDetails.major - 1
-      end
-    end
-    return (select(15, C_Item.GetItemInfo(details.itemID)))
+  local major = Syndicator.Search.GetExpansionInfo(details.itemID)
+  if major then
+    return major - 1
   end
-  for key, expansionID in pairs(TextToExpansion) do
-    AddKeyword(key, function(details)
-      details.expacID = details.expacID or Syndicator.Search.GetExpansion(details)
-      return details.expacID and details.expacID == expansionID
-    end)
-  end
+  return Syndicator.Constants.IsRetail and (select(15, C_Item.GetItemInfo(details.itemID)))
+end
+for key, expansionID in pairs(TextToExpansion) do
+  AddKeyword(key, function(details)
+    details.expacID = details.expacID or Syndicator.Search.GetExpansion(details)
+    return details.expacID and details.expacID == expansionID
+  end, SYNDICATOR_L_GROUP_EXPANSION)
 end
 
-local BAG_TYPES = {
-  [SYNDICATOR_L_KEYWORD_SOUL] = 12,
-  [SYNDICATOR_L_KEYWORD_ENCHANTING] = 7,
-  [SYNDICATOR_L_KEYWORD_ENGINEERING] = 8,
-  [SYNDICATOR_L_KEYWORD_MINING] = 11,
-  [SYNDICATOR_L_KEYWORD_INSCRIPTION] = 5,
-  [SYNDICATOR_L_KEYWORD_FISHING] = 16,
-  [SYNDICATOR_L_KEYWORD_COOKING] = 17,
-  [SYNDICATOR_L_KEYWORD_JEWELCRAFTING] = 25,
-}
-
-for keyword, bagBit in pairs(BAG_TYPES) do
-  local bagFamily = bit.lshift(1, bagBit - 1)
-  AddKeyword(keyword, function(details)
-    local itemFamily = C_Item.GetItemFamily(details.itemID)
-    if itemFamily == nil then
-      return
-    else
-      return bit.band(bagFamily, itemFamily) ~= 0
-    end
-  end)
-end
-
-local function SaveStats(details)
-  if not Syndicator.Utilities.IsEquipment(details.itemLink) then
-    details.itemStats = {}
+local keyringBagFamily = bit.lshift(1, 9 - 1)
+AddKeyword(SYNDICATOR_L_KEYWORD_KEY, function(details)
+  local itemFamily = C_Item.GetItemFamily(details.itemID)
+  if itemFamily == nil then
     return
+  else
+    return bit.band(keyringBagFamily, itemFamily) ~= 0
   end
+end, SYNDICATOR_L_GROUP_ITEM_TYPE)
 
-  details.itemStats = GetItemStats(details.itemLink)
-end
+local fishingBagFamily = bit.lshift(1, 16 - 1)
+AddKeyword(SYNDICATOR_L_KEYWORD_FISH, function(details)
+  GetClassSubClass(details)
+  local itemFamily = C_Item.GetItemFamily(details.itemID)
+  if itemFamily == nil then
+    return
+  else
+    return bit.band(fishingBagFamily, itemFamily) ~= 0 and details.classID == 7 and details.subClassID == 8
+  end
+end, SYNDICATOR_L_GROUP_TRADE_GOODS)
 
-local function GetStatCheck(statKey)
+local function GetGearStatCheck(statKey)
   return function(details)
-    SaveStats(details)
+    SaveGearStats(details)
     if not details.itemStats then
       return
     end
@@ -563,6 +794,48 @@ local function GetStatCheck(statKey)
       end
     end
     return false
+  end
+end
+
+local function GetGemStatCheck(statKey)
+  local PATTERN1 = "%+" .. statKey -- Retail remix gems
+  local PATTERN2 = "%+%d+ " .. statKey -- Normal gems
+  return function(details)
+    GetClassSubClass(details)
+
+    if not details.classID == Enum.ItemClass.Gem then
+      return false
+    end
+
+    GetTooltipInfoSpell(details)
+
+    if details.tooltipInfoSpell then
+      for _, line in ipairs(details.tooltipInfoSpell.lines) do
+        if line.leftText:match(PATTERN1) or line.leftText:match(PATTERN2) then
+          return true
+        end
+      end
+      return false
+    end
+  end
+end
+
+local function GetResistanceStatCheck(stat)
+  return function(details)
+    if not Syndicator.Utilities.IsEquipment(details.itemLink) then
+      return false
+    end
+
+    GetTooltipInfoSpell(details)
+
+    if details.tooltipInfoSpell then
+      for _, line in ipairs(details.tooltipInfoSpell.lines) do
+        if line.leftText:find(stat) then
+          return true
+        end
+      end
+      return false
+    end
   end
 end
 
@@ -620,7 +893,17 @@ local stats = {
 for _, s in ipairs(stats) do
   local keyword = _G["ITEM_MOD_" .. s .. "_SHORT"] or _G["ITEM_MOD_" .. s]
   if keyword ~= nil then
-    AddKeyword(keyword:lower(), GetStatCheck(s))
+    AddKeyword(keyword:lower(), GetGearStatCheck(s), SYNDICATOR_L_GROUP_STAT)
+    AddKeyword(keyword:lower(), GetGemStatCheck(keyword), SYNDICATOR_L_GROUP_STAT)
+  end
+end
+AddKeyword(STAT_ARMOR:lower(), GetGemStatCheck(STAT_ARMOR), SYNDICATOR_L_GROUP_STAT)
+if Syndicator.Constants.IsClassic then
+  for i = 0, 6 do
+    local keyword = _G["RESISTANCE" .. i .. "_NAME"]
+    if keyword ~= nil then
+      AddKeyword(keyword:lower(), GetResistanceStatCheck(keyword), SYNDICATOR_L_GROUP_STAT)
+    end
   end
 end
 
@@ -747,12 +1030,75 @@ local function ItemLevelMaxPatternCheck(details, text)
   return details.itemLevel and details.itemLevel >= tonumber(maxText)
 end
 
+local function ExpansionPatternCheck(details, text)
+  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
+  if not itemMajor then
+    return false
+  end
+
+  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
+  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
+
+  if not minor then
+    return major == itemMajor
+  elseif not patch then
+    return major == itemMajor and minor == itemMinor
+  else
+    return major == itemMajor and minor == itemMinor and patch == itemPatch
+  end
+end
+
+local function ExpansionMinPatternCheck(details, text)
+  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
+  if not itemMajor then
+    return false
+  end
+
+  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
+  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
+
+  if not minor then
+    return major <= itemMajor
+  elseif not patch then
+    return major <= itemMajor and minor <= itemMinor
+  else
+    return major <= itemMajor and minor <= itemMinor and patch <= itemPatch
+  end
+end
+
+local function ExpansionMaxPatternCheck(details, text)
+  local itemMajor, itemMinor, itemPatch = Syndicator.Search.GetExpansionInfo(details.itemID)
+  if not itemMajor then
+    return false
+  end
+
+  local major, minor, patch = text:match("(%d+)%.(%d*)%.?(%d*)")
+  major, minor, patch = tonumber(major), tonumber(minor), tonumber(patch)
+
+  if not minor then
+    return major >= itemMajor
+  elseif not patch then
+    return major >= itemMajor and minor >= itemMinor
+  else
+    return major >= itemMajor and minor >= itemMinor and patch >= itemPatch
+  end
+end
+
+local function ExactKeywordCheck(details, text)
+  local keyword = text:match("^#(.*)$")
+  return KEYWORDS_TO_CHECK[keyword] ~= nil and KEYWORDS_TO_CHECK[keyword](details)
+end
+
 local patterns = {
   ["^%d+$"] = ItemLevelPatternCheck,
   ["^=%d+$"] = ExactItemLevelPatternCheck,
   ["^%d+%-%d+$"] = ItemLevelRangePatternCheck,
   ["^%>%d+$"] = ItemLevelMaxPatternCheck,
   ["^%<%d+$"] = ItemLevelMinPatternCheck,
+  ["^%d+%.%d*%.?%d*$"] = ExpansionPatternCheck,
+  ["^%>%d+%.%d*%.?%d*$"] = ExpansionMinPatternCheck,
+  ["^%<%d+%.%d*%.?%d*$"] = ExpansionMaxPatternCheck,
+  ["^%#.*$"] = ExactKeywordCheck,
 }
 
 -- Used to prevent equipment and use returning results based on partial words in
@@ -760,10 +1106,6 @@ local patterns = {
 local EXCLUSIVE_KEYWORDS_NO_TOOLTIP_TEXT = {
   [SYNDICATOR_L_KEYWORD_USE] = true,
   [SYNDICATOR_L_KEYWORD_EQUIPMENT] = true,
-}
-
-local NO_CACHING_KEYWORDS = {
-  [SYNDICATOR_L_KEYWORD_UNCOLLECTED_PET] = true,
 }
 
 local UPGRADE_PATH_PATTERN = ITEM_UPGRADE_TOOLTIP_FORMAT_STRING and "^" .. ITEM_UPGRADE_TOOLTIP_FORMAT_STRING:gsub("%%s", ".*"):gsub("%%d", ".*")
@@ -781,24 +1123,26 @@ local function GetTooltipSpecialTerms(details)
     return
   end
 
-  details.searchKeywords = {details.itemName:lower()}
+  if not details.searchKeywords then
+    details.searchKeywords = {details.itemName:lower()}
 
-  for _, line in ipairs(details.tooltipInfoSpell.lines) do
-    local term = line.leftText:match("^|cFF......(.*)|r$")
-    if term then
-      table.insert(details.searchKeywords, term:lower())
-    else
-      local match = line.leftText:match("^" .. USE_COLON) or line.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONEQUIP) or (UPGRADE_PATH_PATTERN and line.leftText:match(UPGRADE_PATH_PATTERN))
-      if details.classID ~= Enum.ItemClass.Recipe and match then
-        table.insert(details.searchKeywords, line.leftText:lower())
+    for _, line in ipairs(details.tooltipInfoSpell.lines) do
+      local term = line.leftText:match("^|cFF......(.*)|r$")
+      if term then
+        table.insert(details.searchKeywords, term:lower())
+      else
+        local match = line.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONUSE) or line.leftText:match("^" .. ITEM_SPELL_TRIGGER_ONEQUIP) or (UPGRADE_PATH_PATTERN and line.leftText:match(UPGRADE_PATH_PATTERN))
+        if details.classID ~= Enum.ItemClass.Recipe and match then
+          table.insert(details.searchKeywords, line.leftText:lower())
+        end
       end
     end
-  end
 
-  if details.setInfo then
-    for _, info in ipairs(details.setInfo) do
-      if type(info.name) == "string" then
-        table.insert(details.searchKeywords, info.name:lower())
+    if details.setInfo then
+      for _, info in ipairs(details.setInfo) do
+        if type(info.name) == "string" then
+          table.insert(details.searchKeywords, info.name:lower())
+        end
       end
     end
   end
@@ -870,37 +1214,43 @@ local function ApplyKeyword(searchString)
       -- the details match the keyword's criteria
       local check = function(details)
         local matches = matchesTextToUse(details, searchString)
+        local finalDoNotCache = false
         if matches == nil then
           return nil
         elseif matches then
           return true
         end
         -- Cache results for each keyword to speed up continuing searches
-        if not details.matchInfo then
-          details.matchInfo = {}
+        if not details.keywordMatchInfo then
+          details.keywordMatchInfo = {}
         end
         local miss = false
         for _, k in ipairs(keywords) do
-          if details.matchInfo[k] == nil or NO_CACHING_KEYWORDS[k] then
+          if details.keywordMatchInfo[k] == nil then
             -- Keyword results not cached yet
-            local result = KEYWORDS_TO_CHECK[k](details, searchString)
+            local result, doNotCache = KEYWORDS_TO_CHECK[k](details, searchString)
+            finalDoNotCache = doNotCache or finalDoNotCache
             if result then
-              details.matchInfo[k] = true
-              return true
+              if not doNotCache then
+                details.keywordMatchInfo[k] = true
+              end
+              return true, finalDoNotCache
             elseif result ~= nil then
-              details.matchInfo[k] = false
+              if not doNotCache then
+                details.keywordMatchInfo[k] = false
+              end
             else
               miss = true
             end
-          elseif details.matchInfo[k] then
+          elseif details.keywordMatchInfo[k] then
             -- got a positive result cached, we're done
-            return true
+            return true, finalDoNotCache
           end
         end
         if miss then
           return nil
         else
-          return false
+          return false, finalDoNotCache
         end
       end
       matches[searchString] = check
@@ -922,66 +1272,177 @@ local function ApplyKeyword(searchString)
   return MatchesText
 end
 
-local function ApplyCombinedTerms(fullSearchString)
-  if fullSearchString:match("[|]") then
-    local checks = {}
-    local checkPart = {}
-    for part in fullSearchString:gmatch("[^|]+") do
-      table.insert(checks, ApplyCombinedTerms(part))
-      table.insert(checkPart, part)
-    end
+local function BlendOperations(checks, checkPart, operator)
+  if operator == "|" and #checks > 1 then
     return function(details)
+      local finalDoNotCache = false
       for index, check in ipairs(checks) do
-        local result = check(details, checkPart[index])
+        local result, doNotCache = check(details, checkPart[index])
+        finalDoNotCache = doNotCache or finalDoNotCache
         if result then
-          return true
+          return true, finalDoNotCache
         elseif result == nil then
           return nil
         end
       end
-      return false
+      return false, finalDoNotCache
     end
-  elseif fullSearchString:match("[&]") then
-    local checks = {}
-    local checkPart = {}
-    for part in fullSearchString:gmatch("[^&]+") do
-      table.insert(checks, ApplyCombinedTerms(part))
-      table.insert(checkPart, part)
-    end
+  elseif operator == "&" and #checks > 1 then
     return function(details)
+      local finalDoNotCache = false
       for index, check in ipairs(checks) do
-        local result = check(details, checkPart[index])
+        local result, doNotCache = check(details, checkPart[index])
+        finalDoNotCache = doNotCache or finalDoNotCache
         if result == false then
-          return false
+          return false, finalDoNotCache
         elseif result == nil then
-          return nil
+          return nil, finalDoNotCache
         end
       end
-      return true
+      return true, finalDoNotCache
     end
-  elseif fullSearchString:match("^[~!]") then
-    local newSearchString = fullSearchString:sub(2, #fullSearchString)
-    local nested = ApplyCombinedTerms(newSearchString)
+  elseif (operator == "~" or operator == "!") and #checks > 0 then
     return function(details)
-      local result = nested(details, newSearchString)
+      local result, doNotCache = checks[1](details, checkPart[1])
       if result ~= nil then
-        return not result
+        return not result, doNotCache
+      else
+        return nil
       end
-      return nil
+    end
+  elseif #checks == 1 then
+    return function(details)
+      return checks[1](details, checkPart[1])
     end
   else
-    return ApplyKeyword(fullSearchString)
+    return function() return true end
+  end
+end
+
+local levelToOp = {
+  [0] = "|",
+  [1] = "&",
+  [2] = "~",
+}
+
+local function ApplyTokens(tokens, startIndex)
+  local checks = {}
+  local level = 0
+  local checkLevel = {}
+  local checkPart = {}
+  -- Get the items part of the current group caused by an & or ~
+  local function ScanBack(newLevel)
+    while level > newLevel do
+      local oldLevel = level
+      level = level - 1
+      local scanIndex = #checks
+      while scanIndex > 0 and checkLevel[scanIndex] > level do
+        scanIndex = scanIndex - 1
+      end
+      local checksTmp = {}
+      local checkPartTmp = {}
+      for i = #checks, scanIndex + 1, -1 do
+        local c = checks[i]
+        local cPart = checkPart[i]
+        checks[i] = nil
+        checkLevel[i] = nil
+        checkPart[i] = nil
+        table.insert(checksTmp, c)
+        checkPartTmp[#checksTmp] = cPart
+      end
+      table.insert(checks, BlendOperations(checksTmp, checkPartTmp, levelToOp[oldLevel]))
+      table.insert(checkLevel, level)
+    end
+    level = newLevel
+  end
+  local index = startIndex
+  while index < #tokens do
+    index = index + 1
+    local t = tokens[index]
+    if t == "~" or t == "!" then
+      level = 2
+    elseif t == "&" then
+      ScanBack(1)
+      checkLevel[#checkLevel] = level
+    elseif t == "|" then
+      ScanBack(0)
+    elseif t == "(" then
+      local newCheck, endIndex = ApplyTokens(tokens, index)
+      table.insert(checks, newCheck)
+      table.insert(checkLevel, level)
+      index = endIndex
+    elseif t == ")" then
+      break
+    else
+      table.insert(checks, ApplyKeyword(t))
+      checkPart[#checks] = t
+      table.insert(checkLevel, level)
+    end
+  end
+
+  ScanBack(0)
+
+  return BlendOperations(checks, checkPart, levelToOp[level]), index
+end
+
+local function ProcessTerms(text)
+  text = text:gsub("^%s*(.-)%s*$", "%1") -- remove surrounding whitespace
+  local index = text:find("[~&|()!]")
+  if index == nil then
+    return ApplyKeyword(text)
+  else
+    local tokens = {}
+
+    local index = 1
+    text = text:gsub("||", "|")
+    while index < #text do
+      -- Find operators and any surrounding whitespace
+      local opIndexStart, opIndexEnd, op = text:find("%s*([%~%&%|%(%)%!])%s*", index)
+      if op then
+        local lead = text:sub(index, opIndexStart - 1)
+        if lead ~= "" then
+          table.insert(tokens, lead)
+        end
+        table.insert(tokens, op)
+        index = opIndexEnd + 1
+      else
+        break
+      end
+    end
+    local tail = text:sub(index, #text)
+    if tail ~= "" then
+      table.insert(tokens, tail)
+    end
+
+    local result = ApplyTokens(tokens, 0)
+
+    if not result then
+      return function() return true end
+    else
+      return result
+    end
   end
 end
 
 function Syndicator.Search.CheckItem(details, searchString)
+  details.fullMatchInfo = details.fullMatchInfo or {}
+  local result = details.fullMatchInfo[searchString]
+  if result ~= nil then
+    return details.fullMatchInfo[searchString]
+  end
+
   local check = matches[searchString]
   if not check then
-    check = ApplyCombinedTerms(searchString)
+    check = ProcessTerms(searchString)
     matches[searchString] = check
   end
 
-  return check(details, searchString)
+  local doNotCache
+  result, doNotCache = check(details, searchString)
+  if not doNotCache then
+    details.fullMatchInfo[searchString] = result
+  end
+  return result
 end
 
 function Syndicator.Search.ClearCache()
@@ -995,30 +1456,42 @@ function Syndicator.Search.InitializeSearchEngine()
     if name then
       local classID = i
       AddKeyword(name:lower(), function(details)
+        GetClassSubClass(details)
         return details.classID == classID
-      end)
+      end, SYNDICATOR_L_GROUP_ITEM_TYPE)
     end
   end
 
   local tradeGoodsToCheck = {
+    1, -- parts
+    4, -- jewelcrafting
     5, -- cloth
     6, -- leather
     7, -- metal and stone
     8, -- cooking
     9, -- herb
     10, -- elemental
+    12, -- enchanting
+    16, -- inscription
+    18, -- optional reagents
   }
+  if Syndicator.Constants.IsClassic then
+    tAppendAll(tradeGoodsToCheck, {
+      2, -- explosive
+      3, -- device
+    })
+  end
   for _, subClass in ipairs(tradeGoodsToCheck) do
     local keyword = C_Item.GetItemSubClassInfo(7, subClass)
     if keyword ~= nil then
       AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
         return details.classID == 7 and details.subClassID == subClass
-      end)
+      end, SYNDICATOR_L_GROUP_TRADE_GOODS)
     end
   end
 
   local armorTypesToCheck = {
-    1, -- cloth
     2, -- leather
     3, -- mail
     4, -- plate
@@ -1033,18 +1506,37 @@ function Syndicator.Search.InitializeSearchEngine()
     local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Armor, subClass)
     if keyword ~= nil then
       AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
         return details.classID == Enum.ItemClass.Armor and details.subClassID == subClass
-      end)
+      end, SYNDICATOR_L_GROUP_ARMOR_TYPE)
     end
   end
+  -- cloth armor, but excluding cloaks
+  AddKeyword(C_Item.GetItemSubClassInfo(Enum.ItemClass.Armor, 1):lower(), function(details)
+    GetClassSubClass(details)
+    GetInvType(details)
+    return details.classID == Enum.ItemClass.Armor and details.subClassID == 1 and details.invType ~= "INVTYPE_CLOAK"
+  end, SYNDICATOR_L_GROUP_ARMOR_TYPE)
 
   -- All weapons + fishingpole
   for subClass = 0, 20 do
     local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Weapon, subClass)
     if keyword ~= nil then
       AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
         return details.classID == Enum.ItemClass.Weapon and details.subClassID == subClass
-      end)
+      end, SYNDICATOR_L_GROUP_WEAPON_TYPE)
+    end
+  end
+
+  -- All weapons + fishingpole
+  for subClass = 1, 11 do
+    local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Recipe, subClass)
+    if keyword ~= nil then
+      AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
+        return details.classID == Enum.ItemClass.Recipe and details.subClassID == subClass
+      end, SYNDICATOR_L_GROUP_RECIPE)
     end
   end
 
@@ -1053,10 +1545,36 @@ function Syndicator.Search.InitializeSearchEngine()
       local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Battlepet, subClass)
       if keyword ~= nil then
         AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
           return details.classID == Enum.ItemClass.Battlepet and details.subClassID == subClass
-        end)
+        end, SYNDICATOR_L_GROUP_BATTLE_PET)
       end
     end
+  end
+
+  for subClass = 1, 12 do
+    local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Glyph, subClass)
+    if keyword ~= nil then
+      AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
+        return details.classID == Enum.ItemClass.Glyph and details.subClassID == subClass
+      end, SYNDICATOR_L_GROUP_GLYPH)
+    end
+  end
+
+  for subClass = 0, 9 do
+    local keyword = C_Item.GetItemSubClassInfo(Enum.ItemClass.Consumable, subClass)
+    if keyword ~= nil then
+      AddKeyword(keyword:lower(), function(details)
+        GetClassSubClass(details)
+        return details.classID == Enum.ItemClass.Consumable and details.subClassID == subClass
+      end, SYNDICATOR_L_GROUP_CONSUMABLE)
+    end
+  end
+
+  local mount = C_Item.GetItemSubClassInfo(Enum.ItemClass.Miscellaneous, Enum.ItemMiscellaneousSubclass.Mount)
+  if mount ~= nil then
+    AddKeyword(mount:lower(), MountCheck, SYNDICATOR_L_GROUP_ITEM_TYPE)
   end
 
   Syndicator.Search.RebuildKeywordList()
@@ -1067,4 +1585,8 @@ function Syndicator.Search.RebuildKeywordList()
     table.insert(sortedKeywords, key)
   end
   table.sort(sortedKeywords)
+end
+
+function Syndicator.Search.GetKeywords()
+  return KEYWORD_AND_CATEGORY
 end

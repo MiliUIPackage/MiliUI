@@ -18,6 +18,31 @@ local function GuildAndRealmComparator(a, b)
   end
 end
 
+local function IsBoA(itemLink)
+  if itemLink:match("battlepet:") then
+    return true
+  end
+
+  local tooltipData
+  if Syndicator.Constants.IsClassic then
+    tooltipData = Syndicator.Utilities.DumpClassicTooltip(function(tooltip) tooltip:SetHyperlink(itemLink) end)
+  else
+    tooltipData = C_TooltipInfo.GetHyperlink(itemLink)
+  end
+
+  if not tooltipData then
+    return false
+  end
+
+  for _, line in ipairs(tooltipData.lines) do
+    if tIndexOf(Syndicator.Constants.AccountBoundTooltipLines, line.leftText) ~= nil then
+      return true
+    end
+  end
+
+  return false
+end
+
 function Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
   if itemLink == nil then
     return
@@ -29,7 +54,13 @@ function Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
     return
   end
 
-  local tooltipInfo = summaries:GetTooltipInfo(key, Syndicator.Config.Get("tooltips_connected_realms_only"), Syndicator.Config.Get("tooltips_faction_only"))
+  local connectedRealmsOnly = Syndicator.Config.Get("tooltips_connected_realms_only")
+  local factionOnly = Syndicator.Config.Get("tooltips_faction_only")
+  if IsBoA(itemLink) then
+    connectedRealmsOnly = false
+    factionOnly = false
+  end
+  local tooltipInfo = summaries:GetTooltipInfo(key, connectedRealmsOnly, factionOnly)
 
   -- Remove any equipped information from the tooltip if the option is disabled
   -- (and remove the character if it has none of the items not equipped)
@@ -65,7 +96,7 @@ function Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
     tooltipInfo.guilds = {}
   end
 
-  if #tooltipInfo.characters == 0 and #tooltipInfo.guilds == 0 then
+  if #tooltipInfo.characters == 0 and #tooltipInfo.guilds == 0 and tooltipInfo.warband[1] == 0 then
     return
   end
 
@@ -90,6 +121,7 @@ function Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
     totals = totals + s.bank
     seenRealms[s.realmNormalized] = true
   end
+  totals = totals + tooltipInfo.warband[1]
   seenRealms[GetNormalizedRealmName() or ""] = true -- ensure realm name is shown for a different realm
 
   local realmCount = 0
@@ -162,6 +194,9 @@ function Syndicator.Tooltips.AddItemLines(tooltip, summaries, itemLink)
   end
   if #tooltipInfo.guilds > Syndicator.Config.Get("tooltips_character_limit") then
     tooltip:AddLine("  ...")
+  end
+  if tooltipInfo.warband[1] > 0 then
+    AddDoubleLine("  " .. PASSIVE_SPELL_FONT_COLOR:WrapTextInColorCode(SYNDICATOR_L_WARBAND), WHITE_FONT_COLOR:WrapTextInColorCode(tooltipInfo.warband[1]))
   end
   tooltip:Show()
 end

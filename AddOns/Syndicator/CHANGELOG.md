@@ -1,7 +1,7 @@
 # Syndicator
 
-## [29](https://github.com/Baganator/Syndicator/tree/29) (2024-05-08)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/28...29) 
+## [97](https://github.com/Baganator/Syndicator/tree/97) (2024-08-10)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/96...97) 
 
-- Update toc for 10.2.7  
-- Track changed reagent bank contents when updated by crafting  
+- Remove leftover prints  
+- Retail: Rework posting auctions tracking to avoid triggering AH throttle  

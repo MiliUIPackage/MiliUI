@@ -12,7 +12,7 @@ function Syndicator.API.GetInventoryInfo(itemLink, sameConnectedRealm, sameFacti
     return
   end
 
-  return Syndicator.ItemSummaries:GetTooltipInfo(key, sameConnectedRealm == true, sameFaction == true)
+  return Syndicator.ItemSummaries and Syndicator.ItemSummaries:GetTooltipInfo(key, sameConnectedRealm == true, sameFaction == true)
 end
 
 Syndicator.API.GetInventoryInfoByItemLink = Syndicator.API.GetInventoryInfo
@@ -24,7 +24,7 @@ Syndicator.API.GetInventoryInfoByItemLink = Syndicator.API.GetInventoryInfo
 --   sameCurrentFaction: boolean
 function Syndicator.API.GetInventoryInfoByItemID(itemID, sameConnectedRealm, sameFaction)
   local key = Syndicator.Utilities.GetItemKeyByItemID(itemID)
-  return Syndicator.ItemSummaries:GetTooltipInfo(key, sameConnectedRealm == true, sameFaction == true)
+  return Syndicator.ItemSummaries and Syndicator.ItemSummaries:GetTooltipInfo(key, sameConnectedRealm == true, sameFaction == true)
 end
 
 -- Returns currency counts for a specific currency on all characters
@@ -81,16 +81,21 @@ end
 
 Syndicator.API.GetGuild = Syndicator.API.GetByGuildFullName
 
+function Syndicator.API.GetWarband(index)
+  index = index or 1
+  return SYNDICATOR_DATA.Warband[index]
+end
+
 function Syndicator.API.GetCurrentCharacter()
-  return Syndicator.BagCache.currentCharacter
+  return Syndicator.BagCache and Syndicator.BagCache.currentCharacter
 end
 
 function Syndicator.API.GetCurrentGuild()
-  return Syndicator.GuildCache.currentGuild
+  return Syndicator.GuildCache and Syndicator.GuildCache.currentGuild
 end
 
 function Syndicator.API.DeleteCharacter(characterFullName)
-  assert(characterFullName ~= Syndicator.BagCache.currentCharacter, "Cannot delete live character")
+  assert(Syndicator.BagCache and characterFullName ~= Syndicator.BagCache.currentCharacter, "Cannot delete live character")
   local characterData = Syndicator.API.GetByCharacterFullName(characterFullName)
 
   if not characterData then
@@ -108,7 +113,7 @@ end
 
 function Syndicator.API.DeleteGuild(guildFullName)
   local guildData, guildFullName = Syndicator.API.GetByGuildFullName(guildFullName)
-  assert(guildFullName ~= Syndicator.GuildCache.currentGuild, "Cannot delete current guild")
+  assert(Syndicator.GuildCache and guildFullName ~= Syndicator.GuildCache.currentGuild, "Cannot delete current guild")
 
   if not guildData then
     error("Guild does not exist")
@@ -142,9 +147,13 @@ function Syndicator.API.IsReady()
 end
 
 function Syndicator.API.IsBagEventPending()
-  return Syndicator.BagCache.isUpdatePending
+  return not Syndicator.BagCache or Syndicator.BagCache.isUpdatePending
 end
 
 function Syndicator.API.IsGuildEventPending()
-  return Syndicator.GuildCache.isUpdatePending
+  return not Syndicator.GuildCache or Syndicator.GuildCache.isUpdatePending
+end
+
+function Syndicator.API.GetSearchKeywords()
+  return CopyTable(Syndicator.Search.GetKeywords())
 end

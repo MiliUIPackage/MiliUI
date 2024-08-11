@@ -16,8 +16,11 @@ Syndicator.Constants = {
     Enum.BagIndex.BankBag_6,
     Enum.BagIndex.BankBag_7,
   },
+  AllWarbandIndexes = {},
+
   IsRetail = WOW_PROJECT_ID == WOW_PROJECT_MAINLINE,
   IsClassic = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE,
+  IsEra = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC,
 
   BattlePetCageID = 82800,
 
@@ -26,16 +29,30 @@ Syndicator.Constants = {
   MaxGuildBankTabItemSlots = 98,
 
   EquippedInventorySlotOffset = 1,
+
+  WarbandBankActive = false,
 }
 
-if not Syndicator.Constants.IsRetail then
-  table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
-end
 if Syndicator.Constants.IsRetail then
   table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.ReagentBag)
   table.insert(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)
   Syndicator.Constants.BagSlotsCount = 5
   Syndicator.Constants.MaxBagSize = 42
+  Syndicator.Constants.AllWarbandIndexes = {
+    Enum.BagIndex.AccountBankTab_1,
+    Enum.BagIndex.AccountBankTab_2,
+    Enum.BagIndex.AccountBankTab_3,
+    Enum.BagIndex.AccountBankTab_4,
+    Enum.BagIndex.AccountBankTab_5,
+  }
+  Syndicator.Constants.WarbandBankActive = C_Bank ~= nil and C_Bank.UpdateBankTabSettings ~= nil
+end
+
+if Syndicator.Constants.IsEra or KeyRingButtonIDToInvSlotID then
+  table.insert(Syndicator.Constants.AllBagIndexes, Enum.BagIndex.Keyring)
+end
+if Syndicator.Constants.IsEra then
+  Syndicator.Constants.BankBagSlotsCount = 6
 end
 if Syndicator.Constants.IsClassic then
   -- Workaround for the enum containing the wrong values for the bank bag slots
@@ -51,8 +68,10 @@ Syndicator.Constants.Events = {
   "GuildDeleted",
 
   "BagCacheUpdate",
+  "WarbandBankCacheUpdate",
   "MailCacheUpdate",
   "CurrencyCacheUpdate",
+  "WarbandCurrencyCacheUpdate",
   "GuildCacheUpdate",
   "GuildNameSet",
   "EquippedCacheUpdate",
@@ -67,9 +86,15 @@ Syndicator.Constants.SharedCurrencies = {
   2032, -- Trader's Tender
 }
 
-Syndicator.Constants.AccountBoundTooltipLines = {
+local AccountBoundTooltipLines = {
   ITEM_BIND_TO_BNETACCOUNT,
   ITEM_BNETACCOUNTBOUND,
   ITEM_BIND_TO_ACCOUNT,
   ITEM_ACCOUNTBOUND,
+  ITEM_ACCOUNTBOUND_UNTIL_EQUIP,
 }
+Syndicator.Constants.AccountBoundTooltipLines = {}
+-- Done this way because not all the lines exist on all clients
+for _, line in pairs(AccountBoundTooltipLines) do
+  table.insert(Syndicator.Constants.AccountBoundTooltipLines, line)
+end

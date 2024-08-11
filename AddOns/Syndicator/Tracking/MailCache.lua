@@ -84,12 +84,10 @@ function SyndicatorMailCacheMixin:OnLoad()
 
   hooksecurefunc("ReturnInboxItem", function(mailIndex)
     local recipient = select(3, GetInboxHeaderInfo(mailIndex))
-    print(recipient)
 
     if not recipient:find("-", nil, true) then
       recipient = recipient .. "-" .. GetNormalizedRealmName()
     end
-    print(recipient)
 
     local mail = {
       recipient = recipient,
@@ -97,7 +95,6 @@ function SyndicatorMailCacheMixin:OnLoad()
     }
 
     if not SYNDICATOR_DATA.Characters[mail.recipient] then
-      print("reject")
       return
     end
 
@@ -107,6 +104,7 @@ function SyndicatorMailCacheMixin:OnLoad()
     end
 
     local waiting = 0
+    local loopComplete = false
     for attachmentIndex = 1, ATTACHMENTS_MAX do
       local _, itemID = GetInboxItem(mailIndex, attachmentIndex)
       if itemID ~= nil then
@@ -118,15 +116,15 @@ function SyndicatorMailCacheMixin:OnLoad()
           item:ContinueOnItemLoad(function()
             DoAttachment(mail.items, mailIndex, attachmentIndex)
             waiting = waiting - 1
-            if loopsComplete and waiting == 0 then
-              OnComplete(attachments)
+            if loopComplete and waiting == 0 then
+              OnComplete()
             end
           end)
         end
       end
     end
 
-    loopsComplete = true
+    loopComplete = true
     if waiting == 0 then
       OnComplete()
     end
