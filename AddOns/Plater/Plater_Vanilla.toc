@@ -5,7 +5,7 @@
 ## SavedVariablesPerCharacter: PlaterDBChr
 ## IconTexture-blank: 982414
 ## IconTexture: Interface\AddOns\Plater\images\cast_bar
-## Version: Plater-v583a-Vanilla
+## Version: Plater-v583b-Vanilla
 ## X-Curse-Project-ID: 100547
 ## X-Wago-ID: kRNLep6o
 
