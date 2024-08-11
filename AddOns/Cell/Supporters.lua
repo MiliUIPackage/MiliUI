@@ -52,6 +52,10 @@ local supporters1 = { -- wowIDs
     {"Darrágh-Blackrock (EU)"}, -- Jim (Ko-fi)
     {"Cerrmor-Stormrage (US)"}, -- (Ko-fi)
     {"Drumonji-Blackhand (EU)"}, -- (Ko-fi)
+    {"Gordonfreems-Illidan (US)"}, -- Gordon Freeman (Ko-fi)
+    {"Saphiren-Azralon (US)"}, -- Saphiren (Ko-fi)
+    {"Evangeleena-Outland (EU)"}, -- Milda (Ko-fi)
+    {"Æleluia-Hyjal (EU)"}, -- eXtRa (Ko-fi)
 }
 
 local supporters2 = { -- 有些早期的发电记录已经丢失了……
@@ -109,10 +113,12 @@ local supporters2 = { -- 有些早期的发电记录已经丢失了……
     {"qwe#6664", "KOOK"}, -- 2024-02-26 爱发电用户_QBbY
     {"Synthatt", "Ko-fi"}, -- 2024-03-26
     {"devo", "Ko-fi"}, -- 2024-04-07
+    {"QBbY", "爱发电"}, -- 2024-04-09 爱发电用户_QBbY
     {"tithaya", "Ko-fi"}, -- 2024-04-18
     {"Pandora", "Ko-fi"}, -- 2024-04-22
     {"Martin van Vuuren", "Ko-fi"}, -- 2024-05-06
     {"Shendreakah", "Ko-fi"}, -- 2024-05-12
+    {"8xs3", "爱发电"}, -- 2024-05-12 爱发电用户_8xs3
     {"Palymoo", "Ko-fi"}, -- 2024-05-12
     {"Winkupo", "Ko-fi"}, -- 2024-05-14
     {"Serghei Iakovlev", "Ko-fi"}, -- 2024-05-15
@@ -120,13 +126,21 @@ local supporters2 = { -- 有些早期的发电记录已经丢失了……
     {"Leako", "Ko-fi"}, -- 2024-05-30
     {"lfence", "Ko-fi"}, -- 2024-06-03
     {"AsuranDex", "Ko-fi"}, -- 2024-06-24
+    {"fca53", "爱发电"}, -- 2024-07-01 爱发电用户_fca53
     {"Likle", "Ko-fi"}, -- 2024-07-03
+    {"eWhK", "爱发电"}, -- 2024-07-03 爱发电用户_eWhK
     {"Poolparty", "Ko-fi"}, -- 2024-07-07
     {"Tenspiritak", "Ko-fi"}, -- 2024-07-07
     {"Jim", "Ko-fi"}, -- 2024-07-13
     {"Cerrmor-Stormrage", "Ko-fi"}, -- 2024-07-15
     {"Drumonji-Blackhand", "Ko-fi"}, -- 2024-07-19
     {"Intuition", "Ko-fi"}, -- 2024-07-23
+    {"Gordon Freeman", "Ko-fi"}, -- 2024-07-25
+    {"Saphiren", "Ko-fi"}, -- 2024-07-25
+    {"Milda", "Ko-fi"}, -- 2024-07-30
+    {"eXtRa", "Ko-fi"}, -- 2024-07-31
+    {"男月月", "Ko-fi"}, -- 2024-07-31
+    {"Akanma·Starsong", "爱发电"}, -- 2024-08-01
 }
 
 -------------------------------------------------

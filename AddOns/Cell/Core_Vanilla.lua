@@ -19,7 +19,7 @@ local L = Cell.L
 -- sharing version check
 Cell.MIN_VERSION = 200
 Cell.MIN_CLICKCASTINGS_VERSION = 228
-Cell.MIN_LAYOUTS_VERSION = 236
+Cell.MIN_LAYOUTS_VERSION = 235
 Cell.MIN_INDICATORS_VERSION = 235
 Cell.MIN_DEBUFFS_VERSION = 228
 
@@ -30,6 +30,8 @@ function F:Debug(arg, ...)
     if debugMode then
         if type(arg) == "string" or type(arg) == "number" then
             print(arg, ...)
+        elseif type(arg) == "table" then
+            DevTools_Dump(arg)
         elseif type(arg) == "function" then
             arg(...)
         elseif arg == nil then
@@ -159,8 +161,12 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
                 ["alwaysUpdateBuffs"] = false,
-                ["alwaysUpdateDebuffs"] = true,
-                ["framePriority"] = "normal_spotlight_quickassist",
+                ["alwaysUpdateDebuffs"] = false,
+                ["framePriority"] = {
+                    {"Main", true},
+                    {"Spotlight", false},
+                    {"Quick Assist", false},
+                },
                 ["useCleuHealthUpdater"] = false,
                 ["translit"] = false,
             }

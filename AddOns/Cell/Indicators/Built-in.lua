@@ -836,23 +836,24 @@ local function RaidDebuffs_ShowGlow(self, glowType, glowOptions, noHiding)
         LCG.ButtonGlow_Stop(self.parent)
         LCG.PixelGlow_Stop(self.parent)
         LCG.AutoCastGlow_Stop(self.parent)
+        LCG.ProcGlow_Stop(self.parent)
     end
 end
 
-function RaidDebuffs_HideGlow(self, glowType)
+local hiders = {
+    ["Normal"] = LCG.ButtonGlow_Stop,
+    ["Pixel"] = LCG.PixelGlow_Stop,
+    ["Shine"] = LCG.AutoCastGlow_Stop,
+    ["Proc"] = LCG.ProcGlow_Stop,
+}
+
+local function RaidDebuffs_HideGlow(self, glowType)
     if not glowType then
-        -- hide all
-        LCG.ButtonGlow_Stop(self.parent)
-        LCG.PixelGlow_Stop(self.parent)
-        LCG.AutoCastGlow_Stop(self.parent)
-    else
-        if glowType == "Normal" then
-            LCG.ButtonGlow_Stop(self.parent)
-        elseif glowType == "Pixel" then
-            LCG.PixelGlow_Stop(self.parent)
-        elseif glowType == "Shine" then
-            LCG.AutoCastGlow_Stop(self.parent)
+        for _, stop in pairs(hiders) do
+            stop(self.parent)
         end
+    else
+        hiders[glowType](self.parent)
     end
 end
 
@@ -879,11 +880,7 @@ function I.CreateRaidDebuffs(parent)
     raidDebuffs:Hide()
     raidDebuffs.parent = parent
 
-    raidDebuffs:SetScript("OnHide", function()
-        LCG.ButtonGlow_Stop(parent)
-        LCG.PixelGlow_Stop(parent)
-        LCG.AutoCastGlow_Stop(parent)
-    end)
+    raidDebuffs:SetScript("OnHide", RaidDebuffs_HideGlow)
 
     raidDebuffs._SetSize = raidDebuffs.SetSize
     raidDebuffs.SetSize = I.Cooldowns_SetSize
@@ -2065,10 +2062,9 @@ end
 -- health threshold
 -------------------------------------------------
 function I.CreateHealthThresholds(parent)
-    local healthThresholds = CreateFrame("Frame", parent:GetName().."HealthThresholds", parent.widgets.healthBar)
+    local healthThresholds = CreateFrame("Frame", parent:GetName().."HealthThresholds", parent.widgets.highLevelFrame)
     parent.indicators.healthThresholds = healthThresholds
     healthThresholds:SetAllPoints(parent.widgets.healthBar)
-    healthThresholds:SetFrameLevel(parent.widgets.healthBar:GetFrameLevel()+1)
 
     healthThresholds.tex = healthThresholds:CreateTexture(nil, "ARTWORK")
 

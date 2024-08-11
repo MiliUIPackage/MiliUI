@@ -824,8 +824,7 @@ local separatedHeaders = {"CellRaidFrameHeader1", "CellRaidFrameHeader2", "CellR
 --     Cell:Fire("UpdateQueuedClickCastings")
 -- end
 
--- REVIEW: updateBlizzardFrames
-function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist, updateBlizzardFrames)
+function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssists, skipShared)
     -- solo
     if not updateCurrentGroupOnly or (updateCurrentGroupOnly and Cell.vars.groupType == "solo") then
         for _, b in pairs(Cell.unitButtons.solo) do
@@ -871,17 +870,19 @@ function F:IterateAllUnitButtons(func, updateCurrentGroupOnly, updateQuickAssist
         end
     end
 
-    -- npc
-    for _, b in ipairs(Cell.unitButtons.npc) do
-        func(b)
+    if not skipShared then
+        -- npc
+        for _, b in ipairs(Cell.unitButtons.npc) do
+            func(b)
+        end
+
+        -- spotlight
+        for _, b in pairs(Cell.unitButtons.spotlight) do
+            func(b)
+        end
     end
 
-    -- spotlight
-    for _, b in pairs(Cell.unitButtons.spotlight) do
-        func(b)
-    end
-
-    if Cell.isRetail and updateQuickAssist then
+    if Cell.isRetail and updateQuickAssists then
         for i = 1, 40 do
             func(Cell.unitButtons.quickAssist[i])
         end
@@ -1154,6 +1155,7 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
     end
 
     local barR, barG, barB, lossR, lossG, lossB
+    percent = percent or 1
 
     -- bar
     if percent == 1 and Cell.vars.useFullColor then
@@ -1166,12 +1168,21 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
         elseif CellDB["appearance"]["barColor"][1] == "class_color_dark" then
             barR, barG, barB = r*0.2, g*0.2, b*0.2
         elseif CellDB["appearance"]["barColor"][1] == "gradient" then
-            barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3], CellDB["appearance"]["gradientColors"][4], CellDB["appearance"]["gradientColors"][5])
+            local c = CellDB["appearance"]["gradientColors"]
+            barR, barG, barB = F:ColorGradient(percent, c[1], c[2], c[3], c[4], c[5])
         elseif CellDB["appearance"]["barColor"][1] == "gradient2" then
-            if percent == 1 then
+            local c = CellDB["appearance"]["gradientColors"]
+            if percent >= c[5] then
                 barR, barG, barB = r, g, b -- full: class color
             else
-                barR, barG, barB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3], CellDB["appearance"]["gradientColors"][4], CellDB["appearance"]["gradientColors"][5])
+                barR, barG, barB = F:ColorGradient(percent, c[1], c[2], {r, g, b}, c[4], c[5])
+            end
+        elseif CellDB["appearance"]["barColor"][1] == "gradient3" then
+            local c = CellDB["appearance"]["gradientColors"]
+            if percent >= c[5] then
+                barR, barG, barB = r*0.2, g*0.2, b*0.2 -- full: class color
+            else
+                barR, barG, barB = F:ColorGradient(percent, c[1], c[2], {r*0.2, g*0.2, b*0.2}, c[4], c[5])
             end
         else
             barR = CellDB["appearance"]["barColor"][2][1]
@@ -1191,12 +1202,21 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
         elseif CellDB["appearance"]["lossColor"][1] == "class_color_dark" then
             lossR, lossG, lossB = r*0.2, g*0.2, b*0.2
         elseif CellDB["appearance"]["lossColor"][1] == "gradient" then
-            lossR, lossG, lossB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3])
+            local c = CellDB["appearance"]["gradientColorsLoss"]
+            lossR, lossG, lossB = F:ColorGradient(percent, c[1], c[2], c[3], c[4], c[5])
         elseif CellDB["appearance"]["lossColor"][1] == "gradient2" then
-            if isDeadOrGhost then
-                lossR, lossG, lossB = r*0.2, g*0.2, b*0.2  -- dead: class color dark
+            local c = CellDB["appearance"]["gradientColorsLoss"]
+            if isDeadOrGhost or percent <= c[4] then
+                lossR, lossG, lossB = r, g, b  -- dead: class color
             else
-                lossR, lossG, lossB = F:ColorGradient(percent, CellDB["appearance"]["gradientColors"][1], CellDB["appearance"]["gradientColors"][2], CellDB["appearance"]["gradientColors"][3])
+                lossR, lossG, lossB = F:ColorGradient(percent, {r, g, b}, c[2], c[3], c[4], c[5])
+            end
+        elseif CellDB["appearance"]["lossColor"][1] == "gradient3" then
+            local c = CellDB["appearance"]["gradientColorsLoss"]
+            if isDeadOrGhost or percent <= c[4] then
+                lossR, lossG, lossB = r*0.2, g*0.2, b*0.2  -- dead: class color
+            else
+                lossR, lossG, lossB = F:ColorGradient(percent, {r*0.2, g*0.2, b*0.2}, c[2], c[3], c[4], c[5])
             end
         else
             lossR = CellDB["appearance"]["lossColor"][2][1]
@@ -1450,310 +1470,6 @@ end
 function F:HasPermission(isPartyMarkPermission)
     if isPartyMarkPermission and IsInGroup() and not IsInRaid() then return true end
     return UnitIsGroupLeader("player") or (IsInRaid() and UnitIsGroupAssistant("player"))
-end
-
--------------------------------------------------
--- range check
--------------------------------------------------
-local UnitIsVisible = UnitIsVisible
-local UnitInRange = UnitInRange
-local UnitCanAssist = UnitCanAssist
-local UnitCanAttack = UnitCanAttack
-local UnitCanCooperate = UnitCanCooperate
-local IsSpellInRange = (C_Spell and C_Spell.IsSpellInRange) and C_Spell.IsSpellInRange or IsSpellInRange
-local IsItemInRange = (C_Spell and C_Item.IsItemInRange) and C_Item.IsItemInRange or IsItemInRange
-local CheckInteractDistance = CheckInteractDistance
-local UnitIsDead = UnitIsDead
-local IsSpellKnown = IsSpellKnown
--- local GetSpellTabInfo = GetSpellTabInfo
--- local GetNumSpellTabs = GetNumSpellTabs
--- local GetSpellBookItemName = GetSpellBookItemName
--- local BOOKTYPE_SPELL = BOOKTYPE_SPELL
-
-local UnitInSamePhase
-if Cell.isRetail then
-    UnitInSamePhase = function(unit)
-        return not UnitPhaseReason(unit)
-    end
-else
-    UnitInSamePhase = UnitInPhase
-end
-
-local playerClass = UnitClassBase("player")
-
-local friendSpells = {
-    -- ["DEATHKNIGHT"] = 47541,
-    -- ["DEMONHUNTER"] = ,
-    ["DRUID"] = (Cell.isWrath or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
-    ["EVOKER"] = 361469, -- 活化烈焰
-    -- ["HUNTER"] = 136,
-    ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
-    ["MONK"] = 116670, -- 活血术
-    ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
-    ["PRIEST"] = (Cell.isWrath or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
-    -- ["ROGUE"] = Cell.isWrath and 57934,
-    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
-    ["WARLOCK"] = 5697, -- 无尽呼吸
-    -- ["WARRIOR"] = 3411,
-}
-
-local deadSpells = {
-    ["EVOKER"] = 361227, -- resurrection range, need separately for evoker
-}
-
-local petSpells = {
-    ["HUNTER"] = 136,
-}
-
-local harmSpells = {
-    ["DEATHKNIGHT"] = 47541,
-    ["DEMONHUNTER"] = 185123,
-    ["DRUID"] = 5176,
-    ["EVOKER"] = 361469,
-    ["HUNTER"] = 75,
-    ["MAGE"] = Cell.isRetail and 116 or 133,
-    ["MONK"] = 117952,
-    ["PALADIN"] = 20271,
-    ["PRIEST"] = Cell.isRetail and 589 or 585,
-    ["ROGUE"] = 1752,
-    ["SHAMAN"] = Cell.isRetail and 188196 or 403,
-    ["WARLOCK"] = 686,
-    ["WARRIOR"] = 355,
-}
-
--- local friendItems = {
---     ["DEATHKNIGHT"] = 34471,
---     ["DEMONHUNTER"] = 34471,
---     ["DRUID"] = 34471,
---     ["EVOKER"] = 1180, -- 30y
---     ["HUNTER"] = 34471,
---     ["MAGE"] = 34471,
---     ["MONK"] = 34471,
---     ["PALADIN"] = 34471,
---     ["PRIEST"] = 34471,
---     ["ROGUE"] = 34471,
---     ["SHAMAN"] = 34471,
---     ["WARLOCK"] = 34471,
---     ["WARRIOR"] = 34471,
--- }
-
-local harmItems = {
-    ["DEATHKNIGHT"] = 28767, -- 40y
-    ["DEMONHUNTER"] = 28767, -- 40y
-    ["DRUID"] = 28767, -- 40y
-    ["EVOKER"] = 24268, -- 25y
-    ["HUNTER"] = 28767, -- 40y
-    ["MAGE"] = 28767, -- 40y
-    ["MONK"] = 28767, -- 40y
-    ["PALADIN"] = 835, -- 30y
-    ["PRIEST"] = 28767, -- 40y
-    ["ROGUE"] = 28767, -- 40y
-    ["SHAMAN"] = 28767, -- 40y
-    ["WARLOCK"] = 28767, -- 40y
-    ["WARRIOR"] = 28767, -- 40y
-}
-
--- local FindSpellIndex
--- if C_SpellBook and C_SpellBook.FindSpellBookSlotForSpell then
---     FindSpellIndex = function(spellName)
---         if not spellName or spellName == "" then return end
---         return C_SpellBook.FindSpellBookSlotForSpell(spellName)
---     end
--- else
---     local function GetNumSpells()
---         local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
---         return offset + numSpells
---     end
-
---     FindSpellIndex = function(spellName)
---         if not spellName or spellName == "" then return end
---         for i = 1, GetNumSpells() do
---             local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
---             if spell == spellName then
---                 return i
---             end
---         end
---     end
--- end
-
-local UnitInSpellRange
-if C_Spell and C_Spell.IsSpellInRange then
-    UnitInSpellRange = function(spellName, unit)
-        return IsSpellInRange(spellName, unit)
-    end
-else
-    UnitInSpellRange = function(spellName, unit)
-        return IsSpellInRange(spellName, unit) == 1
-    end
-end
-
-local rc = CreateFrame("Frame")
-rc:RegisterEvent("SPELLS_CHANGED")
-
-local spell_friend, spell_pet, spell_harm, spell_dead
-rc:SetScript("OnEvent", function()
-    if friendSpells[playerClass] and IsSpellKnown(friendSpells[playerClass]) then
-        spell_friend = F:GetSpellInfo(friendSpells[playerClass])
-    end
-    if petSpells[playerClass] and IsSpellKnown(petSpells[playerClass]) then
-        spell_pet = F:GetSpellInfo(petSpells[playerClass])
-    end
-    if harmSpells[playerClass] and IsSpellKnown(harmSpells[playerClass]) then
-        spell_harm = F:GetSpellInfo(harmSpells[playerClass])
-    end
-    if deadSpells[playerClass] and IsSpellKnown(deadSpells[playerClass]) then
-        spell_dead = F:GetSpellInfo(deadSpells[playerClass])
-    end
-    F:Debug(
-        "[RANGE CHECK]",
-        "\nfriend:", spell_friend or "nil",
-        "\npet:", spell_pet or "nil",
-        "\nharm:", spell_harm or "nil",
-        "\ndead:", spell_dead or "nil"
-    )
-end)
-
-function F:IsInRange(unit)
-    if not UnitIsVisible(unit) then
-        return false
-    end
-
-    if UnitIsUnit("player", unit) then
-        return true
-
-    -- elseif not check and F:UnitInGroup(unit) then
-    --     -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
-    --     local inRange, checked = UnitInRange(unit)
-    --     if not checked then
-    --         return F:IsInRange(unit, true)
-    --     end
-    --     return inRange
-
-    else
-        if UnitCanAssist("player", unit) then
-            if not (UnitIsConnected(unit) and UnitInSamePhase(unit)) then
-                return false
-            end
-
-            if UnitIsDead(unit) then
-                if spell_dead then
-                    return UnitInSpellRange(spell_dead, unit)
-                end
-            elseif spell_friend then
-                return UnitInSpellRange(spell_friend, unit)
-            end
-
-            local inRange, checked = UnitInRange(unit)
-            if checked then
-                return inRange
-            end
-
-            if UnitIsUnit(unit, "pet") and spell_pet then
-                -- no spell_friend, use spell_pet
-                return UnitInSpellRange(spell_pet, unit)
-            end
-
-        elseif UnitCanAttack("player", unit) then
-            if UnitIsDead(unit) then
-                return CheckInteractDistance(unit, 4) -- 28 yards
-            elseif spell_harm then
-                return UnitInSpellRange(spell_harm, unit)
-            end
-            return IsItemInRange(harmItems[playerClass], unit)
-        end
-
-        if not InCombatLockdown() then
-            return CheckInteractDistance(unit, 4) -- 28 yards
-        end
-
-        return true
-    end
-end
-
--------------------------------------------------
--- RangeCheck debug
--------------------------------------------------
-local debug = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
-debug:SetBackdrop({bgFile = Cell.vars.whiteTexture})
-debug:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
-debug:SetBackdropBorderColor(0, 0, 0, 1)
-debug:SetSize(1, 1)
-debug:SetPoint("LEFT", 300, 0)
-debug:Hide()
-
-debug.text = debug:CreateFontString(nil, "OVERLAY")
-debug.text:SetFont(GameFontNormal:GetFont(), 13, "")
-debug.text:SetShadowColor(0, 0, 0)
-debug.text:SetShadowOffset(1, -1)
-debug.text:SetJustifyH("LEFT")
-debug.text:SetSpacing(5)
-debug.text:SetPoint("LEFT", 5, 0)
-
-local function GetResult1()
-    local inRange, checked = UnitInRange("target")
-
-    return "UnitID: " .. (F:GetTargetUnitID("target") or "target") ..
-        "\n|cffffff00F.IsInRange:|r " .. (F:IsInRange("target") and "true" or "false") ..
-        "\nUnitInRange: " .. (checked and "checked" or "unchecked") .. " " .. (inRange and "true" or "false") ..
-        "\nUnitIsVisible: " .. (UnitIsVisible("target") and "true" or "false") ..
-        "\n\nUnitCanAssist: " .. (UnitCanAssist("player", "target") and "true" or "false") ..
-        "\nUnitCanAttack: " .. (UnitCanAttack("player", "target") and "true" or "false") ..
-        "\n\nUnitIsConnected: " .. (UnitIsConnected("target") and "true" or "false") ..
-        "\nUnitInSamePhase: " .. (UnitInSamePhase("target") and "true" or "false") ..
-        "\nUnitIsDead: " .. (UnitIsDead("target") and "true" or "false") ..
-        "\n\nspell_friend: " .. (spell_friend and (spell_friend .. " " .. (UnitInSpellRange(spell_friend, "target") and "true" or "false")) or "none") ..
-        "\nspell_dead: " .. (spell_dead and (spell_dead .. " " .. (UnitInSpellRange(spell_dead, "target") and "true" or "false")) or "none") ..
-        "\nspell_pet: " .. (spell_pet and (spell_pet .. " " .. (UnitInSpellRange(spell_pet, "target") and "true" or "false")) or "none") ..
-        "\nspell_harm: " .. (spell_harm and (spell_harm .. " " .. (UnitInSpellRange(spell_harm, "target") and "true" or "false")) or "none")
-end
-
-local function GetResult2()
-    if UnitCanAttack("player", "target") then
-        return "IsItemInRange: " .. (IsItemInRange(harmItems[playerClass], "target") and "true" or "false") ..
-            "\nCheckInteractDistance(28y): " .. (CheckInteractDistance("target", 4) and "true" or "false")
-    else
-        return "IsItemInRange: " .. (InCombatLockdown() and "notAvailable" or (IsItemInRange(harmItems[playerClass], "target") and "true" or "false")) ..
-            "\nCheckInteractDistance(28y): " .. (InCombatLockdown() and "notAvailable" or (CheckInteractDistance("target", 4) and "true" or "false"))
-    end
-end
-
-debug:SetScript("OnUpdate", function(self, elapsed)
-    self.elapsed = (self.elapsed or 0) + elapsed
-    if self.elapsed >= 0.25 then
-        self.elapsed = 0
-        local result = GetResult1() .. "\n\n" .. GetResult2()
-        result = string.gsub(result, "none", "|cffabababnone|r")
-        result = string.gsub(result, "true", "|cff00ff00true|r")
-        result = string.gsub(result, "false", "|cffff0000false|r")
-        result = string.gsub(result, " checked", " |cff00ff00checked|r")
-        result = string.gsub(result, "unchecked", "|cffff0000unchecked|r")
-
-        debug.text:SetText("|cffff0066Cell Range Check (Target)|r\n\n" .. result)
-
-        debug:SetSize(debug.text:GetStringWidth() + 10, debug.text:GetStringHeight() + 20)
-    end
-end)
-
-debug:SetScript("OnEvent", function()
-    if not UnitExists("target") then
-        debug:Hide()
-        return
-    end
-
-    debug:Show()
-end)
-
-SLASH_CELLRC1 = "/cellrc"
-function SlashCmdList.CELLRC()
-    if debug:IsEventRegistered("PLAYER_TARGET_CHANGED") then
-        debug:UnregisterEvent("PLAYER_TARGET_CHANGED")
-        debug:Hide()
-    else
-        debug:RegisterEvent("PLAYER_TARGET_CHANGED")
-        if UnitExists("target") then
-            debug:Show()
-        end
-    end
 end
 
 -------------------------------------------------
@@ -2048,23 +1764,21 @@ end
 
 if Cell.isRetail then
     function F:GetSpellInfo(spellId)
+        if not spellId then return end
         if C_Spell and C_Spell.GetSpellInfo then
             local info = C_Spell.GetSpellInfo(spellId)
             if not info then return end
 
-            if not info.iconID then -- FIXME:
+            if not info.iconID then -- when?
                 info.iconID = C_Spell.GetSpellTexture(spellId)
             end
 
             return info.name, info.iconID
         end
-
-        -- TODO: remove once 11.0 prepatch hits
-        local name, _, icon = GetSpellInfo(spellId)
-        return name, icon
     end
 else
     function F:GetSpellInfo(spellId)
+        if not spellId then return end
         local name, _, icon = GetSpellInfo(spellId)
         return name, icon
     end
@@ -2180,43 +1894,382 @@ end
 -------------------------------------------------
 -- LibGetFrame
 -------------------------------------------------
-function Cell.GetUnitFramesForLGF(unit, frames, priorities)
-    frames = frames or {}
+local frame_priorities = {}
+local spotlightPriorityEnabled
+local quickAssistPriorityEnabled
 
-    local normal, spotlights, quickAssist = F:GetUnitButtonByUnit(unit, true, true)
+function F:UpdateFramePriority()
+    wipe(frame_priorities)
+    spotlightPriorityEnabled = nil
+    quickAssistPriorityEnabled = nil
 
-    if normal and normal:IsVisible() and normal.widgets and normal.widgets.highLevelFrame then
-        frames[normal.widgets.highLevelFrame] = "CellNormalUnitFrame"
-    end
-
-    if spotlights then
-        for _, spotlight in pairs(spotlights) do
-            if not strfind(spotlight.unit, "target$") and spotlight.widgets and spotlight.widgets.highLevelFrame then
-                frames[spotlight.widgets.highLevelFrame] = "CellSpotlightUnitFrame"
-                break
+    for i = #CellDB["general"]["framePriority"], 1, -1 do
+        local t = CellDB["general"]["framePriority"][i]
+        if t[2] then
+            if t[1] == "Main" then
+                tinsert(frame_priorities, "^CellNormalUnitFrame$")
+            elseif t[1] == "Spotlight" then
+                tinsert(frame_priorities, "^CellSpotlightUnitFrame$")
+                spotlightPriorityEnabled = true
+            else
+                tinsert(frame_priorities, "^CellQuickAssistUnitFrame$")
+                quickAssistPriorityEnabled = true
             end
         end
     end
 
-    if quickAssist and quickAssist:IsVisible() then
+    F:Debug(frame_priorities)
+end
+
+function Cell.GetUnitFramesForLGF(unit, frames, priorities)
+    frames = frames or {}
+
+    local normal, spotlights, quickAssist = F:GetUnitButtonByUnit(unit, spotlightPriorityEnabled, quickAssistPriorityEnabled)
+
+    if normal then
+        frames[normal.widgets.highLevelFrame] = "CellNormalUnitFrame"
+    end
+
+    if spotlights then
+        -- for _, spotlight in pairs(spotlights) do
+        --     if not strfind(spotlight.unit, "target$") and spotlight.widgets and spotlight.widgets.highLevelFrame then
+        --         frames[spotlight.widgets.highLevelFrame] = "CellSpotlightUnitFrame"
+        --         break
+        --     end
+        -- end
+        --! just use the first (can be "XXtarget", whatever)
+        frames[spotlights[1].widgets.highLevelFrame] = "CellSpotlightUnitFrame"
+    end
+
+    if quickAssist then
         frames[quickAssist] = "CellQuickAssistUnitFrame"
     end
 
-    if CellDB["general"]["framePriority"] == "normal_spotlight_quickassist" then
-        tinsert(priorities, 1, "^CellNormalUnitFrame$")
-        tinsert(priorities, 2, "^CellSpotlightUnitFrame$")
-        tinsert(priorities, 3, "^CellQuickAssistUnitFrame$")
-
-    elseif CellDB["general"]["framePriority"] == "spotlight_normal_quickassist" then
-        tinsert(priorities, 1, "^CellSpotlightUnitFrame$")
-        tinsert(priorities, 2, "^CellNormalUnitFrame$")
-        tinsert(priorities, 3, "^CellQuickAssistUnitFrame$")
-
-    else -- "quickassist_normal_spotlight"
-        tinsert(priorities, 1, "^CellQuickAssistUnitFrame$")
-        tinsert(priorities, 2, "^CellNormalUnitFrame$")
-        tinsert(priorities, 3, "^CellSpotlightUnitFrame$")
+    for _, p in ipairs(frame_priorities) do
+        tinsert(priorities, 1, p)
     end
 
     return frames
+end
+
+-------------------------------------------------
+-- range check
+-------------------------------------------------
+local UnitIsVisible = UnitIsVisible
+local UnitInRange = UnitInRange
+local UnitCanAssist = UnitCanAssist
+local UnitCanAttack = UnitCanAttack
+local UnitCanCooperate = UnitCanCooperate
+local IsSpellInRange = (C_Spell and C_Spell.IsSpellInRange) and C_Spell.IsSpellInRange or IsSpellInRange
+local IsItemInRange = (C_Spell and C_Item.IsItemInRange) and C_Item.IsItemInRange or IsItemInRange
+local CheckInteractDistance = CheckInteractDistance
+local UnitIsDead = UnitIsDead
+local IsSpellKnown = IsSpellKnown
+-- local GetSpellTabInfo = GetSpellTabInfo
+-- local GetNumSpellTabs = GetNumSpellTabs
+-- local GetSpellBookItemName = GetSpellBookItemName
+-- local BOOKTYPE_SPELL = BOOKTYPE_SPELL
+
+local UnitInSamePhase
+if Cell.isRetail then
+    UnitInSamePhase = function(unit)
+        return not UnitPhaseReason(unit)
+    end
+else
+    UnitInSamePhase = UnitInPhase
+end
+
+local playerClass = UnitClassBase("player")
+
+local friendSpells = {
+    -- ["DEATHKNIGHT"] = 47541,
+    -- ["DEMONHUNTER"] = ,
+    ["DRUID"] = (Cell.isWrath or Cell.isVanilla) and 5185 or 8936, -- 治疗之触 / 愈合
+    ["EVOKER"] = 361469, -- 活化烈焰
+    -- ["HUNTER"] = 136,
+    ["MAGE"] = 1459, -- 奥术智慧 / 奥术光辉
+    ["MONK"] = 116670, -- 活血术
+    ["PALADIN"] = Cell.isRetail and 19750 or 635, -- 圣光闪现 / 圣光术
+    ["PRIEST"] = (Cell.isWrath or Cell.isVanilla) and 2050 or 2061, -- 次级治疗术 / 快速治疗
+    -- ["ROGUE"] = Cell.isWrath and 57934,
+    ["SHAMAN"] = Cell.isRetail and 8004 or 331, -- 治疗之涌 / 治疗波
+    ["WARLOCK"] = 5697, -- 无尽呼吸
+    -- ["WARRIOR"] = 3411,
+}
+
+local deadSpells = {
+    ["EVOKER"] = 361227, -- resurrection range, need separately for evoker
+}
+
+local petSpells = {
+    ["HUNTER"] = 136,
+}
+
+local harmSpells = {
+    ["DEATHKNIGHT"] = 47541,
+    ["DEMONHUNTER"] = 185123,
+    ["DRUID"] = 5176,
+    ["EVOKER"] = 361469,
+    ["HUNTER"] = 75,
+    ["MAGE"] = Cell.isRetail and 116 or 133,
+    ["MONK"] = 117952,
+    ["PALADIN"] = 20271,
+    ["PRIEST"] = Cell.isRetail and 589 or 585,
+    ["ROGUE"] = 1752,
+    ["SHAMAN"] = Cell.isRetail and 188196 or 403,
+    ["WARLOCK"] = 686,
+    ["WARRIOR"] = 355,
+}
+
+-- local friendItems = {
+--     ["DEATHKNIGHT"] = 34471,
+--     ["DEMONHUNTER"] = 34471,
+--     ["DRUID"] = 34471,
+--     ["EVOKER"] = 1180, -- 30y
+--     ["HUNTER"] = 34471,
+--     ["MAGE"] = 34471,
+--     ["MONK"] = 34471,
+--     ["PALADIN"] = 34471,
+--     ["PRIEST"] = 34471,
+--     ["ROGUE"] = 34471,
+--     ["SHAMAN"] = 34471,
+--     ["WARLOCK"] = 34471,
+--     ["WARRIOR"] = 34471,
+-- }
+
+local harmItems = {
+    ["DEATHKNIGHT"] = 28767, -- 40y
+    ["DEMONHUNTER"] = 28767, -- 40y
+    ["DRUID"] = 28767, -- 40y
+    ["EVOKER"] = 24268, -- 25y
+    ["HUNTER"] = 28767, -- 40y
+    ["MAGE"] = 28767, -- 40y
+    ["MONK"] = 28767, -- 40y
+    ["PALADIN"] = 835, -- 30y
+    ["PRIEST"] = 28767, -- 40y
+    ["ROGUE"] = 28767, -- 40y
+    ["SHAMAN"] = 28767, -- 40y
+    ["WARLOCK"] = 28767, -- 40y
+    ["WARRIOR"] = 28767, -- 40y
+}
+
+-- local FindSpellIndex
+-- if C_SpellBook and C_SpellBook.FindSpellBookSlotForSpell then
+--     FindSpellIndex = function(spellName)
+--         if not spellName or spellName == "" then return end
+--         return C_SpellBook.FindSpellBookSlotForSpell(spellName)
+--     end
+-- else
+--     local function GetNumSpells()
+--         local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
+--         return offset + numSpells
+--     end
+
+--     FindSpellIndex = function(spellName)
+--         if not spellName or spellName == "" then return end
+--         for i = 1, GetNumSpells() do
+--             local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
+--             if spell == spellName then
+--                 return i
+--             end
+--         end
+--     end
+-- end
+
+local UnitInSpellRange
+if C_Spell and C_Spell.IsSpellInRange then
+    UnitInSpellRange = function(spellName, unit)
+        return IsSpellInRange(spellName, unit)
+    end
+else
+    UnitInSpellRange = function(spellName, unit)
+        return IsSpellInRange(spellName, unit) == 1
+    end
+end
+
+local rc = CreateFrame("Frame")
+rc:RegisterEvent("SPELLS_CHANGED")
+
+local spell_friend, spell_pet, spell_harm, spell_dead
+CELL_RANGE_CHECK_FRIENDLY = {}
+CELL_RANGE_CHECK_HOSTILE = {}
+CELL_RANGE_CHECK_DEAD = {}
+CELL_RANGE_CHECK_PET = {}
+
+rc:SetScript("OnEvent", function()
+    spell_friend = CELL_RANGE_CHECK_FRIENDLY[playerClass] or friendSpells[playerClass]
+    spell_harm = CELL_RANGE_CHECK_HOSTILE[playerClass] or harmSpells[playerClass]
+    spell_dead = CELL_RANGE_CHECK_DEAD[playerClass] or deadSpells[playerClass]
+    spell_pet = CELL_RANGE_CHECK_PET[playerClass] or petSpells[playerClass]
+
+    if spell_friend and IsSpellKnown(spell_friend) then
+        spell_friend = F:GetSpellInfo(spell_friend)
+    else
+        spell_friend = nil
+    end
+    if spell_harm and IsSpellKnown(spell_harm) then
+        spell_harm = F:GetSpellInfo(spell_harm)
+    else
+        spell_harm = nil
+    end
+    if spell_dead and IsSpellKnown(spell_dead) then
+        spell_dead = F:GetSpellInfo(spell_dead)
+    else
+        spell_dead = nil
+    end
+    if spell_pet and IsSpellKnown(spell_pet) then
+        spell_pet = F:GetSpellInfo(spell_pet)
+    else
+        spell_pet = nil
+    end
+
+    F:Debug(
+        "[RANGE CHECK]",
+        "\nfriend:", spell_friend or "nil",
+        "\npet:", spell_pet or "nil",
+        "\nharm:", spell_harm or "nil",
+        "\ndead:", spell_dead or "nil"
+    )
+end)
+
+function F:IsInRange(unit)
+    if not UnitIsVisible(unit) then
+        return false
+    end
+
+    if UnitIsUnit("player", unit) then
+        return true
+
+    -- elseif not check and F:UnitInGroup(unit) then
+    --     -- NOTE: UnitInRange only works with group players/pets --! but not available for PLAYER PET when SOLO
+    --     local inRange, checked = UnitInRange(unit)
+    --     if not checked then
+    --         return F:IsInRange(unit, true)
+    --     end
+    --     return inRange
+
+    else
+        if UnitCanAssist("player", unit) then
+            if not (UnitIsConnected(unit) and UnitInSamePhase(unit)) then
+                return false
+            end
+
+            if UnitIsDead(unit) then
+                if spell_dead then
+                    return UnitInSpellRange(spell_dead, unit)
+                end
+            elseif spell_friend then
+                return UnitInSpellRange(spell_friend, unit)
+            end
+
+            local inRange, checked = UnitInRange(unit)
+            if checked then
+                return inRange
+            end
+
+            if UnitIsUnit(unit, "pet") and spell_pet then
+                -- no spell_friend, use spell_pet
+                return UnitInSpellRange(spell_pet, unit)
+            end
+
+        elseif UnitCanAttack("player", unit) then
+            if UnitIsDead(unit) then
+                return CheckInteractDistance(unit, 4) -- 28 yards
+            elseif spell_harm then
+                return UnitInSpellRange(spell_harm, unit)
+            end
+            return IsItemInRange(harmItems[playerClass], unit)
+        end
+
+        if not InCombatLockdown() then
+            return CheckInteractDistance(unit, 4) -- 28 yards
+        end
+
+        return true
+    end
+end
+
+-------------------------------------------------
+-- RangeCheck debug
+-------------------------------------------------
+local debug = CreateFrame("Frame", "CellRangeCheckDebug", UIParent, "BackdropTemplate")
+debug:SetBackdrop({bgFile = Cell.vars.whiteTexture})
+debug:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+debug:SetBackdropBorderColor(0, 0, 0, 1)
+debug:SetPoint("LEFT", 300, 0)
+debug:Hide()
+
+debug.text = debug:CreateFontString(nil, "OVERLAY")
+debug.text:SetFont(GameFontNormal:GetFont(), 13, "")
+debug.text:SetShadowColor(0, 0, 0)
+debug.text:SetShadowOffset(1, -1)
+debug.text:SetJustifyH("LEFT")
+debug.text:SetSpacing(5)
+debug.text:SetPoint("LEFT", 5, 0)
+
+local function GetResult1()
+    local inRange, checked = UnitInRange("target")
+
+    return "UnitID: " .. (F:GetTargetUnitID("target") or "target") ..
+        "\n|cffffff00F.IsInRange:|r " .. (F:IsInRange("target") and "true" or "false") ..
+        "\nUnitInRange: " .. (checked and "checked" or "unchecked") .. " " .. (inRange and "true" or "false") ..
+        "\nUnitIsVisible: " .. (UnitIsVisible("target") and "true" or "false") ..
+        "\n\nUnitCanAssist: " .. (UnitCanAssist("player", "target") and "true" or "false") ..
+        "\nUnitCanAttack: " .. (UnitCanAttack("player", "target") and "true" or "false") ..
+        "\n\nUnitIsConnected: " .. (UnitIsConnected("target") and "true" or "false") ..
+        "\nUnitInSamePhase: " .. (UnitInSamePhase("target") and "true" or "false") ..
+        "\nUnitIsDead: " .. (UnitIsDead("target") and "true" or "false") ..
+        "\n\nspell_friend: " .. (spell_friend and (spell_friend .. " " .. (UnitInSpellRange(spell_friend, "target") and "true" or "false")) or "none") ..
+        "\nspell_dead: " .. (spell_dead and (spell_dead .. " " .. (UnitInSpellRange(spell_dead, "target") and "true" or "false")) or "none") ..
+        "\nspell_pet: " .. (spell_pet and (spell_pet .. " " .. (UnitInSpellRange(spell_pet, "target") and "true" or "false")) or "none") ..
+        "\nspell_harm: " .. (spell_harm and (spell_harm .. " " .. (UnitInSpellRange(spell_harm, "target") and "true" or "false")) or "none")
+end
+
+local function GetResult2()
+    if UnitCanAttack("player", "target") then
+        return "IsItemInRange: " .. (IsItemInRange(harmItems[playerClass], "target") and "true" or "false") ..
+            "\nCheckInteractDistance(28y): " .. (CheckInteractDistance("target", 4) and "true" or "false")
+    else
+        return "IsItemInRange: " .. (InCombatLockdown() and "notAvailable" or (IsItemInRange(harmItems[playerClass], "target") and "true" or "false")) ..
+            "\nCheckInteractDistance(28y): " .. (InCombatLockdown() and "notAvailable" or (CheckInteractDistance("target", 4) and "true" or "false"))
+    end
+end
+
+debug:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed >= 0.25 then
+        self.elapsed = 0
+        local result = GetResult1() .. "\n\n" .. GetResult2()
+        result = string.gsub(result, "none", "|cffabababnone|r")
+        result = string.gsub(result, "true", "|cff00ff00true|r")
+        result = string.gsub(result, "false", "|cffff0000false|r")
+        result = string.gsub(result, " checked", " |cff00ff00checked|r")
+        result = string.gsub(result, "unchecked", "|cffff0000unchecked|r")
+
+        debug.text:SetText("|cffff0066Cell Range Check (Target)|r\n\n" .. result)
+
+        debug:SetSize(debug.text:GetStringWidth() + 10, debug.text:GetStringHeight() + 20)
+    end
+end)
+
+debug:SetScript("OnEvent", function()
+    if not UnitExists("target") then
+        debug:Hide()
+        return
+    end
+
+    debug:Show()
+end)
+
+SLASH_CELLRC1 = "/cellrc"
+function SlashCmdList.CELLRC()
+    if debug:IsEventRegistered("PLAYER_TARGET_CHANGED") then
+        debug:UnregisterEvent("PLAYER_TARGET_CHANGED")
+        debug:Hide()
+    else
+        debug:RegisterEvent("PLAYER_TARGET_CHANGED")
+        if UnitExists("target") then
+            debug:Show()
+        end
+    end
 end

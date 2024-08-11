@@ -71,8 +71,32 @@ local mouseKeyIDs = {
     ["Middle"] = 3,
     ["Button4"] = 4,
     ["Button5"] = 5,
-    -- ["ScrollUp"] = 6,
-    -- ["ScrollDown"]= 14,
+    ["Button6"] = 6,
+    ["Button7"] = 7,
+    ["Button8"] = 8,
+    ["Button9"] = 9,
+    ["Button10"] = 10,
+    ["Button11"] = 11,
+    ["Button12"] = 12,
+    ["Button13"] = 13,
+    ["Button14"] = 14,
+    ["Button15"] = 15,
+    ["Button16"] = 16,
+    ["Button17"] = 17,
+    ["Button18"] = 18,
+    ["Button19"] = 19,
+    ["Button20"] = 20,
+    ["Button21"] = 21,
+    ["Button22"] = 22,
+    ["Button23"] = 23,
+    ["Button24"] = 24,
+    ["Button25"] = 25,
+    ["Button26"] = 26,
+    ["Button27"] = 27,
+    ["Button28"] = 28,
+    ["Button29"] = 29,
+    ["Button30"] = 30,
+    ["Button31"] = 31,
 }
 
 local function GetBindingDisplay(modifier, key)
@@ -84,6 +108,8 @@ local function GetBindingDisplay(modifier, key)
 
     if strfind(key, "^NUM") then
         key = _G["KEY_"..key]
+    elseif strfind(key, "^Button") then
+        key = gsub(key, "^Button", L["Button"])
     elseif strlen(key) ~= 1 then
         key = L[key]
     end
@@ -114,7 +140,7 @@ local function EncodeDB(modifier, bindKey, bindType, bindAction)
         attrType = "macro"
         attrAction = bindAction
     elseif bindType == "custom" then
-        attrType = "macrotext"
+        attrType = "custom"
         attrAction = bindAction
     elseif bindType == "item" then
         attrType = "item"
@@ -479,6 +505,12 @@ local function ApplyClickCastings(b)
 
         if t[2] == "spell" then
             local spellName = F:GetSpellInfo(t[3]) or ""
+
+            --! NOTE: only Necrolord shamans have this issue
+            -- https://www.wowhead.com/spell=375982/primordial-wave#comments:id=5484251
+            if t[3] == 428332 then
+                spellName = spellName .. "(" .. EXPANSION_NAME8 .. ")"
+            end
 
             local condition = ""
             if not F:IsSoulstone(spellName) then
@@ -849,8 +881,13 @@ local function ShowTypesMenu(index, b)
                 else
                     changed[index]["bindType"] = nil
                     changed[index]["bindAction"] = nil
-                    b.actionGrid:SetText(b.bindAction)
-                    b:ShowMacroIcon(b.bindAction)
+                    if b.bindAction == "" then
+                        b.actionGrid:SetText("")
+                        b:HideIcon()
+                    else
+                        b.actionGrid:SetText(b.bindActionDisplay)
+                        b:ShowMacroIcon(b.bindAction)
+                    end
                 end
                 CheckChanged(index, b)
                 CheckChanges()
@@ -1460,6 +1497,7 @@ CreateBindingListButton = function(modifier, bindKey, bindType, bindAction, i)
     b.clickCastingIndex = i
 
     b.typeGrid:SetText(L[F:UpperFirst(bindType)])
+
     if bindType == "general" then
         b.bindActionDisplay = L[bindAction]
         b:HideIcon()
@@ -1489,10 +1527,14 @@ CreateBindingListButton = function(modifier, bindKey, bindType, bindAction, i)
         local name, icon = GetMacroInfo(GetMacroIndexByName(bindAction))
         if name then
             b.bindActionDisplay = name
-        else
-            b.bindActionDisplay = "|cFFFF3030"..L["Invalid"]
+            b:ShowIcon(icon)
+        elseif bindAction ~= "" then -- maybe deleted
+            b.bindActionDisplay = bindAction
+            b:ShowIcon()
+        else -- not bound
+            b.bindActionDisplay = ""
+            b:HideIcon()
         end
-        b:ShowIcon(icon)
     elseif bindType == "custom" then
         b.bindActionDisplay = bindAction
         b:HideIcon()

@@ -226,8 +226,7 @@ L["Remove"] = "移除"
 L["Left"] = "左键"
 L["Right"] = "右键"
 L["Middle"] = "中键"
-L["Button4"] = "侧键4"
-L["Button5"] = "侧键5"
+L["Button"] = "按键"
 L["ScrollUp"] = "滚轮上"
 L["ScrollDown"] = "滚轮下"
 
@@ -250,6 +249,7 @@ L["T"] = "天赋"
 L["P"] = "PvP天赋"
 L["C"] = "职业天赋"
 L["S"] = "专精天赋"
+L["H"] = "英雄天赋"
 
 L["Edit"] = "编辑"
 L["Extra Action Button"] = "额外按键"
@@ -514,8 +514,8 @@ L["Size"] = "尺寸"
 L["Size (Big)"] = "尺寸（大）"
 L["Border"] = "边框"
 L["Alpha"] = "透明度"
-L["Max Icons"] = "最大显示数量"
-L["Icons Per Line"] = "每行/列图标数"
+L["Max Displayed"] = "最大显示个数"
+L["Displayed Per Line"] = "每行/列显示个数"
 L["Format"] = "格式"
 L["shields"] = "护盾"
 L["hideIfEmptyOrFull"] = "当值为满或空时隐藏"
@@ -528,6 +528,7 @@ L["Always"] = "总是"
 L["hide icon animation"] = "隐藏图标动画"
 L["Anchor To"] = "定位到"
 L["Health Bar"] = "血条"
+L["Loss"] = "损失"
 L["Entire"] = "整体"
 L["Half"] = "半高"
 L["Solid"] = "纯色"
@@ -547,6 +548,8 @@ L["Anyone"] = "任何人"
 L["Others"] = "其他人"
 L["smooth"] = "平滑"
 L["Color By"] = "着色"
+L["Set Bar Max Value"] = "设置进度条最大值"
+L["Allow smaller value"] = "允许更小的值"
 
 L["Click to preview"] = "点击预览"
 L["Debug Mode"] = "调试模式"
@@ -852,6 +855,27 @@ L["CHANGELOGS"] = [[
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
     <br/>
 
+    <h1>r238-release (Aug 7, 2024, 15:25 GMT+8)</h1>
+    <p>* 修复可能缺失的指示器。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r237-release (Aug 6, 2024, 21:30 GMT+8)</h1>
+    <p>* （地心之战）更新一些指示器的默认法术（PR #165）。</p>
+    <p>* 更新渐变色选项（PR #181）。</p>
+    <p>+ 新代码片段变量 CELL_RANGE_CHECK_*。现在可以自定义距离检查所用的法术了。</p>
+    <p>+ 新自定义指示器类型：进度条组。</p>
+    <p>+ 为“颜色”类型的指示器添加了“血条（损失）”的选项。</p>
+    <p>+ （地心之战）将萨满的“天怒”添加到增益检查。</p>
+    <p>* 更新“血量阈值”指示器的层级。</p>
+    <p>* 略微优化 Cell.GetUnitFramesForLGF。</p>
+    <p>* 修复一个指示器加载的异常。</p>
+    <p>* 修复一些点击施法的问题。</p>
+    <p>* （地心之战）修复驱散检查。</p>
+    <p>* （怀旧服）修复“法术请求”。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
     <h1>r236-release (Jul 24, 2024, 16:10 GMT+8)</h1>
     <p>* 修复“外观”与“布局”页面的一些小问题。</p>
     <p>* 更新本地化。</p>
@@ -1148,6 +1172,11 @@ L["CHANGELOGS"] = [[
     <p>* 更新繁中。</p>
     <br/>
 
+    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
+    <br/>
+]]
+
+L["OLDER_CHANGELOGS"] = [[
     <h1>r199-release (Oct 21, 2023, 15:40 GMT+8)</h1>
     <p>* 更新“减伤”指示器的内置法术。</p>
     <p>+ 为增益类型的自定义指示器添加了“来源”选项。</p>
@@ -1327,11 +1356,6 @@ L["CHANGELOGS"] = [[
     <p>* 更新繁中。</p>
     <br/>
 
-    <p><a href="older">]]..L["Click to view older changelogs"]..[[</a></p>
-    <br/>
-]]
-
-L["OLDER_CHANGELOGS"] = [[
     <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
     <h2>正式服</h2>
     <p>+ 新指示器：个人光环。</p>

@@ -6,7 +6,6 @@ local I = Cell.iFuncs
 -------------------------------------------------
 -- custom indicators
 -------------------------------------------------
-local currentLayout
 local enabledIndicators = {}
 local customIndicators = {
     ["buff"] = {},
@@ -17,7 +16,7 @@ Cell.snippetVars.enabledIndicators = enabledIndicators
 Cell.snippetVars.customIndicators = customIndicators
 
 --! init enabledIndicators & customIndicators
-local function UpdateTablesForIndicator(indicatorTable)
+function I.UpdateIndicatorTable(indicatorTable)
     local indicatorName = indicatorTable["indicatorName"]
     local auraType = indicatorTable["auraType"]
 
@@ -31,7 +30,7 @@ local function UpdateTablesForIndicator(indicatorTable)
             ["found"] = {},
             ["num"] = indicatorTable["num"],
         }
-    elseif indicatorTable["type"] == "blocks" then
+    elseif indicatorTable["type"] == "bars" or indicatorTable["type"] == "blocks" then
         customIndicators[auraType][indicatorName] = {
             ["auras"] = F:ConvertSpellTable_WithColor(indicatorTable["auras"], indicatorTable["trackByName"]), -- auras to match
             ["hasColor"] = true,
@@ -54,6 +53,7 @@ local function UpdateTablesForIndicator(indicatorTable)
     end
 
     customIndicators[auraType][indicatorName]["name"] = indicatorTable["name"]
+    customIndicators[auraType][indicatorName]["type"] = indicatorTable["type"]
 
     if auraType == "buff" then
         customIndicators[auraType][indicatorName]["castBy"] = indicatorTable["castBy"]
@@ -62,7 +62,7 @@ local function UpdateTablesForIndicator(indicatorTable)
     end
 end
 
-function I.CreateIndicator(parent, indicatorTable, noTableUpdate)
+function I.CreateIndicator(parent, indicatorTable)
     local indicatorName = indicatorTable["indicatorName"]
     local indicator
     if indicatorTable["type"] == "icon" then
@@ -71,6 +71,8 @@ function I.CreateIndicator(parent, indicatorTable, noTableUpdate)
         indicator = I.CreateAura_Text(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "bar" then
         indicator = I.CreateAura_Bar(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
+    elseif indicatorTable["type"] == "bars" then
+        indicator = I.CreateAura_Bars(parent:GetName()..indicatorName, parent.widgets.indicatorFrame, 10)
     elseif indicatorTable["type"] == "rect" then
         indicator = I.CreateAura_Rect(parent:GetName()..indicatorName, parent.widgets.indicatorFrame)
     elseif indicatorTable["type"] == "icons" then
@@ -91,10 +93,6 @@ function I.CreateIndicator(parent, indicatorTable, noTableUpdate)
         indicator = I.CreateAura_Border(parent:GetName()..indicatorName, parent.widgets.highLevelFrame)
     end
     parent.indicators[indicatorName] = indicator
-
-    if not noTableUpdate then
-        UpdateTablesForIndicator(indicatorTable)
-    end
 
     return indicator
 end
@@ -135,11 +133,8 @@ function I.ResetCustomIndicatorTables()
 
     -- update customs
     for i = Cell.defaults.builtIns + 1, #Cell.vars.currentLayoutTable.indicators do
-        UpdateTablesForIndicator(Cell.vars.currentLayoutTable.indicators[i])
+        I.UpdateIndicatorTable(Cell.vars.currentLayoutTable.indicators[i])
     end
-
-    -- update currentLayout
-    currentLayout = Cell.vars.currentLayout
 end
 
 local function UpdateCustomIndicators(layout, indicatorName, setting, value, value2)
@@ -246,7 +241,7 @@ local function Update(indicator, indicatorTable, unit, spell, start, duration, d
     end
 end
 
-function I.UpdateCustomIndicators(unitButton, auraInfo, refreshing)
+function I.UpdateCustomIndicators(unitButton, auraInfo)
     local unit = unitButton.states.displayedUnit
 
     local auraType = auraInfo.isHelpful and "buff" or "debuff"
@@ -255,32 +250,30 @@ function I.UpdateCustomIndicators(unitButton, auraInfo, refreshing)
     local count = auraInfo.applications
     local duration = auraInfo.duration
     local start = (auraInfo.expirationTime or 0) - auraInfo.duration
-    local spellId = auraInfo.spellId
-    local spellName = auraInfo.name
     local castByMe = auraInfo.sourceUnit == "player" or auraInfo.sourceUnit == "pet"
 
     -- check Bleed
     if auraInfo.isHarmful then
-        debuffType = I.CheckDebuffType(debuffType, spellId)
+        debuffType = I.CheckDebuffType(debuffType, auraInfo.spellId)
     end
 
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do
         if indicatorName and enabledIndicators[indicatorName] and unitButton.indicators[indicatorName] then
             local spell  --* trackByName
             if indicatorTable["trackByName"] then
-                spell = spellName
+                spell = auraInfo.name
             else
-                spell = spellId
+                spell = auraInfo.spellId
             end
 
             if indicatorTable["auras"][spell] or (indicatorTable["auras"][0] and duration ~= 0) then -- is in indicator spell list
                 if auraType == "buff" then
                     -- check caster
                     if (indicatorTable["castBy"] == "me" and castByMe) or (indicatorTable["castBy"] == "others" and not castByMe) or (indicatorTable["castBy"] == "anyone") then
-                        Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
+                        Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, auraInfo.refreshing)
                     end
                 else -- debuff
-                    Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, refreshing)
+                    Update(unitButton.indicators[indicatorName], indicatorTable, unit, spell, start, duration, debuffType, icon, count, auraInfo.refreshing)
                 end
             end
         end
@@ -292,11 +285,15 @@ end
 -------------------------------------------------
 local sort = table.sort
 local function comparator(a, b)
-    return a[1] < b[1]
+    if a[1] and b[1] then
+        return a[1] < b[1]
+    else
+        return a[2] <= b[2]
+    end
 end
 
 function I.ShowCustomIndicators(unitButton, auraType)
-    if Cell.vars.currentLayout ~= currentLayout then return end
+    if not unitButton._indicatorsReady then return end
 
     local unit = unitButton.states.displayedUnit
     for indicatorName, indicatorTable in pairs(customIndicators[auraType]) do

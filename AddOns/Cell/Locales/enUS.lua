@@ -87,6 +87,27 @@ select(2, ...).L = setmetatable({
         <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
         <br/>
 
+        <h1>r238-release (Aug 7, 2024, 15:25 GMT+8)</h1>
+        <p>* Fixed missing indicators.</p>
+        <p>* Updated deDE and zhTW.</p>
+        <br/>
+
+        <h1>r237-release (Aug 6, 2024, 21:30 GMT+8)</h1>
+        <p>* (TWW) Updated default indicator spells (PR #165).</p>
+        <p>* Updated gradient colors (PR #181).</p>
+        <p>+ New snippet var CELL_RANGE_CHECK_*. Custom spells can now be used for range checking.</p>
+        <p>+ New custom indicator type: Bars.</p>
+        <p>+ Added "Health Bar (Loss)" option to Color indicator.</p>
+        <p>+ (TWW) Added Skyfury to Buff Tracker.</p>
+        <p>* Updated layer of Health Thresholds indicator.</p>
+        <p>* Slightly optimized Cell.GetUnitFramesForLGF.</p>
+        <p>* Fixed an indicator loading issue.</p>
+        <p>* Fixed some click-casting issues.</p>
+        <p>* (TWW) Fixed dispel check.</p>
+        <p>* (Classic) Fixed Spell Request.</p>
+        <p>* Updated deDE and zhTW.</p>
+        <br/>
+
         <h1>r236-release (Jul 24, 2024, 16:10 GMT+8)</h1>
         <p>* Fixed appearance/layout tab.</p>
         <p>* Updated locales.</p>
@@ -383,6 +404,11 @@ select(2, ...).L = setmetatable({
         <p>* Updated zhTW.</p>
         <br/>
 
+        <p><a href="older">Click to view older changelogs</a></p>
+        <br/>
+    ]],
+
+    ["OLDER_CHANGELOGS"] = [[
         <h1>r199-release (Oct 21, 2023, 15:40 GMT+8)</h1>
         <p>* Updated spells of Defensives and Externals.</p>
         <p>+ Added "Cast By" option to custom buff indicators.</p>
@@ -562,11 +588,6 @@ select(2, ...).L = setmetatable({
         <p>* Updated zhTW.</p>
         <br/>
 
-        <p><a href="older">Click to view older changelogs</a></p>
-        <br/>
-    ]],
-
-    ["OLDER_CHANGELOGS"] = [[
         <h1>r169-release (May 20, 2023, 04:18 GMT+8)</h1>
         <h2>Retail</h2>
         <p>+ New indicator: Private Auras.</p>

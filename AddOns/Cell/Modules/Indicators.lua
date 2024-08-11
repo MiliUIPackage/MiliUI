@@ -118,8 +118,9 @@ local function UpdatePreviewButton()
     previewButton.widgets.powerBar:GetStatusBarTexture():SetDrawLayer("ARTWORK", -7) --! VERY IMPORTANT
 
     -- health color
-    local r, g, b = F:GetHealthBarColor(1, false, F:GetClassColor(Cell.vars.playerClass))
+    local r, g, b, lossR, lossG, lossB = F:GetHealthBarColor(1, false, F:GetClassColor(Cell.vars.playerClass))
     previewButton.widgets.healthBar:SetStatusBarColor(r, g, b, CellDB["appearance"]["barAlpha"])
+    previewButton.widgets.healthBarLoss:SetVertexColor(lossR, lossG, lossB, CellDB["appearance"]["lossAlpha"])
 
     -- power color
     r, g, b = F:GetPowerBarColor("player", Cell.vars.playerClass)
@@ -535,10 +536,10 @@ local function InitIndicator(indicatorName)
             for i = 1, 10 do
                 SetOnUpdate(indicator[i], nil, 134400, i)
             end
-        elseif indicator.indicatorType == "blocks" then
-            local blocks_color = {1, 0.26667, 0.4}
+        elseif indicator.indicatorType == "bars" or indicator.indicatorType == "blocks" then
+            local colors = {1, 0.26667, 0.4}
             for i = 1, 10 do
-                SetOnUpdate(indicator[i], nil, 134400, i, blocks_color)
+                SetOnUpdate(indicator[i], nil, 134400, i, colors)
             end
         elseif indicator.indicatorType == "text" then
             indicator.isCustomText = true -- mark for custom glow
@@ -589,7 +590,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
     if not indicatorsTab:IsShown() then return end
 
     if not indicatorName then -- init
-        if not layout then --! call from UpdateIndicators() not from Cell:Fire("UpdateIndicators", ...)
+        if layout == true then --! call from UpdateIndicators(true) not from Cell:Fire("UpdateIndicators", ...)
             if not previewButton._indicatorsCreated then
                 previewButton._indicatorsCreated = true
                 I.CreateDefensiveCooldowns(previewButton)
@@ -601,7 +602,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             I.RemoveAllCustomIndicators(previewButton)
 
             for i, t in pairs(currentLayoutTable["indicators"]) do
-                local indicator = previewButton.indicators[t["indicatorName"]] or I.CreateIndicator(previewButton, t, true)
+                local indicator = previewButton.indicators[t["indicatorName"]] or I.CreateIndicator(previewButton, t)
                 indicator.configs = t
 
                 InitIndicator(t["indicatorName"])
@@ -969,7 +970,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicator:EnableSmooth(value2)
             end
         elseif setting == "create" then
-            indicator = I.CreateIndicator(previewButton, value, true)
+            indicator = I.CreateIndicator(previewButton, value)
             indicator.configs = value
 
             -- update position
@@ -1108,7 +1109,7 @@ LoadLayoutDropdown = function()
                 currentLayoutTable = CellDB["layouts"][value]
 
                 LoadSyncDropdown()
-                UpdateIndicators()
+                UpdateIndicators(true)
                 UpdatePreviewButton()
                 LoadIndicatorList()
                 listButtons[1]:Click()
@@ -1259,7 +1260,7 @@ LoadSyncDropdown = function()
                         --! notify unitbuttons to update current indicators
                         Cell:Fire("UpdateIndicators", currentLayout)
                         --! update indicators preview
-                        UpdateIndicators()
+                        UpdateIndicators(true)
                         LoadIndicatorList()
                         listButtons[1]:Click()
                     end, function()
@@ -1281,7 +1282,7 @@ LoadSyncDropdown = function()
                 --! notify unitbuttons to update current indicators
                 Cell:Fire("UpdateIndicators", currentLayout)
                 --! update indicators preview
-                UpdateIndicators()
+                UpdateIndicators(true)
                 LoadIndicatorList()
                 listButtons[1]:Click()
             end
@@ -1361,6 +1362,10 @@ local typeItems = {
         ["value"] = "rect",
     },
     {
+        ["text"] = L["Bars"],
+        ["value"] = "bars",
+    },
+    {
         ["text"] = L["Bar"],
         ["value"] = "bar",
     },
@@ -1418,7 +1423,7 @@ local function CreateListPane()
     createBtn:SetPoint("TOPLEFT", listFrame, "BOTTOMLEFT", 0, -4)
     createBtn:SetTexture("Interface\\AddOns\\Cell\\Media\\Icons\\create", {16, 16}, {"CENTER", 0, 0})
     createBtn:SetScript("OnClick", function()
-        local popup = Cell:CreateConfirmPopup(indicatorsTab, 200, L["Create new indicator"], function(self)
+        local popup = Cell:CreateConfirmPopup(indicatorsTab, 220, L["Create new indicator"], function(self)
             local name = strtrim(self.editBox:GetText())
             local indicatorName
             local indicatorType, indicatorAuraType = self.dropdown1:GetSelected(), self.dropdown2:GetSelected()
@@ -1552,13 +1557,13 @@ if Cell.isRetail then
         ["targetRaidIcon"] = {"enabled", "size-square", "alpha", "position", "frameLevel"},
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
-        ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
+        ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["aoeHealing"] = {"|cffb7b7b7"..L["Display a gradient texture when the unit receives a heal from your certain AoE healing spells."], "enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "checkbutton:showAnimation", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "checkbutton:showAnimation", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["allCooldowns"] = {"enabled", "durationVisibility", "checkbutton:showAnimation", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
-        ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size-bar", "position", "frameLevel"},
+        ["tankActiveMitigation"] = {"|cffb7b7b7"..I.GetTankActiveMitigationString(), "enabled", "color-class", "size", "position", "frameLevel"},
         ["dispels"] = {"enabled", "dispelFilters", "highlightType", "dispelBlacklist", "checkbutton2:showDispelTypeIcons", "orientation", "size-square", "position", "frameLevel"},
         ["debuffs"] = {"enabled", "checkbutton:dispellableByMe", "debuffBlacklist", "bigDebuffs", "durationVisibility", "checkbutton2:showAnimation", "checkbutton3:showTooltip:"..DEBUFFS_TOOLTIP1, "checkbutton4:enableBlacklistShortcut:"..DEBUFFS_TOOLTIP2, "size-normal-big", "num:10", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["raidDebuffs"] = {"|cffb7b7b7"..L["You can config debuffs in %s"]:format(Cell:GetAccentColorString()..L["Raid Debuffs"].."|r"), "enabled", "checkbutton:onlyShowTopGlow", "durationVisibility", "checkbutton2:showTooltip:"..DEBUFFS_TOOLTIP1, "size-border", "num:3", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
@@ -1590,7 +1595,7 @@ elseif Cell.isCata or Cell.isWrath then
         ["targetRaidIcon"] = {"enabled", "size-square", "alpha", "position", "frameLevel"},
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
-        ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
+        ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["shieldBar"] = {"enabled", "checkbutton:onlyShowOvershields", "color-alpha", "height", "shieldBarPosition", "frameLevel"},
         ["powerWordShield"] = {L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"], "enabled", "checkbutton:shieldByMe", "shape", "size-square", "position", "frameLevel"},
         ["aoeHealing"] = {"|cffb7b7b7"..L["Display a gradient texture when the unit receives a heal from your certain AoE healing spells."], "enabled", "color", "height"},
@@ -1626,7 +1631,7 @@ elseif Cell.isVanilla then
         ["targetRaidIcon"] = {"enabled", "size-square", "alpha", "position", "frameLevel"},
         ["aggroBlink"] = {"enabled", "size", "position", "frameLevel"},
         ["aggroBorder"] = {"enabled", "thickness", "frameLevel"},
-        ["aggroBar"] = {"enabled", "size-bar", "position", "frameLevel"},
+        ["aggroBar"] = {"enabled", "size", "position", "frameLevel"},
         ["aoeHealing"] = {"|cffb7b7b7"..L["Display a gradient texture when the unit receives a heal from your certain AoE healing spells."], "enabled", "color", "height"},
         ["externalCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInExternals", "customExternals", "durationVisibility", "checkbutton:showAnimation", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
         ["defensiveCooldowns"] = {L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"], "enabled", "builtInDefensives", "customDefensives", "durationVisibility", "checkbutton:showAnimation", "size", "num:5", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"},
@@ -1654,6 +1659,12 @@ local function ShowIndicatorSettings(id)
     local indicatorType = indicatorTable["type"]
     -- texplore(indicatorTable)
 
+    if indicatorType == "color" then
+        previewButton.widgets.healthBar:SetValue(0.5)
+    else
+        previewButton.widgets.healthBar:SetValue(1)
+    end
+
     local settingsTable
     if indicatorType == "built-in" then
         settingsTable = indicatorSettings[indicatorName]
@@ -1663,14 +1674,16 @@ local function ShowIndicatorSettings(id)
     else
         if indicatorType == "icon" then
             settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+        elseif indicatorType == "icons" then
+            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "text" then
             settingsTable = {"enabled", "auras", "duration", "checkbutton3:circledStackNums:"..L["Require font support"], "colors", "position", "frameLevel", "font-noOffset"}
         elseif indicatorType == "bar" then
-            settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "barOrientation", "size-bar", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+            settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "barOrientation", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
+        elseif indicatorType == "bars" then
+            settingsTable = {"enabled", "auras", "maxValue", "checkbutton3:showStack", "durationVisibility", "size", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "rect" then
             settingsTable = {"enabled", "auras", "colors", "checkbutton3:showStack", "durationVisibility", "size", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
-        elseif indicatorType == "icons" then
-            settingsTable = {"enabled", "auras", "checkbutton3:showStack", "durationVisibility", "checkbutton4:showAnimation", CELL_RECTANGULAR_CUSTOM_INDICATOR_ICONS and "size" or "size-square", "num:10", "numPerLine:10", "spacing", "orientation", "position", "frameLevel", "font1:stackFont", "font2:durationFont"}
         elseif indicatorType == "color" then
             settingsTable = {"enabled", "auras", "customColors", "anchor", "frameLevel:50"}
         elseif indicatorType == "texture" then
@@ -1718,7 +1731,7 @@ local function ShowIndicatorSettings(id)
         --! convert currentSetting to ACTUAL TABLE INDEX
         if currentSetting == "color-alpha" or currentSetting == "color-class" or currentSetting == "color-power" then currentSetting = "color" end
         if currentSetting == "customColors" or currentSetting == "overlayColors" or currentSetting == "blockColors" then currentSetting = "colors" end
-        if currentSetting == "size-square" or currentSetting == "size-bar" or currentSetting == "size-normal-big" then currentSetting = "size" end
+        if currentSetting == "size-square" or currentSetting == "size-normal-big" then currentSetting = "size" end
         if currentSetting == "namePosition" or currentSetting == "statusPosition" or currentSetting == "position-noHCenter" or currentSetting == "shieldBarPosition" then currentSetting = "position" end
         if currentSetting == "barOrientation" then currentSetting = "orientation" end
         if currentSetting == "durationVisibility" then currentSetting = "showDuration" end
@@ -1771,7 +1784,7 @@ local function ShowIndicatorSettings(id)
         -- auras
         elseif currentSetting == "auras" then
             w:SetDBValue(L[F:UpperFirst(indicatorTable["auraType"]).." List"], indicatorTable["auras"], indicatorType == "glow", indicatorType == "icons",
-                indicatorType == "blocks" or indicatorType == "border")
+                indicatorType == "bars" or indicatorType == "blocks" or indicatorType == "border")
             w:SetFunc(function(value)
                 -- NOTE: already changed in widget
                 Cell:Fire("UpdateIndicators", notifiedLayout, indicatorName, "auras", indicatorTable["auraType"], value)
@@ -2220,7 +2233,7 @@ local function ShowTab(tab)
         if noUpdateIndicators then return end
 
         UpdatePreviewButton()
-        UpdateIndicators()
+        UpdateIndicators(true)
 
         layoutDropdown:SetSelected(currentLayout == "default" and _G.DEFAULT or currentLayout)
         LoadIndicatorList()
@@ -2237,11 +2250,11 @@ function F:ReloadIndicatorList()
     if indicatorsTab:IsShown() then
         LoadIndicatorList()
         listFrame.scrollFrame:ScrollToBottom()
-        listButtons[#listButtons]:Click()
+        listButtons[#currentLayoutTable["indicators"]]:Click()
     else
         indicatorsTab:SetScript("OnShow", function()
             indicatorsTab:SetScript("OnShow", nil)
-            UpdateIndicators()
+            UpdateIndicators(true)
             LoadIndicatorList()
             listButtons[1]:Click()
         end)
@@ -2275,7 +2288,7 @@ local function IndicatorsChanged(layout)
     if currentLayout == layout then
         F:Debug("Reload Indicator List:", layout)
         -- update indicators for preview button
-        UpdateIndicators()
+        UpdateIndicators(true)
         -- reload list
         LoadIndicatorList()
         listButtons[1]:Click()

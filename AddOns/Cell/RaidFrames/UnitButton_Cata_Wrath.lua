@@ -348,6 +348,10 @@ local function HandleIndicators(b)
         if type(t["smooth"]) == "boolean" then
             indicator:EnableSmooth(t["smooth"])
         end
+        -- max value
+        if t["maxValue"] then
+            indicator:SetMaxValue(t["maxValue"])
+        end
 
         -- init
         -- update name visibility
@@ -391,17 +395,25 @@ local queue = {}
 updater:SetScript("OnUpdate", function()
     local b = queue[1]
     if b then
-        if not b._status then
-            -- print("processing", GetTime(), b:GetName())
+        if b._status == "waiting_for_init" then
+            -- print("processing_init", GetTime(), b:GetName())
             b._status = "processing"
             HandleIndicators(b)
-            UnitButton_UpdateAll(b)
-            b._status = "finished"
-        elseif b._status == "finished" then
+            UnitButton_UpdateAuras(b)
+            b._status = "done"
+        elseif b._status == "waiting_for_update" then
+            -- print("processing_update", GetTime(), b:GetName())
+            b._indicatorsReady = true
+            b._status = "processing"
+            UnitButton_UpdateAuras(b)
+            b._status = "done"
+        elseif b._status == "done" then
             CellLoadingBar.current = (CellLoadingBar.current or 0) + 1
             CellLoadingBar:SetValue(CellLoadingBar.current)
             tremove(queue, 1)
             b._status = nil
+        elseif b._status ~= "processing" then -- re-queue
+            b._status = "waiting_for_init"
         end
     else
         CellLoadingBar:Hide()
@@ -412,13 +424,21 @@ end)
 
 hooksecurefunc(updater, "Show", function()
     CellLoadingBar.total = #queue
+    CellLoadingBar.current = 0
     CellLoadingBar:SetMinMaxValues(0, CellLoadingBar.total)
-    CellLoadingBar:SetValue(CellLoadingBar.current or 0)
+    CellLoadingBar:SetValue(CellLoadingBar.current)
     CellLoadingBar:Show()
 end)
 
-local function AddToQueue(b)
+local function AddToInitQueue(b)
     b._indicatorsReady = nil
+    b._status = "waiting_for_init"
+    tinsert(queue, b)
+end
+
+local function AddToUpdateQueue(b)
+    b._indicatorsReady = nil
+    b._status = "waiting_for_update"
     tinsert(queue, b)
 end
 
@@ -455,9 +475,10 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             F:Debug("NO UPDATE: only reset custom indicator tables")
             I.ResetCustomIndicatorTables()
             ResetIndicators()
+            --! update main _indicatorsReady
+            F:IterateAllUnitButtons(AddToUpdateQueue, true, nil, true)
             --! update shared buttons: npcs, spotlights
-            -- F:IterateSharedUnitButtons(HandleIndicators)
-            F:IterateSharedUnitButtons(AddToQueue)
+            F:IterateSharedUnitButtons(AddToInitQueue)
             updater:Show()
             return
         end
@@ -475,7 +496,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             -- update all when indicators update finished
             F:IterateAllUnitButtons(UnitButton_UpdateAll, true)
         else
-            F:IterateAllUnitButtons(AddToQueue, true)
+            F:IterateAllUnitButtons(AddToInitQueue, true)
             updater:Show()
         end
         indicatorsInitialized = true
@@ -714,7 +735,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 local indicator = b.indicators[indicatorName]
                 indicator:SetTexture(value)
             end, true)
-        elseif setting == "duration" then
+        elseif setting == "duration" or setting == "dispelFilters" then
             F:IterateAllUnitButtons(function(b)
                 UnitButton_UpdateAuras(b)
             end, true)
@@ -737,8 +758,9 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
             I.UpdateMissingBuffsFilters()
         elseif setting == "targetCounterFilters" then
             I.UpdateTargetCounterFilters()
-        elseif setting == "dispelFilters" then
+        elseif setting == "maxValue" then
             F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:SetMaxValue(value)
                 UnitButton_UpdateAuras(b)
             end, true)
         elseif setting == "glowOptions" then
@@ -840,6 +862,7 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicatorBooleans[indicatorName] = value2
             end
         elseif setting == "create" then
+            I.UpdateIndicatorTable(value)
             F:IterateAllUnitButtons(function(b)
                 local indicator = I.CreateIndicator(b, value)
                 indicator.configs = value
@@ -2702,6 +2725,7 @@ local function UnitButton_OnHide(self)
         self.__unitName = nil
     end
     self.__displayedGuid = nil
+    self._updateRequired = nil
     F:RemoveElementsExceptKeys(self.states, "unit", "displayedUnit")
 end
 
@@ -2734,8 +2758,10 @@ local function UnitButton_OnTick(self)
                 -- NOTE: displayed unit entity changed
                 F:RemoveElementsExceptKeys(self.states, "unit", "displayedUnit")
                 self.__displayedGuid = displayedGuid
-                self._updateRequired = 1
-                self._powerBarUpdateRequired = 1
+                if displayedGuid then --? clearing unit may come before hiding
+                    self._updateRequired = 1
+                    self._powerBarUpdateRequired = 1
+                end
             end
 
             local guid = UnitGUID(self.states.unit)
@@ -3067,8 +3093,8 @@ function B:SetOrientation(button, orientation, rotateTexture)
 
         -- update overShieldGlowR
         P:ClearPoints(overShieldGlowR)
-        P:Point(overShieldGlowR, "TOPLEFT", shieldBarR, "TOPLEFT", -4, 0)
-        P:Point(overShieldGlowR, "BOTTOMLEFT", shieldBarR, "BOTTOMLEFT", -4, 0)
+        P:Point(overShieldGlowR, "TOP", shieldBarR, "TOPLEFT", 0, 0)
+        P:Point(overShieldGlowR, "BOTTOM", shieldBarR, "BOTTOMLEFT", 0, 0)
         P:Width(overShieldGlowR, 8)
         F:RotateTexture(overShieldGlowR, 0)
 
@@ -3131,10 +3157,10 @@ function B:SetOrientation(button, orientation, rotateTexture)
         P:Height(overShieldGlow, 4)
         F:RotateTexture(overShieldGlow, 90)
 
-        -- update overShieldGlowR TODO: fix vertical height
+        -- update overShieldGlowR
         P:ClearPoints(overShieldGlowR)
-        P:Point(overShieldGlowR, "TOPRIGHT", shieldBarR, "TOPRIGHT", 0, -4)
-        P:Point(overShieldGlowR, "BOTTOMLEFT", shieldBarR, "BOTTOMLEFT", 0, -4)
+        P:Point(overShieldGlowR, "LEFT", shieldBarR, "BOTTOMLEFT", 0, 0)
+        P:Point(overShieldGlowR, "RIGHT", shieldBarR, "BOTTOMRIGHT", 0, 0)
         P:Height(overShieldGlowR, 8)
         F:RotateTexture(overShieldGlowR, 90)
 
