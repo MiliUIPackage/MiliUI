@@ -29,11 +29,11 @@ L["Mapster allows you to control various aspects of your World Map. You can chan
 L["Overlay Color"] = true
 L["Player"] = true
 L["PlayerArrow Scale"] = true
-L["POI Scale"] = true
+L["Quest POI Scale"] = true
 L["Scale"] = true
 L["Scale of the big map."] = true
 L["Scale of the Encounter Journal Icons on the Map."] = true
-L["Scale of the POI Icons on the Map."] = true
+L["Scale of the Quest POI Icons on the Map."] = true
 L["The Coordinates module adds a display of your current location, and the coordinates of your mouse cursor to the World Map frame."] = true
 L["The FogClear module removes the Fog of War from the World map, thus displaying the artwork for all the undiscovered zones, optionally with a color overlay on undiscovered areas."] = true
 L["The map will fade out to the configured Fade Alpha level when you start moving."] = true

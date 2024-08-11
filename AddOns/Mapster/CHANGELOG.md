@@ -1,13 +1,12 @@
 # Mapster
 
-## [1.11.0](https://github.com/Nevcairiel/Mapster/tree/1.11.0) (2023-11-28)
-[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.10.8...1.11.0) [Previous Releases](https://github.com/Nevcairiel/Mapster/releases)
+## [1.12.0](https://github.com/Nevcairiel/Mapster/tree/1.12.0) (2024-07-25)
+[Full Changelog](https://github.com/Nevcairiel/Mapster/compare/1.11.0...1.12.0) [Previous Releases](https://github.com/Nevcairiel/Mapster/releases)
 
-- Add 10.2 FogClear data  
-- Disable multi-version packages  
-- Remove Classic support  
-    Maintaining Classic support has become a huge burden for this mod, since  
-    it is designed to modify the Blizzard UI, and the UI diverges even  
-    further between Retail and the different Classic variants with every  
-    update.  
-    Hence, I rather focus my efforts on Retail, and other mods.  
+- Fix quest poi scalign and include world quests  
+- Fix settings button  
+- Add TWW FogClear data  
+- Update map drawing to the latest version  
+- Fix tint of explored map areas not clearing in 11  
+- Update TOC for WoW 11  
+- Update C\_AddOns API  

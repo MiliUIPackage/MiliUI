@@ -104,8 +104,8 @@ local function getOptions()
 						poiScale = {
 							order = 12,
 							type = "range",
-							name = L["POI Scale"],
-							desc = L["Scale of the POI Icons on the Map."],
+							name = L["Quest POI Scale"],
+							desc = L["Scale of the Quest POI Icons on the Map."],
 							min = 0.1, max = 2, bigStep = 0.01,
 							isPercent = true,
 						},
@@ -146,29 +146,22 @@ local function getOptions()
 end
 
 local function optFunc()
-	-- open the profiles tab before, so the menu expands
-	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Profiles)
-	InterfaceOptionsFrame_OpenToCategory(Mapster.optionsFrames.Mapster)
-	if InterfaceOptionsFrame then
-		InterfaceOptionsFrame:Raise()
-	end
+	Settings.OpenToCategory("Mapster")
 end
 
 function Mapster:SetupOptions()
-	self.optionsFrames = {}
-
 	-- setup options table
-	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("地圖增強", getOptions)
-	self.optionsFrames.Mapster = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", nil, nil, "general")
+	LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("Mapster", getOptions)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", nil, nil, "general")
 
-	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "設定檔")
+	self:RegisterModuleOptions("Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db), "Profiles")
 
 	LibStub("AceConsole-3.0"):RegisterChatCommand( "mapster", optFunc)
 end
 
 function Mapster:RegisterModuleOptions(name, optionTbl, displayName)
 	moduleOptions[name] = optionTbl
-	self.optionsFrames[name] = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("地圖增強", displayName, "地圖增強", name)
+	LibStub("AceConfigDialog-3.0"):AddToBlizOptions("Mapster", displayName, "Mapster", name)
 end
 
 function Mapster:SetupMapButton()
@@ -176,7 +169,7 @@ function Mapster:SetupMapButton()
 	self.optionsButton = CreateFrame("Button", "MapsterOptionsButton", WorldMapFrame.BorderFrame.TitleContainer or WorldMapFrame, "UIPanelButtonTemplate")
 	self.optionsButton:SetWidth(95)
 	self.optionsButton:SetHeight(18)
-	self.optionsButton:SetText("地圖設定")
+	self.optionsButton:SetText("Mapster")
 	self.optionsButton:ClearAllPoints()
 	self.optionsButton:SetPoint("TOPRIGHT", WorldMapFrame.BorderFrame.TitleContainer, "TOPRIGHT", -48, -1)
 
