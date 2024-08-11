@@ -191,7 +191,7 @@ PLATER_DEFAULT_SETTINGS = {
 				castbar_offset = 0,
 				
 				actorname_text_spacing = 10,
-				actorname_text_size = 10,
+				actorname_text_size = 14,
 				actorname_text_font = "Arial Narrow",
 				actorname_use_class_color = true,
 				actorname_text_color = {1, 1, 1, 1},
@@ -410,7 +410,7 @@ PLATER_DEFAULT_SETTINGS = {
 				big_actortitle_text_shadow_color = {0, 0, 0, 1},
 				big_actortitle_text_shadow_color_offset = {1, -1},
 				
-				big_actorname_text_size = 9,
+				big_actorname_text_size = 14,
 				big_actorname_text_font = "Arial Narrow",
 				big_actorname_text_color = {.5, 1, .5},
 				big_actorname_text_outline = "OUTLINE",
