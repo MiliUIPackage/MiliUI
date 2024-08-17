@@ -51,7 +51,7 @@ local function ContainsStackableItem(messageindex)
 	for itemIndex = 1, ATTACHMENTS_MAX_SEND do
 		itemID = select(2, GetInboxItem(messageindex, itemIndex))
 		if itemID ~= nil then
-			itemStackCount = select(8,GetItemInfo(itemID))
+			itemStackCount = select(8,C_Item.GetItemInfo(itemID))
 			if itemStackCount > 1 then return true end
 		end
 	end
@@ -64,11 +64,11 @@ local function FreeBagSpace()
 	local FreeSpace = 0
 	for bagID = 0, 4, 1 do
 		local numberOfFreeSlots, bagType
-		if Postal.WOWBCClassic then
-			numberOfFreeSlots, bagType = GetContainerNumFreeSlots(bagID)
-		else
+--		if Postal.WOWBCClassic then
+--			numberOfFreeSlots, bagType = GetContainerNumFreeSlots(bagID)
+--		else
 			numberOfFreeSlots, bagType = C_Container.GetContainerNumFreeSlots(bagID)
-		end
+--		end
 		FreeSpace = FreeSpace + numberOfFreeSlots
 	end
 	return FreeSpace
@@ -131,7 +131,7 @@ function Postal_Forward_OpenMail_Forward()
 		subject = prefix..subject
 	end
 	if subject then SendMailSubjectEditBox:SetText(subject) end
-	if Postal.WOWWotLKClassic or Postal.WOWClassic then
+	if Postal.WOWClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 		if bodyText then MailEditBox.ScrollBox.EditBox:SetText(bodyText) end
 	else
 		if bodyText then SendMailBodyEditBox:SetText(bodyText) end

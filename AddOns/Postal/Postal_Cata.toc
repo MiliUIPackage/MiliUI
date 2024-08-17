@@ -1,4 +1,4 @@
-## Interface: 20504
+## Interface: 40400
 ## Title: Postal
 ## Version: v4.1.8
 ## X-Build: 630

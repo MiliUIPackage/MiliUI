@@ -21,7 +21,7 @@ end
 
 function Postal_Express:MAIL_SHOW()
 	if Postal.db.profile.Express.EnableAltClick and not self:IsHooked(GameTooltip, "OnTooltipSetItem") then
-		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 			self:HookScript(GameTooltip, "OnTooltipSetItem")
 		else
 			if TooltipDataProcessor and TooltipDataProcessor.AddTooltipPostCall then
@@ -32,7 +32,7 @@ function Postal_Express:MAIL_SHOW()
 				end)
 			end
 		end
-		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 			self:RawHook("ContainerFrameItemButton_OnModifiedClick", true)
 		end
 		if Postal.WOWRetail then
@@ -53,7 +53,7 @@ end
 function Postal_Express:Reset(event)
 	if self:IsHooked(GameTooltip, "OnTooltipSetItem") then
 		self:Unhook(GameTooltip, "OnTooltipSetItem")
-		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+		if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 			self:Unhook("ContainerFrameItemButton_OnModifiedClick")
 		end
 	end
@@ -203,7 +203,7 @@ function Postal_Express:ContainerFrameItemButtonOnModifiedClick(bag, slot, butto
 				itemlocked = false
 			end
 		end
-		local itemq, _,_, itemc, itemsc, _, itemes = select(3,GetItemInfo(itemid))
+		local itemq, _,_, itemc, itemsc, _, itemes = select(3,C_Item.GetItemInfo(itemid))
 		itemes = itemes and #itemes > 0
 		if Postal.db.profile.Express.BulkSend and itemq and itemc then
 			local itemsinmail = 0
@@ -246,7 +246,7 @@ function Postal_Express:ContainerFrameItemButtonOnModifiedClick(bag, slot, butto
 						if not tid or itemlocked2 or Postal_Express_IsSoulbound(b, s) then
 							-- item locked, already attached, soulbound
 						else
-							local tq, _,_, tc, tsc, _, tes = select(3,GetItemInfo(tid))
+							local tq, _,_, tc, tsc, _, tes = select(3,C_Item.GetItemInfo(tid))
 							-- tc = (tq or "").."."..(tc or "")
 							tsc = (tc or "").."."..(tsc or "")
 							tes = tes and #tes > 0
@@ -318,14 +318,14 @@ function Postal_Express.SetEnableAltClick(dropdownbutton, arg1, arg2, checked)
 	if checked then
 		if MailFrame:IsVisible() and not self:IsHooked(GameTooltip, "OnTooltipSetItem") then
 			self:HookScript(GameTooltip, "OnTooltipSetItem")
-			if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+			if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 				self:RawHook("ContainerFrameItemButton_OnModifiedClick", true)
 			end
 		end
 	else
 		if self:IsHooked(GameTooltip, "OnTooltipSetItem") then
 			self:Unhook(GameTooltip, "OnTooltipSetItem")
-			if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic then
+			if Postal.WOWClassic or Postal.WOWBCClassic or Postal.WOWWotLKClassic or Postal.WOWCataClassic then
 				self:Unhook("ContainerFrameItemButton_OnModifiedClick")
 			end	
 		end
