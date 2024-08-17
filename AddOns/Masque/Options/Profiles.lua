@@ -59,7 +59,7 @@ function Setup.Profiles(self)
 	self.Options.args.Profiles = Options
 
 	local Path = "Profiles"
-	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["Profile Settings"], L["Masque"], Path))
+	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["Profile Settings"], MASQUE, Path))
 
 	-- GC
 	Setup.Profiles = nil

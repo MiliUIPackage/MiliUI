@@ -385,7 +385,7 @@ function Setup.General(self)
 	self.Options.args.General = Options
 
 	local Path = "General"
-	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["General Settings"], L["Masque"], Path))
+	self:AddOptionsPanel(Path, self.LIB_ACD:AddToBlizOptions(MASQUE, L["General Settings"], MASQUE, Path))
 
 	-- GC
 	Setup.General = nil

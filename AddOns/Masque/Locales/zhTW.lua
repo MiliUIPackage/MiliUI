@@ -218,6 +218,3 @@ L["This section will allow you to skin the buttons of the add-ons and add-on gro
 ---
 
 L["A square skin with zoomed icons and a semi-transparent background."] = "方形的外觀，帶有縮放過的圖示以及半透明的背景。"
-
--- 自行加入
-L["Masque"] = "按鈕外觀"
