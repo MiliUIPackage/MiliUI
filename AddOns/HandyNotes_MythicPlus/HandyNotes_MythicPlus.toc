@@ -1,4 +1,4 @@
-## Interface: 110000
+## Interface: 110002
 ## Title: HandyNotes: MythicPlus
 ## Version: V100100-11
 ## Notes: Dragonflight MythicPlus Notes
