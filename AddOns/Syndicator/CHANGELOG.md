@@ -1,7 +1,6 @@
 # Syndicator
 
-## [97](https://github.com/Baganator/Syndicator/tree/97) (2024-08-10)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/96...97) 
+## [102](https://github.com/Baganator/Syndicator/tree/102) (2024-08-14)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/101...102) 
 
-- Remove leftover prints  
-- Retail: Rework posting auctions tracking to avoid triggering AH throttle  
+- Rework guild realm detection to account for missing realm data from player names  

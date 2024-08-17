@@ -67,16 +67,6 @@ function Syndicator.API.GetByGuildFullName(guildFullName)
   if SYNDICATOR_DATA.Guilds[guildFullName] then
     return SYNDICATOR_DATA.Guilds[guildFullName], guildFullName
   end
-
-  local guildName, realmName = strsplit("-", guildFullName)
-
-  -- The guild isn't stored in Syndicator against this realmName, so it must be
-  -- stored against another connected realm's name, try to find it.
-  for guild, data in pairs(SYNDICATOR_DATA.Guilds) do
-    if data.details.guildName == guildName and tIndexOf(data.details.realms, realmName) ~= nil then
-      return data, guild
-    end
-  end
 end
 
 Syndicator.API.GetGuild = Syndicator.API.GetByGuildFullName
@@ -113,7 +103,7 @@ end
 
 function Syndicator.API.DeleteGuild(guildFullName)
   local guildData, guildFullName = Syndicator.API.GetByGuildFullName(guildFullName)
-  assert(Syndicator.GuildCache and guildFullName ~= Syndicator.GuildCache.currentGuild, "Cannot delete current guild")
+  assert(guildFullName == nil or not Syndicator.GuildCache or guildFullName ~= Syndicator.GuildCache.currentGuild, "Cannot delete current guild")
 
   if not guildData then
     error("Guild does not exist")
@@ -122,7 +112,7 @@ function Syndicator.API.DeleteGuild(guildFullName)
 
   SYNDICATOR_DATA.Guilds[guildFullName] = nil
 
-  local realmSummary = SYNDICATOR_SUMMARIES.Guilds.ByRealm[guildData.details.realms[1]]
+  local realmSummary = SYNDICATOR_SUMMARIES.Guilds.ByRealm[guildData.details.realm or guildData.details.realms[1]] -- legacy guild format used realms
   if realmSummary and realmSummary[guildData.details.guild] then
     realmSummary[guildData.details.guild] = nil
   end

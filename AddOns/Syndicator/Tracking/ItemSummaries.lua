@@ -54,6 +54,27 @@ function SyndicatorItemSummariesMixin:OnLoad()
   Syndicator.CallbackRegistry:RegisterCallback("EquippedCacheUpdate", self.CharacterCacheUpdate, self)
   Syndicator.CallbackRegistry:RegisterCallback("VoidCacheUpdate", self.CharacterCacheUpdate, self)
   Syndicator.CallbackRegistry:RegisterCallback("AuctionsCacheUpdate", self.CharacterCacheUpdate, self)
+
+  self:Cleanup()
+end
+
+-- Tidy up summaries from removed characters and guilds (work around unknown
+-- deletion bug)
+function SyndicatorItemSummariesMixin:Cleanup()
+  for realm, realmData in pairs(self.SV.Characters.ByRealm) do
+    for character in pairs(realmData) do
+      if not SYNDICATOR_DATA.Characters[character .. "-" .. realm] then
+        realmData[character] = nil
+      end
+    end
+  end
+  for realm, realmData in pairs(self.SV.Guilds.ByRealm) do
+    for guild in pairs(realmData) do
+      if not SYNDICATOR_DATA.Guilds[guild .. "-" .. realm] then
+        realmData[guild] = nil
+      end
+    end
+  end
 end
 
 function SyndicatorItemSummariesMixin:CharacterCacheUpdate(characterName)
@@ -213,10 +234,10 @@ function SyndicatorItemSummariesMixin:GenerateGuildSummary(guildName)
     end
   end
 
-  if not self.SV.Guilds.ByRealm[details.details.realms[1]] then
-    self.SV.Guilds.ByRealm[details.details.realms[1]] = {}
+  if not self.SV.Guilds.ByRealm[details.details.realm] then
+    self.SV.Guilds.ByRealm[details.details.realm] = {}
   end
-  self.SV.Guilds.ByRealm[details.details.realms[1]][details.details.guild] = summary
+  self.SV.Guilds.ByRealm[details.details.realm][details.details.guild] = summary
 end
 
 function SyndicatorItemSummariesMixin:GenerateWarbandSummary()
@@ -323,6 +344,24 @@ function SyndicatorItemSummariesMixin:GetTooltipInfo(key, sameConnectedRealm, sa
           table.insert(result.guilds, {
             guild = guild,
             realmNormalized = r,
+            bank = byKey.bank or 0
+          })
+        end
+      end
+    end
+  end
+
+  local currentGuild = Syndicator.API.GetCurrentGuild()
+  if currentGuild then
+    local currentGuildDetails = SYNDICATOR_DATA.Guilds[currentGuild].details
+    if not FindInTableIf(result.guilds, function(a) return a.guild == currentGuildDetails.guild and a.realmNormalized == currentGuildDetails.realm end) and self.SV.Guilds.ByRealm[currentGuildDetails.realm] then
+      local summary = self.SV.Guilds.ByRealm[currentGuildDetails.realm][currentGuildDetails.guild]
+      if summary then
+        local byKey = summary[key]
+        if byKey ~= nil and not currentGuildDetails.hidden and (not sameFaction or currentGuildDetails.faction == currentFaction) then
+          table.insert(result.guilds, {
+            guild = currentGuildDetails.guild,
+            realmNormalized = currentGuildDetails.realm,
             bank = byKey.bank or 0
           })
         end

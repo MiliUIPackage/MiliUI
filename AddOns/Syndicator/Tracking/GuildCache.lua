@@ -1,6 +1,6 @@
 SyndicatorGuildCacheMixin = {}
 
-local function InitGuild(key, guild, realms)
+local function InitGuild(key, guild, realm)
   if not SYNDICATOR_DATA.Guilds[key] then
     SYNDICATOR_DATA.Guilds[key] = {
       bank = {},
@@ -10,47 +10,15 @@ local function InitGuild(key, guild, realms)
         faction = UnitFactionGroup("player"),
         hidden = false,
         visited = false,
+        realm = realm,
       },
     }
   end
-  SYNDICATOR_DATA.Guilds[key].details.realms = realms
+  SYNDICATOR_DATA.Guilds[key].details.realms = nil
+  SYNDICATOR_DATA.Guilds[key].details.realm = realm
 end
 
 local seenGuilds = {}
-
-local function GetGuildKey()
-  if not IsInGuild() then
-    return
-  end
-
-  local guildName = GetGuildInfo("player")
-
-  if not guildName then
-    return
-  end
-
-  if seenGuilds[guildName] then
-    return seenGuilds[guildName]
-  end
-
-  local realms = Syndicator.Utilities.GetConnectedRealms()
-
-  for _, realm in ipairs(realms) do
-    local key = guildName .. "-" .. realm
-    if SYNDICATOR_DATA.Guilds[key] then
-      InitGuild(key, guildName, realms)
-      seenGuilds[guildName] = key
-      return key
-    end
-  end
-
-  local key = guildName .. "-" .. realms[1]
-  -- No guild found cached, create it
-  InitGuild(key, guildName, realms)
-  seenGuilds[guildName] = key
-
-  return key
-end
 
 local GUILD_OPEN_EVENTS = {
   "GUILDBANKBAGSLOTS_CHANGED",
@@ -66,8 +34,7 @@ function SyndicatorGuildCacheMixin:OnLoad()
     "PLAYER_GUILD_UPDATE",
   })
 
-  self.currentGuild = GetGuildKey()
-  Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
+  self:GetGuildKey()
   self.lastTabPickups = {}
 
   local function UpdateForPickup(tabIndex, slotID)
@@ -78,6 +45,79 @@ function SyndicatorGuildCacheMixin:OnLoad()
   end
   hooksecurefunc("PickupGuildBankItem", UpdateForPickup)
   hooksecurefunc("SplitGuildBankItem", UpdateForPickup)
+end
+
+function SyndicatorGuildCacheMixin:GetGuildKey()
+  if not IsInGuild() then
+    return
+  end
+
+  local guildName = GetGuildInfo("player")
+
+  if not guildName then
+    return
+  end
+
+  if seenGuilds[guildName] then
+    return seenGuilds[guildName]
+  end
+
+  local oldGuild = self.currentGuild
+
+  self.currentGuild = nil
+
+  local gm, gmGUID
+  for i = 1, GetNumGuildMembers() do
+    local name, _, rankIndex, _, _, _, _, _, _, _, _, _, _, _, _, _, _, guid = GetGuildRosterInfo(i)
+    if rankIndex == 0 then
+      gm, gmGUID = name, gmGUID
+    end
+  end
+
+  local _, gmRealm
+  if gm then
+    _, gmRealm = strsplit("-", gm)
+  end
+
+  if not gmRealm then
+    if gmGUID then
+      print("guid")
+      GetPlayerInfoByGUID(gmGUID)
+    else
+      C_GuildInfo.GuildRoster()
+    end
+    C_Timer.After(0, function()
+      if self.currentGuild == nil then
+        self:GetGuildKey()
+      end
+    end)
+    return
+  end
+
+  local connectedRealms = Syndicator.Utilities.GetConnectedRealms()
+
+  local gmKey = guildName .. "-" .. gmRealm
+
+  for _, r in ipairs(connectedRealms) do
+    local key = guildName .. "-" .. r
+    if key ~= gmKey and SYNDICATOR_DATA.Guilds[key] then
+      if not SYNDICATOR_DATA.Guilds[gmKey] then
+        SYNDICATOR_DATA.Guilds[gmKey] = SYNDICATOR_DATA.Guilds[key]
+      end
+      Syndicator.API.DeleteGuild(key)
+      break
+    end
+  end
+
+  -- No guild found cached, create it
+  InitGuild(gmKey, guildName, gmRealm)
+  seenGuilds[guildName] = gmKey
+
+  self.currentGuild = gmKey
+
+  if oldGuild ~= self.currentGuild then
+    Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
+  end
 end
 
 function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
@@ -101,18 +141,16 @@ function SyndicatorGuildCacheMixin:OnEvent(eventName, ...)
     self.isUpdatePending = true
     self:ExamineGeneralTabInfo()
   elseif eventName == "GUILDBANK_UPDATE_MONEY" then
-    local key = GetGuildKey()
-    local data = SYNDICATOR_DATA.Guilds[key]
-    data.money = GetGuildBankMoney()
-
-    Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", key)
+    self:GetGuildKey()
+    local data = SYNDICATOR_DATA.Guilds[self.currentGuild]
+    if data then
+      data.money = GetGuildBankMoney()
+      Syndicator.CallbackRegistry:TriggerEvent("GuildCacheUpdate", self.currentGuild)
+    end
   -- Potential change to guild name
   elseif eventName == "GUILD_ROSTER_UPDATE" or eventName == "PLAYER_GUILD_UPDATE" then
     local oldGuild = self.currentGuild
-    self.currentGuild = GetGuildKey()
-    if self.currentGuild and oldGuild ~= self.currentGuild then
-      Syndicator.CallbackRegistry:TriggerEvent("GuildNameSet", self.currentGuild)
-    end
+    self:GetGuildKey()
   end
 end
 
