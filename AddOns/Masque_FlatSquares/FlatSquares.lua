@@ -1,4 +1,5 @@
 local MSQ = LibStub("Masque", true)
+local GetAddOnMetadata = C_AddOns.GetAddOnMetadata
 if not MSQ then return end
 
 local AddOn, Core = ...
