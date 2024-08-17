@@ -88,9 +88,19 @@ local itemCooldownsEnabled = true
 -- ****************************************************************************
 local function GetCooldownTexture(cooldownType, cooldownID)
 	if (cooldownType == "item") then
-		return select(ITEM_INFO_TEXTURE_POSITION, GetItemInfo(cooldownID))
+		local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, itemSellPrice = C_Item.GetItemInfo(cooldownID)
+		return itemTexture
 	else
-		return GetSpellTexture(cooldownID)
+
+		local iconID = C_Spell.GetSpellTexture(cooldownID)
+		if iconID then
+			return iconID
+		else
+			local spellInfo = C_Spell.GetSpellInfo(cooldownID)
+			if spellInfo then
+				return spellInfo.iconID
+			end
+		end
 	end
 end
 
@@ -104,7 +114,7 @@ end
 -- ****************************************************************************
 local function OnSpellCast(unitID, spellID)
 	-- Ignore the cast if the spell name is excluded.
-	local spellName = C_Spell.GetSpellInfo(spellID) or UNKNOWN
+	local spellName = C_Spell.GetSpellName(spellID) or UNKNOWN
 	local cooldownExclusions = MSBTProfiles.currentProfile.cooldownExclusions
 	if (cooldownExclusions[spellName] or cooldownExclusions[spellID]) then return end
 
@@ -130,7 +140,7 @@ end
 -- ****************************************************************************
 local function OnItemUse(itemID)
 	-- Ignore if the item name is excluded.
-	local itemName = GetItemInfo(itemID)
+	local itemName = C_Item.GetItemInfo(itemID)
 	local cooldownExclusions = MSBTProfiles.currentProfile.cooldownExclusions
 	if (cooldownExclusions[itemName] or cooldownExclusions[itemID]) then return end
 
@@ -168,7 +178,7 @@ local function OnUpdateCooldown(cooldownType, cooldownFunc)
 
 			-- Add the cooldown to the active cooldowns list if the cooldown is longer than the cooldown threshold or it's required to show.
 
-			local cooldownName = GetSpellInfo(cooldownID)
+			local cooldownName = C_Spell.GetSpellName(cooldownID) or UNKNOWN
 
 			local ignoreCooldownThreshold = MSBTProfiles.currentProfile.ignoreCooldownThreshold
 
@@ -225,7 +235,7 @@ if cooldownID then
 		
         -- Add the cooldown to the active cooldowns list if the cooldown is longer than the cooldown threshold or it's required to show.
 
-        local cooldownName = GetSpellInfo(cooldownID)
+        local cooldownName = C_Spell.GetSpellName(cooldownID) or UNKNOWN
         local ignoreCooldownThreshold = MSBTProfiles.currentProfile.ignoreCooldownThreshold
 
         if duration >= MSBTProfiles.currentProfile.cooldownThreshold or ignoreCooldownThreshold[cooldownName] or ignoreCooldownThreshold[cooldownID] then
@@ -288,7 +298,7 @@ local function OnUpdate(frame, elapsed)
 		local currentTime = GetTime()
 		for cooldownType, cooldowns in pairs(activeCooldowns) do
 			local cooldownFunc = (cooldownType == "item") and C_Container.GetItemCooldown or GetSpellCooldown
-			local infoFunc = (cooldownType == "item") and GetItemInfo or C_Spell.GetSpellInfo
+			local infoFunc = (cooldownType == "item") and C_Item.GetItemInfo or C_Spell.GetSpellName
 			for cooldownID, remainingDuration in pairs(cooldowns) do
 				-- Ensure the cooldown is still valid.
 				local startTime, duration, enabled = cooldownFunc(cooldownID)
@@ -486,7 +496,7 @@ local function UseItemByNameHook(itemName)
 
 	-- Get item link for the name and extract item id from item link.
 	if (not itemName) then return end
-	local _, itemLink = GetItemInfo(itemName)
+	local _, itemLink = C_Item.GetItemInfo(itemName)
 	local itemID
 	if (itemLink) then itemID = string_match(itemLink, "item:(%d+)") end
 	if (itemID) then OnItemUse(itemID) end

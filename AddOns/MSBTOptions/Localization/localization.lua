@@ -14,6 +14,7 @@ local L = MikSBT.translations
 -- Interface object tables
 ------------------------------
 
+L.MSBT_MSBT = "Mik's Scrolling Battle Text"
 L.TABS = {}
 L.CHECKBOXES = {}
 L.DROPDOWNS = {}
