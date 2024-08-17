@@ -27,7 +27,7 @@ local CopyTable = _G.CopyTable
 local CreateFrame = _G.CreateFrame
 local DEFAULT_CHAT_FRAME = _G.DEFAULT_CHAT_FRAME
 local error = _G.error
-local GetAddOnMetadata = _G.GetAddOnMetadata
+local GetAddOnMetadata = _G.GetAddOnMetadata or _G.C_AddOns.GetAddOnMetadata
 local IsAltKeyDown = _G.IsAltKeyDown
 local IsControlKeyDown = _G.IsControlKeyDown
 local IsShiftKeyDown = _G.IsShiftKeyDown
@@ -299,6 +299,22 @@ end
 --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
 --[[                     OptionsFrame Functions                              ]]
 --:::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+
+-------------------------------------------------------------------------------
+function OptionsFrame_ToggleUI()
+    --|traceCfg("IN OptionsFrame_ToggleUI().")
+    if not OptionsFrame then
+        OptionsFrame_Create()
+    end
+
+    if OptionsFrame:IsShown() then
+        OptionsFrame:Hide()
+    else
+        OptionsFrame:Show()
+        if isCursorTrailOff() then CursorTrail_ON(true) end
+    end
+    --|traceCfg("OUT OptionsFrame_ToggleUI().")
+end
 
 -------------------------------------------------------------------------------
 function OptionsFrame_Create()

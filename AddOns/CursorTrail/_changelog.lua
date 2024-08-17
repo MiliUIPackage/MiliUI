@@ -7,6 +7,39 @@ setfenv(1, _G.CursorTrail)  -- Everything after this uses our namespace rather t
 kChangelogText =
 [[
 =======================================
+RELEASE 11.0.2.1
+Released 2024-08-13
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.2.1 for Retail WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- Updated for WoW 11.0.2.
+- Fixed bugs caused by WoW API changes.
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 4.4.0.9 for Classic Cataclysm
+Version 1.15.3.4 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- No changes.
+
+=======================================
+RELEASE 11.0.0.2
+Released 2024-08-10
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 11.0.0.2 for Retail WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- Added CursorTrail to the game's "AddOn Compartment" button.
+Note: The Addon Compartment button is the little number that appears near the upper-right of the minimap, just below the Calendar button.  The number indicates how many addons are in the compartment.  Clicking the number shows a list of those addons, and clicking one opens/closes its UI.
+Note: Credits to NoctusMirus on CurseForge.  Thanks for helping find the solution!
+
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+Version 4.4.0.8 for Classic Cataclysm
+Version 1.15.3.3 for Classic WoW
+- - - - - - - - - - - - - - - - - - - - - - - - - -
+- No changes.
+
+=======================================
 RELEASE 11.0.0.1
 Released 2024-07-24
 

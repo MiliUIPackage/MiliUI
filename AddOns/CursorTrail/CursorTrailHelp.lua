@@ -11,7 +11,7 @@ local kAddonFolderName, private = ...
 
 local Globals = _G
 local _  -- Prevent tainting global _ .
-local GetAddOnMetadata = _G.GetAddOnMetadata
+local GetAddOnMetadata = _G.GetAddOnMetadata or _G.C_AddOns.GetAddOnMetadata
 local print = _G.print
 local UNKNOWN = _G.UNKNOWN  -- Translated word for "Unknown".
 

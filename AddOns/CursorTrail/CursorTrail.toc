@@ -5,7 +5,7 @@
 ## DefaultState: Disabled
 ## Notes: Adds a shape, shadow, and glowing trail effect to your mouse cursor.
 ## Author: UppyDan
-## Version: 11.0.0.1
+## Version: 11.0.2.1
 ## IconTexture: Interface\Icons\INV_Enchant_EssenceEternalLarge
 ## SavedVariables: CursorTrail_Config
 ## SavedVariablesPerCharacter: CursorTrail_PlayerConfig

@@ -28,7 +28,7 @@ local CreateVector3D = _G.CreateVector3D
 local DEFAULT_CHAT_FRAME = _G.DEFAULT_CHAT_FRAME
 local DoesAncestryInclude = _G.DoesAncestryInclude
 local floor = _G.floor
-local GetAddOnMetadata = _G.GetAddOnMetadata
+local GetAddOnMetadata = _G.GetAddOnMetadata or _G.C_AddOns.GetAddOnMetadata
 local GetBuildInfo = _G.GetBuildInfo
 local GetCursorPosition = _G.GetCursorPosition
 local GetCVar = _G.GetCVar
@@ -271,13 +271,7 @@ Globals["SLASH_"..kAddonFolderName.."1"] = "/"..kAddonFolderName
 Globals["SLASH_"..kAddonFolderName.."2"] = "/ct"
 Globals.SlashCmdList[kAddonFolderName] = function (params)
     if (params == nil or params == "") then
-        -- Toggle options window.
-        if OptionsFrame:IsShown() then
-            OptionsFrame:Hide()
-        else
-            OptionsFrame:Show()
-            if isCursorTrailOff() then CursorTrail_ON(true) end
-        end
+        OptionsFrame_ToggleUI()
         ----printUsageMsg()
         return
     end
@@ -571,6 +565,32 @@ function       EventFrame:PLAYER_ENTERING_WORLD()
     Addon_Initialize()
     if not StandardPanel then StandardPanel_Create("/"..kAddonFolderName) end
     if not OptionsFrame then OptionsFrame_Create() end
+
+    -- Add this addon to the game's "AddOn Compartment" button.
+    local AddonCompartmentFrame = Globals.AddonCompartmentFrame
+    if AddonCompartmentFrame then
+        local iconFileName = GetAddOnMetadata(kAddonFolderName, "IconTexture")
+        if iconFileName then iconFileName = iconFileName .. ".blp" end
+        AddonCompartmentFrame:RegisterAddon({
+            text = kAddonTitle,
+            icon = iconFileName,
+            notCheckable = true,
+            func = function(buttonFrame, clickData, menuFrame)
+                ----if clickData.buttonName == "LeftButton" then
+                    OptionsFrame_ToggleUI()
+                ----end
+            end,
+            ----funcOnEnter = function(buttonFrame)
+            ----    local notes = GetAddOnMetadata(kAddonFolderName, "Notes")
+            ----    Globals.MenuUtil.ShowTooltip(buttonFrame, function(tooltip)
+            ----        tooltip:SetText(kAddonFolderName .. "\n" .. notes)
+            ----    end)
+            ----end,
+            ----funcOnLeave = function(buttonFrame)
+            ----    Globals.MenuUtil.HideTooltip(buttonFrame)
+            ----end,
+        })
+    end
 end
 
 -------------------------------------------------------------------------------

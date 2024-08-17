@@ -113,6 +113,8 @@ function CursorTrail_ShowChangelog(parent)
             elseif strStartsWith(line, "- ") then  -- Bullet item?
                 line = YELLOW .. "- |r" .. line:sub(3)
                 dx = indent * 2
+            elseif strStartsWith(line, "Note:") then  -- Note?
+                dx = indent * 2
             elseif line:trim():sub(1,1) == "/" then  -- Starts with a slash?
                 line = line:gsub("<", GRAY.."<")
                 line = line:gsub(">", ">|r")
@@ -127,6 +129,7 @@ function CursorTrail_ShowChangelog(parent)
             if line then
                 line = line:gsub("TBD", CYAN .. "<<< TBD >>>|r")  -- Emphasize TBD's.
                 line = line:gsub("TODO", CYAN .. "<<< TODO >>>|r")  -- Emphasize TODO's.
+                line = line:gsub("Note:", YELLOW .. "Note:|r")  -- Emphasize Notes.
 
                 ChangelogFrame:AddText(line, dx, dy, font)
                 dy = lineSpacing
