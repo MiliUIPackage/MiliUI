@@ -1,4 +1,5 @@
 local MSQ = LibStub('Masque', true)
+local GetAddOnMetadata = C_AddOns.GetAddOnMetadata
 if not MSQ then return end
 
 --TODO: https://github.com/SFX-WoW/Masque/commit/f81e68b63629e7f7b6a05a1ae0b20d19f5b0316f#diff-afee5d33c5e1d495dec91aaeaebaf5d58fa602eb6bac650c47a830e525edca99 update to support masque 90002 cooldown pulse support.
