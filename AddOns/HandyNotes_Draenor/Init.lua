@@ -1,4 +1,4 @@
-HandyNotes_Draenor = LibStub("AceAddon-3.0"):NewAddon("HandyNotes_Draenor", "AceEvent-3.0", "AceBucket-3.0")
+HandyNotes_Draenor = LibStub("AceAddon-3.0"):NewAddon("HandyNotes_Draenor", "AceEvent-3.0", "AceTimer-3.0", "AceBucket-3.0")
 
 HandyNotes_Draenor.nodes = {}
 
@@ -79,6 +79,14 @@ function HandyNotes_Draenor:OnInitialize()
                     Treasures = true,
                 },
                 TanaanJungle = {
+                    Rares = true,
+                    Treasures = true,
+                },
+                Frostwall = {
+                    Rares = true,
+                    Treasures = true,
+                },
+                Lunarfall = {
                     Rares = true,
                     Treasures = true,
                 },

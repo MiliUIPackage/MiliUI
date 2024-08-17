@@ -1,4 +1,4 @@
-local HandyNotes_Draenor = LibStub("AceAddon-3.0"):GetAddon("HandyNotes_Draenor")
+HandyNotes_Draenor = LibStub("AceAddon-3.0"):GetAddon("HandyNotes_Draenor")
 
 if ((C_QuestLog.IsQuestFlaggedCompleted(36386) == false) or (C_QuestLog.IsQuestFlaggedCompleted(36390) == false) or (C_QuestLog.IsQuestFlaggedCompleted(36389) == false) or (C_QuestLog.IsQuestFlaggedCompleted(36392) == false) or (C_QuestLog.IsQuestFlaggedCompleted(36388) == false) or (C_QuestLog.IsQuestFlaggedCompleted(36381) == false)) then
     HandyNotes_Draenor.nodes[542][43901500] = { 542, "36395", "Elixir of Shadow Sight 1", "Elixir can be used at Shrine of Terrok for 1 of 6 i585 Weapons (see Gift of Anzu) Object will be removed as soon as you loot all Gifts of Anzu", HandyNotes_Draenor.DefaultIcons.Icon_Treasure_Default, HandyNotes_Draenor.DefaultNodeTypes.Treasure, "115463" }

@@ -232,6 +232,21 @@ HandyNotes_Draenor.options = {
                     get = function(info) return HandyNotes_Draenor.db.profile.Zones.TanaanJungle.Rares end,
                     set = function(info, value) HandyNotes_Draenor.db.profile.Zones.TanaanJungle.Rares = value; HandyNotes_Draenor:Refresh() end,
                 },
+                GarrisionGroup = {
+                    type = "header",
+                    name = "Garrision",
+                    desc = "Garrision",
+                    order = 65,
+                },
+                GarrisionTreasures = {
+                    type = "toggle",
+                    name = "Treasures",
+                    desc = "Treasures that give various items",
+                    order = 66,
+
+                    get = function(info) return HandyNotes_Draenor.db.profile.Zones.Frostwall.Treasures end,
+                    set = function(info, value) HandyNotes_Draenor.db.profile.Zones.Frostwall.Treasures = value; HandyNotes_Draenor.db.profile.Zones.Lunarfall.Treasures = value; HandyNotes_Draenor:Refresh() end,
+                },
                 groupMount = {
                     type = "header",
                     name = "Mounts",
