@@ -87,7 +87,7 @@ local function LoadDefaultSettings(addonName)
 		AstralKeysSettings.new_settings_config = true
 	end
 
-	addon.CLIENT_VERSION = GetAddOnMetadata('AstralKeys', 'Version')
+	addon.CLIENT_VERSION = C_AddOns.GetAddOnMetadata('AstralKeys', 'Version')
 	addon:SetUIScale()
 	_G['AstralEngine'] = addon
 
@@ -99,6 +99,9 @@ local function LoadDefaultSettings(addonName)
 	})
 	addon:AddDefaultSettings('general', 'show_tooltip_key', {
 		isEnabled = true,
+	})
+	addon:AddDefaultSettings('general', 'show_tooltip_forces', {
+		isEnabled = false,
 	})
 	addon:AddDefaultSettings('general', 'announce_party', {
 		isEnabled = true,

@@ -1,9 +1,9 @@
 # Astral Keys
 
-## [4.03](https://github.com/astralguild/AstralKeys/tree/4.03) (2024-04-23)
-[Full Changelog](https://github.com/astralguild/AstralKeys/compare/4.02...4.03) [Previous Releases](https://github.com/astralguild/AstralKeys/releases)
+## [4.11](https://github.com/astralguild/AstralKeys/tree/4.11) (2024-08-14)
+[Full Changelog](https://github.com/astralguild/AstralKeys/compare/4.10...4.11) [Previous Releases](https://github.com/astralguild/AstralKeys/releases)
 
 - Update AstralKeys.toc  
-- Merge pull request #116 from AlexSafatli/df-s4  
-    Fix error on open with new season  
-- Fix error on /ak  
+- Update AstralKeys.toc  
+- Fix C\_AddOns namespacing  
+- Update AstralKeys.toc  
