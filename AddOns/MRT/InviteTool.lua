@@ -7,6 +7,8 @@ local VMRT = nil
 local module = ExRT:New("InviteTool",ExRT.L.invite)
 local ELib,L = ExRT.lib,ExRT.L
 
+local GetItemInfo, GetItemInfoInstant, GetItemQualityColor = C_Item and C_Item.GetItemInfo or GetItemInfo, C_Item and C_Item.GetItemInfoInstant or GetItemInfoInstant, C_Item and C_Item.GetItemQualityColor or GetItemQualityColor
+
 module.db.converttoraid = false
 module.db.massinv = false
 module.db.invWordsArray = {}
@@ -111,7 +113,7 @@ end
 local function InviteList(list,noNewList)
 	local nowinvnum = 1
 	local inRaid = IsInRaid()
-	if #list > 5 and not inRaid then
+	if #list >= 5 and not inRaid then
 		module.db.converttoraid = true
 	end
 	if not noNewList and not inRaid then

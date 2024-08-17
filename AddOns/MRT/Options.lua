@@ -34,7 +34,7 @@ ELib:ShadowInside(Options)
 Options.bossButton:Hide()
 Options.backToInterface:SetScript("OnClick",function ()
 	MRT.Options.Frame:Hide()
-	if MRT.is10 then
+	if SettingsPanel then
 		SettingsPanel:Show()
 	else
 		InterfaceOptionsFrame:Show()
@@ -147,7 +147,7 @@ Options.modulesList:Update()
 
 MRT.Options.InBlizzardInterface = CreateFrame( "Frame", nil )
 MRT.Options.InBlizzardInterface.name = "Method Raid Tools"
-if MRT.is10 then
+if SettingsPanel then
 	local category = Settings.RegisterCanvasLayoutCategory(MRT.Options.InBlizzardInterface, "Method Raid Tools")
 	Settings.RegisterAddOnCategory(category)
 else
@@ -156,7 +156,7 @@ end
 MRT.Options.InBlizzardInterface:Hide()
 
 MRT.Options.InBlizzardInterface:SetScript("OnShow",function (self)
-	if MRT.is10 then
+	if SettingsPanel then
 		if SettingsPanel:IsShown() then
 			HideUIPanel(SettingsPanel)
 		end
@@ -170,7 +170,7 @@ MRT.Options.InBlizzardInterface:SetScript("OnShow",function (self)
 end)
 
 MRT.Options.InBlizzardInterface.button = ELib:Button(MRT.Options.InBlizzardInterface,"Method Raid Tools",0):Size(400,25):Point("TOP",0,-100):OnClick(function ()
-	if MRT.is10 then
+	if SettingsPanel then
 		if SettingsPanel:IsShown() then
 			HideUIPanel(SettingsPanel)
 		end
@@ -260,7 +260,7 @@ MiniMapIcon:SetScript("OnLeave", function(self)
 	self.anim:Stop()
 	self.iconMini:Hide()
 end)
-if MRT.is10 then
+if not MRT.isClassic then
 	MiniMapIcon.icon:SetSize(20,20)
 	MiniMapIcon.iconMini:SetSize(20,20)
 	MiniMapIcon.icon:SetPoint("CENTER",1,0)
@@ -357,6 +357,10 @@ local function MiniMapIconOnClick(self, button)
 	end
 end
 
+MRT_MinimapClickFunction = function()
+	MRT.Options:Open()
+end
+
 MiniMapIcon:SetScript("OnMouseUp", MiniMapIconOnClick)
 
 MRT.Options.MiniMapDropdown = CreateFrame("Frame", "MRTMiniMapMenuFrame", nil, "UIDropDownMenuTemplate")
@@ -444,6 +448,10 @@ MRT.F.menuTable = {
 { text = L.minimapmenuclose, func = function() CloseDropDownMenus() ELib.ScrollDropDown.Close() end, notCheckable = true },
 }
 
+if MRT.Dev == true then
+	tinsert(MRT.F.menuTable, { text = "Reload UI", func = function() ReloadUI() end, notCheckable = true })
+end
+
 local modulesActive = {}
 function MRT.Options:UpdateModulesList()
 	for i=1,#MRT.ModulesOptions do
@@ -454,13 +462,20 @@ function MRT.Options:UpdateModulesList()
 end
 
 ----> Options
-local OptionsFrame_title
+local OptionsFrame_title, OptionsFrame_image, OptionsFrame_imagehat
 
 function OptionsFrame:AddSnowStorm(maxSnowflake)
 	local sf = OptionsFrame.SnowStorm or CreateFrame("ScrollFrame", nil, Options)
 	OptionsFrame.SnowStorm = sf
 	sf:SetPoint("TOPLEFT")
 	sf:SetPoint("BOTTOMRIGHT")
+
+	local resumeSnowFunc = function(self)
+		self:SetScript("OnUpdate",nil)
+		for i=1,self.snowlast do
+			self.snow[i].g:Play()
+		end
+	end
 	
 	sf.C = sf.C or CreateFrame("Frame", nil, sf) 
 	sf:SetScrollChild(sf.C)
@@ -472,7 +487,7 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 		local hat = CreateFrame("Button",nil,OptionsFrame)  
 		OptionsFrame.hatBut = hat
 		hat:SetSize(50,30) 
-		hat:SetPoint("CENTER",OptionsFrame.image,-40,55)
+		hat:SetPoint("CENTER",OptionsFrame_image,-40,55)
 		hat.maxSnowflake = maxSnowflake
 		hat:RegisterForClicks("LeftButtonDown","RightButtonDown")
 		hat:SetScript("OnClick",function(self,button) 
@@ -484,10 +499,10 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 			OptionsFrame:AddSnowStorm(self.maxSnowflake)
 		end)
 		hat:SetScript("OnEnter",function()
-			OptionsFrame.imagehat:SetVertexColor(1,.8,.8)
+			OptionsFrame_imagehat:SetVertexColor(1,.8,.8)
 		end)
 		hat:SetScript("OnLeave",function()
-			OptionsFrame.imagehat:SetVertexColor(1,1,1)
+			OptionsFrame_imagehat:SetVertexColor(1,1,1)
 		end)
 
 		hat.g = hat:CreateAnimationGroup()
@@ -514,7 +529,7 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 					p = 0 - p
 				end
 			end
-			OptionsFrame.imagehat:SetPoint("CENTER",OptionsFrame.image,"CENTER",p*12*3,0)
+			OptionsFrame_imagehat:SetPoint("CENTER",OptionsFrame_image,"CENTER",p*12*3,0)
 		end)
 		hat.g.a:SetStartDelay(10)
 		hat.g:Play()
@@ -526,6 +541,7 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 		for i=maxSnowflake+1,#sf.snow do
 			local f = sf.snow[i]
 			f:Hide()
+			f.g:Pause()
 		end
 		sf.snowlast = 0
 		return
@@ -537,6 +553,11 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 		f:Update()
 	end
 	local function AnimOnUpdate(self)
+		if not sf:IsVisible() then
+			sf:SetScript("OnUpdate",resumeSnowFunc)
+			self:GetParent():Pause()
+			return
+		end
 		local f = self.p
 		local p = self:GetProgress()
 		if p == 0 then
@@ -607,6 +628,7 @@ function OptionsFrame:AddSnowStorm(maxSnowflake)
 		
 			f:Update(true)
 		end
+		sf.snow[i].g:Play()
 		sf.snow[i]:Show()
 	end
 	sf.snowlast = maxSnowflake
@@ -622,15 +644,22 @@ function OptionsFrame:AddDeathStar(maxDeathStars,deathStarType)
 	sf:SetScrollChild(sf.C)
 	sf.C:SetSize(Options:GetWidth(),Options:GetHeight())
 
+	local resumeSnowFunc = function(self)
+		self:SetScript("OnUpdate",nil)
+		for i=1,self.snowlast do
+			self.snow[i].g:Play()
+		end
+	end
+
 	maxDeathStars = maxDeathStars or 1
 
 	if not OptionsFrame.hatBut then
 		local hat = CreateFrame("Button",nil,OptionsFrame)  
 		OptionsFrame.hatBut = hat
 		hat:SetSize(76,20) 
-		hat:SetPoint("TOP",OptionsFrame.image,22,-5)
+		hat:SetPoint("TOP",OptionsFrame_image,22,-5)
 		if deathStarType == 2 then
-			hat:SetPoint("TOP",OptionsFrame.image,3,-35)
+			hat:SetPoint("TOP",OptionsFrame_image,3,-35)
 			hat:SetSize(50,50) 
 		end
 		hat.maxDeathStars = maxDeathStars
@@ -653,6 +682,7 @@ function OptionsFrame:AddDeathStar(maxDeathStars,deathStarType)
 		for i=maxDeathStars+1,#sf.snow do
 			local f = sf.snow[i]
 			f:Hide()
+			f.g:Pause()
 		end
 		sf.snowlast = 0
 		return
@@ -664,6 +694,11 @@ function OptionsFrame:AddDeathStar(maxDeathStars,deathStarType)
 		f:Update()
 	end
 	local function AnimOnUpdate(self)
+		if not sf:IsVisible() then
+			sf:SetScript("OnUpdate",resumeSnowFunc)
+			self:GetParent():Pause()
+			return
+		end
 		local f = self.p
 		local p = self:GetProgress()
 		if p == 0 then
@@ -775,19 +810,102 @@ function OptionsFrame:AddDeathStar(maxDeathStars,deathStarType)
 		
 			f:Update(true)
 		end
+		sf.snow[i].g:Play()
 		sf.snow[i]:Show()
 	end
 	sf.snowlast = maxDeathStars
 end
 
+function OptionsFrame:AddChest(chestType)
+	local sf = OptionsFrame.ChestFrame or CreateFrame("ScrollFrame", nil, Options)
+	OptionsFrame.ChestFrame = sf
+	sf:SetPoint("TOPLEFT")
+	sf:SetPoint("BOTTOMRIGHT")
 
-OptionsFrame.image = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogo2"):Point("TOPLEFT",15,5):Size(140,140)
-OptionsFrame_title = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\logoname2"):Point("LEFT",OptionsFrame.image,"RIGHT",15,-5):Size(512*0.7,128*0.7)
+	sf.C = sf.C or CreateFrame("Frame", nil, sf) 
+	sf:SetScrollChild(sf.C)
+	sf.C:SetSize(Options:GetWidth(),Options:GetHeight())
+
+	local SCALE = 0.4
+
+	local captured
+	local function AddCaptured()
+		if captured then
+			return captured
+		end
+		local animated = CreateFrame("Button",nil,UIParent)
+		captured = animated
+		animated.texture = animated:CreateTexture()
+		animated.texture:SetAllPoints()
+		animated.texture:SetTexture([[Interface\AddOns\MRT\media\frieren.jpg]])
+		animated:SetFrameStrata("DIALOG")
+		
+		animated:SetPoint("CENTER")
+		animated:SetSize(256*1.5,256*1.5)
+		animated.texture:SetTexCoord(0,0.25,0,0.25)
+		
+		animated.frame = 0
+		animated.frame_max = 14
+		animated.tmr = 0
+		animated:SetScript("OnUpdate",function(self,elapsed)
+			self.tmr = self.tmr + elapsed
+			if self.tmr > 0.15 then
+				self.tmr = 0
+				self.frame = self.frame + 1
+		
+				if self.frame > self.frame_max then
+					self.frame = 1
+				end
+		
+				local w = self.frame % 4
+				local h = floor(self.frame / 4)
+				
+				self.texture:SetTexCoord(w * 0.25,(w + 1) * 0.25,h * 0.25,(h + 1) * 0.25)
+			end
+		end)
+		animated:SetScript("OnClick",function(self)
+			self:Hide()
+		end)
+	end
+
+	local chest = CreateFrame("Button",nil,sf.C)  
+	OptionsFrame.chestBut = chest
+	chest:SetSize(175*SCALE,130*SCALE) 
+	local x,y = math.random(130,Options:GetWidth()-175*SCALE),math.random(0,Options:GetHeight()-130*SCALE)
+	chest:SetPoint("TOPLEFT",x,-y)
+	chest:RegisterForClicks("LeftButtonDown","RightButtonDown")
+	chest:SetScript("OnClick",function(self,button) 
+		AddCaptured()
+		captured:Show()
+		self:Hide()
+	end)
+	chest.t = chest:CreateTexture()
+	chest.t:SetAllPoints()
+	chest.t:SetAtlas("ChallengeMode-Chest")
+
+	chest:RotateTextures(math.pi*2/360*(math.random(0,360)))
+end
+
+
+
+OptionsFrame_image = OptionsFrame:CreateTexture(nil,"ARTWORK")
+
+local p = {[0] = OptionsFrame_image[0]}
+setmetatable(p,getmetatable(OptionsFrame_image))
+OptionsFrame_image[0] = nil
+OptionsFrame_image = p
+
+OptionsFrame_image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogo2")
+OptionsFrame_image:SetPoint("TOPLEFT",15,5)
+OptionsFrame_image:SetSize(140,140)
+OptionsFrame_image.Point = OptionsFrame_image.SetPoint
+
+OptionsFrame_title = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\logoname2"):Point("LEFT",OptionsFrame_image,"RIGHT",15,-5):Size(512*0.7,128*0.7)
 
 local askFrame_show
 local pmove_pos = 40
 OptionsFrame.pmove = CreateFrame("Frame",nil,OptionsFrame)
-OptionsFrame.pmove:SetPoint("CENTER",OptionsFrame.image,"CENTER",54*cos(pmove_pos),54*sin(pmove_pos))
+OptionsFrame.pmove:SetPoint("CENTER",OptionsFrame_image,"CENTER",54*cos(pmove_pos),54*sin(pmove_pos))
 OptionsFrame.pmove:SetSize(15,15)
 local function pmove_OnUpdate(self,elapsed)
 	if not self:IsMouseOver() or not IsMouseButtonDown() then
@@ -805,8 +923,8 @@ local function pmove_OnUpdate(self,elapsed)
 		self:SetScript("OnUpdate",nil)
 		askFrame_show()
 	end
-	self:SetPoint("CENTER",OptionsFrame.image,"CENTER",54*cos(pmove_pos),54*sin(pmove_pos))
-	OptionsFrame.image:SetRotation((pmove_pos-40)*PI/180)
+	self:SetPoint("CENTER",OptionsFrame_image,"CENTER",54*cos(pmove_pos),54*sin(pmove_pos))
+	OptionsFrame_image:SetRotation((pmove_pos-40)*PI/180)
 end
 OptionsFrame.pmove:SetScript("OnMouseDown",function(self)
 	self.isReverse = false
@@ -825,12 +943,12 @@ OptionsFrame.animLogo.g.a:SetDuration(.5)
 OptionsFrame.animLogo.g.a:SetScript("OnUpdate",function(self)
 	local p = 0.5-abs(0.5-self:GetProgress())
 	if pmove_pos ~= 40 then return end
-	OptionsFrame.image:SetRotation(p*10*PI/180)
+	OptionsFrame_image:SetRotation(p*10*PI/180)
 end)
 OptionsFrame.animLogo.g.a:SetStartDelay(4)
 OptionsFrame.animLogo.g:Play()
 
-OptionsFrame.imagehat = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogoHat","OVERLAY"):Point("CENTER",OptionsFrame.image,"CENTER",0,0):Size(140,140):Shown(false)
+OptionsFrame_imagehat = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogoHat","OVERLAY"):Point("CENTER",OptionsFrame_image,"CENTER",0,0):Size(140,140):Shown(false)
 
 OptionsFrame.dateChecks = CreateFrame("Frame",nil,OptionsFrame)
 OptionsFrame.dateChecks:SetPoint("TOPLEFT")
@@ -839,11 +957,15 @@ OptionsFrame.dateChecks:SetScript("OnShow",function(self)
 	self:SetScript("OnShow",nil)
 	local today = date("*t",time())
 	local isChristmas, isSnowDay
+	local isFrierenFriday
 	if MRT.locale == "ruRU" then
 		if (today.month == 12 and today.day >= 23) or (today.month == 1 and today.day <= 4) then
 			isChristmas = true
 		end
 		if (today.month == 12 and today.day >= 30) or (today.month == 1 and today.day <= 2) then
+			isSnowDay = true
+		end
+		if (today.month == 12 and today.day >= 24 and today.day <= 25) then
 			isSnowDay = true
 		end
 	elseif MRT.locale == "deDE" or MRT.locale == "enGB" or MRT.locale == "enUS" or MRT.locale == "esES" or MRT.locale == "esMX" or MRT.locale == "frFR" or MRT.locale == "itIT" or MRT.locale == "ptBR" or MRT.locale == "ptPT" then
@@ -861,9 +983,16 @@ OptionsFrame.dateChecks:SetScript("OnShow",function(self)
 			isSnowDay = true
 		end
 	end
+	if (today.wday == 6 and today.day % 2 == 0) then
+		isFrierenFriday = true
+	end	
+	
+	if isFrierenFriday then
+		OptionsFrame:AddChest()
+	end
 
 	if isChristmas then
-		OptionsFrame.imagehat:Show()
+		OptionsFrame_imagehat:Show()
 		if isSnowDay then
 			OptionsFrame:AddSnowStorm()
 		else
@@ -874,7 +1003,7 @@ OptionsFrame.dateChecks:SetScript("OnShow",function(self)
 	end
 
 	if (today.month == 5 and today.day == 4) then
-		OptionsFrame.image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogom4")
+		OptionsFrame_image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogom4")
 		OptionsFrame_title:Color("FF9117")
 		if math.random(1,5) == 4 then
 			OptionsFrame_title:Color("ff0000")	--you are sith
@@ -888,7 +1017,7 @@ OptionsFrame.dateChecks:SetScript("OnShow",function(self)
 	end
 
 	if (today.month == 4 and today.day == 5) then
-		OptionsFrame.image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogost")
+		OptionsFrame_image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogost")
 
 		OptionsFrame:AddDeathStar(nil,2)
 
@@ -897,17 +1026,17 @@ OptionsFrame.dateChecks:SetScript("OnShow",function(self)
 
 	if (today.month == 4 and today.day == 28) then
 		local s = 0.39
-		OptionsFrame_title:Size(512*0.7,128*0.7*s):TexCoord(0,1,0,s):Point("LEFT",OptionsFrame.image,"RIGHT",15,-5+128*s*0.4*0.5):Color(0, 87/255, 183/255,1)
+		OptionsFrame_title:Size(512*0.7,128*0.7*s):TexCoord(0,1,0,s):Point("LEFT",OptionsFrame_image,"RIGHT",15,-5+128*s*0.4*0.5):Color(0, 87/255, 183/255,1)
 		local OptionsFrame_title2 = ELib:Texture(OptionsFrame,"Interface\\AddOns\\"..GlobalAddonName.."\\media\\logoname2"):Point("TOP",OptionsFrame_title,"BOTTOM"):Size(512*0.7,128*0.7*(1-s)):TexCoord(0,1,s,1):Color(255/255, 221/255, 0,1)
 
 		return
 	end
 
 	if type(GetGuildInfo) == 'function' and ((MRT.isClassic and GetGuildInfo("player") == "Гачивайд") or (not MRT.isClassic and today.wday == 4 and GetGuildInfo("player") == "Дивайд")) then
-		OptionsFrame.image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogogv")
-		OptionsFrame.image:SetTexCoord(0,1,0.21875,1-0.21875)
-		OptionsFrame.image:SetSize(140,79)
-		OptionsFrame.image:Point("TOPLEFT",15,5-32)
+		OptionsFrame_image:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\OptionLogogv")
+		OptionsFrame_image:SetTexCoord(0,1,0.21875,1-0.21875)
+		OptionsFrame_image:SetSize(140,79)
+		OptionsFrame_image:Point("TOPLEFT",15,5-32)
 
 		return
 	end
@@ -1164,7 +1293,7 @@ end
 OptionsFrame.Changelog = ELib:ScrollFrame(OptionsFrame):Size(680,180):Point("TOP",0,-335):OnShow(function(self)
 	local text = MRT.Options.Changelog or ""
 	text = text:gsub("(v%.%d+([^\n]*).-\n\n)",function(a,b)
-		if (b == "-Classic" and MRT.isClassic and not MRT.isBC) or (b == "-BC" and MRT.isBC and not MRT.isLK) or (b == "-LK" and MRT.isLK) or ((b ~= "-Classic" and b ~= "-BC" and b ~= "-LK") and not MRT.isClassic) then
+		if (b == "-Classic" and MRT.isClassic and not MRT.isBC) or (b == "-BC" and MRT.isBC and not MRT.isLK) or (b == "-LK" and MRT.isLK and not MRT.isCata) or (b == "-Cata" and MRT.isCata) or (b == "-LK" and MRT.isCata and tonumber(a:match("%d+") or "4841")<=4840) or ((b ~= "-Classic" and b ~= "-BC" and b ~= "-LK" and b ~= "-Cata") and not MRT.isClassic) then
 			return a
 		else
 			return ""

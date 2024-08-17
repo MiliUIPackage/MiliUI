@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 11503, 40400, 110000, 110002
 ## Title: Method Raid Tools
 ## Author: ykiigor
 ## Notes: Method Raid Tools
@@ -6,8 +6,11 @@
 ## Notes-zhTW: Method Raid Tools |n一個團隊會用到應有盡有的工具箱插件，包含團隊技能CD，團隊準備檢查等等。
 ## DefaultState: Disabled
 ## SavedVariables: VMRT
-## Version: 4740
+## Version: 4900
+## AddonCompartmentFunc: MRT_MinimapClickFunction
+## IconTexture: Interface\AddOns\MRT\media\MiniMap.tga
 ## X-Category-zhTW: 團隊
+
 core.lua
 Functions.lua
 embeds.xml
@@ -22,6 +25,7 @@ Note.lua
 ExCD2.lua
 Inspect.lua
 VisNote.lua
+Reminder.lua
 BossWatcher.lua
 InspectViewer.lua
 RaidCheck.lua
@@ -29,6 +33,8 @@ InviteTool.lua
 RaidGroups.lua
 MarksBar.lua
 Marks.lua
+MarksSimple.lua
+Interrupts.lua
 BattleRes.lua
 Timers.lua
 RaidAttendance.lua

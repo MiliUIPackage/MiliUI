@@ -1,8 +1,8 @@
---	01.05.2023
+--	14.08.2024
 
 local GlobalAddonName, MRT = ...
 
-MRT.V = 4740
+MRT.V = 4900
 MRT.T = "R"
 
 MRT.Slash = {}			--> функции вызова из коммандной строки
@@ -32,13 +32,14 @@ MRT.locale = GetLocale()
 do
 	local version, buildVersion, buildDate, uiVersion = GetBuildInfo()
 	
+	MRT.clientBuildVersion = buildVersion
 	MRT.clientUIinterface = uiVersion
 	local expansion,majorPatch,minorPatch = (version or "5.0.0"):match("^(%d+)%.(%d+)%.(%d+)")
 	MRT.clientVersion = (expansion or 0) * 10000 + (majorPatch or 0) * 100 + (minorPatch or 0)
 end
 if MRT.clientVersion < 20000 then
 	MRT.isClassic = true
-	MRT.T = "Classic"
+	MRT.T = "Classic"	
 elseif MRT.clientVersion < 30000 then
 	MRT.isClassic = true
 	MRT.isBC = true
@@ -48,17 +49,21 @@ elseif MRT.clientVersion < 40000 then
 	MRT.isBC = true
 	MRT.isLK = true
 	MRT.T = "WotLK"
-	if MRT.clientVersion >= 30401 then
-		MRT.isLK1 = true
-	end
 elseif MRT.clientVersion < 50000 then
 	MRT.isClassic = true
 	MRT.isBC = true
 	MRT.isLK = true
 	MRT.isCata = true
 	MRT.T = "Cataclysm"
-elseif MRT.clientVersion >= 100000 then
-	MRT.is10 = true
+elseif MRT.clientVersion < 60000 then
+	MRT.isClassic = true
+	MRT.isBC = true
+	MRT.isLK = true
+	MRT.isCata = true
+	MRT.isMoP = true
+	MRT.T = "Pandaria"
+elseif MRT.clientVersion >= 110000 then
+	MRT.is11 = true
 end
 -------------> smart DB <-------------
 MRT.SDB = {}
@@ -75,10 +80,10 @@ end
 -------------> global DB <------------
 MRT.GDB = {}
 -------------> upvalues <-------------
-local pcall, unpack, pairs, coroutine, assert, next = pcall, unpack, pairs, coroutine, assert, next
+local pcall, unpack, pairs, coroutine, assert, next, type = pcall, unpack, pairs, coroutine, assert, next, type
 local GetTime, IsEncounterInProgress, CombatLogGetCurrentEventInfo = GetTime, IsEncounterInProgress, CombatLogGetCurrentEventInfo
-local SendAddonMessage, strsplit, tremove = C_ChatInfo.SendAddonMessage, strsplit, tremove
-local C_Timer_NewTicker, debugprofilestop = C_Timer.NewTicker, debugprofilestop
+local SendAddonMessage, strsplit, tremove, Ambiguate = C_ChatInfo.SendAddonMessage, strsplit, tremove, Ambiguate
+local C_Timer_NewTicker, debugprofilestop, InCombatLockdown = C_Timer.NewTicker, debugprofilestop, InCombatLockdown
 
 if MRT.T == "D" then
 	MRT.isDev = true
@@ -102,9 +107,17 @@ do
 		this.Load = nil
 		MRT.F.dprint(this.moduleName.."'s options loaded")
 		this.isLoaded = true
+
+		MRT.F:FireCallback("OPTIONS_LOADED", this, this.moduleName)
 	end
 	local function mod_Options_CreateTitle(self)
 		self.title = MRT.lib:Text(self,self.name,20):Point(15,6):Top()
+	end
+	local function mod_Options_OpenPage(self)
+		MRT.Options:Open(self)
+	end
+	local function mod_Options_ForceLoad(self)
+		mod_LoadOptions(self)
 	end
 	function MRT:New(moduleName,localizatedName,disableOptions)
 		if MRT.A[moduleName] then
@@ -122,6 +135,8 @@ do
 			self.options:SetScript("OnShow",mod_LoadOptions)
 			
 			self.options.CreateTilte = mod_Options_CreateTitle
+			self.options.OpenPage = mod_Options_OpenPage
+			self.options.ForceLoad = mod_Options_ForceLoad
 			
 			MRT.ModulesOptions[#MRT.ModulesOptions + 1] = self.options
 		end
@@ -175,10 +190,30 @@ local CLEUListLen = 0
 CLEUFrame.CLEUList = CLEUList
 CLEUFrame.CLEUModules = CLEUModules
 
+
+local CLEU_realmKey = MRT.SDB.realmKey:gsub("[ %-]","")
+
 local function CLEU_OnEvent()
 	local timestamp,event,hideCaster,sourceGUID,sourceName,sourceFlags,sourceFlags2,destGUID,destName,destFlags,destFlags2,
 		val1,val2,val3,val4,val5,val6,val7,val8,val9,val10,val11,val12,val13
 				= CombatLogGetCurrentEventInfo()
+
+	if type(sourceName)=="string" then
+		local name,server,region = strsplit("-",sourceName)
+		if server == CLEU_realmKey then 
+			sourceName = name
+		elseif region then 
+			sourceName = name .. "-" .. server
+		end
+	end
+	if type(destName)=="string" then
+		local name,server,region = strsplit("-",destName)
+		if server == CLEU_realmKey then 
+			destName = name
+		elseif region then 
+			destName = name .. "-" .. server
+		end
+	end
 
 	for i=1,CLEUListLen do
 		CLEUList[i](timestamp,event,hideCaster,sourceGUID,sourceName,sourceFlags,sourceFlags2,destGUID,destName,destFlags,destFlags2,val1,val2,val3,val4,val5,val6,val7,val8,val9,val10,val11,val12,val13)
@@ -318,23 +353,6 @@ do
 	end
 end
 
-
-MRT.Coroutinies = {}
-function MRT.mod:AddCoroutine(func)
-	local c = coroutine.create(func)
-	MRT.Coroutinies[func] = c
-	
-	return c
-end
-
-function MRT.mod:GetCoroutine(func)
-	return MRT.Coroutinies[func]
-end
-
-function MRT.mod:RemoveCoroutine(func)
-	MRT.Coroutinies[func] = nil
-end
-
 ---------------> Mods <---------------
 
 MRT.F = {}
@@ -371,6 +389,104 @@ do
 	
 	MRT.F.NewTimer = MRT.F.ScheduleTimer
 	MRT.F.Timer = MRT.F.ScheduleTimer
+end
+
+-----------> Coroutinies <------------
+
+MRT.Coroutinies = {}
+local coroutineFrame
+
+function MRT.F:AddCoroutine(func, errorHandler, disableInCombat)
+	if not coroutineFrame then
+		coroutineFrame = CreateFrame("Frame")
+
+		local sleep = {}
+		local coroutineData = MRT.Coroutinies
+		
+		coroutineFrame:Hide()
+		coroutineFrame:SetScript("OnUpdate", function(self, elapsed)
+			local start = debugprofilestop()
+			if not next(coroutineData) then
+				self:Hide()
+				return
+			end
+			
+			-- Resume as often as possible (Limit to 16ms per frame -> 60 FPS)
+			local now = start
+			local anyFunc
+			while (now - start < 16) do
+				anyFunc = false
+				for func,opt in pairs(coroutineData) do
+					if opt.cmt and InCombatLockdown() then
+						--skip until combat ends
+					elseif opt.w == start then
+						--skip until next redraw
+					elseif coroutine.status(func) ~= "dead" then
+						if (not sleep[func]) or (now > sleep[func]) then
+							sleep[func] = nil
+
+							local ok, msg, resumeTime = coroutine.resume(func)
+							if ok and msg == "sleep" then
+								sleep[func] = now + (resumeTime or 1000)
+							elseif ok and msg == "await" then
+								opt.w = start
+							elseif not ok then
+								if opt.eh then
+									opt.eh(msg, debugstack(func))
+								else
+									geterrorhandler()(msg .. '\n' .. debugstack(func))
+								end
+							end
+
+							--prevent high load in combat, 200ms max for script in instances
+							if InCombatLockdown() and ((debugprofilestop() - start) >= 100) then
+								return
+							end
+
+							anyFunc = true
+						end
+					else
+						coroutineData[func] = nil
+						if not next(coroutineData) then
+							self:Hide()
+							return
+						end
+					end
+				end
+
+				--no function found in cycle, skip future cycling
+				if not anyFunc then
+					return
+				end
+
+				now = debugprofilestop()
+			end
+		end)
+	end
+
+	local c = coroutine.create(func)
+
+	if type(errorHandler) ~= "function" then
+		errorHandler = nil
+	end
+
+	MRT.Coroutinies[c] = {
+		eh = errorHandler,
+		cmt = disableInCombat,
+		f = func,
+	}
+	
+	coroutineFrame:Show()
+
+	return c
+end
+
+function MRT.F:GetCoroutine(func)
+	return MRT.Coroutinies[func]
+end
+
+function MRT.F:RemoveCoroutine(func)
+	MRT.Coroutinies[func] = nil
 end
 
 ---------------> Data <---------------
@@ -440,7 +556,7 @@ MRT.F.fontList = {
 }
 
 if MRT.locale and MRT.locale:find("^zh") then		--China & Taiwan fix
-	MRT.F.defFont = "Fonts\\bLEI00D.ttf"
+	MRT.F.defFont = "Fonts\\ARHei.ttf"
 elseif MRT.locale == "koKR" then			--Korea fix
 	MRT.F.defFont = "Fonts\\2002.ttf"
 end
@@ -460,17 +576,23 @@ function MRT.F:RegisterCallback(eventName, func)
 		callbacks[eventName] = {}
 	end
 	tinsert(callbacks[eventName], func)
+
+	MRT.F:FireCallback("CallbackRegistered", eventName, func)
 end
 function MRT.F:UnregisterCallback(eventName, func)
 	if not callbacks[eventName] then
 		return
 	end
-	for i=1,#callbacks[eventName] do
+	local count = 0
+	for i=#callbacks[eventName],1,-1 do
 		if callbacks[eventName][i] == func then
 			tremove(callbacks[eventName], i)
-			break
+		else
+			count = count + 1
 		end
 	end
+
+	MRT.F:FireCallback("CallbackUnregistered", eventName, func, count)
 end
 
 local function CallbackErrorHandler(err)
@@ -578,6 +700,9 @@ MRT.frame:SetScript("OnEvent",function (self, event, ...)
 		if prefix and MRT.msg_prefix[prefix] and (channel=="RAID" or channel=="GUILD" or channel=="INSTANCE_CHAT" or channel=="PARTY" or (channel=="WHISPER" and (MRT.F.UnitInGuild(sender) or sender == MRT.SDB.charName)) or (message and (message:find("^version") or message:find("^needversion")))) then
 			MRT.F.GetExMsg(sender, strsplit("\t", message))
 		end
+		if prefix and MRT.msg_prefix[prefix] then
+			MRT.F.GetAnyExMsg(sender, prefix, message, channel, sender)
+		end
 	elseif event == "ADDON_LOADED" then
 		local addonName = ...
 		if addonName ~= GlobalAddonName then
@@ -648,6 +773,16 @@ MRT.frame:SetScript("OnEvent",function (self, event, ...)
 
 		MRT.AddonLoaded = true
 
+		if not MRT.isClassic then
+			if not VMRT.Addon.EJ_CHECK_VER or VMRT.Addon.EJ_CHECK_VER ~= MRT.clientUIinterface or (((type(IsTestBuild)=="function" and IsTestBuild()) or (type(IsBetaBuild)=="function" and IsBetaBuild())) and VMRT.Addon.EJ_CHECK_VER_PTR ~= MRT.clientBuildVersion) then
+				C_Timer.After(10,function()
+					MRT.F.EJ_AutoScan()
+				end)
+			else
+				MRT.F.EJ_LoadData()
+			end
+		end
+
 		return true	
 	end
 end)
@@ -673,23 +808,6 @@ do
 			end
 			frameElapsed = 0
 		end
-		
-		--[[
-		local start = debugprofilestop()
-		local hasData = true
-		
-		while (debugprofilestop() - start < 16 and hasData) do
-			hasData = false
-			for func,c in pairs(MRT.Coroutinies) do
-				hasData = true
-				if coroutine.status(c) ~= "dead" then
-					local err = assert(coroutine.resume(c))
-				else
-					MRT.Coroutinies[func] = nil
-				end
-			end
-		end
-		]]
 	end
 
 	local function OnUpdate_Recreate(self,elapsed)
@@ -753,29 +871,54 @@ local function send(self)
 		sendLimit[p] = (sendLimit[p] or SEND_LIMIT) + floor((t - (sendPrev[p] or 0))/1000)
 		if sendLimit[p] > SEND_LIMIT then
 			sendLimit[p] = SEND_LIMIT
+		elseif sendLimit[p] < -30 and sendPrev[p] and t < sendPrev[p] then
+			sendPrev[p] = t
+			sendLimit[p] = 0
 		end
 		if sendLimit[p] > 0 then
+			local cp = 1
 			for i=1,#sendPending do
-				if sendLimit[p] > 0 then
-					sendLimit[p] = sendLimit[p] - 1
-					sendPending[1][1] = prefix_sorted[p] --override prefix
-					_SendAddonMessage(unpack(sendPending[1]))
-					tremove(sendPending, 1)
-					sendPrev[p] = debugprofilestop()
-				else
+				if sendLimit[p] <= 0 then
 					break
 				end
+				local pendingNow = sendPending[cp]
+				if (not pendingNow.prefixNum) or (pendingNow.prefixNum == p) then
+					sendLimit[p] = sendLimit[p] - 1
+					pendingNow[1] = prefix_sorted[p] --override prefix
+					_SendAddonMessage(unpack(pendingNow))
+					sendPrev[p] = debugprofilestop()
+					if pendingNow.ondone then
+						pendingNow.ondone()
+					end
+					tremove(sendPending, cp)
+					if not next(sendPending) then
+						return
+					end
+				else
+					--skip
+					cp = cp + 1
+				end
 			end
-		elseif p == #prefix_sorted then
-			if not sendTmr then
-				sendTmr = C_Timer.NewTimer(0.5, send)
-			end
-			return
 		end
 	end
+	if not sendTmr and next(sendPending) then
+		sendTmr = C_Timer.NewTimer(0.5, send)
+		return
+	end
 end
+
+local specialOpt = nil
 SendAddonMessage = function (...)
-	sendPending[#sendPending+1] = {...}
+	local entry = {...}
+	if type(specialOpt)=="table" then
+		if type(specialOpt.prefixNum)=="number" and specialOpt.prefixNum <= #prefix_sorted and specialOpt.prefixNum > 0 then
+			entry.prefixNum = specialOpt.prefixNum
+		end
+		if type(specialOpt.ondone)=="function" then
+			entry.ondone = specialOpt.ondone
+		end
+	end
+	sendPending[#sendPending+1] = entry
 	send()
 end
 
@@ -785,15 +928,27 @@ function MRT.F.SendExMsg(prefix, msg, tochat, touser, addonPrefix)
 	if tochat and not touser then
 		SendAddonMessage(addonPrefix, prefix .. "\t" .. msg, tochat)
 	elseif tochat and touser then
-		SendAddonMessage(addonPrefix, prefix .. "\t" .. msg, tochat,touser)
+		SendAddonMessage(addonPrefix, prefix .. "\t" .. msg, tochat, touser)
 	else
 		local chat_type, playerName = MRT.F.chatType()
 		if chat_type == "WHISPER" and playerName == MRT.SDB.charName then
+			if type(specialOpt)=="table" and type(specialOpt.ondone)=="function" then
+				specialOpt.ondone()
+			end
+			specialOpt = nil
 			MRT.F.GetExMsg(MRT.SDB.charName, prefix, strsplit("\t", msg))
 			return
 		end
 		SendAddonMessage(addonPrefix, prefix .. "\t" .. msg, chat_type, playerName)
 	end
+end
+
+
+function MRT.F.SendExMsgExt(opt, ...)
+	specialOpt = opt
+	--MRT.F.SendExMsg(...)
+	xpcall(MRT.F.SendExMsg,geterrorhandler(),...)
+	specialOpt = nil
 end
 
 
@@ -816,6 +971,27 @@ function MRT.F.GetExMsg(sender, prefix, ...)
 	for _,mod in pairs(MRT.OnAddonMessage) do
 		mod:addonMessage(sender, prefix, ...)
 	end
+end
+
+function MRT.F.GetAnyExMsg(sender, prefix, ...)
+	if Ambiguate(sender, "none") == MRT.SDB.charName then
+		return
+	end
+
+	local p
+	for j=1,#prefix_sorted do
+		if prefix_sorted[j] == prefix then
+			p = j
+			break
+		end
+	end
+
+	if not p then
+		return
+	end
+
+	sendLimit[p] = (sendLimit[p] or SEND_LIMIT) - 1
+	sendPrev[p] = debugprofilestop()
 end
 
 _G["GExRT"] = MRT

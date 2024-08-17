@@ -216,6 +216,59 @@ do
 	end
 end
 
+mainFrame.edges[5] = CreateEdge(5,228)
+
+mainFrame.pingbuts = {}
+do
+	local function MainFramePingButtonOnEnter(self)
+		self:GetParent():SetBackdropBorderColor(0.7,0.7,0.7,1)
+	end
+	local function MainFramePingButtonOnLeave(self)
+		self:GetParent():SetBackdropBorderColor(0.4,0.4,0.4,1)
+	end
+	local function MainFramePingButtonOnClick(self)
+		C_Ping.SendMacroPing(self.cmd)
+	end
+
+	local markbuts_backdrop = {bgFile = ExRT.F.barImg,edgeFile = ExRT.F.defBorder,tile = false,edgeSize = 8}
+	local icons = {
+		{"ping_chat_attack",SLASH_PING1 and PING_TYPE_ATTACK and SLASH_PING1.."  [@target] "..PING_TYPE_ATTACK or "/ping attack"},
+		{"ping_chat_assist",SLASH_PING1 and PING_TYPE_ASSIST and SLASH_PING1.."  [@target] "..PING_TYPE_ASSIST or "/ping assist"},
+		{"ping_chat_onmyway",SLASH_PING1 and PING_TYPE_ON_MY_WAY and SLASH_PING1.."  [@target] "..PING_TYPE_ON_MY_WAY or "/ping onmyway"},
+		{"ping_chat_warning",SLASH_PING1 and PING_TYPE_WARNING and SLASH_PING1.."  [@target] "..PING_TYPE_WARNING or "/ping warning"},
+		{"ping_chat_nonthreat",SLASH_PING1 or "/ping"},
+	}
+	for i=1,#icons do
+		local frame = CreateFrame("Frame",nil,mainFrame, BackdropTemplateMixin and "BackdropTemplate")
+		mainFrame.pingbuts[i] = frame
+		frame:SetSize(26,26)
+		frame:SetPoint("TOPLEFT", mainFrame.edges[5], (i-1)*28, -4)
+		frame:SetBackdrop(markbuts_backdrop)
+		frame:SetBackdropColor(0,0,0,0)
+		frame:SetBackdropBorderColor(0.4,0.4,0.4,1)
+	
+		frame.but = CreateFrame("Button",nil,frame,"SecureActionButtonTemplate")
+		frame.but:SetSize(20,20)
+		frame.but:SetPoint("TOPLEFT",  3, -3)
+		frame.but.t = frame.but:CreateTexture(nil, "BACKGROUND")
+		frame.but.t:SetAtlas(icons[i][1])
+		frame.but.t:SetAllPoints()
+		
+		frame.but._i = i
+		frame.but.cmd = icons[i][2]
+	
+		frame.but:SetScript("OnEnter", MainFramePingButtonOnEnter)
+		frame.but:SetScript("OnLeave", MainFramePingButtonOnLeave)
+	
+		frame.but:RegisterForClicks("RightButtonDown","LeftButtonDown")
+		--frame.but:SetScript("OnClick", MainFramePingButtonOnClick)
+
+		frame.but:RegisterForClicks("AnyDown", "AnyUp")
+		frame.but:SetAttribute("type", "macro")
+		frame.but:SetAttribute("macrotext", icons[i][2])
+	end
+end
+
 mainFrame.edges[2] = CreateEdge(2,228)
 
 mainFrame.start = CreateFrame("Button",nil,mainFrame, BackdropTemplateMixin and "BackdropTemplate")
@@ -279,7 +332,7 @@ ELib:FixPreloadFont(mainFrame.del,mainFrame.del.html,ExRT.F.defFont, 10)
 mainFrame.edges[3] = CreateEdge(3,383)
 
 mainFrame.wmarksbuts = CreateFrame("Frame",nil,mainFrame)
-mainFrame.wmarksbuts:SetSize(70,26)
+mainFrame.wmarksbuts:SetSize(ExRT.isCata and 14*3 or 14*5,26)
 local function MainFrameWMOnEnter(self)
 	self:SetBackdropBorderColor(0.7,0.7,0.7,1)
 end
@@ -297,10 +350,12 @@ mainFrame.wmarksbuts:SetScript("OnLeave",function()
 	mainFrame:OnLeave()
 end)
 
+local MAX_WM_BUTTONS = ExRT.isCata and 6 or 9
+mainFrame.wmarksbuts.bnum = MAX_WM_BUTTONS
 
 do
 	local wmarksbuts_backdrop = {bgFile = "",edgeFile = ExRT.F.defBorder,tile = false,edgeSize = 6}
-	for i=1,9 do
+	for i=1,MAX_WM_BUTTONS do
 		local frame = CreateFrame("Button","MRT_MarksBar_WorldMarkers_Kind1_"..i,mainFrame.wmarksbuts,BackdropTemplateMixin and "SecureActionButtonTemplate,BackdropTemplate" or "SecureActionButtonTemplate")	--FrameStack Fix
 		mainFrame.wmarksbuts[i] = frame
 		frame:SetSize(14,13)
@@ -310,14 +365,21 @@ do
 		frame:SetScript("OnEnter",MainFrameWMOnEnter)	
 		frame:SetScript("OnLeave",MainFrameWMOnLeave)
 		
-		if i < 9 then
+		if i < MAX_WM_BUTTONS then
 			frame:RegisterForClicks("AnyDown", "AnyUp")
-			frame:SetAttribute("type", "macro")
-			frame:SetAttribute("macrotext1", format("/wm %d", i))
-			frame:SetAttribute("macrotext2", format("/cwm %d", i))
-			if ExRT.locale == "ptBR" or ExRT.locale == "esES" or ExRT.locale == "esMX" or ExRT.locale == "ptPT" then
-				frame:SetAttribute("macrotext1", format(SLASH_WORLD_MARKER1.." %d", i))
-				frame:SetAttribute("macrotext2", format(SLASH_CLEAR_WORLD_MARKER1.." %d", i))
+			if ExRT.is11 then
+				frame:SetAttribute("type", "worldmarker")
+				frame:SetAttribute("marker", tostring(i))
+				frame:SetAttribute("action1", "set")
+				frame:SetAttribute("action2", "clear")
+			else
+				frame:SetAttribute("type", "macro")
+				frame:SetAttribute("macrotext1", format("/wm %d", i))
+				frame:SetAttribute("macrotext2", format("/cwm %d", i))
+				if ExRT.locale == "ptBR" or ExRT.locale == "esES" or ExRT.locale == "esMX" or ExRT.locale == "ptPT" then
+					frame:SetAttribute("macrotext1", format(SLASH_WORLD_MARKER1.." %d", i))
+					frame:SetAttribute("macrotext2", format(SLASH_CLEAR_WORLD_MARKER1.." %d", i))
+				end
 			end
 			frame:SetScript('OnEvent', MainFrameWMOnEvent)
 		else
@@ -327,7 +389,7 @@ do
 		end
 	
 		frame.t = frame:CreateTexture(nil, "BACKGROUND")
-		if i < 9 then
+		if i < MAX_WM_BUTTONS then
 			frame.t:SetTexture("Interface\\TargetingFrame\\UI-RaidTargetingIcon_"..module.db.worldMarksList[i])
 		else
 			frame.t:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\flare_del")
@@ -361,12 +423,12 @@ mainFrame.wmarksbuts.b:SetScript("OnLeave",function()
 	mainFrame:OnLeave()
 end)
 
-for i=1,9 do
+for i=1,MAX_WM_BUTTONS do
 	local frame = CreateFrame("Button","MRT_MarksBar_WorldMarkers_Kind2_"..i,mainFrame.wmarksbuts.b,"SecureActionButtonTemplate")	--FrameStack Fix
 	mainFrame.wmarksbuts.b[i] = frame
 	frame:SetSize(18,18)
 	frame.t = frame:CreateTexture(nil, "BACKGROUND")
-	if i == 9 then
+	if i == MAX_WM_BUTTONS then
 		frame.t:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\flare_del")
 	else
 		frame.t:SetTexture("Interface\\AddOns\\"..GlobalAddonName.."\\media\\blip")
@@ -379,14 +441,21 @@ for i=1,9 do
 	frame:SetScript("OnEnter",MainFrameWMKind2OnEnter)	
 	frame:SetScript("OnLeave", MainFrameWMKind2OnLeave)
 
-	if i < 9 then
+	if i < MAX_WM_BUTTONS then
 		frame:RegisterForClicks("AnyDown", "AnyUp")
-		frame:SetAttribute("type", "macro")
-		frame:SetAttribute("macrotext1", format("/wm %d", i))
-		frame:SetAttribute("macrotext2", format("/cwm %d", i))
-		if ExRT.locale == "ptBR" or ExRT.locale == "esES" or ExRT.locale == "esMX" or ExRT.locale == "ptPT" then
-			frame:SetAttribute("macrotext1", format(SLASH_WORLD_MARKER1.." %d", i))
-			frame:SetAttribute("macrotext2", format(SLASH_CLEAR_WORLD_MARKER1.." %d", i))
+		if ExRT.is11 then
+			frame:SetAttribute("type", "worldmarker")
+			frame:SetAttribute("marker", tostring(i))
+			frame:SetAttribute("action1", "set")
+			frame:SetAttribute("action2", "clear")
+		else
+			frame:SetAttribute("type", "macro")
+			frame:SetAttribute("macrotext1", format("/wm %d", i))
+			frame:SetAttribute("macrotext2", format("/cwm %d", i))
+			if ExRT.locale == "ptBR" or ExRT.locale == "esES" or ExRT.locale == "esMX" or ExRT.locale == "ptPT" then
+				frame:SetAttribute("macrotext1", format(SLASH_WORLD_MARKER1.." %d", i))
+				frame:SetAttribute("macrotext2", format(SLASH_CLEAR_WORLD_MARKER1.." %d", i))
+			end
 		end
 		frame:SetScript('OnEvent', MainFrameWMOnEvent)
 	else
@@ -487,6 +556,9 @@ local function modifymarkbars()
 		for i=1,8 do
 			mainFrame.markbuts[i]:SetPoint("TOPLEFT", mainFrame.edges[1], VMRT.MarksBar.MarksReverse and (8-i)*28 or (i-1)*28, -4)		
 		end
+		for i=1,#mainFrame.pingbuts do
+			mainFrame.pingbuts[i]:SetPoint("TOPLEFT", mainFrame.edges[5], (i-1)*28, -4)
+		end
 		
 		mainFrame.start:SetSize(50,12)
 		mainFrame.start:SetPoint("TOPLEFT", mainFrame.edges[2], 0, -4)
@@ -494,10 +566,10 @@ local function modifymarkbars()
 		mainFrame.del:SetPoint("TOPLEFT", mainFrame.edges[2], 0, -18)
 		
 		mainFrame.wmarksbuts:SetPoint("TOPLEFT", mainFrame.edges[3], 0, -4)
-		for i=1,9 do
+		for i=1,mainFrame.wmarksbuts.bnum do
 			if VMRT.MarksBar.WMarksReverse then
-				if i < 9 then
-					local t_pos = 9-i
+				if i < mainFrame.wmarksbuts.bnum then
+					local t_pos = mainFrame.wmarksbuts.bnum - i
 					mainFrame.wmarksbuts[i]:SetPoint("TOPLEFT", floor((t_pos-1)/2)*14, -((t_pos-1)%2)*13)
 				else
 					mainFrame.wmarksbuts[i]:SetPoint("TOPLEFT", floor((i-1)/2)*14, -((i-1)%2)*13)
@@ -507,11 +579,11 @@ local function modifymarkbars()
 			end
 		end
 		
-		mainFrame.wmarksbuts.b:SetSize(123+19*3,26)
+		mainFrame.wmarksbuts.b:SetSize(123+19*(ExRT.isCata and 0 or 3),26)
 		mainFrame.wmarksbuts.b:SetPoint("TOPLEFT", mainFrame,"BOTTOMLEFT",20, 3)
-		for i=1,9 do
+		for i=1,mainFrame.wmarksbuts.bnum do
 			if VMRT.MarksBar.WMarksReverse then
-				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 19*(9-i)+6, -4)
+				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 19*(mainFrame.wmarksbuts.bnum-i)+6, -4)
 			else
 				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 19*(i-1)+6, -4)
 			end
@@ -545,7 +617,7 @@ local function modifymarkbars()
 		end
 
 		local worldMarksBool = VMRT.MarksBar.Show[3]
-		if ExRT.isClassic then
+		if ExRT.isClassic and not ExRT.isCata then
 			worldMarksBool = false
 		end
 	
@@ -555,10 +627,10 @@ local function modifymarkbars()
 		elseif worldMarksBool and VMRT.MarksBar.wmKind then
 			mainFrame.wmarksbuts:Show()
 			
-			posX = posX + 14*ceil(9 / 2)
-			totalWidth = totalWidth + 14*ceil(9 / 2)
+			posX = posX + 14*ceil(mainFrame.wmarksbuts.bnum / 2)
+			totalWidth = totalWidth + 14*ceil(mainFrame.wmarksbuts.bnum / 2)
 		end
-	
+
 		mainFrame.edge:Show()
 		mainFrame:SetBackdropColor(0,0,0,0.8)
 		if not VMRT.MarksBar.wmKind and worldMarksBool then
@@ -569,6 +641,20 @@ local function modifymarkbars()
 			end
 		else
 			mainFrame.wmarksbuts.b:Hide()
+		end
+
+		mainFrame.edges[5]:SetPoint("TOPLEFT",posX,0)
+		if not VMRT.MarksBar.Show[6] then
+			for i=1,#mainFrame.pingbuts do
+				mainFrame.pingbuts[i]:Hide()
+			end
+		else
+			for i=1,#mainFrame.pingbuts do
+				mainFrame.pingbuts[i]:Show()
+			end
+			
+			posX = posX + 28 * #mainFrame.pingbuts
+			totalWidth = totalWidth + 28 * #mainFrame.pingbuts
 		end
 		
 		mainFrame.edges[2]:SetPoint("TOPLEFT",posX,0)
@@ -617,6 +703,9 @@ local function modifymarkbars()
 		for i=1,8 do
 			mainFrame.markbuts[i]:SetPoint("TOPLEFT", mainFrame.edges[1], 4, -( VMRT.MarksBar.MarksReverse and (8-i)*28 or (i-1)*28 ))		
 		end
+		for i=1,#mainFrame.pingbuts do
+			mainFrame.pingbuts[i]:SetPoint("TOPLEFT", mainFrame.edges[5], 4, -( (i-1)*28 ))		
+		end
 		
 		mainFrame.start:SetSize(26,12)
 		mainFrame.start:SetPoint("TOPLEFT", mainFrame.edges[2], 4, 0)
@@ -624,10 +713,10 @@ local function modifymarkbars()
 		mainFrame.del:SetPoint("TOPLEFT", mainFrame.edges[2], 4, -14)
 		
 		mainFrame.wmarksbuts:SetPoint("TOPLEFT", mainFrame.edges[3], 4, 0)
-		for i=1,9 do
+		for i=1,mainFrame.wmarksbuts.bnum do
 			if VMRT.MarksBar.WMarksReverse then
-				if i < 9 then
-					local t_pos = 9-i
+				if i < mainFrame.wmarksbuts.bnum then
+					local t_pos = mainFrame.wmarksbuts.bnum - i
 					mainFrame.wmarksbuts[i]:SetPoint("TOPLEFT", ((t_pos-1)%2)*13, -floor((t_pos-1)/2)*14)
 				else
 					mainFrame.wmarksbuts[i]:SetPoint("TOPLEFT", ((i-1)%2)*13, -floor((i-1)/2)*14)
@@ -637,11 +726,11 @@ local function modifymarkbars()
 			end
 		end
 		
-		mainFrame.wmarksbuts.b:SetSize(26,123+19*3)
+		mainFrame.wmarksbuts.b:SetSize(26,123+19*(ExRT.isCata and 0 or 3))
 		mainFrame.wmarksbuts.b:SetPoint("TOPLEFT", mainFrame,"TOPRIGHT",-3,-20)
-		for i=1,9 do
+		for i=1,mainFrame.wmarksbuts.bnum do
 			if VMRT.MarksBar.WMarksReverse then
-				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 4, -19*(9-i)-6)
+				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 4, -19*(mainFrame.wmarksbuts.bnum-i)-6)
 			else
 				mainFrame.wmarksbuts.b[i]:SetPoint("TOPLEFT", 4, -19*(i-1)-6)
 			end
@@ -675,7 +764,7 @@ local function modifymarkbars()
 		end
 
 		local worldMarksBool = VMRT.MarksBar.Show[3]
-		if ExRT.isClassic then
+		if ExRT.isClassic and not ExRT.isCata then
 			worldMarksBool = false
 		end
 	
@@ -685,8 +774,8 @@ local function modifymarkbars()
 		elseif worldMarksBool and VMRT.MarksBar.wmKind then
 			mainFrame.wmarksbuts:Show()
 			
-			posX = posX + 14*ceil(9 / 2)
-			totalWidth = totalWidth + 14*ceil(9 / 2)
+			posX = posX + 14*ceil(mainFrame.wmarksbuts.bnum / 2)
+			totalWidth = totalWidth + 14*ceil(mainFrame.wmarksbuts.bnum / 2)
 		end
 	
 		mainFrame.edge:Show()
@@ -699,6 +788,20 @@ local function modifymarkbars()
 			end
 		else
 			mainFrame.wmarksbuts.b:Hide()
+		end
+
+		mainFrame.edges[5]:SetPoint("TOPLEFT",0,-posX)
+		if not VMRT.MarksBar.Show[6] then
+			for i=1,#mainFrame.pingbuts do
+				mainFrame.pingbuts[i]:Hide()
+			end
+		else
+			for i=1,#mainFrame.pingbuts do
+				mainFrame.pingbuts[i]:Show()
+			end
+			
+			posX = posX + 28 * #mainFrame.pingbuts
+			totalWidth = totalWidth + 28 * #mainFrame.pingbuts
 		end
 		
 		mainFrame.edges[2]:SetPoint("TOPLEFT",0,-posX)
@@ -854,7 +957,7 @@ function module.options:Load()
 		end
 	end)
 	
-	self.TabViewOptions = ELib:OneTab(self):Size(678,130):Point("TOP",0,-185)
+	self.TabViewOptions = ELib:OneTab(self):Size(678,155):Point("TOP",0,-185)
 	ELib:Border(self.TabViewOptions,0)
 
 	ELib:DecorationLine(self):Point("BOTTOM",self.TabViewOptions,"TOP",0,0):Point("LEFT",self):Point("RIGHT",self):Size(0,1)
@@ -939,8 +1042,28 @@ function module.options:Load()
 		end
 		modifymarkbars()
 	end)
+
+	self.chkEnable6 = ELib:Check(self.TabViewOptions,BINDING_HEADER_PING_SYSTEM or "Ping",VMRT.MarksBar.Show[6]):Point(5,-130):OnClick(function(self)
+		if self:GetChecked() then
+			VMRT.MarksBar.Show[6]=true
+		else
+			VMRT.MarksBar.Show[6]=nil
+		end
+		modifymarkbars()
+	end)
 	
-	self.SliderScale = ELib:Slider(self,L.marksbarscale):Size(660):Point("TOP",0,-365):Range(5,200):SetTo(VMRT.MarksBar.Scale or 100):OnChange(function(self,event) 
+	
+	self.htmlTimer = ELib:Text(self,L.marksbartmr,11):Size(150,20):Point("TOP",self.TabViewOptions,"BOTTOM",0,-5):Point("LEFT",self,15,0)
+
+	self.editBoxTimer = ELib:Edit(self,6,true):Size(120,20):Point("LEFT",self.htmlTimer,200,0):Text(VMRT.MarksBar.pulltimer or "10"):LeftText(L.MarksBarTimerLeftClick):OnChange(function(self)
+		VMRT.MarksBar.pulltimer = tonumber(self:GetText()) or 10
+	end)  
+	self.editBoxTimer_right = ELib:Edit(self,6,true):Size(120,20):Point("LEFT",self.editBoxTimer,"RIGHT",80,0):Text(VMRT.MarksBar.pulltimer_right or "10"):LeftText(L.MarksBarTimerRightClick):OnChange(function(self)
+		VMRT.MarksBar.pulltimer_right = tonumber(self:GetText()) or 10
+	end)  
+
+
+	self.SliderScale = ELib:Slider(self,L.marksbarscale):Size(660):Point("TOP",0,-390):Range(5,200):SetTo(VMRT.MarksBar.Scale or 100):OnChange(function(self,event) 
 		event = event - event%1
 		VMRT.MarksBar.Scale = event
 		ExRT.F.SetScaleFix(module.frame,event/100)
@@ -948,7 +1071,7 @@ function module.options:Load()
 		self:tooltipReload(self)
 	end)
 	
-	self.SliderAlpha = ELib:Slider(self,L.marksbaralpha):Size(660):Point("TOP",0,-395):Range(0,100):SetTo(VMRT.MarksBar.Alpha or 100):OnChange(function(self,event) 
+	self.SliderAlpha = ELib:Slider(self,L.marksbaralpha):Size(660):Point("TOP",0,-420):Range(0,100):SetTo(VMRT.MarksBar.Alpha or 100):OnChange(function(self,event) 
 		event = event - event%1
 		VMRT.MarksBar.Alpha = event
 		module.frame:SetAlpha(event/100)
@@ -956,17 +1079,7 @@ function module.options:Load()
 		self:tooltipReload(self)
 	end)
 	
-	
-	self.htmlTimer = ELib:Text(self,L.marksbartmr,11):Size(150,20):Point(15,-325)
-
-	self.editBoxTimer = ELib:Edit(self,6,true):Size(120,20):Point(200,-325):Text(VMRT.MarksBar.pulltimer or "10"):LeftText(L.MarksBarTimerLeftClick):OnChange(function(self)
-		VMRT.MarksBar.pulltimer = tonumber(self:GetText()) or 10
-	end)  
-	self.editBoxTimer_right = ELib:Edit(self,6,true):Size(120,20):Point("LEFT",self.editBoxTimer,"RIGHT",80,0):Text(VMRT.MarksBar.pulltimer_right or "10"):LeftText(L.MarksBarTimerRightClick):OnChange(function(self)
-		VMRT.MarksBar.pulltimer_right = tonumber(self:GetText()) or 10
-	end)  
-	
-	self.frameStrataDropDown = ELib:DropDown(self,275,8):Point(15,-425):Size(260):SetText(L.S_Strata)
+	self.frameStrataDropDown = ELib:DropDown(self,275,8):Point(15,-450):Size(260):SetText(L.S_Strata)
 	local function FrameStrataDropDown_SetVaule(_,arg)
 		VMRT.MarksBar.Strata = arg
 		ELib:DropDownClose()
@@ -985,7 +1098,7 @@ function module.options:Load()
 		}
 	end
 	
-	self.ButtonToCenter = ELib:Button(self,L.MarksBarResetPos):Size(260,22):Point(15,-450):Tooltip(L.MarksBarResetPosTooltip):OnClick(function()
+	self.ButtonToCenter = ELib:Button(self,L.MarksBarResetPos):Size(260,22):Point(15,-475):Tooltip(L.MarksBarResetPosTooltip):OnClick(function()
 		VMRT.MarksBar.Left = nil
 		VMRT.MarksBar.Top = nil
 
@@ -993,14 +1106,17 @@ function module.options:Load()
 		module.frame:SetPoint("CENTER",UIParent, "CENTER", 0, 0)
 	end) 
 	
-	self.shtml1 = ELib:Text(self,L.MarksBarHelp,12):Size(670,200):Point(15,-480):Top()
+	self.shtml1 = ELib:Text(self,L.MarksBarHelp,12):Size(670,200):Point(15,-505):Top()
 
 	if ExRT.isClassic then
-		self.chkEnable3:Hide()
-		self.chkEnable3kindhtml:Hide()
-		self.chkEnable3kind1:Hide()
-		self.chkEnable3kind2:Hide()
-		self.reverseWMMarksOrderChk:Hide()
+		if not ExRT.isCata then
+			self.chkEnable3:Hide()
+			self.chkEnable3kindhtml:Hide()
+			self.chkEnable3kind1:Hide()
+			self.chkEnable3kind2:Hide()
+			self.reverseWMMarksOrderChk:Hide()
+		end
+		self.chkEnable6:Hide()
 	end
 end
 

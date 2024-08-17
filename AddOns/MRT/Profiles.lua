@@ -355,6 +355,7 @@ module.db.EXPORT_FULL_KEYS = {
 	["Attendance"] = L.Attendance,
 	["LootHistory"] = L.LootHistory,
 	["Reminder"] = true,
+	["Reminder2"] = true,
 }
 
 function module:ProfileToText(isFullExport)
@@ -365,7 +366,7 @@ function module:ProfileToText(isFullExport)
 		end
 	end
 	local strlist = ExRT.F.TableToText(new)
-	strlist[1] = (VMRT.Profile or "default"):gsub(",","")..","..(ExRT.isClassic and "1" or "0")..","..strlist[1]
+	strlist[1] = (VMRT.Profile or "default"):sub(1,200):gsub(",","")..","..(ExRT.isClassic and "1" or "0")..","..strlist[1]
 	local str = table.concat(strlist)
 
 	local compressed
@@ -395,6 +396,11 @@ function module:TextToProfile(str,uncompressed)
 		decompressed = LibDeflate:DecompressDeflate(decoded)
 	end
 	decoded = nil
+
+	if not decompressed then
+		print('error: import string is broken')
+		return
+	end
 
 	local profileName,clientVersion,tableData = strsplit(",",decompressed,3)
 	decompressed = nil
