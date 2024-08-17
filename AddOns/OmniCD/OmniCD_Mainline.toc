@@ -8,6 +8,10 @@
 ## X-Localizations: enUS, deDE, esMX, frFR, itIT, koKR, ruRU, zhCN, zhTW
 ## X-Website: https://www.curseforge.com/wow/addons/omnicd
 ## DefaultState: Disabled
+## Title-zhTW: |cffFF7F00[副本]|r 隊友冷卻時間
+## Notes-zhTW: OmniCD |n顯示隊友重要技能以及斷法冷卻時間。|n|cffffd200使用方法：|r輸入指令『/oc』
+## DefaultState: Disabled
+
 ## SavedVariables: OmniCDDB
 ## IconTexture: Interface\AddOns\OmniCD\Config\Libs\Media\omnicd-logo64-c
 
