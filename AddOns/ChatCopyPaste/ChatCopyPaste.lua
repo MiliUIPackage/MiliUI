@@ -9,6 +9,7 @@
 --Use /chatcopypaste or /ccp for options.
 
 CCP = LibStub("AceAddon-3.0"):NewAddon("ChatCopyPaste");
+local GetAddOnMetadata = C_AddOns and C_AddOns.GetAddOnMetadata or GetAddOnMetadata;
 
 local function addBackdrop(string)
 	if (BackdropTemplateMixin) then
@@ -433,6 +434,7 @@ SLASH_CCPOPTIONSCMD1, SLASH_CCPOPTIONSCMD2 = '/chatcopypaste', '/ccp';
 function SlashCmdList.CCPOPTIONSCMD(msg, editBox)
 	InterfaceOptionsFrame_OpenToCategory("ChatCopyPaste");
 	InterfaceOptionsFrame_OpenToCategory("ChatCopyPaste");
+	Settings.OpenToCategory("ChatCopyPaste");
 end
 
 CCP.options = {
