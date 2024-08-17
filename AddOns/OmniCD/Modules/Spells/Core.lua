@@ -1,33 +1,42 @@
 local E = select(2, ...):unpack()
 
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+local GetSpellTexture = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+
 E.spell_highlighted = {}
 E.spell_modifiers = {}
+E.hash_spelldb = {}
 
 E.spell_marked = {
 
-	[48707]	 = 205727,
+	[48707] = 205727,
 	[287250] = true,
 
 	[198589] = 205411,
 
 	[217832] = 205596,
+	[198793] = 354489,
 	[187650] = 203340,
 	[116849] = 388218,
 	[122470] = 280195,
 	[853] = 234299,
 	[228049] = true,
-	[199452] = true,
-	[62618]	 = 197590,
-	[8122]	 = 196704,
-	[88625]	 = 200199,
+	[199448] = true,
+	[62618] = 197590,
+	[8122] = 196704,
+	[586] = 408557,
+	[88625] = 200199,
 
-	[1966]	 = 79008,
-	[79206]	 = 290254,
+	[1966] = 79008,
+	[2094] = 200733,
+	[79206] = 290254,
 
-	[23920]	 = 213915,
+	[23920] = 213915,
 
 
 	[360806] = 410962,
+	[34433] = 314867,
+	[123040] = 314867,
 }
 
 function E:ProcessSpellDB()
@@ -65,6 +74,8 @@ function E:ProcessSpellDB()
 				if self.spell_requiredLevel then
 					self.spell_requiredLevel[id] = t.rlvl
 				end
+
+				E.hash_spelldb[id] = t
 			else
 				tremove(v, i)
 
@@ -73,8 +84,10 @@ function E:ProcessSpellDB()
 	end
 
 
-	for k, v in pairs(self.spell_merged) do
-		self.spell_highlighted[k] = self.spell_highlighted[v]
+	for castID, v in pairs(self.spell_merged) do
+		if not self.spell_highlighted[castID] then
+			self.spell_highlighted[castID] = self.spell_highlighted[v]
+		end
 	end
 
 	for k in self.pairs(self.spell_linked, self.spell_merged, self.spellcast_shared_cdstart, self.spellcast_cdreset, self.spellcast_cdr, self.spellcast_cdr_powerspender, self.covenant_abilities, self.spellcast_cdr_azerite) do
@@ -82,7 +95,7 @@ function E:ProcessSpellDB()
 	end
 end
 
-if E.preCata then
+if E.preMoP then
 	E.spell_cxmod_azerite = E.BLANK
 	E.spellcast_cdr_azerite = E.BLANK
 	E.spell_damage_cdr_azerite = E.BLANK

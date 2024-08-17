@@ -3,26 +3,37 @@ local P = E.Party
 
 local tonumber, sort, min, max = tonumber, table.sort, math.min, math.max
 
-local sortPriority = function(a, b)
-	local aprio, bprio = E.db.priority[a.type], E.db.priority[b.type]
-	if aprio == bprio then
-		return a.spellID < b.spellID
-	end
-	return aprio > bprio
-end
+P.sorters = {
+	function(a, b)
+		if a.priority == b.priority then
+			return a.spellID < b.spellID
+		end
+		return a.priority > b.priority
+	end,
+	function(a, b)
+		local type1, type2 = E.db.priority[a.type], E.db.priority[b.type]
+		if type1 == type2 then
+			return P.sorters[1](a, b)
+		end
+		return type1 > type2
+	end,
+}
 
 function P:SetIconLayout(frame, sortOrder)
 	local icons = frame.icons
 	local displayInactive = self.displayInactive
 
+	local sorter = self.sortBy
 	if sortOrder then
-		sort(icons, sortPriority)
+		local sortFunc = self.sorters[sorter]
+		sort(icons, sortFunc)
 	end
 
 	local db_prio = E.db.priority
 	local count, rows, numActive, lastActiveIndex = 0, 1, 1
 	for i = 1, frame.numIcons do
 		local icon = icons[i]
+		local iconPrio = sorter == 2 and db_prio[icon.type] or icon.priority
 		icon:Hide()
 
 		if (displayInactive or icon.active) and (self.multiline or numActive <= self.maxNumIcons) then
@@ -30,8 +41,8 @@ function P:SetIconLayout(frame, sortOrder)
 			if numActive > 1 then
 				count = count + 1
 				if not self.multiline and count == self.columns or
-					(self.multiline and (rows == 1 and db_prio[icon.type] <= self.breakPoint or (self.tripleline and rows == 2 and db_prio[icon.type] <= self.breakPoint2))) then
-					if self.tripleline and rows == 1 and db_prio[icon.type] <= self.breakPoint2 then
+					(self.multiline and (rows == 1 and iconPrio <= self.breakPoint or (self.tripleline and rows == 2 and iconPrio <= self.breakPoint2))) then
+					if self.tripleline and rows == 1 and iconPrio <= self.breakPoint2 then
 						rows = rows + 1
 					end
 					icon:SetPoint(self.point, frame.container, self.ofsX * rows, self.ofsY * rows)
@@ -41,8 +52,8 @@ function P:SetIconLayout(frame, sortOrder)
 					icon:SetPoint(self.point2, icons[lastActiveIndex], self.relativePoint2, self.ofsX2, self.ofsY2)
 				end
 			else
-				if self.multiline and db_prio[icon.type] <= self.breakPoint then
-					if self.tripleline and rows == 1 and db_prio[icon.type] <= self.breakPoint2 then
+				if self.multiline and iconPrio <= self.breakPoint then
+					if self.tripleline and rows == 1 and iconPrio <= self.breakPoint2 then
 						rows = rows + 1
 					end
 					icon:SetPoint(self.point, frame.container, self.ofsX * rows, self.ofsY * rows)
@@ -139,7 +150,7 @@ function P:SetOpacity(icon, db, opaque)
 	if opaque then
 		icon:SetAlpha(1.0)
 	else
-		icon:SetAlpha(icon.active and db.activeAlpha or db.inactiveAlpha)
+		icon:SetAlpha(icon.active == 0 and db.activeAlpha or db.inactiveAlpha)
 	end
 
 
@@ -154,13 +165,14 @@ function P:SetOpacity(icon, db, opaque)
 		else
 			icon.icon:SetVertexColor(1, 1, 1)
 		end
-		local charges = icon.maxcharges and tonumber(icon.count:GetText())
-		icon.icon:SetDesaturated(db.desaturateActive and icon.active and not icon.isHighlighted and (not charges or charges == 0))
+		icon.icon:SetDesaturated(db.desaturateActive and icon.active == 0 and not icon.isHighlighted)
 	end
 end
 
 function P:SetSwipeCounter(icon, db)
-	self:SetCooldownElements(icon, icon.maxcharges and tonumber(icon.count:GetText()))
+	if icon.active then
+		self:SetCooldownElements(nil, icon, icon.maxcharges and icon.active)
+	end
 	icon.cooldown:SetReverse(db.reverse)
 	icon.cooldown:SetSwipeColor(0, 0, 0, db.swipeAlpha)
 	icon.counter:SetScale(db.counterScale)
@@ -182,6 +194,8 @@ function P:ApplySettings(frame)
 	local markEnhanced = db.markEnhanced
 	local chargeScale = db.chargeScale
 	local showTooltip = db.showTooltip
+	local condition = E.db.highlight.glowBorderCondition
+	local info = self.groupInfo[frame.guid]
 	local numIcons = frame.numIcons
 	for i = 1, numIcons do
 		local icon = frame.icons[i]
@@ -191,5 +205,8 @@ function P:ApplySettings(frame)
 		self:SetSwipeCounter(icon, db)
 		self:SetChargeScale(icon, chargeScale)
 		self:SetTooltip(icon, showTooltip)
+		if icon.glowBorder then
+			icon.Glow:SetShown(not info.isDeadOrOffline and (condition==3 or (condition==1 and icon.active~=0) or (condition==2 and icon.active==0)))
+		end
 	end
 end

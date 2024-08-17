@@ -79,3 +79,17 @@ OmniCDC.StaticPopupDialogs["OMNICD_DF_TEST_MSG"] = {
 	hideOnEscape = true,
 	preferredIndex = STATICPOPUP_NUMDIALOGS
 }
+
+OmniCDC.StaticPopupDialogs["OMNICD_WIPE_DB"] = {
+	text = "|cffff2020Wipe DB?",
+	button1 = OKAY,
+	button2 = CLOSE,
+	OnAccept = function(_, data)
+		OmniCDDB = {}
+		C_UI.Reload()
+	end,
+	timeout = 0,
+	whileDead = true,
+	hideOnEscape = true,
+	preferredIndex = STATICPOPUP_NUMDIALOGS
+}

@@ -6,14 +6,10 @@ local spellTypeStr
 
 E.SlashHandler = function(msg)
 	local P = E.Party
-	local command, value = msg:match("^(%S*)%s*(.-)$")
-
-	if value then
-		command = strlower(command)
-		value = strlower(value)
-	elseif command then
-		command = strlower(command)
-	end
+	local command, value, subvalue = msg:match("^(%S*)%s*(%S*)%s*(.-)$")
+	command = strlower(command)
+	value = strlower(value)
+	subvalue = tonumber(subvalue)
 
 	if command == "help" or command == "?" then
 		E.write("v" .. E.Version)
@@ -38,8 +34,7 @@ E.SlashHandler = function(msg)
 			E.write("Timers reset.")
 		elseif value == "db" or value == "database" then
 
-			OmniCDDB = {}
-			C_UI.Reload()
+			E.Libs.OmniCDC.StaticPopup_Show("OMNICD_WIPE_DB")
 		elseif value == "pf" or value == "profile" then
 			E.DB:ResetProfile()
 			E.write("Profile reset.")
@@ -60,83 +55,75 @@ E.SlashHandler = function(msg)
 		E:ACR_NotifyChange()
 	elseif command == "s" or command == "spell" or E.L_CFG_ZONE[command] then
 		local zone = E.L_CFG_ZONE[command] and command or "arena"
-		value = value and strlower(value)
 		if value == "?" then
 			if not spellTypeStr then
-				spellTypeStr = "Spell Types:"
 				for k in pairs(E.L_PRIORITY) do
 					k = strlower(k)
-					spellTypeStr = strjoin(", ", spellTypeStr, k)
+					if not spellTypeStr then
+						spellTypeStr = k
+					else
+						spellTypeStr = strjoin(", ", spellTypeStr, k)
+					end
 				end
+				spellTypeStr = "Spell Types:\n" .. spellTypeStr
 			end
-			E.write("/oc <zone> <spell type|all|clear|default>")
-			E.write("/oc arena cc: enable cc spell types.")
-			E.write("/oc arena -cc: disable cc spell types.")
-			E.write("/oc r<zone> <spell type|all|clear|default>")
-			E.write("/oc rarena cc: add cc spell types to RaidCD.")
-			E.write("/oc rarena -cc: remove cc spell types from raidCD.")
+			E.write("/oc <s[zone]> <spell type||all|clear| default>")
+			E.write("/oc <f[zone]> <spell type||all|default> <-1~8>")
 			E.write(spellTypeStr)
-			return
-		end
-
-		if value == "clear" then
-			wipe(E.profile.Party[zone].spells)
-			for i = 1, #E.spellDefaults do
-				local sId = E.spellDefaults[i]
-				sId = tostring(sId)
+		elseif value == "clear" then
+			P:ResetOption(zone, "spells")
+			for sId in pairs(E.profile.Party[zone].spells) do
 				E.profile.Party[zone].spells[sId] = false
 			end
 		elseif value == "default" then
 			P:ResetOption(zone, "spells")
-		else
+		elseif value ~= "" then
 			local removeType = gsub(value, "-", "")
-			for _, t in pairs(E.spell_db) do
-				for i = 1, #t do
-					local v = t[i]
-					local sId = tostring(v.spellID)
-					local stype = strlower(v.type)
-					if not v.hide and (value == "all" or value == stype) then
-						E.profile.Party[zone].spells[sId] = true
-					elseif removeType == stype then
-						E.profile.Party[zone].spells[sId] = false
-					end
+			for id, v in pairs(E.hash_spelldb) do
+				local sId = tostring(id)
+				local type = strlower(v.type)
+				if not v.hide and (value == "all" or value == type) then
+					E.profile.Party[zone].spells[sId] = true
+				elseif removeType == type then
+					E.profile.Party[zone].spells[sId] = false
 				end
 			end
 		end
-		P:UpdateEnabledSpells()
 		P:Refresh()
 		E:ACR_NotifyChange()
-	elseif command == "r" or command == "raidcd" or E.L_CFG_ZONE[gsub(command, "^r", "")] then
-		local zone = gsub(command, "^r", "")
+	elseif command == "f" or command == "spellframe" or E.L_CFG_ZONE[gsub(command, "^f", "")] then
+		subvalue = subvalue and min(max(subvalue, 0), 8) or 0
+		local zone = gsub(command, "^f", "")
 		zone = E.L_CFG_ZONE[zone] and zone or "arena"
-		value = strlower(value)
-		if value == "clear" then
-			wipe(E.profile.Party[zone].raidCDS)
-			for i = 1, #E.raidDefaults do
-				local sId = E.raidDefaults[i]
-				sId = tostring(sId)
-				E.profile.Party[zone].raidCDS[sId] = false
-			end
-		elseif value == "default" then
-			P:ResetOption(zone, "raidCDS")
-		else
-			local removeType = gsub(value, "-", "")
-			for _, t in pairs(E.spell_db) do
-				for i = 1, #t do
-					local v = t[i]
-					local sId = tostring(v.spellID)
-					local stype = strlower(v.type)
-					if not v.hide and (value == "all" or value == stype) then
-						E.profile.Party[zone].raidCDS[sId] = true
-					elseif removeType == stype then
-						E.profile.Party[zone].raidCDS[sId] = false
-					end
+		if value == "default" then
+			P:ResetOption(zone, "spellFrame")
+		elseif subvalue ~= "" then
+			for id, v in pairs(E.hash_spelldb) do
+				local type = strlower(v.type)
+				if not v.hide and (value == "all" or value == type) then
+					E.profile.Party[zone].spellFrame[id] = subvalue
 				end
 			end
 		end
-		P:UpdateEnabledSpells()
 		P:Refresh()
 		E:ACR_NotifyChange()
+	elseif command == "g" or command == "spellglow" or E.L_CFG_ZONE[gsub(command, "^g", "")] then
+		local zone = gsub(command, "^g", "")
+		zone = E.L_CFG_ZONE[zone] and zone or "arena"
+		if value == "default" then
+			P:ResetOption(zone, "spellGlow")
+		elseif value ~= "" then
+			for id, v in pairs(E.hash_spelldb) do
+				local type = strlower(v.type)
+				if not v.hide and (value == "all" or value == type) then
+					E.profile.Party[zone].spellGlow[id] = true
+				end
+			end
+		end
+		P:UpdateAllBars()
+		E:ACR_NotifyChange()
+	elseif command == "tt" then
+		E.TooltipID:Enable()
 	elseif addOnCommands[command] then
 		addOnCommands[command](value)
 	else
@@ -148,7 +135,9 @@ function E:OpenOptionPanel()
 	self.Libs.ACD:SetDefaultSize(self.AddOn, 940, 627, self.global.optionPanelScale)
 	self.Libs.ACD:Open(self.AddOn)
 
-	self.Libs.ACD:SelectGroup(self.AddOn, "Party")
+	for moduleName in pairs(E.moduleOptions) do
+		self.Libs.ACD:SelectGroup(self.AddOn, moduleName)
+	end
 	self.Libs.ACD:SelectGroup(self.AddOn, "Home")
 end
 

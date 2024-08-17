@@ -1,5 +1,8 @@
 local E = select(2, ...):unpack()
 
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+local GetSpellTexture = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+
 E.spell_cdmod_talents = {
 
 	[3044] = {

@@ -1,5 +1,8 @@
 local E = select(2, ...):unpack()
 
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+local GetSpellTexture = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+
 E.spell_cdmod_talents = {
 
 	[48982] = {
@@ -1339,6 +1342,12 @@ E.item_set_bonus = {
 	[41276] = class_set_bonus.druid,
 	[41311] = class_set_bonus.druid,
 
+	[51420] = class_set_bonus.druid,
+	[51421] = class_set_bonus.druid,
+	[51422] = class_set_bonus.druid,
+	[51424] = class_set_bonus.druid,
+	[51419] = class_set_bonus.druid,
+
 
 	[28228] = { 37481, 2 },
 	[27474] = { 37481, 2 },
@@ -1390,6 +1399,12 @@ E.item_set_bonus = {
 	[41158] = class_set_bonus.hunter,
 	[41206] = class_set_bonus.hunter,
 	[41218] = class_set_bonus.hunter,
+	[51458] = class_set_bonus.hunter,
+	[51459] = class_set_bonus.hunter,
+	[51460] = class_set_bonus.hunter,
+	[51461] = class_set_bonus.hunter,
+	[51462] = class_set_bonus.hunter,
+
 
 
 
@@ -1592,6 +1607,12 @@ E.item_set_bonus = {
 	[40831] = class_set_bonus.paladin,
 	[40852] = class_set_bonus.paladin,
 	[40872] = class_set_bonus.paladin,
+	[51474] = class_set_bonus.paladin,
+	[51475] = class_set_bonus.paladin,
+	[51476] = class_set_bonus.paladin,
+	[51477] = class_set_bonus.paladin,
+	[51479] = class_set_bonus.paladin,
+
 	[35402] = { 23302, 4 },
 	[35403] = { 23302, 4 },
 	[35404] = { 23302, 4 },
@@ -1805,6 +1826,17 @@ E.item_set_bonus = {
 	[41014] = class_set_bonus.shaman,
 	[41028] = class_set_bonus.shaman,
 	[41039] = class_set_bonus.shaman,
+	[51509] = class_set_bonus.shaman,
+	[51510] = class_set_bonus.shaman,
+	[51511] = class_set_bonus.shaman,
+	[51512] = class_set_bonus.shaman,
+	[51514] = class_set_bonus.shaman,
+	[51497] = class_set_bonus.shaman,
+	[51498] = class_set_bonus.shaman,
+	[51499] = class_set_bonus.shaman,
+	[51500] = class_set_bonus.shaman,
+	[51502] = class_set_bonus.shaman,
+
 	[29032] = { 37211, 4 },
 	[29029] = { 37211, 4 },
 	[29028] = { 37211, 4 },
@@ -1870,6 +1902,12 @@ E.item_set_bonus = {
 	[41152] = class_set_bonus.enhance,
 	[41200] = class_set_bonus.enhance,
 	[41212] = class_set_bonus.enhance,
+	[51503] = class_set_bonus.enhance,
+	[51504] = class_set_bonus.enhance,
+	[51505] = class_set_bonus.enhance,
+	[51506] = class_set_bonus.enhance,
+	[51508] = class_set_bonus.enhance,
+
 	[28689] = class_set_bonus.enhance,
 	[28690] = class_set_bonus.enhance,
 	[28691] = class_set_bonus.enhance,
@@ -1942,6 +1980,12 @@ E.item_set_bonus = {
 	[40829] = class_set_bonus.warrior,
 	[40850] = class_set_bonus.warrior,
 	[40870] = class_set_bonus.warrior,
+	[51541] = class_set_bonus.warrior,
+	[51542] = class_set_bonus.warrior,
+	[51543] = class_set_bonus.warrior,
+	[51544] = class_set_bonus.warrior,
+	[51545] = class_set_bonus.warrior,
+
 	[28699] = class_set_bonus.warrior,
 	[28700] = class_set_bonus.warrior,
 	[28701] = class_set_bonus.warrior,

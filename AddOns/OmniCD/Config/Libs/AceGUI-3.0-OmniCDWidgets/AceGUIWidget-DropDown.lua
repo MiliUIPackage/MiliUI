@@ -5,7 +5,7 @@
 ---------------------------------------------------------------------------------
 -- Parameters for dropdown with disable item support:
 -- type = "select",
--- disabledItem = function() return key end, -- wrap in a function if key is a string, else you can return func, number, table keys(multiple items)
+-- disabledItem = function() return key end, -- member can be number, hash table(multiple items), methodname or func to return string, number, table
 
 -- type = "multiselect",
 -- dialogControl = "Dropdown-OmniCD",
@@ -24,7 +24,7 @@ local select, pairs, ipairs, type, tostring = select, pairs, ipairs, type, tostr
 local tsort = table.sort
 
 -- WoW APIs
-local PlaySound = PlaySound
+--local PlaySound = PlaySound -- s r
 local UIParent, CreateFrame = UIParent, CreateFrame
 local _G = _G
 

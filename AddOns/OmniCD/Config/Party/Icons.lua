@@ -21,11 +21,11 @@ local icons = {
 					type = "range",
 					min = 0.2, max = 2.0, step = 0.01, isPercent = true,
 					set = function(info, value)
-						local key = info[2]
-						local option = info[#info]
+						local key, option = info[2], info[#info]
 						E.profile.Party[key].icons[option] = value
-
-						P:ConfigSize(key, true)
+						if P:IsCurrentZone(key) then
+							P:ConfigSize()
+						end
 					end,
 				},
 				chargeScale = {
@@ -74,9 +74,7 @@ local icons = {
 			}
 		},
 		borderSettings = {
-			disabled = function(info)
-				return not E.profile.Party[ info[2] ].icons.displayBorder
-			end,
+			disabled = function(info) return not E.profile.Party[ info[2] ].icons.displayBorder end,
 			name = L["Border"],
 			order = 30,
 			type = "group",
@@ -97,18 +95,15 @@ local icons = {
 					type = "color",
 					dialogControl = "ColorPicker-OmniCD",
 					get = function(info)
-						local key = info[2]
-						local db = E.profile.Party[key].icons
+						local db = E.profile.Party[ info[2] ].icons
 						return db.borderColor.r, db.borderColor.g, db.borderColor.b
 					end,
 					set = function(info, r, g, b)
-						local key = info[2]
-						local db = E.profile.Party[key].icons
+						local db = E.profile.Party[ info[2] ].icons
 						db.borderColor.r = r
 						db.borderColor.g = g
 						db.borderColor.b = b
-
-						P:ConfigIcons(key, "borderColor")
+						P:Refresh()
 					end,
 				},
 				--[[
@@ -157,7 +152,7 @@ local icons = {
 					set = function(info, state)
 						local key = info[2]
 						E.profile.Party[key].position.displayInactive = state
-						P:ConfigBars(key, "displayInactive")
+						P:Refresh()
 					end,
 				},
 				lb1 = {
@@ -167,5 +162,32 @@ local icons = {
 		},
 	}
 }
+
+local sliderTimer
+local function UpdatePixelObjects(noDelay)
+	P:UpdatePositionValues()
+	for _, info in pairs(P.groupInfo) do
+		local frame = info.bar
+		P:SetBarBackdrop(frame)
+		P:SetIconLayout(frame)
+	end
+	if not noDelay then
+		sliderTimer = nil
+	end
+end
+
+function P:ConfigSize(noDelay)
+	for _, info in pairs(self.groupInfo) do
+		local frame = info.bar
+		self:SetIconScale(frame)
+	end
+	if E.db.icons.displayBorder then
+		if noDelay then
+			UpdatePixelObjects(noDelay)
+		elseif not sliderTimer then
+			sliderTimer = E.TimerAfter(0.5, UpdatePixelObjects)
+		end
+	end
+end
 
 P:RegisterSubcategory("icons", icons)

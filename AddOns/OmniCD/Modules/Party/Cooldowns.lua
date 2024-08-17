@@ -1,7 +1,7 @@
 local E = select(2, ...):unpack()
 local P = E.Party
 
-local MIN_RESET_DURATION = (E.isWOTLKC or E.TocVersion > 90100) and 120 or 180
+local MIN_RESET_DURATION = ((E.isWOTLKC or E.isCata) or E.TocVersion > 90100) and 120 or 180
 
 function P:ResetCooldown(icon)
 	local info = self.groupInfo[icon.guid]
@@ -32,7 +32,8 @@ function P:ResetCooldown(icon)
 		currCharges = currCharges + 1
 		icon.count:SetText(currCharges)
 		active.charges = currCharges
-		P:SetCooldownElements(icon, currCharges)
+		icon.active = currCharges
+		P:SetCooldownElements(info, icon, currCharges)
 
 		local castingBar = statusBar and not E.db.extraBars[statusBar.key].nameBar and currCharges == 1 and statusBar.castingBar
 		if castingBar then
@@ -99,10 +100,10 @@ function P:UpdateCooldown(icon, reducedTime, auraMult, isDFSpaghetti)
 	end
 end
 
-function P:SetCooldownElements(icon, charges)
+function P:SetCooldownElements(info, icon, charges)
 	local noSwipe = icon.isHighlighted or (icon.statusBar and not E.db.extraBars[icon.statusBar.key].nameBar) or (charges and charges > 0)
 	local noCount = noSwipe or not E.db.icons.showCounter
-	icon.cooldown:SetDrawEdge(charges and true)
+	icon.cooldown:SetDrawEdge(not icon.isHighlighted and charges and true)
 	icon.cooldown:SetDrawSwipe(not noSwipe)
 	icon.cooldown:SetHideCountdownNumbers(noCount)
 	if E.OmniCC then
@@ -110,6 +111,11 @@ function P:SetCooldownElements(icon, charges)
 	elseif icon.cooldown.timer then
 		icon.cooldown.timer:SetShown(not noCount)
 		icon.cooldown.timer.forceDisabled = noCount
+	end
+
+	if info and icon.glowBorder then
+		local condition = E.db.highlight.glowBorderCondition
+		icon.Glow:SetShown(not info.isDeadOrOffline and (condition==3 or (condition==1 and icon.active~=0) or (condition==2 and icon.active==0)))
 	end
 end
 
@@ -120,6 +126,11 @@ function P:StartCooldown(icon, cd, isRecharge, noGlow)
 	end
 
 	local spellID = icon.spellID
+
+	if not isRecharge and info.auras[spellID] then
+		return
+	end
+
 	info.active[spellID] = info.active[spellID] or {}
 
 	local active = info.active[spellID]
@@ -188,12 +199,12 @@ function P:StartCooldown(icon, cd, isRecharge, noGlow)
 		active.numHits = 0
 	end
 
-	icon.active = true
+	icon.active = currCharges or 0
 
 	local frame = icon:GetParent():GetParent()
 	local key = frame.key
 	if type(key) == "number" then
-		icon:SetAlpha(E.db.icons.activeAlpha)
+		icon:SetAlpha(icon.active == 0 and E.db.icons.activeAlpha or E.db.icons.inactiveAlpha)
 		if not self.displayInactive then
 			self:SetIconLayout(frame)
 		end
@@ -203,10 +214,10 @@ function P:StartCooldown(icon, cd, isRecharge, noGlow)
 			self:SetExStatusBarColor(icon, statusBar.key)
 			self.OmniCDCastingBarFrame_OnEvent(statusBar.CastingBar, E.db.extraBars[key].reverseFill and 'UNIT_SPELLCAST_CHANNEL_START' or 'UNIT_SPELLCAST_START')
 			if E.db.extraBars[key].useIconAlpha then
-				icon:SetAlpha(E.db.icons.activeAlpha)
+				icon:SetAlpha(icon.active == 0 and E.db.icons.activeAlpha or E.db.icons.inactiveAlpha)
 			end
 		else
-			icon:SetAlpha(E.db.icons.activeAlpha)
+			icon:SetAlpha(icon.active == 0 and E.db.icons.activeAlpha or E.db.icons.inactiveAlpha)
 		end
 		if frame.shouldRearrangeInterrupts then
 			self:SetExIconLayout(key, true)
@@ -217,18 +228,18 @@ function P:StartCooldown(icon, cd, isRecharge, noGlow)
 		if not isRecharge and not noGlow and E.db.highlight.glow then
 			self:SetGlow(icon)
 		end
-		self:SetCooldownElements(icon, currCharges)
+		self:SetCooldownElements(info, icon, currCharges)
 		if not info.isDeadOrOffline then
 			icon.icon:SetDesaturated(E.db.icons.desaturateActive and (not currCharges or currCharges == 0))
 		end
 	end
 
 	if E.isBFA and icon.guid == E.userGUID and self.isInPvPInstance and spellID == info.talentData["essStrivedPvpID"] then
-		E.TimerAfter(2, E.Comm.SendStrivePvpTalentCD, spellID)
+		C_Timer.After(2, function() E.Comm.SendStrivePvpTalentCD(spellID) end)
 	end
 end
 
-function P:ResetAllIcons(reason)
+function P:ResetAllIcons(reason, clearSession)
 	for guid, info in pairs(self.groupInfo) do
 		for spellID, icon in pairs(info.spellIcons) do
 			if reason ~= "encounterEnd" or (not E.spell_noreset_onencounterend[spellID] and icon.baseCooldown >= MIN_RESET_DURATION) then
@@ -265,28 +276,38 @@ function P:ResetAllIcons(reason)
 					self:RemoveHighlight(icon)
 				end
 
-				if reason == "joinedPvP" and spellID == 323436 then
+				if reason == "joinedPvP" and (spellID == 323436 or spellID == 6262) then
+					info.auras.healthStoneStacks = nil
 					info.auras.purifySoulStacks = nil
 					icon.count:SetText("")
+				end
+
+				if icon.glowBorder then
+					icon.Glow:SetShown(not info.isDeadOrOffline and E.db.highlight.glowBorderCondition ~= 2)
 				end
 			end
 		end
 
-		for _, timer in pairs(info.callbackTimers) do
-			if type(timer) == "table" then
+		for k, timer in pairs(info.callbackTimers) do
+			if type(timer) == "userdata" then
 				timer:Cancel()
 			end
+			info.callbackTimers[k] = nil
 		end
-		self.groupInfo[guid].callbackTimers = {}
 
-		if not self.displayInactive then
+		if clearSession then
+			wipe(info.sessionItemData)
+			self:UpdateUnitBar(guid)
+		elseif not self.displayInactive then
 			self:SetIconLayout(info.bar)
 		end
 	end
 
-	for key, frame in pairs(self.extraBars) do
-		if frame.shouldRearrangeInterrupts then
-			self:SetExIconLayout(key, true)
+	if not clearSession then
+		for key, frame in pairs(self.extraBars) do
+			if frame.shouldRearrangeInterrupts then
+				self:SetExIconLayout(key, true)
+			end
 		end
 	end
 end

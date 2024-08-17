@@ -2,11 +2,11 @@
 
 New lightweight addon to track party cooldowns. Type /oc or /omnicd to open the option panel.
 
-![](https://i.imgur.com/zhGuSJN.png)
+![](https://i.imgur.com/g4MmcP1.png)
 
 ## Key Features
 * Track any spell cooldowns.
-* Detect all in-game cooldown reduction. https://imgur.com/QUOk9dy
+* Detects all in-game cooldown reduction, both static and dynamic (reduced while it's on CD), and also tracks cooldown recovery rate. https://imgur.com/QUOk9dy https://imgur.com/HnwPqZ7
 * Built in Interrupt Bar.
 * Extremely reliable and lightweight.
 * Sync Mode: Automatically sync abilities with undetectable cooldown reduction if your teammate has OmniCD.†

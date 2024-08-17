@@ -8,7 +8,7 @@ local visibility = {
 	order = 0,
 	type = "group",
 	get = function(info) return E.profile.Party.visibility[ info[#info] ] end,
-	set = function(info, value) E.profile.Party.visibility[ info[#info] ] = value P:Refresh(true) end,
+	set = function(info, value) E.profile.Party.visibility[ info[#info] ] = value P:Refresh() end,
 	args = {
 		zone = {
 			name = ZONE,
@@ -22,7 +22,7 @@ local visibility = {
 				if P.isInTestMode and P.testZone == k then
 					P:Test()
 				end
-				P:Refresh(true)
+				P:Refresh()
 			end,
 		},
 		groupType = {
@@ -48,7 +48,7 @@ local visibility = {
 				E.profile.Party.groupSize[ info[#info] ] = value
 				if not sliderTimer then
 					sliderTimer = C_Timer.NewTimer(1, function()
-						P:Refresh(true)
+						P:Refresh()
 						sliderTimer = nil
 					end)
 				end

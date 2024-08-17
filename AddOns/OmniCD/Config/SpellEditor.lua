@@ -3,7 +3,12 @@ local E, L = select(2, ...):unpack()
 local GetNumSpecializationsForClassID = GetNumSpecializationsForClassID
 local GetSpecializationInfoForClassID = GetSpecializationInfoForClassID
 local GetSpecializationInfoByID = GetSpecializationInfoByID
-if E.preCata then
+local GetSpellDescription = C_Spell and C_Spell.GetSpellDescription or GetSpellDescription
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+local GetSpellTexture = C_Spell and C_Spell.GetSpellTexture or GetSpellTexture
+local GetSpellLink = C_Spell and C_Spell.GetSpellLink or GetSpellLink
+
+if E.preMoP then
 	GetNumSpecializationsForClassID = function() return 0 end
 	GetSpecializationInfoForClassID = E.Noop
 	GetSpecializationInfoByID = E.Noop
@@ -23,66 +28,48 @@ for i = 1, MAX_CLASSES do
 end
 classValues["TRINKET"] = format("|T%s:16|t %s", E.TEXTURES.TRINKET, L["Trinket, Main Hand"])
 
-local function GetClassIndexBySpellID(id)
-	for class, v in pairs(E.spell_db) do
-		for i = 1, #v do
-			local t = v[i]
-			if t.spellID == id then
-				return class, i
-			end
-		end
-	end
-end
-
 function E:UpdateSpell(id, isInit, oldClass, oldType)
-	local class, i = GetClassIndexBySpellID(id)
+	local spellInfo = self.hash_spelldb[id]
 	local v = OmniCDDB.cooldowns[id]
-	local vclass, vtype, force
+
+
 	if v then
-		vclass, vtype = v.class, v.type
 
-		if class ~= vclass then
+		if not spellInfo then
+			self.hash_spelldb[id] = v
 
-			if class then
-				tremove(self.spell_db[class], i)
-
-			else
-				if self.spellNameToID then
-					local name = GetSpellInfo(id)
-					if name and not self.spellNameToID[name] then
-						self.spellNameToID[name] = id
-					else
-						return
-					end
+			if self.spellNameToID then
+				local name = GetSpellInfo(id)
+				if name and not self.spellNameToID[name] then
+					self.spellNameToID[name] = id
+				else
+					return
 				end
-				force = true
 			end
-			self.spell_db[vclass][#self.spell_db[vclass] + 1] = v
 
 		elseif not v.custom and not defaultBackup[id] then
-			defaultBackup[id] = self:DeepCopy(self.spell_db[class][i])
-			self.spell_db[class][i] = v
-			if self.L_HIGHLIGHTS[vtype] then
+			defaultBackup[id] = self:DeepCopy(self.hash_spelldb[id])
+			self.hash_spelldb[id] = v
+			if self.L_HIGHLIGHTS[v.type] then
 				self.Cooldowns:RegisterRemoveHighlightByCLEU(v.buff or id)
 			end
 			return
-
-		else
-			self.spell_db[class][i] = v
 		end
 
-		if self.L_HIGHLIGHTS[vtype] then
+
+		if self.L_HIGHLIGHTS[v.type] then
 			self.Cooldowns:RegisterRemoveHighlightByCLEU(v.buff or id)
 		end
-	else
-		v = defaultBackup[id]
 
+	else
+
+		v = defaultBackup[id]
 		if v then
-			vclass, vtype = v.class, v.type
-			self.spell_db[class][i] = self:DeepCopy(v)
+			self.hash_spelldb[id] = self:DeepCopy(v)
 
 		else
-			tremove(self.spell_db[class], i)
+			self.hash_spelldb[id] = nil
+
 		end
 	end
 
@@ -91,7 +78,7 @@ function E:UpdateSpell(id, isInit, oldClass, oldType)
 			local module = self[moduleName]
 			local func = module.UpdateSpellsOption
 			if func then
-				func(module, id, oldClass, oldType, vclass, vtype, force)
+				func(module, id, oldClass, oldType, v)
 			end
 		end
 	end
@@ -111,7 +98,7 @@ end
 
 local isOthersCategory = function(info)
 	local id = GetSpellID(info)
-	return E.OTHER_SORT_ORDER[OmniCDDB.cooldowns[id].class]
+	return not E.BOOKTYPE_CATEGORY[OmniCDDB.cooldowns[id].class]
 end
 
 local isClassCategory = function(info)
@@ -129,7 +116,6 @@ local setGlobalDurationCharge = function(info, value)
 	local option = info[#info]
 	local id = GetSpellID(info)
 	OmniCDDB.cooldowns[id][option].default = value
-
 	E:UpdateSpell(id)
 end
 
@@ -146,7 +132,11 @@ local setItem = function(info, v)
 	local option = info[#info]
 	local id = GetSpellID(info)
 	if v == "" then
-		OmniCDDB.cooldowns[id][option] = nil
+		if option == "icon" then
+			OmniCDDB.cooldowns[id][option] = OmniCDDB.cooldowns[id].item and GetItemIcon(OmniCDDB.cooldowns[id].item) or select(2, GetSpellTexture(E.iconFix[id] or id))
+		else
+			OmniCDDB.cooldowns[id][option] = nil
+		end
 	else
 		if strmatch(v, "[^%d]+") or strlen(v) > 9 or not C_Item.DoesItemExistByID(v) then
 			E.write(L["Invalid ID"], v)
@@ -156,6 +146,17 @@ local setItem = function(info, v)
 	end
 
 	E:UpdateSpell(id)
+end
+
+local function CreateClassSpecTable(id)
+	local t = {}
+	for i = 1, #specIDs do
+		local class = select(6, GetSpecializationInfoByID(specIDs[i]))
+		if OmniCDDB.cooldowns[id].class == class then
+			tinsert(t, specIDs[i])
+		end
+	end
+	return #t > 0 and t or nil
 end
 
 local customSpellInfo = {
@@ -184,12 +185,13 @@ local customSpellInfo = {
 				end
 				for key in pairs(E.L_CFG_ZONE) do
 					E.profile.Party[key].spells[sId] = nil
-					E.profile.Party[key].raidCDS[sId] = nil
+					E.profile.Party[key].spellFrame[id] = nil
+					E.profile.Party[key].spellPriority[id] = nil
+					E.profile.Party[key].spellGlow[id] = nil
 				end
 			end
 			OmniCDDB.cooldowns[id] = nil
 			E.options.args.SpellEditor.args.editor.args[sId] = nil
-
 			E:UpdateSpell(id, nil, oldClass, oldType)
 		end,
 	},
@@ -208,10 +210,10 @@ local customSpellInfo = {
 		set = function(info, value)
 			local id = GetSpellID(info)
 			local oldClass, oldType = OmniCDDB.cooldowns[id].class, OmniCDDB.cooldowns[id].type
-			OmniCDDB.cooldowns[id].spec = nil
 			OmniCDDB.cooldowns[id].duration = { default = OmniCDDB.cooldowns[id].duration.default }
 			OmniCDDB.cooldowns[id].charges = { default = OmniCDDB.cooldowns[id].charges.default }
 			OmniCDDB.cooldowns[id].class = value
+			OmniCDDB.cooldowns[id].spec = CreateClassSpecTable(id)
 
 			E:UpdateSpell(id, nil, oldClass, oldType)
 		end,
@@ -263,7 +265,7 @@ local customSpellInfo = {
 		type = "input",
 		get = function(info)
 			local id = GetSpellID(info)
-			local spec = OmniCDDB.cooldowns[id].spec
+			local spec = OmniCDDB.cooldowns[id].spec or CreateClassSpecTable(id)
 			if spec then
 				return table.concat(spec, ";")
 			end
@@ -330,7 +332,7 @@ local customSpellInfo = {
 			return not E.L_HIGHLIGHTS[OmniCDDB.cooldowns[id].type]
 		end,
 		name = L["Buff ID (Optional)"],
-		desc = L["Enter buff ID if it differs from spell ID for Highlights to work"],
+		desc = format("%s\n\n|cffff2020%s", L["Enter buff ID if it differs from spell ID for Highlights to work"], L["0: Disable option"]),
 		order = 15,
 		type = "input",
 		get = function(info)
@@ -358,20 +360,27 @@ local customSpellInfo = {
 	lb4 = {
 		name = "\n", order = 16, type = "description",
 	},
+	icon = {
+		hidden = isClassCategory,
+		name = L["Icon ID (Optional)"],
+		order = 17,
+		type = "input",
+		get = getItem,
+		set = setItem,
+	},
 }
 
-if not E.preCata then
+if not E.preMoP then
 	local customSpellSpecInfo = {
 		enabled = {
-			name = ENABLE,
+			name = L["Always Show"],
 			desc = L["Enable if the spell is a base ability for this specialization"],
 			order = 1,
 			type = "toggle",
 			get = function(info)
 				local id = GetSpellID(info, 2)
 				local specID = GetSpecID(info)
-				local spec = OmniCDDB.cooldowns[id].spec
-				if not spec then return true end
+				local spec = OmniCDDB.cooldowns[id].spec or CreateClassSpecTable(id)
 				for i = 1, #spec do
 					if spec[i] == specID then return true end
 				end
@@ -379,41 +388,62 @@ if not E.preCata then
 			set = function(info, value)
 				local id = GetSpellID(info, 2)
 				local specID = GetSpecID(info)
-				if not OmniCDDB.cooldowns[id].spec then
-					OmniCDDB.cooldowns[id].spec = {}
-					for i = 1, #specIDs do
-						local class = select(6, GetSpecializationInfoByID(specIDs[i]))
-						if OmniCDDB.cooldowns[id].class == class then
-							tinsert(OmniCDDB.cooldowns[id].spec, specIDs[i])
-						end
-					end
-				end
-				for i = #OmniCDDB.cooldowns[id].spec, 1, -1 do
-					if not value and OmniCDDB.cooldowns[id].spec[i] == specID then
-						tremove(OmniCDDB.cooldowns[id].spec, i)
-						break
-					end
-				end
+				OmniCDDB.cooldowns[id].spec = OmniCDDB.cooldowns[id].spec or CreateClassSpecTable(id)
 				if value then
 					tinsert(OmniCDDB.cooldowns[id].spec, specID)
+				else
+					for i = #OmniCDDB.cooldowns[id].spec, 1, -1 do
+						if OmniCDDB.cooldowns[id].spec[i] == specID then
+							tremove(OmniCDDB.cooldowns[id].spec, i)
+							break
+						end
+					end
 				end
 
 				E:UpdateSpell(id)
 			end,
 		},
+		disable = {
+			name = L["Force Disable"],
+			desc = L["Only for talent abilities.\nCurrent ability for this specialization will no longer be tracked while you are in the selected zone(s)"],
+			order = 2,
+			type = "multiselect",
+			dialogControl = "Dropdown-OmniCD",
+			values = E.L_ALL_ZONE,
+			get = function(info, k)
+				local id = GetSpellID(info, 2)
+				local specID = GetSpecID(info)
+				local option = OmniCDDB.cooldowns[id].disabledSpec
+				return option and option[specID] and option[specID][k]
+			end,
+			set = function(info, k, value)
+				local id = GetSpellID(info, 2)
+				local specID = GetSpecID(info)
+				OmniCDDB.cooldowns[id].disabledSpec = OmniCDDB.cooldowns[id].disabledSpec or {}
+				OmniCDDB.cooldowns[id].disabledSpec[specID] = OmniCDDB.cooldowns[id].disabledSpec[specID] or {}
+				OmniCDDB.cooldowns[id].disabledSpec[specID][k] = value or nil
+				if next(OmniCDDB.cooldowns[id].disabledSpec[specID]) == nil then
+					OmniCDDB.cooldowns[id].disabledSpec[specID] = nil
+				end
+				if next(OmniCDDB.cooldowns[id].disabledSpec) == nil then
+					OmniCDDB.cooldowns[id].disabledSpec = nil
+				end
+				E:UpdateSpell(id)
+			end,
+		},
 		hd1 = {
-			name = "", order = 2, type = "header",
+			name = "", order = 3, type = "header",
 		},
 		duration = {
 			name = L["Cooldown"],
 			desc = L["Set to override the global cooldown setting for this specialization"],
-			order = 3,
+			order = 4,
 			type = "range",
 			min = 1, max = 999, softMax = 300, step = 1,
 		},
 		charges = {
 			name = L["Charges"],
-			order = 4,
+			order = 5,
 			type = "range",
 			min = 1, max = 10, step = 1,
 		},
@@ -466,14 +496,22 @@ end
 
 local customSpellGroup = {
 	icon = function(info)
-		local id = GetSpellID(info,0)
+		local id = GetSpellID(info, 0)
 		return select(2,GetSpellTexture(id))
 	end,
 	iconCoords = E.BORDERLESS_TCOORDS,
 	name = function(info)
-		local id = GetSpellID(info,0)
+		local id = GetSpellID(info, 0)
 		return GetSpellInfo(id)
 	end,
+	desc = E.isClassic and function(info)
+		local id = GetSpellID(info, 0)
+		return GetSpellDescription(GetSpellID(info, 0))
+	end or nil,
+	tooltipHyperlink = not E.isClassic and function(info)
+		local id = GetSpellID(info, 0)
+		return GetSpellLink(id)
+	end or nil,
 	type = "group",
 	args = customSpellInfo,
 }
@@ -488,45 +526,42 @@ E.EditSpell = function(_, value)
 		return E.write(L["Invalid ID"], value)
 	end
 
-	if OmniCDDB.cooldowns[id] then
-		return E.Libs.ACD:SelectGroup(E.AddOn, "SpellEditor", "editor", value)
+	if not OmniCDDB.cooldowns[id] then
+		local spellInfo = E.hash_spelldb[id]
+		if spellInfo then
+			OmniCDDB.cooldowns[id] = spellInfo
+
+			local duration = spellInfo.duration
+			if type(duration) == "number" then
+				spellInfo.duration = { default = duration }
+			end
+
+			local charges = spellInfo.charges
+			if type(charges) ~= "table" then
+				spellInfo.charges = { default = charges or 1 }
+			end
+
+			local spec = spellInfo.spec or CreateClassSpecTable(id)
+			spec = spec == true and id or (type(spec) == "number" and spec)
+			if spec then
+				spellInfo.spec = { spec }
+			end
+		else
+			OmniCDDB.cooldowns[id] = {
+				["class"] = "TRINKET",
+				["spellID"] = id,
+				["type"] = "trinket",
+				["duration"] = {default = 30},
+				["charges"] = {default = 1},
+				["name"] = name,
+				["icon"] = select(2, GetSpellTexture(id)),
+				["buff"] = id,
+				["custom"] = true,
+			}
+		end
+		E.options.args.SpellEditor.args.editor.args[value] = customSpellGroup
+		E:UpdateSpell(id)
 	end
-
-	local class, i = GetClassIndexBySpellID(id)
-	local _, icon = GetSpellTexture(id)
-	if class and i then
-		OmniCDDB.cooldowns[id] = E.spell_db[class][i]
-
-		local duration = OmniCDDB.cooldowns[id].duration
-		if type(duration) == "number" then
-			OmniCDDB.cooldowns[id].duration = { default = duration }
-		end
-
-		local charges = OmniCDDB.cooldowns[id].charges
-		if type(charges) ~= "table" then
-			OmniCDDB.cooldowns[id].charges = { default = charges or 1 }
-		end
-
-		local spec = OmniCDDB.cooldowns[id].spec
-		spec = spec == true and id or (type(spec) == "number" and spec)
-		if spec then
-			OmniCDDB.cooldowns[id].spec = { spec }
-		end
-	else
-		OmniCDDB.cooldowns[id] = {
-			["spellID"] = id,
-			["duration"] = {default = 30},
-			["type"] = "trinket",
-			["charges"] = {default = 1},
-			["icon"] = icon, ["class"] = "TRINKET", ["custom"] = true,
-			["buff"] = id,
-			["name"] = name,
-		}
-	end
-
-	E.options.args.SpellEditor.args.editor.args[value] = customSpellGroup
-
-	E:UpdateSpell(id)
 	E.Libs.ACD:SelectGroup(E.AddOn, "SpellEditor", "editor", value)
 end
 
@@ -546,7 +581,6 @@ local SpellEditor = {
 		local option = info[#info]
 		local id = GetSpellID(info)
 		OmniCDDB.cooldowns[id][option] = value
-
 		E:UpdateSpell(id)
 	end,
 	args = {
@@ -586,9 +620,7 @@ function E:AddSpellEditor()
 			SpellEditor.args.editor.args[id] = customSpellGroup
 		end
 	end
-
 	self.options.args["SpellEditor"] = SpellEditor
-	self:AddSpellPickers()
 end
 
 function E:UpdateSpellList(isInit)

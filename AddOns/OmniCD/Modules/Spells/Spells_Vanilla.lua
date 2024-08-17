@@ -222,6 +222,7 @@ E.iconFix = E.BLANK
 E.buffFix = E.BLANK
 E.buffFixNoCLEU = E.BLANK
 E.spellNameToID = {}
+E.summonedBuffDuration = E.BLANK
 
 E.spellDefaults = {
 	42292,
@@ -325,7 +326,10 @@ E.spellDefaults = {
 	23920,
 }
 
-E.raidDefaults = {
+E.interruptDefaults = {
 	16979, 2139, 1766, 8042, 19244, 6552, 72,
+}
+
+E.raidDefaults = {
 	740,
 }

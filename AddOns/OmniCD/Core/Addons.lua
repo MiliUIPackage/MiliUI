@@ -1,5 +1,7 @@
 local E, L = select(2, ...):unpack()
 
+local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+
 local unitFrameData = {
 	--[[
 		[1] = AddOn name
@@ -72,16 +74,37 @@ local unitFrameData = {
 		[5] = 50,
 	},
 	{
-		[1] = "Cell",
+		[1] = "Cell-Party",
 		[2] = "CellPartyFrameMember",
-		[3] = "unitid",
+		[3] = "unit",
 		[4] = 1,
 		[5] = 5,
 	},
 	{
 		[1] = "Cell-Raid",
 		[2] = "CellRaidFrameMember",
-		[3] = "unitid",
+		[3] = "unit",
+		[4] = 1,
+		[5] = 40,
+	},
+	{
+		[1] = "Cell-Spotlight",
+		[2] = "CellSpotlightFrameUnitButton",
+		[3] = "unit",
+		[4] = 1,
+		[5] = 15,
+	},
+	{
+		[1] = "Cell-QuickCast",
+		[2] = "CellQuickCastButton",
+		[3] = "unit",
+		[4] = 1,
+		[5] = 6,
+	},
+	{
+		[1] = "Cell-QuickAssist",
+		[2] = "CellQuickAssistHeaderUnitButton",
+		[3] = "unit",
 		[4] = 1,
 		[5] = 40,
 	},
@@ -263,8 +286,13 @@ local unitFrameData = {
 		[4] = 1,
 		[5] = 40
 	},
-	{ -- doesn't have any party/raid frames?
+	{
 		[1] = "oUF_Ruri",
+		[2] = "oUF_PartyUnitButton",
+		[3] = "unit",
+	},
+	{
+		[1] = "oUF_Ruri-Raid",
 		[2] = "oUF_Raid%dUnitButton",
 		[3] = "unit",
 	},

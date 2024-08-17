@@ -21,7 +21,7 @@ local OmniCDC = LibStub("OmniCDC", true)
 local pairs = pairs
 
 -- WoW APIs
-local _G = _G
+--local _G = _G -- s r
 local PlaySound, CreateFrame, UIParent = PlaySound, CreateFrame, UIParent
 
 --[[-----------------------------------------------------------------------------

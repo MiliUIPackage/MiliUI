@@ -1,16 +1,13 @@
-## Interface: 110002
+## Interface: 100207
 ## Title: OmniCD
-## Version: 10.1.5.2763
+## Version: 10.2.7.2802
 ## Author: Treebonker
 ## Notes: Party cooldown tracker. /oc
-## Title-zhTW: |cffFF7F00[副本]|r 隊友冷卻時間
-## Notes-zhTW: OmniCD |n顯示隊友重要技能以及斷法冷卻時間。|n|cffffd200使用方法：|r輸入指令『/oc』
-## DefaultState: Disabled
 ## X-Credits:
 ## X-License: All Rights Reserved
-## X-Localizations: enUS, deDE, esMX, frFR, koKR, ruRU, zhCN, zhTW
+## X-Localizations: enUS, deDE, esMX, frFR, itIT, koKR, ruRU, zhCN, zhTW
 ## X-Website: https://www.curseforge.com/wow/addons/omnicd
-## DefaultState: Enabled
+## DefaultState: Disabled
 ## SavedVariables: OmniCDDB
 ## IconTexture: Interface\AddOns\OmniCD\Config\Libs\Media\omnicd-logo64-c
 

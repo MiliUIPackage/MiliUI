@@ -3,6 +3,7 @@ local P = E.Party
 
 local tinsert = table.insert
 local tremove = table.remove
+local C_Timer_NewTimer = C_Timer.NewTimer
 
 local unusedOverlayGlows = {}
 local numOverlays = 0
@@ -58,7 +59,7 @@ RemoveHighlight_OnTimerEnd = function(icon)
 			if not duration then
 				P:RemoveHighlight(icon)
 			elseif duration > 0 then
-				icon.isHighlighted = E.TimerAfter(duration + 0.1, RemoveHighlight_OnTimerEnd, icon)
+				icon.isHighlighted = C_Timer_NewTimer(duration + 0.1, function() RemoveHighlight_OnTimerEnd(icon) end)
 			end
 		end
 	end
@@ -95,10 +96,10 @@ local function ShowOverlayGlow(icon, duration, isRefresh)
 			icon.overlay.animIn:Play()
 		end
 	end
-	if type(icon.isHighlighted) == "table" then
+	if type(icon.isHighlighted) == "userdata" then
 		icon.isHighlighted:Cancel()
 	end
-	icon.isHighlighted = (E.isClassic or icon.guid == E.userGUID) and true or E.TimerAfter(duration + 0.1, RemoveHighlight_OnTimerEnd, icon)
+	icon.isHighlighted = (not E.isClassic and icon.guid ~= E.userGUID or E.summonedBuffDuration[icon.spellID]) and C_Timer_NewTimer(duration + 0.1, function() RemoveHighlight_OnTimerEnd(icon) end) or true
 end
 
 function P:HideOverlayGlow(icon)
@@ -121,7 +122,7 @@ function P:HideOverlayGlow(icon)
 		end
 	end
 
-	if type(icon.isHighlighted) == "table" then
+	if type(icon.isHighlighted) == "userdata" then
 		icon.isHighlighted:Cancel()
 	end
 	icon.isHighlighted = nil
@@ -147,7 +148,7 @@ function P:RemoveHighlight(icon)
 			icon.icon:SetVertexColor(0.4, 0.4, 0.4)
 		end
 
-		self:SetCooldownElements(icon, active.charges)
+		self:SetCooldownElements(info, icon, active.charges)
 		icon.icon:SetDesaturated(E.db.icons.desaturateActive and (not active.charges or active.charges == 0))
 	end
 end
@@ -163,17 +164,30 @@ function P:HighlightIcon(icon, isRefresh)
 	end
 
 	local info = self.groupInfo[icon.guid]
-	local unit = info.unit
-	local duration = info and self:GetBuffDuration(unit, buff)
+	if not info then
+		return
+	end
+
+	local spellID = icon.spellID
+	local duration = E.summonedBuffDuration[spellID]
+	if duration then
+		local active = info.active[spellID]
+		if active then
+			duration = duration - GetTime() + active.startTime
+			duration = duration > 0 and duration
+		end
+	else
+		duration = self:GetBuffDuration(info.unit, buff)
+	end
 
 	if duration then
 		if E.buffFixNoCLEU[buff] and (not E.isBFA or not self.isInArena) then
-			info.bar:RegisterUnitEvent('UNIT_AURA', unit)
+			info.bar:RegisterUnitEvent('UNIT_AURA', info.unit)
 		end
 
 		ShowOverlayGlow(icon, duration, isRefresh)
 
-		self:SetCooldownElements(icon, nil)
+		self:SetCooldownElements(info, icon, nil)
 
 		info.glowIcons[buff] = icon
 

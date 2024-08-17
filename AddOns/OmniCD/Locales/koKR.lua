@@ -4,6 +4,12 @@ L = L or {}
 L[ [=[%d: spellID.
 %d-%d: spellID-talentID (Mark spell if talent is selected).]=] ] = [=[%d: 주문ID.
 %d-%d: 주문ID-특성ID (특성 선택시에만 표기).]=]
+--[[Translation missing --]]
+L[ [=[%d: spellID.
+%d-%d: spellID-talentID (Mark spell if talent is selected).]=] ] = [=[%d: spellID.
+%d-%d: spellID-talentID (Mark spell if talent is selected).]=]
+--[[Translation missing --]]
+L["[Show Numbers for Cooldowns] must be disabled in Blizzard's 'Options/Action Bars' menu."] = "[Show Numbers for Cooldowns] must be disabled in Blizzard's 'Options/Action Bars' menu."
 L["[Show Numbers for Cooldowns] must be enabled in Blizzard's 'Options/Action Bars' menu when using Blizzard's cooldown numbers."] = "블리자드의 재사용 대기시간 숫자를 사용할 경우 '게임 메뉴/설정/행동 단축바/재사용 대기시간 숫자 보이기'를 활성화해야 합니다."
 L["|cff9d9d9d * Scenarios and Outdoor Zones will use Arena settings."] = "|cff9d9d9d * 시나리오와 야외에서는 투기장 설정을 사용."
 L["|cffff2020Friendly CD module must be enabled for the corresponding instance zone."] = "|cffff2020아군 쿨기 모듈이 해당 인스턴스 영역에 활성화 되어 있어야 합니다."
@@ -11,6 +17,8 @@ L["|cffff2020Glow and Highlights are never applied on cropped icons. \"Border\" 
 L["|cffff2020Important!|r Covenant and Soulbind Conduit data can only be acquired from group members with OmniCD installed."] = "|cffff2020중요!|r 성소주문과 영혼결속 전도체 정보는 OmniCD를 설치한 그룹 구성원에게서만 가져 올 수 있습니다."
 L["> 1 minute"] = "> 1분"
 L["0: Disable option"] = "0: 옵션 비활성화"
+--[[Translation missing --]]
+L["0: Raid Frame, 1: Interrupt Bar, 2-8: Extra Bar"] = "0: Raid Frame, 1: Interrupt Bar, 2-8: Extra Bar"
 L["2nd Row Icons (Double Row Layout)"] = "두째줄 아이콘 (두줄 수평배열)"
 L["2px Border"] = "2픽셀 테두리"
 L["A new update is available. |cff99cdff(%s)"] = "업데이트 가능. |cff99cdff(%s)"
@@ -24,21 +32,31 @@ L["Addons with raid frame scaling will also cause the icons to scale."] = "레�
 L[ [=[Adjust value until the truncate symbol [...] disappears.
 |cffff20200: Disable option]=] ] = [=[생략 부호 [...]가 사라질 때까지 설정 값을 조정하십시오.
 |cffff20200: 옵션 비활성화]=]
+--[[Translation missing --]]
+L[ [=[Adjust value until the truncate symbol [...] disappears.
+|cffff20200: Disable option]=] ] = [=[Adjust value until the truncate symbol [...] disappears.
+|cffff20200: Disable option]=]
 L["Alerts"] = "경보"
 L["All user set values will be lost. Do you want to proceed?"] = "모든 사용자 설정이 삭제됩니다. 진행 하시겠습니까?"
 L["Always attach to Blizzard frames. By default, bars attach to whichever frame is visible, and if both are visible UF addon take precedence over Blizzard"] = "항상 블리자드 프레임에 부착. (기본 설정에서 주문 바는 보이는 프레임에 자동 부착 되며, 둘 다 표시되는 경우 UF 애드온이 블리자드보다 우선합니다)"
 L["Always Bottom"] = "항상 아래"
+--[[Translation missing --]]
+L["Always Show"] = "Always Show"
 L["Always Show Cooldown Numbers"] = "항상 재사용 대기시간 숫자 표시"
 L["Always Top"] = "항상 위"
 L["Anchor"] = "제목 표시줄"
 L["Anchor Point"] = "기준점"
 L["Anchor Position"] = "부착 위치"
 L["Animate"] = "애니메이션"
+--[[Translation missing --]]
+L["AOE CC"] = "AOE CC"
 L["Apply 'Icons' alpha settings to the status bar"] = "'아이콘' 투명도 설정을 상태 바에 적용"
 L["Ascending"] = "오름차순"
 L["Assign Raid Cooldowns."] = "공대 생존기 지정"
 L["Attach Name Bar to the left of icon"] = "네임 바를 아이콘 왼쪽으로"
 L["Attach to Blizzard Frames"] = "블리자드 프레임에 부착"
+--[[Translation missing --]]
+L["Attach to Raid Frame"] = "Attach to Raid Frame"
 L["Attachment Point"] = "부착점"
 L["Author"] = "제작자"
 L["Auto"] = "자동"
@@ -52,6 +70,8 @@ L["Border Color"] = "테두리 색"
 L["Border Thickness"] = "테두리 두께"
 L["Borders retain 1px width regardless of the UI scale"] = "테두리가 UI 크기에 상관없이 항상 1픽셀 너비를 유지"
 L["Borders retain 1px width regardless of the UI scale. Need to reload the UI when the UI or icon scale changes"] = "테두리가 UI 크기에 상관없이 항상 1픽셀 너비를 유지. UI 또는 아이콘 크기 변경 후 UI를 새로고침 해야합니다"
+--[[Translation missing --]]
+L["Both"] = "Both"
 L["BOTTOM"] = "하단"
 L["BOTTOMLEFT"] = "좌측 하단"
 L["BOTTOMRIGHT"] = "우측 하단"
@@ -75,10 +95,16 @@ L["Clean wipe the savedvariable file. |cffff2020Warning|r: This can not be undon
 L["Column"] = "열"
 L["Column Padding"] = "열 간격"
 L["Commands:"] = "명령어:"
+--[[Translation missing --]]
+L["Condition"] = "Condition"
 L["Convert the status bar timer to a simple name display by disabling all timer functions. The 'Name' color scheme will be retained."] = "진행 바 타이머를 네임 바로 전환. '이름' 색상 설정은 유지 됩니다."
+--[[Translation missing --]]
+L["Convert to additional CD bars that attach to each unit's raid frame."] = "Convert to additional CD bars that attach to each unit's raid frame."
 L["Convert to Name Bar"] = "네임 바로 전환"
 L["Cooldown"] = "재사용 대기시간"
 L["Cooldown Remaining"] = "남은 재사용 대기시간"
+--[[Translation missing --]]
+L["Cooldown Timer"] = "Cooldown Timer"
 L["Copy"] = "복사"
 L["Copy Default"] = "기본값 복사"
 L["Copy selected zone settings to the current zone"] = "선택한 영역의 설정을 현 영역 설정에 복사"
@@ -149,18 +175,36 @@ L["Font Outline"] = "글자 윤곽선"
 L["Font Shadow"] = "글자 그림자"
 L["Fonts"] = "폰트"
 L["For double/triple layout, it will limit the number of icons per line"] = "두줄/세줄 배열의 경우 라인당 아이콘 수가 제한됩니다"
+--[[Translation missing --]]
+L["Force Disable"] = "Force Disable"
+--[[Translation missing --]]
+L["Frame"] = "Frame"
+--[[Translation missing --]]
+L["Freedom"] = "Freedom"
+--[[Translation missing --]]
+L["Glow"] = "Glow"
+--[[Translation missing --]]
+L["Glow Border"] = "Glow Border"
+--[[Translation missing --]]
+L["Glow condition can be changed from the Highlighting tab."] = "Glow condition can be changed from the Highlighting tab."
 L["Glow Icons"] = "아이콘 활성 효과"
 L["Group member must have OmniCD to detect cooldown reduction by Glyphs."] = "문양에 의한 재사용 대기시간 감소는 파티원도 OmniCD를 사용하는 경우에만 감지됩니다."
 L["Group member must have OmniCD to detect cooldown reduction with a chance to proc and Soulbind Conduits."] = "확율과 도관에 의한 재사용 대기시간 감소는 파티원도 OmniCD를 사용하는 경우에만 감지됩니다."
 L["Group member must have OmniCD to detect cooldown reduction with a chance to proc."] = "확율에 의한 재사용 대기시간 감소는 파티원도 OmniCD를 사용하는 경우에만 감지됩니다."
-L["Group member must have OmniCD to detect Talents."] = "Group member must have OmniCD to detect Talents."
+L["Group member must have OmniCD to detect Talents."] = true
 L["Group Padding"] = "그룹간 여백"
 L["Group Size"] = "파티 크기"
 L["Group Type"] = "파티 종류"
 L["Grow Columns Left"] = "열, 왼쪽으로 증가"
 L["Grow Rows Upward"] = "행, 위로 증가"
+--[[Translation missing --]]
+L["Hard CC"] = "Hard CC"
 L["Having \"BOTTOM\" in the anchor point, icons grow upward, otherwise downward"] = "기준점에 \"하단\"이 포함되어 있으면 아이콘이 위로, 그렇지 않으면 아래로 배열됩니다"
 L["Having \"RIGHT\" in the anchor point, icons grow left, otherwise right"] = "기준점에 \"우측\"이 포함되어 있으면 아이콘이 왼쪽으로, 그렇지 않으면 오른쪽으로 배열됩니다"
+--[[Translation missing --]]
+L["Heal"] = "Heal"
+--[[Translation missing --]]
+L["Healthstone and Demonic Gateway are added on cast"] = "Healthstone and Demonic Gateway are added on cast"
 L["Help Translate"] = "번역"
 L["Hide Border"] = "테두리 숨기기"
 L["Hide Disabled Spells"] = "비활성 주문 숨기기"
@@ -177,6 +221,8 @@ L["Horizontal + CD Groups"] = "수평 + CD 그룹"
 L["Hotfix"] = "핫픽스"
 L["Icon"] = "아이콘"
 L["Icon Alignment"] = "아이콘 정렬"
+--[[Translation missing --]]
+L["Icon ID (Optional)"] = "Icon ID (Optional)"
 L["Icon Opacity"] = "아이콘 불투명도"
 L["Icon Position"] = "아이콘 위치"
 L["Icon Scale Changed."] = "아이콘 크기가 변경 되었습니다."
@@ -222,6 +268,8 @@ L["MM:SS Threshold"] = "MM:SS 임계값"
 L["Mouseovering the icon will show the interrupted spell information regardless of 'Show Tooltip' option."] = "마우스 오버시 차단된 주문 정보가 '툴팁 표시' 옵션 여부와 상관없이 표시됩니다."
 L["Move your group's Interrupt spells to the Interrupt Bar."] = "그룹 차단기를 차단 바로 이동"
 L["Move your group's Raid Cooldowns to the Raid Bar."] = "그룹 공대 생존기를 레이드 바로 이동"
+--[[Translation missing --]]
+L["Movement"] = "Movement"
 L["Multiselect"] = "다중 선택"
 L["Name Bar"] = "네임 바"
 L["Name Offset X"] = "이름 오프셋 X"
@@ -236,11 +284,21 @@ L["Notify Updates"] = "업데이트 알림"
 L["Offensive"] = "공격"
 L["Offset X"] = "오프셋 X"
 L["Offset Y"] = "오프셋 Y"
+--[[Translation missing --]]
+L["Only applies to spells that have Glow enabled in the Spells tab"] = "Only applies to spells that have Glow enabled in the Spells tab"
+--[[Translation missing --]]
+L[ [=[Only for talent abilities.
+Current ability for this specialization will no longer be tracked while you are in the selected zone(s)]=] ] = [=[Only for talent abilities.
+Current ability for this specialization will no longer be tracked while you are in the selected zone(s)]=]
+--[[Translation missing --]]
+L["Override spell-type frame."] = "Override spell-type frame."
+--[[Translation missing --]]
+L["Override spell-type priority."] = "Override spell-type priority."
 L["Padding"] = "여백"
 L["Padding X"] = "여백 X"
 L["Padding Y"] = "여백 Y"
 L["Pending user input..."] = "사용자 입력 대기 중..."
-L["Pixel Perfect"] = "Pixel Perfect"
+L["Pixel Perfect"] = true
 L["Pixel Perfect ON."] = "Pixel Perfect 켜짐."
 L["Player Frame in Party"] = "파티 내 플레이어 프레임"
 L["Plugins"] = "플러그인"
@@ -268,6 +326,10 @@ L["Raid Defensive"] = "공대 생존기"
 L["Raid Frames for testing doesn't exist for %s. If it fails to load, configure OmniCD while in a group or temporarily set it to 'Manual Mode'."] = "%s 테스트 프레임이 존재 하지 않습니다. 파티를 형성하거나 임시로 '수동 모드'를 켜고 설정 하십시오."
 L["Raid Movement"] = "공대 이속기"
 L["Recharge"] = "재충전"
+--[[Translation missing --]]
+L["Redirect Spells"] = "Redirect Spells"
+--[[Translation missing --]]
+L["Redirect spells to the raid frame instead of removing them when this bar is disabled."] = "Redirect spells to the raid frame instead of removing them when this bar is disabled."
 L["Reload addon."] = "에드온 새로 고침"
 L["Reload UI?"] = "UI를 새로고침 하시겠습니까?\""
 L["Rename Bar"] = "바 이름 재설정"
@@ -285,18 +347,26 @@ L["Row"] = "행"
 L["Row Breakpoint"] = "둘째줄 시작점"
 L["Same category units are sorted alphabetically in ascending order"] = "정렬 기준이 같은 유닛은 알파벳 오름차순으로 정렬됩니다"
 L["Select a spell type to enable all spells in that category for all classes"] = "주문 유형 선택시 모든 직업에서 같은 유형의 주문이 모두 활성화됩니다"
+--[[Translation missing --]]
+L["Select a value lower than Breakpoint1"] = "Select a value lower than Breakpoint1"
 L["Select addon to override auto anchoring"] = "부착점으로 사용 할 애드온 선택"
 L["Select how the player frame is displayed inside the party frame"] = "파티 프레임내 플레이어 프레임이 표시되는 방식을 선택"
 L["Select the column(s) that you want the rows to grow upwards."] = "행을 위로 증가할 CD 그룹 선택."
 L["Select the column(s) that you want to detach and position manually."] = "레이드 바에서 분리하여 수동으로 위치를 선택할 CD 그룹 선택."
+--[[Translation missing --]]
+L["Select the frame to use as default for each spell type."] = "Select the frame to use as default for each spell type."
 L["Select the group size for which you want to set the spell bar position"] = "주문 바 위치를 수정하려는 파티 크기 선택"
 L["Select the highest priority spell type to use as the start of the 2nd row"] = "둘째줄부터 표기할 주문의 우선순위 선택"
 L["Select the highest priority spell type to use as the start of the 3rd row"] = "세째줄부터 표기할 주문의 우선순위 선택"
+--[[Translation missing --]]
+L["Select the highest spell priority to use as the start of the 2nd row"] = "Select the highest spell priority to use as the start of the 2nd row"
+--[[Translation missing --]]
+L["Select the highest spell priority to use as the start of the 3rd row"] = "Select the highest spell priority to use as the start of the 3rd row"
 L["Select the icon layout"] = "아이콘 배열 선택"
 L["Select the spell types you want to display on this column."] = "이 그룹에 표시할 주문 유형 선택."
 L["Select the spells you want to move from the 'Raid CD' tab. The spell must be enabled from the 'Spells' tab first."] = "추가 바로 이동하려는 주문을 '공대 주문' 탭에서 선택하십시오. 먼저 '주문' 탭에서 주문을 활성화해야 합니다."
 L["Select the spells you want to show on Raid Bar 1-8 instead of the default Unit Bar"] = "기본 바 대신 추가 바 1-8에 표시할 주문을 선택하십시오"
-L["Select the spells you want to track."] = "Select the spells you want to track."
+L["Select the spells you want to track."] = true
 L["Select the zone setting to use for this zone."] = "이 영역에 사용할 영역 설정을 선택."
 L["Select the zone you want to copy settings from."] = "복사할 영역 설정을 선택"
 L["Select your default party frame layout"] = "기본 파티 프레임의 배열 방향 선택"
@@ -347,14 +417,20 @@ L["Show Tooltip"] = "툴팁 표시"
 L["Show Trinket Only"] = "급장만 표시"
 L["Size"] = "크기"
 L["Slash Commands"] = "/ 명령어"
+--[[Translation missing --]]
+L["Soft CC"] = "Soft CC"
 L["Sort Direction"] = "정렬 방향"
 L["Sort Order"] = "정렬 순서"
 L["Source Profile"] = "원본 프로필"
 L["Spacing"] = "간격"
 L["Spell Editor"] = "주문 편집기"
 L["Spell ID"] = "주문 ID"
+--[[Translation missing --]]
+L["Spell Priority"] = "Spell Priority"
 L["Spell Types"] = "주문 유형"
 L["Spells"] = "주문"
+--[[Translation missing --]]
+L["Spell-Type Priority"] = "Spell-Type Priority"
 L["Status Bar"] = "상태 바"
 L["Status Bar Timer"] = "상태 바 타이머"
 L["Strong Yellow Glow"] = "강한 노란색 광채"
@@ -363,6 +439,10 @@ L["Swipe Opacity"] = "재사용 대기시간 불투명도"
 L["Synchronize"] = "동기화"
 L["Talent Ability"] = "특성 기술"
 L["Talent ID"] = "특성 ID"
+--[[Translation missing --]]
+L["Tank Defensive"] = "Tank Defensive"
+--[[Translation missing --]]
+L["Taunt"] = "Taunt"
 L["Test"] = "테스트"
 L["Test frames will be hidden once player is out of combat"] = "비전투 상태일 때 테스트 프레임이 자동으로 숨겨집니다"
 L["Test Mode Disabled: Non-Blizzard party frames"] = "테스트 모드 사용 불가: 블리자드 파티 프레임이 아닙니다"
@@ -388,17 +468,25 @@ L["Trinket Items"] = "장신구 아이템"
 L["Truncate Name"] = "이름 문자열 줄이기"
 L["UI Scale Changed."] = "UI 크기가 변경 되었습니다."
 L["Unit CD bars are limited to 5 man groups unless Blizzard Raid Frames are used."] = "개별 유닛 CD 바는 블리자드 레이드 프레임을 사용하지 않는 한 5인 그룹으로 제한됩니다."
+--[[Translation missing --]]
+L["Unusable"] = "Unusable"
+--[[Translation missing --]]
+L["Usable"] = "Usable"
 L["Usage:"] = "사용:"
 L["Use a semi-colon(;) to seperate multiple IDs."] = "여러 주문을 입력시 세미콜론(;)으로 구분 하십시오."
 L["Use Default"] = "기본 배열 사용"
 L["Use Double Column"] = "두줄 수직배열"
 L["Use Double Row"] = "두줄 수평배열"
+--[[Translation missing --]]
+L["Use ElvUI Timer"] = "Use ElvUI Timer"
 L["Use Icon Alpha"] = "아이콘 투명도 사용"
 L["Use Relative Size"] = "상대적 크기 사용"
 L["Use this setting for all group sizes"] = "이 설정을 모든 그룹 크기에 적용"
 L["Use Triple Column"] = "세줄 수직배열"
 L["Use Triple Row"] = "세줄 수평배열"
 L["Use Zone Settings From:"] = "사용할 영역 설정:"
+--[[Translation missing --]]
+L["Utility"] = "Utility"
 L["Utils"] = "유틸"
 L["Value 'Manual Position' includes Interrupt and Raid Bar's saved positions."] = "'수동 위치'' 값에는 차단 및 레이드 바의 저장된 위치가 포함됩니다."
 L["Version"] = "버전"
@@ -407,4 +495,8 @@ L["Vertical + CD Groups"] = "수직 + CD 그룹"
 L["Vertical Groups"] = "수직으로 표시"
 L["Visibility"] = "활성조건"
 L["Weak Purple Glow"] = "약한 보라색 광채"
+--[[Translation missing --]]
+L["You can mangage spell types for all bars from the Frame option"] = "You can mangage spell types for all bars from the Frame option"
+--[[Translation missing --]]
+L["You can override this setting on individual spells from the Spells tab."] = "You can override this setting on individual spells from the Spells tab."
 L["You must manually enable either the 'Party Frames' or 'Raid Frames' in Blizzard's 'HUD Edit Mode'."] = "블리자드의 'HUD 편집 모드'에서 '파티 프레임' 또는 '레이드 프레임'을 활성화해야 합니다."

@@ -9,7 +9,7 @@
 -- dialogControl = "InlineGroupList-OmniCD",
 -- image (optional)
 -- imageCoords (optional)
--- arg = class (optional -  display class color on bg)
+-- arg = classFileName (optional -  display class color on bg)
 
 ---------------------------------------------------------------------------------
 
@@ -19,7 +19,7 @@
 InlineGroup Container
 Simple container widget that creates a visible "box" with an optional title.
 -------------------------------------------------------------------------------]]
-local Type, Version = "InlineGroupList-OmniCD", 25
+local Type, Version = "InlineGroupList-OmniCD", 26
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
 local OmniCDC = LibStub("OmniCDC", true)
@@ -33,7 +33,7 @@ local CreateFrame, UIParent = CreateFrame, UIParent
 -- s b <spell list>
 local DEFAULT_ICON_SIZE = 21
 local USE_ICON_BACKDROP = nil --WOW_PROJECT_ID ~= WOW_PROJECT_CLASSIC -- really need to reduce frame counts
-local TITLE_WIDTH = 200 -- Aceconfig width_multiplier = 170
+local TITLE_WIDTH = 170 -- Aceconfig width_multiplier = 170
 --[[-----------------------------------------------------------------------------
 Support functions
 -------------------------------------------------------------------------------]]
@@ -72,6 +72,10 @@ local function OptionOnMouseOver(title) -- frame = title frame
 		local linktype = desc:match(".*|H(%a+):.+|h.+|h.*");
 		if ( linktype ) then
 			tooltip:SetHyperlink(desc);
+			local spellID = strmatch(desc, "spell:(%d+):")
+			if spellID then
+				tooltip:AddLine("\nID: " .. spellID, 1, 1, 1, true)
+			end
 		else
 			local frame = title:GetParent()
 			local name = frame.obj.titletext:GetText();
@@ -139,16 +143,9 @@ local methods = {
 		end
 	end,
 
-
-	["LayoutFinished"] = function(self, width, height)
+	["LayoutFinished"] = function(self, width, height) -- from Flow-Nopadding-OmniCD
 		if self.noAutoHeight then return end
-		if not height or height < 20 then
-			self.frame:Hide()
-			self:SetHeight(0)
-		else
-			self:SetHeight(height)
-			self.frame:Show()
-		end
+		self:SetHeight(height or 0)
 	end,
 
 	["OnWidthSet"] = function(self, width)
@@ -230,7 +227,7 @@ local function Constructor()
 
 	--Container Support
 	local content = CreateFrame("Frame", nil, frame)
-	content:SetPoint("TOPLEFT", title, "TOPRIGHT")
+	content:SetPoint("TOPLEFT", title, "TOPRIGHT", 2, 0) -- 5 align with header (InlineGroupList2 content)
 	content:SetPoint("BOTTOMRIGHT")
 
 	local widget = {

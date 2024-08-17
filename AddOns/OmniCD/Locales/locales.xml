@@ -8,4 +8,5 @@
 	<Script file="frFR.lua"/>
 	<Script file="deDE.lua"/>
 	<Script file="esMX.lua"/>
+	<Script file="itIT.lua"/>
 </Ui>

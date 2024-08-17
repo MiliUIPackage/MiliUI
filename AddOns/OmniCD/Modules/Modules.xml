@@ -3,6 +3,7 @@
 	<!-- Party -->
 	<Include file="Party\Templates.xml"/>
 	<Include file="Party\StatusBar.xml"/>
+	<Include file="Party\Highlights.xml"/>
 	<Script file="Party\Core.lua"/>
 	<Script file="Party\Bars.lua"/>
 	<Script file="Party\Icons.lua"/>
@@ -19,4 +20,5 @@
 
 	<!-- Blizzard -->
 	<Script file="Blizzard\Blizzard.lua"/>
+	<Script file="Blizzard\TooltipID.lua"/>
 </Ui>

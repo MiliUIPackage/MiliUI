@@ -15,7 +15,7 @@ do
 	localization = localization:gsub("frFR", FRFR):gsub("koKR", KOKR)
 	localization = localization:gsub("ruRU", RURU):gsub("zhCN", ZHCN)
 	localization = localization:gsub("zhTW", ZHTW)
-
+	localization = localization:gsub("itIT", LFG_LIST_LANGUAGE_ITIT)
 
 	fieldText.localizations = localization
 
@@ -27,7 +27,7 @@ do
 		end
 	end
 	fieldText.supportedUis = table.concat(t, ", ")
-	fieldText.translations = format("%s (%s), %s (%s) %s (%s)", RURU, "Void_OW-\"The OG\"", ZHTW, "RainbowUI", DEDE, "drumz84")
+	fieldText.translations = format("%s (%s), %s (%s), %s (%s), %s (%s)", RURU, "Void_OW-\"The OG\"", ZHTW, "RainbowUI", DEDE, "drumz84", LFG_LIST_LANGUAGE_ITIT, "Grifo92")
 end
 
 local getFieldText = function(info)
@@ -36,7 +36,7 @@ local getFieldText = function(info)
 end
 
 local isFound
-local changelog = E.changelog:gsub("^[ \t\n]*", E.HEX_C[WOW_PROJECT_ID]):gsub("\n\nv([%d%.]+)", function(ver)
+local changelog = E.changelog:gsub("^[ \t\n]*", E.HEX_C[WOW_PROJECT_ID or 1]):gsub("\n\nv([%d%.]+)", function(ver)
 	if not isFound and ver ~= E.Version then
 		isFound = true
 		return "|cff808080\n\nv" .. ver
@@ -179,11 +179,11 @@ local function GetOptions()
 							type = "description",
 						},
 						notice1 = {
-							name = format("|cffff2020* %s", (E.isClassic and L["Group member must have OmniCD to detect Talents."])
-							or (E.isWOTLKC and L["Group member must have OmniCD to detect cooldown reduction by Glyphs."])
-							or (E.isSL and L["Group member must have OmniCD to detect cooldown reduction with a chance to proc and Soulbind Conduits."])
-							or (E.isDF and L["Group member must have OmniCD to detect cooldown reduction with a chance to proc."])
-							or ""),
+							name = format("|cffff2020* %s", ((E.isWOTLKC or E.isCata) and L["Group member must have OmniCD to detect cooldown reduction by Glyphs."])
+								or (E.isSL and L["Group member must have OmniCD to detect cooldown reduction with a chance to proc and Soulbind Conduits."])
+								or (E.isDF and L["Group member must have OmniCD to detect cooldown reduction with a chance to proc."])
+
+								or ""),
 							order = 18,
 							type = "description",
 						},
@@ -296,6 +296,7 @@ local function GetOptions()
 									dialogControl = "Link-OmniCD",
 									get = function() return "https://www.curseforge.com/wow/addons/omniauras" end,
 								},
+								--[[
 								omnisort = {
 									name = "OmniSort",
 									desc = "Party group sorter with auto-adjusting keybinds and macros",
@@ -304,6 +305,7 @@ local function GetOptions()
 									dialogControl = "Link-OmniCD",
 									get = function() return "https://www.curseforge.com/wow/addons/omnisort" end,
 								},
+								]]
 							}
 						} or nil,
 					}
@@ -350,6 +352,7 @@ local function GetOptions()
 		E:AddSpellEditor()
 		E:AddProfileSharing()
 	end
+	E:AddSpellPickers()
 	return E.options
 end
 
@@ -370,7 +373,7 @@ function E:SetupOptions()
 	self.optionsFrames.profiles = LibStub("AceDBOptions-3.0"):GetOptionsTable(self.DB)
 	self.optionsFrames.profiles.order = 1000
 
-	if not self.preCata then
+	if not self.preMoP then
 		local LDS = LibStub("LibDualSpec-1.0")
 		LDS:EnhanceDatabase(self.DB, "OmniCDDB")
 		LDS:EnhanceOptions(self.optionsFrames.profiles, self.DB)

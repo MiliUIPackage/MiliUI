@@ -15,7 +15,7 @@ Container that uses a tree control to switch between groups.
 --[[ s r
 local Type, Version = "TreeGroup", 47
 ]]
-local Type, Version = "TreeGroup-OmniCD", 48 -- 45 by OA -- 46 by DF -- 48 backdrop
+local Type, Version = "TreeGroup-OmniCD", 50 -- 45 by OA -- 46 by DF -- 48 backdrop -- 50 splitter ht fix
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -130,6 +130,9 @@ local function UpdateButton(button, treeline, selected, canExpand, isExpanded)
 			button.borderBottom:SetColorTexture(0.569, 0.275, 1.0)
 		else
 			button.text:SetText("|cff808080"..text..FONT_COLOR_CODE_CLOSE)
+			-- s b
+			button:SetHeight(DEFAULT_TAB_HEIGHT)
+			button.borderBottom:SetColorTexture(0, 0, 0)
 		end
 		-- e
 	else
@@ -602,6 +605,9 @@ local methods = {
 
 		for i, v in ipairs(buttons) do
 			v:Hide()
+			-- s b v49 FIXME: tree list with scrollbar showing can end up being anchored to a parent tree list taking mouse inputs causing nil errors
+			v:EnableMouse(false) --> gets enabled in UpdateButton
+			-- e
 		end
 		while lines[1] do
 			local t = tremove(lines)

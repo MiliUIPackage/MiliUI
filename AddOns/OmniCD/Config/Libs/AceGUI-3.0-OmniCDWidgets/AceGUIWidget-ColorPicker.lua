@@ -8,9 +8,9 @@
 ColorPicker Widget
 -------------------------------------------------------------------------------]]
 --[[ s r
-local Type, Version = "ColorPicker", 25
+local Type, Version = "ColorPicker", 28
 ]]
-local Type, Version = "ColorPicker-OmniCD", 25
+local Type, Version = "ColorPicker-OmniCD", 28
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -21,12 +21,23 @@ local pairs = pairs
 -- WoW APIs
 local CreateFrame, UIParent = CreateFrame, UIParent
 
+-- Unfortunately we have no way to realistically detect if a client uses inverted alpha
+-- as no API will tell you. Wrath uses the old colorpicker, era uses the new one, both are inverted
+local INVERTED_ALPHA = (WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE)
+
 --[[-----------------------------------------------------------------------------
 Support functions
 -------------------------------------------------------------------------------]]
 local function ColorCallback(self, r, g, b, a, isAlpha)
+	if INVERTED_ALPHA and a then
+		a = 1 - a
+	end
 	if not self.HasAlpha then
 		a = 1
+	end
+	-- no change, skip update
+	if r == self.r and g == self.g and b == self.b and a == self.a then
+		return
 	end
 	self:SetColor(r, g, b, a)
 	if ColorPickerFrame:IsVisible() then
@@ -59,31 +70,65 @@ local function ColorSwatch_OnClick(frame)
 		ColorPickerFrame:SetFrameStrata("FULLSCREEN_DIALOG")
 		ColorPickerFrame:SetFrameLevel(frame:GetFrameLevel() + 10)
 		ColorPickerFrame:SetClampedToScreen(true)
+		ColorPickerFrame:EnableMouse(true) -- Make sure the background isn't click-through
 
-		ColorPickerFrame.func = function()
-			local r, g, b = ColorPickerFrame:GetColorRGB()
-			local a = 1 - OpacitySliderFrame:GetValue()
-			ColorCallback(self, r, g, b, a)
+		if ColorPickerFrame.SetupColorPickerAndShow then -- 10.2.5 color picker overhaul
+			local r2, g2, b2, a2 = self.r, self.g, self.b, (self.a or 1)
+			if INVERTED_ALPHA then
+				a2 = 1 - a2
+			end
+
+			local info = {
+				swatchFunc = function()
+					local r, g, b = ColorPickerFrame:GetColorRGB()
+					local a = ColorPickerFrame:GetColorAlpha()
+					ColorCallback(self, r, g, b, a)
+				end,
+
+				hasOpacity = self.HasAlpha,
+				opacityFunc = function()
+					local r, g, b = ColorPickerFrame:GetColorRGB()
+					local a = ColorPickerFrame:GetColorAlpha()
+					ColorCallback(self, r, g, b, a, true)
+				end,
+				opacity = a2,
+
+				cancelFunc = function()
+					ColorCallback(self, r2, g2, b2, a2, true)
+				end,
+
+				r = r2,
+				g = g2,
+				b = b2,
+			}
+
+			ColorPickerFrame:SetupColorPickerAndShow(info)
+		else
+			ColorPickerFrame.func = function()
+				local r, g, b = ColorPickerFrame:GetColorRGB()
+				local a = OpacitySliderFrame:GetValue()
+				ColorCallback(self, r, g, b, a)
+			end
+
+			ColorPickerFrame.hasOpacity = self.HasAlpha
+			ColorPickerFrame.opacityFunc = function()
+				local r, g, b = ColorPickerFrame:GetColorRGB()
+				local a = OpacitySliderFrame:GetValue()
+				ColorCallback(self, r, g, b, a, true)
+			end
+
+			local r, g, b, a = self.r, self.g, self.b, 1 - (self.a or 1)
+			if self.HasAlpha then
+				ColorPickerFrame.opacity = a
+			end
+			ColorPickerFrame:SetColorRGB(r, g, b)
+
+			ColorPickerFrame.cancelFunc = function()
+				ColorCallback(self, r, g, b, a, true)
+			end
+
+			ColorPickerFrame:Show()
 		end
-
-		ColorPickerFrame.hasOpacity = self.HasAlpha
-		ColorPickerFrame.opacityFunc = function()
-			local r, g, b = ColorPickerFrame:GetColorRGB()
-			local a = 1 - OpacitySliderFrame:GetValue()
-			ColorCallback(self, r, g, b, a, true)
-		end
-
-		local r, g, b, a = self.r, self.g, self.b, self.a
-		if self.HasAlpha then
-			ColorPickerFrame.opacity = 1 - (a or 0)
-		end
-		ColorPickerFrame:SetColorRGB(r, g, b)
-
-		ColorPickerFrame.cancelFunc = function()
-			ColorCallback(self, r, g, b, a, true)
-		end
-
-		ColorPickerFrame:Show()
 	end
 	AceGUI:ClearFocus()
 end

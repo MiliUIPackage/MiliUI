@@ -1,6 +1,8 @@
 local E = select(2, ...):unpack()
 
-E.spell_db["ESSENCES"] = {
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+
+E.spell_db["ESSENCE"] = {
 	{ spellID = 295373, duration = 30, type = "essence", spec = 295373 },
 	{ spellID = 295186, duration = 60, type = "essence", spec = 295186 },
 	{ spellID = 302731, duration = 60, type = "essence", spec = 302731 },
@@ -142,6 +144,7 @@ E.spell_cdmod_ess_strive_mult = {
 	[137639] = true,
 	[152173] = true,
 	[31884] = true,
+	[384376] = true,
 	[216331] = true,
 	[231895] = true,
 	[64843] = true,

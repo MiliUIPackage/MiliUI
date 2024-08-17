@@ -3,6 +3,7 @@ local E = select(2, ...):unpack()
 local unpack = unpack
 local tinsert = table.insert
 local tremove = table.remove
+local C_Timer_After = C_Timer.After
 
 function E:DeepCopy(source, blackList)
 	local copy = {}
@@ -174,46 +175,10 @@ E.OmniCDAnchor_OnMouseUp = function(self, button)
 
 end
 
-
-do
-	local Timers = CreateFrame("Frame")
-	local unusedTimers = {}
-
-	local Timer_OnFinished = function(self)
-		self.func(unpack(self.args))
-		tinsert(unusedTimers, self)
-	end
-
-	local TimerCancelled = function(self)
-		if self.TimerAnim:IsPlaying() then
-			self.TimerAnim:Stop()
-			tinsert(unusedTimers, self)
-		end
-	end
-
-	local function CreateTimer()
-		local TimerAnim = Timers:CreateAnimationGroup()
-		local Timer = TimerAnim:CreateAnimation("Alpha")
-		Timer:SetScript("OnFinished", Timer_OnFinished)
-		Timer.TimerAnim = TimerAnim
-		Timer.Cancel = TimerCancelled
-		return Timer
-	end
-
-	E.TimerAfter = function(delay, func, ...)
-		if delay <= 0 then
-			error("Timer requires a non-negative duration")
-		end
-		local Timer = tremove(unusedTimers)
-		if not Timer then
-			Timer = CreateTimer()
-		end
-		Timer.args = {...}
-		Timer.func = func
-		Timer:SetDuration(delay)
-		Timer.TimerAnim:Play()
-		return Timer
-	end
+E.TimerAfter = function(delay, func, ...)
+	local args = {...}
+	C_Timer_After(delay < 0 and 0 or delay, #args > 0 and function() func(unpack(args)) end or func)
+	return true
 end
 
 E.BackdropTemplate = E.Libs.OmniCDC.SetBackdrop

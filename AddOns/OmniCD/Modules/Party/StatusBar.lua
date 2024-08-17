@@ -9,7 +9,7 @@ local unusedStatusBars = {}
 local numStatusBars = 0
 
 local CASTING_BAR_ALPHA_STEP = 0.05;
-local CASTING_BAR_FLASH_STEP = 0.2;
+
 local CASTING_BAR_HOLD_TIME = 1;
 local SECONDS_PER_MIN = 60
 
@@ -387,8 +387,7 @@ local function CastingBarFrame_GetEffectiveStartColor(self, isChannel, notInterr
 	end
 
 	local icon = self.statusBar.icon
-	local charges = icon.maxcharges and tonumber(icon.count:GetText())
-	if charges and charges > 0 then
+	if icon.active ~= 0 then
 		return self.startRechargeColor, self.startRechargeBGColor, self.startRechargeTextColor
 	elseif isChannel then
 		return self.startChannelColor, self.startChannelBGColor, self.startChannelTextColor
@@ -436,8 +435,8 @@ function P.OmniCDCastingBarFrame_OnEvent(self, event)
 	local statusBar = self.statusBar
 	if E.db.extraBars[statusBar.key].nameBar then
 		local isChannel = event == 'UNIT_SPELLCAST_CHANNEL_START' or event == 'UNIT_SPELLCAST_CHANNEL_UPDATE'
-		local _,_, startTextColor = CastingBarFrame_GetEffectiveStartColor(self, isChannel, notInterruptible);
 		if ( isChannel or event == 'UNIT_SPELLCAST_START' or event == 'UNIT_SPELLCAST_CAST_UPDATE' ) then
+			local _,_, startTextColor = CastingBarFrame_GetEffectiveStartColor(self, isChannel, notInterruptible);
 			if info.isDeadOrOffline then
 				statusBar.Text:SetTextColor(0.3, 0.3, 0.3)
 			else

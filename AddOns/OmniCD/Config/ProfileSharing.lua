@@ -42,9 +42,7 @@ local ProfileSharing = {
 					set = function(_, value) selectedProfileType = value end,
 				},
 				openExportDialog = {
-					disabled = function()
-						return not selectedProfileType
-					end,
+					disabled = function() return not selectedProfileType end,
 					name = L["Export"],
 					order = 2,
 					type = "execute",
@@ -120,11 +118,14 @@ local ProfileSharing = {
 						["icons"] = L["Icons"],
 						["highlight"] = L["Highlighting"],
 						["priority"] = L["Priority"],
+						["frame"] = L["Frame"],
 						["spells"] = L["Spells"],
-						["extraBars"] = L["Extra Bars"],
-						["raidCDS"] = L["Raid CD"],
+						["spellFrame"] = format("%s-%s",L["Spells"], L["Bar"]),
+						["spellPriority"] = format("%s-%s",L["Spells"], L["Priority"]),
+						["spellGlow"] = format("%s-%s",L["Spells"], L["Glow"]),
+						["extraBars"] = L["Raid Bar"],
 					},
-					sorting = { "all", "general", "position", "manualPos", "icons", "highlight", "priority", "spells", "extraBars", "raidCDS" },
+					sorting = { "all", "general", "position", "manualPos", "icons", "highlight", "priority", "frame", "spells", "spellFrame", "spellPriority", "spellGlow", "extraBars" },
 					get = function() return selectedProfileOption end,
 					set = function(_, value) selectedProfileOption = value end,
 				},
@@ -148,7 +149,6 @@ local ProfileSharing = {
 						local src = selectedProfileSrc and tbl[selectedProfileSrc]
 						local dest = selectedProfileDest and tbl[selectedProfileDest]
 						local current = E.DB:GetCurrentProfile()
-
 						if selectedProfileOption == "all" then
 							local t = OmniCDDB.profiles[src].Party[selectedProfileZone]
 							if t then
@@ -162,7 +162,6 @@ local ProfileSharing = {
 								OmniCDDB.profiles[dest].Party[selectedProfileZone][selectedProfileOption] = E:DeepCopy(t)
 							end
 						end
-
 						if dest == current then
 							E:RefreshProfile(current)
 						end

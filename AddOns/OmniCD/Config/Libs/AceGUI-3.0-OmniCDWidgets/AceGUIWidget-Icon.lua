@@ -10,7 +10,7 @@ Icon Widget
 --[[ s r
 local Type, Version = "Icon", 21
 ]]
-local Type, Version = "Icon-OmniCD", 22 -- 22 backdrop
+local Type, Version = "Icon-OmniCD", 23 -- 22 backdrop
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -167,7 +167,7 @@ local function Constructor()
 	image:SetHeight(64)
 	image:SetPoint("TOP", 0, -5)
 	]]
-	local image
+	local image, imagebg
 	if USE_ICON_BACKDROP then
 		imagebg = CreateFrame("Frame", nil, frame, BackdropTemplateMixin and "BackdropTemplate" or nil)
 		imagebg:SetHeight(64)

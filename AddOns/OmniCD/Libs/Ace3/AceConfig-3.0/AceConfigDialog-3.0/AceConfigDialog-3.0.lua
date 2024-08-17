@@ -7,7 +7,7 @@
 --- AceConfigDialog-3.0 generates AceGUI-3.0 based windows based on option tables.
 -- @class file
 -- @name AceConfigDialog-3.0
--- @release $Id: AceConfigDialog-3.0.lua 1292 2022-09-29 08:00:11Z nevcairiel $
+-- @release $Id: AceConfigDialog-3.0.lua 1296 2022-11-04 18:50:10Z nevcairiel $
 
 local LibStub = LibStub
 local gui = LibStub("AceGUI-3.0")
@@ -15,9 +15,9 @@ local reg = LibStub("AceConfigRegistry-3.0")
 local OmniCDC =	 LibStub("OmniCDC")
 
 --[[ s r
-local MAJOR, MINOR = "AceConfigDialog-3.0", 85
+local MAJOR, MINOR = "AceConfigDialog-3.0", 86
 ]]
-local MAJOR, MINOR = "AceConfigDialog-3.0-OmniCD", 91 -- 82 DF -- 87 backdrop
+local MAJOR, MINOR = "AceConfigDialog-3.0-OmniCD", 96
 -- e
 local AceConfigDialog, oldminor = LibStub:NewLibrary(MAJOR, MINOR)
 
@@ -29,7 +29,7 @@ AceConfigDialog.frame = AceConfigDialog.frame or CreateFrame("Frame")
 --[[ s r
 AceConfigDialog.tooltip = AceConfigDialog.tooltip or CreateFrame("GameTooltip", "AceConfigDialogTooltip", UIParent, "GameTooltipTemplate")
 ]]
--- This will be used for the option panel only starting 87. Backdrop is set on :SetDefaultSize
+-- This will be used for the option panel only. Backdrop is set on :SetDefaultSize
 AceConfigDialog.tooltip = AceConfigDialog.tooltip or CreateFrame("GameTooltip", "AceConfigDialogTooltip-OmniCD", UIParent, BackdropTemplateMixin and "GameTooltipTemplate, BackdropTemplate" or "GameTooltipTemplate")
 --if select(4, GetBuildInfo()) > 90100 then -- 9.1.5 fix > Blizzard added this for classic era
 if WOW_PROJECT_ID ~= WOW_PROJECT_BURNING_CRUSADE_CLASSIC then
@@ -241,6 +241,7 @@ local stringIsLiteral = {
 	width = true,
 	image = true,
 	fontSize = true,
+	tooltipHyperlink = true
 }
 
 --Is Never a function or method
@@ -249,7 +250,7 @@ local allIsLiteral = {
 	descStyle = true,
 	imageWidth = true,
 	imageHeight = true,
-	justifyH = true, -- s a; Add to AceConfigregistery-3.0 typedkeys to validate
+	justifyH = true, -- s a -- Add justifyH to AceConfigregistery-3.0 typedkeys to validate
 }
 
 --gets the value for a member that could be a function
@@ -604,6 +605,20 @@ local function OptionOnMouseOver(widget, event)
 	local tooltip = AceConfigDialog.tooltip
 
 	tooltip:SetOwner(widget.frame, "ANCHOR_TOPRIGHT")
+
+	local tooltipHyperlink = GetOptionsMemberValue("tooltipHyperlink", opt, options, path, appName)
+	if tooltipHyperlink then
+		tooltip:SetHyperlink(tooltipHyperlink)
+		-- s b
+		local spellID = strmatch(tooltipHyperlink, "spell:(%d+):")
+		if spellID then
+			tooltip:AddLine("\nID: " .. spellID, 1, 1, 1, true)
+		end
+		-- e
+		tooltip:Show()
+		return
+	end
+
 	local name = GetOptionsMemberValue("name", opt, options, path, appName)
 	local desc = GetOptionsMemberValue("desc", opt, options, path, appName)
 	local usage = GetOptionsMemberValue("usage", opt, options, path, appName)
@@ -616,26 +631,9 @@ local function OptionOnMouseOver(widget, event)
 	if opt.type == "multiselect" then
 		tooltip:AddLine(user.text, 0.5, 0.5, 0.8, true)
 	end
-	--[[ s r (Hyperlink support)
 	if type(desc) == "string" then
 		tooltip:AddLine(desc, 1, 1, 1, true)
 	end
-	]]
-	if type(desc) == "string" then
-		local linktype = desc:match(".*|H(%a+):.+|h.+|h.*")
-		if linktype then
-			tooltip:SetHyperlink(desc)
-			--local spellID = strmatch(desc, "spell:(%d+):")
-			local spellID = opt.arg -- == GetOptionsMemberValue("arg", opt, options, path, appName)
-			if type(spellID) == "number" then
-				tooltip:AddLine("\nID: " .. spellID, 1, 1, 1, true)
-			end
-		else
-			tooltip:AddLine(desc, 1, 1, 1, true)
-		end
-	end
-	-- e
-
 	if type(usage) == "string" then
 		tooltip:AddLine("Usage: "..usage, NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b, true)
 	end
@@ -734,9 +732,8 @@ local function confirmPopup(appName, rootframe, basepath, info, message, func, .
 
 	frame.accept:ClearAllPoints()
 	frame.accept:SetPoint("BOTTOMRIGHT", frame, "BOTTOM", -6, 16)
-	frame.accept:Show()
 	frame.cancel:Show()
-	frame.alt:Hide()
+	frame.alt:Hide() -- s a
 
 	local t = {...}
 	local tCount = select("#", ...)
@@ -776,6 +773,13 @@ local function validationErrorPopup(message)
 		frame:Hide()
 	end)
 end
+
+-- s b
+local noRefresh = {
+	["InlineGroupList2Slider-OmniCD"] = true,
+	["InlineGroupListCheckBox-OmniCD"] = true,
+	["InlineGroupList2CheckBox-OmniCD"] = true,
+}
 
 local function ActivateControl(widget, event, ...)
 	--This function will call the set / execute handler for the widget
@@ -960,6 +964,7 @@ local function ActivateControl(widget, event, ...)
 
 
 
+		if not option.dialogControl or not noRefresh[option.dialogControl] then -- s a
 		local iscustom = user.rootframe:GetUserData("iscustom")
 		local basepath = user.rootframe:GetUserData("basepath") or emptyTbl
 		--full refresh of the frame, some controls dont cause this on all events
@@ -990,6 +995,7 @@ local function ActivateControl(widget, event, ...)
 				AceConfigDialog:Open(user.appName, unpack(basepath))
 			end
 		end
+		end -- s a
 
 	end
 	del(info)
@@ -1046,6 +1052,13 @@ local function FrameOnClose(widget, event)
 	local appName = widget:GetUserData("appName")
 	AceConfigDialog.OpenFrames[appName] = nil
 	gui:Release(widget)
+	-- s b -- wipe/gc on close and rebuild on Open if tbl is empty
+	local app = _G[appName]
+	app = type(app) == "table" and (app[1] or app)
+	if app and type(app.spellsOptionTbl) == "table" then
+		wipe(app.spellsOptionTbl)
+		collectgarbage()
+	end
 end
 
 local function CheckOptionHidden(option, options, path, appName)
@@ -1258,25 +1271,37 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 					else
 						GroupContainer = gui:Create("SimpleGroup")
 					end
-					]]
-					if name and name ~= "" then
-						GroupContainer = gui:Create("InlineGroup-OmniCD")
-						GroupContainer:SetTitle(name or "")
-					else
-						GroupContainer = gui:Create("SimpleGroup-OmniCD")
-					end
-					-- e
 
 					GroupContainer.width = "fill"
 					GroupContainer:SetLayout("flow")
 					container:AddChild(GroupContainer)
 					FeedOptions(appName,options,GroupContainer,rootframe,path,v,true)
+					]]
+					if v.dialogControl == "InlineGroupList2-OmniCD" then
+						GroupContainer = gui:Create("InlineGroupList2-OmniCD")
+						GroupContainer:SetTitle(v.arg) -- class color bg
+						GroupContainer.width = "fill"
+						GroupContainer:SetLayout("Flow-NowrapFix-OmniCD")
+						container:AddChild(GroupContainer)
+						FeedOptions(appName,options,GroupContainer,rootframe,path,v,true)
+					else
+						if name and name ~= "" then
+							GroupContainer = gui:Create("InlineGroup-OmniCD")
+							GroupContainer:SetTitle(name or "")
+						else
+							GroupContainer = gui:Create("SimpleGroup-OmniCD")
+						end
+
+						GroupContainer.width = "fill"
+						GroupContainer:SetLayout("flow")
+						container:AddChild(GroupContainer)
+						FeedOptions(appName,options,GroupContainer,rootframe,path,v,true)
+					end
+					-- e
 				end
 			else
 				--Control to feed
 				local control
-
-				local name = GetOptionsMemberValue("name", v, options, path, appName)
 
 				if v.type == "execute" then
 
@@ -1335,15 +1360,11 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 				elseif v.type == "toggle" then
 					--[[ s r
 					control = CreateControl(v.dialogControl or v.control, "CheckBox")
-					]]
-					control = CreateControl(v.dialogControl or v.control, "CheckBox-OmniCD") -- for 'Profiles'
-					-- e
 					control:SetLabel(name)
 					control:SetTriState(v.tristate)
 					local value = GetOptionsMemberValue("get",v, options, path, appName)
 					control:SetValue(value)
 					control:SetCallback("OnValueChanged",ActivateControl)
-
 
 					if v.descStyle == "inline" then
 						local desc = GetOptionsMemberValue("desc", v, options, path, appName)
@@ -1360,22 +1381,75 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 							control:SetImage(image)
 						end
 					end
+					]]
+					control = CreateControl(v.dialogControl or v.control, "CheckBox-OmniCD") -- for 'Profiles'
+					if v.dialogControl then
+						if  v.dialogControl == "InlineGroupList2CheckBox-OmniCD" then -- has img
+							control:SetLabel(name)
 
-					-- s b (edit/dnd) not using dnd. find a better way to get function for alt things.
-					local arg = GetOptionsMemberValue("arg", v, options, path, appName)
-					if type(arg) == "number" then --or type(arg) == "function" then
-						control:SetArg(arg)
+							local image = GetOptionsMemberValue("image", v, options, path, appName)
+							if type(image) == "string" or type(image) == "number" then
+								local imageCoords = GetOptionsMemberValue("imageCoords", v, options, path, appName)
+								if type(imageCoords) == "table" then
+									control:SetImage(image, unpack(imageCoords))
+								else
+									control:SetImage(image)
+								end
+							end
+
+							local arg = v.arg -- get it directly vs GetOptionsMemberValue("arg", v, options, path, appName)
+							if type(arg) == "number" then
+								control:SetArg(arg, appName)
+							end
+						end
+						local value = GetOptionsMemberValue("get",v, options, path, appName)
+						control:SetValue(value)
+						control:SetCallback("OnValueChanged",ActivateControl)
+					else
+						control:SetLabel(name)
+						--control:SetTriState(v.tristate) -- s -r
+						local value = GetOptionsMemberValue("get",v, options, path, appName)
+						control:SetValue(value)
+						control:SetCallback("OnValueChanged",ActivateControl)
+
+						if v.descStyle == "inline" then
+							local desc = GetOptionsMemberValue("desc", v, options, path, appName)
+							control:SetDescription(desc)
+						end
+
+						local image = GetOptionsMemberValue("image", v, options, path, appName)
+						local imageCoords = GetOptionsMemberValue("imageCoords", v, options, path, appName)
+
+						if type(image) == "string" or type(image) == "number" then
+							if type(imageCoords) == "table" then
+								control:SetImage(image, unpack(imageCoords))
+							else
+								control:SetImage(image)
+							end
+						end
+						-- s b
+						local arg = v.arg
+						if type(arg) == "number" then
+							control:SetArg(arg, appName)
+						end
 					end
 					-- e
 				elseif v.type == "range" then
 					--[[ s r
 					control = CreateControl(v.dialogControl or v.control, "Slider")
-					]]
-					control = CreateControl(v.dialogControl or v.control, "Slider-OmniCD")
-					-- e
 					control:SetLabel(name)
 					control:SetSliderValues(v.softMin or v.min or 0, v.softMax or v.max or 100, v.bigStep or v.step or 0)
 					control:SetIsPercent(v.isPercent)
+					]]
+					control = CreateControl(v.dialogControl or v.control, "Slider-OmniCD")
+					if v.dialogControl == "InlineGroupList2Slider-OmniCD" then
+						control:SetSliderValues(v.softMin or v.min or 0, v.softMax or v.max or 100, v.bigStep or v.step or 0)
+					else
+						control:SetLabel(name)
+						control:SetSliderValues(v.softMin or v.min or 0, v.softMax or v.max or 100, v.bigStep or v.step or 0)
+						control:SetIsPercent(v.isPercent)
+					end
+					-- e
 					local value = GetOptionsMemberValue("get",v, options, path, appName)
 					if type(value) ~= "number" then
 						value = 0
@@ -1512,12 +1586,11 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 							control:SetItemValue(key,value)
 						end
 						]]
-						-- <spell list>
 						if controlType == "InlineGroupList-OmniCD" then
-							control:SetLayout("Flow-Nowrap-OmniCD") -- fixed width
+							control:SetLayout("Flow-NowrapFix-OmniCD") -- fixed width
 							-- set title, tooltip, class
 							local desc = GetOptionsMemberValue("desc", v, options, path, appName)
-							local class = v.arg -- get it directly, since re're just returning
+							local class = v.arg -- get it directly, since we're just returning
 							control:SetTitle(name, desc, class)
 							control.width = "fill"
 
@@ -1542,12 +1615,11 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 							for s = 1, #valuesort do
 								local value = valuesort[s]
 								local text = values[value]
-								local check = gui:Create("CheckBox-OmniCD")
-								check:SetLabel(name == ALL and text or "") -- name "" is header row
+								local check = gui:Create("InlineGroupListCheckBox-OmniCD")
+								check:SetLabel("")
 								check:SetUserData("value", value)
 								check:SetUserData("text", text)
 								check:SetDisabled(disabled or (type(item)=="table" and item[value] or value == item))
-								check:SetTriState(v.tristate)
 								check:SetValue(GetOptionsMemberValue("get",v, options, path, appName, value))
 								check:SetCallback("OnValueChanged", ActivateMultiControl_NoRefresh) -- don't refresh layout (laggy)
 								InjectInfo(check, options, v, path, rootframe, appName)
@@ -1624,7 +1696,9 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 							check:SetUserData("value", value)
 							check:SetUserData("text", text)
 							check:SetDisabled(disabled)
+							--[[ s -r
 							check:SetTriState(v.tristate)
+							]]
 							check:SetValue(GetOptionsMemberValue("get",v, options, path, appName, value))
 							check:SetCallback("OnValueChanged",ActivateMultiControl)
 							InjectInfo(check, options, v, path, rootframe, appName)
@@ -1689,7 +1763,6 @@ local function FeedOptions(appName, options,container,rootframe,path,group,inlin
 					else -- small or invalid
 						control:SetFontObject(_G["GameFontHighlightSmall-OmniCD"])
 					end
-
 					local justifyH = GetOptionsMemberValue("justifyH",v, options, path, appName)
 					control:SetJustifyH(justifyH or "LEFT")
 					-- e
@@ -1784,6 +1857,25 @@ local function TreeOnButtonEnter(widget, event, uniquevalue, button)
 		group = GetSubOption(group, feedpath[i])
 	end
 
+	-- used on spelleditor
+	local tooltipHyperlink = GetOptionsMemberValue("tooltipHyperlink", group, options, feedpath, appName) -- !args
+	if tooltipHyperlink then
+		tooltip:SetOwner(button, "ANCHOR_NONE")
+		tooltip:ClearAllPoints()
+		if widget.type == "TabGroup-OmniCD" then
+			tooltip:SetPoint("BOTTOM",button,"TOP")
+		else
+			tooltip:SetPoint("LEFT",button,"RIGHT")
+		end
+		tooltip:SetHyperlink(tooltipHyperlink)
+		local spellID = strmatch(tooltipHyperlink, "spell:(%d+):")
+		if spellID then
+			tooltip:AddLine("\nID: " .. spellID, 1, 1, 1, true)
+		end
+		tooltip:Show()
+		return
+	end
+
 	local name = GetOptionsMemberValue("name", group, options, feedpath, appName)
 	local desc = GetOptionsMemberValue("desc", group, options, feedpath, appName)
 
@@ -1801,25 +1893,9 @@ local function TreeOnButtonEnter(widget, event, uniquevalue, button)
 
 	tooltip:SetText(name, 1, .82, 0, true)
 
-	--[[ s r (Hyperlink support)
 	if type(desc) == "string" then
 		tooltip:AddLine(desc, 1, 1, 1, true)
 	end
-	]]
-	if type(desc) == "string" then
-		local linktype = desc:match(".*|H(%a+):.+|h.+|h.*")
-		if linktype then
-			tooltip:SetHyperlink(desc)
-			--local spellID = strmatch(desc, "spell:(%d+):")
-			local spellID = option.arg -- == GetOptionsMemberValue("arg", option, options, path, appName)
-			if type(spellID) == "number" then
-				tooltip:AddLine("\nID: " .. spellID, 1, 1, 1, true)
-			end
-		else
-			tooltip:AddLine(desc, 1, 1, 1, true)
-		end
-	end
-	-- e
 
 	tooltip:Show()
 end
@@ -1948,12 +2024,8 @@ function AceConfigDialog:FeedGroup(appName,options,container,rootframe,path, isR
 			container = scroll
 		end
 		]]
-		if container.type ~= "InlineGroup-OmniCD" and container.type ~= "SimpleGroup-OmniCD" then -- <spell list> is 'multiselect'
+		if container.type ~= "InlineGroup-OmniCD" and container.type ~= "SimpleGroup-OmniCD" then
 			scroll = gui:Create("ScrollFrame-OmniCD")
-			--[[ s r <spell list>
-			scroll:SetLayout("flow")
-			]]
-			-- e
 			local opt = path[#path-1]
 			scroll:SetLayout(opt and opt:match("^list_%w+$") and "Flow-Nopadding-OmniCD" or "flow" )
 			scroll.width = "fill"
@@ -2171,10 +2243,10 @@ function AceConfigDialog:SetDefaultSize(appName, width, height, scale)
 	-- backward compatible: old direct scaling by self.Libs.ACD.OpenFrames.OmniSort.frame:SetScale will be
 	-- overridden by the current method (option>ActivateControl>ACD:Open(...)>SetStatusTable>ApplyStatus)
 	if type(scale) == "number" or scale == nil then
-		status.scale = scale or OmniCD[1].global.optionPanelScale or 1
+		status.scale = scale or 1
 		OmniCDC.globalPanelScale = status.scale
 		OmniCDC.pixelMult = OmniCDC.GetPixelMult()
-		OmniCDC.ACDPixelMult = OmniCDC.pixelMult / OmniCDC.globalPanelScale -- basis for all of our backdrop
+		OmniCDC.ACDPixelMult = OmniCDC.pixelMult / OmniCDC.globalPanelScale -- set option panel px
 	end
 
 	-- Set tooltip backdrop. This is done here so that addons that scale the UIParent are loaded first
@@ -2346,7 +2418,6 @@ function AceConfigDialog:AddToBlizOptions(appName, name, parent, ...)
 	if not BlizOptions[appName][key] then
 		local group = gui:Create("BlizOptionsGroup")
 		BlizOptions[appName][key] = group
-		group:SetName(name or appName, parent)
 
 		group:SetTitle(name or appName)
 		group:SetUserData("appName", appName)

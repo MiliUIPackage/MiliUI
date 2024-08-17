@@ -11,7 +11,7 @@ Container that uses tabs on top to switch between groups.
 --[[ s r
 local Type, Version = "TabGroup", 38
 ]]
-local Type, Version = "TabGroup-OmniCD", 39 -- 39 backdrop
+local Type, Version = "TabGroup-OmniCD", 40 -- 39 backdrop
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -36,9 +36,9 @@ Support functions
 
 -- START DF
 local function PanelTemplates_TabResize(tab, padding, absoluteSize, minWidth, maxWidth, absoluteTextSize)
+	--[[ s r
 	local tabName = tab:GetName();
 
-	--[[ s r
 	local buttonMiddle = tab.Middle or tab.middleTexture or _G[tabName.."Middle"];
 	local buttonMiddleDisabled = tab.MiddleDisabled or (tabName and _G[tabName.."MiddleDisabled"]);
 	local left = tab.Left or tab.leftTexture or _G[tabName.."Left"];
@@ -170,8 +170,8 @@ local function PanelTemplates_SelectTab(tab)
 end
 
 local function PanelTemplates_SetDisabledTabState(tab)
-	local name = tab:GetName();
 	--[[ s -r
+	local name = tab:GetName();
 	local left = tab.Left or _G[name.."Left"];
 	local middle = tab.Middle or _G[name.."Middle"];
 	local right = tab.Right or _G[name.."Right"];
@@ -502,7 +502,11 @@ local methods = {
 
 		if not tablist then return end
 
+		--[[ s r 40 frame.width and frame:GetWidth() is diff after profile change,reset,etc
 		local width = self.frame.width or self.frame:GetWidth() or 0
+		]]
+		local width = self.frame:GetWidth() or 0
+		-- e
 
 		wipe(widths)
 		wipe(rowwidths)
@@ -524,7 +528,7 @@ local methods = {
 			--[[ s r
 			widths[i] = tab:GetWidth() - 6 --tabs are anchored 10 pixels from the right side of the previous one to reduce spacing, but add a fixed 4px padding for the text
 			]]
-			widths[i] = tab:GetWidth() + 6
+			widths[i] = tab:GetWidth()
 			-- e
 		end
 
@@ -540,16 +544,25 @@ local methods = {
 		for i = 1, #tablist do
 			--If this is not the first tab of a row and there isn't room for it
 			if usedwidth ~= 0 and (width - usedwidth - widths[i]) < 0 then
+				--[[ s r 40
 				rowwidths[numrows] = usedwidth + 10 --first tab in each row takes up an extra 10px
+				]]
+				rowwidths[numrows] = usedwidth
+				-- e
 				rowends[numrows] = i - 1
 				numrows = numrows + 1
 				usedwidth = 0
 			end
 			usedwidth = usedwidth + widths[i]
 		end
+		--[[ s r 40
 		rowwidths[numrows] = usedwidth + 10 --first tab in each row takes up an extra 10px
+		]]
+		rowwidths[numrows] = usedwidth
+		-- e
 		rowends[numrows] = #tablist
 
+		--[[ s -r
 		--Fix for single tabs being left on the last row, move a tab from the row above if applicable
 		if numrows > 1 then
 			--if the last row has only one tab
@@ -565,8 +578,7 @@ local methods = {
 				end
 			end
 		end
-
-		local PixelMult = OmniCDC.ACDPixelMult -- s a
+		]]
 
 		--anchor the rows as defined and resize tabs to fill thier row
 		local starttab = 1
@@ -584,11 +596,10 @@ local methods = {
 				end
 				]]
 				if first then
-					tab:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 0, -(hastitle and 14 or 7)-(row-1)*(24 - PixelMult) )
+					tab:SetPoint("TOPLEFT", self.frame, "TOPLEFT", 0, -(hastitle and 14 or 7)-(row-1)*23 )
 					first = false
 				else
-
-					tab:SetPoint("LEFT", tabs[tabno-1], "RIGHT", 2, 0)
+					tab:SetPoint("LEFT", tabs[tabno-1], "RIGHT", 0, 0)
 				end
 				-- e
 			end
@@ -598,6 +609,7 @@ local methods = {
 			-- the 18 pixel is the typical width of a scrollbar, so we can have a tab group inside a scrolling frame,
 			-- and not have the tabs jump around funny when switching between tabs that need scrolling and those that don't
 			local padding = 0
+			--[[ s r 40
 			if not (numrows == 1 and rowwidths[1] < width*0.75 - 18) then
 				padding = (width - rowwidths[row]) / (endtab - starttab+1)
 			end
@@ -605,6 +617,15 @@ local methods = {
 			for i = starttab, endtab do
 				PanelTemplates_TabResize(tabs[i], padding + 4, nil, nil, width, tabs[i]:GetFontString():GetStringWidth())
 			end
+			]]
+			if (rowwidths[numrows] > width*0.75) then
+				padding = (width - rowwidths[row]) / (endtab - starttab+1)
+			end
+
+			for i = starttab, endtab do
+				PanelTemplates_TabResize(tabs[i], padding, nil, nil, width, tabs[i]:GetFontString():GetStringWidth())
+			end
+			-- e
 			starttab = endtab + 1
 		end
 
@@ -612,7 +633,7 @@ local methods = {
 		self.borderoffset = (hastitle and 17 or 10)+((numrows)*20)
 		self.border:SetPoint("TOPLEFT", 1, -self.borderoffset)
 		]]
-		self.borderoffset = (hastitle and 14 or 7)+((numrows)*(24 - PixelMult))
+		self.borderoffset = (hastitle and 14 or 7)+((numrows)*23)
 		self.border:SetPoint("TOPLEFT", 0, -self.borderoffset)
 	end,
 

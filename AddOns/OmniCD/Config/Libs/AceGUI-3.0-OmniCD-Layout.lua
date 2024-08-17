@@ -1,6 +1,5 @@
 local AceGUI = LibStub("AceGUI-3.0")
 
-local math_max = math.max
 local xpcall = xpcall
 
 local function errorhandler(err)
@@ -13,20 +12,10 @@ local function safecall(func, ...)
 	end
 end
 
-local layoutrecursionblock = nil
-local function safelayoutcall(object, func, ...)
-	layoutrecursionblock = true
-	object[func](object, ...)
-	layoutrecursionblock = nil
-end
-
-AceGUI:RegisterLayout("Flow-Nowrap-OmniCD", -- multiselect items
+AceGUI:RegisterLayout("Flow-NowrapFix-OmniCD", -- single row InlineGroupList (no wrap)
 	function(content, children)
-		if layoutrecursionblock then return end
-
 		local rowheight = 0
 		local width = 0
-		local childWidth = 0
 
 		local n = #children
 		for i = 1, n do
@@ -36,21 +25,19 @@ AceGUI:RegisterLayout("Flow-Nowrap-OmniCD", -- multiselect items
 			if i == 1 then
 				frame:SetPoint("TOPLEFT", content)
 				rowheight = frame.height or frame:GetHeight() or 0
-				childWidth = frame.width or frame:GetWidth() or 0
 			else
-				width = width + childWidth
 				frame:SetPoint("TOPLEFT", content, "TOPLEFT", width, 0)
 			end
+			local childWidth = frame.width or frame:GetWidth() or 0
+			width = width + childWidth
 			frame:Show()
 		end
 
-		safecall(content.obj.LayoutFinished, content.obj, nil, rowheight + 3)
+		safecall(content.obj.LayoutFinished, content.obj, nil, rowheight + 3) -- set actual row height
 	end)
 
-AceGUI:RegisterLayout("Flow-Nopadding-OmniCD", -- multiselect container (no top-bottom padding)
+AceGUI:RegisterLayout("Flow-Nopadding-OmniCD", -- scroll frame container for InlineGroupList rows (no top-bottom padding)
 	function(content, children)
-		if layoutrecursionblock then return end
-
 		local height = 0
 		local rowheight = 0
 

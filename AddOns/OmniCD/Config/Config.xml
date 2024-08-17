@@ -16,5 +16,6 @@
 	<Script file="Party\Icons.lua"/>
 	<Script file="Party\Highlight.lua"/>
 	<Script file="Party\Priority.lua"/>
+	<Script file="Party\Frame.lua"/>
 	<Script file="Party\Spells.lua"/>
 </Ui>

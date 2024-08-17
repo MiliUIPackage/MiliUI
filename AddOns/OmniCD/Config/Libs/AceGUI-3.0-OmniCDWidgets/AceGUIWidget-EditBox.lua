@@ -10,7 +10,7 @@ EditBox Widget
 --[[ s r
 local Type, Version = "EditBox", 28
 ]]
-local Type, Version = "EditBox-OmniCD", 30 -- 29 backdrop 30 right align
+local Type, Version = "EditBox-OmniCD", 31 -- 29 backdrop 30 right align
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -23,11 +23,12 @@ local tostring, pairs = tostring, pairs
 local PlaySound = PlaySound
 local GetCursorInfo, ClearCursor, GetSpellInfo = GetCursorInfo, ClearCursor, GetSpellInfo
 local CreateFrame, UIParent = CreateFrame, UIParent
-local _G = _G
+--local _G = _G -- s r
 
 --[[-----------------------------------------------------------------------------
 Support functions
 -------------------------------------------------------------------------------]]
+--[==[ s -r 31
 if not AceGUIEditBoxInsertLink then
 	-- upgradeable hook
 	hooksecurefunc("ChatEdit_InsertLink", function(...) return _G.AceGUIEditBoxInsertLink(...) end)
@@ -46,7 +47,7 @@ function _G.AceGUIEditBoxInsertLink(text)
 		end
 	end
 end
-
+]==]
 local function ShowButton(self)
 	if not self.disablebutton then
 		--[[ s r (not hiding btn)

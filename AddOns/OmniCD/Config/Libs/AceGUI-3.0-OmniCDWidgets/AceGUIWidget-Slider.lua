@@ -11,7 +11,7 @@ Graphical Slider, like, for Range values.
 --[[ s r
 local Type, Version = "Slider", 23
 ]]
-local Type, Version = "Slider-OmniCD", 27 -- 24 backdrop, 25 label color white, 26 right align
+local Type, Version = "Slider-OmniCD", 28 -- 24 backdrop, 25 label color white, 26 right align
 -- e
 local AceGUI = LibStub and LibStub("AceGUI-3.0", true)
 if not AceGUI or (AceGUI:GetWidgetVersion(Type) or 0) >= Version then return end
@@ -283,7 +283,9 @@ local function Constructor()
 	slider:SetPoint("RIGHT", -3, 0)
 	]]
 	slider.Thumb = slider:CreateTexture(nil, "Artwork")
-	slider.Thumb:SetSize(4, 8)
+	slider.Thumb:SetSize(4 * OmniCDC.ACDPixelMult, 8 * OmniCDC.ACDPixelMult)
+	slider.Thumb:SetTexelSnappingBias(0.0)
+	slider.Thumb:SetSnapToPixelGrid(false)
 	slider.Thumb:SetColorTexture(0.8, 0.624, 0)
 	slider:SetThumbTexture(slider.Thumb)
 	slider:SetPoint("TOP", label, "BOTTOM")

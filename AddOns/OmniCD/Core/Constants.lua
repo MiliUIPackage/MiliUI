@@ -1,5 +1,7 @@
 local E, L = select(2, ...):unpack()
 
+local GetSpellInfo = C_Spell and C_Spell.GetSpellName or GetSpellInfo
+
 
 do
 	L["Arena"] = ARENA
@@ -47,52 +49,63 @@ E.L_ALL_ZONE = {
 }
 
 E.L_PRIORITY = {
-	["consumable"] = L["Consumables"],
 	["pvptrinket"] = L["PvP Trinket"],
 	["racial"] = L["Racial Traits"],
-	["trinket"] = L["Trinket"],
-	["essence"] = L["Essence"],
-	["covenant"] = L["Covenant"],
 	["interrupt"] = L["Interrupt"],
 	["dispel"] = L["Dispels"],
-	["cc"] = L["Crowd Control"],
-	["disarm"] = L["Disrm, Root, Silence"],
+	["cc"] = L["Hard CC"],
+	["aoeCC"] = L["AOE CC"],
+	["disarm"] = L["Soft CC"],
 	["immunity"] = L["Immunity"],
-	["externalDefensive"] = L["External Defensive"],
 	["defensive"] = L["Defensive"],
+	["tankDefensive"] = L["Tank Defensive"],
+	["externalDefensive"] = L["External Defensive"],
 	["raidDefensive"] = L["Raid Defensive"],
+	["heal"] = L["Heal"],
 	["offensive"] = L["Offensive"],
 	["counterCC"] = L["Counter CC"],
+	["freedom"] = L["Freedom"],
+	["movement"] = L["Movement"],
 	["raidMovement"] = L["Raid Movement"],
 	["other"] = L["Other"],
+	["taunt"] = L["Taunt"],
+	["trinket"] = L["Trinket"],
+	["covenant"] = L["Covenant"],
+	["essence"] = L["Essence"],
+	["consumable"] = L["Consumables"],
 	["custom1"] = L["Custom"] .. 1,
 	["custom2"] = L["Custom"] .. 2,
 }
 
 E.L_HIGHLIGHTS = {
-	["pvptrinket"] = L["PvP Trinket"],
 	["racial"] = L["Racial Traits"],
-	["trinket"] = L["Trinket"],
-	["covenant"] = L["Covenant"],
 	["immunity"] = L["Immunity"],
-	["externalDefensive"] = L["External Defensive"],
 	["defensive"] = L["Defensive"],
+	["tankDefensive"] = L["Tank Defensive"],
+	["externalDefensive"] = L["External Defensive"],
 	["raidDefensive"] = L["Raid Defensive"],
+	["heal"] = L["Heal"],
 	["offensive"] = L["Offensive"],
 	["counterCC"] = L["Counter CC"],
+	["freedom"] = L["Freedom"],
+	["movement"] = L["Movement"],
 	["raidMovement"] = L["Raid Movement"],
 	["other"] = L["Other"],
+	["trinket"] = L["Trinket"],
+	["covenant"] = L["Covenant"],
+	["essence"] = L["Essence"],
 }
 
-if E.preCata then
+if E.preMoP then
 	E.L_PRIORITY.essence = nil
 	E.L_PRIORITY.covenant = nil
 	E.L_HIGHLIGHTS.covenant = nil
 end
 
-E.TEXTURES = E.preCata and {
+E.TEXTURES = E.preMoP and {
 	["White8x8"] = "Interface\\BUTTONS\\White8x8",
 	["CLASS"] = "Interface\\Icons\\classicon_",
+	["DEATHKNIGHT"] = "Interface\\Icons\\spell_deathknight_classicon",
 	["PVPTRINKET"] = "Interface\\Icons\\inv_jewelry_trinketpvp_01",
 	["RACIAL"] = "Interface\\Icons\\achievement_character_troll_male",
 	["TRINKET"] = "Interface\\Icons\\inv_misc_armorkit_10",
@@ -103,7 +116,7 @@ E.TEXTURES = E.preCata and {
 	["PVPTRINKET"] = "Interface\\Icons\\ability_pvp_gladiatormedallion",
 	["RACIAL"] = "Interface\\Icons\\Achievement_character_human_female",
 	["TRINKET"] = "Interface\\Icons\\inv_60pvp_trinket2d",
-	["ESSENCES"] = "Interface\\Icons\\inv_heartofazeroth",
+	["ESSENCE"] = "Interface\\Icons\\inv_heartofazeroth",
 	["COVENANT"] = 3257750,
 	["CONSUMABLE"] = 3566860,
 }
@@ -127,6 +140,7 @@ E.HEX_C = {
 	[2]			= "|cff0291b0",
 	[5]			= "|cff7bbb4e",
 	[11]			= "|cff99cdff",
+	[14]			= "|cffA63416",
 
 	[321076]		= "|cff2aa2ff",
 	[321079]		= "|cffe40d0d",
@@ -244,19 +258,28 @@ E.LIGHT_THEME = {
 }
 
 E.BOOKTYPE_CATEGORY = {
-	["WARRIOR"] = true,
-	["PALADIN"] = true,
-	["HUNTER"] = true,
-	["ROGUE"] = true,
-	["PRIEST"] = true,
-	["DEATHKNIGHT"] = true,
-	["SHAMAN"] = true,
-	["MAGE"] = true,
-	["WARLOCK"] = true,
-	["MONK"] = true,
-	["DRUID"] = true,
-	["DEMONHUNTER"] = true,
-	["EVOKER"] = true,
+	["WARRIOR"] = 1,
+	["PALADIN"] = 2,
+	["HUNTER"] = 3,
+	["ROGUE"] = 4,
+	["PRIEST"] = 5,
+	["DEATHKNIGHT"] = 6,
+	["SHAMAN"] = 7,
+	["MAGE"] = 8,
+	["WARLOCK"] = 9,
+	["MONK"] = 10,
+	["DRUID"] = 11,
+	["DEMONHUNTER"] = 12,
+	["EVOKER"] = 13,
+}
+
+E.OTHER_SORT_ORDER = {
+	["PVPTRINKET"] = L["PvP Trinket"],
+	["RACIAL"] = L["Racial Traits"],
+	["TRINKET"] = L["Trinket, Main Hand"],
+	["ESSENCES"] = L["Essence"],
+	["COVENANT"] = L["Signature Ability"],
+	["CONSUMABLE"] = L["Consumables"],
 }
 
 E.RAID_TARGET_MARKERS = {
@@ -295,11 +318,12 @@ E.TANK_SPEC = {
 }
 
 E.HEALER_SPEC = {
-	[105] = true,
-	[270] = true,
-	[65] = true,
-	[256] = true,
-	[257] = true,
-	[264] = true,
-	[1468] = true,
+	[105] = 90,
+	[270] = 90,
+	[65] = 90,
+	[256] = 90,
+	[257] = 90,
+	[264] = 90,
+	[1468] = 90,
+	["default"] = 120,
 }

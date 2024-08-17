@@ -6,6 +6,12 @@ L[ [=[%d: spellID.
 %d-%d: spellID-talentID (Mark spell if talent is selected).]=] ] = [=[%d: spellID.
 %d-%d: spellID-talentID (Mark spell if talent is selected).]=]
 --[[Translation missing --]]
+L[ [=[%d: spellID.
+%d-%d: spellID-talentID (Mark spell if talent is selected).]=] ] = [=[%d: spellID.
+%d-%d: spellID-talentID (Mark spell if talent is selected).]=]
+--[[Translation missing --]]
+L["[Show Numbers for Cooldowns] must be disabled in Blizzard's 'Options/Action Bars' menu."] = "[Show Numbers for Cooldowns] must be disabled in Blizzard's 'Options/Action Bars' menu."
+--[[Translation missing --]]
 L["[Show Numbers for Cooldowns] must be enabled in Blizzard's 'Options/Action Bars' menu when using Blizzard's cooldown numbers."] = "[Show Numbers for Cooldowns] must be enabled in Blizzard's 'Options/Action Bars' menu when using Blizzard's cooldown numbers."
 --[[Translation missing --]]
 L["|cff9d9d9d * Scenarios and Outdoor Zones will use Arena settings."] = "|cff9d9d9d * Scenarios and Outdoor Zones will use Arena settings."
@@ -15,6 +21,10 @@ L["|cffff2020Friendly CD module must be enabled for the corresponding instance z
 L["|cffff2020Glow and Highlights are never applied on cropped icons. \"Border\" must be enabled."] = "|cffff2020Glow and Highlights are never applied on cropped icons. \"Border\" must be enabled."
 L["|cffff2020Important!|r Covenant and Soulbind Conduit data can only be acquired from group members with OmniCD installed."] = "|cffff2020重要!|r 只有队友安装技能冷却插件 OmniCD 的队友才能取得盟约和导灵器数据。"
 L["> 1 minute"] = "> 1 分钟"
+--[[Translation missing --]]
+L["0: Disable option"] = "0: Disable option"
+--[[Translation missing --]]
+L["0: Raid Frame, 1: Interrupt Bar, 2-8: Extra Bar"] = "0: Raid Frame, 1: Interrupt Bar, 2-8: Extra Bar"
 L["2nd Row Icons (Double Row Layout)"] = "两行图标视图"
 L["2px Border"] = "2px边框"
 L["A new update is available. |cff99cdff(%s)"] = "有新版本可以使用。|cff99cdff(%s)"
@@ -30,10 +40,16 @@ L["Addons with raid frame scaling will also cause the icons to scale."] = "Addon
 L[ [=[Adjust value until the truncate symbol [...] disappears.
 |cffff20200: Disable option]=] ] = [=[Adjust value until the truncate symbol [...] disappears.
 |cffff20200: Disable option]=]
+--[[Translation missing --]]
+L[ [=[Adjust value until the truncate symbol [...] disappears.
+|cffff20200: Disable option]=] ] = [=[Adjust value until the truncate symbol [...] disappears.
+|cffff20200: Disable option]=]
 L["Alerts"] = "提示"
 L["All user set values will be lost. Do you want to proceed?"] = "所有用户设定值都将丢失。确定继续吗？"
 L["Always attach to Blizzard frames. By default, bars attach to whichever frame is visible, and if both are visible UF addon take precedence over Blizzard"] = "始终将其附加到暴雪框架上。 默认情况下，图标会附加到可见的框架，如果两个框架都可见，则插件优先于暴雪框架"
 L["Always Bottom"] = "总是在下方"
+--[[Translation missing --]]
+L["Always Show"] = "Always Show"
 L["Always Show Cooldown Numbers"] = "总是显示冷却数字"
 L["Always Top"] = "总是在上方"
 L["Anchor"] = "锚点"
@@ -42,6 +58,8 @@ L["Anchor Position"] = "锚点位置"
 --[[Translation missing --]]
 L["Animate"] = "Animate"
 --[[Translation missing --]]
+L["AOE CC"] = "AOE CC"
+--[[Translation missing --]]
 L["Apply 'Icons' alpha settings to the status bar"] = "Apply 'Icons' alpha settings to the status bar"
 L["Ascending"] = "升序"
 --[[Translation missing --]]
@@ -49,6 +67,8 @@ L["Assign Raid Cooldowns."] = "Assign Raid Cooldowns."
 --[[Translation missing --]]
 L["Attach Name Bar to the left of icon"] = "Attach Name Bar to the left of icon"
 L["Attach to Blizzard Frames"] = "附加到暴雪框架"
+--[[Translation missing --]]
+L["Attach to Raid Frame"] = "Attach to Raid Frame"
 L["Attachment Point"] = "附着点"
 L["Author"] = "作者"
 L["Auto"] = "自动"
@@ -63,6 +83,8 @@ L["Border Color"] = "边框颜色"
 L["Border Thickness"] = "框体厚度"
 L["Borders retain 1px width regardless of the UI scale"] = "无论用户界面的大小如何，边框都保留1px的宽度"
 L["Borders retain 1px width regardless of the UI scale. Need to reload the UI when the UI or icon scale changes"] = "无论用户界面的大小如何边框都保留1px。 当UI或图标比例更改时需要重新加载UI"
+--[[Translation missing --]]
+L["Both"] = "Both"
 L["BOTTOM"] = "下"
 L["BOTTOMLEFT"] = "左下"
 L["BOTTOMRIGHT"] = "右下"
@@ -92,12 +114,18 @@ L["Column Padding"] = "列间距"
 --[[Translation missing --]]
 L["Commands:"] = "Commands:"
 --[[Translation missing --]]
+L["Condition"] = "Condition"
+--[[Translation missing --]]
 L["Convert the status bar timer to a simple name display by disabling all timer functions. The 'Name' color scheme will be retained."] = "Convert the status bar timer to a simple name display by disabling all timer functions. The 'Name' color scheme will be retained."
+--[[Translation missing --]]
+L["Convert to additional CD bars that attach to each unit's raid frame."] = "Convert to additional CD bars that attach to each unit's raid frame."
 --[[Translation missing --]]
 L["Convert to Name Bar"] = "Convert to Name Bar"
 L["Cooldown"] = "冷却"
 --[[Translation missing --]]
 L["Cooldown Remaining"] = "Cooldown Remaining"
+--[[Translation missing --]]
+L["Cooldown Timer"] = "Cooldown Timer"
 L["Copy"] = "复制"
 L["Copy Default"] = "复制默认值"
 L["Copy selected zone settings to the current zone"] = "将选定的区域设置复制到当前区域"
@@ -182,7 +210,23 @@ L["Fade Out Time"] = "淡出时间"
 L["Feedback"] = "反馈"
 L["Font"] = "字体"
 L["Font Outline"] = "字体轮廓"
+--[[Translation missing --]]
+L["Font Shadow"] = "Font Shadow"
 L["Fonts"] = "字体"
+--[[Translation missing --]]
+L["For double/triple layout, it will limit the number of icons per line"] = "For double/triple layout, it will limit the number of icons per line"
+--[[Translation missing --]]
+L["Force Disable"] = "Force Disable"
+--[[Translation missing --]]
+L["Frame"] = "Frame"
+--[[Translation missing --]]
+L["Freedom"] = "Freedom"
+--[[Translation missing --]]
+L["Glow"] = "Glow"
+--[[Translation missing --]]
+L["Glow Border"] = "Glow Border"
+--[[Translation missing --]]
+L["Glow condition can be changed from the Highlighting tab."] = "Glow condition can be changed from the Highlighting tab."
 L["Glow Icons"] = "图标闪光"
 --[[Translation missing --]]
 L["Group member must have OmniCD to detect cooldown reduction by Glyphs."] = "Group member must have OmniCD to detect cooldown reduction by Glyphs."
@@ -199,8 +243,14 @@ L["Group Type"] = "团队类型"
 --[[Translation missing --]]
 L["Grow Columns Left"] = "Grow Columns Left"
 L["Grow Rows Upward"] = "向上增长"
+--[[Translation missing --]]
+L["Hard CC"] = "Hard CC"
 L["Having \"BOTTOM\" in the anchor point, icons grow upward, otherwise downward"] = "锚点选底部时图标向上生长，否则向下生长"
 L["Having \"RIGHT\" in the anchor point, icons grow left, otherwise right"] = "锚点中选右侧图标向左增长，否则向右增长"
+--[[Translation missing --]]
+L["Heal"] = "Heal"
+--[[Translation missing --]]
+L["Healthstone and Demonic Gateway are added on cast"] = "Healthstone and Demonic Gateway are added on cast"
 L["Help Translate"] = "帮助翻译"
 L["Hide Border"] = "隐藏边框"
 L["Hide Disabled Spells"] = "隐藏禁用的法术"
@@ -223,6 +273,8 @@ L["Horizontal + CD Groups"] = "Horizontal + CD Groups"
 L["Hotfix"] = "Hotfix"
 L["Icon"] = "图标"
 L["Icon Alignment"] = "图标对齐"
+--[[Translation missing --]]
+L["Icon ID (Optional)"] = "Icon ID (Optional)"
 L["Icon Opacity"] = "图标透明度"
 L["Icon Position"] = "图标位置"
 L["Icon Scale Changed."] = "图标比例已更改"
@@ -262,6 +314,8 @@ L["Manual Position"] = "手动设置位置"
 L["Mark Enhanced Spells"] = "标记增强法术"
 L["Mark icons with a red dot to indicate enhanced spells"] = "用红点标记图标以指示增强法术"
 L["Max number of group members"] = "队伍最大成员数量"
+--[[Translation missing --]]
+L["Max Number of Visible Icons"] = "Max Number of Visible Icons"
 L["Minor update"] = "次要更新"
 --[[Translation missing --]]
 L["MM Color"] = "MM Color"
@@ -275,10 +329,14 @@ L["Mouseovering the icon will show the interrupted spell information regardless 
 L["Move your group's Interrupt spells to the Interrupt Bar."] = "Move your group's Interrupt spells to the Interrupt Bar."
 --[[Translation missing --]]
 L["Move your group's Raid Cooldowns to the Raid Bar."] = "Move your group's Raid Cooldowns to the Raid Bar."
+--[[Translation missing --]]
+L["Movement"] = "Movement"
 L["Multiselect"] = "多选"
 L["Name Bar"] = "姓名条"
 L["Name Offset X"] = "姓名偏移X"
 L["Name Offset Y"] = "姓名偏移Y"
+--[[Translation missing --]]
+L["Name Scale"] = "Name Scale"
 --[[Translation missing --]]
 L["New Column per Group"] = "New Column per Group"
 --[[Translation missing --]]
@@ -291,6 +349,16 @@ L["Notify Updates"] = "有新版本时通知我"
 L["Offensive"] = "进攻"
 L["Offset X"] = "水平偏移"
 L["Offset Y"] = "垂直偏移"
+--[[Translation missing --]]
+L["Only applies to spells that have Glow enabled in the Spells tab"] = "Only applies to spells that have Glow enabled in the Spells tab"
+--[[Translation missing --]]
+L[ [=[Only for talent abilities.
+Current ability for this specialization will no longer be tracked while you are in the selected zone(s)]=] ] = [=[Only for talent abilities.
+Current ability for this specialization will no longer be tracked while you are in the selected zone(s)]=]
+--[[Translation missing --]]
+L["Override spell-type frame."] = "Override spell-type frame."
+--[[Translation missing --]]
+L["Override spell-type priority."] = "Override spell-type priority."
 L["Padding"] = "间距"
 L["Padding X"] = "水平填充"
 L["Padding Y"] = "垂直填充"
@@ -340,8 +408,14 @@ L["Raid Frames for testing doesn't exist for %s. If it fails to load, configure 
 L["Raid Movement"] = "Raid Movement"
 --[[Translation missing --]]
 L["Recharge"] = "Recharge"
+--[[Translation missing --]]
+L["Redirect Spells"] = "Redirect Spells"
+--[[Translation missing --]]
+L["Redirect spells to the raid frame instead of removing them when this bar is disabled."] = "Redirect spells to the raid frame instead of removing them when this bar is disabled."
 L["Reload addon."] = "重载插件。"
 L["Reload UI?"] = "重载UI？"
+--[[Translation missing --]]
+L["Rename Bar"] = "Rename Bar"
 --[[Translation missing --]]
 L["Replace default timers with a status bar timer."] = "Replace default timers with a status bar timer."
 --[[Translation missing --]]
@@ -364,16 +438,24 @@ L["Row Breakpoint"] = "行断点"
 L["Same category units are sorted alphabetically in ascending order"] = "相同的类别单位​​按字母升序排序"
 --[[Translation missing --]]
 L["Select a spell type to enable all spells in that category for all classes"] = "Select a spell type to enable all spells in that category for all classes"
+--[[Translation missing --]]
+L["Select a value lower than Breakpoint1"] = "Select a value lower than Breakpoint1"
 L["Select addon to override auto anchoring"] = "选择要对齐到的插件"
 L["Select how the player frame is displayed inside the party frame"] = "选择玩家框架在小队中的展示方式"
 --[[Translation missing --]]
 L["Select the column(s) that you want the rows to grow upwards."] = "Select the column(s) that you want the rows to grow upwards."
 --[[Translation missing --]]
 L["Select the column(s) that you want to detach and position manually."] = "Select the column(s) that you want to detach and position manually."
+--[[Translation missing --]]
+L["Select the frame to use as default for each spell type."] = "Select the frame to use as default for each spell type."
 L["Select the group size for which you want to set the spell bar position"] = "选择法术条位置的队伍大小"
 L["Select the highest priority spell type to use as the start of the 2nd row"] = "选择优先级最高的法术类型用作第二行的开始"
 --[[Translation missing --]]
 L["Select the highest priority spell type to use as the start of the 3rd row"] = "Select the highest priority spell type to use as the start of the 3rd row"
+--[[Translation missing --]]
+L["Select the highest spell priority to use as the start of the 2nd row"] = "Select the highest spell priority to use as the start of the 2nd row"
+--[[Translation missing --]]
+L["Select the highest spell priority to use as the start of the 3rd row"] = "Select the highest spell priority to use as the start of the 3rd row"
 --[[Translation missing --]]
 L["Select the icon layout"] = "Select the icon layout"
 --[[Translation missing --]]
@@ -395,6 +477,10 @@ L["Serialize failed!"] = "Serialize failed!"
 L["Set the anchor attachement point. Icon grow direction will auto adjust"] = "设置附加锚点。自动调整图标增长方向"
 L["Set the anchor attachment point on the party/raid frame"] = "将锚点固定在小队/团队框架上"
 L["Set the anchor point on the spell bar"] = "在法术条上设置锚点"
+--[[Translation missing --]]
+L["Set the max number of icons that can be displayed per unit"] = "Set the max number of icons that can be displayed per unit"
+--[[Translation missing --]]
+L["Set the Name Bar name scale"] = "Set the Name Bar name scale"
 L["Set the number of icons per column"] = "设置每列的图标数"
 L["Set the number of icons per row"] = "每行图标数"
 L["Set the opacity of icons"] = "设置图标透明度"
@@ -437,15 +523,23 @@ L["Show the interrupted unit's target marker if it exists."] = "Show the interru
 L["Show timer on spells while under the effect of Forbearance or Hypothermia. Spells castable to others will darken instead"] = "在自律或体温过低的情况下显示法术计时器。 可施于他人的法术会变暗"
 L["Show Tooltip"] = "显示提示"
 L["Show Trinket Only"] = "只显示饰品"
+--[[Translation missing --]]
+L["Size"] = "Size"
 L["Slash Commands"] = "聊天指令"
+--[[Translation missing --]]
+L["Soft CC"] = "Soft CC"
 L["Sort Direction"] = "排序方向"
 L["Sort Order"] = "排列顺序"
 L["Source Profile"] = "源配置文件"
 L["Spacing"] = "间距"
 L["Spell Editor"] = "技能编辑"
 L["Spell ID"] = "法术ID"
+--[[Translation missing --]]
+L["Spell Priority"] = "Spell Priority"
 L["Spell Types"] = "法术类型"
 L["Spells"] = "法术"
+--[[Translation missing --]]
+L["Spell-Type Priority"] = "Spell-Type Priority"
 L["Status Bar"] = "状态栏"
 L["Status Bar Timer"] = "状态栏计时器"
 L["Strong Yellow Glow"] = "亮黄色发光"
@@ -454,10 +548,16 @@ L["Swipe Opacity"] = "滑动透明度"
 L["Synchronize"] = "同步"
 L["Talent Ability"] = "天赋技能"
 L["Talent ID"] = "天赋 ID"
+--[[Translation missing --]]
+L["Tank Defensive"] = "Tank Defensive"
+--[[Translation missing --]]
+L["Taunt"] = "Taunt"
 L["Test"] = "测试"
 L["Test frames will be hidden once player is out of combat"] = "玩家退出战斗时测试框体将被隐藏"
 L["Test Mode Disabled: Non-Blizzard party frames"] = "测试模式已禁用：非暴雪队伍框架"
 L["Text Alignment"] = "文字对齐"
+--[[Translation missing --]]
+L["The global font settings are in the General menu"] = "The global font settings are in the General menu"
 L["Threshold at which the timer transitions from MM to MM:SS format."] = "时间格式由 MM 变成 MM:SS 的格式。"
 L["Timer will progress from right to left"] = "计时器会从右往左前进"
 L["Timers"] = "计时条"
@@ -481,17 +581,25 @@ L["Trinket Items"] = "饰品"
 L["Truncate Name"] = "Truncate Name"
 L["UI Scale Changed."] = "UI比例已更改"
 L["Unit CD bars are limited to 5 man groups unless Blizzard Raid Frames are used."] = "单位冷却条只能用于 5 人队伍，除非是使用游戏内建的团队框架。"
+--[[Translation missing --]]
+L["Unusable"] = "Unusable"
+--[[Translation missing --]]
+L["Usable"] = "Usable"
 L["Usage:"] = "用法:"
 L["Use a semi-colon(;) to seperate multiple IDs."] = "使用分号(;)分隔多个ID。"
 L["Use Default"] = "使用默认"
 L["Use Double Column"] = "使用两行"
 L["Use Double Row"] = "使用双排"
+--[[Translation missing --]]
+L["Use ElvUI Timer"] = "Use ElvUI Timer"
 L["Use Icon Alpha"] = "使用图标透明度"
 L["Use Relative Size"] = "使用相对大小"
 L["Use this setting for all group sizes"] = "这个设置作用于所有组大小"
 L["Use Triple Column"] = "使用三行"
 L["Use Triple Row"] = "使用三排"
 L["Use Zone Settings From:"] = "使用区域设置，来自:"
+--[[Translation missing --]]
+L["Utility"] = "Utility"
 L["Utils"] = "工具"
 L["Value 'Manual Position' includes Interrupt and Raid Bar's saved positions."] = "'手动调整位置' 包含打断法术和团队技能条的保存位置。"
 L["Version"] = "版本"
@@ -501,5 +609,9 @@ L["Vertical + CD Groups"] = "Vertical + CD Groups"
 L["Vertical Groups"] = "垂直显示队伍"
 L["Visibility"] = "可见度"
 L["Weak Purple Glow"] = "淡紫色发光"
+--[[Translation missing --]]
+L["You can mangage spell types for all bars from the Frame option"] = "You can mangage spell types for all bars from the Frame option"
+--[[Translation missing --]]
+L["You can override this setting on individual spells from the Spells tab."] = "You can override this setting on individual spells from the Spells tab."
 --[[Translation missing --]]
 L["You must manually enable either the 'Party Frames' or 'Raid Frames' in Blizzard's 'HUD Edit Mode'."] = "You must manually enable either the 'Party Frames' or 'Raid Frames' in Blizzard's 'HUD Edit Mode'."

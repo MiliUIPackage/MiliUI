@@ -1,12 +1,16 @@
 local E, L = select(2, ...):unpack()
 local P = E.Party
 
+local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
+
 local TM = CreateFrame("Frame")
 
 local addOnTestMode = {}
 local config = {}
 
 addOnTestMode.Grid2 = function(isTestEnabled)
+	if not Grid2Options or not Grid2Options.editedTheme or not Grid2Options.editedTheme.layout
+	or not Grid2Options.editedTheme.layout.layouts or not Grid2Options.editedTheme.layout.layouts["solo"] then return end
 	if isTestEnabled then
 		if not IsAddOnLoaded("Grid2Options") then
 			LoadAddOn("Grid2Options")
@@ -23,6 +27,7 @@ addOnTestMode.Grid2 = function(isTestEnabled)
 end
 
 addOnTestMode.VuhDo = function(isTestEnabled)
+	if not VUHDO_CONFIG or not VUHDO_CONFIG["HIDE_PANELS_SOLO"] then return end
 	if isTestEnabled then
 		config.VuhDo = VUHDO_CONFIG["HIDE_PANELS_SOLO"]
 		VUHDO_CONFIG["HIDE_PANELS_SOLO"] = false
@@ -37,6 +42,7 @@ addOnTestMode.ElvUI = function(isTestEnabled)
 end
 
 addOnTestMode.Aptechka = function(isTestEnabled)
+	if not Aptechka or not Aptechka.db or not Aptechka.db.profile or not Aptechka.db.profile.showSolo then return end
 	if isTestEnabled then
 		config.Aptechka = Aptechka.db.profile.showSolo
 		Aptechka.db.profile.showSolo = true
@@ -46,7 +52,9 @@ addOnTestMode.Aptechka = function(isTestEnabled)
 	Aptechka:ReconfigureProtected()
 end
 
+--[[
 addOnTestMode.Cell = function(isTestEnabled)
+	if not CellDB or not CellDB["general"] or not CellDB["general"]["showSolo"] then return end
 	if isTestEnabled then
 		config.Cell = CellDB["general"]["showSolo"]
 		CellDB["general"]["showSolo"] = true
@@ -59,6 +67,7 @@ addOnTestMode.Cell = function(isTestEnabled)
 	end
 	Cell:Fire("UpdateVisibility", "solo")
 end
+]]
 
 function TM:Test(key)
 	local activeCustomUF = E.customUF.active
@@ -108,7 +117,7 @@ function TM:Test(key)
 		if not self.indicator then
 			self.indicator = CreateFrame("Frame", nil, UIParent, "OmniCDTemplate")
 			self.indicator.anchor.background:SetColorTexture(0, 0, 0, 1)
-			if E.isDF or E.isWOTLKC341 or E.isClassic1144 then
+			if E.isDF or E.isCata or E.isWOTLKC341 or E.isClassic1144 then
 				self.indicator.anchor.background:SetGradient("HORIZONTAL", CreateColor(1, 1, 1, 1), CreateColor(1, 1, 1, 0))
 			else
 				self.indicator.anchor.background:SetGradientAlpha("Horizontal", 1, 1, 1, 1, 1, 1, 1, 0)
@@ -128,7 +137,7 @@ function TM:Test(key)
 
 		self:RegisterEvent('PLAYER_LEAVING_WORLD')
 
-		P:Refresh(true)
+		P:Refresh()
 
 		local frame = P.groupInfo[E.userGUID].bar
 		self.indicator.anchor:ClearAllPoints()
@@ -171,7 +180,7 @@ function TM:Test(key)
 		self.indicator:Hide()
 		self:UnregisterEvent('PLAYER_LEAVING_WORLD')
 
-		P:Refresh(true)
+		P:Refresh()
 	end
 end
 
