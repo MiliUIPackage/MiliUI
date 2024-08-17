@@ -1,8 +1,8 @@
 # TinyInspect
 
-## [11.0.2](https://github.com/Witnesscm/TinyInspect/tree/11.0.2) (2024-07-28)
-[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.0.1...11.0.2) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
+## [11.0.4](https://github.com/Witnesscm/TinyInspect/tree/11.0.4) (2024-08-15)
+[Full Changelog](https://github.com/Witnesscm/TinyInspect/compare/11.0.3...11.0.4) [Previous Releases](https://github.com/Witnesscm/TinyInspect/releases)
 
-- feat: update enchant data  
-- fix: missing deprecated Setting API  
+- feat: new role texture  
+- fix: missing deprecated API  
 - toc: bump up version  

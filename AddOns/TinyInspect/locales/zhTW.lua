@@ -38,6 +38,7 @@ ns.L = {
     PaperDoll                   = "角色視窗",
     Chat                        = "聊天",
     Loot                        = "拾取",
+	Other                       = "其他",
     ShowGemAndEnchant           = "顯示寶石和附魔訊息",
     HidePaperdollSlotString     = "隱藏人物界面部位文字",
 }

@@ -115,7 +115,7 @@ end
 local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
     if (not ItemLink) then return 0 end
     local num, info, qty = LibItemGem:GetItemGemInfo(ItemLink)
-    local _, quality, texture, icon, r, g, b
+    local icon
     for i, v in ipairs(info) do
         icon = GetIconFrame(frame)
         if (v.link) then
@@ -146,7 +146,7 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
         num = num + 1
         icon = GetIconFrame(frame)
         icon.bg:SetVertexColor(1,0.82,0)
-        UpdateIconTexture("itemId", icon, enchantItemID)
+        UpdateIconTexture("spellId", icon, enchantSpellID)
         icon:ClearAllPoints()
         icon:SetPoint("LEFT", anchorFrame, "RIGHT", num == 1 and 6 or 1, 0)
         icon:Show()
@@ -162,7 +162,8 @@ local function ShowGemAndEnchant(frame, ItemLink, anchorFrame, itemframe)
         icon:Show()
         anchorFrame = icon
     elseif (not enchantID and EnchantParts[itemframe.index] and EnchantParts[itemframe.index][1]) then
-        if (qty == 6 and (itemframe.index==2 or itemframe.index==16 or itemframe.index==17)) then else
+        local classID = select(12, C_Item.GetItemInfo(ItemLink))
+        if not (qty == 6 and (itemframe.index==2 or itemframe.index==16 or itemframe.index==17)) and ((itemframe.index ~= INVSLOT_OFFHAND) or (classID == Enum.ItemClass.Weapon)) then
             num = num + 1
             icon = GetIconFrame(frame)
             icon.title = ENCHANTS .. ": " .. (_G[EnchantParts[itemframe.index][2]] or EnchantParts[itemframe.index][2])

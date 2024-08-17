@@ -1,6 +1,6 @@
-## Interface: 110000, 110002
+## Interface: 110002
 ## Title: TinyInspect
-## Version: 11.0.2
+## Version: 11.0.4
 ## Notes: Show ItemLevel For Inspect & Party & Raid & Mouse & Bag & Bank ...
 ## Notes-zhCN: 装等观察,装等显示
 ## Title-zhTW: |cff0099FF[介面]|r 裝備觀察
@@ -25,7 +25,6 @@ InspectUnitStats.lua
 InspectUnitGemAndEnchant.lua
 InspectUnitSpecialization.lua
 InspectMouse.lua
-##InspectGroupMember.lua
 InspectParty.lua
 InspectRaid.lua
 PluginGreenState.lua

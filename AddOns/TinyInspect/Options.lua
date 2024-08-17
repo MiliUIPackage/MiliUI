@@ -61,7 +61,7 @@ local DefaultDB = {
             {false, "WAISTSLOT", },
             {true, "LEGSSLOT", },
             {true, "FEETSLOT", },
-            {false, "WRISTSLOT", },
+            {true, "WRISTSLOT", },
             {false, "HANDSSLOT", },
             {true, "FINGER0SLOT", },
             {true, "FINGER1SLOT", },
@@ -69,7 +69,7 @@ local DefaultDB = {
             {false, "TRINKET1SLOT", },
             {true, "BACKSLOT", },
             {true, "MAINHANDSLOT", },
-            {false, "SECONDARYHANDSLOT", },
+            {true, "SECONDARYHANDSLOT", },
         },
 }
 
@@ -93,7 +93,7 @@ local options = {
         -- { key = "Bag" },
         -- { key = "Bank" },
         -- { key = "GuildBank" },
-        -- { key = "Merchant" },
+        { key = "Merchant" },
         -- { key = "Trade" },
         { key = "PaperDoll" },
         -- { key = "Loot" },

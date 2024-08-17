@@ -273,7 +273,7 @@ local currentParent = parent;
         backdrop.insets.right = 1
         backdrop.insets.bottom = 1
         frame.backdrop = backdrop
-        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 2 , 0)
+        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 2, 0)
     else
         backdrop.edgeSize = 16
         backdrop.edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border"
@@ -282,7 +282,7 @@ local currentParent = parent;
         backdrop.insets.right = 4
         backdrop.insets.bottom = 4
         frame.backdrop = backdrop
-        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 0 , 0)
+        frame:SetPoint("TOPLEFT", currentParent, "TOPRIGHT", 0, 0)
     end
 end)
 
