@@ -4,7 +4,7 @@
 ## Description: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.5.2 Fix2
+## Version: 9.5.2 Fix3
 ## SavedVariables: TinyTooltipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip
