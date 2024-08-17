@@ -4,7 +4,7 @@ local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local DEAD = DEAD
 local CopyTable = CopyTable
 
-BigTipReforgedDB = {}
+TinyTooltipReforgedDB = {}
 TinyTooltipReforgedCharacterDB = {}
 
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
@@ -13,7 +13,11 @@ local addon = TinyTooltipReforged
 local function ColorStatusBar(self, value)
     if (addon.db.general.statusbarColor == "auto") then        
         local unit = "mouseover"
-        local focus = GetMouseFoci()
+        if (clientToc < 110000) then
+            local focus = GetMouseFocus()
+        else
+            local focus = GetMouseFoci()
+        end
         if (focus and focus.unit) then
             unit = focus.unit
         end
@@ -48,7 +52,11 @@ local function UpdateHealthBar(self, hp)
         GameTooltipStatusBar.TextString:Show() 
     end
     local unit = "mouseover"
-    local focus = GetMouseFoci()
+    if (clientToc < 110000) then
+        local focus = GetMouseFocus()
+    else
+        local focus = GetMouseFoci()
+    end
     if (focus and focus.unit) then
         unit = focus.unit
     end
@@ -115,16 +123,16 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
         end        
     end)
     --Variables
-    if (IsTableEmpty(BigTipReforgedDB) or 
+    if (IsTableEmpty(TinyTooltipReforgedDB) or 
         (addon.db.general.SavedVariablesPerCharacter and IsTableEmpty(TinyTooltipReforgedCharacterDB)) ) then
         print(addon.L["|cFF00FFFF[TinyTooltipReforged]|r |cffFFE4E1Settings have been reset|r"])
-        BigTipReforgedDB = addon.db
+        TinyTooltipReforgedDB = addon.db
         TinyTooltipReforgedCharacterDB = addon.db
     end    
     if (addon.db.general.SavedVariablesPerCharacter) then
         addon.db = TinyTooltipReforgedCharacterDB
     else
-        addon.db = BigTipReforgedDB
+        addon.db = TinyTooltipReforgedDB
     end
     LibEvent:trigger("tooltip:variables:loaded")
     --Init
@@ -143,7 +151,7 @@ LibEvent:attachTrigger("tooltip:cleared, tooltip:hide", function(self, tip)
     LibEvent:trigger("tooltip.style.background", tip, unpack(addon.db.general.background))
     if (tip.BigFactionIcon) then tip.BigFactionIcon:Hide() end
     if (tip.SetBackdrop) then tip:SetBackdrop(nil) end
---    if (tip.NineSlice) then tip.NineSlice:Hide() end
+    if (tip.NineSlice) then tip.NineSlice:Hide() end
 end)
 
 LibEvent:attachTrigger("tooltip:show", function(self, tip)

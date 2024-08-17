@@ -1,4 +1,3 @@
-
 local LibJSON = LibStub:GetLibrary("LibJSON.9000")
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local LibDropdown = LibStub:GetLibrary("LibDropdown.7000")
@@ -64,7 +63,7 @@ end
 
 local function GetVariable(keystring, tbl)
     if (keystring == "general.SavedVariablesPerCharacter") then
-        return BigTipReforgedDB.general.SavedVariablesPerCharacter
+        return addon.db.general.SavedVariablesPerCharacter
     end
     local keys = {strsplit(".", keystring)}
     local value = tbl or addon.db
@@ -181,20 +180,22 @@ function widgets:colorpick(parent, config)
             r = r, g = g, b = b, opacity = 1-a, hasOpacity = self.hasopacity,
             opacityFunc = self.hasopacity and function()
                 local r, g, b = ColorPickerFrame:GetColorRGB()
-                local a = 1-format("%.2f", OpacitySliderFrame:GetValue())
+                --local a = 1-format("%.2f", OpacitySliderFrame:GetValue())
+		ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = (a ~= nil), a
                 local aa = select(4, ColorPickerFrame.tipframe:GetNormalTexture():GetVertexColor())
                 r = tonumber(format("%.4f",r))
                 g = tonumber(format("%.4f",g))
                 b = tonumber(format("%.4f",b))
                 if (a ~= aa) then
-                    ColorPickerFrame.tipframe:GetNormalTexture():SetVertexColor(r,g,b,a or 1)
+                    --ColorPickerFrame.tipframe:GetNormalTexture():SetVertexColor(r,g,b,a or 1)
                     SetVariable(ColorPickerFrame.tipframe.keystring, {r,g,b,a})
                 end
             end,
             swatchFunc = function()
                 local r, g, b = ColorPickerFrame:GetColorRGB()
-                local a = 1-format("%.2f", OpacitySliderFrame:GetValue())
-                r = tonumber(format("%.4f",r))
+                --local a = 1-format("%.2f", OpacitySliderFrame:GetValue())
+		ColorPickerFrame.hasOpacity, ColorPickerFrame.opacity = (a ~= nil), a
+ 		r = tonumber(format("%.4f",r))
                 g = tonumber(format("%.4f",g))
                 b = tonumber(format("%.4f",b))
                 ColorPickerFrame.tipframe:GetNormalTexture():SetVertexColor(r,g,b,a)
@@ -211,7 +212,8 @@ function widgets:colorpick(parent, config)
         }
         ColorPickerFrame.tipframe = self
         if (not self.hasopacity) then OpacitySliderFrame:SetValue(info.opacity) end
-        OpenColorPicker(info)
+--        OpenColorPicker(info)
+	ColorPickerFrame:SetupColorPickerAndShow(info)
     end)
     return frame
 end
@@ -613,7 +615,7 @@ local options = {
         { keystring = "general.statusbarOffsetX",   type = "slider", min = -50, max = 50, step = 1 },
         { keystring = "general.statusbarOffsetY",   type = "slider", min = -50, max = 50, step = 1 },
         { keystring = "general.statusbarFontSize",  type = "slider", min = 6, max = 30, step = 1 },
-        { keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+        { keystring = "general.statusbarFontFlag",  type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
         { keystring = "general.statusbarFont",      type = "dropdown", dropdata = widgets.fontDropdata },
         { keystring = "general.statusbarTexture",   type = "dropdown", dropdata = widgets.barDropdata },
         { keystring = "general.statusbarPosition",  type = "dropdown", dropdata = {"default","bottom","top"} },
@@ -628,14 +630,14 @@ local options = {
     font = {
         { keystring = "general.headerFont",         type = "dropdown", dropdata = widgets.fontDropdata },
         { keystring = "general.headerFontSize",     type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },
-        { keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+        { keystring = "general.headerFontFlag",     type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
         { keystring = "general.bodyFont",           type = "dropdown", dropdata = widgets.fontDropdata },
         { keystring = "general.bodyFontSize",       type = "dropdown", dropdata = {"default", 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24 } },        
- 	{ keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE"} },
+ 	{ keystring = "general.bodyFontFlag",       type = "dropdown", dropdata = {"default", "NORMAL", "OUTLINE", "THINOUTLINE", "MONOCHROME"} },
     },
 }
 
-local frame = CreateFrame("Frame", nil, UIParent)
+local frame = CreateFrame("Frame", "TinyTooltipReforgedFrame", UIParent)
 frame.anchor = CreateFrame("Frame", nil, frame)
 frame.anchor:SetPoint("TOPLEFT", 32, -16)
 if (clientToc == 30400) then
@@ -650,9 +652,9 @@ frame.name = L["Tooltip"]
 
 frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 frame.text:SetPoint("TOPLEFT", 30, -40)
-frame.text:SetText(format("by |cffF58CBA%s|r |cffff00ff<%s>|r - |cff33eeff%s|r", L["authorname"], L["authorguild"], L["authorrealm"]))
+frame.text:SetText(format("by |cffF58CBA%s|r |cffff00ff<%s>|r - |cff33eeff%s|r", "Beezer", "The Dragon Fighters", "Aggramar EU"))
 
-local framePC = CreateFrame("Frame", nil, UIParent)
+local framePC = CreateFrame("Frame", "TinyTooltipReforgedPC", UIParent)
 framePC.anchor = CreateFrame("Frame", nil, framePC)
 framePC.anchor:SetPoint("TOPLEFT", 32, -13)
 if (clientToc == 30400) then
@@ -666,7 +668,7 @@ framePC.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["Unit Is P
 framePC.parent = L["Tooltip"]
 framePC.name = L["Player"]
 
-framePC.diy = CreateFrame("Button", nil, framePC)
+framePC.diy = CreateFrame("Button", "TinyTooltipReforgedPCDIY", framePC)
 framePC.diy:SetSize(400, 67)
 framePC.diy:SetScale(0.68)
 framePC.diy:SetPoint("TOPLEFT", 332, -100)
@@ -679,7 +681,7 @@ framePC.diy.text:SetPoint("CENTER", 0, 2)
 framePC.diy.text:SetText(L.DIY.." "..(SETTINGS or ""))
 
 framePC:SetSize(500, #options.pc*30)
-local framePCScrollFrame = CreateFrame("ScrollFrame", nil, UIParent, "UIPanelScrollFrameTemplate")
+local framePCScrollFrame = CreateFrame("ScrollFrame", "TinyTooltipReforgedPCScrollFrame", UIParent, "UIPanelScrollFrameTemplate")
 framePCScrollFrame.ScrollBar:Hide()
 framePCScrollFrame.ScrollBar:ClearAllPoints()
 framePCScrollFrame.ScrollBar:SetPoint("TOPLEFT", framePCScrollFrame, "TOPRIGHT", -20, -22)
@@ -790,8 +792,8 @@ local function InitVariablesFrame()
         local data, errormsg = LibJSON:decode_wow(text)
         if (data and type(data) == "table") then
             addon:FixNumericKey(data)
-            local db = addon:MergeVariable(BigTipReforgedDB, data)
-            BigTipReforgedDB = db
+            local db = addon:MergeVariable(TinyTooltipReforgedDB, data)
+            TinyTooltipReforgedDB = db
             addon.db = db
             frameVariables.panel.textarea.text:SetText("")
             LibEvent:trigger("TINYTOOLTIP_REFORGED_GENERAL_INIT")
@@ -827,49 +829,76 @@ LibEvent:attachEvent("VARIABLES_LOADED", function()
     InitVariablesFrame()
 end)
 
--- InterfaceOptions_AddCategory(frame)
--- InterfaceOptions_AddCategory(framePCScrollFrame)
--- InterfaceOptions_AddCategory(frameNPCScrollFrame)
--- InterfaceOptions_AddCategory(frameStatusbar)
--- InterfaceOptions_AddCategory(frameSpell)
--- InterfaceOptions_AddCategory(frameFont)
--- InterfaceOptions_AddCategory(frameVariables)
 
-local category = Settings.RegisterCanvasLayoutCategory(frame, frame.name)
-category.ID = "TinyTooltip-Reforged"
-Settings.RegisterAddOnCategory(category)
+if Settings and Settings.RegisterCanvasLayoutCategory then
+  local category = Settings.RegisterCanvasLayoutCategory(frame, frame.name)
+  Settings.RegisterAddOnCategory(category)
+  frame.categoryID = category:GetID()
 
-Settings.RegisterCanvasLayoutSubcategory(category, framePCScrollFrame, framePCScrollFrame.name)
-Settings.RegisterCanvasLayoutSubcategory(category, frameNPCScrollFrame, frameNPCScrollFrame.name)
-Settings.RegisterCanvasLayoutSubcategory(category, frameStatusbar, frameStatusbar.name)
-Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
-Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
-Settings.RegisterCanvasLayoutSubcategory(category, frameVariables, frameVariables.name)
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, framePCScrollFrame, framePCScrollFrame.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category1:GetID()
+
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameNPCScrollFrame, frameNPCScrollFrame.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category2:GetID()
+
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameStatusbar, frameStatusbar.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category1:GetID()
+
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameSpell, frameSpell.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category1:GetID()
+
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameFont, frameFont.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category1:GetID()
+
+  local category1 = Settings.RegisterCanvasLayoutSubcategory(category, frameVariables, frameVariables.name)
+  Settings.RegisterAddOnCategory(category1)
+--  framePCScrollFrame.categoryID = category1:GetID()
+else
+  InterfaceOptions_AddCategory(frame)
+  InterfaceOptions_AddCategory(framePCScrollFrame)
+  InterfaceOptions_AddCategory(frameNPCScrollFrame)
+  InterfaceOptions_AddCategory(frameStatusbar)
+  InterfaceOptions_AddCategory(frameSpell)
+  InterfaceOptions_AddCategory(frameFont)
+  InterfaceOptions_AddCategory(frameVariables)
+end
 
 SLASH_TinyTooltipReforged1 = "/tinytooltipr"
 SLASH_TinyTooltipReforged2 = "/ttr"
 SLASH_TinyTooltipReforged3 = "/tip"
+
 function SlashCmdList.TinyTooltipReforged(msg, editbox)
     if (msg == "reset") then     
-        BigTipReforgedDB = {}
+        TinyTooltipReforgedDB = {}
 	TinyTooltipReforgedCharacterDB = {}
         ReloadUI()
-    --[[
-	elseif (msg == "npc") then
-        InterfaceOptionsFrame_OpenToCategory(frameNPC)
-        InterfaceOptionsFrame_OpenToCategory(frameNPC)
-    elseif (msg == "player") then
-        InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
-        InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
-    elseif (msg == "spell") then
-        InterfaceOptionsFrame_OpenToCategory(frameSpell)
-        InterfaceOptionsFrame_OpenToCategory(frameSpell)
-    elseif (msg == "statusbar") then
-        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
-        InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
-	--]]
+    elseif (msg == "reload") then
+        ReloadUI()
+    --elseif (msg == "npc") then
+    --    InterfaceOptionsFrame_OpenToCategory(frameNPC)
+    --    InterfaceOptionsFrame_OpenToCategory(frameNPC)
+    --elseif (msg == "player") then
+    --    InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
+    --    InterfaceOptionsFrame_OpenToCategory(framePCScrollFrame)
+    --elseif (msg == "spell") then
+    --    InterfaceOptionsFrame_OpenToCategory(frameSpell)
+    --    InterfaceOptionsFrame_OpenToCategory(frameSpell)
+    --elseif (msg == "statusbar") then
+    --    InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
+    --    InterfaceOptionsFrame_OpenToCategory(frameStatusbar)
     else
-        Settings.OpenToCategory("TinyTooltip-Reforged")
+        if Settings and Settings.RegisterCanvasLayoutCategory then 
+            local settingsCategoryID = _G["TinyTooltipReforgedFrame"].categoryID
+            Settings.OpenToCategory(settingsCategoryID)
+	else
+            InterfaceOptionsFrame_OpenToCategory(frame)
+            InterfaceOptionsFrame_OpenToCategory(frame)
+        end
     end
 end
 
@@ -887,7 +916,7 @@ frame:Show()
 frame:SetFrameStrata("DIALOG")
 frame:SetClampedToScreen(true)
 frame:EnableMouse(true)
---frame:SetMovable(true)
+frame:SetMovable(true)
 frame:SetSize(300, 100)
 frame:SetPoint("BOTTOM", framePCScrollFrame, "TOP", 64, 0)
 frame:RegisterForDrag("LeftButton")
@@ -1125,18 +1154,16 @@ LibEvent:attachTrigger("tooltip:variable:changed", function(self, keystring, val
         LibEvent:trigger("tinytooltipreforged:diy:player", "player", true)
     end
     if (keystring == "general.SavedVariablesPerCharacter") then
-        BigTipReforgedDB.general.SavedVariablesPerCharacter = value
+        TinyTooltipReforgedDB.general.SavedVariablesPerCharacter = value
         if (value) then
             TinyTooltipReforgedCharacterDB = addon.db
             addon.db = TinyTooltipReforgedCharacterDB
         else
-            BigTipReforgedDB = addon.db
-            addon.db = BigTipReforgedDB
+            TinyTooltipReforgedDB = addon.db
+            addon.db = TinyTooltipReforgedDB
         end
         LibEvent:trigger("tooltip:variables:loaded")
         LibEvent:trigger("TINYTOOLTIP_REFORGED_GENERAL_INIT")
     end
 end)
-
-
 

@@ -731,7 +731,7 @@ LibEvent:attachTrigger("tooltip.style.font.header", function(self, frame, fontOb
     elseif (type(fontSize) == "number") then
         size = fontSize
     end
-    if (fontFlag == "default") then
+    if (fontFlag == "default" or "NORMAL") then
         flag = defaultHeaderFlag
     else
         flag = fontFlag or flag
@@ -748,7 +748,7 @@ LibEvent:attachTrigger("tooltip.style.font.body", function(self, frame, fontObje
     elseif (type(fontSize) == "number") then
         size = fontSize
     end
-    if (fontFlag == "default") then
+    if (fontFlag == "default" or "NORMAL") then
         flag = defaultBodyFlag
     else
         flag = fontFlag or flag
@@ -860,7 +860,7 @@ LibEvent:attachTrigger("tooltip.style.init", function(self, tip)
             local flag = info.tooltipData.type
             local guid = info.tooltipData.guid
             if (flag == 0) then
-                local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))
+		local link = select(2, C_Item.GetItemInfo(info.tooltipData.id))
                 if (self.GetItem) then
                     local link = select(2, self:GetItem())
                 end

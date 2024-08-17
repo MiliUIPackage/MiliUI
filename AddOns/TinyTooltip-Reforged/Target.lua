@@ -1,4 +1,3 @@
-
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 
 local YOU = YOU
@@ -12,7 +11,8 @@ local addon = TinyTooltipReforged
 local function GetTargetString(unit)
     if (not UnitExists(unit)) then return end
     local name = UnitName(unit)
-    local icon = addon:GetRaidIcon(unit) or ""
+
+    local icon = TinyTooltipReforged:GetRaidIcon(unit) or ""
     if UnitIsUnit(unit, "player") then
         return format("|cffff3333>>%s<<|r", strupper(YOU))
     elseif UnitIsPlayer(unit) then
@@ -20,33 +20,29 @@ local function GetTargetString(unit)
         local colorCode = select(4, GetClassColor(class))
         return format("%s|c%s%s|r", icon, colorCode, name)
     elseif UnitIsOtherPlayersPet(unit) then
-        return format("%s|cff%s<%s>|r (Pet)", icon, addon:GetHexColor(GameTooltip_UnitColor(unit)), name)
+        return format("%s|cff%s<%s>|r (Pet)", icon, TinyTooltipReforged:GetHexColor(GameTooltip_UnitColor(unit)), name)
     else
-        return format("%s|cff%s[%s]|r", icon, addon:GetHexColor(GameTooltip_UnitColor(unit)), name)
+        return format("%s|cff%s[%s]|r", icon, TinyTooltipReforged:GetHexColor(GameTooltip_UnitColor(unit)), name)
     end
 end
 
-GameTooltip:HookScript("OnUpdate", function(self, elapsed)
-    --self.updateElapsed = (self.updateElapsed or 0) + elapsed
-    --if (self.updateElapsed >= TOOLTIP_UPDATE_TIME) then
-        --self.updateElapsed = 0
 
-        if (not UnitExists("mouseover")) then return end
-        if (addon.db.unit.player.showTarget and UnitIsPlayer("mouseover"))
-            or (addon.db.unit.npc.showTarget and not UnitIsPlayer("mouseover")) then
-            local line = addon:FindLine(self, "^"..TARGET..":")
-            local text = GetTargetString("mouseovertarget")
-            if (line and not text) then
-                addon:HideLine(self, "^"..TARGET..":")
-                self:Show()
-            elseif (not line and text) then
-                self:AddLine(format("%s: %s", TARGET, text))
-                self:Show()
-            elseif (line) then
-                line:SetFormattedText("%s: %s", TARGET, text)
-            end
+GameTooltip:HookScript("OnUpdate", function(self, elapsed)
+    if (not UnitExists("mouseover")) then return end
+    if (addon.db.unit.player.showTarget and UnitIsPlayer("mouseover"))
+        or (addon.db.unit.npc.showTarget and not UnitIsPlayer("mouseover")) then
+        local line = TinyTooltipReforged:FindLine(self, "^"..TARGET..":")
+        local text = GetTargetString("mouseovertarget")
+        if (line and not text) then
+            addon:HideLine(self, "^"..TARGET..":")
+            self:Show()
+        elseif (not line and text) then
+            self:AddLine(format("%s: %s", TARGET, text))
+            self:Show()
+        elseif (line) then
+            line:SetFormattedText("%s: %s", TARGET, text)
         end
-    --end
+    end
 end)
 
 -- Targeted By

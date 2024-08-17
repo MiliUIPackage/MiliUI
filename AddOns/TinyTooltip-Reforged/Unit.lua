@@ -72,7 +72,7 @@ end
 
 local function PlayerCharacter(tip, unit, config, raw)
     local data = addon:GetUnitData(unit, config.elements, raw)
-    addon:HideLines(tip, 2, 3)
+    addon:HideLines(tip, 2, 4)
     addon:HideLine(tip, "^"..LEVEL)
     addon:HideLine(tip, "^"..FACTION_ALLIANCE)
     addon:HideLine(tip, "^"..FACTION_HORDE)

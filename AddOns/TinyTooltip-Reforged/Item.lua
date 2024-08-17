@@ -1,4 +1,3 @@
-
 local LibEvent = LibStub:GetLibrary("LibEvent.7000")
 local clientVer, clientBuild, clientDate, clientToc = GetBuildInfo()
 
@@ -59,13 +58,16 @@ local function ItemStackCount(tip, link)
     if (addon.db.item.showStackCountAlt) then
         local stack = stacks[link]
         if (stack and stack > 1) then
+            tip:Show()
             tip:AddLine(format(addon.L["Stack Size: |cff00eeee%d|r"],stack))
+            tip:Show()
         end 
     end
 end
 
 LibEvent:attachTrigger("tooltip:item", function(self, tip, link)
     local quality = select(3, C_Item.GetItemInfo(link)) or 0
+    local name = select(1, C_Item.GetItemInfo(link)) or 0
     local r, g, b = C_Item.GetItemQualityColor(quality)
     ColorBorder(tip, r, g, b)
     ItemStackCount(tip, link)
