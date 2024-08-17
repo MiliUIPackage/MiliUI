@@ -151,6 +151,7 @@ L["Seed Color Uncommon"] = "綠色";
 L["ModuleName TooltipChestKeys"] = "工具提示：箱子鑰匙";
 L["ModuleDescription TooltipChestKeys"] = "顯示打開當前箱子或門所需的鑰匙訊息。"
 
+
 --Merchant UI Price
 L["ModuleName MerchantPrice"] = "商品價格";
 L["ModuleDescription MerchantPrice"] = "改變商人界面的預設行為：\n\n- 只把數量不足的貨幣變灰。\n\n- 在錢幣方框內顯示當前頁面所需的所有貨幣。";
@@ -158,6 +159,25 @@ L["Num Items In Bank Format"] = "銀行: |cffffffff%d|r";
 L["Num Items In Bag Format"] = "背包: |cffffffff%d|r";
 L["Number Thousands"] = "K";
 L["Number Millions"] = "M";
+
+
+--Landing Page (Expansion Summary Minimap)
+L["ModuleName ExpansionLandingPage"] = "卡茲阿加概要";
+L["ModuleDescription ExpansionLandingPage"] = "在概要界面上顯示額外訊息：\n\n- 斬離之絲等級";
+L["Instruction Track Reputation"] = "<按住Shift點擊追蹤此聲望>";
+L["Instruction Untrack Reputation"] = "<按住Shift點擊停止追蹤>";
+
+
+--WorldMapPin_TWW (Show Pins On Continent Map)
+L["ModuleName WorldMapPin_TWW"] = "地圖標記：地心之戰";
+L["ModuleDescription WorldMapPin_TWW"] = "在卡茲阿加地圖上顯示額外標記：\n\n- %s\n\n- %s";  --Wwe'll replace %s with locales (See Map Pin Filter Name at the bottom)
+
+
+--Delves
+L["Great Vault Tier Format"] = "難度 %s";
+L["Item Level Format"] = "物品等級%d";
+L["Item Level Abbr"] = "裝等";
+
 
 --Generic
 L["Reposition Button Horizontal"] = "水平方向移動";   --Move the window horizontally
@@ -183,5 +203,5 @@ L["GameObject Door"] = "門";
 L["Delve Chest 1 Rare"] = "豐裕　Coffer";   --We'll use the GameObjectID once it shows up in the database
 
 --Map Pin Filter Name (name should be plural)
-L["Bountiful Delve"] =  "豐裕探究";
-L["Special Assignment"] = "特別任務";
+L["Bountiful Delve"] =  "豐碩探究";
+L["Special Assignment"] = "特殊任務";
