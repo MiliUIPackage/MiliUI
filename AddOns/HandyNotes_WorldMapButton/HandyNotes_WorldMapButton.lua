@@ -2,7 +2,9 @@
 
 local AddOnName, AddOn = ...
 
+local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
 if not IsAddOnLoaded('HandyNotes') then return end
+
 local WorldMapTooltip = WorldMapTooltip or GameTooltip;
 local buildver = select(4,GetBuildInfo())
 local isClassicWow = buildver < 20000
