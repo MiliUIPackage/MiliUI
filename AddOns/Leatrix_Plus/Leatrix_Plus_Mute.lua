@@ -621,14 +621,6 @@
 
 		},
 
-		-- Ban-LU
-		["MuteBanLu"] = {
-
-			-- Ban-Lu (sound/creature/ban-lu)
-			"vo_72_ban-lu_01_m.ogg#1593212", "vo_72_ban-lu_02_m.ogg#1593213", "vo_72_ban-lu_03_m.ogg#1593214", "vo_72_ban-lu_04_m.ogg#1593215", "vo_72_ban-lu_05_m.ogg#1593216", "vo_72_ban-lu_06_m.ogg#1593217", "vo_72_ban-lu_07_m.ogg#1593218", "vo_72_ban-lu_08_m.ogg#1593219", "vo_72_ban-lu_09_m.ogg#1593220", "vo_72_ban-lu_10_m.ogg#1593221", "vo_72_ban-lu_11_m.ogg#1593222", "vo_72_ban-lu_12_m.ogg#1593223", "vo_72_ban-lu_13_m.ogg#1593224", "vo_72_ban-lu_14_m.ogg#1593225", "vo_72_ban-lu_15_m.ogg#1593226", "vo_72_ban-lu_16_m.ogg#1593227", "vo_72_ban-lu_17_m.ogg#1593228", "vo_72_ban-lu_18_m.ogg#1593229", "vo_72_ban-lu_19_m.ogg#1593230", "vo_72_ban-lu_20_m.ogg#1593231", "vo_72_ban-lu_21_m.ogg#1593232", "vo_72_ban-lu_22_m.ogg#1593233", "vo_72_ban-lu_23_m.ogg#1593234", "vo_72_ban-lu_24_m.ogg#1593235", "vo_72_ban-lu_25_m.ogg#1593236",
-
-		},
-
 		-- Bikes
 		["MuteBikes"] = {
 
@@ -709,6 +701,25 @@
 			-- "4674577.ogg#4674577", "4674579.ogg#4674579", "4674581.ogg#4674581", "4674583.ogg#4674583", "4674585.ogg#4674585",
 
 			-- Windborne Velocidrake passive loop uses SKIT:217018 (starting with sound file ID 596033, sound/doodad/blackrockv2_drake_wingflap_)
+
+		},
+
+		-- Fish
+		["MuteFish"] = {
+
+			-- Wonderous Wavewhisker (sound/creature/magicalfishmount/)
+
+			-- Cast (magicalfishmount_cast_oneshot_)
+			"4996804.ogg#4996804", "4996806.ogg#4996806", "4996808.ogg#4996808", "4996810.ogg#4996810",
+			-- Fidget (magicalfishmount_fidget_)
+			"4996760.ogg#4996760", "4996762.ogg#4996762", "4996764.ogg#4996764", "4996766.ogg#4996766", "4996768.ogg#4996768", "4996770.ogg#4996770", "4996790.ogg#4996790", "4996792.ogg#4996792", "4996794.ogg#4996794", "4996796.ogg#4996796", "4996798.ogg#4996798", "4996800.ogg#4996800", "4996802.ogg#4996802", "5006161.ogg#5006161", "5006163.ogg#5006163", "5006165.ogg#5006165", "5006167.ogg#5006167", "5006169.ogg#5006169",
+			-- Moving (magicalfishmount_moving_)
+			"4996740.ogg#4996740", "4996742.ogg#4996742", "4996744.ogg#4996744", "4996746.ogg#4996746", "4996748.ogg#4996748", "4996750.ogg#4996750", "4996752.ogg#4996752", "4996754.ogg#4996754", "4996756.ogg#4996756", "4996758.ogg#4996758",
+			-- Wound (magicalfishmount_wound_)
+			"4996812.ogg#4996812", "4996814.ogg#4996814", "4996816.ogg#4996816", "4996818.ogg#4996818", "4996820.ogg#4996820", "4996822.ogg#4996822", "4996824.ogg#4996824", "4996826.ogg#4996826", "4996828.ogg#4996828", "5006081.ogg#5006081", "5006083.ogg#5006083", "5006085.ogg#5006085", "5006087.ogg#5006087", "5006089.ogg#5006089", "5006091.ogg#5006091", "5006093.ogg#5006093", "5006095.ogg#5006095", "5006097.ogg#5006097", "5006099.ogg#5006099", "5006101.ogg#5006101", "5006103.ogg#5006103", "5006105.ogg#5006105", "5006107.ogg#5006107", "5006109.ogg#5006109", "5006111.ogg#5006111", "5006113.ogg#5006113", "5006115.ogg#5006115", "5006117.ogg#5006117", "5006119.ogg#5006119",
+			-- Mount Special
+			-- Uses sound/spells/spell_ro_grapplinghook_whoosh_cast
+			-- "1451464#1451464", "1451465#1451465","1451466#1451466","1451467#1451467",
 
 		},
 
@@ -869,6 +880,23 @@
 		-- Ottuks
 		["MuteOttuks"] = {
 			"unknown#4631768", "unknown#4631770", "unknown#4631772", "unknown#4631774", "unknown#4631776", "unknown#4631778", "unknown#4631780", "unknown#4631782", "unknown#4631784", "unknown#4631786", "unknown#4631788",
+		},
+
+		-- Panthers
+		["MutePanthers"] = {
+
+			-- Idle (sound/doodad/fx_fire_magical_loop_)
+			"01.ogg#565406", "02.ogg#566903", "03.ogg#566095",
+
+			-- Mount special (sound/creature/wingedguardian/wingedguardian_mountspecial_)
+			"01.ogg#564156", "02.ogg#564149", "03.ogg#564153", "04.ogg#564146", "05.ogg#564145", "06.ogg#564150", "07.ogg#564155",
+
+			-- Everything else (sound/creature/onyxpanther/mon_onyx_panther_aggro)
+			"01.ogg#623455", "02.ogg#623457", "03.ogg#623459", "04.ogg#623461", "05.ogg#623463", "06.ogg#623465", "07.ogg#623467", "08.ogg#623469",
+
+			-- Moving idle wind (sound/doodad/fx_mount_wind_gusts)
+			-- "01.ogg#644101", "02.ogg#644103", "03.ogg#644105", "04.ogg#644107", "05.ogg#644109",
+
 		},
 
 		-- Razorwings
@@ -1062,6 +1090,32 @@
 
 			-- sound/vehicles/hordegunship
 			"hordegunship.ogg#603224",
+
+		},
+
+		----------------------------------------------------------------------
+		-- Specific
+		----------------------------------------------------------------------
+
+		-- Ban-LU
+		["MuteBanLu"] = {
+
+			-- Ban-Lu (sound/creature/ban-lu)
+			"vo_72_ban-lu_01_m.ogg#1593212", "vo_72_ban-lu_02_m.ogg#1593213", "vo_72_ban-lu_03_m.ogg#1593214", "vo_72_ban-lu_04_m.ogg#1593215", "vo_72_ban-lu_05_m.ogg#1593216", "vo_72_ban-lu_06_m.ogg#1593217", "vo_72_ban-lu_07_m.ogg#1593218", "vo_72_ban-lu_08_m.ogg#1593219", "vo_72_ban-lu_09_m.ogg#1593220", "vo_72_ban-lu_10_m.ogg#1593221", "vo_72_ban-lu_11_m.ogg#1593222", "vo_72_ban-lu_12_m.ogg#1593223", "vo_72_ban-lu_13_m.ogg#1593224", "vo_72_ban-lu_14_m.ogg#1593225", "vo_72_ban-lu_15_m.ogg#1593226", "vo_72_ban-lu_16_m.ogg#1593227", "vo_72_ban-lu_17_m.ogg#1593228", "vo_72_ban-lu_18_m.ogg#1593229", "vo_72_ban-lu_19_m.ogg#1593230", "vo_72_ban-lu_20_m.ogg#1593231", "vo_72_ban-lu_21_m.ogg#1593232", "vo_72_ban-lu_22_m.ogg#1593233", "vo_72_ban-lu_23_m.ogg#1593234", "vo_72_ban-lu_24_m.ogg#1593235", "vo_72_ban-lu_25_m.ogg#1593236",
+
+		},
+
+		-- Soar (Dracthyr)
+		["MuteSoar"] = {
+
+			-- Launch: sound/ambience/zoneambience/amb_ardenweald_day_
+			"3780450.ogg#3780450", "3780452.ogg#3780452", "3780454.ogg#3780454", "3780456.ogg#3780456",
+
+			-- Wind whistle: sound/creature/snowelemental/snowelemental_loop_
+			"4559039.ogg#4559039", "4559041.ogg#4559041", "4559043.ogg#4559043", "4559045.ogg#4559045", "4559047.ogg#4559047",
+
+			-- Flight loop: sound/ambience/zoneambience/amb_high_altitude_wind_loop_
+			"2843062.ogg#2843062", "2843063.ogg#2843063", "2843055.ogg#2843055", "2843056.ogg#2843056", "2843057.ogg#2843057", "2843058.ogg#2843058", "2843059.ogg#2843059", "2843060.ogg#2843060", "2843061.ogg#2843061", "2843064.ogg#2843064",
 
 		},
 
