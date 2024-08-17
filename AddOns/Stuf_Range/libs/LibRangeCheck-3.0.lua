@@ -40,7 +40,7 @@ License: MIT
 -- @class file
 -- @name LibRangeCheck-3.0
 local MAJOR_VERSION = "LibRangeCheck-3.0"
-local MINOR_VERSION = 20
+local MINOR_VERSION = 23
 
 ---@class lib
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
@@ -76,8 +76,8 @@ local UnitIsUnit = UnitIsUnit
 local UnitGUID = UnitGUID
 local UnitIsDeadOrGhost = UnitIsDeadOrGhost
 local CheckInteractDistance = CheckInteractDistance
-local IsSpellInRange = _G.IsSpellInRange or function(id, unit)
-  local result = C_Spell.IsSpellInRange(id, unit)
+local IsSpellBookItemInRange = _G.IsSpellInRange or function(index, spellBank, unit)
+  local result = C_Spell.IsSpellInRange(index, unit)
   if result == true then
     return 1
   elseif result == false then
@@ -85,18 +85,15 @@ local IsSpellInRange = _G.IsSpellInRange or function(id, unit)
   end
   return nil
 end
-local IsSpellBookItemInRange = _G.IsSpellInRange or function(index, spellBank, unit)
-  -- Deprecated_11_0_0.lua set BOOKTYPE_SPELL to "spell" but doesn't provide a compatibility wrapper for IsSpellBookItemInRange
+local GetSpellBookItemInfo = _G.GetSpellBookItemInfo or function(index, spellBank)
   if type(spellBank) == "string" then
     spellBank = (spellBank == "spell") and Enum.SpellBookSpellBank.Player or Enum.SpellBookSpellBank.Pet;
   end
-  local result = C_SpellBook.IsSpellBookItemInRange(index, spellBank, unit)
-  if result == true then
-    return 1
-  elseif result == false then
-    return 0
+  local info = C_SpellBook.GetSpellBookItemInfo(index, spellBank)
+  -- we are looking for "Spell" and "FutureSpell", but not passives here
+  if info and not info.isPassive and (info.itemType == Enum.SpellBookItemType.Spell or info.itemType == Enum.SpellBookItemType.FutureSpell) then
+    return info.itemType, info.spellID
   end
-  return nil
 end
 local UnitClass = UnitClass
 local UnitRace = UnitRace
@@ -168,7 +165,7 @@ for _, n in ipairs({ "EVOKER", "DEATHKNIGHT", "DEMONHUNTER", "DRUID", "HUNTER", 
 end
 
 -- Evoker
-tinsert(HarmSpells.EVOKER, 369819) -- Disintegrate (25 yards)
+tinsert(HarmSpells.EVOKER, 362969) -- Azure Strike (25 yards)
 
 tinsert(FriendSpells.EVOKER, 361469) -- Living Flame (25 yards)
 tinsert(FriendSpells.EVOKER, 360823) -- Naturalize (Preservation) (30 yards)
@@ -328,9 +325,12 @@ if not isRetail then
 end
 
 -- Warlocks
-tinsert(FriendSpells.WARLOCK, 132) -- Detect Invisibility (30 yards, level 26)
+if isEra then
+  tinsert(FriendSpells.WARLOCK, 132) -- Detect Invisibility (30 yards, level 26)
+else
+  tinsert(FriendSpells.WARLOCK, 20707) -- Soulstone (40 yards) ~ this can be precasted so leave it in friendly as well as res
+end
 tinsert(FriendSpells.WARLOCK, 5697) -- Unending Breath (30 yards)
-tinsert(FriendSpells.WARLOCK, 20707) -- Soulstone (40 yards) ~ this can be precasted so leave it in friendly as well as res
 
 if isRetail then
   tinsert(HarmSpells.WARLOCK, 234153) -- Drain Life (40 yards, level 9)
@@ -342,14 +342,19 @@ else
   tinsert(HarmSpells.WARLOCK, 17877) -- Shadowburn (Destruction) (20/22/24 yards, rank 1)
   tinsert(HarmSpells.WARLOCK, 18223) -- Curse of Exhaustion (Affliction) (30/33/36/35/38/42 yards)
   tinsert(HarmSpells.WARLOCK, 689) -- Drain Life (Affliction) (20/22/24 yards, level 14, rank 1)
+end
+if isEra then
   tinsert(HarmSpells.WARLOCK, 403677) -- Master Channeler (Affliction) (20/22/24 yards, level 14, rank 1)
+  tinsert(HarmSpells.WARLOCK, 426320) -- Shadowflame (30/33/36/39/42 yards, level 14, rank 1)
 end
 
 tinsert(HarmSpells.WARLOCK, 5019) -- Shoot (30 yards)
 tinsert(HarmSpells.WARLOCK, 686) -- Shadow Bolt (Demonology, Affliction) (40 yards)
 tinsert(HarmSpells.WARLOCK, 5782) -- Fear (30 yards)
 
-tinsert(ResSpells.WARLOCK, 20707) -- Soulstone (40 yards)
+if not isEra then
+  tinsert(ResSpells.WARLOCK, 20707) -- Soulstone (40 yards)
+end
 
 tinsert(PetSpells.WARLOCK, 755) -- Health Funnel (45 yards)
 
@@ -635,6 +640,9 @@ end
 
 local function getNumSpells()
   local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
+  if not offset or not numSpells then
+    return 0
+  end
   return offset + numSpells
 end
 
@@ -646,7 +654,12 @@ local function findSpellIdx(spellName)
   for i = 1, getNumSpells() do
     local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
     if spell == spellName then
-      return i
+      local spellType, spellID = GetSpellBookItemInfo(i, BOOKTYPE_SPELL)
+      if spellType == "SPELL" or spellType == "FUTURESPELL"  then -- classic/era
+        return i
+      elseif Enum.SpellBookItemType and (spellType == Enum.SpellBookItemType.Spell or spellType == Enum.SpellBookItemType.FutureSpell) then -- retail
+        return spellID
+      end
     end
   end
   return nil
@@ -668,7 +681,7 @@ local function findMinRangeChecker(origMinRange, origRange, spellList, interactL
     local sid = spellList[i]
     local name, minRange, range, spellIdx = getSpellData(sid)
     if range and spellIdx and origMinRange <= range and range <= origRange and minRange == 0 then
-      return checkers_Spell[findSpellIdx(name)]
+      return checkers_Spell[spellIdx]
     end
   end
   for index, range in pairs(interactLists) do

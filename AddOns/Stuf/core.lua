@@ -205,7 +205,7 @@ function events.ADDON_LOADED(a1)
 
 		dbg = db.global
 		classcolor, powercolor, reactioncolor = dbg.classcolor, dbg.powercolor, dbg.reactioncolor
-		if dbg.initDragonflight ~= 1 then
+		if dbg.initTWW ~= 1 then
 			for i = 0, 20, 1 do
 				local color = PowerBarColor[i]
 				if color and (not powercolor[i] or not powercolor[i].r) then
@@ -225,14 +225,16 @@ function events.ADDON_LOADED(a1)
 				db.party1.lfgicon = db.party1.lfgicon or { alpha=0.6, w=14, h=14, }
 				db.target.lfgicon = db.target.lfgicon or { hide=true, }
 			end
+			db.player.runebar = db.player.runebar or { x=0, y=0, }
 			db.player.holybar = db.player.holybar or { x=0, y=0, }
 			db.player.shardbar = db.player.shardbar or { x=0, y=0, }
 			db.player.chibar = db.player.chibar or { x=0, y=0, }
 			db.player.arcanebar = db.player.arcanebar or { x=0, y=0, }
 			db.player.essencesbar = db.player.essencesbar or { x=0, y=0, }
 			db.player.priestbar = db.player.priestbar or { x=0, y=0, }
+			db.player.combopointbar = db.player.combopointbar or { x=0, y=0, }
 
-			dbg.initDragonflight = 1
+			dbg.initTWW = 1
 		end
 
 		hpgreen, hpred, gray = dbg.hpgreen, dbg.hpred, dbg.gray

@@ -2144,6 +2144,13 @@ local essencesbar={
 		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,
 	},
 }
+local combopointbar={
+	name=L["Combo Frame"], type="group", hidden=function() return Stuf.CLS ~= "DRUID" and Stuf.CLS ~= "ROGUE" end, order=30,
+	args={
+		hide=hide, blank=blank,
+		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,
+	},
+}
 local function pointhide(info)
 	local unit, object, setting = infobreakdown(info)
 	return db[unit][object].combostyle ~= 2
@@ -2386,7 +2393,7 @@ options={
 				lfgicon=lfgicon,
 				totembar=totembar,
 				runebar=runebar, druidbar=druidbar, holybar=holybar, shardbar=shardbar,
-				chibar=chibar, priestbar=priestbar, arcanebar=arcanebar, essencesbar=essencesbar,
+				chibar=chibar, priestbar=priestbar, arcanebar=arcanebar, essencesbar=essencesbar, combopointbar=combopointbar,
 				castbar=castbar,
 			},
 		},

@@ -2,7 +2,7 @@
 ## Title: Stuf Unit Frames
 ## Author: TotalPackage
 ## Notes: Main unitframes replacement. Assembly optional.
-## Version: 11.0.3
+## Version: 11.0.４
 
 ## SavedVariables: StufDB
 ## SavedVariablesPerCharacter: StufCharDB
@@ -18,7 +18,7 @@
 ## X-Category-zhTW: 介面
 ## IconTexture: Interface\Icons\inv_pet_riverotter_red
 
-## embeds.xml
+embeds.xml
 cancelaura.xml
 StufLocale.lua
 core.lua
