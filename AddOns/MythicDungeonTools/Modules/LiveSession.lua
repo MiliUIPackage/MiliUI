@@ -23,15 +23,22 @@ function MDT:LiveSession_Enable()
   self:UpdatePresetDropdownTextColor()
   self:SetThrottleValues()
   timer = C_Timer.NewTimer(2, function()
-    self.liveSessionRequested = false
-    local distribution = self:IsPlayerInGroup()
-    local preset = self:GetCurrentPreset()
-    local prefix = "[MDTLive: "
-    local dungeon = self:GetDungeonName(preset.value.currentDungeonIdx)
-    local presetName = preset.text
-    local name, realm = UnitFullName("player")
-    local fullName = name .. "+" .. realm
-    SendChatMessage(prefix .. fullName .. " - " .. dungeon .. ": " .. presetName .. "]", distribution)
+    local callback = function()
+      self.liveSessionRequested = false
+      local distribution = self:IsPlayerInGroup()
+      local preset = self:GetCurrentPreset()
+      local prefix = "[MDTLive: "
+      local dungeon = self:GetDungeonName(preset.value.currentDungeonIdx)
+      local presetName = preset.text
+      local name, realm = UnitFullName("player")
+      local fullName = name.."+"..realm
+      SendChatMessage(prefix..fullName.." - "..dungeon..": "..presetName.."]", distribution)
+    end
+    local cancelCallback = function()
+      MDT:LiveSession_Disable()
+    end
+    local fireCancelOnClose = true
+    MDT:CheckPresetSize(callback, cancelCallback, fireCancelOnClose)
   end)
 end
 
@@ -58,7 +65,7 @@ function MDT:LiveSession_Disable()
   if timer then timer:Cancel() end
   self.liveSessionRequested = false
   self.main_frame.SendingStatusBar:Hide()
-  self:SetThrottleValues(true)
+  self:RestoreThrottleValues()
   if self.main_frame.LoadingSpinner then
     self.main_frame.LoadingSpinner:Hide()
     self.main_frame.LoadingSpinner.Anim:Stop()
@@ -91,7 +98,7 @@ end
 
 function MDT:LiveSession_SessionFound(fullName, uid)
   local fullNamePlayer, realm = UnitFullName("player")
-  fullNamePlayer = fullNamePlayer .. "-" .. realm
+  fullNamePlayer = fullNamePlayer.."-"..realm
 
   if (not self.liveSessionAcceptingPreset) and fullNamePlayer ~= fullName then
     if timer then timer:Cancel() end
@@ -139,8 +146,8 @@ function MDT:LiveSession_SendPing(x, y, sublevel)
     local distribution = self:IsPlayerInGroup()
     if distribution then
       local scale = self:GetScale()
-      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.ping, x * (1 / scale) .. ":" .. y * (1 / scale) ..
-        ":" .. sublevel, distribution, nil, "ALERT")
+      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.ping, x * (1 / scale)..":"..y * (1 / scale)..
+        ":"..sublevel, distribution, nil, "ALERT")
     end
   end
 end
@@ -151,7 +158,9 @@ function MDT:LiveSession_SendObject(obj)
     local distribution = self:IsPlayerInGroup()
     if distribution then
       local export = MDT:TableToString(obj, false, 5)
-      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.obj, export, distribution, nil, "ALERT")
+      local silent, fromLiveSession = true, true
+      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.obj, export, distribution, nil, "BULK", MDT.displaySendingProgress,
+        { distribution, nil, silent, fromLiveSession })
     end
   end
 end
@@ -161,7 +170,7 @@ function MDT:LiveSession_SendObjectOffsets(objIdx, x, y)
   if self:GetCurrentPreset().uid == self.livePresetUID then
     local distribution = self:IsPlayerInGroup()
     if distribution then
-      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.objOff, objIdx .. ":" .. x .. ":" .. y, distribution, nil,
+      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.objOff, objIdx..":"..x..":"..y, distribution, nil,
         "ALERT")
     end
   end
@@ -193,8 +202,8 @@ function MDT:LiveSession_SendNoteCommand(cmd, noteIdx, text, y)
   if self:GetCurrentPreset().uid == self.livePresetUID then
     local distribution = self:IsPlayerInGroup()
     if distribution then
-      text = text .. ":" .. (y or "0")
-      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.note, cmd .. ":" .. noteIdx .. ":" .. text, distribution,
+      text = text..":"..(y or "0")
+      MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.note, cmd..":"..noteIdx..":"..text, distribution,
         nil, "ALERT")
     end
   end
@@ -205,10 +214,11 @@ function MDT:LiveSession_SendPreset(preset)
   local distribution = self:IsPlayerInGroup()
   if distribution then
     local db = self:GetDB()
-    preset.mdiEnabled = db.MDI.enabled
     preset.difficulty = db.currentDifficulty
     local export = MDT:TableToString(preset, false, 5)
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.preset, export, distribution, nil, "ALERT")
+    local silent, fromLiveSession = true, true
+    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.preset, export, distribution, nil, "BULK", MDT.displaySendingProgress,
+      { distribution, preset, silent, fromLiveSession })
   end
 end
 
@@ -225,46 +235,18 @@ end
 function MDT:LiveSession_SendAffixWeek(week)
   local distribution = self:IsPlayerInGroup()
   if distribution then
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.week, week .. "", distribution, nil, "ALERT")
-  end
-end
-
----Sends freehold selector updates
-function MDT:LiveSession_SendFreeholdSelector(value, week)
-  local distribution = self:IsPlayerInGroup()
-  if distribution then
-    value = value and "T:" or "F:"
-    local msg = value .. week
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.free, msg, distribution, nil, "ALERT")
-  end
-end
-
----sends boralus selector updates
-function MDT:LiveSession_SendBoralusSelector(faction)
-  local distribution = self:IsPlayerInGroup()
-  if distribution then
-    local msg = faction .. ""
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.bora, msg, distribution, nil, "ALERT")
-  end
-end
-
----Sends MDI selector updates
-function MDT:LiveSession_SendMDI(action, data)
-  local distribution = self:IsPlayerInGroup()
-  if distribution then
-    local msg = action .. ":" .. data
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.mdi, msg, distribution, nil, "ALERT")
+    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.week, week.."", distribution, nil, "ALERT")
   end
 end
 
 do
-  local timer
+  local colorTimer
   ---LiveSession_QueueColorUpdate
   ---Disgusting workaround for shitty colorpicker
   ---Only send an update once a color of a pull has not changed for 0.2 seconds
   function MDT:LiveSession_QueueColorUpdate()
-    if timer then timer:Cancel() end
-    timer = C_Timer.NewTimer(0.2, function()
+    if colorTimer then colorTimer:Cancel() end
+    colorTimer = C_Timer.NewTimer(0.2, function()
       self:LiveSession_SendPulls(self:GetPulls())
     end)
   end
@@ -284,7 +266,7 @@ function MDT:LiveSession_SendDifficulty()
   local distribution = self:IsPlayerInGroup()
   if distribution then
     local export = self:GetDB().currentDifficulty
-    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.difficulty, export .. "", distribution, nil, "ALERT")
+    MDTcommsObject:SendCommMessage(self.liveSessionPrefixes.difficulty, export.."", distribution, nil, "ALERT")
   end
 end
 

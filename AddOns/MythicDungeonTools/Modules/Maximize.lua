@@ -38,11 +38,11 @@ function MDT:Maximize()
   f.scrollFrame:SetSize(newSizex, newSizey)
   f.mapPanelFrame:SetSize(newSizex, newSizey)
   for i = 1, 12 do
-    f["mapPanelTile" .. i]:SetSize((newSizex / 4 + 5 * db.scale), (newSizex / 4 + 5 * db.scale))
+    f["mapPanelTile"..i]:SetSize((newSizex / 4 + 5 * db.scale), (newSizex / 4 + 5 * db.scale))
   end
   for i = 1, 10 do
     for j = 1, 15 do
-      f["largeMapPanelTile" .. i .. j]:SetSize(newSizex / 15, newSizex / 15)
+      f["largeMapPanelTile"..i..j]:SetSize(newSizex / 15, newSizex / 15)
     end
   end
   f.scrollFrame:SetVerticalScroll(oldScrollV * (newSizey / oldSizeY))
@@ -57,7 +57,6 @@ function MDT:Maximize()
     f.devPanel:SetPoint("TOPLEFT", f, "TOPLEFT", 0, -45)
   end
   f.resizer:Hide()
-  MDT:CreateTutorialButton(MDT.main_frame)
   db.maximized = true
 end
 
@@ -83,11 +82,11 @@ function MDT:Minimize()
   f.scrollFrame:SetSize(newSizex, newSizey)
   f.mapPanelFrame:SetSize(newSizex, newSizey)
   for i = 1, 12 do
-    f["mapPanelTile" .. i]:SetSize(newSizex / 4 + (5 * db.scale), newSizex / 4 + (5 * db.scale))
+    f["mapPanelTile"..i]:SetSize(newSizex / 4 + (5 * db.scale), newSizex / 4 + (5 * db.scale))
   end
   for i = 1, 10 do
     for j = 1, 15 do
-      f["largeMapPanelTile" .. i .. j]:SetSize(newSizex / 15, newSizex / 15)
+      f["largeMapPanelTile"..i..j]:SetSize(newSizex / 15, newSizex / 15)
     end
   end
   f.scrollFrame:SetVerticalScroll(oldScrollV * (newSizey / oldSizeY))
@@ -102,7 +101,6 @@ function MDT:Minimize()
     f.devPanel:SetPoint("TOPRIGHT", f.topPanel, "TOPLEFT", 0, 0)
   end
   f.resizer:Show()
-  MDT:CreateTutorialButton(MDT.main_frame)
 
   db.maximized = false
 end

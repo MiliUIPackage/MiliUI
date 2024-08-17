@@ -9,20 +9,36 @@ local L = MDT.L
 
 local candidates = {
   ["DungeonTools"] = {
-    name = "Dungeon Tools";
-    detected = false;
+    name = "Dungeon Tools",
+    detected = false,
     onDetect = function()
       SLASH_DUNGEONTOOLS1 = "/mplus"
       SLASH_DUNGEONTOOLS2 = "/mdt"
       SLASH_DUNGEONTOOLS3 = "/dungeontools"
       function SlashCmdList.DUNGEONTOOLS(cmd, editbox)
-        MDT:ShowInterface()
+        MDT:Async(function() MDT:ShowInterfaceInternal() end, "showInterface")
       end
 
       local ldb = LibStub("LibDBIcon-1.0")
-      ldb.objects["DungeonTools"]:SetScript("OnClick", function() MDT:ShowInterface() end)
+      ldb.objects["DungeonTools"]:SetScript("OnClick", function() MDT:Async(function() MDT:ShowInterfaceInternal() end, "showInterface") end)
     end
-  }
+  },
+  ["MDTGuide"] = {
+    name = "MDTGuide",
+    version = 123, --latest version that causes issues
+    detected = false,
+    onDetect = function()
+
+    end,
+    note = L["MDTGuideNote"]
+  },
+  ["MethodDungeonTools"] = {
+    name = "MethodDungeonTools",
+    detected = false,
+    onDetect = function()
+
+    end,
+  },
 }
 
 local conflictCheckFrame = CreateFrame("Frame")
@@ -31,8 +47,16 @@ conflictCheckFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
 conflictCheckFrame:SetScript("OnEvent", function(self, event, ...)
   if event == "ADDON_LOADED" then
     local addonName = ...
-    if candidates[addonName] then
-      candidates[addonName].detected = true
+    local candidate = candidates[addonName]
+    if candidate then
+      if candidate.version then
+        ---@diagnostic disable-next-line: redundant-parameter
+        local version = C_AddOns.GetAddOnMetadata(addonName, "Version"):gsub("%.", "")
+        local versionNum = tonumber(version)
+        candidate.detected = versionNum <= candidate.version
+      else
+        candidate.detected = true
+      end
     end
   end
   if event == "PLAYER_ENTERING_WORLD" then
@@ -65,12 +89,17 @@ function MDT:ShowConflictFrame()
     conflictFrame:SetTitle(L["Addon Conflict"])
 
     conflictFrame.label = AceGUI:Create("Label")
-    conflictFrame.label:SetWidth(390)
+    conflictFrame.label:SetWidth(550)
+    conflictFrame.label:SetFontObject('GameFontNormalLarge')
     local labelText = L["conflictPrompt"]
     -- add all conflicting addons to the text in red color
     for _, candidate in pairs(candidates) do
       if candidate.detected then
-        labelText = labelText .. "\n|cFFFF0000" .. candidate.name .. "|r"
+        local updateNote = "\n- |cFFFF0000"..candidate.name.."|r"
+        if candidate.note then
+          updateNote = updateNote.." "..candidate.note
+        end
+        labelText = labelText..updateNote
       end
     end
 

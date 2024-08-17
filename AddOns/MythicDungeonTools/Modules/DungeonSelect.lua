@@ -8,7 +8,7 @@ local L = MDT.L
 -- Additional dungeon lists just need to be added to seasonList and dungeonSelectionToIndex.
 
 -- How to find the dungeon map files:
--- Add launch option "- console" to wow
+-- Add launch option "-console" to wow
 -- Unsync your Config.wtf from wow servers: SET synchronizeConfig "0"
 -- Add the following to the Config.wtf: SET ConsoleKey "F10" (or whatever key you want)
 -- Go to character selection screen and press your console key
@@ -17,22 +17,30 @@ local L = MDT.L
 -- To get names of dungeons: https://wow.tools/maps/ (search for dungeon name and then check the url)
 
 local seasonListActive = false
-MDT.seasonList = {
-  [1] = L["Legion"],
-  [2] = L["BFA"],
-  [3] = L["Shadowlands"],
-  [4] = L["Shadowlands Season 4"],
-  [5] = L["Dragonflight Season 1"],
-  -- [6] = L["Dragonflight Season 2"],
-}
-MDT.dungeonSelectionToIndex = {
-  [1] = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 },
-  [2] = { 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 },
-  [3] = { 29, 30, 31, 32, 33, 34, 35, 36, 37, 38 },
-  [4] = { 40, 41, 37, 38, 25, 26, 9, 10 },
-  [5] = { 42, 43, 44, 45, 6, 3, 46, 47 },
-  -- [6] = { 48, 49, 50, 51 }
-}
+
+MDT.seasonList = {}
+MDT.dungeonSelectionToIndex = {}
+
+do
+  tinsert(MDT.seasonList, L["Legion"])
+  tinsert(MDT.dungeonSelectionToIndex, { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 })
+  tinsert(MDT.seasonList, L["BFA"])
+  tinsert(MDT.dungeonSelectionToIndex, { 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26 })
+  tinsert(MDT.seasonList, L["Shadowlands"])
+  tinsert(MDT.dungeonSelectionToIndex, { 29, 30, 31, 32, 33, 34, 35, 36, 37, 38 })
+  tinsert(MDT.seasonList, L["Shadowlands Season 4"])
+  tinsert(MDT.dungeonSelectionToIndex, { 40, 41, 37, 38, 25, 26, 9, 10 })
+  tinsert(MDT.seasonList, L["Dragonflight Season 1"])
+  tinsert(MDT.dungeonSelectionToIndex, { 42, 43, 44, 45, 6, 3, 46, 47 })
+  tinsert(MDT.seasonList, L["Dragonflight Season 2"])
+  tinsert(MDT.dungeonSelectionToIndex, { 49, 48, 51, 50, 8, 16, 22, 77 })
+  tinsert(MDT.seasonList, L["Dragonflight Season 3"])
+  tinsert(MDT.dungeonSelectionToIndex, { 100, 101, 102, 103, 15, 104, 4, 105 })
+  tinsert(MDT.seasonList, L["Dragonflight Season 4"])
+  tinsert(MDT.dungeonSelectionToIndex, { 42, 43, 44, 45, 49, 48, 51, 50 })
+  tinsert(MDT.seasonList, L["The War Within Season 1"])
+  tinsert(MDT.dungeonSelectionToIndex, { 31, 35, 19, 110, 111, 112, 113, 114 })
+end
 
 local seasonList = MDT.seasonList
 local dungeonSelectionToIndex = MDT.dungeonSelectionToIndex
@@ -53,9 +61,21 @@ function MDT:UpdateDungeonDropDown()
   dungeonDropdown:SetList(dungeonSelectionToNames[db.selectedDungeonList])
   dungeonDropdown:SetValue(indexToDungeonSelection[db.selectedDungeonList][currentDungeonIdx])
   dungeonDropdown:ClearFocus()
-  sublevelDropdown:SetList(MDT.dungeonSubLevels[currentDungeonIdx])
+  local sublevels = MDT.dungeonSubLevels[currentDungeonIdx]
+  sublevelDropdown:SetList(sublevels)
   sublevelDropdown:SetValue(db.presets[currentDungeonIdx][db.currentPreset[currentDungeonIdx]].value.currentSublevel)
   sublevelDropdown:ClearFocus()
+  local group = MDT.main_frame.DungeonSelectionGroup
+  --dirty hack
+  if #sublevels == 1 then
+    group.children[2] = nil
+    group:SetHeight(25)
+    sublevelDropdown.frame:Hide()
+  else
+    group.children[2] = sublevelDropdown
+    group:SetHeight(50)
+    sublevelDropdown.frame:Show()
+  end
 end
 
 ---CreateDungeonSelectDropdown
@@ -64,7 +84,9 @@ function MDT:CreateDungeonSelectDropdown(frame)
   db = MDT:GetDB()
   --Simple Group to hold both dropdowns
   frame.DungeonSelectionGroup = AceGUI:Create("SimpleGroup")
+  frame.DungeonSelectionGroup.frame:SetParent(frame)
   local group = frame.DungeonSelectionGroup
+  group.frame:Hide()
   if not group.frame.SetBackdrop then
     Mixin(group.frame, BackdropTemplateMixin)
   end
@@ -78,6 +100,7 @@ function MDT:CreateDungeonSelectDropdown(frame)
   MDT:FixAceGUIShowHide(group)
 
   group.DungeonDropdown = AceGUI:Create("Dropdown")
+  group.DungeonDropdown.pullout.frame:SetParent(group.DungeonDropdown.frame)
   group.DungeonDropdown.text:SetJustifyH("LEFT")
   group.DungeonDropdown:SetCallback("OnValueChanged", function(widget, callbackName, key)
     if (seasonListActive) then
@@ -114,11 +137,11 @@ function MDT:CreateDungeonSelectDropdown(frame)
 
   --sublevel select
   group.SublevelDropdown = AceGUI:Create("Dropdown")
+  group.SublevelDropdown.pullout.frame:SetParent(group.SublevelDropdown.frame)
   group.SublevelDropdown.text:SetJustifyH("LEFT")
   group.SublevelDropdown:SetCallback("OnValueChanged", function(widget, callbackName, key)
     db.presets[db.currentDungeonIdx][db.currentPreset[db.currentDungeonIdx]].value.currentSublevel = key
     MDT:UpdateMap()
-    MDT:ZoomMapToDefault()
   end)
   group:AddChild(group.SublevelDropdown)
 
@@ -159,5 +182,17 @@ function MDT:FixDungeonDropDownList()
         end
       end
     end
+  end
+end
+
+function MDT:CheckSeenDungeonLists()
+  db = MDT:GetDB()
+  local defaultSavedVars = MDT:GetDefaultSavedVariables().global
+  local latestSeason = defaultSavedVars.selectedDungeonList
+  local latestDungeon = defaultSavedVars.currentDungeonIdx
+  if latestSeason > db.latestSeenDungeonList then
+    db.latestSeenDungeonList = latestSeason
+    db.selectedDungeonList = latestSeason
+    db.currentDungeonIdx = latestDungeon
   end
 end

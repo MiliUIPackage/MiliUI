@@ -79,6 +79,14 @@ local schemas = {
             type = "number"
           },
           {
+            name = "cageIndex",
+            type = "number"
+          },
+          {
+            name = "chainIndex",
+            type = "number"
+          },
+          {
             name = "textAnchor",
             type = "string"
           },
@@ -354,7 +362,27 @@ local schemas = {
             {
               name = "Slow",
               type = "boolean",
-            }
+            },
+            {
+              name = "Sleep Walk",
+              type = "boolean",
+            },
+            {
+              name = "Scare Beast",
+              type = "boolean",
+            },
+            {
+              name = "Hibernate",
+              type = "boolean",
+            },
+            {
+              name = "Turn Evil",
+              type = "boolean",
+            },
+            {
+              name = "Mind Soothe",
+              type = "boolean",
+            },
           }
         },
         {
