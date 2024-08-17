@@ -1,6 +1,6 @@
-## Interface: 110000
+## Interface: 110000, 110002
 ## Title: Edit Mode Expanded
-## Version: 11.0-002
+## Version: 11.0-004
 ## Notes: Expands Edit Mode to apply to other frames
 ## Author: Teelo
 ## SavedVariables: EditModeExpandedADB
