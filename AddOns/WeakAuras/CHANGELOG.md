@@ -1,23 +1,14 @@
-# [5.15.3](https://github.com/WeakAuras/WeakAuras2/tree/5.15.3) (2024-07-25)
+# [5.16.1](https://github.com/WeakAuras/WeakAuras2/tree/5.16.1) (2024-08-16)
 
-[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.15.2...5.15.3)
+[Full Changelog](https://github.com/WeakAuras/WeakAuras2/compare/5.16.0...5.16.1)
 
 ## Highlights
 
-  
+ - Bug fix for spell API 
 
 ## Commits
 
-Stanzilla (1):
+mrbuds (1):
 
-- Fix addon compartment for 11.0
-
-mrbuds (2):
-
-- Prepare triggerTemplates for herotalent
-- Fix potential error with some triggers with no spell set
-
-potat0nerd (1):
-
-- Update GetWatchedFactionInfo to new API (#5242)
+- IsPlayerSpell and IsSpellKnown now make error an with 0
 
