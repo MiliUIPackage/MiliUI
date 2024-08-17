@@ -134,8 +134,8 @@ local function onevent(self, event, arg1, ...)
         login = nil
         f:UnregisterEvent("ADDON_LOADED")
         f:UnregisterEvent("PLAYER_LOGIN")
-	    if not IsAddOnLoaded("Blizzard_Collections") then
-	        LoadAddOn("Blizzard_Collections")
+	    if not C_AddOns.IsAddOnLoaded("Blizzard_Collections") then
+	        C_AddOns.LoadAddOn("Blizzard_Collections")
 	    end
         core.Function:AddonSettings()
         
