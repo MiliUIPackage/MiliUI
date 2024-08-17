@@ -1,9 +1,8 @@
 # AppearanceTooltip
 
-## [v49](https://github.com/kemayo/wow-appearancetooltip/tree/v49) (2024-07-28)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v48...v49) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v50](https://github.com/kemayo/wow-appearancetooltip/tree/v50) (2024-08-12)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v49...v50) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Warbands mean we don't need to cache known sources on login any more  
-    Refs #22  
-- Increase the default scan\_delay further  
-    Refs #22  
+- Fix Bagnon integration  
+    Bonus: will now work in the guild bank and void storage in Bagnon, too  
+- Change how counts are shown on sets, horizontal instead of vertical  

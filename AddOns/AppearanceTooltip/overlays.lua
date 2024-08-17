@@ -269,6 +269,7 @@ f:RegisterAddonHook("Blizzard_Collections", function()
        return overlay
     end
     if WardrobeCollectionFrame.SetsCollectionFrame.ScrollFrame then
+        -- pre-dragonflight
         local function update(self)
             local offset = HybridScrollFrame_GetOffset(self)
             local buttons = self.buttons
@@ -295,7 +296,7 @@ f:RegisterAddonHook("Blizzard_Collections", function()
                 if not frame.appearancetooltipoverlay then
                     frame.appearancetooltipoverlay = makeOverlay(frame)
                 end
-                frame.appearancetooltipoverlay.text:SetText(buildSetText(setID))
+                frame.appearancetooltipoverlay.text:SetText(buildSetText(setID, " "))
             end
         end
         WardrobeCollectionFrame.SetsCollectionFrame.ListContainer.ScrollBox:RegisterCallback("OnUpdate", function(...)
@@ -341,12 +342,18 @@ end)
 
 --Bagnon:
 f:RegisterAddonHook("Bagnon", function()
-    hooksecurefunc(Bagnon.Item, "Update", function(frame)
-        if frame and frame.appearancetooltipoverlay then frame.appearancetooltipoverlay:Hide() end
-        local itemLink = frame:GetItem()
-        if itemLink then
-            UpdateButtonFromItem(frame, Item:CreateFromItemLink(itemLink))
+    hooksecurefunc(Bagnon.Item, "Update", function(button)
+        if button and button.appearancetooltipoverlay then button.appearancetooltipoverlay:Hide() end
+        local bag = button:GetBag()
+        if type(bag) ~= "number" or button:GetClassName() ~= "BagnonContainerItem" then
+            local info = button:GetInfo()
+            if info and info.hyperlink then
+                local item = Item:CreateFromItemLink(info.hyperlink)
+                UpdateButtonFromItem(button, item, "bags")
+            end
+            return
         end
+        UpdateContainerButton(button, bag)
     end)
 end)
 
