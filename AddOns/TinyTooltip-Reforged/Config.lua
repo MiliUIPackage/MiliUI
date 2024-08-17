@@ -37,7 +37,7 @@ addon.db = {
     unit = {
         player = {
             coloredBorder = "class",
-            background = { colorfunc = "default", alpha = 0.9, },
+            background = { colorfunc = "default", alpha = 1, },
             anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             showTarget = true,
 			showSpec = true,
@@ -49,7 +49,7 @@ addon.db = {
                 roleIcon    = { enable = true, filter = "none" },
                 pvpIcon     = { enable = true, filter = "none" },
                 factionIcon = { enable = true, filter = "none" },
-                factionBig  = { enable = true, filter = "none" },
+                factionBig  = { enable = false, filter = "none" },
                 classIcon   = { enable = true, filter = "none" },
                 friendIcon  = { enable = true, filter = "none" },
                 title       = { enable = true, color = "ccffff", wildcard = "%s",   filter = "none" },
