@@ -6,8 +6,8 @@ function addon:initWarbandTransferable()
     TokenFrame.ScrollBox:HookScript("OnShow", function()
         for _, frame in pairs(TokenFrame.ScrollBox.view.frames) do
             if frame.Content and frame.RefreshAccountCurrencyIcon then
-                function frame:RefreshAccountCurrencyIcon()
-                	if self.elementData.isAccountWide then
+                hooksecurefunc(frame, "RefreshAccountCurrencyIcon", function(self)
+                    if self.elementData.isAccountWide then
                 		self.Content.AccountWideIcon.Icon:SetAtlas("warbands-icon", TextureKitConstants.UseAtlasSize);
                 		self.Content.AccountWideIcon.Icon:SetScale(0.9);
                 	elseif self.elementData.isAccountTransferable then
@@ -18,7 +18,7 @@ function addon:initWarbandTransferable()
                 	end
 
                 	self.Content.AccountWideIcon:SetShown(self.Content.AccountWideIcon.Icon:GetAtlas() ~= nil);
-                end
+                end)
             end
         end
     end)

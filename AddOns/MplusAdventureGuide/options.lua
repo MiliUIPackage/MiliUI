@@ -13,7 +13,6 @@ function addon:setupOptions()
             acronyms = false,
             wardrobeClassColours = true,
             warbandTransferable = true,
-            currencyTransferAllButton = true,
         },
     }
         
@@ -96,13 +95,6 @@ function addon:setupOptions()
                 name = "Enable Warband Transferable Module: Always show the 'Warband Transferable' icons on the Currency window",
                 set = function(info, v) addon.db.profile.warbandTransferable = v end,
                 get = function() return addon.db.profile.warbandTransferable end,
-                width = "full",
-            },
-            currencyTransferAllButton = {
-                type = "toggle",
-                name = "Enable Currency Transfer All Button Module",
-                set = function(info, v) addon.db.profile.currencyTransferAllButton = v end,
-                get = function() return addon.db.profile.currencyTransferAllButton end,
                 width = "full",
             },
         },

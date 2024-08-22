@@ -23,7 +23,6 @@ EventUtil.ContinueOnAddOnLoaded(addonName, function()
         
         EventUtil.ContinueOnAddOnLoaded("Blizzard_TokenUI", function()
             addon:initWarbandTransferable()
-            addon:initCurrencyTransferAllButton()
         end)
     end)
 end)
