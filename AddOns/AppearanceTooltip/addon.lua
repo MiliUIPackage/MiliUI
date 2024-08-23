@@ -47,6 +47,7 @@ function tooltip:ADDON_LOADED(addon)
         anchor = "horizontal", -- vertical / horizontal
         byComparison = true, -- whether to show by the comparison, or fall back to vertical if needed
         tokens = true, -- try to preview tokens?
+        learnable = true, -- show for other learnable items (toys, mounts)
         bags = true,
         bags_unbound = true,
         merchant = true,
@@ -141,7 +142,8 @@ do
         return tip:GetItem()
     end
     local function OnTooltipSetItem(self)
-        ns:ShowItem(select(2, GetTooltipItem(self)), self)
+        local name, link, id = GetTooltipItem(self)
+        ns:ShowItem(link, self)
     end
     local function OnHide(self)
         ns:HideItem()
@@ -162,7 +164,7 @@ do
     if _G.TooltipDataProcessor then
         TooltipDataProcessor.AddTooltipPostCall(Enum.TooltipDataType.Item, function(self, data)
             if tooltips[self] then
-                ns:ShowItem(select(2, TooltipUtil.GetDisplayedItem(self)), self)
+                OnTooltipSetItem(self)
             end
         end)
     end
@@ -334,43 +336,63 @@ end)
 ----
 
 local _, class = UnitClass("player")
+local class_colored = RAID_CLASS_COLORS[class]:WrapTextInColorCode(class)
+local ATLAS_CHECK, ATLAS_CROSS = "common-icon-checkmark", "common-icon-redx"
+-- ATLAS_CHECK, ATLAS_CROSS = "Tracker-Check", "Objective-Fail" -- Classic
 
+local function AddItemToTooltip(itemInfo, for_tooltip, label)
+    local name, link, quality, _, _, _, _, _, _, icon = C_Item.GetItemInfo(itemInfo)
+    if name then
+        if ns.CanTransmogItem(link) then
+            name = name .. CreateAtlasMarkup(ns.PlayerHasAppearance(link) and ATLAS_CHECK or ATLAS_CROSS)
+        end
+        for_tooltip:AddDoubleLine(
+            label or ITEM_PURCHASED_COLON,
+            "|T" .. icon .. ":0|t " .. name,
+            1, 1, 0,
+            C_Item.GetItemQualityColor(quality)
+        )
+    else
+        for_tooltip:AddDoubleLine(ITEM_PURCHASED_COLON, SEARCH_LOADING_TEXT, 1, 1, 0, 0, 1, 1)
+    end
+end
 function ns:ShowItem(link, for_tooltip)
     if not link then return end
     for_tooltip = for_tooltip or GameTooltip
     local id = tonumber(link:match("item:(%d+)"))
     if not id or id == 0 then return end
     local token = db.tokens and LAT:ItemIsToken(id)
-    local maybelink, _
 
     if token then
         -- It's a set token! Replace the id.
+        -- Testing note: the absolute worst-case is Trophy of the Crusade (47242)
         local found
-        for _, itemid in LAT:IterateItemsForTokenAndClass(id, class) do
-            _, maybelink = C_Item.GetItemInfo(itemid)
-            if maybelink then
-                id = itemid
-                link = maybelink
-                found = true
-                break
+        local counts = {}
+        local counts_known = {}
+        for itemid, tclass, relevant in LAT:IterateItemsForToken(id) do
+            found = found or itemid
+            if relevant then
+                AddItemToTooltip(itemid, for_tooltip, tclass == class and class_colored or tclass)
+            else
+                counts[tclass] = (counts[tclass] or 0) + 1
+                counts_known[tclass] = (counts_known[tclass] or 0) + (ns.PlayerHasAppearance(itemid) and 1 or 0)
             end
         end
-        if not found then
-            for _, tokenclass in LAT:IterateClassesForToken(id) do
-                for _, itemid in LAT:IterateItemsForTokenAndClass(id, tokenclass) do
-                    _, maybelink = C_Item.GetItemInfo(itemid)
-                    if maybelink then
-                        id = itemid
-                        link = maybelink
-                        found = true
-                        break
-                    end
-                end
-                break
-            end
+        for tclass, count in pairs(counts) do
+            -- ITEM_PET_KNOWN = "Collected (%d/%d)"
+            local label = RAID_CLASS_COLORS[tclass] and RAID_CLASS_COLORS[tclass]:WrapTextInColorCode(tclass) or tclass
+            local complete = counts_known[tclass] == counts[tclass]
+            for_tooltip:AddDoubleLine(label, ITEM_PET_KNOWN:format(counts_known[tclass], counts[tclass]),
+                1, 1, 1,
+                complete and 0 or 1, complete and 1 or 0, 0
+            )
         end
         if found then
-            for_tooltip:AddDoubleLine(ITEM_PURCHASED_COLON, link)
+            local _, maybelink = C_Item.GetItemInfo(found)
+            if maybelink then
+                link = maybelink
+                id = found
+            end
             for_tooltip:Show()
         end
     end
@@ -586,12 +608,21 @@ local brokenItems = {
 -- /dump C_TransmogCollection.GetAppearanceInfoBySource(select(2, C_TransmogCollection.GetItemInfo("")))
 function ns.PlayerHasAppearance(itemLinkOrID)
     -- hasAppearance, appearanceFromOtherItem
-    local itemID = C_Item.GetItemInfoInstant(itemLinkOrID)
+    local itemID, _, _, _, _, classID, subclassID = C_Item.GetItemInfoInstant(itemLinkOrID)
     if not itemID then return end
     local probablyEnsemble = IsDressableItem(itemID) and not C_Item.IsEquippableItem(itemID)
     if probablyEnsemble then
         -- *not* ERR_COSMETIC_KNOWN which is "Item Known"
         return ns.CheckTooltipFor(itemID, ITEM_SPELL_KNOWN), false, true
+    end
+    if db.learnable then
+        if C_MountJournal and classID == Enum.ItemClass.Miscellaneous and subclassID == Enum.ItemMiscellaneousSubclass.Mount then
+            local mountID = C_MountJournal.GetMountFromItem(itemID)
+            return mountID and (select(11, C_MountJournal.GetMountInfoByID(mountID))), false, true
+        end
+        if C_ToyBox and C_ToyBox.GetToyInfo(itemID)  then
+            return PlayerHasToy(itemID), false, true
+        end
     end
     local appearanceID, sourceID = C_TransmogCollection.GetItemInfo(itemLinkOrID)
     if not appearanceID then
