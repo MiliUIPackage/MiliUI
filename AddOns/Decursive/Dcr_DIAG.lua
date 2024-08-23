@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.20) add-on for World of Warcraft UI
+    Decursive (v 2.7.22) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-07-16T09:27:29Z
+    This file was last updated on 2024-08-11T22:33:29Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -115,7 +115,7 @@ local DebugTextTable    = T._DebugTextTable;
 local Reported          = {};
 
 local UNPACKAGED = "@pro" .. "ject-version@";
-local VERSION = "2.7.20";
+local VERSION = "2.7.22";
 
 T._LoadedFiles = {};
 T._LoadedFiles["Dcr_DIAG.lua"] = false; -- here for consistency but useless in this particular file
@@ -331,7 +331,7 @@ do
         local dbclud = T.Dcr.Status and T.Dcr.Status.delayedUnDebuffOccurences or -1
 
 
-        DebugHeader = ("%s\n2.7.20  %s(%s)  CT: %0.4f D: %s %s %s DTl: %d DE: %d nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
+        DebugHeader = ("%s\n2.7.22  %s(%s)  CT: %0.4f D: %s %s %s DTl: %d DE: %d nDrE: %d Embeded: %s W: %d (LA: %d TAMU: %d) TA: %d NDRTA: %d BUIE: %d dbc: [d:%d-%d, u:%d-%d] TI: [dc:%d, lc:%d, y:%d, LEBY:%d, LB:%d, TTE:%u] (%s, %s, %s, %s)"):format(instructionsHeader, -- "%s\n
         tostring(DC.MyClass), tostring(UnitLevel("player") or "??"), NiceTime(), date(), GetLocale(), -- %s(%s)  CT: %0.4f D: %s %s
         BugGrabber and "BG" .. (T.BugGrabber and "e" or "") or "NBG", -- %s
         #DebugTextTable / 2, -- DTl: %d
@@ -645,7 +645,8 @@ T._CatchAllErrors = false;
 T._tocversion = tocversion;
 
 DC.WOWC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE
-DC.WOTLK =  WOW_PROJECT_WRATH_CLASSIC ~= nil and WOW_PROJECT_ID >= WOW_PROJECT_WRATH_CLASSIC -- https://wowpedia.fandom.com/wiki/WOW_PROJECT_ID
+DC.WOTLK = WOW_PROJECT_WRATH_CLASSIC ~= nil and WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC -- https://wowpedia.fandom.com/wiki/WOW_PROJECT_ID
+DC.CATACLYSM = WOW_PROJECT_CATACLYSM_CLASSIC ~= nil and WOW_PROJECT_ID >= WOW_PROJECT_CATACLYSM_CLASSIC
 DC.TWW = tocversion >= 110000
 
 
@@ -968,10 +969,10 @@ do
             ["AceConfigRegistry-3.0"] = 21,
 
             ["LibDataBroker-1.1"] = 4,
-            ["LibDBIcon-1.0"] = 52,
+            ["LibDBIcon-1.0"] = 55,
             ["LibQTip-1.0"] = 49,
             ["CallbackHandler-1.0"] = 8,
-            ["LibDualSpec-1.0"] = (DC.WOTLK or not DC.WOWC) and 22 or nil,
+            ["LibDualSpec-1.0"] = (DC.CATACLYSM or not DC.WOWC) and 24 or nil,
         };
 
         local GenericErrorMessage1 = "Decursive could not initialize properly because one or several of the required shared libraries (at least |cFF00FF00LibStub|r) could not be found.\n";
@@ -1001,10 +1002,11 @@ do
             LibraryIssues = true;
         end
 
-        local DcrMinTOC = tonumber(GetAddOnMetadata("Decursive", "X-Min-Interface") or 60000); -- once GetAddOnMetadata() was bugged and returned nil...
+        local DcrMinTOC = tonumber(GetAddOnMetadata("Decursive", "X-Min-Interface") or 11503); -- once GetAddOnMetadata() was bugged and returned nil...
+        local DcrIncompatibleWith = GetAddOnMetadata("Decursive", "X-Incompatible-With");
 
         -- test if Decursive is backward compatible with the client's version
-        if tocversion < DcrMinTOC then
+        if tocversion < DcrMinTOC or DcrIncompatibleWith and DcrIncompatibleWith:find(tocversion) then
             table.insert(Errors, ("Your World of Warcraft client version (%d) is too old to run this version of Decursive.\n"):format(tocversion));
             GenericErrorMessage2 = "You need to install an older version of Decursive.";
             FatalOccured = true;
@@ -1168,4 +1170,4 @@ do
     end
 end
 
-T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.20";
+T._LoadedFiles["Dcr_DIAG.lua"] = "2.7.22";

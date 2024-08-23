@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.20) add-on for World of Warcraft UI
+    Decursive (v 2.7.22) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -25,7 +25,7 @@
     but WITHOUT ANY WARRANTY.
 
 
-    This file was last updated on 2024-07-16T22:59:00Z
+    This file was last updated on 2024-08-11T22:20:16Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -1318,8 +1318,10 @@ do
         local ReversedCureOrder = D.Status.ReversedCureOrder;
         local CuringSpells = D.Status.CuringSpells;
 
-        for prio, macroText in pairs(D.Status.prio_macro) do
-            self:SetUnstableAttribute(MouseButtons[prio]:format("macrotext"), macroText)
+        for prio, macroData in pairs(D.Status.prio_macro) do
+            if not D.UnitFilteringTest (Unit, macroData.unitFiltering) then
+                self:SetUnstableAttribute(MouseButtons[prio]:format("macrotext"), macroData.macroText)
+            end
         end
 
 
@@ -1379,7 +1381,16 @@ do
     local floor             = _G.math.floor;
     local fmod              = _G.math.fmod;
     local CooldownFrame_Set = _G.CooldownFrame_Set;
-    local GetSpellCooldown  = _G.C_Spell and _G.C_Spell.GetSpellCooldown or _G.GetSpellCooldown;
+    local GetSpellCooldown  = _G.C_Spell and _G.C_Spell.GetSpellCooldown and function(spellid)
+        local cooldownInfo = _G.C_Spell.GetSpellCooldown(spellid);
+
+        if cooldownInfo then
+            return cooldownInfo.startTime, cooldownInfo.duration, cooldownInfo.isEnabled;
+        else
+            return nil, nil, nil;
+        end
+    end or _G.GetSpellCooldown;
+
     local GetItemCooldown   = _G.C_Container and _G.C_Container.GetItemCooldown or _G.GetItemCooldown;
     local GetRaidTargetIndex= _G.GetRaidTargetIndex;
     local bor               = _G.bit.bor;
@@ -1860,6 +1871,6 @@ local MF_Textures = { -- unused
 
 -- }}}
 
-T._LoadedFiles["Dcr_DebuffsFrame.lua"] = "2.7.20";
+T._LoadedFiles["Dcr_DebuffsFrame.lua"] = "2.7.22";
 
 -- Heresy
