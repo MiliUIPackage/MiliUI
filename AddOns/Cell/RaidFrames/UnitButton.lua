@@ -281,9 +281,9 @@ local function HandleIndicators(b)
         if t["highlightType"] then
             indicator:UpdateHighlight(t["highlightType"])
         end
-        -- update dispel icons
-        if type(t["showDispelTypeIcons"]) == "boolean" then
-            indicator:ShowIcons(t["showDispelTypeIcons"])
+        -- update icon style
+        if t["iconStyle"] then
+            indicator:SetIconStyle(t["iconStyle"])
         end
         -- update duration
         if type(t["showDuration"]) == "boolean" or type(t["showDuration"]) == "number" then
@@ -779,6 +779,11 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 b.indicators[indicatorName]:UpdateGlowOptions(value)
                 UnitButton_UpdateAuras(b)
             end, true)
+        elseif setting == "iconStyle" then
+            F:IterateAllUnitButtons(function(b)
+                b.indicators[indicatorName]:SetIconStyle(value)
+                UnitButton_UpdateAuras(b)
+            end, true)
         elseif setting == "checkbutton" then
             if value == "showGroupNumber" then
                 F:IterateAllUnitButtons(function(b)
@@ -813,11 +818,6 @@ local function UpdateIndicators(layout, indicatorName, setting, value, value2)
                 indicatorBooleans[indicatorName] = value2
                 F:IterateAllUnitButtons(function(b)
                     UnitButton_UpdateShieldAbsorbs(b)
-                end, true)
-            elseif value == "showDispelTypeIcons" then
-                F:IterateAllUnitButtons(function(b)
-                    b.indicators[indicatorName]:ShowIcons(value2)
-                    UnitButton_UpdateAuras(b)
                 end, true)
             elseif value == "showStack" then
                 F:IterateAllUnitButtons(function(b)
@@ -2320,7 +2320,7 @@ UnitButton_UpdateNameTextColor = function(self)
 
     if enabledIndicators["nameText"] then
         if indicatorColors["nameText"][1] == "class_color" or not UnitIsConnected(unit)
-        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and UnitIsCharmed(unit)) then
+        or ((UnitIsPlayer(unit) or UnitInPartyIsAI(unit)) and UnitIsCharmed(unit)) or self.states.inVehicle then
             self.indicators.nameText:SetColor(F:GetUnitClassColor(unit))
         else
             self.indicators.nameText:SetColor(unpack(indicatorColors["nameText"][2]))
@@ -3466,10 +3466,8 @@ end
 
 -- pixel perfect
 function B:UpdatePixelPerfect(button, updateIndicators)
-    button:SetBackdrop({bgFile = Cell.vars.whiteTexture, edgeFile = Cell.vars.whiteTexture, edgeSize = P:Scale(CELL_BORDER_SIZE)})
-    button:SetBackdropColor(0, 0, 0, CellDB["appearance"]["bgAlpha"])
-    button:SetBackdropBorderColor(unpack(CELL_BORDER_COLOR))
     if not InCombatLockdown() then P:Resize(button) end
+    P:Reborder(button)
 
     P:Repoint(button.widgets.healthBar)
     P:Repoint(button.widgets.healthBarLoss)

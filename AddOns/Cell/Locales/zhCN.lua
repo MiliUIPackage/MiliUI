@@ -540,6 +540,7 @@ L["Rotation"] = "旋转"
 L["Even if disabled, the settings below affect \"Externals + Defensives\" indicator"] = "即使被禁用，下列设置也会对“减伤 (全部)”指示器生效"
 L["Built-in Spells"] = "内置法术"
 L["Highlight Type"] = "高亮类型"
+L["Icon Style"] = "图标样式"
 L["Shape"] = "形状"
 L["To show shield value, |cffff2727Glyph of Power Word: Shield|r is required"] = "需要有|cffff2727真言术：盾雕文|r才能显示盾值"
 L["Cast By"] = "来源"
@@ -558,7 +559,6 @@ L["showGroupNumber"] = "显示队伍编号"
 L["showTimer"] = "显示计时器"
 L["showBackground"] = "显示背景"
 L["dispellableByMe"] = "只显示我能驱散的减益"
-L["showDispelTypeIcons"] = "显示驱散类型图标"
 L["castByMe"] = "只显示我施放的增益"
 L["buffByMe"] = "只显示我能施放的增益"
 L["trackByName"] = "匹配法术名称"
@@ -853,6 +853,25 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r239-release (Aug 23, 2024, 22:00 GMT+8)</h1>
+    <p>+ 新增可将内置点击施法用于其他部分框体的代码片段（PR #199）。</p>
+    <p>* 更新部分内置指示器的法术（PR #208）。</p>
+    <p>* 修复当 CELL_BORDER_SIZE 为 0 时的异常。</p>
+    <p>* （地心之战）修复唤魔师的距离检查。</p>
+    <p>* 修复减益指示器的黑名单快捷键。</p>
+    <p>* 修复“进度条组”类型的指示器。</p>
+    <p>* 修复“材质”类型的指示器。</p>
+    <p>* 修复指示器列表（尤其是它们的个数与顺序）。</p>
+    <p>* 修复通过 Cell.GetUnitFramesForLGF 获取特别关注框体按钮时可能产生异常的问题。</p>
+    <p>* “宏”类型的点击施法现在绑定的是名字而非ID。</p>
+    <p>* 重构“动作”指示器，现在使用对象池。</p>
+    <p>* 更新能量过滤选项的按钮视觉效果。</p>
+    <p>* （地心之战）更新尼鲁巴尔王宫的减益列表（感谢 Reat）。</p>
+    <p>* （地心之战）更新其他副本减益列表。</p>
+    <p>+ 为“驱散”指示器新增一种图标样式。</p>
+    <p>+ 更新本地化：德语、法语、葡萄牙语、俄语、繁中。</p>
     <br/>
 
     <h1>r238-release (Aug 7, 2024, 15:25 GMT+8)</h1>

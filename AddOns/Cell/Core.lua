@@ -17,9 +17,9 @@ local P = Cell.pixelPerfectFuncs
 local L = Cell.L
 
 -- sharing version check
-Cell.MIN_VERSION = 200
-Cell.MIN_CLICKCASTINGS_VERSION = 228
-Cell.MIN_LAYOUTS_VERSION = 235
+Cell.MIN_VERSION = 220
+Cell.MIN_CLICKCASTINGS_VERSION = 239
+Cell.MIN_LAYOUTS_VERSION = 239
 Cell.MIN_INDICATORS_VERSION = 235
 Cell.MIN_DEBUFFS_VERSION = 228
 Cell.MIN_QUICKASSIST_VERSION = 227
@@ -86,6 +86,7 @@ function F:UpdateLayout(layoutGroupType)
         F:IterateAllUnitButtons(function(b)
             b._indicatorsReady = nil
         end, true)
+
         Cell:Fire("UpdateLayout", Cell.vars.currentLayout)
         Cell:Fire("UpdateIndicators")
     end
@@ -743,6 +744,14 @@ end
 --     end)
 -- end
 
+local function UpdateSpecVars()
+    Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
+    if Cell.vars.playerSpecName == "" then
+        Cell.vars.playerSpecName = L["No Spec"]
+        Cell.vars.playerSpecIcon = 134400
+    end
+end
+
 function eventFrame:PLAYER_LOGIN()
     F:Debug("|cffbbbbbb=== PLAYER_LOGIN ===")
     eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
@@ -762,11 +771,7 @@ function eventFrame:PLAYER_LOGIN()
     Cell.vars.playerGUID = UnitGUID("player")
 
     -- update spec vars
-    Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
-    if Cell.vars.playerSpecName == "" then
-        Cell.vars.playerSpecName = L["No Spec"]
-        Cell.vars.playerSpecIcon = 134400
-    end
+    UpdateSpecVars()
 
     --! init Cell.vars.currentLayout and Cell.vars.currentLayoutTable
     eventFrame:GROUP_ROSTER_UPDATE()
@@ -819,7 +824,6 @@ end
 -------------------------------------------------
 -- ACTIVE_TALENT_GROUP_CHANGED
 -------------------------------------------------
-local timer
 local checkSpecFrame = CreateFrame("Frame")
 checkSpecFrame:SetScript("OnEvent", function()
     eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
@@ -829,6 +833,7 @@ end)
 -- PLAYER_SPECIALIZATION_CHANGED fires when level up
 -- ACTIVE_PLAYER_SPECIALIZATION_CHANGED only fires when player manually change spec
 -- NOTE: ACTIVE_TALENT_GROUP_CHANGED fires before PLAYER_LOGIN, but can't GetSpecializationInfo before PLAYER_LOGIN
+local prevSpec
 function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
     -- not in combat
     if InCombatLockdown() then
@@ -837,13 +842,13 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
     end
 
     --  fires twice
-    if timer then timer:Cancel() end
-    timer = C_Timer.NewTimer(0.5, function()
-        timer = nil
+    local spec = GetSpecialization()
+    if prevSpec ~= spec then
+        prevSpec = spec
         F:Debug("|cffbbbbbb=== ACTIVE_TALENT_GROUP_CHANGED ===")
 
         -- update spec vars
-        Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
+        UpdateSpecVars()
 
         if not Cell.vars.playerSpecID then
             -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
@@ -858,7 +863,7 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
             end
             Cell:Fire("SpecChanged", Cell.vars.playerSpecID, Cell.vars.playerSpecRole)
         end
-    end)
+    end
 end
 
 eventFrame:SetScript("OnEvent", function(self, event, ...)

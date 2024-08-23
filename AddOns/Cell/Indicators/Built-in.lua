@@ -426,7 +426,9 @@ local function Debuffs_ShowTooltip(debuffs, show)
             end)
 
             -- https://warcraft.wiki.gg/wiki/API_ScriptRegion_EnableMouse
-            debuffs[i]:SetMouseClickEnabled(false)
+            if not debuffs.enableBlacklistShortcut then
+                debuffs[i]:SetMouseClickEnabled(false)
+            end
         else
             debuffs[i]:SetScript("OnEnter", nil)
             debuffs[i]:SetScript("OnLeave", nil)
@@ -601,8 +603,27 @@ local function Dispels_SetDispels(self, dispelTypes)
     end
 end
 
-local function Dispels_ShowIcons(self, show)
-    self.showIcons = show
+local function Dispels_SetDispel_Blizzard(self, dispelType)
+    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\"..dispelType)
+    self:Show()
+end
+
+local function Dispels_SetDispel_Rhombus(self, dispelType)
+    self:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\Rhombus")
+    self:SetVertexColor(I.GetDebuffTypeColor(dispelType))
+    self:Show()
+end
+
+local function Dispels_SetIconStyle(self, style)
+    self.showIcons = style ~= "none"
+    for i = 1, 5 do
+        if style == "rhombus" then
+            self[i].SetDispel = Dispels_SetDispel_Rhombus
+        else -- blizzard
+            self[i].SetDispel = Dispels_SetDispel_Blizzard
+            self[i]:SetVertexColor(1, 1, 1, 1)
+        end
+    end
 end
 
 --! SetSize must be invoked before this
@@ -702,7 +723,7 @@ function I.CreateDispels(parent)
     dispels.UpdateSize = Dispels_UpdateSize
     dispels.SetDispels = Dispels_SetDispels
     dispels.UpdateHighlight = Dispels_UpdateHighlight
-    dispels.ShowIcons = Dispels_ShowIcons
+    dispels.SetIconStyle = Dispels_SetIconStyle
     dispels.SetOrientation = Dispels_SetOrientation
 
     for i = 1, 5 do
@@ -711,12 +732,7 @@ function I.CreateDispels(parent)
         icon:Hide()
 
         icon:SetDrawLayer("ARTWORK", 6-i)
-
-        function icon:SetDispel(dispelType)
-            -- icon:SetTexture("Interface\\RaidFrame\\Raid-Icon-Debuff"..dispelType)
-            icon:SetTexture("Interface\\AddOns\\Cell\\Media\\Debuffs\\"..dispelType)
-            icon:Show()
-        end
+        icon.SetDispel = Dispels_SetDispel_Blizzard
     end
 end
 

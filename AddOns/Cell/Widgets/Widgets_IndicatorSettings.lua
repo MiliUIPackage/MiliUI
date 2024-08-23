@@ -4879,6 +4879,14 @@ local function CreateSetting_ActionsPreview(parent)
         typeE:SetSize(70, 50)
         typeE:SetPoint("TOPLEFT", typeC1, "BOTTOMLEFT", 0, -5)
 
+        local typeF = CreateActionPreview(widget, "F")
+        typeF:SetSize(70, 50)
+        typeF:SetPoint("TOPLEFT", typeE, "TOPRIGHT", 5, 0)
+
+        local typeG = CreateActionPreview(widget, "G")
+        typeG:SetSize(70, 50)
+        typeG:SetPoint("TOPLEFT", typeF, "TOPRIGHT", 5, 0)
+
         local previews = {
             A = typeA,
             B = typeB,
@@ -4887,6 +4895,8 @@ local function CreateSetting_ActionsPreview(parent)
             C3 = typeC3,
             D = typeD,
             E = typeE,
+            F = typeF,
+            G = typeG,
         }
 
         local speedSlider = addon:CreateSlider(_G.SPEED, widget, 0.5, 1.5, 145, 0.01)
@@ -5033,7 +5043,7 @@ local function CreateActionButtons(parent, spellTable, updateHeightFunc)
             end)
 
             local items = {}
-            for _, style in pairs({"A", "B", "C1", "C2", "C3", "D", "E"}) do
+            for _, style in pairs({"A", "B", "C1", "C2", "C3", "D", "E", "F", "G"}) do
                 tinsert(items, {
                     ["text"] = style,
                     ["onClick"] = function()
@@ -6062,6 +6072,86 @@ local function CreateSetting_MaxValue(parent)
     return widget
 end
 
+local function CreateSetting_IconStyle(parent)
+    local widget
+
+    if not settingWidgets["iconStyle"] then
+        widget = addon:CreateFrame("CellIndicatorSettings_IconStyle", parent, 240, 50)
+        settingWidgets["iconStyle"] = widget
+
+        widget.iconStyle = addon:CreateDropdown(widget, 245)
+        widget.iconStyle:SetPoint("TOPLEFT", 5, -20)
+
+        -- dispels
+        do
+            local dispels = {
+                {
+                    ["text"] = L["None"],
+                    ["value"] = "none",
+                    ["onClick"] = function()
+                        widget.func("none")
+                    end,
+                },
+                {
+                    -- ["text"] = "blizzard",
+                    ["value"] = "blizzard",
+                    ["onClick"] = function()
+                        widget.func("blizzard")
+                    end,
+                },
+                {
+                    -- ["text"] = "rhombus",
+                    ["value"] = "rhombus",
+                    ["onClick"] = function()
+                        widget.func("rhombus")
+                    end,
+                },
+            }
+            widget.dispels = dispels
+
+            local types = {"Magic", "Curse", "Disease", "Poison", "Bleed"}
+
+            -- blizzard
+            local blizzard = ""
+            local blizzard_icon = "|TInterface\\AddOns\\Cell\\Media\\Debuffs\\%s:0|t"
+
+            -- rhombus
+            local rhombus = ""
+            local rhombus_icon = "|TInterface\\AddOns\\Cell\\Media\\Debuffs\\Rhombus:0:0:0:0:16:16:0:16:0:16:%s:%s:%s|t"
+
+            for _, t in pairs(types) do
+                blizzard = blizzard .. blizzard_icon:format(t) .. " "
+
+                local r, g, b = F:ConvertRGB_256(I.GetDebuffTypeColor(t))
+                rhombus = rhombus .. rhombus_icon:format(r, g, b) .. " "
+            end
+
+            dispels[2].text = blizzard
+            dispels[3].text = rhombus
+        end
+
+        widget.iconStyleText = widget:CreateFontString(nil, "OVERLAY", font_name)
+        widget.iconStyleText:SetText(L["Icon Style"])
+        widget.iconStyleText:SetPoint("BOTTOMLEFT", widget.iconStyle, "TOPLEFT", 0, 1)
+
+        -- callback
+        function widget:SetFunc(func)
+            widget.func = func
+        end
+
+        -- show db value
+        function widget:SetDBValue(iconStyle, indicatorName)
+            widget.iconStyle:SetItems(widget[indicatorName])
+            widget.iconStyle:SetSelectedValue(iconStyle)
+        end
+    else
+        widget = settingWidgets["iconStyle"]
+    end
+
+    widget:Show()
+    return widget
+end
+
 -----------------------------------------
 -- update parent height
 -----------------------------------------
@@ -6132,6 +6222,7 @@ local builders = {
     ["castBy"] = CreateSetting_CastBy,
     -- ["showOn"] = CreateSetting_ShowOn,
     ["maxValue"] = CreateSetting_MaxValue,
+    ["iconStyle"] = CreateSetting_IconStyle,
 }
 
 function addon:CreateIndicatorSettings(parent, settingsTable)
