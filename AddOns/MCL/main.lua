@@ -19,14 +19,20 @@ local load_check = 0
 
 
 function CountMounts()
+    core.mountList = core.mountList or {}
     local count = 0
-    for b,n in pairs(core.mountList) do
-        for h,j in pairs(n) do
-            if (type(j) == "table") then
-                for k,v in pairs(j) do
-                    for kk,vv in pairs(v.mounts) do
-                        count = count + 1
-                    end                    
+    for b, n in pairs(core.mountList) do
+        if type(n) == "table" then
+            for h, j in pairs(n) do
+                if type(j) == "table" then
+                    for k, v in pairs(j) do
+                        -- Ensure v.mounts is a table before attempting to iterate over it
+                        if type(v.mounts) == "table" then
+                            for kk, vv in pairs(v.mounts) do
+                                count = count + 1
+                            end
+                        end
+                    end
                 end
             end
         end

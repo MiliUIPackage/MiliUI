@@ -9,7 +9,7 @@ core.statusBarFrames  = {}
 
 local nav_width = 180
 local main_frame_width = 1250
-local main_frame_height = 600
+local main_frame_height = 640
 
 local r,g,b,a
 
@@ -173,10 +173,9 @@ function MCL_frames:SetTabs()
 		core.TabTable[i] = v.name
 
         i = i+1
-		
 	end
 
-	Tab_OnClick(_G[frameName.."Tab19"]);
+	Tab_OnClick(_G[frameName.."Tab20"]);
 
 	return contents, numTabs;
 end
