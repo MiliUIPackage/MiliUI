@@ -335,5 +335,5 @@ L:SetGeneralLocalization({
 L = DBM:GetModLocalization("TazaveshTrash")
 
 L:SetGeneralLocalization({
-	name =	"塔札瓦蘇小怪"
+	name =	"塔札維許小怪"
 })

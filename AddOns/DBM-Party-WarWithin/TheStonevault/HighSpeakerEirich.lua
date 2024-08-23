@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2582, "DBM-Party-WarWithin", 4, 1269)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240718015351")
+mod:SetRevision("20240820072838")
 mod:SetCreatureID(213119)
 mod:SetEncounterID(2883)
 mod:SetHotfixNoticeRev(20240428000000)
@@ -31,14 +31,14 @@ mod:RegisterEventsInCombat(
 local warnVoidCorruption					= mod:NewFadesAnnounce(427329, 1)
 
 local specWarnVoidCorruption				= mod:NewSpecialWarningMoveTo(427329, nil, nil, nil, 1, 15)
-local specWarnEntropicReckoning				= mod:NewSpecialWarningMoveAwayCount(427854, nil, nil, nil, 1, 15)
+local specWarnEntropicReckoning				= mod:NewSpecialWarningMoveAwayCount(427852, nil, nil, nil, 1, 15)
 local specWarnUnbridledVoid					= mod:NewSpecialWarningDodgeCount(427869, nil, nil, nil, 1, 15)
 --local yellSomeAbility						= mod:NewYell(372107)
 --local specWarnGTFO						= mod:NewSpecialWarningGTFO(372820, nil, nil, nil, 1, 8)
 
-local timerVoidCorruptionCD					= mod:NewCDCountTimer(27.9, 427329, nil, nil, nil, 3)--Medium priority, some delays
-local timerEntropicReckoningCD				= mod:NewCDCountTimer(16.9, 427854, nil, nil, nil, 3)--Lowest priority, biggest delays
-local timerUnbfridledVoidCD					= mod:NewCDCountTimer(20.6, 427869, nil, nil, nil, 3)--Medium priority, some delays
+local timerVoidCorruptionCD					= mod:NewCDCountTimer(29.1, 427329, nil, nil, nil, 3)--Medium priority, some delays
+local timerEntropicReckoningCD				= mod:NewCDCountTimer(16.9, 427852, nil, nil, nil, 3)--Lowest priority, biggest delays
+local timerUnbfridledVoidCD					= mod:NewCDCountTimer(20.2, 427869, nil, nil, nil, 3)--Medium priority, some delays
 
 mod.vb.corruptionCount = 0
 mod.vb.reckoningCount = 0

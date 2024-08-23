@@ -1,4 +1,4 @@
-## Interface: 110000, 110002
+## Interface: 110002
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Options GUI|r
 ## Title-zhCN:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0设置界面|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0使用者介面|r
@@ -10,7 +10,7 @@
 ## LoadOnDemand: 1
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.0.2
+## Version: 11.0.3
 ## X-Website: https://deadlybossmods.com
 ## X-Category-zhTW: 團隊
 
@@ -19,6 +19,7 @@ localization.cn.lua
 localization.tw.lua
 
 DBM-GUI.lua
+DBM-GUI_TestUI.lua
 DBM-GUI_DropDown.xml
 DBM-GUI_DropDown.lua
 

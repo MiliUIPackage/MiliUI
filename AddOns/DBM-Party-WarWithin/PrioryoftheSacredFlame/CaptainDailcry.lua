@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2571, "DBM-Party-WarWithin", 2, 1267)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240612041205")
+mod:SetRevision("20240808043723")
 mod:SetCreatureID(207946)
 mod:SetEncounterID(2847)
 mod:SetHotfixNoticeRev(20240608000000)
@@ -60,18 +60,9 @@ function mod:OnCombatStart(delay)
 	timerHurlSpearCD:Start(8.4-delay, 1)
 	timerBattleCryCD:Start(12-delay, 1)
 	timerSavageMaulingCD:Start(14.4-delay, 1)
-	--Allow trash mod to enable in combat in case you DO pull boss with any of the 3 sub bosses still active
-	local trashMod = DBM:GetModByName("SacredFlameTrash")
-	if trashMod then
-		trashMod.isTrashModBossFightAllowed = true
-	end
 end
 
 function mod:OnCombatEnd()
-	local trashMod = DBM:GetModByName("SacredFlameTrash")
-	if trashMod then
-		trashMod.isTrashModBossFightAllowed = false
-	end
 	if self.Options.InfoFrame then
 		DBM.InfoFrame:Hide()
 	end

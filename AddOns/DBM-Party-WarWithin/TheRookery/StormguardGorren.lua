@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2567, "DBM-Party-WarWithin", 3, 1268)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240609071744")
+mod:SetRevision("20240804084431")
 mod:SetCreatureID(207205)
 mod:SetEncounterID(2861)
 --mod:SetHotfixNoticeRev(20220322000000)
@@ -50,7 +50,7 @@ function mod:OnCombatStart(delay)
 	self.vb.chaoticCount = 0
 	self.vb.gravityCount = 0
 	self.vb.crushCount = 0
-	if self:IsFollower() then--Confirmed on "story", need to test regular "follower", if it differs, have to split the API
+	if self:IsStory() then--Confirmed only different on "story"
 		timerCrushRealityCD:Start(8.4, 1)
 		timerDarkGravityCD:Start(23, 1)--Still the same
 	else
