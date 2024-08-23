@@ -71,7 +71,7 @@ local function ShowBigFactionIcon(tip, config, raw)
 end
 
 local function PlayerCharacter(tip, unit, config, raw)
-    local data = addon:GetUnitData(unit, config.elements, raw)
+    local data = addon:GetUnitData(unit, config.elements, raw)    
     addon:HideLines(tip, 2, 4)
     addon:HideLine(tip, "^"..LEVEL)
     addon:HideLine(tip, "^"..FACTION_ALLIANCE)
@@ -97,16 +97,33 @@ local function NonPlayerCharacter(tip, unit, config, raw)
             if (i == 1) then
                 addon:GetLine(tip,i):SetText(table.concat(v, " "))
             end
-            if (i == 2) then
-                if (config.elements.npcTitle.enable and titleLine) then
-                    titleLine:SetText(addon:FormatData(titleLine:GetText(), config.elements.npcTitle, raw))
-                    increase = 1
+	    if (addon.db.general.ColorBlindMode == false) then
+                if (i == 2) then
+                    if (config.elements.npcTitle.enable and titleLine) then
+                        titleLine:SetText(addon:FormatData(titleLine:GetText(), config.elements.npcTitle, raw))
+                        increase = 1
+                    end
+                    i = i + increase
+                    addon:GetLine(tip,i):SetText(table.concat(v, " "))
+                elseif ( i > 2) then
+                    i = i + increase
+                    addon:GetLine(tip,i):SetText(table.concat(v, " "))
                 end
-                i = i + increase
-                addon:GetLine(tip,i):SetText(table.concat(v, " "))
-            elseif ( i > 2) then
-                i = i + increase
-                addon:GetLine(tip,i):SetText(table.concat(v, " "))
+            else
+                if (i == 2) then
+                    addon:GetLine(tip,i):SetText(table.concat(v, " "))
+                end
+                if (i == 3) then
+                    if (config.elements.npcTitle.enable and titleLine) then
+                        titleLine:SetText(addon:FormatData(titleLine:GetText(), config.elements.npcTitle, raw))
+                        increase = 1
+                    end
+                    i = i + increase
+                    addon:GetLine(tip,i):SetText(table.concat(v, " "))
+                elseif ( i > 3) then
+                    i = i + increase
+                    addon:GetLine(tip,i):SetText(table.concat(v, " "))
+                end
             end
         end
     end

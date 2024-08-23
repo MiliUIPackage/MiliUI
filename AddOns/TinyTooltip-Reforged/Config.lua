@@ -33,11 +33,12 @@ addon.db = {
         bodyFontSize      = "default",
         bodyFontFlag      = "default",
         SavedVariablesPerCharacter = false,
+        ColorBlindMode 	  = false,
      },
     unit = {
         player = {
             coloredBorder = "class",
-            background = { colorfunc = "default", alpha = 1, },
+            background = { colorfunc = "default", alpha = 0.9, },
             anchor = { position = "inherit", hiddenInCombat = false, defaultInCombat = false, defaultOnUnitFrame = false, cp = "BOTTOM", p = "BOTTOMRIGHT", },
             showTarget = true,
 			showSpec = true,

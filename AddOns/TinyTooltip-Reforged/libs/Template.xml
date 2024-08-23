@@ -43,7 +43,7 @@
 					</EditBox>
 				</ScrollChild>
 			</ScrollFrame>
-			<Button parentKey="export" inherits="GameMenuButtonTemplate" text="EXPORT">
+			<Button parentKey="export" inherits="GameMenuButtonTemplate" text="TALENT_FRAME_DROP_DOWN_EXPORT">
 				<Size>
 					<AbsDimension x="100" y="25"/>
 				</Size>
@@ -55,7 +55,7 @@
 					</Anchor>
 				</Anchors>
 			</Button>
-            		<Button parentKey="import" inherits="GameMenuButtonTemplate" text="IMPORT">
+            		<Button parentKey="import" inherits="GameMenuButtonTemplate" text="HUD_CLASS_TALENTS_IMPORT_LOADOUT_ACCEPT_BUTTON">
 				<Size>
 					<AbsDimension x="100" y="25"/>
 				</Size>

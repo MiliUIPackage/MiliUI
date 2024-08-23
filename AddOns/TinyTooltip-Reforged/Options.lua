@@ -542,6 +542,7 @@ local options = {
         { keystring = "general.borderCorner",       type = "dropdown", dropdata = widgets.borderDropdata },
         { keystring = "general.bgfile",             type = "dropdown", dropdata = widgets.bgfileDropdata },
         { keystring = "general.anchor",             type = "anchor", dropdata = {"default","cursor", "cursorRight", "static"} },
+	{ keystring = "general.ColorBlindMode",     type = "checkbox" },
         { keystring = "item.showStackCount",        type = "checkbox" },
         { keystring = "item.showStackCountAlt",     type = "checkbox" },
 		{ keystring = "item.coloredItemBorder",     type = "checkbox" },
@@ -651,7 +652,7 @@ frame.title:SetText(format("%s |cff33eeff%s|r", L["TinyTooltip"], L["General"]))
 frame.name = L["Tooltip"]
 
 frame.text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-frame.text:SetPoint("TOPLEFT", 30, -40)
+frame.text:SetPoint("TOPLEFT", 30, -35)
 frame.text:SetText(format("by |cffF58CBA%s|r |cffff00ff<%s>|r - |cff33eeff%s|r", "Beezer", "The Dragon Fighters", "Aggramar EU"))
 
 local framePC = CreateFrame("Frame", "TinyTooltipReforgedPC", UIParent)

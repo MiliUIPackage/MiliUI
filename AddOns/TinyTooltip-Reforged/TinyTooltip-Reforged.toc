@@ -4,7 +4,7 @@
 ## Description: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Notes: |cff4488ffTinyTooltip (Reforged)|r|n Options use /ttr|n Reset use /ttr reset
 ## Author: Beezer
-## Version: 9.5.2 Fix3
+## Version: 9.6.1
 ## SavedVariables: TinyTooltipReforgedDB
 ## SavedVariablesPerCharacter: TinyTooltipReforgedCharacterDB
 ## X-Category: Tooltip
@@ -16,6 +16,8 @@
 ## X-Category-zhTW: 介面
 
 libs\lib.xml
+libs\Template.xml
+
 Core.lua
 Config.lua
 General.lua
@@ -32,6 +34,7 @@ SkinFrames.lua
 ExpansionInfo.lua
 
 
-libs\Template.xml
 locales\locales.xml
 Options.lua
+
+

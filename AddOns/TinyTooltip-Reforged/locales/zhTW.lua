@@ -183,4 +183,5 @@ addon.L = {
     ["showStackCount"]		= "顯示最大堆疊數量 (在標題)",
     ["showStackCountAlt"]	= "顯示最大堆疊數量 (在內文)",
 	["Stack Size: |cff00eeee%d|r"] = "堆疊大小: |cff00eeee%d|r",
+	["general.ColorBlindMode"] = "色盲模式",
 }
