@@ -1,0 +1,27 @@
+## Interface: 110002
+## Title: HandyNotes: Dornogal
+## Notes: Shows the NPC and POI locations in Dornogal.
+## Title-zhCN: HandyNotes：多恩诺嘉尔
+## Notes-zhCN: 显示多恩诺嘉尔各种NPC及传送门位置。
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-多恩諾加
+## Notes-zhTW: HandyNotes: Dornogal |n地心之戰主城多恩諾加的各種地圖標記
+## Author: |cFFFF8C00Dathwada EU-Eredar|r
+## Version: v1
+## RequiredDeps: HandyNotes
+## DefaultState: enabled
+## SavedVariables: HandyNotes_DornogalDB
+## IconTexture: 4661645
+## X-Date: 2024-08-22
+## X-Category: 地圖
+
+# LOCALIZATION FILES
+localization\locales.xml
+
+# CORE FILES
+core\constants.lua
+core\handler.lua
+core\config.lua
+core\dev.lua
+
+# DATABASE
+data\DB.lua

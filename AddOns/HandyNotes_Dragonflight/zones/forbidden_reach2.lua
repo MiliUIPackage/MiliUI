@@ -166,6 +166,7 @@ map.nodes[59695883] = Rare({
     rewards = {
         Achievement({id = 17525, criteria = 58466}), -- Champion of the Forbidden Reach
         Mount({item = 192772, id = 1619}), -- Ancient Salamanther
+        DC.WindborneVelocidrake.PlatedNeck, --
         Item({item = 202196}), -- Zskera Vault Key
         Currency({id = 2118}) -- Elemental Overflow
     },
@@ -709,6 +710,7 @@ local ForbiddenHoard = Class('ForbiddenHoard', Collectible, {
     label = L['forbidden_hoard_label'],
     icon = 'chest_pp',
     scale = 1.3,
+    vignette = {5463, 5614},
     group = ns.groups.FORBIDDEN_HOARD,
     rewards = {
         Achievement({id = 17526, criteria = 58487}), -- Treasures of the Forbidden Reach
@@ -1155,7 +1157,7 @@ map.nodes[30268000] = Collectible({
     label = '{achievement:18559}',
     location = L['in_zskera_vaults'],
     icon = 132762,
-    note = L['tiny_box_of_tiny_rocks_note'], -- TODO: can also be less often found in the waking shores
+    note = L['box_of_rocks_note'],
     fgroup = 'zskera_vaults',
     group = ns.groups.ZSKERA_VAULTS,
     rewards = {
@@ -1359,6 +1361,24 @@ map.nodes[56383872] = ns.node.CluedIn({
     location = L['mysterious_boot_note']
 })
 
+map.nodes[19621537] = ns.node.CluedIn({
+    label = L['decaying_fishing_bucket'],
+    quest = 77362,
+    location = L['decaying_fishing_bucket_note']
+})
+
+map.nodes[18241313] = ns.node.CluedIn({
+    label = L['forgotten_fishing_pole'],
+    quest = 77362,
+    location = L['forgotten_fishing_pole_note']
+})
+
+map.nodes[10591156] = ns.node.CluedIn({
+    label = L['overgrown_fishing_bench'],
+    quest = 77362,
+    location = L['overgrown_fishing_bench_note']
+})
+
 -------------------------------------------------------------------------------
 -------------------------------- GOGGLE WOBBLE --------------------------------
 -------------------------------------------------------------------------------
@@ -1366,6 +1386,20 @@ map.nodes[56383872] = ns.node.CluedIn({
 map.nodes[77143837] = ns.node.GoggleWobble({
     rewards = {Achievement({id = 19791, criteria = 65405})}
 })
+
+-------------------------------------------------------------------------------
+----------------------------- JUST ONE MORE THING -----------------------------
+-------------------------------------------------------------------------------
+
+map.nodes[53004700] = ns.node.JustOneMoreThing({
+    quest = {79601, 79600, 79599},
+    rewards = {Achievement({id = 19792, criteria = 65408})} -- Lost Atheneum
+}) -- Research: Dracthyr of Forbidden Reach -- 77424
+
+map.nodes[17001600] = ns.node.JustOneMoreThing({
+    quest = {79613, 79612, 79611},
+    rewards = {Achievement({id = 19792, criteria = 65413})} -- Winglord's Perch
+}) -- Research: Drakonid of Forbidden Reach -- 77362
 
 -------------------------------------------------------------------------------
 ----------------------------------- VENDORS -----------------------------------

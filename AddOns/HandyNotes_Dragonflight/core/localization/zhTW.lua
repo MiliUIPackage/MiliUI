@@ -107,17 +107,14 @@ L['rep_honored'] = '尊敬'
 L['rep_revered'] = '崇敬'
 L['rep_exalted'] = '崇拜'
 
-L['time_format_12hrs'] = '%m/%d - %I:%M %p 本地時間'
-L['time_format_24hrs'] = '%m/%d - %H:%M 本地時間'
-
 -------------------------------------------------------------------------------
 --------------------------------- DRAGONRACES ---------------------------------
 -------------------------------------------------------------------------------
 
 L['dr_your_best_time'] = '你的最快時間:'
 L['dr_your_target_time'] = '目標時間'
-L['dr_best_time'] = ' - %s: %.3f秒'
-L['dr_target_time'] = ' - %s: %s秒 / %s秒'
+L['dr_best_time'] = ' - %s: %.3fs'
+L['dr_target_time'] = ' - %s: %ss / %ss'
 L['dr_normal'] = '普通'
 L['dr_advanced'] = '進階'
 L['dr_reverse'] = '逆向'
