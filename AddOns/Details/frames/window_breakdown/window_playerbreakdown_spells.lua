@@ -206,13 +206,13 @@ local spellContainerColumnData = {
 	{name = "amount", label =  Loc["total"], key = "total", selected = true, width = 50, align = "left", enabled = true, canSort = true, sortKey = "total", dataType = "number", order = "DESC", offset = columnOffset},
 	{name = "persecond", label = Loc["ps"], key = "total", width = 50, align = "left", enabled = false, canSort = true, sortKey = Loc["ps"], offset = columnOffset, order = "DESC", dataType = "number"},
 	{name = "percent", label = "%", key = "total", width = 50, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "casts", label =  Loc["casts"], key = "casts", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "critpercent", label = Loc["crit %"], key = "critpercent", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "hits", label = Loc["hits"], key = "counter", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "casts", label = Loc["casts"], key = "casts", width = 40, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "critpercent", label = Loc["crit %"], key = "critpercent", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "hits", label = Loc["hits"], key = "counter", width = 40, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
 	{name = "castavg", label = Loc["cast avg"], key = "castavg", width = 50, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "uptime", label =  Loc["uptime"], key = "uptime", width = 45, align = "left", enabled = false, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
-	{name = "overheal", label =  Loc["overheal"], key = "overheal", width = 70, align = "left", enabled = true, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
-	{name = "absorbed", label =  Loc["absorbed"], key = "healabsorbed", width = 55, align = "left", enabled = false, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
+	{name = "uptime", label = Loc["uptime"], key = "uptime", width = 45, align = "left", enabled = true, canSort = true, offset = columnOffset, order = "DESC", dataType = "number"},
+	{name = "overheal", label = Loc["overheal"], key = "overheal", width = 70, align = "left", enabled = true, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
+	{name = "absorbed", label = Loc["absorbed"], key = "healabsorbed", width = 55, align = "left", enabled = false, canSort = true, order = "DESC", dataType = "number", attribute = DETAILS_ATTRIBUTE_HEAL, offset = columnOffset},
 }
 
 local targetContainerColumnData = {

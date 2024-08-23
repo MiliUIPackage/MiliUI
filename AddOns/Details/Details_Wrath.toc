@@ -5,10 +5,10 @@
 ## SavedVariables: _detalhes_global, __details_backup
 ## SavedVariablesPerCharacter: _detalhes_database
 ## OptionalDeps: Ace3, LibSharedMedia-3.0, LibWindow-1.1, LibDBIcon-1.0, NickTag-1.0, LibDataBroker-1.1, LibItemUpgradeInfo-1.0, LibGroupInSpecT-1.1, LibGraph-2.0
-## Version: #Details.12829.159
+## Version: #Details.12879.159
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
-## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計
 ## Notes-zhTW: Details! Damage Meter |n|n可以看自己和隊友的DPS、HPS...等模組化的傷害統計資訊，還有各種好用的戰鬥分析工具和外掛套件。|n|n|cffffd200使用方法: |r點小地圖按鈕，或從Esc>選項>插件>戰鬥-統計，進行設定。
 ## X-Category-zhTW: 戰鬥
 ## DefaultState: disabled
@@ -119,6 +119,7 @@ frames\window_bookmark.lua
 frames\window_classcolor.lua
 frames\window_statistics.lua
 frames\window_debug.lua
+frames\window_pro_file.lua
 
 classes\class_error.lua
 classes\class_spelltable.lua

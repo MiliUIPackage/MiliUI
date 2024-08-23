@@ -4,7 +4,7 @@
 ## RequiredDeps: Details
 ## IconTexture: Interface\AddOns\Details\images\minimap
 
-## Title-zhTW: |cffFF2D2D[戰鬥]|r Details! 戰鬥統計-比較
+## Title-zhTW: |cFF00FFFF[戰鬥]|r Details! 戰鬥統計-比較
 ## Notes-zhTW: Details!: Compare 2.0 |n|n取代玩家分析視窗中的比較標籤頁面。
 ## X-Category-zhTW: 戰鬥
 ## DefaultState: disabled

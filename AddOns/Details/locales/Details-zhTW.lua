@@ -844,6 +844,8 @@ L["STRING_OPTIONS_MINIMAP_ANCHOR"] = "小地圖:"
 L["STRING_OPTIONS_MINIMAP_DESC"] = "顯示或隱藏小地圖按鈕。"
 L["STRING_OPTIONS_MISCTITLE"] = "其他設定"
 L["STRING_OPTIONS_MISCTITLE2"] = "這些控制幾個選項。"
+L["STRING_OPTIONS_MPLUS_AUTO_CLOSE_TIME"] = "自動關閉時間"
+L["STRING_OPTIONS_MPLUS_AUTO_CLOSE_TIME_DESC"] = "多久後要自動關閉「顯示 M+ 結束面板」。"
 L["STRING_OPTIONS_MPLUS_BOSSNEWCOMBAT"] = "開王開始新的戰鬥"
 L["STRING_OPTIONS_MPLUS_BOSSNEWCOMBAT_DESC"] = "如果正在戰鬥中時拉到首領了，會結束原本的戰鬥，然後開始新的首領戰鬥記錄。"
 L["STRING_OPTIONS_MPLUS_DPS_ANCHOR"] = "整場戰鬥記錄 DPS 計算"
@@ -1168,6 +1170,7 @@ L["STRING_OPTIONS_TEXT_LPOSITION"] = "顯示編號"
 L["STRING_OPTIONS_TEXT_LPOSITION_DESC"] = "在玩家名字的左側顯示位置編號。"
 L["STRING_OPTIONS_TEXT_LTRANSLIT"] = "翻譯"
 L["STRING_OPTIONS_TEXT_LTRANSLIT_DESC"] = "將俄文字母翻譯成更容易懂的英文字母。"
+L["STRING_OPTIONS_TEXT_OUTLINE"] = "文字外框"
 L["STRING_OPTIONS_TEXT_RIGHT_ANCHOR"] = "右側文字:"
 L["STRING_OPTIONS_TEXT_ROUTILINE_DESC"] = "啟用或停用右側文字的外框。"
 L["STRING_OPTIONS_TEXT_ROWICONS_ANCHOR"] = "圖示:"
@@ -2324,6 +2327,8 @@ L["Amount of segments to keep for wipes on the same boss."] = "同一個首領�
 L["Keep Best Performance (boss wipes)"] = "保留最佳表現 (首領滅團)"
 L["Keep the segments with more progress in the boss health and delete the ones with less progress."] = "保留首領戰進度較佳 (首領血量較少) 的戰鬥記錄，刪除進度較差的戰鬥記錄。"
 L["Auto Erase:"] = "自動刪除:"
+L["Shadow Color"] = "陰影顏色"
+L["Color of the text shadow"] = "文字陰影的顏色"
 
 -- frames\window_plater.lua 更改字體大小
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
@@ -2367,7 +2372,7 @@ L["See how much damage the enemy is taking in real time!"] = "立馬知道敵人
 L["Plater isn't installed! you may download it from the Curseforge app."] = "Plater 血條插件尚未安裝! 可以從 CurseForge 網站或使用 Curseforge app 下載。"
 
 -- frames\window_breakdown\window_playerbreakdown.lua 更改字體大小
-L["Details! Damage Meter | Click 'Options' button for settings."] = "Details! Damage Meter | 點一下 '選項' 按鈕進行設定。"
+L["An AddOn by Terciob | Part of Details! Damage Meter | Click 'Options' button for settings."] = "An AddOn by Terciob | Part of Details! Damage Meter | 點一下 '選項' 按鈕進行設定。"
 
 -- frames\window_breakdown\window_playerbreakdown_auras.lua
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
@@ -2458,7 +2463,7 @@ L["General Settings"] = "一般設定"
 L["Background Color"] = "背景顏色"
 L["Spell Details Block"] = "法術詳細內容區塊"
 L["Block Height"] = "區塊高度"
-L["Spell Header Options"] = "法術標題列選項"
+L["What to Show"] = "要顯示什麼"
 L["Per Second"] = "每秒"
 L["Casts"] = "唱法"
 L["Critical Hits Percent"] = "致命一擊百分比"
@@ -2660,7 +2665,6 @@ L["Show Breakdown"] = "顯示分析"
 L["Show Damage Graphic"] = "顯示傷害圖表"
 L["Run Time:"] = "通關時間:"
 L["Time not in combat:"] = "沒有戰鬥的時間:"
-L["Unknown for this run"] = "此次通關未知"
 
 -- functions\deathmenu.lua 更改字體大小
 -- 要加上 local Loc = _G.LibStub("AceLocale-3.0"):GetLocale("Details")
