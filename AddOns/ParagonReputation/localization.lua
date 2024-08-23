@@ -31,7 +31,7 @@ if LOCALE == "zhCN" then
 
 -- Chinese (Traditional) (Thanks gaspy10 & BNSSNB)
 elseif LOCALE == "zhTW" then
-	PR.L["PARAGON"] = "巅峰"
+	PR.L["PARAGON"] = "巔峰"
 	PR.L["OPTIONDESC"] = "這些選項可讓你自訂巔峰聲望條的一些設定。"
 	PR.L["TOASTDESC"] = "啟用獲得巔峰聲望獎勵時彈出通知。"
 	PR.L["LABEL001"] = "聲望條顏色"
