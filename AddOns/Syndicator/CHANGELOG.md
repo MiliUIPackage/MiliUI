@@ -1,6 +1,7 @@
 # Syndicator
 
-## [102](https://github.com/Baganator/Syndicator/tree/102) (2024-08-14)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/101...102) 
+## [105](https://github.com/Baganator/Syndicator/tree/105) (2024-08-23)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/104...105) 
 
-- Rework guild realm detection to account for missing realm data from player names  
+- Classic: Bugfix for previous commit affecting classic for items with only line  
+- The War Within: Support searching Curios tooltip text  
