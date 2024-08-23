@@ -2,6 +2,8 @@
 ## Title: HandyNotes: The War Within
 ## Version: 67
 ## Notes: The War Within Notes
+## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-地心之戰
+## Notes-zhTW: HandyNotes: The War Within |n地心之戰的各種地圖標記
 ## OptionalDeps: Ace3
 ## RequiredDeps: HandyNotes
 ## X-Embeds: Ace3
