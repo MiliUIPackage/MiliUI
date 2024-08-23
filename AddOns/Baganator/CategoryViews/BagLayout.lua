@@ -1,5 +1,4 @@
 local _, addonTable = ...
-local addonName, addonTable = ...
 
 local linkMap = {}
 
@@ -36,6 +35,8 @@ local function Prearrange(isLive, bagID, bag, bagType)
           info.guid = C_Item.GetItemGUID(location)
         end
       end
+      info.bagID = bagID
+      info.slotID = slotIndex
     end
     if info.itemID then
       info.guid = info.guid or ""
@@ -45,8 +46,6 @@ local function Prearrange(isLive, bagID, bag, bagType)
         info.keyLink = info.itemLink:gsub("(item:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:)%d+:", "%1:")
         linkMap[info.itemLink] = info.keyLink
       end
-      info.bagID = bagID
-      info.slotID = slotIndex
       info.key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKeyNoCount(info) .. tostring(info.guid)
       table.insert(everything, info)
     else
@@ -82,20 +81,25 @@ function addonTable.CategoryViews.BagLayoutMixin:OnLoad()
 
   self.CategorySort = CreateFrame("Frame", nil, self)
   Mixin(self.CategorySort, BaganatorCategoryViewsCategorySortMixin)
+
+  self.CategoryGrouping = CreateFrame("Frame", nil, self)
+  Mixin(self.CategoryGrouping, BaganatorCategoryViewsCategoryGroupingMixin)
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:OnHide()
   for _, item in ipairs(self.notShown) do
-    addonTable.NewItems:ClearNewItem(item.bagID, item.slotID)
+    if item.bagID ~= nil then
+      addonTable.NewItems:ClearNewItem(item.bagID, item.slotID)
+    end
   end
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:OnShow()
-  self.results = nil
+  self.composed = nil
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:NewCharacter()
-  self.results = nil
+  self.composed = nil
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:SettingChanged(settingName)
@@ -103,13 +107,14 @@ function addonTable.CategoryViews.BagLayoutMixin:SettingChanged(settingName)
     self.ItemsPreparation:ResetCaches()
     self.CategoryFilter:ResetCaches()
   end
-  self.results = nil
+  self.composed = nil
 end
 
+-- Called in response to the ContentRefreshRequired event triggered when items
+-- need updated. NOT in reponse to categories being updated.
 function addonTable.CategoryViews.BagLayoutMixin:FullRefresh()
   self.CategoryFilter:ResetCaches()
   self.ItemsPreparation:ResetCaches()
-  self.results = nil
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:ClearVisuals()
@@ -126,8 +131,23 @@ function addonTable.CategoryViews.BagLayoutMixin:NotifyBagUpdate(updatedBags)
   end
 end
 
-function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, bagTypes, composed, results, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, bagTypes, composed, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+
   local container = self:GetParent()
+
+  local layoutCount = 0
+  for _, details in ipairs(composed.details) do
+    if details.type == "category" then
+      layoutCount = layoutCount + 1
+    end
+  end
+  while #container.LiveLayouts < layoutCount do
+    table.insert(container.LiveLayouts, CreateFrame("Frame", nil, container, "BaganatorLiveCategoryLayoutTemplate"))
+    if container.liveItemButtonPool then
+      container.LiveLayouts[#container.LiveLayouts]:SetPool(container.liveItemButtonPool)
+    end
+    table.insert(container.CachedLayouts, CreateFrame("Frame", nil, container, "BaganatorCachedCategoryLayoutTemplate"))
+  end
 
   local start2 = debugprofilestop()
 
@@ -136,9 +156,8 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
   self.sectionButtonPool:ReleaseAll()
 
   local emptyDetails = FindValueInTableIf(composed.details, function(a) return a.emptySlots end)
-  local splitEmpty, emptySearch = nil, nil
+  local splitEmpty = nil
   if emptyDetails then
-    emptySearch = emptyDetails.search
     local slots = {}
     if not addonTable.Config.Get(addonTable.Config.Options.CATEGORY_GROUP_EMPTY_SLOTS) then
       splitEmpty = slots
@@ -156,57 +175,61 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         table.insert(slots, entry)
       end
     end
-    results[emptyDetails.search] = slots
+    emptyDetails.results = slots
   end
 
   local hidden = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)
   local sectionToggled = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED)
 
   self.notShown = {}
-  for searchTerm, details in pairs(results) do
-    local entries = {}
-    if container.isGrouping and searchTerm ~= emptySearch then
-      local entriesByKey = {}
-      for _, item in ipairs(details) do
-        local groupingKey = item.key
-        if entriesByKey[groupingKey] then
-          entriesByKey[groupingKey].itemCount = entriesByKey[groupingKey].itemCount + item.itemCount
-          -- Used to clear new item status on items that are hidden in a stack
-          table.insert(self.notShown, {bagID = item.bagID, slotID = item.slotID})
-        else
-          entriesByKey[groupingKey] = item
-          table.insert(entries, item)
+  for _, details in pairs(composed.details) do
+    if details.results then
+      local entries = {}
+      if container.isGrouping and not details.emptySlots then
+        local entriesByKey = {}
+        for _, item in ipairs(details.results) do
+          local groupingKey = item.key
+          if entriesByKey[groupingKey] then
+            entriesByKey[groupingKey].itemCount = entriesByKey[groupingKey].itemCount + item.itemCount
+            -- Used to clear new item status on items that are hidden in a stack
+            table.insert(self.notShown, {bagID = item.bagID, slotID = item.slotID})
+          else
+            entriesByKey[groupingKey] = item
+            table.insert(entries, item)
+          end
         end
-      end
-    else
-      entries = details
-    end
-    if container.isLive and container.addToCategoryMode and addonTable.Config.Get(addonTable.Config.Options.ADD_TO_CATEGORY_BUTTONS) and not composed.autoSearches[searchTerm] then
-      if container.addToCategoryMode ~= composed.categoryKeys[searchTerm] then
-        table.insert(entries, {isDummy = true, label = BAGANATOR_L_ADD_TO_CATEGORY, dummyType = "add"})
       else
-        if container.addedToFromCategory then
-          table.insert(entries, {isDummy = true, label = BAGANATOR_L_REMOVE_FROM_CATEGORY, dummyType = "remove"})
+        entries = details.results
+      end
+      if container.isLive and container.addToCategoryMode and addonTable.Config.Get(addonTable.Config.Options.ADD_TO_CATEGORY_BUTTONS) and not details.auto then
+        if container.addToCategoryMode ~= details.source then
+          table.insert(entries, {isDummy = true, label = BAGANATOR_L_ADD_TO_CATEGORY, dummyType = "add"})
+        else
+          if container.addedToFromCategory then
+            table.insert(entries, {isDummy = true, label = BAGANATOR_L_REMOVE_FROM_CATEGORY, dummyType = "remove"})
+          end
         end
       end
-    end
-    local index = tIndexOf(composed.searches, searchTerm)
-    results[searchTerm] = {all = entries, index = index, any = #entries > 0 }
-    if hidden[composed.categoryKeys[searchTerm]] or sectionToggled[composed.section[index]] then
-      for _, entry in ipairs(results[searchTerm].all) do
-        table.insert(self.notShown, entry)
+      details.results = entries
+      details.any = #entries > 0
+      if hidden[details.source] or sectionToggled[details.section] then
+        for _, entry in ipairs(details.results) do
+          table.insert(self.notShown, entry)
+        end
+        details.results = {}
       end
-      results[searchTerm].all = {}
     end
   end
 
-  local oldResults = self.results
-  self.results = results
-  if oldResults then
+  local oldComposed = self.composed
+  self.composed = composed
+  if oldComposed then
     local anyNew = false
-    for search, r in pairs(oldResults) do
-      if search ~= emptySearch and r.oldLength and r.oldLength < #results[search].all then
+    for index, old in ipairs(oldComposed.details) do
+      local current = composed.details[index]
+      if current == nil or old.source ~= current.source or (current.source and not old.emptySlots and old.oldLength and old.oldLength < #current.results) then
         anyNew = true
+        break
       end
     end
     if not anyNew and not container.addToCategoryMode then
@@ -214,15 +237,21 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
       for index, bagType in ipairs(bagTypes) do
         typeMap[bagIndexes[index]] = bagType
       end
-      for search, r in pairs(oldResults) do
-        results[search].oldLength = #results[search].all
-        if #r.all > #results[search].all and search ~= emptySearch then
-          for index, info in ipairs(r.all) do
-            if info.bagID and info.slotID and not C_Item.DoesItemExist({bagID = info.bagID, slotIndex = info.slotID}) then
-              if not info.key or not container.isGrouping or not FindInTableIf(results[search].all, function(a) return a.key == info.key end) then
-                table.insert(results[search].all, index, {bagID = info.bagID, slotID = info.slotID, itemCount = 0, keyLink = typeMap[info.bagID], bagType = typeMap[info.bagID]})
-                if splitEmpty then
-                  table.remove(splitEmpty, (FindInTableIf(splitEmpty, function(a) return a.bagID == info.bagID and a.slotID == info.slotID end)))
+      for index, old in ipairs(oldComposed.details) do
+        if old.results then
+          local current = composed.details[index]
+          current.oldLength = #current.results
+          if #old.results > #current.results and not old.emptySlots then
+            for index, info in ipairs(old.results) do
+              if #current.results >= #old.results then
+                break
+              end
+              if info.bagID and info.slotID and not C_Item.DoesItemExist({bagID = info.bagID, slotIndex = info.slotID}) then
+                if not info.key or not old.isGrouping or not FindInTableIf(current.results, function(a) return a.key == info.key end) then
+                  table.insert(current.results, index, {bagID = info.bagID, slotID = info.slotID, itemCount = 0, keyLink = typeMap[info.bagID], bagType = typeMap[info.bagID]})
+                  if splitEmpty then
+                    table.remove(splitEmpty, (FindInTableIf(splitEmpty, function(a) return a.bagID == info.bagID and a.slotID == info.slotID end)))
+                  end
                 end
               end
             end
@@ -235,13 +264,17 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
   local activeLayouts
 
   if container.isLive then
+    local layoutIndex = 1
     -- Ensure we don't overflow the preallocated buttons by returning all
     -- buttons no longer needed by a particular group
-    for searchTerm, details in pairs(results) do
-      container.LiveLayouts[details.index]:DeallocateUnusedButtons(details.all)
+    for index, details in pairs(composed.details) do
+      if details.results then
+        container.LiveLayouts[layoutIndex]:DeallocateUnusedButtons(details.results)
+        layoutIndex = layoutIndex + 1
+      end
     end
-    if #container.LiveLayouts > #composed.searches then
-      for index = #composed.searches + 1, #container.LiveLayouts do
+    if #container.LiveLayouts > layoutCount then
+      for index = layoutCount + 1, #container.LiveLayouts do
         container.LiveLayouts[index]:DeallocateUnusedButtons({})
         container.LiveLayouts[index]:Hide()
       end
@@ -251,8 +284,8 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     end
     activeLayouts = container.LiveLayouts
   else
-    if #container.CachedLayouts > #composed.searches then
-      for index = #composed.searches + 1, #container.CachedLayouts do
+    if #container.CachedLayouts > layoutCount then
+      for index = layoutCount + 1, #container.CachedLayouts do
         container.CachedLayouts[index]:Hide()
       end
     end
@@ -264,7 +297,9 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   local layoutsShown, activeLabels = {}, {}
   local inactiveSections = {}
+  local layoutOffset = 0
   for index, details in ipairs(composed.details) do
+    layoutOffset = layoutOffset - 1
     if details.type == "divider" then
       if inactiveSections[details.section] then
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
@@ -280,7 +315,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
           local d = composed.details[i]
           if d.section ~= details.label then
             break
-          elseif (d.type == "category" and results[d.search].any) then
+          elseif d.type == "category" and d.any then
             any = true
             break
           end
@@ -306,16 +341,17 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
       end
     elseif details.type == "category" then
-      local searchResults = results[details.search]
-      local layout = activeLayouts[searchResults.index]
-      layout:ShowGroup(searchResults.all, math.min(bagWidth, #searchResults.all), details.source)
+      layoutOffset = layoutOffset + 1
+      local searchResults = details.results
+      local layout = activeLayouts[index + layoutOffset]
+      layout:ShowGroup(details.results, math.min(bagWidth, #details.results), details.source)
       table.insert(layoutsShown, layout)
       layout.section = details.section
       local label = self.labelsPool:Acquire()
       addonTable.Skins.AddFrame("CategoryLabel", label)
       label:SetText(details.label)
-      label.categorySearch = details.search
-      activeLabels[details.index] = label
+      label.categorySearch = index
+      activeLabels[index] = label
       layout.type = details.type
     else
       error("unrecognised layout type")
@@ -363,14 +399,6 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
 
   local composed = addonTable.CategoryViews.ComposeCategories(everything)
 
-  while #container.LiveLayouts < #composed.searches do
-    table.insert(container.LiveLayouts, CreateFrame("Frame", nil, container, "BaganatorLiveCategoryLayoutTemplate"))
-    if container.liveItemButtonPool then
-      container.LiveLayouts[#container.LiveLayouts]:SetPool(container.liveItemButtonPool)
-    end
-    table.insert(container.CachedLayouts, CreateFrame("Frame", nil, container, "BaganatorCachedCategoryLayoutTemplate"))
-  end
-
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
     addonTable.Utilities.DebugOutput("prearrange", debugprofilestop() - s1)
   end
@@ -380,17 +408,19 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("prep", debugprofilestop() - s2)
     end
-    self.CategoryFilter:ApplySearches(composed.prioritisedSearches, composed.attachedItems, everything, function(results)
-      self.CategorySort:ApplySorts(results, function(results)
-        local s3 = debugprofilestop()
-        self.ItemsPreparation:CleanItems(everything)
-        if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-          addonTable.Utilities.DebugOutput("clean", debugprofilestop() - s3)
-        end
-        local s4 = debugprofilestop()
-        local maxWidth, maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, composed, results, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+    self.CategoryFilter:ApplySearches(composed, everything, function()
+      self.CategoryGrouping:ApplyGroupings(composed, function()
+        self.CategorySort:ApplySorts(composed, function()
+          local s3 = debugprofilestop()
+          self.ItemsPreparation:CleanItems(everything)
+          if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
+            addonTable.Utilities.DebugOutput("clean", debugprofilestop() - s3)
+          end
+          local s4 = debugprofilestop()
+          local maxWidth, maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, composed, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
 
-        callback(maxWidth, maxHeight)
+          callback(maxWidth, maxHeight)
+        end)
       end)
     end)
   end)

@@ -1,5 +1,4 @@
 local _, addonTable = ...
-local _, addonTable = ...
 
 BaganatorItemViewCommonBankViewWarbandViewMixin = {}
 
@@ -237,7 +236,7 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:UpdateTabs()
   local tabButton = self.tabsPool:Acquire()
   addonTable.Skins.AddFrame("SideTabButton", tabButton)
   tabButton:RegisterForClicks("LeftButtonUp")
-  tabButton.Icon:SetTexture("Interface\\AddOns\\Baganator\\Assets\\logo")
+  tabButton.Icon:SetTexture("Interface\\AddOns\\Baganator\\Assets\\Everything.png")
   tabButton:SetScript("OnClick", function(_, button)
     self:SetCurrentTab(0)
     self:GetParent():UpdateView()

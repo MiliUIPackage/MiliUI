@@ -2,6 +2,21 @@ local _, addonTable = ...
 BaganatorCustomiseDialogCategoriesSectionEditorMixin = {}
 
 function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
+  local function RemoveSection(name)
+    local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
+
+    local existingIndex = tIndexOf(displayOrder, name)
+    if existingIndex then
+      table.remove(displayOrder, existingIndex)
+      for i = 1, #displayOrder do
+        if displayOrder[i] == addonTable.CategoryViews.Constants.SectionEnd then
+          table.remove(displayOrder, i)
+          break
+        end
+      end
+    end
+  end
+
   local function Save()
     if self.SectionName:GetText() == "" then
       return
@@ -12,16 +27,7 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
     local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
 
     if self.currentSection ~= newValue then
-      local existingIndex = tIndexOf(displayOrder, newValue)
-      if existingIndex then
-        table.remove(displayOrder, existingIndex)
-        for i = 1, #displayOrder do
-          if displayOrder[i] == addonTable.CategoryViews.Constants.SectionEnd then
-            table.remove(displayOrder, i)
-            break
-          end
-        end
-      end
+      RemoveSection(newValue)
     end
 
     local oldIndex = tIndexOf(displayOrder, self.currentSection)
@@ -35,8 +41,15 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
     addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
   end
 
+  self.DeleteButton:SetScript("OnClick", function()
+    local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
+
+    RemoveSection(self.currentSection)
+
+    addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
+  end)
+
   addonTable.CallbackRegistry:RegisterCallback("EditCategorySection", function(_, value)
-    self:Show()
     if value == "_" then
       self.currentSection = "_" .. BAGANATOR_L_NEW_SECTION
       self.SectionName:SetText(BAGANATOR_L_NEW_SECTION)
@@ -55,7 +68,7 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
     if settingName == addonTable.Config.Options.CATEGORY_DISPLAY_ORDER then
       local displayOrder = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER)
       if not tIndexOf(displayOrder, self.currentSection) then
-        self:Hide()
+        self:Return()
       end
     end
   end)
@@ -68,6 +81,7 @@ function BaganatorCustomiseDialogCategoriesSectionEditorMixin:OnLoad()
   end)
 
   addonTable.Skins.AddFrame("EditBox", self.SectionName)
+  addonTable.Skins.AddFrame("Button", self.DeleteButton)
 end
 
 function BaganatorCustomiseDialogCategoriesSectionEditorMixin:Disable()

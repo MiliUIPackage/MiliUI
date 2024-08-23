@@ -1,6 +1,8 @@
 # Baganator
 
-## [427](https://github.com/Baganator/Baganator/tree/427) (2024-08-16)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/426...427) 
+## [445](https://github.com/Baganator/Baganator/tree/445) (2024-08-22)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/444...445) 
 
-- Retail: Fix purchase new warband tab button (after Blizzard broke it)  
+- Remove duplicate local \_, addonTable = .. lines  
+- Warband Bank: Update "Everything" tab icon (thanks to Ryan)  
+- Sorting: Disable pickup/put down item sounds while sorting  

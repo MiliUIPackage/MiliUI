@@ -1,4 +1,16 @@
 local _, addonTable = ...
+
+local function GetViewType(view)
+  if view == "bag" then
+    return addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_TYPE)
+  elseif view == "bank" then
+    return addonTable.Config.Get(addonTable.Config.Options.BANK_VIEW_TYPE)
+  end
+end
+
+local hidden = CreateFrame("Frame")
+hidden:Hide()
+
 local function SetupBackpackView()
   local backpackView
   local allBackpackViews = {
@@ -10,7 +22,7 @@ local function SetupBackpackView()
     return backpackView
   end
 
-  backpackView = allBackpackViews[addonTable.Config.Get(addonTable.Config.Options.VIEW_TYPE)]
+  backpackView = allBackpackViews[GetViewType("bag")]
 
   local bagButtons = {}
 
@@ -71,19 +83,19 @@ local function SetupBackpackView()
     UpdateButtons()
   end
 
-  addonTable.CallbackRegistry:RegisterCallback("BagShow", function(_, characterName)
+  addonTable.CallbackRegistry:RegisterCallback("BagShow",  function(_, characterName)
     characterName = characterName or Syndicator.API.GetCurrentCharacter()
     backpackView:Show()
     backpackView:UpdateForCharacter(characterName, characterName == backpackView.liveCharacter)
     UpdateButtons()
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("BagHide", function(_)
+  addonTable.CallbackRegistry:RegisterCallback("BagHide",  function(_)
     backpackView:Hide()
     UpdateButtons()
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("QuickSearch", function(_)
+  addonTable.CallbackRegistry:RegisterCallback("QuickSearch",  function(_)
     if not backpackView:IsShown() then
       addonTable.CallbackRegistry:TriggerEvent("BagShow")
     end
@@ -91,10 +103,10 @@ local function SetupBackpackView()
   end)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
-    if settingName == addonTable.Config.Options.VIEW_TYPE then
+    if settingName == addonTable.Config.Options.BAG_VIEW_TYPE then
       local isShown = backpackView:IsShown()
       backpackView:Hide()
-      backpackView = allBackpackViews[addonTable.Config.Get(settingName)]
+      backpackView = allBackpackViews[GetViewType("bag")] or backpackView
       if isShown then
         addonTable.CallbackRegistry:TriggerEvent("BagShow")
       end
@@ -142,33 +154,7 @@ local function SetupBackpackView()
     ToggleBackpackView()
   end)
 
-  -- Alternative to hooking/overriding ToggleAllBags to avoid both taint and lag
-  local buttonName = "BaganatorToggleBagsButton"
-  local button = CreateFrame("Button", buttonName, UIParent)
-  button:SetScript("OnClick", ToggleBackpackView)
-  local owner = CreateFrame("Frame")
-
-  local function Apply()
-    ClearOverrideBindings(owner)
-
-    local keys = {GetBindingKey("OPENALLBAGS")}
-    tAppendAll(keys, {GetBindingKey("TOGGLEBACKPACK")})
-    for _, k in ipairs(keys) do
-      SetOverrideBindingClick(owner, false, k, buttonName)
-    end
-  end
-
-  Apply()
-  local frame = CreateFrame("Frame")
-  frame:RegisterEvent("UPDATE_BINDINGS")
-  frame:SetScript("OnEvent", function()
-    if InCombatLockdown() then
-      frame:RegisterEvent("PLAYER_REGEN_ENABLED")
-    else
-      frame:UnregisterEvent("PLAYER_REGEN_ENABLED")
-      Apply()
-    end
-  end)
+  ToggleAllBags = ToggleBackpackView
 end
 
 local function SetupBankView()
@@ -178,7 +164,11 @@ local function SetupBankView()
     category = CreateFrame("Frame", "Baganator_CategoryViewBankViewFrame", UIParent, "BaganatorCategoryViewBankViewTemplate"),
   }
 
-  bankView = allBankViews[addonTable.Config.Get(addonTable.Config.Options.VIEW_TYPE)]
+  bankView = allBankViews[GetViewType("bank")]
+
+  function addonTable.ViewManagement.GetBankFrame()
+    return bankView
+  end
 
   FrameUtil.RegisterFrameForEvents(bankView, {
     "BANKFRAME_OPENED",
@@ -233,13 +223,13 @@ local function SetupBankView()
   end)
 
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
-    if settingName == addonTable.Config.Options.VIEW_TYPE then
+    if settingName == addonTable.Config.Options.BANK_VIEW_TYPE then
       bankView:Hide()
       FrameUtil.UnregisterFrameForEvents(bankView, {
         "BANKFRAME_OPENED",
         "BANKFRAME_CLOSED",
       })
-      bankView = allBankViews[addonTable.Config.Get(settingName)]
+      bankView = allBankViews[GetViewType("bank")] or bankView
       FrameUtil.RegisterFrameForEvents(bankView, {
         "BANKFRAME_OPENED",
         "BANKFRAME_CLOSED",

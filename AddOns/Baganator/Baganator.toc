@@ -1,6 +1,6 @@
-## Interface: 110000, 110002
+## Interface: 110002
 ## Title: Baganator
-## Version: 427
+## Version: 445
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -91,7 +91,8 @@ CategoryViews\Utilities.lua
 CategoryViews\ComposeCategories.lua
 CategoryViews\Packing.lua
 CategoryViews\BagLayout.lua
-CategoryViews\CategorySearch.lua
+CategoryViews\CategoryFilter.lua
+CategoryViews\CategoryGrouping.lua
 CategoryViews\CategorySort.lua
 CategoryViews\ItemsPreparation.lua
 CategoryViews\Components.lua
@@ -115,6 +116,8 @@ CustomiseDialog\CategoriesEditor.lua
 CustomiseDialog\CategoriesEditor.xml
 CustomiseDialog\CategoriesSectionEditor.lua
 CustomiseDialog\CategoriesSectionEditor.xml
+CustomiseDialog\CategoriesDividerEditor.lua
+CustomiseDialog\CategoriesDividerEditor.xml
 CustomiseDialog\CategoriesRecentEditor.lua
 CustomiseDialog\CategoriesImportExport.lua
 CustomiseDialog\Main.lua

@@ -93,6 +93,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     end
     self.Blocker:SetPoint("TOPLEFT", self.CategoryName)
     self.Blocker:SetPoint("BOTTOMRIGHT", self.CategorySearch)
+    self.DeleteButton:Enable()
 
     if value == "" then
       self.CategoryName:SetText(BAGANATOR_L_NEW_CATEGORY)
@@ -102,7 +103,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       self.HiddenCheckBox:SetChecked(false)
       self.PrioritySlider:Enable()
       self.Blocker:Hide()
-      self.DeleteButton:Enable()
       self.ExportButton:Enable()
       Save()
       return
@@ -112,7 +112,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
     if customCategories[value] then
       category = customCategories[value]
       self.Blocker:Hide()
-      self.DeleteButton:Enable()
       self.ExportButton:Enable()
     else
       category = addonTable.CategoryViews.Constants.SourceToCategory[value]
@@ -120,7 +119,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       self.CategorySearch:SetAlpha(disabledAlpha)
       self.HelpButton:SetAlpha(disabledAlpha)
       self.Blocker:Show()
-      self.DeleteButton:Disable()
       self.ExportButton:Disable()
     end
     self.HiddenCheckBox:SetChecked(addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)[value])
@@ -145,7 +143,6 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
   end
 
   addonTable.CallbackRegistry:RegisterCallback("EditCategory", function(_, value)
-    self:Show()
     SetState(value)
   end)
 
@@ -275,13 +272,16 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:OnLoad()
       addonTable.Config.Set(addonTable.Config.Options.CATEGORY_DISPLAY_ORDER, CopyTable(displayOrder))
     end
 
-    customCategories[self.currentCategory] = nil
-    categoryMods[self.currentCategory] = nil
-    addonTable.Config.Set(addonTable.Config.Options.CUSTOM_CATEGORIES, CopyTable(customCategories))
+    if customCategories[value] then
+      customCategories[self.currentCategory] = nil
+      categoryMods[self.currentCategory] = nil
+      addonTable.Config.Set(addonTable.Config.Options.CUSTOM_CATEGORIES, CopyTable(customCategories))
+    end
 
     self:OnHide()
   end)
   addonTable.Skins.AddFrame("Button", self.DeleteButton)
+  addonTable.Skins.AddFrame("Button", self.ExportButton)
   addonTable.Skins.AddFrame("EditBox", self.CategoryName)
   addonTable.Skins.AddFrame("EditBox", self.CategorySearch)
 
@@ -318,6 +318,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsEditor()
   itemText:SetPoint("TOPLEFT", 5, -5)
 
   local addButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
+  addonTable.Skins.AddFrame("Button", addButton)
   addButton:SetPoint("TOPRIGHT")
   addButton:SetText(BAGANATOR_L_ADD)
   DynamicResizeButton_Resize(addButton)
@@ -325,6 +326,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsEditor()
   addItemsEditBox:SetSize(60, 22)
   addItemsEditBox:SetPoint("RIGHT", addButton, "LEFT", -5, 0)
   addItemsEditBox:SetAutoFocus(false)
+  addonTable.Skins.AddFrame("EditBox", addItemsEditBox)
 
   addItemsEditBox:SetScript("OnKeyDown", function(_, key)
     if key == "ENTER" then
@@ -376,6 +378,7 @@ function BaganatorCustomiseDialogCategoriesEditorMixin:MakeItemsEditor()
       hideOnEscape = 1,
     }
     local addFromATTButton = CreateFrame("Button", nil, container, "UIPanelDynamicResizeButtonTemplate")
+    addonTable.Skins.AddFrame("Button", addFromATTButton)
     addFromATTButton:SetText(BAGANATOR_L_ADD_FROM_ATT)
     DynamicResizeButton_Resize(addFromATTButton)
     addFromATTButton:SetPoint("TOPRIGHT", addButton, "BOTTOMRIGHT")
