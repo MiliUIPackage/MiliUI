@@ -1434,6 +1434,10 @@ Database:AddChain(Chain.TempChain21, {
     expansion = EXPANSION_ID,
     range = LEVEL_RANGE,
     prerequisites = LEVEL_PREREQUISITES,
+    active = {
+        type = "quest",
+        id = 82441,
+    },
     completed = {
         type = "quest",
         id = 82467,
@@ -1513,6 +1517,10 @@ Database:AddChain(Chain.TempChain25, {
     expansion = EXPANSION_ID,
     range = LEVEL_RANGE,
     prerequisites = LEVEL_PREREQUISITES,
+    active = {
+        type = "quest",
+        ids = { 83082, 83081, }
+    },
     completed = {
         type = "quest",
         id = 83087,

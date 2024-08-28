@@ -1,3 +1,14 @@
+# v2.46.0
+
+- Added option to view chains as your Warband
+- Fixed active and completion checks for Saving private Spindle questline in Azj-Kahet
+- Fixed active check for Against the Current questline
+- Fixed active check for Gems are Forever questline in Isle of Dorn
+- Fixed active check for The Opalcreg questline in Isle of Dorn
+- Fixed completion check for Melody of Madness questline in Azj-Kahet
+- Fixed layout for The Weight of Duty questline in Hallowfall
+- Fixed showing incorrect quest in Introduction questline after unlocking adventure mode
+
 # v2.45.0
 
 - Temporarily readded Dragonflight data until after full release

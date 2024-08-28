@@ -1,24 +1,36 @@
-## Interface: 110002
-## Title: BtWQuests: The War Within
-## Version: 1.1
-## Notes: The War Within quest data for BtWQuests
+## Interface: 100207, 110000, 110002
+## Title: BtWQuests: Dragonflight
+## Version: 12.0
+## Notes: Dragonflight quest data for BtWQuests
 ## Author: Breen
 ## Dependencies: BtWQuests
-## OptionalDeps: BtWQuestsTheWarWithinPrologue
+## OptionalDeps: BtWQuestsDragonflightPrologue
 ## LoadOnDemand: 1
-## X-BtWQuests: The War Within
-## X-BtWQuests-Expansion: 10
+## X-BtWQuests: Dragonflight
+## X-BtWQuests-Expansion: 9
 ## X-BtWQuests-Expansion-Image: UI-Expansion 0 0.90625 0 0.8125
 ## X-BtWQuests-AutoLoad: 1
 ## X-Part-Of: BtWQuests
-## X-Curse-Project-ID: 1010391
-## X-WoWI-ID: 26776
-## X-Wago-ID: bGoMAr60
+## X-Curse-Project-ID: 652343
+## X-WoWI-ID: 26399
+## X-Wago-ID: Xb6XkoNp
 
-## Title-zhTW: |cFF00AA99[任務]|r 任務指南 - 地心之戰模組
-## Notes-zhTW: BtWQuests: The War Within |n地心之戰模組。
+## Title-zhTW: |cFF00AA99[任務]|r 任務指南-巨龍崛起模組
+## Notes-zhTW: BtWQuests: Dragonflight |n巨龍崛起模組。
 
 Defines.lua
+
+Localization.lua
+Localization.deDE.lua
+Localization.esES.lua
+Localization.esMX.lua
+Localization.frFR.lua
+Localization.itIT.lua
+Localization.koKR.lua
+Localization.ptBR.lua
+Localization.ruRU.lua
+Localization.zhCN.lua
+Localization.zhTW.lua
 
 Database/Quests.lua
 Database/Quests.deDE.lua
@@ -69,7 +81,15 @@ Database/Index.zhCN.lua
 Database/Index.zhTW.lua
 
 General.lua
-IsleOfDorn.lua
-TheRingingDeeps.lua
-Hallowfall.lua
-AzjKahet.lua
+10.0.7.lua
+10.1.0.lua
+10.1.5.lua
+10.1.7.lua
+10.2.0.lua
+10.2.5.lua
+10.2.7.lua
+FriendOfTheDragonIsles.lua
+TheWakingShores.lua
+OhnahranPlains.lua
+TheAzureSpan.lua
+Thaldraszus.lua

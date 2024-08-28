@@ -98,8 +98,21 @@ for classID=1,GetNumClasses() do
     end
 end
 
+local accountPlayerLevel = 0
+local function GetAccountPlayerLevel()
+    if accountPlayerLevel == 0 then
+        for _,v in pairs(BtWQuests_Characters or {}) do
+            accountPlayerLevel = math.max(accountPlayerLevel, v.level)
+        end
+    end
+    return math.max(accountPlayerLevel, UnitLevel("player") or 0)
+end
+
 BtWQuestsCharactersCharacterMixin = {}
 function BtWQuestsCharactersCharacterMixin:IsPartySync()
+    return false
+end
+function BtWQuestsCharactersCharacterMixin:IsWarband()
     return false
 end
 function BtWQuestsCharactersCharacterMixin:IsPlayer()
@@ -740,6 +753,26 @@ function BtWQuestsCharactersPartySyncMixin:IsQuestCompleted(questID)
     return IsQuestFlaggedCompleted(questID)
 end
 
+BtWQuestsCharactersWarbandMixin = Mixin({}, BtWQuestsCharactersPlayerMixin)
+function BtWQuestsCharactersWarbandMixin:IsWarband()
+    return true
+end
+function BtWQuestsCharactersWarbandMixin:GetName()
+    return BtWQuests.L["Warband"];
+end
+function BtWQuestsCharactersWarbandMixin:GetFullName()
+    return "", "warband"
+end
+function BtWQuestsCharactersWarbandMixin:GetDisplayName()
+    return self:GetName();
+end
+function BtWQuestsCharactersWarbandMixin:GetLevel()
+    return GetAccountPlayerLevel();
+end
+function BtWQuestsCharactersWarbandMixin:IsQuestCompleted(questID)
+    return C_QuestLog.IsQuestFlaggedCompletedOnAccount(questID)
+end
+
 BtWQuestsCharacters = {}
 local BtWQuests_CharactersMap = nil
 local function BtWQuestsCharactersUpdateMap()
@@ -821,6 +854,8 @@ function BtWQuestsCharacters:GetCharacter(name, realm)
 
         if key == "-partysync" then
             BtWQuestsCharactersMap[key] = BtWQuests_CreatePartySync(BtWQuests_CharactersMap[playerKey])
+        elseif key == "-warband" then
+            BtWQuestsCharactersMap[key] = BtWQuests_CreateWarband(BtWQuests_CharactersMap[playerKey])
         elseif playerKey == key then
             -- Insert player in to data if they are missing. This generally happens before OnEvent is called which will fill any missing details
             if not BtWQuests_CharactersMap[key] then
@@ -1120,6 +1155,10 @@ end
 
 function BtWQuests_CreatePartySync(data)
     return Mixin({t = data}, BtWQuestsCharactersPartySyncMixin)
+end
+
+function BtWQuests_CreateWarband(data)
+    return Mixin({t = data}, BtWQuestsCharactersWarbandMixin)
 end
 
 function BtWQuests_CreateCharacter(data)

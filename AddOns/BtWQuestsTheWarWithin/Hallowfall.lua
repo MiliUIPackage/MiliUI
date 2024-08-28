@@ -1206,18 +1206,21 @@ Database:AddChain(Chain.TheWeightOfDuty, {
             id = 79159,
             x = 0,
             connections = {
-                1, 2, 
+                1,
             },
         },
         {
             type = "quest",
             id = 79160,
-            aside = true,
-            x = -1,
+            x = 0,
+            connections = {
+                1,
+            },
         },
         {
             type = "quest",
-            id = 79162,
+            id = 79162, -- Moved
+            x = 0,
         },
     },
 })
@@ -1694,11 +1697,8 @@ Database:AddChain(Chain.MemoriesOfTheSky, {
             active = {
                 {
                     type = "quest",
-                    id = 80678,
-                },
-                {
-                    type = "quest",
-                    id = 82749,
+                    ids = { 80678, 82749, },
+                    count = 2,
                 },
             },
             completed = {
@@ -1731,11 +1731,8 @@ Database:AddChain(Chain.MemoriesOfTheSky, {
             active = {
                 {
                     type = "quest",
-                    id = 82810,
-                },
-                {
-                    type = "quest",
-                    id = 82749,
+                    ids =  { 82810, 82749, },
+                    count = 2,
                 },
             },
             completed = {
