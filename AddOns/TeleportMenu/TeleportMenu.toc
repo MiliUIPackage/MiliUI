@@ -1,0 +1,19 @@
+## Interface: 110002
+## Title: Teleport Menu
+## Notes: Hearthstone and teleport buttons attached to the game menu.
+## Notes-zhCN: 主菜单显示炉石玩具和各种传送按钮等。
+## Notes-zhTW: 主選單顯示爐石玩具和各種傳送按鈕等。
+## Title-zhTW: |cff0099FF[介面]|r 傳送選單
+## Notes-zhTW: Teleport Menu |n|n一個附掛在遊戲選單右側的快捷傳送選單。
+## X-Category-zhTW: 其他
+## IconTexture: Interface\Icons\inv_hearthstonepet
+## Author: Justwait
+## Version: v8
+## SavedVariables: TeleportMenuDB
+## Dependencies: Blizzard_Collections
+
+## X-Curse-Project-ID: 1087836
+
+Locales\Locales.xml
+Options.lua
+TeleportMenu.lua
