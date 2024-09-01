@@ -531,7 +531,7 @@ do  -- Cast Bar ----------------------------------------------------------------
 
 	Stuf:AddBuilder("castbar", function(unit, uf, name, db, a5, config)
 		local f = uf[name]
-		if db.hide then
+		if db.hide or unit == "player" then -- 不顯示玩家施法條
 			if f then
 				f:Hide()
 				castunits[unit], uf.refreshfuncs[name] = nil, nil
@@ -1011,6 +1011,13 @@ if CLS == "DEATHKNIGHT" then  -- Rune Bar --------------------------------------
 		end
 		f:EnableMouse(not db.nomouse)
 		f:Show()
+		
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 
 
@@ -1036,6 +1043,12 @@ if CLS == "PALADIN" then  -- Holy Bar ------------------------------------------
 		end
 		f:EnableMouse(not db.nomouse)
 		--PaladinPowerBar_OnLoad(f)
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 
 end
@@ -1059,6 +1072,13 @@ if CLS == "PRIEST" then  -- Priest Power Frame ---------------------------------
 			f:SetFrameStrata(db.strata)
 		end
 		f:EnableMouse(not db.nomouse)
+		
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 
 end
@@ -1084,6 +1104,13 @@ if CLS == "WARLOCK" then  -- Warlock Power Frame -------------------------------
 		if _G.ShardBarFrame then _G.ShardBarFrame:EnableMouse(not db.nomouse) end
 		if _G.DemonicFuryBarFrame then _G.DemonicFuryBarFrame:EnableMouse(not db.nomouse) end
 		if _G.BurningEmbersBarFrame then _G.BurningEmbersBarFrame:EnableMouse(not db.nomouse) end
+
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 
 end
@@ -1112,6 +1139,13 @@ if CLS == "MONK" then  -- Monk Power Frame -------------------------------------
 				_G.MonkHarmonyBar["lightEnergy"..i]:EnableMouse(not db.nomouse)
 			end
 		end
+		
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 end
 if CLS == "MAGE" then  -- Mage Arcane Charges Frame -----------------------------------------------------------------------------------------------
@@ -1134,6 +1168,13 @@ if CLS == "MAGE" then  -- Mage Arcane Charges Frame ----------------------------
 			f:SetFrameStrata(db.strata)
 		end
 		if _G.MageArcaneChargesFrame then _G.MageArcaneChargesFrame:EnableMouse(not db.nomouse) end
+		
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
+		end)
 	end)
 end
 if CLS == "EVOKER" then  -- Evoker Essences Frame -----------------------------------------------------------------------------------------------
@@ -1157,25 +1198,13 @@ if CLS == "EVOKER" then  -- Evoker Essences Frame ------------------------------
 		end
 		if _G.EssencePlayerFrame then _G.EssencePlayerFrame:EnableMouse(not db.nomouse) end
 		
-		hooksecurefunc(EssencePlayerFrame, "Show", function()
-			local f = EssencePlayerFrame
-			if not f or db.hide then
-				if f then f:Hide() end
-				return
-			end
-
-			f:SetParent(uf)
-			f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
-			f:SetScale(db.scale or 1)
-			f:SetAlpha(db.alpha or 1)
-			if db.framelevel then
-				f:SetFrameLevel(db.framelevel)
-			end
-			if db.strata then
-				f:SetFrameStrata(db.strata)
-			end
-			if _G.EssencePlayerFrame then _G.EssencePlayerFrame:EnableMouse(not db.nomouse) end
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
 		end)
+
 	end)
 end
 if CLS == "DRUID" then  -- Druid Combo Point Bar Frame -----------------------------------------------------------------------------------------------
@@ -1200,24 +1229,11 @@ if CLS == "DRUID" then  -- Druid Combo Point Bar Frame -------------------------
 		end
 		if _G.DruidComboPointBarFrame then _G.DruidComboPointBarFrame:EnableMouse(not db.nomouse) end
 		
-		hooksecurefunc(DruidComboPointBarFrame, "Show", function()
-			local f = DruidComboPointBarFrame
-			if not f or db.hide then
-				if f then f:Hide() end
-				return
-			end
-
-			f:SetParent(uf)
-			f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
-			f:SetScale(db.scale or 1)
-			f:SetAlpha(db.alpha or 1)
-			if db.framelevel then
-				f:SetFrameLevel(db.framelevel)
-			end
-			if db.strata then
-				f:SetFrameStrata(db.strata)
-			end
-			if _G.DruidComboPointBarFrame then _G.DruidComboPointBarFrame:EnableMouse(not db.nomouse) end
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
 		end)
 	end)
 end
@@ -1243,24 +1259,11 @@ if CLS == "ROGUE" then  -- Rogue Combo Point Bar Frame -------------------------
 		end
 		if _G.RogueComboPointBarFrame then _G.RogueComboPointBarFrame:EnableMouse(not db.nomouse) end
 		
-		hooksecurefunc(RogueComboPointBarFrame, "Show", function()
-			local f = RogueComboPointBarFrame
-			if not f or db.hide then
-				if f then f:Hide() end
-				return
-			end
-
-			f:SetParent(uf)
-			f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0)
-			f:SetScale(db.scale or 1)
-			f:SetAlpha(db.alpha or 1)
-			if db.framelevel then
-				f:SetFrameLevel(db.framelevel)
-			end
-			if db.strata then
-				f:SetFrameStrata(db.strata)
-			end
-			if _G.RogueComboPointBarFrame then _G.RogueComboPointBarFrame:EnableMouse(not db.nomouse) end
+		f:HookScript("OnShow", function()
+			C_Timer.After(0.1, function()
+				f:SetParent(uf)
+				f:SetPoint("TOP", uf, "BOTTOM", db.x or 0, db.y or 0) 
+			end)
 		end)
 	end)
 end
