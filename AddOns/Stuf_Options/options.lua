@@ -477,7 +477,7 @@ function Stuf:LoadDefaults(db, restore, perchar, justboss)
 			raidtargeticon={ x=84, y=10, w=20, h=20, framelevel=5,},
 			infoicon={ x=50, y=-37, w=12, h=12, hide = true, },
 			totembar={ x=20, y=13, w=32, h=12, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
-			runebar={ x=8, y=-10, w=38, h=6, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
+			runebar={ x=8, y=0, w=38, h=6, bgcolor={ r=0, g=0, b=0, a=0.4, }, },
 			druidbar={
                 x=63, y=-37, w=127, h=3,
 				fade=nil, vertical=nil, reverse=nil,
