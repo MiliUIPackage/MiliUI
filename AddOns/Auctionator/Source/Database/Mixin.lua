@@ -127,25 +127,25 @@ function Auctionator.DatabaseMixin:_SetPrice(dbKey, buyoutPrice, available)
     end
   end
 
+  local cutoffDay = self.cutoffDay
+
+  local daysToRemove = {}
   -- Prune old days
   for day, _ in pairs(priceData.h) do
-    day = tonumber(day)
-    if day <= self.cutoffDay then
+    if tonumber(day) <= cutoffDay then
       priceData.h[day] = nil
     end
   end
 
   for day, _ in pairs(priceData.l) do
-    day = tonumber(day)
-    if day <= self.cutoffDay then
+    if tonumber(day) <= cutoffDay then
       priceData.l[day] = nil
     end
   end
 
   if priceData.a ~= nil then
     for day, _ in pairs(priceData.a) do
-      day = tonumber(day)
-      if day <= self.cutoffDay then
+      if tonumber(day) <= cutoffDay then
         priceData.a[day] = nil
       end
     end
