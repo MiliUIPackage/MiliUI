@@ -1,9 +1,10 @@
 ## Interface: 110002
 ## Title: HandyNotes: The War Within
-## Version: 67
+## Version: 86
 ## Notes: The War Within Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-地心之戰
 ## Notes-zhTW: HandyNotes: The War Within |n地心之戰的各種地圖標記
+## X-Category: 地圖
 ## OptionalDeps: Ace3
 ## RequiredDeps: HandyNotes
 ## X-Embeds: Ace3
