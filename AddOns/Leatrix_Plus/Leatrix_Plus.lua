@@ -1,5 +1,5 @@
 ﻿----------------------------------------------------------------------
--- 	Leatrix Plus 11.0.04 (14th August 2024)
+-- 	Leatrix Plus 11.0.06 (28th August 2024)
 ----------------------------------------------------------------------
 
 --	01:Functions 02:Locks,  03:Restart 40:Player
@@ -18,7 +18,7 @@
 	local void
 
 	-- Version
-	LeaPlusLC["AddonVer"] = "11.0.04"
+	LeaPlusLC["AddonVer"] = "11.0.06"
 
 	-- Get locale table
 	local void, Leatrix_Plus = ...
@@ -651,7 +651,6 @@
 		or	(LeaPlusLC["ShowPlayerChain"]		~= LeaPlusDB["ShowPlayerChain"])		-- Show player chain
 		or	(LeaPlusLC["ShowReadyTimer"]		~= LeaPlusDB["ShowReadyTimer"])			-- Show ready timer
 		or	(LeaPlusLC["ShowWowheadLinks"]		~= LeaPlusDB["ShowWowheadLinks"])		-- Show Wowhead links
-		or	(LeaPlusLC["ShowThreadsOfTime"]		~= LeaPlusDB["ShowThreadsOfTime"])		-- Show Threads of Time
 
 		-- Frames
 		or	(LeaPlusLC["ManageWidgetTop"]		~= LeaPlusDB["ManageWidgetTop"])		-- Manage widget top
@@ -697,6 +696,44 @@
 ----------------------------------------------------------------------
 
 	function LeaPlusLC:Player()
+
+		----------------------------------------------------------------------
+		-- Block requested invites (no reload required)
+		----------------------------------------------------------------------
+
+		do
+
+			local frame = CreateFrame("FRAME")
+			frame:SetScript("OnEvent", function()
+				if LeaPlusLC["NoRequestedInvites"] == "On" then
+					local groupInvitePopUp = StaticPopup_FindVisible("GROUP_INVITE_CONFIRMATION")
+					if groupInvitePopUp and groupInvitePopUp.data then
+						local void, name, guid = GetInviteConfirmationInfo(groupInvitePopUp.data)
+						if LeaPlusLC:FriendCheck(name, guid) then
+							return
+						else
+							-- If not a friend, decline
+							RespondToInviteConfirmation(groupInvitePopUp.data, false)
+							StaticPopup_Hide("GROUP_INVITE_CONFIRMATION")
+						end
+					end
+				end
+			end)
+
+			-- Function to set event
+			local function SetEvent()
+				if LeaPlusLC["NoRequestedInvites"] == "On" then
+					frame:RegisterEvent("GROUP_INVITE_CONFIRMATION")
+				else
+					frame:UnregisterEvent("GROUP_INVITE_CONFIRMATION")
+				end
+			end
+
+			-- Set event on startup if enabled and when option is clicked
+			if LeaPlusLC["NoRequestedInvites"] == "On" then SetEvent() end
+			LeaPlusCB["NoRequestedInvites"]:HookScript("OnClick", SetEvent)
+
+		end
 
 		----------------------------------------------------------------------
 		-- Block friend requests (no reload required)
@@ -4692,63 +4729,6 @@
 		end
 
 		----------------------------------------------------------------------
-		-- Show Threads of Time (Mists of Pandaria Remix)
-		----------------------------------------------------------------------
-
-		do
-
-			if PlayerGetTimerunningSeasonID() then
-
-				if LeaPlusLC["ShowThreadsOfTime"] == "On" then
-
-					-- Define currencies
-					local currencyTable = {0, 1, 2, 3, 4, 5, 6, 7, 148}
-
-					-- Character frame Threads of Time value
-					hooksecurefunc("PaperDollFrame_UpdateStats", function()
-						local threadsValue = 0
-						for i = 1, #currencyTable do
-							threadsValue = threadsValue + C_CurrencyInfo.GetCurrencyInfo(2853 + currencyTable[i]).quantity
-						end
-						if threadsValue > 0 then
-							CharacterStatsPane.ItemLevelFrame.Value:SetText(CharacterStatsPane.ItemLevelFrame.Value:GetText() .. "   (" .. threadsValue .. ")")
-						end
-					end)
-
-					-- Tooltip Threads of Time value
-					CharacterStatsPane.ItemLevelFrame:HookScript("OnEnter", function()
-						local threadsValue = 0
-						for i = 1, #currencyTable do
-							threadsValue = threadsValue + C_CurrencyInfo.GetCurrencyInfo(2853 + currencyTable[i]).quantity
-						end
-						if threadsValue > 0 then
-							GameTooltip:AddLine(" ")
-
-							GameTooltip:AddLine(L["Threads of Time"] .. " " .. threadsValue, 1, 1, 1)
-							local numLines = GameTooltip:NumLines()
-							_G["GameTooltipTextLeft" .. numLines]:SetFont(GameTooltipTextLeft1:GetFont())
-
-							GameTooltip:AddLine(L["The total of your Threads of Time."])
-							local numLines = GameTooltip:NumLines()
-							_G["GameTooltipTextLeft" .. numLines]:SetFont(GameTooltipTextLeft2:GetFont())
-
-							GameTooltip:Show()
-						end
-					end)
-
-				end
-
-			else
-
-				-- Lockout option if not running Mists of Pandaria Remix
-				LeaPlusLC:LockItem(LeaPlusCB["ShowThreadsOfTime"], true)
-				LeaPlusCB["ShowThreadsOfTime"].tiptext = LeaPlusCB["ShowThreadsOfTime"].tiptext .. "|n|n|cff00AAFF" .. L["Requires Mists of Pandaria Remix."]
-
-			end
-
-		end
-
-		----------------------------------------------------------------------
 		-- Keep audio synced
 		----------------------------------------------------------------------
 
@@ -5624,6 +5604,11 @@
 					end
 					-- Move GameTooltip to below the minimap in case the button uses it
 					button:HookScript("OnEnter", SetButtonTooltip)
+					-- Special case for MoveAny because it doesn't have button.db
+					if buttonName == "moveany" then
+						button.db = button.db or {}
+						if not button.db.hide then button.db.hide = false end
+					end
 				end
 
 				-- Hide new LibDBIcon icons
@@ -6151,6 +6136,13 @@
 				if LeaPlusLC["CombineAddonButtons"] == "On" then
 					--C_Timer.After(0.1, function() -- Removed for now
 						local buttonName = strlower(name)
+
+						-- Special case for MoveAny because it doesn't have button.db
+						if buttonName == "moveany" then
+							button.db = button.db or {}
+							if not button.db.hide then button.db.hide = false end
+						end
+
 						if not strfind(strlower(LeaPlusDB["MiniExcludeList"]), buttonName) then
 							if button.db and not button.db.hide then
 								button:Hide()
@@ -10817,22 +10809,20 @@
 			subTitle:ClearAllPoints()
 			subTitle:SetPoint("BOTTOM", 0, 72)
 
-			local slashButton = CreateFrame("Button", nil, interPanel)
-			slashButton:SetPoint("BOTTOM", subTitle, "TOP", 0, 40)
-			slashButton:SetScript("OnClick", function() SlashCmdList["Leatrix_Plus"]("") end)
-
-			local slashTitle = LeaPlusLC:MakeTx(slashButton, "/ltp", 0, 0)
+			local slashTitle = LeaPlusLC:MakeTx(interPanel, "/ltp", 0, 0)
 			slashTitle:SetFont(slashTitle:GetFont(), 72)
 			slashTitle:ClearAllPoints()
-			slashTitle:SetAllPoints()
-
-			slashButton:SetSize(slashTitle:GetSize())
-			slashButton:SetScript("OnEnter", function()
+			slashTitle:SetPoint("BOTTOM", subTitle, "TOP", 0, 40)
+			slashTitle:SetScript("OnMouseUp", function(self, button)
+				if button == "LeftButton" then
+					SlashCmdList["Leatrix_Plus"]("")
+				end
+			end)
+			slashTitle:SetScript("OnEnter", function()
 				slashTitle.r,  slashTitle.g, slashTitle.b = slashTitle:GetTextColor()
 				slashTitle:SetTextColor(1, 1, 0)
 			end)
-
-			slashButton:SetScript("OnLeave", function()
+			slashTitle:SetScript("OnLeave", function()
 				slashTitle:SetTextColor(slashTitle.r, slashTitle.g, slashTitle.b)
 			end)
 
@@ -10966,6 +10956,7 @@
 				LeaPlusLC:LoadVarChk("NoDuelRequests", "Off")				-- Block duels
 				LeaPlusLC:LoadVarChk("NoPetDuels", "Off")					-- Block pet battle duels
 				LeaPlusLC:LoadVarChk("NoPartyInvites", "Off")				-- Block party invites
+				LeaPlusLC:LoadVarChk("NoRequestedInvites", "Off")			-- Block requested invites
 				LeaPlusLC:LoadVarChk("NoFriendRequests", "Off")				-- Block friend requests
 				LeaPlusLC:LoadVarChk("NoSharedQuests", "Off")				-- Block shared quests
 
@@ -11075,7 +11066,6 @@
 				LeaPlusLC:LoadVarChk("ShowReadyTimer", "Off")				-- Show ready timer
 				LeaPlusLC:LoadVarChk("ShowWowheadLinks", "Off")				-- Show Wowhead links
 				LeaPlusLC:LoadVarChk("WowheadLinkComments", "Off")			-- Show Wowhead links to comments
-				LeaPlusLC:LoadVarChk("ShowThreadsOfTime", "Off")			-- Show Threads of Time
 
 				-- Frames
 				LeaPlusLC:LoadVarChk("ManageWidgetTop", "Off")				-- Manage widget top
@@ -11322,6 +11312,7 @@
 			LeaPlusDB["NoDuelRequests"] 		= LeaPlusLC["NoDuelRequests"]
 			LeaPlusDB["NoPetDuels"] 			= LeaPlusLC["NoPetDuels"]
 			LeaPlusDB["NoPartyInvites"]			= LeaPlusLC["NoPartyInvites"]
+			LeaPlusDB["NoRequestedInvites"]		= LeaPlusLC["NoRequestedInvites"]
 			LeaPlusDB["NoFriendRequests"]		= LeaPlusLC["NoFriendRequests"]
 			LeaPlusDB["NoSharedQuests"]			= LeaPlusLC["NoSharedQuests"]
 
@@ -11432,7 +11423,6 @@
 			LeaPlusDB["ShowReadyTimer"]			= LeaPlusLC["ShowReadyTimer"]
 			LeaPlusDB["ShowWowheadLinks"]		= LeaPlusLC["ShowWowheadLinks"]
 			LeaPlusDB["WowheadLinkComments"]	= LeaPlusLC["WowheadLinkComments"]
-			LeaPlusDB["ShowThreadsOfTime"]		= LeaPlusLC["ShowThreadsOfTime"]
 
 			-- Frames
 			LeaPlusDB["ManageWidgetTop"]		= LeaPlusLC["ManageWidgetTop"]
@@ -14032,6 +14022,7 @@
 				LeaPlusDB["NoDuelRequests"] = "On"				-- Block duels
 				LeaPlusDB["NoPetDuels"] = "On"					-- Block pet battle duels
 				LeaPlusDB["NoPartyInvites"] = "Off"				-- Block party invites
+				LeaPlusDB["NoRequestedInvites"] = "Off"			-- Block requested invites
 				LeaPlusDB["NoFriendRequests"] = "Off"			-- Block friend requests
 				LeaPlusDB["NoSharedQuests"] = "Off"				-- Block shared quests
 
@@ -14118,7 +14109,6 @@
 				LeaPlusDB["ShowReadyTimer"] = "On"				-- Show ready timer
 				LeaPlusDB["ShowWowheadLinks"] = "On"			-- Show Wowhead links
 				LeaPlusDB["WowheadLinkComments"] = "On"			-- Show Wowhead links to comments
-				LeaPlusDB["ShowThreadsOfTime"] = "On"			-- Show Threads of Time
 
 				-- Interface: Manage frames
 				LeaPlusDB["ManageWidgetTop"] = "On"				-- Manage widget top
@@ -14440,8 +14430,9 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoDuelRequests"			, 	"Block duels"					,	146, -92, 	false,	"If checked, duel requests will be blocked unless the player requesting the duel is a friend.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoPetDuels"				, 	"Block pet battle duels"		,	146, -112, 	false,	"If checked, pet battle duel requests will be blocked unless the player requesting the duel is a friend.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoPartyInvites"			, 	"Block party invites"			, 	146, -132, 	false,	"If checked, party invitations will be blocked unless the player inviting you is a friend.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoFriendRequests"			, 	"Block friend requests"			, 	146, -152, 	false,	"If checked, BattleTag and Real ID friend requests will be automatically declined.|n|nEnabling this option will automatically decline any pending requests.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoSharedQuests"			, 	"Block shared quests"			, 	146, -172, 	false,	"If checked, shared quests will be declined unless the player sharing the quest is a friend.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoRequestedInvites"		, 	"Block requested invites"		, 	146, -152, 	false,	"If checked, requests to invite a player to your group will be declined unless the player requesting to join is a friend.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoFriendRequests"			, 	"Block friend requests"			, 	146, -172, 	false,	"If checked, BattleTag and Real ID friend requests will be automatically declined.|n|nEnabling this option will automatically decline any pending requests.")
+	LeaPlusLC:MakeCB(LeaPlusLC[pg], "NoSharedQuests"			, 	"Block shared quests"			, 	146, -192, 	false,	"If checked, shared quests will be declined unless the player sharing the quest is a friend.")
 
 	LeaPlusLC:MakeTx(LeaPlusLC[pg], "Groups"					, 	340, -72)
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "AcceptPartyFriends"		, 	"Party from friends"			, 	340, -92, 	false,	"If checked, party invitations from friends will be automatically accepted unless you are queued in Dungeon Finder.")
@@ -14537,7 +14528,6 @@
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowPlayerChain"			, 	"Show player chain"				,	340, -232, 	true,	"If checked, you will be able to show a rare, elite or rare elite chain around the player frame.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowReadyTimer"			, 	"Show ready timer"				,	340, -252, 	true,	"If checked, a timer will be shown under the dungeon ready frame and the PvP encounter ready frame so that you know how long you have left to click the enter button.")
 	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowWowheadLinks"			, 	"Show Wowhead links"			, 	340, -272, 	true,	"If checked, Wowhead links will be shown in the world map frame and the achievements frame.")
-	LeaPlusLC:MakeCB(LeaPlusLC[pg], "ShowThreadsOfTime"			, 	"Show Threads of Time"			, 	340, -292, 	true,	"If checked, your total Threads of Time will be shown in the character frame next to your average item level.")
 
 	LeaPlusLC:CfgBtn("ModMinimapBtn", LeaPlusCB["MinimapModder"])
 	LeaPlusLC:CfgBtn("MoveTooltipButton", LeaPlusCB["TipModEnable"])
