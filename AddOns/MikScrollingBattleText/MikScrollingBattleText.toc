@@ -1,15 +1,17 @@
-## Interface: 110002
-## Version: 5.9.1 Fix2
+## Interface: 11503, 40400, 110002
+## Version: 6.0.1
 ## Title: Mik's Scrolling Battle Text
 ## Author: Mikord
 ## Notes: Scrolls battle information around the character model.
 ## Title-zhTW: |cFF00FFFF[戰鬥]|r 戰鬥訊息滾動
 ## Notes-zhTW: MSBT |n在你的角色周圍顯示戰鬥相關的訊息。|n|cffffd200使用方法：|r輸入指令『/msbt』。
-## X-Category-zhTW: 戰鬥
-## DefaultState: disabled
 ## SavedVariables: MSBTProfiles_SavedVars, MSBT_SavedMedia
 ## SavedVariablesPerCharacter: MSBTProfiles_SavedVarsPerChar
 ## OptionalDeps: LibSharedMedia-3.0
+
+## X-Category-zhTW: 戰鬥
+## IconTexture: Interface\Icons\ability_warrior_challange
+## DefaultState: disabled
 
 Libs\LibStub.lua
 Libs\CallbackHandler-1.0.lua
