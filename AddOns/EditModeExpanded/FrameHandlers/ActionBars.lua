@@ -5,11 +5,15 @@ local lib = LibStub:GetLibrary("EditModeExpanded-1.0")
 function addon:initActionBars()
     local db = addon.db.global
     if not db.EMEOptions.actionBars then return end
-    C_Timer.After(10, function()
+    C_Timer.After(5, function()
         if InCombatLockdown() then return end 
         local bars = {MainMenuBar, MultiBarBottomLeft, MultiBarBottomRight, MultiBarRight, MultiBarLeft, MultiBar5, MultiBar6, MultiBar7}
 
         for _, bar in ipairs(bars) do
+            
+            --[[
+            -- setting.buttonPadding causes taint to spread and cause issues
+            -- another method needed, if its even possible
             lib:RegisterCustomCheckbox(bar, "間距為零", 
                 -- on checked
                 function()
@@ -27,6 +31,7 @@ function addon:initActionBars()
                 
                 "OverrideIconPadding"
             )
+            --]]
             
             addon:registerSecureFrameHideable(bar)
             

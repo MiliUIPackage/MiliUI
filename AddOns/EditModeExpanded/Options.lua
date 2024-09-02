@@ -10,11 +10,11 @@ local defaults = {
             holyPower = false,
             totem = true,
             soulShards = false,
-            achievementAlert = true,
-            targetOfTarget = true,
-            targetCast = true,
-            focusTargetOfTarget = true,
-            focusCast = true,
+            achievementAlert = true, -- alertFrame, using the name acheivement for backward compatibility
+            targetOfTarget = false,
+            targetCast = false,
+            focusTargetOfTarget = false,
+            focusCast = false,
             compactRaidFrameContainer = true,
             talkingHead = true,
             minimap = false,
@@ -46,12 +46,13 @@ local defaults = {
             buffFrame = true,
             debuffFrame = true,
             objectiveTrackerFrame = true,
-			targetFrameBuffs = false,
+            targetFrameBuffs = false,
+            gameMenu = false,
         },
         QueueStatusButton = {},
         TotemFrame = {},
         HolyPower = {},
-        Achievements = {},
+        Achievements = {}, -- alertFrame, using Acheivements for backward compatibility
         SoulShards = {},
         ToT = {},
         TargetSpellBar = {},
@@ -92,6 +93,7 @@ local defaults = {
         MinimapSeparated = {},
 		TargetDebuffs = {},
         TargetBuffs = {},
+        GameMenuFrame = {},
     }
 }
 

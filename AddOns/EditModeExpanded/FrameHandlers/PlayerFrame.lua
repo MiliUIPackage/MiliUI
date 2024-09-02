@@ -23,25 +23,33 @@ function addon:initPlayerFrame()
             end)
         end)
         
-        local checked = false
-        lib:RegisterCustomCheckbox(PlayerFrame, "隱藏職業資源條", 
-            -- on checked
-            function()
-                checked = true
-                PlayerFrame.manabar:Hide()
-            end,
+        
+        do 
+            local frame = PlayerFrame.manabar
+            local x, y
             
-            -- on unchecked
-            function()
-                checked = false
-                PlayerFrame.manabar:Show()
-            end
-        )
-        PlayerFrame.manabar:HookScript("OnShow", function()
-            if checked then
-                PlayerFrame.manabar:Hide()
-            end
-        end)
+            lib:RegisterCustomCheckbox(PlayerFrame, "隱藏職業資源條", 
+                -- on checked
+                function()
+                    if InCombatLockdown() then return end
+                    if not x then
+                        x, y = frame:GetLeft(), frame:GetBottom()
+                    end
+                    frame:ClearAllPoints()
+                    frame:SetClampedToScreen(false)
+                    frame:SetPoint("TOPRIGHT", UIParent, "BOTTOMLEFT", -1000, -1000)
+                end,
+                
+                -- on unchecked
+                function()
+                    if InCombatLockdown() then return end
+                    if not x then return end
+                    frame:ClearAllPoints()
+                    frame:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+                    x, y = nil, nil
+                end
+            )
+        end
         
         if db.EMEOptions.playerFrameResize then
             lib:RegisterResizable(PlayerFrame)

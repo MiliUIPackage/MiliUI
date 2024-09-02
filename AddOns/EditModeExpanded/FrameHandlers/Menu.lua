@@ -50,7 +50,7 @@ function addon:initMenuBar()
             end
         end)
         libDD:UIDropDownMenu_SetWidth(dropdown, 100)
-        libDD:UIDropDownMenu_SetText(dropdown, "Button Padding")
+        libDD:UIDropDownMenu_SetText(dropdown, "按鈕間距")
         
         C_Timer.After(1, updatePadding)
         
@@ -100,7 +100,7 @@ function addon:initMenuBar()
                     -- but trying SetUserPlaced causes an error
                     ContainerFrame1.Bg:SetFrameLevel(0)
                     
-                    lib:RegisterFrame(ContainerFrame1, "Main Bag", db.ContainerFrame1)
+                    lib:RegisterFrame(ContainerFrame1, "主背包", db.ContainerFrame1)
                     hooksecurefunc("UpdateContainerFrameAnchors", function()
                         if noInfinite then return end
                         if InCombatLockdown() then return end
@@ -118,7 +118,7 @@ function addon:initMenuBar()
                 if alreadyInit then return end
                 alreadyInit = true
                 addon:continueAfterCombatEnds(function()
-                    lib:RegisterFrame(ContainerFrameCombinedBags, "Combined Bags", db.ContainerFrameCombinedBags)
+                    lib:RegisterFrame(ContainerFrameCombinedBags, "合併背包", db.ContainerFrameCombinedBags)
                     hooksecurefunc("UpdateContainerFrameAnchors", function()
                         if noInfinite then return end
                         if InCombatLockdown() then return end
