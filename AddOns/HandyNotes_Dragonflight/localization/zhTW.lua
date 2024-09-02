@@ -161,8 +161,6 @@ L['shadowflame_leatherworking_table_label'] = '暗焰製皮工作臺'
 L['shadowflame_leatherworking_table_note'] = '當製造以下圖樣時需要:\n{spell:406275}'
 L['shadowflame_incantation_table_label'] = '暗焰附魔桌'
 L['shadowflame_incantation_table_note'] = '當製造以下圖樣時需要:\n{spell:405076}'
-L['altar_of_decay_label'] = nil
-L['altar_of_decay_note'] = nil
 L['azure_loom_label'] = '蒼藍織布機'
 L['azure_loom_note'] = '當製造以下圖樣時需要:\n{spell:376556}'
 L['temporal_loom_label'] = '時光織布機'
@@ -196,10 +194,6 @@ L['options_icons_clued_in_desc'] = '顯示成就 {achievement:19787} 所需的 {
 L['goggle_wobble_note'] = '在引導任務線或是3個世界任務 {wq:高科技占測...} 時戴著 {item:202247} 和 {npc:207763} {emote:/dance}.'
 L['options_icons_goggle_wobble'] = '{achievement:19791}'
 L['options_icons_goggle_wobble_desc'] = '顯示成就 {achievement:19791} 所需的 {npc:207763} 位置.'
-
-L['just_one_more_thing_note'] = '需要完成任一世界任務 {wq:研究：……} 3次。'
-L['options_icons_just_one_more_thing'] = '{achievement:19792}'
-L['options_icons_just_one_more_thing_desc'] = '顯示 {achievement:19792} 的成就子項進度。'
 
 -------------------------------------------------------------------------------
 ------------------------------- THE AZURE SPAN --------------------------------
@@ -460,18 +454,11 @@ L['trader_hagarth_note'] = '使用 {item:190456} 交換工匠珍品設計圖.'
 
 L['naszuro_caldera_of_the_menders'] = '在塔的頂端.'
 
-L['sun_bleached_vase'] = '久經日曬的花瓶'
-L['untranslated_tome'] = '未翻譯的魔典'
-L['untranslated_tome_note'] = '在建築裡，入口位於橋下。'
-L['mysterious_boot'] = '神秘的靴子'
-
+L['sun_bleached_vase'] = nil
+L['untranslated_tome'] = nil
+L['untranslated_tome_note'] = '在入口在橋下的建築內.'
+L['mysterious_boot'] = nil
 L['mysterious_boot_note'] = '上層.'
-L['decaying_fishing_bucket'] = nil
-L['decaying_fishing_bucket_note'] = nil
-L['forgotten_fishing_pole'] = nil
-L['forgotten_fishing_pole_note'] = nil
-L['overgrown_fishing_bench'] = nil
-L['overgrown_fishing_bench_note'] = nil
 
 -------------------------------------------------------------------------------
 ------------------------------ OHN'AHRAN PLAINS -------------------------------
@@ -550,7 +537,6 @@ L['options_icons_dreamguard'] = '{achievement:16574}'
 L['options_icons_dreamguard_desc'] = '顯示 {achievement:16574} 成就所需的夢境守衛位置。'
 
 L['khadin_note'] = '使用 {item:191784} 交換專業知識'
-L['khadin_prof_note'] = '還需投入 %d 點 {currency:%d} 才能點滿 {spell:%d} 專業樹.'
 L['the_great_swog_note'] = '使用 {item:199338}, {item:199339} 和 {item:199340} 來交換 {item:202102}.'
 L['hunt_instructor_basku_note'] = '用{item:200093} 交換{faction:2503}名望'
 L['elder_yusa_note'] = '選取 {npc:192818} 並使用 {emote:/hungry} 來取得烹飪食譜'
@@ -682,7 +668,7 @@ L['naszuro_thaldraszus_peak'] = '在山的第二高峰上.'
 L['naszuro_temporal_conflux'] = '在龍雕像的頭上.'
 
 L['revival_catalyst_label'] = '重生育籃控制臺'
-L['revival_catalyst_note'] = '將非套裝裝備轉換為對應裝等部位的套裝部件。'
+L['revival_catalyst_note'] = '將非套裝裝備轉換為對應裝等部位的套裝部件。\n\n{currency:2912}: %d/%d'
 
 L['provisioner_aristta_note'] = '用 {currency:2657} 交換塑型和一隻座騎.'
 
@@ -868,11 +854,6 @@ L['box_of_rocks_note'] = '{object:一盒石頭} 可以在 {location:甦醒海岸
 L['options_icons_many_boxes'] = '{achievement:18559}'
 L['options_icons_many_boxes_desc'] = '顯示成就 {achievement:18559} 所需的 {object:一盒石頭} 可能的位置.'
 
-L['drakonid_painting'] = nil
-L['emptied_hourglass'] = nil
-L['rusted_signal_horn'] = nil
-L['rusted_signal_horn_note'] = nil
-
 -------------------------------------------------------------------------------
 ------------------------------- Zaralek Cavern --------------------------------
 -------------------------------------------------------------------------------
@@ -946,11 +927,6 @@ L['djaradin_scroll'] = '加拉登卷軸'
 L['forgotten_incense'] = '被遺忘的薰香'
 L['forgotten_incense_note'] = '{note:因為任務邊界的關係很難到達.}'
 L['historied_heirloom'] = '歷史悠久的傳家寶'
-L['rusted_dirt_pale'] = '灰色鏽塵'
-L['rusted_dirt_pale_note'] = '{note:在點擊本區域的其他 {object:滿載信息的線索} 後會消失。}'
-L['niffen_pickaxe'] = '鼴鼠人礦鋤'
-L['chipped_grub_pot'] = '有缺口的蟲鍋'
-L['chipped_grub_pot_note'] = '在塔頂。'
 
 -------------------------------------------------------------------------------
 ------------------------------- Emerald Dream ---------------------------------
@@ -1045,6 +1021,7 @@ L['mbc_vial_k'] = '卡林多'
 L['mbc_vial_n'] = '北裂境'
 L['mbc_vial_o'] = '外域'
 
+L['mbc_vial_b_location'] = '維爾薩拉，薩斯塔拉'
 L['mbc_vial_d_location'] = '影月谷，星落哨站'
 L['mbc_vial_e_location'] = '暮色森林，黎明森林'
 L['mbc_vial_k_location'] = '月光林地，怒風獸穴'

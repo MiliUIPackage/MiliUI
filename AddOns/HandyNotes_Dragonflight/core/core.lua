@@ -187,8 +187,8 @@ function Addon:OnInitialize()
         if not ns.expansion then
             error('Expansion not set: ' .. ADDON_NAME)
         end
-        local expansion_name = _G['EXPANSION_NAME' .. (ns.expansion - 1)]
-        ns.plugin_name = 'HandyNotes: ' .. expansion_name
+        local expansion_name = EJ_GetTierInfo(ns.expansion)
+        ns.plugin_name = L["map_button_title"]..": " .. expansion_name
         ns.options.name = ('%02d - '):format(ns.expansion) .. expansion_name
     end)
 
@@ -247,7 +247,7 @@ function Addon:RegisterWithHandyNotes()
 
     if ns:GetOpt('development') then ns.BootstrapDevelopmentEnvironment() end
 
-    HandyNotes:RegisterPluginDB(ADDON_NAME, self, ns.options)
+    HandyNotes:RegisterPluginDB(EJ_GetTierInfo(ns.expansion), self, ns.options)
 
     -- Refresh in any cases where node status may have changed
     self:RegisterBucketEvent({

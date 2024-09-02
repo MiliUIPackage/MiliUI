@@ -12,6 +12,7 @@ L['leather'] = 'Leather'
 L['mail'] = 'Mail'
 L['plate'] = 'Plate'
 L['cosmetic'] = 'Cosmetic'
+L['tabard'] = 'Tabard'
 
 L['1h_mace'] = '1h Mace'
 L['1h_sword'] = '1h Sword'
@@ -243,3 +244,6 @@ L['options_toggle_show_debug_quest'] = 'Debug Quest IDs'
 L['options_toggle_show_debug_quest_desc'] = 'Show debug info for quest changes (reload required)'
 L['options_toggle_force_nodes'] = 'Force Nodes'
 L['options_toggle_force_nodes_desc'] = 'Force display all nodes'
+
+-- 自行加入
+L["map_button_title"] = "HandyNotes"

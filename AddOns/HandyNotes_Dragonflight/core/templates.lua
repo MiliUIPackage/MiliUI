@@ -234,9 +234,9 @@ function WorldMapOptionsButtonMixin:InitializeDropDown(level)
             disabled = not map.settings,
             func = function(button, option)
                 HideUIPanel(WorldMapFrame)
-                Settings.OpenToCategory('HandyNotes')
+                Settings.OpenToCategory(L["map_button_title"])
                 LibStub('AceConfigDialog-3.0'):SelectGroup('HandyNotes',
-                    'plugins', ADDON_NAME, 'ZonesTab', 'Zone_' .. map.id)
+                    'plugins', EJ_GetTierInfo(ns.expansion), 'ZonesTab', 'Zone_' .. map.id)
             end
         })
     elseif level == 2 then
