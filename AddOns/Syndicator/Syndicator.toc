@@ -1,6 +1,6 @@
 ## Interface: 110002
 ## Title: Syndicator
-## Version: 105
+## Version: 114
 ## Author: plusmouse
 ## SavedVariables: SYNDICATOR_CONFIG, SYNDICATOR_DATA, SYNDICATOR_SUMMARIES
 ## IconTexture: Interface\AddOns\Syndicator\Assets\logo.tga
@@ -37,6 +37,7 @@ Tracking\Tooltips.lua
 Tracking\CurrencyTooltipData.lua
 Tracking\Main.lua
 
+Search\Constants.lua
 Search\Initialize.lua
 Search\BaseInfo.lua
 Search\CheckItem.lua

@@ -45,7 +45,7 @@ if Syndicator.Constants.IsRetail then
     Enum.BagIndex.AccountBankTab_4,
     Enum.BagIndex.AccountBankTab_5,
   }
-  Syndicator.Constants.WarbandBankActive = C_Bank ~= nil and C_Bank.UpdateBankTabSettings ~= nil
+  Syndicator.Constants.WarbandBankActive = true
 end
 
 if Syndicator.Constants.IsEra or KeyRingButtonIDToInvSlotID then
@@ -93,8 +93,15 @@ local AccountBoundTooltipLines = {
   ITEM_ACCOUNTBOUND,
   ITEM_ACCOUNTBOUND_UNTIL_EQUIP,
 }
+local AccountBoundTooltipLinesNotBound = {
+  ITEM_BIND_TO_ACCOUNT_UNTIL_EQUIP,
+}
 Syndicator.Constants.AccountBoundTooltipLines = {}
+Syndicator.Constants.AccountBoundTooltipLinesNotBound = {}
 -- Done this way because not all the lines exist on all clients
 for _, line in pairs(AccountBoundTooltipLines) do
   table.insert(Syndicator.Constants.AccountBoundTooltipLines, line)
+end
+for _, line in pairs(AccountBoundTooltipLinesNotBound) do
+  table.insert(Syndicator.Constants.AccountBoundTooltipLinesNotBound, line)
 end
