@@ -5,6 +5,8 @@ if GetLocale() ~= 'zhCN' then return end
 local AddonName, Addon = ...
 local L = Addon.L
 
+L.AddonNameLoc = "tullaRange"
+
 L.ColorSettings = '颜色'
 
 L.ColorSettingsTitle = 'tullaRange颜色设置设定'
