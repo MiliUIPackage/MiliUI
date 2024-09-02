@@ -195,11 +195,7 @@ function BaganatorItemViewCommonBankViewMixin:UpdateView()
 
   addonTable.Utilities.ApplyVisuals(self)
 
-  -- Copied from ItemViewCommons/BagView.lua
-  local sideSpacing = 13
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   if self.Tabs[1] then
     self.Tabs[1]:SetPoint("LEFT", sideSpacing + addonTable.Constants.ButtonFrameOffset, 0)
@@ -220,7 +216,7 @@ function BaganatorItemViewCommonBankViewMixin:OnTabFinished()
   self:SetSize(self.currentTab:GetSize())
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("bank", debugprofilestop() - self.start)
+    addonTable.Utilities.DebugOutput("bank", debugprofilestop() - self.start)
   end
 end
 

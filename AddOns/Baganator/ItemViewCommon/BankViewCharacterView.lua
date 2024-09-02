@@ -36,7 +36,7 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
       return
     end
     if tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
@@ -143,6 +143,7 @@ end
 function BaganatorItemViewCommonBankViewCharacterViewMixin:SetupBlizzardFramesForTab()
   if self.isLive and Syndicator.Constants.WarbandBankActive then
     BankFrame.activeTabIndex = addonTable.Constants.BlizzardBankTabConstants.Character
+    BankFrame.selectedTab = 1
   end
 end
 
@@ -187,4 +188,20 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   end
 
   self:SetupBlizzardFramesForTab()
+end
+
+function BaganatorItemViewCommonBankViewCharacterViewMixin:OnFinished(character, isLive)
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
+
+  local buttonPadding = 0
+  if self.isLive then
+    buttonPadding = buttonPadding + 10 
+  end
+
+  self.Container:ClearAllPoints()
+  self.Container:SetPoint("TOPRIGHT", -sideSpacing, -50 - topSpacing / 4)
+  self:SetSize(
+    self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
+    self.Container:GetHeight() + 75 + buttonPadding
+  )
 end

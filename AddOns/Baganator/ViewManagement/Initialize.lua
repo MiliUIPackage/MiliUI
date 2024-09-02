@@ -155,6 +155,15 @@ local function SetupBackpackView()
   end)
 
   ToggleAllBags = ToggleBackpackView
+
+  -- Used to open the bags when a loot toast is clicked
+  hooksecurefunc("OpenBag", function()
+    local stack = debugstack()
+    -- This hook is only for toasts
+    if stack:match("AlertFrameSystems.lua") then
+      addonTable.CallbackRegistry:TriggerEvent("BagShow")
+    end
+  end)
 end
 
 local function SetupBankView()

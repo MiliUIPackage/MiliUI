@@ -156,10 +156,13 @@ end
 local function UpdateQuests(self)
   for _, button in ipairs(self.buttons) do
     if button.BGR and button.BGR.isQuestItem then
-      local item = Item:CreateFromItemID(button.BGR.itemID)
-      item:ContinueOnItemLoad(function()
+      if not C_Item.IsItemDataCachedByID(button.BGR.itemID) then
+        addonTable.Utilities.LoadItemData(button.BGR.itemID, function()
+          button:BGRUpdateQuests()
+        end)
+      else
         button:BGRUpdateQuests()
-      end)
+      end
     end
   end
 end
@@ -271,7 +274,7 @@ function BaganatorCachedBagLayoutMixin:ShowBags(bagData, source, indexes, indexe
 
   local iconSize = addonTable.Config.Get(addonTable.Config.Options.BAG_ICON_SIZE)
 
-  if self.prevState.source ~= source or self.prevState.section ~= section or
+  if self.prevState.source ~= source or
       self:CompareButtonIndexes(indexes, indexesToUse, bagData) then
     self:RebuildLayout(bagData, indexes, indexesToUse, rowWidth)
     self.waitingUpdate = {}
@@ -311,17 +314,12 @@ function BaganatorCachedBagLayoutMixin:ShowBags(bagData, source, indexes, indexe
   end
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    local c = 0
-    for _ in pairs(indexesToUse) do
-      c = c+ 1
-    end
-    print("cached bag layout took", c, section, debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("cached bag layout took", debugprofilestop() - start)
   end
 
   self.waitingUpdate = {}
   self.prevState = {
     source = source,
-    section = section,
   }
 end
 
@@ -394,7 +392,7 @@ function BaganatorLiveBagLayoutMixin:OnShow()
   local start = debugprofilestop()
   self:UpdateCooldowns()
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("update cooldowns show", debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("update cooldowns show", debugprofilestop() - start)
   end
   self:UpdateQuests()
 
@@ -526,9 +524,9 @@ function BaganatorLiveBagLayoutMixin:ShowBags(bagData, source, indexes, indexesT
 
   local iconSize = addonTable.Config.Get(addonTable.Config.Options.BAG_ICON_SIZE)
 
-  if self:CompareButtonIndexes(indexes, indexesToUse) or self.prevState.source ~= source or self.prevState.section ~= section then
+  if self:CompareButtonIndexes(indexes, indexesToUse) or self.prevState.source ~= source then
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-      print("rebuild")
+      addonTable.Utilities.DebugOutput("rebuild")
     end
     self:RebuildLayout(indexes, indexesToUse, rowWidth)
     self.waitingUpdate = {}
@@ -571,12 +569,11 @@ function BaganatorLiveBagLayoutMixin:ShowBags(bagData, source, indexes, indexesT
   end
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("live bag layout took", section, debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("live bag layout took", debugprofilestop() - start)
   end
 
   self.prevState = {
     source = source,
-    section = section,
   }
   self.waitingUpdate = {}
 end
@@ -870,21 +867,29 @@ end
 
 function BaganatorLiveCategoryLayoutMixin:DeallocateUnusedButtons(cacheList)
   local used = {}
+  local matchingSlots = {}
   for _, cacheData in ipairs(cacheList) do
     local key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(cacheData)
     used[key] = (used[key] or 0) + 1
+    matchingSlots[key] = matchingSlots[key] or {}
+    if cacheData.slotID then
+      matchingSlots[key][cacheData.bagID .. "_" .. cacheData.slotID] = cacheData.itemCount
+    end
   end
   for key, list in pairs(self.buttonsByKey) do
     if not used[key] or used[key] < #list then
-      local max = used[key] and used[key] + 1 or 1
-      for index = #list, max, -1 do
+      for index = #list, 1, -1 do
         local button = list[index]
-        if not button.isDummy then
-          self.buttonPool:Release(button)
-        else
-          self.dummyButtonPool:Release(button)
+        -- We match by bag and slot to avoid redrawing (and breaking clicks) on
+        -- existing items
+        if matchingSlots[key] == nil or button.BGR.itemCount ~= matchingSlots[key][button:GetParent():GetID() .. "_" .. button:GetID()] then
+          if not button.isDummy then
+            self.buttonPool:Release(button)
+          else
+            self.dummyButtonPool:Release(button)
+          end
+          table.remove(list, index)
         end
-        table.remove(list)
       end
       if #list == 0 then
         self.buttonsByKey[key] = nil
@@ -1165,7 +1170,7 @@ function BaganatorGeneralGuildLayoutMixin:ShowGuild(guild, tabIndex, rowWidth)
   end
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print(self.layoutType .. " guild layout took", tabIndex, debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput(self.layoutType .. " guild layout " .. tabIndex .. " took", debugprofilestop() - start)
   end
 
   self.prevState = {
@@ -1286,7 +1291,7 @@ function BaganatorLiveWarbandLayoutMixin:ShowTab(tabIndex, indexes, rowWidth)
 
   if not self.initialized then
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-      print("rebuild")
+      addonTable.Utilities.DebugOutput("rebuild")
     end
     self:RebuildLayout(#warbandData[tabIndex].slots, rowWidth)
     self.waitingUpdate = true
@@ -1321,7 +1326,7 @@ function BaganatorLiveWarbandLayoutMixin:ShowTab(tabIndex, indexes, rowWidth)
   end
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("live warband layout took", debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("live warband layout took", debugprofilestop() - start)
   end
 
   self.prevState = {
@@ -1400,7 +1405,7 @@ function BaganatorCachedWarbandLayoutMixin:ShowTab(tabIndex, indexes, rowWidth)
 
   if not self.initialized then
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-      print("rebuild")
+      addonTable.Utilities.DebugOutput("rebuild")
     end
     self:RebuildLayout(#warbandData[tabIndex].slots, rowWidth)
     self.waitingUpdate = true
@@ -1426,7 +1431,7 @@ function BaganatorCachedWarbandLayoutMixin:ShowTab(tabIndex, indexes, rowWidth)
   end
 
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("cached warband layout took", debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("cached warband layout took", debugprofilestop() - start)
   end
 end
 

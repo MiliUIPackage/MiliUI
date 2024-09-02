@@ -1,8 +1,6 @@
 # Baganator
 
-## [445](https://github.com/Baganator/Baganator/tree/445) (2024-08-22)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/444...445) 
+## [458-1-gc59004c](https://github.com/Baganator/Baganator/tree/c59004cb95daa7376e5c07dded4406617d2d8db5) (2024-09-01)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/458...c59004cb95daa7376e5c07dded4406617d2d8db5) 
 
-- Remove duplicate local \_, addonTable = .. lines  
-- Warband Bank: Update "Everything" tab icon (thanks to Ryan)  
-- Sorting: Disable pickup/put down item sounds while sorting  
+- Tidy up duplicated code for padding values  

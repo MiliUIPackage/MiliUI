@@ -8,6 +8,8 @@ local function Prearrange(isLive, bagID, bag, bagType)
   if junkPluginID == "poor_quality" then
     junkPlugin = nil
   end
+  local upgradePluginID = addonTable.Config.Get("upgrade_plugin")
+  local upgradePlugin = addonTable.API.UpgradePlugins[upgradePluginID] and addonTable.API.UpgradePlugins[upgradePluginID].callback
 
   local emptySlots = {}
   local everything = {}
@@ -40,6 +42,7 @@ local function Prearrange(isLive, bagID, bag, bagType)
     end
     if info.itemID then
       info.guid = info.guid or ""
+      info.isUpgradeGetter = upgradePlugin and function() local _, result = pcall(upgradePlugin, info.itemLink); return result == true end
       info.iconTexture = slot.iconTexture
       info.keyLink = linkMap[info.itemLink]
       if not info.keyLink then
@@ -59,9 +62,9 @@ end
 addonTable.CategoryViews.BagLayoutMixin = {}
 
 function addonTable.CategoryViews.BagLayoutMixin:OnLoad()
-  self.labelsPool = CreateFramePool("Button", self:GetParent(), "BaganatorCategoryViewsCategoryButtonTemplate")
-  self.sectionButtonPool = addonTable.CategoryViews.GetSectionButtonPool(self:GetParent())
-  self.dividerPool = CreateFramePool("Button", self:GetParent(), "BaganatorBagDividerTemplate")
+  self.labelsPool = CreateFramePool("Button", self:GetParent().Container, "BaganatorCategoryViewsCategoryButtonTemplate")
+  self.sectionButtonPool = addonTable.CategoryViews.GetSectionButtonPool(self:GetParent().Container)
+  self.dividerPool = CreateFramePool("Button", self:GetParent().Container, "BaganatorBagDividerTemplate")
 
   self.updatedBags = {}
 
@@ -142,11 +145,11 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     end
   end
   while #container.LiveLayouts < layoutCount do
-    table.insert(container.LiveLayouts, CreateFrame("Frame", nil, container, "BaganatorLiveCategoryLayoutTemplate"))
+    table.insert(container.LiveLayouts, CreateFrame("Frame", nil, container.Container, "BaganatorLiveCategoryLayoutTemplate"))
     if container.liveItemButtonPool then
       container.LiveLayouts[#container.LiveLayouts]:SetPool(container.liveItemButtonPool)
     end
-    table.insert(container.CachedLayouts, CreateFrame("Frame", nil, container, "BaganatorCachedCategoryLayoutTemplate"))
+    table.insert(container.CachedLayouts, CreateFrame("Frame", nil, container.Container, "BaganatorCachedCategoryLayoutTemplate"))
   end
 
   local start2 = debugprofilestop()
@@ -351,6 +354,8 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
       addonTable.Skins.AddFrame("CategoryLabel", label)
       label:SetText(details.label)
       label.categorySearch = index
+      label.source = details.source
+      label.groupLabel = details.groupLabel
       activeLabels[index] = label
       layout.type = details.type
     else
@@ -363,10 +368,15 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   local left = sideSpacing + addonTable.Constants.ButtonFrameOffset - 2
   local right = sideSpacing
-  return addonTable.CategoryViews.PackSimple(layoutsShown, activeLabels, left, -50 - topSpacing / 4, bagWidth, addonTable.CategoryViews.Constants.MinWidth - left - right)
+  return addonTable.CategoryViews.PackSimple(layoutsShown, activeLabels, 0, 0, bagWidth, addonTable.CategoryViews.Constants.MinWidth - left - right)
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, callback)
+  if self.inProgress then
+    return
+  end
+  self.inProgress = true
+
   local container = self:GetParent()
   local s1 = debugprofilestop()
 
@@ -419,6 +429,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTy
           local s4 = debugprofilestop()
           local maxWidth, maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, composed, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
 
+          self.inProgress = false
           callback(maxWidth, maxHeight)
         end)
       end)

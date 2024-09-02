@@ -597,6 +597,37 @@ function BaganatorCustomiseDialogMixin:SetupGeneral()
     table.insert(GENERAL_OPTIONS, dropdown)
   end
 
+  do
+    local upgradePlugins = {
+      {label = BAGANATOR_L_NONE, id = "none"},
+    }
+    for id, pluginDetails in pairs(addonTable.API.UpgradePlugins) do
+      table.insert(upgradePlugins, {
+        label = pluginDetails.label,
+        id = id,
+      })
+    end
+    table.sort(upgradePlugins, function(a, b)
+      return a.label < b.label
+    end)
+    local dropdown = {
+      type = "dropdown",
+      text = BAGANATOR_L_UPGRADE_DETECTION,
+      option = "upgrade_plugin",
+      entries = {},
+      values = {},
+    }
+    for _, pluginInfo in ipairs(upgradePlugins) do
+      table.insert(dropdown.entries, pluginInfo.label)
+      table.insert(dropdown.values, pluginInfo.id)
+    end
+    if addonTable.API.UpgradePlugins[addonTable.Config.Get("upgrade_plugin")] == nil then
+      addonTable.Config.ResetOne("upgrade_plugin")
+    end
+
+    table.insert(GENERAL_OPTIONS, dropdown)
+  end
+
   local allFrames = {infoInset}
 
   do
@@ -924,7 +955,6 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   categoriesEditor:SetPoint("TOP", editorHeader, "BOTTOM")
   categoriesEditor:SetPoint("RIGHT", frame, -28, 0)
   categoriesEditor:SetPoint("LEFT", frame, "CENTER", addonTable.Constants.ButtonFrameOffset - 10, 0)
-  categoriesEditor:SetHeight(320)
   editors["EditCategory"] = categoriesEditor
   table.insert(allFrames, categoriesEditor)
 
@@ -939,7 +969,6 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   categoriesRecentEditor:SetPoint("TOP", editorHeader, "BOTTOM")
   categoriesRecentEditor:SetPoint("RIGHT", frame, -28, 0)
   categoriesRecentEditor:SetPoint("LEFT", frame, "CENTER", addonTable.Constants.ButtonFrameOffset - 10, 0)
-  categoriesRecentEditor:SetHeight(210)
   editors["EditCategoryRecent"] = categoriesRecentEditor
   table.insert(allFrames, categoriesRecentEditor)
 
@@ -947,7 +976,6 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   categoriesEmptyEditor:SetPoint("TOP", editorHeader, "BOTTOM")
   categoriesEmptyEditor:SetPoint("RIGHT", frame, -28, 0)
   categoriesEmptyEditor:SetPoint("LEFT", frame, "CENTER", addonTable.Constants.ButtonFrameOffset - 10, 0)
-  categoriesEmptyEditor:SetHeight(210)
   editors["EditCategoryEmpty"] = categoriesEmptyEditor
   table.insert(allFrames, categoriesEmptyEditor)
 
@@ -978,6 +1006,28 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   table.insert(allFrames, categoriesOrder)
   categoriesOrder:SetPoint("LEFT", frame, addonTable.Constants.ButtonFrameOffset + 20, 0)
   categoriesOrder:SetPoint("RIGHT", frame, "CENTER")
+
+  local enableDialog = "BaganatorCategoryEnableDialog"
+  StaticPopupDialogs[enableDialog] = {
+    text = BAGANATOR_L_ENABLE_CATEGORY_MODE_WARNING,
+    button1 = ENABLE,
+    button2 = CANCEL,
+    OnAccept = function()
+      addonTable.Config.Set(addonTable.Config.Options.BAG_VIEW_TYPE, "category")
+      addonTable.Config.Set(addonTable.Config.Options.BANK_VIEW_TYPE, "category")
+    end,
+    timeout = 0,
+    hideOnEscape = 1,
+  }
+
+  addonTable.CallbackRegistry:RegisterCallback("SettingChanged", function(_, settingName)
+    if frame:IsVisible() and tIndexOf(addonTable.CategoryViews.Constants.RedisplaySettings, settingName) ~= nil then
+      if addonTable.Config.Get("bag_view_type") ~= "category" and addonTable.Config.Get("bank_view_type") ~= "category" then
+        StaticPopup_Hide(enableDialog)
+        StaticPopup_Show(enableDialog)
+      end
+    end
+  end)
 
   frame:SetScript("OnShow", function()
     for index, frame in ipairs(allFrames) do

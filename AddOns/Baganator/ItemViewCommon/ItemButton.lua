@@ -62,6 +62,18 @@ function addonTable.ItemButtonUtil.UpdateSettings()
     end)
   end
 
+  local upgradePluginID = addonTable.Config.Get("upgrade_plugin")
+  local upgradePlugin = addonTable.API.UpgradePlugins[upgradePluginID]
+  if upgradePlugin and upgradePluginID ~= "poor_quality" then
+    iconSettings.usingUpgradePlugin = true
+    table.insert(itemCallbacks, function(self)
+      if self:GetID() ~= 0 then
+        local _, upgradeStatus = pcall(upgradePlugin.callback, self.BGR.itemLink)
+        self.BGR.isUpgrade = upgradeStatus == true
+      end
+    end)
+  end
+
   local positions = {
     "icon_top_left_corner_array",
     "icon_top_right_corner_array",
@@ -146,8 +158,7 @@ local function WidgetsOnly(self)
   if C_Item.IsItemDataCachedByID(self.BGR.itemID) then
     OnCached()
   else
-    local item = Item:CreateFromItemID(self.BGR.itemID)
-    item:ContinueOnItemLoad(function()
+    addonTable.Utilities.LoadItemData(self.BGR.itemID, function()
       OnCached()
     end)
   end
@@ -186,8 +197,7 @@ local function GetInfo(self, cacheData, earlyCallback, finalCallback)
   if C_Item.IsItemDataCachedByID(self.BGR.itemID) then
     OnCached()
   else
-    local item = Item:CreateFromItemID(self.BGR.itemID)
-    item:ContinueOnItemLoad(function()
+    addonTable.Utilities.LoadItemData(self.BGR.itemID, function()
       OnCached()
     end)
   end
@@ -476,10 +486,6 @@ end
 
 BaganatorRetailLiveContainerItemButtonMixin = {}
 
-local function IsReagentBankActive()
-  return IsReagentBankUnlocked() and C_Container.GetContainerNumFreeSlots(Enum.BagIndex.Reagentbank) > 0 and (not BankFrame.GetActiveBankType or BankFrame:GetActiveBankType() ~= Enum.BankType.Account)
-end
-
 function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
   self:HookScript("OnClick", function()
     if not self.BGR or not self.BGR.itemID then
@@ -491,19 +497,25 @@ function BaganatorRetailLiveContainerItemButtonMixin:MyOnLoad()
     end
   end)
   -- Automatically use the reagent bank when at the bank transferring crafting
-  -- reagents
-  self:HookScript("OnEnter", function()
-    self:ClearNewItem()
-    if BankFrame:IsShown() then
-      if self.BGR and self.BGR.itemLink and (select(17, C_Item.GetItemInfo(self.BGR.itemLink))) and IsReagentBankActive() then
-        BankFrame.selectedTab = 2
-      else
-        BankFrame.selectedTab = 1
+  -- reagents if there is space
+  self:HookScript("PreClick", function()
+    if BankFrame:IsShown() and self.BGR and self.BGR.itemID and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
+      local _
+      self.BGR.stackLimit, _, _, _, _, _, _, _, _, self.BGR.isReagent = select(8, C_Item.GetItemInfo(self.BGR.itemID))
+      if self.BGR.isReagent then
+        local reagentBank = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank[tIndexOf(Syndicator.Constants.AllBankIndexes, Enum.BagIndex.Reagentbank)]
+        for _, item in ipairs(reagentBank) do
+          if item.itemID == nil or (item.itemID == self.BGR.itemID and self.BGR.stackLimit - item.itemCount >= self.BGR.itemCount) then
+            BankFrame.selectedTab = 2
+            return
+          end
+        end
       end
+      BankFrame.selectedTab = 1
     end
   end)
-  self:HookScript("OnLeave", function()
-    if BankFrame:IsShown() and self.BGR then
+  self:HookScript("PostClick", function()
+    if BankFrame:IsShown() and self.BGR and BankFrame.activeTabIndex ~= addonTable.Constants.BlizzardBankTabConstants.Warband then
       BankFrame.selectedTab = 1
     end
   end)
@@ -872,6 +884,7 @@ function BaganatorRetailLiveWarbandItemButtonMixin:BGRUpdateQuests()
   local isQuestItem = questInfo.isQuestItem;
   self.BGR.isQuestItem = questInfo.isQuestItem or questInfo.questID
   local questID = questInfo.questID;
+  local isActive = questInfo.isActive;
 
   if questID and not isActive then
     self.IconQuestTexture:SetTexture(TEXTURE_ITEM_QUEST_BANG);
@@ -994,7 +1007,7 @@ else
     local questInfo = C_Container.GetContainerItemQuestInfo(self:GetParent():GetID(), self:GetID());
     self.BGR.isQuestItem = questInfo.isQuestItem or questInfo.questId
 
-    questTexture = _G[self:GetName().."IconQuestTexture"];
+    local questTexture = _G[self:GetName().."IconQuestTexture"];
 
     if ( questInfo.questId and not questInfo.isActive ) then
       questTexture:SetTexture(TEXTURE_ITEM_QUEST_BANG);

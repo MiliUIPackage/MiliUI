@@ -69,6 +69,8 @@ function BaganatorCurrencyWidgetMixin:CacheBackpackCurrencies()
 
   self.backpackCurrencies = {}
 
+  local existingCurrencies = Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).currencies
+
   for i = 1, addonTable.Constants.MaxPinnedCurrencies do
     local currencyID, icon
     if C_CurrencyInfo and C_CurrencyInfo.GetBackpackCurrencyInfo then
@@ -80,7 +82,7 @@ function BaganatorCurrencyWidgetMixin:CacheBackpackCurrencies()
     elseif GetBackpackCurrencyInfo then
       icon, currencyID = select(3, GetBackpackCurrencyInfo(i))
     end
-    if currencyID then
+    if currencyID and existingCurrencies[currencyID] then
       table.insert(self.backpackCurrencies, {icon = icon, currencyID = currencyID})
     else
       break
@@ -184,6 +186,6 @@ function BaganatorCurrencyWidgetMixin:UpdateCurrencies(character)
     self.currencyUpdateNeeded = true
   end
   if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    print("currency update", debugprofilestop() - start)
+    addonTable.Utilities.DebugOutput("currency update", debugprofilestop() - start)
   end
 end

@@ -42,7 +42,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
-    elseif settingName == addonTable.Config.Options.JUNK_PLUGIN then
+    elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
       self.LayoutManager:SettingChanged(settingName)
       if self:IsVisible() then
         self:GetParent():UpdateView()
@@ -68,12 +68,12 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnEvent(eventName, ...)
   end
 end
 
-function BaganatorCategoryViewBankViewCharacterViewMixin:TransferCategory(index)
-  if not self.isLive or not index then
+function BaganatorCategoryViewBankViewCharacterViewMixin:TransferCategory(index, source, groupLabel)
+  if not self.isLive then
     return
   end
 
-  self:RemoveSearchMatches(function() return self.LayoutManager.composed and tFilter(self.LayoutManager.composed.details[index].results or {}, function(a) return a.itemLink ~= nil end, true) end)
+  self:RemoveSearchMatches(function() return addonTable.CategoryViews.Utilities.GetItemsFromComposed(self.LayoutManager.composed, index, source, groupLabel) end)
 end
 
 function BaganatorCategoryViewBankViewCharacterViewMixin:GetSearchMatches()
@@ -107,12 +107,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(char
 
   BaganatorItemViewCommonBankViewCharacterViewMixin.UpdateForCharacter(self, character, isLive)
 
-  -- Copied from SingleViews/BagView.lua
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   if self.BankMissingHint:IsShown() then
     self:SetSize(
@@ -163,10 +158,10 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(char
   local bagTypes = addonTable.CategoryViews.Utilities.GetBagTypes(characterData, "bank", Syndicator.Constants.AllBankIndexes)
   local bagWidth = addonTable.Config.Get(addonTable.Config.Options.BANK_VIEW_WIDTH)
   self.LayoutManager:Layout(characterData.bank, bagWidth, bagTypes, Syndicator.Constants.AllBankIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
-    self:SetSize(
-      math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2),
-      maxHeight + 75 + topSpacing / 2 + buttonPadding
-    )
+    self.Container:SetSize(math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth), maxHeight)
+
+    self:OnFinished()
+
     self.CurrencyWidget:UpdateCurrencyTextVisibility(sideSpacing + addonTable.Constants.ButtonFrameOffset)
 
     local searchText = self:GetParent().SearchWidget.SearchBox:GetText()

@@ -5,7 +5,7 @@ BaganatorCategoryViewBackpackViewMixin = CreateFromMixins(BaganatorItemViewCommo
 function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   BaganatorItemViewCommonBackpackViewMixin.OnLoad(self)
 
-  self.Layouts = {}
+  self.Container.Layouts = {}
   self.LiveLayouts = {}
   self.CachedLayouts = {}
 
@@ -17,7 +17,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
     self.LayoutManager:FullRefresh()
-    for _, layout in ipairs(self.Layouts) do
+    for _, layout in ipairs(self.Container.Layouts) do
       layout:RequestContentRefresh()
     end
     if self:IsVisible() and self.lastCharacter ~= nil then
@@ -43,13 +43,13 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
       end
     elseif settingName == addonTable.Config.Options.SORT_METHOD then
       self.LayoutManager:SettingChanged(settingName)
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
-    elseif settingName == addonTable.Config.Options.JUNK_PLUGIN then
+    elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
       self.LayoutManager:SettingChanged(settingName)
       if self:IsVisible() then
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
@@ -113,7 +113,7 @@ function BaganatorCategoryViewBackpackViewMixin:ApplySearch(text)
   end
   self.searchToApply = false
 
-  for _, layout in ipairs(self.Layouts) do
+  for _, layout in ipairs(self.Container.Layouts) do
     if layout:IsVisible() then
       layout:ApplySearch(text)
     end
@@ -128,12 +128,12 @@ function BaganatorCategoryViewBackpackViewMixin:GetSearchMatches()
   return matches
 end
 
-function BaganatorCategoryViewBackpackViewMixin:TransferCategory(index)
-  if not self.isLive or not index then
+function BaganatorCategoryViewBackpackViewMixin:TransferCategory(index, source, groupLabel)
+  if not self.isLive then
     return
   end
 
-  self:Transfer(true, function() return self.LayoutManager.composed and tFilter(self.LayoutManager.composed.details[index].results or {}, function(a) return a.itemLink ~= nil end, true) end)
+  self:Transfer(true, function() return addonTable.CategoryViews.Utilities.GetItemsFromComposed(self.LayoutManager.composed, index, source, groupLabel) end)
 end
 
 function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, isLive)
@@ -148,11 +148,7 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
     addonTable.NewItems:ImportNewItems(true)
   end
 
-  local sideSpacing, topSpacing = 13, 14
-  if addonTable.Config.Get(addonTable.Config.Options.REDUCE_SPACING) then
-    sideSpacing = 8
-    topSpacing = 7
-  end
+  local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
   self.isGrouping = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_ITEM_GROUPING) and (not self.splitStacksDueToTransfer or not self.isLive)
 
@@ -165,10 +161,11 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
   local bagWidth = addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_WIDTH)
 
   self.LayoutManager:Layout(characterData.bags, bagWidth, bagTypes, Syndicator.Constants.AllBagIndexes, sideSpacing, topSpacing, function(maxWidth, maxHeight)
-    self:SetSize(
-      math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2),
-      maxHeight + 75 + topSpacing / 2
+    self.Container:SetSize(
+      math.max(addonTable.CategoryViews.Constants.MinWidth, maxWidth),
+      maxHeight
     )
+
     self.CurrencyWidget:UpdateCurrencyTextVisibility(sideSpacing + addonTable.Constants.ButtonFrameOffset)
 
     local searchText = self.SearchWidget.SearchBox:GetText()
@@ -176,13 +173,11 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
       self:ApplySearch(searchText)
     end
 
-    self:HideExtraTabs()
-
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("-- updateforcharacter backpack", debugprofilestop() - start)
     end
 
-    self:UpdateAllButtons()
+    self:OnFinished()
 
     addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
   end)

@@ -46,7 +46,7 @@ if Syndicator and Syndicator.Constants.WarbandBankActive then
         local location = ItemLocation:CreateFromBagAndSlot(m.bagID, m.slotID)
         return C_Item.DoesItemExist(location) and C_Bank.IsItemAllowedInBankType(Enum.BankType.Account, location)
       end, true)
-      local bagData, indexes
+      local bagsData, indexes
       local tabIndex = addonTable.Config.Get(addonTable.Config.Options.WARBAND_CURRENT_TAB)
       if tabIndex > 0 then
         bagsData = {Syndicator.API.GetWarband(1).bank[tabIndex].slots}
@@ -99,12 +99,12 @@ RegisterBagTransfer(
 
 local function AddToScrapper(matches, characterName, callback)
   local waiting = #matches
-  local loopOver = false
+  local loopFinished = false
 
   for _, item in ipairs(matches) do
     local location = ItemLocation:CreateFromBagAndSlot(item.bagID, item.slotID)
     if C_Item.DoesItemExist(location) then
-      Item:CreateFromItemLocation(location):ContinueOnItemLoad(function()
+      addonTable.Utilities.LoadItemData(item.itemID, function()
         waiting = waiting - 1
         if C_Item.CanScrapItem(location) then
           C_Container.UseContainerItem(item.bagID, item.slotID)
