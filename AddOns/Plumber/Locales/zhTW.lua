@@ -107,6 +107,8 @@ L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "�
 L["TalkingHead Option Condition WorldQuest Tooltip"] = "隱藏來自世界任務的文字。\n有時對話會在接受世界任務之前觸發，此時我們將無法隱藏這段文字。";
 L["TalkingHead Option Condition Instance"] = "副本";
 L["TalkingHead Option Condition Instance Tooltip"] = "在副本裡隱藏文字。";
+L["TalkingHead Option Below WorldMap"] = "打開地圖時置於底層";
+L["TalkingHead Option Below WorldMap Tooltip"] = "在你打開世界地圖時，將對話特寫頭像置於底層以避免遮擋地圖。";
 
 
 --AzerothianArchives
@@ -193,10 +195,10 @@ L["currency-2707"] = "飛龍";
 L["currency-2708"] = "巨龍";
 L["currency-2709"] = "守護巨龍";
 
-L["currency-2914"] = "Weathered";
-L["currency-2915"] = "Carved";
-L["currency-2916"] = "Runed";
-L["currency-2917"] = "Gilded";
+L["currency-2914"] = "陳舊";
+L["currency-2915"] = "雕刻";
+L["currency-2916"] = "符文";
+L["currency-2917"] = "鍍金";
 
 L["Scenario Delves"] = "探究";
 L["GameObject Door"] = "門";

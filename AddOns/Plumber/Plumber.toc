@@ -1,5 +1,5 @@
 ## Interface: 110002
-## Version: 1.3.4
+## Version: 1.3.6
 
 ## Title: Plumber
 ## Title-zhTW: |cFF00AA99[任務]|r 實用工具包
