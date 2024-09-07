@@ -381,7 +381,9 @@ do
 
 	local ItemsCellProvider, ItemsCellPrototype = LibQTip:CreateCellProvider(CompletableCellProvider)
 	ItemsCellPrototype.atlas = "banker"
-	ItemsCellPrototype.completion_function = function(id) return ns.Loot.Status.Quest(id) ~= false and ns.Loot.Status.Transmog(id) ~= false end
+	ItemsCellPrototype.completion_function = function(id)
+		return ns.Loot.Status.Quest(id) ~= false and ns.Loot.Status.Transmog(id) ~= false
+	end
 	local TameableCellProvider, TameableCellPrototype = LibQTip:CreateCellProvider(TextureCellProvider)
 	function TameableCellPrototype:SetupTexture(id)
 		-- ClassHall-Circle-Hunter? classicon-hunter? groupfinder-icon-class-hunter? GarrMission_ClassIcon-Hunter? GarrMission_ClassIcon-Hunter-BeastMastery? ClassTrial-Hunter-Ring?
@@ -699,7 +701,7 @@ do
 		if options.help then
 			tooltip:AddSeparator()
 			local index
-			for _, line in ipairs(type(options.help) == "table" and options.help or default_help) do
+			for _, line in ipairs(ns.xtype(options.help) == "table" and options.help or default_help) do
 				index = tooltip:AddLine(line)
 				tooltip:SetLineTextColor(index, 0, 1, 1)
 			end

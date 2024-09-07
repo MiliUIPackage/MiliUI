@@ -4,7 +4,7 @@
 ## Title-zhTW: SilverDragon
 ## Notes-zhTW: 協助記錄稀有怪位置,以及MouseOver時提示你.
 ## Notes-zhCN: 记录稀有怪物位置。
-## Version: v2024.19
+## Version: v2024.20
 ## Author: Kemayo
 ## eMail: kemayo at gmail dot com
 ## IconTexture: Interface\Icons\INV_Misc_Head_Dragon_01
@@ -14,7 +14,7 @@
 ## X-WoWI-ID: 6606
 ## X-Wago-ID: LvNALQGo
 ## OptionalDependencies: Ace3, LibSharedMedia-3.0, TomTom, LibSink-2.0, LibQTip-1.0, LibDBIcon-1.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons, LibTextDump-1.0, LibWindow-1.1, !LibUIDropDownMenu
-## SavedVariables: SilverDragon3DB,SilverDragon2DB
+## SavedVariables: SilverDragon3DB
 ## LoadOnDemand: 0
 
 ## X-Embeds: Ace3, LibSink-2.0, LibSharedMedia-3.0, ChatThrottleLib, AceGUI-3.0-SharedMediaWidgets, HereBeDragons-2.0, LibTextDump-1.0
@@ -30,8 +30,16 @@ embeds.xml
 
 # the core
 core.lua
+
+# systems
+systems\_scaffolding.lua
+systems\class.lua
+systems\conditions.lua
+systems\rewards\base.lua
+systems\rewards\item.lua
+systems\_glue.lua
+
 shards.lua
-conditions.lua
 achievements.lua
 loot.lua
 slash.lua

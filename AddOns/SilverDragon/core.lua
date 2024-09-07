@@ -7,6 +7,10 @@ SilverDragon = addon
 SilverDragon.NAMESPACE = ns -- for separate addons
 addon.events = LibStub("CallbackHandler-1.0"):New(addon)
 
+addon.Class = ns.Class
+addon.IsObject = ns.IsObject
+addon.conditions = ns.conditions
+
 ns.CLASSIC = WOW_PROJECT_ID ~= WOW_PROJECT_MAINLINE -- rolls forward
 ns.CLASSICERA = WOW_PROJECT_ID == WOW_PROJECT_CLASSIC -- forever vanilla
 
@@ -65,6 +69,54 @@ addon.escapes = {
 if ns.CLASSIC then
 	addon.escapes.leftClick = [[|TInterface\TUTORIALFRAME\UI-TUTORIAL-FRAME:19:11:-1:0:512:512:9:67:227:306|t]]
 	addon.escapes.rightClick = [[|TInterface\TUTORIALFRAME\UI-TUTORIAL-FRAME:20:12:0:-1:512:512:9:66:332:411|t]]
+end
+
+local upgradeloot
+do
+	local available = {}
+	local function upgradelootitem(item)
+		if ns.IsObject(item) then
+			return item
+		end
+		if type(item) == "number" then
+			return ns.rewards.Item(item)
+		end
+		local upgrade
+		if item.toy then
+			upgrade = ns.rewards.Toy(item[1])
+		elseif item.mount then
+			upgrade = ns.rewards.Mount(item[1], type(item.mount) == "number" and item.mount)
+		elseif item.pet then
+			upgrade = ns.rewards.Pet(item[1], type(item.pet) == "number" and item.pet)
+		elseif item.set then
+			upgrade = ns.rewards.Set(item[1], item.set)
+		else
+			upgrade = ns.rewards.Item(item[1])
+		end
+		upgrade.quest = item.quest
+		upgrade.questComplete = item.questComplete
+		upgrade.spell = item.spell
+		if item.class then
+			upgrade.class = item.class
+			table.insert(available, ns.conditions.Class(item.class))
+		end
+		if item.covenant then
+			upgrade.covenant = item.covenant
+			table.insert(available, ns.conditions.Covenant(item.covenant))
+		end
+		if #available > 0 then
+			upgrade.requires = available
+			available = {}
+		end
+		return upgrade
+	end
+	function upgradeloot(loot)
+		if not loot then return loot end
+		for i, item in ipairs(loot) do
+			loot[i] = upgradelootitem(item)
+		end
+		return loot
+	end
 end
 
 
@@ -144,12 +196,16 @@ function addon:RegisterMobData(source, data, updated)
 			ns.achievements[mobdata.achievement][mobid] = mobdata.criteria
 			ns.mobs_to_achievement[mobid] = mobdata.achievement
 		end
+		mobdata.loot = upgradeloot(mobdata.loot)
 	end
 end
 function addon:RegisterTreasureData(source, data, updated)
 	if not updated then return end
 	if not addon.treasuresources[source] then addon.treasuresources[source] = {} end
 	MergeTable(addon.treasuresources[source], data)
+	for vignetteid, vignettedata in pairs(data) do
+		vignettedata.loot = upgradeloot(vignettedata.loot)
+	end
 end
 do
 	function addon:RegisterHandyNotesData(source, uiMapID, points, defaults)
@@ -157,22 +213,22 @@ do
 		addon.datasources[source] = addon.datasources[source] or {}
 		addon.treasuresources[source] = addon.treasuresources[source] or {}
 		for coord, point in pairs(points) do
-			if point.npc or point.vignette then
-				if defaults then
-					for k,v in pairs(defaults) do
-						if k == "note" and point[k] then
-							point[k] = v .. "\n" .. point[k]
-						end
-						point[k] = point[k] or v
+			if defaults then
+				for k,v in pairs(defaults) do
+					if k == "note" and point[k] then
+						point[k] = v .. "\n" .. point[k]
 					end
+					point[k] = point[k] or v
 				end
+			end
+			if point.npc or point.vignette then
 				local data = {
 					name=point.label,
 					locations={[uiMapID]={coord}},
-					loot=point.loot,
+					loot=upgradeloot(point.loot),
 					notes=point.note,
 					active=point.active,
-					requires=point.require or point.hide_before,
+					requires=point.requires or point.hide_before,
 					vignette=point.vignette,
 					quest=point.quest,
 					hidden=point.hidden,
@@ -228,7 +284,7 @@ do
 						table.insert(data.locations[uiMapID], acoord)
 					end
 				end
-				if point.route and type(point.route) == "table" then
+				if point.route and ns.xtype(point.route) == "table" then
 					data.routes = {[uiMapID] = {point.route}}
 				end
 				if point.routes then
@@ -238,7 +294,13 @@ do
 					if not addon.datasources[source][point.npc] then
 						addon.datasources[source][point.npc] = data
 					else
-						addon.datasources[source][point.npc].locations[uiMapID] = data.locations[uiMapID]
+						if not addon.datasources[source][point.npc].locations[uiMapID] then
+							addon.datasources[source][point.npc].locations[uiMapID] = data.locations[uiMapID]
+						else
+							for _, pcoord in ipairs(data.locations[uiMapID]) do
+								tInsertUnique(addon.datasources[source][point.npc].locations[uiMapID], pcoord)
+							end
+						end
 					end
 					if point.achievement and point.criteria then
 						if not ns.achievements[point.achievement] then
@@ -256,7 +318,7 @@ do
 end
 do
 	local function addQuestMobLookup(lookup, mobid, quest)
-		if type(quest) == "table" then
+		if ns.xtype(quest) == "table" then
 			if quest.alliance then
 				return addQuestMobLookup(lookup, mobid, faction == "Alliance" and quest.alliance or quest.horde)
 			end
@@ -360,7 +422,7 @@ function addon:OnInitialize()
 			instances = false,
 			taxi = true,
 			charloot = false,
-			lootappearances = true,
+			transmog_specific = false,
 		},
 	}, true)
 	globaldb = self.db.global
@@ -370,25 +432,8 @@ function addon:OnInitialize()
 		self.db.locale.quest_name = nil
 	end
 
-	if SilverDragon2DB and SilverDragon2DB.global then
-		-- Migrating some data from v2
-
-		for mobid, when in pairs(SilverDragon2DB.global.mob_seen or {}) do
-			if when > 0 then
-				globaldb.mob_seen[mobid] = when
-			end
-		end
-		for mobid, count in pairs(SilverDragon2DB.global.mob_count or {}) do
-			globaldb.mob_count[mobid] = count
-		end
-		for mobid, watching in pairs(SilverDragon2DB.global.always or {}) do
-			globaldb.always[mobid] = watching
-		end
-		for mobid, ignored in pairs(SilverDragon2DB.global.ignore or {}) do
-			globaldb.ignore[mobid] = ignored
-		end
-
-		_G["SilverDragon2DB"] = nil
+	if self.db.profile.lootappearances ~= nil then
+		self.db.profile.transmog_specific = not self.db.profile.lootappearances
 	end
 
 	if globaldb.always then

@@ -154,7 +154,7 @@ function module:OnInitialize()
 			return {
 				type = "select", dialogControl = "LSM30_Sound",
 				name = "播放音效", desc = "選擇要播放的音效",
-				values = AceGUIWidgetLSMlists.sound,
+				values = LSM:HashTable("sound"),
 				disabled = function() return not self.db.profile[enabled_key] end,
 				order = order,
 			}
@@ -264,12 +264,24 @@ function module:OnInitialize()
 							Ambience = _G.AMBIENCE_VOLUME,
 							Master = "主音量",
 							Music = _G.MUSIC_VOLUME,
-							SFX = _G.SOUND_VOLUME,
+							SFX = _G.SOUND_VOLUME or _G.FX_VOLUME,
 							Dialog = _G.DIALOG_VOLUME,
 						},
 						order = 11,
 					},
-					unmute = toggle("忽略靜音", "就算是靜音時也要播放音效", 12),
+					test = {
+						type = "execute",
+						name = "測試!",
+						image = "interface/common/voicechat-speaker",
+						func = function()
+							module:PlaySound{
+								soundfile = module.db.profile.soundfile,
+								loops = module.db.profile.sound_loop
+							}
+						end,
+						order = 11,
+					},
+					unmute = toggle("忽略靜音", "就算遊戲靜音時也要播放音效", 12),
 					background = toggle(_G.ENABLE_BGSOUND, _G.OPTION_TOOLTIP_ENABLE_BGSOUND, 13),
 					drums = toggle("鼓聲", "搭配鼓聲更有氣氛", 14),
 					soundgroup = toggle("隊伍同步音效", "從隊伍/團隊成員同步稀有怪時播放音效", 15),
