@@ -22,12 +22,12 @@
 ## X-Curse-Project-ID: 314994
 ## X-WoWI-ID: 24904
 ## X-Wago-ID: xZKxZENk
-## Version: r143
+## Version: r148
 ## X-Category-zhTW: 團隊
 
 localization.en.lua
-localization.cn.lua
 localization.tw.lua
+localization.cn.lua
 
 DarkflameCleft\OlWaxbeard.lua
 DarkflameCleft\Blazikon.lua

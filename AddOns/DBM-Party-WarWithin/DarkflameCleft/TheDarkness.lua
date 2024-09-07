@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2561, "DBM-Party-WarWithin", 1, 1210)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240504134056")
+mod:SetRevision("20240827000137")
 mod:SetCreatureID(208747)
 mod:SetEncounterID(2788)
 mod:SetHotfixNoticeRev(20240427000000)
@@ -101,7 +101,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 	local spellId = args.spellId
 	if spellId == 427157 then
 		self.vb.callCount = self.vb.callCount + 1
-		specWarnCallDarkspawn:Show(args.sourceGUID, self.vb.callCount)
+		specWarnCallDarkspawn:Show(args.sourceName, self.vb.callCount)
 		specWarnCallDarkspawn:Play("kickcast")
 		timerCallDarkspawnCD:Start(nil, self.vb.callCount+1)
 	end

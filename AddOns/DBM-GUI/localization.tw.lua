@@ -583,6 +583,10 @@ L.NPIconAnchorPoint		 	= "圖示定位點"
 L.NPDemo					= "測試 (靠近名條)"
 L.FontTypeTimer				= "選擇計時器字體"
 L.FontTypeText				= "選擇文字字體"
+L.NPIcon_GlowBehavior 		= "圖示光暈行為"
+L.NPIcon_GlowNone			= "永不光暈圖示"
+L.NPIcon_GlowImportant	    = "光暈重要將過期 CD/施法 圖示"
+L.NPIcon_GlowAll			= "光暈全部將過期 CD/施法 圖示"
 
 -- Misc
 L.Area_General				= "一般"
@@ -599,7 +603,27 @@ L.FontHeight	= 16
 
 
 -- Testing
+L.DevPanel							= "開發 & 測試"
+L.DevPanelArea						= "開發以及測試UI"
+L.DevPanelExplanation				= "這是一個開發和測試UI，它透由播放戰鬥日誌來驗證DBM是否按預期工作。"
+
+L.TimewarpSetting					= "時間扭曲: %dx"
+L.TimewarpDynamic					= "時間扭曲: 動態 (最快)"
+
+
+L.Test								= "測試"
+L.Tests								= "測試"
+L.AllTests							= "全部測試"
 L.RunTest							= "運行測試"
+L.RunTestShort						= "運行" -- Same intend as RunTest, but a smaller button
 L.StopTest							= "停止測試"
+L.StopTests							= "停止測試"
+L.RunAllTests						= "運行全部測試"
+L.Queued							= "佇列"
+L.Running							= "運行中"
+L.Failed							= "失敗"
+L.ShowReport						= "顯示報告"
+L.ShowDiff							= "顯示不同"
+L.ShowErrors						= "顯示錯誤"
 L.TestModEntry						= "[操練場] %s"
 L.EnterTestMode						= "操練場模式"

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BoralusTrash", "DBM-Party-BfA", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240808043723")
+mod:SetRevision("20240901002640")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -188,11 +188,11 @@ end
 function mod:SPELL_INTERRUPT(args)
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 275826 then
-		timerBolsteringShoutCD:Start(15.6, args.sourceGUID)--18.1 - 2.5
+		timerBolsteringShoutCD:Start(15.6, args.destGUID)--18.1 - 2.5
 	elseif args.extraSpellId == 454440 then
-		timerStinkyVomitCD:Start(18.1, args.sourceGUID)--16.1 - 2
+		timerStinkyVomitCD:Start(18.1, args.destGUID)--16.1 - 2
 	elseif args.extraSpellId == 272571 then
-		timerChoakingWatersCD:Start(26.6, args.sourceGUID)--29.1 - 2.5
+		timerChoakingWatersCD:Start(26.6, args.destGUID)--29.1 - 2.5
 	end
 end
 

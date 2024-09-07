@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("AraKaraTrash", "DBM-Party-WarWithin", 6)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240818054948")
+mod:SetRevision("20240902224710")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -41,14 +41,14 @@ local specWarnPoisonBolt					= mod:NewSpecialWarningInterrupt(436322, "HasInterr
 local specWarnRevoltingVolley				= mod:NewSpecialWarningInterrupt(448248, "HasInterrupt", nil, nil, 1, 2)
 local specWarnVenomVolley					= mod:NewSpecialWarningInterrupt(433841, "HasInterrupt", nil, nil, 1, 2)--High Prio
 
-local timerWebSprayCD						= mod:NewCDNPTimer(7, 434824, nil, nil, nil, 3)--7-8.2 from last cast finish/kick
-local timerHorrifyingShrillCD				= mod:NewCDNPTimer(13.3, 434802, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--13.3-15.5 from last cast finish/kick
+local timerWebSprayCD						= mod:NewCDPNPTimer(7, 434824, nil, nil, nil, 3)--7-8.2 from last cast finish/kick
+local timerHorrifyingShrillCD				= mod:NewCDPNPTimer(13.3, 434802, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--13.3-15.5 from last cast finish/kick
 local timerRadiantBarrageCD					= mod:NewCDNPTimer(16.8, 434793, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerCalloftheBroodCD					= mod:NewCDNPTimer(26.6, 438877, nil, nil, nil, 1)
 local timerPoisonousCloudCD					= mod:NewCDNPTimer(15.3, 438826, nil, nil, nil, 3)--15.3-24.7
 local timerRevoltingVolleyCD				= mod:NewCDNPTimer(18.3, 448248, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerImpaleCD							= mod:NewCDNPTimer(14.5, 453161, nil, nil, nil, 3)
-local timerVenomVolleyCD					= mod:NewCDNPTimer(18.2, 433841, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerImpaleCD							= mod:NewCDPNPTimer(14.5, 453161, nil, nil, nil, 3)
+local timerVenomVolleyCD					= mod:NewCDPNPTimer(18.2, 433841, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerEruptingWebsCD					= mod:NewCDNPTimer(18.1, 433845, nil, nil, nil, 3)
 
 --local playerName = UnitName("player")
@@ -151,11 +151,11 @@ end
 
 function mod:SPELL_INTERRUPT(args)
 	if args.extraSpellId == 434802 then
-		timerHorrifyingShrillCD:Start(13.3, args.sourceGUID)
+		timerHorrifyingShrillCD:Start(13.3, args.destGUID)
 	elseif args.extraSpellId == 448248 then
-		timerRevoltingVolleyCD:Start(18.3, args.sourceGUID)
+		timerRevoltingVolleyCD:Start(18.3, args.destGUID)
 	elseif args.extraSpellId == 433841 then
-		timerVenomVolleyCD:Start(18.2, args.sourceGUID)
+		timerVenomVolleyCD:Start(18.2, args.destGUID)
 	end
 end
 

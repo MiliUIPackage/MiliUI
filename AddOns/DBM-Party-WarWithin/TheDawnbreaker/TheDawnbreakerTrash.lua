@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TheDawnbreakerTrash", "DBM-Party-WarWithin", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240818091926")
+mod:SetRevision("20240902224710")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -41,7 +41,7 @@ local specWarnBlackEdge						= mod:NewSpecialWarningDodge(431494, nil, nil, nil,
 local specWarnBlackHail						= mod:NewSpecialWarningDodge(432565, nil, nil, nil, 2, 2)
 local specWarnTerrifyingSlam				= mod:NewSpecialWarningRun(451117, nil, nil, nil, 4, 2)
 local specWarnTackyNova						= mod:NewSpecialWarningRun(451098, nil, nil, nil, 4, 2)
-local specWarnTormentingEruption			= mod:NewSpecialWarningRun(431349, "Melee", nil, nil, 4, 2)
+local specWarnTormentingEruption			= mod:NewSpecialWarningMoveAway(431349, "Melee", nil, nil, 4, 2)
 local specWarnSygianSeed					= mod:NewSpecialWarningMoveAway(432448, nil, nil, nil, 1, 2)
 local yellStygianSeed						= mod:NewShortYell(432448)
 local yellStygianSeedFades					= mod:NewShortFadesYell(432448)
@@ -58,18 +58,18 @@ local specWarnTacticiansRageDispel			= mod:NewSpecialWarningDispel(451112, "Remo
 
 local timerAbyssalBlastCD					= mod:NewCDNPTimer(9.4, 451119, nil, "Tank|Healer", nil, 5)--9.4-23.98 (wildly varient due to lower priority over other abilities)
 local timerShadowyDecayCD					= mod:NewCDNPTimer(23.4, 451102, nil, nil, nil, 2)
-local timerDarkOrbCD						= mod:NewCDNPTimer(14.2, 450854, nil, nil, nil, 3)--14.2-36.8 (wildly varient due to lower priority over other abilities)
+local timerDarkOrbCD						= mod:NewCDPNPTimer(14.2, 450854, nil, nil, nil, 3)--14.2-36.8 (wildly varient due to lower priority over other abilities)
 local timerTerrifyingSlamCD					= mod:NewCDNPTimer(21.2, 451117, nil, nil, nil, 2)
-local timerBlackEdgeCD						= mod:NewCDNPTimer(10.3, 431494, nil, nil, nil, 3)
+local timerBlackEdgeCD						= mod:NewCDPNPTimer(10.3, 431494, nil, nil, nil, 3)
 local timerBlackHailCD						= mod:NewCDNPTimer(12.5, 432565, nil, nil, nil, 3)
 local timerUmbrelRushCD						= mod:NewCDNPTimer(9.1, 431637, nil, nil, nil, 3)
-local timerUmbrelBarrierCD					= mod:NewCDNPTimer(24.2, 432520, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--Single log with single cast, not great sample
+local timerUmbrelBarrierCD					= mod:NewCDPNPTimer(24.2, 432520, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)--Single log with single cast, not great sample
 local timerTacticiansRageCD					= mod:NewCDNPTimer(18.2, 451112, nil, nil, nil, 5, nil, DBM_COMMON_L.MAGIC_ICON)
-local timerSilkenShellCD					= mod:NewCDNPTimer(18.4, 451097, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerTormentingRayCD					= mod:NewCDNPTimer(8, 431364, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerAbyssalHowlCD					= mod:NewCDNPTimer(25.6, 450756, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerSilkenShellCD					= mod:NewCDPNPTimer(18.4, 451097, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerTormentingRayCD					= mod:NewCDPNPTimer(8, 431364, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerAbyssalHowlCD					= mod:NewCDPNPTimer(25.6, 450756, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerTorentingEruptionCD				= mod:NewCDNPTimer(11.2, 431349, nil, nil, nil, 3)
-local timerEnsharingShadowsCD				= mod:NewCDNPTimer(18.1, 431309, nil, nil, nil, 5, nil, DBM_COMMON_L.CURSE_ICON)
+local timerEnsharingShadowsCD				= mod:NewCDPNPTimer(18.1, 431309, nil, nil, nil, 5, nil, DBM_COMMON_L.CURSE_ICON)
 local timerStygianSeedCD					= mod:NewCDNPTimer(21.8, 432448, nil, nil, nil, 3)
 local timerBurstingCacoonCD					= mod:NewCDNPTimer(15.7, 451107, nil, nil, nil, 3)
 
@@ -164,7 +164,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 431349 then
 		if self:AntiSpam(3, 1) then
 			specWarnTormentingEruption:Show()
-			specWarnTormentingEruption:Play("justrun")
+			specWarnTormentingEruption:Play("scatter")
 		end
 	elseif spellId == 446615 and self:AntiSpam(3, 6) then
 		warnReinforcements:Show()
@@ -217,11 +217,11 @@ function mod:SPELL_INTERRUPT(args)
 	if not self.Options.Enabled then return end
 	local spellId = args.extraSpellId
 	if spellId == 450756 then
-		timerAbyssalHowlCD:Start(25.6, args.sourceGUID)
+		timerAbyssalHowlCD:Start(25.6, args.destGUID)
 	elseif spellId == 432520 then
-		timerUmbrelBarrierCD:Start(24.2, args.sourceGUID)
+		timerUmbrelBarrierCD:Start(24.2, args.destGUID)
 	elseif spellId == 431309 then
-		timerEnsharingShadowsCD:Start(18.1, args.sourceGUID)
+		timerEnsharingShadowsCD:Start(18.1, args.destGUID)
 	end
 end
 

@@ -13,12 +13,11 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.0.3
+## Version: 11.0.5
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
 ## X-Website: https://deadlybossmods.com
-## X-Category-zhTW: 團隊
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml
@@ -32,6 +31,7 @@ Libs\LibDeflate\LibDeflate.lua
 Libs\LibSerialize\lib.xml
 Libs\LibSpecialization\LibSpecialization.xml
 Libs\LibDropDownMenu\LibDropDownMenu.xml
+Libs\LibCustomGlow-1.0\LibCustomGlow-1.0.xml
 
 localization.en.lua
 localization.cn.lua

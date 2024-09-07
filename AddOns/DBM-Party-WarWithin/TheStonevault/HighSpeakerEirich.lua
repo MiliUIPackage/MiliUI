@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2582, "DBM-Party-WarWithin", 4, 1269)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240820072838")
+mod:SetRevision("20240824045847")
 mod:SetCreatureID(213119)
 mod:SetEncounterID(2883)
 mod:SetHotfixNoticeRev(20240428000000)
@@ -76,7 +76,7 @@ function mod:OnCombatStart(delay)
 	self.vb.unbridledCount = 0
 	timerUnbfridledVoidCD:Start(7.6-delay, 1)
 	timerVoidCorruptionCD:Start(15.5-delay, 1)
-	timerEntropicReckoningCD:Start(21.6-delay, 1)
+	timerEntropicReckoningCD:Start(21.5-delay, 1)
 end
 
 --function mod:OnCombatEnd()
@@ -99,7 +99,6 @@ function mod:SPELL_CAST_START(args)
 		else
 			timerEntropicReckoningCD:Start(16.9, self.vb.reckoningCount+1)
 		end
-		timerEntropicReckoningCD:Start(nil, self.vb.reckoningCount+1)
 		updateAllTimers(self, 4.8)
 	elseif spellId == 427869 then
 		self.vb.unbridledCount = self.vb.unbridledCount + 1

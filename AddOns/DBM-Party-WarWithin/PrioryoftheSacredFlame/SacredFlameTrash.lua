@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("SacredFlameTrash", "DBM-Party-WarWithin", 2)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240820082611")
+mod:SetRevision("20240902224710")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -17,6 +17,7 @@ mod:RegisterEvents(
 --TODO, target scan lunging strike?
 --TODO, longer pulls for Trusted Guard timers
 --TODO, nameplate timer for https://www.wowhead.com/beta/spell=424421/fireball on Taener Duelmal?
+--TODO, add more abilities and timers from quazii's SS like Battle Cry, Burning Light, Fireball Volley
 --All normal Trash
 local warnMortalStrike						= mod:NewStackAnnounce(426964, 2, nil, "Tank|Healer")
 local warnBurstofLight						= mod:NewCastAnnounce(427601, 4)--SUPER obvious so doesn't need a special warning for now i think
@@ -31,7 +32,7 @@ local specWarnGTFO							= mod:NewSpecialWarningGTFO(424430, nil, nil, nil, 1, 8
 
 local timerCaltropsCD						= mod:NewCDNPTimer(16.9, 453458, nil, nil, nil, 3)
 local timerFlamestrikeCD					= mod:NewCDNPTimer(17.4, 427484, nil, nil, nil, 3)
---local timerGreaterHealCD					= mod:NewCDNPTimer(20.4, 427356, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Currently too much of a PITA to add due to stuns not putting it on CD
+--local timerGreaterHealCD					= mod:NewCDPNPTimer(20.4, 427356, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 ----Everything below here are the adds from Captain Dailcry. treated as trash since they are pulled as trash, just like Court of Stars
 --The Trusted Guard
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(27840))
@@ -58,7 +59,7 @@ local specWarnEmberStorm					= mod:NewSpecialWarningDodge(424462, nil, nil, nil,
 local specWarnCinderblast					= mod:NewSpecialWarningInterrupt(424420, "HasInterrupt", nil, nil, 1, 2)
 
 --local timerEmberStormCD					= mod:NewCDNPTimer(12.1, 424462, nil, nil, nil, 3)
-local timerCinderblastCD					= mod:NewCDNPTimer(15.7, 424420, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerCinderblastCD					= mod:NewCDPNPTimer(15.7, 424420, nil, "HasInterrupt", nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 
 --local playerName = UnitName("player")
 
@@ -84,7 +85,7 @@ function mod:SPELL_CAST_START(args)
 		--timerBrutalSmashCD:Start(nil, args.sourceGUID)
 		if self:AntiSpam(3, 2) then
 			specWarnBrutalSmash:Show()
-			specWarnBrutalSmash:Play("shockwave")
+			specWarnBrutalSmash:Play("watchstep")
 		end
 	elseif spellId == 427356 then
 		if self.Options.SpecWarn427356interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then

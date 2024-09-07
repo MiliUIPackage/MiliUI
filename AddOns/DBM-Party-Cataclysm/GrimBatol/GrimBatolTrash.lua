@@ -2,7 +2,7 @@ if DBM:IsCata() then return end
 local mod	= DBM:NewMod("GrimBatolTrash", "DBM-Party-Cataclysm", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240812045014")
+mod:SetRevision("20240901002640")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -192,7 +192,7 @@ function mod:SPELL_INTERRUPT(args)
 	if args.extraSpellId == 451871 then
 		timerMassTremorCD:Start(20, args.destGUID)
 	elseif args.extraSpellId == 76711 then
-		timerSearMindCD:Start(18.9, args.sourceGUID)
+		timerSearMindCD:Start(18.9, args.destGUID)
 	end
 end
 

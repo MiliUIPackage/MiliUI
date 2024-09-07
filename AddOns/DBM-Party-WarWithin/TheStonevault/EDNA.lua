@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2572, "DBM-Party-WarWithin", 4, 1269)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240820072838")
+mod:SetRevision("20240830215855")
 mod:SetCreatureID(210108)
 mod:SetEncounterID(2854)
 mod:SetHotfixNoticeRev(20240717000000)
@@ -55,11 +55,15 @@ function mod:OnCombatStart(delay)
 	self.vb.shatterCount = 0
 	self.vb.smashCount = 0
 	self.vb.spikeCount = 0
-	timerVolatileSpikeCD:Start(5.9-delay, 1)
-	timerRefractingBeamCD:Start(13.9-delay, 1)
-	timerSeismicSmashCD:Start(17.9-delay, 1)
 	if self:IsMythic() then
+		timerVolatileSpikeCD:Start(5.9-delay, 1)
+		timerRefractingBeamCD:Start(13.9-delay, 1)
+		timerSeismicSmashCD:Start(17.9-delay, 1)
 		timerEarthShattererCD:Start(42.9-delay, 1)
+	else
+		timerVolatileSpikeCD:Start(5.9-delay, 1)
+		timerRefractingBeamCD:Start(11.7-delay, 1)
+		timerSeismicSmashCD:Start(15.4-delay, 1)
 	end
 end
 
@@ -89,10 +93,14 @@ function mod:SPELL_CAST_START(args)
 		self.vb.spikeCount = self.vb.spikeCount + 1
 		specWarnVolatileSpike:Show(self.vb.spikeCount)
 		specWarnVolatileSpike:Play("watchstep")
-		if self.vb.spikeCount % 2 == 0 then
-			timerVolatileSpikeCD:Start(28, self.vb.spikeCount+1)
+		if self:IsMythic() then
+			if self.vb.spikeCount % 2 == 0 then
+				timerVolatileSpikeCD:Start(28, self.vb.spikeCount+1)
+			else
+				timerVolatileSpikeCD:Start(20, self.vb.spikeCount+1)
+			end
 		else
-			timerVolatileSpikeCD:Start(20, self.vb.spikeCount+1)
+			timerVolatileSpikeCD:Start(14.6, self.vb.spikeCount+1)
 		end
 	end
 end
