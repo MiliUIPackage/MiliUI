@@ -27,6 +27,8 @@ function loadHelper:OnEvent(event, arg1, arg2)
             addon.Icon:Load();
 
             addon.Api.Load();
+
+            KrowiEVU_OptionsButton:ShowHide();
         end
     end
 end

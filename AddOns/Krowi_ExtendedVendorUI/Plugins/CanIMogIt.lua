@@ -16,6 +16,6 @@ end
 
 function canIMogIt.InjectOptions()
     addon.InjectOptions:AddPluginTable("CanIMogIt", addon.L["Can I Mog It"], addon.L["Can I Mog It Desc"]:K_ReplaceVars(addon.L["Can I Mog It"]), function()
-        return IsAddOnLoaded("CanIMogIt");
+        return C_AddOns.IsAddOnLoaded("CanIMogIt");
     end);
 end

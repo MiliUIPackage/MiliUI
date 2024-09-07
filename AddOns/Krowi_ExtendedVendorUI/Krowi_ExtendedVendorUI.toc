@@ -2,7 +2,7 @@
 ## Title: Krowi's |cFF1D92C2Extended Vendor UI|r
 ## X-Prefix: KrowiEVU
 ## X-Acronym: KEVU
-## Version: 8.0
+## Version: 8.3
 ## Author: Krowi-Frostmane EU
 ## LoadWith: Blizzard_MerchantFrame
 ## SavedVariables: KrowiEVU_Options, KrowiEVU_Filters
