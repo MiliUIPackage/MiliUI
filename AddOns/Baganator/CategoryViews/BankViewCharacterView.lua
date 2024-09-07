@@ -4,7 +4,7 @@ BaganatorCategoryViewBankViewCharacterViewMixin = CreateFromMixins(BaganatorItem
 function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
   BaganatorItemViewCommonBankViewCharacterViewMixin.OnLoad(self)
 
-  self.Layouts = {}
+  self.Container.Layouts = {}
   self.LiveLayouts = {}
   self.CachedLayouts = {}
 
@@ -15,8 +15,9 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
   self:RegisterEvent("CURSOR_CHANGED")
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
+    self.searchToApply = true
     self.LayoutManager:FullRefresh()
-    for _, layout in ipairs(self.Layouts) do
+    for _, layout in ipairs(self.Container.Layouts) do
       layout:RequestContentRefresh()
     end
     if self:IsVisible() and self.lastCharacter ~= nil then
@@ -35,7 +36,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
         self:GetParent():UpdateView()
       end
     elseif settingName == addonTable.Config.Options.SORT_METHOD then
-      for _, layout in ipairs(self.Layouts) do
+      for _, layout in ipairs(self.Container.Layouts) do
         layout:InformSettingChanged(settingName)
       end
       self.LayoutManager:SettingChanged(settingName)
@@ -43,6 +44,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:OnLoad()
         self:UpdateForCharacter(self.lastCharacter, self.isLive)
       end
     elseif settingName == addonTable.Config.Options.JUNK_PLUGIN or settingName == addonTable.Config.Options.UPGRADE_PLUGIN then
+      self.searchToApply = true
       self.LayoutManager:SettingChanged(settingName)
       if self:IsVisible() then
         self:GetParent():UpdateView()
@@ -89,7 +91,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:ApplySearch(text)
     return
   end
 
-  for _, layout in ipairs(self.Layouts) do
+  for _, layout in ipairs(self.Container.Layouts) do
     if layout:IsVisible() then
       layout:ApplySearch(text)
     end
@@ -115,7 +117,7 @@ function BaganatorCategoryViewBankViewCharacterViewMixin:UpdateForCharacter(char
       80 + topSpacing / 2
     )
     self.CurrencyWidget:UpdateCurrencyTextVisibility()
-    for _, l in ipairs(self.Layouts) do
+    for _, l in ipairs(self.Container.Layouts) do
       l:Hide()
     end
     self.LayoutManager:ClearVisuals()

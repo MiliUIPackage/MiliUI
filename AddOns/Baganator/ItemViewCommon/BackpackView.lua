@@ -38,6 +38,8 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
+  addonTable.Utilities.AddScrollBar(self)
+
   self.tabsPool = addonTable.ItemViewCommon.GetTabButtonPool(self)
 
   addonTable.CallbackRegistry:RegisterCallback("BagCacheAfterNewItemsUpdate",  function(_, character, updatedBags)
@@ -72,8 +74,10 @@ function BaganatorItemViewCommonBackpackViewMixin:OnLoad()
           PanelTemplates_SetTab(self, index)
         end
       end
+      self:OnFinished()
     elseif settingName == addonTable.Config.Options.MAIN_VIEW_SHOW_BAG_SLOTS then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
+      self:OnFinished()
     end
   end)
 
@@ -312,6 +316,10 @@ function BaganatorItemViewCommonBackpackViewMixin:UpdateForCharacter(character, 
   self.lastCharacter = character
   self.isLive = isLive
 
+  addonTable.Utilities.AddGeneralDropSlot(self, function()
+    return Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bags
+  end, Syndicator.Constants.AllBagIndexes)
+
   self.BagSlots:Update(self.lastCharacter, self.isLive)
   local containerInfo = characterData.containerInfo
   self.ToggleBagSlotsButton:SetShown(self.isLive or (containerInfo and containerInfo.bags))
@@ -339,12 +347,14 @@ end
 function BaganatorItemViewCommonBackpackViewMixin:OnFinished(character, isLive)
   local sideSpacing, topSpacing = addonTable.Utilities.GetSpacing()
 
-  self.Container:ClearAllPoints()
-  self.Container:SetPoint("TOPRIGHT", -sideSpacing, -50 - topSpacing / 4)
+  local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self.Tabs[1] and self.Tabs[1]:IsShown() and (self:GetBottom() - self.Tabs[1]:GetBottom() + 5) or 0)
+
   self:SetSize(
     self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    self.Container:GetHeight() + 75
+    math.min(self.Container:GetHeight() + 75 + topSpacing / 2, UIParent:GetHeight() - externalVerticalSpacing)
   )
+
+  self:UpdateScroll(75 + topSpacing / 2 + externalVerticalSpacing)
 
   self:HideExtraTabs()
 

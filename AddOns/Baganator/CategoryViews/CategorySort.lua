@@ -2,13 +2,21 @@ local _, addonTable = ...
 
 BaganatorCategoryViewsCategorySortMixin = {}
 
+function BaganatorCategoryViewsCategorySortMixin:Cancel()
+  self:SetScript("OnUpdate", nil)
+end
+
+function BaganatorCategoryViewsCategorySortMixin:OnHide()
+  self:Cancel()
+end
+
 function BaganatorCategoryViewsCategorySortMixin:ApplySorts(composed, callback)
   self.start = debugprofilestop()
   self.callback = callback
   self.composedDetails = composed.details
   self.sortPending = {}
   for index, details in ipairs(composed.details) do
-    if details.results then
+    if details.results and #details.results > 0 then
       self.sortPending[index] = true
     end
   end

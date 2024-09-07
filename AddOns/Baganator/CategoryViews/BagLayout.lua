@@ -1,6 +1,33 @@
 local _, addonTable = ...
 
 local linkMap = {}
+local stackable = {}
+
+local function CheckStackable(allBags, callback)
+  local waiting, loopComplete = 0, false
+  for _, bag in ipairs(allBags) do
+    for _, slot in ipairs(bag) do
+      if slot.itemID ~= nil and stackable[slot.itemID] == nil then
+        if C_Item.IsItemDataCachedByID(slot.itemID) then
+          stackable[slot.itemID] = C_Item.GetItemMaxStackSizeByID(slot.itemID)
+        else
+          waiting = waiting + 1
+          addonTable.Utilities.LoadItemData(slot.itemID, function()
+            stackable[slot.itemID] = C_Item.GetItemMaxStackSizeByID(slot.itemID) > 1
+            waiting = waiting - 1
+            if waiting == 0 and loopComplete then
+              callback()
+            end
+          end)
+        end
+      end
+    end
+  end
+  loopComplete = true
+  if waiting == 0 then
+    callback()
+  end
+end
 
 local function Prearrange(isLive, bagID, bag, bagType)
   local junkPluginID = addonTable.Config.Get("junk_plugin")
@@ -46,7 +73,11 @@ local function Prearrange(isLive, bagID, bag, bagType)
       info.iconTexture = slot.iconTexture
       info.keyLink = linkMap[info.itemLink]
       if not info.keyLink then
-        info.keyLink = info.itemLink:gsub("(item:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:)%d+:", "%1:")
+        if stackable[info.itemID] then
+          info.keyLink = "item:" .. info.itemID
+        else
+          info.keyLink = info.itemLink:gsub("(item:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:[^:]*:)%d+:", "%1:")
+        end
         linkMap[info.itemLink] = info.keyLink
       end
       info.key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKeyNoCount(info) .. tostring(info.guid)
@@ -84,9 +115,11 @@ function addonTable.CategoryViews.BagLayoutMixin:OnLoad()
 
   self.CategorySort = CreateFrame("Frame", nil, self)
   Mixin(self.CategorySort, BaganatorCategoryViewsCategorySortMixin)
+  self.CategorySort:SetScript("OnHide", self.CategorySort.OnHide)
 
   self.CategoryGrouping = CreateFrame("Frame", nil, self)
   Mixin(self.CategoryGrouping, BaganatorCategoryViewsCategoryGroupingMixin)
+  self.CategoryGrouping:SetScript("OnHide", self.CategoryGrouping.OnHide)
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:OnHide()
@@ -264,22 +297,34 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     end
   end
 
+  local sourceKeysInUse = {}
+
+  for _, details in ipairs(composed.details) do
+    if details.results then
+      details.sourceKey = details.source .. "_" .. details.label .. "_" .. (details.groupLabel or "")
+      if #details.results > 0 then
+        sourceKeysInUse[details.sourceKey] = true
+      end
+    end
+  end
+
   local activeLayouts
 
   if container.isLive then
-    local layoutIndex = 1
     -- Ensure we don't overflow the preallocated buttons by returning all
     -- buttons no longer needed by a particular group
     for index, details in pairs(composed.details) do
-      if details.results then
-        container.LiveLayouts[layoutIndex]:DeallocateUnusedButtons(details.results)
-        layoutIndex = layoutIndex + 1
+      if details.results and #details.results > 0 then
+        local layout = FindValueInTableIf(container.LiveLayouts, function(a) return a.sourceKey == details.sourceKey end)
+        if layout then
+          layout:DeallocateUnusedButtons(details.results)
+        end
       end
     end
-    if #container.LiveLayouts > layoutCount then
-      for index = layoutCount + 1, #container.LiveLayouts do
-        container.LiveLayouts[index]:DeallocateUnusedButtons({})
-        container.LiveLayouts[index]:Hide()
+    for _, layout in ipairs(container.LiveLayouts) do
+      if not sourceKeysInUse[layout.sourceKey] then
+        layout:DeallocateUnusedButtons({})
+        layout:Hide()
       end
     end
     for _, layout in ipairs(container.CachedLayouts) do
@@ -287,9 +332,9 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
     end
     activeLayouts = container.LiveLayouts
   else
-    if #container.CachedLayouts > layoutCount then
-      for index = layoutCount + 1, #container.CachedLayouts do
-        container.CachedLayouts[index]:Hide()
+    for _, layout in ipairs(container.CachedLayouts) do
+      if not sourceKeysInUse[layout.sourceKey] then
+        layout:Hide()
       end
     end
     for _, layout in ipairs(container.LiveLayouts) do
@@ -300,9 +345,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   local layoutsShown, activeLabels = {}, {}
   local inactiveSections = {}
-  local layoutOffset = 0
   for index, details in ipairs(composed.details) do
-    layoutOffset = layoutOffset - 1
     if details.type == "divider" then
       if inactiveSections[details.section] then
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
@@ -344,20 +387,27 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
         table.insert(layoutsShown, {}) -- {} causes the packing code to ignore this
       end
     elseif details.type == "category" then
-      layoutOffset = layoutOffset + 1
-      local searchResults = details.results
-      local layout = activeLayouts[index + layoutOffset]
-      layout:ShowGroup(details.results, math.min(bagWidth, #details.results), details.source)
-      table.insert(layoutsShown, layout)
-      layout.section = details.section
-      local label = self.labelsPool:Acquire()
-      addonTable.Skins.AddFrame("CategoryLabel", label)
-      label:SetText(details.label)
-      label.categorySearch = index
-      label.source = details.source
-      label.groupLabel = details.groupLabel
-      activeLabels[index] = label
-      layout.type = details.type
+      if #details.results > 0 then
+        local searchResults = details.results
+        local layout = FindValueInTableIf(activeLayouts, function(a) return a.sourceKey == details.sourceKey end)
+        if not layout then
+          layout = FindValueInTableIf(activeLayouts, function(a) return not sourceKeysInUse[a.sourceKey] end)
+        end
+        layout:ShowGroup(details.results, math.min(bagWidth, #details.results), details.source)
+        table.insert(layoutsShown, layout)
+        layout.section = details.section
+        layout.sourceKey = details.sourceKey
+        local label = self.labelsPool:Acquire()
+        addonTable.Skins.AddFrame("CategoryLabel", label)
+        label:SetText(details.label)
+        label.categorySearch = index
+        label.source = details.source
+        label.groupLabel = details.groupLabel
+        activeLabels[index] = label
+        layout.type = details.type
+      else
+        table.insert(layoutsShown, {})
+      end
     else
       error("unrecognised layout type")
     end
@@ -372,65 +422,78 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 end
 
 function addonTable.CategoryViews.BagLayoutMixin:Layout(allBags, bagWidth, bagTypes, bagIndexes, sideSpacing, topSpacing, callback)
-  if self.inProgress then
-    return
-  end
-  self.inProgress = true
-
-  local container = self:GetParent()
-  local s1 = debugprofilestop()
-
-  local emptySlotsByType, emptySlotsOrder, everything = {}, {}, {}
-  for index, bagID in ipairs(bagIndexes) do
-    if allBags[index] then
-      local result = Prearrange(container.isLive, bagID, allBags[index], bagTypes[index])
-      -- Optimisations
-      local everythingIndex = #everything + 1
-      for _, item in ipairs(result.everything) do
-        everything[everythingIndex] = item
-        everythingIndex = everythingIndex + 1
-      end
-      if #result.emptySlots > 0 then
-        if not emptySlotsByType[bagTypes[index]] then
-          emptySlotsByType[bagTypes[index]] = {}
-          table.insert(emptySlotsOrder, bagTypes[index])
-        end
-        -- Optimisations
-        local emptySlotsTyped = emptySlotsByType[bagTypes[index]]
-        local emptySlotIndex = #emptySlotsTyped + 1
-        for _, item in ipairs(result.emptySlots) do
-          emptySlotsTyped[emptySlotIndex] = item
-          emptySlotIndex = emptySlotIndex + 1
-        end
-      end
-    end
-  end
-  self.updatedBags = {}
-
-  local composed = addonTable.CategoryViews.ComposeCategories(everything)
-
-  if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-    addonTable.Utilities.DebugOutput("prearrange", debugprofilestop() - s1)
-  end
-
-  local s2 = debugprofilestop()
-  self.ItemsPreparation:PrepareItems(everything, function()
+  -- Just in case the rendering takes so long there's another bag update ready
+  -- that triggers a conflicting render.
+  self.CategoryFilter:Cancel()
+  self.CategoryGrouping:Cancel()
+  self.CategorySort:Cancel()
+  self.state = {}
+  local state = self.state
+  local s0 = debugprofilestop()
+  CheckStackable(allBags, function()
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-      addonTable.Utilities.DebugOutput("prep", debugprofilestop() - s2)
+      addonTable.Utilities.DebugOutput("stackables", debugprofilestop() - s0)
     end
-    self.CategoryFilter:ApplySearches(composed, everything, function()
-      self.CategoryGrouping:ApplyGroupings(composed, function()
-        self.CategorySort:ApplySorts(composed, function()
-          local s3 = debugprofilestop()
-          self.ItemsPreparation:CleanItems(everything)
-          if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
-            addonTable.Utilities.DebugOutput("clean", debugprofilestop() - s3)
-          end
-          local s4 = debugprofilestop()
-          local maxWidth, maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, composed, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+    if state ~= self.state then
+      return
+    end
 
-          self.inProgress = false
-          callback(maxWidth, maxHeight)
+    local container = self:GetParent()
+    local s1 = debugprofilestop()
+
+    local emptySlotsByType, emptySlotsOrder, everything = {}, {}, {}
+    for index, bagID in ipairs(bagIndexes) do
+      if allBags[index] then
+        local result = Prearrange(container.isLive, bagID, allBags[index], bagTypes[index])
+        -- Optimisations
+        local everythingIndex = #everything + 1
+        for _, item in ipairs(result.everything) do
+          everything[everythingIndex] = item
+          everythingIndex = everythingIndex + 1
+        end
+        if #result.emptySlots > 0 then
+          if not emptySlotsByType[bagTypes[index]] then
+            emptySlotsByType[bagTypes[index]] = {}
+            table.insert(emptySlotsOrder, bagTypes[index])
+          end
+          -- Optimisations
+          local emptySlotsTyped = emptySlotsByType[bagTypes[index]]
+          local emptySlotIndex = #emptySlotsTyped + 1
+          for _, item in ipairs(result.emptySlots) do
+            emptySlotsTyped[emptySlotIndex] = item
+            emptySlotIndex = emptySlotIndex + 1
+          end
+        end
+      end
+    end
+    self.updatedBags = {}
+
+    local composed = addonTable.CategoryViews.ComposeCategories(everything)
+
+    if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
+      addonTable.Utilities.DebugOutput("prearrange", debugprofilestop() - s1)
+    end
+
+    local s2 = debugprofilestop()
+    self.ItemsPreparation:PrepareItems(everything, function()
+      if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
+        addonTable.Utilities.DebugOutput("prep", debugprofilestop() - s2)
+      end
+      if state ~= self.state then
+        return
+      end
+      self.CategoryFilter:ApplySearches(composed, everything, function()
+        self.CategoryGrouping:ApplyGroupings(composed, function()
+          self.CategorySort:ApplySorts(composed, function()
+            local s3 = debugprofilestop()
+            self.ItemsPreparation:CleanItems(everything)
+            if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
+              addonTable.Utilities.DebugOutput("clean", debugprofilestop() - s3)
+            end
+            local s4 = debugprofilestop()
+            local maxWidth, maxHeight = self:Display(bagWidth, bagIndexes, bagTypes, composed, emptySlotsOrder, emptySlotsByType, bagWidth, sideSpacing, topSpacing)
+            callback(maxWidth, maxHeight)
+          end)
         end)
       end)
     end)

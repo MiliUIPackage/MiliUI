@@ -74,7 +74,15 @@ function addonTable.SlashCmd.RemoveUnusedCategories()
       customCategories[name] = nil
     end
   end
+  local categoryMods = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_MODIFICATIONS)
+  for name in pairs(categoryMods) do
+    if tIndexOf(displayOrder, name) == nil then
+      categoryMods[name] = nil
+    end
+  end
   addonTable.Config.Set(addonTable.Config.Options.CUSTOM_CATEGORIES, CopyTable(customCategories))
+  addonTable.Config.Set(addonTable.Config.Options.CATEGORY_MODIFICATIONS, CopyTable(categoryMods))
+  addonTable.Utilities.Message(BAGANATOR_L_REMOVED_UNUSED_CATEGORIES)
 end
 
 function addonTable.SlashCmd.CustomiseUI()
@@ -94,9 +102,11 @@ local COMMANDS = {
   end,
   ["keywords"] = function()
     addonTable.Config.Set(addonTable.Config.Options.DEBUG_KEYWORDS, not addonTable.Config.Get(addonTable.Config.Options.DEBUG_KEYWORDS))
+    addonTable.Utilities.Message(BAGANATOR_L_KEYWORDS_IN_TOOLTIPS_X:format(addonTable.Config.Get(addonTable.Config.Options.DEBUG_KEYWORDS) and BAGANATOR_L_ENABLED or BAGANATOR_L_DISABLED))
   end,
   ["categories"] = function()
     addonTable.Config.Set(addonTable.Config.Options.DEBUG_CATEGORIES, not addonTable.Config.Get(addonTable.Config.Options.DEBUG_CATEGORIES))
+    addonTable.Utilities.Message(BAGANATOR_L_CATEGORIES_IN_TOOLTIPS_X:format(addonTable.Config.Get(addonTable.Config.Options.DEBUG_CATEGORIES) and BAGANATOR_L_ENABLED or BAGANATOR_L_DISABLED))
   end,
 }
 function addonTable.SlashCmd.Handler(input)

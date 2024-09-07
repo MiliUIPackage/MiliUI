@@ -8,6 +8,19 @@ local function GetViewType(view)
   end
 end
 
+local function RegisterForScaling(frame)
+  addonTable.Utilities.OnAddonLoaded("BlizzMove", function()
+    BlizzMoveAPI:RegisterAddOnFrames({
+        ['Baganator'] = {
+           [frame:GetName()] = {
+             NonDraggable = true,
+             IgnoreClamping = true,
+           },
+        },
+    });
+  end)
+end
+
 local hidden = CreateFrame("Frame")
 hidden:Hide()
 
@@ -59,6 +72,7 @@ local function SetupBackpackView()
   end
 
   for _, backpackView in pairs(allBackpackViews) do
+    RegisterForScaling(backpackView)
     table.insert(UISpecialFrames, backpackView:GetName())
 
     backpackView:HookScript("OnHide", function()
@@ -185,6 +199,7 @@ local function SetupBankView()
   })
 
   for _, bankView in pairs(allBankViews) do
+    RegisterForScaling(bankView)
     table.insert(UISpecialFrames, bankView:GetName())
   end
 
@@ -253,6 +268,7 @@ local function SetupGuildView()
   local guildView = CreateFrame("Frame", "Baganator_SingleViewGuildViewFrame", UIParent, "BaganatorSingleViewGuildViewTemplate")
   guildView:SetClampedToScreen(true)
   guildView:SetUserPlaced(false)
+  RegisterForScaling(guildView)
 
   table.insert(UISpecialFrames, guildView:GetName())
 

@@ -6,6 +6,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
   addonTable.Utilities.AddBagSortManager(self) -- self.sortManager
   addonTable.Utilities.AddBagTransferManager(self) -- self.transferManager
 
+  addonTable.Utilities.AddScrollBar(self)
+
   addonTable.CallbackRegistry:RegisterCallback("SearchTextChanged",  function(_, text)
     if self:IsVisible() then
       self:ApplySearch(text)
@@ -44,6 +46,8 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnLoad()
       end
     elseif settingName == addonTable.Config.Options.BANK_ONLY_VIEW_SHOW_BAG_SLOTS then
       self.BagSlots:Update(self.lastCharacter, self.isLive)
+      self:OnFinished()
+      self:GetParent():OnTabFinished()
     end
   end)
 
@@ -167,6 +171,10 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:UpdateForCharacter(ch
   end
   self.isLive = isLive
 
+  addonTable.Utilities.AddGeneralDropSlot(self, function()
+    return Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bank
+  end, Syndicator.Constants.AllBankIndexes)
+
   self.BagSlots:Update(character, self.isLive)
   local containerInfo = characterData.containerInfo
   self.ToggleBagSlotsButton:SetShown(self.isLive or (containerInfo and containerInfo.bank))
@@ -198,10 +206,14 @@ function BaganatorItemViewCommonBankViewCharacterViewMixin:OnFinished(character,
     buttonPadding = buttonPadding + 10 
   end
 
-  self.Container:ClearAllPoints()
-  self.Container:SetPoint("TOPRIGHT", -sideSpacing, -50 - topSpacing / 4)
+  self:SetSize(10, 10)
+  local externalVerticalSpacing = (self.BagSlots:GetHeight() > 0 and (self.BagSlots:GetTop() - self:GetTop()) or 0) + (self:GetParent().Tabs[1] and self:GetParent().Tabs[1]:IsShown() and (self:GetParent():GetBottom() - self:GetParent().Tabs[1]:GetBottom() + 5) or 0)
+
+  self.Container:SetPoint("TOPLEFT")
   self:SetSize(
     self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    self.Container:GetHeight() + 75 + buttonPadding
+    math.min(self.Container:GetHeight() + 75 + buttonPadding, UIParent:GetHeight() - externalVerticalSpacing)
   )
+
+  self:UpdateScroll(75 + buttonPadding + externalVerticalSpacing)
 end
