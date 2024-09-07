@@ -531,7 +531,7 @@ do  -- Cast Bar ----------------------------------------------------------------
 
 	Stuf:AddBuilder("castbar", function(unit, uf, name, db, a5, config)
 		local f = uf[name]
-		if db.hide or unit == "player" then -- 不顯示玩家施法條
+		if db.hide then
 			if f then
 				f:Hide()
 				castunits[unit], uf.refreshfuncs[name] = nil, nil
