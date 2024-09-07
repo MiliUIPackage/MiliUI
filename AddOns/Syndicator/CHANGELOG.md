@@ -1,7 +1,6 @@
 # Syndicator
 
-## [114](https://github.com/Baganator/Syndicator/tree/114) (2024-09-01)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/113...114) 
+## [118](https://github.com/Baganator/Syndicator/tree/118) (2024-09-03)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/117...118) 
 
-- Fix accidental global  
-- Search: Add "pvp" keyword for PvP gear  
+- Add Earthen race icons to tooltips  
