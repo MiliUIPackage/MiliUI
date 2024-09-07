@@ -1,6 +1,6 @@
 ## Interface: 110002
 ## Title: Edit Mode Expanded
-## Version: 11.0-013
+## Version: 11.0-014
 ## Notes: Expands Edit Mode to apply to other frames
 ## Author: Teelo
 ## SavedVariables: EditModeExpandedADB
@@ -42,6 +42,7 @@ FrameHandlers\TalkingHead.lua
 FrameHandlers\TargetCast.lua
 FrameHandlers\TargetFrame.lua
 FrameHandlers\TargetOfTarget.lua
+FrameHandlers\Tooltip.lua
 FrameHandlers\TopCenterContainer.lua
 FrameHandlers\TotemFrame.lua
 
@@ -59,3 +60,4 @@ MicroMenu.lua
 RegisteredSystemFrames.lua
 CombatManager.lua
 EditModeExpanded.lua
+WarningFrame.xml
