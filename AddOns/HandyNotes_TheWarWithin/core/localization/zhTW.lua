@@ -177,6 +177,8 @@ L['options_show_completed_nodes'] = '顯示已完成'
 L['options_show_completed_nodes_desc'] = '顯示所有的節點，即使它今天已被拾取或完成。'
 L['options_toggle_hide_done_rare'] = '隱藏所有戰利品已收藏的稀有'
 L['options_toggle_hide_done_rare_desc'] = '隱藏所有戰利品已收藏的稀有。'
+L['options_toggle_hide_done_treasure'] = nil
+L['options_toggle_hide_done_treasure_desc'] = nil
 L['options_toggle_hide_minimap'] = '隱藏小地圖上的所有圖示'
 L['options_toggle_hide_minimap_desc'] = '在小地圖上隱藏此插件的所有圖示，並只在主地圖上顯示它們。'
 L['options_toggle_maximized_enlarged'] = '當世界地圖時最大化時放大圖示'
@@ -189,6 +191,7 @@ L['options_restore_hidden_nodes'] = '恢復隱藏的節點'
 L['options_restore_hidden_nodes_desc'] = '恢復所有使用右鍵選單隱藏的節點。'
 
 L['options_rewards_settings'] = '獎勵'
+L['options_reward_behaviors_settings'] = nil
 L['options_reward_types'] = '顯示獎勵類型'
 L['options_manuscript_rewards'] = '顯示飛龍觀察者手稿獎勵'
 L['options_manuscript_rewards_desc'] = '在提示顯示飛龍觀察者手稿並追蹤收集狀態'
@@ -239,6 +242,8 @@ L['options_toggle_show_notes'] = '顯示註記'
 L['options_toggle_show_notes_desc'] = '在可用的工具提示中加入有用的註記'
 L['options_toggle_use_standard_time'] = '使用12小時制'
 L['options_toggle_use_standard_time_desc'] = '在提示使用12小時制 (例. 8:00 PM) 而不是24小時制 (例. 20:00).'
+L['options_toggle_show_npc_id'] = nil
+L['options_toggle_show_npc_id_desc'] = nil
 
 --------------------------------- DEVELOPMENT ---------------------------------
 

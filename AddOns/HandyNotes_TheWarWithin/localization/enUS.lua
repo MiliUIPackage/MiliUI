@@ -42,7 +42,7 @@ L['faithful_dog_note'] = [[
 2. Build the {object:Herb Garden} in your {area:7490} in {map:572}.
 3. Find a {item:147420} in the {map:619} {map:627} then talk with {npc:87553} in your {area:7490} {object:Herb Garden}.
 The {npc:87553} will now be at the {location:Magical Menagerie} in {map:627}
-4. Interact with the {object:Half-Buried Dog Bowl} in {map:2248} then speak with {npc:87553} to receive the pet.
+4. Interact with the {object:Half-Buried Dog Bowl} in {map:2248} then pet the {npc:87553} to receive the pet.
 ]]
 
 L['cendvin_note'] = 'Farm 900x {item:225557} in {location:Cinderwold} from elite mobs to purchase the {item:223153} mount from {npc:226205}.'
@@ -193,6 +193,7 @@ L['beledars_spawn_note'] = 'This rare spawns at one of several locations at a fi
 L['croakit_note'] = 'Fish up 10x {item:211474} from a nearby {object:Shadowblind Grouper School} (or purchase from the auction house) and throw them to him to make the rare attackable.'
 L['deathtide_note'] = 'Collect an {item:220122} {dot:Red} and a {item:220124} {dot:Green}. Combine them to {item:220123} to summon the rare at the {object:Ominous Altar}.'
 L['murkshade_note'] = 'Interact with the {npc:218455}.'
+L['spreading_the_light_rares_note'] = 'Rare spawns after the lit {object:Keyflame} at the current location is extinguished.'
 
 L['options_icons_mereldar_menace'] = '{achievement:40151}'
 L['options_icons_mereldar_menace_desc'] = 'Display target locations for {achievement:40151} achievement.'
@@ -272,6 +273,7 @@ Once you have found all 4 {npc:227421}, head back to the {object:Fleshy Grimoire
 ]]
 L['another_you_4_note'] = 'Patrols along the marked path.'
 
+L['concealed_contraband_note'] = 'Remove the {object:Web Cocoon} from the Treasure to reveal it.'
 L['memory_cache_note'] = 'Get {spell:420847} from a nearby ({dot:Red}) {object:Extractor Storage}. After kill the {npc:223908} to get the {item:223870} to open the {object:Memory Cache}.'
 L['niffen_stash_note'] = 'Located under the bridge.'
 L['trapped_trove_note'] = 'In a building that hangs from the ceiling. Avoid the spiderwebs on the floor.'
