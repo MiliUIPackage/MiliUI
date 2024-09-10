@@ -81,10 +81,21 @@ select(2, ...).L = setmetatable({
 
     ["RAID_DEBUFFS_TIPS"] = "Tips: [Drag & Drop] to change debuff order. [Double-Click] on instance name to open Encounter Journal. [Shift+Left Click] on instance/boss name to share debuffs. [Alt+Left Click] on instance/boss name to reset debuffs. The priority of General Debuffs is higher than Boss Debuffs.",
     ["SNIPPETS_TIPS"] = "[Double-Click] to rename. [Shift-Click] to delete. All checked snippets will be automatically invoked at the end of Cell initialization process (in ADDON_LOADED event).",
+    ["BACKUP_TIPS"] = "Backups are not always reliable, especially when they are too old. It is recommended to backup often. When sharing profiles, backups are not included.",
+    ["BACKUP_TIPS2"] = "Note for Classic players: Backups do not include Click-Castings and Layout Auto Switch of other characters",
 
     ["CHANGELOGS"] = [[
         <h1>If there are any issues after an update, check through all code snippets first.</h1>
-        <p>(Retail) Enable "Always Update Buffs/Debuffs" in General tab, if indicators do not update correctly.</p>
+        <p>(Retail) Enable "Always Update Auras" in General tab, if indicators do not update correctly.</p>
+        <br/>
+
+        <h1>r240-release (Sep 9, 2024, 19:00 GMT+8)</h1>
+        <p>* Updated bleedList for TWW (PR #215).</p>
+        <p>+ Implemented Backups.</p>
+        <p>* Updated profile import.</p>
+        <p>* Fixed aura import/export.</p>
+        <p>* Fixed layout auto switch.</p>
+        <p>* Updated locales.</p>
         <br/>
 
         <h1>r239-release (Aug 23, 2024, 22:00 GMT+8)</h1>

@@ -133,6 +133,7 @@ function eventFrame:ADDON_LOADED(arg1)
 
         if type(CellDB) ~= "table" then CellDB = {} end
         if type(CellCharacterDB) ~= "table" then CellCharacterDB = {} end
+        if type(CellDBBackup) ~= "table" then CellDBBackup = {} end
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
 
@@ -162,8 +163,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["locked"] = false,
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
-                ["alwaysUpdateBuffs"] = false,
-                ["alwaysUpdateDebuffs"] = false,
+                ["alwaysUpdateAuras"] = false,
                 ["framePriority"] = {
                     {"Main", true},
                     {"Spotlight", false},
@@ -684,6 +684,9 @@ end)
 SLASH_CELL1 = "/cell"
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
+    command = strlower(command or "")
+    rest = strlower(rest or "")
+
     if command == "options" or command == "opt" then
         F:ShowOptionsFrame()
 

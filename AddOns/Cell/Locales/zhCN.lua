@@ -115,8 +115,7 @@ L["Lock Cell Frames"] = "把它给我锁死"
 L["Fade Out Menu"] = "淡出菜单"
 L["Fade out menu buttons on mouseout"] = "当鼠标移开时淡出菜单按钮"
 L["Menu Position"] = "菜单位置"
-L["Always Update Buffs"] = "总是更新增益"
-L["Always Update Debuffs"] = "总是更新减益"
+L["Always Update Auras"] = "总是更新增益/减益"
 L["Ignore UNIT_AURA payloads"] = "无视 UNIT_AURA 事件的负载"
 L["This may help solve issues of indicators not updating correctly"] = "可能有助于解决指示器不能正确更新的问题"
 -- L["Override"] = "重写"
@@ -822,10 +821,18 @@ L["Slash Commands"] = "斜杠命令"
 L["Bug Report & Suggestion"] = "问题报告与建议"
 L["Links"] = "链接"
 L["Import & Export All Settings"] = "导入导出所有设置"
-L["All Cell settings will be overwritten!"] = "所有 Cell 设置将被覆盖！"
-L["Autorun will be disabled for all code snippets"] = "将禁用所有代码片段的自动运行"
+L["Cell settings will be overwritten!"] = "Cell 设置将被覆盖！"
+L["Unselected settings will remain"] = "未选中项的配置将与现在保持一致"
+L["Remember to backup your profile"] = "记得备份你的配置"
+-- L["Autorun will be disabled for all code snippets"] = "将禁用所有代码片段的自动运行"
 L["Include Nickname Settings"] = "包含昵称设置"
 L["Include Character Settings"] = "包含角色设置"
+L["Backups"] = "备份"
+L["Create Backup"] = "创建备份"
+L["Restore backup"] = "恢复备份"
+L["Delete backup"] = "删除备份"
+L["BACKUP_TIPS"] = "备份并不总是可靠，尤其当它们的年代过于久远时。推荐时常备份你的配置。当分享配置时，这些备份不包含在内。"
+L["BACKUP_TIPS2"] = "怀旧服玩家请注意：备份不包含其他角色的点击施法与布局自动切换"
 
 -------------------------------------------------
 -- code snippets
@@ -853,6 +860,15 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r240-release (Sep 9, 2024, 19:00 GMT+8)</h1>
+    <p>* 更新地心之战“流血”列表（PR #215）。</p>
+    <p>+ 新增配置备份功能。</p>
+    <p>* 更新导入功能。</p>
+    <p>* 修复法术列表的导入导出。</p>
+    <p>* 修复布局自动切换。</p>
+    <p>* 更新本地化。</p>
     <br/>
 
     <h1>r239-release (Aug 23, 2024, 22:00 GMT+8)</h1>

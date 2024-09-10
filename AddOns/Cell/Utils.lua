@@ -394,12 +394,20 @@ else
     end
 end
 
-function F:KeepDecimals(num, n)
-    if num < 0 then
-        return -(abs(num) - abs(num) % 0.1 ^ n)
-    else
-        return num - num % 0.1 ^ n
+-- function F:KeepDecimals(num, n)
+--     if num < 0 then
+--         return -(abs(num) - abs(num) % 0.1 ^ n)
+--     else
+--         return num - num % 0.1 ^ n
+--     end
+-- end
+
+function F:Round(num, numDecimalPlaces)
+    if numDecimalPlaces and numDecimalPlaces >= 0 then
+        local mult = 10 ^ numDecimalPlaces
+        return floor(num * mult + 0.5) / mult
     end
+    return floor(num + 0.5)
 end
 
 -------------------------------------------------
@@ -2023,7 +2031,7 @@ local harmSpells = {
     ["PRIEST"] = Cell.isRetail and 589 or 585, -- 暗言术：痛 / 惩击
     ["ROGUE"] = 1752, -- 影袭
     ["SHAMAN"] = Cell.isRetail and 188196 or 403, -- 闪电箭
-    ["WARLOCK"] = 686, -- 暗影箭
+    ["WARLOCK"] = 234153, -- 吸取生命
     ["WARRIOR"] = 355, -- 嘲讽
 }
 
@@ -2129,13 +2137,13 @@ local function SPELLS_CHANGED()
         spell_pet = nil
     end
 
-    F:Debug(
-        "[RANGE CHECK]",
-        "\nfriend:", spell_friend or "nil",
-        "\npet:", spell_pet or "nil",
-        "\nharm:", spell_harm or "nil",
-        "\ndead:", spell_dead or "nil"
-    )
+    -- F:Debug(
+    --     "[RANGE CHECK]",
+    --     "\nfriend:", spell_friend or "nil",
+    --     "\npet:", spell_pet or "nil",
+    --     "\nharm:", spell_harm or "nil",
+    --     "\ndead:", spell_dead or "nil"
+    -- )
 end
 
 local timer

@@ -168,6 +168,7 @@ function eventFrame:ADDON_LOADED(arg1)
         eventFrame:UnregisterEvent("ADDON_LOADED")
 
         if type(CellDB) ~= "table" then CellDB = {} end
+        if type(CellDBBackup) ~= "table" then CellDBBackup = {} end
 
         if type(CellDB["optionsFramePosition"]) ~= "table" then CellDB["optionsFramePosition"] = {} end
 
@@ -199,8 +200,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["locked"] = false,
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
-                ["alwaysUpdateBuffs"] = false,
-                ["alwaysUpdateDebuffs"] = false,
+                ["alwaysUpdateAuras"] = false,
                 ["framePriority"] = {
                     {"Main", true},
                     {"Spotlight", false},
@@ -746,7 +746,7 @@ end
 
 local function UpdateSpecVars()
     Cell.vars.playerSpecID, Cell.vars.playerSpecName, _, Cell.vars.playerSpecIcon, Cell.vars.playerSpecRole = GetSpecializationInfo(GetSpecialization())
-    if Cell.vars.playerSpecName == "" then
+    if not Cell.vars.playerSpecName or Cell.vars.playerSpecName == "" then
         Cell.vars.playerSpecName = L["No Spec"]
         Cell.vars.playerSpecIcon = 134400
     end
@@ -852,6 +852,7 @@ function eventFrame:ACTIVE_TALENT_GROUP_CHANGED()
 
         if not Cell.vars.playerSpecID then
             -- NOTE: when join in battleground, spec auto switched, during loading, can't get info from GetSpecializationInfo, until PLAYER_ENTERING_WORLD
+            prevSpec = nil
             checkSpecFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
             F:Debug("|cffffbb77SpecChanged:|r FAILED")
         else
@@ -876,6 +877,9 @@ end)
 SLASH_CELL1 = "/cell"
 function SlashCmdList.CELL(msg, editbox)
     local command, rest = msg:match("^(%S*)%s*(.-)$")
+    command = strlower(command or "")
+    rest = strlower(rest or "")
+
     if command == "options" or command == "opt" then
         F:ShowOptionsFrame()
 
