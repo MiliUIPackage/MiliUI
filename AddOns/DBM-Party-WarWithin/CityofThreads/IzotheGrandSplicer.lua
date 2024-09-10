@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2596, "DBM-Party-WarWithin", 8, 1274)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240819062911")
+mod:SetRevision("20240908235324")
 mod:SetCreatureID(216658)
 mod:SetEncounterID(2909)
 mod:SetHotfixNoticeRev(20240818000000)
@@ -60,10 +60,10 @@ function mod:OnCombatStart(delay)
 	self.vb.weaveCount = 0
 	self.vb.processCount = 0
 	self.vb.firstSpell = 0--1 = Tremor, 2 = Umbral
-	timerShiftingAnomaliesCD:Start(4-delay, 1)
+--	timerShiftingAnomaliesCD:Start(4-delay, 1)--Cast instantly on engage now
 	timerSpliceCD:Start(10-delay, 1)
-	timerUmbralWeaveCD:Start(15.9-delay, 1)
-	timerTremorSlamCD:Start(15.9-delay, 1)
+--	timerUmbralWeaveCD:Start(15.9-delay, 1)--Started by first Anomalies cast
+--	timerTremorSlamCD:Start(15.9-delay, 1)--Started by first Anomalies cast
 	timerProcessofEliminationCD:Start(55-delay, 1)
 end
 

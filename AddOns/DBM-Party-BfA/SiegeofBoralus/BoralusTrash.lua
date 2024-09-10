@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("BoralusTrash", "DBM-Party-BfA", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240901002640")
+mod:SetRevision("20240910053255")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -9,7 +9,7 @@ mod.isTrashModBossFightAllowed = true
 
 mod:RegisterEvents(
 	"SPELL_CAST_START 275826 256627 256957 256709 257170 272546 257169 272713 274569 272571 272888 272711 268260 257288 454440 272662",
-	"SPELL_CAST_SUCCESS 256627 256640 257170 256709 257288 272422 454437 275826 275835 272888 272546 454440 272711 257169 272571",
+	"SPELL_CAST_SUCCESS 256627 256640 257170 256709 257288 272422 454437 275826 275835 272888 272546 454440 272711 257169 272571 256957 268260",
 	"SPELL_INTERRUPT",
 	"SPELL_AURA_APPLIED 256957 257168 272421 272571 272888 454437",
 	"UNIT_DIED"
@@ -48,7 +48,7 @@ local yellSightedArt				= mod:NewYell(272421)
 local specWarnAzeriteCharge			= mod:NewSpecialWarningMoveAway(454437, nil, nil, nil, 1, 2)
 local yellAzeriteCharge				= mod:NewYell(454437)
 local specWarnBolsteringShout		= mod:NewSpecialWarningInterrupt(275826, "HasInterrupt", nil, nil, 1, 2)--High Prio
-local specWarnWatertightShell		= mod:NewSpecialWarningInterrupt(256957, "HasInterrupt", nil, nil, 1, 2)--High Prio
+local specWarnWatertightShell		= mod:NewSpecialWarningInterrupt(256957, "HasInterrupt", nil, nil, 1, 2)--High Prio (50 sec CD?)
 local specWarnRevitalizingMist		= mod:NewSpecialWarningInterrupt(274569, "HasInterrupt", nil, nil, 1, 2)--Same mob as choking waters, but also important
 local specWarnChokingWaters			= mod:NewSpecialWarningInterrupt(272571, "HasInterrupt", nil, nil, 1, 2)--High Prio
 local specWarnStinkyVomit			= mod:NewSpecialWarningInterrupt(454440, "HasInterrupt", nil, nil, 1, 2)--High Prio
@@ -60,22 +60,26 @@ local specWarnFear					= mod:NewSpecialWarningSpell(257169, nil, nil, nil, 2, 2)
 
 --copilot, there are no NewCDTimer objects in this mod, only NewCDNPTimer objects
 --copilot, there is no DBM_CORE_L in this mod, only DBM_COMMON_L
-local timerSlobberknockerCD			= mod:NewCDNPTimer(18.8, 256627, nil, nil, nil, 5)--18.8-20
+local timerSlobberknockerCD			= mod:NewCDPNPTimer(18.8, 256627, nil, nil, nil, 5)--18.8-20
 local timerBurningTarCD				= mod:NewCDNPTimer(22.6, 256640, nil, nil, nil, 3)
 local timerSavageTempestCD			= mod:NewCDNPTimer(19.1, 257170, nil, nil, nil, 3)
+local timerSavageTempest			= mod:NewCastNPTimer(3, 257170, nil, nil, nil, 5)
 local timerSingSteelCD				= mod:NewCDNPTimer(17, 256709, nil, nil, nil, 5, nil, DBM_COMMON_L.TANK_ICON)
-local timerHeavySlashCD				= mod:NewCDNPTimer(20.6, 257288, nil, nil, nil, 5)
+local timerHeavySlashCD				= mod:NewCDPNPTimer(20.6, 257288, nil, nil, nil, 5)
 local timerSightedArtCD				= mod:NewCDNPTimer(12.1, 272421, nil, nil, nil, 3)
 local timerAzeriteChargeCD			= mod:NewCDNPTimer(15.7, 454437, nil, nil, nil, 3)
-local timerBolsteringShoutCD		= mod:NewCDNPTimer(18.1, 275826, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
+local timerWatertightShellCD		= mod:NewCDPNPTimer(50, 256957, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Poor sample
+local timerBolsteringShoutCD		= mod:NewCDPNPTimer(18.1, 275826, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerStingingVenomCoatingCD	= mod:NewCDNPTimer(16.9, 275835, nil, nil, nil, 5)--Lasts 10 seconds, recast time is 17 so has a high uptime
 local timerFerocityCD				= mod:NewCDNPTimer(38.9, 272888, nil, nil, nil, 5)--Small sample, but it seems like a very long cooldown
 local timerBananaRampageCD			= mod:NewCDNPTimer(16.9, 272546, nil, nil, nil, 3)
-local timerStinkyVomitCD			= mod:NewCDNPTimer(16.1, 454440, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--16.1-19.4
+local timerBananaRampage			= mod:NewCastNPTimer(1.5, 272546, nil, false, nil, 5)
+local timerStinkyVomitCD			= mod:NewCDPNPTimer(16.1, 454440, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--16.1-19.4
 local timerCrushingSlamCD			= mod:NewCDNPTimer(20.6, 272711, nil, nil, nil, 3)
 local timerTerrifyingRoarCD			= mod:NewCDNPTimer(31.6, 257169, nil, nil, nil, 2)
-local timerChoakingWatersCD			= mod:NewCDNPTimer(29.1, 272571, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--29.1-31.6
+local timerChoakingWatersCD			= mod:NewCDPNPTimer(29.1, 272571, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--29.1-31.6
 local timerIronHookCD				= mod:NewCDNPTimer(19.4, 272662, nil, nil, nil, 3)
+local timerBroadsideCD				= mod:NewCDPNPTimer(11.5, 268260, nil, nil, nil, 3)--Boss version is 9.1 from previous cast finish, but this one is 11.5
 
 --Antispam IDs for this mod: 1 run away, 2 dodge, 3 dispel, 4 incoming damage, 5 you/role, 6 misc, 7 off interrupt
 
@@ -96,11 +100,17 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 256709 and self:AntiSpam(3, 2) then
 		specWarnSingingSteel:Show()
 		specWarnSingingSteel:Play("shockwave")
-	elseif spellId == 257170 and self:AntiSpam(4, 1) then
-		specWarnSavageTempest:Show()
-		specWarnSavageTempest:Play("whirlwind")
-	elseif spellId == 272546 and self:AntiSpam(4, 6) then
-		warnBananaRampage:Show()
+	elseif spellId == 257170 then
+		timerSavageTempest:Start(nil, args.sourceGUID)
+		if self:AntiSpam(4, 1) then
+			specWarnSavageTempest:Show()
+			specWarnSavageTempest:Play("whirlwind")
+		end
+	elseif spellId == 272546 then
+		timerBananaRampage:Start(nil, args.sourceGUID)
+		if self:AntiSpam(4, 6) then
+			warnBananaRampage:Show()
+		end
 	elseif spellId == 257169 and self:AntiSpam(4, 5) then
 		specWarnFear:Show()
 		specWarnFear:Play("fearsoon")
@@ -182,6 +192,10 @@ function mod:SPELL_CAST_SUCCESS(args)
 		timerTerrifyingRoarCD:Start(28.6, args.sourceGUID)--31.6 - 3
 	elseif spellId == 272571 then
 		timerChoakingWatersCD:Start(26.6, args.sourceGUID)--29.1 - 2.5
+	elseif spellId == 256957 then
+		timerWatertightShellCD:Start(50, args.sourceGUID)
+	elseif spellId == 268260 and args:GetSrcCreatureID() == 138465 then--Trash version
+		timerBroadsideCD:Start(11.5, args.sourceGUID)
 	end
 end
 
@@ -234,6 +248,7 @@ function mod:UNIT_DIED(args)
 		timerBurningTarCD:Stop(args.destGUID)
 	elseif cid == 129369 then--Irontide Raider
 		timerSavageTempestCD:Stop(args.destGUID)
+		timerSavageTempest:Stop(args.destGUID)
 	elseif cid == 129371 then--Riptide Shredder
 		timerSingSteelCD:Stop(args.destGUID)
 	elseif cid == 129879 then--Irontide Cleaver (Trash version)
@@ -249,6 +264,7 @@ function mod:UNIT_DIED(args)
 		timerFerocityCD:Stop(args.destGUID)
 	elseif cid == 129366 then--Bilge Rat Buccaneer
 		timerBananaRampageCD:Stop(args.destGUID)
+		timerBananaRampage:Stop(args.destGUID)
 	elseif cid == 135241 then--Bilge Rat Pillager
 		timerStinkyVomitCD:Stop(args.destGUID)
 	elseif cid == 135245 then--Billage Rat Demolisher
@@ -258,6 +274,8 @@ function mod:UNIT_DIED(args)
 		timerChoakingWatersCD:Stop(args.destGUID)
 	elseif cid == 129369 then--Iron Raider
 		timerIronHookCD:Stop(args.destGUID)
+	elseif cid == 129370 or cid == 144071 then--Ironhull WaveShaper
+		timerWatertightShellCD:Stop(args.destGUID)
 	end
 end
 

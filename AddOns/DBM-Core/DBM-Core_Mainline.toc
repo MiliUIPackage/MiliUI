@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110002, 110005
 ## X-Min-Interface: 100207
 
 ## Title:|cffffe00a<|r|cffff7d0aDBM Core|r|cffffe00a>|r |cff69ccf0Main Core|r
@@ -13,11 +13,12 @@
 ## LoadOnDemand: 0
 ## DefaultState: enabled
 ## Author: MysticalOS, QartemisT
-## Version: 11.0.5
+## Version: 11.0.6
 ## X-Curse-Project-ID: 3358
 ## X-WoWI-ID: 8814
 ## X-Wago-ID: qv633o6b
 ## X-Website: https://deadlybossmods.com
+## X-Category-zhTW: 團隊
 
 Libs\LibStub\LibStub.lua
 Libs\CallbackHandler-1.0\CallbackHandler-1.0.xml

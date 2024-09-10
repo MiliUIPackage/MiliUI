@@ -1,4 +1,4 @@
-## Interface: 110002
+## Interface: 110002, 110005
 ## Version: 11.0.0-15
 ## Title:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10World Bosses (War Within)|r
 ## Title-zhTW:|cffffe00a<|r|cffff7d0aDBM Mod|r|cffffe00a>|r |cff10ff10世界首領 (地心之戰)|r

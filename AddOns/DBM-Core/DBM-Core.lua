@@ -75,16 +75,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20240903061113")
+DBM.Revision = parseCurseDate("20240910055149")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 351, "186d70b"--351.1
 local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.0.5"--Core version
+DBM.DisplayVersion = "11.0.6"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 9, 3) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2024, 9, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 14--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -162,7 +162,7 @@ DBM.DefaultOptions = {
 	WarningShortText = true,
 	StripServerName = true,
 	ShowAllVersions = true,
-	ShowReminders = true,
+	ShowReminders = false,
 	ShowPizzaMessage = true,
 	ShowEngageMessage = true,
 	ShowDefeatMessage = true,
@@ -228,6 +228,7 @@ DBM.DefaultOptions = {
 	GUIWidth = 800,
 	GUIHeight = 600,
 	GroupOptionsExcludeIcon = false,
+	GroupOptionsExcludePA = false,
 	AutoExpandSpellGroups = not private.isRetail,
 	ShowWAKeys = true,
 	--ShowSpellDescWhenExpanded = false,
@@ -336,7 +337,8 @@ DBM.DefaultOptions = {
 	UseNameplateHandoff = true,--Power user setting, no longer shown in GUI
 	DontShowNameplateIcons = false,
 	DontShowNameplateIconsCD = false,
-	DontSendBossGUIDs = false,
+	DontShowNameplateIconsCast = false,
+	SendDungeonBossGUIDs = true,
 	NPAuraText = true,
 	NPIconSize = 30,
 	NPIconXOffset = 0,
@@ -354,6 +356,9 @@ DBM.DefaultOptions = {
 	NPIconTextFontSize = 10,
 	NPIconTextMaxLen = 7,
 	NPIconGlowBehavior = 1,
+	CDNPIconGlowType = 1,--Pixel Default
+	CastNPIconGlowBehavior = 1,
+	CastNPIconGlowType = 2,--Proc Default
 	DontPlayCountdowns = false,
 	DontSendYells = false,
 	BlockNoteShare = false,
@@ -5733,6 +5738,14 @@ do
 			if mod.combatInfo.noCombatInVehicle and UnitInVehicle("player") then -- HACK
 				return
 			end
+			--Hack to disable modules from activating in timewalking difficulty that have duplicate non timewalking difficulty mods
+			--ie Cookie
+			if mod.combatInfo.DisableInTimewalking and difficulties.savedDifficulty == 24 then
+				return
+			end
+			if mod.combatInfo.RequiresTimewalking and difficulties.savedDifficulty ~= 24 then
+				return
+			end
 			--HACK: makes sure that we don't detect a false pull if the event fires again when the boss dies...
 			if mod.lastKillTime and GetTime() - mod.lastKillTime < (mod.reCombatTime or 120) and event ~= "LOADING_SCREEN_DISABLED" then return end
 			if mod.lastWipeTime and GetTime() - mod.lastWipeTime < (event == "ENCOUNTER_START" and 3 or mod.reCombatTime2 or 20) and event ~= "LOADING_SCREEN_DISABLED" then return end
@@ -8341,7 +8354,9 @@ function bossModPrototype:AddPrivateAuraSoundOption(auraspellId, default, groupS
 	---@diagnostic disable-next-line: assign-type-mismatch
 	self.Options["PrivateAuraSound" .. auraspellId .. "SWSound"] = defaultSound or 1
 	self.localization.options["PrivateAuraSound" .. auraspellId] = L.AUTO_PRIVATEAURA_OPTION_TEXT:format(auraspellId)
-	self:GroupSpellsPA(groupSpellId or auraspellId, "PrivateAuraSound" .. auraspellId)
+	if not DBM.Options.GroupOptionsExcludePA then
+		self:GroupSpellsPA(groupSpellId or auraspellId, "PrivateAuraSound" .. auraspellId)
+	end
 	self:SetOptionCategory("PrivateAuraSound" .. auraspellId, "paura", nil, nil, true)
 end
 
@@ -8764,7 +8779,7 @@ function bossModPrototype:SetOptionCategory(name, cat, optionSubType, waCustomNa
 	for _, options in pairs(self.optionCategories) do
 		removeEntry(options, name)
 	end
-	if self.addon and self.groupSpells[name] and not (optionSubType == "gtfo" or optionSubType == "adds" or optionSubType == "addscount" or optionSubType == "addscustom" or optionSubType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon) then
+	if self.addon and self.groupSpells[name] and not (optionSubType == "gtfo" or optionSubType == "adds" or optionSubType == "addscount" or optionSubType == "addscustom" or optionSubType:find("stage") or cat == "icon" and DBM.Options.GroupOptionsExcludeIcon or cat == "paura" and DBM.Options.GroupOptionsExcludePA) then
 		local sSpell = self.groupSpells[name]
 		if not self.groupOptions[sSpell] then
 			self.groupOptions[sSpell] = {}
@@ -8841,6 +8856,12 @@ function bossModPrototype:RegisterCombat(cType, ...)
 	end
 	if self.noRegenDetection then
 		info.noRegenDetection = self.noRegenDetection
+	end
+	if self.DisableInTimewalking then
+		info.DisableInTimewalking = self.DisableInTimewalking
+	end
+	if self.RequiresTimewalking then
+		info.RequiresTimewalking = self.RequiresTimewalking
 	end
 	if self.noMultiBoss then
 		info.noMultiBoss = self.noMultiBoss
@@ -8986,6 +9007,22 @@ function bossModPrototype:DisableRegenDetection()
 	self.noRegenDetection = true
 	if self.combatInfo then
 		self.combatInfo.noRegenDetection = true
+	end
+end
+
+---Used to disable timewalking bosses in non timewalking dungeons that have different variants of same with same ID, in same instance
+function bossModPrototype:DisableInTimeWalking()
+	self.DisableInTimewalking = true
+	if self.combatInfo then
+		self.combatInfo.DisableInTimewalking = true
+	end
+end
+
+---Used to disable non timewalking bosses in timewalking dungeons that have different variants of same with same ID, in same instance
+function bossModPrototype:RequiresTimeWalking()
+	self.RequiresTimewalking = true
+	if self.combatInfo then
+		self.combatInfo.RequiresTimewalking = true
 	end
 end
 
@@ -9149,7 +9186,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240903061113" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240910055149" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
