@@ -1,10 +1,11 @@
-## Interface: 110002
+## Interface: 110002, 110005
 ## Title: Baganator
-## Version: 462
+## Version: 483
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
 ## IconTexture: Interface\AddOns\Baganator\Assets\logo.tga
+## OptionalDependencies: WagoAnalytics
 ## X-Category-zhTW: 物品
 ## Title-zhTW: |cFF2DA267[物品]|r 背包整合
 ## Notes-zhTW: Baganator|n功能強大的整合背包。
@@ -20,6 +21,7 @@ Core\Config.lua
 Core\Utilities.lua
 Core\SlashCmd.lua
 Core\Welcome.lua
+Core\Analytics.lua
 Core\Main.lua
 
 Skins.lua
@@ -133,6 +135,6 @@ API\Upgrades.lua
 API\ItemButton.lua
 API\EquipmentSets.lua
 API\Sorting.lua
-API\GuildBankSorting.lua
+API\Pawn.lua
 
 Compatibility\VanillaEngraving.lua

@@ -123,7 +123,7 @@ local LAYOUT_OPTIONS = {
     lowText = "0%",
     highText = "200%",
     text = BAGANATOR_L_CATEGORY_SPACING,
-    option = "category_horizontal_spacing",
+    option = "category_horizontal_spacing_2",
     valuePattern = BAGANATOR_L_PERCENTAGE_PATTERN,
   },
   {
@@ -818,37 +818,6 @@ function BaganatorCustomiseDialogMixin:SetupSorting()
 
     table.insert(SORTING_OPTIONS, 5, typeDropDown)
   end
-  if next(addonTable.API.ExternalGuildBankSorts) ~= nil then
-    local allModes = {}
-
-    addonTable.Utilities.AutoSetGuildSortMethod()
-
-    for id, details in pairs(addonTable.API.ExternalGuildBankSorts) do
-      table.insert(allModes, {id, details.label})
-    end
-
-    table.sort(allModes, function(a, b) return a[2] < b[2] end)
-
-    local typeDropDown = {
-      type = "dropdown",
-      option = "guild_bank_sort_method",
-      entries = {NONE},
-      values = {"none"},
-    }
-
-    for _, details in ipairs(allModes) do
-      table.insert(typeDropDown.values, details[1])
-      table.insert(typeDropDown.entries, details[2])
-    end
-
-    table.insert(SORTING_OPTIONS, {
-      type = "header",
-      text = BAGANATOR_L_GUILD_BANK_SORT_METHOD,
-      level = 2,
-    })
-
-    table.insert(SORTING_OPTIONS, typeDropDown)
-  end
 
   local allFrames = GenerateFrames(SORTING_OPTIONS, frame)
 
@@ -929,10 +898,19 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   local allFrames = {}
 
   local showAddButtons, editorHeader = unpack(GenerateFrames({{
-    type = "checkbox",
+    type = "dropdown",
     text = BAGANATOR_L_SHOW_ADD_BUTTONS,
-    option = "add_to_category_buttons",
-    rightText = BAGANATOR_L_BRACKETS_WHILE_DRAGGING,
+    option = "add_to_category_buttons_2",
+    entries = {
+      BAGANATOR_L_DRAGGING,
+      BAGANATOR_L_DRAGGING_THEN_ALT,
+      BAGANATOR_L_NEVER,
+    },
+    values = {
+      "drag",
+      "drag+alt",
+      "never",
+    }
   }, {
     type = "header",
     text = BAGANATOR_L_EDIT,
@@ -945,9 +923,8 @@ function BaganatorCustomiseDialogMixin:SetupCategoriesOptions()
   table.insert(allFrames, editorHeader)
 
   showAddButtons:SetPoint("RIGHT", frame, -28, 0)
-  showAddButtons:SetPoint("LEFT", frame, "CENTER", addonTable.Constants.ButtonFrameOffset + 40, 0)
-  showAddButtons.CheckBox.HoverBackground:SetPoint("TOPLEFT", showAddButtons, "TOPLEFT", -60, 0)
-  showAddButtons.CheckBox.HoverBackground:SetPoint("BOTTOMRIGHT", showAddButtons, "BOTTOMRIGHT", 10, 0)
+  showAddButtons.DropDown:SetWidth(155)
+  showAddButtons:SetPoint("LEFT", frame, "CENTER", addonTable.Constants.ButtonFrameOffset - 10, 0)
 
   local editors = {}
 

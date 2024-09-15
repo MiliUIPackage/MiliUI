@@ -143,22 +143,23 @@ function addonTable.CategoryViews.ComposeCategories(everything)
       table.insert(allDetails, {
         type = "divider",
       })
+      currentSection = _G["BAGANATOR_L_SECTION_" .. section] or section
       table.insert(allDetails, {
         type = "section",
-        label = section,
+        label = currentSection,
       })
-      currentSection = section
     end
 
     local priority = categoryMods[source] and categoryMods[source].priority and (categoryMods[source].priority + 1) * 200 or 0
 
     local mods = categoryMods[source]
-    local group, attachedItems
+    local group, groupPrefix, attachedItems
     if mods then
       if mods.addedItems and next(mods.addedItems) then
         attachedItems = mods.addedItems
       end
       group = mods.group
+      groupPrefix = mods.showGroupPrefix
     end
 
     local category = addonTable.CategoryViews.Constants.SourceToCategory[source]
@@ -179,6 +180,7 @@ function addonTable.CategoryViews.ComposeCategories(everything)
             index = #allDetails + 1,
             attachedItems = autoDetails.attachedItems[index],
             group = group,
+            groupPrefix = groupPrefix,
             auto = true,
             section = currentSection,
           }
@@ -205,6 +207,7 @@ function addonTable.CategoryViews.ComposeCategories(everything)
           index = #allDetails + 1,
           attachedItems = attachedItems,
           group = group,
+          groupPrefix = groupPrefix,
           section = currentSection,
         }
       end
@@ -225,6 +228,7 @@ function addonTable.CategoryViews.ComposeCategories(everything)
         index = #allDetails + 1,
         attachedItems = attachedItems,
         group = group,
+        groupPrefix = groupPrefix,
         section = currentSection,
       }
     end

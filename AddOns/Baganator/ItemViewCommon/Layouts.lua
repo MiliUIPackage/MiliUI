@@ -1,23 +1,6 @@
 local _, addonTable = ...
-local MasqueRegistration = function() end
 
-if LibStub then
-  -- Establish a reference to Masque.
-  local Masque, MSQ_Version = LibStub("Masque", true)
-  if Masque ~= nil then
-    -- Retrieve a reference to a new or existing group.
-    local masqueGroup = Masque:Group("Baganator", "Bag")
-
-    MasqueRegistration = function(button)
-      if button.masqueApplied then
-        masqueGroup:ReSkin(button)
-      else
-        button.masqueApplied = true
-        masqueGroup:AddButton(button, nil, "Item")
-      end
-    end
-  end
-end
+local MasqueRegistration = addonTable.Utilities.MasqueRegistration
 
 local function GetNameFromLink(itemLink)
   return (string.match(itemLink, "h%[(.*)%]|h"):gsub(" ?|A.-|a", ""))
@@ -957,10 +940,8 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
     table.insert(self.buttons, newButton)
   end
 
-  if #toSet > 0 or self.anyRemoved or self.reflow or rowWidth ~= self.prevRowWidth then
-    self.reflow = false
-    self.anyRemoved = false
-    FlowButtonsRows(self, rowWidth)
+  if #toSet > 0 then
+    self.toSet = true
     for _, details in ipairs(toSet) do
       details[1]:SetItemDetails(details[2])
       details[1].addedDirectly = details[2].addedDirectly
@@ -994,6 +975,16 @@ function BaganatorLiveCategoryLayoutMixin:ShowGroup(cacheList, rowWidth, categor
     local key = addonTable.ItemViewCommon.Utilities.GetCategoryDataKey(cacheData)
     self.buttonsByKey[key] = self.buttonsByKey[key] or {}
     table.insert(self.buttonsByKey[key], button)
+  end
+end
+
+function BaganatorLiveCategoryLayoutMixin:Flow(rowWidth)
+  if self.reflow or self.toSet or self.anyRemoved or rowWidth ~= self.prevRowWidth then
+    self.toSet = false
+    self.reflow = false
+    self.anyRemoved = false
+    FlowButtonsRows(self, rowWidth)
+    self.prevRowWidth = rowWidth
   end
 end
 
@@ -1034,6 +1025,10 @@ function BaganatorCachedCategoryLayoutMixin:InformSettingChanged(setting)
   end
 end
 
+function BaganatorCachedCategoryLayoutMixin:Flow(width)
+  FlowButtonsRows(self, width)
+end
+
 function BaganatorCachedCategoryLayoutMixin:RequestContentRefresh()
   self.refreshContent = true
 end
@@ -1055,8 +1050,6 @@ function BaganatorCachedCategoryLayoutMixin:ShowGroup(cacheList, rowWidth)
   end
 
   self.updateTextures = false
-
-  FlowButtonsRows(self, rowWidth)
 
   for index, button in ipairs(self.buttons) do
     button:Show()

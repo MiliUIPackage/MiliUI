@@ -9,7 +9,7 @@ local function CheckStackable(allBags, callback)
     for _, slot in ipairs(bag) do
       if slot.itemID ~= nil and stackable[slot.itemID] == nil then
         if C_Item.IsItemDataCachedByID(slot.itemID) then
-          stackable[slot.itemID] = C_Item.GetItemMaxStackSizeByID(slot.itemID)
+          stackable[slot.itemID] = C_Item.GetItemMaxStackSizeByID(slot.itemID) > 1
         else
           waiting = waiting + 1
           addonTable.Utilities.LoadItemData(slot.itemID, function()
@@ -216,6 +216,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
 
   local hidden = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_HIDDEN)
   local sectionToggled = addonTable.Config.Get(addonTable.Config.Options.CATEGORY_SECTION_TOGGLED)
+  self.showAddButtons = container.addToCategoryMode and addonTable.CategoryViews.Utilities.GetAddButtonsState()
 
   self.notShown = {}
   for _, details in pairs(composed.details) do
@@ -237,7 +238,7 @@ function addonTable.CategoryViews.BagLayoutMixin:Display(bagWidth, bagIndexes, b
       else
         entries = details.results
       end
-      if container.isLive and container.addToCategoryMode and addonTable.Config.Get(addonTable.Config.Options.ADD_TO_CATEGORY_BUTTONS) and not details.auto then
+      if container.isLive and self.showAddButtons and not details.auto then
         if container.addToCategoryMode ~= details.source then
           table.insert(entries, {isDummy = true, label = BAGANATOR_L_ADD_TO_CATEGORY, dummyType = "add"})
         else

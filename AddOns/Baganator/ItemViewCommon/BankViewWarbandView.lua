@@ -33,15 +33,6 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:OnLoad()
     end
   end)
 
-  addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
-    for _, layout in ipairs(self.Container.Layouts) do
-      layout:RequestContentRefresh()
-    end
-    if self:IsVisible() then
-      self:GetParent():UpdateView()
-    end
-  end)
-
   addonTable.CallbackRegistry:RegisterCallback("SettingChanged",  function(_, settingName)
     if tIndexOf(addonTable.Config.ItemButtonsRelayoutSettings, settingName) ~= nil then
       for _, layout in ipairs(self.Container.Layouts) do
@@ -115,6 +106,10 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:DoSort(isReverse)
   end
 end
 
+function BaganatorItemViewCommonBankViewWarbandViewMixin:OnShow()
+  self.transferState = {}
+end
+
 function BaganatorItemViewCommonBankViewWarbandViewMixin:CombineStacks(callback)
   local bagData = GetUnifiedSortData()
   addonTable.Sorting.CombineStacks(
@@ -156,16 +151,33 @@ end
 function BaganatorItemViewCommonBankViewWarbandViewMixin:RemoveSearchMatches(getItems)
   local matches = (getItems and getItems()) or self:GetSearchMatches()
 
+  -- Limit to the first 5 items (avoids slots locking up)
+  local newMatches = {}
+  for i = 1, 5 do
+    table.insert(newMatches, matches[i])
+  end
+  matches = newMatches
+
   local emptyBagSlots = addonTable.Transfers.GetEmptyBagsSlots(
     Syndicator.API.GetCharacter(Syndicator.API.GetCurrentCharacter()).bags,
     Syndicator.Constants.AllBagIndexes
   )
 
-  local status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBagIndexes, emptyBagSlots)
+  local status
+  -- Only move more items if the last set moved in, or the last transfer
+  -- completed.
+  if #emptyBagSlots ~= self.transferState.emptyBagSlots then
+    self.transferState.emptyBagSlots = #emptyBagSlots
+    status = addonTable.Transfers.FromBagsToBags(matches, Syndicator.Constants.AllBagIndexes, emptyBagSlots)
+  else
+    status = addonTable.Constants.SortStatus.WaitingMove
+  end
 
   self.transferManager:Apply(status, {"BagCacheUpdate"}, function()
     self:RemoveSearchMatches(getItems)
-  end, function() end)
+  end, function()
+    self.transferState = {}
+  end)
 end
 
 function BaganatorItemViewCommonBankViewWarbandViewMixin:ResetToLive()
@@ -405,7 +417,7 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:OnFinished(character, i
 
   local buttonPadding = 0
   if self.isLive then
-    buttonPadding = buttonPadding + 29
+    buttonPadding = buttonPadding + 26
   end
 
   self:SetSize(10, 10)
@@ -413,10 +425,10 @@ function BaganatorItemViewCommonBankViewWarbandViewMixin:OnFinished(character, i
 
   self:SetSize(
     self.Container:GetWidth() + sideSpacing * 2 + addonTable.Constants.ButtonFrameOffset - 2,
-    math.min(self.Container:GetHeight() + 75 + topSpacing / 2 + buttonPadding, UIParent:GetHeight() - externalVerticalSpacing)
+    math.min(self.Container:GetHeight() + 75 + topSpacing / 2 + buttonPadding, UIParent:GetHeight() / self:GetParent():GetScale() - externalVerticalSpacing)
   )
 
-  self:UpdateScroll(75 + topSpacing * 1/4 + buttonPadding + externalVerticalSpacing)
+  self:UpdateScroll(75 + topSpacing * 1/4 + buttonPadding + externalVerticalSpacing, self:GetParent():GetScale())
 end
 
 function BaganatorItemViewCommonBankViewWarbandViewMixin:DepositMoney()

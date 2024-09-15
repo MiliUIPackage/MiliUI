@@ -14,6 +14,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   self.LayoutManager:OnLoad()
 
   self:RegisterEvent("CURSOR_CHANGED")
+  self:RegisterEvent("MODIFIER_STATE_CHANGED")
 
   addonTable.CallbackRegistry:RegisterCallback("ContentRefreshRequired",  function()
     self.searchToApply = true
@@ -62,7 +63,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   addonTable.CallbackRegistry:RegisterCallback("CategoryAddItemStart", function(_, fromCategory, itemID, itemLink, addedDirectly)
     self.addToCategoryMode = fromCategory
     self.addedToFromCategory = addedDirectly == true
-    if self:IsVisible() then
+    if self:IsVisible() and addonTable.CategoryViews.Utilities.GetAddButtonsState() then
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
   end)
@@ -96,6 +97,8 @@ function BaganatorCategoryViewBackpackViewMixin:OnEvent(eventName)
     if self:IsVisible() then
       self:UpdateForCharacter(self.lastCharacter, self.isLive)
     end
+  elseif eventName == "MODIFIER_STATE_CHANGED" and self.addToCategoryMode and (addonTable.CategoryViews.Utilities.GetAddButtonsState() or self.LayoutManager.showAddButtons) and C_Cursor.GetCursorItem() then
+    self:UpdateForCharacter(self.lastCharacter, self.isLive)
   end
 end
 
@@ -168,6 +171,8 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
       maxHeight
     )
 
+    self:OnFinished()
+
     self.CurrencyWidget:UpdateCurrencyTextVisibility(sideSpacing + addonTable.Constants.ButtonFrameOffset)
 
     local searchText = self.SearchWidget.SearchBox:GetText()
@@ -178,8 +183,6 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
     if addonTable.Config.Get(addonTable.Config.Options.DEBUG_TIMERS) then
       addonTable.Utilities.DebugOutput("-- updateforcharacter backpack", debugprofilestop() - start)
     end
-
-    self:OnFinished()
 
     addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
   end)
