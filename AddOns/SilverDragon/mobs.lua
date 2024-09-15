@@ -101,7 +101,7 @@ function module:OptionsRequested(callback, options)
 			args = {
 				custom = {
 					type = "group",
-					name = "自訂",
+					name = CUSTOM,
 					order = 1,
 					args = {
 						add = {
@@ -137,7 +137,7 @@ function module:OptionsRequested(callback, options)
 				},
 				ignore = {
 					type = "group",
-					name = "忽略",
+					name = IGNORE,
 					desc = "想要忽略和已經忽略的稀有怪",
 					args = {
 						add = mob_input(ADD, "要加入稀有怪，輸入 ID、名稱，\"將滑鼠指向牠\" 或 \"選為目標\"。", 1, function(info, id)

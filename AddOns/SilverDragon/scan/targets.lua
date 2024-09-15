@@ -14,6 +14,7 @@ function module:OnInitialize()
 			targets = true,
 			nameplate = true,
 			rare_only = true,
+			dead = true,
 		},
 	})
 
@@ -30,6 +31,7 @@ function module:OnInitialize()
 					targets = config.toggle("目標", "檢查隊友的目標", 20),
 					nameplate = config.toggle("血條", "檢查有血條的單位", 30),
 					rare_only = config.toggle("只有稀有怪", "只尋找仍被標示為稀有的怪獸", 40),
+					dead = config.toggle("死的稀有怪", "選取已死亡的稀有怪為目標也算數", 50),
 				},
 			},
 		}
@@ -90,6 +92,8 @@ function module:ProcessUnit(unit, source)
 	if UnitPlayerControlled(unit) and not core:IsCustom(id, zone) then return end -- helps filter out player-pets
 	local unittype = UnitClassification(unit)
 	local is_rare = (id and rare_nonflags[id]) or (unittype == 'rare' or unittype == 'rareelite')
+	local is_dead = UnitIsDead(unit)
+	if is_dead and not self.db.profile.dead then return end
 	local should_process = false
 
 	if core:IsCustom(id, zone) then
@@ -119,6 +123,6 @@ function module:ProcessUnit(unit, source)
 		end
 
 		-- id, zone, x, y, is_dead, source, unit, silent, force, GUID
-		core:NotifyForMob(id, zone, x, y, UnitIsDead(unit), source or 'target', unit, false, false, UnitGUID(unit))
+		core:NotifyForMob(id, zone, x, y, is_dead, source or 'target', unit, false, false, UnitGUID(unit))
 	end
 end

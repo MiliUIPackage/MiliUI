@@ -11,7 +11,9 @@ function module:OnInitialize()
 	self.db = core.db:RegisterNamespace("Macro", {
 		profile = {
 			enabled = true,
+			custom = true,
 			verbose = true,
+			relaxed = false,
 		},
 	})
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -20,6 +22,10 @@ function module:OnInitialize()
 	core.RegisterCallback(self, "Ready", "Update")
 	core.RegisterCallback(self, "IgnoreChanged", "Update")
 	core.RegisterCallback(self, "CustomChanged", "Update")
+
+	C_Timer.NewTicker(5, function()
+		self:Update()
+	end)
 
 	local config = core:GetModule("Config", true)
 	if config then
@@ -34,13 +40,28 @@ function module:OnInitialize()
 				end,
 				args = {
 					about = config.desc("建立一個將可能在附近的稀有怪選為目標、可用於巨集的按鈕。\n\n"..
-							"你可以自行建立一個巨集：/click SilverDragonMacroButton\n\n"..
-							"...或按下下方的 \"建立巨集\" 按鈕，會建立一個叫做 SilverDragon 的新巨集，將它拖曳到快捷列上，按下時會將可能在附近的稀有怪選為目標。",
+							"自行建立一個名稱叫做 \"SilverDragon\" 的巨集，或是按下下方的 \"建立巨集\" 按鈕來建立。 "..
+							"將巨集拖曳到快捷列上，按下時會將可能在附近的稀有怪選為目標。"..
+							"巨集內容長度是有嚴格限制的，所以只會包含最靠近的稀有怪。",
 							0),
 					verbose = {
 						type = "toggle",
 						name = "通知",
 						desc = "加上一個簡單的輸出訊息，以便知道巨集在尋找什麼",
+						order = 10,
+					},
+					custom = {
+						type = "toggle",
+						name = CUSTOM,
+						desc = "在巨集中包含自訂的稀有怪。因為我們不知道牠們的位置，所以會加入較高的優先順序。"..
+							"如果數量太多的話，可能會將真正靠近的稀有怪擠出巨集。",
+						order = 20,
+					},
+					relaxed = {
+						type = "toggle",
+						name = "寬鬆目標",
+						desc = "使用 /tar 選取目標而不是 /targetexact。有時會選錯稀有怪，但是也允許在巨集中塞入更多稀有怪。",
+						order = 30,
 					},
 					create = {
 						type = "execute",
@@ -48,7 +69,8 @@ function module:OnInitialize()
 						desc = "按一下建立巨集",
 						func = function()
 							self:CreateMacro()
-						end
+						end,
+						order = 50,
 					},
 				},
 				-- order = 99,
@@ -57,68 +79,69 @@ function module:OnInitialize()
 	end
 end
 
-local macro = {}
 function module:Update()
-	if InCombatLockdown() then
-		self.waiting = true
+	if not self.db.profile.enabled then
 		return
 	end
-	if not self.db.profile.enabled then
-		self:GetMacroButton(1):SetAttribute("macrotext", "/script print(\"掃描巨集已經停用\")")
+	if InCombatLockdown() then
+		self.waiting = true
 		return
 	end
 	Debug("Updating Macro")
 	-- Make sure the core macro is up to date
 	if GetMacroIndexByName("SilverDragon") then
-		EditMacro(GetMacroIndexByName("SilverDragon"), nil, self:GetMacroArguments())
+		-- 1023 for macrotext on a button, but...
+		EditMacro(GetMacroIndexByName("SilverDragon"), nil, self:GetMacroArguments(255))
 	end
+end
+
+local macro = {}
+function module:BuildTargetMacro(limit)
+	local VERBOSE_ANNOUNCE = "/run print(\"Checking %d nearby mobs\")"
 	-- first, create the macro text on the button:
 	local zone = HBD:GetPlayerZone()
-	local mobs = zone and ns.mobsByZone[zone]
-	local count = 0
-	if mobs then
-		for id in pairs(mobs) do
-			local name = core:NameForMob(id)
-			if
-				name and
-				not core:ShouldIgnoreMob(id, zone) and
-				core:IsMobInPhase(id, zone)
-			then
-				table.insert(macro, "/targetexact " .. name)
-				count = count + 1
+	local mobs = {}
+	local distances = {}
+	local length = self.db.profile.verbose and (#VERBOSE_ANNOUNCE + 1) or 0
+	for id, hasCoords, isCustom in core:IterateRelevantMobs(zone, true) do
+		if
+			(self.db.profile.custom or not isCustom) and
+			not core:ShouldIgnoreMob(id, zone) and
+			core:IsMobInPhase(id, zone) and
+			not ns:CompletionStatus(id)
+		then
+			local distance = hasCoords and select(4, core:GetClosestLocationForMob(id)) or 0
+			if distance then
+				distances[id] = distance
+				table.insert(mobs, id)
 			end
 		end
 	end
-	if count == 0 then
-		table.insert(macro, "/script print(\"沒有已知的稀有怪可以掃描\")")
+	table.sort(mobs, function(a, b)
+		return distances[a] < distances[b]
+	end)
+	for _, id in ipairs(mobs) do
+		local name = core:NameForMob(id)
+		if name then
+			local line = (self.db.profile.relaxed and "/tar " or "/targetexact ") .. name
+			length = length + 1 + #line
+			if length > limit then
+				break
+			end
+			table.insert(macro, line)
+		end
+	end
+	if #macro == 0 then
+		table.insert(macro, "/script print(\"沒有已知的稀有怪可供掃描\")")
 	elseif self.db.profile.verbose then
-		table.insert(macro, 1, ("/script print(\"正在掃描 %d 個附近的稀有怪...\")"):format(count))
+		table.insert(macro, 1, VERBOSE_ANNOUNCE:format(#macro))
 	end
-	-- this is the 10.0.0+ SecureActionButton handler snafu:
-	local clickbutton = " LeftButton " .. (GetCVar("ActionButtonUseKeyDown") == "1" and "1" or "0")
 
-	local MAX_MACRO_LENGTH = 1023 -- this goes through RunMacroText, rather than actual-macros limit of 255
-	local len = 0
-	local n = 1
-	local start = 1
-	local BUFFER_FOR_CLICK = #("\n/click SilverDragonMacroButton2"..clickbutton) --update if changing below
-	for i, text in ipairs(macro) do
-		len = len + #text + 2 -- for the newline
-		local next_statement = macro[next(macro, i)]
-		if len > (MAX_MACRO_LENGTH - (math.max(BUFFER_FOR_CLICK, #(next_statement or "")))) or not next_statement then
-			local button = self:GetMacroButton(n)
-			n = n + 1
-			local mtext = ("\n"):join(unpack(macro, start, i))
-			if next_statement then
-				mtext = mtext .. "\n/click SilverDragonMacroButton"..n..clickbutton
-			end
-			button:SetAttribute("macrotext", mtext)
-			len = 0
-			start = i
-		end
-	end
-	DebugF("Updated macro: %d mobs, %d statements, %d buttons", count, #macro, n - 1)
+	local mtext = ("\n"):join(unpack(macro))
+	DebugF("Updated macro: %d statements, %d characters", #macro, #mtext)
+
 	table.wipe(macro)
+	return mtext
 end
 
 function module:CreateMacro()
@@ -138,10 +161,9 @@ function module:CreateMacro()
 		self:Print("|cffff0000名稱為 SilverDragon 的巨集已經存在。|r")
 	end
 end
-function module:GetMacroArguments()
+function module:GetMacroArguments(limit)
 	--/script for i=1,GetNumMacroIcons() do if GetMacroIconInfo(i):match("SniperTraining$") then DEFAULT_CHAT_FRAME:AddMessage(i) end end
-	local clickbutton = " LeftButton " .. (GetCVar("ActionButtonUseKeyDown") == "1" and "1" or "0")
-	return 132222, "/click SilverDragonMacroButton"..clickbutton
+	return 132222, self:BuildTargetMacro(limit or 255)
 end
 
 function module:PLAYER_REGEN_ENABLED()
