@@ -1,15 +1,17 @@
 local mod	= DBM:NewMod(2599, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240901051854")
+mod:SetRevision("20240911070243")
 mod:SetCreatureID(214503)
 mod:SetEncounterID(2898)
 mod:SetUsedIcons(1, 2, 3)
-mod:SetHotfixNoticeRev(20240628000000)
-mod:SetMinSyncRevision(20240628000000)
+mod:SetHotfixNoticeRev(20240911000000)
+mod:SetMinSyncRevision(20240911000000)
 mod.respawnTime = 29
 
 mod:RegisterCombat("combat")
+mod:DisableRegenDetection()--He returns true to UnitAffectingCombat when fighting his trash for some reason, triggering false combat detection if scanning PLAYER_REGEN_DISABLED
+mod.disableHealthCombat = true--^^
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 456420 435401 432965 435403 439559 453258 442428",

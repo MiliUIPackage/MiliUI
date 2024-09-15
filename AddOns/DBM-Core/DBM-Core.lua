@@ -75,16 +75,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20240910055149")
+DBM.Revision = parseCurseDate("20240912085203")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
 local fakeBWVersion, fakeBWHash = 351, "186d70b"--351.1
 local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.0.6"--Core version
+DBM.DisplayVersion = "11.0.8"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 9, 10) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2024, 9, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 14--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -338,7 +338,7 @@ DBM.DefaultOptions = {
 	DontShowNameplateIcons = false,
 	DontShowNameplateIconsCD = false,
 	DontShowNameplateIconsCast = false,
-	SendDungeonBossGUIDs = true,
+	DontSendBossGUIDs = false,
 	NPAuraText = true,
 	NPIconSize = 30,
 	NPIconXOffset = 0,
@@ -9186,7 +9186,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240910055149" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240912084751" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
