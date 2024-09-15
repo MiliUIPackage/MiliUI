@@ -1,6 +1,6 @@
 # Syndicator
 
-## [118](https://github.com/Baganator/Syndicator/tree/118) (2024-09-03)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/117...118) 
+## [123](https://github.com/Baganator/Syndicator/tree/123) (2024-09-13)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/122...123) 
 
-- Add Earthen race icons to tooltips  
+- Fix merging guild banks on diff realms, same connected realm and same guild name  
