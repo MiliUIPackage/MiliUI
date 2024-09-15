@@ -2145,7 +2145,7 @@ local essencesbar={
 	},
 }
 local combopointbar={
-	name=L["Combo Frame"], type="group", hidden=function() return Stuf.CLS ~= "DRUID" end, order=30,
+	name=L["Combo Frame"], type="group", hidden=function() return (Stuf.CLS ~= "DRUID" and Stuf.CLS ~= "ROGUE") end, order=30,
 	args={
 		hide=hide, blank=blank,
 		x=x2, y=y2, scale=scale, alpha=alpha, framelevel=framelevel, nomouse=nomouse, strata=bstrata,

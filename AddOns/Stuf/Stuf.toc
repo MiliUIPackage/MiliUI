@@ -2,7 +2,7 @@
 ## Title: Stuf Unit Frames
 ## Author: TotalPackage
 ## Notes: Main unitframes replacement. Assembly optional.
-## Version: 11.0.7
+## Version: 11.0.８
 
 ## SavedVariables: StufDB
 ## SavedVariablesPerCharacter: StufCharDB
