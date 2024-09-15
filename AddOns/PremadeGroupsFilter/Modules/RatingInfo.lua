@@ -36,17 +36,17 @@ function PGF.GetOrCreateRatingInfoFrame(self)
         frame = CreateFrame("Frame", nil, self, nil)
         frame:Hide()
         frame:SetFrameStrata("HIGH")
-        frame:SetSize(38, 30)
+        frame:SetSize(45, 30)
         frame:SetPoint("TOP", 0, -4)
 
         frame.Rating = frame:CreateFontString("$parentRating", "ARTWORK", "GameFontNormalSmall")
-        frame.Rating:SetSize(38, 15)
+        frame.Rating:SetSize(45, 15)
         frame.Rating:SetPoint("TOP")
         frame.Rating:SetJustifyH("RIGHT")
         frame.Rating:SetTextColor(1, 1, 1)
 
         frame.ExtraText = frame:CreateFontString("$parentExtraText", "ARTWORK", "GameFontNormalSmall")
-        frame.ExtraText:SetSize(38, 15)
+        frame.ExtraText:SetSize(45, 15)
         frame.ExtraText:SetPoint("BOTTOM")
         frame.ExtraText:SetJustifyH("RIGHT")
         frame.ExtraText:SetTextColor(1, 1, 1)
@@ -102,7 +102,7 @@ function PGF.AddRatingInfo(self, searchResultInfo)
         return -- stop if no rating
     end
 
-    local textWidth = 315 - 10 - 35 + rightPos
+    local textWidth = 320 - 10 - 35 + rightPos
     if searchResultInfo.voiceChat and searchResultInfo.voiceChat ~= "" then
         textWidth = textWidth - 20
     end
