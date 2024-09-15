@@ -19,6 +19,10 @@ L['options_icons_profession_treasures_desc'] = '顯示會給予專業技能知�
 L['options_icons_khaz_algar_lore_hunter'] = '{achievement:40762}'
 L['options_icons_khaz_algar_lore_hunter_desc'] = '顯示成就 {achievement:40762} 所需的知識位置。'
 
+L['options_icons_flight_master'] = '{achievement:40430}'
+L['options_icons_flight_master_desc'] = '顯示 {achievement:40430} 成就中 {npc:飛行管理員} 的位置。'
+
+
 -------------------------------------------------------------------------------
 -------------------------------- ISLE OF DORN ---------------------------------
 -------------------------------------------------------------------------------
@@ -230,13 +234,11 @@ L['options_icons_itsy_bitsy_spider'] = '{achievement:40624}'
 L['options_icons_itsy_bitsy_spider_desc'] = '顯示成就 {achievement:40624} 所需的小織蛛位置。'
 
 L['itsy_bitsy_spider_note'] = '向小織蛛揮手 ({emote:/wave})。'
-L['webster_location'] = '占位符'
 L['spindle_location'] = '占位符'
 L['swift_location'] = '占位符'
 L['rumurh_location'] = '占位符'
 L['thimble_location'] = '占位符'
 L['scampering_weave_rat_location'] = '占位符'
-L['generals_scouting_shadecaster_location'] = '占位符'
 
 L['options_icons_bookworm'] = '{achievement:40629}'
 L['options_icons_bookworm_desc'] = '顯示 {achievement:40629} 成就中書籍的位置。'
@@ -285,6 +287,8 @@ L['concealed_contraband_note'] = '移除 {object:網繭} 後揭露寶藏。'
 L['memory_cache_note'] = '從附近的（{dot:Red}）{object:提取器存儲} 獲取 {spell:420847}。擊殺 {npc:223908} 後獲取 {item:223870} 以打開 {object:記憶寶箱}。'
 L['niffen_stash_note'] = '在橋下。'
 L['trapped_trove_note'] = '在從天花板垂下的建築物中。避開地板上的蜘蛛網。'
+L['weaving_supplies_note'] = '從附近的平台收集絲綢碎片來打開寶藏。\n\n{item:223901}（{dot:Purple}）\n{item:223903}（{dot:Yellow}）\n{item:223902}（{dot:Red}）'
+
 L['tkaktath_note'] = '開始任務鏈以獲取 {item:224150} 坐騎。'
 
 L['options_icons_the_unseeming'] = '{achievement:40633}'
@@ -302,8 +306,8 @@ L['kej_pet_vendor_note'] = '每個寵物的庫存有限，費用為2250{currency
 ----------------------------------- DELVES ------------------------------------
 -------------------------------------------------------------------------------
 
-L['sturdy_chest'] = '結實寶箱'
-L['sturdy_chest_suffix'] = '找到結實寶箱'
+L['sturdy_chest'] = '結實的箱子'
+L['sturdy_chest_suffix'] = '結實的箱子已發現'
 
 L['ecm_chest_3_location'] = '在起重機上。從上層跳。'
 L['fol_chest_1_location'] = '在灌木叢中的蘑菇下面的岩石上。'

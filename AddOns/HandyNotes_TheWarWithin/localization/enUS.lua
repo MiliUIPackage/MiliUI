@@ -19,6 +19,9 @@ L['options_icons_profession_treasures_desc'] = 'Display locations of treasures w
 L['options_icons_khaz_algar_lore_hunter'] = '{achievement:40762}'
 L['options_icons_khaz_algar_lore_hunter_desc'] = 'Display lore object locations for {achievement:40762} achievement.'
 
+L['options_icons_flight_master'] = '{achievement:40430}'
+L['options_icons_flight_master_desc'] = 'Display {npc:Flight Master} locations for {achievement:40430}.'
+
 -------------------------------------------------------------------------------
 -------------------------------- ISLE OF DORN ---------------------------------
 -------------------------------------------------------------------------------
@@ -229,13 +232,11 @@ L['options_icons_itsy_bitsy_spider'] = '{achievement:40624}'
 L['options_icons_itsy_bitsy_spider_desc'] = 'Display weave-rat locations for {achievement:40624} achievement.'
 
 L['itsy_bitsy_spider_note'] = 'Wave ({emote:/wave}) to the weave-rat.'
-L['webster_location'] = 'PH'
 L['spindle_location'] = 'PH'
 L['swift_location'] = 'PH'
 L['rumurh_location'] = 'PH'
 L['thimble_location'] = 'PH'
 L['scampering_weave_rat_location'] = 'PH'
-L['generals_scouting_shadecaster_location'] = 'PH'
 
 L['options_icons_bookworm'] = '{achievement:40629}'
 L['options_icons_bookworm_desc'] = 'Display book locations for the {achievement:40629} achievement.'
@@ -284,6 +285,7 @@ L['concealed_contraband_note'] = 'Remove the {object:Web Cocoon} from the Treasu
 L['memory_cache_note'] = 'Get {spell:420847} from a nearby ({dot:Red}) {object:Extractor Storage}. After kill the {npc:223908} to get the {item:223870} to open the {object:Memory Cache}.'
 L['niffen_stash_note'] = 'Located under the bridge.'
 L['trapped_trove_note'] = 'In a building that hangs from the ceiling. Avoid the spiderwebs on the floor.'
+L['weaving_supplies_note'] = 'Collect silk scraps from the nearby platform to open the treasure.\n\n{item:223901} ({dot:Purple})\n{item:223903} ({dot:Yellow})\n{item:223902} ({dot:Red})'
 
 L['tkaktath_note'] = 'Starts a quest chain to get the {item:224150} mount.'
 
@@ -312,7 +314,7 @@ L['kvr_chest_2_location'] = 'On top of the wooden scaffold.'
 L['nfs_chest_2_location'] = 'On the plant.'
 L['nfs_chest_3_location'] = 'Inside the building.'
 L['nfs_chest_4_location'] = 'Jump down from the skyship.'
-L['ski_chest_3_location'] = 'Inside the building.'
+L['ski_chest_3_location'] = 'On a ledge.'
 L['tra_chest_2_location'] = 'On top of the coral.'
 L['tsw_chest_2_location'] = 'High up on the beam.'
 L['tsw_chest_2_note'] = '{note:Only available in the "From the Weaver with Love" story variant.}'

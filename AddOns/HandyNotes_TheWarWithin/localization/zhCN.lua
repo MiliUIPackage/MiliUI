@@ -19,6 +19,9 @@ L['options_icons_profession_treasures_desc'] = '显示给予专业知识的宝�
 L['options_icons_khaz_algar_lore_hunter'] = '{achievement:40762}'
 L['options_icons_khaz_algar_lore_hunter_desc'] = '显示 {achievement:40762} 成就中剧情物品的位置。'
 
+L['options_icons_flight_master'] = '{achievement:40430}'
+L['options_icons_flight_master_desc'] = '显示 {achievement:40430} 成就中 {npc:飞行管理员} 的位置。'
+
 -------------------------------------------------------------------------------
 -------------------------------- ISLE OF DORN ---------------------------------
 -------------------------------------------------------------------------------
@@ -229,13 +232,11 @@ L['options_icons_itsy_bitsy_spider'] = '{achievement:40624}'
 L['options_icons_itsy_bitsy_spider_desc'] = '显示 {achievement:40624} 成就中纺崽的位置。'
 
 L['itsy_bitsy_spider_note'] = '向纺崽招手（{emote:/招手}、{emote:/wave}）。'
-L['webster_location'] = '占位符'
 L['spindle_location'] = '占位符'
 L['swift_location'] = '占位符'
 L['rumurh_location'] = '占位符'
 L['thimble_location'] = '占位符'
 L['scampering_weave_rat_location'] = '占位符'
-L['generals_scouting_shadecaster_location'] = '占位符'
 
 L['options_icons_bookworm'] = '{achievement:40629}'
 L['options_icons_bookworm_desc'] = '显示 {achievement:40629} 成就中书籍的位置。'
@@ -284,6 +285,7 @@ L['concealed_contraband_note'] = '移除 {object:网茧} 后揭示宝藏。'
 L['memory_cache_note'] = '从附近的（{dot:Red}）{object:提取器存储} 获取 {spell:420847}。击杀 {npc:223908} 后获取 {item:223870} 以打开 {object:记忆箱子}。'
 L['niffen_stash_note'] = '在桥下。'
 L['trapped_trove_note'] = '在从天花板垂下的建筑物中。避开地板上的蜘蛛网。'
+L['weaving_supplies_note'] = '从附近的平台收集丝绸碎片来打开宝藏。\n\n{item:223901}（{dot:Purple}）\n{item:223903}（{dot:Yellow}）\n{item:223902}（{dot:Red}）'
 
 L['tkaktath_note'] = '开始任务链以获取 {item:224150} 坐骑。'
 
@@ -312,7 +314,7 @@ L['kvr_chest_2_location'] = '在木制脚手架顶部。'
 L['nfs_chest_2_location'] = '在植物上。'
 L['nfs_chest_3_location'] = '在建筑物内。'
 L['nfs_chest_4_location'] = '从飞船上跳下。'
-L['ski_chest_3_location'] = '在建筑物内。'
+L['ski_chest_3_location'] = '在崖边上。'
 L['tra_chest_2_location'] = '在珊瑚的顶部。'
 L['tsw_chest_2_location'] = '在横梁上。'
 L['tsw_chest_2_note'] = '{note:仅在“纺丝者爱的问候”故事变种。}'

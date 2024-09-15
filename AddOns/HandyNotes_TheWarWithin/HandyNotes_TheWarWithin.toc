@@ -1,6 +1,6 @@
-## Interface: 110002, 110005
+## Interface: 110002
 ## Title: HandyNotes: The War Within
-## Version: 95
+## Version: 98
 ## Notes: The War Within Notes
 ## Title-zhTW: |cff4DFF4D[地圖]|r 地圖標記-地心之戰
 ## Notes-zhTW: HandyNotes: The War Within |n地心之戰的各種地圖標記
