@@ -1,2 +1,2 @@
-## 5.0.6 (2024-08-20)
-  - Count updates
+## 5.0.8 (2024-09-07)
+  - Background changes
