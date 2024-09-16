@@ -1,4 +1,4 @@
-## Interface: 110002, 110005
+## Interface: 110002
 ## Title: |cff9d5db8KeystoneLoot|r
 ## Notes: Shows the items from the mythic plus instances in a compact overview
 ## Notes-ruRU: Компактный аддон, который показывает уровни предметов из подземелий М+
@@ -6,7 +6,7 @@
 ## Notes-zhTW: KeystoneLoot |n顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 1.9.0
+## Version: 1.9.2
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
