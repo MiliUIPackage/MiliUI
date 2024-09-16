@@ -1,10 +1,10 @@
 local mod	= DBM:NewMod(2612, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240911070243")
+mod:SetRevision("20240916074707")
 mod:SetCreatureID(214506)
 mod:SetEncounterID(2919)
-mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
+mod:SetUsedIcons(6, 4, 3, 7)
 mod:SetHotfixNoticeRev(20240614000000)
 --mod:SetMinSyncRevision(20230929000000)
 mod.respawnTime = 29
@@ -40,6 +40,8 @@ or ability.id = 446700 and type = "begincast"
 local warnExperimentalDosage					= mod:NewTargetCountAnnounce(442526, 3, nil, nil, 143340)--Shortname "Injection"
 
 local specWarnExperimentalDosage				= mod:NewSpecialWarningMoveTo(442526, nil, 143340, nil, 1, 2)--Shortname "Injection"
+local yellxperimentalDosage						= mod:NewShortPosYell(442526, 19873)--Shortname "Destroy Egg" (This name is NOT injected into shortnames api)
+local yellxperimentalDosageFades				= mod:NewIconFadesYell(442526, 19873)--Shortname "Destroy Egg" (This name is NOT injected into shortnames api)
 local specWarnIngestBlackBlood					= mod:NewSpecialWarningCount(442432, nil, 325225, nil, 2, 2)--Shortname "Container Breach"
 local specWarnUnstableWeb						= mod:NewSpecialWarningMoveAway(446349, nil, 389280, nil, 1, 2)--Shortname "Web"
 local yellUnstableWeb							= mod:NewShortYell(446349, 389280)
@@ -52,7 +54,8 @@ local timerIngestBlackBloodCD					= mod:NewCDCountTimer(170, 442432, 325225, nil
 local timerUnstableWebCD						= mod:NewCDCountTimer(30, 446349, 157317, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON..DBM_COMMON_L.MAGIC_ICON)--Shortname "Webs"
 local timerVolatileConcoctionCD					= mod:NewCDCountTimer(20, 441362, DBM_COMMON_L.TANKDEBUFF.." (%s)", "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
-mod:AddSetIconOption("SetIconOnEggBreaker", 442526, false, 0, {1, 2, 3, 4, 5, 6, 7, 8})--Egg Breaker auto assign strat
+mod:AddSetIconOption("SetIconOnEggBreaker", 442526, true, 10, {6, 4, 3, 7})--Egg Breaker auto assign strat (Priority for melee > ranged > healer)
+mod:AddDropdownOption("EggBreakerBehavior", {"MatchBW", "UseAllAscending", "DisableIconsForRaid", "DisableAllForRaid"}, "MatchBW", "misc", nil, 442526)
 --Colossal Spider
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28996))
 local specWarnPoisonBurst						= mod:NewSpecialWarningInterrupt(446700, "HasInterrupt", nil, nil, 1, 2)
@@ -62,6 +65,7 @@ mod:AddNamePlateOption("NPAuraOnNecrotic", 446694, true)
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28999))
 
 mod:AddNamePlateOption("NPAuraOnRavenous", 446690, true)
+mod:AddSetIconOption("SetIconOnWorm", -28999, false, 5, {8, 7, 6, 5})
 --Blood Parasite
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(29003))
 local specWarnFixate							= mod:NewSpecialWarningYou(442250, nil, nil, nil, 1, 2)
@@ -74,16 +78,21 @@ mod:AddNamePlateOption("NPFixate", 442250, true)
 
 mod.vb.dosageCount = 0
 mod.vb.ingestCount = 0
-mod.vb.dosageIcon = 0
 mod.vb.webCount = 0
 mod.vb.tankCount = 0
+mod.vb.EggBreakerBehavior = "MatchBW"
+mod.vb.eggIcon = 1
 local eggBreak = DBM:GetSpellName(177853)
+local eggIcons = {}
+local markOrder = { 6, 6, 4, 4, 3, 3, 7, 7 } -- blue, green, purple, red (wm 1-4)
 
 function mod:OnCombatStart(delay)
 	self.vb.dosageCount = 0
 	self.vb.ingestCount = 0
 	self.vb.webCount = 0
 	self.vb.tankCount = 0
+	self.vb.EggBreakerBehavior = self.Options.EggBreakerBehavior--Default it to whatever user has it set to, until group leader overrides it
+	self.vb.eggIcon = 1
 	timerVolatileConcoctionCD:Start(1.9, 1)
 	timerIngestBlackBloodCD:Start(15.6, 1)--Time til USCS event, cast event is 19.6
 --	timerExperimentalDosageCD:Start(33, 1)--Started by Injest black Blood
@@ -92,6 +101,18 @@ function mod:OnCombatStart(delay)
 	end
 	if self.Options.NPAuraOnNecrotic or self.Options.NPAuraOnRavenous or self.Options.NPAuraOnAccelerated or self.Options.NPFixate then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
+	end
+	--Group leader decides interrupt behavior
+	if UnitIsGroupLeader("player") and not self:IsLFR() then
+		if self.Options.EggBreakerBehavior == "MatchBW" then
+			self:SendSync("MatchBW")
+		elseif self.Options.EggBreakerBehavior == "UseAllAscending" then
+			self:SendSync("UseAllAscending")
+		elseif self.Options.EggBreakerBehavior == "DisableIconsForRaid" then
+			self:SendSync("DisableIconsForRaid")
+		elseif self.Options.EggBreakerBehavior == "DisableAllForRaid" then
+			self:SendSync("DisableAllForRaid")
+		end
 	end
 end
 
@@ -104,9 +125,12 @@ end
 function mod:SPELL_CAST_START(args)
 	local spellId = args.spellId
 	if spellId == 442526 then
-		self.vb.dosageIcon = 0
+		table.wipe(eggIcons)
 		self.vb.dosageCount = self.vb.dosageCount + 1
 		timerExperimentalDosageCD:Start(nil, self.vb.dosageCount+1)--50
+		if self.Options.SetIconOnWorm then
+			self:ScanForMobs(219046, 0, 8, 4, nil, 10, "SetIconOnWorm")
+		end
 	elseif spellId == 442432 and self:AntiSpam(5, 1) then--Ingest Black Blood
 		--Timers that restart here
 		timerExperimentalDosageCD:Start(16, self.vb.dosageCount+1)
@@ -151,6 +175,35 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 --]]
 
+---@param self DBMMod
+local function sortEggBreaker(self)
+	table.sort(eggIcons, DBM.SortByMeleeRangedHealer)
+	for i = 1, #eggIcons do
+		local name = eggIcons[i]
+		local icon
+		if self.vb.interruptBehavior == "MatchBW" then
+			icon = (self:IsMythic() and markOrder[i] or markOrder[(i * 2) - 1])
+		elseif self.vb.interruptBehavior == "UseAllAscending" then
+			icon = i
+		else--Disable Icons and Disable all for raid
+			icon = 0
+		end
+		if icon > 0 and self.Options.SetIconOnEggBreaker and (not self:IsMythic() or (self:IsMythic() and i % 2 == 1)) then
+			--Mythic uses same icons in pairs, so people are paired up with same mark, can't mark both so only marks 1 of them
+			self:SetIcon(name, icon)
+		end
+		if name == DBM:GetMyPlayerInfo() then
+			specWarnExperimentalDosage:Show(eggBreak)
+			specWarnExperimentalDosage:Play("movetoegg")
+			if self.vb.interruptBehavior ~= "DisableAllForRaid" then
+				yellxperimentalDosage:Yell(icon)
+				yellxperimentalDosageFades:Countdown(440421, nil, icon)
+			end
+		end
+	end
+	warnExperimentalDosage:Show(self.vb.dosageCount+1, table.concat(eggIcons, "<, >"))
+end
+
 function mod:SPELL_AURA_APPLIED(args)
 	local spellId = args.spellId
 	if spellId == 446349 then
@@ -182,15 +235,13 @@ function mod:SPELL_AURA_APPLIED(args)
 			end
 		end
 	elseif spellId == 440421 then
-		self.vb.dosageIcon = self.vb.dosageIcon + 1
-		warnExperimentalDosage:CombinedShow(0.5, self.vb.dosageCount+1, args.destName)
-		if args:IsPlayer() then
-			specWarnExperimentalDosage:Show(eggBreak)
-			specWarnExperimentalDosage:Play("movetoegg")
+		eggIcons[#eggIcons+1] = args.destName
+		local expectedTotal = self:IsMythic() and 8 or 4
+		self:Unschedule(sortEggBreaker)
+		if #eggIcons == (expectedTotal or DBM:NumRealAlivePlayers()) then
+			sortEggBreaker(self)
 		end
-		if self.Options.SetIconOnEggBreaker then
-			self:SetIcon(args.destName, self.vb.dosageIcon)
-		end
+		self:Schedule(0.5, sortEggBreaker, self)--Fallback in case scaling targets for normal/heroic
 	elseif spellId == 441362 and not args:IsPlayer() then
 		specWarnVolatileConcoctionTaunt:Show(args.destName)
 		specWarnVolatileConcoctionTaunt:Play("tauntboss")
@@ -220,6 +271,9 @@ function mod:SPELL_AURA_REMOVED(args)
 	elseif spellId == 440421 then
 		if self.Options.SetIconOnEggBreaker then
 			self:SetIcon(args.destName, 0)
+		end
+		if args:IsPlayer() then
+			yellxperimentalDosageFades:Cancel()
 		end
 --	elseif spellId == 446349 then
 
@@ -263,5 +317,18 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 		timerExperimentalDosageCD:Stop()
 		--Timers restarted by CLEU event since that's easier to verify on WCLs
 		--This just warns earlier than CLEU events and stops timers at earliest point
+	end
+end
+
+function mod:OnSync(msg)
+	if self:IsLFR() then return end
+	if msg == "MatchBW" then
+		self.vb.EggBreakerBehavior = "MatchBW"
+	elseif msg == "UseAllAscending" then
+		self.vb.EggBreakerBehavior = "UseAllAscending"
+	elseif msg == "DisableIconsForRaid" then
+		self.vb.EggBreakerBehavior = "DisableIconsForRaid"
+	elseif msg == "DisableAllForRaid" then
+		self.vb.EggBreakerBehavior = "DisableAllForRaid"
 	end
 end

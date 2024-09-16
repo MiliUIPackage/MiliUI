@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2396, "DBM-Party-Shadowlands", 1, 1182)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240817092309")
+mod:SetRevision("20240912100312")
 mod:SetCreatureID(162693)
 mod:SetEncounterID(2390)
 --mod:SetHotfixNoticeRev(20240817000000)
@@ -27,7 +27,7 @@ mod:RegisterEventsInCombat(
  or type = "dungeonencounterstart" or type = "dungeonencounterend"
  or (ability.id = 321368 or ability.id = 321754) and type = "removebuff"
 --]]
-local warnIceboundAegis				= mod:NewTargetNoFilterAnnounce(321754, 4)
+local warnIceboundAegis				= mod:NewTargetNoFilterAnnounce(321754, 2)
 local warnFrozenBinds				= mod:NewTargetNoFilterAnnounce(323730, 3)
 local warnDarkExile					= mod:NewTargetNoFilterAnnounce(321894, 3)
 

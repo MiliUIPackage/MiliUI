@@ -104,8 +104,11 @@ L:SetGeneralLocalization({
 -----------------------------
 --  High Speaker Eirich  --
 -----------------------------
---L = DBM:GetModLocalization(2582)
+L = DBM:GetModLocalization(2582)
 
+L:SetWarningLocalization({
+	specWarnVoidCorruption	= "虛無腐化 - 移動靠近 (非進入) 裂隙"
+})
 ---------
 --Trash--
 ---------

@@ -8,7 +8,7 @@ else
 	mod.statTypes = "normal,heroic"
 end
 
-mod:SetRevision("20240812045014")
+mod:SetRevision("20240912104122")
 mod:SetCreatureID(40177)
 mod:SetEncounterID(1050)
 mod:SetHotfixNoticeRev(20240614000000)
@@ -64,7 +64,7 @@ if not mod:IsCata() then
 			self.vb.weaponCount = self.vb.weaponCount + 1
 			warnForgeSword:Show(self.vb.weaponCount)
 			timerMoltenFlurryCD:Start(10.9)
-			timerForgeMaceCD(20.6, self.vb.weaponCount+1)
+			timerForgeMaceCD:Start(20.6, self.vb.weaponCount+1)
 		elseif args.spellId == 456900 then
 			self.vb.weaponCount = self.vb.weaponCount + 1
 			warnForgeMace:Show(self.vb.weaponCount)

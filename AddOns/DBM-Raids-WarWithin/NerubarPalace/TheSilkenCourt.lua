@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2608, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240912054655")
+mod:SetRevision("20240916074034")
 mod:SetCreatureID(217489, 217491)--Anub'arash, Skeinspinner Takazj
 mod:SetEncounterID(2921)
 mod:SetUsedIcons(6, 7, 8)
@@ -16,7 +16,7 @@ mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 438218 438801 440246 440504 438343 439838 450045 451016 438677 452231 441626 450129 441782 450483 438355 443068 451327 442994 441791",
 --	"SPELL_CAST_SUCCESS",
 	"SPELL_SUMMON 438249",
-	"SPELL_AURA_APPLIED 455849 455850 438218 455080 449857 440001 450980 438708 456252 450728 451277 443598 438656 440179 456245 438200 456235",--451611, 440503
+	"SPELL_AURA_APPLIED 455849 455850 438218 455080 449857 440001 450980 438708 456252 450728 451277 443598 440179 456245 438200 456235",--451611, 440503, 438656
 	"SPELL_AURA_APPLIED_DOSE 438218 438200",
 	"SPELL_AURA_REMOVED 455080 450980 451277 440001"--451611, 440503, 438656
 --	"SPELL_PERIODIC_DAMAGE",
@@ -29,10 +29,7 @@ mod:RegisterEventsInCombat(
 --TODO, binding webs multi target alerts to alert who you are bound to once it's clear how it's presented in combat log (if it's presented)
 --TODO, stinging swarm seems to have two versions, complex one that reequires dispeling near other boss to interrupt it, and one that's just ordinary debuff (probably LFR version)
 --TODO, if stringing swarm doesn't go private aura, add icons and icon based yells for dispel assignments. Not gonna waste time doing it now though when this fight hasn't had PA flagging done yet
---TODO, add https://www.wowhead.com/beta/spell=441775/void-blast if it's not spammed, similar boat to poison bolt
 --TODO, maybe Entropic should be a run away warning instead for melee?
---TODO, lots of cleanup of boss mechanics that interrupt other boss mechanics with better clarity and voices
---TODO, change option keys to match BW for weak aura compatability before live
 --NOTE, https://www.wowhead.com/beta/spell=440503/impaling-eruption was not exposed, re-add of that changes
 --[[
 (ability.id = 438218 or ability.id = 438801 or ability.id = 440246 or ability.id = 440504 or ability.id = 438343 or ability.id = 439838 or ability.id = 450045 or ability.id = 438677 or ability.id = 452231 or ability.id = 441626 or ability.id = 450129 or ability.id = 441782 or ability.id = 450483 or ability.id = 438355 or ability.id = 443068 or ability.id = 442994) and type = "begincast"
@@ -69,11 +66,11 @@ local timerImpalingEruptionCD					= mod:NewCDCountTimer(49, 440504, DBM_COMMON_L
 --local timerEntangledCD						= mod:NewTargetTimer(6, 440179, nil, false, nil, 5)--Too many timers on fight already, this is opt in
 
 mod:AddNamePlateOption("NPAuraOnPerseverance", 455080, true)
-mod:AddSetIconOption("SetIconOnScarab", 438801, true, 5, {6, 7, 8})
+mod:AddSetIconOption("SetIconOnScarab", 438801, true, 5, {8, 7, 6})
 ----Skeinspinner Takazj
 mod:AddTimerLine(takazj)
 local warnPoisonBolt						= mod:NewStackAnnounce(438200, 2, nil, "Tank|Healer")
-local warnVenomousRain						= mod:NewCountAnnounce(438656, 2, nil, nil, 44933)
+--local warnVenomousRain					= mod:NewCountAnnounce(438656, 2, nil, nil, 44933)
 local warnWebBomb							= mod:NewCountAnnounce(439838, 3)--General announce for everyone, personal special announce to target
 local warnSkitteringLeap					= mod:NewCountAnnounce(450045, 2, nil, nil, 47482)
 local warnBindingWeb						= mod:NewFadesAnnounce(440001, 1)
@@ -82,7 +79,7 @@ local warnBindingWeb						= mod:NewFadesAnnounce(440001, 1)
 --local yellWebBomb							= mod:NewShortYell(439838)
 --local yellWebBombFades					= mod:NewShortFadesYell(439838)
 local specWarnBindingWebs					= mod:NewSpecialWarningYou(440001, nil, nil, nil, 1, 2)
-local specWarnVenomousRain					= mod:NewSpecialWarningYou(438656, nil, 44933, nil, 1, 2)--Change to moveto if this is one that removes ground webs?
+local specWarnVenomousRain					= mod:NewSpecialWarningMoveAwayCount(438656, nil, 44933, nil, 1, 2)--Change to moveto if this is one that removes ground webs?
 
 local timerVenomousRainCD					= mod:NewCDCountTimer(49, 438656, 44933, nil, nil, 3)--Shortname "Rain"
 local timerWebBombCD						= mod:NewCDCountTimer(49, 439838, nil, nil, nil, 3)
@@ -92,7 +89,7 @@ local timerVoidAscensionCD					= mod:NewIntermissionCountTimer(100, 450483, nil,
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(29021))
 ----Anub'arash
 mod:AddTimerLine(anubarash)
-local warnStingingSwarm						= mod:NewTargetNoFilterAnnounce(450045, 2)--No Filter because this is a raid wiping mechanic if the 3 players don't get to boss
+local warnStingingSwarm						= mod:NewTargetNoFilterAnnounce(438677, 2)--No Filter because this is a raid wiping mechanic if the 3 players don't get to boss
 local warnStingingDelirium					= mod:NewTargetNoFilterAnnounce(456245, 2)--Player or Boss
 
 local specWarnStingingSwarm					= mod:NewSpecialWarningMoveTo(438677, nil, nil, nil, 1, 2)--438708
@@ -468,7 +465,8 @@ function mod:SPELL_CAST_START(args)
 		end
 	elseif spellId == 438343 then
 		self.vb.rainCount = self.vb.rainCount + 1
-		warnVenomousRain:Show(self.vb.rainCount)
+		specWarnVenomousRain:Show(self.vb.rainCount)
+		specWarnVenomousRain:Play("scatter")
 		local timer = self:GetFromTimersTable(allTimers, savedDifficulty, self.vb.phase, 438343, self.vb.rainCount+1)
 		if timer then
 			timerVenomousRainCD:Start(timer, self.vb.rainCount+1)
@@ -674,11 +672,11 @@ function mod:SPELL_AURA_APPLIED(args)
 			local uId = DBM:GetUnitIdFromGUID(args.destGUID, true)
 			DBM.InfoFrame:Show(2, "enemyabsorb", nil, args.amount, uId)
 		end
-	elseif spellId == 438656 then
-		if args:IsPlayer() then
-			specWarnVenomousRain:Show()
-			specWarnVenomousRain:Play("targetyou")
-		end
+	--elseif spellId == 438656 then
+	--	if args:IsPlayer() then
+	--		specWarnVenomousRain:Show()
+	--		specWarnVenomousRain:Play("targetyou")
+	--	end
 	elseif spellId == 440179 then
 		warnEntangled:Show(args.destName)
 	elseif spellId == 456245 or spellId == 456235 then

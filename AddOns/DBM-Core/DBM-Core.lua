@@ -75,16 +75,16 @@ end
 ---@class DBM
 local DBM = private:GetPrototype("DBM")
 _G.DBM = DBM
-DBM.Revision = parseCurseDate("20240912085203")
+DBM.Revision = parseCurseDate("20240916074951")
 DBM.TaintedByTests = false -- Tests may mess with some internal state, you probably don't want to rely on DBM for an important boss fight after running it in test mode
 
-local fakeBWVersion, fakeBWHash = 351, "186d70b"--351.1
+local fakeBWVersion, fakeBWHash = 359, "3aa6ef3"--359.0
 local bwVersionResponseString = "V^%d^%s"
 local PForceDisable
 -- The string that is shown as version
-DBM.DisplayVersion = "11.0.8"--Core version
+DBM.DisplayVersion = "11.0.11"--Core version
 DBM.classicSubVersion = 0
-DBM.ReleaseRevision = releaseDate(2024, 9, 12) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
+DBM.ReleaseRevision = releaseDate(2024, 9, 16) -- the date of the latest stable version that is available, optionally pass hours, minutes, and seconds for multiple releases in one day
 PForceDisable = 14--When this is incremented, trigger force disable regardless of major patch
 DBM.HighestRelease = DBM.ReleaseRevision --Updated if newer version is detected, used by update nags to reflect critical fixes user is missing on boss pulls
 
@@ -3810,7 +3810,7 @@ function DBM:UPDATE_BATTLEFIELD_STATUS(queueID)
 end
 
 function DBM:SCENARIO_COMPLETED()
-	if #inCombat > 0 and C_Scenario.IsInScenario() then
+	if #inCombat > 0 and (C_Scenario.IsInScenario() or test.Mocks and test.Mocks.IsInScenario()) then
 		for i = #inCombat, 1, -1 do
 			local v = inCombat[i]
 			if v.inScenario then
@@ -5779,7 +5779,7 @@ do
 			local name = mod.combatInfo.name
 			local modId = mod.id
 			if private.isRetail then
-				if mod.addon.type == "SCENARIO" and C_Scenario.IsInScenario() and not mod.soloChallenge then
+				if mod.addon.type == "SCENARIO" and (C_Scenario.IsInScenario() or test.Mocks and test.Mocks.IsInScenario()) and not mod.soloChallenge then
 					mod.inScenario = true
 				end
 			end
@@ -7748,12 +7748,11 @@ do
 
 	---@param self DBMModOrDBM
 	---@param uId playerUUIDs?
-	function DBM:IsMelee(uId, mechanical)--mechanical arg means the check is asking if boss mechanics consider them melee (even if they aren't, such as holy paladin/mistweaver monks)
+	function DBM:IsMelee(uId)
 		if uId then--This version includes monk healers as melee and tanks as melee
-			--Class checks performed first due to mechanical check needing to be broader than a specID check
+			--Class checks performed first on classes that are absolutely definitive (cause they'll work even if user doesn't have DBM or BW)
 			local _, class = UnitClass(uId)
-			--In mechanical check, ALL paladins are melee so don't need anything fancy, as for rest of classes here, same deal
-			if class == "WARRIOR" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "MONK" or class == "DEMONHUNTER" or (mechanical and class == "PALADIN") then
+			if class == "WARRIOR" or class == "ROGUE" or class == "DEATHKNIGHT" or class == "MONK" or class == "DEMONHUNTER" or class == "PALADIN" then
 				return true
 			end
 			--Now we check if we have acccess to specID (ie remote player is using DBM or Bigwigs)
@@ -7763,7 +7762,7 @@ do
 				return private.specRoleTable[specID]["Melee"]
 			else
 				--Now we do the ugly checks thanks to Inspect throttle
-				if (class == "DRUID" or class == "SHAMAN" or class == "PALADIN") then
+				if (class == "DRUID" or class == "SHAMAN") then
 					local unitMaxPower = UnitPowerMax(uId)
 					if not private.isRetail and unitMaxPower < 7500 then
 						return true
@@ -7798,7 +7797,7 @@ do
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["Ranged"]
 			else
-				print("bossModPrototype:IsRanged should not be called on external units if specID is unavailable, report this message")
+				self:AddMsg("IsRanged is being called on a player" .. name .. " that doesn't have an available specID. This likely means they are not using DBM or Bigwigs and can hamper functionality of this encounter module")
 			end
 		end
 		--Personal check Only
@@ -7817,7 +7816,7 @@ do
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["SpellCaster"]
 			else
-				print("bossModPrototype:IsSpellCaster should not be called on external units if specID is unavailable, report this message")
+				self:AddMsg("IsSpellCaster is being called on a player" .. name .. " that doesn't have an available specID. This likely means they are not using DBM or Bigwigs and can hamper functionality of this encounter module")
 			end
 		end
 		--Personal check Only
@@ -7835,7 +7834,7 @@ do
 				local specID = raid[name].specID
 				return private.specRoleTable[specID]["MagicDispeller"]
 			else
-				print("bossModPrototype:IsMagicDispeller should not be called on external units if specID is unavailable, report this message")
+				self:AddMsg("IsMagicDispeller is being called on a player" .. name .. " that doesn't have an available specID. This likely means they are not using DBM or Bigwigs and can hamper functionality of this encounter module")
 			end
 		end
 		--Personal check Only
@@ -7843,97 +7842,6 @@ do
 			DBM:SetCurrentSpecInfo()
 		end
 		return private.specRoleTable[currentSpecID]["MagicDispeller"]
-	end
-
-	---------------------
-	--  Sort Methods  --
-	---------------------
-	function DBM.SortByGroup(v1, v2)
-		return DBM:GetGroupId(DBM:GetUnitFullName(v1), true) < DBM:GetGroupId(DBM:GetUnitFullName(v2), true)
-	end
-	function DBM.SortByTankAlpha(v1, v2)
-		--Tank > Melee > Ranged prio, and if two of any of types, alphabetical names are preferred
-		if DBM:IsTanking(v1) == DBM:IsTanking(v2) then
-			return DBM:GetUnitFullName(v1) < DBM:GetUnitFullName(v2)
-		--if one is tank and one isn't, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsTanking(v1) and not DBM:IsTanking(v2) then
-			return true
-		elseif DBM:IsTanking(v2) and not DBM:IsTanking(v1) then
-			return false
-		elseif DBM:IsMelee(v1) == DBM:IsMelee(v2) then
-			return DBM:GetUnitFullName(v1) < DBM:GetUnitFullName(v2)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsMelee(v1) and not DBM:IsMelee(v2) then
-			return true
-		elseif DBM:IsMelee(v2) and not DBM:IsMelee(v1) then
-			return false
-		end
-	end
-	function DBM.SortByTankRoster(v1, v2)
-		--Tank > Melee > Ranged prio, and if two of any of types, roster index as secondary
-		if DBM:IsTanking(v1) == DBM:IsTanking(v2) then
-			return DBM:GetGroupId(DBM:GetUnitFullName(v1), true) < DBM:GetGroupId(DBM:GetUnitFullName(v2), true)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsTanking(v1) and not DBM:IsTanking(v2) then
-			return true
-		elseif DBM:IsTanking(v2) and not DBM:IsTanking(v1) then
-			return false
-		elseif DBM:IsMelee(v1) == DBM:IsMelee(v2) then
-			return DBM:GetGroupId(DBM:GetUnitFullName(v1), true) < DBM:GetGroupId(DBM:GetUnitFullName(v2), true)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsMelee(v1) and not DBM:IsMelee(v2) then
-			return true
-		elseif DBM:IsMelee(v2) and not DBM:IsMelee(v1) then
-			return false
-		end
-	end
-	function DBM.SortByMeleeAlpha(v1, v2)
-		--if both are melee, the return values are equal and we use alpha sort
-		--if both are ranged, the return values are equal and we use alpha sort
-		if DBM:IsMelee(v1) == DBM:IsMelee(v2) then
-			return DBM:GetUnitFullName(v1) < DBM:GetUnitFullName(v2)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsMelee(v1) and not DBM:IsMelee(v2) then
-			return true
-		elseif DBM:IsMelee(v2) and not DBM:IsMelee(v1) then
-			return false
-		end
-	end
-	function DBM.SortByMeleeRoster(v1, v2)
-		--if both are melee, the return values are equal and we use raid roster index sort
-		--if both are ranged, the return values are equal and we use raid roster index sort
-		if DBM:IsMelee(v1) == DBM:IsMelee(v2) then
-			return DBM:GetGroupId(DBM:GetUnitFullName(v1), true) < DBM:GetGroupId(DBM:GetUnitFullName(v2), true)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsMelee(v1) and not DBM:IsMelee(v2) then
-			return true
-		elseif DBM:IsMelee(v2) and not DBM:IsMelee(v1) then
-			return false
-		end
-	end
-	function DBM.SortByRangedAlpha(v1, v2)
-		--if both are melee, the return values are equal and we use alpha sort
-		--if both are ranged, the return values are equal and we use alpha sort
-		if DBM:IsRanged(v1) == DBM:IsRanged(v2) then
-			return DBM:GetUnitFullName(v1) < DBM:GetUnitFullName(v2)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsRanged(v1) and not DBM:IsRanged(v2) then
-			return true
-		elseif DBM:IsRanged(v2) and not DBM:IsRanged(v1) then
-			return false
-		end
-	end
-	function DBM.SortByRangedRoster(v1, v2)
-		--if both are melee, the return values are equal and we use raid roster index sort
-		--if both are ranged, the return values are equal and we use raid roster index sort
-		if DBM:IsRanged(v1) == DBM:IsRanged(v2) then
-			return DBM:GetGroupId(DBM:GetUnitFullName(v1), true) < DBM:GetGroupId(DBM:GetUnitFullName(v2), true)
-		--if one is melee and one is ranged, they are not equal so it goes to the below elseifs that prio melee
-		elseif DBM:IsRanged(v1) and not DBM:IsRanged(v2) then
-			return true
-		elseif DBM:IsRanged(v2) and not DBM:IsRanged(v1) then
-			return false
-		end
 	end
 end
 
@@ -8372,6 +8280,7 @@ end
 ---|7: Player icon using only raid roster index sorting
 ---|8: Player icon using tank > non tank with alphabetical sorting on multiple melee
 ---|9: Player icon using tank > non tank with raid roster index sorting on multiple melee
+---|10: Player icon using melee > ranged > healer
 ---@param default SpecFlags|boolean?
 ---@param iconType iconTypes|number?
 ---@param iconsUsed table? table defining used icons such as {1, 2, 3}
@@ -8415,6 +8324,8 @@ function bossModPrototype:AddSetIconOption(name, spellId, default, iconType, ico
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_TANK_A:format(spellId) or self.localization.options[name]
 	elseif iconType == 9 then
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_TANK_R:format(spellId) or self.localization.options[name]
+	elseif iconType == 10 then
+		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS_MRH:format(spellId) or self.localization.options[name]
 	else--Type 0 (Generic for targets)
 		self.localization.options[name] = spellId and L.AUTO_ICONS_OPTION_TARGETS:format(spellId) or self.localization.options[name]
 	end
@@ -8592,6 +8503,7 @@ function bossModPrototype:AddReadyCheckOption(questId, default, maxLevel)
 	self:SetOptionCategory("ReadyCheck", "misc")
 end
 
+---@param name string Option Name
 ---@param default SpecFlags|boolean?
 function bossModPrototype:AddSpeedClearOption(name, default)
 	self.DefaultOptions["SpeedClearTimer"] = (default == nil) or default
@@ -8605,6 +8517,12 @@ end
 
 -- FIXME: this function does not reset any settings to default if you remove an option in a later revision and a user has selected this option in an earlier revision were it still was available
 -- this will be fixed as soon as it is necessary due to removed options ;-)
+---@param name string Option Name
+---@param options table Options table
+---@param default any Which table entry is default
+---@param cat string? Option Category. If left blank, defaults to "misc"
+---@param func any?
+---@param spellId number? spellId used for option category grouping
 function bossModPrototype:AddDropdownOption(name, options, default, cat, func, spellId)
 	cat = cat or "misc"
 	self.DefaultOptions[name] = {type = "dropdown", value = default}
@@ -9186,7 +9104,7 @@ function bossModPrototype:ReceiveSync(event, sender, revision, ...)
 	end
 end
 
----@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240912084751" to be auto set by packager
+---@param revision number|string Either a number in the format "202101010000" (year, month, day, hour, minute) or string "20240916074034" to be auto set by packager
 function bossModPrototype:SetRevision(revision)
 	revision = parseCurseDate(revision or "")
 	if not revision or type(revision) == "string" then
