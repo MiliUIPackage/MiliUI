@@ -79,7 +79,7 @@ local function UpdateReputationCache(factionID)
    local numFactions = C_Reputation.GetNumFactions()
    for i = 1, numFactions do
       local factionData = C_Reputation.GetFactionDataByIndex(i)
-      if not factionData.isHeader and factionData.factionID ~= 1168 then -- 1168 = guild rep
+      if factionData and not factionData.isHeader and factionData.factionID ~= 1168 then -- 1168 = guild rep 暫時修正
          AddReputationToCache(factionData.name, factionData.factionID)
       end
    end
@@ -265,7 +265,7 @@ local function AddOptions(refresh)
    -- Make reputation list
    local reps = {}
    local repLookup = {}
-   reps[0] = "None"
+   reps[0] = L["None"]
    repLookup[0] = 0
    for i, reputation in ipairs(settings.reputation.cache) do
       repLookup[i] = reputation.factionID
@@ -363,7 +363,7 @@ local function AddOptions(refresh)
       }
    }
    local enabledReps = {}
-   enabledReps[0] = "None"
+   enabledReps[0] = L["None"]
    -- Populate enabled factions
    local order = 50
    for factionID, info in pairs(settings.reputation.enabled) do

@@ -302,7 +302,7 @@ end
 
 local requestId = 1
 local function sendMessage(data, distribution, target, prio, callbackFn)
-   if not Exlist.ConfigDB.accountSync.enabled then
+   if not Exlist.ConfigDB.accountSync.enabled or UnitIsUnit('player', target) then
       return
    end
    local rqTime = GetTime() .. "-" .. requestId

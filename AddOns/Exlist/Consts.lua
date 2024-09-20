@@ -159,18 +159,18 @@ local Colors = {
       "ff00b837"  -- Necrolord
    },
    ilvlColors = {
-      -- Dragonflight --
-      { ilvl = 380, str = "ff26ff3f" },
-      { ilvl = 400, str = "ff26ffba" },
-      { ilvl = 410, str = "ff26e2ff" },
-      { ilvl = 420, str = "ff26a0ff" },
-      { ilvl = 430, str = "ff2663ff" },
-      { ilvl = 440, str = "ff8e26ff" },
-      { ilvl = 450, str = "ffe226ff" },
-      { ilvl = 460, str = "ffff2696" },
-      { ilvl = 470, str = "ffff2634" },
-      { ilvl = 480, str = "ffff7526" },
-      { ilvl = 490, str = "ffffc526" }
+      -- TWW --
+      { ilvl = 530, str = "ff26ff3f" },
+      { ilvl = 540, str = "ff26ffba" },
+      { ilvl = 550, str = "ff26e2ff" },
+      { ilvl = 560, str = "ff26a0ff" },
+      { ilvl = 570, str = "ff2663ff" },
+      { ilvl = 580, str = "ff8e26ff" },
+      { ilvl = 590, str = "ffe226ff" },
+      { ilvl = 600, str = "ffff2696" },
+      { ilvl = 610, str = "ffff2634" },
+      { ilvl = 620, str = "ffff7526" },
+      { ilvl = 630, str = "ffffc526" }
    },
    profColors = {
       { val = 20,  color = "c6c3b4" },
@@ -236,7 +236,8 @@ Exlist.Expansions = {
    L["Legion"],
    L["Battle for Azeroth"],
    L["Shadowlands"],
-   L["Dragonflight"]
+   L["Dragonflight"],
+   L["The War Within"]
 }
 
 Exlist.OKMark = [[Interface/Addons/Exlist/Media/Icons/ok-icon]]

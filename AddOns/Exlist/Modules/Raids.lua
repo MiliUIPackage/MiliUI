@@ -47,7 +47,7 @@ local function AddRaidOptions()
    local numExpansions = #Exlist.Expansions
    local configOpt = {
       type = "group",
-      name = "Raids",
+      name = L["Raids"],
       args = {
          desc = {
             type = "description",

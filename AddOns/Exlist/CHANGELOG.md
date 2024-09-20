@@ -1,21 +1,14 @@
-# [1.8.0](https://github.com/sragia/Exlist/tree/1.8.0) (2024-07-24)
+# [1.8.6](https://github.com/sragia/Exlist/tree/1.8.6) (2024-09-18)
 
-[Full Changelog](https://github.com/sragia/Exlist/compare/1.7.3...1.8.0)
+[Full Changelog](https://github.com/sragia/Exlist/compare/1.8.5...1.8.6)
 
 ## Highlights
 
- The War Within Prepatch Release. 
+ Update m+ affix thresholds 
 
 ## Commits
 
-Aigars Bedeicis (8):
+Aigars Bedeicis (1):
 
-- Fix account sync a little
-- Fix missed adjustment
-- Update TOC
-- Prepatch Fixes
-- Add Raids and World Bosses
-- Add new World Weekly Reward
-- Add min level to track config
-- Initial TWW compatibility fixes
+- Update affix thresholds
 

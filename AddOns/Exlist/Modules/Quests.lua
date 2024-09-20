@@ -442,7 +442,7 @@ local function SetupQuestConfig(refresh)
    local dbQuests = settings.quests
    local options = {
       type = "group",
-      name = "Quests",
+      name = L["Quests"],
       args = {
          desc = {
             type = "description",
@@ -605,8 +605,8 @@ local function SetupQuestConfig(refresh)
             StaticPopupDialogs["DeleteQDataPopup_" .. questId] = {
                text = L["Do you really want to delete "] ..
                   WrapTextInColorCode(Exlist.GetCachedQuestTitle(questId), colors.questTitle) .. "?",
-               button1 = "Ok",
-               button3 = "Cancel",
+               button1 = OKAY,
+               button3 = CANCEL,
                hasEditBox = false,
                OnAccept = function(self)
                   StaticPopup_Hide("DeleteQDataPopup_" .. questId)

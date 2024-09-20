@@ -29,19 +29,21 @@ function Exlist.spairs(t, order)
    end
 end
 
-local function AddMissingTableEntries(data, DEFAULT)
+local function AddMissingTableEntries(data, DEFAULT, forceKeys)
    if not data or not DEFAULT then
       return data
    end
    local rv = data
    for k, v in pairs(DEFAULT) do
-      if rv[k] == nil then
+      if (forceKeys and tContains(forceKeys, k)) then
+         rv[k] = v
+      elseif rv[k] == nil then
          rv[k] = v
       elseif type(v) == "table" then
          if type(rv[k]) == "table" then
-            rv[k] = AddMissingTableEntries(rv[k], v)
+            rv[k] = AddMissingTableEntries(rv[k], v, forceKeys)
          else
-            rv[k] = AddMissingTableEntries({}, v)
+            rv[k] = AddMissingTableEntries({}, v, forceKeys)
          end
       end
    end
@@ -121,7 +123,7 @@ function Exlist.AttachStatusBar(frame)
    local statusBar = CreateFrame("StatusBar", nil, frame, BackdropTemplateMixin and "BackdropTemplate")
    statusBar:SetStatusBarTexture("Interface\\AddOns\\Exlist\\Media\\Texture\\statusBar")
    statusBar:GetStatusBarTexture():SetHorizTile(false)
-   local bg = {bgFile = "Interface\\AddOns\\Exlist\\Media\\Texture\\statusBar"}
+   local bg = { bgFile = "Interface\\AddOns\\Exlist\\Media\\Texture\\statusBar" }
    statusBar:SetBackdrop(bg)
    statusBar:SetBackdropColor(.1, .1, .1, .8)
    statusBar:SetStatusBarColor(Exlist.ColorHexToDec("ffffff"))
@@ -179,9 +181,9 @@ function Exlist.CreateSideTooltip(statusbar)
          end
       end
       local position, vPos =
-         Exlist.GetPosition(
-         self:GetParent():GetParent():GetParent().parentFrame or self:GetParent():GetParent():GetParent()
-      )
+          Exlist.GetPosition(
+             self:GetParent():GetParent():GetParent().parentFrame or self:GetParent():GetParent():GetParent()
+          )
       if position == "left" then
          sideTooltip:SetPoint("TOPLEFT", self:GetParent():GetParent():GetParent(), "TOPRIGHT", -1, 0)
       else
@@ -283,7 +285,7 @@ function Exlist.FormatGold(coppers)
       coppers = math.floor(coppers % 100)
    }
    return Exlist.SeperateThousands(money.gold) ..
-      "|cFFd8b21ag|r " .. money.silver .. "|cFFadadads|r " .. money.coppers .. "|cFF995813c|r"
+       "|cFFd8b21ag|r " .. money.silver .. "|cFFadadads|r " .. money.coppers .. "|cFF995813c|r"
 end
 
 local randCharSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
@@ -431,7 +433,7 @@ function Exlist.AttachText(f, font, size, outline)
       self.text:SetFont(font, size, outline)
    end
    fs:SetFont(font, size, outline or "OUTLINE")
-   fs:Point("CENTER")
+   fs:SetPoint("CENTER")
    textFrame:SetSize(1, 1)
 
    return textFrame
@@ -444,7 +446,7 @@ function Exlist.ShortenNumber(number)
    if not number then
       return
    end
-   local affixes = {"", "k", "m", "b", "t"}
+   local affixes = { "", "k", "m", "b", "t" }
    local affix = 1
    local dec = 0
    local num1 = math.abs(number)

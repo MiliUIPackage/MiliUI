@@ -10,9 +10,9 @@ local WrapTextInColorCode = WrapTextInColorCode
 local GetTime = GetTime
 local IsShiftKeyDown = IsShiftKeyDown
 local ChatEdit_GetActiveWindow, ChatEdit_InsertLink, ChatFrame_OpenChat =
-   ChatEdit_GetActiveWindow,
-   ChatEdit_InsertLink,
-   ChatFrame_OpenChat
+    ChatEdit_GetActiveWindow,
+    ChatEdit_InsertLink,
+    ChatFrame_OpenChat
 local GameTooltip = GameTooltip
 local ipairs = ipairs
 local Exlist = Exlist
@@ -20,7 +20,7 @@ local colors = Exlist.Colors
 local L = Exlist.L
 
 local unknownIcon = "Interface\\ICONS\\INV_Misc_QuestionMark"
-local affixThreshold = {2, 5, 10}
+local affixThreshold = { 2, 4, 7, 10, 12 }
 
 local function getTimewornKey()
    for bag = 0, 4 do
@@ -49,12 +49,12 @@ local function Updater(event)
    local gt = Exlist.GetCharacterTableKey("global", "global", key)
    if #gt <= 3 and event ~= "MYTHIC_PLUS_CURRENT_AFFIX_UPDATE" then
       C_MythicPlus.RequestCurrentAffixes() -- Request Affix Data
-      return -- wait for data update event
+      return                               -- wait for data update event
    elseif event == "MYTHIC_PLUS_CURRENT_AFFIX_UPDATE" then
       local blizzAffix = C_MythicPlus.GetCurrentAffixes()
       for i, affixInfo in ipairs(blizzAffix or {}) do
          local name, desc, icon = C_ChallengeMode.GetAffixInfo(affixInfo.id)
-         gt[i] = {name = name, icon = icon, desc = desc, id = affixInfo.id}
+         gt[i] = { name = name, icon = icon, desc = desc, id = affixInfo.id }
       end
       Exlist.UpdateChar(key, gt, "global", "global")
    end
@@ -69,7 +69,7 @@ local function Updater(event)
    local mapName = C_ChallengeMode.GetMapUIInfo(challengeMapID)
    -- Available Affixes for Keystone level
    if affixes then
-      local availableAffixes = {0, 0, 0, 0}
+      local availableAffixes = { 0, 0, 0, 0 }
       for i, affixLevel in ipairs(affixThreshold) do
          if keyLevel < affixLevel then
             break
@@ -190,17 +190,17 @@ local function GlobalLineGenerator(tooltip, data)
          added = true
       end
       local line =
-         Exlist.AddLine(
-         tooltip,
-         {
-            string.format(
-               "|T%s:15|t %s %s",
-               data[i].icon or unknownIcon,
-               data[i].name or L["Unknown"],
-               WrapTextInColorCode(string.format("- %s %i+", L["Level"], affixThreshold[i]), colors.faded)
-            )
-         }
-      )
+          Exlist.AddLine(
+             tooltip,
+             {
+                string.format(
+                   "|T%s:15|t %s %s",
+                   data[i].icon or unknownIcon,
+                   data[i].name or L["Unknown"],
+                   WrapTextInColorCode(string.format("- %s %i+", L["Level"], affixThreshold[i]), colors.faded)
+                )
+             }
+          )
       if data[i].desc then
          Exlist.AddScript(
             tooltip,
@@ -240,7 +240,7 @@ end
 
 local function init()
    Exlist.ConfigDB.settings.extraInfoToggles.affixes =
-      Exlist.ConfigDB.settings.extraInfoToggles.affixes or {name = L["Mythic+ Weekly Affixes"], enabled = true}
+       Exlist.ConfigDB.settings.extraInfoToggles.affixes or { name = L["Mythic+ Weekly Affixes"], enabled = true }
 
    local gt = Exlist.GetCharacterTableKey("global", "global", key)
    local foundAffixes = {}
@@ -268,7 +268,7 @@ local data = {
    globallgenerator = GlobalLineGenerator,
    priority = prio,
    updater = Updater,
-   event = {"BAG_UPDATE", "MYTHIC_PLUS_CURRENT_AFFIX_UPDATE"},
+   event = { "BAG_UPDATE", "MYTHIC_PLUS_CURRENT_AFFIX_UPDATE" },
    description = L["Tracks characters mythic+ key in their bags and weekly mythic+ affixes"],
    weeklyReset = true,
    modernize = Modernize,

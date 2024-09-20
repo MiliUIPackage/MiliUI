@@ -6,7 +6,7 @@
   <Script file="Emissaries.lua" />
   <Script file="Coins.lua" />
   <Script file="Currency.lua"/>
-  <Script file="Dungeons.lua"/>
+  <!-- <Script file="Dungeons.lua"/> -->
   <Script file="Mail.lua"/>
   <Script file="Missions.lua"/>
   <Script file="MythicKey.lua"/>

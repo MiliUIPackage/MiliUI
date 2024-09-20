@@ -3,22 +3,22 @@ local prio = 130
 local Exlist = Exlist
 local L = Exlist.L
 local table, pairs, ipairs, type, math, time, GetTime, string, tonumber, print =
-    table,
-    pairs,
-    ipairs,
-    type,
-    math,
-    time,
-    GetTime,
-    string,
-    tonumber,
-    print
+   table,
+   pairs,
+   ipairs,
+   type,
+   math,
+   time,
+   GetTime,
+   string,
+   tonumber,
+   print
 local C_TaskQuest = C_TaskQuest
 local GetQuestLogRewardInfo, GetNumQuestLogRewardCurrencies, GetQuestLogRewardCurrencyInfo, GetQuestLogRewardMoney =
-    GetQuestLogRewardInfo,
-    GetNumQuestLogRewardCurrencies,
-    GetQuestLogRewardCurrencyInfo,
-    GetQuestLogRewardMoney
+   GetQuestLogRewardInfo,
+   GetNumQuestLogRewardCurrencies,
+   GetQuestLogRewardCurrencyInfo,
+   GetQuestLogRewardMoney
 local GetCurrentMapAreaID, SetMapByID, ToggleWorldMap = GetCurrentMapAreaID, SetMapByID, ToggleWorldMap
 local GetCurrencyInfo, GetSpellInfo, GetItemSpell = GetCurrencyInfo, GetSpellInfo, GetItemSpell
 local BonusObjectiveTracker_TrackWorldQuest = BonusObjectiveTracker_TrackWorldQuest
@@ -36,29 +36,29 @@ local zones = {
    1355, -- Nazjatar
    1462, -- Mechagon
    -- EK
-   14,   -- Arathi Highlands
+   14, -- Arathi Highlands
    -- Kalimdor
-   62,   -- Darkshore
+   62, -- Darkshore
    -- Kultiras
-   895,  -- Tiragarde Sound
-   896,  -- Drustvar
-   942,  -- Stormsong Valley
+   895, -- Tiragarde Sound
+   896, -- Drustvar
+   942, -- Stormsong Valley
    -- Zandalar
-   864,  -- Vol'dun
-   863,  -- Nazmir
-   862,  -- Zuldazar
+   864, -- Vol'dun
+   863, -- Nazmir
+   862, -- Zuldazar
    -- Legion
    -- Broken Isles
-   630,  -- Aszuna
-   641,  -- Val'Sharah
-   650,  -- Highmountain
-   634,  -- Stormheim
-   680,  -- Suramar
-   646,  -- Broken Shore
+   630, -- Aszuna
+   641, -- Val'Sharah
+   650, -- Highmountain
+   634, -- Stormheim
+   680, -- Suramar
+   646, -- Broken Shore
    -- Argus
-   882,  -- Mac'reee
-   830,  -- Kro'kuun
-   885,  -- Antoran Wastes
+   882, -- Mac'reee
+   830, -- Kro'kuun
+   885, -- Antoran Wastes
    -- Shadowlands
    1533, -- Bastion
    1565, -- Ardenweald
@@ -130,10 +130,10 @@ function Exlist.RegisterWorldQuests(quests, readOnly)
    -- quests = info
    -- readOnly = can't be removed in session
    if type(quests) == "number" then
-      trackedQuests[quests] = { enabled = true, readOnly = readOnly }
+      trackedQuests[quests] = {enabled = true, readOnly = readOnly}
    elseif type(quests) == "table" then
       for i, questId in ipairs(quests) do
-         trackedQuests[questId] = { enabled = true, readOnly = readOnly }
+         trackedQuests[questId] = {enabled = true, readOnly = readOnly}
       end
    end
 end
@@ -144,7 +144,7 @@ local function GetQuestRewards(questId)
    local name, texture, numItems = GetQuestLogRewardInfo(1, questId)
    if name then
       local itemType = "item"
-      table.insert(rewards, { name = name, amount = numItems, texture = texture, type = itemType })
+      table.insert(rewards, {name = name, amount = numItems, texture = texture, type = itemType})
    end
    for _, currencyReward in ipairs(C_QuestLog.GetQuestRewardCurrencies(questId)) do
       if currencyReward.name then
@@ -175,7 +175,7 @@ local function GetQuestRewards(questId)
    end
    local honor = GetQuestLogRewardHonor(questId)
    if honor > 0 then
-      table.insert(rewards, { name = "Honor", amount = honor, texture = 1455894, type = "honor" })
+      table.insert(rewards, {name = "Honor", amount = honor, texture = 1455894, type = "honor"})
    end
    return rewards
 end
@@ -258,9 +258,9 @@ local function SetQuestRule(rewardId, rewardType, amount, compare)
    if rules[rewardType] and rules[rewardType][name] then
       RemoveRule(name, rewardType) -- remove previously set rule
    end
-   local id = GetTime()            -- for cleaning up when removed
+   local id = GetTime() -- for cleaning up when removed
    rules[rewardType] = rules[rewardType] or {}
-   rules[rewardType][name] = { amount = amount, compare = compare, id = id }
+   rules[rewardType][name] = {amount = amount, compare = compare, id = id}
 end
 
 function Exlist.ScanQuests()
@@ -272,7 +272,7 @@ function Exlist.ScanQuests()
    local rt = {}
    local tl = 500
    for questId, info in pairs(settings.worldQuests) do
-      trackedQuests[questId] = { enabled = info.enabled, readOnly = false }
+      trackedQuests[questId] = {enabled = info.enabled, readOnly = false}
    end
    for index, zoneId in ipairs(zones) do
       local wqs = C_TaskQuest.GetQuestsForPlayerByMapID(zoneId)
@@ -346,8 +346,8 @@ local function GetFormatedRewardString(r, noColor)
          s = r.amount.gold .. "g " .. r.amount.silver .. "s " .. r.amount.coppers .. "c"
       else
          s =
-             r.amount.gold ..
-             "|cFFd8b21ag|r " .. r.amount.silver .. "|cFFadadads|r " .. r.amount.coppers .. "|cFF995813c|r"
+            r.amount.gold ..
+            "|cFFd8b21ag|r " .. r.amount.silver .. "|cFFadadads|r " .. r.amount.coppers .. "|cFF995813c|r"
       end
    else
       if r.amount > 1 then
@@ -405,7 +405,7 @@ local function GlobalLineGenerator(tooltip, data)
             RemoveExpiredQuest(questId)
          else
             if first then
-               Exlist.AddLine(tooltip, { WrapTextInColorCode(L["World Quests"], colors.sideTooltipTitle) }, 14)
+               Exlist.AddLine(tooltip, {WrapTextInColorCode(L["World Quests"], colors.sideTooltipTitle)}, 14)
                first = false
             end
             -- Refresh rewards
@@ -413,11 +413,11 @@ local function GlobalLineGenerator(tooltip, data)
                info.rewards = GetQuestRewards(questId)
             end
 
-            local timeLeft = Exlist.TimeLeftColor(info.endTime - timeNow, { 3600, 14400 })
+            local timeLeft = Exlist.TimeLeftColor(info.endTime - timeNow, {3600, 14400})
             local targetReward = ""
             local sideTooltip = {
                title = WrapTextInColorCode(info.name, colors.questTitle),
-               body = { L["Time Left: "] .. timeLeft, WrapTextInColorCode(L["Rewards"], colors.questTitle) }
+               body = {L["Time Left: "] .. timeLeft, WrapTextInColorCode(L["Rewards"], colors.questTitle)}
             }
 
             for i, reward in ipairs(info.rewards) do
@@ -431,17 +431,17 @@ local function GlobalLineGenerator(tooltip, data)
             end
 
             local lineNum =
-                Exlist.AddLine(
-                   tooltip,
-                   {
-                      AddCheckmark(info.name, C_QuestLog.IsQuestFlaggedCompleted(info.questId)),
-                      timeLeft,
-                      WrapTextInColorCode(
-                         string.format("%s  - %s", targetReward, C_Map.GetMapInfo(info.zoneId).name or ""),
-                         colors.faded
-                      )
-                   }
-                )
+               Exlist.AddLine(
+               tooltip,
+               {
+                  AddCheckmark(info.name, C_QuestLog.IsQuestFlaggedCompleted(info.questId)),
+                  timeLeft,
+                  WrapTextInColorCode(
+                     string.format("%s  - %s", targetReward, C_Map.GetMapInfo(info.zoneId).name or ""),
+                     colors.faded
+                  )
+               }
+            )
             Exlist.AddScript(
                tooltip,
                lineNum,
@@ -575,7 +575,7 @@ local function SetupWQConfig(refresh)
          func = function()
             StaticPopupDialogs["DeleteWQDataPopup_" .. questID] = {
                text = L["Do you really want to delete"] ..
-                   " " .. WrapTextInColorCode(info.name, colors.questTitle) .. "?",
+                  " " .. WrapTextInColorCode(info.name, colors.questTitle) .. "?",
                button1 = "Ok",
                button3 = "Cancel",
                hasEditBox = false,
@@ -613,7 +613,7 @@ local function SetupWQConfig(refresh)
       order = n,
       width = "full",
       name = L[
-      "Add rules by which addon is going to track world quests. \nFor example, show all world quest that have more than 3 Bloods of Sargeras"
+         "Add rules by which addon is going to track world quests. \nFor example, show all world quest that have more than 3 Bloods of Sargeras"
       ]
    }
    n = n + 1
@@ -621,7 +621,7 @@ local function SetupWQConfig(refresh)
       type = "select",
       order = n,
       width = 0.7,
-      name = "Reward Type",
+      name = L["Reward Type"],
       values = rewardRules.types,
       get = function()
          if tmpConfigRule.ruleType == "" then
@@ -708,9 +708,9 @@ local function SetupWQConfig(refresh)
       name = L["Save"],
       func = function()
          local name =
-             rewardRules.DEFAULT[tmpConfigRule.ruleType].customFieldValue == tmpConfigRule.rewardName and
-             tmpConfigRule.customReward or
-             tmpConfigRule.rewardName
+            rewardRules.DEFAULT[tmpConfigRule.ruleType].customFieldValue == tmpConfigRule.rewardName and
+            tmpConfigRule.customReward or
+            tmpConfigRule.rewardName
          SetQuestRule(name, tmpConfigRule.ruleType, tmpConfigRule.amount, tmpConfigRule.compareValue)
          Exlist.ScanQuests()
          SetupWQConfig(true)
@@ -719,9 +719,9 @@ local function SetupWQConfig(refresh)
 
    -- for custom rewards
    if
-       rewardRules.DEFAULT[tmpConfigRule.ruleType].useCustom and
-       rewardRules.DEFAULT[tmpConfigRule.ruleType].customFieldValue == tmpConfigRule.rewardName
-   then
+      rewardRules.DEFAULT[tmpConfigRule.ruleType].useCustom and
+         rewardRules.DEFAULT[tmpConfigRule.ruleType].customFieldValue == tmpConfigRule.rewardName
+    then
       n = n + 1
       options.args["WQRulesCustomName"] = {
          type = "input",
@@ -898,11 +898,11 @@ local function init()
    tmpConfigRule.ruleType = rewardRules.defaultType
 
    Exlist.ConfigDB.settings.extraInfoToggles.worldquests =
-       Exlist.ConfigDB.settings.extraInfoToggles.worldquests or
-       {
-          name = L["World Quests"],
-          enabled = true
-       }
+      Exlist.ConfigDB.settings.extraInfoToggles.worldquests or
+      {
+         name = L["World Quests"],
+         enabled = true
+      }
 end
 
 local data = {
@@ -912,10 +912,10 @@ local data = {
    globallgenerator = GlobalLineGenerator,
    priority = prio,
    updater = Updater,
-   event = { "WORLD_QUEST_SPOTTED", "PLAYER_ENTERING_WORLD", "WORLD_MAP_OPEN" },
+   event = {"WORLD_QUEST_SPOTTED", "PLAYER_ENTERING_WORLD", "WORLD_MAP_OPEN"},
    weeklyReset = false,
    description = L[
-   "Tracks user specified world quests. Provides information like - Time Left, Reward and availability for current character"
+      "Tracks user specified world quests. Provides information like - Time Left, Reward and availability for current character"
    ],
    override = true,
    init = init

@@ -79,10 +79,10 @@ local function GearTooltip(self, info)
       "|T" ..
       specIcon ..
          ":25:25|t " ..
-            "|c" .. RAID_CLASS_COLORS[info.class].colorStr .. info.name .. "|r " .. (info.level or 0) .. " level"
+            "|c" .. RAID_CLASS_COLORS[info.class].colorStr .. info.name .. "|r " .. L["Level"] .. " " .. (info.level or 0)
    local line = geartooltip:AddHeader()
    geartooltip:SetCell(line, 1, header, "LEFT", 3)
-   geartooltip:SetCell(line, 7, string.format("%i " .. L["ilvl"], (info.iLvl or 0)), "CENTER")
+   geartooltip:SetCell(line, 7, string.format(L["ilvl"] .. " %i", (info.iLvl or 0)), "CENTER")
    geartooltip:AddSeparator(1, .8, .8, .8, 1)
    line = geartooltip:AddHeader()
    geartooltip:SetCell(line, 1, WrapTextInColorCode(L["Gear"], colors.sideTooltipTitle), "CENTER", 7)
@@ -255,8 +255,9 @@ local function PopulateTooltip(tooltip)
          local header = Exlist.tooltipData[character].modules["_Header"]
          local logoTexSize = settings.shortenInfo and "30:60" or "40:80"
          if settings.horizontalMode then
-            local headerText =
-               settings.shortenInfo and header.data[1].data .. " " .. header.data[2].data or
+            -- 名字旁的裝等文字換行
+			local headerText =
+               settings.shortenInfo and header.data[1].data .. "\n" .. header.data[2].data or
                header.data[1].data .. "             " .. header.data[2].data
             tooltip:SetCell(
                1,
@@ -436,7 +437,10 @@ local function showTooltip(self)
       local headerText, subHeaderText = "", ""
       if settings.shortenInfo and charData.class then
          headerText = "|c" .. RAID_CLASS_COLORS[charData.class].colorStr .. name .. "|r "
-         subHeaderText = string.format("|c%s%s", colors.sideTooltipTitle, realm)
+         -- 等級文字換行
+		 -- subHeaderText = string.format("|c%s%s", colors.sideTooltipTitle, realm)
+		 subHeaderText =
+            string.format("|c%s%s - " .. L["Level"] .. " %i", colors.sideTooltipTitle, realm, charData.level)
       elseif (charData.class) then
          headerText =
             "|T" .. specIcon .. ":25:25|t " .. "|c" .. RAID_CLASS_COLORS[charData.class].colorStr .. name .. "|r "

@@ -184,7 +184,6 @@ local function AddOptions(refresh)
                return not (tmpConfigs.charToSync and tmpConfigs.charToSync ~= "") or not configDB.accountSync.userKey
             end,
             func = function()
-               print(tmpConfigs.charToSync)
                Exlist.accountSync.pairAccount(tmpConfigs.charToSync, configDB.accountSync.userKey)
             end,
             width = "normal"

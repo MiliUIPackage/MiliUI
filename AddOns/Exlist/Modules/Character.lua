@@ -71,7 +71,7 @@ local function customGenerator(tooltip, db)
 end
 
 local function init()
-   RequestTimePlayed()
+   -- RequestTimePlayed()
    C_Timer.NewTicker(
       120,
       function()
