@@ -47,6 +47,7 @@ Chain.TempChain23 = 110333
 Chain.TempChain24 = 110334
 Chain.TempChain25 = 110335
 Chain.TempChain26 = 110336
+Chain.TempChain27 = 110337
 Chain.OtherAlliance = 110397
 Chain.OtherHorde = 110398
 Chain.OtherBoth = 110399
@@ -792,7 +793,7 @@ Database:AddChain(Chain.StrikingSteel, {
             },
         },
         {
-            name = L["BTWQUESTS_WAIT_FOR_WEEKLY_RESET"],
+            name = format(L["BTWQUESTS_WAIT_DAYS"], 2),
             active = {
                 type = "quest",
                 id = 82217,
@@ -2037,6 +2038,76 @@ Database:AddChain(Chain.TempChain26, { -- Breadcrumb to another npc
         },
     },
 })
+Database:AddChain(Chain.TempChain27, {
+    name = { -- The Flame Within
+        type = "quest",
+        id = 81692,
+    },
+    category = CATEGORY_ID,
+    expansion = EXPANSION_ID,
+    range = LEVEL_RANGE,
+    prerequisites = {
+        {
+            type = "level",
+            level = 80,
+        },
+        {
+            type = "chain",
+            id = Chain.TempChain19,
+        },
+        {
+            type = "currency",
+            id = 2901,
+            amount = 11,
+        },
+    },
+    active = {
+        type = "quest",
+        id = 81692,
+    },
+    completed = {
+        type = "quest",
+        id = 81896,
+    },
+    items = {
+        {
+            type = "npc",
+            id = 214380,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 81692,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 81751,
+            x = -1,
+            connections = {
+                2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 81869,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 81896,
+            x = 0,
+        },
+    },
+})
 Database:AddChain(Chain.OtherAlliance, {
     name = "Other Alliance",
     category = CATEGORY_ID,
@@ -2459,11 +2530,15 @@ Database:AddCategory(CATEGORY_ID, {
             type = "chain",
             id = Chain.MemoriesOfTheSky,
         },
---[==[@debug@
         {
             type = "chain",
             id = Chain.TempChain19,
         },
+        {
+            type = "chain",
+            id = Chain.TempChain27,
+        },
+--[==[@debug@
         {
             type = "chain",
             id = Chain.TempChain21,
@@ -2497,6 +2572,28 @@ Database:AddMapRecursive(MAP_ID, {
     type = "category",
     id = CATEGORY_ID,
 })
+
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheGuidingStar)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.GatheringShadows)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.HopeInSolidarity)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.LightToVelhansClaim)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.ThePriory)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.StrikingSteel)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.LostInTheDarkness)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheSkysTheLimit)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.CrushingDepths)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheLastMageOfHallowfall)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheWeightOfDuty)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.ApartForPurpose)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.RestAtLast)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.AnOrphansDilemma)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheMysteriousChef)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.WhatGrowsInTheDark)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.SuspiciousMinds)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.MemoriesOfTheSky)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TempChain19)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TempChain27)
+
 
 --[==[@debug@
 Database:AddContinentItems(CONTINENT_ID, {

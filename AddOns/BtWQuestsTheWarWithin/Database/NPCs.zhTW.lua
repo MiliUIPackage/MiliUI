@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "寡婦阿拉克娜依",
     },
+    [208782] = {
+        name = "執行官尼茲瑞克",
+    },
     [211652] = {
         name = "綠語者納雷洛",
     },
@@ -150,6 +153,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [217640] = {
         name = "艾柏特",
     },
+    [217692] = {
+        name = "艾辛",
+    },
     [217763] = {
         name = "瑞南‧寇倫",
     },
@@ -224,6 +230,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [222234] = {
         name = "史奎特",
+    },
+    [222790] = {
+        name = "古烏蘇",
     },
     [222803] = {
         name = "史琦德",
@@ -305,6 +314,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [226792] = {
         name = "牧人艾迪迪瑟",
+    },
+    [227217] = {
+        name = "韋伯斯特",
     },
     [227222] = {
         name = "伊莎貝‧格林嘉德",

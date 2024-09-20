@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "Vedova Arak'nai",
     },
+    [208782] = {
+        name = "Esecutore Nizrek",
+    },
     [211652] = {
         name = "Oratore Verde Na'layro",
     },
@@ -152,6 +155,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [226792] = {
         name = "Allevatore Edidithet",
+    },
+    [227217] = {
+        name = "Filatele",
     },
     [227222] = {
         name = "Ysabel Delbarlum",

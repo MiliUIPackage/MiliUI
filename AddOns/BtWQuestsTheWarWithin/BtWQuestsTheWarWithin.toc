@@ -1,6 +1,6 @@
 ## Interface: 110002
 ## Title: BtWQuests: The War Within
-## Version: 1.1
+## Version: 4.0
 ## Notes: The War Within quest data for BtWQuests
 ## Author: Breen
 ## Dependencies: BtWQuests
@@ -19,6 +19,18 @@
 ## Notes-zhTW: BtWQuests: The War Within |n地心之戰模組。
 
 Defines.lua
+
+Localization.lua
+Localization.deDE.lua
+Localization.esES.lua
+Localization.esMX.lua
+Localization.frFR.lua
+Localization.itIT.lua
+Localization.koKR.lua
+Localization.ptBR.lua
+Localization.ruRU.lua
+Localization.zhCN.lua
+Localization.zhTW.lua
 
 Database/Quests.lua
 Database/Quests.deDE.lua

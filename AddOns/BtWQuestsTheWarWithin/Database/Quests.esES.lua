@@ -564,6 +564,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78972] = {
         name = "Caos en la cosecha",
     },
+    [78974] = {
+        name = "Mentalidad de alfazaque",
+    },
     [78996] = {
         name = "Armas y guerreros",
     },
@@ -1152,11 +1155,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [79716] = {
         name = "La historia a nuestros pies",
     },
+    [79717] = {
+        name = "Vías de acceso",
+    },
+    [79718] = {
+        name = "Los irregulares de las Madejas",
+    },
     [79721] = {
         name = "Fuego va",
     },
     [79722] = {
         name = "Mucho que desentrañar",
+    },
+    [79723] = {
+        name = "Repatriación por sustracción",
     },
     [79724] = {
         name = "¡Una expedición titánica!",
@@ -1172,6 +1184,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [79728] = {
         name = "Seguramente no sea nada",
+    },
+    [79729] = {
+        name = "Haz los deberes",
+    },
+    [79730] = {
+        name = "Persecución tenaz",
     },
     [79944] = {
         name = "Fallas furibundas",
@@ -1287,6 +1305,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80218] = {
         name = "Malas intenciones en la Gruta del Sedal",
     },
+    [80295] = {
+        name = "Rocas, agua y despojos elementales",
+    },
     [80312] = {
         name = "Súplica jadeante",
     },
@@ -1307,6 +1328,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80334] = {
         name = "Agujas destrozadas",
+    },
+    [80378] = {
+        name = "Una luz de las tinieblas",
     },
     [80392] = {
         name = "La custodia del Bancal de Brunwin",
@@ -1463,6 +1487,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80689] = {
         name = "Cuidar a Ausgazur",
+    },
+    [81465] = {
+        name = "Artefactos a raudales",
     },
     [81470] = {
         name = "Asomar la oreja: Tejido ladronzuelo",
@@ -1662,6 +1689,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "Carreras de surcacielos - Maratón de Minarroca",
     },
+    [81819] = {
+        name = "Carreras de surcacielos - Palmo de Piedraserena",
+    },
     [81822] = {
         name = "Carreras de surcacielos - Meandro de Mereldar",
     },
@@ -1782,6 +1812,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82197] = {
         name = "Alboroto en la reserva",
     },
+    [82206] = {
+        name = "Hacia las sombras",
+    },
     [82212] = {
         name = "Pez león débil",
     },
@@ -1896,6 +1929,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82355] = {
         name = "Tarea especial: Oleada de cenizabejas",
     },
+    [82364] = {
+        name = "Documentación de disonancia",
+    },
     [82367] = {
         name = "Gema con tierra incrustada",
     },
@@ -1961,6 +1997,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82536] = {
         name = "Operación de extracción",
+    },
+    [82580] = {
+        name = "Misión de mensajero: Recuperación de menas",
     },
     [82583] = {
         name = "Prendiendo el fuego interior",
@@ -2112,6 +2151,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83092] = {
         name = "Un final ardiente",
     },
+    [83101] = {
+        name = "En busca de recursos",
+    },
     [83108] = {
         name = "Diagnósticos diarios",
     },
@@ -2220,6 +2262,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "Competición de pesca de Santificación",
     },
+    [83537] = {
+        name = "Tratamiento de gemas geotérmicas",
+    },
     [83543] = {
         name = "Aventuras en Khaz Algar",
     },
@@ -2238,6 +2283,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83616] = {
         name = "Atrincheramiento",
     },
+    [83627] = {
+        name = "El comienzo de algo hermoso",
+    },
     [83628] = {
         name = "Recuperación tensa",
     },
@@ -2250,6 +2298,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "Comunicaciones abiertas",
     },
+    [83715] = {
+        name = "Recuperación obtenida",
+    },
+    [83718] = {
+        name = "Ovoextracción",
+    },
+    [83719] = {
+        name = "Quitinas mayores",
+    },
     [83749] = {
         name = "Profundidades: Estación de Bombeo",
     },
@@ -2261,6 +2318,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "Profundidades: El Infrastillo",
+    },
+    [83766] = {
+        name = "Llamada de explorador de profundidades: Foso del Pavor",
     },
     [83767] = {
         name = "Llamada de explorador de profundidades: Sumidero",

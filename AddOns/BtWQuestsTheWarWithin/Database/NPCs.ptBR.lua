@@ -177,6 +177,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [226792] = {
         name = "Rancheiro Edidito",
     },
+    [227217] = {
+        name = "Trameiro",
+    },
     [227222] = {
         name = "Isebel Refulgrado",
     },

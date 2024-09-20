@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "Witwe Arak'nai",
     },
+    [208782] = {
+        name = "Exekutor Nizrek",
+    },
     [211652] = {
         name = "Grünsprecher Na'layro",
     },

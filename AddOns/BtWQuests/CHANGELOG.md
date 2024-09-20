@@ -1,3 +1,31 @@
+# v2.48.0
+
+- Added Honor Your Efforts questlines in Hallowfall
+- Added The Flame Within questlines in Hallowfall
+- Added Socialized Medicine questline in Azj-Kahet
+- Updated some prerequisites for Azj-Kahet questlines
+- Fixed issue where player level for alts could be lost and cause errors
+- Fixed error reading faction data
+
+# v2.47.1
+
+- Added A Light in the Dark campaign questline
+- Added Fractured Legacy of Anub'azal questline in Azj-Kahet
+- Fixed renown requirements for A Star of Dorn
+- Fixed missing uqest from A Star of Dorn
+
+# v2.47.0
+
+- Added an option to view the chain for a quest from the quest log and objective tracker context menus
+- Added A Star of Dorn questline to the Isle of Dorn
+- Added Dogged Pursuit questline to Azj-Kahet
+- Added The Beginning of Something Beautiful questline to Azj-Kahet
+- Fixed wait time for Striking Steel questline
+- Fixed an error showing detailed tooltips
+- Fixed an error checking item counts
+- Fixed an error reading faction data for a currently unknown faction
+- Removed Dragonflight data, it is now available as a separate addon BtWQuests: Dragonflight
+
 # v2.46.0
 
 - Added option to view chains as your Warband

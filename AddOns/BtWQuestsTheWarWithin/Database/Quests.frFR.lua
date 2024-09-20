@@ -561,6 +561,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78972] = {
         name = "Chaos de la moisson",
     },
+    [78974] = {
+        name = "Esprit de hanneton",
+    },
     [78996] = {
         name = "Des armes et des bras pour les manier",
     },
@@ -1146,11 +1149,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [79716] = {
         name = "Histoire souterraine",
     },
+    [79717] = {
+        name = "Les moyens d’entrer",
+    },
+    [79718] = {
+        name = "Dans les rues des Écheveaux",
+    },
     [79721] = {
         name = "Le feu au terrier",
     },
     [79722] = {
         name = "L’égout et les couleurs",
+    },
+    [79723] = {
+        name = "Rapatriement par soustraction",
     },
     [79724] = {
         name = "Une expédition titanesque !",
@@ -1166,6 +1178,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [79728] = {
         name = "C’est probablement rien",
+    },
+    [79729] = {
+        name = "Une bonne leçon",
+    },
+    [79730] = {
+        name = "Poursuite obstinée",
     },
     [79944] = {
         name = "Failles déchaînées",
@@ -1281,6 +1299,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80218] = {
         name = "Aux abois à Sylvesoie",
     },
+    [80295] = {
+        name = "Élémentaire à canon",
+    },
     [80312] = {
         name = "Une plainte à bout de souffle",
     },
@@ -1301,6 +1322,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80334] = {
         name = "Flèches brisées",
+    },
+    [80378] = {
+        name = "Une lumière des ténèbres",
     },
     [80392] = {
         name = "La gardienne de la terrasse de Brunwin",
@@ -1457,6 +1481,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80689] = {
         name = "Au secours d’Ausgazur",
+    },
+    [81465] = {
+        name = "Artéfacts à profusion",
     },
     [81470] = {
         name = "Sur écoute : vol de trame",
@@ -1656,6 +1683,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "Course draconique – Virages de Mineroc",
     },
+    [81819] = {
+        name = "Course draconique – Slalom de Roche-Tranquille",
+    },
     [81822] = {
         name = "Course draconique – Méandre de Mereldar",
     },
@@ -1776,6 +1806,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82197] = {
         name = "Raffut dans la réserve",
     },
+    [82206] = {
+        name = "Dans les ombres",
+    },
     [82212] = {
         name = "Rascasse faiblarde",
     },
@@ -1890,6 +1923,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82355] = {
         name = "Mission spéciale : afflux de cendrabeilles",
     },
+    [82364] = {
+        name = "Discordance documentée",
+    },
     [82366] = {
         name = "NE PAS UTILISER",
     },
@@ -1961,6 +1997,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82536] = {
         name = "Opération d’exfiltration",
+    },
+    [82580] = {
+        name = "Mission de messagerie : récupération de minerai",
     },
     [82583] = {
         name = "Embraser le feu intérieur",
@@ -2112,6 +2151,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83092] = {
         name = "Fin ignée",
     },
+    [83101] = {
+        name = "En quête de ressources",
+    },
     [83108] = {
         name = "Diagnostics du jour",
     },
@@ -2179,7 +2221,7 @@ BtWQuestsDatabase:UpdateQuestsTable({
         name = "Étranges chauves-souris",
     },
     [83322] = {
-        name = "Le Brise-Aube : baptême",
+        name = "Le Brise-Aube : lancement",
     },
     [83324] = {
         name = "Bobine de soie",
@@ -2220,6 +2262,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "Tournoi de pêche de Sainte-Chute",
     },
+    [83537] = {
+        name = "Traitement de gemme géothermique",
+    },
     [83543] = {
         name = "Aventures en Khaz Algar",
     },
@@ -2238,6 +2283,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83616] = {
         name = "La grande retranchée",
     },
+    [83627] = {
+        name = "À l’origine du beau",
+    },
     [83628] = {
         name = "Situation tendue",
     },
@@ -2250,6 +2298,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "Communications ouvertes",
     },
+    [83715] = {
+        name = "Objets de récupération revendiqués",
+    },
+    [83718] = {
+        name = "Œuf-traction",
+    },
+    [83719] = {
+        name = "Paroles en chitine",
+    },
     [83749] = {
         name = "Gouffres : le moulin à eau",
     },
@@ -2261,6 +2318,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "Gouffres : le donjon de l’Abîme",
+    },
+    [83766] = {
+        name = "Appel du Gouffre : fosse de l’Effroi",
     },
     [83767] = {
         name = "Appel du Gouffre : le Puisard",

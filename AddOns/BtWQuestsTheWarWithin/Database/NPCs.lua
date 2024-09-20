@@ -686,6 +686,50 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [214271] = {
+        name = "General Steelstrike",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.716405,
+                    y = 0.592089,
+                },
+            },
+        },
+    },
+    [214273] = {
+        name = "Anduin Wrynn",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.645292,
+                    y = 0.617816,
+                },
+            },
+        },
+    },
+    [214276] = {
+        name = "Lady Jaina Proudmoore",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.685459,
+                    y = 0.64153,
+                },
+            },
+        },
+    },
+    [214296] = {
+        name = "Stage Manager Huberta",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.564361,
+                    y = 0.513814,
+                },
+            },
+        },
+    },
     [214356] = {
         name = "Vix'aron",
         locations = {
@@ -1291,6 +1335,39 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [215744] = {
+        name = "Burkhalt",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.567956,
+                    y = 0.522226,
+                },
+            },
+        },
+    },
+    [215745] = {
+        name = "Rabaan",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.567852,
+                    y = 0.521682,
+                },
+            },
+        },
+    },
+    [215748] = {
+        name = "Wendeline",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.568095,
+                    y = 0.521958,
+                },
+            },
+        },
+    },
     [215781] = {
         name = "Moira Thaurissan",
         locations = {
@@ -1397,6 +1474,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.569053,
                     y = 0.162924,
+                },
+            },
+        },
+    },
+    [216046] = {
+        name = "Tka'ktath",
+        locations = {
+            [2255] = {
+                {
+                    x = 0.628726,
+                    y = 0.663677,
                 },
             },
         },
@@ -1745,6 +1833,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [217248] = {
+        name = "Elma",
+        locations = {
+            [2248] = {
+                {
+                    x = 0.567713,
+                    y = 0.521944,
+                },
+            },
+        },
+    },
     [217255] = {
         name = "Ag'thax",
         locations = {
@@ -1939,6 +2038,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.779461,
                     y = 0.303234,
+                },
+            },
+        },
+    },
+    [217692] = {
+        name = "Ar'syn",
+        locations = {
+            [2213] = {
+                {
+                    x = 0.319744,
+                    y = 0.224588,
                 },
             },
         },
@@ -2159,6 +2269,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.524181,
                     y = 0.501869,
+                },
+            },
+        },
+    },
+    [218171] = {
+        name = "Shalba",
+        locations = {
+            [2213] = {
+                {
+                    x = 0.454168,
+                    y = 0.135575,
                 },
             },
         },
@@ -2577,6 +2698,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.625718,
                     y = 0.792083,
+                },
+            },
+        },
+    },
+    [220688] = {
+        name = "Alleria Windrunner",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.359303,
+                    y = 0.354589,
                 },
             },
         },

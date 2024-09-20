@@ -564,6 +564,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78972] = {
         name = "收割浩劫",
     },
+    [78974] = {
+        name = "用心养甲虫",
+    },
     [78996] = {
         name = "武器与战士",
     },
@@ -1152,11 +1155,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [79716] = {
         name = "脚下的历史",
     },
+    [79717] = {
+        name = "准入方式",
+    },
+    [79718] = {
+        name = "束丝之集游击队",
+    },
     [79721] = {
         name = "燧酿来袭",
     },
     [79722] = {
         name = "深沟苦力",
+    },
+    [79723] = {
+        name = "巧取与归还",
     },
     [79724] = {
         name = "盛大的历险之旅",
@@ -1172,6 +1184,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [79728] = {
         name = "大概没事吧",
+    },
+    [79729] = {
+        name = "长长见识",
+    },
+    [79730] = {
+        name = "不懈追击",
     },
     [79944] = {
         name = "裂隙肆虐",
@@ -1287,6 +1305,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80218] = {
         name = "丝木藏私谋",
     },
+    [80295] = {
+        name = "岩石、流水与元素渣",
+    },
     [80312] = {
         name = "呼吸之愿",
     },
@@ -1307,6 +1328,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80334] = {
         name = "粉碎的高塔",
+    },
+    [80378] = {
+        name = "黑耀之光",
     },
     [80392] = {
         name = "布伦温之台的照看者",
@@ -1463,6 +1487,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80689] = {
         name = "照料奥斯加祖",
+    },
+    [81465] = {
+        name = "神器满目",
     },
     [81470] = {
         name = "隔墙有耳：纺丝窃案",
@@ -1662,6 +1689,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "驭空竞速 - 岩矿急弯",
     },
+    [81819] = {
+        name = "驭空竞速 - 静石障碍赛",
+    },
     [81822] = {
         name = "驭空竞速 - 米雷达尔蜿蜒行",
     },
@@ -1785,6 +1815,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82197] = {
         name = "储备波动",
     },
+    [82206] = {
+        name = "遁入暗影",
+    },
     [82212] = {
         name = "虚弱的狮子鱼",
     },
@@ -1905,6 +1938,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82355] = {
         name = "特别任务：燧烬蜂狂",
     },
+    [82364] = {
+        name = "记录不和谐之音",
+    },
     [82366] = {
         name = "请勿使用",
     },
@@ -1976,6 +2012,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82536] = {
         name = "撤离行动",
+    },
+    [82580] = {
+        name = "信使任务：矿石回收",
     },
     [82583] = {
         name = "点燃内心之火",
@@ -2127,6 +2166,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83092] = {
         name = "火岩石棺",
     },
+    [83101] = {
+        name = "获取资源",
+    },
     [83108] = {
         name = "日常诊断",
     },
@@ -2235,6 +2277,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "陨圣峪钓鱼大赛",
     },
+    [83537] = {
+        name = "地热宝石处理",
+    },
     [83543] = {
         name = "在卡兹阿加冒险",
     },
@@ -2256,6 +2301,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83616] = {
         name = "根深蒂固",
     },
+    [83627] = {
+        name = "美好的开端",
+    },
     [83628] = {
         name = "焦灼降温",
     },
@@ -2268,6 +2316,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "坦诚相见",
     },
+    [83715] = {
+        name = "申索回收品",
+    },
+    [83718] = {
+        name = "从卵抓起",
+    },
+    [83719] = {
+        name = "几丁质是关键",
+    },
     [83749] = {
         name = "地下堡：水能堡",
     },
@@ -2279,6 +2336,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "地下堡：幽暗要塞",
+    },
+    [83766] = {
+        name = "地下堡行者的召唤：恐惧陷坑",
     },
     [83767] = {
         name = "地下堡行者的召唤：无底沉穴",

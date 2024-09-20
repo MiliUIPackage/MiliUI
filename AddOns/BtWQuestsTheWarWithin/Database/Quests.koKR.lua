@@ -564,6 +564,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [78972] = {
         name = "대혼란의 수확",
     },
+    [78974] = {
+        name = "풍뎅이의 사고방식",
+    },
     [78996] = {
         name = "무기와 전사",
     },
@@ -1152,11 +1155,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [79716] = {
         name = "발밑의 역사",
     },
+    [79717] = {
+        name = "진입 방법",
+    },
+    [79718] = {
+        name = "타래 구역 길거리의 이단아",
+    },
     [79721] = {
         name = "구멍 안에 불이야!",
     },
     [79722] = {
         name = "배수로 작업",
+    },
+    [79723] = {
+        name = "차감",
     },
     [79724] = {
         name = "티탄의 원정!",
@@ -1172,6 +1184,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [79728] = {
         name = "기분 탓",
+    },
+    [79729] = {
+        name = "독학",
+    },
+    [79730] = {
+        name = "끈질긴 추적",
     },
     [79944] = {
         name = "분노하는 균열",
@@ -1287,6 +1305,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80218] = {
         name = "명주숲의 수상한 동향",
     },
+    [80295] = {
+        name = "바위, 물, 정령 총알받이",
+    },
     [80312] = {
         name = "경련하는 벼룩",
     },
@@ -1307,6 +1328,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80334] = {
         name = "무너진 첨탑",
+    },
+    [80378] = {
+        name = "어둠 속의 빛",
     },
     [80392] = {
         name = "브런윈의 정원 관리인",
@@ -1463,6 +1487,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80689] = {
         name = "오스가주르 돌보기",
+    },
+    [81465] = {
+        name = "유물의 연회",
     },
     [81470] = {
         name = "엿듣기: 도둑질",
@@ -1662,6 +1689,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "하늘기수 경주 - 광석단층 굽이로",
     },
+    [81819] = {
+        name = "하늘기수 경주 - 침묵바위 활강로",
+    },
     [81822] = {
         name = "하늘기수 경주 - 메렐다르 방랑로",
     },
@@ -1785,6 +1815,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82197] = {
         name = "남아도는 불평",
     },
+    [82206] = {
+        name = "어둠 속으로",
+    },
     [82212] = {
         name = "나약한 쏠배감펭",
     },
@@ -1905,6 +1938,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82355] = {
         name = "특별 과제: 잿불벌 쇄도",
     },
+    [82364] = {
+        name = "불화의 기록",
+    },
     [82366] = {
         name = "미사용",
     },
@@ -1976,6 +2012,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82536] = {
         name = "이송 작전",
+    },
+    [82580] = {
+        name = "급사 임무: 광석 회수",
     },
     [82583] = {
         name = "내면의 불꽃을 지피다",
@@ -2127,6 +2166,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83092] = {
         name = "단단한 끝자락",
     },
+    [83101] = {
+        name = "자원을 찾아서",
+    },
     [83108] = {
         name = "일일 진단",
     },
@@ -2235,6 +2277,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "신성한 협곡 낚시 대회",
     },
+    [83537] = {
+        name = "지열 보석 처리",
+    },
     [83543] = {
         name = "카즈 알가르 모험",
     },
@@ -2256,6 +2301,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83616] = {
         name = "틀어박히기",
     },
+    [83627] = {
+        name = "아름다운 무언가의 시작",
+    },
     [83628] = {
         name = "긴장감 완화",
     },
@@ -2268,6 +2316,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "대화의 물꼬",
     },
+    [83715] = {
+        name = "입수한 인양품",
+    },
+    [83718] = {
+        name = "알 이송",
+    },
+    [83719] = {
+        name = "키틴질처럼 딱딱한 표현",
+    },
     [83749] = {
         name = "구렁: 수력작업장",
     },
@@ -2279,6 +2336,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "구렁: 지하성채",
+    },
+    [83766] = {
+        name = "구렁 탐험가의 부름: 공포의 무저갱",
     },
     [83767] = {
         name = "구렁 탐험가의 부름: 구덩이",

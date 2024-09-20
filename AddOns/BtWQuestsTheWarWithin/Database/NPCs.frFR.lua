@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "Veuve Arak'nai",
     },
+    [208782] = {
+        name = "Exécuteur Nizrek",
+    },
     [211652] = {
         name = "Parle-nature Na'layro",
     },

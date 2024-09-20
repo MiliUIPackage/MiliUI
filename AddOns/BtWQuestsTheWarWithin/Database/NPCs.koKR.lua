@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "미망인 아라크나이",
     },
+    [208782] = {
+        name = "집행자 니즈레크",
+    },
     [211652] = {
         name = "녹색예언자 나레이로",
     },
@@ -150,6 +153,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [217640] = {
         name = "알버트",
     },
+    [217692] = {
+        name = "아르신",
+    },
     [217763] = {
         name = "란난 코렌",
     },
@@ -224,6 +230,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [222234] = {
         name = "스크리트",
+    },
+    [222790] = {
+        name = "구트술",
     },
     [222803] = {
         name = "쏜살이",
@@ -305,6 +314,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     },
     [226792] = {
         name = "목동 에디테트",
+    },
+    [227217] = {
+        name = "웹스터",
     },
     [227222] = {
         name = "이사벨 글림가드",

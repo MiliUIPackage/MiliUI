@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [76338] = {
         name = "Un machacarrepollos mejorado",
     },
+    [76586] = {
+        name = "Propagación de la luz",
+    },
     [76588] = {
         name = "Defensor de la llama",
     },
@@ -563,6 +566,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [78972] = {
         name = "Cosecha de locura",
+    },
+    [78974] = {
+        name = "Mentalidad de alfazaque",
     },
     [78996] = {
         name = "Armas y guerreros",
@@ -1152,11 +1158,20 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [79716] = {
         name = "La historia bajo nuestros pies",
     },
+    [79717] = {
+        name = "Medios de ingreso",
+    },
+    [79718] = {
+        name = "Un método feo, pero eficaz",
+    },
     [79721] = {
         name = "¡Fuego!",
     },
     [79722] = {
         name = "Pantanos apestosos",
+    },
+    [79723] = {
+        name = "Extracción para la restitución",
     },
     [79724] = {
         name = "¡Una expedición titánica!",
@@ -1172,6 +1187,12 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [79728] = {
         name = "Seguro no es nada",
+    },
+    [79729] = {
+        name = "Edúcate",
+    },
+    [79730] = {
+        name = "Búsqueda tenaz",
     },
     [79944] = {
         name = "Fallas furiosas",
@@ -1287,6 +1308,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [80218] = {
         name = "Complot en Bosqueseda",
     },
+    [80295] = {
+        name = "Rocas, agua y carne de cañón elemental",
+    },
     [80312] = {
         name = "Ruego ahogado",
     },
@@ -1307,6 +1331,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80334] = {
         name = "Espiras estropeadas",
+    },
+    [80378] = {
+        name = "Una luz de la oscuridad",
     },
     [80392] = {
         name = "La cuidadora del Bancal de Brunwin",
@@ -1463,6 +1490,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [80689] = {
         name = "Una visita a Ausgazur",
+    },
+    [81465] = {
+        name = "Artefactos por doquier",
     },
     [81470] = {
         name = "Oído fisgón: Robo de tejido",
@@ -1662,6 +1692,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [81806] = {
         name = "Carrera de jinete celestial - Curvas de Menas Rocosas",
     },
+    [81819] = {
+        name = "Carrera de jinete celestial - Eslalon de Petrocalmo",
+    },
     [81822] = {
         name = "Carrera de jinete celestial - Meandro de Mereldar",
     },
@@ -1782,6 +1815,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82197] = {
         name = "Refriega con las reservas",
     },
+    [82206] = {
+        name = "En las sombras",
+    },
     [82212] = {
         name = "Pez león débil",
     },
@@ -1896,6 +1932,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [82355] = {
         name = "Asignación especial: Oleada de cenizabejas",
     },
+    [82364] = {
+        name = "Documentos de la discordia",
+    },
     [82367] = {
         name = "Gema incrustada con tierra",
     },
@@ -1961,6 +2000,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [82536] = {
         name = "Operación de exfiltración",
+    },
+    [82580] = {
+        name = "Misión de mensajería: Recuperación de menas",
     },
     [82583] = {
         name = "Encendiendo el fuego interior",
@@ -2112,6 +2154,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83092] = {
         name = "Un final ígneo",
     },
+    [83101] = {
+        name = "Búsqueda de recursos",
+    },
     [83108] = {
         name = "Diagnóstico diario",
     },
@@ -2220,6 +2265,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83532] = {
         name = "Competición de pesca de Cristalia",
     },
+    [83537] = {
+        name = "Tratamiento de gemas geotermales",
+    },
     [83543] = {
         name = "Aventuras en Khaz Algar",
     },
@@ -2238,6 +2286,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83616] = {
         name = "Atrincherada",
     },
+    [83627] = {
+        name = "El comienzo de algo hermoso",
+    },
     [83628] = {
         name = "Recuperación tensa",
     },
@@ -2250,6 +2301,15 @@ BtWQuestsDatabase:UpdateQuestsTable({
     [83639] = {
         name = "Comunicación clara",
     },
+    [83715] = {
+        name = "Piezas adueñadas",
+    },
+    [83718] = {
+        name = "Extracción de huevos",
+    },
+    [83719] = {
+        name = "Esas son palabras de quitina",
+    },
     [83749] = {
         name = "Abismo: Las Vías Acuáticas",
     },
@@ -2261,6 +2321,9 @@ BtWQuestsDatabase:UpdateQuestsTable({
     },
     [83761] = {
         name = "Abismo: La Subfortaleza",
+    },
+    [83766] = {
+        name = "Se busca surcabismos: Fosa Siniestra",
     },
     [83767] = {
         name = "Se busca surcabismos: El Sumidero",

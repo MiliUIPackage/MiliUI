@@ -809,14 +809,66 @@ Database:AddChain(Chain.Chapter05, {
     },
     active = {
         type = "quest",
-        id = 0,
+        id = 78941,
         status = {'active', 'completed'},
     },
     completed = {
         type = "quest",
-        id = 0,
+        id = 83503,
     },
     items = {
+        {
+            type = "npc",
+            id = 223944,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78941,
+            x = 0,
+            connections = {
+                1, 2, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78942,
+            x = -1,
+            connections = {
+                3, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78943,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78950,
+            x = 1,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 78948,
+            x = 0,
+            connections = {
+                1, 
+            },
+        },
+        {
+            type = "quest",
+            id = 83503,
+            x = 0,
+        },
     },
 })
 local IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded;
@@ -845,4 +897,15 @@ BtWQuestsDatabase:AddExpansionItems(EXPANSION_ID, {
         type = "chain",
         id = Chain.TheMachinesMarchToWar,
     },
+    {
+        type = "chain",
+        id = Chain.Chapter05,
+    },
 })
+
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.Introduction)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.AgainstTheCurrent)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TiesThatBind)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.NewsFromBelow)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.TheMachinesMarchToWar)
+BtWQuestsDatabase:AddQuestItemsForChain(Chain.Chapter05)

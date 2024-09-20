@@ -12,6 +12,9 @@ BtWQuestsDatabase:UpdateNPCsTable({
     [207471] = {
         name = "Viuda Arak'nai",
     },
+    [208782] = {
+        name = "Ejecutor Nizrek",
+    },
     [211652] = {
         name = "Glaucorador Na'layro",
     },

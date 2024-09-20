@@ -1,3 +1,24 @@
+# v4.0
+
+- Added Honor Your Efforts questlines in Hallowfall
+- Added The Flame Within questlines in Hallowfall
+- Added Socialized Medicine questline in Azj-Kahet
+- Updated some prerequisites for Azj-Kahet questlines
+
+# v3.0
+
+- Added A Light in the Dark campaign questline
+- Added Fractured Legacy of Anub'azal questline in Azj-Kahet
+- Fixed renown requirements for A Star of Dorn
+- Fixed missing uqest from A Star of Dorn
+
+# v2.0
+
+- Added A Star of Dorn questline to the Isle of Dorn
+- Added Dogged Pursuit questline to Azj-Kahet
+- Added The Beginning of Something Beautiful questline to Azj-Kahet
+- Fixed wait time for Striking Steel questline
+
 # v1.1
 
 - Fixed active and completion checks for Saving private Spindle questline in Azj-Kahet

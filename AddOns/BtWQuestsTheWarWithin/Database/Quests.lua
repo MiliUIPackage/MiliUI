@@ -4281,6 +4281,76 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [78941] = {
+        name = "A Tide Needing Turned",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 223944,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 23400,
+            },
+        },
+    },
+    [78942] = {
+        name = "The Might of Khaz Algar",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 214271,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 468000,
+            },
+        },
+    },
+    [78943] = {
+        name = "Steel and Flames",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 214271,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [78948] = {
+        name = "A Light in the Dark",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 214273,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 468000,
+            },
+        },
+    },
+    [78950] = {
+        name = "Cutting Off the Legs",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 214276,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
     [78951] = {
         name = "Ever Deeper Shadow",
         contentTuningID = 2799,
@@ -4374,6 +4444,8 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [78974] = {
+        name = "Beetle-Minded",
+        contentTuningID = 2861,
     },
     [78995] = {
         name = "Truffle Shuffle",
@@ -5129,7 +5201,11 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [79150] = {
         name = "Thespians at the Proscenium",
-        contentTuningID = 2829,
+        contentTuningID = 2837,
+        source = {
+            type = "npc",
+            id = 214296,
+        },
         rewards = {
             {
                 type = "money",
@@ -6007,7 +6083,11 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [79282] = {
         name = "The Grand Debut",
-        contentTuningID = 2829,
+        contentTuningID = 2837,
+        source = {
+            type = "npc",
+            id = 214296,
+        },
         rewards = {
             {
                 type = "money",
@@ -6851,7 +6931,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [79470] = {
         name = "Waters of War",
-        contentTuningID = 2462,
+        contentTuningID = 2809,
     },
     [79471] = {
         name = "Bleak Sand",
@@ -8454,6 +8534,50 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [79717] = {
+        name = "Means of Ingress",
+        contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 217692,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    11600, 11750, 
+                },
+                minLevel = 78,
+                maxLevel = 79,
+            },
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [79718] = {
+        name = "Skeins Street Irregulars",
+        contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 217692,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    11600, 11750, 
+                },
+                minLevel = 78,
+                maxLevel = 79,
+            },
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
     [79721] = {
         name = "Fire in the Hole",
         contentTuningID = 2797,
@@ -8483,6 +8607,28 @@ BtWQuestsDatabase:AddQuestsTable({
     [79722] = {
         name = "Gutter Work",
         contentTuningID = 2861,
+    },
+    [79723] = {
+        name = "Repatriation by Subtraction",
+        contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 217692,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    11600, 11750, 
+                },
+                minLevel = 78,
+                maxLevel = 79,
+            },
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
     },
     [79724] = {
         name = "A Titanic Expedition!",
@@ -8611,6 +8757,58 @@ BtWQuestsDatabase:AddQuestsTable({
                 },
                 minLevel = 70,
                 maxLevel = 71,
+            },
+        },
+    },
+    [79729] = {
+        name = "Educate Yourself",
+        contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 217692,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    11600, 11750, 
+                },
+                minLevel = 78,
+                maxLevel = 79,
+            },
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [79730] = {
+        name = "Dogged Pursuit",
+        contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 217692,
+            locations = {
+                [2213] = {
+                    {
+                        x = 0.340163,
+                        y = 0.297714,
+                    },
+                },
+            },
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    11600, 11750, 
+                },
+                minLevel = 78,
+                maxLevel = 79,
+            },
+            {
+                type = "money",
+                amount = 468000,
             },
         },
     },
@@ -10483,6 +10681,14 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [80573] = {
+        name = "Dropping Eaves: Spoils of War",
+        contentTuningID = 2861,
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
     },
     [80576] = {
         name = "Listener Lost",
@@ -10743,6 +10949,18 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [81465] = {
+        name = "Artifacts Galore",
+        contentTuningID = 2838,
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                },
+                minLevel = 70,
+                maxLevel = 79,
+            },
+        },
     },
     [81470] = {
         name = "Dropping Eaves: Thieving Weave",
@@ -10963,6 +11181,14 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [81498] = {
+        name = "Wild Reagents: Twitching Gorge",
+        contentTuningID = 2861,
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
     },
     [81499] = {
     },
@@ -10977,6 +11203,14 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [81501] = {
+        name = "Testing Formulae: Roiling Elixir",
+        contentTuningID = 2861,
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
     },
     [81502] = {
         name = "Testing Formulae: Malodorous Philter",
@@ -11175,14 +11409,14 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    33500, 34000, 34400, 34900, 35300, 
+                    22350, 22650, 22950, 23250, 23550, 
                 },
                 minLevel = 75,
                 maxLevel = 79,
             },
             {
                 type = "money",
-                amount = 1404000,
+                amount = 936000,
             },
         },
     },
@@ -11977,6 +12211,10 @@ BtWQuestsDatabase:AddQuestsTable({
     [81890] = {
         name = "Unfulfilled Requests",
         contentTuningID = 2762,
+        source = {
+            type = "npc",
+            id = 208782,
+        },
         rewards = {
             {
                 type = "experience",
@@ -12100,7 +12338,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [81929] = {
         name = "Here's the Plan",
-        contentTuningID = 2462,
+        contentTuningID = 2861,
         source = {
             type = "npc",
             id = 211409,
@@ -12307,7 +12545,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    20850, 21150, 21450, 21750, 22050, 22350, 22650, 22950, 23250, 23550, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -12315,7 +12553,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    1123600, 936000, 
                 },
                 minLevel = 70,
                 maxLevel = 71,
@@ -12387,7 +12625,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82120] = {
-        name = "Pool Cleaner?21",
+        name = "Pool Cleaner",
         contentTuningID = 2838,
         rewards = {
             {
@@ -12655,7 +12893,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82206] = {
-        name = "Into Shadowsd261",
+        name = "Into Shadows",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13066,7 +13304,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82291] = {
-        name = "Robot Rumble",
+        name = "Robot RumbleDefeat the Awakened Custodian in a Pet Battle.\"71",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13094,7 +13332,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82293] = {
-        name = "The Power of FriendshipDefeat Friendhaver Grem in a Pet Battle.\\?",
+        name = "The Power of Friendship",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13150,7 +13388,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82298] = {
-        name = "The Thing from the SwampDefeat Guttergunk in a Pet Battle.]251",
+        name = "The Thing from the Swamp",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13164,7 +13402,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82300] = {
-        name = "Major MalfunctionDefeat the Haywire Servobot in a Pet Battle.??",
+        name = "Major Malfunction",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13269,7 +13507,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [82344] = {
         name = "Weathered Crests",
-        contentTuningID = 2832,
+        contentTuningID = 2892,
     },
     [82355] = {
         name = "Special Assignment: Cinderbee Surge",
@@ -13280,6 +13518,8 @@ BtWQuestsDatabase:AddQuestsTable({
         contentTuningID = 2861,
     },
     [82364] = {
+        name = "Documenting Discordance",
+        contentTuningID = 2861,
     },
     [82366] = {
         name = "DO NOT USE",
@@ -13686,7 +13926,7 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [82586] = {
-        name = "Spore Ender&?",
+        name = "Spore Ender",
         contentTuningID = 2838,
         rewards = {
             {
@@ -13706,7 +13946,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "experience",
                 amounts = {
-                    10400, 10550, 10700, 10850, 11000, 11150, 11300, 11450, 11600, 11750, 
+                    20850, 21150, 21450, 21750, 22050, 22350, 22650, 22950, 23250, 23550, 
                 },
                 minLevel = 70,
                 maxLevel = 79,
@@ -13714,7 +13954,7 @@ BtWQuestsDatabase:AddQuestsTable({
             {
                 type = "money",
                 amounts = {
-                    280900, 234000, 
+                    1123600, 936000, 
                 },
                 minLevel = 70,
                 maxLevel = 71,
@@ -13937,9 +14177,77 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [82775] = {
+        name = "Quickchange Artist",
+        contentTuningID = 2832,
+        source = {
+            type = "npc",
+            id = 215748,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                },
+                minLevel = 70,
+                maxLevel = 77,
+            },
+            {
+                type = "money",
+                amounts = {
+                    28090, 23400, 
+                },
+                minLevel = 70,
+                maxLevel = 71,
+            },
+        },
+    },
     [82778] = {
         name = "Hallowfall Fishing Derby",
         contentTuningID = 2862,
+    },
+    [82781] = {
+        name = "Attention-Getter",
+        contentTuningID = 2832,
+        source = {
+            type = "npc",
+            id = 217248,
+        },
+        rewards = {
+            {
+                type = "experience",
+                amounts = {
+                    1300, 1300, 1350, 1350, 1400, 1400, 1400, 1450, 
+                },
+                minLevel = 70,
+                maxLevel = 77,
+            },
+            {
+                type = "money",
+                amounts = {
+                    28090, 23400, 
+                },
+                minLevel = 70,
+                maxLevel = 71,
+            },
+        },
+    },
+    [82782] = {
+        name = "Authenticity in Dress",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 215745,
+        },
+    },
+    [82784] = {
+        name = "Resonant Performance",
+        contentTuningID = 0,
+        source = {
+            type = "npc",
+            id = 215744,
+        },
     },
     [82785] = {
         name = "Ghosts in the Machine",
@@ -14907,6 +15215,34 @@ BtWQuestsDatabase:AddQuestsTable({
             },
         },
     },
+    [83177] = {
+        name = "Socialized Medicine",
+        contentTuningID = 2861,
+        source = {
+            type = "npc",
+            id = 208782,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [83178] = {
+        name = "Rules and Consequences",
+        contentTuningID = 2861,
+        source = {
+            type = "npc",
+            id = 208782,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
     [83181] = {
         name = "Best Friends, Same Ends",
         contentTuningID = 2838,
@@ -14961,7 +15297,7 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [83240] = {
         name = "The Theater Troupe",
-        contentTuningID = 2837,
+        contentTuningID = 2462,
     },
     [83247] = {
         name = "Suspicious Minds",
@@ -15133,7 +15469,7 @@ BtWQuestsDatabase:AddQuestsTable({
         rewards = {
             {
                 type = "money",
-                amount = 468000,
+                amount = 936000,
             },
         },
     },
@@ -15363,6 +15699,20 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [83501] = {
     },
+    [83503] = {
+        name = "Return to Dornogal",
+        contentTuningID = 2462,
+        source = {
+            type = "npc",
+            id = 220688,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 23400,
+            },
+        },
+    },
     [83529] = {
         name = "Hallowfall Fishing Derby",
         contentTuningID = 2862,
@@ -15545,6 +15895,20 @@ BtWQuestsDatabase:AddQuestsTable({
     },
     [83621] = {
     },
+    [83627] = {
+        name = "The Beginning of Something Beautiful",
+        contentTuningID = 2860,
+        source = {
+            type = "npc",
+            id = 216046,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
     [83628] = {
         name = "Tense Recovery",
         contentTuningID = 2762,
@@ -15634,8 +15998,54 @@ BtWQuestsDatabase:AddQuestsTable({
         },
     },
     [83715] = {
+        name = "Claimed Salvage",
+        contentTuningID = 2869,
     },
     [83718] = {
+        name = "Eggstraction",
+        contentTuningID = 2861,
+    },
+    [83719] = {
+        name = "Those Are Chitin Words",
+        contentTuningID = 2860,
+        source = {
+            type = "npc",
+            id = 218171,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [83720] = {
+        name = "Venom? More Like Get 'Em",
+        contentTuningID = 2860,
+        source = {
+            type = "npc",
+            id = 218171,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
+    },
+    [83721] = {
+        name = "A Small Ocean's Worth of Blood",
+        contentTuningID = 2860,
+        source = {
+            type = "npc",
+            id = 218171,
+        },
+        rewards = {
+            {
+                type = "money",
+                amount = 234000,
+            },
+        },
     },
     [83749] = {
         name = "Delves: The Waterworks",
