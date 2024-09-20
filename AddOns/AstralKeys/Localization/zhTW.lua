@@ -125,6 +125,19 @@ L["Black Rook Hold"] = "玄鴉堡"
 L["The Everbloom"] = "永茂林"
 L["Throne of the Tides"] = "海潮王座"
 
+-- The War Within Dungeons
+L["The Rookery"] = "培育所"
+L["The Stonevault"] = "石庫"
+L["City of Threads"] = "蛛絲城"
+L["Ara-Kara, City of Echoes"] = "『回音之城』厄拉卡拉"
+L["Darkflame Cleft"] = "暗焰裂縫"
+L["The Dawnbreaker"] = "破曉者號"
+L["Cinderbrew Meadery"] = "燼釀酒莊"
+L["Grim Batol"] = "格瑞姆巴托"
+L["Siege of Boralus"] = "波拉勒斯圍城戰"
+L["Mists of Tirna Scithe"] = "特那希迷霧"
+L["The Necrotic Wake"] = "死靈戰地"
+
 
 -- 自行加入
 L["Astral Keys"] = "M+ 鑰石名單"

@@ -59,28 +59,20 @@ function addon.CreateKeyLink(mapID, keyLevel)
 	end
 	keyLevel = keyLevel or C_MythicPlus.GetOwnedKeystoneLevel()
 	if not mapName or not keyLevel then return end
-	local a1, a2, a3, a4
+	local a1, a2, a3, a4, a5
 	if keyLevel > 1 then
 		a1 = addon.AffixOne()
+	end 
+	if keyLevel > 3 then
+		a2 = addon.AffixTwo()
 	end
-	if addon.AffixFour() == 0 then -- season affix removed in DF S2
-		if keyLevel >= 5 then
-		a2 = addon.AffixTwo()
-		end
-		if keyLevel >= 10 then
+	if keyLevel > 6 then
 		a3 = addon.AffixThree()
-		end
-	else -- include season affix
-		if keyLevel > 3 then
-		a2 = addon.AffixTwo()
-		end
-		if keyLevel > 6 then
-		a3 = addon.AffixThree()
-		end
-		if keyLevel > 8 then
+	end
+	if keyLevel > 9 then
 		a4 = addon.AffixFour()
-		end
 	end
+	-- /script SendChatMessage("\124cffa335ee\124Hkeystone:180653:375:20:148:9:152:10\124h[Keystone: Mists of Tirna Scithe (20)]\124h\124r", 'SAY')
 	return strformat('|c' .. COLOUR[3] .. '|Hkeystone:%d:%d:%d:%d:%d:%d:%d|h[%s %s (%d)]|h|r', addon.MYTHICKEY_ITEMID, mapID, keyLevel, a1, a2, a3, a4, L['KEYSTONE'] or 'Keystone:', mapName, keyLevel):gsub('\124\124', '\124')
 end
 
