@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2609, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240911075056")
+mod:SetRevision("20240917094345")
 mod:SetCreatureID(214504)
 mod:SetEncounterID(2918)
 --mod:SetUsedIcons(1, 2, 3)
@@ -40,7 +40,7 @@ local warnAcidEruption							= mod:NewCastAnnounce(452806, 4)
 
 local specWarnSavageAssault						= mod:NewSpecialWarningDefensive(444687, nil, nil, nil, 1, 2)
 local specWarnSavageWoundSwap					= mod:NewSpecialWarningTaunt(458067, nil, nil, nil, 1, 2)
-local specWarnWebReave							= mod:NewSpecialWarningCount(439795, nil, nil, nil, 2, 2)
+local specWarnWebReave							= mod:NewSpecialWarningCount(439795, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
 --local yellWebReave							= mod:NewShortYell(439795, DBM_COMMON_L.GROUPSOAK, nil, nil, "YELL")
 --local yellSearingAftermathFades				= mod:NewShortFadesYell(422577)
 local specWarnAcidEruption						= mod:NewSpecialWarningInterrupt(452806, "HasInterrupt", nil, nil, 1, 2)
@@ -387,11 +387,11 @@ function mod:OnCombatStart(delay)
 	timerErosiveSprayCD:Start(allTimers[savedDifficulty][1][439811][1]-delay, 1)
 	timerMovementCD:Start(self:IsMythic() and 86.3 or 90, 1)
 	self:EnablePrivateAuraSound(439790, "targetyou", 2)--Raid version, (434406 is in dungeon)
-	--self:EnablePrivateAuraSound(434406, "targetyou", 2, 439790)--Likely dungeon version of Rolling Acid
+	self:EnablePrivateAuraSound(434406, "targetyou", 2, 439790)--Likely dungeon version of Rolling Acid
 	self:EnablePrivateAuraSound(455284, "mobout", 2)--Maybe better sound later, but this one does say "mob out" as in "mob on you, get out and spread" which is the mechanic
 	self:EnablePrivateAuraSound(439815, "mobout", 2, 455284)--Secondary ID for Infested Spawn
-	self:EnablePrivateAuraSound(439783, "pullin", 12)--Raid version of Spinneret's Strands
---	self:EnablePrivateAuraSound(434090, "pullin", 12, 439783)--Likely the Dungeon version of Spinneret's Strands
+	self:EnablePrivateAuraSound(439783, "runout", 2)--Raid version of Spinneret's Strands
+	self:EnablePrivateAuraSound(434090, "runout", 12, 439783)--Likely the Dungeon version of Spinneret's Strands
 end
 
 function mod:OnTimerRecovery()

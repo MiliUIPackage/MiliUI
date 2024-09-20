@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2607, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240913061224")
+mod:SetRevision("20240917094345")
 mod:SetCreatureID(215657)--VERIFY
 mod:SetEncounterID(2902)
 --mod:SetUsedIcons(1, 2, 3)
@@ -35,9 +35,9 @@ local warnVenomLash								= mod:NewCountAnnounce(435136, 3)
 local warnDigestiveAcid							= mod:NewTargetAnnounce(435138, 3)
 local warnHungeringBelows						= mod:NewCountAnnounce(438012, 3)
 
-local specWarnCarnivorousContest				= mod:NewSpecialWarningMoveTo(434803, nil, nil, nil, 2, 2)
-local specWarnCarnivorousContestTarget			= mod:NewSpecialWarningYou(434803, nil, nil, nil, 1, 2)
-local yellCarnivorousContest					= mod:NewShortYell(434803, nil, nil, nil, "YELL")
+local specWarnCarnivorousContest				= mod:NewSpecialWarningMoveTo(434803, nil, nil, DBM_COMMON_L.GROUPSOAK, 2, 2)
+local specWarnCarnivorousContestTarget			= mod:NewSpecialWarningYou(434803, nil, nil, DBM_COMMON_L.GROUPSOAK, 1, 2)
+local yellCarnivorousContest					= mod:NewShortYell(434803, DBM_COMMON_L.GROUPSOAK, nil, nil, "YELL")
 local yellCarnivorousContestFades				= mod:NewShortFadesYell(434803, nil, nil, nil, "YELL")
 local specWarnStalkersWebbing					= mod:NewSpecialWarningDodgeCount(441452, nil, 157317, nil, 2, 2)--aka Viscous Slobber apparently
 local specWarnDigestiveAcid						= mod:NewSpecialWarningMoveTo(435138, nil, nil, nil, 1, 17)
