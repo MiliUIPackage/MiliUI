@@ -1,10 +1,10 @@
-lightweight tag 8a5e1e6cb7a55c760f48ac6cea70c1127102c2c5 v2.3.5
+lightweight tag b572446be91176a1cc304bc4bbd231ecd4cb7528 v2.3.6
 Author:	Cameron Liddell <cameron.liddell@redborne.com>
-Date:	Tue Sep 10 19:28:59 2024 +0100
+Date:	Wed Sep 18 19:30:42 2024 +0100
 
-commit 8a5e1e6cb7a55c760f48ac6cea70c1127102c2c5
+commit b572446be91176a1cc304bc4bbd231ecd4cb7528
 Author: Cameron Liddell <cameron.liddell@redborne.com>
-Date:   Tue Sep 10 19:28:59 2024 +0100
+Date:   Wed Sep 18 19:30:42 2024 +0100
 
-    v2.3.5
+    v2.3.6
 

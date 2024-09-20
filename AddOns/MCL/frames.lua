@@ -1,6 +1,8 @@
 
 local MCL, core = ...;
 
+local MCL_Load = core.Main;
+
 core.Frames = {};
 local MCL_frames = core.Frames;
 
@@ -153,7 +155,7 @@ function MCL_frames:SetTabs()
 		end
 		tab:SetScript("OnClick", Tab_OnClick);
         tab:SetWidth(nav_width)
-		if v.name == "Pinned" then
+		if v.name == "釘選" then
 			tab.content = CreateFrame("Frame", "PinnedTab", tabFrame.ScrollFrame);
 		else
 			tab.content = CreateFrame("Frame", nil, tabFrame.ScrollFrame);
@@ -163,9 +165,9 @@ function MCL_frames:SetTabs()
 
 		table.insert(contents, tab.content);
 
-		if tab.title:GetText() == "Overview" then
+		if tab.title:GetText() == "總覽" then
 			tab:SetPoint("TOPLEFT", tabFrame, "TOPLEFT", 0, 20);
-		elseif (i == 1) or tab.title:GetText() == "Overview" then
+		elseif (i == 1) or tab.title:GetText() == "總覽" then
 			tab:SetPoint("TOPLEFT", tabFrame, "TOPLEFT", 0, -10);
 		else
 			tab:SetPoint("BOTTOM", _G[frameName.."Tab"..(i-1)], "BOTTOM", 0, -30);

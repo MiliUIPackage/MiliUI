@@ -1,4 +1,7 @@
-local _, core = ...; -- Namespace
+local _, core = ...;
+local MCL_Load = core.Main;
+
+-- Namespace
 -------------------------------------------------------------
 
 SLASH_MCL1 = "/mcl";
@@ -21,5 +24,12 @@ SlashCmdList["MCL"] = function(msg)
     end
     if msg:lower() == "conifg" or msg == "settings" then
         core.Frames:openSettings();
-    end    
+    end
+    if msg:lower() == "refresh" then
+        if MCL_Load and type(MCL_Load.Init) == "function" then
+            MCL_Load:Init(true)  -- True to force re-initialization.
+        else
+            print("MCL: 無法刷新。初始化功能不可用。")
+        end
+    end  
  end 
