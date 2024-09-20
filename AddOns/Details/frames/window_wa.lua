@@ -2710,8 +2710,8 @@ function _detalhes:OpenAuraPanel (spellid, spellname, spellicon, encounterid, tr
                     f.AuraText:SetText(L["=Not Interrupted!="])
                     aura_text_label.text = L["Not Interrupted: "]
                 elseif (trigger == 42) then
-                    f.AuraText:SetText(DetailsAuraPanel.name.text:gsub("%(d!%)", "") .. L["Dispells"])
-                    aura_text_label.text = L["Title Text: "]
+                    f.AuraText:SetText(DetailsAuraPanel.name.text:gsub("%(d!%)", "") .. L["Dispels"])
+                    aura_text_label.text = "Title Text: "
                 end
             end
             

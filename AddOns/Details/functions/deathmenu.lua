@@ -121,7 +121,7 @@ detailsOnDeathMenu.breakdownButton.CoolTip = {
 		GameCooltip2:AddLine(Loc["- Damage Taken by Spell"])
 		GameCooltip2:AddLine(Loc["- Enemy Damage Taken"])
 		GameCooltip2:AddLine(Loc["- Player Deaths"])
-		GameCooltip2:AddLine(Loc["- Interrupts and Dispells"])
+		GameCooltip2:AddLine(Loc["- Interrupts and Dispels"])
 		GameCooltip2:AddLine(Loc["- Damage Done Chart"])
 		GameCooltip2:AddLine(Loc["- Damage Per Phase"])
 		GameCooltip2:AddLine(Loc["- Weakauras Tool"])

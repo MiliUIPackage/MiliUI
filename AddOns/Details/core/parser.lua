@@ -115,10 +115,6 @@
 	--pets
 		local petCache = petContainer.Pets
 
-	--store the unit names from all group members
-		---@type table<guid, unitname>
-		local group_roster_name_cache = {}
-
 	--ignore deaths
 		local ignore_death_cache = {}
 	--cache
@@ -5331,17 +5327,23 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		end
 	end
 
+	function Details.parser_functions:SCENARIO_COMPLETED(...)
+
+	end
+
 	function Details.parser_functions:ZONE_CHANGED_NEW_AREA(...)
 		return Details.Schedules.After(1, Details.Check_ZONE_CHANGED_NEW_AREA)
 	end
 
 	--~zone ~area
 	function Details:Check_ZONE_CHANGED_NEW_AREA()
-		local zoneName, zoneType, _, _, _, _, _, zoneMapID = GetInstanceInfo()
+		local zoneName, zoneType, difficultyID, difficultyName, _, _, _, zoneMapID = GetInstanceInfo()
 
 		Details.zone_type = zoneType
 		Details.zone_id = zoneMapID
 		Details.zone_name = zoneName
+
+		--Details222.ContextManager:CheckContextInterest(zoneMapID, zoneName, zoneType, difficultyID)
 
 		_in_resting_zone = IsResting()
 
@@ -6015,9 +6017,9 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 		if (Details.mythic_plus.show_damage_graphic) then
 			C_Timer.After(0, function()
-				if (ChallengeModeCompleteBanner) then
-					ChallengeModeCompleteBanner.timeToHold = 0.01
-				end
+				--if (ChallengeModeCompleteBanner) then
+				--	ChallengeModeCompleteBanner.timeToHold = 0.01
+				--end
 			end)
 		end
 
@@ -6212,40 +6214,8 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		return Details.in_group
 	end
 
-	local update_persistant_unitname_cache = function()
-		Details.UpdatePersistantCacheTimer = nil
-
-		local unitIdCache
-
-		if (IsInRaid()) then
-			unitIdCache = Details222.UnitIdCache.Raid
-		else
-			unitIdCache = Details222.UnitIdCache.Party
-		end
-
-		for i, unitId in ipairs(unitIdCache) do
-			if (UnitExists(unitId)) then
-				local unitGUID = UnitGUID(unitId)
-				if (unitGUID) then
-					if (not group_roster_name_cache[unitGUID]) then
-						local unitFullName = Details:GetFullName(unitId)
-						if (unitFullName) then
-							group_roster_name_cache[unitGUID] = unitFullName
-						end
-					end
-				end
-			else
-				break
-			end
-		end
-	end
-
 	function Details.parser_functions:GROUP_ROSTER_UPDATE(...)
 		local bIsInGroup = IsInGroup() or IsInRaid()
-
-		if (not Details.UpdatePersistantCacheTimer) then
-			Details.UpdatePersistantCacheTimer = C_Timer.NewTimer(2, update_persistant_unitname_cache)
-		end
 
 		if (not Details.in_group) then
 			Details.in_group = bIsInGroup
@@ -6410,8 +6380,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		--load auto run code
 		Details222.AutoRunCode.StartAutoRun()
 
-		update_persistant_unitname_cache()
-
 		Details.isLoaded = true
 	end
 
@@ -6458,15 +6426,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 
 	function Details.parser_functions:UNIT_NAME_UPDATE(unitId)
 		Details:SchedulePetUpdate(5)
-		local unitGUID = UnitGUID(unitId)
-		if (unitGUID) then
-			if (unitGUID:match("^Pl")) then
-				local unitFullName = Details:GetFullName(unitId)
-				if (unitFullName) then
-					group_roster_name_cache[unitGUID] = unitFullName
-				end
-			end
-		end
 	end
 
 	function Details.parser_functions:PLAYER_TARGET_CHANGED(...)
@@ -6665,8 +6624,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local func = token_list[token]
 
 		if (func) then
-			who_name = group_roster_name_cache[who_serial] or who_name
-			target_name = group_roster_name_cache[target_serial] or target_name
 			return func(nil, token, time, who_serial, who_name, who_flags, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12)
 		end
 	end
@@ -6676,24 +6633,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local func = token_list[token]
 
 		if (func) then
-			if (group_roster_name_cache[sourceGUID]) then
-				sourceName = group_roster_name_cache[sourceGUID]
-			else
-				if (sourceGUID:match("^Pl")) then
-					sourceName = sourceName:gsub("-%a+$", "")
-					group_roster_name_cache[sourceGUID] = sourceName
-				end
-			end
-
-			if (group_roster_name_cache[targetGUID]) then
-				targetName = group_roster_name_cache[targetGUID]
-			else
-				if (targetGUID:match("^Pl")) then
-					targetName = targetName:gsub("-%a+$", "")
-					group_roster_name_cache[targetGUID] = targetName
-				end
-			end
-
 			return func(nil, token, time, sourceGUID, sourceName, sourceFlags, targetGUID, targetName, targetFlags, targetFlags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12)
 		end
 	end
@@ -6719,8 +6658,6 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local time, token, hidding, who_serial, who_name, who_flags, who_flags2, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12 = CombatLogGetCurrentEventInfo()
 		local func = out_of_combat_interresting_events[token]
 		if (func) then
-			who_name = group_roster_name_cache[who_serial] or who_name
-			target_name = group_roster_name_cache[target_serial] or target_name
 			return func(nil, token, time, who_serial, who_name, who_flags, target_serial, target_name, target_flags, target_flags2, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12)
 		end
 	end

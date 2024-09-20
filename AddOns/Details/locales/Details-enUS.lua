@@ -2310,7 +2310,7 @@ L["STRING_OPTIONS_CMISC"] = "Collect Misc"
 L["STRING_OPTIONS_CMISC_DESC"] = [=[Enable capture of:
 
 - |cFFFFFF00Crowd Control Break|r
-- |cFFFFFF00Dispells|r
+- |cFFFFFF00Dispels|r
 - |cFFFFFF00Interrupts|r
 - |cFFFFFF00Resurrection|r
 - |cFFFFFF00Deaths|r]=]
@@ -3474,7 +3474,7 @@ L["- Damage Done Chart"] = "- Damage Done Chart"
 L["- Damage Per Phase"] = "- Damage Per Phase"
 L["- Damage Taken by Spell"] = "- Damage Taken by Spell"
 L["- Enemy Damage Taken"] = "- Enemy Damage Taken"
-L["- Interrupts and Dispells"] = "- Interrupts and Dispells"
+L["- Interrupts and Dispels"] = "- Interrupts and Dispels"
 L["- Player Damage Taken"] = "- Player Damage Taken"
 L["- Player Deaths"] = "- Player Deaths"
 L["- Press escape to restore default value.\n- Leave empty to hide icons."] = "- Press escape to restore default value.\n- Leave empty to hide icons."
@@ -3737,7 +3737,7 @@ L["Disable Mythic+ Stuff"] = "Disable Mythic+ Stuff"
 L["Disable Plugin"] = "Disable Plugin"
 L["Disable"] = "Disable"
 L["Dispel"] = "Dispel"
-L["Dispells"] = "Dispells"
+L["Dispels"] = "Dispels"
 L["Divisor Color"] = "Divisor Color"
 L["Do not rename the aura on WeakAuras options panel or the glow effect may not work."] = "Do not rename the aura on WeakAuras options panel or the glow effect may not work."
 L["Do not search for targets."] = "Do not search for targets."
@@ -4516,3 +4516,5 @@ L["|r |cffcc7c7c(plugin)|r: "] = "|r |cffcc7c7c(plugin)|r: "
 L["|r: list of spells already saw."] = "|r: list of spells already saw."
 L["|r: open the player breakdown for you."] = "|r: open the player breakdown for you."
 L["|rcheck if it is enabled in the addons control panel."] = "|rcheck if it is enabled in the addons control panel."
+L["Hide Yellow Helptips"] = "Hide Yellow Helptips"
+L["Those yellow boxes with an arrow and a text showing a text with tips."] = "Those yellow boxes with an arrow and a text showing a text with tips."

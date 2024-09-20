@@ -1,8 +1,10 @@
 # Details! Skin TWW @project-version@
 
-## [v1.2](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/tree/v1.2) (2024-08-17)
-[Full Changelog](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/compare/v1.1...v1.2) [Previous Releases](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/releases)
+## [v1.3](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/tree/v1.3) (2024-08-30)
+[Full Changelog](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/compare/v1.2...v1.3) [Previous Releases](https://github.com/Karl-HeinzSchneider/WoW-Details-Skin-TheWarWithin/releases)
 
-- DefaultProfile import (#5)  
-    * Add TWW.DefaultProfileImport  
-    * Add '/tww import' to import a default profile  
+- Update class 'icon\_file' and update skin + import profile  
+- Update Profile\_Default.lua  
+- small refactor and remove unused variables  
+- Setup vscode wow api  
+- Update README.md  

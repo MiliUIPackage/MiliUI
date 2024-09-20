@@ -1,8 +1,6 @@
 # Details! Damage Meter
 
-## [Details.12879.159](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.12879.159) (2024-08-19)
-[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.12878.159...Details.12879.159) 
+## [Details.13072.161](https://github.com/Tercioo/Details-Damage-Meter/tree/Details.13072.161) (2024-09-19)
+[Full Changelog](https://github.com/Tercioo/Details-Damage-Meter/compare/Details.13070.161...Details.13072.161) 
 
-- Fixed Streamer plugin bug  
-- Open Raid update  
-- Removed deprecated code and fixes  
+- Fixed health bars on Death Recap  
