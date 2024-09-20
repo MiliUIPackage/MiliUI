@@ -60,7 +60,15 @@ L:SetOptionLocalization({
 ---------------------------
 --  Queen Ansurek (2922) --
 ---------------------------
---L= DBM:GetModLocalization(2602)
+--L= DBM:GetModLocalization(2602)L= DBM:GetModLocalization(2602)
+
+L:SetOptionLocalization({
+	ToxinBehavior		= "設定反應泡沫的行為 (如果您是團隊的領隊，將覆蓋每個人的設置))",
+	MatchBW				= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:16:32:16:32|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:48:64:0:16|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:32:48:0:16|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:32:48:16:32|t w使用近戰 > 遠程 > 治療者 的優先級 (匹配 Bigwigs 的行為)",--Default
+	UseAllAscending		= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:0:16:0:16|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:16:32:0:16|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:32:48:0:16|t, |TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:48:64:0:16|t, 其他使用近戰 > 遠程 > 治療者 的優先級",
+	DisableIconsForRaid	= "停用設置標記並顯示沒有標記的大喊",
+	DisableAllForRaid	= "完全停用設置標記和大喊"
+})
 
 -------------
 --  Trash  --

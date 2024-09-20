@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2607, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917094345")
+mod:SetRevision("20240920081756")
 mod:SetCreatureID(215657)--VERIFY
 mod:SetEncounterID(2902)
 --mod:SetUsedIcons(1, 2, 3)
@@ -54,6 +54,7 @@ local timerVenomLashCD							= mod:NewCDCountTimer(32.9, 435136, nil, nil, nil, 
 local timerBrutalCrushCD						= mod:NewCDCountTimer(13.0, 434697, nil, "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 local timerDigestiveAcidCD						= mod:NewCDCountTimer(47, 435138, nil, nil, nil, 3)
 local timerPhaseChange							= mod:NewStageCountTimer(10, 438012, nil, nil, nil, 6)
+local berserkTimer								= mod:NewBerserkTimer(600)
 --Feeding Frenzy
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28845))
 local warnJuggernautCharge						= mod:NewCountAnnounce(436200, 4, nil, nil, 100, nil, nil, 2)--Charges 2+ of the set
@@ -92,6 +93,7 @@ function mod:OnCombatStart(delay)
 	timerDigestiveAcidCD:Start(14.9, 1)
 	timerCarnivorousContestCD:Start(33, 1)
 	timerPhaseChange:Start(90, 2)--Needs monitoring. There have been pulls this came sooner
+	berserkTimer:Start(-delay)--confirmed on normal and heroic
 end
 
 function mod:SPELL_CAST_START(args)
@@ -134,13 +136,13 @@ function mod:SPELL_CAST_START(args)
 		specWarnChitteringSwarm:Play("killmob")
 	elseif spellId == 436200 or spellId == 436203 then--First charge, subsiquent ones
 		if spellId == 436200 then
-			self.vb.webbingChargeCount = 1
-			timerJuggernautChargeCD:Start(4.6, 2)
+			self.vb.webbingChargeCount = 0
+			timerJuggernautChargeCD:Start(4.6, 1)
 		else
 			self.vb.webbingChargeCount = self.vb.webbingChargeCount + 1
 			warnJuggernautCharge:Show(self.vb.webbingChargeCount)
 			warnJuggernautCharge:Play("chargemove")
-			if self.vb.webbingChargeCount < 5 then
+			if self.vb.webbingChargeCount < 4 then
 				timerJuggernautChargeCD:Start(7.1, self.vb.webbingChargeCount+1)
 			end
 		end

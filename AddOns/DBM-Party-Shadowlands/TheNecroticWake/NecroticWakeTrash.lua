@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("NecroticWakeTrash", "DBM-Party-Shadowlands", 1)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240910053255")
+mod:SetRevision("20240920064505")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -283,6 +283,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 334748 then
 		--Harvester (166302) 15-17.5, Collector (173016) 14.1-18.3, Stitching Assistant (173044) 16.6-17.9
@@ -363,6 +364,7 @@ function mod:SPELL_AURA_REMOVED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 173016 then--Corpse Collector
 		timerDrainFluidsCD:Stop(args.destGUID)

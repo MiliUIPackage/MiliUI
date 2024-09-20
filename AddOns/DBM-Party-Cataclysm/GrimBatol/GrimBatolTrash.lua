@@ -2,7 +2,7 @@ if not DBM:IsRetail() then return end
 local mod	= DBM:NewMod("GrimBatolTrash", "DBM-Party-Cataclysm", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240902224710")
+mod:SetRevision("20240920064505")
 --mod:SetModelID(47785)
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
@@ -82,6 +82,7 @@ end
 
 
 function mod:SPELL_CAST_START(args)
+	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 451871 then
@@ -156,6 +157,7 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
+	if not self.Options.Enabled then return end
 	local spellId = args.spellId
 	if not self:IsValidWarning(args.sourceGUID) then return end
 	if spellId == 451224 then
@@ -190,6 +192,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 451871 then
 		timerMassTremorCD:Start(20, args.destGUID)
@@ -236,6 +239,7 @@ function mod:SPELL_AURA_REMOVED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 224219 then--Twilight Earthcaller
 		timerMassTremorCD:Stop(args.destGUID)

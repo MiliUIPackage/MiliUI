@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("TirnaScitheTrash", "DBM-Party-Shadowlands", 3)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240902224710")
+mod:SetRevision("20240920064505")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
@@ -281,6 +281,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 324914 then
 		timerNourishtheForestCD:Start(nil, args.destGUID)
@@ -344,6 +345,7 @@ function mod:SPELL_AURA_REMOVED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 166304 then--Mistveil Stinger
 		timerAnimaInjectionCD:Stop(args.destGUID)

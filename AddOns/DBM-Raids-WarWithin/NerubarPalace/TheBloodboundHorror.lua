@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2611, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917094345")
+mod:SetRevision("20240918054723")
 mod:SetCreatureID(214502)
 mod:SetEncounterID(2917)
 mod:SetUsedIcons(4, 5, 6, 7, 8)
@@ -13,7 +13,7 @@ mod:RegisterCombat("combat")
 
 mod:RegisterEventsInCombat(
 	"SPELL_CAST_START 444363 452237 445936 442530 451288 445016 445174",
-	"SPELL_CAST_SUCCESS 443203",
+	"SPELL_CAST_SUCCESS 443203 445016",
 	"SPELL_SUMMON 444830 444835",
 	"SPELL_AURA_APPLIED 443612 452245 443042 445272",
 	"SPELL_AURA_APPLIED_DOSE 445272",
@@ -163,7 +163,7 @@ function mod:SPELL_CAST_START(args)
 		if not castsPerGUID[args.sourceGUID] then
 			castsPerGUID[args.sourceGUID] = 0
 			if self.Options.SetIconOnWatchers then
-				self:ScanForMobs(args.sourceGUID, 2, 8, 1, nil, 12, "SetIconOnWatchers", nil, nil, true)
+				self:ScanForMobs(args.sourceGUID, 2, 4, 1, nil, 12, "SetIconOnWatchers", nil, nil, true)
 			end
 		end
 		castsPerGUID[args.sourceGUID] = castsPerGUID[args.sourceGUID] + 1
@@ -178,7 +178,6 @@ function mod:SPELL_CAST_START(args)
 		end
 		timerBlackBulwarkCD:Start(nil, args.sourceGUID)
 	elseif spellId == 445016 then
-		timerSpectralSlamCD:Start(nil, args.sourceGUID)
 		if self:IsTanking("player", nil, nil, true, args.sourceGUID) then
 			specWarnSpectralSlam:Show()
 			specWarnSpectralSlam:Play("defensive")
@@ -195,6 +194,8 @@ function mod:SPELL_CAST_SUCCESS(args)
 		self.vb.membraneCount = self.vb.membraneCount +1
 		warnCrimsonRain:Show(self.vb.membraneCount)
 		timerCrimsonRainCD:Start(nil, self.vb.membraneCount+1)--128
+	elseif spellId == 445016 then
+		timerSpectralSlamCD:Start(10.4, args.sourceGUID)
 	end
 end
 
@@ -206,7 +207,7 @@ function mod:SPELL_SUMMON(args)
 			--timerBlackBulwarkCD:Start(nil, args.destGUID)
 			--timerSpectralSlamCD:Start(nil, args.destGUID)
 			if self.Options.SetIconOnWatchers then
-				self:ScanForMobs(args.destGUID, 2, 8, 1, nil, 12, "SetIconOnWatchers", nil, nil, true)
+				self:ScanForMobs(args.destGUID, 2, 4, 1, nil, 12, "SetIconOnWatchers", nil, nil, true)
 			end
 		end
 	elseif spellId == 444835 then--Forgotten Harbinger

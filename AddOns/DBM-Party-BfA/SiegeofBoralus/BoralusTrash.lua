@@ -1,14 +1,14 @@
 local mod	= DBM:NewMod("BoralusTrash", "DBM-Party-BfA", 5)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917045510")
+mod:SetRevision("20240920065545")
 --mod:SetModelID(47785)
 
 mod.isTrashMod = true
 mod.isTrashModBossFightAllowed = true
 
 mod:RegisterEvents(
-	"SPELL_CAST_START 275826 256627 256957 256709 257170 272546 257169 272713 274569 272571 272888 272711 268260 257288 454440 272662",
+	"SPELL_CAST_START 275826 256627 256957 256709 257170 272546 257169 272713 274569 272571 272888 272711 268260 257288 454440 272662 257732",
 	"SPELL_CAST_SUCCESS 256627 256640 257170 256709 257288 272422 454437 275826 275835 272888 272546 454440 272711 257169 272571 256957 268260",
 	"SPELL_INTERRUPT",
 	"SPELL_AURA_APPLIED 256957 257168 272421 272571 272888 454437",
@@ -57,6 +57,7 @@ local specWarnCursedSlash			= mod:NewSpecialWarningDispel(257168, "RemoveCurse",
 local specWarnFerocity				= mod:NewSpecialWarningDispel(272888, "RemoveEnrage", nil, 2, 1, 2)
 local specWarnChokingWatersDispel	= mod:NewSpecialWarningDispel(272571, "RemoveMagic", nil, 2, 1, 2)
 local specWarnFear					= mod:NewSpecialWarningSpell(257169, nil, nil, nil, 2, 2)
+local specWarnShatteringBellow		= mod:NewSpecialWarningCast(257732, "SpellCaster", nil, nil, 1, 1)
 
 --copilot, there are no NewCDTimer objects in this mod, only NewCDNPTimer objects
 --copilot, there is no DBM_CORE_L in this mod, only DBM_COMMON_L
@@ -155,6 +156,9 @@ function mod:SPELL_CAST_START(args)
 		warnIronHook:Show()
 		warnIronHook:Play("pullin")
 		timerIronHookCD:Start(19.4, args.sourceGUID)
+	elseif spellId == 257732 then
+		specWarnShatteringBellow:Show()
+		specWarnShatteringBellow:Play("stopcast")
 	end
 end
 
@@ -200,6 +204,7 @@ function mod:SPELL_CAST_SUCCESS(args)
 end
 
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 275826 then
 		timerBolsteringShoutCD:Start(15.6, args.destGUID)--18.1 - 2.5
@@ -241,6 +246,7 @@ function mod:SPELL_AURA_APPLIED(args)
 end
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 129374 then--Scrimshaw Enforcer
 		timerSlobberknockerCD:Stop(args.destGUID)

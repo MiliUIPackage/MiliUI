@@ -3,7 +3,7 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20240917094345")
+mod:SetRevision("20240919000049")
 mod:SetCreatureID(227323)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
@@ -21,8 +21,8 @@ mod:RegisterEventsInCombat(
 	"SPELL_AURA_REMOVED 437586 447207 453990 462558 451278 443903 455387 445152 443656 445013 445021",
 	"SPELL_PERIODIC_DAMAGE 443403",
 	"SPELL_PERIODIC_MISSED 443403",
-	"UNIT_DIED"
---	"UNIT_SPELLCAST_SUCCEEDED boss1"
+	"UNIT_DIED",
+	"UNIT_SPELLCAST_SUCCEEDED boss1"
 )
 
 --NOTE, 451320 wasn't used
@@ -278,6 +278,44 @@ local allTimers = {
 			[439299] = {201.2}--Yes this is true
 		},
 	},
+	["story"] = {
+		[1] = {
+			--Reactive Toxin
+			[437592] = {0},--Not used in Story
+			--Venom Nova
+			[437417] = {34.4},
+			--Silken Tomb
+			[439814] = {20.5, 38.0},
+			--Liquefy
+			[440899] = {0},--Not used in Story
+			--Web Blades
+			[439299] = {7.5, 38.0}
+		},
+		[1.5] = {
+			--Wrest
+			[450191] = {0}--Not used in story
+		},
+		[2] = {
+			--Wrest
+			[450191] = {0}--Not used in story
+		},
+		[3] = {
+			--Abyssal Infusion
+			[443888] = {0},--Not used in story
+			--Frothing Gluttony
+			[445422] = {62.4, 53.0},
+			--Queen's Summons
+			[444829] = {42.4, 53.0},
+			--Royal Condemnation
+			[438976] = {35.9, 53.0},
+			--Infest
+			[443325] = {0},--Not used in story
+			--Gorge
+			[443336] = {0},--Not used in story
+			--Web Blades
+			[439299] = {0}--Probably used but too late to ever see
+		},
+	},
 }
 
 ---@param self DBMMod
@@ -310,7 +348,7 @@ local function sortToxin(self)
 			end
 		end
 	end
-	warnReactiveToxin:Show(self.vb.dosageCount+1, table.concat(reactiveIcons, "<, >"))
+	warnReactiveToxin:Show(self.vb.reactiveCount+1, table.concat(reactiveIcons, "<, >"))
 end
 
 function mod:OnCombatStart(delay)
@@ -335,6 +373,8 @@ function mod:OnCombatStart(delay)
 		savedDifficulty = "heroic"
 	elseif self:IsHeroic() then
 		savedDifficulty = "heroic"
+	elseif self:IsStory() then
+		savedDifficulty = "story"
 	else--Combine LFR and Normal
 		savedDifficulty = "normal"
 	end
@@ -373,6 +413,8 @@ function mod:OnTimerRecovery()
 		savedDifficulty = "heroic"
 	elseif self:IsHeroic() then
 		savedDifficulty = "heroic"
+	elseif self:IsStory() then
+		savedDifficulty = "story"
 	else--Combine LFR and Normal
 		savedDifficulty = "normal"
 	end
@@ -543,8 +585,6 @@ function mod:SPELL_CAST_START(args)
 		timerWebBladesCD:Stop()
 		warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(1.5))
 		warnPhase:Play("phasechange")
-
-		timerWrestCD:Start(allTimers[savedDifficulty][1.5][450191][1], 1)
 	elseif spellId == 449986 then--Aphotic Communion Starting
 		self:SetStage(3)
 		timerAcidicApocalypse:Stop()
@@ -637,7 +677,7 @@ function mod:SPELL_AURA_APPLIED(args)
 		if args:IsPlayer() then
 			specWarnAbyssalInfusion:Show(self:IconNumToTexture(icon))
 			specWarnAbyssalInfusion:Play("mm"..icon)
-			yellAbyssalInfusion:Yell(icon, icon)
+			yellAbyssalInfusion:Yell(icon)
 			yellAbyssalInfusionFades:Countdown(spellId, nil, icon)
 		end
 		warnAbyssalInfusion:CombinedShow(1, args.destName)
@@ -837,6 +877,7 @@ function mod:UNIT_DIED(args)
 		end
 		--Better place to start Stage 2 wrest timer
 		if self.vb.wrestCount == 0 then
+			timerWrestCD:Stop()
 			timerWrestCD:Start(self:IsEasy() and 12.9 or 11.9, 1)
 		end
 	--elseif cid == 223318 then--Devoted Worshipper
@@ -856,13 +897,25 @@ function mod:UNIT_DIED(args)
 	end
 end
 
---[[
 function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
-	if spellId == 439299 and self:AntiSpam(5, 3) then
-
+	if spellId == 446202 and self:IsStory() and self:AntiSpam(5, 7) then
+		if self:GetStage(1) then
+			--In story she skips 1.5 and goes into stage 2, but stage 2 in story is adds teleporting down and not players going up
+			self:SetStage(2)
+			self.vb.wrestCount = 0
+			self.vb.killedExpeller = 0
+			timerReactiveToxinCD:Stop()
+			timerVenomNovaCD:Stop()
+			timerSilkenTombCD:Stop()
+			timerLiquefyCD:Stop()
+			timerPredationCD:Stop()
+		--	timerFeastCD:Stop()
+			timerWebBladesCD:Stop()
+			warnPhase:Show(DBM_CORE_L.AUTO_ANNOUNCE_TEXTS.stage:format(2))
+			warnPhase:Play("ptwo")
+		end
 	end
 end
---]]
 
 function mod:OnSync(msg)
 	if self:IsLFR() then return end

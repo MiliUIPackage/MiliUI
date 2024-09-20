@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod("DelveTrashCommon", "DBM-Delves-WarWithin")
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917062917")
+mod:SetRevision("20240920064505")
 mod:SetZone(DBM_DISABLE_ZONE_DETECTION)--Stays active in all zones for zone change handlers, but registers events based on dungeon ids
 
 mod.isTrashMod = true
@@ -92,7 +92,7 @@ local timerFungalBreathCD					= mod:NewCDNPTimer(15.4, 415253, nil, nil, nil, 3)
 local timerUmbrelSlashCD					= mod:NewCDNPTimer(17.8, 418295, nil, nil, nil, 3)
 local timerCastigateCD						= mod:NewCDPNPTimer(17.8, 418297, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
 local timerBattleCryCD						= mod:NewCDNPTimer(30.3, 448399, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)
-local timerWicklighterVolleyCD				= mod:NewCDNPTimer(20.8, 445191, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Needs more Data
+local timerWicklighterVolleyCD				= mod:NewCDNPTimer(20.1, 445191, nil, nil, nil, 4, nil, DBM_COMMON_L.INTERRUPT_ICON)--Needs more Data
 local timerSpearFishCD						= mod:NewCDNPTimer(12.1, 430036, nil, nil, nil, 3)
 local timerViciousStabsCD					= mod:NewCDNPTimer(20.6, 424704, nil, nil, nil, 3)
 local timerThrowDynoCD						= mod:NewCDNPTimer(7.2, 448600, nil, nil, nil, 3)
@@ -143,6 +143,7 @@ do
 end
 
 function mod:SPELL_CAST_START(args)
+	if not self.Options.Enabled then return end
 	if args.spellId == 449318 then
 --		timerShadowsofStrifeCD:Start(nil, args.sourceGUID)
 		if self.Options.SpecWarn449318interrupt and self:CheckInterruptFilter(args.sourceGUID, false, true) then
@@ -319,6 +320,7 @@ function mod:SPELL_CAST_START(args)
 end
 
 function mod:SPELL_CAST_SUCCESS(args)
+	if not self.Options.Enabled then return end
 	if args.spellId == 414944 and self:IsValidWarning(args.sourceGUID) then
 		if args:GetSrcCreatureID() == 207454 then--Fungal Gutter
 			timerBattleRoarCD:Start(19.9, args.sourceGUID)--19.9-24.7
@@ -380,6 +382,7 @@ end
 
 --Likely some of these aren't even interruptable, but i can't remember sometimes so they get added anyways
 function mod:SPELL_INTERRUPT(args)
+	if not self.Options.Enabled then return end
 	if type(args.extraSpellId) ~= "number" then return end
 	if args.extraSpellId == 414944 and self:IsValidWarning(args.destGUID) then
 		if args:GetSrcCreatureID() == 207454 then--Fungal Gutter
@@ -411,6 +414,7 @@ function mod:SPELL_INTERRUPT(args)
 end
 
 function mod:SPELL_AURA_APPLIED(args)
+	if not self.Options.Enabled then return end
 	if args.spellId == 424614 and args:IsDestTypePlayer() then
 		if args:IsPlayer() or self:CheckDispelFilter("poison") then
 			warnDebilitatingVenom:Show(args.destName)
@@ -452,6 +456,7 @@ end
 
 --[[
 function mod:SPELL_AURA_REMOVED(args)
+	if not self.Options.Enabled then return end
 	if args.spellId == 1098 then
 
 	end
@@ -467,6 +472,7 @@ end
 --]]
 
 function mod:UNIT_DIED(args)
+	if not self.Options.Enabled then return end
 	local cid = self:GetCIDFromGUID(args.destGUID)
 	if cid == 216584 then--Nerubian Captain
 		timerWebbedAegisCD:Stop(args.destGUID)
@@ -481,6 +487,7 @@ function mod:UNIT_DIED(args)
 	elseif cid == 204127 then--Kobold Taskfinder
 		timerBlazingWickCD:Stop(args.destGUID)
 		timerBlazingWick:Stop(args.destGUID)
+		timerBattleCryCD:Stop(args.destGUID)
 	elseif cid == 207454 then--Fungal Gutter
 		timerBattleRoarCD:Stop(args.destGUID)
 		timerViciousStabsCD:Stop(args.destGUID)
@@ -501,8 +508,6 @@ function mod:UNIT_DIED(args)
 	elseif cid == 208728 then--Treasure Wraith
 		timerCastigateCD:Stop(args.destGUID)
 		timerUmbrelSlashCD:Stop(args.destGUID)
-	elseif cid == 204127 then--Kobolt Taskfinder
-		timerBattleCryCD:Stop(args.destGUID)
 	elseif cid == 214338 then--Kobyss Spearfisher
 		timerSpearFishCD:Stop(args.destGUID)
 	elseif cid == 211777 then--Spitfire Fusetender

@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2608, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240917094345")
+mod:SetRevision("20240918054723")
 mod:SetCreatureID(217489, 217491)--Anub'arash, Skeinspinner Takazj
 mod:SetEncounterID(2921)
 mod:SetUsedIcons(6, 7, 8)
@@ -153,7 +153,7 @@ local allTimers = {
 			-- Impaling Eruption
 			[440504] = {22.1, 38.0, 25.0},--Updated Sept 11
 			-- Venomous Rain
-			[438343] = {6.2, 38.0, 36.3, 37.6},--Updated Sept 11
+			[438343] = {6.2, 37.8, 36.3, 37.6},--Updated Sept 11
 			-- Web Bomb
 			[439838] = {16.4, 57.9},--Updated Sept 11
 			-- Skittering Leap
