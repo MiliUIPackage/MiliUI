@@ -1,6 +1,7 @@
 # Baganator
 
-## [483](https://github.com/Baganator/Baganator/tree/483) (2024-09-13)
-[Full Changelog](https://github.com/Baganator/Baganator/compare/482...483) 
+## [489](https://github.com/Baganator/Baganator/tree/489) (2024-09-17)
+[Full Changelog](https://github.com/Baganator/Baganator/compare/488...489) 
 
-- Fix locked items from transfering large numbers of items to/from warband bank  
+- [Fixes #291] Revert Shift+Click currency fix due to lag when entering Delves  
+- Disable debug messages OnUpdate when not in use  

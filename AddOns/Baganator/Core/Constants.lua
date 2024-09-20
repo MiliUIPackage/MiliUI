@@ -75,6 +75,8 @@ addonTable.Constants.Events = {
   "PluginsUpdated",
 
   "TransferCancel",
+
+  "PropagateAlt",
 }
 
 addonTable.Constants.SortStatus = {
@@ -181,3 +183,8 @@ addonTable.Constants.ContainerKeyToInfo = {
   [10] = {type = "atlas", value="Mobile-Cooking", tooltipHeader=BAGANATOR_L_COOKING, size=50}, -- cooking
 }
 addonTable.Constants.ContainerTypes = 13
+
+addonTable.Constants.BankTabType = {
+  Character = 0,
+  Warband = 1,
+}
