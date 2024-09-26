@@ -101,6 +101,8 @@ CL.MARKS							= "Marks"--Plural of above
 CL.CURSE							= "Curse"
 CL.CURSES							= "Curses"
 CL.SWIRLS							= "Swirls"--Plural of Swirl
+CL.CHARGES							= "Charges"--Context, this is plural of boss "charging to players" and NOT bomb charges
+CL.CIRCLES							= "Circles"--As in circles on ground that players need to move out of or need to drop off
 --NOTE, many common locals are auto localized:
 --Bomb (37859), Bombs (167180), Scream (31295), Breath (17088), Beam (173303), Beams (207544), Charge (100), Knockback (28405), Portal (161722), Portals (109400)
 --Fixate (12021), Trap (181341), Meteor (28884), Shield (151702), Teleport (4801), Fear (5782), Roar (140459), Leap (47482), Orb (265315), Tornados (86189)
@@ -133,3 +135,21 @@ CL.POISON_ICON						= "|TInterface\\" .. EJIconPath .. "\\UI-EJ-Icons.blp:20:20:
 CL.DISEASE_ICON						= "|TInterface\\" .. EJIconPath .. "\\UI-EJ-Icons.blp:20:20:0:0:255:66:70:86:40:58|t" -- NO TRANSLATE
 CL.ENRAGE_ICON						= "|TInterface\\" .. EJIconPath .. "\\UI-EJ-Icons.blp:20:20:0:0:255:66:102:118:40:58|t" -- NO TRANSLATE
 CL.BLEED_ICON						= "|TInterface\\" .. EJIconPath .. "\\UI-EJ-Icons.blp:20:20:0:0:255:66:168:182:40:58|t" -- NO TRANSLATE
+
+CL.STAR_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:0:16:0:16|t" -- NO TRANSLATE
+CL.CIRCLE_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:16:32:0:16|t" -- NO TRANSLATE
+CL.DIAMOND_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:32:48:0:16|t" -- NO TRANSLATE
+CL.TRIANGLE_ICON					= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:48:64:0:16|t" -- NO TRANSLATE
+CL.MOON_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:0:16:16:32|t" -- NO TRANSLATE
+CL.SQUARE_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:16:32:16:32|t" -- NO TRANSLATE
+CL.CROSS_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:32:48:16:32|t" -- NO TRANSLATE
+CL.SKULL_ICON						= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:20:20:0:0:64:64:48:64:16:32|t" -- NO TRANSLATE
+
+CL.STAR_ICON_SMALL					= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:0:16:0:16|t" -- NO TRANSLATE
+CL.CIRCLE_ICON_SMALL				= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:16:32:0:16|t" -- NO TRANSLATE
+CL.DIAMOND_ICON_SMALL				= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:32:48:0:16|t" -- NO TRANSLATE
+CL.TRIANGLE_ICON_SMALL				= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:48:64:0:16|t" -- NO TRANSLATE
+CL.MOON_ICON_SMALL					= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:0:16:16:32|t" -- NO TRANSLATE
+CL.SQUARE_ICON_SMALL				= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:16:32:16:32|t" -- NO TRANSLATE
+CL.CROSS_ICON_SMALL					= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:32:48:16:32|t" -- NO TRANSLATE
+CL.SKULL_ICON_SMALL					= "|TInterface\\TargetingFrame\\UI-RaidTargetingIcons.blp:13:13:0:0:64:64:48:64:16:32|t" -- NO TRANSLATE

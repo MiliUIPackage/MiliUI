@@ -8,7 +8,7 @@ else
 	mod.statTypes = "normal,heroic"
 end
 
-mod:SetRevision("20240812045014")
+mod:SetRevision("20240922155203")
 mod:SetCreatureID(40484)
 mod:SetEncounterID(1049)
 mod:SetHotfixNoticeRev(20240812000000)
@@ -90,8 +90,10 @@ function mod:SPELL_CAST_START(args)
 		timerVoidSurgeCD:Start(50, self.vb.feebleCount+1)
 	elseif args.spellId == 450100 then
 		self.vb.crushCount = self.vb.crushCount + 1
-		specWarnCrush:Show()
-		specWarnCrush:Play("defensive")
+		if self:IsTanking("player", "boss1", nil, true) then
+			specWarnCrush:Show()
+			specWarnCrush:Play("defensive")
+		end
 		timerCrushCD:Start(50, self.vb.crushCount+1)
 	end
 end

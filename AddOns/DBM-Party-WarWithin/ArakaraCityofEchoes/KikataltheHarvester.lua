@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2585, "DBM-Party-WarWithin", 6, 1271)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240818054948")
+mod:SetRevision("20240924214631")
 mod:SetCreatureID(215407)
 mod:SetEncounterID(2901)
 mod:SetHotfixNoticeRev(20240818000000)
@@ -91,10 +91,10 @@ function mod:SPELL_CAST_START(args)
 				timerVenomVolleyCD:Update(elapsed, total+extend, self.vb.venomCount+1)
 			end
 		end
-		--if time remaining on Erupting Webs is < 13.3, it's extended by this every time
-		if timerEruptingWebsCD:GetRemaining(self.vb.eruptingCount+1) < 13.3 then
+		--if time remaining on Erupting Webs is < 7.3, it's extended by this every time (well not every time anymore?)
+		if timerEruptingWebsCD:GetRemaining(self.vb.eruptingCount+1) < 7.3 then
 			local elapsed, total = timerEruptingWebsCD:GetTime(self.vb.eruptingCount+1)
-			local extend = 13.3 - (total-elapsed)
+			local extend = 7.3 - (total-elapsed)
 			DBM:Debug("timerEruptingWebsCD extended by: "..extend, 2)
 			timerEruptingWebsCD:Update(elapsed, total+extend, self.vb.eruptingCount+1)
 		end

@@ -3,8 +3,8 @@ local L		= mod:GetLocalizedStrings()
 
 mod.statTypes = "story,lfr,normal,heroic,mythic"
 
-mod:SetRevision("20240919000049")
-mod:SetCreatureID(227323)
+mod:SetRevision("20240924190726")
+mod:SetCreatureID(218370)
 mod:SetEncounterID(2922)
 mod:SetUsedIcons(1, 2, 3, 4, 5, 6, 7, 8)
 mod:SetHotfixNoticeRev(20240917000000)
@@ -79,7 +79,7 @@ local timerWebBladesCD							= mod:NewCDCountTimer(49, 439299, 138737, nil, nil,
 local timerPredationCD							= mod:NewIntermissionCountTimer(140, 447207, nil, nil, nil, 6)
 
 mod:AddSetIconOption("SetIconOnToxin", 437592, true, 10, {6, 3, 7, 1, 2})--(Priority for melee > ranged > healer)
-mod:AddDropdownOption("ToxinBehavior", {"MatchBW", "UseAllAscending", "DisableIconsForRaid", "DisableAllForRaid"}, "MatchBW", "icon", nil, 437592)
+mod:AddDropdownOption("ToxinBehavior", {"MatchBW", "UseAllAscending", "DisableIconsForRaid", "DisableAllForRaid"}, "MatchBW", "misc", nil, 437592)
 --mod:AddPrivateAuraSoundOption(426010, true, 425885, 4)
 --Intermission: The Spider's Web
 mod:AddTimerLine(DBM:EJ_GetSectionInfo(28755))
@@ -187,7 +187,6 @@ mod.vb.feastCount = 0
 mod.vb.webBladesCount = 0
 --Intermission 1
 mod.vb.wrestCount = 0
-mod.vb.killedExpeller = 0
 --P3
 mod.vb.abyssalInfusionCount = 0
 mod.vb.infusionIcon = 1
@@ -202,6 +201,44 @@ mod.vb.cataEvoActivated = false
 
 local savedDifficulty = "normal"
 local allTimers = {
+	["mythic"] = {
+		[1] = {
+			--Reactive Toxin
+			[437592] = {0},
+			--Venom Nova
+			[437417] = {0},
+			--Silken Tomb
+			[439814] = {0},
+			--Liquefy
+			[440899] = {0},
+			--Web Blades
+			[439299] = {0}
+		},
+		[1.5] = {
+			--Wrest
+			[450191] = {0}--Technically diff spellid here, but table uses same one (different from normal)
+		},
+		[2] = {
+			--Wrest
+			[450191] = {0}--Then 8 repeating with exception of timer resetting when first platform adds die
+		},
+		[3] = {
+			--Abyssal Infusion
+			[443888] = {0},
+			--Frothing Gluttony
+			[445422] = {0},
+			--Queen's Summons
+			[444829] = {0},
+			--Royal Condemnation
+			[438976] = {0},
+			--Infest
+			[443325] = {0},
+			--Gorge
+			[443336] = {0},
+			--Web Blades
+			[439299] = {0}
+		},
+	},
 	["heroic"] = {
 		[1] = {
 			--Reactive Toxin
@@ -225,7 +262,7 @@ local allTimers = {
 		},
 		[3] = {
 			--Abyssal Infusion
-			[443888] = {57.4, 80, 80},--Only first confirmed
+			[443888] = {57.4, 80, 80},
 			--Frothing Gluttony
 			[445422] = {68.4, 80, 80},
 			--Queen's Summons
@@ -370,7 +407,7 @@ function mod:OnCombatStart(delay)
 	self.vb.cataEvoActivated = false
 	self.vb.ToxinBehavior = self.Options.ToxinBehavior--Default it to whatever user has it set to, until group leader overrides it
 	if self:IsMythic() then
-		savedDifficulty = "heroic"
+		savedDifficulty = "mythic"
 	elseif self:IsHeroic() then
 		savedDifficulty = "heroic"
 	elseif self:IsStory() then
@@ -410,7 +447,7 @@ end
 
 function mod:OnTimerRecovery()
 	if self:IsMythic() then
-		savedDifficulty = "heroic"
+		savedDifficulty = "mythic"
 	elseif self:IsHeroic() then
 		savedDifficulty = "heroic"
 	elseif self:IsStory() then
@@ -575,7 +612,6 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 447076 then--Predation
 		self:SetStage(1.5)
 		self.vb.wrestCount = 0
-		self.vb.killedExpeller = 0
 		timerReactiveToxinCD:Stop()
 		timerVenomNovaCD:Stop()
 		timerSilkenTombCD:Stop()
@@ -884,14 +920,6 @@ function mod:UNIT_DIED(args)
 
 	elseif cid == 223204 then--Chamber Guardian
 		timerOustCD:Stop(args.destGUID)
-	elseif cid == 224368 then--Chamber Expeller
-		self.vb.killedExpeller = self.vb.killedExpeller + 1
-		if self.vb.killedExpeller == 2 then
-			--First set died, restart Wrest timer
-			--This still isn't perfect. I doubt we can see true event cause I already compared previous set death to new set engage and have same variations of ~2 seconds
-			timerWrestCD:Stop()
-			timerWrestCD:Start(self:IsEasy() and 13 or 9.3, self.vb.wrestCount+1)
-		end
 	elseif cid == 221863 then--cycle-warden--Summoned Acolyte
 		timerNullDetonationCD:Stop(nil, args.destGUID)
 	end
@@ -903,7 +931,6 @@ function mod:UNIT_SPELLCAST_SUCCEEDED(uId, _, spellId)
 			--In story she skips 1.5 and goes into stage 2, but stage 2 in story is adds teleporting down and not players going up
 			self:SetStage(2)
 			self.vb.wrestCount = 0
-			self.vb.killedExpeller = 0
 			timerReactiveToxinCD:Stop()
 			timerVenomNovaCD:Stop()
 			timerSilkenTombCD:Stop()

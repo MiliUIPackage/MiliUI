@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2582, "DBM-Party-WarWithin", 4, 1269)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240905174217")
+mod:SetRevision("20240925005958")
 mod:SetCreatureID(213119)
 mod:SetEncounterID(2883)
 mod:SetHotfixNoticeRev(20240428000000)
@@ -102,7 +102,7 @@ function mod:SPELL_CAST_START(args)
 	elseif spellId == 427869 then
 		self.vb.unbridledCount = self.vb.unbridledCount + 1
 		specWarnUnbridledVoid:Show(self.vb.unbridledCount)
-		specWarnUnbridledVoid:Play("shockwave")
+		specWarnUnbridledVoid:Play("frontal")
 		timerUnbfridledVoidCD:Start(nil, self.vb.unbridledCount+1)
 		updateAllTimers(self, 4.8)
 	end

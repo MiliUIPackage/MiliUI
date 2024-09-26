@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2402, "DBM-Party-Shadowlands", 3, 1184)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240809034357")
+mod:SetRevision("20240922115047")
 mod:SetCreatureID(164501)
 mod:SetEncounterID(2392)
 mod:SetHotfixNoticeRev(20240808000000)
@@ -58,8 +58,8 @@ function mod:OnCombatStart(delay)
 	self.vb.tagCount = 0
 	self.vb.pattyCount = 0
 	timerDodgeBallCD:Start(6-delay, 1)
-	timerPattyCakeCD:Start(13.4-delay, 1)--13.4-14.3
-	timerFreezeTagCD:Start(16.7-delay, 1)--16.7-18.5, Sometimes cast is skipped?
+	timerPattyCakeCD:Start(12.2-delay, 1)--12.2-14.3
+	timerFreezeTagCD:Start(15.9-delay, 1)--15.9-18.5, Sometimes cast is skipped?
 	if self.Options.NPAuraOnFixate then
 		DBM:FireEvent("BossMod_EnableHostileNameplates")
 	end

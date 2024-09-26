@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2584, "DBM-Party-WarWithin", 6, 1271)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240830215855")
+mod:SetRevision("20240924214631")
 mod:SetCreatureID(215405)
 mod:SetEncounterID(2906)
 mod:SetHotfixNoticeRev(20240817000000)
@@ -60,7 +60,7 @@ local allTimers = {
 	--Initial set
 	[1] = {
 		--Impale
-		[435012] = {4.8, 14.7, 4.6},--Includes the Burrow Charge Impale
+		[435012] = {4.8, 13.5, 4.6},--Includes the Burrow Charge Impale
 		--Infestation
 		[433740] = {0, 10.0, 10.8},--Can queue up to 13, usually 3rd cast is 12.2 but can also be lower
 	},
@@ -161,6 +161,7 @@ function mod:SPELL_AURA_REMOVED(args)
 		self.vb.impaleCount = 0
 		self.vb.infestationCount = 0
 		--timerInfestationCD:Start(1, 1)--Instantly again
+		timerImpaleCD:Stop()
 		timerImpaleCD:Start(5.3, 1)
 		timerBurrowChargeCD:Start(15, self.vb.burrowCount+1)
 		timerEyeOfTheStormCD:Start(46.6, self.vb.eyeCount+1)
