@@ -1,3 +1,7 @@
+# v2.48.1
+
+- Added raid questline To Kill a Queen
+
 # v2.48.0
 
 - Added Honor Your Efforts questlines in Hallowfall
