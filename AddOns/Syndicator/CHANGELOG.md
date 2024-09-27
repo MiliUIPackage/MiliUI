@@ -1,6 +1,6 @@
 # Syndicator
 
-## [123](https://github.com/Baganator/Syndicator/tree/123) (2024-09-13)
-[Full Changelog](https://github.com/Baganator/Syndicator/compare/122...123) 
+## [124](https://github.com/Baganator/Syndicator/tree/124) (2024-09-20)
+[Full Changelog](https://github.com/Baganator/Syndicator/compare/123...124) 
 
-- Fix merging guild banks on diff realms, same connected realm and same guild name  
+- Keep track of which headers a currency is placed under  
