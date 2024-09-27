@@ -5,10 +5,10 @@
 ## Notes-zhCN: 您最喜欢的«塞兹仙林的迷雾»的助手
 ## Title-zhTW: |cffFF7F00[副本]|r 特那希迷霧迷宮助手
 ## Notes-zhTW: Maze Helper [|cff235be8Mists of Tirna Scithe|r]|n你最愛的«特拉希迷霧»的助手。|n|n|cffffd200使用方法：|r輸入指令『/mh』
-## Version: 1.84
+## X-Category-zhTW: 團隊
+## Version: 1.86
 ## IconTexture: Interface\AddOns\MazeHelper\Media\mh_logo_mini.blp
 ## SavedVariables: MHMOTSConfig
-## X-Category: 團隊
 ## DefaultState: disabled
 
 Libraries\Load_Libraries.xml

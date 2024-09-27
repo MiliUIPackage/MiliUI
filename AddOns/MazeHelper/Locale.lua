@@ -190,8 +190,8 @@ if gameLocale == 'zhTW' then
     L['SETTINGS_SCALE_TOOLTIP'] = '設置主窗口的比例';
     L['SETTINGS_SCALE_LARGE_SYMBOL_LABEL'] = '大符號的比例';
     L['SETTINGS_SCALE_LARGE_SYMBOL_TOOLTIP'] = '設置大符號的比例';
-    L['SETTINGS_USE_CLONE_AUTOMARKER_LABEL'] = '分身上的自動標記';
-    L['SETTINGS_USE_CLONE_AUTOMARKER_TOOLTIP'] = '在老闆戰鬥中自動在幻影分身上放置標記|n|n|cffff6a00注意力！ 這些是便於溝通的標記，而不是用於解決方案|r';
+    L['SETTINGS_USE_CLONE_AUTOMARKER_LABEL'] = '克隆上的自動標記';
+    L['SETTINGS_USE_CLONE_AUTOMARKER_TOOLTIP'] = '在老闆戰鬥中自動在幻影克隆上放置標記|n|n|cffff6a00注意力！ 這些是便於溝通的標記，而不是用於解決方案|r';
     L['SETTINGS_ANNOUNCE_WITH_ENGLISH_LABEL'] = '英文重複解決方案';
     L['SETTINGS_ANNOUNCE_WITH_ENGLISH_TOOLTIP'] = '將解決方案與英語短語一起發送至聊天，例如，“無外環空心的花/Empty flower without a circle”';
     L['SETTINGS_ANNOUNCE_ONLY_ENGLISH_LABEL'] = '解決方案僅用英文';
