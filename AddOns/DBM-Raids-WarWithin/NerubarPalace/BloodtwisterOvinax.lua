@@ -1,7 +1,7 @@
 local mod	= DBM:NewMod(2612, "DBM-Raids-WarWithin", 1, 1273)
 local L		= mod:GetLocalizedStrings()
 
-mod:SetRevision("20240924083639")
+mod:SetRevision("20240926062742")
 mod:SetCreatureID(214506)
 mod:SetEncounterID(2919)
 mod:SetUsedIcons(6, 4, 3, 7)
@@ -50,7 +50,7 @@ local specWarnVolatileConcoctionTaunt			= mod:NewSpecialWarningTaunt(441362, nil
 local specWarnGTFO								= mod:NewSpecialWarningGTFO(442799, nil, nil, nil, 1, 8)
 
 local timerExperimentalDosageCD					= mod:NewCDCountTimer(50, 442526, 143340, nil, nil, 3)--Shortname "Injection"
-local timerIngestBlackBloodCD					= mod:NewCDCountTimer(167.7, 442432, 325225, nil, nil, 3)--Shortname "Container Breach"
+local timerIngestBlackBloodCD					= mod:NewCDCountTimer(167.4, 442432, 325225, nil, nil, 3)--Shortname "Container Breach" (167-171 based on delaying boss casts by position)
 local timerUnstableWebCD						= mod:NewCDCountTimer(30, 446349, 157317, nil, nil, 3, nil, DBM_COMMON_L.HEROIC_ICON..DBM_COMMON_L.MAGIC_ICON)--Shortname "Webs"
 local timerVolatileConcoctionCD					= mod:NewCDCountTimer(20, 441362, DBM_COMMON_L.TANKDEBUFF.." (%s)", "Tank|Healer", nil, 5, nil, DBM_COMMON_L.TANK_ICON)
 
@@ -96,7 +96,7 @@ function mod:OnCombatStart(delay)
 	self.vb.EggBreakerBehavior = self.Options.EggBreakerBehavior--Default it to whatever user has it set to, until group leader overrides it
 	self.vb.eggIcon = 1
 	timerVolatileConcoctionCD:Start(1.9, 1)
-	timerIngestBlackBloodCD:Start(15.4, 1)--Time til USCS event, cast event is 19.6
+	timerIngestBlackBloodCD:Start(15.4, 1)--Time til USCS event, cast event is 17.1
 --	timerExperimentalDosageCD:Start(33, 1)--Started by Injest black Blood
 	if self:IsHard() then
 		timerUnstableWebCD:Start(15, 1)
@@ -199,12 +199,13 @@ local function sortEggBreaker(self)
 			self:SetIcon(name, icon)
 		end
 		if name == DBM:GetMyPlayerInfo() then
-			specWarnExperimentalDosage:Show(eggBreak)
-			--if icon > 0 then
-			--	specWarnExperimentalDosage:Play("mm"..icon)
-			--else
+			if icon > 0 then
+				specWarnExperimentalDosage:Show(self:IconNumToTexture(icon))
+				specWarnExperimentalDosage:Play("mm"..icon)
+			else
+				specWarnExperimentalDosage:Show(eggBreak)
 				specWarnExperimentalDosage:Play("movetoegg")
-			--end
+			end
 			if self.vb.EggBreakerBehavior ~= "DisableAllForRaid" then
 				yellxperimentalDosage:Yell(icon)
 				yellxperimentalDosageFades:Countdown(440421, nil, icon)
@@ -255,8 +256,9 @@ function mod:SPELL_AURA_APPLIED(args)
 		self:Unschedule(sortEggBreaker)
 		if #eggIcons == expectedTotal then
 			sortEggBreaker(self)
+		else
+			self:Schedule(0.5, sortEggBreaker, self)--Fallback in case scaling targets for normal/heroic
 		end
-		self:Schedule(0.5, sortEggBreaker, self)--Fallback in case scaling targets for normal/heroic
 	elseif spellId == 441362 and not args:IsPlayer() then
 		specWarnVolatileConcoctionTaunt:Show(args.destName)
 		specWarnVolatileConcoctionTaunt:Play("tauntboss")
