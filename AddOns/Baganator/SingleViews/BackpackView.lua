@@ -144,25 +144,27 @@ function BaganatorSingleViewBackpackViewMixin:UpdateForCharacter(character, isLi
   tAppendAll(self.AllButtons, self.AllFixedButtons)
   tAppendAll(self.AllButtons, self.TopButtons)
 
-  local lastButton = nil
+  local lastButton = self.CurrencyButton
+  lastButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
+  lastButton:SetPoint("LEFT", self.Container, -2, 0)
+  table.insert(self.AllButtons, lastButton)
+
+  local buttonsWidth = lastButton:GetWidth()
+
   for index, layout in ipairs(activeBagCollapsibles) do
     local button = self.CollapsingBags[index].button
     button:SetParent(self)
     button:SetShown(layout:GetHeight() > 0)
     button:ClearAllPoints()
     if button:IsShown() then
-      if lastButton then
-        button:SetPoint("LEFT", lastButton, "RIGHT", 5, 0)
-      else
-        button:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
-        button:SetPoint("LEFT", self.Container, -2, 0)
-      end
+      buttonsWidth = buttonsWidth + 5 + button:GetWidth()
+      button:SetPoint("LEFT", lastButton, "RIGHT", 5, 0)
       lastButton = button
       table.insert(self.AllButtons, button)
     end
   end
 
-  self.CurrencyWidget:UpdateCurrencyTextVisibility(lastButton and lastButton:GetRight() - self:GetLeft() + 10 or sideSpacing + addonTable.Constants.ButtonFrameOffset)
+  self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - buttonsWidth - 10)
 
   addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
 

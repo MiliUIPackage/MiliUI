@@ -71,6 +71,7 @@ function BaganatorCategoryViewBackpackViewMixin:OnLoad()
   self.AllButtons = {}
   tAppendAll(self.AllButtons, self.TopButtons)
   tAppendAll(self.AllButtons, self.AllFixedButtons)
+  table.insert(self.AllButtons, self.CurrencyButton)
 
   addonTable.AddBagTransferActivationCallback(function()
     self:UpdateTransferButton()
@@ -162,6 +163,12 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
   end
 
   local characterData = Syndicator.API.GetCharacter(character)
+
+  if not characterData then
+    addonTable.CallbackRegistry:TriggerEvent("ViewComplete")
+    return
+  end
+
   local bagTypes = addonTable.CategoryViews.Utilities.GetBagTypes(characterData, "bags", Syndicator.Constants.AllBagIndexes)
   local bagWidth = addonTable.Config.Get(addonTable.Config.Options.BAG_VIEW_WIDTH)
 
@@ -171,9 +178,14 @@ function BaganatorCategoryViewBackpackViewMixin:UpdateForCharacter(character, is
       maxHeight
     )
 
-    self:OnFinished()
+    local lastButton = self.CurrencyButton
+    lastButton:ClearAllPoints()
+    lastButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 6)
+    lastButton:SetPoint("LEFT", self.Container, -2, 0)
 
-    self.CurrencyWidget:UpdateCurrencyTextVisibility(sideSpacing + addonTable.Constants.ButtonFrameOffset)
+    self.CurrencyWidget:UpdateCurrencyTextPositions(self.Container:GetWidth() - lastButton:GetWidth() - 10)
+
+    self:OnFinished()
 
     local searchText = self.SearchWidget.SearchBox:GetText()
     if self.searchToApply then

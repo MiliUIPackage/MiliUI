@@ -1,6 +1,6 @@
 ## Interface: 110002
 ## Title: Baganator
-## Version: 489
+## Version: 492
 ## Author: plusmouse
 ## OptionalDeps: Syndicator, Masque
 ## SavedVariables: BAGANATOR_CONFIG, BAGANATOR_DATA
@@ -57,8 +57,10 @@ ItemViewCommon\EquipmentSetInfo.lua
 ItemViewCommon\MoneyDisplay.lua
 ItemViewCommon\CharacterSelect.lua
 ItemViewCommon\CharacterSelect.xml
-ItemViewCommon\Currency.lua
-ItemViewCommon\Currency.xml
+ItemViewCommon\CurrencyBar.lua
+ItemViewCommon\CurrencyBar.xml
+ItemViewCommon\CurrencyPanel.lua
+ItemViewCommon\CurrencyBlizzardTracking.lua
 ItemViewCommon\ButtonVisibility.lua
 ItemViewCommon\ButtonVisibility.xml
 ItemViewCommon\OpenClose.lua
