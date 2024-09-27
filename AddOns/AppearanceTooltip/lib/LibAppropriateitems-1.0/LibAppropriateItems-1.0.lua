@@ -1,22 +1,32 @@
-local lib, oldMinor = LibStub:NewLibrary("LibAppropriateItems-1.0", 2)
+local lib, oldMinor = LibStub:NewLibrary("LibAppropriateItems-1.0", 3)
 if not lib then return end
 
-local _, playerclass = UnitClass("player")
+local playerclass, playerclassid = UnitClassBase("player")
 local valid_classes
 
--- Can the player equip this at all?
+--- Can a given class equip this at all?
+-- @param item Any valid argument for GetItemInfoInstant
+-- @param[opt] class The class that can equip the item, as classFile or classID returns from UnitClass, defaults to the current player
+-- @return Whether the item can be equipped
 function lib:CanEquip(item, class)
     return lib:IsAppropriate(item, class) ~= nil
 end
 
--- Is the item "appropriate", per transmog rules -- i.e. is it equipable and of the primary armor-type
--- TODO: class-restricted items, offhand-restricted items?
+--- Is the item "appropriate", per transmog rules -- i.e. is it equipable and of the primary armor-type
+-- @param item Any valid argument for GetItemInfoInstant
+-- @param[opt] class The class that can equip the item, as classFile or classID returns from UnitClass, defaults to the current player
+-- @return Whether the item is appropriate
 function lib:IsAppropriate(item, class)
+    -- TODO: class-restricted items, offhand-restricted items?
     class = class or playerclass
     local slot, _, itemclass, itemsubclass = select(4, C_Item.GetItemInfoInstant(item))
     if slot == 'INVTYPE_CLOAK' then
         -- Cloaks are cloth, technically. But everyone can wear them.
         return true
+    end
+    if type(class) == "number" then
+        local info = C_CreatureInfo.GetClassInfo(class)
+        class = info and info.classFile
     end
     if not (class and valid_classes[class] and itemclass and itemsubclass) then
         return

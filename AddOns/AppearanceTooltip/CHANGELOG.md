@@ -1,7 +1,9 @@
 # AppearanceTooltip
 
-## [v52](https://github.com/kemayo/wow-appearancetooltip/tree/v52) (2024-08-20)
-[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v51...v52) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
+## [v53](https://github.com/kemayo/wow-appearancetooltip/tree/v53) (2024-09-25)
+[Full Changelog](https://github.com/kemayo/wow-appearancetooltip/compare/v52...v53) [Previous Releases](https://github.com/kemayo/wow-appearancetooltip/releases)
 
-- Protection for empty slots on the toy check  
-- Show known-indicator in overlays on toys and mounts, too  
+- Add cameraIDs for Earthen  
+- Stop errors in overlay hooks from breaking other functionality  
+- Show alert popups when you learn a new appearance  
+- Get working in Cataclysm Classic  

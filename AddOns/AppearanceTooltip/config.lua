@@ -126,6 +126,8 @@ do
     local currentClass = newCheckbox(panel, 'currentClass', '只預覽當前角色可用的物品', "只有當前角色可以收集外觀的物品才顯示預覽。")
     local byComparison = newCheckbox(panel, 'byComparison', '在裝備比較旁邊顯示', "有裝備比較的滑鼠提示說明時，在旁邊顯示預覽 (比較不容易重疊)。")
     local tokens = newCheckbox(panel, 'tokens', '預覽套裝兌換物品', "滑鼠指向可以用來兌換套裝的物品時顯示裝備預覽。")
+    local alerts = newCheckbox(panel, 'alerts', '收藏新外觀時要通知', "每次學習到新外觀時要彈出通知 (例如只能在貿易站買到的外觀)")
+
 
     local zoomWorn = newCheckbox(panel, 'zoomWorn', '放大穿著部位', "放大預覽模特兒穿著這個物品的部位。")
     local zoomHeld = newCheckbox(panel, 'zoomHeld', '放大手持物品', "放大預覽手持的物品，不顯示你的角色。")
@@ -189,7 +191,8 @@ do
     uncover:SetPoint("TOPLEFT", dressed, "BOTTOMLEFT", 0, -4)
     tokens:SetPoint("TOPLEFT", uncover, "BOTTOMLEFT", 0, -4)
     notifyKnown:SetPoint("TOPLEFT", tokens, "BOTTOMLEFT", 0, -4)
-    currentClass:SetPoint("TOPLEFT", notifyKnown, "BOTTOMLEFT", 0, -4)
+    alerts:SetPoint("TOPLEFT", notifyKnown, "BOTTOMLEFT", 0, -4)
+    currentClass:SetPoint("TOPLEFT", alerts, "BOTTOMLEFT", 0, -4)
     mousescroll:SetPoint("TOPLEFT", currentClass, "BOTTOMLEFT", 0, -4)
     spin:SetPoint("TOPLEFT", mousescroll, "BOTTOMLEFT", 0, -4)
 
