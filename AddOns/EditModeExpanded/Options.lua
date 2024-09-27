@@ -15,7 +15,7 @@ local defaults = {
             targetCast = false,
             focusTargetOfTarget = false,
             focusCast = false,
-            compactRaidFrameContainer = true,
+            compactRaidFrameContainer = false,
             talkingHead = true,
             minimap = false,
             minimapHeader = false,
@@ -49,6 +49,7 @@ local defaults = {
             targetFrameBuffs = false,
             gameMenu = false,
             gameTooltip = false,
+            lossOfControl = true,
         },
         QueueStatusButton = {},
         TotemFrame = {},
@@ -95,6 +96,7 @@ local defaults = {
 		TargetDebuffs = {},
         TargetBuffs = {},
         GameMenuFrame = {},
+        LOC = {},
     }
 }
 
@@ -338,8 +340,13 @@ local options = {
             type = "toggle",
         },
         gameTooltip = {
-            name = "Tooltip",
-            desc = "Enables / Disabled HUD Tooltip support",
+            name = "浮動提示資訊",
+            desc = "啟用/停用支援浮動提示資訊",
+            type = "toggle",
+        },
+        lossOfControl = {
+            name = "角色失去控制",
+            desc = "啟用/停用支援角色失去控制",
             type = "toggle",
         },
     },
