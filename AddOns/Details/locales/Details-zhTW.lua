@@ -2846,6 +2846,7 @@ L["A new version has been installed: /details news"] = "已經安裝新版本: /
 -- L["|CFFFFFF00[Details!]: you're using Details! for RETAIL on Classic WOW, please get the classic version (Details! Damage Meter Classic WoW), if you need help see our Discord (/details discord)."] = "|CFFFFFF00[Details!]: 你正在魔獸世界經典版中使用正式版專用的 Details! 請下載經典版專用的版本 (Details! Damage Meter Classic WoW)。如果你需要協助，請到我們的 Discord (/details discord)"
 -- L["use '/details me' macro to open the player breakdown for you!"] = "使用巨集 '/details me' 可以快速打開你自己的玩家詳細分析!"
 L["spell not found"] = "無法找到法術"
+L["New expansion detected, clearing data..."] = "偵測到新資料片，清空資料..."
 
 -- 函式庫：更改字體大小、少部分翻譯
 -- Libs\DF\buildmenu.lua

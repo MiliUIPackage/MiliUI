@@ -427,6 +427,13 @@
 			[424094] = 414532,
 
 			[228649] = 100784, --monk blackout kick
+
+			[436304] = 439843, --frost dk reaper's mark
+			[439594] = 393843, --frost dk reaper's mark
+			[66198] = 222024, --frost dk obliterate offhand
+			[66196] = 222026, --frost dk frost strike offhand
+			[383312] = 383313, --frost dk abom limb
+			[441424] = 441426, --frost dk exterminate
 		}
 
 		--all totem
@@ -549,6 +556,8 @@
 		--the damage that the warlock apply to its pet through soullink is ignored
 		--it is not useful for damage done or friendly fire
 		[SPELLID_WARLOCK_SOULLINK] = true,
+		[74040] = true, --grim batol drake
+		[457658] = true, --grim batol drake
 	}
 
 	--expose the ignore spells table to external scripts
@@ -2364,6 +2373,7 @@
 		[86273] = true, -- Illuminated Healing
 		[114908] = true, --Spirit Shell
 		[152118] = true, --Clarity of Will
+        [447134] = true, --Ravenous Scarab
 	}
 
 	function parser:heal_denied(token, time, sourceSerial, sourceName, sourceFlags, targetSerial, targetName, targetFlags, targetFlags2, spellIdAbsorb, spellNameAbsorb, spellSchoolAbsorb, serialHealer, nameHealer, flagsHealer, flags2Healer, spellIdHeal, spellNameHeal, typeHeal, amountDenied)
@@ -5509,6 +5519,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		end
 
 		if (Details:IsZoneIdFromCurrentExpansion(zoneMapID)) then
+			print("encouter is from current expansion")
 			Details.current_exp_raid_encounters[encounterID] = true
 		end
 
@@ -5579,7 +5590,7 @@ local SPELL_POWER_PAIN = SPELL_POWER_PAIN or (PowerEnum and PowerEnum.Pain) or 1
 		local encounterID, encounterName, difficultyID, raidSize, endStatus = select(1, ...)
 
 		if (not Details.encounter_table.start) then
-			Details:Msg("encounter table without start time.")
+			-- Details:Msg("encounter table without start time.")
 			return
 		end
 
