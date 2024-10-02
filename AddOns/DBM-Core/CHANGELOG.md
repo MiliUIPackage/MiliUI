@@ -1,25 +1,31 @@
 # DBM - Core
 
-## [11.0.17](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.17) (2024-09-27)
-[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.0.16...11.0.17) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
+## [11.0.19](https://github.com/DeadlyBossMods/DeadlyBossMods/tree/11.0.19) (2024-09-28)
+[Full Changelog](https://github.com/DeadlyBossMods/DeadlyBossMods/compare/11.0.17...11.0.19) [Previous Releases](https://github.com/DeadlyBossMods/DeadlyBossMods/releases)
 
-- prep new tag  
-- More work on difficulties  
-- Fix molten core in SoD to return same difficulties as previous patch so stats carry over and work as expected  
-- Update commonlocal.ru.lua (#1279)  
-- Ansurek Update:  
-     - Add alert and timer for intermission waves  
-     - Added death counter for worshippers remaining  
-     - Added cast timer for cosmic Apocalypse  
-     - Changed expulsion beam cd timer from nameplate only to regular timer since adds are always synced, a regular bar makes more sense  
-     - Fixed bug where initial wrest timer was missing during intermission  
-- Very tiny timer tweak  
-- LFR timers for silken court, minus some p3 ones  
-- Update koKR (#1275)  
-- Update commonlocal.tw.lua (#1276)  
-- micro adjustments. closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1277  
-- Further use text and audio to give assigned marks as it's more and more common to use the mark/flare strategy on queen and ovinax  
-- Fixed 3 msised frontals in nerubar palace trash mods  
-- another tweak  
-- fix a bug causing double yells  
+- Update koKR (#1286)  
+- make luacheck happy  
+- Core Update:  
+     - Fix lua errors with GetSpellCooldown on Classic era  
+    Silken Court Update:  
+     - Support longer LFR Silken Court pulls  
+    Ansurek Update:  
+     - Added gloom touch fades countodwn  
+     - Abyssial infusion will now give cast count in target announce  
+     - Abyssial Infusion Icons will now prioritize melee > ranged  
+     - Better staging for platforms  
+     - Fixed some false debug. Fixes and closes https://github.com/DeadlyBossMods/DeadlyBossMods/issues/1285  
+- Update commonlocal.es.lua  
+- Update commonlocal.es.lua  
+- Update commonlocal.fr.lua  
+- Update commonlocal.br.lua  
+- CI: Fix LuaCheck  
+- Tests: Ignore encounters that lasted for less than a second  
+    Vaelastrasz triggers ENCOUNTER\_START/END for every single raid member  
+- Tests: Support BWL trials  
+- Core: Map BWL Trials to Heroic/Mythic  
+    The mapping is the same as Warcraft Logs uses: Mythic is 3+ including Black, 3-4 without black is Heroic, 1-2 with black is also Heroic  
+- GUI: Add polyfill for missing slider template  
+- Fixed infoframe not tracking shield percent for 2nd intermission on court  
+    Fixed rare lua error  
 - bump alpha  
