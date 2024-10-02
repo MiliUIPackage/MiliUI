@@ -1,3 +1,8 @@
+# v101
+
+* Added a feature that POIs can have tooltips.
+* Updated core localizations: deDE, esES, frFR, zhCN
+
 # v100
 
 * Added new requirement type for specializations.

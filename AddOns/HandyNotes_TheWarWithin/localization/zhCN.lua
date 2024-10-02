@@ -36,6 +36,12 @@ L['mushroom_cap_note'] = '在附近的森林中收集一个 {object:薮根伞菇
 L['mysterious_orb_note'] = '将 {object:元素珍珠} 带回给 {npc:222847}。'
 L['thaks_treasure_note'] = '与 {npc:223227} 交谈并跟随他。'
 L['trees_treasure_note'] = '与 {npc:222940} 交谈，获得 {item:224185}。引导6个 {npc:224548}（{dot:Green}）绕过 {location:多恩岛} 返回 {npc:222940}。将所有螃蟹引导回来后，返回洞穴中的 {npc:222940} 并与她交谈。'
+L['trees_treasure_crab_1_note'] = '在树下。'
+L['trees_treasure_crab_2_note'] = '在树枝上。'
+L['trees_treasure_crab_3_note'] = '在树下。'
+L['trees_treasure_crab_4_note'] = '在树根下。'
+L['trees_treasure_crab_5_note'] = '在崖边。'
+L['trees_treasure_crab_6_note'] = '在树根下。'
 L['turtles_thanks_1_note'] = '交出5个 {item:220143}（可从 {object:平静的浮面涟漪} 渔点钓鱼或从拍卖行购买）。{note:离开该区域并立即返回交出下一条鱼。}'
 L['turtles_thanks_2_note'] = '交出1个 {item:222533}（可从 {object:浮光之池}，{object:溃烂的腐臭之池}，{object:飞溅的注能脓液} 渔点钓鱼或从拍卖行购买）。'
 L['turtles_thanks_3_note'] = '在 {location:多恩诺嘉尔} 与 {npc:223338} 会面并与她交谈以揭示宝藏。'
@@ -219,7 +225,7 @@ L['options_icons_beacon_of_hope_desc'] = '显示 {achievement:40308} 成就中�
 
 L['beacon_of_hope_note'] = '捐献 {item:206350} 来点亮小型钥焰并完成接下来的任务。'
 
-L['parasidious_note'] = '要出现此稀有，需要从 {npc:206533} 购买 {item:206670}（激活 {object:小型钥焰} 使其出现），然后前往 {location:暮升辽原} 并拉动 {npc:206870}。当拉动它们时，一根藤蔓会从身上射出并到达 {npc:206978}，它会生长/变化，直到稀有最终出现。' -- from wowhead, needs to be reviewed
+L['parasidious_note'] = '从 {npc:206533} 购买 {item:206670}（激活 {object:小型钥焰} 使其出现），然后前往 {location:暮升辽原} 并拉动 {npc:206870}。当拉动它们时，一根藤蔓会从身上射出并到达 {npc:206978}，它会生长/变化，直到稀有最终出现。'
 
 L['options_icons_flamegards_hope'] = '{achievement:20594}'
 L['options_icons_flamegards_hope_desc'] = '显示 {achievement:20594} 成就中的位置。'
@@ -239,12 +245,7 @@ L['thunder_lynx_note'] = '1. 在 {location:炬光矿脉} 的 {object:小型钥�
 L['options_icons_itsy_bitsy_spider'] = '{achievement:40624}'
 L['options_icons_itsy_bitsy_spider_desc'] = '显示 {achievement:40624} 成就中纺崽的位置。'
 
-L['itsy_bitsy_spider_note'] = '向纺崽招手（{emote:/招手}、{emote:/wave}）。'
-L['spindle_location'] = '占位符'
-L['swift_location'] = '占位符'
-L['rumurh_location'] = '占位符'
-L['thimble_location'] = '占位符'
-L['scampering_weave_rat_location'] = '占位符'
+L['itsy_bitsy_spider_note'] = '向 {npc:纺崽} 招手（{emote:/招手}、{emote:/wave}）。'
 
 L['options_icons_bookworm'] = '{achievement:40629}'
 L['options_icons_bookworm_desc'] = '显示 {achievement:40629} 成就中书籍的位置。'
