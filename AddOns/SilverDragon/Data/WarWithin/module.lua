@@ -53,6 +53,7 @@ ns.AZJKAHETLOWER = 2256
 ns.CITYOFTHREADS = 2213
 ns.CITYOFTHREADSLOWER = 2216
 
+ns.WORLDQUESTS = ns.conditions.QuestComplete(79573)
 -- ns.MAXLEVEL = {ns.conditions.QuestComplete(67030), ns.conditions.Level(70)}
 -- ns.DRAGONRIDING = ns.conditions.SpellKnown(376777)
 
@@ -86,6 +87,14 @@ ns.PROF_WW_LEATHERWORKING = 2880 -- spell:
 ns.PROF_WW_MINING = 2881
 ns.PROF_WW_SKINNING = 2882
 ns.PROF_WW_TAILORING = 2883 -- spell:
+
+local addThreadsRep = function(amount, quest, loot, append)
+	local extra = quest and {quest=quest}
+	table.insert(loot, append and #loot+1 or 1, ns.rewards.Currency(ns.CURRENCY_SEVERED_WEAVER, amount, extra))
+	table.insert(loot, append and #loot+1 or 2, ns.rewards.Currency(ns.CURRENCY_SEVERED_GENERAL, amount, extra))
+	table.insert(loot, append and #loot+1 or 3, ns.rewards.Currency(ns.CURRENCY_SEVERED_VIZIER, amount, extra))
+	return loot
+end
 
 -- Treasures
 
@@ -301,19 +310,331 @@ core:RegisterTreasureData("地心之戰", {
 		notes="Cave behind the waterfall; open chests until you find the key",
 		level=71,
 	},
+
+	-- Hallowfall
+	[6367] = {
+		name="Caesper",
+		achievement=40848, criteria=69692,
+		quest=83263,
+		loot={
+			225639, -- Recipe: Exquisitely Eviscerated Muscle
+			225592, -- Exquisitely Eviscerated Muscle
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="Bring {item:225238:Meaty Haunch} from {npc:217645:Torran Dellain}, give to {npc:225948:Caesper}, follow to the treasure",
+		level=73,
+	},
+	[6366] = {hidden=true}, -- Disturbed Lynx Treasure
+	[6368] = {hidden=true}, -- Caesper post-feeding
+	[6370] = {
+		name="Smuggler's Treasure",
+		achievement=40848, criteria=69693,
+		quest=83273,
+		loot={
+			226021, -- Jar of Pickles
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="Get the key from the {npc:226025:Dead Arathi} below",
+		level=73,
+	},
+	[6372] = {
+		name="Dark Ritual",
+		achievement=40848, criteria=69694,
+		quest=83284,
+		loot={
+			225693, -- Shadowed Essence
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="In cave; use the book, defeat the summoned monsters",
+		level=73,
+	},
+	[6371] = {hidden=true}, -- post-defeat
+	[6373] = {
+		name="Arathi Loremaster",
+		achievement=40848, criteria=69695,
+		quest=83298, -- questions trip 83300, 83301, 83302, 83303, 83304, 83305
+		loot={
+			{225659, toy=true}, -- Arathi Book Collection
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="Answer riddles from {npc:221630:Ryfus Sacredpyr}; you need to find the books for {achievement:40622:Biblo Archivist} for the correct answers to appear",
+		level=73, -- not to talk to him, but to get any of the books for answers...
+	},
+	[6174] = {
+		name="Jewel of the Cliffs",
+		achievement=40848, criteria=69697,
+		quest=81971,
+		loot={
+			224580, -- Massive Sapphire Chunk
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="High up on the rocks",
+		level=75,
+	},
+	[6175] = {
+		name="Priory Satchel",
+		achievement=40848, criteria=69698,
+		quest=81972,
+		loot={
+			224578, -- Arathor Courier's Satchel
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		level=75,
+		notes="Hanging from the cathedral",
+	},
+	[6177] = {
+		name="Lost Necklace", -- Lost Memento
+		achievement=40848, criteria=69699,
+		quest=81978,
+		loot={
+			224575, -- Lightbearer's Pendant
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		level=75,
+	},
+	[6098] = {
+		name="Illuminated Footlocker",
+		achievement=40848, criteria=69701,
+		quest=81468,
+		loot={
+			{224552, toy=true}, -- Cave Spelunker's Torch
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="In cave. Catch falling glimmers from {npc:220703:Starblessed Glimmerfly} until you get {spell:442529:Glimmering Illumination}",
+		level=73,
+	},
+	[5989] = {
+		name="Spore-covered Coffer",
+		achievement=40848, criteria=69702,
+		quest=79275,
+		loot={
+			-- alchemy mats
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		notes="In cave",
+		level=73,
+	},
+	[6181] = {
+		name="Sky-Captains' Sunken Cache",
+		achievement=40848, criteria=69700,
+		quest=82005,
+		loot={
+			{224554, toy=true}, -- Silver Linin' Scepter
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150),
+		},
+		active={ns.conditions.QuestComplete(82012), ns.conditions.QuestComplete(82026), ns.conditions.QuestComplete(82024), ns.conditions.QuestComplete(82025)},
+		notes="Talk to four skyship captains flying around the zone to make this appear",
+	},
+
+	-- Hallowfall (non-achievement)
+	[6537] = {
+		label="Crabber Supplies",
+		quest=84342,
+		loot={
+			226018, -- Darkened Arathi Cape (cosmetic)
+			206350, -- Radiant Remnant
+			ns.rewards.Currency(ns.CURRENCY_RESONANCE, 5),
+		},
+		locations={[ns.HALLOWFALL]={62551633}},
+	},
+	[6103] = {
+		label="Fisherman's Pouch",
+		quest=81518,
+		loot={
+			206350, -- Radiant Remnant
+			ns.rewards.Currency(ns.CURRENCY_RESONANCE, 3),
+		},
+		locations={[ns.HALLOWFALL]={56091455}},
+	},
+
+	-- Azj-Kahet
+	[6288] = {
+		name="Concealed Contraband",
+		achievement=40828, criteria=70381,
+		quest=82525,
+		loot=addThreadsRep(50, false, {
+			220228, -- Quartz Growth
+			220237, -- Shining Amethyst Cluster
+			220224, -- Iridescent Integument
+		}, true),
+		level=74,
+		path={33846068, 33796026, 34015980, 34365949, 35555918},
+	},
+	[6289] = {
+		name="\"Weaving Supplies\"",
+		achievement=40828, criteria=69643,
+		quest=82527,
+		loot=addThreadsRep(50, false, {{225347, toy=true}}, true), -- Web-Vandal's Spinning Wheel
+		level=74,
+		notes="Collect {item:223901:Violet Silk Scrap}, {item:223902:Crimson Silk Scrap}, {item:223903:Gold Silk Scrap} from the edges of the nearby platform to unlock",
+		nearby={
+			74794282, -- Violet Silk Scrap
+			72683967, -- Crimson Silk Scrap
+			74183772, -- Gold Silk Scrap
+		},
+	},
+	[6291] = {
+		name="Nest Egg",
+		achievement=40828, criteria=69645,
+		quest=82529,
+		loot=addThreadsRep(50, false, {{221760, pet=4513}}, true), -- Bonedrinker
+		level=74,
+		notes="Webbed to the ceiling",
+	},
+	[6280] = {
+		name="Disturbed Soil",
+		achievement=40828, criteria=69646,
+		quest=82718,
+		loot=addThreadsRep(50, false, {224816}, true), -- Nerubian Almanac
+	},
+	[6283] = {
+		name="Missing Scout's Pack",
+		achievement=40828, criteria=69650,
+		quest=82722,
+		loot=addThreadsRep(50, false, {
+			220222, -- Everburning Lump
+			211879, -- Algari Healing Potion
+		}, true), -- grays and commendations
+	},
+	[6282] = {
+		name="Niffen Stash",
+		-- didn't appear until after I hit 73? Could just be a despawn-when-looted though...
+		achievement=40828, criteria=69649,
+		quest=82721,
+		loot=addThreadsRep(50, false, {
+			204730, -- Grub Grub
+			204790, -- Strong Sniffin' Soup for Niffen
+			204838, -- Discarded Toy
+			204842, -- Red Sparklepretty
+			213261, -- Niffen Smell Pouch
+		}, true),
+		notes="Hanging under the bridge",
+	},
+	[6285] = {
+		name="Silk-spun Supplies",
+		-- Wasn't around for ages; despawn-when-looted?
+		achievement=40828, criteria=69647,
+		quest=82719,
+		loot=addThreadsRep(50, false, {
+			224828, -- Weavercloth
+			224441, -- Weavercloth Bandage
+		}, true),
+		path={67462755, 66882761, 66692773, 66342805, 66142810, 65582772},
+	},
+
+	-- Azj-Kahet (Lower)
+	[6287] = {
+		name="Memory Cache",
+		achievement=40828, criteria=69615,
+		quest=82520,
+		loot=addThreadsRep(50, false, {{225544, pet=4599}}, true), -- Mind Slurp
+		notes="Get {spell:420847:Unseeming Shift} from a nearby Extractor Storage, then kill {npc:223908:Corrupted Memory} here for a {item:223870:Cache Key}",
+	},
+
+	-- City of Threads
+	[6290] = {
+		name="Trapped Trove",
+		achievement=40828, criteria=69644,
+		quest=82727,
+		loot=addThreadsRep(50, false, {{222966, pet=4473}}, true), -- Spinner
+		level=74,
+		notes="In the hanging building; navigate through the web traps",
+	},
+	[6281] = {
+		name="Nerubian Offerings",
+		achievement=40828, criteria=69648,
+		quest=82720,
+		loot=addThreadsRep(50, false, {
+			225543, -- Bloodied Idol
+			220236, -- Sanguineous Sac
+			223899, -- Shadowed Appendage
+		}, true),
+		notes="In a nook beneath the platform",
+	},
 }, true)
+
+-- Hallowfall treasures with shared loot:
+do
+	local standard = {
+		loot={
+			226019, -- Darkened Arathi Shoulderguards (cosmetic)
+			206350, -- Radiant Remnant
+			ns.rewards.Currency(ns.CURRENCY_RESONANCE, 3),
+		},
+		notes="Only visible with a light source ({item:211872:Patrol Torch}, {item:220756:Flickering Torch}, {item:217344:Sentry Flare Launcher}, etc)",
+		hide_before=ns.WORLDQUESTS,
+	}
+	local function point(data)
+		MergeTable(data, standard)
+		return data
+	end
+	core:RegisterTreasureData("WarWithin", {
+		[6352] = point{
+			label="Hillhelm Lunchbox",
+			quest=82996,
+			locations={[ns.HALLOWFALL]={62013176, 65193399}},
+		},
+		[6536] = point{
+			label="Surveyor's Box",
+			quest=34341,
+			locations={[ns.HALLOWFALL]={65432715}},
+		},
+		[6071] = point{
+			label="Harvest Box",
+			quest=80420,
+			locations={[ns.HALLOWFALL]={65652946}},
+		},
+		[6533] = point{
+			label="Fieldhand Stash",
+			quest=84337,
+			locations={[ns.HALLOWFALL]={64492879}},
+		},
+	}, true)
+end
+do
+	local standard = {
+		loot={
+			226016, -- Darkened Tabard of the Arathi (cosmetic)
+			206350, -- Radiant Remnant
+			ns.rewards.Currency(ns.CURRENCY_RESONANCE, 3),
+		},
+		note="Only visible with a light source ({item:211872:Patrol Torch}, {item:220756:Flickering Torch}, {item:217344:Sentry Flare Launcher}, etc)",
+		hide_before=ns.WORLDQUESTS,
+	}
+	local function point(data)
+		MergeTable(data, standard)
+		return data
+	end
+	core:RegisterTreasureData("WarWithin", {
+		[6108] = point{
+			label="Captain Lancekat's Discretionary Funds",
+			quest=81612,
+			path=66011863,
+			locations={[ns.HALLOWFALL]={66561514}},
+		},
+		[6092] = point{
+			label="Farmhand Stash",
+			quest=80590,
+			locations={[ns.HALLOWFALL]={61633265, 63073074}},
+		},
+		[6534] = point{
+			label="Old Rotting Crate",
+			quest=84339,
+			locations={[ns.HALLOWFALL]={64513159, 64903330}},
+		},
+	}, true)
+end
 
 -- Rares
 
 local LOC_allkhazalgar = {[ns.KHAZALGAR]={},[ns.DORNOGAL]={},[ns.ISLEOFDORN]={},[ns.RINGINGDEEPS]={},[ns.HALLOWFALL]={},[ns.AZJKAHET]={},}
 
--- World Bosses
-
 core:RegisterMobData("地心之戰", {
+	-- World Bosses
 	[229334] = {
 		name="Kordac",
-		quest=nil,
-		worldquest=nil,
+		quest=81630, -- This is the world quest
+		worldquest=81630,
 		locations={
 			-- [ns.ISLEOFDORN]={50005880},
 			[ns.ISLEOFDORN]={},
@@ -352,8 +673,8 @@ core:RegisterMobData("地心之戰", {
 	},
 	[221224] = {
 		name="Shurrai",
-		quest=nil,
-		worldquest=nil,
+		quest=83467,
+		worldquest=81653,
 		locations={
 			-- [ns.HALLOWFALL]={45401740},
 			[ns.HALLOWFALL]={},
@@ -372,8 +693,8 @@ core:RegisterMobData("地心之戰", {
 	},
 	[221067] = {
 		name="Orta",
-		quest=nil,
-		worldquest=nil,
+		quest=81624, -- this is the worldquest; a separate one didn't trip
+		worldquest=81624,
 		locations={
 			-- [ns.CITYOFTHREADS]={17103340},
 			[ns.CITYOFTHREADS]={},
@@ -393,6 +714,12 @@ core:RegisterMobData("地心之戰", {
 			225751, -- Seal of the Broken Mountain
 		},
 	},
+
+	-- Xal'atath appears sometimes to monologue at you, but she's just a non-interactable story/dungeon element:
+	[229244] = {name="Xal'atath", hidden=true},
+	[229536] = {name="Xal'atath", hidden=true},
+	[229635] = {name="Xal'atath", hidden=true},
+	[230937] = {name="Xal'atath", hidden=true},
 }, true)
 
 -- Isle of Dorn
@@ -676,6 +1003,7 @@ ns.RegisterPoints(ns.ISLEOFDORN, {
 		quest=82203,
 		npc=219284,
 		loot={
+			ns.rewards.Currency(ns.CURRENCY_DORNOGAL, 150, {quest=85159}),
 			226117, -- Dalaran Guardian's Arcanotool
 			226118, -- Arcane Prisoner's Puncher
 			226119, -- Arcane Sharpshooter's Crossbow
@@ -689,6 +1017,7 @@ ns.RegisterPoints(ns.ISLEOFDORN, {
 		quest=82205,
 		npc=222380,
 		loot={
+			ns.rewards.Currency(ns.CURRENCY_DORNOGAL, 150, {quest=85161}),
 			226112, -- Rotfist Flesh Carver
 			226115, -- Contaminating Cleaver
 			226116, -- Coagulating Phlegm Churner
@@ -1399,6 +1728,7 @@ ns.RegisterPoints(ns.HALLOWFALL, {
 		quest=82563,
 		npc=206977, -- Disturbed Dirt (206978) > Fungus Growth (206980) > Fungus Mound (206981) > Fungal Mass (206993) > Parasidious
 		loot={
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150, {quest=84057}),
 			221250, -- Creeping Lasher Machete
 			221264, -- Fungarian Mystic's Cluster
 			223005, -- String of Fungal Fruits
@@ -1447,7 +1777,6 @@ ns.RegisterPoints(ns.HALLOWFALL, {
 	[61380753] = {},
 	[62823857] = {},
 	[68123014] = {},
-	[72066566] = {},
 	[72804152] = {},
 }, {
 	label="Beledar's Spawn",
@@ -1468,17 +1797,14 @@ ns.RegisterPoints(ns.HALLOWFALL, {
 })
 
 -- Deathtide
-local deathtide = ns.nodeMaker{
-	achievement=40851,
-	criteria=69717,
-	quest=81880,
-	level=80, -- required to loot the offering/jar
-}
 ns.RegisterPoints(ns.HALLOWFALL, {
 	[44744241] = {
 		label="Deathtide",
+		achievement=40851, criteria=69717,
+		quest=81880,
 		npc=221753,
 		loot={
+			ns.rewards.Currency(ns.CURRENCY_ARATHI, 150, {quest=85165}),
 			223920, -- Slime Deflecting Stopper
 			223921, -- Ever-Oozing Signet
 			225997, -- Earthen Adventurer's Spaulders
@@ -1487,34 +1813,7 @@ ns.RegisterPoints(ns.HALLOWFALL, {
 		active=ns.conditions.Item(220123), -- Ominous Offering
 		note="Create an {item:220123:Ominous Offering} from {item:220124:Jar of Mucus} (|A:playerpartyblip:::::0:255:127|a) + {item:220122} (|A:playerpartyblip:::::0:0:255|a) to summon",
 	},
-}, deathtide{})
-ns.RegisterPoints(ns.HALLOWFALL, {
-	-- Jar of Mucus
-	[48001668] = {route={48001668, 44744241, highlightOnly=true}},
-}, deathtide{
-	label="{item:220124}",
-	loot={220124},
-	texture=ns.atlas_texture("playerpartyblip",{r=0,g=1,b=0.5,}),
-	minimap=true,
-	note="Take to {npc:221753} @ 44.7,42.4",
 })
-ns.RegisterPoints(ns.HALLOWFALL, {
-	 -- Offering of Pure Water
-	[28925120] = {route={28925120, 44744241, highlightOnly=true}},
-	[34185782] = {route={34185782, 44744241, highlightOnly=true}},
-	[34365357] = {route={34365357, 44744241, highlightOnly=true}},
-	[43451413] = {route={43451413, 44744241, highlightOnly=true}},
-	[50094966] = {route={50094966, 44744241, highlightOnly=true}},
-	[53771913] = {route={53771913, 44744241, highlightOnly=true}},
-	[55142344] = {route={55142344, 44744241, highlightOnly=true}},
-}, deathtide{
-	label="{item:220122}",
-	loot={220122},
-	texture=ns.atlas_texture("playerpartyblip",{r=0,g=0,b=1,}),
-	minimap=true,
-	note="Take to {npc:221753} @ 44.7,42.4",
-})
-
 
 -- ns.RegisterPoints(ns.HALLOWFALL, {
 --     [62650611] = {
@@ -1528,14 +1827,6 @@ ns.RegisterPoints(ns.HALLOWFALL, {
 -- })
 
 -- Azj-Kahet
-
-local addThreadsRep = function(amount, quest, loot, append)
-	local extra = quest and {quest=quest}
-	table.insert(loot, append and #loot+1 or 1, ns.rewards.Currency(ns.CURRENCY_SEVERED_WEAVER, amount, extra))
-	table.insert(loot, append and #loot+1 or 2, ns.rewards.Currency(ns.CURRENCY_SEVERED_GENERAL, amount, extra))
-	table.insert(loot, append and #loot+1 or 3, ns.rewards.Currency(ns.CURRENCY_SEVERED_VIZIER, amount, extra))
-	return loot
-end
 
 ns.RegisterPoints(ns.AZJKAHET, {
 	[61712962] = {
@@ -1577,7 +1868,7 @@ ns.RegisterPoints(ns.AZJKAHET, {
 		}, true),
 		vignette=6129,
 	},
-	[68876480] = {
+	[66536946] = {
 		label="Maddened Siegebomber",
 		criteria=69663,
 		quest=81706, -- 84075
@@ -1590,8 +1881,10 @@ ns.RegisterPoints(ns.AZJKAHET, {
 		}),
 		vignette=6138,
 		route={
-			68876480, 69006715, 67206730, 65596605, 63576530, 61636444, 61006640,
-			62106844, 64256750, 65356414, 66936243,
+			66536946, 66056803, 65616706, 65096620, 64446559, 63706526, 62926513, 62146530,
+			61486584, 61396696, 61826791, 62536809, 63166813, 63746786, 64146720, 65386409,
+			65706345, 66026301, 66606247, 67206246, 67696278, 68086319, 68356370, 68806483,
+			69006550, 69096626, 69076707, 68876785, 68436846, 67866891,
 			loop=true,
 		},
 		note="Patrols around the area, fighting other mobs",
@@ -1712,7 +2005,7 @@ ns.RegisterPoints(ns.AZJKAHET, {
 		label="Kaheti Bladeguard",
 		criteria=69670,
 		quest=82078,
-		npc=216052, -- Skirmisher Sa'ztyk
+		npc=216052, -- Skirmisher Sa'zryk
 		loot=addThreadsRep(50, 84082, {
 			223915, -- Nerubian Orator's Stiletto
 			223916, -- Nerubian Cutthroat's Reach
@@ -1720,7 +2013,8 @@ ns.RegisterPoints(ns.AZJKAHET, {
 			223939, -- Esteemed Nerubian's Mantle
 		}),
 		vignette=6204,
-		note="Patrols the area",
+		note="Spawns at the top, teleports to the bottom of the path, walks back to the top, then repeats",
+		route={62940509, 62430707, 62270757, 61930840, 61740856, 61520848, 61330831, 61210803, 61210771},
 	},
 	[64590667] = {
 		label="Deepcrawler Tx'kesh",
@@ -1793,7 +2087,7 @@ ns.RegisterPoints(2256, {
 ns.RegisterPoints(ns.AZJKAHET, {
 	[63409500] = {
 		label="The One Left",
-		quest=nil,
+		quest=82290,
 		npc=216047,
 		loot=addThreadsRep(50, 85167, {
 			221246, -- Fierce Beast Staff
@@ -1803,6 +2097,7 @@ ns.RegisterPoints(ns.AZJKAHET, {
 			225998, -- Earthen Adventurer's Cloak
 		}),
 		path={63489512, 63959536, 64129539, 65349489, 65429466, 65279345},
+		vignette=6266,
 	},
 }, {levels=true})
 
