@@ -6,7 +6,7 @@
 ## Notes-zhTW: KeystoneLoot |n顯示所有地城的掉落，並可以標記最愛。|n|n|cffffd200使用方法：|r點小地圖旁按鈕。
 ## Author: Selina Ruesch
 ## X-Email: selina.ruesch@gmail.com
-## Version: 1.9.2
+## Version: 1.9.4
 ## IconTexture: Interface\Icons\INV_Relics_Hourglass_02
 ## SavedVariables: KeystoneLootDB
 ## SavedVariablesPerCharacter: KeystoneLootCharDB
