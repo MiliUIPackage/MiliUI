@@ -1,3 +1,11 @@
+# v2.48.3
+
+- Fixed the completion check for The Priory questline in Hallowfall
+
+# v2.48.2
+
+- Fixed error opening quest chain The Flame Within in Hallowfall
+
 # v2.48.1
 
 - Added raid questline To Kill a Queen

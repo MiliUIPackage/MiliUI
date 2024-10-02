@@ -1,3 +1,15 @@
+# v5.2
+
+- Fixed the completion check for The Priory questline in Hallowfall
+
+# v5.1
+
+- Fixed error opening quest chain The Flame Within in Hallowfall
+
+# v5.0
+
+- Added raid questline To Kill a Queen
+
 # v4.0
 
 - Added Honor Your Efforts questlines in Hallowfall

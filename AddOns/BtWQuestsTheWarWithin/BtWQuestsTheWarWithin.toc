@@ -1,6 +1,6 @@
 ## Interface: 110002
 ## Title: BtWQuests: The War Within
-## Version: 4.0
+## Version: 5.2
 ## Notes: The War Within quest data for BtWQuests
 ## Author: Breen
 ## Dependencies: BtWQuests

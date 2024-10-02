@@ -599,7 +599,7 @@ Database:AddChain(Chain.ThePriory, {
     },
     completed = {
         type = "quest",
-        id = 82628,
+        id = 79649,
     },
     items = {
         {
@@ -691,6 +691,7 @@ Database:AddChain(Chain.ThePriory, {
         {
             type = "quest",
             id = 79650,
+            aside = true,
             x = 0,
         },
     },

@@ -774,6 +774,17 @@ BtWQuestsDatabase:AddNPCsTable({
             },
         },
     },
+    [214380] = {
+        name = "Raen Dawncavalyr",
+        locations = {
+            [2215] = {
+                {
+                    x = 0.432846,
+                    y = 0.564001,
+                },
+            },
+        },
+    },
     [214402] = {
         name = "Alleria Windrunner",
         locations = {
@@ -1785,6 +1796,17 @@ BtWQuestsDatabase:AddNPCsTable({
                 {
                     x = 0.621932,
                     y = 0.396319,
+                },
+            },
+        },
+    },
+    [217128] = {
+        name = "Speaker Kuldas",
+        locations = {
+            [2214] = {
+                {
+                    x = 0.474733,
+                    y = 0.319359,
                 },
             },
         },
