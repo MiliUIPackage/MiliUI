@@ -13,7 +13,7 @@ MDT.mapInfo[dungeonIndex] = {
   }
 }
 
-local zones = { 1162 }
+local zones = { 895, 1162 }
 for _, zone in ipairs(zones) do
   MDT.zoneIdToDungeonIdx[zone] = dungeonIndex
 end
@@ -844,8 +844,6 @@ MDT.dungeonEnemies[dungeonIndex] = {
       ["Mind Soothe"] = true,
     },
     ["spells"] = {
-      [257069] = {
-      },
       [257168] = {
       },
     },
@@ -985,12 +983,6 @@ MDT.dungeonEnemies[dungeonIndex] = {
         ["x"] = 360.85133399562,
         ["y"] = -326.10199347014,
         ["g"] = 28,
-        ["sublevel"] = 1,
-      },
-      [7] = {
-        ["x"] = 389.41836906967,
-        ["y"] = -241.64381998125,
-        ["g"] = 23,
         ["sublevel"] = 1,
       },
     },
