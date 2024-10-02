@@ -171,9 +171,9 @@ RegisterBagTransfer(
 
 RegisterBagTransfer(
   -- At a guild bank and allowed to deposit items
-  function() return C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.GuildBanker) and (select(4, GetGuildBankTabInfo(GetCurrentGuildBankTab()))) end,
+  function() return C_PlayerInteractionManager.IsInteractingWithNpcOfType(Enum.PlayerInteractionType.GuildBanker) and (select(4, GetGuildBankTabInfo(GetCurrentGuildBankTab()))) and addonTable.Config.Get(addonTable.Config.Options.GUILD_CURRENT_TAB) ~= 0 end,
   function(matches, characterName, callback)
-    local guildTab = GetCurrentGuildBankTab()
+    local guildTab = addonTable.Config.Get(addonTable.Config.Options.GUILD_CURRENT_TAB)
     local emptyGuildSlots = addonTable.Transfers.GetEmptyGuildSlots(Syndicator.API.GetGuild(Syndicator.API.GetCurrentGuild()).bank[guildTab], guildTab)
     local status, modes = addonTable.Transfers.FromBagsToGuild(matches, emptyGuildSlots)
     callback(status, modes)
