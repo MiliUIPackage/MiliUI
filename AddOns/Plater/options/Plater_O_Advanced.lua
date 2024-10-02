@@ -15,6 +15,8 @@ local on_select_blizzard_nameplate_large_font = function (_, _, value)
 end
 
 function platerInternal.CreateAdvancedOptions()
+    if platerInternal.LoadOnDemand_IsLoaded.AdvancedOptions then return end -- already loaded
+    
     --templates
     local options_text_template = DF:GetTemplate ("font", "OPTIONS_FONT_TEMPLATE")
     local options_dropdown_template = DF:GetTemplate ("dropdown", "OPTIONS_DROPDOWN_TEMPLATE")
@@ -191,7 +193,8 @@ function platerInternal.CreateAdvancedOptions()
         {
             type = "toggle",
             boxfirst = true,
-            get = function() return GetCVarBool ("SoftTargetIconGameObject") and tonumber(GetCVar("SoftTargetInteract") or 0) == 3 end,
+            --get = function() return GetCVarBool ("SoftTargetIconGameObject") and tonumber(GetCVar("SoftTargetInteract") or 0) == 3 end,
+            get = function() return tonumber(GetCVar("SoftTargetInteract") or 0) == 3 end,
             set = function (self, fixedparam, value)
                 if (not InCombatLockdown()) then
 
@@ -248,6 +251,19 @@ function platerInternal.CreateAdvancedOptions()
             end,
             name = "Hide Plater names game objects",
             desc = "Hide Plater names game objects, such as soft-interact targets.",
+        },
+        {
+            type = "color",
+            get = function()
+                local color = Plater.db.profile.name_on_game_object_color
+                return {color[1], color[2], color[3], color[4]}
+            end,
+            set = function (self, r, g, b, a)
+                local color = Plater.db.profile.name_on_game_object_color
+                color[1], color[2], color[3], color[4] = r, g, b, a
+            end,
+            name = "OPTIONS_INTERACT_OBJECT_NAME_COLOR",
+            desc = "OPTIONS_INTERACT_OBJECT_NAME_COLOR_DESC",
         },
         {
             type = "toggle",
@@ -1225,4 +1241,5 @@ function platerInternal.CreateAdvancedOptions()
     platerInternal.LoadOnDemand_IsLoaded.AdvancedOptions = true
     ---@diagnostic disable-next-line: undefined-global
     table.insert(PlaterOptionsPanelFrame.AllSettingsTable, advanced_options)
+    platerInternal.CreateAdvancedOptions = function() end
 end

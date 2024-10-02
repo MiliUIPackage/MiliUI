@@ -137,6 +137,15 @@ Plater.APIList = {
 	{Name = "RestoreCVar", 			Signature = "Plater.RestoreCVar (variableName)", 					Desc = "Restore the value a CVar had before Plater.SafeSetCVar() was called."},
 	
 	{Name = "SetAnchor", 			Signature = "Plater.SetAnchor (frame, config, attachTo, centered)", 					Desc = "Anchor the 'frame' to the 'attachTo' frame according to the given 'config' ('config = {x = 0, y = 0, side = 1}', where 'side' is one of the following:\nTOP_LEFT = 1, LEFT = 2, BOTTOM_LEFT = 3, BOTTOM = 4, BOTTOM_RIGHT = 5, RIGHT = 6, TOP_RIGHT = 7, TOP = 8, CENTER = 9, INNER_LEFT = 10, INNER_RIGHT = 11, INNER_TOP = 12, INNER_BOTTOM = 13)"},
+	
+	{Name = "StartGlow", 			Signature = "Plater.StartGlow(frame, color, options, key)", 					Desc = "Starts a glow on the given frame with the given parameters.\n\n--type 'pixel'\noptions = {\n    glowType = 'pixel',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    N = 8, -- number of lines. Defaul value is 8;\n    frequency = 0.25, -- frequency, set to negative to inverse direction of rotation. Default value is 0.25;\n    length = 4, -- length of lines. Default value depends on region size and number of lines;\n    th = 2, -- thickness of lines. Default value is 2;\n    xOffset = 0,\n    yOffset = 0, -- offset of glow relative to region border;\n    border = false, -- set to true to create border under lines;\n    key = '', -- key of glow, allows for multiple glows on one frame;\n}\n\n-- type 'ants'\noptions = {\n    glowType = 'ants',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    N = 4, -- number of particle groups. Each group contains 4 particles. Defaul value is 4;\n    \n    frequency = 0.125, -- frequency, set to negative to inverse direction of rotation. Default value is 0.125;\n    scale = 1, -- scale of particles\n    xOffset = 0,\n    yOffset = 0, -- offset of glow relative to region border;\n    \n    key = '', -- key of glow, allows for multiple glows on one frame;\n}\n\n-- type 'button'\noptions = {\n    glowType = 'button',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    frequency = 0.125, -- frequency, set to negative to inverse direction of rotation. Default value is 0.125;\n}"},
+	{Name = "StopGlow", 			Signature = "Plater.StopGlow(frame, glowType, key)", 					Desc = "Stops a glow with the specified glowType and/or key on the given frame. All are stopped, if omitted."},
+	{Name = "StartPixelGlow", 			Signature = "Plater.StartPixelGlow(frame, color, options, key)", 					Desc = "--type 'pixel'\noptions = {\n    glowType = 'pixel',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    N = 8, -- number of lines. Defaul value is 8;\n    frequency = 0.25, -- frequency, set to negative to inverse direction of rotation. Default value is 0.25;\n    length = 4, -- length of lines. Default value depends on region size and number of lines;\n    th = 2, -- thickness of lines. Default value is 2;\n    xOffset = 0,\n    yOffset = 0, -- offset of glow relative to region border;\n    border = false, -- set to true to create border under lines;\n    key = '', -- key of glow, allows for multiple glows on one frame;\n}"},
+	{Name = "StartAntsGlow", 			Signature = "Plater.StartAntsGlow(frame, color, options, key)", 					Desc = "-- type 'ants'\noptions = {\n    glowType = 'ants',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    N = 4, -- number of particle groups. Each group contains 4 particles. Defaul value is 4;\n    \n    frequency = 0.125, -- frequency, set to negative to inverse direction of rotation. Default value is 0.125;\n    scale = 1, -- scale of particles\n    xOffset = 0,\n    yOffset = 0, -- offset of glow relative to region border;\n    \n    key = '', -- key of glow, allows for multiple glows on one frame;\n}"},
+	{Name = "StartButtonGlow", 			Signature = "Plater.StartButtonGlow(frame, color, options, key)", 					Desc = "-- type 'button'\noptions = {\n    glowType = 'button',\n    color = 'white', -- all plater color types accepted, from lib: {r,g,b,a}, color of lines and opacity, from 0 to 1. Defaul value is {0.95, 0.95, 0.32, 1}\n    frequency = 0.125, -- frequency, set to negative to inverse direction of rotation. Default value is 0.125;\n}"},
+	{Name = "StopButtonGlow", 			Signature = "Plater.StopButtonGlow(frame, key)", 					Desc = "Stops a button-glow with the specified glowType and/or key on the given frame. All are stopped, if omitted."},
+	{Name = "StopPixelGlow", 			Signature = "Plater.StopPixelGlow(frame, key)", 					Desc = "Stops a pixel-glow with the specified glowType and/or key on the given frame. All are stopped, if omitted."},
+	{Name = "StopAntsGlow", 			Signature = "Plater.StopAntsGlow(frame, key)", 					Desc = "Stops an ants-glow with the specified glowType and/or key on the given frame. All are stopped, if omitted."},
 }
 
 Plater.FrameworkList = {
@@ -1733,7 +1742,7 @@ end
 				end
 			end, 
 			100, 20, DF.Language.CreateLocTable(addonName, "OPTIONS_CASTBAR_TOGGLE_TEST", true), 0, nil, nil, nil, nil, nil, options_button_template, DF:GetTemplate ("font", "PLATER_BUTTON"))
-		toggleCastBarButton:SetPoint ("right", add_FW_dropdown, "left", -117, 38)
+		toggleCastBarButton:SetPoint ("right", add_FW_dropdown, "left", -10, 38)
 
 
 		--error text
@@ -4055,6 +4064,14 @@ function Plater.CreateScriptingPanel()
 						GameTooltip:Show()
 					elseif self.NpcID then
 						local npcID = tonumber(self.NpcID)
+						if not npcID then -- assume name -> search
+							for id, data in pairs(Plater.db.profile.npc_cache) do
+								if data[1] == self.NpcID then
+									npcID = id
+									break
+								end
+							end
+						end
 						GameTooltip:SetOwner (self, "ANCHOR_RIGHT")
 						GameTooltip:SetHyperlink (("unit:Creature-0-0-0-0-%d"):format(npcID))
 						GameTooltip:AddLine (" ")
@@ -4062,11 +4079,13 @@ function Plater.CreateScriptingPanel()
 							GameTooltip:AddLine (Plater.db.profile.npc_cache[npcID][2] or "???")
 							GameTooltip:AddLine (" ")
 						end
-						npc3DFrame:SetCreature(npcID)
-						npc3DFrame:SetParent(GameTooltip)
-						npc3DFrame:SetPoint ("top", GameTooltip, "bottom", 0, -10)
-						npc3DFrame:Show()
-						GameTooltip:Show()
+						if npcID then
+							npc3DFrame:SetCreature(npcID)
+							npc3DFrame:SetParent(GameTooltip)
+							npc3DFrame:SetPoint ("top", GameTooltip, "bottom", 0, -10)
+							npc3DFrame:Show()
+							GameTooltip:Show()
+						end
 					end
 					self:SetBackdropColor (.3, .3, .3, 0.7)
 				end

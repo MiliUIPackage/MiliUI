@@ -220,10 +220,12 @@ end
 ---execute each frame a small portion of a big task
 ---the callback function receives a payload, the current iteration index and the max iterations
 ---if the callback function return true, the task is finished
+---callback function signature: fun(payload: table, iterationCount:number, maxIterations:number):boolean return true if the task is finished
+---payload table is the same table passed as argument to LazyExecute()
 ---@param callback function
 ---@param payload table?
 ---@param maxIterations number?
----@param onEndCallback function?
+---@param onEndCallback function? execute when the task is finished or when maxIterations is reached
 function detailsFramework.Schedules.LazyExecute(callback, payload, maxIterations, onEndCallback)
     assert(type(callback) == "function", "DetailsFramework.Schedules.LazyExecute() param #1 'callback' must be a function.")
     maxIterations = maxIterations or 100000
@@ -235,12 +237,16 @@ function detailsFramework.Schedules.LazyExecute(callback, payload, maxIterations
         if (not bIsFinished) then
             iterationIndex = iterationIndex + 1
             if (iterationIndex > maxIterations) then
-                detailsFramework:QuickDispatch(onEndCallback, payload)
+                if (onEndCallback) then
+                    detailsFramework:QuickDispatch(onEndCallback, payload)
+                end
                 return
             end
             C_Timer.After(0, function() wrapFunc() end)
         else
-            detailsFramework:QuickDispatch(onEndCallback, payload)
+            if (onEndCallback) then
+                detailsFramework:QuickDispatch(onEndCallback, payload)
+            end
             return
         end
     end
@@ -264,6 +270,28 @@ function detailsFramework.Schedules.AfterById(time, callback, id, ...)
 
     local newTimer = detailsFramework.Schedules.NewTimer(time, callback, ...)
     detailsFramework.Schedules.ExecuteTimerTable[id] = newTimer
+
+    return newTimer
+end
+
+--Schedules a callback function to be executed after a specified time delay.
+--It uniquely identifies each scheduled task by an ID, if another schedule with the same id is made, it will be ignore until the previous one is finished.
+function detailsFramework.Schedules.AfterByIdNoCancel(time, callback, id, ...)
+    if (not detailsFramework.Schedules.ExecuteTimerTableNoCancel) then
+        detailsFramework.Schedules.ExecuteTimerTableNoCancel = {}
+    end
+
+    local alreadyHaveTimer = detailsFramework.Schedules.ExecuteTimerTableNoCancel[id]
+    if (alreadyHaveTimer) then
+        return
+    end
+
+    local newTimer = detailsFramework.Schedules.NewTimer(time, callback, ...)
+    detailsFramework.Schedules.ExecuteTimerTableNoCancel[id] = newTimer
+
+    C_Timer.After(time, function()
+        detailsFramework.Schedules.ExecuteTimerTableNoCancel[id] = nil
+    end)
 
     return newTimer
 end

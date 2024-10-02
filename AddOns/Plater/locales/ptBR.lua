@@ -53,6 +53,14 @@ L["OPTIONS_ANCHOR_TARGET_SIDE"] = "Which side this widget is attach to."
 L["OPTIONS_ANCHOR_TOP"] = "Superior"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "Superior Esquerdo"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "Superior Direito"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
+
+Prevents loud sounds from playing when two or more casts are happening at the same time.
+
+Set to 0 to disable this feature.]=]
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Altura do Ícone de Debuff."
 L["OPTIONS_AURA_DEBUFF_WITH"] = "Largura do ícone da penalidade."
 --[[Translation missing --]]

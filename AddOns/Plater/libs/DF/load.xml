@@ -34,7 +34,8 @@
 	<Include file="normal_bar.xml"/>
 	<Script file="scrollbox.lua"/>
 	<Include file="panel.xml"/>
-
+	<Script file="timeline.lua"/>
+	
 	<Script file="buildmenu.lua"/>
 	<Script file="loadconditions.lua"/>
 	<Include file="unitframe.lua"/>
@@ -45,4 +46,5 @@
 	<Script file="tabcontainer.lua"/>
 	<Script file="editor.lua"/>
 	<Script file="keybind.lua"/>
+	<Script file="packtable.lua"/>
 </Ui>

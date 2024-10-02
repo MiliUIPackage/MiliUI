@@ -41,6 +41,14 @@ L["OPTIONS_ANCHOR_TARGET_SIDE"] = "이 위젯을 붙일 위치"
 L["OPTIONS_ANCHOR_TOP"] = "위"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "왼쪽 위"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "오른쪽 위"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
+
+Prevents loud sounds from playing when two or more casts are happening at the same time.
+
+Set to 0 to disable this feature.]=]
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "디버프 아이콘 세로값."
 L["OPTIONS_AURA_DEBUFF_WITH"] = "디버프 아이콘 가로."
 L["OPTIONS_AURA_HEIGHT"] = "디버프 아이콘 세로값"

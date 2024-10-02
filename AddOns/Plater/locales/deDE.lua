@@ -52,6 +52,14 @@ L["OPTIONS_ANCHOR_TOP"] = "Oben"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "Oben links"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "Oben rechts"
 --[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
+
+Prevents loud sounds from playing when two or more casts are happening at the same time.
+
+Set to 0 to disable this feature.]=]
+--[[Translation missing --]]
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Debuff's icon height."
 --[[Translation missing --]]
 L["OPTIONS_AURA_DEBUFF_WITH"] = "Debuff's icon width."

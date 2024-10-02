@@ -46,11 +46,15 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
 
         --> create background
             local backgroundTexture = parent:CreateTexture (nil, "BORDER")
-            backgroundTexture:SetAtlas("MonkUI-OrbOff")
+            backgroundTexture:SetAtlas("uf-chi-bg", true)
+			backgroundTexture:SetTexelSnappingBias(0.0)
+			backgroundTexture:SetSnapToPixelGrid(false)
             backgroundTexture:SetDrawLayer("BORDER", 1)
             backgroundTexture:SetPoint("center", widgetFrame, "center", 0, 0)
-            backgroundTexture:SetSize(20, 20)
-            backgroundTexture:SetVertexColor(0.98431158065796, 0.99215465784073, 0.99999779462814, 0.99999779462814)
+			--backgroundTexture:SetPoint("center", widgetFrame, "center", 0, -2.5)
+            --backgroundTexture:SetSize(20, 20)
+			--backgroundTexture:SetSize(21, 21)
+            --backgroundTexture:SetVertexColor(0.98431158065796, 0.99215465784073, 0.99999779462814, 0.99999779462814)
             parent.widgetsBackground[#parent.widgetsBackground + 1] = backgroundTexture
 
         --> single animation group
@@ -63,34 +67,39 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
         ----------------------------------------------
 
         local BallTexture  = widgetFrame:CreateTexture (nil, "ARTWORK")
-        BallTexture:SetAtlas ("MonkUI-LightOrb")
+        BallTexture:SetAtlas ("uf-chi-icon", true)
+		BallTexture:SetTexelSnappingBias(0.0)
+		BallTexture:SetSnapToPixelGrid(false)
         BallTexture:SetDrawLayer ("ARTWORK", 0)
-        BallTexture:SetPoint ("center", widgetFrame, "center", 0, 0)
+        --BallTexture:SetPoint ("center", widgetFrame, "center", 0, 0)
+		BallTexture:SetPoint ("center", widgetFrame, "center", 0, 2)
         --BallTexture:SetSize (20 * 0.90, 20 * 0.90)
-		BallTexture:SetSize (20, 20)
+		--BallTexture:SetSize (21, 21)
 
         --> animations for BallTexture
 
-        BallTexture.scale = DF:CreateAnimation (MainAnimationGroup, "SCALE", 1, 0.195999994874, 0, 0, 1, 1)
-        BallTexture.scale:SetTarget (BallTexture)
-        BallTexture.scale2 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 2, 0.046000000089407, 1, 1, 1.1999999284744, 1.1999999284744)
-        BallTexture.scale2:SetTarget (BallTexture)
-        BallTexture.scale3 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 3, 0.016000000759959, 1.1999999284744, 1.1999999284744, 1, 1)
-        BallTexture.scale3:SetTarget (BallTexture)
+        --BallTexture.scale = DF:CreateAnimation (MainAnimationGroup, "SCALE", 1, 0.195999994874, 0, 0, 1, 1)
+        --BallTexture.scale:SetTarget (BallTexture)
+        --BallTexture.scale2 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 2, 0.046000000089407, 1, 1, 1.1999999284744, 1.1999999284744)
+        --BallTexture.scale2:SetTarget (BallTexture)
+        --BallTexture.scale3 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 3, 0.016000000759959, 1.1999999284744, 1.1999999284744, 1, 1)
+        --BallTexture.scale3:SetTarget (BallTexture)
 
         ----------------------------------------------
 
         local UpSpark  = widgetFrame:CreateTexture (nil, "OVERLAY")
-        UpSpark:SetTexture ([[Interface\QUESTFRAME\ObjectiveTracker]])
+        UpSpark:SetAtlas ("uf-chi-outerglow", true)
+		UpSpark:SetBlendMode("BLEND")
         UpSpark:SetDrawLayer ("OVERLAY", 0)
-        UpSpark:SetPoint ("center", widgetFrame, "center", 0, 0)
-        UpSpark:SetSize (20 * 0.89, 20 * 0.89)
-        UpSpark:SetTexCoord (0.7108479309082, 0.83905952453613, 0.0010000000149012, 0.12888721466064)
+        --UpSpark:SetPoint ("center", widgetFrame, "center", 0, 0)
+		UpSpark:SetPoint ("center", widgetFrame, "center", 0, 2)
+        --UpSpark:SetSize (20 * 0.89, 20 * 0.89)
+        --UpSpark:SetTexCoord (0.7108479309082, 0.83905952453613, 0.0010000000149012, 0.12888721466064)
 
         --> animations for UpSpark
 
-        UpSpark.scale = DF:CreateAnimation (MainAnimationGroup, "SCALE", 1, 0.195999994874, 0, 0, 1, 1)
-        UpSpark.scale:SetTarget (UpSpark)
+        --UpSpark.scale = DF:CreateAnimation (MainAnimationGroup, "SCALE", 1, 0.195999994874, 0, 0, 1, 1)
+        --UpSpark.scale:SetTarget (UpSpark)
         UpSpark.alpha = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 1, 0.195999994874, 0, 1)
         UpSpark.alpha:SetTarget (UpSpark)
         UpSpark.rotation = DF:CreateAnimation (MainAnimationGroup, "ROTATION", 1, 0.195999994874, 60)
@@ -107,11 +116,12 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
         ----------------------------------------------
 
         local BackgroundSpark  = widgetFrame:CreateTexture (nil, "BACKGROUND")
-        BackgroundSpark:SetTexture ([[Interface\PVPFrame\PvPHonorSystem]])
+        BackgroundSpark:SetAtlas ("uf-chi-fx-bgglow", true)
         BackgroundSpark:SetDrawLayer ("BACKGROUND", 0)
         BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, 0)
-        BackgroundSpark:SetSize (20 * 1.39, 20 * 1.39)
-        BackgroundSpark:SetTexCoord (0.0096916198730469, 0.1160000038147, 0.43700000762939, 0.54200000762939)
+		--BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, -1)
+        --BackgroundSpark:SetSize (20 * 1.39, 20 * 1.39)
+        --BackgroundSpark:SetTexCoord (0.0096916198730469, 0.1160000038147, 0.43700000762939, 0.54200000762939)
 
         --> animations for BackgroundSpark
 
@@ -138,12 +148,15 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
 
         --> create background
         local backgroundTexture = parent:CreateTexture("$parenttopCircleTexture", "BACKGROUND")
-		backgroundTexture:SetAtlas("ComboPoints-PointBg")
+		backgroundTexture:SetAtlas(IS_WOW_PROJECT_MAINLINE and "uf-roguecp-bg" or "ComboPoints-PointBg", true)
+		backgroundTexture:SetTexelSnappingBias(0.0)
+		backgroundTexture:SetSnapToPixelGrid(false)
+		--backgroundTexture:SetAtlas("ComboPoints-PointBg")
         --backgroundTexture:SetAtlas("ClassOverlay-ComboPoint-Off")
         backgroundTexture:SetDrawLayer("OVERLAY", 1)
         backgroundTexture:SetPoint("center", widgetFrame, "center", 0, 0)
-        backgroundTexture:SetSize(13, 13)
-        backgroundTexture:SetVertexColor(0.96470373868942, 0.99999779462814, 0.98823314905167, 0.99999779462814)
+        --backgroundTexture:SetSize(13, 13)
+        --backgroundTexture:SetVertexColor(0.96470373868942, 0.99999779462814, 0.98823314905167, 0.99999779462814)
         widgetFrame.background = backgroundTexture
         parent.widgetsBackground[#parent.widgetsBackground + 1] = backgroundTexture
 
@@ -155,11 +168,15 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
         ----------------------------------------------
 
         local comboPointTexture  = widgetFrame:CreateTexture("$parentcomboPointTextureTexture", "ARTWORK")
-        comboPointTexture:SetAtlas("ComboPoints-ComboPoint")
+		comboPointTexture:SetAtlas(IS_WOW_PROJECT_MAINLINE and "uf-roguecp-icon-red" or "ComboPoints-ComboPoint", true)
+		comboPointTexture:SetTexelSnappingBias(0.0)
+		comboPointTexture:SetSnapToPixelGrid(false)
+        comboPointTexture:SetDrawLayer ("ARTWORK", 0)
+        --comboPointTexture:SetAtlas("ComboPoints-ComboPoint")
 		--comboPointTexture:SetAtlas("ClassOverlay-ComboPoint")
-        comboPointTexture:SetDrawLayer("BORDER", 0)
+        --comboPointTexture:SetDrawLayer("BORDER", 0)
         comboPointTexture:SetPoint("center", widgetFrame, "center", 0, 0)
-        comboPointTexture:SetSize(13, 13)
+        --comboPointTexture:SetSize(13, 13)
         
         widgetFrame.texture = comboPointTexture
 
@@ -177,6 +194,27 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
         comboPointTexture.alpha2:SetDuration(0.096000000834465)
         comboPointTexture.alpha2:SetFromAlpha(0.69999998807907)
         comboPointTexture.alpha2:SetToAlpha(1)
+		
+		if IS_WOW_PROJECT_MAINLINE then
+			local BackgroundSpark  = widgetFrame:CreateTexture (nil, "BACKGROUND")
+			BackgroundSpark:SetAtlas ("uf-roguecp-frame-glow", true)
+			BackgroundSpark:SetDrawLayer ("BACKGROUND", 0)
+			BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, 0)
+			--BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, -1)
+			--BackgroundSpark:SetSize (20 * 1.39, 20 * 1.39)
+			--BackgroundSpark:SetTexCoord (0.0096916198730469, 0.1160000038147, 0.43700000762939, 0.54200000762939)
+
+			--> animations for BackgroundSpark
+
+			BackgroundSpark.alpha = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 1, 0.195999994874, 0, 1)
+			BackgroundSpark.alpha:SetTarget (BackgroundSpark)
+			BackgroundSpark.rotation = DF:CreateAnimation (MainAnimationGroup, "ROTATION", 1, 0.195999994874, 2)
+			BackgroundSpark.rotation:SetTarget (BackgroundSpark)
+			BackgroundSpark.alpha2 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 2, 0.195999994874, 0.34612736105919, 0.24995632469654)
+			BackgroundSpark.alpha2:SetTarget (BackgroundSpark)
+			BackgroundSpark.alpha3 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 3, 0.195999994874, 0.25, 0)
+			BackgroundSpark.alpha3:SetTarget (BackgroundSpark)
+		end
 
         --> test the animation
         --MainAnimationGroup:Play()
@@ -184,6 +222,87 @@ local resourceCreationFunctions = Plater.Resources.GetResourceWidgetCreationTabl
         widgetFrame.ShowAnimation = MainAnimationGroup
         return widgetFrame
     end
+	
+	if not IS_WOW_PROJECT_MAINLINE and false then
+		comboPointFunc = function(parent, frameName)
+			--> create the main frame
+			local widgetFrame = CreateFrame("frame", frameName, parent)
+
+			--> create background
+			local backgroundTexture = parent:CreateTexture("$parenttopCircleTexture", "BACKGROUND")
+			--backgroundTexture:SetAtlas("uf-roguecp-bg", true)
+			--backgroundTexture:SetTexelSnappingBias(0.0)
+			--backgroundTexture:SetSnapToPixelGrid(false)
+			backgroundTexture:SetAtlas("ComboPoints-PointBg")
+			--backgroundTexture:SetAtlas("ClassOverlay-ComboPoint-Off")
+			backgroundTexture:SetDrawLayer("OVERLAY", 1)
+			backgroundTexture:SetPoint("center", widgetFrame, "center", 0, 0)
+			backgroundTexture:SetSize(13, 13)
+			backgroundTexture:SetVertexColor(0.96470373868942, 0.99999779462814, 0.98823314905167, 0.99999779462814)
+			widgetFrame.background = backgroundTexture
+			parent.widgetsBackground[#parent.widgetsBackground + 1] = backgroundTexture
+
+			--> single animation group
+			local MainAnimationGroup = DF:CreateAnimationHub (widgetFrame)
+			MainAnimationGroup:SetLooping("NONE")
+			MainAnimationGroup:SetToFinalAlpha(true)
+
+			----------------------------------------------
+
+			local comboPointTexture  = widgetFrame:CreateTexture("$parentcomboPointTextureTexture", "ARTWORK")
+			--comboPointTexture:SetAtlas("uf-roguecp-icon-red", true)
+			--comboPointTexture:SetTexelSnappingBias(0.0)
+			--comboPointTexture:SetSnapToPixelGrid(false)
+			--comboPointTexture:SetDrawLayer ("ARTWORK", 0)
+			comboPointTexture:SetAtlas("ComboPoints-ComboPoint")
+			--comboPointTexture:SetAtlas("ClassOverlay-ComboPoint")
+			comboPointTexture:SetDrawLayer("BORDER", 0)
+			comboPointTexture:SetPoint("center", widgetFrame, "center", 0, 0)
+			comboPointTexture:SetSize(13, 13)
+			
+			widgetFrame.texture = comboPointTexture
+
+			--> animations for comboPointTexture
+
+			comboPointTexture.alpha1 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 1, 0.195999994874, 0, 0.49912714958191)
+			comboPointTexture.alpha1:SetTarget(comboPointTexture)
+			comboPointTexture.scale1 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 1, 0.195999994874, 0.29999998211861, 0.29999998211861, 1.3999999761581, 1.3999999761581)
+			comboPointTexture.scale1:SetTarget(comboPointTexture)
+			comboPointTexture.scale2 = DF:CreateAnimation (MainAnimationGroup, "SCALE", 2, 0.096000000834465, 0.9899999499321, 0.9899999499321, 0.79999995231628, 0.78999996185303)
+			comboPointTexture.scale2:SetTarget(comboPointTexture)
+			comboPointTexture.alpha2 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 2, 0.096000000834465, 0.69999998807907, 1)
+			comboPointTexture.alpha2:SetTarget(comboPointTexture)
+			comboPointTexture.alpha2:SetOrder(2)
+			comboPointTexture.alpha2:SetDuration(0.096000000834465)
+			comboPointTexture.alpha2:SetFromAlpha(0.69999998807907)
+			comboPointTexture.alpha2:SetToAlpha(1)
+			
+			--local BackgroundSpark  = widgetFrame:CreateTexture (nil, "BACKGROUND")
+			--BackgroundSpark:SetAtlas ("uf-roguecp-frame-glow", true)
+			--BackgroundSpark:SetDrawLayer ("BACKGROUND", 0)
+			--BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, 0)
+			----BackgroundSpark:SetPoint ("center", widgetFrame, "center", 0, -1)
+			----BackgroundSpark:SetSize (20 * 1.39, 20 * 1.39)
+			----BackgroundSpark:SetTexCoord (0.0096916198730469, 0.1160000038147, 0.43700000762939, 0.54200000762939)
+			--
+			----> animations for BackgroundSpark
+			--
+			--BackgroundSpark.alpha = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 1, 0.195999994874, 0, 1)
+			--BackgroundSpark.alpha:SetTarget (BackgroundSpark)
+			--BackgroundSpark.rotation = DF:CreateAnimation (MainAnimationGroup, "ROTATION", 1, 0.195999994874, 2)
+			--BackgroundSpark.rotation:SetTarget (BackgroundSpark)
+			--BackgroundSpark.alpha2 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 2, 0.195999994874, 0.34612736105919, 0.24995632469654)
+			--BackgroundSpark.alpha2:SetTarget (BackgroundSpark)
+			--BackgroundSpark.alpha3 = DF:CreateAnimation (MainAnimationGroup, "ALPHA", 3, 0.195999994874, 0.25, 0)
+			--BackgroundSpark.alpha3:SetTarget (BackgroundSpark)
+
+			--> test the animation
+			--MainAnimationGroup:Play()
+
+			widgetFrame.ShowAnimation = MainAnimationGroup
+			return widgetFrame
+		end
+	end
 
 
     local arcaneChargesFunc = function(parent, frameName)

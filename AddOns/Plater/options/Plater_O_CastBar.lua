@@ -7,6 +7,8 @@ local DF = DetailsFramework
 local _
 
 function platerInternal.CreateCastBarOptions()
+    if platerInternal.LoadOnDemand_IsLoaded.CastOptions then return end
+
     local startX, startY, heightSize = 10, platerInternal.optionsYStart, 755
     local highlightColorLastCombat = {1, 1, .2, .25}
 
@@ -337,6 +339,20 @@ function platerInternal.CreateCastBarOptions()
             usedecimals = true,
             name = "OPTIONS_CASTBAR_FADE_ANIM_TIME_END",
             desc = "OPTIONS_CASTBAR_FADE_ANIM_TIME_END_DESC" ,
+        },
+        
+        {type = "blank"},
+        {type = "label", get = function() return "Boss-Mod Support:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+        
+        {
+            type = "toggle",
+            get = function() return Plater.db.profile.bossmod_castrename_enabled end,
+            set = function (self, fixedparam, value) 
+                Plater.db.profile.bossmod_castrename_enabled = value
+                --Plater.UpdateAllPlates()
+            end,
+            name = "Enable boss-mod cast spell renaming",
+            desc = "Enable cast rename based on BigWigs or DBM spell names.",
         },
 
         {type = "breakline"},
@@ -727,4 +743,5 @@ function platerInternal.CreateCastBarOptions()
 
     platerInternal.LoadOnDemand_IsLoaded.CastOptions = true
     table.insert(PlaterOptionsPanelFrame.AllSettingsTable, castBar_options)
+    platerInternal.CreateCastBarOptions = function() end
 end

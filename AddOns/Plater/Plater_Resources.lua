@@ -357,7 +357,9 @@ end
 --> functions for class and specs resources
 	resourceBarCreateFuncByEnumName[CONST_ENUMNAME_CHI] = function(mainResourceFrame)
 		local resourceWidgetCreationFunc = Plater.Resources.GetCreateResourceWidgetFunctionForSpecId(CONST_SPECID_MONK_WINDWALKER)
-		local newResourceBar = createResourceBar(mainResourceFrame, "$parentMonk2Resource", resourceWidgetCreationFunc) --windwalker chi
+		local newResourceBar = createResourceBar(mainResourceFrame, "$parentMonk2Resource", resourceWidgetCreationFunc, 25, 25) --windwalker chi
+		mainResourceFrame.widgetWidth = 25
+		mainResourceFrame.widgetHeight = 25
 		mainResourceFrame.resourceBars[CONST_SPECID_MONK_WINDWALKER] = newResourceBar
 		newResourceBar.resourceId = SPELL_POWER_CHI
 		newResourceBar.updateResourceFunc = resourceWidgetsFunctions.OnResourceChanged
@@ -378,10 +380,11 @@ end
 	end
 
 	resourceBarCreateFuncByEnumName[CONST_ENUMNAME_COMBOPOINT] = function(mainResourceFrame)
+		local size = IS_WOW_PROJECT_MAINLINE and 20 or 13
 		local resourceWidgetCreationFunc = Plater.Resources.GetCreateResourceWidgetFunctionForSpecId(CONST_SPECID_ROGUE_OUTLAW)
-		local newResourceBar = createResourceBar(mainResourceFrame, "$parentRogueResource", resourceWidgetCreationFunc, 13, 13)
-		mainResourceFrame.widgetWidth = 13
-		mainResourceFrame.widgetHeight = 13
+		local newResourceBar = createResourceBar(mainResourceFrame, "$parentRogueResource", resourceWidgetCreationFunc, size, size)
+		mainResourceFrame.widgetWidth = size
+		mainResourceFrame.widgetHeight = size
 		mainResourceFrame.resourceBars[CONST_SPECID_ROGUE_ASSASSINATION] = newResourceBar
 		mainResourceFrame.resourceBars[CONST_SPECID_ROGUE_OUTLAW] = newResourceBar
 		mainResourceFrame.resourceBars[CONST_SPECID_ROGUE_SUBTLETY] = newResourceBar
@@ -459,7 +462,7 @@ end
 		mainResourceFrame.resourceBars[CONST_SPECID_EVOKER_DEVASTATION] = newResourceBar
 		mainResourceFrame.resourceBars[CONST_SPECID_EVOKER_PRESERVATION] = newResourceBar
 		mainResourceFrame.resourceBars[CONST_SPECID_EVOKER_AUGMENTATION] = newResourceBar
-		newResourceBar.resourceId = SPELL_POWER_ESSEMCE
+		newResourceBar.resourceId = SPELL_POWER_ESSENCE
 		newResourceBar.updateResourceFunc = resourceWidgetsFunctions.OnEssenceChanged
 		tinsert(mainResourceFrame.allResourceBars, newResourceBar)
 		mainResourceFrame.resourceBarsByEnumName[CONST_ENUMNAME_ESSENCE] = newResourceBar
@@ -1144,12 +1147,16 @@ end
 				if (widget.isCharged ~= isCharged) then
 					widget.isCharged = isCharged
 					if (isCharged) then
-						widget.texture:SetAtlas("ComboPoints-ComboPoint-Kyrian")
-						widget.background:SetAtlas("ComboPoints-PointBg-Kyrian")
+						widget.texture:SetAtlas("uf-roguecp-icon-blue")
+						widget.background:SetAtlas("uf-roguecp-bg-anima")
+						--widget.texture:SetAtlas("ComboPoints-ComboPoint-Kyrian")
+						--widget.background:SetAtlas("ComboPoints-PointBg-Kyrian")
 						widget.ShowAnimation:Play()
 					else
-						widget.texture:SetAtlas("ComboPoints-ComboPoint")
-						widget.background:SetAtlas("ComboPoints-PointBg")
+						widget.texture:SetAtlas("uf-roguecp-icon-red")
+						widget.background:SetAtlas("uf-roguecp-bg")
+						--widget.texture:SetAtlas("ComboPoints-ComboPoint")
+						--widget.background:SetAtlas("ComboPoints-PointBg")
 					end
 				end
 			end

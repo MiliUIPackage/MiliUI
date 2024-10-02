@@ -310,6 +310,12 @@ detailsFramework:Mixin(ButtonMetaFunctions, detailsFramework.ScriptHookMixin)
 		self.button.text:SetText(text)
 	end
 
+	---set the text shown on the button and truncate it if it's too long
+	function ButtonMetaFunctions:SetTextTruncated(text, maxWidth)
+		self.button.text:SetText(text)
+		detailsFramework:TruncateText(self.button.text, maxWidth)
+	end
+
 	---set the color of the button text
 	---@param ... any
 	function ButtonMetaFunctions:SetTextColor(...)
@@ -892,11 +898,12 @@ end
 	---@field IsEnabled fun(self: df_button) : boolean returns true if the button is enabled
 	---@field SetIcon fun(self: df_button,texture: string|number, width: number|nil, height: number|nil, layout: string|nil, texcoord: table|nil, overlay: table|nil, textDistance: number|nil, leftPadding: number|nil, textHeight: number|nil, shortMethod: any|nil)
 	---@field GetIconTexture fun(self: df_button) : string returns the texture path of the button icon
-	---@field SetTexture fun(self: df_button, normalTexture: string, highlightTexture: string, pressedTexture: string, disabledTexture: string) set the regular button textures
+	---@field SetTexture fun(self: df_button, normalTexture: any, highlightTexture: any, pressedTexture: any, disabledTexture: any) set the regular button textures
 	---@field SetFontFace fun(self: df_button, font: string) set the button font
 	---@field SetFontSize fun(self: df_button, size: number) set the button font size
 	---@field SetTextColor fun(self: df_button, color: any) set the button text color
 	---@field SetText fun(self: df_button, text: string) set the button text
+	---@field SetTextTruncated fun(self: df_button, text: string, maxWidth: number) set the button text and truncate it if it's too long
 	---@field SetClickFunction fun(self: df_button, func: function, param1: any, param2: any, clickType: "left"|"right"|nil)
 	---@field SetIconFilterMode fun(self: df_button, filterMode: any) set the filter mode for the icon, execute after SetIcon()
 
@@ -1332,7 +1339,7 @@ detailsFramework.TabButtonMixin = {
 ---@return df_tabbutton
 function detailsFramework:CreateTabButton(parent, frameName)
 	---@type df_tabbutton
-	local tabButton = CreateFrame("button", frameName, parent)
+	local tabButton = CreateFrame("button", frameName, parent, "BackdropTemplate")
 	tabButton:SetSize(50, 20)
 	tabButton.bIsSelected = false
 

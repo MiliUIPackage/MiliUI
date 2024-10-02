@@ -604,13 +604,13 @@ Plater.AnchorNamesByPhraseId = {
 					end
 					
 				elseif (class == "MAGE") then
-					if isTalentLearned(2948) then -- Scorch
+					if IsPlayerSpell(2948) then -- Scorch
 						lowExecute = 0.3
 						if isTalentLearned(449349) then --Sunfury Execution (for Scorch)
 							lowExecute = 0.35
 						end
 					end
-					if isTalentLearned(205026) then --Firestarter
+					if IsPlayerSpell(205026) then --Firestarter
 						highExecute = 0.9
 					end
 					if IsPlayerSpell(384581) then -- Arcane Bombardment
@@ -651,7 +651,11 @@ Plater.AnchorNamesByPhraseId = {
 				
 				elseif (class == "WARLOCK") then				
 					if IsPlayerSpell(17877) then --Shadowburn
-						lowExecute = 0.20
+						if IsPlayerSpell(456939) then -- Blistering Atrophy
+							lowExecute = 0.30
+						else
+							lowExecute = 0.20
+						end
 					elseif IsSpellKnownOrOverridesKnown(198590) then --Drain Soul
 						lowExecute = 0.20
 					end
@@ -831,9 +835,9 @@ Plater.AnchorNamesByPhraseId = {
 		
 		if not rangeChecker then
 			rangeChecker = function (unit)
-				local range = (LibRangeCheck:GetRange(unit, nil, true) or 0) <= (rangeCheckRange or 40)
+				local minRange, maxRange = (LibRangeCheck:GetRange(unit, nil, true) or 0) <= (rangeCheckRange or 40)
 				Plater.EndLogPerformanceCore("Plater-Core", "Update", "CheckRange")
-				return range
+				return maxRange or minRange
 			end
 			Plater.GetSpellForRangeCheck()
 		end
@@ -1463,10 +1467,15 @@ Plater.AnchorNamesByPhraseId = {
 		["nameplateMinAlpha"] = true,
 		["nameplateMinAlphaDistance"] = true,
 		["nameplateShowDebuffsOnFriendly"] = true,
-		["SoftTargetIconGameObject"] = (IS_WOW_PROJECT_MAINLINE),
-		["SoftTargetInteract"] = (IS_WOW_PROJECT_MAINLINE),
-		["SoftTargetNameplateInteract"] = (IS_WOW_PROJECT_MAINLINE),
+		["SoftTargetIconGameObject"] = true,
+		["SoftTargetInteract"] = true,
+		["SoftTargetNameplateInteract"] = true,
 	}
+	
+	local cvars_to_store_lower = {}
+	for CVarName in pairs (cvars_to_store) do
+		cvars_to_store_lower[lower(CVarName)] = CVarName
+	end
 	
 	--keep this separate for now, with only stuff that NEEDS restoring in order
 	local function cvar_restore_order(v1, v2)
@@ -1533,21 +1542,23 @@ Plater.AnchorNamesByPhraseId = {
 					cvarTable [CVarName] = Plater.ParseCVarValue(GetCVar (CVarName))
 				end
 			end
-		elseif cvars_to_store [cvar] then
-			cvarTable [cvar] = Plater.ParseCVarValue(value)
-			local callstack = debugstack(2) -- starts at "SetCVar" or caller
-			if callstack then
-				local caller, line = callstack:match("\"@([^\"]+)\"%]:(%d+)")
-				if not caller then
-					caller, line = callstack:match("in function <([^:%[>]+):(%d+)>")
+		else
+			-- make this case insensitive, but ensure original case is stored
+			cvar = cvars_to_store_lower[lower(cvar) or "N/A"] -- get right case for storage
+			if cvars_to_store[cvar] then
+				cvarTable [cvar] = Plater.ParseCVarValue(value)
+				local callstack = debugstack(2) -- starts at "SetCVar" or caller
+				if callstack then
+					local caller, line = callstack:match("\"@([^\"]+)\"%]:(%d+)")
+					if not caller then
+						caller, line = callstack:match("in function <([^:%[>]+):(%d+)>")
+					end
+					
+					--print((caller and caller .. ":" .. line) or callstack)
+					local isCVarUtil = (caller and caller:lower():find("[\\/]sharedxml[\\/]cvarutil%.lua"))
+					cvarLastChangedTable [cvar] = not isCVarUtil and (caller and (caller .. ":" .. line)) or callstack or "N/A"
 				end
 			end
-
-			--print((caller and caller .. ":" .. line) or callstack)
-			
-			local isCVarUtil = (caller and caller:lower():find("[\\/]sharedxml[\\/]cvarutil%.lua"))
-			
-			cvarLastChangedTable [cvar] = not isCVarUtil and (caller and (caller .. ":" .. line)) or callstack or "N/A"
 		end
 		
 	end
@@ -1707,6 +1718,10 @@ Plater.AnchorNamesByPhraseId = {
 		
 		if (profile.spell_animations) then
 			for spellId, animations in pairs (profile.spell_animation_list) do
+				if type(spellId) == "string" and tonumber(spellId) then
+					profile.spell_animation_list[tonumber(spellId)] = animations
+					profile.spell_animation_list[spellId] = nil
+				end
 				local frameAnimations = {}
 				local spellName = GetSpellInfo (spellId)
 				if (spellName) then
@@ -1838,53 +1853,92 @@ Plater.AnchorNamesByPhraseId = {
 	--this reset the UIParent levels to user default set on the UIParent tab
 	--there's an api that calls this function called Plater.RefreshNameplateStrata()
 	function Plater.UpdateUIParentLevels (unitFrame) --private
+		--setup frame strata and levels
+		local profile = Plater.db.profile
+		local healthBar = unitFrame.healthBar
+		local castBar = unitFrame.castBar
+		local powerBar = unitFrame.powerBar
+		local buffFrame1 = unitFrame.BuffFrame
+		local buffFrame2 = unitFrame.BuffFrame2
+		local buffSpecial = unitFrame.ExtraIconFrame
+
 		if (DB_USE_UIPARENT) then
-			--setup frame strata and levels
-			local profile = Plater.db.profile
-			local castBar = unitFrame.castBar
-			local buffFrame1 = unitFrame.BuffFrame
-			local buffFrame2 = unitFrame.BuffFrame2
-			local buffSpecial = unitFrame.ExtraIconFrame
-			
 			--strata
 			unitFrame:SetFrameStrata (profile.ui_parent_base_strata)
+			healthBar:SetFrameStrata (profile.ui_parent_base_strata)
+			powerBar:SetFrameStrata (profile.ui_parent_base_strata)
 			castBar:SetFrameStrata (profile.ui_parent_cast_strata)
 			buffFrame1:SetFrameStrata (profile.ui_parent_buff_strata)
 			buffFrame2:SetFrameStrata (profile.ui_parent_buff2_strata)
 			buffSpecial:SetFrameStrata (profile.ui_parent_buff_special_strata)
-			
-			--level
-			local baseLevel = unitFrame:GetFrameLevel()
-			
-			local tmplevel = baseLevel + profile.ui_parent_cast_level + 3
-			castBar:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
-			
-			tmplevel = baseLevel + profile.ui_parent_buff_level + 3
-			buffFrame1:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
-			
-			tmplevel = baseLevel + profile.ui_parent_buff2_level + 10
-			buffFrame2:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
-			
-			tmplevel = baseLevel + profile.ui_parent_buff_special_level + 10
-			buffSpecial:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
-			
-			--raid-target marker adjust:
-			unitFrame.PlaterRaidTargetFrame:SetFrameStrata(unitFrame.healthBar:GetFrameStrata())
-			unitFrame.PlaterRaidTargetFrame:SetFrameLevel(unitFrame.healthBar:GetFrameLevel() + 25)
 		end
+
+		--level
+		local baseLevel = unitFrame.baseFrameLevel or unitFrame:GetFrameLevel()
+		healthBar:SetFrameLevel ((baseLevel > 0) and baseLevel or 0)
+		powerBar:SetFrameLevel (((baseLevel > 0) and baseLevel or 0) + 2)
+			
+		local tmplevel = baseLevel + profile.ui_parent_cast_level + 3
+		castBar:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = baseLevel + profile.ui_parent_buff_level + 3
+		buffFrame1:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = baseLevel + profile.ui_parent_buff2_level + 10
+		buffFrame2:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = baseLevel + profile.ui_parent_buff_special_level + 10
+		buffSpecial:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		--raid-target marker adjust:
+		unitFrame.PlaterRaidTargetFrame:SetFrameStrata(unitFrame.healthBar:GetFrameStrata())
+		unitFrame.PlaterRaidTargetFrame:SetFrameLevel(unitFrame.healthBar:GetFrameLevel() + 25)
 	end	
 	
 	--move the target nameplate to its strata
 	--also need to move other frame components of this nameplate as well so the entire nameplate is up front
 	function Plater.UpdateUIParentTargetLevels (unitFrame) --private
+	--setup frame strata and levels
+		local profile = Plater.db.profile
+		local healthBar = unitFrame.healthBar
+		local castBar = unitFrame.castBar
+		local powerBar = unitFrame.powerBar
+		local buffFrame1 = unitFrame.BuffFrame
+		local buffFrame2 = unitFrame.BuffFrame2
+		local buffSpecial = unitFrame.ExtraIconFrame
 		if (DB_USE_UIPARENT) then
 			--move all frames to target strata
 			local targetStrata = Plater.db.profile.ui_parent_target_strata
 			unitFrame:SetFrameStrata (targetStrata)
-			unitFrame.castBar:SetFrameStrata (targetStrata)
-			unitFrame.BuffFrame:SetFrameStrata (targetStrata)
-			unitFrame.BuffFrame2:SetFrameStrata (targetStrata)
+			healthBar:SetFrameStrata (targetStrata)
+			powerBar:SetFrameStrata (targetStrata)
+			castBar:SetFrameStrata (targetStrata)
+			buffFrame1:SetFrameStrata (targetStrata)
+			buffFrame2:SetFrameStrata (targetStrata)
+			buffSpecial:SetFrameStrata (targetStrata)
 		end
+
+		--level
+		local baseLevel = unitFrame.baseFrameLevel or unitFrame:GetFrameLevel()
+		baseLevel = DB_USE_UIPARENT and max(baseLevel + 5000, 5000) or baseLevel
+		healthBar:SetFrameLevel ((baseLevel > 0) and baseLevel or 0)
+		powerBar:SetFrameLevel (((baseLevel > 0) and baseLevel or 0) + 2)
+			
+		local tmplevel = min(baseLevel + profile.ui_parent_cast_level + 3, 10000)
+		castBar:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = min(baseLevel + profile.ui_parent_buff_level + 3, 10000)
+		buffFrame1:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = min(baseLevel + profile.ui_parent_buff2_level + 10, 10000)
+		buffFrame2:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		tmplevel = min(baseLevel + profile.ui_parent_buff_special_level + 10, 10000)
+		buffSpecial:SetFrameLevel ((tmplevel > 0) and tmplevel or 0)
+		
+		--raid-target marker adjust:
+		unitFrame.PlaterRaidTargetFrame:SetFrameStrata(unitFrame.healthBar:GetFrameStrata())
+		unitFrame.PlaterRaidTargetFrame:SetFrameLevel(unitFrame.healthBar:GetFrameLevel() + 25)
 	end
 	
 	--> regional format numbers
@@ -2414,7 +2468,7 @@ Plater.AnchorNamesByPhraseId = {
 			C_Timer.After (0.3, Plater.UpdatePlateClickSpace)
 			
 			C_Timer.After (0.4, function() 
-				Plater.RefreshAutoToggle(PLAYER_IN_COMBAT) -- refresh this
+				Plater.RefreshAutoToggle(InCombatLockdown()) -- refresh this
 				Plater.UpdateBaseNameplateOptions()
 			end)
 			
@@ -2634,6 +2688,8 @@ Plater.AnchorNamesByPhraseId = {
 				else
 					newUnitFrame = DF:CreateUnitFrame (plateFrame, plateFrame:GetName() .. "PlaterUnitFrame", unitFrameOptions, healthBarOptions, castBarOptions, powerBarOptions)
 				end
+				
+				newUnitFrame.baseFrameLevel = newUnitFrame:GetFrameLevel()
 
 				plateFrame.unitFrame = newUnitFrame
 				--plateFrame.unitFrame:SetPoint("center", plateFrame)
@@ -3118,7 +3174,7 @@ Plater.AnchorNamesByPhraseId = {
 			--> border
 				--create a border using default borders from the retail game
 				local healthBarBorder = DF:CreateFullBorder(nil, plateFrame.unitFrame.healthBar)
-				local borderOffset = 0 -- -1 * UIParent:GetEffectiveScale() * (Plater.db.profile.use_ui_parent_just_enabled and Plater.db.profile.ui_parent_scale_tune or 1)
+				local borderOffset = 0 -- -1 * (Plater.db.profile.use_ui_parent and (UIParent:GetEffectiveScale() * Plater.db.profile.ui_parent_scale_tune)) or 1
 				PixelUtil.SetPoint (healthBarBorder, "TOPLEFT", plateFrame.unitFrame.healthBar, "TOPLEFT", -borderOffset, borderOffset)
 				PixelUtil.SetPoint (healthBarBorder, "TOPRIGHT", plateFrame.unitFrame.healthBar, "TOPRIGHT", borderOffset, borderOffset)
 				PixelUtil.SetPoint (healthBarBorder, "BOTTOMLEFT", plateFrame.unitFrame.healthBar, "BOTTOMLEFT", -borderOffset, -borderOffset)
@@ -3673,12 +3729,12 @@ Plater.AnchorNamesByPhraseId = {
 							--includes neutral npcs
 							
 							--add the npc in the npcid cache
-							if (Plater.ZoneInstanceType == "raid" or Plater.ZoneInstanceType == "party" or Plater.ZoneInstanceType == "scenario") then
+							if (not isObject and (Plater.ZoneInstanceType == "raid" or Plater.ZoneInstanceType == "party" or Plater.ZoneInstanceType == "scenario")) then
 								if (plateFrame[MEMBER_NPCID] and plateFrame[MEMBER_NAME] ~= UNKNOWN) then --UNKNOWN is the global string from blizzard
 									--npcCacheInfo: [1] npc name [2] zone name [3] language
 									local npcCacheInfo = DB_NPCIDS_CACHE[plateFrame[MEMBER_NPCID]]
 									if (not npcCacheInfo) then
-										DB_NPCIDS_CACHE[plateFrame[MEMBER_NPCID]] = {plateFrame[MEMBER_NAME], Plater.ZoneName or "UNKNOWN", Plater.Locale or "enUS"}
+										DB_NPCIDS_CACHE[plateFrame[MEMBER_NPCID]] = {plateFrame.unitNameInternal, Plater.ZoneName or "UNKNOWN", Plater.Locale or "enUS"}
 									else
 										--the npc is already cached, check if the language is different
 										if (npcCacheInfo[3] ~= Plater.Locale) then
@@ -4078,6 +4134,8 @@ function Plater.InitializeSavedVariables()
 end
 
 function Plater.OnInit() --private --~oninit ~init
+	LibStub ("AceDBOptions-3.0"):GetOptionsTable (Plater.db, true) -- register this now, to ensure no default "realm", "char - realm" profiles are shown in profiles management
+	
 	do
 		local languageCurrentVersion = 1
 		if (not PlaterLanguage) then
@@ -4494,8 +4552,6 @@ function Plater.OnInit() --private --~oninit ~init
 						Plater.SetAnchor (textString, plateConfigs.power_percent_text_anchor)
 						textString:SetAlpha (plateConfigs.power_percent_text_alpha)
 						
-						powerBar.border:SetVertexColor (0, 0, 0, 1) --hardcoded color
-						
 						Plater.SetFontOutlineAndShadow (textString, plateConfigs.power_percent_text_outline, plateConfigs.power_percent_text_shadow_color, plateConfigs.power_percent_text_shadow_color_offset[1], plateConfigs.power_percent_text_shadow_color_offset[2])
 					else
 						unitFrame.powerBar.Settings.ShowPercentText = false
@@ -4749,7 +4805,7 @@ function Plater.OnInit() --private --~oninit ~init
 			---@cast plateFrame plateframe
 			if plateFrame.unitFrame.PlaterOnScreen then
 				local castBar = plateFrame.unitFrame.castBar
-				
+				local castNoInterrupt = Plater.CastBarTestFrame.castNoInterrupt
 				local spellName, _, spellIcon = GetSpellInfo(116)
 
 				castBar.Text:SetText(spellName)
@@ -4948,6 +5004,7 @@ function Plater.OnInit() --private --~oninit ~init
 						elseif (profile.castbar_icon_size == "same as castbar plus healthbar") then
 							local actorType = unitFrame.actorType
 							local plateConfigs = DB_PLATE_CONFIG [actorType]
+							local isInCombat = profile.use_player_combat_state and PLAYER_IN_COMBAT or unitFrame.InCombat
 							local castBarConfigKey, healthBarConfigKey, manaConfigKey = Plater.GetHashKey (isInCombat)
 
 							local healthBarHeight = unitFrame.customHealthBarHeight or (plateConfigs and plateConfigs [healthBarConfigKey][2]) or 0
@@ -4974,6 +5031,7 @@ function Plater.OnInit() --private --~oninit ~init
 						elseif (profile.castbar_icon_size == "same as castbar plus healthbar") then
 							local actorType = unitFrame.actorType
 							local plateConfigs = DB_PLATE_CONFIG [actorType]
+							local isInCombat = profile.use_player_combat_state and PLAYER_IN_COMBAT or unitFrame.InCombat
 							local castBarConfigKey, healthBarConfigKey, manaConfigKey = Plater.GetHashKey (isInCombat)
 
 							local healthBarHeight = unitFrame.customHealthBarHeight or (plateConfigs and plateConfigs [healthBarConfigKey][2]) or 0
@@ -5140,6 +5198,7 @@ function Plater.OnInit() --private --~oninit ~init
 					--cast color (from options tab Cast Colors)
 					local castColors = profile.cast_colors
 					local customColor = castColors[self.spellID]
+					local customRenamed = false
 					if (customColor) then
 						local isEnabled, color, customSpellName = customColor[1], customColor[2], customColor[3]
 						if (color and isEnabled) then
@@ -5155,6 +5214,7 @@ function Plater.OnInit() --private --~oninit ~init
 
 							if (customSpellName and customSpellName ~= "") then
 								self.Text:SetText(customSpellName)
+								customRenamed = true
 							end
 
 							--check if the original cast color is enabled
@@ -5166,6 +5226,13 @@ function Plater.OnInit() --private --~oninit ~init
 								self.castColorTexture:SetColorTexture(r, g, b)
 								self.castColorTexture:SetHeight(self:GetHeight() + profile.cast_color_settings.height_offset)
 							end
+						end
+					end
+					
+					if not customRenamed and Plater.db.profile.bossmod_support_enabled and Plater.db.profile.bossmod_castrename_enabled then
+						local bmSpellName = ((BigWigsAPI and BigWigsAPI.GetSpellRename and BigWigsAPI.GetSpellRename(self.spellID)) or (DBM and DBM.GetAltSpellName and DBM:GetAltSpellName(self.spellID))) or nil
+						if bmSpellName then
+							self.Text:SetText(bmSpellName)
 						end
 					end
 					
@@ -6101,11 +6168,17 @@ end
 		
 		Plater.StartLogPerformanceCore("Plater-Core", "Update", "UpdatePlateClickSpace")
 		
+		-- ensure we support the "large nameplate" setting properly
+		local namePlateVerticalScale = GetCVarNumberOrDefault("NamePlateVerticalScale")
+		local zeroBasedScale = namePlateVerticalScale - 1.0
+		local clampedZeroBasedScale = Saturate(zeroBasedScale)
+		local horizontalScale = GetCVarNumberOrDefault("NamePlateHorizontalScale")
+		
 		local width, height = Plater.db.profile.click_space_friendly[1], Plater.db.profile.click_space_friendly[2]
-		C_NamePlate.SetNamePlateFriendlySize (width, height) --classic: {132, 32}, retail: {110, 45},
+		C_NamePlate.SetNamePlateFriendlySize (width * horizontalScale, height * Lerp(1.0, 1.25, zeroBasedScale)) --classic: {132, 32}, retail: {110, 45},
 		
 		local width, height = Plater.db.profile.click_space[1], Plater.db.profile.click_space[2]
-		C_NamePlate.SetNamePlateEnemySize (width, height) --classic: {132, 32}, retail: {110, 45},
+		C_NamePlate.SetNamePlateEnemySize (width * horizontalScale, height * Lerp(1.0, 1.25, zeroBasedScale)) --classic: {132, 32}, retail: {110, 45},
 		
 		--C_NamePlate.SetNamePlateSelfPreferredClickInsets (0, 0, 0, 0)
 		--C_NamePlate.SetNamePlateFriendlyPreferredClickInsets (0, 0, 0, 0)
@@ -6914,9 +6987,8 @@ end
 				unitFrame.targetOverlayTexture:Show()
 			end
 			
-			if (DB_USE_UIPARENT) then
-				Plater.UpdateUIParentTargetLevels (unitFrame)
-			end
+			
+			Plater.UpdateUIParentTargetLevels (unitFrame)
 			
 			Plater.UpdateResourceFrame()
 		else
@@ -6945,9 +7017,7 @@ end
 				plateFrame.Obscured:Hide()
 			end
 			
-			if (DB_USE_UIPARENT) then
-				Plater.UpdateUIParentLevels (unitFrame)
-			end
+			Plater.UpdateUIParentLevels (unitFrame)
 		end
 
 		Plater.CheckRange (plateFrame, true) --disabled on 2018-10-09 | enabled back on 2020-1-16
@@ -7251,7 +7321,7 @@ end
 				--if this is an enemy or neutral npc
 				if (plateFrame [MEMBER_REACTION] <= 4) then
 				
-					local r, g, b, a
+					local r, g, b, a = UnitSelectionColor(plateFrame.unitFrame [MEMBER_UNITID]) -- use this as default.
 					
 					--get the quest color if this npcs is a quest npc
 					if (plateFrame [MEMBER_QUEST] and DB_PLATE_CONFIG [plateFrame.unitFrame.ActorType].quest_color_enabled) then
@@ -7262,7 +7332,9 @@ end
 							g = g + 0.1
 							b = b + 0.1
 						end
-					else
+					elseif plateFrame.isObject then
+						r, g, b, a = unpack (Plater.db.profile.name_on_game_object_color)
+					elseif not r then -- use UnitSelectionColor instead, if available. fallback otherwise
 						r, g, b, a = 1, 1, 0, 1 --neutral
 						if (plateFrame [MEMBER_REACTION] <= 3) then
 							r, g, b, a = 1, .05, .05, 1
@@ -7750,6 +7822,7 @@ end
 		actorType = actorType or plateFrame.actorType
 		
 		if (not actorType or not plateFrame.unitFrame.PlaterOnScreen) then
+			Plater.EndLogPerformanceCore("Plater-Core", "Update", "UpdatePlateFrame")
 			return
 		end
 		
@@ -8470,7 +8543,7 @@ end
 			local attachTo = plateFrame.IconIndicators [plateFrame.IconIndicators.Next - 1]
 			--se for menor que 4 ele deve crescer para o lado da esquerda, nos outros casos vai para a direita
 			if (Plater.db.profile.indicator_anchor.side < 4) then
-				PixelUtil.SetPoint (thisIndicator, "right", attachTo, "left", -2, 0)
+				PixelUtil.SetPoint (thisIndicator, "right", attachTo, "left", -1, 0)
 			else
 				PixelUtil.SetPoint (thisIndicator, "left", attachTo, "right", 1, 0)
 			end
@@ -8522,7 +8595,8 @@ end
 			return
 		end
 		
-		local zoneName, zoneType = GetInstanceInfo()
+		local zoneName, zoneType, difficultyID = GetInstanceInfo()
+		zoneType = (difficultyID == 208 and "party") or zoneType -- delves are party content.
 		local profile = Plater.db.profile
 		
 		-- combat toggle
@@ -9505,7 +9579,7 @@ end
 				-- paladin tank buff tracking
 				local playerGUID = Plater.PlayerGUID
 				if sourceGUID == playerGUID and targetGUID == playerGUID then
-					spellId = select(7, GetSpellInfo(spellName))
+					local spellId = select(7, GetSpellInfo(spellName))
 					if spellId == 25780 or spellId == 407627 then
 						UpdatePlayerTankState(true)
 						--Plater.RefreshTankCache()
@@ -9526,7 +9600,7 @@ end
 				-- paladin tank buff tracking
 				local playerGUID = Plater.PlayerGUID
 				if sourceGUID == playerGUID and targetGUID == playerGUID then
-					spellId = select(7, GetSpellInfo(spellName))
+					local spellId = select(7, GetSpellInfo(spellName))
 					if spellId == 25780 or spellId == 407627 then
 						UpdatePlayerTankState(false)
 						--Plater.RefreshTankCache()
@@ -10082,9 +10156,9 @@ end
 					return assignedRole
 				end
 			end
-			if GetPartyAssignment("MAINTANK", unit) then
+			if GetPartyAssignment("MAINTANK", unitFrame.unit) then
 				return "MAINTANK"
-			elseif GetPartyAssignment("MAINASSIST", unit) then
+			elseif GetPartyAssignment("MAINASSIST", unitFrame.unit) then
 				return "MAINASSIST"
 			end
 		end
@@ -10925,7 +10999,7 @@ end
 	--if the spell name is passed, it just return the result without modifying the nameplate attributes
 	function Plater.NameplateInRange (unitFrame, spellName)
 		if (spellName) then
-			return IsSpellInRange (spellName, unitFrame [MEMBER_UNITID]) == 1
+			return C_Spell.IsSpellInRange (spellName, unitFrame [MEMBER_UNITID])
 
 		else
 			local rangeChecker
@@ -10949,11 +11023,11 @@ end
 --> scripting ~scripting
 	
 	--the mod/script error handler
-	local errorContext = nil
+	local errorContext = {}
 	local prevErrors = {}
 	local ErrorHandler = function(errorMessage)
-		errorContext = errorContext or "Plater error: "
-		local msg = errorContext .. errorMessage
+		errorContext.message = errorContext.message or "Plater error: "
+		local msg = errorContext.message .. errorMessage
 		--throttle error messages a bit...
 		local lastTime = prevErrors[msg]
 		local curTime = GetTime()
@@ -10961,14 +11035,18 @@ end
 			return
 		end
 		prevErrors[msg] = curTime
+		DevTool:AddData(errorContext)
+		local modscriptInfo = errorContext.modscript and errorContext.modscript.url and ("Mod/Script URL: " .. errorContext.modscript.url .. "\n") or nil
 		if BugGrabber then
-			geterrorhandler()(errorContext .. "\n" .. Plater.fullVersionInfo .. "\n" .. errorMessage)
+			geterrorhandler()(errorContext.message .. "\n" .. (modscriptInfo or "") .. Plater.fullVersionInfo .. "\n" .. errorMessage)
 		end
-		Plater:Msg (msg)
+		Plater:Msg (msg .. (modscriptInfo and ("\n" .. modscriptInfo) or ""))
+		errorContext = {}
 		return errorMessage
 	end
-	local GetErrorHandler = function(context)
-		errorContext = context
+	local GetErrorHandler = function(contextMessage, contextModScript)
+		errorContext.message = contextMessage
+		errorContext.modscript = contextModScript
 		return ErrorHandler
 	end
 	platerInternal.GetErrorHandler = GetErrorHandler
@@ -11017,11 +11095,11 @@ end
 				if (globalScriptObject.HasConstructor and (not scriptInfo.Initialized or forceHotReload)) then
 					local modName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
 					Plater.StartLogPerformance("Mod-RunHooks", modName, "Constructor")
-					local okay, errortext = xpcall (globalScriptObject.Constructor, GetErrorHandler("Mod |cFFAAAA22" .. modName .. "|r Constructor error: "), self, self.displayedUnit or self.unit or self:GetParent()[MEMBER_UNITID], self, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+					local okay, errortext = xpcall (globalScriptObject.Constructor, GetErrorHandler("Plater Mod |cFFAAAA22" .. modName .. "|r Constructor error: ", globalScriptObject.DBScriptObject), self, self.displayedUnit or self.unit or self:GetParent()[MEMBER_UNITID], self, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 					Plater.EndLogPerformance("Mod-RunHooks", modName, "Constructor")
 					if (not okay) then
 						--handled via error handler
-						--Plater:Msg ("Mod |cFFAAAA22" .. modName .. "|r Constructor error: " .. errortext)
+						--Plater:Msg ("Plater Mod |cFFAAAA22" .. modName .. "|r Constructor error: " .. errortext)
 					end
 					scriptInfo.Initialized = true
 				end
@@ -11079,11 +11157,11 @@ end
 				local unitFrame = self.unitFrame or self
 				local scriptName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
 				Plater.StartLogPerformance("Scripts", scriptName, "Constructor")
-				local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["ConstructorCode"], GetErrorHandler("Script |cFFAAAA22" .. scriptName .. "|r Constructor error: "), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+				local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["ConstructorCode"], GetErrorHandler("Plater Script |cFFAAAA22" .. scriptName .. "|r Constructor error: ", scriptInfo.GlobalScriptObject.DBScriptObject), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 				Plater.EndLogPerformance("Scripts", scriptName, "Constructor")
 				if (not okay) then
 					--handled via error handler
-					--Plater:Msg ("Script |cFFAAAA22" .. scriptName .. "|r Constructor error: " .. errortext)
+					--Plater:Msg ("Plater Script |cFFAAAA22" .. scriptName .. "|r Constructor error: " .. errortext)
 				end
 			end
 		end,
@@ -11101,11 +11179,11 @@ end
 			local unitFrame = self.unitFrame or self
 			local scriptName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
 			Plater.StartLogPerformance("Scripts", scriptName, "OnUpdate")
-			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["UpdateCode"], GetErrorHandler("Script |cFFAAAA22" .. scriptName .. "|r OnUpdate error: "), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["UpdateCode"], GetErrorHandler("Plater Script |cFFAAAA22" .. scriptName .. "|r OnUpdate error: ", scriptInfo.GlobalScriptObject.DBScriptObject), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 			Plater.EndLogPerformance("Scripts", scriptName, "OnUpdate")
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Script |cFFAAAA22" .. scriptName .. "|r OnUpdate error: " .. errortext)
+				--Plater:Msg ("Plater Script |cFFAAAA22" .. scriptName .. "|r OnUpdate error: " .. errortext)
 			end
 		end,
 		
@@ -11117,16 +11195,15 @@ end
 			scriptInfo.Env._DefaultHeight = self:GetHeight()
 
 			local scriptName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
-			Plater.StartLogPerformance("Scripts", scriptName, "OnShow")
-
 			local func = scriptInfo.GlobalScriptObject["OnShowCode"]
-
-			local okay, errortext = xpcall(func, GetErrorHandler("Script |cFFAAAA22" .. scriptName .. "|r OnShow error: "), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+			
+			Plater.StartLogPerformance("Scripts", scriptName, "OnShow")
+			local okay, errortext = xpcall(func, GetErrorHandler("Plater Script |cFFAAAA22" .. scriptName .. "|r OnShow error: ", scriptInfo.GlobalScriptObject.DBScriptObject), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 			Plater.EndLogPerformance("Scripts", scriptName, "OnShow")
 
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Script |cFFAAAA22" .. scriptName .. "|r OnShow error: " .. errortext)
+				--Plater:Msg ("Plater Script |cFFAAAA22" .. scriptName .. "|r OnShow error: " .. errortext)
 			end
 			
 			scriptInfo.IsActive = true
@@ -11139,11 +11216,11 @@ end
 			local unitFrame = self.unitFrame or self
 			local scriptName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
 			Plater.StartLogPerformance("Scripts", scriptName, "OnHide")
-			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["OnHideCode"], GetErrorHandler("Script |cFFAAAA22" .. scriptName .. "|r OnHide error: "), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject ["OnHideCode"], GetErrorHandler("Plater Script |cFFAAAA22" .. scriptName .. "|r OnHide error: ", scriptInfo.GlobalScriptObject.DBScriptObject), self, unitFrame.displayedUnit or unitFrame.unit or unitFrame.PlateFrame[MEMBER_UNITID], unitFrame, scriptInfo.Env, PLATER_GLOBAL_SCRIPT_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 			Plater.EndLogPerformance("Scripts", scriptName, "OnHide")
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Script |cFFAAAA22" .. scriptName .. "|r OnHide error: " .. errortext)
+				--Plater:Msg ("Plater Script |cFFAAAA22" .. scriptName .. "|r OnHide error: " .. errortext)
 			end
 			
 			scriptInfo.IsActive = false
@@ -11155,22 +11232,22 @@ end
 			--dispatch the init script
 			local scriptName = globalScriptObject.DBScriptObject.Name
 			Plater.StartLogPerformance("Scripts", scriptName, "Initialization")
-			local okay, errortext = xpcall (globalScriptObject ["Initialization"], GetErrorHandler("Script |cFFAAAA22" .. scriptName .. "|r Initialization error: "), PLATER_GLOBAL_SCRIPT_ENV [globalScriptObject.DBScriptObject.scriptId])
+			local okay, errortext = xpcall (globalScriptObject ["Initialization"], GetErrorHandler("Plater Script |cFFAAAA22" .. scriptName .. "|r Initialization error: ", globalScriptObject.DBScriptObject), PLATER_GLOBAL_SCRIPT_ENV [globalScriptObject.DBScriptObject.scriptId])
 			Plater.EndLogPerformance("Scripts", scriptName, "Initialization")
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Script |cFFAAAA22" .. scriptName .. "|r Initialization error: " .. errortext)
+				--Plater:Msg ("Plater Script |cFFAAAA22" .. scriptName .. "|r Initialization error: " .. errortext)
 			end
 		end,
 		
 		ScriptRunCommMessageHook = function(globalScriptObject, hookName, source, ...)
 			local modName = globalScriptObject.DBScriptObject.Name
 			Plater.StartLogPerformance("Mod-RunHooks", modName, hookName)
-			local okay, errortext = xpcall (globalScriptObject [hookName], GetErrorHandler("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: "), PLATER_GLOBAL_MOD_ENV [globalScriptObject.DBScriptObject.scriptId], source, ...)
+			local okay, errortext = xpcall (globalScriptObject [hookName], GetErrorHandler("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: ", globalScriptObject.DBScriptObject), PLATER_GLOBAL_MOD_ENV [globalScriptObject.DBScriptObject.scriptId], source, ...)
 			Plater.EndLogPerformance("Mod-RunHooks", modName, hookName)
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
+				--Plater:Msg ("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
 			end
 		end,
 		
@@ -11179,11 +11256,11 @@ end
 			--at the moment, self is always the unit frame
 			local modName = scriptInfo.GlobalScriptObject.DBScriptObject.Name
 			Plater.StartLogPerformance("Mod-RunHooks", modName, hookName)
-			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject [hookName], GetErrorHandler("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: "), frame or self, self.displayedUnit, self, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId], ...)
+			local okay, errortext = xpcall (scriptInfo.GlobalScriptObject [hookName], GetErrorHandler("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: ", scriptInfo.GlobalScriptObject.DBScriptObject), frame or self, self.displayedUnit, self, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId], ...)
 			Plater.EndLogPerformance("Mod-RunHooks", modName, hookName)
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
+				--Plater:Msg ("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
 			end
 		end,
 		
@@ -11192,11 +11269,11 @@ end
 			local func = hookInfo [hookName]
 			local modName = hookInfo.DBScriptObject.Name
 			Plater.StartLogPerformance("Mod-RunHooks", modName, " -NoAttach- " .. hookName)
-			local okay, errortext = xpcall (func, GetErrorHandler("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: "), PLATER_GLOBAL_MOD_ENV [hookInfo.DBScriptObject.scriptId])
+			local okay, errortext = xpcall (func, GetErrorHandler("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: ", hookInfo.DBScriptObject), PLATER_GLOBAL_MOD_ENV [hookInfo.DBScriptObject.scriptId])
 			Plater.EndLogPerformance("Mod-RunHooks", modName, " -NoAttach- " .. hookName)
 			if (not okay) then
 				--handled via error handler
-				--Plater:Msg ("Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
+				--Plater:Msg ("Plater Mod |cFFAAAA22" .. modName .. "|r code for |cFFBB8800" .. hookName .. "|r error: " .. errortext)
 			end
 		end,
 		
@@ -11553,7 +11630,6 @@ end
 			["StartLogPerformance"] = false,
 			["EndLogPerformance"] = false,
 			["StartLogPerformanceCore"] = false,
-			["StartLogPerformanceCore"] = false,
 			["EndLogPerformanceCore"] = false,
 			["DumpPerformance"] = true,
 			["ShowPerfData"] = true,
@@ -11699,7 +11775,7 @@ end
 		["RunScript"] = true,
 		["securecall"] = true,
 		["getfenv"] = true,
-		["getfenv"] = true,
+		["setfenv"] = true,
 		["loadstring"] = true,
 		["pcall"] = true,
 		["xpcall"] = true,
@@ -11969,7 +12045,7 @@ end
 						local scriptContainer = unitFrame:ScriptGetContainer()
 						local scriptInfo = unitFrame:HookGetInfo(globalScriptObject, scriptContainer, "Destructor")
 
-						local okay, errortext = xpcall (func, GetErrorHandler("Mod: |cFFAAAA22" .. scriptInfo.GlobalScriptObject.DBScriptObject.Name .. "|r " .. scriptObject.Name .. " error: "), unitFrame, unitFrame.displayedUnit, unitFrame, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
+						local okay, errortext = xpcall (func, GetErrorHandler("Mod: |cFFAAAA22" .. scriptInfo.GlobalScriptObject.DBScriptObject.Name .. "|r " .. scriptObject.Name .. " error: ", scriptObject), unitFrame, unitFrame.displayedUnit, unitFrame, scriptInfo.Env, PLATER_GLOBAL_MOD_ENV [scriptInfo.GlobalScriptObject.DBScriptObject.scriptId])
 						if (not okay) then
 							--handled via error handler
 							--Plater:Msg ("Mod: |cFFAAAA22" .. scriptInfo.GlobalScriptObject.DBScriptObject.Name .. "|r " .. scriptObject.Name .. " error: " .. errortext)

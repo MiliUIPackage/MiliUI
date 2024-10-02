@@ -4,23 +4,16 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["EXPORT"] = "Export"
---[[Translation missing --]]
-L["EXPORT_CAST_COLORS"] = "Share Colors"
---[[Translation missing --]]
-L["EXPORT_CAST_SOUNDS"] = "Share Sounds"
---[[Translation missing --]]
-L["HIGHLIGHT_HOVEROVER"] = "Hover Over Highlight"
+L["EXPORT"] = "Exportar"
+L["EXPORT_CAST_COLORS"] = "Compartir colores"
+L["EXPORT_CAST_SOUNDS"] = "Compartir sonidos"
+L["HIGHLIGHT_HOVEROVER"] = "Resaltar al pasar el ratón por encima"
 --[[Translation missing --]]
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Hover Over Highlight Alpha"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Efecto de resaltado cuando el ratón está sobre la placa."
---[[Translation missing --]]
-L["IMPORT"] = "Import"
---[[Translation missing --]]
-L["IMPORT_CAST_COLORS"] = "Import Colors"
---[[Translation missing --]]
-L["IMPORT_CAST_SOUNDS"] = "Import Sounds"
+L["IMPORT"] = "Importar"
+L["IMPORT_CAST_COLORS"] = "Importar colores"
+L["IMPORT_CAST_SOUNDS"] = "Importar sonidos"
 L["OPTIONS_ALPHA"] = "Alfa"
 L["OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER"] = "Multiplicador de transparencia."
 L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "Transparencia por defecto"
@@ -33,7 +26,7 @@ L["OPTIONS_ALPHABYFRAME_ENABLE_FRIENDLY_DESC"] = "Aplica los ajustes de transpar
 L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE"] = "Target Alpha/In-Range"
 L["OPTIONS_ALPHABYFRAME_TARGET_INRANGE_DESC"] = "Transparencia para objetivos o unidades al alcance."
 L["OPTIONS_ALPHABYFRAME_TITLE_ENEMIES"] = "Cantidad de transparencia por fotograma (enemigos)"
-L["OPTIONS_ALPHABYFRAME_TITLE_FRIENDLY"] = "Cantidad de transparencia por fotograma (amistosos)"
+L["OPTIONS_ALPHABYFRAME_TITLE_FRIENDLY"] = "Cantidad de transparencia por fotograma (amistoso)"
 L["OPTIONS_AMOUNT"] = "Cantidad"
 L["OPTIONS_ANCHOR"] = "Anclaje"
 L["OPTIONS_ANCHOR_BOTTOM"] = "Abajo"
@@ -50,6 +43,14 @@ L["OPTIONS_ANCHOR_TARGET_SIDE"] = "A qué lado se coloca este widget."
 L["OPTIONS_ANCHOR_TOP"] = "Arriba"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "Arriba a la izquierda"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "Arriba a la derecha"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
+
+Prevents loud sounds from playing when two or more casts are happening at the same time.
+
+Set to 0 to disable this feature.]=]
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Altura del icono del perjuicio."
 L["OPTIONS_AURA_DEBUFF_WITH"] = "Anchura del icono del perjuicio."
 L["OPTIONS_AURA_HEIGHT"] = "Altura del icono del perjuicio."
@@ -76,15 +77,12 @@ L["OPTIONS_CAST_SHOW_TARGETNAME"] = "Mostrar nombre del objetivo"
 L["OPTIONS_CAST_SHOW_TARGETNAME_DESC"] = "Muestra quién es el objetivo del lanzamiento actual (si el objetivo existe)"
 L["OPTIONS_CAST_SHOW_TARGETNAME_TANK"] = "[Tanque] No muestres tu nombre"
 L["OPTIONS_CAST_SHOW_TARGETNAME_TANK_DESC"] = "Si eres un tanque no muestres el nombre del objetivo si el lanzamiento es sobre ti."
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_APPEARANCE"] = "Cast Bar Appearance"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_BLIZZCASTBAR"] = "Blizzard Cast Bar"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_COLORS"] = "Cast Bar Colors"
+L["OPTIONS_CASTBAR_APPEARANCE"] = "Aspecto de la barra de lanzamiento"
+L["OPTIONS_CASTBAR_BLIZZCASTBAR"] = "Barra de lanzamiento Blizzard"
+L["OPTIONS_CASTBAR_COLORS"] = "Colores de las barras de lanzamiento"
 L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED"] = "Activar animaciones de fundido"
 L["OPTIONS_CASTBAR_FADE_ANIM_ENABLED_DESC"] = "Activa las animaciones de fundido cuando el lanzamiento se inicia y se detiene."
-L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END"] = "Al parar"
+L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END"] = "Al detenerse"
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_END_DESC"] = "Cuando finaliza un lanzamiento, este es el tiempo que tarda la barra de lanzamiento en pasar del 100% de transparencia a no ser visible en absoluto."
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START"] = "Al empezar"
 L["OPTIONS_CASTBAR_FADE_ANIM_TIME_START_DESC"] = "Cuando se inicia un lanzamiento, este es el tiempo que tarda la barra de lanzamiento en pasar de transparencia cero a totalmente opaca."
@@ -105,9 +103,8 @@ L["OPTIONS_CASTBAR_SPARK_HALF_DESC"] = "Muestra solo la mitad de la textura de l
 L["OPTIONS_CASTBAR_SPARK_HIDE_INTERRUPT"] = "Ocultar chispa al interrumpir"
 --[[Translation missing --]]
 L["OPTIONS_CASTBAR_SPARK_SETTINGS"] = "Spark Settings"
---[[Translation missing --]]
-L["OPTIONS_CASTBAR_SPELLICON"] = "Spell Icon"
-L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activar la barra de lanzamiento de prueba"
+L["OPTIONS_CASTBAR_SPELLICON"] = "Icono de hechizo"
+L["OPTIONS_CASTBAR_TOGGLE_TEST"] = "Activar el test de barra de lanzamiento"
 L["OPTIONS_CASTBAR_TOGGLE_TEST_DESC"] = "Inicia la prueba de la barra de lanzamiento, pulsa de nuevo para detenerla."
 L["OPTIONS_CASTBAR_WIDTH"] = "Anchura de la barra de lanzamiento."
 --[[Translation missing --]]
@@ -116,7 +113,7 @@ L["OPTIONS_CLICK_SPACE_HEIGHT"] = "La altura del área que acepta clics del rat�
 L["OPTIONS_CLICK_SPACE_WIDTH"] = "La anchura del área que acepta clics del ratón para seleccionar al objetivo"
 L["OPTIONS_COLOR"] = "Color"
 L["OPTIONS_COLOR_BACKGROUND"] = "Color de fondo"
-L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Barras personales de salud y maná|cFFFF7700*|r"
+L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Barras personales de salud y mana|cFFFF7700*|r"
 L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = "Muestra una mini barra de salud y maná debajo de tu personaje. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y restaurada al cargar el perfil.|r"
 L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Mostrar siempre las placas|cFFFF7700*|r"
 L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = "Muestra las placas de todas las unidades cercanas. Si se desactiva, solo muestra las unidades relevantes cuando estás en combate. |cFFFF7700[*]|r |cFFa0a0CVar, guardada dentro del perfil de Plater y restaurada cuando se carga el perfil.|r"
@@ -125,15 +122,10 @@ L["OPTIONS_ERROR_CVARMODIFY"] = "Los cvars no se pueden cambiar en combate."
 L["OPTIONS_ERROR_EXPORTSTRINGERROR"] = "error al exportar"
 L["OPTIONS_EXECUTERANGE"] = "Rango de ejecución"
 L["OPTIONS_EXECUTERANGE_DESC"] = "Mostrar un indicador cuando la unidad objetivo está en el rango de \"ejecución\". Si la detección no funciona tras un parche, comunícalo en Discord."
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "Execute Range (high heal)"
---[[Translation missing --]]
-L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = [=[Show the execute indicator for the high portion of the health.
-
-If the detection does not work after a patch, communicate at Discord.]=]
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH"] = "Rango de ejecución (sobre la salud)"
+L["OPTIONS_EXECUTERANGE_HIGH_HEALTH_DESC"] = "Mostrar el indicador de ejecución de la parte sobre la salud. Si la detección no funciona después de un parche, comunicarlo en Discord."
 L["OPTIONS_FONT"] = "Fuente"
---[[Translation missing --]]
-L["OPTIONS_FORMAT_NUMBER"] = "Number Format"
+L["OPTIONS_FORMAT_NUMBER"] = "Formato numérico"
 L["OPTIONS_FRIENDLY"] = "Amistoso"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_ANCHOR_TITLE"] = "Apariencia de barra de salud"
 L["OPTIONS_GENERALSETTINGS_HEALTHBAR_BGCOLOR"] = "Color de fondo y Alfa de Barra de salud "
@@ -143,61 +135,38 @@ L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_ANCHOR_TITLE"] = "La transparencia se ut
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK"] = "Comprobación de rango"
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK_ALPHA"] = "Alfa"
 L["OPTIONS_GENERALSETTINGS_TRANSPARENCY_RANGECHECK_SPEC_DESC"] = "Hechizo para comprobar el alcance de esta especialización."
---[[Translation missing --]]
-L["OPTIONS_HEALTHBAR"] = "Health Bar"
+L["OPTIONS_HEALTHBAR"] = "Barra de salud"
 --[[Translation missing --]]
 L["OPTIONS_HEALTHBAR_HEIGHT"] = "Health Bar Height"
---[[Translation missing --]]
-L["OPTIONS_HEALTHBAR_SIZE_GLOBAL_DESC"] = [=[Change the size of Enemy and Friendly nameplates for players and npcs in combat and out of combat.
-
-Each one of these options can be changed individually on Enemy Npc, Enemy Player tabs.]=]
+L["OPTIONS_HEALTHBAR_SIZE_GLOBAL_DESC"] = "Cambia el tamaño de las placas Enemigo y Amigo para jugadores y npcs en combate y fuera de combate. Cada una de estas opciones se puede cambiar individualmente en las pestañas Npc, Enemigo, Jugador Enemigo."
 --[[Translation missing --]]
 L["OPTIONS_HEALTHBAR_WIDTH"] = "Health Bar Width"
 --[[Translation missing --]]
 L["OPTIONS_HEIGHT"] = "Height"
 L["OPTIONS_HOSTILE"] = "Hostil"
---[[Translation missing --]]
-L["OPTIONS_ICON_ELITE"] = "Elite Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_ENEMYCLASS"] = "Enemy Class Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_ENEMYFACTION"] = "Enemy Faction Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_ENEMYSPEC"] = "Enemy Spec Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_FRIENDLY_SPEC"] = "Friendly Spec Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_FRIENDLYCLASS"] = "Friendly Class"
---[[Translation missing --]]
-L["OPTIONS_ICON_FRIENDLYFACTION"] = "Friendly Faction Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_PET"] = "Pet Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_QUEST"] = "Quest Icon"
+L["OPTIONS_ICON_ELITE"] = "Icono de élite"
+L["OPTIONS_ICON_ENEMYCLASS"] = "Icono de clase enemiga"
+L["OPTIONS_ICON_ENEMYFACTION"] = "Icono de la facción enemiga"
+L["OPTIONS_ICON_ENEMYSPEC"] = "Icono Espec. Enemigo"
+L["OPTIONS_ICON_FRIENDLY_SPEC"] = "Icono Espec. Amistoso"
+L["OPTIONS_ICON_FRIENDLYCLASS"] = "Clase Amistosa"
+L["OPTIONS_ICON_FRIENDLYFACTION"] = "Icono de facción amistosa"
+L["OPTIONS_ICON_PET"] = "Icono de mascota"
+L["OPTIONS_ICON_QUEST"] = "Icono de misión"
 --[[Translation missing --]]
 L["OPTIONS_ICON_RARE"] = "Rare Icon"
---[[Translation missing --]]
-L["OPTIONS_ICON_SHOW"] = "Show Icon"
+L["OPTIONS_ICON_SHOW"] = "Mostrar icono"
 --[[Translation missing --]]
 L["OPTIONS_ICON_SIDE"] = "Show Side"
---[[Translation missing --]]
-L["OPTIONS_ICON_SIZE"] = "Show Size"
---[[Translation missing --]]
-L["OPTIONS_ICON_WORLDBOSS"] = "World Boss Icon"
---[[Translation missing --]]
-L["OPTIONS_ICONROWSPACING"] = "Icon Row Spacing"
---[[Translation missing --]]
-L["OPTIONS_ICONSPACING"] = "Icon Spacing"
---[[Translation missing --]]
-L["OPTIONS_INDICATORS"] = "Indicators"
---[[Translation missing --]]
-L["OPTIONS_INTERRUPT_FILLBAR"] = "Fill Cast Bar On Interrupt"
---[[Translation missing --]]
-L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Play Interrupt Animation"
---[[Translation missing --]]
-L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Show Interrupt Author"
---[[Translation missing --]]
-L["OPTIONS_MINOR_SCALE_DESC"] = "Slightly adjust the size of nameplates when showing a minor unit (these units has a smaller nameplate by default)."
+L["OPTIONS_ICON_SIZE"] = "Mostrar tamaño"
+L["OPTIONS_ICON_WORLDBOSS"] = "Icono de jefe mundial"
+L["OPTIONS_ICONROWSPACING"] = "Espaciado de filas de iconos"
+L["OPTIONS_ICONSPACING"] = "Espaciado entre iconos"
+L["OPTIONS_INDICATORS"] = "Indicadores"
+L["OPTIONS_INTERRUPT_FILLBAR"] = "Llenar la barra de lanzamiento al interrumpir"
+L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Reproducir Animación Interrumpir"
+L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Mostrar autor de la interrupción"
+L["OPTIONS_MINOR_SCALE_DESC"] = "Ajuste ligeramente el tamaño de las placas cuando muestre una unidad menor (estas unidades tienen una placa más pequeña por defecto)."
 --[[Translation missing --]]
 L["OPTIONS_MINOR_SCALE_HEIGHT"] = "Minor Unit Height Scale"
 --[[Translation missing --]]
@@ -206,29 +175,16 @@ L["OPTIONS_MINOR_SCALE_WIDTH"] = "Minor Unit Width Scale"
 L["OPTIONS_MOVE_HORIZONTAL"] = "Move horizontally."
 --[[Translation missing --]]
 L["OPTIONS_MOVE_VERTICAL"] = "Move vertically."
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH"] = "Hide Blizzard Health Bars|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = [=[While in dungeons or raids, if friendly nameplates are enabled it'll show only the player name.
-If any Plater module is disabled, this will affect these nameplates as well.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r
-
-|cFFFF2200[*]|r |cFFa0a0a0A /reload may be required to take effect.|r]=]
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_OFFSET"] = "Slightly adjust the entire nameplate."
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_ENEMY"] = "Show Enemy Nameplates|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH"] = "Ocultar las barras de salud de Blizzard|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = "En las mazmorras o en bandas, si las placas amistosas están activadas, solo se mostrará el nombre del jugador. Si algún módulo de Plater está desactivado, esto afectará también a estas placas de identificación. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r |cFFFF2200[*]|r |cFFa0a0a0A /reload para que surta efecto.|r"
+L["OPTIONS_NAMEPLATE_OFFSET"] = "Ajuste ligeramente toda la placa."
+L["OPTIONS_NAMEPLATE_SHOW_ENEMY"] = "Mostrar placas de enemigos|cFFFF7700*|r"
 --[[Translation missing --]]
 L["OPTIONS_NAMEPLATE_SHOW_ENEMY_DESC"] = [=[Show nameplate for enemy and neutral units.
 
 |cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY"] = "Show Friendly Nameplates|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = [=[Show nameplate for friendly players.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
+L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY"] = "Mostrar placas amistosas|cFFFF7700*|r"
+L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = "Mostrar placa para jugadores amistosos. |cFFFF7700[*]|r |cFFa0a0a0CVar, guardada dentro del perfil de Plater y se restaura al cargar el perfil.|r"
 --[[Translation missing --]]
 L["OPTIONS_NAMEPLATES_OVERLAP"] = "Nameplate Overlap (V)|cFFFF7700*|r"
 --[[Translation missing --]]

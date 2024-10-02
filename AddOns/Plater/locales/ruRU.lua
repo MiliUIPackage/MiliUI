@@ -4,21 +4,15 @@ do
     local L = languageTable
 
 ------------------------------------------------------------
---[[Translation missing --]]
-L["EXPORT"] = "Export"
---[[Translation missing --]]
-L["EXPORT_CAST_COLORS"] = "Share Colors"
---[[Translation missing --]]
-L["EXPORT_CAST_SOUNDS"] = "Share Sounds"
+L["EXPORT"] = "Экспорт"
+L["EXPORT_CAST_COLORS"] = "Поделиться Цветами"
+L["EXPORT_CAST_SOUNDS"] = "Поделиться Звуками"
 L["HIGHLIGHT_HOVEROVER"] = "Подсвечивание при наведении курсора"
 L["HIGHLIGHT_HOVEROVER_ALPHA"] = "Степень подсвечивания при наведении курсора"
 L["HIGHLIGHT_HOVEROVER_DESC"] = "Эффект подсвечивания при наведении курсора мыши над индикаторами здоровья"
---[[Translation missing --]]
-L["IMPORT"] = "Import"
---[[Translation missing --]]
-L["IMPORT_CAST_COLORS"] = "Import Colors"
---[[Translation missing --]]
-L["IMPORT_CAST_SOUNDS"] = "Import Sounds"
+L["IMPORT"] = "Импорт"
+L["IMPORT_CAST_COLORS"] = "Импортировать Цвета"
+L["IMPORT_CAST_SOUNDS"] = "Импортировать Звуки"
 L["OPTIONS_ALPHA"] = "Прозрачность"
 L["OPTIONS_ALPHABYFRAME_ALPHAMULTIPLIER"] = "Множитель прозрачности."
 L["OPTIONS_ALPHABYFRAME_DEFAULT"] = "Прозрачность по умолчанию"
@@ -51,6 +45,14 @@ L["OPTIONS_ANCHOR_TARGET_SIDE"] = "К какой стороне прикрепи
 L["OPTIONS_ANCHOR_TOP"] = "Сверху"
 L["OPTIONS_ANCHOR_TOPLEFT"] = "Сверху слева"
 L["OPTIONS_ANCHOR_TOPRIGHT"] = "Сверху cправо"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN"] = "Audio Cooldown"
+--[[Translation missing --]]
+L["OPTIONS_AUDIOCUE_COOLDOWN_DESC"] = [=[Amount of time in milliseconds to wait before playing the SAME audio again.
+
+Prevents loud sounds from playing when two or more casts are happening at the same time.
+
+Set to 0 to disable this feature.]=]
 L["OPTIONS_AURA_DEBUFF_HEIGHT"] = "Высота иконки дебаффов."
 L["OPTIONS_AURA_DEBUFF_WITH"] = "Ширина иконки дебаффов."
 L["OPTIONS_AURA_HEIGHT"] = "Высота иконки дебаффов."
@@ -121,11 +123,8 @@ L["OPTIONS_COLOR_BACKGROUND"] = "Цвет фона"
 L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR"] = "Личные полосы здоровья и маны|cFFFF7700*|r"
 L["OPTIONS_CVAR_ENABLE_PERSONAL_BAR_DESC"] = [=[Показывать миниатюрную полосу здоровья и маны над вашим персонажем.
 |cFFFF7700[*]|r |cFFa0a0a0CVar, сохраняются в профиле Plater'а и восстанавливаются при его загрузке.|r]=]
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Всегда показывать индикаторы здоровья|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = [=[Show nameplates for all units near you. If disabled only show relevant units when you are in combat.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW"] = "Всегда показывать полосы здоровья|cFFFF7700*|r"
+L["OPTIONS_CVAR_NAMEPLATES_ALWAYSSHOW_DESC"] = "Показывать полосы здоровья для всех юнитов поблизости. В отключённом режиме показывает только юнитов в бою. |cFFFF7700[*]|r |cFFa0a0a0CVar, сохраняется в Plater профиле и загружается с профилем.|r"
 L["OPTIONS_ENABLED"] = "Включить"
 L["OPTIONS_ERROR_CVARMODIFY"] = "консольные настройки нельзя изменять в бою."
 L["OPTIONS_ERROR_EXPORTSTRINGERROR"] = "не удалось экспортировать"
@@ -177,11 +176,9 @@ L["OPTIONS_ICON_SIZE"] = "Размер отображения"
 L["OPTIONS_ICON_WORLDBOSS"] = "Иконка Мирового Босса"
 --[[Translation missing --]]
 L["OPTIONS_ICONROWSPACING"] = "Icon Row Spacing"
---[[Translation missing --]]
-L["OPTIONS_ICONSPACING"] = "Icon Spacing"
+L["OPTIONS_ICONSPACING"] = "Пробел между иконками"
 L["OPTIONS_INDICATORS"] = "Индикаторы"
---[[Translation missing --]]
-L["OPTIONS_INTERRUPT_FILLBAR"] = "Fill Cast Bar On Interrupt"
+L["OPTIONS_INTERRUPT_FILLBAR"] = "Заполнять полосу заклинания при прерывании"
 --[[Translation missing --]]
 L["OPTIONS_INTERRUPT_SHOW_ANIM"] = "Play Interrupt Animation"
 L["OPTIONS_INTERRUPT_SHOW_AUTHOR"] = "Показывать кто прервал"
@@ -194,25 +191,12 @@ L["OPTIONS_MINOR_SCALE_WIDTH"] = "Minor Unit Width Scale"
 L["OPTIONS_MOVE_HORIZONTAL"] = "Переместить по горизонтали."
 L["OPTIONS_MOVE_VERTICAL"] = "Переместить по вертикали."
 L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH"] = "Скрыть полосы здоровья Blizzard|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = [=[While in dungeons or raids, if friendly nameplates are enabled it'll show only the player name.
-If any Plater module is disabled, this will affect these nameplates as well.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r
-
-|cFFFF2200[*]|r |cFFa0a0a0A /reload may be required to take effect.|r]=]
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_OFFSET"] = "Slightly adjust the entire nameplate."
+L["OPTIONS_NAMEPLATE_HIDE_FRIENDLY_HEALTH_DESC"] = "Пока в подземельях или рейдах, если дружественные полосы здоровья включены, будет показываться только имя игрока. Если любой из модулей Plater отключён, эта настройка будет так же влиять на эти полосы.|cFFFF7700[*]|r |cFFa0a0a0CVar, сохраняется в профиле Plater и загружается с профилем. |r |cFFFF2200[*]|r |cFFa0a0a0A /reload может понадобиться, что бы начало работать.|r"
+L["OPTIONS_NAMEPLATE_OFFSET"] = "Слегка изменить всю полосу здоровья"
 L["OPTIONS_NAMEPLATE_SHOW_ENEMY"] = "Показывать индикаторы здоровья врагов|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_ENEMY_DESC"] = [=[Show nameplate for enemy and neutral units.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
+L["OPTIONS_NAMEPLATE_SHOW_ENEMY_DESC"] = "Показывать полосы здоровья для врагов и нейтральных юнитов. |cFFFF7700[*]|r |cFFa0a0a0CVar, сохраняется в профиле Plater и загружается с ним.|r"
 L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY"] = "Показывать индикаторы здоровья союзников|cFFFF7700*|r"
---[[Translation missing --]]
-L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = [=[Show nameplate for friendly players.
-
-|cFFFF7700[*]|r |cFFa0a0a0CVar, saved within Plater profile and restored when loading the profile.|r]=]
+L["OPTIONS_NAMEPLATE_SHOW_FRIENDLY_DESC"] = "Показывать полосы здоровья для дружественных игроков.  |cFFFF7700[*]|r |cFFa0a0a0CVar, сохраняется в профиле Plater и загружается с ним.|r"
 --[[Translation missing --]]
 L["OPTIONS_NAMEPLATES_OVERLAP"] = "Nameplate Overlap (V)|cFFFF7700*|r"
 --[[Translation missing --]]
@@ -311,10 +295,8 @@ L["OPTIONS_SHIELD_BAR"] = "Полоса Щита"
 L["OPTIONS_SHOW_CASTBAR"] = "Показывать полосу заклинаний"
 --[[Translation missing --]]
 L["OPTIONS_SHOW_POWERBAR"] = "Show power bar"
---[[Translation missing --]]
-L["OPTIONS_SHOWOPTIONS"] = "Show Options"
---[[Translation missing --]]
-L["OPTIONS_SHOWSCRIPTS"] = "Show Scripts"
+L["OPTIONS_SHOWOPTIONS"] = "Показать Настройки"
+L["OPTIONS_SHOWSCRIPTS"] = "Показать Скрипты"
 L["OPTIONS_SHOWTOOLTIP"] = "Показывать описание"
 --[[Translation missing --]]
 L["OPTIONS_SHOWTOOLTIP_DESC"] = "Show tooltip when hovering over the aura icon."
@@ -349,7 +331,7 @@ L["OPTIONS_TABNAME_PERSONAL"] = "Личная полоса"
 L["OPTIONS_TABNAME_PLAYERENEMY"] = "Вражеские игроки"
 L["OPTIONS_TABNAME_PLAYERFRIENDLY"] = "Союзные игроки"
 L["OPTIONS_TABNAME_PROFILES"] = "Профили"
-L["OPTIONS_TABNAME_SCRIPTING"] = "Свой код"
+L["OPTIONS_TABNAME_SCRIPTING"] = "Скрипты"
 L["OPTIONS_TABNAME_SEARCH"] = "Поиск"
 L["OPTIONS_TABNAME_STRATA"] = "Уровень и слой"
 L["OPTIONS_TABNAME_TARGET"] = "Цель"

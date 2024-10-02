@@ -40,7 +40,7 @@ License: MIT
 -- @class file
 -- @name LibRangeCheck-3.0
 local MAJOR_VERSION = "LibRangeCheck-3.0"
-local MINOR_VERSION = 21
+local MINOR_VERSION = 26
 
 ---@class lib
 local lib, oldminor = LibStub:NewLibrary(MAJOR_VERSION, MINOR_VERSION)
@@ -85,14 +85,15 @@ local IsSpellBookItemInRange = _G.IsSpellInRange or function(index, spellBank, u
   end
   return nil
 end
+local spellTypes = {"SPELL", "FUTURESPELL", "PETACTION", "FLYOUT"}
 local GetSpellBookItemInfo = _G.GetSpellBookItemInfo or function(index, spellBank)
   if type(spellBank) == "string" then
     spellBank = (spellBank == "spell") and Enum.SpellBookSpellBank.Player or Enum.SpellBookSpellBank.Pet;
   end
   local info = C_SpellBook.GetSpellBookItemInfo(index, spellBank)
-  -- we are looking for "Spell" and "FutureSpell", but not passives here
-  if info and not info.isPassive and (info.itemType == Enum.SpellBookItemType.Spell or info.itemType == Enum.SpellBookItemType.FutureSpell) then
-    return info.itemType, info.spellID
+  --map spell-type
+  if info and spellTypes[info.itemType or 0] then
+    return spellTypes[info.itemType or 0] or "None", info.spellID, info
   end
 end
 local UnitClass = UnitClass
@@ -167,6 +168,7 @@ end
 -- Evoker
 tinsert(HarmSpells.EVOKER, 362969) -- Azure Strike (25 yards)
 
+tinsert(FriendSpells.EVOKER, 355913) -- Emerald Blossom (25 yards)
 tinsert(FriendSpells.EVOKER, 361469) -- Living Flame (25 yards)
 tinsert(FriendSpells.EVOKER, 360823) -- Naturalize (Preservation) (30 yards)
 
@@ -270,6 +272,7 @@ tinsert(FriendSpells.PRIEST, 527) -- Purify / Dispel Magic (40 yards retail, 30 
 tinsert(FriendSpells.PRIEST, 2061) -- Flash Heal (40 yards, level 3 retail, level 20 tbc)
 
 tinsert(HarmSpells.PRIEST, 589) -- Shadow Word: Pain (40 yards)
+tinsert(HarmSpells.PRIEST, 8092) -- Mind Blast (40 yards)
 tinsert(HarmSpells.PRIEST, 585) -- Smite (40 yards)
 tinsert(HarmSpells.PRIEST, 5019) -- Shoot (30 yards)
 
@@ -305,6 +308,8 @@ if not isRetail then
 end
 
 tinsert(HarmSpells.SHAMAN, 370) -- Purge (30 yards)
+tinsert(HarmSpells.SHAMAN, 8042) -- Earth Shock (40 yards)
+tinsert(HarmSpells.SHAMAN, 117014) -- Elemental Blast (40 yards)
 tinsert(HarmSpells.SHAMAN, 188196) -- Lightning Bolt (40 yards)
 tinsert(HarmSpells.SHAMAN, 73899) -- Primal Strike (Melee Range)
 
@@ -325,9 +330,12 @@ if not isRetail then
 end
 
 -- Warlocks
-tinsert(FriendSpells.WARLOCK, 132) -- Detect Invisibility (30 yards, level 26)
+if isEra then
+  tinsert(FriendSpells.WARLOCK, 132) -- Detect Invisibility (30 yards, level 26)
+else
+  tinsert(FriendSpells.WARLOCK, 20707) -- Soulstone (40 yards) ~ this can be precasted so leave it in friendly as well as res
+end
 tinsert(FriendSpells.WARLOCK, 5697) -- Unending Breath (30 yards)
-tinsert(FriendSpells.WARLOCK, 20707) -- Soulstone (40 yards) ~ this can be precasted so leave it in friendly as well as res
 
 if isRetail then
   tinsert(HarmSpells.WARLOCK, 234153) -- Drain Life (40 yards, level 9)
@@ -339,14 +347,19 @@ else
   tinsert(HarmSpells.WARLOCK, 17877) -- Shadowburn (Destruction) (20/22/24 yards, rank 1)
   tinsert(HarmSpells.WARLOCK, 18223) -- Curse of Exhaustion (Affliction) (30/33/36/35/38/42 yards)
   tinsert(HarmSpells.WARLOCK, 689) -- Drain Life (Affliction) (20/22/24 yards, level 14, rank 1)
+end
+if isEra then
   tinsert(HarmSpells.WARLOCK, 403677) -- Master Channeler (Affliction) (20/22/24 yards, level 14, rank 1)
+  tinsert(HarmSpells.WARLOCK, 426320) -- Shadowflame (30/33/36/39/42 yards, level 14, rank 1)
 end
 
 tinsert(HarmSpells.WARLOCK, 5019) -- Shoot (30 yards)
 tinsert(HarmSpells.WARLOCK, 686) -- Shadow Bolt (Demonology, Affliction) (40 yards)
 tinsert(HarmSpells.WARLOCK, 5782) -- Fear (30 yards)
 
-tinsert(ResSpells.WARLOCK, 20707) -- Soulstone (40 yards)
+if not isEra then
+  tinsert(ResSpells.WARLOCK, 20707) -- Soulstone (40 yards)
+end
 
 tinsert(PetSpells.WARLOCK, 755) -- Health Funnel (45 yards)
 
@@ -632,6 +645,9 @@ end
 
 local function getNumSpells()
   local _, _, offset, numSpells = GetSpellTabInfo(GetNumSpellTabs())
+  if not offset or not numSpells then
+    return 0
+  end
   return offset + numSpells
 end
 
@@ -643,11 +659,13 @@ local function findSpellIdx(spellName)
   for i = 1, getNumSpells() do
     local spell = GetSpellBookItemName(i, BOOKTYPE_SPELL)
     if spell == spellName then
-      local spellType, spellID = GetSpellBookItemInfo(i, BOOKTYPE_SPELL)
-      if spellType == "SPELL" or spellType == "FUTURESPELL"  then -- classic/era
+      local spellType, spellID, spellInfo = GetSpellBookItemInfo(i, BOOKTYPE_SPELL)
+      if spellInfo then -- new API output available
+        if Enum.SpellBookItemType and spellInfo.itemType == Enum.SpellBookItemType.Spell and not spellInfo.isOffSpec then -- retail - filter for only active spec "SPELL"
+          return spellID
+        end
+      elseif spellType == "SPELL" then -- classic/era
         return i
-      elseif Enum.SpellBookItemType and (spellType == Enum.SpellBookItemType.Spell or spellType == Enum.SpellBookItemType.FutureSpell) then -- retail
-        return spellID
       end
     end
   end

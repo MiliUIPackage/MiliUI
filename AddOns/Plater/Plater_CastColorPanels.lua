@@ -204,6 +204,10 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
     castFrame:SetPoint("topleft", castColorFrame, "topleft", 5, -140)
     castFrame:SetSize(1060, 495)
 
+    castColorFrame:HookScript("OnHide", function()
+        GameCooltip:Hide()
+    end)
+
     --options
     local scroll_width = 1050
     local scroll_height = 442
@@ -257,6 +261,8 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
             castColorFrame.lastLineEntered:SetBackdropColor(unpack (castColorFrame.lastLineEntered.backdrop_color or backdrop_color))
         end
 
+        GameCooltip:Hide()
+
         self:SetBackdropColor (unpack (backdrop_color_on_enter or backdrop_color))
         if (self.spellId) then
             GameTooltip:SetOwner (self, "ANCHOR_TOPLEFT")
@@ -290,6 +296,10 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
 
     local oneditfocusgained_spellid = function(self, capsule)
         self:HighlightText (0)
+    end
+
+    local oneditfocuslost = function(self)
+        self:HighlightText(0, 0)
     end
 
     local refresh_line_color = function(self, color)
@@ -551,12 +561,14 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
 
         --spell Id
         local spellIdEntry = DF:CreateTextEntry(line, function()end, headerTable[3].width, 20, "spellIdEntry", nil, nil, DF:GetTemplate("dropdown", "PLATER_DROPDOWN_OPTIONS"))
-        spellIdEntry:SetHook ("OnEditFocusGained", oneditfocusgained_spellid)
+        spellIdEntry:SetHook("OnEditFocusGained", oneditfocusgained_spellid)
+        spellIdEntry:SetHook("OnEditFocusLost", oneditfocuslost)
         spellIdEntry:SetJustifyH("left")
 
         --spell Name
         local spellNameEntry = DF:CreateTextEntry(line, function()end, headerTable[4].width, 20, "spellNameEntry", nil, nil, DF:GetTemplate("dropdown", "PLATER_DROPDOWN_OPTIONS"))
         spellNameEntry:SetHook("OnEditFocusGained", oneditfocusgained_spellid)
+        spellNameEntry:SetHook("OnEditFocusLost", oneditfocuslost)
         spellNameEntry:SetJustifyH("left")
 
         local spellRenameEntry = DF:CreateTextEntry(line, function()end, headerTable[5].width, 20, "spellRenameEntry", nil, nil, DF:GetTemplate("dropdown", "PLATER_DROPDOWN_OPTIONS"))
@@ -592,6 +604,7 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
         --npc name
         local npcNameEntry = DF:CreateTextEntry(line, function()end, headerTable[6].width, 20, "npcNameEntry", nil, nil, DF:GetTemplate("dropdown", "PLATER_DROPDOWN_OPTIONS"))
         npcNameEntry:SetHook("OnEditFocusGained", oneditfocusgained_spellid)
+        npcNameEntry:SetHook("OnEditFocusLost", oneditfocuslost)
         npcNameEntry:SetJustifyH("left")
 
         --npc Id
@@ -1294,7 +1307,7 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
             else
                 --to allow the user to search for spells using a script, we need to get all the script names
                 ---@type table
-                local scriptNames = self.ScriptNamesCache --{}
+                local scriptNames = self.ScriptNamesCache or {} --{}
                 scriptNames["p"] = nil
                 scriptNames["plater"] = nil
 
@@ -2188,18 +2201,37 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
         exportCastSoundsButton:SetFrameLevel(castFrame.Header:GetFrameLevel() + 20)
         exportCastSoundsButton:SetIcon([[Interface\AddOns\Plater\images\import_indicators_1.png]], 15, 14, "overlay", {0.625, 0.75, 0, 1})
 
-    --disable all button
+    --disable all colors button
         local disableAllColors = function()
-            for spellId, colorTable in pairs(Plater.db.profile.cast_colors) do
-                colorTable[CONST_INDEX_ENABLED] = false
-            end
-            castFrame.RefreshScroll()
+            DF:ShowPromptPanel(LOC["OPTIONS_CASTCOLORS_DISABLECOLORS_CONFIRM"], function()
+                for _, colorTable in pairs(Plater.db.profile.cast_colors) do
+                    colorTable[CONST_INDEX_ENABLED] = false
+                end
+                castFrame.RefreshScroll()
+            end,
+            function()end, true, 400, "PLATER_DISABLE_ALL_COLORS")
         end
 
         local disableAllColorsButton = DF:CreateButton(castFrame, disableAllColors, 150, 20, LOC["OPTIONS_CASTCOLORS_DISABLECOLORS"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "PLATER_BUTTON_DARK"), DF:GetTemplate("font", "PLATER_BUTTON"))
         disableAllColorsButton:SetPoint("left", refreshButton, "right", 2, 0)
         disableAllColorsButton:SetFrameLevel(castFrame.Header:GetFrameLevel() + 20)
-        disableAllColorsButton:SetIcon([[Interface\AddOns\Plater\images\color_cancel.png]], 16,    16,     "overlay", {0, 1, 0, 1}, nil,     nil,          nil,         nil,        nil,         "TRILINEAR")
+        disableAllColorsButton:SetIcon([[Interface\AddOns\Plater\images\color_cancel.png]], 16, 16, "overlay", {0, 1, 0, 1}, nil, nil, nil, nil, nil, "TRILINEAR")
+
+    --disable all sounds button
+        local disableAllSounds = function()
+            DF:ShowPromptPanel(LOC["OPTIONS_CASTCOLORS_DISABLE_SOUNDS_CONFIRM"], function()
+                for spellId in pairs(Plater.db.profile.cast_audiocues) do
+                    Plater.db.profile.cast_audiocues[spellId] = nil
+                end
+                castFrame.RefreshScroll()
+            end,
+            function()end, true, 400, "PLATER_DISABLE_ALL_SOUNDS")
+        end
+
+        local disableAllSoundsButton = DF:CreateButton(castFrame, disableAllSounds, 150, 20, LOC["OPTIONS_CASTCOLORS_DISABLE_SOUNDS"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "PLATER_BUTTON_DARK"), DF:GetTemplate("font", "PLATER_BUTTON"))
+        disableAllSoundsButton:SetPoint("left", disableAllColorsButton, "right", 2, 0)
+        disableAllSoundsButton:SetFrameLevel(castFrame.Header:GetFrameLevel() + 20)
+        disableAllSoundsButton:SetIcon([[Interface\AddOns\Plater\images\audio_cancel.png]], 16, 16, "overlay", {0, 1, 0, 1}, nil, nil, nil, nil, nil, "TRILINEAR")
 
     --toggle options button
         castFrame.showingScriptSelection = true
@@ -2218,12 +2250,31 @@ function Plater.CreateCastColorOptionsFrame(castColorFrame)
         end
 
         local toggleOptionsButton = DF:CreateButton(castFrame, toggleScriptSelectionAndOptionsFrame, 150, 20, LOC["OPTIONS_SHOWOPTIONS"], -1, nil, nil, nil, nil, nil, DF:GetTemplate("button", "PLATER_BUTTON_DARK"), DF:GetTemplate("font", "PLATER_BUTTON"))
-        toggleOptionsButton:SetPoint("left", disableAllColorsButton, "right", 2, 0)
+        toggleOptionsButton:SetPoint("left", disableAllSoundsButton, "right", 2, 0)
         toggleOptionsButton:SetFrameLevel(castFrame.Header:GetFrameLevel() + 20)
         toggleOptionsButton:SetIcon([[Interface\AddOns\Plater\images\config_icon.png]], 16,    16,     "overlay", {0, 1, 0, 1}, nil,     nil,          nil,         nil,        nil,         "TRILINEAR")
         castFrame.toggleOptionsButton = toggleOptionsButton
 
-        
+    --cast_audiocue_cooldown
+    --create a slider to set the cooldown for the audio cue
+    local onAudioCueCooldownChanged = function(self, fixedValue, value)
+        Plater.db.profile.cast_audiocue_cooldown = value
+    end
+    local audioSliderWidth = 150
+    local audioSliderHeight = 20
+    local bIsDecimals = true
+
+    ---@type df_slider
+    local audioCueCooldownSlider = DF:CreateSlider(castFrame, audioSliderWidth, audioSliderHeight, 0, 0.4, 0.05, Plater.db.profile.cast_audiocue_cooldown, bIsDecimals, "audioCueCooldownSlider", "$parentAudioCueCooldownSlider", nil, DF:GetTemplate("slider", "OPTIONS_SLIDERDARK_TEMPLATE"))
+    audioCueCooldownSlider:SetFrameLevel(castFrame.Header:GetFrameLevel() + 20)
+    audioCueCooldownSlider:SetHook("OnValueChanged", onAudioCueCooldownChanged)
+    audioCueCooldownSlider.tooltip = LOC["OPTIONS_AUDIOCUE_COOLDOWN_DESC"]
+
+    --create a label with the text "audio cooldown", set its point to the same as the slider below
+    local audioCueCooldownLabel = DF:CreateLabel(audioCueCooldownSlider, LOC["OPTIONS_AUDIOCUE_COOLDOWN"])
+    audioCueCooldownLabel:SetTemplate(DF:GetTemplate("font", "PLATER_BUTTON"))
+    audioCueCooldownLabel:SetPoint("left", toggleOptionsButton, "right", 50, 0)
+    audioCueCooldownSlider:SetPoint("left", audioCueCooldownLabel, "right", 2, 0)
 
     -- buttons backdrop
         local backdropFoot = CreateFrame("frame", nil, spells_scroll, BackdropTemplateMixin and "BackdropTemplate")

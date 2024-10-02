@@ -8,6 +8,57 @@ function Plater.GetChangelogTable()
 	if (not Plater.ChangeLogTable) then
 		Plater.ChangeLogTable = {
 
+			{1727794055, "Bug Fix", "Oct 1st, 2024", "Ensure soft-interact options work on all client versions now.", "cont1nuity"},
+			{1727794055, "Bug Fix", "Sept 25th, 2024", "Don't cache game objects in the npc-cache.", "cont1nuity"},
+			{1727794055, "Bug Fix", "Sept 25th, 2024", "Fix Warlock execute.", "cont1nuity"},
+			{1727794055, "Bug Fix", "Sept 19th, 2024", "Fixes for MDT integration.", "Terciob"},
+			{1727794055, "Backend Change", "Sept 16th, 2024", "Support 'Larger Nameplates' option and base scaling in a better way.", "cont1nuity"},
+			{1727794055, "Backend Change", "Sept 16th, 2024", "Frame-Level is now only adjusted for targets if custom strata is disabled.", "cont1nuity"},
+			{1727794055, "Backend Change", "Sept 16th, 2024", "Power-Bar strata and frame level is now properly set.", "cont1nuity"},
+			{1727794055, "Bug Fix", "Sept 16th, 2024", "Disabling Boss-Mod support will now disable renaming as well.", "cont1nuity"},
+			{1727794055, "Backend Change", "Sept 16th, 2024", "Delves are considered instanced content for auto-toggle feature.", "cont1nuity"},
+			{1727794055, "Bug Fix", "Sept 13th, 2024", "Build offensive/defensive CDs from LibOpenRaid if available.", "Terciob"},
+			
+			{1726136224, "Bug Fix", "Sept 11th, 2024", "Fixing an error in profiling.", "cont1nuity"},
+			{1726136224, "Backend Change", "Sept 10th, 2024", "Validate imported profile data passed to import API.", "cont1nuity"},
+			{1726136224, "New Feature", "Sept 9th, 2024", "Allow setting a custom name color for interactable game objects.", "Linaori"},
+			{1726136224, "Bug Fix", "Sept 9th, 2024", "Fixing manual buff tracking showing Buff Special auras on normal aura frames as well.", "cont1nuity"},
+			{1726136224, "Backend Change", "Sept 6th, 2024", "Level & Strata adjustment: levels can now be set with custom strata disabled and healthBar strata is set properly.", "cont1nuity"},
+			{1726136224, "Backend Change", "Sept 6th, 2024", "Improvements to aura borders.", "cont1nuity"},
+			{1726136224, "Bug Fix", "Sept 5th, 2024", "Fixing a lot of small code issues.", "DakJaniels"},
+			{1726136224, "Bug Fix", "Sept 4th, 2024", "Fixing issue with options tabs loading in twice sometimes.", "cont1nuity"},
+			{1726136224, "Backend Change", "Sept 4th, 2024", "Use reaction name coloring for 'name only' enemy NPCs instead of fixed color.", "cont1nuity"},
+			{1726136224, "New Feature", "Sept 2nd, 2024", "Adding glow support to DBM boss-mod timer icons and moving Boss-Mod options to their own options tab.", "cont1nuity"},
+			{1726136224, "Backend Change", "Aug 31st, 2024", "Glow API documentation.", "cont1nuity"},
+			{1726136224, "Bug Fix", "Aug 30th, 2024", "Fixing issue with unit trigger tooltips not showing on entries as name.", "cont1nuity"},
+			{1726136224, "New Feature", "Aug 30th, 2024", "Consolidating option to rename casts based on DMB or BigWigs renamed spells.", "cont1nuity"},
+			
+			{1725041423, "Bug Fix", "Aug 30th, 2024", "Fixing error in default script.", "Terciob"},
+			{1725041423, "Bug Fix", "Aug 29th, 2024", "Fixing combo points for classic.", "cont1nuity"},
+			
+			{1724783240, "Bug Fix", "Aug 29th, 2024", "Fixing error in default script.", "Terciob"},
+			{1724783240, "Bug Fix", "Aug 28th, 2024", "Allowing resource scaling to be smaller.", "cont1nuity"},
+			{1724783240, "Bug Fix", "Aug 27th, 2024", "Fixing rogue combo points layout.", "cont1nuity"},
+			{1724783240, "New Feature", "Aug 27th, 2024", "Adding option to rename casts based on BigWigs renamed spells.", "cont1nuity"},
+			
+			{1724396217, "Bug Fix", "Aug 25th, 2024", "Fixing range checks for some specs hero talents through updates in LibRangeCheck.", "cont1nuity"},
+			{1724396217, "Bug Fix", "Aug 23rd, 2024", "Fixing issue with talent load conditions.", "cont1nuity"},
+			{1724396217, "Bug Fix", "Aug 23rd, 2024", "Fixing range checks for some specs through updates in LibRangeCheck.", "cont1nuity"},
+			{1724396217, "Bug Fix", "Aug 22nd, 2024", "Fixing an issue with stored spell animation data which was doubling up or could not be removed.", "cont1nuity"},
+			{1724396217, "Bug Fix", "Aug 20th, 2024", "Fixing an issue with CVar storing and restoring.", "cont1nuity"},
+			{1724396217, "Backend Change", "Aug 19th, 2024", "Adjustments to new profile import API.", "cont1nuity"},
+			{1724396217, "Bug Fix", "Aug 15th, 2024", "Fixes to default scripts.", "Terciob"},
+			
+			{1723752649, "New Feature", "Aug 13th, 2024", "Adding 'remove all sounds' button.", "Linaori"},
+			{1723752649, "Bug Fix", "Aug 2nd, 2024", "Fixes to default scripts.", "Terciob"},
+			{1723752649, "Backend Change", "Aug 2nd, 2024", "New profile import API.", "cont1nuity"},
+			{1723752649, "Backend Change", "Aug 2nd, 2024", "Fixing Chi resource visuals.", "cont1nuity"},
+			{1723752649, "Backend Change", "Aug 1st, 2024", "Don't show any 'player-realm' or 'realm' default profiles unless they explicitly exist.", "cont1nuity"},
+			{1723752649, "Backend Change", "Aug 1st, 2024", "Fixing cvar last changed recognition.", "cont1nuity"},
+			{1723752649, "New Feature", "July 30th, 2024", "Adding option to change audio colldown on the Cast Colors tab.", "Terciob"},
+			{1723752649, "New Feature", "July 27th, 2024", "Adding option to disable text on DMB timer icons.", "cont1nuity"},
+			{1723752649, "Bug Fix", "July 27th, 2024", "Fixing Mage execute range.", "cont1nuity"},
+			
 			{1722023393, "Bug Fix", "July 26th, 2024", "Fixing issues with range checks on certain classes/specs.", "cont1nuity"},
 			{1722023393, "Bug Fix", "July 25th, 2024", "Fixing Mage execute range.", "cont1nuity"},
 			

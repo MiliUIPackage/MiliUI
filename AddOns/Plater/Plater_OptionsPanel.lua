@@ -1,6 +1,7 @@
 local addonId, platerInternal = ...
 
 local Plater = Plater
+---@type detailsframework
 local DF = DetailsFramework
 local LibSharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
 local LibRangeCheck = LibStub:GetLibrary ("LibRangeCheck-3.0")
@@ -155,6 +156,207 @@ function Plater.CheckOptionsTab()
 	update_wago_update_icons()
 end
 
+---@param profileName string
+---@param profile table
+---@param bIsUpdate boolean
+---@param bKeepModsNotInUpdate boolean
+---@param doNotReload boolean
+function Plater.ImportAndSwitchProfile(profileName, profile, bIsUpdate, bKeepModsNotInUpdate, doNotReload, keepScaleTune)
+	if type(profile) == "string" then -- try decompressing
+		local profileTmp = Plater.DecompressData (profile, "print", true)
+		if type(profileTmp) == "table" then
+			profile = profileTmp
+		end
+	end
+	
+	assert((type(profileName) == "string"), "Plater requires a proper profile name for ImportAndSwitchProfile.")
+	assert((type(profile) == "table"), "Plater requires a proper compressed profile string or decompressed and deserialized profile table for ImportAndSwitchProfile.")
+	assert(profile.plate_config, "Plater requires a proper compressed profile string or decompressed and deserialized profile table for ImportAndSwitchProfile.")
+	local bWasUsingUIParent = Plater.db.profile.use_ui_parent
+	local scriptDataBackup = (bIsUpdate or bKeepModsNotInUpdate) and DF.table.copy({}, Plater.db.profile.script_data) or {}
+	local hookDataBackup = (bIsUpdate or bKeepModsNotInUpdate) and DF.table.copy({}, Plater.db.profile.hook_data) or {}
+	
+	--switch to profile
+	Plater.db:SetProfile(profileName)
+	
+	--cleanup profile -> reset to defaults
+	Plater.db:ResetProfile(false, true)
+	
+	--import new profile settings
+	DF.table.copy(Plater.db.profile, profile)
+	
+	--make the option reopen after the reload
+	Plater.db.profile.reopoen_options_panel_on_tab = TAB_INDEX_PROFILES
+
+	--check if parent to UIParent is enabled and calculate the new scale
+	if (Plater.db.profile.use_ui_parent) then
+		if (not bIsUpdate or not bWasUsingUIParent and not keepScaleTune) then --only update if necessary
+			Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
+		end
+	else
+		Plater.db.profile.ui_parent_scale_tune = 0
+	end
+	
+	if (bIsUpdate or bKeepModsNotInUpdate) then
+		--copy user settings for mods/scripts and keep mods/scripts which are not part of the profile
+		for index, oldScriptObject in ipairs(scriptDataBackup) do
+			local scriptDB = Plater.db.profile.script_data or {}
+			local bFound = false
+			for i = 1, #scriptDB do
+				local scriptObject = scriptDB[i]
+				if (scriptObject.Name == oldScriptObject.Name) then
+					if (bIsUpdate) then
+						Plater.UpdateOptionsForModScriptImport(scriptObject, oldScriptObject)
+					end
+
+					bFound = true
+					break
+				end
+			end
+
+			if (not bFound and bKeepModsNotInUpdate) then
+				table.insert(scriptDB, oldScriptObject)
+			end
+		end
+		
+		for index, oldScriptObject in ipairs(hookDataBackup) do
+			local scriptDB = Plater.db.profile.hook_data or {}
+			local bFound = false
+			for i = 1, #scriptDB do
+				local scriptObject = scriptDB[i]
+				if (scriptObject.Name == oldScriptObject.Name) then
+					if (bIsUpdate) then
+						Plater.UpdateOptionsForModScriptImport(scriptObject, oldScriptObject)
+					end
+
+					bFound = true
+					break
+				end
+			end
+
+			if (not bFound and bKeepModsNotInUpdate) then
+				table.insert(scriptDB, oldScriptObject)
+			end
+		end
+	end
+	
+	--cleanup NPC cache/colors
+	---@type table<number, string[]> [1] npcname [2] zonename [3] language
+	local cache = Plater.db.profile.npc_cache
+
+	local cacheTemp = DetailsFramework.table.copy({}, cache)
+	for npcId, npcData in pairs(cacheTemp) do
+		---@cast npcData table{key1: string, key2: string, key3: string|nil}
+		if (tonumber(npcId)) then
+			cache[npcId] = nil
+			cache[tonumber(npcId)] = npcData 
+		end
+	end
+	
+	--cleanup npc colors
+	---@type npccolordb
+	local colors = Plater.db.profile.npc_colors
+	---@type npccolordb
+	local colorsTemp = DetailsFramework.table.copy({}, colors)
+
+	---@type number, npccolortable
+	for npcId, npcColorTable in pairs(colorsTemp) do
+		if tonumber(npcId) then 
+			colors[npcId] = nil
+			colors[tonumber(npcId)] = npcColorTable 
+		end
+	end
+	
+	--cleanup cast colors/sounds
+	---@type castcolordb
+	local castColors = Plater.db.profile.cast_colors
+	---@type castcolordb
+	local castColorsTemp = DetailsFramework.table.copy({}, castColors)
+
+	---@type number, castcolortable
+	for spellId, castColorTable in pairs(castColorsTemp) do
+		if tonumber(spellId) then 
+			castColors[spellId] = nil
+			castColors[tonumber(spellId)] = castColorTable 
+		end
+	end
+	
+	---@type renamednpcsdb
+	local renamedNPCs = Plater.db.profile.npcs_renamed
+	---@type renamednpcsdb
+	local renamedNPCsTemp = DetailsFramework.table.copy({}, renamedNPCs)
+	
+	for npcId, renamedName in pairs(renamedNPCsTemp) do
+		if tonumber(npcId) then 
+			renamedNPCs[npcId] = nil
+			renamedNPCs[tonumber(npcId)] = renamedName 
+		end
+	end
+	
+	---@type audiocuedb
+	local audioCues = Plater.db.profile.cast_audiocues
+	---@type audiocuedb
+	local audioCuesTemp = DetailsFramework.table.copy({}, audioCues)
+
+	for spellId, audioCuePath in pairs(audioCuesTemp) do
+		if tonumber(spellId) then 
+			audioCues[spellId] = nil
+			audioCues[tonumber(spellId)] = audioCuePath 
+		end
+	end
+	
+	---@type spellanimationdb
+	local spellAnimations = Plater.db.profile.spell_animation_list
+	---@type spellanimationdb
+	local spellAnimationsTemp = DetailsFramework.table.copy({}, spellAnimations)
+
+	for spellId, animation in pairs(spellAnimationsTemp) do
+		if tonumber(spellId) then 
+			spellAnimations[spellId] = nil
+			spellAnimations[tonumber(spellId)] = animation 
+		end
+	end
+	
+	---@type ghostauras
+	local ghostAuras = Plater.db.profile.ghost_auras.auras
+	---@type ghostauras
+	local ghostAurasTemp = DetailsFramework.table.copy({}, ghostAuras)
+	local ghostAurasDefault = PLATER_DEFAULT_SETTINGS.profile.ghost_auras.auras
+	--cleanup is needed for proper number indexing. will remove crap as well.
+	for class, specs in pairs(ghostAurasTemp) do
+		for specID, specData in pairs(specs) do
+			ghostAuras[class][specID] = nil
+			if ghostAurasDefault[class][tonumber(specID)] then
+				ghostAuras[class][tonumber(specID)] = ghostAuras[class][tonumber(specID)] or {}
+				for spellId, enabled in pairs(specData) do
+					if tonumber(spellId) then
+						ghostAuras[class][tonumber(specID)][tonumber(spellId)] = enabled 
+					end
+				end
+			end
+		end
+	end
+	
+	-- cleanup captured_spells
+	for spellId, data in pairs(Plater.db.profile.captured_spells) do
+		DB_CAPTURED_SPELLS[spellId] = DB_CAPTURED_SPELLS[spellId] or data --retain original
+	end
+	Plater.db.profile.captured_spells = nil --this does belong into PlaterDB
+	-- cleanup captured_casts
+	for spellId, data in pairs(Plater.db.profile.captured_casts) do
+		DB_CAPTURED_CASTS[spellId] = DB_CAPTURED_CASTS[spellId] or data --retain original
+	end
+	Plater.db.profile.captured_casts = nil --this does belong into PlaterDB
+	
+	--restore CVars of the profile
+	Plater.RestoreProfileCVars()
+	
+	--automatically reload the user UI unless explicitly posponed (external importer, for example)
+	if not doNotReload then
+		ReloadUI()
+	end
+end
+
 local TAB_INDEX_UIPARENTING = 5
 local TAB_INDEX_PROFILES = 22
 
@@ -171,7 +373,10 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 
 	if (PlaterOptionsPanelFrame) then
 		PlaterOptionsPanelFrame:Show()
-		Plater.CheckOptionsTab()
+
+		if (not bIgnoreLazyLoad) then
+			Plater.CheckOptionsTab()
+		end
 
 		if (pageNumber) then
 			if (not bIsOptionsPanelFullyLoaded and not bIgnoreLazyLoad) then
@@ -313,6 +518,7 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 		{name = "WagoIo", text = "Wago Imports"}, --wago_imports --localize-me
 		{name = "SearchFrame", text = "OPTIONS_TABNAME_SEARCH", createOnDemandFunc = platerInternal.CreateSearchOptions},
 		{name = "PluginsFrame", text = "Plugins"}, --localize-me
+		{name = "BossModConfig", text = "Boss-Mods", createOnDemandFunc = platerInternal.CreateBossModOptions}, --localize-me
 		
 	}, 
 	frame_options, hookList, languageInfo)
@@ -427,6 +633,7 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 	local wagoIoFrame 			= mainFrame.AllFrames [25] --wago_imports
 	local searchFrame			= mainFrame.AllFrames [26]
 	local pluginsFrame			= mainFrame.AllFrames [27]
+	local bossModFrame			= mainFrame.AllFrames [28]
 
 	local scriptButton		= mainFrame.AllButtons [6] --also need update on ~changeindex1 and ~changeindex2
 	local modButton		 	= mainFrame.AllButtons [7]
@@ -535,6 +742,8 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 		for _, frame in ipairs (f.AllMenuFrames) do
 			if (frame.RefreshOptions) then
 				frame:RefreshOptions()
+			elseif (frame.canvasFrame and frame.canvasFrame.child and frame.canvasFrame.child.RefreshOptions) then
+				frame.canvasFrame.child.RefreshOptions() -- new scroll menus
 			end
 		end
 		Plater.UpdateMaxCastbarTextLength()
@@ -884,182 +1093,14 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 				
 				profile.profile_name = nil --no need to import
 				
-				local bWasUsingUIParent = Plater.db.profile.use_ui_parent
-				local scriptDataBackup = (bIsUpdate or bKeepModsNotInUpdate) and DF.table.copy({}, Plater.db.profile.script_data) or {}
-				local hookDataBackup = (bIsUpdate or bKeepModsNotInUpdate) and DF.table.copy({}, Plater.db.profile.hook_data) or {}
-				
-				--switch to profile
-				Plater.db:SetProfile(profileName)
-				
-				--cleanup profile -> reset to defaults
-				Plater.db:ResetProfile(false, true)
-				
-				--import new profile settings
-				DF.table.copy(Plater.db.profile, profile)
-				
-				--make the option reopen after the reload
-				Plater.db.profile.reopoen_options_panel_on_tab = TAB_INDEX_PROFILES
-
-				--check if parent to UIParent is enabled and calculate the new scale
-				if (Plater.db.profile.use_ui_parent) then
-					if (not bIsUpdate or not bWasUsingUIParent) then --only update if necessary
-						Plater.db.profile.ui_parent_scale_tune = 1 / UIParent:GetEffectiveScale()
-					end
-				else
-					Plater.db.profile.ui_parent_scale_tune = 0
-				end
-				
-				if (bIsUpdate or bKeepModsNotInUpdate) then
-					--copy user settings for mods/scripts and keep mods/scripts which are not part of the profile
-					for index, oldScriptObject in ipairs(scriptDataBackup) do
-						local scriptDB = Plater.db.profile.script_data or {}
-						local bFound = false
-						for i = 1, #scriptDB do
-							local scriptObject = scriptDB[i]
-							if (scriptObject.Name == oldScriptObject.Name) then
-								if (bIsUpdate) then
-									Plater.UpdateOptionsForModScriptImport(scriptObject, oldScriptObject)
-								end
-
-								bFound = true
-								break
-							end
-						end
-
-						if (not bFound and bKeepModsNotInUpdate) then
-							table.insert(scriptDB, oldScriptObject)
-						end
-					end
-					
-					for index, oldScriptObject in ipairs(hookDataBackup) do
-						local scriptDB = Plater.db.profile.hook_data or {}
-						local bFound = false
-						for i = 1, #scriptDB do
-							local scriptObject = scriptDB[i]
-							if (scriptObject.Name == oldScriptObject.Name) then
-								if (bIsUpdate) then
-									Plater.UpdateOptionsForModScriptImport(scriptObject, oldScriptObject)
-								end
-
-								bFound = true
-								break
-							end
-						end
-
-						if (not bFound and bKeepModsNotInUpdate) then
-							table.insert(scriptDB, oldScriptObject)
-						end
-					end
-				end
-				
-				--cleanup NPC cache/colors
-				---@type table<number, string[]> [1] npcname [2] zonename [3] language
-				local cache = Plater.db.profile.npc_cache
-
-				local cacheTemp = DetailsFramework.table.copy({}, cache)
-				for npcId, npcData in pairs(cacheTemp) do
-					---@cast npcData table{key1: string, key2: string, key3: string|nil}
-					if (tonumber(npcId)) then
-						cache[npcId] = nil
-						cache[tonumber(npcId)] = npcData 
-					end
-				end
-				
-				--cleanup npc colors
-				---@type npccolordb
-				local colors = Plater.db.profile.npc_colors
-				---@type npccolordb
-				local colorsTemp = DetailsFramework.table.copy({}, colors)
-
-				---@type number, npccolortable
-				for npcId, npcColorTable in pairs(colorsTemp) do
-					if tonumber(npcId) then 
-						colors[npcId] = nil
-						colors[tonumber(npcId)] = npcColorTable 
-					end
-				end
-				
-				--cleanup cast colors/sounds
-				---@type castcolordb
-				local castColors = Plater.db.profile.cast_colors
-				---@type castcolordb
-				local castColorsTemp = DetailsFramework.table.copy({}, castColors)
-
-				---@type number, castcolortable
-				for spellId, castColorTable in pairs(castColorsTemp) do
-					if tonumber(spellId) then 
-						castColors[spellId] = nil
-						castColors[tonumber(spellId)] = castColorTable 
-					end
-				end
-				
-				---@type renamednpcsdb
-				local renamedNPCs = Plater.db.profile.npcs_renamed
-				---@type renamednpcsdb
-				local renamedNPCsTemp = DetailsFramework.table.copy({}, renamedNPCs)
-				
-				for npcId, renamedName in pairs(renamedNPCsTemp) do
-					if tonumber(npcId) then 
-						renamedNPCs[npcId] = nil
-						renamedNPCs[tonumber(npcId)] = renamedName 
-					end
-				end
-				
-				---@type audiocuedb
-				local audioCues = Plater.db.profile.cast_audiocues
-				---@type audiocuedb
-				local audioCuesTemp = DetailsFramework.table.copy({}, audioCues)
-
-				for spellId, audioCuePath in pairs(audioCuesTemp) do
-					if tonumber(spellId) then 
-						audioCues[spellId] = nil
-						audioCues[tonumber(spellId)] = audioCuePath 
-					end
-				end
-				
-				---@type ghostauras
-				local ghostAuras = Plater.db.profile.ghost_auras.auras
-				---@type ghostauras
-				local ghostAurasTemp = DetailsFramework.table.copy({}, ghostAuras)
-				local ghostAurasDefault = PLATER_DEFAULT_SETTINGS.profile.ghost_auras.auras
-				--cleanup is needed for proper number indexing. will remove crap as well.
-				for class, specs in pairs(ghostAurasTemp) do
-					for specID, specData in pairs(specs) do
-						ghostAuras[class][specID] = nil
-						if ghostAurasDefault[class][tonumber(specID)] then
-							ghostAuras[class][tonumber(specID)] = ghostAuras[class][tonumber(specID)] or {}
-							for spellId, enabled in pairs(specData) do
-								if tonumber(spellId) then
-									ghostAuras[class][tonumber(specID)][tonumber(spellId)] = enabled 
-								end
-							end
-						end
-					end
-				end
-				
-				-- cleanup captured_spells
-				for spellId, data in pairs(Plater.db.profile.captured_spells) do
-					DB_CAPTURED_SPELLS[spellId] = DB_CAPTURED_SPELLS[spellId] or data --retain original
-				end
-				Plater.db.profile.captured_spells = nil --this does belong into PlaterDB
-				-- cleanup captured_casts
-				for spellId, data in pairs(Plater.db.profile.captured_casts) do
-					DB_CAPTURED_CASTS[spellId] = DB_CAPTURED_CASTS[spellId] or data --retain original
-				end
-				Plater.db.profile.captured_casts = nil --this does belong into PlaterDB
-				
-				--restore CVars of the profile
-				Plater.RestoreProfileCVars()
-				
-				--automatically reload the user UI
-				ReloadUI()
+				Plater.ImportAndSwitchProfile(profileName, profile, bIsUpdate, bKeepModsNotInUpdate, false)
 			end
 			
 			function profilesFrame.OpenProfileManagement()
 				f:Hide()
 				if SettingsPanel then
 					if not Plater.ProfileFrame then
-						Plater.ProfileFrame = LibStub ("AceConfig-3.0"):RegisterOptionsTable ("Plater", LibStub ("AceDBOptions-3.0"):GetOptionsTable (Plater.db))
+						Plater.ProfileFrame = LibStub ("AceConfig-3.0"):RegisterOptionsTable ("Plater", LibStub ("AceDBOptions-3.0"):GetOptionsTable (Plater.db, true))
 					end
 					LibStub ("AceConfigDialog-3.0"):Open("Plater")
 				else
@@ -1331,7 +1372,7 @@ function Plater.OpenOptionsPanel(pageNumber, bIgnoreLazyLoad)
 			
 		--profile options (this is the panel in the right side of the profile tab)
 			local scriptUpdatesTitleLocTable = DetailsFramework.Language.CreateLocTable(addonId, "OPTIONS_NOESSENTIAL_TITLE")
-			local scriptUpdatesTitle = DF:CreateLabel(profilesFrame, scriptUpdatesTitleLocTableL, DF:GetTemplate("font", "YELLOW_FONT_TEMPLATE"))
+			local scriptUpdatesTitle = DF:CreateLabel(profilesFrame, scriptUpdatesTitleLocTable, DF:GetTemplate("font", "YELLOW_FONT_TEMPLATE"))
 			scriptUpdatesTitle:SetPoint("topleft", profilesFrame, "topright", -235, startY)
 			scriptUpdatesTitle.textsize = 9
 
@@ -3468,7 +3509,7 @@ Plater.CreateAuraTesting()
 				name = "Magic",
 				desc = "When the unit has a magic buff on it, show it.",
 			},
-			--show offensive CDs
+			--show offensive player CDs
 			{
 				type = "toggle",
 				get = function() return Plater.db.profile.extra_icon_show_offensive end,
@@ -3570,133 +3611,6 @@ Plater.CreateAuraTesting()
 				end,
 				name = "Defensive Border Color",
 				desc = "Defensive Border Color",
-			},
-		
-			{type = "blank"},
-			--{type = "blank"},
-			{type = "label", get = function() return "DBM / BigWigs Icon-Support:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
-
-			{
-				type = "toggle",
-				get = function() return Plater.db.profile.bossmod_support_enabled end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_support_enabled = value
-					Plater.UpdateAllPlates()
-				end,
-				name = "OPTIONS_ENABLED",
-				desc = "Enable the boss mod icon support for BigWigs and DBM.",
-			},
-			
-			{
-				type = "toggle",
-				get = function() return Plater.db.profile.bossmod_support_bars_enabled end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_support_bars_enabled = value
-					Plater.UpdateAllPlates()
-				end,
-				name = "DBM CD-Bar Icons enabled",
-				desc = "Enable the boss mod bar support for DBM, to show timer bars as icons on the nameplates.",
-			},
-			
-			{type = "blank"},
-			
-			{type = "label", get = function() return "Icon Settings:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
-			
-			--width
-			{
-				type = "range",
-				get = function() return Plater.db.profile.bossmod_aura_width end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_aura_width = value
-					Plater.UpdateAllPlates()
-				end,
-				min = 8,
-				max = 64,
-				step = 1,
-				name = "OPTIONS_WIDTH",
-				desc = "OPTIONS_WIDTH",
-			},
-			--height
-			{
-				type = "range",
-				get = function() return Plater.db.profile.bossmod_aura_height end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_aura_height = value
-					Plater.UpdateAllPlates()
-				end,
-				min = 8,
-				max = 64,
-				step = 1,
-				name = "OPTIONS_HEIGHT",
-				desc = "OPTIONS_HEIGHT",
-			},
-			
-			--anchor
-			{
-			type = "select",
-			get = function() return Plater.db.profile.bossmod_icons_anchor.side end,
-			values = function() return build_anchor_side_table (nil, "bossmod_icons_anchor") end,
-			name = "OPTIONS_ANCHOR",
-			desc = "Which side of the nameplate the icons should attach to.",
-			},
-			--x offset
-			{
-				type = "range",
-				get = function() return Plater.db.profile.bossmod_icons_anchor.x end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_icons_anchor.x = value
-					Plater.UpdateAllPlates()
-				end,
-				min = -40,
-				max = 40,
-				step = 1,
-				usedecimals = true,
-				name = "OPTIONS_XOFFSET",
-				desc = "OPTIONS_XOFFSET_DESC",
-			},
-			--y offset
-			{
-				type = "range",
-				get = function() return Plater.db.profile.bossmod_icons_anchor.y end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_icons_anchor.y = value
-					Plater.UpdateAllPlates()
-				end,
-				min = -60,
-				max = 60,
-				step = 1,
-				usedecimals = true,
-				name = "OPTIONS_YOFFSET",
-				desc = "OPTIONS_YOFFSET_DESC",
-			},
-			
-			{type = "blank"},
-			
-			{type = "label", get = function() return "Cooldown Text:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
-			{
-				type = "toggle",
-				get = function() return Plater.db.profile.bossmod_cooldown_text_enabled end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_cooldown_text_enabled = value
-					Plater.UpdateAllPlates()
-				end,
-				name = "OPTIONS_ENABLED",
-				desc = "Enable Cooldown Text.",
-			},
-			--cd text size
-			{
-				type = "range",
-				get = function() return Plater.db.profile.bossmod_cooldown_text_size end,
-				set = function (self, fixedparam, value) 
-					Plater.db.profile.bossmod_cooldown_text_size = value
-					Plater.RefreshAuras()
-					Plater.UpdateAllPlates()
-				end,
-				min = 6,
-				max = 32,
-				step = 1,
-				name = "OPTIONS_SIZE",
-				desc = "Size",
 			},
 		}
 		
@@ -10652,7 +10566,7 @@ end
 	--overlay frame to indicate the feature is disabled
 	uiParentFeatureFrame.disabledOverlayFrame = CreateFrame ("frame", nil, uiParentFeatureFrame, BackdropTemplateMixin and "BackdropTemplate")
 	uiParentFeatureFrame.disabledOverlayFrame:SetPoint ("topleft", uiParentFeatureFrame, "topleft", 1, -175)
-	uiParentFeatureFrame.disabledOverlayFrame:SetPoint ("bottomright", uiParentFeatureFrame, "bottomright", -1, 21)
+	uiParentFeatureFrame.disabledOverlayFrame:SetPoint ("bottomright", uiParentFeatureFrame, "bottomright", -1, 275)
 	uiParentFeatureFrame.disabledOverlayFrame:SetBackdrop ({bgFile = [[Interface\Tooltips\UI-Tooltip-Background]], tileSize = 64, tile = true})
 	uiParentFeatureFrame.disabledOverlayFrame:SetFrameLevel (uiParentFeatureFrame:GetFrameLevel() + 100)
 	uiParentFeatureFrame.disabledOverlayFrame:SetBackdropColor (.1, .1, .1, 1)
@@ -10661,20 +10575,6 @@ end
 	if (Plater.db.profile.use_ui_parent) then
 		uiParentFeatureFrame.disabledOverlayFrame:Hide()
 	end
-
-	local on_select_strata_level = function (self, fixedParameter, value)
-		Plater.db.profile.ui_parent_base_strata = value
-		Plater.RefreshDBUpvalues()
-		Plater.UpdateAllPlates()
-	end
-
-	local strataTable = {
-		{value = "BACKGROUND", label = "Background", onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]], iconcolor = {0, .5, 0, .8}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-		{value = "LOW", label = "Low", onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Green]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-		{value = "MEDIUM", label = "Medium", onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-		{value = "HIGH", label = "High", onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Yellow]] , iconcolor = {1, .7, 0, 1}, texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-		{value = "DIALOG", label = "Dialog", onclick = onStrataSelect, icon = [[Interface\Buttons\UI-MicroStream-Red]] , iconcolor = {1, 0, 0, 1},  texcoord = nil}, --Interface\Buttons\UI-MicroStream-Green UI-MicroStream-Red UI-MicroStream-Yellow
-	}
 	
 	--anchor table
 	local frame_levels = {"BACKGROUND", "LOW", "MEDIUM", "HIGH", "DIALOG"}
@@ -10703,7 +10603,7 @@ end
 			
 				if (value) then
 					--user is enabling the feature
-					DF:ShowPromptPanel ("Click okay to confirm using this feature (will force a /reload)", function()
+					DF:ShowPromptPanel ("Click 'yes' to confirm using this feature (will force a /reload)", function()
 					Plater.db.profile.use_ui_parent = true
 					Plater.db.profile.use_ui_parent_just_enabled = true
 					Plater.db.profile.reopoen_options_panel_on_tab = TAB_INDEX_UIPARENTING
@@ -10724,6 +10624,25 @@ end
 			end,
 			name = "Use Custom Strata Channels",
 			desc = "Allow nameplates to be placed in custom frame strata channels.\n\n" .. ImportantText .. "a /reload will be triggered on changing this setting.",
+		},
+
+		{type = "blank"},
+		{type = "label", get = function() return "Scaling:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+		
+		{
+			type = "range",
+			get = function() return Plater.db.profile.ui_parent_scale_tune end,
+			set = function (self, fixedparam, value) 
+				Plater.db.profile.ui_parent_scale_tune = value
+				Plater.RefreshDBUpvalues()
+				Plater.UpdateAllPlates()
+			end,
+			min = -2.5,
+			max = 2.5,
+			step = 0.01,
+			usedecimals = true,
+			name = "Fine Tune Scale",
+			desc = "Slightly adjust the scale of the unit frame.",
 		},
 		
 		{type = "blank"},
@@ -10778,7 +10697,7 @@ end
 		},
 		
 		{type = "blank"},
-		{type = "label", get = function() return "Frame Levels:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
+		{type = "label", get = function() return "Frame Levels adjustment:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
 		
 		{
 			type = "range",
@@ -10838,25 +10757,6 @@ end
 			step = 1,
 			name = "Buff Special Frame",
 			desc = "Move frames up or down within the strata channel.",
-		},
-		
-		{type = "blank"},
-		{type = "label", get = function() return "Scaling:" end, text_template = DF:GetTemplate ("font", "ORANGE_FONT_TEMPLATE")},
-		
-		{
-			type = "range",
-			get = function() return Plater.db.profile.ui_parent_scale_tune end,
-			set = function (self, fixedparam, value) 
-				Plater.db.profile.ui_parent_scale_tune = value
-				Plater.RefreshDBUpvalues()
-				Plater.UpdateAllPlates()
-			end,
-			min = -2.5,
-			max = 2.5,
-			step = 0.01,
-			usedecimals = true,
-			name = "Fine Tune Scale",
-			desc = "Slightly adjust the scale of the unit frame.",
 		},
 	}
 
@@ -11567,12 +11467,14 @@ end
 		friendly_npc_options_table, -- friendly npc
 		--spell feedback (animations)
 		auto_options, -- auto
-		advanced_options, -- advanced
+		--advanced_options, -- advanced
 		--resources
 	}
 
 	--
-	Plater.CheckOptionsTab()
+	if (not bIgnoreLazyLoad) then
+		Plater.CheckOptionsTab()
+	end
 
 	--__benchmark() --~perf
 end
