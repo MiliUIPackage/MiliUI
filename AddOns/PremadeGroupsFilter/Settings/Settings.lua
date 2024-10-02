@@ -46,10 +46,16 @@ local PGFSettingsTable = {
         visible = true,
     },
     {
+        type = "header",
+        title = L["settings.section.mythicplus.title"],
+        visible = true,
+    },
+    {
         key = "ratingInfo",
         type = "checkbox",
         title = L["settings.ratingInfo.title"],
         tooltip = L["settings.ratingInfo.tooltip"],
+        image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsRatingInfo",
         visible = true,
     },
     {
@@ -57,6 +63,7 @@ local PGFSettingsTable = {
         type = "checkbox",
         title = L["settings.specIcon.title"],
         tooltip = L["settings.specIcon.tooltip"],
+        image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsSpecIcon",
         visible = PGF.SupportsSpecializations(),
     },
     {
@@ -71,6 +78,7 @@ local PGFSettingsTable = {
         type = "checkbox",
         title = L["settings.classBar.title"],
         tooltip = L["settings.classBar.tooltip"],
+        image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsClassBar",
         visible = true,
     },
     {
@@ -78,6 +86,7 @@ local PGFSettingsTable = {
         type = "checkbox",
         title = L["settings.leaderCrown.title"],
         tooltip = L["settings.leaderCrown.tooltip"],
+        image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsLeaderCrown",
         visible = true,
     },
     {
@@ -85,6 +94,12 @@ local PGFSettingsTable = {
         type = "checkbox",
         title = L["settings.missingRoles.title"],
         tooltip = L["settings.missingRoles.tooltip"],
+        image = "Interface\\AddOns\\PremadeGroupsFilter\\Textures\\SettingsMissingRoles",
+        visible = true,
+    },
+    {
+        type = "header",
+        title = L["settings.section.signup.title"],
         visible = true,
     },
     {
@@ -115,6 +130,14 @@ local PGFSettingsTable = {
         title = L["settings.skipSignUpDialog.title"],
         tooltip = L["settings.skipSignUpDialog.tooltip"],
         visible = true,
+    },
+    {
+        key = "signUpDeclined",
+        type = "checkbox",
+        title = L["settings.signUpDeclined.title"],
+        tooltip = L["settings.signUpDeclined.tooltip"],
+        visible = PGF.IsRetail(),
+        callback = function (value) if value then LFGListFrame.declines = {} end end
     },
 }
 
@@ -147,6 +170,13 @@ function PGFSettings.CreateListItem(factory, elementData)
                     elementData.callback(button:GetChecked())
                 end
             end)
+            if elementData.image then
+                item.Image:SetTexture(elementData.image)
+            end
+        end)
+    elseif elementData.type == "header" then
+        factory("PremadeGroupsFilterSettingsListSectionHeaderTemplate", function(item, elementData)
+            item.Title:SetText(elementData.title)
         end)
     end
 end
