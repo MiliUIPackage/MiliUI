@@ -1,6 +1,6 @@
 local _, addon = ...
 local API = addon.API;
-local IS_TWW = addon.IsGame_11_0_0;
+local L = addon.L;
 
 local tonumber = tonumber;
 local match = string.match;
@@ -163,6 +163,20 @@ do  --Math
         return floor(n + 0.5);
     end
     API.Round = Round;
+
+    local function RoundCoord(n)
+        return floor(n * 1000 + 0.5) * 0.001
+    end
+    API.RoundCoord = RoundCoord;
+
+    local function Saturate(value)
+        return Clamp(value, 0.0, 1.0);
+    end
+
+    local function DeltaLerp(startValue, endValue, amount, timeSec)
+        return Lerp(startValue, endValue, Saturate(amount * timeSec * 60.0));
+    end
+    API.DeltaLerp = DeltaLerp;
 end
 
 do  -- Color
@@ -191,6 +205,7 @@ do  -- Color
     -- Make Rare and Epic brighter (use the color in Narcissus)
     local ITEM_QUALITY_COLORS = ITEM_QUALITY_COLORS;
     local QualityColors = {};
+    QualityColors[1] = CreateColor(0.92, 0.92, 0.92, 1);
     QualityColors[3] = CreateColor(105/255, 158/255, 255/255, 1);
     QualityColors[4] = CreateColor(185/255, 83/255, 255/255, 1);
 
@@ -998,7 +1013,7 @@ do  -- Map
             uiMapID = uiMapID,
             position = CreateVector2D(x, y);
         };
-    
+
         C_Map.SetUserWaypoint(point);
 
         C_Timer.After(0, function()
@@ -1016,14 +1031,14 @@ do  -- Map
                 end
     
                 if poiID then
-                    x = floor(x*10000 + 0.5)/10000;
-                    y = floor(y*10000 + 0.5)/10000;
+                    x = API.RoundCoord(x);
+                    y = API.RoundCoord(y);
                     PlumberDevData.POIPositions[poiID] = {
-                        id = poiID,
-                        mapID = uiMapID,
+                        poiID = poiID,
+                        uiMapID = uiMapID,
                         continent = continentMapID,
-                        cx = x,
-                        cy = y,
+                        x = x,
+                        y = y,
                     };
                 end
 
@@ -1070,8 +1085,10 @@ do  -- Map
     end
 
     local function ConvertAndCacheMapPositions(positions, onCoordReceivedFunc, onFinishedFunc)
+        --Convert Zone position to Continent position
         if not Converter then
             Converter = CreateFrame("Frame");
+            print("Plumber Request ConvertAndCacheMapPositions");
         end
 
         local MAPTYPE_CONTINENT = Enum.UIMapType.Continent;
@@ -1135,13 +1152,24 @@ do  -- Map
                             local positionData = {
                                 uiMapID = uiMapID,
                                 continent = continentMapID,
-                                x = x,
-                                y = y,
+                                x = API.RoundCoord(x),
+                                y = API.RoundCoord(y),
                                 poiID = poiID,
                             };
 
                             onCoordReceivedFunc(positionData)
                             C_Map.ClearUserWaypoint();
+
+                            --Debug Save Position
+                            --[[
+                            if not PlumberDevData then
+                                PlumberDevData = {};
+                            end
+                            if not PlumberDevData.Waypoints then
+                                PlumberDevData.Waypoints = {};
+                            end
+                            PlumberDevData.Waypoints[poiID] = positionData;
+                            --]]
                         end
                         Converter.t = 0.033;
                     end
@@ -1328,6 +1356,41 @@ do  --Currency
             self:CacheAndGetCurrencyInfo(currencyID);
         end
     end
+
+    local function WillCurrencyRewardOverflow(currencyID, rewardQuantity)
+        local currencyInfo = GetCurrencyInfo(currencyID);
+        local quantity = currencyInfo and (currencyInfo.useTotalEarnedForMaxQty and currencyInfo.totalEarned or currencyInfo.quantity);
+        return quantity and currencyInfo.maxQuantity > 0 and rewardQuantity + quantity > currencyInfo.maxQuantity, quantity
+    end
+    API.WillCurrencyRewardOverflow = WillCurrencyRewardOverflow;
+
+    local CoinUtil = {};
+    addon.CoinUtil = CoinUtil;
+
+    CoinUtil.patternGold = L["Match Pattern Gold"];
+    CoinUtil.patternSilver = L["Match Pattern Silver"];
+    CoinUtil.patternCopper = L["Match Pattern Copper"];
+
+    function CoinUtil:GetCopperFromCoinText(coinText)
+        local rawCopper = 0;
+        local gold = match(coinText, self.patternGold);
+        local silver = match(coinText, self.patternSilver);
+        local copper = match(coinText, self.patternCopper);
+
+        if gold then
+            rawCopper = rawCopper + 10000 * (tonumber(gold) or 0);
+        end
+
+        if silver then
+            rawCopper = rawCopper + 100 * (tonumber(silver) or 0);
+        end
+
+        if copper then
+            rawCopper = rawCopper + (tonumber(copper) or 0);
+        end
+
+        return rawCopper
+    end
 end
 
 do  --Chat Message
@@ -1468,9 +1531,14 @@ do  --Game UI
 end
 
 do  --Reputation
+    local C_Reputation = C_Reputation;
+    local C_MajorFactions = C_MajorFactions;
     local GetFriendshipReputation = C_GossipInfo.GetFriendshipReputation;
     local GetFriendshipReputationRanks = C_GossipInfo.GetFriendshipReputationRanks;
     local GetFactionParagonInfo = C_Reputation.GetFactionParagonInfo;
+    local GetFactionInfoByID = C_Reputation.GetFactionDataByID;
+    local UnitSex = UnitSex;
+    local GetText = GetText;
 
     local function GetFriendshipProgress(factionID)
         local repInfo = factionID and GetFriendshipReputation(factionID);
@@ -1509,10 +1577,125 @@ do  --Reputation
         return 0, 1, 0
     end
     API.GetParagonValuesAndLevel = GetParagonValuesAndLevel;
+
+
+    local function GetFactionStatusText(factionID)
+        --Derived from Blizzard ReputationFrame_InitReputationRow in ReputationFrame.lua
+        if not factionID then return end;
+        local p1, description, standingID, barMin, barMax, barValue = GetFactionInfoByID(factionID);
+
+        if type(p1) == "table" then
+            standingID = p1.reaction;
+            barMin = p1.currentReactionThreshold;
+            barMax = p1.nextReactionThreshold;
+            barValue = p1.currentStanding;
+        end
+
+        local isParagon = C_Reputation.IsFactionParagon(factionID);
+        local isMajorFaction = C_Reputation.IsMajorFaction(factionID);
+        local repInfo = GetFriendshipReputation(factionID);
+
+        local isCapped;
+        local factionStandingtext;  --Revered/Junior/Renown 1
+        local cappedAlert;
+
+        if repInfo and repInfo.friendshipFactionID > 0 then --Friendship
+            factionStandingtext = repInfo.reaction;
+
+            if repInfo.nextThreshold then
+                barMin, barMax, barValue = repInfo.reactionThreshold, repInfo.nextThreshold, repInfo.standing;
+            else
+                barMin, barMax, barValue = 0, 1, 1;
+                isCapped = true;
+            end
+
+            local rankInfo = GetFriendshipReputationRanks(repInfo.friendshipFactionID);
+            if rankInfo then
+                factionStandingtext = factionStandingtext .. string.format(" (Lv. %s/%s)", rankInfo.currentLevel, rankInfo.maxLevel);
+            end
+
+        elseif isMajorFaction then
+            local majorFactionData = C_MajorFactions.GetMajorFactionData(factionID);
+            if majorFactionData then
+                barMin, barMax = 0, majorFactionData.renownLevelThreshold;
+                isCapped = C_MajorFactions.HasMaximumRenown(factionID);
+                barValue = isCapped and majorFactionData.renownLevelThreshold or majorFactionData.renownReputationEarned or 0;
+                factionStandingtext = L["Renown Level Label"] .. majorFactionData.renownLevel;
+
+                if isParagon then
+                    local totalEarned, threshold, rewardQuestID, hasRewardPending = C_Reputation.GetFactionParagonInfo(factionID);
+                    if totalEarned and threshold and threshold ~= 0 then
+                        local paragonLevel = floor(totalEarned / threshold);
+                        local currentValue = totalEarned - paragonLevel * threshold;
+                        factionStandingtext = ("|cff00ccff"..L["Paragon Reputation"].."|r %d/%d"):format(currentValue, threshold);
+                    end
+
+                    if hasRewardPending then
+                        cappedAlert = "|cffff4800"..L["Unclaimed Reward Alert"].."|r";
+                    end
+                else
+                    if isCapped then
+                        factionStandingtext = factionStandingtext.." "..L["Level Maxed"];
+                    end
+                end
+            end
+        elseif (standingID and standingID > 0) then
+            isCapped = standingID == 8;  --MAX_REPUTATION_REACTION
+            local gender = UnitSex("player");
+		    factionStandingtext = GetText("FACTION_STANDING_LABEL"..standingID, gender);    --GetText: Game API that returns localized texts
+        end
+
+        local rolloverText; --(0/24000)
+        if barValue and barMax and (not isCapped) then
+            rolloverText = string.format("(%s/%s)", barValue, barMax);
+        end
+
+        local text;
+
+        if factionStandingtext then
+            if not text then text = L["Current Colon"] end;
+            factionStandingtext = " |cffffffff"..factionStandingtext.."|r";
+            text = text .. factionStandingtext;
+        end
+
+        if rolloverText then
+            if not text then text = L["Current Colon"] end;
+            rolloverText = "  |cffffffff"..rolloverText.."|r";
+            text = text .. rolloverText;
+        end
+
+        if text then
+            text = " \n"..text;
+
+            if cappedAlert then
+                text = text.."\n"..cappedAlert;
+            end
+        end
+
+        return text
+    end
+    API.GetFactionStatusText = GetFactionStatusText;
+
+
+    local function GetReputationChangeFromText(text)
+        local name, amount;
+        name, amount = match(text, L["Match Patter Rep 1"]);
+        if not name then
+            name, amount = match(text, L["Match Patter Rep 2"]);
+        end
+        if name then
+            if amount then
+                amount = gsub(amount, ",", "");
+                amount = tonumber(amount);
+            end
+            return name, amount
+        end
+    end
+    API.GetReputationChangeFromText = GetReputationChangeFromText;
 end
 
 do  --Spell
-    if IS_TWW then
+    if true then    --IS_TWW
         local GetSpellInfo_Table = C_Spell.GetSpellInfo;
         local SPELL_INFO_KEYS = {"name", "rank", "iconID", "castTime", "minRange", "maxRange", "spellID", "originalIconID"};
         local function GetSpellInfo_Flat(spellID)
@@ -1534,7 +1717,7 @@ do  --Spell
 end
 
 do  --System
-    if IS_TWW then
+    if true then    --IS_TWW
         local GetMouseFoci = GetMouseFoci;
 
         local function GetMouseFocus()
@@ -1575,6 +1758,122 @@ do  --Scenario
     end
     API.IsInDelves = IsInDelves;
     --]]
+end
+
+do  --ObjectPool
+    local ObjectPoolMixin = {};
+
+    function ObjectPoolMixin:RemoveObject(obj)
+        obj:Hide();
+        obj:ClearAllPoints();
+
+        if obj.OnRemoved then
+            obj:OnRemoved();
+        end
+    end
+
+    function ObjectPoolMixin:RecycleObject(obj)
+        local isActive;
+
+        for i, activeObject in ipairs(self.activeObjects) do
+            if activeObject == obj then
+                tremove(self.activeObjects, i);
+                isActive = true;
+                break
+            end
+        end
+
+        if isActive then
+            self:RemoveObject(obj);
+            self.numUnused = self.numUnused + 1;
+            self.unusedObjects[self.numUnused] = obj;
+        end
+    end
+
+    function ObjectPoolMixin:CreateObject()
+        local obj = self.createObjectFunc();
+        tinsert(self.objects, obj);
+        obj.Release = self.Object_Release;
+        return obj
+    end
+
+    function ObjectPoolMixin:Acquire()
+        local obj;
+
+        if self.numUnused > 0 then
+            obj = tremove(self.unusedObjects, self.numUnused);
+            self.numUnused = self.numUnused - 1;
+        end
+
+        if not obj then
+            obj = self:CreateObject();
+        end
+
+        tinsert(self.activeObjects, obj);
+        obj:Show();
+
+        return obj
+    end
+
+    function ObjectPoolMixin:ReleaseAll()
+        if #self.activeObjects == 0 then return end;
+
+        for _, obj in ipairs(self.activeObjects) do
+            self:RemoveObject(obj);
+        end
+
+        self.activeObjects = {};
+        self.unusedObjects = {};
+
+        for index, obj in ipairs(self.objects) do
+            self.unusedObjects[index] = obj;
+        end
+
+        self.numUnused = #self.objects;
+
+        local function Object_Release(f)
+            self:RecycleObject(f);
+        end
+        self.Object_Release = Object_Release;
+    end
+
+    function ObjectPoolMixin:GetTotalObjects()
+        return #self.objects
+    end
+
+    function ObjectPoolMixin:CallAllObjects(method, ...)
+        for i, obj in ipairs(self.objects) do
+            obj[method](obj, ...);
+        end
+    end
+
+    local function CreateObjectPool(createObjectFunc)
+        local pool = {};
+        API.Mixin(pool, ObjectPoolMixin);
+
+        pool.objects = {};
+        pool.activeObjects = {};
+        pool.unusedObjects = {};
+        pool.numUnused = 0;
+        pool.createObjectFunc = createObjectFunc;
+
+        return pool
+    end
+    API.CreateObjectPool = CreateObjectPool;
+end
+
+do  --Transmog
+    local GetItemInfo = C_TransmogCollection.GetItemInfo;
+    local PlayerKnowsSource = C_TransmogCollection.PlayerHasTransmogItemModifiedAppearance;
+
+    local function IsUncollectedTransmogByItemInfo(itemInfo)
+        --C_TransmogCollection.PlayerHasTransmogByItemInfo isn't reliable
+        local visualID, sourceID =GetItemInfo(itemInfo);
+        if sourceID and sourceID ~= 0 and (not PlayerKnowsSource(sourceID)) then
+            return true
+        end
+    end
+    API.IsUncollectedTransmogByItemInfo = IsUncollectedTransmogByItemInfo
 end
 
 --[[

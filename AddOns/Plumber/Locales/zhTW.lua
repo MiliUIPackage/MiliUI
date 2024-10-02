@@ -1,4 +1,6 @@
-if not (GetLocale() == "zhTW") then return end;
+if not (GetLocale() == "zhCN") then return end;
+
+
 
 local _, addon = ...
 local L = addon.L;
@@ -10,21 +12,23 @@ L["Quick Slot Generic Description"] = "\n\n*快捷按鈕是一組在特定情形
 L["Restriction Combat"] = "戰鬥中不可用";    --Indicate a feature can only work when out of combat
 L["Map Pin Change Size Method"] = "\n\n*如需更改標記大小，請打開 世界地圖 - 地圖篩選 - Plumber";
 
+
 --Module Categories
 --- order: 0
 L["Module Category Unknown"] = "未知"    --Don't need to translate
 --- order: 1
-L["Module Category General"] = "一般";
+L["Module Category General"] = "常規";
 --- order: 2
-L["Module Category NPC Interaction"] = "NPC互動";
+L["Module Category NPC Interaction"] = "NPC 交互";
 --- order: 3
 L["Module Category Class"] = "職業";   --Player Class (rogue, paladin...)
 
-L["Module Category Dragonflight"] = EXPANSION_NAME9 or "巨龍崛起";  --Merge Expansion Feature (Dreamseeds, AzerothianArchives) Modules into this
+L["Module Category Dragonflight"] = "巨龍崛起";
 
 --Deprecated
-L["Module Category Dreamseeds"] = "夢境種子";     --Added in patch 10.2.0
-L["Module Category AzerothianArchives"] = "艾澤拉斯文庫";     --Added in patch 10.2.5
+L["Module Category Dreamseeds"] = "夢境之種";     --Added in patch 10.2.0
+L["Module Category AzerothianArchives"] = "艾澤拉斯檔案館";     --Added in patch 10.2.5
+
 
 --AutoJoinEvents
 L["ModuleName AutoJoinEvents"] = "自動加入活動";
@@ -48,15 +52,16 @@ L["Numbers To Earn"] = "還可獲取";     --The number of items/currencies play
 L["Numbers Of Earned"] = "已獲取";    --The number of stuff the player has earned
 L["Track Upgrade Currency"] = "追蹤紋章";     --Crest: e.g. Drake’s Dreaming Crest
 L["Track Upgrade Currency Tooltip"] = "在最左側顯示你已獲得的最高等級的紋章。";
-L["Track Holiday Item"] = "追蹤節日兌換通貨";       --e.g. Tricky Treats (Hallow's End)
+L["Track Holiday Item"] = "追蹤節日貨幣";       --e.g. Tricky Treats (Hallow's End)
 L["Currently Pinned Colon"] = "當前顯示：";     --Tells the currently pinned item
-L["Bar Inside The Bag"] = "條列於背包內";     --Put the bar inside the bag UI (below money/currency)
-L["Bar Inside The Bag Tooltip"] = "將條列置於背包介面內。\n\n它只適用於暴雪內建的分離背包模式。";
+L["Bar Inside The Bag"] = "顯示在背包窗口內部";
+L["Bar Inside The Bag Tooltip"] = "將工具欄放置在背包窗口的內部。\n\n僅在使用暴雪預設背包的“分開的小包”模式下生效。";
+L["Catalyst Charges"] = "充能層數";
 
 
 --GossipFrameMedal
-L["ModuleName GossipFrameMedal"] = "飛龍競速評級";
-L["ModuleDescription GossipFrameMedal Format"] = "將預設圖標 %s 替換為你獲得的獎章 %s。\n\n在你與青銅時光守護者對話後，可能需要短暫的時間來從服務器獲取記錄。";
+L["ModuleName GossipFrameMedal"] = "天空騎術競速評級";
+L["ModuleDescription GossipFrameMedal Format"] = "將預設圖標 %s 替換為你獲得的獎章 %s。\n\n在你與青銅時光守護者對話後，可能需要短暫的時間來從伺服器獲取記錄。";
 
 
 --DruidModelFix (Disabled after 10.2.0)
@@ -66,7 +71,7 @@ L["ModuleDescription DruidModelFix"] = "修復使用群星雕文導致人物界�
 
 --PlayerChoiceFrameToken (PlayerChoiceFrame)
 L["ModuleName PlayerChoiceFrameToken"] = "顯示捐獻物品數";
-L["ModuleDescription PlayerChoiceFrameToken"] = "在捐獻界面上顯示你有多少待捐物品。\n\n目前只支援地心之戰的事件。";
+L["ModuleDescription PlayerChoiceFrameToken"] = "在捐獻界面上顯示你有多少待捐物品。\n\n目前僅支持地心之戰內容";
 
 
 --EmeraldBountySeedList (Show available Seeds when approaching Emerald Bounty 10.2.0)
@@ -97,13 +102,13 @@ L["ModuleDescription BlizzFixEventToast"] = "讓事件通知不擋住你的鼠�
 
 
 --Talking Head
-L["ModuleName TalkingHead"] = HUD_EDIT_MODE_TALKING_HEAD_FRAME_LABEL or "說話頭";
-L["ModuleDescription TalkingHead"] = "替換預設的說話頭為更乾淨簡潔的介面。";
+L["ModuleName TalkingHead"] = "對話特寫頭像";
+L["ModuleDescription TalkingHead"] = "用簡潔的界面取代預設的對話特寫頭像。";
 L["EditMode TalkingHead"] = "Plumber: "..L["ModuleName TalkingHead"];
-L["TalkingHead Option InstantText"] = "立即文字";   --Should texts immediately, no gradual fading
+L["TalkingHead Option InstantText"] = "立即顯示文本";   --Should texts immediately, no gradual fading
 L["TalkingHead Option TextOutline"] = "文字描邊";
-L["TalkingHead Option Condition Header"] = "隱藏文字來自來源:";
-L["TalkingHead Option Condition WorldQuest"] = TRACKER_HEADER_WORLD_QUESTS or "世界任務";
+L["TalkingHead Option Condition Header"] = "隱藏來自以下情形的文字：";
+L["TalkingHead Option Condition WorldQuest"] = "世界任務";
 L["TalkingHead Option Condition WorldQuest Tooltip"] = "隱藏來自世界任務的文字。\n有時對話會在接受世界任務之前觸發，此時我們將無法隱藏這段文字。";
 L["TalkingHead Option Condition Instance"] = "副本";
 L["TalkingHead Option Condition Instance Tooltip"] = "在副本裡隱藏文字。";
@@ -112,7 +117,7 @@ L["TalkingHead Option Below WorldMap Tooltip"] = "在你打開世界地圖時，
 
 
 --AzerothianArchives
-L["ModuleName Technoscryers"] = "快捷按鈕: 科技探勘";
+L["ModuleName Technoscryers"] = "快捷按鈕: 科技占卜器";
 L["ModuleDescription Technoscryers"] = "在你做“科技考古”世界任務時顯示一個可以讓你直接戴上科技占卜器的按鈕。"..L["Quick Slot Generic Description"];
 
 
@@ -121,21 +126,21 @@ L["Priority"] = "優先級";
 L["Priority Default"] = "游戲預設";  --WoW's default waypoint priority: Corpse, Quest, Scenario, Content
 L["Priority Default Tooltip"] = "遵從游戲預設設定。如果可能的話，優先追蹤任務、屍體和商人位置，否則開始搜索新種子。";
 L["Stop Tracking"] = "停止追蹤";
-L["Click To Track Location"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-SuperTrack:0:0:0:0|t " .. "左鍵點擊以開始追蹤位置。";
-L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-TomTom:0:0:0:0|t " .. "左鍵點擊來在TomTom中追蹤";
+L["Click To Track Location"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/SuperTrackIcon:0:0:0:0|t " .. "左鍵點擊以開始追蹤種子。";
+L["Click To Track In TomTom"] = "|TInterface/AddOns/Plumber/Art/SuperTracking/TooltipIcon-TomTom:0:0:0:0|t " .. "左鍵點擊以創建 TomTom 箭頭";
 
 
 --Navigator_Dreamseed (Use Super Tracking to navigate players)
 L["ModuleName Navigator_Dreamseed"] = "導航: 夢境之種";
-L["ModuleDescription Navigator_Dreamseed"] = "使用路徑點系統指引你到達夢境之種生長的位置。\n\n*右鍵點擊圖標可查看更多選項。\n\n|cffd4641c當你身處翡翠夢境時，此插件將取代游戲自帶的路徑指引系統。\n\n種子位置指示可能會覆蓋任務的。|r";
+L["ModuleDescription Navigator_Dreamseed"] = "使用路徑點系統指引你到達夢境之種生長的位置。\n\n*右鍵點擊圖標可查看更多選項。\n\n|cffd4641c當你身處翡翠夢境時，此插件將取代游戲自帶的路徑指引系統。|r";
 L["Priority New Seeds"] = "搜索新種子";
 L["Priority Rewards"] = "拾取獎勵";
 L["Stop Tracking Dreamseed Tooltip"] = "停止搜索種子。你可以點擊大地圖上正在生長的種子來恢復追蹤。";
 
 
 --BlizzFixWardrobeTrackingTip (Permanently disable the tip for wardrobe shortcuts)
-L["ModuleName BlizzFixWardrobeTrackingTip"] = "暴雪UI改進: 收藏衣櫃提示";
-L["ModuleDescription BlizzFixWardrobeTrackingTip"] = "隱藏衣櫃快捷方式的教學。";
+L["ModuleName BlizzFixWardrobeTrackingTip"] = "暴雪UI改進: 試衣間小提示";
+L["ModuleDescription BlizzFixWardrobeTrackingTip"] = "隱藏試衣間快捷鍵教程。";
 
 
 --Rare/Location Announcement
@@ -149,9 +154,14 @@ L["Seed Color Rare"] = "藍色";
 L["Seed Color Uncommon"] = "綠色";
 
 
---Tooltip 
-L["ModuleName TooltipChestKeys"] = "工具提示：箱子鑰匙";
-L["ModuleDescription TooltipChestKeys"] = "顯示打開當前箱子或門所需的鑰匙訊息。"
+--Tooltip Chest Keys
+L["ModuleName TooltipChestKeys"] = "鼠標提示：寶箱鑰匙";
+L["ModuleDescription TooltipChestKeys"] = "顯示打開某些寶箱所需的鑰匙訊息。";
+
+
+--Tooltip Reputation Tokens
+L["ModuleName TooltipRepTokens"] = "鼠標提示：聲望兌換物";
+L["ModuleDescription TooltipRepTokens"] = "如果當前物品可以被直接使用來提升某一陣營的聲望，顯示此聲望訊息";
 
 
 --Merchant UI Price
@@ -164,46 +174,79 @@ L["Number Millions"] = "M";
 
 
 --Landing Page (Expansion Summary Minimap)
-L["ModuleName ExpansionLandingPage"] = "卡茲阿加概要";
-L["ModuleDescription ExpansionLandingPage"] = "在概要界面上顯示額外訊息：\n\n- 斬離之絲等級";
+L["ModuleName ExpansionLandingPage"] = "卡茲阿爾加概要";
+L["ModuleDescription ExpansionLandingPage"] = "在概要界面上顯示額外訊息：\n\n- 斷裂絲線等級";
 L["Instruction Track Reputation"] = "<按住Shift點擊追蹤此聲望>";
 L["Instruction Untrack Reputation"] = "<按住Shift點擊停止追蹤>";
 
 
 --WorldMapPin_TWW (Show Pins On Continent Map)
 L["ModuleName WorldMapPin_TWW"] = "地圖標記：地心之戰";
-L["ModuleDescription WorldMapPin_TWW"] = "在卡茲阿加地圖上顯示額外標記：\n\n- %s\n\n- %s";  --Wwe'll replace %s with locales (See Map Pin Filter Name at the bottom)
+L["ModuleDescription WorldMapPin_TWW"] = "在卡茲阿爾加地圖上顯示額外標記：\n\n- %s\n\n- %s";  --Wwe'll replace %s with locales (See Map Pin Filter Name at the bottom)
 
 
 --Delves
 L["Great Vault Tier Format"] = "難度 %s";
 L["Item Level Format"] = "物品等級%d";
 L["Item Level Abbr"] = "裝等";
+L["Delves Reputation Name"] = "探究賽季進度";
+L["ModuleName Delves_SeasonProgress"] = "探究: 賽季進度";
+L["ModuleDescription Delves_SeasonProgress"] = "在你提升“探究行者的旅程”時顯示一個進度條。";
+
+
+--Loot UI
+L["ModuleName LootUI"] = "拾取窗口";
+L["ModuleDescription LootUI"] = "替換預設的拾取窗口並提供以下功能：\n\n- 快速拾取所有物品\n\n- 修復自動拾取有時失效的問題\n\n- 手動拾取時顯示“全部拾取”按鈕";
+L["Take All"] = "全部拾取";     --Take all items from a loot window
+L["You Received"] = "你獲得了";
+L["Reach Currency Cap"] = "貨幣已達到上限";
+L["Sample Item 4"] = "炫酷的史詩物品";
+L["Sample Item 3"] = "超棒的精良物品";
+L["Sample Item 2"] = "不錯的優秀物品";
+L["Sample Item 1"] = "一般的普通物品";
+L["EditMode LootUI"] =  "Plumber: 拾取窗口";
+L["LootUI Option Force Auto Loot"] = "強制自動拾取";
+L["LootUI Option Force Auto Loot Tooltip"] = "強制使用自動拾取以修復自動拾取有時失效的問題。\n\n如想暫時取消一次自動拾取，請按住%s鍵直到拾取窗口出現。";
+L["LootUI Option Owned Count"] = "顯示已擁有的數量";
+L["LootUI Option New Transmog"] = "標記未收集的外觀";
+L["LootUI Option New Transmog Tooltip"] = "用 %s 標記出還未收集外觀的物品。";
+L["LootUI Option Use Hotkey"] = "按快捷鍵拾取全部物品";
+L["LootUI Option Use Hotkey Tooltip"] = "在手動拾取模式下按快捷鍵來拾取全部物品。";
 
 
 --Generic
 L["Reposition Button Horizontal"] = "水平方向移動";   --Move the window horizontally
-L["Reposition Button Vertical"] = "垂直方向移動";
-L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動此視窗。";
-L["Font Size"] = FONT_SIZE or "文字大小";
-L["Reset To Default Position"] = HUD_EDIT_MODE_RESET_POSITION or "重置回預設位置";
+L["Reposition Button Vertical"] = "豎直方向移動";
+L["Reposition Button Tooltip"] = "左鍵點擊並拖拉來移動這個窗口。";
+L["Font Size"] = "字體大小";
+L["Reset To Default Position"] = "重置到預設位置";
+L["Renown Level Label"] = "名望 ";  --There is a space
+L["Paragon Reputation"] = "巔峰";
+L["Level Maxed"] = "已滿級";   --Reached max level
+L["Current Colon"] = "當前：";
+L["Unclaimed Reward Alert"] = "你有未領取的巔峰寶箱";
 
 
 -- !! Do NOT translate the following entries
-L["currency-2706"] = "幼龍";
-L["currency-2707"] = "飛龍";
-L["currency-2708"] = "巨龍";
-L["currency-2709"] = "守護巨龍";
-
 L["currency-2914"] = "陳舊";
 L["currency-2915"] = "雕刻";
 L["currency-2916"] = "符文";
 L["currency-2917"] = "鍍金";
 
+
 L["Scenario Delves"] = "探究";
 L["GameObject Door"] = "門";
-L["Delve Chest 1 Rare"] = "豐裕　Coffer";   --We'll use the GameObjectID once it shows up in the database
+L["Delve Chest 1 Rare"] = "豐碩寶箱";
+
 
 --Map Pin Filter Name (name should be plural)
 L["Bountiful Delve"] =  "豐碩探究";
-L["Special Assignment"] = "特殊任務";
+L["Special Assignment"] = "特別任務";
+
+
+L["Match Pattern Gold"] = "([%d%,]+) 金";
+L["Match Pattern Silver"] = "([%d]+) 銀";
+L["Match Pattern Copper"] = "([%d]+) 銅";
+
+L["Match Patter Rep 1"] = "你的戰團在(.+)中的聲望值提高了([%d%,]+)點";   --FACTION_STANDING_INCREASED_ACCOUNT_WIDE
+L["Match Patter Rep 2"] = "你在(.+)中的聲望值提高了([%d%,]+)點";   --FACTION_STANDING_INCREASED

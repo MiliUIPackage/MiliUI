@@ -273,7 +273,7 @@ do  -- Checkbox
 
         if self.dbKey then
             newState = not addon.GetDBValue(self.dbKey)
-            addon.SetDBValue(self.dbKey, newState);
+            addon.SetDBValue(self.dbKey, newState, true);
             self:SetChecked(newState);
         else
             newState = not self:GetChecked();
@@ -657,16 +657,15 @@ do  -- TokenFrame   -- Money   -- Coin
         else
             if gold > 0 then
                 coinIndex = coinIndex + 1;
-                gold = BreakUpLargeNumbers(gold);
-                self:SetGoldAmount(coinIndex, gold);
+                self:SetGoldAmount(coinIndex, BreakUpLargeNumbers(gold));
             end
 
-            if silver > 0 then
+            if silver > 0 or (gold > 0 and self.showCopperDuringAnimation) then
                 coinIndex = coinIndex + 1;
                 self:SetSilverAmount(coinIndex, silver);
             end
 
-            if copper > 0 then
+            if copper > 0 or self.showCopperDuringAnimation then
                 coinIndex = coinIndex + 1;
                 self:SetCopperAmount(coinIndex, copper);
             end
@@ -677,31 +676,31 @@ do  -- TokenFrame   -- Money   -- Coin
         local width;
 
         self.Amount1:SetPoint("LEFT", self, "LEFT", 0, 0);
-        width = self.Amount1:GetWrappedWidth() + AMOUNT_COIN_GAP;
+        width = self.Amount1:GetWrappedWidth() + self.valueSymbolGap;
         self.Symbol1:SetPoint("LEFT", self, "LEFT", width, 0);
 
         if self.colorblindMode then
             width = width + COLORBLIND_TEXT_GAP;
         else
-            width = width + COIN_TEXTURE_SIZE;
+            width = width + COIN_TEXTURE_SIZE + AMOUNT_COIN_GAP;
         end
 
         if coinIndex >= 2 then
             width = width + COIN_TYPE_GAP;
             self.Amount2:SetPoint("LEFT", self, "LEFT", width, 0);
-            width = width + self.Amount2:GetWrappedWidth() + AMOUNT_COIN_GAP;
+            width = width + self.Amount2:GetWrappedWidth() + self.valueSymbolGap;
             self.Symbol2:SetPoint("LEFT", self, "LEFT", width, 0);
             if self.colorblindMode then
                 width = width + COLORBLIND_TEXT_GAP;
             else
-                width = width + COIN_TEXTURE_SIZE;
+                width = width + COIN_TEXTURE_SIZE + AMOUNT_COIN_GAP;
             end
         end
 
         if coinIndex >= 3 then
             width = width + COIN_TYPE_GAP;
             self.Amount3:SetPoint("LEFT", self, "LEFT", width, 0);
-            width = width + self.Amount3:GetWrappedWidth() + AMOUNT_COIN_GAP;
+            width = width + self.Amount3:GetWrappedWidth() + self.valueSymbolGap;
             self.Symbol3:SetPoint("LEFT", self, "LEFT", width, 0);
             if self.colorblindMode then
                 width = width + COLORBLIND_TEXT_GAP;
@@ -751,6 +750,10 @@ do  -- TokenFrame   -- Money   -- Coin
             color = 2;
         end
 
+        if not color then
+            color = 0;
+        end
+
         if self.color ~= color then
             self.color = color;
             if color == 1 then
@@ -768,14 +771,57 @@ do  -- TokenFrame   -- Money   -- Coin
             end
         end
 
-        self.colorblindMode = GetCVarBool("colorblindMode");
-
         return self:Layout();
+    end
+
+    function MoneyDisplayMixin:GetAmount()
+        return self.rawCopper or 0
+    end
+
+    function MoneyDisplayMixin:OnUpdate_AnimateValue(elapsed)
+        self.totalTime = self.totalTime + elapsed;
+        self.updateTime = self.updateTime + elapsed;
+
+        if self.totalTime > 0.8 then
+            self.fromCopper = self.toCopper;
+            self:SetScript("OnUpdate", nil);
+            self:SetAmount(self.toCopper);
+            self.totalTime = nil;
+            self.updateTime = nil;
+        else
+            if self.updateTime > 0.05 then
+                self.newValue = self.deltaLerp(self.fromCopper, self.toCopper, 0.2, self.updateTime);
+                local delta = self.newValue - self.fromCopper;
+                if delta < 10 and delta > -10 then
+                    self.totalTime = 1;
+                else
+                    self.fromCopper = self.newValue;
+                    self.updateTime = self.updateTime - 0.05;
+                    self:SetAmount(self.fromCopper);
+                end
+            end
+        end
+    end
+
+    function MoneyDisplayMixin:SetAmountByDelta(addRawCopper, animte)
+        if animte then
+            self.fromCopper = self.fromCopper or GetMoney();
+            self.toCopper = self.fromCopper + addRawCopper;
+            self.updateTime = 0;
+            self.totalTime = 0;
+            local copper = self.toCopper % 100;
+            self.showCopperDuringAnimation = floor(copper) > 0;
+            self:SetScript("OnUpdate", self.OnUpdate_AnimateValue);
+        else
+            self.fromCopper = self:GetAmount();
+            self.showCopperDuringAnimation = nil;
+            self:SetAmount(self:GetAmount() + addRawCopper);
+        end
     end
 
     function MoneyDisplayMixin:SetGoldAmount(coinIndex, amount)
         if self.colorblindMode then
-            self["Amount"..coinIndex]:SetText(amount..(GOLD_AMOUNT_SYMBOL or "g"));
+            self["Amount"..coinIndex]:SetText(amount..self.goldSymbol);
             self["Symbol"..coinIndex]:Hide();
         else
             self["Amount"..coinIndex]:SetText(amount);
@@ -785,7 +831,7 @@ do  -- TokenFrame   -- Money   -- Coin
 
     function MoneyDisplayMixin:SetSilverAmount(coinIndex, amount)
         if self.colorblindMode then
-            self["Amount"..coinIndex]:SetText(amount..(SILVER_AMOUNT_SYMBOL or "s"));
+            self["Amount"..coinIndex]:SetText(amount..self.silverSymbol);
             self["Symbol"..coinIndex]:Hide();
         else
             self["Amount"..coinIndex]:SetText(amount);
@@ -795,12 +841,16 @@ do  -- TokenFrame   -- Money   -- Coin
 
     function MoneyDisplayMixin:SetCopperAmount(coinIndex, amount)
         if self.colorblindMode then
-            self["Amount"..coinIndex]:SetText(amount..(COPPER_AMOUNT_SYMBOL or "c"));
+            self["Amount"..coinIndex]:SetText(amount..self.copperSymbol);
             self["Symbol"..coinIndex]:Hide();
         else
             self["Amount"..coinIndex]:SetText(amount);
             self:SetTextureCopper(self["Symbol"..coinIndex]);
         end
+    end
+
+    function MoneyDisplayMixin:OnShow()
+        self.colorblindMode = GetCVarBool("colorblindMode");
     end
 
     local function CreateMoneyDisplay(parent, numberFont)
@@ -812,7 +862,7 @@ do  -- TokenFrame   -- Money   -- Coin
         f.rawCopper = 0;
 
         local fontObject = numberFont or "NumberFontNormal";
-    
+
         f.Amount1 = f:CreateFontString(nil, "OVERLAY", fontObject);
         f.Amount2 = f:CreateFontString(nil, "OVERLAY", fontObject);
         f.Amount3 = f:CreateFontString(nil, "OVERLAY", fontObject);
@@ -841,6 +891,16 @@ do  -- TokenFrame   -- Money   -- Coin
         f:SetTextureGold(f.Symbol1);
         f:SetTextureSilver(f.Symbol2);
         f:SetTextureCopper(f.Symbol3);
+
+        f.goldSymbol = GOLD_AMOUNT_SYMBOL or "g";
+        f.silverSymbol = SILVER_AMOUNT_SYMBOL or "s";
+        f.copperSymbol = COPPER_AMOUNT_SYMBOL or "c";
+
+        f.valueSymbolGap = 2;
+        f.deltaLerp = API.DeltaLerp;
+
+        f:SetScript("OnShow", f.OnShow);
+        f:OnShow();
 
         return f
     end
@@ -4103,12 +4163,13 @@ do  --EditMode
     end
 
     function EditModeSettingsDialogMixin:ReleaseAllWidgets()
-        for _, widget in pairs(self.widgets) do
-            widget:Hide();
-            widget:ClearAllPoints();
-        end
-
         self.activeWidgets = {};
+
+        self.checkboxPool:ReleaseAll();
+        self.sliderPool:ReleaseAll();
+        self.uiPanelButtonPool:ReleaseAll();
+        self.texturePool:ReleaseAll();
+        self.fontStringPool:ReleaseAll();
     end
 
     function EditModeSettingsDialogMixin:Layout()
@@ -4141,27 +4202,19 @@ do  --EditMode
         local widget;
 
         if type == "Checkbox" then
-            if not self.checkboxes then
-                self.checkboxes = {};
-            end
-            widget = addon.CreateCheckbox(self);
+            widget = self.checkboxPool:Acquire();
         elseif type == "Slider" then
-            if not self.sliders then
-                self.sliders = {};
-            end
-            widget = addon.CreateSlider(self);
+            widget = self.sliderPool:Acquire();
         elseif type == "UIPanelButton" then
-            widget = addon.CreateUIPanelButton(self);
+            widget = self.uiPanelButtonPool:Acquire();
         elseif type == "Texture" then
-            widget = self:CreateTexture(nil, "OVERLAY");
+            widget = self.texturePool:Acquire();
             widget.isDivider = nil;
             widget.matchParentWidth = nil;
         elseif type == "FontString" then
-            widget = self:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+            widget = self.fontStringPool:Acquire();
             widget.matchParentWidth = true;
         end
-
-        widget:Show();
 
         return widget
     end
@@ -4242,23 +4295,25 @@ do  --EditMode
         if schematic.widgets then
             for order, widgetData in ipairs(schematic.widgets) do
                 local widget;
-                if widgetData.type == "Checkbox" then
-                    widget = self:CreateCheckbox(widgetData);
-                elseif widgetData.type == "RadioGroup" then
+                if (not widgetData.validityCheckFunc) or (widgetData.validityCheckFunc()) then
+                    if widgetData.type == "Checkbox" then
+                        widget = self:CreateCheckbox(widgetData);
+                    elseif widgetData.type == "RadioGroup" then
 
-                elseif widgetData.type == "Slider" then
-                    widget = self:CreateSlider(widgetData);
-                elseif widgetData.type == "UIPanelButton" then
-                    widget = self:CreateUIPanelButton(widgetData);
-                elseif widgetData.type == "Divider" then
-                    widget = self:CreateDivider(widgetData);
-                elseif widgetData.type == "Header" then
-                    widget = self:CreateHeader(widgetData);
-                end
+                    elseif widgetData.type == "Slider" then
+                        widget = self:CreateSlider(widgetData);
+                    elseif widgetData.type == "UIPanelButton" then
+                        widget = self:CreateUIPanelButton(widgetData);
+                    elseif widgetData.type == "Divider" then
+                        widget = self:CreateDivider(widgetData);
+                    elseif widgetData.type == "Header" then
+                        widget = self:CreateHeader(widgetData);
+                    end
 
-                if widget then
-                    tinsert(self.activeWidgets, widget);
-                    widget.widgetKey = widgetData.widgetKey;
+                    if widget then
+                        tinsert(self.activeWidgets, widget);
+                        widget.widgetKey = widgetData.widgetKey;
+                    end
                 end
             end
         end
@@ -4287,7 +4342,17 @@ do  --EditMode
         self.Title:SetText(title);
     end
 
-    local function SetupSettingsDialog(parent, schematic)
+    function EditModeSettingsDialogMixin:IsOwner(parent)
+        return parent == self.parent
+    end
+
+    function EditModeSettingsDialogMixin:HideOption(parent)
+        if (not parent) or self:IsOwner(parent) then
+            self:Hide();
+        end
+    end
+
+    local function SetupSettingsDialog(parent, schematic, forceUpdate)
         if not EditModeSettingsDialog then
             local f = CreateFrame("Frame", nil, UIParent);
             EditModeSettingsDialog = f;
@@ -4302,7 +4367,7 @@ do  --EditMode
             f:SetFrameLevel(200);
             f:EnableMouse(true);
 
-            f.widgets = {};
+            f.activeWidgets = {};
             f.requireResetPosition = true;
 
             Mixin(f, EditModeSettingsDialogMixin);
@@ -4319,12 +4384,41 @@ do  --EditMode
 
             f:SetScript("OnDragStart", f.OnDragStart);
             f:SetScript("OnDragStop", f.OnDragStop);
+
+
+            local function CreateCheckbox()
+                return addon.CreateCheckbox(f);
+            end
+            f.checkboxPool = API.CreateObjectPool(CreateCheckbox);
+
+            local function CreateSlider()
+                return addon.CreateSlider(f);
+            end
+            f.sliderPool = API.CreateObjectPool(CreateSlider);
+
+            local function CreateUIPanelButton()
+                return addon.CreateUIPanelButton(f);
+            end
+            f.uiPanelButtonPool = API.CreateObjectPool(CreateUIPanelButton);
+
+            local function CreateTexture()
+                return f:CreateTexture(nil, "OVERLAY");
+            end
+            f.texturePool = API.CreateObjectPool(CreateTexture);
+
+            local function CreateFontString()
+                return f:CreateFontString(nil, "OVERLAY", "GameFontHighlight");
+            end
+            f.fontStringPool = API.CreateObjectPool(CreateFontString);
         end
 
-        if schematic ~= EditModeSettingsDialog.schematic then
+        if (schematic ~= EditModeSettingsDialog.schematic) then
             EditModeSettingsDialog.requireResetPosition = true;
             EditModeSettingsDialog.schematic = schematic;
             EditModeSettingsDialog:ClearAllPoints();
+            EditModeSettingsDialog:SetupOptions(schematic);
+        elseif forceUpdate then
+            EditModeSettingsDialog.schematic = schematic;
             EditModeSettingsDialog:SetupOptions(schematic);
         end
 
