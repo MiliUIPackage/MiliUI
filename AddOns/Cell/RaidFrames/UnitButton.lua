@@ -991,8 +991,10 @@ local function ForEachAuraHelper(button, func, continuationToken, ...)
     for i = 1, n do
         local slot = select(i, ...)
         local auraInfo = GetAuraDataBySlot(button.states.displayedUnit, slot)
-        auraInfo.index = i
-        func(button, auraInfo)
+        if auraInfo then
+            auraInfo.index = i
+            func(button, auraInfo)
+        end
         -- local done = func(button, auraInfo)
         -- if done then
         --     -- if func returns true then no further slots are needed, so don't return continuationToken
@@ -1968,7 +1970,7 @@ UnitButton_UpdatePowerMax = function(self)
     if not unit then return end
 
     self.states.powerMax = UnitPowerMax(unit)
-    if self.states.powerMax < 0 then self.states.powerMax = 0 end
+    if self.states.powerMax <= 0 then self.states.powerMax = 1 end
 
     if barAnimationType == "Smooth" then
         self.widgets.powerBar:SetMinMaxSmoothedValue(0, self.states.powerMax)
@@ -2022,7 +2024,7 @@ local function UnitButton_UpdateHealthMax(self)
         self.widgets.healthBar:SetMinMaxValues(0, self.states.healthMax)
     end
 
-    if Cell.vars.useGradientColor or Cell.vars.useFullColor then
+    if Cell.vars.useThresholdColor or Cell.vars.useFullColor then
         UnitButton_UpdateHealthColor(self)
     end
 end
@@ -2046,7 +2048,7 @@ local function UnitButton_UpdateHealth(self, diff)
         self.widgets.healthBar:SetBarValue(self.states.health)
     end
 
-    if Cell.vars.useGradientColor or Cell.vars.useFullColor then
+    if Cell.vars.useThresholdColor or Cell.vars.useFullColor then
         UnitButton_UpdateHealthColor(self)
     end
 
@@ -2652,8 +2654,10 @@ local function UnitButton_OnEvent(self, event, unit, arg)
 
     else
         if event == "GROUP_ROSTER_UPDATE" then
-            self._updateRequired = 1
-            self._powerBarUpdateRequired = 1
+            self.__tickCount = 2
+            self.__updateElapsed = 0.25
+            -- self._updateRequired = 1
+            -- self._powerBarUpdateRequired = 1
 
         elseif event == "PLAYER_REGEN_ENABLED" or event == "PLAYER_REGEN_DISABLED" then
             UnitButton_UpdateLeader(self, event)

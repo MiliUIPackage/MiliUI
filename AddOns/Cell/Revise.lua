@@ -3119,6 +3119,66 @@ function F:Revise()
         CellDB["general"]["alwaysUpdateAuras"] = CellDB["general"]["alwaysUpdateBuffs"] or CellDB["general"]["alwaysUpdateDebuffs"]
     end
 
+
+    -- r241-release
+    if CellDB["revise"] and dbRevision < 241 then
+        if Cell.isRetail then
+            local spells = {
+                439506, -- 钻地冲击
+                429545, -- 噤声齿轮
+                424888, -- 震地猛击
+                463248, -- 排斥
+                321828, -- 拍手手
+                323057, -- 灵魂之箭
+                333479, -- 吐疫
+                454438, -- 艾泽里特炸药
+                272571, -- 窒息之水
+                257063, -- 盐渍飞弹
+                431491, -- 污邪斩击
+                451119, -- 深渊轰击
+                428711, -- 火成岩锤
+                459210, -- 暗影爪击
+                256709, -- 钢刃之歌
+                434786, -- 蛛网箭
+            }
+            for _, spell in pairs(spells) do
+                if not F:TContains(CellDB["targetedSpellsList"], spell) then
+                    tinsert(CellDB["targetedSpellsList"], spell)
+                end
+            end
+            Cell.vars.targetedSpellsList = F:ConvertTable(CellDB["targetedSpellsList"])
+        end
+
+        if type(CellDB["nicknames"]["blacklist"]) ~= "table" then
+            CellDB["nicknames"]["blacklist"] = {}
+        end
+
+        if type(CellDB["appearance"]["colorThresholds"]) ~= "table" then
+            CellDB["appearance"]["colorThresholds"] = CellDB["appearance"]["gradientColors"]
+            CellDB["appearance"]["gradientColors"] = nil
+            tinsert(CellDB["appearance"]["colorThresholds"], true)
+            CellDB["appearance"]["colorThresholdsLoss"] = CellDB["appearance"]["gradientColorsLoss"]
+            CellDB["appearance"]["gradientColorsLoss"] = nil
+            tinsert(CellDB["appearance"]["colorThresholdsLoss"], true)
+        end
+
+        if CellDB["appearance"]["barColor"][1] == "gradient" then
+            CellDB["appearance"]["barColor"][1] = "threshold1"
+        elseif CellDB["appearance"]["barColor"][1] == "gradient2" then
+            CellDB["appearance"]["barColor"][1] = "threshold2"
+        elseif CellDB["appearance"]["barColor"][1] == "gradient3" then
+            CellDB["appearance"]["barColor"][1] = "threshold3"
+        end
+
+        if CellDB["appearance"]["lossColor"][1] == "gradient" then
+            CellDB["appearance"]["lossColor"][1] = "threshold1"
+        elseif CellDB["appearance"]["lossColor"][1] == "gradient2" then
+            CellDB["appearance"]["lossColor"][1] = "threshold2"
+        elseif CellDB["appearance"]["lossColor"][1] == "gradient3" then
+            CellDB["appearance"]["lossColor"][1] = "threshold3"
+        end
+    end
+
     -- ----------------------------------------------------------------------- --
     --            update from old versions, validate all indicators            --
     -- ----------------------------------------------------------------------- --

@@ -18,6 +18,16 @@ Cell.isWrath = WOW_PROJECT_ID == WOW_PROJECT_WRATH_CLASSIC
 Cell.isCata = WOW_PROJECT_ID == WOW_PROJECT_CATACLYSM_CLASSIC
 Cell.isTWW = LE_EXPANSION_LEVEL_CURRENT == LE_EXPANSION_WAR_WITHIN
 
+if Cell.isRetail then
+    Cell.flavor = "retail"
+elseif Cell.isCata then
+    Cell.flavor = "cata"
+elseif Cell.isWrath then
+    Cell.flavor = "wrath"
+elseif Cell.isVanilla then
+    Cell.flavor = "vanilla"
+end
+
 -------------------------------------------------
 -- class
 -------------------------------------------------
@@ -229,8 +239,8 @@ function F:ColorGradient(perc, c1, c2, c3, lowBound, highBound)
 
     lowBound = lowBound or 0
     highBound = highBound or 1
-
     perc = perc or 1
+
     if perc >= highBound then
         return r3, g3, b3
     elseif perc <= lowBound then
@@ -243,6 +253,24 @@ function F:ColorGradient(perc, c1, c2, c3, lowBound, highBound)
     local rr1, rg1, rb1, rr2, rg2, rb2 = select((segment * 3) + 1, r1,g1,b1, r2,g2,b2, r3,g3,b3)
 
     return rr1 + (rr2 - rr1) * relperc, rg1 + (rg2 - rg1) * relperc, rb1 + (rb2 - rb1) * relperc
+end
+
+function F:ColorThreshold(perc, c1, c2, c3, lowBound, highBound, useThresholdColor)
+    if useThresholdColor then
+        return F:ColorGradient(perc, c1, c2, c3, lowBound, highBound)
+    end
+
+    lowBound = lowBound or 0
+    highBound = highBound or 1
+    perc = perc or 1
+
+    if perc >= highBound then
+        return c3[1], c3[2], c3[3]
+    elseif perc >= lowBound then
+        return c2[1], c2[2], c2[3]
+    else
+        return c1[1], c1[2], c1[3]
+    end
 end
 
 --! From ColorPickerAdvanced by Feyawen-Llane
@@ -1175,22 +1203,22 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
             barR, barG, barB = r, g, b
         elseif CellDB["appearance"]["barColor"][1] == "class_color_dark" then
             barR, barG, barB = r*0.2, g*0.2, b*0.2
-        elseif CellDB["appearance"]["barColor"][1] == "gradient" then
-            local c = CellDB["appearance"]["gradientColors"]
-            barR, barG, barB = F:ColorGradient(percent, c[1], c[2], c[3], c[4], c[5])
-        elseif CellDB["appearance"]["barColor"][1] == "gradient2" then
-            local c = CellDB["appearance"]["gradientColors"]
+        elseif CellDB["appearance"]["barColor"][1] == "threshold1" then
+            local c = CellDB["appearance"]["colorThresholds"]
+            barR, barG, barB = F:ColorThreshold(percent, c[1], c[2], c[3], c[4], c[5], c[6])
+        elseif CellDB["appearance"]["barColor"][1] == "threshold2" then
+            local c = CellDB["appearance"]["colorThresholds"]
             if percent >= c[5] then
                 barR, barG, barB = r, g, b -- full: class color
             else
-                barR, barG, barB = F:ColorGradient(percent, c[1], c[2], {r, g, b}, c[4], c[5])
+                barR, barG, barB = F:ColorThreshold(percent, c[1], c[2], {r, g, b}, c[4], c[5], c[6])
             end
-        elseif CellDB["appearance"]["barColor"][1] == "gradient3" then
-            local c = CellDB["appearance"]["gradientColors"]
+        elseif CellDB["appearance"]["barColor"][1] == "threshold3" then
+            local c = CellDB["appearance"]["colorThresholds"]
             if percent >= c[5] then
                 barR, barG, barB = r*0.2, g*0.2, b*0.2 -- full: class color
             else
-                barR, barG, barB = F:ColorGradient(percent, c[1], c[2], {r*0.2, g*0.2, b*0.2}, c[4], c[5])
+                barR, barG, barB = F:ColorThreshold(percent, c[1], c[2], {r*0.2, g*0.2, b*0.2}, c[4], c[5], c[6])
             end
         else
             barR = CellDB["appearance"]["barColor"][2][1]
@@ -1209,22 +1237,22 @@ function F:GetHealthBarColor(percent, isDeadOrGhost, r, g, b)
             lossR, lossG, lossB = r, g, b
         elseif CellDB["appearance"]["lossColor"][1] == "class_color_dark" then
             lossR, lossG, lossB = r*0.2, g*0.2, b*0.2
-        elseif CellDB["appearance"]["lossColor"][1] == "gradient" then
-            local c = CellDB["appearance"]["gradientColorsLoss"]
-            lossR, lossG, lossB = F:ColorGradient(percent, c[1], c[2], c[3], c[4], c[5])
-        elseif CellDB["appearance"]["lossColor"][1] == "gradient2" then
-            local c = CellDB["appearance"]["gradientColorsLoss"]
+        elseif CellDB["appearance"]["lossColor"][1] == "threshold1" then
+            local c = CellDB["appearance"]["colorThresholdsLoss"]
+            lossR, lossG, lossB = F:ColorThreshold(percent, c[1], c[2], c[3], c[4], c[5], c[6])
+        elseif CellDB["appearance"]["lossColor"][1] == "threshold2" then
+            local c = CellDB["appearance"]["colorThresholdsLoss"]
             if isDeadOrGhost or percent <= c[4] then
                 lossR, lossG, lossB = r, g, b  -- dead: class color
             else
-                lossR, lossG, lossB = F:ColorGradient(percent, {r, g, b}, c[2], c[3], c[4], c[5])
+                lossR, lossG, lossB = F:ColorThreshold(percent, {r, g, b}, c[2], c[3], c[4], c[5], c[6])
             end
-        elseif CellDB["appearance"]["lossColor"][1] == "gradient3" then
-            local c = CellDB["appearance"]["gradientColorsLoss"]
+        elseif CellDB["appearance"]["lossColor"][1] == "threshold3" then
+            local c = CellDB["appearance"]["colorThresholdsLoss"]
             if isDeadOrGhost or percent <= c[4] then
                 lossR, lossG, lossB = r*0.2, g*0.2, b*0.2  -- dead: class color
             else
-                lossR, lossG, lossB = F:ColorGradient(percent, {r*0.2, g*0.2, b*0.2}, c[2], c[3], c[4], c[5])
+                lossR, lossG, lossB = F:ColorThreshold(percent, {r*0.2, g*0.2, b*0.2}, c[2], c[3], c[4], c[5], c[6])
             end
         else
             lossR = CellDB["appearance"]["lossColor"][2][1]
@@ -1708,7 +1736,7 @@ end
 -- frame
 -------------------------------------------------
 function F:GetMouseFocus()
-    if Cell.isTWW then
+    if Cell.isRetail then
         return GetMouseFoci()[1]   -- Latest Beta build changed this to return the table under key `1`
     else
         return GetMouseFocus()
@@ -1903,26 +1931,30 @@ end
 -- LibGetFrame
 -------------------------------------------------
 local frame_priorities = {}
+local inited_priorities = {}
+local modified_priorities = {}
 local spotlightPriorityEnabled
 local quickAssistPriorityEnabled
 
 function F:UpdateFramePriority()
     wipe(frame_priorities)
+    wipe(modified_priorities)
     spotlightPriorityEnabled = nil
     quickAssistPriorityEnabled = nil
 
-    for i = #CellDB["general"]["framePriority"], 1, -1 do
-        local t = CellDB["general"]["framePriority"][i]
+    for i, t  in pairs(CellDB["general"]["framePriority"]) do
         if t[2] then
             if t[1] == "Main" then
-                tinsert(frame_priorities, "^CellNormalUnitFrame$")
+                tinsert(frame_priorities, i, "^CellNormalUnitFrame$")
             elseif t[1] == "Spotlight" then
-                tinsert(frame_priorities, "^CellSpotlightUnitFrame$")
+                tinsert(frame_priorities, i, "^CellSpotlightUnitFrame$")
                 spotlightPriorityEnabled = true
             else
-                tinsert(frame_priorities, "^CellQuickAssistUnitFrame$")
+                tinsert(frame_priorities, i, "^CellQuickAssistUnitFrame$")
                 quickAssistPriorityEnabled = true
             end
+        else
+            tinsert(frame_priorities, i, "^CellPlaceholder$")
         end
     end
 
@@ -1955,8 +1987,18 @@ function Cell.GetUnitFramesForLGF(unit, frames, priorities)
         frames[quickAssist] = "CellQuickAssistUnitFrame"
     end
 
-    for _, p in ipairs(frame_priorities) do
-        tinsert(priorities, 1, p)
+    if not inited_priorities[priorities] then
+        inited_priorities[priorities] = true
+        for i = 1, 3 do
+            tinsert(priorities, i, "^CellPlaceholder$")
+        end
+    end
+
+    if not modified_priorities[priorities] then
+        modified_priorities[priorities] = true
+        for i, p in ipairs(frame_priorities) do
+            priorities[i] = p
+        end
     end
 
     return frames
@@ -2149,7 +2191,7 @@ end
 local timer
 local function DELAYED_SPELLS_CHANGED()
     if timer then timer:Cancel() end
-    timer = C_Timer.After(1, SPELLS_CHANGED)
+    timer = C_Timer.NewTimer(1, SPELLS_CHANGED)
 end
 
 rc:SetScript("OnEvent", DELAYED_SPELLS_CHANGED)

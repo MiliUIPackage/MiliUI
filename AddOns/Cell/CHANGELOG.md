@@ -1,12 +1,5 @@
-[Full Changelog](https://github.com/enderneko/Cell/compare/r239-release...09860af26fddcb251c12a9b99adb4b375655a654)
+[Full Changelog](https://github.com/enderneko/Cell/compare/r241-release...2776dda6aae139ec0f1152528485d5deed8aeac4)
 
-- Update bleedList for TWW (#215)
-- Update import
-- Implement backups
-- Change alwaysUpdateAuras
-- Fix auto layout switch
-- Fix aura import/export
-- Fix range check
-- Fix Primordial Wave
-- Update slash (strlower)
-- Update locales
+- Fix classic lib
+- Update deDE, esES, zhTW
+- Update toc

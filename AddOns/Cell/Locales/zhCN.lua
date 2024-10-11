@@ -123,7 +123,7 @@ L["This may help solve issues of indicators not updating correctly"] = "可能�
 -- L["This may cause unknown issues"] = "可能导致未知问题"
 -- L["For addons/WAs not dependent on LibGetFrame, use %s"] = "对于不依赖 LibGetFrame 的插件或WA，使用 %s"
 L["Frame priorities for LibGetFrame"] = "指定 LibGetFrame 获取单位按钮的的优先级"
-L["Increase Health Update Rate"] = "增加血条刷新速率"
+L["Faster Health Updates"] = "快速血条刷新"
 L["Use CLEU events to increase health update rate"] = "使用战斗记录事件来增加血条刷新速率"
 L["Translit Cyrillic to Latin"] = "将俄文转写为英文"
 
@@ -134,11 +134,13 @@ L["Nickname Options"] = "昵称选项"
 L["Name or Name-Server"] = "角色名 或 角色名-服务器名"
 L["Nickname"] = "昵称"
 L["My Nickname"] = "我的昵称"
-L["Awesome!"] = "太棒了！"
-L["Sync Nicknames with Others"] = "与他人同步昵称"
+-- L["Awesome!"] = "太棒了！"
+L["Nickname Sync"] = "与他人同步昵称"
 L["Custom Nicknames"] = "自定义昵称"
 L["Only visible to me"] = "仅对自己可见"
 L["Target a player to autofill the name"] = "选中玩家可以自动填入名字"
+L["Nickname Blacklist"] = "昵称黑名单"
+L["Blacklist Target Player"] = "将目标加入黑名单"
 
 -------------------------------------------------
 -- appearance
@@ -157,6 +159,8 @@ L["Power Color"] = "能量颜色"
 L["Class Color"] = "职业颜色"
 L["Class Color (dark)"] = "职业颜色 (暗)"
 L["Gradient"] = "渐变"
+L["Color Thresholds"] = "颜色阈值"
+L["Enable Color Gradient"] = "启用颜色渐变"
 L["Custom Color"] = "自定义颜色"
 L["Health Bar Color"] = "血条颜色"
 L["Health Loss Color"] = "损失血量颜色"
@@ -860,6 +864,20 @@ L["Click to view older changelogs"] = "点击查看远古更新记录"
 L["CHANGELOGS"] = [[
     <h1>更新后如果有各种问题，先排查代码片段。</h1>
     <p>（正式服）如果指示器不能正常刷新，尝试启用常规页面下的“总是更新增益/减益”选项。</p>
+    <br/>
+
+    <h1>r242-release (Oct 9, 2024, 10:30 GMT+8)</h1>
+    <p>* 修复怀旧服的问题。</p>
+    <p>* 更新本地化。</p>
+    <br/>
+
+    <h1>r241-release (Oct 8, 2024, 18:25 GMT+8)</h1>
+    <p>+ 新增“昵称黑名单”。</p>
+    <p>* 修复 Cell.GetUnitFramesForLGF。</p>
+    <p>* 修复“能量文字”。</p>
+    <p>* 变更渐变色相关选项。</p>
+    <p>* 更新副本减益。</p>
+    <p>* 更新本地化，新增西班牙语（感谢 Zurent）。</p>
     <br/>
 
     <h1>r240-release (Sep 9, 2024, 19:00 GMT+8)</h1>

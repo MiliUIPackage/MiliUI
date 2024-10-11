@@ -200,7 +200,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["locked"] = false,
                 ["fadeOut"] = false,
                 ["menuPosition"] = "top_bottom",
-                ["alwaysUpdateAuras"] = false,
+                ["alwaysUpdateAuras"] = true,
                 ["framePriority"] = {
                     {"Main", true},
                     {"Spotlight", false},
@@ -218,6 +218,7 @@ function eventFrame:ADDON_LOADED(arg1)
                 ["sync"] = false,
                 ["custom"] = false,
                 ["list"] = {},
+                ["blacklist"] = {},
             }
         end
 
@@ -810,6 +811,8 @@ function eventFrame:PLAYER_LOGIN()
     I.UpdateCrowdControls(CellDB["crowdControls"])
     -- update pixel perfect
     Cell:Fire("UpdatePixelPerfect")
+    -- update LGF
+    F:UpdateFramePriority()
 end
 
 function eventFrame:UI_SCALE_CHANGED()
