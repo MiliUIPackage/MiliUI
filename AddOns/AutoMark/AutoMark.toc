@@ -1,0 +1,17 @@
+## Interface: 110002
+## Title: |cff00ff00Auto Mark|r
+## Notes: Auto Mark
+## Title-zhTW: |cffFF7F00[副本]|r 自動標記
+## Notes-zhTW: Auto Mark |n|n自動標記副本重點小怪。|n標記優先級：坦克 > 隊長 >DPS。
+## Version: 1.1.3
+## Author: Galehad
+## SavedVariables: AutoMark_DB, AutoMark_Mobs
+## IconTexture: Interface\TargetingFrame\UI-RaidTargetingIcon_8
+## AddonCompartmentFunc: AutoMark_OnAddonCompartmentClick
+## AddonCompartmentFuncOnEnter: AutoMark_OnAddonCompartmentEnter
+## AddonCompartmentFuncOnLeave: AutoMark_OnAddonCompartmentLeave
+## X-Category-zhTW: 戰鬥
+embeds.xml
+AutoMarkIcon.lua
+AutoMarkData.lua
+AutoMark.lua

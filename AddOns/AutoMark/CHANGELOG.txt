@@ -1,0 +1,77 @@
+v1.0.0
+First Version.
+
+v1.0.1
+Change method of deciding marker.
+
+v1.0.2
+Tidy up.
+
+v1.0.3
+More changes.
+
+v1.0.4
+NPC commands added.
+
+v1.0.5
+Minor changes.
+
+v1.0.6
+Quaking Totem (186696) now uses a non-stored Skull marker.
+Removed checks for WeakAuras.
+
+v1.0.7
+Added Aggravated Skitterfly (197406) (priority mobs) to Algeth'ar Academy.
+	Stacking damage buff - Agitation.
+Added Primalist Stormspeaker (194894) to The Nokhud Offensive.
+	Stun for Tempest.
+Removed Primal Thundercloud (197509) from Ruby Life Pools.
+	Mob doesn't require special attention.
+
+v1.0.8
+Removed Ukhel Deathspeaker (195851) from The Nokhud Offensive.
+	Mob doesn't require special attention.
+Removed Unstable Curator (187154) from The Azure Vault.
+	Can no longer be interrupted.
+Removed Vile Rothexer (187224,194487,194241) from Brackenhide Hollow.
+	Can no longer be interrupted.
+
+v1.0.9
+Change log CHANGELOG.txt.
+Brackenhide Hollow
+	Removed Wilted Oak - Breath cannot be interrupted.
+	Added Brackenhide Shaper - Interrupt Infuse Corruption.
+The Nokhud Offensive
+	Added Desecrated Ohuna - Rotting Wind needs interrupt.
+	Nokhud Stormcaster (Balakar Khan) - Mouseover marking of these mobs now works before they activate.
+	Named Soulharvester mobs - Automark when nameplate becomes visible (star if it's available).
+	Named Stormcaller mobs - Automark when nameplate becomes visible (star if it's available).
+
+v1.0.10
+Update ToC for 10.2.7
+Neltharion's Lair - Minor changes to mobs.
+
+v1.0.11
+Added functionality to allow priority marking. This will allow certain mobs to always have the same mark.
+Useful if a player is assigned to interrupting a specific mark.
+The Nokhud Offensive
+	Priority marking used for Lancemaster, Plainstomper and named Soulharvester/Stormcaller mobs (star) and Stormsurge Totem (skull).
+
+v1.1.0
+Updated for 11.0 (TWW)
+Added basic support for TWW dungeons.
+	This is a work in progress. At the moment it's mostly just casters that are marked.
+Added a minimap icon.
+	Toggle: /automark minimap
+	Lock/unlock position: /automark minimaplock
+
+v1.1.1
+Added 11.0.2 to TOC file.
+Changed info shown on minimap button tooltip. (Addon compartment tooltip still shows extra information.)
+Left click on minimap button to clear all marks.
+
+v1.1.2
+Added marks for some TWW mobs.
+
+v1.1.3
+Changed TWW mobs.
