@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.22) add-on for World of Warcraft UI
+    Decursive (v 2.7.23) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-08-11T22:33:29Z
+    This file was last updated on 2024-09-16T00:26:57Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -604,9 +604,9 @@ local function GetStaticOptions ()
         elseif type(v) == 'string' and (D:GetSpellUsefulInfoIfKnown(v)) then -- not a number, not a spell link, then a spell name?
             -- We got a spell name!
             D:Debug(v, "is a spell name in our book:", D:GetSpellUsefulInfoIfKnown(v));
-            local id, SPItype = D:GetSpellUsefulInfoIfKnown(v);
+            local id, isPet = D:GetSpellUsefulInfoIfKnown(v);
             v = id;
-            isPetAbility = SPItype == "PETACTION" and true or false;
+            isPetAbility = isPet;
         elseif type(v) == 'string' and (GetItemInfo(v)) then
             D:Debug(v, "is a item name:", GetItemInfo(v));
             -- We got an item name!
@@ -616,8 +616,8 @@ local function GetStaticOptions ()
             return error(L["OPT_INPUT_SPELL_BAD_INPUT_NOT_SPELL"]);
         end
 
-        if not isItem and v > 0xffffff then
-            v = bit.band(0xffffff, v); -- XXX does not seem to yield the expected results in wotlk for pet spells...
+        if not isItem and v > 0xfffff then
+            v = bit.band(0xfffff, v);
         end
 
         -- avoid spellID/itemID collisions
@@ -1941,7 +1941,7 @@ local function GetStaticOptions ()
                                     "\n\n|cFFDDDD00 %s|r:\n   %s"..
                                     "\n\n|cFFDDDD00 %s|r:\n   %s\n\n   %s"
                                 ):format(
-                                    "2.7.22", "John Wellesz", ("2024-08-16T12:53:46Z"):sub(1,10),
+                                    "2.7.23", "John Wellesz", ("2024-10-03T23:25:26Z"):sub(1,10),
                                     L["ABOUT_NOTES"],
                                     L["ABOUT_LICENSE"],         GetAddOnMetadata("Decursive", "X-License") or 'All Rights Reserved',
                                     L["ABOUT_SHAREDLIBS"],      GetAddOnMetadata("Decursive", "X-Embeds")  or 'GetAddOnMetadata() failure',
@@ -3750,6 +3750,6 @@ function D:QuickAccess (CallingObject, button) -- {{{
 end -- }}}
 
 
-T._LoadedFiles["Dcr_opt.lua"] = "2.7.22";
+T._LoadedFiles["Dcr_opt.lua"] = "2.7.23";
 
 -- Closer

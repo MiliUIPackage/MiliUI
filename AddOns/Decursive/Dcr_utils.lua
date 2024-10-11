@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.22) add-on for World of Warcraft UI
+    Decursive (v 2.7.23) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-08-11T22:33:29Z
+    This file was last updated on 2024-09-16T00:29:30Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -91,7 +91,7 @@ local UnitInRange       = _G.UnitInRange;
 local debugprofilestop  = _G.debugprofilestop;
 local GetSpellInfo      = _G.C_Spell and _G.C_Spell.GetSpellInfo or _G.GetSpellInfo;
 local GetSpellName      = _G.C_Spell and _G.C_Spell.GetSpellName or function (spellId) return (GetSpellInfo(spellId)) end;
-local GetSpellId        = _G.C_Spell and _G.C_Spell.GetSpellInfo and function(spellName) return GetSpellInfo(spellName).spellID end or function(spellName) return (select(7, GetSpellInfo(spellName))) end
+local GetSpellId        = _G.C_Spell and _G.C_Spell.GetSpellInfo and function(spellName) local info = GetSpellInfo(spellName); return info and info.spellID end or function(spellName) return (select(7, GetSpellInfo(spellName))) end
 local GetItemInfo       = _G.C_Item and _G.C_Item.GetItemInfo or _G.GetItemInfo;
 local pcall             = _G.pcall;
 
@@ -627,7 +627,6 @@ end
 
 
 function D:GetSpellUsefulInfoIfKnown(spellIdentifier) -- returns spellId, isPet
-
     if _G.GetSpellBookItemInfo then
         local spellType, spellID = GetSpellBookItemInfo(spellIdentifier);
 
@@ -636,13 +635,12 @@ function D:GetSpellUsefulInfoIfKnown(spellIdentifier) -- returns spellId, isPet
         local spellBookItemSlotIndex, spellBookItemSpellBank = C_SpellBook.FindSpellBookSlotForSpell(spellIdentifier);
 
         if spellBookItemSlotIndex then
-
             local spellBookItemInfo = C_SpellBook.GetSpellBookItemInfo(spellBookItemSlotIndex, spellBookItemSpellBank);
-return spellBookItemInfo.spellID, spellBookItemSpellBank == Enum.SpellBookSpellBank.PetAction
+
+            return spellBookItemInfo.spellID, spellBookItemSpellBank == Enum.SpellBookSpellBank.PetAction
         else
             return nil, nil;
         end
-
     end
 end
 
@@ -660,20 +658,22 @@ function D:isSpellReady(spellID, isPetAbility)
             local spellType, id
 
             if spellName then
-                spellType, id = D:GetSpellUsefulInfoIfKnown(spellName);
-                spellID = id;
+                id, isPet = D:GetSpellUsefulInfoIfKnown(spellName);
+                if id then
+                    spellID = id;
+                end
             end
 
-            if id and spellType == "PETACTION" then
-                spellID = band(0xffffff, id);
-            elseif spellType and isPetAbility then
-                D:Debug("Pet ability update lookup failed", spellID, spellName, spellType, id);
+            if id and isPet then
+                spellID = band(0xfffff, id);
+            elseif isPet and isPetAbility then
+                D:Debug("Pet ability update lookup failed", spellID, spellName, isPet, id);
             end
         else
             if spellName then
                 spellID = GetSpellId(spellName);
             elseif isPetAbility then
-                D:Debug("Pet ability update lookup failed", spellID, spellName, "GetSpellInfo(spellName):", GetSpellInfo(spellName));
+                D:Debug("Pet ability update lookup failed", spellID, spellName, "GetSpellInfo(spellName):", spellName and GetSpellInfo(spellName));
             end
         end
     end
@@ -1061,4 +1061,4 @@ do
         return nocase:trim();
     end
 end
-T._LoadedFiles["Dcr_utils.lua"] = "2.7.22";
+T._LoadedFiles["Dcr_utils.lua"] = "2.7.23";

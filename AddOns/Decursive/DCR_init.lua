@@ -1,7 +1,7 @@
 --[[
     This file is part of Decursive.
 
-    Decursive (v 2.7.22) add-on for World of Warcraft UI
+    Decursive (v 2.7.23) add-on for World of Warcraft UI
     Copyright (C) 2006-2019 John Wellesz (Decursive AT 2072productions.com) ( http://www.2072productions.com/to/decursive.php )
 
     Decursive is free software: you can redistribute it and/or modify
@@ -24,7 +24,7 @@
     Decursive is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY.
 
-    This file was last updated on 2024-08-11T22:33:29Z
+    This file was last updated on 2024-09-03T22:38:07Z
 --]]
 -------------------------------------------------------------------------------
 
@@ -75,7 +75,7 @@ local function RegisterDecursive_Once() -- {{{
     --@end-debug@]==]
 
     D.name = "Decursive";
-    D.version = "2.7.22";
+    D.version = "2.7.23";
     D.author = "John Wellesz";
 
     D.DcrFullyInitialized = false;
@@ -270,22 +270,22 @@ local function SetRuntimeConstants_Once () -- {{{
             --]=]
             -- Monks
             [DSI["SPELL_DETOX_1"]] = {
-                Types = {DC.MAGIC, DC.DISEASE, DC.POISON},
+                Types = {DC.MAGIC},
                 Better = 3,
                 Pet = false,
+                EnhancedBy = 'talent',
+                EnhancedByCheck = function ()
+                    return (IsPlayerSpell(DSI["SPELL_IMPROVED_DETOX"]));
+                end,
+                Enhancements = {
+                    Types = {DC.MAGIC, DC.DISEASE, DC.POISON},
+                }
             },
             [DSI["SPELL_DETOX_2"]] = {
                 Types = {DC.DISEASE, DC.POISON},
                 Better = 2,
                 Pet = false,
-                -- detect mistweaver spec since the spell no longer seems to change with the spec like it used to
-                EnhancedBy = 'mistweaver',
-                EnhancedByCheck = function ()
-                    return (GetSpecialization() == 2) and true or false; -- restoration?
-                end,
-                Enhancements = {
-                    Types = {DC.MAGIC, DC.DISEASE, DC.POISON},
-                }
+
             },
             -- Monks
             [DSI["SPELL_DIFFUSEMAGIC"]] = {
@@ -699,12 +699,12 @@ local function InitVariables_Once() -- {{{
     -- A table UnitID=>IsDebuffed (boolean)
     D.UnitDebuffed = {};
 
-    D.Revision = "58b3ebf"; -- not used here but some other add-on may request it from outside
-    D.date = "2024-08-16T12:53:46Z";
-    D.version = "2.7.22";
+    D.Revision = "502c1af"; -- not used here but some other add-on may request it from outside
+    D.date = "2024-10-03T23:25:26Z";
+    D.version = "2.7.23";
 
     if D.date ~= "@project".."-date-iso@" then
-        -- 1723812826 doesn't work
+        -- 1727997926 doesn't work
 
         --local example =  "2008-05-01T12:34:56Z";
 
@@ -770,7 +770,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
 
             if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay or debug then
 
-                T._ShowNotice ("|cff00ff00Decursive version: 2.7.22|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
+                T._ShowNotice ("|cff00ff00Decursive version: 2.7.23|r\n\n" .. "|cFFFFAA66" .. L["TOC_VERSION_EXPIRED"] .. "|r");
 
                 self.db.global.LastExpirationAlert = time();
             end
@@ -779,7 +779,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         self.db.global.TocExpiredDetection = false;
     end
 
-    if (("2.7.22"):lower()):find("beta") or ("2.7.22"):find("RC") or ("2.7.22"):find("Candidate") or alpha then
+    if (("2.7.23"):lower()):find("beta") or ("2.7.23"):find("RC") or ("2.7.23"):find("Candidate") or alpha then
 
         D.RunningADevVersion = true;
 
@@ -792,7 +792,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
                 DC.DevVersionExpired = true;
                 -- Display the expiration notice only once evry 48 hours
                 if time() - self.db.global.LastExpirationAlert > 48 * 3600 or forceDisplay then
-                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.22|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
+                    T._ShowNotice ("|cff00ff00Decursive version: 2.7.23|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_EXPIRED"] .. "|r");
 
                     self.db.global.LastExpirationAlert = time();
                 end
@@ -803,16 +803,16 @@ function D:VersionWarnings(forceDisplay) -- {{{
         end
 
         -- display a warning if this is a developpment version (avoid insults from people who don't know what they're doing)
-        if self.db.global.NonRelease ~= "2.7.22" then
-            self.db.global.NonRelease = "2.7.22";
-            T._ShowNotice ("|cff00ff00Decursive version: 2.7.22|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
+        if self.db.global.NonRelease ~= "2.7.23" then
+            self.db.global.NonRelease = "2.7.23";
+            T._ShowNotice ("|cff00ff00Decursive version: 2.7.23|r\n\n" .. "|cFFFFAA66" .. L["DEV_VERSION_ALERT"] .. "|r");
         end
     end
 
     --[==[@debug@
     fromCheckOut = true;
     if time() - self.db.global.LastUnpackagedAlert > 24 * 3600  then
-        T._ShowNotice ("|cff00ff00Decursive version: 2.7.22|r\n\n" .. "|cFFFFAA66" ..
+        T._ShowNotice ("|cff00ff00Decursive version: 2.7.23|r\n\n" .. "|cFFFFAA66" ..
         [[
         |cFFFF0000You're using an unpackaged version of Decursive.|r
         Decursive is not meant to be used this way.
@@ -850,7 +850,7 @@ function D:VersionWarnings(forceDisplay) -- {{{
         if D.db.global.NewerVersionDetected > D.VersionTimeStamp and D.db.global.NewerVersionName ~= D.version then -- it's still newer than this one
             if time() - D.db.global.NewerVersionAlert > 3600 * 24 * 4 then -- it's been more than 4 days since the new version alert was shown
                 if not D.db.global.NewVersionsBugMeNot then -- the user did not disable new version alerts
-                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.22|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
+                    T._ShowNotice ("|cff55ff55Decursive version: 2.7.23|r\n\n" .. "|cFF55FFFF" .. (L["NEW_VERSION_ALERT"]):format(D.db.global.NewerVersionName or "none", date("%Y-%m-%d", D.db.global.NewerVersionDetected)) .. "|r");
                     D.db.global.NewerVersionAlert = time();
                 end
             end
@@ -1703,6 +1703,7 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
             ["SPELL_NATURES_CURE"]          =  88423,
             ["SPELL_DETOX_1"]               =  115450, -- monk mistweaver
             ["SPELL_DETOX_2"]               =  218164, -- monk brewmaster and windwaker
+            ["SPELL_IMPROVED_DETOX"]        =  388874, -- monk's talent
             ["SPELL_DIFFUSEMAGIC"]          =  122783, -- monk
             ["SPELL_COMMAND_DEMON"]         =  119898, -- warlock
             ['Greater Invisibility']        =  110959,
@@ -1743,6 +1744,7 @@ function D:SetSpellsTranslations(FromDIAG) -- {{{
                 ["CRIPLES"]	                = 33787,
                 ["Arcane Blast"]	        = 30451,
                 ["SPELL_DETOX_2"]	        = 218164,
+                ["SPELL_IMPROVED_DETOX"]    = 388874,
                 ["MDREAMLESSSLEEP"]	        = 28504,
                 ["PURIFY_SPIRIT"]	        = 77130,
                 ["SONICBURST"]	            = 39052,
@@ -2085,7 +2087,7 @@ end -- }}}
 
 
 
-T._LoadedFiles["DCR_init.lua"] = "2.7.22";
+T._LoadedFiles["DCR_init.lua"] = "2.7.23";
 
 -------------------------------------------------------------------------------
 
@@ -2094,42 +2096,42 @@ TEST to see what keyword substitutions are actually working....
 
 Simple replacements
 
-1129
+1013
     Turns into the current revision of the file in integer form. e.g. 1234
     Note: does not work for git
-1131
+1138
     Turns into the highest revision of the entire project in integer form. e.g. 1234
     Note: does not work for git
-77499fec58a4f3ffbffbb44af4c057da78f7a75b
+a7153458b082c8b82d4f364df6b5f1b86864a011
     Turns into the hash of the file in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-58b3ebfa98d6f0c0815d1f2e0d60c1995837be54
+502c1aff89b19208aa76302629c13f6684dd8d06
     Turns into the hash of the entire project in hex form. e.g. 106c634df4b3dd4691bf24e148a23e9af35165ea
     Note: does not work for svn
-77499fe
+a715345
     Turns into the abbreviated hash of the file in hex form. e.g. 106c63 Note: does not work for svn
-58b3ebf
+502c1af
     Turns into the abbreviated hash of the entire project in hex form. e.g. 106c63
     Note: does not work for svn
 Archarodim
     Turns into the last author of the file. e.g. ckknight
 Archarodim
     Turns into the last author of the entire project. e.g. ckknight
-2024-08-11T22:33:29Z
+2024-09-03T22:38:07Z
     Turns into the last changed date (by UTC) of the file in ISO 8601. e.g. 2008-05-01T12:34:56Z
-2024-08-16T12:53:46Z
+2024-10-03T23:25:26Z
     Turns into the last changed date (by UTC) of the entire project in ISO 8601. e.g. 2008-05-01T12:34:56Z
-20240811223329
+20240903223807
     Turns into the last changed date (by UTC) of the file in a readable integer fashion. e.g. 20080501123456
-20240816125346
+20241003232526
     Turns into the last changed date (by UTC) of the entire project in a readable integer fashion. e.g. 2008050123456
-1723415609
+1725403087
     Turns into the last changed date (by UTC) of the file in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-1723812826
+1727997926
     Turns into the last changed date (by UTC) of the entire project in POSIX timestamp. e.g. 1209663296
     Note: does not work for git
-2.7.22
+2.7.23
     Turns into an approximate version of the project. The tag name if on a tag, otherwise it's up to the repo.
     :SVN returns something like "r1234"
     :Git returns something like "v0.1-873fc1"
