@@ -527,25 +527,25 @@ end
 local function CreateSearchCaptureFuncs()
 	searchCaptureFuncs = {
 		-- Honor events.
-		COMBATLOG_HONORAWARD = function (p, c) p.eventType, p.amount = "honor", c[1] end,
-		COMBATLOG_HONORGAIN = function (p, c) p.eventType, p.sourceName, p.sourceRank, p.amount = "honor", c[1], c[2], c[3] end,
+		COMBATLOG_HONORAWARD = function(p, c) p.eventType, p.amount = "honor", c[1] end,
+		COMBATLOG_HONORGAIN = function(p, c) p.eventType, p.sourceName, p.sourceRank, p.amount = "honor", c[1], c[2], c[3] end,
 
 		-- Experience events.
-		COMBATLOG_XPGAIN_FIRSTPERSON = function (p, c) p.eventType, p.sourceName, p.amount = "experience", c[1], c[2] end,
-		COMBATLOG_XPGAIN_FIRSTPERSON_UNNAMED = function (p, c) p.eventType, p.amount = "experience", c[1] end,
+		COMBATLOG_XPGAIN_FIRSTPERSON = function(p, c) p.eventType, p.sourceName, p.amount = "experience", c[1], c[2] end,
+		COMBATLOG_XPGAIN_FIRSTPERSON_UNNAMED = function(p, c) p.eventType, p.amount = "experience", c[1] end,
 
 		-- Reputation events.
-		FACTION_STANDING_DECREASED = function (p, c) p.eventType, p.isLoss, p.factionName, p.amount = "reputation", true, c[1], c[2] end,
-		FACTION_STANDING_INCREASED = function (p, c) p.eventType, p.factionName, p.amount = "reputation", c[1], c[2] end,
+		FACTION_STANDING_DECREASED = function(p, c) p.eventType, p.isLoss, p.factionName, p.amount = "reputation", true, c[1], c[2] end,
+		FACTION_STANDING_INCREASED = function(p, c) p.eventType, p.factionName, p.amount = "reputation", c[1], c[2] end,
 
 		-- Proficiency events.
-		SKILL_RANK_UP = function (p, c) p.eventType, p.skillName, p.amount = "proficiency", c[1], c[2] end,
+		SKILL_RANK_UP = function(p, c) p.eventType, p.skillName, p.amount = "proficiency", c[1], c[2] end,
 
 		-- Loot events.
-		LOOT_ITEM_SELF = function (p, c) p.eventType, p.itemLink, p.amount = "loot", c[1], c[2] end,
-		LOOT_ITEM_CREATED_SELF = function (p, c) p.eventType, p.isCreate, p.itemLink, p.amount = "loot", true, c[1], c[2] end,
-		LOOT_MONEY_SPLIT = function (p, c) p.eventType, p.isMoney, p.moneyString = "loot", true, c[1] end,
-		CURRENCY_GAINED = function (p, c) p.eventType, p.isCurrency, p.itemLink, p.amount = "loot", true, c[1], c[2] end,
+		LOOT_ITEM_SELF = function(p, c) p.eventType, p.itemLink, p.amount = "loot", c[1], c[2] end,
+		LOOT_ITEM_CREATED_SELF = function(p, c) p.eventType, p.isCreate, p.itemLink, p.amount = "loot", true, c[1], c[2] end,
+		LOOT_MONEY_SPLIT = function(p, c) p.eventType, p.isMoney, p.moneyString = "loot", true, c[1] end,
+		CURRENCY_GAINED = function(p, c) p.eventType, p.isCurrency, p.itemLink, p.amount = "loot", true, c[1], c[2] end,
 	}
 
 	searchCaptureFuncs["LOOT_ITEM_SELF_MULTIPLE"] = searchCaptureFuncs["LOOT_ITEM_SELF"]
@@ -640,12 +640,12 @@ end
 local function CreateCaptureFuncs()
 	captureFuncs = {
 		-- Damage events.
-		SWING_DAMAGE = function (p, ...) p.eventType, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", ... end,
-		RANGE_DAMAGE = function (p, ...) p.eventType, p.isRange, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", true, ... end,
-		SPELL_DAMAGE = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", ... end,
-		SPELL_PERIODIC_DAMAGE = function (p, ...) p.eventType, p.isDoT, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", true, ... end,
-		SPELL_BUILDING_DAMAGE = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", ... end,
-		DAMAGE_SHIELD = function (p, ...) p.eventType, p.isDamageShield, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", true, ... end,
+		SWING_DAMAGE = function(p, ...) p.eventType, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", ... end,
+		RANGE_DAMAGE = function(p, ...) p.eventType, p.isRange, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", true, ... end,
+		SPELL_DAMAGE = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", ... end,
+		SPELL_PERIODIC_DAMAGE = function(p, ...) p.eventType, p.isDoT, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing, p.isOffHand = "damage", true, ... end,
+		SPELL_BUILDING_DAMAGE = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", ... end,
+		DAMAGE_SHIELD = function(p, ...) p.eventType, p.isDamageShield, p.skillID, p.skillName, p.skillSchool, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "damage", true, ... end,
 		--SPELL_ABSORBED = function (p, ...) p.eventType, p.amount, p.skillID, p.skillName, p.skillSchool, p.absorbAmount = "damage", 0, ... end,
 		--[[SPELL_ABSORBED = function (p, ...)
 			--[dmgSpellID, dmgSpellName, dmgSpellSchool,] absorberGUID, absorberName, absorberFlags, absorberRaidFlags, absorbSkillID, absorbSkillName, absorbSkillSchool, absorbAmount
@@ -655,49 +655,49 @@ local function CreateCaptureFuncs()
 			end,]]
 
 		-- Miss events.
-		SWING_MISSED = function (p, ...) p.eventType, p.missType, p.isOffHand, p.amount = "miss", ... end,
-		RANGE_MISSED = function (p, ...) p.eventType, p.isRange, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", true, ... end,
-		SPELL_MISSED = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", ... end,
-		SPELL_PERIODIC_MISSED = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", ... end,
-		DAMAGE_SHIELD_MISSED = function (p, ...) p.eventType, p.isDamageShield, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", true, ... end,
-		SPELL_DISPEL_FAILED = function (p, ...) p.eventType, p.missType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool = "miss", "RESIST", ... end,
+		SWING_MISSED = function(p, ...) p.eventType, p.missType, p.isOffHand, p.amount = "miss", ... end,
+		RANGE_MISSED = function(p, ...) p.eventType, p.isRange, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", true, ... end,
+		SPELL_MISSED = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", ... end,
+		SPELL_PERIODIC_MISSED = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", ... end,
+		DAMAGE_SHIELD_MISSED = function(p, ...) p.eventType, p.isDamageShield, p.skillID, p.skillName, p.skillSchool, p.missType, p.isOffHand, p.amount = "miss", true, ... end,
+		SPELL_DISPEL_FAILED = function(p, ...) p.eventType, p.missType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool = "miss", "RESIST", ... end,
 
 		-- Heal events.
-		SPELL_HEAL = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overhealAmount, p.absorbAmount, p.isCrit = "heal", ... end,
-		SPELL_PERIODIC_HEAL = function (p, ...) p.eventType, p.isHoT, p.skillID, p.skillName, p.skillSchool, p.amount, p.overhealAmount, p.absorbAmount, p.isCrit = "heal", true, ... end,
+		SPELL_HEAL = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount, p.overhealAmount, p.absorbAmount, p.isCrit = "heal", ... end,
+		SPELL_PERIODIC_HEAL = function(p, ...) p.eventType, p.isHoT, p.skillID, p.skillName, p.skillSchool, p.amount, p.overhealAmount, p.absorbAmount, p.isCrit = "heal", true, ... end,
 
 		-- Environmental events.
-		ENVIRONMENTAL_DAMAGE = function (p, ...) p.eventType, p.hazardType, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "environmental", ... end,
+		ENVIRONMENTAL_DAMAGE = function(p, ...) p.eventType, p.hazardType, p.amount, p.overkillAmount, p.damageType, p.resistAmount, p.blockAmount, p.absorbAmount, p.isCrit, p.isGlancing, p.isCrushing = "environmental", ... end,
 
 		-- Power events.
-		SPELL_ENERGIZE = function (p, ...) p.eventType, p.isGain, p.skillID, p.skillName, p.skillSchool, p.amount, p.overEnergized, p.powerType = "power", true, ... p.amount = floor(p.amount * 10 + 0.5) / 10 end,
-		SPELL_DRAIN = function (p, ...) p.eventType, p.isDrain, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
-		SPELL_LEECH = function (p, ...) p.eventType, p.isLeech, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
+		SPELL_ENERGIZE = function(p, ...) p.eventType, p.isGain, p.skillID, p.skillName, p.skillSchool, p.amount, p.overEnergized, p.powerType = "power", true, ... p.amount = floor(p.amount * 10 + 0.5) / 10 end,
+		SPELL_DRAIN = function(p, ...) p.eventType, p.isDrain, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
+		SPELL_LEECH = function(p, ...) p.eventType, p.isLeech, p.skillID, p.skillName, p.skillSchool, p.amount, p.powerType, p.extraAmount = "power", true, ... end,
 
 		-- Interrupt events.
-		SPELL_INTERRUPT = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool = "interrupt", ... end,
+		SPELL_INTERRUPT = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool = "interrupt", ... end,
 
 		-- Aura events.
-		SPELL_AURA_APPLIED = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", ... end,
-		SPELL_AURA_APPLIED_DOSE = function (p, ...) p.eventType, p.isDose, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, ... end,
-		SPELL_AURA_REMOVED = function (p, ...) p.eventType, p.isFade, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, ... end,
-		SPELL_AURA_REMOVED_DOSE = function (p, ...) p.eventType, p.isFade, p.isDose, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, true, ... end,
+		SPELL_AURA_APPLIED = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", ... end,
+		SPELL_AURA_APPLIED_DOSE = function(p, ...) p.eventType, p.isDose, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, ... end,
+		SPELL_AURA_REMOVED = function(p, ...) p.eventType, p.isFade, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, ... end,
+		SPELL_AURA_REMOVED_DOSE = function(p, ...) p.eventType, p.isFade, p.isDose, p.skillID, p.skillName, p.skillSchool, p.auraType, p.amount = "aura", true, true, ... end,
 
 		-- Enchant events.
-		ENCHANT_APPLIED = function (p, ...) p.eventType, p.skillName, p.itemID, p.itemName = "enchant", ... end,
-		ENCHANT_REMOVED = function (p, ...) p.eventType, p.isFade, p.skillName, p.itemID, p.itemName = "enchant", true, ... end,
+		ENCHANT_APPLIED = function(p, ...) p.eventType, p.skillName, p.itemID, p.itemName = "enchant", ... end,
+		ENCHANT_REMOVED = function(p, ...) p.eventType, p.isFade, p.skillName, p.itemID, p.itemName = "enchant", true, ... end,
 
 		-- Dispel events.
-		SPELL_DISPEL = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool, p.auraType = "dispel", ... end,
+		SPELL_DISPEL = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.extraSkillID, p.extraSkillName, p.extraSkillSchool, p.auraType = "dispel", ... end,
 
 		-- Cast events.
-		SPELL_CAST_START = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool = "cast", ... end,
+		SPELL_CAST_START = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool = "cast", ... end,
 
 		-- Kill events.
-		PARTY_KILL = function (p, ...) p.eventType = "kill" end,
+		PARTY_KILL = function(p, ...) p.eventType = "kill" end,
 
 		-- Extra Attack events.
-		SPELL_EXTRA_ATTACKS = function (p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount = "extraattacks", ... end,
+		SPELL_EXTRA_ATTACKS = function(p, ...) p.eventType, p.skillID, p.skillName, p.skillSchool, p.amount = "extraattacks", ... end,
 	}
 
 	captureFuncs["DAMAGE_SPLIT"] = captureFuncs["SPELL_DAMAGE"]

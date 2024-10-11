@@ -1078,6 +1078,18 @@ if IsClassic then
 				alwaysSticky	= true,
 				fontSize		= 26,
 			},
+			NOTIFICATION_ESSENCE_CHANGE = {
+				colorG		= 0.5,
+				colorB		= 0,
+				message		= "%a " .. L.MSG_ESSENCE,
+			},
+			NOTIFICATION_ESSENCE_FULL = {
+				colorG			= 0.5,
+				colorB			= 0,
+				message			= L.MSG_ESSENCE_FULL .. "!",
+				alwaysSticky	= true,
+				fontSize		= 26,
+			},
 			NOTIFICATION_HONOR_GAIN = {
 				colorR		= 0.5,
 				colorG		= 0.5,
@@ -1537,18 +1549,18 @@ if IsClassic then
 
 
 		-- Master font settings.
-		normalFontName		= L.DEFAULT_FONT_NAME,
-		normalOutlineIndex	= 1,
-		normalFontSize		= 18,
-		normalFontAlpha		= 100,
-		critFontName		= L.DEFAULT_FONT_NAME,
-		critOutlineIndex	= 1,
-		critFontSize		= 26,
-		critFontAlpha		= 100,
+		normalFontName			= L.DEFAULT_FONT_NAME,
+		normalOutlineIndex		= 1,
+		normalFontSize			= 18,
+		normalFontAlpha			= 100,
+		critFontName			= L.DEFAULT_FONT_NAME,
+		critOutlineIndex		= 1,
+		critFontSize			= 26,
+		critFontAlpha			= 100,
 
 
 		-- Animation speed.
-		animationSpeed		= 100,
+		animationSpeed			= 100,
 
 
 		-- Partial effect settings.
@@ -1596,6 +1608,7 @@ if IsClassic then
 		magic			= { colorR = 0.470, colorG = 0.937, colorB = 1 },
 		chaos			= { colorR = 0.247, colorG = 0.152, colorB = 0.4 },
 
+
 		-- Class color settings.
 		DEATHKNIGHT		= CreateClassSettingsTable("DEATHKNIGHT"),
 		DRUID			= CreateClassSettingsTable("DRUID"),
@@ -1613,9 +1626,9 @@ if IsClassic then
 
 
 		-- Throttle settings.
-		dotThrottleDuration	= 3,
-		hotThrottleDuration	= 3,
-		powerThrottleDuration	= 3,
+		dotThrottleDuration				= 3,
+		hotThrottleDuration				= 3,
+		powerThrottleDuration			= 3,
 		throttleList = {
 			--[SPELL_BLOOD_PRESENCE]	= 5,
 			--[SPELL_DRAIN_LIFE]		= 3,
@@ -1627,33 +1640,33 @@ if IsClassic then
 
 
 		-- Spam control settings.
-		mergeExclusions		= {},
-		abilitySubstitutions	= {},
-		abilitySuppressions	= {
-			--[SPELL_UNDYING_RESOLVE]		= true,
+		mergeExclusions					= {},
+		abilitySubstitutions			= {},
+		abilitySuppressions				= {
+			--[SPELL_UNDYING_RESOLVE]	= true,
 		},
-		damageThreshold		= 0,
-		healThreshold			= 0,
-		powerThreshold			= 0,
-		hideFullHoTOverheals	= true,
-		shortenNumbers			= false,
-		shortenNumberPrecision	= 0,
-		groupNumbers			= false,
+		damageThreshold					= 0,
+		healThreshold					= 0,
+		powerThreshold					= 0,
+		hideFullHoTOverheals			= true,
+		shortenNumbers					= false,
+		shortenNumberPrecision			= 0,
+		groupNumbers					= false,
 
 
 		-- Cooldown settings.
-		cooldownExclusions		= {},
-		ignoreCooldownThreshold		= {},
-		cooldownThreshold		= 5,
+		cooldownExclusions				= {},
+		ignoreCooldownThreshold			= {},
+		cooldownThreshold				= 5,
 
 
 		-- Loot settings.
-		qualityExclusions		= {
+		qualityExclusions				= {
 			[LE_ITEM_QUALITY_POOR or Enum.ItemQuality.Poor] = true,
 		},
-		alwaysShowQuestItems	= true,
-		itemsAllowed			= {},
-		itemExclusions			= {},
+		alwaysShowQuestItems			= true,
+		itemsAllowed					= {},
+		itemExclusions					= {},
 	}
 else
 	masterProfile = {
@@ -3037,18 +3050,18 @@ else
 
 
 		-- Master font settings.
-		normalFontName		= L.DEFAULT_FONT_NAME,
-		normalOutlineIndex	= 1,
-		normalFontSize		= 18,
-		normalFontAlpha		= 100,
-		critFontName		= L.DEFAULT_FONT_NAME,
-		critOutlineIndex	= 1,
-		critFontSize		= 26,
-		critFontAlpha		= 100,
+		normalFontName			= L.DEFAULT_FONT_NAME,
+		normalOutlineIndex		= 1,
+		normalFontSize			= 18,
+		normalFontAlpha			= 100,
+		critFontName			= L.DEFAULT_FONT_NAME,
+		critOutlineIndex		= 1,
+		critFontSize			= 26,
+		critFontAlpha			= 100,
 
 
 		-- Animation speed.
-		animationSpeed		= 100,
+		animationSpeed			= 100,
 
 
 		-- Partial effect settings.
@@ -3114,47 +3127,47 @@ else
 
 
 		-- Throttle settings.
-		dotThrottleDuration	= 3,
-		hotThrottleDuration	= 3,
-		powerThrottleDuration	= 3,
+		dotThrottleDuration				= 3,
+		hotThrottleDuration				= 3,
+		powerThrottleDuration			= 3,
 		throttleList = {
 			--[SPELL_BLOOD_PRESENCE]	= 5,
-			[SPELL_DRAIN_LIFE]		= 3,
-			[SPELL_SHADOWMEND]		= 5,
+			[SPELL_DRAIN_LIFE]			= 3,
+			[SPELL_SHADOWMEND]			= 5,
 			--[SPELL_REFLECTIVE_SHIELD]	= 5,
 			[SPELL_VAMPIRIC_EMBRACE]	= 5,
-			[SPELL_VAMPIRIC_TOUCH]	= 5,
+			[SPELL_VAMPIRIC_TOUCH]		= 5,
 		},
 
 
 		-- Spam control settings.
-		mergeExclusions		= {},
-		abilitySubstitutions	= {},
-		abilitySuppressions	= {
+		mergeExclusions					= {},
+		abilitySubstitutions			= {},
+		abilitySuppressions				= {
 			[SPELL_UNDYING_RESOLVE]		= true,
 		},
-		damageThreshold		= 0,
-		healThreshold			= 0,
-		powerThreshold			= 0,
-		hideFullHoTOverheals	= true,
-		shortenNumbers			= false,
-		shortenNumberPrecision	= 0,
-		groupNumbers			= false,
+		damageThreshold					= 0,
+		healThreshold					= 0,
+		powerThreshold					= 0,
+		hideFullHoTOverheals			= true,
+		shortenNumbers					= false,
+		shortenNumberPrecision			= 0,
+		groupNumbers					= false,
 
 
 		-- Cooldown settings.
-		cooldownExclusions		= {},
-		ignoreCooldownThreshold		= {},
-		cooldownThreshold		= 5,
+		cooldownExclusions				= {},
+		ignoreCooldownThreshold			= {},
+		cooldownThreshold				= 5,
 
 
 		-- Loot settings.
-		qualityExclusions		= {
+		qualityExclusions				= {
 			[LE_ITEM_QUALITY_POOR or Enum.ItemQuality.Poor] = true,
 		},
-		alwaysShowQuestItems	= true,
-		itemsAllowed			= {},
-		itemExclusions			= {},
+		alwaysShowQuestItems			= true,
+		itemsAllowed					= {},
+		itemExclusions					= {},
 	}
 end
 
@@ -3310,10 +3323,10 @@ end
 local function SetupBlizzardOptions()
 	-- Create a container frame for the Blizzard options area.
 	local frame = CreateFrame("Frame")
-	frame.name = "MikScrollingBattleText"
+	frame.name = L.MSBT_MSBT
 
 	-- Create an option button in the center of the frame to launch MSBT's options.
-	local button = CreateFrame("Button", nil, frame, IsClassic and "OptionsButtonTemplate" or "UIPanelButtonTemplate")
+	local button = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
 	button:SetSize(100, 24)
 	button:SetPoint("CENTER")
 	button:SetText(MikSBT.COMMAND)
