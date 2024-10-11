@@ -1,5 +1,4 @@
-## Changed in v2024.27
+## Changed in v2024.28
 
-* Added quests for this week's world boss Kordac
-* Made dark magic scanning a little more efficient
+* Fix an issue in classic / cataclysm when showing loot windows on popups
 
