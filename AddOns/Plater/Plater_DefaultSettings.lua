@@ -3052,7 +3052,7 @@ PLATER_DEFAULT_SETTINGS = {
 		
 		indicator_extra_raidmark = true,
 		indicator_raidmark_scale = 1,
-		indicator_raidmark_anchor = {side = 2, x = -1, y = 0},
+		indicator_raidmark_anchor = {side = 10, x = 10, y = 0},
 		
 		target_indicator = "Arrow",
 		
