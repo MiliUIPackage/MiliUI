@@ -2,14 +2,14 @@
 -- Masque Blizzard Bars
 -- Enables Masque to skin the built-in WoW action bars
 --
--- Copyright 2022 - 2023 SimGuy
+-- Copyright 2022 - 2024 SimGuy
 --
 -- Use of this source code is governed by an MIT-style
 -- license that can be found in the LICENSE file or at
 -- https://opensource.org/licenses/MIT.
 --
 
-local AddonName, Shared = ...
+local _, Shared = ...
 
 -- From Locales/Locales.lua
 local L = Shared.Locale
@@ -133,7 +133,7 @@ Metadata.Groups = {
 	ExtraAbilityContainer = {
 		Title = "Extra Ability Buttons",
 		Notes = L["NOTES_EXTRA_ABILITY_BUTTONS"],
-		Versions = { 40300, nil },
+		Versions = { 50004, nil },
 
 		-- Keep track of the frames that have been processed
 		State = {
@@ -141,7 +141,7 @@ Metadata.Groups = {
 			ZoneAbilityButton = {}
 		},
 		Buttons = {
-			-- These buttons exist until the first time
+			-- These buttons don't exist until the first time
 			-- they're used so we'll pick them up later
 		}
 	},

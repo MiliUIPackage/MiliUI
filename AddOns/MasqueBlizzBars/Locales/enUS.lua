@@ -36,6 +36,11 @@ local L = Shared.Locale
 --L["Pet Battle Bar"] = "Pet Battle Bar"
 
 -- Using short keys for these long strings, so enUS needs to be defined as well
-L["NOTES_SPELL_FLYOUTS"] = "This group includes all flyouts shown anywhere in the game, such as Action Bars and the Spellbook."
-L["NOTES_VEHICLE_BAR"] = "This bar is shown when you enter a vehicle with abilities. The exit button is not currently able to be skinned."
-L["NOTES_EXTRA_ABILITY_BUTTONS"] = "This group includes the Extra Action Button shown during encounters and quests, and all Zone Ability Buttons shown for location-based abilities.\n\nSome buttons have additional background images framing them, so square skins tend to work best."
+L["NOTES_SPELL_FLYOUTS"] = "This group includes all flyouts shown anywhere in the game, " ..
+                           "such as Action Bars and the Spellbook."
+L["NOTES_VEHICLE_BAR"] = "This bar is shown when you enter a vehicle with abilities. " ..
+                         "The exit button is not currently able to be skinned."
+L["NOTES_EXTRA_ABILITY_BUTTONS"] = "This group includes the Extra Action Button shown during encounters " ..
+                                   "and quests, and all Zone Ability Buttons shown for location-based " ..
+                                   "abilities.\n\nSome buttons have additional background images framing " ..
+                                   "them, so square skins tend to work best."

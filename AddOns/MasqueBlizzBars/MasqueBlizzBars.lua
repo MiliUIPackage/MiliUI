@@ -2,22 +2,24 @@
 -- Masque Blizzard Bars
 -- Enables Masque to skin the built-in WoW action bars
 --
--- Copyright 2022 - 2023 SimGuy
+-- Copyright 2022 - 2024 SimGuy
 --
 -- Use of this source code is governed by an MIT-style
 -- license that can be found in the LICENSE file or at
 -- https://opensource.org/licenses/MIT.
 --
 
-local AddonName, Shared = ...
+local _, Shared = ...
 
 -- From Locales/Locales.lua
-local L = Shared.Locale
+-- Not used yet
+--local L = Shared.Locale
 
 -- From Metadata.lua
 local Metadata = Shared.Metadata
 local Groups = Metadata.Groups
-local Callbacks = Metadata.OptionCallbacks
+-- Not used yet
+--local Callbacks = Metadata.OptionCallbacks
 
 -- From Core.lua
 local Core = Shared.Core
@@ -27,7 +29,7 @@ local Addon = {}
 Shared.Addon = Addon
 
 -- Handle events for buttons that get created dynamically by Blizzard
-function Addon:HandleEvent(event, target)
+function Addon:HandleEvent(event)
 	-- Handle ExtraActionButton on Extra ActionBar updates
 	--
 	-- We don't handle the ZAB here because if EAB and ZAB are both
@@ -76,9 +78,19 @@ function Addon:HandleEvent(event, target)
 	end
 end
 
+-- ReSkin any action bars that are defined if needed
+function Addon:ReSkinBars()
+	for _, bar in ipairs({ "ActionBar", "MultiBarBottomLeft", "MultiBarBottomRight", "MultiBarLeft",
+	                       "MultiBarRight", "MultiBar5", "MultiBar6", "MultiBar7" }) do
+		if Groups[bar] and Groups[bar].Group then
+			Groups[bar].Group:ReSkin()
+		end
+	end
+end
+
 -- Spell Flyout buttons are created as needed when a flyout is opened, so
 -- check for any new buttons any time that happens
-function Addon:SpellFlyout_Toggle(flyoutID, ...)
+function Addon:SpellFlyout_Toggle(flyoutID)
 	local _, _, numSlots, _ = GetFlyoutInfo(flyoutID)
 	local activeSlots = 0
         for slot = 1, numSlots do
@@ -146,6 +158,11 @@ function Addon:Init()
 		               Addon.SpellFlyout_Toggle)
 	end
 
+        -- Check if MoveAny is installed and handle the bar modifications it makes
+	if UpdateActionBarBackground then
+		hooksecurefunc("UpdateActionBarBackground", Addon.ReSkinBars)
+	end
+
 	-- Zone Ability Buttons
 	-- This may be DraenorZoneAbilityFrame_Update if Classic reaches WoD
 	-- This may be ZoneAbilityFrame_Update if Classic reaches Legion
@@ -157,7 +174,12 @@ function Addon:Init()
 	Addon.Events = CreateFrame("Frame")
 
 	-- Extra Action Button
-	if Core:CheckVersion({ 40300, nil }) then
+	--
+	-- This was added in 40300, but in Cata Classic it's not in 40400.
+	-- It'll probably be added when Dragon Soul is released since it's needed
+	-- for Ultraxion but I have no way to know what version that will be yet.
+	--
+	if Core:CheckVersion({ 50004, nil }) then
 		Addon.Events:RegisterEvent("UPDATE_EXTRA_ACTIONBAR")
 	end
 
