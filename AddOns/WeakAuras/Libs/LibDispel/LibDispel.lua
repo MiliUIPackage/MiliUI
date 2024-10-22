@@ -1132,7 +1132,7 @@ do
 		end
 
 		-- this will fix a problem where spells dont show as existing because they are 'hidden'
-		local undoRanks = (not Retail and GetCVar('ShowAllSpellRanks') ~= '1') and SetCVar('ShowAllSpellRanks', '1')
+		local undoRanks = (Classic and GetCVar('ShowAllSpellRanks') ~= '1') and SetCVar('ShowAllSpellRanks', '1')
 
 		if event == 'UNIT_PET' then
 			DispelList.Magic = CheckPetSpells()

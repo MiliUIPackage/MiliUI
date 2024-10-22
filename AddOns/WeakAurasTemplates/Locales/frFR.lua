@@ -7,18 +7,12 @@ end
 local L = WeakAuras.L
 
 -- WeakAuras/Templates
-	--[[Translation missing --]]
-	L["(Dwarf)"] = "(Dwarf)"
-	--[[Translation missing --]]
-	L["(Dwarf/Human)"] = "(Dwarf/Human)"
-	--[[Translation missing --]]
-	L["(Human)"] = "(Human)"
-	--[[Translation missing --]]
-	L["(Night Elf)"] = "(Night Elf)"
-	--[[Translation missing --]]
+	L["(Dwarf)"] = "(Nain)"
+	L["(Dwarf/Human)"] = "(Nain/Humain)"
+	L["(Human)"] = "(Humain)"
+	L["(Night Elf)"] = "(Elfe de la nuit)"
 	L["(Troll)"] = "(Troll)"
-	--[[Translation missing --]]
-	L["(Undead)"] = "(Undead)"
+	L["(Undead)"] = "(Mort-vivant)"
 	L["Abilities"] = "Capacités"
 	L["Add Triggers"] = "Ajouter des déclencheurs"
 	L["Always Active"] = "Toujours actif"

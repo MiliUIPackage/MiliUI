@@ -1378,11 +1378,20 @@ Private.load_prototype = {
       display = L["Skyriding"],
       type = "tristate",
       init = WeakAuras.IsRetail() and "arg" or nil,
-      width = WeakAuras.doubleWidth,
+      width = WeakAuras.normalWidth,
       optional = true,
       enable = WeakAuras.IsRetail(),
       hidden = not WeakAuras.IsRetail(),
       events = {"WA_DRAGONRIDING_UPDATE"}
+    },
+    {
+      name = "mounted",
+      display = L["Mounted"],
+      type = "tristate",
+      init = "arg",
+      width = WeakAuras.normalWidth,
+      optional = true,
+      events = {"PLAYER_MOUNT_DISPLAY_CHANGED"}
     },
     {
       name ="playerTitle",
@@ -1909,7 +1918,7 @@ Private.load_prototype = {
       display = L["Player Location ID(s)"],
       type = "string",
       multiline = true,
-      events = {"ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "VEHICLE_UPDATE"},
+      events = {"ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "VEHICLE_UPDATE", "WA_DELAYED_PLAYER_ENTERING_WORLD"},
       desc = get_zoneId_list,
       preamble = "local zoneChecker = Private.ExecEnv.ParseZoneCheck(%q)",
       test = "zoneChecker:Check(zoneId, zonegroupId, instanceId, minimapZoneText)",
@@ -1933,7 +1942,7 @@ Private.load_prototype = {
       values = "instance_types",
       sorted = true,
       init = "arg",
-      events = {"ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA"},
+      events = {"ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "WA_DELAYED_PLAYER_ENTERING_WORLD"},
       optional = true,
     },
     {
@@ -1944,7 +1953,7 @@ Private.load_prototype = {
       init = not WeakAuras.IsClassicEra() and "arg" or nil,
       enable = not WeakAuras.IsClassicEra(),
       hidden = WeakAuras.IsClassicEra(),
-      events = {"PLAYER_DIFFICULTY_CHANGED", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA"},
+      events = {"PLAYER_DIFFICULTY_CHANGED", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "WA_DELAYED_PLAYER_ENTERING_WORLD"},
       optional = true,
     },
     {
@@ -1956,7 +1965,7 @@ Private.load_prototype = {
       init = not WeakAuras.IsClassicEra() and "arg" or nil,
       enable = not WeakAuras.IsClassicEra(),
       hidden = WeakAuras.IsClassicEra(),
-      events = {"PLAYER_DIFFICULTY_CHANGED", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA"},
+      events = {"PLAYER_DIFFICULTY_CHANGED", "ZONE_CHANGED", "ZONE_CHANGED_INDOORS", "ZONE_CHANGED_NEW_AREA", "WA_DELAYED_PLAYER_ENTERING_WORLD"},
       optional = true,
     },
     {
@@ -3668,7 +3677,7 @@ Private.event_prototypes = {
         if powerType == 4 then
           table.insert(ret, [[
             local power = GetComboPoints(unit, unit .. '-target')
-            local total = math.max(1, UnitPowerMax(unit, 14))
+            local total = math.max(1, UnitPowerMax(unit, 4))
           ]])
         else
           table.insert(ret, [[
@@ -5972,7 +5981,13 @@ Private.event_prototypes = {
         test = "true",
         conditionType = "bool",
         conditionTest = function(state, needle)
-          return state and state.show and (UnitExists('target') and C_Item.IsItemInRange(state.itemname, 'target')) == (needle == 1)
+          if not state or not state.show or not UnitExists('target') then
+            return false
+          end
+          if InCombatLockdown() and not UnitCanAttack('player', 'target') then
+            return false
+          end
+          return C_Item.IsItemInRange(state.itemname, 'target') == (needle == 1)
         end,
         conditionEvents = AddTargetConditionEvents({
           "WA_SPELL_RANGECHECK",
@@ -6595,7 +6610,7 @@ Private.event_prototypes = {
       return { "SPELL_COOLDOWN_CHANGED:" .. spellName }
     end,
     force_events = "SPELL_UPDATE_USABLE",
-    name = L["Action Usable"],
+    name = L["Spell Usable"],
     statesParameter = "one",
     loadFunc = function(trigger)
       local spellName = type(trigger.spellName) ~= "table" and trigger.spellName or 0
@@ -6617,7 +6632,12 @@ Private.event_prototypes = {
         local followoverride = %s
         local effectiveSpellId = Private.ExecEnv.GetEffectiveSpellId(spellName, useExact, followoverride)
         local name, _, icon = Private.ExecEnv.GetSpellInfo(effectiveSpellId)
+      ]=]
 
+      if trigger.use_ignoreSpellCooldown then
+        ret = ret .. [=[local active = Private.ExecEnv.IsUsableSpell(spellName or "")]=]
+      else
+        ret = ret .. [=[
         local startTime, duration, gcdCooldown, readyTime, paused = WeakAuras.GetSpellCooldown(effectiveSpellId, nil, nil, nil, nil)
         local charges, maxCharges, spellCount, chargeGainTime, chargeLostTime = WeakAuras.GetSpellCharges(effectiveSpellId, nil)
         local stacks = maxCharges and maxCharges > 1 and charges
@@ -6628,7 +6648,8 @@ Private.event_prototypes = {
         end
         local ready = (startTime == 0 and not paused) or charges > 0
         local active = Private.ExecEnv.IsUsableSpell(spellName or "") and ready
-      ]=]
+        ]=]
+      end
       if(trigger.use_targetRequired) then
         ret = ret.."active = active and WeakAuras.IsSpellInRange(spellName or '', 'target')\n";
       end
@@ -6670,10 +6691,16 @@ Private.event_prototypes = {
         test = "true"
       },
       {
+        name = "ignoreSpellCooldown",
+        display = L["Ignore Spell Cooldown/Charges"],
+        type = "toggle",
+        test = "true"
+      },
+      {
         name = "charges",
         display = L["Charges"],
         type = "number",
-        enable = function(trigger) return not(trigger.use_inverse) end,
+        enable = function(trigger) return not trigger.use_inverse and not trigger.use_ignoreSpellCooldown end,
         store = true,
         conditionType = "number",
       },
@@ -6681,7 +6708,7 @@ Private.event_prototypes = {
         name = "spellCount",
         display = L["Spell Count"],
         type = "number",
-        enable = function(trigger) return not(trigger.use_inverse) end,
+        enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,
         store = true,
         conditionType = "number",
       },
@@ -6691,7 +6718,8 @@ Private.event_prototypes = {
         display = L["Since Ready"],
         conditionType = "elapsedTimer",
         store = true,
-        test = "true"
+        test = "true",
+        enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,
       },
       {
         hidden = true,
@@ -6699,7 +6727,8 @@ Private.event_prototypes = {
         display = L["Since Charge Gain"],
         conditionType = "elapsedTimer",
         store = true,
-        test = "true"
+        test = "true",
+        enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,
       },
       {
         hidden = true,
@@ -6707,7 +6736,8 @@ Private.event_prototypes = {
         display = L["Since Charge Lost"],
         conditionType = "elapsedTimer",
         store = true,
-        test = "true"
+        test = "true",
+        enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,
       },
       {
         name = "inverse",
@@ -6752,7 +6782,8 @@ Private.event_prototypes = {
         init = "stacks",
         test = "true",
         store = true,
-        conditionType = "number"
+        conditionType = "number",
+        enable = function(trigger) return not trigger.use_ignoreSpellCooldown end,
       },
       {
         hidden = true,
@@ -8625,13 +8656,23 @@ Private.event_prototypes = {
       local itemName = type(trigger.itemName) == "number" and trigger.itemName or string.format("%q", trigger.itemName or "0")
 
       local ret = [[
-        local inverse = %s;
+        local inverse = %s
         local triggerItemName = %s
-        local itemName = C_Item.GetItemInfo(triggerItemName)
         local _, _, _, _, icon = C_Item.GetItemInfoInstant(triggerItemName)
-        local itemSlot = %s;
-        local equipped = WeakAuras.CheckForItemEquipped(itemName, itemSlot);
-      ]];
+        local itemSlot = %s
+      ]]
+
+      if trigger.use_exact_itemName then
+        ret = ret ..[[
+          local itemName = triggerItemName
+          local equipped = WeakAuras.CheckForItemEquipped(triggerItemName, itemSlot)
+        ]]
+      else
+        ret = ret ..[[
+          local itemName = C_Item.GetItemInfo(triggerItemName)
+          local equipped = WeakAuras.CheckForItemEquipped(itemName, itemSlot)
+        ]]
+      end
 
       return ret:format(trigger.use_inverse and "true" or "false", itemName, trigger.use_itemSlot and trigger.itemSlot or "nil");
     end,
@@ -8647,7 +8688,8 @@ Private.event_prototypes = {
         display = L["Item"],
         type = "item",
         required = true,
-        test = "true"
+        test = "true",
+        showExactOption = true
       },
       {
         name = "itemSlot",
@@ -8729,7 +8771,8 @@ Private.event_prototypes = {
         type = "multiselect",
         values = "item_weapon_types",
         required = true,
-        test = "Private.ExecEnv.IsEquippedItemType(%s, itemSlot)"
+        test = "Private.ExecEnv.IsEquippedItemType(%s, itemSlot)",
+        multiNoSingle = true
       },
     },
     automaticrequired = true,
@@ -11449,6 +11492,7 @@ Private.event_prototypes = {
         "ZONE_CHANGED_INDOORS",
         "ZONE_CHANGED_NEW_AREA",
         "PLAYER_DIFFICULTY_CHANGED",
+        "WA_DELAYED_PLAYER_ENTERING_WORLD"
       }
     },
     internal_events = {"INSTANCE_LOCATION_CHECK"},

@@ -488,11 +488,17 @@ local methods = {
               fullName = name
             end
           end
-          local url = ""
-          if self.data.url then
-            url = " ".. self.data.url
+
+          if not (GetCurrentRegion() == 5 or GetLocale() == "zhCN") then -- China region (5), and chinese locale profanity filter doesn't allow links in chat
+            local url = ""
+            if self.data.url then
+              url = " ".. self.data.url
+            end
+            editbox:Insert("[WeakAuras: "..fullName.." - "..self.data.id.."]"..url)
+          else
+            editbox:Insert("[WeakAuras: "..fullName.." - "..self.data.id.."]")
           end
-          editbox:Insert("[WeakAuras: "..fullName.." - "..self.data.id.."]"..url)
+
           OptionsPrivate.Private.linked = OptionsPrivate.Private.linked or {}
           OptionsPrivate.Private.linked[self.data.id] = GetTime()
         elseif not self.data.controlledChildren then

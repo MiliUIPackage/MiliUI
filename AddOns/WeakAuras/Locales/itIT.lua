@@ -74,7 +74,6 @@ L["Absorb Heal Overlay"] = "Assorbe la copertura di guarigione"
 L["Absorb Overlay"] = "Absorb Overlay"
 L["Absorbed"] = "Assorbito"
 L["Action Button Glow"] = "Bagliore Pulsante Azioni"
-L["Action Usable"] = "Azione utilizzabile"
 L["Actions"] = "Azioni"
 L["Active"] = "Attivo"
 L[ [=[Active boss mod addon: |cFFffcc00BigWigs|r
@@ -355,6 +354,10 @@ L["Create"] = "Crea"
 L["Critical"] = "Critico"
 L["Critical (%)"] = "Critico (%)"
 L["Critical Rating"] = "Grado del Critico"
+--[[Translation missing --]]
+L["Crop X"] = "Crop X"
+--[[Translation missing --]]
+L["Crop Y"] = "Crop Y"
 --[[Translation missing --]]
 L["Crowd Controlled"] = "Crowd Controlled"
 L["Crushing"] = "Frantumazione "
@@ -940,9 +943,9 @@ L["Icon Function"] = "Icon Function"
 --[[Translation missing --]]
 L["Icon Function (fallback state)"] = "Icon Function (fallback state)"
 --[[Translation missing --]]
-L["ID"] = "ID"
---[[Translation missing --]]
 L["Id"] = "Id"
+--[[Translation missing --]]
+L["ID"] = "ID"
 --[[Translation missing --]]
 L["If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/weakauras!"] = "If you require additional assistance, please open a ticket on GitHub or visit our Discord at https://discord.gg/weakauras!"
 --[[Translation missing --]]
@@ -955,6 +958,8 @@ L["Ignore Rune CD"] = "Ignore Rune CD"
 L["Ignore Rune CDs"] = "Ignore Rune CDs"
 --[[Translation missing --]]
 L["Ignore Self"] = "Ignore Self"
+--[[Translation missing --]]
+L["Ignore Spell Cooldown/Charges"] = "Ignore Spell Cooldown/Charges"
 --[[Translation missing --]]
 L["Ignore Spell Override"] = "Ignore Spell Override"
 --[[Translation missing --]]
@@ -1012,9 +1017,9 @@ L["Instance"] = "Instance"
 --[[Translation missing --]]
 L["Instance Difficulty"] = "Instance Difficulty"
 --[[Translation missing --]]
-L["Instance ID"] = "Instance ID"
---[[Translation missing --]]
 L["Instance Id"] = "Instance Id"
+--[[Translation missing --]]
+L["Instance ID"] = "Instance ID"
 --[[Translation missing --]]
 L["Instance Info"] = "Instance Info"
 --[[Translation missing --]]
@@ -2480,7 +2485,7 @@ L["Warning"] = "Warning"
 --[[Translation missing --]]
 L["Warning for unknown aura:"] = "Warning for unknown aura:"
 --[[Translation missing --]]
-L["Warning: Anchoring to your own child '%s' in aura '%s' is imposssible."] = "Warning: Anchoring to your own child '%s' in aura '%s' is imposssible."
+L["Warning: Anchoring in aura '%s' is imposssible, due to an anchoring cycle"] = "Warning: Anchoring in aura '%s' is imposssible, due to an anchoring cycle"
 --[[Translation missing --]]
 L["Warning: Full Scan auras checking for both name and spell id can't be converted."] = "Warning: Full Scan auras checking for both name and spell id can't be converted."
 --[[Translation missing --]]

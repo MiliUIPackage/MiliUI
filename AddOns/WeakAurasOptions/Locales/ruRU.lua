@@ -900,6 +900,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Время �
 	L["The group and all direct children will share the same base frame level."] = "Группа и все её прямые дочерние элементы будут иметь один и тот же базовый уровень фрейма."
 	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "Номер триггера является необязательным. Если номер триггера не указан, будет использоваться триггер, выбранный через динамическую информацию."
 	L["The type of trigger"] = "Тип триггера"
+	--[[Translation missing --]]
+	L["The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"] = "The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"
 	L["Then "] = "Тогда "
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "Существует несколько специальных кодов для динамического текста. Нажмите, чтобы просмотреть список всех кодов динамического текста."
 	L["Thickness"] = "Толщина"
@@ -965,7 +967,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "Количество единиц"
 	L["Unit Frames"] = "Рамки единиц"
 	L["Unknown"] = "Неизвестно"
+	--[[Translation missing --]]
+	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
 	L["Unknown property '%s' found in '%s'"] = "Неизвестное свойство %s в переменной %s."
+	--[[Translation missing --]]
+	L["Unknown Spell"] = "Unknown Spell"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "В отличие от начальной или конечной анимации, основная зациклена и будет повторяться пока индикация не пропадет."
 	L["Update"] = "Обновить"
 	L["Update Auras"] = "Обновить индикации"

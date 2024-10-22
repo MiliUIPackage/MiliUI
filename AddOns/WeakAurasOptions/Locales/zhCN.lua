@@ -905,6 +905,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[事件发�
 	L["The group and all direct children will share the same base frame level."] = "此组与直接子元素将共享同一个框体层级。"
 	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "触发器编号为可选。当不指定触发器编号时，将使用通过动态信息选择的触发器。"
 	L["The type of trigger"] = "触发器类型"
+	L["The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"] = "WeakAuras 选项插件版本 %s 与 WeakAuras 本体版本 %s 不匹配。如果您在游戏运行时更新了插件，请尝试重新启动《魔兽世界》。否则请尝试重新安装 WeakAuras"
 	L["Then "] = "然后"
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "有几种特殊代码可用于使此文本动态化。点击查看包含所有动态文本代码的列表。"
 	L["Thickness"] = "粗细"
@@ -968,7 +969,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "单位计数"
 	L["Unit Frames"] = "单位框架"
 	L["Unknown"] = "未知"
+	--[[Translation missing --]]
+	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
 	L["Unknown property '%s' found in '%s'"] = "发现'%2$s'的未知属性'%1$s'"
+	--[[Translation missing --]]
+	L["Unknown Spell"] = "Unknown Spell"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "不同于开始或结束动画，主动画将不停循环，直到图示被隐藏。"
 	L["Update"] = "更新"
 	L["Update Auras"] = "更新光环"

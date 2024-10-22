@@ -1,7 +1,7 @@
 ## Interface: 110002
 ## Title: WeakAuras Options
 ## Author: The WeakAuras Team
-## Version: 5.17.1
+## Version: 5.17.2
 ## IconTexture: Interface\AddOns\WeakAuras\Media\Textures\icon.blp
 ## Notes: Options for WeakAuras
 ## Notes-esES: Opciones para WeakAuras
@@ -20,6 +20,7 @@
 embeds.xml
 locales.xml
 
+VersionCheck.lua
 ForAllIndentsAndPurposes.lua
 
 RegionOptions\AuraBar.lua

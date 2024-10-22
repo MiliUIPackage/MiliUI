@@ -1,4 +1,4 @@
-local MAJOR, MINOR = "LibAPIAutoComplete-1.0", 3
+local MAJOR, MINOR = "LibAPIAutoComplete-1.0", 4
 local lib = LibStub:NewLibrary(MAJOR, MINOR)
 if not lib then return end
 
@@ -210,6 +210,7 @@ function lib:enable(editbox, params)
   Init()
   -- hack for WeakAuras
   editbox.APIDoc_originalGetText = editbox.GetText
+  editbox.APIDoc_originalSetText = editbox.SetText
   -- hack for WowLua
   if editbox == WowLuaFrameEditBox then
     editbox.APIDoc_originalGetText = function()
@@ -451,7 +452,7 @@ function lib:SetWord(editbox, word)
 
   -- replace word
   text = text:sub(1, startPosition - 1) .. word .. text:sub(endPosition + 1, #text)
-  editbox:SetText(text)
+  editbox:APIDoc_originalSetText(text)
   -- SetText triggers the OnTextChanged handler without the "userInput" flag. We need that flag set to true, so run the handler again
   local script = editbox:GetScript("OnTextChanged")
   if script then

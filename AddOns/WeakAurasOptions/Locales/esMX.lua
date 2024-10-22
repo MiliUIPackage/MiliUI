@@ -880,6 +880,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = "Ocurrencia d
 	L["The group and all direct children will share the same base frame level."] = "El grupo y todos los hijos directos compartirán el mismo nivel de marco base."
 	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "El número de disparador es opcional. Cuando no se especifica un número de disparador, se usará el disparador seleccionado a través de información dinámica."
 	L["The type of trigger"] = "El tipo de activador"
+	L["The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"] = "La versión del addon WeakAuras Options %s no coincide con la versión de WeakAuras %s. Si actualizaste el addon mientras el juego estaba en ejecución, intenta reiniciar World of Warcraft. De lo contrario, intenta reinstalar WeakAuras."
 	L["Then "] = "Entonces"
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "Hay varios códigos especiales disponibles para hacer que este texto sea dinámico. Haz clic para ver una lista con todos los códigos de texto dinámico."
 	L["Thickness"] = "Espesor"
@@ -943,7 +944,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Unit Count"] = "Recuento de unidad"
 	L["Unit Frames"] = "Marcos de unidad"
 	L["Unknown"] = "Desconocido"
+	--[[Translation missing --]]
+	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
 	L["Unknown property '%s' found in '%s'"] = "Propiedad desconocida '%s' encontrada en '%s'"
+	--[[Translation missing --]]
+	L["Unknown Spell"] = "Unknown Spell"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "Ignorar animaciones de inicio y final: la animación principal se repetirá hasta que el aura se oculte."
 	L["Update"] = "Actualizar"
 	L["Update Auras"] = "Actualizar auras"

@@ -78,12 +78,12 @@ local L = WeakAuras.L
 	L["|c%02x%02x%02x%02xCustom Color|r"] = "|c%02x%02x%02x%02x사용자 정의 색상|r"
 	L["|cff999999Triggers tracking multiple units will default to being active even while no affected units are found without a Unit Count or Match Count setting applied.|r"] = "|cff999999여러 유닛을 추적하는 활성 조건은 유닛 수 또는 일치 횟수 설정이 안된 상태에서 오라에 걸린 유닛이 없을때도 기본으로 활성화됩니다.|r"
 	L["|cFFE0E000Note:|r This sets the description only on '%s'"] = "|cFFE0E000참고:|r '%s'에만 설명을 지정합니다."
-	L["|cFFE0E000Note:|r This sets the URL on all selected auras"] = "|cFFE0E000참고:|r 선택한 모든 오라에 URL을 지정합니다"
-	L["|cFFE0E000Note:|r This sets the URL on this group and all its members."] = "|cFFE0E000참고:|r 이 그룹과 그룹에 속한 모든 오라에 URL을 지정합니다."
+	L["|cFFE0E000Note:|r This sets the URL on all selected auras"] = "|cFFE0E000참고:|r 선택한 모든 위크오라에 URL을 설정합니다"
+	L["|cFFE0E000Note:|r This sets the URL on this group and all its members."] = "|cFFE0E000참고:|r 이 그룹 및 속해있는 모든 위크오라에 URL을 설정합니다."
 	L["|cFFFF0000Automatic|r length"] = "|cFFFF0000자동|r 길이"
 	L["|cFFFF0000default|r texture"] = "|cFFFF0000기본|r 텍스처"
 	L["|cFFFF0000desaturated|r "] = "|cFFFF0000흑백|r"
-	L["|cFFFF0000Note:|r The unit '%s' is not a trackable unit."] = "|cFFFF0000참고:|r '%s' 유닛은 추적할 수 없는 유닛입니다."
+	L["|cFFFF0000Note:|r The unit '%s' is not a trackable unit."] = "|cFFFF0000참고:|r '%s' 유닛은 추적할 수 없습니다."
 	L["|cFFFF0000Note:|r The unit '%s' requires soft target cvars to be enabled."] = "|cFFFF0000참고:|r '%s' 유닛은 액션 전투 관련 cvar의 활성화를 필요로 합니다."
 	L["|cFFffcc00Anchors:|r Anchored |cFFFF0000%s|r to frame's |cFFFF0000%s|r"] = "|cFFffcc00고정:|r |cFFFF0000%s|r에 고정하여 프레임의 |cFFFF0000%s|r에 위치"
 	L["|cFFffcc00Anchors:|r Anchored |cFFFF0000%s|r to frame's |cFFFF0000%s|r with offset |cFFFF0000%s/%s|r"] = "|cFFffcc00고정:|r |cFFFF0000%s|r에 고정하여 프레임의 |cFFFF0000%s|r에 위치 조정 |cFFFF0000%s/%s|r|1을;를; 적용"
@@ -106,15 +106,15 @@ local L = WeakAuras.L
 
 • |cff00ff00유닛 직접 지정|r으로 추적할 유닛ID를 직접 입력할 수 있습니다.
 
-|cffff0000참고|r: 게임에선 모든 유닛ID에 대해 이벤트를 발생시키지 않으며 그럴 경우 이 활성 조건에서 추적되지 않습니다.
+|cffff0000참고|r: 게임에선 모든 유닛ID에 대해 이벤트를 발동하지 않으므로 일부 유닛ID는 이 활성 조건에서 추적되지 않습니다.
 
-• |cffffff00파티|r, |cffffff00공격대|r, |cffffff00우두머리|r, |cffffff00투기장|r 및 |cffffff00이름표|r는 대응되는 유닛ID가 한 개 이상 일치할 수 있습니다.
+• |cffffff00파티|r, |cffffff00공격대|r, |cffffff00우두머리|r, |cffffff00투기장|r 및 |cffffff00이름표|r는 여러개의 유닛ID와 일치할 수 있습니다.
 
 • |cffffff00스마트 그룹|r은 현재 그룹 종류에 맞춰 조정되는데 그룹 상태가 아닐땐 "player", 파티일때 "party" 유닛 ("player" 포함), 공격대일때 "raid" 유닛으로 맞춰집니다.
 
-• |cffffff00다중 대상|r은 오라에 걸린 유닛 추적을 위해 유닛ID 대신 전투 기록 이벤트를 사용하려고 합니다.
+• |cffffff00다중 대상|r은 오라가 걸린 유닛 추적을 위해 유닛ID보다 전투 로그 이벤트를 먼저 사용해보려 할 것입니다.
 
-|cffff0000참고|r: 실제 유닛ID와 직접적인 관련이 없으며 다른 결과가 나올 수 있습니다.
+|cffff0000참고|r: 실제 유닛ID와 직접적인 관계가 없기 때문에 다른 결과가 나올 수 있습니다.
 
 
 |cffffff00*|r 노란색 유닛 설정은 한 개 이상의 유닛과 일치할 수 있으며 유닛 수나 조건 일치 개수 설정이 안되있고 오라에 걸린 유닛이 없을 때도 기본으로 활성화됩니다.]=]
@@ -163,7 +163,7 @@ Enable this setting if you want this timer to be hidden, or when using a WeakAur
 	L["and %s"] = "and %s"
 	L["and aligned left"] = ", 왼쪽 정렬"
 	L["and aligned right"] = ", 오른쪽 정렬"
-	L["And our Patreons, Discord Regulars and Subscribers, and Friends of the Addon:"] = "그리고 우리의 Patreon, Discord의 정기 방문자 및 구독자, 그리고 애드온의 친구 여러분:"
+	L["And our Patreons, Discord Regulars and Subscribers, and Friends of the Addon:"] = "그리고 우리의 Patreon, Discord의 정기 방문자 및 구독자와 애드온의 친구분들:"
 	L["and rotated left"] = ", 왼쪽으로 회전"
 	L["and rotated right"] = ", 오른쪽으로 회전"
 	L["and with width |cFFFF0000%s|r and %s"] = ", 너비 |cFFFF0000%s|r, %s"
@@ -289,7 +289,7 @@ Off Screen]=] ] = "위크오라가 화면 밖에 있습니다"
 	L["Copy settings..."] = "설정 복사..."
 	L["Copy to all auras"] = "모든 위크오라에 복사"
 	L["Could not parse '%s'. Expected a table."] = "'%s'를 분석할 수 없습니다. 테이블이어야 합니다."
-	L["Count"] = "숫자"
+	L["Count"] = "번호"
 	L["Counts the number of matches over all units."] = "모든 유닛에 대해 일치 횟수를 계산합니다."
 	L["Counts the number of matches per unit."] = "유닛당 일치 횟수를 계산합니다."
 	L["Create a Copy"] = "사본 생성"
@@ -338,7 +338,7 @@ UNIT_POWER_UPDATE:player, UNIT_AURA:nameplate:group PLAYER_TARGET_CHANGED CLEU:S
 	L["Debug Log:"] = "디버그 로그:"
 	L["Default"] = "기본값"
 	L["Default Color"] = "기본 색상"
-	L["Delay"] = "지연 시간"
+	L["Delay"] = "시간 지연"
 	L["Delete"] = "삭제"
 	L["Delete all"] = "모두 삭제"
 	L["Delete children and group"] = "자식 위크오라와 그룹 삭제"
@@ -435,7 +435,7 @@ UNIT_POWER_UPDATE:player, UNIT_AURA:nameplate:group PLAYER_TARGET_CHANGED CLEU:S
 	L["Filter by Arena Spec"] = "투기장 전문화별 필터"
 	L["Filter by Class"] = "직업별 필터"
 	L["Filter by Group Role"] = "그룹 역할별 필터"
-	L["Filter by Hostility"] = "적대적 기준으로 필터링"
+	L["Filter by Hostility"] = "적 유닛 필터"
 	L["Filter by Npc ID"] = "NPC ID별 필터"
 	L["Filter by Raid Role"] = "공격대 역할별 필터"
 	L["Filter by Specialization"] = "전문화별 필터"
@@ -446,7 +446,7 @@ Supports multiple entries, separated by commas
 Can use \ to escape -.]=] ] = [=[필터 형식: '이름', '이름-서버', '-서버'. 여러 항목을 지원하며, 각 항목은 쉼표로 구분합니다.
 -는 앞에 \를 사용해서 이스케이프 처리를 할 수 있습니다.]=]
 	L[ [=[Filter to only dispellable de/buffs of the given type(s)
-Bleed classification via LibDispel]=] ] = "주어진 유형의 해제 가능한 디버프/버프만 필터링 (LibDispel을 통한 출혈 분류)"
+Bleed classification via LibDispel]=] ] = "LibDispel을 통해 출혈로 분류된 버프/디버프만 인식합니다"
 	L["Find Auras"] = "위크오라 구하기"
 	L["Finish"] = "종료"
 	L["Finishing..."] = "완료중..."
@@ -539,7 +539,7 @@ Bleed classification via LibDispel]=] ] = "주어진 유형의 해제 가능한 
 	L["If"] = "If"
 	L["If %s"] = "If %s"
 	L["If checked, then the combo box in the User settings will be sorted."] = "체크하면 사용자 설정의 콤보 박스가 정렬됩니다."
-	L["If checked, then the user will see a multi line edit box. This is useful for inputting large amounts of text."] = "체크하면 넓은 편집툴이 표시됩니다. 많은 양의 텍스트를 입력 할 때 유용합니다."
+	L["If checked, then the user will see a multi line edit box. This is useful for inputting large amounts of text."] = "체크하면 더 넓은 편집용 상자가 나옵니다. 다량의 텍스트를 입력할 때 좋습니다."
 	L["If checked, then this group will not merge with other group when selecting multiple auras."] = "체크하면 여러 위크오라 선택시 이 그룹은 다른 그룹과 합쳐지지 않습니다."
 	L["If checked, then this option group can be temporarily collapsed by the user."] = "체크하면 이 옵션 그룹은 사용자에 의해 임시로 접기 상태가 될 수 있습니다."
 	L["If checked, then this option group will start collapsed."] = "체크하면 이 옵션 그룹은 접기 상태로 시작합니다."
@@ -726,7 +726,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Outer"] = "외부"
 	L["Outline"] = "외곽선"
 	L["Overflow"] = "텍스트 넘침"
-	L["Overlay %s Info"] = "오버레이 %s 정보"
+	L["Overlay %s Info"] = "%s 정보 오버레이"
 	L["Overlays"] = "오버레이"
 	L["Own Only"] = "내 것만"
 	L["Paste Action Settings"] = "동작 설정 붙여넣기"
@@ -882,7 +882,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Stack Count"] = "중첩 횟수"
 	L["Stack Info"] = "중첩 정보"
 	L["Stacks - The number of stacks of an aura (usually)"] = "중첩 - 오라의 중첩 갯수입니다 (일반적으로)"
-	L["Stagger"] = "계단식 배치"
+	L["Stagger"] = "시간차"
 	L["Standby"] = "대기중"
 	L["Star"] = "별"
 	L["Start"] = "시작"
@@ -915,7 +915,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["Texture Wrap"] = "텍스처 넘침"
 	L["Texture X Offset"] = "텍스처 X 위치 조정"
 	L["Texture Y Offset"] = "텍스처 Y 위치 조정"
-	L["Thanks"] = "고마워요"
+	L["Thanks"] = "감사 인사"
 	L["The addon ElvUI is enabled. It might add cooldown numbers to the swipe. You can configure these in the ElvUI settings"] = "ElvUI 애드온이 활성화 되었습니다. 회전 애니메이션에 쿨타임 시간이 표시됩니다. ElvUI 설정에서 조정할 수 있습니다"
 	L["The addon OmniCC is enabled. It might add cooldown numbers to the swipe. You can configure these in the OmniCC settings"] = "OmniCC 애드온이 활성화 되었습니다. 회전 애니메이션에 쿨타임 시간이 표시됩니다. OmniCC 설정에서 조정할 수 있습니다"
 	L["The duration of the animation in seconds."] = "애니메이션 지속시간 (초)"
@@ -923,6 +923,7 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=] ] = [=[위크오�
 	L["The group and all direct children will share the same base frame level."] = "이 그룹과 모든 직속 자식 위크오라는 같은 기반의 프레임 레벨을 공유합니다."
 	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "활성 조건 번호는 선택 사항입니다. 활성 조건 번호를 지정하지 않으면 동적 정보를 통해 선택된 활성 조건이 사용됩니다."
 	L["The type of trigger"] = "활성 조건 종류"
+	L["The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"] = "WeakAuras Options 애드온 %s 버전이 WeakAuras %s 버전과 맞지 않습니다. 게임을 실행한 상태에서 애드온을 업데이트했다면 월드 오브 워크래프트를 껐다 다시 실행해보고 안되면 WeakAuras를 다시 설치해 보시기 바랍니다."
 	L["Then "] = "Then"
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "이 텍스트를 동적으로 만들 수 있는 여러 특수 코드가 있습니다. 클릭하면 모든 동적 텍스트 코드가 표시됩니다."
 	L["Thickness"] = "굵기"
@@ -981,11 +982,15 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	L["Type 'select' for '%s' requires a values member'"] = "'%s'에 대해 'select' 유형은 values 멤버가 필요합니다"
 	L["Ungroup"] = "그룹 해제"
 	L["Unit"] = "유닛"
-	L["Unit %s is not a valid unit for RegisterUnitEvent"] = "%s 유닛은 RegisterUnitEvent에 적합하지 않은 유닛입니다."
+	L["Unit %s is not a valid unit for RegisterUnitEvent"] = "%s 유닛은 RegisterUnitEvent에 적합하지 않습니다."
 	L["Unit Count"] = "유닛 수"
 	L["Unit Frames"] = "유닛 프레임"
 	L["Unknown"] = "알 수 없음"
+	--[[Translation missing --]]
+	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
 	L["Unknown property '%s' found in '%s'"] = "'%2$s'에 알 수 없는 속성 '%1$s'|1이;가; 있음"
+	--[[Translation missing --]]
+	L["Unknown Spell"] = "Unknown Spell"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "시작 또는 종료 애니메이션과 달리 메인 애니메이션은 디스플레이가 숨겨질 때까지 계속 반복됩니다."
 	L["Update"] = "업데이트"
 	L["Update Auras"] = "위크오라 업데이트"

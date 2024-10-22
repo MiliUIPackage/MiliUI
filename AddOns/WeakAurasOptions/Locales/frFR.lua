@@ -49,9 +49,9 @@ local L = WeakAuras.L
 	L["%s - Option #%i has the key %s. Please choose a different option key."] = "%s - L'option #%i est actuellement attribuée à la touche %s. Veuillez choisir une touche différente."
 	L["%s - Rotate Animation"] = "%s - Rotation de l'animation"
 	L["%s - Scale Animation"] = "%s - Animation de l'échelle"
-	L["%s - Start"] = "%s - Commencer"
-	L["%s - Start Action"] = "%s - Commencer une action"
-	L["%s - Start Custom Text"] = "%s - Commencer un texte personnalisé"
+	L["%s - Start"] = "%s - Démarrer"
+	L["%s - Start Action"] = "%s - Démarrer une action"
+	L["%s - Start Custom Text"] = "%s - Démarrer un texte personnalisé"
 	L["%s - Translate Animation"] = "%s - Traduire l'animation"
 	--[[Translation missing --]]
 	L["%s - Trigger Logic"] = "%s - Trigger Logic"
@@ -494,10 +494,9 @@ UNIT_POWER, UNIT_AURA PLAYER_TARGET_CHANGED
 	L["Event Type"] = "Type d'évènement"
 	L["Event(s)"] = "Évènement(s)"
 	L["Everything"] = "Tous"
-	--[[Translation missing --]]
-	L["Exact Item Match"] = "Exact Item Match"
-	L["Exact Spell ID(s)"] = "ID(s) de sort exact(s)"
-	L["Exact Spell Match"] = "Correspondance Exacte du Sort"
+	L["Exact Item Match"] = "Correspondance exacte de l'objet"
+	L["Exact Spell ID(s)"] = "Correspondance exacte de l'ID du/des sort(s)"
+	L["Exact Spell Match"] = "Correspondance exacte du sort"
 	L["Expand"] = "Agrandir"
 	L["Expand all loaded displays"] = "Agrandir tous affichages chargés"
 	L["Expand all non-loaded displays"] = "Agrandir tous affichage non-chargés"
@@ -702,7 +701,7 @@ Si cette case est cochée, ce séparateur inclura du texte. Sinon, ce sera juste
 	L["Ignore Wago updates"] = "Ignore Wago updates"
 	L["Ignored"] = "Ignoré"
 	L["Ignored Aura Name"] = "Ignorer par nom d'aura"
-	L["Ignored Exact Spell ID(s)"] = "Ignorer par ID(s) de sort exact(s)"
+	L["Ignored Exact Spell ID(s)"] = "Ignorer par correspondance exacte de l'ID du/des sort(s)"
 	L["Ignored Name(s)"] = "Ignorer par nom(s)"
 	L["Ignored Spell ID"] = "Ignorer par ID de sort"
 	L["Import"] = "Importer"
@@ -1201,6 +1200,8 @@ every 3 events starting from 2nd and ending at 11th: 2-11/3]=]
 	--[[Translation missing --]]
 	L["The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."] = "The trigger number is optional. When no trigger number is specified, the trigger selected via dynamic information will be used."
 	L["The type of trigger"] = "Le type de déclencheur"
+	--[[Translation missing --]]
+	L["The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"] = "The WeakAuras Options Addon version %s doesn't match the WeakAuras version %s. If you updated the addon while the game was running, try restarting World of Warcraft. Otherwise try reinstalling WeakAuras"
 	L["Then "] = "Alors"
 	--[[Translation missing --]]
 	L["There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."] = "There are several special codes available to make this text dynamic. Click to view a list with all dynamic text codes."
@@ -1293,7 +1294,11 @@ Upgrade your version of WeakAuras or wait for next release before installing thi
 	--[[Translation missing --]]
 	L["Unknown"] = "Unknown"
 	--[[Translation missing --]]
+	L["Unknown Encounter's Spell Id"] = "Unknown Encounter's Spell Id"
+	--[[Translation missing --]]
 	L["Unknown property '%s' found in '%s'"] = "Unknown property '%s' found in '%s'"
+	--[[Translation missing --]]
+	L["Unknown Spell"] = "Unknown Spell"
 	L["Unlike the start or finish animations, the main animation will loop over and over until the display is hidden."] = "Contrairement aux animations de début et de fin, l'animation principale bouclera tant que l'affichage est visible."
 	--[[Translation missing --]]
 	L["Update"] = "Update"
